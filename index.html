@@ -1692,6 +1692,122 @@
     .fsh-log-row .lb{ display:none; }
     .btn.fsh-cast{ min-width:0; width:100%; }
   }
+
+/* ---------------- GRAND ARENA ---------------- */
+#tab-arena .ar-canvas-wrap{ border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); }
+#arCanvas{ width:100%; height:auto; display:block; background:#2b3050; }
+#arLog{ display:none; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.07); border-radius:10px;
+  padding:10px 12px; height:120px; overflow-y:auto; font-size:0.85rem; line-height:1.55; color:#cfd3e4; margin-top:10px; }
+.ar-cond{ font-size:0.95rem; color:#cfd3e4; margin:10px 2px 4px; }
+.ar-rival{ color:#ffcf6a; font-size:0.9rem; margin:2px 2px 4px; }
+.ar-oracle{ color:#c9a6ff; font-size:0.9rem; margin:2px 2px 4px; }
+.ar-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:10px; }
+.ar-card{ position:relative; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09);
+  border-radius:12px; padding:14px 10px 12px; text-align:center; }
+.ar-card.ar-champ{ border-color:rgba(255,207,64,0.5); }
+.ar-card.ar-hinted{ border-color:rgba(201,166,255,0.65); box-shadow:0 0 12px rgba(201,166,255,0.18); }
+.ar-belt{ position:absolute; top:6px; left:0; right:0; font-size:0.62rem; letter-spacing:0.12em; color:#ffcf40; }
+.ar-emoji{ font-size:2.1rem; margin-top:6px; }
+.ar-name{ font-weight:700; margin-top:4px; }
+.ar-epithet{ font-size:0.75rem; color:#9aa0b6; font-style:italic; min-height:2.1em; margin-top:2px; }
+.ar-record{ font-size:0.8rem; color:#cfd3e4; margin-top:4px; }
+.ar-quirk{ font-size:0.78rem; color:#ffcf6a; margin-top:2px; cursor:help; }
+.ar-bars{ display:flex; gap:4px; align-items:flex-end; justify-content:center; height:44px; margin-top:8px; }
+.ar-bar{ width:11px; height:44px; background:rgba(255,255,255,0.06); border-radius:3px; position:relative; }
+.ar-bar i{ position:absolute; bottom:0; left:0; right:0; border-radius:3px;
+  background:linear-gradient(180deg,#8fa2ff,#5e6fd8); display:block; }
+.ar-betbtn{ margin-top:10px; width:100%; padding:9px 0; border:none; border-radius:9px;
+  background:#5e6fd8; color:#fff; font-weight:700; cursor:pointer; }
+.ar-betbtn:hover{ background:#707ff0; }
+.ar-wager{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px;
+  background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 12px; }
+.ar-wlabel{ font-size:0.75rem; letter-spacing:0.12em; color:#9aa0b6; font-weight:700; }
+#arWager{ width:130px; background:rgba(0,0,0,0.35); color:#ffcf6a; font-weight:700;
+  border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:8px 10px; font-size:1rem; }
+.ar-chip{ padding:8px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.05); color:#e8eaf5; font-weight:700; cursor:pointer; }
+.ar-chip:hover{ border-color:#ffcf6a; color:#ffcf6a; }
+.ar-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.ar-actions button{ padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.05); color:#e8eaf5; cursor:pointer; }
+.ar-actions button:hover{ border-color:#c9a6ff; }
+.ar-actions button:disabled{ opacity:0.5; cursor:default; }
+.ar-note{ font-size:0.85rem; color:#9aa0b6; margin-top:10px; line-height:1.5; }
+.ar-livebar{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;
+  margin-top:10px; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px; padding:10px 12px; font-size:0.9rem; }
+.ar-pot{ color:#8fdc8f; }
+.ar-speed{ display:flex; gap:6px; align-items:center; }
+.ar-spd{ padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.05); color:#e8eaf5; cursor:pointer; }
+.ar-spd.on{ background:#5e6fd8; border-color:#5e6fd8; }
+#arSkipBtn{ padding:6px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.05); color:#ffcf6a; cursor:pointer; }
+.ar-result{ text-align:center; padding:22px 12px 16px; margin-top:12px; border-radius:14px;
+  border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); }
+.ar-result.ar-won{ border-color:rgba(143,220,143,0.5); }
+.ar-result.ar-lost{ border-color:rgba(255,138,128,0.45); }
+.ar-remoji{ font-size:2.6rem; }
+.ar-rtitle{ font-size:1.25rem; font-weight:800; margin-top:6px; }
+.ar-rsub{ margin-top:4px; font-size:0.92rem; }
+.ar-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:12px; }
+.ar-chipres{ background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);
+  border-radius:999px; padding:7px 13px; font-size:0.88rem; font-weight:700; }
+.ar-next{ margin-top:12px; padding:11px 18px; border:none; border-radius:10px;
+  background:#5e6fd8; color:#fff; font-weight:700; cursor:pointer; }
+
+/* ---------------- CARD INSPECTOR ---------------- */
+#cardInfoOverlay{ position:fixed; inset:0; background:rgba(6,7,11,.94); z-index:120;
+  display:none; align-items:center; justify-content:center; padding:18px; overflow-y:auto; }
+#cardInfoOverlay.show{ display:flex; }
+.ci-box{ display:flex; gap:22px; max-width:860px; width:100%; align-items:stretch;
+  background:var(--panel2); border:1px solid rgba(255,255,255,0.1); border-radius:18px;
+  padding:22px; position:relative; margin:auto; }
+.ci-close{ position:absolute; top:10px; right:12px; width:34px; height:34px; border-radius:50%;
+  border:1px solid rgba(255,255,255,0.16); background:rgba(0,0,0,0.4); color:#e8eaf5;
+  font-size:1rem; cursor:pointer; z-index:6; }
+.ci-close:hover{ border-color:#fff; }
+.ci-card-holder{ flex:0 0 250px; display:flex; align-items:center; }
+.ci-card{ width:250px; font-size:1rem; }
+.ci-card .art{ font-size:5.2rem; text-align:center; margin:auto 0; }
+.ci-card .rtag{ font-size:0.72rem; letter-spacing:0.1em; font-weight:800; }
+.ci-card .name{ font-weight:800; text-align:center; font-size:1.02rem; line-height:1.3; }
+.ci-card .cat{ text-align:center; font-size:0.78rem; color:var(--muted); margin-top:4px; }
+.ci-card .count{ position:absolute; bottom:8px; right:10px; font-size:0.8rem; color:var(--muted); }
+.ci-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+.ci-title{ font-size:1.35rem; font-weight:800; margin-top:2px; padding-right:36px; }
+.ci-sub{ font-size:0.85rem; color:var(--muted); margin-top:-6px; }
+.ci-photo-wrap{ border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);
+  background:rgba(0,0,0,0.3); min-height:120px; max-height:240px; display:flex;
+  align-items:center; justify-content:center; position:relative; }
+.ci-photo-wrap img{ width:100%; height:100%; max-height:240px; object-fit:cover; display:block; }
+.ci-photo-loading{ color:var(--muted); font-size:0.9rem; padding:40px 10px; }
+.ci-photo-cap{ position:absolute; left:0; right:0; bottom:0; padding:4px 10px; font-size:0.68rem;
+  color:rgba(255,255,255,0.85); background:linear-gradient(transparent, rgba(0,0,0,0.75)); }
+.ci-desc{ font-size:0.92rem; line-height:1.55; color:#cfd3e4; }
+.ci-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.ci-chip{ font-size:0.75rem; padding:5px 10px; border-radius:999px;
+  border:1px solid rgba(255,255,255,0.13); background:rgba(255,255,255,0.04); color:#cfd3e4; }
+.ci-flavor{ font-size:0.85rem; font-style:italic; color:var(--muted); border-left:3px solid rgba(255,255,255,0.14);
+  padding-left:10px; line-height:1.5; }
+.ci-link a{ color:#8fa2ff; font-size:0.82rem; text-decoration:none; }
+.ci-link a:hover{ text-decoration:underline; }
+#collectionGrid .mini-card:not(.locked){ cursor:zoom-in; }
+@media (max-width:700px){
+  .ci-box{ flex-direction:column; align-items:center; padding:16px; }
+  .ci-card-holder{ flex:0 0 auto; }
+  .ci-card{ width:200px; }
+}
+
+/* realistic catch photo on the result card */
+.fsh-card .rPhoto{ width:min(78%, 300px); margin:0 auto 10px; border-radius:12px; overflow:hidden;
+  position:relative; display:flex; align-items:center; justify-content:center; min-height:64px; }
+.fsh-card .rPhoto img{ width:100%; max-height:170px; object-fit:cover; display:block;
+  border-radius:12px; border:1px solid rgba(255,255,255,0.14);
+  box-shadow:0 8px 22px rgba(0,0,0,0.45); animation:fshPhotoIn .4s ease; }
+.fsh-card .rPhotoIcon{ position:absolute; right:7px; bottom:5px; font-size:22px;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.8)); }
+@keyframes fshPhotoIn{ from{ opacity:0; transform:scale(.94); } to{ opacity:1; transform:scale(1); } }
 </style>
 </head>
 <body>
@@ -1718,6 +1834,7 @@
   <button data-tab="market">Market</button>
   <button data-tab="empire">Empire</button>
   <button data-tab="siege">Siege</button>
+  <button data-tab="arena">Arena</button>
   <button data-tab="fishing">Fishing</button>
   <button data-tab="casino">Risk it All</button>
   <button data-tab="collection">Collection</button>
@@ -2009,6 +2126,22 @@
         <div class="sg-sel" id="sgSelPanel"></div>
         <div class="sg-log" id="sgLog"></div>
       </div>
+    </div>
+  </section>
+
+  <section id="tab-arena" style="display:none;">
+    <div class="panel">
+      <div style="text-align:center; padding:6px 10px 2px;">
+        <div style="font-size:2rem;">🏛️</div>
+        <h2 style="margin:6px 0 8px;">The Grand Arena</h2>
+        <p style="color:#9aa0b6; max-width:760px; margin:0 auto; line-height:1.55;">Thirty-two fighters. One sand pit. Study the matchup, read the weather, mind the champion — then put your credits where your gut is. Winning bets pay out credits, <b>permanent Glory for your Army</b>, and at long odds, <b>cards</b>. Every fifth bout is a six-way Grand Melee.</p>
+      </div>
+    </div>
+    <div class="panel"><div class="stats-bar" id="arStats"></div></div>
+    <div class="panel">
+      <div class="ar-canvas-wrap"><canvas id="arCanvas" width="1520" height="680"></canvas></div>
+      <div id="arLog"></div>
+      <div id="arPanel"></div>
     </div>
   </section>
 
@@ -2595,6 +2728,21 @@
   </div>
 </div>
 
+<div id="cardInfoOverlay">
+  <div class="ci-box">
+    <button class="ci-close" id="ciClose">✕</button>
+    <div class="ci-card-holder"><div class="mini-card ci-card" id="ciCard"></div></div>
+    <div class="ci-info">
+      <div class="ci-title" id="ciTitle"></div>
+      <div class="ci-sub" id="ciSub"></div>
+      <div class="ci-photo-wrap" id="ciPhotoWrap"></div>
+      <div class="ci-desc" id="ciDesc"></div>
+      <div class="ci-chips" id="ciChips"></div>
+      <div class="ci-flavor" id="ciFlavor"></div>
+      <div class="ci-link" id="ciLink"></div>
+    </div>
+  </div>
+</div>
 <div id="revealOverlay">
   <div class="reveal-topbar">
     <div class="reveal-count" id="revealCount"></div>
@@ -3339,10 +3487,13 @@ function migratePlayerXP(){
       `Your level is recalculated to ${state.player.level} (was ${oldLevel}). Nothing else was lost.`), 600);
   }
 }
+function defaultArena(){
+  return { glory:0, betsWon:0, betsLost:0, wagered:0, won:0, bestOdds:0, bouts:0, records:{} };
+}
 function freshState(){
   return { credits:100000, scrap:0, owned:{}, packsOpened:0, totalMined:0, lastMineTs:Date.now(), miningBonus:0,
     settings:defaultSettings(), upgrades:defaultUpgrades(), market:null, empire:defaultEmpire(), player:defaultPlayer(), siege:defaultSiege(), fishing:defaultFishing(),
-    account:defaultAccount(), casino:defaultCasino(), lottery:defaultLottery(), redeemedCodes:[] };
+    account:defaultAccount(), casino:defaultCasino(), lottery:defaultLottery(), arena:defaultArena(), redeemedCodes:[] };
 }
 function loadState(){
   try{
@@ -3393,6 +3544,8 @@ function loadState(){
         if(!Object.keys(s.fishing.bait).length){ s.fishing.bait = { worm:25 }; s.fishing.activeBait = "worm"; }
       }
       if(!Array.isArray(s.fishing.log)) s.fishing.log = [];
+      if(s.arena===undefined) s.arena = defaultArena();
+      if(typeof s.arena.records !== "object" || !s.arena.records) s.arena.records = {};
       if(s.siege===undefined) s.siege = defaultSiege();
       if(s.siege.cleared===undefined) s.siege.cleared = {};
       if(s.siege.bestEndlessWave===undefined) s.siege.bestEndlessWave = 0;
@@ -3853,7 +4006,8 @@ function computeEmpireStats(){
   const b = state.empire.buildings;
   const c = state.empire.castle;
   const bannerMult = 1 + (c.banner||0)*BANNER_PCT_PER_LEVEL;
-  const armyStrength = Math.round((b.barracks||0)*ARMY_PER_LEVEL*bannerMult);
+  const arenaGlory = (state.arena && state.arena.glory) || 0;   // won in the Grand Arena, permanent
+  const armyStrength = Math.round((b.barracks||0)*ARMY_PER_LEVEL*bannerMult) + arenaGlory;
   const weaponPower = (b.blacksmith||0)*WEAPON_PER_LEVEL;
   const towerDefense = (b.watchtower||0)*TOWER_PER_LEVEL;
   const castleDefense = (c.keep||0)*KEEP_DEF_PER_LEVEL;
@@ -4619,6 +4773,7 @@ function renderCollection(){
       const fx = fxClassForTier(c.rarity);
       const el = document.createElement("div");
       el.className = "mini-card" + (owned===0 ? " locked":"") + (owned>0 && fx ? " "+fx : "");
+      el.dataset.cid = c.id;
       el.style.setProperty("--rc", r.color);
       el.style.borderColor = r.color;
       el.innerHTML = `
@@ -9797,22 +9952,109 @@ function renderEquipment(){
   wrap.querySelectorAll("[data-charm]").forEach(b=>b.addEventListener("click",()=>fshUseCharm(b.dataset.charm)));
 }
 
+
+/* ---------------- FISHING: REALISTIC CATCH PHOTOS ----------------
+   Every catch gets a real photograph on the result card, looked up by name from
+   the same archive the card inspector uses (and sharing its cache). Fantasy and
+   ambiguous catches map to their closest real-world cousin below. The lookup is
+   kicked off the moment the fish bites, so by the time you've reeled it in the
+   photo is almost always already here. */
+const FSH_PIC_ALIAS = {
+  "Old Boot":"Wellington boot", "Rusty Can":"Steel and tin cans", "Tangled Seaweed":"Seaweed",
+  "Soggy Newspaper":"Newspaper", "Someone's Sunglasses":"Sunglasses",
+  "Little Sunfish":"Bluegill", "Creek Chub":"Creek chub", "Pond Snail":"Lymnaeidae",
+  "River Roach":"Common roach", "Rainbow Darter":"Rainbow darter", "Lake Herring":"Cisco (fish)",
+  "Spot Croaker":"Spot (fish)", "Crayfish":"Crayfish", "Brook Silverside":"Brook silverside",
+  "Silver Bream":"Silver bream", "Sea Bream":"Gilt-head bream", "Porgy":"Sparidae",
+  "Sauger":"Sauger", "Blue Crab":"Chesapeake blue crab",
+  "Lake Muskie":"Muskellunge", "Tiger Muskie":"Tiger muskellunge", "Steelhead":"Rainbow trout",
+  "King Salmon":"Chinook salmon", "Snakehead":"Snakehead (fish)", "Rock Octopus":"Octopus",
+  "Reef Squid":"Caribbean reef squid", "Pufferfish":"Tetraodontidae", "Porcupinefish":"Porcupinefish",
+  "Mahi-Mahi":"Mahi-mahi", "Great Barracuda":"Great barracuda",
+  "Giant Tarpon":"Tarpon", "Goliath Grouper":"Atlantic goliath grouper", "Giant Trevally":"Giant trevally",
+  "Pacific Halibut":"Pacific halibut", "Giant Squid":"Giant squid", "Beluga Sturgeon":"Beluga (sturgeon)",
+  "King Mackerel":"King mackerel",
+  "Golden Koi":"Koi", "Ghost Koi":"Koi", "Moonlit Eel":"European eel",
+  "The Old Man of the Lake":"Wels catfish", "Silverscale Leviathan":"Oarfish",
+  "Abyssal Anglerfish":"Anglerfish", "Kraken Hatchling":"Giant Pacific octopus",
+  "Megalodon Pup":"Megalodon", "Rainbow Serpent Eel":"Moray eel",
+  "Frost Whale Calf":"Beluga whale", "Thunderfin Marlin":"Atlantic blue marlin",
+  "Colossal Squid":"Colossal squid", "Great White Shark":"Great white shark",
+  "Sunken Chest":"Treasure hunting", "Message in a Bottle":"Message in a bottle",
+  "Ship's Bell":"Ship's bell", "Pearl Oyster":"Pinctada", "Old Coin Purse":"Coin purse",
+  "Doubloon Stack":"Doubloon", "Ancient Amphora":"Amphora", "Ruby Ring":"Ruby",
+  "Bronze Trident":"Trident", "Captain's Spyglass":"Spyglass", "Treasure Map":"Treasure map",
+  "Jeweled Chalice":"Chalice", "Seer's Orb":"Crystal ball",
+  "Gold Pocket Watch":"Pocket watch", "Pearl Necklace":"Pearl", "Silver Goblet":"Chalice",
+  "Jade Figurine":"Chinese jade", "Antique Sextant":"Sextant",
+  "Drowned King's Crown":"Crown", "Flawless Diamond":"Diamond", "Emerald Dagger":"Dagger",
+  "Gilded Opera Mask":"Venetian mask", "Meteorite Shard":"Meteorite",
+};
+function fshPicSubject(name){ return FSH_PIC_ALIAS[name] || name; }
+function fshPrefetchPic(name){ try{ ciLookup(fshPicSubject(name)); }catch(e){} }
+let fshPicToken = 0;
+function fshLoadResultPhoto(r){
+  if(r.failed || !r.title) return;
+  const token = ++fshPicToken;
+  ciLookup(fshPicSubject(r.title)).then(entry=>{
+    if(token !== fshPicToken) return;
+    const ph = document.getElementById("fshResultPhoto");
+    if(!ph || !entry || !entry.img) return;
+    const safeIcon = (r.icon || "🎣").replace(/'/g,"");
+    ph.innerHTML = `<img src="${entry.img}" alt="${r.title}"
+        onerror="this.parentNode.innerHTML='<div class=&quot;rIcon&quot;>${safeIcon}</div>'">
+      <span class="rPhotoIcon">${r.icon || ""}</span>`;
+  });
+}
+
 /* ---------------- FISHING: THE CATCH TABLE ---------------- */
+/* Item entry: [name, icon, valueMult?, weightFactor?]
+   valueMult scales the credit payout (valuable finds), weightFactor keeps a ring from weighing 30 lb.
+   Icons follow one rule: a species only gets a specific emoji if it actually IS that creature —
+   🦈 sharks only, 🐡 puffers only, 🐙🦑🦀🦞🦐🦪🐌 their real owners, everything else 🐟/🐠. */
 const FSH_CATCH = [
   { tier:0, label:"Junk",      color:"#9a9fae", need:60,  pull:4,  strain:1.00, cr:[400,1400],      rep:0,    scrap:[1,3],
     items:[["Old Boot","👢"],["Rusty Can","🥫"],["Tangled Seaweed","🌿"],["Soggy Newspaper","📰"],["Someone's Sunglasses","🕶️"]] },
   { tier:1, label:"Common",    color:"#8fae7a", need:115, pull:6,  strain:1.08, cr:[1500,4500],     rep:2,    scrap:[1,4],
-    items:[["Bluegill","🐟"],["Yellow Perch","🐠"],["Little Sunfish","🐟"],["Creek Chub","🐟"]] },
+    items:[["Bluegill","🐟"],["Yellow Perch","🐟"],["Little Sunfish","🐠"],["Creek Chub","🐟"],
+      ["Black Crappie","🐟"],["Rock Bass","🐟"],["Golden Shiner","🐟"],["Fathead Minnow","🐟"],["Brown Bullhead","🐟"],
+      ["White Perch","🐟"],["Green Sunfish","🐟"],["Pumpkinseed","🐠"],["Redbreast Sunfish","🐠"],["Warmouth","🐟"],
+      ["Brook Silverside","🐟"],["Mosquitofish","🐟"],["Common Dace","🐟"],["River Roach","🐟"],["Rudd","🐟"],
+      ["Gudgeon","🐟"],["Rainbow Smelt","🐟"],["Lake Herring","🐟"],["Sardine","🐟"],["Anchovy","🐟"],
+      ["Mudskipper","🐟"],["Killifish","🐟"],["Stickleback","🐟"],["Rainbow Darter","🐠"],["American Shad","🐟"],
+      ["Bluntnose Minnow","🐟"],["Spot Croaker","🐟"],["Pinfish","🐟"],["Crayfish","🦐"],["Pond Snail","🐌"]] },
   { tier:2, label:"Uncommon",  color:"#3f9ec9", need:200, pull:9,  strain:1.20, cr:[6000,17000],    rep:12,   scrap:[2,6],
-    items:[["Rainbow Trout","🐟"],["Largemouth Bass","🐠"],["Walleye","🐟"],["Smallmouth Bass","🐠"]] },
+    items:[["Rainbow Trout","🐟"],["Largemouth Bass","🐟"],["Walleye","🐟"],["Smallmouth Bass","🐟"],
+      ["Brown Trout","🐟"],["Brook Trout","🐟"],["Cutthroat Trout","🐟"],["Golden Trout","🐠"],["Chain Pickerel","🐟"],
+      ["White Bass","🐟"],["Striped Bass","🐟"],["Sauger","🐟"],["Yellow Bullhead","🐟"],["Common Carp","🐟"],
+      ["Mirror Carp","🐟"],["Grass Carp","🐟"],["Tench","🐟"],["Barbel","🐟"],["Silver Bream","🐟"],
+      ["Crucian Carp","🐟"],["Lake Whitefish","🐟"],["Arctic Grayling","🐟"],["Burbot","🐟"],["Freshwater Drum","🐟"],
+      ["Atlantic Mackerel","🐟"],["Sea Bream","🐟"],["Porgy","🐟"],["Blue Crab","🦀"],["Spiny Lobster","🦞"]] },
   { tier:3, label:"Rare",      color:"#6f6fe0", need:330, pull:14, strain:1.40, cr:[22000,55000],   rep:70,   scrap:[4,10],
-    items:[["Northern Pike","🐊"],["Channel Catfish","🐡"],["Steelhead","🐟"],["Lake Muskie","🐊"]] },
+    items:[["Northern Pike","🐟"],["Channel Catfish","🐟"],["Steelhead","🐟"],["Lake Muskie","🐟"],
+      ["Flathead Catfish","🐟"],["Blue Catfish","🐟"],["Tiger Muskie","🐟"],["King Salmon","🐟"],["Sockeye Salmon","🐟"],
+      ["Atlantic Salmon","🐟"],["Coho Salmon","🐟"],["Arctic Char","🐟"],["Zander","🐟"],["Wels Catfish","🐟"],
+      ["Snakehead","🐟"],["Bowfin","🐟"],["Longnose Gar","🐟"],["Pufferfish","🐡"],["Porcupinefish","🐡"],
+      ["Rock Octopus","🐙"],["Reef Squid","🦑"],["Red Snapper","🐟"],["Mahi-Mahi","🐠"],["Great Barracuda","🐟"]] },
   { tier:4, label:"Epic",      color:"#b8783c", need:540, pull:20, strain:1.65, cr:[70000,180000],  rep:300,  scrap:[8,18], cardTier:6,
-    items:[["Lake Sturgeon","🦈"],["Giant Tarpon","🐋"],["Bull Shark","🦈"],["Goliath Grouper","🐋"]] },
+    items:[["Lake Sturgeon","🐟"],["Giant Tarpon","🐟"],["Bull Shark","🦈"],["Goliath Grouper","🐟"],
+      ["Hammerhead Shark","🦈"],["Tiger Shark","🦈"],["Mako Shark","🦈"],["Swordfish","🐟"],["Sailfish","🐟"],
+      ["Blue Marlin","🐟"],["Bluefin Tuna","🐟"],["Yellowfin Tuna","🐟"],["Giant Trevally","🐟"],["Wahoo","🐟"],
+      ["King Mackerel","🐟"],["Pacific Halibut","🐟"],["Giant Squid","🦑"],["Alligator Gar","🐟"],["Beluga Sturgeon","🐟"],
+      ["Gold Pocket Watch","⌚",2.0,0.06],["Pearl Necklace","📿",2.2,0.05],["Silver Goblet","🏆",1.8,0.12],
+      ["Jade Figurine","🗿",2.0,0.1],["Antique Sextant","🧭",1.9,0.1]] },
   { tier:5, label:"Legendary", color:"#ffcf40", need:840, pull:27, strain:1.95, cr:[260000,700000], rep:1400, scrap:[20,45], cardTier:9, xp:220,
-    items:[["Golden Koi","🐉"],["Moonlit Eel","🌙"],["The Old Man of the Lake","🐳"],["Silverscale Leviathan","🐋"]] },
+    items:[["Golden Koi","🐠"],["Moonlit Eel","🐍"],["The Old Man of the Lake","🐳"],["Silverscale Leviathan","🐋"],
+      ["Great White Shark","🦈"],["Colossal Squid","🦑"],["Abyssal Anglerfish","🐟"],["Kraken Hatchling","🐙"],
+      ["Ghost Koi","🐠"],["Coelacanth","🐟"],["Megalodon Pup","🦈"],["Rainbow Serpent Eel","🐍"],
+      ["Frost Whale Calf","🐳"],["Thunderfin Marlin","🐟"],
+      ["Drowned King's Crown","👑",3.0,0.1],["Flawless Diamond","💎",3.5,0.02],["Emerald Dagger","🗡️",2.8,0.07],
+      ["Gilded Opera Mask","🎭",2.6,0.06],["Meteorite Shard","☄️",2.5,0.2]] },
   { tier:6, label:"Treasure",  color:"#d19a2e", need:620, pull:22, strain:1.55, cr:[150000,420000], rep:650,  scrap:[15,40], cardTier:8, xp:90,
-    items:[["Sunken Chest","🧰"],["Message in a Bottle","🍾"],["Ship's Bell","🔔"],["Pearl Oyster","🦪"],["Old Coin Purse","💰"]] },
+    items:[["Sunken Chest","🧰"],["Message in a Bottle","🍾"],["Ship's Bell","🔔"],["Pearl Oyster","🦪"],["Old Coin Purse","💰"],
+      ["Doubloon Stack","🪙",1.6,0.1],["Ancient Amphora","🏺",1.5,0.5],["Ruby Ring","💍",2.2,0.02],
+      ["Bronze Trident","🔱",1.8,0.6],["Captain's Spyglass","🔭",1.5,0.15],["Treasure Map","🗺️",1.7,0.03],
+      ["Jeweled Chalice","🏆",1.9,0.2],["Seer's Orb","🔮",2.0,0.25]] },
 ];
 const FSH_BASE_WEIGHTS = [40, 30, 16, 8, 3.2, 0.55, 1.5];
 /* How hard each tier leans on your luck score. Treasure is a lucky-dip, not the top of the ladder. */
@@ -9830,8 +10072,10 @@ function fshRollCatch(castT, sweet){
   const def = FSH_CATCH[idx];
   const item = def.items[Math.floor(Math.random()*def.items.length)];
   const sizeRoll = 0.75 + Math.random()*0.5;
-  return { def, name:item[0], icon:item[1], sizeRoll,
-           weightLb: Math.max(0.2, +((0.4 + def.tier*3.4) * sizeRoll * (0.6+Math.random())).toFixed(1)) };
+  const valueMult = item[2] || 1;
+  const wf = item[3] !== undefined ? item[3] : 1;
+  return { def, name:item[0], icon:item[1], sizeRoll, valueMult,
+           weightLb: Math.max(0.1, +((0.4 + def.tier*3.4) * sizeRoll * (0.6+Math.random()) * wf).toFixed(1)) };
 }
 
 /* ---------------- FISHING: THE LOOP ---------------- */
@@ -9900,6 +10144,7 @@ function fshBite(){
   fsh.biteMax = st.hookWindow/1000;
   fsh.biteTimer = fsh.biteMax;
   fsh.catch = fshRollCatch(fsh.castT, fsh.sweet);
+  fshPrefetchPic(fsh.catch.name);          // photo is usually cached before the fight ends
   fsh.ripples.push({ x:fsh.bobX, y:fsh.bobY, t:0 });
 }
 
@@ -9981,7 +10226,7 @@ function fshLand(){
   const wasBest = !state.fishing.best || c.weightLb > state.fishing.best.weightLb;
 
   const roll = (a,b)=> a + Math.random()*(b-a);
-  const credits = Math.round(roll(d.cr[0], d.cr[1]) * c.sizeRoll * st.lootMult);
+  const credits = Math.round(roll(d.cr[0], d.cr[1]) * c.sizeRoll * st.lootMult * (c.valueMult||1));
   const scrap = Math.round(roll(d.scrap[0], d.scrap[1]) * st.lootMult);
   const rep = Math.round(d.rep * c.sizeRoll * st.lootMult);
   const chips = [`🪙 ${credits.toLocaleString()} Credits`];
@@ -10387,7 +10632,7 @@ function fshRenderResult(){
   el.classList.add("show");
   el.innerHTML = `
     <div class="fsh-card">
-      <div class="rIcon">${r.icon || "🎣"}</div>
+      <div class="rPhoto" id="fshResultPhoto"><div class="rIcon">${r.icon || "🎣"}</div></div>
       <div class="rTitle" style="color:${r.color}">${r.title}</div>
       <div class="rMeta">
         ${r.tag ? `<span class="rTag" style="color:${r.tagColor}; border-color:${r.tagColor}66; background:${r.tagColor}14;">${r.tag}</span>` : ""}
@@ -10420,6 +10665,7 @@ function fshRenderResult(){
   arm("fshDoneBtn", fshDismiss);
   arm("fshCloseBtn", fshDismiss);
   arm("fshShopBtn", ()=>{ fshDismiss(); const b = document.querySelector('nav button[data-tab="market"]'); if(b) b.click(); });
+  fshLoadResultPhoto(r);
 }
 
 /* Close the card and stay put — no implication that you're casting again. */
@@ -10509,13 +10755,920 @@ function renderFishing(){
 function fshOnEnterTab(){ fshTabActive = true; if(!fshGulls) fshInitScene(); if(!fsh) fsh = fshNew(); fshStartLoop(); }
 function fshOnLeaveTab(){ fshTabActive = false; fshStopLoop(); }
 
+/* ================================================================
+   THE GRAND ARENA — 32 gladiators, betting, Glory -> Army Strength
+   ================================================================ */
+
+/* [id, name, epithet, emoji, pow, spd, def, fer, wit, hp, quirk, verbs, intro, winLine] */
+const AR_RAW = [
+["mountain","Magnus the Mountain","Has never taken a step backward","🏔️",9,2,10,4,3,150,"bulwark",
+  ["flattens","crushes","bowls over"],"Magnus blots out the sun as he enters.","Magnus yawns. The crowd pretends not to notice."],
+["viper","Viper Cassius","Strikes twice before you blink","🐍",5,10,3,8,6,86,"venom",
+  ["fang-strikes","lashes","snaps at"],"Cassius slithers through the gate, grinning.","Cassius bows low. Too low. Nobody trusts it."],
+["ironjaw","Brutus Ironjaw","Once bit through a shield","🦴",8,5,6,9,2,112,"maul",
+  ["mauls","bites into","gnaws on"],"Brutus enters chewing on something. Best not to ask.","Brutus spits out a buckle and flexes."],
+["whisper","The Whisper","You will not hear it coming","🌫️",6,9,3,6,9,80,"blink",
+  ["appears behind","slips past","ghosts"],"Did the gate even open? The Whisper is simply... here.","The Whisper is already gone."],
+["gaia","Gaia Stonefist","Punches quarries into gravel","🪨",9,3,8,6,3,124,"stoneskin",
+  ["hammers","pounds","slabs"],"Gaia cracks her knuckles. The sound echoes.","Gaia pats the sand kindly. It has suffered."],
+["timmy","Timmy","Age 9. Wooden sword. Unbeatable spirit","🪵",2,6,2,4,5,70,"lucky",
+  ["bonks","boops","valiantly pokes"],"Timmy waves at his mom in row twelve.","Timmy does a cartwheel. The crowd loses its mind."],
+["reginald","Sir Reginald IV","Duels strictly by the book","🎩",6,6,7,4,8,98,"parry",
+  ["ripostes","fences","tut-tuts at"],"Sir Reginald polishes his monocle and salutes.","Sir Reginald files the victory under W."],
+["twins","The Gemini Twins","Two for the price of one","👯",5,8,4,7,6,92,"twin",
+  ["double-strike","pincer","mirror-slash"],"The Twins enter in perfect step. It is unsettling.","The Twins high-five themselves. Four times."],
+["gregor","Gregor the Gentle","Apologizes after every blow","🧸",8,4,7,3,5,130,"gentle",
+  ["reluctantly clobbers","sorrowfully swats","hugs too hard"],"Gregor waves shyly and mouths 'sorry in advance'.","Gregor helps his opponent up and dusts them off."],
+["cassia","Cassia Flame","Fights with burning chains","🔥",7,7,4,8,5,94,"burn",
+  ["whips","scorches","chain-lashes"],"Cassia's chains drip embers across the sand.","Cassia's chains hiss in the water bucket."],
+["accountant","The Accountant","Finds the loophole in any armor","🧮",6,5,5,5,10,90,"audit",
+  ["audits","itemizes","deducts"],"The Accountant enters, briefcase first.","The Accountant marks the bout: settled in full."],
+["ursa","Ursa Majora","Raised by bears. Raised bears","🐻",9,5,6,8,2,118,"maul",
+  ["bear-hugs","swipes","mauls"],"Ursa roars. Several spectators faint politely.","Ursa scratches her back on the gate post."],
+["pigeon","The Pigeon","Untouchable. Unbothered. A pigeon","🐦",1,10,2,3,7,60,"flutter",
+  ["pecks","flaps at","startles"],"A pigeon walks into the arena. The odds board shrugs.","The Pigeon pecks at the fallen. Nature is cruel."],
+["hemlock","Doctor Hemlock","His prescriptions are final","⚗️",4,6,4,6,9,84,"venom",
+  ["doses","prescribes","injects"],"Doctor Hemlock uncorks something that smokes.","Doctor Hemlock bills the loser for the house call."],
+["juno","Juno Shieldmaiden","Her wall has never fallen","🛡️",6,4,10,5,6,116,"bulwark",
+  ["shield-bashes","slams","rams"],"Juno plants her shield. The arena feels smaller.","Juno's shield gleams, unscratched."],
+["sandstorm","Sandstorm Saif","The desert follows him indoors","🌪️",7,9,4,7,5,90,"swift",
+  ["whirls through","scours","sand-blasts"],"Saif arrives inside his own private dust devil.","Saif vanishes into the whirlwind he came from."],
+["bella","Bella the Butcher","Knows every cut of meat","🔪",8,6,4,9,4,100,"cleave",
+  ["carves","fillets","tenderizes"],"Bella sharpens two cleavers against each other.","Bella wraps up the win like a Sunday roast."],
+["grunk","Grunk","Invented the club. Twice","🦣",10,3,5,8,1,126,"smash",
+  ["clubs","grunk-smashes","walloped"],"Grunk points club at sky. Crowd goes wild.","Grunk invents victory dance. Also twice."],
+["poet","The Poet","His verses cut deeper","🪶",3,6,3,5,10,78,"demoralize",
+  ["devastates with couplets","skewers rhetorically","wounds lyrically"],"The Poet clears his throat. Veterans flinch.","The Poet dedicates the win to his muse."],
+["nyx","Nyx of the Night","The torches dim when she fights","🌙",6,8,4,7,7,88,"shadow",
+  ["shadow-cuts","eclipses","darkens"],"The torches gutter. Nyx has entered.","Nyx bows to a crowd she cannot be seen by."],
+["hercule","Hercule the Strong","Lifts oxen recreationally","💪",10,4,6,6,3,120,"mighty",
+  ["overhead-slams","yeets","power-drives"],"Hercule enters carrying his own gate. To save time.","Hercule flexes. Somewhere, an ox nods respectfully."],
+["fishmonger","Fishmonger Filippa","Armed with a fresh halibut","🐟",6,6,4,7,6,96,"slippery",
+  ["halibut-slaps","fish-whips","wet-fish smacks"],"Filippa slaps her halibut against her palm. Ready.","Filippa holds the halibut aloft. It has seen everything."],
+["bo","Bo the Farmhand","Strong from honest work","🌾",7,5,6,5,5,108,"steady",
+  ["pitchforks","hay-bales","plows through"],"Bo tips his hat and rolls up his sleeves.","Bo checks the sun. Still time to get the harvest in."],
+["mab","Granny Mab","Her knitting needles are licensed weapons","🧶",4,4,5,8,9,82,"stun",
+  ["needle-jabs","purls viciously","knits doom upon"],"Granny Mab counts her stitches, then her victims.","Granny Mab finishes the row AND the fight."],
+["rusty","Rusty","A training dummy that learned","🎯",3,2,9,2,8,140,"dummy",
+  ["creaks against","boards","splinters at"],"Rusty is wheeled in. Then wheels himself the rest.","Rusty stands there. Victorious. Somehow."],
+["chef","Chef Aurelio","Cast iron. No nonsense.","🍳",7,5,6,7,6,104,"seasoned",
+  ["pan-smacks","sautés","serves"],"Chef Aurelio taps the pan twice. Service begins.","Chef Aurelio plates the win. Garnished."],
+["gravekeeper","The Gravekeeper","Patient beyond all reason","⚰️",6,3,8,6,7,110,"harvest",
+  ["shovels","lowers the bar on","buries"],"The Gravekeeper measures the sand. For later.","The Gravekeeper whistles while he works."],
+["lucia","Lucia Lightfoot","Has never been touched mid-waltz","🩰",5,10,3,6,7,80,"dance",
+  ["pirouette-kicks","waltzes through","dances around"],"Lucia enters on pointe. The band strikes up.","Lucia curtsies. Flowers rain onto the sand."],
+["taxman","The Taxman","Collects. Always.","📜",5,5,6,6,9,96,"tax",
+  ["levies","garnishes","collects from"],"The Taxman arrives precisely on time.","The Taxman stamps the bout: PAID."],
+["momo","Momo the Magnificent","Juggles anything. Including you","🤹",5,8,4,6,8,88,"juggle",
+  ["outjuggles","up-tosses","ringmasters"],"Momo enters juggling three torches and an apple.","Momo takes a bite of the apple. Show's over."],
+["barnaby","Beekeeper Barnaby","His bees hold grudges","🐝",4,5,6,5,7,98,"bees",
+  ["sics the swarm on","bee-lines","stings via proxy"],"Barnaby lifts his veil. The humming grows.","Barnaby thanks each bee individually."],
+["widow","The Widow","Spins webs. Collects rings","🕷️",6,7,4,8,7,86,"web",
+  ["ensnares","web-lashes","poison-kisses"],"The Widow descends from the rafters. Nobody saw a thread.","The Widow adds another ring to the collection."],
+];
+const AR_GLADS = AR_RAW.map(r=>({ id:r[0], name:r[1], epithet:r[2], emoji:r[3],
+  pow:r[4], spd:r[5], def:r[6], fer:r[7], wit:r[8], hp:r[9], quirk:r[10], verbs:r[11], intro:r[12], winLine:r[13] }));
+const AR_BY_ID = {}; AR_GLADS.forEach(g=>AR_BY_ID[g.id]=g);
+
+const AR_QUIRKS = {
+  bulwark:    { name:"Bulwark",        desc:"Incoming hits are capped — nothing gets through clean." },
+  venom:      { name:"Venom",          desc:"Hits leave poison that drips damage each round." },
+  maul:       { name:"Maul",           desc:"Each consecutive hit on the same target digs deeper." },
+  blink:      { name:"Blink Counter",  desc:"Often untouchable — and answers with a free counter." },
+  stoneskin:  { name:"Stoneskin",      desc:"Shrugs off a flat chunk of every blow." },
+  lucky:      { name:"Beginner's Luck",desc:"Sometimes the wooden sword hits like a ballista. 4× damage." },
+  parry:      { name:"Parry & Riposte",desc:"By-the-book parries turn attacks into ripostes." },
+  twin:       { name:"Two-as-One",     desc:"Frequently lands a second strike. There are two of them." },
+  gentle:     { name:"Pulled Punches", desc:"Hits softer than he could — but never tires, never falters." },
+  burn:       { name:"Burning Chains", desc:"Strikes set the target alight for burn damage over time." },
+  audit:      { name:"Full Audit",     desc:"Attacks ignore armor entirely. Loopholes everywhere." },
+  flutter:    { name:"Flutter",        desc:"Most attacks against it simply miss. It is a pigeon." },
+  swift:      { name:"Sand-Swift",     desc:"Extra dodge and first-strike speed." },
+  cleave:     { name:"Cleave",         desc:"Criticals hit brutally harder." },
+  smash:      { name:"Big Club",       desc:"Massive swings with a chance to daze the target." },
+  demoralize: { name:"Cutting Verse",  desc:"Each hit saps the target's ferocity." },
+  shadow:     { name:"Shadowstep",     desc:"Harder to hit as the fight goes on." },
+  mighty:     { name:"Mighty Blows",   desc:"Flat bonus power on every swing." },
+  slippery:   { name:"Fresh Catch",    desc:"Slippery — dodges often. The halibut helps." },
+  steady:     { name:"Steady Hands",   desc:"Never crits, never misses. Honest work." },
+  stun:       { name:"Knitted Doom",   desc:"Every third jab stuns the target for a turn." },
+  dummy:      { name:"Built to Take It",desc:"Takes hugely reduced damage. Barely fights back." },
+  seasoned:   { name:"Well Seasoned",  desc:"Immune to poison, burn and bees. Cast iron." },
+  harvest:    { name:"The Harvest",    desc:"Grows stronger for every fighter that falls." },
+  dance:      { name:"Waltz",          desc:"High dodge. Untouchable while the music plays." },
+  tax:        { name:"Levy",           desc:"Steals a cut of every hit as healing. Non-negotiable." },
+  juggle:     { name:"Ringmaster",     desc:"Hits can disarm — the target's next blow is halved." },
+  bees:       { name:"The Swarm",      desc:"Bees harass the target with stacking sting damage." },
+  web:        { name:"Silk Snare",     desc:"Hits slow the target and add a touch of venom." },
+};
+
+/* Six weathers. Festival adds chaos: odds flatten and anything can happen. */
+const AR_CONDITIONS = [
+  { id:"clear",  name:"Clear Skies",  icon:"☀️", blurb:"A perfect day for violence.", mod:{} },
+  { id:"sand",   name:"Sandstorm",    icon:"🌪️", blurb:"Speed suffers; the canny thrive.", mod:{ spd:-0.2, wit:0.1 } },
+  { id:"blood",  name:"Blood Moon",   icon:"🌑", blurb:"Ferocity up, caution down.", mod:{ fer:0.25, def:-0.1 } },
+  { id:"rain",   name:"Downpour",     icon:"🌧️", blurb:"Flames sputter. Footing slips.", mod:{ spd:-0.1, noBurn:true } },
+  { id:"festival",name:"Festival Day",icon:"🎉", blurb:"The crowd is wild. The odds are drunk.", mod:{ chaos:0.45 } },
+  { id:"fog",    name:"Rolling Fog",  icon:"🌫️", blurb:"Hard to see. Harder to hit.", mod:{ wit:0.2, miss:0.12 } },
+];
+
+const AR_RIVALS = {
+  "viper|hemlock":"Poisoner versus poisoner. The antidote market is watching closely.",
+  "mountain|grunk":"Two immovable objects. One of them brought a club.",
+  "timmy|gregor":"Gregor has already promised to be careful. Timmy has promised nothing.",
+  "cassia|chef":"Fire versus cast iron. The kitchen rivalry of the century.",
+  "accountant|taxman":"An audit against a levy. Bring receipts.",
+  "pigeon|barnaby":"The pigeon has been eyeing those bees all week.",
+  "reginald|poet":"Manners versus meter. Somebody will be devastated politely.",
+  "twins|momo":"Momo insists he can juggle both of them. Tonight he proves it.",
+  "bella|fishmonger":"A butcher and a fishmonger. Professional respect. Sharpened.",
+  "lucia|nyx":"A dance in the dark. The torches have given up.",
+  "mab|widow":"Two spinners of thread. Only one walks away with the yarn.",
+  "ursa|bo":"The bear and the farmhand. This one is personal. The honey incident.",
+};
+
+/* ---------------- Strength, form, the belt ---------------- */
+function arChampionId(){
+  const R = (state.arena && state.arena.records) || {};
+  let best = null, bestW = 2; // needs 3+ wins to hold the belt
+  for(const id in R){
+    const r = R[id];
+    if(r.w > bestW || (r.w === bestW+0 && best && r.w === (R[best]||{}).w && r.l < R[best].l)){
+      if(r.w > bestW){ best = id; bestW = r.w; }
+      else if(best && r.w === R[best].w && r.l < R[best].l){ best = id; }
+    }
+  }
+  return best;
+}
+function arStrengthOf(g, cond){
+  const m = (cond && cond.mod) || {};
+  const pow = g.pow*(1+(m.pow||0)), spd = g.spd*(1+(m.spd||0)), def = g.def*(1+(m.def||0)),
+        fer = g.fer*(1+(m.fer||0)), wit = g.wit*(1+(m.wit||0));
+  let s = pow*1.1 + spd*0.9 + def*0.95 + fer*0.8 + wit*0.6 + g.hp*0.09;
+  const R = (state.arena && state.arena.records) || {};
+  const r = R[g.id];
+  if(r){ s *= Math.max(0.85, Math.min(1.2, 1 + 0.03*(r.w - r.l))); }   // form
+  if(arChampionId() === g.id) s *= 1.10;                               // the belt
+  return s;
+}
+
+/* ---------------- Matchmaking ---------------- */
+let ar = null;
+function arMakeMatch(){
+  if(!state.arena) state.arena = defaultArena();
+  const melee = ((state.arena.bouts||0) + 1) % 5 === 0;     // every 5th bout is a Grand Melee
+  const n = melee ? 6 : 2;
+  const pool = AR_GLADS.slice();
+  const picks = [];
+  while(picks.length < n){
+    picks.push(pool.splice(Math.floor(Math.random()*pool.length), 1)[0]);
+  }
+  const cond = AR_CONDITIONS[Math.floor(Math.random()*AR_CONDITIONS.length)];
+  const chaos = (cond.mod && cond.mod.chaos) || 0;
+  const k = 1.55 - chaos*0.7;                                // festival flattens the odds
+  const s = picks.map(g=>Math.pow(arStrengthOf(g, cond), k));
+  const tot = s.reduce((a,b)=>a+b,0);
+  const odds = s.map(x=>Math.min(30, Math.max(1.06, +(0.93/(x/tot)).toFixed(2))));
+  let rival = null;
+  if(n === 2){
+    rival = AR_RIVALS[picks[0].id+"|"+picks[1].id] || AR_RIVALS[picks[1].id+"|"+picks[0].id] || null;
+  }
+  ar = {
+    melee, cond, glads:picks, odds, rival,
+    phase:"betting",           // betting -> fighting -> done
+    bet:null,                  // {on, amount, odds}
+    oracle:null,
+    events:[], evIdx:0, evTimer:0, speed:1,
+    f:{},                      // per-fighter live fight state
+    anim:{}, nums:[], winner:null, result:null, log:[],
+  };
+  arLayout();
+}
+function arLayout(){
+  // seed display state for every fighter so the canvas can draw during betting
+  const n = ar.glads.length;
+  ar.glads.forEach((g,i)=>{
+    let x, y;
+    if(n === 2){ x = i===0 ? AR_W*0.32 : AR_W*0.68; y = AR_H*0.72; }
+    else {
+      const a = (i/n)*Math.PI*2 - Math.PI/2;
+      x = AR_W*0.5 + Math.cos(a)*AR_W*0.24;
+      y = AR_H*0.70 + Math.sin(a)*AR_H*0.14;
+    }
+    ar.f[g.id] = { x, y, hx:x, hy:y, hp:g.hp, maxHp:g.hp, alive:true, lunge:0, lungeTo:null, ko:0, face: x < AR_W/2 ? 1 : -1 };
+  });
+}
+
+/* ---------------- The fight: fully simulated up front, then performed ---------------- */
+function arSimulate(){
+  const m = ar.cond.mod || {};
+  const F = {};
+  const ev = [];
+  ar.glads.forEach(g=>{
+    F[g.id] = { g, hp:g.hp, alive:true,
+      fer:g.fer*(1+(m.fer||0)), pow:g.pow*(1+(m.pow||0)), spd:g.spd*(1+(m.spd||0)),
+      def:g.def*(1+(m.def||0)), wit:g.wit*(1+(m.wit||0)),
+      dots:[], stun:0, disarm:0, hitStreak:{}, hitsTaken:0, jabs:0 };
+  });
+  ar.glads.forEach(g=>ev.push({t:"line", msg:g.intro}));
+  if(ar.rival) ev.push({t:"line", msg:"📣 "+ar.rival});
+  ev.push({t:"line", msg:`${ar.cond.icon} ${ar.cond.name}. ${ar.cond.blurb}`});
+  const alive = ()=> Object.values(F).filter(f=>f.alive);
+  let round = 0;
+  while(alive().length > 1 && round < 80){
+    round++;
+    const order = alive().sort((a,b)=> (b.spd+Math.random()*3) - (a.spd+Math.random()*3));
+    for(const f of order){
+      if(!f.alive) continue;
+      // dots tick at the start of your turn
+      if(f.dots.length && f.g.quirk !== "seasoned"){
+        let total = 0;
+        f.dots.forEach(d=>{ total += d.dmg; d.left--; });
+        f.dots = f.dots.filter(d=>d.left > 0);
+        if(total > 0){
+          f.hp -= total;
+          ev.push({t:"dot", id:f.g.id, dmg:total, hp:Math.max(0,f.hp)});
+          if(f.hp <= 0){ f.alive = false; ev.push({t:"ko", id:f.g.id}); continue; }
+        }
+      }
+      if(f.stun > 0){ f.stun--; ev.push({t:"line", msg:`${f.g.name} is stunned and loses the turn!`}); continue; }
+      const targets = alive().filter(x=>x !== f);
+      if(!targets.length) break;
+      const tgt = targets[Math.floor(Math.random()*targets.length)];
+      arAttack(F, f, tgt, ev, m);
+      if(alive().length <= 1) break;
+    }
+  }
+  const last = alive();
+  const winner = last.length ? last.sort((a,b)=>b.hp-a.hp)[0].g.id : ar.glads[0].id;
+  const wg = AR_BY_ID[winner];
+  ev.push({t:"win", id:winner});
+  ev.push({t:"line", msg:`${wg.name} is victorious! ${wg.winLine}`});
+  return { winnerId: winner, events: ev };
+}
+
+function arAttack(F, a, b, ev, m){
+  const A = a.g, B = b.g;
+  const verb = A.verbs[Math.floor(Math.random()*A.verbs.length)];
+  // --- dodge / miss layer ---
+  let missCh = (m.miss||0);
+  if(B.quirk === "flutter") missCh += 0.30;
+  if(B.quirk === "dance")   missCh += 0.28;
+  if(B.quirk === "slippery")missCh += 0.20;
+  if(B.quirk === "swift")   missCh += 0.12;
+  if(B.quirk === "shadow")  missCh += Math.min(0.30, 0.06 + b.hitsTaken*0.02);
+  if(A.quirk === "steady")  missCh = Math.max(0, missCh - 0.5);
+  if(B.quirk === "blink" && Math.random() < 0.25){
+    ev.push({t:"line", msg:`${B.name} blinks away — and counters!`});
+    arDealDamage(F, b, a, ev, `${B.name} counters ${A.name}`, 0.7, m);
+    return;
+  }
+  if(B.quirk === "parry" && Math.random() < 0.20){
+    ev.push({t:"line", msg:`${B.name} parries — textbook riposte!`});
+    arDealDamage(F, b, a, ev, `${B.name} ripostes against ${A.name}`, 0.8, m);
+    return;
+  }
+  if(Math.random() < missCh){
+    ev.push({t:"miss", a:A.id, b:B.id, msg:`${A.name} ${verb} ${B.name} — and misses!`});
+    return;
+  }
+  arDealDamage(F, a, b, ev, `${A.name} ${verb} ${B.name}`, 1, m);
+}
+
+function arDealDamage(F, a, b, ev, phrase, scale, m){
+  const A = a.g, B = b.g;
+  let dmg = (a.pow*1.6 + a.fer*0.9) * (0.75 + Math.random()*0.5) * scale;
+  // attacker quirks
+  if(A.quirk === "mighty")  dmg += 5;
+  if(A.quirk === "smash")   dmg *= 1.15;
+  if(A.quirk === "gentle")  dmg *= 0.8;
+  if(A.quirk === "dummy")   dmg *= 0.45;
+  if(A.quirk === "flutter") dmg *= 0.4;
+  if(A.quirk === "maul"){
+    a.hitStreak[B.id] = (a.hitStreak[B.id]||0) + 1;
+    dmg *= 1 + Math.min(0.75, (a.hitStreak[B.id]-1)*0.25);
+  }
+  if(A.quirk === "harvest"){
+    const fallen = Object.values(F).filter(x=>!x.alive).length;
+    dmg *= 1 + fallen*0.30;
+  }
+  if(a.disarm > 0){ dmg *= 0.5; a.disarm--; }
+  // crits
+  let crit = false;
+  if(A.quirk !== "steady" && Math.random() < 0.06 + a.wit*0.012){
+    crit = true; dmg *= (A.quirk === "cleave") ? 2.2 : 1.6;
+  }
+  if(A.quirk === "lucky" && Math.random() < 0.10){
+    crit = true; dmg = (a.pow*1.6 + a.fer*0.9) * 4;
+    ev.push({t:"line", msg:`✨ ${A.name}'s wooden sword strikes TRUE!`});
+  }
+  // defense
+  let armor = b.def*1.1;
+  if(A.quirk === "audit"){ armor = 0; }
+  if(B.quirk === "stoneskin") dmg = Math.max(1, dmg - 4);
+  dmg = Math.max(1, dmg - armor*(0.45 + Math.random()*0.25));
+  if(B.quirk === "bulwark") dmg = Math.min(dmg, 18);
+  if(B.quirk === "dummy")   dmg *= 0.45;
+  dmg = Math.round(dmg);
+  b.hp -= dmg; b.hitsTaken++;
+  // attacker rider effects
+  if(A.quirk === "venom" && B.quirk !== "seasoned") b.dots.push({dmg:3+Math.round(a.fer*0.4), left:3, kind:"venom"});
+  if(A.quirk === "burn"  && B.quirk !== "seasoned" && !(m && m.noBurn)) b.dots.push({dmg:5, left:3, kind:"burn"});
+  if(A.quirk === "bees"  && B.quirk !== "seasoned") b.dots.push({dmg:2, left:5, kind:"bees"});
+  if(A.quirk === "web"){ b.spd = Math.max(1, b.spd-1); if(B.quirk !== "seasoned") b.dots.push({dmg:2, left:2, kind:"venom"}); }
+  if(A.quirk === "tax"){ const cut = Math.round(dmg*0.3); a.hp = Math.min(a.g.hp, a.hp + cut); }
+  if(A.quirk === "juggle" && Math.random() < 0.30){ b.disarm = 1; ev.push({t:"line", msg:`${A.name} juggles ${B.name}'s weapon away!`}); }
+  if(A.quirk === "demoralize"){ b.fer = Math.max(1, b.fer - 0.5); }
+  if(A.quirk === "smash" && Math.random() < 0.15){ b.stun = 1; ev.push({t:"line", msg:`${B.name} is dazed by the sheer club of it all!`}); }
+  if(A.quirk === "stun"){ a.jabs++; if(a.jabs % 3 === 0){ b.stun = 1; ev.push({t:"line", msg:`${A.name} knits ${B.name} into a stun!`}); } }
+  ev.push({t:"hit", a:A.id, b:B.id, dmg, crit, hp:Math.max(0,b.hp),
+    msg: phrase + (crit ? ` — CRITICAL for ${dmg}!` : ` for ${dmg}!`)});
+  if(b.hp <= 0){
+    b.alive = false;
+    ev.push({t:"ko", id:B.id});
+    ev.push({t:"line", msg:`${B.name} is down! The crowd erupts!`});
+    if(A.quirk === "twin"){ /* no corpse-kicking, even for twins */ }
+  } else if(A.quirk === "twin" && Math.random() < 0.35 && scale === 1){
+    arDealDamage(F, a, b, ev, `${A.name} strikes again`, 0.6, m);
+  }
+}
+
+/* ---------------- Flow: bets, oracle, playback ---------------- */
+function arPlaceBet(gladId, amount){
+  if(!ar || ar.phase !== "betting") return;
+  amount = Math.floor(amount);
+  if(!isFinite(amount) || amount < 1000){ arToast("Minimum wager is 1,000 credits."); return; }
+  if(amount > state.credits){ arToast("You can't cover that wager."); return; }
+  const idx = ar.glads.findIndex(g=>g.id===gladId);
+  if(idx < 0) return;
+  state.credits -= amount;
+  state.arena.wagered = (state.arena.wagered||0) + amount;
+  ar.bet = { on: gladId, amount, odds: ar.odds[idx] };
+  saveState(); renderHeader();
+  arStartFight();
+}
+function arSpectate(){
+  if(!ar || ar.phase !== "betting") return;
+  ar.bet = null;
+  arStartFight();
+}
+function arOracle(){
+  if(!ar || ar.phase !== "betting" || ar.oracle) return;
+  const COST = 25000;
+  if(state.credits < COST){ arToast("The Oracle requires 25,000 credits."); return; }
+  state.credits -= COST;
+  // The Oracle peers into one possible future (a private simulation) — usually the right one.
+  const peek = arSimulate();
+  let hint = peek.winnerId;
+  if(Math.random() > 0.70){
+    const others = ar.glads.filter(g=>g.id!==peek.winnerId);
+    hint = others[Math.floor(Math.random()*others.length)].id;
+  }
+  ar.oracle = hint;
+  saveState(); renderHeader(); arRenderPanel();
+}
+function arStartFight(){
+  ar.phase = "fighting";
+  const sim = arSimulate();
+  ar.simWinner = sim.winnerId;
+  ar.events = sim.events;
+  ar.evIdx = 0; ar.evTimer = 0; ar.speed = 1;
+  ar.log = [];
+  arRenderPanel();
+}
+function arSkip(){ if(ar && ar.phase === "fighting") ar.speed = 50; }
+
+function arFinishFight(){
+  ar.phase = "done";
+  const A = state.arena;
+  A.bouts = (A.bouts||0) + 1;
+  A.records = A.records || {};
+  ar.glads.forEach(g=>{
+    const r = A.records[g.id] || (A.records[g.id] = { w:0, l:0 });
+    if(g.id === ar.winner) r.w++; else r.l++;
+  });
+
+  const res = { winner:ar.winner, bet:ar.bet, won:false, credits:0, glory:0, card:null, beatChampion:false };
+  if(ar.bet){
+    if(ar.bet.on === ar.winner){
+      res.won = true;
+      res.credits = Math.round(ar.bet.amount * ar.bet.odds);
+      state.credits += res.credits;
+      A.won = (A.won||0) + res.credits;
+      A.betsWon = (A.betsWon||0) + 1;
+      A.bestOdds = Math.max(A.bestOdds||0, ar.bet.odds);
+      // Glory: permanent Army Strength. Scales with the odds you beat and how much you risked.
+      const wagerFactor = Math.min(1, Math.sqrt(ar.bet.amount/100000));
+      let glory = Math.max(2, Math.round((3 + ar.bet.odds*2.4) * wagerFactor));
+      const champ = arChampionId();
+      if(champ && ar.glads.some(g=>g.id===champ) && ar.winner !== champ && ar.bet.on === ar.winner){ glory = Math.round(glory*1.5); res.beatChampion = true; }
+      glory = Math.min(150, glory);
+      res.glory = glory;
+      A.glory = (A.glory||0) + glory;
+      // Cards: the longer the odds, the better the pull
+      const o = ar.bet.odds;
+      if(o >= 12)      res.card = arAwardCard(11);
+      else if(o >= 7)  res.card = arAwardCard(9);
+      else if(o >= 4)  res.card = arAwardCard(7);
+      else if(o >= 2.2)res.card = arAwardCard(5);
+      else if(Math.random() < 0.4) res.card = arAwardCard(3);
+    } else {
+      A.betsLost = (A.betsLost||0) + 1;
+    }
+  }
+  ar.result = res;
+  saveState(); renderHeader();
+  arRenderPanel(); arRenderStats();
+}
+function arNextMatch(){
+  arMakeMatch();
+  const el = document.getElementById("arLog");
+  if(el){ el.style.display = "none"; el.innerHTML = ""; }
+  arRenderPanel(); arRenderStats();
+}
+function arLog(msg){
+  if(!ar) return;
+  ar.log.push(msg);
+  if(ar.log.length > 60) ar.log.shift();
+  const el = document.getElementById("arLog");
+  if(el){ el.style.display = "block"; el.innerHTML = ar.log.map(l=>`<div>${l}</div>`).join(""); el.scrollTop = el.scrollHeight; }
+}
+function arToast(msg){ arLog(`<span style="color:#ffcf6a">${msg}</span>`); }
+
+/* Pulls a real card from the open pool, same rules fishing plays by. */
+function arAwardCard(minTier){
+  let rarity = rollRarity(minTier), options = byRarityOpen[rarity.id], tries = 0;
+  while((!options || !options.length) && tries++ < 20){ rarity = rollRarity(minTier); options = byRarityOpen[rarity.id]; }
+  if(!options || !options.length) return null;
+  let pool = options;
+  if(UNIQUE_TIERS.has(rarity.id)){
+    pool = options.filter(c => !(state.owned[c.id] > 0));
+    if(!pool.length) pool = byRarityOpen[Math.max(0, rarity.id-3)] || options;
+  }
+  const c = pool[Math.floor(Math.random()*pool.length)];
+  state.owned[c.id] = (state.owned[c.id]||0) + 1;
+  state.miningBonus = computeMiningBonusFromOwned(state.owned);
+  return c;
+}
+
+/* ---------------- Canvas: the colosseum ---------------- */
+const AR_W = 760, AR_H = 340;
+let arCv = null, arCtx = null, arRaf = null, arLastTs = 0, arTabActive = false;
+let arCrowd = null, arConfetti = null, arDust = null;
+
+function arBindCanvas(){
+  arCv = document.getElementById("arCanvas");
+  if(!arCv) return;
+  arCtx = arCv.getContext("2d");
+  arCtx.setTransform(2,0,0,2,0,0);
+  if(!arCrowd){
+    arCrowd = [];
+    for(let row=0; row<4; row++){
+      for(let i=0; i<64; i++){
+        arCrowd.push({ x: 8+i*11.8 + (row%2)*5, y: 26+row*13, c: `hsl(${Math.floor(Math.random()*360)},45%,${55+Math.random()*20}%)`, ph: Math.random()*Math.PI*2, amp: 0.6+Math.random()*1.3 });
+      }
+    }
+  }
+  if(!arConfetti){
+    arConfetti = [];
+    for(let i=0;i<90;i++) arConfetti.push({ x:Math.random()*AR_W, y:Math.random()*AR_H*0.5, vy:6+Math.random()*14, c:`hsl(${Math.floor(Math.random()*360)},80%,65%)`, s:1.6+Math.random()*1.8 });
+  }
+  if(!arDust){
+    arDust = [];
+    for(let i=0;i<40;i++) arDust.push({ x:Math.random()*AR_W, y:AR_H*0.45+Math.random()*AR_H*0.5, vx:26+Math.random()*40, s:1+Math.random()*2.2 });
+  }
+}
+
+function arDraw(dt, ts){
+  if(!arCtx || !ar) return;
+  const ctx = arCtx;
+  ctx.clearRect(0,0,AR_W,AR_H);
+  // sky + stands
+  const sky = ctx.createLinearGradient(0,0,0,AR_H*0.35);
+  if(ar.cond.id==="blood"){ sky.addColorStop(0,"#2a1220"); sky.addColorStop(1,"#4a1a26"); }
+  else if(ar.cond.id==="fog"){ sky.addColorStop(0,"#3a4250"); sky.addColorStop(1,"#59616e"); }
+  else { sky.addColorStop(0,"#2b3050"); sky.addColorStop(1,"#4a4f78"); }
+  ctx.fillStyle = sky; ctx.fillRect(0,0,AR_W,AR_H*0.36);
+  // crowd
+  ctx.save();
+  arCrowd.forEach(p=>{
+    const bounce = Math.sin(ts*0.004 + p.ph) * p.amp * (ar.phase==="fighting" ? 1.6 : 0.7);
+    ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y + bounce, 2.5, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+  // wall + arches
+  const wallY = AR_H*0.36;
+  ctx.fillStyle = "#b09468"; ctx.fillRect(0, wallY, AR_W, AR_H*0.20);
+  ctx.fillStyle = "#8a7350";
+  for(let i=0;i<13;i++){
+    const ax = 18 + i*60;
+    ctx.beginPath();
+    ctx.moveTo(ax, wallY+AR_H*0.20); ctx.lineTo(ax, wallY+26);
+    ctx.arc(ax+16, wallY+26, 16, Math.PI, 0); ctx.lineTo(ax+32, wallY+AR_H*0.20);
+    ctx.fill();
+  }
+  // banners
+  [140, 380, 620].forEach(bx=>{
+    ctx.fillStyle = "#b03040";
+    ctx.beginPath(); ctx.moveTo(bx,wallY); ctx.lineTo(bx+18,wallY); ctx.lineTo(bx+18,wallY+30); ctx.lineTo(bx+9,wallY+24); ctx.lineTo(bx,wallY+30); ctx.fill();
+  });
+  // sand
+  const sandY = AR_H*0.56;
+  const sg = ctx.createLinearGradient(0,sandY,0,AR_H);
+  sg.addColorStop(0,"#d8b478"); sg.addColorStop(1,"#c9a468");
+  ctx.fillStyle = sg; ctx.fillRect(0, sandY-AR_H*0.02, AR_W, AR_H);
+  // pit ellipse
+  ctx.strokeStyle = "rgba(120,90,50,0.55)"; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.ellipse(AR_W/2, AR_H*0.74, AR_W*0.42, AR_H*0.20, 0, 0, Math.PI*2); ctx.stroke();
+  // scuffs
+  ctx.fillStyle = "rgba(120,90,50,0.18)";
+  for(let i=0;i<14;i++){
+    const sx = (i*127.3)%AR_W, sy = sandY + ((i*61.7)%(AR_H-sandY-8));
+    ctx.beginPath(); ctx.ellipse(sx, sy, 11, 3, 0, 0, Math.PI*2); ctx.fill();
+  }
+  // condition atmospherics
+  if(ar.cond.id==="sand"){
+    ctx.fillStyle = "rgba(214,178,120,0.5)";
+    arDust.forEach(d=>{ d.x += d.vx*dt; if(d.x>AR_W+4) d.x=-4; ctx.beginPath(); ctx.arc(d.x,d.y,d.s,0,Math.PI*2); ctx.fill(); });
+  }
+  if(ar.cond.id==="rain"){
+    ctx.strokeStyle = "rgba(170,200,255,0.35)"; ctx.lineWidth = 1;
+    for(let i=0;i<50;i++){
+      const rx = ((i*53.7) + ts*0.4)%AR_W, ry = ((i*97.3) + ts*0.55)%AR_H;
+      ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-2,ry+9); ctx.stroke();
+    }
+  }
+  if(ar.cond.id==="fog"){
+    ctx.fillStyle = "rgba(200,205,215,0.16)";
+    for(let i=0;i<3;i++){
+      const fy = AR_H*0.5 + i*36 + Math.sin(ts*0.0004+i)*8;
+      ctx.beginPath(); ctx.ellipse((ts*0.02+i*260)%(AR_W+300)-150, fy, 200, 22, 0, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if(ar.cond.id==="blood"){
+    ctx.fillStyle = "rgba(150,30,50,0.10)"; ctx.fillRect(0,0,AR_W,AR_H);
+  }
+  if(ar.cond.id==="festival"){
+    arConfetti.forEach(c=>{
+      c.y += c.vy*dt; if(c.y > AR_H){ c.y = -4; c.x = Math.random()*AR_W; }
+      ctx.fillStyle = c.c; ctx.fillRect(c.x, c.y, c.s, c.s);
+    });
+  }
+  // fighters
+  const champ = arChampionId();
+  ar.glads.forEach(g=>{
+    const f = ar.f[g.id]; if(!f) return;
+    let dx = f.x, dy = f.y;
+    if(f.lunge > 0 && f.lungeTo){
+      const T = ar.f[f.lungeTo];
+      if(T){ const p = Math.sin(f.lunge*Math.PI); dx += (T.x-f.x)*0.28*p; dy += (T.y-f.y)*0.28*p; }
+      f.lunge = Math.max(0, f.lunge - dt*3.2);
+    }
+    ctx.save();
+    ctx.translate(dx, dy);
+    if(!f.alive){ f.ko = Math.min(1, f.ko + dt*1.6); ctx.rotate(f.ko*Math.PI/2); ctx.globalAlpha = 1 - f.ko*0.45; }
+    ctx.font = "34px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(g.emoji, 0, 0);
+    ctx.restore();
+    // name + hp
+    ctx.font = "bold 11px system-ui"; ctx.textAlign = "center";
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = 3;
+    const nm = g.name.length > 16 ? g.name.slice(0,15)+"…" : g.name;
+    ctx.strokeText(nm, dx, dy-34); ctx.fillText(nm, dx, dy-34);
+    if(champ === g.id){ ctx.font = "13px serif"; ctx.fillText("👑", dx + ctx.measureText(nm).width/2 + 14, dy-35); }
+    if(f.alive){
+      const w = 52, hpP = Math.max(0, f.hp / f.maxHp);
+      ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(dx-w/2, dy-27, w, 5);
+      ctx.fillStyle = hpP > 0.5 ? "#6fd66f" : hpP > 0.25 ? "#ffcf40" : "#ff6a5e";
+      ctx.fillRect(dx-w/2, dy-27, w*hpP, 5);
+    }
+  });
+  // floating damage numbers
+  ar.nums = ar.nums.filter(n=>{
+    n.t += dt; n.y -= dt*26;
+    if(n.t > 1.1) return false;
+    ctx.globalAlpha = 1 - n.t/1.1;
+    ctx.font = n.crit ? "bold 17px system-ui" : "bold 13px system-ui";
+    ctx.fillStyle = n.col; ctx.textAlign = "center";
+    ctx.fillText(n.txt, n.x, n.y);
+    ctx.globalAlpha = 1;
+    return true;
+  });
+}
+
+/* Event playback */
+function arTick(dt){
+  if(!ar || ar.phase !== "fighting") return;
+  ar.evTimer -= dt * ar.speed;
+  while(ar.evTimer <= 0 && ar.evIdx < ar.events.length){
+    const e = ar.events[ar.evIdx++];
+    let pause = 0.55;
+    if(e.t === "line"){ arLog(e.msg); pause = 0.75; }
+    else if(e.t === "hit"){
+      arLog(e.msg);
+      const fa = ar.f[e.a], fb = ar.f[e.b];
+      if(fa){ fa.lunge = 1; fa.lungeTo = e.b; }
+      if(fb){ fb.hp = e.hp; ar.nums.push({ x:fb.x+(Math.random()*18-9), y:fb.y-30, txt:e.dmg, t:0, crit:e.crit, col:e.crit?"#ffd75e":"#fff" }); }
+      pause = e.crit ? 0.7 : 0.5;
+    }
+    else if(e.t === "dot"){
+      arLog(`${AR_BY_ID[e.id].name} suffers ${e.dmg} lingering damage.`);
+      const f = ar.f[e.id]; if(f){ f.hp = e.hp; ar.nums.push({ x:f.x, y:f.y-30, txt:e.dmg, t:0, crit:false, col:"#b6ff7a" }); }
+      pause = 0.4;
+    }
+    else if(e.t === "miss"){ arLog(e.msg); pause = 0.45; }
+    else if(e.t === "ko"){ const f = ar.f[e.id]; if(f){ f.alive = false; f.hp = 0; } pause = 0.8; }
+    else if(e.t === "win"){
+      ar.winner = e.id; pause = 0.6;
+      // playback done -> settle
+      ar.evTimer = 0;
+      arFinishFight();
+      return;
+    }
+    ar.evTimer += pause;
+  }
+}
+
+function arLoop(ts){
+  arRaf = requestAnimationFrame(arLoop);
+  const dt = Math.min(0.1, (ts - arLastTs)/1000 || 0.016);
+  arLastTs = ts;
+  arTick(dt);
+  arDraw(dt, ts);
+}
+function arStartLoop(){ if(arRaf === null){ arLastTs = performance.now(); arRaf = requestAnimationFrame(arLoop); } }
+function arStopLoop(){ if(arRaf !== null){ cancelAnimationFrame(arRaf); arRaf = null; } }
+
+/* ---------------- UI panels ---------------- */
+function arStatBars(g){
+  const rows = [["POW",g.pow],["SPD",g.spd],["DEF",g.def],["FER",g.fer],["WIT",g.wit]];
+  return `<div class="ar-bars">` + rows.map(([l,v])=>
+    `<div class="ar-bar" title="${l} ${v}/10"><i style="height:${8+v*3.4}px"></i></div>`).join("") + `</div>`;
+}
+function arRenderPanel(){
+  const wrap = document.getElementById("arPanel");
+  if(!wrap || !ar) return;
+  const A = state.arena;
+  if(ar.phase === "betting"){
+    const champ = arChampionId();
+    const head = `
+      <div class="ar-cond">${ar.cond.icon} <b>${ar.cond.name}</b> — ${ar.cond.blurb}
+        ${ar.melee ? ` &nbsp;·&nbsp; <b style="color:#ffcf6a">⚔️ GRAND MELEE — six enter, one leaves</b>` : ``}
+      </div>
+      ${ar.rival ? `<div class="ar-rival">📣 ${ar.rival}</div>` : ``}
+      ${ar.oracle ? `<div class="ar-oracle">🔮 The Pit Oracle whispers: <b>“${AR_BY_ID[ar.oracle].name}.”</b> (The Oracle is usually right. Usually.)</div>` : ``}`;
+    const cards = ar.glads.map((g,i)=>{
+      const r = (A.records && A.records[g.id]) || {w:0,l:0};
+      const q = AR_QUIRKS[g.quirk];
+      return `<div class="ar-card${champ===g.id?' ar-champ':''}${ar.oracle===g.id?' ar-hinted':''}">
+        ${champ===g.id?`<div class="ar-belt">👑 CHAMPION</div>`:``}
+        <div class="ar-emoji">${g.emoji}</div>
+        <div class="ar-name">${g.name}</div>
+        <div class="ar-epithet">${g.epithet}</div>
+        <div class="ar-record">${r.w}W – ${r.l}L</div>
+        <div class="ar-quirk" title="${q.desc}">✨ ${q.name}</div>
+        ${arStatBars(g)}
+        <button class="ar-betbtn" data-bet="${g.id}">Bet · ${ar.odds[i]}×</button>
+      </div>`;
+    }).join("");
+    wrap.innerHTML = head + `<div class="ar-grid">${cards}</div>
+      <div class="ar-wager">
+        <span class="ar-wlabel">WAGER</span>
+        <input id="arWager" type="number" min="1000" step="1000" value="${Math.min(state.credits, A.lastWager||10000)}">
+        <button class="ar-chip" data-chip="10000">10k</button>
+        <button class="ar-chip" data-chip="100000">100k</button>
+        <button class="ar-chip" data-chip="1000000">1M</button>
+        <button class="ar-chip" data-chip="max">MAX</button>
+      </div>
+      <div class="ar-actions">
+        <button id="arOracleBtn" ${ar.oracle?'disabled':''}>🔮 Ask the Pit Oracle · 25k</button>
+        <button id="arWatchBtn">Just watch</button>
+        <button id="arRerollBtn">New matchup</button>
+      </div>
+      <div class="ar-note">Win your bet to earn <b>credits × odds</b>, permanent 🎖️ <b>Glory</b> (adds straight to your Army Strength), and at longer odds, <b>cards</b>. Beating the reigning champion pays half again more Glory.</div>`;
+    wrap.querySelectorAll("[data-bet]").forEach(b=>b.addEventListener("click",()=>{
+      const amt = +document.getElementById("arWager").value;
+      state.arena.lastWager = amt;
+      arPlaceBet(b.dataset.bet, amt);
+    }));
+    wrap.querySelectorAll("[data-chip]").forEach(b=>b.addEventListener("click",()=>{
+      const inp = document.getElementById("arWager");
+      inp.value = b.dataset.chip === "max" ? Math.max(1000, Math.floor(state.credits)) : +b.dataset.chip;
+    }));
+    const ob = document.getElementById("arOracleBtn"); if(ob) ob.addEventListener("click", arOracle);
+    document.getElementById("arWatchBtn").addEventListener("click", arSpectate);
+    document.getElementById("arRerollBtn").addEventListener("click", arNextMatch);
+  }
+  else if(ar.phase === "fighting"){
+    const b = ar.bet;
+    wrap.innerHTML = `
+      <div class="ar-livebar">
+        ${b ? `<span>Your bet: <b>${AR_BY_ID[b.on].emoji} ${AR_BY_ID[b.on].name}</b> · ${b.amount.toLocaleString()} @ ${b.odds}× <span class="ar-pot">(pays ${(Math.round(b.amount*b.odds)).toLocaleString()})</span></span>`
+             : `<span>Spectating — no credits on the line.</span>`}
+        <span class="ar-speed">
+          <button class="ar-spd${ar.speed===1?' on':''}" data-spd="1">1×</button>
+          <button class="ar-spd${ar.speed===2?' on':''}" data-spd="2">2×</button>
+          <button class="ar-spd${ar.speed===4?' on':''}" data-spd="4">4×</button>
+          <button id="arSkipBtn">Skip to result ⏭</button>
+        </span>
+      </div>`;
+    wrap.querySelectorAll("[data-spd]").forEach(x=>x.addEventListener("click",()=>{ ar.speed = +x.dataset.spd; arRenderPanel(); }));
+    document.getElementById("arSkipBtn").addEventListener("click", arSkip);
+  }
+  else if(ar.phase === "done"){
+    const res = ar.result, W = AR_BY_ID[res.winner];
+    let inner;
+    if(res.bet){
+      if(res.won){
+        const chips = [`🪙 +${res.credits.toLocaleString()}`, `🎖️ +${res.glory} Glory → Army Strength`];
+        if(res.beatChampion) chips.push(`👑 Champion toppled — Glory ×1.5`);
+        if(res.card) chips.push(`🃏 ${res.card.emoji||"🎴"} ${res.card.name}`);
+        inner = `<div class="ar-result ar-won">
+          <div class="ar-remoji">${W.emoji}</div>
+          <div class="ar-rtitle">${W.name} takes the sand!</div>
+          <div class="ar-rsub" style="color:#8fdc8f">Your bet comes in at ${res.bet.odds}×</div>
+          <div class="ar-chips">${chips.map(c=>`<span class="ar-chipres">${c}</span>`).join("")}</div>
+        </div>`;
+      } else {
+        inner = `<div class="ar-result ar-lost">
+          <div class="ar-remoji">${W.emoji}</div>
+          <div class="ar-rtitle">${W.name} takes the sand!</div>
+          <div class="ar-rsub" style="color:#ff8a80">Your ${res.bet.amount.toLocaleString()} on ${AR_BY_ID[res.bet.on].name} is swept away with the losing sand.</div>
+        </div>`;
+      }
+    } else {
+      inner = `<div class="ar-result">
+        <div class="ar-remoji">${W.emoji}</div>
+        <div class="ar-rtitle">${W.name} takes the sand!</div>
+        <div class="ar-rsub">A fine bout. The bookmakers breathe easy.</div>
+      </div>`;
+    }
+    wrap.innerHTML = inner + `<button id="arNextBtn" class="ar-next">Next matchup ›</button>`;
+    document.getElementById("arNextBtn").addEventListener("click", arNextMatch);
+  }
+}
+function arRenderStats(){
+  const el = document.getElementById("arStats");
+  if(!el) return;
+  const A = state.arena || defaultArena();
+  const champ = arChampionId();
+  el.innerHTML = `
+    <div class="stat"><div class="num" style="color:#8fdc8f">${(A.glory||0).toLocaleString()}</div><div class="lbl">Glory (→ Army Str.)</div></div>
+    <div class="stat"><div class="num">${A.betsWon||0} – ${A.betsLost||0}</div><div class="lbl">Bets Won – Lost</div></div>
+    <div class="stat"><div class="num">${(A.won||0).toLocaleString()}</div><div class="lbl">Credits Won</div></div>
+    <div class="stat"><div class="num">${A.bestOdds ? A.bestOdds+"×" : "—"}</div><div class="lbl">Longest Odds Landed</div></div>
+    <div class="stat"><div class="num">${A.bouts||0}</div><div class="lbl">Bouts Watched</div></div>
+    <div class="stat"><div class="num">${champ ? AR_BY_ID[champ].emoji+" "+AR_BY_ID[champ].name : "—"}</div><div class="lbl">Reigning Champion</div></div>`;
+}
+function renderArena(){
+  if(!state.arena) state.arena = defaultArena();
+  arBindCanvas();
+  if(!ar) arMakeMatch();
+  arRenderStats();
+  arRenderPanel();
+}
+function arOnEnterTab(){ arTabActive = true; arBindCanvas(); if(!ar) arMakeMatch(); arStartLoop(); }
+function arOnLeaveTab(){ arTabActive = false; arStopLoop(); }
+
+
+/* ---------------- CARD INSPECTOR ----------------
+   Click a card you own for a closer look: a real photograph of the subject and a
+   couple of short facts, pulled live from Wikipedia and cached so each subject is
+   only ever fetched once. Offline or unknown? You get the card's own lore instead. */
+const CI_CACHE_KEY = "oe_archive_cache_v1";
+let ciCache = null;
+function ciLoadCache(){
+  if(ciCache) return ciCache;
+  try{ ciCache = JSON.parse(localStorage.getItem(CI_CACHE_KEY)) || {}; }catch(e){ ciCache = {}; }
+  return ciCache;
+}
+function ciSaveCache(){
+  try{
+    const keys = Object.keys(ciCache);
+    if(keys.length > 300){
+      keys.sort((a,b)=>(ciCache[a].t||0)-(ciCache[b].t||0)).slice(0, keys.length-300)
+          .forEach(k=>delete ciCache[k]);
+    }
+    localStorage.setItem(CI_CACHE_KEY, JSON.stringify(ciCache));
+  }catch(e){}
+}
+function ciTrimExtract(text){
+  if(!text) return "";
+  const sentences = text.replace(/\s+/g," ").split(/(?<=[.!?])\s+/).slice(0,2).join(" ");
+  return sentences.length > 320 ? sentences.slice(0,317).replace(/\s+\S*$/,"") + "…" : sentences;
+}
+async function ciFetchJson(url, ms){
+  const ctl = new AbortController();
+  const timer = setTimeout(()=>ctl.abort(), ms || 8000);
+  try{
+    const r = await fetch(url, { signal: ctl.signal });
+    if(!r.ok) throw new Error("http "+r.status);
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+async function ciLookup(subject){
+  const cache = ciLoadCache();
+  const hit = cache[subject];
+  if(hit && hit.t && (Date.now() - hit.t) < 1000*60*60*24*90) return hit.miss ? null : hit;
+  const base = "https://en.wikipedia.org/api/rest_v1/page/summary/";
+  let entry = null;
+  try{
+    let j = null;
+    try{ j = await ciFetchJson(base + encodeURIComponent(subject) + "?redirect=true"); }catch(e){ j = null; }
+    if(!j || j.type === "disambiguation" || !j.extract){
+      const sr = await ciFetchJson("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=1&srsearch=" + encodeURIComponent(subject));
+      const top = sr && sr.query && sr.query.search && sr.query.search[0];
+      if(top) j = await ciFetchJson(base + encodeURIComponent(top.title) + "?redirect=true");
+    }
+    if(j && j.extract && j.type !== "disambiguation"){
+      entry = { t: Date.now(), title: j.title || subject,
+        desc: j.description || "",
+        extract: ciTrimExtract(j.extract),
+        img: (j.thumbnail && j.thumbnail.source) || "",
+        url: (j.content_urls && j.content_urls.desktop && j.content_urls.desktop.page) || "" };
+    }
+  }catch(e){ /* offline or blocked — fall through to the lore fallback */ }
+  if(entry){ cache[subject] = entry; ciSaveCache(); return entry; }
+  cache[subject] = { t: Date.now(), miss:true }; ciSaveCache();
+  return null;
+}
+let ciToken = 0;
+function openCardInfo(cardId){
+  const c = cards[cardId];
+  if(!c) return;
+  const owned = state.owned[c.id] || 0;
+  const r = RARITIES[c.rarity];
+  const subject = c.name.split(" — ")[0];
+  const variant = c.name.includes(" — ") ? c.name.split(" — ")[1] : "";
+  const overlay = document.getElementById("cardInfoOverlay");
+  const cardEl = document.getElementById("ciCard");
+  fxResetBudget();
+  const fx = fxClassForTier(c.rarity);
+  cardEl.className = "mini-card ci-card" + (fx ? " " + fx : "");
+  cardEl.style.setProperty("--rc", r.color);
+  cardEl.style.borderColor = r.color;
+  cardEl.innerHTML = `
+    <div class="rtag" style="color:${r.color}">${r.name}</div>
+    <div class="art">${c.emoji}</div>
+    <div class="name">${c.name}</div>
+    <div class="cat">${c.category}</div>
+    ${owned ? `<div class="count">×${owned}</div>` : ""}`;
+  document.getElementById("ciTitle").textContent = subject;
+  document.getElementById("ciSub").textContent = variant ? `“${variant}” edition` : "";
+  document.getElementById("ciChips").innerHTML = `
+    <span class="ci-chip" style="color:${r.color}; border-color:${r.color}66;">${r.name}</span>
+    <span class="ci-chip">${c.category}</span>
+    ${owned ? `<span class="ci-chip">Owned ×${owned}</span>` : ""}`;
+  document.getElementById("ciFlavor").textContent = c.flavor || "";
+  document.getElementById("ciPhotoWrap").innerHTML = `<div class="ci-photo-loading">📚 Consulting the archives…</div>`;
+  document.getElementById("ciDesc").textContent = "";
+  document.getElementById("ciLink").innerHTML = "";
+  overlay.classList.add("show");
+  const token = ++ciToken;
+  ciLookup(subject).then(entry=>{
+    if(token !== ciToken) return;              // user opened a different card meanwhile
+    const wrap = document.getElementById("ciPhotoWrap");
+    if(entry){
+      if(entry.img){
+        wrap.innerHTML = `<img src="${entry.img}" alt="${entry.title}" loading="lazy"
+          onerror="this.parentNode.innerHTML='<div class=\'ci-photo-loading\'>${c.emoji} No photograph survives.</div>'">
+          <div class="ci-photo-cap">${entry.title}${entry.desc ? " — " + entry.desc : ""}</div>`;
+      } else {
+        wrap.innerHTML = `<div class="ci-photo-loading" style="font-size:3rem">${c.emoji}</div>`;
+      }
+      document.getElementById("ciDesc").textContent = entry.extract;
+      if(entry.url) document.getElementById("ciLink").innerHTML =
+        `<a href="${entry.url}" target="_blank" rel="noopener">Read more on Wikipedia →</a>`;
+    } else {
+      wrap.innerHTML = `<div class="ci-photo-loading" style="font-size:3rem">${c.emoji}</div>`;
+      document.getElementById("ciDesc").textContent = "The archivists have no dossier on this one — either it is too rare, too mythical, or the library is unreachable right now.";
+    }
+  });
+}
+function closeCardInfo(){
+  document.getElementById("cardInfoOverlay").classList.remove("show");
+  ciToken++;
+}
+document.getElementById("ciClose").addEventListener("click", closeCardInfo);
+document.getElementById("cardInfoOverlay").addEventListener("click", e=>{
+  if(e.target === document.getElementById("cardInfoOverlay")) closeCardInfo();
+});
+document.addEventListener("keydown", e=>{
+  if(e.key === "Escape" && document.getElementById("cardInfoOverlay").classList.contains("show")) closeCardInfo();
+});
+document.getElementById("collectionGrid").addEventListener("click", e=>{
+  const el = e.target.closest(".mini-card");
+  if(!el || el.classList.contains("locked") || !el.dataset.cid) return;
+  openCardInfo(+el.dataset.cid);
+});
+
 /* ---------------- NAV ---------------- */
 document.querySelectorAll("nav button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     try{ btn.scrollIntoView({inline:"center", block:"nearest", behavior:"smooth"}); }catch(e){}
-    ["mining","packs","upgrades","market","empire","siege","fishing","casino","collection","account"].forEach(t=>{
+    ["mining","packs","upgrades","market","empire","siege","arena","fishing","casino","collection","account"].forEach(t=>{
       document.getElementById("tab-"+t).style.display = (t===btn.dataset.tab) ? "block":"none";
     });
     if(btn.dataset.tab==="collection") renderCollection();
@@ -10523,6 +11676,7 @@ document.querySelectorAll("nav button").forEach(btn=>{
     if(btn.dataset.tab==="market"){ renderMarket(); renderTackleShop(); }
     if(btn.dataset.tab==="empire") renderEmpire();
     if(btn.dataset.tab==="siege"){ renderSiege(); sgOnEnterTab(); } else { sgOnLeaveTab(); }
+    if(btn.dataset.tab==="arena"){ renderArena(); arOnEnterTab(); } else { arOnLeaveTab(); }
     if(btn.dataset.tab==="fishing"){ renderFishing(); fshOnEnterTab(); } else { fshOnLeaveTab(); }
     if(btn.dataset.tab==="account") renderAccount();
     if(btn.dataset.tab==="casino"){ renderCasino(); brShowLobby(); }
@@ -10575,6 +11729,7 @@ function renderAll(){
   safeRender("tackle",     renderTackleShop);
   safeRender("account",    renderAccount);
   safeRender("casino",     renderCasino);
+  safeRender("arena",      renderArena);
 }
 safeRender("filters",        populateFilters);
 safeRender("market filters", populateMarketFilters);

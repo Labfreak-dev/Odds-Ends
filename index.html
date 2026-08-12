@@ -1808,6 +1808,142 @@
 .fsh-card .rPhotoIcon{ position:absolute; right:7px; bottom:5px; font-size:22px;
   filter:drop-shadow(0 2px 5px rgba(0,0,0,.8)); }
 @keyframes fshPhotoIn{ from{ opacity:0; transform:scale(.94); } to{ opacity:1; transform:scale(1); } }
+
+/* ---------------- FX FIXES: market/sell grids + spin coverage ----------------
+   1) The 3-second settle window now freezes market, sell and avatar cards too —
+      previously only .mini-card was covered, so foils there spun forever.
+   2) Every rotating foil layer is now an oversized centered SQUARE (320% of the
+      card, spinning about its own center), so no matter the card's shape or the
+      rotation angle, the layer always covers the whole box — no more dark
+      corners flashing through mid-spin. */
+.fx-frozen .sell-card, .fx-frozen .sell-card::before, .fx-frozen .sell-card::after,
+.fx-frozen .market-card, .fx-frozen .market-card::before, .fx-frozen .market-card::after{
+  animation:none !important;
+}
+.fx-frozen .sell-card::before, .fx-frozen .market-card::before{ opacity:.72; }
+.fx-frozen .sell-card::after,  .fx-frozen .market-card::after{ opacity:.34; }
+
+@keyframes spinSlowC{ from{ transform:translate(-50%,-50%) rotate(0deg); } to{ transform:translate(-50%,-50%) rotate(360deg); } }
+@keyframes swirlSpinC{ from{ transform:translate(-50%,-50%) rotate(0deg); } to{ transform:translate(-50%,-50%) rotate(360deg); } }
+
+.fx-designer::after, .fx-limited::after, .fx-legendary::after,
+.fx-mythic:not(.burst)::before, .fx-mythic::after{
+  inset:auto !important; top:50% !important; left:50% !important; right:auto !important; bottom:auto !important;
+  width:320% !important; height:auto !important; aspect-ratio:1/1;
+  transform:translate(-50%,-50%);
+}
+.fx-designer::after{ animation: twinkle 2.4s ease-in-out infinite, spinSlowC 9s linear infinite; }
+.fx-limited::after{ animation: swirlSpinC 5s linear infinite; }
+.fx-legendary::after{ animation: swirlSpinC 6s linear infinite; }
+.fx-mythic:not(.burst)::before{ animation: swirlSpinC 3s linear infinite, mythicRayPulse 1.5s ease-in-out infinite; }
+.fx-mythic::after{ animation: swirlSpinC 6s linear infinite reverse; }
+/* frozen state wins over the lines above */
+.fx-frozen .mini-card::before, .fx-frozen .mini-card::after,
+.fx-frozen .sell-card::before, .fx-frozen .sell-card::after,
+.fx-frozen .market-card::before, .fx-frozen .market-card::after{ animation:none !important; }
+
+/* ---------------- SIEGE OVERHAUL: in-map UI ---------------- */
+#sgTowerBar{
+  position:absolute; top:8px; right:8px; bottom:8px; width:72px; z-index:5;
+  display:flex; flex-direction:column; gap:6px; overflow-y:auto; padding:4px;
+  background:rgba(10,12,20,0.72); border:1px solid rgba(255,255,255,0.12);
+  border-radius:12px; backdrop-filter:blur(3px); scrollbar-width:none;
+}
+#sgTowerBar::-webkit-scrollbar{ display:none; }
+.sg-tb{
+  flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:1px;
+  padding:7px 2px 5px; border-radius:10px; border:1px solid rgba(255,255,255,0.10);
+  background:rgba(255,255,255,0.05); cursor:pointer; user-select:none; position:relative;
+}
+.sg-tb .ic{ font-size:21px; line-height:1; }
+.sg-tb .cs{ font-size:10.5px; font-weight:800; color:#ffd35c; }
+.sg-tb .nm{ font-size:8.5px; color:var(--muted); text-align:center; line-height:1.1; }
+.sg-tb.sel{ border-color:#ffd35c; background:rgba(255,211,92,0.15); box-shadow:0 0 10px rgba(255,211,92,0.25); }
+.sg-tb.poor{ opacity:0.45; }
+.sg-tb:hover{ border-color:rgba(255,255,255,0.35); }
+#sgSelPop{
+  position:absolute; z-index:6; width:198px; padding:10px 10px 9px;
+  background:rgba(12,14,24,0.94); border:1px solid rgba(255,255,255,0.16);
+  border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+}
+#sgSelPop .ph{ display:flex; align-items:center; gap:7px; font-weight:800; font-size:13px; }
+#sgSelPop .ph .lvl{ margin-left:auto; font-size:10.5px; color:var(--muted); font-weight:700; }
+#sgSelPop .pd{ font-size:10.8px; color:var(--muted); line-height:1.45; margin:5px 0 7px; }
+#sgSelPop .pd b{ font-size:12px; }
+.sgp-up{
+  width:100%; padding:9px 8px; border:none; border-radius:9px; cursor:pointer;
+  background:linear-gradient(180deg,#3ddc84,#22a85e); color:#08130c; font-weight:800; font-size:12.5px;
+  display:flex; justify-content:space-between; align-items:center; gap:6px;
+}
+.sgp-up .delta{ font-size:10px; font-weight:700; opacity:0.85; }
+.sgp-up:disabled{ background:#2b3142; color:#6b7387; cursor:default; }
+.sgp-row{ display:flex; gap:6px; margin-top:6px; }
+.sgp-row button{
+  flex:1; padding:7px 4px; border-radius:8px; border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.05); color:#e8eaf5; font-size:10.5px; font-weight:700; cursor:pointer;
+}
+.sgp-row button:hover{ border-color:rgba(255,255,255,0.4); }
+.sgp-path{
+  width:100%; margin-top:6px; padding:8px; border-radius:9px; text-align:left; cursor:pointer;
+  border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.05); color:#e8eaf5;
+}
+.sgp-path:hover{ border-color:#ffd35c; }
+.sgp-path:disabled{ opacity:0.45; cursor:default; }
+.sgp-path .pn{ font-weight:800; font-size:12px; display:flex; gap:6px; align-items:center; }
+.sgp-path .pn .cs{ margin-left:auto; color:#ffd35c; font-size:10.5px; }
+.sgp-path .pb{ font-size:10px; color:var(--muted); line-height:1.35; margin-top:3px; }
+#sgSelPop .px{ position:absolute; top:5px; right:7px; background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; }
+@media (max-width:700px){
+  #sgTowerBar{ width:60px; }
+  .sg-tb .nm{ display:none; }
+  #sgSelPop{ width:180px; }
+}
+
+/* ---------------- SIEGE REDO: fullscreen battle + battlefield picker ---------------- */
+html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
+#sgBattle.sg-fs{
+  position:fixed; inset:0; z-index:80; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:radial-gradient(ellipse at 50% 0%, #141a2a 0%, #0a0c14 68%);
+  padding:8px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+#sgBattle.sg-fs .panel{ background:none; border:none; box-shadow:none; padding:0; margin:0; max-width:1240px; margin:0 auto; }
+#sgBattle.sg-fs .sg-hud{ margin:2px 0 8px; }
+#sgBattle.sg-fs #sgCanvas{ margin:0 auto; display:block; border-radius:14px; border:1px solid rgba(255,255,255,0.10);
+  box-shadow:0 18px 60px rgba(0,0,0,.55); }
+#sgBattle.sg-fs .sg-stage{ display:flex; justify-content:center; }
+#sgBattle.sg-fs .sg-actions{ margin-top:8px; }
+#sgBattle.sg-fs .sg-log{ max-height:82px; }
+.sg-map-row{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; }
+.sg-map{
+  text-align:left; padding:10px 11px; border-radius:12px; cursor:pointer;
+  border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:var(--ink,#e8eaf5);
+  display:flex; flex-direction:column; gap:2px;
+}
+.sg-map .mi{ font-size:20px; }
+.sg-map .mn{ font-weight:800; font-size:12.5px; }
+.sg-map .mb{ font-size:10.5px; color:var(--muted); line-height:1.35; }
+.sg-map.sel{ border-color:#ffd35c; background:rgba(255,211,92,0.12); box-shadow:0 0 12px rgba(255,211,92,0.2); }
+
+/* portrait battles: shrink the chrome, the battlefield gets the screen */
+@media (max-width:720px){
+  #sgBattle.sg-fs{ padding:4px 4px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  #sgBattle.sg-fs .sg-hud{ margin:0 0 4px; gap:5px; }
+  #sgBattle.sg-fs .sg-hud .chip{ padding:4px 8px; font-size:11px; }
+  #sgBattle.sg-fs .sg-actions{ margin-top:5px; gap:5px; }
+  #sgBattle.sg-fs .sg-actions .btn{ padding:8px 10px; font-size:12px; }
+  #sgBattle.sg-fs #sgAbilities .sg-ab{ padding:6px 6px; font-size:11px; }
+  #sgBattle.sg-fs .sg-log{ max-height:56px; font-size:11px; }
+  #sgBattle.sg-fs #sgCanvas{ border-radius:10px; }
+  /* portrait phones: tower bar docks along the bottom of the map, off the playfield */
+  #sgBattle.sg-fs #sgCanvas{ margin-bottom:72px; }
+  #sgTowerBar{
+    top:auto; right:8px; left:8px; bottom:0; width:auto; height:64px;
+    flex-direction:row; overflow-x:auto; overflow-y:hidden; align-items:stretch;
+  }
+  .sg-tb{ flex:1 1 0; min-width:48px; padding:5px 2px 4px; }
+  .sg-tb .ic{ font-size:18px; }
+  .sg-tb .cs{ font-size:9.5px; }
+}
 </style>
 </head>
 <body>
@@ -2081,6 +2217,9 @@
         Clear a siege to unlock the next one. Rewards pay out in Reputation and Credits — and you keep them even
         if the keep falls, scaled to how far you got.
       </div>
+      <div style="font-weight:800; font-size:14px; margin:4px 0 8px;">🗺️ Battlefield</div>
+      <div class="sg-map-row" id="sgMapRow"></div>
+      <div style="font-weight:800; font-size:14px; margin:14px 0 8px;">⚔️ Siege</div>
       <div class="sg-tier-grid" id="sgTierGrid"></div>
     </div>
 
@@ -2095,6 +2234,8 @@
 
         <div class="sg-stage">
           <canvas id="sgCanvas" width="700" height="450"></canvas>
+          <div id="sgTowerBar"></div>
+          <div id="sgSelPop" style="display:none;"></div>
           <div class="sg-result" id="sgResult">
             <div class="inner">
               <h3 id="sgResultTitle">Victory</h3>
@@ -2113,17 +2254,17 @@
 
         <div class="sg-actions">
           <button class="btn" id="sgWaveBtn" onclick="sgWaveButton()">Start Wave 1</button>
+          <button class="btn secondary" id="sgEarlyBtn" onclick="sgCallEarly()" style="display:none;">⏩ Call next wave early</button>
           <div class="sg-spd" id="sgSpeed">
             <button data-spd="1" class="on">1×</button>
             <button data-spd="2">2×</button>
             <button data-spd="3">3×</button>
+            <button data-spd="4">4×</button>
           </div>
           <button class="btn secondary" onclick="sgLeaveBattle()" style="margin-left:auto;">Retreat</button>
         </div>
 
         <div class="sg-preview" id="sgPreview" style="display:none;"></div>
-        <div class="sg-palette" id="sgPalette"></div>
-        <div class="sg-sel" id="sgSelPanel"></div>
         <div class="sg-log" id="sgLog"></div>
       </div>
     </div>
@@ -7130,20 +7271,55 @@ function buildLottoPrizeTable(){
 
 
 /* ---------------- SIEGE: TOWER DEFENSE ---------------- */
-const SG_CELL = 50, SG_COLS = 14, SG_ROWS = 9;
-const SG_W = SG_COLS*SG_CELL, SG_H = SG_ROWS*SG_CELL;
-const SG_CASTLE = { c:13, r:5 };
+const SG_CELL = 50;
+let SG_COLS = 16, SG_ROWS = 10;
+let SG_W = SG_COLS*SG_CELL, SG_H = SG_ROWS*SG_CELL;
+let SG_CASTLE = { c:15, r:5 };
+
+/* ---------------- FOUR BATTLEFIELDS ---------------- */
+const SG_MAPS = [
+  { id:"meadow", name:"King's Crossing", icon:"🌳", blurb:"The classic fork — hold the island and cover both lanes.",
+    cols:16, rows:10, castle:{c:15,r:5},
+    ways:[
+      [[-1,5],[3,5],[3,2],[9,2],[9,5],[13,5],[15,5]],
+      [[-1,5],[3,5],[3,8],[9,8],[9,5],[13,5],[15,5]],
+    ],
+    theme:{ gA:"#3c5a35", gB:"#33502e", gC:"#294226", patchL:"rgba(124,170,98,.06)", patchD:"rgba(20,42,22,.08)",
+      roadD:"#233020", roadM:"#77683f", roadL:"#8f7d55", tuft:"rgba(146,190,116,.22)",
+      hillA:"#4b6f40", hillB:"#5c8a4c", decor:["tree","tree","bush","rock"], ambient:"leaves", ambC:"#9ec46a" } },
+  { id:"desert", name:"Sunscorch Flats", icon:"🌵", blurb:"Two roads, one gate. Split your defence — or dominate the junction.",
+    cols:16, rows:10, castle:{c:15,r:5},
+    ways:[
+      [[-1,2],[5,2],[5,5],[11,5],[15,5]],
+      [[-1,8],[8,8],[8,5],[11,5],[15,5]],
+    ],
+    theme:{ gA:"#b08d54", gB:"#a37f49", gC:"#8a693c", patchL:"rgba(255,230,170,.10)", patchD:"rgba(90,60,25,.10)",
+      roadD:"#6b4f2e", roadM:"#c9a166", roadL:"#dbb87e", tuft:"rgba(120,90,50,.28)",
+      hillA:"#a3743e", hillB:"#c08c4e", decor:["cactus","cactus","rock","skull"], ambient:"sand", ambC:"#e6c690" } },
+  { id:"snow", name:"Frostbite Pass", icon:"❄️", blurb:"One long frozen switchback. Time is on your side — the cold is not.",
+    cols:16, rows:10, castle:{c:14,r:9},
+    ways:[
+      [[-1,1],[12,1],[12,4],[2,4],[2,7],[14,7],[14,9]],
+    ],
+    theme:{ gA:"#c7d6e2", gB:"#b4c6d6", gC:"#9db1c4", patchL:"rgba(255,255,255,.22)", patchD:"rgba(60,80,110,.10)",
+      roadD:"#5a6b80", roadM:"#8fa0b5", roadL:"#aebfd2", tuft:"rgba(255,255,255,.35)",
+      hillA:"#8fa4bb", hillB:"#aabfd4", decor:["pine","pine","rock","pine"], ambient:"snow", ambC:"#ffffff" } },
+  { id:"ember", name:"Emberfall Rings", icon:"🌋", blurb:"The road coils to a keep in the caldera. Everything burns eventually.",
+    cols:16, rows:10, castle:{c:10,r:5},
+    ways:[
+      [[-1,5],[2,5],[2,1],[13,1],[13,8],[5,8],[5,4],[10,4],[10,5]],
+    ],
+    theme:{ gA:"#4a3038", gB:"#3d262e", gC:"#2e1c24", patchL:"rgba(255,120,70,.07)", patchD:"rgba(0,0,0,.16)",
+      roadD:"#1f1418", roadM:"#5c4048", roadL:"#75525a", tuft:"rgba(255,130,80,.18)",
+      hillA:"#5c3a42", hillB:"#754a52", decor:["emberrock","rock","emberrock","deadtree"], ambient:"embers", ambC:"#ff9a4c" } },
+];
+let SG_MAP = SG_MAPS[0];
+let sgChosenMap = "meadow";
 
 function sgCC(c,r){ return { x:(c+0.5)*SG_CELL, y:(r+0.5)*SG_CELL }; }
 function sgKey(c,r){ return c+","+r; }
 
-/* The road forks after the first bend and rejoins before the keep, so a tower
-   in the middle island covers both lanes while an outer tower only covers one.
-   That one decision is what makes placement actually matter. */
-const SG_WAYS = [
-  [[-1,4],[3,4],[3,2],[8,2],[8,4],[12,4],[12,5],[13,5]],
-  [[-1,4],[3,4],[3,6],[8,6],[8,4],[12,4],[12,5],[13,5]],
-];
+let SG_WAYS = SG_MAPS[0].ways;
 
 function sgBuildRoute(way){
   const pts = way.map(([c,r])=>sgCC(c,r));
@@ -7167,7 +7343,7 @@ function sgBuildRoute(way){
   }
   return { pts, segs, total:acc, cellD };
 }
-const SG_ROUTES = SG_WAYS.map(sgBuildRoute);
+let SG_ROUTES = SG_WAYS.map(sgBuildRoute);
 
 function sgPosOn(route, d){
   const segs = route.segs;
@@ -7182,23 +7358,63 @@ function sgPosOn(route, d){
   const l = segs[segs.length-1]; return { x:l.b.x, y:l.b.y };
 }
 
-const SG_PATH_CELLS = new Set();
+let SG_PATH_CELLS = new Set();
 SG_ROUTES.forEach(rt => Object.keys(rt.cellD).forEach(k => SG_PATH_CELLS.add(k)));
 function sgIsPath(c,r){ return SG_PATH_CELLS.has(sgKey(c,r)); }
 
+/* Load a battlefield: rebuild routes, then seed hills and scenery on free
+   ground deterministically so every map is valid without hand-placed lists. */
+function sgLoadMap(id){
+  SG_MAP = SG_MAPS.find(m=>m.id===id) || SG_MAPS[0];
+  /* Read the device at battle start: on a portrait screen the whole battlefield
+     is transposed (columns become rows), so the map stands tall and fills the
+     phone instead of sitting in a letterboxed strip. Pure grid flip — every
+     route, tower and rule works the same in either orientation. */
+  const portrait = window.innerHeight > window.innerWidth * 1.1;
+  if(portrait){
+    SG_COLS = SG_MAP.rows; SG_ROWS = SG_MAP.cols;
+    SG_CASTLE = { c: SG_MAP.castle.r, r: SG_MAP.castle.c };
+    SG_WAYS = SG_MAP.ways.map(w => w.map(([c,r]) => [r,c]));
+  } else {
+    SG_COLS = SG_MAP.cols; SG_ROWS = SG_MAP.rows;
+    SG_CASTLE = SG_MAP.castle;
+    SG_WAYS = SG_MAP.ways;
+  }
+  SG_W = SG_COLS*SG_CELL; SG_H = SG_ROWS*SG_CELL;
+  SG_ROUTES = SG_WAYS.map(sgBuildRoute);
+  SG_PATH_CELLS = new Set();
+  SG_ROUTES.forEach(rt => Object.keys(rt.cellD).forEach(k => SG_PATH_CELLS.add(k)));
+  const free = [];
+  for(let r=0;r<SG_ROWS;r++) for(let c=0;c<SG_COLS;c++){
+    if(sgIsPath(c,r)) continue;
+    if(c === SG_CASTLE.c && r === SG_CASTLE.r) continue;
+    if(Math.abs(c-SG_CASTLE.c) <= 1 && Math.abs(r-SG_CASTLE.r) <= 1) continue;
+    free.push([c,r]);
+  }
+  // deterministic shuffle keyed to the map id
+  const seedBase = SG_MAP.id.split("").reduce((a,ch)=>a+ch.charCodeAt(0), 0);
+  free.sort((a,b)=> sgHash(a[0]*17+seedBase, a[1]*29) - sgHash(b[0]*17+seedBase, b[1]*29));
+  // hills prefer cells near (but not on) the road
+  const nearRoad = ([c,r])=>{
+    for(const k of SG_PATH_CELLS){ const [pc,pr] = k.split(",").map(Number);
+      if(Math.abs(pc-c)+Math.abs(pr-r) === 1) return true; }
+    return false;
+  };
+  const hillPicks = free.filter(nearRoad).slice(0, 8);
+  SG_HILLS = new Set(hillPicks.map(([c,r])=>sgKey(c,r)));
+  const decorPool = free.filter(x=>!SG_HILLS.has(sgKey(x[0],x[1]))).filter(x=>!nearRoad(x));
+  SG_DECOR = decorPool.slice(0, 12).map(([c,r],i)=>({ c, r, t: SG_MAP.theme.decor[i % SG_MAP.theme.decor.length] }));
+  SG_BLOCKED = new Set(SG_DECOR.map(d=>sgKey(d.c,d.r)));
+}
+
 /* Hills: +18% range, +12% damage. They sit out on the wings, so the safe
    double-coverage island isn't automatically the best spot. */
-const SG_HILLS = new Set(["5,0","9,1","5,8","9,7","11,1","11,7","1,2","1,6"]);
+let SG_HILLS = new Set();
 function sgIsHill(c,r){ return SG_HILLS.has(sgKey(c,r)); }
 
 /* Scenery — blocks building, gives the field some character. */
-const SG_DECOR = [
-  {c:0,r:0,t:"tree"},{c:2,r:0,t:"tree"},{c:1,r:1,t:"bush"},{c:0,r:8,t:"tree"},
-  {c:2,r:8,t:"bush"},{c:1,r:7,t:"tree"},{c:6,r:0,t:"rock"},{c:6,r:8,t:"rock"},
-  {c:10,r:0,t:"tree"},{c:10,r:8,t:"tree"},{c:13,r:0,t:"tree"},{c:13,r:8,t:"tree"},
-  {c:12,r:0,t:"bush"},{c:12,r:8,t:"bush"},{c:9,r:3,t:"rock"},{c:9,r:5,t:"rock"},
-];
-const SG_BLOCKED = new Set(SG_DECOR.map(d=>sgKey(d.c,d.r)));
+let SG_DECOR = [];
+let SG_BLOCKED = new Set();
 
 /* Deterministic per-cell jitter so grass tufts don't crawl every frame. */
 function sgHash(a,b){ const n = Math.sin(a*127.1 + b*311.7)*43758.5453; return n - Math.floor(n); }
@@ -7211,6 +7427,9 @@ const SG_ENEMIES = {
   harrier: { name:"Harrier",   hp:50,   speed:104,armor:0,  bounty:12,  body:"#5cc8ff", trim:"#2f7fa8", size:9,  fly:true },
   shaman:  { name:"Shaman",    hp:98,   speed:47, armor:3,  bounty:16,  body:"#3ddc84", trim:"#1f8a52", size:10, weapon:"staff", heals:true },
   warlord: { name:"Warlord",   hp:1500, speed:28, armor:20, bounty:150, body:"#e04a4a", trim:"#8a2020", size:20, weapon:"axe", boss:true },
+  wraith:  { name:"Wraith",    hp:74,   speed:72, armor:0,  bounty:15,  body:"#cfd8ff", trim:"#8a94c8", size:10, ghost:true },
+  splitter:{ name:"Splitter",  hp:130,  speed:46, armor:4,  bounty:11,  body:"#e0b23c", trim:"#9a7a1e", size:12, splits:true },
+  jugg:    { name:"Juggernaut",hp:820,  speed:21, armor:34, bounty:70,  body:"#7a8494", trim:"#454c58", size:17, weapon:"shield", heavy:true },
 };
 
 /* ---- Towers. Base damage still comes straight off an Empire stat; at level 3
@@ -7264,6 +7483,30 @@ const SG_TOWERS = [
         blurb:"Forget the fighting — this thing makes every tower around it hit harder and faster.",
         dmg:0.7, range:1.15, rate:1.0, aura:0.34, hasteAura:0.18 },
     ] },
+  { key:"sniper", name:"Sharpshooter", icon:"🎯", cost:120, color:"#ff8ab0",
+    stat:"castleAttack", statLabel:"Castle Attack", statMult:0.55, base:26,
+    rate:0.42, range:99, air:true, targets:1, sight:true, shred:2,
+    desc:"Sees the whole field — and straight through a Wraith's veil. Each hit chips 2 armour off for good.",
+    paths:[
+      { key:"deadeye", name:"Deadeye", icon:"💥", color:"#ff5c8a",
+        blurb:"Slower, far deadlier — heavy crits, and anything under 12% health is simply finished.",
+        dmg:1.9, range:1, rate:0.7, crit:0.35, execute:0.12 },
+      { key:"suppress", name:"Suppressor", icon:"🔩", color:"#c88aff",
+        blurb:"Rapid shots that strip 5 armour a hit and knock the target flat for half a second.",
+        dmg:0.75, range:1, rate:2.1, shred:5, stunMs:500 },
+    ] },
+  { key:"bank", name:"Counting House", icon:"💰", cost:110, color:"#ffd35c",
+    stat:"empirePower", statLabel:"Empire Power", statMult:0.002, base:0,
+    rate:0, range:0, air:false, targets:0, income:30,
+    desc:"Fires nothing. Pays 38⚡ (plus a cut of your Empire Power) at the end of every wave — and more each level.",
+    paths:[
+      { key:"vault", name:"Royal Vault", icon:"🏦", color:"#ffe08a",
+        blurb:"Twice the payout every wave. Compounding, dependable, dull. Perfect.",
+        incomeMul:2.1 },
+      { key:"chest", name:"War Chest", icon:"📈", color:"#8ae08a",
+        blurb:"Pays 7% interest on your current supply at each wave's end (up to +200⚡).",
+        interest:0.07, interestCap:200 },
+    ] },
 ];
 const SG_TOWER_MAX = 5;
 const SG_BRANCH_LEVEL = 3;                 // level you commit to a path at
@@ -7283,6 +7526,8 @@ function sgResolve(t){
   let splash = def.splash||0, slow = def.slow||0, slowMs = def.slowMs||0;
   let aura = def.aura||0, hasteAura = 0, pierce = !!def.pierce, minRange = 0;
   let crit = 0, burn = false, chill = false;
+  let sight = !!def.sight, shred = def.shred||0, execute = 0, stunMs = 0;
+  let income = def.income ? Math.round((def.income + (s[def.stat]||0)*def.statMult) * (1 + 0.5*(lvl-1))) : 0;
   if(p){
     dmg *= p.dmg; range *= p.range; rate *= p.rate;
     if(p.targets !== undefined) targets = p.targets;
@@ -7295,10 +7540,17 @@ function sgResolve(t){
     if(p.crit) crit = p.crit;
     if(p.burn) burn = true;
     if(p.chill) chill = true;
+    if(p.shred) shred = p.shred;
+    if(p.execute) execute = p.execute;
+    if(p.stunMs) stunMs = p.stunMs;
+    if(p.incomeMul) income = Math.round(income * p.incomeMul);
+    if(p.interest){ /* handled at wave end */ }
   }
   if(hill){ dmg *= 1.12; range *= 1.18; }
   return { def, p, dmg, range:range*SG_CELL, rate, targets, splash:splash*SG_CELL,
            slow, slowMs, aura, hasteAura, pierce, minRange, crit, burn, chill, hill,
+           sight, shred, execute, stunMs, income,
+           interest:(p && p.interest)||0, interestCap:(p && p.interestCap)||0,
            color:(p && p.color) || def.color, icon:(p && p.icon) || def.icon,
            name:(p && p.name) || def.name };
 }
@@ -7399,7 +7651,12 @@ function sgShake(n){ if(sg) sg.shake = Math.min(14, sg.shake + n); }
 function sgNum(x, y, txt, color, big){ if(sg) sg.nums.push({ x:Math.max(24, Math.min(SG_W-24, x)), y:Math.max(18, y), txt, color, big:!!big, t:0 }); }
 
 /* ---- Wave building ---- */
-function sgWaveHpMult(w){ return Math.pow(1.165, w-1) * sg.tier.hpMult; }
+function sgWaveHpMult(w){
+  // gentle early curve, then the screws tighten from wave 7 on
+  const early = Math.pow(1.175, Math.min(w,6)-1);
+  const late  = Math.pow(1.23,  Math.max(0, w-6));
+  return early * late * sg.tier.hpMult;
+}
 function sgPickMod(w){
   if(w < 3 || w % 5 === 0) return null;
   if(sgRand() < 0.42) return null;
@@ -7408,13 +7665,17 @@ function sgPickMod(w){
 function sgBuildWave(w, mod){
   const q = [];
   const push = (type, n, gap)=>{ for(let i=0;i<n;i++) q.push({ type, gap }); };
-  const cm = mod ? (mod.count||1) : 1;
+  const cm = (mod ? (mod.count||1) : 1) * (w >= 8 ? 1.25 : 1);
   const boss = (w % 5 === 0);
   push("scav", Math.round((4 + w*1.2)*cm), 0.5);
   if(w >= 2) push("raider", Math.round((3 + w*0.9)*cm), 0.62);
+  if(w >= 5) push("splitter", Math.round((1 + w*0.22)*cm), 0.9);
   if(w >= 4) push("harrier", Math.round((2 + w*0.5)*cm), 0.45);
   if(w >= 5) push("brute", Math.round((1 + w*0.4)*cm), 0.95);
+  const veiled = SG_TIERS.indexOf(sg.tier) >= 1 || sg.tier.endless;   // no Wraiths in the first siege
+  if(veiled && w >= 6) push("wraith", Math.round((1 + w*0.45)*cm), 0.55);
   if(w >= 7) push("shaman", Math.round((1 + w*0.2)*cm), 0.9);
+  if(w >= 10 && w % 5 !== 0 && (SG_TIERS.indexOf(sg.tier) >= 1 || sg.tier.endless)) push("jugg", Math.round(1 + (w-10)*0.25), 1.6);
   if(boss) push("warlord", Math.max(1, Math.floor(w/10)), 2.0);
   const out = [];
   while(q.length) out.push(q.splice(Math.floor(sgRand()*q.length), 1)[0]);
@@ -7430,42 +7691,37 @@ function sgWavePreview(w){
 
 function sgSpawn(type){
   const base = SG_ENEMIES[type], mod = sg.mod;
-  const mult = sgWaveHpMult(sg.wave) * (mod ? mod.hp : 1);
+  let mult = sgWaveHpMult(sg.wave) * (mod ? mod.hp : 1);
+  if(base.boss) mult *= Math.min(1.15, 0.78 + sg.wave*0.02);
   const hp = Math.round(base.hp * mult);
   const fly = !!base.fly || !!(mod && mod.allFly);
   const routeIdx = Math.floor(sgRand()*SG_ROUTES.length);
   const e = {
     type, def:base, hp, maxHp:hp, d:0, routeIdx,
     speed: base.speed * sg.tier.spd * (mod?mod.speed:1) * (0.94 + sgRand()*0.12),
-    armor: Math.round(base.armor * Math.pow(1.10, sg.wave-1) * (mod && mod.armor ? mod.armor : 1) * (sg.tier.hpMult>5?1.4:1)),
+    armor: Math.round(base.armor * Math.pow(1.12, sg.wave-1) * (mod && mod.armor ? mod.armor : 1) * (sg.tier.hpMult>5?1.4:1)),
     bountyMul: mod ? (mod.bounty||1) : 1,
     regen: mod && mod.regen ? mod.regen : 0,
     slowUntil:0, slowMul:1, burnUntil:0, burnDps:0, healCd:0, flash:0, fly,
+    stunUntil:0, ghost:!!base.ghost,
     off:(sgRand()-0.5)*11, walk:sgRand()*6.28, blocked:null, hitT:0,
   };
-  if(fly){
-    const from = { x:-30, y:60 + sgRand()*(SG_H-120) };
-    const to = sgCC(SG_CASTLE.c, SG_CASTLE.r);
-    e.flyFrom = from; e.flyTo = to; e.flyLen = Math.hypot(to.x-from.x, to.y-from.y);
-  }
   sg.enemies.push(e);
 }
 
+/* Everyone follows the road now — fliers included. Wings just mean they sail
+   over barricades and burning ground, not that they take a secret shortcut. */
 function sgEnemyPos(e){
-  if(e.fly){
-    const t = Math.min(1, e.d/e.flyLen);
-    return { x:e.flyFrom.x + (e.flyTo.x-e.flyFrom.x)*t, y:e.flyFrom.y + (e.flyTo.y-e.flyFrom.y)*t };
-  }
   const p = sgPosOn(SG_ROUTES[e.routeIdx], e.d);
   return { x:p.x, y:p.y + e.off };
 }
-function sgEnemyLen(e){ return e.fly ? e.flyLen : SG_ROUTES[e.routeIdx].total; }
+function sgEnemyLen(e){ return SG_ROUTES[e.routeIdx].total; }
 function sgProgress(e){ return e.d / sgEnemyLen(e); }
 
 /* Auras from neighbouring support towers, recomputed only when the board changes. */
 function sgRecalcAuras(){
   if(!sg) return;
-  for(const t of sg.towers){ t.auraDmg = 1; t.auraRate = 1; }
+  for(const t of sg.towers){ t.auraDmg = 1; t.auraRate = 1; t.auraSight = false; }
   for(const s of sg.towers){
     const rs = sgResolve(s);
     if(!rs.aura && !rs.hasteAura) continue;
@@ -7476,6 +7732,7 @@ function sgRecalcAuras(){
       if(Math.hypot(sc.x-tc.x, sc.y-tc.y) <= rs.range){
         t.auraDmg += rs.aura || 0;
         t.auraRate += rs.hasteAura || 0;
+        if(s.key === "signal") t.auraSight = true;   // the beacon unveils Wraiths for its neighbours
       }
     }
   }
@@ -7493,6 +7750,16 @@ function sgKill(e){
   const i = sg.enemies.indexOf(e);
   if(i < 0) return;
   sg.enemies.splice(i, 1);
+  if(e.def.splits && !e.fly){
+    for(let k=0;k<2;k++){
+      const kid = SG_ENEMIES.scav;
+      const hp = Math.round(kid.hp * sgWaveHpMult(sg.wave) * 0.8);
+      sg.enemies.push({ type:"scav", def:kid, hp, maxHp:hp, d:Math.max(0, e.d - k*9), routeIdx:e.routeIdx,
+        speed: kid.speed * sg.tier.spd * (1 + sgRand()*0.15), armor:0, bountyMul:0.5, regen:0,
+        slowUntil:0, slowMul:1, burnUntil:0, burnDps:0, healCd:0, flash:0.1, fly:false,
+        stunUntil:0, ghost:false, off:(sgRand()-0.5)*11, walk:sgRand()*6.28, blocked:null, hitT:0 });
+    }
+  }
   sg.kills++;
   sg.streak++; sg.streakT = 2.2;
   sg.bestStreak = Math.max(sg.bestStreak, sg.streak);
@@ -7591,8 +7858,9 @@ function sgTick(dt){
       e.hitT = 0.18;
     } else {
       e.blocked = null;
+      const stunned = sg.time < e.stunUntil;
       const slowed = sg.time < e.slowUntil;
-      const v = e.speed * (slowed ? e.slowMul : 1);
+      const v = stunned ? 0 : e.speed * (slowed ? e.slowMul : 1);
       e.d += v*dt;
       e.walk += v*dt*0.16;
     }
@@ -7613,7 +7881,9 @@ function sgTick(dt){
     }
 
     if(e.d >= sgEnemyLen(e)){
-      const dmg = Math.round(e.def.boss ? e.maxHp*0.22 : 18 + e.maxHp*0.07);
+      const dmg = Math.round(e.def.boss
+        ? Math.min(e.maxHp*0.22, sg.maxHp*0.40)      // a boss through the gate costs 40% of the keep, not the whole game
+        : Math.min(18 + e.maxHp*0.07, sg.maxHp*0.18));
       sg.hp -= dmg; sg.leaks++;
       sg.enemies.splice(i,1);
       sg.streak = 0;
@@ -7629,12 +7899,15 @@ function sgTick(dt){
   /* towers */
   for(const t of sg.towers){
     const rs = sgResolve(t);
+    if(rs.def.income) continue;                       // counting houses don't shoot
     t.cd -= dt * (t.auraRate || 1);
     t.muzzle = Math.max(0, (t.muzzle||0) - dt);
     if(t.cd > 0) continue;
+    const canSeeGhosts = rs.sight || t.key === "signal" || t.auraSight;
     const c = sgCC(t.c, t.r);
     const pool = sg.enemies.filter(e=>{
       if(e.fly && !rs.def.air) return false;
+      if(e.ghost && !canSeeGhosts) return false;
       const p = sgEnemyPos(e);
       const dist = Math.hypot(p.x-c.x, p.y-c.y);
       return dist <= rs.range && dist >= rs.minRange;
@@ -7665,7 +7938,8 @@ function sgTick(dt){
         const crit = rs.crit > 0 && sgRand() < rs.crit;
         sg.shots.push({ kind:"arrow", x:c.x, y:c.y-10, tx:p.x, ty:p.y, t:0,
           life: Math.max(0.07, Math.hypot(p.x-c.x, p.y-c.y)/1500), color:rs.color, target:e,
-          dmg: dmg*(crit?2:1), pierce:rs.pierce, crit, slow:rs.slow, slowMs:rs.slowMs });
+          dmg: dmg*(crit?2:1), pierce:rs.pierce, crit, slow:rs.slow, slowMs:rs.slowMs,
+          shred:rs.shred, execute:rs.execute, stunMs:rs.stunMs });
       }
     }
   }
@@ -7692,7 +7966,15 @@ function sgTick(dt){
       const e = s.target;
       if(e && sg.enemies.includes(e)){
         if(s.slow){ e.slowUntil = sg.time + s.slowMs/1000; e.slowMul = Math.min(e.slowMul, 1-s.slow); }
-        sgHurt(e, s.dmg, s.pierce, s.crit);
+        if(s.shred) e.armor = Math.max(0, e.armor - s.shred);
+        if(s.stunMs) e.stunUntil = Math.max(e.stunUntil, sg.time + s.stunMs/1000);
+        if(s.execute && e.hp > 0 && e.hp <= e.maxHp*s.execute && !e.def.boss){
+          const ep = sgEnemyPos(e);
+          sgNum(ep.x, ep.y-16, "FINISHED", "#ff5c8a", true);
+          sgKill(e);
+        } else {
+          sgHurt(e, s.dmg, s.pierce, s.crit);
+        }
       }
     }
     sg.shots.splice(i,1);
@@ -7710,6 +7992,20 @@ function sgTick(dt){
   }
 }
 
+/* BTD-style early call: pile the next wave on top of this one for bonus supply. */
+function sgCallEarly(){
+  if(!sg || sg.phase !== "wave") return;
+  if(!sg.tier.endless && sg.wave >= sg.tier.waves) return;
+  const bonus = Math.round(14 + sg.wave*4);
+  sg.supply += bonus;
+  sg.wave++;
+  sg.mod = sg.nextMod;
+  sg.nextMod = sgPickMod(sg.wave+1);
+  sg.queue = sg.queue.concat(sgBuildWave(sg.wave, sg.mod));
+  sgNum(SG_W/2, 40, "+"+bonus+"⚡ EARLY CALL", "#ffd35c", true);
+  sgLog(`<b>Wave ${sg.wave}</b> called in early — <span class="good">+${bonus} supply</span>. Brave.`, "good");
+  sgRenderHud(); sgRenderPreview();
+}
 function sgStartWave(){
   sg.wave++;
   sg.mod = sg.nextMod;
@@ -7732,8 +8028,21 @@ function sgEndWave(){
   }
   if(!sg.tier.endless && sg.wave >= sg.tier.waves){ sgFinish(true); return; }
   const perfect = sg.leaks === sg.leaksAtWaveStart;
-  const bonus = 45 + 15*sg.wave + (perfect ? 25 : 0);
+  const bonus = 38 + 12*sg.wave + (perfect ? 22 : 0);
   sg.supply += bonus;
+  let banked = 0;
+  for(const t of sg.towers){
+    const rs = sgResolve(t);
+    if(rs.income) banked += rs.income;
+    if(rs.interest) banked += Math.min(rs.interestCap, Math.round(sg.supply * rs.interest));
+  }
+  if(banked > 0){
+    sg.supply += banked;
+    for(const t of sg.towers){
+      if(sgTowerDef(t.key).income){ const p = sgCC(t.c,t.r); sg.fx.push({ kind:"coin", x:p.x, y:p.y-18, t:0, life:0.8, txt:"+⚡" }); }
+    }
+    sgLog(`Your counting houses pay out. <span class="good">+${banked} supply</span>`, "good");
+  }
   sg.phase = "prep";
   sg.countdown = 7;
   sg.nextMod = sgPickMod(sg.wave+1);
@@ -7745,31 +8054,203 @@ function sgEndWave(){
 /* ---------------- SIEGE: DRAWING ---------------- */
 function sgRR(g,x,y,w,h,r){ g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,r); else g.rect(x,y,w,h); }
 
-function sgDrawGround(g){
+let sgTerrain = null;      // baked painted background, rebuilt per battle
+function sgBakeTerrain(){
+  const T = SG_MAP.theme;
+  const cv = document.createElement("canvas");
+  cv.width = SG_W*2; cv.height = SG_H*2;
+  const g = cv.getContext("2d");
+  g.setTransform(2,0,0,2,0,0);
+  const H = sgHash;
+  // --- base wash ---
   const grd = g.createLinearGradient(0,0,0,SG_H);
-  grd.addColorStop(0,"#3c5a35"); grd.addColorStop(0.5,"#33502e"); grd.addColorStop(1,"#294226");
+  grd.addColorStop(0,T.gA); grd.addColorStop(0.5,T.gB); grd.addColorStop(1,T.gC);
   g.fillStyle = grd; g.fillRect(0,0,SG_W,SG_H);
-  // very soft meadow variation
-  for(let i=0;i<14;i++){
-    const h1 = sgHash(i,3), h2 = sgHash(i,7);
-    g.fillStyle = h1 > 0.5 ? "rgba(124,170,98,.055)" : "rgba(22,44,24,.075)";
-    g.beginPath(); g.ellipse(h1*SG_W, h2*SG_H, 50+h1*70, 30+h2*40, h1*3, 0, 7); g.fill();
+  // --- big soft brush daubs: the painted underlayer ---
+  for(let i=0;i<170;i++){
+    const h1 = H(i,3), h2 = H(i,7), h3 = H(i,11);
+    const rg = g.createRadialGradient(h1*SG_W, h2*SG_H, 2, h1*SG_W, h2*SG_H, 26+h3*70);
+    const col = h3 > 0.5 ? T.patchL : T.patchD;
+    rg.addColorStop(0, col); rg.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = rg;
+    g.beginPath(); g.ellipse(h1*SG_W, h2*SG_H, 30+h3*80, 18+h2*50, h1*3, 0, 7); g.fill();
   }
-  // hills read as raised mounds, not labels
+  // --- sun-side light wash (top-left warm light, bottom-right cool shade) ---
+  const light = g.createLinearGradient(0,0,SG_W,SG_H);
+  light.addColorStop(0,"rgba(255,240,200,.10)");
+  light.addColorStop(0.5,"rgba(255,240,200,0)");
+  light.addColorStop(1,"rgba(20,25,60,.12)");
+  g.fillStyle = light; g.fillRect(0,0,SG_W,SG_H);
+  // --- road: soft outer shadow, layered body, painted wear ---
+  g.lineCap = "round"; g.lineJoin = "round";
+  for(const rt of SG_ROUTES){
+    g.strokeStyle = "rgba(0,0,0,.22)"; g.lineWidth = SG_CELL*0.82;
+    g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
+  }
+  for(const rt of SG_ROUTES){
+    g.strokeStyle = T.roadD; g.lineWidth = SG_CELL*0.70;
+    g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
+    g.strokeStyle = T.roadM; g.lineWidth = SG_CELL*0.58;
+    g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
+    g.strokeStyle = T.roadL; g.lineWidth = SG_CELL*0.44;
+    g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
+  }
+  // sun-lit top edge of the road
+  for(const rt of SG_ROUTES){
+    g.save(); g.translate(0,-SG_CELL*0.20);
+    g.strokeStyle = "rgba(255,245,215,.13)"; g.lineWidth = 3;
+    g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
+    g.restore();
+  }
+  // painted wheel-ruts and daubs along the road
+  SG_PATH_CELLS.forEach(k=>{
+    const [c,r] = k.split(",").map(Number);
+    const p = sgCC(c,r);
+    for(let i=0;i<6;i++){
+      const hx = H(c*9+i, r*5), hy = H(c*3, r*7+i);
+      g.fillStyle = hx > 0.55 ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.10)";
+      g.beginPath();
+      g.ellipse(p.x-14+hx*28, p.y-12+hy*24, 2.5+hx*4, 1.8+hy*2.6, hx*3, 0, 7);
+      g.fill();
+    }
+  });
+  // --- hills as painted mounds with cast shadows ---
+  for(let c=0;c<SG_COLS;c++) for(let r=0;r<SG_ROWS;r++){
+    if(!sgIsHill(c,r) || sgIsPath(c,r)) continue;
+    const p = sgCC(c,r);
+    g.fillStyle = "rgba(0,0,0,.20)";
+    g.beginPath(); g.ellipse(p.x+4, p.y+8, 24, 11, 0, 0, 7); g.fill();
+    g.fillStyle = T.hillA;
+    g.beginPath(); g.ellipse(p.x, p.y+2, 22, 13, 0, 0, 7); g.fill();
+    g.fillStyle = T.hillB;
+    g.beginPath(); g.ellipse(p.x-2, p.y-1, 17, 9.5, 0, 0, 7); g.fill();
+    g.fillStyle = "rgba(255,255,255,.20)";
+    g.beginPath(); g.ellipse(p.x-6, p.y-4, 8, 3.6, -0.4, 0, 7); g.fill();
+    g.fillStyle = "rgba(255,255,255,.55)"; g.font = "bold 9px system-ui"; g.textAlign = "center";
+    g.fillText("\u25b2", p.x, p.y);
+  }
+  // --- grass tufts as curved brush strokes ---
+  g.lineWidth = 1.2;
+  for(let c=0;c<SG_COLS;c++) for(let r=0;r<SG_ROWS;r++){
+    if(sgIsPath(c,r) || sgIsHill(c,r)) continue;
+    const p = sgCC(c,r);
+    for(let k=0;k<3;k++){
+      const hx = p.x - 17 + H(c*4+k, r)*34, hy = p.y - 15 + H(c, r*4+k)*30;
+      const lean = (H(c+k,r+k)-0.5)*3;
+      g.strokeStyle = H(c*2+k,r) > 0.5 ? T.tuft : "rgba(0,0,0,.10)";
+      g.beginPath(); g.moveTo(hx, hy);
+      g.quadraticCurveTo(hx+lean, hy-3, hx+lean*1.6, hy-5.5); g.stroke();
+    }
+  }
+  // --- theme accents: the hand-painted details ---
+  if(SG_MAP.id === "meadow"){
+    for(let i=0;i<44;i++){
+      const h1 = H(i,23), h2 = H(i,29);
+      const fx = h1*SG_W, fy = h2*SG_H;
+      const [c1,r1] = [Math.floor(fx/SG_CELL), Math.floor(fy/SG_CELL)];
+      if(sgIsPath(c1,r1)) continue;
+      const col = ["#e8b4c8","#f5e6a8","#ffffff"][Math.floor(H(i,31)*3)];
+      for(let k=0;k<3;k++){
+        g.fillStyle = col; g.globalAlpha = 0.75;
+        g.beginPath(); g.arc(fx + (H(i+k,5)-0.5)*10, fy + (H(i,7+k)-0.5)*8, 1.4, 0, 7); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+  }
+  if(SG_MAP.id === "desert"){
+    for(let i=0;i<40;i++){
+      const h1 = H(i,23), h2 = H(i,29);
+      const fx = h1*SG_W, fy = h2*SG_H;
+      const [c1,r1] = [Math.floor(fx/SG_CELL), Math.floor(fy/SG_CELL)];
+      if(sgIsPath(c1,r1)) continue;
+      if(H(i,31) > 0.5){
+        g.fillStyle = "rgba(240,225,195,.5)";
+        g.beginPath(); g.ellipse(fx, fy, 2.6+H(i,3)*2.4, 1.8+H(i,5)*1.6, H(i,7)*3, 0, 7); g.fill();
+      } else {
+        g.strokeStyle = "rgba(90,60,25,.30)"; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(fx, fy);
+        g.lineTo(fx + 6+H(i,3)*8, fy + (H(i,5)-0.5)*6);
+        g.lineTo(fx + 12+H(i,3)*12, fy + (H(i,7)-0.5)*9); g.stroke();
+      }
+    }
+  }
+  if(SG_MAP.id === "snow"){
+    for(let i=0;i<56;i++){
+      const h1 = H(i,23), h2 = H(i,29);
+      const fx = h1*SG_W, fy = h2*SG_H;
+      g.globalAlpha = 0.35 + H(i,31)*0.5;
+      g.strokeStyle = "#ffffff"; g.lineWidth = 1;
+      const rr = 1.6 + H(i,3)*1.8;
+      g.beginPath(); g.moveTo(fx-rr, fy); g.lineTo(fx+rr, fy); g.stroke();
+      g.beginPath(); g.moveTo(fx, fy-rr); g.lineTo(fx, fy+rr); g.stroke();
+      g.globalAlpha = 1;
+    }
+    // wind-blown drift streaks
+    g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = 4; g.lineCap = "round";
+    for(let i=0;i<14;i++){
+      const h1 = H(i,37), h2 = H(i,41);
+      g.beginPath(); g.moveTo(h1*SG_W, h2*SG_H);
+      g.quadraticCurveTo(h1*SG_W+40, h2*SG_H-6, h1*SG_W+90, h2*SG_H+4); g.stroke();
+    }
+  }
+  if(SG_MAP.id === "ember"){
+    for(let i=0;i<22;i++){
+      const h1 = H(i,23), h2 = H(i,29);
+      let fx = h1*SG_W, fy = h2*SG_H;
+      const [c1,r1] = [Math.floor(fx/SG_CELL), Math.floor(fy/SG_CELL)];
+      if(sgIsPath(c1,r1)) continue;
+      g.strokeStyle = `rgba(255,${120+Math.floor(H(i,31)*60)},60,${0.25+H(i,3)*0.3})`;
+      g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(fx, fy);
+      for(let k=0;k<3;k++){
+        fx += 5 + H(i+k,5)*9; fy += (H(i,7+k)-0.5)*10;
+        g.lineTo(fx, fy);
+      }
+      g.stroke();
+      g.globalAlpha = 0.12;
+      g.fillStyle = "#ff8a4c";
+      g.beginPath(); g.arc(fx-10, fy, 9, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    }
+  }
+  // --- canvas grain: tiny paper specks ---
+  for(let i=0;i<1400;i++){
+    const h1 = H(i,13), h2 = H(i,17);
+    g.fillStyle = H(i,19) > 0.5 ? "rgba(255,255,255,.022)" : "rgba(0,0,0,.028)";
+    g.fillRect(h1*SG_W, h2*SG_H, 1.3, 1.3);
+  }
+  // --- soft painted border shading ---
+  const vg = g.createRadialGradient(SG_W/2, SG_H/2, SG_H*0.35, SG_W/2, SG_H/2, SG_H*1.02);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(10,8,20,.30)");
+  g.fillStyle = vg; g.fillRect(0,0,SG_W,SG_H);
+  sgTerrain = cv;
+}
+function sgDrawGround(g){
+  const T = SG_MAP.theme;
+  const grd = g.createLinearGradient(0,0,0,SG_H);
+  grd.addColorStop(0,T.gA); grd.addColorStop(0.5,T.gB); grd.addColorStop(1,T.gC);
+  g.fillStyle = grd; g.fillRect(0,0,SG_W,SG_H);
+  // soft terrain variation
+  for(let i=0;i<16;i++){
+    const h1 = sgHash(i,3), h2 = sgHash(i,7);
+    g.fillStyle = h1 > 0.5 ? T.patchL : T.patchD;
+    g.beginPath(); g.ellipse(h1*SG_W, h2*SG_H, 55+h1*80, 32+h2*46, h1*3, 0, 7); g.fill();
+  }
+  // hills as raised mounds
   for(let c=0;c<SG_COLS;c++) for(let r=0;r<SG_ROWS;r++){
     if(!sgIsHill(c,r) || sgIsPath(c,r)) continue;
     const p = sgCC(c,r);
     g.fillStyle = "rgba(0,0,0,.16)";
     g.beginPath(); g.ellipse(p.x, p.y+7, 23, 12, 0, 0, 7); g.fill();
-    g.fillStyle = "#4b6f40";
+    g.fillStyle = T.hillA;
     g.beginPath(); g.ellipse(p.x, p.y+2, 22, 13, 0, 0, 7); g.fill();
-    g.fillStyle = "#5c8a4c";
+    g.fillStyle = T.hillB;
     g.beginPath(); g.ellipse(p.x, p.y-1, 18, 10, 0, 0, 7); g.fill();
-    g.fillStyle = "rgba(198,228,158,.55)"; g.font = "bold 9px system-ui"; g.textAlign = "center";
+    g.fillStyle = "rgba(255,255,255,.5)"; g.font = "bold 9px system-ui"; g.textAlign = "center";
     g.fillText("\u25b2", p.x, p.y-1);
   }
-  // a couple of quiet tufts per tile
-  g.strokeStyle = "rgba(146,190,116,.22)"; g.lineWidth = 1.1;
+  // tufts / pebbles / ice glints — quiet per-tile detail
+  g.strokeStyle = T.tuft; g.lineWidth = 1.1;
   for(let c=0;c<SG_COLS;c++) for(let r=0;r<SG_ROWS;r++){
     if(sgIsPath(c,r) || sgIsHill(c,r)) continue;
     const p = sgCC(c,r);
@@ -7782,23 +8263,24 @@ function sgDrawGround(g){
 }
 
 function sgDrawRoad(g){
+  const T = SG_MAP.theme;
   g.lineCap = "round"; g.lineJoin = "round";
   for(const rt of SG_ROUTES){
-    g.strokeStyle = "#233020"; g.lineWidth = SG_CELL*0.66;
+    g.strokeStyle = T.roadD; g.lineWidth = SG_CELL*0.70;
     g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
-    g.strokeStyle = "#77683f"; g.lineWidth = SG_CELL*0.56;
+    g.strokeStyle = T.roadM; g.lineWidth = SG_CELL*0.58;
     g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
-    g.strokeStyle = "#8f7d55"; g.lineWidth = SG_CELL*0.46;
+    g.strokeStyle = T.roadL; g.lineWidth = SG_CELL*0.46;
     g.beginPath(); rt.pts.forEach((p,i)=> i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.stroke();
   }
-  // cobbles
+  // cobbles / cracks
   g.save();
   SG_PATH_CELLS.forEach(k=>{
     const [c,r] = k.split(",").map(Number);
     const p = sgCC(c,r);
     for(let i=0;i<5;i++){
       const hx = sgHash(c*9+i, r*5), hy = sgHash(c*3, r*7+i);
-      g.fillStyle = hx > 0.5 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.10)";
+      g.fillStyle = hx > 0.5 ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.11)";
       g.beginPath();
       g.ellipse(p.x-13+hx*26, p.y-11+hy*22, 3+hx*3, 2.4+hy*2.4, hx*3, 0, 7);
       g.fill();
@@ -7842,6 +8324,65 @@ function sgDrawDecor(g){
       g.beginPath(); g.ellipse(p.x, p.y+3, 15, 11, h*2, 0, 7); g.fill();
       g.fillStyle = "#8b939e";
       g.beginPath(); g.ellipse(p.x-3, p.y-1, 9, 6, h*2, 0, 7); g.fill();
+    } else if(d.t === "cactus"){
+      const sway = Math.sin(sg.time*1.2 + h*6)*1.2;
+      g.fillStyle = "#3f7a3a";
+      sgRR(g, p.x-4, p.y-22, 8, 34, 4); g.fill();
+      sgRR(g, p.x-14, p.y-12, 8, 5, 2.5); g.fill();
+      sgRR(g, p.x-14, p.y-16, 6, 9, 3); g.fill();
+      sgRR(g, p.x+6+sway*0.3, p.y-6, 8, 5, 2.5); g.fill();
+      sgRR(g, p.x+8+sway*0.3, p.y-12, 6, 11, 3); g.fill();
+      g.fillStyle = "#5c9a52";
+      sgRR(g, p.x-4, p.y-22, 3.5, 34, 3); g.fill();
+      g.fillStyle = "#e8b4c8";
+      g.beginPath(); g.arc(p.x, p.y-23+sway*0.2, 2.4, 0, 7); g.fill();
+    } else if(d.t === "skull"){
+      g.fillStyle = "#d8d2c2";
+      g.beginPath(); g.ellipse(p.x, p.y-2, 9, 8, 0, 0, 7); g.fill();
+      sgRR(g, p.x-5, p.y+2, 10, 6, 2); g.fill();
+      g.fillStyle = "#4a4438";
+      g.beginPath(); g.arc(p.x-3.4, p.y-3, 2.2, 0, 7); g.fill();
+      g.beginPath(); g.arc(p.x+3.4, p.y-3, 2.2, 0, 7); g.fill();
+      g.fillStyle = "#8a8272";
+      g.fillRect(p.x-4, p.y+3.4, 1.6, 3.4); g.fillRect(p.x-0.8, p.y+3.4, 1.6, 3.4); g.fillRect(p.x+2.4, p.y+3.4, 1.6, 3.4);
+    } else if(d.t === "pine"){
+      const sway = Math.sin(sg.time*1.1 + h*6)*1.4;
+      g.fillStyle = "#4a3828"; g.fillRect(p.x-2.6, p.y+2, 5.2, 11);
+      const lay = [[0,-8,16],[0,-18,12.5],[0,-27,9]];
+      for(let i=0;i<lay.length;i++){
+        g.fillStyle = ["#2c4a3e","#38584a","#456856"][i];
+        g.beginPath();
+        g.moveTo(p.x+sway*(i*0.4), p.y + lay[i][1] - lay[i][2]*0.95);
+        g.lineTo(p.x + lay[i][2], p.y + lay[i][1] + 6);
+        g.lineTo(p.x - lay[i][2], p.y + lay[i][1] + 6);
+        g.closePath(); g.fill();
+        g.fillStyle = "rgba(255,255,255,.75)";
+        g.beginPath();
+        g.moveTo(p.x+sway*(i*0.4), p.y + lay[i][1] - lay[i][2]*0.95);
+        g.lineTo(p.x + lay[i][2]*0.55, p.y + lay[i][1] - lay[i][2]*0.3);
+        g.lineTo(p.x - lay[i][2]*0.55, p.y + lay[i][1] - lay[i][2]*0.3);
+        g.closePath(); g.fill();
+      }
+    } else if(d.t === "emberrock"){
+      const glow = 0.5 + Math.sin(sg.time*2.2 + h*8)*0.35;
+      g.fillStyle = "#3a2830";
+      g.beginPath(); g.ellipse(p.x, p.y+2, 14, 10, h, 0, 7); g.fill();
+      g.fillStyle = "#241a20";
+      g.beginPath(); g.ellipse(p.x-3, p.y-2, 9, 6, h, 0, 7); g.fill();
+      g.globalAlpha = glow;
+      g.strokeStyle = "#ff8a4c"; g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(p.x-9, p.y+1); g.lineTo(p.x-2, p.y-3); g.lineTo(p.x+4, p.y+2); g.lineTo(p.x+10, p.y-1); g.stroke();
+      g.globalAlpha = glow*0.35;
+      g.fillStyle = "#ff8a4c";
+      g.beginPath(); g.arc(p.x, p.y, 16, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    } else if(d.t === "deadtree"){
+      g.strokeStyle = "#3a2a30"; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(p.x, p.y+12); g.lineTo(p.x, p.y-14); g.stroke();
+      g.lineWidth = 2;
+      g.beginPath(); g.moveTo(p.x, p.y-4); g.lineTo(p.x-9, p.y-16); g.stroke();
+      g.beginPath(); g.moveTo(p.x, p.y-9); g.lineTo(p.x+8, p.y-20); g.stroke();
+      g.beginPath(); g.moveTo(p.x, p.y-14); g.lineTo(p.x-4, p.y-24); g.stroke();
     } else {
       g.fillStyle = "#2f5c30";
       for(const [dx,dy,rr] of [[-7,2,9],[6,3,8],[0,-3,10]]){
@@ -7957,6 +8498,46 @@ function sgDrawTower(g, t){
       g.beginPath(); g.arc(x + Math.cos(face)*26, y-10 + Math.sin(face)*14, 10, 0, 7); g.fill();
       g.globalAlpha = 1;
     }
+  } else if(t.key === "sniper"){
+    // perch
+    g.fillStyle = "#5b4a33"; sgRR(g, x-10, y-24, 20, 28, 4); g.fill();
+    g.fillStyle = "#7a6547"; sgRR(g, x-10, y-24, 12, 28, 4); g.fill();
+    g.fillStyle = "#3b3627"; sgRR(g, x-13, y-30, 26, 8, 3); g.fill();
+    // long rifle tracking the target
+    g.save(); g.translate(x, y-26); g.rotate(face);
+    g.strokeStyle = "#2e3340"; g.lineWidth = 3.4;
+    g.beginPath(); g.moveTo(2, 0); g.lineTo(30-kick*2, 0); g.stroke();
+    g.strokeStyle = rs.color; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(20, 0); g.lineTo(30-kick*2, 0); g.stroke();
+    g.restore();
+    // scope glint
+    const gl = (Math.sin(sg.time*2.2 + t.c) + 1)/2;
+    g.globalAlpha = 0.35 + gl*0.6;
+    g.fillStyle = "#ffffff";
+    g.beginPath(); g.arc(x + Math.cos(face)*10, y-26 + Math.sin(face)*10, 2, 0, 7); g.fill();
+    g.globalAlpha = 1;
+    if((t.muzzle||0) > 0){
+      g.globalAlpha = t.muzzle/0.1;
+      g.fillStyle = "#ffe08a";
+      g.beginPath(); g.arc(x + Math.cos(face)*32, y-26 + Math.sin(face)*32, 6, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    }
+  } else if(t.key === "bank"){
+    // vault house
+    g.fillStyle = "#8a6b45"; sgRR(g, x-14, y-18, 28, 22, 4); g.fill();
+    g.fillStyle = "#a8845a"; sgRR(g, x-14, y-18, 28, 10, 4); g.fill();
+    g.fillStyle = "#6b4f33";
+    g.beginPath(); g.moveTo(x-17, y-16); g.lineTo(x, y-30); g.lineTo(x+17, y-16); g.closePath(); g.fill();
+    // coin sign, gently bobbing
+    const bob = Math.sin(sg.time*2.4 + t.r)*1.6;
+    g.fillStyle = "#ffd35c";
+    g.beginPath(); g.arc(x, y-36+bob, 6.5, 0, 7); g.fill();
+    g.fillStyle = "#c9a12e";
+    g.font = "bold 9px system-ui"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText("⚡", x, y-35.5+bob);
+    g.textBaseline = "alphabetic";
+    // door
+    g.fillStyle = "#3b2e1c"; sgRR(g, x-4, y-8, 8, 12, 2); g.fill();
   } else {
     g.fillStyle = "#6f7787";
     g.beginPath(); g.moveTo(x-11, y+4); g.lineTo(x-7, y-26); g.lineTo(x+7, y-26); g.lineTo(x+11, y+4); g.closePath(); g.fill();
@@ -8008,6 +8589,20 @@ function sgDrawUnit(g, e){
   }
   const hit = e.flash > 0;
   const body = hit ? "#ffffff" : d.body, trim = hit ? "#ffffff" : d.trim;
+  if(d.ghost){
+    g.save();
+    g.globalAlpha = 0.45 + Math.sin(sg.time*4 + e.off)*0.15;
+    // trailing wisps
+    g.fillStyle = d.body;
+    for(let k=1;k<=2;k++){
+      g.beginPath(); g.arc(x - Math.cos(e.walk)*k*6, y + k*2, s*0.5/k, 0, 7); g.fill();
+    }
+  }
+  if(d.heavy){
+    // ground-shaking plates
+    g.fillStyle = "#30353f";
+    g.beginPath(); g.ellipse(x, y+2, s+3, s*0.85, 0, 0, 7); g.fill();
+  }
   if(e.fly){
     const flap = Math.sin(sg.time*17 + e.off)*0.8;
     g.strokeStyle = trim; g.lineWidth = 2.6; g.lineCap = "round";
@@ -8064,6 +8659,7 @@ function sgDrawUnit(g, e){
   }
   const f = Math.max(0, e.hp/e.maxHp);
   const bw = s*2;
+    if(d.ghost) g.restore();
   g.fillStyle = "rgba(0,0,0,.65)"; g.fillRect(x-bw/2, y-s*1.35, bw, 4);
   g.fillStyle = f > .5 ? "#3ddc84" : f > .25 ? "#ffd35c" : "#ff5c5c";
   g.fillRect(x-bw/2, y-s*1.35, bw*f, 4);
@@ -8091,17 +8687,64 @@ function sgDrawBarricade(g, b){
   g.fillStyle = "#c9a06a"; g.fillRect(b.x-17, b.y-27, 34*f, 4);
 }
 
+function sgDrawAmbient(g, dt){
+  const T = SG_MAP.theme;
+  if(!sg.amb) sg.amb = [];
+  // trickle in new particles
+  if(sg.amb.length < 34 && sgRand() < 0.5){
+    if(T.ambient === "snow")   sg.amb.push({ x:sgRand()*SG_W, y:-6, vx:8+sgRand()*14, vy:22+sgRand()*22, r:1+sgRand()*1.8, a:0.5+sgRand()*0.4, ph:sgRand()*7 });
+    if(T.ambient === "leaves") sg.amb.push({ x:sgRand()*SG_W, y:-6, vx:10+sgRand()*18, vy:16+sgRand()*16, r:1.6+sgRand()*1.6, a:0.35+sgRand()*0.3, ph:sgRand()*7 });
+    if(T.ambient === "sand")   sg.amb.push({ x:-6, y:sgRand()*SG_H, vx:55+sgRand()*60, vy:(sgRand()-0.5)*8, r:1+sgRand()*1.6, a:0.22+sgRand()*0.2, ph:sgRand()*7 });
+    if(T.ambient === "embers") sg.amb.push({ x:sgRand()*SG_W, y:SG_H+6, vx:(sgRand()-0.5)*16, vy:-(16+sgRand()*26), r:1+sgRand()*1.5, a:0.5+sgRand()*0.4, ph:sgRand()*7 });
+  }
+  for(let i=sg.amb.length-1;i>=0;i--){
+    const p = sg.amb[i];
+    p.x += (p.vx + Math.sin(sg.time*1.7+p.ph)*8)*dt;
+    p.y += p.vy*dt;
+    if(p.x > SG_W+8 || p.y > SG_H+8 || p.y < -10){ sg.amb.splice(i,1); continue; }
+    g.globalAlpha = p.a * (T.ambient==="embers" ? (0.6+Math.sin(sg.time*6+p.ph)*0.4) : 1);
+    g.fillStyle = T.ambC;
+    g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+}
 function sgDraw(){
   const cv = document.getElementById("sgCanvas");
   if(!cv || !sg) return;
   const g = cv.getContext("2d");
   g.save();
+  g.setTransform(2,0,0,2,0,0);
   g.textAlign = "center"; g.textBaseline = "middle";
   if(sg.shake > 0.2) g.translate((sgRand()-0.5)*sg.shake, (sgRand()-0.5)*sg.shake);
   g.clearRect(-20,-20,SG_W+40,SG_H+40);
 
-  sgDrawGround(g);
-  sgDrawRoad(g);
+  if(!sgTerrain) sgBakeTerrain();
+  g.save(); g.setTransform(1,0,0,1,0,0);
+  g.drawImage(sgTerrain, 0, 0);
+  g.restore();
+  // drifting cloud-light: two huge soft shadows sliding across the field
+  for(let i=0;i<2;i++){
+    const cx = ((sg.time*9 + i*SG_W*0.7) % (SG_W+560)) - 280;
+    const cy = SG_H*(0.25 + i*0.4);
+    const cg = g.createRadialGradient(cx, cy, 10, cx, cy, 230);
+    cg.addColorStop(0, "rgba(10,14,30,.10)"); cg.addColorStop(1, "rgba(10,14,30,0)");
+    g.fillStyle = cg;
+    g.beginPath(); g.ellipse(cx, cy, 240, 120, 0, 0, 7); g.fill();
+  }
+  // travel arrows stay live so the flow reads
+  g.strokeStyle = "rgba(255,255,255,.15)"; g.lineWidth = 2.5; g.lineCap = "round";
+  for(const rt of SG_ROUTES){
+    const drift = (sg.time*24) % 50;
+    for(let d = drift; d < rt.total; d += 50){
+      const a = sgPosOn(rt,d), b = sgPosOn(rt, Math.min(rt.total, d+10));
+      const ang = Math.atan2(b.y-a.y, b.x-a.x);
+      g.beginPath();
+      g.moveTo(a.x - Math.cos(ang-0.6)*7, a.y - Math.sin(ang-0.6)*7);
+      g.lineTo(a.x, a.y);
+      g.lineTo(a.x - Math.cos(ang+0.6)*7, a.y - Math.sin(ang+0.6)*7);
+      g.stroke();
+    }
+  }
 
   // burning ground
   for(const f of sg.fires){
@@ -8260,6 +8903,8 @@ function sgDraw(){
     g.restore();
   }
 
+  sgDrawAmbient(g, sgAmbDt);
+
   // vignette
   const vg = g.createRadialGradient(SG_W/2, SG_H/2, SG_H*0.42, SG_W/2, SG_H/2, SG_H*0.95);
   vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.34)");
@@ -8296,16 +8941,18 @@ function sgAbilityValidAt(key, c, r){
   return true;
 }
 
+let sgAmbDt = 0.016;
 function sgLoop(ts){
   if(!sg || !sgTabActive){ sgRaf = null; return; }
   const dtReal = Math.min(0.05, (ts - sgLastTs)/1000 || 0);
+  sgAmbDt = dtReal || 0.016;
   sgLastTs = ts;
   if(sg.phase === "prep" || sg.phase === "wave"){
     for(let i=0;i<sg.speed;i++){ if(sg.phase==="prep"||sg.phase==="wave") sgTick(dtReal); }
   }
   sgDraw();
   sgHudTick = (sgHudTick||0) + 1;
-  if(sgHudTick % 5 === 0) sgRenderHud();
+  if(sgHudTick % 5 === 0){ sgRenderHud(); sgUpdateEarlyBtn(); }
   sgRaf = requestAnimationFrame(sgLoop);
 }
 let sgHudTick = 0;
@@ -8353,9 +9000,13 @@ function sgSelectBuild(key){
   sg.sel = null; sg.aiming = null;
   sgRenderPalette(); sgRenderSel(); sgRenderAbilities();
 }
+const SG_BANK_CAP = 3;
 function sgPlace(c,r){
   const def = sgTowerDef(sg.build);
   if(!def || !sgCanBuildAt(c,r)) return;
+  if(def.key === "bank" && sg.towers.filter(t=>t.key==="bank").length >= SG_BANK_CAP){
+    sgLog(`The crown licenses only ${SG_BANK_CAP} counting houses per siege.`, "bad"); return;
+  }
   if(sg.supply < def.cost){ sgLog(`Not enough supply for a ${def.name}.`, "bad"); return; }
   sg.supply -= def.cost;
   const t = { key:def.key, c, r, level:1, cd:0, spent:def.cost, order:"first", path:null, auraDmg:1, auraRate:1 };
@@ -8472,6 +9123,13 @@ function sgCastAbility(key, c, r){
   sgRenderAbilities(); sgRenderHud();
 }
 
+function sgUpdateEarlyBtn(){
+  const b = document.getElementById("sgEarlyBtn");
+  if(!b || !sg) return;
+  const show = sg.phase === "wave" && (sg.tier.endless || sg.wave < sg.tier.waves);
+  b.style.display = show ? "" : "none";
+  if(show) b.textContent = `⏩ Call wave ${sg.wave+1} early · +${Math.round(18 + sg.wave*5)}⚡`;
+}
 function sgWaveButton(){
   if(!sg || sg.phase !== "prep") return;
   const early = Math.max(0, Math.round(sg.countdown));
@@ -8502,8 +9160,9 @@ function sgRenderHud(){
     else { wb.disabled = true; wb.textContent = sg.phase === "wave" ? `Wave ${sg.wave} in progress…` : "Siege over"; }
   }
   sgRenderAbilities(true);
-  document.querySelectorAll("#sgPalette .sg-tow").forEach(b=>{
-    const def = sgTowerDef(b.dataset.key);
+  let tbi = 0;
+  document.querySelectorAll("#sgTowerBar .sg-tb").forEach(b=>{
+    const def = SG_TOWERS[tbi++];
     if(!def) return;
     b.classList.toggle("poor", sg.supply < def.cost);
     b.classList.toggle("sel", sg.build === def.key);
@@ -8515,7 +9174,7 @@ function sgRenderPreview(){
   if(!el || !sg) return;
   if(sg.phase !== "prep" || sg.wave >= (sg.tier.waves||Infinity)){ el.style.display = "none"; return; }
   const pv = sgWavePreview(sg.wave+1);
-  const ICONS = { scav:"🐀", raider:"🗡️", brute:"🛡️", harrier:"🦅", shaman:"🔮", warlord:"👹" };
+  const ICONS = { scav:"🐀", raider:"🗡️", brute:"🛡️", harrier:"🦅", shaman:"🔮", warlord:"👹", wraith:"👻", splitter:"🟡", jugg:"🗿" };
   el.style.display = "block";
   el.innerHTML = `
     <div class="sg-pv-head">
@@ -8529,21 +9188,15 @@ function sgRenderPreview(){
 }
 
 function sgRenderPalette(){
-  const el = document.getElementById("sgPalette");
+  const el = document.getElementById("sgTowerBar");
   if(!el || !sg) return;
   el.innerHTML = "";
   SG_TOWERS.forEach(def=>{
-    const dmg = (def.base + (computeEmpireStats()[def.stat]||0)*def.statMult);
-    const b = document.createElement("button");
-    b.className = "sg-tow" + (sg.build===def.key ? " sel" : "") + (sg.supply < def.cost ? " poor" : "");
-    b.dataset.key = def.key;
-    b.innerHTML = `
-      <div class="r1"><span class="ic">${def.icon}</span>${def.name}<span class="cost">${def.cost}⚡</span></div>
-      <div class="r2">
-        <b style="color:${def.color}">${Math.round(dmg).toLocaleString()}</b> dmg × ${def.rate.toFixed(1)}/s${def.targets>1?` · ${def.targets} targets`:""}${def.splash?" · splash":""}${def.air?"":" · ground only"}<br>
-        ${def.desc}
-        <div class="r3">Specialises at level ${SG_BRANCH_LEVEL}: ${def.paths.map(p=>`${p.icon} ${p.name}`).join(" or ")}</div>
-      </div>`;
+    const b = document.createElement("div");
+    const capped = def.key === "bank" && sg.towers.filter(t=>t.key==="bank").length >= SG_BANK_CAP;
+    b.className = "sg-tb" + (sg.build===def.key ? " sel" : "") + (sg.supply < def.cost || capped ? " poor" : "");
+    b.title = def.desc + (def.key === "bank" ? ` (max ${SG_BANK_CAP} per siege)` : "");
+    b.innerHTML = `<span class="ic">${def.icon}</span><span class="cs">${capped ? "MAX" : def.cost+"⚡"}</span><span class="nm">${def.name}</span>`;
     b.addEventListener("click", ()=>sgSelectBuild(def.key));
     el.appendChild(b);
   });
@@ -8582,55 +9235,69 @@ function sgRenderAbilities(quick){
 }
 
 function sgRenderSel(){
-  const el = document.getElementById("sgSelPanel");
+  const el = document.getElementById("sgSelPop");
   if(!el || !sg) return;
-  if(!sg.sel){
-    el.innerHTML = `<div class="sd">Pick a tower above, then tap open ground. Tap a placed tower to upgrade it, change what it shoots at, or specialise it at level ${SG_BRANCH_LEVEL}. <b>▲ High ground</b> tiles give +18% range and +12% damage. Supply (⚡) comes from kills and cleared waves.</div>`;
-    return;
-  }
+  if(!sg.sel || !sg.towers.includes(sg.sel)){ el.style.display = "none"; return; }
   const t = sg.sel, rs = sgResolve(t), def = sgTowerDef(t.key);
   const maxed = t.level >= SG_TOWER_MAX;
   const needsPath = !t.path && t.level >= SG_BRANCH_LEVEL-1;
   const cost = maxed ? 0 : sgUpgradeCost(t);
   const order = SG_ORDERS.find(o=>o.key === (t.order||"first"));
   const dmgNow = rs.dmg * (t.auraDmg||1);
-
-  let body = `
-    <div class="sh"><span class="ic">${rs.icon}</span>${rs.name}
-      <span style="color:var(--muted); font-weight:600; font-size:12px;">Level ${t.level}/${SG_TOWER_MAX}${rs.hill?" · ▲ high ground":""}</span></div>
-    <div class="sd">
-      <b style="color:${rs.color}">${Math.round(dmgNow).toLocaleString()}</b> damage every ${(1/(rs.rate*(t.auraRate||1))).toFixed(2)}s
-      ${rs.targets>1?` · ${rs.targets} targets`:""}${rs.splash?` · splash`:""}${rs.pierce?` · ignores armour`:""}${rs.slow?` · ${Math.round(rs.slow*100)}% slow`:""}
-      ${(t.auraDmg>1||t.auraRate>1)?`<br><span style="color:var(--good);">Buffed by nearby support: +${Math.round((t.auraDmg-1)*100)}% damage, +${Math.round((t.auraRate-1)*100)}% fire rate</span>`:""}
-      <br>Scales with your <b>${def.statLabel}</b>.
-    </div>`;
-
-  if(needsPath){
-    body += `<div class="sg-paths">
-      <div class="pt">Choose a specialisation — this is permanent.</div>
-      ${def.paths.map(p=>`
-        <button class="sg-path" data-p="${p.key}" ${sg.supply < cost ? "disabled" : ""}>
-          <span class="ic" style="color:${p.color}">${p.icon}</span>
-          <span class="nm">${p.name}</span>
-          <span class="bl">${p.blurb}</span>
-          <span class="cs">${cost.toLocaleString()}⚡</span>
-        </button>`).join("")}
-    </div>`;
+  // preview next level for a delta chip on the upgrade button
+  let delta = "";
+  if(!maxed && !needsPath){
+    const peek = sgResolve({ ...t, level:t.level+1 });
+    const gain = Math.round((peek.dmg/rs.dmg - 1)*100);
+    delta = rs.income ? `+${Math.round((peek.income/rs.income-1)*100)}% payout` : `+${gain}% dmg`;
   }
-
-  body += `<div class="sbtns">
-      ${maxed ? `<button class="btn secondary" disabled>Fully upgraded</button>`
-        : needsPath ? ``
-        : `<button class="btn" ${sg.supply < cost ? "disabled" : ""} onclick="sgUpgradeSel()">Upgrade → Lv ${t.level+1} · ${cost.toLocaleString()}⚡</button>`}
-      <button class="btn secondary" onclick="sgCycleOrder()">🎯 Targets: ${order.name}</button>
-      <button class="btn secondary" onclick="sgSellSel()">Dismantle · +${Math.round(t.spent*0.6)}⚡</button>
-    </div>
-    <div class="sd" style="margin-top:8px; font-size:11.5px;">Currently shooting whatever is ${order.hint}.</div>`;
+  let body = `
+    <button class="px" onclick="sgCloseSel()">✕</button>
+    <div class="ph"><span>${rs.icon}</span>${rs.name}<span class="lvl">Lv ${t.level}/${SG_TOWER_MAX}${rs.hill?" ▲":""}</span></div>
+    <div class="pd">
+      ${rs.income
+        ? `<b style="color:${rs.color}">+${rs.income}⚡</b> every wave${rs.interest?` · +${Math.round(rs.interest*100)}% interest (cap ${rs.interestCap}⚡)`:""}`
+        : `<b style="color:${rs.color}">${Math.round(dmgNow).toLocaleString()}</b> dmg · ${(rs.rate*(t.auraRate||1)).toFixed(2)}/s${rs.targets>1?` · ×${rs.targets}`:""}${rs.splash?` · splash`:""}${rs.pierce?` · pierces`:""}${rs.slow?` · slows`:""}${rs.sight||t.key==="signal"?` · sees Wraiths`:""}`}
+      ${(t.auraDmg>1||t.auraRate>1)?`<br><span style="color:var(--good);">☆ buffed +${Math.round((t.auraDmg-1)*100)}% dmg / +${Math.round((t.auraRate-1)*100)}% rate</span>`:""}
+      ${t.auraSight && t.key!=="signal" && !rs.sight ? `<br><span style="color:#9ee8ff;">☆ beacon-sight: can hit Wraiths</span>` : ""}
+    </div>`;
+  if(needsPath){
+    body += def.paths.map(p=>`
+      <button class="sgp-path" data-p="${p.key}" ${sg.supply < cost ? "disabled" : ""}>
+        <span class="pn"><span style="color:${p.color}">${p.icon}</span>${p.name}<span class="cs">${cost.toLocaleString()}⚡</span></span>
+        <span class="pb">${p.blurb}</span>
+      </button>`).join("");
+  } else {
+    body += maxed
+      ? `<button class="sgp-up" disabled>★ Fully upgraded</button>`
+      : `<button class="sgp-up" ${sg.supply < cost ? "disabled" : ""} onclick="sgUpgradeSel()">
+           <span>⬆ Lv ${t.level+1} · ${cost.toLocaleString()}⚡</span><span class="delta">${delta}</span>
+         </button>`;
+  }
+  body += `<div class="sgp-row">
+      ${rs.income ? "" : `<button onclick="sgCycleOrder()">🎯 ${order.name}</button>`}
+      <button onclick="sgSellSel()">💥 Sell +${Math.round(t.spent*0.6)}⚡</button>
+    </div>`;
   el.innerHTML = body;
-  el.querySelectorAll(".sg-path").forEach(b=>b.addEventListener("click", ()=>sgChoosePath(b.dataset.p)));
+  el.querySelectorAll(".sgp-path").forEach(b=>b.addEventListener("click", ()=>sgChoosePath(b.dataset.p)));
+  // position beside the tower, inside the stage, flipped away from the edge
+  const cv = document.getElementById("sgCanvas");
+  const stage = cv.parentNode;
+  const scale = cv.getBoundingClientRect().width / SG_W;
+  const px = cv.offsetLeft + (t.c+0.5)*SG_CELL*scale, py = cv.offsetTop + (t.r+0.5)*SG_CELL*scale;
+  el.style.display = "block";
+  const pw = el.offsetWidth, ph = el.offsetHeight, sw = stage.clientWidth, sh = cv.getBoundingClientRect().height;
+  let left = px + 34*scale;
+  if(left + pw > sw - 84) left = px - pw - 34*scale;          // flip left of tower (clear of the tower bar)
+  left = Math.max(6, Math.min(left, sw - pw - 6));
+  let top = py - ph/2;
+  top = Math.max(6, Math.min(top, sh - ph - 6));
+  el.style.left = left + "px";
+  el.style.top = top + "px";
 }
+function sgCloseSel(){ if(sg){ sg.sel = null; } sgRenderSel(); }
 
-/* ---------------- SIEGE: RESULT + LOBBY ---------------- */
+/* ---------------- SIEGE: RESULT + LOBBY ---------------- *//* ---------------- SIEGE: RESULT + LOBBY ---------------- */
 function sgFinish(won){
   sg.phase = won ? "won" : "lost";
   const t = sg.tier;
@@ -8674,7 +9341,20 @@ function sgFinish(won){
   sgRenderTiers(); sgRenderStats();
 }
 
+function sgRenderMaps(){
+  const row = document.getElementById("sgMapRow");
+  if(!row) return;
+  row.innerHTML = "";
+  SG_MAPS.forEach(m=>{
+    const el = document.createElement("button");
+    el.className = "sg-map" + (sgChosenMap === m.id ? " sel" : "");
+    el.innerHTML = `<span class="mi">${m.icon}</span><span class="mn">${m.name}</span><span class="mb">${m.blurb}</span>`;
+    el.addEventListener("click", ()=>{ sgChosenMap = m.id; sgRenderMaps(); });
+    row.appendChild(el);
+  });
+}
 function sgRenderTiers(){
+  sgRenderMaps();
   const grid = document.getElementById("sgTierGrid");
   if(!grid) return;
   grid.innerHTML = "";
@@ -8718,27 +9398,50 @@ function sgRenderStats(){
   `;
 }
 
-function sgBegin(tierId){
+function sgSizeCanvas(){
+  const cv = document.getElementById("sgCanvas");
+  if(!cv) return;
+  cv.width = SG_W*2; cv.height = SG_H*2;              // crisp 2× internal resolution
+  // in fullscreen, fit the viewport: fill the screen, leaving just enough for HUD + controls
+  const battle = document.getElementById("sgBattle");
+  if(battle && battle.classList.contains("sg-fs")){
+    const small = window.innerWidth < 720;
+    const reserve = small ? 244 : 205;                 // phones: HUD + docked tower bar
+    const maxH = Math.max(300, window.innerHeight - reserve);
+    cv.style.maxWidth = Math.round(maxH * (SG_W/SG_H)) + "px";
+  } else {
+    cv.style.maxWidth = "";
+  }
+}
+function sgBegin(tierId, mapId){
   sgSeed = (Date.now() % 99991) + 7;
+  sgLoadMap(mapId || sgChosenMap);
   sg = sgNewBattle(tierId);
   sg.leaksAtWaveStart = 0;
   sg.nextMod = null;
   document.getElementById("sgLobby").style.display = "none";
-  document.getElementById("sgBattle").style.display = "block";
+  const battle = document.getElementById("sgBattle");
+  battle.style.display = "block";
+  battle.classList.add("sg-fs");                       // the battle takes the whole screen
+  document.documentElement.classList.add("sg-noscroll");
   const res = document.getElementById("sgResult");
   if(res) res.classList.remove("show");
   document.querySelectorAll("#sgSpeed button").forEach(x=>x.classList.toggle("on", x.dataset.spd==="1"));
   sgBindCanvas();
-  sgLog(`<b>${sg.tier.name}</b> begins. Keep at ${sg.maxHp.toLocaleString()} HP, ${sg.supply} supply in the stores.`);
+  sgSizeCanvas();
+  sgTerrain = null;
+  sgLog(`<b>${sg.tier.name}</b> · ${SG_MAP.icon} ${SG_MAP.name}. Keep at ${sg.maxHp.toLocaleString()} HP, ${sg.supply} supply in the stores.`);
   sgRenderPalette(); sgRenderSel(); sgRenderAbilities(); sgRenderPreview(); sgRenderHud();
   sgStartLoop();
 }
+window.addEventListener("resize", ()=>{ if(sg) sgSizeCanvas(); });
 function sgRetry(){ if(sg) sgBegin(sg.tier.id); }
 function sgLeaveBattle(){
   sgStopLoop();
   sg = null;
   const b = document.getElementById("sgBattle"), l = document.getElementById("sgLobby");
-  if(b) b.style.display = "none";
+  if(b){ b.style.display = "none"; b.classList.remove("sg-fs"); }
+  document.documentElement.classList.remove("sg-noscroll");
   if(l) l.style.display = "block";
   sgRenderTiers(); sgRenderStats();
 }

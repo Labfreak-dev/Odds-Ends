@@ -1146,6 +1146,158 @@
   .ar-pit{ padding:10px !important; }
   .ar-pit .ar-canvas-wrap{ border-radius:12px; overflow:hidden; }
 
+
+  /* ================= DUNGEONEERING ================= */
+  .dg-lvl{ display:flex; align-items:center; gap:14px; padding:14px; margin-bottom:12px;
+    border:1px solid rgba(255,255,255,0.1); border-radius:14px;
+    background:linear-gradient(150deg, rgba(120,90,200,0.18), rgba(255,255,255,0.02)); }
+  .dg-lvlnum{ font-size:34px; font-weight:900; line-height:1; color:#c9a6ff; flex:none;
+    text-shadow:0 0 22px rgba(201,166,255,0.5); }
+  .dg-lvlbody{ flex:1; min-width:0; }
+  .dg-lvlname{ font-weight:800; font-size:14px; margin-bottom:5px; }
+  .dg-lvlxp{ font-size:11.5px; color:var(--muted); margin-top:5px; }
+  .dg-sec{ font-weight:800; font-size:15px; margin-bottom:8px; display:flex; justify-content:space-between; }
+  .dg-sec span{ font-size:12px; color:var(--muted); font-weight:700; }
+  .dg-bindnote{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-bottom:10px; }
+  .dg-binds{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+  .dg-bind{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left;
+    padding:9px 11px; border-radius:11px; cursor:pointer; font-family:inherit; color:var(--text);
+    border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); }
+  .dg-bind b{ font-size:12.5px; font-weight:800; }
+  .dg-bind em{ font-style:normal; font-size:10.5px; color:var(--muted); }
+  .dg-bind.on{ border-color:#c9a6ff; background:rgba(201,166,255,0.16); }
+  .dg-bind.on em{ color:#c9a6ff; }
+  .dg-opts{ margin-bottom:12px; }
+  .dg-optrow{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px; }
+  .dg-optrow > span{ font-size:11px; font-weight:800; letter-spacing:0.08em; color:var(--muted); width:74px; flex:none; }
+  .dg-opt{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:6px 11px; border-radius:10px;
+    cursor:pointer; font-family:inherit; font-weight:800; font-size:12.5px; color:var(--text);
+    border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); }
+  .dg-opt em{ font-style:normal; font-size:9.5px; color:var(--muted); font-weight:600; }
+  .dg-opt.on{ border-color:#c9a6ff; background:rgba(201,166,255,0.16); }
+  .dg-cxblurb{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .dg-floors{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:9px; }
+  .dg-floor{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left;
+    padding:11px 12px; border-radius:13px; cursor:pointer; font-family:inherit; color:var(--text);
+    border:1px solid rgba(255,255,255,0.12); background:linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)); }
+  .dg-floor:hover:not(:disabled){ border-color:#c9a6ff; transform:translateY(-2px); }
+  .dg-floor:disabled{ opacity:0.42; cursor:default; }
+  .dg-floor .fn{ font-weight:900; font-size:14px; }
+  .dg-floor .fb{ font-size:11.5px; color:#c9a6ff; font-weight:700; }
+  .dg-floor .ft{ font-size:10.5px; color:var(--muted); }
+  .dg-floor.done{ border-color:rgba(61,220,132,0.4); }
+  .dg-floor.done .ft{ color:#3ddc84; }
+
+  .dg-hud{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+  .dg-hp{ position:relative; flex:1 1 150px; height:22px; border-radius:11px; overflow:hidden;
+    background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); }
+  .dg-hp i{ position:absolute; inset:0; }
+  .dg-hp span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:11.5px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.7); }
+  .dg-key{ font-size:11px !important; }
+  .dg-maprow{ display:flex; justify-content:center; padding:10px 0 4px; overflow-x:auto; }
+  .dg-map{ position:relative; flex:none; }
+  .dg-link{ position:absolute; background:rgba(255,255,255,0.16); border-radius:3px; }
+  .dg-link.locked{ background:#e8c268; box-shadow:0 0 7px currentColor; }
+  .dg-link.tool{ background:#8fd3ff; }
+  .dg-link.guard{ background:#ff8c5a; }
+  .dg-room{ position:absolute; border-radius:10px; border:1px solid rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:19px; cursor:default;
+    display:flex; align-items:center; justify-content:center; padding:0; font-family:inherit; }
+  .dg-room.unseen{ background:rgba(255,255,255,0.02); border-style:dashed; opacity:0.5; }
+  .dg-room.visited{ background:rgba(255,255,255,0.07); }
+  .dg-room.hostile{ border-color:rgba(255,92,92,0.5); }
+  .dg-room.adj{ cursor:pointer; border-color:#c9a6ff; box-shadow:0 0 10px rgba(201,166,255,0.35); }
+  .dg-room.here{ background:rgba(201,166,255,0.28); border-color:#c9a6ff; box-shadow:0 0 14px rgba(201,166,255,0.6); }
+  .dg-keypip{ position:absolute; right:-3px; top:-5px; font-size:11px; }
+  .dg-mapnote{ text-align:center; font-size:10.5px; color:var(--muted); margin-bottom:10px; }
+  .dg-roomhead{ display:flex; gap:11px; align-items:flex-start; margin-bottom:10px; }
+  .dg-roomhead .ri{ font-size:26px; }
+  .dg-roomhead .rn{ font-weight:800; font-size:15px; }
+  .dg-roomhead .rd{ font-size:11.5px; color:var(--muted); }
+  .dg-log{ margin-top:12px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.07);
+    border-radius:11px; padding:9px 12px; height:96px; overflow-y:auto; font-size:12px; line-height:1.55; color:#cfd3e4; }
+
+  .dg-puzzle, .dg-shop{ text-align:center; padding:6px 2px 2px; }
+  .dg-ptitle{ font-weight:900; font-size:16px; margin-bottom:4px; }
+  .dg-pblurb{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-bottom:12px; }
+  .dg-pmsg{ font-size:12px; color:#ffd35c; margin-bottom:10px; font-weight:700; }
+  .dg-flip{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; max-width:250px; margin:0 auto; }
+  .dg-flip button{ aspect-ratio:1/1; border-radius:10px; border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.05); cursor:pointer; }
+  .dg-flip button.on{ background:radial-gradient(circle at 40% 35%, #ffe9a8, #e8c268 60%, #b8912f);
+    border-color:#ffe9a8; box-shadow:0 0 12px rgba(232,194,104,0.5); }
+  .dg-seq{ display:flex; justify-content:center; gap:12px; font-size:34px; margin-bottom:12px; }
+  .dg-seq.small{ font-size:24px; }
+  .dg-emotes{ display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+  .dg-emotes button{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:64px;
+    padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.05); color:var(--text); font-size:22px; cursor:pointer; font-family:inherit; }
+  .dg-emotes button em{ font-style:normal; font-size:10px; color:var(--muted); font-weight:700; }
+  .dg-emotes button:disabled{ opacity:0.4; }
+  .dg-rows{ display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .dg-row{ display:flex; gap:7px; opacity:0.45; }
+  .dg-row.active{ opacity:1; }
+  .dg-row button{ width:44px; height:38px; border-radius:9px; border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.05); color:var(--text); font-weight:800; cursor:pointer; font-family:inherit; }
+  .dg-row button.safe{ background:rgba(61,220,132,0.25); border-color:#3ddc84; }
+  .dg-clues{ font-size:11.5px; color:var(--muted); line-height:1.7; margin-bottom:12px; text-align:left;
+    max-width:330px; margin-left:auto; margin-right:auto; }
+  .dg-boss{ text-align:center; padding:12px 8px; margin-bottom:12px; border-radius:14px;
+    border:1px solid rgba(255,92,92,0.35);
+    background:radial-gradient(ellipse at 50% 25%, rgba(255,92,92,0.14), rgba(0,0,0,0) 70%); }
+  .dg-bicon{ font-size:56px; line-height:1; animation:rdGuardLoom 2.4s ease-in-out infinite; }
+  .dg-bname{ font-weight:900; font-size:17px; margin-top:4px; }
+  .dg-bhp{ position:relative; height:18px; border-radius:9px; overflow:hidden; margin:8px auto 6px; max-width:280px;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); }
+  .dg-bhp i{ position:absolute; inset:0; background:linear-gradient(90deg,#b8262f,#ff5c5c); }
+  .dg-bhp span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.8); }
+  .dg-bgim{ font-size:11.5px; color:#ff9d6e; font-weight:700; }
+  .dg-bward{ font-size:12px; font-weight:800; color:#ffd35c; margin-top:6px; }
+  .dg-result{ text-align:center; padding:26px 16px; border-radius:16px; border:1px solid rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.03); }
+  .dg-result.good{ border-color:rgba(201,166,255,0.45); background:radial-gradient(ellipse at 50% 20%, rgba(201,166,255,0.18), rgba(0,0,0,0) 70%); }
+  .dg-result.bad{ border-color:rgba(255,92,92,0.35); }
+  .dg-result .ri{ font-size:54px; }
+  .dg-result .rt{ font-weight:900; font-size:20px; margin:6px 0 8px; }
+  .dg-result .rs{ font-size:13px; color:var(--text); margin-bottom:6px; }
+
+
+  /* ---- Mythic Raids: gear ---- */
+  .mr-gearbtn{ cursor:pointer; font-family:inherit; font-size:12px; font-weight:700; }
+  .mr-gear{ padding:2px 0; }
+  .mr-slots{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:7px; margin-bottom:10px; }
+  .mr-slot{ display:flex; flex-direction:column; gap:1px; padding:8px 9px; border-radius:11px;
+    border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); }
+  .mr-slot.on{ border-color:rgba(201,166,255,0.5); background:rgba(201,166,255,0.1); }
+  .mr-slot .ms{ font-size:9px; letter-spacing:0.08em; color:var(--muted); font-weight:800; text-transform:uppercase; }
+  .mr-slot .mi{ font-size:18px; line-height:1.1; }
+  .mr-slot .mn{ font-size:10.5px; color:var(--text); line-height:1.3; }
+  .mr-slot:not(.on) .mn{ color:var(--muted); }
+  .mr-bonus{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+  .mr-bonus span{ font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:999px;
+    background:rgba(61,220,132,0.14); border:1px solid rgba(61,220,132,0.35); color:#8fe8b4; }
+  .mr-buff{ background:rgba(255,211,92,0.15) !important; border-color:rgba(255,211,92,0.4) !important; color:#ffd35c !important; }
+  .mr-sets{ margin-bottom:10px; }
+  .mr-setrow{ font-size:10.5px; line-height:1.7; padding:7px 10px; border-radius:10px; margin-bottom:6px;
+    background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); }
+  .mr-setrow b{ font-size:12px; }
+  .mr-setrow em{ font-style:normal; color:var(--muted); font-weight:700; margin-left:4px; }
+  .mr-setrow span{ display:block; color:var(--muted); }
+  .mr-setrow span.on{ color:#8fe8b4; font-weight:700; }
+  .mr-bagtitle{ font-size:11px; font-weight:800; letter-spacing:0.08em; color:var(--muted);
+    text-transform:uppercase; margin:2px 0 6px; }
+  .mr-bag{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:7px; }
+  .mr-bagit{ position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    text-align:left; padding:9px 10px 26px; border-radius:11px; cursor:pointer; font-family:inherit; color:var(--text);
+    border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); }
+  .mr-bagit:hover{ border-color:#c9a6ff; }
+  .mr-bagit .bi{ font-size:17px; }
+  .mr-bagit .bn{ font-size:11.5px; font-weight:800; line-height:1.25; }
+  .mr-bagit .bd{ font-size:10px; color:var(--muted); }
+  .mr-bagit .ba{ position:absolute; right:9px; bottom:7px; font-size:10px; font-weight:800; color:#c9a6ff; }
+
   /* ---------------- Collection filter bar ---------------- */
   .cfilt{ position:sticky; top:112px; z-index:30; margin-bottom:14px; padding:10px;
     border:1px solid rgba(255,255,255,0.09); border-radius:14px;
@@ -3156,7 +3308,11 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   </div>
 </section>
 
-<section id="tab-collection" style="display:none;">
+<section id="tab-dungeon" style="display:none;">
+    <div id="dgBody"></div>
+  </section>
+
+  <section id="tab-collection" style="display:none;">
     <div class="panel">
       <div class="stats-bar">
         <div class="stat"><div class="num" id="statUnique">0/0</div><div class="lbl">Unique Items</div></div>
@@ -4121,7 +4277,7 @@ function defaultArena(){
 function freshState(){
   return { credits:100000, scrap:0, owned:{}, packsOpened:0, totalMined:0, lastMineTs:Date.now(), miningBonus:0,
     settings:defaultSettings(), upgrades:defaultUpgrades(), market:null, empire:defaultEmpire(), player:defaultPlayer(), siege:defaultSiege(), fishing:defaultFishing(),
-    account:defaultAccount(), casino:defaultCasino(), lottery:defaultLottery(), arena:defaultArena(), raids:defaultRaids(), redeemedCodes:[] };
+    account:defaultAccount(), casino:defaultCasino(), lottery:defaultLottery(), arena:defaultArena(), raids:defaultRaids(), dungeon:defaultDungeon(), redeemedCodes:[] };
 }
 function loadState(){
   try{
@@ -15953,6 +16109,1466 @@ document.addEventListener("keyup", e=>{
 })();
 
 /* ---------------- NAV ---------------- */
+/* ================================================================
+   MYTHIC RAIDS — Daemonheim, adapted.
+   You go in with nothing but what you have bound. Everything else is
+   found, mined, smelted, cooked or beaten out of the floor itself, and
+   none of it comes home with you.
+   ================================================================ */
+
+/* ---- the eleven tiers ---- */
+const DG_TIERS = [
+  { t:1,  lvl:1,  ore:"Novite",     wood:"Tangle gum",    fish:"Heim crab",      heal:20 },
+  { t:2,  lvl:10, ore:"Bathus",     wood:"Seeping elm",   fish:"Red-eye",        heal:26 },
+  { t:3,  lvl:20, ore:"Marmaros",   wood:"Blood spindle", fish:"Dusk eel",       heal:34 },
+  { t:4,  lvl:30, ore:"Kratonite",  wood:"Utuku",         fish:"Giant flatfish", heal:44 },
+  { t:5,  lvl:40, ore:"Fractite",   wood:"Spinebeam",     fish:"Short-finned eel", heal:56 },
+  { t:6,  lvl:50, ore:"Zephyrium",  wood:"Bovistrangler", fish:"Web snipper",    heal:70 },
+  { t:7,  lvl:60, ore:"Argonite",   wood:"Thigat",        fish:"Bouldabass",     heal:86 },
+  { t:8,  lvl:70, ore:"Katagon",    wood:"Corpsethorn",   fish:"Salve eel",      heal:104 },
+  { t:9,  lvl:80, ore:"Gorgonite",  wood:"Entgallow",     fish:"Blue crab",      heal:124 },
+  { t:10, lvl:90, ore:"Promethium", wood:"Grave creeper", fish:"Cave moray",     heal:146 },
+  { t:11, lvl:99, ore:"Primal",     wood:"Sagittarian",   fish:"Celestial",      heal:170 },
+];
+function dgTier(t){ return DG_TIERS[Math.max(0, Math.min(DG_TIERS.length-1, t-1))]; }
+
+/* ---- the combat triangle ---- */
+const DG_STYLES = { melee:{ name:"Melee", icon:"⚔️", beats:"ranged" },
+                    ranged:{ name:"Ranged", icon:"🏹", beats:"magic" },
+                    magic:{ name:"Magic", icon:"✨", beats:"melee" } };
+function dgTriangle(att, def){
+  if(!att || !def) return 1;
+  if(DG_STYLES[att] && DG_STYLES[att].beats === def) return 1.45;
+  if(DG_STYLES[def] && DG_STYLES[def].beats === att) return 0.65;
+  return 1;
+}
+
+/* ---- the skill: RuneScape's own curve, capped at 99 ---- */
+const DG_XP = (function(){
+  const t = [0]; let acc = 0;
+  for(let l=1; l<99; l++){ acc += Math.floor(l + 300*Math.pow(2, l/7)); t.push(Math.floor(acc/4)); }
+  return t;   /* DG_XP[n] = xp needed to reach level n+1 */
+})();
+function dgLevelFor(xp){
+  let l = 1;
+  while(l < 99 && xp >= DG_XP[l]) l++;
+  return l;
+}
+function dgXpToNext(xp){
+  const l = dgLevelFor(xp);
+  if(l >= 99) return { have:0, need:0, pct:1, level:99 };
+  const base = DG_XP[l-1], next = DG_XP[l];
+  return { have: xp - base, need: next - base, pct: (xp - base)/(next - base), level:l };
+}
+function dgBindSlots(level){ return 1 + (level>=20?1:0) + (level>=40?1:0) + (level>=60?1:0) + (level>=80?1:0); }
+
+/* ---- Frozen: floors 1-10 and the things that live on them ---- */
+const DG_BOSSES = {
+  behemoth: { name:"Gluttonous Behemoth", icon:"🦬", hp:60, dmg:[6,11], style:"melee",
+    intro:"It is already eating. It does not stop eating when it sees you.",
+    gimmick:"Feeds on the carcasses — burn them or it heals every turn." },
+  astea:    { name:"Astea Frostweb", icon:"🕸️", hp:52, dmg:[7,12], style:"magic",
+    intro:"Frost spiders scatter from her hem. She smiles as if you are late.",
+    gimmick:"Rotates a ward each turn. Strike the style she is NOT warding." },
+  icybones: { name:"Icy Bones", icon:"💀", hp:70, dmg:[8,14], style:"melee",
+    intro:"A skeleton the size of a doorway, rimed white and grinning.",
+    gimmick:"Brittle to melee (×2). Arrows and spells barely chip it." },
+  icefiend: { name:"Luminescent Icefiend", icon:"🧊", hp:66, dmg:[6,10], style:"magic",
+    intro:"It glows from inside, like something is burning in all that ice.",
+    gimmick:"Turns invulnerable at each quarter and drops icicles — take cover." },
+  lakhra:   { name:"Plane-freezer Lakhrahnaz", icon:"❄️", hp:78, dmg:[8,13], style:"magic",
+    intro:"The floor goes to glass. Your boots stop agreeing with you.",
+    gimmick:"The ice makes you slip — sand the floor or one action in three fails." },
+  tokash:   { name:"To'Kash the Bloodchiller", icon:"🥶", hp:92, dmg:[10,16], style:"melee",
+    intro:"“DEEP FREEZE!” The word arrives before he does.",
+    gimmick:"Freezes you solid every third turn. Break out or lose the turn." },
+};
+const DG_FLOORS = [
+  { f:1,  boss:"behemoth", tier:1 }, { f:2,  boss:"astea",    tier:1 },
+  { f:3,  boss:"icybones", tier:2 }, { f:4,  boss:"icefiend", tier:2 },
+  { f:5,  boss:"behemoth", tier:2 }, { f:6,  boss:"lakhra",   tier:3 },
+  { f:7,  boss:"astea",    tier:3 }, { f:8,  boss:"icefiend", tier:3 },
+  { f:9,  boss:"lakhra",   tier:4 }, { f:10, boss:"tokash",   tier:4 },
+];
+function dgFloorDef(f){ return DG_FLOORS[Math.max(0, Math.min(DG_FLOORS.length-1, f-1))]; }
+function dgFloorUnlockLevel(f){ return f <= 1 ? 1 : (f-1)*3; }
+
+/* ---- sizes and complexity ---- */
+const DG_SIZES = {
+  small:  { name:"Small",  w:4, h:3, xp:1.0, locks:2, label:"12 rooms" },
+  medium: { name:"Medium", w:5, h:4, xp:2.6, locks:3, label:"20 rooms" },
+  large:  { name:"Large",  w:6, h:5, xp:4.5, locks:4, label:"30 rooms" },
+};
+const DG_COMPLEXITY = {
+  1: { name:"Combat only",  xp:0.30, blurb:"Fights and the boss. No gathering, no puzzles.", puzzles:false, gather:false },
+  3: { name:"Standard",     xp:0.65, blurb:"Gathering, crafting and the forge. No puzzles.", puzzles:false, gather:true },
+  6: { name:"Full",         xp:1.00, blurb:"Everything Daemonheim has: puzzles included.",   puzzles:true,  gather:true },
+};
+
+/* ---- keys: eight shapes, eight colours, exactly as Daemonheim does it ---- */
+const DG_KEY_SHAPES = ["crescent","diamond","pentagon","rectangle","shield","triangle","wedge","corner"];
+const DG_KEY_COLOURS = [
+  { id:"gold",    hex:"#e8c268" }, { id:"silver",  hex:"#c8ccd4" },
+  { id:"crimson", hex:"#e0555f" }, { id:"green",   hex:"#4fd18b" },
+  { id:"blue",    hex:"#5aa9ff" }, { id:"purple",  hex:"#b98cff" },
+  { id:"orange",  hex:"#ff9d4d" }, { id:"yellow",  hex:"#ffe066" },
+];
+const DG_SHAPE_GLYPH = { crescent:"🌙", diamond:"◆", pentagon:"⬟", rectangle:"▬",
+                         shield:"🛡", triangle:"▲", wedge:"◤", corner:"◣" };
+function dgKeyName(k){ return `${k.colour} ${k.shape}`; }
+
+/* ================= the generator =================
+   A spanning tree over a grid gives dead ends and a single honest route to
+   the boss. Locks go on that route in order, and each key is hidden only in
+   the part of the dungeon you can already reach — so every floor it builds
+   can actually be finished. */
+function dgRng(seed){
+  let x = seed >>> 0 || 1;
+  return function(){ x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+}
+function dgGenerate(floor, size, complexity, seed){
+  const rnd = dgRng(seed || (Math.floor(Math.random()*1e9) + 1));
+  const S = DG_SIZES[size], W = S.w, H = S.h, N = W*H;
+  const idx = (x,y)=> y*W + x;
+  const rooms = [];
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++)
+    rooms.push({ i:idx(x,y), x, y, type:"empty", seen:false, visited:false, cleared:true, content:null, keys:[] });
+
+  /* --- randomised DFS spanning tree --- */
+  const start = idx(Math.floor(rnd()*W), Math.floor(rnd()*H));
+  const edges = new Set();                    /* "a|b" with a<b */
+  const ekey = (a,b)=> a<b ? a+"|"+b : b+"|"+a;
+  const seen = new Set([start]);
+  const stack = [start];
+  const parent = { [start]: -1 };
+  const order = [start];
+  while(stack.length){
+    const cur = stack[stack.length-1];
+    const cx = cur % W, cy = (cur / W) | 0;
+    const nbrs = [];
+    if(cx > 0)   nbrs.push(idx(cx-1, cy));
+    if(cx < W-1) nbrs.push(idx(cx+1, cy));
+    if(cy > 0)   nbrs.push(idx(cx, cy-1));
+    if(cy < H-1) nbrs.push(idx(cx, cy+1));
+    const open = nbrs.filter(n=>!seen.has(n));
+    if(!open.length){ stack.pop(); continue; }
+    const nxt = open[Math.floor(rnd()*open.length)];
+    seen.add(nxt); parent[nxt] = cur; order.push(nxt);
+    edges.add(ekey(cur, nxt));
+    stack.push(nxt);
+  }
+  /* --- depth from start, boss goes in the furthest room --- */
+  const adj = {};
+  rooms.forEach(r=>adj[r.i] = []);
+  edges.forEach(e=>{ const [a,b] = e.split("|").map(Number); adj[a].push(b); adj[b].push(a); });
+  const depth = {}; depth[start] = 0;
+  const q = [start];
+  while(q.length){
+    const c = q.shift();
+    adj[c].forEach(n=>{ if(depth[n] === undefined){ depth[n] = depth[c] + 1; q.push(n); } });
+  }
+  let bossRoom = start, best = -1;
+  rooms.forEach(r=>{ if(depth[r.i] > best){ best = depth[r.i]; bossRoom = r.i; } });
+
+  /* --- the critical path --- */
+  const path = [];
+  for(let c = bossRoom; c !== -1; c = parent[c]) path.unshift(c);
+
+  /* --- locks along it, keys only ever behind you --- */
+  const doors = {};
+  edges.forEach(e=>{ doors[e] = { lock:null, guardian:false, skill:null, open:false }; });
+  const lockCount = Math.min(S.locks, Math.max(0, path.length - 2));
+  const lockEdges = [];
+  if(lockCount > 0){
+    const step = (path.length - 1) / (lockCount + 1);
+    for(let i=1; i<=lockCount; i++){
+      const p = Math.min(path.length - 1, Math.max(1, Math.round(i * step)));
+      const e = ekey(path[p-1], path[p]);
+      if(lockEdges.indexOf(e) < 0) lockEdges.push(e);
+    }
+  }
+  const usedKeys = [];
+  const keyPlacements = [];
+  lockEdges.forEach((e, li)=>{
+    /* everything reachable before this lock (earlier locks assumed opened) */
+    const blocked = new Set(lockEdges.slice(li));
+    const reach = new Set([start]);
+    const qq = [start];
+    while(qq.length){
+      const c = qq.shift();
+      adj[c].forEach(n=>{
+        if(blocked.has(ekey(c,n))) return;
+        if(!reach.has(n)){ reach.add(n); qq.push(n); }
+      });
+    }
+    /* never the start, never the boss, never a room already holding a key,
+       and a dead end if one is going spare — that is where keys belong */
+    let pool = [...reach].filter(r=>r !== start && r !== bossRoom && !keyPlacements.some(k=>k.room === r));
+    if(!pool.length) pool = [...reach].filter(r=>r !== start && r !== bossRoom);
+    if(!pool.length) pool = [...reach].filter(r=>r !== start);
+    if(!pool.length) pool = [start];
+    const deadEnds = pool.filter(r=>adj[r].length === 1);
+    const from = deadEnds.length ? deadEnds : pool;
+    const spot = from[Math.floor(rnd()*from.length)];
+    let k;
+    do {
+      k = { shape: DG_KEY_SHAPES[Math.floor(rnd()*DG_KEY_SHAPES.length)],
+            colour: DG_KEY_COLOURS[Math.floor(rnd()*DG_KEY_COLOURS.length)].id };
+    } while(usedKeys.some(u=>u.shape===k.shape && u.colour===k.colour));
+    usedKeys.push(k);
+    doors[e].lock = k;
+    keyPlacements.push({ room:spot, key:k });
+  });
+
+  /* --- guardian and tool doors on the branches --- */
+  const nonLock = [...edges].filter(e=>!doors[e].lock);
+  const shuffled = nonLock.slice().sort(()=>rnd()-0.5);
+  const guardCount = Math.round(nonLock.length * 0.22);
+  shuffled.slice(0, guardCount).forEach(e=>{ doors[e].guardian = true; });
+  const TOOLS = [ {id:"pick", name:"pickaxe", verb:"Mine through the fall", icon:"⛏️"},
+                  {id:"axe",  name:"hatchet", verb:"Cut through the roots", icon:"🪓"},
+                  {id:"lock", name:"lockpick", verb:"Pick the old lock",     icon:"🗝️"} ];
+  if(complexity >= 3){
+    shuffled.slice(guardCount, guardCount + Math.round(nonLock.length * 0.14)).forEach(e=>{
+      doors[e].skill = TOOLS[Math.floor(rnd()*TOOLS.length)];
+    });
+  }
+
+  /* --- what is actually in each room --- */
+  const fd = dgFloorDef(floor);
+  const maxTier = fd.tier;
+  const C = DG_COMPLEXITY[complexity] || DG_COMPLEXITY[6];
+  rooms[start].type = "start";
+  rooms[bossRoom].type = "boss";
+  const others = rooms.filter(r=>r.type === "empty").map(r=>r.i);
+  const shuffledRooms = others.slice().sort(()=>rnd()-0.5);
+  const take = n => shuffledRooms.splice(0, Math.max(0, n));
+  if(C.gather){
+    take(Math.max(1, Math.round(others.length*0.16))).forEach(i=>{ rooms[i].type = "ore";  rooms[i].content = { tier: 1 + Math.floor(rnd()*maxTier), uses: 2 + Math.floor(rnd()*3) }; });
+    take(Math.max(1, Math.round(others.length*0.12))).forEach(i=>{ rooms[i].type = "tree"; rooms[i].content = { tier: 1 + Math.floor(rnd()*maxTier), uses: 2 + Math.floor(rnd()*2) }; });
+    take(Math.max(1, Math.round(others.length*0.12))).forEach(i=>{ rooms[i].type = "fish"; rooms[i].content = { tier: 1 + Math.floor(rnd()*maxTier), uses: 3 + Math.floor(rnd()*3) }; });
+    take(1).forEach(i=>{ rooms[i].type = "forge"; });
+    take(1).forEach(i=>{ rooms[i].type = "fire"; });
+  }
+  if(C.puzzles) take(Math.max(1, Math.round(others.length*0.16))).forEach(i=>{ rooms[i].type = "puzzle"; });
+  take(Math.max(1, Math.round(others.length*0.10))).forEach(i=>{ rooms[i].type = "chest"; });
+  shuffledRooms.forEach(i=>{ rooms[i].type = "monster"; });
+
+  /* monsters guard anything worth guarding, plus every guardian door */
+  rooms.forEach(r=>{
+    const guarded = r.type === "monster" || r.type === "chest" ||
+      adj[r.i].some(n=>doors[ekey(r.i,n)].guardian);
+    if(r.type === "start" || r.type === "boss"){ r.cleared = true; return; }
+    if(guarded){
+      r.cleared = false;
+      const style = ["melee","ranged","magic"][Math.floor(rnd()*3)];
+      r.mob = { name: dgMobName(rnd), style, hp: 10 + floor*3 + Math.floor(rnd()*6),
+                dmg: [1 + floor*0.8, 3 + floor*1.4] };
+      r.mob.maxHp = r.mob.hp;
+    }
+  });
+  keyPlacements.forEach(kp=>{ rooms[kp.room].keys.push(kp.key); });
+
+  return { W, H, rooms, adj, doors, edges:[...edges], start, bossRoom, path, ekey,
+           locks: lockEdges.length, keyPlacements };
+}
+const DG_MOBS = ["Frost hound","Rime skeleton","Icicle bat","Hoarfrost golem","Chill wraith",
+                 "Snow imp","Glacier crab","Frozen shade","Bovimastyx","Winter kalphite"];
+function dgMobName(rnd){ return DG_MOBS[Math.floor(rnd()*DG_MOBS.length)]; }
+
+/* --- a solver, used by the tests and to guarantee no floor is a dead loss --- */
+function dgSolvable(D){
+  const have = new Set();
+  const reach = new Set([D.start]);
+  let grew = true;
+  while(grew){
+    grew = false;
+    /* pick up every key you can already stand on BEFORE trying any door —
+       otherwise a key found late in a sweep looks like a dead end */
+    reach.forEach(r=>(D.rooms[r].keys || []).forEach(k=>have.add(k.colour + "|" + k.shape)));
+    [...reach].forEach(r=>{
+      D.adj[r].forEach(n=>{
+        if(reach.has(n)) return;
+        const d = D.doors[D.ekey(r,n)];
+        if(d.lock && !have.has(d.lock.colour + "|" + d.lock.shape)) return;
+        reach.add(n); grew = true;
+      });
+    });
+  }
+  return reach.has(D.bossRoom);
+}
+
+
+
+/* ================= MYTHIC RAIDS — the hoard =================
+   Ninety things to find, none of which leave the floor with you.
+   Armour comes in sets; wearing more of a set turns on deeper bonuses that
+   touch gathering, checks, puzzles and the fight itself. */
+const MR_SLOTS = ["weapon","head","body","legs","hands","feet","trinket"];
+const MR_SLOT_NAME = { weapon:"Weapon", head:"Head", body:"Body", legs:"Legs",
+                       hands:"Hands", feet:"Feet", trinket:"Trinket" };
+
+/* ---- 8 armour sets × 5 pieces = 40 ---- */
+const MR_SETS = [
+  { id:"novite",  name:"Novite Guard",         icon:"🛡️", tier:1, style:"melee", drop:1,
+    per:{ arm:1 },
+    b2:{ arm:1 },                               b2t:"+1 armour",
+    b3:{ dmg:0.08 },                            b3t:"+8% damage",
+    b5:{ arm:2, lifeMax:14 },                   b5t:"+2 armour, +14 life" },
+  { id:"bathus",  name:"Bathus Deepmail",       icon:"🌊", tier:2, style:"melee", drop:2,
+    per:{ arm:1 },
+    b2:{ healBonus:0.2 },                       b2t:"food heals 20% more",
+    b3:{ arm:2 },                               b3t:"+2 armour",
+    b5:{ dmg:0.12, lifeMax:20 },                b5t:"+12% damage, +20 life" },
+  { id:"marmaros",name:"Marmaros Wardplate",    icon:"⚙️", tier:3, style:"melee", drop:3,
+    per:{ arm:2 },
+    b2:{ doorGrace:true },                      b2t:"force blocked doors unharmed",
+    b3:{ dmg:0.10 },                            b3t:"+10% damage",
+    b5:{ arm:3, crit:0.12 },                    b5t:"+3 armour, +12% critical" },
+  { id:"kratonite",name:"Kratonite Bulwark",    icon:"🏔️", tier:4, style:"melee", drop:4,
+    per:{ arm:2 },
+    b2:{ arm:2 },                               b2t:"+2 armour",
+    b3:{ styleDmg:{melee:0.18} },               b3t:"+18% melee damage",
+    b5:{ dmg:0.15, lifeMax:30, crit:0.1 },      b5t:"+15% damage, +30 life, +10% crit" },
+  { id:"frost",   name:"Frostweaver Silks",     icon:"❄️", tier:2, style:"magic", drop:2,
+    per:{ arm:1 },
+    b2:{ styleDmg:{magic:0.15} },               b2t:"+15% magic damage",
+    b3:{ wardPierce:true },                     b3t:"ignore Astea's ward",
+    b5:{ styleDmg:{magic:0.25}, crit:0.15 },    b5t:"+25% magic damage, +15% crit" },
+  { id:"icewalk", name:"Icewalker Leathers",    icon:"🏹", tier:3, style:"ranged", drop:3,
+    per:{ arm:1 },
+    b2:{ styleDmg:{ranged:0.15} },              b2t:"+15% ranged damage",
+    b3:{ noSlip:true },                         b3t:"never slip on ice",
+    b5:{ styleDmg:{ranged:0.25}, dodge:0.15 },  b5t:"+25% ranged damage, 15% dodge" },
+  { id:"smuggler",name:"Smuggler's Motley",     icon:"🕴️", tier:2, style:null, drop:2,
+    per:{ arm:1 },
+    b2:{ gather:1 },                            b2t:"+1 from every node",
+    b3:{ haggle:0.35 },                         b3t:"Smuggler charges 35% less",
+    b5:{ gather:2, coinFind:0.5 },              b5t:"+2 per node, +50% coin finds" },
+  { id:"hoard",   name:"Hoardstalker's Regalia",icon:"🗝️", tier:4, style:null, drop:4,
+    per:{ arm:1 },
+    b2:{ senseKeys:true },                      b2t:"keys show on the map",
+    b3:{ puzzleGrace:2 },                       b3t:"2 free puzzle mistakes",
+    b5:{ senseAll:true, dmg:0.1 },              b5t:"maps the whole floor, +10% damage" },
+];
+const MR_PIECES = [
+  { slot:"head",  suffix:"Helm",      icon:"⛑️" },
+  { slot:"body",  suffix:"Cuirass",   icon:"🦺" },
+  { slot:"legs",  suffix:"Greaves",   icon:"👖" },
+  { slot:"hands", suffix:"Gauntlets", icon:"🧤" },
+  { slot:"feet",  suffix:"Boots",     icon:"🥾" },
+];
+/* silks and leathers are not plate — rename the pieces so they read right */
+const MR_PIECE_ALT = {
+  frost:   { head:"Hood", body:"Robe",    legs:"Skirt",   hands:"Wraps",   feet:"Slippers" },
+  icewalk: { head:"Coif", body:"Jerkin",  legs:"Chaps",   hands:"Bracers", feet:"Treads" },
+  smuggler:{ head:"Cap",  body:"Coat",    legs:"Trousers",hands:"Mitts",   feet:"Shoes" },
+  hoard:   { head:"Circlet", body:"Mantle", legs:"Kilt",  hands:"Rings",   feet:"Sandals" },
+};
+
+/* ---- 24 weapons ---- */
+const MR_WEAPONS = [
+  /* id, name, style, tier, icon, dmg, extra */
+  ["nov_sword","Novite Shortsword","melee",1,"🗡️",5,{}],
+  ["nov_bow","Novite Shortbow","ranged",1,"🏹",5,{}],
+  ["nov_staff","Novite Rod","magic",1,"🪄",5,{}],
+  ["bat_axe","Bathus Waraxe","melee",2,"🪓",9,{crit:0.06}],
+  ["bat_bow","Bathus Longbow","ranged",2,"🏹",9,{}],
+  ["bat_staff","Bathus Staff","magic",2,"🔮",9,{}],
+  ["mar_maul","Marmaros Maul","melee",3,"🔨",13,{crit:0.08}],
+  ["mar_cross","Marmaros Crossbow","ranged",3,"🎯",13,{}],
+  ["mar_wand","Marmaros Wand","magic",3,"✨",13,{crit:0.08}],
+  ["kra_blade","Kratonite Greatblade","melee",4,"⚔️",18,{dmg:0.08}],
+  ["kra_bow","Kratonite Recurve","ranged",4,"🏹",18,{crit:0.1}],
+  ["kra_orb","Kratonite Orb","magic",4,"🔮",18,{dmg:0.08}],
+  ["icicle","The Icicle","melee",3,"🧊",14,{styleDmg:{melee:0.12}}],
+  ["frostbite","Frostbite","melee",4,"❄️",19,{crit:0.14}],
+  ["whisper","Whisperfang","melee",4,"🐍",17,{crit:0.2}],
+  ["hoarfrost","Hoarfrost Splitter","melee",4,"🪓",20,{dmg:0.06}],
+  ["skewer","Bone Skewer","melee",2,"🦴",10,{lifesteal:0.12}],
+  ["sling","Rimewrought Sling","ranged",2,"💫",10,{crit:0.1}],
+  ["hunter","Ferret-hunter's Bow","ranged",3,"🎯",14,{gather:1}],
+  ["glacier","Glacier Lance","ranged",4,"🧊",19,{styleDmg:{ranged:0.1}}],
+  ["shard","Shardcaller","magic",2,"💎",10,{crit:0.1}],
+  ["seance","Séance Staff","magic",3,"👻",14,{healBonus:0.25}],
+  ["auroral","Auroral Sceptre","magic",4,"🌌",19,{styleDmg:{magic:0.12}}],
+  ["deepfreeze","Deep-Freeze Rod","magic",4,"🥶",18,{crit:0.16}],
+];
+
+/* ---- 14 secret foods: never sold, only found where nobody looks ---- */
+const MR_FOODS = [
+  ["truffle","Gloom Truffle","🍄",0,{buffDmg:0.3, turns:3},"Three turns of teeth-rattling strength."],
+  ["roe","Blue Crab Roe","🥚",70,{},"Rich enough to be rude."],
+  ["sorbet","Everfrost Sorbet","🍧",30,{noFreeze:true},"Cold cures cold. Somehow."],
+  ["jerky","Hoardstalker Jerky","🥩",25,{revealMap:true},"Chewy. Comes with directions."],
+  ["marrow","Bovimastyx Marrow","🦴",55,{armTemp:2, turns:4},"Thick, warm, and faintly judgemental."],
+  ["cavewine","Cave Wine","🍷",20,{buffCrit:0.25, turns:4},"Older than the floor above it."],
+  ["mushstew","Deep Mushroom Stew","🍲",45,{},"Whatever grew in it has stopped moving."],
+  ["honey","Frozen Honeycomb","🍯",35,{healBonusTemp:0.5, turns:5},"The bees are long gone. The honey stayed."],
+  ["fungus","Luminous Fungus","🍄‍🟫",15,{senseKeys:true},"You can see the keys with your eyes shut."],
+  ["eel","Salve Eel Pie","🥧",65,{cureAll:true},"Rubbery, medicinal, extremely effective."],
+  ["moray","Cave Moray Fillet","🐟",90,{},"The best meal in Daemonheim, by default."],
+  ["frostberry","Frostberry Tart","🥧",40,{dodgeTemp:0.2, turns:4},"Sharp enough to wake your feet up."],
+  ["ration","Smuggler's Secret Ration","🥫",50,{coins:60},"He will deny selling these."],
+  ["ambrosia","Daemonheim Ambrosia","🍮",120,{buffDmg:0.5, turns:5},"You should not have found this."],
+];
+
+/* ---- 12 trinkets ---- */
+const MR_TRINKETS = [
+  ["luckstone","Luckstone","🪨",{gather:1}],
+  ["compass","Cracked Compass","🧭",{senseAll:true}],
+  ["skeleton","Bent Skeleton Key","🗝️",{tool:"lock"}],
+  ["whetstone","Whetstone","🪒",{dmg:0.1}],
+  ["charm","Warding Charm","🧿",{arm:2}],
+  ["ferret","Tame Ferret","🐾",{puzzleGrace:2}],
+  ["lamp","Miner's Lamp","🏮",{tool:"pick", gather:1}],
+  ["bell","Bosun's Bell","🔔",{doorGrace:true}],
+  ["talon","Wyrm Talon","🦴",{crit:0.15}],
+  ["phial","Phial of Warmth",'🧪',{healBonus:0.35}],
+  ["coinpurse","Slit Coinpurse","👛",{coinFind:1}],
+  ["kinship","Shard of Kinship","💍",{dmg:0.06, arm:1, lifeMax:15}],
+];
+
+/* ---- build the catalogue: 40 + 24 + 14 + 12 = 90 ---- */
+const MR_ITEMS = (function(){
+  const out = {};
+  MR_SETS.forEach(set=>{
+    MR_PIECES.forEach(p=>{
+      const suffix = (MR_PIECE_ALT[set.id] && MR_PIECE_ALT[set.id][p.slot]) || p.suffix;
+      const id = `${set.id}_${p.slot}`;
+      out[id] = { id, kind:"armour", slot:p.slot, name:`${set.name.replace(/(Guard|Deepmail|Wardplate|Bulwark|Silks|Leathers|Motley|Regalia)$/,"").trim()} ${suffix}`,
+                  icon:p.icon, tier:set.tier, set:set.id, stats:set.per, drop:set.drop };
+    });
+  });
+  MR_WEAPONS.forEach(([id,name,style,tier,icon,dmg,extra])=>{
+    out[id] = { id, kind:"weapon", slot:"weapon", name, icon, tier, style, dmg, stats:extra||{}, drop:tier };
+  });
+  MR_FOODS.forEach(([id,name,icon,heal,eff,flavor])=>{
+    out[id] = { id, kind:"food", slot:null, name, icon, heal, eff:eff||{}, flavor, secret:true };
+  });
+  MR_TRINKETS.forEach(([id,name,icon,stats])=>{
+    out[id] = { id, kind:"trinket", slot:"trinket", name, icon, tier:2, stats:stats||{}, drop:2 };
+  });
+  return out;
+})();
+const MR_ITEM_LIST = Object.values(MR_ITEMS);
+function mrSet(id){ return MR_SETS.find(s=>s.id === id); }
+
+/* ---- what you are actually wearing adds up to this ---- */
+function mrBon(){
+  const B = { dmg:0, arm:0, crit:0, gather:0, healBonus:0, coinFind:0, dodge:0,
+              lifeMax:0, lifesteal:0, haggle:0, puzzleGrace:0,
+              styleDmg:{melee:0,ranged:0,magic:0},
+              doorGrace:false, senseKeys:false, senseAll:false, wardPierce:false, noSlip:false };
+  if(!dg) return B;
+  const add = st=>{
+    if(!st) return;
+    ["dmg","arm","crit","gather","healBonus","coinFind","dodge","lifeMax","lifesteal","haggle","puzzleGrace"]
+      .forEach(k=>{ if(st[k]) B[k] += st[k]; });
+    ["doorGrace","senseKeys","senseAll","wardPierce","noSlip"].forEach(k=>{ if(st[k]) B[k] = true; });
+    if(st.styleDmg) Object.keys(st.styleDmg).forEach(k=>{ B.styleDmg[k] += st.styleDmg[k]; });
+    if(st.tool) dg.tools[st.tool] = true;
+  };
+  const counts = {};
+  MR_SLOTS.forEach(sl=>{
+    const it = dg.equip && dg.equip[sl];
+    if(!it) return;
+    add(it.stats);
+    if(it.set) counts[it.set] = (counts[it.set]||0) + 1;
+  });
+  Object.keys(counts).forEach(sid=>{
+    const set = mrSet(sid); if(!set) return;
+    const n = counts[sid];
+    if(n >= 2) add(set.b2);
+    if(n >= 3) add(set.b3);
+    if(n >= 5) add(set.b5);
+  });
+  /* temporary food effects */
+  (dg.buffs || []).forEach(b=>{
+    if(b.turns <= 0) return;
+    if(b.buffDmg) B.dmg += b.buffDmg;
+    if(b.buffCrit) B.crit += b.buffCrit;
+    if(b.armTemp) B.arm += b.armTemp;
+    if(b.healBonusTemp) B.healBonus += b.healBonusTemp;
+    if(b.dodgeTemp) B.dodge += b.dodgeTemp;
+  });
+  return B;
+}
+function mrSetCounts(){
+  const c = {};
+  if(!dg || !dg.equip) return c;
+  MR_SLOTS.forEach(sl=>{ const it = dg.equip[sl]; if(it && it.set) c[it.set] = (c[it.set]||0)+1; });
+  return c;
+}
+function mrTickBuffs(){
+  if(!dg || !dg.buffs) return;
+  dg.buffs.forEach(b=>{ b.turns--; });
+  const gone = dg.buffs.filter(b=>b.turns === 0);
+  dg.buffs = dg.buffs.filter(b=>b.turns > 0);
+  gone.forEach(b=>dgLog(`The ${b.name} wears off.`));
+}
+/* ---- finding things ---- */
+function mrRollItem(floorTier, luck){
+  const pool = MR_ITEM_LIST.filter(it=>it.kind !== "food" && (it.drop||1) <= floorTier + 1 + (luck?1:0));
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function mrRollFood(){
+  const pool = MR_ITEM_LIST.filter(it=>it.kind === "food");
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function mrGive(item, quiet){
+  if(!dg) return;
+  dg.bag = dg.bag || [];
+  dg.bag.push(item);
+  if(!quiet) dgLog(`${item.icon} You find <b>${item.name}</b>${item.secret?" — a secret recipe":""}.`);
+  /* auto-equip anything strictly better and not competing with a set you are building */
+  if(item.slot && !dg.equip[item.slot]) mrEquip(dg.bag.length-1, true);
+  else if(item.kind === "weapon" && dg.equip.weapon && item.dmg > dg.equip.weapon.dmg) mrEquip(dg.bag.length-1, true);
+}
+function mrEquip(bagIdx, quiet){
+  const it = dg.bag[bagIdx];
+  if(!it || !it.slot) return;
+  const old = dg.equip[it.slot];
+  dg.equip[it.slot] = it;
+  dg.bag.splice(bagIdx, 1);
+  if(old) dg.bag.push(old);
+  if(it.kind === "weapon" && it.style) dg.gear.style = it.style;
+  const B = mrBon();
+  dg.maxHp = dg.baseHp + B.lifeMax;
+  dg.hp = Math.min(dg.hp, dg.maxHp);
+  if(!quiet) dgLog(`${it.icon} You put on the <b>${it.name}</b>.`);
+}
+function mrEatItem(bagIdx){
+  const it = dg.bag[bagIdx];
+  if(!it || it.kind !== "food") return;
+  dg.bag.splice(bagIdx, 1);
+  const B = mrBon();
+  if(it.heal){ const h = Math.round(it.heal * (1 + B.healBonus)); dgHeal(h); dgLog(`${it.icon} ${it.name}. +${h} life.`); }
+  else dgLog(`${it.icon} ${it.name}.`);
+  const e = it.eff || {};
+  if(e.turns){ dg.buffs = dg.buffs || []; dg.buffs.push(Object.assign({ name:it.name }, e)); dgLog(`<i>${it.flavor}</i>`); }
+  if(e.coins){ dg.inv.coins += e.coins; dgLog(`Tucked inside: ${e.coins} rusty coins.`); }
+  if(e.revealMap || e.senseKeys){ dg.D.rooms.forEach(r=>{ r.seen = true; }); dgLog(`The floor lays itself out in your head.`); }
+  if(e.cureAll){ dg.hp = dg.maxHp; dgLog(`Everything that hurt stops hurting.`); }
+  if(e.noFreeze){ dg.noFreeze = true; }
+  saveState(); renderDungeon();
+}
+
+/* ================= the run ================= */
+let dg = null;                     /* the dungeon you are standing in */
+function dgSave(){
+  if(!state.dungeon || typeof state.dungeon !== "object") state.dungeon = defaultDungeon();
+  const D = state.dungeon, base = defaultDungeon();
+  for(const k in base) if(D[k] === undefined || D[k] === null) D[k] = base[k];
+  if(typeof D.xp !== "number" || !isFinite(D.xp) || D.xp < 0) D.xp = 0;
+  if(typeof D.maxFloor !== "number" || !isFinite(D.maxFloor)) D.maxFloor = 1;
+  D.maxFloor = Math.max(1, Math.min(DG_FLOORS.length, Math.floor(D.maxFloor)));
+  if(!Array.isArray(D.bound)) D.bound = [];
+  if(typeof D.floorsDone !== "object" || !D.floorsDone) D.floorsDone = {};
+  if(typeof D.tokens !== "number" || !isFinite(D.tokens)) D.tokens = 0;
+  if(!DG_SIZES[D.lastSize]) D.lastSize = "small";
+  if(!DG_COMPLEXITY[D.lastCx]) D.lastCx = 6;
+  return D;
+}
+function defaultDungeon(){
+  return { xp:0, prestige:0, floorsDone:{}, maxFloor:1, bound:[], tokens:0,
+           runs:0, clears:0, deepest:0, bestXp:0, lastSize:"small", lastCx:6 };
+}
+function dgLevel(){ return dgLevelFor(dgSave().xp); }
+
+/* ---- what you may carry in ---- */
+function dgBoundPool(){
+  return [...new Set(cards.filter(c=>c.category === "Raid Gear").map(c=>c.name.split(" — ")[0]))]
+    .filter(sub=>cards.some(c=>c.name.split(" — ")[0] === sub && (state.owned[c.id]||0) > 0));
+}
+function dgBoundActive(){
+  const D = dgSave();
+  return (D.bound || []).slice(0, dgBindSlots(dgLevel())).filter(b=>dgBoundPool().includes(b));
+}
+function dgToggleBind(sub){
+  const D = dgSave();
+  D.bound = D.bound || [];
+  const i = D.bound.indexOf(sub);
+  if(i >= 0) D.bound.splice(i, 1);
+  else {
+    if(D.bound.length >= dgBindSlots(dgLevel())){ showToast("No free bind slots — unbind something first."); return; }
+    D.bound.push(sub);
+  }
+  saveState(); renderDungeon();
+}
+/* bound gear translates into what you walk in holding */
+const DG_BIND_EFFECTS = {
+  "Rusty Pickaxe":{tool:"pick"}, "Iron Pickaxe":{tool:"pick"}, "Steel Pickaxe":{tool:"pick"},
+  "Dwarven Pickaxe":{tool:"pick"}, "The Worldsplitter":{tool:"pick", wep:2},
+  "Hand Axe":{tool:"axe"}, "Woodsman's Axe":{tool:"axe"},
+  "Lockpick Set":{tool:"lock"}, "Skeleton Key":{tool:"lock"},
+  "Crowbar":{tool:"lock"}, "Forge Hammer":{smith:true},
+  "Oil Lantern":{light:true}, "Everburn Lantern":{light:true}, "Miner's Helm":{light:true, tool:"pick"},
+  "Warm Cloak":{armour:1}, "Drakescale Gloves":{armour:1},
+  "Trail Rations":{food:2}, "Second Wind Tonic":{hp:12},
+  "Clay Kiln":{smelt:true}, "Blast Furnace":{smelt:true}, "Alchemist's Crucible":{smelt:true},
+  "Dragonfire Forge":{smelt:true, wep:1}, "Lucky Rabbit's Foot":{luck:true},
+  "Grappling Hook":{tool:"lock"}, "Rope Coil":{tool:"lock"}, "Climbing Kit":{tool:"lock"},
+  "Ancient Map Fragment":{map:true}, "The Cartographer's Eye":{map:true},
+};
+
+function dgBegin(floor, size, complexity){
+  const S = dgSave();
+  if(floor > S.maxFloor){ showToast("That floor is still sealed."); return; }
+  if(dgLevel() < dgFloorUnlockLevel(floor)){ showToast(`Needs Mythic Raids level ${dgFloorUnlockLevel(floor)}.`); return; }
+  const D = dgGenerate(floor, size, complexity);
+  const fd = dgFloorDef(floor);
+  dg = {
+    floor, size, complexity, D,
+    pos: D.start, prev: D.start,
+    keys: [], inv: { ore:0, bars:0, wood:0, raw:0, food:1, coins:45 },
+    tools: {}, gear: { wep:1, style:"melee", arm:0 },
+    equip: { weapon:null, head:null, body:null, legs:null, hands:null, feet:null, trinket:null },
+    bag: [], buffs: [], baseHp: 78,
+    hp: 78, maxHp: 78,
+    deaths: 0, log: [], done:false, won:false, boss:null, puzzle:null,
+    started: Date.now(), xpEarned:0,
+  };
+  /* everything you carry in, you chose to bind */
+  dgBoundActive().forEach(sub=>{
+    const e = DG_BIND_EFFECTS[sub] || {};
+    if(e.tool) dg.tools[e.tool] = true;
+    if(e.smith) dg.tools.smith = true;
+    if(e.smelt) dg.tools.smelt = true;
+    if(e.light) dg.tools.light = true;
+    if(e.map) dg.tools.map = true;
+    if(e.luck) dg.tools.luck = true;
+    if(e.wep) dg.gear.wep = Math.max(dg.gear.wep, e.wep);
+    if(e.armour) dg.gear.arm += e.armour;
+    if(e.food) dg.inv.food += e.food;
+    if(e.hp){ dg.maxHp += e.hp; dg.hp += e.hp; }
+    dgWear(sub);
+  });
+  S.runs = (S.runs||0) + 1;
+  dgReveal(D.start);
+  dgLog(`You step onto <b>floor ${floor}</b> of Daemonheim. The door seals behind you.`);
+  mrGive(MR_ITEMS.nov_sword, true);
+  dgLog(`The Smuggler presses a novite shortsword and one cooked fish on you. "Start there."`);
+  if(!dgBoundActive().length) dgLog(`You carry nothing. That is the point.`);
+  else dgLog(`Bound gear: ${dgBoundActive().join(", ")}.`);
+  if(dg.tools.map){ D.rooms.forEach(r=>{ r.seen = true; }); dgLog(`🗺️ Your bound chart sketches the whole floor.`); }
+  mrRevealForGear();
+  saveState(); renderDungeon();
+}
+/* bound gear takes the same wear as raid gear — it is the same cards */
+function dgWear(sub){ if(RD_USES[sub]) rdWear(sub); }
+
+function mrRevealForGear(){
+  if(!dg) return;
+  const B = mrBon();
+  if(B.senseAll) dg.D.rooms.forEach(r=>{ r.seen = true; });
+  else if(B.senseKeys) dg.D.rooms.forEach(r=>{ if(r.keys && r.keys.length) r.seen = true; });
+}
+function dgLog(m){ if(!dg) return; dg.log.unshift(m); if(dg.log.length > 26) dg.log.pop(); }
+function dgReveal(i){
+  const D = dg.D;
+  D.rooms[i].seen = true; D.rooms[i].visited = true;
+  D.adj[i].forEach(n=>{ D.rooms[n].seen = true; });
+}
+function dgHasKey(k){ return dg.keys.some(x=>x.colour === k.colour && x.shape === k.shape); }
+function dgDoorTo(n){ return dg.D.doors[dg.D.ekey(dg.pos, n)]; }
+function dgCanEnter(n){
+  const d = dgDoorTo(n);
+  if(!d) return { ok:false, why:"There is no way through." };
+  if(d.open) return { ok:true };
+  if(d.guardian && !dg.D.rooms[dg.pos].cleared) return { ok:false, why:"A guardian door — clear this room first." };
+  if(d.lock && !dgHasKey(d.lock)) return { ok:false, why:`Locked: needs the ${dgKeyName(d.lock)} key.` };
+  if(d.skill && !dg.tools[d.skill.id]) return { ok:false, why:`Blocked — you need a ${d.skill.name}. (Force it and it will cost you.)`, force:true };
+  return { ok:true };
+}
+function dgMove(n){
+  if(!dg || dg.done || dg.puzzle || dg.boss) return;
+  if(!dg.D.adj[dg.pos].includes(n)) return;
+  const from = dg.pos;
+  const can = dgCanEnter(n);
+  if(!can.ok){
+    if(can.force){
+      if(mrBon().doorGrace){
+        dgLog(`💥 You force the way open. Your gear takes it instead of you.`);
+      } else {
+        const dmg = 8 + Math.floor(Math.random()*8);
+        dgLog(`💥 You force the way open with your bare hands. −${dmg} life.`);
+        dgHurt(dmg);
+        if(dg.done) return;
+      }
+    } else { showToast(can.why); dgLog(can.why); renderDungeon(); return; }
+  }
+  /* forcing a door can put you on the floor — if that bounced you back to the
+     entrance, the door you were pushing on is no longer in front of you */
+  if(dg.pos !== from){ saveState(); renderDungeon(); return; }
+  const d = dgDoorTo(n);
+  if(!d){ renderDungeon(); return; }
+  if(d.lock && !d.open) dgLog(`🗝️ The ${dgKeyName(d.lock)} key turns.`);
+  d.open = true;
+  dg.prev = dg.pos; dg.pos = n;
+  dgReveal(n);
+  mrRevealForGear();
+  const room = dg.D.rooms[n];
+  if(room.keys && room.keys.length){
+    room.keys.forEach(k=>{ if(!dgHasKey(k)){ dg.keys.push(k); dgLog(`🔑 You pocket the <b>${dgKeyName(k)}</b> key.`); } });
+    room.keys = [];
+  }
+  if(room.type === "boss" && !dg.boss) dgStartBoss();
+  else if(room.type === "puzzle" && room.cleared && !room.solved && DG_COMPLEXITY[dg.complexity].puzzles) dgStartPuzzle(room);
+  saveState(); renderDungeon();
+}
+function dgHurt(n){
+  dg.hp = Math.max(0, dg.hp - n);
+  if(dg.hp <= 0){
+    dg.deaths++;
+    if(dg.deaths >= 5){ dgEnd(false, "You are carried out of Daemonheim on a board."); return; }
+    dg.hp = Math.round(dg.maxHp * 0.5);
+    dg.pos = dg.D.start;
+    dgLog(`☠️ <b>You go down.</b> The floor spits you back to the entrance. (death ${dg.deaths} of 5)`);
+  }
+}
+function dgHeal(n){ dg.hp = Math.min(dg.maxHp, dg.hp + n); }
+
+
+/* ================= what you do in a room ================= */
+function dgRoomActions(){
+  const r = dg.D.rooms[dg.pos], T = dg.tools, I = dg.inv, o = [];
+  const tierCap = dgFloorDef(dg.floor).tier;
+  if(!r.cleared && r.mob){
+    const m = r.mob;
+    o.push({ icon:DG_STYLES[m.style].icon, label:`Fight the ${m.name}`,
+      flavor:`${m.hp}/${m.maxHp} life · fights ${DG_STYLES[m.style].name}. Your ${DG_STYLES[dg.gear.style].name} ${dgTriangle(dg.gear.style, m.style) > 1 ? "beats it" : dgTriangle(dg.gear.style, m.style) < 1 ? "is weak to it" : "is even"}.`,
+      act:"fight" });
+    o.push({ icon:"🏃", label:"Back away", flavor:"It keeps the room. You keep your life.", act:"none" });
+    return o;
+  }
+  switch(r.type){
+    case "ore": {
+      const t = dgTier(Math.min(r.content.tier, tierCap));
+      if(T.pick) o.push({ icon:"⛏️", label:`Mine ${t.ore}`, flavor:`Tier ${t.t} ore · ${r.content.uses} left in the seam.`, act:"mine" });
+      else o.push({ icon:"🫳", label:"Claw at the seam", flavor:"No pickaxe. This will hurt and yield little.", act:"mine_bare" });
+      break; }
+    case "tree": {
+      const t = dgTier(Math.min(r.content.tier, tierCap));
+      if(T.axe) o.push({ icon:"🪓", label:`Cut ${t.wood}`, flavor:`Tier ${t.t} wood · ${r.content.uses} left standing.`, act:"chop" });
+      else o.push({ icon:"🫳", label:"Snap off branches", flavor:"No hatchet. Slow, splintery work.", act:"chop_bare" });
+      break; }
+    case "fish": {
+      const t = dgTier(Math.min(r.content.tier, tierCap));
+      o.push({ icon:"🎣", label:`Fish for ${t.fish}`, flavor:`Raw — cook it to heal ${t.heal} · ${r.content.uses} left in the pool.`, act:"fish" });
+      break; }
+    case "forge":
+      if(I.ore > 0) o.push({ icon:"🔥", label:`Smelt ${I.ore} ore into bars`, flavor:"Ore is worthless. Bars are not.", act:"smelt" });
+      if(I.bars > 0) o.push({ icon:"⚒️", label:`Forge a tier ${Math.min(tierCap, dg.gear.wep + Math.max(1, Math.floor(I.bars/2)))} weapon`, flavor:"Two bars buys a tier. Bigger tier, bigger swing.", act:"forge" });
+      if(I.bars > 0) o.push({ icon:"🛡️", label:"Forge armour (1 bar)", flavor:"Every point of armour takes the edge off every hit.", act:"armour" });
+      if(!I.ore && !I.bars) o.push({ icon:"🔥", label:"A cold forge", flavor:"Bring ore.", act:"none", disabled:true });
+      break;
+    case "fire":
+      if(I.raw > 0) o.push({ icon:"🍳", label:`Cook ${I.raw} raw fish`, flavor:"Cooked fish is the only healing down here.", act:"cook" });
+      else o.push({ icon:"🔥", label:"A guttering fire", flavor:"Nothing to cook.", act:"none", disabled:true });
+      break;
+    case "chest":
+      if(!r.looted) o.push({ icon:"🧰", label:"Open the chest", flavor:"Rusty coins, maybe better.", act:"chest" });
+      break;
+    case "start":
+      o.push({ icon:"🕴️", label:"Trade with the Smuggler", flavor:`He sells what you should have brought. ${I.coins} rusty coins.`, act:"shop" });
+      break;
+    case "puzzle":
+      if(r.solved) o.push({ icon:"✅", label:"Solved", flavor:"The mechanism rests.", act:"none", disabled:true });
+      else o.push({ icon:"🧩", label:"Work the mechanism", flavor:"Something here wants solving.", act:"puzzle" });
+      break;
+  }
+  if(dg.inv.food > 0) o.push({ icon:"🍖", label:`Eat (${dg.inv.food})`, flavor:`Heals ${dgTier(Math.max(1,dgFloorDef(dg.floor).tier)).heal}.`, act:"eat" });
+  if(!o.length) o.push({ icon:"🚪", label:"Nothing here", flavor:"Bare stone and old air.", act:"none", disabled:true });
+  return o;
+}
+function dgAct(i){
+  if(!dg || dg.done) return;
+  const o = dgRoomActions()[i];
+  if(!o || o.disabled) return;
+  const r = dg.D.rooms[dg.pos], I = dg.inv;
+  const tierCap = dgFloorDef(dg.floor).tier;
+  switch(o.act){
+    case "fight": {
+      const m = r.mob;
+      const R = mrDamage(m.style);
+      const hit = R.dmg;
+      m.hp -= hit;
+      const B0 = mrBon();
+      if(B0.lifesteal) dgHeal(Math.round(hit * B0.lifesteal));
+      dgLog(`${DG_STYLES[dg.gear.style].icon} You hit the ${m.name} for ${hit}${R.crit?" — <b>critical!</b>":""}.`);
+      if(m.hp <= 0){
+        r.cleared = true;
+        if(r.type === "puzzle" && !r.solved && DG_COMPLEXITY[dg.complexity].puzzles) setTimeout(()=>{ if(dg && !dg.done) { dgStartPuzzle(r); renderDungeon(); } }, 10);
+        const B1 = mrBon();
+        const coins = Math.round((6 + Math.floor(Math.random()*10) + dg.floor*2) * (1 + B1.coinFind));
+        I.coins += coins;
+        dgLog(`💀 The ${m.name} falls. +${coins} rusty coins.`);
+        if(Math.random() < 0.3){ I.raw += 1; dgLog(`It was carrying something edible. +1 raw.`); }
+        mrOnKill();
+      } else {
+        const back = mrTakeHit(m.dmg[0] + Math.random()*(m.dmg[1]-m.dmg[0]));
+        if(back){ dgLog(`💢 It answers for ${back}.`); dgHurt(back); }
+      }
+      break; }
+    case "mine": { const t = Math.min(r.content.tier, tierCap); const n = 1 + (Math.random() < 0.35 ? 1 : 0) + mrBon().gather;
+      I.ore += n; dgLog(`⛏️ ${n} ${dgTier(t).ore} ore.`);
+      if(--r.content.uses <= 0){ r.type = "empty"; dgLog(`The seam is worked out.`); } break; }
+    case "mine_bare": { I.ore += 1; dgHurt(4); dgLog(`🫳 One lump of ore, and torn hands. −4 life.`);
+      if(--r.content.uses <= 0) r.type = "empty"; break; }
+    case "chop": { I.wood += 1 + (Math.random()<0.3?1:0) + mrBon().gather; dgLog(`🪓 Timber. Wood: ${I.wood}.`);
+      if(--r.content.uses <= 0){ r.type = "empty"; dgLog(`Nothing left worth cutting.`); } break; }
+    case "chop_bare": { I.wood += 1; dgHurt(3); dgLog(`🫳 You wrench a branch free. −3 life.`);
+      if(--r.content.uses <= 0) r.type = "empty"; break; }
+    case "fish": { I.raw += 1 + (Math.random()<0.3?1:0) + mrBon().gather; dgLog(`🎣 ${dgTier(Math.min(r.content.tier,tierCap)).fish}, raw and flapping.`);
+      if(--r.content.uses <= 0){ r.type = "empty"; dgLog(`The pool is fished out.`); } break; }
+    case "smelt": { const bars = Math.max(1, I.ore + (dg.tools.smelt?1:0)); I.bars += bars; I.ore = 0;
+      dgLog(`🔥 ${bars} bar${bars===1?"":"s"} out of the furnace.`); break; }
+    case "forge": { const t = Math.min(tierCap, dg.gear.wep + Math.max(1, Math.floor(I.bars/2)));
+      if(t <= dg.gear.wep){ dgLog(`You need more bars to better this.`); break; }
+      I.bars = Math.max(0, I.bars - (t - dg.gear.wep)*2); dg.gear.wep = t;
+      dgLog(`⚒️ You forge a <b>tier ${t} ${dgTier(t).ore}</b> weapon.`); break; }
+    case "armour": { I.bars -= 1; dg.gear.arm += 1; dgLog(`🛡️ Armour up to ${dg.gear.arm}.`); break; }
+    case "cook": { const t = dgTier(Math.max(1, dgFloorDef(dg.floor).tier));
+      I.food += I.raw; dgLog(`🍳 ${I.raw} cooked. Each heals ${t.heal}.`); I.raw = 0; break; }
+    case "eat": { const t = dgTier(Math.max(1, dgFloorDef(dg.floor).tier)); I.food--; dgHeal(t.heal);
+      dgLog(`🍖 You eat. +${t.heal} life.`); break; }
+    case "chest": { r.looted = true;
+      const Bc = mrBon();
+      const coins = Math.round((25 + Math.floor(Math.random()*40) + dg.floor*6) * (1 + Bc.coinFind));
+      I.coins += coins;
+      dgLog(`🧰 ${coins} rusty coins.`);
+      const it = mrRollItem(dgFloorDef(dg.floor).tier, dg.tools.luck);
+      if(it && Math.random() < 0.7) mrGive(it);
+      /* the secret larder: only ever in chests, and only sometimes */
+      if(Math.random() < 0.3) mrGive(mrRollFood());
+      else if(Math.random() < 0.5) I.bars += 2;
+      break; }
+    case "shop": dg.shop = true; break;
+    case "puzzle": dgStartPuzzle(r); break;
+  }
+  saveState(); renderDungeon();
+}
+/* ---- damage, with everything you are wearing counted ---- */
+function mrDamage(defStyle){
+  const B = mrBon(), w = dg.equip.weapon, style = dg.gear.style;
+  const base = w ? w.dmg : (5 + dg.gear.wep*5);
+  const mult = dgTriangle(style, defStyle);
+  const crit = Math.random() < (0.05 + B.crit);
+  let d = base * (1 + B.dmg + (B.styleDmg[style]||0)) * mult * (0.8 + Math.random()*0.4);
+  if(crit) d *= 1.8;
+  return { dmg: Math.max(1, Math.round(d)), crit, mult };
+}
+function mrTakeHit(raw){
+  const B = mrBon();
+  if(Math.random() < B.dodge){ dgLog(`💨 You slip the blow entirely.`); return 0; }
+  return Math.max(1, Math.round(raw / (1 + (dg.gear.arm + B.arm) * 0.18)));
+}
+function mrOnKill(bonusTier){
+  const B = mrBon();
+  if(Math.random() < 0.30 + (B.coinFind ? 0.08 : 0)){
+    const it = mrRollItem(bonusTier || dgFloorDef(dg.floor).tier, dg.tools.luck);
+    if(it) mrGive(it);
+  } else if(Math.random() < 0.10){ mrGive(mrRollFood()); }
+}
+
+/* ---- the Smuggler ---- */
+const DG_SHOP = [
+  { id:"pick",  icon:"⛏️", name:"Pickaxe",    cost:35,  give:d=>{ d.tools.pick = true; }, has:d=>d.tools.pick },
+  { id:"axe",   icon:"🪓", name:"Hatchet",    cost:35,  give:d=>{ d.tools.axe = true; },  has:d=>d.tools.axe },
+  { id:"lock",  icon:"🗝️", name:"Lockpick",   cost:55,  give:d=>{ d.tools.lock = true; }, has:d=>d.tools.lock },
+  { id:"food",  icon:"🍖", name:"Cooked fish ×2", cost:25, give:d=>{ d.inv.food += 2; } },
+  { id:"bars",  icon:"🧱", name:"Two bars",   cost:60,  give:d=>{ d.inv.bars += 2; } },
+  { id:"arm",   icon:"🛡️", name:"Scrap armour", cost:80, give:d=>{ d.gear.arm += 1; } },
+];
+function dgBuy(id){
+  const it = DG_SHOP.find(x=>x.id === id);
+  if(!it || !dg) return;
+  if(it.has && it.has(dg)){ showToast("You already have one."); return; }
+  const cost = Math.round(it.cost * (1 - mrBon().haggle));
+  if(dg.inv.coins < cost){ showToast("Not enough rusty coins."); return; }
+  dg.inv.coins -= cost; it.give(dg);
+  dgLog(`🕴️ The Smuggler takes ${cost} coins for a ${it.name.toLowerCase()}.`);
+  saveState(); renderDungeon();
+}
+function dgSetStyle(st){ if(dg && DG_STYLES[st]){ dg.gear.style = st; dgLog(`You settle into a ${DG_STYLES[st].name.toLowerCase()} stance.`); renderDungeon(); } }
+
+/* ================= finishing ================= */
+function dgEnd(won, msg){
+  if(!dg || dg.done) return;
+  dg.done = true; dg.won = won;
+  const S = dgSave();
+  if(won){
+    const base = Math.round(180 * Math.pow(dg.floor, 1.42) + 120);
+    const sz = DG_SIZES[dg.size].xp, cx = DG_COMPLEXITY[dg.complexity].xp;
+    const deathMul = Math.max(0.5, 1 - 0.06*dg.deaths);
+    const xp = Math.round(base * sz * cx * deathMul);
+    dg.xpEarned = xp;
+    S.xp += xp;
+    S.floorsDone[dg.floor] = true;
+    S.clears = (S.clears||0) + 1;
+    S.deepest = Math.max(S.deepest||0, dg.floor);
+    S.bestXp = Math.max(S.bestXp||0, xp);
+    S.tokens = (S.tokens||0) + Math.round(xp/12);
+    if(dg.floor >= S.maxFloor && S.maxFloor < DG_FLOORS.length &&
+       dgLevel() >= dgFloorUnlockLevel(S.maxFloor + 1)) S.maxFloor++;
+    const credits = Math.round(xp * 3.2);
+    state.credits += credits;
+    dg.creditsEarned = credits;
+    grantBonusXP(Math.min(90, xp/40));
+    recomputePlayerXP();
+    dgLog(`🏆 <b>Floor ${dg.floor} complete.</b> +${xp.toLocaleString()} Mythic Raids XP, +${credits.toLocaleString()} 🪙`);
+    if(Math.random() < 0.35 + dg.floor*0.03){
+      const c = arAwardCard(5 + Math.min(6, dg.floor));
+      if(c){ dg.cardWon = c; dgLog(`🃏 Daemonheim gives up a card: ${c.emoji} ${c.name}`); }
+    }
+  } else {
+    dgLog(msg || `You leave with nothing. Daemonheim keeps what it is given.`);
+  }
+  saveState(); renderHeader(); renderDungeon();
+}
+function dgLeave(){ dg = null; renderDungeon(); }
+function dgPrestige(){
+  const S = dgSave();
+  const done = Object.keys(S.floorsDone).length;
+  if(done < S.maxFloor){ showToast("Clear every floor you have unlocked first."); return; }
+  S.prestige = (S.prestige||0) + 1;
+  S.floorsDone = {};
+  showToast(`Prestige ${S.prestige}. Every floor counts as fresh again.`);
+  saveState(); renderDungeon();
+}
+
+
+/* ================= puzzle rooms ================= */
+const DG_EMOTES = ["👏","💃","🙇","🙌","🤸","🫡"];
+function dgStartPuzzle(room){
+  const kinds = ["flip","emote","statues","grooves","levers","riddle"];
+  const kind = room.puzzleKind || (room.puzzleKind = kinds[Math.floor(Math.random()*kinds.length)]);
+  const p = { kind, room: room.i, tries:0, msg:"" };
+  if(kind === "flip"){
+    /* Lights Out — built by scrambling a solved board, so it always comes apart again */
+    p.n = 4; p.grid = Array(16).fill(true);
+    const tap = i=>{ const x=i%4, y=(i/4)|0;
+      [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+        const nx=x+dx, ny=y+dy;
+        if(nx>=0&&nx<4&&ny>=0&&ny<4) p.grid[ny*4+nx] = !p.grid[ny*4+nx];
+      }); };
+    for(let k=0;k<5 + Math.floor(Math.random()*3);k++) tap(Math.floor(Math.random()*16));
+    if(p.grid.every(v=>v)) tap(Math.floor(Math.random()*16));
+  } else if(kind === "emote"){
+    p.seq = Array.from({length:4}, ()=>DG_EMOTES[Math.floor(Math.random()*DG_EMOTES.length)]);
+    p.given = []; p.showing = true;
+  } else if(kind === "statues"){
+    const styles = ["melee","ranged","magic"];
+    p.facing = styles[Math.floor(Math.random()*3)];
+    p.answer = Object.keys(DG_STYLES).find(k=>DG_STYLES[k].beats === p.facing);
+  } else if(kind === "grooves"){
+    p.rows = [0,1,2].map(()=>({ safe: Math.floor(Math.random()*5), at:-1 }));
+    p.row = 0;
+    p.hint = p.rows.map(r=>r.safe % 2 === 0 ? "even" : "odd");
+  } else if(kind === "levers"){
+    const cols = ["gold","crimson","green","blue","purple"];
+    p.order = cols.slice().sort(()=>Math.random()-0.5);
+    p.pulled = [];
+    p.clues = [
+      `The ${p.order[0]} lever is first.`,
+      `The ${p.order[4]} lever is last.`,
+      `${p.order[1]} comes straight after ${p.order[0]}.`,
+      `${p.order[3]} comes straight before ${p.order[4]}.`,
+    ];
+  } else if(kind === "riddle"){
+    const opts = [
+      { k:"ore",  q:"“Dug, never grown. Heavy, never full. Show me one.”", icon:"🪨" },
+      { k:"wood", q:"“It burned before it grew. Show me what the dark trees gave you.”", icon:"🪵" },
+      { k:"bars", q:"“Rock that has been persuaded. Show me one.”", icon:"🧱" },
+      { k:"food", q:"“It swam, then it sizzled. Show me supper.”", icon:"🍖" },
+    ];
+    p.want = opts[Math.floor(Math.random()*opts.length)];
+  }
+  dg.puzzle = p;
+  dgLog(`🧩 A mechanism grinds awake.`);
+}
+function dgPuzzleSolved(){
+  const p = dg.puzzle;
+  const room = dg.D.rooms[p.room];
+  room.solved = true;
+  /* a solved puzzle unlocks every door out of this room */
+  dg.D.adj[room.i].forEach(n=>{ const d = dg.D.doors[dg.D.ekey(room.i, n)]; if(d) d.open = true; });
+  const coins = 30 + dg.floor*5;
+  dg.inv.coins += coins;
+  dgLog(`✅ <b>Solved.</b> The doors give. +${coins} rusty coins.`);
+  dg.puzzle = null;
+  saveState(); renderDungeon();
+}
+function dgPuzzleFail(msg){
+  const p = dg.puzzle;
+  p.tries++;
+  p.msg = msg;
+  const grace = mrBon().puzzleGrace;
+  dg.graceUsed = dg.graceUsed || 0;
+  if(dg.graceUsed < grace){
+    dg.graceUsed++;
+    dgLog(`❌ ${msg} <i>Your gear covers the mistake.</i>`);
+    renderDungeon(); return;
+  }
+  const dmg = 5 + dg.floor;
+  dgLog(`❌ ${msg} −${dmg} life.`);
+  dgHurt(dmg);
+  renderDungeon();
+}
+function dgPuzzleAct(a, b){
+  const p = dg.puzzle;
+  if(!p || dg.done) return;
+  if(p.kind === "flip"){
+    const i = a, x = i%4, y = (i/4)|0;
+    [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+      const nx=x+dx, ny=y+dy;
+      if(nx>=0&&nx<4&&ny>=0&&ny<4) p.grid[ny*4+nx] = !p.grid[ny*4+nx];
+    });
+    if(p.grid.every(v=>v)) return dgPuzzleSolved();
+  } else if(p.kind === "emote"){
+    if(p.showing){ p.showing = false; renderDungeon(); return; }
+    p.given.push(a);
+    if(p.given[p.given.length-1] !== p.seq[p.given.length-1]){
+      p.given = []; return dgPuzzleFail("The statues stop mid-gesture. Wrong.");
+    }
+    if(p.given.length === p.seq.length) return dgPuzzleSolved();
+  } else if(p.kind === "statues"){
+    if(a === p.answer) return dgPuzzleSolved();
+    return dgPuzzleFail("The statue drops the weapon and looks at you.");
+  } else if(p.kind === "grooves"){
+    const r = p.rows[p.row];
+    if(a === r.safe){
+      r.at = a; p.row++;
+      if(p.row >= p.rows.length) return dgPuzzleSolved();
+      p.msg = "Solid. Next row.";
+    } else return dgPuzzleFail("The tile drops out from under you.");
+  } else if(p.kind === "levers"){
+    const want = p.order[p.pulled.length];
+    if(a === want){
+      p.pulled.push(a);
+      if(p.pulled.length === p.order.length) return dgPuzzleSolved();
+      p.msg = "A tumbler falls somewhere in the wall.";
+    } else { p.pulled = []; return dgPuzzleFail("Gas hisses from the grille. Order reset."); }
+  } else if(p.kind === "riddle"){
+    if(a === p.want.k){
+      if((dg.inv[a]||0) <= 0) return dgPuzzleFail("You do not actually have one of those.");
+      dg.inv[a]--; return dgPuzzleSolved();
+    }
+    return dgPuzzleFail("“No,” says the hoardstalker, delighted.");
+  }
+  renderDungeon();
+}
+function dgPuzzleLeave(){ if(dg){ dg.puzzle = null; renderDungeon(); } }
+
+/* ================= bosses ================= */
+function dgStartBoss(){
+  const def = DG_BOSSES[dgFloorDef(dg.floor).boss];
+  const scale = 1 + (dg.floor - 1) * 0.16;
+  dg.boss = { def, hp: Math.round(def.hp*scale), maxHp: Math.round(def.hp*scale),
+              turn:1, ward:null, frozen:false, invuln:false, corpses:0, sanded:false, quarter:4 };
+  if(def === DG_BOSSES.astea) dg.boss.ward = ["melee","ranged","magic"][Math.floor(Math.random()*3)];
+  dgLog(`⚔️ <b>${def.icon} ${def.name}.</b> ${def.intro}`);
+}
+function dgBossActions(){
+  const B = dg.boss, k = dgFloorDef(dg.floor).boss, o = [];
+  o.push({ icon:DG_STYLES[dg.gear.style].icon, label:`Attack — ${DG_STYLES[dg.gear.style].name}`,
+    flavor:`Tier ${dg.gear.wep||0} weapon · ~${Math.round((5 + dg.gear.wep*5) * dgTriangle(dg.gear.style, dg.boss.def.style))} a swing.`, act:"hit" });
+  Object.keys(DG_STYLES).filter(st=>st !== dg.gear.style).forEach(st=>{
+    o.push({ icon:DG_STYLES[st].icon, label:`Switch to ${DG_STYLES[st].name}`, flavor:"Costs the turn.", act:"style:"+st });
+  });
+  if(dg.inv.food > 0) o.push({ icon:"🍖", label:`Eat (${dg.inv.food})`, flavor:"Costs the turn.", act:"eat" });
+  if(k === "behemoth") o.push({ icon:"🔥", label:"Burn the carcasses", flavor:"Stops it healing for good.", act:"g" });
+  if(k === "icefiend") o.push({ icon:"🛡️", label:"Take cover", flavor:"Halves the icicle fall.", act:"g" });
+  if(k === "lakhra")   o.push({ icon:"🏜️", label:"Sand the ice", flavor:"Stops you slipping.", act:"g" });
+  if(k === "tokash" && B.frozen) o.push({ icon:"💥", label:"Break the ice!", flavor:"Or lose the turn.", act:"g" });
+  o.push({ icon:"🏳️", label:"Flee the chamber", flavor:"Back to the floor. The boss recovers.", act:"flee" });
+  return o;
+}
+function dgBossAct(i){
+  const B = dg.boss; if(!B || dg.done) return;
+  const o = dgBossActions()[i]; if(!o) return;
+  const k = dgFloorDef(dg.floor).boss;
+  let spentTurn = true;
+  if(o.act === "flee"){ dg.boss = null; dg.pos = dg.prev; dgLog("You back out of the boss chamber."); saveState(); renderDungeon(); return; }
+  if(o.act.startsWith("style:")){ dg.gear.style = o.act.slice(6); dgLog(`You change stance to ${DG_STYLES[dg.gear.style].name}.`); }
+  else if(o.act === "eat"){ const t = dgTier(Math.max(1,dgFloorDef(dg.floor).tier)); dg.inv.food--; dgHeal(t.heal); dgLog(`🍖 +${t.heal} life.`); }
+  else if(o.act === "g"){
+    if(k === "behemoth"){ B.corpses = -99; dgLog("🔥 The carcasses go up. It will get no more from them."); }
+    if(k === "icefiend"){ B.covered = true; dgLog("🛡️ You get under the ledge."); }
+    if(k === "lakhra"){ B.sanded = true; dgLog("🏜️ Grit across the glass. Your feet hold."); }
+    if(k === "tokash"){ B.frozen = false; dgLog("💥 You smash out of the ice."); spentTurn = false; }
+  }
+  else if(o.act === "hit"){
+    if(B.frozen){ dgLog("🥶 You are frozen solid and cannot swing."); }
+    else if(B.invuln){ dgLog("The ice sheath turns your blow completely."); }
+    else if(k === "lakhra" && !B.sanded && !mrBon().noSlip && Math.random() < 0.33){ dgLog("🧊 Your feet go and the swing goes wide."); }
+    else {
+      const Bo = mrBon();
+      const R = mrDamage(B.def.style);
+      let hit = R.dmg;
+      if(k === "astea" && B.ward === dg.gear.style){
+        if(Bo.wardPierce) dgLog(`❄️ Frostweaver silks drink her ward. The blow lands anyway.`);
+        else { hit = 0; dgLog(`🕸️ She is warding ${DG_STYLES[dg.gear.style].name} — nothing lands.`); }
+      }
+      if(k === "icybones") hit = Math.round(hit * (dg.gear.style === "melee" ? 2 : 0.5));
+      B.hp -= hit;
+      if(hit > 0){
+        if(Bo.lifesteal) dgHeal(Math.round(hit * Bo.lifesteal));
+        dgLog(`${DG_STYLES[dg.gear.style].icon} You land ${hit} on ${B.def.name}${R.crit?" — <b>critical!</b>":""}.`);
+      }
+      if(B.hp <= 0) return dgBossDown();
+    }
+  }
+  if(spentTurn) dgBossTurn();
+  saveState(); renderDungeon();
+}
+function dgBossTurn(){
+  const B = dg.boss, k = dgFloorDef(dg.floor).boss;
+  B.turn++;
+  if(k === "behemoth" && B.corpses > -99){ B.hp = Math.min(B.maxHp, B.hp + 6); dgLog(`🦬 It drags over a carcass and heals 6.`); }
+  if(k === "astea"){ B.ward = ["melee","ranged","magic"][Math.floor(Math.random()*3)];
+    dgLog(`🕸️ She shifts her ward to ${DG_STYLES[B.ward].name}.`); }
+  if(k === "icefiend"){
+    const q = Math.ceil(B.hp / B.maxHp * 4);
+    if(q < B.quarter){ B.quarter = q; B.invuln = true;
+      const dmg = B.covered ? 6 : 14; dgLog(`🧊 It seals itself and the ceiling comes down. −${dmg} life.`);
+      B.covered = false; dgHurt(dmg); if(dg.done) return; }
+    else B.invuln = false;
+  }
+  if(k === "tokash" && B.turn % 3 === 0 && !B.frozen){
+    if(dg.noFreeze) dgLog(`🥶 He shouts. The sorbet in you shrugs it off.`);
+    else { B.frozen = true; dgLog(`🥶 <b>“DEEP FREEZE!”</b> You are locked in place.`); }
+  }
+  if(B.invuln) return;
+  mrTickBuffs();
+  const raw = (B.def.dmg[0] + Math.random()*(B.def.dmg[1]-B.def.dmg[0])) * (1 + (dg.floor-1)*0.07);
+  const dmg = mrTakeHit(raw);
+  if(dmg){ dgLog(`💢 ${B.def.name} hits you for ${dmg}.`); dgHurt(dmg); }
+}
+function dgBossDown(){
+  const B = dg.boss;
+  dgLog(`🏆 <b>${B.def.name} falls.</b>`);
+  /* a boss always gives up gear, and often something from the secret larder */
+  const drop = mrRollItem(dgFloorDef(dg.floor).tier + 1, true);
+  if(drop) mrGive(drop);
+  if(Math.random() < 0.6) mrGive(mrRollFood());
+  dg.boss = null;
+  dgEnd(true);
+}
+
+
+/* ================= the screen ================= */
+const DG_ROOM_ICON = { start:"🚪", ore:"⛰️", tree:"🌲", fish:"🎣", forge:"🔥", fire:"🍳",
+                       monster:"👹", chest:"🧰", puzzle:"🧩", boss:"💀", empty:"·" };
+function dgRenderMap(){
+  const D = dg.D, CELL = 44, GAP = 13, P = CELL + GAP;
+  let html = `<div class="dg-map" style="width:${D.W*P - GAP}px; height:${D.H*P - GAP}px;">`;
+  /* corridors first so rooms sit on top */
+  D.edges.forEach(e=>{
+    const [a,b] = e.split("|").map(Number);
+    const d = D.doors[e];
+    const ax = a % D.W, ay = (a / D.W)|0, bx = b % D.W, by = (b / D.W)|0;
+    const seen = D.rooms[a].seen && D.rooms[b].seen;
+    if(!seen) return;
+    const horiz = ay === by;
+    const left = horiz ? Math.min(ax,bx)*P + CELL : ax*P + CELL/2 - 4;
+    const top  = horiz ? ay*P + CELL/2 - 4 : Math.min(ay,by)*P + CELL;
+    let cls = "dg-link";
+    let tip = "";
+    if(d.lock && !d.open){ cls += " locked"; tip = dgKeyName(d.lock); }
+    else if(d.skill && !d.open){ cls += " tool"; tip = d.skill.name; }
+    else if(d.guardian && !d.open){ cls += " guard"; }
+    const col = (d.lock && !d.open) ? (DG_KEY_COLOURS.find(c=>c.id === d.lock.colour)||{}).hex : null;
+    html += `<i class="${cls}" title="${tip}" style="left:${left}px; top:${top}px; ${horiz?`width:${GAP}px;height:8px;`:`width:8px;height:${GAP}px;`}${col?`background:${col};`:""}"></i>`;
+  });
+  D.rooms.forEach(r=>{
+    const x = r.x*P, y = r.y*P;
+    const here = r.i === dg.pos;
+    const adj = D.adj[dg.pos].includes(r.i);
+    let cls = "dg-room";
+    if(!r.seen) cls += " unseen";
+    if(r.visited) cls += " visited";
+    if(here) cls += " here";
+    if(adj) cls += " adj";
+    if(!r.cleared && r.seen) cls += " hostile";
+    const icon = !r.seen ? "" : (here ? "🧍" : (DG_ROOM_ICON[r.type] || "·"));
+    const keyPip = (r.seen && r.keys && r.keys.length) ? `<b class="dg-keypip">🔑</b>` : "";
+    html += `<button class="${cls}" data-room="${r.i}" style="left:${x}px; top:${y}px; width:${CELL}px; height:${CELL}px;">${icon}${keyPip}</button>`;
+  });
+  html += `</div>`;
+  return html;
+}
+function dgCardGrid(list, handler){
+  return `<div class="rd-dgrid">${list.map((o,i)=>`
+    <button class="rd-dcard${o.risk?" risky":""}" data-i="${i}" ${o.disabled?"disabled":""}>
+      <span class="di">${o.icon}</span>
+      <span class="dl">${o.label}</span>
+      ${o.flavor?`<span class="df">${o.flavor}</span>`:""}
+    </button>`).join("")}</div>`;
+}
+function mrGearHtml(){
+  const B = mrBon(), counts = mrSetCounts();
+  const slots = MR_SLOTS.map(sl=>{
+    const it = dg.equip[sl];
+    return `<div class="mr-slot${it?" on":""}">
+      <span class="ms">${MR_SLOT_NAME[sl]}</span>
+      <span class="mi">${it?it.icon:"—"}</span>
+      <span class="mn">${it?it.name:"empty"}</span>
+    </div>`;
+  }).join("");
+  const setRows = Object.keys(counts).map(sid=>{
+    const set = mrSet(sid), n = counts[sid];
+    return `<div class="mr-setrow">
+      <b>${set.icon} ${set.name}</b> <em>${n}/5</em>
+      <span class="${n>=2?"on":""}">2: ${set.b2t}</span>
+      <span class="${n>=3?"on":""}">3: ${set.b3t}</span>
+      <span class="${n>=5?"on":""}">5: ${set.b5t}</span>
+    </div>`;
+  }).join("");
+  const bag = (dg.bag||[]).map((it,i)=>`
+    <button class="mr-bagit" data-bag="${i}">
+      <span class="bi">${it.icon}</span>
+      <span class="bn">${it.name}</span>
+      <span class="bd">${it.kind==="food"
+        ? (it.heal?`heals ${it.heal}`:"effect") + (it.secret?" · secret":"")
+        : it.kind==="weapon" ? `${it.dmg} dmg · ${DG_STYLES[it.style].name}`
+        : mrSet(it.set) ? mrSet(it.set).name : "trinket"}</span>
+      <span class="ba">${it.kind==="food"?"Eat":"Equip"}</span>
+    </button>`).join("");
+  const bonusBits = [];
+  if(B.dmg) bonusBits.push(`+${Math.round(B.dmg*100)}% damage`);
+  ["melee","ranged","magic"].forEach(k=>{ if(B.styleDmg[k]) bonusBits.push(`+${Math.round(B.styleDmg[k]*100)}% ${k}`); });
+  if(B.arm) bonusBits.push(`+${B.arm} armour`);
+  if(B.crit) bonusBits.push(`+${Math.round(B.crit*100)}% crit`);
+  if(B.gather) bonusBits.push(`+${B.gather} per node`);
+  if(B.dodge) bonusBits.push(`${Math.round(B.dodge*100)}% dodge`);
+  if(B.healBonus) bonusBits.push(`+${Math.round(B.healBonus*100)}% healing`);
+  if(B.coinFind) bonusBits.push(`+${Math.round(B.coinFind*100)}% coin`);
+  if(B.lifesteal) bonusBits.push(`${Math.round(B.lifesteal*100)}% lifesteal`);
+  if(B.puzzleGrace) bonusBits.push(`${B.puzzleGrace} free puzzle slips`);
+  if(B.doorGrace) bonusBits.push(`force doors unharmed`);
+  if(B.senseAll) bonusBits.push(`whole floor mapped`);
+  else if(B.senseKeys) bonusBits.push(`keys sensed`);
+  if(B.wardPierce) bonusBits.push(`pierces wards`);
+  if(B.noSlip) bonusBits.push(`sure-footed`);
+  if(B.haggle) bonusBits.push(`${Math.round(B.haggle*100)}% off the Smuggler`);
+  const buffs = (dg.buffs||[]).map(b=>`<span class="mr-buff">${b.name} · ${b.turns}</span>`).join("");
+  return `<div class="mr-gear">
+    <div class="mr-slots">${slots}</div>
+    ${bonusBits.length?`<div class="mr-bonus">${bonusBits.map(b=>`<span>${b}</span>`).join("")}</div>`:""}
+    ${buffs?`<div class="mr-bonus">${buffs}</div>`:""}
+    ${setRows?`<div class="mr-sets">${setRows}</div>`:""}
+    <div class="mr-bagtitle">Pack ${(dg.bag||[]).length ? "" : "— empty"}</div>
+    ${bag?`<div class="mr-bag">${bag}</div>`:""}
+    <button class="btn secondary" style="margin-top:10px;" onclick="dg.gearOpen=false; renderDungeon();">Close</button>
+  </div>`;
+}
+function dgHud(){
+  const hpPct = Math.max(0, dg.hp/dg.maxHp*100);
+  const I = dg.inv;
+  return `<div class="dg-hud">
+    <div class="dg-hp"><i style="width:${hpPct}%; background:${hpPct>50?"#3ddc84":hpPct>25?"#ffd35c":"#ff5c5c"}"></i><span>❤️ ${Math.round(dg.hp)} / ${dg.maxHp}</span></div>
+    <button class="chip mr-gearbtn" onclick="dg.gearOpen=!dg.gearOpen; renderDungeon();">🎒 Gear${(dg.bag||[]).length?` · ${dg.bag.length}`:""}</button>
+    <div class="chip">${dg.equip.weapon?dg.equip.weapon.icon:DG_STYLES[dg.gear.style].icon} ${dg.equip.weapon?dg.equip.weapon.dmg:5+dg.gear.wep*5}</div>
+    <div class="chip">🛡️ ${dg.gear.arm + mrBon().arm}</div>
+    <div class="chip">🪙 ${I.coins}</div>
+    ${I.ore?`<div class="chip">⛰️ ${I.ore}</div>`:""}
+    ${I.bars?`<div class="chip">🧱 ${I.bars}</div>`:""}
+    ${I.wood?`<div class="chip">🪵 ${I.wood}</div>`:""}
+    ${I.raw?`<div class="chip">🐟 ${I.raw}</div>`:""}
+    ${I.food?`<div class="chip">🍖 ${I.food}</div>`:""}
+    ${dg.keys.map(k=>`<div class="chip dg-key" style="border-color:${(DG_KEY_COLOURS.find(c=>c.id===k.colour)||{}).hex}">${DG_SHAPE_GLYPH[k.shape]||"🔑"} ${k.colour}</div>`).join("")}
+  </div>`;
+}
+function dgPuzzleHtml(){
+  const p = dg.puzzle;
+  let body = "", title = "", blurb = "";
+  if(p.kind === "flip"){
+    title = "Flip Tiles"; blurb = "Light every tile. Touching one flips it and its neighbours.";
+    body = `<div class="dg-flip">${p.grid.map((v,i)=>`<button data-p="${i}" class="${v?"on":""}"></button>`).join("")}</div>`;
+  } else if(p.kind === "emote"){
+    title = "Follow the Leader";
+    if(p.showing){ blurb = "The statues perform. Watch, then repeat.";
+      body = `<div class="dg-seq">${p.seq.map(e=>`<span>${e}</span>`).join("")}</div>
+              <button class="btn" data-p="go">I have it</button>`;
+    } else { blurb = `Repeat the sequence. ${p.given.length} of ${p.seq.length}.`;
+      body = `<div class="dg-seq small">${p.seq.map((e,i)=>`<span>${i<p.given.length?p.given[i]:"❔"}</span>`).join("")}</div>
+              <div class="dg-emotes">${DG_EMOTES.map(e=>`<button data-p="${e}">${e}</button>`).join("")}</div>`; }
+  } else if(p.kind === "statues"){
+    title = "Three Statues"; blurb = `The armed statue faces you holding <b>${DG_STYLES[p.facing].icon} ${DG_STYLES[p.facing].name}</b>. Arm the empty one with what beats it.`;
+    body = `<div class="dg-emotes">${Object.keys(DG_STYLES).map(k=>`<button data-p="${k}">${DG_STYLES[k].icon}<em>${DG_STYLES[k].name}</em></button>`).join("")}</div>`;
+  } else if(p.kind === "grooves"){
+    title = "Suspicious Grooves"; blurb = `Row ${p.row+1} of 3. The safe tile is in an <b>${p.hint[p.row]}</b> position.`;
+    body = `<div class="dg-rows">${p.rows.map((r,ri)=>`<div class="dg-row${ri===p.row?" active":""}">${
+      [0,1,2,3,4].map(i=>`<button data-p="${i}" ${ri!==p.row?"disabled":""} class="${r.at===i?"safe":""}">${ri<p.row?(r.at===i?"✔":"·"):(ri===p.row?i+1:"·")}</button>`).join("")}</div>`).join("")}</div>`;
+  } else if(p.kind === "levers"){
+    title = "The Levers"; blurb = "Pull them in the right order before the gas. The wall is scratched with hints.";
+    body = `<div class="dg-clues">${p.clues.map(c=>`<div>• ${c}</div>`).join("")}</div>
+      <div class="dg-emotes">${["gold","crimson","green","blue","purple"].map(c=>{
+        const done = p.pulled.includes(c);
+        const hex = (DG_KEY_COLOURS.find(k=>k.id===c)||{}).hex;
+        return `<button data-p="${c}" ${done?"disabled":""} style="border-color:${hex}; color:${hex}">${done?"✔":"⇩"}<em>${c}</em></button>`;
+      }).join("")}</div>`;
+  } else if(p.kind === "riddle"){
+    title = "The Enigmatic Hoardstalker"; blurb = p.want.q;
+    body = `<div class="dg-emotes">${[["ore","🪨","ore"],["wood","🪵","wood"],["bars","🧱","bar"],["food","🍖","food"]].map(([k,ic,nm])=>
+      `<button data-p="${k}">${ic}<em>${nm} (${dg.inv[k]||0})</em></button>`).join("")}</div>`;
+  }
+  return `<div class="dg-puzzle">
+    <div class="dg-ptitle">🧩 ${title}</div>
+    <div class="dg-pblurb">${blurb}</div>
+    ${p.msg?`<div class="dg-pmsg">${p.msg}</div>`:""}
+    ${body}
+    <button class="btn secondary" style="margin-top:12px;" onclick="dgPuzzleLeave()">Step away from it</button>
+  </div>`;
+}
+function dgBossHtml(){
+  const B = dg.boss;
+  const pct = Math.max(0, B.hp/B.maxHp*100);
+  return `<div class="dg-boss">
+    <div class="dg-bicon">${B.def.icon}</div>
+    <div class="dg-bname">${B.def.name}</div>
+    <div class="dg-bhp"><i style="width:${pct}%"></i><span>${Math.max(0,Math.round(B.hp))} / ${B.maxHp}</span></div>
+    <div class="dg-bgim">${B.def.gimmick}</div>
+    ${B.ward?`<div class="dg-bward">🕸️ Warding <b>${DG_STYLES[B.ward].name}</b> this turn</div>`:""}
+    ${B.frozen?`<div class="dg-bward" style="color:#8fd3ff">🥶 You are frozen — break out</div>`:""}
+    ${B.invuln?`<div class="dg-bward" style="color:#8fd3ff">🧊 Sealed in ice — nothing lands</div>`:""}
+  </div>` + dgCardGrid(dgBossActions());
+}
+function dgShopHtml(){
+  return `<div class="dg-shop">
+    <div class="dg-ptitle">🕴️ The Smuggler</div>
+    <div class="dg-pblurb">“Everything you should have brought, at a price you will resent.” You have <b>${dg.inv.coins}</b> rusty coins.</div>
+    <div class="rd-dgrid">${DG_SHOP.map(it=>{
+      const owned = it.has && it.has(dg);
+      const cost = Math.round(it.cost * (1 - mrBon().haggle));
+      const poor = dg.inv.coins < cost;
+      return `<button class="rd-dcard" data-buy="${it.id}" ${owned||poor?"disabled":""}>
+        <span class="di">${it.icon}</span><span class="dl">${it.name}</span>
+        <span class="df">${owned?"Already carried":`${cost} rusty coins${cost<it.cost?" (haggled)":""}`}</span></button>`;
+    }).join("")}</div>
+    <button class="btn secondary" style="margin-top:12px;" onclick="dg.shop=false; renderDungeon();">Done</button>
+  </div>`;
+}
+function dgLobbyHtml(){
+  const S = dgSave(), lvl = dgLevel(), prog = dgXpToNext(S.xp);
+  const slots = dgBindSlots(lvl), pool = dgBoundPool(), bound = dgBoundActive();
+  const floors = DG_FLOORS.map(f=>{
+    const need = dgFloorUnlockLevel(f.f);
+    const locked = f.f > S.maxFloor || lvl < need;
+    const done = !!S.floorsDone[f.f];
+    const boss = DG_BOSSES[f.boss];
+    return `<button class="dg-floor${locked?" locked":""}${done?" done":""}" data-floor="${f.f}" ${locked?"disabled":""}>
+      <span class="fn">Floor ${f.f}</span>
+      <span class="fb">${boss.icon} ${boss.name}</span>
+      <span class="ft">Tier ${f.tier} · ${locked?`needs level ${need}`:done?"cleared":"unexplored"}</span>
+    </button>`;
+  }).join("");
+  return `
+  <div class="dg-lvl">
+    <div class="dg-lvlnum">${lvl}</div>
+    <div class="dg-lvlbody">
+      <div class="dg-lvlname">Mythic Raids${S.prestige?` · Prestige ${S.prestige}`:""}</div>
+      <div class="progress"><div style="width:${Math.round(prog.pct*100)}%"></div></div>
+      <div class="dg-lvlxp">${S.xp.toLocaleString()} xp${lvl<99?` · ${(prog.need-prog.have).toLocaleString()} to ${lvl+1}`:""} · 🎟️ ${(S.tokens||0).toLocaleString()} tokens</div>
+    </div>
+  </div>
+
+  <div class="ui-help" data-help="What Mythic Raids is">
+    <p style="color:var(--muted); margin:0; line-height:1.55;">Daemonheim does not care what you own. You go in with nothing but the gear you have
+    <b>bound</b>, and everything else — the pickaxe, the bars, the food, the weapon you kill the boss with — is mined, smelted, cooked or taken off a corpse
+    <i>inside that floor</i>, and left behind when you leave. Find the keys, open the way, kill what is at the bottom.</p>
+  </div>
+
+  <div class="panel">
+    <div class="dg-sec">🔗 Bound gear <span>${bound.length} / ${slots} slots</span></div>
+    <div class="dg-bindnote">Raid Gear you own can be bound. Bound tools are the only thing that comes in with you — and they take wear like any other run.
+    More slots at level 20, 40, 60, 80.</div>
+    ${pool.length ? `<div class="dg-binds">${pool.map(sub=>{
+      const on = bound.includes(sub);
+      const e = DG_BIND_EFFECTS[sub] || {};
+      const what = e.tool==="pick"?"pickaxe":e.tool==="axe"?"hatchet":e.tool==="lock"?"lockpick":
+        e.smelt?"smelting":e.smith?"smithing":e.light?"light":e.map?"maps the floor":e.food?"food":e.hp?"+life":e.armour?"+armour":"trinket";
+      return `<button class="dg-bind${on?" on":""}" data-bind="${sub}"><b>${sub}</b><em>${what}</em></button>`;
+    }).join("")}</div>` : `<div class="dg-bindnote" style="color:#ff9d6e;">You own no Raid Gear yet — buy a <b>Raid Supplies</b> pack. You can still dive with nothing.</div>`}
+  </div>
+
+  <div class="panel">
+    <div class="dg-sec">🗺️ Choose a floor</div>
+    <div class="dg-opts">
+      <div class="dg-optrow"><span>Size</span>${Object.keys(DG_SIZES).map(k=>
+        `<button class="dg-opt${S.lastSize===k?" on":""}" data-size="${k}">${DG_SIZES[k].name}<em>${DG_SIZES[k].label} · ×${DG_SIZES[k].xp}</em></button>`).join("")}</div>
+      <div class="dg-optrow"><span>Complexity</span>${Object.keys(DG_COMPLEXITY).map(k=>
+        `<button class="dg-opt${String(S.lastCx)===k?" on":""}" data-cx="${k}">${k}<em>${DG_COMPLEXITY[k].name} · ×${DG_COMPLEXITY[k].xp}</em></button>`).join("")}</div>
+      <div class="dg-cxblurb">${DG_COMPLEXITY[S.lastCx].blurb}</div>
+    </div>
+    <div class="dg-floors">${floors}</div>
+    ${Object.keys(S.floorsDone).length >= S.maxFloor && S.maxFloor > 1
+      ? `<button class="btn" style="margin-top:12px;" onclick="dgPrestige()">⭐ Prestige — reset your cleared floors</button>` : ""}
+  </div>`;
+}
+function dgResultHtml(){
+  const S = dgSave();
+  return `<div class="dg-result ${dg.won?"good":"bad"}">
+    <div class="ri">${dg.won?"🏆":"☠️"}</div>
+    <div class="rt">${dg.won?`Floor ${dg.floor} complete`:"Dragged out of Daemonheim"}</div>
+    ${dg.won?`<div class="rs">+${dg.xpEarned.toLocaleString()} Mythic Raids xp · +${(dg.creditsEarned||0).toLocaleString()} 🪙 · ${dg.deaths} death${dg.deaths===1?"":"s"}</div>`
+            :`<div class="rs">Five deaths is where Daemonheim draws the line.</div>`}
+    ${dg.cardWon?`<div class="rs" style="color:#ffd35c">🃏 ${dg.cardWon.emoji} ${dg.cardWon.name}</div>`:""}
+    <div class="rs" style="color:var(--muted)">Mythic Raids ${dgLevel()} · ${S.xp.toLocaleString()} xp</div>
+    <button class="btn" onclick="dgLeave()">Back to the surface</button>
+  </div>`;
+}
+function renderDungeon(){
+  const host = document.getElementById("dgBody");
+  if(!host) return;
+  if(!dg){ host.innerHTML = dgLobbyHtml(); dgBindLobby(host); uiInitHelp(); return; }
+  if(dg.done){ host.innerHTML = dgResultHtml(); return; }
+  const r = dg.D.rooms[dg.pos];
+  let mid;
+  if(dg.gearOpen) mid = mrGearHtml();
+  else if(dg.shop) mid = dgShopHtml();
+  else if(dg.boss) mid = dgBossHtml();
+  else if(dg.puzzle) mid = dgPuzzleHtml();
+  else {
+    const acts = dgRoomActions();
+    mid = `<div class="dg-roomhead"><span class="ri">${DG_ROOM_ICON[r.type]||"·"}</span>
+        <div><div class="rn">${({start:"The Entrance",ore:"Ore Seam",tree:"Dead Grove",fish:"Black Pool",forge:"The Forge",fire:"A Fire",monster:"Occupied",chest:"An Old Chest",puzzle:"Mechanism Room",boss:"The Boss Chamber",empty:"Bare Room"})[r.type]||"Room"}</div>
+        <div class="rd">${dg.D.path.includes(dg.pos)?"On the way down.":"Off the main route."}</div></div></div>`
+      + dgCardGrid(acts);
+  }
+  host.innerHTML = `
+    ${dgHud()}
+    <div class="dg-maprow">${dgRenderMap()}</div>
+    <div class="dg-mapnote">Tap a lit room to move. 🔑 marks a key. Coloured bars are locked doors.</div>
+    ${mid}
+    <div class="dg-log">${dg.log.map(l=>`<div>${l}</div>`).join("")}</div>
+    <button class="btn secondary" style="margin-top:10px;" onclick="dgEnd(false)">🏳️ Abandon the floor</button>`;
+  host.querySelectorAll("[data-room]").forEach(b=>b.addEventListener("click", ()=>dgMove(+b.dataset.room)));
+  host.querySelectorAll("[data-bag]").forEach(b=>b.addEventListener("click", ()=>{
+    const i = +b.dataset.bag, it = dg.bag[i];
+    if(!it) return;
+    if(it.kind === "food") mrEatItem(i); else { mrEquip(i); saveState(); renderDungeon(); }
+  }));
+  if(dg.gearOpen){ /* gear screen owns the taps */ }
+  else if(dg.boss) host.querySelectorAll(".rd-dcard[data-i]").forEach(b=>b.addEventListener("click", ()=>dgBossAct(+b.dataset.i)));
+  else if(dg.shop) host.querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click", ()=>dgBuy(b.dataset.buy)));
+  else if(dg.puzzle) host.querySelectorAll("[data-p]").forEach(b=>b.addEventListener("click", ()=>{
+    const v = b.dataset.p; dgPuzzleAct(/^\d+$/.test(v) ? +v : v);
+  }));
+  else host.querySelectorAll(".rd-dcard[data-i]").forEach(b=>b.addEventListener("click", ()=>dgAct(+b.dataset.i)));
+}
+function dgBindLobby(host){
+  const S = dgSave();
+  host.querySelectorAll("[data-bind]").forEach(b=>b.addEventListener("click", ()=>dgToggleBind(b.dataset.bind)));
+  host.querySelectorAll("[data-size]").forEach(b=>b.addEventListener("click", ()=>{ S.lastSize = b.dataset.size; saveState(); renderDungeon(); }));
+  host.querySelectorAll("[data-cx]").forEach(b=>b.addEventListener("click", ()=>{ S.lastCx = +b.dataset.cx; saveState(); renderDungeon(); }));
+  host.querySelectorAll("[data-floor]").forEach(b=>b.addEventListener("click", ()=>dgBegin(+b.dataset.floor, S.lastSize, S.lastCx)));
+}
+function dgOnEnterTab(){ renderDungeon(); }
+
 /* ---------------- Chrome helpers: stat strips + help blocks ----------------
    Both work by enhancing markup already on the page, so every tab gets the same
    shape without each render function having to know about it. */
@@ -16044,6 +17660,7 @@ const UI_GAMES = [
   { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. Some of what bites is worth real money.", meta:"Idle-friendly" },
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
+  { id:"dungeon", name:"Mythic Raids", icon:"🏚️", desc:"Daemonheim. Go in with nothing, come out with a level.", meta:"10 floors" },
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
 const UI_SECTIONS = ["mining","packs","upgrades","market","empire","play","collection","account"].concat(UI_GAME_IDS);
@@ -16077,6 +17694,7 @@ function uiEnterSection(id){
   else if(id==="arena"){ renderArena(); arOnEnterTab(); }
   else if(id==="fishing"){ renderFishing(); fshOnEnterTab(); }
   else if(id==="casino"){ renderCasino(); brShowLobby(); }
+  else if(id==="dungeon"){ renderDungeon(); }
   uiLeaveGames(id);
   uiInitStatStrips();
   uiInitHelp();

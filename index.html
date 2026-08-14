@@ -2014,6 +2014,18 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rd-dcard .dr{ font-size:10.5px; font-weight:700; color:#ff9d6e; }
 .rd-dcard .dc{ position:absolute; left:12px; bottom:9px; font-weight:800; font-size:12px; color:#ffd35c; }
 
+/* ---- guardians ---- */
+.rd-gstage{ text-align:center; padding:16px 10px 14px; margin-bottom:12px; border-radius:14px;
+  border:1px solid rgba(255,92,92,0.35);
+  background:radial-gradient(ellipse at 50% 30%, rgba(255,92,92,0.12), rgba(0,0,0,0) 70%); }
+.rd-gicon{ font-size:64px; line-height:1; animation:rdGuardLoom 2.2s ease-in-out infinite;
+  filter:drop-shadow(0 8px 20px rgba(255,92,92,0.4)); }
+@keyframes rdGuardLoom{ 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-6px) scale(1.05);} }
+.rd-gname{ font-weight:900; font-size:17px; margin-top:6px; letter-spacing:0.5px; }
+.rd-ghp{ font-size:15px; letter-spacing:2.5px; margin-top:4px; }
+.rd-gtele{ margin-top:6px; font-size:12.5px; color:#ff9d6e; font-weight:700; }
+.rd-relic{ cursor:help; font-size:14px; border-color:rgba(200,138,255,0.45) !important; }
+
 /* ---- v60: the act & the stamp ---- */
 .rd-cine{ position:relative; min-height:210px; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:8px; cursor:pointer; overflow:hidden; border-radius:14px; }
@@ -2081,12 +2093,54 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rd-chest-stage{ position:relative; text-align:center; padding:40px 10px 30px; overflow:hidden;
   border-radius:14px; border:1px solid rgba(255,211,92,0.35);
   background:radial-gradient(ellipse at 50% 80%, rgba(255,180,60,0.12), rgba(0,0,0,0) 65%); }
-.rd-chest{ font-size:84px; display:inline-block; cursor:pointer; user-select:none;
-  filter:drop-shadow(0 10px 26px rgba(255,180,60,0.35)); }
-.rd-chest.closed{ animation:rdChestBeckon 1.6s ease-in-out infinite; }
-@keyframes rdChestBeckon{ 0%,100%{ transform:translateY(0) rotate(-1.5deg);} 50%{ transform:translateY(-7px) rotate(1.5deg);} }
-.rd-chest.opening{ animation:rdChestPop .9s cubic-bezier(.2,1.6,.4,1) forwards; }
-@keyframes rdChestPop{ 0%{ transform:scale(1);} 35%{ transform:scale(.86) rotate(-4deg);} 70%{ transform:scale(1.35) rotate(3deg);} 100%{ transform:scale(1.18);} }
+/* ---- the treasure chest, built plank by plank ---- */
+.tch{ position:relative; display:inline-block; width:170px; height:130px; cursor:pointer; user-select:none;
+  perspective:600px; filter:drop-shadow(0 12px 28px rgba(255,180,60,0.3)); }
+.tch.closed{ animation:rdChestBeckon 1.8s ease-in-out infinite; }
+@keyframes rdChestBeckon{ 0%,100%{ transform:translateY(0) rotate(-1deg);} 50%{ transform:translateY(-6px) rotate(1deg);} }
+.tch-base{ position:absolute; left:0; right:0; bottom:0; height:74px; border-radius:8px 8px 12px 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.16) 0 2px, rgba(0,0,0,0) 2px 24px),
+    linear-gradient(180deg, #9a6a34 0%, #7d5226 45%, #5d3a18 100%);
+  border:2px solid #3d2610; box-shadow:inset 0 3px 6px rgba(255,220,160,0.25), inset 0 -6px 10px rgba(0,0,0,0.35); }
+.tch-band{ position:absolute; top:-2px; bottom:-2px; width:16px;
+  background:linear-gradient(90deg, #8f7830, #e8c268 45%, #8f7830);
+  border:1.5px solid #4d3a10; border-radius:3px; box-shadow:inset 0 0 5px rgba(255,240,190,0.5); }
+.tch-band.b1{ left:20px; } .tch-band.b2{ right:20px; }
+.tch-latch{ position:absolute; left:50%; top:-6px; transform:translateX(-50%); width:26px; height:20px;
+  background:linear-gradient(180deg, #e8c268, #a5822e); border:1.5px solid #4d3a10; border-radius:0 0 6px 6px; }
+.tch-lock{ position:absolute; left:50%; top:12px; transform:translateX(-50%); width:34px; height:34px;
+  background:radial-gradient(circle at 35% 30%, #ffe9a8, #d8ab4a 45%, #96721f); border:2px solid #4d3a10; border-radius:8px;
+  box-shadow:0 3px 7px rgba(0,0,0,0.4); }
+.tch-keyhole{ position:absolute; left:50%; top:8px; transform:translateX(-50%); width:7px; height:7px;
+  background:#2d1f08; border-radius:50%; }
+.tch-keyhole::after{ content:""; position:absolute; left:50%; top:5px; transform:translateX(-50%);
+  width:5px; height:9px; background:#2d1f08; border-radius:0 0 2px 2px; }
+.tch-lid{ position:absolute; left:-3px; right:-3px; top:0; height:64px; transform-origin:50% 100%;
+  transform:rotateX(0deg); transition:transform .8s cubic-bezier(.3,1.4,.4,1); z-index:3;
+  border-radius:60px 60px 8px 8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.16) 0 2px, rgba(0,0,0,0) 2px 24px),
+    linear-gradient(180deg, #b07c40 0%, #8f5f2c 60%, #6d4520 100%);
+  border:2px solid #3d2610; box-shadow:inset 0 4px 8px rgba(255,220,160,0.3); }
+.tch-lid-band{ position:absolute; left:50%; top:-2px; bottom:-2px; transform:translateX(-50%); width:20px;
+  background:linear-gradient(90deg, #8f7830, #e8c268 45%, #8f7830); border:1.5px solid #4d3a10; border-radius:3px; }
+.tch-lid-trim{ position:absolute; left:6px; right:6px; bottom:2px; height:6px;
+  background:linear-gradient(180deg, #e8c268, #a5822e); border-radius:3px; opacity:0.9; }
+.tch-lid-inner{ position:absolute; inset:6px 10px; border-radius:50px 50px 4px 4px;
+  box-shadow:inset 0 -4px 8px rgba(0,0,0,0.25); }
+.tch-inside{ position:absolute; left:4px; right:4px; bottom:40px; height:34px; border-radius:6px 6px 0 0; z-index:1;
+  background:radial-gradient(ellipse at 50% 100%, #ffe9a8 10%, #e8c268 45%, #7d5226 90%);
+  opacity:0; transition:opacity .4s ease .25s;
+  box-shadow:0 -6px 22px rgba(255,220,130,0.8); }
+.tch-glow{ position:absolute; left:50%; top:46%; width:220px; height:220px; transform:translate(-50%,-50%);
+  background:radial-gradient(circle, rgba(255,224,138,0.7), rgba(255,180,60,0.2) 45%, rgba(0,0,0,0) 70%);
+  opacity:0; transition:opacity .5s ease; pointer-events:none; z-index:0; }
+.tch.opening{ animation:tchJolt .35s ease; }
+@keyframes tchJolt{ 0%{ transform:scale(1);} 40%{ transform:scale(0.94) rotate(-2deg);} 100%{ transform:scale(1);} }
+.tch.opening .tch-lid, .tch.open .tch-lid{ transform:rotateX(-112deg); }
+.tch.opening .tch-inside, .tch.open .tch-inside{ opacity:1; }
+.tch.opening .tch-glow, .tch.open .tch-glow{ opacity:1; }
 .rd-chest-hint{ margin-top:14px; color:var(--muted); font-size:13.5px; }
 .rd-gold-flash{ position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(circle at 50% 60%, rgba(255,224,138,0.95), rgba(255,180,60,0.35) 40%, rgba(0,0,0,0) 70%);
@@ -3930,7 +3984,7 @@ function migratePlayerXP(){
   }
 }
 function defaultRaids(){
-  return { runs:0, clears:{}, bestLoot:0, wear:{} };
+  return { runs:0, clears:{}, bestLoot:0, bestDepth:0, wear:{} };
 }
 function defaultArena(){
   return { glory:0, betsWon:0, betsLost:0, wagered:0, won:0, bestOdds:0, bouts:0, records:{} };
@@ -13256,24 +13310,53 @@ const RD_SITES = [
   { id:"mine", name:"The Collapsed Mine", icon:"🕳️", entry:5000, unlock:null,
     blurb:"An abandoned dig, half-fallen in. Good bones for a first raid.",
     scene:{ top:"#2c2418", mid:"#1d1812", low:"#120e0a", glow:"#ffb45c" },
-    stamina:58, minTier:5, vaultCredits:[9000,16000], cardPulls:1, raidCardChance:0.5,
+    stamina:66, minTier:5, vaultCredits:[9000,16000], cardPulls:1, raidCardChance:0.5,
     chambers:["oreVein","darkPassage","woodGrove","forgeAlcove","rubbleWall","lockedGate","vault"] },
   { id:"temple", name:"The Sunken Temple", icon:"🏛️", entry:25000, unlock:"mine",
     blurb:"Flooded halls, rusted locks, and floors that aren't floors.",
     scene:{ top:"#16303a", mid:"#102028", low:"#0a151c", glow:"#5cc8ff" },
-    stamina:65, minTier:8, vaultCredits:[40000,70000], cardPulls:2, raidCardChance:0.7,
+    stamina:74, minTier:8, vaultCredits:[40000,70000], cardPulls:2, raidCardChance:0.7,
     chambers:["oreVein","darkPassage","floodedHall","woodGrove","sporeCloud","forgeAlcove","treasureCache","brokenBridge","lockedGate","vault"] },
+  { id:"galleon", name:"The Sunken Galleon", icon:"⚓", entry:40000, unlock:"temple",
+    blurb:"A treasure ship the sea kept. The crew stayed aboard. All of them.",
+    scene:{ top:"#0e2a30", mid:"#0a1c24", low:"#061218", glow:"#4cd2b8" },
+    stamina:76, minTier:9, vaultCredits:[60000,100000], cardPulls:2, raidCardChance:0.8,
+    chambers:["riggingClimb","floodedDeck","darkPassage","powderMagazine","ghostCrew","woodGrove","bilgePump","treasureCache","captainsLocker","vault"] },
   { id:"reliquary", name:"The Frost Reliquary", icon:"❄️", entry:60000, unlock:"temple",
     blurb:"A monastery swallowed by the glacier. The cold is a wall — several, actually.",
     scene:{ top:"#2a3a4c", mid:"#1c2836", low:"#121a24", glow:"#9ee8ff" },
-    stamina:70, minTier:10, vaultCredits:[90000,150000], cardPulls:2, raidCardChance:0.85,
+    stamina:80, minTier:10, vaultCredits:[90000,150000], cardPulls:2, raidCardChance:0.85,
     chambers:["darkPassage","iceWall","oreVein","mineCart","hauntedHall","woodGrove","forgeAlcove","chasm","iceWall","treasureCache","lockedGate","vault"] },
   { id:"hoard", name:"The Dragon's Hoard", icon:"🐉", entry:100000, unlock:"reliquary",
     blurb:"Everything a dragon ever loved, behind everything it could pile in the way.",
     scene:{ top:"#3a2028", mid:"#281418", low:"#180c10", glow:"#ff8a4c" },
-    stamina:75, minTier:11, vaultCredits:[160000,260000], cardPulls:3, raidCardChance:1,
+    stamina:86, minTier:11, vaultCredits:[160000,260000], cardPulls:3, raidCardChance:1,
     chambers:["darkPassage","oreVein","rubbleWall","chasm","woodGrove","sporeCloud","forgeAlcove","hauntedHall","brokenBridge","treasureCache","lockedGate","rubbleWall","vault"] },
+  { id:"sanctum", name:"The Clockwork Sanctum", icon:"⚙️", entry:150000, unlock:"hoard",
+    blurb:"A vault that winds itself. The machines never stopped — they just stopped asking permission.",
+    scene:{ top:"#2e2a1c", mid:"#201c12", low:"#14100a", glow:"#ffd35c" },
+    stamina:84, minTier:12, vaultCredits:[240000,380000], cardPulls:3, raidCardChance:1,
+    chambers:["gearPress","voltaicCoil","darkPassage","automatonPatrol","oreVein","steamGallery","forgeAlcove","chronoVault","rubbleWall","automatonPatrol","captainsLocker","lockedGate","vault"] },
+  { id:"depths", name:"The Depths", icon:"🌀", entry:50000, unlock:"hoard", endless:true,
+    blurb:"Below the hoard, the stairs keep going. Nobody has found the bottom. Bank your haul between floors — or keep descending.",
+    scene:{ top:"#1c1430", mid:"#120c20", low:"#0a0614", glow:"#c88aff" },
+    stamina:85, minTier:6, vaultCredits:[0,0], cardPulls:0, raidCardChance:0,
+    chambers:[] },
 ];
+/* Chamber pool The Depths draws from, floor by floor */
+const RD_DEPTH_POOL = ["oreVein","darkPassage","woodGrove","forgeAlcove","rubbleWall","lockedGate","floodedHall",
+  "sporeCloud","brokenBridge","iceWall","hauntedHall","mineCart","treasureCache","chasm","riggingClimb",
+  "powderMagazine","ghostCrew","bilgePump","captainsLocker","gearPress","voltaicCoil","automatonPatrol","steamGallery","chronoVault"];
+function rdDepthsChambers(depth){
+  const pool = [...RD_DEPTH_POOL];
+  const out = [];
+  for(let i=0;i<5;i++){
+    const k = Math.floor(Math.random()*pool.length);
+    out.push(pool.splice(k,1)[0]);
+  }
+  out.push("landing");
+  return out;
+}
 
 /* ---------------- Capabilities from the collection ---------------- */
 function rdOwnSubject(subject){
@@ -13399,20 +13482,23 @@ function rdCost(n){
 /* ---------------- Run state ---------------- */
 let rd = null;
 function rdBegin(siteId){
-  const site = RD_SITES.find(s=>s.id===siteId);
+  let site = RD_SITES.find(s=>s.id===siteId);
   if(!site) return;
   if(site.unlock && !(state.raids.clears||{})[site.unlock]){ return; }
   if(state.credits < site.entry){ showToast("Not enough credits to outfit this raid."); return; }
   state.credits -= site.entry;
+  if(site.endless) site = Object.assign({}, site, { chambers: rdDepthsChambers(1) });
   const caps = rdCaps();
   const bonus = (caps.mule ? 25 : 0) + (caps.rabbit ? 6 : 0);
   rd = {
     site, caps,
-    idx: 0,
+    idx: 0, depth: 1,
     stamina: site.stamina + bonus,
     maxStamina: site.stamina + bonus,
     res: { ore:0, bars:0, wood:0 },
     loot: { credits:0, scrap:0, cards:[] },
+    relics: [], relicUsed: {},
+    guardian: null, guardBeaten: false,
     log: [], anim: { t:0, emb:[] },
     done: false, dead: false, chest:null,
   };
@@ -13432,7 +13518,15 @@ function rdLog(msg){
 }
 function rdSpend(n){
   rd.stamina = Math.max(0, rd.stamina - n);
+  if(rd.stamina <= 0 && !rd.done && rdRelic("chain") && !rd.relicUsed.chain){
+    rd.relicUsed.chain = true;
+    rd.relics = rd.relics.filter(r=>r !== "chain");
+    rd.stamina = 10;
+    rdLog("⛓️ <b>The Saint's Chain snaps taut</b> — and hauls you back from the brink. +10⚡. The chain crumbles to rust.");
+    return;
+  }
   if(rd.stamina <= 0 && !rd.done){
+    if(rd.site && rd.site.endless) state.raids.bestDepth = Math.max(state.raids.bestDepth||0, rd.depth||1);
     rd.dead = true; rd.done = true;
     rd.loot.credits = Math.floor(rd.loot.credits/2);
     rd.loot.scrap = Math.floor(rd.loot.scrap/2);
@@ -13458,6 +13552,9 @@ const RD_CHAMBERS = {
         const cost = Math.max(1, [0,12,8,5,3][c.pick] - (c.helm ? 2 : 0));
         o.push({ label:`⛏️ Mine the seam (${names[c.pick].toLowerCase()})`, cost, wear:names[c.pick], gain:{ore:2+extra}, log:`You work the seam loose. ${2+extra} ore.` });
       }
+      if(c.pick > 0) o.push({ label:"⛏️ Chase the vein deeper", flavor:"Greed is also a shovel.", cost:8, wear:(c.pick===5?"The Worldsplitter":["","Rusty Pickaxe","Iron Pickaxe","Steel Pickaxe","Dwarven Pickaxe"][c.pick]),
+        risk:{ chance:0.55, failCost:7, failStamp:"THE VEIN PINCHES OUT", failLog:"The seam thins to a taunt and quits." },
+        gain:{ore:3+extra}, stamp:`+${3+extra} ORE`, log:"The vein opens like a ledger. Jackpot." });
       o.push({ label:"🫳 Claw ore out bare-handed", cost:20, gain:{ore:1+extra}, risk:{ chance:0.65, failCost:6, failStamp:"THE SEAM BITES", failLog:"The rock takes skin and gives nothing back." }, log:"Your fingers ache for one sorry lump of ore." });
       o.push({ label:"🚶 Leave it", cost:0, gain:{}, log:"You leave the seam glittering behind you." });
       return o;
@@ -13482,6 +13579,9 @@ const RD_CHAMBERS = {
       const c = rd.caps, o = [];
       if(c.light === 2) o.push({ label:"🏮 Walk through, lantern high", cost:2, wear:"light", gain:{}, log:"Your light carves a corridor through the black." });
       if(c.torches > 0) o.push({ label:"🔥 Burn a Pitch Torch (uses 1)", cost:4, gain:{}, consume:"Pitch Torch", log:"The torch gutters out just as you reach the far side." });
+      o.push({ label:"👂 Stand still and listen to the dark", flavor:"The dark talks. Mostly about money.", cost:1,
+        risk:{ chance:0.5, failCost:5, failStamp:"THE DARK LIED", failLog:"You follow a promising echo into a wall." },
+        gain:{credits:1200}, stamp:"+1,200 🪙", log:"A dripping sound leads you to a forgotten toll box." });
       o.push({ label:"🫥 Feel your way through blind", cost:16, gain:{}, risk:{ chance:0.6, failCost:7, failStamp:"LOST IN THE BLACK", failLog:"You circle the same pillar three times before finding the wall." }, log:"You bark every shin you own getting through." });
       return o;
     }
@@ -13517,6 +13617,9 @@ const RD_CHAMBERS = {
         o.push({ label:`⛏️ Dig through (${names[c.pick].toLowerCase()})`, cost:Math.max(2,[0,18,12,8,5][c.pick] - (c.helm?2:0)), wear:names[c.pick], gain:{}, log:"You cut a crawlway through the fall." });
       }
       if(c.crowbar) o.push({ label:"🦯 Lever the keystones out", cost:10, wear:"Crowbar", gain:{}, log:"Three stones out and the wall loses its nerve." });
+      o.push({ label:"🗣️ Reason with the wall", flavor:"Everything negotiates. Eventually.", cost:1,
+        risk:{ chance:0.15, failCost:9, failStamp:"IT'S A WALL", failLog:"The wall wins the argument. You move it stone by stone, seething." },
+        gain:{}, stamp:"THE WALL RELENTS", log:"A whole section shifts under your palm like it was waiting to be asked." });
       o.push({ label:"🫳 Move it stone by stone", cost:25, gain:{}, log:"Hours. It takes hours." });
       return o;
     }
@@ -13544,6 +13647,7 @@ const RD_CHAMBERS = {
       if(c.climb) o.push({ label:"🧗 Rig the climbing kit", cost:3, wear:"Climbing Kit", gain:{}, log:"Pitons sing. You cross like a spider." });
       if(c.rope) o.push({ label:"🪢 Rope traverse", cost:6, wear:"Rope Coil", gain:{}, log:"Fifty feet of not falling, used to the full." });
       if(rd.res.wood >= 2) o.push({ label:"🪵 Lay a timber crossing (2 wood)", cost:5, gain:{woodSpend:2}, log:"Two logs and some nerve make a bridge." });
+      o.push({ label:"🪨 Drop a pebble and listen", flavor:"For science.", cost:1, gain:{}, stamp:"…NO BOTTOM", log:"You are still waiting to hear it land. You will always be waiting." });
       o.push({ label:"🫥 The long way around", cost:15, gain:{}, log:"An hour of ledges and regret." });
       return o;
     }
@@ -13579,6 +13683,9 @@ const RD_CHAMBERS = {
       const c = rd.caps, o = [];
       if(c.bell) o.push({ label:"🔔 Walk the bottom in the diving bell", cost:2, wear:"Diving Bell", gain:{}, log:"You stroll the drowned mosaic like a tourist." });
       if(c.bucket) o.push({ label:"🪣 Bail a path through the low arch", cost:8, wear:"Bail Bucket", gain:{}, log:"An hour of bailing buys a dry-enough crossing." });
+      o.push({ label:"🤿 Dive for what the water keeps", flavor:"Drowned halls hold drowned purses.", cost:6,
+        risk:{ chance:0.5, failCost:8, failStamp:"JUST OLD BONES", failLog:"You surface with a femur and an apology." },
+        gain:{credits:Math.round(rd.site.entry*0.18)}, stamp:`+${Math.round(rd.site.entry*0.18).toLocaleString()} 🪙`, log:"A votive chest, heavy with offerings." });
       o.push({ label:"🏊 Swim for it", cost:17, gain:{}, risk:{ chance:0.6, failCost:7, failStamp:"CRAMP", failLog:"Halfway across, your leg knots up." }, log:"Everything you own is now wet. Everything." });
       return o;
     }
@@ -13603,6 +13710,9 @@ const RD_CHAMBERS = {
       const c = rd.caps, o = [];
       if(c.ghostlight) o.push({ label:"👻 Raise the Ghost Lantern", cost:2, wear:"Ghost Lantern", gain:{}, log:"The whispers see the lantern and remember their manners." });
       if(c.eye) o.push({ label:"👁️ The Eye sees them first", cost:0, wear:"The Cartographer's Eye", gain:{}, log:"Nothing here can surprise the Cartographer's Eye." });
+      o.push({ label:"🙏 Ask them, politely, for directions", flavor:"The dead appreciate manners.", cost:2,
+        risk:{ chance:0.45, failCost:7, failStamp:"THEY POINTED AT YOU", failLog:"Forty translucent fingers, one direction: you. You leave quickly." },
+        gain:{credits:2200}, stamp:"+2,200 🪙", log:"A whisper leads you to a coin hoard under a loose flagstone. You say thank you. Loudly." });
       o.push({ label:"😤 Iron nerve, straight through", cost:12, gain:{}, risk:{ chance:0.6, failCost:8, failStamp:"THEY KNOW YOUR NAME", failLog:"Something walks beside you the whole way, chuckling." }, log:"You do not run. You walk very, very briskly." });
       return o;
     }
@@ -13632,12 +13742,260 @@ const RD_CHAMBERS = {
       return o;
     }
   },
+  riggingClimb: {
+    icon:"🕸️", name:"The Fallen Rigging", must:true,
+    desc:"A cathedral of rotten rope and canvas between you and the lower decks.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.grapple) o.push({ label:"🪝 Hook the mainmast and swing", flavor:"Like a pirate. A careful pirate.", cost:3, wear:"Grappling Hook", gain:{}, log:"One clean arc through the wreck of the sails." });
+      if(c.climb) o.push({ label:"🧗 Rig a proper line", flavor:"Pitons don't care about rot.", cost:4, wear:"Climbing Kit", gain:{}, log:"You descend the wreckage like a spider with a plan." });
+      if(c.axe > 0) o.push({ label:"🪓 Chop through the tangle", flavor:"Subtlety is for people with time.", cost:7, wear:(c.axe===2?"Woodsman's Axe":"Hand Axe"), gain:{wood:1}, log:"You hack a corridor through the rigging — and keep the good timber." });
+      o.push({ label:"🫥 Climb the rot bare-handed", flavor:"Every rope is a maybe.", cost:15, gain:{},
+        risk:{ chance:0.55, failCost:8, failStamp:"THE ROPE WAS A NO", failLog:"Three ropes hold. The fourth introduces you to the deck below." },
+        log:"You pick your handholds like chess moves, and win." });
+      return o;
+    }
+  },
+  floodedDeck: {
+    icon:"🌊", name:"The Drowned Gundeck", must:true,
+    desc:"Cannon and cold seawater, hull-deep. Things drift between the gun carriages.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.bell) o.push({ label:"🔔 Walk the bottom in the diving bell", flavor:"A stroll among the cannons.", cost:2, wear:"Diving Bell", gain:{}, log:"Fish watch you pass like a parade." });
+      if(c.bucket) o.push({ label:"🪣 Bail a path along the high side", flavor:"An hour of honest bailing.", cost:8, wear:"Bail Bucket", gain:{}, log:"You bail your way to the far hatch, mostly dry." });
+      o.push({ label:"🤿 Dive for the purser's strongbox", flavor:"Sailors' pay sinks with the ship.", cost:6,
+        risk:{ chance:0.5, failCost:8, failStamp:"SOMETHING ELSE FOUND IT FIRST", failLog:"The strongbox is guarded by an eel with seniority." },
+        gain:{credits:Math.round(rd.site.entry*0.22)}, stamp:`+${Math.round(rd.site.entry*0.22).toLocaleString()} 🪙`, log:"The purser won't miss it." });
+      o.push({ label:"🏊 Swim for it", flavor:"Cold. Fast. Wet.", cost:16, gain:{},
+        risk:{ chance:0.6, failCost:7, failStamp:"CRAMP", failLog:"Halfway across, the cold takes a vote." },
+        log:"You surface at the hatch, gasping." });
+      return o;
+    }
+  },
+  powderMagazine: {
+    icon:"🧨", name:"The Powder Magazine", must:true,
+    desc:"Kegs of black powder, sweating in the damp. The door beyond is barred from this side of forever.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.light === 2) o.push({ label:"🏮 Cross by steady lantern light", flavor:"Slow feet, high lamp.", cost:3, wear:"light", gain:{}, log:"You cross like a librarian. The kegs approve." });
+      if(c.powder > 0) o.push({ label:"💥 Rig a keg against the far door", flavor:"Fight powder with powder.", cost:1, consume:"Blasting Powder", gain:{credits:2500}, stamp:"+2,500 🪙", log:"The door leaves. You pocket what the blast shook loose." });
+      if(c.flint) o.push({ label:"🔥 Lay a slow fuse and walk away", flavor:"Professionals don't run.", cost:4, wear:"Flint & Steel", gain:{}, log:"Thump. The way is open, and your eyebrows are intact." });
+      o.push({ label:"🕶️ Feel through in the pitch dark", flavor:"No light, no boom. No light, no floor either.", cost:13, gain:{},
+        risk:{ chance:0.55, failCost:9, failStamp:"YOU KICKED A KEG", failLog:"Nothing ignites, but the noise summons every ghost with an opinion." },
+        log:"You navigate by toe and prayer." });
+      return o;
+    }
+  },
+  ghostCrew: {
+    icon:"🧟", name:"The Watch Below", must:true,
+    desc:"The crew never left their posts. They turn, all together, and look at you.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.ghostlight) o.push({ label:"👻 Raise the Ghost Lantern", flavor:"Dead men respect dead light.", cost:2, wear:"Ghost Lantern", gain:{}, log:"The crew salutes something behind you, and stands down." });
+      if(c.eye) o.push({ label:"👁️ Let the Eye stare them down", flavor:"It has seen worse.", cost:0, wear:"The Cartographer's Eye", gain:{}, log:"The Eye blinks once. The crew finds urgent business elsewhere." });
+      o.push({ label:"🪙 Pay the crew their last wages", flavor:"Some debts outlive the debtor.", cost:1, gain:{credits:-3000}, stamp:"DEBT SETTLED", log:"You count coins into cold palms. They let you pass — one even bows.",
+        disabled: rd.loot.credits < 3000 });
+      o.push({ label:"😤 Walk the line, eyes forward", flavor:"They only take the ones who run.", cost:11, gain:{},
+        risk:{ chance:0.55, failCost:9, failStamp:"ONE OF THEM KNOWS YOU", failLog:"A drowned bosun says your name like an old joke. You leave at speed." },
+        log:"You walk their gauntlet without blinking. Respect, of a kind." });
+      return o;
+    }
+  },
+  bilgePump: {
+    icon:"⚙️", name:"The Bilge",
+    desc:"Black water, old machinery, and cargo the manifest politely forgot.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.crowbar) o.push({ label:"🦯 Pry open the sealed cargo", flavor:"Smugglers seal the good stuff.", cost:5, wear:"Crowbar", gain:{credits:Math.round(rd.site.entry*0.15)}, stamp:`+${Math.round(rd.site.entry*0.15).toLocaleString()} 🪙`, log:"Contraband. Lovely, waterproof contraband." });
+      if(c.bucket) o.push({ label:"🪣 Work the old pump line", flavor:"Muscle memory from honest work.", cost:4, wear:"Bail Bucket", gain:{stamina:6}, stamp:"+6⚡", log:"The rhythm of the pump settles your breathing. You feel better for it." });
+      if(c.dowse) o.push({ label:"🔮 Dowse the sump for lost coin", flavor:"Coins sink. Rods know.", cost:3, wear:"Dowsing Rod", gain:{credits:4000}, stamp:"+4,000 🪙", log:"The rod dips three times. Three purses in the muck." });
+      o.push({ label:"🚶 Slosh through and move on", flavor:"Not everything is treasure.", cost:4, gain:{}, log:"Your boots will never forgive you." });
+      return o;
+    }
+  },
+  captainsLocker: {
+    icon:"🗄️", name:"The Captain's Locker",
+    desc:"A private strongroom. The lock is nautical, ornate, and very smug.",
+    options(){
+      const c = rd.caps, o = [];
+      const loot = Math.round(rd.site.entry * 0.45);
+      if(c.skeleton) o.push({ label:"💀 The Skeleton Key turns", flavor:"It always turns.", cost:0, wear:"Skeleton Key", gain:{credits:loot}, stamp:`+${loot.toLocaleString()} 🪙`, log:"The lock surrenders with dignity." });
+      if(c.picks) o.push({ label:"🗝️ Pick it, tumbler by tumbler", flavor:"Ornate means expensive. Expensive means worth it.", cost:5, wear:"Lockpick Set", gain:{credits:loot}, stamp:`+${loot.toLocaleString()} 🪙`, log:"Click, click, clunk. The captain kept the good charts too." });
+      if(c.hammer) o.push({ label:"🔨 Persuade it with the hammer", flavor:"Percussion-based locksmithing.", cost:8, wear:"Forge Hammer", gain:{credits:Math.round(loot*0.7)}, stamp:`+${Math.round(loot*0.7).toLocaleString()} 🪙`, log:"Some of the contents survive your technique." });
+      o.push({ label:"🎲 Guess the captain's birthday", flavor:"Sailors are sentimental about combinations.", cost:2,
+        risk:{ chance:0.35, failCost:5, failStamp:"WRONG BIRTHDAY", failLog:"The lock buzzes smugly. Somewhere, a dead captain laughs." },
+        gain:{credits:loot}, stamp:`+${loot.toLocaleString()} 🪙`, log:"Second guess. Sentimental AND predictable." });
+      o.push({ label:"🚶 Leave it locked", flavor:"Some doors stay shut.", cost:0, gain:{}, log:"The locker keeps its secrets." });
+      return o;
+    }
+  },
+  gearPress: {
+    icon:"🛞", name:"The Gear Press", must:true,
+    desc:"Two floors of meshing brass teeth between you and onward. The rhythm never falters. Neither can you.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.crowbar) o.push({ label:"🦯 Jam the escapement", flavor:"One lever, held at the right moment.", cost:5, wear:"Crowbar", gain:{}, log:"The press pauses to think about the crowbar. You're through before it decides." });
+      if(c.cart) o.push({ label:"🛒 Ride the service trolley through", flavor:"The machines don't crush their own.", cost:2, wear:"Mine Cart", gain:{}, log:"The trolley knows the timing by heart." });
+      if(rd.res.bars >= 1) o.push({ label:"🧱 Feed it a bar and slip past", flavor:"Machines get distracted chewing.", cost:2, gain:{barSpend:1}, log:"The press savors your iron. You do not stay to watch." });
+      o.push({ label:"🏃 Time the gap and dive", flavor:"Count the beats. Don't be a beat.", cost:9, gain:{},
+        risk:{ chance:0.55, failCost:10, failStamp:"MISTIMED", failLog:"The press takes your pack strap and a year off your life." },
+        log:"Between tick and tock, you're through." });
+      return o;
+    }
+  },
+  voltaicCoil: {
+    icon:"⚡", name:"The Voltaic Gallery", must:true,
+    desc:"Arcs of caged lightning stitch the corridor. The air tastes of copper and warnings.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.gloves) o.push({ label:"🧤 Palm the live rail in drakescale", flavor:"Dragonhide laughs at lightning.", cost:3, wear:"Drakescale Gloves", gain:{}, log:"The arcs ground through the gloves. It tickles, at worst." });
+      if(rd.res.bars >= 1) o.push({ label:"🧱 Throw a bar to ground the arcs", flavor:"Sacrifice iron to the storm.", cost:3, gain:{barSpend:1}, log:"The bar glows white and dies a hero. The corridor sleeps." });
+      if(c.cloak) o.push({ label:"🧥 Wrap the wool and hug the wall", flavor:"Wool: nature's insulator. Mostly.", cost:8, wear:"Warm Cloak", gain:{}, log:"Your hair stands up. The cloak smells singed. You live." });
+      o.push({ label:"🏃 Sprint between the arcs", flavor:"Lightning is fast. Are you?", cost:10, gain:{},
+        risk:{ chance:0.5, failCost:11, failStamp:"THE ANSWER WAS NO", failLog:"You learn the exact taste of lightning: like biting a coin, everywhere." },
+        log:"You run between the heartbeats of the storm." });
+      return o;
+    }
+  },
+  automatonPatrol: {
+    icon:"🤖", name:"The Patrol", must:true,
+    desc:"A brass sentry walks its route as it has for four hundred years. You are not on its list.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.powder > 0) o.push({ label:"💥 Powder charge in the gearworks", flavor:"Warranty: voided.", cost:2, consume:"Blasting Powder", gain:{credits:3000}, stamp:"+3,000 🪙 SCRAP", log:"The sentry sits down forever. Its cogs are worth good coin." });
+      if(c.hammer) o.push({ label:"🔨 One precise blow to the mainspring", flavor:"Know exactly where to hit.", cost:6, wear:"Forge Hammer", gain:{credits:2000}, stamp:"+2,000 🪙", log:"Tonk. The patrol schedule is cancelled indefinitely." });
+      if(rd.res.bars >= 2) o.push({ label:"🧱 Present two bars as tribute", flavor:"It accepts raw materials as paperwork.", cost:1, gain:{barSpend:2}, log:"The sentry files your iron under 'acceptable bribes' and looks away." });
+      if(c.cloak) o.push({ label:"🧥 Hood up, walk like a machine", flavor:"Beep boop.", cost:4, wear:"Warm Cloak",
+        risk:{ chance:0.7, failCost:7, failStamp:"IT ASKED FOR PAPERS", failLog:"Your impression of a machine needs work. The chase does not." },
+        gain:{}, log:"You march past in perfect brass rhythm. It salutes." });
+      o.push({ label:"🏃 Outrun its route", flavor:"It's punctual, not fast.", cost:9, gain:{},
+        risk:{ chance:0.6, failCost:9, failStamp:"IT WAS FAST TODAY", failLog:"Four hundred years and it picks TODAY to jog." },
+        log:"You lap the patrol and wave on the way past." });
+      return o;
+    }
+  },
+  steamGallery: {
+    icon:"♨️", name:"The Steam Gallery", must:true,
+    desc:"Scalding jets vent from the walls in patterns older than maps. The floor tiles are clean. Too clean.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.gloves) o.push({ label:"🧤 Wrench the master valve shut", flavor:"Someone has to touch the hot thing.", cost:4, wear:"Drakescale Gloves", gain:{}, log:"The gallery exhales one last time and goes quiet." });
+      if(c.bucket) o.push({ label:"🪣 Douse yourself and dash", flavor:"Wet beats hot, briefly.", cost:7, wear:"Bail Bucket", gain:{}, log:"You steam like a dumpling but keep your skin." });
+      if(c.eye) o.push({ label:"👁️ Read the vent pattern", flavor:"There is always a pattern.", cost:2, wear:"The Cartographer's Eye", gain:{}, log:"The Eye traces the safe tiles. You waltz through untouched." });
+      o.push({ label:"🏃 Guess the rhythm and run", flavor:"Clean tiles mean nobody made it.", cost:10, gain:{},
+        risk:{ chance:0.5, failCost:10, failStamp:"WRONG TILE", failLog:"A jet catches your shoulder. You will describe this to people as 'a dragon'." },
+        log:"Hop, skip, sprint — the gallery misses by inches." });
+      return o;
+    }
+  },
+  chronoVault: {
+    icon:"⏳", name:"The Chrono Vault",
+    desc:"A room where the dust falls upward. Your aches feel… negotiable here.",
+    options(){
+      const o = [];
+      if(!rd.rested) o.push({ label:"🛌 Rest while time runs backward", flavor:"Wake younger.", cost:0, gain:{stamina:14, rest:true}, stamp:"+14⚡", log:"You wake before you slept, better than you were." });
+      if(rd.caps.eye) o.push({ label:"👁️ Let the Eye study the room", flavor:"It takes notes in both directions.", cost:2, wear:"The Cartographer's Eye", gain:{credits:6000}, stamp:"+6,000 🪙", log:"The Eye sketches tomorrow's treasure locations. Convenient." });
+      o.push({ label:"🚶 Leave before it keeps you", flavor:"Rooms like this collect guests.", cost:0, gain:{}, log:"On the way out, you pass yourself coming in. You don't make eye contact." });
+      return o;
+    }
+  },
+  landing: {
+    icon:"🌀", name:"The Landing",
+    desc:"A stone platform between stairs. Below, the dark goes down forever. The cache here is yours — if you claim it.",
+    options(){
+      const cache = Math.round((2800 + 400*rd.depth) * rd.depth);
+      const o = [];
+      o.push({ label:"⬇️ Claim the cache and descend", icon:"⬇️", flavor:`Floor ${rd.depth+1} waits. It gets worse. It pays better.`, kind:"cart",
+        cost:0, gain:{credits:cache, descend:true}, stamp:`+${cache.toLocaleString()} 🪙 · DEEPER`, log:`You pocket the cache and take the stairs down. Floor ${rd.depth+1}.` });
+      o.push({ label:"🏦 Bank it all and surface", icon:"🏦", flavor:"Nobody ever went broke leaving.", kind:"lock",
+        cost:0, gain:{credits:cache, vault:true}, stamp:"SURFACING", log:"You claim the cache and climb toward daylight, pockets ringing." });
+      if(!rd.rested) o.push({ label:"🛌 Rest at the landing", icon:"🛌", flavor:"The stone is warm here. Odd.", kind:"walk",
+        cost:0, gain:{stamina:10, rest:true}, stamp:"+10⚡", log:"You sleep without dreams. The Depths respect a nap." });
+      return o;
+    }
+  },
   vault: {
     icon:"🏆", name:"The Vault",
     desc:"This is what you came for.",
     options(){ return [{ label:"🏆 Open the vault doors", cost:0, gain:{vault:true}, log:"The doors swing wide. A great chest waits in the torchlight." }]; }
   },
 };
+
+/* ---------------- Relics & Curses ---------------- */
+const RD_RELICS = [
+  { id:"compass",  icon:"🧭", name:"Gilded Compass",    desc:"Vault treasure +20%.",                       curse:"Gambles succeed 5% less often." },
+  { id:"skull",    icon:"💀", name:"Whispering Skull",  desc:"Gamble odds +10%.",                          curse:"Ghost chambers cost double." },
+  { id:"flask",    icon:"🍶", name:"Bottomless Flask",  desc:"+2 stamina after every chamber.",            curse:null },
+  { id:"tooth",    icon:"🦷", name:"Wyrm Tooth",        desc:"+1 damage against guardians.",               curse:"Guardians hit 2 harder." },
+  { id:"candle",   icon:"🕯️", name:"Unsleeping Candle", desc:"Dark crossings cost nothing.",               curse:null },
+  { id:"coin",     icon:"🪙", name:"Two-Headed Coin",   desc:"Your first failed gamble is refunded.",      curse:null },
+  { id:"idol",     icon:"🗿", name:"Jade Idol",         desc:"Strange events find you twice as often.",    curse:"…all of them do." },
+  { id:"hourglass",icon:"⏳", name:"Cracked Hourglass", desc:"Masterstrokes: 30% (up from 18%).",          curse:"Masterstrokes no longer refund stamina." },
+  { id:"bellows",  icon:"🌬️", name:"Ember Bellows",     desc:"Smelting yields +1 bar.",                    curse:null },
+  { id:"chain",    icon:"⛓️", name:"Saint's Chain",     desc:"Cheat death once: snap back to 10⚡.",       curse:null },
+  { id:"lens",     icon:"🔍", name:"Appraiser's Lens",  desc:"Credit finds +30%.",                         curse:null },
+  { id:"drum",     icon:"🥁", name:"War Drum",          desc:"Guardian blows land 2 softer.",              curse:null },
+];
+function rdRelic(id){ return !!(rd && rd.relics && rd.relics.includes(id)); }
+function rdRelicDef(id){ return RD_RELICS.find(r=>r.id===id); }
+function rdUnownedRelics(){ return RD_RELICS.filter(r=>!rdRelic(r.id)).map(r=>r.id); }
+function rdGrantRelic(id){
+  const R = rdRelicDef(id);
+  if(!R || rdRelic(id) || rd.relics.length >= 4) return false;
+  rd.relics.push(id);
+  rdLog(`🏺 <b>${R.icon} ${R.name}.</b> ${R.desc}${R.curse ? ` <i style="color:#ff9d6e">But: ${R.curse}</i>` : ""}`);
+  return true;
+}
+
+/* ---------------- Vault Guardians ---------------- */
+const RD_GUARDIANS = {
+  mine:     { icon:"🐛", name:"The Tunnel Wyrm",      hp:3, min:5, max:8,  intro:"The floor bulges and splits. The good ore was bait all along." },
+  temple:   { icon:"🗿", name:"The Stone Sentinel",   hp:4, min:6, max:9,  intro:"A statue you already walked past is standing behind you now." },
+  galleon:  { icon:"🧜", name:"The Drowned Captain",  hp:4, min:6, max:10, intro:"The captain rises from the vault stair, still in his hat. He tips it. Then he draws." },
+  reliquary:{ icon:"🛡️", name:"The Reliquary Warden", hp:5, min:7, max:10, intro:"Frost-forged armor with nothing inside it. Mostly nothing." },
+  sanctum:  { icon:"🦾", name:"The Prime Automaton",  hp:5, min:8, max:12, intro:"The oldest machine unfolds from the wall. It has waited centuries for a visitor. You are late." },
+  hoard:    { icon:"🐲", name:"The Hoard-Warden Drake",hp:6, min:8, max:12, intro:"Not THE dragon — its favorite child. This is not an improvement." },
+};
+const RD_DEPTH_GUARDS = [
+  { icon:"🕷️", name:"The Broodmother" }, { icon:"👁️", name:"The Unblinking" },
+  { icon:"🗿", name:"The Forgotten Colossus" }, { icon:"🐍", name:"The Coiled Dark" },
+];
+function rdGuardTele(def){
+  let n = def.min + Math.floor(Math.random()*(def.max - def.min + 1));
+  if(rdRelic("drum")) n = Math.max(3, n - 2);
+  if(rdRelic("tooth")) n += 2;
+  return n;
+}
+function rdSpawnGuardian(def, after){
+  rd.guardian = { def, hp:def.hp, maxHp:def.hp, next:rdGuardTele(def), braced:false, round:1, after };
+  rdLog(`⚔️ <b>${def.icon} ${def.name}.</b> ${def.intro || "It bars the way, and it is not in a bargaining mood."}`);
+}
+function rdDepthGuardian(depth){
+  const base = RD_DEPTH_GUARDS[Math.floor(Math.random()*RD_DEPTH_GUARDS.length)];
+  return { icon:base.icon, name:`${base.name} of Floor ${depth}`,
+    hp: 3 + Math.floor(depth/3), min: 5 + Math.ceil(depth*0.5), max: 8 + Math.ceil(depth*0.7),
+    intro:"Something below has noticed the noise you make." };
+}
+function rdGuardOptions(){
+  const c = rd.caps, o = [];
+  const pickName = c.pick===5 ? "The Worldsplitter" : ["","Rusty Pickaxe","Iron Pickaxe","Steel Pickaxe","Dwarven Pickaxe"][c.pick];
+  if(c.pick > 0) o.push({ label:"⛏️ Pickaxe strike", flavor:"Aim for the joints.", kind:"mine",
+    cost:3, wear:pickName, dmg:1, stamp:"HIT −1", log:"You land a ringing blow where it hates it." });
+  if(c.hammer) o.push({ label:"🔨 Full hammer swing", flavor:"Wind up. Follow through.", kind:"forge",
+    cost:5, wear:"Forge Hammer", dmg:2, stamp:"CRUNCH −2", log:"The hammer speaks with authority." });
+  if(c.powder > 0) o.push({ label:"💥 Blasting powder", flavor:"Negotiations, concluded.", kind:"blast",
+    cost:1, consume:"Blasting Powder", dmg:3, stamp:"BOOM −3", log:"The blast staggers it badly." });
+  if(rd.res.bars > 0) o.push({ label:"🧱 Hurl an iron bar", flavor:"Expensive ammunition. Effective ammunition.", kind:"forge",
+    cost:2, gain:{barSpend:1}, dmg:2, stamp:"CLANG −2", log:"The bar hits like a fired cannonball." });
+  if(c.smoke > 0) o.push({ label:"💨 Smoke bomb — slip past it", flavor:"You came for the vault, not the glory.", kind:"walk",
+    cost:0, consume:"Smoke Bomb", skip:true, stamp:"VANISHED", log:"When the smoke clears, you are already inside the vault. It is still growling at the door." });
+  o.push({ label:"🫳 Improvised assault", flavor:"Rocks. Fists. Strong language.", kind:"walk",
+    cost:6, risk:{ chance:0.6, failCost:4, failStamp:"IT SHRUGS", failLog:"Your best rock bounces off with a sad tik." },
+    dmg:1, stamp:"SCRAPPY −1", log:"You find a soft spot the hard way." });
+  o.push({ label:"🛡️ Brace for the blow", flavor:"Set your feet. Halve the next hit.", kind:"climb",
+    cost:2, brace:true, stamp:"BRACED", log:"You plant yourself and take it on the pack frame." });
+  return o;
+}
 
 /* ---------------- Twist events: the cave has opinions ---------------- */
 const RD_TWISTS = [
@@ -13669,6 +14027,126 @@ const RD_TWISTS = [
         gain:{}, stamp:"OUTRAN THE MOUNTAIN", log:"You clear the fall with a stride to spare." },
       { label:"Shelter and wait", icon:"⛺", flavor:"Waiting. Alive, but boring.", kind:"walk", cost:3, gain:{}, stamp:"IT PASSES", log:"You wait it out under a good ledge, breathing dust." },
     ]; } },
+  { icon:"🏺", name:"A Relic Alcove", desc:"A niche in the wall, older than the rest of everything. Two objects rest inside, patient as geology.",
+    options(){
+      if(!rd.relicOffer){
+        const pool = rdUnownedRelics();
+        rd.relicOffer = [];
+        for(let i=0;i<2 && pool.length;i++) rd.relicOffer.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+      }
+      const o = [];
+      rd.relicOffer.forEach(id=>{
+        const R = rdRelicDef(id);
+        if(!R) return;
+        o.push({ label:`Take the ${R.name}`, icon:R.icon, flavor:`${R.desc}${R.curse ? " " + R.curse : ""}`, kind:"lock",
+          cost:0, gain:{relic:id}, stamp:R.name.toUpperCase(), log:`You lift the ${R.name} from its dust silhouette.`,
+          disabled: rd.relics.length >= 4 });
+      });
+      o.push({ label:"Touch nothing", icon:"🚶", flavor:"Alcoves like this keep score.", kind:"walk", cost:0, gain:{}, stamp:"UNTEMPTED", log:"You leave the alcove exactly as old as you found it." });
+      return o;
+    } },
+  { icon:"👻", name:"The Collector's Ghost", desc:"A translucent gentleman with excellent taste raises a monocle at your pack. 'Ah. A fellow enthusiast.'",
+    options(){
+      if(!rd.relicOffer){
+        const pool = rdUnownedRelics();
+        rd.relicOffer = pool.length ? [pool[Math.floor(Math.random()*pool.length)]] : [];
+      }
+      const id = rd.relicOffer[0];
+      const R = id ? rdRelicDef(id) : null;
+      const o = [];
+      if(R) o.push({ label:`Buy the ${R.name} — 6,000 🪙`, icon:R.icon, flavor:`${R.desc}${R.curse ? " " + R.curse : ""}`, kind:"lock",
+        cost:0, gain:{relic:id, credits:-6000}, stamp:"SOLD", log:`The ghost counts your coins twice. Old habits.`,
+        disabled: rd.loot.credits < 6000 || rd.relics.length >= 4 });
+      if(R) o.push({ label:"Haggle. Aggressively.", icon:"🗣️", flavor:"He's dead. What's he going to do, leave?", kind:"ghost",
+        cost:2, risk:{ chance:0.5, failCost:8, failStamp:"HE LEFT", failLog:"He evaporates mid-sentence, offended beyond the grave." },
+        gain:{relic:id}, stamp:"A BARGAIN", log:"He respects the audacity. The relic is yours for a story and two compliments.",
+        disabled: rd.relics.length >= 4 });
+      o.push({ label:"Decline politely", icon:"🚶", flavor:"Never buy from the dead.", kind:"walk", cost:0, gain:{}, stamp:"NO SALE", log:"He nods. 'Quite right. Everything here is cursed anyway.' He does not laugh." });
+      return o;
+    } },
+  { icon:"🔧", name:"The Wandering Tinker", desc:"A cart, a mule, a stove, and a woman who has clearly survived worse places than this one.",
+    options(){ return [
+      { label:"Hot stew — 2,500 🪙", icon:"🍲", flavor:"It smells like childhood and burnt garlic.", kind:"forge",
+        cost:0, gain:{credits:-2500, stamina:12}, stamp:"+12⚡", log:"The stew is criminally good. You suspect actual crimes.",
+        disabled: rd.loot.credits < 2500 },
+      { label:"Sell her 2 ore", icon:"⛏️", flavor:"She pays honest rates for dishonest rocks.", kind:"mine",
+        cost:0, gain:{credits:3200}, stamp:"+3,200 🪙", log:"She bites a nugget, nods, and pays cash.",
+        disabled: rd.res.ore < 2, oreSpend:2 },
+      { label:"Trade gossip and move on", icon:"🚶", flavor:"News travels slow down here.", kind:"walk", cost:0, gain:{}, stamp:"WELL MET", log:"She warns you about the floor below. It's always the floor below." },
+    ]; } },
+  { icon:"🎲", name:"The Gambling Ghost", desc:"It sits at a stone table with a pair of bone dice, and it has been waiting a very long time for a fourth hand.",
+    options(){ return [
+      { label:"Double or nothing — the whole purse", icon:"🎲", flavor:`Your ${rd.loot.credits.toLocaleString()} 🪙, on the bones.`, kind:"ghost",
+        cost:1, risk:{ chance:0.5, failCost:2, failStamp:"SNAKE EYES", failLog:"The dice laugh. Half your purse dissolves into cold mist." },
+        gain:{creditsDouble:true}, stamp:"BONES SING", log:"The dice come up doubles. The ghost pays out of a purse that isn't there.",
+        disabled: rd.loot.credits < 1000 },
+      { label:"Tithe a tenth for luck", icon:"🕯️", flavor:"Cheap insurance, as curses go.", kind:"walk",
+        cost:0, gain:{creditsTithe:true, stamina:6}, stamp:"+6⚡", log:"The ghost pockets the tithe and pats your shoulder. The cold spot lingers for an hour." },
+      { label:"Never gamble with the dead", icon:"🚶", flavor:"House rules: the house is dead.", kind:"walk", cost:0, gain:{}, stamp:"WALK AWAY", log:"It shrugs and re-racks the dice for the next fool." },
+    ]; } },
+  { icon:"✨", name:"A Vein of Gold", desc:"Not ore. Gold. Actual gold, bright as a promise — running straight into a crack you'd have to trust.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.pick > 0) o.push({ label:"Mine it fast and greedy", icon:"⛏️", flavor:"Gold does not wait.", kind:"mine",
+        cost:6, wear:(c.pick===5?"The Worldsplitter":["","Rusty Pickaxe","Iron Pickaxe","Steel Pickaxe","Dwarven Pickaxe"][c.pick]),
+        risk:{ chance:0.5, failCost:9, failStamp:"THE CRACK CLOSES", failLog:"The mountain snaps its purse shut. You barely keep your hands." },
+        gain:{credits:9000}, stamp:"+9,000 🪙", log:"You rip the vein out in ropes and fistfuls." });
+      o.push({ label:"Chip off what's safe", icon:"🫳", flavor:"Some is better than none. Usually.", kind:"mine",
+        cost:5, gain:{credits:2800}, stamp:"+2,800 🪙", log:"You take the low fruit and leave the dare." });
+      o.push({ label:"Too shiny. Too easy. Leave.", icon:"🚶", flavor:"Bait gleams.", kind:"walk", cost:0, gain:{}, stamp:"NOT FOOLED", log:"On your way out, you hear the crack grind shut behind you. Huh." });
+      return o;
+    } },
+  { icon:"🛗", name:"The Old Elevator", desc:"A cage of iron lace and one brass lever. The cable disappears upward into dark, and downward into worse.",
+    options(){ return [
+      { label:"Ride it down", icon:"🛗", flavor:"Skips the next chamber. If it holds.", kind:"cart",
+        cost:1, risk:{ chance:0.55, failCost:10, failStamp:"THE CABLE REMEMBERS", failLog:"The cage drops a floor's worth of your stomach before the brake bites." },
+        gain:{cartSkip:true}, stamp:"EXPRESS SERVICE", log:"The cage rattles down past a whole chamber of trouble and opens with a ding." },
+      { label:"Inspect it first, then ride", icon:"🔍", flavor:"Trust, but check the bolts.", kind:"cart",
+        cost:6, risk:{ chance:0.85, failCost:6, failStamp:"BOLTS WERE DECORATIVE", failLog:"Your inspection missed the part where nothing was attached to anything." },
+        gain:{cartSkip:true}, stamp:"EXPRESS SERVICE", log:"Tight, greased, and true. The cage sails down like a butler's answer." },
+      { label:"Take the stairs", icon:"🚶", flavor:"Stairs have never killed anyone on purpose.", kind:"walk", cost:2, gain:{}, stamp:"THE LONG WAY", log:"One hundred and forty steps. You count." },
+    ]; } },
+  { icon:"🎵", name:"The Singing Crystal", desc:"A crystal the size of a door, humming one perfect endless note. Standing near it feels like being forgiven.",
+    options(){ return [
+      { label:"Rest in the sound", icon:"🛌", flavor:"The note fills the cracks in you.", kind:"walk",
+        cost:0, gain:{stamina:10}, stamp:"+10⚡", log:"You lean on the warm stone until you remember what rested feels like." },
+      { label:"Harvest a shard", icon:"⛏️", flavor:"Worth a fortune. Ends the song.", kind:"mine",
+        cost:4, gain:{credits:4200}, stamp:"+4,200 🪙", log:"The shard comes free. The silence afterward has a shape, and you are inside it." },
+      { label:"Leave it singing", icon:"🚶", flavor:"Some things should keep going.", kind:"walk", cost:0, gain:{}, stamp:"THE SONG GOES ON", log:"You hum the note wrong for the rest of the day, on purpose." },
+    ]; } },
+  { icon:"⛑️", name:"The Lost Miner", desc:"A lamp gutters behind a fallen beam. 'Oh thank the stone,' says a voice. 'I've been down here since… what year is it?'",
+    options(){ return [
+      { label:"Guide him all the way out", icon:"🤝", flavor:"It costs you the detour. It's also the right thing.", kind:"walk",
+        cost:8, gain:{credits:5500}, stamp:"+5,500 🪙 · GOOD KARMA", log:"His family pays what they can, which is more than you'd have asked. He waves until you can't see him." },
+      { label:"Point him toward daylight", icon:"👉", flavor:"A map, a torch, a handshake.", kind:"walk",
+        cost:1, gain:{credits:1200}, stamp:"+1,200 🪙", log:"He presses his emergency coins on you and sets off, wobbling but determined." },
+      { label:"Pretend you heard nothing", icon:"🫥", flavor:"You will think about this later.", kind:"dark", cost:0, gain:{}, stamp:"HEARD NOTHING", log:"The lamp gutters behind you. You walk faster than you need to." },
+    ]; } },
+  { icon:"📦", name:"A Very Friendly Chest", desc:"A treasure chest sits in the open, unlocked, gleaming, in the middle of the floor. It is breathing.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.pick > 0) o.push({ label:"Stab it first, questions later", icon:"⛏️", flavor:"Chests don't breathe. QED.", kind:"mine",
+        cost:3, wear:(c.pick===5?"The Worldsplitter":["","Rusty Pickaxe","Iron Pickaxe","Steel Pickaxe","Dwarven Pickaxe"][c.pick]),
+        risk:{ chance:0.85, failCost:6, failStamp:"IT WOKE UP MAD", failLog:"You wing it. It expresses its feelings with teeth." },
+        gain:{credits:7500}, stamp:"+7,500 🪙", log:"It was exactly what you thought it was. Inside the deflating mimic: everyone else's valuables." });
+      o.push({ label:"Just open it", icon:"🫳", flavor:"Maybe it's fine. Maybe it's lunch.", kind:"lock",
+        cost:2, risk:{ chance:0.5, failCost:11, failStamp:"IT HAD TEETH", failLog:"It has teeth, opinions, and your sleeve. You leave it the sleeve." },
+        gain:{credits:7500}, stamp:"+7,500 🪙", log:"It purrs when you open it. Inside: treasure, and a note that says THANK YOU." });
+      o.push({ label:"Back away slowly", icon:"🚶", flavor:"Breathing furniture is a hard no.", kind:"walk", cost:0, gain:{}, stamp:"NOPE", log:"The chest sighs, audibly disappointed, and scuttles into the dark." });
+      return o;
+    } },
+  { icon:"🌫️", name:"The Rust Fog", desc:"An orange mist rolls through the passage, and everything metal it touches grows a beard of rust.",
+    options(){
+      const c = rd.caps, o = [];
+      if(c.cloak) o.push({ label:"Wrap your gear and stride through", icon:"🧥", flavor:"Wool between the fog and your steel.", kind:"ice",
+        cost:3, wear:"Warm Cloak", gain:{}, stamp:"GEAR DRY", log:"The cloak eats the fog's appetite. Your tools come through bright." });
+      o.push({ label:"Wait for it to pass", icon:"⛺", flavor:"Rust is patient. Be patienter.", kind:"walk",
+        cost:8, gain:{}, stamp:"OUTWAITED", log:"You sit on a dry rock and watch the fog rummage past like a slow thief." });
+      o.push({ label:"Sprint it", icon:"🏃", flavor:"Fast metal gathers no rust. Probably.", kind:"blast",
+        cost:2, risk:{ chance:0.6, failCost:8, failStamp:"IT CAUGHT YOU", failLog:"The fog wraps you like a scarf. Everything you own tastes orange now." },
+        gain:{}, stamp:"OUTRAN IT", log:"You beat the fog to the far arch with your buckles still shining." });
+      return o;
+    } },
 ];
 
 /* ---------------- Actions ---------------- */
@@ -13711,11 +14189,30 @@ function rdChoose(i){
   else if(opt.wear) rdWear(opt.wear);
   rd.caps = rdCaps();
   /* Resolve NOW; the cinematic just plays it out. */
-  const success = opt.risk ? Math.random() < opt.risk.chance : true;
-  const crit = success && !!opt.wear && !opt.risk && Math.random() < 0.18;
+  let chance = opt.risk ? opt.risk.chance : 1;
+  if(opt.risk){
+    if(rdRelic("skull")) chance += 0.10;
+    if(rdRelic("compass")) chance -= 0.05;
+    chance = Math.min(0.95, Math.max(0.05, chance));
+  }
+  const success = Math.random() < chance;
+  const critP = rdRelic("hourglass") ? 0.30 : 0.18;
+  const crit = success && !!opt.wear && !opt.risk && Math.random() < critP;
   let cost = rdCost(opt.cost || 0);
-  if(!success) cost += (opt.risk.failCost || 0);
-  if(crit) cost = Math.max(0, cost - 2);
+  const kind = rdOptKind(opt);
+  if(rdRelic("candle") && kind === "dark") cost = 0;
+  if(rdRelic("skull") && kind === "ghost") cost *= 2;
+  if(rd.site.endless) cost = Math.ceil(cost * (1 + 0.06*(rd.depth - 1)));
+  if(!success){
+    let fc = opt.risk.failCost || 0;
+    if(rdRelic("coin") && !rd.relicUsed.coin){
+      rd.relicUsed.coin = true; fc = 0;
+      rdLog("🪙 The Two-Headed Coin spins, lands, and calls the loss a draw. Fail cost refunded.");
+    }
+    cost += fc;
+    if(opt.gain && opt.gain.creditsDouble) rd.loot.credits = Math.floor(rd.loot.credits / 2);
+  }
+  if(crit && !rdRelic("hourglass")) cost = Math.max(0, cost - 2);
   const stamp = !success ? (opt.risk.failStamp || "IT GOES WRONG")
               : crit     ? "MASTERSTROKE"
               : rdDefaultStamp(opt);
@@ -13732,6 +14229,100 @@ function rdChoose(i){
     }, 950);
   }, 800);
 }
+function rdGuardChoose(i){
+  if(!rd || rd.done || rd.playing || !rd.guardian) return;
+  const opt = rdGuardOptions()[i];
+  if(!opt || opt.disabled) return;
+  if(opt.consume && !rdConsume(opt.consume)) return;
+  if(opt.wear) rdWear(opt.wear);
+  rd.caps = rdCaps();
+  let chance = opt.risk ? opt.risk.chance : 1;
+  if(opt.risk && rdRelic("skull")) chance = Math.min(0.95, chance + 0.10);
+  const success = Math.random() < chance;
+  const critP = rdRelic("hourglass") ? 0.30 : 0.18;
+  const crit = success && !!opt.wear && !opt.risk && Math.random() < critP;
+  let cost = rdCost(opt.cost || 0);
+  if(rd.site.endless) cost = Math.ceil(cost * (1 + 0.06*(rd.depth - 1)));
+  if(!success) cost += (opt.risk.failCost || 0);
+  if(crit && !rdRelic("hourglass")) cost = Math.max(0, cost - 2);
+  const stamp = !success ? (opt.risk.failStamp || "IT GOES WRONG")
+              : crit     ? "MASTERSTROKE −" + ((opt.dmg||0)+1)
+              : (opt.stamp || "DONE");
+  rd.playing = { opt, success, crit, cost, stamp, phase:"act", guard:true };
+  const token = ++rdPlayToken;
+  renderRaids();
+  setTimeout(()=>{
+    if(rdPlayToken !== token || !rd || !rd.playing) return;
+    rd.playing.phase = "stamp";
+    renderRaids();
+    setTimeout(()=>{
+      if(rdPlayToken !== token || !rd || !rd.playing) return;
+      rdFinishChoice();
+    }, 950);
+  }, 800);
+}
+function rdGuardAfter(){
+  const g = rd.guardian;
+  rd.guardian = null;
+  rd.guardBeaten = true;
+  if(g.after === "vault") rdVaultOpen();
+  else { saveState(); renderRaids(); }
+}
+function rdGuardFinish(p){
+  const g = rd.guardian;
+  const opt = p.opt;
+  if(!g){ saveState(); renderRaids(); return; }
+  if(p.success){
+    rdLog(opt.log || "…");
+    if(opt.gain && opt.gain.barSpend) rd.res.bars -= opt.gain.barSpend;
+    if(opt.skip){
+      rdSpend(p.cost);
+      if(!rd.done) rdGuardAfter();
+      return;
+    }
+    if(opt.brace) g.braced = true;
+    let dmg = opt.dmg || 0;
+    if(dmg > 0){
+      if(p.crit) dmg += 1;
+      if(rdRelic("tooth")) dmg += 1;
+      g.hp -= dmg;
+    }
+  } else {
+    rdLog(opt.risk.failLog || "It goes badly.");
+  }
+  rdSpend(p.cost);
+  if(rd.done){
+    if(rd.site.endless) state.raids.bestDepth = Math.max(state.raids.bestDepth||0, rd.depth);
+    saveState(); renderRaids(); return;
+  }
+  if(g.hp <= 0){
+    const bonus = rd.site.endless
+      ? Math.round(3500 * rd.depth * (1 + Math.random()*0.4))
+      : Math.round(rd.site.entry * (0.25 + Math.random()*0.15));
+    rd.loot.credits += bonus;
+    rdLog(`🏆 <b>${g.def.name} falls.</b> You strip the trophy haul: +${bonus.toLocaleString()} 🪙`);
+    if((["reliquary","sanctum","hoard"].includes(rd.site.id) || rd.site.endless) && Math.random() < 0.6){
+      const pool = rdUnownedRelics();
+      if(pool.length && rd.relics.length < 4){
+        rdLog("Something glitters in the wreckage…");
+        rdGrantRelic(pool[Math.floor(Math.random()*pool.length)]);
+      }
+    }
+    rdGuardAfter();
+    return;
+  }
+  let hit = g.next;
+  if(g.braced){ hit = Math.ceil(hit/2); g.braced = false; rdLog(`🛡️ You take it braced — <b>−${hit}⚡</b> instead of −${g.next}⚡.`); }
+  else rdLog(`💢 <b>${g.def.name}</b> strikes back — <b>−${hit}⚡</b>`);
+  rdSpend(hit);
+  if(rd.done){
+    if(rd.site.endless) state.raids.bestDepth = Math.max(state.raids.bestDepth||0, rd.depth);
+    saveState(); renderRaids(); return;
+  }
+  g.next = rdGuardTele(g.def);
+  g.round++;
+  saveState(); renderRaids();
+}
 function rdSkipCinematic(){
   if(!rd || !rd.playing) return;
   rdPlayToken++;               /* invalidate pending timers */
@@ -13740,6 +14331,7 @@ function rdSkipCinematic(){
 function rdFinishChoice(){
   if(!rd || !rd.playing) return;
   const p = rd.playing;
+  if(p.guard){ rd.playing = null; rdGuardFinish(p); return; }
   const opt = p.opt;
   const wasTwist = p.twist;
   rd.playing = null;
@@ -13748,28 +14340,72 @@ function rdFinishChoice(){
     rdLog(opt.log || "…");
     if(g.ore) rd.res.ore += g.ore + (p.crit ? 1 : 0);
     if(g.wood) rd.res.wood += g.wood + (p.crit ? 1 : 0);
-    if(g.bars) rd.res.bars += g.bars;
+    if(g.bars) rd.res.bars += g.bars + ((rdRelic("bellows") && g.oreAll) ? 1 : 0);
     if(g.oreAll) rd.res.ore = 0;
     if(g.woodSpend) rd.res.wood -= g.woodSpend;
     if(g.barSpend) rd.res.bars -= g.barSpend;
-    if(g.credits) rd.loot.credits += g.credits;
-    if(g.creditsPct) rd.loot.credits += Math.round(rd.site.vaultCredits[0] * g.creditsPct);
+    if(g.credits){
+      let cr = g.credits;
+      if(cr > 0 && rdRelic("lens")) cr = Math.round(cr * 1.3);
+      rd.loot.credits = Math.max(0, rd.loot.credits + cr);
+    }
+    if(g.creditsPct){
+      let cr = Math.round(rd.site.vaultCredits[0] * g.creditsPct);
+      if(rd.site.endless) cr = Math.round(3000 * rd.depth * g.creditsPct * 10);
+      if(rdRelic("lens")) cr = Math.round(cr * 1.3);
+      rd.loot.credits += cr;
+    }
+    if(g.creditsDouble){ rd.loot.credits *= 2; }
+    if(g.creditsTithe){ rd.loot.credits = Math.round(rd.loot.credits * 0.9); }
+    if(opt.oreSpend){ rd.res.ore = Math.max(0, rd.res.ore - opt.oreSpend); }
+    if(g.stamina){ rd.stamina = Math.min(rd.maxStamina, rd.stamina + g.stamina); }
+    if(g.rest) rd.rested = true;
+    if(g.relic) rdGrantRelic(g.relic);
   } else {
     rdLog(opt.risk.failLog || "It goes badly.");
   }
   if(p.crit) rdLog("⭐ Masterstroke! Your practiced hands make it look easy — and spot a little extra.");
   if(p.success && g.vault){ rdSpend(p.cost); if(rd && !rd.done) rdVault(); else if(rd){ saveState(); renderRaids(); } return; }
+  if(p.success && g.descend){
+    rdSpend(p.cost);
+    if(!rd || rd.done){ if(rd){ saveState(); renderRaids(); } return; }
+    rd.depth++;
+    rd.site.chambers = rdDepthsChambers(rd.depth);
+    rd.idx = 0;
+    rd.rested = false;
+    rd.relicUsed.coin = false;
+    rd.stamina = Math.min(rd.maxStamina, rd.stamina + 12);
+    rd.guardBeaten = false;
+    rdLog(`🌀 <b>Floor ${rd.depth}.</b> The air is thicker. The dark is older. +12⚡ from the descent's second wind.`);
+    if(rd.depth % 3 === 0){
+      rdSpawnGuardian(rdDepthGuardian(rd.depth), "floor");
+    }
+    saveState(); renderRaids(); return;
+  }
   rdSpend(p.cost);
-  if(!rd || rd.done){ if(rd){ saveState(); renderRaids(); } return; }
+  if(!rd || rd.done){
+    if(rd){
+      if(rd.site.endless) state.raids.bestDepth = Math.max(state.raids.bestDepth||0, rd.depth);
+      saveState(); renderRaids();
+    }
+    return;
+  }
   if(wasTwist){
     rd.twist = null;
+    rd.relicOffer = null;
+    if(p.success && g.cartSkip){
+      rd.idx += 1;
+      if(rd.idx >= rd.site.chambers.length){ rdVault(); return; }
+    }
   } else {
     rd.idx += (p.success && g.cartSkip) ? 2 : 1;
     if(rd.idx >= rd.site.chambers.length){ rdVault(); return; }
-    if(!g.cartSkip && rd.idx < rd.site.chambers.length - 1 && Math.random() < 0.2){
+    const twistChance = rdRelic("idol") ? 0.4 : 0.2;
+    if(!g.cartSkip && rd.idx < rd.site.chambers.length - 1 && Math.random() < twistChance){
       rd.twist = RD_TWISTS[Math.floor(Math.random()*RD_TWISTS.length)];
       rdLog("❗ Something off the route catches your attention…");
     }
+    if(rdRelic("flask")) rd.stamina = Math.min(rd.maxStamina, rd.stamina + 2);
   }
   saveState();
   renderRaids();
@@ -13788,19 +14424,37 @@ function rdSmoke(){
 
 /* ---------------- The Vault: loot is computed, then the chest ceremony ---------------- */
 function rdVault(){
+  const G = rd.site.endless ? null : RD_GUARDIANS[rd.site.id];
+  if(G && !rd.guardBeaten){
+    rdSpawnGuardian(G, "vault");
+    saveState(); renderRaids();
+    return;
+  }
+  rdVaultOpen();
+}
+function rdVaultOpen(){
   const site = rd.site;
-  const [lo,hi] = site.vaultCredits;
+  let lo = site.vaultCredits[0], hi = site.vaultCredits[1];
+  let cardPulls = site.cardPulls, minTier = site.minTier, raidCardChance = site.raidCardChance;
+  if(site.endless){
+    lo = 2600 * rd.depth; hi = 4200 * rd.depth;
+    cardPulls = Math.min(6, Math.floor(rd.depth / 2));
+    minTier = 6 + Math.min(5, rd.depth);
+    raidCardChance = Math.min(1, 0.3 + rd.depth * 0.1);
+    state.raids.bestDepth = Math.max(state.raids.bestDepth||0, rd.depth);
+  }
   let credits = Math.round(lo + Math.random()*(hi-lo));
   if(rd.caps.mule) credits = Math.round(credits * 1.5);
   if(rd.caps.map)  credits = Math.round(credits * 1.1);
+  if(rdRelic("compass")) credits = Math.round(credits * 1.2);
   const scrap = Math.round(credits/220);
   rd.loot.credits += credits;
   rd.loot.scrap += scrap;
-  for(let i=0;i<site.cardPulls;i++){
-    const c = arAwardCard(site.minTier);
+  for(let i=0;i<cardPulls;i++){
+    const c = arAwardCard(minTier);
     if(c) rd.loot.cards.push(c);
   }
-  if(Math.random() < site.raidCardChance){
+  if(Math.random() < raidCardChance){
     const pool = cards.filter(c => c.category === "Raid Gear" && c.rarity >= 4);
     const c = pool[Math.floor(Math.random()*pool.length)];
     state.owned[c.id] = (state.owned[c.id]||0) + 1;
@@ -13833,6 +14487,7 @@ function rdOpenChest(){
 }
 function rdRetreat(){
   if(!rd) return;
+  if(rd.site && rd.site.endless) state.raids.bestDepth = Math.max(state.raids.bestDepth||0, rd.depth||1);
   if(!rd.done){
     state.credits += rd.loot.credits;
     state.scrap += rd.loot.scrap;
@@ -13973,7 +14628,8 @@ function renderRaids(){
     stats.innerHTML = `
       <div class="stat"><div class="num">${R.runs||0}</div><div class="lbl">Expeditions</div></div>
       <div class="stat"><div class="num">${Object.values(R.clears||{}).reduce((a,b)=>a+b,0)}</div><div class="lbl">Vaults Reached</div></div>
-      <div class="stat"><div class="num">${(R.bestLoot||0).toLocaleString()}</div><div class="lbl">Best Haul</div></div>`;
+      <div class="stat"><div class="num">${(R.bestLoot||0).toLocaleString()}</div><div class="lbl">Best Haul</div></div>
+      <div class="stat"><div class="num">${R.bestDepth ? "Fl. " + R.bestDepth : "—"}</div><div class="lbl">Deepest Descent</div></div>`;
   }
   if(!rd){
     lobby.style.display = "block"; run.style.display = "none";
@@ -13984,11 +14640,19 @@ function renderRaids(){
       const clears = (state.raids.clears||{})[site.id] || 0;
       const el = document.createElement("div");
       el.className = "rd-site" + (locked ? " locked" : "");
-      el.innerHTML = `
+      el.innerHTML = site.endless ? `
         <div class="rh"><span class="ri">${site.icon}</span><div><div class="rn">${site.name}</div>
           <div class="rs">${site.blurb}</div></div></div>
         <div class="rrow"><span>Outfitting cost</span><b>${site.entry.toLocaleString()} 🪙</b></div>
-        <div class="rrow"><span>Chambers</span><b>${site.chambers.length}</b></div>
+        <div class="rrow"><span>Floors</span><b>∞ — each pays more than the last</b></div>
+        <div class="rrow"><span>Best depth</span><b>${state.raids.bestDepth ? "Floor " + state.raids.bestDepth : "—"}</b></div>
+        ${clears ? `<div class="rd-clear-chip">Surfaced ×${clears}</div>` : ""}
+        <button class="btn ${locked?"secondary":""}" ${locked?"disabled":""}>
+          ${locked ? `🔒 Clear ${RD_SITES.find(s=>s.id===site.unlock).name}` : "Begin the Descent"}</button>` : `
+        <div class="rh"><span class="ri">${site.icon}</span><div><div class="rn">${site.name}</div>
+          <div class="rs">${site.blurb}</div></div></div>
+        <div class="rrow"><span>Outfitting cost</span><b>${site.entry.toLocaleString()} 🪙</b></div>
+        <div class="rrow"><span>Chambers</span><b>${site.chambers.length} + a guardian</b></div>
         <div class="rrow"><span>Vault</span><b>${site.vaultCredits[0].toLocaleString()}–${site.vaultCredits[1].toLocaleString()} 🪙 + cards</b></div>
         ${clears ? `<div class="rd-clear-chip">Cleared ×${clears}</div>` : ""}
         <button class="btn ${locked?"secondary":""}" ${locked?"disabled":""}>
@@ -14004,11 +14668,12 @@ function renderRaids(){
   const def = RD_CHAMBERS[rdChamber()] || RD_CHAMBERS.vault;
   const pct = rd.stamina / rd.maxStamina * 100;
   document.getElementById("rdHud").innerHTML = `
-    <div class="chip">${rd.site.icon} ${Math.min(rd.idx+1, rd.site.chambers.length)} / ${rd.site.chambers.length}</div>
+    <div class="chip">${rd.site.endless ? `🌀 Floor ${rd.depth} · ${Math.min(rd.idx+1, rd.site.chambers.length)}/${rd.site.chambers.length}` : `${rd.site.icon} ${Math.min(rd.idx+1, rd.site.chambers.length)} / ${rd.site.chambers.length}`}</div>
     <div class="rd-stam"><i style="width:${pct}%; background:${pct>50?"#3ddc84":pct>25?"#ffd35c":"#ff5c5c"}"></i><span>⚡ ${Math.round(rd.stamina)} / ${rd.maxStamina}</span></div>
     <div class="chip">⛏️ ${rd.res.ore}</div><div class="chip">🧱 ${rd.res.bars}</div><div class="chip">🪵 ${rd.res.wood}</div>
     ${rd.caps.rations > 0 && !rd.done ? `<button class="btn secondary rd-eat" onclick="rdEatRation()">🍞 +12⚡ (×${rd.caps.rations})</button>` : ""}
-    ${rd.caps.tonics > 0 && !rd.done ? `<button class="btn secondary rd-eat" onclick="rdDrinkTonic()">🥤 +22⚡ (×${rd.caps.tonics})</button>` : ""}`;
+    ${rd.caps.tonics > 0 && !rd.done ? `<button class="btn secondary rd-eat" onclick="rdDrinkTonic()">🥤 +22⚡ (×${rd.caps.tonics})</button>` : ""}
+    ${(rd.relics||[]).map(id=>{ const R = rdRelicDef(id); return R ? `<span class="chip rd-relic" title="${R.name}: ${R.desc}${R.curse ? " But: " + R.curse : ""}">${R.icon}</span>` : ""; }).join("")}`;
   const panel = document.getElementById("rdChamber");
   if(rd.done && rd.dead){
     panel.innerHTML = `
@@ -14024,14 +14689,24 @@ function renderRaids(){
     if(rd.chest === "closed"){
       panel.innerHTML = `
         <div class="rd-chest-stage">
-          <div class="rd-chest closed" id="rdChestEl" onclick="rdOpenChest()">🧰</div>
+          <div class="tch closed" id="rdChestEl" onclick="rdOpenChest()">
+            <div class="tch-glow"></div>
+            <div class="tch-lid"><div class="tch-lid-inner"></div><div class="tch-lid-band"></div><div class="tch-lid-trim"></div></div>
+            <div class="tch-inside"></div>
+            <div class="tch-base"><div class="tch-band b1"></div><div class="tch-band b2"></div><div class="tch-latch"></div><div class="tch-lock"><div class="tch-keyhole"></div></div></div>
+          </div>
           <div class="rd-chest-hint">The expedition's prize. <b>Tap to open.</b></div>
         </div>`;
     } else if(rd.chest === "opening"){
       panel.innerHTML = `
         <div class="rd-chest-stage">
           <div class="rd-gold-flash"></div>
-          <div class="rd-chest opening">🧰</div>
+          <div class="tch opening" >
+            <div class="tch-glow"></div>
+            <div class="tch-lid"><div class="tch-lid-inner"></div><div class="tch-lid-band"></div><div class="tch-lid-trim"></div></div>
+            <div class="tch-inside"></div>
+            <div class="tch-base"><div class="tch-band b1"></div><div class="tch-band b2"></div><div class="tch-latch"></div><div class="tch-lock"><div class="tch-keyhole"></div></div></div>
+          </div>
           <div class="rd-coin-host" id="rdCoinHost"></div>
         </div>`;
       rdSpawnCoins(document.getElementById("rdCoinHost"));
@@ -14087,6 +14762,30 @@ function renderRaids(){
           ${p.cost > 0 ? `<div class="rd-stamp-cost">−${p.cost}⚡</div>` : ""}
         </div>`;
     }
+  } else if(rd.guardian){
+    const G = rd.guardian;
+    const opts = rdGuardOptions();
+    panel.innerHTML = `
+      <div class="rd-gstage">
+        <div class="rd-gicon">${G.def.icon}</div>
+        <div class="rd-gname">${G.def.name}</div>
+        <div class="rd-ghp">${"🔴".repeat(Math.max(0,G.hp))}${"⚫".repeat(Math.max(0, G.maxHp - G.hp))}</div>
+        <div class="rd-gtele">💢 Winding up: <b>−${G.next}⚡</b>${G.braced ? ` · 🛡️ braced` : ""} · round ${G.round}</div>
+      </div>
+      <div class="rd-dgrid">${opts.map((o,i)=>{
+        const uses = o.wear && o.wear !== "light" && isFinite(rdUsesLeft(o.wear)) ? `<span class="du">🔧 ${rdUsesLeft(o.wear)} uses left</span>` : "";
+        const risk = o.risk ? `<span class="dr">🎲 ${Math.round(o.risk.chance*100)}% odds · fail −${o.risk.failCost}⚡</span>` : "";
+        const cost = rdCost(o.cost) > 0 ? `−${rdCost(o.cost)}⚡` : "free";
+        return `
+        <button class="rd-dcard${o.risk ? " risky" : ""}" data-i="${i}" ${o.disabled ? "disabled" : ""}>
+          <span class="di">${rdOptIcon(o)}</span>
+          <span class="dl">${rdOptLabel(o)}</span>
+          ${o.flavor ? `<span class="df">${o.flavor}</span>` : ""}
+          ${uses}${risk}
+          <span class="dc">${cost}</span>
+        </button>`;}).join("")}</div>
+      <button class="btn secondary" style="margin-top:10px;" onclick="rdRetreat()">🏳️ Flee with your loot</button>`;
+    panel.querySelectorAll(".rd-dcard").forEach(b=>b.addEventListener("click", ()=>rdGuardChoose(+b.dataset.i)));
   } else {
     const cdef = rd.twist || def;
     const opts = cdef.options();

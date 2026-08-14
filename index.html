@@ -115,6 +115,7 @@
     background:transparent; border:1px solid transparent; color:var(--muted);
     padding:8px 16px; border-radius:10px; cursor:pointer; font-size:14px; font-weight:600;
   }
+  nav button i{ display:none; }
   nav button.active{ background:var(--panel2); color:var(--text); border-color:#333a52;}
   main{ padding:24px; max-width:1200px; margin:0 auto; }
   .panel{ background:var(--panel); border:1px solid #262b3a; border-radius:var(--radius); padding:20px; margin-bottom:20px;}
@@ -681,7 +682,7 @@
   .progress{ height:8px; background:#262b3a; border-radius:5px; overflow:hidden; margin-top:4px;}
   .progress > div{ height:100%; background:linear-gradient(90deg,var(--accent),#8ba3ff); }
 
-  .upgrade-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:14px; }
+  .upgrade-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:14px; }
   .upgrade-card{
     background:var(--panel2); border:1px solid #2b3142; border-radius:12px; padding:16px;
     display:flex; flex-direction:column; gap:8px;
@@ -732,7 +733,7 @@
   .mini-card .rtag{ font-size:8px; font-weight:800; text-transform:uppercase; opacity:.85; }
 
   .market-countdown{ font-weight:700; color:var(--accent); font-size:13px; }
-  .market-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:14px; }
+  .market-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:14px; }
   .market-card{
     background:var(--panel2); border:2px solid #2b3142; border-radius:14px; padding:14px;
     display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
@@ -1057,7 +1058,7 @@
 
   /* ---------------- RISK IT ALL: lobby + ascent ---------------- */
   .br-lobby{
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
     gap:14px; margin-bottom:8px;
   }
   .br-game-card{
@@ -1139,8 +1140,104 @@
   @media (max-width:520px){
     .rk-stage{ height:240px; }
     .rk-mult{ font-size:40px; }
-    .br-lobby{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+    .br-lobby{ grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
   }
+
+  /* ---------------- Collection filter bar ---------------- */
+  .cfilt{ position:sticky; top:112px; z-index:30; margin-bottom:14px; padding:10px;
+    border:1px solid rgba(255,255,255,0.09); border-radius:14px;
+    background:rgba(18,20,28,0.94); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+  .cfilt > #searchBox{ width:100%; margin:0; }
+  .cfilt-toggle{ display:flex; align-items:center; gap:6px; white-space:nowrap;
+    background:var(--panel2); border:1px solid #2b3142; color:var(--text);
+    padding:9px 13px; border-radius:10px; font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .cfilt-toggle:hover{ border-color:var(--accent); }
+  .cf-caret{ font-size:10px; color:var(--muted); transition:transform .18s ease; }
+  .cfilt.open .cf-caret{ transform:rotate(180deg); }
+  .cf-count{ display:none; min-width:17px; height:17px; padding:0 4px; border-radius:999px;
+    background:var(--accent); color:#0d1018; font-size:10px; font-weight:800;
+    align-items:center; justify-content:center; }
+  .cf-count.on{ display:inline-flex; }
+  .cfilt-more{ display:none; grid-column:1 / -1; gap:8px; flex-wrap:wrap; }
+  .cfilt.open .cfilt-more{ display:flex; }
+  .cfilt-more select{ flex:1 1 140px; min-width:0; }
+  .cf-clear{ background:transparent; border:1px solid rgba(255,255,255,0.14); color:var(--muted);
+    border-radius:10px; padding:8px 13px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+  .cf-clear:hover{ border-color:#ff6a5e; color:#ff8a80; }
+  .cfilt-chips{ grid-column:1 / -1; display:flex; gap:6px; overflow-x:auto; padding-bottom:1px;
+    scrollbar-width:none; }
+  .cfilt-chips::-webkit-scrollbar{ display:none; }
+  .cfilt-chips button{ flex:0 0 auto; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.12); color:var(--muted); border-radius:999px;
+    padding:5px 11px; font-family:inherit; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .cfilt-chips button:hover{ border-color:var(--accent); color:var(--text); }
+  .cfilt-chips button.on{ background:rgba(94,111,216,0.25); border-color:var(--accent); color:var(--text); }
+  @media (max-width:640px){ .cfilt{ top:96px; padding:8px; } }
+
+  /* ---------------- Collapsible stat strip ---------------- */
+  .sb{ margin:0 0 12px; border:1px solid rgba(255,255,255,0.09); border-radius:12px;
+    background:rgba(255,255,255,0.035); overflow:hidden; }
+  .sb-head{ width:100%; display:flex; align-items:center; gap:10px; padding:9px 13px;
+    background:none; border:none; color:var(--text); font-family:inherit; cursor:pointer; text-align:left; }
+  .sb-sum{ flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px; font-size:12.5px; }
+  .sb-sum b{ font-weight:800; }
+  .sb-sum span{ color:var(--muted); font-size:11px; }
+  .sb-sum .sep{ color:rgba(255,255,255,0.22); font-style:normal; margin:0 3px; }
+  .sb-sum .sb-empty{ color:var(--muted); font-size:12px; }
+  .sb-caret{ color:var(--muted); font-size:12px; transition:transform .18s ease; flex:none; }
+  .sb.open .sb-caret{ transform:rotate(180deg); }
+  .sb-body{ display:none; padding:2px 13px 12px; }
+  .sb.open .sb-body{ display:block; }
+  .sb-body .stats-bar{ margin:0; }
+  .sb:hover{ border-color:rgba(255,255,255,0.16); }
+
+  /* ---------------- Collapsible help ---------------- */
+  .uh{ margin:12px 0 0; border:1px solid rgba(255,255,255,0.08); border-radius:12px;
+    background:rgba(255,255,255,0.025); overflow:hidden; }
+  .uh-head{ width:100%; display:flex; align-items:center; gap:9px; padding:8px 12px;
+    background:none; border:none; color:var(--muted); font-family:inherit; cursor:pointer; text-align:left; }
+  .uh-head .q{ width:18px; height:18px; border-radius:50%; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:11px; font-weight:800; color:var(--bg2);
+    background:var(--muted); }
+  .uh-head .t{ flex:1; font-size:12px; font-weight:700; }
+  .uh-caret{ font-size:11px; transition:transform .18s ease; }
+  .uh.open .uh-caret{ transform:rotate(180deg); }
+  .uh.open .uh-head{ color:var(--text); }
+  .uh.open .uh-head .q{ background:var(--accent); }
+  .uh-body{ display:none; padding:0 12px 11px; }
+  .uh.open .uh-body{ display:block; }
+  .uh-body > *{ margin-top:0 !important; }
+  .uh-fold{ background:rgba(255,255,255,0.035); border-color:rgba(255,255,255,0.1); margin:0 0 12px; }
+  .uh-fold .uh-head{ color:var(--text); padding:12px 14px; }
+  .uh-fold .uh-head .t{ font-size:14.5px; font-weight:800; }
+  .uh-fold .uh-body{ padding:0 14px 14px; }
+
+  /* ---------------- Header gear, Play hub, back bar ---------------- */
+  .hdr-gear{ background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    color:var(--text); width:36px; height:36px; border-radius:10px; font-size:16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex:none; }
+  .hdr-gear:hover{ border-color:var(--accent); }
+  .hdr-gear.active{ border-color:var(--accent); background:rgba(255,255,255,0.1); }
+  .play-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:11px; }
+  .play-card{ position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:5px;
+    text-align:left; padding:15px 14px 14px; border-radius:16px; cursor:pointer; font-family:inherit; color:var(--text);
+    border:1px solid rgba(255,255,255,0.11);
+    background:linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
+    transition:transform .13s, border-color .13s, background .13s; }
+  .play-card:hover{ transform:translateY(-3px); border-color:var(--accent); background:rgba(255,255,255,0.08); }
+  .play-card:active{ transform:translateY(0) scale(0.985); }
+  .play-card .pi{ font-size:30px; line-height:1; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+  .play-card .pn{ font-weight:800; font-size:15px; }
+  .play-card .pd{ font-size:11.5px; color:var(--muted); line-height:1.4; }
+  .play-card .pmeta{ margin-top:6px; font-size:10.5px; font-weight:800; letter-spacing:0.04em;
+    color:var(--accent); background:rgba(255,255,255,0.06); border-radius:999px; padding:3px 9px; }
+  .play-back{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .play-back button{ background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.13);
+    color:var(--text); padding:7px 13px; border-radius:999px; font-family:inherit; font-weight:700;
+    font-size:12.5px; cursor:pointer; }
+  .play-back button:hover{ border-color:var(--accent); }
+  .play-back .pb-title{ font-weight:800; font-size:14px; }
 
   /* ---------------- MOBILE HEADER + NAV ---------------- */
   @media (max-width:640px){
@@ -1157,14 +1254,22 @@
     .credits{ padding:7px 12px; font-size:13px; margin-left:auto; }
 
     nav{
-      top:0; padding:8px 12px; gap:6px;
-      flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain;
-      -webkit-overflow-scrolling:touch; scrollbar-width:none;
-      -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%);
-              mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%);
+      top:0; padding:5px 5px 6px; gap:2px;
+      flex-wrap:nowrap; overflow:hidden;
     }
-    nav::-webkit-scrollbar{ display:none; }
-    nav button{ flex:0 0 auto; white-space:nowrap; padding:8px 14px; scroll-snap-align:center; }
+    nav button{
+      flex:1 1 0; min-width:0; padding:5px 2px 4px; border-radius:12px;
+      display:flex; flex-direction:column; align-items:center; gap:2px;
+      font-size:9.5px; font-weight:700; letter-spacing:-0.2px; line-height:1.1;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    nav button i{ display:block; font-style:normal; font-size:16px; line-height:1; }
+    /* the gear tucks beside the title so the credits row never wraps */
+    .hdr-gear{ position:absolute; top:9px; right:14px; width:30px; height:30px; font-size:14px; }
+    header{ padding:9px 16px 10px; }
+    header h1{ padding-right:38px; }
+    header .row{ gap:7px; }
+    .scrap{ font-size:11.5px; }
 
     main{ padding:16px; }
     .panel{ padding:16px; }
@@ -1385,7 +1490,7 @@
     border:1px solid rgba(255,211,92,.3); border-radius:10px; padding:8px 12px;
   }
 
-  .sg-palette{ display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:10px; margin-top:12px; }
+  .sg-palette{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; margin-top:12px; }
   .sg-tow{
     background:var(--panel2); border:1px solid #2b3142; border-radius:12px; padding:10px 11px;
     cursor:pointer; text-align:left; color:var(--text); font-family:inherit;
@@ -1414,7 +1519,7 @@
   .sg-sel .sd{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.55; }
   .sg-sel .sbtns{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 
-  .sg-paths{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; margin-top:12px; }
+  .sg-paths{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:12px; }
   .sg-paths .pt{ grid-column:1/-1; font-size:12px; font-weight:800; color:#ffd35c; }
   .sg-path{
     display:grid; grid-template-columns:auto 1fr; gap:4px 9px; align-items:center; text-align:left;
@@ -1601,7 +1706,7 @@
   .tk-tab:hover{ color:var(--text); border-color:#4a5270; }
   .tk-tab.on{ background:rgba(108,140,255,.14); border-color:var(--accent); color:var(--text); }
   .tk-slotnote{ color:var(--muted); font-size:12.5px; margin-bottom:12px; }
-  .tk-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:12px; }
+  .tk-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
   .tk-item{
     background:var(--panel2); border:1px solid #2b3142; border-radius:12px; padding:12px 14px;
     display:flex; flex-direction:column; gap:7px;
@@ -1701,7 +1806,7 @@
 .ar-cond{ font-size:0.95rem; color:#cfd3e4; margin:10px 2px 4px; }
 .ar-rival{ color:#ffcf6a; font-size:0.9rem; margin:2px 2px 4px; }
 .ar-oracle{ color:#c9a6ff; font-size:0.9rem; margin:2px 2px 4px; }
-.ar-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(156px,1fr)); gap:9px; margin-top:10px; }
+.ar-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:9px; margin-top:10px; }
 .ar-card{ position:relative; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09);
   border-radius:12px; padding:14px 9px 12px; text-align:center; display:flex; flex-direction:column; }
 .ar-card.ar-champ{ border-color:rgba(255,207,64,0.5); }
@@ -1765,7 +1870,7 @@
   background:rgba(255,255,255,0.05); color:#e8eaf5; cursor:pointer; }
 .ar-actions button:hover{ border-color:#c9a6ff; }
 .ar-actions button:disabled{ opacity:0.5; cursor:default; }
-.ar-note{ font-size:0.85rem; color:#9aa0b6; margin-top:10px; line-height:1.5; }
+.ar-note{ margin-top:0 !important; font-size:0.85rem; color:#9aa0b6; margin-top:10px; line-height:1.5; }
 .ar-livebar{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;
   margin-top:10px; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08);
   border-radius:12px; padding:10px 12px; font-size:0.9rem; }
@@ -2205,7 +2310,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .pk-over .t{ font-size:24px; font-weight:900; letter-spacing:1px; }
 .pk-over .s{ color:var(--muted); font-size:13px; line-height:1.5; }
 .pk-over .payline{ font-size:15px; font-weight:800; color:#ffd35c; }
-.pk-help{ margin-top:12px; font-size:12.5px; color:var(--text); background:rgba(255,255,255,0.04);
+.pk-help{ margin-top:0; font-size:12.5px; color:var(--text); background:rgba(255,255,255,0.04);
   border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:560px; margin-left:auto; margin-right:auto; }
 .pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
 .pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
@@ -2225,26 +2330,35 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     <div class="scrap">♻️ <span id="scrapCount">0</span> Scrap</div>
     <div class="scrap">🎖️ <span id="repCount">0</span> Reputation</div>
     <div class="credits"><span class="coin">🪙</span> <span id="creditCount">0</span> Credits</div>
+    <button class="hdr-gear" id="hdrGear" title="Account &amp; settings" aria-label="Account and settings">⚙️</button>
   </div>
 </header>
 
 <nav>
-  <button data-tab="mining">Mining</button>
-  <button class="active" data-tab="packs">Packs</button>
-  <button data-tab="upgrades">Upgrades</button>
-  <button data-tab="market">Market</button>
-  <button data-tab="empire">Empire</button>
-  <button data-tab="siege">Siege</button>
-  <button data-tab="raids">Raids</button>
-  <button data-tab="arena">Arena</button>
-  <button data-tab="fishing">Fishing</button>
-  <button data-tab="casino">Risk it All</button>
-  <button data-tab="poker">Poker Rush</button>
-  <button data-tab="collection">Collection</button>
-  <button data-tab="account">Account</button>
+  <button data-tab="mining"><i>⛏️</i>Mining</button>
+  <button class="active" data-tab="packs"><i>🎴</i>Packs</button>
+  <button data-tab="upgrades"><i>⚒️</i>Upgrades</button>
+  <button data-tab="market"><i>🏪</i>Market</button>
+  <button data-tab="empire"><i>🏛️</i>Empire</button>
+  <button data-tab="play"><i>🎮</i>Play</button>
+  <button data-tab="collection"><i>📚</i>Collection</button>
 </nav>
 
 <main>
+
+  <div class="play-back" id="playBack" style="display:none;">
+    <button type="button" onclick="uiBackToPlay()">‹ All games</button>
+    <span class="pb-title" id="playBackTitle"></span>
+  </div>
+
+  <section id="tab-play" style="display:none;">
+    <div class="panel">
+      <h2 style="margin-top:0;">🎮 Play</h2>
+      <p style="color:var(--muted); font-size:12.5px; margin:4px 0 12px;">
+        Six ways to turn credits into more credits — or into a very good story.</p>
+      <div class="play-grid" id="playGrid"></div>
+    </div>
+  </section>
 
   <section id="tab-mining" style="display:none;">
     <div class="panel">
@@ -2273,8 +2387,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         </div>
       </div>
     </div>
-    <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:6px;">Collection Boosts</div>
+    <div class="ui-help" data-help="Collection Boosts — what each rarity adds">
       <div style="color:var(--muted); font-size:13px; margin-bottom:12px;">
         Every unique card you own — not duplicates — permanently adds to your mining rate. Rarer cards are worth much more.
       </div>
@@ -2324,8 +2437,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="pack-shelf" id="packShelf"></div>
     </div>
 
-    <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:10px;">How Pulls Work</div>
+    <div class="ui-help" data-help="How pulls work">
+      <div style="font-weight:800; font-size:15px; margin-bottom:10px; display:none;">How Pulls Work</div>
       <div style="color:var(--muted); font-size:13px; line-height:1.6;">
         Every pack opens 5 cards, rolled from that pack's own set. The last card in every pack is guaranteed
         <b>Handy</b> rarity or better (higher with Guaranteed Slot upgrades), so packs never feel like a total whiff.
@@ -2350,26 +2463,21 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       </div>
     </div>
 
-    <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">⛏️ Mining Upgrades</div>
+    <div class="ui-fold" data-help="⛏️ Mining Upgrades" data-open="1">
       <div class="upgrade-grid" id="upgradesMining"></div>
     </div>
 
-    <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🍀 Luck Upgrades</div>
+    <div class="ui-fold" data-help="🍀 Luck Upgrades">
       <div class="upgrade-grid" id="upgradesLuck"></div>
     </div>
 
-    <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">💰 Economy Upgrades</div>
+    <div class="ui-fold" data-help="💰 Economy Upgrades">
       <div class="upgrade-grid" id="upgradesEconomy"></div>
     </div>
 
-    <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:4px;">🎣 Angler Training</div>
-      <div style="color:var(--muted); font-size:13px; margin-bottom:14px; line-height:1.6;">
-        Permanent skill for the <b>Fishing</b> tab, bought with Credits. This is the angler — the tackle itself is
-        bought at the Tackle Shop in the Market and equipped on the Fishing tab.
+    <div class="ui-fold" data-help="🎣 Angler Training">
+      <div style="color:var(--muted); font-size:12.5px; margin-bottom:12px; line-height:1.55;">
+        Permanent skill for <b>Fishing</b>, bought with Credits. Tackle itself is sold at the Tackle Shop in the Market.
       </div>
       <div class="upgrade-grid" id="anglerGrid"></div>
     </div>
@@ -2394,7 +2502,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     </div>
 
 
-    <div class="panel">
+    <div class="ui-fold" data-help="🎣 The Tackle Shop">
       <div style="font-weight:800; font-size:16px; margin-bottom:4px;">🎣 The Tackle Shop</div>
       <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
         Rods, reels, line, hooks, lures and clothes — buy them here, then equip them on the <b>Fishing</b> tab.
@@ -2404,7 +2512,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div id="tackleShop"></div>
     </div>
 
-    <div class="panel">
+    <div class="ui-fold" data-help="💵 Sell Your Cards">
       <div style="font-weight:800; font-size:16px; margin-bottom:4px;">💵 Sell Your Cards</div>
       <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
         Sell cards straight out of your collection for credits — rarer cards are worth a lot more.
@@ -2542,7 +2650,9 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div style="text-align:center; padding:6px 10px 2px;">
         <div style="font-size:2rem;">🎒</div>
         <h2 style="margin:6px 0 8px;">Raids</h2>
-        <p style="color:#9aa0b6; max-width:760px; margin:0 auto; line-height:1.55;">Expeditions into dark places, powered by your <b>Raid Gear</b> cards.
+      </div>
+      <div class="ui-help" data-help="How raids work" style="text-align:left;">
+        <p style="color:#9aa0b6; margin:0; line-height:1.55;">Expeditions into dark places, powered by your <b>Raid Gear</b> cards.
         Mine ore with your pickaxe, smelt it in your furnace, hammer the bars into keys — every chamber is a puzzle, and the right card turns a brutal slog into a stroll.
         Every tool has a <b>working life</b>: wear it out and it breaks for good. Gear comes from the <b>Raid Supplies</b> pack, and from raid vaults themselves.</p>
       </div>
@@ -2628,7 +2738,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div><span class="lbl">Credits won</span><b id="brWon">0</b></div>
       <div><span class="lbl">Net credits</span><b id="brNet">0</b></div>
       <div><span class="lbl">Best flip streak</span><b id="brStreak">0</b></div>
-      <div style="flex:1 1 100%; color:#7e9c8b; font-size:11.5px;">Scrap and free pulls won on the wheel aren't counted here.</div>
+      <div style="flex:1 1 100%; color:#7e9c8b; font-size:11px; opacity:.75;">Scrap and free wheel pulls aren't counted here.</div>
     </div>
 
     <div class="br-backbar" id="brBackBar" style="display:none;">
@@ -3018,10 +3128,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   <section id="tab-poker" style="display:none;">
   <div class="panel">
     <h2 style="margin-top:0;">🃏 Poker Rush</h2>
-    <p style="color:var(--muted); font-size:12.5px; margin:4px 0 10px;">
-      The stack rises. Swap cards left and right to line up <b>poker hands</b> — three of a kind,
-      straights, flushes — in any row or column. Hands vanish, cards fall, chains pay big.
-      Don't let the stack hit the top.</p>
+
     <div class="stats-bar" id="pkStats"></div>
     <div class="pk-hud">
       <div class="chip">🏅 <b id="pkHudScore">0</b></div>
@@ -3033,7 +3140,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <canvas id="pkCanvas" width="672" height="1456"></canvas>
       <div class="pk-over" id="pkOver"></div>
     </div>
-    <div class="pk-help">
+    <div class="pk-help ui-help" data-help="Hands, jokers &amp; controls">
       <b>Hands</b> — in a row or column, side by side:
       <div class="pk-handrow"><span>Three+ of a kind</span><span>K·K·K</span></div>
       <div class="pk-handrow"><span>Straight (3+, in order)</span><span>9·10·J</span></div>
@@ -3052,35 +3159,33 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
 <section id="tab-collection" style="display:none;">
     <div class="panel">
-      <div class="row" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div class="stats-bar" style="margin-bottom:0;">
-          <div class="stat"><div class="num" id="playerLevelNum">1</div><div class="lbl" id="playerTitleLbl">Novice Collector</div></div>
-          <div class="stat"><div class="num" id="playerXPNum">0</div><div class="lbl">Collection XP</div></div>
-        </div>
-      </div>
-      <div class="progress" style="margin-top:12px;"><div id="playerXPBar" style="width:0%"></div></div>
-      <div style="color:var(--muted); font-size:12px; margin-top:8px;" id="playerXPToNext"></div>
-      <div style="color:var(--muted); font-size:12px; margin-top:6px;" id="playerLevelBonuses"></div>
-    </div>
-
-    <div class="panel">
       <div class="stats-bar">
         <div class="stat"><div class="num" id="statUnique">0/0</div><div class="lbl">Unique Items</div></div>
         <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total Cards Owned</div></div>
         <div class="stat"><div class="num" id="statPacks">0</div><div class="lbl">Packs Opened</div></div>
+        <div class="stat"><div class="num" id="playerLevelNum">1</div><div class="lbl" id="playerTitleLbl">Novice Collector</div></div>
+        <div class="stat"><div class="num" id="playerXPNum">0</div><div class="lbl">Collection XP</div></div>
       </div>
-      <div class="progress"><div id="statBar" style="width:0%"></div></div>
+      <div class="progress" style="margin-top:10px;"><div id="statBar" style="width:0%"></div></div>
+      <div class="progress" style="margin-top:8px;"><div id="playerXPBar" style="width:0%"></div></div>
+      <div style="color:var(--muted); font-size:12px; margin-top:8px;" id="playerXPToNext"></div>
+      <div style="color:var(--muted); font-size:12px; margin-top:6px;" id="playerLevelBonuses"></div>
     </div>
 
-    <div class="filters">
-      <input type="text" id="searchBox" placeholder="Search items…" oninput="onFilterChange()">
-      <select id="rarityFilter" onchange="onFilterChange()"><option value="all">All Rarities</option></select>
-      <select id="categoryFilter" onchange="onFilterChange()"><option value="all">All Categories</option></select>
-      <select id="ownedFilter" onchange="onFilterChange()">
-        <option value="all">All</option>
-        <option value="owned">Owned Only</option>
-        <option value="missing">Missing Only</option>
-      </select>
+    <div class="cfilt" id="colFilterBar">
+      <input type="text" id="searchBox" placeholder="🔍 Search items…" oninput="onFilterChange()">
+      <button type="button" class="cfilt-toggle" id="colFilterToggle">Filters <span class="cf-count" id="colFilterCount"></span> <span class="cf-caret">▾</span></button>
+      <div class="cfilt-more" id="colFilterMore">
+        <select id="rarityFilter" onchange="onFilterChange()"><option value="all">All Rarities</option></select>
+        <select id="categoryFilter" onchange="onFilterChange()"><option value="all">All Categories</option></select>
+        <select id="ownedFilter" onchange="onFilterChange()">
+          <option value="all">All</option>
+          <option value="owned">Owned Only</option>
+          <option value="missing">Missing Only</option>
+        </select>
+        <button type="button" class="cf-clear" id="colFilterClear">Clear</button>
+      </div>
+      <div class="cfilt-chips" id="colChips"></div>
     </div>
 
     <div class="grid" id="collectionGrid"></div>
@@ -5308,12 +5413,55 @@ function nextPage(){
   const maxPage = Math.max(0, Math.ceil(lastFilteredCount/PAGE_SIZE)-1);
   if(currentPage<maxPage){ currentPage++; renderCollection(); }
 }
-function onFilterChange(){ currentPage = 0; renderCollection(); }
+function onFilterChange(){ currentPage = 0; uiSyncFilterBar(); renderCollection(); }
+/* ---- Collection filter bar: one row, everything else on demand ---- */
+function uiSyncFilterBar(){
+  const bar = document.getElementById("colFilterBar");
+  if(!bar) return;
+  const rf = document.getElementById("rarityFilter");
+  const cf = document.getElementById("categoryFilter");
+  const of = document.getElementById("ownedFilter");
+  let n = 0;
+  if(rf && rf.value !== "all") n++;
+  if(cf && cf.value !== "all") n++;
+  if(of && of.value !== "all") n++;
+  const badge = document.getElementById("colFilterCount");
+  if(badge){ badge.textContent = n; badge.classList.toggle("on", n > 0); }
+  document.querySelectorAll("#colChips button").forEach(b=>
+    b.classList.toggle("on", cf && b.dataset.cat === cf.value));
+}
+function uiBuildFilterChips(){
+  const host = document.getElementById("colChips");
+  if(!host || host.dataset.built) return;
+  host.dataset.built = "1";
+  const cats = ["all"].concat([...new Set(cards.map(c=>c.category))]);
+  host.innerHTML = cats.map(cat=>
+    `<button type="button" data-cat="${cat}">${cat === "all" ? "All cards" : cat}</button>`).join("");
+  host.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
+    const cf = document.getElementById("categoryFilter");
+    if(cf){ cf.value = b.dataset.cat; onFilterChange(); }
+  }));
+}
+(function uiFilterBarInit(){
+  const t = document.getElementById("colFilterToggle");
+  const bar = document.getElementById("colFilterBar");
+  if(t && bar) t.addEventListener("click", ()=>bar.classList.toggle("open"));
+  const c = document.getElementById("colFilterClear");
+  if(c) c.addEventListener("click", ()=>{
+    ["rarityFilter","categoryFilter","ownedFilter"].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value = "all";
+    });
+    const sb = document.getElementById("searchBox"); if(sb) sb.value = "";
+    onFilterChange();
+  });
+})();
 
 let collectionOpenStack = null;
 function renderCollection(){
   const grid = document.getElementById("collectionGrid");
   grid.innerHTML = "";
+  uiBuildFilterChips();
+  uiSyncFilterBar();
 
   const filtered = getFilteredCards();
   const groupMap = new Map();
@@ -13073,7 +13221,7 @@ function arRenderPanel(){
         <button id="arWatchBtn">Just watch</button>
         <button id="arRerollBtn">New matchup</button>
       </div>
-      <div class="ar-note">Win your bet to earn <b>credits × odds</b>, permanent 🎖️ <b>Glory</b> (adds straight to your Army Strength), and at longer odds, <b>cards</b>. Beating the reigning champion pays half again more Glory.</div>`;
+      <div class="ar-note ui-help" data-help="How betting pays">Win your bet to earn <b>credits × odds</b>, permanent 🎖️ <b>Glory</b> (adds straight to your Army Strength), and at longer odds, <b>cards</b>. Beating the reigning champion pays half again more Glory.</div>`;
     wrap.querySelectorAll("[data-bet]").forEach(b=>b.addEventListener("click",()=>{
       const amt = +document.getElementById("arWager").value;
       state.arena.lastWager = amt;
@@ -15742,28 +15890,180 @@ document.addEventListener("keyup", e=>{
 })();
 
 /* ---------------- NAV ---------------- */
-document.querySelectorAll("nav button").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    try{ btn.scrollIntoView({inline:"center", block:"nearest", behavior:"smooth"}); }catch(e){}
-    ["mining","packs","upgrades","market","empire","siege","raids","arena","fishing","casino","poker","collection","account"].forEach(t=>{
-      document.getElementById("tab-"+t).style.display = (t===btn.dataset.tab) ? "block":"none";
+/* ---------------- Chrome helpers: stat strips + help blocks ----------------
+   Both work by enhancing markup already on the page, so every tab gets the same
+   shape without each render function having to know about it. */
+function uiPrefs(){
+  if(!state.settings) state.settings = defaultSettings();
+  if(!state.settings.uiOpen) state.settings.uiOpen = {};
+  return state.settings.uiOpen;
+}
+function uiStripKey(el){
+  const sec = el.closest("section");
+  const idx = sec ? [...sec.querySelectorAll(".stats-bar")].indexOf(el) : 0;
+  return (sec ? sec.id : "x") + ":" + Math.max(0, idx);
+}
+function uiStripSummary(bar){
+  const stats = [...bar.querySelectorAll(".stat")];
+  if(!stats.length) return `<span class="sb-empty">Stats</span>`;
+  return stats.slice(0, 4).map(st=>{
+    const num = (st.querySelector(".num") || {}).textContent || "";
+    const lbl = (st.querySelector(".lbl") || {}).textContent || "";
+    return `<b>${num.trim()}</b><span>${lbl.trim()}</span>`;
+  }).join(`<i class="sep">·</i>`);
+}
+function uiRefreshStrip(bar){
+  const wrap = bar.closest(".sb");
+  if(!wrap) return;
+  const sum = wrap.querySelector(".sb-sum");
+  if(sum) sum.innerHTML = uiStripSummary(bar);
+}
+function uiInitStatStrips(){
+  document.querySelectorAll(".stats-bar").forEach(bar=>{
+    if(bar.closest(".sb")){ uiRefreshStrip(bar); return; }
+    const key = uiStripKey(bar);
+    const wrap = document.createElement("div");
+    wrap.className = "sb";
+    if(uiPrefs()[key]) wrap.classList.add("open");
+    const head = document.createElement("button");
+    head.type = "button"; head.className = "sb-head";
+    head.innerHTML = `<span class="sb-sum"></span><span class="sb-caret">▾</span>`;
+    const body = document.createElement("div");
+    body.className = "sb-body";
+    bar.parentNode.insertBefore(wrap, bar);
+    wrap.appendChild(head); wrap.appendChild(body); body.appendChild(bar);
+    head.addEventListener("click", ()=>{
+      wrap.classList.toggle("open");
+      uiPrefs()[key] = wrap.classList.contains("open");
+      saveState();
     });
-    if(btn.dataset.tab==="collection") renderCollection();
-    if(btn.dataset.tab==="upgrades") renderUpgrades();
-    if(btn.dataset.tab==="market"){ renderMarket(); renderTackleShop(); }
-    if(btn.dataset.tab==="empire") renderEmpire();
-    if(btn.dataset.tab==="siege"){ renderSiege(); sgOnEnterTab(); } else { sgOnLeaveTab(); }
-    if(btn.dataset.tab==="raids"){ renderRaids(); rdOnEnterTab(); } else { rdOnLeaveTab(); }
-    if(btn.dataset.tab==="poker"){ renderPoker(); pkOnEnterTab(); } else { pkOnLeaveTab(); }
-    if(btn.dataset.tab==="arena"){ renderArena(); arOnEnterTab(); } else { arOnLeaveTab(); }
-    if(btn.dataset.tab==="fishing"){ renderFishing(); fshOnEnterTab(); } else { fshOnLeaveTab(); }
-    if(btn.dataset.tab==="account") renderAccount();
-    if(btn.dataset.tab==="casino"){ renderCasino(); brShowLobby(); }
-    else { if(typeof rocketAbortIfIdle === "function") rocketAbortIfIdle(); stopAllCasinoAuto(); }
+    try{
+      new MutationObserver(()=>uiRefreshStrip(bar))
+        .observe(bar, { childList:true, subtree:true, characterData:true });
+    }catch(e){}
+    uiRefreshStrip(bar);
   });
+}
+function uiInitHelp(){
+  document.querySelectorAll(".ui-help, .ui-fold").forEach(el=>{
+    if(el.closest(".uh")) return;
+    const fold = el.classList.contains("ui-fold");
+    const sec = el.closest("section");
+    const key = (fold ? "fold:" : "help:") + (sec ? sec.id : "x") + ":" +
+      (sec ? [...sec.querySelectorAll(".ui-help, .ui-fold")].indexOf(el) : 0);
+    const wrap = document.createElement("div");
+    wrap.className = fold ? "uh uh-fold" : "uh";
+    const pref = uiPrefs()[key];
+    const startOpen = (pref === undefined) ? (fold && el.dataset.open === "1") : !!pref;
+    if(startOpen) wrap.classList.add("open");
+    const head = document.createElement("button");
+    head.type = "button"; head.className = "uh-head";
+    head.innerHTML = fold
+      ? `<span class="t">${el.dataset.help || "Section"}</span><span class="uh-caret">▾</span>`
+      : `<span class="q">?</span><span class="t">${el.dataset.help || "How it works"}</span><span class="uh-caret">▾</span>`;
+    const body = document.createElement("div");
+    body.className = "uh-body";
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(head); wrap.appendChild(body); body.appendChild(el);
+    head.addEventListener("click", ()=>{
+      wrap.classList.toggle("open");
+      uiPrefs()[key] = wrap.classList.contains("open");
+      saveState();
+    });
+  });
+}
+
+/* ---------------- Routing: six nav tabs, one Play hub ---------------- */
+const UI_GAMES = [
+  { id:"siege",   name:"Siege",       icon:"🏰", desc:"Tower defense. Hold the road, hold the keep.",        meta:"4 maps" },
+  { id:"raids",   name:"Raids",       icon:"🗝️", desc:"Expeditions into the dark. Gear wears out; guardians don't.", meta:"6 sites + the Depths" },
+  { id:"arena",   name:"Arena",       icon:"⚔️", desc:"Bet on gladiators. Glory feeds your Army Strength.",  meta:"32 fighters" },
+  { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. Some of what bites is worth real money.", meta:"Idle-friendly" },
+  { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
+  { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
+];
+const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
+const UI_SECTIONS = ["mining","packs","upgrades","market","empire","play","collection","account"].concat(UI_GAME_IDS);
+function uiShowSection(id){
+  UI_SECTIONS.forEach(t=>{
+    const el = document.getElementById("tab-"+t);
+    if(el) el.style.display = (t === id) ? "block" : "none";
+  });
+}
+function uiLeaveGames(except){
+  if(except!=="siege") sgOnLeaveTab();
+  if(except!=="raids") rdOnLeaveTab();
+  if(except!=="poker") pkOnLeaveTab();
+  if(except!=="arena") arOnLeaveTab();
+  if(except!=="fishing") fshOnLeaveTab();
+  if(except!=="casino"){
+    if(typeof rocketAbortIfIdle === "function") rocketAbortIfIdle();
+    stopAllCasinoAuto();
+  }
+}
+function uiEnterSection(id){
+  if(id==="collection") renderCollection();
+  else if(id==="upgrades") renderUpgrades();
+  else if(id==="market"){ renderMarket(); renderTackleShop(); }
+  else if(id==="empire") renderEmpire();
+  else if(id==="account") renderAccount();
+  else if(id==="play") renderPlayLobby();
+  else if(id==="siege"){ renderSiege(); sgOnEnterTab(); }
+  else if(id==="raids"){ renderRaids(); rdOnEnterTab(); }
+  else if(id==="poker"){ renderPoker(); pkOnEnterTab(); }
+  else if(id==="arena"){ renderArena(); arOnEnterTab(); }
+  else if(id==="fishing"){ renderFishing(); fshOnEnterTab(); }
+  else if(id==="casino"){ renderCasino(); brShowLobby(); }
+  uiLeaveGames(id);
+  uiInitStatStrips();
+  uiInitHelp();
+}
+function uiSetNavActive(tab){
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab === tab));
+  const gear = document.getElementById("hdrGear");
+  if(gear) gear.classList.toggle("active", tab === "account");
+}
+function uiSwitchTab(tab){
+  uiSetNavActive(tab);
+  const bb = document.getElementById("playBack");
+  if(bb) bb.style.display = "none";
+  uiShowSection(tab);
+  uiEnterSection(tab);
+}
+function uiOpenGame(id){
+  const g = UI_GAMES.find(x=>x.id === id);
+  if(!g) return;
+  uiSetNavActive("play");
+  uiShowSection(id);
+  const bb = document.getElementById("playBack");
+  if(bb){
+    bb.style.display = "flex";
+    document.getElementById("playBackTitle").textContent = `${g.icon} ${g.name}`;
+  }
+  uiEnterSection(id);
+  try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){ window.scrollTo(0,0); }
+}
+function uiBackToPlay(){ uiSwitchTab("play"); }
+function renderPlayLobby(){
+  const grid = document.getElementById("playGrid");
+  if(!grid) return;
+  grid.innerHTML = UI_GAMES.map(g=>`
+    <button class="play-card" data-game="${g.id}">
+      <span class="pi">${g.icon}</span>
+      <span class="pn">${g.name}</span>
+      <span class="pd">${g.desc}</span>
+      <span class="pmeta">${g.meta}</span>
+    </button>`).join("");
+  grid.querySelectorAll("[data-game]").forEach(b=>
+    b.addEventListener("click", ()=>uiOpenGame(b.dataset.game)));
+}
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.addEventListener("click", ()=>uiSwitchTab(btn.dataset.tab));
 });
+(function(){
+  const gear = document.getElementById("hdrGear");
+  if(gear) gear.addEventListener("click", ()=>uiSwitchTab("account"));
+})();
 
 /* ---------------- INIT ---------------- */
 /* Each panel is isolated: if one throws, the rest of the app still comes up and
@@ -15812,6 +16112,8 @@ function renderAll(){
   safeRender("casino",     renderCasino);
   safeRender("arena",      renderArena);
   safeRender("raids",      renderRaids);
+  safeRender("play",       renderPlayLobby);
+  safeRender("chrome",     ()=>{ uiInitStatStrips(); uiInitHelp(); });
 }
 safeRender("filters",        populateFilters);
 safeRender("market filters", populateMarketFilters);

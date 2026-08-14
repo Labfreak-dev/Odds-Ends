@@ -2156,12 +2156,14 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
 /* ================= Poker Rush ================= */
 .pk-hud{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; }
-.pk-meter{ position:relative; flex:1; min-width:110px; height:22px; border-radius:11px; overflow:hidden;
-  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); }
-.pk-meter i{ position:absolute; inset:0; width:100%; background:linear-gradient(90deg,#2b6fb8,#6fc3ff); transition:width .12s linear; }
-.pk-meter span{ position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:12px; z-index:2; }
-.pk-stage{ position:relative; width:100%; max-width:420px; margin:0 auto; }
-#pkCanvas{ display:block; width:100%; max-width:min(100%, calc(62vh * 0.4615)); height:auto; max-height:62vh;
+.pk-raise{ margin-left:auto; display:flex; align-items:center; gap:5px; padding:7px 14px; border-radius:999px;
+  border:1px solid rgba(255,255,255,0.18); background:linear-gradient(160deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+  color:var(--text); font-family:inherit; font-weight:800; font-size:13px; cursor:pointer;
+  user-select:none; -webkit-user-select:none; touch-action:none; }
+.pk-raise span{ font-size:10px; color:var(--muted); font-weight:600; }
+.pk-raise:active{ transform:scale(0.95); border-color:#ffd35c; background:rgba(255,211,92,0.12); }
+.pk-stage{ position:relative; width:100%; max-width:560px; margin:0 auto; }
+#pkCanvas{ display:block; width:100%; max-width:min(100%, calc(80vh * 0.4615)); height:auto; max-height:80vh;
   margin:0 auto; border-radius:14px; border:1px solid rgba(255,255,255,0.12);
   background:#0b0d10; touch-action:none; }
 .pk-over{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
@@ -2170,17 +2172,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .pk-over .t{ font-size:24px; font-weight:900; letter-spacing:1px; }
 .pk-over .s{ color:var(--muted); font-size:13px; line-height:1.5; }
 .pk-over .payline{ font-size:15px; font-weight:800; color:#ffd35c; }
-.pk-controls{ display:flex; gap:10px; margin:10px auto 0; max-width:420px; }
-.pk-btn{ flex:1; padding:12px 6px 9px; border-radius:14px; border:1px solid rgba(255,255,255,0.16);
-  background:linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
-  color:var(--text); font-family:inherit; font-weight:800; font-size:13.5px; cursor:pointer;
-  display:flex; flex-direction:column; align-items:center; gap:2px; user-select:none; -webkit-user-select:none; }
-.pk-btn span{ font-size:10px; color:var(--muted); font-weight:600; }
-.pk-btn:active{ transform:scale(0.96); background:rgba(255,211,92,0.1); border-color:#ffd35c; }
-.pk-btn.armed{ border-color:#ff8c5a; background:rgba(255,140,90,0.12); }
-.pk-btn:disabled{ opacity:0.4; }
-.pk-help{ margin-top:14px; font-size:12.5px; color:var(--text); background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:420px; margin-left:auto; margin-right:auto; }
+.pk-help{ margin-top:12px; font-size:12.5px; color:var(--text); background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:560px; margin-left:auto; margin-right:auto; }
 .pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
 .pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
 </style>
@@ -3001,16 +2994,11 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="chip">🏅 <b id="pkHudScore">0</b></div>
       <div class="chip">📶 Lv <b id="pkHudLevel">1</b></div>
       <div class="chip">⛓️ <b id="pkHudChain">—</b></div>
-      <div class="pk-meter" title="Slow-time"><i id="pkMeterFill"></i><span>🕰️</span></div>
+      <button class="pk-raise" id="pkRaiseBtn">⤒ RAISE<span>hold</span></button>
     </div>
     <div class="pk-stage" id="pkStage">
       <canvas id="pkCanvas" width="672" height="1456"></canvas>
       <div class="pk-over" id="pkOver"></div>
-    </div>
-    <div class="pk-controls">
-      <button class="pk-btn" id="pkSlowBtn">🕰️ SLOW<span>hold</span></button>
-      <button class="pk-btn" id="pkRaiseBtn">⤒ RAISE<span>hold</span></button>
-      <button class="pk-btn" id="pkBombBtn">💣 BOMB<span id="pkBombCt">×1</span></button>
     </div>
     <div class="pk-help">
       <b>Hands</b> — in a row or column, side by side:
@@ -3018,9 +3006,13 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="pk-handrow"><span>Straight (3+, in order)</span><span>9·10·J</span></div>
       <div class="pk-handrow"><span>Flush (4+ same suit)</span><span>♠·♠·♠·♠</span></div>
       <div class="pk-handrow"><span>Straight flush</span><span>the jackpot</span></div>
+      <div style="margin-top:9px;"><b>🃏 Jokers</b> — earned on a <b>×3 chain</b> or every <b>5,000 points</b>.
+      They're <b>wild</b> (any rank, any suit). Match one into a hand to set it off:</div>
+      <div class="pk-handrow"><span>💥 Bomb joker</span><span>blasts its whole row + column</span></div>
+      <div class="pk-handrow"><span>⚡ Lightning joker</span><span>7s — every hand also wipes a rank</span></div>
+      <div class="pk-handrow"><span>🕰️ Slow joker</span><span>6s of slow motion (rarest)</span></div>
       <div style="margin-top:6px; color:var(--muted);">Phone: drag a card one space left or right to swap — one move per touch.
-      Keyboard: arrows + <b>X</b> swap, <b>S</b> slow, <b>R</b> raise, <b>B</b> bomb.
-      Bombs wipe every card of the rank under your cursor; earn more by making hands.</div>
+      Keyboard: arrows + <b>X</b> swap, <b>R</b> raise.</div>
     </div>
   </div>
 </section>
@@ -14879,6 +14871,77 @@ function pkDrawFace(c, rank, suit, hot){
   draw(PK_RNAME[rank], PK_CELL/2 - 8.5, "bold 20px system-ui");
   draw(suit, PK_CELL/2 + 12.5, "16px system-ui");
 }
+function pkJokerGlyph(c, kind, col, cx, cy, hot){
+  c.save();
+  c.strokeStyle = col; c.fillStyle = col;
+  c.shadowColor = col; c.shadowBlur = hot ? 12 : 7;
+  c.lineWidth = 1.8; c.lineCap = "round"; c.lineJoin = "round";
+  if(kind === "bomb"){
+    /* a burst in four directions */
+    for(let a=0;a<4;a++){
+      const ang = a * Math.PI/2;
+      const dx = Math.cos(ang), dy = Math.sin(ang);
+      c.beginPath(); c.moveTo(cx + dx*2.5, cy + dy*2.5); c.lineTo(cx + dx*8, cy + dy*8); c.stroke();
+      c.beginPath();
+      c.moveTo(cx + dx*10.5, cy + dy*10.5);
+      c.lineTo(cx + dx*7 - dy*2.6, cy + dy*7 + dx*2.6);
+      c.lineTo(cx + dx*7 + dy*2.6, cy + dy*7 - dx*2.6);
+      c.closePath(); c.fill();
+    }
+    c.beginPath(); c.arc(cx, cy, 1.9, 0, Math.PI*2); c.fill();
+  } else if(kind === "lightning"){
+    c.beginPath();
+    c.moveTo(cx + 2.6, cy - 8.5);
+    c.lineTo(cx - 4.4, cy + 1.1);
+    c.lineTo(cx - 0.4, cy + 1.1);
+    c.lineTo(cx - 2.6, cy + 8.5);
+    c.lineTo(cx + 4.6, cy - 1.4);
+    c.lineTo(cx + 0.6, cy - 1.4);
+    c.closePath(); c.fill();
+  } else {
+    c.beginPath(); c.arc(cx, cy, 6.6, 0, Math.PI*2); c.stroke();
+    c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(cx, cy - 0.4); c.lineTo(cx, cy - 4.2); c.stroke();
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + 3.6, cy + 1.6); c.stroke();
+  }
+  c.restore();
+}
+function pkDrawJokerFace(c, kind, hot){
+  const K = PK_JOKER_INFO[kind], col = K.col;
+  const m = 2.5, r = 11, w = PK_CELL - m*2;
+  c.save();
+  c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowBlur = 5; c.shadowOffsetY = 3;
+  const g = c.createLinearGradient(0, m, 0, m + w);
+  g.addColorStop(0, "#2b2130"); g.addColorStop(0.55, "#1d1722"); g.addColorStop(1, "#14101a");
+  c.fillStyle = g;
+  c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
+  c.restore();
+  /* prismatic edge — a joker is every suit at once */
+  const pg = c.createLinearGradient(m, m, m + w, m + w);
+  pg.addColorStop(0, "#ff5c6e"); pg.addColorStop(0.34, "#ffb020");
+  pg.addColorStop(0.67, "#3ddc84"); pg.addColorStop(1, "#6fa8ff");
+  c.strokeStyle = pg; c.lineWidth = 2;
+  c.beginPath(); c.roundRect(m + 1, m + 1, w - 2, w - 2, r - 1); c.stroke();
+  c.save();
+  c.beginPath(); c.roundRect(m, m, w, w, r); c.clip();
+  const amb = c.createRadialGradient(PK_CELL/2, PK_CELL/2, 3, PK_CELL/2, PK_CELL/2, PK_CELL*0.62);
+  amb.addColorStop(0, col); amb.addColorStop(1, "rgba(0,0,0,0)");
+  c.globalAlpha = hot ? 0.42 : 0.2;
+  c.fillStyle = amb; c.fillRect(0, 0, PK_CELL, PK_CELL);
+  c.restore();
+  /* the wild star */
+  c.textAlign = "center"; c.textBaseline = "middle";
+  c.save();
+  c.font = "bold 19px system-ui";
+  c.shadowColor = col; c.shadowBlur = hot ? 16 : 10;
+  c.fillStyle = col;
+  for(let i=0;i<(hot?3:2);i++) c.fillText("★", PK_CELL/2, PK_CELL/2 - 9);
+  c.shadowBlur = 2.5;
+  c.fillStyle = pkMixWhite(col, hot ? 0.85 : 0.6);
+  c.fillText("★", PK_CELL/2, PK_CELL/2 - 9);
+  c.restore();
+  pkJokerGlyph(c, kind, col, PK_CELL/2, PK_CELL/2 + 12, hot);
+}
 function pkBuildFaces(){
   pkFaces = {};
   const R = 3;   /* cache render scale — glow stays crisp when popped */
@@ -14892,9 +14955,33 @@ function pkBuildFaces(){
       pkFaces[rank + suit + (hot ? "!" : "")] = cv;
     });
   }));
+  Object.keys(PK_JOKER_INFO).forEach(kind => {
+    [false, true].forEach(hot => {
+      const cv = document.createElement("canvas");
+      cv.width = PK_CELL*R; cv.height = PK_CELL*R;
+      const c = cv.getContext("2d");
+      c.scale(R, R);
+      pkDrawJokerFace(c, kind, hot);
+      pkFaces["J:" + kind + (hot ? "!" : "")] = cv;
+    });
+  });
 }
 let pk = null, pkRaf = null, pkLast = 0, pkTabActive = false, pkCv = null, pkCtx = null;
-let pkSlowHeld = false, pkRaiseHeld = false;
+let pkRaiseHeld = false;
+/* ---- Jokers: wild cards that go off when you match them into a hand ---- */
+const PK_JOKER_INFO = {
+  bomb:      { col:"#ff7a4d", tag:"💥", name:"BOMB",      blurb:"ROW + COLUMN" },
+  lightning: { col:"#ffd35c", tag:"⚡", name:"LIGHTNING", blurb:"7s — HANDS WIPE A RANK" },
+  slow:      { col:"#6fc3ff", tag:"🕰️", name:"SLOW",      blurb:"6s SLOW MOTION" },
+};
+const PK_JOKER_WEIGHTS = [["bomb",0.46],["lightning",0.38],["slow",0.16]];
+const PK_JOKER_EVERY = 5000;   /* a joker every this many points */
+const PK_SLOW_SECS = 6, PK_LIGHT_SECS = 7;
+function pkPickJokerKind(){
+  let r = Math.random();
+  for(const [k,w] of PK_JOKER_WEIGHTS){ if(r < w) return k; r -= w; }
+  return "bomb";
+}
 
 function pkDefaultStats(){ return { best:0, runs:0, earned:0, lastDay:"", dailyRuns:0, cardDay:"" }; }
 function pkStats(){ if(!state.poker) state.poker = pkDefaultStats(); return state.poker; }
@@ -14930,9 +15017,9 @@ function pkNewGame(){
     cur: { x:2, y:4 },
     riseOff: 0, riseHold: 1.2,
     score: 0, hands: 0, level: 1, chain: 1,
-    meter: 100, bombs: 1, bombBank: 0,
+    slowT: 0, lightT: 0, lightCd: 0, nextJoker: PK_JOKER_EVERY, jokersMade: 0, jokerDebt: 0,
     gravT: 0, settleTicks: 0,
-    pops: [], parts: [],
+    pops: [], parts: [], beams: [],
     over: false, danger: false,
     time: 0
   };
@@ -14956,35 +15043,65 @@ function pkSettled(x, y){
 function pkScanLine(sets, cells){
   const n = cells.length;
   const card = i => pkSettled(cells[i].x, cells[i].y) ? pk.grid[cells[i].y][cells[i].x] : null;
+  const wild = c => !!(c && c.joker);          /* a joker is any rank AND any suit */
   let i = 0;                                   /* kinds */
   while(i < n){
-    const c = card(i); if(!c){ i++; continue; }
-    let j = i + 1;
-    while(j < n){ const d = card(j); if(d && d.rank === c.rank) j++; else break; }
-    if(j - i >= 3) sets.push({ cells: cells.slice(i, j), type:"kind", len: j - i });
+    if(!card(i)){ i++; continue; }
+    let rank = null, real = 0, j = i;
+    while(j < n){
+      const d = card(j);
+      if(!d) break;
+      if(wild(d)){ j++; continue; }
+      if(rank === null){ rank = d.rank; real++; j++; continue; }
+      if(d.rank === rank){ real++; j++; continue; }
+      break;
+    }
+    if(j - i >= 3 && real >= 2) sets.push({ cells: cells.slice(i, j), type:"kind", len: j - i });
     i = Math.max(j, i + 1);
   }
   i = 0;                                       /* straights (in order, either direction) */
   while(i < n - 1){
-    const c = card(i), d = card(i + 1);
-    if(!c || !d || Math.abs(d.rank - c.rank) !== 1){ i++; continue; }
-    const dir = d.rank - c.rank;
-    let j = i + 1;
-    while(j < n - 1){ const e = card(j), f = card(j + 1); if(e && f && f.rank - e.rank === dir) j++; else break; }
-    if(j - i + 1 >= 3){
-      const run = cells.slice(i, j + 1);
-      const suit0 = pk.grid[run[0].y][run[0].x].suit;
-      const sf = run.every(cl => pk.grid[cl.y][cl.x].suit === suit0);
-      sets.push({ cells: run, type: sf ? "sflush" : "straight", len: run.length });
+    if(!card(i)){ i++; continue; }
+    let bestEnd = -1, bestSF = false;
+    for(const dir of [1, -1]){
+      let base = null, baseIdx = -1, real = 0, j = i;
+      while(j < n){
+        const d = card(j);
+        if(!d) break;
+        if(wild(d)){ j++; continue; }
+        if(base === null){ base = d.rank; baseIdx = j; real = 1; j++; continue; }
+        if(d.rank === base + dir*(j - baseIdx)){ real++; j++; continue; }
+        break;
+      }
+      if(real >= 2 && j - i >= 3 && j > bestEnd){
+        bestEnd = j;
+        let suit0 = null; bestSF = true;
+        for(let k = i; k < j; k++){
+          const d = card(k);
+          if(wild(d)) continue;
+          if(suit0 === null) suit0 = d.suit;
+          else if(d.suit !== suit0){ bestSF = false; break; }
+        }
+      }
     }
-    i = j + 1;
+    if(bestEnd > 0){
+      sets.push({ cells: cells.slice(i, bestEnd), type: bestSF ? "sflush" : "straight", len: bestEnd - i });
+      i = bestEnd;
+    } else i++;
   }
   i = 0;                                       /* flushes: 4+ same suit */
   while(i < n){
-    const c = card(i); if(!c){ i++; continue; }
-    let j = i + 1;
-    while(j < n){ const d = card(j); if(d && d.suit === c.suit) j++; else break; }
-    if(j - i >= 4) sets.push({ cells: cells.slice(i, j), type:"flush", len: j - i });
+    if(!card(i)){ i++; continue; }
+    let suit = null, real = 0, j = i;
+    while(j < n){
+      const d = card(j);
+      if(!d) break;
+      if(wild(d)){ j++; continue; }
+      if(suit === null){ suit = d.suit; real++; j++; continue; }
+      if(d.suit === suit){ real++; j++; continue; }
+      break;
+    }
+    if(j - i >= 4 && real >= 2) sets.push({ cells: cells.slice(i, j), type:"flush", len: j - i });
     i = Math.max(j, i + 1);
   }
 }
@@ -14993,6 +15110,65 @@ function pkScan(){
   for(let y=0;y<PK_ROWS;y++) pkScanLine(sets, Array.from({length:PK_COLS}, (_,x)=>({x,y})));
   for(let x=0;x<PK_COLS;x++) pkScanLine(sets, Array.from({length:PK_ROWS}, (_,y)=>({x,y})));
   return sets;
+}
+function pkMarkClear(x, y, delay){
+  if(x < 0 || x >= PK_COLS || y < 0 || y >= PK_ROWS) return false;
+  const c = pk.grid[y][x];
+  if(!c || c.state !== "idle") return false;
+  c.state = "clear"; c.clearT = -(delay || 0);
+  return true;
+}
+/* 💥 the bomb joker: straight lines out in every direction */
+function pkJokerBomb(x, y){
+  let n = 0;
+  for(let k = 0; k < PK_COLS; k++) if(pkMarkClear(k, y, Math.abs(k - x)*0.035)) n++;
+  for(let k = 0; k < PK_ROWS; k++) if(pkMarkClear(x, k, Math.abs(k - y)*0.035)) n++;
+  pk.beams.push({ x, y, t:0 });
+  if(n){
+    pk.score += n * 12;
+    pk.pops.push({ x:(x+0.5)*PK_CELL, y:pkScreenY(y)+PK_CELL/2, t:0,
+      txt:`💥 BLAST  +${(n*12).toLocaleString()}`, col:PK_JOKER_INFO.bomb.col, size:17 });
+  }
+  return n;
+}
+/* ⚡ lightning: pick a rank at random and take every one of them off the board */
+function pkLightningStrike(){
+  const ranks = [];
+  for(let y = 0; y < PK_ROWS; y++) for(let x = 0; x < PK_COLS; x++){
+    const c = pk.grid[y][x];
+    if(c && c.state === "idle" && !c.joker && ranks.indexOf(c.rank) < 0) ranks.push(c.rank);
+  }
+  if(!ranks.length) return 0;
+  const rank = ranks[Math.floor(Math.random()*ranks.length)];
+  let n = 0, fx = null;
+  for(let y = 0; y < PK_ROWS; y++) for(let x = 0; x < PK_COLS; x++){
+    const c = pk.grid[y][x];
+    if(c && c.state === "idle" && !c.joker && c.rank === rank && pkMarkClear(x, y, n*0.025)){
+      n++; if(!fx) fx = { x, y };
+    }
+  }
+  if(n && fx){
+    pk.score += n * 14;
+    pk.pops.push({ x:PK_COLS*PK_CELL/2, y:pkScreenY(fx.y)+PK_CELL/2, t:0,
+      txt:`⚡ ALL ${PK_RNAME[rank]}s  +${(n*14).toLocaleString()}`, col:PK_JOKER_INFO.lightning.col, size:17 });
+  }
+  return n;
+}
+function pkSpawnJoker(){
+  const cands = [];
+  for(let y = 0; y < PK_ROWS; y++) for(let x = 0; x < PK_COLS; x++){
+    const c = pk.grid[y][x];
+    if(c && c.state === "idle" && !c.joker) cands.push({ x, y });
+  }
+  if(!cands.length) return false;
+  const p = cands[Math.floor(Math.random()*cands.length)];
+  const c = pk.grid[p.y][p.x];
+  c.joker = pkPickJokerKind();
+  const K = PK_JOKER_INFO[c.joker];
+  pk.jokersMade++;
+  pk.pops.push({ x:(p.x+0.5)*PK_CELL, y:pkScreenY(p.y)+PK_CELL/2 - 10, t:0,
+    txt:`${K.tag} ${K.name} JOKER`, col:K.col, size:16 });
+  return true;
 }
 function pkApplyMatches(sets){
   if(!sets.length) return false;
@@ -15015,15 +15191,46 @@ function pkApplyMatches(sets){
   const gain = Math.round(base * mult * comboF);
   pk.score += gain;
   pk.hands += sets.length;
-  pk.bombBank += sets.length;
-  while(pk.bombBank >= 8){ pk.bombBank -= 8; if(pk.bombs < 3){ pk.bombs++; } }
-  pk.meter = Math.min(100, pk.meter + 10 * sets.length);
   pk.level = Math.min(15, 1 + Math.floor(pk.hands / 18));
   pk.riseHold = Math.max(pk.riseHold, 0.55 + 0.35 * mult);
+  /* which jokers got caught in this hand? */
+  const fired = [];
+  uniq.forEach(c => {
+    const card = pk.grid[c.y][c.x];
+    if(card && card.joker && !card.jokerFired){
+      card.jokerFired = true;
+      fired.push({ kind: card.joker, x: c.x, y: c.y });
+    }
+  });
   uniq.forEach((c,k) => {
     const card = pk.grid[c.y][c.x];
     card.state = "clear"; card.clearT = -k * 0.05;
   });
+  /* the jokers go off */
+  fired.forEach(f => {
+    const K = PK_JOKER_INFO[f.kind];
+    if(f.kind === "bomb") pkJokerBomb(f.x, f.y);
+    else if(f.kind === "lightning"){
+      pk.lightT = PK_LIGHT_SECS;
+      pk.pops.push({ x:(f.x+0.5)*PK_CELL, y:pkScreenY(f.y)+PK_CELL/2 - 26, t:0,
+        txt:`⚡ LIGHTNING ${PK_LIGHT_SECS}s`, col:K.col, size:18 });
+    } else {
+      pk.slowT = Math.max(pk.slowT, PK_SLOW_SECS);
+      pk.pops.push({ x:(f.x+0.5)*PK_CELL, y:pkScreenY(f.y)+PK_CELL/2 - 26, t:0,
+        txt:`🕰️ SLOW ${PK_SLOW_SECS}s`, col:K.col, size:18 });
+    }
+  });
+  /* lightning window: every hand also takes a rank with it */
+  if(pk.lightT > 0 && pk.lightCd <= 0){
+    if(pkLightningStrike()) pk.lightCd = 0.45;
+  }
+  /* jokers are earned: a ×3 chain, or every 5,000 points.
+     If every card is mid-clear there is nowhere to put it — hold the debt and pay it
+     out as soon as the board settles, so a big cascade never eats your reward. */
+  let owed = 0;
+  if(mult >= 3) owed++;
+  while(pk.score >= pk.nextJoker){ pk.nextJoker += PK_JOKER_EVERY; owed++; }
+  for(let q = 0; q < owed; q++) if(!pkSpawnJoker()) pk.jokerDebt++;
   const mid = uniq[Math.floor(uniq.length/2)];
   const px = (mid.x + 0.5) * PK_CELL, py = pkScreenY(mid.y) + PK_CELL/2;
   const nm = big.type === "kind" ? `${big.len} ${PK_HANDNAME.kind}` : PK_HANDNAME[big.type];
@@ -15058,10 +15265,11 @@ function pkAnyClearing(){
 function pkUpdate(dt){
   if(!pk || pk.over) return;
   pk.time += dt;
-  const slow = pkSlowHeld && pk.meter > 0;
-  if(slow) pk.meter = Math.max(0, pk.meter - 26*dt);
-  else pk.meter = Math.min(100, pk.meter + 1.4*dt);
-  const ts = slow ? 0.3 : 1;
+  if(pk.slowT > 0) pk.slowT = Math.max(0, pk.slowT - dt);
+  if(pk.lightT > 0) pk.lightT = Math.max(0, pk.lightT - dt);
+  if(pk.lightCd > 0) pk.lightCd = Math.max(0, pk.lightCd - dt);
+  const slow = pk.slowT > 0;
+  const ts = slow ? 0.35 : 1;
   for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
     const c = pk.grid[y][x]; if(!c) continue;
     const sp = 620 * dt * (c.dy !== 0 ? ts : 1);
@@ -15092,6 +15300,7 @@ function pkUpdate(dt){
       if(pkApplyMatches(pkScan())){
         pk.settleTicks = 0;
       } else {
+        while(pk.jokerDebt > 0 && pkSpawnJoker()) pk.jokerDebt--;
         pk.settleTicks++;
         if(pk.settleTicks >= 3 && pk.chain > 1){
           pk.chain = 1;
@@ -15149,22 +15358,6 @@ function pkSwap(){
   if(b) b.dx -= PK_CELL;
   pk.settleTicks = 0;
 }
-function pkBomb(){
-  if(!pk || pk.over || pk.bombs <= 0) return;
-  const t = pk.grid[pk.cur.y][pk.cur.x] || pk.grid[pk.cur.y][pk.cur.x+1];
-  if(!t || t.state !== "idle") return;
-  const rank = t.rank;
-  let n = 0;
-  for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
-    const c = pk.grid[y][x];
-    if(c && c.state === "idle" && c.rank === rank){ c.state = "clear"; c.clearT = -n*0.03; c.bomb = true; n++; }
-  }
-  if(!n) return;
-  pk.bombs--;
-  pk.score += n * 10;
-  pk.pops.push({ x: PK_COLS*PK_CELL/2, y: (PK_ROWS/2)*PK_CELL, t:0, txt:`💣 ALL ${PK_RNAME[rank]}s  +${n*10}`, col:"#ff9d6e", size:17 });
-  pkSyncHud();
-}
 function pkGameOver(){
   pk.over = true;
   const P = pkStats();
@@ -15191,7 +15384,7 @@ function pkGameOver(){
   const ov = document.getElementById("pkOver");
   ov.innerHTML = `
     <div class="t">${isBest ? "🏆 NEW BEST" : "STACKED OUT"}</div>
-    <div class="s">Score <b style="color:#fff">${pk.score.toLocaleString()}</b> · Level ${pk.level} · ${pk.hands} hands<br>
+    <div class="s">Score <b style="color:#fff">${pk.score.toLocaleString()}</b> · Level ${pk.level} · ${pk.hands} hands · 🃏 ${pk.jokersMade||0} jokers<br>
       Best: ${P.best.toLocaleString()}</div>
     <div class="payline">+${credits.toLocaleString()} 🪙${firstOfDay ? " (first deal of the day ×2)" : ""}</div>
     ${cardMsg}
@@ -15205,7 +15398,7 @@ function pkStart(){
 }
 
 /* ---- draw ---- */
-function pkDraw(){
+function pkDraw(dt){
   if(!pkCtx) return;
   const ctx = pkCtx;
   const W = PK_COLS * PK_CELL, H = (PK_ROWS + 1) * PK_CELL;
@@ -15245,6 +15438,23 @@ function pkDraw(){
   ctx.roundRect(pk.cur.x*PK_CELL + 2 - pulse, cy + 2 - pulse, PK_CELL*2 - 4 + pulse*2, PK_CELL - 4 + pulse*2, 12);
   ctx.stroke();
   ctx.restore();
+  /* bomb-joker beams */
+  pk.beams = pk.beams.filter(bm => {
+    bm.t += (dt || 0.016);
+    const a = Math.max(0, 1 - bm.t/0.55);
+    if(a <= 0) return false;
+    const bx = (bm.x + 0.5)*PK_CELL, by = pkScreenY(bm.y) + PK_CELL/2;
+    const thick = 3 + 9*a;
+    ctx.save();
+    ctx.globalAlpha = a*0.75;
+    ctx.shadowColor = PK_JOKER_INFO.bomb.col; ctx.shadowBlur = 18;
+    ctx.fillStyle = PK_JOKER_INFO.bomb.col;
+    ctx.fillRect(0, by - thick/2, W, thick);
+    ctx.fillRect(bx - thick/2, 0, thick, H);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    return true;
+  });
   pk.parts.forEach(p => {
     ctx.globalAlpha = 1 - p.t/0.8;
     ctx.fillStyle = p.col;
@@ -15262,13 +15472,39 @@ function pkDraw(){
   if(pk.danger && !pk.over){
     ctx.fillStyle = "rgba(255,60,60,0.07)"; ctx.fillRect(0,0,W,H);
   }
-  if(pkSlowHeld && pk.meter > 0){
-    ctx.fillStyle = "rgba(90,160,255,0.06)"; ctx.fillRect(0,0,W,H);
+  if(pk.slowT > 0){
+    ctx.fillStyle = "rgba(90,160,255,0.07)"; ctx.fillRect(0,0,W,H);
   }
+  if(pk.lightT > 0){
+    const f = 0.04 + 0.035*Math.abs(Math.sin(pk.time*9));
+    ctx.fillStyle = `rgba(255,211,92,${f})`; ctx.fillRect(0,0,W,H);
+  }
+  /* live effect banners, up in the empty air above the stack */
+  const banners = [];
+  if(pk.lightT > 0) banners.push(["lightning", pk.lightT]);
+  if(pk.slowT > 0) banners.push(["slow", pk.slowT]);
+  banners.forEach(([kind, tleft], bi) => {
+    const K = PK_JOKER_INFO[kind];
+    const by = 22 + bi*30;
+    ctx.save();
+    ctx.globalAlpha = tleft < 1.2 ? (0.45 + 0.55*Math.abs(Math.sin(pk.time*12))) : 1;
+    ctx.font = "bold 15px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const txt = `${K.tag} ${K.name} ${tleft.toFixed(1)}s`;
+    const tw = ctx.measureText(txt).width + 24;
+    ctx.fillStyle = "rgba(10,12,18,0.72)";
+    ctx.beginPath(); ctx.roundRect(W/2 - tw/2, by - 13, tw, 26, 13); ctx.fill();
+    ctx.strokeStyle = K.col; ctx.lineWidth = 1.4;
+    ctx.shadowColor = K.col; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.roundRect(W/2 - tw/2, by - 13, tw, 26, 13); ctx.stroke();
+    ctx.fillStyle = K.col; ctx.shadowBlur = 6;
+    ctx.fillText(txt, W/2, by);
+    ctx.restore();
+  });
   ctx.restore();
 }
 function pkDrawCard(ctx, c, px, py, alpha){
   if(!pkFaces) pkBuildFaces();
+  const jk = c.joker ? PK_JOKER_INFO[c.joker] : null;
   let scale = 1, hot = 0;
   if(c.state === "clear"){
     const t = Math.max(0, c.clearT);
@@ -15280,11 +15516,23 @@ function pkDrawCard(ctx, c, px, py, alpha){
   ctx.globalAlpha = alpha;
   ctx.translate(px + PK_CELL/2, py + PK_CELL/2);
   ctx.scale(scale, scale);
-  const img = pkFaces[c.rank + c.suit];
+  const key = jk ? ("J:" + c.joker) : (c.rank + c.suit);
+  const img = pkFaces[key];
   ctx.drawImage(img, -PK_CELL/2, -PK_CELL/2, PK_CELL, PK_CELL);
+  if(jk && hot < 1){
+    /* a joker never sits quietly */
+    const p = 0.5 + 0.5*Math.sin(pk.time*5 + px*0.05);
+    ctx.save();
+    ctx.globalAlpha = alpha * (0.3 + 0.45*p);
+    ctx.strokeStyle = jk.col; ctx.lineWidth = 2;
+    ctx.shadowColor = jk.col; ctx.shadowBlur = 8 + 6*p;
+    ctx.beginPath(); ctx.roundRect(-PK_CELL/2 + 2.5, -PK_CELL/2 + 2.5, PK_CELL - 5, PK_CELL - 5, 11); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = alpha;
+  }
   if(hot > 0){
     ctx.globalAlpha = alpha * hot;
-    ctx.drawImage(pkFaces[c.rank + c.suit + "!"], -PK_CELL/2, -PK_CELL/2, PK_CELL, PK_CELL);
+    ctx.drawImage(pkFaces[key + "!"], -PK_CELL/2, -PK_CELL/2, PK_CELL, PK_CELL);
     if(hot >= 1){
       ctx.globalAlpha = alpha * Math.max(0, (scale - 0.35)) * 0.5;
       ctx.fillStyle = "#ffffff";
@@ -15301,9 +15549,6 @@ function pkSyncHud(){
   S.textContent = pk ? pk.score.toLocaleString() : "0";
   document.getElementById("pkHudLevel").textContent = pk ? pk.level : 1;
   document.getElementById("pkHudChain").textContent = (pk && pk.chain > 1) ? "×" + pk.chain : "—";
-  document.getElementById("pkMeterFill").style.width = (pk ? pk.meter : 100) + "%";
-  const bb = document.getElementById("pkBombCt");
-  if(bb) bb.textContent = "×" + (pk ? pk.bombs : 1);
 }
 function pkRenderStats(){
   const P = pkStats();
@@ -15320,7 +15565,7 @@ function renderPoker(){
   if(!pk && ov){
     ov.innerHTML = `
       <div class="t">🃏 POKER RUSH</div>
-      <div class="s">Swap cards sideways. Make poker hands in rows or columns.<br>Survive the rise.</div>
+      <div class="s">Swap cards sideways. Make poker hands in rows or columns.<br>Chain ×3 or every 5,000 points drops a wild <b>Joker</b>.<br>Survive the rise.</div>
       <button class="btn" onclick="pkStart()">Deal me in</button>`;
     ov.classList.add("show");
   }
@@ -15330,7 +15575,7 @@ function pkLoop(ts){
   const dt = Math.min(0.05, (ts - pkLast)/1000 || 0.016);
   pkLast = ts;
   pkUpdate(dt);
-  pkDraw();
+  pkDraw(dt);
   if(pk && !pk.over && (pk.time*2|0) % 2 === 0) pkSyncHud();
 }
 function pkOnEnterTab(){
@@ -15351,14 +15596,10 @@ document.addEventListener("keydown", e=>{
   else if(k === "arrowup"){ pk.cur.y = Math.min(PK_ROWS-1, pk.cur.y+1); e.preventDefault(); }
   else if(k === "arrowdown"){ pk.cur.y = Math.max(0, pk.cur.y-1); e.preventDefault(); }
   else if(k === "x" || k === "z" || k === " "){ pkSwap(); e.preventDefault(); }
-  else if(k === "s"){ pkSlowHeld = true; e.preventDefault(); }
   else if(k === "r"){ pkRaiseHeld = true; e.preventDefault(); }
-  else if(k === "b"){ pkBomb(); e.preventDefault(); }
 });
 document.addEventListener("keyup", e=>{
-  const k = e.key.toLowerCase();
-  if(k === "s") pkSlowHeld = false;
-  if(k === "r") pkRaiseHeld = false;
+  if(e.key.toLowerCase() === "r") pkRaiseHeld = false;
 });
 (function pkBindUI(){
   const cv = document.getElementById("pkCanvas");
@@ -15406,10 +15647,7 @@ document.addEventListener("keyup", e=>{
     b.addEventListener("pointerleave", off);
     b.addEventListener("pointercancel", off);
   };
-  hold("pkSlowBtn", ()=>{ pkSlowHeld = true; }, ()=>{ pkSlowHeld = false; });
   hold("pkRaiseBtn", ()=>{ pkRaiseHeld = true; }, ()=>{ pkRaiseHeld = false; });
-  const bomb = document.getElementById("pkBombBtn");
-  if(bomb) bomb.addEventListener("click", pkBomb);
 })();
 
 /* ---------------- NAV ---------------- */

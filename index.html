@@ -2099,6 +2099,36 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   12%{ opacity:1; }
   100%{ transform:translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1); opacity:0; }
 }
+
+/* ================= Poker Rush ================= */
+.pk-hud{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+.pk-meter{ position:relative; flex:1; min-width:110px; height:22px; border-radius:11px; overflow:hidden;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); }
+.pk-meter i{ position:absolute; inset:0; width:100%; background:linear-gradient(90deg,#2b6fb8,#6fc3ff); transition:width .12s linear; }
+.pk-meter span{ position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:12px; z-index:2; }
+.pk-stage{ position:relative; width:100%; max-width:420px; margin:0 auto; }
+#pkCanvas{ display:block; width:100%; max-width:min(100%, calc(62vh * 0.4615)); height:auto; max-height:62vh;
+  margin:0 auto; border-radius:14px; border:1px solid rgba(255,255,255,0.12);
+  background:#101423; touch-action:none; }
+.pk-over{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; background:rgba(8,10,18,0.82); border-radius:14px; text-align:center; padding:18px; z-index:4; }
+.pk-over.show{ display:flex; }
+.pk-over .t{ font-size:24px; font-weight:900; letter-spacing:1px; }
+.pk-over .s{ color:var(--muted); font-size:13px; line-height:1.5; }
+.pk-over .payline{ font-size:15px; font-weight:800; color:#ffd35c; }
+.pk-controls{ display:flex; gap:10px; margin:10px auto 0; max-width:420px; }
+.pk-btn{ flex:1; padding:12px 6px 9px; border-radius:14px; border:1px solid rgba(255,255,255,0.16);
+  background:linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  color:var(--text); font-family:inherit; font-weight:800; font-size:13.5px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:2px; user-select:none; -webkit-user-select:none; }
+.pk-btn span{ font-size:10px; color:var(--muted); font-weight:600; }
+.pk-btn:active{ transform:scale(0.96); background:rgba(255,211,92,0.1); border-color:#ffd35c; }
+.pk-btn.armed{ border-color:#ff8c5a; background:rgba(255,140,90,0.12); }
+.pk-btn:disabled{ opacity:0.4; }
+.pk-help{ margin-top:14px; font-size:12.5px; color:var(--text); background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:420px; margin-left:auto; margin-right:auto; }
+.pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
+.pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
 </style>
 </head>
 <body>
@@ -2129,6 +2159,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   <button data-tab="arena">Arena</button>
   <button data-tab="fishing">Fishing</button>
   <button data-tab="casino">Risk it All</button>
+  <button data-tab="poker">Poker Rush</button>
   <button data-tab="collection">Collection</button>
   <button data-tab="account">Account</button>
 </nav>
@@ -2904,7 +2935,43 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
   </section>
 
-  <section id="tab-collection" style="display:none;">
+  <section id="tab-poker" style="display:none;">
+  <div class="panel">
+    <h2 style="margin-top:0;">🃏 Poker Rush</h2>
+    <p style="color:var(--muted); font-size:12.5px; margin:4px 0 10px;">
+      The stack rises. Swap cards left and right to line up <b>poker hands</b> — three of a kind,
+      straights, flushes — in any row or column. Hands vanish, cards fall, chains pay big.
+      Don't let the stack hit the top.</p>
+    <div class="stats-bar" id="pkStats"></div>
+    <div class="pk-hud">
+      <div class="chip">🏅 <b id="pkHudScore">0</b></div>
+      <div class="chip">📶 Lv <b id="pkHudLevel">1</b></div>
+      <div class="chip">⛓️ <b id="pkHudChain">—</b></div>
+      <div class="pk-meter" title="Slow-time"><i id="pkMeterFill"></i><span>🕰️</span></div>
+    </div>
+    <div class="pk-stage" id="pkStage">
+      <canvas id="pkCanvas" width="336" height="728"></canvas>
+      <div class="pk-over" id="pkOver"></div>
+    </div>
+    <div class="pk-controls">
+      <button class="pk-btn" id="pkSlowBtn">🕰️ SLOW<span>hold</span></button>
+      <button class="pk-btn" id="pkRaiseBtn">⤒ RAISE<span>hold</span></button>
+      <button class="pk-btn" id="pkBombBtn">💣 BOMB<span id="pkBombCt">×1</span></button>
+    </div>
+    <div class="pk-help">
+      <b>Hands</b> — in a row or column, side by side:
+      <div class="pk-handrow"><span>Three+ of a kind</span><span>K·K·K</span></div>
+      <div class="pk-handrow"><span>Straight (3+, in order)</span><span>9·10·J</span></div>
+      <div class="pk-handrow"><span>Flush (4+ same suit)</span><span>♠·♠·♠·♠</span></div>
+      <div class="pk-handrow"><span>Straight flush</span><span>the jackpot</span></div>
+      <div style="margin-top:6px; color:var(--muted);">Phone: drag a card one space left or right to swap — one move per touch.
+      Keyboard: arrows + <b>X</b> swap, <b>S</b> slow, <b>R</b> raise, <b>B</b> bomb.
+      Bombs wipe every card of the rank under your cursor; earn more by making hands.</div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-collection" style="display:none;">
     <div class="panel">
       <div class="row" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div class="stats-bar" style="margin-bottom:0;">
@@ -14052,13 +14119,549 @@ function renderRaids(){
   document.getElementById("rdLog").innerHTML = rd.log.map(l=>`<div>${l}</div>`).join("");
 }
 
+/* ================= POKER RUSH — rising card-stack action puzzle ================= */
+const PK_COLS = 6, PK_ROWS = 12, PK_CELL = 56;
+const PK_RANKS = [9,10,11,12,13,14];
+const PK_RNAME = { 9:"9", 10:"10", 11:"J", 12:"Q", 13:"K", 14:"A" };
+const PK_SUITS = ["♥","♦","♣","♠"];
+const PK_SCOLORS = { "♥":"#ff5c6e", "♦":"#ffb020", "♣":"#3ddc84", "♠":"#6fa8ff" };
+const PK_SCORES = {
+  kind:     { 3:30,  4:120, 5:400, 6:900  },
+  straight: { 3:50,  4:150, 5:450, 6:1000 },
+  flush:    { 4:150, 5:400, 6:900         },
+  sflush:   { 3:300, 4:800, 5:2000, 6:4000 }
+};
+const PK_HANDNAME = { kind:"OF A KIND", straight:"STRAIGHT", flush:"FLUSH", sflush:"STRAIGHT FLUSH" };
+let pk = null, pkRaf = null, pkLast = 0, pkTabActive = false, pkCv = null, pkCtx = null;
+let pkSlowHeld = false, pkRaiseHeld = false;
+
+function pkDefaultStats(){ return { best:0, runs:0, earned:0, lastDay:"", dailyRuns:0, cardDay:"" }; }
+function pkStats(){ if(!state.poker) state.poker = pkDefaultStats(); return state.poker; }
+
+function pkSafe(x, y, grid, rank, suit){
+  const at = (xx,yy)=> (yy>=0 && yy<PK_ROWS && xx>=0 && xx<PK_COLS) ? grid[yy][xx] : null;
+  const l1 = at(x-1,y), l2 = at(x-2,y), d1 = at(x,y-1), d2 = at(x,y-2);
+  if(l1 && l2 && l1.rank === rank && l2.rank === rank) return false;
+  if(d1 && d2 && d1.rank === rank && d2.rank === rank) return false;
+  if(l1 && l2 && (l1.rank - l2.rank === 1 && rank - l1.rank === 1)) return false;
+  if(l1 && l2 && (l1.rank - l2.rank === -1 && rank - l1.rank === -1)) return false;
+  if(d1 && d2 && (d1.rank - d2.rank === 1 && rank - d1.rank === 1)) return false;
+  if(d1 && d2 && (d1.rank - d2.rank === -1 && rank - d1.rank === -1)) return false;
+  return true;
+}
+function pkSpawn(x, y, grid){
+  for(let t=0;t<30;t++){
+    const rank = PK_RANKS[Math.floor(Math.random()*PK_RANKS.length)];
+    const suit = PK_SUITS[Math.floor(Math.random()*PK_SUITS.length)];
+    if(t === 29 || pkSafe(x, y, grid, rank, suit))
+      return { rank, suit, state:"idle", clearT:0, chain:false, dx:0, dy:0, bomb:false };
+  }
+}
+function pkNewGame(){
+  const grid = Array.from({length:PK_ROWS}, ()=>Array(PK_COLS).fill(null));
+  for(let x=0;x<PK_COLS;x++){
+    const h = 4 + Math.floor(Math.random()*3);
+    for(let y=0;y<h;y++) grid[y][x] = pkSpawn(x, y, grid);
+  }
+  pk = {
+    grid,
+    preview: Array.from({length:PK_COLS}, (_,x)=>pkSpawn(x, -1, grid)),
+    cur: { x:2, y:4 },
+    riseOff: 0, riseHold: 1.2,
+    score: 0, hands: 0, level: 1, chain: 1,
+    meter: 100, bombs: 1, bombBank: 0,
+    gravT: 0, settleTicks: 0,
+    pops: [], parts: [],
+    over: false, danger: false,
+    time: 0
+  };
+  pkSyncHud();
+}
+function pkRiseSpeed(){
+  let v = 0.11 * Math.pow(1.16, pk.level - 1);
+  let count = 0;
+  for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++) if(pk.grid[y][x]) count++;
+  if(count < 12) v *= 4;          /* board nearly empty — deal faster */
+  else if(count < 20) v *= 2;
+  return v;
+}
+
+/* ---- matching ---- */
+function pkSettled(x, y){
+  const c = pk.grid[y] && pk.grid[y][x];
+  return c && c.state === "idle" && Math.abs(c.dx) < 2 && Math.abs(c.dy) < 2 &&
+         (y === 0 || !!pk.grid[y-1][x]);   /* nothing to fall into */
+}
+function pkScanLine(sets, cells){
+  const n = cells.length;
+  const card = i => pkSettled(cells[i].x, cells[i].y) ? pk.grid[cells[i].y][cells[i].x] : null;
+  let i = 0;                                   /* kinds */
+  while(i < n){
+    const c = card(i); if(!c){ i++; continue; }
+    let j = i + 1;
+    while(j < n){ const d = card(j); if(d && d.rank === c.rank) j++; else break; }
+    if(j - i >= 3) sets.push({ cells: cells.slice(i, j), type:"kind", len: j - i });
+    i = Math.max(j, i + 1);
+  }
+  i = 0;                                       /* straights (in order, either direction) */
+  while(i < n - 1){
+    const c = card(i), d = card(i + 1);
+    if(!c || !d || Math.abs(d.rank - c.rank) !== 1){ i++; continue; }
+    const dir = d.rank - c.rank;
+    let j = i + 1;
+    while(j < n - 1){ const e = card(j), f = card(j + 1); if(e && f && f.rank - e.rank === dir) j++; else break; }
+    if(j - i + 1 >= 3){
+      const run = cells.slice(i, j + 1);
+      const suit0 = pk.grid[run[0].y][run[0].x].suit;
+      const sf = run.every(cl => pk.grid[cl.y][cl.x].suit === suit0);
+      sets.push({ cells: run, type: sf ? "sflush" : "straight", len: run.length });
+    }
+    i = j + 1;
+  }
+  i = 0;                                       /* flushes: 4+ same suit */
+  while(i < n){
+    const c = card(i); if(!c){ i++; continue; }
+    let j = i + 1;
+    while(j < n){ const d = card(j); if(d && d.suit === c.suit) j++; else break; }
+    if(j - i >= 4) sets.push({ cells: cells.slice(i, j), type:"flush", len: j - i });
+    i = Math.max(j, i + 1);
+  }
+}
+function pkScan(){
+  const sets = [];
+  for(let y=0;y<PK_ROWS;y++) pkScanLine(sets, Array.from({length:PK_COLS}, (_,x)=>({x,y})));
+  for(let x=0;x<PK_COLS;x++) pkScanLine(sets, Array.from({length:PK_ROWS}, (_,y)=>({x,y})));
+  return sets;
+}
+function pkApplyMatches(sets){
+  if(!sets.length) return false;
+  const seen = new Set(); const uniq = [];
+  sets.forEach(st => st.cells.forEach(c => {
+    const k = c.x + "," + c.y;
+    if(!seen.has(k)){ seen.add(k); uniq.push(c); }
+  }));
+  const anyChain = uniq.some(c => pk.grid[c.y][c.x].chain);
+  let mult = 1;
+  if(anyChain){ pk.chain++; mult = pk.chain; }
+  const comboF = 1 + 0.5 * (sets.length - 1);
+  let base = 0, big = sets[0];
+  sets.forEach(st => {
+    const tbl = PK_SCORES[st.type];
+    const key = Math.min(st.len, 6);
+    base += tbl[key] || tbl[Object.keys(tbl).pop()];
+    if((PK_SCORES[st.type][Math.min(st.len,6)]||0) > (PK_SCORES[big.type][Math.min(big.len,6)]||0)) big = st;
+  });
+  const gain = Math.round(base * mult * comboF);
+  pk.score += gain;
+  pk.hands += sets.length;
+  pk.bombBank += sets.length;
+  while(pk.bombBank >= 8){ pk.bombBank -= 8; if(pk.bombs < 3){ pk.bombs++; } }
+  pk.meter = Math.min(100, pk.meter + 10 * sets.length);
+  pk.level = Math.min(15, 1 + Math.floor(pk.hands / 18));
+  pk.riseHold = Math.max(pk.riseHold, 0.55 + 0.35 * mult);
+  uniq.forEach((c,k) => {
+    const card = pk.grid[c.y][c.x];
+    card.state = "clear"; card.clearT = -k * 0.05;
+  });
+  const mid = uniq[Math.floor(uniq.length/2)];
+  const px = (mid.x + 0.5) * PK_CELL, py = pkScreenY(mid.y) + PK_CELL/2;
+  const nm = big.type === "kind" ? `${big.len} ${PK_HANDNAME.kind}` : PK_HANDNAME[big.type];
+  pk.pops.push({ x:px, y:py, t:0, txt:`${nm}  +${gain.toLocaleString()}`, col: big.type==="sflush" ? "#ffd35c" : "#fff", size: big.type==="sflush" ? 19 : 15 });
+  if(mult > 1) pk.pops.push({ x:px, y:py+22, t:-0.1, txt:`CHAIN ×${mult}`, col:"#8fd3ff", size:16 });
+  pkSyncHud();
+  return true;
+}
+
+/* ---- update ---- */
+function pkGravityStep(){
+  let moved = false;
+  for(let x=0;x<PK_COLS;x++){
+    for(let y=0;y<PK_ROWS-1;y++){
+      if(!pk.grid[y][x] && pk.grid[y+1][x] && pk.grid[y+1][x].state === "idle"){
+        const c = pk.grid[y+1][x];
+        pk.grid[y][x] = c; pk.grid[y+1][x] = null;
+        c.dy -= PK_CELL; c.chain = true;
+        moved = true;
+      }
+    }
+  }
+  return moved;
+}
+function pkAnyClearing(){
+  for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
+    const c = pk.grid[y][x];
+    if(c && c.state === "clear") return true;
+  }
+  return false;
+}
+function pkUpdate(dt){
+  if(!pk || pk.over) return;
+  pk.time += dt;
+  const slow = pkSlowHeld && pk.meter > 0;
+  if(slow) pk.meter = Math.max(0, pk.meter - 26*dt);
+  else pk.meter = Math.min(100, pk.meter + 1.4*dt);
+  const ts = slow ? 0.3 : 1;
+  for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
+    const c = pk.grid[y][x]; if(!c) continue;
+    const sp = 620 * dt * (c.dy !== 0 ? ts : 1);
+    if(c.dx > 0) c.dx = Math.max(0, c.dx - 620*dt);
+    else if(c.dx < 0) c.dx = Math.min(0, c.dx + 620*dt);
+    if(c.dy > 0) c.dy = Math.max(0, c.dy - sp);
+    else if(c.dy < 0) c.dy = Math.min(0, c.dy + sp);
+  }
+  let clearing = false, removed = false;
+  for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
+    const c = pk.grid[y][x]; if(!c || c.state !== "clear") continue;
+    clearing = true;
+    c.clearT += dt * ts;
+    if(c.clearT > 0.5){
+      for(let p=0;p<6;p++) pk.parts.push({
+        x:(x+0.5)*PK_CELL, y:pkScreenY(y)+PK_CELL/2,
+        vx:(Math.random()*2-1)*130, vy:-40-Math.random()*130,
+        t:0, col: PK_SCOLORS[c.suit] });
+      pk.grid[y][x] = null;
+      removed = true;
+    }
+  }
+  pk.gravT += dt * ts;
+  if(pk.gravT >= 0.05){
+    pk.gravT = 0;
+    const moved = pkGravityStep();
+    if(!moved && !clearing){
+      if(pkApplyMatches(pkScan())){
+        pk.settleTicks = 0;
+      } else {
+        pk.settleTicks++;
+        if(pk.settleTicks >= 3 && pk.chain > 1){
+          pk.chain = 1;
+          for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
+            const c = pk.grid[y][x]; if(c) c.chain = false;
+          }
+          pkSyncHud();
+        } else if(pk.settleTicks >= 3){
+          for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
+            const c = pk.grid[y][x]; if(c) c.chain = false;
+          }
+        }
+      }
+    } else pk.settleTicks = 0;
+  }
+  if(pk.riseHold > 0) pk.riseHold -= dt * ts;
+  else if(!clearing){
+    const manual = pkRaiseHeld ? 1.5 : 0;
+    pk.riseOff += (pkRiseSpeed() * ts + manual) * dt;
+    if(pk.riseOff >= 1){
+      pk.riseOff -= 1;
+      let full = false;
+      for(let x=0;x<PK_COLS;x++) if(pk.grid[PK_ROWS-1][x]) full = true;
+      if(full){ pkGameOver(); return; }
+      for(let y=PK_ROWS-1;y>0;y--) pk.grid[y] = pk.grid[y-1];
+      pk.grid[0] = pk.preview;
+      pk.preview = Array.from({length:PK_COLS}, (_,x)=>pkSpawn(x, -1, pk.grid));
+      pk.cur.y = Math.min(PK_ROWS-1, pk.cur.y + 1);
+      if(pkRaiseHeld) pk.score += 2;
+      pkApplyMatches(pkScan());
+    }
+  }
+  pk.danger = false;
+  for(let x=0;x<PK_COLS;x++) if(pk.grid[PK_ROWS-2][x]) pk.danger = true;
+  pk.pops = pk.pops.filter(p => { p.t += dt; p.y -= dt*22; return p.t < 1.3; });
+  pk.parts = pk.parts.filter(p => {
+    p.t += dt; p.vy += 420*dt; p.x += p.vx*dt; p.y += p.vy*dt; return p.t < 0.8;
+  });
+}
+function pkScreenY(y){
+  const H = (PK_ROWS + 1) * PK_CELL;
+  return H - (y + 1 + (pk ? pk.riseOff : 0)) * PK_CELL - PK_CELL;
+}
+
+/* ---- actions ---- */
+function pkSwap(){
+  if(!pk || pk.over) return;
+  const { x, y } = pk.cur;
+  const a = pk.grid[y][x], b = pk.grid[y][x+1];
+  if(a && (a.state !== "idle" || Math.abs(a.dy) > 2)) return;
+  if(b && (b.state !== "idle" || Math.abs(b.dy) > 2)) return;
+  if(!a && !b) return;
+  pk.grid[y][x] = b; pk.grid[y][x+1] = a;
+  if(a) a.dx += PK_CELL;
+  if(b) b.dx -= PK_CELL;
+  pk.settleTicks = 0;
+}
+function pkBomb(){
+  if(!pk || pk.over || pk.bombs <= 0) return;
+  const t = pk.grid[pk.cur.y][pk.cur.x] || pk.grid[pk.cur.y][pk.cur.x+1];
+  if(!t || t.state !== "idle") return;
+  const rank = t.rank;
+  let n = 0;
+  for(let y=0;y<PK_ROWS;y++) for(let x=0;x<PK_COLS;x++){
+    const c = pk.grid[y][x];
+    if(c && c.state === "idle" && c.rank === rank){ c.state = "clear"; c.clearT = -n*0.03; c.bomb = true; n++; }
+  }
+  if(!n) return;
+  pk.bombs--;
+  pk.score += n * 10;
+  pk.pops.push({ x: PK_COLS*PK_CELL/2, y: (PK_ROWS/2)*PK_CELL, t:0, txt:`💣 ALL ${PK_RNAME[rank]}s  +${n*10}`, col:"#ff9d6e", size:17 });
+  pkSyncHud();
+}
+function pkGameOver(){
+  pk.over = true;
+  const P = pkStats();
+  const today = new Date().toDateString();
+  if(P.lastDay !== today){ P.lastDay = today; P.dailyRuns = 0; }
+  P.dailyRuns++;
+  const firstOfDay = P.dailyRuns === 1;
+  let credits = Math.min(12000, Math.round(pk.score * 0.25));
+  if(firstOfDay) credits *= 2;
+  let cardMsg = "";
+  if(pk.score >= 50000 && P.cardDay !== today){
+    P.cardDay = today;
+    const c = arAwardCard(6);
+    if(c) cardMsg = `<div class="payline">🃏 Bonus card: ${c.emoji} ${c.name}</div>`;
+  }
+  state.credits += credits;
+  P.earned += credits;
+  P.runs++;
+  const isBest = pk.score > (P.best || 0);
+  if(isBest) P.best = pk.score;
+  grantBonusXP(Math.min(60, pk.score / 1500));
+  recomputePlayerXP();
+  saveState(); renderHeader();
+  const ov = document.getElementById("pkOver");
+  ov.innerHTML = `
+    <div class="t">${isBest ? "🏆 NEW BEST" : "STACKED OUT"}</div>
+    <div class="s">Score <b style="color:#fff">${pk.score.toLocaleString()}</b> · Level ${pk.level} · ${pk.hands} hands<br>
+      Best: ${P.best.toLocaleString()}</div>
+    <div class="payline">+${credits.toLocaleString()} 🪙${firstOfDay ? " (first deal of the day ×2)" : ""}</div>
+    ${cardMsg}
+    <button class="btn" onclick="pkStart()">Deal again</button>`;
+  ov.classList.add("show");
+  pkRenderStats();
+}
+function pkStart(){
+  document.getElementById("pkOver").classList.remove("show");
+  pkNewGame();
+}
+
+/* ---- draw ---- */
+function pkDraw(){
+  if(!pkCtx) return;
+  const ctx = pkCtx;
+  const W = PK_COLS * PK_CELL, H = (PK_ROWS + 1) * PK_CELL;
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#131a2e"); bg.addColorStop(1, "#0d1120");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  if(!pk){
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = "bold 20px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("🃏", W/2, H/2 - 40);
+    ctx.fillText("POKER RUSH", W/2, H/2 - 12);
+    ctx.font = "13px system-ui";
+    ctx.fillText("Tap Deal to start", W/2, H/2 + 14);
+    return;
+  }
+  ctx.save();
+  if(pk.danger && !pk.over){
+    ctx.translate((Math.random()*2-1)*1.6, (Math.random()*2-1)*1.6);
+  }
+  for(let y=0;y<PK_ROWS;y++){
+    for(let x=0;x<PK_COLS;x++){
+      const c = pk.grid[y][x]; if(!c) continue;
+      pkDrawCard(ctx, c, x*PK_CELL + c.dx, pkScreenY(y) + c.dy, 1);
+    }
+  }
+  for(let x=0;x<PK_COLS;x++){
+    const c = pk.preview[x];
+    pkDrawCard(ctx, c, x*PK_CELL, pkScreenY(-1), 0.38);
+  }
+  const cy = pkScreenY(pk.cur.y);
+  ctx.strokeStyle = "rgba(255,211,92,0.95)"; ctx.lineWidth = 3;
+  const pulse = 1 + Math.sin(pk.time*6)*0.5;
+  ctx.strokeRect(pk.cur.x*PK_CELL + 2 - pulse, cy + 2 - pulse, PK_CELL*2 - 4 + pulse*2, PK_CELL - 4 + pulse*2);
+  pk.parts.forEach(p => {
+    ctx.globalAlpha = 1 - p.t/0.8;
+    ctx.fillStyle = p.col;
+    ctx.fillRect(p.x-2, p.y-2, 4, 4);
+  });
+  ctx.globalAlpha = 1;
+  pk.pops.forEach(p => {
+    ctx.globalAlpha = Math.min(1, 1.3 - p.t);
+    ctx.font = `bold ${p.size}px system-ui`; ctx.textAlign = "center";
+    ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = 3.5;
+    ctx.strokeText(p.txt, p.x, p.y);
+    ctx.fillStyle = p.col; ctx.fillText(p.txt, p.x, p.y);
+  });
+  ctx.globalAlpha = 1;
+  if(pk.danger && !pk.over){
+    ctx.fillStyle = "rgba(255,60,60,0.07)"; ctx.fillRect(0,0,W,H);
+  }
+  if(pkSlowHeld && pk.meter > 0){
+    ctx.fillStyle = "rgba(90,160,255,0.06)"; ctx.fillRect(0,0,W,H);
+  }
+  ctx.restore();
+}
+function pkDrawCard(ctx, c, px, py, alpha){
+  const m = 3;
+  let scale = 1, glow = 0;
+  if(c.state === "clear"){
+    const t = Math.max(0, c.clearT);
+    if(t < 0.12){ glow = t/0.12; }
+    else { scale = Math.max(0, 1 - (t-0.12)/0.38); glow = 1; }
+    if(scale <= 0) return;
+  }
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(px + PK_CELL/2, py + PK_CELL/2);
+  ctx.scale(scale, scale);
+  const col = PK_SCOLORS[c.suit];
+  const g = ctx.createLinearGradient(0, -PK_CELL/2, 0, PK_CELL/2);
+  g.addColorStop(0, "#222b44"); g.addColorStop(1, "#171d31");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(-PK_CELL/2 + m, -PK_CELL/2 + m, PK_CELL - m*2, PK_CELL - m*2, 8);
+  ctx.fill();
+  ctx.strokeStyle = glow ? "#ffffff" : col;
+  ctx.globalAlpha = alpha * (glow ? 1 : 0.65);
+  ctx.lineWidth = glow ? 3 : 1.5;
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+  if(glow > 0){
+    ctx.fillStyle = `rgba(255,255,255,${0.45*glow})`;
+    ctx.fill();
+  }
+  ctx.fillStyle = col;
+  ctx.font = "bold 19px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(PK_RNAME[c.rank], 0, -8);
+  ctx.font = "16px system-ui";
+  ctx.fillText(c.suit, 0, 12);
+  ctx.restore();
+}
+
+/* ---- HUD / loop / io ---- */
+function pkSyncHud(){
+  const S = document.getElementById("pkHudScore");
+  if(!S) return;
+  S.textContent = pk ? pk.score.toLocaleString() : "0";
+  document.getElementById("pkHudLevel").textContent = pk ? pk.level : 1;
+  document.getElementById("pkHudChain").textContent = (pk && pk.chain > 1) ? "×" + pk.chain : "—";
+  document.getElementById("pkMeterFill").style.width = (pk ? pk.meter : 100) + "%";
+  const bb = document.getElementById("pkBombCt");
+  if(bb) bb.textContent = "×" + (pk ? pk.bombs : 1);
+}
+function pkRenderStats(){
+  const P = pkStats();
+  const el = document.getElementById("pkStats");
+  if(el) el.innerHTML = `
+    <div class="stat"><div class="num">${(P.best||0).toLocaleString()}</div><div class="lbl">Best Score</div></div>
+    <div class="stat"><div class="num">${P.runs||0}</div><div class="lbl">Deals</div></div>
+    <div class="stat"><div class="num">${(P.earned||0).toLocaleString()}</div><div class="lbl">Credits Won</div></div>`;
+}
+function renderPoker(){
+  pkRenderStats();
+  pkSyncHud();
+  const ov = document.getElementById("pkOver");
+  if(!pk && ov){
+    ov.innerHTML = `
+      <div class="t">🃏 POKER RUSH</div>
+      <div class="s">Swap cards sideways. Make poker hands in rows or columns.<br>Survive the rise.</div>
+      <button class="btn" onclick="pkStart()">Deal me in</button>`;
+    ov.classList.add("show");
+  }
+}
+function pkLoop(ts){
+  pkRaf = requestAnimationFrame(pkLoop);
+  const dt = Math.min(0.05, (ts - pkLast)/1000 || 0.016);
+  pkLast = ts;
+  pkUpdate(dt);
+  pkDraw();
+  if(pk && !pk.over && (pk.time*2|0) % 2 === 0) pkSyncHud();
+}
+function pkOnEnterTab(){
+  pkTabActive = true;
+  pkCv = document.getElementById("pkCanvas");
+  if(pkCv && !pkCtx) pkCtx = pkCv.getContext("2d");
+  if(pkRaf === null){ pkLast = performance.now(); pkRaf = requestAnimationFrame(pkLoop); }
+}
+function pkOnLeaveTab(){
+  pkTabActive = false;
+  if(pkRaf !== null){ cancelAnimationFrame(pkRaf); pkRaf = null; }
+}
+document.addEventListener("keydown", e=>{
+  if(!pkTabActive || !pk || pk.over) return;
+  const k = e.key.toLowerCase();
+  if(k === "arrowleft"){ pk.cur.x = Math.max(0, pk.cur.x-1); e.preventDefault(); }
+  else if(k === "arrowright"){ pk.cur.x = Math.min(PK_COLS-2, pk.cur.x+1); e.preventDefault(); }
+  else if(k === "arrowup"){ pk.cur.y = Math.min(PK_ROWS-1, pk.cur.y+1); e.preventDefault(); }
+  else if(k === "arrowdown"){ pk.cur.y = Math.max(0, pk.cur.y-1); e.preventDefault(); }
+  else if(k === "x" || k === "z" || k === " "){ pkSwap(); e.preventDefault(); }
+  else if(k === "s"){ pkSlowHeld = true; e.preventDefault(); }
+  else if(k === "r"){ pkRaiseHeld = true; e.preventDefault(); }
+  else if(k === "b"){ pkBomb(); e.preventDefault(); }
+});
+document.addEventListener("keyup", e=>{
+  const k = e.key.toLowerCase();
+  if(k === "s") pkSlowHeld = false;
+  if(k === "r") pkRaiseHeld = false;
+});
+(function pkBindUI(){
+  const cv = document.getElementById("pkCanvas");
+  if(!cv) return;
+  let drag = null;
+  const cellFromEvent = (ev)=>{
+    const r = cv.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) / r.width * (PK_COLS*PK_CELL);
+    const sy = (ev.clientY - r.top) / r.height * ((PK_ROWS+1)*PK_CELL);
+    const x = Math.floor(sx / PK_CELL);
+    let best = null, bd = 1e9;
+    for(let y=0;y<PK_ROWS;y++){
+      const d = Math.abs(pkScreenY(y) + PK_CELL/2 - sy);
+      if(d < bd){ bd = d; best = y; }
+    }
+    return { x: Math.max(0, Math.min(PK_COLS-1, x)), y: best, sx };
+  };
+  cv.addEventListener("pointerdown", ev=>{
+    if(!pk || pk.over) return;
+    const c = cellFromEvent(ev);
+    drag = { x: c.x, y: c.y, sx: c.sx, done:false };
+    pk.cur.y = c.y;
+    pk.cur.x = Math.max(0, Math.min(PK_COLS-2, c.x === PK_COLS-1 ? c.x-1 : c.x));
+    try{ cv.setPointerCapture(ev.pointerId); }catch(e){}
+    ev.preventDefault();
+  });
+  cv.addEventListener("pointermove", ev=>{
+    if(!drag || drag.done || !pk || pk.over) return;
+    const r = cv.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) / r.width * (PK_COLS*PK_CELL);
+    const dxp = sx - drag.sx;
+    if(Math.abs(dxp) > PK_CELL*0.4){
+      /* one space per gesture — lift your finger to move again */
+      if(dxp > 0 && drag.x < PK_COLS-1){ pk.cur.x = drag.x; pk.cur.y = drag.y; pkSwap(); }
+      else if(dxp < 0 && drag.x > 0){ pk.cur.x = drag.x-1; pk.cur.y = drag.y; pkSwap(); }
+      drag.done = true;
+    }
+  });
+  cv.addEventListener("pointerup", ()=>{ drag = null; });
+  const hold = (id, on, off)=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.addEventListener("pointerdown", e=>{ on(); e.preventDefault(); });
+    b.addEventListener("pointerup", off);
+    b.addEventListener("pointerleave", off);
+    b.addEventListener("pointercancel", off);
+  };
+  hold("pkSlowBtn", ()=>{ pkSlowHeld = true; }, ()=>{ pkSlowHeld = false; });
+  hold("pkRaiseBtn", ()=>{ pkRaiseHeld = true; }, ()=>{ pkRaiseHeld = false; });
+  const bomb = document.getElementById("pkBombBtn");
+  if(bomb) bomb.addEventListener("click", pkBomb);
+})();
+
 /* ---------------- NAV ---------------- */
 document.querySelectorAll("nav button").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     try{ btn.scrollIntoView({inline:"center", block:"nearest", behavior:"smooth"}); }catch(e){}
-    ["mining","packs","upgrades","market","empire","siege","raids","arena","fishing","casino","collection","account"].forEach(t=>{
+    ["mining","packs","upgrades","market","empire","siege","raids","arena","fishing","casino","poker","collection","account"].forEach(t=>{
       document.getElementById("tab-"+t).style.display = (t===btn.dataset.tab) ? "block":"none";
     });
     if(btn.dataset.tab==="collection") renderCollection();
@@ -14067,6 +14670,7 @@ document.querySelectorAll("nav button").forEach(btn=>{
     if(btn.dataset.tab==="empire") renderEmpire();
     if(btn.dataset.tab==="siege"){ renderSiege(); sgOnEnterTab(); } else { sgOnLeaveTab(); }
     if(btn.dataset.tab==="raids"){ renderRaids(); rdOnEnterTab(); } else { rdOnLeaveTab(); }
+    if(btn.dataset.tab==="poker"){ renderPoker(); pkOnEnterTab(); } else { pkOnLeaveTab(); }
     if(btn.dataset.tab==="arena"){ renderArena(); arOnEnterTab(); } else { arOnLeaveTab(); }
     if(btn.dataset.tab==="fishing"){ renderFishing(); fshOnEnterTab(); } else { fshOnLeaveTab(); }
     if(btn.dataset.tab==="account") renderAccount();

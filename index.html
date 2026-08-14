@@ -2109,7 +2109,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .pk-stage{ position:relative; width:100%; max-width:420px; margin:0 auto; }
 #pkCanvas{ display:block; width:100%; max-width:min(100%, calc(62vh * 0.4615)); height:auto; max-height:62vh;
   margin:0 auto; border-radius:14px; border:1px solid rgba(255,255,255,0.12);
-  background:#101423; touch-action:none; }
+  background:#0b0d10; touch-action:none; }
 .pk-over{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
   gap:10px; background:rgba(8,10,18,0.82); border-radius:14px; text-align:center; padding:18px; z-index:4; }
 .pk-over.show{ display:flex; }
@@ -2950,7 +2950,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="pk-meter" title="Slow-time"><i id="pkMeterFill"></i><span>🕰️</span></div>
     </div>
     <div class="pk-stage" id="pkStage">
-      <canvas id="pkCanvas" width="336" height="728"></canvas>
+      <canvas id="pkCanvas" width="672" height="1456"></canvas>
       <div class="pk-over" id="pkOver"></div>
     </div>
     <div class="pk-controls">
@@ -14132,6 +14132,68 @@ const PK_SCORES = {
   sflush:   { 3:300, 4:800, 5:2000, 6:4000 }
 };
 const PK_HANDNAME = { kind:"OF A KIND", straight:"STRAIGHT", flush:"FLUSH", sflush:"STRAIGHT FLUSH" };
+/* Neon block faces, pre-rendered once per rank+suit (plus a "hot" version for clears). */
+let pkFaces = null;
+function pkMixWhite(hex, f){
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const m = v => Math.round(v + (255 - v)*f);
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+function pkDrawFace(c, rank, suit, hot){
+  const col = PK_SCOLORS[suit];
+  const m = 2.5, r = 11, w = PK_CELL - m*2;
+  /* the block: soft 3-D key */
+  c.save();
+  c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowBlur = 5; c.shadowOffsetY = 3;
+  const g = c.createLinearGradient(0, m, 0, m + w);
+  g.addColorStop(0, "#262a31"); g.addColorStop(0.55, "#1b1f25"); g.addColorStop(1, "#131619");
+  c.fillStyle = g;
+  c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
+  c.restore();
+  /* bevel: top highlight, bottom shade */
+  c.strokeStyle = "rgba(255,255,255,0.09)"; c.lineWidth = 1.2;
+  c.beginPath(); c.roundRect(m + 0.8, m + 0.8, w - 1.6, w - 1.6, r - 1); c.stroke();
+  c.strokeStyle = "rgba(0,0,0,0.5)"; c.lineWidth = 1;
+  c.beginPath(); c.roundRect(m + 0.4, m + 0.4, w - 0.8, w - 0.8, r); c.stroke();
+  /* faint ambient wash from the neon */
+  c.save();
+  c.beginPath(); c.roundRect(m, m, w, w, r); c.clip();
+  const amb = c.createRadialGradient(PK_CELL/2, PK_CELL/2, 4, PK_CELL/2, PK_CELL/2, PK_CELL*0.62);
+  amb.addColorStop(0, col); amb.addColorStop(1, "rgba(0,0,0,0)");
+  c.globalAlpha = hot ? 0.34 : 0.13;
+  c.fillStyle = amb; c.fillRect(0, 0, PK_CELL, PK_CELL);
+  c.restore();
+  /* neon text: colored bloom passes, then a hot core */
+  const passes = hot ? 3 : 2;
+  c.textAlign = "center"; c.textBaseline = "middle";
+  const draw = (txt, y, font)=>{
+    c.font = font;
+    c.save();
+    c.shadowColor = col; c.shadowBlur = hot ? 15 : 9;
+    c.fillStyle = col;
+    for(let i=0;i<passes;i++) c.fillText(txt, PK_CELL/2, y);
+    c.shadowBlur = 2.5;
+    c.fillStyle = pkMixWhite(col, hot ? 0.85 : 0.55);
+    c.fillText(txt, PK_CELL/2, y);
+    c.restore();
+  };
+  draw(PK_RNAME[rank], PK_CELL/2 - 8.5, "bold 20px system-ui");
+  draw(suit, PK_CELL/2 + 12.5, "16px system-ui");
+}
+function pkBuildFaces(){
+  pkFaces = {};
+  const R = 3;   /* cache render scale — glow stays crisp when popped */
+  PK_RANKS.forEach(rank => PK_SUITS.forEach(suit => {
+    [false, true].forEach(hot => {
+      const cv = document.createElement("canvas");
+      cv.width = PK_CELL*R; cv.height = PK_CELL*R;
+      const c = cv.getContext("2d");
+      c.scale(R, R);
+      pkDrawFace(c, rank, suit, hot);
+      pkFaces[rank + suit + (hot ? "!" : "")] = cv;
+    });
+  }));
+}
 let pk = null, pkRaf = null, pkLast = 0, pkTabActive = false, pkCv = null, pkCtx = null;
 let pkSlowHeld = false, pkRaiseHeld = false;
 
@@ -14448,9 +14510,10 @@ function pkDraw(){
   if(!pkCtx) return;
   const ctx = pkCtx;
   const W = PK_COLS * PK_CELL, H = (PK_ROWS + 1) * PK_CELL;
+  ctx.setTransform(2, 0, 0, 2, 0, 0);       /* canvas is 2× for crisp neon */
   ctx.clearRect(0, 0, W, H);
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#131a2e"); bg.addColorStop(1, "#0d1120");
+  bg.addColorStop(0, "#111318"); bg.addColorStop(1, "#0a0c0f");
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   if(!pk){
     ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = "bold 20px system-ui"; ctx.textAlign = "center";
@@ -14475,9 +14538,14 @@ function pkDraw(){
     pkDrawCard(ctx, c, x*PK_CELL, pkScreenY(-1), 0.38);
   }
   const cy = pkScreenY(pk.cur.y);
-  ctx.strokeStyle = "rgba(255,211,92,0.95)"; ctx.lineWidth = 3;
   const pulse = 1 + Math.sin(pk.time*6)*0.5;
-  ctx.strokeRect(pk.cur.x*PK_CELL + 2 - pulse, cy + 2 - pulse, PK_CELL*2 - 4 + pulse*2, PK_CELL - 4 + pulse*2);
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,211,92,0.95)"; ctx.lineWidth = 2.5;
+  ctx.shadowColor = "#ffd35c"; ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.roundRect(pk.cur.x*PK_CELL + 2 - pulse, cy + 2 - pulse, PK_CELL*2 - 4 + pulse*2, PK_CELL - 4 + pulse*2, 12);
+  ctx.stroke();
+  ctx.restore();
   pk.parts.forEach(p => {
     ctx.globalAlpha = 1 - p.t/0.8;
     ctx.fillStyle = p.col;
@@ -14501,39 +14569,29 @@ function pkDraw(){
   ctx.restore();
 }
 function pkDrawCard(ctx, c, px, py, alpha){
-  const m = 3;
-  let scale = 1, glow = 0;
+  if(!pkFaces) pkBuildFaces();
+  let scale = 1, hot = 0;
   if(c.state === "clear"){
     const t = Math.max(0, c.clearT);
-    if(t < 0.12){ glow = t/0.12; }
-    else { scale = Math.max(0, 1 - (t-0.12)/0.38); glow = 1; }
+    if(t < 0.12){ hot = t/0.12; scale = 1 + 0.06*hot; }
+    else { hot = 1; scale = Math.max(0, 1.06 - (t-0.12)/0.38*1.06); }
     if(scale <= 0) return;
   }
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(px + PK_CELL/2, py + PK_CELL/2);
   ctx.scale(scale, scale);
-  const col = PK_SCOLORS[c.suit];
-  const g = ctx.createLinearGradient(0, -PK_CELL/2, 0, PK_CELL/2);
-  g.addColorStop(0, "#222b44"); g.addColorStop(1, "#171d31");
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.roundRect(-PK_CELL/2 + m, -PK_CELL/2 + m, PK_CELL - m*2, PK_CELL - m*2, 8);
-  ctx.fill();
-  ctx.strokeStyle = glow ? "#ffffff" : col;
-  ctx.globalAlpha = alpha * (glow ? 1 : 0.65);
-  ctx.lineWidth = glow ? 3 : 1.5;
-  ctx.stroke();
-  ctx.globalAlpha = alpha;
-  if(glow > 0){
-    ctx.fillStyle = `rgba(255,255,255,${0.45*glow})`;
-    ctx.fill();
+  const img = pkFaces[c.rank + c.suit];
+  ctx.drawImage(img, -PK_CELL/2, -PK_CELL/2, PK_CELL, PK_CELL);
+  if(hot > 0){
+    ctx.globalAlpha = alpha * hot;
+    ctx.drawImage(pkFaces[c.rank + c.suit + "!"], -PK_CELL/2, -PK_CELL/2, PK_CELL, PK_CELL);
+    if(hot >= 1){
+      ctx.globalAlpha = alpha * Math.max(0, (scale - 0.35)) * 0.5;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.roundRect(-PK_CELL/2 + 2.5, -PK_CELL/2 + 2.5, PK_CELL - 5, PK_CELL - 5, 11); ctx.fill();
+    }
   }
-  ctx.fillStyle = col;
-  ctx.font = "bold 19px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(PK_RNAME[c.rank], 0, -8);
-  ctx.font = "16px system-ui";
-  ctx.fillText(c.suit, 0, 12);
   ctx.restore();
 }
 

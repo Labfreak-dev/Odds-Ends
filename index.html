@@ -1701,22 +1701,55 @@
 .ar-cond{ font-size:0.95rem; color:#cfd3e4; margin:10px 2px 4px; }
 .ar-rival{ color:#ffcf6a; font-size:0.9rem; margin:2px 2px 4px; }
 .ar-oracle{ color:#c9a6ff; font-size:0.9rem; margin:2px 2px 4px; }
-.ar-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:10px; }
+.ar-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(156px,1fr)); gap:9px; margin-top:10px; }
 .ar-card{ position:relative; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09);
-  border-radius:12px; padding:14px 10px 12px; text-align:center; }
+  border-radius:12px; padding:14px 9px 12px; text-align:center; display:flex; flex-direction:column; }
 .ar-card.ar-champ{ border-color:rgba(255,207,64,0.5); }
 .ar-card.ar-hinted{ border-color:rgba(201,166,255,0.65); box-shadow:0 0 12px rgba(201,166,255,0.18); }
 .ar-belt{ position:absolute; top:6px; left:0; right:0; font-size:0.62rem; letter-spacing:0.12em; color:#ffcf40; }
 .ar-emoji{ font-size:2.1rem; margin-top:6px; }
 .ar-name{ font-weight:700; margin-top:4px; }
-.ar-epithet{ font-size:0.75rem; color:#9aa0b6; font-style:italic; min-height:2.1em; margin-top:2px; }
+.ar-epithet{ font-size:0.72rem; color:#9aa0b6; font-style:italic; min-height:2.1em; margin-top:2px; line-height:1.35; }
 .ar-record{ font-size:0.8rem; color:#cfd3e4; margin-top:4px; }
-.ar-quirk{ font-size:0.78rem; color:#ffcf6a; margin-top:2px; cursor:help; }
-.ar-bars{ display:flex; gap:4px; align-items:flex-end; justify-content:center; height:44px; margin-top:8px; }
-.ar-bar{ width:11px; height:44px; background:rgba(255,255,255,0.06); border-radius:3px; position:relative; }
-.ar-bar i{ position:absolute; bottom:0; left:0; right:0; border-radius:3px;
-  background:linear-gradient(180deg,#8fa2ff,#5e6fd8); display:block; }
-.ar-betbtn{ margin-top:10px; width:100%; padding:9px 0; border:none; border-radius:9px;
+.ar-quirk{ font-size:0.8rem; font-weight:700; color:#ffcf6a; margin-top:4px; }
+.ar-quirkd{ font-size:0.64rem; color:#8b93ab; line-height:1.32; margin-top:1px; min-height:3.9em; }
+
+/* ---- the stat block: readable without a mouse ---- */
+.ar-tale{ display:flex; justify-content:center; gap:6px; margin-top:9px; }
+.ar-tale .tl{ font-size:0.64rem; font-weight:800; padding:3px 7px; border-radius:999px;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); white-space:nowrap; }
+.ar-tale .hp{ color:#ff8a92; }
+.ar-tale .rate{ color:#ffcf6a; }
+.ar-tale .rate em{ font-style:normal; color:#8b93ab; font-weight:700; }
+.ar-stats{ margin-top:7px; margin-bottom:10px; text-align:left; display:flex; flex-direction:column; gap:4px; }
+.ar-stat{ display:flex; align-items:center; gap:6px; }
+.ar-stat .sl{ font-size:0.58rem; font-weight:800; letter-spacing:0.04em; color:#8b93ab; width:23px; flex:none; }
+.ar-stat .sp{ position:relative; flex:1; height:10px; border-radius:3px; overflow:hidden;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.07); }
+.ar-stat .sp i{ display:block; height:100%; border-radius:2px; }
+.ar-stat .sp::after{ content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 calc(10% - 1.5px), rgba(8,10,18,0.9) calc(10% - 1.5px) 10%); }
+.ar-stat .sv{ font-size:0.68rem; font-weight:800; color:#e8eaf5; width:12px; text-align:right; flex:none; }
+.ar-stat.best .sl, .ar-stat.best .sv{ color:#ffcf6a; }
+
+/* ---- one-on-one comparison ---- */
+.ar-vs{ margin-top:12px; border:1px solid rgba(255,255,255,0.1); border-radius:12px;
+  padding:11px 12px 12px; background:rgba(255,255,255,0.03); }
+.ar-vs-cap{ text-align:center; font-size:0.58rem; letter-spacing:0.16em; color:#8b93ab; font-weight:800; margin-bottom:6px; }
+.ar-vs-h{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.ar-vs-h .n{ font-size:0.76rem; font-weight:800; color:#e8eaf5; flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ar-vs-h .n.r{ text-align:right; }
+.ar-vsrow{ display:grid; grid-template-columns:20px 1fr 46px 1fr 20px; align-items:center; gap:5px; margin-top:5px; }
+.ar-vsrow .vnum{ font-size:0.7rem; font-weight:800; color:#9aa0b6; text-align:center; }
+.ar-vsrow .vnum.win{ color:#ffcf6a; }
+.ar-vsrow .vlab{ font-size:0.58rem; font-weight:800; letter-spacing:0.06em; color:#8b93ab; text-align:center; white-space:nowrap; }
+.ar-vsrow .vbar{ position:relative; height:9px; border-radius:3px; overflow:hidden;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.06); }
+.ar-vsrow .vbar i{ position:absolute; top:0; bottom:0; border-radius:2px; }
+.ar-vsrow .vbar.l i{ right:0; } .ar-vsrow .vbar.r i{ left:0; }
+.ar-vsrow.tot{ margin-top:7px; padding-top:7px; border-top:1px solid rgba(255,255,255,0.08); }
+.ar-betbtn{ margin-top:auto; padding-top:0; width:100%; padding:9px 0; border:none; border-radius:9px;
   background:#5e6fd8; color:#fff; font-weight:700; cursor:pointer; }
 .ar-betbtn:hover{ background:#707ff0; }
 .ar-wager{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px;
@@ -12937,10 +12970,66 @@ function arStartLoop(){ if(arRaf === null){ arLastTs = performance.now(); arRaf 
 function arStopLoop(){ if(arRaf !== null){ cancelAnimationFrame(arRaf); arRaf = null; } }
 
 /* ---------------- UI panels ---------------- */
+const AR_STAT_DEFS = [
+  { k:"pow", label:"POW", col:"#ff7a6a", full:"Power — how hard the blows land" },
+  { k:"spd", label:"SPD", col:"#6fd0ff", full:"Speed — striking first, and slipping punches" },
+  { k:"def", label:"DEF", col:"#7fe0a8", full:"Defense — how much damage is soaked" },
+  { k:"fer", label:"FER", col:"#ffa14a", full:"Ferocity — how often a hit turns critical" },
+  { k:"wit", label:"WIT", col:"#c9a6ff", full:"Wits — accuracy, and working the quirk" },
+];
 function arStatBars(g){
-  const rows = [["POW",g.pow],["SPD",g.spd],["DEF",g.def],["FER",g.fer],["WIT",g.wit]];
-  return `<div class="ar-bars">` + rows.map(([l,v])=>
-    `<div class="ar-bar" title="${l} ${v}/10"><i style="height:${8+v*3.4}px"></i></div>`).join("") + `</div>`;
+  const vals = AR_STAT_DEFS.map(d=>g[d.k]);
+  const best = Math.max(...vals);
+  const total = vals.reduce((a,b)=>a+b,0);
+  const rows = AR_STAT_DEFS.map(d=>{
+    const v = g[d.k];
+    return `<div class="ar-stat${v === best ? " best" : ""}" title="${d.full} — ${v}/10">
+      <span class="sl">${d.label}</span>
+      <span class="sp"><i style="width:${v*10}%; background:linear-gradient(90deg, ${d.col}99, ${d.col})"></i></span>
+      <span class="sv">${v}</span>
+    </div>`;
+  }).join("");
+  return `<div class="ar-tale">
+      <span class="tl hp" title="Hit points">❤️ ${g.hp}</span>
+      <span class="tl rate" title="Total of all five stats">Σ ${total}<em>/50</em></span>
+    </div>
+    <div class="ar-stats">${rows}</div>`;
+}
+/* Head-to-head board for a one-on-one — the whole point is reading it at a glance on a phone. */
+function arTaleOfTape(a, b){
+  const rows = AR_STAT_DEFS.map(d=>{
+    const va = a[d.k], vb = b[d.k];
+    return `<div class="ar-vsrow">
+      <span class="vnum${va > vb ? " win" : ""}">${va}</span>
+      <span class="vbar l"><i style="width:${va*10}%; background:linear-gradient(270deg, ${d.col}99, ${d.col})"></i></span>
+      <span class="vlab">${d.label}</span>
+      <span class="vbar r"><i style="width:${vb*10}%; background:linear-gradient(90deg, ${d.col}99, ${d.col})"></i></span>
+      <span class="vnum${vb > va ? " win" : ""}">${vb}</span>
+    </div>`;
+  }).join("");
+  const ta = AR_STAT_DEFS.reduce((s2,d)=>s2+a[d.k],0), tb = AR_STAT_DEFS.reduce((s2,d)=>s2+b[d.k],0);
+  return `<div class="ar-vs">
+    <div class="ar-vs-cap">TALE OF THE TAPE</div>
+    <div class="ar-vs-h">
+      <span class="n">${a.emoji} ${a.name}</span>
+      <span class="n r">${b.name} ${b.emoji}</span>
+    </div>
+    ${rows}
+    <div class="ar-vsrow tot">
+      <span class="vnum${ta > tb ? " win" : ""}">${ta}</span>
+      <span class="vbar l"><i style="width:${ta*2}%; background:linear-gradient(270deg,#ffcf6a99,#ffcf6a)"></i></span>
+      <span class="vlab">TOTAL</span>
+      <span class="vbar r"><i style="width:${tb*2}%; background:linear-gradient(90deg,#ffcf6a99,#ffcf6a)"></i></span>
+      <span class="vnum${tb > ta ? " win" : ""}">${tb}</span>
+    </div>
+    <div class="ar-vsrow tot">
+      <span class="vnum${a.hp > b.hp ? " win" : ""}">${a.hp}</span>
+      <span class="vbar l"><i style="width:${Math.round(a.hp/1.3)}%; background:linear-gradient(270deg,#ff6a7a99,#ff6a7a)"></i></span>
+      <span class="vlab">❤️ HP</span>
+      <span class="vbar r"><i style="width:${Math.round(b.hp/1.3)}%; background:linear-gradient(90deg,#ff6a7a99,#ff6a7a)"></i></span>
+      <span class="vnum${b.hp > a.hp ? " win" : ""}">${b.hp}</span>
+    </div>
+  </div>`;
 }
 function arRenderPanel(){
   const wrap = document.getElementById("arPanel");
@@ -12963,12 +13052,14 @@ function arRenderPanel(){
         <div class="ar-name">${g.name}</div>
         <div class="ar-epithet">${g.epithet}</div>
         <div class="ar-record">${r.w}W – ${r.l}L</div>
-        <div class="ar-quirk" title="${q.desc}">✨ ${q.name}</div>
+        <div class="ar-quirk">✨ ${q.name}</div>
+        <div class="ar-quirkd">${q.desc}</div>
         ${arStatBars(g)}
         <button class="ar-betbtn" data-bet="${g.id}">Bet · ${ar.odds[i]}×</button>
       </div>`;
     }).join("");
-    wrap.innerHTML = head + `<div class="ar-grid">${cards}</div>
+    const tape = (ar.glads.length === 2) ? arTaleOfTape(ar.glads[0], ar.glads[1]) : "";
+    wrap.innerHTML = head + `<div class="ar-grid">${cards}</div>` + tape + `
       <div class="ar-wager">
         <span class="ar-wlabel">WAGER</span>
         <input id="arWager" type="number" min="1000" step="1000" value="${Math.min(state.credits, A.lastWager||10000)}">

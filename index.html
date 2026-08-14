@@ -1156,7 +1156,7 @@
   .dg-lvlbody{ flex:1; min-width:0; }
   .dg-lvlname{ font-weight:800; font-size:14px; margin-bottom:5px; }
   .dg-lvlxp{ font-size:11.5px; color:var(--muted); margin-top:5px; }
-  .dg-sec{ font-weight:800; font-size:15px; margin-bottom:8px; display:flex; justify-content:space-between; }
+  .dg-sec{ font-weight:800; font-size:15px; margin-bottom:8px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:baseline; }
   .dg-sec span{ font-size:12px; color:var(--muted); font-weight:700; }
   .dg-bindnote{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-bottom:10px; }
   .dg-binds{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
@@ -1263,6 +1263,37 @@
   .dg-result .rt{ font-weight:900; font-size:20px; margin:6px 0 8px; }
   .dg-result .rs{ font-size:13px; color:var(--text); margin-bottom:6px; }
 
+
+
+  /* ---- The Mythic Forge ---- */
+  .mr-rolls{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:9px; }
+  .mr-roll{ position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+    text-align:left; padding:12px; border-radius:14px; cursor:pointer; font-family:inherit; color:var(--text);
+    border:1px solid rgba(255,157,110,0.3);
+    background:linear-gradient(160deg, rgba(255,157,110,0.12), rgba(255,255,255,0.015));
+    transition:transform .12s, border-color .12s; }
+  .mr-roll:hover:not(:disabled){ transform:translateY(-3px); border-color:#ff9d6e; }
+  .mr-roll:disabled{ opacity:0.45; cursor:default; }
+  .mr-roll.poor{ border-color:rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); }
+  .mr-roll .ri{ font-size:26px; line-height:1; }
+  .mr-roll .rn{ font-weight:900; font-size:13.5px; }
+  .mr-roll .rb{ font-size:11.5px; font-weight:800; color:#ff9d6e; }
+  .mr-roll .rf{ font-size:10.5px; color:var(--muted); line-height:1.4; font-style:italic; }
+  .mr-roll .rfoot{ display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+    width:100%; margin-top:6px; }
+  .mr-roll .rfoot b{ font-size:11.5px; font-weight:800; color:#ffd35c; white-space:nowrap; }
+  .mr-roll .rfoot em{ font-style:normal; font-size:10px; font-weight:800; color:#8fe8b4; white-space:nowrap; }
+  .mr-rolling{ text-align:center; padding:16px 10px; margin-bottom:11px; border-radius:14px;
+    border:1px solid rgba(255,157,110,0.45);
+    background:radial-gradient(ellipse at 50% 40%, rgba(255,157,110,0.2), rgba(0,0,0,0) 70%); }
+  .mr-rolling .rr-icon{ font-size:34px; line-height:1; animation:rdActSwing .7s ease-in-out infinite; }
+  .mr-rolling .rr-num{ font-size:36px; font-weight:900; color:#ff9d6e; letter-spacing:-1px;
+    text-shadow:0 0 24px rgba(255,157,110,0.55); }
+  .mr-rolling .rr-lab{ font-size:11.5px; color:var(--muted); font-weight:700; }
+  .mr-rolling.done .rr-icon{ animation:none; }
+  .mr-rolling.done .rr-num{ color:#ffd35c; animation:rdStampIn .35s cubic-bezier(0.2,2.4,0.4,1) both;
+    text-shadow:0 0 30px rgba(255,211,92,0.7); }
+  .mr-rolling.done .rr-lab{ color:#ffd35c; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; }
 
   /* ---- Mythic Raids: gear ---- */
   .mr-gearbtn{ cursor:pointer; font-family:inherit; font-size:12px; font-weight:700; }
@@ -16554,6 +16585,64 @@ const MR_ITEMS = (function(){
 const MR_ITEM_LIST = Object.values(MR_ITEMS);
 function mrSet(id){ return MR_SETS.find(s=>s.id === id); }
 
+/* ================= The Mythic Forge =================
+   Credits buy a rite. The rite is a roll — you know the band, never the number —
+   and whatever it lands on is welded to you permanently, across every floor. */
+const MR_ROLLS = [
+  { id:"iron",   name:"Whisper of Iron",   icon:"🗡️", cost:1e6,  min:1,  max:3,
+    blurb:"A smith who does not give her name puts an edge on everything you will ever hold." },
+  { id:"ember",  name:"Ember Rite",        icon:"🔥", cost:1e7,  min:4,  max:8,
+    blurb:"They bank the forge with something that was alive. It takes." },
+  { id:"storm",  name:"Storm Covenant",    icon:"⚡", cost:1e8,  min:10, max:18,
+    blurb:"Signed in a room with no ceiling, during weather that was not weather." },
+  { id:"drake",  name:"Dragonbone Pact",   icon:"🐉", cost:1e9,  min:26, max:42,
+    blurb:"The Hoard-Warden's kin keep ledgers. You are now in one." },
+  { id:"accord", name:"The Mythic Accord", icon:"🌌", cost:1e12, min:80, max:130,
+    blurb:"Daemonheim agrees to stop arguing with you. The terms are not written down." },
+];
+function fmtBig(n){
+  if(n >= 1e12) return (n/1e12).toFixed(n%1e12?1:0).replace(/\.0$/,"") + " trillion";
+  if(n >= 1e9)  return (n/1e9).toFixed(n%1e9?1:0).replace(/\.0$/,"") + " billion";
+  if(n >= 1e6)  return (n/1e6).toFixed(n%1e6?1:0).replace(/\.0$/,"") + " million";
+  return n.toLocaleString();
+}
+function mrMight(){ const S = dgSave(); return (typeof S.might === "number" && isFinite(S.might)) ? S.might : 0; }
+function mrRollCount(id){ const S = dgSave(); return (S.rolls && S.rolls[id]) || 0; }
+function mrBuyRoll(id){
+  const R = MR_ROLLS.find(r=>r.id === id);
+  if(!R) return;
+  const S = dgSave();
+  if(state.credits < R.cost){ showToast("Not enough credits for that rite."); return; }
+  if(S.rolling && !S.rolling.done) return;
+  state.credits -= R.cost;
+  const gained = R.min + Math.floor(Math.random() * (R.max - R.min + 1));
+  S.rolls = S.rolls || {};
+  S.rolls[id] = (S.rolls[id] || 0) + 1;
+  /* the gain is banked the instant you pay — the spin below is only theatre,
+     so a reload or a closed tab can never eat the rite you bought */
+  S.might = mrMight() + gained;
+  S.rolling = { id, gained, shown: R.min, done:false };
+  saveState(); renderHeader(); renderDungeon();
+  /* spin the number for a moment before it settles */
+  const started = Date.now();
+  const tick = ()=>{
+    const S2 = dgSave();
+    if(!S2.rolling || S2.rolling.id !== id) return;
+    const t = (Date.now() - started) / 1100;
+    if(t >= 1){
+      S2.rolling.shown = gained;
+      S2.rolling.done = true;
+      saveState(); renderDungeon();
+      setTimeout(()=>{ const S3 = dgSave(); if(S3.rolling && S3.rolling.done){ S3.rolling = null; saveState(); renderDungeon(); } }, 2600);
+      return;
+    }
+    S2.rolling.shown = R.min + Math.floor(Math.random()*(R.max - R.min + 1));
+    renderDungeon();
+    setTimeout(tick, 60 + t*140);
+  };
+  setTimeout(tick, 80);
+}
+
 /* ---- what you are actually wearing adds up to this ---- */
 function mrBon(){
   const B = { dmg:0, arm:0, crit:0, gather:0, healBonus:0, coinFind:0, dodge:0,
@@ -16583,6 +16672,8 @@ function mrBon(){
     if(n >= 3) add(set.b3);
     if(n >= 5) add(set.b5);
   });
+  /* whatever the Forge welded on, on every floor, forever */
+  B.dmg += mrMight() / 100;
   /* temporary food effects */
   (dg.buffs || []).forEach(b=>{
     if(b.turns <= 0) return;
@@ -16667,12 +16758,15 @@ function dgSave(){
   if(!Array.isArray(D.bound)) D.bound = [];
   if(typeof D.floorsDone !== "object" || !D.floorsDone) D.floorsDone = {};
   if(typeof D.tokens !== "number" || !isFinite(D.tokens)) D.tokens = 0;
+  if(typeof D.might !== "number" || !isFinite(D.might) || D.might < 0) D.might = 0;
+  if(typeof D.rolls !== "object" || !D.rolls) D.rolls = {};
+  if(!D.rolling || typeof D.rolling !== "object" || !D.rolling.done) D.rolling = null;
   if(!DG_SIZES[D.lastSize]) D.lastSize = "small";
   if(!DG_COMPLEXITY[D.lastCx]) D.lastCx = 6;
   return D;
 }
 function defaultDungeon(){
-  return { xp:0, prestige:0, floorsDone:{}, maxFloor:1, bound:[], tokens:0,
+  return { xp:0, prestige:0, floorsDone:{}, maxFloor:1, bound:[], tokens:0, might:0, rolls:{}, rolling:null,
            runs:0, clears:0, deepest:0, bestXp:0, lastSize:"small", lastCx:6 };
 }
 function dgLevel(){ return dgLevelFor(dgSave().xp); }
@@ -17348,6 +17442,7 @@ function mrGearHtml(){
   if(B.coinFind) bonusBits.push(`+${Math.round(B.coinFind*100)}% coin`);
   if(B.lifesteal) bonusBits.push(`${Math.round(B.lifesteal*100)}% lifesteal`);
   if(B.puzzleGrace) bonusBits.push(`${B.puzzleGrace} free puzzle slips`);
+  if(mrMight()) bonusBits.push(`⚒️ +${mrMight()}% forged`);
   if(B.doorGrace) bonusBits.push(`force doors unharmed`);
   if(B.senseAll) bonusBits.push(`whole floor mapped`);
   else if(B.senseKeys) bonusBits.push(`keys sensed`);
@@ -17472,7 +17567,7 @@ function dgLobbyHtml(){
     <div class="dg-lvlbody">
       <div class="dg-lvlname">Mythic Raids${S.prestige?` · Prestige ${S.prestige}`:""}</div>
       <div class="progress"><div style="width:${Math.round(prog.pct*100)}%"></div></div>
-      <div class="dg-lvlxp">${S.xp.toLocaleString()} xp${lvl<99?` · ${(prog.need-prog.have).toLocaleString()} to ${lvl+1}`:""} · 🎟️ ${(S.tokens||0).toLocaleString()} tokens</div>
+      <div class="dg-lvlxp">${S.xp.toLocaleString()} xp${lvl<99?` · ${(prog.need-prog.have).toLocaleString()} to ${lvl+1}`:""} · 🎟️ ${(S.tokens||0).toLocaleString()} tokens${mrMight()?` · ⚒️ <b style="color:#ff9d6e">+${mrMight()}% damage</b>`:""}</div>
     </div>
   </div>
 
@@ -17493,6 +17588,28 @@ function dgLobbyHtml(){
         e.smelt?"smelting":e.smith?"smithing":e.light?"light":e.map?"maps the floor":e.food?"food":e.hp?"+life":e.armour?"+armour":"trinket";
       return `<button class="dg-bind${on?" on":""}" data-bind="${sub}"><b>${sub}</b><em>${what}</em></button>`;
     }).join("")}</div>` : `<div class="dg-bindnote" style="color:#ff9d6e;">You own no Raid Gear yet — buy a <b>Raid Supplies</b> pack. You can still dive with nothing.</div>`}
+  </div>
+
+  <div class="panel">
+    <div class="dg-sec">⚒️ The Mythic Forge <span>${mrMight() ? `+${mrMight()}% damage, permanently` : "no rites yet"}</span></div>
+    <div class="dg-bindnote">Credits buy a rite. Every rite is a <b>roll</b> — you know the band, never the number — and whatever it lands on is
+    welded to your damage on every floor, forever. Rites stack, and you may take the same one as many times as you can pay for it.</div>
+    ${S.rolling ? `<div class="mr-rolling${S.rolling.done ? " done" : ""}">
+        <div class="rr-icon">${(MR_ROLLS.find(r=>r.id===S.rolling.id)||{}).icon || "⚒️"}</div>
+        <div class="rr-num">+${S.rolling.shown}%</div>
+        <div class="rr-lab">${S.rolling.done ? "welded on" : "the forge is deciding…"}</div>
+      </div>` : ""}
+    <div class="mr-rolls">${MR_ROLLS.map(r=>{
+      const n = mrRollCount(r.id);
+      const afford = state.credits >= r.cost;
+      return `<button class="mr-roll${afford?"":" poor"}" data-roll="${r.id}" ${afford && !S.rolling ? "" : "disabled"}>
+        <span class="ri">${r.icon}</span>
+        <span class="rn">${r.name}</span>
+        <span class="rb">+${r.min}–${r.max}% damage</span>
+        <span class="rf">${r.blurb}</span>
+        <span class="rfoot"><b>${fmtBig(r.cost)} 🪙</b>${n?`<em>taken ×${n}</em>`:""}</span>
+      </button>`;
+    }).join("")}</div>
   </div>
 
   <div class="panel">
@@ -17563,6 +17680,7 @@ function renderDungeon(){
 function dgBindLobby(host){
   const S = dgSave();
   host.querySelectorAll("[data-bind]").forEach(b=>b.addEventListener("click", ()=>dgToggleBind(b.dataset.bind)));
+  host.querySelectorAll("[data-roll]").forEach(b=>b.addEventListener("click", ()=>mrBuyRoll(b.dataset.roll)));
   host.querySelectorAll("[data-size]").forEach(b=>b.addEventListener("click", ()=>{ S.lastSize = b.dataset.size; saveState(); renderDungeon(); }));
   host.querySelectorAll("[data-cx]").forEach(b=>b.addEventListener("click", ()=>{ S.lastCx = +b.dataset.cx; saveState(); renderDungeon(); }));
   host.querySelectorAll("[data-floor]").forEach(b=>b.addEventListener("click", ()=>dgBegin(+b.dataset.floor, S.lastSize, S.lastCx)));

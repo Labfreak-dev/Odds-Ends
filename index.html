@@ -3454,6 +3454,31 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     </div>
 
     <div class="panel">
+      <div style="font-weight:800; font-size:16px; margin-bottom:4px;">💾 Backup &amp; Restore</div>
+      <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
+        One file holding everything — collection, credits, empire, and your
+        Shardfall hero. Progress normally lives in this browser only, and
+        browsers do clear storage on their own, so keep a copy somewhere real.
+      </div>
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn" onclick="exportSaveFile()">⬇️ Download Backup</button>
+        <button class="btn secondary" onclick="copySaveText()">📋 Copy</button>
+        <button class="btn secondary" onclick="document.getElementById('saveFileInput').click()">📂 Restore</button>
+      </div>
+      <input type="file" id="saveFileInput" accept=".json,.txt,application/json,text/plain"
+             style="display:none;" onchange="importSaveFile(this)">
+      <details>
+        <summary style="cursor:pointer; color:var(--muted); font-size:13px;">Paste a backup instead</summary>
+        <textarea id="savePasteBox" placeholder="Paste backup text here…" spellcheck="false"
+          style="width:100%; min-height:110px; margin-top:10px; background:var(--panel2);
+                 color:var(--text); border:1px solid #333a52; border-radius:10px; padding:10px;
+                 font:13px/1.4 ui-monospace,Menlo,monospace; -webkit-user-select:text; user-select:text;"></textarea>
+        <button class="btn secondary" style="margin-top:10px;" onclick="importSavePaste()">Restore Pasted Backup</button>
+      </details>
+      <div id="saveIoResult" style="margin-top:12px; font-size:13px;"></div>
+    </div>
+
+    <div class="panel">
       <div style="font-weight:800; font-size:16px; margin-bottom:4px;">⚠️ Danger Zone</div>
       <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
         Wipes your collection, credits, empire, and redeemed codes. This can't be undone.
@@ -17971,6 +17996,9 @@ let sfFrame = null, sfURL = null;
 function sfBoot(){
   const mount = document.getElementById("sfMount");
   if(!mount || sfFrame) return;
+  /* Must happen before the frame exists: Shardfall reads its save during its
+     own boot, so a restore afterwards would be a frame too late. */
+  try{ sfRestoreMirror(); }catch(e){}
   mount.innerHTML = `<div class="sf-boot"><div class="sf-sig">\u{1F52E}</div><div>Waking the hero\u2026</div></div>`;
   const html = sfSource();
   if(!html){
@@ -17991,18 +18019,228 @@ function sfBoot(){
   mount.innerHTML = "";
   mount.appendChild(f);
   sfFrame = f;
+  /* Shardfall autosaves every 20s; shadow it on a slower beat so a browser
+     that kills the tab without warning still leaves a recent copy behind. */
+  if(sfMirrorTimer) clearInterval(sfMirrorTimer);
+  sfMirrorTimer = setInterval(sfCaptureMirror, 15000);
+}
+/* Shardfall writes its save on 'pagehide', on 'beforeunload', when the
+   document goes hidden, and every 20s on a timer. None of those fire when the
+   parent yanks the iframe out of the DOM: removing an element destroys the
+   nested browsing context without running its unload steps, and switching
+   in-game tabs never changes document.visibilityState because the outer page
+   stays visible the whole time.
+
+   So up to 20 seconds of play evaporated every time you left the tab - and
+   worse, Shardfall coalesces hot-path writes behind a 1.5s debounce
+   (saveSoon), which means the *most recent* actions were the likeliest to go.
+   Firing pagehide by hand, into the frame's own realm, while the frame is
+   still live, makes the handoff explicit. saveGame is the only listener bound
+   to either event, so nothing else is disturbed. */
+/* ---- Shardfall durability -------------------------------------------------
+   Shardfall lives in an iframe and owns its own localStorage keys. That makes
+   it independent, but it also means it is exactly one storage eviction away
+   from being gone: Safari clears site data untouched for ~7 days, "clear
+   history" takes everything, and the remote reset switch deletes the key
+   outright. Nothing outside the frame knew the run had ever existed.
+
+   So the parent keeps a shadow copy under its own key and puts it back if
+   Shardfall's copy goes missing. A deliberate remote wipe is still honoured -
+   the mirror carries the resetEpoch it was taken at, and if a newer reset has
+   been applied since, the mirror is discarded rather than restored. */
+const SF_KEY        = "shardfall.save.v2";
+const SF_MIRROR_KEY = "oddsandends.sf_mirror_v1";
+const SF_RESET_KEY  = "shardfall.reset.applied";
+const SF_ID_KEY     = "shardfall.playerId";
+let sfMirrorTimer = null;
+
+function sfReadLS(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function sfSavedAt(raw){
+  if(!raw) return -1;
+  try{ const d = JSON.parse(raw); return Number(d && d.savedAt) || 0; }catch(e){ return -1; }
+}
+function sfCaptureMirror(){
+  const raw = sfReadLS(SF_KEY);
+  if(!raw) return false;
+  if(sfSavedAt(raw) < 0) return false;                 /* unparseable - do not mirror junk */
+  try{
+    localStorage.setItem(SF_MIRROR_KEY, JSON.stringify({
+      v:1, raw:raw,
+      savedAt: sfSavedAt(raw),
+      resetEpoch: Number(sfReadLS(SF_RESET_KEY)) || 0,
+      playerId: sfReadLS(SF_ID_KEY) || null,
+      mirroredAt: Date.now()
+    }));
+    return true;
+  }catch(e){ return false; }                           /* quota / private mode */
+}
+function sfRestoreMirror(){
+  const mRaw = sfReadLS(SF_MIRROR_KEY);
+  if(!mRaw) return "none";
+  let m; try{ m = JSON.parse(mRaw); }catch(e){ return "bad-mirror"; }
+  if(!m || !m.raw) return "bad-mirror";
+
+  const liveAt = sfSavedAt(sfReadLS(SF_KEY));
+  if(liveAt >= (m.savedAt || 0)) return "live-newer";   /* nothing to do */
+
+  /* Respect a deliberate wipe: a reset applied after this mirror was taken
+     means the deletion was intended, not accidental. */
+  const applied = Number(sfReadLS(SF_RESET_KEY)) || 0;
+  if(applied > (m.resetEpoch || 0)){
+    try{ localStorage.removeItem(SF_MIRROR_KEY); }catch(e){}
+    return "reset-honoured";
+  }
+  try{
+    localStorage.setItem(SF_KEY, m.raw);
+    if(m.playerId && !sfReadLS(SF_ID_KEY)) localStorage.setItem(SF_ID_KEY, m.playerId);
+  }catch(e){ return "write-failed"; }
+  return liveAt < 0 ? "restored" : "restored-newer";
+}
+function sfFlushSave(){
+  if(!sfFrame) return false;
+  let w = null;
+  try{ w = sfFrame.contentWindow; }catch(e){ return false; }   /* cross-origin: give up */
+  if(!w) return false;
+  let fired = false;
+  try{
+    /* If a future Shardfall build exposes a direct hook, prefer it. */
+    if(typeof w.sfForceSave === "function"){ w.sfForceSave(); return true; }
+  }catch(e){}
+  try{
+    const Ev = w.Event || Event;
+    w.dispatchEvent(new Ev("pagehide"));
+    fired = true;
+  }catch(e){
+    try{ w.dispatchEvent(new Event("pagehide")); fired = true; }catch(e2){}
+  }
+  sfCaptureMirror();               /* whatever it just wrote, keep a copy */
+  return fired;
 }
 function sfOnLeaveTab(){
   /* Tear the frame down on the way out so its render loop and timers stop
      dead instead of burning battery behind the other tabs. Shardfall keeps an
      offline ledger, so the time away is credited the next time it boots. */
   if(!sfFrame) return;
+  sfFlushSave();                 /* must run before src is touched - navigating
+                                    to about:blank replaces contentWindow */
   try{ sfFrame.src = "about:blank"; }catch(e){}
   try{ sfFrame.remove(); }catch(e){}
   sfFrame = null;
+  if(sfMirrorTimer){ clearInterval(sfMirrorTimer); sfMirrorTimer = null; }
   if(sfURL){ try{ URL.revokeObjectURL(sfURL); }catch(e){} sfURL = null; }
   const mount = document.getElementById("sfMount");
   if(mount) mount.innerHTML = "";
+}
+
+/* The browser can end this page without warning - an iOS tab reaped for
+   memory, a swipe out of the app switcher, a closed laptop. 'pagehide' is the
+   only event that reliably fires in all of those on Safari; 'beforeunload' is
+   not dispatched on iOS at all. Both games get flushed here.
+
+   The iframe receives its own visibilitychange and pagehide natively when the
+   *browser* tab changes, because page visibility propagates into nested
+   browsing contexts - so this is belt and braces for Shardfall and the primary
+   guarantee for the outer game, which otherwise only wrote on user actions. */
+(function installSaveGuards(){
+  function flushAll(){
+    try{ sfFlushSave(); }catch(e){}
+    try{ saveState(); }catch(e){}
+  }
+  window.addEventListener("pagehide", flushAll);
+  window.addEventListener("beforeunload", flushAll);
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden) flushAll();
+  });
+  /* Safari/Chrome may 'freeze' a backgrounded tab; last call before it does. */
+  document.addEventListener("freeze", flushAll);
+})();
+
+/* ---- backup file ----------------------------------------------------------
+   Both games in one envelope. Shardfall's slice is taken live if it is open,
+   otherwise from the mirror, so a backup is complete whichever tab you happen
+   to be standing in when you press the button. */
+function sfLatestRaw(){
+  const live = sfReadLS(SF_KEY);
+  const mRaw = sfReadLS(SF_MIRROR_KEY);
+  let mine = null;
+  try{ mine = mRaw ? JSON.parse(mRaw) : null; }catch(e){}
+  if(live && (!mine || sfSavedAt(live) >= (mine.savedAt || 0))) return live;
+  return (mine && mine.raw) || live || null;
+}
+function buildBackup(){
+  try{ sfFlushSave(); }catch(e){}
+  return JSON.stringify({
+    game:"oddsandends", format:2, savedAt:new Date().toISOString(),
+    main: state,
+    shardfall: sfLatestRaw(),
+    shardfallPlayerId: sfReadLS(SF_ID_KEY)
+  });
+}
+function saveIoMsg(text, ok){
+  const el = document.getElementById("saveIoResult");
+  if(!el) return;
+  el.style.color = ok ? "var(--good)" : "var(--bad)";
+  el.textContent = text;
+}
+function exportSaveFile(){
+  try{
+    const text = buildBackup();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type:"application/json"}));
+    a.download = "oddsandends-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} a.remove(); }, 1000);
+    saveIoMsg("Backup downloaded.", true);
+  }catch(e){ saveIoMsg("Download failed: " + e.message + " — try Copy instead.", false); }
+}
+function copySaveText(){
+  const text = buildBackup();
+  const ok = ()=>saveIoMsg("Copied. Paste it into Notes or send it to yourself.", true);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(()=>sfSelectFallback(text));
+  } else sfSelectFallback(text);
+}
+function sfSelectFallback(text){
+  const box = document.getElementById("savePasteBox");
+  if(!box){ saveIoMsg("Copying isn't supported here.", false); return; }
+  const d = box.closest("details"); if(d) d.open = true;
+  box.value = text; box.focus();
+  try{ box.setSelectionRange(0, text.length); }catch(e){}
+  saveIoMsg("Couldn't copy automatically — it's selected below, choose Copy.", false);
+}
+function applyBackup(raw){
+  let d;
+  try{ d = JSON.parse(raw); }catch(e){ saveIoMsg("That isn't a backup file.", false); return; }
+  const main = d && (d.main || d.state || (typeof d.credits !== "undefined" ? d : null));
+  if(!main || typeof main !== "object" || typeof main.credits === "undefined"){
+    saveIoMsg("That file has no save data in it.", false); return;
+  }
+  if(!confirm("Replace ALL current progress — including Shardfall — with this backup?")) return;
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(main));
+    if(d.shardfall){
+      localStorage.setItem(SF_KEY, d.shardfall);
+      sfCaptureMirror();
+    }
+    if(d.shardfallPlayerId) localStorage.setItem(SF_ID_KEY, d.shardfallPlayerId);
+    state = loadState();
+    saveState(); renderAll();
+    saveIoMsg("Restored. Reopen Shardfall to load the hero.", true);
+    showToast("💾 Backup restored.");
+  }catch(e){ saveIoMsg("Restore failed: " + e.message, false); }
+}
+function importSaveFile(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload  = ()=>{ applyBackup(String(r.result)); input.value = ""; };
+  r.onerror = ()=>{ saveIoMsg("Couldn't read that file.", false); input.value = ""; };
+  r.readAsText(f);
+}
+function importSavePaste(){
+  const box = document.getElementById("savePasteBox");
+  if(!box || !box.value.trim()){ saveIoMsg("Paste a backup in first.", false); return; }
+  applyBackup(box.value.trim());
 }
 
 function renderPlayLobby(){
@@ -18817,6 +19055,31 @@ setInterval(()=>{
     background:rgba(8,6,12,0.55);border-radius:4px;padding:2px 7px;white-space:nowrap;}
   #waveSubLabel{display:none;}
 
+  /* --- global chat --- */
+  .chatPane{display:flex;flex-direction:column;height:min(62vh, 520px);min-height:280px;}
+  .chatLog{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:rgba(0,0,0,0.28);border:1px solid rgba(90,74,94,0.4);border-radius:10px;
+    padding:10px 10px 6px;display:flex;flex-direction:column;gap:8px;}
+  .chatEmpty{color:var(--muted);font-size:12px;text-align:center;padding:28px 12px;line-height:1.5;font-style:italic;}
+  .chatMsg{padding:6px 8px;border-radius:8px;background:rgba(24,18,32,0.75);
+    border:1px solid rgba(90,74,94,0.28);}
+  .chatMsg.mine{border-color:rgba(201,168,104,0.35);background:rgba(40,30,18,0.55);}
+  .chatMeta{display:flex;justify-content:space-between;gap:8px;font-size:9px;
+    color:var(--muted);margin-bottom:2px;font-family:'Cinzel';letter-spacing:0.4px;}
+  .chatMeta .chatWho{color:#C9A868;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .chatMsg.mine .chatWho{color:#F0D9A0;}
+  .chatBody{font-size:12.5px;color:var(--text);line-height:1.4;word-break:break-word;white-space:pre-wrap;}
+  .chatCompose{display:flex;gap:8px;margin-top:10px;align-items:stretch;}
+  .chatCompose input{flex:1;min-width:0;background:rgba(0,0,0,0.45);border:1px solid rgba(90,74,94,0.55);
+    border-radius:8px;color:var(--text);padding:10px 12px;font-size:13px;font-family:'Spectral',serif;}
+  .chatCompose input:focus{outline:none;border-color:rgba(201,168,104,0.55);}
+  .chatCompose button{flex-shrink:0;background:linear-gradient(180deg,#3A2A18,#1E1409);
+    border:1px solid var(--gold);color:var(--gold-light);border-radius:8px;padding:0 14px;
+    font-family:'Cinzel';font-size:11px;letter-spacing:0.8px;text-transform:uppercase;}
+  .chatCompose button:disabled{opacity:0.4;}
+  .chatStatus{font-size:10px;color:var(--muted);margin-top:6px;min-height:14px;text-align:center;}
+  .chatStatus.err{color:#d4a0b0;}
+
   /* --- bottom navigation --- */
   /* Nav stays above the sheet so icons remain visible while a tab is open */
   #nav{position:fixed;bottom:0;height:var(--navh);z-index:30;display:flex;padding-bottom:var(--safeB);
@@ -19117,6 +19380,12 @@ setInterval(()=>{
       <path d="M10.8 19.5v1.3h2.4v-1.3"/>
     </svg>
   </span><span>Ascend</span></button>
+  <button class="navbtn" data-sheet="chat"><span class="navico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 6.5h14a1.5 1.5 0 011.5 1.5v7a1.5 1.5 0 01-1.5 1.5H10l-3.5 3v-3H5A1.5 1.5 0 013.5 15V8A1.5 1.5 0 015 6.5z"/>
+      <path d="M8 10.5h8M8 13h5"/>
+    </svg>
+  </span><span>Chat</span></button>
 </nav>
 
 @@SFCOMMENT@@ ===== slide-up sheet holding every panel ===== -->
@@ -19286,6 +19555,19 @@ setInterval(()=>{
     <div id="boonList"></div>
   </div>
     </section>
+    <section class="sheetsec" data-sheet="chat">
+      <div class="panel">
+        <div class="ascendhint" style="margin:0 0 10px">Global hunter chat. Keep it civil — the same name filter applies to messages.</div>
+        <div class="chatPane">
+          <div class="chatLog" id="chatLog"><div class="chatEmpty">Opening the channel…</div></div>
+          <div class="chatCompose">
+            <input id="chatInput" type="text" maxlength="120" placeholder="Say something…" autocomplete="off" enterkeyhint="send"/>
+            <button type="button" id="chatSend">Send</button>
+          </div>
+          <div class="chatStatus" id="chatStatus"></div>
+        </div>
+      </div>
+    </section>
     <section class="sheetsec" data-sheet="settings">
       <div class="panel">
         <div class="wowSectionBar" style="margin-bottom:10px">Hunter</div>
@@ -19328,6 +19610,20 @@ setInterval(()=>{
         </a>
         <div class="ascendhint" id="playerIdBlock" style="margin:0;cursor:pointer">Player ID <span id="playerIdLabel" style="color:#C9A868;letter-spacing:1px">—</span><br><span style="font-size:10px">tap to copy · quote this when asking for help</span></div>
         <div id="diagLabel" style="font-size:9px;color:#7a6f88;padding:6px 4px;word-break:break-all;line-height:1.5">diagnostics loading…</div>
+
+        <div class="wowSectionBar" style="margin:18px 0 10px">Admin</div>
+        <div class="ascendhint" style="margin:0 0 8px">Reset a hunter's level by claimed name (requires admin key).</div>
+        <input id="adminKeyInput" type="password" placeholder="Admin key" autocomplete="off"
+          style="width:100%;box-sizing:border-box;background:#0d0914;border:1px solid #3a2b52;border-radius:8px;
+          padding:10px 12px;color:#e6dff0;font-size:13px;margin-bottom:8px">
+        <input id="adminTargetName" type="text" maxlength="16" placeholder="Hunter name to reset" autocomplete="off"
+          style="width:100%;box-sizing:border-box;background:#0d0914;border:1px solid #3a2b52;border-radius:8px;
+          padding:10px 12px;color:#e6dff0;font-size:13px;margin-bottom:8px">
+        <button id="adminResetBtn" style="width:100%;padding:11px;border:1px solid #a8657a;border-radius:8px;
+          background:linear-gradient(180deg,#3a1a22,#1e0e12);color:#e8b4c0;font-size:12px;letter-spacing:0.8px;
+          font-family:'Cinzel',serif;text-transform:uppercase">Reset player level</button>
+        <div id="adminStatus" style="font-size:10px;color:#7a6f88;margin-top:6px;min-height:14px"></div>
+
         <div class="disclaimer" style="margin-top:8px">Prototype demo — SHARD is a local in-game currency only, not a blockchain token or real asset.</div>
       </div>
     </section>
@@ -29872,6 +30168,8 @@ setInterval(()=>{
   // restore the previous run before anything paints
   let hadSave = false;
   try{ hadSave = loadGame(); }catch(e){ hadSave = false; }
+  // Apply any admin level-reset queued against this playerId.
+  setTimeout(()=>{ try{ checkPendingAdminReset(); }catch(e){} }, 1200);
   renderInventory();
   refreshMarket();
 
@@ -30084,6 +30382,157 @@ setInterval(()=>{
     });
   }
 
+  // ----- Global chat (Firestore) -----
+  const CHAT_COLLECTION = 'chat';
+  const CHAT_LIMIT = 40;
+  const CHAT_COOLDOWN_MS = 3000;
+  const CHAT_MAX_LEN = 120;
+  let chatUnsub = null;
+  let chatLastSend = 0;
+  let chatBusy = false;
+
+  function setChatStatus(msg, isErr){
+    const el = document.getElementById('chatStatus');
+    if(!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('err', !!isErr);
+  }
+
+  function formatChatTime(ts){
+    try{
+      const d = ts && typeof ts.toDate === 'function' ? ts.toDate() : (ts ? new Date(ts) : null);
+      if(!d || isNaN(d.getTime())) return '';
+      const now = new Date();
+      const sameDay = d.toDateString() === now.toDateString();
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      if(sameDay) return hh+':'+mm;
+      return (d.getMonth()+1)+'/'+d.getDate()+' '+hh+':'+mm;
+    }catch(e){ return ''; }
+  }
+
+  function messageIsClean(raw){
+    // Reuse name filter roots on chat body.
+    return nameIsClean(raw);
+  }
+
+  function renderChatMessages(rows){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    if(!rows || !rows.length){
+      log.innerHTML = '<div class="chatEmpty">No messages yet. Be the first hunter to speak.</div>';
+      return;
+    }
+    const myPid = playerId();
+    log.innerHTML = rows.map(m=>{
+      const mine = m.pid && m.pid === myPid;
+      const who = esc(safeDisplayName(m.name || 'Hunter'));
+      const body = esc(String(m.text || '').slice(0, CHAT_MAX_LEN));
+      const when = formatChatTime(m.createdAt);
+      return '<div class="chatMsg'+(mine?' mine':'')+'">'
+        +'<div class="chatMeta"><span class="chatWho">'+who+'</span><span>'+when+'</span></div>'
+        +'<div class="chatBody">'+body+'</div></div>';
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function openChat(){
+    setChatStatus('Connecting…');
+    const log = document.getElementById('chatLog');
+    try{
+      const { fs, db } = await firestoreParts();
+      if(chatUnsub){ try{ chatUnsub(); }catch(e){} chatUnsub = null; }
+      const q = fs.query(
+        fs.collection(db, CHAT_COLLECTION),
+        fs.orderBy('createdAt', 'desc'),
+        fs.limit(CHAT_LIMIT)
+      );
+      chatUnsub = fs.onSnapshot(q, (snap)=>{
+        const rows = [];
+        snap.forEach(doc=>{
+          const d = doc.data() || {};
+          // Hide dirty messages client-side even if they slipped in.
+          if(d.text && !messageIsClean(d.text)) return;
+          if(d.name && !nameIsClean(d.name)) d.name = 'Hunter';
+          rows.push({
+            id: doc.id,
+            text: d.text,
+            name: d.name,
+            pid: d.pid,
+            createdAt: d.createdAt
+          });
+        });
+        rows.reverse(); // oldest → newest for reading
+        renderChatMessages(rows);
+        setChatStatus(rows.length ? '' : 'Channel is quiet.');
+      }, (err)=>{
+        console.warn('[chat] snapshot error', err);
+        if(log) log.innerHTML = '<div class="chatEmpty">Chat unavailable right now.</div>';
+        setChatStatus(String((err && err.message) || err).slice(0, 80), true);
+      });
+    }catch(e){
+      console.warn('[chat] open failed', e);
+      if(log) log.innerHTML = '<div class="chatEmpty">Chat needs a connection.</div>';
+      setChatStatus('Could not open chat.', true);
+    }
+  }
+
+  function stopChat(){
+    if(chatUnsub){ try{ chatUnsub(); }catch(e){} chatUnsub = null; }
+  }
+
+  async function sendChatMessage(){
+    const input = document.getElementById('chatInput');
+    const btn = document.getElementById('chatSend');
+    if(!input || chatBusy) return;
+    const raw = String(input.value || '').trim().replace(/\s+/g,' ');
+    if(!raw){ setChatStatus('Type a message first.', true); return; }
+    if(raw.length > CHAT_MAX_LEN){
+      setChatStatus('Max '+CHAT_MAX_LEN+' characters.', true);
+      return;
+    }
+    if(!messageIsClean(raw)){
+      setChatStatus('That message is not allowed.', true);
+      return;
+    }
+    const wait = CHAT_COOLDOWN_MS - (Date.now() - chatLastSend);
+    if(wait > 0){
+      setChatStatus('Wait ' + Math.ceil(wait/1000) + 's before sending again.', true);
+      return;
+    }
+    chatBusy = true;
+    if(btn) btn.disabled = true;
+    setChatStatus('Sending…');
+    try{
+      const { fs, db } = await firestoreParts();
+      await fs.addDoc(fs.collection(db, CHAT_COLLECTION), {
+        text: raw.slice(0, CHAT_MAX_LEN),
+        name: safeDisplayName(lbName()),
+        pid: playerId(),
+        uid: lbUid || null,
+        createdAt: fs.serverTimestamp()
+      });
+      input.value = '';
+      chatLastSend = Date.now();
+      setChatStatus('');
+    }catch(e){
+      console.warn('[chat] send failed', e);
+      setChatStatus('Send failed — check connection / Firestore rules.', true);
+    }finally{
+      chatBusy = false;
+      if(btn) btn.disabled = false;
+    }
+  }
+
+  (function wireChatUI(){
+    const btn = document.getElementById('chatSend');
+    const input = document.getElementById('chatInput');
+    if(btn) btn.addEventListener('click', ()=>{ sendChatMessage(); });
+    if(input) input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ e.preventDefault(); sendChatMessage(); }
+    });
+  })();
+
   // ----- Leaderboard (Firestore) -----
   // Rows come from a `leaderboard` collection, one document per player, keyed
   // by an anonymous Firebase auth uid so nobody can overwrite anyone else's
@@ -30198,11 +30647,32 @@ setInterval(()=>{
     return 'Hunter';
   }
 
+  // Unique name registry: names/{nameKey} → { pid, name, uid, claimedAt }
+  // First claimer owns the name; others get "taken". Bound to playerId().
+  const NAMES_COLLECTION = 'names';
+  const RESETS_COLLECTION = 'resets';
+  // Change this if you want a different admin password (client-side; not cryptographically secure).
+  const ADMIN_KEY = 'shardfall-admin';
+
+  function nameKey(v){
+    return String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function sanitizeLbName(v){
+    return String(v || '').replace(/[^A-Za-z0-9 '\-]/g, '').trim().slice(0, 16);
+  }
+
+  // Local-only set (after a successful claim, or offline fallback).
+  function setLbNameLocal(clean){
+    try{ localStorage.setItem(LB_NAME_KEY, clean); }catch(e){}
+    return true;
+  }
+
   // Strips anything that would let a name break the row markup or impersonate
   // the rank/power columns. Also rejects derogatory terms.
   function setLbName(v){
     lastNameError = '';
-    const clean = String(v || '').replace(/[^A-Za-z0-9 '\-]/g, '').trim().slice(0, 16);
+    const clean = sanitizeLbName(v);
     if(!clean){
       lastNameError = 'Pick a name with at least one letter or number.';
       return false;
@@ -30211,8 +30681,142 @@ setInterval(()=>{
       lastNameError = 'That name is not allowed. Choose something else.';
       return false;
     }
-    try{ localStorage.setItem(LB_NAME_KEY, clean); }catch(e){}
+    setLbNameLocal(clean);
     return true;
+  }
+
+  // Async claim against Firestore. Resolves true on success.
+  async function claimLbName(v){
+    lastNameError = '';
+    const clean = sanitizeLbName(v);
+    if(!clean){
+      lastNameError = 'Pick a name with at least one letter or number.';
+      return false;
+    }
+    if(!nameIsClean(clean)){
+      lastNameError = 'That name is not allowed. Choose something else.';
+      return false;
+    }
+    const key = nameKey(clean);
+    if(!key){
+      lastNameError = 'Pick a name with at least one letter or number.';
+      return false;
+    }
+    const myPid = playerId();
+    const oldName = lbName();
+    const oldKey = nameKey(oldName);
+
+    try{
+      const { fs, db } = await firestoreParts();
+      const ref = fs.doc(db, NAMES_COLLECTION, key);
+      await fs.runTransaction(db, async (tx)=>{
+        const snap = await tx.get(ref);
+        if(snap.exists()){
+          const data = snap.data() || {};
+          if(data.pid && data.pid !== myPid){
+            throw new Error('TAKEN');
+          }
+        }
+        // Free previous claim if we are renaming away from a name we own.
+        if(oldKey && oldKey !== key){
+          const oldRef = fs.doc(db, NAMES_COLLECTION, oldKey);
+          const oldSnap = await tx.get(oldRef);
+          if(oldSnap.exists()){
+            const od = oldSnap.data() || {};
+            if(od.pid === myPid) tx.delete(oldRef);
+          }
+        }
+        tx.set(ref, {
+          pid: myPid,
+          name: clean,
+          uid: lbUid || null,
+          claimedAt: fs.serverTimestamp()
+        });
+      });
+      setLbNameLocal(clean);
+      return true;
+    }catch(e){
+      if(String(e && e.message) === 'TAKEN' || (e && e.message && /TAKEN/.test(e.message))){
+        lastNameError = 'That name is taken. Choose another.';
+        return false;
+      }
+      console.warn('[name] claim failed', e);
+      // Offline / rules failure: still allow local name so the game is playable,
+      // but warn that uniqueness could not be verified.
+      lastNameError = 'Could not reserve name online. Try again when connected.';
+      return false;
+    }
+  }
+
+  function applyLocalLevelReset(reason){
+    level = 1;
+    xp = 0;
+    xpToNext = xpNeeded(1);
+    wave = 1;
+    bossLocked = false;
+    bossWave = 0;
+    farmWave = 1;
+    try{ playerHP = playerMaxHP; }catch(e){}
+    try{ saveGame(); }catch(e){}
+    try{ refreshUI(); updateWaveLabel(); }catch(e){}
+    showToast(reason || 'Your level has been reset by an admin.', '#d4a0b0', 7000);
+  }
+
+  // On boot: if an admin queued a reset for this playerId, apply it once.
+  async function checkPendingAdminReset(){
+    try{
+      const { fs, db } = await firestoreParts();
+      const ref = fs.doc(db, RESETS_COLLECTION, playerId());
+      const snap = await fs.getDoc(ref);
+      if(!snap.exists()) return;
+      const data = snap.data() || {};
+      if(!data.levelReset) return;
+      applyLocalLevelReset('Admin reset applied to this hunter.');
+      try{ await fs.deleteDoc(ref); }catch(e){}
+      // Soft-update leaderboard power so the board reflects the reset.
+      try{ lbSubmittedAt = 0; await submitScore(); }catch(e){}
+    }catch(e){
+      console.warn('[admin] reset check failed', e);
+    }
+  }
+
+  async function adminResetPlayerByName(adminKey, targetName){
+    if(String(adminKey || '') !== ADMIN_KEY){
+      return { ok:false, msg:'Wrong admin key.' };
+    }
+    const clean = sanitizeLbName(targetName);
+    const key = nameKey(clean);
+    if(!key){
+      return { ok:false, msg:'Enter a hunter name.' };
+    }
+    try{
+      const { fs, db } = await firestoreParts();
+      const nameRef = fs.doc(db, NAMES_COLLECTION, key);
+      const nameSnap = await fs.getDoc(nameRef);
+      if(!nameSnap.exists()){
+        return { ok:false, msg:'No hunter claimed that name.' };
+      }
+      const data = nameSnap.data() || {};
+      const pid = data.pid;
+      if(!pid){
+        return { ok:false, msg:'Name record is missing a player id.' };
+      }
+      await fs.setDoc(fs.doc(db, RESETS_COLLECTION, pid), {
+        levelReset: true,
+        targetName: data.name || clean,
+        byPid: playerId(),
+        at: fs.serverTimestamp()
+      });
+      // If the target is this device, apply immediately.
+      if(pid === playerId()){
+        applyLocalLevelReset('Admin reset applied.');
+        try{ await fs.deleteDoc(fs.doc(db, RESETS_COLLECTION, pid)); }catch(e){}
+      }
+      return { ok:true, msg:'Reset queued for '+ (data.name || clean) +'. It applies when they next open the game.' };
+    }catch(e){
+      console.warn('[admin] reset failed', e);
+      return { ok:false, msg:'Reset failed — check connection / rules.' };
+    }
   }
 
   // Compact snapshot posted with the score so other hunters can inspect a card.
@@ -30497,7 +31101,7 @@ setInterval(()=>{
   const sheetEl   = document.getElementById('sheet');
   const scrimEl   = document.getElementById('sheetScrim');
   const titleEl   = document.getElementById('sheetTitle');
-  const SHEET_TITLE = {hero:'Character', market:'Market', power:'Skills', ascend:'Ascension', village:'Village', settings:'Settings'};
+  const SHEET_TITLE = {hero:'Character', market:'Market', power:'Skills', ascend:'Ascension', chat:'Chat', village:'Village', settings:'Settings'};
   let openSheet = null;
 
   function showSheet(which, tab){
@@ -30523,12 +31127,15 @@ setInterval(()=>{
     if(which==='market') renderMarket();
     if(which==='power'){ renderSkills(); renderClasses(); renderLegacy(); }
     if(which==='ascend') renderBoonList();
+    if(which==='chat') openChat();
+    else stopChat();
     if(which==='village') showVillageView('map');
     if(which==='settings') renderSettings();
     refreshUI();
   }
   function hideSheet(){
     openSheet = null;
+    stopChat();
     if(sheetEl) sheetEl.classList.remove('on');
     if(scrimEl) scrimEl.classList.remove('on');
     document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('on'));
@@ -30591,6 +31198,25 @@ setInterval(()=>{
     const rn = document.getElementById('setRenameBtn');
     if(rn) rn.addEventListener('click', ()=> askName(false));
 
+    const adminBtn = document.getElementById('adminResetBtn');
+    if(adminBtn) adminBtn.addEventListener('click', async ()=>{
+      const st = document.getElementById('adminStatus');
+      const keyEl = document.getElementById('adminKeyInput');
+      const nameEl = document.getElementById('adminTargetName');
+      if(st){ st.style.color = '#7a6f88'; st.textContent = 'Working…'; }
+      adminBtn.disabled = true;
+      const res = await adminResetPlayerByName(
+        keyEl ? keyEl.value : '',
+        nameEl ? nameEl.value : ''
+      );
+      if(st){
+        st.textContent = res.msg || (res.ok ? 'Done.' : 'Failed.');
+        st.style.color = res.ok ? '#7ADE9A' : '#d4a0b0';
+      }
+      adminBtn.disabled = false;
+      if(res.ok && keyEl) keyEl.value = '';
+    });
+
     on('settingsBtn', ()=> showSheet('settings'));
   })();
 
@@ -30631,10 +31257,20 @@ setInterval(()=>{
     input.value = firstRun ? '' : lbName();
     setTimeout(()=>{ try{ input.focus(); }catch(e){} }, 60);
 
-    function commit(){
-      if(!setLbName(input.value)){
+    let committing = false;
+    async function commit(){
+      if(committing) return;
+      committing = true;
+      const okBtn = document.getElementById('nameOk');
+      if(okBtn) okBtn.disabled = true;
+      hint.style.color = '#7a6f88';
+      hint.textContent = 'Checking name…';
+      const ok = await claimLbName(input.value);
+      if(!ok){
         hint.textContent = lastNameError || 'Pick a name with at least one letter or number.';
         hint.style.color = '#a8657a';
+        committing = false;
+        if(okBtn) okBtn.disabled = false;
         return;
       }
       try{ localStorage.setItem(NAME_ASKED_KEY, '1'); }catch(e){}
@@ -30645,7 +31281,7 @@ setInterval(()=>{
       lbSubmittedAt = 0;
       try{ refreshLeaderboard(true); }catch(e){}
     }
-    document.getElementById('nameOk').addEventListener('click', commit);
+    document.getElementById('nameOk').addEventListener('click', ()=>{ commit(); });
     input.addEventListener('keydown', e=>{ if(e.key === 'Enter') commit(); });
     const cancel = document.getElementById('nameCancel');
     if(cancel) cancel.addEventListener('click', ()=> wrap.remove());

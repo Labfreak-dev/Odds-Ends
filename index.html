@@ -1349,6 +1349,7 @@
   @media (max-width:760px){
     .rs-layout{ flex-direction:column; }
     .rs-sidecol{ width:100%; }
+    .rs-sidecol .rs-acts{ max-height:none; overflow:visible; }
   }
   .rs-chip{ background:#2b251c; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
     border-radius:2px; padding:5px 10px; font-size:12px; font-weight:800; color:#ff981f; }
@@ -3422,6 +3423,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="rs-chip">🪙 <b id="rsCoins">0</b></div>
       <div class="rs-chip">Quest pts <b id="rsQp">0</b></div>
       <button class="rs-chip" id="rsSnd" style="cursor:pointer;">🔊</button>
+      <div class="rs-chip" id="rsTaskChip" style="display:none;"></div>
       <div class="rs-hpbar"><i id="rsHpFill" style="width:100%"></i><span id="rsHpTxt">10/10</span></div>
     </div>
 
@@ -18223,6 +18225,8 @@ const RS_SKILLS = [
   {id:'fish',  name:'Fishing',     ic:'🎣'},
   {id:'cook',  name:'Cooking',     ic:'🍳'},
   {id:'slay',  name:'Slayer',      ic:'💀'},
+  {id:'range', name:'Ranged',      ic:'🏹'},
+  {id:'mage',  name:'Magic',       ic:'🪄'},
 ];
 
 /* ---- Items ---- */
@@ -18269,6 +18273,20 @@ rsDef('cinder_shield','Cinder shield','🔥',4200,{slot:'shield', tier:8, lvl:60
 rsDef('pet_beaver','Beaver','🦫',0,{pet:true});   rsDef('pet_golem','Rock golem','🪨',0,{pet:true});
 rsDef('pet_heron','Heron','🦩',0,{pet:true});     rsDef('pet_bog','Bog prince','🐸',0,{pet:true});
 rsDef('pet_grim','Grim imp','👿',0,{pet:true});   rsDef('pet_cinder','Cinder hatchling','🐲',0,{pet:true});
+const RS_BOWS = [
+  ['shortbow','Shortbow',1], ['oak_bow','Oak bow',10], ['willow_bow','Willow bow',20],
+  ['maple_bow','Maple bow',35], ['yew_bow','Yew bow',55], ['arc_bow','Arcwood bow',75],
+];
+RS_BOWS.forEach(function(bw, i){
+  rsDef(bw[0], bw[1], '🏹', Math.round(Math.pow(3.1, i) * 30), {slot:'weapon', kind:'bow', tier:i+1, lvl:bw[2]});
+});
+const RS_STAVES = [
+  ['app_staff','Apprentice staff',1], ['ember_staff','Ember staff',10], ['gale_staff','Gale staff',20],
+  ['tide_staff','Tide staff',35], ['storm_staff','Storm staff',55], ['arcane_staff','Arcane staff',75],
+];
+RS_STAVES.forEach(function(st, i){
+  rsDef(st[0], st[1], '🪄', Math.round(Math.pow(3.1, i) * 30), {slot:'weapon', kind:'staff', tier:i+1, lvl:st[2]});
+});
 RS_SKILLS.forEach(function(sk){ rsDef('cape_'+sk.id, sk.name+' cape', '🎽', 990, {cape:true}); });
 
 /* ---- Gathering targets ---- */
@@ -18371,7 +18389,7 @@ const RS_QUESTS = [
    steps:[{d:'Slay 15 Mire Shades', need:function(r){return r.counts.kill_shade||0;}, goal:15},
           {d:'Defeat the Bog King', need:function(r){return r.counts.kill_bogking||0;}, goal:1}],
    reward:'5,000 coins · the Starshard blade',
-   grant:function(r){ r.coins += 5000; rsGive('star_sword', 1); }},
+   grant:function(r){ r.coins += 5000; rsGrant('star_sword', 1); }},
   {id:'q6', name:"The Dwarf's Order", qp:1,
    desc:'Doric the smith is behind on an order and needs materials, fast.',
    steps:[{d:'Gather 6 copper ore', need:function(r){return r.counts.get_copper_ore||0;}, goal:6},
@@ -18384,7 +18402,7 @@ const RS_QUESTS = [
    steps:[{d:'Cook 3 trout',   need:function(r){return r.counts.cook_trout||0;}, goal:3},
           {d:'Cook 1 lobster', need:function(r){return r.counts.cook_lobster||0;}, goal:1}],
    reward:"900 Cooking XP · the Chef's hat",
-   grant:function(r){ rsAddXp('cook', 900); rsGive('chef_hat', 1); }},
+   grant:function(r){ rsAddXp('cook', 900); rsGrant('chef_hat', 1); }},
   {id:'q8', name:'The Restless Grave', qp:1,
    desc:'Something in the churchyard will not sleep until the bones are seen to.',
    steps:[{d:'Bury 20 bones', need:function(r){return r.buried||0;}, goal:20}],
@@ -18394,7 +18412,7 @@ const RS_QUESTS = [
    desc:'The sawmill has a quota and you have an axe.',
    steps:[{d:'Chop 40 logs of any kind', need:function(r){return r.counts.chop_any||0;}, goal:40}],
    reward:'900 Woodcutting XP · a steel axe',
-   grant:function(r){ rsAddXp('wc', 900); rsGive('steel_axe', 1); }},
+   grant:function(r){ rsAddXp('wc', 900); rsGrant('steel_axe', 1); }},
   {id:'q10', name:'The Bandit Watch', qp:2,
    desc:'The roads are not safe. The captain wants a message sent.',
    steps:[{d:'Defeat 5 Guards',      need:function(r){return r.counts.kill_guard||0;}, goal:5},
@@ -18411,7 +18429,7 @@ const RS_QUESTS = [
    steps:[{d:'Defeat 10 Lesser Demons', need:function(r){return r.counts.kill_demon||0;}, goal:10},
           {d:'Slay Cinderwyrm',         need:function(r){return r.counts.kill_cinder||0;}, goal:1}],
    reward:'5,000 coins · the Cinder shield · 4,000 XP',
-   grant:function(r){ r.coins += 5000; rsGive('cinder_shield', 1); rsAddXp('def', 2000); rsAddXp('atk', 2000); }},
+   grant:function(r){ r.coins += 5000; rsGrant('cinder_shield', 1); rsAddXp('def', 2000); rsAddXp('atk', 2000); }},
 ];
 function rsQuestSteps(q){ const r = rsEnsure(); let done = 0; for(const st of q.steps){ if(st.need(r) >= st.goal) done++; else break; } return done; }
 function rsQuestReady(q){ return rsQuestSteps(q) >= q.steps.length; }
@@ -18460,7 +18478,11 @@ function rsEnsure(){
 function rsLvl(id){ return rsLevelFor(rsEnsure().skills[id].xp); }
 function rsTotalLevel(){ return RS_SKILLS.reduce(function(a,s){ return a + rsLvl(s.id); }, 0); }
 function rsCombatLevel(){
-  return Math.max(3, Math.floor(0.25*(rsLvl('def') + rsLvl('hp') + Math.floor(rsLvl('pray')/2)) + 0.325*(rsLvl('atk') + rsLvl('str'))));
+  const base = 0.25 * (rsLvl('def') + rsLvl('hp') + Math.floor(rsLvl('pray') / 2));
+  const melee = 0.325 * (rsLvl('atk') + rsLvl('str'));
+  const range = 0.325 * Math.floor(rsLvl('range') * 1.5);
+  const mage  = 0.325 * Math.floor(rsLvl('mage') * 1.5);
+  return Math.max(3, Math.floor(base + Math.max(melee, range, mage)));
 }
 
 /* ---- Inventory (28 slots, stackable everything for sanity) ---- */
@@ -18484,6 +18506,28 @@ function rsTake(id, n){
   return true;
 }
 function rsBagFull(){ return rsEnsure().inv.length >= RS_BAG; }
+/* Materials can live in the bag or the vault; town stations use both. */
+function rsHave(id){ const r = rsEnsure(); return rsInvQty(id) + (r.bank[id]||0); }
+function rsConsume(id, n){
+  const r = rsEnsure();
+  const fromBag = Math.min(n, rsInvQty(id));
+  if(fromBag > 0) rsTake(id, fromBag);
+  let left = n - fromBag;
+  if(left > 0){
+    if((r.bank[id]||0) < left) return false;
+    r.bank[id] -= left;
+    if(r.bank[id] <= 0) delete r.bank[id];
+  }
+  return true;
+}
+/* A reward must never evaporate against a full bag. */
+function rsGrant(id, n){
+  const r = rsEnsure();
+  if(!rsGive(id, n)){
+    r.bank[id] = (r.bank[id]||0) + n;
+    rsLog('Your bag is full — the ' + RS_ITEMS[id].name + ' was sent to your bank.', '#8fd7ff');
+  }
+}
 function rsBankAll(){
   const r = rsEnsure();
   let moved = 0;
@@ -18493,17 +18537,25 @@ function rsBankAll(){
 }
 
 /* ---- Log ---- */
-function rsLog(msg, color){
+let rsLogLast = {key:null, count:0, base:'', el:null};
+function rsLog(msg, color, key){
   const el = document.getElementById('rsLog');
   if(!el) return;
-  /* The chatbox is parchment now; bright colors become their scribe-ink kin. */
+  /* The chatbox is parchment; bright colors become their scribe-ink kin. */
   const INK = {'#ffd84d':'#7d5f00', '#7ADE9A':'#0a6e2c', '#e8b4c0':'#8b2635',
                '#c9b788':'#000000', '#8fd7ff':'#00447c', '#c4b5ff':'#5b2d8b',
                '#c96a5a':'#9c1c1c', '#ff6b6b':'#9c1c1c', '#a99871':'#3e3529'};
+  /* Repeats collapse into one live line: "You get some iron ore. (×47)" */
+  if(key && rsLogLast.key === key && rsLogLast.el && rsLogLast.el.parentNode === el && el.firstChild === rsLogLast.el){
+    rsLogLast.count++;
+    rsLogLast.el.textContent = rsLogLast.base + ' (×' + rsLogLast.count + ')';
+    return;
+  }
   const d = document.createElement('div');
   d.style.color = INK[color] || '#000';
   d.textContent = msg;
   el.prepend(d);
+  rsLogLast = {key: key || null, count: 1, base: msg, el: d};
   while(el.children.length > 60) el.lastChild.remove();
 }
 
@@ -18544,13 +18596,20 @@ let rsXpDrops = [], rsSplats = [], rsSpark = 0, rsSwing = 0;
 function rsToolTier(kind){ return Math.max(1, Math.min(6, rsEnsure().tools[kind]|0)); }
 
 function rsWeapon(){ const w = rsEnsure().equip.weapon; return w ? RS_ITEMS[w] : null; }
+function rsWeaponKind(){ const w = rsWeapon(); return w ? (w.kind || 'melee') : 'melee'; }
+function rsStyleSkill(){ const k = rsWeaponKind(); return k === 'bow' ? 'range' : k === 'staff' ? 'mage' : 'atk'; }
 function rsAtkBonus(){ const w = rsWeapon(); return w ? w.tier*3 : 0; }
 function rsStrBonus(){ const w = rsWeapon(); return w ? w.tier*2.5 : 0; }
 function rsDefBonus(){
   const e = rsEnsure().equip;
   return ['helm','body','shield'].reduce(function(a,s){ return a + (e[s] ? RS_ITEMS[e[s]].tier*2.5 : 0); }, 0);
 }
-function rsMaxHit(){ return Math.max(1, Math.floor(1 + rsLvl('str')*0.15 + rsStrBonus()*0.35)); }
+function rsMaxHit(){
+  const w = rsWeapon(), k = rsWeaponKind();
+  if(k === 'bow')   return Math.max(1, Math.floor(1 + rsLvl('range')*0.15 + w.tier*2.5*0.35));
+  if(k === 'staff') return Math.max(1, Math.floor(1 + rsLvl('mage')*0.16 + w.tier*2.5*0.35));
+  return Math.max(1, Math.floor(1 + rsLvl('str')*0.15 + rsStrBonus()*0.35));
+}
 
 function rsStartActivity(kind, key){
   const r = rsEnsure();
@@ -18612,7 +18671,7 @@ function rsTickCore(quiet){
     const t = table.find(function(x){return x.id===act.key;});
     if(!t) { rsStopActivity(quiet); return; }
     const skill = act.kind==='chop' ? 'wc' : act.kind==='mine' ? 'mine' : 'fish';
-    if(rsLvl(skill) < t.req){ rsStopActivity(quiet); return; }
+    if(rsLvl(skill) < t.req){ if(!quiet) rsLog('You are not skilled enough for that yet.', '#e8b4c0'); rsStopActivity(quiet); return; }
     if(rsBagOverflow(t.id)) return;
     const tool = act.kind==='fish' ? 1 : rsToolTier(act.kind==='chop'?'axe':'pick');
     const ch = Math.min(0.9, t.ch + (rsLvl(skill) - t.req)*0.008 + (tool-1)*0.035);
@@ -18623,21 +18682,26 @@ function rsTickCore(quiet){
       r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
       r.counts['get_' + t.id] = (r.counts['get_' + t.id]||0) + 1;
       if(Math.random() < 1/500) rsGivePet(act.kind === 'chop' ? 'pet_beaver' : act.kind === 'mine' ? 'pet_golem' : 'pet_heron');
-      if(!quiet && Math.random() < 0.18) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788');
+      if(!quiet) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788', 'get_' + t.id);
     }
     return;
   }
 
   if(act.kind === 'cook'){
     const rec = RS_COOK.find(function(x){return x.raw===act.key;});
-    if(!rec || rsInvQty(rec.raw) <= 0 || rsLvl('cook') < rec.req){ rsStopActivity(quiet); return; }
-    rsTake(rec.raw, 1);
+    if(!rec || rsLvl('cook') < rec.req){ rsStopActivity(quiet); return; }
+    if(rsHave(rec.raw) <= 0){
+      if(!quiet) rsLog('You have run out of ' + RS_ITEMS[rec.raw].name.toLowerCase() + '.', '#e8b4c0');
+      rsStopActivity(quiet); return;
+    }
+    rsConsume(rec.raw, 1);
     rsSwing = 2;
     const burnCh = rsLvl('cook') >= rec.burnUntil ? 0 : Math.max(0.05, 0.45 - (rsLvl('cook') - rec.req)*0.012);
-    if(Math.random() < burnCh){ rsGive('burnt', 1); if(!quiet) rsLog('You accidentally burn the ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c96a5a'); }
+    if(Math.random() < burnCh){ rsGive('burnt', 1); if(!quiet) rsLog('You accidentally burn the ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c96a5a', 'burn_' + rec.out); }
     else {
       rsGive(rec.out, 1); rsAddXp('cook', rec.xp);
       r.counts['cook_' + rec.out] = (r.counts['cook_' + rec.out]||0) + 1;
+      if(!quiet) rsLog('You cook a ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788', 'cook_' + rec.out);
     }
     return;
   }
@@ -18645,8 +18709,11 @@ function rsTickCore(quiet){
   if(act.kind === 'smelt'){
     const rec = RS_SMELT.find(function(x){return x.out===act.key;});
     if(!rec || rsLvl('smith') < rec.req){ rsStopActivity(quiet); return; }
-    for(const k in rec.ins) if(rsInvQty(k) < rec.ins[k]){ rsStopActivity(quiet); return; }
-    for(const k in rec.ins) rsTake(k, rec.ins[k]);
+    for(const k in rec.ins) if(rsHave(k) < rec.ins[k]){
+      if(!quiet) rsLog('You need more ' + RS_ITEMS[k].name.toLowerCase() + ' to keep smelting.', '#e8b4c0');
+      rsStopActivity(quiet); return;
+    }
+    for(const k in rec.ins) rsConsume(k, rec.ins[k]);
     rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
     r.counts['get_' + rec.out] = (r.counts['get_' + rec.out]||0) + 1;
     rsSwing = 2;
@@ -18655,11 +18722,15 @@ function rsTickCore(quiet){
 
   if(act.kind === 'forge'){
     const rec = RS_FORGE.find(function(x){return x.out===act.key;});
-    if(!rec || rsLvl('smith') < rec.req || rsInvQty(rec.bar) < rec.bars){ rsStopActivity(quiet); return; }
-    rsTake(rec.bar, rec.bars);
+    if(!rec || rsLvl('smith') < rec.req){ rsStopActivity(quiet); return; }
+    if(rsHave(rec.bar) < rec.bars){
+      if(!quiet) rsLog('You need more ' + RS_ITEMS[rec.bar].name.toLowerCase() + 's to keep smithing.', '#e8b4c0');
+      rsStopActivity(quiet); return;
+    }
+    rsConsume(rec.bar, rec.bars);
     rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
     r.counts['forge_' + rec.out] = (r.counts['forge_' + rec.out]||0) + 1;
-    if(!quiet) rsLog('You hammer out a ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788');
+    if(!quiet) rsLog('You hammer out a ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788', 'forge_' + rec.out);
     rsSwing = 2;
     return;
   }
@@ -18673,15 +18744,21 @@ function rsTickCore(quiet){
     if(act.cd % 2 !== 0) return;      /* exchange blows every other tick */
     rsSwing = 2;
     /* your hit */
-    const acc = Math.min(0.95, Math.max(0.15, ( (rsLvl('atk') + rsAtkBonus()) ) / ( (rsLvl('atk') + rsAtkBonus()) + m.def*1.4 ) + 0.18));
+    const wk = rsWeaponKind();
+    const accLvl = (wk === 'bow' ? rsLvl('range') : wk === 'staff' ? rsLvl('mage') : rsLvl('atk')) + (rsWeapon() ? rsWeapon().tier * 3 : 0);
+    const acc = Math.min(0.95, Math.max(0.15, accLvl / (accLvl + m.def*1.4) + 0.18));
     let dealt = 0;
     if(Math.random() < acc) dealt = 1 + Math.floor(Math.random() * rsMaxHit());
     if(dealt > 0 && r.equip.helm === 'grim_mask' && rsOnTask(m.id)) dealt = Math.round(dealt * 1.2);
     r.mob.hp -= dealt;
     rsSplats.push({who:'mob', v:dealt, t:1});
-    const style = r.style || 'atk';
     if(dealt > 0){
-      rsAddXp(style === 'shared' ? ['atk','str','def'][Math.floor(Math.random()*3)] : style, dealt * 4);
+      if(wk === 'bow') rsAddXp('range', dealt * 4);
+      else if(wk === 'staff') rsAddXp('mage', dealt * 4);
+      else {
+        const style = r.style || 'atk';
+        rsAddXp(style === 'shared' ? ['atk','str','def'][Math.floor(Math.random()*3)] : style, dealt * 4);
+      }
       rsAddXp('hp', dealt * 1.33);
     }
     if(r.mob.hp <= 0){
@@ -18697,7 +18774,7 @@ function rsTickCore(quiet){
         if(d[0] === 'coins') r.coins += qty;
         else if(!rsGive(d[0], qty)) r.bank[d[0]] = (r.bank[d[0]]||0) + qty;
       });
-      if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A');
+      if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A', 'kill_' + m.id);
       if(m.boss){
         rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d');
         r.counts.kill_bogking_ever = 1;
@@ -18714,7 +18791,8 @@ function rsTickCore(quiet){
     taken = Math.max(0, taken - Math.floor(rsLvl('pray') * 0.04));
     r.curHp -= taken;
     rsSplats.push({who:'me', v:taken, t:1});
-    if(r.curHp <= rsLvl('hp') * 0.35 && !rsEat() && r.curHp <= m.max){
+    /* Death is checked FIRST — a killing blow kills; fleeing is for the living. */
+    if(r.curHp > 0 && r.curHp <= rsLvl('hp') * 0.35 && !rsEat() && r.curHp <= m.max){
       rsLog('You have no food and flee the fight!', '#c96a5a');
       rsStopActivity(quiet);
       return;
@@ -18723,8 +18801,9 @@ function rsTickCore(quiet){
       r.deaths = (r.deaths|0) + 1;
       const inMire = m.area === 'mire';
       if(inMire && r.inv.length){
-        r.inv = [];
-        rsLog('☠️ You die in the Mire. Your bag is lost to the bog.', '#ff6b6b');
+        const kept = r.inv.filter(function(it){ const d = RS_ITEMS[it.id]; return d && (d.pet || d.cape); });
+        r.inv = kept;
+        rsLog('☠️ You die in the Mire. The bog swallows your bag' + (kept.length ? ' — but your keepsakes crawl out after you' : '') + '.', '#ff6b6b');
       } else {
         rsLog('☠️ You die... and wake in town, gear intact.', '#ff6b6b');
       }
@@ -18758,7 +18837,7 @@ function rsRandomEvent(){
 }
 
 /* ---- The living tick: runs across all tabs; catches up after time away ---- */
-let rsSaveT = 0;
+let rsSaveT = 0, rsActsT = 0;
 function rsTick(){
   const r = rsEnsure();
   const now = Date.now();
@@ -18783,7 +18862,11 @@ function rsTick(){
   }
 
   rsCheckQuests();
-  if(rsTabOpen()) rsRenderHud();
+  if(rsTabOpen()){
+    rsRenderHud();
+    /* keep "have N" counts and task badges honest without hammering the DOM */
+    if((rsActsT = (rsActsT|0) + 1) >= 8 && !document.getElementById('rsMenu')){ rsActsT = 0; rsRenderActs(); }
+  }
   if(++rsSaveT >= 10){ rsSaveT = 0; try{ saveState(); }catch(e){} }
 }
 
@@ -18833,8 +18916,9 @@ function rsAssignTask(){
   const m = pool[Math.floor(Math.random() * pool.length)];
   const n = Math.min(60, 8 + Math.floor(Math.random() * 10) + Math.floor(cb / 4));
   sl.task = {mob: m.id, left: n, total: n};
+  const areaName = (RS_AREAS.find(function(a){return a.id === m.area;}) || {name:m.area}).name;
   rsLog('💀 Morvos ' + RS_MORVOS[Math.floor(Math.random() * RS_MORVOS.length)], '#c4b5ff');
-  rsLog('💀 New task: slay ' + n + ' ' + m.name + 's.', '#ffd84d');
+  rsLog('💀 New task: slay ' + n + ' ' + m.name + 's — found in ' + areaName + '.', '#ffd84d');
   rsRenderActs();
 }
 function rsMobName(id){ const m = RS_MOBS.find(function(x){return x.id===id;}); return m ? m.name : id; }
@@ -18871,14 +18955,14 @@ function rsBuySlayReward(what){
     if(sl.pts < 30){ rsLog('The lamp costs 30 points.', '#e8b4c0'); return; }
     sl.pts -= 30;
     let low = 'atk';
-    ['atk','str','def','hp'].forEach(function(k){ if(rsEnsure().skills[k].xp < rsEnsure().skills[low].xp) low = k; });
+    ['atk','str','def','hp','range','mage'].forEach(function(k){ if(rsEnsure().skills[k].xp < rsEnsure().skills[low].xp) low = k; });
     rsAddXp(low, 2500);
     rsLog('🪔 The lamp flares: +2,500 ' + RS_SKILLS.find(function(x){return x.id===low;}).name + ' XP.', '#ffd84d');
   } else if(what === 'mask'){
     if(sl.pts < 75){ rsLog('The Grim mask costs 75 points.', '#e8b4c0'); return; }
     if(rsInvQty('grim_mask') > 0 || rsEnsure().equip.helm === 'grim_mask'){ rsLog('Morvos: "One face is enough for anyone."', '#c4b5ff'); return; }
     sl.pts -= 75;
-    rsGive('grim_mask', 1);
+    rsGrant('grim_mask', 1);
     rsLog('🎭 You take the Grim mask. Monsters on your task will fear it (+20% damage).', '#7ADE9A');
   }
   rsRenderPanel();
@@ -18931,6 +19015,12 @@ function rsRenderHud(){
   set('rsCombatLvl', rsCombatLevel());
   set('rsCoins', r.coins.toLocaleString());
   set('rsQp', r.qp|0);
+  const tc = document.getElementById('rsTaskChip');
+  if(tc){
+    const sl = rsSlay();
+    if(sl.task){ tc.style.display = ''; tc.innerHTML = '💀 <b>' + sl.task.left + '</b>× ' + rsMobName(sl.task.mob); }
+    else tc.style.display = 'none';
+  }
   const mx = rsLvl('hp');
   const f = document.getElementById('rsHpFill');
   if(f) f.style.width = Math.max(0, Math.min(100, r.curHp / mx * 100)) + '%';
@@ -18988,8 +19078,8 @@ function rsRenderActs(){
   } else if(r.area === 'town'){
     h += '<button class="rs-act" data-town="bank">🏦 Bank<small>deposit everything</small></button>';
     h += RS_COOK.map(function(c){
-      const can = rsLvl('cook') >= c.req && rsInvQty(c.raw) > 0;
-      return rsActButton(cur && cur.kind==='cook' && cur.key===c.raw, !can, '🍳 ' + RS_ITEMS[c.out].name, rsLvl('cook') < c.req ? 'lvl ' + c.req : 'have ' + rsInvQty(c.raw), 'data-cook="' + c.raw + '"');
+      const can = rsLvl('cook') >= c.req && rsHave(c.raw) > 0;
+      return rsActButton(cur && cur.kind==='cook' && cur.key===c.raw, !can, '🍳 ' + RS_ITEMS[c.out].name, rsLvl('cook') < c.req ? 'lvl ' + c.req : 'have ' + rsHave(c.raw), 'data-cook="' + c.raw + '"');
     }).join('');
     h += RS_SMELT.map(function(s){
       const can = rsLvl('smith') >= s.req;
@@ -19165,10 +19255,23 @@ function rsRenderPanel(){
     const dep = document.getElementById('rsDepAll');
     if(dep) dep.addEventListener('click', function(){ const n = rsBankAll(); rsLog(n ? 'Deposited ' + n + ' items.' : 'Nothing to deposit.'); rsRenderPanel(); });
     box.querySelectorAll('[data-rsw]').forEach(function(b){
-      b.addEventListener('click', function(){
-        const k = b.dataset.rsw, q = r.bank[k];
-        if(rsGive(k, q)){ delete r.bank[k]; rsRenderPanel(); }
-        else rsLog('Your bag cannot hold that.', '#e8b4c0');
+      b.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        const k = b.dataset.rsw;
+        const d = RS_ITEMS[k] || {name:k};
+        const tgt = ' <b>' + d.name + '</b>';
+        rsShowMenu(b, [
+          ['Withdraw-All' + tgt, function(){
+            const q = r.bank[k];
+            if(rsGive(k, q)){ delete r.bank[k]; rsRenderPanel(); }
+            else rsLog('Your bag cannot hold that.', '#e8b4c0');
+          }],
+          ['Withdraw-1' + tgt, function(){
+            if(rsGive(k, 1)){ r.bank[k]--; if(r.bank[k] <= 0) delete r.bank[k]; rsRenderPanel(); }
+            else rsLog('Your bag cannot hold that.', '#e8b4c0');
+          }],
+          ['Examine' + tgt, function(){ rsExamine(k); }],
+        ]);
       });
     });
     return;
@@ -19191,6 +19294,20 @@ function rsRenderPanel(){
                  : '<button class="rs-btn" data-rsbuy="' + id + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
       });
     });
+    RS_BOWS.forEach(function(bw, i){
+      const d = RS_ITEMS[bw[0]], price = d.sell * 4;
+      const owned = rsHave(bw[0]) > 0 || r.equip.weapon === bw[0];
+      h += '<div class="rs-row"><span>🏹</span><div class="grow">' + d.name + '<span class="sub">Ranged ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
+        (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + bw[0] + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
+    });
+    RS_STAVES.forEach(function(st, i){
+      const d = RS_ITEMS[st[0]], price = d.sell * 4;
+      const owned = rsHave(st[0]) > 0 || r.equip.weapon === st[0];
+      h += '<div class="rs-row"><span>🪄</span><div class="grow">' + d.name + '<span class="sub">Magic ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
+        (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + st[0] + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
+    });
+    h += '<div class="rs-row"><span>🐟</span><div class="grow">Travel rations<span class="sub">5 cooked trout — slayers pack lunch</span></div>' +
+      '<button class="rs-btn" id="rsBuyFood">150 🪙</button></div>';
     h += '</div><div style="font-size:10px;color:#a99871;margin-top:6px;">Gear is smithed, not sold — the anvil in Town is your armoury.</div>';
     box.innerHTML = h;
     function sellFrom(container, isBank){
@@ -19218,6 +19335,13 @@ function rsRenderPanel(){
       r.coins += got; rsLog(got ? 'Sold banked goods for ' + got.toLocaleString() + ' coins.' : 'No resources in the bank.', '#ffd84d');
       rsRenderPanel(); rsRenderHud();
     });
+    const bf = document.getElementById('rsBuyFood');
+    if(bf) bf.addEventListener('click', function(){
+      if(r.coins < 150){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+      r.coins -= 150; rsGrant('trout', 5);
+      rsLog('You buy a bundle of cooked trout.', '#7ADE9A');
+      rsRenderHud(); rsRenderPanel();
+    });
     box.querySelectorAll('[data-rsbuy]').forEach(function(b){
       b.addEventListener('click', function(){
         const d = RS_ITEMS[b.dataset.rsbuy];
@@ -19226,6 +19350,17 @@ function rsRenderPanel(){
         r.coins -= price;
         r.tools[d.tool] = Math.max(r.tools[d.tool], d.tier);
         rsLog('You buy the ' + d.name + '. It bites deeper.', '#7ADE9A');
+        rsRenderPanel(); rsRenderHud();
+      });
+    });
+    box.querySelectorAll('[data-rsbuy2]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const d = RS_ITEMS[b.dataset.rsbuy2];
+        const price = d.sell * 4;
+        if(r.coins < price){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+        r.coins -= price;
+        rsGrant(b.dataset.rsbuy2, 1);
+        rsLog('You buy the ' + d.name + '.', '#7ADE9A');
         rsRenderPanel(); rsRenderHud();
       });
     });
@@ -19254,7 +19389,7 @@ function rsRenderPanel(){
     let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:6px;">🔨 The Anvil — smith gear from bars</div><div class="rs-rows">';
     RS_FORGE.forEach(function(rec){
       const d = RS_ITEMS[rec.out];
-      const can = rsLvl('smith') >= rec.req && rsInvQty(rec.bar) >= rec.bars;
+      const can = rsLvl('smith') >= rec.req && rsHave(rec.bar) >= rec.bars;
       h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name +
         '<span class="sub">lvl ' + rec.req + ' · ' + rec.bars + '× ' + RS_ITEMS[rec.bar].name + ' · ' + rec.xp + ' xp</span></div>' +
         '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rsf="' + rec.out + '">Smith</button></div>';
@@ -19291,6 +19426,10 @@ const RS_EXAMINE = {
   cinder_shield:'Still warm.', pet_beaver:'It gnaws thoughtfully.', pet_golem:'A very loyal pebble.',
   pet_heron:'It judges your casting form.', pet_bog:'Royalty, allegedly.',
   pet_grim:'Morvos denies all knowledge.', pet_cinder:'Do not feed after midnight.',
+  shortbow:'Short but effective.', oak_bow:'A decent bow of oak.', willow_bow:'Springy.',
+  maple_bow:'Sweetly balanced.', yew_bow:'The archer\'s pride.', arc_bow:'It thrums with stored lightning.',
+  app_staff:'Every wizard starts somewhere.', ember_staff:'Warm to the touch.', gale_staff:'It whistles indoors.',
+  tide_staff:'It drips, but never runs dry.', storm_staff:'The clouds follow it.', arcane_staff:'It knows things.',
 };
 function rsExamine(id){
   const d = RS_ITEMS[id];
@@ -19339,9 +19478,26 @@ function rsItemMenu(el, id){
   const es = [];
   if(d.pet)       es.push(['Follow' + tgt, function(){ rsEnsure().pet = id; rsLog('The ' + d.name + ' scampers to your heel.', '#7ADE9A'); }]);
   if(d.heal)      es.push(['Eat' + tgt, function(){ rsUseItem(id); }]);
-  if(d.bury)      es.push(['Bury' + tgt, function(){ rsUseItem(id); }]);
+  if(d.bury)      es.push(['Bury' + tgt, function(){ rsUseItem(id); }],
+                          ['Bury-All' + tgt, function(){
+                            let n = rsInvQty(id), xp = 0;
+                            while(rsTake(id, 1)){ xp += d.bury; rsEnsure().buried = (rsEnsure().buried|0) + 1; }
+                            if(n > 0){ rsAddXp('pray', xp); rsLog('You bury ' + n + ' ' + d.name.toLowerCase() + (n>1?'s':'') + '. The gods are well pleased.', '#c4b5ff'); }
+                            rsRenderPanel();
+                          }]);
   if(d.slot)      es.push([(d.slot === 'weapon' || d.slot === 'shield' ? 'Wield' : 'Wear') + tgt, function(){ rsUseItem(id); }]);
   if(d.tool)      es.push(['Wield' + tgt, function(){ rsUseItem(id); }]);
+  if(d.sell && !d.pet && !d.cape){
+    es.push(['Sell (' + d.sell + 'c)' + tgt, function(){
+      if(rsTake(id, 1)){ rsEnsure().coins += d.sell; rsLog('Sold one ' + d.name.toLowerCase() + ' for ' + d.sell + ' coins.', '#ffd84d', 'sell_' + id); rsRenderPanel(); rsRenderHud(); }
+    }]);
+    if(rsInvQty(id) > 1){
+      es.push(['Sell-All (' + (d.sell * rsInvQty(id)).toLocaleString() + 'c)' + tgt, function(){
+        const q = rsInvQty(id);
+        if(rsTake(id, q)){ rsEnsure().coins += d.sell * q; rsLog('Sold ' + q + ' × ' + d.name.toLowerCase() + ' for ' + (d.sell * q).toLocaleString() + ' coins.', '#ffd84d'); rsRenderPanel(); rsRenderHud(); }
+      }]);
+    }
+  }
   es.push(['Examine' + tgt, function(){ rsExamine(id); }]);
   es.push(['Drop' + tgt, function(){
     const q = rsInvQty(id);
@@ -19367,7 +19523,11 @@ function rsUseItem(id){
       rsLog('You bury the ' + d.name.toLowerCase() + '. The gods approve.', '#c4b5ff');
     }
   } else if(d.slot){
-    if(rsLvl(d.slot === 'weapon' ? 'atk' : 'def') < d.lvl){ rsLog('You need ' + (d.slot==='weapon'?'Attack':'Defence') + ' ' + d.lvl + ' for that.', '#e8b4c0'); return; }
+    const reqSkill = d.slot !== 'weapon' ? 'def' : d.kind === 'bow' ? 'range' : d.kind === 'staff' ? 'mage' : 'atk';
+    if(rsLvl(reqSkill) < d.lvl){
+      rsLog('You need ' + RS_SKILLS.find(function(x){return x.id===reqSkill;}).name + ' ' + d.lvl + ' for that.', '#e8b4c0');
+      return;
+    }
     const old = r.equip[d.slot];
     if(rsTake(id, 1)){
       if(old) rsGive(old, 1);
@@ -19439,6 +19599,22 @@ function rsDrawHeld(ctx, kind){
     ctx.fillStyle = '#6b4a2a'; ctx.fillRect(-3, -2, 24, 4);
     ctx.fillStyle = '#7a7a82'; ctx.fillRect(20, -8, 10, 16);
     ctx.strokeStyle = '#00000044'; ctx.strokeRect(20.5, -7.5, 10, 16);
+  } else if(kind === 'bow'){
+    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(14, 0, 15, -1.25, 1.25); ctx.stroke();
+    ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(18.5, -14.2); ctx.lineTo(18.5, 14.2); ctx.stroke();
+    ctx.strokeStyle = '#8a6a42'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(26, 0); ctx.stroke();   /* nocked arrow */
+    ctx.fillStyle = '#b8c0c8'; ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(31, -2.5); ctx.lineTo(31, 2.5); ctx.closePath(); ctx.fill();
+    ctx.lineCap = 'butt';
+  } else if(kind === 'staff'){
+    ctx.strokeStyle = '#5a4a6b'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-4, 2); ctx.lineTo(34, -6); ctx.stroke();
+    const pulse = 3.5 + Math.sin(rsAnimT / 4) * 1;
+    ctx.fillStyle = '#7cc6ff'; ctx.beginPath(); ctx.arc(36, -7, pulse, 0, 7); ctx.fill();
+    ctx.fillStyle = '#d8efff'; ctx.beginPath(); ctx.arc(36, -7, pulse * 0.45, 0, 7); ctx.fill();
+    ctx.lineCap = 'butt';
   } else if(kind === 'sword' || kind === 'star'){
     ctx.fillStyle = '#4a3520'; ctx.fillRect(-4, -2, 10, 4);          /* grip */
     ctx.fillStyle = '#c9a24d'; ctx.fillRect(6, -5, 3, 10);           /* guard */
@@ -19678,15 +19854,22 @@ function rsDrawTarget(ctx, W, H, t){
 function rsHeldKind(){
   const r = rsEnsure();
   const act = r.act;
+  function weaponArt(){
+    const w = r.equip.weapon ? RS_ITEMS[r.equip.weapon] : null;
+    if(!w) return null;
+    if(w.kind === 'bow') return 'bow';
+    if(w.kind === 'staff') return 'staff';
+    return r.equip.weapon === 'star_sword' ? 'star' : 'sword';
+  }
   if(act){
     if(act.kind === 'chop') return 'axe';
     if(act.kind === 'mine') return 'pick';
     if(act.kind === 'fish') return 'rod';
     if(act.kind === 'forge') return 'hammer';
     if(act.kind === 'cook' || act.kind === 'smelt') return 'spatula';
-    if(act.kind === 'fight') return r.equip.weapon === 'star_sword' ? 'star' : (r.equip.weapon ? 'sword' : null);
+    if(act.kind === 'fight') return weaponArt();
   }
-  return r.equip.weapon === 'star_sword' ? 'star' : (r.equip.weapon ? 'sword' : null);
+  return weaponArt();
 }
 
 function rsDrawHero(ctx, W, H){
@@ -19760,6 +19943,28 @@ function rsDrawScene(){
   rsDrawTarget(ctx, W, H, t);
   rsDrawHero(ctx, W, H);
 
+  /* projectiles: arrows arc, spell-bolts streak */
+  if(r.act && r.act.kind === 'fight' && rsSwing > 1.1){
+    const wk2 = rsWeaponKind();
+    if(wk2 === 'bow' || wk2 === 'staff'){
+      const p0x = W * 0.51 + 30, p0y = gy - 40;
+      const p1x = W * 0.66 - 14, p1y = gy - 22;
+      const ph = Math.min(1, (2 - rsSwing) / 0.9);
+      const ix = p0x + (p1x - p0x) * ph, iy = p0y + (p1y - p0y) * ph - Math.sin(ph * Math.PI) * 14;
+      if(wk2 === 'bow'){
+        ctx.strokeStyle = '#8a6a42'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ix - 7, iy + 2); ctx.lineTo(ix + 5, iy - 1); ctx.stroke();
+        ctx.fillStyle = '#b8c0c8'; ctx.beginPath(); ctx.moveTo(ix + 5, iy - 1); ctx.lineTo(ix + 9, iy - 2.4); ctx.lineTo(ix + 6.4, iy + 1.6); ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillStyle = '#7cc6ff'; ctx.beginPath(); ctx.arc(ix, iy, 4, 0, 7); ctx.fill();
+        ctx.fillStyle = '#d8efff'; ctx.beginPath(); ctx.arc(ix, iy, 1.8, 0, 7); ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = '#7cc6ff'; ctx.beginPath(); ctx.arc(ix - 7 * (p1x > p0x ? 1 : -1), iy + 2, 2.5, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
   /* hit splats */
   for(let i = rsSplats.length - 1; i >= 0; i--){
     const sp = rsSplats[i];
@@ -19823,6 +20028,8 @@ function rsAnimLoop(){
 /* ---- Tab lifecycle + wiring ---- */
 function rsOnEnterTab(){
   rsEnsure();
+  const sb = document.getElementById('rsSnd');
+  if(sb) sb.textContent = rsEnsure().sound === false ? '🔇' : '🔊';
   rsRenderHud(); rsRenderAreas(); rsRenderActs(); rsRenderTabs(); rsRenderPanel();
   if(!rsAnimOn){ rsAnimOn = true; requestAnimationFrame(rsAnimLoop); }
   if(!rsEnsure().greeted){

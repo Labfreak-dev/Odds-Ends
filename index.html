@@ -18260,6 +18260,7 @@ RS_TIERS.forEach(function(t,i){
   rsDef(t+'_sword',  RS_TIER_NAME[t]+' sword',  '🗡️', Math.round(p),      {slot:'weapon', tier:i+1, lvl:[1,10,20,35,55,75][i]});
   rsDef(t+'_helm',   RS_TIER_NAME[t]+' helm',   '🪖', Math.round(p*0.6),  {slot:'helm',   tier:i+1, lvl:[1,10,20,35,55,75][i]});
   rsDef(t+'_body',   RS_TIER_NAME[t]+' body',   '🥋', Math.round(p*1.4),  {slot:'body',   tier:i+1, lvl:[1,10,20,35,55,75][i]});
+  rsDef(t+'_legs',   RS_TIER_NAME[t]+' platelegs','👖', Math.round(p),     {slot:'legs',   tier:i+1, lvl:[1,10,20,35,55,75][i]});
   rsDef(t+'_shield', RS_TIER_NAME[t]+' shield', '🛡️', Math.round(p*0.9),  {slot:'shield', tier:i+1, lvl:[1,10,20,35,55,75][i]});
   rsDef(t+'_axe',    RS_TIER_NAME[t]+' axe',    '🪓', Math.round(p*0.8),  {tool:'axe',  tier:i+1, lvl:[1,10,20,35,55,75][i]});
   rsDef(t+'_pick',   RS_TIER_NAME[t]+' pickaxe','⛏️', Math.round(p*0.8),  {tool:'pick', tier:i+1, lvl:[1,10,20,35,55,75][i]});
@@ -18287,6 +18288,36 @@ const RS_STAVES = [
 RS_STAVES.forEach(function(st, i){
   rsDef(st[0], st[1], '🪄', Math.round(Math.pow(3.1, i) * 30), {slot:'weapon', kind:'staff', tier:i+1, lvl:st[2]});
 });
+const RS_RANGE_ARMOR = [
+  ['leather','Leather',1], ['studded','Studded',10], ['snake','Snakeskin',20],
+  ['green','Green d\'hide',35], ['blue','Blue d\'hide',55], ['black','Black d\'hide',75],
+];
+RS_RANGE_ARMOR.forEach(function(ra, i){
+  const p = Math.pow(3.1, i) * 22;
+  rsDef(ra[0]+'_coif',  ra[1]+' coif',  '🧢', Math.round(p*0.6), {slot:'helm', kind:'range', tier:i+1, lvl:ra[2]});
+  rsDef(ra[0]+'_body',  ra[1]+' body',  '🦺', Math.round(p*1.4), {slot:'body', kind:'range', tier:i+1, lvl:ra[2]});
+  rsDef(ra[0]+'_chaps', ra[1]+' chaps', '👖', Math.round(p),     {slot:'legs', kind:'range', tier:i+1, lvl:ra[2]});
+});
+const RS_MAGE_ARMOR = [
+  ['wiz','Wizard',1], ['adept','Adept',10], ['ench','Enchanter',20],
+  ['mystic','Mystic',35], ['bmage','Battlemage',55], ['arch','Archmage',75],
+];
+RS_MAGE_ARMOR.forEach(function(ma, i){
+  const p = Math.pow(3.1, i) * 22;
+  rsDef(ma[0]+'_hat',   ma[1]+' hat',        '🎩', Math.round(p*0.6), {slot:'helm', kind:'mage', tier:i+1, lvl:ma[2]});
+  rsDef(ma[0]+'_top',   ma[1]+' robe top',   '🧥', Math.round(p*1.4), {slot:'body', kind:'mage', tier:i+1, lvl:ma[2]});
+  rsDef(ma[0]+'_skirt', ma[1]+' robe skirt', '👘', Math.round(p),     {slot:'legs', kind:'mage', tier:i+1, lvl:ma[2]});
+});
+rsDef('sapph_amulet','Sapphire amulet','🧿',420,{slot:'amulet', tier:1, lvl:1, accb:4});
+rsDef('ruby_amulet','Ruby amulet','📿',900,{slot:'amulet', tier:2, lvl:1, mhb:2});
+rsDef('diamond_amulet','Diamond amulet','💠',2400,{slot:'amulet', tier:3, lvl:1, accb:3, mhb:1, defb:4});
+rsDef('dragon_bones','Dragon bones','🦴',180,{bury:25});
+rsDef('wyrm_ward','Wyrm ward','🐲',3000,{slot:'shield', tier:7, lvl:50});
+rsDef('regent_crown','Regent\'s crown','👑',8000,{slot:'helm', tier:9, lvl:70});
+rsDef('gilded_helm','Gilded helm','⛑️',5200,{slot:'helm', tier:6, lvl:40});
+rsDef('clue_scroll','Clue scroll','📜',0,{clue:true});
+rsDef('casket','Casket','🎁',0,{casket:true});
+rsDef('pet_wisp','Grave wisp','🕯️',0,{pet:true});
 RS_SKILLS.forEach(function(sk){ rsDef('cape_'+sk.id, sk.name+' cape', '🎽', 990, {cape:true}); });
 
 /* ---- Gathering targets ---- */
@@ -18328,14 +18359,17 @@ const RS_SMELT = [
   {out:'mith_bar',   req:50, xp:30,   ins:{mith_ore:1, coal:4}},
   {out:'addy_bar',   req:70, xp:37.5, ins:{addy_ore:1, coal:6}},
   {out:'rune_bar',   req:85, xp:50,   ins:{rune_ore:1, coal:8}},
+  {out:'sapph_amulet',   req:20, xp:45,  ins:{sapphire:1, steel_bar:1}},
+  {out:'ruby_amulet',    req:45, xp:75,  ins:{ruby:1, mith_bar:1}},
+  {out:'diamond_amulet', req:70, xp:110, ins:{diamond:1, addy_bar:1}},
 ];
 const RS_FORGE = (function(){
   const out = [];
   const barOf = {bronze:'bronze_bar',iron:'iron_bar',steel:'steel_bar',mithril:'mith_bar',adamant:'addy_bar',rune:'rune_bar'};
   const smithReq = {bronze:1,iron:15,steel:30,mithril:50,adamant:70,rune:85};
   RS_TIERS.forEach(function(t){
-    [['_sword',1,12],['_helm',1,12],['_shield',2,25],['_body',3,37],['_axe',1,12],['_pick',2,25]].forEach(function(sp){
-      out.push({out:t+sp[0], req:Math.min(99, smithReq[t]+(sp[0]==='_body'?4:sp[0]==='_shield'||sp[0]==='_pick'?2:0)),
+    [['_sword',1,12],['_helm',1,12],['_shield',2,25],['_body',3,37],['_legs',2,28],['_axe',1,12],['_pick',2,25]].forEach(function(sp){
+      out.push({out:t+sp[0], req:Math.min(99, smithReq[t]+(sp[0]==='_body'?4:sp[0]==='_shield'||sp[0]==='_pick'||sp[0]==='_legs'?2:0)),
                 bars:sp[1], bar:barOf[t], xp:sp[2]*(RS_TIERS.indexOf(t)+1)});
     });
   });
@@ -18345,6 +18379,7 @@ const RS_FORGE = (function(){
 /* ---- Monsters ---- */
 const RS_MOBS = [
   {id:'chicken', name:'Chicken',      ic:'🐔', lvl:1,  hp:3,   atk:1,  def:1,  max:1, xp:12,  area:'fields', drops:[['bones',1,1],['coins',1,4]]},
+  {id:'imp',     name:'Imp',          ic:'👿', lvl:5,  hp:8,   atk:3,  def:3,  max:1, xp:30,  area:'fields', drops:[['bones',1,1],['coins',2,8]]},
   {id:'goblin',  name:'Goblin',       ic:'👺', lvl:2,  hp:5,   atk:1,  def:1,  max:1, xp:20,  area:'fields', drops:[['bones',1,1],['coins',2,9]]},
   {id:'cow',     name:'Cow',          ic:'🐄', lvl:2,  hp:8,   atk:1,  def:1,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',3,12]]},
   {id:'guard',   name:'Guard',        ic:'💂', lvl:21, hp:22,  atk:18, def:16, max:4, xp:70,  area:'fields', drops:[['bones',1,1],['coins',12,40]]},
@@ -18352,6 +18387,7 @@ const RS_MOBS = [
   {id:'mossg',   name:'Moss Giant',   ic:'🧌', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
   {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
   {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
+  {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04]]},
   {id:'bogking', name:'The Bog King', ic:'🐸', lvl:90, hp:180, atk:70, def:62, max:14,xp:1500,area:'mire',   drops:[['big_bones',1,1],['coins',900,2600],['diamond',1,2]], boss:true},
   {id:'cinder',  name:'Cinderwyrm',   ic:'🐉', lvl:100,hp:220, atk:78, def:66, max:16,xp:2200,area:'mire',   drops:[['big_bones',1,2],['coins',700,2000],['diamond',0,1,0.2]], boss:true, dragon:true},
   {id:'crawl',   name:'Crawling Hand',ic:'🖐️', lvl:8,  hp:16,  atk:6,  def:5,  max:2, xp:44,  area:'tower',  slayReq:1,  drops:[['bones',1,1],['coins',6,22]]},
@@ -18360,6 +18396,12 @@ const RS_MOBS = [
   {id:'veld',    name:'Bloodveld',    ic:'👅', lvl:48, hp:60,  atk:38, def:30, max:8, xp:230, area:'tower',  slayReq:35, drops:[['big_bones',1,1],['coins',40,130],['ruby',0,1,0.07]]},
   {id:'garg',    name:'Gargoyle',     ic:'🦇', lvl:65, hp:70,  atk:52, def:48, max:10,xp:330, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',90,260],['granite_mauler',0,1,0.02],['diamond',0,1,0.03]]},
   {id:'abyss',   name:'Abyssal Fiend',ic:'🐙', lvl:95, hp:110, atk:70, def:64, max:12,xp:520, area:'tower',  slayReq:75, drops:[['big_bones',1,1],['coins',160,460],['abyssal_lash',0,1,0.017],['diamond',0,1,0.08]]},
+  {id:'skel',      name:'Skeleton',      ic:'💀', lvl:22, hp:24,  atk:17, def:15, max:4, xp:75,  area:'cata', drops:[['bones',1,1],['coins',10,35]]},
+  {id:'zombie',    name:'Zombie',        ic:'🧟‍♂️', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
+  {id:'ghast',     name:'Ghast',         ic:'🫥', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
+  {id:'ankou',     name:'Ankou',         ic:'☠️', lvl:75, hp:90,  atk:58, def:52, max:10,xp:420, area:'cata', drops:[['big_bones',1,1],['coins',110,320],['ruby',0,1,0.08],['diamond',0,1,0.04]]},
+  {id:'gdemon',    name:'Greater Demon', ic:'👹', lvl:92, hp:105, atk:68, def:62, max:12,xp:500, area:'cata', drops:[['big_bones',1,1],['coins',150,430],['diamond',0,1,0.07]]},
+  {id:'boneregent',name:'The Bone Regent',ic:'🦴', lvl:115,hp:300, atk:84, def:70, max:17,xp:3000,area:'cata', drops:[['big_bones',1,2],['coins',1200,3200],['diamond',1,2]], boss:true},
 ];
 
 /* ---- Quests ---- */
@@ -18430,6 +18472,38 @@ const RS_QUESTS = [
           {d:'Slay Cinderwyrm',         need:function(r){return r.counts.kill_cinder||0;}, goal:1}],
    reward:'5,000 coins · the Cinder shield · 4,000 XP',
    grant:function(r){ r.coins += 5000; rsGrant('cinder_shield', 1); rsAddXp('def', 2000); rsAddXp('atk', 2000); }},
+  {id:'q13', name:'Imp-possible', qp:1,
+   desc:'Wizard Elmsworth\'s enchanted beads scattered across the fields — and the imps took them.',
+   steps:[{d:'Catch 12 Imps', need:function(r){return r.counts.kill_imp||0;}, goal:12}],
+   reward:'800 Magic XP · a Sapphire amulet',
+   grant:function(r){ rsAddXp('mage', 800); rsGrant('sapph_amulet', 1); }},
+  {id:'q14', name:'Rest for the Wicked', qp:2,
+   desc:'The catacombs are overfull, and the dead are filing complaints.',
+   steps:[{d:'Destroy 15 Skeletons', need:function(r){return r.counts.kill_skel||0;}, goal:15},
+          {d:'Destroy 12 Zombies',   need:function(r){return r.counts.kill_zombie||0;}, goal:12}],
+   reward:'1,500 coins · 2,500 Prayer XP',
+   grant:function(r){ r.coins += 1500; rsAddXp('pray', 2500); }},
+  {id:'q15', name:'A String and a Prayer', qp:1,
+   desc:'The fletcher swears you have the arms for a proper bow. Prove it.',
+   steps:[{d:'Reach Ranged level 20', need:function(r){return rsLvl('range');}, goal:20}],
+   reward:'a Willow bow · 1,000 Ranged XP',
+   grant:function(r){ rsGrant('willow_bow', 1); rsAddXp('range', 1000); }},
+  {id:'q16', name:'The Old Ways', qp:1,
+   desc:'A hermit in the woods still remembers the deep words, and will teach the diligent.',
+   steps:[{d:'Reach Magic level 20', need:function(r){return rsLvl('mage');}, goal:20}],
+   reward:'a Gale staff · 1,000 Magic XP',
+   grant:function(r){ rsGrant('gale_staff', 1); rsAddXp('mage', 1000); }},
+  {id:'q17', name:'Wyrm Bones', qp:2,
+   desc:'Green dragons nest in the deep Mire. The church pays handsomely for their bones.',
+   steps:[{d:'Slay 8 Green Dragons', need:function(r){return r.counts.kill_greend||0;}, goal:8}],
+   reward:'2,500 Prayer XP · the Wyrm ward',
+   grant:function(r){ rsAddXp('pray', 2500); rsGrant('wyrm_ward', 1); }},
+  {id:'q18', name:'The Regent Below', qp:5,
+   desc:'Something crowned and long dead holds court beneath the catacombs.',
+   steps:[{d:'Destroy 10 Ankou',        need:function(r){return r.counts.kill_ankou||0;}, goal:10},
+          {d:'Defeat the Bone Regent',  need:function(r){return r.counts.kill_boneregent||0;}, goal:1}],
+   reward:'6,000 coins · the Regent\'s crown',
+   grant:function(r){ r.coins += 6000; rsGrant('regent_crown', 1); }},
 ];
 function rsQuestSteps(q){ const r = rsEnsure(); let done = 0; for(const st of q.steps){ if(st.need(r) >= st.goal) done++; else break; } return done; }
 function rsQuestReady(q){ return rsQuestSteps(q) >= q.steps.length; }
@@ -18442,6 +18516,7 @@ const RS_AREAS = [
   {id:'town',   name:'🏘️ Town',   desc:'furnace · anvil · range · bank'},
   {id:'fields', name:'⚔️ Combat', desc:'monsters'},
   {id:'tower',  name:'🗼 Tower',  desc:'the Slayer Master waits within'},
+  {id:'cata',   name:'💀 Catacombs', desc:'the restless dead, filed by floor'},
   {id:'mire',   name:'☠️ Mire',   desc:'danger — die here, lose your bag'},
 ];
 
@@ -18602,13 +18677,30 @@ function rsAtkBonus(){ const w = rsWeapon(); return w ? w.tier*3 : 0; }
 function rsStrBonus(){ const w = rsWeapon(); return w ? w.tier*2.5 : 0; }
 function rsDefBonus(){
   const e = rsEnsure().equip;
-  return ['helm','body','shield'].reduce(function(a,s){ return a + (e[s] ? RS_ITEMS[e[s]].tier*2.5 : 0); }, 0);
+  let v = ['helm','body','legs','shield'].reduce(function(a,s){
+    const d = e[s] ? RS_ITEMS[e[s]] : null;
+    return a + (d ? d.tier * (d.kind === 'range' || d.kind === 'mage' ? 1.5 : 2.5) : 0);
+  }, 0);
+  const am = rsAmulet();
+  if(am && am.defb) v += am.defb;
+  return v;
+}
+function rsAmulet(){ const a = rsEnsure().equip.amulet; return a ? RS_ITEMS[a] : null; }
+function rsStyleGearBonus(kind){
+  const e = rsEnsure().equip;
+  let v = 0;
+  ['helm','body','legs'].forEach(function(sl){
+    const d = e[sl] ? RS_ITEMS[e[sl]] : null;
+    if(d && d.kind === kind) v += d.tier;
+  });
+  return v;
 }
 function rsMaxHit(){
   const w = rsWeapon(), k = rsWeaponKind();
-  if(k === 'bow')   return Math.max(1, Math.floor(1 + rsLvl('range')*0.15 + w.tier*2.5*0.35));
-  if(k === 'staff') return Math.max(1, Math.floor(1 + rsLvl('mage')*0.16 + w.tier*2.5*0.35));
-  return Math.max(1, Math.floor(1 + rsLvl('str')*0.15 + rsStrBonus()*0.35));
+  const am = rsAmulet(), amh = am ? (am.mhb||0) : 0;
+  if(k === 'bow')   return Math.max(1, Math.floor(1 + rsLvl('range')*0.15 + w.tier*2.5*0.35 + rsStyleGearBonus('range')*0.4 + amh));
+  if(k === 'staff') return Math.max(1, Math.floor(1 + rsLvl('mage')*0.16 + w.tier*2.5*0.35 + rsStyleGearBonus('mage')*0.4 + amh));
+  return Math.max(1, Math.floor(1 + rsLvl('str')*0.15 + rsStrBonus()*0.35 + amh));
 }
 
 function rsStartActivity(kind, key){
@@ -18665,6 +18757,17 @@ function rsTickCore(quiet){
     if((r.regenT = (r.regenT|0) + 1) >= 10){ r.regenT = 0; r.curHp = Math.min(rsLvl('hp'), r.curHp + 1); }
   }
   if(!act) return;
+
+  /* an active clue trail completes while you work in the named area */
+  if(r.clue && r.area === r.clue.area){
+    r.clue.left = (r.clue.left|0) - 1;
+    if(r.clue.left <= 0){
+      r.clue = null;
+      rsGrant('casket', 1);
+      rsLog('🎁 The trail ends here — you unearth a buried casket!', '#ffd84d');
+      rsJingle('quest');
+    }
+  }
 
   if(act.kind === 'chop' || act.kind === 'mine' || act.kind === 'fish'){
     const table = act.kind==='chop' ? RS_TREES : act.kind==='mine' ? RS_ROCKS : RS_FISH;
@@ -18739,13 +18842,16 @@ function rsTickCore(quiet){
     const m = RS_MOBS.find(function(x){return x.id===act.key;});
     if(!m){ rsStopActivity(quiet); return; }
     if(m.id === 'bogking' && !(r.counts.kill_shade >= 15)){ rsStopActivity(quiet); return; }
+    if(m.id === 'boneregent' && !((r.counts.kill_ankou||0) >= 10)){ rsStopActivity(quiet); return; }
     if(!r.mob) r.mob = {id:m.id, hp:m.hp};
     act.cd = (act.cd|0) + 1;
     if(act.cd % 2 !== 0) return;      /* exchange blows every other tick */
     rsSwing = 2;
     /* your hit */
     const wk = rsWeaponKind();
-    const accLvl = (wk === 'bow' ? rsLvl('range') : wk === 'staff' ? rsLvl('mage') : rsLvl('atk')) + (rsWeapon() ? rsWeapon().tier * 3 : 0);
+    const accLvl = (wk === 'bow' ? rsLvl('range') : wk === 'staff' ? rsLvl('mage') : rsLvl('atk')) + (rsWeapon() ? rsWeapon().tier * 3 : 0)
+                 + (rsAmulet() ? (rsAmulet().accb||0) : 0)
+                 + (wk === 'bow' ? rsStyleGearBonus('range')*2 : wk === 'staff' ? rsStyleGearBonus('mage')*2 : 0);
     const acc = Math.min(0.95, Math.max(0.15, accLvl / (accLvl + m.def*1.4) + 0.18));
     let dealt = 0;
     if(Math.random() < acc) dealt = 1 + Math.floor(Math.random() * rsMaxHit());
@@ -18766,6 +18872,7 @@ function rsTickCore(quiet){
       rsSlayerKill(m, quiet);
       if(m.id === 'bogking' && Math.random() < 1/30) rsGivePet('pet_bog');
       if(m.id === 'cinder'  && Math.random() < 1/20) rsGivePet('pet_cinder');
+      if(m.id === 'boneregent' && Math.random() < 1/25) rsGivePet('pet_wisp');
       m.drops.forEach(function(d){
         const chance = d[3] === undefined ? 1 : d[3];
         if(Math.random() > chance) return;
@@ -18774,10 +18881,16 @@ function rsTickCore(quiet){
         if(d[0] === 'coins') r.coins += qty;
         else if(!rsGive(d[0], qty)) r.bank[d[0]] = (r.bank[d[0]]||0) + qty;
       });
+      if(m.lvl >= 20 && !r.clue && !rsHave('clue_scroll') && Math.random() < 0.03){
+        rsGrant('clue_scroll', 1);
+        rsLog('📜 The ' + m.name + ' was carrying a clue scroll!', '#8fd7ff');
+      }
       if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A', 'kill_' + m.id);
       if(m.boss){
-        rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d');
-        r.counts.kill_bogking_ever = 1;
+        if(m.id === 'bogking'){ rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d'); }
+        else if(m.id === 'boneregent'){ rsLog('👑 THE BONE REGENT CRUMBLES. The catacombs exhale.', '#ffd84d'); }
+        else { rsLog('👑 ' + m.name.toUpperCase() + ' FALLS.', '#ffd84d'); }
+        if(m.id === 'bogking') r.counts.kill_bogking_ever = 1;
         rsStopActivity(quiet);
         return;
       }
@@ -18911,6 +19024,7 @@ function rsAssignTask(){
   if(sl.task){ rsLog('Morvos: "Finish the job first. ' + sl.task.left + ' ' + rsMobName(sl.task.mob) + 's remain."', '#c4b5ff'); return; }
   const cb = rsCombatLevel();
   const pool = RS_MOBS.filter(function(m){
+    if(m.area === 'cata' && cb < 30 && !(rsEnsure().counts.kill_skel > 0)) return false; /* no tasks behind locked doors */
     return !m.boss && !m.dragon && m.lvl <= cb + 12 && (!m.slayReq || rsLvl('slay') >= m.slayReq);
   });
   const m = pool[Math.floor(Math.random() * pool.length)];
@@ -19033,7 +19147,8 @@ function rsRenderAreas(){
   if(!box) return;
   box.innerHTML = RS_AREAS.map(function(a){
     const locked = (a.id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)) ||
-                   (a.id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0));
+                   (a.id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)) ||
+                   (a.id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0));
     return '<button class="rs-area' + (r.area === a.id ? ' on' : '') + (locked ? ' locked' : '') + '" data-rsa="' + a.id + '"' +
       (locked ? ' title="Combat 40 required"' : '') + '>' + a.name + '</button>';
   }).join('');
@@ -19042,6 +19157,7 @@ function rsRenderAreas(){
       const id = b.dataset.rsa;
       if(id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)){ rsLog('The Mire would eat you alive. Come back at combat 40.', '#e8b4c0'); return; }
       if(id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)){ rsLog('Morvos bars the door: "Come back when you can survive my hallways. Combat 15."', '#e8b4c0'); return; }
+      if(id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0)){ rsLog('The catacomb door does not budge for the unproven. Come back at combat 30.', '#e8b4c0'); return; }
       r.area = id; rsStopActivity(true);
       rsLog('You travel to ' + RS_AREAS.find(function(x){return x.id===id;}).name.replace(/^\S+\s/,'') + '.', '#c9b788');
       rsRenderAreas(); rsRenderActs();
@@ -19096,6 +19212,7 @@ function rsRenderActs(){
     const mobs = RS_MOBS.filter(function(m){
       if(m.area !== r.area) return false;
       if(m.id === 'bogking') return r.counts.kill_shade >= 15;
+      if(m.id === 'boneregent') return (r.counts.kill_ankou||0) >= 10;
       if(m.dragon) return (r.counts.kill_demon||0) >= 10;
       return true;
     });
@@ -19111,6 +19228,8 @@ function rsRenderActs(){
       h += '<button class="rs-act dis">🐸 ???<small>something stirs below</small></button>';
     if(r.area === 'mire' && r.counts.kill_shade >= 15 && !((r.counts.kill_demon||0) >= 10))
       h += '<button class="rs-act dis">🐉 ???<small>scaled tracks in the mud</small></button>';
+    if(r.area === 'cata' && !((r.counts.kill_ankou||0) >= 10))
+      h += '<button class="rs-act dis">🦴 ???<small>a throne rattles deeper in</small></button>';
   }
   box.innerHTML = h;
   box.querySelectorAll('[data-chop]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('chop', b.dataset.chop); }); });
@@ -19182,7 +19301,7 @@ function rsRenderPanel(){
   }
 
   if(t === 'equip'){
-    const slots = [['weapon','Weapon'],['helm','Helm'],['body','Body'],['shield','Shield']];
+    const slots = [['weapon','Weapon'],['helm','Helm'],['body','Body'],['legs','Legs'],['shield','Shield'],['amulet','Amulet']];
     let h = '<div class="rs-eq">' + slots.map(function(sp){
       const id = r.equip[sp[0]];
       const d = id ? RS_ITEMS[id] : null;
@@ -19306,13 +19425,31 @@ function rsRenderPanel(){
       h += '<div class="rs-row"><span>🪄</span><div class="grow">' + d.name + '<span class="sub">Magic ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
         (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + st[0] + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
     });
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Ranger\'s leathers</div>';
+    RS_RANGE_ARMOR.forEach(function(ra){
+      ['_coif','_body','_chaps'].forEach(function(sf){
+        const id2 = ra[0] + sf, d = RS_ITEMS[id2], price = d.sell * 4;
+        const owned = rsHave(id2) > 0 || r.equip[d.slot] === id2;
+        h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">Ranged ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
+          (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + id2 + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
+      });
+    });
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Robes of the Magi</div>';
+    RS_MAGE_ARMOR.forEach(function(ma){
+      ['_hat','_top','_skirt'].forEach(function(sf){
+        const id2 = ma[0] + sf, d = RS_ITEMS[id2], price = d.sell * 4;
+        const owned = rsHave(id2) > 0 || r.equip[d.slot] === id2;
+        h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">Magic ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
+          (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + id2 + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
+      });
+    });
     h += '<div class="rs-row"><span>🐟</span><div class="grow">Travel rations<span class="sub">5 cooked trout — slayers pack lunch</span></div>' +
       '<button class="rs-btn" id="rsBuyFood">150 🪙</button></div>';
-    h += '</div><div style="font-size:10px;color:#a99871;margin-top:6px;">Gear is smithed, not sold — the anvil in Town is your armoury.</div>';
+    h += '</div><div style="font-size:10px;color:#a99871;margin-top:6px;">Plate is smithed at the anvil in Town. Leathers, robes and weapons are sold here.</div>';
     box.innerHTML = h;
     function sellFrom(container, isBank){
       let got = 0;
-      const gearless = function(id){ const d = RS_ITEMS[id]; return d && !d.slot && !d.tool && !d.pet && !d.cape; };
+      const gearless = function(id){ const d = RS_ITEMS[id]; return d && !d.slot && !d.tool && !d.pet && !d.cape && !d.clue && !d.casket; };
       if(isBank){
         Object.keys(container).forEach(function(k){
           if(gearless(k)){ got += (RS_ITEMS[k].sell || 1) * container[k]; delete container[k]; }
@@ -19430,6 +19567,13 @@ const RS_EXAMINE = {
   maple_bow:'Sweetly balanced.', yew_bow:'The archer\'s pride.', arc_bow:'It thrums with stored lightning.',
   app_staff:'Every wizard starts somewhere.', ember_staff:'Warm to the touch.', gale_staff:'It whistles indoors.',
   tide_staff:'It drips, but never runs dry.', storm_staff:'The clouds follow it.', arcane_staff:'It knows things.',
+  dragon_bones:'Ancient and heavy. The gods pay close attention to these.',
+  sapph_amulet:'It hums with a faint blue light.', ruby_amulet:'It makes your pulse feel louder.',
+  diamond_amulet:'All of it, all at once.', wyrm_ward:'The scales still deflect heat.',
+  regent_crown:'Heavy is the head. Heavier is this.', gilded_helm:'Impractically shiny.',
+  clue_scroll:'A riddle in a hurried hand. Read it.', casket:'Something rattles inside. Open it.',
+  pet_wisp:'It hums old funeral songs.', black_body:'Made from a very cross dragon.',
+  wiz_hat:'A pointy hat. Deeply traditional.', arch_top:'The seams crackle quietly.',
 };
 function rsExamine(id){
   const d = RS_ITEMS[id];
@@ -19487,6 +19631,8 @@ function rsItemMenu(el, id){
                           }]);
   if(d.slot)      es.push([(d.slot === 'weapon' || d.slot === 'shield' ? 'Wield' : 'Wear') + tgt, function(){ rsUseItem(id); }]);
   if(d.tool)      es.push(['Wield' + tgt, function(){ rsUseItem(id); }]);
+  if(d.clue)      es.push(['Read' + tgt, function(){ rsReadClue(); rsRenderPanel(); }]);
+  if(d.casket)    es.push(['Open' + tgt, function(){ rsOpenCasket(); }]);
   if(d.sell && !d.pet && !d.cape){
     es.push(['Sell (' + d.sell + 'c)' + tgt, function(){
       if(rsTake(id, 1)){ rsEnsure().coins += d.sell; rsLog('Sold one ' + d.name.toLowerCase() + ' for ' + d.sell + ' coins.', '#ffd84d', 'sell_' + id); rsRenderPanel(); rsRenderHud(); }
@@ -19507,6 +19653,64 @@ function rsItemMenu(el, id){
   }]);
   rsShowMenu(el, es);
 }
+const RS_CLUE_HINTS = {
+  woods:  '“Where axes sing and leaves drift down, the trail hides among the roots.”',
+  mine:   '“Beneath torch-lit stone, where picks ring out, the trail runs cold and deep.”',
+  river:  '“Follow the water. The reeds keep secrets from everyone but the patient.”',
+  town:   '“The cobbles of town hide more than footsteps.”',
+  fields: '“Where cattle graze and goblins squabble, look underfoot.”',
+  tower:  '“Climb to where the candles never gutter.”',
+  mire:   '“The bog keeps what it is given. Go and take something back.”',
+  cata:   '“Below the below, where the dead hold court.”',
+};
+function rsReadClue(){
+  const r = rsEnsure();
+  if(r.clue){
+    rsLog('📜 ' + RS_CLUE_HINTS[r.clue.area] + ' (keep working in that area — the trail will surface)', '#8fd7ff');
+    return;
+  }
+  if(rsHave('clue_scroll') <= 0) return;
+  const areas = Object.keys(RS_CLUE_HINTS);
+  const area = areas[Math.floor(Math.random() * areas.length)];
+  rsConsume('clue_scroll', 1);
+  r.clue = {area: area, left: 10};
+  rsLog('📜 ' + RS_CLUE_HINTS[area], '#8fd7ff');
+  rsLog('The riddle points to ' + (RS_AREAS.find(function(a){return a.id===area;})||{name:area}).name + '. Go do some work there.', '#c9b788');
+}
+function rsOpenCasket(){
+  const r = rsEnsure();
+  if(rsHave('casket') <= 0) return;
+  rsConsume('casket', 1);
+  const roll = Math.random();
+  if(roll < 0.40){
+    const c = 250 + Math.floor(Math.random() * 650);
+    r.coins += c; rsLog('🎁 The casket holds ' + c + ' coins.', '#ffd84d');
+  } else if(roll < 0.62){
+    const g = Math.random() < 0.5 ? 'sapphire' : Math.random() < 0.7 ? 'ruby' : 'diamond';
+    rsGrant(g, 1); rsLog('🎁 A ' + RS_ITEMS[g].name.toLowerCase() + ' glitters inside!', '#ffd84d');
+  } else if(roll < 0.82){
+    const pool = [];
+    Object.keys(RS_ITEMS).forEach(function(k){
+      const d = RS_ITEMS[k];
+      if(d.slot && d.lvl && d.tier && d.tier <= 6 && !d.cape && !d.pet && rsHave(k) <= 0) pool.push(k);
+    });
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    if(id){ rsGrant(id, 1); rsLog('🎁 Inside: ' + RS_ITEMS[id].name + '!', '#ffd84d'); }
+    else { r.coins += 800; rsLog('🎁 The casket holds 800 coins.', '#ffd84d'); }
+  } else if(roll < 0.975){
+    const c = 1200 + Math.floor(Math.random() * 2800);
+    r.coins += c; rsLog('🎁 A heavy haul: ' + c.toLocaleString() + ' coins!', '#ffd84d');
+  } else {
+    if(rsHave('gilded_helm') > 0 || r.equip.helm === 'gilded_helm'){
+      r.coins += 5000; rsLog('🎁 Another gilded helm? The shop pays 5,000 coins for the spare.', '#ffd84d');
+    } else {
+      rsGrant('gilded_helm', 1);
+      rsLog('🎁✨ THE GILDED HELM. Impractically, gloriously shiny.', '#ffd84d');
+      rsJingle('quest');
+    }
+  }
+  rsRenderPanel(); rsRenderHud();
+}
 function rsUseItem(id){
   const r = rsEnsure();
   const d = RS_ITEMS[id];
@@ -19523,7 +19727,8 @@ function rsUseItem(id){
       rsLog('You bury the ' + d.name.toLowerCase() + '. The gods approve.', '#c4b5ff');
     }
   } else if(d.slot){
-    const reqSkill = d.slot !== 'weapon' ? 'def' : d.kind === 'bow' ? 'range' : d.kind === 'staff' ? 'mage' : 'atk';
+    const reqSkill = d.slot === 'weapon' ? (d.kind === 'bow' ? 'range' : d.kind === 'staff' ? 'mage' : 'atk')
+                   : d.kind === 'range' ? 'range' : d.kind === 'mage' ? 'mage' : 'def';
     if(rsLvl(reqSkill) < d.lvl){
       rsLog('You need ' + RS_SKILLS.find(function(x){return x.id===reqSkill;}).name + ' ' + d.lvl + ' for that.', '#e8b4c0');
       return;
@@ -19557,6 +19762,7 @@ const RS_AREA_ART = {
   fields:{skyTop:'#79b7e0', skyBot:'#cfe8c0', ground:'#59842f', groundDark:'#476a26'},
   mire:  {skyTop:'#4a5a4c', skyBot:'#333f35', ground:'#3a4a36', groundDark:'#2c3829'},
   tower: {skyTop:'#2a2433', skyBot:'#1a1622', ground:'#3a3342', groundDark:'#2c2733'},
+  cata:  {skyTop:'#1c1722', skyBot:'#26202e', ground:'#3a3242', groundDark:'#2b2533'},
 };
 const RS_TREE_ART = {
   logs:{leaf:'#3f7d2e', leaf2:'#549940', trunk:'#6b4a2a'},
@@ -19726,6 +19932,32 @@ function rsDrawBackdrop(ctx, W, H, area, t){
     });
     ctx.fillStyle = 'rgba(120,90,160,0.08)';
     rsRR(ctx, ((t * 0.5) % (W + 120)) - 60, 60, 110, 16, 8); ctx.fill();
+  } else if(area === 'cata'){
+    /* crypt: bone arches, skull piles, green grave-wisps */
+    ctx.fillStyle = '#4a4054';
+    [[36, 0], [W * 0.48, 0], [W - 66, 0]].forEach(function(pl){
+      ctx.fillRect(pl[0], 0, 24, gy);
+      ctx.fillStyle = '#382f42'; ctx.fillRect(pl[0] + 18, 0, 6, gy); ctx.fillStyle = '#4a4054';
+      ctx.fillRect(pl[0] - 6, gy - 10, 36, 10);
+      ctx.fillStyle = '#d8ccb4';
+      for(let i = 0; i < 4; i++) ctx.fillRect(pl[0] + 3, 20 + i * 34, 18, 4);
+      ctx.fillStyle = '#4a4054';
+    });
+    ctx.fillStyle = '#cfc4ac';
+    [[90, 0], [W * 0.32, 1], [W - 140, 0]].forEach(function(sk, i){
+      const sx = sk[0], sy = gy + 14 + sk[1] * 8;
+      ctx.beginPath(); ctx.arc(sx, sy, 7, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx + 12, sy + 4, 5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#241f2b'; ctx.fillRect(sx - 4, sy - 2, 3, 3); ctx.fillRect(sx + 1, sy - 2, 3, 3);
+      ctx.fillStyle = '#cfc4ac';
+    });
+    ctx.fillStyle = 'rgba(140,220,160,0.14)';
+    for(let i = 0; i < 4; i++){
+      const wx = ((t * (0.5 + i * 0.25) + i * 170) % (W + 100)) - 50;
+      const wy2 = 46 + i * 26 + Math.sin(t / 9 + i * 2) * 8;
+      ctx.beginPath(); ctx.arc(wx, wy2, 5, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(wx - 7, wy2 + 7, 3, 0, 7); ctx.fill();
+    }
   } else if(area === 'mire'){
     /* dead trees, murk pools, drifting fog */
     ctx.strokeStyle = '#22301f'; ctx.lineWidth = 4;

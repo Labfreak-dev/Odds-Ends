@@ -1424,10 +1424,10 @@
   .rs-skill{ background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17; border-radius:2px; padding:6px 8px; display:flex; align-items:center; gap:7px; }
   .rs-skill .ic{ font-size:16px; }
   .rs-skill .nm{ font-size:10.5px; color:#c8b997; font-weight:700; }
-  .rs-cbar{ position:absolute; left:0; right:0; bottom:0; display:flex; gap:5px; padding:6px 8px;
-    background:linear-gradient(transparent, rgba(18,13,7,0.88) 40%); justify-content:center; z-index:5; }
+  .rs-cbar{ display:flex; gap:6px; padding:6px 0 2px; justify-content:center; flex-wrap:wrap; }
   .rs-cbtn{ background:#4a3f2c; border:2px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44; color:#ff981f;
-    font-weight:800; font-size:11.5px; padding:5px 11px; cursor:pointer; text-shadow:1px 1px 0 #000; font-family:inherit; }
+    font-weight:800; font-size:12px; padding:7px 16px; cursor:pointer; text-shadow:1px 1px 0 #000; font-family:inherit; }
+  .rs-panelbox .rs-rows{ max-height:320px; overflow-y:auto; }
   .rs-cbtn small{ display:block; font-size:9px; color:#c8b997; font-weight:700; }
   .rs-cbtn.dis{ opacity:0.45; }
   .rs-cbtn:active{ transform:translateY(1px); }
@@ -3429,6 +3429,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="rs-chip">Combat <b id="rsCombatLvl">3</b></div>
       <div class="rs-chip">🪙 <b id="rsCoins">0</b></div>
       <div class="rs-chip">Quest pts <b id="rsQp">0</b></div>
+      <div class="rs-chip">⚡ <b id="rsSpecTop">100%</b></div>
+      <div class="rs-chip">✨ <b id="rsPrayTop">1/1</b></div>
       <button class="rs-chip" id="rsSnd" style="cursor:pointer;">🔊</button>
       <div class="rs-chip" id="rsTaskChip" style="display:none;"></div>
       <div class="rs-hpbar"><i id="rsHpFill" style="width:100%"></i><span id="rsHpTxt">10/10</span></div>
@@ -3439,8 +3441,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         <div class="rs-scene-wrap">
           <canvas id="rsScene" width="640" height="360"></canvas>
           <div class="rs-levelup" id="rsLevelUp"><div id="rsLevelUpTxt"></div></div>
-          <div class="rs-cbar" id="rsCombatBar" style="display:none;"></div>
         </div>
+        <div class="rs-cbar" id="rsCombatBar" style="display:none;"></div>
         <div class="rs-log" id="rsLog"></div>
       </div>
 
@@ -18197,7 +18199,7 @@ document.querySelectorAll("nav button").forEach(btn=>{
 
 /* ================================================================= */
 /* RUNESHARD — an old-school life: chop it, mine it, smith it, slay  */
-/* it, bank it. Ten skills on the classic curve, and the character   */
+/* it, bank it. Fifteen skills on the classic curve, and the character   */
 /* keeps working while you play the other tabs — or close the game.  */
 /* ================================================================= */
 
@@ -18259,9 +18261,9 @@ rsDef('addy_bar','Adamant bar','🧱',300); rsDef('rune_bar','Rune bar','🧱',7
 rsDef('raw_shrimp','Raw shrimp','🦐',2); rsDef('raw_trout','Raw trout','🐟',14);
 rsDef('raw_lobster','Raw lobster','🦞',40); rsDef('raw_sword','Raw swordfish','🐠',70);
 rsDef('raw_shark','Raw shark','🦈',130);
-rsDef('shrimp','Shrimp','🍤',4,{heal:3});   rsDef('trout','Trout','🐟',20,{heal:7});
-rsDef('lobster','Lobster','🦞',55,{heal:12}); rsDef('swordfish','Swordfish','🐠',95,{heal:14});
-rsDef('shark','Shark','🦈',170,{heal:20});
+rsDef('shrimp','Shrimp','🍤',4,{heal:3});   rsDef('trout','Trout','🍣',20,{heal:7});
+rsDef('lobster','Lobster','🍲',55,{heal:12}); rsDef('swordfish','Swordfish','🥩',95,{heal:14});
+rsDef('shark','Shark','🍖',170,{heal:20});
 rsDef('burnt','Burnt mess','🌫️',1);
 rsDef('bones','Bones','🦴',3,{bury:4.5});   rsDef('big_bones','Big bones','🦴',12,{bury:15});
 rsDef('sapphire','Sapphire','🔷',110);  rsDef('ruby','Ruby','🔴',260); rsDef('diamond','Diamond','💎',600);
@@ -18329,29 +18331,29 @@ rsDef('gilded_helm','Gilded helm','⛑️',5200,{slot:'helm', tier:6, lvl:40});
 rsDef('dragon_sword','Dragon sword','🗡️',6000,{slot:'weapon', tier:7, lvl:60});
 rsDef('dark_bow','Dark bow','🏹',7500,{slot:'weapon', kind:'bow', tier:7, lvl:60});
 rsDef('regent_staff','Staff of the Regent','🪄',9500,{slot:'weapon', kind:'staff', tier:7, lvl:60});
-rsDef('grimy_guam','Grimy guam','🌿',8,{grimy:'guam'});
+rsDef('grimy_guam','Grimy guam','🥀',8,{grimy:'guam'});
 rsDef('guam','Guam leaf','🌿',14,{hlvl:1});
-rsDef('grimy_marrentill','Grimy marrentill','🌿',12,{grimy:'marrentill'});
-rsDef('marrentill','Marrentill','🌿',20,{hlvl:5});
-rsDef('grimy_harralander','Grimy harralander','🌿',20,{grimy:'harralander'});
-rsDef('harralander','Harralander','🌿',34,{hlvl:11});
-rsDef('grimy_ranarr','Grimy ranarr','🌿',48,{grimy:'ranarr'});
-rsDef('ranarr','Ranarr weed','🌿',80,{hlvl:18});
-rsDef('eye_of_newt','Eye of newt','🧿',2);
-rsDef('limpwurt_root','Limpwurt root','🥕',18);
+rsDef('grimy_marrentill','Grimy marrentill','🥀',12,{grimy:'marrentill'});
+rsDef('marrentill','Marrentill','🍃',20,{hlvl:5});
+rsDef('grimy_harralander','Grimy harralander','🥀',20,{grimy:'harralander'});
+rsDef('harralander','Harralander','☘️',34,{hlvl:11});
+rsDef('grimy_ranarr','Grimy ranarr','🥀',48,{grimy:'ranarr'});
+rsDef('ranarr','Ranarr weed','🍀',80,{hlvl:18});
+rsDef('eye_of_newt','Eye of newt','👁️',2);
+rsDef('limpwurt_root','Limpwurt root','🫚',18);
 rsDef('white_berries','White berries','🫐',30);
 rsDef('snape_grass','Snape grass','🌱',22);
-rsDef('ashes','Ashes','🌫️',2);
+rsDef('ashes','Ashes','⚱️',2);
 rsDef('atk_potion','Attack potion','🧪',30,{potion:{skill:'atk', amt:4}});
-rsDef('str_potion','Strength potion','🧪',45,{potion:{skill:'str', amt:4}});
-rsDef('def_potion','Defence potion','🧪',60,{potion:{skill:'def', amt:4}});
-rsDef('range_potion','Ranging potion','🧪',70,{potion:{skill:'range', amt:4}});
-rsDef('mage_potion','Magic potion','🧪',90,{potion:{skill:'mage', amt:4}});
-rsDef('pray_potion','Prayer potion','🧪',110,{potion:{pray:25}});
+rsDef('str_potion','Strength potion','⚗️',45,{potion:{skill:'str', amt:4}});
+rsDef('def_potion','Defence potion','🫙',60,{potion:{skill:'def', amt:4}});
+rsDef('range_potion','Ranging potion','🍶',70,{potion:{skill:'range', amt:4}});
+rsDef('mage_potion','Magic potion','🍷',90,{potion:{skill:'mage', amt:4}});
+rsDef('pray_potion','Prayer potion','🏺',110,{potion:{pray:25}});
 rsDef('raw_monk','Raw monkfish','🐠',60);
-rsDef('monkfish','Monkfish','🐠',120,{heal:16});
+rsDef('monkfish','Monkfish','🥘',120,{heal:16});
 rsDef('raw_angler','Raw anglerfish','🐡',110);
-rsDef('anglerfish','Anglerfish','🐡',210,{heal:22});
+rsDef('anglerfish','Anglerfish','🍛',210,{heal:22});
 rsDef('dragon_dagger','Dragon dagger','🔪',5500,{slot:'weapon', tier:6, lvl:60});
 rsDef('knights_blade','Knight\'s blade','⚔️',7800,{slot:'weapon', tier:8, lvl:60});
 rsDef('holy_symbol','Holy symbol','✝️',2600,{slot:'amulet', tier:2, lvl:1, accb:2, defb:2, holy:true});
@@ -19368,6 +19370,8 @@ function rsRenderHud(){
   set('rsCombatLvl', rsCombatLevel());
   set('rsCoins', r.coins.toLocaleString());
   set('rsQp', r.qp|0);
+  set('rsSpecTop', (r.spec|0) + '%');
+  set('rsPrayTop', Math.floor(r.prayPts||0) + '/' + rsLvl('pray'));
   const tc = document.getElementById('rsTaskChip');
   if(tc){
     const sl = rsSlay();
@@ -19376,7 +19380,11 @@ function rsRenderHud(){
   }
   const mx = rsLvl('hp');
   const f = document.getElementById('rsHpFill');
-  if(f) f.style.width = Math.max(0, Math.min(100, r.curHp / mx * 100)) + '%';
+  if(f){
+    const pct = Math.max(0, Math.min(100, r.curHp / mx * 100));
+    f.style.width = pct + '%';
+    f.style.background = pct < 35 ? '#a33327' : pct < 70 ? '#b8862c' : '#0a7a2f';
+  }
   set('rsHpTxt', Math.max(0, Math.ceil(r.curHp)) + '/' + mx);
 }
 
@@ -19450,7 +19458,7 @@ function rsRenderActs(){
       const can = rsLvl('wc') >= t.req;
       return rsActButton(cur && cur.kind==='chop' && cur.key===t.id, !can, '🌳 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-chop="' + t.id + '"');
     }).join('');
-    h += RS_BURN.map(function(t){
+    h += RS_BURN.filter(function(t){ return rsHave(t.id) > 0; }).map(function(t){
       const can = rsLvl('fm') >= t.req && rsHave(t.id) > 0;
       return rsActButton(cur && cur.kind==='fmburn' && cur.key===t.id, !can, '🔥 Burn ' + RS_ITEMS[t.id].name.replace(' logs','').toLowerCase(),
         rsLvl('fm') < t.req ? 'lvl ' + t.req : 'have ' + rsHave(t.id), 'data-burnlog="' + t.id + '"');
@@ -19577,9 +19585,10 @@ function rsRenderPanel(){
       const lv = rsLvl(s.id);
       const xp = Math.floor(r.skills[s.id].xp);
       const nxt = lv < 99 ? (RS_XP_TABLE[lv] - xp).toLocaleString() + ' xp to ' + (lv + 1) : 'mastered';
+      const bst = r.boosts && r.boosts[s.id] ? r.boosts[s.id].amt : 0;
       return '<div class="rs-skcell" data-rssk="' + s.id + '" title="' + s.name + ' — ' + xp.toLocaleString() + ' xp · ' + nxt + '">' +
         '<span class="ic">' + s.ic + '</span>' +
-        '<span class="lv">' + lv + '<small>/99</small></span></div>';
+        '<span class="lv">' + (bst ? '<span style="color:#7ADE9A;">' + (lv + bst) + '</span>' : lv) + '<small>/99</small></span></div>';
     }).join('') + '</div>' +
     '<div class="rs-totalbox">Total level:<br>' + rsTotalLevel() + '</div>' +
     '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Tap a skill for exact XP. Every road ends at 99.</div>';
@@ -19701,6 +19710,7 @@ function rsRenderPanel(){
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
       '<button class="rs-btn" id="rsSellRes">Sell all resources</button>' +
       '<button class="rs-btn" id="rsSellBankRes">Sell banked resources</button></div><div class="rs-rows">';
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:2px 0 3px;">Tools</div>';
     RS_TIERS.forEach(function(tier, i){
       ['axe','pick'].forEach(function(tool){
         const id = tier + '_' + tool;
@@ -19713,12 +19723,14 @@ function rsRenderPanel(){
                  : '<button class="rs-btn" data-rsbuy="' + id + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
       });
     });
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Bows</div>';
     RS_BOWS.forEach(function(bw, i){
       const d = RS_ITEMS[bw[0]], price = d.sell * 4;
       const owned = rsHave(bw[0]) > 0 || r.equip.weapon === bw[0];
       h += '<div class="rs-row"><span>🏹</span><div class="grow">' + d.name + '<span class="sub">Ranged ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
         (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + bw[0] + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
     });
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Staves</div>';
     RS_STAVES.forEach(function(st, i){
       const d = RS_ITEMS[st[0]], price = d.sell * 4;
       const owned = rsHave(st[0]) > 0 || r.equip.weapon === st[0];
@@ -19743,7 +19755,8 @@ function rsRenderPanel(){
           (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + id2 + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
       });
     });
-    h += '<div class="rs-row"><span>🧿</span><div class="grow">Eye of newt × 10<span class="sub">herblore secondary</span></div>' +
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Supplies</div>';
+    h += '<div class="rs-row"><span>👁️</span><div class="grow">Eye of newt × 10<span class="sub">herblore secondary</span></div>' +
       '<button class="rs-btn" id="rsBuyNewt">40 🪙</button></div>';
     h += '<div class="rs-row"><span>🐟</span><div class="grow">Travel rations<span class="sub">5 cooked trout — slayers pack lunch</span></div>' +
       '<button class="rs-btn" id="rsBuyFood">150 🪙</button></div>';
@@ -20754,7 +20767,7 @@ function rsOnEnterTab(){
   if(!rsAnimOn){ rsAnimOn = true; requestAnimationFrame(rsAnimLoop); }
   if(!rsEnsure().greeted){
     rsEnsure().greeted = 1;
-    rsLog('Welcome to Runeshard. Ten skills, one bag, no shortcuts. Talk is cheap — the trees are not going to chop themselves.', '#ffd84d');
+    rsLog('Welcome to Runeshard. Fifteen skills, one bag, no shortcuts. Talk is cheap — the trees are not going to chop themselves.', '#ffd84d');
   }
 }
 function rsOnLeaveTab(){

@@ -1337,6 +1337,93 @@
   .mr-bagit .ba{ position:absolute; right:9px; bottom:7px; font-size:10px; font-weight:800; color:#c9a6ff; }
 
   /* ---------------- Collection filter bar ---------------- */
+  /* ================= RUNESHARD ================= */
+  #tab-runeshard .panel{ background:#3e3529; border-color:#241f17; }
+  .rs-wrap{ color:#ff981f; }
+  .rs-wrap .rs-sh, .rs-chip, .rs-area, .rs-act, .rs-tab, .rs-btn{ text-shadow:1px 1px 0 #000; }
+  .rs-bevel-up{ border:2px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44; }
+  .rs-top{ display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .rs-chip{ background:#2b251c; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
+    border-radius:2px; padding:5px 10px; font-size:12px; font-weight:800; color:#ff981f; }
+  .rs-chip b{ color:#ffff00; }
+  .rs-areas{ display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+  .rs-area{ background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
+    border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-radius:2px;
+    color:#ffff00; padding:8px 11px; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+  .rs-area.on{ border-color:#241f17 #6a5d44 #6a5d44 #241f17; background:#2b251c; color:#ff981f; }
+  .rs-area.locked{ opacity:.45; }
+  .rs-scene-wrap{ position:relative; border:3px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44; overflow:hidden; background:#1d1812; }
+  #rsScene{ width:100%; display:block; image-rendering:pixelated; }
+  .rs-acts{ display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; }
+  .rs-act{ background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
+    border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-radius:2px; color:#ffff00; padding:7px 10px;
+    font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer; }
+  .rs-act.on{ border-color:#241f17 #6a5d44 #6a5d44 #241f17; background:#2b251c; color:#ff981f; }
+  .rs-act.dis{ opacity:.4; cursor:default; }
+  .rs-act small{ display:block; font-weight:700; color:#c8b997; font-size:9.5px; }
+  .rs-log{ height:96px; overflow-y:auto; background:#d8ccb4; border:2px solid;
+    border-color:#241f17 #6a5d44 #6a5d44 #241f17; padding:6px 9px; font-size:12px; line-height:1.5;
+    margin-top:8px; font-weight:700; }
+  .rs-log div{ color:#000; }
+  .rs-tabs{ display:flex; gap:3px; flex-wrap:wrap; margin:10px 0 0; }
+  .rs-tab{ flex:1; min-width:66px; background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
+    border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-bottom:none; border-radius:4px 4px 0 0;
+    color:#ffff00; padding:8px 4px; font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer; text-align:center; }
+  .rs-tab.on{ background:#4d4232; color:#ff981f; }
+  .rs-panelbox{ background:#4d4232; border:2px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44;
+    padding:10px; min-height:190px; position:relative; }
+  .rs-ptitle{ text-align:center; font-weight:800; font-size:13px; color:#ff981f; text-shadow:1px 1px 0 #000; margin-bottom:8px; }
+  .rs-inv{ display:grid; grid-template-columns:repeat(4,1fr); gap:2px; max-width:236px; margin:0 auto; }
+  .rs-slot{ aspect-ratio:1; background:transparent; border-radius:3px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-size:21px; cursor:pointer; position:relative; padding:1px; }
+  .rs-slot:hover{ background:#00000033; }
+  .rs-slot.empty{ opacity:.0; cursor:default; }
+  .rs-slot .q{ position:absolute; top:0; left:2px; font-size:9px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; }
+  .rs-skillgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+  .rs-skcell{ background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
+    border-radius:2px; padding:5px 7px; display:flex; align-items:center; gap:6px; }
+  .rs-skcell .ic{ font-size:17px; filter:drop-shadow(1px 1px 0 #000); }
+  .rs-skcell .lv{ margin-left:auto; text-align:right; font-size:11px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; line-height:1.15; }
+  .rs-skcell .lv small{ display:block; color:#ff981f; font-size:10px; }
+  .rs-skcell .sbar{ position:absolute; left:0; right:0; bottom:0; height:2px; background:#241f17; }
+  .rs-totalbox{ margin-top:6px; background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
+    border-radius:2px; text-align:center; padding:7px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; font-size:12.5px; }
+  .rs-rows .rs-row{ display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #241f17; font-size:12px; color:#ffff00; text-shadow:1px 1px 0 #000; }
+  .rs-rows .rs-row:last-child{ border-bottom:none; }
+  .rs-row .grow{ flex:1; }
+  .rs-row .sub{ display:block; font-size:10px; color:#c8b997; }
+  .rs-btn{ background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
+    border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-radius:2px; color:#ffff00;
+    font-family:inherit; font-size:11px; font-weight:800; padding:6px 10px; cursor:pointer; white-space:nowrap; }
+  .rs-btn:active{ border-color:#241f17 #6a5d44 #6a5d44 #241f17; }
+  .rs-btn.dis{ opacity:.4; cursor:default; }
+  .rs-hpbar{ position:relative; flex:1; min-width:90px; height:15px; background:#571e1e; border:2px solid;
+    border-color:#241f17 #6a5d44 #6a5d44 #241f17; overflow:hidden; }
+  .rs-hpbar i{ position:absolute; inset:0; right:auto; background:#0a7a2f; }
+  .rs-hpbar span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; color:#fff; text-shadow:1px 1px 0 #000; }
+  .rs-questcard{ background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17; border-radius:2px; padding:9px 10px; margin-bottom:7px; }
+  .rs-questcard .qn{ font-weight:800; font-size:12.5px; color:#ffff00; text-shadow:1px 1px 0 #000; }
+  .rs-questcard .qd{ font-size:11px; color:#c8b997; margin:3px 0; line-height:1.45; }
+  .rs-questcard .qp{ font-size:10.5px; color:#3cd97a; font-weight:700; text-shadow:1px 1px 0 #000; }
+  .rs-questcard.done .qn{ color:#3cd97a; }
+  .rs-questcard.done{ opacity:.62; }
+  .rs-eq{ display:grid; grid-template-columns:repeat(2,1fr); gap:5px; }
+  .rs-eq .rs-skill{ cursor:pointer; }
+  .rs-skill{ background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17; border-radius:2px; padding:6px 8px; display:flex; align-items:center; gap:7px; }
+  .rs-skill .ic{ font-size:16px; }
+  .rs-skill .nm{ font-size:10.5px; color:#c8b997; font-weight:700; }
+  .rs-levelup{ position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; pointer-events:none;
+    opacity:0; transition:opacity .3s; padding-bottom:10px; }
+  .rs-levelup.show{ opacity:1; }
+  .rs-levelup div{ background:#d8ccb4; border:2px solid #241f17; box-shadow:inset 0 0 0 2px #6a5d44;
+    padding:10px 20px; font-weight:800; color:#7d0d0d; font-size:13px; text-align:center; }
+  .rs-menu{ position:absolute; z-index:60; background:#5d5447; border:1px solid #000; min-width:150px;
+    box-shadow:2px 3px 8px rgba(0,0,0,.6); font-size:12px; }
+  .rs-menu .hd{ background:#000; color:#5d5447; font-weight:800; padding:3px 8px; font-size:11.5px; }
+  .rs-menu .op{ padding:5px 9px; color:#fff; font-weight:700; cursor:pointer; text-shadow:1px 1px 0 #000; }
+  .rs-menu .op:hover{ color:#ffff00; }
+  .rs-menu .op b{ color:#ff981f; font-weight:700; }
+
   .cfilt{ position:sticky; top:112px; z-index:30; margin-bottom:14px; padding:10px;
     border:1px solid rgba(255,255,255,0.09); border-radius:14px;
     background:rgba(18,20,28,0.94); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
@@ -3312,6 +3399,41 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       </details>
     </div>
 
+  </section>
+
+  <section id="tab-runeshard" style="display:none;">
+  <div class="panel rs-wrap">
+    <h2 style="margin-top:0;">🗡️ Runeshard</h2>
+
+    <div class="rs-top">
+      <div class="rs-chip">Total <b id="rsTotalLvl">10</b></div>
+      <div class="rs-chip">Combat <b id="rsCombatLvl">3</b></div>
+      <div class="rs-chip">🪙 <b id="rsCoins">0</b></div>
+      <div class="rs-chip">Quest pts <b id="rsQp">0</b></div>
+      <div class="rs-hpbar"><i id="rsHpFill" style="width:100%"></i><span id="rsHpTxt">10/10</span></div>
+    </div>
+
+    <div class="rs-areas" id="rsAreas"></div>
+
+    <div class="rs-scene-wrap">
+      <canvas id="rsScene" width="520" height="240"></canvas>
+      <div class="rs-levelup" id="rsLevelUp"><div id="rsLevelUpTxt"></div></div>
+    </div>
+
+    <div class="rs-acts" id="rsActs"></div>
+
+    <div class="rs-log" id="rsLog"></div>
+
+    <div class="rs-tabs" id="rsTabs">
+      <button class="rs-tab on" data-rst="inv">🎒 Bag</button>
+      <button class="rs-tab" data-rst="skills">📜 Skills</button>
+      <button class="rs-tab" data-rst="equip">🛡️ Worn</button>
+      <button class="rs-tab" data-rst="quests">⭐ Quests</button>
+      <button class="rs-tab" data-rst="bank">🏦 Bank</button>
+      <button class="rs-tab" data-rst="shop">🛒 Shop</button>
+    </div>
+    <div class="rs-panelbox" id="rsPanel"></div>
+  </div>
   </section>
 
   <section id="tab-poker" style="display:none;">
@@ -17867,6 +17989,7 @@ const UI_GAMES = [
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
   { id:"dungeon", name:"Mythic Raids", icon:"🏚️", desc:"Daemonheim. Go in with nothing, come out with a level.", meta:"10 floors" },
+  { id:"runeshard", name:"Runeshard", icon:"🗡️", desc:"An old-school life: chop it, mine it, smith it, slay it. Ninety-nine is a lifestyle.", meta:"10 skills" },
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
 const UI_SECTIONS = ["mining","packs","upgrades","market","empire","play","collection","account"].concat(UI_GAME_IDS);
@@ -17877,6 +18000,7 @@ function uiShowSection(id){
   });
 }
 function uiLeaveGames(except){
+  if(except!=="runeshard") rsOnLeaveTab();
   if(except!=="siege") sgOnLeaveTab();
   if(except!=="raids") rdOnLeaveTab();
   if(except!=="poker") pkOnLeaveTab();
@@ -17901,6 +18025,7 @@ function uiEnterSection(id){
   else if(id==="fishing"){ renderFishing(); fshOnEnterTab(); }
   else if(id==="casino"){ renderCasino(); brShowLobby(); }
   else if(id==="dungeon"){ renderDungeon(); }
+  else if(id==="runeshard"){ rsOnEnterTab(); }
   uiLeaveGames(id);
   uiInitStatStrips();
   uiInitHelp();
@@ -18043,6 +18168,1124 @@ document.querySelectorAll("nav button").forEach(btn=>{
   const gear = document.getElementById("hdrGear");
   if(gear) gear.addEventListener("click", ()=>uiSwitchTab("account"));
 })();
+
+/* ================================================================= */
+/* RUNESHARD — an old-school life: chop it, mine it, smith it, slay  */
+/* it, bank it. Ten skills on the classic curve, and the character   */
+/* keeps working while you play the other tabs — or close the game.  */
+/* ================================================================= */
+
+/* ---- The classic XP curve, levels 1-99 ---- */
+const RS_XP_TABLE = (function(){
+  const t = [0]; let acc = 0;
+  for(let l = 1; l < 99; l++){
+    acc += Math.floor(l + 300 * Math.pow(2, l / 7));
+    t.push(Math.floor(acc / 4));
+  }
+  return t;   /* t[level-1] = xp needed for that level */
+})();
+function rsLevelFor(xp){
+  let lv = 1;
+  while(lv < 99 && xp >= RS_XP_TABLE[lv]) lv++;
+  return lv;
+}
+function rsXpInto(xp){
+  const lv = rsLevelFor(xp);
+  if(lv >= 99) return 1;
+  const a = RS_XP_TABLE[lv-1], b = RS_XP_TABLE[lv];
+  return (xp - a) / Math.max(1, b - a);
+}
+
+const RS_SKILLS = [
+  {id:'atk',   name:'Attack',      ic:'⚔️'},
+  {id:'str',   name:'Strength',    ic:'💪'},
+  {id:'def',   name:'Defence',     ic:'🛡️'},
+  {id:'hp',    name:'Hitpoints',   ic:'❤️'},
+  {id:'pray',  name:'Prayer',      ic:'✨'},
+  {id:'wc',    name:'Woodcutting', ic:'🪓'},
+  {id:'mine',  name:'Mining',      ic:'⛏️'},
+  {id:'smith', name:'Smithing',    ic:'🔨'},
+  {id:'fish',  name:'Fishing',     ic:'🎣'},
+  {id:'cook',  name:'Cooking',     ic:'🍳'},
+];
+
+/* ---- Items ---- */
+const RS_TIERS = ['bronze','iron','steel','mithril','adamant','rune'];
+const RS_TIER_NAME = {bronze:'Bronze',iron:'Iron',steel:'Steel',mithril:'Mithril',adamant:'Adamant',rune:'Rune'};
+const RS_ITEMS = {};
+function rsDef(id, name, ic, sell, extra){ RS_ITEMS[id] = Object.assign({id,name,ic,sell}, extra||{}); }
+
+rsDef('logs','Logs','🪵',4);            rsDef('oak_logs','Oak logs','🪵',12);
+rsDef('willow_logs','Willow logs','🪵',24); rsDef('maple_logs','Maple logs','🪵',44);
+rsDef('yew_logs','Yew logs','🪵',90);   rsDef('magic_logs','Magic logs','🪵',180);
+rsDef('copper_ore','Copper ore','🪨',4); rsDef('tin_ore','Tin ore','🪨',4);
+rsDef('iron_ore','Iron ore','🪨',14);   rsDef('coal','Coal','⚫',24);
+rsDef('mith_ore','Mithril ore','🪨',60); rsDef('addy_ore','Adamantite ore','🪨',120);
+rsDef('rune_ore','Runite ore','🪨',300);
+rsDef('bronze_bar','Bronze bar','🧱',10); rsDef('iron_bar','Iron bar','🧱',30);
+rsDef('steel_bar','Steel bar','🧱',70);  rsDef('mith_bar','Mithril bar','🧱',150);
+rsDef('addy_bar','Adamant bar','🧱',300); rsDef('rune_bar','Rune bar','🧱',700);
+rsDef('raw_shrimp','Raw shrimp','🦐',2); rsDef('raw_trout','Raw trout','🐟',14);
+rsDef('raw_lobster','Raw lobster','🦞',40); rsDef('raw_sword','Raw swordfish','🐠',70);
+rsDef('raw_shark','Raw shark','🦈',130);
+rsDef('shrimp','Shrimp','🍤',4,{heal:3});   rsDef('trout','Trout','🐟',20,{heal:7});
+rsDef('lobster','Lobster','🦞',55,{heal:12}); rsDef('swordfish','Swordfish','🐠',95,{heal:14});
+rsDef('shark','Shark','🦈',170,{heal:20});
+rsDef('burnt','Burnt mess','🌫️',1);
+rsDef('bones','Bones','🦴',3,{bury:4.5});   rsDef('big_bones','Big bones','🦴',12,{bury:15});
+rsDef('sapphire','Sapphire','🔷',110);  rsDef('ruby','Ruby','🔴',260); rsDef('diamond','Diamond','💎',600);
+
+RS_TIERS.forEach(function(t,i){
+  const p = Math.pow(3.1, i) * 24;
+  rsDef(t+'_sword',  RS_TIER_NAME[t]+' sword',  '🗡️', Math.round(p),      {slot:'weapon', tier:i+1, lvl:[1,10,20,35,55,75][i]});
+  rsDef(t+'_helm',   RS_TIER_NAME[t]+' helm',   '🪖', Math.round(p*0.6),  {slot:'helm',   tier:i+1, lvl:[1,10,20,35,55,75][i]});
+  rsDef(t+'_body',   RS_TIER_NAME[t]+' body',   '🥋', Math.round(p*1.4),  {slot:'body',   tier:i+1, lvl:[1,10,20,35,55,75][i]});
+  rsDef(t+'_shield', RS_TIER_NAME[t]+' shield', '🛡️', Math.round(p*0.9),  {slot:'shield', tier:i+1, lvl:[1,10,20,35,55,75][i]});
+  rsDef(t+'_axe',    RS_TIER_NAME[t]+' axe',    '🪓', Math.round(p*0.8),  {tool:'axe',  tier:i+1, lvl:[1,10,20,35,55,75][i]});
+  rsDef(t+'_pick',   RS_TIER_NAME[t]+' pickaxe','⛏️', Math.round(p*0.8),  {tool:'pick', tier:i+1, lvl:[1,10,20,35,55,75][i]});
+});
+rsDef('star_sword','Starshard blade','🌠',5000,{slot:'weapon', tier:8, lvl:60});
+
+/* ---- Gathering targets ---- */
+const RS_TREES = [
+  {id:'logs',        name:'Tree',   req:1,  xp:25,   ch:0.42},
+  {id:'oak_logs',    name:'Oak',    req:15, xp:37.5, ch:0.34},
+  {id:'willow_logs', name:'Willow', req:30, xp:67.5, ch:0.30},
+  {id:'maple_logs',  name:'Maple',  req:45, xp:100,  ch:0.26},
+  {id:'yew_logs',    name:'Yew',    req:60, xp:175,  ch:0.18},
+  {id:'magic_logs',  name:'Magic',  req:75, xp:250,  ch:0.12},
+];
+const RS_ROCKS = [
+  {id:'copper_ore', name:'Copper', req:1,  xp:17.5, ch:0.44},
+  {id:'tin_ore',    name:'Tin',    req:1,  xp:17.5, ch:0.44},
+  {id:'iron_ore',   name:'Iron',   req:15, xp:35,   ch:0.36},
+  {id:'coal',       name:'Coal',   req:30, xp:50,   ch:0.28},
+  {id:'mith_ore',   name:'Mithril',req:55, xp:80,   ch:0.20},
+  {id:'addy_ore',   name:'Adamant',req:70, xp:95,   ch:0.15},
+  {id:'rune_ore',   name:'Runite', req:85, xp:125,  ch:0.09},
+];
+const RS_FISH = [
+  {id:'raw_shrimp',  name:'Shrimp',    req:1,  xp:10,  ch:0.46},
+  {id:'raw_trout',   name:'Trout',     req:20, xp:50,  ch:0.34},
+  {id:'raw_lobster', name:'Lobster',   req:40, xp:90,  ch:0.26},
+  {id:'raw_sword',   name:'Swordfish', req:50, xp:100, ch:0.22},
+  {id:'raw_shark',   name:'Shark',     req:76, xp:110, ch:0.14},
+];
+const RS_COOK = [
+  {raw:'raw_shrimp',  out:'shrimp',    req:1,  xp:30,  burnUntil:34},
+  {raw:'raw_trout',   out:'trout',     req:15, xp:70,  burnUntil:50},
+  {raw:'raw_lobster', out:'lobster',   req:40, xp:120, burnUntil:74},
+  {raw:'raw_sword',   out:'swordfish', req:45, xp:140, burnUntil:86},
+  {raw:'raw_shark',   out:'shark',     req:80, xp:210, burnUntil:99},
+];
+const RS_SMELT = [
+  {out:'bronze_bar', req:1,  xp:6.25, ins:{copper_ore:1, tin_ore:1}},
+  {out:'iron_bar',   req:15, xp:12.5, ins:{iron_ore:1}},
+  {out:'steel_bar',  req:30, xp:17.5, ins:{iron_ore:1, coal:2}},
+  {out:'mith_bar',   req:50, xp:30,   ins:{mith_ore:1, coal:4}},
+  {out:'addy_bar',   req:70, xp:37.5, ins:{addy_ore:1, coal:6}},
+  {out:'rune_bar',   req:85, xp:50,   ins:{rune_ore:1, coal:8}},
+];
+const RS_FORGE = (function(){
+  const out = [];
+  const barOf = {bronze:'bronze_bar',iron:'iron_bar',steel:'steel_bar',mithril:'mith_bar',adamant:'addy_bar',rune:'rune_bar'};
+  const smithReq = {bronze:1,iron:15,steel:30,mithril:50,adamant:70,rune:85};
+  RS_TIERS.forEach(function(t){
+    [['_sword',1,12],['_helm',1,12],['_shield',2,25],['_body',3,37],['_axe',1,12],['_pick',2,25]].forEach(function(sp){
+      out.push({out:t+sp[0], req:Math.min(99, smithReq[t]+(sp[0]==='_body'?4:sp[0]==='_shield'||sp[0]==='_pick'?2:0)),
+                bars:sp[1], bar:barOf[t], xp:sp[2]*(RS_TIERS.indexOf(t)+1)});
+    });
+  });
+  return out;
+})();
+
+/* ---- Monsters ---- */
+const RS_MOBS = [
+  {id:'chicken', name:'Chicken',      ic:'🐔', lvl:1,  hp:3,   atk:1,  def:1,  max:1, xp:12,  area:'fields', drops:[['bones',1,1],['coins',1,4]]},
+  {id:'goblin',  name:'Goblin',       ic:'👺', lvl:2,  hp:5,   atk:1,  def:1,  max:1, xp:20,  area:'fields', drops:[['bones',1,1],['coins',2,9]]},
+  {id:'cow',     name:'Cow',          ic:'🐄', lvl:2,  hp:8,   atk:1,  def:1,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',3,12]]},
+  {id:'guard',   name:'Guard',        ic:'💂', lvl:21, hp:22,  atk:18, def:16, max:4, xp:70,  area:'fields', drops:[['bones',1,1],['coins',12,40]]},
+  {id:'hillg',   name:'Hill Giant',   ic:'🗿', lvl:28, hp:35,  atk:22, def:20, max:6, xp:120, area:'fields', drops:[['big_bones',1,1],['coins',20,80],['sapphire',0,1,0.06]]},
+  {id:'mossg',   name:'Moss Giant',   ic:'🧌', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
+  {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
+  {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
+  {id:'bogking', name:'The Bog King', ic:'🐸', lvl:90, hp:180, atk:70, def:62, max:14,xp:1500,area:'mire',   drops:[['big_bones',1,1],['coins',900,2600],['diamond',1,2]], boss:true},
+];
+
+/* ---- Quests ---- */
+const RS_QUESTS = [
+  {id:'q1', name:"The Cook's Errand", qp:1, desc:'The innkeeper wants 5 cooked shrimp for the lunch rush.',
+   need:function(r){ return (r.counts.cook_shrimp||0); }, goal:5,
+   reward:'300 coins · 250 Cooking XP',
+   grant:function(r){ r.coins += 300; rsAddXp('cook', 250); }},
+  {id:'q2', name:'The Rusty Blade', qp:1, desc:'The town guard snapped his sword. Smith him a bronze one.',
+   need:function(r){ return (r.counts.forge_bronze_sword||0); }, goal:1,
+   reward:'500 coins · 400 Smithing XP',
+   grant:function(r){ r.coins += 500; rsAddXp('smith', 400); }},
+  {id:'q3', name:'River Rats', qp:1, desc:'Prove yourself to the fisher-folk: land 20 fish of any kind.',
+   need:function(r){ return (r.counts.fish_any||0); }, goal:20,
+   reward:'500 coins · 1,000 Fishing XP',
+   grant:function(r){ r.coins += 500; rsAddXp('fish', 1000); }},
+  {id:'q4', name:'The Missing Miner', qp:2, desc:'Old Bram vanished below. Clear 30 ore from the tunnels to dig through to him.',
+   need:function(r){ return (r.counts.mine_any||0); }, goal:30,
+   reward:'1,500 coins · unlocks AUTO-BANK (full bags walk themselves to the vault)',
+   grant:function(r){ r.coins += 1500; r.autoBank = true; }},
+  {id:'q5', name:'Shadows over the Mire', qp:4, desc:'Shades gather in the bog. Fell 15 of them, then face what commands them.',
+   need:function(r){ return (r.counts.kill_shade||0); }, goal:15,
+   reward:'5,000 coins · the Starshard blade · awakens the Bog King',
+   grant:function(r){ r.coins += 5000; rsGive('star_sword', 1); }},
+];
+
+/* ---- Areas ---- */
+const RS_AREAS = [
+  {id:'woods',  name:'🌳 Woods',  desc:'trees'},
+  {id:'mine',   name:'⛏️ Mine',   desc:'rocks'},
+  {id:'river',  name:'🎣 River',  desc:'fishing'},
+  {id:'town',   name:'🏘️ Town',   desc:'furnace · anvil · range · bank'},
+  {id:'fields', name:'⚔️ Combat', desc:'monsters'},
+  {id:'mire',   name:'☠️ Mire',   desc:'danger — die here, lose your bag'},
+];
+
+/* ---- State ---- */
+function rsEnsure(){
+  if(!state.rs || typeof state.rs !== 'object'){
+    state.rs = {
+      skills:{}, inv:[], bank:{}, coins:25,
+      equip:{weapon:null, helm:null, body:null, shield:null},
+      tools:{axe:1, pick:1},
+      area:'woods', act:null, style:'atk',
+      curHp:10, mob:null, counts:{}, quests:{}, qp:0, autoBank:false,
+      lastTick: Date.now(), deaths:0, buried:0, events:0, born: Date.now(),
+    };
+    RS_SKILLS.forEach(function(s){ state.rs.skills[s.id] = {xp: s.id==='hp' ? RS_XP_TABLE[9] : 0}; });
+    rsGive('bronze_sword',1); rsGive('raw_shrimp',3);
+  }
+  const r = state.rs;
+  if(!r.skills || typeof r.skills !== 'object') r.skills = {};
+  RS_SKILLS.forEach(function(s){
+    if(!r.skills[s.id] || typeof r.skills[s.id].xp !== 'number' || !isFinite(r.skills[s.id].xp))
+      r.skills[s.id] = {xp: s.id==='hp' ? RS_XP_TABLE[9] : 0};
+  });
+  if(!Array.isArray(r.inv)) r.inv = [];
+  if(!r.bank || typeof r.bank !== 'object') r.bank = {};
+  if(!r.equip || typeof r.equip !== 'object') r.equip = {weapon:null,helm:null,body:null,shield:null};
+  if(!r.tools || typeof r.tools !== 'object') r.tools = {axe:1,pick:1};
+  if(!r.counts || typeof r.counts !== 'object') r.counts = {};
+  if(!r.quests || typeof r.quests !== 'object') r.quests = {};
+  if(typeof r.coins !== 'number' || !isFinite(r.coins)) r.coins = 0;
+  if(typeof r.curHp !== 'number' || !isFinite(r.curHp)) r.curHp = rsLvl('hp');
+  return r;
+}
+function rsLvl(id){ return rsLevelFor(rsEnsure().skills[id].xp); }
+function rsTotalLevel(){ return RS_SKILLS.reduce(function(a,s){ return a + rsLvl(s.id); }, 0); }
+function rsCombatLevel(){
+  return Math.max(3, Math.floor(0.25*(rsLvl('def') + rsLvl('hp') + Math.floor(rsLvl('pray')/2)) + 0.325*(rsLvl('atk') + rsLvl('str'))));
+}
+
+/* ---- Inventory (28 slots, stackable everything for sanity) ---- */
+const RS_BAG = 28;
+function rsInvCount(){ return rsEnsure().inv.length; }
+function rsInvQty(id){ const it = rsEnsure().inv.find(function(x){return x.id===id;}); return it ? it.qty : 0; }
+function rsGive(id, n){
+  const r = rsEnsure();
+  const cur = r.inv.find(function(x){return x.id===id;});
+  if(cur){ cur.qty += n; return true; }
+  if(r.inv.length >= RS_BAG) return false;
+  r.inv.push({id:id, qty:n});
+  return true;
+}
+function rsTake(id, n){
+  const r = rsEnsure();
+  const i = r.inv.findIndex(function(x){return x.id===id;});
+  if(i < 0 || r.inv[i].qty < n) return false;
+  r.inv[i].qty -= n;
+  if(r.inv[i].qty <= 0) r.inv.splice(i,1);
+  return true;
+}
+function rsBagFull(){ return rsEnsure().inv.length >= RS_BAG; }
+function rsBankAll(){
+  const r = rsEnsure();
+  let moved = 0;
+  r.inv.forEach(function(x){ r.bank[x.id] = (r.bank[x.id]||0) + x.qty; moved += x.qty; });
+  r.inv = [];
+  return moved;
+}
+
+/* ---- Log ---- */
+function rsLog(msg, color){
+  const el = document.getElementById('rsLog');
+  if(!el) return;
+  /* The chatbox is parchment now; bright colors become their scribe-ink kin. */
+  const INK = {'#ffd84d':'#7d5f00', '#7ADE9A':'#0a6e2c', '#e8b4c0':'#8b2635',
+               '#c9b788':'#000000', '#8fd7ff':'#00447c', '#c4b5ff':'#5b2d8b',
+               '#c96a5a':'#9c1c1c', '#ff6b6b':'#9c1c1c', '#a99871':'#3e3529'};
+  const d = document.createElement('div');
+  d.style.color = INK[color] || '#000';
+  d.textContent = msg;
+  el.prepend(d);
+  while(el.children.length > 60) el.lastChild.remove();
+}
+
+/* ---- XP + level-ups ---- */
+let rsLevelUpTimer = null;
+function rsAddXp(id, amount){
+  const r = rsEnsure();
+  const before = rsLevelFor(r.skills[id].xp);
+  r.skills[id].xp = Math.min(13034431, r.skills[id].xp + amount);
+  const after = rsLevelFor(r.skills[id].xp);
+  if(after > before){
+    const sk = RS_SKILLS.find(function(s){return s.id===id;});
+    rsLog('🎉 Congratulations! Your ' + sk.name + ' is now level ' + after + '.', '#ffd84d');
+    if(id === 'hp') r.curHp = Math.min(after, r.curHp + (after - before));
+    const box = document.getElementById('rsLevelUp'), txt = document.getElementById('rsLevelUpTxt');
+    if(box && txt && rsTabOpen()){
+      txt.textContent = 'Congratulations, you just advanced a ' + sk.name + ' level! You are now level ' + after + '.';
+      box.classList.add('show');
+      clearTimeout(rsLevelUpTimer);
+      rsLevelUpTimer = setTimeout(function(){ box.classList.remove('show'); }, 2200);
+    }
+    if(after === 99) rsLog('🏆 LEVEL 99 ' + sk.name.toUpperCase() + ' — a true master. Wear it proudly.', '#7ADE9A');
+    rsSpark = 14;
+  }
+  rsXpDrops.push({txt:'+' + Math.round(amount) + ' ' + (RS_SKILLS.find(function(s){return s.id===id;})||{}).name + ' xp', t:1});
+}
+
+/* ---- The engine: one classic 0.6 s tick ---- */
+let rsXpDrops = [], rsSplats = [], rsSpark = 0, rsSwing = 0;
+
+function rsToolTier(kind){ return Math.max(1, Math.min(6, rsEnsure().tools[kind]|0)); }
+
+function rsWeapon(){ const w = rsEnsure().equip.weapon; return w ? RS_ITEMS[w] : null; }
+function rsAtkBonus(){ const w = rsWeapon(); return w ? w.tier*3 : 0; }
+function rsStrBonus(){ const w = rsWeapon(); return w ? w.tier*2.5 : 0; }
+function rsDefBonus(){
+  const e = rsEnsure().equip;
+  return ['helm','body','shield'].reduce(function(a,s){ return a + (e[s] ? RS_ITEMS[e[s]].tier*2.5 : 0); }, 0);
+}
+function rsMaxHit(){ return Math.max(1, Math.floor(1 + rsLvl('str')*0.15 + rsStrBonus()*0.35)); }
+
+function rsStartActivity(kind, key){
+  const r = rsEnsure();
+  r.act = {kind:kind, key:key, cd:0};
+  r.mob = null;
+  if(kind === 'fight'){
+    const m = RS_MOBS.find(function(x){return x.id===key;});
+    r.mob = {id:m.id, hp:m.hp};
+    rsLog('You square up to the ' + m.name + '.', '#e8b4c0');
+  }
+  rsRenderActs();
+}
+function rsStopActivity(quiet){
+  const r = rsEnsure();
+  r.act = null; r.mob = null;
+  if(!quiet) rsRenderActs();
+}
+
+function rsEat(){
+  const r = rsEnsure();
+  const food = r.inv.find(function(x){ return RS_ITEMS[x.id] && RS_ITEMS[x.id].heal; });
+  if(!food) return false;
+  const h = RS_ITEMS[food.id].heal;
+  rsTake(food.id, 1);
+  r.curHp = Math.min(rsLvl('hp'), r.curHp + h);
+  rsLog('You eat the ' + RS_ITEMS[food.id].name.toLowerCase() + '. It heals ' + h + '.', '#7ADE9A');
+  return true;
+}
+
+function rsBagOverflow(gainId){
+  const r = rsEnsure();
+  if(!rsBagFull() || rsInvQty(gainId) > 0) return false;
+  if(r.autoBank){
+    const moved = rsBankAll();
+    rsLog('🏦 Your full bag walks itself to the bank (' + moved + ' items).', '#8fd7ff');
+    return false;
+  }
+  rsLog('Your bag is full. Bank it in Town, or finish The Missing Miner for auto-banking.', '#e8b4c0');
+  rsStopActivity();
+  return true;
+}
+
+/* One tick of whatever the character is doing. quiet = offline catch-up. */
+function rsTickCore(quiet){
+  const r = rsEnsure();
+  const act = r.act;
+  /* out-of-combat regen: 1 hp per 10 ticks */
+  if(!act || act.kind !== 'fight'){
+    if((r.regenT = (r.regenT|0) + 1) >= 10){ r.regenT = 0; r.curHp = Math.min(rsLvl('hp'), r.curHp + 1); }
+  }
+  if(!act) return;
+
+  if(act.kind === 'chop' || act.kind === 'mine' || act.kind === 'fish'){
+    const table = act.kind==='chop' ? RS_TREES : act.kind==='mine' ? RS_ROCKS : RS_FISH;
+    const t = table.find(function(x){return x.id===act.key;});
+    if(!t) { rsStopActivity(quiet); return; }
+    const skill = act.kind==='chop' ? 'wc' : act.kind==='mine' ? 'mine' : 'fish';
+    if(rsLvl(skill) < t.req){ rsStopActivity(quiet); return; }
+    if(rsBagOverflow(t.id)) return;
+    const tool = act.kind==='fish' ? 1 : rsToolTier(act.kind==='chop'?'axe':'pick');
+    const ch = Math.min(0.9, t.ch + (rsLvl(skill) - t.req)*0.008 + (tool-1)*0.035);
+    rsSwing = 2;
+    if(Math.random() < ch){
+      if(!rsGive(t.id, 1)) { rsBagOverflow(t.id); return; }
+      rsAddXp(skill, t.xp);
+      r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
+      if(!quiet && Math.random() < 0.18) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788');
+    }
+    return;
+  }
+
+  if(act.kind === 'cook'){
+    const rec = RS_COOK.find(function(x){return x.raw===act.key;});
+    if(!rec || rsInvQty(rec.raw) <= 0 || rsLvl('cook') < rec.req){ rsStopActivity(quiet); return; }
+    rsTake(rec.raw, 1);
+    rsSwing = 2;
+    const burnCh = rsLvl('cook') >= rec.burnUntil ? 0 : Math.max(0.05, 0.45 - (rsLvl('cook') - rec.req)*0.012);
+    if(Math.random() < burnCh){ rsGive('burnt', 1); if(!quiet) rsLog('You accidentally burn the ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c96a5a'); }
+    else {
+      rsGive(rec.out, 1); rsAddXp('cook', rec.xp);
+      r.counts['cook_' + rec.out] = (r.counts['cook_' + rec.out]||0) + 1;
+    }
+    return;
+  }
+
+  if(act.kind === 'smelt'){
+    const rec = RS_SMELT.find(function(x){return x.out===act.key;});
+    if(!rec || rsLvl('smith') < rec.req){ rsStopActivity(quiet); return; }
+    for(const k in rec.ins) if(rsInvQty(k) < rec.ins[k]){ rsStopActivity(quiet); return; }
+    for(const k in rec.ins) rsTake(k, rec.ins[k]);
+    rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
+    rsSwing = 2;
+    return;
+  }
+
+  if(act.kind === 'forge'){
+    const rec = RS_FORGE.find(function(x){return x.out===act.key;});
+    if(!rec || rsLvl('smith') < rec.req || rsInvQty(rec.bar) < rec.bars){ rsStopActivity(quiet); return; }
+    rsTake(rec.bar, rec.bars);
+    rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
+    r.counts['forge_' + rec.out] = (r.counts['forge_' + rec.out]||0) + 1;
+    if(!quiet) rsLog('You hammer out a ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788');
+    rsSwing = 2;
+    return;
+  }
+
+  if(act.kind === 'fight'){
+    const m = RS_MOBS.find(function(x){return x.id===act.key;});
+    if(!m){ rsStopActivity(quiet); return; }
+    if(m.id === 'bogking' && !(r.counts.kill_shade >= 15)){ rsStopActivity(quiet); return; }
+    if(!r.mob) r.mob = {id:m.id, hp:m.hp};
+    act.cd = (act.cd|0) + 1;
+    if(act.cd % 2 !== 0) return;      /* exchange blows every other tick */
+    rsSwing = 2;
+    /* your hit */
+    const acc = Math.min(0.95, Math.max(0.15, ( (rsLvl('atk') + rsAtkBonus()) ) / ( (rsLvl('atk') + rsAtkBonus()) + m.def*1.4 ) + 0.18));
+    let dealt = 0;
+    if(Math.random() < acc) dealt = 1 + Math.floor(Math.random() * rsMaxHit());
+    r.mob.hp -= dealt;
+    rsSplats.push({who:'mob', v:dealt, t:1});
+    const style = r.style || 'atk';
+    if(dealt > 0){
+      rsAddXp(style === 'shared' ? ['atk','str','def'][Math.floor(Math.random()*3)] : style, dealt * 4);
+      rsAddXp('hp', dealt * 1.33);
+    }
+    if(r.mob.hp <= 0){
+      r.counts['kill_' + m.id] = (r.counts['kill_' + m.id]||0) + 1;
+      m.drops.forEach(function(d){
+        const chance = d[3] === undefined ? 1 : d[3];
+        if(Math.random() > chance) return;
+        const qty = d[1] + Math.floor(Math.random() * (d[2] - d[1] + 1));
+        if(qty <= 0) return;
+        if(d[0] === 'coins') r.coins += qty;
+        else if(!rsGive(d[0], qty)) r.bank[d[0]] = (r.bank[d[0]]||0) + qty;
+      });
+      if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A');
+      if(m.boss){
+        rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d');
+        r.counts.kill_bogking_ever = 1;
+        rsStopActivity(quiet);
+        return;
+      }
+      r.mob = {id:m.id, hp:m.hp};   /* respawn */
+      return;
+    }
+    /* its hit back */
+    const mAcc = Math.min(0.9, Math.max(0.1, (m.atk*1.2) / (m.atk*1.2 + rsLvl('def') + rsDefBonus() ) + 0.12));
+    let taken = 0;
+    if(Math.random() < mAcc) taken = Math.floor(Math.random() * (m.max + 1));
+    taken = Math.max(0, taken - Math.floor(rsLvl('pray') * 0.04));
+    r.curHp -= taken;
+    rsSplats.push({who:'me', v:taken, t:1});
+    if(r.curHp <= rsLvl('hp') * 0.35 && !rsEat() && r.curHp <= m.max){
+      rsLog('You have no food and flee the fight!', '#c96a5a');
+      rsStopActivity(quiet);
+      return;
+    }
+    if(r.curHp <= 0){
+      r.deaths = (r.deaths|0) + 1;
+      const inMire = m.area === 'mire';
+      if(inMire && r.inv.length){
+        r.inv = [];
+        rsLog('☠️ You die in the Mire. Your bag is lost to the bog.', '#ff6b6b');
+      } else {
+        rsLog('☠️ You die... and wake in town, gear intact.', '#ff6b6b');
+      }
+      r.curHp = rsLvl('hp');
+      r.area = 'town';
+      rsStopActivity(quiet);
+      if(!quiet) rsRenderAreas();
+    }
+  }
+}
+
+/* ---- Random events (active play only) ---- */
+function rsRandomEvent(){
+  const r = rsEnsure();
+  r.events = (r.events|0) + 1;
+  const roll = Math.random();
+  if(roll < 0.45){
+    let low = RS_SKILLS[0];
+    RS_SKILLS.forEach(function(s){ if(rsEnsure().skills[s.id].xp < rsEnsure().skills[low.id].xp) low = s; });
+    const amt = 120 + rsLvl(low.id) * 30;
+    rsAddXp(low.id, amt);
+    rsLog('🧞 A genie appears and hands you a lamp! +' + amt + ' ' + low.name + ' XP.', '#c4b5ff');
+  } else if(roll < 0.8){
+    const c = 100 + Math.floor(Math.random() * 400);
+    r.coins += c;
+    rsLog('🎁 You stumble on a gilded chest: ' + c + ' coins!', '#ffd84d');
+  } else {
+    rsLog('🐝 A swarm of bees chases you off!', '#e8b4c0');
+    rsStopActivity();
+  }
+}
+
+/* ---- The living tick: runs across all tabs; catches up after time away ---- */
+let rsSaveT = 0;
+function rsTick(){
+  const r = rsEnsure();
+  const now = Date.now();
+  const gap = now - (r.lastTick || now);
+  r.lastTick = now;
+
+  /* time away (other apps, closed browser): simulate at 60% efficiency, cap 8 h */
+  if(gap > 15000 && r.act){
+    const ticks = Math.min(Math.floor(gap / 600 * 0.6), 8 * 3600 * 1000 / 600);
+    const beforeTot = rsTotalLevel();
+    const beforeCoins = r.coins;
+    for(let i = 0; i < ticks; i++){
+      if(!r.act) break;
+      rsTickCore(true);
+    }
+    const gained = rsTotalLevel() - beforeTot;
+    rsLog('🌙 While you were away (' + Math.round(gap/60000) + ' min): ' +
+      (gained > 0 ? gained + ' levels gained, ' : '') + '+' + (r.coins - beforeCoins) + ' coins.', '#8fd7ff');
+  } else {
+    rsTickCore(false);
+    if(r.act && Math.random() < 1/500) rsRandomEvent();
+  }
+
+  rsCheckQuests();
+  if(rsTabOpen()) rsRenderHud();
+  if(++rsSaveT >= 10){ rsSaveT = 0; try{ saveState(); }catch(e){} }
+}
+
+/* ---- Quests ---- */
+function rsCheckQuests(){
+  const r = rsEnsure();
+  RS_QUESTS.forEach(function(q){
+    if(r.quests[q.id] === 'done') return;
+    if(q.need(r) >= q.goal && r.quests[q.id] !== 'ready'){
+      r.quests[q.id] = 'ready';
+      rsLog('⭐ Quest complete: ' + q.name + ' — claim your reward in the Quests tab!', '#ffd84d');
+    }
+  });
+  /* the fisher-folk count every fish */
+  r.counts.fish_any = r.counts.fish_any || 0;
+}
+function rsClaimQuest(qid){
+  const r = rsEnsure();
+  const q = RS_QUESTS.find(function(x){return x.id===qid;});
+  if(!q || r.quests[qid] !== 'ready') return;
+  q.grant(r);
+  r.quests[qid] = 'done';
+  r.qp = (r.qp|0) + q.qp;
+  rsLog('⭐ ' + q.name + ' — reward claimed. (' + q.qp + ' quest point' + (q.qp>1?'s':'') + ')', '#7ADE9A');
+  try{ saveState(); }catch(e){}
+  rsRenderPanel(); rsRenderHud(); rsRenderActs();
+}
+
+/* ---- HUD + panels ---- */
+let rsPanelTab = 'inv', rsAnimOn = false, rsAnimT = 0;
+
+function rsTabOpen(){
+  const el = document.getElementById('tab-runeshard');
+  return !!(el && el.style.display !== 'none');
+}
+
+function rsRenderHud(){
+  const r = rsEnsure();
+  const set = function(id, v){ const el = document.getElementById(id); if(el) el.textContent = v; };
+  set('rsTotalLvl', rsTotalLevel());
+  set('rsCombatLvl', rsCombatLevel());
+  set('rsCoins', r.coins.toLocaleString());
+  set('rsQp', r.qp|0);
+  const mx = rsLvl('hp');
+  const f = document.getElementById('rsHpFill');
+  if(f) f.style.width = Math.max(0, Math.min(100, r.curHp / mx * 100)) + '%';
+  set('rsHpTxt', Math.max(0, Math.ceil(r.curHp)) + '/' + mx);
+}
+
+function rsRenderAreas(){
+  const r = rsEnsure();
+  const box = document.getElementById('rsAreas');
+  if(!box) return;
+  box.innerHTML = RS_AREAS.map(function(a){
+    const locked = a.id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0);
+    return '<button class="rs-area' + (r.area === a.id ? ' on' : '') + (locked ? ' locked' : '') + '" data-rsa="' + a.id + '"' +
+      (locked ? ' title="Combat 40 required"' : '') + '>' + a.name + '</button>';
+  }).join('');
+  box.querySelectorAll('[data-rsa]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const id = b.dataset.rsa;
+      if(id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)){ rsLog('The Mire would eat you alive. Come back at combat 40.', '#e8b4c0'); return; }
+      r.area = id; rsStopActivity(true);
+      rsLog('You travel to ' + RS_AREAS.find(function(x){return x.id===id;}).name.replace(/^\S+\s/,'') + '.', '#c9b788');
+      rsRenderAreas(); rsRenderActs();
+    });
+  });
+}
+
+function rsActButton(on, dis, label, sub, data){
+  return '<button class="rs-act' + (on ? ' on' : '') + (dis ? ' dis' : '') + '" ' + data + '>' + label +
+         (sub ? '<small>' + sub + '</small>' : '') + '</button>';
+}
+
+function rsRenderActs(){
+  const r = rsEnsure();
+  const box = document.getElementById('rsActs');
+  if(!box) return;
+  const cur = r.act;
+  let h = '';
+  if(r.area === 'woods'){
+    h = RS_TREES.map(function(t){
+      const can = rsLvl('wc') >= t.req;
+      return rsActButton(cur && cur.kind==='chop' && cur.key===t.id, !can, '🌳 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-chop="' + t.id + '"');
+    }).join('');
+  } else if(r.area === 'mine'){
+    h = RS_ROCKS.map(function(t){
+      const can = rsLvl('mine') >= t.req;
+      return rsActButton(cur && cur.kind==='mine' && cur.key===t.id, !can, '🪨 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-mine="' + t.id + '"');
+    }).join('');
+  } else if(r.area === 'river'){
+    h = RS_FISH.map(function(t){
+      const can = rsLvl('fish') >= t.req;
+      return rsActButton(cur && cur.kind==='fish' && cur.key===t.id, !can, '🎣 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-fish="' + t.id + '"');
+    }).join('');
+  } else if(r.area === 'town'){
+    h += '<button class="rs-act" data-town="bank">🏦 Bank<small>deposit everything</small></button>';
+    h += RS_COOK.map(function(c){
+      const can = rsLvl('cook') >= c.req && rsInvQty(c.raw) > 0;
+      return rsActButton(cur && cur.kind==='cook' && cur.key===c.raw, !can, '🍳 ' + RS_ITEMS[c.out].name, rsLvl('cook') < c.req ? 'lvl ' + c.req : 'have ' + rsInvQty(c.raw), 'data-cook="' + c.raw + '"');
+    }).join('');
+    h += RS_SMELT.map(function(s){
+      const can = rsLvl('smith') >= s.req;
+      return rsActButton(cur && cur.kind==='smelt' && cur.key===s.out, !can, '🔥 ' + RS_ITEMS[s.out].name, can ? s.xp + ' xp' : 'lvl ' + s.req, 'data-smelt="' + s.out + '"');
+    }).join('');
+    h += '<button class="rs-act" data-town="anvil">🔨 Anvil<small>forge gear</small></button>';
+  } else {
+    const mobs = RS_MOBS.filter(function(m){ return m.area === r.area && (!m.boss || r.counts.kill_shade >= 15); });
+    h = mobs.map(function(m){
+      return rsActButton(cur && cur.kind==='fight' && cur.key===m.id, false, m.ic + ' ' + m.name, 'lvl ' + m.lvl, 'data-fight="' + m.id + '"');
+    }).join('');
+    if(r.area === 'mire' && !(r.counts.kill_shade >= 15))
+      h += '<button class="rs-act dis">🐸 ???<small>something stirs below</small></button>';
+  }
+  box.innerHTML = h;
+  box.querySelectorAll('[data-chop]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('chop', b.dataset.chop); }); });
+  box.querySelectorAll('[data-mine]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('mine', b.dataset.mine); }); });
+  box.querySelectorAll('[data-fish]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('fish', b.dataset.fish); }); });
+  box.querySelectorAll('[data-cook]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('cook', b.dataset.cook); }); });
+  box.querySelectorAll('[data-smelt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('smelt', b.dataset.smelt); }); });
+  box.querySelectorAll('[data-fight]').forEach(function(b){ b.addEventListener('click', function(){ rsStartActivity('fight', b.dataset.fight); }); });
+  box.querySelectorAll('[data-town]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.dataset.town === 'bank'){
+        const n = rsBankAll();
+        rsLog(n ? 'You deposit ' + n + ' items.' : 'Your bag is already empty.', '#8fd7ff');
+        rsRenderPanel();
+      } else {
+        rsPanelTab = 'anvil'; rsRenderTabs(); rsRenderPanel();
+      }
+    });
+  });
+}
+
+function rsRenderTabs(){
+  document.querySelectorAll('#rsTabs .rs-tab').forEach(function(b){
+    b.classList.toggle('on', b.dataset.rst === rsPanelTab);
+  });
+}
+
+function rsRenderPanel(){
+  const r = rsEnsure();
+  const box = document.getElementById('rsPanel');
+  if(!box) return;
+  const t = rsPanelTab;
+
+  if(t === 'inv'){
+    let h = '<div class="rs-ptitle">' + r.inv.length + ' / ' + RS_BAG + '</div><div class="rs-inv">';
+    for(let i = 0; i < RS_BAG; i++){
+      const it = r.inv[i];
+      if(it){
+        const d = RS_ITEMS[it.id] || {ic:'❓', name:it.id};
+        h += '<div class="rs-slot" data-rsi="' + it.id + '" title="' + d.name + '">' + d.ic +
+             (it.qty > 1 ? '<span class="q">' + (it.qty > 99999 ? Math.floor(it.qty/1000) + 'K' : it.qty.toLocaleString()) + '</span>' : '') + '</div>';
+      } else h += '<div class="rs-slot empty"></div>';
+    }
+    h += '</div><div style="font-size:10px;color:#c8b997;margin-top:7px;text-align:center;">Tap an item to Choose Option.</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rsi]').forEach(function(sl){
+      sl.addEventListener('click', function(ev){ ev.stopPropagation(); rsItemMenu(sl, sl.dataset.rsi); });
+    });
+    return;
+  }
+
+  if(t === 'skills'){
+    box.innerHTML = '<div class="rs-skillgrid">' + RS_SKILLS.map(function(s){
+      const lv = rsLvl(s.id);
+      const xp = Math.floor(r.skills[s.id].xp);
+      return '<div class="rs-skcell" title="' + s.name + ' — ' + xp.toLocaleString() + ' xp">' +
+        '<span class="ic">' + s.ic + '</span>' +
+        '<span class="lv">' + lv + '<small>/' + lv + '</small></span></div>';
+    }).join('') + '</div>' +
+    '<div class="rs-totalbox">Total level:<br>' + rsTotalLevel() + '</div>' +
+    '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Hold an icon to see exact XP. The road to 990 is long.</div>';
+    return;
+  }
+
+  if(t === 'equip'){
+    const slots = [['weapon','Weapon'],['helm','Helm'],['body','Body'],['shield','Shield']];
+    let h = '<div class="rs-eq">' + slots.map(function(sp){
+      const id = r.equip[sp[0]];
+      const d = id ? RS_ITEMS[id] : null;
+      return '<div class="rs-skill" data-rseq="' + sp[0] + '"><span class="ic">' + (d ? d.ic : '▫️') + '</span><div style="flex:1"><div class="nm">' + sp[1] +
+        '</div><div style="font-size:11px;color:#f3e6c8;font-weight:700;">' + (d ? d.name : 'empty') + '</div></div></div>';
+    }).join('') + '</div>';
+    h += '<div style="margin:10px 0 4px;font-size:11px;color:#c9b788;font-weight:800;">Tools</div><div class="rs-eq">' +
+      '<div class="rs-skill"><span class="ic">🪓</span><div><div class="nm">Axe</div><div style="font-size:11px;font-weight:700;">' + RS_TIER_NAME[RS_TIERS[rsToolTier('axe')-1]] + '</div></div></div>' +
+      '<div class="rs-skill"><span class="ic">⛏️</span><div><div class="nm">Pickaxe</div><div style="font-size:11px;font-weight:700;">' + RS_TIER_NAME[RS_TIERS[rsToolTier('pick')-1]] + '</div></div></div></div>';
+    h += '<div style="margin:10px 0 4px;font-size:11px;color:#c9b788;font-weight:800;">Combat style</div><div class="rs-acts">' +
+      [['atk','Accurate','trains Attack'],['str','Aggressive','trains Strength'],['def','Defensive','trains Defence'],['shared','Controlled','trains all three']].map(function(sp){
+        return '<button class="rs-act' + (r.style === sp[0] ? ' on' : '') + '" data-rsty="' + sp[0] + '">' + sp[1] + '<small>' + sp[2] + '</small></button>';
+      }).join('') + '</div>';
+    h += '<div style="font-size:10px;color:#a99871;">Max hit ' + rsMaxHit() + ' · atk +' + rsAtkBonus() + ' · def +' + Math.round(rsDefBonus()) + ' · tap worn gear to unequip.</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rsty]').forEach(function(b){
+      b.addEventListener('click', function(){ r.style = b.dataset.rsty; rsRenderPanel(); });
+    });
+    box.querySelectorAll('[data-rseq]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const slot = b.dataset.rseq, id = r.equip[slot];
+        if(id && rsGive(id, 1)){ r.equip[slot] = null; rsLog('You remove the ' + RS_ITEMS[id].name + '.'); rsRenderPanel(); }
+      });
+    });
+    return;
+  }
+
+  if(t === 'quests'){
+    box.innerHTML = RS_QUESTS.map(function(q){
+      const st = r.quests[q.id];
+      const prog = Math.min(q.goal, q.need(r));
+      return '<div class="rs-questcard' + (st === 'done' ? ' done' : '') + '"><div class="qn">' + (st === 'done' ? '✅ ' : '⭐ ') + q.name +
+        ' <span style="color:#a99871;font-weight:600;font-size:10px;">(' + q.qp + ' QP)</span></div>' +
+        '<div class="qd">' + q.desc + '</div>' +
+        (st === 'done' ? '<div class="qp">Complete.</div>'
+          : st === 'ready' ? '<button class="rs-btn" data-rsq="' + q.id + '">Claim: ' + q.reward + '</button>'
+          : '<div class="qp">' + prog + ' / ' + q.goal + ' — reward: ' + q.reward + '</div>') +
+        '</div>';
+    }).join('');
+    box.querySelectorAll('[data-rsq]').forEach(function(b){
+      b.addEventListener('click', function(){ rsClaimQuest(b.dataset.rsq); });
+    });
+    return;
+  }
+
+  if(t === 'bank'){
+    const keys = Object.keys(r.bank).filter(function(k){ return r.bank[k] > 0; });
+    let h = '<div class="rs-ptitle">The Bank of Runeshard</div>' +
+      '<div style="display:flex;gap:6px;margin-bottom:8px;"><button class="rs-btn" id="rsDepAll">Deposit bag</button>' +
+      '<div class="rs-chip" style="margin-left:auto;">' + keys.length + ' kinds stored</div></div>';
+    h += keys.length ? '<div class="rs-rows">' + keys.map(function(k){
+      const d = RS_ITEMS[k] || {ic:'❓', name:k};
+      return '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">× ' + r.bank[k].toLocaleString() + '</span></div>' +
+        '<button class="rs-btn" data-rsw="' + k + '">Withdraw</button></div>';
+    }).join('') + '</div>' : '<div style="color:#a99871;font-size:12px;">The vault is empty. Go earn something.</div>';
+    box.innerHTML = h;
+    const dep = document.getElementById('rsDepAll');
+    if(dep) dep.addEventListener('click', function(){ const n = rsBankAll(); rsLog(n ? 'Deposited ' + n + ' items.' : 'Nothing to deposit.'); rsRenderPanel(); });
+    box.querySelectorAll('[data-rsw]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const k = b.dataset.rsw, q = r.bank[k];
+        if(rsGive(k, q)){ delete r.bank[k]; rsRenderPanel(); }
+        else rsLog('Your bag cannot hold that.', '#e8b4c0');
+      });
+    });
+    return;
+  }
+
+  if(t === 'shop'){
+    let h = '<div class="rs-ptitle">Runeshard General Store</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
+      '<button class="rs-btn" id="rsSellRes">Sell all resources</button>' +
+      '<button class="rs-btn" id="rsSellBankRes">Sell banked resources</button></div><div class="rs-rows">';
+    RS_TIERS.forEach(function(tier, i){
+      ['axe','pick'].forEach(function(tool){
+        const id = tier + '_' + tool;
+        const d = RS_ITEMS[id];
+        const price = d.sell * 4;
+        const owned = rsEnsure().tools[tool] >= d.tier;
+        h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">' +
+          (owned ? 'owned' : 'speeds up ' + (tool === 'axe' ? 'chopping' : 'mining')) + '</span></div>' +
+          (owned ? '<span class="qp" style="font-size:10px;color:#7ADE9A;">✓</span>'
+                 : '<button class="rs-btn" data-rsbuy="' + id + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
+      });
+    });
+    h += '</div><div style="font-size:10px;color:#a99871;margin-top:6px;">Gear is smithed, not sold — the anvil in Town is your armoury.</div>';
+    box.innerHTML = h;
+    function sellFrom(container, isBank){
+      let got = 0;
+      const gearless = function(id){ const d = RS_ITEMS[id]; return d && !d.slot && !d.tool; };
+      if(isBank){
+        Object.keys(container).forEach(function(k){
+          if(gearless(k)){ got += (RS_ITEMS[k].sell || 1) * container[k]; delete container[k]; }
+        });
+      } else {
+        for(let i = container.length - 1; i >= 0; i--){
+          const it = container[i];
+          if(gearless(it.id)){ got += (RS_ITEMS[it.id].sell || 1) * it.qty; container.splice(i, 1); }
+        }
+      }
+      return got;
+    }
+    document.getElementById('rsSellRes').addEventListener('click', function(){
+      const got = sellFrom(r.inv, false);
+      r.coins += got; rsLog(got ? 'Sold for ' + got.toLocaleString() + ' coins.' : 'No resources in your bag.', '#ffd84d');
+      rsRenderPanel(); rsRenderHud();
+    });
+    document.getElementById('rsSellBankRes').addEventListener('click', function(){
+      const got = sellFrom(r.bank, true);
+      r.coins += got; rsLog(got ? 'Sold banked goods for ' + got.toLocaleString() + ' coins.' : 'No resources in the bank.', '#ffd84d');
+      rsRenderPanel(); rsRenderHud();
+    });
+    box.querySelectorAll('[data-rsbuy]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const d = RS_ITEMS[b.dataset.rsbuy];
+        const price = d.sell * 4;
+        if(r.coins < price){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+        r.coins -= price;
+        r.tools[d.tool] = Math.max(r.tools[d.tool], d.tier);
+        rsLog('You buy the ' + d.name + '. It bites deeper.', '#7ADE9A');
+        rsRenderPanel(); rsRenderHud();
+      });
+    });
+    return;
+  }
+
+  if(t === 'anvil'){
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:6px;">🔨 The Anvil — smith gear from bars</div><div class="rs-rows">';
+    RS_FORGE.forEach(function(rec){
+      const d = RS_ITEMS[rec.out];
+      const can = rsLvl('smith') >= rec.req && rsInvQty(rec.bar) >= rec.bars;
+      h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name +
+        '<span class="sub">lvl ' + rec.req + ' · ' + rec.bars + '× ' + RS_ITEMS[rec.bar].name + ' · ' + rec.xp + ' xp</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rsf="' + rec.out + '">Smith</button></div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rsf]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        rsStartActivity('forge', b.dataset.rsf);
+        rsLog('You set to work at the anvil.', '#c9b788');
+      });
+    });
+    return;
+  }
+}
+
+const RS_EXAMINE = {
+  logs:'A number of wooden logs.', oak_logs:'Logs cut from an oak tree.',
+  willow_logs:'Logs cut from a willow tree.', maple_logs:'Logs cut from a maple tree.',
+  yew_logs:'Logs cut from a yew tree.', magic_logs:'Logs imbued with magical energy.',
+  copper_ore:'This needs refining.', tin_ore:'This needs refining.',
+  iron_ore:'Keeps the smiths busy.', coal:'Hmm, a non-renewable energy source.',
+  mith_ore:'A lump of mithril ore.', addy_ore:'A lump of adamantite ore.', rune_ore:'A very rare rock indeed.',
+  raw_shrimp:'I should try cooking this.', raw_trout:'I should try cooking this.',
+  raw_lobster:'I should try cooking this.', raw_sword:'A meaty swordfish.', raw_shark:'It has a lot of teeth.',
+  shrimp:'A shrimpy little fish.', trout:'Some nicely cooked trout.', lobster:'This lobster looks delicious.',
+  swordfish:'I would not want to fight the fish this came from.', shark:'Cooked shark. Chewy.',
+  burnt:'Oops.', bones:'These would be good for burying.', big_bones:'The bones of something big.',
+  sapphire:'A sparkly blue gem.', ruby:'A sparkly red gem.', diamond:'This looks valuable.',
+  star_sword:'A blade forged from a fallen star. It hums faintly.',
+};
+function rsExamine(id){
+  const d = RS_ITEMS[id];
+  const base = RS_EXAMINE[id] || (d.tool ? 'A sturdy ' + d.name.toLowerCase() + '.'
+             : d.slot ? 'A ' + d.name.toLowerCase() + '. Swanky.'
+             : 'It is a ' + d.name.toLowerCase() + '.');
+  rsLog(base + ' (worth ~' + d.sell + ' coins)', '#a99871');
+}
+function rsCloseMenu(){
+  const m = document.getElementById('rsMenu');
+  if(m) m.remove();
+}
+function rsShowMenu(anchorEl, entries){
+  rsCloseMenu();
+  const host = anchorEl.closest('.rs-panelbox') || anchorEl.parentElement;
+  const m = document.createElement('div');
+  m.className = 'rs-menu';
+  m.id = 'rsMenu';
+  m.innerHTML = '<div class="hd">Choose Option</div>' + entries.map(function(e, i){
+    return '<div class="op" data-op="' + i + '">' + e[0] + '</div>';
+  }).join('') + '<div class="op">Cancel</div>';
+  host.appendChild(m);
+  const hr = host.getBoundingClientRect(), ar = anchorEl.getBoundingClientRect();
+  let x = ar.left - hr.left, y = ar.bottom - hr.top;
+  m.style.left = Math.max(0, Math.min(x, host.clientWidth - m.offsetWidth - 4)) + 'px';
+  m.style.top  = Math.max(0, Math.min(y, host.clientHeight - m.offsetHeight - 2)) + 'px';
+  m.addEventListener('click', function(ev){
+    const op = ev.target.closest('.op');
+    rsCloseMenu();
+    if(!op || op.dataset.op === undefined) return;
+    const e = entries[+op.dataset.op];
+    if(e && e[1]) e[1]();
+  });
+  setTimeout(function(){
+    document.addEventListener('click', function once(ev){
+      if(!m.contains(ev.target)) rsCloseMenu();
+      document.removeEventListener('click', once);
+    });
+  }, 0);
+}
+function rsItemMenu(el, id){
+  const r = rsEnsure();
+  const d = RS_ITEMS[id];
+  if(!d) return;
+  const tgt = ' <b>' + d.name + '</b>';
+  const es = [];
+  if(d.heal)      es.push(['Eat' + tgt, function(){ rsUseItem(id); }]);
+  if(d.bury)      es.push(['Bury' + tgt, function(){ rsUseItem(id); }]);
+  if(d.slot)      es.push([(d.slot === 'weapon' || d.slot === 'shield' ? 'Wield' : 'Wear') + tgt, function(){ rsUseItem(id); }]);
+  if(d.tool)      es.push(['Wield' + tgt, function(){ rsUseItem(id); }]);
+  es.push(['Examine' + tgt, function(){ rsExamine(id); }]);
+  es.push(['Drop' + tgt, function(){
+    const q = rsInvQty(id);
+    rsTake(id, q);
+    rsLog('You drop the ' + d.name.toLowerCase() + (q > 1 ? ' × ' + q : '') + '. Gone forever.', '#e8b4c0');
+    rsRenderPanel();
+  }]);
+  rsShowMenu(el, es);
+}
+function rsUseItem(id){
+  const r = rsEnsure();
+  const d = RS_ITEMS[id];
+  if(!d) return;
+  if(d.heal){
+    if(rsTake(id, 1)){
+      r.curHp = Math.min(rsLvl('hp'), r.curHp + d.heal);
+      rsLog('You eat the ' + d.name.toLowerCase() + '. +' + d.heal + ' HP.', '#7ADE9A');
+    }
+  } else if(d.bury){
+    if(rsTake(id, 1)){
+      r.buried = (r.buried|0) + 1;
+      rsAddXp('pray', d.bury);
+      rsLog('You bury the ' + d.name.toLowerCase() + '. The gods approve.', '#c4b5ff');
+    }
+  } else if(d.slot){
+    if(rsLvl(d.slot === 'weapon' ? 'atk' : 'def') < d.lvl){ rsLog('You need ' + (d.slot==='weapon'?'Attack':'Defence') + ' ' + d.lvl + ' for that.', '#e8b4c0'); return; }
+    const old = r.equip[d.slot];
+    if(rsTake(id, 1)){
+      if(old) rsGive(old, 1);
+      r.equip[d.slot] = id;
+      rsLog('You wield the ' + d.name + '.', '#7ADE9A');
+    }
+  } else if(d.tool){
+    if(r.tools[d.tool] >= d.tier){ rsLog('You already swing something at least that good.', '#a99871'); return; }
+    if(rsTake(id, 1)){ r.tools[d.tool] = d.tier; rsLog('You heft the ' + d.name + '. Much better.', '#7ADE9A'); }
+  } else {
+    rsLog(d.name + ' — worth about ' + d.sell + ' coins at the shop.', '#a99871');
+  }
+  rsRenderPanel(); rsRenderHud();
+}
+
+/* ---- The scene ---- */
+const RS_AREA_ART = {
+  woods:{sky:['#2c3e2d','#151d15'], ground:'#2a361f', prop:'🌳'},
+  mine:{sky:['#2b2b33','#141418'], ground:'#3a3230', prop:'🪨'},
+  river:{sky:['#22303e','#101820'], ground:'#1f3040', prop:'🌊'},
+  town:{sky:['#3a2f26','#1a140e'], ground:'#4a3b28', prop:'🏘️'},
+  fields:{sky:['#33402a','#161c12'], ground:'#3c4a26', prop:'🌾'},
+  mire:{sky:['#25302a','#0d1410'], ground:'#22301f', prop:'🌫️'},
+};
+function rsDrawScene(){
+  const cv = document.getElementById('rsScene');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const r = rsEnsure();
+  const art = RS_AREA_ART[r.area] || RS_AREA_ART.woods;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, art.sky[0]); g.addColorStop(1, art.sky[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = art.ground; ctx.fillRect(0, H - 54, W, 54);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(0, H - 54, W, 4);
+
+  /* backdrop props */
+  ctx.font = '30px serif'; ctx.globalAlpha = 0.5;
+  ctx.fillText(art.prop, 40, 70); ctx.fillText(art.prop, W - 80, 54); ctx.fillText(art.prop, W * 0.55, 84);
+  ctx.globalAlpha = 1;
+
+  const baseY = H - 60;
+  /* target of the current action */
+  const act = r.act;
+  let targetIc = null, targetHp = null;
+  if(act){
+    if(act.kind === 'chop') targetIc = '🌳';
+    else if(act.kind === 'mine') targetIc = '🪨';
+    else if(act.kind === 'fish') targetIc = '🌀';
+    else if(act.kind === 'cook') targetIc = '🔥';
+    else if(act.kind === 'smelt') targetIc = '🔥';
+    else if(act.kind === 'forge') targetIc = '🧱';
+    else if(act.kind === 'fight' && r.mob){
+      const m = RS_MOBS.find(function(x){ return x.id === r.mob.id; });
+      targetIc = m ? m.ic : '👾';
+      targetHp = {cur: r.mob.hp, max: (m||{hp:1}).hp};
+    }
+  }
+  if(targetIc){
+    ctx.font = '52px serif';
+    const bob = Math.sin(rsAnimT / 14) * 2;
+    ctx.fillText(targetIc, W * 0.62, baseY + 8 + bob);
+    if(targetHp){
+      const bw = 60, bx = W * 0.62 - 2, by = baseY - 58;
+      ctx.fillStyle = '#3a1512'; ctx.fillRect(bx, by, bw, 7);
+      ctx.fillStyle = '#3f9e52'; ctx.fillRect(bx, by, bw * Math.max(0, targetHp.cur / targetHp.max), 7);
+      ctx.strokeStyle = '#00000088'; ctx.strokeRect(bx + 0.5, by + 0.5, bw, 7);
+    }
+  }
+
+  /* the character — a chunky little adventurer */
+  const px = W * 0.38, py = baseY;
+  const swing = rsSwing > 0 ? Math.sin(rsAnimT / 2) * 0.5 : 0;
+  if(rsSwing > 0) rsSwing -= 0.06;
+  ctx.save();
+  ctx.translate(px, py);
+  /* legs */
+  ctx.fillStyle = '#4a3222'; ctx.fillRect(-9, -14, 7, 14); ctx.fillRect(2, -14, 7, 14);
+  /* body: colored by best worn tier */
+  const bodyTier = r.equip.body ? RS_ITEMS[r.equip.body].tier : 0;
+  const tierCol = ['#7a5a3a','#8a6f4a','#8f8f97','#b8b8c4','#4a6fb0','#3f8f5a','#58c0d8','#c9a24d','#ffd84d'][bodyTier] || '#7a5a3a';
+  ctx.fillStyle = tierCol; ctx.fillRect(-11, -34, 22, 21);
+  /* head */
+  ctx.fillStyle = '#e0b48c'; ctx.fillRect(-7, -48, 14, 14);
+  if(r.equip.helm){ ctx.fillStyle = '#9aa2ad'; ctx.fillRect(-8, -50, 16, 7); }
+  /* arm + implement */
+  ctx.save();
+  ctx.translate(9, -30);
+  ctx.rotate(-0.5 + swing);
+  ctx.fillStyle = '#e0b48c'; ctx.fillRect(0, -2, 13, 5);
+  ctx.font = '17px serif';
+  const held = act ? (act.kind === 'chop' ? '🪓' : act.kind === 'mine' ? '⛏️' : act.kind === 'fish' ? '🎣'
+             : act.kind === 'cook' || act.kind === 'smelt' ? '🍳' : act.kind === 'forge' ? '🔨'
+             : (r.equip.weapon ? RS_ITEMS[r.equip.weapon].ic : '👊')) : (r.equip.weapon ? RS_ITEMS[r.equip.weapon].ic : '');
+  if(held) ctx.fillText(held, 11, 5);
+  ctx.restore();
+  /* shield */
+  if(r.equip.shield){ ctx.font = '15px serif'; ctx.fillText('🛡️', -22, -22); }
+  ctx.restore();
+
+  /* hit splats */
+  for(let i = rsSplats.length - 1; i >= 0; i--){
+    const sp = rsSplats[i];
+    sp.t -= 0.02;
+    if(sp.t <= 0){ rsSplats.splice(i, 1); continue; }
+    const x = sp.who === 'mob' ? W * 0.66 : px + 4;
+    const y = baseY - 44 - (1 - sp.t) * 16;
+    ctx.globalAlpha = Math.min(1, sp.t * 2);
+    ctx.fillStyle = sp.v > 0 ? '#9c1c1c' : '#1c2c9c';
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(x - 12, y - 9, 24, 18, 5); else ctx.rect(x - 12, y - 9, 24, 18);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(String(sp.v), x, y + 4);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
+  /* xp drops */
+  for(let i = rsXpDrops.length - 1; i >= 0; i--){
+    const d = rsXpDrops[i];
+    d.t -= 0.012;
+    if(d.t <= 0){ rsXpDrops.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, d.t * 2);
+    const yy = 26 + (1 - d.t) * 40 + (i * 13);
+    ctx.font = 'bold 12px monospace';
+    ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+    ctx.strokeText(d.txt, 14, yy);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(d.txt, 14, yy);
+    ctx.globalAlpha = 1;
+  }
+  if(rsXpDrops.length > 6) rsXpDrops.splice(0, rsXpDrops.length - 6);
+
+  /* level-up sparkle */
+  if(rsSpark > 0){
+    rsSpark -= 0.3;
+    ctx.font = '16px serif';
+    for(let i = 0; i < 5; i++){
+      ctx.globalAlpha = Math.max(0, rsSpark / 14);
+      ctx.fillText('✨', px - 34 + i * 17, baseY - 66 - Math.sin(rsAnimT / 3 + i) * 9);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* idle hint */
+  if(!act){
+    ctx.fillStyle = '#c9b788'; ctx.font = '12px monospace';
+    ctx.fillText('Pick something to do below — your character never stops working.', 14, H - 14);
+  }
+}
+function rsAnimLoop(){
+  if(!rsAnimOn) return;
+  rsAnimT++;
+  rsDrawScene();
+  requestAnimationFrame(rsAnimLoop);
+}
+
+/* ---- Tab lifecycle + wiring ---- */
+function rsOnEnterTab(){
+  rsEnsure();
+  rsRenderHud(); rsRenderAreas(); rsRenderActs(); rsRenderTabs(); rsRenderPanel();
+  if(!rsAnimOn){ rsAnimOn = true; requestAnimationFrame(rsAnimLoop); }
+  if(!rsEnsure().greeted){
+    rsEnsure().greeted = 1;
+    rsLog('Welcome to Runeshard. Ten skills, one bag, no shortcuts. Talk is cheap — the trees are not going to chop themselves.', '#ffd84d');
+  }
+}
+function rsOnLeaveTab(){
+  rsAnimOn = false;   /* the engine keeps ticking globally; only the art sleeps */
+}
+(function rsWireTabs(){
+  const tabs = document.getElementById('rsTabs');
+  if(!tabs) return;
+  tabs.addEventListener('click', function(ev){
+    const b = ev.target.closest('.rs-tab');
+    if(!b) return;
+    rsPanelTab = b.dataset.rst;
+    rsRenderTabs(); rsRenderPanel();
+  });
+})();
+setInterval(rsTick, 600);
 
 /* ---------------- INIT ---------------- */
 /* Each panel is isolated: if one throws, the rest of the app still comes up and

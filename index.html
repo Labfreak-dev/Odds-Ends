@@ -3455,6 +3455,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
           <button class="rs-tab" data-rst="equip">🛡️</button>
           <button class="rs-tab" data-rst="quests">⭐</button>
           <button class="rs-tab" data-rst="pray">✨</button>
+          <button class="rs-tab" data-rst="clog">📖</button>
           <button class="rs-tab" data-rst="bank">🏦</button>
           <button class="rs-tab" data-rst="shop">🛒</button>
         </div>
@@ -18443,7 +18444,7 @@ const RS_MOBS = [
   {id:'cow',     name:'Cow',          ic:'🐄', lvl:2,  hp:8,   atk:1,  def:1,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',3,12]]},
   {id:'guard',   name:'Guard',        ic:'💂', lvl:21, hp:22,  atk:18, def:16, max:4, xp:70,  area:'fields', drops:[['bones',1,1],['coins',12,40]]},
   {id:'hillg',   name:'Hill Giant',   ic:'🗿', lvl:28, hp:35,  atk:22, def:20, max:6, xp:120, area:'fields', drops:[['big_bones',1,1],['coins',20,80],['sapphire',0,1,0.06]]},
-  {id:'mossg',   name:'Moss Giant',   ic:'🧌', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
+  {id:'mossg',   name:'Moss Giant',   ic:'🦍', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
   {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
   {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
   {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04],['dragon_sword',0,1,0.015]]},
@@ -18451,13 +18452,13 @@ const RS_MOBS = [
   {id:'cinder',  name:'Cinderwyrm',   ic:'🐉', lvl:100,hp:220, atk:78, def:66, max:16,xp:2200,area:'mire',   drops:[['big_bones',1,2],['coins',700,2000],['diamond',0,1,0.2]], boss:true, dragon:true},
   {id:'crawl',   name:'Crawling Hand',ic:'🖐️', lvl:8,  hp:16,  atk:6,  def:5,  max:2, xp:44,  area:'tower',  slayReq:1,  drops:[['bones',1,1],['coins',6,22]]},
   {id:'lurker',  name:'Cave Lurker',  ic:'🦎', lvl:23, hp:25,  atk:18, def:16, max:4, xp:82,  area:'tower',  slayReq:10, drops:[['bones',1,1],['coins',14,44]]},
-  {id:'banshee', name:'Banshee',      ic:'🧟', lvl:33, hp:34,  atk:26, def:22, max:6, xp:120, area:'tower',  slayReq:20, drops:[['bones',1,1],['coins',22,70],['sapphire',0,1,0.08]]},
+  {id:'banshee', name:'Banshee',      ic:'😱', lvl:33, hp:34,  atk:26, def:22, max:6, xp:120, area:'tower',  slayReq:20, drops:[['bones',1,1],['coins',22,70],['sapphire',0,1,0.08]]},
   {id:'veld',    name:'Bloodveld',    ic:'👅', lvl:48, hp:60,  atk:38, def:30, max:8, xp:230, area:'tower',  slayReq:35, drops:[['big_bones',1,1],['coins',40,130],['ruby',0,1,0.07]]},
   {id:'garg',    name:'Gargoyle',     ic:'🦇', lvl:65, hp:70,  atk:52, def:48, max:10,xp:330, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',90,260],['granite_mauler',0,1,0.02],['diamond',0,1,0.03]]},
   {id:'abyss',   name:'Abyssal Fiend',ic:'🐙', lvl:95, hp:110, atk:70, def:64, max:12,xp:520, area:'tower',  slayReq:75, drops:[['big_bones',1,1],['coins',160,460],['abyssal_lash',0,1,0.017],['diamond',0,1,0.08]]},
   {id:'skel',      name:'Skeleton',      ic:'💀', lvl:22, hp:24,  atk:17, def:15, max:4, xp:75,  area:'cata', drops:[['bones',1,1],['coins',10,35]]},
-  {id:'zombie',    name:'Zombie',        ic:'🧟‍♂️', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
-  {id:'ghast',     name:'Ghast',         ic:'🫥', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
+  {id:'zombie',    name:'Zombie',        ic:'🧟', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
+  {id:'ghast',     name:'Ghast',         ic:'🌬️', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
   {id:'ankou',     name:'Ankou',         ic:'☠️', lvl:75, hp:90,  atk:58, def:52, max:10,xp:420, area:'cata', drops:[['big_bones',1,1],['coins',110,320],['ruby',0,1,0.08],['diamond',0,1,0.04]]},
   {id:'gdemon',    name:'Greater Demon', ic:'👹', lvl:92, hp:105, atk:68, def:62, max:12,xp:500, area:'cata', drops:[['big_bones',1,1],['coins',150,430],['diamond',0,1,0.07],['dark_bow',0,1,0.017]]},
   {id:'boneregent',name:'The Bone Regent',ic:'🦴', lvl:115,hp:300, atk:84, def:70, max:17,xp:3000,area:'cata', drops:[['big_bones',1,2],['coins',1200,3200],['diamond',1,2],['regent_staff',0,1,0.04]], boss:true},
@@ -18878,9 +18879,9 @@ function rsMobDie(m, quiet){
   const r = rsEnsure();
   r.counts['kill_' + m.id] = (r.counts['kill_' + m.id]||0) + 1;
   rsSlayerKill(m, quiet);
-  if(m.id === 'bogking' && Math.random() < 1/30) rsGivePet('pet_bog');
-  if(m.id === 'cinder'  && Math.random() < 1/20) rsGivePet('pet_cinder');
-  if(m.id === 'boneregent' && Math.random() < 1/25) rsGivePet('pet_wisp');
+  if(m.id === 'bogking' && Math.random() < 1/30000) rsGivePet('pet_bog');
+  if(m.id === 'cinder'  && Math.random() < 1/20000) rsGivePet('pet_cinder');
+  if(m.id === 'boneregent' && Math.random() < 1/25000) rsGivePet('pet_wisp');
   m.drops.forEach(function(d){
     const chance = d[3] === undefined ? 1 : d[3];
     if(Math.random() > chance) return;
@@ -18965,7 +18966,7 @@ function rsTickCore(quiet){
       rsAddXp(skill, t.xp);
       r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
       r.counts['get_' + t.id] = (r.counts['get_' + t.id]||0) + 1;
-      if(Math.random() < 1/500) rsGivePet(act.kind === 'chop' ? 'pet_beaver' : act.kind === 'mine' ? 'pet_golem' : 'pet_heron');
+      if(Math.random() < 1/500000) rsGivePet(act.kind === 'chop' ? 'pet_beaver' : act.kind === 'mine' ? 'pet_golem' : 'pet_heron');
       if(act.kind === 'fish' && Math.random() < 0.08){ rsGive('snape_grass', 1); if(!quiet) rsLog('Some snape grass clings to your catch.', '#c9b788', 'get_snape'); }
       if(!quiet) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788', 'get_' + t.id);
     }
@@ -19286,7 +19287,7 @@ function rsSlayerKill(m, quiet){
     sl.task = null;
     rsLog('💀 Task complete! Morvos pays ' + pts + ' slayer points. (' + sl.done + ' tasks, ' + sl.pts + ' pts)', '#7ADE9A');
     rsJingle('quest');
-    if(Math.random() < 1/25) rsGivePet('pet_grim');
+    if(Math.random() < 1/25000) rsGivePet('pet_grim');
     if(!quiet) rsRenderActs();
   }
 }
@@ -19326,6 +19327,7 @@ function rsBuySlayReward(what){
 /* ---- Pets ---- */
 function rsGivePet(id){
   const r = rsEnsure();
+  r.counts['got_' + id] = 1;   /* the collection log never forgets */
   if(rsInvQty(id) > 0 || (r.bank[id]||0) > 0 || r.pet === id) return;
   if(!rsGive(id, 1)) { r.bank[id] = 1; }
   r.pet = id;
@@ -19902,6 +19904,67 @@ function rsRenderPanel(){
     return;
   }
 
+  if(t === 'clog'){
+    const owned = function(id){ return (r.counts['got_' + id]) || rsInvQty(id) > 0 || (r.bank[id]||0) > 0 || r.pet === id; };
+    const hasGear = function(id){
+      if(rsHave(id) > 0) return true;
+      const e = r.equip;
+      return ['weapon','helm','body','legs','shield','amulet'].some(function(sl){ return e[sl] === id; });
+    };
+    const PETS = [
+      ['pet_beaver',  '1/500,000 per log chopped'],
+      ['pet_golem',   '1/500,000 per ore mined'],
+      ['pet_heron',   '1/500,000 per fish caught'],
+      ['pet_grim',    '1/25,000 per slayer task done'],
+      ['pet_cinder',  '1/20,000 per Cinderwyrm kill'],
+      ['pet_wisp',    '1/25,000 per Bone Regent kill'],
+      ['pet_bog',     '1/30,000 per Bog King kill'],
+    ];
+    const RARES = [
+      ['granite_mauler', '1/50 from Gargoyles'],
+      ['abyssal_lash',   '~1/59 from Abyssal Fiends'],
+      ['dragon_sword',   '~1/67 from Green Dragons'],
+      ['dark_bow',       '~1/59 from Greater Demons'],
+      ['regent_staff',   '1/25 from the Bone Regent'],
+      ['gilded_helm',    '~1/40 caskets'],
+    ];
+    const petGot = PETS.filter(function(p){ return owned(p[0]); }).length;
+    const rareGot = RARES.filter(function(p){ return hasGear(p[0]); }).length;
+    let h = '<div class="rs-ptitle">📖 Collection Log</div>';
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:2px 0 3px;">Pets — ' + petGot + ' / ' + PETS.length + '</div><div class="rs-rows">';
+    h += PETS.map(function(p){
+      const d = RS_ITEMS[p[0]], got = owned(p[0]);
+      return '<div class="rs-row"' + (got ? '' : ' style="opacity:0.55;"') + '><span>' + (got ? d.ic : '❔') + '</span>' +
+        '<div class="grow">' + d.name + '<span class="sub">' + p[1] + '</span></div>' +
+        (got ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<span class="qp" style="font-size:10px;color:#8a7a5a;">—</span>') + '</div>';
+    }).join('');
+    h += '</div><div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Rare drops — ' + rareGot + ' / ' + RARES.length + '</div><div class="rs-rows">';
+    h += RARES.map(function(p){
+      const d = RS_ITEMS[p[0]], got = hasGear(p[0]);
+      return '<div class="rs-row"' + (got ? '' : ' style="opacity:0.55;"') + '><span>' + (got ? d.ic : '❔') + '</span>' +
+        '<div class="grow">' + d.name + '<span class="sub">' + p[1] + '</span></div>' +
+        (got ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<span class="qp" style="font-size:10px;color:#8a7a5a;">—</span>') + '</div>';
+    }).join('');
+    h += '</div><div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Bosses slain</div><div class="rs-rows">';
+    [['bogking','The Bog King'],['cinder','Cinderwyrm'],['boneregent','The Bone Regent']].forEach(function(b){
+      const m = RS_MOBS.find(function(x){return x.id===b[0];});
+      const n = r.counts['kill_' + b[0]]|0;
+      h += '<div class="rs-row"' + (n ? '' : ' style="opacity:0.55;"') + '><span>' + (n ? m.ic : '❔') + '</span>' +
+        '<div class="grow">' + b[1] + '<span class="sub">level ' + m.lvl + '</span></div>' +
+        '<span class="qp" style="font-size:10px;color:' + (n ? '#3cd97a' : '#8a7a5a') + ';">× ' + n + '</span></div>';
+    });
+    const doneQ = RS_QUESTS.filter(function(q){ return r.quests[q.id] === 'done'; }).length;
+    h += '</div><div style="font-size:10px;color:#a99871;margin-top:7px;line-height:1.7;">' +
+      'Quests: <b style="color:#f3e6c8;">' + doneQ + '/' + RS_QUESTS.length + '</b> · ' +
+      'Slayer tasks: <b style="color:#f3e6c8;">' + ((r.slay && r.slay.done)|0) + '</b> · ' +
+      'Caskets opened: <b style="color:#f3e6c8;">' + (r.counts.caskets|0) + '</b><br>' +
+      'Deaths: <b style="color:#f3e6c8;">' + (r.deaths|0) + '</b> · ' +
+      'Random events: <b style="color:#f3e6c8;">' + (r.events|0) + '</b> · ' +
+      'Bones buried: <b style="color:#f3e6c8;">' + (r.buried|0) + '</b></div>';
+    box.innerHTML = h;
+    return;
+  }
+
   if(t === 'anvil'){
     let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:6px;">🔨 The Anvil — smith gear from bars</div><div class="rs-rows">';
     RS_FORGE.forEach(function(rec){
@@ -20151,6 +20214,7 @@ function rsOpenCasket(){
   const r = rsEnsure();
   if(rsHave('casket') <= 0) return;
   rsConsume('casket', 1);
+  r.counts.caskets = (r.counts.caskets|0) + 1;
   const roll = Math.random();
   if(roll < 0.40){
     const c = 250 + Math.floor(Math.random() * 650);
@@ -20449,6 +20513,19 @@ function rsDrawBackdrop(ctx, W, H, area, t){
   }
 }
 
+/* Emoji are drawn with fillText. If the device has no COLOUR glyph for one
+   it falls back to a monochrome outline painted in the current fillStyle —
+   so the fill must be opaque and readable, never a leftover shadow tint. */
+const RS_EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",serif';
+function rsDarkArea(){
+  const a = rsEnsure().area;
+  return a === 'mine' || a === 'tower' || a === 'cata' || a === 'mire';
+}
+function rsEmojiPrep(ctx, px){
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = rsDarkArea() ? '#e6e0ee' : '#2a2530';
+  ctx.font = px + 'px ' + RS_EMOJI_FONT;
+}
 function rsDrawTarget(ctx, W, H, t){
   const r = rsEnsure();
   const act = r.act;
@@ -20497,7 +20574,7 @@ function rsDrawTarget(ctx, W, H, t){
       ctx.beginPath(); ctx.ellipse(tx, wy + 16, rr, rr * 0.35, 0, 0, 7); ctx.stroke();
     }
     if(Math.floor(t / 26) % 3 === 0){
-      ctx.font = '13px serif'; ctx.fillText('🐟', tx + 18, wy + 12 - Math.sin(t / 4) * 3);
+      rsEmojiPrep(ctx, 13); ctx.fillText('🐟', tx + 18, wy + 12 - Math.sin(t / 4) * 3);
     }
     return {x: tx - 10, y: wy + 14};
   }
@@ -20565,7 +20642,7 @@ function rsDrawTarget(ctx, W, H, t){
   if(act.kind === 'fight' && r.mob){
     const m = RS_MOBS.find(function(x){ return x.id === r.mob.id; });
     shadow(24);
-    ctx.font = (m && m.boss ? '64px' : '46px') + ' serif';
+    rsEmojiPrep(ctx, m && m.boss ? 64 : 46);   /* opaque: shadow() left the fill at 25% */
     const lunge = Math.sin(t / 9) * 3;
     ctx.fillText(m ? m.ic : '👾', tx - 20 - lunge, gy + 2);
     const bw = 56, bx = tx - 22, by = gy - (m && m.boss ? 74 : 56);
@@ -20651,7 +20728,7 @@ function rsDrawHero(ctx, W, H){
   ctx.restore();
   /* the pet trots at your heel */
   if(r.pet && RS_ITEMS[r.pet]){
-    ctx.font = '15px serif';
+    rsEmojiPrep(ctx, 15);
     ctx.fillText(RS_ITEMS[r.pet].ic, -34, -1 + Math.sin(rsAnimT / 8) * 1.5);
   }
   /* shield on the rear arm */
@@ -20734,7 +20811,8 @@ function rsDrawScene(){
   /* level-up sparkle */
   if(rsSpark > 0){
     rsSpark -= 0.3;
-    ctx.font = '16px serif';
+    ctx.font = '16px ' + RS_EMOJI_FONT;
+    ctx.fillStyle = '#ffe98a';
     for(let i = 0; i < 5; i++){
       ctx.globalAlpha = Math.max(0, rsSpark / 14);
       ctx.fillText('✨', W * 0.51 - 34 + i * 17, gy - 82 - Math.sin(t / 3 + i) * 9);

@@ -3421,6 +3421,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="rs-chip">Combat <b id="rsCombatLvl">3</b></div>
       <div class="rs-chip">🪙 <b id="rsCoins">0</b></div>
       <div class="rs-chip">Quest pts <b id="rsQp">0</b></div>
+      <button class="rs-chip" id="rsSnd" style="cursor:pointer;">🔊</button>
       <div class="rs-hpbar"><i id="rsHpFill" style="width:100%"></i><span id="rsHpTxt">10/10</span></div>
     </div>
 
@@ -18221,6 +18222,7 @@ const RS_SKILLS = [
   {id:'smith', name:'Smithing',    ic:'🔨'},
   {id:'fish',  name:'Fishing',     ic:'🎣'},
   {id:'cook',  name:'Cooking',     ic:'🍳'},
+  {id:'slay',  name:'Slayer',      ic:'💀'},
 ];
 
 /* ---- Items ---- */
@@ -18259,6 +18261,15 @@ RS_TIERS.forEach(function(t,i){
   rsDef(t+'_pick',   RS_TIER_NAME[t]+' pickaxe','⛏️', Math.round(p*0.8),  {tool:'pick', tier:i+1, lvl:[1,10,20,35,55,75][i]});
 });
 rsDef('star_sword','Starshard blade','🌠',5000,{slot:'weapon', tier:8, lvl:60});
+rsDef('chef_hat','Chef\'s hat','👨‍🍳',60,{slot:'helm', tier:1, lvl:1});
+rsDef('grim_mask','Grim mask','🎭',900,{slot:'helm', tier:5, lvl:20, grim:true});
+rsDef('granite_mauler','Granite mauler','🔨',1800,{slot:'weapon', tier:7, lvl:50});
+rsDef('abyssal_lash','Abyssal lash','🌀',9000,{slot:'weapon', tier:9, lvl:70});
+rsDef('cinder_shield','Cinder shield','🔥',4200,{slot:'shield', tier:8, lvl:60});
+rsDef('pet_beaver','Beaver','🦫',0,{pet:true});   rsDef('pet_golem','Rock golem','🪨',0,{pet:true});
+rsDef('pet_heron','Heron','🦩',0,{pet:true});     rsDef('pet_bog','Bog prince','🐸',0,{pet:true});
+rsDef('pet_grim','Grim imp','👿',0,{pet:true});   rsDef('pet_cinder','Cinder hatchling','🐲',0,{pet:true});
+RS_SKILLS.forEach(function(sk){ rsDef('cape_'+sk.id, sk.name+' cape', '🎽', 990, {cape:true}); });
 
 /* ---- Gathering targets ---- */
 const RS_TREES = [
@@ -18324,31 +18335,86 @@ const RS_MOBS = [
   {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
   {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
   {id:'bogking', name:'The Bog King', ic:'🐸', lvl:90, hp:180, atk:70, def:62, max:14,xp:1500,area:'mire',   drops:[['big_bones',1,1],['coins',900,2600],['diamond',1,2]], boss:true},
+  {id:'cinder',  name:'Cinderwyrm',   ic:'🐉', lvl:100,hp:220, atk:78, def:66, max:16,xp:2200,area:'mire',   drops:[['big_bones',1,2],['coins',700,2000],['diamond',0,1,0.2]], boss:true, dragon:true},
+  {id:'crawl',   name:'Crawling Hand',ic:'🖐️', lvl:8,  hp:16,  atk:6,  def:5,  max:2, xp:44,  area:'tower',  slayReq:1,  drops:[['bones',1,1],['coins',6,22]]},
+  {id:'lurker',  name:'Cave Lurker',  ic:'🦎', lvl:23, hp:25,  atk:18, def:16, max:4, xp:82,  area:'tower',  slayReq:10, drops:[['bones',1,1],['coins',14,44]]},
+  {id:'banshee', name:'Banshee',      ic:'🧟', lvl:33, hp:34,  atk:26, def:22, max:6, xp:120, area:'tower',  slayReq:20, drops:[['bones',1,1],['coins',22,70],['sapphire',0,1,0.08]]},
+  {id:'veld',    name:'Bloodveld',    ic:'👅', lvl:48, hp:60,  atk:38, def:30, max:8, xp:230, area:'tower',  slayReq:35, drops:[['big_bones',1,1],['coins',40,130],['ruby',0,1,0.07]]},
+  {id:'garg',    name:'Gargoyle',     ic:'🦇', lvl:65, hp:70,  atk:52, def:48, max:10,xp:330, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',90,260],['granite_mauler',0,1,0.02],['diamond',0,1,0.03]]},
+  {id:'abyss',   name:'Abyssal Fiend',ic:'🐙', lvl:95, hp:110, atk:70, def:64, max:12,xp:520, area:'tower',  slayReq:75, drops:[['big_bones',1,1],['coins',160,460],['abyssal_lash',0,1,0.017],['diamond',0,1,0.08]]},
 ];
 
 /* ---- Quests ---- */
 const RS_QUESTS = [
-  {id:'q1', name:"The Cook's Errand", qp:1, desc:'The innkeeper wants 5 cooked shrimp for the lunch rush.',
-   need:function(r){ return (r.counts.cook_shrimp||0); }, goal:5,
+  {id:'q1', name:"The Cook's Errand", qp:1,
+   desc:'The innkeeper wants shrimp for the lunch rush.',
+   steps:[{d:'Cook 5 shrimp', need:function(r){return r.counts.cook_shrimp||0;}, goal:5}],
    reward:'300 coins · 250 Cooking XP',
    grant:function(r){ r.coins += 300; rsAddXp('cook', 250); }},
-  {id:'q2', name:'The Rusty Blade', qp:1, desc:'The town guard snapped his sword. Smith him a bronze one.',
-   need:function(r){ return (r.counts.forge_bronze_sword||0); }, goal:1,
+  {id:'q2', name:'The Rusty Blade', qp:1,
+   desc:'The town guard snapped his sword. Smith him a bronze one.',
+   steps:[{d:'Smith a bronze sword', need:function(r){return r.counts.forge_bronze_sword||0;}, goal:1}],
    reward:'500 coins · 400 Smithing XP',
    grant:function(r){ r.coins += 500; rsAddXp('smith', 400); }},
-  {id:'q3', name:'River Rats', qp:1, desc:'Prove yourself to the fisher-folk: land 20 fish of any kind.',
-   need:function(r){ return (r.counts.fish_any||0); }, goal:20,
+  {id:'q3', name:'River Rats', qp:1,
+   desc:'Prove yourself to the fisher-folk.',
+   steps:[{d:'Land 20 fish of any kind', need:function(r){return r.counts.fish_any||0;}, goal:20}],
    reward:'500 coins · 1,000 Fishing XP',
    grant:function(r){ r.coins += 500; rsAddXp('fish', 1000); }},
-  {id:'q4', name:'The Missing Miner', qp:2, desc:'Old Bram vanished below. Clear 30 ore from the tunnels to dig through to him.',
-   need:function(r){ return (r.counts.mine_any||0); }, goal:30,
-   reward:'1,500 coins · unlocks AUTO-BANK (full bags walk themselves to the vault)',
+  {id:'q4', name:'The Missing Miner', qp:2,
+   desc:'Old Bram vanished below. Dig through to him.',
+   steps:[{d:'Mine 30 ore of any kind', need:function(r){return r.counts.mine_any||0;}, goal:30}],
+   reward:'1,500 coins · unlocks AUTO-BANK',
    grant:function(r){ r.coins += 1500; r.autoBank = true; }},
-  {id:'q5', name:'Shadows over the Mire', qp:4, desc:'Shades gather in the bog. Fell 15 of them, then face what commands them.',
-   need:function(r){ return (r.counts.kill_shade||0); }, goal:15,
-   reward:'5,000 coins · the Starshard blade · awakens the Bog King',
+  {id:'q5', name:'Shadows over the Mire', qp:4,
+   desc:'Shades gather in the bog. Fell them, then face what commands them.',
+   steps:[{d:'Slay 15 Mire Shades', need:function(r){return r.counts.kill_shade||0;}, goal:15},
+          {d:'Defeat the Bog King', need:function(r){return r.counts.kill_bogking||0;}, goal:1}],
+   reward:'5,000 coins · the Starshard blade',
    grant:function(r){ r.coins += 5000; rsGive('star_sword', 1); }},
+  {id:'q6', name:"The Dwarf's Order", qp:1,
+   desc:'Doric the smith is behind on an order and needs materials, fast.',
+   steps:[{d:'Gather 6 copper ore', need:function(r){return r.counts.get_copper_ore||0;}, goal:6},
+          {d:'Gather 4 iron ore',   need:function(r){return r.counts.get_iron_ore||0;}, goal:4},
+          {d:'Smelt 2 iron bars',   need:function(r){return r.counts.get_iron_bar||0;}, goal:2}],
+   reward:'700 coins · 800 Smithing XP',
+   grant:function(r){ r.coins += 700; rsAddXp('smith', 800); }},
+  {id:'q7', name:"Chef's Special", qp:1,
+   desc:'The innkeeper again. This time it is a banquet, and standards are involved.',
+   steps:[{d:'Cook 3 trout',   need:function(r){return r.counts.cook_trout||0;}, goal:3},
+          {d:'Cook 1 lobster', need:function(r){return r.counts.cook_lobster||0;}, goal:1}],
+   reward:"900 Cooking XP · the Chef's hat",
+   grant:function(r){ rsAddXp('cook', 900); rsGive('chef_hat', 1); }},
+  {id:'q8', name:'The Restless Grave', qp:1,
+   desc:'Something in the churchyard will not sleep until the bones are seen to.',
+   steps:[{d:'Bury 20 bones', need:function(r){return r.buried||0;}, goal:20}],
+   reward:'600 coins · 1,200 Prayer XP',
+   grant:function(r){ r.coins += 600; rsAddXp('pray', 1200); }},
+  {id:'q9', name:'Timber!', qp:1,
+   desc:'The sawmill has a quota and you have an axe.',
+   steps:[{d:'Chop 40 logs of any kind', need:function(r){return r.counts.chop_any||0;}, goal:40}],
+   reward:'900 Woodcutting XP · a steel axe',
+   grant:function(r){ rsAddXp('wc', 900); rsGive('steel_axe', 1); }},
+  {id:'q10', name:'The Bandit Watch', qp:2,
+   desc:'The roads are not safe. The captain wants a message sent.',
+   steps:[{d:'Defeat 5 Guards',      need:function(r){return r.counts.kill_guard||0;}, goal:5},
+          {d:'Defeat 3 Hill Giants', need:function(r){return r.counts.kill_hillg||0;}, goal:3}],
+   reward:'1,200 coins · 1,500 Strength XP',
+   grant:function(r){ r.coins += 1200; rsAddXp('str', 1500); }},
+  {id:'q11', name:"The Slayer's Creed", qp:2,
+   desc:'Morvos the Grim does not respect words. He respects ledgers.',
+   steps:[{d:'Complete 3 slayer tasks', need:function(r){return (r.slay && r.slay.done)||0;}, goal:3}],
+   reward:'25 slayer points · 2,000 Slayer XP',
+   grant:function(r){ rsSlay().pts += 25; rsAddXp('slay', 2000); }},
+  {id:'q12', name:'Cinderwyrm', qp:5,
+   desc:'A dragon has made a nest of the deep Mire. Every hero needs one of these.',
+   steps:[{d:'Defeat 10 Lesser Demons', need:function(r){return r.counts.kill_demon||0;}, goal:10},
+          {d:'Slay Cinderwyrm',         need:function(r){return r.counts.kill_cinder||0;}, goal:1}],
+   reward:'5,000 coins · the Cinder shield · 4,000 XP',
+   grant:function(r){ r.coins += 5000; rsGive('cinder_shield', 1); rsAddXp('def', 2000); rsAddXp('atk', 2000); }},
 ];
+function rsQuestSteps(q){ const r = rsEnsure(); let done = 0; for(const st of q.steps){ if(st.need(r) >= st.goal) done++; else break; } return done; }
+function rsQuestReady(q){ return rsQuestSteps(q) >= q.steps.length; }
 
 /* ---- Areas ---- */
 const RS_AREAS = [
@@ -18357,6 +18423,7 @@ const RS_AREAS = [
   {id:'river',  name:'🎣 River',  desc:'fishing'},
   {id:'town',   name:'🏘️ Town',   desc:'furnace · anvil · range · bank'},
   {id:'fields', name:'⚔️ Combat', desc:'monsters'},
+  {id:'tower',  name:'🗼 Tower',  desc:'the Slayer Master waits within'},
   {id:'mire',   name:'☠️ Mire',   desc:'danger — die here, lose your bag'},
 ];
 
@@ -18458,7 +18525,14 @@ function rsAddXp(id, amount){
       clearTimeout(rsLevelUpTimer);
       rsLevelUpTimer = setTimeout(function(){ box.classList.remove('show'); }, 2200);
     }
-    if(after === 99) rsLog('🏆 LEVEL 99 ' + sk.name.toUpperCase() + ' — a true master. Wear it proudly.', '#7ADE9A');
+    rsJingle('level');
+    if(after === 99){
+      rsLog('🏆 LEVEL 99 ' + sk.name.toUpperCase() + ' — a true master. Wear it proudly.', '#7ADE9A');
+      if(!rsInvQty('cape_' + id) && !(r.bank['cape_' + id] > 0)){
+        if(!rsGive('cape_' + id, 1)) r.bank['cape_' + id] = 1;
+        rsLog('🎽 You are awarded the ' + sk.name + ' cape of accomplishment!', '#ffd84d');
+      }
+    }
     rsSpark = 14;
   }
   rsXpDrops.push({txt:'+' + Math.round(amount) + ' ' + (RS_SKILLS.find(function(s){return s.id===id;})||{}).name + ' xp', t:1});
@@ -18484,6 +18558,10 @@ function rsStartActivity(kind, key){
   r.mob = null;
   if(kind === 'fight'){
     const m = RS_MOBS.find(function(x){return x.id===key;});
+    if(m.slayReq && rsLvl('slay') < m.slayReq){
+      rsLog('You need Slayer level ' + m.slayReq + ' to harm the ' + m.name + '.', '#e8b4c0');
+      r.act = null; return;
+    }
     r.mob = {id:m.id, hp:m.hp};
     rsLog('You square up to the ' + m.name + '.', '#e8b4c0');
   }
@@ -18543,6 +18621,8 @@ function rsTickCore(quiet){
       if(!rsGive(t.id, 1)) { rsBagOverflow(t.id); return; }
       rsAddXp(skill, t.xp);
       r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
+      r.counts['get_' + t.id] = (r.counts['get_' + t.id]||0) + 1;
+      if(Math.random() < 1/500) rsGivePet(act.kind === 'chop' ? 'pet_beaver' : act.kind === 'mine' ? 'pet_golem' : 'pet_heron');
       if(!quiet && Math.random() < 0.18) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788');
     }
     return;
@@ -18568,6 +18648,7 @@ function rsTickCore(quiet){
     for(const k in rec.ins) if(rsInvQty(k) < rec.ins[k]){ rsStopActivity(quiet); return; }
     for(const k in rec.ins) rsTake(k, rec.ins[k]);
     rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
+    r.counts['get_' + rec.out] = (r.counts['get_' + rec.out]||0) + 1;
     rsSwing = 2;
     return;
   }
@@ -18595,6 +18676,7 @@ function rsTickCore(quiet){
     const acc = Math.min(0.95, Math.max(0.15, ( (rsLvl('atk') + rsAtkBonus()) ) / ( (rsLvl('atk') + rsAtkBonus()) + m.def*1.4 ) + 0.18));
     let dealt = 0;
     if(Math.random() < acc) dealt = 1 + Math.floor(Math.random() * rsMaxHit());
+    if(dealt > 0 && r.equip.helm === 'grim_mask' && rsOnTask(m.id)) dealt = Math.round(dealt * 1.2);
     r.mob.hp -= dealt;
     rsSplats.push({who:'mob', v:dealt, t:1});
     const style = r.style || 'atk';
@@ -18604,6 +18686,9 @@ function rsTickCore(quiet){
     }
     if(r.mob.hp <= 0){
       r.counts['kill_' + m.id] = (r.counts['kill_' + m.id]||0) + 1;
+      rsSlayerKill(m, quiet);
+      if(m.id === 'bogking' && Math.random() < 1/30) rsGivePet('pet_bog');
+      if(m.id === 'cinder'  && Math.random() < 1/20) rsGivePet('pet_cinder');
       m.drops.forEach(function(d){
         const chance = d[3] === undefined ? 1 : d[3];
         if(Math.random() > chance) return;
@@ -18707,13 +18792,12 @@ function rsCheckQuests(){
   const r = rsEnsure();
   RS_QUESTS.forEach(function(q){
     if(r.quests[q.id] === 'done') return;
-    if(q.need(r) >= q.goal && r.quests[q.id] !== 'ready'){
+    if(rsQuestReady(q) && r.quests[q.id] !== 'ready'){
       r.quests[q.id] = 'ready';
       rsLog('⭐ Quest complete: ' + q.name + ' — claim your reward in the Quests tab!', '#ffd84d');
+      rsJingle('quest');
     }
   });
-  /* the fisher-folk count every fish */
-  r.counts.fish_any = r.counts.fish_any || 0;
 }
 function rsClaimQuest(qid){
   const r = rsEnsure();
@@ -18725,6 +18809,111 @@ function rsClaimQuest(qid){
   rsLog('⭐ ' + q.name + ' — reward claimed. (' + q.qp + ' quest point' + (q.qp>1?'s':'') + ')', '#7ADE9A');
   try{ saveState(); }catch(e){}
   rsRenderPanel(); rsRenderHud(); rsRenderActs();
+}
+
+/* ---- SLAYER: Morvos the Grim ---- */
+function rsSlay(){
+  const r = rsEnsure();
+  if(!r.slay || typeof r.slay !== 'object') r.slay = {task:null, done:0, pts:0, streak:0};
+  return r.slay;
+}
+const RS_MORVOS = [
+  '"Another corpse walks in. Let us make some dead things of you."',
+  '"The tower feeds on the slow. Try not to be food."',
+  '"Bring me trophies, not excuses."',
+  '"My ledger is hungry."',
+];
+function rsAssignTask(){
+  const sl = rsSlay();
+  if(sl.task){ rsLog('Morvos: "Finish the job first. ' + sl.task.left + ' ' + rsMobName(sl.task.mob) + 's remain."', '#c4b5ff'); return; }
+  const cb = rsCombatLevel();
+  const pool = RS_MOBS.filter(function(m){
+    return !m.boss && !m.dragon && m.lvl <= cb + 12 && (!m.slayReq || rsLvl('slay') >= m.slayReq);
+  });
+  const m = pool[Math.floor(Math.random() * pool.length)];
+  const n = Math.min(60, 8 + Math.floor(Math.random() * 10) + Math.floor(cb / 4));
+  sl.task = {mob: m.id, left: n, total: n};
+  rsLog('💀 Morvos ' + RS_MORVOS[Math.floor(Math.random() * RS_MORVOS.length)], '#c4b5ff');
+  rsLog('💀 New task: slay ' + n + ' ' + m.name + 's.', '#ffd84d');
+  rsRenderActs();
+}
+function rsMobName(id){ const m = RS_MOBS.find(function(x){return x.id===id;}); return m ? m.name : id; }
+function rsOnTask(mobId){ const sl = rsSlay(); return !!(sl.task && sl.task.mob === mobId); }
+function rsSlayerKill(m, quiet){
+  const sl = rsSlay();
+  if(!sl.task || sl.task.mob !== m.id) return;
+  sl.task.left--;
+  rsAddXp('slay', m.hp);
+  if(sl.task.left <= 0){
+    sl.done = (sl.done|0) + 1;
+    sl.streak = (sl.streak|0) + 1;
+    let pts = 10 + Math.floor(m.lvl / 10);
+    if(sl.streak % 5 === 0) pts += 40;
+    sl.pts = (sl.pts|0) + pts;
+    sl.task = null;
+    rsLog('💀 Task complete! Morvos pays ' + pts + ' slayer points. (' + sl.done + ' tasks, ' + sl.pts + ' pts)', '#7ADE9A');
+    rsJingle('quest');
+    if(Math.random() < 1/25) rsGivePet('pet_grim');
+    if(!quiet) rsRenderActs();
+  }
+}
+function rsSkipTask(){
+  const sl = rsSlay();
+  if(!sl.task){ rsLog('Morvos: "Skip what? You have no task."', '#c4b5ff'); return; }
+  if(sl.pts < 8){ rsLog('Skipping costs 8 slayer points.', '#e8b4c0'); return; }
+  sl.pts -= 8; sl.streak = 0; sl.task = null;
+  rsLog('Morvos sighs and crosses out the entry. Task skipped.', '#c4b5ff');
+  rsRenderActs(); rsRenderPanel();
+}
+function rsBuySlayReward(what){
+  const sl = rsSlay();
+  if(what === 'lamp'){
+    if(sl.pts < 30){ rsLog('The lamp costs 30 points.', '#e8b4c0'); return; }
+    sl.pts -= 30;
+    let low = 'atk';
+    ['atk','str','def','hp'].forEach(function(k){ if(rsEnsure().skills[k].xp < rsEnsure().skills[low].xp) low = k; });
+    rsAddXp(low, 2500);
+    rsLog('🪔 The lamp flares: +2,500 ' + RS_SKILLS.find(function(x){return x.id===low;}).name + ' XP.', '#ffd84d');
+  } else if(what === 'mask'){
+    if(sl.pts < 75){ rsLog('The Grim mask costs 75 points.', '#e8b4c0'); return; }
+    if(rsInvQty('grim_mask') > 0 || rsEnsure().equip.helm === 'grim_mask'){ rsLog('Morvos: "One face is enough for anyone."', '#c4b5ff'); return; }
+    sl.pts -= 75;
+    rsGive('grim_mask', 1);
+    rsLog('🎭 You take the Grim mask. Monsters on your task will fear it (+20% damage).', '#7ADE9A');
+  }
+  rsRenderPanel();
+}
+
+/* ---- Pets ---- */
+function rsGivePet(id){
+  const r = rsEnsure();
+  if(rsInvQty(id) > 0 || (r.bank[id]||0) > 0 || r.pet === id) return;
+  if(!rsGive(id, 1)) { r.bank[id] = 1; }
+  r.pet = id;
+  rsLog('🐾 You have a funny feeling like you are being followed…', '#ffd84d');
+  rsLog('🐾 The ' + RS_ITEMS[id].name + ' pet is now yours!', '#7ADE9A');
+  rsJingle('pet');
+}
+
+/* ---- Jingles ---- */
+let rsAudioCtx = null;
+function rsJingle(kind){
+  const r = rsEnsure();
+  if(r.sound === false) return;
+  try{
+    if(!rsAudioCtx) rsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const c = rsAudioCtx;
+    const notes = kind === 'level' ? [392, 523, 659, 784] : kind === 'pet' ? [523, 659, 523, 784, 1046] : [330, 415, 494, 659];
+    notes.forEach(function(f, i){
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, c.currentTime + i * 0.12);
+      g.gain.exponentialRampToValueAtTime(0.08, c.currentTime + i * 0.12 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + i * 0.12 + 0.22);
+      o.connect(g); g.connect(c.destination);
+      o.start(c.currentTime + i * 0.12); o.stop(c.currentTime + i * 0.12 + 0.25);
+    });
+  }catch(e){}
 }
 
 /* ---- HUD + panels ---- */
@@ -18753,7 +18942,8 @@ function rsRenderAreas(){
   const box = document.getElementById('rsAreas');
   if(!box) return;
   box.innerHTML = RS_AREAS.map(function(a){
-    const locked = a.id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0);
+    const locked = (a.id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)) ||
+                   (a.id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0));
     return '<button class="rs-area' + (r.area === a.id ? ' on' : '') + (locked ? ' locked' : '') + '" data-rsa="' + a.id + '"' +
       (locked ? ' title="Combat 40 required"' : '') + '>' + a.name + '</button>';
   }).join('');
@@ -18761,6 +18951,7 @@ function rsRenderAreas(){
     b.addEventListener('click', function(){
       const id = b.dataset.rsa;
       if(id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)){ rsLog('The Mire would eat you alive. Come back at combat 40.', '#e8b4c0'); return; }
+      if(id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)){ rsLog('Morvos bars the door: "Come back when you can survive my hallways. Combat 15."', '#e8b4c0'); return; }
       r.area = id; rsStopActivity(true);
       rsLog('You travel to ' + RS_AREAS.find(function(x){return x.id===id;}).name.replace(/^\S+\s/,'') + '.', '#c9b788');
       rsRenderAreas(); rsRenderActs();
@@ -18806,12 +18997,30 @@ function rsRenderActs(){
     }).join('');
     h += '<button class="rs-act" data-town="anvil">🔨 Anvil<small>forge gear</small></button>';
   } else {
-    const mobs = RS_MOBS.filter(function(m){ return m.area === r.area && (!m.boss || r.counts.kill_shade >= 15); });
-    h = mobs.map(function(m){
-      return rsActButton(cur && cur.kind==='fight' && cur.key===m.id, false, m.ic + ' ' + m.name, 'lvl ' + m.lvl, 'data-fight="' + m.id + '"');
+    if(r.area === 'tower'){
+      const sl = rsSlay();
+      h += '<button class="rs-act" data-tower="task">💀 ' + (sl.task ? 'Task: ' + sl.task.left + '× ' + rsMobName(sl.task.mob) : 'Morvos: get a task') +
+           '<small>' + (sl.task ? 'on the ledger' : 'the Slayer Master') + '</small></button>';
+      h += '<button class="rs-act" data-tower="shop">🎁 Slayer shop<small>' + (sl.pts|0) + ' points</small></button>';
+    }
+    const mobs = RS_MOBS.filter(function(m){
+      if(m.area !== r.area) return false;
+      if(m.id === 'bogking') return r.counts.kill_shade >= 15;
+      if(m.dragon) return (r.counts.kill_demon||0) >= 10;
+      return true;
+    });
+    h += mobs.map(function(m){
+      const gated = m.slayReq && rsLvl('slay') < m.slayReq;
+      const onTask = rsOnTask(m.id);
+      return rsActButton(cur && cur.kind==='fight' && cur.key===m.id, gated,
+        m.ic + ' ' + m.name + (onTask ? ' 💀' : ''),
+        gated ? 'Slayer ' + m.slayReq : 'lvl ' + m.lvl + (onTask ? ' · task' : ''),
+        'data-fight="' + m.id + '"');
     }).join('');
     if(r.area === 'mire' && !(r.counts.kill_shade >= 15))
       h += '<button class="rs-act dis">🐸 ???<small>something stirs below</small></button>';
+    if(r.area === 'mire' && r.counts.kill_shade >= 15 && !((r.counts.kill_demon||0) >= 10))
+      h += '<button class="rs-act dis">🐉 ???<small>scaled tracks in the mud</small></button>';
   }
   box.innerHTML = h;
   box.querySelectorAll('[data-chop]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('chop', b.dataset.chop); }); });
@@ -18820,6 +19029,12 @@ function rsRenderActs(){
   box.querySelectorAll('[data-cook]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('cook', b.dataset.cook); }); });
   box.querySelectorAll('[data-smelt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('smelt', b.dataset.smelt); }); });
   box.querySelectorAll('[data-fight]').forEach(function(b){ b.addEventListener('click', function(){ rsStartActivity('fight', b.dataset.fight); }); });
+  box.querySelectorAll('[data-tower]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.dataset.tower === 'task') rsAssignTask();
+      else { rsPanelTab = 'slayshop'; rsRenderTabs(); rsRenderPanel(); }
+    });
+  });
   box.querySelectorAll('[data-town]').forEach(function(b){
     b.addEventListener('click', function(){
       if(b.dataset.town === 'bank'){
@@ -18906,17 +19121,30 @@ function rsRenderPanel(){
   }
 
   if(t === 'quests'){
-    box.innerHTML = RS_QUESTS.map(function(q){
+    const doneN = RS_QUESTS.filter(function(q){ return r.quests[q.id] === 'done'; }).length;
+    let h = '<div class="rs-ptitle">Quest Journal — ' + doneN + ' / ' + RS_QUESTS.length + '</div>';
+    h += RS_QUESTS.map(function(q){
       const st = r.quests[q.id];
-      const prog = Math.min(q.goal, q.need(r));
+      const stepsDone = rsQuestSteps(q);
+      let stepHtml = '';
+      if(st !== 'done'){
+        stepHtml = q.steps.map(function(sp, i){
+          const c = i < stepsDone;
+          const active = i === stepsDone;
+          const prog = active ? Math.min(sp.goal, sp.need(r)) + '/' + sp.goal : '';
+          return '<div style="font-size:10.5px;color:' + (c ? '#3cd97a' : active ? '#ffd84d' : '#8a7a5a') + ';text-shadow:1px 1px 0 #000;">' +
+            (c ? '✔ ' : active ? '➤ ' : '· ') + sp.d + (prog ? ' — ' + prog : '') + '</div>';
+        }).join('');
+      }
       return '<div class="rs-questcard' + (st === 'done' ? ' done' : '') + '"><div class="qn">' + (st === 'done' ? '✅ ' : '⭐ ') + q.name +
         ' <span style="color:#a99871;font-weight:600;font-size:10px;">(' + q.qp + ' QP)</span></div>' +
-        '<div class="qd">' + q.desc + '</div>' +
+        '<div class="qd">' + q.desc + '</div>' + stepHtml +
         (st === 'done' ? '<div class="qp">Complete.</div>'
           : st === 'ready' ? '<button class="rs-btn" data-rsq="' + q.id + '">Claim: ' + q.reward + '</button>'
-          : '<div class="qp">' + prog + ' / ' + q.goal + ' — reward: ' + q.reward + '</div>') +
+          : '<div class="qp">Reward: ' + q.reward + '</div>') +
         '</div>';
     }).join('');
+    box.innerHTML = h;
     box.querySelectorAll('[data-rsq]').forEach(function(b){
       b.addEventListener('click', function(){ rsClaimQuest(b.dataset.rsq); });
     });
@@ -18967,7 +19195,7 @@ function rsRenderPanel(){
     box.innerHTML = h;
     function sellFrom(container, isBank){
       let got = 0;
-      const gearless = function(id){ const d = RS_ITEMS[id]; return d && !d.slot && !d.tool; };
+      const gearless = function(id){ const d = RS_ITEMS[id]; return d && !d.slot && !d.tool && !d.pet && !d.cape; };
       if(isBank){
         Object.keys(container).forEach(function(k){
           if(gearless(k)){ got += (RS_ITEMS[k].sell || 1) * container[k]; delete container[k]; }
@@ -18999,6 +19227,24 @@ function rsRenderPanel(){
         r.tools[d.tool] = Math.max(r.tools[d.tool], d.tier);
         rsLog('You buy the ' + d.name + '. It bites deeper.', '#7ADE9A');
         rsRenderPanel(); rsRenderHud();
+      });
+    });
+    return;
+  }
+
+  if(t === 'slayshop'){
+    const sl = rsSlay();
+    box.innerHTML = '<div class="rs-ptitle">💀 Morvos\u2019 Slayer Shop</div>' +
+      '<div style="text-align:center;margin-bottom:8px;"><span class="rs-chip">' + (sl.pts|0) + ' slayer points</span> ' +
+      '<span class="rs-chip">' + (sl.done|0) + ' tasks</span> <span class="rs-chip">streak ' + (sl.streak|0) + '</span></div>' +
+      '<div class="rs-rows">' +
+      '<div class="rs-row"><span>🪔</span><div class="grow">XP lamp<span class="sub">+2,500 XP to your weakest combat skill</span></div><button class="rs-btn" data-slb="lamp">30 pts</button></div>' +
+      '<div class="rs-row"><span>🎭</span><div class="grow">Grim mask<span class="sub">helm · +20% damage while on task</span></div><button class="rs-btn" data-slb="mask">75 pts</button></div>' +
+      '<div class="rs-row"><span>⏭️</span><div class="grow">Skip task<span class="sub">resets your streak</span></div><button class="rs-btn" data-slb="skip">8 pts</button></div>' +
+      '</div><div style="font-size:10px;color:#c8b997;margin-top:7px;text-align:center;">Every 5th task pays a 40-point bonus.</div>';
+    box.querySelectorAll('[data-slb]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.dataset.slb === 'skip') rsSkipTask(); else rsBuySlayReward(b.dataset.slb);
       });
     });
     return;
@@ -19040,6 +19286,11 @@ const RS_EXAMINE = {
   burnt:'Oops.', bones:'These would be good for burying.', big_bones:'The bones of something big.',
   sapphire:'A sparkly blue gem.', ruby:'A sparkly red gem.', diamond:'This looks valuable.',
   star_sword:'A blade forged from a fallen star. It hums faintly.',
+  chef_hat:'What a silly hat.', grim_mask:'It grins even when you do not.',
+  granite_mauler:'Subtlety not included.', abyssal_lash:'It writhes when nobody is looking.',
+  cinder_shield:'Still warm.', pet_beaver:'It gnaws thoughtfully.', pet_golem:'A very loyal pebble.',
+  pet_heron:'It judges your casting form.', pet_bog:'Royalty, allegedly.',
+  pet_grim:'Morvos denies all knowledge.', pet_cinder:'Do not feed after midnight.',
 };
 function rsExamine(id){
   const d = RS_ITEMS[id];
@@ -19086,6 +19337,7 @@ function rsItemMenu(el, id){
   if(!d) return;
   const tgt = ' <b>' + d.name + '</b>';
   const es = [];
+  if(d.pet)       es.push(['Follow' + tgt, function(){ rsEnsure().pet = id; rsLog('The ' + d.name + ' scampers to your heel.', '#7ADE9A'); }]);
   if(d.heal)      es.push(['Eat' + tgt, function(){ rsUseItem(id); }]);
   if(d.bury)      es.push(['Bury' + tgt, function(){ rsUseItem(id); }]);
   if(d.slot)      es.push([(d.slot === 'weapon' || d.slot === 'shield' ? 'Wield' : 'Wear') + tgt, function(){ rsUseItem(id); }]);
@@ -19125,6 +19377,11 @@ function rsUseItem(id){
   } else if(d.tool){
     if(r.tools[d.tool] >= d.tier){ rsLog('You already swing something at least that good.', '#a99871'); return; }
     if(rsTake(id, 1)){ r.tools[d.tool] = d.tier; rsLog('You heft the ' + d.name + '. Much better.', '#7ADE9A'); }
+  } else if(d.pet){
+    rsEnsure().pet = id;
+    rsLog('The ' + d.name + ' scampers to your heel.', '#7ADE9A');
+  } else if(d.cape){
+    rsLog('The ' + d.name + ' — proof of mastery. It does not need stats.', '#ffd84d');
   } else {
     rsLog(d.name + ' — worth about ' + d.sell + ' coins at the shop.', '#a99871');
   }
@@ -19139,6 +19396,7 @@ const RS_AREA_ART = {
   town:  {skyTop:'#e8b06a', skyBot:'#f0d9a8', ground:'#7a7368', groundDark:'#645e54'},
   fields:{skyTop:'#79b7e0', skyBot:'#cfe8c0', ground:'#59842f', groundDark:'#476a26'},
   mire:  {skyTop:'#4a5a4c', skyBot:'#333f35', ground:'#3a4a36', groundDark:'#2c3829'},
+  tower: {skyTop:'#2a2433', skyBot:'#1a1622', ground:'#3a3342', groundDark:'#2c2733'},
 };
 const RS_TREE_ART = {
   logs:{leaf:'#3f7d2e', leaf2:'#549940', trunk:'#6b4a2a'},
@@ -19273,6 +19531,25 @@ function rsDrawBackdrop(ctx, W, H, area, t){
     });
     ctx.fillStyle = 'rgba(0,0,0,0.10)';
     for(let i = 0; i < 30; i++){ const cx2 = (i * 41) % W; rsRR(ctx, cx2, gy + 10 + (i * 29) % 40, 14, 6, 3); ctx.fill(); }
+  } else if(area === 'tower'){
+    /* stone pillars, chains, candles */
+    ctx.fillStyle = '#4a4156';
+    [[40, 0], [W - 70, 0], [W * 0.45, 0]].forEach(function(pl){
+      ctx.fillRect(pl[0], 0, 26, gy);
+      ctx.fillStyle = '#3a3346'; ctx.fillRect(pl[0] + 20, 0, 6, gy); ctx.fillStyle = '#4a4156';
+      ctx.fillRect(pl[0] - 5, gy - 12, 36, 12);
+    });
+    ctx.strokeStyle = '#241f2c'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(66, 30); ctx.quadraticCurveTo(W * 0.3, 70, W * 0.45, 34); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W * 0.45 + 26, 40); ctx.quadraticCurveTo(W * 0.75, 84, W - 70, 36); ctx.stroke();
+    ctx.lineWidth = 1;
+    [[120, gy - 30], [W - 130, gy - 42], [W * 0.36, gy - 26]].forEach(function(cd, i){
+      ctx.fillStyle = '#d8ccb4'; ctx.fillRect(cd[0], cd[1], 4, 12);
+      const fl = 2.5 + Math.sin(t / 3 + i * 2) * 1.2;
+      ctx.fillStyle = '#ffb648'; ctx.beginPath(); ctx.arc(cd[0] + 2, cd[1] - 3, fl, 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = 'rgba(120,90,160,0.08)';
+    rsRR(ctx, ((t * 0.5) % (W + 120)) - 60, 60, 110, 16, 8); ctx.fill();
   } else if(area === 'mire'){
     /* dead trees, murk pools, drifting fog */
     ctx.strokeStyle = '#22301f'; ctx.lineWidth = 4;
@@ -19456,6 +19733,11 @@ function rsDrawHero(ctx, W, H){
   const held = rsHeldKind();
   if(held) rsDrawHeld(ctx, held);
   ctx.restore();
+  /* the pet trots at your heel */
+  if(r.pet && RS_ITEMS[r.pet]){
+    ctx.font = '15px serif';
+    ctx.fillText(RS_ITEMS[r.pet].ic, -34, -1 + Math.sin(rsAnimT / 8) * 1.5);
+  }
   /* shield on the rear arm */
   if(r.equip.shield){
     ctx.fillStyle = '#8a6f4a'; rsRR(ctx, -24, -32, 12, 16, 4); ctx.fill();
@@ -19551,6 +19833,16 @@ function rsOnEnterTab(){
 function rsOnLeaveTab(){
   rsAnimOn = false;   /* the engine keeps ticking globally; only the art sleeps */
 }
+(function rsWireSound(){
+  const b = document.getElementById('rsSnd');
+  if(!b) return;
+  b.addEventListener('click', function(){
+    const r = rsEnsure();
+    r.sound = r.sound === false ? true : false;
+    b.textContent = r.sound === false ? '🔇' : '🔊';
+    rsLog(r.sound === false ? 'Sound off.' : 'Sound on.', '#a99871');
+  });
+})();
 (function rsWireTabs(){
   const tabs = document.getElementById('rsTabs');
   if(!tabs) return;

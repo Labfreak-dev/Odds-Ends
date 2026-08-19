@@ -18315,6 +18315,9 @@ rsDef('dragon_bones','Dragon bones','🦴',180,{bury:25});
 rsDef('wyrm_ward','Wyrm ward','🐲',3000,{slot:'shield', tier:7, lvl:50});
 rsDef('regent_crown','Regent\'s crown','👑',8000,{slot:'helm', tier:9, lvl:70});
 rsDef('gilded_helm','Gilded helm','⛑️',5200,{slot:'helm', tier:6, lvl:40});
+rsDef('dragon_sword','Dragon sword','🗡️',6000,{slot:'weapon', tier:7, lvl:60});
+rsDef('dark_bow','Dark bow','🏹',7500,{slot:'weapon', kind:'bow', tier:7, lvl:60});
+rsDef('regent_staff','Staff of the Regent','🪄',9500,{slot:'weapon', kind:'staff', tier:7, lvl:60});
 rsDef('clue_scroll','Clue scroll','📜',0,{clue:true});
 rsDef('casket','Casket','🎁',0,{casket:true});
 rsDef('pet_wisp','Grave wisp','🕯️',0,{pet:true});
@@ -18387,7 +18390,7 @@ const RS_MOBS = [
   {id:'mossg',   name:'Moss Giant',   ic:'🧌', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
   {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
   {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
-  {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04]]},
+  {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04],['dragon_sword',0,1,0.015]]},
   {id:'bogking', name:'The Bog King', ic:'🐸', lvl:90, hp:180, atk:70, def:62, max:14,xp:1500,area:'mire',   drops:[['big_bones',1,1],['coins',900,2600],['diamond',1,2]], boss:true},
   {id:'cinder',  name:'Cinderwyrm',   ic:'🐉', lvl:100,hp:220, atk:78, def:66, max:16,xp:2200,area:'mire',   drops:[['big_bones',1,2],['coins',700,2000],['diamond',0,1,0.2]], boss:true, dragon:true},
   {id:'crawl',   name:'Crawling Hand',ic:'🖐️', lvl:8,  hp:16,  atk:6,  def:5,  max:2, xp:44,  area:'tower',  slayReq:1,  drops:[['bones',1,1],['coins',6,22]]},
@@ -18400,8 +18403,8 @@ const RS_MOBS = [
   {id:'zombie',    name:'Zombie',        ic:'🧟‍♂️', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
   {id:'ghast',     name:'Ghast',         ic:'🫥', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
   {id:'ankou',     name:'Ankou',         ic:'☠️', lvl:75, hp:90,  atk:58, def:52, max:10,xp:420, area:'cata', drops:[['big_bones',1,1],['coins',110,320],['ruby',0,1,0.08],['diamond',0,1,0.04]]},
-  {id:'gdemon',    name:'Greater Demon', ic:'👹', lvl:92, hp:105, atk:68, def:62, max:12,xp:500, area:'cata', drops:[['big_bones',1,1],['coins',150,430],['diamond',0,1,0.07]]},
-  {id:'boneregent',name:'The Bone Regent',ic:'🦴', lvl:115,hp:300, atk:84, def:70, max:17,xp:3000,area:'cata', drops:[['big_bones',1,2],['coins',1200,3200],['diamond',1,2]], boss:true},
+  {id:'gdemon',    name:'Greater Demon', ic:'👹', lvl:92, hp:105, atk:68, def:62, max:12,xp:500, area:'cata', drops:[['big_bones',1,1],['coins',150,430],['diamond',0,1,0.07],['dark_bow',0,1,0.017]]},
+  {id:'boneregent',name:'The Bone Regent',ic:'🦴', lvl:115,hp:300, atk:84, def:70, max:17,xp:3000,area:'cata', drops:[['big_bones',1,2],['coins',1200,3200],['diamond',1,2],['regent_staff',0,1,0.04]], boss:true},
 ];
 
 /* ---- Quests ---- */
@@ -18548,6 +18551,7 @@ function rsEnsure(){
   if(!r.quests || typeof r.quests !== 'object') r.quests = {};
   if(typeof r.coins !== 'number' || !isFinite(r.coins)) r.coins = 0;
   if(typeof r.curHp !== 'number' || !isFinite(r.curHp)) r.curHp = rsLvl('hp');
+  if(typeof r.spec !== 'number' || !isFinite(r.spec)) r.spec = 100;
   return r;
 }
 function rsLvl(id){ return rsLevelFor(rsEnsure().skills[id].xp); }
@@ -18748,10 +18752,44 @@ function rsBagOverflow(gainId){
   return true;
 }
 
+/* Everything that happens when a monster dies. Returns true if it was a boss
+   (activity has been stopped and the mob should NOT respawn). */
+function rsMobDie(m, quiet){
+  const r = rsEnsure();
+  r.counts['kill_' + m.id] = (r.counts['kill_' + m.id]||0) + 1;
+  rsSlayerKill(m, quiet);
+  if(m.id === 'bogking' && Math.random() < 1/30) rsGivePet('pet_bog');
+  if(m.id === 'cinder'  && Math.random() < 1/20) rsGivePet('pet_cinder');
+  if(m.id === 'boneregent' && Math.random() < 1/25) rsGivePet('pet_wisp');
+  m.drops.forEach(function(d){
+    const chance = d[3] === undefined ? 1 : d[3];
+    if(Math.random() > chance) return;
+    const qty = d[1] + Math.floor(Math.random() * (d[2] - d[1] + 1));
+    if(qty <= 0) return;
+    if(d[0] === 'coins') r.coins += qty;
+    else if(!rsGive(d[0], qty)) r.bank[d[0]] = (r.bank[d[0]]||0) + qty;
+  });
+  if(m.lvl >= 20 && !r.clue && !rsHave('clue_scroll') && Math.random() < 0.03){
+    rsGrant('clue_scroll', 1);
+    rsLog('📜 The ' + m.name + ' was carrying a clue scroll!', '#8fd7ff');
+  }
+  if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A', 'kill_' + m.id);
+  if(m.boss){
+    if(m.id === 'bogking'){ rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d'); }
+    else if(m.id === 'boneregent'){ rsLog('👑 THE BONE REGENT CRUMBLES. The catacombs exhale.', '#ffd84d'); }
+    else { rsLog('👑 ' + m.name.toUpperCase() + ' FALLS.', '#ffd84d'); }
+    if(m.id === 'bogking') r.counts.kill_bogking_ever = 1;
+    rsStopActivity(quiet);
+    return true;
+  }
+  return false;
+}
+
 /* One tick of whatever the character is doing. quiet = offline catch-up. */
 function rsTickCore(quiet){
   const r = rsEnsure();
   const act = r.act;
+  r.spec = Math.min(100, (r.spec|0) + 1);   /* special attack energy: full in ~60s */
   /* out-of-combat regen: 1 hp per 10 ticks */
   if(!act || act.kind !== 'fight'){
     if((r.regenT = (r.regenT|0) + 1) >= 10){ r.regenT = 0; r.curHp = Math.min(rsLvl('hp'), r.curHp + 1); }
@@ -18868,32 +18906,7 @@ function rsTickCore(quiet){
       rsAddXp('hp', dealt * 1.33);
     }
     if(r.mob.hp <= 0){
-      r.counts['kill_' + m.id] = (r.counts['kill_' + m.id]||0) + 1;
-      rsSlayerKill(m, quiet);
-      if(m.id === 'bogking' && Math.random() < 1/30) rsGivePet('pet_bog');
-      if(m.id === 'cinder'  && Math.random() < 1/20) rsGivePet('pet_cinder');
-      if(m.id === 'boneregent' && Math.random() < 1/25) rsGivePet('pet_wisp');
-      m.drops.forEach(function(d){
-        const chance = d[3] === undefined ? 1 : d[3];
-        if(Math.random() > chance) return;
-        const qty = d[1] + Math.floor(Math.random() * (d[2] - d[1] + 1));
-        if(qty <= 0) return;
-        if(d[0] === 'coins') r.coins += qty;
-        else if(!rsGive(d[0], qty)) r.bank[d[0]] = (r.bank[d[0]]||0) + qty;
-      });
-      if(m.lvl >= 20 && !r.clue && !rsHave('clue_scroll') && Math.random() < 0.03){
-        rsGrant('clue_scroll', 1);
-        rsLog('📜 The ' + m.name + ' was carrying a clue scroll!', '#8fd7ff');
-      }
-      if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A', 'kill_' + m.id);
-      if(m.boss){
-        if(m.id === 'bogking'){ rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d'); }
-        else if(m.id === 'boneregent'){ rsLog('👑 THE BONE REGENT CRUMBLES. The catacombs exhale.', '#ffd84d'); }
-        else { rsLog('👑 ' + m.name.toUpperCase() + ' FALLS.', '#ffd84d'); }
-        if(m.id === 'bogking') r.counts.kill_bogking_ever = 1;
-        rsStopActivity(quiet);
-        return;
-      }
+      if(rsMobDie(m, quiet)) return;
       r.mob = {id:m.id, hp:m.hp};   /* respawn */
       return;
     }
@@ -18929,23 +18942,63 @@ function rsTickCore(quiet){
 }
 
 /* ---- Random events (active play only) ---- */
+function rsActSkill(){
+  const r = rsEnsure(), a = r.act;
+  if(!a) return null;
+  if(a.kind === 'chop') return 'wc';
+  if(a.kind === 'mine') return 'mine';
+  if(a.kind === 'fish') return 'fish';
+  if(a.kind === 'cook') return 'cook';
+  if(a.kind === 'smelt' || a.kind === 'forge') return 'smith';
+  if(a.kind === 'fight'){
+    const k = rsWeaponKind();
+    if(k === 'bow') return 'range';
+    if(k === 'staff') return 'mage';
+    return r.style === 'shared' || !r.style ? 'atk' : r.style;
+  }
+  return null;
+}
+/* Random events never interrupt play — they only ever hand you something. */
 function rsRandomEvent(){
   const r = rsEnsure();
   r.events = (r.events|0) + 1;
   const roll = Math.random();
-  if(roll < 0.45){
+  if(roll < 0.25){
     let low = RS_SKILLS[0];
     RS_SKILLS.forEach(function(s){ if(rsEnsure().skills[s.id].xp < rsEnsure().skills[low.id].xp) low = s; });
     const amt = 120 + rsLvl(low.id) * 30;
     rsAddXp(low.id, amt);
     rsLog('🧞 A genie appears and hands you a lamp! +' + amt + ' ' + low.name + ' XP.', '#c4b5ff');
-  } else if(roll < 0.8){
+  } else if(roll < 0.45){
     const c = 100 + Math.floor(Math.random() * 400);
     r.coins += c;
     rsLog('🎁 You stumble on a gilded chest: ' + c + ' coins!', '#ffd84d');
+  } else if(roll < 0.60){
+    if(Math.random() < 0.4){
+      const g = Math.random() < 0.6 ? 'sapphire' : Math.random() < 0.75 ? 'ruby' : 'diamond';
+      rsGrant(g, 1);
+      rsLog('🪺 A bird\'s nest tumbles down — a ' + RS_ITEMS[g].name.toLowerCase() + ' inside!', '#ffd84d');
+    } else {
+      const c = 150 + Math.floor(Math.random() * 250);
+      r.coins += c;
+      rsLog('🪺 A bird\'s nest tumbles down — ' + c + ' coins tucked inside!', '#ffd84d');
+    }
+  } else if(roll < 0.75){
+    const sk = rsActSkill() || 'hp';
+    const amt = 90 + rsLvl(sk) * 22;
+    rsAddXp(sk, amt);
+    rsLog('💫 A surge of focus takes you! +' + amt + ' ' + RS_SKILLS.find(function(x){return x.id===sk;}).name + ' XP.', '#c4b5ff');
+  } else if(roll < 0.85){
+    rsGrant('trout', 5);
+    rsLog('🧙 A travelling merchant tosses you a parcel of cooked trout. "For the road!"', '#7ADE9A');
+  } else if(roll < 0.93){
+    r.spec = 100;
+    r.curHp = Math.min(rsLvl('hp'), r.curHp + 5);
+    rsLog('🎶 A wandering bard\'s song stirs your blood — special energy restored!', '#c4b5ff');
   } else {
-    rsLog('🐝 A swarm of bees chases you off!', '#e8b4c0');
-    rsStopActivity();
+    const c = 800 + Math.floor(Math.random() * 1600);
+    r.coins += c;
+    rsLog('🎉 A drop party erupts around you: ' + c.toLocaleString() + ' coins!', '#ffd84d');
   }
 }
 
@@ -19209,6 +19262,18 @@ function rsRenderActs(){
            '<small>' + (sl.task ? 'on the ledger' : 'the Slayer Master') + '</small></button>';
       h += '<button class="rs-act" data-tower="shop">🎁 Slayer shop<small>' + (sl.pts|0) + ' points</small></button>';
     }
+    if(cur && cur.kind === 'fight'){
+      const food = r.inv.find(function(x){ return RS_ITEMS[x.id] && RS_ITEMS[x.id].heal; });
+      h += '<button class="rs-act' + (food ? '' : ' dis') + '" data-combat="eat">🍖 Eat' +
+           '<small>' + (food ? RS_ITEMS[food.id].name + ' · +' + RS_ITEMS[food.id].heal + ' HP' : 'no food!') + '</small></button>';
+      const wsp = rsWeapon(), spc = wsp ? RS_SPECS[wsp.id] : null;
+      if(spc){
+        const ready = (r.spec|0) >= spc.cost;
+        h += '<button class="rs-act' + (ready ? '' : ' dis') + '" data-combat="spec">⚡ ' + spc.name +
+             '<small>' + (r.spec|0) + '/100 · costs ' + spc.cost + '</small></button>';
+      }
+      h += '<button class="rs-act" data-combat="flee">🏃 Flee<small>live to fight again</small></button>';
+    }
     const mobs = RS_MOBS.filter(function(m){
       if(m.area !== r.area) return false;
       if(m.id === 'bogking') return r.counts.kill_shade >= 15;
@@ -19238,6 +19303,13 @@ function rsRenderActs(){
   box.querySelectorAll('[data-cook]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('cook', b.dataset.cook); }); });
   box.querySelectorAll('[data-smelt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('smelt', b.dataset.smelt); }); });
   box.querySelectorAll('[data-fight]').forEach(function(b){ b.addEventListener('click', function(){ rsStartActivity('fight', b.dataset.fight); }); });
+  box.querySelectorAll('[data-combat]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.dataset.combat === 'eat'){ if(!rsEat()) rsLog('You have nothing edible in your bag.', '#e8b4c0'); rsRenderActs(); rsRenderHud(); }
+      else if(b.dataset.combat === 'spec'){ rsDoSpecial(); }
+      else { rsLog('You back away from the fight.', '#c9b788'); rsStopActivity(); }
+    });
+  });
   box.querySelectorAll('[data-tower]').forEach(function(b){
     b.addEventListener('click', function(){
       if(b.dataset.tower === 'task') rsAssignTask();
@@ -19291,12 +19363,22 @@ function rsRenderPanel(){
     box.innerHTML = '<div class="rs-skillgrid">' + RS_SKILLS.map(function(s){
       const lv = rsLvl(s.id);
       const xp = Math.floor(r.skills[s.id].xp);
-      return '<div class="rs-skcell" title="' + s.name + ' — ' + xp.toLocaleString() + ' xp">' +
+      const nxt = lv < 99 ? (RS_XP_TABLE[lv] - xp).toLocaleString() + ' xp to ' + (lv + 1) : 'mastered';
+      return '<div class="rs-skcell" data-rssk="' + s.id + '" title="' + s.name + ' — ' + xp.toLocaleString() + ' xp · ' + nxt + '">' +
         '<span class="ic">' + s.ic + '</span>' +
-        '<span class="lv">' + lv + '<small>/' + lv + '</small></span></div>';
+        '<span class="lv">' + lv + '<small>/99</small></span></div>';
     }).join('') + '</div>' +
     '<div class="rs-totalbox">Total level:<br>' + rsTotalLevel() + '</div>' +
-    '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Hold an icon to see exact XP. The road to 990 is long.</div>';
+    '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Tap a skill for exact XP. Every road ends at 99.</div>';
+    box.querySelectorAll('[data-rssk]').forEach(function(c){
+      c.addEventListener('click', function(){
+        const sk = RS_SKILLS.find(function(x){return x.id===c.dataset.rssk;});
+        if(!sk) return;
+        const xp2 = Math.floor(r.skills[sk.id].xp), lv2 = rsLvl(sk.id);
+        rsLog('📜 ' + sk.name + ': level ' + lv2 + ' — ' + xp2.toLocaleString() + ' xp' +
+          (lv2 < 99 ? ' · ' + (RS_XP_TABLE[lv2] - xp2).toLocaleString() + ' xp to level ' + (lv2 + 1) + '.' : ' — MASTERED.'), '#c9b788');
+      });
+    });
     return;
   }
 
@@ -19573,6 +19655,9 @@ const RS_EXAMINE = {
   regent_crown:'Heavy is the head. Heavier is this.', gilded_helm:'Impractically shiny.',
   clue_scroll:'A riddle in a hurried hand. Read it.', casket:'Something rattles inside. Open it.',
   pet_wisp:'It hums old funeral songs.', black_body:'Made from a very cross dragon.',
+  dragon_sword:'A legendary blade. Its special attack cuts fast and cheap.',
+  dark_bow:'Strung with shadow. Its special attack looses two arrows at once.',
+  regent_staff:'The Regent\'s own sceptre. Its special attack steals life.',
   wiz_hat:'A pointy hat. Deeply traditional.', arch_top:'The seams crackle quietly.',
 };
 function rsExamine(id){
@@ -19626,7 +19711,7 @@ function rsItemMenu(el, id){
                           ['Bury-All' + tgt, function(){
                             let n = rsInvQty(id), xp = 0;
                             while(rsTake(id, 1)){ xp += d.bury; rsEnsure().buried = (rsEnsure().buried|0) + 1; }
-                            if(n > 0){ rsAddXp('pray', xp); rsLog('You bury ' + n + ' ' + d.name.toLowerCase() + (n>1?'s':'') + '. The gods are well pleased.', '#c4b5ff'); }
+                            if(n > 0){ rsAddXp('pray', xp); rsLog('You bury ' + n + ' ' + d.name.toLowerCase() + (n > 1 && !/s$/i.test(d.name) ? 's' : '') + '. The gods are well pleased.', '#c4b5ff'); }
                             rsRenderPanel();
                           }]);
   if(d.slot)      es.push([(d.slot === 'weapon' || d.slot === 'shield' ? 'Wield' : 'Wear') + tgt, function(){ rsUseItem(id); }]);
@@ -19652,6 +19737,52 @@ function rsItemMenu(el, id){
     rsRenderPanel();
   }]);
   rsShowMenu(el, es);
+}
+const RS_SPECS = {
+  star_sword:     {name:'Starfall',    cost:50, dmg:2.0,  acc:99, txt:'The blade blazes — the heavens strike with you.'},
+  granite_mauler: {name:'Quake',       cost:60, dmg:1.6,  acc:40, txt:'The blow lands like a landslide.'},
+  abyssal_lash:   {name:'Drain',       cost:50, dmg:1.5,  acc:15, heal:0.5, txt:'The lash drinks deep.'},
+  dragon_sword:   {name:'Sever',       cost:25, dmg:1.25, acc:25, txt:'A vicious, slicing arc.'},
+  dark_bow:       {name:'Twin Shot',   cost:55, dmg:1.0,  acc:10, twice:true, txt:'Two arrows leave the string as one.'},
+  regent_staff:   {name:'Soul Siphon', cost:60, dmg:1.8,  acc:15, heal:0.5, txt:'Pale fire pulls the life across.'},
+};
+function rsDoSpecial(){
+  const r = rsEnsure();
+  const w = rsWeapon();
+  const sp = w ? RS_SPECS[w.id] : null;
+  if(!sp || !r.act || r.act.kind !== 'fight' || !r.mob) return;
+  if((r.spec|0) < sp.cost){ rsLog('Not enough special attack energy (' + (r.spec|0) + '/' + sp.cost + ').', '#e8b4c0'); return; }
+  const m = RS_MOBS.find(function(x){return x.id===r.mob.id;});
+  if(!m) return;
+  r.spec -= sp.cost;
+  rsSwing = 2;
+  const wk = rsWeaponKind();
+  const hits = sp.twice ? 2 : 1;
+  let total = 0;
+  for(let i = 0; i < hits; i++){
+    const accLvl = (wk === 'bow' ? rsLvl('range') : wk === 'staff' ? rsLvl('mage') : rsLvl('atk')) + w.tier * 3 + (sp.acc||0)
+                 + (rsAmulet() ? (rsAmulet().accb||0) : 0)
+                 + (wk === 'bow' ? rsStyleGearBonus('range')*2 : wk === 'staff' ? rsStyleGearBonus('mage')*2 : 0);
+    const acc = Math.min(0.98, Math.max(0.2, accLvl / (accLvl + m.def*1.4) + 0.18));
+    let dealt = 0;
+    if(Math.random() < acc) dealt = 1 + Math.floor(Math.random() * Math.max(1, Math.round(rsMaxHit() * sp.dmg)));
+    if(dealt > 0 && r.equip.helm === 'grim_mask' && rsOnTask(m.id)) dealt = Math.round(dealt * 1.2);
+    r.mob.hp -= dealt;
+    total += dealt;
+    rsSplats.push({who:'mob', v:dealt, t:1});
+  }
+  rsLog('⚡ ' + sp.name + '! ' + sp.txt + (total > 0 ? ' (' + total + ' damage)' : ' ...it misses!'), '#ffd84d');
+  if(total > 0){
+    if(wk === 'bow') rsAddXp('range', total * 4);
+    else if(wk === 'staff') rsAddXp('mage', total * 4);
+    else { const st = r.style || 'atk'; rsAddXp(st === 'shared' ? ['atk','str','def'][Math.floor(Math.random()*3)] : st, total * 4); }
+    rsAddXp('hp', total * 1.33);
+    if(sp.heal){ const hl = Math.ceil(total * sp.heal); r.curHp = Math.min(rsLvl('hp'), r.curHp + hl); rsLog('You siphon back ' + hl + ' HP.', '#7ADE9A'); }
+  }
+  if(r.mob.hp <= 0){
+    if(!rsMobDie(m, false)) r.mob = {id:m.id, hp:m.hp};
+  }
+  rsRenderActs(); rsRenderHud();
 }
 const RS_CLUE_HINTS = {
   woods:  '“Where axes sing and leaves drift down, the trail hides among the roots.”',

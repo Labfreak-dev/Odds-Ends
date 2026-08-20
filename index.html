@@ -1365,7 +1365,7 @@
   .rs-area.on{ border-color:#241f17 #6a5d44 #6a5d44 #241f17; background:#2b251c; color:#ff981f; }
   .rs-area.locked{ opacity:.45; }
   .rs-scene-wrap{ position:relative; border:3px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44; overflow:hidden; background:#1d1812; }
-  #rsScene{ width:100%; display:block; image-rendering:pixelated; }
+  #rsScene{ width:100%; display:block; }
   .rs-acts{ display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; }
   .rs-act{ background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
     border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-radius:2px; color:#ffff00; padding:7px 10px;
@@ -1373,12 +1373,14 @@
   .rs-act.on{ border-color:#241f17 #6a5d44 #6a5d44 #241f17; background:#2b251c; color:#ff981f; }
   .rs-act.dis{ opacity:.4; cursor:default; }
   .rs-act small{ display:block; font-weight:700; color:#c8b997; font-size:9.5px; }
+  .rs-por{ width:26px; height:26px; vertical-align:middle; margin-right:3px; image-rendering:auto; }
+  .rs-row .rs-por{ width:30px; height:30px; margin:0; }
   .rs-log{ height:118px; overflow-y:auto; background:#d8ccb4; border:2px solid;
     border-color:#241f17 #6a5d44 #6a5d44 #241f17; padding:6px 9px; font-size:12px; line-height:1.5;
     margin-top:8px; font-weight:700; }
   .rs-log div{ color:#000; }
   .rs-tabs{ display:flex; gap:3px; flex-wrap:wrap; margin:10px 0 0; }
-  .rs-tab{ flex:1; min-width:34px; background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
+  .rs-tab{ flex:1; min-width:25px; background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
     border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-bottom:none; border-radius:4px 4px 0 0;
     color:#ffff00; padding:8px 4px; font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer; text-align:center; }
   .rs-tab.on{ background:#4d4232; color:#ff981f; }
@@ -3439,7 +3441,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     <div class="rs-layout">
       <div class="rs-viewcol">
         <div class="rs-scene-wrap">
-          <canvas id="rsScene" width="640" height="360"></canvas>
+          <canvas id="rsScene" width="1600" height="900"></canvas>
           <div class="rs-levelup" id="rsLevelUp"><div id="rsLevelUpTxt"></div></div>
         </div>
         <div class="rs-cbar" id="rsCombatBar" style="display:none;"></div>
@@ -18241,6 +18243,13 @@ const RS_SKILLS = [
   {id:'mage',  name:'Magic',       ic:'🪄'},
   {id:'herb',  name:'Herblore',    ic:'🧪'},
   {id:'fm',    name:'Firemaking',  ic:'🔥'},
+  {id:'craft', name:'Crafting',    ic:'🧵'},
+  {id:'fletch',name:'Fletching',   ic:'🎯'},
+  {id:'rc',    name:'Runecraft',   ic:'🔮'},
+  {id:'thief', name:'Thieving',    ic:'🕶️'},
+  {id:'agil',  name:'Agility',     ic:'🏃'},
+  {id:'con',   name:'Construction',ic:'🔨'},
+  {id:'farm',  name:'Farming',     ic:'🌱'},
 ];
 
 /* ---- Items ---- */
@@ -18294,6 +18303,7 @@ const RS_BOWS = [
 ];
 RS_BOWS.forEach(function(bw, i){
   rsDef(bw[0], bw[1], '🏹', Math.round(Math.pow(3.1, i) * 30), {slot:'weapon', kind:'bow', tier:i+1, lvl:bw[2]});
+  rsDef('u_' + bw[0], 'Unstrung ' + bw[1].toLowerCase(), '🪝', Math.round(Math.pow(3.1, i) * 18), {unstrung:bw[0]});
 });
 const RS_STAVES = [
   ['app_staff','Apprentice staff',1], ['ember_staff','Ember staff',10], ['gale_staff','Gale staff',20],
@@ -18358,10 +18368,74 @@ rsDef('anglerfish','Anglerfish','🍛',210,{heal:22});
 rsDef('dragon_dagger','Dragon dagger','🔪',5500,{slot:'weapon', tier:6, lvl:60});
 rsDef('knights_blade','Knight\'s blade','⚔️',7800,{slot:'weapon', tier:8, lvl:60});
 rsDef('holy_symbol','Holy symbol','✝️',2600,{slot:'amulet', tier:2, lvl:1, accb:2, defb:2, holy:true});
+rsDef('dragon_helm','Dragon helm','🪖',12000,{slot:'helm', tier:7, lvl:60});
+rsDef('dragon_body','Dragon platebody','🧥',26000,{slot:'body', tier:7, lvl:60});
+rsDef('dragon_legs','Dragon platelegs','👖',18000,{slot:'legs', tier:7, lvl:60});
+rsDef('dragon_shield','Dragon kiteshield','🛡️',22000,{slot:'shield', tier:7, lvl:60});
+rsDef('dragon_scim','Dragon scimitar','🗡️',9000,{slot:'weapon', tier:7, lvl:60});
+rsDef('dragon_axe','Dragon axe','🪓',14000,{tool:'axe', tier:6, lvl:61});
+rsDef('dragon_pick','Dragon pickaxe','⛏️',16000,{tool:'pick', tier:6, lvl:61});
+rsDef('crystal_bow','Crystal bow','🏹',18000,{slot:'weapon', kind:'bow', tier:8, lvl:70});
+rsDef('trident','Trident of the deep','🔱',20000,{slot:'weapon', kind:'staff', tier:8, lvl:70});
+rsDef('dawn_blade','Blade of Dawn','🌞',45000,{slot:'weapon', tier:10, lvl:75});
+rsDef('ring_berserk','Berserker ring','💍',9000,{slot:'ring', tier:3, lvl:1, mhb:2});
+rsDef('ring_archer','Archer ring','💍',9000,{slot:'ring', tier:3, lvl:1, accb:6, style:'range'});
+rsDef('ring_seer','Seer ring','💍',9000,{slot:'ring', tier:3, lvl:1, accb:6, style:'mage'});
+rsDef('ring_wealth','Ring of wealth','💍',7000,{slot:'ring', tier:2, lvl:1, wealth:true});
+rsDef('ring_recoil','Ring of recoil','💍',2500,{slot:'ring', tier:1, lvl:1, recoil:true});
+rsDef('fire_cape','Fire cape','🧣',30000,{slot:'cape', tier:6, lvl:60, mhb:1, accb:4});
+rsDef('wyrm_hide','Ebon hide','🐉',6000);
+rsDef('plank','Plank','🪵',18);
+rsDef('nails','Nails','🔩',3);
+rsDef('limestone','Limestone','🧱',10);
+rsDef('stone_block','Stone block','🧱',34);
+rsDef('potato','Potato','🥔',4,{heal:2});
+rsDef('onion','Onion','🧅',6,{heal:3});
+rsDef('cabbage','Cabbage','🥬',8,{heal:4});
+rsDef('tomato','Tomato','🍅',12,{heal:5});
+rsDef('sweetcorn','Sweetcorn','🌽',22,{heal:7});
+rsDef('strawberry','Strawberry','🍓',34,{heal:9});
+rsDef('watermelon','Watermelon','🍉',60,{heal:13});
+rsDef('cowhide','Cowhide','🐮',12);
+rsDef('leather','Leather','🟫',30);
+rsDef('feather','Feather','🪶',3);
+rsDef('arrow_shaft','Arrow shaft','🧷',1);
+rsDef('bowstring','Bowstring','🧵',25);
+rsDef('rune_ess','Rune essence','🌑',6);
+rsDef('mark_grace','Mark of grace','🕊️',0);
+rsDef('sapphire_c','Cut sapphire','🔷',180);
+rsDef('ruby_c','Cut ruby','❤️',420);
+rsDef('diamond_c','Cut diamond','💎',960);
+rsDef('graceful_cape','Graceful cape','🎽',0,{slot:'cape', tier:3, lvl:1, agile:true});
+const RS_ARROWS = [['bronze_arrow','Bronze arrow',1,2],['iron_arrow','Iron arrow',15,4],
+  ['steel_arrow','Steel arrow',30,7],['mith_arrow','Mithril arrow',45,12],
+  ['addy_arrow','Adamant arrow',60,20],['rune_arrow','Rune arrow',75,35]];
+RS_ARROWS.forEach(function(a){ rsDef(a[0], a[1], '🏹', a[3], {ammo:'bow', tier:RS_ARROWS.indexOf(a)+1}); });
+const RS_RUNES = [['air_rune','Air rune',1,5,4],['water_rune','Water rune',5,6,6],
+  ['earth_rune','Earth rune',9,6.5,8],['fire_rune','Fire rune',14,7,11],
+  ['body_rune','Body rune',20,7.5,15],['chaos_rune','Chaos rune',35,8.5,30],
+  ['nature_rune','Nature rune',44,9,60],['law_rune','Law rune',54,9.5,110],
+  ['death_rune','Death rune',65,10,200]];
+RS_RUNES.forEach(function(a){ rsDef(a[0], a[1], '🔲', a[4], {ammo:'staff', tier:RS_RUNES.indexOf(a)+1}); });
+const RS_SEEDS = [
+  {id:'potato_seed',     name:'Potato seed',      crop:'potato',            req:1,  xp:8,   hxp:9,   grow:120, yield:[3,7]},
+  {id:'onion_seed',      name:'Onion seed',       crop:'onion',             req:5,  xp:10,  hxp:11,  grow:150, yield:[3,7]},
+  {id:'cabbage_seed',    name:'Cabbage seed',     crop:'cabbage',           req:7,  xp:11,  hxp:12,  grow:170, yield:[3,7]},
+  {id:'guam_seed',       name:'Guam seed',        crop:'grimy_guam',        req:9,  xp:12,  hxp:13,  grow:200, yield:[2,5]},
+  {id:'tomato_seed',     name:'Tomato seed',      crop:'tomato',            req:12, xp:13,  hxp:14,  grow:200, yield:[3,7]},
+  {id:'marrentill_seed', name:'Marrentill seed',  crop:'grimy_marrentill',  req:14, xp:15,  hxp:17,  grow:230, yield:[2,5]},
+  {id:'sweetcorn_seed',  name:'Sweetcorn seed',   crop:'sweetcorn',         req:20, xp:17,  hxp:19,  grow:260, yield:[3,7]},
+  {id:'harralander_seed',name:'Harralander seed', crop:'grimy_harralander', req:26, xp:22,  hxp:25,  grow:300, yield:[2,5]},
+  {id:'strawberry_seed', name:'Strawberry seed',  crop:'strawberry',        req:31, xp:26,  hxp:29,  grow:330, yield:[3,7]},
+  {id:'ranarr_seed',     name:'Ranarr seed',      crop:'grimy_ranarr',      req:32, xp:30,  hxp:34,  grow:380, yield:[2,5]},
+  {id:'watermelon_seed', name:'Watermelon seed',  crop:'watermelon',        req:47, xp:48,  hxp:54,  grow:440, yield:[4,9]},
+];
+RS_SEEDS.forEach(function(sd){ rsDef(sd.id, sd.name, '🌾', Math.round(4 + sd.req * 2.2), {seed:true}); });
 rsDef('clue_scroll','Clue scroll','📜',0,{clue:true});
 rsDef('casket','Casket','🎁',0,{casket:true});
 rsDef('pet_wisp','Grave wisp','🕯️',0,{pet:true});
-RS_SKILLS.forEach(function(sk){ rsDef('cape_'+sk.id, sk.name+' cape', '🎽', 990, {cape:true}); });
+rsDef('pet_ebon','Ebon whelpling','🐉',0,{pet:true});
+RS_SKILLS.forEach(function(sk){ rsDef('cape_'+sk.id, sk.name+' cape', '🎽', 990, {cape:true, slot:'cape', tier:4, lvl:1}); });
 
 /* ---- Gathering targets ---- */
 const RS_TREES = [
@@ -18380,6 +18454,8 @@ const RS_ROCKS = [
   {id:'mith_ore',   name:'Mithril',req:55, xp:80,   ch:0.20},
   {id:'addy_ore',   name:'Adamant',req:70, xp:95,   ch:0.15},
   {id:'rune_ore',   name:'Runite', req:85, xp:125,  ch:0.09},
+  {id:'rune_ess',   name:'Rune essence', req:1, xp:12, ch:0.55},
+  {id:'limestone',  name:'Limestone',    req:10, xp:26, ch:0.42},
 ];
 const RS_FISH = [
   {id:'raw_shrimp',  name:'Shrimp',    req:1,  xp:10,  ch:0.46},
@@ -18415,6 +18491,106 @@ const RS_BURN = [
   {id:'willow_logs', req:30, xp:90},  {id:'maple_logs', req:45, xp:135},
   {id:'yew_logs',    req:60, xp:202}, {id:'magic_logs', req:75, xp:303},
 ];
+/* Construction materials — made at the Builder's Yard */
+const RS_BUILDMAT = [
+  {out:'plank',       req:1,  xp:9,  ins:{logs:1}},
+  {out:'nails',       qty:10, req:4,  xp:12, ins:{bronze_bar:1}},
+  {out:'stone_block', req:10, xp:22, ins:{limestone:2}},
+];
+/* The eight civic structures. Three tiers each, real bonuses. */
+const RS_STRUCTS = [
+  {id:'forge', name:'Master Forge', ic:'🔨',
+   what:'smithing xp +12% and a chance of a free second bar, per tier',
+   tiers:[{req:5,  xp:400,  mats:{plank:8,  nails:20, stone_block:4}},
+          {req:32, xp:1600, mats:{plank:24, nails:60, stone_block:16}},
+          {req:62, xp:6000, mats:{plank:60, nails:150,stone_block:45}}]},
+  {id:'range', name:'Grand Range', ic:'🍳',
+   what:'burn chance -25% and cooking xp +10%, per tier',
+   tiers:[{req:8,  xp:450,  mats:{plank:10, nails:24, stone_block:6}},
+          {req:35, xp:1800, mats:{plank:28, nails:70, stone_block:20}},
+          {req:65, xp:6400, mats:{plank:66, nails:160,stone_block:50}}]},
+  {id:'store', name:'Storehouse', ic:'🏠',
+   what:'+3 bag slots per tier',
+   tiers:[{req:12, xp:600,  mats:{plank:16, nails:36, stone_block:8}},
+          {req:40, xp:2400, mats:{plank:40, nails:90, stone_block:26}},
+          {req:70, xp:8000, mats:{plank:90, nails:200,stone_block:60}}]},
+  {id:'market',name:'Market Square', ic:'🏪',
+   what:'shop prices -8% and thieving success +5%, per tier',
+   tiers:[{req:16, xp:700,  mats:{plank:18, nails:40, stone_block:12}},
+          {req:44, xp:2800, mats:{plank:44, nails:100,stone_block:32}},
+          {req:72, xp:8600, mats:{plank:96, nails:210,stone_block:66}}]},
+  {id:'farm',  name:'Farmstead', ic:'🌾',
+   what:'+1 farming patch per tier',
+   tiers:[{req:20, xp:800,  mats:{plank:20, nails:44, stone_block:10}},
+          {req:48, xp:3200, mats:{plank:48, nails:110,stone_block:30}},
+          {req:74, xp:9200, mats:{plank:100,nails:220,stone_block:70}}]},
+  {id:'altar', name:'Sanctified Altar', ic:'✨',
+   what:'prayers drain 12% slower per tier',
+   tiers:[{req:25, xp:1000, mats:{plank:22, nails:48, stone_block:18}},
+          {req:52, xp:3800, mats:{plank:52, nails:120,stone_block:40}},
+          {req:78, xp:10000,mats:{plank:110,nails:240,stone_block:80}}]},
+  {id:'guild', name:'Slayer Guild', ic:'💀',
+   what:'+3 slayer points per task, per tier',
+   tiers:[{req:30, xp:1300, mats:{plank:26, nails:56, stone_block:22}},
+          {req:56, xp:4600, mats:{plank:58, nails:130,stone_block:46}},
+          {req:82, xp:11500,mats:{plank:120,nails:260,stone_block:90}}]},
+  {id:'tower', name:'Guard Tower', ic:'🏰',
+   what:'combat accuracy +4% per tier',
+   tiers:[{req:36, xp:1600, mats:{plank:30, nails:64, stone_block:28}},
+          {req:60, xp:5400, mats:{plank:64, nails:140,stone_block:54}},
+          {req:86, xp:13000,mats:{plank:130,nails:280,stone_block:100}}]},
+];
+/* Crafting: tan hide, cut gems, stitch the ranged armour sets */
+const RS_CRAFT = [
+  {out:'leather',     req:1,  xp:12,  ins:{cowhide:1}},
+  {out:'sapphire_c',  req:20, xp:50,  ins:{sapphire:1}},
+  {out:'ruby_c',      req:34, xp:85,  ins:{ruby:1}},
+  {out:'diamond_c',   req:43, xp:107, ins:{diamond:1}},
+  {out:'leather_coif',  req:9,  xp:37,  ins:{leather:1}},
+  {out:'leather_chaps', req:18, xp:54,  ins:{leather:2}},
+  {out:'leather_body',  req:14, xp:75,  ins:{leather:3}},
+  {out:'studded_coif',  req:32, xp:98,  ins:{leather:2, iron_bar:1}},
+  {out:'studded_chaps', req:44, xp:124, ins:{leather:3, iron_bar:1}},
+  {out:'studded_body',  req:41, xp:159, ins:{leather:4, iron_bar:2}},
+  {out:'snake_coif',    req:53, xp:186, ins:{leather:3}},
+  {out:'snake_chaps',   req:56, xp:210, ins:{leather:4}},
+  {out:'snake_body',    req:58, xp:252, ins:{leather:6}},
+  {out:'green_coif',    req:62, xp:248, ins:{leather:4, ruby_c:1}},
+  {out:'green_chaps',   req:66, xp:290, ins:{leather:6, ruby_c:1}},
+  {out:'green_body',    req:63, xp:372, ins:{leather:8, ruby_c:2}},
+];
+/* Fletching: shape, string, and feather */
+const RS_FLETCH = [
+  {out:'arrow_shaft', qty:15, req:1,  xp:5,    ins:{logs:1}},
+  {out:'u_shortbow',  req:5,  xp:5,    ins:{logs:1}},
+  {out:'shortbow',    req:5,  xp:5,    ins:{u_shortbow:1, bowstring:1}},
+  {out:'u_oak_bow',   req:20, xp:16.5, ins:{oak_logs:1}},
+  {out:'oak_bow',     req:25, xp:25,   ins:{u_oak_bow:1, bowstring:1}},
+  {out:'u_willow_bow',req:35, xp:33.3, ins:{willow_logs:1}},
+  {out:'willow_bow',  req:40, xp:41.5, ins:{u_willow_bow:1, bowstring:1}},
+  {out:'u_maple_bow', req:50, xp:50,   ins:{maple_logs:1}},
+  {out:'maple_bow',   req:55, xp:58.2, ins:{u_maple_bow:1, bowstring:1}},
+  {out:'u_yew_bow',   req:65, xp:67.5, ins:{yew_logs:1}},
+  {out:'yew_bow',     req:70, xp:75,   ins:{u_yew_bow:1, bowstring:1}},
+  {out:'u_arc_bow',   req:80, xp:83.3, ins:{magic_logs:1}},
+  {out:'arc_bow',     req:85, xp:91.5, ins:{u_arc_bow:1, bowstring:1}},
+  {out:'bronze_arrow',qty:8,  req:1,  xp:10,  ins:{arrow_shaft:8, feather:8, bronze_bar:1}},
+  {out:'iron_arrow',  qty:8,  req:15, xp:19,  ins:{arrow_shaft:8, feather:8, iron_bar:1}},
+  {out:'steel_arrow', qty:8,  req:30, xp:39,  ins:{arrow_shaft:8, feather:8, steel_bar:1}},
+  {out:'mith_arrow',  qty:8,  req:45, xp:59,  ins:{arrow_shaft:8, feather:8, mith_bar:1}},
+  {out:'addy_arrow',  qty:8,  req:60, xp:79,  ins:{arrow_shaft:8, feather:8, addy_bar:1}},
+  {out:'rune_arrow',  qty:8,  req:75, xp:99,  ins:{arrow_shaft:8, feather:8, rune_bar:1}},
+];
+/* Runecraft: essence in, runes out (wiki levels & xp) */
+const RS_RC = RS_RUNES.map(function(a){ return {out:a[0], req:a[2], xp:a[3]}; });
+/* Thieving: market stalls */
+const RS_STALLS = [
+  {id:'cake',  name:'Baker\'s stall',   req:5,  xp:16,  coins:[8,26],   loot:'shrimp',   dmg:2},
+  {id:'silk',  name:'Silk stall',        req:20, xp:24,  coins:[24,70],  loot:'leather',  dmg:3},
+  {id:'fur',   name:'Fur stall',         req:35, xp:36,  coins:[45,130], loot:'cowhide',  dmg:4},
+  {id:'gem',   name:'Gem stall',         req:50, xp:80,  coins:[120,340],loot:'sapphire', dmg:6},
+  {id:'scim',  name:'Scimitar stall',    req:65, xp:125, coins:[260,700],loot:'ruby',     dmg:8},
+];
 const RS_BREWS = [
   {out:'atk_potion',   herb:'guam',        sec:'eye_of_newt',   req:1,  xp:25},
   {out:'str_potion',   herb:'marrentill',  sec:'limpwurt_root', req:12, xp:40},
@@ -18438,30 +18614,41 @@ const RS_FORGE = (function(){
 
 /* ---- Monsters ---- */
 const RS_MOBS = [
-  {id:'chicken', name:'Chicken',      ic:'🐔', lvl:1,  hp:3,   atk:1,  def:1,  max:1, xp:12,  area:'fields', drops:[['bones',1,1],['coins',1,4]]},
+  {id:'chicken', name:'Chicken',      ic:'🐔', lvl:1,  hp:3,   atk:1,  def:1,  max:1, xp:12,  area:'fields', drops:[['bones',1,1],['coins',1,4],['feather',3,8]]},
   {id:'imp',     name:'Imp',          ic:'👿', lvl:5,  hp:8,   atk:3,  def:3,  max:1, xp:30,  area:'fields', drops:[['bones',1,1],['coins',2,8]]},
+  {id:'rat',     name:'Giant Rat',    ic:'🐀', lvl:3,  hp:6,   atk:2,  def:2,  max:1, xp:18,  area:'fields', drops:[['bones',1,1],['coins',1,6]]},
+  {id:'scorp',   name:'Scorpion',     ic:'🦂', lvl:14, hp:16,  atk:11, def:9,  max:3, xp:52,  area:'fields', drops:[['bones',1,1],['coins',6,24]]},
+  {id:'bandit',  name:'Bandit',       ic:'🏴', lvl:34, hp:38,  atk:28, def:24, max:6, xp:145, area:'fields', drops:[['bones',1,1],['coins',30,110],['sapphire',0,1,0.05]]},
   {id:'goblin',  name:'Goblin',       ic:'👺', lvl:2,  hp:5,   atk:1,  def:1,  max:1, xp:20,  area:'fields', drops:[['bones',1,1],['coins',2,9]]},
-  {id:'cow',     name:'Cow',          ic:'🐄', lvl:2,  hp:8,   atk:1,  def:1,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',3,12]]},
+  {id:'cow',     name:'Cow',          ic:'🐄', lvl:2,  hp:8,   atk:1,  def:1,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',3,12],['cowhide',1,1]]},
   {id:'guard',   name:'Guard',        ic:'💂', lvl:21, hp:22,  atk:18, def:16, max:4, xp:70,  area:'fields', drops:[['bones',1,1],['coins',12,40]]},
   {id:'hillg',   name:'Hill Giant',   ic:'🗿', lvl:28, hp:35,  atk:22, def:20, max:6, xp:120, area:'fields', drops:[['big_bones',1,1],['coins',20,80],['sapphire',0,1,0.06]]},
   {id:'mossg',   name:'Moss Giant',   ic:'🦍', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
   {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
   {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
-  {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04],['dragon_sword',0,1,0.015]]},
+  {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04],['dragon_sword',0,1,0.015],['dragon_axe',0,1,0.01],['dragon_pick',0,1,0.01]]},
   {id:'bogking', name:'The Bog King', ic:'🐸', lvl:90, hp:180, atk:70, def:62, max:14,xp:1500,area:'mire',   drops:[['big_bones',1,1],['coins',900,2600],['diamond',1,2]], boss:true},
   {id:'cinder',  name:'Cinderwyrm',   ic:'🐉', lvl:100,hp:220, atk:78, def:66, max:16,xp:2200,area:'mire',   drops:[['big_bones',1,2],['coins',700,2000],['diamond',0,1,0.2]], boss:true, dragon:true},
   {id:'crawl',   name:'Crawling Hand',ic:'🖐️', lvl:8,  hp:16,  atk:6,  def:5,  max:2, xp:44,  area:'tower',  slayReq:1,  drops:[['bones',1,1],['coins',6,22]]},
+  {id:'wolf',    name:'Dire Wolf',    ic:'🐺', lvl:18, hp:20,  atk:14, def:12, max:3, xp:64,  area:'tower',  slayReq:5,  drops:[['bones',1,1],['coins',8,30]]},
+  {id:'basilisk',name:'Basilisk',     ic:'🐍', lvl:58, hp:64,  atk:46, def:44, max:9, xp:280, area:'tower',  slayReq:45, drops:[['big_bones',1,1],['coins',70,210],['diamond',0,1,0.05]]},
   {id:'lurker',  name:'Cave Lurker',  ic:'🦎', lvl:23, hp:25,  atk:18, def:16, max:4, xp:82,  area:'tower',  slayReq:10, drops:[['bones',1,1],['coins',14,44]]},
   {id:'banshee', name:'Banshee',      ic:'😱', lvl:33, hp:34,  atk:26, def:22, max:6, xp:120, area:'tower',  slayReq:20, drops:[['bones',1,1],['coins',22,70],['sapphire',0,1,0.08]]},
   {id:'veld',    name:'Bloodveld',    ic:'👅', lvl:48, hp:60,  atk:38, def:30, max:8, xp:230, area:'tower',  slayReq:35, drops:[['big_bones',1,1],['coins',40,130],['ruby',0,1,0.07]]},
-  {id:'garg',    name:'Gargoyle',     ic:'🦇', lvl:65, hp:70,  atk:52, def:48, max:10,xp:330, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',90,260],['granite_mauler',0,1,0.02],['diamond',0,1,0.03]]},
+  {id:'garg',    name:'Gargoyle',     ic:'🦇', lvl:65, hp:70,  atk:52, def:48, max:10,xp:330, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',90,260],['granite_mauler',0,1,0.02],['diamond',0,1,0.03],['ring_archer',0,1,0.02]]},
   {id:'abyss',   name:'Abyssal Fiend',ic:'🐙', lvl:95, hp:110, atk:70, def:64, max:12,xp:520, area:'tower',  slayReq:75, drops:[['big_bones',1,1],['coins',160,460],['abyssal_lash',0,1,0.017],['diamond',0,1,0.08]]},
   {id:'skel',      name:'Skeleton',      ic:'💀', lvl:22, hp:24,  atk:17, def:15, max:4, xp:75,  area:'cata', drops:[['bones',1,1],['coins',10,35]]},
   {id:'zombie',    name:'Zombie',        ic:'🧟', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
   {id:'ghast',     name:'Ghast',         ic:'🌬️', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
   {id:'ankou',     name:'Ankou',         ic:'☠️', lvl:75, hp:90,  atk:58, def:52, max:10,xp:420, area:'cata', drops:[['big_bones',1,1],['coins',110,320],['ruby',0,1,0.08],['diamond',0,1,0.04]]},
   {id:'gdemon',    name:'Greater Demon', ic:'👹', lvl:92, hp:105, atk:68, def:62, max:12,xp:500, area:'cata', drops:[['big_bones',1,1],['coins',150,430],['diamond',0,1,0.07],['dark_bow',0,1,0.017]]},
-  {id:'boneregent',name:'The Bone Regent',ic:'🦴', lvl:115,hp:300, atk:84, def:70, max:17,xp:3000,area:'cata', drops:[['big_bones',1,2],['coins',1200,3200],['diamond',1,2],['regent_staff',0,1,0.04]], boss:true},
+  {id:'wildman',  name:'Wilderness Rogue', ic:'🥷', lvl:68, hp:72,  atk:54, def:50, max:10,xp:360, area:'wild', drops:[['bones',1,1],['coins',80,260],['ruby',0,1,0.06]]},
+  {id:'hellhound',name:'Hellhound',       ic:'🦁', lvl:92, hp:104, atk:70, def:64, max:12,xp:520, area:'wild', drops:[['big_bones',1,1],['coins',140,420],['diamond',0,1,0.06]]},
+  {id:'chaosdruid',name:'Chaos Druid',    ic:'🧙', lvl:80, hp:86,  atk:62, def:56, max:11,xp:440, area:'wild', drops:[['big_bones',1,1],['coins',110,340],['grimy_ranarr',1,2]]},
+  {id:'revenant', name:'Revenant',        ic:'👻', lvl:105,hp:120, atk:78, def:70, max:14,xp:640, area:'wild', drops:[['big_bones',1,1],['coins',220,700],['diamond',0,1,0.10],['ring_recoil',0,1,0.02]]},
+  {id:'greenwyrm',name:'Ebon Whelp',      ic:'🐲', lvl:118,hp:140, atk:84, def:76, max:15,xp:760, area:'wild', drops:[['dragon_bones',1,1],['coins',260,820],['wyrm_hide',1,1],['dragon_scim',0,1,0.02],['ring_berserk',0,1,0.015]]},
+  {id:'ebonwyrm', name:'The Ebon Wyrm',   ic:'🐉', lvl:160,hp:460, atk:104,def:92, max:22,xp:6000,area:'wild', drops:[['dragon_bones',2,3],['coins',2500,6000],['wyrm_hide',2,4],['dawn_blade',0,1,0.05],['dragon_body',0,1,0.06],['dragon_legs',0,1,0.06],['dragon_shield',0,1,0.05],['fire_cape',0,1,0.04]], boss:true, dragon:true},
+  {id:'boneregent',name:'The Bone Regent',ic:'🦴', lvl:115,hp:300, atk:84, def:70, max:17,xp:3000,area:'cata', drops:[['big_bones',1,2],['coins',1200,3200],['diamond',1,2],['regent_staff',0,1,0.04],['dragon_helm',0,1,0.05],['ring_seer',0,1,0.02]], boss:true},
 ];
 
 /* ---- Quests ---- */
@@ -18587,6 +18774,70 @@ const RS_QUESTS = [
           {d:'Reach combat level 60', need:function(r){return rsCombatLevel();}, goal:60}],
    reward:"the Knight's blade (special: Judgment)",
    grant:function(r){ rsGrant('knights_blade', 1); }},
+  {id:'q23', name:'Hide and Seek', qp:1,
+   desc:'The tanner will teach the trade to anyone who brings the raw material.',
+   steps:[{d:'Collect 8 cowhide',   need:function(r){return r.counts.get_cowhide||0;}, goal:8},
+          {d:'Tan 5 into leather',  need:function(r){return r.counts.craft_leather||0;}, goal:5}],
+   reward:'900 Crafting XP · 400 coins',
+   grant:function(r){ rsAddXp('craft', 900); r.coins += 400; }},
+  {id:'q24', name:'A Fine Point', qp:1,
+   desc:'The fletcher lost his apprentice to the guards. You look steady enough.',
+   steps:[{d:'Fletch 20 arrows',    need:function(r){return r.counts.fletch_bronze_arrow||0;}, goal:3},
+          {d:'String a shortbow',   need:function(r){return r.counts.fletch_shortbow||0;}, goal:1}],
+   reward:'800 Fletching XP · 20 bowstrings',
+   grant:function(r){ rsAddXp('fletch', 800); rsGrant('bowstring', 20); }},
+  {id:'q25', name:'The Binding', qp:2,
+   desc:'The tower mage insists the runes remember being stone. Prove her right.',
+   steps:[{d:'Mine 20 rune essence', need:function(r){return r.counts.get_rune_ess||0;}, goal:20},
+          {d:'Craft 30 runes',       need:function(r){return r.counts.rc_any||0;}, goal:30}],
+   reward:'1,500 Runecraft XP · 50 air runes',
+   grant:function(r){ rsAddXp('rc', 1500); rsGrant('air_rune', 50); }},
+  {id:'q26', name:'Light Fingers', qp:2,
+   desc:'The thieves\' guild does not recruit. It only notices.',
+   steps:[{d:'Steal 30 times', need:function(r){return r.counts.steal_any||0;}, goal:30}],
+   reward:'1,200 Thieving XP · 1,000 coins',
+   grant:function(r){ rsAddXp('thief', 1200); r.coins += 1000; }},
+  {id:'q27', name:'Rooftops of Runeshard', qp:2,
+   desc:'Nobody uses the streets if they can help it.',
+   steps:[{d:'Run 25 rooftop laps', need:function(r){return r.counts.agil_laps||0;}, goal:25},
+          {d:'Collect 10 marks of grace', need:function(r){return r.counts.get_mark||0;}, goal:10}],
+   reward:'the Graceful cape · 1,500 Agility XP',
+   grant:function(r){ rsGrant('graceful_cape', 1); rsAddXp('agil', 1500); }},
+  {id:'q28', name:'Beyond the Ditch', qp:3,
+   desc:'Everyone who crosses says the same thing: the loot is worth it. Most of them are lying.',
+   steps:[{d:'Reach combat level 70', need:function(r){return rsCombatLevel();}, goal:70},
+          {d:'Defeat 10 Wilderness Rogues', need:function(r){return r.counts.kill_wildman||0;}, goal:10}],
+   reward:'2,500 coins · a Ring of recoil',
+   grant:function(r){ r.coins += 2500; rsGrant('ring_recoil', 1); }},
+  {id:'q29', name:'The Crystal Bough', qp:3,
+   desc:'The elf-smith will shape one bow, for someone who has already proved they can shoot.',
+   steps:[{d:'Reach Ranged level 70', need:function(r){return rsLvl('range');}, goal:70},
+          {d:'Fletch 50 arrows',      need:function(r){return r.counts.fletch_any||0;}, goal:50}],
+   reward:'the Crystal bow (special: Crystal Rain)',
+   grant:function(r){ rsGrant('crystal_bow', 1); }},
+  {id:'q30', name:'Wyrm of the Waste', qp:6,
+   desc:'The Ebon Wyrm has eaten every hero sent after it. The queue is shorter now.',
+   steps:[{d:'Defeat 8 Ebon Whelps', need:function(r){return r.counts.kill_greenwyrm||0;}, goal:8},
+          {d:'Slay the Ebon Wyrm',   need:function(r){return r.counts.kill_ebonwyrm||0;}, goal:1}],
+   reward:'10,000 coins · the Trident of the deep',
+   grant:function(r){ r.coins += 10000; rsGrant('trident', 1); }},
+  {id:'q31', name:'Rebuilding Runeshard', qp:2,
+   desc:'The town council has coins, ambition, and nobody who can hold a hammer.',
+   steps:[{d:'Make 30 planks',      need:function(r){return r.counts.build_plank||0;}, goal:30},
+          {d:'Raise any structure', need:function(r){return r.counts.built||0;}, goal:1}],
+   reward:'1,200 Construction XP · 40 nails',
+   grant:function(r){ rsAddXp('con', 1200); rsGrant('nails', 40); }},
+  {id:'q32', name:'Green Fingers', qp:1,
+   desc:'The farmer will not sell you seeds until you prove you can keep something alive.',
+   steps:[{d:'Harvest 6 crops', need:function(r){return r.counts.harvest_any||0;}, goal:6}],
+   reward:'900 Farming XP · 6 seeds',
+   grant:function(r){ rsAddXp('farm', 900); ['potato_seed','onion_seed','cabbage_seed','guam_seed','tomato_seed','marrentill_seed'].forEach(function(x){ rsGrant(x, 1); }); }},
+  {id:'q33', name:'The Charter', qp:4,
+   desc:'A town is not buildings. But it certainly helps.',
+   steps:[{d:'Raise 6 structure tiers', need:function(r){return r.counts.built||0;}, goal:6},
+          {d:'Reach Construction 40',   need:function(r){return rsLvl('con');}, goal:40}],
+   reward:'5,000 coins · 4,000 Construction XP',
+   grant:function(r){ r.coins += 5000; rsAddXp('con', 4000); }},
 ];
 function rsQuestSteps(q){ const r = rsEnsure(); let done = 0; for(const st of q.steps){ if(st.need(r) >= st.goal) done++; else break; } return done; }
 function rsQuestReady(q){ return rsQuestSteps(q) >= q.steps.length; }
@@ -18600,6 +18851,7 @@ const RS_AREAS = [
   {id:'fields', name:'⚔️ Combat', desc:'monsters'},
   {id:'tower',  name:'🗼 Tower',  desc:'the Slayer Master waits within'},
   {id:'cata',   name:'💀 Catacombs', desc:'the restless dead, filed by floor'},
+  {id:'wild',   name:'🔥 Wilderness', desc:'lawless, lava-cracked, and worth it'},
   {id:'mire',   name:'☠️ Mire',   desc:'danger — die here, lose your bag'},
 ];
 
@@ -18625,13 +18877,15 @@ function rsEnsure(){
   });
   if(!Array.isArray(r.inv)) r.inv = [];
   if(!r.bank || typeof r.bank !== 'object') r.bank = {};
-  if(!r.equip || typeof r.equip !== 'object') r.equip = {weapon:null,helm:null,body:null,shield:null};
+  if(!r.equip || typeof r.equip !== 'object') r.equip = {weapon:null,helm:null,body:null,legs:null,shield:null,amulet:null,cape:null,ring:null};
   if(!r.tools || typeof r.tools !== 'object') r.tools = {axe:1,pick:1};
   if(!r.counts || typeof r.counts !== 'object') r.counts = {};
   if(!r.quests || typeof r.quests !== 'object') r.quests = {};
   if(typeof r.coins !== 'number' || !isFinite(r.coins)) r.coins = 0;
   if(typeof r.curHp !== 'number' || !isFinite(r.curHp)) r.curHp = rsLvl('hp');
   if(typeof r.spec !== 'number' || !isFinite(r.spec)) r.spec = 100;
+  if(!r.build || typeof r.build !== 'object') r.build = {};
+  if(!Array.isArray(r.patches)) r.patches = [];
   if(!r.boosts || typeof r.boosts !== 'object') r.boosts = {};
   if(!Array.isArray(r.prayers)) r.prayers = [];
   if(typeof r.prayPts !== 'number' || !isFinite(r.prayPts)) r.prayPts = rsLevelFor(r.skills.pray.xp);
@@ -18649,13 +18903,17 @@ function rsCombatLevel(){
 
 /* ---- Inventory (28 slots, stackable everything for sanity) ---- */
 const RS_BAG = 28;
+/* How far a civic structure has been built (0-3). */
+function rsBuild(id){ const b = rsEnsure().build; return Math.max(0, Math.min(3, (b && b[id])|0)); }
+function rsBagMax(){ return RS_BAG + rsBuild('store') * 3; }
+function rsPatchCount(){ return 2 + rsBuild('farm'); }
 function rsInvCount(){ return rsEnsure().inv.length; }
 function rsInvQty(id){ const it = rsEnsure().inv.find(function(x){return x.id===id;}); return it ? it.qty : 0; }
 function rsGive(id, n){
   const r = rsEnsure();
   const cur = r.inv.find(function(x){return x.id===id;});
   if(cur){ cur.qty += n; return true; }
-  if(r.inv.length >= RS_BAG) return false;
+  if(r.inv.length >= rsBagMax()) return false;
   r.inv.push({id:id, qty:n});
   return true;
 }
@@ -18667,7 +18925,7 @@ function rsTake(id, n){
   if(r.inv[i].qty <= 0) r.inv.splice(i,1);
   return true;
 }
-function rsBagFull(){ return rsEnsure().inv.length >= RS_BAG; }
+function rsBagFull(){ return rsEnsure().inv.length >= rsBagMax(); }
 /* Materials can live in the bag or the vault; town stations use both. */
 function rsHave(id){ const r = rsEnsure(); return rsInvQty(id) + (r.bank[id]||0); }
 function rsConsume(id, n){
@@ -18764,7 +19022,7 @@ function rsAtkBonus(){ const w = rsWeapon(); return w ? w.tier*3 : 0; }
 function rsStrBonus(){ const w = rsWeapon(); return w ? w.tier*2.5 : 0; }
 function rsDefBonus(){
   const e = rsEnsure().equip;
-  let v = ['helm','body','legs','shield'].reduce(function(a,s){
+  let v = ['helm','body','legs','shield','cape','ring'].reduce(function(a,s){
     const d = e[s] ? RS_ITEMS[e[s]] : null;
     return a + (d ? d.tier * (d.kind === 'range' || d.kind === 'mage' ? 1.5 : 2.5) : 0);
   }, 0);
@@ -18773,6 +19031,43 @@ function rsDefBonus(){
   return v;
 }
 function rsAmulet(){ const a = rsEnsure().equip.amulet; return a ? RS_ITEMS[a] : null; }
+function rsRing(){ const a = rsEnsure().equip.ring; return a ? RS_ITEMS[a] : null; }
+function rsCape(){ const a = rsEnsure().equip.cape; return a ? RS_ITEMS[a] : null; }
+/* rings and capes fold into the same acc / max-hit / defence maths */
+function rsTrinketAcc(){
+  let v = 0;
+  const wk = rsWeaponKind();
+  [rsRing(), rsCape()].forEach(function(d){
+    if(!d || !d.accb) return;
+    if(d.style === 'range' && wk !== 'bow') return;
+    if(d.style === 'mage' && wk !== 'staff') return;
+    v += d.accb;
+  });
+  return v;
+}
+function rsTrinketHit(){
+  let v = 0;
+  [rsRing(), rsCape()].forEach(function(d){ if(d && d.mhb) v += d.mhb; });
+  return v;
+}
+/* Ammo: best arrows for a bow, best runes for a staff. Optional firepower —
+   running dry never blocks an attack, it just costs the bonus. */
+/* Market Square haggles every shop price down. */
+function rsPrice(base){ return Math.max(1, Math.round(base * (1 - rsBuild('market') * 0.08))); }
+function rsBestAmmo(kind){
+  const list = kind === 'bow' ? RS_ARROWS : kind === 'staff' ? RS_RUNES : null;
+  if(!list) return null;
+  let best = null;
+  list.forEach(function(a){ if(rsInvQty(a[0]) > 0) best = a[0]; });
+  return best;
+}
+function rsAmmoBoost(kind){
+  const id = rsBestAmmo(kind);
+  if(!id) return 1;
+  rsTake(id, 1);
+  const d = RS_ITEMS[id];
+  return 1 + 0.15 + (d.tier || 1) * 0.025;   /* +17.5% .. +30% by tier */
+}
 function rsStyleGearBonus(kind){
   const e = rsEnsure().equip;
   let v = 0;
@@ -18822,7 +19117,7 @@ function rsPrayBonus(){
 }
 function rsMaxHit(){
   const w = rsWeapon(), k = rsWeaponKind();
-  const am = rsAmulet(), amh = am ? (am.mhb||0) : 0;
+  const am = rsAmulet(), amh = (am ? (am.mhb||0) : 0) + rsTrinketHit();
   if(k === 'bow')   return Math.max(1, Math.floor(1 + rsEffLvl('range')*0.15 + w.tier*2.5*0.35 + rsStyleGearBonus('range')*0.4 + amh));
   if(k === 'staff') return Math.max(1, Math.floor(1 + rsEffLvl('mage')*0.16 + w.tier*2.5*0.35 + rsStyleGearBonus('mage')*0.4 + amh));
   return Math.max(1, Math.floor(1 + rsEffLvl('str')*0.15 + rsStrBonus()*0.35 + amh));
@@ -18882,8 +19177,10 @@ function rsMobDie(m, quiet){
   if(m.id === 'bogking' && Math.random() < 1/30000) rsGivePet('pet_bog');
   if(m.id === 'cinder'  && Math.random() < 1/20000) rsGivePet('pet_cinder');
   if(m.id === 'boneregent' && Math.random() < 1/25000) rsGivePet('pet_wisp');
+  if(m.id === 'ebonwyrm' && Math.random() < 1/15000) rsGivePet('pet_ebon');
+  const wealth = rsRing() && rsRing().wealth ? 1.5 : 1;
   m.drops.forEach(function(d){
-    const chance = d[3] === undefined ? 1 : d[3];
+    const chance = (d[3] === undefined ? 1 : d[3]) * (d[3] === undefined ? 1 : wealth);
     if(Math.random() > chance) return;
     const qty = d[1] + Math.floor(Math.random() * (d[2] - d[1] + 1));
     if(qty <= 0) return;
@@ -18899,6 +19196,11 @@ function rsMobDie(m, quiet){
     if(!rsGive(hb, 1)) r.bank[hb] = (r.bank[hb]||0) + 1;
   }
   if(m.lvl >= 10 && Math.random() < 0.06){ if(!rsGive('limpwurt_root', 1)) r.bank.limpwurt_root = (r.bank.limpwurt_root||0) + 1; }
+  if(Math.random() < 0.08){
+    const pool = RS_SEEDS.filter(function(sd){ return sd.req <= 10 + m.lvl; });
+    const sd = pool[Math.floor(Math.random() * pool.length)];
+    if(sd && !rsGive(sd.id, 1)) r.bank[sd.id] = (r.bank[sd.id]||0) + 1;
+  }
   if(m.lvl >= 30 && Math.random() < 0.06){ if(!rsGive('white_berries', 1)) r.bank.white_berries = (r.bank.white_berries||0) + 1; }
   if(m.lvl >= 20 && !r.clue && !rsHave('clue_scroll') && Math.random() < 0.03){
     rsGrant('clue_scroll', 1);
@@ -18908,6 +19210,7 @@ function rsMobDie(m, quiet){
   if(m.boss){
     if(m.id === 'bogking'){ rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d'); }
     else if(m.id === 'boneregent'){ rsLog('👑 THE BONE REGENT CRUMBLES. The catacombs exhale.', '#ffd84d'); }
+    else if(m.id === 'ebonwyrm'){ rsLog('👑 THE EBON WYRM FALLS. The Wilderness burns a little quieter.', '#ffd84d'); }
     else { rsLog('👑 ' + m.name.toUpperCase() + ' FALLS.', '#ffd84d'); }
     if(m.id === 'bogking') r.counts.kill_bogking_ever = 1;
     rsStopActivity(quiet);
@@ -18931,6 +19234,7 @@ function rsTickCore(quiet){
     let dr = 0;
     r.prayers.forEach(function(id){ const p = RS_PRAYERS.find(function(x){return x.id===id;}); if(p) dr += p.drain; });
     if(rsAmulet() && rsAmulet().holy) dr *= 0.8;
+    dr *= Math.pow(0.88, rsBuild('altar'));                            /* Sanctified Altar */
     r.prayPts = Math.max(0, r.prayPts - dr);
     if(r.prayPts <= 0){ r.prayers = []; if(!quiet) rsLog('You have run out of prayer points!', '#e8b4c0'); }
   }
@@ -18939,6 +19243,21 @@ function rsTickCore(quiet){
     if((r.regenT = (r.regenT|0) + 1) >= 10){ r.regenT = 0; r.curHp = Math.min(rsLvl('hp'), r.curHp + 1); }
   }
   if(!act) return;
+
+  /* crops grow on their own clock — during other work, and while away */
+  if(r.patches && r.patches.length){
+    for(let i = 0; i < r.patches.length; i++){
+      const p = r.patches[i];
+      if(!p || !p.seed || p.done) continue;
+      const sd = RS_SEEDS.find(function(x){ return x.id === p.seed; });
+      if(!sd){ r.patches[i] = null; continue; }
+      p.t = (p.t|0) + 1;
+      if(p.t >= sd.grow){
+        p.done = true;
+        if(!quiet) rsLog('🌱 Your ' + sd.name.replace(' seed','').toLowerCase() + ' crop is ready to harvest.', '#7ADE9A');
+      }
+    }
+  }
 
   /* an active clue trail completes while you work in the named area */
   if(r.clue && r.area === r.clue.area){
@@ -18966,6 +19285,7 @@ function rsTickCore(quiet){
       rsAddXp(skill, t.xp);
       r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
       r.counts['get_' + t.id] = (r.counts['get_' + t.id]||0) + 1;
+      if(rsNimble() && rsGive(t.id, 1)){ rsAddXp(skill, t.xp); r.counts['get_' + t.id]++; }
       if(Math.random() < 1/500000) rsGivePet(act.kind === 'chop' ? 'pet_beaver' : act.kind === 'mine' ? 'pet_golem' : 'pet_heron');
       if(act.kind === 'fish' && Math.random() < 0.08){ rsGive('snape_grass', 1); if(!quiet) rsLog('Some snape grass clings to your catch.', '#c9b788', 'get_snape'); }
       if(!quiet) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788', 'get_' + t.id);
@@ -18982,10 +19302,11 @@ function rsTickCore(quiet){
     }
     rsConsume(rec.raw, 1);
     rsSwing = 2;
-    const burnCh = rsLvl('cook') >= rec.burnUntil ? 0 : Math.max(0.05, 0.45 - (rsLvl('cook') - rec.req)*0.012);
+    let burnCh = rsLvl('cook') >= rec.burnUntil ? 0 : Math.max(0.05, 0.45 - (rsLvl('cook') - rec.req)*0.012);
+    burnCh *= Math.pow(0.75, rsBuild('range'));                       /* Grand Range */
     if(Math.random() < burnCh){ rsGive('burnt', 1); if(!quiet) rsLog('You accidentally burn the ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c96a5a', 'burn_' + rec.out); }
     else {
-      rsGive(rec.out, 1); rsAddXp('cook', rec.xp);
+      rsGive(rec.out, 1); rsAddXp('cook', rec.xp * (1 + rsBuild('range') * 0.10));
       r.counts['cook_' + rec.out] = (r.counts['cook_' + rec.out]||0) + 1;
       if(!quiet) rsLog('You cook a ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788', 'cook_' + rec.out);
     }
@@ -19000,9 +19321,76 @@ function rsTickCore(quiet){
       rsStopActivity(quiet); return;
     }
     for(const k in rec.ins) rsConsume(k, rec.ins[k]);
-    rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
+    rsGive(rec.out, 1); rsAddXp('smith', rec.xp * (1 + rsBuild('forge') * 0.12));
+    if(rsBuild('forge') && Math.random() < rsBuild('forge') * 0.06){    /* Master Forge */
+      if(rsGive(rec.out, 1) && !quiet) rsLog('The Master Forge yields a second ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#ffd84d', 'forge2');
+    }
     r.counts['get_' + rec.out] = (r.counts['get_' + rec.out]||0) + 1;
     rsSwing = 2;
+    return;
+  }
+
+  /* generic recipe activities: crafting bench, fletching, runecraft altar */
+  if(act.kind === 'craft' || act.kind === 'fletch' || act.kind === 'rc' || act.kind === 'build'){
+    const skill = act.kind === 'craft' ? 'craft' : act.kind === 'fletch' ? 'fletch' : act.kind === 'rc' ? 'rc' : 'con';
+    const table = act.kind === 'craft' ? RS_CRAFT : act.kind === 'fletch' ? RS_FLETCH : act.kind === 'rc' ? RS_RC : RS_BUILDMAT;
+    const rec = table.find(function(x){ return x.out === act.key; });
+    if(!rec || rsLvl(skill) < rec.req){ rsStopActivity(quiet); return; }
+    const ins = rec.ins || {rune_ess:1};
+    for(const k in ins){
+      if(!ins[k]) continue;
+      if(rsHave(k) < ins[k]){
+        if(!quiet) rsLog('You need more ' + RS_ITEMS[k].name.toLowerCase() + '.', '#e8b4c0');
+        rsStopActivity(quiet); return;
+      }
+    }
+    for(const k in ins){ if(ins[k]) rsConsume(k, ins[k]); }
+    const qty = rec.qty || 1;
+    if(!rsGive(rec.out, qty)){ r.bank[rec.out] = (r.bank[rec.out]||0) + qty; }
+    rsAddXp(skill, rec.xp);
+    r.counts[act.kind + '_' + rec.out] = (r.counts[act.kind + '_' + rec.out]||0) + 1;
+    r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
+    rsSwing = 2;
+    if(!quiet) rsLog('You make ' + (qty > 1 ? qty + ' ' : 'a ') + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788', act.kind + '_' + rec.out);
+    return;
+  }
+
+  if(act.kind === 'steal'){
+    const st = RS_STALLS.find(function(x){ return x.id === act.key; });
+    if(!st || rsLvl('thief') < st.req){ rsStopActivity(quiet); return; }
+    act.cd = (act.cd|0) + 1;
+    if(act.cd % 2 !== 0) return;
+    rsSwing = 2;
+    const chance = Math.min(0.95, 0.42 + (rsLvl('thief') - st.req) * 0.012 + rsBuild('market') * 0.05);
+    if(Math.random() < chance){
+      const c = st.coins[0] + Math.floor(Math.random() * (st.coins[1] - st.coins[0] + 1));
+      r.coins += c;
+      rsAddXp('thief', st.xp);
+      r.counts.steal_any = (r.counts.steal_any||0) + 1;
+      if(Math.random() < 0.22) rsGive(st.loot, 1);
+      if(!quiet) rsLog('You slip something from the ' + st.name.toLowerCase() + '. +' + c + ' coins.', '#c9b788', 'steal_' + st.id);
+    } else {
+      r.curHp -= st.dmg;
+      rsSplats.push({who:'me', v:st.dmg, t:1});
+      if(!quiet) rsLog('A guard cuffs you round the ear! You lose ' + st.dmg + ' HP.', '#c96a5a', 'stealfail_' + st.id);
+      if(r.curHp <= 0){
+        r.curHp = rsLvl('hp'); r.deaths = (r.deaths|0) + 1;
+        rsLog('☠️ The guards throw you out cold into the street.', '#ff6b6b');
+        rsStopActivity(quiet);
+      }
+    }
+    return;
+  }
+
+  if(act.kind === 'agil'){
+    act.cd = (act.cd|0) + 1;
+    if(act.cd % 5 !== 0) return;     /* a lap takes a few seconds */
+    rsSwing = 2;
+    const lvl = rsLvl('agil');
+    rsAddXp('agil', 30 + lvl * 4);
+    r.counts.agil_laps = (r.counts.agil_laps||0) + 1;
+    if(Math.random() < 0.12){ rsGive('mark_grace', 1); r.counts.get_mark = (r.counts.get_mark||0) + 1; if(!quiet) rsLog('🕊️ A mark of grace glints on the rooftop.', '#ffd84d'); }
+    else if(!quiet) rsLog('You vault the gap and land clean.', '#c9b788', 'agil_lap');
     return;
   }
 
@@ -19046,7 +19434,7 @@ function rsTickCore(quiet){
       rsStopActivity(quiet); return;
     }
     rsConsume(rec.bar, rec.bars);
-    rsGive(rec.out, 1); rsAddXp('smith', rec.xp);
+    rsGive(rec.out, 1); rsAddXp('smith', rec.xp * (1 + rsBuild('forge') * 0.12));
     r.counts['forge_' + rec.out] = (r.counts['forge_' + rec.out]||0) + 1;
     if(!quiet) rsLog('You hammer out a ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788', 'forge_' + rec.out);
     rsSwing = 2;
@@ -19058,6 +19446,7 @@ function rsTickCore(quiet){
     if(!m){ rsStopActivity(quiet); return; }
     if(m.id === 'bogking' && !(r.counts.kill_shade >= 15)){ rsStopActivity(quiet); return; }
     if(m.id === 'boneregent' && !((r.counts.kill_ankou||0) >= 10)){ rsStopActivity(quiet); return; }
+    if(m.id === 'ebonwyrm' && !((r.counts.kill_greenwyrm||0) >= 8)){ rsStopActivity(quiet); return; }
     if(!r.mob) r.mob = {id:m.id, hp:m.hp};
     act.cd = (act.cd|0) + 1;
     if(act.cd % 2 !== 0) return;      /* exchange blows every other tick */
@@ -19066,12 +19455,14 @@ function rsTickCore(quiet){
     const wk = rsWeaponKind();
     const pb = rsPrayBonus();
     const accLvl = Math.round(((wk === 'bow' ? rsEffLvl('range') : wk === 'staff' ? rsEffLvl('mage') : rsEffLvl('atk')) + (rsWeapon() ? rsWeapon().tier * 3 : 0)
-                 + (rsAmulet() ? (rsAmulet().accb||0) : 0)
-                 + (wk === 'bow' ? rsStyleGearBonus('range')*2 : wk === 'staff' ? rsStyleGearBonus('mage')*2 : 0)) * pb.acc);
+                 + (rsAmulet() ? (rsAmulet().accb||0) : 0) + rsTrinketAcc()
+                 + (wk === 'bow' ? rsStyleGearBonus('range')*2 : wk === 'staff' ? rsStyleGearBonus('mage')*2 : 0))
+                 * pb.acc * (1 + rsBuild('tower') * 0.04));            /* Guard Tower */
     const acc = Math.min(0.95, Math.max(0.15, accLvl / (accLvl + m.def*1.4) + 0.18));
     let dealt = 0;
     if(Math.random() < acc) dealt = 1 + Math.floor(Math.random() * rsMaxHit());
     if(dealt > 0 && pb.dmg > 1) dealt = Math.max(1, Math.round(dealt * pb.dmg));
+    if(dealt > 0 && (wk === 'bow' || wk === 'staff')) dealt = Math.max(1, Math.round(dealt * rsAmmoBoost(wk)));
     if(dealt > 0 && r.equip.helm === 'grim_mask' && rsOnTask(m.id)) dealt = Math.round(dealt * 1.2);
     r.mob.hp -= dealt;
     rsSplats.push({who:'mob', v:dealt, t:1});
@@ -19095,6 +19486,13 @@ function rsTickCore(quiet){
     if(Math.random() < mAcc) taken = Math.floor(Math.random() * (m.max + 1));
     taken = Math.max(0, taken - Math.floor(rsLvl('pray') * 0.04));
     if(pb.guard > 0) taken = Math.round(taken * (1 - pb.guard));
+    const rg = rsRing();
+    if(rg && rg.recoil && taken > 0){
+      const back = Math.max(1, Math.round(taken * 0.1));
+      r.mob.hp -= back;
+      rsSplats.push({who:'mob', v:back, t:1});
+      if(r.mob.hp <= 0){ if(!rsMobDie(m, quiet)) r.mob = {id:m.id, hp:m.hp}; return; }
+    }
     r.curHp -= taken;
     rsSplats.push({who:'me', v:taken, t:1});
     /* Death is checked FIRST — a killing blow kills; fleeing is for the living. */
@@ -19107,7 +19505,7 @@ function rsTickCore(quiet){
       r.deaths = (r.deaths|0) + 1;
       const inMire = m.area === 'mire';
       if(inMire && r.inv.length){
-        const kept = r.inv.filter(function(it){ const d = RS_ITEMS[it.id]; return d && (d.pet || d.cape); });
+        const kept = r.inv.filter(function(it){ const d = RS_ITEMS[it.id]; return d && (d.pet || d.cape || d.slot === 'ring'); });
         r.inv = kept;
         rsLog('☠️ You die in the Mire. The bog swallows your bag' + (kept.length ? ' — but your keepsakes crawl out after you' : '') + '.', '#ff6b6b');
       } else {
@@ -19122,6 +19520,70 @@ function rsTickCore(quiet){
 }
 
 /* ---- Random events (active play only) ---- */
+/* Agility keeps you nimble: 1% per 10 levels to finish an action twice. */
+function rsNimble(){ return Math.random() < Math.min(0.25, rsLvl('agil') * 0.001); }
+/* ---- Farming ---- */
+function rsPatches(){
+  const r = rsEnsure();
+  if(!Array.isArray(r.patches)) r.patches = [];
+  while(r.patches.length < rsPatchCount()) r.patches.push(null);
+  return r.patches;
+}
+function rsPlant(seedId){
+  const r = rsEnsure();
+  const sd = RS_SEEDS.find(function(x){ return x.id === seedId; });
+  if(!sd) return;
+  if(rsLvl('farm') < sd.req){ rsLog('You need Farming ' + sd.req + ' to plant that.', '#e8b4c0'); return; }
+  if(rsHave(seedId) <= 0){ rsLog('You have no ' + sd.name.toLowerCase() + '.', '#e8b4c0'); return; }
+  const ps = rsPatches();
+  const i = ps.findIndex(function(p){ return !p || !p.seed; });
+  if(i < 0){ rsLog('Every patch is already in use.', '#e8b4c0'); return; }
+  rsConsume(seedId, 1);
+  ps[i] = {seed: seedId, t: 0, done: false};
+  rsAddXp('farm', sd.xp);
+  rsLog('🌱 You plant the ' + sd.name.toLowerCase() + '.', '#c9b788');
+  rsRenderPanel();
+}
+function rsHarvest(i){
+  const r = rsEnsure();
+  const ps = rsPatches();
+  const p = ps[i];
+  if(!p || !p.seed || !p.done) return;
+  const sd = RS_SEEDS.find(function(x){ return x.id === p.seed; });
+  ps[i] = null;
+  if(!sd) return;
+  const n = sd.yield[0] + Math.floor(Math.random() * (sd.yield[1] - sd.yield[0] + 1));
+  let got = 0;
+  for(let k = 0; k < n; k++){ if(rsGive(sd.crop, 1)) got++; else { r.bank[sd.crop] = (r.bank[sd.crop]||0) + 1; got++; } }
+  rsAddXp('farm', sd.hxp * n);
+  r.counts.harvest_any = (r.counts.harvest_any||0) + 1;
+  r.counts['harvest_' + sd.crop] = (r.counts['harvest_' + sd.crop]||0) + n;
+  rsLog('🌾 You harvest ' + got + '× ' + RS_ITEMS[sd.crop].name.toLowerCase() + '.', '#7ADE9A');
+  rsRenderPanel(); rsRenderHud();
+}
+/* ---- Construction ---- */
+function rsBuildStruct(id){
+  const r = rsEnsure();
+  const st = RS_STRUCTS.find(function(x){ return x.id === id; });
+  if(!st) return;
+  const lvl = rsBuild(id);
+  if(lvl >= 3){ rsLog('The ' + st.name + ' is finished. There is nothing left to add.', '#a99871'); return; }
+  const tier = st.tiers[lvl];
+  if(rsLvl('con') < tier.req){ rsLog('You need Construction ' + tier.req + ' for that.', '#e8b4c0'); return; }
+  for(const k in tier.mats){
+    if(rsHave(k) < tier.mats[k]){
+      rsLog('You need ' + tier.mats[k] + '× ' + RS_ITEMS[k].name.toLowerCase() + ' (you have ' + rsHave(k) + ').', '#e8b4c0');
+      return;
+    }
+  }
+  for(const k in tier.mats) rsConsume(k, tier.mats[k]);
+  r.build[id] = lvl + 1;
+  rsAddXp('con', tier.xp);
+  r.counts.built = (r.counts.built|0) + 1;
+  rsLog('🔨 ' + st.name + ' upgraded to tier ' + (lvl + 1) + '! ' + st.what, '#ffd84d');
+  rsJingle('quest');
+  rsRenderPanel(); rsRenderActs(); rsRenderHud();
+}
 function rsActSkill(){
   const r = rsEnsure(), a = r.act;
   if(!a) return null;
@@ -19132,6 +19594,12 @@ function rsActSkill(){
   if(a.kind === 'smelt' || a.kind === 'forge') return 'smith';
   if(a.kind === 'brew') return 'herb';
   if(a.kind === 'fmburn') return 'fm';
+  if(a.kind === 'craft') return 'craft';
+  if(a.kind === 'fletch') return 'fletch';
+  if(a.kind === 'rc') return 'rc';
+  if(a.kind === 'steal') return 'thief';
+  if(a.kind === 'agil') return 'agil';
+  if(a.kind === 'build') return 'con';
   if(a.kind === 'fight'){
     const k = rsWeaponKind();
     if(k === 'bow') return 'range';
@@ -19281,7 +19749,7 @@ function rsSlayerKill(m, quiet){
   if(sl.task.left <= 0){
     sl.done = (sl.done|0) + 1;
     sl.streak = (sl.streak|0) + 1;
-    let pts = 10 + Math.floor(m.lvl / 10);
+    let pts = 10 + Math.floor(m.lvl / 10) + rsBuild('guild') * 3;      /* Slayer Guild */
     if(sl.streak % 5 === 0) pts += 40;
     sl.pts = (sl.pts|0) + pts;
     sl.task = null;
@@ -19377,7 +19845,11 @@ function rsRenderHud(){
   const tc = document.getElementById('rsTaskChip');
   if(tc){
     const sl = rsSlay();
-    if(sl.task){ tc.style.display = ''; tc.innerHTML = '💀 <b>' + sl.task.left + '</b>× ' + rsMobName(sl.task.mob); }
+    if(sl.task){
+      tc.style.display = '';
+      const por = RS_MOB_ART[sl.task.mob] ? '<img src="' + rsMobIcon(sl.task.mob, 26) + '" class="rs-por" style="width:20px;height:20px;" alt="">' : '💀 ';
+      tc.innerHTML = por + '<b>' + sl.task.left + '</b>× ' + rsMobName(sl.task.mob);
+    }
     else tc.style.display = 'none';
   }
   const mx = rsLvl('hp');
@@ -19397,7 +19869,8 @@ function rsRenderAreas(){
   box.innerHTML = RS_AREAS.map(function(a){
     const locked = (a.id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)) ||
                    (a.id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)) ||
-                   (a.id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0));
+                   (a.id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0)) ||
+                   (a.id === 'wild' && rsCombatLevel() < 70 && !(r.counts.kill_wildman > 0));
     return '<button class="rs-area' + (r.area === a.id ? ' on' : '') + (locked ? ' locked' : '') + '" data-rsa="' + a.id + '"' +
       (locked ? ' title="Combat 40 required"' : '') + '>' + a.name + '</button>';
   }).join('');
@@ -19407,6 +19880,7 @@ function rsRenderAreas(){
       if(id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)){ rsLog('The Mire would eat you alive. Come back at combat 40.', '#e8b4c0'); return; }
       if(id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)){ rsLog('Morvos bars the door: "Come back when you can survive my hallways. Combat 15."', '#e8b4c0'); return; }
       if(id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0)){ rsLog('The catacomb door does not budge for the unproven. Come back at combat 30.', '#e8b4c0'); return; }
+      if(id === 'wild' && rsCombatLevel() < 70 && !(r.counts.kill_wildman > 0)){ rsLog('The ditch marks the end of the law. Come back at combat 70 — the Wilderness does not take beginners.', '#e8b4c0'); return; }
       r.area = id; rsStopActivity(true);
       rsLog('You travel to ' + RS_AREAS.find(function(x){return x.id===id;}).name.replace(/^\S+\s/,'') + '.', '#c9b788');
       rsRenderAreas(); rsRenderActs();
@@ -19476,17 +19950,19 @@ function rsRenderActs(){
       return rsActButton(cur && cur.kind==='fish' && cur.key===t.id, !can, '🎣 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-fish="' + t.id + '"');
     }).join('');
   } else if(r.area === 'town'){
+    const busy = function(k){ return cur && cur.kind === k; };
     h += '<button class="rs-act" data-town="bank">🏦 Bank<small>deposit everything</small></button>';
-    h += RS_COOK.map(function(c){
-      const can = rsLvl('cook') >= c.req && rsHave(c.raw) > 0;
-      return rsActButton(cur && cur.kind==='cook' && cur.key===c.raw, !can, '🍳 ' + RS_ITEMS[c.out].name, rsLvl('cook') < c.req ? 'lvl ' + c.req : 'have ' + rsHave(c.raw), 'data-cook="' + c.raw + '"');
-    }).join('');
-    h += RS_SMELT.map(function(s){
-      const can = rsLvl('smith') >= s.req;
-      return rsActButton(cur && cur.kind==='smelt' && cur.key===s.out, !can, '🔥 ' + RS_ITEMS[s.out].name, can ? s.xp + ' xp' : 'lvl ' + s.req, 'data-smelt="' + s.out + '"');
-    }).join('');
-    h += '<button class="rs-act" data-town="anvil">🔨 Anvil<small>forge gear</small></button>';
-    h += '<button class="rs-act" data-town="cauldron">🧪 Cauldron<small>brew potions</small></button>';
+    h += '<button class="rs-act' + (busy('cook') ? ' on' : '') + '" data-town="range">🍳 Range<small>' + (busy('cook') ? 'cooking…' : 'Cooking ' + rsLvl('cook')) + '</small></button>';
+    h += '<button class="rs-act' + (busy('smelt') ? ' on' : '') + '" data-town="furnace">🔥 Furnace<small>' + (busy('smelt') ? 'smelting…' : 'bars · amulets') + '</small></button>';
+    h += '<button class="rs-act' + (busy('forge') ? ' on' : '') + '" data-town="anvil">🔨 Anvil<small>' + (busy('forge') ? 'smithing…' : 'forge gear') + '</small></button>';
+    h += '<button class="rs-act' + (busy('brew') ? ' on' : '') + '" data-town="cauldron">🧪 Cauldron<small>' + (busy('brew') ? 'brewing…' : 'Herblore ' + rsLvl('herb')) + '</small></button>';
+    h += '<button class="rs-act' + (busy('craft') ? ' on' : '') + '" data-town="bench">🧵 Crafting<small>' + (busy('craft') ? 'working…' : 'Crafting ' + rsLvl('craft')) + '</small></button>';
+    h += '<button class="rs-act' + (busy('fletch') ? ' on' : '') + '" data-town="fletch">🎯 Fletching<small>' + (busy('fletch') ? 'working…' : 'Fletching ' + rsLvl('fletch')) + '</small></button>';
+    h += '<button class="rs-act' + (busy('steal') ? ' on' : '') + '" data-town="market">🕶️ Market<small>' + (busy('steal') ? 'stealing…' : 'Thieving ' + rsLvl('thief')) + '</small></button>';
+    h += '<button class="rs-act' + (busy('agil') ? ' on' : '') + '" data-town="course">🏃 Rooftops<small>' + (busy('agil') ? 'running…' : 'Agility ' + rsLvl('agil')) + '</small></button>';
+    h += '<button class="rs-act' + (busy('build') ? ' on' : '') + '" data-town="build">🔨 Builder\'s Yard<small>' + (busy('build') ? 'working…' : 'Construction ' + rsLvl('con')) + '</small></button>';
+    const ready = rsPatches().filter(function(p){ return p && p.done; }).length;
+    h += '<button class="rs-act" data-town="farm">🌱 Farm patches<small>' + (ready ? ready + ' ready to harvest' : 'Farming ' + rsLvl('farm')) + '</small></button>';
     h += '<button class="rs-act" data-town="altar">✨ Altar<small>restore prayer</small></button>';
   } else {
     if(r.area === 'tower'){
@@ -19494,19 +19970,22 @@ function rsRenderActs(){
       h += '<button class="rs-act" data-tower="task">💀 ' + (sl.task ? 'Task: ' + sl.task.left + '× ' + rsMobName(sl.task.mob) : 'Morvos: get a task') +
            '<small>' + (sl.task ? 'on the ledger' : 'the Slayer Master') + '</small></button>';
       h += '<button class="rs-act" data-tower="shop">🎁 Slayer shop<small>' + (sl.pts|0) + ' points</small></button>';
+      h += '<button class="rs-act" data-tower="altar">🔮 Rune altar<small>essence → runes</small></button>';
     }
     const mobs = RS_MOBS.filter(function(m){
       if(m.area !== r.area) return false;
       if(m.id === 'bogking') return r.counts.kill_shade >= 15;
       if(m.id === 'boneregent') return (r.counts.kill_ankou||0) >= 10;
+      if(m.id === 'ebonwyrm') return (r.counts.kill_greenwyrm||0) >= 8;
       if(m.dragon) return (r.counts.kill_demon||0) >= 10;
       return true;
     });
     h += mobs.map(function(m){
       const gated = m.slayReq && rsLvl('slay') < m.slayReq;
       const onTask = rsOnTask(m.id);
+      const por = RS_MOB_ART[m.id] ? '<img src="' + rsMobIcon(m.id, 30) + '" class="rs-por" alt="">' : m.ic + ' ';
       return rsActButton(cur && cur.kind==='fight' && cur.key===m.id, gated,
-        m.ic + ' ' + m.name + (onTask ? ' 💀' : ''),
+        por + m.name + (onTask ? ' 💀' : ''),
         gated ? 'Slayer ' + m.slayReq : 'lvl ' + m.lvl + (onTask ? ' · task' : ''),
         'data-fight="' + m.id + '"');
     }).join('');
@@ -19516,6 +19995,8 @@ function rsRenderActs(){
       h += '<button class="rs-act dis">🐉 ???<small>scaled tracks in the mud</small></button>';
     if(r.area === 'cata' && !((r.counts.kill_ankou||0) >= 10))
       h += '<button class="rs-act dis">🦴 ???<small>a throne rattles deeper in</small></button>';
+    if(r.area === 'wild' && !((r.counts.kill_greenwyrm||0) >= 8))
+      h += '<button class="rs-act dis">🐉 ???<small>something vast shifts beyond the smoke</small></button>';
   }
   box.innerHTML = h;
   box.querySelectorAll('[data-chop]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('chop', b.dataset.chop); }); });
@@ -19525,9 +20006,11 @@ function rsRenderActs(){
   box.querySelectorAll('[data-smelt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('smelt', b.dataset.smelt); }); });
   box.querySelectorAll('[data-fight]').forEach(function(b){ b.addEventListener('click', function(){ rsStartActivity('fight', b.dataset.fight); }); });
   box.querySelectorAll('[data-burnlog]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('fmburn', b.dataset.burnlog); }); });
+
   box.querySelectorAll('[data-tower]').forEach(function(b){
     b.addEventListener('click', function(){
       if(b.dataset.tower === 'task') rsAssignTask();
+      else if(b.dataset.tower === 'altar'){ rsPanelTab = 'rc'; rsRenderTabs(); rsRenderPanel(); }
       else { rsPanelTab = 'slayshop'; rsRenderTabs(); rsRenderPanel(); }
     });
   });
@@ -19538,6 +20021,23 @@ function rsRenderActs(){
         const n = rsBankAll();
         rsLog(n ? 'You deposit ' + n + ' items.' : 'Your bag is already empty.', '#8fd7ff');
         rsRenderPanel();
+      } else if(k === 'build'){
+        rsPanelTab = 'build'; rsRenderTabs(); rsRenderPanel();
+      } else if(k === 'farm'){
+        rsPanelTab = 'farm'; rsRenderTabs(); rsRenderPanel();
+      } else if(k === 'range'){
+        rsPanelTab = 'range'; rsRenderTabs(); rsRenderPanel();
+      } else if(k === 'furnace'){
+        rsPanelTab = 'furnace'; rsRenderTabs(); rsRenderPanel();
+      } else if(k === 'market'){
+        rsPanelTab = 'market'; rsRenderTabs(); rsRenderPanel();
+      } else if(k === 'course'){
+        rsStartActivity('agil', 'rooftop');
+        rsLog('You break into a run along the rooftops.', '#c9b788');
+      } else if(k === 'bench'){
+        rsPanelTab = 'craft'; rsRenderTabs(); rsRenderPanel();
+      } else if(k === 'fletch'){
+        rsPanelTab = 'fletch'; rsRenderTabs(); rsRenderPanel();
       } else if(k === 'altar'){
         const r2 = rsEnsure();
         r2.prayPts = rsLvl('pray');
@@ -19565,8 +20065,8 @@ function rsRenderPanel(){
   const t = rsPanelTab;
 
   if(t === 'inv'){
-    let h = '<div class="rs-ptitle">' + r.inv.length + ' / ' + RS_BAG + '</div><div class="rs-inv">';
-    for(let i = 0; i < RS_BAG; i++){
+    let h = '<div class="rs-ptitle">' + r.inv.length + ' / ' + rsBagMax() + '</div><div class="rs-inv">';
+    for(let i = 0; i < rsBagMax(); i++){
       const it = r.inv[i];
       if(it){
         const d = RS_ITEMS[it.id] || {ic:'❓', name:it.id};
@@ -19607,7 +20107,7 @@ function rsRenderPanel(){
   }
 
   if(t === 'equip'){
-    const slots = [['weapon','Weapon'],['helm','Helm'],['body','Body'],['legs','Legs'],['shield','Shield'],['amulet','Amulet']];
+    const slots = [['weapon','Weapon'],['helm','Helm'],['body','Body'],['legs','Legs'],['shield','Shield'],['amulet','Amulet'],['cape','Cape'],['ring','Ring']];
     let h = '<div class="rs-eq">' + slots.map(function(sp){
       const id = r.equip[sp[0]];
       const d = id ? RS_ITEMS[id] : null;
@@ -19717,7 +20217,7 @@ function rsRenderPanel(){
       ['axe','pick'].forEach(function(tool){
         const id = tier + '_' + tool;
         const d = RS_ITEMS[id];
-        const price = d.sell * 4;
+        const price = rsPrice(d.sell * 4);
         const owned = rsEnsure().tools[tool] >= d.tier;
         h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">' +
           (owned ? 'owned' : 'speeds up ' + (tool === 'axe' ? 'chopping' : 'mining')) + '</span></div>' +
@@ -19727,14 +20227,14 @@ function rsRenderPanel(){
     });
     h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Bows</div>';
     RS_BOWS.forEach(function(bw, i){
-      const d = RS_ITEMS[bw[0]], price = d.sell * 4;
+      const d = RS_ITEMS[bw[0]], price = rsPrice(d.sell * 4);
       const owned = rsHave(bw[0]) > 0 || r.equip.weapon === bw[0];
       h += '<div class="rs-row"><span>🏹</span><div class="grow">' + d.name + '<span class="sub">Ranged ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
         (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + bw[0] + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
     });
     h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Staves</div>';
     RS_STAVES.forEach(function(st, i){
-      const d = RS_ITEMS[st[0]], price = d.sell * 4;
+      const d = RS_ITEMS[st[0]], price = rsPrice(d.sell * 4);
       const owned = rsHave(st[0]) > 0 || r.equip.weapon === st[0];
       h += '<div class="rs-row"><span>🪄</span><div class="grow">' + d.name + '<span class="sub">Magic ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
         (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + st[0] + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
@@ -19742,7 +20242,7 @@ function rsRenderPanel(){
     h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Ranger\'s leathers</div>';
     RS_RANGE_ARMOR.forEach(function(ra){
       ['_coif','_body','_chaps'].forEach(function(sf){
-        const id2 = ra[0] + sf, d = RS_ITEMS[id2], price = d.sell * 4;
+        const id2 = ra[0] + sf, d = RS_ITEMS[id2], price = rsPrice(d.sell * 4);
         const owned = rsHave(id2) > 0 || r.equip[d.slot] === id2;
         h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">Ranged ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
           (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + id2 + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
@@ -19751,17 +20251,23 @@ function rsRenderPanel(){
     h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Robes of the Magi</div>';
     RS_MAGE_ARMOR.forEach(function(ma){
       ['_hat','_top','_skirt'].forEach(function(sf){
-        const id2 = ma[0] + sf, d = RS_ITEMS[id2], price = d.sell * 4;
+        const id2 = ma[0] + sf, d = RS_ITEMS[id2], price = rsPrice(d.sell * 4);
         const owned = rsHave(id2) > 0 || r.equip[d.slot] === id2;
         h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + '<span class="sub">Magic ' + d.lvl + (owned ? ' · owned' : '') + '</span></div>' +
           (owned ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<button class="rs-btn" data-rsbuy2="' + id2 + '">' + price.toLocaleString() + ' 🪙</button>') + '</div>';
       });
     });
     h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Supplies</div>';
+    h += '<div class="rs-row"><span>🌾</span><div class="grow">Seed packet<span class="sub">5 random seeds you can already plant</span></div>' +
+      '<button class="rs-btn" id="rsBuySeeds">' + rsPrice(220).toLocaleString() + ' 🪙</button></div>';
+    h += '<div class="rs-row"><span>🧵</span><div class="grow">Bowstring × 10<span class="sub">fletching supply</span></div>' +
+      '<button class="rs-btn" id="rsBuyString">' + rsPrice(120).toLocaleString() + ' 🪙</button></div>';
+    h += '<div class="rs-row"><span>🪶</span><div class="grow">Feather × 50<span class="sub">arrow fletchings</span></div>' +
+      '<button class="rs-btn" id="rsBuyFeather">' + rsPrice(100).toLocaleString() + ' 🪙</button></div>';
     h += '<div class="rs-row"><span>👁️</span><div class="grow">Eye of newt × 10<span class="sub">herblore secondary</span></div>' +
-      '<button class="rs-btn" id="rsBuyNewt">40 🪙</button></div>';
+      '<button class="rs-btn" id="rsBuyNewt">' + rsPrice(40).toLocaleString() + ' 🪙</button></div>';
     h += '<div class="rs-row"><span>🐟</span><div class="grow">Travel rations<span class="sub">5 cooked trout — slayers pack lunch</span></div>' +
-      '<button class="rs-btn" id="rsBuyFood">150 🪙</button></div>';
+      '<button class="rs-btn" id="rsBuyFood">' + rsPrice(150).toLocaleString() + ' 🪙</button></div>';
     h += '</div><div style="font-size:10px;color:#a99871;margin-top:6px;">Plate is smithed at the anvil in Town. Leathers, robes and weapons are sold here.</div>';
     box.innerHTML = h;
     function sellFrom(container, isBank){
@@ -19791,22 +20297,55 @@ function rsRenderPanel(){
     });
     const bf = document.getElementById('rsBuyFood');
     if(bf) bf.addEventListener('click', function(){
-      if(r.coins < 150){ rsLog('Not enough coins.', '#e8b4c0'); return; }
-      r.coins -= 150; rsGrant('trout', 5);
+      const cF = rsPrice(150);
+      if(r.coins < cF){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+      r.coins -= cF; rsGrant('trout', 5);
       rsLog('You buy a bundle of cooked trout.', '#7ADE9A');
+      rsRenderHud(); rsRenderPanel();
+    });
+    const bsd = document.getElementById('rsBuySeeds');
+    if(bsd) bsd.addEventListener('click', function(){
+      const cost = rsPrice(220);
+      if(r.coins < cost){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+      const pool = RS_SEEDS.filter(function(sd){ return rsLvl('farm') >= sd.req; });
+      if(!pool.length){ rsLog('Nothing here you could grow yet.', '#e8b4c0'); return; }
+      r.coins -= cost;
+      const names = [];
+      for(let i = 0; i < 5; i++){
+        const sd = pool[Math.floor(Math.random() * pool.length)];
+        rsGrant(sd.id, 1); names.push(sd.name.replace(' seed',''));
+      }
+      rsLog('You buy a packet of seeds: ' + names.join(', ') + '.', '#7ADE9A');
+      rsRenderHud(); rsRenderPanel();
+    });
+    const bs2 = document.getElementById('rsBuyString');
+    if(bs2) bs2.addEventListener('click', function(){
+      const cS = rsPrice(120);
+      if(r.coins < cS){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+      r.coins -= cS; rsGrant('bowstring', 10);
+      rsLog('You buy a coil of bowstrings.', '#7ADE9A');
+      rsRenderHud(); rsRenderPanel();
+    });
+    const bf2 = document.getElementById('rsBuyFeather');
+    if(bf2) bf2.addEventListener('click', function(){
+      const cP = rsPrice(100);
+      if(r.coins < cP){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+      r.coins -= cP; rsGrant('feather', 50);
+      rsLog('You buy a bag of feathers.', '#7ADE9A');
       rsRenderHud(); rsRenderPanel();
     });
     const bn = document.getElementById('rsBuyNewt');
     if(bn) bn.addEventListener('click', function(){
-      if(r.coins < 40){ rsLog('Not enough coins.', '#e8b4c0'); return; }
-      r.coins -= 40; rsGrant('eye_of_newt', 10);
+      const cN = rsPrice(40);
+      if(r.coins < cN){ rsLog('Not enough coins.', '#e8b4c0'); return; }
+      r.coins -= cN; rsGrant('eye_of_newt', 10);
       rsLog('You buy a jar of newt eyes. Do not ask.', '#7ADE9A');
       rsRenderHud(); rsRenderPanel();
     });
     box.querySelectorAll('[data-rsbuy]').forEach(function(b){
       b.addEventListener('click', function(){
         const d = RS_ITEMS[b.dataset.rsbuy];
-        const price = d.sell * 4;
+        const price = rsPrice(d.sell * 4);
         if(r.coins < price){ rsLog('Not enough coins.', '#e8b4c0'); return; }
         r.coins -= price;
         r.tools[d.tool] = Math.max(r.tools[d.tool], d.tier);
@@ -19817,7 +20356,7 @@ function rsRenderPanel(){
     box.querySelectorAll('[data-rsbuy2]').forEach(function(b){
       b.addEventListener('click', function(){
         const d = RS_ITEMS[b.dataset.rsbuy2];
-        const price = d.sell * 4;
+        const price = rsPrice(d.sell * 4);
         if(r.coins < price){ rsLog('Not enough coins.', '#e8b4c0'); return; }
         r.coins -= price;
         rsGrant(b.dataset.rsbuy2, 1);
@@ -19919,6 +20458,7 @@ function rsRenderPanel(){
       ['pet_cinder',  '1/20,000 per Cinderwyrm kill'],
       ['pet_wisp',    '1/25,000 per Bone Regent kill'],
       ['pet_bog',     '1/30,000 per Bog King kill'],
+      ['pet_ebon',    '1/15,000 per Ebon Wyrm kill'],
     ];
     const RARES = [
       ['granite_mauler', '1/50 from Gargoyles'],
@@ -19927,6 +20467,10 @@ function rsRenderPanel(){
       ['dark_bow',       '~1/59 from Greater Demons'],
       ['regent_staff',   '1/25 from the Bone Regent'],
       ['gilded_helm',    '~1/40 caskets'],
+      ['dragon_scim',    '1/50 from Ebon Whelps'],
+      ['dawn_blade',     '1/20 from the Ebon Wyrm'],
+      ['fire_cape',      '1/25 from the Ebon Wyrm'],
+      ['ring_berserk',   '~1/67 from Ebon Whelps'],
     ];
     const petGot = PETS.filter(function(p){ return owned(p[0]); }).length;
     const rareGot = RARES.filter(function(p){ return hasGear(p[0]); }).length;
@@ -19946,10 +20490,11 @@ function rsRenderPanel(){
         (got ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>' : '<span class="qp" style="font-size:10px;color:#8a7a5a;">—</span>') + '</div>';
     }).join('');
     h += '</div><div style="font-size:10px;color:#c9b788;font-weight:800;margin:7px 0 3px;">Bosses slain</div><div class="rs-rows">';
-    [['bogking','The Bog King'],['cinder','Cinderwyrm'],['boneregent','The Bone Regent']].forEach(function(b){
+    [['bogking','The Bog King'],['cinder','Cinderwyrm'],['boneregent','The Bone Regent'],['ebonwyrm','The Ebon Wyrm']].forEach(function(b){
       const m = RS_MOBS.find(function(x){return x.id===b[0];});
       const n = r.counts['kill_' + b[0]]|0;
-      h += '<div class="rs-row"' + (n ? '' : ' style="opacity:0.55;"') + '><span>' + (n ? m.ic : '❔') + '</span>' +
+      h += '<div class="rs-row"' + (n ? '' : ' style="opacity:0.55;"') + '><span>' +
+        (n ? '<img src="' + rsMobIcon(b[0], 30) + '" class="rs-por" alt="">' : '❔') + '</span>' +
         '<div class="grow">' + b[1] + '<span class="sub">level ' + m.lvl + '</span></div>' +
         '<span class="qp" style="font-size:10px;color:' + (n ? '#3cd97a' : '#8a7a5a') + ';">× ' + n + '</span></div>';
     });
@@ -19962,6 +20507,205 @@ function rsRenderPanel(){
       'Random events: <b style="color:#f3e6c8;">' + (r.events|0) + '</b> · ' +
       'Bones buried: <b style="color:#f3e6c8;">' + (r.buried|0) + '</b></div>';
     box.innerHTML = h;
+    return;
+  }
+
+  if(t === 'build'){
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:4px;">🔨 Builder\'s Yard — Construction ' + rsLvl('con') + '</div>' +
+      '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">Runeshard is yours to rebuild. Every tier you raise pays out forever.</div>';
+    h += '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:2px 0 3px;">Materials</div><div class="rs-rows">';
+    RS_BUILDMAT.forEach(function(rec){
+      const d = RS_ITEMS[rec.out];
+      let can = rsLvl('con') >= rec.req;
+      const parts = [];
+      for(const k in rec.ins){
+        if(rsHave(k) < rec.ins[k]) can = false;
+        parts.push(rec.ins[k] + '× ' + RS_ITEMS[k].name + ' (' + rsHave(k) + ')');
+      }
+      h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + (rec.qty > 1 ? ' ×' + rec.qty : '') +
+        '<span class="sub">lvl ' + rec.req + ' · ' + parts.join(' + ') + ' · ' + rec.xp + ' xp · have ' + rsHave(rec.out) + '</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rsbm="' + rec.out + '">Make</button></div>';
+    });
+    h += '</div><div style="font-size:10px;color:#c9b788;font-weight:800;margin:8px 0 3px;">Town structures</div><div class="rs-rows">';
+    RS_STRUCTS.forEach(function(st){
+      const lvl = rsBuild(st.id);
+      const done = lvl >= 3;
+      const tier = done ? null : st.tiers[lvl];
+      let can = !done && rsLvl('con') >= tier.req;
+      const parts = [];
+      if(tier) for(const k in tier.mats){
+        if(rsHave(k) < tier.mats[k]) can = false;
+        parts.push(tier.mats[k] + '× ' + RS_ITEMS[k].name.toLowerCase());
+      }
+      h += '<div class="rs-row"><span>' + st.ic + '</span><div class="grow">' + st.name +
+        ' <span style="color:' + (lvl ? '#3cd97a' : '#8a7a5a') + ';">' + '★'.repeat(lvl) + '☆'.repeat(3 - lvl) + '</span>' +
+        '<span class="sub">' + st.what + (done ? ' · COMPLETE' : '<br>next: Construction ' + tier.req + ' · ' + parts.join(', ') + ' · ' + tier.xp + ' xp') + '</span></div>' +
+        (done ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>'
+              : '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rsbuild="' + st.id + '">Build</button>') + '</div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rsbm]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        rsStartActivity('build', b.dataset.rsbm);
+        rsLog('You get to work in the yard.', '#c9b788');
+        rsRenderActs();
+      });
+    });
+    box.querySelectorAll('[data-rsbuild]').forEach(function(b){
+      b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsBuildStruct(b.dataset.rsbuild); });
+    });
+    return;
+  }
+
+  if(t === 'farm'){
+    const ps = rsPatches();
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:4px;">🌱 Farm patches — Farming ' + rsLvl('farm') + '</div>' +
+      '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">Crops keep growing while you work elsewhere, and while the game is closed. Build the Farmstead for more patches.</div><div class="rs-rows">';
+    ps.forEach(function(p, i){
+      if(p && p.seed){
+        const sd = RS_SEEDS.find(function(x){ return x.id === p.seed; });
+        const pct = sd ? Math.min(100, Math.floor(p.t / sd.grow * 100)) : 100;
+        const cropIc = sd ? RS_ITEMS[sd.crop].ic : '🌱';
+        h += '<div class="rs-row"><span>' + (p.done ? cropIc : '🌱') + '</span><div class="grow">' +
+          (sd ? sd.name.replace(' seed','') : 'Crop') +
+          '<span class="sub">' + (p.done ? 'ready to harvest' : 'growing — ' + pct + '%') + '</span></div>' +
+          (p.done ? '<button class="rs-btn" data-rsharv="' + i + '">Harvest</button>'
+                  : '<span class="qp" style="font-size:10px;color:#c9b788;">' + pct + '%</span>') + '</div>';
+      } else {
+        h += '<div class="rs-row"><span>🪴</span><div class="grow">Empty patch<span class="sub">plant a seed below</span></div>' +
+          '<span class="qp" style="font-size:10px;color:#8a7a5a;">—</span></div>';
+      }
+    });
+    h += '</div><div style="font-size:10px;color:#c9b788;font-weight:800;margin:8px 0 3px;">Seeds in your bag</div><div class="rs-rows">';
+    let any = false;
+    RS_SEEDS.forEach(function(sd){
+      const n = rsHave(sd.id);
+      if(n <= 0) return;
+      any = true;
+      const can = rsLvl('farm') >= sd.req && ps.some(function(p){ return !p || !p.seed; });
+      h += '<div class="rs-row"><span>🌾</span><div class="grow">' + sd.name + ' × ' + n +
+        '<span class="sub">lvl ' + sd.req + ' · ' + RS_ITEMS[sd.crop].name + ' ×' + sd.yield[0] + '-' + sd.yield[1] + ' · ' + Math.round(sd.grow * 0.6) + 's</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rsplant="' + sd.id + '">Plant</button></div>';
+    });
+    if(!any) h += '<div style="color:#a99871;font-size:11px;padding:4px 2px;">No seeds. The general store sells them, and thieves and monsters drop them.</div>';
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rsplant]').forEach(function(b){
+      b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsPlant(b.dataset.rsplant); });
+    });
+    box.querySelectorAll('[data-rsharv]').forEach(function(b){
+      b.addEventListener('click', function(){ rsHarvest(+b.dataset.rsharv); });
+    });
+    return;
+  }
+
+  if(t === 'range'){
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:6px;">🍳 The Range — Cooking ' + rsLvl('cook') + '</div><div class="rs-rows">';
+    RS_COOK.forEach(function(c){
+      const d = RS_ITEMS[c.out], have = rsHave(c.raw);
+      const can = rsLvl('cook') >= c.req && have > 0;
+      const burns = rsLvl('cook') >= c.burnUntil ? 'never burns' : 'stops burning at ' + c.burnUntil;
+      h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name +
+        '<span class="sub">lvl ' + c.req + ' · ' + have + '× raw · ' + c.xp + ' xp · ' + burns + '</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rscook="' + c.raw + '">Cook</button></div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rscook]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        rsStartActivity('cook', b.dataset.rscook);
+        rsLog('You start cooking.', '#c9b788');
+        rsRenderActs();
+      });
+    });
+    return;
+  }
+
+  if(t === 'furnace'){
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:6px;">🔥 The Furnace — Smithing ' + rsLvl('smith') + '</div><div class="rs-rows">';
+    RS_SMELT.forEach(function(rec){
+      const d = RS_ITEMS[rec.out];
+      let can = rsLvl('smith') >= rec.req;
+      const parts = [];
+      for(const k in rec.ins){
+        if(rsHave(k) < rec.ins[k]) can = false;
+        parts.push(rec.ins[k] + '× ' + RS_ITEMS[k].name + ' (' + rsHave(k) + ')');
+      }
+      h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name +
+        '<span class="sub">lvl ' + rec.req + ' · ' + parts.join(' + ') + ' · ' + rec.xp + ' xp</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rssmelt="' + rec.out + '">Smelt</button></div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rssmelt]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        rsStartActivity('smelt', b.dataset.rssmelt);
+        rsLog('The furnace roars up.', '#c9b788');
+        rsRenderActs();
+      });
+    });
+    return;
+  }
+
+  if(t === 'market'){
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:4px;">🕶️ The Market — Thieving ' + rsLvl('thief') + '</div>' +
+      '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">Lift what you can. Get caught and a guard takes it out of your hide.</div><div class="rs-rows">';
+    RS_STALLS.forEach(function(st){
+      const can = rsLvl('thief') >= st.req;
+      const odds = Math.round(Math.min(0.92, 0.42 + (rsLvl('thief') - st.req) * 0.012) * 100);
+      h += '<div class="rs-row"><span>🏪</span><div class="grow">' + st.name +
+        '<span class="sub">' + (can ? 'lvl ' + st.req + ' · ' + st.xp + ' xp · ' + odds + '% success · ' + st.dmg + ' dmg if caught'
+                                    : 'Thieving ' + st.req + ' required') + '</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rssteal="' + st.id + '">Steal</button></div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rssteal]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        rsStartActivity('steal', b.dataset.rssteal);
+        rsLog('You drift toward the stalls, hands loose.', '#c9b788');
+        rsRenderActs();
+      });
+    });
+    return;
+  }
+
+  if(t === 'craft' || t === 'fletch' || t === 'rc'){
+    const meta = {
+      craft:  {skill:'craft',  table:RS_CRAFT,  title:'🧵 Crafting bench', blurb:'Tan cowhide into leather, cut gems, and stitch your own ranged armour.'},
+      fletch: {skill:'fletch', table:RS_FLETCH, title:'🎯 Fletching',      blurb:'Carve logs into bows and string them, or fletch arrows with feathers and bars.'},
+      rc:     {skill:'rc',     table:RS_RC,     title:'🔮 Rune altar',     blurb:'Bind rune essence into runes. Carry runes and your staff hits harder.'},
+    }[t];
+    let h = '<div style="font-size:11px;color:#c9b788;font-weight:800;margin-bottom:4px;">' + meta.title + ' — level ' + rsLvl(meta.skill) + '</div>' +
+      '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">' + meta.blurb + '</div><div class="rs-rows">';
+    meta.table.forEach(function(rec){
+      const d = RS_ITEMS[rec.out];
+      const ins = rec.ins || {rune_ess:1};
+      let can = rsLvl(meta.skill) >= rec.req;
+      const parts = [];
+      for(const k in ins){
+        if(!ins[k]) continue;
+        if(rsHave(k) < ins[k]) can = false;
+        parts.push(ins[k] + '× ' + RS_ITEMS[k].name + ' (' + rsHave(k) + ')');
+      }
+      h += '<div class="rs-row"><span>' + d.ic + '</span><div class="grow">' + d.name + (rec.qty > 1 ? ' ×' + rec.qty : '') +
+        '<span class="sub">lvl ' + rec.req + ' · ' + parts.join(' + ') + ' · ' + rec.xp + ' xp</span></div>' +
+        '<button class="rs-btn' + (can ? '' : ' dis') + '" data-rsmake="' + rec.out + '">Make</button></div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rsmake]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        rsStartActivity(t, b.dataset.rsmake);
+        rsLog('You set to work.', '#c9b788');
+      });
+    });
     return;
   }
 
@@ -20027,6 +20771,30 @@ const RS_EXAMINE = {
   anglerfish:'It stares back, even cooked.', dragon_dagger:'The classic. Two quick stabs and gone.',
   knights_blade:'An old order\'s last blade. It remembers its vows.',
   holy_symbol:'A quiet weight. Prayers drain slower while worn.',
+  dragon_scim:'The classic. Fast, mean, and beautiful.',
+  dawn_blade:'It was forged at sunrise and never cooled.',
+  crystal_bow:'It sings when drawn. Needs no arrows to be lovely.',
+  trident:'Still wet. It has never been near the sea.',
+  ring_berserk:'Rage, sized to fit.', ring_archer:'Steadies the draw.',
+  ring_seer:'The world goes quiet and precise.',
+  ring_wealth:'Rare things find you more often.',
+  ring_recoil:'Hit it, and it hits you back.',
+  fire_cape:'Still warm from the arena.', wyrm_hide:'Scales like cooled lava.',
+  pet_ebon:'It has already set fire to something.',
+  dragon_helm:'Dragon metal. Nobody knows how it is made.',
+  plank:'Straight, dry, and ready to nail.', nails:'Small, sharp, endlessly useful.',
+  limestone:'Soft stone. Cuts into blocks.', stone_block:'Dressed and square.',
+  potato:'It is a potato.', onion:'It makes your eyes water.',
+  cabbage:'Nobody\'s favourite, but it fills a gap.', tomato:'Squashy and red.',
+  sweetcorn:'Sweet, yellow, and good over a fire.', strawberry:'Sweet enough to be suspicious.',
+  watermelon:'Mostly water, entirely welcome.',
+  cowhide:'It still smells of the field.', leather:'Tanned and ready to work.',
+  feather:'A chicken parted with this.', arrow_shaft:'Straight, light, and useless alone.',
+  bowstring:'Waxed and wound tight.', rune_ess:'Blank stone, humming faintly.',
+  mark_grace:'Proof you landed the jump.', graceful_cape:'Weightless. Somehow.',
+  sapphire_c:'Cut and faceted.', ruby_c:'Cut and faceted.', diamond_c:'Cut, faceted, and worth a house.',
+  bronze_arrow:'Carry arrows and your bow hits harder.',
+  air_rune:'Carry runes and your staff hits harder.',
   wiz_hat:'A pointy hat. Deeply traditional.', arch_top:'The seams crackle quietly.',
 };
 function rsExamine(id){
@@ -20147,6 +20915,10 @@ const RS_SPECS = {
   regent_staff:   {name:'Soul Siphon', cost:60, dmg:1.8,  acc:15, heal:0.5, txt:'Pale fire pulls the life across.'},
   dragon_dagger:  {name:'Puncture',    cost:25, dmg:1.15, acc:15, twice:true, txt:'Two lightning-fast stabs.'},
   knights_blade:  {name:'Judgment',    cost:45, dmg:1.6,  acc:30, txt:'The blade rings like a bell tower.'},
+  dragon_scim:    {name:'Sunburst',    cost:55, dmg:1.45, acc:60, txt:'A blinding arc of steel.'},
+  crystal_bow:    {name:'Crystal Rain',cost:60, dmg:1.1,  acc:35, twice:true, txt:'The bow splits the shot in mid-air.'},
+  trident:        {name:'Riptide',     cost:50, dmg:1.7,  acc:25, heal:0.35, txt:'The sea answers, and takes its due.'},
+  dawn_blade:     {name:'Daybreak',    cost:75, dmg:2.4,  acc:99, txt:'For one heartbeat the Wilderness is bright as morning.'},
 };
 function rsDoSpecial(){
   const r = rsEnsure();
@@ -20262,6 +21034,7 @@ function rsUseItem(id){
     }
   } else if(d.slot){
     const reqSkill = d.slot === 'weapon' ? (d.kind === 'bow' ? 'range' : d.kind === 'staff' ? 'mage' : 'atk')
+                   : d.slot === 'ring' || d.slot === 'cape' ? 'hp'
                    : d.kind === 'range' ? 'range' : d.kind === 'mage' ? 'mage' : 'def';
     if(rsLvl(reqSkill) < d.lvl){
       rsLog('You need ' + RS_SKILLS.find(function(x){return x.id===reqSkill;}).name + ' ' + d.lvl + ' for that.', '#e8b4c0');
@@ -20289,14 +21062,16 @@ function rsUseItem(id){
 
 /* ---- The scene: a proper viewport ---- */
 const RS_AREA_ART = {
-  woods: {skyTop:'#87b7d9', skyBot:'#cfe3ba', ground:'#4e7a35', groundDark:'#3d612a'},
-  mine:  {skyTop:'#2f2b33', skyBot:'#1c191f', ground:'#4a4139', groundDark:'#38312b'},
-  river: {skyTop:'#8fc3e8', skyBot:'#d8ecf5', ground:'#4e7a35', groundDark:'#3d612a'},
-  town:  {skyTop:'#e8b06a', skyBot:'#f0d9a8', ground:'#7a7368', groundDark:'#645e54'},
-  fields:{skyTop:'#79b7e0', skyBot:'#cfe8c0', ground:'#59842f', groundDark:'#476a26'},
-  mire:  {skyTop:'#4a5a4c', skyBot:'#333f35', ground:'#3a4a36', groundDark:'#2c3829'},
-  tower: {skyTop:'#2a2433', skyBot:'#1a1622', ground:'#3a3342', groundDark:'#2c2733'},
-  cata:  {skyTop:'#1c1722', skyBot:'#26202e', ground:'#3a3242', groundDark:'#2b2533'},
+  _mid:  true,
+  woods: {skyTop:'#87b7d9', skyMid:'#a8cfe0', skyBot:'#cfe3ba', ground:'#4e7a35', groundDark:'#3d612a'},
+  mine:  {skyTop:'#2f2b33', skyMid:'#272330', skyBot:'#1c191f', ground:'#4a4139', groundDark:'#38312b'},
+  river: {skyTop:'#8fc3e8', skyMid:'#b3d9ee', skyBot:'#d8ecf5', ground:'#4e7a35', groundDark:'#3d612a'},
+  town:  {skyTop:'#e8b06a', skyMid:'#efc98d', skyBot:'#f0d9a8', ground:'#7a7368', groundDark:'#645e54'},
+  fields:{skyTop:'#79b7e0', skyMid:'#a6d0ea', skyBot:'#cfe8c0', ground:'#59842f', groundDark:'#476a26'},
+  mire:  {skyTop:'#4a5a4c', skyMid:'#3e4d40', skyBot:'#333f35', ground:'#3a4a36', groundDark:'#2c3829'},
+  tower: {skyTop:'#2a2433', skyMid:'#231d2c', skyBot:'#1a1622', ground:'#3a3342', groundDark:'#2c2733'},
+  wild:  {skyTop:'#3a1410', skyMid:'#5e2214', skyBot:'#8a3a1c', ground:'#43302a', groundDark:'#2e211d'},
+  cata:  {skyTop:'#1c1722', skyMid:'#221c2a', skyBot:'#26202e', ground:'#3a3242', groundDark:'#2b2533'},
 };
 const RS_TREE_ART = {
   logs:{leaf:'#3f7d2e', leaf2:'#549940', trunk:'#6b4a2a'},
@@ -20368,149 +21143,1021 @@ function rsDrawHeld(ctx, kind){
   }
 }
 
-function rsGroundY(H){ return H - 66; }
+const RS_VIEW_W = 800, RS_VIEW_H = 450;    /* design space; canvas is 2x this */
+function rsGroundY(H){ return Math.round(H * 0.80); }
+
+function rsHash(i){ const x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); }
+
+/* Distant ridge line — drawn once per frame, cheap, gives real depth. */
+function rsRidge(ctx, W, gy, baseY, amp, col, seed){
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(0, gy);
+  for(let x = 0; x <= W; x += 20){
+    const h = baseY - (Math.sin((x + seed * 90) / 130) * amp + Math.sin((x + seed * 40) / 47) * amp * 0.45);
+    ctx.lineTo(x, h);
+  }
+  ctx.lineTo(W, gy); ctx.closePath(); ctx.fill();
+}
 
 function rsDrawBackdrop(ctx, W, H, area, t){
   const art = RS_AREA_ART[area] || RS_AREA_ART.woods;
   const gy = rsGroundY(H);
+  const dark = area === 'mine' || area === 'tower' || area === 'cata' || area === 'mire' || area === 'wild';
+
+  /* ---- sky: three-stop gradient ---- */
   const g = ctx.createLinearGradient(0, 0, 0, gy);
-  g.addColorStop(0, art.skyTop); g.addColorStop(1, art.skyBot);
+  g.addColorStop(0, art.skyTop);
+  g.addColorStop(0.62, art.skyMid || art.skyBot);
+  g.addColorStop(1, art.skyBot);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, gy);
-  /* ground: base + darker lip + texture flecks */
-  ctx.fillStyle = art.ground; ctx.fillRect(0, gy, W, H - gy);
-  ctx.fillStyle = art.groundDark; ctx.fillRect(0, gy, W, 6);
-  ctx.fillStyle = 'rgba(0,0,0,0.12)';
-  for(let i = 0; i < 26; i++){
-    const fx = (i * 97 + 31) % W, fy = gy + 12 + ((i * 53) % (H - gy - 18));
-    ctx.fillRect(fx, fy, 5, 2);
+
+  /* ---- celestial body ---- */
+  if(!dark){
+    const sx = W - 96, sy = 56;
+    const halo = ctx.createRadialGradient(sx, sy, 6, sx, sy, 74);
+    halo.addColorStop(0, 'rgba(255,246,196,0.55)');
+    halo.addColorStop(1, 'rgba(255,246,196,0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(sx, sy, 74, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff6c4'; ctx.beginPath(); ctx.arc(sx, sy, 21, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fffdf0'; ctx.beginPath(); ctx.arc(sx, sy, 14, 0, 7); ctx.fill();
+  } else if(area === 'mire' || area === 'cata' || area === 'tower' || area === 'wild'){
+    /* stars + a low moon for the outdoor-ish dark areas */
+    for(let i = 0; i < 34; i++){
+      const stx = rsHash(i) * W, sty = rsHash(i + 90) * gy * 0.7;
+      const tw = 0.35 + Math.abs(Math.sin(t / 14 + i)) * 0.5;
+      ctx.fillStyle = 'rgba(226,232,255,' + tw.toFixed(2) + ')';
+      ctx.fillRect(stx, sty, 2, 2);
+    }
+    if(area === 'mire'){
+      ctx.fillStyle = 'rgba(210,220,236,0.85)';
+      ctx.beginPath(); ctx.arc(W - 110, 62, 24, 0, 7); ctx.fill();
+      ctx.fillStyle = art.skyTop;
+      ctx.beginPath(); ctx.arc(W - 100, 54, 22, 0, 7); ctx.fill();
+    }
   }
 
-  if(area === 'woods' || area === 'fields'){
-    /* sun + clouds + far treeline */
-    ctx.fillStyle = '#fff3c4'; ctx.beginPath(); ctx.arc(W - 60, 42, 17, 0, 7); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    [[70, 36], [W * 0.45, 58], [W - 150, 30]].forEach(function(c){
-      rsRR(ctx, c[0], c[1], 54, 12, 6); ctx.fill();
-      rsRR(ctx, c[0] + 12, c[1] - 7, 30, 10, 5); ctx.fill();
-    });
-    ctx.fillStyle = area === 'woods' ? '#2c5a22' : '#3c6a2a';
-    for(let i = 0; i < 9; i++){
-      const bx = i * (W / 8) - 10;
-      ctx.beginPath(); ctx.arc(bx, gy - 4, 26 + (i % 3) * 8, Math.PI, 0); ctx.fill();
+  /* ---- cloud banks (two parallax speeds) ---- */
+  if(!dark){
+    for(let layer = 0; layer < 2; layer++){
+      const spd = layer ? 0.10 : 0.045;
+      const alpha = layer ? 0.85 : 0.5;
+      const yBase = layer ? 58 : 34;
+      ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+      for(let i = 0; i < 4; i++){
+        const cw = 62 + rsHash(i + layer * 7) * 54;
+        const cx = ((rsHash(i + layer * 13) * (W + 260) + t * spd * 12) % (W + 260)) - 130;
+        const cy = yBase + rsHash(i + layer * 21) * 34;
+        rsRR(ctx, cx, cy, cw, 13, 6); ctx.fill();
+        rsRR(ctx, cx + 14, cy - 8, cw * 0.55, 11, 5); ctx.fill();
+        rsRR(ctx, cx + cw * 0.5, cy - 4, cw * 0.4, 10, 5); ctx.fill();
+      }
+    }
+  }
+
+  /* ---- far ridge + mid treeline (parallax depth) ---- */
+  if(area === 'woods' || area === 'fields' || area === 'river'){
+    rsRidge(ctx, W, gy, gy - 118, 26, 'rgba(120,146,168,0.45)', 1);
+    rsRidge(ctx, W, gy, gy - 84, 18, 'rgba(86,116,92,0.65)', 3);
+    ctx.fillStyle = area === 'woods' ? '#2c5a22' : '#356226';
+    for(let i = 0; i < 13; i++){
+      const bx = i * (W / 12) - 12, br = 24 + (i % 3) * 9;
+      ctx.beginPath(); ctx.arc(bx, gy - 4, br, Math.PI, 0); ctx.fill();
+    }
+    if(area === 'woods'){
+      /* trunks behind the treeline */
+      ctx.fillStyle = '#3d2c1c';
+      for(let i = 0; i < 6; i++){ const bx = 40 + i * (W / 6); ctx.fillRect(bx, gy - 26, 6, 26); }
     }
     if(area === 'fields'){
       ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 3;
-      for(let i = 0; i < 6; i++){ const fx2 = 24 + i * 44; ctx.beginPath(); ctx.moveTo(fx2, gy - 18); ctx.lineTo(fx2, gy + 2); ctx.stroke(); }
-      ctx.beginPath(); ctx.moveTo(10, gy - 12); ctx.lineTo(24 + 5 * 44 + 10, gy - 12); ctx.stroke();
+      for(let i = 0; i < 9; i++){ const fx2 = 24 + i * 52; ctx.beginPath(); ctx.moveTo(fx2, gy - 20); ctx.lineTo(fx2, gy + 2); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(10, gy - 13); ctx.lineTo(24 + 8 * 52 + 10, gy - 13); ctx.stroke();
       ctx.lineWidth = 1;
     }
-  } else if(area === 'mine'){
-    /* cave: jagged rock ceiling, torches with flicker, ore glints */
+  }
+
+  /* ---- ground: gradient body, dark lip, texture ---- */
+  const gg = ctx.createLinearGradient(0, gy, 0, H);
+  gg.addColorStop(0, art.ground);
+  gg.addColorStop(1, art.groundDark);
+  ctx.fillStyle = gg; ctx.fillRect(0, gy, W, H - gy);
+  ctx.fillStyle = art.groundDark; ctx.fillRect(0, gy, W, 5);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, gy, W, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.13)';
+  for(let i = 0; i < 42; i++){
+    const fx = rsHash(i) * W, fy = gy + 10 + rsHash(i + 55) * (H - gy - 16);
+    ctx.fillRect(fx, fy, 4 + rsHash(i + 7) * 4, 2);
+  }
+  /* grass tufts / flowers on living ground */
+  if(area === 'woods' || area === 'fields' || area === 'river'){
+    for(let i = 0; i < 26; i++){
+      const fx = rsHash(i + 3) * W, fy = gy + 8 + rsHash(i + 31) * (H - gy - 14);
+      ctx.strokeStyle = 'rgba(30,64,26,0.5)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx - 2, fy - 6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + 3, fy - 5); ctx.stroke();
+      if(rsHash(i + 61) > 0.82){
+        ctx.fillStyle = rsHash(i + 12) > 0.5 ? '#e8d05a' : '#e6798f';
+        ctx.beginPath(); ctx.arc(fx + 3, fy - 6, 2, 0, 7); ctx.fill();
+      }
+    }
+    ctx.lineWidth = 1;
+  }
+
+  /* ---- per-area set dressing ---- */
+  if(area === 'mine'){
     ctx.fillStyle = '#241f26';
     ctx.beginPath(); ctx.moveTo(0, 0);
-    for(let i = 0; i <= 10; i++) ctx.lineTo(i * (W / 10), 26 + ((i * 37) % 22));
+    for(let i = 0; i <= 12; i++) ctx.lineTo(i * (W / 12), 30 + rsHash(i) * 30);
     ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
-    [[60, 70], [W - 80, 62]].forEach(function(p, i){
-      ctx.fillStyle = '#6b4a2a'; ctx.fillRect(p[0] - 2, p[1], 4, 20);
-      const fl = 5 + Math.sin(t / 4 + i * 3) * 2;
-      ctx.fillStyle = '#ffb648'; ctx.beginPath(); ctx.arc(p[0], p[1] - 3, fl, 0, 7); ctx.fill();
-      ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(p[0], p[1] - 4, fl * 0.5, 0, 7); ctx.fill();
-      const glow = ctx.createRadialGradient(p[0], p[1], 4, p[0], p[1], 70);
-      glow.addColorStop(0, 'rgba(255,180,72,0.20)'); glow.addColorStop(1, 'rgba(255,180,72,0)');
-      ctx.fillStyle = glow; ctx.fillRect(p[0] - 70, p[1] - 70, 140, 140);
+    ctx.fillStyle = '#1b171d';
+    for(let i = 0; i < 5; i++){
+      const sx = 30 + i * (W / 5);
+      ctx.beginPath(); ctx.moveTo(sx, 26 + rsHash(i) * 20); ctx.lineTo(sx + 9, 26); ctx.lineTo(sx + 18, 26 + rsHash(i + 4) * 24); ctx.closePath(); ctx.fill();
+    }
+    /* support beams */
+    ctx.fillStyle = '#5a4630';
+    [W * 0.2, W * 0.78].forEach(function(bx){
+      ctx.fillRect(bx, 54, 9, gy - 54); ctx.fillRect(bx - 26, 48, 61, 9);
+    });
+    [[76, 96], [W - 104, 86], [W * 0.5, 104]].forEach(function(p, i){
+      ctx.fillStyle = '#6b4a2a'; ctx.fillRect(p[0] - 2, p[1], 4, 22);
+      const fl = 6 + Math.sin(t / 4 + i * 3) * 2.4;
+      const glow = ctx.createRadialGradient(p[0], p[1], 4, p[0], p[1], 96);
+      glow.addColorStop(0, 'rgba(255,180,72,0.26)'); glow.addColorStop(1, 'rgba(255,180,72,0)');
+      ctx.fillStyle = glow; ctx.fillRect(p[0] - 96, p[1] - 96, 192, 192);
+      ctx.fillStyle = '#ff8c3a'; ctx.beginPath(); ctx.arc(p[0], p[1] - 3, fl, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(p[0], p[1] - 5, fl * 0.45, 0, 7); ctx.fill();
     });
     ctx.fillStyle = '#58c0d8';
-    for(let i = 0; i < 7; i++){ const sx = (i * 83 + 40) % W; ctx.fillRect(sx, 40 + (i * 31) % 60, 3, 3); }
-  } else if(area === 'river'){
-    /* water band with moving highlights, reeds */
-    const wy = gy - 34;
-    ctx.fillStyle = '#3f6f9e'; ctx.fillRect(0, wy, W, 34);
-    ctx.fillStyle = '#5c8fbe';
     for(let i = 0; i < 10; i++){
-      const rx = ((i * 73 + t * 0.8) % (W + 40)) - 20;
-      ctx.fillRect(rx, wy + 6 + (i % 4) * 7, 26, 2);
+      const sx = rsHash(i + 2) * W, sy = 60 + rsHash(i + 17) * (gy - 90);
+      const tw = 0.3 + Math.abs(Math.sin(t / 9 + i * 2)) * 0.7;
+      ctx.globalAlpha = tw; ctx.fillRect(sx, sy, 3, 3); ctx.globalAlpha = 1;
     }
-    ctx.strokeStyle = '#2c5a22'; ctx.lineWidth = 2;
-    [[20, 0], [40, 4], [W - 30, 2]].forEach(function(rd){
-      ctx.beginPath(); ctx.moveTo(rd[0], gy); ctx.quadraticCurveTo(rd[0] + 4, gy - 22 - rd[1] * 2, rd[0] + 8, gy - 30 - rd[1] * 2); ctx.stroke();
+  } else if(area === 'river'){
+    const wy = gy - 46;
+    const wg = ctx.createLinearGradient(0, wy, 0, gy);
+    wg.addColorStop(0, '#5793c4'); wg.addColorStop(1, '#2f5d88');
+    ctx.fillStyle = wg; ctx.fillRect(0, wy, W, gy - wy);
+    ctx.fillStyle = 'rgba(255,255,255,0.30)';
+    for(let i = 0; i < 16; i++){
+      const rx = ((rsHash(i) * (W + 60) + t * 1.1) % (W + 60)) - 30;
+      const ry = wy + 6 + rsHash(i + 41) * (gy - wy - 10);
+      ctx.fillRect(rx, ry, 20 + rsHash(i + 5) * 18, 2);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(0, wy, W, 3);
+    ctx.strokeStyle = '#2c5a22'; ctx.lineWidth = 2.4;
+    [[18, 0], [44, 4], [W - 40, 2], [W - 70, 5]].forEach(function(rd){
+      ctx.beginPath(); ctx.moveTo(rd[0], gy); ctx.quadraticCurveTo(rd[0] + 5, gy - 26 - rd[1] * 2, rd[0] + 10, gy - 36 - rd[1] * 2); ctx.stroke();
     });
     ctx.lineWidth = 1;
   } else if(area === 'town'){
-    /* building fronts with lit windows, cobbles */
-    [[14, 66, '#5a4632'], [120, 52, '#6b563e'], [W - 150, 72, '#4f3d2b']].forEach(function(bd){
-      const bw = 92, bh = bd[1];
+    rsRidge(ctx, W, gy, gy - 96, 20, 'rgba(150,150,166,0.35)', 2);
+    [[16, 84, '#5a4632'], [140, 66, '#6b563e'], [286, 92, '#4f3d2b'], [W - 168, 74, '#63503a']].forEach(function(bd, i){
+      const bw = 104, bh = bd[1];
       ctx.fillStyle = bd[2]; ctx.fillRect(bd[0], gy - bh, bw, bh);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(bd[0] + bw - 16, gy - bh, 16, bh);
       ctx.fillStyle = '#3a2c1e';
-      ctx.beginPath(); ctx.moveTo(bd[0] - 8, gy - bh); ctx.lineTo(bd[0] + bw / 2, gy - bh - 24); ctx.lineTo(bd[0] + bw + 8, gy - bh); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffd98a';
-      ctx.fillRect(bd[0] + 12, gy - bh + 14, 12, 14); ctx.fillRect(bd[0] + bw - 26, gy - bh + 14, 12, 14);
+      ctx.beginPath(); ctx.moveTo(bd[0] - 9, gy - bh); ctx.lineTo(bd[0] + bw / 2, gy - bh - 28); ctx.lineTo(bd[0] + bw + 9, gy - bh); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#241f17'; ctx.fillRect(bd[0] + bw / 2 - 4, gy - bh - 26, 8, 12);   /* chimney */
+      const lit = (i % 2 === 0) ? '#ffd98a' : '#ffbe63';
+      ctx.fillStyle = lit;
+      ctx.fillRect(bd[0] + 14, gy - bh + 18, 14, 16); ctx.fillRect(bd[0] + bw - 32, gy - bh + 18, 14, 16);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(bd[0] + 20, gy - bh + 18, 2, 16); ctx.fillRect(bd[0] + bw - 26, gy - bh + 18, 2, 16);
+      ctx.fillStyle = '#3a2c1e'; ctx.fillRect(bd[0] + bw / 2 - 9, gy - 30, 18, 30);       /* door */
     });
     ctx.fillStyle = 'rgba(0,0,0,0.10)';
-    for(let i = 0; i < 30; i++){ const cx2 = (i * 41) % W; rsRR(ctx, cx2, gy + 10 + (i * 29) % 40, 14, 6, 3); ctx.fill(); }
+    for(let i = 0; i < 44; i++){ rsRR(ctx, rsHash(i) * W, gy + 8 + rsHash(i + 9) * (H - gy - 14), 16, 7, 3); ctx.fill(); }
   } else if(area === 'tower'){
-    /* stone pillars, chains, candles */
     ctx.fillStyle = '#4a4156';
-    [[40, 0], [W - 70, 0], [W * 0.45, 0]].forEach(function(pl){
-      ctx.fillRect(pl[0], 0, 26, gy);
-      ctx.fillStyle = '#3a3346'; ctx.fillRect(pl[0] + 20, 0, 6, gy); ctx.fillStyle = '#4a4156';
-      ctx.fillRect(pl[0] - 5, gy - 12, 36, 12);
+    [46, W - 84, W * 0.46].forEach(function(pl){
+      ctx.fillRect(pl, 0, 30, gy);
+      ctx.fillStyle = '#3a3346'; ctx.fillRect(pl + 23, 0, 7, gy);
+      ctx.fillStyle = '#574d64'; ctx.fillRect(pl - 6, gy - 14, 42, 14);
+      ctx.fillStyle = '#4a4156';
     });
     ctx.strokeStyle = '#241f2c'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(66, 30); ctx.quadraticCurveTo(W * 0.3, 70, W * 0.45, 34); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W * 0.45 + 26, 40); ctx.quadraticCurveTo(W * 0.75, 84, W - 70, 36); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(76, 34); ctx.quadraticCurveTo(W * 0.3, 80, W * 0.46, 38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W * 0.46 + 30, 44); ctx.quadraticCurveTo(W * 0.74, 96, W - 84, 40); ctx.stroke();
     ctx.lineWidth = 1;
-    [[120, gy - 30], [W - 130, gy - 42], [W * 0.36, gy - 26]].forEach(function(cd, i){
-      ctx.fillStyle = '#d8ccb4'; ctx.fillRect(cd[0], cd[1], 4, 12);
-      const fl = 2.5 + Math.sin(t / 3 + i * 2) * 1.2;
-      ctx.fillStyle = '#ffb648'; ctx.beginPath(); ctx.arc(cd[0] + 2, cd[1] - 3, fl, 0, 7); ctx.fill();
+    [[140, gy - 34], [W - 150, gy - 48], [W * 0.36, gy - 30]].forEach(function(cd, i){
+      ctx.fillStyle = '#d8ccb4'; ctx.fillRect(cd[0], cd[1], 5, 14);
+      const fl = 3 + Math.sin(t / 3 + i * 2) * 1.4;
+      const glow = ctx.createRadialGradient(cd[0] + 2, cd[1] - 4, 2, cd[0] + 2, cd[1] - 4, 46);
+      glow.addColorStop(0, 'rgba(255,180,72,0.22)'); glow.addColorStop(1, 'rgba(255,180,72,0)');
+      ctx.fillStyle = glow; ctx.fillRect(cd[0] - 44, cd[1] - 48, 92, 92);
+      ctx.fillStyle = '#ffb648'; ctx.beginPath(); ctx.arc(cd[0] + 2, cd[1] - 4, fl, 0, 7); ctx.fill();
     });
-    ctx.fillStyle = 'rgba(120,90,160,0.08)';
-    rsRR(ctx, ((t * 0.5) % (W + 120)) - 60, 60, 110, 16, 8); ctx.fill();
   } else if(area === 'cata'){
-    /* crypt: bone arches, skull piles, green grave-wisps */
     ctx.fillStyle = '#4a4054';
-    [[36, 0], [W * 0.48, 0], [W - 66, 0]].forEach(function(pl){
-      ctx.fillRect(pl[0], 0, 24, gy);
-      ctx.fillStyle = '#382f42'; ctx.fillRect(pl[0] + 18, 0, 6, gy); ctx.fillStyle = '#4a4054';
-      ctx.fillRect(pl[0] - 6, gy - 10, 36, 10);
+    [40, W * 0.46, W - 76].forEach(function(pl){
+      ctx.fillRect(pl, 0, 28, gy);
+      ctx.fillStyle = '#382f42'; ctx.fillRect(pl + 21, 0, 7, gy);
+      ctx.fillStyle = '#544969'; ctx.fillRect(pl - 7, gy - 12, 42, 12);
       ctx.fillStyle = '#d8ccb4';
-      for(let i = 0; i < 4; i++) ctx.fillRect(pl[0] + 3, 20 + i * 34, 18, 4);
+      for(let i = 0; i < 5; i++) ctx.fillRect(pl + 4, 22 + i * 38, 20, 5);
       ctx.fillStyle = '#4a4054';
     });
+    /* arches */
+    ctx.strokeStyle = '#3a3145'; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.arc(W * 0.24, gy - 40, 74, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W * 0.74, gy - 40, 74, Math.PI, 0); ctx.stroke();
+    ctx.lineWidth = 1;
     ctx.fillStyle = '#cfc4ac';
-    [[90, 0], [W * 0.32, 1], [W - 140, 0]].forEach(function(sk, i){
-      const sx = sk[0], sy = gy + 14 + sk[1] * 8;
-      ctx.beginPath(); ctx.arc(sx, sy, 7, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(sx + 12, sy + 4, 5, 0, 7); ctx.fill();
-      ctx.fillStyle = '#241f2b'; ctx.fillRect(sx - 4, sy - 2, 3, 3); ctx.fillRect(sx + 1, sy - 2, 3, 3);
+    [[104, 0], [W * 0.33, 1], [W - 160, 0], [W * 0.58, 1]].forEach(function(sk){
+      const sx = sk[0], sy = gy + 18 + sk[1] * 10;
+      ctx.beginPath(); ctx.arc(sx, sy, 8, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx + 13, sy + 5, 5.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#241f2b'; ctx.fillRect(sx - 4, sy - 2, 3, 4); ctx.fillRect(sx + 2, sy - 2, 3, 4);
       ctx.fillStyle = '#cfc4ac';
     });
-    ctx.fillStyle = 'rgba(140,220,160,0.14)';
-    for(let i = 0; i < 4; i++){
-      const wx = ((t * (0.5 + i * 0.25) + i * 170) % (W + 100)) - 50;
-      const wy2 = 46 + i * 26 + Math.sin(t / 9 + i * 2) * 8;
-      ctx.beginPath(); ctx.arc(wx, wy2, 5, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(wx - 7, wy2 + 7, 3, 0, 7); ctx.fill();
+  } else if(area === 'wild'){
+    /* blasted wastes: black ridges, a burning horizon, lava fissures */
+    rsRidge(ctx, W, gy, gy - 128, 30, 'rgba(70,32,26,0.75)', 7);
+    rsRidge(ctx, W, gy, gy - 88, 22, 'rgba(44,20,16,0.9)', 2);
+    ctx.fillStyle = 'rgba(255,140,58,0.18)';
+    ctx.fillRect(0, gy - 30, W, 30);
+    /* dead spires */
+    ctx.fillStyle = '#241512';
+    [70, W * 0.3, W * 0.72, W - 90].forEach(function(sx, i){
+      const sh = 46 + (i % 3) * 26;
+      ctx.beginPath(); ctx.moveTo(sx - 9, gy); ctx.lineTo(sx, gy - sh); ctx.lineTo(sx + 9, gy); ctx.closePath(); ctx.fill();
+    });
+    /* glowing fissures in the ground */
+    for(let i = 0; i < 5; i++){
+      const fx = rsHash(i + 40) * W, fy = gy + 14 + rsHash(i + 66) * (H - gy - 22);
+      const pulse = 0.4 + Math.abs(Math.sin(t / 8 + i * 2)) * 0.6;
+      const gl = ctx.createLinearGradient(fx - 40, fy, fx + 40, fy);
+      gl.addColorStop(0, 'rgba(255,120,40,0)');
+      gl.addColorStop(0.5, 'rgba(255,150,60,' + (0.55 * pulse).toFixed(2) + ')');
+      gl.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = gl; ctx.fillRect(fx - 40, fy - 2, 80, 5);
+      ctx.fillStyle = 'rgba(255,225,150,' + (0.5 * pulse).toFixed(2) + ')';
+      ctx.fillRect(fx - 18, fy - 1, 36, 2);
     }
   } else if(area === 'mire'){
-    /* dead trees, murk pools, drifting fog */
+    rsRidge(ctx, W, gy, gy - 96, 22, 'rgba(58,74,60,0.7)', 5);
     ctx.strokeStyle = '#22301f'; ctx.lineWidth = 4;
-    [[50, 60], [W - 90, 74], [W * 0.4, 52]].forEach(function(dt){
+    [[58, 74], [W - 104, 90], [W * 0.4, 64], [W * 0.66, 82]].forEach(function(dt){
       ctx.beginPath(); ctx.moveTo(dt[0], gy); ctx.lineTo(dt[0], gy - dt[1]);
-      ctx.moveTo(dt[0], gy - dt[1] * 0.6); ctx.lineTo(dt[0] + 16, gy - dt[1] * 0.85);
-      ctx.moveTo(dt[0], gy - dt[1] * 0.45); ctx.lineTo(dt[0] - 14, gy - dt[1] * 0.7);
+      ctx.moveTo(dt[0], gy - dt[1] * 0.6); ctx.lineTo(dt[0] + 19, gy - dt[1] * 0.85);
+      ctx.moveTo(dt[0], gy - dt[1] * 0.45); ctx.lineTo(dt[0] - 16, gy - dt[1] * 0.72);
+      ctx.moveTo(dt[0] + 19, gy - dt[1] * 0.85); ctx.lineTo(dt[0] + 25, gy - dt[1] * 0.96);
       ctx.stroke();
     });
     ctx.lineWidth = 1;
     ctx.fillStyle = '#2f4436';
-    rsRR(ctx, 30, gy + 16, 90, 14, 7); ctx.fill();
-    rsRR(ctx, W - 130, gy + 26, 70, 12, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(180,196,180,0.10)';
-    for(let i = 0; i < 3; i++){
-      const fx3 = ((t * (0.4 + i * 0.2) + i * 140) % (W + 160)) - 80;
-      rsRR(ctx, fx3, 40 + i * 34, 130, 18, 9); ctx.fill();
+    [[34, 20, 108, 16], [W - 152, 32, 84, 14], [W * 0.44, 42, 70, 12]].forEach(function(pl){
+      rsRR(ctx, pl[0], gy + pl[1], pl[2], pl[3], 7); ctx.fill();
+      ctx.fillStyle = 'rgba(150,190,150,0.15)';
+      rsRR(ctx, pl[0] + 6, gy + pl[1] + 3, pl[2] * 0.5, 3, 2); ctx.fill();
+      ctx.fillStyle = '#2f4436';
+    });
+  }
+}
+
+/* ---- weather / atmosphere particles, drawn over the scenery ---- */
+function rsDrawWeather(ctx, W, H, area, t){
+  const gy = rsGroundY(H);
+  if(area === 'woods'){
+    for(let i = 0; i < 12; i++){
+      const sp = 0.4 + rsHash(i) * 0.5;
+      const y = ((t * sp + rsHash(i + 3) * 400) % (gy + 40)) - 20;
+      const x = rsHash(i + 11) * W + Math.sin((t + i * 30) / 22) * 22;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(t / 12 + i);
+      ctx.fillStyle = ['#c98a3a', '#a8632c', '#7f9a3c'][i % 3];
+      ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.4, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  } else if(area === 'fields'){
+    for(let i = 0; i < 9; i++){
+      const x = ((t * 0.5 + rsHash(i) * W) % (W + 40)) - 20;
+      const y = gy - 30 - rsHash(i + 6) * 70 + Math.sin(t / 8 + i) * 7;
+      ctx.fillStyle = 'rgba(255,240,150,' + (0.25 + Math.abs(Math.sin(t / 6 + i)) * 0.45).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill();
+    }
+  } else if(area === 'mine'){
+    for(let i = 0; i < 16; i++){
+      const y = ((t * (0.18 + rsHash(i) * 0.22) + rsHash(i + 8) * 500) % (gy + 30)) - 10;
+      const x = rsHash(i + 21) * W + Math.sin((t + i * 20) / 30) * 9;
+      ctx.fillStyle = 'rgba(220,205,180,' + (0.10 + rsHash(i + 2) * 0.16).toFixed(2) + ')';
+      ctx.fillRect(x, y, 2, 2);
+    }
+  } else if(area === 'river'){
+    for(let i = 0; i < 10; i++){
+      const x = ((t * 1.6 + rsHash(i) * W) % (W + 30)) - 15;
+      const y = gy - 40 + rsHash(i + 4) * 30;
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.2 + Math.abs(Math.sin(t / 4 + i * 2)) * 0.5).toFixed(2) + ')';
+      ctx.fillRect(x, y, 3, 1.6);
+    }
+  } else if(area === 'town'){
+    for(let i = 0; i < 10; i++){
+      const life = (t * 0.7 + i * 37) % 120;
+      const bx = [16 + 52, 140 + 52, 286 + 52, W - 168 + 52][i % 4];
+      const by = gy - [84, 66, 92, 74][i % 4] - 26 - life * 0.8;
+      ctx.fillStyle = 'rgba(190,190,190,' + Math.max(0, 0.30 - life * 0.0025).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(bx + Math.sin(life / 12) * 7, by, 4 + life * 0.07, 0, 7); ctx.fill();
+    }
+  } else if(area === 'cata'){
+    for(let i = 0; i < 7; i++){
+      const wx = ((t * (0.35 + rsHash(i) * 0.3) + rsHash(i + 5) * (W + 120)) % (W + 120)) - 60;
+      const wy = 60 + rsHash(i + 14) * (gy - 120) + Math.sin(t / 9 + i * 2) * 12;
+      const a = 0.10 + Math.abs(Math.sin(t / 11 + i)) * 0.16;
+      const gl = ctx.createRadialGradient(wx, wy, 1, wx, wy, 16);
+      gl.addColorStop(0, 'rgba(150,235,175,' + (a * 2.4).toFixed(2) + ')');
+      gl.addColorStop(1, 'rgba(150,235,175,0)');
+      ctx.fillStyle = gl; ctx.fillRect(wx - 16, wy - 16, 32, 32);
+      ctx.fillStyle = 'rgba(196,255,214,' + (a * 3).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(wx, wy, 2.6, 0, 7); ctx.fill();
+    }
+  } else if(area === 'tower'){
+    for(let i = 0; i < 10; i++){
+      const y = gy - ((t * (0.3 + rsHash(i) * 0.35) + rsHash(i + 7) * 400) % (gy - 20));
+      const x = rsHash(i + 30) * W + Math.sin((t + i * 25) / 18) * 12;
+      ctx.fillStyle = 'rgba(186,150,232,' + (0.14 + rsHash(i) * 0.24).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 7); ctx.fill();
+    }
+  } else if(area === 'wild'){
+    for(let i = 0; i < 18; i++){
+      const y = gy - ((t * (0.5 + rsHash(i) * 0.7) + rsHash(i + 9) * 420) % (gy + 20));
+      const x = rsHash(i + 33) * W + Math.sin((t + i * 18) / 14) * 14;
+      const a = 0.25 + rsHash(i + 4) * 0.5;
+      ctx.fillStyle = 'rgba(255,' + Math.floor(120 + rsHash(i) * 90) + ',60,' + a.toFixed(2) + ')';
+      ctx.fillRect(x, y, 2.5, 2.5);
+    }
+  } else if(area === 'mire'){
+    for(let i = 0; i < 5; i++){
+      const fx = ((t * (0.3 + i * 0.14) + i * 190) % (W + 220)) - 110;
+      ctx.fillStyle = 'rgba(186,202,186,0.09)';
+      rsRR(ctx, fx, gy - 80 + i * 26, 176, 24, 12); ctx.fill();
+    }
+    for(let i = 0; i < 6; i++){
+      const x = rsHash(i + 2) * W, y = gy - 16 - Math.abs(Math.sin(t / 13 + i * 3)) * 40;
+      ctx.fillStyle = 'rgba(160,220,150,' + (0.12 + Math.abs(Math.sin(t / 7 + i)) * 0.2).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill();
     }
   }
+}
+
+/* ---- final grade: horizon haze + vignette ---- */
+function rsDrawGrade(ctx, W, H, area){
+  const gy = rsGroundY(H);
+  const haze = ctx.createLinearGradient(0, gy - 46, 0, gy + 8);
+  haze.addColorStop(0, 'rgba(255,255,255,0)');
+  haze.addColorStop(1, 'rgba(255,255,255,0.10)');
+  ctx.fillStyle = haze; ctx.fillRect(0, gy - 46, W, 54);
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, H * 0.92);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.34)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+/* ==========================================================================
+   RUNESHARD MONSTER ART
+   Every monster is drawn from scratch with canvas paths — no sprite sheets,
+   no borrowed assets. Silhouettes are our own take on the classic archetypes
+   (goblins, giants, demons, undead, dragons, slayer beasts).
+
+   Coordinate space: each monster is drawn in a 100-unit-tall box with its
+   feet at y = 0 and its head around y = -100, centred on x = 0. rsDrawMob
+   scales that box to whatever pixel height the scene wants, so the same art
+   works for a 46px chicken and a 140px boss.
+   ========================================================================== */
+
+let rsMT = null;                                   /* white-tint override for hit flashes */
+let rsMobSplatY = 0;                               /* where hit splats sit on the current monster */
+function mf(ctx, c){ ctx.fillStyle = rsMT || c; }
+function mst(ctx, c){ ctx.strokeStyle = rsMT || c; }
+function mrr(ctx, x, y, w, h, r){ rsRR(ctx, x, y, w, h, r); ctx.fill(); }
+function mel(ctx, x, y, rx, ry){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill(); }
+function mpoly(ctx, pts){
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for(let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath(); ctx.fill();
+}
+/* eyes that read at any size: dark socket, bright iris, tiny glint */
+function meyes(ctx, y, spread, r, col, glow){
+  [-spread, spread].forEach(function(x){
+    if(glow && !rsMT){
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 4);
+      g.addColorStop(0, glow); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - r * 4, y - r * 4, r * 8, r * 8);
+    }
+    mf(ctx, col || '#fff'); mel(ctx, x, y, r, r);
+    if(!glow){ mf(ctx, '#1a1420'); mel(ctx, x + r * 0.25, y, r * 0.45, r * 0.6); }
+  });
+}
+
+/* ---------------- archetypes ---------------- */
+
+function mHumanoid(ctx, a, t){
+  const sway = Math.sin(t / 7) * 2, bulk = a.bulk || 1, sk = a.skin, cl = a.cloth, c2 = a.cloth2 || a.cloth;
+  const shoulder = -58, headTop = -96;
+  /* legs */
+  mf(ctx, c2);
+  mrr(ctx, -17 * bulk, -30, 13 * bulk, 30, 3);
+  mrr(ctx, 4 * bulk, -30, 13 * bulk, 30, 3);
+  mf(ctx, a.boot || '#3a2c1e');
+  mrr(ctx, -19 * bulk, -6, 16 * bulk, 6, 2);
+  mrr(ctx, 3 * bulk, -6, 16 * bulk, 6, 2);
+  /* torso */
+  mf(ctx, cl);
+  mrr(ctx, -21 * bulk, shoulder, 42 * bulk, 30, 5);
+  mf(ctx, 'rgba(255,255,255,0.09)'); mrr(ctx, -21 * bulk, shoulder, 42 * bulk, 7, 4);
+  mf(ctx, 'rgba(0,0,0,0.18)'); mrr(ctx, -21 * bulk, -34, 42 * bulk, 5, 2);
+  if(a.belt){ mf(ctx, a.belt); mrr(ctx, -21 * bulk, -38, 42 * bulk, 6, 2); }
+  /* back arm */
+  mf(ctx, sk);
+  mrr(ctx, -27 * bulk, shoulder + 4 + sway, 9 * bulk, 26, 4);
+  /* head */
+  mf(ctx, sk);
+  mrr(ctx, -15, headTop, 30, 38, a.round ? 12 : 6);
+  if(a.hair){ mf(ctx, a.hair); mrr(ctx, -15, headTop, 30, 10, 4); }
+  if(a.hood){
+    mf(ctx, a.hood);
+    mpoly(ctx, [[-19, headTop + 34], [-17, headTop - 6], [0, headTop - 14], [17, headTop - 6], [19, headTop + 34], [10, headTop + 30], [-10, headTop + 30]]);
+    mf(ctx, 'rgba(0,0,0,0.62)'); mrr(ctx, -11, headTop + 8, 22, 22, 6);
+  }
+  if(a.ears){                                       /* pointed ears */
+    mf(ctx, sk);
+    mpoly(ctx, [[-15, headTop + 12], [-27, headTop + 4], [-15, headTop + 24]]);
+    mpoly(ctx, [[15, headTop + 12], [27, headTop + 4], [15, headTop + 24]]);
+  }
+  if(a.horns){
+    mf(ctx, a.horn || '#e8dcc0');
+    mpoly(ctx, [[-13, headTop + 4], [-22, headTop - 20], [-5, headTop + 2]]);
+    mpoly(ctx, [[13, headTop + 4], [22, headTop - 20], [5, headTop + 2]]);
+  }
+  if(a.helm){
+    mf(ctx, a.helm);
+    mrr(ctx, -17, headTop - 4, 34, 16, 5);
+    mf(ctx, 'rgba(0,0,0,0.3)'); mrr(ctx, -17, headTop + 9, 34, 3, 1);
+    if(a.plume){ mf(ctx, a.plume); mrr(ctx, -3, headTop - 18, 6, 16, 3); }
+  }
+  meyes(ctx, headTop + (a.hood ? 20 : 18), 7, a.eyeR || 3.2, a.eye, a.eyeGlow);
+  if(a.tusks){
+    mf(ctx, '#f0e6cc');
+    mpoly(ctx, [[-8, headTop + 30], [-5, headTop + 38], [-2, headTop + 30]]);
+    mpoly(ctx, [[8, headTop + 30], [5, headTop + 38], [2, headTop + 30]]);
+  }
+  if(a.mouth){ mf(ctx, a.mouth); mrr(ctx, -7, headTop + 27, 14, 4, 2); }
+  /* front arm + weapon */
+  ctx.save();
+  ctx.translate(20 * bulk, shoulder + 8);
+  ctx.rotate(-0.5 + Math.sin(t / 6) * 0.16);
+  mf(ctx, sk); mrr(ctx, 0, -5, 26, 10, 4);
+  mWeapon(ctx, a.weapon, a);
+  ctx.restore();
+}
+
+function mWeapon(ctx, w, a){
+  if(!w || w === 'none') return;
+  ctx.save(); ctx.translate(26, 0);
+  if(w === 'club'){
+    mf(ctx, '#7a5a34'); mrr(ctx, -2, -5, 26, 10, 4);
+    mf(ctx, '#5e431f'); mel(ctx, 24, 0, 9, 10);
+    mf(ctx, '#8a6a44'); [[18,-6],[26,-2],[22,6]].forEach(function(p){ mel(ctx, p[0], p[1], 2.5, 2.5); });
+  } else if(w === 'sword'){
+    mf(ctx, '#6b4a2a'); mrr(ctx, -4, -4, 12, 8, 2);
+    mf(ctx, a.blade || '#c8d0d8'); mpoly(ctx, [[8, -4], [40, -3], [46, 0], [40, 3], [8, 4]]);
+    mf(ctx, 'rgba(255,255,255,0.4)'); mrr(ctx, 10, -3, 28, 2, 1);
+  } else if(w === 'axe'){
+    mf(ctx, '#6b4a2a'); mrr(ctx, -2, -3.5, 32, 7, 3);
+    mf(ctx, a.blade || '#b9c2cb'); mpoly(ctx, [[24, -4], [40, -18], [48, -2], [40, 14], [24, 5]]);
+  } else if(w === 'staff'){
+    mf(ctx, '#5e4326'); mrr(ctx, -6, -3, 48, 6, 3);
+    const gl = a.orb || '#7cc6ff';
+    if(!rsMT){
+      const g = ctx.createRadialGradient(44, 0, 0, 44, 0, 14);
+      g.addColorStop(0, gl); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(30, -14, 28, 28);
+    }
+    mf(ctx, gl); mel(ctx, 44, 0, 6, 6);
+  } else if(w === 'dagger'){
+    mf(ctx, '#4a3728'); mrr(ctx, -3, -3, 10, 6, 2);
+    mf(ctx, '#cfd6dd'); mpoly(ctx, [[7, -3], [24, -1], [28, 0], [24, 1], [7, 3]]);
+  } else if(w === 'scythe'){
+    mf(ctx, '#3a2c22'); mrr(ctx, -4, -3, 46, 6, 3);
+    mf(ctx, '#cfd6dd');
+    ctx.beginPath(); ctx.moveTo(42, -2); ctx.quadraticCurveTo(64, -14, 58, -34);
+    ctx.quadraticCurveTo(50, -14, 40, -6); ctx.closePath(); ctx.fill();
+  } else if(w === 'claw'){
+    mf(ctx, a.claw || '#e8e0cc');
+    [[-6, 0], [0, -6], [4, 6]].forEach(function(p){
+      mpoly(ctx, [[p[0], p[1]], [p[0] + 16, p[1] - 4], [p[0] + 4, p[1] + 4]]);
+    });
+  }
+  ctx.restore();
+}
+
+function mQuad(ctx, a, t){
+  const st = Math.sin(t / 5) * 3, body = a.body, dark = a.dark || a.body, len = a.len || 1;
+  /* far legs */
+  mf(ctx, dark);
+  mrr(ctx, -26 * len, -26, 11, 26, 4); mrr(ctx, 16 * len, -26, 11, 26, 4);
+  /* barrel */
+  mf(ctx, body);
+  mrr(ctx, -32 * len, -62, 64 * len, 38, a.round === false ? 8 : 17);
+  if(a.belly){ mf(ctx, a.belly); mrr(ctx, -26 * len, -36, 52 * len, 12, 6); }
+  if(a.spots){
+    mf(ctx, a.spots);
+    [[-18, -52, 9], [4, -44, 7], [16, -56, 6]].forEach(function(p){ mel(ctx, p[0] * len, p[1], p[2], p[2] * 0.75); });
+  }
+  if(a.mane){
+    mf(ctx, a.mane);
+    for(let i = 0; i < 7; i++) mpoly(ctx, [[-6 + i * 5, -62], [-2 + i * 5, -78 - (i % 2) * 6], [2 + i * 5, -62]]);
+  }
+  if(a.spikes){
+    mf(ctx, a.spikes);
+    for(let i = 0; i < 5; i++) mpoly(ctx, [[-16 + i * 9, -62], [-12 + i * 9, -76], [-8 + i * 9, -62]]);
+  }
+  /* near legs */
+  mf(ctx, body);
+  mrr(ctx, -24 * len + st, -26, 12, 26, 4); mrr(ctx, 14 * len - st, -26, 12, 26, 4);
+  mf(ctx, a.hoof || dark);
+  mrr(ctx, -25 * len + st, -6, 14, 6, 2); mrr(ctx, 13 * len - st, -6, 14, 6, 2);
+  /* tail */
+  ctx.save(); ctx.translate(-32 * len, -54); ctx.rotate(Math.sin(t / 6) * 0.22);
+  if(a.tail === 'thin'){ mf(ctx, a.tailCol || dark); mrr(ctx, -22, -2, 24, 4, 2); }
+  else if(a.tail !== false){ mf(ctx, a.tailCol || body); mpoly(ctx, [[0, -8], [-26, -2 + Math.sin(t / 5) * 3], [0, 8]]); }
+  ctx.restore();
+  /* neck + head */
+  mf(ctx, body); mrr(ctx, 16 * len, -70, 20, 26, 8);
+  ctx.save(); ctx.translate(28 * len, -66);
+  mf(ctx, body); mrr(ctx, -8, -16, 30, 32, a.snout === 'long' ? 7 : 11);
+  if(a.snout === 'long'){ mf(ctx, a.dark || body); mrr(ctx, 16, -2, 22, 14, 6); mf(ctx, '#1a1420'); mel(ctx, 36, 2, 2.5, 2.5); }
+  else { mf(ctx, a.nose || dark); mel(ctx, 22, 6, 5, 4); }
+  if(a.ears === 'pointy'){ mf(ctx, body); mpoly(ctx, [[-2, -14], [2, -32], [12, -12]]); mpoly(ctx, [[12, -14], [20, -30], [24, -10]]); }
+  if(a.ears === 'horn'){ mf(ctx, '#e8dcc0'); mpoly(ctx, [[0, -14], [-8, -30], [8, -12]]); mpoly(ctx, [[16, -14], [24, -30], [22, -10]]); }
+  if(a.frill){ mf(ctx, a.frill); mpoly(ctx, [[-4, -16], [-22, -34], [-16, 6], [-4, 12]]); }
+  if(a.fangs){ mf(ctx, '#f2ead4'); mpoly(ctx, [[10, 12], [12, 22], [15, 12]]); mpoly(ctx, [[18, 12], [20, 21], [23, 12]]); }
+  meyes(ctx, -2, -8, a.eyeR || 3.4, a.eye, a.eyeGlow);
+  ctx.restore();
+}
+
+function mBird(ctx, a, t){
+  const bob = Math.sin(t / 4) * 2;
+  mf(ctx, a.leg || '#e0a03a');
+  mrr(ctx, -8, -22, 4, 22, 2); mrr(ctx, 5, -22, 4, 22, 2);
+  mf(ctx, a.body); mel(ctx, 0, -44 + bob, 26, 22);
+  mf(ctx, a.wing || '#dcdcdc');
+  ctx.save(); ctx.translate(4, -46 + bob); ctx.rotate(Math.sin(t / 3) * 0.14); mel(ctx, 0, 0, 15, 11); ctx.restore();
+  mf(ctx, a.tail || a.body);
+  mpoly(ctx, [[-22, -52 + bob], [-42, -66 + bob], [-38, -44 + bob], [-20, -40 + bob]]);
+  mf(ctx, a.body); mel(ctx, 20, -68 + bob, 13, 13);
+  mf(ctx, a.comb || '#d43a2a');
+  [[16, -80], [21, -83], [26, -80]].forEach(function(p){ mel(ctx, p[0], p[1] + bob, 4, 5); });
+  mf(ctx, a.beak || '#f0a83a'); mpoly(ctx, [[30, -70 + bob], [42, -66 + bob], [30, -62 + bob]]);
+  mf(ctx, a.comb || '#d43a2a'); mel(ctx, 24, -58 + bob, 3, 5);
+  mf(ctx, '#1a1420'); mel(ctx, 24, -70 + bob, 2.6, 2.6);
+}
+
+function mDemon(ctx, a, t){
+  const bulk = a.bulk || 1;
+  /* wings behind */
+  if(a.wings !== false){
+    const flap = Math.sin(t / 6) * 6;
+    mf(ctx, a.wing || '#5a1e1e');
+    [-1, 1].forEach(function(s){
+      ctx.save(); ctx.scale(s, 1);
+      mpoly(ctx, [[16, -76], [56 * bulk, -104 - flap], [50 * bulk, -74], [62 * bulk, -58 + flap], [30, -46]]);
+      ctx.restore();
+    });
+  }
+  mHumanoid(ctx, Object.assign({}, a, {wings:false}), t);
+  /* tail */
+  ctx.save(); ctx.translate(-20 * bulk, -30); ctx.rotate(Math.sin(t / 7) * 0.2);
+  mf(ctx, a.skin);
+  ctx.beginPath(); ctx.moveTo(0, -6); ctx.quadraticCurveTo(-26, 4, -18, 20); ctx.lineTo(-12, 18);
+  ctx.quadraticCurveTo(-18, 6, 0, 2); ctx.closePath(); ctx.fill();
+  mf(ctx, a.horn || '#e8dcc0'); mpoly(ctx, [[-18, 20], [-26, 28], [-12, 22]]);
+  ctx.restore();
+}
+
+function mWraith(ctx, a, t){
+  const drift = Math.sin(t / 8) * 4, base = -18 + drift;
+  if(!rsMT && a.aura){
+    const g = ctx.createRadialGradient(0, base - 48, 4, 0, base - 48, 60);
+    g.addColorStop(0, a.aura); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-60, base - 108, 120, 120);
+  }
+  ctx.globalAlpha = rsMT ? 1 : (a.alpha || 0.85);
+  /* tattered hem */
+  mf(ctx, a.robe);
+  ctx.beginPath();
+  ctx.moveTo(-26, base - 60);
+  ctx.lineTo(26, base - 60);
+  for(let i = 6; i >= 0; i--){
+    const x = -26 + i * (52 / 6);
+    const y = base + Math.sin(t / 5 + i * 1.4) * 7 - (i % 2 ? 12 : 0);
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.fill();
+  /* shoulders + hood */
+  mf(ctx, a.robe); mrr(ctx, -24, base - 76, 48, 24, 10);
+  mf(ctx, a.hood || a.robe);
+  mpoly(ctx, [[-20, base - 62], [-18, base - 96], [0, base - 106], [18, base - 96], [20, base - 62], [8, base - 66], [-8, base - 66]]);
+  mf(ctx, 'rgba(0,0,0,0.72)'); mrr(ctx, -12, base - 92, 24, 26, 8);
+  meyes(ctx, base - 80, 6, a.eyeR || 3, a.eye || '#9ef0ff', a.eyeGlow || 'rgba(140,230,255,0.5)');
+  if(a.jaw){                                      /* screaming mouth */
+    mf(ctx, '#0b0810'); mel(ctx, 0, base - 68, 5, 8);
+  }
+  /* wispy arms */
+  mf(ctx, a.robe);
+  [-1, 1].forEach(function(s){
+    ctx.save(); ctx.scale(s, 1); ctx.translate(22, base - 72); ctx.rotate(0.5 + Math.sin(t / 6) * 0.2);
+    mrr(ctx, 0, -4, 26, 8, 4);
+    if(a.claws){ mf(ctx, a.bone || '#e6e0d0'); [[26,-5],[28,0],[26,5]].forEach(function(p){ mpoly(ctx, [[p[0], p[1]], [p[0]+9, p[1]-2], [p[0]+1, p[1]+3]]); }); mf(ctx, a.robe); }
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function mSkeleton(ctx, a, t){
+  const bone = a.bone || '#e8e2cc', dark = a.boneDark || '#b8b096';
+  const sway = Math.sin(t / 7) * 1.6;
+  if(a.robe){
+    mf(ctx, a.robe);
+    mpoly(ctx, [[-26, -6], [-20, -70], [20, -70], [26, -6], [12, -12], [-12, -12]]);
+  } else {
+    mf(ctx, bone);
+    mrr(ctx, -13, -30, 8, 30, 3); mrr(ctx, 5, -30, 8, 30, 3);
+    mf(ctx, dark); mrr(ctx, -15, -6, 12, 5, 2); mrr(ctx, 3, -6, 12, 5, 2);
+  }
+  /* ribcage + spine */
+  mf(ctx, bone);
+  mrr(ctx, -4, -66, 8, 34, 3);
+  for(let i = 0; i < 4; i++){
+    const y = -62 + i * 8, w = 30 - i * 3;
+    mrr(ctx, -w / 2, y, w, 4, 2);
+  }
+  mf(ctx, dark); mrr(ctx, -18, -70, 36, 6, 3);        /* collar */
+  /* skull */
+  mf(ctx, bone); mrr(ctx, -13, -100, 26, 28, 9);
+  mf(ctx, dark); mrr(ctx, -8, -76, 16, 6, 2);         /* jaw */
+  mf(ctx, '#0b0810');
+  mel(ctx, -6, -88, 4.2, 5); mel(ctx, 6, -88, 4.2, 5);
+  if(a.eyeGlow && !rsMT){
+    const g = ctx.createRadialGradient(0, -88, 1, 0, -88, 22);
+    g.addColorStop(0, a.eyeGlow); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-24, -110, 48, 44);
+    mf(ctx, a.eye || '#ff6a4a'); mel(ctx, -6, -88, 2.4, 2.8); mel(ctx, 6, -88, 2.4, 2.8);
+  }
+  mf(ctx, '#0b0810');
+  for(let i = 0; i < 3; i++) mrr(ctx, -7 + i * 5, -78, 3, 5, 1);   /* teeth gaps */
+  if(a.crown){
+    mf(ctx, a.crown);
+    mpoly(ctx, [[-15, -100], [-15, -112], [-9, -104], [-3, -116], [3, -116], [9, -104], [15, -112], [15, -100]]);
+    if(!rsMT){ mf(ctx, '#ff5a4a'); mel(ctx, 0, -106, 2.6, 2.6); }
+  }
+  /* arms */
+  mf(ctx, bone);
+  ctx.save(); ctx.translate(-16, -64); ctx.rotate(0.35 + sway * 0.05); mrr(ctx, -22, -3, 24, 6, 3); ctx.restore();
+  ctx.save(); ctx.translate(16, -64); ctx.rotate(-0.45 + Math.sin(t / 6) * 0.14);
+  mrr(ctx, 0, -3, 24, 6, 3);
+  mWeapon(ctx, a.weapon, a);
+  ctx.restore();
+}
+
+function mDragon(ctx, a, t){
+  ctx.translate(-10, 0);                 /* head + neck reach forward; re-centre */
+  const flap = Math.sin(t / 5) * 8, sc = a.body, bl = a.belly || '#d8c88a', len = a.len || 1;
+  /* wings */
+  if(a.wings !== false){
+    mf(ctx, a.wing || sc);
+    [-1, 1].forEach(function(s){
+      ctx.save(); ctx.scale(s, 1);
+      mpoly(ctx, [[6, -74], [46 * len, -110 - flap], [40 * len, -80], [58 * len, -66 + flap * 0.6], [20, -50]]);
+      ctx.restore();
+    });
+    mf(ctx, 'rgba(0,0,0,0.18)');
+    mpoly(ctx, [[6, -74], [46 * len, -110 - flap], [40 * len, -80]]);
+  }
+  /* tail */
+  ctx.save(); ctx.translate(-30 * len, -44); ctx.rotate(Math.sin(t / 6) * 0.16);
+  mf(ctx, sc);
+  ctx.beginPath(); ctx.moveTo(0, -10); ctx.quadraticCurveTo(-40 * len, -2, -46 * len, 16);
+  ctx.lineTo(-38 * len, 18); ctx.quadraticCurveTo(-32 * len, 4, 0, 8); ctx.closePath(); ctx.fill();
+  mf(ctx, a.spike || '#3a3040');
+  mpoly(ctx, [[-46 * len, 16], [-58 * len, 12], [-44 * len, 22]]);
+  ctx.restore();
+  /* legs */
+  mf(ctx, a.dark || sc);
+  mrr(ctx, -22 * len, -30, 13, 30, 5); mrr(ctx, 12 * len, -30, 13, 30, 5);
+  mf(ctx, a.claw || '#e8e0cc');
+  [[-24, 0], [-18, 0], [10, 0], [16, 0]].forEach(function(p){ mpoly(ctx, [[p[0] * len, -4], [p[0] * len + 8, 0], [p[0] * len, 0]]); });
+  /* body */
+  mf(ctx, sc); mrr(ctx, -30 * len, -74, 60 * len, 46, 18);
+  mf(ctx, bl); mrr(ctx, -20 * len, -46, 40 * len, 18, 8);
+  mf(ctx, a.spike || '#3a3040');
+  for(let i = 0; i < 5; i++) mpoly(ctx, [[-18 + i * 9, -74], [-14 + i * 9, -90], [-10 + i * 9, -74]]);
+  /* neck + head */
+  ctx.save(); ctx.translate(24 * len, -74); ctx.rotate(-0.22 + Math.sin(t / 9) * 0.05);
+  mf(ctx, sc); mrr(ctx, -9, -26, 22, 34, 9);
+  ctx.translate(4, -28);
+  mf(ctx, sc); mrr(ctx, -12, -18, 27, 24, 9);
+  mf(ctx, a.dark || sc); mrr(ctx, 10, -8, 26, 15, 6);          /* snout */
+  mf(ctx, '#1a1420'); mel(ctx, 32, -4, 2.4, 2.4);
+  mf(ctx, a.horn || '#d8cfae');
+  mpoly(ctx, [[-8, -18], [-20, -38], [2, -20]]);
+  mpoly(ctx, [[8, -18], [20, -36], [16, -16]]);
+  mf(ctx, '#f2ead4');
+  mpoly(ctx, [[14, 7], [16, 15], [20, 7]]); mpoly(ctx, [[24, 7], [26, 14], [30, 7]]);
+  meyes(ctx, -6, 0, 3.6, a.eye || '#ffd84d', a.eyeGlow);
+  if(a.breath && !rsMT){
+    const g = ctx.createRadialGradient(38, 0, 1, 38, 0, 22);
+    g.addColorStop(0, a.breath); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(16, -22, 44, 44);
+  }
+  ctx.restore();
+}
+
+function mFrog(ctx, a, t){
+  const puff = Math.sin(t / 6) * 2;
+  mf(ctx, a.dark || a.body);
+  mrr(ctx, -40, -22, 20, 22, 8); mrr(ctx, 20, -22, 20, 22, 8);
+  mf(ctx, a.body); mel(ctx, 0, -38 - puff, 42, 30);
+  mf(ctx, a.belly || '#cfe0a0'); mel(ctx, 0, -26, 28, 16);
+  if(a.spots){ mf(ctx, a.spots); [[-24,-52],[0,-60],[22,-50],[-12,-44]].forEach(function(p){ mel(ctx, p[0], p[1] - puff, 6, 4.5); }); }
+  mf(ctx, a.body); mel(ctx, -18, -70 - puff, 13, 12); mel(ctx, 18, -70 - puff, 13, 12);
+  mf(ctx, '#f6f2e0'); mel(ctx, -18, -71 - puff, 8, 8); mel(ctx, 18, -71 - puff, 8, 8);
+  mf(ctx, '#1a1420'); mel(ctx, -17, -71 - puff, 3.6, 5); mel(ctx, 19, -71 - puff, 3.6, 5);
+  mf(ctx, a.dark || '#2c4a2c'); mrr(ctx, -20, -44 - puff, 40, 4, 2);
+  if(a.crown){
+    mf(ctx, a.crown);
+    mpoly(ctx, [[-20, -80 - puff], [-20, -96 - puff], [-11, -86 - puff], [0, -102 - puff], [11, -86 - puff], [20, -96 - puff], [20, -80 - puff]]);
+  }
+}
+
+function mHand(ctx, a, t){
+  const c = a.body, d = a.dark || '#b8907a', top = -54;
+  /* knuckles arched at the top, fingers reaching down to grip the ground */
+  const fing = [[-26, 0.30], [-9, 0.12], [9, -0.10], [25, -0.28]];
+  fing.forEach(function(fg, i){
+    const curl = Math.sin(t / 4 + i * 1.2) * 0.13;
+    ctx.save();
+    ctx.translate(fg[0], top + 16);
+    ctx.rotate(fg[1] + curl);
+    mf(ctx, c); mrr(ctx, -6, 0, 12, 26, 5);          /* upper joint */
+    ctx.translate(0, 26); ctx.rotate(0.34 - curl * 1.6);
+    mf(ctx, d); mrr(ctx, -5.5, 0, 11, 22, 5);        /* lower joint */
+    mf(ctx, a.nail || '#f0e4cc'); mrr(ctx, -5.5, 17, 11, 7, 3);
+    ctx.restore();
+  });
+  /* palm */
+  mf(ctx, c); mrr(ctx, -30, top, 60, 30, 13);
+  mf(ctx, 'rgba(255,255,255,0.10)'); mrr(ctx, -30, top, 60, 8, 6);
+  mf(ctx, d);
+  for(let i = 0; i < 4; i++) mel(ctx, -22 + i * 15, top + 6, 5, 4);   /* knuckle bumps */
+  /* thumb pushing off to the side */
+  ctx.save(); ctx.translate(-30, top + 18); ctx.rotate(-0.55 + Math.sin(t / 5) * 0.12);
+  mf(ctx, c); mrr(ctx, -24, -7, 27, 14, 7);
+  mf(ctx, a.nail || '#f0e4cc'); mrr(ctx, -25, -6, 7, 12, 3);
+  ctx.restore();
+  /* severed wrist, still trailing */
+  mf(ctx, d); mrr(ctx, 18, top + 4, 22, 20, 8);
+  mf(ctx, '#8a3a3a'); mrr(ctx, 34, top + 6, 8, 16, 3);
+  mf(ctx, '#c05a5a'); mel(ctx, 38, top + 14, 4, 6);
+}
+
+function mVeld(ctx, a, t){
+  const pulse = Math.sin(t / 5) * 2;
+  mf(ctx, a.dark || a.body);
+  [[-26, 0], [-9, 0], [9, 0], [26, 0]].forEach(function(p, i){
+    mrr(ctx, p[0] - 5, -18 + Math.sin(t / 4 + i) * 1.5, 10, 18, 4);
+  });
+  mf(ctx, a.body);
+  mrr(ctx, -34, -62 - pulse, 68, 48, 22);
+  mf(ctx, a.spots || '#8a2f3a');
+  [[-18, -50], [6, -58], [20, -42], [-4, -38]].forEach(function(p){ mel(ctx, p[0], p[1] - pulse, 7, 5.5); });
+  /* gaping mouth */
+  mf(ctx, '#3a0d14'); mel(ctx, 16, -40 - pulse, 16, 12);
+  mf(ctx, '#f2ead4');
+  for(let i = 0; i < 4; i++) mpoly(ctx, [[4 + i * 8, -50 - pulse], [8 + i * 8, -42 - pulse], [12 + i * 8, -50 - pulse]]);
+  /* the tongue — its whole thing */
+  mst(ctx, a.tongue || '#d4506a'); ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(20, -40 - pulse);
+  ctx.quadraticCurveTo(50 + Math.sin(t / 3) * 10, -34 - pulse, 62 + Math.sin(t / 3) * 14, -54 - pulse);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  meyes(ctx, -58 - pulse, 12, 3.4, a.eye, a.eyeGlow);
+}
+
+function mGargoyle(ctx, a, t){
+  const flap = Math.sin(t / 6) * 5;
+  mf(ctx, a.wing || '#6b6b74');
+  [-1, 1].forEach(function(s){
+    ctx.save(); ctx.scale(s, 1);
+    mpoly(ctx, [[14, -72], [50, -100 - flap], [44, -70], [56, -54 + flap], [26, -46]]);
+    ctx.restore();
+  });
+  mHumanoid(ctx, Object.assign({}, a, {horns:true, weapon:'claw'}), t);
+  mf(ctx, 'rgba(0,0,0,0.16)');                       /* stone cracks */
+  mrr(ctx, -14, -54, 3, 18, 1); mrr(ctx, 6, -46, 3, 14, 1);
+}
+
+function mTentacle(ctx, a, t){
+  const c = a.body;
+  mf(ctx, a.dark || c);
+  for(let i = 0; i < 6; i++){
+    const ang = -0.9 + i * 0.36, wob = Math.sin(t / 4 + i) * 0.18;
+    ctx.save(); ctx.translate(0, -40); ctx.rotate(ang + wob);
+    ctx.beginPath();
+    ctx.moveTo(-5, 0);
+    ctx.quadraticCurveTo(6, 26, 0, 46);
+    ctx.lineTo(6, 46);
+    ctx.quadraticCurveTo(14, 22, 5, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  mf(ctx, c); mel(ctx, 0, -62, 32, 30);
+  mf(ctx, a.belly || '#4a2a52'); mel(ctx, 0, -54, 20, 16);
+  mf(ctx, '#f6f2e0'); mel(ctx, 0, -74, 13, 13);
+  mf(ctx, '#1a1420'); mel(ctx, 0, -74, 6, 7);
+  if(!rsMT && a.eyeGlow){
+    const g = ctx.createRadialGradient(0, -74, 2, 0, -74, 30);
+    g.addColorStop(0, a.eyeGlow); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-30, -104, 60, 60);
+  }
+  mf(ctx, a.horn || '#3a2a44');
+  mpoly(ctx, [[-22, -84], [-30, -104], [-10, -88]]);
+  mpoly(ctx, [[22, -84], [30, -104], [10, -88]]);
+}
+
+function mInsect(ctx, a, t){
+  const c = a.body, d = a.dark || c, body = -30;
+  /* eight legs, four a side, splayed down to the ground */
+  mst(ctx, d); ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+  for(let i = 0; i < 4; i++){
+    const bx = -16 + i * 12, kick = Math.sin(t / 4 + i * 1.1) * 3;
+    [-1, 1].forEach(function(sy){
+      ctx.beginPath();
+      ctx.moveTo(bx, body + 4);
+      ctx.lineTo(bx + sy * (16 + i), body - 6 + kick * sy);
+      ctx.lineTo(bx + sy * (22 + i * 2), 0);
+      ctx.stroke();
+    });
+  }
+  ctx.lineWidth = 1;
+  /* segmented abdomen */
+  mf(ctx, c); mrr(ctx, -26, body - 14, 48, 22, 10);
+  mf(ctx, d);
+  for(let i = 0; i < 3; i++) mrr(ctx, -18 + i * 13, body - 14, 3.5, 22, 2);
+  mf(ctx, 'rgba(255,255,255,0.12)'); mrr(ctx, -26, body - 14, 48, 5, 4);
+  /* pincer arms reaching forward */
+  [-1, 1].forEach(function(sy){
+    ctx.save(); ctx.translate(20, body - 6); ctx.rotate(sy * (0.34 + Math.sin(t / 5) * 0.09));
+    mf(ctx, c); mrr(ctx, 0, -4.5, 20, 9, 4);
+    ctx.translate(20, 0);
+    mf(ctx, d);
+    mpoly(ctx, [[0, -7], [20, -11], [26, -3], [8, -1]]);
+    mpoly(ctx, [[0, 7], [20, 11], [26, 3], [8, 1]]);
+    ctx.restore();
+  });
+  /* head */
+  mf(ctx, c); mrr(ctx, 16, body - 12, 20, 18, 7);
+  meyes(ctx, body - 4, 5, 2.4, a.eye, a.eyeGlow);
+  ctx.save(); ctx.translate(26, body - 4);
+  /* tail: segments marching up and over the back on a real arc */
+  ctx.save();
+  ctx.translate(-52, -6);
+  const seg = 6;
+  for(let i = 0; i < seg; i++){
+    const p = i / (seg - 1);
+    const ang = Math.PI * (0.95 - p * 0.72);
+    const rad = 34;
+    const sx = Math.cos(ang) * rad * 0.55 + 6;
+    const sy = -Math.abs(Math.sin(ang)) * rad - p * 12 + Math.sin(t / 6) * 2;
+    mf(ctx, i % 2 ? d : c);
+    mel(ctx, sx, sy, 8 - i * 0.8, 7.5 - i * 0.7);
+    if(i === seg - 1){
+      mf(ctx, a.sting || '#e8e0cc');
+      mpoly(ctx, [[sx + 2, sy - 4], [sx + 16, sy + 6], [sx + 2, sy + 6]]);
+    }
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+/* ---------------- the roster ---------------- */
+const RS_MOB_ART = {
+  chicken:  {kind:'bird', h:0.52, body:'#f4f1e6', wing:'#e2ded0', tail:'#d8d2c0', comb:'#d43a2a', beak:'#f0a83a'},
+  rat:      {kind:'quad', h:0.42, body:'#8a7b6a', dark:'#6b5d4e', belly:'#c4b39c', tail:'thin', tailCol:'#e0a8a8', ears:'pointy', snout:'long', len:0.85, fangs:true},
+  imp:      {kind:'demon',h:0.5,  skin:'#c8503a', cloth:'#7a2a22', cloth2:'#5e1f1a', horns:true, ears:true, eye:'#ffe08a', wing:'#7a2a22', bulk:0.8, weapon:'none'},
+  goblin:   {kind:'humanoid', h:0.62, skin:'#6f9147', cloth:'#8a5a2a', cloth2:'#6b4522', ears:true, eye:'#ffe9a8', tusks:true, weapon:'club', hair:'#3f2d18'},
+  cow:      {kind:'quad', h:0.8,  body:'#f2ece2', dark:'#cfc6b8', spots:'#4a3a2c', belly:'#e8ddc8', ears:'horn', nose:'#e0a8a8', hoof:'#3a2c1e', len:1.1, tail:'thin', tailCol:'#4a3a2c'},
+  scorp:    {kind:'insect', h:0.55, body:'#7a5a2c', dark:'#5c421f', eye:'#ffd84d', sting:'#e8e0cc'},
+  bandit:   {kind:'humanoid', h:0.86, skin:'#d8a87a', cloth:'#4a4a52', cloth2:'#3a3a42', belt:'#6b4a2a', weapon:'dagger', hood:'#2c2c34', eye:'#ffd84d'},
+  guard:    {kind:'humanoid', h:0.92, skin:'#e0b48c', cloth:'#8f95a0', cloth2:'#6f7580', helm:'#b8bec8', plume:'#c04a3a', weapon:'sword', belt:'#5e4326'},
+  hillg:    {kind:'humanoid', h:1.22, bulk:1.42, skin:'#c0a884', cloth:'#7a6448', cloth2:'#5e4d38', weapon:'club', eye:'#fff0c0', hair:'#4a3a28', tusks:true},
+  mossg:    {kind:'humanoid', h:1.28, bulk:1.5,  skin:'#6f8f5a', cloth:'#4a5e38', cloth2:'#3a4a2c', weapon:'club', eye:'#e8ffb0', hair:'#2f4423', tusks:true},
+  demon:    {kind:'demon', h:1.24, bulk:1.2, skin:'#b03a2a', cloth:'#6b1f18', cloth2:'#4e150f', horns:true, eye:'#ffd050', eyeGlow:'rgba(255,140,60,0.55)', wing:'#5e1a14', weapon:'claw', claw:'#f0e0c0'},
+
+  shade:    {kind:'wraith', h:0.94, robe:'#6f8f7a', hood:'#5c7a66', aura:'rgba(140,220,170,0.35)', eye:'#c8ffe0', eyeGlow:'rgba(150,255,200,0.6)', alpha:0.72, claws:true},
+  greend:   {kind:'dragon', h:1.05, body:'#3f7a3a', dark:'#2f5c2b', belly:'#c8d47a', wing:'#356b31', horn:'#d8cfae', spike:'#24461f', eye:'#ffd84d', breath:'rgba(150,220,90,0.5)'},
+  bogking:  {kind:'frog', h:1.05, body:'#4a7a46', dark:'#2f5c2c', belly:'#cfe0a0', spots:'#2c4a2c', crown:'#e8c24d'},
+  cinder:   {kind:'dragon', h:1.15, body:'#a83a24', dark:'#7a281a', belly:'#e8b45a', wing:'#8a2c1c', horn:'#f0dcae', spike:'#4a1a10', eye:'#ffe08a', eyeGlow:'rgba(255,150,60,0.7)', breath:'rgba(255,140,50,0.75)'},
+
+  crawl:    {kind:'hand', h:0.5, body:'#d8b49a', dark:'#b8907a', nail:'#f0e4cc', eye:null},
+  wolf:     {kind:'quad', h:0.7, body:'#6f7280', dark:'#4e515c', belly:'#a8acb8', mane:'#565a66', ears:'pointy', snout:'long', fangs:true, eye:'#ffd84d', eyeGlow:'rgba(255,200,80,0.4)', len:1.05},
+  lurker:   {kind:'quad', h:0.6, body:'#5a7a4a', dark:'#40593４'.replace('４','4'), belly:'#b8c88a', spikes:'#3c5230', snout:'long', ears:false, eye:'#ffe08a', len:1.15, round:false},
+  banshee:  {kind:'wraith', h:0.95, robe:'#8a8fa8', hood:'#6f7490', aura:'rgba(200,210,255,0.35)', eye:'#fff0f8', eyeGlow:'rgba(230,220,255,0.7)', alpha:0.8, jaw:true, claws:true},
+  veld:     {kind:'veld', h:0.9, body:'#a8404a', dark:'#7a2c34', spots:'#6f1f28', tongue:'#e06a80', eye:'#ffd84d'},
+  basilisk: {kind:'quad', h:0.78, body:'#4a6f6a', dark:'#35524e', belly:'#b8c8a0', frill:'#7a9a5a', spikes:'#2f4a44', snout:'long', ears:false, fangs:true, eye:'#ffe08a', eyeGlow:'rgba(255,220,120,0.5)', len:1.1, round:false},
+  garg:     {kind:'gargoyle', h:1.05, skin:'#7f838e', cloth:'#6b6f7a', cloth2:'#585c66', horn:'#9aa0aa', wing:'#6b6f7a', eye:'#ffd050', eyeGlow:'rgba(255,200,90,0.4)', claw:'#c8ccd4', boot:'#4e525c'},
+  abyss:    {kind:'tentacle', h:1.1, body:'#6f3f8a', dark:'#522c68', belly:'#4a2a52', horn:'#3a2a44', eyeGlow:'rgba(190,120,255,0.55)'},
+
+  skel:     {kind:'skeleton', h:0.9, bone:'#e8e2cc', boneDark:'#b8b096', weapon:'sword', blade:'#a8b0b8'},
+  zombie:   {kind:'humanoid', h:0.9, skin:'#7f9a68', cloth:'#5c5240', cloth2:'#463f31', eye:'#d8f0a0', hair:'#3a3222', mouth:'#3a1c1c', weapon:'none', boot:'#33291c'},
+  ghast:    {kind:'wraith', h:1.0, robe:'#4a4458', hood:'#39344a', aura:'rgba(140,160,200,0.28)', eye:'#b8d8ff', eyeGlow:'rgba(150,190,255,0.55)', alpha:0.66, claws:true},
+  ankou:    {kind:'skeleton', h:1.0, bone:'#e0dac4', boneDark:'#b0a890', robe:'#241f2e', weapon:'scythe', eyeGlow:'rgba(120,190,255,0.6)', eye:'#9ed8ff'},
+  gdemon:   {kind:'demon', h:1.34, bulk:1.3, skin:'#7a2a3a', cloth:'#4e1620', cloth2:'#3a0f18', horns:true, horn:'#e8d0a8', eye:'#ff8a3a', eyeGlow:'rgba(255,110,50,0.6)', wing:'#3f1018', weapon:'claw', claw:'#f0e0c0'},
+  boneregent:{kind:'skeleton', h:1.3, bone:'#f0ead2', boneDark:'#c0b89c', robe:'#3a2450', crown:'#e8c24d', weapon:'scythe', eyeGlow:'rgba(255,90,70,0.7)', eye:'#ff6a4a'},
+
+  wildman:  {kind:'humanoid', h:0.95, skin:'#c99a72', cloth:'#6b5232', cloth2:'#4e3c26', hair:'#3a2a18', weapon:'axe', blade:'#b0b8c0', eye:'#ffe0a0', belt:'#8a6a3a'},
+  chaosdruid:{kind:'humanoid', h:0.98, skin:'#c8a884', cloth:'#3f5e3a', cloth2:'#2f472c', hood:'#35502f', weapon:'staff', orb:'#a8ff8a', eye:'#d8ffc0'},
+  hellhound:{kind:'quad', h:0.86, body:'#3d3542', dark:'#2a2430', belly:'#4e4456', mane:'#c04a1a', ears:'pointy', snout:'long', fangs:true, eye:'#ff9a3a', eyeGlow:'rgba(255,120,40,0.65)', len:1.1, tailCol:'#c04a1a'},
+  revenant: {kind:'wraith', h:1.1, robe:'#3f2f5a', hood:'#2f2246', aura:'rgba(160,110,240,0.4)', eye:'#d8b0ff', eyeGlow:'rgba(180,120,255,0.7)', alpha:0.7, claws:true, bone:'#e8e0d0'},
+  greenwyrm:{kind:'dragon', h:1.0, len:0.9, body:'#3a3040', dark:'#282232', belly:'#8a7a5a', wing:'#332b3c', horn:'#c8bfa0', spike:'#1c1824', eye:'#ff9a3a', eyeGlow:'rgba(255,140,60,0.5)', breath:'rgba(200,110,255,0.5)'},
+  ebonwyrm: {kind:'dragon', h:1.3, len:1.2, body:'#332c40', dark:'#231e2e', belly:'#a86a2e', wing:'#2a2436', horn:'#e8dcae', spike:'#0e0b14', eye:'#ff7a2a', eyeGlow:'rgba(255,120,40,0.85)', breath:'rgba(255,120,40,0.9)'},
+};
+
+const RS_MOB_KIND = {
+  bird:mBird, quad:mQuad, humanoid:mHumanoid, demon:mDemon, wraith:mWraith,
+  skeleton:mSkeleton, dragon:mDragon, frog:mFrog, hand:mHand, veld:mVeld,
+  gargoyle:mGargoyle, tentacle:mTentacle, insect:mInsect,
+};
+
+/* Draw monster `id` with its feet at (x, gy), `px` tall. flash 0..1 whitens it. */
+/* Horns, wings, crowns and reared necks all push past the 100-unit box, and by
+   different amounts per archetype — the nameplate has to clear the real thing. */
+const RS_MOB_EXTENT = {dragon:1.46, demon:1.24, skeleton:1.2, humanoid:1.16,
+  wraith:1.12, tentacle:1.12, gargoyle:1.08, frog:1.06, quad:1.0, bird:0.92,
+  insect:0.8, veld:0.72, hand:0.62};
+function rsMobHeight(id, px){
+  const a = RS_MOB_ART[id];
+  if(!a) return px;
+  return px * (a.h || 1) * 1.25 * (RS_MOB_EXTENT[a.kind] || 1);
+}
+function rsDrawMob(ctx, id, x, gy, px, t, flash){
+  const a = RS_MOB_ART[id];
+  if(!a){                                          /* unknown: fall back to the old glyph */
+    rsEmojiPrep(ctx, px);
+    ctx.fillText('\u{1F47E}', x - px * 0.44, gy + 2);
+    return;
+  }
+  const fn = RS_MOB_KIND[a.kind] || mHumanoid;
+  const scale = (px / 100) * (a.h || 1) * 1.25;
+  ctx.save();
+  ctx.translate(x, gy + 2);
+  ctx.scale(-1, 1);            /* face the hero, who is always to their left */
+  /* rim pass: the same silhouette, a touch larger and dark, so pale ghosts and
+     pitch-black hounds both separate from whatever is behind them */
+  ctx.save();
+  ctx.scale(scale * 1.055, scale * 1.045);
+  rsMT = 'rgba(14,10,18,0.85)';
+  fn(ctx, a, t);
+  rsMT = null;
+  ctx.restore();
+  ctx.scale(scale, scale);
+  fn(ctx, a, t);
+  if(flash > 0){
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.85, flash * 0.9);
+    rsMT = '#ffffff';
+    fn(ctx, a, t);
+    rsMT = null;
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* Small cached portraits for buttons and the collection log. */
+const rsMobIconCache = {};
+function rsMobIcon(id, size){
+  const px = size || 34;
+  const key = id + '@' + px;
+  if(rsMobIconCache[key]) return rsMobIconCache[key];
+  const cv = document.createElement('canvas');
+  cv.width = px; cv.height = px;
+  const c = cv.getContext('2d');
+  const a = RS_MOB_ART[id];
+  if(a){
+    const fn = RS_MOB_KIND[a.kind] || mHumanoid;
+    const sc = (px / 100) * 0.92;
+    c.save();
+    c.translate(px / 2, px - 1);
+    c.scale(sc, sc);
+    rsMT = null;
+    try { fn(c, a, 0); } catch(e){}
+    c.restore();
+  }
+  const url = cv.toDataURL();
+  rsMobIconCache[key] = url;
+  return url;
 }
 
 /* Emoji are drawn with fillText. If the device has no COLOUR glyph for one
@@ -20519,7 +22166,7 @@ function rsDrawBackdrop(ctx, W, H, area, t){
 const RS_EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",serif';
 function rsDarkArea(){
   const a = rsEnsure().area;
-  return a === 'mine' || a === 'tower' || a === 'cata' || a === 'mire';
+  return a === 'mine' || a === 'tower' || a === 'cata' || a === 'mire' || a === 'wild';
 }
 function rsEmojiPrep(ctx, px){
   ctx.globalAlpha = 1;
@@ -20641,18 +22288,33 @@ function rsDrawTarget(ctx, W, H, t){
   }
   if(act.kind === 'fight' && r.mob){
     const m = RS_MOBS.find(function(x){ return x.id === r.mob.id; });
-    shadow(24);
-    rsEmojiPrep(ctx, m && m.boss ? 64 : 46);   /* opaque: shadow() left the fill at 25% */
-    const lunge = Math.sin(t / 9) * 3;
-    ctx.fillText(m ? m.ic : '👾', tx - 20 - lunge, gy + 2);
-    const bw = 56, bx = tx - 22, by = gy - (m && m.boss ? 74 : 56);
-    ctx.fillStyle = '#571e1e'; ctx.fillRect(bx, by, bw, 7);
-    ctx.fillStyle = '#0a7a2f'; ctx.fillRect(bx, by, bw * Math.max(0, r.mob.hp / (m || {hp:1}).hp), 7);
-    ctx.strokeStyle = '#000'; ctx.strokeRect(bx + 0.5, by + 0.5, bw, 7);
+    const px2 = m && m.boss ? 104 : 68;
+    const bob = Math.sin(t / 9) * 3.5;
+    shadow(px2 * 0.46 - bob * 0.4);
+    /* took a hit in the last instant? flash the silhouette white */
+    let flash = 0;
+    for(let i = 0; i < rsSplats.length; i++){
+      const sp2 = rsSplats[i];
+      if(sp2.who === 'mob' && sp2.t > 0.86 && sp2.v > 0) flash = Math.max(flash, (sp2.t - 0.86) / 0.14);
+    }
+    rsDrawMob(ctx, m ? m.id : '', tx, gy - Math.abs(bob) * 0.5, px2, t, flash);
+    const mh = rsMobHeight(m ? m.id : '', px2);
+    rsMobSplatY = gy - Math.max(40, mh * 0.52);        /* splats land ON the beast */
+    const bw = 72, bx = tx - 30;
+    const by = gy - Math.max(56, Math.min(H * 0.68, mh + 20));
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; rsRR(ctx, bx - 3, by - 3, bw + 6, 15, 3); ctx.fill();
+    ctx.fillStyle = '#571e1e'; ctx.fillRect(bx, by, bw, 9);
+    const frac = Math.max(0, r.mob.hp / (m || {hp:1}).hp);
+    ctx.fillStyle = frac > 0.5 ? '#0a7a2f' : frac > 0.22 ? '#b8862c' : '#a33327';
+    ctx.fillRect(bx, by, bw * frac, 9);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(bx, by, bw * frac, 3);
+    ctx.strokeStyle = '#000'; ctx.strokeRect(bx + 0.5, by + 0.5, bw, 9);
     if(m){
-      ctx.fillStyle = '#ffff00'; ctx.font = 'bold 10px monospace';
-      ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.strokeText(m.name + ' (lvl ' + m.lvl + ')', bx - 4, by - 5);
-      ctx.fillText(m.name + ' (lvl ' + m.lvl + ')', bx - 4, by - 5);
+      ctx.font = 'bold 12px monospace';
+      ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+      ctx.strokeText(m.name + ' (lvl ' + m.lvl + ')', bx - 6, by - 7);
+      ctx.fillStyle = m.boss ? '#ff7a5a' : '#ffff00';
+      ctx.fillText(m.name + ' (lvl ' + m.lvl + ')', bx - 6, by - 7);
       ctx.lineWidth = 1;
     }
     return {x: tx - 30, y: gy - 30};
@@ -20686,7 +22348,7 @@ function rsDrawHero(ctx, W, H){
   const r = rsEnsure();
   const gy = rsGroundY(H);
   const px = W * 0.51, py = gy + 4;
-  const S = 1.35;                       /* bigger hero for the bigger stage */
+  const S = 1.72;                       /* bigger hero for the bigger stage */
   /* swing: rest angle points slightly down-forward; the swing arcs at the target */
   const working = rsSwing > 0;
   const armAng = working ? (-1.15 + Math.abs(Math.sin(rsAnimT / 3.2)) * 1.05) : -0.35;
@@ -20698,14 +22360,38 @@ function rsDrawHero(ctx, W, H){
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0, 1, 16, 4, 0, 0, 7); ctx.fill();
   /* legs with a small work-shuffle */
   const step = working ? Math.sin(rsAnimT / 6) * 1.5 : 0;
-  ctx.fillStyle = '#4a3222';
+  const legTier = r.equip.legs ? RS_ITEMS[r.equip.legs].tier : 0;
+  const legCol = ['#4a3222','#6a5544','#7f7f88','#a8a8b4','#42639c','#3a8050','#4fb0c6','#b8933f','#e8c53f'][legTier] || '#4a3222';
+  ctx.fillStyle = legCol;
   ctx.fillRect(-9 + step, -14, 7, 14); ctx.fillRect(2 - step, -14, 7, 14);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(-9 + step, -14, 7, 2); ctx.fillRect(2 - step, -14, 7, 2);
   ctx.fillStyle = '#33241a'; ctx.fillRect(-10 + step, -2, 9, 3); ctx.fillRect(1 - step, -2, 9, 3);
   /* body tinted by worn tier */
   const bodyTier = r.equip.body ? RS_ITEMS[r.equip.body].tier : 0;
   const tierCol = ['#7a5a3a','#8a6f4a','#8f8f97','#b8b8c4','#4a6fb0','#3f8f5a','#58c0d8','#c9a24d','#ffd84d'][bodyTier] || '#7a5a3a';
+  /* cape sways behind everything if one is worn */
+  if(r.equip.cape || r.cape){
+    const sway = Math.sin(rsAnimT / 7) * 2.2 + (working ? 1.5 : 0);
+    ctx.fillStyle = '#8b2f3f';
+    ctx.beginPath();
+    ctx.moveTo(-10, -34); ctx.lineTo(-13 - sway, -6); ctx.lineTo(-3 - sway * 0.5, -4); ctx.lineTo(-2, -33);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.moveTo(-6, -34); ctx.lineTo(-7 - sway * 0.6, -5); ctx.lineTo(-2, -33); ctx.closePath(); ctx.fill();
+  }
   ctx.fillStyle = tierCol; ctx.fillRect(-11, -34, 22, 21);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(-11, -34, 22, 4); /* shoulder light */
   ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(-11, -20, 22, 3);      /* belt shade */
+  /* shield strapped to the off arm */
+  if(r.equip.shield){
+    const sh = RS_ITEMS[r.equip.shield];
+    const shCol = ['#7a5a3a','#8a6f4a','#8f8f97','#b8b8c4','#4a6fb0','#3f8f5a','#58c0d8','#c9a24d','#ffd84d'][sh.tier] || '#8f8f97';
+    ctx.fillStyle = shCol;
+    ctx.beginPath();
+    ctx.moveTo(-19, -32); ctx.lineTo(-9, -32); ctx.lineTo(-9, -18); ctx.lineTo(-14, -12); ctx.lineTo(-19, -18);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-15, -31, 2, 17);
+  }
   /* rear arm resting on the body */
   ctx.fillStyle = '#e0b48c'; ctx.fillRect(-13, -32, 4, 12);
   /* head + face detail, helm if worn */
@@ -20744,7 +22430,8 @@ function rsDrawScene(){
   const cv = document.getElementById('rsScene');
   if(!cv) return;
   const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
+  const W = RS_VIEW_W, H = RS_VIEW_H;
+  ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);   /* draw in design space */
   const r = rsEnsure();
   const t = rsAnimT;
   const gy = rsGroundY(H);
@@ -20752,6 +22439,8 @@ function rsDrawScene(){
   rsDrawBackdrop(ctx, W, H, r.area, t);
   rsDrawTarget(ctx, W, H, t);
   rsDrawHero(ctx, W, H);
+  rsDrawWeather(ctx, W, H, r.area, t);
+  rsDrawGrade(ctx, W, H, r.area);
 
   /* projectiles: arrows arc, spell-bolts streak */
   if(r.act && r.act.kind === 'fight' && rsSwing > 1.1){
@@ -20780,14 +22469,14 @@ function rsDrawScene(){
     const sp = rsSplats[i];
     sp.t -= 0.02;
     if(sp.t <= 0){ rsSplats.splice(i, 1); continue; }
-    const x = sp.who === 'mob' ? W * 0.68 : W * 0.49;
-    const y = gy - 70 - (1 - sp.t) * 16;
+    const x = sp.who === 'mob' ? W * 0.685 : W * 0.49;
+    const y = (sp.who === 'mob' ? (rsMobSplatY || gy - 116) : gy - 92) - (1 - sp.t) * 18;
     ctx.globalAlpha = Math.min(1, sp.t * 2);
     ctx.fillStyle = sp.v > 0 ? '#9c1c1c' : '#1c2c9c';
-    rsRR(ctx, x - 12, y - 9, 24, 18, 5); ctx.fill();
+    rsRR(ctx, x - 14, y - 11, 28, 22, 6); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-    ctx.fillText(String(sp.v), x, y + 4);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(String(sp.v), x, y + 5);
     ctx.textAlign = 'left';
     ctx.globalAlpha = 1;
   }

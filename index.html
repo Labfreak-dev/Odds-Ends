@@ -1400,6 +1400,17 @@
   .rs-skcell .lv{ margin-left:auto; text-align:right; font-size:11px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; line-height:1.15; }
   .rs-skcell .lv small{ display:block; color:#ff981f; font-size:10px; }
   .rs-skcell .sbar{ position:absolute; left:0; right:0; bottom:0; height:2px; background:#241f17; }
+  /* --- Skill guide (tap a skill in the 📜 tab) --- */
+  .rs-skcell{ cursor:pointer; }
+  .rs-skcell:hover{ background:#4a3f2c; }
+  .rs-gbar{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .rs-gbar .rs-ptitle{ flex:1; margin:0; text-align:left; }
+  .rs-glab{ font-size:11px; color:#ff981f; font-weight:800; margin-bottom:3px; }
+  .rs-gtext{ font-size:10.5px; color:#c8b997; line-height:1.5; margin-bottom:9px; }
+  .rs-row .rlv{ width:26px; flex:none; text-align:right; font-weight:800; color:#3cd97a; }
+  .rs-row.locked{ opacity:.45; }
+  .rs-row.locked .rlv{ color:#e8b4c0; }
+  .rs-row .rico{ font-size:15px; flex:none; }
   .rs-totalbox{ margin-top:6px; background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
     border-radius:2px; text-align:center; padding:7px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; font-size:12.5px; }
   .rs-rows .rs-row{ display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #241f17; font-size:12px; color:#ffff00; text-shadow:1px 1px 0 #000; }
@@ -18020,7 +18031,7 @@ const UI_GAMES = [
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
   { id:"dungeon", name:"Mythic Raids", icon:"🏚️", desc:"Daemonheim. Go in with nothing, come out with a level.", meta:"10 floors" },
-  { id:"runeshard", name:"Runeshard", icon:"🗡️", desc:"An old-school life: chop it, mine it, smith it, slay it. Ninety-nine is a lifestyle.", meta:"10 skills" },
+  { id:"runeshard", name:"Runeshard", icon:"🗡️", desc:"An old-school life: chop it, mine it, smith it, slay it. Ninety-nine is a lifestyle.", meta:"23 skills" },
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
 const UI_SECTIONS = ["mining","packs","upgrades","market","empire","play","collection","account"].concat(UI_GAME_IDS);
@@ -18227,29 +18238,33 @@ function rsXpInto(xp){
   return (xp - a) / Math.max(1, b - a);
 }
 
+/* Ordered the way the OSRS skills tab lays them out — three columns,
+   reading across: Attack/Hitpoints/Mining, Strength/Agility/Smithing, …
+   Order here is display-only; state is keyed by id. */
 const RS_SKILLS = [
   {id:'atk',   name:'Attack',      ic:'⚔️'},
-  {id:'str',   name:'Strength',    ic:'💪'},
-  {id:'def',   name:'Defence',     ic:'🛡️'},
   {id:'hp',    name:'Hitpoints',   ic:'❤️'},
-  {id:'pray',  name:'Prayer',      ic:'✨'},
-  {id:'wc',    name:'Woodcutting', ic:'🪓'},
   {id:'mine',  name:'Mining',      ic:'⛏️'},
-  {id:'smith', name:'Smithing',    ic:'🔨'},
-  {id:'fish',  name:'Fishing',     ic:'🎣'},
-  {id:'cook',  name:'Cooking',     ic:'🍳'},
-  {id:'slay',  name:'Slayer',      ic:'💀'},
-  {id:'range', name:'Ranged',      ic:'🏹'},
-  {id:'mage',  name:'Magic',       ic:'🪄'},
-  {id:'herb',  name:'Herblore',    ic:'🧪'},
-  {id:'fm',    name:'Firemaking',  ic:'🔥'},
-  {id:'craft', name:'Crafting',    ic:'🧵'},
-  {id:'fletch',name:'Fletching',   ic:'🎯'},
-  {id:'rc',    name:'Runecraft',   ic:'🔮'},
-  {id:'thief', name:'Thieving',    ic:'🕶️'},
+  {id:'str',   name:'Strength',    ic:'💪'},
   {id:'agil',  name:'Agility',     ic:'🏃'},
-  {id:'con',   name:'Construction',ic:'🔨'},
+  {id:'smith', name:'Smithing',    ic:'🔨'},
+  {id:'def',   name:'Defence',     ic:'🛡️'},
+  {id:'herb',  name:'Herblore',    ic:'🧪'},
+  {id:'fish',  name:'Fishing',     ic:'🎣'},
+  {id:'range', name:'Ranged',      ic:'🏹'},
+  {id:'thief', name:'Thieving',    ic:'🎭'},
+  {id:'cook',  name:'Cooking',     ic:'🍳'},
+  {id:'pray',  name:'Prayer',      ic:'🙏'},
+  {id:'craft', name:'Crafting',    ic:'🏺'},
+  {id:'fm',    name:'Firemaking',  ic:'🔥'},
+  {id:'mage',  name:'Magic',       ic:'🧙'},
+  {id:'fletch',name:'Fletching',   ic:'🎯'},
+  {id:'wc',    name:'Woodcutting', ic:'🪓'},
+  {id:'rc',    name:'Runecraft',   ic:'🔮'},
+  {id:'slay',  name:'Slayer',      ic:'💀'},
   {id:'farm',  name:'Farming',     ic:'🌱'},
+  {id:'con',   name:'Construction',ic:'🏠'},
+  {id:'hunt',  name:'Hunter',      ic:'🐾'},
 ];
 
 /* ---- Items ---- */
@@ -18361,11 +18376,42 @@ rsDef('def_potion','Defence potion','🫙',60,{potion:{skill:'def', amt:4}});
 rsDef('range_potion','Ranging potion','🍶',70,{potion:{skill:'range', amt:4}});
 rsDef('mage_potion','Magic potion','🍷',90,{potion:{skill:'mage', amt:4}});
 rsDef('pray_potion','Prayer potion','🏺',110,{potion:{pray:25}});
+/* The rest of the wiki's herb ladder — cleaning levels ride along as hlvl. */
+rsDef('grimy_tarromin','Grimy tarromin','🥀',14,{grimy:'tarromin'});
+rsDef('tarromin','Tarromin','🌿',24,{hlvl:11});
+rsDef('grimy_irit','Grimy irit','🥀',35,{grimy:'irit'});
+rsDef('irit','Irit leaf','🌿',60,{hlvl:40});
+rsDef('grimy_avantoe','Grimy avantoe','🥀',48,{grimy:'avantoe'});
+rsDef('avantoe','Avantoe','🌿',80,{hlvl:48});
+rsDef('grimy_kwuarm','Grimy kwuarm','🥀',60,{grimy:'kwuarm'});
+rsDef('kwuarm','Kwuarm','🌿',100,{hlvl:54});
+rsDef('grimy_snapdragon','Grimy snapdragon','🥀',85,{grimy:'snapdragon'});
+rsDef('snapdragon','Snapdragon','🌿',140,{hlvl:59});
+rsDef('grimy_cadantine','Grimy cadantine','🥀',95,{grimy:'cadantine'});
+rsDef('cadantine','Cadantine','🌿',160,{hlvl:65});
+rsDef('grimy_lantadyme','Grimy lantadyme','🥀',110,{grimy:'lantadyme'});
+rsDef('lantadyme','Lantadyme','🌿',185,{hlvl:67});
+rsDef('grimy_dwarf','Grimy dwarf weed','🥀',125,{grimy:'dwarf'});
+rsDef('dwarf','Dwarf weed','🌿',210,{hlvl:70});
+rsDef('grimy_torstol','Grimy torstol','🥀',160,{grimy:'torstol'});
+rsDef('torstol','Torstol','🌿',270,{hlvl:75});
+/* Super potions and the wiki's specialty brews */
+rsDef('super_atk','Super attack','🧪',140,{potion:{skill:'atk', amt:7}});
+rsDef('super_str','Super strength','⚗️',180,{potion:{skill:'str', amt:7}});
+rsDef('super_def','Super defence','🫙',220,{potion:{skill:'def', amt:7}});
+rsDef('hunter_potion','Hunter potion','🍵',150,{potion:{skill:'hunt', amt:4}});
+rsDef('super_restore','Super restore','🥤',260,{potion:{pray:32}});
+rsDef('super_range','Super ranging','🍶',290,{potion:{skill:'range', amt:7}});
+rsDef('super_mage','Super magic','🍷',320,{potion:{skill:'mage', amt:7}});
+rsDef('super_combat','Super combat potion','🏆',520,{potion:{multi:['atk','str','def'], amt:7}});
 rsDef('raw_monk','Raw monkfish','🐠',60);
 rsDef('monkfish','Monkfish','🥘',120,{heal:16});
 rsDef('raw_angler','Raw anglerfish','🐡',110);
 rsDef('anglerfish','Anglerfish','🍛',210,{heal:22});
 rsDef('dragon_dagger','Dragon dagger','🔪',5500,{slot:'weapon', tier:6, lvl:60});
+rsDef('leaf_blade','Leaf-bladed sword','🍃',5200,{slot:'weapon', tier:7, lvl:55});
+rsDef('mystic_orb','Occult orb','🔮',6800,{slot:'amulet', tier:4, lvl:1, accb:3, mhb:2});
+rsDef('rune_scim','Rune scimitar','🌙',4800,{slot:'weapon', tier:6, lvl:40});
 rsDef('knights_blade','Knight\'s blade','⚔️',7800,{slot:'weapon', tier:8, lvl:60});
 rsDef('holy_symbol','Holy symbol','✝️',2600,{slot:'amulet', tier:2, lvl:1, accb:2, defb:2, holy:true});
 rsDef('dragon_helm','Dragon helm','🪖',12000,{slot:'helm', tier:7, lvl:60});
@@ -18429,8 +18475,33 @@ const RS_SEEDS = [
   {id:'strawberry_seed', name:'Strawberry seed',  crop:'strawberry',        req:31, xp:26,  hxp:29,  grow:330, yield:[3,7]},
   {id:'ranarr_seed',     name:'Ranarr seed',      crop:'grimy_ranarr',      req:32, xp:30,  hxp:34,  grow:380, yield:[2,5]},
   {id:'watermelon_seed', name:'Watermelon seed',  crop:'watermelon',        req:47, xp:48,  hxp:54,  grow:440, yield:[4,9]},
+  {id:'tarromin_seed',   name:'Tarromin seed',    crop:'grimy_tarromin',    req:19, xp:16,  hxp:18,  grow:250, yield:[2,5]},
+  {id:'irit_seed',       name:'Irit seed',        crop:'grimy_irit',        req:44, xp:43,  hxp:48,  grow:420, yield:[2,5]},
+  {id:'avantoe_seed',    name:'Avantoe seed',     crop:'grimy_avantoe',     req:50, xp:55,  hxp:61,  grow:460, yield:[2,5]},
+  {id:'kwuarm_seed',     name:'Kwuarm seed',      crop:'grimy_kwuarm',      req:56, xp:69,  hxp:78,  grow:500, yield:[2,5]},
+  {id:'snapdragon_seed', name:'Snapdragon seed',  crop:'grimy_snapdragon',  req:62, xp:87,  hxp:99,  grow:540, yield:[2,5]},
+  {id:'cadantine_seed',  name:'Cadantine seed',   crop:'grimy_cadantine',   req:67, xp:107, hxp:120, grow:580, yield:[2,5]},
+  {id:'lantadyme_seed',  name:'Lantadyme seed',   crop:'grimy_lantadyme',   req:73, xp:135, hxp:151, grow:620, yield:[2,5]},
+  {id:'dwarf_seed',      name:'Dwarf weed seed',  crop:'grimy_dwarf',       req:79, xp:171, hxp:192, grow:660, yield:[2,5]},
+  {id:'torstol_seed',    name:'Torstol seed',     crop:'grimy_torstol',     req:85, xp:200, hxp:224, grow:700, yield:[2,5]},
 ];
 RS_SEEDS.forEach(function(sd){ rsDef(sd.id, sd.name, '🌾', Math.round(4 + sd.req * 2.2), {seed:true}); });
+/* ---- Hunter ---- */
+rsDef('raw_bird','Raw bird meat','🍗',6);
+rsDef('roast_bird','Roast bird','🍗',14,{heal:5});
+rsDef('swamp_lizard','Swamp lizard','🦎',55);
+rsDef('kebbit_fur','Kebbit fur','🟤',70);
+rsDef('chinchompa','Chinchompa','🐿️',110);
+rsDef('red_chinchompa','Red chinchompa','🐹',320);
+rsDef('black_chinchompa','Black chinchompa','🐀',780);
+rsDef('spotted_cape','Spotted cape','🐆',900,{cape:true, slot:'cape', tier:2, lvl:1});
+rsDef('pet_chin','Baby chinchompa','🐿️',0,{pet:true});
+rsDef('pet_squirrel','Giant squirrel','🐿️',0,{pet:true});
+rsDef('pet_rift','Rift guardian','🌋',0,{pet:true});
+rsDef('pet_tangle','Tangleroot','🌿',0,{pet:true});
+rsDef('pet_rocky','Rocky','🦝',0,{pet:true});
+rsDef('pet_phoenix','Phoenix','🐦‍🔥',0,{pet:true});
+rsDef('pet_herbi','Herbi','🦔',0,{pet:true});
 rsDef('clue_scroll','Clue scroll','📜',0,{clue:true});
 rsDef('casket','Casket','🎁',0,{casket:true});
 rsDef('pet_wisp','Grave wisp','🕯️',0,{pet:true});
@@ -18468,6 +18539,7 @@ const RS_FISH = [
 ];
 const RS_COOK = [
   {raw:'raw_shrimp',  out:'shrimp',    req:1,  xp:30,  burnUntil:34},
+  {raw:'raw_bird',    out:'roast_bird',req:4,  xp:60,  burnUntil:30},
   {raw:'raw_trout',   out:'trout',     req:15, xp:70,  burnUntil:50},
   {raw:'raw_lobster', out:'lobster',   req:40, xp:120, burnUntil:74},
   {raw:'raw_sword',   out:'swordfish', req:45, xp:140, burnUntil:86},
@@ -18490,6 +18562,19 @@ const RS_BURN = [
   {id:'logs',        req:1,  xp:40},  {id:'oak_logs',   req:15, xp:60},
   {id:'willow_logs', req:30, xp:90},  {id:'maple_logs', req:45, xp:135},
   {id:'yew_logs',    req:60, xp:202}, {id:'magic_logs', req:75, xp:303},
+];
+/* Hunter: creatures of the Woods. Levels & spirit straight off the wiki —
+   birds first, then lizards, kebbits, and the chinchompa ladder. */
+const RS_HUNT = [
+  {id:'swift',    name:'Crimson swift',    ic:'🐦', req:1,  xp:34,  ch:0.44, loot:'raw_bird'},
+  {id:'longtail', name:'Copper longtail',  ic:'🐦', req:9,  xp:61,  ch:0.38, loot:'raw_bird'},
+  {id:'wagtail',  name:'Tropical wagtail', ic:'🦜', req:19, xp:95,  ch:0.34, loot:'raw_bird'},
+  {id:'lizard',   name:'Swamp lizard',     ic:'🦎', req:29, xp:152, ch:0.30, loot:'swamp_lizard'},
+  {id:'kebbit',   name:'Spotted kebbit',   ic:'🐇', req:43, xp:104, ch:0.28, loot:'kebbit_fur'},
+  {id:'greychin', name:'Grey chinchompa',  ic:'🐿️', req:53, xp:198, ch:0.24, loot:'chinchompa'},
+  {id:'redchin',  name:'Red chinchompa',   ic:'🐹', req:63, xp:265, ch:0.18, loot:'red_chinchompa'},
+  {id:'blackchin',name:'Black chinchompa', ic:'🐀', req:73, xp:315, ch:0.13, loot:'black_chinchompa'},
+  {id:'herbi',    name:'Herbiboar',        ic:'🦔', req:80, xp:1950,ch:0.07, loot:'herbs'},
 ];
 /* Construction materials — made at the Builder's Yard */
 const RS_BUILDMAT = [
@@ -18558,6 +18643,7 @@ const RS_CRAFT = [
   {out:'green_coif',    req:62, xp:248, ins:{leather:4, ruby_c:1}},
   {out:'green_chaps',   req:66, xp:290, ins:{leather:6, ruby_c:1}},
   {out:'green_body',    req:63, xp:372, ins:{leather:8, ruby_c:2}},
+  {out:'spotted_cape',  req:40, xp:130, ins:{kebbit_fur:2}},
 ];
 /* Fletching: shape, string, and feather */
 const RS_FLETCH = [
@@ -18585,6 +18671,7 @@ const RS_FLETCH = [
 const RS_RC = RS_RUNES.map(function(a){ return {out:a[0], req:a[2], xp:a[3]}; });
 /* Thieving: market stalls */
 const RS_STALLS = [
+  {id:'veg',   name:'Vegetable stall',   req:1,  xp:10,  coins:[2,12],   loot:'potato',   dmg:1},
   {id:'cake',  name:'Baker\'s stall',   req:5,  xp:16,  coins:[8,26],   loot:'shrimp',   dmg:2},
   {id:'silk',  name:'Silk stall',        req:20, xp:24,  coins:[24,70],  loot:'leather',  dmg:3},
   {id:'fur',   name:'Fur stall',         req:35, xp:36,  coins:[45,130], loot:'cowhide',  dmg:4},
@@ -18598,6 +18685,14 @@ const RS_BREWS = [
   {out:'range_potion', herb:'harralander', sec:'eye_of_newt',   req:38, xp:90},
   {out:'pray_potion',  herb:'ranarr',      sec:'snape_grass',   req:45, xp:105},
   {out:'mage_potion',  herb:'ranarr',      sec:'eye_of_newt',   req:55, xp:130},
+  {out:'super_atk',    herb:'irit',        sec:'eye_of_newt',   req:45, xp:100},
+  {out:'hunter_potion',herb:'avantoe',     sec:'snape_grass',   req:53, xp:120},
+  {out:'super_str',    herb:'kwuarm',      sec:'limpwurt_root', req:55, xp:125},
+  {out:'super_restore',herb:'snapdragon',  sec:'white_berries', req:63, xp:143},
+  {out:'super_def',    herb:'cadantine',   sec:'white_berries', req:66, xp:150},
+  {out:'super_range',  herb:'dwarf',       sec:'eye_of_newt',   req:72, xp:163},
+  {out:'super_mage',   herb:'lantadyme',   sec:'eye_of_newt',   req:76, xp:173},
+  {out:'super_combat', herb:'torstol',     sec:'eye_of_newt',   req:90, xp:190},
 ];
 const RS_FORGE = (function(){
   const out = [];
@@ -18616,6 +18711,10 @@ const RS_FORGE = (function(){
 const RS_MOBS = [
   {id:'chicken', name:'Chicken',      ic:'🐔', lvl:1,  hp:3,   atk:1,  def:1,  max:1, xp:12,  area:'fields', drops:[['bones',1,1],['coins',1,4],['feather',3,8]]},
   {id:'imp',     name:'Imp',          ic:'👿', lvl:5,  hp:8,   atk:3,  def:3,  max:1, xp:30,  area:'fields', drops:[['bones',1,1],['coins',2,8]]},
+  {id:'man',     name:'Man',          ic:'🧍', lvl:2,  hp:7,   atk:1,  def:1,  max:1, xp:14,  area:'fields', drops:[['bones',1,1],['coins',1,15]]},
+  {id:'imp',     name:'Imp',          ic:'👿', lvl:7,  hp:10,  atk:4,  def:3,  max:1, xp:30,  area:'fields', drops:[['coins',2,14],['ashes',1,1],['bronze_arrow',0,4,0.3]]},
+  {id:'unicorn', name:'Unicorn',      ic:'🦄', lvl:15, hp:19,  atk:8,  def:10, max:2, xp:56,  area:'fields', drops:[['bones',1,1],['coins',5,25],['white_berries',0,1,0.15]]},
+  {id:'blackkn', name:'Black Knight', ic:'♞',  lvl:33, hp:42,  atk:26, def:26, max:5, xp:140, area:'fields', drops:[['bones',1,1],['coins',25,90],['steel_sword',0,1,0.04],['steel_helm',0,1,0.03]]},
   {id:'rat',     name:'Giant Rat',    ic:'🐀', lvl:3,  hp:6,   atk:2,  def:2,  max:1, xp:18,  area:'fields', drops:[['bones',1,1],['coins',1,6]]},
   {id:'scorp',   name:'Scorpion',     ic:'🦂', lvl:14, hp:16,  atk:11, def:9,  max:3, xp:52,  area:'fields', drops:[['bones',1,1],['coins',6,24]]},
   {id:'bandit',  name:'Bandit',       ic:'🏴', lvl:34, hp:38,  atk:28, def:24, max:6, xp:145, area:'fields', drops:[['bones',1,1],['coins',30,110],['sapphire',0,1,0.05]]},
@@ -18637,6 +18736,14 @@ const RS_MOBS = [
   {id:'veld',    name:'Bloodveld',    ic:'👅', lvl:48, hp:60,  atk:38, def:30, max:8, xp:230, area:'tower',  slayReq:35, drops:[['big_bones',1,1],['coins',40,130],['ruby',0,1,0.07]]},
   {id:'garg',    name:'Gargoyle',     ic:'🦇', lvl:65, hp:70,  atk:52, def:48, max:10,xp:330, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',90,260],['granite_mauler',0,1,0.02],['diamond',0,1,0.03],['ring_archer',0,1,0.02]]},
   {id:'abyss',   name:'Abyssal Fiend',ic:'🐙', lvl:95, hp:110, atk:70, def:64, max:12,xp:520, area:'tower',  slayReq:75, drops:[['big_bones',1,1],['coins',160,460],['abyssal_lash',0,1,0.017],['diamond',0,1,0.08]]},
+  {id:'rockslug',name:'Rockslug',     ic:'🐌', lvl:29, hp:30,  atk:20, def:20, max:5, xp:100, area:'tower',  slayReq:15, drops:[['bones',1,1],['coins',12,40],['iron_ore',0,3,0.25]]},
+  {id:'cockat',  name:'Cockatrice',   ic:'🐓', lvl:37, hp:40,  atk:30, def:26, max:6, xp:150, area:'tower',  slayReq:25, drops:[['bones',1,1],['coins',20,66],['feather',4,12],['sapphire',0,1,0.06]]},
+  {id:'dustdev', name:'Dust Devil',   ic:'🌪️', lvl:85, hp:96,  atk:64, def:58, max:11,xp:470, area:'tower',  slayReq:65, drops:[['big_bones',1,1],['coins',120,380],['mystic_orb',0,1,0.02],['mith_bar',0,2,0.15]]},
+  {id:'kurask',  name:'Kurask',       ic:'🦬', lvl:88, hp:100, atk:66, def:60, max:11,xp:490, area:'tower',  slayReq:70, drops:[['big_bones',1,1],['coins',130,400],['leaf_blade',0,1,0.017],['grimy_kwuarm',0,1,0.12]]},
+  {id:'nechry',  name:'Nechryael',    ic:'👾', lvl:105,hp:120, atk:74, def:68, max:13,xp:580, area:'tower',  slayReq:80, drops:[['big_bones',1,1],['coins',180,520],['rune_bar',0,1,0.08],['addy_bar',0,2,0.15],['rune_scim',0,1,0.02]]},
+  {id:'darkbeast',name:'Dark Beast',  ic:'🦣', lvl:120,hp:140, atk:82, def:74, max:14,xp:680, area:'tower',  slayReq:90, drops:[['big_bones',1,1],['coins',220,640],['diamond',0,1,0.1],['yew_logs',0,4,0.2],['dark_bow',0,1,0.01]]},
+  {id:'ghost',     name:'Restless Ghost',ic:'👻', lvl:19, hp:22,  atk:14, def:13, max:3, xp:66,  area:'cata', drops:[['coins',8,28]]},
+  {id:'vampyre',   name:'Vampyre',       ic:'🧛', lvl:45, hp:50,  atk:36, def:30, max:7, xp:210, area:'cata', drops:[['bones',1,1],['coins',35,110],['ruby',0,1,0.06]]},
   {id:'skel',      name:'Skeleton',      ic:'💀', lvl:22, hp:24,  atk:17, def:15, max:4, xp:75,  area:'cata', drops:[['bones',1,1],['coins',10,35]]},
   {id:'zombie',    name:'Zombie',        ic:'🧟', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
   {id:'ghast',     name:'Ghast',         ic:'🌬️', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
@@ -18838,6 +18945,59 @@ const RS_QUESTS = [
           {d:'Reach Construction 40',   need:function(r){return rsLvl('con');}, goal:40}],
    reward:'5,000 coins · 4,000 Construction XP',
    grant:function(r){ r.coins += 5000; rsAddXp('con', 4000); }},
+  /* ---- The wiki wing: quests lifted from the classics ---- */
+  {id:'q34', name:"The Knight's Sword", qp:1,
+   desc:'Sir Vyvin lost his ancestral blade. Squire needs a discreet replacement, fast.',
+   steps:[{d:'Smith 5 iron swords', need:function(r){return r.counts.forge_iron_sword||0;}, goal:5}],
+   reward:'2,500 Smithing XP — the classic',
+   grant:function(r){ rsAddXp('smith', 2500); }},
+  {id:'q35', name:'Rune Mysteries', qp:1,
+   desc:'The head wizard suspects the essence mine is more than it seems. Investigate.',
+   steps:[{d:'Mine 15 rune essence', need:function(r){return r.counts.get_rune_ess||0;}, goal:15},
+          {d:'Craft 20 runes of any kind', need:function(r){return r.counts.rc_any||0;}, goal:20}],
+   reward:'1,500 Runecraft XP · 50 rune essence',
+   grant:function(r){ rsAddXp('rc', 1500); rsGrant('rune_ess', 50); }},
+  {id:'q36', name:'Vampyre Slayer', qp:3,
+   desc:'Something is draining the catacombs dry. Bring a hammer and courage.',
+   steps:[{d:'Slay 5 Vampyres', need:function(r){return r.counts.kill_vampyre||0;}, goal:5}],
+   reward:'4,825 Attack XP — yes, that exact number',
+   grant:function(r){ rsAddXp('atk', 4825); }},
+  {id:'q37', name:'Dragon Slayer', qp:5,
+   desc:'The final test of a true adventurer: face a dragon and live to wear the proof.',
+   steps:[{d:'Defeat a Green Dragon', need:function(r){return r.counts.kill_greend||0;}, goal:1}],
+   reward:'The Wyrm ward · 18,650 combined XP',
+   grant:function(r){ rsGrant('wyrm_ward', 1); rsAddXp('str', 9325); rsAddXp('def', 9325); }},
+  {id:'q38', name:'Witch\'s Potion', qp:1,
+   desc:'Hetty the witch will share her insight — once you prove you can hold a ladle.',
+   steps:[{d:'Brew 3 potions', need:function(r){return r.counts.brew_any||0;}, goal:3}],
+   reward:'325 Herblore XP and a strange aftertaste',
+   grant:function(r){ rsAddXp('herb', 325); rsGrant('eye_of_newt', 10); }},
+  {id:'q39', name:'Big Chompy Bird Hunting', qp:2,
+   desc:'Rantz wants dinner. Dinner has wings and bad intentions.',
+   steps:[{d:'Snare 15 birds', need:function(r){return (r.counts.hunt_swift||0)+(r.counts.hunt_longtail||0)+(r.counts.hunt_wagtail||0);}, goal:15},
+          {d:'Fletch 4 batches of arrows', need:function(r){return (r.counts.fletch_bronze_arrow||0)+(r.counts.fletch_iron_arrow||0)+(r.counts.fletch_steel_arrow||0)+(r.counts.fletch_mith_arrow||0)+(r.counts.fletch_addy_arrow||0)+(r.counts.fletch_rune_arrow||0);}, goal:4}],
+   reward:'1,200 Hunter XP · 800 Fletching XP',
+   grant:function(r){ rsAddXp('hunt', 1200); rsAddXp('fletch', 800); }},
+  {id:'q40', name:'Eadgar\'s Ruse', qp:2,
+   desc:'A troll needs herbs. Do not ask why. Definitely do not ask what for.',
+   steps:[{d:'Clean 20 herbs', need:function(r){return r.counts.clean_herb||0;}, goal:20},
+          {d:'Harvest 6 herbs from your patches', need:function(r){
+            let n = 0; for(const k in r.counts){ if(k.indexOf('harvest_grimy_') === 0) n += r.counts[k]; } return n;
+          }, goal:6}],
+   reward:'2,000 Herblore XP · a ranarr seed or two',
+   grant:function(r){ rsAddXp('herb', 2000); rsGrant('ranarr_seed', 2); }},
+  {id:'q41', name:'Animal Magnetism', qp:2,
+   desc:'Ava is building something in her attic. It wants chinchompas. Many chinchompas.',
+   steps:[{d:'Reach Hunter 30', need:function(r){return rsLvl('hunt');}, goal:30},
+          {d:'Catch 40 creatures', need:function(r){return r.counts.hunt_any||0;}, goal:40}],
+   reward:'2,500 Hunter XP · 150 steel arrows',
+   grant:function(r){ rsAddXp('hunt', 2500); rsGrant('steel_arrow', 150); }},
+  {id:'q42', name:'The Restless Dead', qp:2,
+   desc:'A ghost in the catacombs cannot rest until someone listens. Be that someone.',
+   steps:[{d:'Put 10 Restless Ghosts to rest', need:function(r){return r.counts.kill_ghost||0;}, goal:10},
+          {d:'Bury 30 bones', need:function(r){return r.buried|0;}, goal:30}],
+   reward:'4,000 Prayer XP · the Holy symbol',
+   grant:function(r){ rsAddXp('pray', 4000); rsGrant('holy_symbol', 1); }},
 ];
 function rsQuestSteps(q){ const r = rsEnsure(); let done = 0; for(const st of q.steps){ if(st.need(r) >= st.goal) done++; else break; } return done; }
 function rsQuestReady(q){ return rsQuestSteps(q) >= q.steps.length; }
@@ -18948,6 +19108,15 @@ function rsGrant(id, n){
     rsLog('Your bag is full — the ' + RS_ITEMS[id].name + ' was sent to your bank.', '#8fd7ff');
   }
 }
+/* Skilling clue roll — same one-at-a-time rule as combat clues: you can't
+   hold a second scroll or find one mid-trail. `what` flavours the log line. */
+function rsClueRoll(p, what, quiet){
+  const r = rsEnsure();
+  if(r.clue || rsHave('clue_scroll') > 0) return;
+  if(Math.random() >= p) return;
+  rsGrant('clue_scroll', 1);
+  if(!quiet) rsLog('📜 ' + what, '#8fd7ff');
+}
 function rsBankAll(){
   const r = rsEnsure();
   let moved = 0;
@@ -19014,6 +19183,24 @@ function rsAddXp(id, amount){
 let rsXpDrops = [], rsSplats = [], rsSpark = 0, rsSwing = 0;
 
 function rsToolTier(kind){ return Math.max(1, Math.min(6, rsEnsure().tools[kind]|0)); }
+
+/* Burn chance, the way the wiki says it works: every food has a level at
+   which it stops burning, and the chance falls in a straight line from
+   ~45% at the food's requirement to exactly ZERO at that stop-burn level.
+   No flat floor — once you pass a food's number you never burn it again.
+     · The Grand Range plays cooking gauntlets: each tier lowers the
+       effective stop-burn level by 3 (so tier 3 tames sharks at 90).
+     · Each tier also trims the remaining chance by 25%, Hosidius-style.
+     · The Cooking cape, worn, guarantees no burns at all. */
+function rsBurnChance(rec){
+  const r = rsEnsure(), lvl = rsLvl('cook');
+  if(r.equip.cape === 'cape_cook') return 0;
+  const stop = Math.max(rec.req + 1, rec.burnUntil - rsBuild('range') * 3);
+  if(lvl >= stop) return 0;
+  let ch = 0.45 * (stop - lvl) / (stop - rec.req);
+  ch = Math.min(0.45, ch) * Math.pow(0.75, rsBuild('range'));
+  return ch;
+}
 
 function rsWeapon(){ const w = rsEnsure().equip.weapon; return w ? RS_ITEMS[w] : null; }
 function rsWeaponKind(){ const w = rsWeapon(); return w ? (w.kind || 'melee') : 'melee'; }
@@ -19092,11 +19279,16 @@ const RS_PRAYERS = [
   {id:'rock',       name:'Rock Skin',            lvl:10, ic:'🗿', def:0.10, drain:0.06, style:'all'},
   {id:'superhuman', name:'Superhuman Strength',  lvl:13, ic:'⚡', dmg:0.10, drain:0.06, style:'melee'},
   {id:'reflex',     name:'Improved Reflexes',    lvl:16, ic:'👁️', acc:0.10, drain:0.06, style:'melee'},
+  {id:'rapid',      name:'Rapid Heal',           lvl:22, ic:'💗', regen:true, drain:0.02, style:'all'},
   {id:'ward',       name:"Guardian's Ward",      lvl:43, ic:'✝️', guard:0.30, drain:0.20, style:'all'},
+  {id:'preserve',   name:'Preserve',             lvl:55, ic:'⏳', preserve:true, drain:0.02, style:'all'},
   {id:'eagle',      name:'Eagle Eye',            lvl:44, ic:'🦅', acc:0.15, dmg:0.10, drain:0.12, style:'range'},
   {id:'might',      name:'Mystic Might',         lvl:45, ic:'🔮', acc:0.15, dmg:0.10, drain:0.12, style:'mage'},
   {id:'valor',      name:'Valor',                lvl:70, ic:'👑', acc:0.15, dmg:0.15, def:0.15, drain:0.25, style:'melee'},
+  {id:'rigour',     name:'Rigour',               lvl:74, ic:'🦅', acc:0.20, dmg:0.23, def:0.25, drain:0.25, style:'range'},
+  {id:'augury',     name:'Augury',               lvl:77, ic:'🌀', acc:0.25, dmg:0.15, def:0.25, drain:0.25, style:'mage'},
 ];
+function rsPrayOn(id){ const r = rsEnsure(); return (r.prayers||[]).indexOf(id) >= 0; }
 function rsPrayBonus(){
   const r = rsEnsure();
   const out = {acc:1, dmg:1, def:1, guard:0};
@@ -19189,9 +19381,17 @@ function rsMobDie(m, quiet){
   });
   if(Math.random() < 0.15){
     const hs = ['guam'];
+    if(m.lvl >= 10) hs.push('tarromin');
     if(m.lvl >= 15) hs.push('marrentill');
     if(m.lvl >= 30) hs.push('harralander');
     if(m.lvl >= 50) hs.push('ranarr');
+    if(m.lvl >= 60) hs.push('irit');
+    if(m.lvl >= 70) hs.push('avantoe');
+    if(m.lvl >= 78) hs.push('kwuarm');
+    if(m.lvl >= 88) hs.push('snapdragon');
+    if(m.lvl >= 95) hs.push('cadantine');
+    if(m.lvl >= 100) hs.push('lantadyme', 'dwarf');
+    if(m.lvl >= 110) hs.push('torstol');
     const hb = 'grimy_' + hs[Math.floor(Math.random() * hs.length)];
     if(!rsGive(hb, 1)) r.bank[hb] = (r.bank[hb]||0) + 1;
   }
@@ -19202,10 +19402,8 @@ function rsMobDie(m, quiet){
     if(sd && !rsGive(sd.id, 1)) r.bank[sd.id] = (r.bank[sd.id]||0) + 1;
   }
   if(m.lvl >= 30 && Math.random() < 0.06){ if(!rsGive('white_berries', 1)) r.bank.white_berries = (r.bank.white_berries||0) + 1; }
-  if(m.lvl >= 20 && !r.clue && !rsHave('clue_scroll') && Math.random() < 0.03){
-    rsGrant('clue_scroll', 1);
-    rsLog('📜 The ' + m.name + ' was carrying a clue scroll!', '#8fd7ff');
-  }
+  /* any monster can carry a clue, like the wiki says — not just lvl 20+ */
+  rsClueRoll(0.03, 'The ' + m.name + ' was carrying a clue scroll!', quiet);
   if(!quiet) rsLog('You defeat the ' + m.name + '.', '#7ADE9A', 'kill_' + m.id);
   if(m.boss){
     if(m.id === 'bogking'){ rsLog('👑 THE BOG KING FALLS. The Mire is quiet... for now.', '#ffd84d'); }
@@ -19224,7 +19422,9 @@ function rsTickCore(quiet){
   const r = rsEnsure();
   const act = r.act;
   r.spec = Math.min(100, (r.spec|0) + 1);   /* special attack energy: full in ~60s */
-  if(r.boosts) for(const bk in r.boosts){
+  /* Preserve: while lit, potion boosts only decay every second tick */
+  const boostHold = rsPrayOn('preserve') && ((r.presT = (r.presT|0) + 1) % 2 === 1);
+  if(r.boosts && !boostHold) for(const bk in r.boosts){
     if(--r.boosts[bk].left <= 0){
       delete r.boosts[bk];
       if(!quiet) rsLog('Your ' + (RS_SKILLS.find(function(x){return x.id===bk;})||{name:bk}).name + ' boost wears off.', '#a99871');
@@ -19238,9 +19438,9 @@ function rsTickCore(quiet){
     r.prayPts = Math.max(0, r.prayPts - dr);
     if(r.prayPts <= 0){ r.prayers = []; if(!quiet) rsLog('You have run out of prayer points!', '#e8b4c0'); }
   }
-  /* out-of-combat regen: 1 hp per 10 ticks */
+  /* out-of-combat regen: 1 hp per 10 ticks — Rapid Heal doubles it */
   if(!act || act.kind !== 'fight'){
-    if((r.regenT = (r.regenT|0) + 1) >= 10){ r.regenT = 0; r.curHp = Math.min(rsLvl('hp'), r.curHp + 1); }
+    if((r.regenT = (r.regenT|0) + 1) >= (rsPrayOn('rapid') ? 5 : 10)){ r.regenT = 0; r.curHp = Math.min(rsLvl('hp'), r.curHp + 1); }
   }
   if(!act) return;
 
@@ -19287,6 +19487,9 @@ function rsTickCore(quiet){
       r.counts['get_' + t.id] = (r.counts['get_' + t.id]||0) + 1;
       if(rsNimble() && rsGive(t.id, 1)){ rsAddXp(skill, t.xp); r.counts['get_' + t.id]++; }
       if(Math.random() < 1/500000) rsGivePet(act.kind === 'chop' ? 'pet_beaver' : act.kind === 'mine' ? 'pet_golem' : 'pet_heron');
+      rsClueRoll(1/150, act.kind === 'chop' ? 'A clue scroll falls from the branches!'
+                       : act.kind === 'mine' ? 'A clue scroll was wedged in the rock!'
+                       : 'A clue scroll was stuck inside the fish!', quiet);
       if(act.kind === 'fish' && Math.random() < 0.08){ rsGive('snape_grass', 1); if(!quiet) rsLog('Some snape grass clings to your catch.', '#c9b788', 'get_snape'); }
       if(!quiet) rsLog('You get some ' + RS_ITEMS[t.id].name.toLowerCase() + '.', '#c9b788', 'get_' + t.id);
     }
@@ -19302,8 +19505,7 @@ function rsTickCore(quiet){
     }
     rsConsume(rec.raw, 1);
     rsSwing = 2;
-    let burnCh = rsLvl('cook') >= rec.burnUntil ? 0 : Math.max(0.05, 0.45 - (rsLvl('cook') - rec.req)*0.012);
-    burnCh *= Math.pow(0.75, rsBuild('range'));                       /* Grand Range */
+    const burnCh = rsBurnChance(rec);
     if(Math.random() < burnCh){ rsGive('burnt', 1); if(!quiet) rsLog('You accidentally burn the ' + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c96a5a', 'burn_' + rec.out); }
     else {
       rsGive(rec.out, 1); rsAddXp('cook', rec.xp * (1 + rsBuild('range') * 0.10));
@@ -19350,8 +19552,37 @@ function rsTickCore(quiet){
     rsAddXp(skill, rec.xp);
     r.counts[act.kind + '_' + rec.out] = (r.counts[act.kind + '_' + rec.out]||0) + 1;
     r.counts[act.kind + '_any'] = (r.counts[act.kind + '_any']||0) + 1;
+    if(act.kind === 'rc' && Math.random() < 1/300000) rsGivePet('pet_rift');
     rsSwing = 2;
     if(!quiet) rsLog('You make ' + (qty > 1 ? qty + ' ' : 'a ') + RS_ITEMS[rec.out].name.toLowerCase() + '.', '#c9b788', act.kind + '_' + rec.out);
+    return;
+  }
+
+  if(act.kind === 'hunt'){
+    const t = RS_HUNT.find(function(x){ return x.id === act.key; });
+    if(!t || rsLvl('hunt') < t.req){ rsStopActivity(quiet); return; }
+    if(rsBagOverflow(t.loot === 'herbs' ? 'grimy_ranarr' : t.loot)) return;
+    const ch = Math.min(0.85, t.ch + (rsLvl('hunt') - t.req) * 0.008);
+    rsSwing = 2;
+    if(Math.random() < ch){
+      if(t.loot === 'herbs'){
+        /* the herbiboar coughs up a fistful of high herbs */
+        const hs = ['grimy_ranarr','grimy_irit','grimy_avantoe','grimy_kwuarm','grimy_snapdragon'];
+        const n = 1 + Math.floor(Math.random() * 3);
+        for(let i = 0; i < n; i++) rsGrant(hs[Math.floor(Math.random() * hs.length)], 1);
+        if(!quiet) rsLog('You trace the herbiboar to its burrow — ' + n + ' herbs richer.', '#c9b788', 'hunt_herbi');
+        if(Math.random() < 1/6500) rsGivePet('pet_herbi');
+      } else {
+        if(!rsGive(t.loot, 1)){ rsBagOverflow(t.loot); return; }
+        if(!quiet) rsLog('You catch a ' + t.name.toLowerCase() + '.', '#c9b788', 'hunt_' + t.id);
+        if(t.loot.indexOf('chinchompa') >= 0 && Math.random() < 1/98000) rsGivePet('pet_chin');
+      }
+      rsAddXp('hunt', t.xp);
+      r.counts.hunt_any = (r.counts.hunt_any||0) + 1;
+      r.counts['hunt_' + t.id] = (r.counts['hunt_' + t.id]||0) + 1;
+      if(t.loot === 'raw_bird' && Math.random() < 0.5) rsGive('feather', 2 + Math.floor(Math.random()*4));
+      rsClueRoll(1/150, 'A clue scroll was tucked into the snare!', quiet);
+    }
     return;
   }
 
@@ -19367,6 +19598,8 @@ function rsTickCore(quiet){
       r.coins += c;
       rsAddXp('thief', st.xp);
       r.counts.steal_any = (r.counts.steal_any||0) + 1;
+      if(Math.random() < 1/150000) rsGivePet('pet_rocky');
+      rsClueRoll(1/150, 'Someone left a clue scroll on the stall!', quiet);
       if(Math.random() < 0.22) rsGive(st.loot, 1);
       if(!quiet) rsLog('You slip something from the ' + st.name.toLowerCase() + '. +' + c + ' coins.', '#c9b788', 'steal_' + st.id);
     } else {
@@ -19389,6 +19622,8 @@ function rsTickCore(quiet){
     const lvl = rsLvl('agil');
     rsAddXp('agil', 30 + lvl * 4);
     r.counts.agil_laps = (r.counts.agil_laps||0) + 1;
+    if(Math.random() < 1/120000) rsGivePet('pet_squirrel');
+    rsClueRoll(1/90, 'A clue scroll flutters on the rooftop!', quiet);
     if(Math.random() < 0.12){ rsGive('mark_grace', 1); r.counts.get_mark = (r.counts.get_mark||0) + 1; if(!quiet) rsLog('🕊️ A mark of grace glints on the rooftop.', '#ffd84d'); }
     else if(!quiet) rsLog('You vault the gap and land clean.', '#c9b788', 'agil_lap');
     return;
@@ -19420,6 +19655,7 @@ function rsTickCore(quiet){
     rsConsume(act.key, 1);
     rsAddXp('fm', bt.xp);
     r.counts.fm_any = (r.counts.fm_any||0) + 1;
+    if(Math.random() < 1/250000) rsGivePet('pet_phoenix');
     if(Math.random() < 0.25) rsGive('ashes', 1);
     rsSwing = 2;
     if(!quiet) rsLog('The ' + RS_ITEMS[act.key].name.toLowerCase() + ' burn merrily.', '#c9b788', 'fm_' + act.key);
@@ -19558,6 +19794,7 @@ function rsHarvest(i){
   rsAddXp('farm', sd.hxp * n);
   r.counts.harvest_any = (r.counts.harvest_any||0) + 1;
   r.counts['harvest_' + sd.crop] = (r.counts['harvest_' + sd.crop]||0) + n;
+  if(Math.random() < 1/25000) rsGivePet('pet_tangle');
   rsLog('🌾 You harvest ' + got + '× ' + RS_ITEMS[sd.crop].name.toLowerCase() + '.', '#7ADE9A');
   rsRenderPanel(); rsRenderHud();
 }
@@ -19683,6 +19920,8 @@ function rsTick(){
     rsRenderCombatBar();
     /* keep "have N" counts and task badges honest without hammering the DOM */
     if((rsActsT = (rsActsT|0) + 1) >= 8 && !document.getElementById('rsMenu')){ rsActsT = 0; rsRenderActs(); }
+    /* and keep the open side panel honest too — bag, bank, worn gear, levels */
+    rsSyncPanel();
   }
   if(++rsSaveT >= 10){ rsSaveT = 0; try{ saveState(); }catch(e){} }
 }
@@ -19715,8 +19954,16 @@ function rsClaimQuest(qid){
 function rsSlay(){
   const r = rsEnsure();
   if(!r.slay || typeof r.slay !== 'object') r.slay = {task:null, done:0, pts:0, streak:0};
+  if(!r.slay.master) r.slay.master = 'turael';
   return r.slay;
 }
+/* Three masters, wiki-style: pick your danger, get paid accordingly. */
+const RS_MASTERS = [
+  {id:'turael',  name:'Turael',  ic:'🧓', cb:1,  minLvl:0,  ptsMul:1,   sizeMul:1,   line:'"Everyone starts somewhere."'},
+  {id:'vannaka', name:'Vannaka', ic:'🗡️', cb:40, minLvl:25, ptsMul:2,   sizeMul:1.4, line:'"Now we hunt things that hunt back."'},
+  {id:'duradel', name:'Duradel', ic:'👺', cb:85, minLvl:60, ptsMul:3.5, sizeMul:1.9, line:'"Only the strongest. Only the worst."'},
+];
+function rsMaster(){ const sl = rsSlay(); return RS_MASTERS.find(function(m){ return m.id === sl.master; }) || RS_MASTERS[0]; }
 const RS_MORVOS = [
   '"Another corpse walks in. Let us make some dead things of you."',
   '"The tower feeds on the slow. Try not to be food."',
@@ -19727,12 +19974,14 @@ function rsAssignTask(){
   const sl = rsSlay();
   if(sl.task){ rsLog('Morvos: "Finish the job first. ' + sl.task.left + ' ' + rsMobName(sl.task.mob) + 's remain."', '#c4b5ff'); return; }
   const cb = rsCombatLevel();
-  const pool = RS_MOBS.filter(function(m){
+  const ms = rsMaster();
+  let pool = RS_MOBS.filter(function(m){
     if(m.area === 'cata' && cb < 30 && !(rsEnsure().counts.kill_skel > 0)) return false; /* no tasks behind locked doors */
-    return !m.boss && !m.dragon && m.lvl <= cb + 12 && (!m.slayReq || rsLvl('slay') >= m.slayReq);
+    return !m.boss && !m.dragon && m.lvl <= cb + 12 && m.lvl >= ms.minLvl && (!m.slayReq || rsLvl('slay') >= m.slayReq);
   });
+  if(!pool.length){ rsLog(ms.name + ': "Nothing here is worthy of you yet. Grow stronger, or see a humbler master."', '#c4b5ff'); return; }
   const m = pool[Math.floor(Math.random() * pool.length)];
-  const n = Math.min(60, 8 + Math.floor(Math.random() * 10) + Math.floor(cb / 4));
+  const n = Math.min(120, Math.round((8 + Math.floor(Math.random() * 10) + Math.floor(cb / 4)) * ms.sizeMul));
   sl.task = {mob: m.id, left: n, total: n};
   const areaName = (RS_AREAS.find(function(a){return a.id === m.area;}) || {name:m.area}).name;
   rsLog('💀 Morvos ' + RS_MORVOS[Math.floor(Math.random() * RS_MORVOS.length)], '#c4b5ff');
@@ -19749,7 +19998,7 @@ function rsSlayerKill(m, quiet){
   if(sl.task.left <= 0){
     sl.done = (sl.done|0) + 1;
     sl.streak = (sl.streak|0) + 1;
-    let pts = 10 + Math.floor(m.lvl / 10) + rsBuild('guild') * 3;      /* Slayer Guild */
+    let pts = Math.round((10 + Math.floor(m.lvl / 10)) * rsMaster().ptsMul) + rsBuild('guild') * 3;  /* Slayer Guild */
     if(sl.streak % 5 === 0) pts += 40;
     sl.pts = (sl.pts|0) + pts;
     sl.task = null;
@@ -19827,6 +20076,11 @@ function rsJingle(kind){
 
 /* ---- HUD + panels ---- */
 let rsPanelTab = 'inv', rsAnimOn = false, rsAnimT = 0;
+/* Which skill's guide page is open inside the 📜 tab (null = the grid). */
+let rsGuideSkill = null;
+/* Fingerprint of whatever the open panel is drawing, so the tick loop can
+   repaint it the moment the underlying numbers move. See rsSyncPanel(). */
+let rsPanelSigLast = '';
 
 function rsTabOpen(){
   const el = document.getElementById('tab-runeshard');
@@ -19867,8 +20121,11 @@ function rsRenderAreas(){
   const box = document.getElementById('rsAreas');
   if(!box) return;
   box.innerHTML = RS_AREAS.map(function(a){
+    /* The Tower is open to everyone — Morvos, the rune altar and the shop
+       live there, and its monsters only matter if you start the fight.
+       (It used to need combat 15, which silently locked Slayer and
+       Runecraft away from fresh accounts.) */
     const locked = (a.id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)) ||
-                   (a.id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)) ||
                    (a.id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0)) ||
                    (a.id === 'wild' && rsCombatLevel() < 70 && !(r.counts.kill_wildman > 0));
     return '<button class="rs-area' + (r.area === a.id ? ' on' : '') + (locked ? ' locked' : '') + '" data-rsa="' + a.id + '"' +
@@ -19878,7 +20135,6 @@ function rsRenderAreas(){
     b.addEventListener('click', function(){
       const id = b.dataset.rsa;
       if(id === 'mire' && rsCombatLevel() < 40 && !(r.counts.kill_shade > 0)){ rsLog('The Mire would eat you alive. Come back at combat 40.', '#e8b4c0'); return; }
-      if(id === 'tower' && rsCombatLevel() < 15 && !(r.slay && r.slay.done > 0)){ rsLog('Morvos bars the door: "Come back when you can survive my hallways. Combat 15."', '#e8b4c0'); return; }
       if(id === 'cata' && rsCombatLevel() < 30 && !(r.counts.kill_skel > 0)){ rsLog('The catacomb door does not budge for the unproven. Come back at combat 30.', '#e8b4c0'); return; }
       if(id === 'wild' && rsCombatLevel() < 70 && !(r.counts.kill_wildman > 0)){ rsLog('The ditch marks the end of the law. Come back at combat 70 — the Wilderness does not take beginners.', '#e8b4c0'); return; }
       r.area = id; rsStopActivity(true);
@@ -19933,6 +20189,10 @@ function rsRenderActs(){
     h = RS_TREES.map(function(t){
       const can = rsLvl('wc') >= t.req;
       return rsActButton(cur && cur.kind==='chop' && cur.key===t.id, !can, '🌳 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-chop="' + t.id + '"');
+    }).join('');
+    h += RS_HUNT.map(function(t){
+      const can = rsLvl('hunt') >= t.req;
+      return rsActButton(cur && cur.kind==='hunt' && cur.key===t.id, !can, t.ic + ' ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-hunt="' + t.id + '"');
     }).join('');
     h += RS_BURN.filter(function(t){ return rsHave(t.id) > 0; }).map(function(t){
       const can = rsLvl('fm') >= t.req && rsHave(t.id) > 0;
@@ -20006,6 +20266,7 @@ function rsRenderActs(){
   box.querySelectorAll('[data-smelt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('smelt', b.dataset.smelt); }); });
   box.querySelectorAll('[data-fight]').forEach(function(b){ b.addEventListener('click', function(){ rsStartActivity('fight', b.dataset.fight); }); });
   box.querySelectorAll('[data-burnlog]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('fmburn', b.dataset.burnlog); }); });
+  box.querySelectorAll('[data-hunt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('hunt', b.dataset.hunt); }); });
 
   box.querySelectorAll('[data-tower]').forEach(function(b){
     b.addEventListener('click', function(){
@@ -20058,6 +20319,237 @@ function rsRenderTabs(){
   });
 }
 
+/* ================================================================= *
+ *  SKILL GUIDE — the 📜 tab, old-school style.
+ *
+ *  Tap a skill in the grid and it opens its own page: what the skill
+ *  is for, where in the world you train it, and every level unlock in
+ *  order, with the ones you cannot reach yet greyed out.
+ *
+ *  IMPORTANT: everything below READS THE LIVE TABLES (RS_TREES,
+ *  RS_SMELT, RS_PRAYERS, RS_ITEMS, …). No level or xp number is
+ *  restated by hand, so rebalancing a table rebalances the guide with
+ *  it and the two can never drift apart. If you add a new skill table,
+ *  add a rows() function here and the guide picks it up for free.
+ * ================================================================= */
+function rsGIc(id){ const d = RS_ITEMS[id]; return d ? d.ic : '❔'; }
+function rsGNm(id){ const d = RS_ITEMS[id]; return d ? d.name : id; }
+function rsGXp(n){ return (Math.round(n * 10) / 10).toLocaleString() + ' xp'; }
+/* "makes 8 — needs 8 × Arrow shaft, 8 × Feather, 1 × Bronze bar" */
+function rsGIns(ins, qty){
+  const parts = [];
+  for(const k in ins) parts.push(ins[k] + ' × ' + rsGNm(k));
+  return (qty && qty > 1 ? 'makes ' + qty + ' · ' : '') + (parts.length ? 'needs ' + parts.join(', ') : '');
+}
+/* Wearable gear, bucketed by the SAME rule rsUseItem enforces at equip
+   time — so what the guide promises is exactly what the game allows. */
+function rsGGear(skill){
+  const out = [];
+  for(const id in RS_ITEMS){
+    const d = RS_ITEMS[id];
+    if(!d.slot || !d.lvl || d.cape) continue;
+    const req = d.slot === 'weapon' ? (d.kind === 'bow' ? 'range' : d.kind === 'staff' ? 'mage' : 'atk')
+              : (d.slot === 'ring' || d.slot === 'cape') ? 'hp'
+              : d.kind === 'range' ? 'range' : d.kind === 'mage' ? 'mage' : 'def';
+    if(req !== skill) continue;
+    out.push({lvl:d.lvl, ic:d.ic, name:d.name, sub:'wear in the ' + d.slot + ' slot'});
+  }
+  return out;
+}
+
+const RS_GUIDE = {
+  atk: { where:"Anywhere with something to hit",
+    blurb:"Attack decides how often you land a blow, and which melee weapons you can hold. Set your combat style to <b>Accurate</b> in the 🛡️ tab to send xp here. Every weapon below is bought from the shop or dropped — tap it in your bag to wield it.",
+    rows:function(){ return rsGGear('atk'); } },
+  str: { where:"Anywhere with something to hit",
+    blurb:"Strength is your max hit — no gear is locked behind it, it just makes every swing land harder. Set your style to <b>Aggressive</b> in the 🛡️ tab. A Strength potion (Herblore 12) buys you a few temporary levels.",
+    none:"No unlocks — Strength is pure damage. Train it Aggressive and watch the max hit in the 🛡️ tab climb." },
+  def: { where:"Anywhere with something to hit",
+    blurb:"Defence decides what armour you can wear and how often things miss you. Set your style to <b>Defensive</b> in the 🛡️ tab, or <b>Controlled</b> to feed Attack, Strength and Defence at once.",
+    rows:function(){ return rsGGear('def'); } },
+  hp:  { where:"Anywhere with something to hit",
+    blurb:"Hitpoints trains itself — every point of damage you deal gives a little. Your level <i>is</i> your maximum health. Cook fish and eat them from the bag to heal between fights.",
+    none:"No unlocks — Hitpoints rises on its own whenever you fight. It starts at 10, not 1." },
+  pray:{ where:"🏘️ Town — ✨ Altar to recharge",
+    blurb:"Bury bones from your bag to gain Prayer xp (big bones and dragon bones are worth far more). Turn prayers on from the ✨ tab; they drain points while active, and the Altar in Town tops you back up. Building the <b>Sanctified Altar</b> slows the drain.",
+    rows:function(){ return RS_PRAYERS.map(function(p){
+      const fx = [];
+      if(p.acc) fx.push('+' + Math.round(p.acc*100) + '% accuracy');
+      if(p.dmg) fx.push('+' + Math.round(p.dmg*100) + '% damage');
+      if(p.def) fx.push('+' + Math.round(p.def*100) + '% defence');
+      if(p.guard) fx.push(Math.round(p.guard*100) + '% damage blocked');
+      if(p.regen) fx.push('double health regen');
+      if(p.preserve) fx.push('potion boosts last longer');
+      return {lvl:p.lvl, ic:p.ic, name:p.name, sub:fx.join(', ') + ' · ' + p.style + ' · drains ' + p.drain + '/tick'};
+    }); } },
+  wc:  { where:"🌳 Woods",
+    blurb:"Tap a tree and you keep chopping on your own until the bag fills. Logs feed Firemaking, Fletching and Construction. A better axe swings faster — buy one from the shop and tap it in your bag; axes are gated by your coins, not your level.",
+    rows:function(){ return RS_TREES.map(function(t){
+      return {lvl:t.req, ic:rsGIc(t.id), name:t.name, sub:rsGXp(t.xp) + ' per log'}; }); } },
+  mine:{ where:"⛏️ Mine",
+    blurb:"Tap a rock and keep swinging. Ore goes to the Furnace in Town to become bars. Rune essence is the one Runecraft needs, and limestone becomes stone blocks for Construction. A better pickaxe mines faster.",
+    rows:function(){ return RS_ROCKS.map(function(t){
+      return {lvl:t.req, ic:rsGIc(t.id), name:t.name, sub:rsGXp(t.xp) + ' per ore'}; }); } },
+  smith:{ where:"🏘️ Town — 🔥 Furnace and 🔨 Anvil",
+    blurb:"Two halves. Smelt ore into bars at the <b>Furnace</b>, then hammer bars into gear at the <b>Anvil</b>. Both pull materials from your bag <i>and</i> your bank. Building the <b>Master Forge</b> adds xp and sometimes a free second bar.",
+    rows:function(){
+      const a = RS_SMELT.map(function(s){
+        return {lvl:s.req, ic:rsGIc(s.out), name:rsGNm(s.out), sub:'🔥 Furnace · ' + rsGXp(s.xp) + ' · ' + rsGIns(s.ins)}; });
+      const b = RS_FORGE.map(function(s){
+        return {lvl:s.req, ic:rsGIc(s.out), name:rsGNm(s.out), sub:'🔨 Anvil · ' + rsGXp(s.xp) + ' · needs ' + s.bars + ' × ' + rsGNm(s.bar)}; });
+      return a.concat(b); } },
+  fish:{ where:"🎣 River",
+    blurb:"Tap a fish and keep casting. Raw fish is worth little — cook it on the Range in Town and it becomes food that actually heals. You will also pull up the odd snape grass, which Herblore wants.",
+    rows:function(){ return RS_FISH.map(function(f){
+      return {lvl:f.req, ic:rsGIc(f.id), name:f.name, sub:rsGXp(f.xp) + ' per catch'}; }); } },
+  cook:{ where:"🏘️ Town — 🍳 Range",
+    blurb:"Turn raw fish into food. Burn chance falls in a straight line as you level and hits zero at each fish's stop-burn level — past that, you never burn it again. Each tier of the <b>Grand Range</b> lowers every stop-burn level by 3 and trims what's left, and the Cooking cape ends burning forever.",
+    rows:function(){ return RS_COOK.map(function(c){
+      const stop = Math.max(c.req + 1, c.burnUntil - rsBuild('range') * 3);
+      return {lvl:c.req, ic:rsGIc(c.out), name:rsGNm(c.out), sub:rsGXp(c.xp) + ' · heals ' + ((RS_ITEMS[c.out]||{}).heal || '?') + ' · stops burning at ' + stop}; }); } },
+  slay:{ where:"🗼 Tower — 💀 Morvos",
+    blurb:"Take a task and kill what you're told. Slayer xp equals the monster's hitpoints, and finishing tasks earns points for the 🎁 Slayer shop — every fifth task pays a bonus. Three masters wait in the shop: Turael takes anyone, Vannaka (combat 40) pays double, Duradel (combat 85) pays 3.5× for the worst the world offers. The creatures below cannot be harmed at all until your Slayer level reaches them.",
+    rows:function(){ return RS_MOBS.filter(function(m){ return m.slayReq; }).map(function(m){
+      return {lvl:m.slayReq, ic:m.ic, name:m.name, sub:'combat ' + m.lvl + ' · ' + m.hp + ' slayer xp per kill'}; }); } },
+  range:{ where:"Anywhere with something to hit",
+    blurb:"Wield a bow and every shot trains Ranged instead of your melee stats. Better arrows hit harder but are never level-locked — the bow is what your level gates. Fletching makes both.",
+    rows:function(){ return rsGGear('range'); } },
+  mage:{ where:"🗼 Tower and anywhere with something to hit",
+    blurb:"Wield a staff and every cast trains Magic. Runes act as ammunition — the higher the rune, the more damage — and you make them yourself at the Rune altar in the Tower. Robes come from the shop.",
+    rows:function(){ return rsGGear('mage'); } },
+  herb:{ where:"🏘️ Town — 🧪 Cauldron",
+    blurb:"Two sources. <b>Cleaning</b> grimy herbs from your bag gives a trickle of xp at any level. <b>Brewing</b> is the real training: one clean herb plus one secondary makes a potion that boosts a skill for a while. Grow your own herbs at the Farm patches.",
+    rows:function(){ return RS_BREWS.map(function(b){
+      return {lvl:b.req, ic:rsGIc(b.out), name:rsGNm(b.out), sub:rsGXp(b.xp) + ' · needs ' + rsGNm(b.herb) + ' + ' + rsGNm(b.sec)}; }); } },
+  fm:  { where:"🌳 Woods",
+    blurb:"Burn logs you are already carrying. The Woods action list only offers a fire for logs actually in your bag, so chop first, then burn. It is the fastest way to clear a full inventory of low logs.",
+    rows:function(){ return RS_BURN.map(function(b){
+      return {lvl:b.req, ic:rsGIc(b.id), name:rsGNm(b.id), sub:rsGXp(b.xp) + ' per log'}; }); } },
+  craft:{ where:"🏘️ Town — 🧵 Crafting",
+    blurb:"Cowhide into leather, leather into ranged armour, uncut gems into cut ones. Cowhide drops from cows in the Fields; gems come from mining and monster drops.",
+    rows:function(){ return RS_CRAFT.map(function(c){
+      return {lvl:c.req, ic:rsGIc(c.out), name:rsGNm(c.out), sub:rsGXp(c.xp) + ' · ' + rsGIns(c.ins, c.qty)}; }); } },
+  fletch:{ where:"🏘️ Town — 🎯 Fletching",
+    blurb:"Logs into shafts and unstrung bows, then add a bowstring to finish the bow. Shafts plus feathers plus a bar make arrows. Feathers come from chickens in the Fields.",
+    rows:function(){ return RS_FLETCH.map(function(c){
+      return {lvl:c.req, ic:rsGIc(c.out), name:rsGNm(c.out), sub:rsGXp(c.xp) + ' · ' + rsGIns(c.ins, c.qty)}; }); } },
+  rc:  { where:"🗼 Tower — 🔮 Rune altar",
+    blurb:"One rune essence in, one rune out. Mine essence in the Mine — it has no level requirement, so you can stockpile it from day one. Runes are ammunition for staves and sell well.",
+    rows:function(){ return RS_RC.map(function(c){
+      return {lvl:c.req, ic:rsGIc(c.out), name:rsGNm(c.out), sub:rsGXp(c.xp) + ' · needs 1 × Rune essence'}; }); } },
+  thief:{ where:"🏘️ Town — 🕶️ Market",
+    blurb:"Pick a stall and keep lifting from it. Failure costs you a little health, and your chance of success climbs the further past the requirement you are. Start on the vegetable stall — the bruises are cheap and the potatoes are free.",
+    rows:function(){ return RS_STALLS.map(function(s){
+      return {lvl:s.req, ic:rsGIc(s.loot), name:s.name, sub:rsGXp(s.xp) + ' · ' + s.coins[0] + '–' + s.coins[1] + ' coins · sometimes ' + rsGNm(s.loot).toLowerCase()}; }); } },
+  agil:{ where:"🏘️ Town — 🏃 Rooftops",
+    blurb:"One course, open from level 1, and it never stops being the answer. Each lap pays more xp the higher your level, and drops marks of grace. Agility also quietly gives you a chance to gather a second resource on every chop, mine and catch — that chance grows with every level.",
+    rows:function(){ return [{lvl:1, ic:'🏃', name:'Rooftop course', sub:'one lap every few seconds · xp scales with your level · 12% chance of a mark of grace'}]; } },
+  con: { where:"🏘️ Town — 🔨 Builder's Yard",
+    blurb:"Make planks, nails and stone blocks first, then spend them on the eight civic structures. Each structure has three tiers and every tier is a permanent bonus to some other part of the game — this is the skill that pays back hardest.",
+    rows:function(){
+      const a = RS_BUILDMAT.map(function(m){
+        return {lvl:m.req, ic:rsGIc(m.out), name:rsGNm(m.out), sub:'material · ' + rsGXp(m.xp) + ' · ' + rsGIns(m.ins, m.qty)}; });
+      const b = [];
+      RS_STRUCTS.forEach(function(s){ s.tiers.forEach(function(t, i){
+        b.push({lvl:t.req, ic:s.ic, name:s.name + ' — tier ' + (i+1), sub:s.what + ' · ' + rsGXp(t.xp) + ' · ' + rsGIns(t.mats)}); }); });
+      return a.concat(b); } },
+  hunt:{ where:"🌳 Woods",
+    blurb:"Snare birds, trap lizards, box chinchompas. Birds shed feathers for Fletching, kebbit fur becomes a spotted cape at the Crafting bench, chinchompas sell for serious coin, and the herbiboar is a walking herb patch. A Hunter potion (Herblore 53) stretches your reach.",
+    rows:function(){ return RS_HUNT.map(function(t){
+      return {lvl:t.req, ic:t.ic, name:t.name, sub:rsGXp(t.xp) + ' per catch' + (t.loot === 'herbs' ? ' · digs up grimy herbs' : ' · ' + rsGNm(t.loot).toLowerCase())}; }); } },
+  farm:{ where:"🏘️ Town — 🌱 Farm patches",
+    blurb:"Plant a seed, walk away, come back to a harvest — crops grow whether the game is open or not. Herb seeds are the ones worth chasing, because Herblore has no other steady source of herbs. Building the <b>Farmstead</b> adds patches.",
+    rows:function(){ return RS_SEEDS.map(function(s){
+      return {lvl:s.req, ic:rsGIc(s.crop), name:rsGNm(s.crop), sub:rsGXp(s.xp) + ' to plant, ' + rsGXp(s.hxp) + ' to harvest · yields ' + s.yield[0] + '–' + s.yield[1]}; }); } },
+};
+
+/* Renders one skill's guide page into the panel box. */
+function rsRenderGuide(box, sk){
+  const r  = rsEnsure();
+  const g  = RS_GUIDE[sk.id] || {};
+  const lv = rsLvl(sk.id);
+  const xp = Math.floor(r.skills[sk.id].xp);
+  const pct = Math.round(rsXpInto(r.skills[sk.id].xp) * 100);
+  const rows = (g.rows ? g.rows() : []).slice().sort(function(a, b){
+    return (a.lvl - b.lvl) || String(a.name).localeCompare(String(b.name));
+  });
+  const done = rows.filter(function(x){ return lv >= x.lvl; }).length;
+
+  let h = '<div class="rs-gbar"><button class="rs-btn" id="rsGuideBack">‹ Skills</button>' +
+          '<div class="rs-ptitle">' + sk.ic + ' ' + sk.name + '</div></div>';
+
+  h += '<div class="rs-hpbar"><i style="width:' + pct + '%;background:#7a5f0a;"></i>' +
+       '<span>Level ' + lv + ' / 99 · ' + xp.toLocaleString() + ' xp</span></div>' +
+       '<div style="font-size:10px;color:#c8b997;text-align:center;margin:4px 0 9px;">' +
+       (lv < 99 ? (RS_XP_TABLE[lv] - xp).toLocaleString() + ' xp to level ' + (lv + 1)
+                : 'Mastered — the cape is yours.') + '</div>';
+
+  if(g.where) h += '<div class="rs-glab">Where <span style="color:#ffff00;font-weight:700;">' + g.where + '</span></div>';
+  if(g.blurb) h += '<div class="rs-gtext">' + g.blurb + '</div>';
+
+  if(rows.length){
+    h += '<div class="rs-glab">Unlocks — ' + done + ' / ' + rows.length + '</div><div class="rs-rows">' +
+      rows.map(function(x){
+        return '<div class="rs-row' + (lv >= x.lvl ? '' : ' locked') + '">' +
+          '<span class="rlv">' + x.lvl + '</span>' +
+          '<span class="rico">' + x.ic + '</span>' +
+          '<span class="grow">' + x.name + (x.sub ? '<span class="sub">' + x.sub + '</span>' : '') + '</span></div>';
+      }).join('') + '</div>';
+  } else {
+    h += '<div class="rs-gtext" style="text-align:center;padding:6px 0;">' +
+         (g.none || 'No level-gated unlocks — this one is pure grind.') + '</div>';
+  }
+
+  box.innerHTML = h;
+  const back = document.getElementById('rsGuideBack');
+  if(back) back.addEventListener('click', function(){ rsGuideSkill = null; rsRenderPanel(); });
+}
+
+/* ---- Live panel refresh ------------------------------------------------
+   rsGive/rsTake only touch state; nothing in them repaints the DOM. The
+   tick loop used to refresh the HUD, the combat bar and (every 8 ticks) the
+   action list — but never the side panel. So a log you just chopped or a
+   drop you just earned sat invisible in the bag until you switched tabs and
+   back. rsPanelSig() is a cheap fingerprint of exactly what the open panel
+   draws; when it moves, we repaint, and only then.
+
+   Two rules worth keeping if you touch this:
+     • Never repaint while #rsMenu exists — rebuilding the panel HTML would
+       rip the open Choose-Option menu out from under the cursor. The acts
+       refresh above guards the same way.
+     • Keep the signature CHEAP and keep xp out of it. Including raw xp would
+       repaint every single tick during training, which resets the scroll
+       position of the skill guide. Level is enough. */
+function rsPanelSig(){
+  const r = rsEnsure(), t = rsPanelTab;
+  if(t === 'inv'){
+    let s = 'i' + rsBagMax() + '/' + r.coins;
+    for(let i = 0; i < r.inv.length; i++) s += ',' + r.inv[i].id + ':' + r.inv[i].qty;
+    return s;
+  }
+  if(t === 'bank'){
+    let s = 'b' + r.coins;
+    const ks = Object.keys(r.bank);
+    for(let i = 0; i < ks.length; i++) s += ',' + ks[i] + ':' + r.bank[ks[i]];
+    return s;
+  }
+  if(t === 'equip'){
+    let s = 'e' + r.style + '/' + rsToolTier('axe') + '/' + rsToolTier('pick');
+    for(const k in r.equip) s += ',' + k + ':' + r.equip[k];
+    return s;
+  }
+  if(t === 'skills') return 's' + rsTotalLevel() + '/' + (rsGuideSkill || '-') +
+    '/' + (r.boosts ? Object.keys(r.boosts).join('') : '');
+  return '';
+}
+function rsSyncPanel(){
+  if(document.getElementById('rsMenu')) return;       /* menu open — hands off */
+  const sig = rsPanelSig();
+  if(sig === '' || sig === rsPanelSigLast) return;    /* '' = tab we don't live-sync */
+  rsPanelSigLast = sig;
+  rsRenderPanel();
+}
+
 function rsRenderPanel(){
   const r = rsEnsure();
   const box = document.getElementById('rsPanel');
@@ -20083,6 +20575,12 @@ function rsRenderPanel(){
   }
 
   if(t === 'skills'){
+    /* Drilled into one skill? Hand off to the guide page. */
+    if(rsGuideSkill){
+      const gsk = RS_SKILLS.find(function(x){ return x.id === rsGuideSkill; });
+      if(gsk){ rsRenderGuide(box, gsk); return; }
+      rsGuideSkill = null;
+    }
     box.innerHTML = '<div class="rs-skillgrid">' + RS_SKILLS.map(function(s){
       const lv = rsLvl(s.id);
       const xp = Math.floor(r.skills[s.id].xp);
@@ -20093,7 +20591,7 @@ function rsRenderPanel(){
         '<span class="lv">' + (bst ? '<span style="color:#7ADE9A;">' + (lv + bst) + '</span>' : lv) + '<small>/99</small></span></div>';
     }).join('') + '</div>' +
     '<div class="rs-totalbox">Total level:<br>' + rsTotalLevel() + '</div>' +
-    '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Tap a skill for exact XP. Every road ends at 99.</div>';
+    '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Tap a skill to open its guide. Every road ends at 99.</div>';
     box.querySelectorAll('[data-rssk]').forEach(function(c){
       c.addEventListener('click', function(){
         const sk = RS_SKILLS.find(function(x){return x.id===c.dataset.rssk;});
@@ -20101,6 +20599,8 @@ function rsRenderPanel(){
         const xp2 = Math.floor(r.skills[sk.id].xp), lv2 = rsLvl(sk.id);
         rsLog('📜 ' + sk.name + ': level ' + lv2 + ' — ' + xp2.toLocaleString() + ' xp' +
           (lv2 < 99 ? ' · ' + (RS_XP_TABLE[lv2] - xp2).toLocaleString() + ' xp to level ' + (lv2 + 1) + '.' : ' — MASTERED.'), '#c9b788');
+        rsGuideSkill = sk.id;
+        rsRenderPanel();
       });
     });
     return;
@@ -20372,6 +20872,13 @@ function rsRenderPanel(){
     box.innerHTML = '<div class="rs-ptitle">💀 Morvos\u2019 Slayer Shop</div>' +
       '<div style="text-align:center;margin-bottom:8px;"><span class="rs-chip">' + (sl.pts|0) + ' slayer points</span> ' +
       '<span class="rs-chip">' + (sl.done|0) + ' tasks</span> <span class="rs-chip">streak ' + (sl.streak|0) + '</span></div>' +
+      '<div style="font-size:10px;color:#c9b788;font-weight:800;margin:2px 0 3px;">Your slayer master</div>' +
+      '<div class="rs-acts">' + RS_MASTERS.map(function(ms){
+        const can = rsCombatLevel() >= ms.cb;
+        const on = sl.master === ms.id;
+        return '<button class="rs-act' + (on ? ' on' : '') + (can ? '' : ' dis') + '" data-slm="' + ms.id + '">' +
+          ms.ic + ' ' + ms.name + '<small>' + (can ? (ms.ptsMul + '× points · lvl ' + ms.minLvl + '+ tasks') : 'combat ' + ms.cb) + '</small></button>';
+      }).join('') + '</div>' +
       '<div class="rs-rows">' +
       '<div class="rs-row"><span>🪔</span><div class="grow">XP lamp<span class="sub">+2,500 XP to your weakest combat skill</span></div><button class="rs-btn" data-slb="lamp">30 pts</button></div>' +
       '<div class="rs-row"><span>🎭</span><div class="grow">Grim mask<span class="sub">helm · +20% damage while on task</span></div><button class="rs-btn" data-slb="mask">75 pts</button></div>' +
@@ -20381,6 +20888,16 @@ function rsRenderPanel(){
     box.querySelectorAll('[data-slb]').forEach(function(b){
       b.addEventListener('click', function(){
         if(b.dataset.slb === 'skip') rsSkipTask(); else rsBuySlayReward(b.dataset.slb);
+      });
+    });
+    box.querySelectorAll('[data-slm]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const ms = RS_MASTERS.find(function(x){ return x.id === b.dataset.slm; });
+        if(!ms || rsCombatLevel() < ms.cb){ rsLog('That master will not take you before combat ' + (ms ? ms.cb : '?') + '.', '#e8b4c0'); return; }
+        if(sl.task){ rsLog('Finish or skip your current task before changing masters.', '#e8b4c0'); return; }
+        sl.master = ms.id;
+        rsLog(ms.ic + ' ' + ms.name + ': ' + ms.line, '#c4b5ff');
+        rsRenderPanel();
       });
     });
     return;
@@ -20398,6 +20915,8 @@ function rsRenderPanel(){
         if(p.dmg) fx.push('+' + Math.round(p.dmg*100) + '% dmg');
         if(p.def) fx.push('+' + Math.round(p.def*100) + '% def');
         if(p.guard) fx.push('-' + Math.round(p.guard*100) + '% taken');
+        if(p.regen) fx.push('2× health regen');
+        if(p.preserve) fx.push('boosts last longer');
         fx.push(p.style === 'all' ? 'any style' : p.style === 'range' ? 'ranged' : p.style === 'mage' ? 'magic' : 'melee');
         return '<div class="rs-row"><span>' + p.ic + '</span><div class="grow">' + p.name +
           '<span class="sub">' + (has ? fx.join(' · ') : 'Prayer level ' + p.lvl) + '</span></div>' +
@@ -20459,6 +20978,13 @@ function rsRenderPanel(){
       ['pet_wisp',    '1/25,000 per Bone Regent kill'],
       ['pet_bog',     '1/30,000 per Bog King kill'],
       ['pet_ebon',    '1/15,000 per Ebon Wyrm kill'],
+      ['pet_chin',    '1/98,000 per chinchompa caught'],
+      ['pet_squirrel','1/120,000 per agility lap'],
+      ['pet_rift',    '1/300,000 per rune crafted'],
+      ['pet_tangle',  '1/25,000 per harvest'],
+      ['pet_rocky',   '1/150,000 per successful steal'],
+      ['pet_phoenix', '1/250,000 per log burned'],
+      ['pet_herbi',   '1/6,500 per herbiboar tracked'],
     ];
     const RARES = [
       ['granite_mauler', '1/50 from Gargoyles'],
@@ -20888,6 +21414,11 @@ function rsDrinkPotion(id){
   if(p.pray){
     r.prayPts = Math.min(rsLvl('pray'), (r.prayPts||0) + p.pray);
     rsLog('🧪 You drink the ' + d.name.toLowerCase() + '. Prayer points: ' + Math.floor(r.prayPts) + '/' + rsLvl('pray') + '.', '#7ADE9A');
+  } else if(p.multi){
+    r.boosts = r.boosts || {};
+    p.multi.forEach(function(sk){ r.boosts[sk] = {amt: p.amt, left: 150}; });
+    rsLog('🧪 You drink the ' + d.name.toLowerCase() + '. +' + p.amt + ' to ' +
+      p.multi.map(function(sk){ return RS_SKILLS.find(function(x){return x.id===sk;}).name; }).join(', ') + ' for a while.', '#7ADE9A');
   } else {
     r.boosts = r.boosts || {};
     r.boosts[p.skill] = {amt: p.amt, left: 150};
@@ -20975,38 +21506,88 @@ function rsReadClue(){
     return;
   }
   if(rsHave('clue_scroll') <= 0) return;
-  const areas = Object.keys(RS_CLUE_HINTS);
+  /* only send the trail somewhere the player can actually go — a clue
+     pointing at a locked area would block every future clue forever */
+  const areas = Object.keys(RS_CLUE_HINTS).filter(function(a){
+    if(a === 'mire') return rsCombatLevel() >= 40 || r.counts.kill_shade > 0;
+    if(a === 'cata') return rsCombatLevel() >= 30 || r.counts.kill_skel > 0;
+    return true;
+  });
   const area = areas[Math.floor(Math.random() * areas.length)];
   rsConsume('clue_scroll', 1);
   r.clue = {area: area, left: 10};
   rsLog('📜 ' + RS_CLUE_HINTS[area], '#8fd7ff');
   rsLog('The riddle points to ' + (RS_AREAS.find(function(a){return a.id===area;})||{name:area}).name + '. Go do some work there.', '#c9b788');
 }
+/* Caskets now work like the wiki's reward caskets: each one holds 2–4
+   rolls off a broad table — coins, gems, gear, smithing materials, food,
+   potions, runes, arrows, seeds — with the Gilded helm kept as the ~1/40
+   chase piece (that rate is quoted in the Collection Log, so don't move
+   one without the other). */
+function rsCasketRoll(){
+  const r = rsEnsure();
+  const q = function(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); };
+  const pick = function(arr){ return arr[Math.floor(Math.random() * arr.length)]; };
+  const roll = Math.random();
+  if(roll < 0.26){
+    const c = q(300, 1500); r.coins += c;
+    return c.toLocaleString() + ' coins';
+  }
+  if(roll < 0.38){
+    const g = Math.random() < 0.5 ? 'sapphire' : Math.random() < 0.7 ? 'ruby' : 'diamond';
+    rsGrant(g, 1); return 'a ' + RS_ITEMS[g].name.toLowerCase();
+  }
+  if(roll < 0.50){
+    const m = pick([['steel_bar',3,6],['mith_bar',2,4],['addy_bar',1,3],['coal',6,14],
+                    ['iron_ore',6,12],['yew_logs',4,9],['magic_logs',2,5],['plank',6,14]]);
+    const n = q(m[1], m[2]); rsGrant(m[0], n);
+    return n + ' × ' + RS_ITEMS[m[0]].name.toLowerCase();
+  }
+  if(roll < 0.62){
+    const f = pick(['lobster','swordfish','monkfish','shark']);
+    const n = q(3, 6); rsGrant(f, n);
+    return n + ' × ' + RS_ITEMS[f].name.toLowerCase();
+  }
+  if(roll < 0.72){
+    const p = pick(['atk_potion','str_potion','def_potion','range_potion','mage_potion','pray_potion']);
+    const n = q(2, 3); rsGrant(p, n);
+    return n + ' × ' + RS_ITEMS[p].name.toLowerCase();
+  }
+  if(roll < 0.80){
+    const rn = pick(['chaos_rune','nature_rune','law_rune','death_rune']);
+    const n = q(5, 15); rsGrant(rn, n);
+    return n + ' × ' + RS_ITEMS[rn].name.toLowerCase();
+  }
+  if(roll < 0.88){
+    const ar = pick(['steel_arrow','mith_arrow','addy_arrow','rune_arrow']);
+    const n = q(10, 30); rsGrant(ar, n);
+    return n + ' × ' + RS_ITEMS[ar].name.toLowerCase();
+  }
+  if(roll < 0.94){
+    const sd = pick(RS_SEEDS.filter(function(s){ return s.req >= 9; }));  /* herb+ seeds — the good ones */
+    const n = q(1, 3); rsGrant(sd.id, n);
+    return n + ' × ' + sd.name.toLowerCase();
+  }
+  /* gear the player doesn't own yet (weapons and armour up to rune tier) */
+  const pool = [];
+  Object.keys(RS_ITEMS).forEach(function(k){
+    const d = RS_ITEMS[k];
+    if(d.slot && d.lvl && d.tier && d.tier <= 6 && !d.cape && !d.pet && rsHave(k) <= 0) pool.push(k);
+  });
+  if(pool.length){ const id = pick(pool); rsGrant(id, 1); return RS_ITEMS[id].name + '!'; }
+  const c2 = q(800, 2000); r.coins += c2; return c2.toLocaleString() + ' coins';
+}
 function rsOpenCasket(){
   const r = rsEnsure();
   if(rsHave('casket') <= 0) return;
   rsConsume('casket', 1);
   r.counts.caskets = (r.counts.caskets|0) + 1;
-  const roll = Math.random();
-  if(roll < 0.40){
-    const c = 250 + Math.floor(Math.random() * 650);
-    r.coins += c; rsLog('🎁 The casket holds ' + c + ' coins.', '#ffd84d');
-  } else if(roll < 0.62){
-    const g = Math.random() < 0.5 ? 'sapphire' : Math.random() < 0.7 ? 'ruby' : 'diamond';
-    rsGrant(g, 1); rsLog('🎁 A ' + RS_ITEMS[g].name.toLowerCase() + ' glitters inside!', '#ffd84d');
-  } else if(roll < 0.82){
-    const pool = [];
-    Object.keys(RS_ITEMS).forEach(function(k){
-      const d = RS_ITEMS[k];
-      if(d.slot && d.lvl && d.tier && d.tier <= 6 && !d.cape && !d.pet && rsHave(k) <= 0) pool.push(k);
-    });
-    const id = pool[Math.floor(Math.random() * pool.length)];
-    if(id){ rsGrant(id, 1); rsLog('🎁 Inside: ' + RS_ITEMS[id].name + '!', '#ffd84d'); }
-    else { r.coins += 800; rsLog('🎁 The casket holds 800 coins.', '#ffd84d'); }
-  } else if(roll < 0.975){
-    const c = 1200 + Math.floor(Math.random() * 2800);
-    r.coins += c; rsLog('🎁 A heavy haul: ' + c.toLocaleString() + ' coins!', '#ffd84d');
-  } else {
+  const got = [];
+  const rolls = 2 + Math.floor(Math.random() * 3);   /* 2–4 rolls */
+  for(let i = 0; i < rolls; i++) got.push(rsCasketRoll());
+  rsLog('🎁 The casket holds: ' + got.join(' · '), '#ffd84d');
+  /* the chase piece — ~1/40, independent of the normal rolls */
+  if(Math.random() < 0.025){
     if(rsHave('gilded_helm') > 0 || r.equip.helm === 'gilded_helm'){
       r.coins += 5000; rsLog('🎁 Another gilded helm? The shop pays 5,000 coins for the spare.', '#ffd84d');
     } else {
@@ -22534,7 +23115,7 @@ function rsOnEnterTab(){
   if(!rsAnimOn){ rsAnimOn = true; requestAnimationFrame(rsAnimLoop); }
   if(!rsEnsure().greeted){
     rsEnsure().greeted = 1;
-    rsLog('Welcome to Runeshard. Fifteen skills, one bag, no shortcuts. Talk is cheap — the trees are not going to chop themselves.', '#ffd84d');
+    rsLog('Welcome to Runeshard. Twenty-three skills, one bag, no shortcuts. Talk is cheap — the trees are not going to chop themselves.', '#ffd84d');
   }
 }
 function rsOnLeaveTab(){
@@ -22556,6 +23137,8 @@ function rsOnLeaveTab(){
   tabs.addEventListener('click', function(ev){
     const b = ev.target.closest('.rs-tab');
     if(!b) return;
+    /* Leaving 📜 (or re-tapping it) drops back to the skill grid. */
+    if(b.dataset.rst !== 'skills' || rsPanelTab === 'skills') rsGuideSkill = null;
     rsPanelTab = b.dataset.rst;
     rsRenderTabs(); rsRenderPanel();
   });

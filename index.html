@@ -22208,6 +22208,14 @@ function mHumanoid(ctx, a, t){
   mf(ctx, a.boot || '#3a2c1e');
   mrr(ctx, -19 * bulk, -6, 16 * bulk, 6, 2);
   mrr(ctx, 3 * bulk, -6, 16 * bulk, 6, 2);
+  if(a.capeCol){                                    /* cape hanging behind */
+    const sw = Math.sin(t / 8) * 3;
+    mf(ctx, a.capeCol);
+    mpoly(ctx, [[-20 * bulk, shoulder + 2], [20 * bulk, shoulder + 2],
+                [26 * bulk + sw, -14], [-26 * bulk + sw, -14]]);
+    mf(ctx, 'rgba(0,0,0,0.22)');
+    mpoly(ctx, [[0, shoulder + 2], [20 * bulk, shoulder + 2], [26 * bulk + sw, -14], [4, -14]]);
+  }
   /* torso */
   mf(ctx, cl);
   mrr(ctx, -21 * bulk, shoulder, 42 * bulk, 30, 5);
@@ -22243,6 +22251,33 @@ function mHumanoid(ctx, a, t){
     if(a.plume){ mf(ctx, a.plume); mrr(ctx, -3, headTop - 18, 6, 16, 3); }
   }
   meyes(ctx, headTop + (a.hood ? 20 : 18), 7, a.eyeR || 3.2, a.eye, a.eyeGlow);
+  if(a.mask){                                       /* highwayman's eye band */
+    mf(ctx, a.mask); mrr(ctx, -16, headTop + 12, 32, 9, 2);
+    mf(ctx, a.eye || '#ffd84d');                    /* eyes glint through the slits */
+    mrr(ctx, -11, headTop + 15, 6, 3, 1); mrr(ctx, 5, headTop + 15, 6, 3, 1);
+  }
+  if(a.beard){
+    mf(ctx, a.beard);
+    mpoly(ctx, [[-13, headTop + 24], [-15, headTop + 44], [0, headTop + 52], [15, headTop + 44], [13, headTop + 24]]);
+    mf(ctx, 'rgba(0,0,0,0.14)'); mrr(ctx, -6, headTop + 26, 12, 5, 2);
+  }
+  if(a.strawhat){
+    mf(ctx, a.strawhat);
+    mel(ctx, 0, headTop + 2, 30, 7);
+    mrr(ctx, -12, headTop - 12, 24, 15, 6);
+    mf(ctx, 'rgba(0,0,0,0.16)'); mrr(ctx, -12, headTop - 1, 24, 4, 2);
+  }
+  if(a.bandage){                                    /* mummy wrappings */
+    mf(ctx, a.bandage);
+    for(let i = 0; i < 5; i++) mrr(ctx, -22 * bulk, shoulder + 2 + i * 6, 44 * bulk, 4, 2);
+    for(let i = 0; i < 4; i++) mrr(ctx, -16, headTop + 2 + i * 8, 32, 5, 2);
+    mf(ctx, '#0b0810'); mrr(ctx, -9, headTop + 17, 18, 5, 2);
+  }
+  if(a.fangs){
+    mf(ctx, '#f6f2e4');
+    mpoly(ctx, [[-5, headTop + 27], [-3, headTop + 36], [-1, headTop + 27]]);
+    mpoly(ctx, [[5, headTop + 27], [3, headTop + 36], [1, headTop + 27]]);
+  }
   if(a.tusks){
     mf(ctx, '#f0e6cc');
     mpoly(ctx, [[-8, headTop + 30], [-5, headTop + 38], [-2, headTop + 30]]);
@@ -22337,6 +22372,11 @@ function mQuad(ctx, a, t){
   else { mf(ctx, a.nose || dark); mel(ctx, 22, 6, 5, 4); }
   if(a.ears === 'pointy'){ mf(ctx, body); mpoly(ctx, [[-2, -14], [2, -32], [12, -12]]); mpoly(ctx, [[12, -14], [20, -30], [24, -10]]); }
   if(a.ears === 'horn'){ mf(ctx, '#e8dcc0'); mpoly(ctx, [[0, -14], [-8, -30], [8, -12]]); mpoly(ctx, [[16, -14], [24, -30], [22, -10]]); }
+  if(a.unihorn){
+    mf(ctx, a.unihorn);
+    mpoly(ctx, [[6, -14], [18, -46], [16, -10]]);
+    mf(ctx, 'rgba(255,255,255,0.35)'); mpoly(ctx, [[9, -16], [17, -42], [13, -14]]);
+  }
   if(a.frill){ mf(ctx, a.frill); mpoly(ctx, [[-4, -16], [-22, -34], [-16, 6], [-4, 12]]); }
   if(a.fangs){ mf(ctx, '#f2ead4'); mpoly(ctx, [[10, 12], [12, 22], [15, 12]]); mpoly(ctx, [[18, 12], [20, 21], [23, 12]]); }
   meyes(ctx, -2, -8, a.eyeR || 3.4, a.eye, a.eyeGlow);
@@ -22688,6 +22728,165 @@ function mInsect(ctx, a, t){
   ctx.restore();
 }
 
+function mSpider(ctx, a, t){
+  const c = a.body, d = a.dark || c, body = -34;
+  mst(ctx, d); ctx.lineWidth = 4; ctx.lineCap = 'round';
+  for(let i = 0; i < 4; i++){
+    const lift = Math.sin(t / 4 + i * 1.3) * 4;
+    [-1, 1].forEach(function(sx){
+      ctx.beginPath();
+      ctx.moveTo(0, body);
+      ctx.lineTo(sx * (20 + i * 6), body - 16 - lift);
+      ctx.lineTo(sx * (28 + i * 9), 0);
+      ctx.stroke();
+    });
+  }
+  ctx.lineWidth = 1;
+  mf(ctx, c); mel(ctx, -15, body - 6, 27, 22);          /* abdomen */
+  if(a.marking){                                        /* hourglass, widow-style */
+    mf(ctx, a.marking);
+    mpoly(ctx, [[-21, body - 15], [-9, body - 15], [-13, body - 6], [-9, body + 3], [-21, body + 3], [-17, body - 6]]);
+  }
+  mf(ctx, d); mel(ctx, 13, body - 2, 16, 14);           /* cephalothorax */
+  mf(ctx, '#f6f2e0');
+  [[18, -10], [24, -6], [18, -2], [24, 2]].forEach(function(p){ mel(ctx, p[0], body + p[1], 2.6, 2.6); });
+  mf(ctx, a.eye || '#1a1420');
+  [[18, -10], [24, -6], [18, -2], [24, 2]].forEach(function(p){ mel(ctx, p[0] + 0.6, body + p[1], 1.4, 1.6); });
+  mf(ctx, d);
+  mpoly(ctx, [[24, body + 6], [32, body + 12], [22, body + 11]]);
+  mpoly(ctx, [[24, body - 6], [32, body - 12], [22, body - 11]]);
+}
+
+function mSlug(ctx, a, t){
+  const c = a.body, d = a.dark || c;
+  const squish = Math.sin(t / 6) * 2;
+  mf(ctx, 'rgba(180,220,190,0.22)');                    /* slime trail */
+  mrr(ctx, -40, -6, 80, 6, 3);
+  mf(ctx, c);
+  ctx.beginPath();
+  ctx.moveTo(-34, -4);
+  ctx.quadraticCurveTo(-30, -34 - squish, 2, -32 - squish);
+  ctx.quadraticCurveTo(30, -30, 34, -4);
+  ctx.closePath(); ctx.fill();
+  if(a.shell){                                          /* rocky carapace */
+    mf(ctx, a.shell);
+    mpoly(ctx, [[-22, -18], [-14, -40 - squish], [6, -44 - squish], [20, -30], [22, -14]]);
+    mf(ctx, a.shellDark || d);
+    mpoly(ctx, [[-6, -40 - squish], [6, -44 - squish], [20, -30], [8, -28]]);
+    mf(ctx, 'rgba(255,255,255,0.14)');
+    mpoly(ctx, [[-16, -26], [-10, -36 - squish], [-2, -34 - squish]]);
+  }
+  mf(ctx, d); mrr(ctx, -38, -14, 12, 10, 5);            /* tail end */
+  mf(ctx, c);
+  [[26, -30], [33, -26]].forEach(function(p, i){        /* eye stalks */
+    const wob = Math.sin(t / 5 + i) * 2;
+    mst(ctx, c); ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(p[0] - 6, -18); ctx.lineTo(p[0] + wob, p[1] - squish); ctx.stroke();
+    ctx.lineWidth = 1;
+    mf(ctx, '#f6f2e0'); mel(ctx, p[0] + wob, p[1] - 3 - squish, 4, 4);
+    mf(ctx, '#1a1420'); mel(ctx, p[0] + wob + 1, p[1] - 3 - squish, 2, 2.2);
+  });
+}
+
+function mJelly(ctx, a, t){
+  const wob = Math.sin(t / 5) * 3, c = a.body;
+  ctx.globalAlpha = rsMT ? 1 : 0.86;
+  mf(ctx, c);
+  ctx.beginPath();
+  ctx.moveTo(-36, 0);
+  ctx.quadraticCurveTo(-40 - wob, -40, -14, -54 - wob);
+  ctx.quadraticCurveTo(10, -64 - wob, 26, -48);
+  ctx.quadraticCurveTo(42 + wob, -30, 34, 0);
+  ctx.closePath(); ctx.fill();
+  mf(ctx, 'rgba(255,255,255,0.20)');
+  mel(ctx, -10, -38 - wob, 13, 9);
+  mf(ctx, a.dark || c);
+  [[-16, -22], [8, -30], [18, -12], [-2, -10]].forEach(function(p, i){
+    mel(ctx, p[0], p[1] - wob * 0.4, 6 + Math.sin(t / 4 + i) * 1.2, 5);
+  });
+  ctx.globalAlpha = 1;
+  meyes(ctx, -34 - wob, 10, 4, a.eye || '#f6f2e0', a.eyeGlow);
+  if(a.drip){
+    mf(ctx, c);
+    for(let i = 0; i < 3; i++){
+      const dy = (t * 0.9 + i * 22) % 30;
+      mel(ctx, -18 + i * 18, -8 + dy * 0.2, 3, 4 + dy * 0.1);
+    }
+  }
+}
+
+function mVortex(ctx, a, t){
+  const c = a.body, spin = t / 5;
+  if(!rsMT && a.aura){
+    const g = ctx.createRadialGradient(0, -50, 4, 0, -50, 56);
+    g.addColorStop(0, a.aura); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-56, -106, 112, 112);
+  }
+  ctx.globalAlpha = rsMT ? 1 : 0.9;
+  /* stacked rings, widest at the top — a funnel */
+  for(let i = 0; i < 7; i++){
+    const p = i / 6;
+    const y = -6 - p * 78;
+    const rx = 8 + p * 26;
+    const off = Math.sin(spin + i * 0.8) * (3 + p * 6);
+    mf(ctx, i % 2 ? (a.dark || c) : c);
+    mel(ctx, off, y, rx, 6 + p * 3);
+  }
+  ctx.globalAlpha = 1;
+  /* debris caught in the spin */
+  if(!rsMT){
+    mf(ctx, a.grit || 'rgba(255,255,255,0.4)');
+    for(let i = 0; i < 7; i++){
+      const p = (i / 7);
+      const ang = spin * 1.6 + i * 1.4;
+      mel(ctx, Math.cos(ang) * (12 + p * 22), -14 - p * 66, 2, 2);
+    }
+  }
+  meyes(ctx, -62, 9, 3.4, a.eye || '#ffd84d', a.eyeGlow);
+}
+
+function mFlame(ctx, a, t){
+  const lick = Math.sin(t / 3) * 4, c = a.body, hot = a.hot || '#ffd84d';
+  if(!rsMT){
+    const g = ctx.createRadialGradient(0, -44, 6, 0, -44, 60);
+    g.addColorStop(0, a.aura || 'rgba(255,150,60,0.45)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-60, -104, 120, 120);
+  }
+  /* body of flame */
+  mf(ctx, c);
+  ctx.beginPath();
+  ctx.moveTo(-24, 0);
+  ctx.quadraticCurveTo(-30, -34, -12, -52);
+  ctx.quadraticCurveTo(-4, -74 - lick, 4, -92 - lick);
+  ctx.quadraticCurveTo(10, -66, 22, -50);
+  ctx.quadraticCurveTo(32, -30, 24, 0);
+  ctx.closePath(); ctx.fill();
+  mf(ctx, hot);
+  ctx.beginPath();
+  ctx.moveTo(-12, 0);
+  ctx.quadraticCurveTo(-16, -28, -4, -46);
+  ctx.quadraticCurveTo(0, -60 - lick, 4, -72 - lick);
+  ctx.quadraticCurveTo(10, -50, 14, -34);
+  ctx.quadraticCurveTo(18, -18, 12, 0);
+  ctx.closePath(); ctx.fill();
+  /* little arms of fire */
+  mf(ctx, c);
+  [-1, 1].forEach(function(sx){
+    ctx.save(); ctx.scale(sx, 1); ctx.translate(20, -44); ctx.rotate(0.4 + Math.sin(t / 4) * 0.2);
+    mrr(ctx, 0, -4, 20, 8, 4);
+    ctx.restore();
+  });
+  meyes(ctx, -58, 8, 3.4, a.eye || '#fff6d8', a.eyeGlow || 'rgba(255,220,140,0.8)');
+  if(!rsMT){                                            /* rising sparks */
+    mf(ctx, hot);
+    for(let i = 0; i < 5; i++){
+      const y = -((t * 1.4 + i * 26) % 96);
+      mel(ctx, -14 + i * 7 + Math.sin(t / 4 + i) * 4, y - 6, 2, 2.6);
+    }
+  }
+}
+
 /* ---------------- the roster ---------------- */
 const RS_MOB_ART = {
   chicken:  {kind:'bird', h:0.52, body:'#f4f1e6', wing:'#e2ded0', tail:'#d8d2c0', comb:'#d43a2a', beak:'#f0a83a'},
@@ -22731,10 +22930,101 @@ const RS_MOB_ART = {
   ebonwyrm: {kind:'dragon', h:1.3, len:1.2, body:'#332c40', dark:'#231e2e', belly:'#a86a2e', wing:'#2a2436', horn:'#e8dcae', spike:'#0e0b14', eye:'#ff7a2a', eyeGlow:'rgba(255,120,40,0.85)', breath:'rgba(255,120,40,0.9)'},
 };
 
+/* ---- hunter quarry and pets: same archetypes, smaller ---- */
+Object.assign(RS_MOB_ART, {
+  /* hunter */
+  swift:     {kind:'bird', h:0.34, body:'#c0392b', wing:'#9a2d22', tail:'#7f2419', comb:'#e0a03a', beak:'#e8c05a', leg:'#c8a04a'},
+  longtail:  {kind:'bird', h:0.34, body:'#c98a3a', wing:'#a86f2c', tail:'#d8a04a', comb:'#7a9a4a', beak:'#e8c05a', leg:'#c8a04a'},
+  wagtail:   {kind:'bird', h:0.36, body:'#3f8fbf', wing:'#2f6f9a', tail:'#f0e05a', comb:'#e05a3a', beak:'#f0a83a', leg:'#c8a04a'},
+  lizard:    {kind:'quad', h:0.42, body:'#5c8a4a', dark:'#446838', belly:'#c8d89a', snout:'long', ears:false, spikes:'#3a5c2c', len:1.2, round:false, eye:'#ffd84d', tail:'thin', tailCol:'#446838'},
+  kebbit:    {kind:'quad', h:0.4, body:'#b09070', dark:'#8a6f52', belly:'#e0d0b8', spots:'#6f5840', ears:'pointy', snout:'long', len:0.9, eye:'#3a2c1e'},
+  greychin:  {kind:'quad', h:0.34, body:'#8f959c', dark:'#6f757c', belly:'#c8ccd2', ears:'pointy', snout:'long', len:0.8, eye:'#1a1420', tailCol:'#8f959c'},
+  redchin:   {kind:'quad', h:0.34, body:'#b8502c', dark:'#8f3c20', belly:'#e0a880', ears:'pointy', snout:'long', len:0.8, eye:'#1a1420', tailCol:'#b8502c'},
+  blackchin: {kind:'quad', h:0.36, body:'#33303a', dark:'#22202a', belly:'#5c5866', ears:'pointy', snout:'long', len:0.8, eye:'#ff9a3a', eyeGlow:'rgba(255,150,60,0.5)', tailCol:'#33303a'},
+  herbi:     {kind:'quad', h:0.6, body:'#6f5a3a', dark:'#52422a', belly:'#c8b48a', spikes:'#3f6b28', snout:'long', ears:'pointy', len:1.05, eye:'#ffd84d', fangs:true},
+
+  /* pets — drawn at heel-height, same builders */
+  pet_beaver:   {kind:'quad', h:0.4, body:'#7a5636', dark:'#5c3f26', belly:'#a88a62', snout:'long', ears:'pointy', tail:'thin', tailCol:'#4a3520', len:0.95, fangs:true, eye:'#1a1420'},
+  pet_golem:    {kind:'humanoid', h:0.42, bulk:1.3, skin:'#8a8f98', cloth:'#6f757e', cloth2:'#585d66', weapon:'none', eye:'#8ad8ff', eyeGlow:'rgba(120,200,255,0.5)'},
+  pet_heron:    {kind:'bird', h:0.5, body:'#cfd6e2', wing:'#b0bac8', tail:'#9aa4b2', comb:'#3a3a44', beak:'#e8c05a', leg:'#e8c05a'},
+  pet_bog:      {kind:'frog', h:0.4, body:'#4a7a46', dark:'#2f5c2c', belly:'#cfe0a0', spots:'#2c4a2c', crown:'#e8c24d'},
+  pet_grim:     {kind:'demon', h:0.36, bulk:0.8, skin:'#7a4a8a', cloth:'#4e2a5c', cloth2:'#3a1f44', horns:true, ears:true, eye:'#ffe08a', wing:'#4e2a5c', weapon:'none'},
+  pet_cinder:   {kind:'dragon', h:0.42, len:0.7, body:'#a83a24', dark:'#7a281a', belly:'#e8b45a', wing:'#8a2c1c', horn:'#f0dcae', spike:'#4a1a10', eye:'#ffe08a', eyeGlow:'rgba(255,150,60,0.5)'},
+  pet_chin:     {kind:'quad', h:0.3, body:'#b8502c', dark:'#8f3c20', belly:'#e0a880', ears:'pointy', snout:'long', len:0.8, eye:'#1a1420'},
+  pet_squirrel: {kind:'quad', h:0.36, body:'#a8703a', dark:'#82552a', belly:'#e0c8a0', ears:'pointy', snout:'long', len:0.75, eye:'#1a1420', tailCol:'#c08a4a'},
+  pet_rift:     {kind:'vortex', h:0.44, body:'#6f4a9a', dark:'#4e3070', aura:'rgba(170,120,255,0.4)', grit:'rgba(230,200,255,0.6)', eye:'#e0c0ff', eyeGlow:'rgba(190,140,255,0.6)'},
+  pet_tangle:   {kind:'quad', h:0.34, body:'#4a7a38', dark:'#355c28', belly:'#a8c86a', spikes:'#2f4a20', ears:'pointy', snout:'long', len:0.85, eye:'#ffe08a'},
+  pet_rocky:    {kind:'quad', h:0.34, body:'#8a7f6a', dark:'#6b6250', belly:'#c0b49a', spots:'#4a4238', ears:'pointy', snout:'long', len:0.85, eye:'#1a1420'},
+  pet_phoenix:  {kind:'flame', h:0.44, body:'#e0651f', hot:'#ffd44d', aura:'rgba(255,170,60,0.5)', eye:'#fff6d8'},
+  pet_herbi:    {kind:'quad', h:0.34, body:'#6f5a3a', dark:'#52422a', belly:'#c8b48a', spikes:'#3f6b28', snout:'long', ears:'pointy', len:0.9, eye:'#ffd84d'},
+  pet_wisp:     {kind:'wraith', h:0.44, robe:'#8ad0a8', hood:'#6fb08a', aura:'rgba(150,255,200,0.42)', eye:'#e0fff0', eyeGlow:'rgba(180,255,220,0.7)', alpha:0.72},
+  pet_ebon:     {kind:'dragon', h:0.44, len:0.7, body:'#332c40', dark:'#231e2e', belly:'#a86a2e', wing:'#2a2436', horn:'#e8dcae', spike:'#0e0b14', eye:'#ff7a2a', eyeGlow:'rgba(255,120,40,0.6)'},
+});
+
+/* ---- the expansion roster ---- */
+Object.assign(RS_MOB_ART, {
+  /* --- fields --- */
+  man:       {kind:'humanoid', h:0.86, skin:'#e0b48c', cloth:'#7a6a52', cloth2:'#5c5040', hair:'#4a3826', weapon:'none', eye:'#3a2c1e'},
+  farmer:    {kind:'humanoid', h:0.86, skin:'#d8a87a', cloth:'#5c7a44', cloth2:'#46603a', strawhat:'#d8b45a', weapon:'none', eye:'#3a2c1e'},
+  hwman:     {kind:'humanoid', h:0.88, skin:'#d8a87a', cloth:'#3a3446', cloth2:'#2c2836', mask:'#14111c', capeCol:'#241f30', weapon:'dagger', eye:'#ffd84d'},
+  wizard:    {kind:'humanoid', h:0.88, skin:'#e0b48c', cloth:'#3f4a9a', cloth2:'#323b7a', hood:'#2f3880', weapon:'staff', orb:'#8ab4ff', eye:'#d8e4ff'},
+  darkwiz:   {kind:'humanoid', h:0.88, skin:'#c8a884', cloth:'#2c2634', cloth2:'#201b28', hood:'#241f2e', weapon:'staff', orb:'#b06aff', eye:'#e0b8ff'},
+  darkwiz20: {kind:'humanoid', h:0.92, skin:'#c0a07c', cloth:'#241f2e', cloth2:'#1a1622', hood:'#1c1826', weapon:'staff', orb:'#ff5a7a', eye:'#ffb0c0'},
+  barb:      {kind:'humanoid', h:0.96, bulk:1.12, skin:'#d8a87a', cloth:'#7a5c34', cloth2:'#5e4526', hair:'#c8a04a', beard:'#c8a04a', weapon:'axe', blade:'#b8c0c8', belt:'#4a3520'},
+  dwarf:     {kind:'humanoid', h:0.62, bulk:1.2, skin:'#e0b48c', cloth:'#8a5a2a', cloth2:'#6b4522', beard:'#b06a3a', helm:'#9aa2ad', weapon:'axe', blade:'#c0c8d0'},
+  blackkn:   {kind:'humanoid', h:0.96, skin:'#d8a87a', cloth:'#2c2c34', cloth2:'#1e1e26', helm:'#33333c', plume:'#7a1f2a', capeCol:'#1a1a22', weapon:'sword', blade:'#8f96a0', boot:'#1a1a22'},
+  whitekn:   {kind:'humanoid', h:0.96, skin:'#e0b48c', cloth:'#cfd4dc', cloth2:'#a8aeb8', helm:'#e2e6ec', plume:'#3f5ea8', capeCol:'#c8ccd6', weapon:'sword', blade:'#eef2f6', boot:'#8f95a0'},
+  goblin5:   {kind:'humanoid', h:0.6, skin:'#7f9a4f', cloth:'#6b4522', cloth2:'#523618', ears:true, eye:'#ffe9a8', tusks:true, weapon:'club', hair:'#33230f'},
+  goblin13:  {kind:'humanoid', h:0.66, skin:'#5f8a3f', cloth:'#4a5c6b', cloth2:'#3a4854', ears:true, eye:'#ffe9a8', tusks:true, weapon:'sword', blade:'#b0b8c0'},
+  imp7:      {kind:'demon', h:0.5, bulk:0.8, skin:'#d8763a', cloth:'#8a3a1a', cloth2:'#6b2a14', horns:true, ears:true, eye:'#fff0a8', wing:'#8a3a1a', weapon:'none'},
+  rat6:      {kind:'quad', h:0.5, body:'#6f6152', dark:'#524839', belly:'#b0a08a', tail:'thin', tailCol:'#d8a0a0', ears:'pointy', snout:'long', len:0.9, fangs:true, eye:'#ffd84d'},
+  spider:    {kind:'spider', h:0.4, body:'#4a4048', dark:'#332c34', marking:'#8a7a5a', eye:'#ffd84d'},
+  spider27:  {kind:'spider', h:0.62, body:'#241f28', dark:'#16121a', marking:'#c0392b', eye:'#ff6a4a'},
+  unicorn:   {kind:'quad', h:0.86, body:'#f4f1ea', dark:'#d8d2c6', belly:'#fbf9f4', mane:'#e0a8c0', unihorn:'#f0e0b0', snout:'long', ears:'pointy', hoof:'#c8b48a', len:1.08, tailCol:'#e0a8c0', eye:'#6a4a7a'},
+  bear:      {kind:'quad', h:0.82, body:'#7a5636', dark:'#5c3f26', belly:'#9a7a52', snout:'long', ears:'pointy', fangs:true, tail:false, len:1.12, eye:'#ffd84d'},
+  grizzly:   {kind:'quad', h:0.88, body:'#4e3a26', dark:'#382a1a', belly:'#6f563a', snout:'long', ears:'pointy', fangs:true, tail:false, len:1.16, eye:'#ff9a3a'},
+  hob:       {kind:'humanoid', h:0.98, bulk:1.2, skin:'#8a8f42', cloth:'#5c4a2a', cloth2:'#453620', ears:true, tusks:true, weapon:'club', eye:'#ffe9a8', hair:'#3a2f14'},
+  hob42:     {kind:'humanoid', h:1.04, bulk:1.24, skin:'#6f7a38', cloth:'#4a5460', cloth2:'#39424c', ears:true, tusks:true, weapon:'axe', blade:'#aab2ba', eye:'#ffe9a8', helm:'#8f95a0'},
+  ogre:      {kind:'humanoid', h:1.24, bulk:1.5, skin:'#b0a860', cloth:'#6b5836', cloth2:'#52432a', tusks:true, weapon:'club', eye:'#fff0c0', hair:'#3f3418'},
+
+  /* --- mire --- */
+  giantfrog: {kind:'frog', h:0.92, body:'#5c8a3a', dark:'#3f6b28', belly:'#d8e8a8', spots:'#3a5c22'},
+  mogre:     {kind:'humanoid', h:1.1, bulk:1.36, skin:'#5a7f74', cloth:'#3f5a4a', cloth2:'#2f4438', tusks:true, weapon:'club', eye:'#c8ffd8', mouth:'#2a3a30'},
+
+  /* --- tower (slayer) --- */
+  cavebug:   {kind:'insect', h:0.44, body:'#4a3f2c', dark:'#332b1c', eye:'#c8e08a', sting:'#c8bfa0'},
+  rockslug:  {kind:'slug', h:0.5, body:'#7a8a6a', dark:'#5c6b4e', shell:'#6f6f78', shellDark:'#50505a'},
+  cockat:    {kind:'bird', h:0.66, body:'#8a9a4a', wing:'#6f7f38', tail:'#5c6b2c', comb:'#c0392b', beak:'#e0b03a', leg:'#c8a04a'},
+  pyrefiend: {kind:'flame', h:0.72, body:'#d8541f', hot:'#ffc44d', aura:'rgba(255,140,50,0.5)', eye:'#fff6d8'},
+  infmage:   {kind:'humanoid', h:0.94, skin:'#c09070', cloth:'#6b1f24', cloth2:'#4e1219', hood:'#5c1a20', weapon:'staff', orb:'#ff7a3a', eye:'#ffc48a'},
+  jelly:     {kind:'jelly', h:0.76, body:'#5c9a52', dark:'#3f7038', eye:'#f6f2e0', drip:true},
+  turoth:    {kind:'quad', h:0.86, body:'#7a8f6a', dark:'#5c6f4e', belly:'#c8d4a8', spikes:'#46583a', ears:'horn', snout:'long', fangs:true, len:1.1, eye:'#ffe08a'},
+  cavehorror:{kind:'demon', h:1.0, bulk:1.05, skin:'#3a3448', cloth:'#2a2536', cloth2:'#1e1a28', horns:true, horn:'#a8a0b8', wing:'#241f30', eye:'#8affc8', eyeGlow:'rgba(120,255,190,0.5)', weapon:'claw', claw:'#d8d0e0'},
+  abspectre: {kind:'wraith', h:1.04, robe:'#7a9a6a', hood:'#5c7a4e', aura:'rgba(160,220,120,0.32)', eye:'#e0ffb0', eyeGlow:'rgba(190,255,140,0.6)', alpha:0.7, claws:true, jaw:true},
+  kurask:    {kind:'quad', h:1.02, body:'#c8cfc0', dark:'#a0a898', belly:'#e2e6dc', spikes:'#6f7a62', ears:'horn', snout:'long', fangs:true, len:1.18, eye:'#8ab4ff'},
+  nechry:    {kind:'demon', h:1.16, bulk:1.18, skin:'#5c7a4a', cloth:'#3a2c48', cloth2:'#2c2036', horns:true, horn:'#c8c0a8', wing:'#2f2340', eye:'#c8ff6a', eyeGlow:'rgba(180,255,90,0.55)', weapon:'claw', claw:'#e0e8c8'},
+  darkbeast: {kind:'quad', h:1.06, body:'#241f2c', dark:'#16121c', belly:'#3a3244', mane:'#3f3550', ears:'pointy', snout:'long', fangs:true, len:1.2, eye:'#ff5a4a', eyeGlow:'rgba(255,90,70,0.6)'},
+  dustdev:   {kind:'vortex', h:1.0, body:'#c0a878', dark:'#9a8258', aura:'rgba(200,175,120,0.32)', grit:'rgba(255,240,200,0.55)', eye:'#ffd84d'},
+  smokedevil:{kind:'vortex', h:1.06, body:'#6f6f7a', dark:'#4e4e58', aura:'rgba(140,140,160,0.3)', grit:'rgba(220,220,235,0.45)', eye:'#ff8a4a', eyeGlow:'rgba(255,140,70,0.5)'},
+
+  /* --- catacombs --- */
+  ghost:     {kind:'wraith', h:0.92, robe:'#cfd6e2', hood:'#b0bacb', aura:'rgba(220,232,255,0.3)', eye:'#ffffff', eyeGlow:'rgba(255,255,255,0.6)', alpha:0.5},
+  ghoul:     {kind:'humanoid', h:0.9, skin:'#8a8f70', cloth:'#4e4636', cloth2:'#3a3428', hair:'#2f2a1c', eye:'#ffe08a', mouth:'#3a1c1c', weapon:'claw', claw:'#d8d0b0', boot:'#2c2820'},
+  vampyre:   {kind:'humanoid', h:0.98, skin:'#d8cfd4', cloth:'#241f2e', cloth2:'#1a1622', capeCol:'#6b1f2a', hair:'#14111a', fangs:true, eye:'#ff5a5a', eyeGlow:'rgba(255,90,90,0.45)', weapon:'claw', claw:'#e8e0e4'},
+  mummy:     {kind:'humanoid', h:0.98, skin:'#c8bc9a', cloth:'#b8ac8a', cloth2:'#a0967a', bandage:'#e0d6ba', eye:'#8ad8ff', eyeGlow:'rgba(120,200,255,0.5)', weapon:'none'},
+
+  /* --- wilderness --- */
+  darkwarr:  {kind:'humanoid', h:0.96, skin:'#c8a884', cloth:'#2f2a38', cloth2:'#221e2a', hood:'#241f2e', weapon:'sword', blade:'#8f96a0', eye:'#ff8a4a'},
+  earthwarr: {kind:'humanoid', h:1.0, bulk:1.18, skin:'#7a6a54', cloth:'#5c5040', cloth2:'#453b2e', weapon:'club', eye:'#c8e08a', hair:'#4a5c3a'},
+  chaosdw:   {kind:'humanoid', h:0.66, bulk:1.22, skin:'#c08a62', cloth:'#6b2420', cloth2:'#4e1a16', beard:'#8a2f22', helm:'#5c5058', weapon:'axe', blade:'#c0392b', eye:'#ffb04a'},
+  blackdemon:{kind:'demon', h:1.4, bulk:1.34, skin:'#241f28', cloth:'#16121a', cloth2:'#0e0b12', horns:true, horn:'#c8c0b0', wing:'#1a1620', eye:'#ff5a2a', eyeGlow:'rgba(255,90,40,0.7)', weapon:'claw', claw:'#e0d8c8'},
+});
+
 const RS_MOB_KIND = {
   bird:mBird, quad:mQuad, humanoid:mHumanoid, demon:mDemon, wraith:mWraith,
   skeleton:mSkeleton, dragon:mDragon, frog:mFrog, hand:mHand, veld:mVeld,
   gargoyle:mGargoyle, tentacle:mTentacle, insect:mInsect,
+  spider:mSpider, slug:mSlug, jelly:mJelly, vortex:mVortex, flame:mFlame,
 };
 
 /* Draw monster `id` with its feet at (x, gy), `px` tall. flash 0..1 whitens it. */
@@ -22742,7 +23032,8 @@ const RS_MOB_KIND = {
    different amounts per archetype — the nameplate has to clear the real thing. */
 const RS_MOB_EXTENT = {dragon:1.46, demon:1.24, skeleton:1.2, humanoid:1.16,
   wraith:1.12, tentacle:1.12, gargoyle:1.08, frog:1.06, quad:1.0, bird:0.92,
-  insect:0.8, veld:0.72, hand:0.62};
+  insect:0.8, veld:0.72, hand:0.62,
+  flame:1.0, vortex:1.0, jelly:0.68, spider:0.5, slug:0.48};
 function rsMobHeight(id, px){
   const a = RS_MOB_ART[id];
   if(!a) return px;
@@ -22819,6 +23110,253 @@ function rsEmojiPrep(ctx, px){
   ctx.fillStyle = rsDarkArea() ? '#e6e0ee' : '#2a2530';
   ctx.font = px + 'px ' + RS_EMOJI_FONT;
 }
+/* ------------------------------------------------------------------
+   Gathering targets. Each species gets its own silhouette rather than
+   one shape recoloured, so you can tell a willow from a yew at a glance.
+   ------------------------------------------------------------------ */
+function rsTrunk(ctx, tx, gy, w, h, col, lean){
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(tx - w, gy + 4);
+  ctx.quadraticCurveTo(tx - w * 0.6 + lean, gy - h * 0.5, tx - w * 0.45 + lean, gy - h);
+  ctx.lineTo(tx + w * 0.45 + lean, gy - h);
+  ctx.quadraticCurveTo(tx + w * 0.6 + lean, gy - h * 0.5, tx + w, gy + 4);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.16)';
+  ctx.fillRect(tx + w * 0.1, gy - h, w * 0.5, h);
+}
+function rsDrawTree(ctx, id, tx, gy, t){
+  const a = RS_TREE_ART[id] || RS_TREE_ART.logs;
+  const sway = Math.sin(t / 16) * 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(tx, gy + 4, 30, 6, 0, 0, 7); ctx.fill();
+
+  if(id === 'willow_logs'){
+    rsTrunk(ctx, tx, gy, 8, 54, a.trunk, 0);
+    ctx.fillStyle = a.leaf;
+    ctx.beginPath(); ctx.ellipse(tx, gy - 62, 34, 18, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = a.leaf2; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    for(let i = 0; i < 9; i++){
+      const bx = tx - 32 + i * 8, dl = 26 + (i % 3) * 12;
+      ctx.beginPath();
+      ctx.moveTo(bx, gy - 62);
+      ctx.quadraticCurveTo(bx + sway, gy - 62 + dl * 0.6, bx + sway * 1.6, gy - 62 + dl);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+  } else if(id === 'oak_logs'){
+    rsTrunk(ctx, tx, gy, 13, 44, a.trunk, 0);
+    ctx.strokeStyle = a.trunk; ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(tx - 4, gy - 40); ctx.lineTo(tx - 24, gy - 58); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx + 4, gy - 42); ctx.lineTo(tx + 24, gy - 56); ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = a.leaf;
+    [[0, -78, 32], [-28, -62, 22], [28, -60, 22], [-14, -84, 20], [16, -80, 19]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0] + sway * 0.4, gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = a.leaf2;
+    [[-10, -88, 15], [14, -86, 12], [-26, -70, 11]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0] + sway * 0.4, gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+  } else if(id === 'maple_logs'){
+    rsTrunk(ctx, tx, gy, 9, 50, a.trunk, 0);
+    ctx.fillStyle = a.leaf;
+    for(let i = 0; i < 3; i++){
+      const w = 34 - i * 9, y = gy - 52 - i * 18;
+      ctx.beginPath();
+      ctx.moveTo(tx - w + sway * 0.3, y); ctx.lineTo(tx + sway * 0.3, y - 26); ctx.lineTo(tx + w + sway * 0.3, y);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = a.leaf2;
+    ctx.beginPath();
+    ctx.moveTo(tx - 14 + sway * 0.3, gy - 88); ctx.lineTo(tx + sway * 0.3, gy - 108); ctx.lineTo(tx + 14 + sway * 0.3, gy - 88);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = a.leaf2;                          /* fallen leaves */
+    for(let i = 0; i < 4; i++) ctx.fillRect(tx - 26 + i * 15, gy + (i % 2 ? 2 : 6), 5, 3);
+  } else if(id === 'yew_logs'){
+    rsTrunk(ctx, tx, gy, 16, 40, a.trunk, 0);
+    ctx.strokeStyle = a.trunk; ctx.lineWidth = 9; ctx.lineCap = 'round';
+    [[-6, -36, -30, -60], [6, -38, 30, -58], [0, -40, 4, -66]].forEach(function(b){
+      ctx.beginPath(); ctx.moveTo(tx + b[0], gy + b[1]); ctx.lineTo(tx + b[2], gy + b[3]); ctx.stroke();
+    });
+    ctx.lineWidth = 1;
+    ctx.fillStyle = a.leaf;
+    [[0, -76, 30], [-30, -64, 20], [30, -62, 20], [-16, -88, 20], [18, -86, 18]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0] + sway * 0.3, gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = a.leaf2;
+    [[-6, -92, 13], [20, -76, 11], [-26, -76, 10]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0] + sway * 0.3, gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = '#8a2f3a';                        /* yew berries */
+    [[-14, -70], [10, -84], [24, -66]].forEach(function(p){
+      ctx.beginPath(); ctx.arc(tx + p[0], gy + p[1], 2.4, 0, 7); ctx.fill();
+    });
+  } else if(id === 'magic_logs'){
+    rsTrunk(ctx, tx, gy, 9, 48, a.trunk, 0);
+    const glow = ctx.createRadialGradient(tx, gy - 76, 6, tx, gy - 76, 54);
+    glow.addColorStop(0, 'rgba(140,170,255,0.30)'); glow.addColorStop(1, 'rgba(140,170,255,0)');
+    ctx.fillStyle = glow; ctx.fillRect(tx - 54, gy - 130, 108, 108);
+    ctx.fillStyle = a.leaf;
+    [[0, -80, 28], [-24, -64, 18], [24, -64, 18]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0], gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = a.leaf2;
+    [[-8, -92, 15], [14, -86, 12]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0], gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = '#cfe0ff';                        /* motes drifting up */
+    for(let i = 0; i < 7; i++){
+      const p = ((t * 0.9 + i * 22) % 70) / 70;
+      ctx.globalAlpha = 0.9 - p;
+      const px = tx - 26 + ((i * 37) % 52) + Math.sin(t / 7 + i) * 4;
+      ctx.beginPath(); ctx.arc(px, gy - 50 - p * 62, 2.2, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else {
+    rsTrunk(ctx, tx, gy, 8, 48, a.trunk, 0);
+    ctx.fillStyle = a.leaf;
+    [[0, -70, 30], [-24, -56, 20], [24, -56, 20]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0] + sway * 0.4, gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = a.leaf2;
+    [[-8, -80, 16], [14, -70, 12]].forEach(function(c){
+      ctx.beginPath(); ctx.arc(tx + c[0] + sway * 0.4, gy + c[1], c[2], 0, 7); ctx.fill();
+    });
+  }
+}
+
+function rsDrawRock(ctx, id, tx, gy, t){
+  const col = RS_ROCK_ART[id] || '#8a8a8a';
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(tx, gy + 4, 32, 6, 0, 0, 7); ctx.fill();
+
+  if(id === 'coal'){                                  /* a seam of loose black lumps */
+    ctx.fillStyle = '#4a4a52';
+    ctx.beginPath();
+    ctx.moveTo(tx - 32, gy + 2); ctx.lineTo(tx - 22, gy - 20); ctx.lineTo(tx + 20, gy - 24);
+    ctx.lineTo(tx + 32, gy + 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#232329';
+    [[-18, -14, 9], [-2, -22, 11], [14, -16, 8], [-8, -6, 7], [20, -6, 6]].forEach(function(p){
+      ctx.beginPath(); ctx.arc(tx + p[0], gy + p[1], p[2], 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    [[-4, -26], [16, -19], [-20, -17]].forEach(function(p){
+      ctx.beginPath(); ctx.arc(tx + p[0], gy + p[1], 2.4, 0, 7); ctx.fill();
+    });
+    return;
+  }
+  if(id === 'limestone'){                             /* stratified shelf */
+    for(let i = 0; i < 4; i++){
+      const w = 34 - i * 4, y = gy - i * 10;
+      ctx.fillStyle = i % 2 ? '#c8c0aa' : '#b8b09a';
+      rsRR(ctx, tx - w, y - 10, w * 2, 11, 2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.14)';
+      ctx.fillRect(tx - w, y - 1, w * 2, 2);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(tx - 30, gy - 42, 26, 3);
+    return;
+  }
+  if(id === 'rune_ess'){                              /* pale humming monolith */
+    const glow = ctx.createRadialGradient(tx, gy - 30, 4, tx, gy - 30, 48);
+    glow.addColorStop(0, 'rgba(200,215,255,0.28)'); glow.addColorStop(1, 'rgba(200,215,255,0)');
+    ctx.fillStyle = glow; ctx.fillRect(tx - 48, gy - 78, 96, 96);
+    ctx.fillStyle = '#a8b0c8';
+    ctx.beginPath();
+    ctx.moveTo(tx - 16, gy + 2); ctx.lineTo(tx - 12, gy - 44); ctx.lineTo(tx + 4, gy - 52);
+    ctx.lineTo(tx + 16, gy - 40); ctx.lineTo(tx + 19, gy + 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#8e97b0';
+    ctx.beginPath();
+    ctx.moveTo(tx + 4, gy - 52); ctx.lineTo(tx + 16, gy - 40); ctx.lineTo(tx + 19, gy + 2); ctx.lineTo(tx + 5, gy + 2);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(226,235,255,' + (0.4 + Math.abs(Math.sin(t / 9)) * 0.5).toFixed(2) + ')';
+    [[-6, -34], [2, -22], [-2, -44]].forEach(function(p){
+      ctx.beginPath(); ctx.arc(tx + p[0], gy + p[1], 3, 0, 7); ctx.fill();
+    });
+    return;
+  }
+  /* ore boulder: grey rock with a vein of its metal */
+  ctx.fillStyle = '#6e6e78';
+  ctx.beginPath();
+  ctx.moveTo(tx - 32, gy + 2); ctx.lineTo(tx - 20, gy - 30); ctx.lineTo(tx + 2, gy - 40);
+  ctx.lineTo(tx + 26, gy - 24); ctx.lineTo(tx + 33, gy + 2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#565660';
+  ctx.beginPath();
+  ctx.moveTo(tx + 2, gy - 40); ctx.lineTo(tx + 26, gy - 24); ctx.lineTo(tx + 33, gy + 2); ctx.lineTo(tx + 8, gy + 2);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.13)';
+  ctx.beginPath();
+  ctx.moveTo(tx - 20, gy - 30); ctx.lineTo(tx + 2, gy - 40); ctx.lineTo(tx - 4, gy - 26); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = col;
+  [[-14, -18, 6, 5], [0, -28, 7, 5], [13, -14, 6, 5], [-5, -9, 5, 4], [19, -20, 5, 4]].forEach(function(p){
+    rsRR(ctx, tx + p[0], gy + p[1], p[2], p[3], 2); ctx.fill();
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  [[-13, -19], [1, -29], [14, -15]].forEach(function(p){
+    ctx.fillRect(tx + p[0], gy + p[1], 2, 2);
+  });
+}
+
+function rsDrawFishSpot(ctx, id, tx, wy, t){
+  /* expanding rings on the surface */
+  for(let i = 0; i < 3; i++){
+    const rr = 6 + ((t * 0.7 + i * 14) % 26);
+    ctx.strokeStyle = 'rgba(226,242,255,' + Math.max(0, 0.55 - rr * 0.018).toFixed(2) + ')';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(tx, wy, rr, rr * 0.35, 0, 0, 7); ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+  /* bubbles rising and popping */
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for(let i = 0; i < 5; i++){
+    const p = ((t * 1.1 + i * 15) % 34) / 34;
+    ctx.globalAlpha = 0.6 * (1 - p);
+    ctx.beginPath(); ctx.arc(tx - 12 + i * 6, wy - p * 12, 1.6 + p * 1.6, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  if(id === 'raw_shark'){                            /* a fin circling — no emoji needed */
+    const ang = t / 26;
+    const fx = tx + Math.cos(ang) * 17, fy = wy + Math.sin(ang) * 5;
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath(); ctx.ellipse(fx, fy + 5, 18, 4.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#3f4e5c';
+    ctx.beginPath();
+    ctx.moveTo(fx - 13, fy + 4); ctx.lineTo(fx + 2, fy - 22); ctx.lineTo(fx + 11, fy + 4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(fx - 4, fy + 3); ctx.lineTo(fx + 2, fy - 20); ctx.lineTo(fx + 4, fy + 3);
+    ctx.closePath(); ctx.fill();
+    return;
+  }
+  /* everything else: a fish breaking the surface on a slow cycle */
+  const cyc = (t % 70) / 70;
+  if(cyc < 0.42){
+    const p = cyc / 0.42;
+    const jx = tx + 16 + p * 14;
+    const jy = wy - Math.sin(p * Math.PI) * 20;
+    const col = id === 'raw_lobster' ? '#c0392b'
+              : id === 'raw_sword'   ? '#5a7f9a'
+              : id === 'raw_angler'  ? '#6a5a7a'
+              : id === 'raw_monk'    ? '#8a7f5a'
+              : id === 'raw_trout'   ? '#9aa87a' : '#d8a08a';
+    ctx.save();
+    ctx.translate(jx, jy);
+    ctx.rotate(-0.5 + p * 1.0);
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.ellipse(0, 0, 9, 4.4, 0, 0, 7); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-8, 0); ctx.lineTo(-15, -5); ctx.lineTo(-15, 5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.ellipse(1, -1.4, 5, 1.6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1a1420';
+    ctx.beginPath(); ctx.arc(5, -0.8, 1.2, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+}
+
 function rsDrawTarget(ctx, W, H, t){
   const r = rsEnsure();
   const act = r.act;
@@ -22829,46 +23367,19 @@ function rsDrawTarget(ctx, W, H, t){
   function shadow(w){ ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(tx, gy + 4, w, 5, 0, 0, 7); ctx.fill(); }
 
   if(act.kind === 'chop'){
-    const a = RS_TREE_ART[act.key] || RS_TREE_ART.logs;
-    shadow(26);
-    ctx.fillStyle = a.trunk; ctx.fillRect(tx - 7, gy - 46, 14, 50);
-    ctx.fillStyle = a.leaf;
-    ctx.beginPath(); ctx.arc(tx, gy - 66, 30, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(tx - 22, gy - 52, 20, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(tx + 22, gy - 52, 20, 0, 7); ctx.fill();
-    ctx.fillStyle = a.leaf2;
-    ctx.beginPath(); ctx.arc(tx - 8, gy - 72, 16, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(tx + 14, gy - 62, 12, 0, 7); ctx.fill();
-    if(act.key === 'magic_logs'){
-      ctx.fillStyle = '#bcd8ff';
-      for(let i = 0; i < 4; i++) ctx.fillRect(tx - 20 + ((i * 37 + t) % 40), gy - 80 + (i * 13) % 30, 2, 2);
-    }
+    ctx.save();
+    ctx.translate(tx, gy); ctx.scale(1.7, 1.7); ctx.translate(-tx, -gy);
+    rsDrawTree(ctx, act.key, tx, gy, t);      /* a tree should dwarf the woodcutter */
+    ctx.restore();
     return {x: tx - 20, y: gy - 40};
   }
   if(act.kind === 'mine'){
-    const col = RS_ROCK_ART[act.key] || '#8a8a8a';
-    shadow(30);
-    ctx.fillStyle = '#6e6e76';
-    ctx.beginPath(); ctx.moveTo(tx - 30, gy + 2); ctx.lineTo(tx - 18, gy - 30); ctx.lineTo(tx + 4, gy - 38);
-    ctx.lineTo(tx + 26, gy - 22); ctx.lineTo(tx + 32, gy + 2); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#5a5a62';
-    ctx.beginPath(); ctx.moveTo(tx + 4, gy - 38); ctx.lineTo(tx + 26, gy - 22); ctx.lineTo(tx + 32, gy + 2); ctx.lineTo(tx + 10, gy + 2); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = col;
-    [[-14, -16], [2, -24], [12, -10], [-4, -6], [18, -16]].forEach(function(p){
-      rsRR(ctx, tx + p[0], gy + p[1], 6, 5, 2); ctx.fill();
-    });
+    rsDrawRock(ctx, act.key, tx, gy, t);
     return {x: tx - 24, y: gy - 18};
   }
   if(act.kind === 'fish'){
     const wy = gy - 34;
-    for(let i = 0; i < 3; i++){
-      const rr = 6 + ((t * 0.7 + i * 14) % 26);
-      ctx.strokeStyle = 'rgba(220,240,255,' + (0.55 - rr * 0.018) + ')';
-      ctx.beginPath(); ctx.ellipse(tx, wy + 16, rr, rr * 0.35, 0, 0, 7); ctx.stroke();
-    }
-    if(Math.floor(t / 26) % 3 === 0){
-      rsEmojiPrep(ctx, 13); ctx.fillText('🐟', tx + 18, wy + 12 - Math.sin(t / 4) * 3);
-    }
+    rsDrawFishSpot(ctx, act.key, tx, wy + 16, t);
     return {x: tx - 10, y: wy + 14};
   }
   if(act.kind === 'cook'){
@@ -22931,6 +23442,22 @@ function rsDrawTarget(ctx, W, H, t){
     const fl4 = Math.sin(t / 3) * 2;
     ctx.fillStyle = '#ff8c3a'; ctx.beginPath(); ctx.arc(tx, gy - 1, 6 + fl4, 0, 7); ctx.fill();
     return {x: tx - 26, y: gy - 14};
+  }
+  if(act.kind === 'hunt'){
+    const q = RS_HUNT.find(function(x){ return x.id === act.key; });
+    if(q){
+      /* a baited trap, and the quarry circling it */
+      shadow(20);
+      ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(tx - 16, gy); ctx.lineTo(tx - 6, gy - 22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tx + 16, gy); ctx.lineTo(tx + 6, gy - 22); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#8a6a44'; rsRR(ctx, tx - 12, gy - 28, 24, 8, 3); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; rsRR(ctx, tx - 9, gy - 6, 18, 6, 2); ctx.fill();
+      const away = Math.sin(t / 14) * 30;
+      rsDrawMob(ctx, q.id, tx + 40 + away, gy, 66, t, 0);
+    }
+    return {x: tx - 22, y: gy - 16};
   }
   if(act.kind === 'fight' && r.mob){
     const m = RS_MOBS.find(function(x){ return x.id === r.mob.id; });
@@ -23060,8 +23587,15 @@ function rsDrawHero(ctx, W, H){
   ctx.restore();
   /* the pet trots at your heel */
   if(r.pet && RS_ITEMS[r.pet]){
-    rsEmojiPrep(ctx, 15);
-    ctx.fillText(RS_ITEMS[r.pet].ic, -34, -1 + Math.sin(rsAnimT / 8) * 1.5);
+    if(RS_MOB_ART[r.pet]){
+      ctx.save();
+      ctx.scale(1 / S, 1 / S);                       /* out of hero scale, into pet scale */
+      rsDrawMob(ctx, r.pet, -50 * S, 2 + Math.sin(rsAnimT / 8) * 1.2, 44, rsAnimT, 0);
+      ctx.restore();
+    } else {
+      rsEmojiPrep(ctx, 15);
+      ctx.fillText(RS_ITEMS[r.pet].ic, -34, -1 + Math.sin(rsAnimT / 8) * 1.5);
+    }
   }
   /* shield on the rear arm */
   if(r.equip.shield){

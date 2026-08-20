@@ -1350,13 +1350,28 @@
     .rs-layout{ flex-direction:column; }
     .rs-sidecol{ width:100%; }
     .rs-sidecol .rs-acts{ max-height:none; overflow:visible; }
+    .rs-sidecol .rs-act{ flex:1 1 100%; text-align:left; padding:11px 12px; font-size:13px; }
+    .rs-sidecol .rs-act small{ font-size:11px; }
+    .rs-sidecol .rs-area{ flex:1 1 46%; padding:11px 6px; font-size:13px; }
+    .rs-filt button{ padding:9px 2px; font-size:12px; }
+    .rs-por{ width:30px; height:30px; }
   }
   .rs-chip{ background:#2b251c; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
     border-radius:2px; padding:5px 10px; font-size:12px; font-weight:800; color:#ff981f; }
   .rs-chip b{ color:#ffff00; }
   .rs-areas{ display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
   .rs-sidecol .rs-area{ flex:1 1 30%; padding:8px 6px; font-size:11.5px; text-align:center; }
-  .rs-sidecol .rs-acts{ max-height:132px; overflow-y:auto; }
+  .rs-sidecol .rs-acts{ max-height:250px; overflow-y:auto; }
+  .rs-sect{ flex:1 1 100%; font-size:9.5px; font-weight:800; color:#c9b788; letter-spacing:0.6px;
+    text-transform:uppercase; margin:7px 2px 1px; display:flex; align-items:center; gap:6px; }
+  .rs-sect:first-child{ margin-top:1px; }
+  .rs-sect i{ flex:1; height:1px; background:rgba(201,183,136,0.28); font-style:normal; }
+  .rs-sect b{ color:#8a7a5a; font-weight:800; }
+  .rs-filt{ flex:1 1 100%; display:flex; gap:4px; margin:2px 0 3px; }
+  .rs-filt button{ flex:1; background:#3e3529; border:2px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44;
+    color:#c8b997; font-family:inherit; font-size:10.5px; font-weight:800; padding:5px 2px; cursor:pointer; }
+  .rs-filt button.on{ border-color:#241f17 #6a5d44 #6a5d44 #241f17; background:#2b251c; color:#ff981f; }
+  .rs-hidden-note{ flex:1 1 100%; font-size:9.5px; color:#8a7a5a; text-align:center; margin:3px 0 1px; }
   .rs-sidecol .rs-act{ flex:1 1 44%; text-align:center; }
   .rs-sidecol .rs-panelbox{ min-height:230px; }
   .rs-area{ background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
@@ -3469,6 +3484,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
           <button class="rs-tab" data-rst="quests">⭐</button>
           <button class="rs-tab" data-rst="pray">✨</button>
           <button class="rs-tab" data-rst="clog">📖</button>
+          <button class="rs-tab" data-rst="travel">🗺️</button>
           <button class="rs-tab" data-rst="bank">🏦</button>
           <button class="rs-tab" data-rst="shop">🛒</button>
         </div>
@@ -20178,6 +20194,43 @@ function rsRenderAreas(){
   });
 }
 
+let rsMobFilter = 'fit';                       /* fit | all | task */
+function rsSect(title, n){
+  return '<div class="rs-sect">' + title + (n !== undefined ? ' <b>' + n + '</b>' : '') + '<i></i></div>';
+}
+/* Is this monster worth showing at the player's level? Bosses and anything you
+   are on task for always show; the rest sit inside a window around combat. */
+function rsMobFits(m){
+  const cb = rsCombatLevel();
+  if(rsOnTask(m.id)) return true;
+  if(m.slayReq && rsLvl('slay') < m.slayReq) return false;   /* can't touch it yet */
+  if(m.boss) return true;
+  return m.lvl <= cb + 12 && m.lvl >= Math.max(1, cb * 0.45);
+}
+/* Gathering lists: everything you can already do, plus the next thing to aim
+   for. The rest is summarised so the list stays short without hiding goals. */
+function rsGatherList(table, skill){
+  const lv = rsLvl(skill);
+  const open = table.filter(function(t){ return lv >= t.req; });
+  const shut = table.filter(function(t){ return lv < t.req; }).sort(function(a, b){ return a.req - b.req; });
+  return { show: open.concat(shut.slice(0, 1)), hidden: Math.max(0, shut.length - 1), open: open.length, total: table.length };
+}
+function rsMoreNote(n, skill){
+  if(!n) return '';
+  const d = RS_SKILLS.find(function(x){ return x.id === skill; });
+  return '<div class="rs-hidden-note">' + n + ' more unlock as ' + (d ? d.name : skill) + ' rises</div>';
+}
+/* Suitable must actually stay short — keep the twelve nearest your level. */
+function rsMobShortlist(list){
+  const cb = rsCombatLevel();
+  const keep = list.filter(rsMobFits);
+  if(keep.length <= 12) return keep;
+  const must = keep.filter(function(m){ return rsOnTask(m.id) || m.boss; });
+  const rest = keep.filter(function(m){ return !rsOnTask(m.id) && !m.boss; })
+    .sort(function(a, b){ return Math.abs(a.lvl - cb) - Math.abs(b.lvl - cb); })
+    .slice(0, Math.max(0, 12 - must.length));
+  return list.filter(function(m){ return must.indexOf(m) >= 0 || rest.indexOf(m) >= 0; });
+}
 function rsActButton(on, dis, label, sub, data){
   return '<button class="rs-act' + (on ? ' on' : '') + (dis ? ' dis' : '') + '" ' + data + '>' + label +
          (sub ? '<small>' + sub + '</small>' : '') + '</button>';
@@ -20220,32 +20273,43 @@ function rsRenderActs(){
   const cur = r.act;
   let h = '';
   if(r.area === 'woods'){
-    h = RS_TREES.map(function(t){
+    const gl_wc = rsGatherList(RS_TREES, 'wc');
+    h = rsSect('Trees', gl_wc.open + '/' + gl_wc.total);
+    h += gl_wc.show.map(function(t){
       const can = rsLvl('wc') >= t.req;
       return rsActButton(cur && cur.kind==='chop' && cur.key===t.id, !can, '🌳 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-chop="' + t.id + '"');
-    }).join('');
-    h += RS_HUNT.map(function(t){
+    }).join('') + rsMoreNote(gl_wc.hidden, 'wc');
+    const gl_hunt = rsGatherList(RS_HUNT, 'hunt');
+    h += rsSect('Hunter traps', gl_hunt.open + '/' + gl_hunt.total);
+    h += gl_hunt.show.map(function(t){
       const can = rsLvl('hunt') >= t.req;
       return rsActButton(cur && cur.kind==='hunt' && cur.key===t.id, !can, t.ic + ' ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-hunt="' + t.id + '"');
-    }).join('');
-    h += RS_BURN.filter(function(t){ return rsHave(t.id) > 0; }).map(function(t){
+    }).join('') + rsMoreNote(gl_hunt.hidden, 'hunt');
+    const burnable = RS_BURN.filter(function(t){ return rsHave(t.id) > 0; });
+    if(burnable.length) h += rsSect('Firemaking', burnable.length);
+    h += burnable.map(function(t){
       const can = rsLvl('fm') >= t.req && rsHave(t.id) > 0;
       return rsActButton(cur && cur.kind==='fmburn' && cur.key===t.id, !can, '🔥 Burn ' + RS_ITEMS[t.id].name.replace(' logs','').toLowerCase(),
         rsLvl('fm') < t.req ? 'lvl ' + t.req : 'have ' + rsHave(t.id), 'data-burnlog="' + t.id + '"');
     }).join('');
   } else if(r.area === 'mine'){
-    h = RS_ROCKS.map(function(t){
+    const gl_mine = rsGatherList(RS_ROCKS, 'mine');
+    h = rsSect('Rock seams', gl_mine.open + '/' + gl_mine.total);
+    h += gl_mine.show.map(function(t){
       const can = rsLvl('mine') >= t.req;
       return rsActButton(cur && cur.kind==='mine' && cur.key===t.id, !can, '🪨 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-mine="' + t.id + '"');
-    }).join('');
+    }).join('') + rsMoreNote(gl_mine.hidden, 'mine');
   } else if(r.area === 'river'){
-    h = RS_FISH.map(function(t){
+    const gl_fish = rsGatherList(RS_FISH, 'fish');
+    h = rsSect('Fishing spots', gl_fish.open + '/' + gl_fish.total);
+    h += gl_fish.show.map(function(t){
       const can = rsLvl('fish') >= t.req;
       return rsActButton(cur && cur.kind==='fish' && cur.key===t.id, !can, '🎣 ' + t.name, can ? t.xp + ' xp' : 'lvl ' + t.req, 'data-fish="' + t.id + '"');
-    }).join('');
+    }).join('') + rsMoreNote(gl_fish.hidden, 'fish');
   } else if(r.area === 'town'){
     const busy = function(k){ return cur && cur.kind === k; };
-    h += '<button class="rs-act" data-town="bank">🏦 Bank<small>deposit everything</small></button>';
+    h += rsSect('Workshops');
+    h += '<button class="rs-act" data-town="bank" style="display:none">🏦 Bank<small>deposit everything</small></button>';
     h += '<button class="rs-act' + (busy('cook') ? ' on' : '') + '" data-town="range">🍳 Range<small>' + (busy('cook') ? 'cooking…' : 'Cooking ' + rsLvl('cook')) + '</small></button>';
     h += '<button class="rs-act' + (busy('smelt') ? ' on' : '') + '" data-town="furnace">🔥 Furnace<small>' + (busy('smelt') ? 'smelting…' : 'bars · amulets') + '</small></button>';
     h += '<button class="rs-act' + (busy('forge') ? ' on' : '') + '" data-town="anvil">🔨 Anvil<small>' + (busy('forge') ? 'smithing…' : 'forge gear') + '</small></button>';
@@ -20253,8 +20317,11 @@ function rsRenderActs(){
     h += '<button class="rs-act' + (busy('craft') ? ' on' : '') + '" data-town="bench">🧵 Crafting<small>' + (busy('craft') ? 'working…' : 'Crafting ' + rsLvl('craft')) + '</small></button>';
     h += '<button class="rs-act' + (busy('fletch') ? ' on' : '') + '" data-town="fletch">🎯 Fletching<small>' + (busy('fletch') ? 'working…' : 'Fletching ' + rsLvl('fletch')) + '</small></button>';
     h += '<button class="rs-act' + (busy('steal') ? ' on' : '') + '" data-town="market">🕶️ Market<small>' + (busy('steal') ? 'stealing…' : 'Thieving ' + rsLvl('thief')) + '</small></button>';
+    h += rsSect('Train');
     h += '<button class="rs-act' + (busy('agil') ? ' on' : '') + '" data-town="course">🏃 Rooftops<small>' + (busy('agil') ? 'running…' : 'Agility ' + rsLvl('agil')) + '</small></button>';
     h += '<button class="rs-act' + (busy('build') ? ' on' : '') + '" data-town="build">🔨 Builder\'s Yard<small>' + (busy('build') ? 'working…' : 'Construction ' + rsLvl('con')) + '</small></button>';
+    h += rsSect('Services');
+    h += '<button class="rs-act" data-town="bank">🏦 Bank<small>deposit everything</small></button>';
     const ready = rsPatches().filter(function(p){ return p && p.done; }).length;
     h += '<button class="rs-act" data-town="farm">🌱 Farm patches<small>' + (ready ? ready + ' ready to harvest' : 'Farming ' + rsLvl('farm')) + '</small></button>';
     h += '<button class="rs-act" data-town="altar">✨ Altar<small>restore prayer</small></button>';
@@ -20266,7 +20333,7 @@ function rsRenderActs(){
       h += '<button class="rs-act" data-tower="shop">🎁 Slayer shop<small>' + (sl.pts|0) + ' points</small></button>';
       h += '<button class="rs-act" data-tower="altar">🔮 Rune altar<small>essence → runes</small></button>';
     }
-    const mobs = RS_MOBS.filter(function(m){
+    const allHere = RS_MOBS.filter(function(m){
       if(m.area !== r.area) return false;
       if(m.id === 'bogking') return r.counts.kill_shade >= 15;
       if(m.id === 'boneregent') return (r.counts.kill_ankou||0) >= 10;
@@ -20274,6 +20341,19 @@ function rsRenderActs(){
       if(m.dragon) return (r.counts.kill_demon||0) >= 10;
       return true;
     });
+    const taskHere = allHere.filter(function(m){ return rsOnTask(m.id); }).length;
+    h += '<div class="rs-filt">' +
+      ['fit|⚔ Suitable', 'all|All', 'task|💀 Task'].map(function(o){
+        const k = o.split('|')[0];
+        const dis = k === 'task' && !taskHere;
+        return '<button class="' + (rsMobFilter === k ? 'on' : '') + (dis ? ' dis' : '') +
+          '" data-mfilt="' + k + '"' + (dis ? ' disabled' : '') + '>' + o.split('|')[1] + '</button>';
+      }).join('') + '</div>';
+    const mobs = rsMobFilter === 'task' ? allHere.filter(function(m){ return rsOnTask(m.id); })
+               : rsMobFilter === 'fit'  ? rsMobShortlist(allHere)
+               : allHere;
+
+    h += rsSect(rsMobFilter === 'task' ? 'On task' : 'Monsters', mobs.length + (rsMobFilter === 'all' ? '' : '/' + allHere.length));
     /* Same-named variants (Imp lvl 2 / 7, Goblin lvl 2 / 5 / 13 …) share one
        slot; the slot opens a Choose Option menu to pick the level. */
     const groups = [];
@@ -20301,6 +20381,12 @@ function rsRenderActs(){
         gated ? 'Slayer ' + m.slayReq : 'lvl ' + m.lvl + (onTask ? ' · task' : ''),
         'data-fight="' + m.id + '"');
     }).join('');
+    if(mobs.length < allHere.length){
+      h += '<div class="rs-hidden-note">' + (allHere.length - mobs.length) + ' more here — tap <b>All</b> to see them</div>';
+    }
+    if(!mobs.length){
+      h += '<div class="rs-hidden-note">Nothing matches that filter.</div>';
+    }
     if(r.area === 'mire' && !(r.counts.kill_shade >= 15))
       h += '<button class="rs-act dis">🐸 ???<small>something stirs below</small></button>';
     if(r.area === 'mire' && r.counts.kill_shade >= 15 && !((r.counts.kill_demon||0) >= 10))
@@ -20332,6 +20418,9 @@ function rsRenderActs(){
   });
   box.querySelectorAll('[data-burnlog]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('fmburn', b.dataset.burnlog); }); });
   box.querySelectorAll('[data-hunt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('hunt', b.dataset.hunt); }); });
+  box.querySelectorAll('[data-mfilt]').forEach(function(b){
+    b.addEventListener('click', function(){ rsMobFilter = b.dataset.mfilt; rsRenderActs(); });
+  });
 
   box.querySelectorAll('[data-tower]').forEach(function(b){
     b.addEventListener('click', function(){
@@ -21098,6 +21187,57 @@ function rsRenderPanel(){
       'Random events: <b style="color:#f3e6c8;">' + (r.events|0) + '</b> · ' +
       'Bones buried: <b style="color:#f3e6c8;">' + (r.buried|0) + '</b></div>';
     box.innerHTML = h;
+    return;
+  }
+
+  if(t === 'travel'){
+    /* Everything a place offers, without having to walk there first. */
+    const skillsAt = {
+      woods:  ['wc', 'fm', 'hunt'],
+      mine:   ['mine'],
+      river:  ['fish'],
+      town:   ['cook', 'smith', 'herb', 'craft', 'fletch', 'con', 'thief', 'agil', 'farm'],
+      tower:  ['slay', 'rc'],
+    };
+    const cb = rsCombatLevel();
+    let h = '<div class="rs-ptitle">🗺️ Where to go</div>';
+    h += '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">Combat level ' + cb + '. Everything each place offers, and what is still shut to you.</div><div class="rs-rows">';
+    RS_AREAS.forEach(function(a){
+      const here = r.area === a.id;
+      const locked = (a.id === 'mire' && cb < 40 && !(r.counts.kill_shade > 0)) ||
+                     (a.id === 'tower' && cb < 15 && !(r.slay && r.slay.done > 0)) ||
+                     (a.id === 'cata' && cb < 30 && !(r.counts.kill_skel > 0)) ||
+                     (a.id === 'wild' && cb < 70 && !(r.counts.kill_wildman > 0));
+      const req = a.id === 'mire' ? 40 : a.id === 'tower' ? 15 : a.id === 'cata' ? 30 : a.id === 'wild' ? 70 : 0;
+      const mobs = RS_MOBS.filter(function(m){ return m.area === a.id; });
+      const bits = [];
+      (skillsAt[a.id] || []).forEach(function(sk){
+        const d = RS_SKILLS.find(function(x){ return x.id === sk; });
+        if(d) bits.push(d.ic + ' ' + d.name);
+      });
+      if(mobs.length){
+        const lv = mobs.map(function(m){ return m.lvl; });
+        const fit = mobs.filter(rsMobFits).length;
+        bits.push('⚔ ' + mobs.length + ' monsters, lvl ' + Math.min.apply(null, lv) + '–' + Math.max.apply(null, lv) +
+                  (fit ? ' (' + fit + ' suit you)' : ''));
+      }
+      if(a.id === 'town') bits.push('🏦 bank · 🛒 shop');
+      h += '<div class="rs-row"' + (locked ? ' style="opacity:0.55;"' : '') + '><span>' + a.name.split(' ')[0] + '</span>' +
+        '<div class="grow">' + a.name.replace(/^\S+\s/, '') + (here ? ' <b style="color:#3cd97a;">• you are here</b>' : '') +
+        '<span class="sub">' + (locked ? '🔒 Combat ' + req + ' required' : bits.join(' · ')) + '</span></div>' +
+        (here ? '<span class="qp" style="font-size:10px;color:#3cd97a;">✓</span>'
+              : '<button class="rs-btn' + (locked ? ' dis' : '') + '" data-rstravel="' + a.id + '">Go</button>') + '</div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('[data-rstravel]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.classList.contains('dis')) return;
+        const btn = document.querySelector('[data-rsa="' + b.dataset.rstravel + '"]');
+        if(btn) btn.click();
+        rsPanelTab = 'inv'; rsRenderTabs(); rsRenderPanel();
+      });
+    });
     return;
   }
 
@@ -23357,6 +23497,356 @@ function rsDrawFishSpot(ctx, id, tx, wy, t){
   }
 }
 
+
+/* ------------------------------------------------------------------
+   Town stations. Each is a little scene rather than a coloured box, and
+   every working activity now has one — several had nothing at all.
+   ------------------------------------------------------------------ */
+function rsFireGlow(ctx, x, y, rad, t, warm){
+  const g = ctx.createRadialGradient(x, y, 2, x, y, rad);
+  g.addColorStop(0, warm || 'rgba(255,160,60,0.42)');
+  g.addColorStop(1, 'rgba(255,140,50,0)');
+  ctx.fillStyle = g; ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+}
+function rsFlames(ctx, x, y, w, t, seed){
+  for(let i = 0; i < 4; i++){
+    const p = (i - 1.5) * (w / 4);
+    const hgt = 12 + Math.sin(t / 2.4 + i * 1.7 + (seed || 0)) * 5;
+    ctx.fillStyle = i % 2 ? '#ff8c3a' : '#ffb347';
+    ctx.beginPath();
+    ctx.moveTo(x + p - 4, y);
+    ctx.quadraticCurveTo(x + p - 1, y - hgt * 0.6, x + p, y - hgt);
+    ctx.quadraticCurveTo(x + p + 2, y - hgt * 0.5, x + p + 4, y);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#ffe9a8';
+  ctx.beginPath(); ctx.ellipse(x, y - 3, w * 0.3, 4 + Math.sin(t / 3) * 1.5, 0, 0, 7); ctx.fill();
+}
+function rsSmoke(ctx, x, y, t, alpha){
+  ctx.fillStyle = 'rgba(180,180,185,' + (alpha || 0.32) + ')';
+  for(let i = 0; i < 3; i++){
+    const life = (t * 0.8 + i * 30) % 90;
+    ctx.globalAlpha = Math.max(0, (alpha || 0.32) * (1 - life / 90));
+    ctx.beginPath();
+    ctx.arc(x + Math.sin(life / 13 + i) * 7, y - life * 0.55, 4 + life * 0.07, 0, 7);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function rsPlank(ctx, x, y, w, h, col, dark){
+  ctx.fillStyle = col; rsRR(ctx, x, y, w, h, 2); ctx.fill();
+  ctx.fillStyle = dark || 'rgba(0,0,0,0.18)';
+  ctx.fillRect(x, y + h - 2, w, 2);
+}
+
+function rsStation(ctx, kind, tx, gy, t){
+  ctx.save();
+  ctx.translate(tx, gy); ctx.scale(1.34, 1.34); ctx.translate(-tx, -gy);
+  rsDrawStation(ctx, kind, tx, gy, t);
+  ctx.restore();
+  return null;
+}
+function rsDrawStation(ctx, kind, tx, gy, t){
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(tx, gy + 4, 40, 7, 0, 0, 7); ctx.fill();
+
+  if(kind === 'cook'){                                   /* the Range */
+    rsFireGlow(ctx, tx, gy - 20, 60, t);
+    ctx.fillStyle = '#7a4438'; rsRR(ctx, tx - 34, gy - 46, 68, 50, 4); ctx.fill();
+    ctx.fillStyle = '#8a5040';                            /* brick courses */
+    for(let row = 0; row < 4; row++)
+      for(let c = 0; c < 4; c++)
+        ctx.fillRect(tx - 32 + c * 17 + (row % 2 ? 6 : 0), gy - 44 + row * 12, 14, 10);
+    ctx.fillStyle = '#241a16';
+    ctx.beginPath();
+    ctx.moveTo(tx - 17, gy + 2); ctx.lineTo(tx - 17, gy - 16);
+    ctx.quadraticCurveTo(tx, gy - 32, tx + 17, gy - 16); ctx.lineTo(tx + 17, gy + 2);
+    ctx.closePath(); ctx.fill();
+    rsFlames(ctx, tx, gy - 2, 26, t, 0);
+    ctx.fillStyle = '#4a4a52'; rsRR(ctx, tx - 26, gy - 52, 52, 7, 2); ctx.fill();
+    ctx.fillStyle = '#2f2f36';                            /* pot on the hob */
+    rsRR(ctx, tx - 13, gy - 68, 26, 17, 4); ctx.fill();
+    ctx.fillStyle = '#3f3f48'; rsRR(ctx, tx - 16, gy - 70, 32, 5, 2); ctx.fill();
+    ctx.fillStyle = '#c8d47a';
+    ctx.beginPath(); ctx.ellipse(tx, gy - 67, 10, 3, 0, 0, 7); ctx.fill();
+    rsSmoke(ctx, tx + 2, gy - 72, t, 0.28);
+    return {x: tx - 34, y: gy - 30};
+  }
+
+  if(kind === 'smelt'){                                  /* the Furnace */
+    rsFireGlow(ctx, tx, gy - 22, 70, t);
+    ctx.fillStyle = '#6f6a60';
+    ctx.beginPath();
+    ctx.moveTo(tx - 30, gy + 2); ctx.lineTo(tx - 22, gy - 62); ctx.lineTo(tx + 22, gy - 62);
+    ctx.lineTo(tx + 30, gy + 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#585349';
+    ctx.beginPath();
+    ctx.moveTo(tx + 6, gy - 62); ctx.lineTo(tx + 22, gy - 62); ctx.lineTo(tx + 30, gy + 2); ctx.lineTo(tx + 10, gy + 2);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#4a463e'; rsRR(ctx, tx - 26, gy - 74, 52, 13, 3); ctx.fill();
+    ctx.fillStyle = '#3a362f'; rsRR(ctx, tx - 12, gy - 92, 24, 20, 3); ctx.fill();
+    rsSmoke(ctx, tx, gy - 94, t, 0.4);
+    ctx.fillStyle = '#1c1612';                            /* crucible mouth */
+    rsRR(ctx, tx - 15, gy - 40, 30, 26, 5); ctx.fill();
+    rsFlames(ctx, tx, gy - 16, 24, t, 2);
+    ctx.fillStyle = '#8a6a44';                            /* bellows */
+    ctx.beginPath();
+    ctx.moveTo(tx - 30, gy - 34); ctx.lineTo(tx - 52, gy - 26 - Math.sin(t / 6) * 3);
+    ctx.lineTo(tx - 52, gy - 8 + Math.sin(t / 6) * 3); ctx.lineTo(tx - 30, gy - 16);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#5e4326'; rsRR(ctx, tx - 58, gy - 24, 8, 14, 3); ctx.fill();
+    return {x: tx - 36, y: gy - 26};
+  }
+
+  if(kind === 'forge'){                                  /* the Anvil */
+    ctx.fillStyle = '#6b4a2a'; rsRR(ctx, tx - 16, gy - 18, 32, 22, 3); ctx.fill();
+    ctx.fillStyle = '#5a3d22';
+    for(let i = 0; i < 3; i++) ctx.fillRect(tx - 16, gy - 14 + i * 7, 32, 2);
+    ctx.fillStyle = '#3a3a42';
+    ctx.beginPath();
+    ctx.moveTo(tx - 24, gy - 34); ctx.lineTo(tx + 26, gy - 34); ctx.lineTo(tx + 16, gy - 24);
+    ctx.lineTo(tx - 12, gy - 24); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#4a4a54'; rsRR(ctx, tx - 8, gy - 42, 18, 9, 2); ctx.fill();
+    ctx.fillStyle = '#2c2c34';
+    ctx.beginPath();
+    ctx.moveTo(tx + 26, gy - 34); ctx.lineTo(tx + 40, gy - 30); ctx.lineTo(tx + 26, gy - 26);
+    ctx.closePath(); ctx.fill();                          /* horn */
+    ctx.fillStyle = '#d8a05a';                            /* hot bar on the face */
+    rsRR(ctx, tx - 4, gy - 40, 14, 4, 2); ctx.fill();
+    if(rsSwing > 0.9){
+      ctx.fillStyle = '#ffd84d';
+      for(let i = 0; i < 6; i++){
+        const a = -0.4 - i * 0.32, d = 8 + i * 4;
+        ctx.fillRect(tx + 3 + Math.cos(a) * d, gy - 42 + Math.sin(a) * d, 2.6, 2.6);
+      }
+      rsFireGlow(ctx, tx + 3, gy - 42, 30, t, 'rgba(255,210,120,0.35)');
+    }
+    ctx.fillStyle = '#3f2f22';                            /* quench barrel */
+    rsRR(ctx, tx + 34, gy - 24, 22, 28, 3); ctx.fill();
+    ctx.fillStyle = '#5a4632'; rsRR(ctx, tx + 32, gy - 26, 26, 5, 2); ctx.fill();
+    ctx.fillStyle = '#3f6f9e'; ctx.beginPath(); ctx.ellipse(tx + 45, gy - 22, 9, 3, 0, 0, 7); ctx.fill();
+    return {x: tx - 30, y: gy - 36};
+  }
+
+  if(kind === 'brew'){                                   /* the Cauldron */
+    ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 3;       /* tripod */
+    [[-22, 0], [22, 0]].forEach(function(p){
+      ctx.beginPath(); ctx.moveTo(tx + p[0], gy + 2); ctx.lineTo(tx, gy - 44); ctx.stroke();
+    });
+    ctx.lineWidth = 1;
+    rsFireGlow(ctx, tx, gy - 6, 40, t, 'rgba(120,220,120,0.28)');
+    rsFlames(ctx, tx, gy + 1, 20, t, 1);
+    ctx.fillStyle = '#2c2c31';
+    ctx.beginPath(); ctx.ellipse(tx, gy - 22, 24, 18, 0, 0, 7); ctx.fill();
+    ctx.fillRect(tx - 24, gy - 30, 48, 10);
+    ctx.fillStyle = '#3a3a40'; rsRR(ctx, tx - 28, gy - 34, 56, 6, 2); ctx.fill();
+    ctx.fillStyle = '#57b04a';
+    ctx.beginPath(); ctx.ellipse(tx, gy - 32, 21, 5, 0, 0, 7); ctx.fill();
+    for(let i = 0; i < 4; i++){
+      const bub = (t * 1.3 + i * 19) % 30;
+      ctx.fillStyle = 'rgba(150,230,130,' + Math.max(0, 0.7 - bub * 0.024).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(tx - 11 + i * 7, gy - 34 - bub * 0.7, 2.6, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = '#6b4a2a'; rsRR(ctx, tx + 34, gy - 30, 26, 32, 2); ctx.fill();
+    ['#8ab4ff', '#e05a7a', '#c8d47a'].forEach(function(c, i){   /* shelf of phials */
+      ctx.fillStyle = c; rsRR(ctx, tx + 38 + i * 7, gy - 26 + (i % 2) * 14, 5, 10, 2); ctx.fill();
+    });
+    return {x: tx - 30, y: gy - 30};
+  }
+
+  if(kind === 'craft'){                                  /* Crafting bench */
+    ctx.fillStyle = '#7a5a34'; rsPlank(ctx, tx - 40, gy - 30, 80, 10, '#8a6a3e');
+    ctx.fillStyle = '#5e4326';
+    ctx.fillRect(tx - 34, gy - 20, 8, 22); ctx.fillRect(tx + 26, gy - 20, 8, 22);
+    ctx.fillStyle = '#a8703a';                            /* hide stretched on the bench */
+    ctx.beginPath();
+    ctx.moveTo(tx - 26, gy - 32); ctx.lineTo(tx - 4, gy - 38); ctx.lineTo(tx + 16, gy - 32);
+    ctx.lineTo(tx + 6, gy - 30); ctx.lineTo(tx - 16, gy - 30); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#c08a4a';
+    ctx.beginPath(); ctx.ellipse(tx - 6, gy - 33, 10, 3, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#e8e0cc'; ctx.lineWidth = 1.4;     /* needle + thread */
+    ctx.beginPath();
+    ctx.moveTo(tx + 14, gy - 34);
+    ctx.quadraticCurveTo(tx + 22, gy - 44 - Math.sin(t / 5) * 3, tx + 30, gy - 34);
+    ctx.stroke(); ctx.lineWidth = 1;
+    [['#4a7fd8', -30], ['#c0392b', -22], ['#e8e8f0', -14]].forEach(function(g, i){  /* cut gems */
+      ctx.fillStyle = g[0];
+      ctx.beginPath();
+      ctx.moveTo(tx + g[1] + 34, gy - 36); ctx.lineTo(tx + g[1] + 38, gy - 32);
+      ctx.lineTo(tx + g[1] + 34, gy - 28); ctx.lineTo(tx + g[1] + 30, gy - 32);
+      ctx.closePath(); ctx.fill();
+    });
+    return {x: tx - 34, y: gy - 34};
+  }
+
+  if(kind === 'fletch'){                                 /* Fletching table */
+    rsPlank(ctx, tx - 40, gy - 30, 80, 10, '#8a6a3e');
+    ctx.fillStyle = '#5e4326';
+    ctx.fillRect(tx - 34, gy - 20, 8, 22); ctx.fillRect(tx + 26, gy - 20, 8, 22);
+    ctx.strokeStyle = '#8a6a42'; ctx.lineWidth = 4;       /* stave in the clamp */
+    ctx.beginPath();
+    ctx.moveTo(tx - 26, gy - 32); ctx.quadraticCurveTo(tx - 4, gy - 58, tx + 20, gy - 34);
+    ctx.stroke(); ctx.lineWidth = 1;
+    ctx.fillStyle = '#4a4a52'; rsRR(ctx, tx - 30, gy - 38, 10, 10, 2); ctx.fill();
+    ctx.strokeStyle = '#c8bfa0'; ctx.lineWidth = 1.2;     /* bowstring */
+    ctx.beginPath(); ctx.moveTo(tx - 25, gy - 33); ctx.lineTo(tx + 19, gy - 35); ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#c8a86a';                            /* bundle of shafts */
+    for(let i = 0; i < 5; i++) ctx.fillRect(tx + 24 + i * 3, gy - 46 + (i % 2) * 2, 2, 16);
+    ctx.fillStyle = '#e8e4d8';
+    for(let i = 0; i < 5; i++){
+      ctx.beginPath();
+      ctx.moveTo(tx + 25 + i * 3, gy - 46 + (i % 2) * 2);
+      ctx.lineTo(tx + 22 + i * 3, gy - 52 + (i % 2) * 2);
+      ctx.lineTo(tx + 27 + i * 3, gy - 50 + (i % 2) * 2);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#8f96a0';                            /* knife */
+    ctx.beginPath();
+    ctx.moveTo(tx - 12, gy - 32); ctx.lineTo(tx + 4, gy - 36); ctx.lineTo(tx + 4, gy - 33);
+    ctx.lineTo(tx - 12, gy - 30); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#5e4326'; rsRR(ctx, tx - 20, gy - 33, 9, 5, 2); ctx.fill();
+    return {x: tx - 34, y: gy - 34};
+  }
+
+  if(kind === 'rc'){                                     /* Rune altar */
+    const pulse = 0.5 + Math.abs(Math.sin(t / 11)) * 0.5;
+    const g = ctx.createRadialGradient(tx, gy - 44, 4, tx, gy - 44, 70);
+    g.addColorStop(0, 'rgba(150,180,255,' + (0.30 * pulse).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(150,180,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(tx - 70, gy - 114, 140, 140);
+    ctx.fillStyle = '#5a5468';                            /* standing stones */
+    [-34, 34].forEach(function(dx){
+      ctx.beginPath();
+      ctx.moveTo(tx + dx - 8, gy + 2); ctx.lineTo(tx + dx - 6, gy - 52);
+      ctx.lineTo(tx + dx + 7, gy - 48); ctx.lineTo(tx + dx + 9, gy + 2);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.fillStyle = '#6f6880'; rsRR(ctx, tx - 26, gy - 30, 52, 32, 3); ctx.fill();
+    ctx.fillStyle = '#585067'; rsRR(ctx, tx - 30, gy - 36, 60, 8, 2); ctx.fill();
+    ctx.fillStyle = 'rgba(200,220,255,' + (0.55 * pulse).toFixed(2) + ')';
+    [[-14, -22], [0, -26], [13, -22], [-6, -14], [7, -14]].forEach(function(p){
+      ctx.beginPath(); ctx.arc(tx + p[0], gy + p[1], 3, 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = 'rgba(226,235,255,0.85)';             /* essence orbiting */
+    for(let i = 0; i < 4; i++){
+      const a = t / 16 + i * 1.57;
+      ctx.beginPath();
+      ctx.arc(tx + Math.cos(a) * 30, gy - 50 + Math.sin(a) * 9, 3.2, 0, 7);
+      ctx.fill();
+    }
+    return {x: tx - 32, y: gy - 34};
+  }
+
+  if(kind === 'build'){                                  /* Builder's Yard */
+    ctx.fillStyle = '#8a6a3e';                            /* sawhorse */
+    ctx.fillRect(tx - 30, gy - 26, 44, 6);
+    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 4;
+    [[-26, -20, -32, 2], [-26, -20, -18, 2], [8, -20, 2, 2], [8, -20, 14, 2]].forEach(function(l){
+      ctx.beginPath(); ctx.moveTo(tx + l[0], gy + l[1]); ctx.lineTo(tx + l[2], gy + l[3]); ctx.stroke();
+    });
+    ctx.lineWidth = 1;
+    rsPlank(ctx, tx - 34, gy - 32, 52, 7, '#c8a86a');      /* plank being cut */
+    ctx.fillStyle = '#9aa2ad';                            /* saw */
+    ctx.save(); ctx.translate(tx - 6 + Math.sin(t / 4) * 5, gy - 36); ctx.rotate(-0.12);
+    ctx.fillRect(0, 0, 26, 4);
+    ctx.fillStyle = '#5e4326'; rsRR(ctx, 26, -2, 9, 8, 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#a8834a';                            /* stacked planks */
+    for(let i = 0; i < 4; i++) rsPlank(ctx, tx + 24, gy - 8 - i * 7, 34, 6, i % 2 ? '#b8935a' : '#a8834a');
+    ctx.fillStyle = '#6f6f78';                            /* stone blocks */
+    ctx.fillRect(tx + 30, gy - 34, 14, 12); ctx.fillRect(tx + 45, gy - 34, 14, 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(tx + 30, gy - 34, 14, 3); ctx.fillRect(tx + 45, gy - 34, 14, 3);
+    if(rsSwing > 0.9){
+      ctx.fillStyle = '#e8d8b0';
+      for(let i = 0; i < 4; i++) ctx.fillRect(tx - 10 + i * 5, gy - 28 + (i % 2) * 3, 2, 2);
+    }
+    return {x: tx - 34, y: gy - 34};
+  }
+
+  if(kind === 'steal'){                                  /* Market stall */
+    ctx.fillStyle = '#6b4a2a';                            /* posts */
+    ctx.fillRect(tx - 40, gy - 54, 6, 56); ctx.fillRect(tx + 34, gy - 54, 6, 56);
+    ctx.fillStyle = '#8a6a3e'; rsPlank(ctx, tx - 42, gy - 28, 84, 9, '#9a7a4a');
+    ctx.fillStyle = '#c0392b';                            /* striped awning */
+    ctx.beginPath();
+    ctx.moveTo(tx - 46, gy - 54); ctx.lineTo(tx + 46, gy - 54);
+    ctx.lineTo(tx + 40, gy - 42); ctx.lineTo(tx - 40, gy - 42); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e8e0d0';
+    for(let i = 0; i < 4; i++){
+      ctx.beginPath();
+      ctx.moveTo(tx - 40 + i * 22, gy - 54); ctx.lineTo(tx - 30 + i * 22, gy - 54);
+      ctx.lineTo(tx - 26 + i * 22, gy - 42); ctx.lineTo(tx - 36 + i * 22, gy - 42);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#5e4326'; rsRR(ctx, tx - 46, gy - 57, 92, 5, 2); ctx.fill();
+    /* goods on the counter */
+    ctx.fillStyle = '#d8a05a'; ctx.beginPath(); ctx.arc(tx - 26, gy - 34, 6, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(tx - 15, gy - 34, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = '#7a4a8a'; rsRR(ctx, tx - 2, gy - 40, 16, 12, 2); ctx.fill();
+    ctx.fillStyle = '#c8b04a'; rsRR(ctx, tx + 20, gy - 38, 14, 10, 2); ctx.fill();
+    ctx.fillStyle = '#e8d84a';
+    ctx.beginPath(); ctx.arc(tx + 27, gy - 42, 4, 0, 7); ctx.fill();
+    /* the shopkeeper's eye-line, sweeping */
+    const look = Math.sin(t / 18);
+    ctx.fillStyle = 'rgba(255,220,120,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(tx + 40, gy - 40);
+    ctx.lineTo(tx - 10 + look * 26, gy - 8);
+    ctx.lineTo(tx - 24 + look * 26, gy - 8);
+    ctx.closePath(); ctx.fill();
+    return {x: tx - 36, y: gy - 34};
+  }
+
+  if(kind === 'agil'){                                   /* Agility course */
+    /* the hero stands on the ground, so this is an obstacle run, not a roof */
+    ctx.fillStyle = '#6b4a2a';                            /* vault frame */
+    ctx.fillRect(tx - 58, gy - 40, 6, 42); ctx.fillRect(tx - 26, gy - 40, 6, 42);
+    ctx.fillStyle = '#8a6a3e'; rsPlank(ctx, tx - 62, gy - 44, 44, 7, '#9a7a4a');
+    ctx.fillStyle = '#5e4326'; rsPlank(ctx, tx - 58, gy - 22, 38, 5, '#6b542f');
+    /* balance beam on low posts */
+    ctx.fillStyle = '#6b4a2a';
+    ctx.fillRect(tx - 8, gy - 16, 6, 18); ctx.fillRect(tx + 34, gy - 16, 6, 18);
+    ctx.save();
+    ctx.translate(tx + 16, gy - 20); ctx.rotate(Math.sin(t / 11) * 0.012);
+    rsPlank(ctx, -32, -4, 64, 8, '#a8834a');
+    ctx.restore();
+    /* swinging rope */
+    ctx.strokeStyle = '#8a7a5a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    const sw = Math.sin(t / 9) * 10;
+    ctx.beginPath();
+    ctx.moveTo(tx + 4, gy - 74);
+    ctx.quadraticCurveTo(tx + 4 + sw * 0.5, gy - 54, tx + 4 + sw, gy - 34);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#6b4a2a'; ctx.fillRect(tx - 34, gy - 78, 78, 6);   /* crossbar */
+    ctx.fillStyle = '#5e4326';
+    ctx.fillRect(tx - 36, gy - 78, 7, 78); ctx.fillRect(tx + 38, gy - 78, 7, 78);
+    ctx.fillStyle = '#8a6a3e';                            /* rope knot */
+    ctx.beginPath(); ctx.arc(tx + 4 + sw, gy - 32, 4.5, 0, 7); ctx.fill();
+    /* hurdles beyond */
+    ctx.fillStyle = '#7a5a34';
+    [58, 78].forEach(function(dx, i){
+      ctx.fillRect(tx + dx, gy - 24 - i * 5, 4, 26 + i * 5);
+      ctx.fillRect(tx + dx + 14, gy - 24 - i * 5, 4, 26 + i * 5);
+      rsPlank(ctx, tx + dx - 2, gy - 26 - i * 5, 22, 5, '#9a7a4a');
+    });
+    /* a mark of grace, glinting on the beam */
+    if(Math.floor(t / 40) % 2 === 0){
+      ctx.globalAlpha = 0.55 + Math.abs(Math.sin(t / 5)) * 0.45;
+      const g = ctx.createRadialGradient(tx + 20, gy - 30, 1, tx + 20, gy - 30, 16);
+      g.addColorStop(0, 'rgba(255,225,120,0.55)'); g.addColorStop(1, 'rgba(255,225,120,0)');
+      ctx.fillStyle = g; ctx.fillRect(tx + 4, gy - 46, 32, 32);
+      ctx.fillStyle = '#e8c84a';
+      ctx.beginPath(); ctx.arc(tx + 20, gy - 30, 5, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    return {x: tx - 40, y: gy - 34};
+  }
+  return null;
+}
+
 function rsDrawTarget(ctx, W, H, t){
   const r = rsEnsure();
   const act = r.act;
@@ -23382,37 +23872,9 @@ function rsDrawTarget(ctx, W, H, t){
     rsDrawFishSpot(ctx, act.key, tx, wy + 16, t);
     return {x: tx - 10, y: wy + 14};
   }
-  if(act.kind === 'cook'){
-    shadow(24);
-    ctx.fillStyle = '#8a4a3a'; ctx.fillRect(tx - 22, gy - 26, 44, 30);   /* brick range */
-    ctx.fillStyle = '#6e3a2e';
-    for(let i = 0; i < 3; i++) ctx.fillRect(tx - 22, gy - 26 + i * 10, 44, 2);
-    ctx.fillStyle = '#241f17'; ctx.fillRect(tx - 12, gy - 18, 24, 16);
-    const fl = Math.sin(t / 3) * 2;
-    ctx.fillStyle = '#ff8c3a'; ctx.beginPath(); ctx.arc(tx, gy - 8, 7 + fl, 0, 7); ctx.fill();
-    ctx.fillStyle = '#ffd84d'; ctx.beginPath(); ctx.arc(tx, gy - 9, 4 + fl * 0.5, 0, 7); ctx.fill();
-    return {x: tx - 26, y: gy - 16};
-  }
-  if(act.kind === 'smelt'){
-    shadow(26);
-    ctx.fillStyle = '#7a7368';
-    ctx.beginPath(); ctx.moveTo(tx - 24, gy + 4); ctx.lineTo(tx - 16, gy - 44); ctx.lineTo(tx + 16, gy - 44); ctx.lineTo(tx + 24, gy + 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#241f17'; rsRR(ctx, tx - 10, gy - 20, 20, 20, 3); ctx.fill();
-    const fl2 = Math.sin(t / 3 + 1) * 2;
-    ctx.fillStyle = '#ff8c3a'; ctx.beginPath(); ctx.arc(tx, gy - 8, 6 + fl2, 0, 7); ctx.fill();
-    ctx.fillStyle = 'rgba(120,120,120,0.5)';
-    rsRR(ctx, tx - 4 + Math.sin(t / 8) * 3, gy - 62 - (t % 20), 8, 6, 3); ctx.fill();
-    return {x: tx - 28, y: gy - 14};
-  }
-  if(act.kind === 'forge'){
-    shadow(24);
-    ctx.fillStyle = '#6b4a2a'; ctx.fillRect(tx - 12, gy - 14, 24, 18);   /* stump */
-    ctx.fillStyle = '#3a3a40';                                            /* anvil */
-    ctx.beginPath(); ctx.moveTo(tx - 20, gy - 22); ctx.lineTo(tx + 22, gy - 22); ctx.lineTo(tx + 14, gy - 14); ctx.lineTo(tx - 12, gy - 14); ctx.closePath(); ctx.fill();
-    ctx.fillRect(tx - 4, gy - 30, 12, 8);
-    if(rsSwing > 0.9){ ctx.fillStyle = '#ffd84d'; for(let i = 0; i < 3; i++) ctx.fillRect(tx - 8 + i * 9, gy - 34 - (i % 2) * 5, 3, 3); }
-    return {x: tx - 26, y: gy - 24};
-  }
+  if(act.kind === 'cook') return rsStation(ctx, 'cook', tx, gy, t);
+  if(act.kind === 'smelt') return rsStation(ctx, 'smelt', tx, gy, t);
+  if(act.kind === 'forge') return rsStation(ctx, 'forge', tx, gy, t);
   if(act.kind === 'fmburn'){
     shadow(20);
     ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 4;
@@ -23426,23 +23888,13 @@ function rsDrawTarget(ctx, W, H, t){
     rsRR(ctx, tx - 3 + Math.sin(t / 7) * 4, gy - 44 - (t % 26), 7, 5, 3); ctx.fill();
     return {x: tx - 22, y: gy - 12};
   }
-  if(act.kind === 'brew'){
-    shadow(22);
-    ctx.fillStyle = '#2c2c31';
-    ctx.beginPath(); ctx.ellipse(tx, gy - 16, 20, 14, 0, 0, 7); ctx.fill();
-    ctx.fillRect(tx - 20, gy - 16, 40, 12);
-    ctx.fillStyle = '#3a3a40'; ctx.fillRect(tx - 24, gy - 20, 48, 5);
-    ctx.fillStyle = '#57b04a';
-    ctx.beginPath(); ctx.ellipse(tx, gy - 19, 17, 4.5, 0, 0, 7); ctx.fill();
-    for(let i = 0; i < 3; i++){
-      const bub = (t * 1.3 + i * 23) % 30;
-      ctx.fillStyle = 'rgba(140,220,120,' + (0.6 - bub * 0.02) + ')';
-      ctx.beginPath(); ctx.arc(tx - 8 + i * 8, gy - 22 - bub * 0.6, 2.5, 0, 7); ctx.fill();
-    }
-    const fl4 = Math.sin(t / 3) * 2;
-    ctx.fillStyle = '#ff8c3a'; ctx.beginPath(); ctx.arc(tx, gy - 1, 6 + fl4, 0, 7); ctx.fill();
-    return {x: tx - 26, y: gy - 14};
-  }
+  if(act.kind === 'brew') return rsStation(ctx, 'brew', tx, gy, t);
+  if(act.kind === 'craft')  return rsStation(ctx, 'craft',  tx, gy, t);
+  if(act.kind === 'fletch') return rsStation(ctx, 'fletch', tx, gy, t);
+  if(act.kind === 'rc')     return rsStation(ctx, 'rc',     tx, gy, t);
+  if(act.kind === 'build')  return rsStation(ctx, 'build',  tx, gy, t);
+  if(act.kind === 'steal')  return rsStation(ctx, 'steal',  tx, gy, t);
+  if(act.kind === 'agil')   return rsStation(ctx, 'agil',   tx, gy, t);
   if(act.kind === 'hunt'){
     const q = RS_HUNT.find(function(x){ return x.id === act.key; });
     if(q){
@@ -23511,6 +23963,9 @@ function rsHeldKind(){
     if(act.kind === 'fish') return 'rod';
     if(act.kind === 'forge') return 'hammer';
     if(act.kind === 'cook' || act.kind === 'smelt' || act.kind === 'brew') return 'spatula';
+    if(act.kind === 'build') return 'hammer';
+    if(act.kind === 'craft' || act.kind === 'fletch') return 'sword';
+    if(act.kind === 'rc' || act.kind === 'steal' || act.kind === 'agil') return null;
     if(act.kind === 'fmburn') return null;
     if(act.kind === 'fight') return weaponArt();
   }

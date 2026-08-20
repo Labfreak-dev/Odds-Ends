@@ -1366,7 +1366,7 @@
   .rs-area.locked{ opacity:.45; }
   .rs-scene-wrap{ position:relative; border:3px solid; border-color:#6a5d44 #241f17 #241f17 #6a5d44; overflow:hidden; background:#1d1812; }
   #rsScene{ width:100%; display:block; }
-  .rs-acts{ display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; }
+  .rs-acts{ display:flex; gap:5px; flex-wrap:wrap; margin:8px 0; position:relative; }
   .rs-act{ background:linear-gradient(180deg,#554833,#3e3529); border:2px solid;
     border-color:#6a5d44 #241f17 #241f17 #6a5d44; border-radius:2px; color:#ffff00; padding:7px 10px;
     font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer; }
@@ -18710,20 +18710,40 @@ const RS_FORGE = (function(){
 /* ---- Monsters ---- */
 const RS_MOBS = [
   {id:'chicken', name:'Chicken',      ic:'🐔', lvl:1,  hp:3,   atk:1,  def:1,  max:1, xp:12,  area:'fields', drops:[['bones',1,1],['coins',1,4],['feather',3,8]]},
-  {id:'imp',     name:'Imp',          ic:'👿', lvl:5,  hp:8,   atk:3,  def:3,  max:1, xp:30,  area:'fields', drops:[['bones',1,1],['coins',2,8]]},
+  {id:'imp',     name:'Imp',          ic:'👿', lvl:2,  hp:8,   atk:3,  def:3,  max:1, xp:30,  area:'fields', drops:[['bones',1,1],['coins',2,8]]},
+  {id:'imp7',    name:'Imp',          ic:'👿', lvl:7,  hp:10,  atk:4,  def:3,  max:1, xp:36,  area:'fields', drops:[['coins',2,14],['ashes',1,1],['bronze_arrow',0,4,0.3]]},
   {id:'man',     name:'Man',          ic:'🧍', lvl:2,  hp:7,   atk:1,  def:1,  max:1, xp:14,  area:'fields', drops:[['bones',1,1],['coins',1,15]]},
-  {id:'imp',     name:'Imp',          ic:'👿', lvl:7,  hp:10,  atk:4,  def:3,  max:1, xp:30,  area:'fields', drops:[['coins',2,14],['ashes',1,1],['bronze_arrow',0,4,0.3]]},
   {id:'unicorn', name:'Unicorn',      ic:'🦄', lvl:15, hp:19,  atk:8,  def:10, max:2, xp:56,  area:'fields', drops:[['bones',1,1],['coins',5,25],['white_berries',0,1,0.15]]},
   {id:'blackkn', name:'Black Knight', ic:'♞',  lvl:33, hp:42,  atk:26, def:26, max:5, xp:140, area:'fields', drops:[['bones',1,1],['coins',25,90],['steel_sword',0,1,0.04],['steel_helm',0,1,0.03]]},
   {id:'rat',     name:'Giant Rat',    ic:'🐀', lvl:3,  hp:6,   atk:2,  def:2,  max:1, xp:18,  area:'fields', drops:[['bones',1,1],['coins',1,6]]},
+  {id:'rat6',    name:'Giant Rat',    ic:'🐀', lvl:6,  hp:10,  atk:4,  def:3,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',2,10]]},
+  {id:'spider',  name:'Giant Spider', ic:'🕷️', lvl:2,  hp:5,   atk:2,  def:1,  max:1, xp:16,  area:'fields', drops:[['coins',1,5]]},
+  {id:'spider27',name:'Giant Spider', ic:'🕷️', lvl:27, hp:32,  atk:21, def:18, max:5, xp:110, area:'fields', drops:[['coins',10,36]]},
+  {id:'hwman',   name:'Highwayman',   ic:'🦹', lvl:5,  hp:9,   atk:4,  def:3,  max:1, xp:28,  area:'fields', drops:[['bones',1,1],['coins',4,20]]},
+  {id:'farmer',  name:'Farmer',       ic:'👨‍🌾', lvl:7,  hp:12,  atk:5,  def:4,  max:1, xp:34,  area:'fields', drops:[['bones',1,1],['coins',3,15],['potato_seed',0,2,0.35],['onion_seed',0,1,0.2]]},
+  {id:'wizard',  name:'Wizard',       ic:'🧙', lvl:9,  hp:14,  atk:6,  def:5,  max:2, xp:40,  area:'fields', drops:[['bones',1,1],['coins',4,18],['air_rune',2,6,0.5],['water_rune',0,4,0.3]]},
+  {id:'darkwiz', name:'Dark Wizard',  ic:'🧛', lvl:7,  hp:11,  atk:5,  def:4,  max:2, xp:32,  area:'fields', drops:[['bones',1,1],['coins',3,14],['chaos_rune',0,3,0.25]]},
+  {id:'darkwiz20',name:'Dark Wizard', ic:'🧛', lvl:20, hp:24,  atk:16, def:13, max:4, xp:74,  area:'fields', drops:[['bones',1,1],['coins',10,34],['chaos_rune',2,6,0.4],['nature_rune',0,3,0.2],['law_rune',0,2,0.1]]},
+  {id:'barb',    name:'Barbarian',    ic:'🪓', lvl:10, hp:15,  atk:8,  def:6,  max:2, xp:44,  area:'fields', drops:[['bones',1,1],['coins',5,22],['iron_ore',0,1,0.15]]},
+  {id:'dwarf',   name:'Dwarf',        ic:'🧔', lvl:10, hp:16,  atk:7,  def:7,  max:2, xp:44,  area:'fields', drops:[['bones',1,1],['coins',6,24],['copper_ore',0,2,0.25],['bronze_bar',0,1,0.15]]},
+  {id:'bear',    name:'Bear',         ic:'🐻', lvl:19, hp:26,  atk:14, def:11, max:3, xp:68,  area:'fields', drops:[['bones',1,1],['coins',6,20]]},
+  {id:'grizzly', name:'Bear',         ic:'🐻', lvl:21, hp:30,  atk:16, def:13, max:4, xp:78,  area:'fields', drops:[['bones',1,1],['coins',8,26]]},
+  {id:'hob',     name:'Hobgoblin',    ic:'👹', lvl:28, hp:34,  atk:22, def:18, max:5, xp:116, area:'fields', drops:[['bones',1,1],['coins',12,42],['limpwurt_root',0,1,0.35]]},
+  {id:'hob42',   name:'Hobgoblin',    ic:'👹', lvl:42, hp:50,  atk:32, def:28, max:7, xp:190, area:'fields', drops:[['bones',1,1],['coins',20,66],['limpwurt_root',0,2,0.4]]},
+  {id:'whitekn', name:'White Knight', ic:'♘',  lvl:38, hp:46,  atk:30, def:30, max:6, xp:165, area:'fields', drops:[['bones',1,1],['coins',28,100],['steel_shield',0,1,0.03],['steel_legs',0,1,0.03]]},
+  {id:'ogre',    name:'Ogre',         ic:'👹', lvl:53, hp:62,  atk:42, def:36, max:8, xp:250, area:'fields', drops:[['big_bones',1,1],['coins',36,120],['ruby',0,1,0.05]]},
   {id:'scorp',   name:'Scorpion',     ic:'🦂', lvl:14, hp:16,  atk:11, def:9,  max:3, xp:52,  area:'fields', drops:[['bones',1,1],['coins',6,24]]},
   {id:'bandit',  name:'Bandit',       ic:'🏴', lvl:34, hp:38,  atk:28, def:24, max:6, xp:145, area:'fields', drops:[['bones',1,1],['coins',30,110],['sapphire',0,1,0.05]]},
   {id:'goblin',  name:'Goblin',       ic:'👺', lvl:2,  hp:5,   atk:1,  def:1,  max:1, xp:20,  area:'fields', drops:[['bones',1,1],['coins',2,9]]},
+  {id:'goblin5', name:'Goblin',       ic:'👺', lvl:5,  hp:9,   atk:3,  def:3,  max:1, xp:28,  area:'fields', drops:[['bones',1,1],['coins',3,13]]},
+  {id:'goblin13',name:'Goblin',       ic:'👺', lvl:13, hp:17,  atk:10, def:8,  max:3, xp:50,  area:'fields', drops:[['bones',1,1],['coins',5,20],['bronze_sword',0,1,0.05]]},
   {id:'cow',     name:'Cow',          ic:'🐄', lvl:2,  hp:8,   atk:1,  def:1,  max:2, xp:26,  area:'fields', drops:[['bones',1,1],['coins',3,12],['cowhide',1,1]]},
   {id:'guard',   name:'Guard',        ic:'💂', lvl:21, hp:22,  atk:18, def:16, max:4, xp:70,  area:'fields', drops:[['bones',1,1],['coins',12,40]]},
   {id:'hillg',   name:'Hill Giant',   ic:'🗿', lvl:28, hp:35,  atk:22, def:20, max:6, xp:120, area:'fields', drops:[['big_bones',1,1],['coins',20,80],['sapphire',0,1,0.06]]},
   {id:'mossg',   name:'Moss Giant',   ic:'🦍', lvl:42, hp:60,  atk:34, def:32, max:8, xp:200, area:'fields', drops:[['big_bones',1,1],['coins',40,140],['ruby',0,1,0.05]]},
   {id:'demon',   name:'Lesser Demon', ic:'😈', lvl:82, hp:79,  atk:62, def:58, max:11,xp:420, area:'fields', drops:[['big_bones',1,1],['coins',90,320],['diamond',0,1,0.05]]},
+  {id:'giantfrog',name:'Giant Frog',  ic:'🐸', lvl:52, hp:60,  atk:40, def:36, max:8, xp:245, area:'mire',   drops:[['big_bones',1,1],['coins',26,90]]},
+  {id:'mogre',   name:'Mogre',        ic:'🧜', lvl:60, hp:68,  atk:46, def:42, max:9, xp:310, area:'mire',   drops:[['big_bones',1,1],['coins',50,160],['raw_sword',0,1,0.2],['raw_lobster',0,2,0.25]]},
   {id:'shade',   name:'Mire Shade',   ic:'👻', lvl:60, hp:55,  atk:48, def:40, max:9, xp:340, area:'mire',   drops:[['big_bones',1,1],['coins',120,420],['ruby',0,1,0.10],['diamond',0,1,0.04]]},
   {id:'greend',  name:'Green Dragon', ic:'🐲', lvl:79, hp:75,  atk:60, def:56, max:10,xp:400, area:'mire',   drops:[['dragon_bones',1,1],['coins',120,400],['ruby',0,1,0.06],['diamond',0,1,0.04],['dragon_sword',0,1,0.015],['dragon_axe',0,1,0.01],['dragon_pick',0,1,0.01]]},
   {id:'bogking', name:'The Bog King', ic:'🐸', lvl:90, hp:180, atk:70, def:62, max:14,xp:1500,area:'mire',   drops:[['big_bones',1,1],['coins',900,2600],['diamond',1,2]], boss:true},
@@ -18742,13 +18762,27 @@ const RS_MOBS = [
   {id:'kurask',  name:'Kurask',       ic:'🦬', lvl:88, hp:100, atk:66, def:60, max:11,xp:490, area:'tower',  slayReq:70, drops:[['big_bones',1,1],['coins',130,400],['leaf_blade',0,1,0.017],['grimy_kwuarm',0,1,0.12]]},
   {id:'nechry',  name:'Nechryael',    ic:'👾', lvl:105,hp:120, atk:74, def:68, max:13,xp:580, area:'tower',  slayReq:80, drops:[['big_bones',1,1],['coins',180,520],['rune_bar',0,1,0.08],['addy_bar',0,2,0.15],['rune_scim',0,1,0.02]]},
   {id:'darkbeast',name:'Dark Beast',  ic:'🦣', lvl:120,hp:140, atk:82, def:74, max:14,xp:680, area:'tower',  slayReq:90, drops:[['big_bones',1,1],['coins',220,640],['diamond',0,1,0.1],['yew_logs',0,4,0.2],['dark_bow',0,1,0.01]]},
+  {id:'cavebug', name:'Cave Bug',     ic:'🪲', lvl:12, hp:16,  atk:8,  def:7,  max:2, xp:48,  area:'tower',  slayReq:7,  drops:[['coins',4,16],['guam_seed',0,1,0.15]]},
+  {id:'pyrefiend',name:'Pyrefiend',   ic:'🔥', lvl:43, hp:48,  atk:34, def:28, max:7, xp:196, area:'tower',  slayReq:30, drops:[['bones',1,1],['coins',24,80],['fire_rune',3,9,0.4],['coal',0,2,0.2]]},
+  {id:'infmage', name:'Infernal Mage',ic:'🧙', lvl:66, hp:72,  atk:50, def:44, max:9, xp:340, area:'tower',  slayReq:45, drops:[['bones',1,1],['coins',60,190],['death_rune',0,3,0.2],['chaos_rune',2,8,0.4]]},
+  {id:'jelly',   name:'Jelly',        ic:'🟩', lvl:78, hp:88,  atk:58, def:52, max:10,xp:430, area:'tower',  slayReq:52, drops:[['big_bones',1,1],['coins',90,260],['sapphire',0,1,0.08],['mith_bar',0,1,0.1]]},
+  {id:'turoth',  name:'Turoth',       ic:'🦫', lvl:83, hp:94,  atk:62, def:56, max:11,xp:460, area:'tower',  slayReq:55, drops:[['big_bones',1,1],['coins',100,300],['leaf_blade',0,1,0.01],['grimy_irit',0,1,0.12]]},
+  {id:'cavehorror',name:'Cave Horror',ic:'🦇', lvl:80, hp:90,  atk:60, def:54, max:10,xp:445, area:'tower',  slayReq:58, drops:[['big_bones',1,1],['coins',95,280],['grim_mask',0,1,0.005],['grimy_harralander',0,2,0.15]]},
+  {id:'abspectre',name:'Aberrant Spectre',ic:'🌫️',lvl:96,hp:108,atk:70, def:62, max:12,xp:510, area:'tower',  slayReq:60, drops:[['coins',110,330],['grimy_ranarr',0,2,0.25],['grimy_snapdragon',0,1,0.1],['grimy_cadantine',0,1,0.08]]},
+  {id:'smokedevil',name:'Smoke Devil',ic:'💨', lvl:125,hp:145, atk:84, def:76, max:15,xp:700, area:'tower',  slayReq:93, drops:[['big_bones',1,1],['coins',240,680],['mystic_orb',0,1,0.015],['diamond',0,1,0.1],['rune_bar',0,1,0.08]]},
   {id:'ghost',     name:'Restless Ghost',ic:'👻', lvl:19, hp:22,  atk:14, def:13, max:3, xp:66,  area:'cata', drops:[['coins',8,28]]},
   {id:'vampyre',   name:'Vampyre',       ic:'🧛', lvl:45, hp:50,  atk:36, def:30, max:7, xp:210, area:'cata', drops:[['bones',1,1],['coins',35,110],['ruby',0,1,0.06]]},
+  {id:'ghoul',     name:'Ghoul',         ic:'🧟', lvl:42, hp:46,  atk:33, def:28, max:6, xp:190, area:'cata', drops:[['bones',1,1],['coins',22,70]]},
+  {id:'mummy',     name:'Mummy',         ic:'🧻', lvl:84, hp:96,  atk:63, def:57, max:11,xp:465, area:'cata', drops:[['bones',1,1],['coins',95,290],['ruby',0,1,0.08],['sapphire',0,1,0.1]]},
   {id:'skel',      name:'Skeleton',      ic:'💀', lvl:22, hp:24,  atk:17, def:15, max:4, xp:75,  area:'cata', drops:[['bones',1,1],['coins',10,35]]},
   {id:'zombie',    name:'Zombie',        ic:'🧟', lvl:30, hp:32,  atk:24, def:20, max:5, xp:105, area:'cata', drops:[['bones',1,1],['coins',15,50]]},
   {id:'ghast',     name:'Ghast',         ic:'🌬️', lvl:55, hp:58,  atk:44, def:38, max:8, xp:290, area:'cata', drops:[['big_bones',1,1],['coins',60,180],['sapphire',0,1,0.08]]},
   {id:'ankou',     name:'Ankou',         ic:'☠️', lvl:75, hp:90,  atk:58, def:52, max:10,xp:420, area:'cata', drops:[['big_bones',1,1],['coins',110,320],['ruby',0,1,0.08],['diamond',0,1,0.04]]},
   {id:'gdemon',    name:'Greater Demon', ic:'👹', lvl:92, hp:105, atk:68, def:62, max:12,xp:500, area:'cata', drops:[['big_bones',1,1],['coins',150,430],['diamond',0,1,0.07],['dark_bow',0,1,0.017]]},
+  {id:'darkwarr', name:'Dark Warrior',     ic:'🥷', lvl:46, hp:52,  atk:36, def:32, max:7, xp:215, area:'wild', drops:[['bones',1,1],['coins',30,100],['steel_bar',0,1,0.1]]},
+  {id:'earthwarr',name:'Earth Warrior',    ic:'🗿', lvl:51, hp:58,  atk:40, def:36, max:8, xp:240, area:'wild', drops:[['bones',1,1],['coins',34,110],['earth_rune',4,12,0.5],['nature_rune',0,3,0.15]]},
+  {id:'chaosdw',  name:'Chaos Dwarf',      ic:'🧌', lvl:57, hp:64,  atk:44, def:40, max:8, xp:280, area:'wild', drops:[['bones',1,1],['coins',40,130],['mith_bar',0,1,0.12],['coal',0,3,0.2]]},
+  {id:'blackdemon',name:'Black Demon',     ic:'👤', lvl:110,hp:128, atk:80, def:70, max:14,xp:620, area:'wild', drops:[['big_bones',1,1],['coins',180,560],['diamond',0,1,0.08],['rune_ore',0,1,0.05]]},
   {id:'wildman',  name:'Wilderness Rogue', ic:'🥷', lvl:68, hp:72,  atk:54, def:50, max:10,xp:360, area:'wild', drops:[['bones',1,1],['coins',80,260],['ruby',0,1,0.06]]},
   {id:'hellhound',name:'Hellhound',       ic:'🦁', lvl:92, hp:104, atk:70, def:64, max:12,xp:520, area:'wild', drops:[['big_bones',1,1],['coins',140,420],['diamond',0,1,0.06]]},
   {id:'chaosdruid',name:'Chaos Druid',    ic:'🧙', lvl:80, hp:86,  atk:62, def:56, max:11,xp:440, area:'wild', drops:[['big_bones',1,1],['coins',110,340],['grimy_ranarr',1,2]]},
@@ -20240,11 +20274,29 @@ function rsRenderActs(){
       if(m.dragon) return (r.counts.kill_demon||0) >= 10;
       return true;
     });
-    h += mobs.map(function(m){
-      const gated = m.slayReq && rsLvl('slay') < m.slayReq;
-      const onTask = rsOnTask(m.id);
+    /* Same-named variants (Imp lvl 2 / 7, Goblin lvl 2 / 5 / 13 …) share one
+       slot; the slot opens a Choose Option menu to pick the level. */
+    const groups = [];
+    const byName = {};
+    mobs.forEach(function(m){
+      if(byName[m.name]){ byName[m.name].push(m); return; }
+      byName[m.name] = [m];
+      groups.push(byName[m.name]);
+    });
+    h += groups.map(function(g){
+      g.sort(function(a, b){ return a.lvl - b.lvl; });
+      const active = cur && cur.kind === 'fight' && g.some(function(v){ return v.id === cur.key; });
+      const m = (active && g.find(function(v){ return v.id === cur.key; })) || g[0];
+      const onTask = g.some(function(v){ return rsOnTask(v.id); });
       const por = RS_MOB_ART[m.id] ? '<img src="' + rsMobIcon(m.id, 30) + '" class="rs-por" alt="">' : m.ic + ' ';
-      return rsActButton(cur && cur.kind==='fight' && cur.key===m.id, gated,
+      if(g.length > 1){
+        return rsActButton(active, false,
+          por + m.name + (onTask ? ' 💀' : '') + ' ▾',
+          'lvl ' + g.map(function(v){ return v.lvl; }).join(' / '),
+          'data-fightgrp="' + g.map(function(v){ return v.id; }).join(',') + '"');
+      }
+      const gated = m.slayReq && rsLvl('slay') < m.slayReq;
+      return rsActButton(active, gated,
         por + m.name + (onTask ? ' 💀' : ''),
         gated ? 'Slayer ' + m.slayReq : 'lvl ' + m.lvl + (onTask ? ' · task' : ''),
         'data-fight="' + m.id + '"');
@@ -20265,6 +20317,19 @@ function rsRenderActs(){
   box.querySelectorAll('[data-cook]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('cook', b.dataset.cook); }); });
   box.querySelectorAll('[data-smelt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('smelt', b.dataset.smelt); }); });
   box.querySelectorAll('[data-fight]').forEach(function(b){ b.addEventListener('click', function(){ rsStartActivity('fight', b.dataset.fight); }); });
+  box.querySelectorAll('[data-fightgrp]').forEach(function(b){
+    b.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      const entries = b.dataset.fightgrp.split(',').map(function(id){
+        const m = RS_MOBS.find(function(x){ return x.id === id; });
+        if(!m) return null;
+        const gated = m.slayReq && rsLvl('slay') < m.slayReq;
+        return [m.ic + ' ' + m.name + ' <b>lvl ' + m.lvl + '</b>' + (rsOnTask(m.id) ? ' 💀' : '') + (gated ? ' 🔒' : ''),
+                function(){ rsStartActivity('fight', m.id); }];
+      }).filter(Boolean);
+      rsShowMenu(b, entries);
+    });
+  });
   box.querySelectorAll('[data-burnlog]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('fmburn', b.dataset.burnlog); }); });
   box.querySelectorAll('[data-hunt]').forEach(function(b){ b.addEventListener('click', function(){ if(!b.classList.contains('dis')) rsStartActivity('hunt', b.dataset.hunt); }); });
 

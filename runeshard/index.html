@@ -2713,8 +2713,13 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   <h1>
     <span class="avatar-badge" id="avatarBadge">🗡️</span>
     Runeshard <span class="tag">Prototype v0.1</span>
-    <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
-      onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
+    <!-- "Lv 1 - Novice Collector" is the CARD GAME's player level and means
+         nothing in Runeshard, where progress is the 23 skill levels and the
+         total in the Train tab. Hidden rather than deleted: the shared
+         renderHeader() writes to #levelBadge every refresh and would throw on
+         a missing node. The click handler is dropped too, so it cannot open
+         the card game's level-rewards modal. -->
+    <span class="level-badge" id="levelBadge" style="display:none;">Lv 1</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
   </h1>
   <div class="row">

@@ -1477,14 +1477,19 @@ window.rsEl = function(id){ return document.getElementById(id) || window.rsDeadE
   .rs-slot .q{ position:absolute; top:0; left:2px; font-size:9px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; }
   /* auto-fit, not a hard 3 columns: at phone width three fixed columns
      needed 191px inside a 160px sidebar and pushed the whole page wide. */
-  .rs-skillgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(48px,1fr));
+  /* Wider minimum now that each cell carries a name: two columns on a phone,
+     three on a wide sidebar, rather than cramming five unreadable ones. */
+  .rs-skillgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
     gap:3px; }
+  .rs-skcell .nm{ flex:1; min-width:0; font-size:10.5px; font-weight:800;
+    color:#e8dcc0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rs-skcell{ min-width:0; }
   .rs-skcell .nm{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .rs-skcell{ background:#3e3529; border:2px solid; border-color:#241f17 #6a5d44 #6a5d44 #241f17;
-    border-radius:2px; padding:5px 7px; display:flex; align-items:center; gap:6px; }
+    border-radius:2px; padding:5px 5px; display:flex; align-items:center; gap:5px; }
   .rs-skcell .ic{ font-size:17px; filter:drop-shadow(1px 1px 0 #000); }
-  .rs-skcell .lv{ margin-left:auto; text-align:right; font-size:11px; font-weight:800; color:#ffff00; text-shadow:1px 1px 0 #000; line-height:1.15; }
+  .rs-skcell .lv{ margin-left:auto; text-align:right; font-size:12px; font-weight:800;
+    color:#ffff00; text-shadow:1px 1px 0 #000; line-height:1.15; flex:0 0 auto; }
   .rs-skcell .lv small{ display:block; color:#ff981f; font-size:10px; }
   .rs-skcell .sbar{ position:absolute; left:0; right:0; bottom:0; height:2px; background:#241f17; }
   /* --- Skill guide (tap a skill in the 📜 tab) --- */
@@ -2803,7 +2808,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         <div class="rs-areas" id="rsAreas" style="display:none;"></div>
         <div class="rs-acts" id="rsActs"></div>
         <div class="rs-tabs" id="rsTabs">
-          <button class="rs-tab on" data-rst="train">⚔️<i>Train</i></button>
+          <button class="rs-tab on" data-rst="train">📜<i>Train</i></button>
+          <button class="rs-tab" data-rst="fight">⚔️<i>Fight</i></button>
           <button class="rs-tab" data-rst="bag">🎒<i>Bag</i></button>
           <button class="rs-tab" data-rst="town">🏦<i>Town</i></button>
           <button class="rs-tab" data-rst="more">☰<i>More</i></button>
@@ -8202,6 +8208,10 @@ function rsJingle(kind){
 let rsPanelTab = 'train', rsAnimOn = false, rsAnimT = 0;
 /* Which skill's guide page is open inside the 📜 tab (null = the grid). */
 let rsGuideSkill = null;
+/* Set while the Fight tab renders the travel list, so it shows only places
+   with something to kill. Woods, Mine, River and Town have no monsters at all
+   and were just noise under Fight. */
+let rsTravelCombatOnly = false;
 /* Fingerprint of whatever the open panel is drawing, so the tick loop can
    repaint it the moment the underlying numbers move. See rsSyncPanel(). */
 let rsPanelSigLast = '';
@@ -8546,7 +8556,8 @@ function rsRenderActs(){
 function rsRenderTabs(){
   /* A sub-screen reached from MORE (quests, prayer, travel...) still lights
      up MORE, so the player can always see which group they are inside. */
-  const inMore = ['quests', 'pray', 'clog', 'travel'].indexOf(rsPanelTab) >= 0;
+  const inMore = ['quests', 'pray', 'clog'].indexOf(rsPanelTab) >= 0;
+  const inFight = ['fight', 'travel'].indexOf(rsPanelTab) >= 0;
   const inTown = ['bank', 'shop', 'market', 'furnace', 'craft', 'fletch',
                   'farm', 'build', 'rc', 'slayshop', 'range'].indexOf(rsPanelTab) >= 0;
   const inBag = ['inv', 'equip'].indexOf(rsPanelTab) >= 0;
@@ -8556,6 +8567,7 @@ function rsRenderTabs(){
     b.classList.toggle('on',
       k === rsPanelTab ||
       (k === 'more'  && inMore) ||
+      (k === 'fight' && inFight) ||
       (k === 'town'  && inTown) ||
       (k === 'bag'   && inBag) ||
       (k === 'train' && inTrain));
@@ -8911,13 +8923,59 @@ function rsRenderPanel(target){
       + '<button data-rsmore="clog" data-rst="clog"><b>\uD83D\uDCD6</b><span>Collection'
       + '<span class="sub">everything you have found</span></span></button>'
       + '<button data-rsmore="travel" data-rst="travel"><b>\uD83D\uDDFA\uFE0F</b><span>Travel'
-      + '<span class="sub">pick a combat area</span></span></button>'
+      + '<span class="sub">also under Fight</span></span></button>'
       + '</div>';
     box.querySelectorAll('[data-rsmore]').forEach(function(b){
       b.addEventListener('click', function(){
         rsPanelTab = b.dataset.rsmore; rsRenderTabs(); rsRenderPanel();
       });
     });
+    return;
+  }
+
+  /* FIGHT. Combat was the one thing with no destination: you cannot "train
+     Attack" without choosing something to hit, so it took a trip through
+     Train -> a skill -> its guide before you saw a single monster. This puts
+     the combat skills and every area's monster list one tap away. */
+  if(t === 'fight'){
+    box.innerHTML = '';
+    const jobs = [
+      ['atk',  'Attack',    'accurate style'],
+      ['str',  'Strength',  'aggressive style'],
+      ['def',  'Defence',   'defensive style'],
+      ['range','Ranged',    'wield a bow'],
+      ['mage', 'Magic',     'wield a staff'],
+      ['slay', 'Slayer',    'tasks from Morvos'],
+    ];
+    const lab = document.createElement('div');
+    lab.className = 'rs-sub';
+    lab.textContent = 'Combat skills';
+    box.appendChild(lab);
+    const grid = document.createElement('div');
+    grid.className = 'rs-townjobs';
+    grid.innerHTML = jobs.map(function(j){
+      const lv = r.skills[j[0]] ? rsLevelFor(r.skills[j[0]].xp) : 1;
+      return '<button data-rsjob="' + j[0] + '">' + (rsSkIc(j[0], 18) || '')
+           + '<span><b>' + j[1] + '</b><i>' + j[2] + '</i></span><em>' + lv + '</em></button>';
+    }).join('');
+    box.appendChild(grid);
+    grid.querySelectorAll('[data-rsjob]').forEach(function(b){
+      b.addEventListener('click', function(){ rsGoTrain(b.dataset.rsjob); });
+    });
+
+    /* the existing travel panel already lists every area and its monsters */
+    const lab2 = document.createElement('div');
+    lab2.className = 'rs-sub';
+    lab2.textContent = 'Where to fight';
+    box.appendChild(lab2);
+    const sub = document.createElement('div');
+    box.appendChild(sub);
+    const keep = rsPanelTab;
+    rsPanelTab = 'travel';
+    rsTravelCombatOnly = true;
+    rsRenderPanel(sub);
+    rsTravelCombatOnly = false;
+    rsPanelTab = keep;
     return;
   }
 
@@ -9011,9 +9069,15 @@ function rsRenderPanel(target){
       const xp = Math.floor(r.skills[s.id].xp);
       const nxt = lv < 99 ? (RS_XP_TABLE[lv] - xp).toLocaleString() + ' xp to ' + (lv + 1) : 'mastered';
       const bst = r.boosts && r.boosts[s.id] ? r.boosts[s.id].amt : 0;
+      /* The NAME is in the cell, not just the title attribute. `title` is a
+         hover tooltip and touch devices have no hover, so on a phone the grid
+         was 23 unlabelled pictures. */
       return '<div class="rs-skcell" data-rssk="' + s.id + '" title="' + s.name + ' — ' + xp.toLocaleString() + ' xp · ' + nxt + '">' +
-        '<span class="ic">' + (rsSkIc(s.id, 20) || s.ic) + '</span>' +
-        '<span class="lv">' + (bst ? '<span style="color:#7ADE9A;">' + (lv + bst) + '</span>' : lv) + '<small>/99</small></span></div>';
+        '<span class="ic">' + (rsSkIc(s.id, 18) || s.ic) + '</span>' +
+        '<span class="nm">' + s.name + '</span>' +
+        /* "/99" is the same on all 23 rows and was eating the width the NAME
+           needs. It still shows in the tooltip and on the skill's own page. */
+        '<span class="lv">' + (bst ? '<span style="color:#7ADE9A;">' + (lv + bst) + '</span>' : lv) + '</span></div>';
     }).join('') + '</div>' +
     '<div class="rs-totalbox">Total level:<br>' + rsTotalLevel() + '</div>' +
     '<div style="font-size:10px;color:#c8b997;margin-top:6px;text-align:center;">Tap a skill to open its guide. Every road ends at 99.</div>';
@@ -9479,9 +9543,14 @@ function rsRenderPanel(target){
       tower:  ['slay', 'rc'],
     };
     const cb = rsCombatLevel();
-    let h = '<div class="rs-ptitle">🗺️ Where to go</div>';
-    h += '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">Combat level ' + cb + '. Everything each place offers, and what is still shut to you.</div><div class="rs-rows">';
+    let h = '<div class="rs-ptitle">' + (rsTravelCombatOnly ? '⚔️ Where to fight' : '🗺️ Where to go') + '</div>';
+    h += '<div style="font-size:10px;color:#c8b997;margin-bottom:7px;">Combat level ' + cb + '. '
+       + (rsTravelCombatOnly ? 'Places with something to fight, and what is still shut to you.'
+                             : 'Everything each place offers, and what is still shut to you.')
+       + '</div><div class="rs-rows">';
     RS_AREAS.forEach(function(a){
+      /* under Fight, skip anywhere with nothing to fight */
+      if(rsTravelCombatOnly && !RS_MOBS.some(function(m){ return m.area === a.id; })) return;
       const here = r.area === a.id;
       const locked = (a.id === 'mire' && cb < 40 && !(r.counts.kill_shade > 0)) ||
                      (a.id === 'tower' && cb < 15 && !(r.slay && r.slay.done > 0)) ||

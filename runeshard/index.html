@@ -13501,10 +13501,31 @@ function rsGoFight(mid){
     rsStopActivity(true);
     rsLog('You travel to ' + (area ? area.name.replace(/^\S+\s/, '') : m.area) + '.', '#c9b788');
   }
-  rsBeastPick = null;
-  rsPanelTab = 'fight';
+  /* Do NOT move the player off the collection log. The fight starts in the
+     scene behind them; yanking them to the Fight tab loses their place in an
+     81-row list they were probably still reading.
+
+     Restoring scrollY alone is not enough: starting a fight rebuilds the TASK
+     LIST above the panel, and the new area's list is a different height, so
+     the whole log slides. Measure the panel's offset before and after and
+     shift by the difference — that keeps the same ROW under the finger, which
+     is what "the exact same spot" means. */
+  const panel = document.getElementById('rsPanel');
+  const beforeTop = panel ? panel.getBoundingClientRect().top + window.scrollY : null;
+  const keepY = window.scrollY;
+
   rsStartActivity('fight', mid);
   rsRenderAreas(); rsRenderTabs(); rsRenderPanel();
+
+  if(beforeTop !== null){
+    const p2 = document.getElementById('rsPanel');
+    if(p2){
+      const afterTop = p2.getBoundingClientRect().top + window.scrollY;
+      const want = keepY + (afterTop - beforeTop);
+      const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      window.scrollTo(0, Math.max(0, Math.min(want, max)));
+    }
+  }
 }
 
 function rsBeastSheet(mid){

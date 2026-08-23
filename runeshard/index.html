@@ -1474,6 +1474,16 @@ window.rsEl = function(id){ return document.getElementById(id) || window.rsDeadE
   .rs-townjobs button b{ display:block; font-size:12px; font-weight:800; color:#ffd84d; }
   .rs-townjobs button i{ display:block; font-style:normal; font-size:9.5px; color:#a99871; }
   .rs-townjobs button em{ font-style:normal; font-size:11px; font-weight:800; color:#ff981f; }
+  .rs-bonus{ margin:9px 0 6px; background:#3e3529; border:1px solid #6a5d44;
+    border-radius:5px; padding:6px 9px; }
+  .rs-bonus summary{ cursor:pointer; font-size:11.5px; font-weight:800; color:#ffd84d;
+    display:flex; align-items:center; gap:6px; list-style:none; }
+  .rs-bonus summary::-webkit-details-marker{ display:none; }
+  .rs-bonus summary .sum{ margin-left:auto; color:#e8dcc0; font-size:11px; }
+  .rs-bonusrows{ margin-top:7px; display:flex; flex-direction:column; gap:3px; }
+  .rs-bonusrows div{ display:flex; justify-content:space-between; font-size:11.5px;
+    color:#c9b788; padding:2px 0; border-bottom:1px solid #4a3d2a; }
+  .rs-bonusrows b{ color:#fff; }
   .rs-more .sub{ display:block; font-size:10px; color:#a99871; font-weight:600;
     margin-top:2px; }
   .rs-sub{ font-size:10px; color:#a99871; font-weight:600; margin:9px 0 5px; }
@@ -8262,6 +8272,10 @@ let rsGuideSkill = null;
    with something to kill. Woods, Mine, River and Town have no monsters at all
    and were just noise under Fight. */
 let rsTravelCombatOnly = false;
+/* <details> loses its open state when the panel re-renders, which the tick
+   does constantly. Remembered here rather than saved — it is a UI preference
+   for the session, not progress. */
+let rsBonusOpen = false;
 /* Fingerprint of whatever the open panel is drawing, so the tick loop can
    repaint it the moment the underlying numbers move. See rsSyncPanel(). */
 let rsPanelSigLast = '';
@@ -8590,10 +8604,7 @@ function rsRenderActs(){
       } else if(k === 'fletch'){
         rsPanelTab = 'fletch'; rsRenderTabs(); rsRenderPanel();
       } else if(k === 'altar'){
-        const r2 = rsEnsure();
-        r2.prayPts = rsLvl('pray');
-        r2.counts.altar = (r2.counts.altar|0) + 1;
-        rsLog('✨ You kneel at the altar. Prayer points restored (' + rsLvl('pray') + '/' + rsLvl('pray') + ').', '#c4b5ff');
+        rsUseAltar();
       } else {
         rsPanelTab = k === 'cauldron' ? 'cauldron' : 'anvil';
         rsRenderTabs(); rsRenderPanel();
@@ -8919,8 +8930,34 @@ function rsGoTrain(sk){
      • Keep the signature CHEAP and keep xp out of it. Including raw xp would
        repaint every single tick during training, which resets the scroll
        position of the skill guide. Level is enough. */
+/* Live refresh. Returns a string that changes whenever the visible panel
+   should redraw; rsSyncPanel compares it each tick.
+
+   THIS WENT STALE WHEN THE NAV WAS CONSOLIDATED. It still tested for the old
+   tab ids — inv, bank, equip, skills — but the tab is now 'bag', 'train' or
+   'town'. Every lookup missed, it returned '' (meaning "do not live-sync"),
+   and nothing updated until you switched tabs and forced a rebuild. Catching
+   a fish did not move the xp; the bag did not show the catch.
+
+   The group tabs render SEVERAL panels at once, so their signature is the
+   concatenation of the parts they show. */
 function rsPanelSig(){
-  const r = rsEnsure(), t = rsPanelTab;
+  const r = rsEnsure();
+  let t = rsPanelTab;
+
+  if(t === 'bag')   return rsSigFor('inv') + '|' + rsSigFor('equip');
+  if(t === 'town')  return 'T' + rsLvl('pray') + '/' + (r.prayPts | 0) + '|'
+                          + rsSigFor('bank') + '|' + rsSigFor('shop');
+  if(t === 'fight') return 'F' + rsCombatLevel() + '/' + r.area + '/'
+                          + (r.mob ? r.mob.id + ':' + Math.ceil(r.mob.hp) : '-');
+  if(t === 'train') t = 'skills';
+
+  return rsSigFor(t);
+}
+
+/* the per-panel signatures, unchanged, now reachable by name */
+function rsSigFor(t){
+  const r = rsEnsure();
   if(t === 'inv'){
     let s = 'i' + rsBagMax() + '/' + r.coins;
     for(let i = 0; i < r.inv.length; i++) s += ',' + r.inv[i].id + ':' + r.inv[i].qty;
@@ -8937,8 +8974,20 @@ function rsPanelSig(){
     for(const k in r.equip) s += ',' + k + ':' + r.equip[k];
     return s;
   }
-  if(t === 'skills') return 's' + rsTotalLevel() + '/' + (rsGuideSkill || '-') +
-    '/' + (r.boosts ? Object.keys(r.boosts).join('') : '');
+  if(t === 'skills'){
+    /* Total level alone only changes on a LEVEL-UP, so xp ticking upward was
+       invisible while you watched it. Fold in the xp of the skill being
+       trained, and of the open guide page. */
+    let s = 's' + rsTotalLevel() + '/' + (rsGuideSkill || '-') +
+      '/' + (r.boosts ? Object.keys(r.boosts).join('') : '');
+    const act = r.act && r.act.kind;
+    const live = rsGuideSkill || (act ? (RS_TRAIN[act] ? act : null) : null);
+    if(live && r.skills[live]) s += '/' + Math.floor(r.skills[live].xp);
+    if(act && r.skills[rsActSkill ? rsActSkill(act) : ''])
+      s += '/' + Math.floor(r.skills[rsActSkill(act)].xp);
+    return s;
+  }
+  if(t === 'shop') return 'p' + r.coins + '/' + rsLvl('smith');
   return '';
 }
 function rsSyncPanel(){
@@ -8953,7 +9002,28 @@ function rsSyncPanel(){
    that already existed, so no panel was lost in the consolidation. */
 const RS_TAB_GROUP = {train: 'skills', bag: 'inv', town: 'bank'};
 
+/* Rebuilding innerHTML empties the panel for an instant, the document gets
+   shorter, and the browser clamps the scroll to 0 — so withdrawing the tenth
+   item in a bank list threw you back to the top. The tick re-renders
+   constantly, so this happened even without touching anything.
+
+   Restored SYNCHRONOUSLY after the rebuild. A requestAnimationFrame callback
+   was tried first and is too late: the clamp has already happened, and rAF is
+   unreliable under a virtual-time budget so it could not be measured either.
+
+   Only the OUTER call restores. The nested Bag/Town/Fight renders pass a
+   target and must not fight over the position. */
 function rsRenderPanel(target){
+  if(target) return rsRenderPanelInner(target);
+  const keepY = window.scrollY;
+  rsRenderPanelInner(undefined);
+  if(keepY > 0 && Math.abs(window.scrollY - keepY) > 2){
+    const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo(0, Math.min(keepY, max));
+  }
+}
+
+function rsRenderPanelInner(target){
   const r = rsEnsure();
   const box = target || document.getElementById('rsPanel');
   if(!box) return;
@@ -9023,7 +9093,7 @@ function rsRenderPanel(target){
     const keep = rsPanelTab;
     rsPanelTab = 'travel';
     rsTravelCombatOnly = true;
-    rsRenderPanel(sub);
+    rsRenderPanelInner(sub);
     rsTravelCombatOnly = false;
     rsPanelTab = keep;
     return;
@@ -9053,6 +9123,7 @@ function rsRenderPanel(target){
         ['farm',  'Farming',      'seeds and patches'],
         ['con',   'Construction', 'build the town up'],
         ['agil',  'Agility',      'rooftop course'],
+        ['pray',  'Prayer',       'bury bones, set prayers'],
       ];
       const lab = document.createElement('div');
       lab.className = 'rs-sub';
@@ -9070,6 +9141,22 @@ function rsRenderPanel(target){
       grid.querySelectorAll('[data-rsjob]').forEach(function(b){
         b.addEventListener('click', function(){ rsGoTrain(b.dataset.rsjob); });
       });
+
+      /* Services: the altar is an ACTION, not a skill panel, so it needs its
+         own button rather than a route into the guide. */
+      const slab = document.createElement('div');
+      slab.className = 'rs-sub';
+      slab.textContent = 'Services';
+      box.appendChild(slab);
+      const svc = document.createElement('div');
+      svc.className = 'rs-townjobs';
+      svc.innerHTML = '<button data-rsaltar="1">' + (rsSkIc('pray', 18) || '\u2728')
+        + '<span><b>Altar</b><i>restore prayer points</i></span><em>'
+        + (r.prayPts | 0) + '/' + rsLvl('pray') + '</em></button>';
+      box.appendChild(svc);
+      svc.querySelector('[data-rsaltar]').addEventListener('click', function(){
+        rsUseAltar(); rsRenderPanel();
+      });
     }
 
     const keep = rsPanelTab;
@@ -9081,7 +9168,7 @@ function rsRenderPanel(target){
       const sub = document.createElement('div');
       box.appendChild(sub);
       rsPanelTab = p[0];
-      rsRenderPanel(sub);
+      rsRenderPanelInner(sub);
     });
     rsPanelTab = keep;
     return;
@@ -9150,9 +9237,29 @@ function rsRenderPanel(target){
     let h = '<div class="rs-eq">' + slots.map(function(sp){
       const id = r.equip[sp[0]];
       const d = id ? RS_ITEMS[id] : null;
-      return '<div class="rs-skill" data-rseq="' + sp[0] + '"><span class="ic">' + (d ? rsIc(d.id) : '▫️') + '</span><div style="flex:1"><div class="nm">' + sp[1] +
-        '</div><div style="font-size:11px;color:#f3e6c8;font-weight:700;">' + (d ? d.name : 'empty') + '</div></div></div>';
+      /* each slot now shows what it is actually worth */
+      const bl = d ? rsBonusLine(d.id) : '';
+      return '<div class="rs-skill" data-rseq="' + sp[0] + '"><span class="ic">' + (d ? rsIc(d.id) : '▫️') + '</span><div style="flex:1;min-width:0;"><div class="nm">' + sp[1] +
+        '</div><div style="font-size:11px;color:#f3e6c8;font-weight:700;">' + (d ? d.name : 'empty') + '</div>' +
+        (bl ? '<div style="font-size:10px;">' + bl + '</div>' : '') + '</div></div>';
     }).join('') + '</div>';
+
+    /* OSRS-style bonus readout, collapsed by default so it does not push the
+       slots off screen on a phone. <details> keeps its own open state, so no
+       extra state to save or re-render. */
+    const tot = rsGearTotals();
+    h += '<details class="rs-bonus"' + (rsBonusOpen ? ' open' : '') + '>'
+      + '<summary>\u2694\uFE0F Equipment bonuses'
+      + '<span class="sum">+' + tot.acc + ' / +' + tot.str + ' / +' + tot.def + '</span></summary>'
+      + '<div class="rs-bonusrows">'
+      + '<div><span>Accuracy</span><b style="color:#8fd7ff;">+' + tot.acc + '</b></div>'
+      + '<div><span>Strength</span><b style="color:#ff9b6a;">+' + tot.str + '</b></div>'
+      + '<div><span>Defence</span><b style="color:#9ade9a;">+' + tot.def + '</b></div>'
+      + '<div><span>Max hit</span><b>' + rsMaxHit() + '</b></div>'
+      + '</div>'
+      + '<div style="font-size:10px;color:#a99871;margin-top:5px;">Higher tiers hit '
+      + 'more often and harder. Compare a piece before you wear it \u2014 the bag '
+      + 'shows the same numbers.</div></details>';
     h += '<div style="margin:10px 0 4px;font-size:11px;color:#c9b788;font-weight:800;">Tools</div><div class="rs-eq">' +
       '<div class="rs-skill"><span class="ic">🪓</span><div><div class="nm">Axe</div><div style="font-size:11px;font-weight:700;">' + RS_TIER_NAME[RS_TIERS[rsToolTier('axe')-1]] + '</div></div></div>' +
       '<div class="rs-skill"><span class="ic">⛏️</span><div><div class="nm">Pickaxe</div><div style="font-size:11px;font-weight:700;">' + RS_TIER_NAME[RS_TIERS[rsToolTier('pick')-1]] + '</div></div></div></div>';
@@ -9160,7 +9267,12 @@ function rsRenderPanel(target){
       [['atk','Accurate','trains Attack'],['str','Aggressive','trains Strength'],['def','Defensive','trains Defence'],['shared','Controlled','trains all three']].map(function(sp){
         return '<button class="rs-act' + (r.style === sp[0] ? ' on' : '') + '" data-rsty="' + sp[0] + '">' + sp[1] + '<small>' + sp[2] + '</small></button>';
       }).join('') + '</div>';
-    h += '<div style="font-size:10px;color:#a99871;">Max hit ' + rsMaxHit() + ' · atk +' + rsAtkBonus() + ' · def +' + Math.round(rsDefBonus()) + ' · tap worn gear to unequip.</div>';
+    h += '<div style="font-size:10px;color:#a99871;">Tap worn gear to unequip.</div>';
+    /* remember open/closed across the tick's re-renders */
+    setTimeout(function(){
+      const dt = box.querySelector('details.rs-bonus');
+      if(dt) dt.addEventListener('toggle', function(){ rsBonusOpen = dt.open; });
+    }, 0);
 
     /* No appearance swatches any more. The hero is one of three finished
        Tiny RPG characters and the WEAPON picks which, so there is nothing
@@ -13186,6 +13298,64 @@ function rsToggleFullscreen(){
     document.addEventListener('DOMContentLoaded', wire);
   else wire();
 })();
+
+/* Kneeling at the altar. Pulled out of the town action-list handler so the
+   Town tab can offer it too — the altar is the one town service that had no
+   entry there, which read as it having been removed. */
+function rsUseAltar(){
+  const r = rsEnsure();
+  if(r.area !== 'town'){
+    r.area = 'town';
+    rsStopActivity(true);
+    rsLog('You travel to Town.', '#c9b788');
+  }
+  r.prayPts = rsLvl('pray');
+  r.counts.altar = (r.counts.altar | 0) + 1;
+  rsLog('\u2728 You kneel at the altar. Prayer points restored ('
+        + rsLvl('pray') + '/' + rsLvl('pray') + ').', '#c4b5ff');
+  rsRenderHud(); rsRenderAreas(); rsRenderActs(); rsRenderPanel();
+}
+
+/* What one item is worth, in the same terms the summary uses. Every piece
+   derives its contribution from `tier`; this exposes the arithmetic the
+   combat code already does rather than inventing new numbers. */
+function rsItemBonus(id){
+  const d = RS_ITEMS[id];
+  if(!d) return null;
+  const b = {atk: 0, str: 0, def: 0};
+  if(d.slot === 'weapon'){
+    b.atk = Math.round((d.tier || 0) * 3);
+    b.str = Math.round((d.tier || 0) * 2.5);
+  } else if(['helm','body','legs','shield','cape','ring'].indexOf(d.slot) >= 0){
+    b.def = Math.round((d.tier || 0) *
+            (d.kind === 'range' || d.kind === 'mage' ? 1.5 : 2.5));
+  }
+  if(d.defb) b.def += d.defb;
+  if(d.accb) b.atk += d.accb;
+  if(d.mhb)  b.str += d.mhb;
+  return b;
+}
+
+/* One line of "+12" style text for an item, or '' when it carries nothing. */
+function rsBonusLine(id){
+  const b = rsItemBonus(id);
+  if(!b) return '';
+  const bits = [];
+  if(b.atk) bits.push('<span style="color:#8fd7ff;">+' + b.atk + ' acc</span>');
+  if(b.str) bits.push('<span style="color:#ff9b6a;">+' + b.str + ' str</span>');
+  if(b.def) bits.push('<span style="color:#9ade9a;">+' + b.def + ' def</span>');
+  return bits.join(' · ');
+}
+
+/* The worn-equipment totals, straight from the functions combat actually
+   uses — so what the panel shows and what the maths does cannot drift. */
+function rsGearTotals(){
+  return {
+    acc: Math.round(rsAtkBonus() + rsTrinketAcc()),
+    str: Math.round(rsStrBonus() + rsTrinketHit()),
+    def: Math.round(rsDefBonus()),
+  };
+}
 
 function rsOnLeaveTab(){
   rsAnimOn = false;   /* the engine keeps ticking globally; only the art sleeps */

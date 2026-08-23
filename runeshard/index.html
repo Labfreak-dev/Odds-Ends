@@ -2843,6 +2843,11 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   <!-- tab-collection removed -->
 
   <section id="tab-account" style="display:none;">
+    <!-- Explicit exit. The gear toggles too, but a player who has just
+         redeemed a code is looking at the panel, not the header. -->
+    <button class="btn" id="rsBackToGame"
+      style="margin-bottom:14px; background:#c39b3f; color:#1d1710; font-weight:800;"
+      onclick="uiSwitchTab('runeshard')">&#8592; Back to Runeshard</button>
     <div class="panel">
       <div style="font-weight:800; font-size:16px; margin-bottom:14px;">👤 Profile</div>
       <div class="filters" style="margin-bottom:0;">
@@ -2857,11 +2862,10 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       </div>
     </div>
 
-    <!-- Code redemption was a card-game feature; panel hidden. -->
-    <div class="panel" style="display:none;">
+    <div class="panel">
       <div style="font-weight:800; font-size:16px; margin-bottom:4px;">🎁 Redeem a Code</div>
       <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
-        Got a code? Enter it below. Each code can only be redeemed once per save.
+        Testing codes for Runeshard. Type one in and press Redeem.
       </div>
       <div class="redeem-row">
         <input type="text" id="redeemInput" placeholder="Enter code…" autocomplete="off" spellcheck="false"
@@ -2931,7 +2935,10 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel" style="display:none;">
+      <!-- Flashing and Foil effects are both card-pack animations; neither
+           exists in Runeshard. Panel hidden rather than deleted because
+           populateSettingsUI() writes to both checkboxes. -->
       <div style="font-weight:800; font-size:16px; margin-bottom:14px;">⚙️ Preferences</div>
       <div class="row" style="gap:14px; flex-wrap:wrap;">
         <label class="toggle-row">
@@ -3404,30 +3411,13 @@ function recomputePlayerXP(){
    Codes are matched case-insensitively and stripped of spaces/dashes, so
    "lucky-7", "LUCKY 7" and "lucky7" all resolve to the same entry.
    `cards` grants N random cards at or above `minTier` (15 = guaranteed Mythic). */
+/* Runeshard codes. The eleven card-game codes that used to live here paid out
+   credits, scrap, reputation and card packs — none of which exist in this
+   build, so redeeming one would have thrown. */
 const REDEEM_CODES = [
-  { code:"WELCOME",  label:"Welcome Bundle",   credits:25000,   scrap:100 },
-  { code:"STARTER",  label:"Starter Kit",      credits:50000,   cards:{ count:5,  minTier:4 } },
-  { code:"SCRAPPY",  label:"Scrap Heap",       scrap:1500 },
-  { code:"MINER",    label:"Prospector's Cut", credits:150000 },
-  { code:"EMPIRE",   label:"Empire Grant",     rep:2500,        credits:25000 },
-  { code:"LUCKY7",   label:"Lucky Seven",      lottoTickets:7 },
-  { code:"RISKY",    label:"House Favour",     riskPacks:3,     credits:50000 },
-  { code:"SHINY",    label:"Shiny Things",     cards:{ count:3,  minTier:11 } },
-  { code:"JACKPOT",  label:"Jackpot",          credits:1000000, scrap:5000, rep:5000 },
-  { code:"MYTHIC",   label:"Mythic Vault",     cards:{ count:2,  minTier:15 }, xp:1000 },
-  /* Test funds. Repeatable on purpose — it exists to make balance testing easy,
-     so it shouldn't burn itself out after one use. */
-  { code:"LABFREAKNEEDSTESTMONEY", label:"Test Funds", credits:1000000000000, repeatable:true },
-  /* Opens on the spot with one card of every rarity, Junk Drawer through Mythic.
-     One use per save — it hands out a guaranteed Mythic. */
-  { code:"FULLSPECTRUM", label:"Full Spectrum Pack", spectrumPack:true },
-  /* Not a reward — reveals the Testing Tools panel and the Mythic Test Pack.
-     Re-enterable so it can be used again after locking the tools back down. */
-  { code:"UNLOCKDEVTOOLS", label:"Developer Tools", dev:true, repeatable:true },
-  /* The Master Key. Unlocks the entire game — every card, every upgrade, every
-     building, skill, item and siege. Walks the live data tables rather than a
-     fixed list, so re-entering it after new content is added unlocks that too. */
-  { code:"0830911238805826", label:"The Master Key", masterKey:true, repeatable:true },
+  /* Test loadout. Repeatable on purpose: it exists to make testing easy and
+     should not burn itself out after a single use. */
+  { code:"MAXEDTEST", label:"Maxed Test Character", maxed:true, repeatable:true },
 ];
 
 function grantEverything(){
@@ -3486,6 +3476,43 @@ function findCode(raw){
   return REDEEM_CODES.find(c=>normalizeCode(c.code)===norm) || null;
 }
 
+/* Sets every skill to 98, banks one of every weapon and armour piece, and
+   pays a million coins. 98 rather than 99 on purpose — it leaves one level in
+   every skill so the level-up path itself stays testable. */
+function grantMaxedTest(){
+  const r = rsEnsure();
+  const target = RS_XP_TABLE[97];          /* xp at the start of level 98 */
+
+  let raised = 0;
+  RS_SKILLS.forEach(function(sk){
+    if(!r.skills[sk.id]) r.skills[sk.id] = {xp: 0};
+    if(r.skills[sk.id].xp < target){ r.skills[sk.id].xp = target; raised++; }
+  });
+
+  /* Walk RS_ITEMS rather than a fixed list, so gear added later is included
+     without anyone remembering to update this. */
+  let given = 0;
+  Object.keys(RS_ITEMS).forEach(function(id){
+    const d = RS_ITEMS[id];
+    const wearable = d.slot && ['weapon','helm','body','legs','shield','amulet',
+                                'ring','cape'].indexOf(d.slot) >= 0;
+    if(wearable || d.tool){
+      r.bank[id] = (r.bank[id] || 0) + 1;
+      given++;
+    }
+  });
+
+  /* the field is `coins`, not `gp` — writing r.gp created a property nothing
+     reads and the payout would have silently done nothing */
+  r.coins = (r.coins || 0) + 1000000;
+
+  rsRenderHud(); rsRenderAreas(); rsRenderActs(); rsRenderTabs(); rsRenderPanel();
+  saveState();
+  rsLog('Test loadout applied: ' + raised + ' skills to 98, ' + given
+        + ' pieces of gear banked, 1,000,000 coins.', '#ffd84d');
+  return {raised: raised, given: given};
+}
+
 function redeemCode(){
   const input = document.getElementById("redeemInput");
   const out = document.getElementById("redeemResult");
@@ -3503,6 +3530,16 @@ function redeemCode(){
   }
   if(!def.repeatable && redeemedCodes().includes(def.code)){
     out.innerHTML = `<div class="redeem-msg bad">You've already redeemed <b>${def.code}</b>. Each code works once per save.</div>`;
+    return;
+  }
+
+  /* The test loadout: applied straight away, no resource payout path. */
+  if(def.maxed){
+    input.value = "";
+    const res = grantMaxedTest();
+    out.innerHTML = '<div class="redeem-msg ok"><div class="rtitle">\u2694\uFE0F Maxed Test Character</div>'
+      + res.raised + ' skills set to 98 \u00b7 ' + res.given
+      + ' weapons and armour banked \u00b7 1,000,000 coins. Enter it again any time.</div>';
     return;
   }
 
@@ -6305,7 +6342,14 @@ document.querySelectorAll("nav button").forEach(btn=>{
 });
 (function(){
   const gear = document.getElementById("hdrGear");
-  if(gear) gear.addEventListener("click", ()=>uiSwitchTab("account"));
+  /* TOGGLE, not one-way. This build has no nav bar, so sending the player to
+     Settings with no way back stranded them there — the only escape was a
+     page reload. */
+  if(gear) gear.addEventListener("click", function(){
+    const inSettings = document.getElementById("tab-account")
+      && document.getElementById("tab-account").style.display !== "none";
+    uiSwitchTab(inSettings ? "runeshard" : "account");
+  });
 })();
 
 /* ================================================================= */

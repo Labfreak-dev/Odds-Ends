@@ -3211,6 +3211,164 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   .cx-grid.shake{ animation:none; }
 }
 
+/* ============ THE DIG / RESTORATION ============
+   Two grid-logic modes in the host skin. The Dig reads like packed earth
+   with lamplit numbers; Restoration reads like graph paper, with every
+   fifth line heavier the way real nonogram sheets rule it. */
+
+#tab-dig .mw-stage, #tab-resto .rs-stage{ min-height:440px; }
+
+.mw-eyebrow,.rs-eyebrow{
+  display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted);
+}
+.mw-hint,.rs-hint{ font-size:12px; color:var(--muted); line-height:1.6; margin:0; max-width:64ch; }
+.mw-lobby,.rs-lobby{ display:flex; flex-direction:column; gap:22px; }
+.mw-lede h3,.rs-lede h3{ margin:10px 0 8px; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px; }
+.mw-lede p,.rs-lede p{ margin:0; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:62ch; }
+.mw-lobstats,.rs-lobstats{ display:flex; gap:28px; flex-wrap:wrap; }
+.mw-lobstats div,.rs-lobstats div{ display:flex; flex-direction:column; gap:3px; }
+.mw-lobstats b,.rs-lobstats b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.mw-lobstats div>span,.rs-lobstats div>span{ font-size:10.5px; color:var(--muted); letter-spacing:.03em; }
+
+/* ---------------- THE DIG ---------------- */
+.mw-hud{ display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; margin-bottom:14px; }
+.mw-stat{ display:flex; flex-direction:column; gap:2px; }
+.mw-stat b{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.4px; }
+.mw-stat span{ font-size:10.5px; color:var(--muted); }
+.mw-modes{ display:flex; gap:6px; margin-left:auto; }
+.mw-mode, .rs-mode{
+  background:var(--panel2); border:1px solid #333a52; color:var(--muted); border-radius:9px;
+  padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;
+  transition:background .12s, border-color .12s, color .12s;
+}
+.mw-mode.on, .rs-mode.on{ background:#39415c; border-color:var(--accent); color:var(--text); }
+
+.mw-boardwrap{ overflow:auto; padding-bottom:4px; margin-bottom:14px; }
+.mw-board{
+  display:grid; grid-template-columns:repeat(var(--w), minmax(26px, 34px));
+  gap:3px; width:max-content;
+  background:#12141c; border:1px solid #262b3a; border-radius:var(--radius); padding:8px;
+}
+.mw-cell{
+  aspect-ratio:1; border-radius:6px; border:1px solid #3a4157; cursor:pointer;
+  background:linear-gradient(180deg,#2b3040,#232838); font-family:inherit;
+  font-size:14px; display:flex; align-items:center; justify-content:center; padding:0;
+  color:var(--text); transition:filter .08s;
+}
+.mw-cell:hover:not(:disabled):not(.open){ filter:brightness(1.18); }
+.mw-cell:active:not(:disabled):not(.open){ filter:brightness(.92); }
+.mw-cell.open{
+  background:#171a24; border-color:#232838; cursor:default;
+}
+.mw-cell.open b{ font-size:14.5px; font-weight:800; }
+.mw-cell.boom{ background:#3a1c1c; border-color:var(--bad); }
+.mw-cell.origin{ box-shadow:0 0 0 2px var(--bad); }
+.mw-cell.shown{ background:#20242f; }
+.mw-cell.misflag{ background:#332030; border-color:#5c2b4a; }
+.mw-cell:disabled{ cursor:default; }
+
+.mw-result{ margin-bottom:14px; font-size:12.5px; line-height:1.55; color:var(--muted); }
+.mw-result strong{ display:block; font-size:15px; margin-bottom:2px; }
+.mw-result.good strong{ color:var(--good); }
+.mw-result.bad strong{ color:var(--bad); }
+.mw-foot,.rs-foot{ display:flex; gap:12px; flex-wrap:wrap; }
+
+.mw-sites{ display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:10px; }
+.mw-site, .rs-size{
+  display:flex; flex-direction:column; gap:6px;
+  background:var(--panel2); border:1px solid #2b3142; border-radius:12px; padding:15px 16px;
+}
+.mw-sitehead, .rs-sizehead{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.mw-sitehead b, .rs-sizehead b{ font-size:15px; font-weight:800; }
+.mw-sitehead span, .rs-sizehead span{ font-size:11px; color:var(--muted); }
+.mw-sitepay, .rs-sizepay{ font-size:12px; color:var(--text); opacity:.85; }
+.mw-siterec, .rs-sizerec{ font-size:11px; color:var(--muted); margin-bottom:6px; }
+.mw-site .btn, .rs-size .btn{ align-self:flex-start; padding:9px 16px; font-size:13px; }
+
+/* ---------------- RESTORATION ---------------- */
+.rs-hud{ display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; margin-bottom:14px; }
+.rs-stat{ display:flex; flex-direction:column; gap:2px; }
+.rs-stat b{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.4px; }
+.rs-stat span{ font-size:10.5px; color:var(--muted); }
+.rs-modes{ display:flex; gap:6px; margin-left:auto; }
+
+.rs-boardwrap{ overflow:auto; padding-bottom:4px; margin-bottom:14px; }
+.rs-board{
+  display:grid; grid-template-columns:max-content repeat(var(--n), minmax(22px, 30px));
+  grid-auto-rows:minmax(22px, 30px);
+  width:max-content; gap:2px;
+  background:#12141c; border:1px solid #262b3a; border-radius:var(--radius); padding:10px;
+}
+.rs-corner{ }
+.rs-cc{
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:1px;
+  font-size:10.5px; font-weight:700; color:var(--muted); padding-bottom:4px;
+  font-variant-numeric:tabular-nums;
+}
+.rs-rc{
+  display:flex; align-items:center; justify-content:flex-end; gap:5px;
+  font-size:10.5px; font-weight:700; color:var(--muted); padding-right:7px;
+  font-variant-numeric:tabular-nums;
+}
+.rs-cc i, .rs-rc i{ font-style:normal; line-height:1.1; }
+.rs-cc.done, .rs-rc.done{ color:#3a4157; }
+
+.rs-cell{
+  border-radius:4px; border:1px solid #2b3142; cursor:pointer; padding:0;
+  background:#1a1e2a; font-family:inherit; position:relative;
+  transition:background .07s, border-color .07s;
+}
+.rs-cell:hover:not(:disabled){ border-color:var(--accent); }
+.rs-cell.gapr{ margin-right:5px; }
+.rs-cell.gapb{ margin-bottom:5px; }
+.rs-cell.fill{ background:var(--accent); border-color:var(--accent); }
+.rs-cell.mark::after, .rs-cell.wrong::after{
+  content:"✕"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:12px; color:#4a5270;
+}
+.rs-cell.wrong::after{ color:var(--bad); opacity:.75; }
+.rs-board.done .rs-cell{ cursor:default; border-color:transparent; background:#151823; }
+.rs-board.done .rs-cell.lit{ background:var(--good); }
+.rs-board.done .rs-cell::after{ content:none; }
+
+.rs-result{ margin-bottom:14px; font-size:12.5px; line-height:1.55; color:var(--muted); }
+.rs-result strong{ display:block; font-size:15px; margin-bottom:2px; }
+.rs-result.good strong{ color:var(--good); }
+.rs-sizes{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+
+@media (max-width:620px){
+  .mw-board{ grid-template-columns:repeat(var(--w), minmax(22px, 28px)); }
+  .mw-lede h3,.rs-lede h3{ font-size:18px; }
+  .mw-lobstats,.rs-lobstats{ gap:18px; }
+  .rs-board{ grid-template-columns:max-content repeat(var(--n), minmax(17px, 24px)); grid-auto-rows:minmax(17px, 24px); }
+  .rs-cc, .rs-rc{ font-size:9px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .mw-cell,.rs-cell{ transition:none; }
+}
+
+/* ============ ARCADE: BREAKER / SCRAPSTORM / SKYWATCH ============ */
+#tab-breaker .bk-stage,#tab-storm .tw-stage,#tab-skywatch .sk-stage{ min-height:440px; }
+.ac-eyebrow{ display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted); }
+.ac-lobby{ display:flex; flex-direction:column; gap:20px; }
+.ac-lobby h3{ margin:10px 0 0; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px; }
+.ac-lobby p{ margin:0; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:62ch; }
+.ac-stats{ display:flex; gap:28px; flex-wrap:wrap; }
+.ac-stats div{ display:flex; flex-direction:column; gap:3px; }
+.ac-stats b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.ac-stats div>span{ font-size:10.5px; color:var(--muted); letter-spacing:.03em; }
+.ac-lobby .btn{ align-self:flex-start; }
+.ac-foot{ display:flex; gap:12px; flex-wrap:wrap; }
+.ac-wrap{ display:flex; justify-content:center; }
+.ac-wrap canvas{
+  max-width:100%; height:auto; border:1px solid #262b3a; border-radius:var(--radius);
+  cursor:crosshair; touch-action:none;
+}
+#bkCanvas{ cursor:none; }
+@media (max-width:620px){ .ac-lobby h3{ font-size:18px; } .ac-stats{ gap:18px; } }
+
 </style>
 </head>
 <body>
@@ -4075,6 +4233,26 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
   <section id="tab-oddone" style="display:none;">
     <div class="panel"><div class="oo-stage" id="ooStage"></div></div>
+  </section>
+
+  <section id="tab-dig" style="display:none;">
+    <div class="panel"><div class="mw-stage" id="mwStage"></div></div>
+  </section>
+
+  <section id="tab-resto" style="display:none;">
+    <div class="panel"><div class="rs-stage" id="rsStage"></div></div>
+  </section>
+
+  <section id="tab-breaker" style="display:none;">
+    <div class="panel"><div class="bk-stage" id="bkStage"></div></div>
+  </section>
+
+  <section id="tab-storm" style="display:none;">
+    <div class="panel"><div class="tw-stage" id="twStage"></div></div>
+  </section>
+
+  <section id="tab-skywatch" style="display:none;">
+    <div class="panel"><div class="sk-stage" id="skStage"></div></div>
   </section>
 
   <section id="tab-collection" style="display:none;">
@@ -16862,7 +17040,7 @@ function renderPoker(){
   if(!pk && ov){
     ov.innerHTML = `
       <div class="t">🃏 POKER RUSH</div>
-      <div class="s">Swap cards sideways. Make poker hands in rows or columns.<br>Chain ×3 or every 5,000 points drops a wild <b>Joker</b>.<br>Survive the rise.</div>
+      <div class="s">Swap cards sideways. Make poker hands in rows or columns.<br>Chain ×3 or every 5,000 points drops a wild <b>Joker</b>.<br>Survive the rise.<br><span style="font-size:11.5px;color:var(--muted);">WASD or arrows move the cursor · Space, X or Z swaps · hold R to raise the stack · or just drag.</span></div>
       <button class="btn" onclick="pkStart()">Deal me in</button>`;
     ov.classList.add("show");
   }
@@ -16888,10 +17066,10 @@ function pkOnLeaveTab(){
 document.addEventListener("keydown", e=>{
   if(!pkTabActive || !pk || pk.over) return;
   const k = e.key.toLowerCase();
-  if(k === "arrowleft"){ pk.cur.x = Math.max(0, pk.cur.x-1); e.preventDefault(); }
-  else if(k === "arrowright"){ pk.cur.x = Math.min(PK_COLS-2, pk.cur.x+1); e.preventDefault(); }
-  else if(k === "arrowup"){ pk.cur.y = Math.min(PK_ROWS-1, pk.cur.y+1); e.preventDefault(); }
-  else if(k === "arrowdown"){ pk.cur.y = Math.max(0, pk.cur.y-1); e.preventDefault(); }
+  if(k === "arrowleft" || k === "a"){ pk.cur.x = Math.max(0, pk.cur.x-1); e.preventDefault(); }
+  else if(k === "arrowright" || k === "d"){ pk.cur.x = Math.min(PK_COLS-2, pk.cur.x+1); e.preventDefault(); }
+  else if(k === "arrowup" || k === "w"){ pk.cur.y = Math.min(PK_ROWS-1, pk.cur.y+1); e.preventDefault(); }
+  else if(k === "arrowdown" || k === "s"){ pk.cur.y = Math.max(0, pk.cur.y-1); e.preventDefault(); }
   else if(k === "x" || k === "z" || k === " "){ pkSwap(); e.preventDefault(); }
   else if(k === "r"){ pkRaiseHeld = true; e.preventDefault(); }
 });
@@ -21264,6 +21442,1466 @@ function ooOnLeaveTab(){
   else oo = null;
 }
 
+/* =====================================================================
+   THE DIG  —  minesweeper on a dig site
+   ---------------------------------------------------------------------
+   Flag the collapsed shafts, clear everything else. Pure deduction on a
+   grid where every number is information and nothing is hidden that the
+   numbers don't tell you. The first strike is always safe and always
+   opens ground — the hazards are laid after it, away from where you hit.
+
+   No cards in or out: this one pays credits, a little scrap (you're
+   digging, after all), and a sliver of XP on a clear.
+
+   Host functions expected: state, saveState, showToast, renderHeader,
+   grantBonusXP.
+   ===================================================================== */
+
+const MW_SITES = [
+  { id:0, name:"Trench",     w:9,  h:9,  mines:10, tile:26, clear:3800,  scrap:35,  xp:6  },
+  { id:1, name:"Gallery",    w:12, h:12, mines:26, tile:44, clear:11500, scrap:110, xp:10 },
+  { id:2, name:"Deep Shaft", w:14, h:14, mines:40, tile:64, clear:24000, scrap:260, xp:16 },
+];
+const MW_LOSS_RATE  = 0.5;   // tiles already opened still pay this share on a cave-in
+const MW_SPEED_BONUS= 0.5;   // up to +50% of the clear bonus for speed
+
+function mwStats(){
+  if(!state.dig){
+    state.dig = { runs:0, clears:[0,0,0], best:[0,0,0], opened:0, credits:0, scrap:0 };
+  }
+  /* Older saves from before a site was added */
+  while(state.dig.clears.length < MW_SITES.length){ state.dig.clears.push(0); state.dig.best.push(0); }
+  return state.dig;
+}
+
+/* ---------- board ------------------------------------------------------ */
+let mw = null;
+let mwTimer = null;
+
+function mwIdx(x,y){ return y * mw.w + x; }
+function mwIn(x,y){ return x >= 0 && y >= 0 && x < mw.w && y < mw.h; }
+function mwNbrs(i){
+  const x = i % mw.w, y = Math.floor(i / mw.w), out = [];
+  for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){
+    if(!dx && !dy) continue;
+    if(mwIn(x+dx, y+dy)) out.push(mwIdx(x+dx, y+dy));
+  }
+  return out;
+}
+
+function mwStart(siteId){
+  const site = MW_SITES[siteId];
+  mw = {
+    site, w:site.w, h:site.h, mines:site.mines,
+    grid: Array.from({length:site.w*site.h}, ()=>({ mine:false, adj:0, open:false, flag:false })),
+    laid:false, over:false, won:false, banked:false,
+    opened:0, flags:0, mode:"dig", t0:0, elapsed:0
+  };
+  mwStats().runs++;
+  saveState();
+  mwPaint();
+}
+
+/* Hazards go down only after the first strike, never on it or beside it,
+   so an opening flood is guaranteed and no run dies to the first click. */
+function mwLay(first){
+  const banned = new Set([first, ...mwNbrs(first)]);
+  const spots = [];
+  for(let i = 0; i < mw.grid.length; i++) if(!banned.has(i)) spots.push(i);
+  for(let i = spots.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1)); [spots[i], spots[j]] = [spots[j], spots[i]];
+  }
+  spots.slice(0, mw.mines).forEach(i => mw.grid[i].mine = true);
+  mw.grid.forEach((c,i)=>{ c.adj = mwNbrs(i).filter(n => mw.grid[n].mine).length; });
+  mw.laid = true;
+  mw.t0 = Date.now();
+  mwRunClock();
+}
+
+function mwReveal(i){
+  const stack = [i];
+  while(stack.length){
+    const k = stack.pop();
+    const c = mw.grid[k];
+    if(c.open || c.flag) continue;
+    c.open = true;
+    mw.opened++;
+    if(c.adj === 0 && !c.mine) mwNbrs(k).forEach(n => { if(!mw.grid[n].open) stack.push(n); });
+  }
+}
+
+function mwHit(i){
+  if(!mw || mw.over) return;
+  const c = mw.grid[i];
+  if(c.open){ mwChord(i); return; }
+  if(mw.mode === "flag"){ mwFlag(i); return; }
+  if(c.flag) return;
+  if(!mw.laid) mwLay(i);
+  if(c.mine){ mwEnd(false, i); return; }
+  mwReveal(i);
+  mwCheck();
+}
+
+function mwFlag(i){
+  if(!mw || mw.over) return;
+  const c = mw.grid[i];
+  if(c.open) return;
+  c.flag = !c.flag;
+  mw.flags += c.flag ? 1 : -1;
+  mwPaint();
+}
+
+/* Standard chord: a satisfied number opens its remaining neighbours. A
+   wrong flag makes this fatal, exactly as it should. */
+function mwChord(i){
+  const c = mw.grid[i];
+  if(!c.open || c.adj === 0) return;
+  const nbrs = mwNbrs(i);
+  if(nbrs.filter(n => mw.grid[n].flag).length !== c.adj) return;
+  let boom = -1;
+  nbrs.forEach(n=>{
+    const nc = mw.grid[n];
+    if(nc.flag || nc.open) return;
+    if(nc.mine && boom < 0){ boom = n; return; }
+    if(!nc.mine) mwReveal(n);
+  });
+  if(boom >= 0){ mwEnd(false, boom); return; }
+  mwCheck();
+}
+
+function mwCheck(){
+  if(mw.opened === mw.w * mw.h - mw.mines){ mwEnd(true); return; }
+  mwPaint();
+}
+
+function mwRunClock(){
+  mwStopClock();
+  mwTimer = setInterval(()=>{
+    if(!mw || mw.over || !mw.laid) return mwStopClock();
+    mw.elapsed = Date.now() - mw.t0;
+    const el = document.getElementById("mwTime");
+    if(el) el.textContent = mwClock(mw.elapsed);
+  }, 500);
+}
+function mwStopClock(){ if(mwTimer){ clearInterval(mwTimer); mwTimer = null; } }
+function mwClock(ms){
+  const s = Math.floor(ms/1000);
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+}
+
+function mwEnd(won, boom){
+  if(!mw || mw.banked) return;
+  mw.over = true; mw.won = won; mw.banked = true;
+  mw.boom = boom;
+  mwStopClock();
+  if(mw.laid) mw.elapsed = Date.now() - mw.t0;
+
+  const site = mw.site;
+  const tileCr = mw.opened * site.tile;
+  let credits, scrap = 0, xp = 0, speedShare = 0;
+  if(won){
+    /* Par is a comfortable pace: half a second a tile plus reading time.
+       Beating it scales the clear bonus, never the tile pay. */
+    const par = (mw.w * mw.h - mw.mines) * 900 + 15000;
+    speedShare = Math.max(0, Math.min(1, (par - mw.elapsed) / par));
+    credits = tileCr + Math.round(site.clear * (1 + MW_SPEED_BONUS * speedShare));
+    scrap = site.scrap;
+    xp = site.xp;
+  } else {
+    credits = Math.round(tileCr * MW_LOSS_RATE);
+  }
+
+  state.credits += credits;
+  state.scrap = (state.scrap||0) + scrap;
+  if(xp > 0) grantBonusXP(xp);
+
+  const st = mwStats();
+  st.opened += mw.opened;
+  st.credits += credits;
+  st.scrap += scrap;
+  if(won){
+    st.clears[site.id]++;
+    if(!st.best[site.id] || mw.elapsed < st.best[site.id]) st.best[site.id] = mw.elapsed;
+  }
+  mw.pay = { credits, scrap, xp, speedShare };
+  saveState();
+  renderHeader();
+  mwPaint();
+}
+
+/* ---------- rendering -------------------------------------------------- */
+function mwEl(){ return document.getElementById("mwStage"); }
+const MW_NUM = ["", "#6c8cff", "#3ddc84", "#ff9d5c", "#c98cff", "#ffd35c", "#5ce0d8", "#ff5c8a", "#eef0f6"];
+
+function mwPaint(){
+  const stage = mwEl();
+  if(!stage) return;
+  if(!mw){ mwPaintLobby(); return; }
+
+  const cells = mw.grid.map((c,i)=>{
+    let cls = "mw-cell", body = "";
+    if(c.open){
+      cls += " open";
+      if(c.mine){ cls += " boom"; body = "💥"; }
+      else if(c.adj){ body = `<b style="color:${MW_NUM[c.adj]}">${c.adj}</b>`; }
+    } else if(mw.over && c.mine && !c.flag){
+      cls += " shown"; body = "🕳️";
+    } else if(c.flag){
+      body = "🚩";
+      if(mw.over && !c.mine){ cls += " misflag"; body = "❌"; }
+    }
+    if(mw.over && mw.boom === i) cls += " origin";
+    return `<button class="${cls}" data-i="${i}" ${mw.over ? "disabled" : ""}>${body}</button>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <div class="mw-hud">
+      <div class="mw-stat"><b>${mw.mines - mw.flags}</b><span>shafts unflagged</span></div>
+      <div class="mw-stat"><b id="mwTime">${mwClock(mw.elapsed)}</b><span>on the clock</span></div>
+      <div class="mw-stat"><b>${mw.opened}</b><span>tiles cleared</span></div>
+      <div class="mw-modes">
+        <button class="mw-mode${mw.mode === "dig" ? " on" : ""}" data-m="dig">⛏️ Dig</button>
+        <button class="mw-mode${mw.mode === "flag" ? " on" : ""}" data-m="flag">🚩 Flag</button>
+      </div>
+    </div>
+
+    <div class="mw-boardwrap">
+      <div class="mw-board" style="--w:${mw.w}">${cells}</div>
+    </div>
+
+    ${mw.over ? `
+      <div class="mw-result ${mw.won ? "good" : "bad"}">
+        <strong>${mw.won ? (mw.pay.speedShare > 0.6 ? "Cleared, and quickly." : "Site cleared.") : "Cave-in."}</strong>
+        <span>+${mw.pay.credits.toLocaleString()} credits${mw.pay.scrap ? ` · +${mw.pay.scrap} scrap` : ""}${mw.pay.xp ? ` · +${mw.pay.xp} XP` : ""}${
+          !mw.won && mw.opened ? ` — half rate for the ${mw.opened} tiles you did clear` : ""}</span>
+      </div>
+      <div class="mw-foot">
+        <button class="btn" id="mwAgain">Dig ${mw.site.name} again</button>
+        <button class="btn secondary" id="mwBack">Choose a site</button>
+      </div>`
+    : `<p class="mw-hint">Right-click flags on desktop. On a number, click again once its flags
+       are placed to open the rest around it.</p>`}`;
+
+  const board = stage.querySelector(".mw-board");
+  board.addEventListener("click", e=>{
+    const b = e.target.closest(".mw-cell");
+    if(b) mwHit(+b.dataset.i);
+  });
+  board.addEventListener("contextmenu", e=>{
+    e.preventDefault();
+    const b = e.target.closest(".mw-cell");
+    if(b) mwFlag(+b.dataset.i);
+  });
+  stage.querySelectorAll(".mw-mode").forEach(b=>
+    b.addEventListener("click", ()=>{ mw.mode = b.dataset.m; mwPaint(); }));
+  const again = document.getElementById("mwAgain");
+  if(again) again.addEventListener("click", ()=> mwStart(mw.site.id));
+  const back = document.getElementById("mwBack");
+  if(back) back.addEventListener("click", ()=>{ mw = null; mwPaintLobby(); });
+}
+
+function mwPaintLobby(){
+  const stage = mwEl();
+  if(!stage) return;
+  const st = mwStats();
+
+  const sites = MW_SITES.map(s=>`
+    <div class="mw-site">
+      <div class="mw-sitehead"><b>${s.name}</b><span>${s.w}×${s.h} · ${s.mines} shafts</span></div>
+      <div class="mw-sitepay">${s.tile} cr a tile · ${s.clear.toLocaleString()} to clear · ♻️ ${s.scrap}</div>
+      <div class="mw-siterec">${st.clears[s.id]} cleared${st.best[s.id] ? ` · best ${mwClock(st.best[s.id])}` : ""}</div>
+      <button class="btn" data-site="${s.id}">Open the site</button>
+    </div>`).join("");
+
+  stage.innerHTML = `
+    <div class="mw-lobby">
+      <div class="mw-lede">
+        <span class="mw-eyebrow">The Dig</span>
+        <h3>Every number tells you how many of its<br>neighbours will fall in. Clear the rest.</h3>
+        <p>The first strike is always safe and always opens ground. Flag the
+           collapsed shafts, dig everything else, and the site pays out — with a
+           bonus for a fast, clean clear. A cave-in still pays half rate on
+           whatever you'd already dug.</p>
+      </div>
+      <div class="mw-sites">${sites}</div>
+      <div class="mw-lobstats">
+        <div><b>${st.opened.toLocaleString()}</b><span>Tiles dug</span></div>
+        <div><b>${(st.clears[0]+st.clears[1]+st.clears[2])}</b><span>Sites cleared</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Credits earned</span></div>
+        <div><b>${st.scrap.toLocaleString()}</b><span>Scrap found</span></div>
+      </div>
+    </div>`;
+
+  stage.querySelectorAll("[data-site]").forEach(b=>
+    b.addEventListener("click", ()=> mwStart(+b.dataset.site)));
+}
+
+/* ---------- host wiring ------------------------------------------------- */
+function renderDig(){ if(mw) mwPaint(); else mwPaintLobby(); }
+function mwOnEnterTab(){ mwStats(); renderDig(); }
+function mwOnLeaveTab(){
+  mwStopClock();
+  /* Walking off the site banks the half-rate tile pay rather than eating it. */
+  if(mw && !mw.over && mw.opened > 0) mwEnd(false);
+  mw = null;
+}
+
+/* =====================================================================
+   RESTORATION  —  nonograms, guaranteed guess-free
+   ---------------------------------------------------------------------
+   A damaged panel and its row and column counts. Fill the right cells
+   and the picture comes back.
+
+   The guarantee that makes this fair: every puzzle served is verified
+   LINE-SOLVABLE before you see it — a solver that reasons one row or
+   column at a time, exactly the way a person does, must be able to
+   finish it. That's stronger than merely having one solution: it means
+   there is never a point where you're forced to guess. Mistakes are
+   always avoidable, which is what makes them fair to price.
+
+   Wrong fills don't fail the run; they mark the cell and trim the
+   payout. Finishing always pays something, a clean panel pays half
+   again over the top.
+
+   No cards in or out — credits and a little XP.
+
+   Host functions expected: state, saveState, showToast, renderHeader,
+   grantBonusXP.
+   ===================================================================== */
+
+const RS_SIZES = [
+  { id:0, name:"Sketch", n:5,  pay:1600,  xp:4,  authored:true  },
+  { id:1, name:"Panel",  n:10, pay:8500,  xp:10, authored:false },
+  { id:2, name:"Mural",  n:15, pay:21000, xp:18, authored:false },
+];
+const RS_MISTAKE_CUT = 0.2;    // payout lost per wrong fill
+const RS_PAY_FLOOR   = 0.2;
+const RS_CLEAN_BONUS = 0.5;
+
+/* Hand-drawn 5×5 subjects for the small board. Each is checked against
+   the line solver at deal time; anything that fails the guarantee simply
+   never comes up. Strings: # filled, . empty. */
+const RS_GLYPHS = [
+  ["Anchor",   ".###.",".#.#.","..#..","#.#.#",".###."],
+  ["Goblet",   "#####",".###.","..#..","..#..",".###."],
+  ["Key",      ".##..",".##..","..#..","..##.","..#.#"],
+  ["Lantern",  "..#..",".###.",".#.#.",".###.","..#.."],
+  ["Arrow",    "..#..",".###.","#.#.#","..#..","..#.."],
+  ["Vase",     ".###.","..#..",".###.",".###.","#####"],
+  ["Mountain", "..#..",".##..",".###.","####.","#####"],
+  ["Crown",    "#.#.#","#####",".###.",".###.","#####"],
+  ["Mask",     "#####","#.#.#","#####",".###.","..#.."],
+  ["Cross",    "..#..","..#..","#####","..#..","..#.."],
+  ["Steps",    "#....","##...","###..","####.","#####"],
+  ["Hourglass","#####",".###.","..#..",".###.","#####"],
+];
+
+function rsStats(){
+  if(!state.resto){
+    state.resto = { done:[0,0,0], clean:[0,0,0], best:[0,0,0], credits:0, mistakes:0, seen:{} };
+  }
+  return state.resto;
+}
+
+/* ---------- the line solver --------------------------------------------
+   For one line: given its clue and current knowledge (0 unknown, 1 fill,
+   2 blank), work out every cell forced across all arrangements that fit.
+   Classic memoised recursion over (position, clue index); `can` collects
+   which states each cell takes in at least one valid arrangement. */
+function rsSolveLine(clue, cells){
+  const len = cells.length;
+  const can = Array.from({length:len}, ()=>({ f:false, b:false }));
+  const memo = new Map();
+
+  function rec(i, k){
+    const key = i * 100 + k;
+    if(memo.has(key)) return memo.get(key);
+    let ok = false;
+    if(k === clue.length){
+      /* Rest must be blank */
+      for(let j = i; j < len; j++) if(cells[j] === 1){ memo.set(key, false); return false; }
+      for(let j = i; j < len; j++) can[j].b = true;
+      memo.set(key, true);
+      return true;
+    }
+    if(i >= len){ memo.set(key, false); return false; }
+
+    /* Option A: cell i blank */
+    if(cells[i] !== 1 && rec(i+1, k)){ can[i].b = true; ok = true; }
+
+    /* Option B: block of clue[k] starts at i */
+    const L = clue[k];
+    if(i + L <= len){
+      let fits = true;
+      for(let j = i; j < i + L; j++) if(cells[j] === 2){ fits = false; break; }
+      if(fits && (i + L === len || cells[i + L] !== 1)){
+        const after = i + L < len ? i + L + 1 : len;
+        if(rec(after, k + 1)){
+          for(let j = i; j < i + L; j++) can[j].f = true;
+          if(i + L < len) can[i + L].b = true;
+          ok = true;
+        }
+      }
+    }
+    memo.set(key, ok);
+    return ok;
+  }
+
+  if(!rec(0, 0)) return null;   // contradiction
+  return can.map((c, j)=>{
+    if(cells[j] !== 0) return cells[j];
+    if(c.f && !c.b) return 1;
+    if(c.b && !c.f) return 2;
+    return 0;
+  });
+}
+
+/* Whole grid: sweep rows and columns to a fixpoint. Line-solvable means
+   this finishes with nothing unknown — a human never has to guess. */
+function rsLineSolvable(rows, cols, n){
+  const g = new Array(n * n).fill(0);
+  let moved = true;
+  while(moved){
+    moved = false;
+    for(let y = 0; y < n; y++){
+      const line = Array.from({length:n}, (_,x)=> g[y*n + x]);
+      const out = rsSolveLine(rows[y], line);
+      if(!out) return false;
+      for(let x = 0; x < n; x++) if(out[x] !== g[y*n + x]){ g[y*n + x] = out[x]; moved = true; }
+    }
+    for(let x = 0; x < n; x++){
+      const line = Array.from({length:n}, (_,y)=> g[y*n + x]);
+      const out = rsSolveLine(cols[x], line);
+      if(!out) return false;
+      for(let y = 0; y < n; y++) if(out[y] !== g[y*n + x]){ g[y*n + x] = out[y]; moved = true; }
+    }
+  }
+  return g.every(v => v !== 0) ? g : false;
+}
+
+function rsClues(sol, n){
+  const rows = [], cols = [];
+  for(let y = 0; y < n; y++){
+    const c = []; let run = 0;
+    for(let x = 0; x < n; x++){
+      if(sol[y*n + x]) run++;
+      else if(run){ c.push(run); run = 0; }
+    }
+    if(run) c.push(run);
+    rows.push(c.length ? c : [0]);
+  }
+  for(let x = 0; x < n; x++){
+    const c = []; let run = 0;
+    for(let y = 0; y < n; y++){
+      if(sol[y*n + x]) run++;
+      else if(run){ c.push(run); run = 0; }
+    }
+    if(run) c.push(run);
+    cols.push(c.length ? c : [0]);
+  }
+  return { rows, cols };
+}
+
+/* ---------- puzzle supply ---------------------------------------------- */
+function rsFromGlyph(g){
+  const n = 5;
+  const sol = [];
+  for(let y = 0; y < n; y++) for(let x = 0; x < n; x++) sol.push(g[1 + y][x] === "#" ? 1 : 0);
+  const { rows, cols } = rsClues(sol, n);
+  const solved = rsLineSolvable(rows, cols, n);
+  if(!solved) return null;
+  /* The solver's answer, not the glyph, is the ground truth — if the
+     clues admit a different (still unique) picture, judge against what
+     the clues actually say. */
+  return { n, name:g[0], sol: solved.map(v => v === 1 ? 1 : 0), rows, cols };
+}
+
+function rsRandom(n){
+  for(let attempt = 0; attempt < 260; attempt++){
+    const density = 0.44 + Math.random() * 0.14;
+    const sol = Array.from({length:n*n}, ()=> Math.random() < density ? 1 : 0);
+    const { rows, cols } = rsClues(sol, n);
+    const solved = rsLineSolvable(rows, cols, n);
+    if(solved) return { n, name:null, sol: solved.map(v => v === 1 ? 1 : 0), rows, cols };
+  }
+  return null;
+}
+
+function rsDeal(sizeId){
+  const size = RS_SIZES[sizeId];
+  if(size.authored){
+    const st = rsStats();
+    const fresh = RS_GLYPHS.filter(g => !st.seen[g[0]]);
+    const pool = fresh.length ? fresh : RS_GLYPHS;
+    for(const g of [...pool].sort(()=>Math.random()-0.5)){
+      const p = rsFromGlyph(g);
+      if(p) return p;
+    }
+  }
+  return rsRandom(size.n);
+}
+
+/* ---------- run --------------------------------------------------------- */
+let rs = null;
+let rsTimer = null;
+let rsDrag = null;   // painting state while the pointer is down
+
+function rsStart(sizeId){
+  const p = rsDeal(sizeId);
+  if(!p){ showToast("Couldn't prepare a panel. Try again."); return; }
+  rs = { size:RS_SIZES[sizeId], ...p,
+         cells:new Array(p.n * p.n).fill(0),   // 0 untouched, 1 filled, 2 marked
+         mistakes:0, fixed:new Set(),          // cells auto-marked by a wrong fill
+         done:false, banked:false, mode:"fill", t0:Date.now(), elapsed:0 };
+  rsRunClock();
+  rsPaint();
+}
+
+function rsLineDone(kind, k){
+  const n = rs.n;
+  const cells = [];
+  for(let i = 0; i < n; i++) cells.push(kind === "r" ? rs.cells[k*n + i] : rs.cells[i*n + k]);
+  const sol = [];
+  for(let i = 0; i < n; i++) sol.push(kind === "r" ? rs.sol[k*n + i] : rs.sol[i*n + k]);
+  return sol.every((v,i)=> v !== 1 || cells[i] === 1);
+}
+
+function rsApply(i){
+  if(!rs || rs.done) return;
+  const c = rs.cells[i];
+  if(rs.mode === "fill"){
+    if(c !== 0) return;
+    if(rs.sol[i] === 1){
+      rs.cells[i] = 1;
+    } else {
+      /* Wrong fill: the cell is marked for you — that's real information,
+         which is why it costs payout. */
+      rs.cells[i] = 2;
+      rs.fixed.add(i);
+      rs.mistakes++;
+      rsStats().mistakes++;
+    }
+  } else {
+    if(rs.fixed.has(i) || rs.cells[i] === 1) return;
+    rs.cells[i] = rs.cells[i] === 2 ? 0 : 2;
+  }
+  if(rs.sol.every((v,j)=> v !== 1 || rs.cells[j] === 1)){ rsFinish(); return; }
+  rsPaint();
+}
+
+function rsFinish(){
+  if(!rs || rs.banked) return;
+  rs.done = true; rs.banked = true;
+  rsStopClock();
+  rs.elapsed = Date.now() - rs.t0;
+
+  const size = rs.size;
+  const mult = Math.max(RS_PAY_FLOOR, 1 - rs.mistakes * RS_MISTAKE_CUT);
+  const clean = rs.mistakes === 0;
+  const credits = Math.round(size.pay * mult * (clean ? 1 + RS_CLEAN_BONUS : 1));
+  const xp = clean ? size.xp : Math.max(1, Math.round(size.xp * mult));
+
+  state.credits += credits;
+  grantBonusXP(xp);
+
+  const st = rsStats();
+  st.done[size.id]++;
+  if(clean) st.clean[size.id]++;
+  if(!st.best[size.id] || rs.elapsed < st.best[size.id]) st.best[size.id] = rs.elapsed;
+  st.credits += credits;
+  if(rs.name) st.seen[rs.name] = true;
+
+  rs.pay = { credits, xp, clean };
+  saveState();
+  renderHeader();
+  rsPaint();
+}
+
+function rsRunClock(){
+  rsStopClock();
+  rsTimer = setInterval(()=>{
+    if(!rs || rs.done) return rsStopClock();
+    const el = document.getElementById("rsTime");
+    if(el) el.textContent = rsClock(Date.now() - rs.t0);
+  }, 500);
+}
+function rsStopClock(){ if(rsTimer){ clearInterval(rsTimer); rsTimer = null; } }
+function rsClock(ms){
+  const s = Math.floor(ms/1000);
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+}
+
+/* ---------- rendering ---------------------------------------------------- */
+function rsEl(){ return document.getElementById("rsStage"); }
+
+function rsPaint(){
+  const stage = rsEl();
+  if(!stage) return;
+  if(!rs){ rsPaintLobby(); return; }
+  const n = rs.n;
+
+  const colClues = Array.from({length:n}, (_,x)=>{
+    const done = rsLineDone("c", x);
+    return `<div class="rs-cc${done ? " done" : ""}">${rs.cols[x].map(v=>`<i>${v}</i>`).join("")}</div>`;
+  }).join("");
+
+  let rowsHTML = "";
+  for(let y = 0; y < n; y++){
+    const done = rsLineDone("r", y);
+    rowsHTML += `<div class="rs-rc${done ? " done" : ""}">${rs.rows[y].map(v=>`<i>${v}</i>`).join("")}</div>`;
+    for(let x = 0; x < n; x++){
+      const i = y*n + x;
+      const v = rs.cells[i];
+      let cls = "rs-cell";
+      if(v === 1) cls += " fill";
+      if(v === 2) cls += rs.fixed.has(i) ? " wrong" : " mark";
+      if(rs.done && rs.sol[i] === 1) cls += " lit";
+      if(x % 5 === 4 && x < n-1) cls += " gapr";
+      if(y % 5 === 4 && y < n-1) cls += " gapb";
+      rowsHTML += `<button class="${cls}" data-i="${i}" ${rs.done ? "disabled" : ""}></button>`;
+    }
+  }
+
+  stage.innerHTML = `
+    <div class="rs-hud">
+      <div class="rs-stat"><b>${rs.size.name}</b><span>${n}×${n}${rs.name ? "" : " · pattern"}</span></div>
+      <div class="rs-stat"><b id="rsTime">${rsClock(rs.done ? rs.elapsed : Date.now() - rs.t0)}</b><span>on the clock</span></div>
+      <div class="rs-stat"><b>${rs.mistakes}</b><span>wrong fills</span></div>
+      <div class="rs-modes">
+        <button class="rs-mode${rs.mode === "fill" ? " on" : ""}" data-m="fill">■ Fill</button>
+        <button class="rs-mode${rs.mode === "mark" ? " on" : ""}" data-m="mark">✕ Mark</button>
+      </div>
+    </div>
+
+    <div class="rs-boardwrap">
+      <div class="rs-board${rs.done ? " done" : ""}" style="--n:${n}">
+        <div class="rs-corner"></div>${colClues}${rowsHTML}
+      </div>
+    </div>
+
+    ${rs.done ? `
+      <div class="rs-result good">
+        <strong>${rs.name ? `Restored: ${rs.name}.` : "Panel restored."}${rs.pay.clean ? " Not a mark on it." : ""}</strong>
+        <span>+${rs.pay.credits.toLocaleString()} credits · +${rs.pay.xp} XP${
+          rs.mistakes ? ` — ${rs.mistakes} wrong fill${rs.mistakes>1?"s":""} trimmed the fee` : ""}</span>
+      </div>
+      <div class="rs-foot">
+        <button class="btn" id="rsAgain">Another ${rs.size.name}</button>
+        <button class="btn secondary" id="rsBack">Choose a size</button>
+      </div>`
+    : `<p class="rs-hint">Right-click marks a blank on desktop. Marks are notes; only fills are
+       judged. A wrong fill marks the cell for you and trims the fee — every panel can be
+       finished without one.</p>`}`;
+
+  const board = stage.querySelector(".rs-board");
+  const hit = e => {
+    const b = e.target.closest(".rs-cell");
+    if(b) rsApply(+b.dataset.i);
+  };
+  board.addEventListener("click", hit);
+  board.addEventListener("contextmenu", e=>{
+    e.preventDefault();
+    const b = e.target.closest(".rs-cell");
+    if(!b || !rs || rs.done) return;
+    const keep = rs.mode; rs.mode = "mark"; rsApply(+b.dataset.i);
+    if(rs && !rs.done) rs.mode = keep;
+  });
+  stage.querySelectorAll(".rs-mode").forEach(b=>
+    b.addEventListener("click", ()=>{ rs.mode = b.dataset.m; rsPaint(); }));
+  const again = document.getElementById("rsAgain");
+  if(again) again.addEventListener("click", ()=> rsStart(rs.size.id));
+  const back = document.getElementById("rsBack");
+  if(back) back.addEventListener("click", ()=>{ rs = null; rsPaintLobby(); });
+}
+
+function rsPaintLobby(){
+  const stage = rsEl();
+  if(!stage) return;
+  const st = rsStats();
+
+  const sizes = RS_SIZES.map(s=>`
+    <div class="rs-size">
+      <div class="rs-sizehead"><b>${s.name}</b><span>${s.n}×${s.n}</span></div>
+      <div class="rs-sizepay">${s.pay.toLocaleString()} cr · clean +${Math.round(RS_CLEAN_BONUS*100)}%</div>
+      <div class="rs-sizerec">${st.done[s.id]} restored${st.best[s.id] ? ` · best ${rsClock(st.best[s.id])}` : ""}</div>
+      <button class="btn" data-size="${s.id}">Start</button>
+    </div>`).join("");
+
+  stage.innerHTML = `
+    <div class="rs-lobby">
+      <div class="rs-lede">
+        <span class="rs-eyebrow">Restoration</span>
+        <h3>The counts say how the paint falls.<br>Bring the panel back.</h3>
+        <p>Each number is a run of filled cells in that row or column, in order,
+           with at least one gap between runs. Every panel is checked before
+           it's shown: it can always be finished by reasoning alone, one line
+           at a time, without ever guessing.</p>
+      </div>
+      <div class="rs-sizes">${sizes}</div>
+      <div class="rs-lobstats">
+        <div><b>${st.done[0]+st.done[1]+st.done[2]}</b><span>Panels restored</span></div>
+        <div><b>${st.clean[0]+st.clean[1]+st.clean[2]}</b><span>Clean restorations</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Credits earned</span></div>
+      </div>
+    </div>`;
+
+  stage.querySelectorAll("[data-size]").forEach(b=>
+    b.addEventListener("click", ()=> rsStart(+b.dataset.size)));
+}
+
+/* ---------- host wiring -------------------------------------------------- */
+function renderResto(){ if(rs) rsPaint(); else rsPaintLobby(); }
+function rsOnEnterTab(){ rsStats(); renderResto(); }
+function rsOnLeaveTab(){
+  rsStopClock();
+  /* A half-restored panel isn't worth banking — no cost was sunk, so just
+     put the brushes down. */
+  rs = null;
+}
+
+/* =====================================================================
+   BREAKER — paddle, ball, bricks
+   Mouse or A/D/arrows drive the paddle. Ball angle comes off where it
+   strikes the paddle. Twelve authored layouts cycle with rising speed.
+   Credits per brick, bonus per board, small XP. No cards.
+   Host: state, saveState, showToast, renderHeader, grantBonusXP.
+   ===================================================================== */
+const BK_W=480, BK_H=600, BK_COLS=12, BK_BW=38, BK_BH=16, BK_TOP=64;
+const BK_CR_BRICK=9, BK_CR_BOARD=1200, BK_XP_BOARD=3, BK_LIVES=3;
+const BK_DROP=0.14;   // powerup chance per brick
+/* 12 layouts: strings per row, chars: .=empty 1..4=hits(pay x), S=solid steel (unbreakable) */
+const BK_LEVELS=[
+ ["111111111111","111111111111","222222222222","............","111111111111"],
+ ["..11111111..",".1222222221.","122333333221",".1222222221.","..11111111.."],
+ ["1.1.1.1.1.1.",".2.2.2.2.2.2","3.3.3.3.3.3.",".2.2.2.2.2.2","1.1.1.1.1.1."],
+ ["222..22..222","2.2.2222.2.2","22S222222S22","2.2.2222.2.2","222..22..222"],
+ ["111111111111","1S1S1S1S1S1S","222222222222","2S2S2S2S2S2S","333333333333"],
+ ["....1221....","...122221...","..12233221..",".1223333221.","122334433221"],
+ ["4321....1234","432111111234","4321222 1234".replace(" ","2"),"432111111234","4321....1234"],
+ ["S1111111111S","S2222222222S","S3333333333S","S2222222222S","S1111111111S"],
+ ["121212121212","212121212121","121212121212","212121212121","121212121212"],
+ ["33.33..33.33","3.3.3223.3.3","..33333333..","3.3.3223.3.3","33.33..33.33"],
+ ["44..4444..44","4S4444444S44","..44S44S44..","4S4444444S44","44..4444..44"],
+ ["444444444444","4S44S44S44S4","344444444443","3S43S43S434".padEnd(12,"3"),"333333333333"],
+];
+function bkStats(){ if(!state.breaker) state.breaker={runs:0,bricks:0,boards:0,best:0,credits:0}; return state.breaker; }
+
+function bkLevel(n){
+  const rows=BK_LEVELS[n%BK_LEVELS.length];
+  const bricks=[];
+  rows.forEach((r,y)=>{ for(let x=0;x<BK_COLS;x++){
+    const ch=r[x]||"."; if(ch===".") continue;
+    bricks.push({x:2+x*(BK_BW+2), y:BK_TOP+y*(BK_BH+3), w:BK_BW, h:BK_BH,
+      hp: ch==="S"?Infinity:+ch, steel: ch==="S"});
+  }});
+  return bricks;
+}
+function bkSpeed(board){ return 250 + Math.min(240, board*22); }
+
+/* circle vs rect: returns "x"|"y"|null — which axis to reflect */
+function bkHit(b, r){
+  const cx=Math.max(r.x,Math.min(b.x,r.x+r.w)), cy=Math.max(r.y,Math.min(b.y,r.y+r.h));
+  const dx=b.x-cx, dy=b.y-cy;
+  if(dx*dx+dy*dy > b.r*b.r) return null;
+  return Math.abs(dx)>Math.abs(dy) ? "x" : "y";
+}
+
+let bk=null, bkRaf=null, bkActive=false, bkKeys={};
+function bkStart(){
+  bk={board:0,lives:BK_LIVES,score:0,credits:0,bricks:[],balls:[],drops:[],parts:[],
+      pad:{x:BK_W/2,w:88}, stuck:true, over:false, banked:false, wide:0, slow:0};
+  bkStats().runs++;
+  bkLoad();
+  saveState(); bkPaint(); bkRun();
+}
+function bkLoad(){
+  bk.bricks=bkLevel(bk.board);
+  bk.balls=[{x:BK_W/2,y:BK_H-70,r:7,vx:0,vy:0}];
+  bk.stuck=true;
+}
+function bkLaunch(){
+  if(!bk||!bk.stuck) return;
+  bk.stuck=false;
+  const a=(-Math.PI/2)+(Math.random()*0.6-0.3), s=bkSpeed(bk.board);
+  bk.balls[0].vx=Math.cos(a)*s; bk.balls[0].vy=Math.sin(a)*s;
+}
+function bkStep(dt){
+  if(!bk||bk.over) return;
+  if(bk.wide>0) bk.wide-=dt; if(bk.slow>0) bk.slow-=dt;
+  bk.pad.w = bk.wide>0?128:88;
+  const ts = bk.slow>0?0.6:1;
+  if(bkKeys.a||bkKeys.arrowleft) bk.pad.x-=420*dt;
+  if(bkKeys.d||bkKeys.arrowright) bk.pad.x+=420*dt;
+  bk.pad.x=Math.max(bk.pad.w/2,Math.min(BK_W-bk.pad.w/2,bk.pad.x));
+  if(bk.stuck){ bk.balls[0].x=bk.pad.x; bk.balls[0].y=BK_H-70; }
+  bk.balls.forEach(b=>{
+    if(bk.stuck) return;
+    b.x+=b.vx*dt*ts; b.y+=b.vy*dt*ts;
+    if(b.x<b.r){b.x=b.r;b.vx=Math.abs(b.vx);} if(b.x>BK_W-b.r){b.x=BK_W-b.r;b.vx=-Math.abs(b.vx);}
+    if(b.y<b.r){b.y=b.r;b.vy=Math.abs(b.vy);}
+    const pr={x:bk.pad.x-bk.pad.w/2,y:BK_H-46,w:bk.pad.w,h:12};
+    if(b.vy>0 && bkHit(b,pr)){
+      const off=(b.x-bk.pad.x)/(bk.pad.w/2);
+      const sp=Math.hypot(b.vx,b.vy), a=-Math.PI/2+off*1.05;
+      b.vx=Math.cos(a)*sp; b.vy=Math.sin(a)*sp; b.y=pr.y-b.r;
+    }
+    for(const br of bk.bricks){
+      if(br.hp<=0) continue;
+      const ax=bkHit(b,br);
+      if(!ax) continue;
+      if(ax==="x") b.vx=-b.vx; else b.vy=-b.vy;
+      if(!br.steel){
+        br.hp--;
+        if(br.hp<=0){ bkBrickDown(br); }
+      }
+      break;
+    }
+  });
+  bk.balls=bk.balls.filter(b=>b.y<BK_H+20 || bk.stuck);
+  if(!bk.balls.length){
+    bk.lives--;
+    if(bk.lives<=0){ bkEnd(); return; }
+    bk.balls=[{x:bk.pad.x,y:BK_H-70,r:7,vx:0,vy:0}]; bk.stuck=true;
+  }
+  bk.drops.forEach(d=>{ d.y+=140*dt;
+    if(d.y>BK_H-52 && Math.abs(d.x-bk.pad.x)<bk.pad.w/2+10 && !d.got){
+      d.got=true; bkPower(d.kind);
+    }});
+  bk.drops=bk.drops.filter(d=>!d.got && d.y<BK_H+20);
+  bk.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=380*dt;p.t+=dt;});
+  bk.parts=bk.parts.filter(p=>p.t<0.6);
+  if(!bk.bricks.some(br=>br.hp>0 && !br.steel)){
+    bk.credits+=BK_CR_BOARD; bk.score+=BK_CR_BOARD;
+    bkStats().boards++;
+    grantBonusXP(BK_XP_BOARD);
+    bk.board++; bkLoad();
+  }
+}
+function bkBrickDown(br){
+  bk.credits+=BK_CR_BRICK; bk.score+=BK_CR_BRICK;
+  bkStats().bricks++;
+  for(let i=0;i<5;i++) bk.parts.push({x:br.x+br.w/2,y:br.y+br.h/2,
+    vx:(Math.random()*2-1)*140,vy:-60-Math.random()*120,t:0});
+  if(Math.random()<BK_DROP){
+    const kinds=["wide","multi","slow","gem"];
+    bk.drops.push({x:br.x+br.w/2,y:br.y,kind:kinds[Math.floor(Math.random()*kinds.length)]});
+  }
+}
+function bkPower(kind){
+  if(kind==="wide") bk.wide=10;
+  else if(kind==="slow") bk.slow=8;
+  else if(kind==="gem"){ bk.credits+=180; bk.score+=180; }
+  else if(kind==="multi"){
+    const src=bk.balls[0]||{x:bk.pad.x,y:BK_H-80};
+    const sp=bkSpeed(bk.board);
+    for(const a of [-2.2,-0.9]) bk.balls.push({x:src.x,y:src.y,r:7,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp});
+  }
+}
+function bkEnd(){
+  if(!bk||bk.banked) return;
+  bk.over=true; bk.banked=true;
+  state.credits+=bk.credits;
+  const st=bkStats(); st.credits+=bk.credits;
+  if(bk.score>st.best) st.best=bk.score;
+  saveState(); renderHeader(); bkPaint();
+}
+/* ---------- draw ---------- */
+const BK_COL=["","#6c8cff","#3ddc84","#ffd35c","#ff8c5c"];
+function bkDraw(){
+  const cv=document.getElementById("bkCanvas"); if(!cv) return;
+  const c=cv.getContext("2d");
+  c.fillStyle="#12141c"; c.fillRect(0,0,BK_W,BK_H);
+  bk.bricks.forEach(br=>{ if(br.hp<=0) return;
+    c.fillStyle=br.steel?"#3a4157":BK_COL[Math.min(4,br.hp)];
+    c.fillRect(br.x,br.y,br.w,br.h);
+    c.fillStyle="rgba(0,0,0,.25)"; c.fillRect(br.x,br.y+br.h-3,br.w,3);
+  });
+  c.fillStyle="#eef0f6";
+  c.fillRect(bk.pad.x-bk.pad.w/2,BK_H-46,bk.pad.w,12);
+  bk.balls.forEach(b=>{ c.beginPath(); c.arc(b.x,b.y,b.r,0,7); c.fillStyle="#ffd35c"; c.fill(); });
+  bk.drops.forEach(d=>{ c.fillStyle=d.kind==="gem"?"#ffd35c":d.kind==="multi"?"#ff8c5c":"#3ddc84";
+    c.fillRect(d.x-8,d.y-8,16,16);
+    c.fillStyle="#12141c"; c.font="10px sans-serif"; c.textAlign="center";
+    c.fillText(d.kind[0].toUpperCase(),d.x,d.y+3); });
+  c.globalAlpha=0.8;
+  bk.parts.forEach(p=>{ c.fillStyle="#9aa1b4"; c.fillRect(p.x,p.y,3,3); });
+  c.globalAlpha=1;
+  c.fillStyle="#9aa1b4"; c.font="12px sans-serif"; c.textAlign="left";
+  c.fillText(`Board ${bk.board+1}`,10,20);
+  c.textAlign="center"; c.fillText(`${bk.credits.toLocaleString()} cr`,BK_W/2,20);
+  c.textAlign="right"; c.fillText("●".repeat(Math.max(0,bk.lives)),BK_W-10,20);
+  if(bk.stuck && !bk.over){ c.textAlign="center"; c.fillStyle="#eef0f6";
+    c.fillText("Click, tap or press Space to launch",BK_W/2,BK_H-100); }
+}
+let bkLast=0;
+function bkRun(){
+  if(bkRaf) cancelAnimationFrame(bkRaf);
+  bkLast=performance.now();
+  const loop=t=>{
+    if(!bkActive||!bk) return;
+    const dt=Math.min(0.033,(t-bkLast)/1000); bkLast=t;
+    if(!bk.over) bkStep(dt);
+    bkDraw();
+    if(bk && bk.over){ bkPaint(); return; }
+    bkRaf=requestAnimationFrame(loop);
+  };
+  bkRaf=requestAnimationFrame(loop);
+}
+/* ---------- shell ---------- */
+function bkEl(){ return document.getElementById("bkStage"); }
+function bkPaint(){
+  const el=bkEl(); if(!el) return;
+  const st=bkStats();
+  if(!bk){
+    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Breaker</span>
+      <h3>The ball keeps what it knocks loose.</h3>
+      <p>Mouse or A/D drives the paddle; where the ball meets it decides the angle.
+         Twelve boards cycle, faster each lap. Bricks pay ${BK_CR_BRICK} apiece,
+         a cleared board pays ${BK_CR_BOARD.toLocaleString()}, and the drops are
+         worth catching.</p>
+      <div class="ac-stats"><div><b>${st.best.toLocaleString()}</b><span>Best run</span></div>
+        <div><b>${st.boards}</b><span>Boards cleared</span></div>
+        <div><b>${st.bricks.toLocaleString()}</b><span>Bricks down</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Credits earned</span></div></div>
+      <button class="btn" id="bkGo">Rack the first board</button></div>`;
+    document.getElementById("bkGo").addEventListener("click",bkStart);
+    return;
+  }
+  if(bk.over){
+    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Out of balls</span>
+      <h3>${bk.credits.toLocaleString()} credits banked</h3>
+      <p>Board ${bk.board+1} · ${st.best===bk.score?"a new best.":"best "+st.best.toLocaleString()}</p>
+      <div class="ac-foot"><button class="btn" id="bkGo">Again</button>
+      <button class="btn secondary" id="bkBack">Back</button></div></div>`;
+    document.getElementById("bkGo").addEventListener("click",bkStart);
+    document.getElementById("bkBack").addEventListener("click",()=>{bk=null;bkPaint();});
+    return;
+  }
+  el.innerHTML=`<div class="ac-wrap"><canvas id="bkCanvas" width="${BK_W}" height="${BK_H}"></canvas></div>`;
+  const cv=document.getElementById("bkCanvas");
+  cv.addEventListener("mousemove",e=>{
+    if(!bk) return;
+    const r=cv.getBoundingClientRect();
+    bk.pad.x=Math.max(bk.pad.w/2,Math.min(BK_W-bk.pad.w/2,(e.clientX-r.left)*(BK_W/r.width)));
+  });
+  cv.addEventListener("click",bkLaunch);
+  cv.addEventListener("touchmove",e=>{
+    if(!bk) return; e.preventDefault();
+    const r=cv.getBoundingClientRect(), t=e.touches[0];
+    bk.pad.x=Math.max(bk.pad.w/2,Math.min(BK_W-bk.pad.w/2,(t.clientX-r.left)*(BK_W/r.width)));
+  },{passive:false});
+  cv.addEventListener("touchstart",bkLaunch,{passive:true});
+  bkRun();
+}
+function bkKeyDown(e){
+  const sec=document.getElementById("tab-breaker");
+  if(!sec||sec.style.display==="none") return;
+  const k=e.key.toLowerCase(); bkKeys[k]=true;
+  if(k===" "){ bkLaunch(); e.preventDefault(); }
+  if(k==="a"||k==="d"||k==="arrowleft"||k==="arrowright") e.preventDefault();
+}
+function bkKeyUp(e){ bkKeys[e.key.toLowerCase()]=false; }
+let bkBound=false;
+function renderBreaker(){ bkPaint(); }
+function bkOnEnterTab(){
+  bkStats(); bkActive=true;
+  if(!bkBound){ window.addEventListener("keydown",bkKeyDown,{passive:false});
+    window.addEventListener("keyup",bkKeyUp); bkBound=true; }
+  bkPaint(); if(bk&&!bk.over) bkRun();
+}
+function bkOnLeaveTab(){
+  bkActive=false;
+  if(bkRaf){ cancelAnimationFrame(bkRaf); bkRaf=null; }
+  if(bk&&!bk.over) bkEnd();   // bank what the run earned
+  bk=null;
+}
+
+/* =====================================================================
+   SCRAPSTORM — twin-stick arena
+   WASD flies, the mouse aims, hold to fire, E or right-click bombs.
+   Waves of drones; every kill feeds a multiplier that dies when you do.
+   Score converts to credits at the end, kills shake loose scrap.
+   Host: state, saveState, showToast, renderHeader, grantBonusXP.
+   ===================================================================== */
+const TW_W=640, TW_H=480;
+const TW_CR_PER_PT=0.06, TW_SCRAP_PER=40, TW_XP_WAVE=2, TW_LIVES=3, TW_BOMBS=3;
+
+function twStats(){ if(!state.storm) state.storm={runs:0,best:0,bestWave:0,kills:0,credits:0,scrap:0}; return state.storm; }
+
+/* Wave recipe: counts per enemy kind, scaling but bounded. Pure, testable. */
+function twWave(n){
+  return {
+    drifter: 4+Math.min(10,n),
+    chaser:  n>=2 ? 2+Math.min(9,n-1) : 0,
+    weaver:  n>=4 ? 1+Math.min(6,Math.floor((n-3)/2)) : 0,
+    splitter:n>=6 ? 1+Math.min(4,Math.floor((n-5)/3)) : 0,
+  };
+}
+const TW_KINDS={
+  drifter:{ r:11, hp:1, sp:55,  pts:60,  col:"#6c8cff" },
+  chaser: { r:10, hp:1, sp:105, pts:100, col:"#ff8c5c" },
+  weaver: { r:9,  hp:2, sp:130, pts:150, col:"#c98cff" },
+  splitter:{r:14, hp:2, sp:70,  pts:130, col:"#3ddc84" },
+  shard:  { r:6,  hp:1, sp:150, pts:40,  col:"#3ddc84" },
+};
+/* Spawn on the arena edge, never within `gap` of the player. Pure. */
+function twSpawnPos(px,py,gap){
+  for(let t=0;t<40;t++){
+    const side=Math.floor(Math.random()*4);
+    const x=side===0?0:side===1?TW_W:Math.random()*TW_W;
+    const y=side===2?0:side===3?TW_H:(side<2?Math.random()*TW_H:0);
+    const yy=side<2?Math.random()*TW_H:(side===2?0:TW_H);
+    const fx=side<2?x:Math.random()*TW_W, fy=side<2?yy:(side===2?0:TW_H);
+    if(Math.hypot(fx-px,fy-py)>=gap) return {x:fx,y:fy};
+  }
+  return {x:0,y:0};
+}
+
+let tw=null, twRaf=null, twActive=false, twKeys={}, twMouse={x:TW_W/2,y:TW_H/2,down:false};
+function twStart(){
+  tw={wave:0,lives:TW_LIVES,bombs:TW_BOMBS,score:0,mult:1,kills:0,
+      p:{x:TW_W/2,y:TW_H/2,vx:0,vy:0,inv:2},
+      foes:[],shots:[],parts:[],fireCd:0,spawnQ:[],over:false,banked:false};
+  twStats().runs++;
+  twNextWave();
+  saveState(); twPaint(); twRun();
+}
+function twNextWave(){
+  tw.wave++;
+  const w=twWave(tw.wave);
+  for(const kind in w) for(let i=0;i<w[kind];i++){
+    tw.spawnQ.push({kind, at:Math.random()*3});
+  }
+  tw.spawnT=0;
+  grantBonusXP(tw.wave>1?TW_XP_WAVE:0);
+}
+function twSpawn(kind,x,y){
+  const k=TW_KINDS[kind];
+  const p= x==null ? twSpawnPos(tw.p.x,tw.p.y,140) : {x,y};
+  tw.foes.push({kind,x:p.x,y:p.y,hp:k.hp,ph:Math.random()*6.3,t:0});
+}
+function twStep(dt){
+  if(!tw||tw.over) return;
+  const P=tw.p;
+  if(P.inv>0) P.inv-=dt;
+  const ax=(twKeys.d||twKeys.arrowright?1:0)-(twKeys.a||twKeys.arrowleft?1:0);
+  const ay=(twKeys.s||twKeys.arrowdown?1:0)-(twKeys.w||twKeys.arrowup?1:0);
+  const L=Math.hypot(ax,ay)||1;
+  P.vx+= (ax/L)*1500*dt; P.vy+=(ay/L)*1500*dt;
+  P.vx*=Math.pow(0.0018,dt); P.vy*=Math.pow(0.0018,dt);
+  P.x=Math.max(12,Math.min(TW_W-12,P.x+P.vx*dt));
+  P.y=Math.max(12,Math.min(TW_H-12,P.y+P.vy*dt));
+  /* fire */
+  tw.fireCd-=dt;
+  if((twMouse.down||twKeys[" "]) && tw.fireCd<=0){
+    tw.fireCd=0.11;
+    const a=Math.atan2(twMouse.y-P.y,twMouse.x-P.x);
+    tw.shots.push({x:P.x,y:P.y,vx:Math.cos(a)*540,vy:Math.sin(a)*540,t:0});
+  }
+  tw.shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.t+=dt;});
+  tw.shots=tw.shots.filter(s=>s.t<1.4&&s.x>-10&&s.x<TW_W+10&&s.y>-10&&s.y<TW_H+10);
+  /* spawn queue */
+  tw.spawnT+=dt;
+  tw.spawnQ=tw.spawnQ.filter(q=>{ if(q.at<=tw.spawnT){ twSpawn(q.kind); return false; } return true; });
+  /* foes */
+  tw.foes.forEach(f=>{
+    const k=TW_KINDS[f.kind]; f.t+=dt;
+    if(f.kind==="drifter"){ f.x+=Math.cos(f.ph)*k.sp*dt; f.y+=Math.sin(f.ph)*k.sp*dt;
+      if(f.x<k.r||f.x>TW_W-k.r) f.ph=Math.PI-f.ph;
+      if(f.y<k.r||f.y>TW_H-k.r) f.ph=-f.ph; }
+    else { const a=Math.atan2(P.y-f.y,P.x-f.x);
+      let wob=f.kind==="weaver"?Math.sin(f.t*6)*1.1:0;
+      f.x+=Math.cos(a+wob)*k.sp*dt; f.y+=Math.sin(a+wob)*k.sp*dt; }
+    f.x=Math.max(k.r,Math.min(TW_W-k.r,f.x)); f.y=Math.max(k.r,Math.min(TW_H-k.r,f.y));
+  });
+  /* shots vs foes */
+  for(const s of tw.shots){ for(const f of tw.foes){
+    const k=TW_KINDS[f.kind];
+    if(f.hp>0 && Math.hypot(s.x-f.x,s.y-f.y)<k.r+3){ s.t=9; f.hp--; if(f.hp<=0) twKill(f); break; }
+  }}
+  tw.shots=tw.shots.filter(s=>s.t<1.4);
+  tw.foes=tw.foes.filter(f=>f.hp>0);
+  /* foes vs player */
+  if(P.inv<=0) for(const f of tw.foes){
+    if(Math.hypot(f.x-P.x,f.y-P.y)<TW_KINDS[f.kind].r+9){ twDie(); break; }
+  }
+  tw.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.t+=dt;});
+  tw.parts=tw.parts.filter(p=>p.t<0.5);
+  if(!tw.foes.length && !tw.spawnQ.length) twNextWave();
+}
+function twKill(f){
+  const k=TW_KINDS[f.kind];
+  tw.score+=Math.round(k.pts*tw.mult);
+  tw.mult=Math.min(10,tw.mult+0.1);
+  tw.kills++; twStats().kills++;
+  for(let i=0;i<8;i++) tw.parts.push({x:f.x,y:f.y,col:k.col,
+    vx:(Math.random()*2-1)*220,vy:(Math.random()*2-1)*220,t:0});
+  if(f.kind==="splitter"){ twSpawn("shard",f.x-8,f.y); twSpawn("shard",f.x+8,f.y); }
+}
+function twDie(){
+  tw.lives--; tw.mult=1;
+  for(let i=0;i<20;i++) tw.parts.push({x:tw.p.x,y:tw.p.y,col:"#eef0f6",
+    vx:(Math.random()*2-1)*320,vy:(Math.random()*2-1)*320,t:0});
+  if(tw.lives<=0){ twEnd(); return; }
+  tw.p.x=TW_W/2; tw.p.y=TW_H/2; tw.p.vx=0; tw.p.vy=0; tw.p.inv=2.2;
+  tw.foes=tw.foes.filter(f=>Math.hypot(f.x-tw.p.x,f.y-tw.p.y)>150);
+}
+function twBomb(){
+  if(!tw||tw.over||tw.bombs<=0) return;
+  tw.bombs--;
+  tw.foes.forEach(f=>{ f.hp=0;
+    for(let i=0;i<6;i++) tw.parts.push({x:f.x,y:f.y,col:TW_KINDS[f.kind].col,
+      vx:(Math.random()*2-1)*260,vy:(Math.random()*2-1)*260,t:0});
+    tw.score+=Math.round(TW_KINDS[f.kind].pts*0.4); }); // bombs pay less, no mult
+  tw.foes=[];
+}
+function twEnd(){
+  if(!tw||tw.banked) return;
+  tw.over=true; tw.banked=true;
+  const credits=Math.round(tw.score*TW_CR_PER_PT);
+  const scrap=Math.floor(tw.kills/TW_SCRAP_PER)*10;
+  state.credits+=credits; state.scrap=(state.scrap||0)+scrap;
+  const st=twStats(); st.credits+=credits; st.scrap+=scrap;
+  if(tw.score>st.best) st.best=tw.score;
+  if(tw.wave>st.bestWave) st.bestWave=tw.wave;
+  tw.pay={credits,scrap};
+  saveState(); renderHeader(); twPaint();
+}
+/* ---------- draw ---------- */
+function twDraw(){
+  const cv=document.getElementById("twCanvas"); if(!cv) return;
+  const c=cv.getContext("2d");
+  c.fillStyle="#0e1017"; c.fillRect(0,0,TW_W,TW_H);
+  c.strokeStyle="#1c2130"; c.lineWidth=1;
+  for(let x=0;x<=TW_W;x+=40){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,TW_H); c.stroke(); }
+  for(let y=0;y<=TW_H;y+=40){ c.beginPath(); c.moveTo(0,y); c.lineTo(TW_W,y); c.stroke(); }
+  tw.foes.forEach(f=>{ const k=TW_KINDS[f.kind];
+    c.strokeStyle=k.col; c.lineWidth=2; c.beginPath();
+    if(f.kind==="splitter"||f.kind==="shard"){
+      c.moveTo(f.x,f.y-k.r); c.lineTo(f.x+k.r,f.y); c.lineTo(f.x,f.y+k.r); c.lineTo(f.x-k.r,f.y); c.closePath();
+    } else if(f.kind==="chaser"){
+      const a=Math.atan2(tw.p.y-f.y,tw.p.x-f.x);
+      c.moveTo(f.x+Math.cos(a)*k.r,f.y+Math.sin(a)*k.r);
+      c.lineTo(f.x+Math.cos(a+2.5)*k.r,f.y+Math.sin(a+2.5)*k.r);
+      c.lineTo(f.x+Math.cos(a-2.5)*k.r,f.y+Math.sin(a-2.5)*k.r); c.closePath();
+    } else c.arc(f.x,f.y,k.r,0,7);
+    c.stroke(); });
+  c.fillStyle="#ffd35c";
+  tw.shots.forEach(s=>c.fillRect(s.x-2,s.y-2,4,4));
+  const P=tw.p;
+  c.save(); c.translate(P.x,P.y);
+  c.rotate(Math.atan2(twMouse.y-P.y,twMouse.x-P.x));
+  c.strokeStyle=P.inv>0&&Math.floor(P.inv*10)%2?"#4a5270":"#eef0f6"; c.lineWidth=2;
+  c.beginPath(); c.moveTo(12,0); c.lineTo(-8,-8); c.lineTo(-4,0); c.lineTo(-8,8); c.closePath(); c.stroke();
+  c.restore();
+  c.globalAlpha=0.85;
+  tw.parts.forEach(p=>{ c.fillStyle=p.col; c.fillRect(p.x,p.y,3,3); });
+  c.globalAlpha=1;
+  c.fillStyle="#9aa1b4"; c.font="12px sans-serif";
+  c.textAlign="left"; c.fillText(`Wave ${tw.wave}  ×${tw.mult.toFixed(1)}`,10,18);
+  c.textAlign="center"; c.fillText(tw.score.toLocaleString(),TW_W/2,18);
+  c.textAlign="right"; c.fillText(`${"●".repeat(Math.max(0,tw.lives))}  💣${tw.bombs}`,TW_W-10,18);
+}
+let twLast=0;
+function twRun(){
+  if(twRaf) cancelAnimationFrame(twRaf);
+  twLast=performance.now();
+  const loop=t=>{
+    if(!twActive||!tw) return;
+    const dt=Math.min(0.033,(t-twLast)/1000); twLast=t;
+    if(!tw.over) twStep(dt);
+    twDraw();
+    if(tw && tw.over){ twPaint(); return; }
+    twRaf=requestAnimationFrame(loop);
+  };
+  twRaf=requestAnimationFrame(loop);
+}
+/* ---------- shell ---------- */
+function twEl(){ return document.getElementById("twStage"); }
+function twPaint(){
+  const el=twEl(); if(!el) return;
+  const st=twStats();
+  if(!tw){
+    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Scrapstorm</span>
+      <h3>Fly with WASD. Aim with the mouse.<br>The multiplier dies when you do.</h3>
+      <p>Hold fire and weave. Every kill nudges the multiplier toward ×10, and one
+         hit resets it — the score is in staying alive greedy. E or right-click
+         spends a bomb. Score converts to credits; every ${TW_SCRAP_PER} kills
+         shakes loose 10 scrap.</p>
+      <div class="ac-stats"><div><b>${st.best.toLocaleString()}</b><span>Best score</span></div>
+        <div><b>${st.bestWave}</b><span>Deepest wave</span></div>
+        <div><b>${st.kills.toLocaleString()}</b><span>Drones down</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Credits earned</span></div></div>
+      <button class="btn" id="twGo">Launch</button></div>`;
+    document.getElementById("twGo").addEventListener("click",twStart);
+    return;
+  }
+  if(tw.over){
+    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Ship lost</span>
+      <h3>${tw.score.toLocaleString()} points — ${tw.pay.credits.toLocaleString()} credits</h3>
+      <p>Wave ${tw.wave} · ${tw.kills} kills${tw.pay.scrap?` · +${tw.pay.scrap} scrap`:""}</p>
+      <div class="ac-foot"><button class="btn" id="twGo">Again</button>
+      <button class="btn secondary" id="twBack">Back</button></div></div>`;
+    document.getElementById("twGo").addEventListener("click",twStart);
+    document.getElementById("twBack").addEventListener("click",()=>{tw=null;twPaint();});
+    return;
+  }
+  el.innerHTML=`<div class="ac-wrap"><canvas id="twCanvas" width="${TW_W}" height="${TW_H}"></canvas></div>`;
+  const cv=document.getElementById("twCanvas");
+  const pos=e=>{ const r=cv.getBoundingClientRect();
+    twMouse.x=(e.clientX-r.left)*(TW_W/r.width); twMouse.y=(e.clientY-r.top)*(TW_H/r.height); };
+  cv.addEventListener("mousemove",pos);
+  cv.addEventListener("mousedown",e=>{ pos(e); if(e.button===2) twBomb(); else twMouse.down=true; });
+  window.addEventListener("mouseup",()=>twMouse.down=false);
+  cv.addEventListener("contextmenu",e=>e.preventDefault());
+  twRun();
+}
+function twKeyDown(e){
+  const sec=document.getElementById("tab-storm");
+  if(!sec||sec.style.display==="none") return;
+  const k=e.key.toLowerCase(); twKeys[k]=true;
+  if(k==="e"){ twBomb(); }
+  if(["w","a","s","d"," ","arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
+}
+function twKeyUp(e){ twKeys[e.key.toLowerCase()]=false; }
+let twBound=false;
+function renderStorm(){ twPaint(); }
+function twOnEnterTab(){
+  twStats(); twActive=true;
+  if(!twBound){ window.addEventListener("keydown",twKeyDown,{passive:false});
+    window.addEventListener("keyup",twKeyUp); twBound=true; }
+  twPaint(); if(tw&&!tw.over) twRun();
+}
+function twOnLeaveTab(){
+  twActive=false;
+  if(twRaf){ cancelAnimationFrame(twRaf); twRaf=null; }
+  if(tw&&!tw.over) twEnd();
+  tw=null;
+}
+
+/* =====================================================================
+   SKYWATCH — hold the line over the rigs
+   Warheads arc down on your mining rigs. Click to burst an interceptor
+   at that point — it fires from the nearest battery with shells left.
+   Anything caught in the bloom is gone. Waves split and quicken; it
+   ends when the last rig is dark.
+   Host: state, saveState, showToast, renderHeader, grantBonusXP.
+   ===================================================================== */
+const SK_W=640, SK_H=440, SK_GROUND=SK_H-34;
+const SK_CR_KILL=55, SK_CR_RIG=900, SK_CR_SHELL=120, SK_XP_WAVE=2;
+const SK_AMMO=10, SK_BLAST=52, SK_BLAST_T=0.9;
+
+function skStats(){ if(!state.skywatch) state.skywatch={runs:0,bestWave:0,kills:0,credits:0}; return state.skywatch; }
+
+/* Pure wave recipe: how many, how fast, how likely to split. */
+function skWaveGen(n){
+  return { count: 6+Math.min(18,n*2),
+           speed: 42+Math.min(70,n*6),
+           split: n>=4 ? Math.min(0.4, 0.1+(n-4)*0.05) : 0 };
+}
+/* Nearest battery with shells to fire toward x. Pure. */
+function skPickBattery(bats, x){
+  let best=-1, d=1e9;
+  bats.forEach((b,i)=>{ if(b.ammo<=0||b.dead) return;
+    const dd=Math.abs(b.x-x); if(dd<d){ d=dd; best=i; } });
+  return best;
+}
+/* Is a point inside a blast at time t? Pure. */
+function skInBlast(bl, x, y){
+  const r=SK_BLAST*Math.sin(Math.min(1,bl.t/SK_BLAST_T)*Math.PI);
+  return Math.hypot(x-bl.x,y-bl.y) <= r;
+}
+
+let sk=null, skRaf=null, skActive=false;
+function skStart(){
+  sk={wave:0,score:0,credits:0,kills:0,over:false,banked:false,between:0,
+      bats:[{x:70},{x:SK_W/2},{x:SK_W-70}].map(b=>({...b,y:SK_GROUND,ammo:SK_AMMO,dead:false})),
+      rigs:[150,235,320,405,490].map(x=>({x,y:SK_GROUND,dead:false})),
+      inbound:[],shots:[],blasts:[],parts:[]};
+  skStats().runs++;
+  skNextWave();
+  saveState(); skPaint(); skRun();
+}
+function skTargets(){ return sk.rigs.filter(r=>!r.dead).concat(sk.bats.filter(b=>!b.dead)); }
+function skNextWave(){
+  sk.wave++;
+  const w=skWaveGen(sk.wave);
+  sk.spec=w; sk.left=w.count; sk.spawnT=0;
+  sk.bats.forEach(b=>{ if(!b.dead) b.ammo=SK_AMMO; });
+  if(sk.wave>1) grantBonusXP(SK_XP_WAVE);
+}
+function skSpawnWarhead(x0,y0){
+  const t=skTargets(); if(!t.length) return;
+  const tgt=t[Math.floor(Math.random()*t.length)];
+  const sx=x0!=null?x0:Math.random()*SK_W, sy=y0!=null?y0:-10;
+  const a=Math.atan2(tgt.y-sy,tgt.x-sx);
+  sk.inbound.push({x:sx,y:sy,vx:Math.cos(a)*sk.spec.speed,vy:Math.sin(a)*sk.spec.speed,
+    tgt, trail:[], canSplit:y0==null});
+}
+function skFire(x,y){
+  if(!sk||sk.over||sk.between>0) return;
+  const i=skPickBattery(sk.bats,x);
+  if(i<0) return;
+  const b=sk.bats[i]; b.ammo--;
+  sk.shots.push({x:b.x,y:b.y-10,tx:x,ty:Math.min(y,SK_GROUND-30),sp:420});
+}
+function skStep(dt){
+  if(!sk||sk.over) return;
+  if(sk.between>0){
+    sk.between-=dt;
+    if(sk.between<=0) skNextWave();
+    /* blasts and particles still play out */
+  } else {
+    sk.spawnT+=dt;
+    const gap=Math.max(0.35,1.4-sk.wave*0.08);
+    while(sk.left>0 && sk.spawnT>gap){ sk.spawnT-=gap; sk.left--; skSpawnWarhead(); }
+  }
+  sk.shots.forEach(s=>{
+    const a=Math.atan2(s.ty-s.y,s.tx-s.x), st=s.sp*dt;
+    if(Math.hypot(s.tx-s.x,s.ty-s.y)<=st){ s.done=true; sk.blasts.push({x:s.tx,y:s.ty,t:0}); }
+    else { s.x+=Math.cos(a)*st; s.y+=Math.sin(a)*st; }
+  });
+  sk.shots=sk.shots.filter(s=>!s.done);
+  sk.blasts.forEach(b=>b.t+=dt);
+  sk.blasts=sk.blasts.filter(b=>b.t<SK_BLAST_T);
+  sk.inbound.forEach(m=>{
+    m.trail.push({x:m.x,y:m.y}); if(m.trail.length>18) m.trail.shift();
+    m.x+=m.vx*dt; m.y+=m.vy*dt;
+    if(m.canSplit && sk.spec.split && m.y>90 && m.y<220 && Math.random()<sk.spec.split*dt){
+      m.canSplit=false; skSpawnWarhead(m.x,m.y); skSpawnWarhead(m.x,m.y);
+    }
+    for(const bl of sk.blasts){ if(skInBlast(bl,m.x,m.y)){ m.dead=true;
+      sk.kills++; skStats().kills++;
+      sk.score+=SK_CR_KILL; sk.credits+=SK_CR_KILL;
+      for(let i=0;i<6;i++) sk.parts.push({x:m.x,y:m.y,vx:(Math.random()*2-1)*120,vy:(Math.random()*2-1)*120,t:0});
+      break; } }
+    if(!m.dead && m.y>=m.tgt.y-4){
+      m.dead=true;
+      m.tgt.dead=true;
+      sk.blasts.push({x:m.tgt.x,y:m.tgt.y,t:0});
+      for(let i=0;i<14;i++) sk.parts.push({x:m.tgt.x,y:m.tgt.y,vx:(Math.random()*2-1)*200,vy:-Math.random()*220,t:0});
+    }
+  });
+  sk.inbound=sk.inbound.filter(m=>!m.dead);
+  sk.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=300*dt;p.t+=dt;});
+  sk.parts=sk.parts.filter(p=>p.t<0.7);
+  if(!sk.rigs.some(r=>!r.dead)){ skEnd(); return; }
+  if(sk.between<=0 && sk.left===0 && !sk.inbound.length){
+    /* wave survived: pay standing rigs and leftover shells */
+    const rigs=sk.rigs.filter(r=>!r.dead).length;
+    const shells=sk.bats.reduce((n,b)=>n+(b.dead?0:b.ammo),0);
+    sk.credits+=rigs*SK_CR_RIG+shells*SK_CR_SHELL;
+    sk.score+=rigs*SK_CR_RIG+shells*SK_CR_SHELL;
+    sk.between=2.2;
+  }
+}
+function skEnd(){
+  if(!sk||sk.banked) return;
+  sk.over=true; sk.banked=true;
+  state.credits+=sk.credits;
+  const st=skStats(); st.credits+=sk.credits;
+  if(sk.wave>st.bestWave) st.bestWave=sk.wave;
+  saveState(); renderHeader(); skPaint();
+}
+/* ---------- draw ---------- */
+function skDraw(){
+  const cv=document.getElementById("skCanvas"); if(!cv) return;
+  const c=cv.getContext("2d");
+  c.fillStyle="#0e1017"; c.fillRect(0,0,SK_W,SK_H);
+  c.fillStyle="#171b26"; c.fillRect(0,SK_GROUND,SK_W,SK_H-SK_GROUND);
+  sk.rigs.forEach(r=>{ c.fillStyle=r.dead?"#2a2f3f":"#3ddc84";
+    c.fillRect(r.x-9,r.y-14,18,14);
+    if(!r.dead){ c.fillStyle="#12141c"; c.fillRect(r.x-5,r.y-10,4,4); c.fillRect(r.x+1,r.y-10,4,4);} });
+  sk.bats.forEach(b=>{ c.fillStyle=b.dead?"#2a2f3f":"#6c8cff";
+    c.beginPath(); c.moveTo(b.x-14,b.y); c.lineTo(b.x,b.y-18); c.lineTo(b.x+14,b.y); c.closePath(); c.fill();
+    if(!b.dead){ c.fillStyle="#12141c"; c.font="10px sans-serif"; c.textAlign="center";
+      c.fillText(b.ammo,b.x,b.y-4); } });
+  c.strokeStyle="rgba(255,140,92,.5)"; c.lineWidth=1;
+  sk.inbound.forEach(m=>{ if(m.trail.length>1){ c.beginPath(); c.moveTo(m.trail[0].x,m.trail[0].y);
+      m.trail.forEach(p=>c.lineTo(p.x,p.y)); c.stroke(); }
+    c.fillStyle="#ff8c5c"; c.fillRect(m.x-2,m.y-2,4,4); });
+  c.fillStyle="#ffd35c";
+  sk.shots.forEach(s=>c.fillRect(s.x-1.5,s.y-1.5,3,3));
+  sk.blasts.forEach(b=>{ const r=SK_BLAST*Math.sin(Math.min(1,b.t/SK_BLAST_T)*Math.PI);
+    c.beginPath(); c.arc(b.x,b.y,Math.max(0,r),0,7);
+    c.fillStyle="rgba(255,211,92,.28)"; c.fill();
+    c.strokeStyle="#ffd35c"; c.lineWidth=1.5; c.stroke(); });
+  c.globalAlpha=0.85; c.fillStyle="#9aa1b4";
+  sk.parts.forEach(p=>c.fillRect(p.x,p.y,2.5,2.5));
+  c.globalAlpha=1;
+  c.fillStyle="#9aa1b4"; c.font="12px sans-serif";
+  c.textAlign="left"; c.fillText(`Wave ${sk.wave}`,10,18);
+  c.textAlign="center"; c.fillText(`${sk.credits.toLocaleString()} cr`,SK_W/2,18);
+  c.textAlign="right"; c.fillText(`rigs ${sk.rigs.filter(r=>!r.dead).length}/5`,SK_W-10,18);
+  if(sk.between>0){ c.textAlign="center"; c.fillStyle="#eef0f6";
+    c.fillText(`Wave ${sk.wave} held — rigs and leftover shells paid out`,SK_W/2,120); }
+}
+let skLast=0;
+function skRun(){
+  if(skRaf) cancelAnimationFrame(skRaf);
+  skLast=performance.now();
+  const loop=t=>{
+    if(!skActive||!sk) return;
+    const dt=Math.min(0.033,(t-skLast)/1000); skLast=t;
+    if(!sk.over) skStep(dt);
+    skDraw();
+    if(sk && sk.over){ skPaint(); return; }
+    skRaf=requestAnimationFrame(loop);
+  };
+  skRaf=requestAnimationFrame(loop);
+}
+/* ---------- shell ---------- */
+function skEl(){ return document.getElementById("skStage"); }
+function skPaint(){
+  const el=skEl(); if(!el) return;
+  const st=skStats();
+  if(!sk){
+    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Skywatch</span>
+      <h3>Five rigs. Three batteries.<br>Burst the sky where the warheads will be.</h3>
+      <p>Click and the nearest battery with shells answers — the blast blooms at
+         your mark, so lead the arcs, don't chase them. Shells are ${SK_AMMO} a
+         battery a wave; standing rigs pay ${SK_CR_RIG} each between waves and
+         leftover shells ${SK_CR_SHELL} apiece, so accuracy is income. Later
+         waves split mid-air.</p>
+      <div class="ac-stats"><div><b>${st.bestWave}</b><span>Deepest wave</span></div>
+        <div><b>${st.kills.toLocaleString()}</b><span>Warheads stopped</span></div>
+        <div><b>${st.runs}</b><span>Stands</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Credits earned</span></div></div>
+      <button class="btn" id="skGo">Man the batteries</button></div>`;
+    document.getElementById("skGo").addEventListener("click",skStart);
+    return;
+  }
+  if(sk.over){
+    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">The rigs are dark</span>
+      <h3>${sk.credits.toLocaleString()} credits banked</h3>
+      <p>Held to wave ${sk.wave} · ${sk.kills} warheads stopped</p>
+      <div class="ac-foot"><button class="btn" id="skGo">Again</button>
+      <button class="btn secondary" id="skBack">Back</button></div></div>`;
+    document.getElementById("skGo").addEventListener("click",skStart);
+    document.getElementById("skBack").addEventListener("click",()=>{sk=null;skPaint();});
+    return;
+  }
+  el.innerHTML=`<div class="ac-wrap"><canvas id="skCanvas" width="${SK_W}" height="${SK_H}"></canvas></div>`;
+  const cv=document.getElementById("skCanvas");
+  cv.addEventListener("mousedown",e=>{
+    const r=cv.getBoundingClientRect();
+    skFire((e.clientX-r.left)*(SK_W/r.width),(e.clientY-r.top)*(SK_H/r.height));
+  });
+  cv.addEventListener("touchstart",e=>{ e.preventDefault();
+    const r=cv.getBoundingClientRect(), t=e.touches[0];
+    skFire((t.clientX-r.left)*(SK_W/r.width),(t.clientY-r.top)*(SK_H/r.height));
+  },{passive:false});
+  skRun();
+}
+function renderSkywatch(){ skPaint(); }
+function skOnEnterTab(){ skStats(); skActive=true; skPaint(); if(sk&&!sk.over) skRun(); }
+function skOnLeaveTab(){
+  skActive=false;
+  if(skRaf){ cancelAnimationFrame(skRaf); skRaf=null; }
+  if(sk&&!sk.over) skEnd();
+  sk=null;
+}
+
 /* =================== END ADDED MODES =================== */
 
 const UI_GAMES = [
@@ -21279,6 +22917,11 @@ const UI_GAMES = [
   { id:"showcase",    name:"The Case",     icon:"🗄️", desc:"Five slots, each with a rule. Twelve cards. Make them fit.", meta:"Constraint puzzle" },
   { id:"oddone",      name:"Odd One Out",  icon:"👀", desc:"Three belong together, one doesn't. Ten seconds.", meta:"Fast rounds" },
   { id:"press",       name:"The Press",    icon:"⚙️", desc:"Spare prints in, one good print out. Merge tiers until the plate jams.", meta:"Duplicate sink" },
+  { id:"dig",         name:"The Dig",      icon:"⛏️", desc:"Every number says how many neighbours will fall in. Clear the rest.", meta:"Pure deduction" },
+  { id:"resto",       name:"Restoration",  icon:"🖼️", desc:"The counts say how the paint falls. Bring the panel back, guess-free.", meta:"Nonograms" },
+  { id:"breaker",     name:"Breaker",      icon:"🧱", desc:"The ball keeps what it knocks loose. Twelve boards, faster each lap.", meta:"Arcade" },
+  { id:"storm",       name:"Scrapstorm",   icon:"🚀", desc:"Fly, aim, hold fire. The multiplier dies when you do.", meta:"Twin-stick arcade" },
+  { id:"skywatch",    name:"Skywatch",     icon:"☄️", desc:"Burst the sky where the warheads will be. Accuracy is income.", meta:"Arcade defense" },
   /* Runeshard entry removed - it ships as its own build. */
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
@@ -21296,6 +22939,11 @@ function uiLeaveGames(except){
   if(except!=="connections") cxOnLeaveTab();
   if(except!=="showcase") csOnLeaveTab();
   if(except!=="oddone") ooOnLeaveTab();
+  if(except!=="dig") mwOnLeaveTab();
+  if(except!=="resto") rsOnLeaveTab();
+  if(except!=="breaker") bkOnLeaveTab();
+  if(except!=="storm") twOnLeaveTab();
+  if(except!=="skywatch") skOnLeaveTab();
   if(except!=="siege") sgOnLeaveTab();
   if(except!=="raids") rdOnLeaveTab();
   if(except!=="poker") pkOnLeaveTab();
@@ -21324,6 +22972,11 @@ function uiEnterSection(id){
   else if(id==="connections"){ cxOnEnterTab(); }
   else if(id==="showcase"){ csOnEnterTab(); }
   else if(id==="oddone"){ ooOnEnterTab(); }
+  else if(id==="dig"){ mwOnEnterTab(); }
+  else if(id==="resto"){ rsOnEnterTab(); }
+  else if(id==="breaker"){ bkOnEnterTab(); }
+  else if(id==="storm"){ twOnEnterTab(); }
+  else if(id==="skywatch"){ skOnEnterTab(); }
   else if(id==="dungeon"){ renderDungeon(); }
   uiLeaveGames(id);
   uiInitStatStrips();
@@ -21523,6 +23176,11 @@ function renderAll(){
   safeRender("connections", renderConnections);
   safeRender("showcase",    renderCase);
   safeRender("oddone",      renderOddOne);
+  safeRender("dig",         renderDig);
+  safeRender("resto",       renderResto);
+  safeRender("breaker",     renderBreaker);
+  safeRender("storm",       renderStorm);
+  safeRender("skywatch",    renderSkywatch);
   safeRender("play",       renderPlayLobby);
   safeRender("chrome",     ()=>{ uiInitStatStrips(); uiInitHelp(); });
 }

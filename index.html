@@ -2688,6 +2688,529 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:560px; margin-left:auto; margin-right:auto; }
 .pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
 .pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
+
+/* ===== ADDED MODES ===== */
+/* ============ PROVENANCE ============
+   Sits inside the game's existing dark-slate skin (--panel, --accent,
+   --good, --bad). The one thing that is its own: the record itself, set
+   as a catalogue entry in a monospace face with the subject struck out
+   in marker. On reveal the marker lifts. That's the whole game in one
+   gesture, so everything around it stays quiet. */
+
+#tab-provenance .pv-stage{ min-height:420px; }
+
+.pv-eyebrow{
+  display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted);
+}
+
+/* ---- run HUD ---- */
+.pv-hud{ display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.pv-lives{ display:flex; gap:5px; }
+.pv-life{
+  width:9px; height:9px; border-radius:50%; background:var(--good);
+  box-shadow:0 0 8px rgba(61,220,132,.5); transition:background .25s, box-shadow .25s;
+}
+.pv-life.out{ background:#333a4d; box-shadow:none; }
+.pv-meta{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+.pv-chip{
+  font-size:11px; font-weight:700; color:var(--muted);
+  background:var(--panel2); border:1px solid #333a52; border-radius:999px; padding:3px 10px;
+}
+.pv-chip.hot{ color:#ffd35c; border-color:rgba(255,211,92,.45); background:rgba(255,211,92,.1); }
+.pv-quit{
+  background:none; border:none; color:var(--muted); font-family:inherit;
+  font-size:11.5px; cursor:pointer; padding:4px 6px; text-decoration:underline;
+}
+.pv-quit:hover{ color:var(--text); }
+
+/* ---- timer ---- */
+.pv-time{ height:2px; background:#262b3a; border-radius:2px; overflow:hidden; margin-bottom:18px; }
+.pv-time i{ display:block; height:100%; background:var(--accent); transition:width .1s linear; }
+
+/* ---- the record ---- */
+.pv-record{
+  background:var(--panel2); border:1px solid #333a52; border-left:3px solid var(--accent);
+  border-radius:0 var(--radius) var(--radius) 0; padding:18px 20px 20px;
+}
+.pv-rechead{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:12px; }
+.pv-cat{ font-size:11px; font-weight:700; color:var(--rc, var(--muted)); }
+.pv-body{
+  margin:0; font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:14px; line-height:2.0; color:#dfe3ee; letter-spacing:.1px;
+}
+
+/* the marker */
+.pv-bar{ position:relative; display:inline-block; color:transparent; border-radius:2px; }
+.pv-bar i{
+  position:absolute; left:-2px; right:-2px; top:.05em; bottom:.05em;
+  background:#0a0c11; border-radius:2px; transform-origin:left center;
+  transition:transform .34s cubic-bezier(.4,0,.2,1);
+}
+.pv-bar.open{ color:var(--good); font-weight:700; transition:color .2s .18s; }
+.pv-bar.open i{ transform:scaleX(0); }
+
+/* ---- options ---- */
+.pv-opts{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:18px 0; }
+.pv-opt{
+  display:flex; align-items:center; gap:10px; text-align:left;
+  background:var(--panel2); border:1px solid #333a52; border-radius:12px;
+  padding:13px 15px; cursor:pointer; font-family:inherit; font-size:13.5px;
+  font-weight:600; color:var(--text);
+  transition:border-color .15s, background .15s, transform .08s, opacity .2s;
+}
+.pv-opt:hover:not(:disabled){ border-color:var(--accent); background:#272d40; transform:translateY(-1px); }
+.pv-opt:active:not(:disabled){ transform:translateY(0) scale(.99); }
+.pv-oe{ font-size:19px; flex:none; }
+.pv-on{ line-height:1.3; }
+.pv-opt.struck{ opacity:.28; text-decoration:line-through; cursor:not-allowed; }
+.pv-opt.right{ border-color:var(--good); background:rgba(61,220,132,.13); color:var(--good); }
+.pv-opt.wrong{ border-color:var(--bad); background:rgba(255,92,92,.12); color:#ffb3b3; }
+.pv-opt.dim{ opacity:.4; }
+.pv-opt:disabled{ cursor:default; }
+
+/* ---- verdict ---- */
+.pv-foot{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.pv-verdict{ flex:1; min-width:220px; font-size:13px; line-height:1.6; }
+.pv-verdict.good strong{ color:var(--good); }
+.pv-verdict.bad strong{ color:var(--bad); }
+.pv-vtext strong{ display:block; font-size:14px; margin-bottom:2px; }
+.pv-vtext{ color:var(--muted); }
+.pv-read{ font-size:12px; color:var(--accent); text-decoration:none; }
+.pv-read:hover{ text-decoration:underline; }
+
+/* ---- lobby ---- */
+.pv-lobby{ display:flex; flex-direction:column; gap:22px; }
+.pv-lede h3{
+  margin:10px 0 8px; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px;
+}
+.pv-lede p{ margin:0; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:60ch; }
+.pv-lobstats{ display:flex; gap:28px; flex-wrap:wrap; }
+.pv-lobstats div{ display:flex; flex-direction:column; gap:3px; }
+.pv-lobstats b{ font-size:22px; font-weight:800; letter-spacing:-.5px; }
+.pv-lobstats b span{ font-size:13px; font-weight:600; color:var(--muted); }
+.pv-lobstats div>span{ font-size:11px; color:var(--muted); letter-spacing:.02em; }
+.pv-ladder{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+.pv-rung{
+  background:var(--panel2); border:1px solid #2b3142; border-radius:12px; padding:12px 14px;
+}
+.pv-rung b{ display:block; font-size:13px; margin-bottom:3px; }
+.pv-rung span{ font-size:11.5px; color:var(--muted); line-height:1.5; }
+.pv-start{ align-self:flex-start; }
+.pv-note{ font-size:12px; color:var(--muted); line-height:1.6; margin:0; max-width:60ch; }
+
+/* ---- summary ---- */
+.pv-summary{ display:flex; flex-direction:column; gap:20px; }
+.pv-summary h3{ margin:8px 0 0; font-size:30px; font-weight:800; letter-spacing:-.6px; }
+.pv-summary h3 span{ font-size:16px; font-weight:600; color:var(--muted); }
+.pv-pullrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.pv-pull{
+  position:relative; display:flex; flex-direction:column; gap:3px; min-width:150px;
+  background:var(--panel2); border:1px solid var(--rc); border-radius:12px; padding:12px 14px;
+}
+.pv-pe{ font-size:22px; }
+.pv-pn{ font-size:12.5px; font-weight:700; line-height:1.35; }
+.pv-pr{ font-size:11px; color:var(--rc); font-weight:700; }
+.pv-new{
+  position:absolute; top:-7px; right:10px; font-size:9.5px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; background:var(--good); color:#08240f; padding:2px 7px; border-radius:999px;
+}
+
+/* ---- loading ---- */
+.pv-loading{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  min-height:300px; color:var(--muted); font-size:13px;
+}
+.pv-dots{ display:inline-flex; gap:4px; }
+.pv-dots i{ width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pvPulse 1.1s infinite; }
+.pv-dots i:nth-child(2){ animation-delay:.15s; }
+.pv-dots i:nth-child(3){ animation-delay:.3s; }
+@keyframes pvPulse{ 0%,60%,100%{ opacity:.25; } 30%{ opacity:1; } }
+
+@media (max-width:620px){
+  .pv-opts{ grid-template-columns:1fr; }
+  .pv-body{ font-size:13px; line-height:1.95; }
+  .pv-lede h3{ font-size:18px; }
+  .pv-summary h3{ font-size:24px; }
+  .pv-lobstats{ gap:18px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pv-bar i{ transition:none; }
+  .pv-opt{ transition:none; }
+  .pv-dots i{ animation:none; opacity:.6; }
+}
+
+/* ============ THE PRESS ============
+   Same dark-slate skin as the rest of the game. The one idea it owns:
+   tiles look like prints stacked on a plate — each one edged in its own
+   rarity colour, carrying the subject it descends from, so a board full
+   of tiles reads as a spread of cards rather than abstract numbers. */
+
+#tab-press .pr-stage{ min-height:440px; }
+
+.pr-eyebrow{
+  display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted);
+}
+.pr-hint{ font-size:12px; color:var(--muted); line-height:1.6; margin:0; }
+
+/* ---- run HUD ---- */
+.pr-hud{ display:flex; gap:26px; flex-wrap:wrap; margin-bottom:16px; }
+.pr-stat{ display:flex; flex-direction:column; gap:2px; }
+.pr-stat b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.pr-stat span{ font-size:10.5px; color:var(--muted); letter-spacing:.04em; }
+
+/* ---- board ---- */
+.pr-boardwrap{ position:relative; max-width:460px; }
+.pr-board{
+  position:relative; width:100%; aspect-ratio:1;
+  background:#12141c; border:1px solid #262b3a; border-radius:var(--radius); padding:8px;
+}
+.pr-cells{
+  position:absolute; inset:8px;
+  display:grid; grid-template-columns:repeat(var(--n),1fr); grid-template-rows:repeat(var(--n),1fr); gap:8px;
+}
+.pr-cell{ background:#191d28; border-radius:10px; }
+
+.pr-tile{
+  position:absolute;
+  width:calc((100% - 16px - (var(--n) - 1) * 8px) / var(--n));
+  height:calc((100% - 16px - (var(--n) - 1) * 8px) / var(--n));
+  left:calc(8px + var(--x) * ((100% - 16px - (var(--n) - 1) * 8px) / var(--n) + 8px));
+  top:calc(8px + var(--y) * ((100% - 16px - (var(--n) - 1) * 8px) / var(--n) + 8px));
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  background:var(--panel2); border:1.5px solid var(--rc); border-radius:10px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.3);
+  overflow:hidden; padding:4px; text-align:center;
+  transition:left .13s cubic-bezier(.3,0,.2,1), top .13s cubic-bezier(.3,0,.2,1);
+}
+.pr-t{ font-size:19px; font-weight:800; color:var(--rc); line-height:1; font-variant-numeric:tabular-nums; }
+.pr-r{ font-size:8px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--rc); opacity:.75; line-height:1.15; }
+.pr-s{
+  font-size:8.5px; color:var(--muted); line-height:1.2; margin-top:2px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.pr-tile.fresh{ animation:prIn .16s ease-out; }
+.pr-tile.merged{ animation:prPop .19s ease-out; z-index:2; }
+@keyframes prIn{ from{ transform:scale(.4); opacity:0; } to{ transform:scale(1); opacity:1; } }
+@keyframes prPop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.14); } 100%{ transform:scale(1); } }
+
+.pr-jam{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(15,17,21,.86); border-radius:var(--radius); text-align:center; padding:20px;
+}
+.pr-jam strong{ display:block; font-size:16px; margin-bottom:5px; }
+.pr-jam span{ font-size:12.5px; color:var(--muted); line-height:1.55; }
+
+/* ---- direction pad ---- */
+.pr-pad{
+  display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(2,40px);
+  gap:6px; margin:16px 0; justify-content:start;
+}
+.pr-dir{
+  background:var(--panel2); border:1px solid #333a52; border-radius:9px; color:var(--text);
+  font-size:16px; cursor:pointer; font-family:inherit; transition:background .12s, border-color .12s;
+}
+.pr-dir:hover{ background:#2b3142; border-color:var(--accent); }
+.pr-dir:active{ transform:scale(.95); }
+.pr-dir[data-d="up"]{ grid-column:2; grid-row:1; }
+.pr-dir[data-d="left"]{ grid-column:1; grid-row:2; }
+.pr-dir[data-d="down"]{ grid-column:2; grid-row:2; }
+.pr-dir[data-d="right"]{ grid-column:3; grid-row:2; }
+
+.pr-foot{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+
+/* ---- hopper ---- */
+.pr-lobby{ display:flex; flex-direction:column; gap:22px; }
+.pr-lede h3{ margin:10px 0 8px; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px; }
+.pr-lede p{ margin:0 0 8px; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:62ch; }
+.pr-safe{
+  border-left:2px solid var(--good); padding-left:11px;
+  color:#9fe4bd !important; font-size:12.5px !important;
+}
+
+.pr-hopper{ background:var(--panel2); border:1px solid #333a52; border-radius:var(--radius); padding:16px; }
+.pr-hophead{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:12px; }
+.pr-hopcount{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.pr-hopcount.ok{ color:var(--good); }
+
+.pr-buckets{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:8px; }
+.pr-bucket{
+  background:var(--panel); border:1px solid #2b3142; border-radius:11px; padding:10px 11px;
+  transition:border-color .15s;
+}
+.pr-bucket.on{ border-color:var(--rc); }
+.pr-bt{ display:flex; align-items:baseline; gap:7px; }
+.pr-bt b{ font-size:15px; font-weight:800; color:var(--rc); font-variant-numeric:tabular-nums; }
+.pr-bt span{ font-size:10.5px; color:var(--muted); line-height:1.25; }
+.pr-bn{ font-size:10.5px; color:var(--muted); margin:3px 0 7px; }
+.pr-bctl{ display:flex; align-items:center; gap:6px; }
+.pr-bctl button{
+  flex:1; background:var(--panel2); border:1px solid #333a52; color:var(--text);
+  border-radius:7px; padding:4px 0; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;
+}
+.pr-bctl button:hover:not(:disabled){ background:#2b3142; border-color:var(--accent); }
+.pr-bctl button:disabled{ opacity:.35; cursor:not-allowed; }
+.pr-bl{ min-width:24px; text-align:center; font-size:12.5px; font-weight:800; font-variant-numeric:tabular-nums; }
+
+.pr-hopfoot{
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid #2b3142;
+}
+.pr-floor{ font-size:12.5px; color:var(--muted); }
+.pr-floor b{ color:var(--text); font-size:15px; margin:0 5px; }
+.pr-worth{ color:var(--muted); }
+.pr-hopbtns{ display:flex; gap:8px; flex-wrap:wrap; }
+.pr-hopbtns .btn{ padding:9px 15px; font-size:13px; }
+
+.pr-empty{
+  background:var(--panel2); border:1px dashed #3a4260; border-radius:var(--radius);
+  padding:22px; text-align:center;
+}
+.pr-empty strong{ display:block; margin-bottom:5px; }
+.pr-empty span{ font-size:12.5px; color:var(--muted); }
+
+/* ---- stats + summary ---- */
+.pr-lobstats{ display:flex; gap:28px; flex-wrap:wrap; }
+.pr-lobstats div{ display:flex; flex-direction:column; gap:3px; }
+.pr-lobstats b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.pr-lobstats div>span{ font-size:10.5px; color:var(--muted); letter-spacing:.03em; }
+
+.pr-summary{ display:flex; flex-direction:column; gap:20px; }
+.pr-summary h3{ margin:8px 0 0; font-size:28px; font-weight:800; letter-spacing:-.6px; }
+.pr-mintrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.pr-mint{
+  position:relative; display:flex; flex-direction:column; gap:3px; min-width:158px; max-width:210px;
+  background:var(--panel2); border:1px solid var(--rc); border-radius:12px; padding:12px 14px;
+}
+.pr-me{ font-size:22px; }
+.pr-mn{ font-size:12.5px; font-weight:700; line-height:1.35; }
+.pr-mr{ font-size:11px; color:var(--rc); font-weight:700; }
+.pr-short{ font-size:10px; color:var(--muted); line-height:1.4; margin-top:2px; }
+.pr-new{
+  position:absolute; top:-7px; right:10px; font-size:9.5px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; background:var(--good); color:#08240f; padding:2px 7px; border-radius:999px;
+}
+
+@media (max-width:620px){
+  .pr-lede h3{ font-size:18px; }
+  .pr-summary h3{ font-size:22px; }
+  .pr-hud{ gap:18px; }
+  .pr-stat b{ font-size:18px; }
+  .pr-lobstats{ gap:18px; }
+  .pr-buckets{ grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); }
+  .pr-pad{ display:none; }   /* swipe covers it, and the board wants the room */
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pr-tile{ transition:none; }
+  .pr-tile.fresh, .pr-tile.merged{ animation:none; }
+}
+
+/* ============ CONNECTIONS / THE CASE / ODD ONE OUT ============
+   All three share one idea: nothing is hidden. Every card shows its set
+   and its rarity in plain text, because the whole point is that the
+   answer is derivable from what's on screen. The styling exists to make
+   those two lines legible at a glance across sixteen tiles at once. */
+
+#tab-connections .cx-stage,
+#tab-showcase .cs-stage,
+#tab-oddone .oo-stage{ min-height:440px; }
+
+.cx-eyebrow,.cs-eyebrow,.oo-eyebrow{
+  display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted);
+}
+.cx-note,.cs-hint,.oo-hint{ font-size:12px; color:var(--muted); line-height:1.6; margin:0; }
+.cx-lobstats,.cs-lobstats,.oo-lobstats{ display:flex; gap:28px; flex-wrap:wrap; }
+.cx-lobstats div,.cs-lobstats div,.oo-lobstats div{ display:flex; flex-direction:column; gap:3px; }
+.cx-lobstats b,.cs-lobstats b,.oo-lobstats b{
+  font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.cx-lobstats div>span,.cs-lobstats div>span,.oo-lobstats div>span{
+  font-size:10.5px; color:var(--muted); letter-spacing:.03em; }
+.cx-lobby,.cs-lobby,.oo-lobby,.cx-summary,.cs-summary,.oo-summary{
+  display:flex; flex-direction:column; gap:22px; }
+.cx-lede h3,.cs-lede h3,.oo-lede h3{
+  margin:10px 0 8px; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px; }
+.cx-lede p,.cs-lede p,.oo-lede p{
+  margin:0 0 8px; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:62ch; }
+.cx-start,.cs-start,.oo-start{ align-self:flex-start; }
+.cx-summary h3,.cs-summary h3,.oo-summary h3{
+  margin:8px 0 0; font-size:28px; font-weight:800; letter-spacing:-.6px; }
+.cx-summary h3 span,.oo-summary h3 span{ font-size:16px; font-weight:600; color:var(--muted); }
+.cx-foot,.cs-foot,.oo-foot{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+
+/* shared "pulled a card" strip */
+.cx-pullrow,.cs-pullrow,.oo-pullrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.cx-pull,.cs-pull,.oo-pull{
+  position:relative; display:flex; flex-direction:column; gap:3px; min-width:152px; max-width:210px;
+  background:var(--panel2); border:1px solid var(--rc); border-radius:12px; padding:12px 14px; }
+.cx-pe,.cs-pe,.oo-pe{ font-size:22px; }
+.cx-pn,.cs-pn,.oo-pn{ font-size:12.5px; font-weight:700; line-height:1.35; }
+.cx-pr,.cs-pr,.oo-pr{ font-size:11px; color:var(--rc); font-weight:700; }
+.cx-new,.cs-new,.oo-new{
+  position:absolute; top:-7px; right:10px; font-size:9.5px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; background:var(--good); color:#08240f; padding:2px 7px; border-radius:999px; }
+
+/* ---------------- CONNECTIONS ---------------- */
+.cx-hud{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.cx-tries{ display:flex; align-items:center; gap:6px; }
+.cx-dot{ width:9px; height:9px; border-radius:50%; background:var(--accent); transition:background .25s; }
+.cx-dot.out{ background:#333a4d; }
+.cx-trylbl{ font-size:10.5px; color:var(--muted); margin-left:3px; }
+
+.cx-bands{ display:flex; flex-direction:column; gap:7px; margin-bottom:10px; }
+.cx-band{
+  background:color-mix(in srgb, var(--bc) 16%, var(--panel2));
+  border:1px solid var(--bc); border-radius:11px; padding:10px 14px; text-align:center;
+  animation:cxLand .28s ease-out;
+}
+.cx-band b{ display:block; font-size:12.5px; color:var(--bc); letter-spacing:.02em; }
+.cx-band span{ display:block; font-size:11.5px; color:var(--text); opacity:.85; margin-top:3px; line-height:1.5; }
+.cx-band.missed{ opacity:.62; }
+@keyframes cxLand{ from{ transform:translateY(-6px); opacity:0; } to{ transform:none; opacity:1; } }
+
+.cx-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; }
+.cx-grid.shake{ animation:cxShake .38s; }
+@keyframes cxShake{ 0%,100%{transform:none} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.cx-tile{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  min-height:104px; padding:10px 7px; text-align:center; cursor:pointer; font-family:inherit;
+  background:var(--panel2); border:1px solid #333a52; border-radius:12px; color:var(--text);
+  transition:background .12s, border-color .12s, transform .07s;
+}
+.cx-tile:hover{ border-color:var(--accent); }
+.cx-tile.on{ background:#39415c; border-color:var(--accent); transform:scale(.97); }
+.cx-e{ font-size:22px; line-height:1.1; }
+.cx-n{ font-size:11.5px; font-weight:700; line-height:1.25; }
+.cx-v{ font-size:9.5px; color:var(--muted); line-height:1.2; }
+.cx-meta{ display:flex; flex-direction:column; gap:1px; margin-top:3px; }
+.cx-meta i{ font-style:normal; font-size:9px; line-height:1.25; }
+.cx-cat{ color:var(--muted); }
+.cx-tier{ font-weight:700; }
+
+.cx-how{ display:flex; gap:8px; flex-wrap:wrap; }
+.cx-howrow{
+  background:var(--panel2); border:1px solid #2b3142; border-radius:999px; padding:6px 13px; }
+.cx-howrow b{ font-size:11.5px; font-weight:600; color:var(--muted); }
+
+/* ---------------- THE CASE ---------------- */
+.cs-hud{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.cs-prog{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+.cs-case{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-bottom:22px; }
+.cs-slot{
+  display:flex; flex-direction:column; gap:8px; cursor:pointer;
+  background:var(--panel2); border:1px solid #333a52; border-radius:12px; padding:11px 10px;
+  transition:border-color .15s, background .15s;
+}
+.cs-slot:hover{ border-color:var(--accent); }
+.cs-slot.ok{ border-color:var(--good); background:rgba(61,220,132,.09); }
+.cs-slot.bad{ border-color:var(--bad); background:rgba(255,92,92,.08); }
+.cs-req{ font-size:10.5px; line-height:1.35; color:var(--muted); min-height:28px; }
+.cs-slot.ok .cs-req{ color:#9fe4bd; }
+.cs-slot.bad .cs-req{ color:#ffb3b3; }
+.cs-well{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  min-height:80px; border-radius:9px; text-align:center; padding:6px 4px;
+  background:#12141c; border:1px dashed #333a52;
+}
+.cs-slot.full .cs-well{ border-style:solid; border-color:var(--rc); background:var(--panel); }
+.cs-se{ font-size:21px; }
+.cs-sn{ font-size:10.5px; font-weight:700; line-height:1.25; }
+.cs-sr{ font-size:9px; font-weight:700; }
+.cs-empty{ font-size:10px; color:#4a5270; letter-spacing:.06em; text-transform:uppercase; }
+
+.cs-handhead{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.cs-hand{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-bottom:18px; }
+.cs-card{
+  display:flex; flex-direction:column; align-items:center; gap:2px; text-align:center;
+  padding:10px 6px; cursor:pointer; font-family:inherit; color:var(--text);
+  background:var(--panel2); border:1px solid #333a52; border-radius:11px;
+  transition:background .12s, border-color .12s, transform .07s, opacity .15s;
+}
+.cs-card:hover:not(:disabled){ border-color:var(--accent); }
+.cs-card.on{ background:#39415c; border-color:var(--accent); transform:translateY(-2px); }
+.cs-card.used{ opacity:.28; cursor:default; }
+.cs-ce{ font-size:20px; }
+.cs-cn{ font-size:10.5px; font-weight:700; line-height:1.25; }
+.cs-cm{ display:flex; flex-direction:column; gap:1px; margin-top:2px; }
+.cs-cm i{ font-style:normal; font-size:8.5px; line-height:1.2; color:var(--muted); }
+.cs-broad{ border-left:2px solid var(--accent); padding-left:11px; color:#b9c6ff !important; font-size:12.5px !important; }
+
+.cs-reveal{ display:flex; flex-direction:column; gap:6px; }
+.cs-rev{
+  display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  background:var(--panel2); border:1px solid #2b3142; border-left:2px solid #4a5270;
+  border-radius:0 10px 10px 0; padding:9px 13px; }
+.cs-rev.ok{ border-left-color:var(--good); }
+.cs-rev b{ font-size:12px; font-weight:700; }
+.cs-rev span{ font-size:12px; color:var(--muted); }
+
+/* ---------------- ODD ONE OUT ---------------- */
+.oo-hud{ display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.oo-lives{ display:flex; gap:5px; }
+.oo-life{ width:9px; height:9px; border-radius:50%; background:var(--good);
+  box-shadow:0 0 8px rgba(61,220,132,.5); transition:background .25s, box-shadow .25s; }
+.oo-life.out{ background:#333a4d; box-shadow:none; }
+.oo-meta{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+.oo-chip{ font-size:11px; font-weight:700; color:var(--muted);
+  background:var(--panel2); border:1px solid #333a52; border-radius:999px; padding:3px 10px; }
+.oo-chip.hot{ color:#ffd35c; border-color:rgba(255,211,92,.45); background:rgba(255,211,92,.1); }
+.oo-quit{ background:none; border:none; color:var(--muted); font-family:inherit;
+  font-size:11.5px; cursor:pointer; padding:4px 6px; text-decoration:underline; }
+.oo-quit:hover{ color:var(--text); }
+.oo-clockrail{ height:3px; background:#262b3a; border-radius:3px; overflow:hidden; margin-bottom:18px; }
+.oo-clockrail i{ display:block; height:100%; background:var(--accent); transition:width .08s linear; }
+.oo-ask{ margin:0 0 14px; font-size:13.5px; color:var(--muted); }
+
+.oo-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+.oo-card{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  min-height:132px; padding:14px 9px; text-align:center; cursor:pointer; font-family:inherit;
+  background:var(--panel2); border:1px solid #333a52; border-radius:13px; color:var(--text);
+  transition:border-color .12s, background .12s, transform .08s, opacity .2s;
+}
+.oo-card:hover:not(:disabled){ border-color:var(--accent); transform:translateY(-2px); }
+.oo-card.odd{ border-color:var(--good); background:rgba(61,220,132,.12); }
+.oo-card.same{ opacity:.45; }
+.oo-card.picked{ border-color:var(--bad); background:rgba(255,92,92,.12); opacity:1; }
+.oo-e{ font-size:30px; line-height:1.05; }
+.oo-n{ font-size:12px; font-weight:700; line-height:1.3; }
+.oo-m{ display:flex; flex-direction:column; gap:1px; margin-top:3px; }
+.oo-m i{ font-style:normal; font-size:9.5px; line-height:1.25; color:var(--muted); }
+.oo-verdict{ flex:1; min-width:220px; font-size:12.5px; line-height:1.55; color:var(--muted); }
+.oo-verdict strong{ display:block; font-size:14px; margin-bottom:2px; }
+.oo-verdict.good strong{ color:var(--good); }
+.oo-verdict.bad strong{ color:var(--bad); }
+
+/* ---------------- responsive ---------------- */
+@media (max-width:760px){
+  .cs-case{ grid-template-columns:repeat(2,1fr); }
+  .cs-hand{ grid-template-columns:repeat(4,1fr); }
+}
+@media (max-width:620px){
+  .cx-grid{ gap:6px; }
+  .cx-tile{ min-height:92px; padding:8px 4px; }
+  .cx-n{ font-size:10.5px; }
+  .cx-v{ font-size:8.5px; }
+  .cx-meta i{ font-size:8px; }
+  .oo-grid{ grid-template-columns:repeat(2,1fr); }
+  .cs-case{ grid-template-columns:1fr; }
+  .cs-hand{ grid-template-columns:repeat(3,1fr); }
+  .cx-lede h3,.cs-lede h3,.oo-lede h3{ font-size:18px; }
+  .cx-summary h3,.cs-summary h3,.oo-summary h3{ font-size:22px; }
+  .cx-lobstats,.cs-lobstats,.oo-lobstats{ gap:18px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .cx-tile,.cs-card,.cs-slot,.oo-card{ transition:none; }
+  .cx-band{ animation:none; }
+  .cx-grid.shake{ animation:none; }
+}
+
 </style>
 </head>
 <body>
@@ -3531,6 +4054,27 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
 <section id="tab-dungeon" style="display:none;">
     <div id="dgBody"></div>
+  </section>
+
+  
+  <section id="tab-provenance" style="display:none;">
+    <div class="panel"><div class="pv-stage" id="pvStage"></div></div>
+  </section>
+
+  <section id="tab-press" style="display:none;">
+    <div class="panel"><div class="pr-stage" id="prStage"></div></div>
+  </section>
+
+  <section id="tab-connections" style="display:none;">
+    <div class="panel"><div class="cx-stage" id="cxStage"></div></div>
+  </section>
+
+  <section id="tab-showcase" style="display:none;">
+    <div class="panel"><div class="cs-stage" id="csStage"></div></div>
+  </section>
+
+  <section id="tab-oddone" style="display:none;">
+    <div class="panel"><div class="oo-stage" id="ooStage"></div></div>
   </section>
 
   <section id="tab-collection" style="display:none;">
@@ -18042,6 +18586,2686 @@ function uiInitHelp(){
 }
 
 /* ---------------- Routing: six nav tabs, one Play hub ---------------- */
+
+/* ===================== ADDED MODES ===================== */
+/* =====================================================================
+   PROVENANCE — bundled catalogue
+   ---------------------------------------------------------------------
+   Original entries written for the game, not fetched text. Two jobs:
+
+     1. The game stays playable when the archive can't be reached —
+        offline, a blocked API, a page opened from file://.
+     2. First-run players get an instant first question instead of
+        waiting on a network round-trip.
+
+   Live Wikipedia still takes priority whenever it answers; this is the
+   floor, not the ceiling. Every entry names its subject at least once so
+   there is something for the redactor to strike.
+   ===================================================================== */
+const PV_CATALOGUE = {
+
+  /* ---- Animal Kingdom ---- */
+  "Lion": "The lion is a large cat native to Africa and a small population in western India. Unusually among cats, lions live in family groups called prides, and males carry a heavy mane that darkens with age.",
+  "Axolotl": "The axolotl is a salamander that never grows up. It keeps its feathery external gills and stays in the water for life, and it can regrow lost limbs, spinal tissue and parts of its heart.",
+  "Great White Shark": "The great white shark is the largest predatory fish, reaching six metres. It keeps its body warmer than the surrounding sea, which lets it hunt in cold water, and it can detect the faint electrical fields of hidden prey.",
+  "Red Kangaroo": "The red kangaroo is the largest living marsupial and the biggest mammal native to Australia. It travels by hopping, a gait so efficient that going faster costs it almost no extra energy.",
+  "Arctic Fox": "The arctic fox survives temperatures near minus fifty degrees on the tundra. Its coat turns thick and white in winter and thin and brown in summer, and it can hear prey moving beneath the snow.",
+  "Bumblebee": "The bumblebee is a round, densely furred bee that can warm its own flight muscles by shivering, letting it forage in cold weather. It pollinates by gripping a flower and vibrating the pollen loose.",
+  "Scarlet Macaw": "The scarlet macaw is a large red, yellow and blue parrot of Central and South American rainforests. Pairs mate for life, fly together, and can live for decades.",
+  "Nile Crocodile": "The nile crocodile is Africa's largest freshwater predator, reaching five metres. Despite its reputation the female is a careful parent, carrying newly hatched young to the water in her jaws.",
+  "Blue Crab": "The blue crab is a swimming crab of the western Atlantic with paddle-shaped hind legs. It must shed its shell to grow, and it is at its most vulnerable and most prized in the hours just after moulting.",
+  "Great Blue Heron": "The great blue heron is a tall wading bird that hunts by standing motionless in shallow water and striking with its dagger bill. In flight it folds its neck into a tight S rather than stretching it out.",
+  "Dromedary Camel": "The dromedary camel has a single hump storing fat, not water. It can lose a quarter of its body weight to dehydration and recover it in minutes at a trough, and its nostrils reclaim moisture from its own breath.",
+  "Barracuda": "The barracuda is a long, silver ambush predator with a jutting lower jaw and prominent teeth. It hunts by sight in short, extremely fast bursts along reefs and open coast.",
+
+  /* ---- Legends & Myth ---- */
+  "Isaac Newton": "Isaac Newton formulated the laws of motion and universal gravitation, built the first reflecting telescope, and developed calculus. He spent much of his later life as Master of the Royal Mint, pursuing counterfeiters.",
+  "Aristotle": "Aristotle studied under Plato, tutored Alexander the Great, and wrote on logic, biology, ethics, politics and poetics. His classification of living things shaped natural science for nearly two thousand years.",
+  "Euclid": "Euclid worked in Alexandria and wrote the Elements, which derives geometry from a handful of postulates. It served as the standard mathematics textbook for over two millennia.",
+  "Archimedes": "Archimedes of Syracuse worked out the principle of buoyancy, the law of the lever, and a close approximation of pi. He designed war machines that held off a Roman siege for two years.",
+  "Banshee": "The banshee is a woman of Irish folklore whose wailing outside a house foretells a death in the family. She is described as washing bloodstained clothes at a ford, or as an old woman with long grey hair.",
+  "Sphinx": "The sphinx is a creature with a lion's body and a human head. The Greek version guarded Thebes and strangled travellers who could not answer its riddle; the Egyptian version was a benevolent guardian of tombs.",
+  "Ishtar": "Ishtar was the Mesopotamian goddess of love and war, associated with the planet Venus. Her most famous myth describes her descent into the underworld, passing through seven gates and surrendering something at each.",
+  "Baldr": "Baldr was the Norse god of light and beauty, beloved by all. His mother extracted an oath from every thing in the world not to harm him, overlooking only the mistletoe that eventually killed him.",
+  "Izanami": "Izanami is the Japanese creator goddess who, with her husband, formed the islands of Japan. After dying in childbirth she became ruler of the underworld, and her husband's failed attempt to retrieve her brought death into the world.",
+
+  /* ---- Machines in Motion ---- */
+  "Espresso Machine": "The espresso machine forces water at around nine atmospheres of pressure through finely ground coffee. The pressure emulsifies oils that ordinary brewing leaves behind, producing the layer of crema on top.",
+  "Bicycle": "The bicycle is the most energy-efficient form of transport ever devised, moving a person further per calorie than walking or any animal. It stays upright largely through steering corrections rather than gyroscopic effect.",
+  "Space Shuttle": "The space shuttle was the first reusable orbital spacecraft, flying 135 missions over thirty years. It launched as a rocket, manoeuvred as a spacecraft, and landed unpowered as a glider with one attempt at the runway.",
+  "Cash Register": "The cash register was invented by a saloon owner to stop staff pocketing takings. Its innovation was the bell and the visible total, which turned every sale into something the customer witnessed and recorded.",
+  "Sled": "The sled predates the wheel and works by reducing friction across a broad surface rather than concentrating weight on an axle. On snow, the pressure of the runners melts a microscopic film of water that acts as lubricant.",
+  "Barge": "The barge is a flat-bottomed vessel built to carry bulk cargo on rivers and canals. Most have no engine and are pushed or towed, and a single tow can move freight that would need hundreds of trucks.",
+  "Minivan": "The minivan put a tall, boxy passenger cabin on a car chassis rather than a truck frame, giving it a low floor and car-like handling. The sliding side door became its defining feature.",
+  "Solar Panel Array": "A solar panel array converts sunlight directly into electricity through the photovoltaic effect, with no moving parts to wear out. Output depends on light intensity, and efficiency falls as the panels heat up.",
+  "Tandem Bicycle": "The tandem bicycle seats riders in line, both contributing to a single drivetrain. It is faster than a solo bike on flat ground because it nearly doubles power while barely increasing wind resistance.",
+  "Tank Truck": "The tank truck carries liquid in a cylindrical vessel divided into compartments. The baffles between them exist to stop the load surging forward under braking, which could otherwise overwhelm the driver.",
+
+  /* ---- Cosmos & Terra ---- */
+  "The Moon": "The moon is the only natural satellite of Earth and the only other body humans have walked on. It is tidally locked, so the same face always points toward us, and it drifts a few centimetres further away each year.",
+  "Diamond": "Diamond is pure carbon arranged in a rigid lattice, formed under enormous pressure deep in the mantle and carried up by volcanic eruption. It is the hardest natural material and an excellent conductor of heat.",
+  "Topaz": "Topaz is a silicate mineral that grows in long prismatic crystals in cavities of igneous rock. Naturally colourless or pale, most blue stones on the market have been irradiated and heated to bring out the colour.",
+  "Pyrite": "Pyrite is an iron sulphide whose brassy metallic cubes have fooled prospectors for centuries, earning it the name fool's gold. Unlike the real thing it is brittle and will strike sparks against steel.",
+  "Aquamarine": "Aquamarine is the blue-green variety of beryl, coloured by traces of iron and found in large flawless crystals. Sailors once carried it as a charm against drowning.",
+  "Death Valley": "Death valley holds the lowest, driest and hottest ground in North America, dipping to 86 metres below sea level. Air heated on the valley floor is trapped by surrounding mountains and recirculates, driving temperatures higher.",
+  "Loch Ness": "Loch ness is a long, deep freshwater lake in the Scottish Highlands, holding more water than all the lakes of England and Wales combined. Its peat-darkened water makes visibility almost nil a few metres down.",
+  "Colosseum": "The colosseum is a Roman amphitheatre that seated perhaps fifty thousand people, with eighty entrances allowing the crowd to clear in minutes. Beneath the floor ran a network of tunnels, cages and lifts.",
+  "Great Blue Hole": "The great blue hole is a near-perfect circular marine sinkhole off the coast of Belize, over 300 metres across and 120 deep. It formed as a limestone cave during the ice ages and flooded when sea levels rose.",
+  "Tsunami Wave": "A tsunami wave is generated by displacement of the seafloor rather than by wind. In deep water it may be barely noticeable while travelling at the speed of a jet aircraft, rising only as it reaches shallow coast.",
+
+  /* ---- Tide & Tackle ---- */
+  "Burbot": "The burbot is the only freshwater member of the cod family, with a single barbel on its chin. It spawns under ice in midwinter and feeds mostly at night in cold, deep water.",
+  "Bull Shark": "The bull shark tolerates fresh water better than almost any other shark and has been recorded far up rivers, hundreds of miles from the sea. It is stocky, blunt-snouted, and hunts in murky shallows.",
+  "Tide Pool": "A tide pool is a rock basin left holding seawater as the tide retreats. Everything living in it must survive hours of heat, evaporation and changing salinity before the sea returns.",
+  "Blobfish": "The blobfish lives at depths where pressure is dozens of times that at the surface, and its body is a gelatinous mass slightly less dense than water so it can hover without a swim bladder. It only looks slack when brought up.",
+  "Anglerfish": "The anglerfish hunts in the deep sea using a luminous lure grown from a modified fin spine, lit by symbiotic bacteria. In some species the tiny male fuses permanently to the female and lives as an attached parasite.",
+  "Coelacanth": "The coelacanth was known only from fossils and assumed extinct for 65 million years until one was landed off South Africa in 1938. It has fleshy, limb-like fins and a hinged skull.",
+  "Oarfish": "The oarfish is the longest bony fish, reaching over eight metres, with a silver ribbon body and a crimson crest. It swims vertically, head up, and is so rarely seen alive that strandings often make the news.",
+  "Maine Lobster": "The maine lobster has one crusher claw and one finer cutting claw, and which side they fall on varies between individuals. It tastes with its legs and must moult its entire shell to grow.",
+  "Common Octopus": "The common octopus has three hearts, blue copper-based blood, and two thirds of its neurons distributed through its arms rather than its brain. It changes colour and skin texture in a fraction of a second.",
+  "Cuttlefish": "The cuttlefish controls its buoyancy with a porous internal shell and communicates by running waves of colour across its skin, despite being colourblind. Its W-shaped pupil gives it unusual depth perception.",
+  "Blue Marlin": "The blue marlin is a fast open-ocean predator with a spear-like upper jaw used to stun prey. Females grow several times larger than males and can exceed 500 kilograms.",
+  "Rainbow Trout": "The rainbow trout is a cold-water fish marked with a pink band along its flank. Populations that migrate to sea and return to spawn grow far larger and turn silver, and are known by a different name entirely.",
+  "Northern Pike": "The northern pike is a long, olive ambush predator that lies motionless among weeds and strikes in a single explosive lunge. Its jaws hold hundreds of backward-pointing teeth.",
+  "Yellow Perch": "The yellow perch is a small schooling fish with dark vertical bars along golden flanks and two separate dorsal fins. It feeds by day and is among the first fish most anglers ever catch.",
+  "Walleye": "The walleye takes its name from its reflective eye, which gathers light and lets it hunt at dusk and in stained water where prey fish cannot see it coming.",
+  "Old Boot": "An old boot is what the lake gives you instead of a fish. Waterlogged leather, laces long gone, and by long tradition it still goes in the bucket and gets counted.",
+};
+
+/* Shaped like a ciLookup result so the two sources are interchangeable. */
+function pvCatalogueEntry(name){
+  const text = PV_CATALOGUE[name];
+  if(!text) return null;
+  return { t: Date.now(), title: name, desc: "", extract: text, img: "", url: "", local: true };
+}
+function pvCatalogueSubjects(){ return Object.keys(PV_CATALOGUE); }
+
+/* =====================================================================
+   PROVENANCE  —  the archive quiz
+   ---------------------------------------------------------------------
+   An archive record comes up with the subject's name struck out. Four
+   cards from the binder are laid beside it. Name the right one.
+
+   Everything here reads from data the game already has: the 1,215 real
+   subjects hiding behind ~60,000 print variants, and the Wikipedia
+   summaries the card inspector already fetches and caches. No new
+   content pipeline, no new art.
+
+   Host functions this module expects (all already in index.html):
+     cards, RARITIES, MINE_BONUS_BY_TIER, UNIQUE_TIERS
+     state, saveState, showToast, renderHeader
+     grantBonusXP, recomputePlayerXP
+     ciLookup  (async, returns {title,desc,extract,img,url} or null)
+   ===================================================================== */
+
+/* ---------- tuning ---------------------------------------------------
+   All the knobs in one place. XP is deliberately small: this is the only
+   game that grants XP directly rather than through cards, so it should
+   feel like a nudge, not a shortcut. A clean 15-question run lands around
+   150 XP — roughly a handful of mid-tier cards. */
+const PV_LIVES        = 3;
+const PV_TIME_MS      = 22000;  // per question; running out costs the speed bonus, not a life
+const PV_BASE_CREDITS = 220;
+const PV_XP_BASE      = 4;
+const PV_QUEUE_TARGET = 2;      // questions kept warm ahead of the player
+const PV_MIN_EXTRACT  = 90;     // chars; shorter summaries make unfair questions
+const PV_CARD_EVERY   = 5;      // correct answers per card pulled from the archive
+
+/* Invented objects with no article behind them. Still allowed as wrong
+   answers — they just never get asked about. */
+const PV_FICTION = new Set(["Fortune & Folly", "Raid Gear"]);
+
+const PV_TIERS = [
+  { at: 0,  name: "Field Survey",  hint: "Answers come from anywhere in the binder." },
+  { at: 4,  name: "Reading Room",  hint: "All four candidates share a collection." },
+  { at: 9,  name: "Closed Stacks", hint: "Same collection, same shelf. Good luck." },
+];
+
+/* ---------- subject index -------------------------------------------
+   Built once, lazily. "Lion — Night Print" and its forty-nine siblings
+   collapse into one subject: Lion. */
+/* ---------- archive access ------------------------------------------
+   Two sources. Live Wikipedia wins whenever it answers; the bundled
+   catalogue is the floor. If the network is blocked — offline, a
+   corporate proxy, an extension, or the page opened over file:// where
+   the request never leaves the browser — the game keeps working on the
+   catalogue instead of dead-ending on an error screen. */
+let pvArchiveLive = null;   // null = untested, true/false once known
+
+function pvHasCatalogue(){ return typeof PV_CATALOGUE !== "undefined"; }
+
+async function pvFetchEntry(name){
+  /* Catalogue first when the network has already proven unreachable —
+     no point paying 16 timeouts a question to rediscover that. */
+  if(pvArchiveLive === false && pvHasCatalogue()){
+    return pvCatalogueEntry(name);
+  }
+  let entry = null;
+  try {
+    entry = await ciLookup(name);
+    if(entry) pvArchiveLive = true;
+  } catch(e){
+    pvArchiveLive = false;
+  }
+  if(!entry && pvHasCatalogue()) entry = pvCatalogueEntry(name);
+  return entry;
+}
+
+/* One cheap probe so the first run doesn't spend its whole budget
+   discovering the archive is unreachable. */
+async function pvProbeArchive(){
+  if(pvArchiveLive !== null) return pvArchiveLive;
+  try{
+    const j = await ciLookup("Lion");
+    pvArchiveLive = !!(j && j.extract);
+  }catch(e){
+    pvArchiveLive = false;
+  }
+  return pvArchiveLive;
+}
+
+let pvIndex = null;
+function pvSubjects(){
+  if(pvIndex) return pvIndex;
+  const map = new Map();
+  cards.forEach(c=>{
+    const key = c.name.split(" — ")[0];
+    let s = map.get(key);
+    if(!s){
+      s = { key, name:key, category:c.category, emoji:c.emoji, top:c.rarity, ids:[] };
+      map.set(key, s);
+    }
+    s.ids.push(c.id);
+    if(c.rarity > s.top){ s.top = c.rarity; s.emoji = c.emoji; }
+  });
+  pvIndex = [...map.values()];
+  return pvIndex;
+}
+function pvOwns(s){ return s.ids.some(id => (state.owned[id]||0) > 0); }
+
+/* The card inspector caches lookups that came back empty. Those subjects
+   have no article to quiz on, so drop them from the pool permanently
+   rather than burning a retry on them every round. */
+function pvKnownMiss(name){
+  try{
+    if(typeof ciLoadCache !== "function") return false;
+    const hit = ciLoadCache()[name];
+    return !!(hit && hit.miss);
+  }catch(e){ return false; }
+}
+
+/* Askable subjects: real things, preferring ones the player owns so the
+   game feels like reading your own binder. Falls back to the whole index
+   for a brand-new save, otherwise a fresh account has nothing to play. */
+function pvAskPool(){
+  const real = pvSubjects().filter(s => !PV_FICTION.has(s.category));
+  const owned = real.filter(pvOwns);
+  return owned.length >= 24 ? owned : real;
+}
+
+function pvDifficulty(round){
+  let t = PV_TIERS[0];
+  for(const x of PV_TIERS){ if(round >= x.at) t = x; }
+  return t;
+}
+
+/* ---------- redaction -----------------------------------------------
+   Strike out the subject's name and every distinctive word in it, plus
+   whatever Wikipedia calls the article, so the summary can't just hand
+   over the answer. Word length survives — that's how a real redacted
+   document reads, and it leaves the player something to work with. */
+const PV_STOP = new Set(["the","a","an","of","and","or","in","on","at","to","for","is","are","was","were",
+  "by","with","from","as","its","it","that","this","which","also","known","called","common","genus",
+  "species","family","order","type","kind","other","most","more","than","been","have","has","their"]);
+
+function pvEscape(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+/* `terms` should only ever be names for the thing — the subject and the
+   article title. Wikipedia's one-line description is deliberately NOT
+   passed in: for Lion that reads "large cat native to Africa and India",
+   which is precisely the clue the player is meant to reason from.
+
+   Works by collecting match ranges over the original string and merging
+   them before building output, rather than running replacements in
+   sequence. Sequential replacement nests "Shark" inside an already-struck
+   "Great White Shark" and corrupts the markup. */
+function pvRedact(text, terms){
+  const parts = [];
+  terms.filter(Boolean).forEach(t=>{
+    parts.push(t.trim());
+    t.split(/[\s\-–—/(),'"]+/).forEach(w=>{
+      if(w.length >= 4 && !PV_STOP.has(w.toLowerCase())) parts.push(w);
+    });
+  });
+  const uniq = [...new Set(parts)].filter(Boolean);
+
+  const ranges = [];
+  uniq.forEach(p=>{
+    const re = new RegExp("\\b" + pvEscape(p) + "(?:'s|’s|s|es)?\\b", "gi");
+    let m;
+    while((m = re.exec(text)) !== null){
+      ranges.push([m.index, m.index + m[0].length]);
+      if(m.index === re.lastIndex) re.lastIndex++;
+    }
+  });
+  if(!ranges.length) return pvEsc(text);
+  ranges.sort((a,b)=> a[0] - b[0]);
+
+  /* Merge overlaps, and join neighbours separated only by whitespace so a
+     multi-word name reads as one continuous bar. */
+  const merged = [];
+  for(const r of ranges){
+    const last = merged[merged.length-1];
+    if(last && r[0] <= last[1]){ last[1] = Math.max(last[1], r[1]); continue; }
+    if(last && /^\s+$/.test(text.slice(last[1], r[0]))){ last[1] = r[1]; continue; }
+    merged.push([r[0], r[1]]);
+  }
+
+  let out = "", cur = 0;
+  merged.forEach(([a,b])=>{
+    out += pvEsc(text.slice(cur, a));
+    out += `<span class="pv-bar"><i></i>${pvEsc(text.slice(a, b))}</span>`;
+    cur = b;
+  });
+  return out + pvEsc(text.slice(cur));
+}
+function pvEsc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* ---------- question construction ----------------------------------- */
+function pvPickDistractors(answer, diff, n){
+  const all = pvSubjects();
+  let pool;
+  if(diff.at >= 9){
+    pool = all.filter(s => s.category === answer.category && s.key !== answer.key
+                        && Math.abs(s.top - answer.top) <= 2);
+    if(pool.length < n) pool = all.filter(s => s.category === answer.category && s.key !== answer.key);
+  } else if(diff.at >= 4){
+    pool = all.filter(s => s.category === answer.category && s.key !== answer.key);
+  } else {
+    pool = all.filter(s => s.category !== answer.category);
+  }
+  if(pool.length < n) pool = all.filter(s => s.key !== answer.key);
+
+  const out = [];
+  const seen = new Set([answer.key]);
+  let guard = 0;
+  while(out.length < n && guard++ < 400){
+    const c = pool[Math.floor(Math.random()*pool.length)];
+    if(!c || seen.has(c.key)) continue;
+    seen.add(c.key);
+    out.push(c);
+  }
+  return out;
+}
+
+async function pvBuildQuestion(round){
+  const diff = pvDifficulty(round);
+  let pool = pvAskPool();
+
+  /* With no live archive, only catalogued subjects can be asked about. */
+  if(pvArchiveLive === false && pvHasCatalogue()){
+    const have = new Set(pvCatalogueSubjects());
+    const narrowed = pool.filter(s => have.has(s.key));
+    pool = narrowed.length >= 4
+      ? narrowed
+      : pvSubjects().filter(s => have.has(s.key));
+  }
+  if(!pool.length) return null;
+
+  const tried = new Set();
+  for(let attempt = 0; attempt < 16; attempt++){
+    const answer = pool[Math.floor(Math.random()*pool.length)];
+    if(!answer || tried.has(answer.key) || pvRun?.asked.has(answer.key)) continue;
+    tried.add(answer.key);
+    if(pvArchiveLive !== false && pvKnownMiss(answer.name)) continue;
+
+    const entry = await pvFetchEntry(answer.name);
+    if(!entry || !entry.extract || entry.extract.length < PV_MIN_EXTRACT) continue;
+
+    const options = pvPickDistractors(answer, diff, 3);
+    if(options.length < 3) continue;
+    options.push(answer);
+    for(let i = options.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    return {
+      answer, options, entry, diff,
+      body: pvRedact(entry.extract, [answer.name, entry.title]),
+      correct: options.findIndex(o => o.key === answer.key)
+    };
+  }
+  return null;
+}
+
+/* ---------- run state ------------------------------------------------ */
+let pvRun   = null;   // live run, or null in the lobby
+let pvQueue = [];     // questions warmed in the background
+let pvFilling = false;
+let pvTimer = null;
+
+function pvStats(){
+  if(!state.provenance){
+    state.provenance = { runs:0, best:0, answered:0, correct:0, cardsPulled:0, credits:0, xp:0, bestStreak:0 };
+  }
+  return state.provenance;
+}
+
+async function pvFillQueue(){
+  if(pvFilling) return;
+  pvFilling = true;
+  try{
+    while(pvQueue.length < PV_QUEUE_TARGET && pvRun){
+      const q = await pvBuildQuestion(pvRun.round + pvQueue.length);
+      if(!q) break;
+      pvQueue.push(q);
+    }
+  } finally { pvFilling = false; }
+}
+
+async function pvStartRun(){
+  pvRun = { round:0, lives:PV_LIVES, streak:0, correct:0, credits:0, xp:0,
+            asked:new Set(), identified:[], q:null, locked:false, hinted:false, deadline:0 };
+  pvQueue = [];
+  pvPaint();
+  await pvProbeArchive();
+  await pvNextQuestion();
+}
+
+async function pvNextQuestion(){
+  if(!pvRun) return;
+  pvRun.locked = false;
+  pvRun.hinted = false;
+  pvRun.q = null;
+  pvPaint();
+
+  if(!pvQueue.length) await pvFillQueue();
+  const q = pvQueue.shift();
+  if(!q){
+    pvEndRun(pvHasCatalogue()
+      ? "Ran out of records to ask about. Collect a few more subjects and try again."
+      : "Couldn't reach the archive, and no offline catalogue is loaded. Check your connection, or serve the page over http:// rather than opening the file directly.");
+    return;
+  }
+  pvRun.round++;
+  pvRun.q = q;
+  pvRun.asked.add(q.answer.key);
+  pvRun.deadline = Date.now() + PV_TIME_MS;
+  pvPaint();
+  pvStartTimer();
+  pvFillQueue();
+}
+
+function pvStartTimer(){
+  pvStopTimer();
+  pvTimer = setInterval(()=>{
+    if(!pvRun || !pvRun.q || pvRun.locked) return pvStopTimer();
+    const left = pvRun.deadline - Date.now();
+    const fill = document.getElementById("pvTimeFill");
+    if(fill) fill.style.width = Math.max(0, Math.min(100, (left / PV_TIME_MS) * 100)) + "%";
+    if(left <= 0) pvStopTimer();   // time out costs the speed bonus, nothing else
+  }, 100);
+}
+function pvStopTimer(){ if(pvTimer){ clearInterval(pvTimer); pvTimer = null; } }
+
+/* ---------- answering ------------------------------------------------ */
+function pvAnswer(idx){
+  if(!pvRun || !pvRun.q || pvRun.locked) return;
+  pvRun.locked = true;
+  pvStopTimer();
+
+  const q = pvRun.q;
+  const right = idx === q.correct;
+  const msLeft = Math.max(0, pvRun.deadline - Date.now());
+  const speed = msLeft / PV_TIME_MS;
+
+  if(right){
+    const streakMult = 1 + Math.min(pvRun.streak, 10) * 0.12;
+    const roundMult  = 1 + pvRun.round * 0.10;
+    let credits = PV_BASE_CREDITS * roundMult * streakMult * (1 + speed * 0.5);
+    if(pvRun.hinted) credits *= 0.5;
+    credits = Math.round(credits);
+
+    let xp = PV_XP_BASE + pvRun.round;
+    if(pvRun.hinted) xp = Math.round(xp * 0.5);
+
+    pvRun.streak++;
+    pvRun.correct++;
+    pvRun.credits += credits;
+    pvRun.xp += xp;
+    pvRun.identified.push(q.answer);
+    pvRun.lastGain = { credits, xp };
+  } else {
+    pvRun.streak = 0;
+    pvRun.lives--;
+    pvRun.lastGain = null;
+  }
+
+  const st = pvStats();
+  st.answered++;
+  if(right) st.correct++;
+  if(pvRun.streak > st.bestStreak) st.bestStreak = pvRun.streak;
+
+  pvPaint(true, idx);
+}
+
+function pvHint(){
+  if(!pvRun || !pvRun.q || pvRun.locked || pvRun.hinted) return;
+  pvRun.hinted = true;
+  const q = pvRun.q;
+  const wrong = q.options.map((o,i)=>i).filter(i => i !== q.correct);
+  q.struck = wrong[Math.floor(Math.random()*wrong.length)];
+  pvPaint();
+}
+
+function pvContinue(){
+  if(!pvRun) return;
+  if(pvRun.lives <= 0){ pvEndRun(); return; }
+  pvNextQuestion();
+}
+
+/* ---------- end of run ----------------------------------------------- */
+function pvEndRun(note){
+  if(!pvRun) return;
+  pvStopTimer();
+  const run = pvRun;
+  const st = pvStats();
+
+  st.runs++;
+  st.credits += run.credits;
+  st.xp += run.xp;
+  if(run.correct > st.best) st.best = run.correct;
+
+  state.credits += run.credits;
+  if(run.xp > 0) grantBonusXP(run.xp);
+
+  const pulled = pvAwardCards(run);
+  st.cardsPulled += pulled.length;
+
+  pvRun = null;
+  pvQueue = [];
+  saveState();
+  renderHeader();
+  pvPaintSummary(run, pulled, note);
+}
+
+/* Every few correct answers, one of the subjects you identified turns up
+   as a print for the binder. Unowned subjects come first — the point is
+   that knowing a thing is a way of finding it. */
+function pvAwardCards(run){
+  const n = Math.floor(run.correct / PV_CARD_EVERY);
+  if(n <= 0) return [];
+
+  const pool = [...run.identified];
+  const out = [];
+  /* Loops on the award count, not on attempts: a subject whose only prints
+     are one-of-ones you already hold yields nothing, and skipping it must
+     cost a draw from the pool rather than one of the promised cards. */
+  while(out.length < n && pool.length){
+    const fresh = pool.filter(s => !pvOwns(s));
+    const pick = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length ? fresh.length : pool.length))];
+    pool.splice(pool.indexOf(pick), 1);
+
+    /* Prefer a print the binder is missing, and never duplicate a
+       one-of-one tier. */
+    const options = pick.ids.map(id => cards[id])
+      .filter(c => !(UNIQUE_TIERS.has(c.rarity) && (state.owned[c.id]||0) > 0));
+    if(!options.length) continue;
+    const missing = options.filter(c => !(state.owned[c.id] > 0));
+    const card = (missing.length ? missing : options)[Math.floor(Math.random() * (missing.length ? missing.length : options.length))];
+
+    const had = state.owned[card.id] || 0;
+    if(had === 0) state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[card.rarity];
+    state.owned[card.id] = had + 1;
+    out.push({ card, isNew: had === 0 });
+  }
+  if(out.length) recomputePlayerXP();
+  return out;
+}
+
+/* ---------- rendering ------------------------------------------------ */
+function pvEl(){ return document.getElementById("pvStage"); }
+
+function pvPaint(revealed, chosen){
+  const stage = pvEl();
+  if(!stage) return;
+  if(!pvRun){ pvPaintLobby(); return; }
+
+  const q = pvRun.q;
+  if(!q){
+    stage.innerHTML = `<div class="pv-loading"><span class="pv-dots"><i></i><i></i><i></i></span>
+      Pulling the next record…</div>`;
+    return;
+  }
+
+  const r = RARITIES[q.answer.top];
+  const hearts = Array.from({length:PV_LIVES}, (_,i)=>
+    `<span class="pv-life${i < pvRun.lives ? "" : " out"}"></span>`).join("");
+
+  const opts = q.options.map((o,i)=>{
+    let cls = "pv-opt";
+    if(q.struck === i) cls += " struck";
+    if(revealed){
+      if(i === q.correct) cls += " right";
+      else if(i === chosen) cls += " wrong";
+      else cls += " dim";
+    }
+    return `<button class="${cls}" data-i="${i}" ${revealed || q.struck === i ? "disabled" : ""}>
+      <span class="pv-oe">${o.emoji}</span>
+      <span class="pv-on">${pvEsc(o.name)}</span>
+    </button>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <div class="pv-hud">
+      <div class="pv-lives" title="Lives">${hearts}</div>
+      <div class="pv-meta">
+        <span class="pv-chip">Record ${pvRun.round}</span>
+        <span class="pv-chip">${q.diff.name}</span>
+        ${pvRun.streak > 1 ? `<span class="pv-chip hot">Streak ${pvRun.streak}</span>` : ""}
+      </div>
+      <button class="pv-quit" id="pvQuit">End run</button>
+    </div>
+
+    <div class="pv-time"><i id="pvTimeFill" style="width:${revealed ? 0 : 100}%"></i></div>
+
+    <article class="pv-record">
+      <header class="pv-rechead">
+        <span class="pv-eyebrow">Archive record${q.entry.local ? " · offline catalogue" : ""}</span>
+        <span class="pv-cat" style="--rc:${r.color}">Catalogued at ${r.name}</span>
+      </header>
+      <p class="pv-body" id="pvBody">${q.body}</p>
+    </article>
+
+    <div class="pv-opts">${opts}</div>
+
+    <div class="pv-foot">
+      ${revealed
+        ? `<div class="pv-verdict ${chosen === q.correct ? "good" : "bad"}">
+             <div class="pv-vtext">
+               <strong>${chosen === q.correct ? "Identified." : "Misfiled."}</strong>
+               ${chosen === q.correct
+                 ? `+${pvRun.lastGain.credits.toLocaleString()} credits · +${pvRun.lastGain.xp} XP`
+                 : `It was ${pvEsc(q.answer.name)}.`}
+             </div>
+             ${q.entry.url ? `<a class="pv-read" href="${q.entry.url}" target="_blank" rel="noopener">Read the full article ↗</a>` : ""}
+           </div>
+           <button class="btn" id="pvNext">${pvRun.lives <= 0 ? "See results" : "Next record"}</button>`
+        : `<button class="btn secondary" id="pvHint" ${pvRun.hinted ? "disabled" : ""}>
+             ${pvRun.hinted ? "Hint used — half payout" : "Rule one out (half payout)"}
+           </button>`}
+    </div>`;
+
+  stage.querySelectorAll(".pv-opt").forEach(b=>
+    b.addEventListener("click", ()=>pvAnswer(+b.dataset.i)));
+  const hint = document.getElementById("pvHint");
+  if(hint) hint.addEventListener("click", pvHint);
+  const next = document.getElementById("pvNext");
+  if(next) next.addEventListener("click", pvContinue);
+  const quit = document.getElementById("pvQuit");
+  if(quit) quit.addEventListener("click", ()=>{ if(confirm("End the run and bank what you've earned?")) pvEndRun(); });
+
+  if(revealed) pvRevealBars();
+}
+
+/* The payoff: the marker lifts off the page and the subject is there. */
+function pvRevealBars(){
+  const bars = document.querySelectorAll("#pvBody .pv-bar");
+  bars.forEach((b,i)=> setTimeout(()=>b.classList.add("open"), 90 + i*70));
+}
+
+function pvPaintLobby(){
+  const stage = pvEl();
+  if(!stage) return;
+  const st = pvStats();
+  const pool = pvAskPool();
+  const owned = pvSubjects().filter(s => !PV_FICTION.has(s.category) && pvOwns(s)).length;
+  const total = pvSubjects().filter(s => !PV_FICTION.has(s.category)).length;
+  const acc = st.answered ? Math.round((st.correct / st.answered) * 100) : 0;
+
+  stage.innerHTML = `
+    <div class="pv-lobby">
+      <div class="pv-lede">
+        <span class="pv-eyebrow">Provenance</span>
+        <h3>A record with the name struck out.<br>Four cards. One of them is the thing described.</h3>
+        <p>Summaries are pulled from the archive and redacted on the spot. Three
+           misfilings ends the run. Every ${PV_CARD_EVERY} correct identifications
+           pull a print from the shelves into your binder.</p>
+      </div>
+
+      <div class="pv-lobstats">
+        <div><b>${owned.toLocaleString()}<span>/${total.toLocaleString()}</span></b><span>Subjects documented</span></div>
+        <div><b>${st.best}</b><span>Best run</span></div>
+        <div><b>${acc}%</b><span>Accuracy</span></div>
+        <div><b>${st.cardsPulled}</b><span>Cards pulled</span></div>
+      </div>
+
+      <div class="pv-ladder">
+        ${PV_TIERS.map(t=>`<div class="pv-rung"><b>${t.name}</b><span>${t.hint}</span></div>`).join("")}
+      </div>
+
+      <button class="btn pv-start" id="pvStart">Open the archive</button>
+      ${pool.length < 24 ? `<p class="pv-note">Your binder is still thin, so the archive is drawing on
+        everything in the catalogue. Once you own 24 subjects it'll only ask about cards you actually hold.</p>` : ""}
+    </div>`;
+
+  document.getElementById("pvStart").addEventListener("click", pvStartRun);
+}
+
+function pvPaintSummary(run, pulled, note){
+  const stage = pvEl();
+  if(!stage) return;
+  const acc = run.round ? Math.round((run.correct / run.round) * 100) : 0;
+
+  stage.innerHTML = `
+    <div class="pv-summary">
+      <span class="pv-eyebrow">Run closed</span>
+      <h3>${run.correct} identified<span> of ${run.round}</span></h3>
+      ${note ? `<p class="pv-note">${pvEsc(note)}</p>` : ""}
+
+      <div class="pv-lobstats">
+        <div><b>${run.credits.toLocaleString()}</b><span>Credits</span></div>
+        <div><b>${run.xp}</b><span>XP</span></div>
+        <div><b>${acc}%</b><span>Accuracy</span></div>
+      </div>
+
+      ${pulled.length ? `
+        <div class="pv-pulled">
+          <span class="pv-eyebrow">Pulled from the shelves</span>
+          <div class="pv-pullrow">
+            ${pulled.map(p=>{
+              const r = RARITIES[p.card.rarity];
+              return `<div class="pv-pull" style="--rc:${r.color}">
+                ${p.isNew ? `<span class="pv-new">New</span>` : ""}
+                <span class="pv-pe">${p.card.emoji}</span>
+                <span class="pv-pn">${pvEsc(p.card.name)}</span>
+                <span class="pv-pr">${r.name}</span>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>` : `<p class="pv-note">Identify ${PV_CARD_EVERY} in a run to start pulling prints.</p>`}
+
+      <div class="pv-foot">
+        <button class="btn" id="pvAgain">Another run</button>
+        <button class="btn secondary" id="pvBack">Back to the lobby</button>
+      </div>
+    </div>`;
+
+  document.getElementById("pvAgain").addEventListener("click", pvStartRun);
+  document.getElementById("pvBack").addEventListener("click", pvPaintLobby);
+}
+
+/* ---------- host wiring ---------------------------------------------- */
+function renderProvenance(){ if(!pvRun) pvPaintLobby(); else pvPaint(); }
+function pvOnEnterTab(){ pvStats(); renderProvenance(); }
+function pvOnLeaveTab(){
+  pvStopTimer();
+  /* Leaving mid-run banks it rather than silently dropping the credits. */
+  if(pvRun && pvRun.round > 0) pvEndRun();
+  else pvRun = null;
+}
+
+/* =====================================================================
+   THE PRESS  —  spare prints in, one good print out
+   ---------------------------------------------------------------------
+   The binder has a duplicate problem: ~16,000 Junk Drawer cards and about
+   fifty print variants behind every real subject. Every other mode in the
+   game is a faucet. This is the sink.
+
+   Load spare prints into the hopper. What you feed it sets the floor the
+   board spawns at, so your junk determines your ceiling. Merge upward.
+   Bank the plate and the best tiles come back as real prints, descended
+   from the exact cards you fed in.
+
+   THE GUARANTEE, and it drives most of the design below: the Press only
+   ever consumes copies beyond the first. Collection XP counts unique
+   cards and the mining bonus only moves when a card crosses 0↔1, so a
+   run can never cost you a subject, a level, or a point of mining rate.
+
+   Host functions this module expects (all already in index.html):
+     cards, RARITIES, MINE_BONUS_BY_TIER, UNIQUE_TIERS
+     state, saveState, showToast, renderHeader
+     grantBonusXP, recomputePlayerXP
+   ===================================================================== */
+
+/* ---------- tuning --------------------------------------------------- */
+const PR_SIZE        = 4;      // board is PR_SIZE × PR_SIZE
+const PR_MIN_LOAD    = 12;     // spare prints needed to fire it up
+const PR_MAX_LOAD    = 60;     // hopper ceiling
+const PR_MINT_TOP    = 3;      // how many of the best tiles come back as cards
+const PR_XP_PER_TIER = 3;      // XP per tier climbed above the floor
+const PR_SPAWN_UP    = 0.18;   // chance a spawn lands one tier above the floor
+
+/* Payout is a multiplier on what the hopper would have fetched at the
+   Market counter, not on the plate score. Score is super-linear in tier
+   while the sell table is steeper still, so paying out on score made the
+   Press worth 8–20× selling depending on the floor — enough to make the
+   Market pointless. Pegging to sell value keeps the comparison honest at
+   every tier and gives the player a number they can actually reason
+   about: this run beat the counter by 3.4×.
+
+   Climbing is the only thing that raises the multiplier, so the reward
+   tracks the part that takes skill. */
+const PR_MULT_PER_TIER = 0.40;  // multiplier gained per tier climbed above the floor
+const PR_MULT_CAP      = 6;     // ceiling on that multiplier
+
+/* The Press upgrades prints; it does not hand out the top of the table.
+   Anything above this clamps on the way out, so Prototype and above stay
+   the preserve of packs and luck. Climbing past it still pays, because
+   the climb is what drives the multiplier. */
+const PR_MINT_CEILING  = 10;
+
+/* ---------- save ----------------------------------------------------- */
+function prStats(){
+  if(!state.press){
+    state.press = { runs:0, bestTier:0, bestScore:0, pressed:0, minted:0, credits:0 };
+  }
+  return state.press;
+}
+
+/* ---------- the spare pool -------------------------------------------
+   A spare is any copy past the first. The first copy of everything is
+   untouchable, which is what makes the guarantee above hold. */
+function prSpares(){
+  const byTier = Array.from({length:16}, ()=>[]);
+  for(const id in state.owned){
+    const n = state.owned[id];
+    if(n > 1){
+      const c = cards[id];
+      if(c) byTier[c.rarity].push({ id:+id, spare:n - 1, card:c });
+    }
+  }
+  return byTier;
+}
+function prSpareCount(byTier){
+  return byTier.reduce((s,list)=> s + list.reduce((a,e)=> a + e.spare, 0), 0);
+}
+function prSubjectOf(card){ return card.name.split(" — ")[0]; }
+
+/* ---------- run state ------------------------------------------------ */
+let pr = null;         // live run
+let prHopper = null;   // { picks:{cardId:qty}, total }
+let prTileSeq = 1;
+
+function prNewHopper(){ prHopper = { picks:{}, total:0 }; }
+function prHopperTiers(){
+  /* Expand the hopper into a flat list of {tier,subject} the board can
+     draw from, one entry per print loaded. */
+  const out = [];
+  for(const id in prHopper.picks){
+    const c = cards[id];
+    for(let i = 0; i < prHopper.picks[id]; i++) out.push({ tier:c.rarity, subject:prSubjectOf(c) });
+  }
+  return out;
+}
+function prFloorFor(list){
+  if(!list.length) return 0;
+  /* The floor is the hopper's mean tier, rounded down. Feeding better
+     junk starts the board higher, which is the whole incentive. */
+  return Math.max(0, Math.min(13, Math.floor(list.reduce((s,e)=> s + e.tier, 0) / list.length)));
+}
+
+/* ---------- board ----------------------------------------------------- */
+function prIdx(x,y){ return y*PR_SIZE + x; }
+
+function prSpawn(){
+  if(!pr) return false;
+  const empty = [];
+  for(let i = 0; i < pr.grid.length; i++) if(!pr.grid[i]) empty.push(i);
+  if(!empty.length) return false;
+  const at = empty[Math.floor(Math.random()*empty.length)];
+  const src = pr.pool[Math.floor(Math.random()*pr.pool.length)];
+  const tier = Math.min(15, pr.floor + (Math.random() < PR_SPAWN_UP ? 1 : 0));
+  pr.grid[at] = { id:prTileSeq++, tier, subject:src ? src.subject : "", fresh:true };
+  return true;
+}
+
+function prStart(){
+  const list = prHopperTiers();
+  if(list.length < PR_MIN_LOAD) return;
+
+  /* Consume the spares now, so the cost is paid up front and a closed tab
+     can't refund it. Bank the counter value of what went in — that's the
+     baseline the payout multiplies. */
+  let consumed = 0, sellValue = 0;
+  for(const id in prHopper.picks){
+    const q = prHopper.picks[id];
+    const have = state.owned[id] || 0;
+    const take = Math.min(q, Math.max(0, have - 1));   // never the last copy
+    if(take > 0){
+      state.owned[id] = have - take;
+      consumed += take;
+      sellValue += MARKET_SELL_PRICE_BY_TIER[cards[id].rarity] * take;
+    }
+  }
+  prStats().pressed += consumed;
+  saveState();
+
+  pr = {
+    grid: new Array(PR_SIZE*PR_SIZE).fill(null),
+    pool: list,
+    floor: prFloorFor(list),
+    loaded: consumed,
+    sellValue,
+    score: 0, moves: 0, best: 0,
+    over: false, banked: false, lastGain: 0
+  };
+  prSpawn(); prSpawn();
+  pr.best = pr.floor;
+  prNewHopper();
+  prPaint();
+}
+
+/* One line of the board, collapsed toward index 0. Standard 2048 rules:
+   a tile merges at most once per move. */
+function prCollapse(line){
+  const tiles = line.filter(Boolean);
+  const out = [];
+  let gained = 0, merges = 0;
+  for(let i = 0; i < tiles.length; i++){
+    const a = tiles[i], b = tiles[i+1];
+    if(b && a.tier === b.tier && a.tier < 15){
+      /* The new print descends from one of its two parents — that lineage
+         is what gets minted at the end of the run. */
+      const heir = Math.random() < 0.5 ? a.subject : b.subject;
+      out.push({ id:a.id, tier:a.tier + 1, subject:heir, merged:true });
+      gained += (a.tier + 1) * (a.tier + 1);
+      merges++;
+      i++;
+    } else {
+      out.push({ id:a.id, tier:a.tier, subject:a.subject });
+    }
+  }
+  while(out.length < PR_SIZE) out.push(null);
+  return { line:out, gained, merges };
+}
+
+function prReadLine(dir, k){
+  const out = [];
+  for(let i = 0; i < PR_SIZE; i++){
+    if(dir === "left")  out.push(pr.grid[prIdx(i, k)]);
+    if(dir === "right") out.push(pr.grid[prIdx(PR_SIZE-1-i, k)]);
+    if(dir === "up")    out.push(pr.grid[prIdx(k, i)]);
+    if(dir === "down")  out.push(pr.grid[prIdx(k, PR_SIZE-1-i)]);
+  }
+  return out;
+}
+function prWriteLine(dir, k, line){
+  for(let i = 0; i < PR_SIZE; i++){
+    if(dir === "left")  pr.grid[prIdx(i, k)] = line[i];
+    if(dir === "right") pr.grid[prIdx(PR_SIZE-1-i, k)] = line[i];
+    if(dir === "up")    pr.grid[prIdx(k, i)] = line[i];
+    if(dir === "down")  pr.grid[prIdx(k, PR_SIZE-1-i)] = line[i];
+  }
+}
+
+function prMove(dir){
+  if(!pr || pr.over || pr.banked) return;
+  const before = pr.grid.map(t => t ? t.id + ":" + t.tier : "-").join(",");
+  pr.grid.forEach(t => { if(t){ t.merged = false; t.fresh = false; } });
+
+  let gained = 0, merges = 0;
+  for(let k = 0; k < PR_SIZE; k++){
+    const r = prCollapse(prReadLine(dir, k));
+    prWriteLine(dir, k, r.line);
+    gained += r.gained; merges += r.merges;
+  }
+  const after = pr.grid.map(t => t ? t.id + ":" + t.tier : "-").join(",");
+  if(before === after) return;   // nothing shifted; not a move
+
+  pr.score += gained;
+  pr.lastGain = gained;
+  pr.moves++;
+  pr.grid.forEach(t => { if(t && t.tier > pr.best) pr.best = t.tier; });
+  prSpawn();
+  if(!prHasMoves()) pr.over = true;
+  prPaint();
+}
+
+function prHasMoves(){
+  if(pr.grid.some(t => !t)) return true;
+  for(let y = 0; y < PR_SIZE; y++){
+    for(let x = 0; x < PR_SIZE; x++){
+      const t = pr.grid[prIdx(x,y)];
+      if(x+1 < PR_SIZE && pr.grid[prIdx(x+1,y)].tier === t.tier) return true;
+      if(y+1 < PR_SIZE && pr.grid[prIdx(x,y+1)].tier === t.tier) return true;
+    }
+  }
+  return false;
+}
+
+/* ---------- banking --------------------------------------------------
+   The best tiles on the plate come back as real prints. A tile knows its
+   subject, so the card minted is a print of that subject — preferring one
+   at the tile's own tier, and a copy the binder is missing. */
+function prMintFor(tile){
+  const subject = tile.subject;
+  const prints = cards.filter(c => c.name.startsWith(subject + " — ") || c.name === subject);
+  if(!prints.length) return null;
+
+  const legal = prints.filter(c => !(UNIQUE_TIERS.has(c.rarity) && (state.owned[c.id]||0) > 0));
+  if(!legal.length) return null;
+
+  /* Two separate reasons a minted print can land below its tile: the
+     ceiling, and the plain fact that a subject may have no print that
+     high. Track them apart so the summary can say which happened. */
+  const capped = Math.min(tile.tier, PR_MINT_CEILING);
+  const overflow = Math.max(0, tile.tier - PR_MINT_CEILING);
+
+  let band = legal.filter(c => c.rarity === capped);
+  if(!band.length){
+    let bestTier = -1;
+    legal.forEach(c => { if(c.rarity <= capped && c.rarity > bestTier) bestTier = c.rarity; });
+    if(bestTier < 0) bestTier = Math.min(...legal.map(c => c.rarity));
+    band = legal.filter(c => c.rarity === bestTier);
+  }
+  const missing = band.filter(c => !(state.owned[c.id] > 0));
+  const pick = (missing.length ? missing : band)[Math.floor(Math.random() * (missing.length ? missing.length : band.length))];
+
+  const had = state.owned[pick.id] || 0;
+  if(had === 0) state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[pick.rarity];
+  state.owned[pick.id] = had + 1;
+  return {
+    card: pick,
+    isNew: had === 0,
+    overflow,
+    shortfall: Math.max(0, capped - pick.rarity)
+  };
+}
+
+function prBank(){
+  if(!pr || pr.banked) return;
+  pr.banked = true;
+
+  const top = pr.grid.filter(Boolean).sort((a,b)=> b.tier - a.tier).slice(0, PR_MINT_TOP);
+  const minted = [];
+  top.forEach(t => { const m = prMintFor(t); if(m) minted.push(m); });
+
+  const climbed = Math.max(0, pr.best - pr.floor);
+  const mult    = Math.min(PR_MULT_CAP, 1 + climbed * PR_MULT_PER_TIER);
+  const credits = Math.round(pr.sellValue * mult);
+
+  /* XP tracks how far you climbed, weighted by how high you got. Weighting
+     matters: a high floor buys a shorter climb, and without it, loading
+     better junk would earn less for reaching further, which is backwards. */
+  const xp = climbed > 0 ? Math.round(climbed * PR_XP_PER_TIER * (1 + pr.best * 0.15)) : 0;
+
+  state.credits += credits;
+  if(xp > 0) grantBonusXP(xp);
+  if(minted.length) recomputePlayerXP();
+
+  const st = prStats();
+  st.runs++;
+  st.credits += credits;
+  st.minted += minted.length;
+  if(pr.best > st.bestTier) st.bestTier = pr.best;
+  if(pr.score > st.bestScore) st.bestScore = pr.score;
+
+  saveState();
+  renderHeader();
+  prPaintSummary({ score:pr.score, best:pr.best, floor:pr.floor, moves:pr.moves,
+                   loaded:pr.loaded, sellValue:pr.sellValue, mult, credits, xp, minted });
+  pr = null;
+}
+
+/* ---------- rendering ------------------------------------------------- */
+function prEl(){ return document.getElementById("prStage"); }
+function prEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function prTileHTML(t, i){
+  const x = i % PR_SIZE, y = Math.floor(i / PR_SIZE);
+  const r = RARITIES[t.tier];
+  const cls = "pr-tile" + (t.merged ? " merged" : "") + (t.fresh ? " fresh" : "");
+  return `<div class="${cls}" style="--rc:${r.color}; --x:${x}; --y:${y};" data-id="${t.id}">
+    <span class="pr-t">${t.tier}</span>
+    <span class="pr-r">${prEsc(r.name)}</span>
+    <span class="pr-s">${prEsc(t.subject)}</span>
+  </div>`;
+}
+
+function prPaint(){
+  const stage = prEl();
+  if(!stage) return;
+  if(!pr){ prPaintHopper(); return; }
+
+  const cells = Array.from({length:PR_SIZE*PR_SIZE}, ()=>`<div class="pr-cell"></div>`).join("");
+  const tiles = pr.grid.map((t,i)=> t ? prTileHTML(t,i) : "").join("");
+  const rBest = RARITIES[pr.best];
+
+  stage.innerHTML = `
+    <div class="pr-hud">
+      <div class="pr-stat"><b>${pr.score.toLocaleString()}</b><span>Plate score</span></div>
+      <div class="pr-stat"><b style="color:${rBest.color}">${pr.best}</b><span>Best tier</span></div>
+      <div class="pr-stat"><b>${pr.moves}</b><span>Passes</span></div>
+      <div class="pr-stat"><b>${Math.min(PR_MULT_CAP, 1 + Math.max(0, pr.best - pr.floor) * PR_MULT_PER_TIER).toFixed(2)}×</b><span>Payout</span></div>
+    </div>
+
+    <div class="pr-boardwrap">
+      <div class="pr-board" id="prBoard" style="--n:${PR_SIZE}">
+        <div class="pr-cells">${cells}</div>
+        ${tiles}
+      </div>
+      ${pr.over ? `<div class="pr-jam"><div>
+          <strong>The plate is full.</strong>
+          <span>No pass left to make. Bank it and collect the prints.</span>
+        </div></div>` : ""}
+    </div>
+
+    <div class="pr-pad">
+      <button class="pr-dir" data-d="up"    aria-label="Press up">↑</button>
+      <button class="pr-dir" data-d="left"  aria-label="Press left">←</button>
+      <button class="pr-dir" data-d="down"  aria-label="Press down">↓</button>
+      <button class="pr-dir" data-d="right" aria-label="Press right">→</button>
+    </div>
+
+    <div class="pr-foot">
+      <button class="btn" id="prBank">Bank the plate${pr.best > pr.floor ? ` — mint ${Math.min(PR_MINT_TOP, pr.grid.filter(Boolean).length)}` : ""}</button>
+      <span class="pr-hint">Arrow keys, swipe, or the pad. Two prints of a tier press into one of the next.</span>
+    </div>`;
+
+  stage.querySelectorAll(".pr-dir").forEach(b =>
+    b.addEventListener("click", ()=> prMove(b.dataset.d)));
+  document.getElementById("prBank").addEventListener("click", prBank);
+  prBindGestures();
+}
+
+function prPaintHopper(){
+  const stage = prEl();
+  if(!stage) return;
+  if(!prHopper) prNewHopper();
+
+  const spares = prSpares();
+  const total = prSpareCount(spares);
+  const st = prStats();
+  const list = prHopperTiers();
+  const floor = prFloorFor(list);
+  const ready = list.length >= PR_MIN_LOAD;
+
+  const buckets = spares.map((entries, tier)=>{
+    const avail = entries.reduce((a,e)=> a + e.spare, 0);
+    if(!avail) return "";
+    const r = RARITIES[tier];
+    const loaded = entries.reduce((a,e)=> a + (prHopper.picks[e.id]||0), 0);
+    return `<div class="pr-bucket${loaded ? " on" : ""}" style="--rc:${r.color}">
+      <div class="pr-bt">
+        <b>${tier}</b>
+        <span>${prEsc(r.name)}</span>
+      </div>
+      <div class="pr-bn">${avail.toLocaleString()} spare</div>
+      <div class="pr-bctl">
+        <button data-t="${tier}" data-n="-5" ${loaded ? "" : "disabled"}>−5</button>
+        <span class="pr-bl">${loaded}</span>
+        <button data-t="${tier}" data-n="5" ${avail - loaded > 0 ? "" : "disabled"}>+5</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <div class="pr-lobby">
+      <div class="pr-lede">
+        <span class="pr-eyebrow">The Press</span>
+        <h3>Spare prints in. One good print out.</h3>
+        <p>Load the hopper, then press matching tiers together until you can't.
+           What you feed it sets the floor the board starts at, so better junk
+           reaches higher. Bank the plate and the best ${PR_MINT_TOP} tiles come
+           back as real prints of the subjects you fed in.</p>
+        <p class="pr-safe">Only spare copies are ever consumed. Your last copy of
+           anything is untouchable, so a run can't cost you a subject, a level,
+           or any mining rate.</p>
+      </div>
+
+      ${total === 0 ? `
+        <div class="pr-empty">
+          <strong>No spares yet.</strong>
+          <span>Open a few packs. Every second copy of a print becomes fuel.</span>
+        </div>` : `
+        <div class="pr-hopper">
+          <div class="pr-hophead">
+            <span class="pr-eyebrow">Hopper</span>
+            <span class="pr-hopcount ${ready ? "ok" : ""}">${list.length} / ${PR_MAX_LOAD} loaded${
+              ready ? "" : ` · ${PR_MIN_LOAD - list.length} more to start`}</span>
+          </div>
+          <div class="pr-buckets">${buckets}</div>
+          <div class="pr-hopfoot">
+            <div class="pr-floor">Starting floor <b>${floor}</b>
+              <span style="color:${RARITIES[floor].color}">${prEsc(RARITIES[floor].name)}</span>
+              ${list.length ? `<span class="pr-worth">· worth ${list.reduce((a,e)=>a+MARKET_SELL_PRICE_BY_TIER[e.tier],0).toLocaleString()} at the counter</span>` : ""}</div>
+            <div class="pr-hopbtns">
+              <button class="btn secondary" id="prClear" ${list.length ? "" : "disabled"}>Empty</button>
+              <button class="btn secondary" id="prAuto">Fill with lowest</button>
+              <button class="btn" id="prGo" ${ready ? "" : "disabled"}>Fire up the press</button>
+            </div>
+          </div>
+        </div>`}
+
+      <div class="pr-lobstats">
+        <div><b>${total.toLocaleString()}</b><span>Spare prints</span></div>
+        <div><b>${st.bestTier}</b><span>Best tier pressed</span></div>
+        <div><b>${st.bestScore.toLocaleString()}</b><span>Best plate</span></div>
+        <div><b>${st.pressed.toLocaleString()}</b><span>Prints consumed</span></div>
+      </div>
+    </div>`;
+
+  stage.querySelectorAll(".pr-bctl button").forEach(b =>
+    b.addEventListener("click", ()=> prAdjust(+b.dataset.t, +b.dataset.n)));
+  const clear = document.getElementById("prClear");
+  if(clear) clear.addEventListener("click", ()=>{ prNewHopper(); prPaintHopper(); });
+  const auto = document.getElementById("prAuto");
+  if(auto) auto.addEventListener("click", prAutoFill);
+  const go = document.getElementById("prGo");
+  if(go) go.addEventListener("click", prStart);
+}
+
+function prAdjust(tier, delta){
+  const spares = prSpares()[tier];
+  let left = delta;
+  if(delta > 0){
+    const room = PR_MAX_LOAD - prHopperTiers().length;
+    left = Math.min(delta, room);
+    for(const e of spares){
+      if(left <= 0) break;
+      const cur = prHopper.picks[e.id] || 0;
+      const add = Math.min(left, e.spare - cur);
+      if(add > 0){ prHopper.picks[e.id] = cur + add; left -= add; }
+    }
+  } else {
+    left = -delta;
+    for(const e of spares){
+      if(left <= 0) break;
+      const cur = prHopper.picks[e.id] || 0;
+      const sub = Math.min(left, cur);
+      if(sub > 0){
+        prHopper.picks[e.id] = cur - sub;
+        if(prHopper.picks[e.id] <= 0) delete prHopper.picks[e.id];
+        left -= sub;
+      }
+    }
+  }
+  prPaintHopper();
+}
+
+function prAutoFill(){
+  prNewHopper();
+  const spares = prSpares();
+  let room = PR_MAX_LOAD;
+  for(let t = 0; t < 16 && room > 0; t++){
+    for(const e of spares[t]){
+      if(room <= 0) break;
+      const add = Math.min(room, e.spare);
+      prHopper.picks[e.id] = add;
+      room -= add;
+    }
+  }
+  prPaintHopper();
+}
+
+function prPaintSummary(res){
+  const stage = prEl();
+  if(!stage) return;
+  const rBest = RARITIES[res.best];
+
+  stage.innerHTML = `
+    <div class="pr-summary">
+      <span class="pr-eyebrow">Plate banked</span>
+      <h3>Tier <span style="color:${rBest.color}">${res.best}</span> off a floor of ${res.floor}</h3>
+
+      <div class="pr-lobstats">
+        <div><b>${res.credits.toLocaleString()}</b><span>Credits</span></div>
+        <div><b>${res.mult.toFixed(2)}×</b><span>Beat the counter</span></div>
+        <div><b>${res.xp}</b><span>XP</span></div>
+        <div><b>${res.loaded}</b><span>Prints consumed</span></div>
+      </div>
+      <p class="pr-hint">Those ${res.loaded} spares would have fetched
+        ${res.sellValue.toLocaleString()} at the Market. Climbing
+        ${res.best - res.floor} tier${res.best-res.floor===1?"":"s"} turned that into
+        ${res.credits.toLocaleString()}, plus the prints below.</p>
+
+      ${res.minted.length ? `
+        <div class="pr-minted">
+          <span class="pr-eyebrow">Off the press</span>
+          <div class="pr-mintrow">
+            ${res.minted.map(m=>{
+              const r = RARITIES[m.card.rarity];
+              return `<div class="pr-mint" style="--rc:${r.color}">
+                ${m.isNew ? `<span class="pr-new">New</span>` : ""}
+                <span class="pr-me">${m.card.emoji}</span>
+                <span class="pr-mn">${prEsc(m.card.name)}</span>
+                <span class="pr-mr">${prEsc(r.name)}</span>
+                ${m.overflow ? `<span class="pr-short">capped at the press ceiling — ${m.overflow} tier${m.overflow>1?"s":""} paid out in credits</span>`
+                  : m.shortfall ? `<span class="pr-short">no print of this subject exists that high — dropped ${m.shortfall}</span>` : ""}
+              </div>`;
+            }).join("")}
+          </div>
+        </div>` : `<p class="pr-hint">Nothing to mint — press at least one tier above the floor.</p>`}
+
+      <div class="pr-foot">
+        <button class="btn" id="prAgain">Load another hopper</button>
+      </div>
+    </div>`;
+
+  document.getElementById("prAgain").addEventListener("click", ()=>{ prNewHopper(); prPaintHopper(); });
+}
+
+/* ---------- input ----------------------------------------------------- */
+let prKeyBound = false;
+function prKeyHandler(e){
+  if(!pr || pr.over || pr.banked) return;
+  const sec = document.getElementById("tab-press");
+  if(!sec || sec.style.display === "none") return;
+  const map = { ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right",
+                w:"up", s:"down", a:"left", d:"right" };
+  const dir = map[e.key];
+  if(!dir) return;
+  e.preventDefault();
+  prMove(dir);
+}
+function prBindGestures(){
+  if(!prKeyBound){
+    window.addEventListener("keydown", prKeyHandler, { passive:false });
+    prKeyBound = true;
+  }
+  const board = document.getElementById("prBoard");
+  if(!board) return;
+  let sx = 0, sy = 0, tracking = false;
+  board.addEventListener("touchstart", e=>{
+    const t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; tracking = true;
+  }, { passive:true });
+  board.addEventListener("touchend", e=>{
+    if(!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    prMove(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+  }, { passive:true });
+}
+
+/* ---------- host wiring ------------------------------------------------ */
+function renderPress(){ if(pr) prPaint(); else prPaintHopper(); }
+function prOnEnterTab(){ prStats(); if(!prHopper) prNewHopper(); renderPress(); }
+function prOnLeaveTab(){
+  /* The hopper was already spent to start the run, so leaving mid-run banks
+     it rather than throwing those prints away. */
+  if(pr && !pr.banked) prBank();
+}
+
+/* =====================================================================
+   CONNECTIONS  —  sixteen cards, four groups of four
+   ---------------------------------------------------------------------
+   Every card is face up. Every property you need — set, tier, emoji,
+   subject — is printed on it. Nothing is hidden and nothing has to be
+   remembered: the puzzle is entirely in front of you, and solving it is
+   noticing, not recalling.
+
+   The groups come from the card data itself:
+     · same set          (Animal Kingdom, Cosmos & Terra …)
+     · same rarity tier  (four Practical prints)
+     · same emoji        (four cards showing 🐟)
+     · same subject      (four prints of one Lion)
+
+   Puzzles are generated so exactly four cards match each rule, which
+   makes the partition unique — you can always prove your answer rather
+   than guess it. Incidental near-misses of three are left alone on
+   purpose; they're the red herrings.
+
+   Host functions expected (all already in index.html):
+     cards, RARITIES, MINE_BONUS_BY_TIER, UNIQUE_TIERS,
+     state, saveState, showToast, renderHeader,
+     grantBonusXP, recomputePlayerXP
+   ===================================================================== */
+
+const CX_MISTAKES   = 4;
+const CX_CREDITS    = 2600;   // per group solved
+const CX_CLEAR_BONUS= 9000;   // for taking all four
+const CX_XP_SOLVE   = 14;     // for a full clear
+const CX_CARD_ON    = 3;      // groups solved before a print is pulled
+
+/* Difficulty of a rule, used to colour the solved bands and to keep a
+   mix of easy and hard in every puzzle. */
+const CX_RULES = [
+  { id:"subject",  label:"Prints of one thing", rank:0 },
+  { id:"emoji",    label:"Same picture",        rank:1 },
+  { id:"category", label:"One collection",      rank:2 },
+  { id:"tier",     label:"One rarity",          rank:3 },
+];
+const CX_BAND = ["#3ddc84","#6c8cff","#c98cff","#ffd35c"];
+
+function cxStats(){
+  if(!state.connections){
+    state.connections = { played:0, solved:0, perfect:0, groups:0, credits:0, cards:0, streak:0, bestStreak:0 };
+  }
+  return state.connections;
+}
+
+/* ---------- puzzle construction --------------------------------------- */
+function cxProp(card, rule){
+  if(rule === "subject")  return card.name.split(" — ")[0];
+  if(rule === "emoji")    return card.emoji;
+  if(rule === "category") return card.category;
+  if(rule === "tier")     return String(card.rarity);
+  return null;
+}
+
+/* Index the pool once per puzzle: rule -> value -> [cards] */
+function cxIndex(pool){
+  const idx = {};
+  CX_RULES.forEach(r=>{ idx[r.id] = new Map(); });
+  pool.forEach(c=>{
+    CX_RULES.forEach(r=>{
+      const v = cxProp(c, r.id);
+      if(!idx[r.id].has(v)) idx[r.id].set(v, []);
+      idx[r.id].get(v).push(c);
+    });
+  });
+  return idx;
+}
+
+function cxShuffle(a){
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* The player's own cards when they have enough of them, otherwise the
+   whole catalogue so a new save still gets a puzzle. */
+function cxPool(){
+  const owned = [];
+  for(const id in state.owned){
+    if(state.owned[id] > 0){ const c = cards[id]; if(c) owned.push(c); }
+  }
+  if(owned.length >= 400) return owned;
+  const sample = [];
+  const step = Math.max(1, Math.floor(cards.length / 4000));
+  for(let i = 0; i < cards.length; i += step) sample.push(cards[i]);
+  return owned.length > sample.length ? owned : sample;
+}
+
+/* Uniqueness, done properly.
+   ---------------------------------------------------------------------
+   The first version banned any rule from matching four cards it wasn't
+   supposed to. That killed every board it generated, and it was the wrong
+   target anyway: a rival foursome only breaks the puzzle if the remaining
+   twelve can *also* be split three ways. If they can't, it's just a red
+   herring — which is the entire appeal of the format.
+
+   So: enumerate every four-card set the player could legitimately justify,
+   then count how many ways the sixteen partition into four of them. One
+   way means the board is provable and still full of traps. */
+function cxAllGroups(board){
+  const out = [];
+  const seen = new Set();
+  for(const r of CX_RULES){
+    const buckets = new Map();
+    board.forEach(c=>{
+      const v = cxProp(c, r.id);
+      if(!buckets.has(v)) buckets.set(v, []);
+      buckets.get(v).push(c);
+    });
+    for(const [value, list] of buckets){
+      if(list.length < 4) continue;
+      if(list.length > 10) return null;   // C(11,4) upward gets silly; discard the board
+      const n = list.length;
+      const pick = (start, acc)=>{
+        if(acc.length === 4){
+          const ids = acc.map(c=>c.id).sort((a,b)=>a-b);
+          const key = ids.join(",");
+          if(!seen.has(key)){ seen.add(key); out.push({ rule:r.id, value, ids:new Set(ids), cards:acc.slice() }); }
+          return;
+        }
+        for(let i = start; i < n; i++){ acc.push(list[i]); pick(i+1, acc); acc.pop(); }
+      };
+      pick(0, []);
+    }
+  }
+  return out;
+}
+
+/* Count exact covers of the sixteen, stopping at two — we only ever need
+   to know whether there's more than one.
+
+   Indexed by card: at each step we resolve the lowest uncovered card and
+   only consider groups that contain it. Scanning the whole candidate list
+   instead took ~3.4s a board, which is far too slow to sit behind a
+   button; this brings it under a frame. */
+function cxCountPartitions(board, all, limit){
+  const ids = board.map(c=>c.id);
+  const index = new Map(ids.map((id,i)=>[id,i]));
+  const masks = all.map(g=>{
+    let m = 0;
+    for(const id of g.ids) m |= (1 << index.get(id));
+    return m;
+  });
+
+  const byCard = Array.from({length:ids.length}, ()=>[]);
+  masks.forEach(m=>{
+    for(let i = 0; i < ids.length; i++) if(m & (1 << i)) byCard[i].push(m);
+  });
+
+  const full = (1 << ids.length) - 1;
+  let found = 0;
+  const rec = (used)=>{
+    if(used === full){ found++; return; }
+    let lowest = 0;
+    while(used & (1 << lowest)) lowest++;
+    const options = byCard[lowest];
+    for(let i = 0; i < options.length; i++){
+      const m = options[i];
+      if(m & used) continue;
+      rec(used | m);
+      if(found >= limit) return;
+    }
+  };
+  rec(0);
+  return found;
+}
+
+function cxUnique(board, groups){
+  for(const g of groups){
+    if(board.filter(c => cxProp(c, g.rule) === g.value).length < 4) return false;
+  }
+  const all = cxAllGroups(board);
+  if(!all || all.length > 2000) return false;
+  return cxCountPartitions(board, all, 2) === 1;
+}
+
+/* Indexing 3,000+ cards on every deal was most of the generator's cost.
+   The binder only changes when a card is added, so key the cache on that. */
+let cxCache = null;
+function cxCached(){
+  const sig = Object.keys(state.owned).length;
+  if(cxCache && cxCache.sig === sig) return cxCache;
+  const pool = cxPool();
+  cxCache = { sig, pool, idx: cxIndex(pool) };
+  return cxCache;
+}
+
+function cxBuild(){
+  const { pool, idx } = cxCached();
+  if(pool.length < 60) return null;
+
+  for(let attempt = 0; attempt < 900; attempt++){
+    /* Only rules that can actually form a group in this binder, and they
+       may repeat — two category groups is a perfectly good board. Taking
+       all four types every time meant a 600-card binder with no subject
+       owned four times over could never deal at all. */
+    const viable = CX_RULES.map(r=>r.id)
+      .filter(id => { for(const l of idx[id].values()) if(l.length >= 4) return true; return false; });
+    if(!viable.length) return null;
+    const rules = cxShuffle(viable.slice()).slice(0, 4);
+    while(rules.length < 4) rules.push(viable[Math.floor(Math.random()*viable.length)]);
+    const groups = [];
+    const taken = new Set();
+    let ok = true;
+    /* Running count of every property value on the board. Left unchecked,
+       a subject group (four Lion prints, all Animal Kingdom, all 🦁) plus
+       a category group in that same set stacks eight-plus cards into one
+       bucket, which both explodes the combination count and makes rival
+       partitions near-certain. Capping growth here took the attempt
+       survival rate from 31% to the great majority. */
+    const tally = {};
+    CX_RULES.forEach(r=>{ tally[r.id] = new Map(); });
+    const CAP = 6;
+
+    for(const rule of rules){
+      const values = cxShuffle([...idx[rule].entries()].filter(([,l])=> l.length >= 4)).slice(0, 60);
+      let picked = null;
+      for(const [value, list] of values){
+        /* Free cards only, and nothing that already answers to an earlier
+           group's rule — that much overlap is never interesting. */
+        const free = list.filter(c => !taken.has(c.id) && !groups.some(g => cxProp(c, g.rule) === g.value));
+        if(free.length < 4) continue;
+
+        const chosen = [];
+        const subjectsUsed = new Set();
+        for(const c of cxShuffle(free.slice())){
+          if(chosen.length === 4) break;
+          /* Only a subject group may stack prints of one thing. Without
+             this an emoji group comes out as four Sea Cucumbers, which
+             reads exactly like a subject group and makes two of the four
+             bands look like the same kind of answer. */
+          const subj = c.name.split(" — ")[0];
+          if(rule !== "subject" && subjectsUsed.has(subj)) continue;
+
+          let fits = true;
+          for(const r of CX_RULES){
+            if(r.id === rule) continue;
+            const v = cxProp(c, r.id);
+            const n = (tally[r.id].get(v)||0) + chosen.filter(x=>cxProp(x, r.id) === v).length + 1;
+            if(n > CAP){ fits = false; break; }
+          }
+          if(fits){ chosen.push(c); subjectsUsed.add(subj); }
+        }
+        if(chosen.length === 4){ picked = { rule, value, cards: chosen }; break; }
+      }
+      if(!picked){ ok = false; break; }
+      picked.cards.forEach(c=>{
+        taken.add(c.id);
+        CX_RULES.forEach(r=>{
+          const v = cxProp(c, r.id);
+          tally[r.id].set(v, (tally[r.id].get(v)||0) + 1);
+        });
+      });
+      groups.push(picked);
+    }
+    if(!ok || groups.length !== 4) continue;
+
+    const board = groups.flatMap(g => g.cards);
+    if(board.length !== 16) continue;
+    if(!cxUnique(board, groups)) continue;
+
+    groups.sort((a,b)=>{
+      const ra = CX_RULES.find(x=>x.id===a.rule).rank;
+      const rb = CX_RULES.find(x=>x.id===b.rule).rank;
+      return ra - rb;
+    });
+    return { groups, board: cxShuffle(board.slice()) };
+  }
+  return null;
+}
+
+function cxGroupLabel(g){
+  const rule = CX_RULES.find(r=>r.id === g.rule);
+  if(g.rule === "tier")     return `${RARITIES[+g.value].name} — ${rule.label}`;
+  if(g.rule === "subject")  return `${g.value} — ${rule.label}`;
+  if(g.rule === "emoji")    return `${g.value} — ${rule.label}`;
+  return `${g.value} — ${rule.label}`;
+}
+
+/* ---------- run state --------------------------------------------------- */
+let cx = null;
+
+function cxStart(){
+  const p = cxBuild();
+  if(!p){
+    showToast("Not enough variety in the binder for a puzzle yet. Open a few packs.");
+    return;
+  }
+  cx = { groups:p.groups, board:p.board, picked:[], found:[], mistakes:0,
+         over:false, banked:false, note:"", shake:false };
+  cxStats().played++;
+  saveState();
+  cxPaint();
+}
+
+function cxToggle(id){
+  if(!cx || cx.over) return;
+  const i = cx.picked.indexOf(id);
+  if(i >= 0) cx.picked.splice(i, 1);
+  else if(cx.picked.length < 4) cx.picked.push(id);
+  cx.note = "";
+  cxPaint();
+}
+
+function cxSubmit(){
+  if(!cx || cx.over || cx.picked.length !== 4) return;
+  const chosen = cx.picked.map(id => cards[id]);
+
+  const hit = cx.groups.find(g =>
+    !cx.found.some(f => f.value === g.value && f.rule === g.rule) &&
+    chosen.every(c => g.cards.some(x => x.id === c.id)));
+
+  if(hit){
+    cx.found.push(hit);
+    cx.board = cx.board.filter(c => !hit.cards.some(x => x.id === c.id));
+    cx.picked = [];
+    cx.note = "";
+    cxStats().groups++;
+    if(cx.found.length === 4){ cx.over = true; cxFinish(true); return; }
+    cxPaint();
+    return;
+  }
+
+  /* Near miss is the good feedback in this format — it tells you the
+     shape of your error without giving the group away. */
+  let best = 0;
+  cx.groups.forEach(g=>{
+    if(cx.found.some(f => f.value === g.value && f.rule === g.rule)) return;
+    const n = chosen.filter(c => g.cards.some(x => x.id === c.id)).length;
+    if(n > best) best = n;
+  });
+
+  cx.mistakes++;
+  cx.shake = true;
+  cx.note = best === 3 ? "One away." : best === 2 ? "Two of those belong together." : "Nothing there.";
+  if(cx.mistakes >= CX_MISTAKES){ cx.over = true; cxFinish(false); return; }
+  cxPaint();
+  setTimeout(()=>{ if(cx){ cx.shake = false; cxPaint(); } }, 420);
+}
+
+function cxShuffleBoard(){
+  if(!cx || cx.over) return;
+  cxShuffle(cx.board);
+  cxPaint();
+}
+function cxClear(){
+  if(!cx || cx.over) return;
+  cx.picked = []; cx.note = "";
+  cxPaint();
+}
+
+function cxFinish(won){
+  if(!cx || cx.banked) return;
+  cx.banked = true;
+  const st = cxStats();
+
+  const credits = cx.found.length * CX_CREDITS + (won ? CX_CLEAR_BONUS : 0);
+  const xp = won ? CX_XP_SOLVE : 0;
+  state.credits += credits;
+  if(xp) grantBonusXP(xp);
+
+  if(won){
+    st.solved++;
+    st.streak++;
+    if(cx.mistakes === 0) st.perfect++;
+    if(st.streak > st.bestStreak) st.bestStreak = st.streak;
+  } else {
+    st.streak = 0;
+  }
+  st.credits += credits;
+
+  const pulled = cxPull();
+  st.cards += pulled.length;
+
+  saveState();
+  renderHeader();
+  cxPaintSummary(won, credits, xp, pulled);
+}
+
+/* A print from one of the groups you actually solved. */
+function cxPull(){
+  const n = Math.floor(cx.found.length / CX_CARD_ON);
+  if(n <= 0) return [];
+  const pool = cx.found.flatMap(g => g.cards);
+  const out = [];
+  while(out.length < n && pool.length){
+    const unowned = pool.filter(c => !(state.owned[c.id] > 0));
+    const src = unowned.length ? unowned : pool;
+    const card = src[Math.floor(Math.random()*src.length)];
+    pool.splice(pool.indexOf(card), 1);
+    if(UNIQUE_TIERS.has(card.rarity) && (state.owned[card.id]||0) > 0) continue;
+    const had = state.owned[card.id] || 0;
+    if(had === 0) state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[card.rarity];
+    state.owned[card.id] = had + 1;
+    out.push({ card, isNew: had === 0 });
+  }
+  if(out.length) recomputePlayerXP();
+  return out;
+}
+
+/* ---------- rendering ---------------------------------------------------- */
+function cxEl(){ return document.getElementById("cxStage"); }
+function cxEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function cxTile(c){
+  const r = RARITIES[c.rarity];
+  const on = cx.picked.includes(c.id);
+  const subject = c.name.split(" — ")[0];
+  const variant = c.name.includes(" — ") ? c.name.split(" — ")[1] : "";
+  return `<button class="cx-tile${on ? " on" : ""}" data-id="${c.id}">
+    <span class="cx-e">${c.emoji}</span>
+    <span class="cx-n">${cxEsc(subject)}</span>
+    <span class="cx-v">${variant ? cxEsc(variant) : "&nbsp;"}</span>
+    <span class="cx-meta">
+      <i class="cx-cat">${cxEsc(c.category)}</i>
+      <i class="cx-tier" style="color:${r.color}">${cxEsc(r.name)}</i>
+    </span>
+  </button>`;
+}
+
+function cxPaint(){
+  const stage = cxEl();
+  if(!stage) return;
+  if(!cx){ cxPaintLobby(); return; }
+
+  const bands = cx.found.map((g,i)=>`
+    <div class="cx-band" style="--bc:${CX_BAND[i]}">
+      <b>${cxEsc(cxGroupLabel(g))}</b>
+      <span>${g.cards.map(c=>cxEsc(c.emoji + " " + c.name.split(" — ")[0])).join("  ·  ")}</span>
+    </div>`).join("");
+
+  const dots = Array.from({length:CX_MISTAKES}, (_,i)=>
+    `<span class="cx-dot${i < CX_MISTAKES - cx.mistakes ? "" : " out"}"></span>`).join("");
+
+  stage.innerHTML = `
+    <div class="cx-hud">
+      <span class="cx-eyebrow">Four groups of four</span>
+      <div class="cx-tries">${dots}<span class="cx-trylbl">tries left</span></div>
+    </div>
+
+    <div class="cx-bands">${bands}</div>
+
+    <div class="cx-grid${cx.shake ? " shake" : ""}">${cx.board.map(cxTile).join("")}</div>
+
+    <div class="cx-foot">
+      <button class="btn secondary" id="cxShuffle">Shuffle</button>
+      <button class="btn secondary" id="cxClear" ${cx.picked.length ? "" : "disabled"}>Deselect</button>
+      <button class="btn" id="cxSubmit" ${cx.picked.length === 4 ? "" : "disabled"}>Submit</button>
+      ${cx.note ? `<span class="cx-note">${cxEsc(cx.note)}</span>` : ""}
+    </div>`;
+
+  stage.querySelectorAll(".cx-tile").forEach(b =>
+    b.addEventListener("click", ()=> cxToggle(+b.dataset.id)));
+  document.getElementById("cxShuffle").addEventListener("click", cxShuffleBoard);
+  document.getElementById("cxClear").addEventListener("click", cxClear);
+  document.getElementById("cxSubmit").addEventListener("click", cxSubmit);
+}
+
+function cxPaintLobby(){
+  const stage = cxEl();
+  if(!stage) return;
+  const st = cxStats();
+  const rate = st.played ? Math.round((st.solved / st.played) * 100) : 0;
+
+  stage.innerHTML = `
+    <div class="cx-lobby">
+      <div class="cx-lede">
+        <span class="cx-eyebrow">Connections</span>
+        <h3>Sixteen cards. Four groups of four.<br>Everything you need is on the cards.</h3>
+        <p>Cards group by the collection they belong to, the rarity they share,
+           the picture they show, or by being prints of the same thing. Nothing
+           is hidden and nothing needs memorising — find the four sets before
+           you run out of tries.</p>
+      </div>
+
+      <div class="cx-how">
+        ${CX_RULES.map(r=>`<div class="cx-howrow"><b>${cxEsc(r.label)}</b></div>`).join("")}
+      </div>
+
+      <div class="cx-lobstats">
+        <div><b>${st.solved}</b><span>Solved</span></div>
+        <div><b>${rate}%</b><span>Clear rate</span></div>
+        <div><b>${st.perfect}</b><span>No mistakes</span></div>
+        <div><b>${st.bestStreak}</b><span>Best streak</span></div>
+      </div>
+
+      <button class="btn cx-start" id="cxStart">Deal a board</button>
+    </div>`;
+
+  document.getElementById("cxStart").addEventListener("click", cxStart);
+}
+
+function cxPaintSummary(won, credits, xp, pulled){
+  const stage = cxEl();
+  if(!stage) return;
+  const all = cx.groups.map((g,i)=>{
+    const got = cx.found.some(f => f.rule === g.rule && f.value === g.value);
+    return `<div class="cx-band${got ? "" : " missed"}" style="--bc:${got ? CX_BAND[cx.found.findIndex(f=>f.rule===g.rule&&f.value===g.value)] : "#4a5270"}">
+      <b>${cxEsc(cxGroupLabel(g))}${got ? "" : " — missed"}</b>
+      <span>${g.cards.map(c=>cxEsc(c.emoji + " " + c.name.split(" — ")[0])).join("  ·  ")}</span>
+    </div>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <div class="cx-summary">
+      <span class="cx-eyebrow">${won ? "Board cleared" : "Out of tries"}</span>
+      <h3>${cx.found.length} of 4${won && cx.mistakes === 0 ? " — clean sweep" : ""}</h3>
+
+      <div class="cx-lobstats">
+        <div><b>${credits.toLocaleString()}</b><span>Credits</span></div>
+        <div><b>${xp}</b><span>XP</span></div>
+        <div><b>${cx.mistakes}</b><span>Mistakes</span></div>
+      </div>
+
+      <div class="cx-bands">${all}</div>
+
+      ${pulled.length ? `
+        <div class="cx-pulled">
+          <span class="cx-eyebrow">Pulled from the board</span>
+          <div class="cx-pullrow">
+            ${pulled.map(p=>{
+              const r = RARITIES[p.card.rarity];
+              return `<div class="cx-pull" style="--rc:${r.color}">
+                ${p.isNew ? `<span class="cx-new">New</span>` : ""}
+                <span class="cx-pe">${p.card.emoji}</span>
+                <span class="cx-pn">${cxEsc(p.card.name)}</span>
+                <span class="cx-pr">${cxEsc(r.name)}</span>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>` : ""}
+
+      <div class="cx-foot">
+        <button class="btn" id="cxAgain">Deal another</button>
+        <button class="btn secondary" id="cxBack">Back</button>
+      </div>
+    </div>`;
+
+  document.getElementById("cxAgain").addEventListener("click", cxStart);
+  document.getElementById("cxBack").addEventListener("click", ()=>{ cx = null; cxPaintLobby(); });
+}
+
+/* ---------- host wiring --------------------------------------------------- */
+function renderConnections(){ if(cx) cxPaint(); else cxPaintLobby(); }
+function cxOnEnterTab(){ cxStats(); renderConnections(); }
+function cxOnLeaveTab(){
+  /* Leaving mid-board banks whatever groups were already found. */
+  if(cx && !cx.over && cx.found.length){ cx.over = true; cxFinish(false); }
+  cx = null;
+}
+
+/* =====================================================================
+   THE CASE  —  fit the hand to the display
+   ---------------------------------------------------------------------
+   Twelve cards from the binder and a case of five slots, each with a
+   written requirement. Every requirement is plain text on the slot and
+   every card shows the properties it's judged on, so the puzzle is
+   reasoning, never recall.
+
+   Puzzles are built backwards — five cards are chosen first and the
+   requirements are derived from them — so a solution always exists. The
+   other seven cards are there to make finding it work.
+
+   This is the mode that rewards a broad binder: a wider hand means more
+   ways to satisfy an awkward slot, so breadth becomes worth something
+   mechanically rather than just on the completion screen.
+
+   Host functions expected (all already in index.html):
+     cards, RARITIES, MINE_BONUS_BY_TIER, UNIQUE_TIERS,
+     state, saveState, showToast, renderHeader,
+     grantBonusXP, recomputePlayerXP
+   ===================================================================== */
+
+const CS_HAND     = 12;
+const CS_SLOTS    = 5;
+const CS_CREDITS  = 3400;    // per slot filled
+const CS_SOLVE    = 11000;   // for completing the case
+const CS_XP       = 16;
+const CS_HINT_COST= 0.45;    // a hint costs this share of the payout
+
+function csStats(){
+  if(!state.showcase){
+    state.showcase = { played:0, solved:0, perfect:0, slots:0, credits:0, cards:0 };
+  }
+  return state.showcase;
+}
+
+/* ---------- requirement kinds ------------------------------------------
+   Each has a test and a label. `rel` kinds compare against the slot to
+   the left, which is what stops the case being five independent lookups
+   and makes ordering matter. */
+const CS_KINDS = [
+  { id:"cat",    rel:false,
+    make:c=>({ v:c.category }),
+    text:r=>`From ${r.v}`,
+    ok:(c,r)=> c.category === r.v },
+
+  { id:"minTier", rel:false,
+    make:c=>({ v:c.rarity }),
+    text:r=>`${RARITIES[r.v].name} or better`,
+    ok:(c,r)=> c.rarity >= r.v },
+
+  { id:"maxTier", rel:false,
+    make:c=>({ v:c.rarity }),
+    text:r=>`${RARITIES[r.v].name} or humbler`,
+    ok:(c,r)=> c.rarity <= r.v },
+
+  { id:"emoji",  rel:false,
+    make:c=>({ v:c.emoji }),
+    text:r=>`Shows ${r.v}`,
+    ok:(c,r)=> c.emoji === r.v },
+
+  { id:"rarer",  rel:true,
+    make:()=>({}),
+    text:()=>`Rarer than the slot on its left`,
+    ok:(c,r,left)=> !!left && c.rarity > left.rarity },
+
+  { id:"plainer", rel:true,
+    make:()=>({}),
+    text:()=>`Humbler than the slot on its left`,
+    ok:(c,r,left)=> !!left && c.rarity < left.rarity },
+
+  { id:"sameSet", rel:true,
+    make:()=>({}),
+    text:()=>`Same collection as the slot on its left`,
+    ok:(c,r,left)=> !!left && c.category === left.category },
+];
+
+function csKind(id){ return CS_KINDS.find(k=>k.id === id); }
+function csShuffle(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function csPool(){
+  const owned = [];
+  for(const id in state.owned){
+    if(state.owned[id] > 0){ const c = cards[id]; if(c) owned.push(c); }
+  }
+  if(owned.length >= 120) return owned;
+  const sample = [];
+  const step = Math.max(1, Math.floor(cards.length / 3000));
+  for(let i = 0; i < cards.length; i += step) sample.push(cards[i]);
+  return owned.length > sample.length ? owned : sample;
+}
+
+/* Build backwards: choose the five that will sit in the case, then write
+   requirements they happen to satisfy. */
+function csBuild(){
+  const pool = csPool();
+  if(pool.length < CS_HAND + 4) return null;
+
+  for(let attempt = 0; attempt < 80; attempt++){
+    const answer = csShuffle(pool.slice()).slice(0, CS_SLOTS);
+    const slots = [];
+    let ok = true;
+
+    for(let i = 0; i < CS_SLOTS; i++){
+      const card = answer[i];
+      const left = i > 0 ? answer[i-1] : null;
+      const usable = CS_KINDS.filter(k=>{
+        if(k.rel && !left) return false;
+        const r = k.make(card);
+        return k.ok(card, r, left);
+      });
+      if(!usable.length){ ok = false; break; }
+      /* Prefer a relational requirement when one fits — they're what make
+         the case a puzzle instead of a filter. */
+      const rel = usable.filter(k=>k.rel);
+      const pick = (rel.length && Math.random() < 0.55)
+        ? rel[Math.floor(Math.random()*rel.length)]
+        : usable[Math.floor(Math.random()*usable.length)];
+      slots.push({ kind:pick.id, req:pick.make(card) });
+    }
+    if(!ok) continue;
+
+    /* A case where one slot accepts almost anything is dull; require that
+       at least two slots are genuinely selective against the full hand. */
+    const filler = csShuffle(pool.filter(c => !answer.some(a=>a.id === c.id)))
+      .slice(0, CS_HAND - CS_SLOTS);
+    if(filler.length < CS_HAND - CS_SLOTS) continue;
+    const hand = csShuffle(answer.concat(filler));
+
+    const selective = slots.filter((s,i)=>{
+      if(csKind(s.kind).rel) return true;
+      const n = hand.filter(c => csKind(s.kind).ok(c, s.req, null)).length;
+      return n <= Math.ceil(CS_HAND * 0.5);
+    }).length;
+    if(selective < 2) continue;
+
+    return { slots, hand, answer };
+  }
+  return null;
+}
+
+/* ---------- run --------------------------------------------------------- */
+let cs = null;
+
+function csStart(){
+  const p = csBuild();
+  if(!p){
+    showToast("The binder is too thin to lay out a case. Open a few packs.");
+    return;
+  }
+  cs = { slots:p.slots, hand:p.hand, answer:p.answer,
+         placed:new Array(CS_SLOTS).fill(null),
+         selected:null, hinted:false, done:false, banked:false };
+  csStats().played++;
+  saveState();
+  csPaint();
+}
+
+function csCardAt(i){
+  const id = cs.placed[i];
+  return id == null ? null : cards[id];
+}
+
+/* A slot is satisfied when its own test passes against whatever sits to
+   its left. Relational slots stay unresolved until the left is filled. */
+function csSlotOk(i){
+  const card = csCardAt(i);
+  if(!card) return null;
+  const k = csKind(cs.slots[i].kind);
+  const left = i > 0 ? csCardAt(i-1) : null;
+  if(k.rel && !left) return null;
+  return k.ok(card, cs.slots[i].req, left);
+}
+
+function csPick(id){
+  if(!cs || cs.done) return;
+  cs.selected = cs.selected === id ? null : id;
+  csPaint();
+}
+
+function csPlace(slot){
+  if(!cs || cs.done) return;
+  if(cs.placed[slot] != null){    // tap a filled slot to clear it
+    cs.placed[slot] = null;
+    csPaint();
+    return;
+  }
+  if(cs.selected == null) return;
+  const already = cs.placed.indexOf(cs.selected);
+  if(already >= 0) cs.placed[already] = null;
+  cs.placed[slot] = cs.selected;
+  cs.selected = null;
+  csCheck();
+}
+
+function csCheck(){
+  const full = cs.placed.every(v => v != null);
+  if(full && cs.slots.every((s,i)=> csSlotOk(i) === true)){
+    cs.done = true;
+    csFinish(true);
+    return;
+  }
+  csPaint();
+}
+
+function csHint(){
+  if(!cs || cs.done || cs.hinted) return;
+  cs.hinted = true;
+  /* Fill the first empty slot with a card that genuinely works there. */
+  const i = cs.placed.findIndex(v => v == null);
+  if(i >= 0){
+    const card = cs.answer[i];
+    const already = cs.placed.indexOf(card.id);
+    if(already >= 0) cs.placed[already] = null;
+    cs.placed[i] = card.id;
+  }
+  csCheck();
+}
+
+function csGiveUp(){
+  if(!cs || cs.done) return;
+  cs.done = true;
+  csFinish(false);
+}
+
+function csFinish(won){
+  if(!cs || cs.banked) return;
+  cs.banked = true;
+  const st = csStats();
+
+  const filled = cs.slots.filter((s,i)=> csSlotOk(i) === true).length;
+  let credits = filled * CS_CREDITS + (won ? CS_SOLVE : 0);
+  let xp = won ? CS_XP : 0;
+  if(cs.hinted){ credits = Math.round(credits * (1 - CS_HINT_COST)); xp = Math.round(xp * (1 - CS_HINT_COST)); }
+
+  state.credits += credits;
+  if(xp > 0) grantBonusXP(xp);
+
+  st.slots += filled;
+  st.credits += credits;
+  if(won){ st.solved++; if(!cs.hinted) st.perfect++; }
+
+  const pulled = csPull(won);
+  st.cards += pulled.length;
+
+  saveState();
+  renderHeader();
+  csPaintSummary(won, filled, credits, xp, pulled);
+}
+
+/* Completing a case earns a print of something that went into it. */
+function csPull(won){
+  if(!won) return [];
+  const pool = cs.placed.map(id => cards[id]).filter(Boolean);
+  const out = [];
+  while(out.length < 1 && pool.length){
+    const unowned = pool.filter(c => !(state.owned[c.id] > 0));
+    const src = unowned.length ? unowned : pool;
+    const card = src[Math.floor(Math.random()*src.length)];
+    pool.splice(pool.indexOf(card), 1);
+    if(UNIQUE_TIERS.has(card.rarity) && (state.owned[card.id]||0) > 0) continue;
+    const had = state.owned[card.id] || 0;
+    if(had === 0) state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[card.rarity];
+    state.owned[card.id] = had + 1;
+    out.push({ card, isNew: had === 0 });
+  }
+  if(out.length) recomputePlayerXP();
+  return out;
+}
+
+/* ---------- rendering ----------------------------------------------------- */
+function csEl(){ return document.getElementById("csStage"); }
+function csEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function csPaint(){
+  const stage = csEl();
+  if(!stage) return;
+  if(!cs){ csPaintLobby(); return; }
+
+  const slotHTML = cs.slots.map((s,i)=>{
+    const card = csCardAt(i);
+    const ok = csSlotOk(i);
+    const cls = "cs-slot" + (card ? " full" : "") + (ok === true ? " ok" : ok === false ? " bad" : "");
+    const r = card ? RARITIES[card.rarity] : null;
+    return `<div class="${cls}" data-slot="${i}" style="${r ? `--rc:${r.color}` : ""}">
+      <div class="cs-req">${csEsc(csKind(s.kind).text(s.req))}</div>
+      <div class="cs-well">
+        ${card ? `
+          <span class="cs-se">${card.emoji}</span>
+          <span class="cs-sn">${csEsc(card.name.split(" — ")[0])}</span>
+          <span class="cs-sr" style="color:${r.color}">${csEsc(r.name)}</span>`
+        : `<span class="cs-empty">empty</span>`}
+      </div>
+    </div>`;
+  }).join("");
+
+  const handHTML = cs.hand.map(c=>{
+    const used = cs.placed.includes(c.id);
+    const on = cs.selected === c.id;
+    const r = RARITIES[c.rarity];
+    return `<button class="cs-card${used ? " used" : ""}${on ? " on" : ""}" data-id="${c.id}" ${used ? "disabled" : ""}>
+      <span class="cs-ce">${c.emoji}</span>
+      <span class="cs-cn">${csEsc(c.name.split(" — ")[0])}</span>
+      <span class="cs-cm">
+        <i>${csEsc(c.category)}</i>
+        <i style="color:${r.color}">${csEsc(r.name)}</i>
+      </span>
+    </button>`;
+  }).join("");
+
+  const filled = cs.slots.filter((s,i)=> csSlotOk(i) === true).length;
+
+  stage.innerHTML = `
+    <div class="cs-hud">
+      <span class="cs-eyebrow">The Case</span>
+      <span class="cs-prog">${filled} of ${CS_SLOTS} slots satisfied</span>
+    </div>
+
+    <div class="cs-case">${slotHTML}</div>
+
+    <div class="cs-handhead">
+      <span class="cs-eyebrow">Your hand</span>
+      <span class="cs-hint">Pick a card, then tap a slot. Tap a filled slot to take it back.</span>
+    </div>
+    <div class="cs-hand">${handHTML}</div>
+
+    <div class="cs-foot">
+      <button class="btn secondary" id="csHint" ${cs.hinted ? "disabled" : ""}>
+        ${cs.hinted ? "Hint used" : "Place one for me (−45%)"}
+      </button>
+      <button class="btn secondary" id="csGiveUp">Give up</button>
+    </div>`;
+
+  stage.querySelectorAll(".cs-card").forEach(b =>
+    b.addEventListener("click", ()=> csPick(+b.dataset.id)));
+  stage.querySelectorAll(".cs-slot").forEach(d =>
+    d.addEventListener("click", ()=> csPlace(+d.dataset.slot)));
+  document.getElementById("csHint").addEventListener("click", csHint);
+  document.getElementById("csGiveUp").addEventListener("click", ()=>{
+    if(confirm("Give up on this case and bank the slots you filled?")) csGiveUp();
+  });
+}
+
+function csPaintLobby(){
+  const stage = csEl();
+  if(!stage) return;
+  const st = csStats();
+  const rate = st.played ? Math.round((st.solved / st.played) * 100) : 0;
+
+  stage.innerHTML = `
+    <div class="cs-lobby">
+      <div class="cs-lede">
+        <span class="cs-eyebrow">The Case</span>
+        <h3>Five slots, each with a rule.<br>Twelve cards. Make them fit.</h3>
+        <p>Some slots want a collection or a rarity floor. Others compare against
+           the slot on their left — rarer than, humbler than, same collection as —
+           so the order you fill them in matters. Every rule is written on the
+           slot and every card shows what it's judged on.</p>
+        <p class="cs-broad">A wider binder deals a wider hand, which is the point:
+           this is the one mode where owning many different things beats owning
+           a few good ones.</p>
+      </div>
+
+      <div class="cs-lobstats">
+        <div><b>${st.solved}</b><span>Cases closed</span></div>
+        <div><b>${rate}%</b><span>Solve rate</span></div>
+        <div><b>${st.perfect}</b><span>Without a hint</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Lifetime take</span></div>
+      </div>
+
+      <button class="btn cs-start" id="csStart">Lay out a case</button>
+    </div>`;
+
+  document.getElementById("csStart").addEventListener("click", csStart);
+}
+
+function csPaintSummary(won, filled, credits, xp, pulled){
+  const stage = csEl();
+  if(!stage) return;
+
+  const reveal = cs.slots.map((s,i)=>{
+    const want = cs.answer[i];
+    const got = csCardAt(i);
+    const good = csSlotOk(i) === true;
+    return `<div class="cs-rev${good ? " ok" : ""}">
+      <b>${csEsc(csKind(s.kind).text(s.req))}</b>
+      <span>${good && got
+        ? `${got.emoji} ${csEsc(got.name.split(" — ")[0])}`
+        : `one that works: ${want.emoji} ${csEsc(want.name.split(" — ")[0])}`}</span>
+    </div>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <div class="cs-summary">
+      <span class="cs-eyebrow">${won ? "Case closed" : "Case left open"}</span>
+      <h3>${filled} of ${CS_SLOTS} satisfied${won && !cs.hinted ? " — unaided" : ""}</h3>
+
+      <div class="cs-lobstats">
+        <div><b>${credits.toLocaleString()}</b><span>Credits</span></div>
+        <div><b>${xp}</b><span>XP</span></div>
+      </div>
+
+      <div class="cs-reveal">${reveal}</div>
+
+      ${pulled.length ? `
+        <div class="cs-pulled">
+          <span class="cs-eyebrow">Kept from the case</span>
+          <div class="cs-pullrow">
+            ${pulled.map(p=>{
+              const r = RARITIES[p.card.rarity];
+              return `<div class="cs-pull" style="--rc:${r.color}">
+                ${p.isNew ? `<span class="cs-new">New</span>` : ""}
+                <span class="cs-pe">${p.card.emoji}</span>
+                <span class="cs-pn">${csEsc(p.card.name)}</span>
+                <span class="cs-pr">${csEsc(r.name)}</span>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>` : ""}
+
+      <div class="cs-foot">
+        <button class="btn" id="csAgain">Lay out another</button>
+        <button class="btn secondary" id="csBack">Back</button>
+      </div>
+    </div>`;
+
+  document.getElementById("csAgain").addEventListener("click", csStart);
+  document.getElementById("csBack").addEventListener("click", ()=>{ cs = null; csPaintLobby(); });
+}
+
+/* ---------- host wiring ----------------------------------------------------- */
+function renderCase(){ if(cs) csPaint(); else csPaintLobby(); }
+function csOnEnterTab(){ csStats(); renderCase(); }
+function csOnLeaveTab(){
+  if(cs && !cs.done && cs.placed.some(v=>v != null)){ cs.done = true; csFinish(false); }
+  cs = null;
+}
+
+/* =====================================================================
+   ODD ONE OUT  —  three belong together, one doesn't
+   ---------------------------------------------------------------------
+   Four cards. Three share something; one is the exception. Ten seconds.
+
+   The shared thing is always a property printed on the cards — set,
+   rarity, picture, subject — so like Connections this is noticing rather
+   than remembering. It is the shallow, fast member of the set: runs last
+   under a minute and it works one-handed on a phone.
+
+   Every round is verified to have exactly one defensible answer before
+   it's shown. A round where two different cards could each be argued as
+   the odd one is discarded rather than served.
+
+   Host functions expected (all already in index.html):
+     cards, RARITIES, MINE_BONUS_BY_TIER, UNIQUE_TIERS,
+     state, saveState, showToast, renderHeader,
+     grantBonusXP, recomputePlayerXP
+   ===================================================================== */
+
+const OO_LIVES      = 3;
+const OO_TIME_START = 10000;
+const OO_TIME_FLOOR = 5000;
+const OO_TIME_STEP  = 180;
+const OO_BASE       = 180;    // credits per correct call
+const OO_XP_PER_10  = 10;
+const OO_CARD_EVERY = 12;
+
+const OO_PROPS = [
+  { id:"category", label:"collection", of:c=>c.category },
+  { id:"tier",     label:"rarity",     of:c=>String(c.rarity) },
+  { id:"emoji",    label:"picture",    of:c=>c.emoji },
+  { id:"subject",  label:"subject",    of:c=>c.name.split(" — ")[0] },
+];
+function ooProp(id){ return OO_PROPS.find(p=>p.id === id); }
+
+function ooStats(){
+  if(!state.oddone){
+    state.oddone = { runs:0, best:0, calls:0, right:0, credits:0, cards:0, bestStreak:0 };
+  }
+  return state.oddone;
+}
+
+function ooShuffle(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function ooPool(){
+  const owned = [];
+  for(const id in state.owned){
+    if(state.owned[id] > 0){ const c = cards[id]; if(c) owned.push(c); }
+  }
+  if(owned.length >= 200) return owned;
+  const sample = [];
+  const step = Math.max(1, Math.floor(cards.length / 3000));
+  for(let i = 0; i < cards.length; i += step) sample.push(cards[i]);
+  return owned.length > sample.length ? owned : sample;
+}
+
+/* How many cards in the set of four are the sole exception on some
+   property. The round is only fair when that count is exactly one. */
+function ooOutliers(four){
+  const out = [];
+  for(let i = 0; i < 4; i++){
+    const rest = four.filter((_,j)=> j !== i);
+    const props = OO_PROPS.filter(p=>{
+      const v = p.of(rest[0]);
+      return rest.every(c => p.of(c) === v) && p.of(four[i]) !== v;
+    });
+    if(props.length) out.push({ index:i, props });
+  }
+  return out;
+}
+
+function ooMakeRound(round){
+  const pool = ooPool();
+  if(pool.length < 40) return null;
+  const tighten = round >= 8;   // later rounds share two properties, not one
+
+  for(let attempt = 0; attempt < 120; attempt++){
+    const prop = OO_PROPS[Math.floor(Math.random()*OO_PROPS.length)];
+
+    /* Three that agree on the chosen property. */
+    const seed = pool[Math.floor(Math.random()*pool.length)];
+    const v = prop.of(seed);
+    const matches = pool.filter(c => prop.of(c) === v);
+    if(matches.length < 3) continue;
+    const three = ooShuffle(matches.slice()).slice(0, 3);
+
+    /* And one that doesn't. Later on, make it agree with the others on a
+       second property so the difference is less obvious. */
+    let oddPool = pool.filter(c => prop.of(c) !== v && !three.some(t=>t.id === c.id));
+    if(tighten){
+      const other = OO_PROPS.filter(p=>p.id !== prop.id)[Math.floor(Math.random()*3)];
+      const shared = other.of(three[0]);
+      if(three.every(c => other.of(c) === shared)){
+        const tighter = oddPool.filter(c => other.of(c) === shared);
+        if(tighter.length >= 1) oddPool = tighter;
+      }
+    }
+    if(!oddPool.length) continue;
+    const odd = oddPool[Math.floor(Math.random()*oddPool.length)];
+
+    const four = ooShuffle(three.concat([odd]));
+    const outliers = ooOutliers(four);
+
+    /* Exactly one card may be arguable as the exception, or the round has
+       two right answers and punishes a correct read. */
+    if(outliers.length !== 1) continue;
+    const answer = outliers[0];
+    if(four[answer.index].id !== odd.id) continue;
+
+    return {
+      cards: four,
+      correct: answer.index,
+      props: answer.props,
+      shared: prop,
+      ms: Math.max(OO_TIME_FLOOR, OO_TIME_START - round * OO_TIME_STEP)
+    };
+  }
+  return null;
+}
+
+/* ---------- run ---------------------------------------------------------- */
+let oo = null;
+let ooTimer = null;
+
+function ooStart(){
+  oo = { round:0, lives:OO_LIVES, streak:0, right:0, credits:0,
+         seen:[], q:null, locked:false, deadline:0, lastGain:null };
+  ooNext();
+}
+
+function ooNext(){
+  if(!oo) return;
+  if(oo.lives <= 0){ ooEnd(); return; }
+  const q = ooMakeRound(oo.round);
+  if(!q){ ooEnd("Couldn't lay out a fair round."); return; }
+  oo.round++;
+  oo.q = q;
+  oo.locked = false;
+  oo.deadline = Date.now() + q.ms;
+  ooPaint();
+  ooClock();
+}
+
+function ooClock(){
+  ooStopClock();
+  ooTimer = setInterval(()=>{
+    if(!oo || !oo.q || oo.locked) return ooStopClock();
+    const left = oo.deadline - Date.now();
+    const el = document.getElementById("ooClock");
+    if(el) el.style.width = Math.max(0, (left / oo.q.ms) * 100) + "%";
+    if(left <= 0){ ooStopClock(); ooCall(-1); }
+  }, 80);
+}
+function ooStopClock(){ if(ooTimer){ clearInterval(ooTimer); ooTimer = null; } }
+
+function ooCall(idx){
+  if(!oo || !oo.q || oo.locked) return;
+  oo.locked = true;
+  ooStopClock();
+  const q = oo.q;
+  const right = idx === q.correct;
+  const speed = Math.max(0, (oo.deadline - Date.now()) / q.ms);
+
+  if(right){
+    const mult = 1 + Math.min(oo.streak, 15) * 0.09;
+    const credits = Math.round(OO_BASE * mult * (1 + speed * 0.7));
+    oo.streak++; oo.right++; oo.credits += credits;
+    oo.seen.push(q.cards[q.correct]);
+    oo.lastGain = { credits, timedOut:false };
+  } else {
+    oo.streak = 0; oo.lives--;
+    oo.lastGain = { credits:0, timedOut: idx === -1 };
+  }
+
+  const st = ooStats();
+  st.calls++;
+  if(right) st.right++;
+  if(oo.streak > st.bestStreak) st.bestStreak = oo.streak;
+
+  ooPaint(true, idx);
+}
+
+function ooEnd(note){
+  if(!oo) return;
+  ooStopClock();
+  const run = oo;
+  const st = ooStats();
+  const xp = Math.floor(run.right / 10) * OO_XP_PER_10;
+
+  state.credits += run.credits;
+  if(xp > 0) grantBonusXP(xp);
+
+  const pulled = ooPull(run);
+  st.runs++; st.credits += run.credits; st.cards += pulled.length;
+  if(run.right > st.best) st.best = run.right;
+
+  oo = null;
+  saveState();
+  renderHeader();
+  ooPaintSummary(run, pulled, xp, note);
+}
+
+function ooPull(run){
+  const n = Math.floor(run.right / OO_CARD_EVERY);
+  if(n <= 0 || !run.seen.length) return [];
+  const pool = [...run.seen];
+  const out = [];
+  while(out.length < n && pool.length){
+    const unowned = pool.filter(c => !(state.owned[c.id] > 0));
+    const src = unowned.length ? unowned : pool;
+    const card = src[Math.floor(Math.random()*src.length)];
+    pool.splice(pool.indexOf(card), 1);
+    if(UNIQUE_TIERS.has(card.rarity) && (state.owned[card.id]||0) > 0) continue;
+    const had = state.owned[card.id] || 0;
+    if(had === 0) state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[card.rarity];
+    state.owned[card.id] = had + 1;
+    out.push({ card, isNew: had === 0 });
+  }
+  if(out.length) recomputePlayerXP();
+  return out;
+}
+
+/* ---------- rendering ------------------------------------------------------ */
+function ooEl(){ return document.getElementById("ooStage"); }
+function ooEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function ooPaint(revealed, chosen){
+  const stage = ooEl();
+  if(!stage) return;
+  if(!oo){ ooPaintLobby(); return; }
+  const q = oo.q;
+  if(!q) return;
+
+  const lives = Array.from({length:OO_LIVES}, (_,i)=>
+    `<span class="oo-life${i < oo.lives ? "" : " out"}"></span>`).join("");
+
+  const tiles = q.cards.map((c,i)=>{
+    const r = RARITIES[c.rarity];
+    let cls = "oo-card";
+    if(revealed){
+      if(i === q.correct) cls += " odd";
+      else cls += " same";
+      if(i === chosen && i !== q.correct) cls += " picked";
+    }
+    return `<button class="${cls}" data-i="${i}" ${revealed ? "disabled" : ""}>
+      <span class="oo-e">${c.emoji}</span>
+      <span class="oo-n">${ooEsc(c.name.split(" — ")[0])}</span>
+      <span class="oo-m">
+        <i>${ooEsc(c.category)}</i>
+        <i style="color:${r.color}">${ooEsc(r.name)}</i>
+      </span>
+    </button>`;
+  }).join("");
+
+  stage.innerHTML = `
+    <div class="oo-hud">
+      <div class="oo-lives">${lives}</div>
+      <div class="oo-meta">
+        <span class="oo-chip">Round ${oo.round}</span>
+        ${oo.streak > 1 ? `<span class="oo-chip hot">×${(1 + Math.min(oo.streak,15)*0.09).toFixed(2)}</span>` : ""}
+        <span class="oo-chip">${oo.credits.toLocaleString()} banked</span>
+      </div>
+      <button class="oo-quit" id="ooQuit">Stop</button>
+    </div>
+
+    <div class="oo-clockrail"><i id="ooClock" style="width:${revealed ? 0 : 100}%"></i></div>
+
+    <p class="oo-ask">Three of these belong together. Tap the one that doesn't.</p>
+    <div class="oo-grid">${tiles}</div>
+
+    <div class="oo-foot">
+      ${revealed ? `
+        <div class="oo-verdict ${chosen === q.correct ? "good" : "bad"}">
+          <strong>${chosen === q.correct ? "Right." : oo.lastGain.timedOut ? "Time." : "No."}</strong>
+          <span>The other three share a ${ooEsc(q.props.map(p=>p.label).join(" and a "))}.
+            ${chosen === q.correct ? `+${oo.lastGain.credits.toLocaleString()} credits` : ""}</span>
+        </div>
+        <button class="btn" id="ooNext">${oo.lives <= 0 ? "See the run" : "Next"}</button>`
+        : ""}
+    </div>`;
+
+  stage.querySelectorAll(".oo-card").forEach(b =>
+    b.addEventListener("click", ()=> ooCall(+b.dataset.i)));
+  const next = document.getElementById("ooNext");
+  if(next) next.addEventListener("click", ()=>{ if(oo.lives <= 0) ooEnd(); else ooNext(); });
+  const quit = document.getElementById("ooQuit");
+  if(quit) quit.addEventListener("click", ()=>{ if(confirm("Stop and bank the run?")) ooEnd(); });
+}
+
+function ooPaintLobby(){
+  const stage = ooEl();
+  if(!stage) return;
+  const st = ooStats();
+  const acc = st.calls ? Math.round((st.right / st.calls) * 100) : 0;
+
+  stage.innerHTML = `
+    <div class="oo-lobby">
+      <div class="oo-lede">
+        <span class="oo-eyebrow">Odd One Out</span>
+        <h3>Three belong together. One doesn't.</h3>
+        <p>They might share a collection, a rarity, a picture, or be prints of the
+           same thing — it's on the cards. Ten seconds a round, tightening as you
+           go, and from round eight the odd one starts hiding behind a second
+           thing it has in common.</p>
+      </div>
+
+      <div class="oo-lobstats">
+        <div><b>${st.best}</b><span>Best run</span></div>
+        <div><b>${acc}%</b><span>Accuracy</span></div>
+        <div><b>${st.bestStreak}</b><span>Best streak</span></div>
+        <div><b>${st.credits.toLocaleString()}</b><span>Lifetime take</span></div>
+      </div>
+
+      <button class="btn oo-start" id="ooStart">Start</button>
+    </div>`;
+
+  document.getElementById("ooStart").addEventListener("click", ooStart);
+}
+
+function ooPaintSummary(run, pulled, xp, note){
+  const stage = ooEl();
+  if(!stage) return;
+  const acc = run.round ? Math.round((run.right / run.round) * 100) : 0;
+
+  stage.innerHTML = `
+    <div class="oo-summary">
+      <span class="oo-eyebrow">Run over</span>
+      <h3>${run.right} spotted<span> of ${run.round}</span></h3>
+      ${note ? `<p class="oo-hint">${ooEsc(note)}</p>` : ""}
+
+      <div class="oo-lobstats">
+        <div><b>${run.credits.toLocaleString()}</b><span>Credits</span></div>
+        <div><b>${xp}</b><span>XP</span></div>
+        <div><b>${acc}%</b><span>Accuracy</span></div>
+      </div>
+
+      ${pulled.length ? `
+        <div class="oo-pulled">
+          <span class="oo-eyebrow">Picked out</span>
+          <div class="oo-pullrow">
+            ${pulled.map(p=>{
+              const r = RARITIES[p.card.rarity];
+              return `<div class="oo-pull" style="--rc:${r.color}">
+                ${p.isNew ? `<span class="oo-new">New</span>` : ""}
+                <span class="oo-pe">${p.card.emoji}</span>
+                <span class="oo-pn">${ooEsc(p.card.name)}</span>
+                <span class="oo-pr">${ooEsc(r.name)}</span>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>`
+        : `<p class="oo-hint">Spot ${OO_CARD_EVERY} in a run to keep one.</p>`}
+
+      <div class="oo-foot">
+        <button class="btn" id="ooAgain">Again</button>
+        <button class="btn secondary" id="ooBack">Back</button>
+      </div>
+    </div>`;
+
+  document.getElementById("ooAgain").addEventListener("click", ooStart);
+  document.getElementById("ooBack").addEventListener("click", ooPaintLobby);
+}
+
+/* ---------- host wiring ------------------------------------------------------ */
+function renderOddOne(){ if(oo) ooPaint(); else ooPaintLobby(); }
+function ooOnEnterTab(){ ooStats(); renderOddOne(); }
+function ooOnLeaveTab(){
+  ooStopClock();
+  if(oo && oo.round > 0) ooEnd();
+  else oo = null;
+}
+
+/* =================== END ADDED MODES =================== */
+
 const UI_GAMES = [
   { id:"siege",   name:"Siege",       icon:"🏰", desc:"Tower defense. Hold the road, hold the keep.",        meta:"4 maps" },
   { id:"raids",   name:"Raids",       icon:"🗝️", desc:"Expeditions into the dark. Gear wears out; guardians don't.", meta:"6 sites + the Depths" },
@@ -18050,6 +21274,11 @@ const UI_GAMES = [
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
   { id:"dungeon", name:"Mythic Raids", icon:"🏚️", desc:"Daemonheim. Go in with nothing, come out with a level.", meta:"10 floors" },
+  { id:"provenance",  name:"Provenance",   icon:"🗃️", desc:"An archive record with the name struck out. Four cards. Name the thing.", meta:"1,215 subjects" },
+  { id:"connections", name:"Connections",  icon:"🧩", desc:"Sixteen cards, four groups of four. Everything you need is on the cards.", meta:"Daily-style puzzle" },
+  { id:"showcase",    name:"The Case",     icon:"🗄️", desc:"Five slots, each with a rule. Twelve cards. Make them fit.", meta:"Constraint puzzle" },
+  { id:"oddone",      name:"Odd One Out",  icon:"👀", desc:"Three belong together, one doesn't. Ten seconds.", meta:"Fast rounds" },
+  { id:"press",       name:"The Press",    icon:"⚙️", desc:"Spare prints in, one good print out. Merge tiers until the plate jams.", meta:"Duplicate sink" },
   /* Runeshard entry removed - it ships as its own build. */
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
@@ -18062,6 +21291,11 @@ function uiShowSection(id){
 }
 function uiLeaveGames(except){
   /* Runeshard removed from this build; rsOnLeaveTab no longer exists. */
+  if(except!=="provenance") pvOnLeaveTab();
+  if(except!=="press") prOnLeaveTab();
+  if(except!=="connections") cxOnLeaveTab();
+  if(except!=="showcase") csOnLeaveTab();
+  if(except!=="oddone") ooOnLeaveTab();
   if(except!=="siege") sgOnLeaveTab();
   if(except!=="raids") rdOnLeaveTab();
   if(except!=="poker") pkOnLeaveTab();
@@ -18085,6 +21319,11 @@ function uiEnterSection(id){
   else if(id==="arena"){ renderArena(); arOnEnterTab(); }
   else if(id==="fishing"){ renderFishing(); fshOnEnterTab(); }
   else if(id==="casino"){ renderCasino(); brShowLobby(); }
+  else if(id==="provenance"){ pvOnEnterTab(); }
+  else if(id==="press"){ prOnEnterTab(); }
+  else if(id==="connections"){ cxOnEnterTab(); }
+  else if(id==="showcase"){ csOnEnterTab(); }
+  else if(id==="oddone"){ ooOnEnterTab(); }
   else if(id==="dungeon"){ renderDungeon(); }
   uiLeaveGames(id);
   uiInitStatStrips();
@@ -18279,6 +21518,11 @@ function renderAll(){
   safeRender("casino",     renderCasino);
   safeRender("arena",      renderArena);
   safeRender("raids",      renderRaids);
+  safeRender("provenance",  renderProvenance);
+  safeRender("press",       renderPress);
+  safeRender("connections", renderConnections);
+  safeRender("showcase",    renderCase);
+  safeRender("oddone",      renderOddOne);
   safeRender("play",       renderPlayLobby);
   safeRender("chrome",     ()=>{ uiInitStatStrips(); uiInitHelp(); });
 }

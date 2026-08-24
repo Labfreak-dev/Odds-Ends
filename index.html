@@ -3368,6 +3368,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 }
 #bkCanvas{ cursor:none; }
 @media (max-width:620px){ .ac-lobby h3{ font-size:18px; } .ac-stats{ gap:18px; } }
+.ac-ctrl{ font-size:12.5px !important; line-height:1.7 !important; border-left:2px solid #333a52; padding-left:12px; }
+.ac-ctrl b{ color:var(--text); }
 
 </style>
 </head>
@@ -22457,7 +22459,36 @@ function twSpawnPos(px,py,gap){
   return {x:0,y:0};
 }
 
+const TW_STICK=46;          // thumb-stick travel, canvas units
+const TW_BOMB_R=30;         // on-canvas bomb button
 let tw=null, twRaf=null, twActive=false, twKeys={}, twMouse={x:TW_W/2,y:TW_H/2,down:false};
+/* Floating twin sticks: each records where the thumb landed and where it
+   is now. Origins float to the touch rather than sitting in fixed
+   corners, because a fixed stick is a thumb-position lottery on a phone. */
+let twTouch={move:null,aim:null};
+let twTouchAvailable=(typeof window!=="undefined" && ("ontouchstart" in window));
+/* Bottom-centre, deliberately. At bottom-right it sat exactly where an
+   aiming thumb comes down, and with three bombs a run a misfire is not a
+   small thing. Dead centre is reachable by either thumb and is nobody's
+   natural stick origin. */
+function twBombBtn(){ return {x:TW_W/2,y:TW_H-38,r:TW_BOMB_R}; }
+function twStickVec(t){
+  if(!t) return null;
+  const dx=t.x-t.ox, dy=t.y-t.oy, m=Math.hypot(dx,dy);
+  if(m<1) return {x:0,y:0,m:0};
+  const c=Math.min(m,TW_STICK);
+  return {x:(dx/m)*(c/TW_STICK), y:(dy/m)*(c/TW_STICK), m:c/TW_STICK};
+}
+/* One place decides where the ship points and whether it is shooting,
+   so touch and mouse can't drift apart. */
+function twAim(P){
+  const a=twStickVec(twTouch.aim);
+  if(a){
+    if(a.m>0.18){ const ang=Math.atan2(a.y,a.x); return {a:ang,firing:true}; }
+    return {a:(tw&&tw.lastAim)||0, firing:false};
+  }
+  return {a:Math.atan2(twMouse.y-P.y,twMouse.x-P.x), firing:twMouse.down||!!twKeys[" "]};
+}
 function twStart(){
   tw={wave:0,lives:TW_LIVES,bombs:TW_BOMBS,score:0,mult:1,kills:0,
       p:{x:TW_W/2,y:TW_H/2,vx:0,vy:0,inv:2},
@@ -22484,19 +22515,29 @@ function twStep(dt){
   if(!tw||tw.over) return;
   const P=tw.p;
   if(P.inv>0) P.inv-=dt;
-  const ax=(twKeys.d||twKeys.arrowright?1:0)-(twKeys.a||twKeys.arrowleft?1:0);
-  const ay=(twKeys.s||twKeys.arrowdown?1:0)-(twKeys.w||twKeys.arrowup?1:0);
-  const L=Math.hypot(ax,ay)||1;
-  P.vx+= (ax/L)*1500*dt; P.vy+=(ay/L)*1500*dt;
+  let mx,my;
+  const mv=twStickVec(twTouch.move);
+  if(mv){
+    /* Analog: a half-pushed thumb is a half-speed drift, which keyboard
+       can't express and which matters for threading gaps. */
+    mx=mv.x; my=mv.y;
+  } else {
+    const ax=(twKeys.d||twKeys.arrowright?1:0)-(twKeys.a||twKeys.arrowleft?1:0);
+    const ay=(twKeys.s||twKeys.arrowdown?1:0)-(twKeys.w||twKeys.arrowup?1:0);
+    const L=Math.hypot(ax,ay)||1;
+    mx=ax/L; my=ay/L;
+  }
+  P.vx+= mx*1500*dt; P.vy+= my*1500*dt;
   P.vx*=Math.pow(0.0018,dt); P.vy*=Math.pow(0.0018,dt);
   P.x=Math.max(12,Math.min(TW_W-12,P.x+P.vx*dt));
   P.y=Math.max(12,Math.min(TW_H-12,P.y+P.vy*dt));
   /* fire */
+  const aim=twAim(P);
+  tw.lastAim=aim.a;
   tw.fireCd-=dt;
-  if((twMouse.down||twKeys[" "]) && tw.fireCd<=0){
+  if(aim.firing && tw.fireCd<=0){
     tw.fireCd=0.11;
-    const a=Math.atan2(twMouse.y-P.y,twMouse.x-P.x);
-    tw.shots.push({x:P.x,y:P.y,vx:Math.cos(a)*540,vy:Math.sin(a)*540,t:0});
+    tw.shots.push({x:P.x,y:P.y,vx:Math.cos(aim.a)*540,vy:Math.sin(aim.a)*540,t:0});
   }
   tw.shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.t+=dt;});
   tw.shots=tw.shots.filter(s=>s.t<1.4&&s.x>-10&&s.x<TW_W+10&&s.y>-10&&s.y<TW_H+10);
@@ -22590,13 +22631,35 @@ function twDraw(){
   tw.shots.forEach(s=>c.fillRect(s.x-2,s.y-2,4,4));
   const P=tw.p;
   c.save(); c.translate(P.x,P.y);
-  c.rotate(Math.atan2(twMouse.y-P.y,twMouse.x-P.x));
+  c.rotate(tw.lastAim||0);
   c.strokeStyle=P.inv>0&&Math.floor(P.inv*10)%2?"#4a5270":"#eef0f6"; c.lineWidth=2;
   c.beginPath(); c.moveTo(12,0); c.lineTo(-8,-8); c.lineTo(-4,0); c.lineTo(-8,8); c.closePath(); c.stroke();
   c.restore();
   c.globalAlpha=0.85;
   tw.parts.forEach(p=>{ c.fillStyle=p.col; c.fillRect(p.x,p.y,3,3); });
   c.globalAlpha=1;
+  /* Sticks only exist while a thumb is down, so they never clutter a
+     desktop screen. */
+  const ring=(t,col)=>{
+    if(!t) return;
+    c.strokeStyle=col; c.lineWidth=2; c.globalAlpha=.35;
+    c.beginPath(); c.arc(t.ox,t.oy,TW_STICK,0,7); c.stroke();
+    const v=twStickVec(t);
+    c.globalAlpha=.7; c.beginPath();
+    c.arc(t.ox+v.x*TW_STICK, t.oy+v.y*TW_STICK, 17, 0, 7); c.fill();
+    c.globalAlpha=1;
+  };
+  c.fillStyle="#6c8cff"; ring(twTouch.move,"#6c8cff");
+  c.fillStyle="#ffd35c"; ring(twTouch.aim,"#ffd35c");
+  if(twTouchAvailable){
+    const b=twBombBtn();
+    c.globalAlpha=tw.bombs>0?.9:.3;
+    c.strokeStyle="#ff8c5c"; c.lineWidth=2;
+    c.beginPath(); c.arc(b.x,b.y,b.r,0,7); c.stroke();
+    c.fillStyle="#ff8c5c"; c.font="16px sans-serif"; c.textAlign="center";
+    c.fillText("💣",b.x,b.y+6);
+    c.globalAlpha=1;
+  }
   c.fillStyle="#9aa1b4"; c.font="12px sans-serif";
   c.textAlign="left"; c.fillText(`Wave ${tw.wave}  ×${tw.mult.toFixed(1)}`,10,18);
   c.textAlign="center"; c.fillText(tw.score.toLocaleString(),TW_W/2,18);
@@ -22623,11 +22686,14 @@ function twPaint(){
   const st=twStats();
   if(!tw){
     el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Scrapstorm</span>
-      <h3>Fly with WASD. Aim with the mouse.<br>The multiplier dies when you do.</h3>
-      <p>Hold fire and weave. Every kill nudges the multiplier toward ×10, and one
-         hit resets it — the score is in staying alive greedy. E or right-click
-         spends a bomb. Score converts to credits; every ${TW_SCRAP_PER} kills
-         shakes loose 10 scrap.</p>
+      <h3>Fly with one thumb. Aim with the other.<br>The multiplier dies when you do.</h3>
+      <p>Every kill nudges the multiplier toward ×10, and one hit resets it —
+         the score is in staying alive greedy. Score converts to credits; every
+         ${TW_SCRAP_PER} kills shakes loose 10 scrap.</p>
+      <p class="ac-ctrl"><b>Touch</b> — left half of the arena flies, right half aims
+         and fires, and the sticks appear wherever your thumbs land. Tap 💣 to bomb.<br>
+         <b>Keyboard</b> — WASD or arrows fly, mouse aims, hold to fire, E or
+         right-click bombs.</p>
       <div class="ac-stats"><div><b>${st.best.toLocaleString()}</b><span>Best score</span></div>
         <div><b>${st.bestWave}</b><span>Deepest wave</span></div>
         <div><b>${st.kills.toLocaleString()}</b><span>Drones down</span></div>
@@ -22654,6 +22720,38 @@ function twPaint(){
   cv.addEventListener("mousedown",e=>{ pos(e); if(e.button===2) twBomb(); else twMouse.down=true; });
   window.addEventListener("mouseup",()=>twMouse.down=false);
   cv.addEventListener("contextmenu",e=>e.preventDefault());
+
+  /* Virtual twin sticks. Left half of the canvas flies, right half aims
+     and fires; whichever half a thumb lands on claims that stick, so a
+     left-handed player can simply use the other side. */
+  const tpos=t=>{ const r=cv.getBoundingClientRect();
+    return { x:(t.clientX-r.left)*(TW_W/r.width), y:(t.clientY-r.top)*(TW_H/r.height) }; };
+  cv.addEventListener("touchstart",e=>{
+    e.preventDefault(); twTouchAvailable=true;
+    for(const t of e.changedTouches){
+      const p=tpos(t), b=twBombBtn();
+      if(Math.hypot(p.x-b.x,p.y-b.y)<=b.r+8){ twBomb(); continue; }
+      const slot = p.x < TW_W/2 ? "move" : "aim";
+      const other = slot==="move" ? "aim" : "move";
+      if(!twTouch[slot]) twTouch[slot]={id:t.identifier,ox:p.x,oy:p.y,x:p.x,y:p.y};
+      else if(!twTouch[other]) twTouch[other]={id:t.identifier,ox:p.x,oy:p.y,x:p.x,y:p.y};
+    }
+  },{passive:false});
+  cv.addEventListener("touchmove",e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      const p=tpos(t);
+      for(const k of ["move","aim"]) if(twTouch[k] && twTouch[k].id===t.identifier){
+        twTouch[k].x=p.x; twTouch[k].y=p.y;
+      }
+    }
+  },{passive:false});
+  const lift=e=>{
+    for(const t of e.changedTouches)
+      for(const k of ["move","aim"]) if(twTouch[k] && twTouch[k].id===t.identifier) twTouch[k]=null;
+  };
+  cv.addEventListener("touchend",lift);
+  cv.addEventListener("touchcancel",lift);
   twRun();
 }
 function twKeyDown(e){
@@ -22674,6 +22772,7 @@ function twOnEnterTab(){
 }
 function twOnLeaveTab(){
   twActive=false;
+  twTouch.move=null; twTouch.aim=null; twMouse.down=false;
   if(twRaf){ cancelAnimationFrame(twRaf); twRaf=null; }
   if(tw&&!tw.over) twEnd();
   tw=null;

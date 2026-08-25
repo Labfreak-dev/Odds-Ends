@@ -26301,6 +26301,9 @@ function renderFlooded(){
     return;
   }
   const squad = a.squad.filter(n=>roster.some(r=>r.name===n));
+  /* names that fell off the roster (the rare gate, an uncrowned legend)
+     were still holding squad slots invisibly — purge them for real */
+  if(squad.length !== a.squad.length){ a.squad = squad.slice(); saveState(); }
   const slots = Array.from({length:5},(_,i)=>{
     const n = squad[i];
     if(!n) return `<div class="fb-slot empty" data-slot="${i}">＋</div>`;

@@ -3410,6 +3410,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   color:#8b98a6; }
 .fe-prop.got{ border-color:rgba(255,207,64,.4); background:rgba(255,207,64,.08); color:#f2dfae; }
 .fe-prop b{ color:#ffcf40; }
+.rNoPhoto{ position:absolute; left:0; right:0; bottom:4px; text-align:center;
+  font:600 10px system-ui; color:#9fb2c2; opacity:.85; pointer-events:none; }
 
 </style>
 </head>
@@ -14692,7 +14694,7 @@ async function ciLookup(subject){
   const cache = ciLoadCache();
   const hit = cache[subject];
   if(!subject) return null;
-  if(hit && hit.t && (Date.now() - hit.t) < (hit.miss ? 1000*60*60*2 : 1000*60*60*24*90)) return hit.miss ? null : hit;
+  if(hit && hit.t && (Date.now() - hit.t) < ((hit.miss || !hit.img) ? 1000*60*60*2 : 1000*60*60*24*90)) return hit.miss ? null : hit;
   const base = "https://en.wikipedia.org/api/rest_v1/page/summary/";
   const summary = async (title) => {
     try{
@@ -23446,13 +23448,39 @@ function feDrawGrade(g, pal, hour){
     g.stroke();
   }
   if(feFlash > 0.02){ g.fillStyle = `rgba(235,242,255,${feFlash*0.55})`; g.fillRect(0,0,FSH_W,FSH_H); }
-  /* a caught lantern earns its keep after dark */
-  if(pal.sun < 0.15 && feProps().lantern > 0){
+  /* a caught lantern earns its keep from dusk on — big, warm, alive */
+  if(pal.sun < 0.35 && feProps().lantern > 0){
     const P = FE_PROPS.find(p=>p.key==="lantern");
-    const gl = g.createRadialGradient(P.x, P.y-12, 2, P.x, P.y-12, 34);
-    gl.addColorStop(0, "rgba(255,206,120,0.4)");
-    gl.addColorStop(1, "rgba(255,206,120,0)");
-    g.fillStyle = gl; g.fillRect(P.x-34, P.y-46, 68, 68);
+    const dark = 1 - pal.sun/0.35;
+    const flick = 0.85 + 0.15*Math.sin(fshT*7.3) * Math.sin(fshT*3.1);
+    const cy = 296 - 15, R = (44 + Math.min(7, feProps().lantern)*3) * flick;
+    const gl = g.createRadialGradient(P.x, cy, 2, P.x, cy, R);
+    gl.addColorStop(0, `rgba(255,214,130,${0.55*dark})`);
+    gl.addColorStop(0.4, `rgba(255,190,100,${0.26*dark})`);
+    gl.addColorStop(1, "rgba(255,190,100,0)");
+    g.fillStyle = gl; g.fillRect(P.x-R, cy-R, R*2, R*2);
+    /* warm pool on the planks */
+    g.globalAlpha = 0.3*dark*flick;
+    g.fillStyle = "#ffce78";
+    g.beginPath(); g.ellipse(P.x, 297, 26, 5, 0, 0, 7); g.fill();
+    g.globalAlpha = 1;
+    /* the flame itself, over the tint */
+    g.globalAlpha = dark;
+    g.fillStyle = "#ffe9b0";
+    g.beginPath(); g.arc(P.x, cy, 2.4*flick, 0, 7); g.fill();
+    g.globalAlpha = 1;
+    /* sparks drifting up, deep at night */
+    if(pal.stars > 0.3){
+      for(let i=0;i<3;i++){
+        const ph = (fshT*0.45 + i*0.37) % 1;
+        g.globalAlpha = (1-ph) * 0.6 * dark;
+        g.fillStyle = "#ffd88f";
+        g.beginPath();
+        g.arc(P.x + Math.sin((fshT+i*9)*2.1)*4, cy - 6 - ph*22, 1.1, 0, 7);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+    }
   }
 }
 
@@ -23779,6 +23807,10 @@ function fshTick(dt){
   }
   if(fsh.castGuard > 0) fsh.castGuard -= dt;
   if(fsh.bannerT > 0) fsh.bannerT -= dt;
+  if(fePropFx){
+    if(fePropFx.t < 0){ if(fsh.phase !== "result") fePropFx.t = 0; }
+    else { fePropFx.t += dt; if(fePropFx.t > 2.6) fePropFx = null; }
+  }
   if(fsh.shake > 0) fsh.shake = Math.max(0, fsh.shake - dt*3.2);
 
   for(let i=fsh.ripples.length-1;i>=0;i--){ fsh.ripples[i].t += dt; if(fsh.ripples[i].t > 1.5) fsh.ripples.splice(i,1); }
@@ -23908,6 +23940,7 @@ function fshDraw(){
     }
   }
   feDrawGrade(g, pal, feEnv.hour);
+  feDrawPropFx(g);
 
   /* tension ring around the bobber during the fight — eyes on the water */
   if(fsh && fsh.phase === "reeling" && fsh.fight){
@@ -24438,12 +24471,6 @@ function fshLand(){
   chips.push(`♻️ ${scrap.toLocaleString()} Scrap`);
   if(rep > 0){ state.empire.reputation += rep; chips.push(`🎖️ ${rep.toLocaleString()} Reputation`); }
 
-  const prop = feAwardProp(d.tier);
-  if(prop){
-    const n = feProps()[prop.key];
-    chips.push(`${prop.icon} ${prop.name} ×${n} hauled up — ${prop.line}, permanent`);
-    showToast(`${prop.icon} ${prop.name} joins the dock!`);
-  }
   const card = feAwardTT(c, d);
   if(card){
     chips.push(`🃏 ${card.emoji} ${card.name}`);
@@ -24453,6 +24480,12 @@ function fshLand(){
 
   const f = state.fishing;
   f.catches = (f.catches||0) + 1;
+  const prop = feAwardProp(f.catches);
+  if(prop){
+    const n = feProps()[prop.key];
+    chips.push(`${prop.icon} ${prop.name} ×${n} hauled up — ${prop.line}, permanent`);
+    showToast(`${prop.icon} ${prop.name} joins the dock!`);
+  }
   f.byTier = f.byTier || {};
   f.byTier[d.tier] = (f.byTier[d.tier]||0) + 1;
   f.totalCredits = (f.totalCredits||0) + credits;
@@ -24651,50 +24684,222 @@ function fshDrawRod(g, grip){
   return { x:tipX, y:tipY };
 }
 
+/* The photo loader, with a voice: when the wiki lookup comes back empty
+   the card SAYS so instead of silently showing the sprite forever —
+   if the caption appears with the internet up, something in the player's
+   setup is blocking wikipedia.org and now they can tell us. */
+function fshLoadResultPhoto(r){
+  if(r.failed || !r.title) return;
+  const token = ++fshPicToken;
+  ciLookup(fshPicSubject(r.title)).then(entry=>{
+    if(token !== fshPicToken) return;
+    const ph = document.getElementById("fshResultPhoto");
+    if(!ph) return;
+    if(!entry || !entry.img){
+      if(!ph.querySelector(".rNoPhoto")){
+        const cap = document.createElement("span");
+        cap.className = "rNoPhoto";
+        cap.textContent = "📷 no photo — offline or wikipedia blocked";
+        ph.appendChild(cap);
+      }
+      return;
+    }
+    ph.innerHTML = `<img src="${entry.img}" alt="${r.title}">
+      <span class="rPhotoIcon">${r.icon || ""}</span>`;
+    const im = ph.querySelector("img");
+    if(im) im.addEventListener("error", ()=>{
+      ph.innerHTML = `<div class="rIcon">${r.icon || "🎣"}</div>`;
+    });
+  });
+}
+
 /* -------------- 8b · DOCK COMFORTS: CAUGHT, KEPT, STACKED ----------
    Five props live on the dock. Fish one up and it replaces the painted
    original with the tiered art — and grants a small PERMANENT boost.
    They can be caught again and again: every catch stacks the boost and
    raises the displayed tier (art caps at tier 7; the boost never caps). */
+/* The dock is REDRAWN as one piece the moment the first comfort lands:
+   feRedrawDockBand tiles clean slices of the painting itself (narrow
+   verticals — the water's horizontal banding makes tiling invisible)
+   across the whole item shelf, sweeping away every painted original
+   (tackle box included). The comforts then sit on one shared baseline
+   with contact shadows, so they belong to the dock instead of floating
+   over it. */
 const FE_PROPS = [
-  { key:"bucket",  spr:"bucketp",  name:"Bail Bucket",     icon:"🪣", x:41,  y:295, w:27,
+  { key:"bucket",  spr:"bucketp",  name:"Bail Bucket",     icon:"🪣", x:72,  y:296, w:36,
     stat:"loot",    per:1,    line:"+1% catch value per bucket" },
-  { key:"flask",   spr:"flaskp",   name:"Warming Flask",   icon:"🫗", x:78,  y:296, w:19,
+  { key:"flask",   spr:"flaskp",   name:"Warming Flask",   icon:"🫗", x:107, y:296, w:24,
     stat:"recover", per:0.5,  line:"+0.5/s tension recovery per flask" },
-  { key:"lantern", spr:"lanternp", name:"Dock Lantern",    icon:"🏮", x:130, y:295, w:16,
+  { key:"lantern", spr:"lanternp", name:"Dock Lantern",    icon:"🏮", x:141, y:296, w:32,
     stat:"luck",    per:0.06, line:"+0.06 catch luck per lantern" },
-  { key:"barrel",  spr:"barrelp",  name:"Catch Barrel",    icon:"🛢️", x:237, y:297, w:26,
+  { key:"barrel",  spr:"barrelp",  name:"Catch Barrel",    icon:"🛢️", x:198, y:296, w:44,
     stat:"tension", per:2,    line:"+2 max tension per barrel" },
-  { key:"bedroll", spr:"bedrollp", name:"Dockside Bedroll",icon:"🛏️", x:16,  y:297, w:26,
+  { key:"bedroll", spr:"bedrollp", name:"Dockside Bedroll",icon:"🛏️", x:26,  y:296, w:40,
     stat:"speed",   per:1,    line:"−1% bite wait per bedroll" },
 ];
 function feProps(){
   const inv = fshInv();
   if(!inv.props) inv.props = { bucket:0, flask:0, lantern:0, barrel:0, bedroll:0 };
+  if(inv.propGrants === undefined){
+    /* players who already fished up comforts under the old random system
+       start the schedule from where they stand */
+    inv.propGrants = Object.values(inv.props).reduce((a,b)=>a+(b||0),0);
+  }
   return inv.props;
 }
-function feAwardProp(defTier, rng){
-  rng = rng || Math.random;
-  if(rng() >= 0.035 + defTier*0.01) return null;
+/* The dock fills on a SCHEDULE now, not a dice roll: grant #k arrives at
+   round(5·k^1.25) total catches — 5, 12, 20, 28, 37 … the full 35-grant
+   dock lands around 420 catches, and the trickle never stops (boosts
+   stack forever past tier 7). The order is fixed and readable: lantern
+   first, then bucket, flask, bedroll, barrel — one lap per tier. At most
+   one grant per landed catch, so old saves catch up one dock piece at a
+   time instead of a chip avalanche. */
+const FE_PROP_ORDER = ["lantern","bucket","flask","bedroll","barrel"];
+function fePropSchedule(k){ return Math.round(5 * Math.pow(k, 1.25)); }
+function feNextProp(){
+  const inv = fshInv(); feProps();
+  const k = inv.propGrants + 1;
+  const key = FE_PROP_ORDER[(k-1) % FE_PROP_ORDER.length];
+  return { k, at: fePropSchedule(k), def: FE_PROPS.find(p=>p.key===key), tier: Math.ceil(k/FE_PROP_ORDER.length) };
+}
+let fePropFx = null;
+function feAwardProp(totalCatches){
+  const inv = fshInv();
   const pr = feProps();
-  /* the least-stacked comforts surface first, so the dock fills out */
-  const w = FE_PROPS.map(p=>1/(1+(pr[p.key]||0)));
-  let r = rng() * w.reduce((a,b)=>a+b,0);
-  for(let i=0;i<FE_PROPS.length;i++){
-    if(r < w[i]){ pr[FE_PROPS[i].key] = (pr[FE_PROPS[i].key]||0)+1; return FE_PROPS[i]; }
-    r -= w[i];
+  const nxt = feNextProp();
+  if(totalCatches < nxt.at) return null;
+  inv.propGrants++;
+  pr[nxt.def.key] = (pr[nxt.def.key]||0) + 1;
+  /* the celebration is armed now and plays the moment the dock is back
+     in view — escalating with the tier it just reached */
+  fePropFx = { key: nxt.def.key, tier: Math.min(7, pr[nxt.def.key]), t: -1 };
+  return nxt.def;
+}
+/* The celebration proper — drawn AFTER the day/night grade so it blazes
+   even at midnight. Escalates with the tier just reached:
+   t1 the pop+shake alone · t2+ a shine ring · t3+ golden sparks (more
+   per tier) · t5+ turning light beams · t7 a full golden starburst. */
+function feDrawPropFx(g){
+  if(!fePropFx || fePropFx.t < 0) return;
+  const p = FE_PROPS.find(x=>x.key===fePropFx.key);
+  if(!p) return;
+  const t = fePropFx.t, tier = fePropFx.tier;
+  const cx = p.x, cy = p.y - 14;
+  if(tier >= 2){
+    const k = Math.min(1, t/0.9);
+    g.globalAlpha = (1-k) * 0.75;
+    g.strokeStyle = "#ffe9b0"; g.lineWidth = 2.5;
+    g.beginPath(); g.arc(cx, cy, 8 + k*(20 + tier*5), 0, 7); g.stroke();
+    g.globalAlpha = 1;
   }
-  return null;
+  if(tier >= 3){
+    const n = 6 + tier*3;
+    for(let i=0;i<n;i++){
+      const a = (i/n)*Math.PI*2 + i*0.7;
+      const sp = 34 + (i%5)*9 + tier*3;
+      const life = Math.min(1, t/1.5);
+      const px = cx + Math.cos(a)*sp*life;
+      const py = cy + Math.sin(a)*sp*life*0.8 + 26*life*life;   // gravity
+      g.globalAlpha = (1-life) * 0.95;
+      g.fillStyle = i%3 ? "#ffd88f" : "#fff6d8";
+      g.beginPath(); g.arc(px, py, 1.6 + (i%3)*0.7, 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  if(tier >= 5 && t < 1.3){
+    g.globalAlpha = (1 - t/1.3) * 0.5;
+    g.strokeStyle = "#fff3c8"; g.lineWidth = 2;
+    for(let i=0;i<6;i++){
+      const a = t*1.8 + i*Math.PI/3;
+      g.beginPath(); g.moveTo(cx + Math.cos(a)*10, cy + Math.sin(a)*10);
+      g.lineTo(cx + Math.cos(a)*(30 + tier*4), cy + Math.sin(a)*(30 + tier*4));
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+  }
+  if(tier >= 7 && t < 0.6){
+    const k = t/0.6;
+    const r = g.createRadialGradient(cx, cy, 2, cx, cy, 90);
+    r.addColorStop(0, `rgba(255,232,160,${(1-k)*0.6})`);
+    r.addColorStop(1, "rgba(255,232,160,0)");
+    g.fillStyle = r; g.fillRect(cx-90, cy-90, 180, 180);
+  }
+}
+function feRedrawDockBand(g){
+  if(!fshBgReady) return;
+  const bg = fshBgImg;
+  const fx = bg.naturalWidth/800, fy = bg.naturalHeight/450;
+  /* water behind the shelf: ONE clean slice stretched wide — horizontal
+     banding smears perfectly smooth, where tiling combed. The slice is
+     sampled right beside the band's right edge so the tone matches the
+     seam by construction, and the fill starts at 247 — everything above
+     was already clean water, and the shoreline varies up there. */
+  g.drawImage(bg, 226*fx, 247*fy, 6*fx, 41*fy, 0, 247, 233, 41);
+  /* the dock itself is redrawn: deck, lit rim, and a railed front with
+     the water showing through between the posts — same bones as the
+     painting, without the painted clutter */
+  const deckTop = 286;
+  // water peeking through the railing first
+  g.drawImage(bg, 226*fx, 258*fy, 6*fx, 14*fy, 0, 301, 233, 13);
+  // deck surface
+  g.fillStyle = "#93714b"; g.fillRect(0, deckTop+3, 233, 9);
+  g.fillStyle = "#846442"; g.fillRect(0, deckTop+8, 233, 4);
+  // lit rim
+  g.fillStyle = "#d9b47e"; g.fillRect(0, deckTop, 233, 2.2);
+  g.fillStyle = "rgba(255,235,190,0.35)"; g.fillRect(0, deckTop, 233, 1);
+  // plank seams along the deck, sparse and soft
+  g.strokeStyle = "rgba(60,42,26,0.35)"; g.lineWidth = 1;
+  for(let x=14; x<233; x+=27){
+    g.beginPath(); g.moveTo(x, deckTop+2.5); g.lineTo(x-2, deckTop+12); g.stroke();
+  }
+  // fascia beam under the deck
+  g.fillStyle = "#6b4e33"; g.fillRect(0, deckTop+12, 233, 4);
+  g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(0, deckTop+15, 233, 1);
+  // railing posts with the lake between them
+  for(let x=6; x<233; x+=17){
+    g.fillStyle = "#5d4530"; g.fillRect(x, 301, 5.5, 13);
+    g.fillStyle = "rgba(255,222,170,0.22)"; g.fillRect(x, 301, 1.4, 13);
+  }
+  // bottom stringer
+  g.fillStyle = "#57402a"; g.fillRect(0, 313, 233, 4);
+  g.fillStyle = "rgba(0,0,0,0.22)"; g.fillRect(0, 316, 233, 1);
 }
 function feDrawProps(g){
   const pr = feProps();
+  const any = FE_PROPS.some(p=>(pr[p.key]||0) > 0);
+  if(!any) return;                       // untouched painting until the first comfort
+  feRedrawDockBand(g);
   for(const p of FE_PROPS){
     const n = pr[p.key]||0;
     if(!n) continue;
-    const im = feImg(p.spr + Math.min(7, n));
+    const tier = Math.min(7, n);
+    const im = feImg(p.spr + tier);
     if(!feImgOk(im)) continue;
-    const h = p.w * (im.naturalHeight/im.naturalWidth);
-    g.drawImage(im, p.x - p.w/2, p.y - h, p.w, h);
+    /* the lantern is the showpiece — bigger, and it grows with its tier */
+    let w = p.key === "lantern" ? p.w + tier*1.4 : p.w;
+    let dx = 0, sc = 1;
+    if(fePropFx && fePropFx.key === p.key && fePropFx.t >= 0){
+      const t = fePropFx.t;
+      if(t < 0.55) sc = 1 + Math.sin(Math.min(1, t/0.55)*Math.PI) * 0.45;   // pop!
+      if(t < 0.8) dx = Math.sin(t*46) * (0.8-t) * 4.5;                       // and a shake
+    }
+    w *= sc;
+    const h = w * (im.naturalHeight/im.naturalWidth);
+    const baseY = 296;                   // one shared baseline, 2px over the rim
+    /* contact shadow first — this is what makes it SIT on the planks */
+    g.globalAlpha = 0.3;
+    g.fillStyle = "#1c2836";
+    g.beginPath(); g.ellipse(p.x + dx, baseY - 1, w*0.42, 3.2, 0, 0, 7); g.fill();
+    g.globalAlpha = 1;
+    g.drawImage(im, p.x - w/2 + dx, baseY - h, w, h);
+    if(p.key === "lantern"){
+      /* glass glint by day, so it catches the eye even unlit */
+      const tw = 0.5 + 0.5*Math.sin(fshT*2.6);
+      g.globalAlpha = 0.35 + 0.3*tw;
+      g.fillStyle = "#fff8e0";
+      g.beginPath(); g.arc(p.x - w*0.16, p.y - h*0.62, 1.6, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    }
   }
 }
 
@@ -24829,7 +25034,10 @@ function renderEquipment(){
     ${baitRows || `<div class="eq-empty">No bait. You can still fish, but bites come slower and the good stuff stays away.</div>`}
     ${f.activeBait ? "" : `<div class="eq-warn">⚠️ Fishing a bare hook — ${fshStatLine(FSH_NO_BAIT)}</div>`}
     ${charmRows ? `<div class="eq-sec">🍀 Charms</div>${charmRows}` : ""}
-    <div class="eq-sec">🏕️ Dock Comforts <span class="eq-hint">fish them up — every one stacks, forever</span></div>
+    <div class="eq-sec">🏕️ Dock Comforts <span class="eq-hint">${(()=>{
+      const nx = feNextProp(), c = (state.fishing && state.fishing.catches)||0;
+      return `every catch counts — next: ${nx.def.icon} ${nx.def.name} at ${nx.at} catches (${c} so far)`;
+    })()}</span></div>
     <div class="fe-props">${FE_PROPS.map(p=>{
       const n = (fshInv().props||{})[p.key]||0;
       return `<span class="fe-prop ${n?"got":""}" title="${p.line}">${p.icon} ${p.name} <b>×${n}</b></span>`;

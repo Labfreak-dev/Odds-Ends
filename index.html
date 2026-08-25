@@ -3447,6 +3447,24 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .fe-box i{ font-style:normal; color:#8b98a6; font-size:10.5px; }
 .fe-box img{ width:30px; height:30px; object-fit:contain; }
 .fe-box img.fe-boxkey{ width:20px; height:20px; }
+/* ---- shore sections as journal-style pop-ups ---- */
+.fe-secrow{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+.fe-secbtn{ display:inline-flex; align-items:center; gap:5px; padding:8px 14px;
+  border-radius:11px; border:1px solid rgba(255,255,255,.16); cursor:pointer;
+  background:rgba(255,255,255,.05); color:#dfe9f2; font:700 12.5px system-ui; }
+.fe-secbtn:hover{ border-color:rgba(255,255,255,.34); }
+.fe-secbtn i{ font-style:normal; color:#8fa0b5; font-weight:600; }
+.fe-secmodal{ position:fixed; left:4%; right:4%; top:7%; bottom:7%; z-index:9999;
+  display:none; flex-direction:column;
+  border:1px solid rgba(255,255,255,.16); border-radius:14px;
+  background:rgba(12,17,24,.98); overflow:hidden;
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+.fe-secmodal.show{ display:flex; }
+.fe-secmodal .fej-head{ display:flex; align-items:center; justify-content:space-between; }
+.fe-secmodal .fe-secbody{ flex:1; overflow-y:auto; padding:10px 14px 16px; }
+.fe-secx{ width:30px; height:30px; border-radius:50%; cursor:pointer;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
+  color:#dfe9f2; font:700 13px system-ui; }
 
 /* ===== The Flooded Arena ===== */
 .fb-empty{ text-align:center; padding:60px 20px; font:700 18px system-ui; color:#dfe9f2; }
@@ -3507,6 +3525,41 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .fb-drop img{ width:22px; height:22px; vertical-align:middle; image-rendering:pixelated; }
 .fb-win button,.fb-loss button{ margin-top:10px; padding:8px 22px; border-radius:10px; border:none;
   font:700 14px system-ui; background:#6c7bff; color:#fff; cursor:pointer; }
+/* ---- rarity tabs + shelved armory ---- */
+.fb-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.fb-tabbtn{ padding:4px 12px; border-radius:9px; font:700 11.5px system-ui; cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--tc) 40%, transparent);
+  background:color-mix(in srgb, var(--tc) 10%, transparent); color:var(--tc); }
+.fb-tabbtn.on{ background:color-mix(in srgb, var(--tc) 26%, transparent); color:#fff; }
+.fb-tabbtn i{ font-style:normal; opacity:.75; }
+.fb-tag{ font:600 9.5px system-ui; font-style:normal; color:#8fa8bd; border:1px solid rgba(255,255,255,.12);
+  border-radius:6px; padding:0 6px; margin-top:2px; }
+.fb-armsec{ font:700 11px system-ui; letter-spacing:.4px; text-transform:uppercase;
+  color:#9fb2c2; margin:8px 0 4px; }
+.fb-count{ position:absolute; top:4px; left:34px; font:700 10px system-ui; font-style:normal;
+  color:#ffcf40; }
+.fb-item{ position:relative; }
+/* ---- big batch: formation, conditions, draft, entrance ---- */
+.fb-mv{ display:flex; gap:3px; margin-top:3px; }
+.fb-mv button{ padding:1px 7px; border-radius:6px; font:700 10px system-ui; cursor:pointer;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16); color:#cfe0ee; }
+.fb-mv button:disabled{ opacity:.25; cursor:default; }
+.fb-front{ position:absolute; top:3px; left:6px; font:800 8px system-ui; font-style:normal;
+  letter-spacing:.8px; color:#ffd35c; }
+.fb-slot{ position:relative; }
+.fb-cond{ margin-left:8px; font:700 11px system-ui; color:#9fd8ff;
+  border:1px solid rgba(159,216,255,.35); border-radius:9px; padding:2px 9px; }
+.fb-draft{ margin:10px 0 4px; }
+.fb-draft > b{ font:700 12.5px system-ui; color:#dfe9f2; }
+.fb-draftrow{ display:flex; gap:8px; margin-top:7px; flex-wrap:wrap; justify-content:center; }
+.fb-pick{ flex:1 1 130px; max-width:180px; display:flex; flex-direction:column; align-items:center;
+  gap:3px; padding:10px 8px; border-radius:12px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.16); color:#dfe9f2; }
+.fb-pick:hover{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.fb-pick img, .fb-pick .pi{ width:34px; height:34px; font-size:26px; line-height:34px; }
+.fb-pick b{ font:700 12px system-ui; }
+.fb-pick i{ font:600 10px system-ui; font-style:normal; color:#93a5b7; line-height:1.35; }
+.fb-picked{ font:700 12.5px system-ui; color:#7dffb5; padding:8px 0; }
 
 </style>
 </head>
@@ -3890,15 +3943,6 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         <button class="btn fsh-cast" id="fshCastBtn">🎣 Hold to Cast</button>
         <div class="fsh-bars" id="fshBars" style="display:none;"></div>
         <div class="fsh-hint" id="fshHint"></div>
-      </div>
-    </div>
-
-    <div class="panel fsh-banner">
-      <div style="font-size:38px;">🎣</div>
-      <div style="font-weight:800; font-size:16px; margin-top:6px;" id="fshTitle">An Afternoon Off</div>
-      <div style="color:var(--muted); font-size:13px; margin-top:4px; line-height:1.6;">
-        The empire can run itself for an hour. Hold to cast, wait for the <b>!</b>, then hold to reel — and let go when it runs.
-        Better gear from the <b>Tackle Shop</b> in the Market means longer casts, faster bites and bigger things on the end of the line.
       </div>
     </div>
 
@@ -24390,7 +24434,52 @@ function fshRenderControls(){
 
 /* Full replacement of the enter hook — a wrapper can't work here, since
    function declarations hoist last-wins and would capture themselves. */
+/* The shore sections live behind journal-style pop-ups now: one labeled
+   chip each, a fixed top-layer card when opened. The panels themselves
+   are re-parented into the modals once, so the host's render functions
+   keep hitting the same ids without knowing anything moved. */
+const FE_SECTIONS = [
+  { key:"stats",  icon:"📊", title:"Angler Stats", find:"#fshStatsBar" },
+  { key:"bucket", icon:"🪣", title:"The Bucket",   find:"#fshLog" },
+  { key:"equip",  icon:"🧰", title:"Equipment",    find:"#fshEquip" },
+];
+function feSectionModals(){
+  const tab = document.getElementById("tab-fishing");
+  if(!tab || document.getElementById("feSecWrap")) return;
+  const wrap = document.createElement("div");
+  wrap.id = "feSecWrap";
+  for(const d of FE_SECTIONS){
+    const el = tab.querySelector(d.find);
+    if(!el) continue;
+    const panel = el.closest(".panel");
+    if(!panel) continue;
+    const m = document.createElement("div");
+    m.className = "fe-secmodal";
+    m.id = "feSec_" + d.key;
+    m.innerHTML = `<div class="fej-head"><b>${d.icon} ${d.title}</b>
+      <button class="fe-secx" data-x="1">✕</button></div>
+      <div class="fe-secbody"></div>`;
+    panel.classList.remove("panel");
+    /* the modal head already names the section — the panel's old bold
+       title would just say it twice */
+    const t = panel.querySelector(':scope > div[style*="font-weight:800"]');
+    if(t) t.style.display = "none";
+    m.querySelector(".fe-secbody").appendChild(panel);
+    wrap.appendChild(m);
+  }
+  document.body.appendChild(wrap);
+  wrap.addEventListener("click", e => {
+    if(e.target.closest("[data-x]")) feSecOpen(null);
+  });
+}
+function feSecOpen(key){
+  document.querySelectorAll(".fe-secmodal").forEach(m =>
+    m.classList.toggle("show", m.id === "feSec_" + key));
+  if(key && typeof feSound === "function"){ feAudioUnlock(); feSound("box_open",{vol:0.3}); }
+}
+
 function fshOnEnterTab(){
+  feSectionModals();
   fshTabActive = true;
   if(!fshGulls) fshInitScene();
   feEnvInit();
@@ -24858,12 +24947,19 @@ function feRenderSpots(){
     <div class="fe-spot-line">${cur.line}${special} · 🎴 ${feTTOwned()}/1000
       <button id="feSfxChip" class="fe-sfx">${feMuted() ? "🔇" : "🔊"}</button>
       <button id="feMusicChip" class="fe-sfx">${fshInv().musicMute ? "🎵̸" : "🎵"}</button>
-      <button id="feJournalBtn" class="fe-sfx">📖 ${feJournalCount()}/${feSpeciesTotal()}</button></div>`;
+      </div>
+    <div class="fe-secrow">
+      <button id="feJournalBtn" class="fe-secbtn">📖 Journal <i>${feJournalCount()}/${feSpeciesTotal()}</i></button>
+      <button class="fe-secbtn" data-sec="stats">📊 Stats</button>
+      <button class="fe-secbtn" data-sec="bucket">🪣 Bucket</button>
+      <button class="fe-secbtn" data-sec="equip">🧰 Equipment</button>
+    </div>`;
   if(html !== feSpotHtml){
     feSpotHtml = html;
     row.innerHTML = html;
     const jBtn = row.querySelector("#feJournalBtn");
     if(jBtn) jBtn.onclick = ()=>{ feAudioUnlock(); feSound("box_open",{vol:0.35}); feJournalOpen = !feJournalOpen; feRenderJournal(); };
+    row.querySelectorAll("[data-sec]").forEach(b => b.onclick = ()=> feSecOpen(b.dataset.sec));
     const mChip = row.querySelector("#feMusicChip");
     if(mChip) mChip.onclick = ()=>{
       feAudioUnlock();
@@ -25950,7 +26046,8 @@ function fbSpeciesTier(name){
 }
 function fbRoster(){
   const J = (state.fishing && state.fishing.journal) || {};
-  const out = Object.keys(J).map(n => ({ name:n, kind:"fish" }));
+  /* the arena takes rare and better — the small fry stay in the journal */
+  const out = Object.keys(J).filter(n => fbSpeciesTier(n) >= 3).map(n => ({ name:n, kind:"fish" }));
   const B = (state.fishing && state.fishing.inv && state.fishing.inv.bossJournal) || {};
   for(const n in B) out.push({ name:n, kind:"legend" });
   return out;
@@ -26000,28 +26097,53 @@ function fbTeamPrep(team){
   }
 }
 function fbAlive(t){ return t.filter(u=>u.hp>0); }
-function fbSimBattle(left, right, seed){
+/* Ring conditions: a named rule the water imposes, shown before the bell.
+   Seeded by ring so scouting is honest. */
+const FB_CONDS = [
+  { key:"murky",   name:"Murky Water",    line:"everything dodges more" },
+  { key:"frenzy",  name:"Feeding Frenzy", line:"every hit feeds the striker" },
+  { key:"cold",    name:"Cold Snap",      line:"everyone swims 20% slower" },
+  { key:"blood",   name:"Blood Tide",     line:"all damage up 25%" },
+  { key:"still",   name:"Still Water",    line:"no crits, no dodges" },
+  { key:"current", name:"Deep Current",   line:"back-row fighters hit 15% harder" },
+  { key:"shoal",   name:"Shoal Season",   line:"School instincts run double" },
+  { key:"ember",   name:"Ember Rain",     line:"embers sear both sides" },
+];
+function fbCondFor(stage){
+  if(stage < 2) return null;
+  return FB_CONDS[(fbHash("ring"+stage)>>3) % FB_CONDS.length];
+}
+function fbSimBattle(left, right, seed, cond){
   const rng = fbRng(seed);
   const ev = [];
+  const ck = cond ? cond.key : null;
   fbTeamPrep(left); fbTeamPrep(right);
+  if(ck==="cold") for(const u of [...left,...right]) u.spd = +(u.spd*0.8).toFixed(3);
+  if(ck==="current"){
+    left.forEach((u,i)=>{ if(i>=2) u.atk = Math.round(u.atk*1.15); });
+    right.forEach((u,i)=>{ if(i>=2) u.atk = Math.round(u.atk*1.15); });
+  }
   let t = 0;
   const DT = 0.1, CAP = 75;
   const sideOf = u => left.includes(u) ? "L" : "R";
   function hit(src, dst, dmg, tag){
-    if(fbHasRelic(dst,"rl_ghost") && rng() < (8+4*fbRelicT(dst))/100){
+    const dodgeC = (ck==="still") ? 0
+      : (fbHasRelic(dst,"rl_ghost") ? (8+4*fbRelicT(dst))/100 : 0) + (ck==="murky" ? 0.10 : 0);
+    if(dodgeC && rng() < dodgeC){
       ev.push({t,type:"dodge",dst:dst.name,side:sideOf(dst)}); return;
     }
     let d = dmg;
     if(t > 45) d *= 1 + (t-45)*0.08;      // sudden death: the water rises
+    if(ck==="blood") d *= 1.25;
     if(src._sun) d *= 1+src._sun;
     if(src.rallied) d *= 1+src.rallied;
     if(src.innate && src.innate.key==="school"){
       const allies = fbAlive(sideOf(src)==="L"?left:right).length;
-      d *= 1 + 0.03*allies;
+      d *= 1 + (ck==="shoal" ? 0.06 : 0.03)*allies;
     }
     if(src.innate && src.innate.key==="ambush" && dst.hp===dst.maxHp) d *= 1.6;
     let crit = false;
-    if(fbHasRelic(src,"rl_crystal") && rng() < (12+6*fbRelicT(src))/100){ d*=2; crit=true; }
+    if(ck!=="still" && fbHasRelic(src,"rl_crystal") && rng() < (12+6*fbRelicT(src))/100){ d*=2; crit=true; }
     const pierce = src.innate && src.innate.key==="pierce";
     if(!pierce){
       if(fbHasRelic(dst,"rl_stone")) d = Math.max(1, d-(2+2*fbRelicT(dst)));
@@ -26031,6 +26153,7 @@ function fbSimBattle(left, right, seed){
     dst.hp -= d;
     ev.push({t,type:"hit",src:src.name,dst:dst.name,dmg:d,crit,side:sideOf(dst),tag:tag||null});
     if(fbHasRelic(src,"rl_blood")){ const heal=Math.round(d*(20+8*fbRelicT(src))/100); src.hp=Math.min(src.maxHp,src.hp+heal); }
+    if(ck==="frenzy"){ src.hp = Math.min(src.maxHp, src.hp + Math.round(d*0.15)); }
     if(fbHasRelic(src,"rl_embercrown")) dst.statuses.push({k:"burn",per:2+2*fbRelicT(src),left:3});
     if(fbHasRelic(src,"rl_venom")) dst.statuses.push({k:"poison",per:1+fbRelicT(src),left:999});
     if(fbHasRelic(src,"rl_frost")){ dst.spd = +(dst.spd*(1-(10+5*fbRelicT(src))/100)).toFixed(3); }
@@ -26056,6 +26179,7 @@ function fbSimBattle(left, right, seed){
       let dot = 0;
       for(const s of u.statuses){ dot += s.per*DT; s.left -= DT; }
       u.statuses = u.statuses.filter(s=>s.left>0);
+      if(ck==="ember" && t <= 45) dot += 0.8*DT;
       if(dot){ u.hp -= dot; if(u.hp<=0){ u.hp=0; ev.push({t,type:"die",dst:u.name,side:sideOf(u)}); continue; } }
       if(fbHasRelic(u,"rl_verdant")) u.hp = Math.min(u.maxHp, u.hp + 1.5*fbRelicT(u)*DT);
       if(u.innate && u.innate.key==="soothe" && t <= 45){
@@ -26087,6 +26211,17 @@ function fbSimBattle(left, right, seed){
   const win = fbAlive(right).length===0 ? true : fbAlive(left).length===0 ? false : lHp>=rHp;
   ev.push({t,type:"end",win});
   return { win, events:ev, dur:t, lHp, rHp };
+}
+
+/* After a ring falls, the water offers three prizes — take one. */
+function fbDraftChoices(stage, rng){
+  const r = rng || Math.random;
+  const band = Math.min(6, 1+Math.floor(stage/4));
+  const a = fbRollItem(band, r);
+  let b = fbRollItem(band, r), guard = 8;
+  while(!!FB_FOODS[b.key] === !!FB_FOODS[a.key] && guard--) b = fbRollItem(band, r);
+  const gold = Math.round(fbStageReward(stage,false).credits * (0.8 + r()*0.5));
+  return [ {kind:"item", it:a}, {kind:"item", it:b}, {kind:"gold", credits:gold} ];
 }
 
 /* ------------------------ enemy squads ----------------------------- */
@@ -26139,7 +26274,7 @@ function fbStageReward(stage, first){
 function fbArenaFor(stage){ return "arena"+(1+((stage-1)%10)); }
 
 /* ------------------------------ UI --------------------------------- */
-let fbImgs = {}, fbSel = null, fbPlay = null, fbSpeed = 1;
+let fbImgs = {}, fbSel = null, fbPlay = null, fbSpeed = 1, fbPendingDraft = null;
 function fbImg(k){
   if(!k) return null;
   if(fbImgs[k]) return fbImgs[k];
@@ -26148,6 +26283,13 @@ function fbImg(k){
   const im = new Image(); im.src = src; fbImgs[k]=im; return im;
 }
 function fbFmt(n){ return n.toLocaleString(); }
+let fbTab = null;
+const FB_TABS = [
+  { id:"legend", label:"👑 Legends", color:"#ff5c8a", of:r=>r.kind==="legend" },
+  { id:5, label:"Legendary", color:"#fc6", of:r=>r.kind==="fish" && fbSpeciesTier(r.name)===5 },
+  { id:4, label:"Epic", color:"#b9f", of:r=>r.kind==="fish" && fbSpeciesTier(r.name)===4 },
+  { id:3, label:"Rare", color:"#7cf", of:r=>r.kind==="fish" && fbSpeciesTier(r.name)===3 },
+];
 function renderFlooded(){
   const host = document.getElementById("fbStage");
   if(!host) return;
@@ -26155,7 +26297,7 @@ function renderFlooded(){
   const roster = fbRoster();
   if(!roster.length){
     host.innerHTML = `<div class="fb-empty">🌊 The arena is flooded and waiting…<br>
-      <span>Every species in your <b>Angler's Journal</b> fights here. Go catch your first squad.</span></div>`;
+      <span>Fighters are <b>Rare or better</b> — land one and the arena opens. The small fry stay in the journal.</span></div>`;
     return;
   }
   const squad = a.squad.filter(n=>roster.some(r=>r.name===n));
@@ -26165,24 +26307,49 @@ function renderFlooded(){
     const u = fbUnitFor(n);
     const im = u.art && (FE_IMG[u.art]||FB_IMG[u.art]) ? `<img src="${FE_IMG[u.art]||FB_IMG[u.art]}">` : "🐟";
     const rel = a.equip[n] ? `<img class="fb-rel" src="${FB_IMG[a.equip[n].key]}">` : "";
-    return `<div class="fb-slot ${u.legend?"legend":""}" data-unslot="${n}">${im}${rel}
-      <b>${n}</b><span>♥${u.maxHp} ⚔${u.atk} ⚡${u.spd}</span></div>`;
+    const mv = `<span class="fb-mv"><button data-mv="${i}|-1" ${i===0?"disabled":""}>◀</button><button data-mv="${i}|1" ${i>=squad.length-1?"disabled":""}>▶</button></span>`;
+    return `<div class="fb-slot ${u.legend?"legend":""}" data-unslot="${n}">${i===0?`<em class="fb-front">FRONT</em>`:""}${im}${rel}
+      <b>${n}</b><span>♥${u.maxHp} ⚔${u.atk} ⚡${u.spd}</span>${mv}</div>`;
   }).join("");
-  const rosterHtml = roster.sort((x,y)=> (y.kind==="legend")-(x.kind==="legend") || fbSpeciesTier(y.name)-fbSpeciesTier(x.name))
+  const tabs = FB_TABS.map(t=>({ ...t, n: roster.filter(t.of).length })).filter(t=>t.n>0);
+  if(!fbTab || !tabs.some(t=>String(t.id)===String(fbTab))) fbTab = String(tabs[0].id);
+  const tabHtml = `<div class="fb-tabs">${tabs.map(t=>
+    `<button class="fb-tabbtn ${String(t.id)===fbTab?"on":""}" data-tab="${t.id}"
+       style="--tc:${t.color}">${t.label} <i>${t.n}</i></button>`).join("")}</div>`;
+  const act = tabs.find(t=>String(t.id)===fbTab);
+  const rosterHtml = roster.filter(act.of)
+    .sort((x,y)=> fbUnitFor(y.name).maxHp - fbUnitFor(x.name).maxHp)
     .map(r=>{
       const u = fbUnitFor(r.name);
       const inSquad = squad.includes(r.name);
       const im = u.art && (FE_IMG[u.art]||FB_IMG[u.art]) ? `<img src="${FE_IMG[u.art]||FB_IMG[u.art]}">` : "🐟";
-      return `<div class="fb-card ${inSquad?"picked":""} ${u.legend?"legend":""} ${fbSel===r.name?"sel":""}" data-pick="${r.name}">
+      return `<div class="fb-card ${inSquad?"picked":""} ${u.legend?"legend":""} ${fbSel===r.name?"sel":""}"
+        data-pick="${r.name}" title="${u.innate.name}: ${u.innate.line}">
         ${im}<b>${r.name}</b><span>♥${u.maxHp} ⚔${u.atk} ⚡${u.spd}</span>
-        <i>${u.innate.name}: ${u.innate.line}</i></div>`;
+        <em class="fb-tag">${u.innate.name}</em></div>`;
     }).join("");
-  const items = a.items.map(it=>{
-    const d = fbItemDef(it);
-    return `<div class="fb-item" data-item="${it.id}" title="${d.name}">
-      <img src="${FB_IMG[it.key]}"><b>${d.name}</b><span>T${it.tier} · ${d.line(it.tier)}</span>
-      <button class="fb-use" data-use="${it.id}">${FB_FOODS[it.key]?"Feed":"Equip"}${fbSel?` → ${fbSel}`:""}</button></div>`;
-  }).join("") || `<div class="fb-noitems">Strongboxes drop foods and relics — go crack some.</div>`;
+  /* the armory shelves itself: foods together, relics together, stacked
+     by kind and tier, strongest first — no scrolling hunt */
+  const stacks = {};
+  for(const it of a.items){
+    const k = it.key+"·"+it.tier;
+    (stacks[k] = stacks[k] || { key:it.key, tier:it.tier, ids:[] }).ids.push(it.id);
+  }
+  const shelf = kind => Object.values(stacks)
+    .filter(st => (kind==="food") === !!FB_FOODS[st.key])
+    .sort((x,y)=> y.tier-x.tier || fbItemDef(x).name.localeCompare(fbItemDef(y).name))
+    .map(st=>{
+      const d = fbItemDef(st);
+      return `<div class="fb-item" title="${d.line(st.tier)}">
+        <img src="${FB_IMG[st.key]}">${st.ids.length>1?`<em class="fb-count">×${st.ids.length}</em>`:""}
+        <b>${d.name}</b><span>T${st.tier} · ${d.line(st.tier)}</span>
+        <button class="fb-use" data-use="${st.ids[0]}">${kind==="food"?"Feed":"Equip"}${fbSel?` → ${fbSel}`:""}</button></div>`;
+    }).join("");
+  const foodsHtml = shelf("food"), relicsHtml = shelf("relic");
+  const items =
+    (foodsHtml ? `<div class="fb-armsec">🍖 Foods</div>${foodsHtml}` : "") +
+    (relicsHtml ? `<div class="fb-armsec">🔮 Relics</div>${relicsHtml}` : "") ||
+    `<div class="fb-noitems">Strongboxes drop foods and relics — go crack some.</div>`;
   const stage = a.stage;
   const rw = fbStageReward(stage, !a.clears[stage]);
   host.innerHTML = `
@@ -26191,6 +26358,7 @@ function renderFlooded(){
       <div class="fb-stage">
         <button id="fbPrev" ${stage<=1?"disabled":""}>‹</button>
         <b>Ring ${stage}</b> ${stage%5===0?`<span class="fb-bossflag">👑 a legend fights here</span>`:""}
+        ${(c=>c?`<span class="fb-cond" title="${c.line}">〜 ${c.name}</span>`:"")(fbCondFor(stage))}
         <button id="fbNext" ${stage>a.bestStage?"disabled":""}>›</button>
       </div>
       <div class="fb-reward">${a.clears[stage]?"re-clear":"first clear"}: 🪙${fbFmt(rw.credits)} · ♻️${rw.scrap}${rw.item?" · 🎁 item":""}</div>
@@ -26200,15 +26368,24 @@ function renderFlooded(){
     <canvas id="fbCanvas" width="640" height="330" style="display:none"></canvas>
     <div id="fbResult"></div>
     <div class="fb-cols">
-      <div class="fb-roster"><div class="fb-h">Your journal fights for you (${roster.length})</div>${rosterHtml}</div>
+      <div class="fb-roster"><div class="fb-h">Fighting fish (${roster.length})</div>${tabHtml}${rosterHtml}</div>
       <div class="fb-items"><div class="fb-h">The armory (${a.items.length})</div>${items}</div>
     </div>`;
+  host.querySelectorAll("[data-tab]").forEach(el=>el.onclick = ()=>{ fbTab = el.dataset.tab; renderFlooded(); });
   host.querySelectorAll("[data-pick]").forEach(el=>el.onclick = ()=>{
     const n = el.dataset.pick;
     const sq = fbState().squad;
     if(sq.includes(n)){ fbSel = fbSel===n ? null : n; }
     else if(sq.length<5){ sq.push(n); fbSel = n; }
     else fbSel = n;
+    saveState(); renderFlooded();
+  });
+  host.querySelectorAll("[data-mv]").forEach(el=>el.onclick = (ev)=>{
+    ev.stopPropagation();
+    const [i, d] = el.dataset.mv.split("|").map(Number);
+    const S = fbState().squad, j = i + d;
+    if(j < 0 || j >= S.length) return;
+    [S[i], S[j]] = [S[j], S[i]];
     saveState(); renderFlooded();
   });
   host.querySelectorAll("[data-unslot]").forEach(el=>el.onclick = ()=>{
@@ -26257,14 +26434,30 @@ function fbStartBattle(){
   const L = squad.map(fbUnitFor);
   const R = fbEnemySquad(a.stage);
   a.seedN = (a.seedN||0)+1;
-  const sim = fbSimBattle(L.map(u=>({...u,statuses:[]})), R.map(u=>({...u,statuses:[]})), 1234+a.stage*31+a.seedN*7);
+  const cond = fbCondFor(a.stage);
+  const sim = fbSimBattle(L.map(u=>({...u,statuses:[]})), R.map(u=>({...u,statuses:[]})), 1234+a.stage*31+a.seedN*7, cond);
   fbPlay = { sim, L: squad.map(fbUnitFor), R: fbEnemySquad(a.stage), t:0, i:0, done:false,
-             hp:{}, floats:[], deaths:{}, stage:a.stage };
+             hp:{}, ghost:{}, floats:[], deaths:{}, stage:a.stage, cond,
+             anim:{}, parts:[], shake:0, stop:0, slow:1, pendEnd:null,
+             cine: (a.stage % 5 === 0) ? 2.0 : 0, spect: fbSpectators() };
+  fbSfx(a.stage % 5 === 0 ? "splash_big" : "land", {vol:0.4});
   for(const u of [...fbPlay.L, ...fbPlay.R]) fbPlay.hp[u.name+(fbPlay.R.includes(u)?"_R":"_L")] = u.maxHp;
   const cv = document.getElementById("fbCanvas");
   cv.style.display = "block";
   document.getElementById("fbResult").innerHTML = "";
   fbLoop();
+}
+function fbSfx(k, o){
+  try{ if(typeof feSound==="function" && typeof FE_SFX!=="undefined" && FE_SFX[k]) feSound(k, o); }catch(e){}
+}
+function fbSpectators(){
+  const out = [];
+  try{
+    const arts = Object.values(FE_SPECIES_ART).slice(0, 40);
+    for(let i=0;i<5;i++) out.push({ art: arts[(Math.random()*arts.length)|0],
+      a: Math.random()*Math.PI*2, sp: 0.25+Math.random()*0.3, r: 148+Math.random()*14 });
+  }catch(e){}
+  return out;
 }
 function fbLoop(){
   if(!fbPlay || fbPlay.done) return;
@@ -26274,26 +26467,85 @@ function fbLoop(){
   fbDrawBattle(cv.getContext("2d"));
   if(!fbPlay.done) requestAnimationFrame(fbLoop);
 }
+function fbAnim(p, key){ return p.anim[key] = p.anim[key] || { lunge:0, flash:0, glyphs:[] }; }
+function fbRipple(p, x, y, big){ p.parts.push({ k:"rip", x, y, t:0, max: big?1.0:0.6, big }); }
+function fbBubbles(p, x, y, n){
+  for(let i=0;i<n;i++) p.parts.push({ k:"bub", x:x+(Math.random()*24-12), y:y+Math.random()*8,
+    vy:-(14+Math.random()*22), t:0, max:0.9+Math.random()*0.7, r:1.2+Math.random()*2.2 });
+}
 function fbStepPlayback(dt){
   const p = fbPlay;
+  /* the legend's entrance owns the clock first */
+  if(p.cine > 0){ p.cine -= dt; if(p.cine <= 0){ p.cine = 0; fbSfx("finish",{vol:0.5}); fbRipple(p, 384, 92+((p.R.findIndex(u=>u.legend)<0?0:p.R.findIndex(u=>u.legend))*38), true); } return; }
+  if(p.stop > 0){ p.stop -= dt; return; }
+  if(p.pendEnd){ dt *= 0.35; }
   p.t += dt;
   const ev = p.sim.events;
   while(p.i < ev.length && ev[p.i].t <= p.t){
     const e = ev[p.i++];
     if(e.type==="hit"){
       const key = e.dst + (e.side==="R"?"_R":"_L");
+      const srcKey = e.src + (e.side==="R"?"_L":"_R");
       p.hp[key] = Math.max(0,(p.hp[key]||0) - e.dmg);
-      p.floats.push({ x:0, y:0, key, txt:(e.crit?"✦":"")+"-"+e.dmg, t:0, crit:e.crit, tag:e.tag });
+      p.floats.push({ key, txt:(e.crit?"✦":"")+"-"+e.dmg, t:0, crit:e.crit, tag:e.tag });
+      fbAnim(p, srcKey).lunge = 0.30;
+      fbAnim(p, key).flash = 0.22;
+      const pos = fbKeyPos(p, key);
+      if(pos) fbRipple(p, pos.x, pos.y+16, e.crit);
+      if(e.crit){ p.shake = 6; p.stop = 0.085; fbSfx("snag",{vol:0.4,gap:0.12}); }
+      else fbSfx("give_line",{vol:0.16,gap:0.1});
       p.lastHit = { key, t:p.t };
     }
-    if(e.type==="die") p.deaths[e.dst+(e.side==="R"?"_R":"_L")] = p.t;
+    if(e.type==="die"){
+      const key = e.dst+(e.side==="R"?"_R":"_L");
+      p.deaths[key] = p.t;
+      const pos = fbKeyPos(p, key);
+      if(pos){ fbBubbles(p, pos.x, pos.y, 9); fbRipple(p, pos.x, pos.y+14, true); }
+      p.shake = Math.max(p.shake, 4);
+      fbSfx("splash_big",{vol:0.3,gap:0.2});
+    }
     if(e.type==="dodge") p.floats.push({ key:e.dst+(e.side==="R"?"_R":"_L"), txt:"miss", t:0 });
     if(e.type==="stun") p.floats.push({ key:e.dst+(e.side==="R"?"_R":"_L"), txt:"💫", t:0 });
     if(e.type==="execute") p.floats.push({ key:e.dst+(e.side==="R"?"_R":"_L"), txt:"☠", t:0 });
-    if(e.type==="end"){ fbFinish(e.win); }
+    if(e.type==="rally") p.floats.push({ key:(e.side==="L"?p.L:p.R)[0].name+(e.side==="R"?"_R":"_L"), txt:"⚑ rally", t:0, tag:"rally" });
+    if(e.type==="end"){ p.pendEnd = { win:e.win, at:p.t }; p.shake = Math.max(p.shake, e.win?5:3); }
   }
+  if(p.pendEnd && p.t > p.pendEnd.at + 0.9){ fbFinish(p.pendEnd.win); }
   for(const f of p.floats) f.t += dt;
   p.floats = p.floats.filter(f=>f.t<1.1);
+  for(const k in p.anim){ const a=p.anim[k]; a.lunge=Math.max(0,a.lunge-dt); a.flash=Math.max(0,a.flash-dt); }
+  p.shake = Math.max(0, p.shake - dt*22);
+  /* ambient dressing by floor */
+  const fl = fbArenaFor(p.stage);
+  if(Math.random() < dt*6){
+    const ang = Math.random()*Math.PI*2, rr = Math.random()*140;
+    const x = 320+Math.cos(ang)*rr, y = 165+Math.sin(ang)*rr*0.9;
+    if(fl==="arena9") p.parts.push({ k:"ember", x, y:y+20, vy:-22-Math.random()*16, t:0, max:1.4 });
+    else if(fl==="arena4"||fl==="arena10") p.parts.push({ k:"snow", x, y:y-60, vy:14+Math.random()*8, t:0, max:2.2 });
+    else if(fl==="arena5"||fl==="arena7") p.parts.push({ k:"mote", x, y, vy:-6, t:0, max:2.0, col:"rgba(150,230,140," });
+    else if(fl==="arena6") p.parts.push({ k:"mote", x, y, vy:-6, t:0, max:2.0, col:"rgba(200,150,255," });
+    else p.parts.push({ k:"bub", x, y:y+30, vy:-12-Math.random()*10, t:0, max:1.6, r:1+Math.random()*1.6 });
+  }
+  if(Math.random() < dt*1.6){
+    const team = Math.random()<0.5 ? ["L",p.L] : ["R",p.R];
+    const alive = team[1].map((u,i)=>({u,i})).filter(x=>p.deaths[x.u.name+"_"+team[0]]===undefined);
+    if(alive.length){ const c=alive[(Math.random()*alive.length)|0]; const pos=fbUnitPos(c.i, team[0]); fbRipple(p, pos.x, pos.y+16, false); }
+  }
+  for(const q of p.parts){ q.t += dt; if(q.vy) q.y += q.vy*dt; }
+  p.parts = p.parts.filter(q=>q.t < q.max);
+  for(const sp of p.spect) sp.a += sp.sp*dt;
+  /* ghost hp trails the real bar */
+  for(const k in p.hp){
+    if(p.ghost[k]===undefined) p.ghost[k]=p.hp[k];
+    p.ghost[k] += (p.hp[k]-p.ghost[k]) * Math.min(1, dt*2.2);
+  }
+}
+function fbKeyPos(p, key){
+  const side = key.endsWith("_R") ? "R" : "L";
+  const name = key.slice(0,-2);
+  const team = side==="L" ? p.L : p.R;
+  const idx = team.findIndex(u=>u.name===name);
+  return idx<0 ? null : fbUnitPos(idx, side);
 }
 function fbUnitPos(idx, side){
   const cx = side==="L" ? 258 : 384;
@@ -26302,9 +26554,53 @@ function fbUnitPos(idx, side){
 }
 function fbDrawBattle(g){
   const p = fbPlay;
-  g.fillStyle = "#0c1118"; g.fillRect(0,0,640,330);
+  g.save();
+  if(p.shake > 0) g.translate((Math.random()-0.5)*p.shake, (Math.random()-0.5)*p.shake);
+  g.fillStyle = "#0c1118"; g.fillRect(-8,-8,656,346);
   const bg = fbImg(fbArenaFor(p.stage));
   if(bg && bg.complete) g.drawImage(bg, 160, 5, 320, 320);
+  /* spectators circle the pool rim */
+  g.imageSmoothingEnabled = false;
+  for(const sp of p.spect){
+    const im = sp.art && fbImg(sp.art);
+    if(!(im && im.complete && im.naturalWidth)) continue;
+    const x = 320 + Math.cos(sp.a)*sp.r, y = 165 + Math.sin(sp.a)*sp.r*0.92;
+    const flip = Math.sin(sp.a) >= 0 ? Math.cos(sp.a) < 0 : Math.cos(sp.a) < 0;
+    g.save(); g.globalAlpha = 0.42; g.translate(x, y);
+    if(Math.cos(sp.a) < 0) g.scale(-1,1);
+    const h = 14*(im.naturalHeight/im.naturalWidth);
+    g.drawImage(im, -7, -h/2, 14, Math.min(h,14));
+    g.restore();
+  }
+  /* the water's rule, printed on the rim */
+  if(p.cond){
+    g.globalAlpha = 0.85; g.textAlign = "center";
+    g.font = "700 11px system-ui"; g.fillStyle = "#9fd8ff";
+    g.fillText(`〜 ${p.cond.name} — ${p.cond.line} 〜`, 320, 20);
+    g.globalAlpha = 1;
+  }
+  /* particles under the fighters */
+  for(const q of p.parts){
+    const lt = q.t/q.max;
+    if(q.k==="rip"){
+      g.globalAlpha = (1-lt)*0.55;
+      g.strokeStyle = q.big ? "#cfeaff" : "#9fc8e8"; g.lineWidth = q.big?2:1;
+      g.beginPath(); g.ellipse(q.x, q.y, 6+lt*(q.big?34:18), (6+lt*(q.big?34:18))*0.38, 0, 0, Math.PI*2); g.stroke();
+    } else if(q.k==="bub"){
+      g.globalAlpha = (1-lt)*0.6; g.strokeStyle = "#bfe4ff"; g.lineWidth = 1;
+      g.beginPath(); g.arc(q.x, q.y, q.r, 0, Math.PI*2); g.stroke();
+    } else if(q.k==="ember"){
+      g.globalAlpha = (1-lt)*0.8; g.fillStyle = "#ffab5c";
+      g.fillRect(q.x, q.y, 2.4, 2.4);
+    } else if(q.k==="snow"){
+      g.globalAlpha = (1-lt)*0.7; g.fillStyle = "#e8f4ff";
+      g.fillRect(q.x, q.y, 2, 2);
+    } else if(q.k==="mote"){
+      g.globalAlpha = 1; g.fillStyle = q.col + ((1-lt)*0.5) + ")";
+      g.fillRect(q.x, q.y, 2, 2);
+    }
+    g.globalAlpha = 1;
+  }
   g.textAlign = "center";
   [["L",p.L],["R",p.R]].forEach(([side,team])=>{
     team.forEach((u,idx)=>{
@@ -26312,26 +26608,36 @@ function fbDrawBattle(g){
       const dead = p.deaths[key] !== undefined;
       const dt2 = dead ? Math.min(1,(p.t - p.deaths[key])/0.6) : 0;
       const pos = fbUnitPos(idx, side);
-      const hit = p.lastHit && p.lastHit.key===key && p.t-p.lastHit.t<0.18;
-      const lunge = hit ? (side==="L"?-4:4) : 0;
+      const an = p.anim[key];
+      const lg = an && an.lunge > 0 ? Math.sin((0.30-an.lunge)/0.30*Math.PI) : 0;
+      const lunge = lg * (side==="L" ? 22 : -22);
+      const bob = dead ? 0 : Math.sin(p.t*2.1 + idx*1.7 + (side==="R"?2.6:0)) * 2.4;
+      const sinkY = dead ? dt2*dt2*26 : 0;
+      const rot = dead ? dt2*Math.PI : 0;
       g.save();
-      g.globalAlpha = dead ? 1-dt2 : 1;
+      g.globalAlpha = dead ? Math.max(0, 1-dt2*1.05) : 1;
       const im = u.art ? fbImg(u.art) : null;
       const w = u.legend ? 52 : 40;
+      g.translate(pos.x+lunge, pos.y+bob+sinkY);
+      if(rot) g.rotate(rot);
+      if(an && an.flash > 0){ g.filter = "brightness(2.1)"; }
       if(im && im.complete && im.naturalWidth){
         const h = Math.min(w, w*(im.naturalHeight/im.naturalWidth));
-        if(side==="R"){ g.translate(pos.x+lunge, pos.y); g.scale(-1,1); g.drawImage(im,-w/2,-h/2,w,h); }
-        else g.drawImage(im, pos.x-w/2+lunge, pos.y-((h/2)|0), w, h);
+        if(side==="R"){ g.scale(-1,1); }
+        g.drawImage(im, -w/2, -((h/2)|0), w, h);
       } else {
-        g.font = "26px system-ui"; g.fillText("🐟", pos.x+lunge, pos.y+8);
+        g.font = "26px system-ui"; g.fillText("🐟", 0, 8);
       }
+      g.filter = "none";
       g.restore();
       if(!dead){
         const hp = Math.max(0,(p.hp[key]||0)) / u.maxHp;
-        g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(pos.x-22, pos.y+20, 44, 5);
+        const gh = Math.max(hp, (p.ghost[key]||0) / u.maxHp);
+        g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(pos.x-22, pos.y+bob+20, 44, 5);
+        g.fillStyle = "rgba(255,255,255,.45)"; g.fillRect(pos.x-22, pos.y+bob+20, 44*gh, 5);
         g.fillStyle = hp>0.5 ? "#3ddc84" : hp>0.25 ? "#ffd35c" : "#ff5c5c";
-        g.fillRect(pos.x-22, pos.y+20, 44*hp, 5);
-        if(u.legend){ g.font="10px system-ui"; g.fillText("👑", pos.x, pos.y-26); }
+        g.fillRect(pos.x-22, pos.y+bob+20, 44*hp, 5);
+        if(u.legend){ g.font="10px system-ui"; g.fillText("👑", pos.x, pos.y+bob-26); }
       }
     });
   });
@@ -26349,6 +26655,21 @@ function fbDrawBattle(g){
     g.globalAlpha = 1;
   }
   g.textAlign = "left";
+  /* the legend's entrance: the pool darkens, a great shadow circles */
+  if(p.cine > 0){
+    g.fillStyle = "rgba(6,10,18,0.62)"; g.fillRect(-8,-8,656,346);
+    const ct = 2.0 - p.cine;
+    const ang = ct*3.4, rr = 120 - ct*44;
+    const sx = 320 + Math.cos(ang)*rr, sy = 165 + Math.sin(ang)*rr*0.8;
+    g.fillStyle = "rgba(6,12,20,0.75)";
+    g.beginPath(); g.ellipse(sx, sy, 40+ct*8, 15+ct*3, Math.sin(ang)*0.4, 0, Math.PI*2); g.fill();
+    g.globalAlpha = 0.5+0.3*Math.sin(ct*9);
+    g.textAlign = "center"; g.font = "800 15px system-ui"; g.fillStyle = "#ffd6de";
+    const champ = p.R.find(u=>u.legend);
+    g.fillText(champ ? `👑 ${champ.name} rises…` : "something rises…", 320, 300);
+    g.globalAlpha = 1; g.textAlign = "left";
+  }
+  g.restore();
 }
 function fbFinish(win){
   const p = fbPlay;
@@ -26364,16 +26685,22 @@ function fbFinish(win){
     grantBonusXP && grantBonusXP(rw.xp);
     a.clears[p.stage] = (a.clears[p.stage]||0)+1;
     a.bestStage = Math.max(a.bestStage, p.stage);
-    let itemLine = "";
+    let draftHtml = "";
     if(rw.item){
-      const it = fbRollItem(Math.min(6, 1+Math.floor(p.stage/4)));
-      a.items.push(it);
-      const d = fbItemDef(it);
-      itemLine = `<div class="fb-drop"><img src="${FB_IMG[it.key]}"> ${d.name} T${it.tier} drops!</div>`;
-    }
+      const picks = fbDraftChoices(p.stage);
+      draftHtml = `<div class="fb-draft"><b>The water offers — take one:</b><div class="fb-draftrow">` +
+        picks.map((c,i)=>{
+          if(c.kind==="gold") return `<button class="fb-pick" data-pick="${i}">
+            <span class="pi">🪙</span><b>Credit Purse</b><i>${fbFmt(c.credits)} credits</i></button>`;
+          const d = fbItemDef(c.it);
+          return `<button class="fb-pick" data-pick="${i}">
+            <img src="${FB_IMG[c.it.key]}"><b>${d.name}</b><i>T${c.it.tier} · ${d.line(c.it.tier)}</i></button>`;
+        }).join("") + `</div></div>`;
+      fbPendingDraft = picks;
+    } else fbPendingDraft = null;
     if(p.stage === a.bestStage) a.stage = Math.min(a.stage+1, a.bestStage+1);
     html = `<div class="fb-win">🏆 Ring ${p.stage} cleared!
-      <span>🪙 ${fbFmt(rw.credits)} · ♻️ ${rw.scrap} · ⭐ ${rw.xp} XP</span>${itemLine}
+      <span>🪙 ${fbFmt(rw.credits)} · ♻️ ${rw.scrap} · ⭐ ${rw.xp} XP</span>${draftHtml}
       <button id="fbAgain">Onward</button></div>`;
   } else {
     html = `<div class="fb-loss">💀 The squad is swept.
@@ -26385,7 +26712,21 @@ function fbFinish(win){
     const r = document.getElementById("fbResult");
     if(r){ r.innerHTML = html;
       const b = document.getElementById("fbAgain");
-      if(b) b.onclick = ()=>{ fbPlay=null; document.getElementById("fbCanvas").style.display="none"; renderFlooded(); };
+      if(b) b.onclick = ()=>{ fbPlay=null; fbPendingDraft=null; document.getElementById("fbCanvas").style.display="none"; renderFlooded(); };
+      r.querySelectorAll("[data-pick]").forEach(el => el.onclick = ()=>{
+        if(!fbPendingDraft) return;
+        const c = fbPendingDraft[+el.dataset.pick];
+        fbPendingDraft = null;
+        const a2 = fbState();
+        let toast;
+        if(c.kind==="gold"){ state.credits += c.credits; toast = `🪙 ${fbFmt(c.credits)} pocketed`; }
+        else { a2.items.push(c.it); toast = `${fbItemDef(c.it).name} T${c.it.tier} shelved in the armory`; }
+        fbSfx("reward_good",{vol:0.5});
+        saveState(); renderHeader && renderHeader();
+        const box = r.querySelector(".fb-draft");
+        if(box) box.innerHTML = `<div class="fb-picked">✓ ${toast}</div>`;
+        showToast && showToast(toast);
+      });
     }
   }, 500);
 }

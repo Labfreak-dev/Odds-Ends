@@ -3508,6 +3508,22 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   display:flex; align-items:center; justify-content:center; }
 #feCineWrap canvas{ max-height:96vh; max-width:96vw; height:auto; border-radius:12px;
   box-shadow:0 24px 90px rgba(0,0,0,.7); touch-action:none; }
+/* ---- the bounty board ---- */
+#feBounty{ position:fixed; left:50%; top:14%; transform:translateX(-50%); z-index:10000;
+  width:min(400px, 92vw); padding:0 14px 14px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+.fb-sub{ font:600 11px system-ui; color:#7d8fa3; margin:-2px 0 10px; }
+.fb-row{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 10px; border-radius:10px; margin:6px 0; font:600 12.5px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09); }
+.fb-row.hot{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.fb-row i{ color:#93a5b7; font-style:normal; font-size:11px; }
+.fb-claim{ white-space:nowrap; border-color:#ffd35c !important; color:#ffd35c !important; }
+.fb-wait{ font:700 10.5px system-ui; color:#7d8fa3; white-space:nowrap; }
+.fb-done{ font:700 12px system-ui; color:#7dffb5; }
+.fb-div{ height:1px; background:rgba(255,255,255,.12); margin:10px 0; }
+.fb-dot{ color:#ffd35c; }
 
 /* ===== The Flooded Arena ===== */
 .fb-empty{ text-align:center; padding:60px 20px; font:700 18px system-ui; color:#dfe9f2; }
@@ -23620,6 +23636,12 @@ function feAmbientTick(dt, pal){
 }
 /* The rod buzzes: a tap on the bite, then pulses through the fight that
    grow longer and closer together the longer the fish stays on. */
+/* the marksman's target: a glowing ring on the water each cast — land
+   the bobber inside for an instant bite and a payout kiss */
+let feAim = null;
+function feAimNew(){
+  feAim = { x: 430 + Math.random()*280, y: 330 + Math.random()*120, ph: Math.random()*6 };
+}
 let feVibePrev = null, feVibeAcc = 0, feFightT = 0;
 function feCanVibe(){
   try{ return !fshInv().vibeOff && typeof navigator !== "undefined" && !!navigator.vibrate; }catch(e){ return false; }
@@ -23627,6 +23649,13 @@ function feCanVibe(){
 function feVibeTick(dt){
   const ph = (typeof fsh !== "undefined" && fsh) ? fsh.phase : null;
   if(ph !== feVibePrev){
+    if(ph === "idle") feAimNew();
+    if(ph === "waiting" && feAim && fsh && Math.hypot(fsh.targetX - feAim.x, fsh.targetY - feAim.y) < 36){
+      fsh.aimHit = true;
+      fsh.waitMs = Math.min(fsh.waitMs, 700);
+      showToast("🎯 Bullseye — something saw it land");
+      fbSfxSafe("perfect", 0.35);
+    }
     if(ph === "bite" && feCanVibe()) try{ navigator.vibrate(35); }catch(e){}
     if(feVibePrev === "reeling"){ feFightT = 0; feVibeAcc = 0; }
     feVibePrev = ph;
@@ -24989,6 +25018,122 @@ function feAwardTT(catchObj, def, rng, force){
 
 /* fshLand, re-based on the original, with the Tide & Tackle award in
    place of the generic pull — payouts, counters, log all unchanged. */
+/* ============== THE BOUNTY BOARD & THE OLD TIMER ==================== */
+function feHash32(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0); }
+function feSpeciesPool(minT, maxT){
+  const out = [];
+  try{ for(let t=minT; t<=maxT; t++) for(const it of (FSH_CATCH[t].items||[])) out.push({ name: Array.isArray(it) ? it[0] : it.name, tier: t }); }catch(e){}
+  return out;
+}
+const FE_RIVALS = ["Old Pete", "Marla Deeplines", "Cutbait Charlie", "Granny Sinker", "The Ferryman"];
+function feBountyState(){
+  const inv = fshInv();
+  const day = new Date().toDateString();
+  if(!inv.bounty || inv.bounty.day !== day){
+    const pool = feSpeciesPool(2, 4);
+    const mk = (i)=>{
+      const h = feHash32(day + "#" + i);
+      const kind = ["species","tier","quality","weather"][h % 4];
+      if(kind === "species" && pool.length){
+        const sp = pool[(h>>>3) % pool.length];
+        const lb = 2 + ((h>>>7) % 18);
+        return { kind, sp: sp.name, lb, txt: `Land a ${sp.name} over ${lb} lb`, cr: 1500 + i*1200, sc: 3 + i*2 };
+      }
+      if(kind === "tier"){
+        const t = 3 + ((h>>>5) % 3);
+        return { kind, t, txt: `Land any ${["","","","Rare","Epic","Legendary"][t]}${t<5?" or better":""} fish`, cr: 1200 + i*1200, sc: 3 + i*2 };
+      }
+      if(kind === "quality") return { kind, txt: "Land a ✨ Fine-or-better quality fish", cr: 1600 + i*1200, sc: 4 + i*2 };
+      const wx = ["rain","fog","overcast"][(h>>>6) % 3];
+      return { kind:"weather", wx, txt: `Land any fish in the ${wx === "overcast" ? "grey" : wx}`, cr: 1400 + i*1200, sc: 3 + i*2 };
+    };
+    inv.bounty = { day, items: [0,1,2].map(i => Object.assign(mk(i), { done:false, claimed:false })) };
+  }
+  const wk = (d => { const o=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-W"+Math.ceil(((d-o)/864e5+o.getDay()+1)/7); })(new Date());
+  if(!inv.week || inv.week.id !== wk){
+    const h = feHash32(wk);
+    const pool = feSpeciesPool(4, 5);
+    const sp = pool.length ? pool[(h>>>4) % pool.length] : { name:"Bull Shark" };
+    inv.week = { id: wk, rival: FE_RIVALS[h % FE_RIVALS.length], rivalFish: sp.name,
+                 rivalLb: +(24 + (h % 460)/10).toFixed(1), best: null, claimed: false };
+  }
+  return inv;
+}
+function feBountyCheck(c, d){
+  try{
+    const inv = feBountyState();
+    let struck = false;
+    for(const b of inv.bounty.items){
+      if(b.done) continue;
+      const hit =
+        (b.kind === "species" && c.name === b.sp && c.weightLb >= b.lb) ||
+        (b.kind === "tier"    && d.tier >= b.t) ||
+        (b.kind === "quality" && (c.q||0) >= 1) ||
+        (b.kind === "weather" && typeof feEnv !== "undefined" && feEnv.weather === b.wx);
+      if(hit){ b.done = true; struck = true; }
+    }
+    if(struck){ showToast("📜 Bounty struck — claim it at the board!"); fbSfxSafe("reward_good", 0.4); }
+    if(!c.boss && d.tier >= 3){
+      if(!inv.week.best || c.weightLb > inv.week.best.lb)
+        inv.week.best = { name: c.name, lb: c.weightLb };
+    }
+  }catch(e){}
+}
+function feBountyBadge(){
+  try{
+    const inv = feBountyState();
+    return inv.bounty.items.some(b => b.done && !b.claimed) ||
+           (!inv.week.claimed && inv.week.best && inv.week.best.lb > inv.week.rivalLb);
+  }catch(e){ return false; }
+}
+function feBountyOpen(){
+  let m = document.getElementById("feBounty");
+  if(m){ m.remove(); return; }
+  const inv = feBountyState();
+  m = document.createElement("div");
+  m.id = "feBounty";
+  const rows = inv.bounty.items.map((b,i)=>{
+    const st = b.claimed ? `<span class="fb-done">✔ claimed</span>`
+      : b.done ? `<button class="fe-secbtn fb-claim" data-claim="${i}">CLAIM 🪙${b.cr.toLocaleString()} · ♻️${b.sc}</button>`
+      : `<span class="fb-wait">🪙${b.cr.toLocaleString()} · ♻️${b.sc}</span>`;
+    return `<div class="fb-row ${b.done&&!b.claimed?"hot":""}"><span>${b.txt}</span>${st}</div>`;
+  }).join("");
+  const W = inv.week;
+  const beat = W.best && W.best.lb > W.rivalLb;
+  const wkRow = W.claimed
+    ? `<div class="fb-row"><span>🏆 Record beaten this week — the water remembers.</span><span class="fb-done">✔</span></div>`
+    : `<div class="fb-row ${beat?"hot":""}">
+        <span>🏆 <b>${W.rival}</b> posted a <b>${W.rivalLb} lb ${W.rivalFish}</b>.<br>
+        <i>Your best: ${W.best ? `${W.best.lb} lb ${W.best.name}` : "— nothing on the board yet"}</i></span>
+        ${beat ? `<button class="fe-secbtn fb-claim" data-wk="1">CLAIM 🪙6,000 · ♻️12</button>` : `<span class="fb-wait">beat it</span>`}</div>`;
+  m.innerHTML = `<div class="fej-head"><b>📜 The Bounty Board</b><button class="fe-secx" id="feBX">✕</button></div>
+    <div class="fb-sub">Three marks a day. A rival record a week. The board resets with the sun.</div>
+    ${rows}<div class="fb-div"></div>${wkRow}`;
+  document.body.appendChild(m);
+  document.getElementById("feBX").onclick = ()=> m.remove();
+  m.querySelectorAll("[data-claim]").forEach(el => el.onclick = ()=>{
+    const b = inv.bounty.items[+el.dataset.claim];
+    if(!b.done || b.claimed) return;
+    b.claimed = true;
+    state.credits += b.cr; state.fishing.totalCredits = (state.fishing.totalCredits||0) + b.cr;
+    state.scrap = (state.scrap||0) + b.sc;
+    fbSfxSafe("finish", 0.5); saveState();
+    try{ renderHeader(); }catch(e){}
+    showToast(`📜 Bounty paid — 🪙${b.cr.toLocaleString()}`);
+    m.remove(); feBountyOpen();
+  });
+  const wb = m.querySelector("[data-wk]");
+  if(wb) wb.onclick = ()=>{
+    if(inv.week.claimed) return;
+    inv.week.claimed = true;
+    state.credits += 6000; state.scrap = (state.scrap||0) + 12;
+    fbSfxSafe("perfect", 0.5); saveState();
+    try{ renderHeader(); }catch(e){}
+    showToast(`🏆 ${inv.week.rival} tips his hat. 🪙6,000`);
+    m.remove(); feBountyOpen();
+  };
+}
+
 /* heal saves poisoned by a NaN-credits log entry (NaN -> null in JSON) */
 try{
   const fl = state && state.fishing && state.fishing.log;
@@ -25011,13 +25156,13 @@ try{
     }
   }
 }catch(e){}
-const FE_TEST_EVERY5 = true;   /* TESTING: every fifth landed fish becomes
+let FE_TEST_EVERY5 = true;   /* TESTING: every fifth landed fish becomes
                                   the Rooster King's true-form fight.
                                   Flip to false to retire the test hook. */
 function fshLand(){
   /* landing the Rooster King is not the end — it is the reveal */
   let c0 = fsh && fsh.catch;
-  if(FE_TEST_EVERY5 && c0 && !c0.boss){
+  if(FE_TEST_EVERY5 && c0 && !c0.boss && !c0.boxNeed){
     const inv = fshInv();
     inv.testN = (inv.testN || 0) + 1;
     if(inv.testN % 5 === 0){
@@ -25056,10 +25201,22 @@ function fshLand(){
   const wasBest = !state.fishing.best || c.weightLb > state.fishing.best.weightLb;
 
   const roll = (a,b)=> a + Math.random()*(b-a);
-  const credits = Math.round(roll(d.cr[0], d.cr[1]) * c.sizeRoll * st.lootMult * (c.valueMult||1));
+  let credits = Math.round(roll(d.cr[0], d.cr[1]) * c.sizeRoll * st.lootMult * (c.valueMult||1));
   const scrap = Math.round(roll(d.scrap[0], d.scrap[1]) * st.lootMult);
   const rep = Math.round(d.rep * c.sizeRoll * st.lootMult);
+  /* the quality roll: every fish has a finish. Perfect ones shimmer. */
+  if(!c.boss && !c.boxNeed){
+    const qr = Math.random();
+    c.q = qr < 0.01 ? 3 : qr < 0.08 ? 2 : qr < 0.30 ? 1 : 0;
+    credits = Math.round(credits * [1, 1.35, 1.9, 3][c.q]);
+  }
   const chips = [`🪙 ${credits.toLocaleString()} Credits`];
+  if(fsh.aimHit && !c.boxNeed){ credits = Math.round(credits * 1.15); chips.push("🎯 Bullseye ×1.15"); }
+  if(c.q) chips.push(["","✨ FINE quality ×1.35","�a PRISTINE ×1.9","🌟 PERFECT ×3 — it shimmers"][c.q].replace("�a","💎"));
+  if(c.q && state.fishing.journal[c.name]){
+    const J = state.fishing.journal[c.name];
+    if(!(J.q >= c.q)) J.q = c.q;
+  }
 
   state.credits += credits;
   if(firstCatch) setTimeout(()=>feSound("perfect", { vol: 0.5 }), 650);
@@ -25121,6 +25278,7 @@ function fshLand(){
   f.log = f.log || [];
   f.log.unshift({ name:c.name, icon:c.icon, tier:d.tier, lb:c.weightLb,
                   credits: (Number.isFinite(credits) ? credits : 0) });
+  feBountyCheck(c, d);
   if(f.log.length > 12) f.log.pop();
 
   recomputePlayerXP();
@@ -25171,6 +25329,7 @@ function feRenderSpots(){
       </div>
     <div class="fe-secrow">
       <button id="feJournalBtn" class="fe-secbtn">📖 Journal <i>${feJournalCount()}/${feSpeciesTotal()}</i></button>
+      <button id="feBountyBtn" class="fe-secbtn">📜 Bounties${feBountyBadge() ? " <b class=\"fb-dot\">●</b>" : ""}</button>
       <button class="fe-secbtn" data-sec="stats">📊 Stats</button>
       <button class="fe-secbtn" data-sec="bucket">🪣 Bucket</button>
       <button class="fe-secbtn" data-sec="equip">🧰 Equipment</button>
@@ -25178,6 +25337,8 @@ function feRenderSpots(){
   if(html !== feSpotHtml){
     feSpotHtml = html;
     row.innerHTML = html;
+    const bBtn = row.querySelector("#feBountyBtn");
+    if(bBtn) bBtn.onclick = ()=>{ feAudioUnlock(); feBountyOpen(); };
     const jBtn = row.querySelector("#feJournalBtn");
     if(jBtn) jBtn.onclick = ()=>{ feAudioUnlock(); feSound("box_open",{vol:0.35}); feJournalOpen = !feJournalOpen; feRenderJournal(); };
     row.querySelectorAll("[data-sec]").forEach(b => b.onclick = ()=> feSecOpen(b.dataset.sec));
@@ -25514,6 +25675,16 @@ function fshDrawSky(g){
   g.restore();
   /* everything after the sky lives on the band */
   g.translate(0, FE_OFF);
+  /* the marksman's ring, while the cast is still yours to make */
+  if(feAim && fsh && (fsh.phase === "idle" || fsh.phase === "charging" || fsh.phase === "casting")){
+    const pu = 0.6 + 0.4*Math.sin(fshT*3 + feAim.ph);
+    g.globalAlpha = 0.5 * pu;
+    g.strokeStyle = "#ffd35c"; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(feAim.x, feAim.y, 34, 13, 0, 0, 7); g.stroke();
+    g.globalAlpha = 0.3 * pu;
+    g.beginPath(); g.ellipse(feAim.x, feAim.y, 20, 7.6, 0, 0, 7); g.stroke();
+    g.globalAlpha = 1;
+  }
 }
 function fshDrawReflection(g){ /* the painting carries its own mirror */ }
 const feManMatteImg = new Image();
@@ -25793,6 +25964,7 @@ function feDrawPropFx(g){
 let feDockPatch = null;
 function feRedrawDockBand(g){
   if(!fshBgReady) return;
+  feDrawTrophies._want = true;
   /* the water shimmer draws across everything in the band — stamp the
      painted dock back on top before dressing it */
   if(!feDockPatch){
@@ -25819,6 +25991,39 @@ function feRedrawDockBand(g){
   g.fillStyle = "#d9b47e"; g.fillRect(0, deck, 240, 2.4);
   g.fillStyle = "rgba(255,235,190,0.3)"; g.fillRect(0, deck, 240, 1);
   g.fillStyle = "rgba(0,0,0,0.25)"; g.fillRect(0, deck+2.4, 240, 2);
+}
+let feTrophyCache = null;
+function feTrophies(){
+  if(feTrophyCache) return feTrophyCache;
+  try{
+    const J = state.fishing.journal || {};
+    feTrophyCache = Object.keys(J)
+      .map(n => ({ n, lb: J[n].best || 0 }))
+      .filter(x => x.lb >= 8)
+      .sort((a,b) => b.lb - a.lb)
+      .slice(0, 3);
+  }catch(e){ feTrophyCache = []; }
+  return feTrophyCache;
+}
+function feDrawTrophies(g){
+  /* the biggest three hang mounted on the dock's front — the wall of
+     personal bests every visitor sees first */
+  const T = feTrophies();
+  for(let i=0; i<T.length; i++){
+    const x = 34 + i*66, y = 352;
+    g.fillStyle = "#5d4128"; 
+    g.beginPath(); g.roundRect ? g.roundRect(x-24, y-14, 48, 30, 4) : g.rect(x-24, y-14, 48, 30); g.fill();
+    g.strokeStyle = "#8a6a45"; g.lineWidth = 1.4; g.strokeRect(x-22, y-12, 44, 26);
+    const art = typeof feSpeciesArt === "function" ? feSpeciesArt(T[i].n) : null;
+    const im = art && typeof feImg === "function" ? feImg(art) : null;
+    if(im && im.complete && im.naturalWidth){
+      const w = 34, h = Math.min(20, w*(im.naturalHeight/im.naturalWidth));
+      g.drawImage(im, x-w/2, y-4-h/2, w, h);
+    }
+    g.fillStyle = "#d9c9a8"; g.font = "700 6.5px system-ui"; g.textAlign = "center";
+    g.fillText(T[i].lb + " lb", x, y+12);
+  }
+  g.textAlign = "left";
 }
 function feDrawProps(g){
   const pr = feProps();
@@ -25862,6 +26067,7 @@ function feDrawProps(g){
       g.globalAlpha = 1;
     }
   }
+  feDrawTrophies(g);
 }
 
 /* Stats, re-based on the original, with dock comforts stacked in after
@@ -26276,7 +26482,7 @@ function feRenderJournal(){
     <div class="fej-body">${rows}</div>`;
   document.getElementById("fejClose").onclick = ()=>{ feJournalOpen = false; feRenderJournal(); };
 }
-function feJournalRecord(name, weightLb){
+function feJournalRecord(name, weightLb){ feTrophyCache = null;
   const J = feJournal();
   let first = false;
   if(!J[name]){ J[name] = { n:0, best:0, first: Date.now() }; first = true; }
@@ -26453,6 +26659,8 @@ function feCineImg(k){
 function feCineStart(bossName){
   if(feCine.active) return;
   const cfg = FE_CINE_BOSSES[bossName] || FE_CINE_BOSSES["The Rooster King"];
+  let hard = 0;
+  try{ hard = Math.min(3, (feBossState().bossJournal[bossName] || {}).hard || 0); }catch(e){}
   feAudioUnlock();
   const wrap = document.createElement("div");
   wrap.id = "feCineWrap";
@@ -26462,7 +26670,7 @@ function feCineStart(bossName){
       padding:13px 34px; border-radius:14px; border:1px solid #ffd35c; cursor:pointer;
       background:rgba(20,14,6,.85); color:#ffd35c; font:800 17px system-ui;">⚔️ FIGHT</button></div>`;
   document.body.appendChild(wrap);
-  feCine = { active:true, wrap, cfg, t:0, phase:"leap", hp:100, stress:0, round:0,
+  feCine = { active:true, wrap, cfg, hard, boss:bossName, t:0, phase:"leap", hp:100, stress:0, round:0,
              ring:null, flash:0, shake:0, bolt:0, boltT:0, floats:[], last:0, cache:feCine.cache };
   fbSfxSafe("splash_big", 0.6);
   const cv = document.getElementById("feCineCv");
@@ -26493,12 +26701,13 @@ function feCineStart(bossName){
 function fbSfxSafe(k,v){ try{ if(typeof FE_SFX!=="undefined" && FE_SFX[k]) feSound(k,{vol:v}); }catch(e){} }
 function feSigNew(C){
   const t = C.cfg.sig;
-  if(t === "mash")   C.sig = { type:t, bar:0, tl:3.6 };
-  if(t === "swipe")  C.sig = { type:t, dir:["⬅","➡","⬆","⬇"][(Math.random()*4)|0], tl:3.0, sx:0, sy:0 };
+  const hm = 1 - 0.12 * (C.hard || 0);
+  if(t === "mash")   C.sig = { type:t, bar:0, tl:3.6*hm };
+  if(t === "swipe")  C.sig = { type:t, dir:["⬅","➡","⬆","⬇"][(Math.random()*4)|0], tl:3.0*hm, sx:0, sy:0 };
   if(t === "hold")   C.sig = { type:t, v:0, holding:false, tl:6.0, done:false };
-  if(t === "multi")  C.sig = { type:t, next:1, tl:3.4,
+  if(t === "multi")  C.sig = { type:t, next:1, tl:3.4*hm,
     pts:[0,1,2].map(i=>({ n:i+1, x:90+Math.random()*290, y:170+Math.random()*330, hit:false })) };
-  if(t === "vanish") C.sig = { type:t, dark:0.9, win:0, x:80+Math.random()*310, y:170+Math.random()*330 };
+  if(t === "vanish") C.sig = { type:t, dark:0.9, win:0, hm, x:80+Math.random()*310, y:170+Math.random()*330 };
 }
 function feCineHit(txt){
   const C = feCine;
@@ -26519,11 +26728,17 @@ function feCineFail(){
 }
 function feCineDown(x, y){
   const C = feCine;
+  if(C.phase === "leap"){
+    /* the thirtieth viewing has earned a fast-forward */
+    C.t = C.cfg.leapDur + 0.01;
+    return;
+  }
   if(C.phase !== "fight") return;
   if(C.mode === "ring"){
     if(!C.ring) return;
     const r = C.ring.r;
-    if(r >= 28 && r <= 56) feCineHit();
+    const lo = 28 + C.hard*2.5, hi = 56 - C.hard*3;
+    if(r >= lo && r <= hi) feCineHit();
     else feCineFail();
     return;
   }
@@ -26597,17 +26812,17 @@ function feCineFrameBody(ts){
     if(S && S.type === "mash"){ S.bar = Math.max(0, S.bar - dt*0.34); }
     if(S && S.type === "hold" && S.holding){ S.v += dt*0.42; if(S.v > 0.97){ S.holding=false; feCineFail(); } }
     if(S && S.type === "vanish"){
-      if(S.dark > 0){ S.dark -= dt; if(S.dark <= 0){ S.win = 0.85; fbSfxSafe("splash_big", 0.3); } }
+      if(S.dark > 0){ S.dark -= dt; if(S.dark <= 0){ S.win = 0.85 * (S.hm || 1); fbSfxSafe("splash_big", 0.3); } }
       else if(S.win > 0){ S.win -= dt; if(S.win <= 0) feCineFail(); }
     }
   }
   if(C.phase === "fight" && C.mode === "ring"){
     if(!C.ring && C.t > 0.55){
       C.round++;
-      C.ring = { x: 120 + Math.random()*230, y: 200 + Math.random()*260, r: 130 };
+      C.ring = { x: 120 + Math.random()*230, y: 200 + Math.random()*260, r: 130, sp: 96 * (1 + 0.22*C.hard) };
     }
     if(C.ring){
-      C.ring.r -= dt * 96;
+      C.ring.r -= dt * (C.ring.sp || 96);
       if(C.ring.r < 22) feCineMiss(), C.t = 0;
       else if(!C.ring) C.t = 0;
     }
@@ -26661,7 +26876,15 @@ function feCineDraw(){
       g.fillText(C.cfg.title, 235, 72);
       g.globalAlpha = 1;
     }
+    if(C.t > 0.8){
+      g.font = "600 11px system-ui"; g.fillStyle = "rgba(255,255,255,0.55)";
+      g.fillText("tap to skip", 235, 686);
+    }
   } else {
+    if(C.hard > 0){
+      g.font = "800 12px system-ui"; g.fillStyle = "#ff8a5c"; g.textAlign = "center";
+      g.fillText("⚔ HARDENED " + ["","I","II","III"][C.hard], 235, 74);
+    }
     g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(60, 26, 350, 13);
     g.fillStyle = C.hp > 50 ? "#ff5c5c" : "#ffd35c";
     g.fillRect(60, 26, 350 * C.hp/100, 13);
@@ -26758,6 +26981,15 @@ function feCineEnd(won){
   if(C.wrap) C.wrap.remove();
   feCine = { active:false, cache:C.cache };
   if(won){
+    try{
+      const BJ = feBossState().bossJournal;
+      const rec = BJ[C.boss] = BJ[C.boss] || {};
+      const prev = rec.hard || 0;
+      rec.hard = Math.min(3, prev + 1);
+      if(fsh && fsh.catch && prev > 0){
+        fsh.catch.weightLb = +(fsh.catch.weightLb * (1 + 0.15*prev)).toFixed(1);
+      }
+    }catch(e){}
     fshLand();                     /* the flag is set — this time he lands */
   } else {
     if(fsh && fsh.catch) fsh.catch._trueForm = 0;

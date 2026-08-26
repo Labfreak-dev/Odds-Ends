@@ -25231,10 +25231,12 @@ function fshLand(){
       if(roster[cycle].name === inv.lastCineBoss) cycle = (cycle + 1) % 6;
       const which = roster[cycle];
       inv.lastCineBoss = which.name;
+      const bd = FE_BOSSES.find(b => b.name === which.name);
       fsh.catch = c0 = { name: which.name,
         boss: { name: which.name, art: which.art },
         def: FSH_CATCH[5], icon: "🐟", sizeRoll: 1.25, valueMult: 1,
-        weightLb: +(42 + Math.random()*44).toFixed(1) };
+        weightLb: +(bd ? bd.wLo + Math.random()*(bd.wHi - bd.wLo)
+                       : 42 + Math.random()*44).toFixed(1) };
       showToast("⚡ The line goes HEAVY…");
     }
   }

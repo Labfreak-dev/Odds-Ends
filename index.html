@@ -3485,6 +3485,13 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   color:#dfe9f2; background:rgba(10,16,26,.72); border:1px solid rgba(255,255,255,.22);
   -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
 #feRecall:active{ transform:translateY(1px); }
+/* ---- desktop: the whole scene fits the window, cast button and all.
+   Width is derived from available height at 2:3, centered; on phones
+   the viewport term exceeds 100% and nothing changes. ---- */
+#tab-fishing .fsh-stage{
+  max-width: clamp(340px, calc((100vh - 190px) * 0.6667), 100%);
+  margin-left: auto; margin-right: auto;
+}
 
 /* ===== The Flooded Arena ===== */
 .fb-empty{ text-align:center; padding:60px 20px; font:700 18px system-ui; color:#dfe9f2; }
@@ -24398,10 +24405,12 @@ function fshBindCanvas(){
   if(!cv || cv.dataset.bound) return;
   cv.dataset.bound = "1";
   cv.addEventListener("pointerdown", e=>{
-    e.preventDefault();
     feAudioUnlock();
-    /* capture the pointer so a wobbling thumb can't turn into a scroll
-       gesture and silently give line mid-fight */
+    /* during the fight the canvas owns the pointer — a wobbling thumb
+       must not become a scroll that silently gives line. Any other
+       time, the touch passes through so the page can scroll. */
+    if(!fsh || (fsh.phase !== "bite" && fsh.phase !== "reeling")) return;
+    e.preventDefault();
     try{ cv.setPointerCapture(e.pointerId); }catch(_){}
     feHold(true);
   });
@@ -24409,7 +24418,7 @@ function fshBindCanvas(){
   cv.addEventListener("pointerup", up);
   cv.addEventListener("pointercancel", up);
   cv.addEventListener("pointerleave", up);
-  cv.style.touchAction = "none";
+  cv.style.touchAction = "pan-y";
 }
 function fshBindCastButton(){
   const b = document.getElementById("fshCastBtn");

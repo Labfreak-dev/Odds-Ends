@@ -3488,9 +3488,20 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 /* ---- desktop: the whole scene fits the window, cast button and all.
    Width is derived from available height at 2:3, centered; on phones
    the viewport term exceeds 100% and nothing changes. ---- */
-#tab-fishing .fsh-stage{
-  max-width: clamp(340px, calc((100vh - 190px) * 0.6667), 100%);
-  margin-left: auto; margin-right: auto;
+@media (min-width: 820px){
+  /* desktop only: fit the whole scene to the window */
+  #tab-fishing .fsh-stage{
+    max-width: clamp(340px, calc((100vh - 190px) * 0.6667), 100%);
+    margin-left: auto; margin-right: auto;
+  }
+}
+/* fullscreen: the scene owns the display */
+#tab-fishing .fsh-stage:fullscreen{
+  max-width: none; background: #0a1018;
+  display: flex; align-items: center; justify-content: center;
+}
+#tab-fishing .fsh-stage:fullscreen #fshCanvas{
+  height: 100vh; width: auto; max-width: 100vw; object-fit: contain;
 }
 
 /* ===== The Flooded Arena ===== */
@@ -25083,6 +25094,7 @@ function feRenderSpots(){
       <button id="feSfxChip" class="fe-sfx">${feMuted() ? "🔇" : "🔊"}</button>
       <button id="feMusicChip" class="fe-sfx">${fshInv().musicMute ? "🎵̸" : "🎵"}</button>
       <button id="feMixChip" class="fe-sfx">🎚️</button>
+      <button id="feFullChip" class="fe-sfx" title="full screen">⛶</button>
       </div>
     <div class="fe-secrow">
       <button id="feJournalBtn" class="fe-secbtn">📖 Journal <i>${feJournalCount()}/${feSpeciesTotal()}</i></button>
@@ -25098,6 +25110,15 @@ function feRenderSpots(){
     row.querySelectorAll("[data-sec]").forEach(b => b.onclick = ()=> feSecOpen(b.dataset.sec));
     const mixBtn = row.querySelector("#feMixChip");
     if(mixBtn) mixBtn.onclick = feMixerOpen;
+    const fsBtn = row.querySelector("#feFullChip");
+    if(fsBtn) fsBtn.onclick = ()=>{
+      const stage = document.querySelector("#tab-fishing .fsh-stage");
+      try{
+        if(document.fullscreenElement){ document.exitFullscreen(); }
+        else if(stage && stage.requestFullscreen){ stage.requestFullscreen({ navigationUI:"hide" }).catch(()=>{}); }
+        else if(stage && stage.webkitRequestFullscreen){ stage.webkitRequestFullscreen(); }
+      }catch(e){}
+    };
     const mChip = row.querySelector("#feMusicChip");
     if(mChip) mChip.onclick = ()=>{
       feAudioUnlock();

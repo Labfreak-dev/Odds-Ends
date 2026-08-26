@@ -23637,17 +23637,17 @@ function feDrawGrade(g, pal, hour){
   if(wantSun < 0.45){
     const k = (0.45 - wantSun) * 1.35;
     g.globalCompositeOperation = "multiply";
-    const dg = g.createRadialGradient(731, -40, 10, 731, -40, 235);
+    const dg = g.createRadialGradient(655, 25, 10, 655, 25, 320);
     dg.addColorStop(0, `rgba(${104-k*52|0},${116-k*46|0},${150-k*26|0},${Math.min(0.96,k)})`);
     dg.addColorStop(0.55, `rgba(${140-k*40|0},${150-k*34|0},${175-k*18|0},${Math.min(0.7,k*0.7)})`);
     dg.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = dg; g.fillRect(731-235, -40-235, 470, 470);
+    g.fillStyle = dg; g.fillRect(655-320, 25-320, 640, 640);
     /* second pass in deep night — nothing of it survives the dark */
     if(pal.stars > 0.5){
-      const dg2 = g.createRadialGradient(731, -40, 6, 731, -40, 165);
+      const dg2 = g.createRadialGradient(700, 5, 6, 700, 5, 200);
       dg2.addColorStop(0, `rgba(88,100,138,${0.5*pal.stars})`);
       dg2.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = dg2; g.fillRect(731-165, -40-165, 330, 330);
+      g.fillStyle = dg2; g.fillRect(700-200, 5-200, 400, 400);
     }
     g.globalCompositeOperation = "source-over";
   }
@@ -23901,15 +23901,19 @@ function feDrawAmbient(g, pal){
     }
   }
   /* reeds in the near corner, leaning with the gusts */
+  /* rooted at the tall frame's very bottom now — foreground framing,
+     not stalks sprouting from open water mid-lake */
   const lean = (feWind ? feWind.cur : 0.6);
+  const feBot = 1200 - FE_OFF;
   for(const r of feAgents.reeds){
     const sway = Math.sin(fshT*1.9 + r.ph) * 2.6 * lean + lean*3;
-    g.strokeStyle = "rgba(24,42,32,0.96)"; g.lineWidth = 3;
-    g.beginPath(); g.moveTo(r.x, FSH_H+8);
-    g.quadraticCurveTo(r.x+sway*0.4, FSH_H+8-r.h*0.6, r.x+sway, FSH_H+8-r.h);
+    const h = r.h * 1.45;
+    g.strokeStyle = "rgba(24,42,32,0.96)"; g.lineWidth = 3.6;
+    g.beginPath(); g.moveTo(r.x, feBot+8);
+    g.quadraticCurveTo(r.x+sway*0.4, feBot+8-h*0.6, r.x+sway, feBot+8-h);
     g.stroke();
     g.fillStyle = "rgba(52,42,30,0.97)";
-    g.beginPath(); g.ellipse(r.x+sway, FSH_H+4-r.h, 2.6, 7, sway*0.04, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(r.x+sway, feBot+4-h, 3, 8.4, sway*0.04, 0, 7); g.fill();
   }
 }
 
@@ -25328,12 +25332,7 @@ function fshDrawSky(g){
     g.save(); g.setTransform(2,0,0,2,0,0);
     g.drawImage(fshBgImg, 0, 0, FSH_W, 1200);
     g.restore();
-    /* the painting's reflection still carries the old clutter — cover
-       that strip with clean water borrowed from beside it */
-    g.drawImage(fshBgImg,
-      430*(fshBgImg.naturalWidth/800), 838*(fshBgImg.naturalHeight/1200),
-      302*(fshBgImg.naturalWidth/800), 94*(fshBgImg.naturalHeight/1200),
-      0, 838, 302, 94);
+    feCoverAndBoat(g);
   } else if(typeof fshBackdrop !== "undefined" && fshBackdrop){ g.drawImage(fshBackdrop, 0, 0); }
   /* the animated streak field ends at the old band floor — these keep
      the deep water alive all the way down */
@@ -25345,8 +25344,10 @@ function fshDrawSky(g){
   g.strokeStyle = "rgba(255,255,255,0.10)"; g.lineWidth = 1.6;
   for(const d of fshDrawSky._drift){
     const ox = Math.sin(fshT*0.12 + d.y)*14;
-    g.beginPath(); g.moveTo(((d.x+fshT*d.sp)%860)-30+ox, d.y+FE_OFF-292+292);
-    g.lineTo(((d.x+fshT*d.sp)%860)-30+ox+d.w, d.y);
+    const dx0 = ((d.x+fshT*d.sp)%860)-30+ox;
+    if(dx0 < 440 && d.y > 875 && d.y < 1075){ continue; }  /* keep off the boat */
+    g.beginPath(); g.moveTo(dx0, d.y);
+    g.lineTo(dx0+d.w, d.y);
     g.stroke();
   }
   g.restore();
@@ -25354,7 +25355,140 @@ function fshDrawSky(g){
   g.translate(0, FE_OFF);
 }
 function fshDrawReflection(g){ /* the painting carries its own mirror */ }
-let feManPatch = null;
+let feManPatch = null, feCoverCv = null;
+function feSampleBg(x, y){
+  if(!feSampleBg._cv){
+    const c = document.createElement("canvas");
+    c.width = 800; c.height = 1200;
+    c.getContext("2d").drawImage(fshBgImg, 0, 0, 800, 1200);
+    feSampleBg._cv = c;
+  }
+  const d = feSampleBg._cv.getContext("2d").getImageData(x, y, 1, 1).data;
+  return `rgb(${d[0]},${d[1]},${d[2]})`;
+}
+function feCoverAndBoat(g){
+  /* The painted reflection under the dock carried the old clutter and a
+     few stray stalks. Per the playtester's call: no patched mirrors —
+     a soft-edged cover in the painting's own water colors, and a moored
+     rowboat rocking over it. */
+  if(!feCoverCv){
+    try{
+      const c = document.createElement("canvas");
+      c.width = 330; c.height = 400;   /* covers logical (0,820)-(330,1220) */
+      const cg = c.getContext("2d");
+      const vg = cg.createLinearGradient(0, 0, 0, 400);
+      vg.addColorStop(0, feSampleBg(350, 826));
+      vg.addColorStop(0.35, feSampleBg(350, 960));
+      vg.addColorStop(1, feSampleBg(340, 1195));
+      cg.fillStyle = vg; cg.fillRect(0, 0, 330, 400);
+      /* the painting's water is alive with soft horizontal strokes and
+         faint light shafts — a flat gradient reads as a blur patch, so
+         the same texture is rebuilt here, seeded */
+      const rr = (n)=>{ const v = Math.sin(n*127.1+311.7)*43758.5453; return v-Math.floor(v); };
+      for(let i=0;i<64;i++){
+        const sy = rr(i)*392+4, sx = rr(i+90)*300, sw = 18+rr(i+180)*88;
+        cg.strokeStyle = `rgba(235,248,255,${0.035+rr(i+270)*0.075})`;
+        cg.lineWidth = 1 + rr(i+360)*1.4;
+        cg.beginPath(); cg.moveTo(sx, sy); cg.lineTo(sx+sw, sy); cg.stroke();
+      }
+      for(let i=0;i<7;i++){
+        const bx = 20+rr(i+500)*290, bw = 16+rr(i+560)*30;
+        const sg = cg.createLinearGradient(bx, 0, bx+bw*1.6, 400);
+        sg.addColorStop(0, "rgba(220,240,255,0.05)");
+        sg.addColorStop(0.5, "rgba(220,240,255,0.028)");
+        sg.addColorStop(1, "rgba(220,240,255,0)");
+        cg.fillStyle = sg;
+        cg.save(); cg.translate(bx, 0); cg.transform(1, 0, -0.22, 1, 0, 0);
+        cg.fillRect(0, 0, bw, 400); cg.restore();
+      }
+      /* the stalks climb higher on the far left — a narrow tongue reaches
+         up for them, feathered on its own edges */
+      const tg = cg.createLinearGradient(0, -130, 0, -80);
+      /* (drawn into main canvas space below via a second fill) */
+      cg.globalCompositeOperation = "destination-out";
+      const er = cg.createLinearGradient(252, 0, 330, 0);
+      er.addColorStop(0, "rgba(0,0,0,0)"); er.addColorStop(1, "rgba(0,0,0,1)");
+      cg.fillStyle = er; cg.fillRect(252, 0, 78, 400);
+      const et = cg.createLinearGradient(0, 0, 0, 34);
+      et.addColorStop(0, "rgba(0,0,0,1)"); et.addColorStop(1, "rgba(0,0,0,0)");
+      cg.fillStyle = et; cg.fillRect(0, 0, 380, 34);
+      const eb = cg.createLinearGradient(0, 366, 0, 400);
+      eb.addColorStop(0, "rgba(0,0,0,0)"); eb.addColorStop(1, "rgba(0,0,0,1)");
+      cg.fillStyle = eb; cg.fillRect(0, 366, 380, 34);
+      feCoverCv = c;
+    }catch(e){ feCoverCv = "failed"; }
+  }
+  if(feCoverCv && feCoverCv !== "failed"){
+    g.drawImage(feCoverCv, 0, 820);
+    if(!feCoverCv.tongue){
+      const t2 = document.createElement("canvas");
+      t2.width = 100; t2.height = 150;
+      const tg2 = t2.getContext("2d");
+      const vg2 = tg2.createLinearGradient(0, 0, 0, 140);
+      vg2.addColorStop(0, feSampleBg(140, 696));
+      vg2.addColorStop(1, feSampleBg(120, 836));
+      tg2.fillStyle = vg2; tg2.fillRect(0, 0, 100, 150);
+      const r3 = (n)=>{ const v = Math.sin(n*91.3+77.7)*24634.62; return v-Math.floor(v); };
+      for(let i=0;i<14;i++){
+        const sy = r3(i)*144+3, sx = r3(i+40)*80, sw = 12+r3(i+80)*36;
+        tg2.strokeStyle = `rgba(235,248,255,${0.04+r3(i+120)*0.06})`;
+        tg2.lineWidth = 1 + r3(i+160)*1.2;
+        tg2.beginPath(); tg2.moveTo(sx, sy); tg2.lineTo(sx+sw, sy); tg2.stroke();
+      }
+      tg2.globalCompositeOperation = "destination-out";
+      const te = tg2.createLinearGradient(74, 0, 100, 0);
+      te.addColorStop(0, "rgba(0,0,0,0)"); te.addColorStop(1, "rgba(0,0,0,1)");
+      tg2.fillStyle = te; tg2.fillRect(74, 0, 26, 150);
+      const tt = tg2.createLinearGradient(0, 0, 0, 30);
+      tt.addColorStop(0, "rgba(0,0,0,1)"); tt.addColorStop(1, "rgba(0,0,0,0)");
+      tg2.fillStyle = tt; tg2.fillRect(0, 0, 100, 30);
+      feCoverCv.tongue = t2;
+    }
+    g.drawImage(feCoverCv.tongue, 0, 686);
+  }
+  /* the rowboat, moored and rocking */
+  const t = fshT || 0;
+  const rock = Math.sin(t*0.7)*0.045, bob = Math.sin(t*0.7+1.1)*3.4;
+  g.save();
+  /* nearer than the dock — so bigger than the man, not smaller */
+  g.translate(178, 948 + bob); g.rotate(rock); g.scale(2.6, 2.6);
+  /* mooring rope up to the dock */
+  g.strokeStyle = "rgba(70,52,34,0.9)"; g.lineWidth = 1.8;
+  g.beginPath(); g.moveTo(-58, -8);
+  g.quadraticCurveTo(-72, -34, -64, -62 - bob*0.4);
+  g.stroke();
+  /* hull */
+  const hull = g.createLinearGradient(0, -14, 0, 18);
+  hull.addColorStop(0, "#8a6242"); hull.addColorStop(0.5, "#6e4b2f"); hull.addColorStop(1, "#4e3320");
+  g.fillStyle = hull;
+  g.beginPath();
+  g.moveTo(-66, -10);
+  g.quadraticCurveTo(-70, 10, -46, 16);
+  g.lineTo(48, 16);
+  g.quadraticCurveTo(72, 10, 66, -10);
+  g.quadraticCurveTo(30, -4, 0, -4);
+  g.quadraticCurveTo(-30, -4, -66, -10);
+  g.fill();
+  /* rim light + plank lines */
+  g.strokeStyle = "#caa06c"; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(-66, -10); g.quadraticCurveTo(-30, -4, 0, -4);
+  g.quadraticCurveTo(30, -4, 66, -10); g.stroke();
+  g.strokeStyle = "rgba(40,26,15,0.5)"; g.lineWidth = 1;
+  for(const yy of [2, 8, 13]){ g.beginPath(); g.moveTo(-58+yy*2, yy); g.lineTo(56-yy*2, yy); g.stroke(); }
+  /* bench */
+  g.fillStyle = "#5d3f27"; g.fillRect(-14, -6, 28, 5);
+  /* oars laid across the gunwales */
+  g.strokeStyle = "#7a5a3a"; g.lineWidth = 2.6;
+  g.beginPath(); g.moveTo(-44, -8); g.lineTo(40, -16); g.stroke();
+  g.beginPath(); g.moveTo(-38, -6); g.lineTo(46, -12); g.stroke();
+  g.fillStyle = "#8f6a44";
+  g.beginPath(); g.ellipse(43, -16.5, 8, 3, -0.1, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(49, -12.4, 8, 3, -0.07, 0, 7); g.fill();
+  /* waterline shadow under the hull */
+  g.fillStyle = "rgba(8,20,32,0.30)";
+  g.beginPath(); g.ellipse(0, 17, 66, 7, 0, 0, 7); g.fill();
+  g.restore();
+}
 function fshDrawFisherman(g){
   /* The angler is paint — but the water layers draw after the painting,
      so his patch is stamped back ON TOP here (this runs after foam and
@@ -25370,7 +25504,7 @@ function fshDrawFisherman(g){
     }
     g.drawImage(feManPatch, 238, 200, 120, 232);
   }
-  return { gripX: 287, gripY: 299 };
+  return { gripX: 305, gripY: 305 };
 }
 
 /* -------------- 8b · DOCK COMFORTS: CAUGHT, KEPT, STACKED ----------
@@ -25485,8 +25619,19 @@ function feDrawPropFx(g){
     g.fillStyle = r; g.fillRect(cx-90, cy-90, 180, 180);
   }
 }
+let feDockPatch = null;
 function feRedrawDockBand(g){
   if(!fshBgReady) return;
+  /* the water shimmer draws across everything in the band — stamp the
+     painted dock back on top before dressing it */
+  if(!feDockPatch){
+    const c = document.createElement("canvas");
+    const fx = fshBgImg.naturalWidth/800, fyy = fshBgImg.naturalHeight/1200;
+    c.width = 372; c.height = 176;
+    c.getContext("2d").drawImage(fshBgImg, 0, 542*fyy, 372*fx, 176*fyy, 0, 0, 372, 176);
+    feDockPatch = c;
+  }
+  g.drawImage(feDockPatch, 0, 250, 372, 176);
   /* The tall painting brought the old clutter back with it — bucket,
      thermos, box, sandwich painted straight onto the deck. This strip
      repaints the walkway in clean planks matching the painting's wood,
@@ -25538,12 +25683,6 @@ function feDrawProps(g){
     g.beginPath(); g.ellipse(p.x + dx, baseY - 1, w*0.42, 3.2, 0, 0, 7); g.fill();
     g.globalAlpha = 1;
     g.drawImage(im, p.x - w/2 + dx, baseY - h + pad, w, h);
-    /* and its reflection, mirrored about the water's edge at the dock */
-    g.save();
-    g.globalAlpha = 0.20;
-    g.translate(0, 842); g.scale(1, -1);
-    g.drawImage(im, p.x - w/2 + dx, baseY - h + pad, w, h);
-    g.restore();
     if(p.key === "lantern"){
       /* glass glint by day, so it catches the eye even unlit */
       const tw = 0.5 + 0.5*Math.sin(fshT*2.6);

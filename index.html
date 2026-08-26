@@ -3465,6 +3465,26 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .fe-secx{ width:30px; height:30px; border-radius:50%; cursor:pointer;
   background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
   color:#dfe9f2; font:700 13px system-ui; }
+/* ---- the mixer ---- */
+#feMixer{ position:fixed; left:50%; top:22%; transform:translateX(-50%); z-index:10000;
+  width:min(320px, 88vw); padding:0 16px 16px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+#feMixer .fej-head{ display:flex; align-items:center; justify-content:space-between; }
+#feMixer label{ display:flex; align-items:center; gap:10px; margin:12px 0;
+  font:700 13px system-ui; color:#dfe9f2; }
+#feMixer input[type=range]{ flex:1; accent-color:#7d99ff; }
+#feMixer .fe-secbtn{ width:100%; justify-content:center; margin-top:4px; }
+/* ---- controls at the water's foot ---- */
+#feCtl{ position:absolute; left:0; right:0; bottom:10px; z-index:5;
+  display:flex; flex-direction:column; align-items:center; gap:8px; padding:0 12px; }
+#feCtl .fsh-bars{ background:rgba(8,14,22,.6); border:1px solid rgba(255,255,255,.12);
+  border-radius:12px; padding:9px 12px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+#feCtl .btn.fsh-cast{ width:min(420px, 92%); box-shadow:0 10px 30px rgba(0,0,0,.45); }
+#feRecall{ padding:8px 18px; border-radius:11px; cursor:pointer; font:700 13px system-ui;
+  color:#dfe9f2; background:rgba(10,16,26,.72); border:1px solid rgba(255,255,255,.22);
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+#feRecall:active{ transform:translateY(1px); }
 
 /* ===== The Flooded Arena ===== */
 .fb-empty{ text-align:center; padding:60px 20px; font:700 18px system-ui; color:#dfe9f2; }
@@ -23269,6 +23289,8 @@ function feBuffer(key){
     }catch(e){ fail(); }
   });
 }
+function feSfxVol(){ try{ const v = fshInv().sfxVol; return v===undefined?1:v; }catch(e){ return 1; } }
+function feMusVol(){ try{ const v = fshInv().musicVol; return v===undefined?1:v; }catch(e){ return 1; } }
 function feSound(key, opt){
   opt = opt || {};
   if(feMuted()) return;
@@ -23278,20 +23300,24 @@ function feSound(key, opt){
     if(!buf || feMuted()) return;
     const src = c.createBufferSource(); src.buffer = buf;
     if(opt.rate) src.playbackRate.value = opt.rate;
-    const g = c.createGain(); g.gain.value = opt.vol !== undefined ? opt.vol : 0.8;
+    const g = c.createGain(); g.gain.value = (opt.vol !== undefined ? opt.vol : 0.8) * feSfxVol();
     src.connect(g); g.connect(c.destination); src.start();
   }).catch(()=>{});
 }
 function feLoopStart(key, vol){
-  if(feMuted() || feLoops[key]) return;
+  /* music answers only to the music switch; everything else to the sfx one */
+  const isMus = key.indexOf("music") === 0;
+  const muted = isMus ? (function(){ try{ return !!fshInv().musicMute; }catch(e){ return true; } })() : feMuted();
+  if(muted || feLoops[key]) return;
   const c = feAudioCtx(); if(!c) return;
   feLoops[key] = { pending:true };
   feBuffer(key).then(buf=>{
     if(!buf || !feLoops[key] || feLoops[key].src){ return; }
     const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
-    const g = c.createGain(); g.gain.value = vol !== undefined ? vol : 0.5;
+    const base = vol !== undefined ? vol : 0.5;
+    const g = c.createGain(); g.gain.value = base * (isMus ? feMusVol() : feSfxVol());
     src.connect(g); g.connect(c.destination); src.start();
-    feLoops[key] = { src, g };
+    feLoops[key] = { src, g, base, isMus };
   }).catch(()=>{ delete feLoops[key]; });
 }
 function feLoopStop(key){
@@ -23300,6 +23326,12 @@ function feLoopStop(key){
   if(l.src){ try{ l.src.stop(); }catch(e){} }
 }
 function feAllLoopsStop(){ for(const k in feLoops) feLoopStop(k); }
+function feApplyVols(){
+  for(const k in feLoops){
+    const l = feLoops[k];
+    if(l && l.g) try{ l.g.gain.value = (l.base||0.5) * (l.isMus ? feMusVol() : feSfxVol()); }catch(e){}
+  }
+}
 
 /* ------------------------- 1 · THE CLOCK ---------------------------- */
 const FE_DAY_SECONDS = 480;              // one full day in eight minutes
@@ -23315,8 +23347,8 @@ function feEnvInit(){
 /* Weather is a small Markov machine. Storms are rare, arrive out of
    overcast rather than from nowhere, and always calm back down. */
 const FE_WEATHER_NEXT = {
-  clear:    [["clear",5],["overcast",3],["fog",1.2],["drizzle",1]],
-  overcast: [["clear",3],["drizzle",2.5],["storm",1.4],["overcast",2]],
+  clear:    [["clear",2.4],["overcast",3],["fog",1.9],["drizzle",1.7]],
+  overcast: [["clear",2.2],["drizzle",2.8],["storm",1.9],["overcast",2]],
   drizzle:  [["overcast",3],["clear",2],["storm",1],["drizzle",1.5]],
   fog:      [["clear",4],["overcast",2],["fog",1]],
   storm:    [["drizzle",4],["overcast",3]],
@@ -23553,6 +23585,37 @@ function feAmbientTick(dt, pal){
     if(feFlashNext <= 0){ feFlash = 0.9; feFlashNext = 7 + Math.random()*14; }
   }
   feFlash = Math.max(0, feFlash - dt*2.4);
+  feVibeTick(dt);
+  const rc = document.getElementById("feRecall");
+  if(rc){
+    const want = (typeof fsh !== "undefined" && fsh && fsh.phase === "waiting") ? "" : "none";
+    if(rc.style.display !== want) rc.style.display = want;
+  }
+}
+/* The rod buzzes: a tap on the bite, then pulses through the fight that
+   grow longer and closer together the longer the fish stays on. */
+let feVibePrev = null, feVibeAcc = 0, feFightT = 0;
+function feCanVibe(){
+  try{ return !fshInv().vibeOff && typeof navigator !== "undefined" && !!navigator.vibrate; }catch(e){ return false; }
+}
+function feVibeTick(dt){
+  const ph = (typeof fsh !== "undefined" && fsh) ? fsh.phase : null;
+  if(ph !== feVibePrev){
+    if(ph === "bite" && feCanVibe()) try{ navigator.vibrate(35); }catch(e){}
+    if(feVibePrev === "reeling"){ feFightT = 0; feVibeAcc = 0; }
+    feVibePrev = ph;
+  }
+  if(ph === "reeling"){
+    feFightT += dt; feVibeAcc += dt;
+    const gap = Math.max(0.22, 0.62 - feFightT * 0.018);
+    if(feVibeAcc >= gap){
+      feVibeAcc = 0;
+      if(feCanVibe()){
+        const dur = Math.min(90, 10 + feFightT * 3.4)|0;
+        try{ navigator.vibrate(dur); }catch(e){}
+      }
+    }
+  }
 }
 
 /* ---- the grade pass: everything the clock and the sky do to the painting ---- */
@@ -23574,17 +23637,17 @@ function feDrawGrade(g, pal, hour){
   if(wantSun < 0.45){
     const k = (0.45 - wantSun) * 1.35;
     g.globalCompositeOperation = "multiply";
-    const dg = g.createRadialGradient(640, 52, 10, 640, 52, 205);
+    const dg = g.createRadialGradient(731, -40, 10, 731, -40, 235);
     dg.addColorStop(0, `rgba(${104-k*52|0},${116-k*46|0},${150-k*26|0},${Math.min(0.96,k)})`);
     dg.addColorStop(0.55, `rgba(${140-k*40|0},${150-k*34|0},${175-k*18|0},${Math.min(0.7,k*0.7)})`);
     dg.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = dg; g.fillRect(640-205, 52-205, 410, 410);
+    g.fillStyle = dg; g.fillRect(731-235, -40-235, 470, 470);
     /* second pass in deep night — nothing of it survives the dark */
     if(pal.stars > 0.5){
-      const dg2 = g.createRadialGradient(640, 52, 6, 640, 52, 150);
+      const dg2 = g.createRadialGradient(731, -40, 6, 731, -40, 165);
       dg2.addColorStop(0, `rgba(88,100,138,${0.5*pal.stars})`);
       dg2.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = dg2; g.fillRect(640-150, 52-150, 300, 300);
+      g.fillStyle = dg2; g.fillRect(731-165, -40-165, 330, 330);
     }
     g.globalCompositeOperation = "source-over";
   }
@@ -23608,18 +23671,24 @@ function feDrawGrade(g, pal, hour){
   if(pal.dark > 0){ g.fillStyle = `rgba(10,14,26,${pal.dark})`; g.fillRect(0,-FE_OFF,FSH_W,1200); }
   /* warm hour overlay, biased to the sky and the water's far band */
   if(pal.warm[3] > 0.004){
-    const wg = g.createLinearGradient(0,0,0,FSH_SURF_END);
+    /* the warm wash starts at the true top of the tall sky — starting at
+       the band's y0 stamped a hard seam across the dusk */
+    const wg = g.createLinearGradient(0,-FE_OFF,0,FSH_SURF_END);
     wg.addColorStop(0, `rgba(${pal.warm[0]|0},${pal.warm[1]|0},${pal.warm[2]|0},${pal.warm[3]})`);
     wg.addColorStop(0.55, `rgba(${pal.warm[0]|0},${pal.warm[1]|0},${pal.warm[2]|0},${pal.warm[3]*0.55})`);
     wg.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = wg; g.fillRect(0,0,FSH_W,FSH_SURF_END);
+    g.fillStyle = wg; g.fillRect(0,-FE_OFF,FSH_W,FSH_SURF_END+FE_OFF);
   }
-  if(pal.moon > 0.05 && moon.up){
+  const feRidgeAt = x => (typeof FE_RIDGE !== "undefined" ? FE_RIDGE[Math.max(0,Math.min(100,Math.round(x/8)))] : 200);
+  const moonOcc = Math.max(0, Math.min(1, (feRidgeAt(moon.x) - 6 - moon.y) / 26));
+  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02){
+    g.save(); g.globalAlpha = moonOcc;
     const r = g.createRadialGradient(moon.x, moon.y, 4, moon.x, moon.y, 64);
     r.addColorStop(0, `rgba(210,225,255,${0.34*pal.moon})`); r.addColorStop(1, "rgba(210,225,255,0)");
     g.fillStyle = r; g.fillRect(moon.x-64, moon.y-64, 128, 128);
     g.globalAlpha = pal.moon;
     g.fillStyle = "#eef2fa"; g.beginPath(); g.arc(moon.x, moon.y, 10, 0, 7); g.fill();
+    g.restore();
     g.fillStyle = "rgba(205,214,232,0.5)";                    // maria, faint
     g.beginPath(); g.arc(moon.x-3, moon.y+2, 3, 0, 7); g.arc(moon.x+3.5, moon.y-2.5, 2.2, 0, 7); g.fill();
     g.globalAlpha = 1;
@@ -23682,7 +23751,7 @@ function feDrawGrade(g, pal, hour){
     const P = FE_PROPS.find(p=>p.key==="lantern");
     const dark = 1 - pal.sun/0.35;
     const flick = 0.85 + 0.15*Math.sin(fshT*7.3) * Math.sin(fshT*3.1);
-    const cy = 354 - 15, R = (44 + Math.min(7, feProps().lantern)*3) * flick;
+    const cy = 330 - 15, R = (44 + Math.min(7, feProps().lantern)*3) * flick;
     const gl = g.createRadialGradient(P.x, cy, 2, P.x, cy, R);
     gl.addColorStop(0, `rgba(255,214,130,${0.55*dark})`);
     gl.addColorStop(0.4, `rgba(255,190,100,${0.26*dark})`);
@@ -23691,7 +23760,7 @@ function feDrawGrade(g, pal, hour){
     /* warm pool on the planks */
     g.globalAlpha = 0.3*dark*flick;
     g.fillStyle = "#ffce78";
-    g.beginPath(); g.ellipse(P.x, 297, 26, 5, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(P.x, 330, 26, 5, 0, 0, 7); g.fill();
     g.globalAlpha = 1;
     /* the flame itself, over the tint */
     g.globalAlpha = dark;
@@ -24473,19 +24542,71 @@ function feSectionModals(){
     if(e.target.closest("[data-x]")) feSecOpen(null);
   });
 }
+function feMixerOpen(){
+  let m = document.getElementById("feMixer");
+  if(m){ m.remove(); return; }
+  const inv = fshInv();
+  m = document.createElement("div");
+  m.id = "feMixer";
+  m.innerHTML = `<div class="fej-head"><b>🎚️ Sound &amp; Feel</b><button class="fe-secx" id="feMixX">✕</button></div>
+    <label>🔊 Effects <input id="feMixSfx" type="range" min="0" max="100" value="${Math.round((inv.sfxVol===undefined?1:inv.sfxVol)*100)}"></label>
+    <label>🎵 Music <input id="feMixMus" type="range" min="0" max="100" value="${Math.round((inv.musicVol===undefined?1:inv.musicVol)*100)}"></label>
+    <button id="feMixVibe" class="fe-secbtn">${inv.vibeOff ? "📳 Vibration: off" : "📳 Vibration: on"}</button>`;
+  document.body.appendChild(m);
+  document.getElementById("feMixX").onclick = ()=> m.remove();
+  document.getElementById("feMixSfx").oninput = e => { inv.sfxVol = e.target.value/100; feApplyVols(); saveState(); };
+  document.getElementById("feMixMus").oninput = e => { inv.musicVol = e.target.value/100; feApplyVols(); saveState(); };
+  document.getElementById("feMixVibe").onclick = e => {
+    inv.vibeOff = !inv.vibeOff; saveState();
+    e.target.textContent = inv.vibeOff ? "📳 Vibration: off" : "📳 Vibration: on";
+    if(!inv.vibeOff && feCanVibe()) try{ navigator.vibrate(25); }catch(err){}
+  };
+}
 function feSecOpen(key){
   document.querySelectorAll(".fe-secmodal").forEach(m =>
     m.classList.toggle("show", m.id === "feSec_" + key));
   if(key && typeof feSound === "function"){ feAudioUnlock(); feSound("box_open",{vol:0.3}); }
 }
 
+let feSkyLift = false;
+function feDockControls(){
+  /* the cast button and the fight bars float at the scene's foot, so the
+     action never needs a perfect scroll position */
+  if(document.getElementById("feCtl")) return;
+  const stage = document.querySelector("#tab-fishing .fsh-stage");
+  const btn = document.getElementById("fshCastBtn");
+  const bars = document.getElementById("fshBars");
+  if(!stage || !btn || !bars) return;
+  const ctl = document.createElement("div");
+  ctl.id = "feCtl";
+  const recall = document.createElement("button");
+  recall.id = "feRecall";
+  recall.textContent = "↩️ Reel it in";
+  recall.style.display = "none";
+  recall.onclick = ()=>{
+    if(!fsh || fsh.phase !== "waiting") return;
+    feAudioUnlock(); feSound("land",{vol:0.4}); feSound("splash_big",{vol:0.22});
+    fsh = fshNew();
+    showToast("Reeled in — line's free for another cast");
+  };
+  ctl.appendChild(bars); ctl.appendChild(recall); ctl.appendChild(btn);
+  stage.appendChild(ctl);
+}
 function fshOnEnterTab(){
   feSectionModals();
+  feDockControls();
   fshTabActive = true;
   if(!fshGulls) fshInitScene();
   feEnvInit();
   if(!feStars) feInitAmbient();
   if(!fsh) fsh = fshNew();
+  /* clouds and gulls were born in the old letterboxed sky — lift them
+     into the painting's tall one, once per page life */
+  if(!feSkyLift){
+    feSkyLift = true;
+    try{ for(const c of (fshClouds||[])) if(typeof c.y === "number") c.y -= 205; }catch(e){}
+    try{ for(const gl of (fshGulls||[])){ if(typeof gl.y === "number") gl.y -= 215; if(typeof gl.baseY === "number") gl.baseY -= 215; } }catch(e){}
+  }
   fshStartLoop();
 }
 
@@ -24948,6 +25069,7 @@ function feRenderSpots(){
     <div class="fe-spot-line">${cur.line}${special} · 🎴 ${feTTOwned()}/1000
       <button id="feSfxChip" class="fe-sfx">${feMuted() ? "🔇" : "🔊"}</button>
       <button id="feMusicChip" class="fe-sfx">${fshInv().musicMute ? "🎵̸" : "🎵"}</button>
+      <button id="feMixChip" class="fe-sfx">🎚️</button>
       </div>
     <div class="fe-secrow">
       <button id="feJournalBtn" class="fe-secbtn">📖 Journal <i>${feJournalCount()}/${feSpeciesTotal()}</i></button>
@@ -24961,6 +25083,8 @@ function feRenderSpots(){
     const jBtn = row.querySelector("#feJournalBtn");
     if(jBtn) jBtn.onclick = ()=>{ feAudioUnlock(); feSound("box_open",{vol:0.35}); feJournalOpen = !feJournalOpen; feRenderJournal(); };
     row.querySelectorAll("[data-sec]").forEach(b => b.onclick = ()=> feSecOpen(b.dataset.sec));
+    const mixBtn = row.querySelector("#feMixChip");
+    if(mixBtn) mixBtn.onclick = feMixerOpen;
     const mChip = row.querySelector("#feMusicChip");
     if(mChip) mChip.onclick = ()=>{
       feAudioUnlock();
@@ -24972,7 +25096,7 @@ function feRenderSpots(){
     if(sfxChip) sfxChip.onclick = ()=>{
       feAudioUnlock();
       fshInv().sfxMute = !fshInv().sfxMute;
-      if(feMuted()) feAllLoopsStop();
+      if(feMuted()) for(const k in feLoops){ if(!feLoops[k].isMus) feLoopStop(k); }
       else feSound("train", { vol: 0.42 });   // instant proof your device has sound
       saveState(); feSpotHtml=""; feRenderSpots();
     };
@@ -25204,14 +25328,49 @@ function fshDrawSky(g){
     g.save(); g.setTransform(2,0,0,2,0,0);
     g.drawImage(fshBgImg, 0, 0, FSH_W, 1200);
     g.restore();
+    /* the painting's reflection still carries the old clutter — cover
+       that strip with clean water borrowed from beside it */
+    g.drawImage(fshBgImg,
+      430*(fshBgImg.naturalWidth/800), 838*(fshBgImg.naturalHeight/1200),
+      302*(fshBgImg.naturalWidth/800), 94*(fshBgImg.naturalHeight/1200),
+      0, 838, 302, 94);
   } else if(typeof fshBackdrop !== "undefined" && fshBackdrop){ g.drawImage(fshBackdrop, 0, 0); }
+  /* the animated streak field ends at the old band floor — these keep
+     the deep water alive all the way down */
+  if(!fshDrawSky._drift){
+    fshDrawSky._drift = Array.from({length:24},(_,i)=>({
+      x: (i*127.3)%800, y: 575 + (i*331.7)%560, w: 26+(i*53)%64, sp: 3+(i*29)%11 }));
+  }
+  g.save(); g.setTransform(2,0,0,2,0,0);
+  g.strokeStyle = "rgba(255,255,255,0.10)"; g.lineWidth = 1.6;
+  for(const d of fshDrawSky._drift){
+    const ox = Math.sin(fshT*0.12 + d.y)*14;
+    g.beginPath(); g.moveTo(((d.x+fshT*d.sp)%860)-30+ox, d.y+FE_OFF-292+292);
+    g.lineTo(((d.x+fshT*d.sp)%860)-30+ox+d.w, d.y);
+    g.stroke();
+  }
+  g.restore();
   /* everything after the sky lives on the band */
   g.translate(0, FE_OFF);
 }
 function fshDrawReflection(g){ /* the painting carries its own mirror */ }
+let feManPatch = null;
 function fshDrawFisherman(g){
-  /* the angler is painted into the scene now — only his grip remains */
-  return { x: 288, y: 300 };
+  /* The angler is paint — but the water layers draw after the painting,
+     so his patch is stamped back ON TOP here (this runs after foam and
+     dock), and the rod gets a real grip. */
+  if(fshBgReady){
+    if(!feManPatch){
+      const c = document.createElement("canvas");
+      const fx = fshBgImg.naturalWidth/800, fyy = fshBgImg.naturalHeight/1200;
+      c.width = 240; c.height = 464;
+      const cg = c.getContext("2d");
+      cg.drawImage(fshBgImg, 238*fx, 492*fyy, 120*fx, 232*fyy, 0, 0, 240, 464);
+      feManPatch = c;
+    }
+    g.drawImage(feManPatch, 238, 200, 120, 232);
+  }
+  return { gripX: 287, gripY: 299 };
 }
 
 /* -------------- 8b · DOCK COMFORTS: CAUGHT, KEPT, STACKED ----------
@@ -25328,42 +25487,24 @@ function feDrawPropFx(g){
 }
 function feRedrawDockBand(g){
   if(!fshBgReady) return;
-  const bg = fshBgImg;
-  const fx = bg.naturalWidth/800, fy = bg.naturalHeight/450;
-  /* water behind the shelf: ONE clean slice stretched wide — horizontal
-     banding smears perfectly smooth, where tiling combed. The slice is
-     sampled right beside the band's right edge so the tone matches the
-     seam by construction, and the fill starts at 247 — everything above
-     was already clean water, and the shoreline varies up there. */
-  g.drawImage(bg, 226*fx, 247*fy, 6*fx, 41*fy, 0, 247, 233, 41);
-  /* the dock itself is redrawn: deck, lit rim, and a railed front with
-     the water showing through between the posts — same bones as the
-     painting, without the painted clutter */
-  const deckTop = 320;
-  // water peeking through the railing first
-  g.drawImage(bg, 226*fx, 258*fy, 6*fx, 14*fy, 0, 301, 233, 13);
-  // deck surface — full span first, so no painted sliver survives under the rim
-  g.fillStyle = "#93714b"; g.fillRect(0, deckTop, 233, 12.5);
-  g.fillStyle = "#846442"; g.fillRect(0, deckTop+8, 233, 4.5);
-  // lit rim on top
-  g.fillStyle = "#d9b47e"; g.fillRect(0, deckTop, 233, 2.2);
-  g.fillStyle = "rgba(255,235,190,0.35)"; g.fillRect(0, deckTop, 233, 1);
-  // plank seams along the deck, sparse and soft
-  g.strokeStyle = "rgba(60,42,26,0.35)"; g.lineWidth = 1;
-  for(let x=14; x<233; x+=27){
-    g.beginPath(); g.moveTo(x, deckTop+2.5); g.lineTo(x-2, deckTop+12); g.stroke();
+  /* The tall painting brought the old clutter back with it — bucket,
+     thermos, box, sandwich painted straight onto the deck. This strip
+     repaints the walkway in clean planks matching the painting's wood,
+     and the comforts furnish it from bare. */
+  const top = 252, deck = 331;
+  const pg = g.createLinearGradient(0, top, 0, deck+4);
+  pg.addColorStop(0, "#8a6a45"); pg.addColorStop(0.55, "#7d5c3a"); pg.addColorStop(1, "#6b4c2f");
+  g.fillStyle = pg; g.fillRect(0, top, 240, deck+4-top);
+  g.strokeStyle = "rgba(52,36,22,0.4)"; g.lineWidth = 1;
+  for(let y=top+7; y<deck; y+=9){ g.beginPath(); g.moveTo(0,y); g.lineTo(240,y); g.stroke(); }
+  for(let x=18; x<240; x+=31){
+    g.strokeStyle = "rgba(52,36,22,0.28)";
+    g.beginPath(); g.moveTo(x, top+2); g.lineTo(x-3, deck); g.stroke();
   }
-  // fascia beam under the deck
-  g.fillStyle = "#6b4e33"; g.fillRect(0, deckTop+12, 233, 4);
-  g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(0, deckTop+15, 233, 1);
-  // railing posts with the lake between them
-  for(let x=6; x<233; x+=17){
-    g.fillStyle = "#5d4530"; g.fillRect(x, 301, 5.5, 13);
-    g.fillStyle = "rgba(255,222,170,0.22)"; g.fillRect(x, 301, 1.4, 13);
-  }
-  // bottom stringer
-  g.fillStyle = "#57402a"; g.fillRect(0, 313, 233, 4);
-  g.fillStyle = "rgba(0,0,0,0.22)"; g.fillRect(0, 316, 233, 1);
+  g.fillStyle = "rgba(30,20,12,0.30)"; g.fillRect(0, top, 240, 5);
+  g.fillStyle = "#d9b47e"; g.fillRect(0, deck, 240, 2.4);
+  g.fillStyle = "rgba(255,235,190,0.3)"; g.fillRect(0, deck, 240, 1);
+  g.fillStyle = "rgba(0,0,0,0.25)"; g.fillRect(0, deck+2.4, 240, 2);
 }
 function feDrawProps(g){
   const pr = feProps();
@@ -25386,7 +25527,7 @@ function feDrawProps(g){
     }
     w *= sc;
     const h = w * (im.naturalHeight/im.naturalWidth);
-    const baseY = 354;                   // one shared baseline, 2px over the rim
+    const baseY = 330;                   // bottoms rest right on the deck edge
     /* each sprite's transparent bottom padding (measured at build time)
        is compensated so its VISIBLE base lands exactly on the planks —
        the bedroll alone carries 26% empty rows and used to float */
@@ -25397,6 +25538,12 @@ function feDrawProps(g){
     g.beginPath(); g.ellipse(p.x + dx, baseY - 1, w*0.42, 3.2, 0, 0, 7); g.fill();
     g.globalAlpha = 1;
     g.drawImage(im, p.x - w/2 + dx, baseY - h + pad, w, h);
+    /* and its reflection, mirrored about the water's edge at the dock */
+    g.save();
+    g.globalAlpha = 0.20;
+    g.translate(0, 842); g.scale(1, -1);
+    g.drawImage(im, p.x - w/2 + dx, baseY - h + pad, w, h);
+    g.restore();
     if(p.key === "lantern"){
       /* glass glint by day, so it catches the eye even unlit */
       const tw = 0.5 + 0.5*Math.sin(fshT*2.6);

@@ -26435,14 +26435,33 @@ function feCineStart(){
   feAudioUnlock();
   const wrap = document.createElement("div");
   wrap.id = "feCineWrap";
-  wrap.innerHTML = `<canvas id="feCineCv" width="470" height="705"></canvas>`;
+  wrap.innerHTML = `<div style="position:relative;">
+    <canvas id="feCineCv" width="470" height="705"></canvas>
+    <button id="feCineGo" style="display:none; position:absolute; left:50%; bottom:34px; transform:translateX(-50%);
+      padding:13px 34px; border-radius:14px; border:1px solid #ffd35c; cursor:pointer;
+      background:rgba(20,14,6,.85); color:#ffd35c; font:800 17px system-ui;">⚔️ FIGHT</button></div>`;
   document.body.appendChild(wrap);
   feCine = { active:true, wrap, t:0, phase:"leap", hp:100, stress:0, round:0,
              ring:null, flash:0, shake:0, bolt:0, boltT:0, floats:[], last:0, cache:feCine.cache };
   fbSfxSafe("splash_big", 0.6);
   const cv = document.getElementById("feCineCv");
   cv.addEventListener("pointerdown", e=>{ e.preventDefault(); feCineTap(); });
+  const go = document.getElementById("feCineGo");
+  go.onclick = ()=>{
+    if(!feCine.active) return;
+    feCine.phase = "fight"; feCine.t = 0; go.style.display = "none";
+    feAudioUnlock(); fbSfxSafe("snag", 0.4);
+    feCine.last = 0; requestAnimationFrame(feCineFrame);   /* restart kick */
+  };
   requestAnimationFrame(feCineFrame);
+  /* watchdog: preview panes and background tabs can stall RAF — if no
+     frame lands for 400ms, kick the chain back to life */
+  feCine.dog = setInterval(()=>{
+    if(!feCine.active){ clearInterval(feCine.dog); return; }
+    if(performance.now() - (feCine.wall||0) > 400){
+      feCine.last = 0; requestAnimationFrame(feCineFrame);
+    }
+  }, 420);
 }
 function fbSfxSafe(k,v){ try{ if(typeof FE_SFX!=="undefined" && FE_SFX[k]) feSound(k,{vol:v}); }catch(e){} }
 function feCineTap(){
@@ -26472,15 +26491,24 @@ function feCineMiss(){
 function feCineFrame(ts){
   const C = feCine;
   if(!C.active) return;
+  try{ feCineFrameBody(ts); }catch(e){ requestAnimationFrame(feCineFrame); }
+}
+function feCineFrameBody(ts){
+  const C = feCine;
   if(!C.last) C.last = ts;
   const dt = Math.min(0.05, (ts - C.last)/1000); C.last = ts;
+  C.wall = performance.now();
   C.t += dt;
   C.flash = C.flash > 0 ? Math.max(0, C.flash - dt*2.2) : Math.min(0, C.flash + dt*2.2);
   C.shake = Math.max(0, C.shake - dt*26);
   C.boltT = Math.max(0, C.boltT - dt);
   for(const f of C.floats) f.t += dt;
   C.floats = C.floats.filter(f=>f.t < 1);
-  if(C.phase === "leap" && C.t > 2.7){ C.phase = "fight"; C.t = 0; C.flash = 1.0; C.shake = 10; fbSfxSafe("snag", 0.5); }
+  if(C.phase === "leap" && C.t > 2.7){
+    C.phase = "ready"; C.t = 0; C.flash = 1.0; C.shake = 10; fbSfxSafe("snag", 0.5);
+    const gb = document.getElementById("feCineGo");
+    if(gb) gb.style.display = "block";
+  }
   if(C.phase === "fight"){
     if(!C.ring && C.t > 0.55){
       C.round++;
@@ -26515,7 +26543,7 @@ function feCineDraw(){
     if(b2){ g.globalAlpha = f - (f|0); g.drawImage(b2, 0, 0, 470, 705); g.globalAlpha = 1; }
   } else {
     /* the fury holds one dramatic still; the fight lives in overlays */
-    const key = (C.phase === "defeat") ? "ko" : "hero";
+    const key = (C.phase === "defeat") ? "ko" : "hero";   /* ready + fight + escape share the hero */
     const im = feCineImg(key);
     const zm = 1 + 0.014*Math.sin(C.t*1.7);
     if(im){ g.save(); g.translate(235, 352); g.scale(zm, zm); g.drawImage(im, -235, -352, 470, 705); g.restore(); }
@@ -26580,6 +26608,7 @@ function feCineDraw(){
 }
 function feCineEnd(won){
   const C = feCine;
+  if(C.dog) clearInterval(C.dog);
   if(C.wrap) C.wrap.remove();
   feCine = { active:false, cache:C.cache };
   if(won){

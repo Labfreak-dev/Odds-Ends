@@ -24589,6 +24589,7 @@ function feMixerOpen(){
   m = document.createElement("div");
   m.id = "feMixer";
   m.innerHTML = `<div class="fej-head"><b>🎚️ Sound &amp; Feel</b><button class="fe-secx" id="feMixX">✕</button></div>
+    <div style="font:600 10px system-ui; color:#5f7288; margin:-4px 0 2px;">scene build B23e · five legends</div>
     <label>🔊 Effects <input id="feMixSfx" type="range" min="0" max="100" value="${Math.round((inv.sfxVol===undefined?1:inv.sfxVol)*100)}"></label>
     <label>🎵 Music <input id="feMixMus" type="range" min="0" max="100" value="${Math.round((inv.musicVol===undefined?1:inv.musicVol)*100)}"></label>
     <button id="feMixVibe" class="fe-secbtn">${inv.vibeOff ? "📳 Vibration: off" : "📳 Vibration: on"}</button>`;
@@ -25020,14 +25021,18 @@ function fshLand(){
     const inv = fshInv();
     inv.testN = (inv.testN || 0) + 1;
     if(inv.testN % 5 === 0){
-      const cycle = ((inv.testN / 5) | 0) % 5;
-      const which = [
+      const roster = [
         { name:"The Rooster King", art:"sp_rooster" },
         { name:"Old Ironjaw", art:"sp_ironjaw" },
         { name:"The Black Phantom", art:"sp_phantom" },
         { name:"The Marsh King", art:"sp_marsh" },
         { name:"The Pale Hunter", art:"sp_pale" },
-      ][cycle];
+      ];
+      let cycle = ((inv.testN / 5) | 0) % 5;
+      /* never the same Legend twice in a row, whatever the save state */
+      if(roster[cycle].name === inv.lastCineBoss) cycle = (cycle + 1) % 5;
+      const which = roster[cycle];
+      inv.lastCineBoss = which.name;
       fsh.catch = c0 = { name: which.name,
         boss: { name: which.name, art: which.art },
         def: FSH_CATCH[5], icon: "🐟", sizeRoll: 1.25, valueMult: 1,

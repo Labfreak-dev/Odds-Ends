@@ -3531,6 +3531,12 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   box-shadow:0 18px 60px rgba(0,0,0,.6); }
 #feChum .fe-secbtn{ width:100%; justify-content:center; margin-top:7px; }
 #feChum .fe-secbtn:disabled{ opacity:.4; cursor:default; }
+/* ---- fullscreen: the stage brings its controls along ---- */
+.fe-fs-host{ display:flex; flex-direction:column; align-items:stretch;
+  background:#0b1016; overflow:hidden; }
+.fe-fs-host .fsh-stage{ flex:0 1 auto; min-height:0; margin-left:0 !important; margin-right:0 !important; }
+.fe-fs-host .fsh-controls{ flex:0 0 auto; padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+  background:transparent; }
 
 /* ---- mining 2: the vein ---- */
 #mineScene.mine-scene, .mine-scene{
@@ -3555,6 +3561,13 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .mgw-btn i{ font-style:normal; color:#93a5b7; }
 .mgw-job{ font:700 12.5px system-ui; color:#ff9a5c; padding:7px 12px; }
 .mgw-dim{ font:600 12px system-ui; color:#7d8fa3; padding:5px 0; }
+.mgw-seams{ gap:6px; }
+.mgw-seam{ position:relative; width:44px; height:44px; padding:4px; border-radius:10px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1.5px solid rgba(255,255,255,.12); }
+.mgw-seam img{ width:100%; height:auto; }
+.mgw-seam.sel{ border-color:#ffd35c; background:rgba(255,211,92,.1); }
+.mgw-seam:disabled{ opacity:.4; cursor:default; }
+.mgw-seam span{ position:absolute; right:2px; bottom:1px; font-size:12px; }
 
 </style>
 </head>
@@ -22380,17 +22393,22 @@ function feVibeTick(dt){
       fbSfxSafe("perfect", 0.35);
     }
     if(ph === "bite" && feCanVibe()) try{ navigator.vibrate(35); }catch(e){}
-    if(feVibePrev === "reeling"){ feFightT = 0; feVibeAcc = 0; }
+    if(feVibePrev === "reeling"){ feFightT = 0; feVibeAcc = 0;
+      if(feCanVibe()) try{ navigator.vibrate(0); }catch(e){} }   /* the line goes quiet */
     feVibePrev = ph;
   }
   if(ph === "reeling"){
     feFightT += dt; feVibeAcc += dt;
-    const gap = Math.max(0.22, 0.62 - feFightT * 0.018);
+    /* one unbroken tremble, refreshed in overlapping windows; the duty
+       cycle climbs with the fight so the rod feels alive in the hand */
+    const gap = 0.24;
     if(feVibeAcc >= gap){
       feVibeAcc = 0;
       if(feCanVibe()){
-        const dur = Math.min(90, 10 + feFightT * 3.4)|0;
-        try{ navigator.vibrate(dur); }catch(e){}
+        const p = Math.min(1, feFightT / 14);              /* full fury by 14s on the hook */
+        const duty = 0.32 + 0.63 * p;
+        const on = Math.round(300 * duty), off = Math.max(8, 300 - on);
+        try{ navigator.vibrate([on, off]); }catch(e){}     /* next window lands before this one ends */
       }
     }
   }
@@ -24118,12 +24136,20 @@ function feRenderSpots(){
     const fsBtn = row.querySelector("#feFullChip");
     if(fsBtn) fsBtn.onclick = ()=>{
       const stage = document.querySelector("#tab-fishing .fsh-stage");
+      const host = stage && stage.parentElement;   /* stage + controls travel together */
       try{
         if(document.fullscreenElement){ document.exitFullscreen(); }
-        else if(stage && stage.requestFullscreen){ stage.requestFullscreen({ navigationUI:"hide" }).catch(()=>{}); }
-        else if(stage && stage.webkitRequestFullscreen){ stage.webkitRequestFullscreen(); }
+        else if(host && host.requestFullscreen){ host.classList.add("fe-fs-host"); host.requestFullscreen({ navigationUI:"hide" }).catch(()=>{ host.classList.remove("fe-fs-host"); }); }
+        else if(host && host.webkitRequestFullscreen){ host.classList.add("fe-fs-host"); host.webkitRequestFullscreen(); }
       }catch(e){}
     };
+    if(!window.__feFsWatch){
+      window.__feFsWatch = true;
+      document.addEventListener("fullscreenchange", ()=>{
+        if(!document.fullscreenElement)
+          document.querySelectorAll(".fe-fs-host").forEach(el => el.classList.remove("fe-fs-host"));
+      });
+    }
     const mChip = row.querySelector("#feMusicChip");
     if(mChip) mChip.onclick = ()=>{
       feAudioUnlock();
@@ -25832,6 +25858,7 @@ state.mining.ore = state.mining.ore || {};
 state.mining.ingots = state.mining.ingots || {};
 state.mining.forge = state.mining.forge || 0;
 state.mining.job = state.mining.job || null;
+state.mining.veinSel = state.mining.veinSel || 0;   /* 0 = the richest unlocked */
 /* the forged pick sharpens the whole operation: +6% rate per forge tier */
 if(typeof currentMineRatePerMin === "function" && !window.__mgWrapped){
   window.__mgWrapped = true;
@@ -25885,12 +25912,18 @@ const mg = {
   t: 0, hp: 20, maxHp: 20, seed: 1, swing: 0, swingT: 99, shake: 0,
   parts: [], floats: [], shards: [], strikeAcc: 0, breaking: 0, glint: 0
 };
-function mgTier(){
+function mgMaxTier(){
   const lvl = (state.player && state.player.level) || 1;
   const th = [1,4,8,13,19,26,34];
   let t = 1;
   for(let i=0;i<7;i++) if(lvl >= th[i]) t = i+1;
   return t;
+}
+/* the miner picks the seam: any unlocked tier — old veins never close */
+function mgTier(){
+  const sel = state.mining && state.mining.veinSel;
+  const mx = mgMaxTier();
+  return sel ? Math.min(sel, mx) : mx;
 }
 function mgNextUnlock(){
   const lvl = (state.player && state.player.level) || 1;
@@ -26029,7 +26062,7 @@ function mgCaption(){
   const el = document.getElementById("mgCap");
   if(!el) return;
   const t = mgTier(), nx = mgNextUnlock();
-  el.innerHTML = `<b>Tier ${t} Vein</b> — enriched by your collection · <b>Tier ${mgPickTier()} Pick</b> — forged at the smelter below` +
+  el.innerHTML = `<b>Tier ${t} Vein</b>${t < mgMaxTier() ? ` <i>(of ${mgMaxTier()} unlocked — working the old seam for its ore)</i>` : " — enriched by your collection"} · <b>Tier ${mgPickTier()} Pick</b> — forged at the smelter below` +
     (nx ? ` · <i>collection level ${nx.lvl} opens the Tier ${nx.tier} vein</i>` : ` · <i>the richest vein there is</i>`) +
     ` · tap the rock to swing your own pick`;
 }
@@ -26073,9 +26106,27 @@ function mgWorksRender(){
     forge = `<button class="mgw-btn ${have>=c.n?"hot":""}" data-forge="1" ${have>=c.n?"":"disabled"}>
       ⚒️ Forge the Tier ${next} pick — ${c.n}× Tier-${c.t} ingot <i>(${have}/${c.n})</i></button>`;
   }
-  el.innerHTML = `${ore||ing ? `<div class="mgw-row">${ore}${ing}</div>` : ""}
+  /* the seam selector: every unlocked vein stays open */
+  const mx = mgMaxTier(), cur = mgTier();
+  let seams = "";
+  for(let t=1;t<=7;t++){
+    const open = t <= mx;
+    seams += `<button class="mgw-seam ${t===cur?"sel":""}" data-seam="${t}" ${open?"":"disabled"}
+      title="${open ? "Work the Tier "+t+" vein" : "Unlocks at collection level "+[1,4,8,13,19,26,34][t-1]}">
+      <img src="${MG_ORES["t"+t].d}">${open?"":"<span>🔒</span>"}</button>`;
+  }
+  el.innerHTML = `<div class="mgw-row mgw-seams">${seams}</div>
+    ${ore||ing ? `<div class="mgw-row">${ore}${ing}</div>` : ""}
     <div class="mgw-row">${smelt}</div>
     <div class="mgw-row">${forge}</div>`;
+  el.querySelectorAll("[data-seam]").forEach(b => b.onclick = ()=>{
+    const t = +b.dataset.seam;
+    if(t > mgMaxTier()) return;
+    state.mining.veinSel = (t === mgMaxTier()) ? 0 : t;   /* picking the top re-follows your progress */
+    mg.hp = mg.maxHp;                                      /* a fresh face on the new seam */
+    try{ saveState(); }catch(e){}
+    mgWorksRender(); mgCaption();
+  });
   el.querySelectorAll("[data-smelt]").forEach(b => b.onclick = ()=>{
     const t = +b.dataset.smelt;
     if((M.ore[t]||0) < MG_SMELT_ORE || M.job) return;

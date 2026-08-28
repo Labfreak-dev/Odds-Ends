@@ -526,16 +526,22 @@ open() outlived a whole location-independence pass; (2) a generated
 artifact committed to the repo can hide a missing SOURCE input
 indefinitely — a build only proves itself from a clean clone; (3)
 committed output doubles as a recovery source for a lost asset.
-TWO THINGS LEFT ALONE, both needing a call: modes/ is a build-time
-COPY of the 16 workshop modules (13MB, byte-identical) that
-docs/test-fishing.js reads, untracked with no .gitignore, so the node
-harness fails on a fresh clone until the build runs — commit it or
-ignore it. And THIS FILE carries a 956-line block duplicated verbatim
-(the old lines 503-1458 repeat at 1466-2421, ~39% of the log); the
-copies are identical line-for-line, so a dedupe is safe but is the
-playtester's call. Verified this batch: 24 once() edits applied, 19/19
-node --check, test-fishing all green, both playwright smokes pass
-(13 fishing checks / 60 spots checks, zero page errors).
+modes/ IS NOW TRACKED, closing the last fresh-clone gap: it is a
+build-time COPY of the 16 workshop modules (13MB, byte-identical to
+workshop/*.module.js) and docs/test-fishing.js reads three files out of
+it, so while it was untracked the node harness ENOENT'd on a fresh
+clone until someone ran the build first. Committing it is what the
+deploy section has always said to do (index.html + oe-*.js + modes/);
+it is duplicated bytes, but the harness is the thing that has to work.
+Checked before committing: all 16 byte-identical to their workshop
+sources, 16/16 node --check, and the set matches integrate.py's
+MODULE_FILES exactly. STILL OPEN, needs a call: THIS FILE carries a
+956-line block duplicated verbatim (lines 539-1494 repeat at
+1502-2457, ~38% of the log); the copies are identical line-for-line so
+a dedupe is safe, but it is the playtester's memory to cut.
+Verified this batch, all re-run inside a fresh clone: 24 once() edits
+applied, 19/19 node --check, test-fishing all green, both playwright
+smokes pass (13 fishing checks / 60 spots checks, zero page errors).
 
 ## Batch 50 — THE WORKSHOP MOVES INTO THE REPO (Claude Code era)
 Prep for playtester driving deploys/tweaks via Claude Code on the

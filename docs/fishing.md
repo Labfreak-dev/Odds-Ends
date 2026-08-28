@@ -536,11 +536,15 @@ it is duplicated bytes, but the harness is the thing that has to work.
 Checked before committing: all 16 byte-identical to their workshop
 sources, 16/16 node --check, and the set matches integrate.py's
 MODULE_FILES exactly. STILL OPEN, needs a call: THIS FILE carries a
-955-line block duplicated verbatim (lines 545-1500 repeat at
-1508-2463, ~38% of the log); the copies are identical line-for-line
-and every one of the 888 distinct lines in the second copy survives in
-the first, so a dedupe loses nothing — but it is the playtester's
-memory to cut.
+956-line block duplicated verbatim — everything from
+'## Batch 50' through '## Batch 17' (68 headings) appears twice, back
+to back, the second copy ending right before '## Batch 16'; that is
+~38% of the log. Anchored on headings ON PURPOSE: this entry lives in
+the file it describes, so absolute line numbers go stale the moment
+anyone edits it (they were cited twice here and were wrong both times).
+The copies are identical line-for-line and all 888 distinct lines of
+the second copy survive in the first, so a dedupe loses nothing — but
+it is the playtester's memory to cut.
 Verified this batch, all re-run inside a fresh clone: 24 once() edits
 applied, 19/19 node --check, test-fishing all green, both playwright
 smokes pass (13 fishing checks / 60 spots checks, zero page errors).

@@ -1,0 +1,172 @@
+/* ---- fishing rebuild: spot picker ---- */
+#feSpotRow{ margin:0 0 10px; }
+.fe-spots{ display:flex; flex-wrap:wrap; gap:6px; }
+.fe-spot{ font:600 12px system-ui; padding:6px 10px; border-radius:9px;
+  border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06);
+  color:#dfe9f2; cursor:pointer; transition:background .15s, border-color .15s; }
+.fe-spot:hover{ background:rgba(255,255,255,.12); }
+.fe-spot.active{ border-color:#3ddc84; background:rgba(61,220,132,.16); color:#c9f7dd; }
+.fe-spot.locked{ opacity:.62; }
+.fe-spot.locked i{ font-style:normal; margin-left:6px; color:#ffd35c; }
+.fe-spot.busy{ cursor:not-allowed; opacity:.55; }
+.fe-spot-line{ margin-top:6px; font:12px/1.5 system-ui; color:#9fb2c2; }
+.fe-spot-line b{ font-weight:700; }
+.rSpr{ width:86px; height:86px; object-fit:contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.45)); }
+/* ---- training on the gear ---- */
+.eq-slot{ cursor:pointer; }
+.eq-train{ display:flex; align-items:center; gap:5px; margin-top:5px;
+  font:11px system-ui; color:#9fb2c2; }
+.eq-train em{ font-style:normal; font-size:11px; }
+.eq-pips{ display:inline-flex; gap:2px; }
+.eq-pips i{ width:5px; height:5px; border-radius:50%;
+  background:rgba(255,255,255,.16); }
+.eq-pips i.on{ background:#3ddc84; }
+.eq-train-btn{ font:600 10.5px system-ui; padding:2px 7px; border-radius:7px;
+  border:1px solid rgba(61,220,132,.45); background:rgba(61,220,132,.12);
+  color:#c9f7dd; cursor:pointer; }
+.eq-train-btn:hover{ background:rgba(61,220,132,.22); }
+.eq-train-btn.poor{ border-color:rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05); color:#8b98a6; }
+.eq-max{ font:700 10px system-ui; color:#ffcf40; }
+.eq-gate{ font:600 10px system-ui; color:#8b98a6; }
+.eq-sec .eq-train{ display:inline-flex; margin:0 0 0 10px; vertical-align:middle; }
+.fe-props{ display:flex; flex-wrap:wrap; gap:6px; }
+.fe-prop{ font:600 11.5px system-ui; padding:5px 9px; border-radius:8px;
+  border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04);
+  color:#8b98a6; }
+.fe-prop.got{ border-color:rgba(255,207,64,.4); background:rgba(255,207,64,.08); color:#f2dfae; }
+.fe-prop b{ color:#ffcf40; }
+.rNoPhoto{ position:absolute; left:0; right:0; bottom:4px; text-align:center;
+  font:600 10px system-ui; color:#9fb2c2; opacity:.85; pointer-events:none; }
+.fe-sfx{ font:12px system-ui; margin-left:8px; padding:1px 7px; border-radius:7px;
+  border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
+  color:#dfe9f2; cursor:pointer; vertical-align:middle; }
+/* ---- the angler's journal ---- */
+#feJournal{ position:fixed; left:4%; right:4%; top:6%; bottom:6%; z-index:9999;
+  display:flex; flex-direction:column;
+  border:1px solid rgba(255,255,255,.16); border-radius:14px;
+  background:rgba(12,17,24,.98); overflow:hidden;
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+.fej-head{ display:flex; align-items:center; gap:10px; padding:10px 14px;
+  font:700 14px system-ui; color:#eef4fa; border-bottom:1px solid rgba(255,255,255,.1); }
+.fej-prog{ font:600 12px system-ui; color:#ffcf40; }
+.fej-x{ margin-left:auto; font:12px system-ui; padding:2px 9px; border-radius:7px;
+  border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:#dfe9f2; cursor:pointer; }
+.fej-body{ flex:1; overflow-y:auto; padding:8px 12px 14px; }
+.fej-tier{ font:700 11.5px system-ui; letter-spacing:.4px; margin:10px 0 6px; text-transform:uppercase; }
+.fej-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:6px; }
+.fej-card{ display:flex; flex-direction:column; gap:2px; padding:7px 9px; border-radius:9px;
+  border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.03); }
+.fej-card b{ font:600 11.5px system-ui; color:#dfe9f2; }
+.fej-card .st{ font:10.5px system-ui; color:#9fb2c2; }
+.fej-card .ic{ font-size:17px; }
+.fej-card .ic.dark{ filter:brightness(0) opacity(.45); }
+.fej-card.got{ background:rgba(61,220,132,.05); }
+.fej-spr{ width:26px; height:26px; object-fit:contain; image-rendering:pixelated; }
+.fe-key{ display:inline-flex; align-items:center; gap:4px; font:600 11.5px system-ui;
+  padding:4px 8px; border-radius:8px; border:1px solid rgba(255,207,64,.35);
+  background:rgba(255,207,64,.07); color:#f2dfae; }
+.fe-key img{ width:16px; height:16px; object-fit:contain; }
+.fe-box{ display:inline-flex; align-items:center; gap:6px; font:600 11.5px system-ui;
+  padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.04); color:#cfd9e4; }
+.fe-box i{ font-style:normal; color:#8b98a6; font-size:10.5px; }
+.fe-box img{ width:30px; height:30px; object-fit:contain; }
+.fe-box img.fe-boxkey{ width:20px; height:20px; }
+/* ---- shore sections as journal-style pop-ups ---- */
+.fe-secrow{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+.fe-secbtn{ display:inline-flex; align-items:center; gap:5px; padding:8px 14px;
+  border-radius:11px; border:1px solid rgba(255,255,255,.16); cursor:pointer;
+  background:rgba(255,255,255,.05); color:#dfe9f2; font:700 12.5px system-ui; }
+.fe-secbtn:hover{ border-color:rgba(255,255,255,.34); }
+.fe-secbtn i{ font-style:normal; color:#8fa0b5; font-weight:600; }
+.fe-secmodal{ position:fixed; left:4%; right:4%; top:7%; bottom:7%; z-index:9999;
+  display:none; flex-direction:column;
+  border:1px solid rgba(255,255,255,.16); border-radius:14px;
+  background:rgba(12,17,24,.98); overflow:hidden;
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+.fe-secmodal.show{ display:flex; }
+.fe-secmodal .fej-head{ display:flex; align-items:center; justify-content:space-between; }
+.fe-secmodal .fe-secbody{ flex:1; overflow-y:auto; padding:10px 14px 16px; }
+.fe-secx{ width:30px; height:30px; border-radius:50%; cursor:pointer;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
+  color:#dfe9f2; font:700 13px system-ui; }
+/* ---- the mixer ---- */
+#feMixer{ position:fixed; left:50%; top:22%; transform:translateX(-50%); z-index:10000;
+  width:min(320px, 88vw); padding:0 16px 16px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+#feMixer .fej-head{ display:flex; align-items:center; justify-content:space-between; }
+#feMixer label{ display:flex; align-items:center; gap:10px; margin:12px 0;
+  font:700 13px system-ui; color:#dfe9f2; }
+#feMixer input[type=range]{ flex:1; accent-color:#7d99ff; }
+#feMixer .fe-secbtn{ width:100%; justify-content:center; margin-top:4px; }
+/* ---- controls at the water's foot ---- */
+#feCtl{ position:absolute; left:0; right:0; bottom:10px; z-index:5;
+  display:flex; flex-direction:column; align-items:center; gap:8px; padding:0 12px; }
+#feCtl .fsh-bars{ background:rgba(8,14,22,.6); border:1px solid rgba(255,255,255,.12);
+  border-radius:12px; padding:9px 12px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+#feCtl .btn.fsh-cast{ width:min(420px, 92%); box-shadow:0 10px 30px rgba(0,0,0,.45); }
+#feRecall{ padding:8px 18px; border-radius:11px; cursor:pointer; font:700 13px system-ui;
+  color:#dfe9f2; background:rgba(10,16,26,.72); border:1px solid rgba(255,255,255,.22);
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+#feRecall:active{ transform:translateY(1px); }
+/* ---- desktop: the whole scene fits the window, cast button and all.
+   Width is derived from available height at 2:3, centered; on phones
+   the viewport term exceeds 100% and nothing changes. ---- */
+@media (min-width: 820px){
+  /* desktop only: fit the whole scene to the window */
+  #tab-fishing .fsh-stage{
+    max-width: clamp(340px, calc((100vh - 190px) * 0.6667), 100%);
+    margin-left: auto; margin-right: auto;
+  }
+}
+/* fullscreen: the scene owns the display */
+#tab-fishing .fsh-stage:fullscreen{
+  max-width: none; background: #0a1018;
+  display: flex; align-items: center; justify-content: center;
+}
+#tab-fishing .fsh-stage:fullscreen #fshCanvas{
+  height: 100vh; width: auto; max-width: 100vw; object-fit: contain;
+}
+/* ---- the true form ---- */
+#feCineWrap{ position:fixed; inset:0; z-index:10001; background:rgba(4,8,14,.88);
+  display:flex; align-items:center; justify-content:center; }
+#feCineWrap canvas{ max-height:96vh; max-width:96vw; height:auto; border-radius:12px;
+  box-shadow:0 24px 90px rgba(0,0,0,.7); touch-action:none; }
+/* ---- the bounty board ---- */
+#feBounty{ position:fixed; left:50%; top:14%; transform:translateX(-50%); z-index:10000;
+  width:min(400px, 92vw); padding:0 14px 14px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+.fb-sub{ font:600 11px system-ui; color:#7d8fa3; margin:-2px 0 10px; }
+.fb-row{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 10px; border-radius:10px; margin:6px 0; font:600 12.5px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09); }
+.fb-row.hot{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.fb-row i{ color:#93a5b7; font-style:normal; font-size:11px; }
+.fb-claim{ white-space:nowrap; border-color:#ffd35c !important; color:#ffd35c !important; }
+.fb-wait{ font:700 10.5px system-ui; color:#7d8fa3; white-space:nowrap; }
+.fb-done{ font:700 12px system-ui; color:#7dffb5; }
+.fb-div{ height:1px; background:rgba(255,255,255,.12); margin:10px 0; }
+.fb-dot{ color:#ffd35c; }
+#feChum{ position:fixed; left:50%; top:18%; transform:translateX(-50%); z-index:10000;
+  width:min(360px, 90vw); padding:0 14px 14px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
+#feChum .fe-secbtn{ width:100%; justify-content:center; margin-top:7px; }
+#feChum .fe-secbtn:disabled{ opacity:.4; cursor:default; }
+/* ---- fullscreen: the stage brings its controls along ---- */
+.fe-fs-host{ display:flex; flex-direction:column; align-items:stretch;
+  background:#0b1016; overflow:hidden; }
+.fe-fs-host .fsh-stage{ flex:0 1 auto; min-height:0; margin-left:0 !important; margin-right:0 !important; }
+.fe-fs-host .fsh-controls{ flex:0 0 auto; padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+  background:transparent; }
+.fe-fs-exit{ position:fixed; top:calc(8px + env(safe-area-inset-top)); right:10px; z-index:12000;
+  width:38px; height:38px; border-radius:50%; cursor:pointer; font:800 16px system-ui;
+  color:#dfe9f2; background:rgba(10,14,20,.75); border:1px solid rgba(255,255,255,.3); }
+#feTackle{ position:fixed; left:50%; top:6%; transform:translateX(-50%); z-index:10000;
+  width:min(560px, 94vw); max-height:86vh; overflow:auto; padding:0 14px 14px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }

@@ -1,0 +1,27 @@
+/* ---- the back room ledger ---- */
+.c2-panel{ border:1px solid rgba(255,211,92,.25) !important; }
+.c2-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:7px 2px; }
+.c2-rname{ font:900 15px system-ui; color:#ffd35c; margin-right:8px; }
+.c2-rank i,.c2-dim{ font:600 11px system-ui; color:#8b9cae; font-style:normal; display:block; }
+.c2-bar{ height:7px; border-radius:4px; background:rgba(255,255,255,.08); margin:5px 0 3px; max-width:340px; }
+.c2-bar div{ height:100%; border-radius:4px; background:#ffd35c; }
+.c2-bar.gold div{ background:linear-gradient(90deg,#19b3a0,#ffd35c); }
+.c2-btn{ padding:7px 12px; border-radius:10px; cursor:pointer; font:800 12px system-ui;
+  color:#dfe9f2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); margin:2px; }
+.c2-btn.hot{ color:#ffd35c; border-color:#ffd35c; background:rgba(255,211,92,.09); }
+.c2-btn:disabled{ opacity:.4; cursor:default; }
+.c2-special,.c2-ff{ font:600 12.5px system-ui; color:#dfe9f2; border-top:1px solid rgba(255,255,255,.07); }
+.c2-prog{ font:800 11.5px system-ui; color:#93a5b7; }
+.c2-hh{ font:900 12.5px system-ui; letter-spacing:1.5px; color:#eef4fa; margin:8px 0 6px; }
+.c2-hh i{ font:600 11px system-ui; color:#8b9cae; letter-spacing:0; font-style:normal; }
+.c2-stakes{ display:flex; gap:10px; flex-wrap:wrap; }
+.c2-stake{ flex:1 1 180px; padding:9px 10px; border-radius:11px; background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.1); font:800 12.5px system-ui; color:#eef4fa; }
+.c2-stake i{ display:block; font:600 10.5px system-ui; color:#8b9cae; margin:2px 0 6px; font-style:normal; }
+#c2Sheet{ position:fixed; inset:0; z-index:11000; display:flex; align-items:center; justify-content:center; background:rgba(4,7,11,.78); }
+.c2-sheet{ width:min(360px,90vw); max-height:80vh; overflow:auto; border-radius:15px; padding:14px;
+  background:#131b26; border:1px solid rgba(255,255,255,.18); }
+.c2-sh-h{ font:700 13px system-ui; color:#dfe9f2; margin-bottom:9px; }
+.c2-sh-c{ display:block; width:100%; text-align:left; padding:8px 11px; margin:5px 0; border-radius:10px;
+  cursor:pointer; font:700 12.5px system-ui; color:#eef4fa; background:rgba(255,255,255,.05);
+  border:1.5px solid rgba(255,255,255,.14); }

@@ -1,0 +1,37 @@
+/* ---- the grading desk ---- */
+.gr-panel{ margin-bottom:14px; }
+.gr-head{ display:flex; align-items:baseline; gap:10px; font:800 15px system-ui; color:#eef4fa; margin-bottom:8px; flex-wrap:wrap; }
+.gr-head i{ font:600 11.5px system-ui; color:#7d8fa3; font-style:normal; }
+.gr-slots{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.gr-slot{ flex:1 1 220px; padding:9px 11px; border-radius:10px; font:600 12.5px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.gr-slot.empty{ color:#66788c; justify-content:center; }
+.gr-slot.ready{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.gr-crack{ padding:6px 11px; border-radius:9px; cursor:pointer; font:800 11px system-ui;
+  color:#0b0f14; background:#ffd35c; border:none; }
+.gr-handhead,.gr-shelfhead{ font:700 11.5px system-ui; color:#93a5b7; margin:8px 0 6px; }
+.gr-hand{ display:flex; gap:7px; flex-wrap:wrap; }
+.gr-card{ display:flex; flex-direction:column; align-items:center; gap:2px; width:86px; padding:7px 4px;
+  border-radius:10px; cursor:pointer; background:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.14); }
+.gr-card .e{ font-size:22px; } 
+.gr-card .n{ font:700 9.5px system-ui; color:#dfe9f2; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gr-card .f{ font:700 9px system-ui; color:#93a5b7; }
+.gr-dim{ font:600 12px system-ui; color:#7d8fa3; }
+.gr-shelf{ display:flex; gap:6px; flex-wrap:wrap; }
+.gr-slab{ padding:4px 9px; border-radius:8px; font:700 12px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.16); }
+.gr-slab.g10{ border-color:#ffd35c; color:#ffd35c; background:rgba(255,211,92,.1); }
+.gr-slab.g9{ border-color:#b9e0ff; color:#d9efff; }
+#grModal{ position:fixed; inset:0; z-index:11000; display:flex; align-items:center; justify-content:center;
+  background:rgba(4,7,11,.8); }
+.gr-slabbig{ width:min(300px, 84vw); border-radius:16px; padding:18px 16px 16px; text-align:center;
+  background:linear-gradient(180deg,#1a2230,#0d1219); border:2px solid rgba(255,255,255,.22);
+  box-shadow:0 24px 80px rgba(0,0,0,.7); }
+.gr-slabbig.shine{ border-color:#ffd35c; box-shadow:0 0 60px rgba(255,211,92,.35), 0 24px 80px rgba(0,0,0,.7); }
+.gr-slabtop{ font:800 10px system-ui; letter-spacing:2px; color:#93a5b7; }
+.gr-slabemoji{ font-size:52px; margin:10px 0 2px; }
+.gr-slabname{ font:800 14px system-ui; color:#eef4fa; margin-bottom:6px; }
+.gr-grade{ font:900 58px system-ui; color:#ffd35c; line-height:1; }
+.gr-gradelabel{ font:800 12px system-ui; letter-spacing:1.5px; color:#dfe9f2; min-height:16px; margin-top:4px; }
+.gr-close{ margin-top:12px; padding:8px 16px; border-radius:10px; cursor:pointer;
+  font:800 12px system-ui; color:#dfe9f2; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); }

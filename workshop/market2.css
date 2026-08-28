@@ -1,0 +1,55 @@
+/* ---- the salesman's feed ---- */
+.m2-listing{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:11px 8px 10px;
+  border-radius:13px; background:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.12); text-align:center; }
+.m2-listing.sold{ justify-content:center; min-height:150px; opacity:.4; }
+.m2-gone{ font:900 15px system-ui; letter-spacing:2px; color:#7d8fa3; }
+.m2-who{ font:700 10px system-ui; color:#93a5b7; }
+.m2-art{ font-size:34px; margin:2px 0; }
+.m2-name{ font:800 12.5px system-ui; color:#eef4fa; max-width:130px; }
+.m2-band{ font:800 10px system-ui; letter-spacing:1px; }
+.m2-line{ font:600 10.5px system-ui; color:#8b9cae; font-style:italic; min-height:24px; max-width:140px; }
+.m2-buy{ margin-top:4px; padding:6px 13px; border-radius:9px; cursor:pointer;
+  font:800 12px system-ui; color:#ffd35c; background:rgba(255,211,92,.09); border:1px solid #ffd35c88; }
+/* ---- binder selling ---- */
+#m2SellBar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 10px; }
+.m2-sellmode{ padding:7px 13px; border-radius:10px; cursor:pointer; font:800 12px system-ui;
+  color:#dfe9f2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16); }
+.m2-armed .mini-card:not(.locked){ box-shadow:0 0 0 1.5px rgba(255,211,92,.4); cursor:pointer; }
+.m2-selltip{ font:600 11px system-ui; color:#7d8fa3; }
+#m2Listings{ display:flex; gap:6px; flex-wrap:wrap; }
+.m2-live{ padding:4px 9px; border-radius:8px; font:700 11px system-ui; color:#ffe9b0;
+  background:rgba(255,211,92,.07); border:1px solid rgba(255,211,92,.3); }
+#m2Sheet{ position:fixed; inset:0; z-index:11000; display:flex; align-items:center; justify-content:center;
+  background:rgba(4,7,11,.75); }
+.m2-sheet{ width:min(330px,88vw); border-radius:15px; padding:15px;
+  background:#121a24; border:1px solid rgba(255,255,255,.18); box-shadow:0 20px 70px rgba(0,0,0,.65); }
+.m2-sh-head{ font:800 15px system-ui; color:#eef4fa; margin-bottom:3px; }
+.m2-slabchip{ font:800 10px system-ui; color:#ffd35c; border:1px solid #ffd35c; border-radius:6px; padding:1px 6px; }
+.m2-sh-est{ font:600 11.5px system-ui; color:#93a5b7; margin-bottom:10px; }
+.m2-sh-opt{ display:block; width:100%; text-align:left; padding:9px 11px; margin:6px 0; border-radius:10px;
+  cursor:pointer; font:600 12.5px system-ui; color:#dfe9f2; background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.14); }
+.m2-sh-opt i{ font-style:normal; color:#8b9cae; font-size:11px; display:block; }
+.m2-sh-x{ display:block; margin:10px auto 0; padding:6px 14px; border-radius:9px; cursor:pointer;
+  font:700 11.5px system-ui; color:#93a5b7; background:none; border:1px solid rgba(255,255,255,.14); }
+/* ---- the counter ---- */
+.m2-counter{ max-width:430px; margin:0 auto; text-align:center; padding:6px 4px 2px; }
+.m2-visitn{ font:700 10.5px system-ui; color:#66788c; letter-spacing:1px; }
+.m2-visitor{ font:800 14.5px system-ui; color:#eef4fa; margin:4px 0 8px; }
+.m2-bubble{ position:relative; margin:0 auto 12px; padding:10px 14px; max-width:340px;
+  border-radius:14px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  font:600 13px system-ui; color:#dfe9f2; font-style:italic; }
+.m2-bubble:after{ content:""; position:absolute; top:-7px; left:50%; transform:translateX(-50%) rotate(45deg);
+  width:12px; height:12px; background:inherit; border-left:1px solid rgba(255,255,255,.14); border-top:1px solid rgba(255,255,255,.14); }
+.m2-itemrow{ display:flex; align-items:center; justify-content:center; gap:12px; margin:8px 0 4px; text-align:left; }
+.m2-itemrow .m2-art{ font-size:42px; }
+.m2-price{ font:900 19px system-ui; color:#ffd35c; margin:6px 0 12px; }
+.m2-price s{ font:700 13px system-ui; color:#7d8fa3; margin-left:6px; }
+.m2-acts{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.m2-act{ padding:10px 16px; border-radius:12px; cursor:pointer; font:800 13px system-ui;
+  color:#dfe9f2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); }
+.m2-act.buy{ color:#ffd35c; border-color:#ffd35c; background:rgba(255,211,92,.09); }
+.m2-act:disabled{ opacity:.4; cursor:default; }
+.m2-quiet{ text-align:center; font:700 14px system-ui; color:#93a5b7; padding:22px 0; }
+.m2-quiet i{ font:600 11.5px system-ui; color:#66788c; font-style:normal; }
+.m2-sniff{ font:700 10.5px system-ui; color:#ff9a5c; font-style:normal; margin-top:5px; }

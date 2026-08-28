@@ -1,0 +1,167 @@
+/* ============ THE PRESS ============
+   Same dark-slate skin as the rest of the game. The one idea it owns:
+   tiles look like prints stacked on a plate — each one edged in its own
+   rarity colour, carrying the subject it descends from, so a board full
+   of tiles reads as a spread of cards rather than abstract numbers. */
+
+#tab-press .pr-stage{ min-height:440px; }
+
+.pr-eyebrow{
+  display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted);
+}
+.pr-hint{ font-size:12px; color:var(--muted); line-height:1.6; margin:0; }
+
+/* ---- run HUD ---- */
+.pr-hud{ display:flex; gap:26px; flex-wrap:wrap; margin-bottom:16px; }
+.pr-stat{ display:flex; flex-direction:column; gap:2px; }
+.pr-stat b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.pr-stat span{ font-size:10.5px; color:var(--muted); letter-spacing:.04em; }
+
+/* ---- board ---- */
+.pr-boardwrap{ position:relative; max-width:460px; }
+.pr-board{
+  position:relative; width:100%; aspect-ratio:1;
+  background:#12141c; border:1px solid #262b3a; border-radius:var(--radius); padding:8px;
+}
+.pr-cells{
+  position:absolute; inset:8px;
+  display:grid; grid-template-columns:repeat(var(--n),1fr); grid-template-rows:repeat(var(--n),1fr); gap:8px;
+}
+.pr-cell{ background:#191d28; border-radius:10px; }
+
+.pr-tile{
+  position:absolute;
+  width:calc((100% - 16px - (var(--n) - 1) * 8px) / var(--n));
+  height:calc((100% - 16px - (var(--n) - 1) * 8px) / var(--n));
+  left:calc(8px + var(--x) * ((100% - 16px - (var(--n) - 1) * 8px) / var(--n) + 8px));
+  top:calc(8px + var(--y) * ((100% - 16px - (var(--n) - 1) * 8px) / var(--n) + 8px));
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  background:var(--panel2); border:1.5px solid var(--rc); border-radius:10px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.3);
+  overflow:hidden; padding:4px; text-align:center;
+  transition:left .13s cubic-bezier(.3,0,.2,1), top .13s cubic-bezier(.3,0,.2,1);
+}
+.pr-t{ font-size:19px; font-weight:800; color:var(--rc); line-height:1; font-variant-numeric:tabular-nums; }
+.pr-r{ font-size:8px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--rc); opacity:.75; line-height:1.15; }
+.pr-s{
+  font-size:8.5px; color:var(--muted); line-height:1.2; margin-top:2px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.pr-tile.fresh{ animation:prIn .16s ease-out; }
+.pr-tile.merged{ animation:prPop .19s ease-out; z-index:2; }
+@keyframes prIn{ from{ transform:scale(.4); opacity:0; } to{ transform:scale(1); opacity:1; } }
+@keyframes prPop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.14); } 100%{ transform:scale(1); } }
+
+.pr-jam{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(15,17,21,.86); border-radius:var(--radius); text-align:center; padding:20px;
+}
+.pr-jam strong{ display:block; font-size:16px; margin-bottom:5px; }
+.pr-jam span{ font-size:12.5px; color:var(--muted); line-height:1.55; }
+
+/* ---- direction pad ---- */
+.pr-pad{
+  display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(2,40px);
+  gap:6px; margin:16px 0; justify-content:start;
+}
+.pr-dir{
+  background:var(--panel2); border:1px solid #333a52; border-radius:9px; color:var(--text);
+  font-size:16px; cursor:pointer; font-family:inherit; transition:background .12s, border-color .12s;
+}
+.pr-dir:hover{ background:#2b3142; border-color:var(--accent); }
+.pr-dir:active{ transform:scale(.95); }
+.pr-dir[data-d="up"]{ grid-column:2; grid-row:1; }
+.pr-dir[data-d="left"]{ grid-column:1; grid-row:2; }
+.pr-dir[data-d="down"]{ grid-column:2; grid-row:2; }
+.pr-dir[data-d="right"]{ grid-column:3; grid-row:2; }
+
+.pr-foot{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+
+/* ---- hopper ---- */
+.pr-lobby{ display:flex; flex-direction:column; gap:22px; }
+.pr-lede h3{ margin:10px 0 8px; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px; }
+.pr-lede p{ margin:0 0 8px; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:62ch; }
+.pr-safe{
+  border-left:2px solid var(--good); padding-left:11px;
+  color:#9fe4bd !important; font-size:12.5px !important;
+}
+
+.pr-hopper{ background:var(--panel2); border:1px solid #333a52; border-radius:var(--radius); padding:16px; }
+.pr-hophead{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:12px; }
+.pr-hopcount{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.pr-hopcount.ok{ color:var(--good); }
+
+.pr-buckets{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:8px; }
+.pr-bucket{
+  background:var(--panel); border:1px solid #2b3142; border-radius:11px; padding:10px 11px;
+  transition:border-color .15s;
+}
+.pr-bucket.on{ border-color:var(--rc); }
+.pr-bt{ display:flex; align-items:baseline; gap:7px; }
+.pr-bt b{ font-size:15px; font-weight:800; color:var(--rc); font-variant-numeric:tabular-nums; }
+.pr-bt span{ font-size:10.5px; color:var(--muted); line-height:1.25; }
+.pr-bn{ font-size:10.5px; color:var(--muted); margin:3px 0 7px; }
+.pr-bctl{ display:flex; align-items:center; gap:6px; }
+.pr-bctl button{
+  flex:1; background:var(--panel2); border:1px solid #333a52; color:var(--text);
+  border-radius:7px; padding:4px 0; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;
+}
+.pr-bctl button:hover:not(:disabled){ background:#2b3142; border-color:var(--accent); }
+.pr-bctl button:disabled{ opacity:.35; cursor:not-allowed; }
+.pr-bl{ min-width:24px; text-align:center; font-size:12.5px; font-weight:800; font-variant-numeric:tabular-nums; }
+
+.pr-hopfoot{
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid #2b3142;
+}
+.pr-floor{ font-size:12.5px; color:var(--muted); }
+.pr-floor b{ color:var(--text); font-size:15px; margin:0 5px; }
+.pr-worth{ color:var(--muted); }
+.pr-hopbtns{ display:flex; gap:8px; flex-wrap:wrap; }
+.pr-hopbtns .btn{ padding:9px 15px; font-size:13px; }
+
+.pr-empty{
+  background:var(--panel2); border:1px dashed #3a4260; border-radius:var(--radius);
+  padding:22px; text-align:center;
+}
+.pr-empty strong{ display:block; margin-bottom:5px; }
+.pr-empty span{ font-size:12.5px; color:var(--muted); }
+
+/* ---- stats + summary ---- */
+.pr-lobstats{ display:flex; gap:28px; flex-wrap:wrap; }
+.pr-lobstats div{ display:flex; flex-direction:column; gap:3px; }
+.pr-lobstats b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.pr-lobstats div>span{ font-size:10.5px; color:var(--muted); letter-spacing:.03em; }
+
+.pr-summary{ display:flex; flex-direction:column; gap:20px; }
+.pr-summary h3{ margin:8px 0 0; font-size:28px; font-weight:800; letter-spacing:-.6px; }
+.pr-mintrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.pr-mint{
+  position:relative; display:flex; flex-direction:column; gap:3px; min-width:158px; max-width:210px;
+  background:var(--panel2); border:1px solid var(--rc); border-radius:12px; padding:12px 14px;
+}
+.pr-me{ font-size:22px; }
+.pr-mn{ font-size:12.5px; font-weight:700; line-height:1.35; }
+.pr-mr{ font-size:11px; color:var(--rc); font-weight:700; }
+.pr-short{ font-size:10px; color:var(--muted); line-height:1.4; margin-top:2px; }
+.pr-new{
+  position:absolute; top:-7px; right:10px; font-size:9.5px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; background:var(--good); color:#08240f; padding:2px 7px; border-radius:999px;
+}
+
+@media (max-width:620px){
+  .pr-lede h3{ font-size:18px; }
+  .pr-summary h3{ font-size:22px; }
+  .pr-hud{ gap:18px; }
+  .pr-stat b{ font-size:18px; }
+  .pr-lobstats{ gap:18px; }
+  .pr-buckets{ grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); }
+  .pr-pad{ display:none; }   /* swipe covers it, and the board wants the room */
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pr-tile{ transition:none; }
+  .pr-tile.fresh, .pr-tile.merged{ animation:none; }
+}

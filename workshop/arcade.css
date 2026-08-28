@@ -1,0 +1,22 @@
+/* ============ ARCADE: BREAKER / SCRAPSTORM / SKYWATCH ============ */
+#tab-breaker .bk-stage,#tab-storm .tw-stage,#tab-skywatch .sk-stage{ min-height:440px; }
+.ac-eyebrow{ display:block; font-size:10.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted); }
+.ac-lobby{ display:flex; flex-direction:column; gap:20px; }
+.ac-lobby h3{ margin:10px 0 0; font-size:22px; line-height:1.35; font-weight:800; letter-spacing:-.2px; }
+.ac-lobby p{ margin:0; color:var(--muted); font-size:13.5px; line-height:1.65; max-width:62ch; }
+.ac-stats{ display:flex; gap:28px; flex-wrap:wrap; }
+.ac-stats div{ display:flex; flex-direction:column; gap:3px; }
+.ac-stats b{ font-size:21px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+.ac-stats div>span{ font-size:10.5px; color:var(--muted); letter-spacing:.03em; }
+.ac-lobby .btn{ align-self:flex-start; }
+.ac-foot{ display:flex; gap:12px; flex-wrap:wrap; }
+.ac-wrap{ display:flex; justify-content:center; }
+.ac-wrap canvas{
+  max-width:100%; height:auto; border:1px solid #262b3a; border-radius:var(--radius);
+  cursor:crosshair; touch-action:none;
+}
+#bkCanvas{ cursor:none; }
+@media (max-width:620px){ .ac-lobby h3{ font-size:18px; } .ac-stats{ gap:18px; } }
+.ac-ctrl{ font-size:12.5px !important; line-height:1.7 !important; border-left:2px solid #333a52; padding-left:12px; }
+.ac-ctrl b{ color:var(--text); }

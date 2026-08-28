@@ -1,0 +1,14 @@
+/* ---- the foreman's ledger ---- */
+.lg-panel{ margin-bottom:14px; }
+.lg-head{ display:flex; align-items:baseline; gap:10px; font:800 15px system-ui; color:#eef4fa; margin-bottom:8px; }
+.lg-head i{ font:600 11.5px system-ui; color:#7d8fa3; font-style:normal; }
+.lg-row{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 11px; border-radius:10px; margin:6px 0; font:600 13px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09); }
+.lg-row.hot{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.lg-row.lg-dim{ color:#8b9cae; }
+.lg-prog{ font:800 12.5px system-ui; color:#93a5b7; white-space:nowrap; }
+.lg-claim{ padding:6px 12px; border-radius:9px; cursor:pointer; white-space:nowrap;
+  font:800 11.5px system-ui; color:#ffd35c; background:rgba(255,211,92,.1); border:1px solid #ffd35c; }
+.lg-done{ font:800 13px system-ui; color:#7dffb5; }
+.lg-dot{ color:#ffd35c; margin-left:4px; font-size:10px; vertical-align:top; }

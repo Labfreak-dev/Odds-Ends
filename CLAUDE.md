@@ -43,6 +43,68 @@ serves the root; the site URL never changes.
 10. State objects captured at module load: probes/tools must `Object.assign` into
     `state.x`, never replace it.
 
+## Adding a new mode
+Hand-off from a feature chat is TWO FILES: `workshop/<name>.module.js` and
+`workshop/<name>.css`. Everything else is wiring done here. Send whole files,
+never diffs — a patch written against a copy rarely applies to the real file,
+and a half-applied patch is worse than none.
+
+Write the module to these rules or the build breaks in ways that are hard to
+trace back:
+- **Classic script, not ESM.** No `import`/`export`. Every module is
+  concatenated into one script, then split apart again on the SPLIT sentinels.
+- **Namespace every top-level name** with a short prefix (`kpTick`, `KP_TILES`).
+  Top-level `const`/`let` are visible ACROSS the split files, so two modes both
+  declaring `state` collide at load. 74 two-letter prefixes are already taken —
+  most by the host — so check a candidate before committing to it:
+  ```bash
+  grep -rhoE '^(function|const|let|var) (xx[A-Z_][A-Za-z0-9_]*)' \
+    workshop/*.js workshop/source-pristine.html | head    # xx = your prefix
+  ```
+  Taken by modes: cs cx fb fe ff gr hc hu im ki kp lg mg oo pr pv sc ti. The
+  host owns most other pairs; `fsh` is the host's fishing code, `fe`/`fb` are
+  fishing2's.
+- **Never throw at load time.** A load-time throw TDZ-poisons every `const`
+  declared after it — one bad module takes down the whole game, not just its
+  own tab (rule 5 above).
+- **Name the lifecycle hooks by convention:** `xxOnEnterTab()`,
+  `xxOnLeaveTab()`, `renderXx()`. The build splices those names into its hook
+  lists; a mismatch fails silently as a dead tab.
+- **`Object.assign` into state objects, never replace them** (rule 10 above).
+
+`workshop/ledger.module.js` (6.9KB) is the cleanest template — give a feature
+chat that file as the reference shape.
+
+Also state the registry values, which cannot be inferred: **id, display name,
+icon emoji, Play-card description, meta line** (e.g. "Daily-style puzzle").
+
+Assets: either base64 data URIs inside the module (what fishing/keep/hunt do)
+or separate files committed under `workshop/assets/`. Either way they live IN
+THE REPO — an asset that exists only on someone's machine is exactly how the
+build became unreproducible (Batch 51).
+
+### The seven wiring points in integrate.py
+A new mode touches seven of the eight `once()` splices, in build order:
+
+| # | `once()` label | what to add |
+|---|---|---|
+| 1 | `css`         | `read("<name>.css")` in the join list |
+| 2 | `sections`    | `<section id="tab-<id>">` with the mode's stage div |
+| 3 | `modules`     | `"<name>.module.js"` in `MODULE_FILES` |
+| 4 | `UI_GAMES`    | the registry entry (id/name/icon/desc/meta) |
+| 5 | `leave hooks` | `if(except!=="<id>") xxOnLeaveTab();` |
+| 6 | `enter hooks` | `else if(id==="<id>"){ xxOnEnterTab(); }` |
+| 7 | `render list` | `safeRender("<id>", renderXx);` |
+
+(The eighth, `keep section`, is a separate splice that keep and hunt use to sit
+outside the puzzle block.) Modes already present in the host's own `UI_GAMES` —
+fishing, poker, casino, dungeon, keep, hunt — skip step 4.
+
+Remember rule 1: `once()` is atomic per run and aborts the WHOLE build on a bad
+anchor, so apply all seven together and rebuild once. And rule 4: those hook
+lists are Python implicit string concats ending `+ anchor` — deleting the last
+line strands the concat and SyntaxErrors the build itself.
+
 ## Verify before any deploy
 ```bash
 for f in oe-*.js; do node --check "$f"; done          # every split file parses
@@ -52,6 +114,40 @@ python3 docs/smoke-fishing.py && python3 docs/smoke-spots.py   # needs playwrigh
 The smokes drive the real page headless; if playwright is unavailable, at minimum
 run the node checks + test-fishing and open index.html for a manual boot check
 (no console errors, all Play cards present).
+
+### Playwright in a Claude Code web session
+Chromium is preinstalled and `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` is
+already set, but the Python package is NOT. Install it PINNED:
+
+```bash
+pip install playwright==1.56.0     # NOT plain `pip install playwright`
+```
+
+The pin matters. Each playwright release hardcodes one chromium revision; the
+image ships revision **1194**, and 1.56.0 is the release that wants exactly
+that. Install the newest instead and it demands a revision that isn't on disk,
+then dies with `Executable doesn't exist at .../chromium_headless_shell-<n>`
+plus a banner telling you to run `playwright install` — **don't**: it downloads
+browsers the image already has. With the pin, both smokes run UNMODIFIED (no
+executable_path, no --no-sandbox), which is why neither script carries a
+workaround.
+
+If a future image bumps chromium, find the matching release rather than
+patching the scripts — `/opt/pw-browsers/chromium` is a stable symlink to the
+binary, and a wheel's revision is one command away:
+
+```bash
+ls /opt/pw-browsers                                   # e.g. chromium-1194
+pip download playwright==X.Y.Z --no-deps -d /tmp/w && \
+  unzip -p /tmp/w/*.whl '*/browsers.json' | grep -A2 '"chromium"'
+```
+
+Budget time: smoke-fishing takes a couple of minutes, smoke-spots can run past
+15. A cut-off mid-run looks like a hang ("retrying click action") but is just
+the timeout landing inside playwright's normal actionability retry — give it
+room before calling it a failure. Expected: 13 checks (fishing), 80 (spots),
+both ending in a pass banner and `exit 0`; the banners only print when zero
+checks failed.
 
 ## Deploy
 Commit the regenerated root files (index.html + oe-*.js + modes/) and push to the

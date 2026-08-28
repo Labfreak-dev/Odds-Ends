@@ -58,6 +58,50 @@ Commit the regenerated root files (index.html + oe-*.js + modes/) and push to th
 default branch. Pages redeploys in ~1-2 min. Never ship index.html without its
 oe-*.js siblings from the SAME build.
 
+## Working with the project chat (feature bench)
+Big features, new modes, and asset work happen in a long-running Claude project
+chat that has the full workshop on its bench and can build + drive the real page
+headlessly (Playwright). That chat DELIVERS ALREADY-INTEGRATED WORK: module,
+css, the integrate.py wiring, and a verification pass. This repo is where that
+work lands, gets rebuilt, and ships.
+
+### What a handoff looks like
+The chat hands over:
+1. `<name>.module.js` and `<name>.css` -> drop into `workshop/`
+2. A short HANDOFF NOTE containing:
+   - registry values: id, display name, icon emoji, Play-card description, meta
+   - the exact `integrate.py` wiring lines (css read, module read, tab section,
+     UI_GAMES entry, and any hook-list lines)
+   - any host (`source-pristine.html`) edit as a before/after snippet
+   - what was already verified on the bench
+3. Sometimes a full replacement `integrate.py` / `source-pristine.html` when the
+   edits are extensive — prefer these over hand-applying snippets.
+
+### What to do with a handoff
+```bash
+# 1. files are in workshop/ (module, css, plus any replaced build files)
+# 2. apply the wiring lines from the note IF integrate.py wasn't replaced
+python3 workshop/integrate.py --out .          # 3. rebuild
+for f in oe-*.js; do node --check "$f"; done   # 4. verify
+node docs/test-fishing.js
+# 5. commit ALL regenerated root files together, open a PR
+```
+Never hand-edit generated root files to "apply" a handoff — always rebuild.
+
+### Mode contract (for anything authored fresh)
+- classic script only: no `import`/`export`; top-level `function`/`const`/`let`
+- unique 2-3 letter prefix on EVERY top-level name and css class
+- hooks by exact name: `xxOnEnterTab()`, `xxOnLeaveTab()`, `renderXx()`
+- own stage div (`<div id="xxStage">`), assume no other host DOM
+- `Object.assign(state.x, {...})`, never `state.x = {...}`
+- `>>>` for unsigned hashes; no load-time throws (they TDZ-poison the bundle);
+  assets embedded as data URIs and committed; never reorder the `cards` array
+- taken prefixes: any, ap, ar, bj, bk, br, buy, by, ci, cs, cx, dg, et, fb, fe,
+  ff, fsh, fx, get, gr, hl, hu, is, key, kp, lg, max, mg, mr, mw, on, oo, pk,
+  pr, pv, rd, rep, rip, rs, set, sg, sk, tw, ui, was, xp
+  (regenerate: grep top-level declarations in workshop/*.module.js + host)
+- smallest complete reference mode: `workshop/ledger.module.js` (~7KB)
+
 ## Docs
 `docs/fishing.md` is the batch-by-batch build log — append an entry for every
 change (what, why, lessons). It is the project's memory; keep it current.

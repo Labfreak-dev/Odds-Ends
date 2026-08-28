@@ -53,6 +53,40 @@ The smokes drive the real page headless; if playwright is unavailable, at minimu
 run the node checks + test-fishing and open index.html for a manual boot check
 (no console errors, all Play cards present).
 
+### Playwright in a Claude Code web session
+Chromium is preinstalled and `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` is
+already set, but the Python package is NOT. Install it PINNED:
+
+```bash
+pip install playwright==1.56.0     # NOT plain `pip install playwright`
+```
+
+The pin matters. Each playwright release hardcodes one chromium revision; the
+image ships revision **1194**, and 1.56.0 is the release that wants exactly
+that. Install the newest instead and it demands a revision that isn't on disk,
+then dies with `Executable doesn't exist at .../chromium_headless_shell-<n>`
+plus a banner telling you to run `playwright install` — **don't**: it downloads
+browsers the image already has. With the pin, both smokes run UNMODIFIED (no
+executable_path, no --no-sandbox), which is why neither script carries a
+workaround.
+
+If a future image bumps chromium, find the matching release rather than
+patching the scripts — `/opt/pw-browsers/chromium` is a stable symlink to the
+binary, and a wheel's revision is one command away:
+
+```bash
+ls /opt/pw-browsers                                   # e.g. chromium-1194
+pip download playwright==X.Y.Z --no-deps -d /tmp/w && \
+  unzip -p /tmp/w/*.whl '*/browsers.json' | grep -A2 '"chromium"'
+```
+
+Budget time: smoke-fishing takes a couple of minutes, smoke-spots can run past
+15. A cut-off mid-run looks like a hang ("retrying click action") but is just
+the timeout landing inside playwright's normal actionability retry — give it
+room before calling it a failure. Expected: 13 checks (fishing), 80 (spots),
+both ending in a pass banner and `exit 0`; the banners only print when zero
+checks failed.
+
 ## Deploy
 Commit the regenerated root files (index.html + oe-*.js + modes/) and push to the
 default branch. Pages redeploys in ~1-2 min. Never ship index.html without its

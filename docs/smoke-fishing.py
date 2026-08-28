@@ -2,7 +2,12 @@
 import asyncio, sys
 from playwright.async_api import async_playwright
 
-URL="file:///home/claude/build/index.html"
+import os as _os
+# Default to the built index.html at the repo root (this file lives in docs/).
+# Override with OE_INDEX=/path/to/index.html or OE_URL=<url>.
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+URL = _os.environ.get("OE_URL") or "file://" + _os.environ.get(
+    "OE_INDEX", _os.path.join(_ROOT, "index.html"))
 SHOTS="/tmp/fish"
 import os; os.makedirs(SHOTS, exist_ok=True)
 fails=[]

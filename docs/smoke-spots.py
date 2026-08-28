@@ -1,5 +1,11 @@
 import asyncio, sys
 from playwright.async_api import async_playwright
+import os as _os
+# Default to the built index.html at the repo root (this file lives in docs/).
+# Override with OE_INDEX=/path/to/index.html or OE_URL=<url>.
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_URL = _os.environ.get("OE_URL") or "file://" + _os.environ.get(
+    "OE_INDEX", _os.path.join(_ROOT, "index.html"))
 fails=[]
 def check(l,c,d=""):
     print(("  ok   " if c else "  FAIL ")+l+("" if c or not d else "  -> "+str(d)))
@@ -9,7 +15,7 @@ async def main():
         b=await pw.chromium.launch()
         pg=await b.new_page(viewport={"width":1280,"height":900})
         errors=[]; pg.on("pageerror", lambda e: errors.append(str(e)))
-        await pg.goto("file:///home/claude/build/index.html"); await pg.wait_for_timeout(900)
+        await pg.goto(_URL); await pg.wait_for_timeout(900)
         await pg.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
         await pg.evaluate("FE_TEST_EVERY5=false")
         await pg.wait_for_timeout(700)

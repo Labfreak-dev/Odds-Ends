@@ -82,8 +82,12 @@ src = once(src, "const UI_GAMES = [", modules + "\nconst UI_GAMES = [", "modules
 src = once(src, 'width="1600" height="1120"></canvas>', 'width="1600" height="2400"></canvas>', "tall canvas")
 i = src.index('FSH_BG_URL = "') + len('FSH_BG_URL = "')
 j = src.index('"', i)
-src = src[:i] + open('/home/claude/assets/bg2x3.txt').read() + src[j:]
-print("  bg swapped ->", (j-i)//1024, "KB out,", len(open('/home/claude/assets/bg2x3.txt').read())//1024, "KB in")
+BG2X3 = os.path.join(HERE, "assets", "bg2x3.txt")
+if not os.path.exists(BG2X3):
+    print("  ABORT [bg swap] missing asset:", BG2X3); sys.exit(1)
+bg2x3 = read(os.path.join("assets", "bg2x3.txt")).strip()
+src = src[:i] + bg2x3 + src[j:]
+print("  bg swapped ->", (j-i)//1024, "KB out,", len(bg2x3)//1024, "KB in")
 
 src = once(src,
   """<div class="panel fsh-banner">

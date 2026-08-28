@@ -2688,7 +2688,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:560px; margin-left:auto; margin-right:auto; }
 .pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
 .pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
-#tab-empire{ display:none !important; }
+#tab-empire, #tab-siege, #tab-raids{ display:none !important; }
 
 /* ===== ADDED MODES ===== */
 /* ============ PROVENANCE ============
@@ -3685,6 +3685,34 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .m2-quiet i{ font:600 11.5px system-ui; color:#66788c; font-style:normal; }
 .m2-sniff{ font:700 10.5px system-ui; color:#ff9a5c; font-style:normal; margin-top:5px; }
 
+/* ---- the back room ledger ---- */
+.c2-panel{ border:1px solid rgba(255,211,92,.25) !important; }
+.c2-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:7px 2px; }
+.c2-rname{ font:900 15px system-ui; color:#ffd35c; margin-right:8px; }
+.c2-rank i,.c2-dim{ font:600 11px system-ui; color:#8b9cae; font-style:normal; display:block; }
+.c2-bar{ height:7px; border-radius:4px; background:rgba(255,255,255,.08); margin:5px 0 3px; max-width:340px; }
+.c2-bar div{ height:100%; border-radius:4px; background:#ffd35c; }
+.c2-bar.gold div{ background:linear-gradient(90deg,#19b3a0,#ffd35c); }
+.c2-btn{ padding:7px 12px; border-radius:10px; cursor:pointer; font:800 12px system-ui;
+  color:#dfe9f2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); margin:2px; }
+.c2-btn.hot{ color:#ffd35c; border-color:#ffd35c; background:rgba(255,211,92,.09); }
+.c2-btn:disabled{ opacity:.4; cursor:default; }
+.c2-special,.c2-ff{ font:600 12.5px system-ui; color:#dfe9f2; border-top:1px solid rgba(255,255,255,.07); }
+.c2-prog{ font:800 11.5px system-ui; color:#93a5b7; }
+.c2-hh{ font:900 12.5px system-ui; letter-spacing:1.5px; color:#eef4fa; margin:8px 0 6px; }
+.c2-hh i{ font:600 11px system-ui; color:#8b9cae; letter-spacing:0; font-style:normal; }
+.c2-stakes{ display:flex; gap:10px; flex-wrap:wrap; }
+.c2-stake{ flex:1 1 180px; padding:9px 10px; border-radius:11px; background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.1); font:800 12.5px system-ui; color:#eef4fa; }
+.c2-stake i{ display:block; font:600 10.5px system-ui; color:#8b9cae; margin:2px 0 6px; font-style:normal; }
+#c2Sheet{ position:fixed; inset:0; z-index:11000; display:flex; align-items:center; justify-content:center; background:rgba(4,7,11,.78); }
+.c2-sheet{ width:min(360px,90vw); max-height:80vh; overflow:auto; border-radius:15px; padding:14px;
+  background:#131b26; border:1px solid rgba(255,255,255,.18); }
+.c2-sh-h{ font:700 13px system-ui; color:#dfe9f2; margin-bottom:9px; }
+.c2-sh-c{ display:block; width:100%; text-align:left; padding:8px 11px; margin:5px 0; border-radius:10px;
+  cursor:pointer; font:700 12.5px system-ui; color:#eef4fa; background:rgba(255,255,255,.05);
+  border:1.5px solid rgba(255,255,255,.14); }
+
 </style>
 </head>
 <body>
@@ -4128,7 +4156,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         <h3 class="br-title">🎡 The Sorting Wheel</h3>
         <span class="br-cost">You set the bet — payouts scale</span>
       </div>
-      <p class="br-sub">One pull of the handle, one segment. Every wedge is drawn exactly as wide as its real chance, so what you see is what you're playing. Credit prizes scale with your bet — scrap, reputation, XP, free pulls, lottery tickets and Risk it All packs are flat.</p>
+      <p class="br-sub">One pull of the handle, one segment. Every wedge is drawn exactly as wide as its real chance, so what you see is what you're playing. Credit prizes scale with your bet — scrap, ore, XP, free pulls, lottery tickets and Risk it All packs are flat.</p>
       <div class="wheel-wrap">
         <div class="wheel-stage">
           <div class="wheel-pointer"></div>
@@ -4517,10 +4545,6 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
   <section id="tab-oddone" style="display:none;">
     <div class="panel"><div class="oo-stage" id="ooStage"></div></div>
-  </section>
-
-  <section id="tab-storm" style="display:none;">
-    <div class="panel"><div class="tw-stage" id="twStage"></div></div>
   </section>
 
   <section id="tab-collection" style="display:none;">
@@ -4951,9 +4975,8 @@ const PACKS = [
        likely to show up than it is in a standard pack. */
     rarityBias:[0.10,0.18,0.30,0.50,0.80,1.20,1.80,2.60,3.60,5.00,6.50,7.50,9.00,10.0,11.0,12.0],
     sub:"1,000 cards — rods, reefs and record catches", grad:"linear-gradient(135deg,#12303a,#0f1620 60%)", border:"#3fa8c9" },
-  { key:"raidpack", name:"Raid Supplies", icon:"🎒", categories:["Raid Gear"], price1:2500, price10:22500, minLevel:2,
-    rarityBias:[0.25,0.9,0.9,0.9,1.1,1.1,1.1,1.3,1.3,1.3,1.6,1.6,1.8,1.8,2.0,2.2],
-    sub:"Tools and supplies for the Raids — every card is usable gear", grad:"linear-gradient(135deg,#33291a,#171a24 60%)", border:"#c98a3f" },
+  /* Raid Supplies retired with the raids — Raid Gear cards sleep in the data (ids are indices) */
+
   { key:"mega", name:"Mega Booster", icon:"🌠", categories:null, price1:1500, price10:13500, minLevel:5,
     sub:"Pulls from every set at once", grad:"linear-gradient(135deg,#3a2f52,#171a24 60%)", border:"#e04fa8" },
   { key:"risk", name:"Risk it All", icon:"🎴", categories:["Fortune & Folly"], price1:0, price10:0,
@@ -6935,7 +6958,7 @@ function renderCollection(){
   uiBuildFilterChips();
   uiSyncFilterBar();
 
-  const filtered = getFilteredCards();
+  const filtered = getFilteredCards().filter(c => c.category !== "Raid Gear");
   const groupMap = new Map();
   filtered.forEach(c=>{
     const subject = c.name.split(" — ")[0];
@@ -7006,12 +7029,13 @@ function renderCollection(){
   document.getElementById("pageIndicator").textContent =
     groupList.length ? `Page ${currentPage+1} of ${totalPages} · ${groupList.length.toLocaleString()} subjects · ${filtered.length.toLocaleString()} cards` : "No cards match";
 
-  const uniqueOwned = Object.keys(state.owned).filter(k=>state.owned[k]>0).length;
+  const uniqueOwned = Object.keys(state.owned).filter(k=>state.owned[k]>0 && cards[k] && cards[k].category !== "Raid Gear").length;
   const totalOwned = Object.values(state.owned).reduce((a,b)=>a+b,0);
-  document.getElementById("statUnique").textContent = `${uniqueOwned.toLocaleString()}/${cards.length.toLocaleString()}`;
+  const visibleLen = (window.__visLen = window.__visLen || cards.filter(c=>c.category!=="Raid Gear").length);
+  document.getElementById("statUnique").textContent = `${uniqueOwned.toLocaleString()}/${visibleLen.toLocaleString()}`;
   document.getElementById("statTotal").textContent = totalOwned.toLocaleString();
   document.getElementById("statPacks").textContent = state.packsOpened.toLocaleString();
-  document.getElementById("statBar").style.width = (uniqueOwned/cards.length*100)+"%";
+  document.getElementById("statBar").style.width = (uniqueOwned/visibleLen*100)+"%";
   fxStartWindow();
 }
 
@@ -8157,7 +8181,7 @@ const WHEEL_SEGMENTS = [
   { label:"900 credits",      icon:"🪙", color:"#78d18a", weight:12,  kind:"credits", amount:900 },
   { label:"Free pull",        icon:"🎟", color:"#8b5cf6", weight:7,   kind:"pull" },
   { label:"Mining surge",     icon:"⛏️", color:"#b07d2e", weight:5,   kind:"mining",  minutes:15, capNote:true },
-  { label:"150 reputation",   icon:"🎖️", color:"#d4589b", weight:4,   kind:"rep",     amount:150 },
+  { label:"3 vein ore",       icon:"⛏️", color:"#d4589b", weight:4,   kind:"ore",     amount:3 },
   { label:"100 collection XP",icon:"✨", color:"#35b8ad", weight:4,   kind:"xp",      amount:100 },
   { label:"Lottery ticket",   icon:"🎫", color:"#e05a4f", weight:1,   kind:"lotto" },
   { label:"Risk it All pack", icon:"🎴", color:"#d94ff0", weight:1,   kind:"riskpack" },
@@ -8284,7 +8308,7 @@ function buildWheelVisual(){
     odds.innerHTML = WHEEL_SEGMENTS.map(s=>
       `<tr><td>${s.icon} ${wheelSegLabel(s)}</td><td>${(100*s.weight/WHEEL_TOTAL_WEIGHT).toFixed(2)}%</td></tr>`).join("")
       + `<tr><td><b>Average credit return per ${wheelBet().toLocaleString()} bet</b></td><td><b>~${Math.round(wheelBet()*wheelCreditRTP()).toLocaleString()}</b></td></tr>`
-      + `<tr><td colspan="2" style="color:#6f8d7c;">Each wedge is drawn exactly as wide as its real chance, so the picture never oversells a rare prize. Credit prizes scale with your bet; scrap, reputation, XP, free pulls, lottery tickets and Risk it All packs are flat no matter what you wager.</td></tr>`;
+      + `<tr><td colspan="2" style="color:#6f8d7c;">Each wedge is drawn exactly as wide as its real chance, so the picture never oversells a rare prize. Credit prizes scale with your bet; scrap, ore, XP, free pulls, lottery tickets and Risk it All packs are flat no matter what you wager.</td></tr>`;
   }
 }
 
@@ -8373,9 +8397,14 @@ function settleWheel(idx, bet){
     msg = `<span style="color:#e0b45c">⛏️ Mining surge — ${seg.minutes} minutes of output paid instantly: ${gain.toLocaleString()} credits.` +
       `${raw>cap ? ` <span style="opacity:.6">(capped at ${WHEEL_MINING_BET_CAP}× your bet — raise the bet to claim more)</span>` : ""}</span>`;
   } else if(seg.kind === "rep"){
-    state.empire.reputation += seg.amount;
-    logWin(0);
-    msg = `<span style="color:#e08fc4">🎖️ ${seg.amount} reputation sent to the Empire.</span>`;
+    (function(){
+      state.mining = state.mining || {}; state.mining.ore = state.mining.ore || {};
+      const lvl = (state.player && state.player.level) || 1;
+      const th = [1,4,8,13,19,26,34]; let t = 1;
+      for(let k=0;k<7;k++) if(lvl >= th[k]) t = k+1;
+      state.mining.ore[t] = (state.mining.ore[t]||0) + seg.amount;
+      msg = `<span style="color:#e08fc4">⛏️ ${seg.amount} Tier-${t} ore for the smelter.</span>`;
+    })();
   } else if(seg.kind === "xp"){
     grantBonusXP(seg.amount);
     logWin(0);
@@ -21784,366 +21813,6 @@ function ooOnLeaveTab(){
 }
 
 /* =====================================================================
-   SCRAPSTORM — twin-stick arena
-   WASD flies, the mouse aims, hold to fire, E or right-click bombs.
-   Waves of drones; every kill feeds a multiplier that dies when you do.
-   Score converts to credits at the end, kills shake loose scrap.
-   Host: state, saveState, showToast, renderHeader, grantBonusXP.
-   ===================================================================== */
-const TW_W=640, TW_H=480;
-const TW_CR_PER_PT=0.06, TW_SCRAP_PER=40, TW_XP_WAVE=2, TW_LIVES=3, TW_BOMBS=3;
-
-function twStats(){ if(!state.storm) state.storm={runs:0,best:0,bestWave:0,kills:0,credits:0,scrap:0}; return state.storm; }
-
-/* Wave recipe: counts per enemy kind, scaling but bounded. Pure, testable. */
-function twWave(n){
-  return {
-    drifter: 4+Math.min(10,n),
-    chaser:  n>=2 ? 2+Math.min(9,n-1) : 0,
-    weaver:  n>=4 ? 1+Math.min(6,Math.floor((n-3)/2)) : 0,
-    splitter:n>=6 ? 1+Math.min(4,Math.floor((n-5)/3)) : 0,
-  };
-}
-const TW_KINDS={
-  drifter:{ r:11, hp:1, sp:55,  pts:60,  col:"#6c8cff" },
-  chaser: { r:10, hp:1, sp:105, pts:100, col:"#ff8c5c" },
-  weaver: { r:9,  hp:2, sp:130, pts:150, col:"#c98cff" },
-  splitter:{r:14, hp:2, sp:70,  pts:130, col:"#3ddc84" },
-  shard:  { r:6,  hp:1, sp:150, pts:40,  col:"#3ddc84" },
-};
-/* Spawn on the arena edge, never within `gap` of the player. Pure. */
-function twSpawnPos(px,py,gap){
-  for(let t=0;t<40;t++){
-    const side=Math.floor(Math.random()*4);
-    const x=side===0?0:side===1?TW_W:Math.random()*TW_W;
-    const y=side===2?0:side===3?TW_H:(side<2?Math.random()*TW_H:0);
-    const yy=side<2?Math.random()*TW_H:(side===2?0:TW_H);
-    const fx=side<2?x:Math.random()*TW_W, fy=side<2?yy:(side===2?0:TW_H);
-    if(Math.hypot(fx-px,fy-py)>=gap) return {x:fx,y:fy};
-  }
-  return {x:0,y:0};
-}
-
-const TW_STICK=46;          // thumb-stick travel, canvas units
-const TW_BOMB_R=30;         // on-canvas bomb button
-let tw=null, twRaf=null, twActive=false, twKeys={}, twMouse={x:TW_W/2,y:TW_H/2,down:false};
-/* Floating twin sticks: each records where the thumb landed and where it
-   is now. Origins float to the touch rather than sitting in fixed
-   corners, because a fixed stick is a thumb-position lottery on a phone. */
-let twTouch={move:null,aim:null};
-let twTouchAvailable=(typeof window!=="undefined" && ("ontouchstart" in window));
-/* Bottom-centre, deliberately. At bottom-right it sat exactly where an
-   aiming thumb comes down, and with three bombs a run a misfire is not a
-   small thing. Dead centre is reachable by either thumb and is nobody's
-   natural stick origin. */
-function twBombBtn(){ return {x:TW_W/2,y:TW_H-38,r:TW_BOMB_R}; }
-function twStickVec(t){
-  if(!t) return null;
-  const dx=t.x-t.ox, dy=t.y-t.oy, m=Math.hypot(dx,dy);
-  if(m<1) return {x:0,y:0,m:0};
-  const c=Math.min(m,TW_STICK);
-  return {x:(dx/m)*(c/TW_STICK), y:(dy/m)*(c/TW_STICK), m:c/TW_STICK};
-}
-/* One place decides where the ship points and whether it is shooting,
-   so touch and mouse can't drift apart. */
-function twAim(P){
-  const a=twStickVec(twTouch.aim);
-  if(a){
-    if(a.m>0.18){ const ang=Math.atan2(a.y,a.x); return {a:ang,firing:true}; }
-    return {a:(tw&&tw.lastAim)||0, firing:false};
-  }
-  return {a:Math.atan2(twMouse.y-P.y,twMouse.x-P.x), firing:twMouse.down||!!twKeys[" "]};
-}
-function twStart(){
-  tw={wave:0,lives:TW_LIVES,bombs:TW_BOMBS,score:0,mult:1,kills:0,
-      p:{x:TW_W/2,y:TW_H/2,vx:0,vy:0,inv:2},
-      foes:[],shots:[],parts:[],fireCd:0,spawnQ:[],over:false,banked:false};
-  twStats().runs++;
-  twNextWave();
-  saveState(); twPaint(); twRun();
-}
-function twNextWave(){
-  tw.wave++;
-  const w=twWave(tw.wave);
-  for(const kind in w) for(let i=0;i<w[kind];i++){
-    tw.spawnQ.push({kind, at:Math.random()*3});
-  }
-  tw.spawnT=0;
-  grantBonusXP(tw.wave>1?TW_XP_WAVE:0);
-}
-function twSpawn(kind,x,y){
-  const k=TW_KINDS[kind];
-  const p= x==null ? twSpawnPos(tw.p.x,tw.p.y,140) : {x,y};
-  tw.foes.push({kind,x:p.x,y:p.y,hp:k.hp,ph:Math.random()*6.3,t:0});
-}
-function twStep(dt){
-  if(!tw||tw.over) return;
-  const P=tw.p;
-  if(P.inv>0) P.inv-=dt;
-  let mx,my;
-  const mv=twStickVec(twTouch.move);
-  if(mv){
-    /* Analog: a half-pushed thumb is a half-speed drift, which keyboard
-       can't express and which matters for threading gaps. */
-    mx=mv.x; my=mv.y;
-  } else {
-    const ax=(twKeys.d||twKeys.arrowright?1:0)-(twKeys.a||twKeys.arrowleft?1:0);
-    const ay=(twKeys.s||twKeys.arrowdown?1:0)-(twKeys.w||twKeys.arrowup?1:0);
-    const L=Math.hypot(ax,ay)||1;
-    mx=ax/L; my=ay/L;
-  }
-  P.vx+= mx*1500*dt; P.vy+= my*1500*dt;
-  P.vx*=Math.pow(0.0018,dt); P.vy*=Math.pow(0.0018,dt);
-  P.x=Math.max(12,Math.min(TW_W-12,P.x+P.vx*dt));
-  P.y=Math.max(12,Math.min(TW_H-12,P.y+P.vy*dt));
-  /* fire */
-  const aim=twAim(P);
-  tw.lastAim=aim.a;
-  tw.fireCd-=dt;
-  if(aim.firing && tw.fireCd<=0){
-    tw.fireCd=0.11;
-    tw.shots.push({x:P.x,y:P.y,vx:Math.cos(aim.a)*540,vy:Math.sin(aim.a)*540,t:0});
-  }
-  tw.shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.t+=dt;});
-  tw.shots=tw.shots.filter(s=>s.t<1.4&&s.x>-10&&s.x<TW_W+10&&s.y>-10&&s.y<TW_H+10);
-  /* spawn queue */
-  tw.spawnT+=dt;
-  tw.spawnQ=tw.spawnQ.filter(q=>{ if(q.at<=tw.spawnT){ twSpawn(q.kind); return false; } return true; });
-  /* foes */
-  tw.foes.forEach(f=>{
-    const k=TW_KINDS[f.kind]; f.t+=dt;
-    if(f.kind==="drifter"){ f.x+=Math.cos(f.ph)*k.sp*dt; f.y+=Math.sin(f.ph)*k.sp*dt;
-      if(f.x<k.r||f.x>TW_W-k.r) f.ph=Math.PI-f.ph;
-      if(f.y<k.r||f.y>TW_H-k.r) f.ph=-f.ph; }
-    else { const a=Math.atan2(P.y-f.y,P.x-f.x);
-      let wob=f.kind==="weaver"?Math.sin(f.t*6)*1.1:0;
-      f.x+=Math.cos(a+wob)*k.sp*dt; f.y+=Math.sin(a+wob)*k.sp*dt; }
-    f.x=Math.max(k.r,Math.min(TW_W-k.r,f.x)); f.y=Math.max(k.r,Math.min(TW_H-k.r,f.y));
-  });
-  /* shots vs foes */
-  for(const s of tw.shots){ for(const f of tw.foes){
-    const k=TW_KINDS[f.kind];
-    if(f.hp>0 && Math.hypot(s.x-f.x,s.y-f.y)<k.r+3){ s.t=9; f.hp--; if(f.hp<=0) twKill(f); break; }
-  }}
-  tw.shots=tw.shots.filter(s=>s.t<1.4);
-  tw.foes=tw.foes.filter(f=>f.hp>0);
-  /* foes vs player */
-  if(P.inv<=0) for(const f of tw.foes){
-    if(Math.hypot(f.x-P.x,f.y-P.y)<TW_KINDS[f.kind].r+9){ twDie(); break; }
-  }
-  tw.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.t+=dt;});
-  tw.parts=tw.parts.filter(p=>p.t<0.5);
-  if(!tw.foes.length && !tw.spawnQ.length) twNextWave();
-}
-function twKill(f){
-  const k=TW_KINDS[f.kind];
-  tw.score+=Math.round(k.pts*tw.mult);
-  tw.mult=Math.min(10,tw.mult+0.1);
-  tw.kills++; twStats().kills++;
-  for(let i=0;i<8;i++) tw.parts.push({x:f.x,y:f.y,col:k.col,
-    vx:(Math.random()*2-1)*220,vy:(Math.random()*2-1)*220,t:0});
-  if(f.kind==="splitter"){ twSpawn("shard",f.x-8,f.y); twSpawn("shard",f.x+8,f.y); }
-}
-function twDie(){
-  tw.lives--; tw.mult=1;
-  for(let i=0;i<20;i++) tw.parts.push({x:tw.p.x,y:tw.p.y,col:"#eef0f6",
-    vx:(Math.random()*2-1)*320,vy:(Math.random()*2-1)*320,t:0});
-  if(tw.lives<=0){ twEnd(); return; }
-  tw.p.x=TW_W/2; tw.p.y=TW_H/2; tw.p.vx=0; tw.p.vy=0; tw.p.inv=2.2;
-  tw.foes=tw.foes.filter(f=>Math.hypot(f.x-tw.p.x,f.y-tw.p.y)>150);
-}
-function twBomb(){
-  if(!tw||tw.over||tw.bombs<=0) return;
-  tw.bombs--;
-  tw.foes.forEach(f=>{ f.hp=0;
-    for(let i=0;i<6;i++) tw.parts.push({x:f.x,y:f.y,col:TW_KINDS[f.kind].col,
-      vx:(Math.random()*2-1)*260,vy:(Math.random()*2-1)*260,t:0});
-    tw.score+=Math.round(TW_KINDS[f.kind].pts*0.4); }); // bombs pay less, no mult
-  tw.foes=[];
-}
-function twEnd(){
-  if(!tw||tw.banked) return;
-  tw.over=true; tw.banked=true;
-  const credits=Math.round(tw.score*TW_CR_PER_PT);
-  const scrap=Math.floor(tw.kills/TW_SCRAP_PER)*10;
-  state.credits+=credits; state.scrap=(state.scrap||0)+scrap;
-  const st=twStats(); st.credits+=credits; st.scrap+=scrap;
-  if(tw.score>st.best) st.best=tw.score;
-  if(tw.wave>st.bestWave) st.bestWave=tw.wave;
-  tw.pay={credits,scrap};
-  saveState(); renderHeader(); twPaint();
-}
-/* ---------- draw ---------- */
-function twDraw(){
-  const cv=document.getElementById("twCanvas"); if(!cv) return;
-  const c=cv.getContext("2d");
-  c.fillStyle="#0e1017"; c.fillRect(0,0,TW_W,TW_H);
-  c.strokeStyle="#1c2130"; c.lineWidth=1;
-  for(let x=0;x<=TW_W;x+=40){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,TW_H); c.stroke(); }
-  for(let y=0;y<=TW_H;y+=40){ c.beginPath(); c.moveTo(0,y); c.lineTo(TW_W,y); c.stroke(); }
-  tw.foes.forEach(f=>{ const k=TW_KINDS[f.kind];
-    c.strokeStyle=k.col; c.lineWidth=2; c.beginPath();
-    if(f.kind==="splitter"||f.kind==="shard"){
-      c.moveTo(f.x,f.y-k.r); c.lineTo(f.x+k.r,f.y); c.lineTo(f.x,f.y+k.r); c.lineTo(f.x-k.r,f.y); c.closePath();
-    } else if(f.kind==="chaser"){
-      const a=Math.atan2(tw.p.y-f.y,tw.p.x-f.x);
-      c.moveTo(f.x+Math.cos(a)*k.r,f.y+Math.sin(a)*k.r);
-      c.lineTo(f.x+Math.cos(a+2.5)*k.r,f.y+Math.sin(a+2.5)*k.r);
-      c.lineTo(f.x+Math.cos(a-2.5)*k.r,f.y+Math.sin(a-2.5)*k.r); c.closePath();
-    } else c.arc(f.x,f.y,k.r,0,7);
-    c.stroke(); });
-  c.fillStyle="#ffd35c";
-  tw.shots.forEach(s=>c.fillRect(s.x-2,s.y-2,4,4));
-  const P=tw.p;
-  c.save(); c.translate(P.x,P.y);
-  c.rotate(tw.lastAim||0);
-  c.strokeStyle=P.inv>0&&Math.floor(P.inv*10)%2?"#4a5270":"#eef0f6"; c.lineWidth=2;
-  c.beginPath(); c.moveTo(12,0); c.lineTo(-8,-8); c.lineTo(-4,0); c.lineTo(-8,8); c.closePath(); c.stroke();
-  c.restore();
-  c.globalAlpha=0.85;
-  tw.parts.forEach(p=>{ c.fillStyle=p.col; c.fillRect(p.x,p.y,3,3); });
-  c.globalAlpha=1;
-  /* Sticks only exist while a thumb is down, so they never clutter a
-     desktop screen. */
-  const ring=(t,col)=>{
-    if(!t) return;
-    c.strokeStyle=col; c.lineWidth=2; c.globalAlpha=.35;
-    c.beginPath(); c.arc(t.ox,t.oy,TW_STICK,0,7); c.stroke();
-    const v=twStickVec(t);
-    c.globalAlpha=.7; c.beginPath();
-    c.arc(t.ox+v.x*TW_STICK, t.oy+v.y*TW_STICK, 17, 0, 7); c.fill();
-    c.globalAlpha=1;
-  };
-  c.fillStyle="#6c8cff"; ring(twTouch.move,"#6c8cff");
-  c.fillStyle="#ffd35c"; ring(twTouch.aim,"#ffd35c");
-  if(twTouchAvailable){
-    const b=twBombBtn();
-    c.globalAlpha=tw.bombs>0?.9:.3;
-    c.strokeStyle="#ff8c5c"; c.lineWidth=2;
-    c.beginPath(); c.arc(b.x,b.y,b.r,0,7); c.stroke();
-    c.fillStyle="#ff8c5c"; c.font="16px sans-serif"; c.textAlign="center";
-    c.fillText("💣",b.x,b.y+6);
-    c.globalAlpha=1;
-  }
-  c.fillStyle="#9aa1b4"; c.font="12px sans-serif";
-  c.textAlign="left"; c.fillText(`Wave ${tw.wave}  ×${tw.mult.toFixed(1)}`,10,18);
-  c.textAlign="center"; c.fillText(tw.score.toLocaleString(),TW_W/2,18);
-  c.textAlign="right"; c.fillText(`${"●".repeat(Math.max(0,tw.lives))}  💣${tw.bombs}`,TW_W-10,18);
-}
-let twLast=0;
-function twRun(){
-  if(twRaf) cancelAnimationFrame(twRaf);
-  twLast=performance.now();
-  const loop=t=>{
-    if(!twActive||!tw) return;
-    const dt=Math.min(0.033,(t-twLast)/1000); twLast=t;
-    if(!tw.over) twStep(dt);
-    twDraw();
-    if(tw && tw.over){ twPaint(); return; }
-    twRaf=requestAnimationFrame(loop);
-  };
-  twRaf=requestAnimationFrame(loop);
-}
-/* ---------- shell ---------- */
-function twEl(){ return document.getElementById("twStage"); }
-function twPaint(){
-  const el=twEl(); if(!el) return;
-  const st=twStats();
-  if(!tw){
-    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Scrapstorm</span>
-      <h3>Fly with one thumb. Aim with the other.<br>The multiplier dies when you do.</h3>
-      <p>Every kill nudges the multiplier toward ×10, and one hit resets it —
-         the score is in staying alive greedy. Score converts to credits; every
-         ${TW_SCRAP_PER} kills shakes loose 10 scrap.</p>
-      <p class="ac-ctrl"><b>Touch</b> — left half of the arena flies, right half aims
-         and fires, and the sticks appear wherever your thumbs land. Tap 💣 to bomb.<br>
-         <b>Keyboard</b> — WASD or arrows fly, mouse aims, hold to fire, E or
-         right-click bombs.</p>
-      <div class="ac-stats"><div><b>${st.best.toLocaleString()}</b><span>Best score</span></div>
-        <div><b>${st.bestWave}</b><span>Deepest wave</span></div>
-        <div><b>${st.kills.toLocaleString()}</b><span>Drones down</span></div>
-        <div><b>${st.credits.toLocaleString()}</b><span>Credits earned</span></div></div>
-      <button class="btn" id="twGo">Launch</button></div>`;
-    document.getElementById("twGo").addEventListener("click",twStart);
-    return;
-  }
-  if(tw.over){
-    el.innerHTML=`<div class="ac-lobby"><span class="ac-eyebrow">Ship lost</span>
-      <h3>${tw.score.toLocaleString()} points — ${tw.pay.credits.toLocaleString()} credits</h3>
-      <p>Wave ${tw.wave} · ${tw.kills} kills${tw.pay.scrap?` · +${tw.pay.scrap} scrap`:""}</p>
-      <div class="ac-foot"><button class="btn" id="twGo">Again</button>
-      <button class="btn secondary" id="twBack">Back</button></div></div>`;
-    document.getElementById("twGo").addEventListener("click",twStart);
-    document.getElementById("twBack").addEventListener("click",()=>{tw=null;twPaint();});
-    return;
-  }
-  el.innerHTML=`<div class="ac-wrap"><canvas id="twCanvas" width="${TW_W}" height="${TW_H}"></canvas></div>`;
-  const cv=document.getElementById("twCanvas");
-  const pos=e=>{ const r=cv.getBoundingClientRect();
-    twMouse.x=(e.clientX-r.left)*(TW_W/r.width); twMouse.y=(e.clientY-r.top)*(TW_H/r.height); };
-  cv.addEventListener("mousemove",pos);
-  cv.addEventListener("mousedown",e=>{ pos(e); if(e.button===2) twBomb(); else twMouse.down=true; });
-  window.addEventListener("mouseup",()=>twMouse.down=false);
-  cv.addEventListener("contextmenu",e=>e.preventDefault());
-
-  /* Virtual twin sticks. Left half of the canvas flies, right half aims
-     and fires; whichever half a thumb lands on claims that stick, so a
-     left-handed player can simply use the other side. */
-  const tpos=t=>{ const r=cv.getBoundingClientRect();
-    return { x:(t.clientX-r.left)*(TW_W/r.width), y:(t.clientY-r.top)*(TW_H/r.height) }; };
-  cv.addEventListener("touchstart",e=>{
-    e.preventDefault(); twTouchAvailable=true;
-    for(const t of e.changedTouches){
-      const p=tpos(t), b=twBombBtn();
-      if(Math.hypot(p.x-b.x,p.y-b.y)<=b.r+8){ twBomb(); continue; }
-      const slot = p.x < TW_W/2 ? "move" : "aim";
-      const other = slot==="move" ? "aim" : "move";
-      if(!twTouch[slot]) twTouch[slot]={id:t.identifier,ox:p.x,oy:p.y,x:p.x,y:p.y};
-      else if(!twTouch[other]) twTouch[other]={id:t.identifier,ox:p.x,oy:p.y,x:p.x,y:p.y};
-    }
-  },{passive:false});
-  cv.addEventListener("touchmove",e=>{
-    e.preventDefault();
-    for(const t of e.changedTouches){
-      const p=tpos(t);
-      for(const k of ["move","aim"]) if(twTouch[k] && twTouch[k].id===t.identifier){
-        twTouch[k].x=p.x; twTouch[k].y=p.y;
-      }
-    }
-  },{passive:false});
-  const lift=e=>{
-    for(const t of e.changedTouches)
-      for(const k of ["move","aim"]) if(twTouch[k] && twTouch[k].id===t.identifier) twTouch[k]=null;
-  };
-  cv.addEventListener("touchend",lift);
-  cv.addEventListener("touchcancel",lift);
-  twRun();
-}
-function twKeyDown(e){
-  const sec=document.getElementById("tab-storm");
-  if(!sec||sec.style.display==="none") return;
-  const k=e.key.toLowerCase(); twKeys[k]=true;
-  if(k==="e"){ twBomb(); }
-  if(["w","a","s","d"," ","arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
-}
-function twKeyUp(e){ twKeys[e.key.toLowerCase()]=false; }
-let twBound=false;
-function renderStorm(){ twPaint(); }
-function twOnEnterTab(){
-  twStats(); twActive=true;
-  if(!twBound){ window.addEventListener("keydown",twKeyDown,{passive:false});
-    window.addEventListener("keyup",twKeyUp); twBound=true; }
-  twPaint(); if(tw&&!tw.over) twRun();
-}
-function twOnLeaveTab(){
-  twActive=false;
-  twTouch.move=null; twTouch.aim=null; twMouse.down=false;
-  if(twRaf){ cancelAnimationFrame(twRaf); twRaf=null; }
-  if(tw&&!tw.over) twEnd();
-  tw=null;
-}
-
-/* =====================================================================
    FISHING REBUILD — the living scene and the real fight
    ---------------------------------------------------------------------
    This module OVERRIDES parts of the fisherman's dock. It is injected
@@ -27017,11 +26686,197 @@ setInterval(()=>{ try{ m2InjectSellUI(); m2Resolve(); }catch(e){} }, 1000);
 setTimeout(()=>{ try{ m2InjectSellUI(); }catch(e){} }, 600);
 })();
 
+/* ============================================================
+   THE BACK ROOM LEDGER — House Standing, the featured table,
+   the High Table (wager anything), and the Fortune & Folly
+   completion drive. The casino joins the rest of the game.
+   ============================================================ */
+(function(){
+const C = ()=> casinoStats();
+function c2Init(){
+  const c = C();
+  c.standingXP = c.standingXP || 0;
+  c.riskOpened = c.riskOpened || 0;
+  const day = new Date().toDateString();
+  if(c.day !== day){ c.day = day; c.dayWagered = 0; c.dayWins = 0; c.dayClaimed = false; c.compClaimed = false; }
+}
+const C2_RANKS = [
+  { at:0,       name:"Nobody",       comp:0,    note:"the floor doesn't know your name" },
+  { at:50000,   name:"Regular",      comp:500,  note:"the bartender nods" },
+  { at:500000,  name:"High Roller",  comp:2500, note:"they hold your seat" },
+  { at:2500000, name:"Comped",       comp:8000, note:"the house pretends it likes you" },
+];
+function c2Rank(){ const xp = C().standingXP||0; let r = 0;
+  for(let i=0;i<C2_RANKS.length;i++) if(xp >= C2_RANKS[i].at) r = i; return r; }
+/* every wager feeds standing and the day's special */
+if(typeof logWager === "function" && !window.__c2WagerWrap){
+  window.__c2WagerWrap = true;
+  const _w = logWager, _n = logWin;
+  logWager = function(a){ try{ c2Init(); C().standingXP += a; C().dayWagered += a; }catch(e){} c2Render(); return _w(a); };
+  logWin = function(a){ try{ c2Init(); C().dayWins += 1; }catch(e){} c2Render(); return _n(a); };
+}
+/* the featured table, new with the sun */
+const C2_TABLES = ["🚀 Ascent","🎡 The Sorting Wheel","🎰 Three Reels","🃏 Double or Nothing","🂡 The Dealer's Table","📈 Higher or Lower","🎯 The Drop","💣 The Minefield","🔢 Keno","🎟️ The Daily Lottery"];
+function c2Hash(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0); }
+function c2Featured(){ return C2_TABLES[c2Hash(new Date().toDateString()+"#house") % C2_TABLES.length]; }
+
+/* ---------------- Fortune & Folly drive ---------------- */
+let FF_ALL = null;
+function ffAll(){ if(!FF_ALL) FF_ALL = cards.filter(c=>c.category==="Fortune & Folly"); return FF_ALL; }
+function ffOwned(){ return ffAll().filter(c=>state.owned[c.id]>0).length; }
+function ffCheckDone(){
+  const c = C();
+  if(!c.ffLuck && ffAll().length && ffOwned() === ffAll().length){
+    c.ffLuck = true;
+    state.upgrades.luck = (state.upgrades.luck||0) + 1;
+    showToast("🍀 FORTUNE & FOLLY COMPLETE — Lady Luck herself deals you in. Permanent luck raised.");
+    try{ fbSfxSafe && fbSfxSafe("perfect", 0.6); }catch(e){}
+  }
+}
+/* pity: every 5th Risk pack guarantees a new F&F card */
+if(typeof openOnePack === "function" && !window.__c2PityWrap){
+  window.__c2PityWrap = true;
+  const _o = openOnePack;
+  openOnePack = function(key, claimed){
+    const pulls = _o(key, claimed);
+    try{
+      if(key === "risk"){
+        c2Init();
+        C().riskOpened += 1;
+        if(C().riskOpened % 5 === 0){
+          const unowned = ffAll().filter(c=>!(state.owned[c.id]>0) && !pulls.some(p=>p.id===c.id));
+          if(unowned.length && !pulls.some(p=>!(state.owned[p.id]>0))){
+            pulls[0] = unowned[Math.floor(Math.random()*unowned.length)];
+          }
+        }
+        setTimeout(ffCheckDone, 800);
+      }
+    }catch(e){}
+    return pulls;
+  };
+}
+
+/* ---------------- the panel ---------------- */
+function c2Render(){
+  const tab = document.getElementById("tab-casino");
+  if(!tab) return;
+  let host = document.getElementById("c2Panel");
+  if(!host){
+    host = document.createElement("div");
+    host.id = "c2Panel"; host.className = "panel c2-panel";
+    tab.insertBefore(host, tab.firstChild.nextSibling);
+  }
+  c2Init();
+  const c = C(), r = c2Rank(), R = C2_RANKS[r], nx = C2_RANKS[r+1];
+  const prog = nx ? Math.min(1,(c.standingXP - R.at)/(nx.at - R.at)) : 1;
+  const ff = ffAll().length ? `${ffOwned()}/${ffAll().length}` : "—";
+  const wagerGoal = 4000, winGoal = 3;
+  const specialDone = c.dayWagered >= wagerGoal && c.dayWins >= winGoal;
+  host.innerHTML = `
+    <div class="c2-row">
+      <div class="c2-rank"><span class="c2-rname">🎩 ${R.name}</span><i>${R.note}</i>
+        <div class="c2-bar"><div style="width:${(prog*100).toFixed(1)}%"></div></div>
+        <i>${nx ? `🪙${c.standingXP.toLocaleString()} wagered · ${nx.at.toLocaleString()} makes ${nx.name}` : "the house has nothing left to offer"}</i></div>
+      <div class="c2-comp">${R.comp ? (c.compClaimed
+          ? `<span class="c2-dim">comp collected</span>`
+          : `<button class="c2-btn hot" id="c2Comp">🥃 Daily comp — 🪙${R.comp.toLocaleString()}</button>`)
+        : `<span class="c2-dim">comps start at Regular</span>`}</div>
+    </div>
+    <div class="c2-row c2-special">
+      <span>✨ <b>House Special: ${c2Featured()}</b> — wager 🪙${wagerGoal.toLocaleString()} and take ${winGoal} wins anywhere on the floor</span>
+      <span class="c2-prog">${Math.min(c.dayWagered,wagerGoal).toLocaleString()}/${wagerGoal.toLocaleString()} · ${Math.min(c.dayWins,winGoal)}/${winGoal}</span>
+      ${c.dayClaimed ? `<span class="c2-dim">✔ paid</span>`
+        : specialDone ? `<button class="c2-btn hot" id="c2Spec">CLAIM 🪙2,000 · ♻️5</button>` : ``}
+    </div>
+    <div class="c2-row c2-ff"><span>🍀 <b>Fortune & Folly</b> ${ff}${c.ffLuck ? " · <b>COMPLETE — Lady Luck deals you in</b>" : " · every 5th Risk pack owes you a new one"}</span>
+      <div class="c2-bar gold"><div style="width:${ffAll().length ? (100*ffOwned()/ffAll().length).toFixed(1) : 0}%"></div></div></div>
+    <div class="c2-high">
+      <div class="c2-hh">🕯️ THE HIGH TABLE <i>— the house takes more than credits</i></div>
+      <div class="c2-stakes">
+        <div class="c2-stake"><b>♻️ Scrap Flip</b><i>even odds, double or dust</i>
+          ${[10,50,250].map(n=>`<button class="c2-btn" data-flip="${n}" ${state.scrap>=n?"":"disabled"}>${n}</button>`).join("")}</div>
+        <div class="c2-stake"><b>⛏️ Ore Duel</b><i>stake 3, draw against the pit — 55% yours</i>
+          ${[1,2,3,4,5,6,7].map(t=>((state.mining&&state.mining.ore&&state.mining.ore[t])||0)>=3?`<button class="c2-btn" data-duel="${t}">T${t}</button>`:"").join("")||`<i class="c2-dim">need 3 ore of a tier</i>`}</div>
+        <div class="c2-stake"><b>🎴 Card Stake</b><i>win: a card a band up · lose: it's gone forever</i>
+          <button class="c2-btn" id="c2Stake">choose a card…</button></div>
+      </div>
+    </div>`;
+  const comp = host.querySelector("#c2Comp");
+  if(comp) comp.onclick = ()=>{ if(c.compClaimed) return; c.compClaimed = true;
+    state.credits += R.comp; showToast(`🥃 The house sends one over — 🪙${R.comp.toLocaleString()}`);
+    try{ saveState(); renderHeader(); }catch(e){} c2Render(); };
+  const spec = host.querySelector("#c2Spec");
+  if(spec) spec.onclick = ()=>{ if(c.dayClaimed || !specialDone) return; c.dayClaimed = true;
+    state.credits += 2000; state.scrap = (state.scrap||0) + 5;
+    showToast("✨ The pit boss settles up — 🪙2,000 · ♻️5");
+    try{ saveState(); renderHeader(); }catch(e){} c2Render(); };
+  host.querySelectorAll("[data-flip]").forEach(b=>b.onclick=()=>{
+    const n = +b.dataset.flip; if(state.scrap < n) return;
+    if(Math.random() < 0.5){ state.scrap += n; showToast(`♻️ HEADS — the pile doubles (+${n})`); try{ fbSfxSafe&&fbSfxSafe("reward_good",0.4);}catch(e){} }
+    else { state.scrap -= n; showToast(`♻️ TAILS — ${n} scrap sweeps away`); try{ fbSfxSafe&&fbSfxSafe("splash_small",0.4);}catch(e){} }
+    try{ saveState(); renderHeader(); }catch(e){} c2Render();
+  });
+  host.querySelectorAll("[data-duel]").forEach(b=>b.onclick=()=>{
+    const t = +b.dataset.duel; const M = state.mining;
+    if(((M.ore&&M.ore[t])||0) < 3) return;
+    if(Math.random() < 0.55){ M.ore[t] += 3; showToast(`⛏️ Your draw stands — +3 Tier-${t} ore`); }
+    else { M.ore[t] -= 3; showToast(`⛏️ The pit draws higher — 3 Tier-${t} ore to the house`); }
+    try{ saveState(); }catch(e){} c2Render();
+  });
+  const stk = host.querySelector("#c2Stake");
+  if(stk) stk.onclick = c2StakeSheet;
+}
+function c2StakeSheet(){
+  const cand = [];
+  for(const id in state.owned){
+    if(!(state.owned[id]>0)) continue;
+    const c = cards[id];
+    if(c && c.rarity < 15) cand.push(c);
+  }
+  cand.sort((a,b)=>b.rarity-a.rarity);
+  const top = cand.slice(0,8);
+  let m = document.getElementById("c2Sheet"); if(m) m.remove();
+  m = document.createElement("div"); m.id = "c2Sheet";
+  m.innerHTML = `<div class="c2-sheet"><div class="c2-sh-h">🎴 <b>Stake a card</b> — win, and the house pays a card one band up. Lose, and yours burns.</div>
+    ${top.length ? top.map(c=>{ const r = RARITIES[c.rarity];
+      return `<button class="c2-sh-c" data-stake="${c.id}" style="border-color:${r.color}66">${c.emoji} ${c.name} <span style="color:${r.color}">${r.name}</span></button>`; }).join("")
+      : `<div class="c2-dim">nothing in the binder worth the felt</div>`}
+    <button class="c2-btn" id="c2ShX">walk away</button></div>`;
+  document.body.appendChild(m);
+  document.getElementById("c2ShX").onclick = ()=> m.remove();
+  m.querySelectorAll("[data-stake]").forEach(b=>b.onclick=()=>{
+    const id = b.dataset.stake; const c = cards[id];
+    if(!(state.owned[id]>0)) { m.remove(); return; }
+    if(!confirm(`Put "${c.name}" on the felt? Lose and it is GONE.`)) return;
+    m.remove();
+    logWager(0);
+    if(Math.random() < 0.46){
+      const lo = c.rarity >= 12 ? Math.min(15, c.rarity+1) : (Math.floor(c.rarity/3)+1)*3;
+      const hi = lo >= 12 ? lo : lo+2;
+      const pool = cards.filter(x=>x.rarity>=lo && x.rarity<=hi && !(typeof EXCLUSIVE_CATEGORIES!=="undefined" && EXCLUSIVE_CATEGORIES.has(x.category)));
+      const win = pool[Math.floor(Math.random()*pool.length)];
+      state.owned[win.id] = (state.owned[win.id]||0)+1;
+      state.miningBonus = computeMiningBonusFromOwned(state.owned);
+      showToast(`🎴 THE HOUSE PAYS — ${win.name} (${RARITIES[win.rarity].name}) joins the binder`);
+      try{ fbSfxSafe&&fbSfxSafe("treasure",0.5); }catch(e){}
+      try{ logWin(0); }catch(e){}
+    } else {
+      state.owned[id] -= 1;
+      state.miningBonus = computeMiningBonusFromOwned(state.owned);
+      if(state.grading && state.grading.graded && !(state.owned[id]>0)) delete state.grading.graded[id];
+      showToast(`🔥 The dealer turns it over — ${c.name} burns.`);
+      try{ fbSfxSafe&&fbSfxSafe("splash_small",0.5); }catch(e){}
+    }
+    try{ saveState(); }catch(e){} c2Render();
+  });
+}
+setInterval(()=>{ try{ if(document.getElementById("tab-casino") && document.getElementById("tab-casino").style.display !== "none") c2Render(); }catch(e){} }, 2500);
+setTimeout(()=>{ try{ c2Init(); c2Render(); }catch(e){} }, 700);
+})();
+
 /* =================== END ADDED MODES =================== */
 
 const UI_GAMES = [
-  { id:"siege",   name:"Siege",       icon:"🏰", desc:"Tower defense. Hold the road, hold the keep.",        meta:"4 maps" },
-  { id:"raids",   name:"Raids",       icon:"🗝️", desc:"Expeditions into the dark. Gear wears out; guardians don't.", meta:"6 sites + the Depths" },
   { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Idle-friendly" },
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
@@ -27031,7 +26886,6 @@ const UI_GAMES = [
   { id:"showcase",    name:"The Case",     icon:"🗄️", desc:"Five slots, each with a rule. Twelve cards. Make them fit.", meta:"Constraint puzzle" },
   { id:"oddone",      name:"Odd One Out",  icon:"👀", desc:"Three belong together, one doesn't. Ten seconds.", meta:"Fast rounds" },
   { id:"press",       name:"The Press",    icon:"⚙️", desc:"Spare prints in, one good print out. Merge tiers until the plate jams.", meta:"Duplicate sink" },
-  { id:"storm",       name:"Scrapstorm",   icon:"🚀", desc:"Fly, aim, hold fire. The multiplier dies when you do.", meta:"Twin-stick arcade" },
   /* Runeshard entry removed - it ships as its own build. */
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);
@@ -27049,7 +26903,6 @@ function uiLeaveGames(except){
   if(except!=="connections") cxOnLeaveTab();
   if(except!=="showcase") csOnLeaveTab();
   if(except!=="oddone") ooOnLeaveTab();
-  if(except!=="storm") twOnLeaveTab();
   if(except!=="siege") sgOnLeaveTab();
   if(except!=="raids") rdOnLeaveTab();
   if(except!=="poker") pkOnLeaveTab();
@@ -27078,7 +26931,6 @@ function uiEnterSection(id){
   else if(id==="connections"){ cxOnEnterTab(); }
   else if(id==="showcase"){ csOnEnterTab(); }
   else if(id==="oddone"){ ooOnEnterTab(); }
-  else if(id==="storm"){ twOnEnterTab(); }
   else if(id==="dungeon"){ renderDungeon(); }
   uiLeaveGames(id);
   uiInitStatStrips();
@@ -27278,7 +27130,6 @@ function renderAll(){
   safeRender("connections", renderConnections);
   safeRender("showcase",    renderCase);
   safeRender("oddone",      renderOddOne);
-  safeRender("storm",       renderStorm);
   safeRender("play",       renderPlayLobby);
   safeRender("chrome",     ()=>{ uiInitStatStrips(); uiInitHelp(); });
 }

@@ -501,6 +501,42 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 51 — the last three /home/claude paths (build unblocked)
+Health check from a clean clone: `python3 workshop/integrate.py --out .`
+died instantly on FileNotFoundError — the 2:3 background swap still
+read the ABSOLUTE chat-bench path /home/claude/assets/bg2x3.txt.
+Batch 50 made the source/module/css/modes reads HERE-relative and
+missed this one because it is a bare open(), not the read() helper.
+The asset was never in the repo, so the build was unreproducible from
+a clone; it survived only because the built root files were committed.
+RECOVERED the asset out of the committed oe-01-core.js (FSH_BG_URL
+literal -> base64 -> valid JPEG, 1200x1800, exactly 2:3, 152KB) and
+parked it at workshop/assets/bg2x3.txt; the swap now reads it
+HERE-relative through read(), .strip()ed (a trailing newline inside
+the "..." literal would SyntaxError every later file) and aborts with
+a named message if missing, matching once()'s fail-loud contract.
+PROOF the recovery is byte-exact: built to a scratch dir and cmp'd all
+20 root artifacts against the committed ones — index.html + 19 oe-*.js
+all identical, which also proves workshop/ has not drifted from the
+deployed root. Same bug class in the verifiers: both smokes hardcoded
+file:///home/claude/build/index.html, so neither could run here; both
+now resolve the repo root from __file__ (OE_INDEX/OE_URL override).
+Lessons: (1) grep for the machine name, not just the helper — one bare
+open() outlived a whole location-independence pass; (2) a generated
+artifact committed to the repo can hide a missing SOURCE input
+indefinitely — a build only proves itself from a clean clone; (3)
+committed output doubles as a recovery source for a lost asset.
+TWO THINGS LEFT ALONE, both needing a call: modes/ is a build-time
+COPY of the 16 workshop modules (13MB, byte-identical) that
+docs/test-fishing.js reads, untracked with no .gitignore, so the node
+harness fails on a fresh clone until the build runs — commit it or
+ignore it. And THIS FILE carries a 956-line block duplicated verbatim
+(the old lines 503-1458 repeat at 1466-2421, ~39% of the log); the
+copies are identical line-for-line, so a dedupe is safe but is the
+playtester's call. Verified this batch: 24 once() edits applied, 19/19
+node --check, test-fishing all green, both playwright smokes pass
+(13 fishing checks / 60 spots checks, zero page errors).
+
 ## Batch 50 — THE WORKSHOP MOVES INTO THE REPO (Claude Code era)
 Prep for playtester driving deploys/tweaks via Claude Code on the
 web (phone, Code tab, cloud VM, PR flow). integrate.py made

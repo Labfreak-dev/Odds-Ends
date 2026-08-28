@@ -501,6 +501,37 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 52 — THE KEEP'S SELECTABLE MAPS (four lands, real elevation)
+Feature-bench batch, integrated here. The Keep's territories became four
+SELECTABLE maps instead of a one-way claim ladder: stone terraces with
+grass crowns, stairs the road climbs, a bridge on the Isle, pines, and a
+new double-terrace map THE HIGHLANDS (1,000,000 credits + 1,000 scrap,
++6% base pay). Selector chips replace the old claim row, owned maps
+switch freely, and purchases migrate off the old territory levels
+automatically. Two files only — keep.module.js + keep.css; the Keep was
+already wired (css list, MODULE_FILES, tab-keep splice, host UI_GAMES),
+so integrate.py was untouched and all 24 once() edits still applied.
+NUMBERED 52, not the 51 the handoff said: 51 was already spent on the
+build-unblock batch, and the log's headings are unique now — check
+before claiming a number.
+THE FILES CAME BY GITHUB UPLOAD, NOT THROUGH THE SESSION, which matters:
+uploading workshop/*.js updates the SOURCE only. index.html and
+oe-16-keep.js still carried the old three-territory Keep until the
+rebuild ran here (grep 'Highlands' told it: 1 in workshop, 0 in the
+built output). A workshop-only upload is a half-deploy — the golden
+rule cuts both ways.
+LESSON, integration review: a naive top-level grep flags W, cv, bg, IMG
+and stage as colliding with hunt/mining2. They are NOT global — line 10
+of the module is `(function(){` and those live inside it, written
+unindented. Check for an enclosing IIFE before calling a redeclaration;
+the same shape appears in hunt and mining2 and has always been fine.
+Verified: 19/19 node --check, test-fishing green, smoke-fishing 13/13,
+smoke-spots 80/80, zero page errors. Plus an ad-hoc Keep boot check
+against the real built page — all four maps in the selector row, a chip
+each, canvas sized AND painting non-blank pixels, and no errors after
+the sim had run a few seconds. Rebuild touched exactly three files:
+index.html, oe-16-keep.js, modes/keep.module.js.
+
 ## Batch 51 — the last three /home/claude paths (build unblocked)
 Health check from a clean clone: `python3 workshop/integrate.py --out .`
 died instantly on FileNotFoundError — the 2:3 background swap still

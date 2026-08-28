@@ -3537,6 +3537,13 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .fe-fs-host .fsh-stage{ flex:0 1 auto; min-height:0; margin-left:0 !important; margin-right:0 !important; }
 .fe-fs-host .fsh-controls{ flex:0 0 auto; padding:10px 14px calc(12px + env(safe-area-inset-bottom));
   background:transparent; }
+.fe-fs-exit{ position:fixed; top:calc(8px + env(safe-area-inset-top)); right:10px; z-index:12000;
+  width:38px; height:38px; border-radius:50%; cursor:pointer; font:800 16px system-ui;
+  color:#dfe9f2; background:rgba(10,14,20,.75); border:1px solid rgba(255,255,255,.3); }
+#feTackle{ position:fixed; left:50%; top:6%; transform:translateX(-50%); z-index:10000;
+  width:min(560px, 94vw); max-height:86vh; overflow:auto; padding:0 14px 14px; border-radius:14px;
+  background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 60px rgba(0,0,0,.6); }
 
 /* ---- mining 2: the vein ---- */
 #mineScene.mine-scene, .mine-scene{
@@ -3583,6 +3590,100 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   font:800 11.5px system-ui; color:#ffd35c; background:rgba(255,211,92,.1); border:1px solid #ffd35c; }
 .lg-done{ font:800 13px system-ui; color:#7dffb5; }
 .lg-dot{ color:#ffd35c; margin-left:4px; font-size:10px; vertical-align:top; }
+
+/* ---- the grading desk ---- */
+.gr-panel{ margin-bottom:14px; }
+.gr-head{ display:flex; align-items:baseline; gap:10px; font:800 15px system-ui; color:#eef4fa; margin-bottom:8px; flex-wrap:wrap; }
+.gr-head i{ font:600 11.5px system-ui; color:#7d8fa3; font-style:normal; }
+.gr-slots{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.gr-slot{ flex:1 1 220px; padding:9px 11px; border-radius:10px; font:600 12.5px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.gr-slot.empty{ color:#66788c; justify-content:center; }
+.gr-slot.ready{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.gr-crack{ padding:6px 11px; border-radius:9px; cursor:pointer; font:800 11px system-ui;
+  color:#0b0f14; background:#ffd35c; border:none; }
+.gr-handhead,.gr-shelfhead{ font:700 11.5px system-ui; color:#93a5b7; margin:8px 0 6px; }
+.gr-hand{ display:flex; gap:7px; flex-wrap:wrap; }
+.gr-card{ display:flex; flex-direction:column; align-items:center; gap:2px; width:86px; padding:7px 4px;
+  border-radius:10px; cursor:pointer; background:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.14); }
+.gr-card .e{ font-size:22px; } 
+.gr-card .n{ font:700 9.5px system-ui; color:#dfe9f2; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gr-card .f{ font:700 9px system-ui; color:#93a5b7; }
+.gr-dim{ font:600 12px system-ui; color:#7d8fa3; }
+.gr-shelf{ display:flex; gap:6px; flex-wrap:wrap; }
+.gr-slab{ padding:4px 9px; border-radius:8px; font:700 12px system-ui; color:#dfe9f2;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.16); }
+.gr-slab.g10{ border-color:#ffd35c; color:#ffd35c; background:rgba(255,211,92,.1); }
+.gr-slab.g9{ border-color:#b9e0ff; color:#d9efff; }
+#grModal{ position:fixed; inset:0; z-index:11000; display:flex; align-items:center; justify-content:center;
+  background:rgba(4,7,11,.8); }
+.gr-slabbig{ width:min(300px, 84vw); border-radius:16px; padding:18px 16px 16px; text-align:center;
+  background:linear-gradient(180deg,#1a2230,#0d1219); border:2px solid rgba(255,255,255,.22);
+  box-shadow:0 24px 80px rgba(0,0,0,.7); }
+.gr-slabbig.shine{ border-color:#ffd35c; box-shadow:0 0 60px rgba(255,211,92,.35), 0 24px 80px rgba(0,0,0,.7); }
+.gr-slabtop{ font:800 10px system-ui; letter-spacing:2px; color:#93a5b7; }
+.gr-slabemoji{ font-size:52px; margin:10px 0 2px; }
+.gr-slabname{ font:800 14px system-ui; color:#eef4fa; margin-bottom:6px; }
+.gr-grade{ font:900 58px system-ui; color:#ffd35c; line-height:1; }
+.gr-gradelabel{ font:800 12px system-ui; letter-spacing:1.5px; color:#dfe9f2; min-height:16px; margin-top:4px; }
+.gr-close{ margin-top:12px; padding:8px 16px; border-radius:10px; cursor:pointer;
+  font:800 12px system-ui; color:#dfe9f2; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); }
+
+/* ---- the salesman's feed ---- */
+.m2-listing{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:11px 8px 10px;
+  border-radius:13px; background:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.12); text-align:center; }
+.m2-listing.sold{ justify-content:center; min-height:150px; opacity:.4; }
+.m2-gone{ font:900 15px system-ui; letter-spacing:2px; color:#7d8fa3; }
+.m2-who{ font:700 10px system-ui; color:#93a5b7; }
+.m2-art{ font-size:34px; margin:2px 0; }
+.m2-name{ font:800 12.5px system-ui; color:#eef4fa; max-width:130px; }
+.m2-band{ font:800 10px system-ui; letter-spacing:1px; }
+.m2-line{ font:600 10.5px system-ui; color:#8b9cae; font-style:italic; min-height:24px; max-width:140px; }
+.m2-buy{ margin-top:4px; padding:6px 13px; border-radius:9px; cursor:pointer;
+  font:800 12px system-ui; color:#ffd35c; background:rgba(255,211,92,.09); border:1px solid #ffd35c88; }
+/* ---- binder selling ---- */
+#m2SellBar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 10px; }
+.m2-sellmode{ padding:7px 13px; border-radius:10px; cursor:pointer; font:800 12px system-ui;
+  color:#dfe9f2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16); }
+.m2-armed .mini-card:not(.locked){ box-shadow:0 0 0 1.5px rgba(255,211,92,.4); cursor:pointer; }
+.m2-selltip{ font:600 11px system-ui; color:#7d8fa3; }
+#m2Listings{ display:flex; gap:6px; flex-wrap:wrap; }
+.m2-live{ padding:4px 9px; border-radius:8px; font:700 11px system-ui; color:#ffe9b0;
+  background:rgba(255,211,92,.07); border:1px solid rgba(255,211,92,.3); }
+#m2Sheet{ position:fixed; inset:0; z-index:11000; display:flex; align-items:center; justify-content:center;
+  background:rgba(4,7,11,.75); }
+.m2-sheet{ width:min(330px,88vw); border-radius:15px; padding:15px;
+  background:#121a24; border:1px solid rgba(255,255,255,.18); box-shadow:0 20px 70px rgba(0,0,0,.65); }
+.m2-sh-head{ font:800 15px system-ui; color:#eef4fa; margin-bottom:3px; }
+.m2-slabchip{ font:800 10px system-ui; color:#ffd35c; border:1px solid #ffd35c; border-radius:6px; padding:1px 6px; }
+.m2-sh-est{ font:600 11.5px system-ui; color:#93a5b7; margin-bottom:10px; }
+.m2-sh-opt{ display:block; width:100%; text-align:left; padding:9px 11px; margin:6px 0; border-radius:10px;
+  cursor:pointer; font:600 12.5px system-ui; color:#dfe9f2; background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.14); }
+.m2-sh-opt i{ font-style:normal; color:#8b9cae; font-size:11px; display:block; }
+.m2-sh-x{ display:block; margin:10px auto 0; padding:6px 14px; border-radius:9px; cursor:pointer;
+  font:700 11.5px system-ui; color:#93a5b7; background:none; border:1px solid rgba(255,255,255,.14); }
+/* ---- the counter ---- */
+.m2-counter{ max-width:430px; margin:0 auto; text-align:center; padding:6px 4px 2px; }
+.m2-visitn{ font:700 10.5px system-ui; color:#66788c; letter-spacing:1px; }
+.m2-visitor{ font:800 14.5px system-ui; color:#eef4fa; margin:4px 0 8px; }
+.m2-bubble{ position:relative; margin:0 auto 12px; padding:10px 14px; max-width:340px;
+  border-radius:14px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  font:600 13px system-ui; color:#dfe9f2; font-style:italic; }
+.m2-bubble:after{ content:""; position:absolute; top:-7px; left:50%; transform:translateX(-50%) rotate(45deg);
+  width:12px; height:12px; background:inherit; border-left:1px solid rgba(255,255,255,.14); border-top:1px solid rgba(255,255,255,.14); }
+.m2-itemrow{ display:flex; align-items:center; justify-content:center; gap:12px; margin:8px 0 4px; text-align:left; }
+.m2-itemrow .m2-art{ font-size:42px; }
+.m2-price{ font:900 19px system-ui; color:#ffd35c; margin:6px 0 12px; }
+.m2-price s{ font:700 13px system-ui; color:#7d8fa3; margin-left:6px; }
+.m2-acts{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.m2-act{ padding:10px 16px; border-radius:12px; cursor:pointer; font:800 13px system-ui;
+  color:#dfe9f2; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); }
+.m2-act.buy{ color:#ffd35c; border-color:#ffd35c; background:rgba(255,211,92,.09); }
+.m2-act:disabled{ opacity:.4; cursor:default; }
+.m2-quiet{ text-align:center; font:700 14px system-ui; color:#93a5b7; padding:22px 0; }
+.m2-quiet i{ font:600 11.5px system-ui; color:#66788c; font-style:normal; }
+.m2-sniff{ font:700 10.5px system-ui; color:#ff9a5c; font-style:normal; margin-top:5px; }
 
 </style>
 </head>
@@ -3741,6 +3842,12 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
     <div class="ui-fold" data-help="💰 Economy Upgrades">
       <div class="upgrade-grid" id="upgradesEconomy"></div>
+
+      <div class="panel">
+        <div style="font-weight:800; font-size:16px; margin-bottom:4px;">🛠️ The Workshop</div>
+        <div style="color:var(--muted); font-size:13px; margin-bottom:10px;">Big scrap, big decisions. Every bench here changes how a whole system plays — and you can't afford them all at once.</div>
+        <div id="upgradesWorkshop"></div>
+      </div>
     </div>
 
     <div class="ui-fold" data-help="🎣 Angler Training">
@@ -3755,8 +3862,8 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     <div class="panel">
       <div class="row" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <div style="font-weight:800; font-size:16px;">🛒 Merchant's Stock</div>
-          <div style="color:var(--muted); font-size:13px;">A rotating stock of random cards, any rarity — more slots unlock as you level up. Restocks every hour, and once a slot sells it's gone until then.</div>
+          <div style="font-weight:800; font-size:16px;">🛒 The Salesman's Feed</div>
+          <div style="color:var(--muted); font-size:13px;">Whatever walks in the door: mispriced cards, sealed packs, mystery lots. Some sellers don't know what they have. Some know exactly what they're doing. Read the listing. Restocks hourly.</div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
           <div class="market-countdown" id="marketCountdown">Restocks in --m --s</div>
@@ -3770,34 +3877,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     </div>
 
 
-    <div class="ui-fold" data-help="🎣 The Tackle Shop">
-      <div style="font-weight:800; font-size:16px; margin-bottom:4px;">🎣 The Tackle Shop</div>
-      <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
-        Rods, reels, line, hooks, lures and clothes — buy them here, then equip them on the <b>Fishing</b> tab.
-        Bait gets used up a piece per cast; charms run for a set number of casts. Permanent angler skill is
-        trained over in <b>Upgrades</b>.
-      </div>
-      <div id="tackleShop"></div>
-    </div>
-
-    <div class="ui-fold" data-help="💵 Sell Your Cards">
-      <div style="font-weight:800; font-size:16px; margin-bottom:4px;">💵 Sell Your Cards</div>
-      <div style="color:var(--muted); font-size:13px; margin-bottom:14px;">
-        Sell cards straight out of your collection for credits — rarer cards are worth a lot more.
-      </div>
-      <div class="filters">
-        <input type="text" id="marketSellSearch" placeholder="Search your cards…" oninput="onMarketFilterChange()">
-        <select id="marketSellRarityFilter" onchange="onMarketFilterChange()"><option value="all">All Rarities</option></select>
-        <select id="marketSellCategoryFilter" onchange="onMarketFilterChange()"><option value="all">All Categories</option></select>
-      </div>
-      <div class="sell-grid" id="sellGrid"></div>
-      <div class="row" style="justify-content:center; margin-top:20px;">
-        <button class="btn secondary" onclick="marketPrevPage()">‹ Prev</button>
-        <div id="marketPageIndicator" style="color:var(--muted); font-size:13px; padding:10px;"></div>
-        <button class="btn secondary" onclick="marketNextPage()">Next ›</button>
-      </div>
-    </div>
-  </section>
+    </section>
 
   <section id="tab-empire" style="display:none;">
     <div class="panel empire-banner">
@@ -4688,23 +4768,25 @@ const EXPANSION_RAW = [["Lion — Night Print","Animal Kingdom","🦁",0,"Surviv
 </script>
 <script>
 /* ---------------- RARITY TIERS (16) ---------------- */
+/* SEVEN bands shown, sixteen weights kept underneath — the odds ladder
+   is invisible; the names are what players live with. */
 const RARITIES = [
-  { id:0,  name:"Junk Drawer",           color:"#9a9fae", weight:3000 },
-  { id:1,  name:"Household",             color:"#8fae7a", weight:2200 },
-  { id:2,  name:"Standard",              color:"#7fae5c", weight:1600 },
-  { id:3,  name:"Practical",             color:"#5c9e6e", weight:1150 },
-  { id:4,  name:"Handy",                 color:"#3fae8a", weight:820  },
-  { id:5,  name:"Quality",               color:"#3f9ec9", weight:580  },
-  { id:6,  name:"Durable",               color:"#4f7fd6", weight:400  },
-  { id:7,  name:"Premium",               color:"#6f6fe0", weight:270  },
-  { id:8,  name:"Designer and Artisan",  color:"#9a5fe0", weight:180  },
-  { id:9,  name:"Antique and Vintage",   color:"#b8783c", weight:115  },
-  { id:10, name:"Rare Find",             color:"#d19a2e", weight:70   },
-  { id:11, name:"Limited Edition",       color:"#e0b419", weight:42   },
-  { id:12, name:"Prototype",             color:"#19b3a0", weight:8,  foil:true },
-  { id:13, name:"One-of-a-Kind",         color:"#e04fa8", weight:4,  foil:true },
-  { id:14, name:"Legendary",             color:"#ffcf40", weight:1.8, foil:true },
-  { id:15, name:"Mythic",                color:"#ff5cf0", weight:0.6, foil:true, holo:true },
+  { id:0,  name:"Common",    color:"#8fae7a", weight:3000 },
+  { id:1,  name:"Common",    color:"#8fae7a", weight:2200 },
+  { id:2,  name:"Common",    color:"#8fae7a", weight:1600 },
+  { id:3,  name:"Uncommon",  color:"#3fae8a", weight:1150 },
+  { id:4,  name:"Uncommon",  color:"#3fae8a", weight:820  },
+  { id:5,  name:"Uncommon",  color:"#3fae8a", weight:580  },
+  { id:6,  name:"Fine",      color:"#6f6fe0", weight:400  },
+  { id:7,  name:"Fine",      color:"#6f6fe0", weight:270  },
+  { id:8,  name:"Fine",      color:"#6f6fe0", weight:180  },
+  { id:9,  name:"Rare",      color:"#e0b419", weight:115  },
+  { id:10, name:"Rare",      color:"#e0b419", weight:70   },
+  { id:11, name:"Rare",      color:"#e0b419", weight:42   },
+  { id:12, name:"Epic",      color:"#19b3a0", weight:8,  foil:true },
+  { id:13, name:"Epic",      color:"#19b3a0", weight:4,  foil:true },
+  { id:14, name:"Legendary", color:"#ffcf40", weight:1.8, foil:true },
+  { id:15, name:"Mythic",    color:"#ff5cf0", weight:0.6, foil:true, holo:true },
 ];
 const TOTAL_WEIGHT = RARITIES.reduce((s,r)=>s+r.weight,0);
 
@@ -5581,10 +5663,62 @@ const SCRAP_PCT_PER_LEVEL = 0.10;    // +10% scrap per Scrap Refinery level
 const DISCOUNT_PCT_PER_LEVEL = 0.02; // -2% pack price per Bulk Discount level
 
 const UPGRADES = [
-  { key:"pickaxe", name:"Sturdier Pickaxe", icon:"⛏️", category:"mining", baseCost:20, scale:1.18, maxLevel:999,
+  /* ---------------- THE WORKSHOP (the torn wallet) ---------------- */
+  { key:"crucible", name:"Second Crucible", icon:"🔥", category:"workshop", baseCost:4000, scale:1, maxLevel:1,
+    desc:"A second smelting slot. Two jobs cooling at once — the furnace never sleeps.",
+    effectText:(l)=> l ? "Two smelter slots" : "One smelter slot" },
+  { key:"bellows", name:"Forge Bellows", icon:"💨", category:"workshop", baseCost:2500, scale:1.6, maxLevel:3,
+    desc:"Hotter fire, faster ingots.",
+    effectText:(l)=>`Smelt time −${Math.round((1-Math.pow(0.8,l))*100)}%` },
+  { key:"prospectorEye", name:"Prospector's Eye", icon:"👁️", category:"workshop", baseCost:6000, scale:1, maxLevel:1,
+    desc:"You read the rock like a ledger. Every vein break drops an extra ore — and one time in ten, the ore comes back a tier RICHER than the seam.",
+    effectText:(l)=> l ? "+1 ore per break · 10% tier-up" : "—" },
+  { key:"blast", name:"Blast Charges", icon:"🧨", category:"workshop", baseCost:1500, scale:1.7, maxLevel:3,
+    desc:"The rock gives up sooner.",
+    effectText:(l)=>`Veins break ${2*l} hits earlier` },
+  { key:"boardPins", name:"Board Pins", icon:"📌", category:"workshop", baseCost:3500, scale:1, maxLevel:1,
+    desc:"Room for one more mark on the bounty board. Four a day.",
+    effectText:(l)=> l ? "4 daily bounties" : "3 daily bounties" },
+  { key:"chumBarrels", name:"Chum Barrels", icon:"🛢️", category:"workshop", baseCost:2000, scale:1.8, maxLevel:2,
+    desc:"Bigger jars, longer clouds.",
+    effectText:(l)=>`Chum lasts ${4+2*l} casts` },
+  { key:"wideRing", name:"Marksman's Discipline", icon:"🎯", category:"workshop", baseCost:5000, scale:1, maxLevel:1,
+    desc:"The target on the water grows generous, and bullseyes pay harder.",
+    effectText:(l)=> l ? "Ring +40% · bullseye ×1.25" : "×1.15" },
+  { key:"rivalPurse", name:"Rival's Purse", icon:"🏆", category:"workshop", baseCost:8000, scale:1, maxLevel:1,
+    desc:"Beating the weekly record pays double. Make Old Pete sweat.",
+    effectText:(l)=> l ? "Weekly rival pays 🪙12,000 · ♻️24" : "🪙6,000 · ♻️12" },
+  { key:"deskSlot", name:"Third Desk Slot", icon:"🔎", category:"workshop", baseCost:7500, scale:1, maxLevel:1,
+    desc:"Prof. Mullen clears a third corner of his desk. Three slabs in the queue.",
+    effectText:(l)=> l ? "3 grading slots" : "2 grading slots" },
+  { key:"profFavor", name:"The Professor's Favor", icon:"🤝", category:"workshop", baseCost:12000, scale:1.8, maxLevel:2,
+    desc:"Mullen owes you. Grades of 4 or under get quietly re-examined — once per level.",
+    effectText:(l)=> l ? `Low grades re-rolled ×${l}` : "—" },
+  { key:"storeSign", name:"Storefront Sign", icon:"🪧", category:"workshop", baseCost:5000, scale:1, maxLevel:1,
+    desc:"A real sign over your binder sales. Buyers bail half as often and the house cut drops to 7%.",
+    effectText:(l)=> l ? "Bail ÷2 · cut 7%" : "cut 10%" },
+  { key:"silverTongue", name:"Silver Tongue", icon:"👅", category:"workshop", baseCost:4500, scale:1.8, maxLevel:2,
+    desc:"Bargaining comes easier. At mastery, a refused haggle can be pressed one more time.",
+    effectText:(l)=>`Haggle odds +${15*l}%${l>=2 ? " · one retry" : ""}` },
+  { key:"backRoom", name:"The Back Room", icon:"🚪", category:"workshop", baseCost:9000, scale:1, maxLevel:1,
+    desc:"The salesman keeps the good stuff behind the curtain. Every restock ends with one extra visitor — always VaultDealer or a mystery lot.",
+    effectText:(l)=> l ? "+1 premium visitor per restock" : "—" },
+  { key:"fakeSpotter", name:"Fake Spotter", icon:"👃", category:"workshop", baseCost:6500, scale:1, maxLevel:1,
+    desc:"You've been burned enough to smell it. Half the time, a counterfeit listing gives itself away before you pay.",
+    effectText:(l)=> l ? "50% chance fakes reveal themselves" : "—" },
+  { key:"foremanTrust", name:"Foreman's Trust", icon:"📜", category:"workshop", baseCost:10000, scale:1, maxLevel:1,
+    desc:"A fourth daily contract on the ledger — and the Prospector's reward becomes TWO packs.",
+    effectText:(l)=> l ? "4 contracts · double grand pack" : "3 contracts" },
+  { key:"scrapMagnet", name:"Scrap Magnetism", icon:"🧲", category:"workshop", baseCost:3000, scale:1.9, maxLevel:3,
+    desc:"Everything you do sheds a little more scrap. The compounder — greed now, or power later?",
+    effectText:(l)=>`+${12*l}% scrap from the mine, the water, and the board` },
+  { key:"masterwork", name:"THE MASTERWORK", icon:"⚜️", category:"workshop", baseCost:50000, scale:1, maxLevel:1,
+    desc:"The whole operation, tuned by a master's hand. Mining, catches, and bargains all run 10% hotter. There is nothing after this.",
+    effectText:(l)=> l ? "+10% mine rate · +10% catch credits · +10% haggle odds" : "the summit" },
+  { key:"pickaxe", name:"Sturdier Pickaxe", icon:"⛏️", category:"mining", retired:true, baseCost:20, scale:1.18, maxLevel:999,
     desc:"Permanently increases your miner's base output.",
     effectText:(lvl)=>`+${(lvl*PICKAXE_RATE_PER_LEVEL).toFixed(0)} coins/min` },
-  { key:"miners", name:"Hire a Miner", icon:"👷", category:"mining", baseCost:150, scale:2.2, maxLevel:4,
+  { key:"miners", name:"Hire a Miner", icon:"👷", category:"mining", retired:true, baseCost:150, scale:2.2, maxLevel:4,
     desc:"Adds another miner to the crew. Each one pulls their own weight.",
     effectText:(lvl)=>`${lvl} extra miner${lvl===1?"":"s"} · +${(lvl*MINER_RATE_PER_LEVEL).toFixed(0)} coins/min` },
   { key:"speed", name:"Speed Training", icon:"🏃", category:"mining", baseCost:60, scale:1.35, maxLevel:25,
@@ -6552,7 +6686,10 @@ function kickAutoChain(){
 function populateSettingsUI(){
   const sel = document.getElementById("rarityThresholdSelect");
   sel.innerHTML = "";
+  const seen = new Set();
   RARITIES.forEach(r=>{
+    if(seen.has(r.name)) return;      /* one option per band; value = the band's lowest id */
+    seen.add(r.name);
     const o = document.createElement("option");
     o.value = r.id; o.textContent = r.name;
     sel.appendChild(o);
@@ -6665,11 +6802,13 @@ function showPackSummary(){
       </div>
     </div>`;
 
-  const byTier = {};
-  pulls.forEach(c=>{ byTier[c.rarity] = (byTier[c.rarity]||0)+1; });
-  document.getElementById("sumRarity").innerHTML = Object.keys(byTier)
-    .map(Number).sort((a,b)=>b-a)
-    .map(t=>`<span style="color:${RARITIES[t].color}; border-color:${RARITIES[t].color}66; background:${RARITIES[t].color}14;">${RARITIES[t].name} ×${byTier[t]}</span>`)
+  const byBand = {};
+  pulls.forEach(c=>{ const r = RARITIES[c.rarity]; const k = r.name;
+    byBand[k] = byBand[k] || { n:0, color:r.color, top:c.rarity };
+    byBand[k].n++; byBand[k].top = Math.max(byBand[k].top, c.rarity); });
+  document.getElementById("sumRarity").innerHTML = Object.values(byBand)
+    .sort((a,b)=>b.top-a.top)
+    .map(b=>`<span style="color:${b.color}; border-color:${b.color}66; background:${b.color}14;">${Object.keys(byBand).find(k=>byBand[k]===b)} ×${b.n}</span>`)
     .join("");
 
   const wrap = document.getElementById("sumNewWrap");
@@ -6934,10 +7073,11 @@ function renderUpgrades(){
   const scrapEl = document.getElementById("scrapBalance");
   if(scrapEl) scrapEl.textContent = Math.floor(state.scrap).toLocaleString();
 
-  const groups = { mining:"upgradesMining", luck:"upgradesLuck", economy:"upgradesEconomy" };
+  const groups = { mining:"upgradesMining", luck:"upgradesLuck", economy:"upgradesEconomy", workshop:"upgradesWorkshop" };
   Object.values(groups).forEach(id=>{ const el = document.getElementById(id); if(el) el.innerHTML = ""; });
 
   UPGRADES.forEach(def=>{
+    if(def.retired) return;   /* grandfathered levels keep working; the shelf moves on */
     const container = document.getElementById(groups[def.category]);
     if(!container) return;
     const level = (state.upgrades && state.upgrades[def.key]) || 0;
@@ -7068,7 +7208,7 @@ function renderEmpire(){
 }
 
 /* ---------------- RENDER: MARKET ---------------- */
-function populateMarketFilters(){
+function populateMarketFilters(){ return; /* retired with the sell fold — the feed has no filters */
   const rf = document.getElementById("marketSellRarityFilter");
   RARITIES.forEach(r=>{
     const o = document.createElement("option");
@@ -7170,7 +7310,7 @@ function updateResetStockButton(){
   btn.disabled = !affordable;
 }
 
-function renderMarketSell(){
+function renderMarketSell(){ return; /* retired — selling lives in the binder now */
   const grid = document.getElementById("sellGrid");
   if(!grid) return;
   grid.innerHTML = "";
@@ -12447,6 +12587,7 @@ function fshStatLine(stats){
   return Object.entries(stats).map(([k,v])=>L[k] ? L[k](v) : `${k} ${v}`).join(" · ");
 }
 function renderTackleShop(){
+  if(!document.getElementById("tackleShop")) return;   /* the shop lives in the fishing modal now */
   const wrap = document.getElementById("tackleShop");
   if(!wrap) return;
   if(!state.fishing) state.fishing = defaultFishing();
@@ -22401,7 +22542,7 @@ function feVibeTick(dt){
         fsh.waitMs *= 0.45;
       }
     }
-    if(ph === "waiting" && feAim && fsh && Math.hypot(fsh.targetX - feAim.x, fsh.targetY - feAim.y) < 36){
+    if(ph === "waiting" && feAim && fsh && Math.hypot(fsh.targetX - feAim.x, fsh.targetY - feAim.y) < (((state.upgrades && state.upgrades.wideRing)||0) ? 50 : 36)){
       fsh.aimHit = true;
       fsh.waitMs = Math.min(fsh.waitMs, 700);
       showToast("🎯 Bullseye — something saw it land");
@@ -23362,7 +23503,7 @@ function feSectionModals(){
     m.querySelector(".fe-secbody").appendChild(panel);
     wrap.appendChild(m);
   }
-  document.body.appendChild(wrap);
+  (document.fullscreenElement || document.body).appendChild(wrap);
   wrap.addEventListener("click", e => {
     if(e.target.closest("[data-x]")) feSecOpen(null);
   });
@@ -23389,13 +23530,13 @@ function feChumOpen(){
     };
     m.querySelector("#feChUse").onclick = ()=>{
       if(!(inv.chum > 0) || inv.chumCasts > 0) return;
-      inv.chum--; inv.chumCasts = 4;
+      inv.chum--; inv.chumCasts = 4 + 2*Math.min(2,((state.upgrades && state.upgrades.chumBarrels)||0));
       fbSfxSafe("bait", 0.45); saveState(); paint();
       showToast("🪱 The water clouds — fast bites, fat payouts, four casts");
     };
   };
   paint();
-  document.body.appendChild(m);
+  (document.fullscreenElement || document.body).appendChild(m);
 }
 function feMixerOpen(){
   let m = document.getElementById("feMixer");
@@ -23408,7 +23549,7 @@ function feMixerOpen(){
     <label>🔊 Effects <input id="feMixSfx" type="range" min="0" max="100" value="${Math.round((inv.sfxVol===undefined?1:inv.sfxVol)*100)}"></label>
     <label>🎵 Music <input id="feMixMus" type="range" min="0" max="100" value="${Math.round((inv.musicVol===undefined?1:inv.musicVol)*100)}"></label>
     <button id="feMixVibe" class="fe-secbtn">${inv.vibeOff ? "📳 Vibration: off" : "📳 Vibration: on"}</button>`;
-  document.body.appendChild(m);
+  (document.fullscreenElement || document.body).appendChild(m);
   document.getElementById("feMixX").onclick = ()=> m.remove();
   document.getElementById("feMixSfx").oninput = e => { inv.sfxVol = e.target.value/100; feApplyVols(); saveState(); };
   document.getElementById("feMixMus").oninput = e => { inv.musicVol = e.target.value/100; feApplyVols(); saveState(); };
@@ -23837,7 +23978,8 @@ function feBountyState(){
       const wx = ["rain","fog","overcast"][(h>>>6) % 3];
       return { kind:"weather", wx, txt: `Land any fish in the ${wx === "overcast" ? "grey" : wx}`, cr: 1400 + i*1200, sc: 3 + i*2 };
     };
-    inv.bounty = { day, items: [0,1,2].map(i => Object.assign(mk(i), { done:false, claimed:false })) };
+    const nB = 3 + (((state.upgrades && state.upgrades.boardPins)||0) ? 1 : 0);
+    inv.bounty = { day, items: Array.from({length:nB}, (_,i)=>i).map(i => Object.assign(mk(i), { done:false, claimed:false })) };
   }
   const wk = (d => { const o=new Date(d.getFullYear(),0,1); return d.getFullYear()+"-W"+Math.ceil(((d-o)/864e5+o.getDay()+1)/7); })(new Date());
   if(!inv.week || inv.week.id !== wk){
@@ -23900,14 +24042,14 @@ function feBountyOpen(){
   m.innerHTML = `<div class="fej-head"><b>📜 The Bounty Board</b><button class="fe-secx" id="feBX">✕</button></div>
     <div class="fb-sub">Three marks a day. A rival record a week. The board resets with the sun.</div>
     ${rows}<div class="fb-div"></div>${wkRow}`;
-  document.body.appendChild(m);
+  (document.fullscreenElement || document.body).appendChild(m);
   document.getElementById("feBX").onclick = ()=> m.remove();
   m.querySelectorAll("[data-claim]").forEach(el => el.onclick = ()=>{
     const b = inv.bounty.items[+el.dataset.claim];
     if(!b.done || b.claimed) return;
     b.claimed = true;
     state.credits += b.cr; state.fishing.totalCredits = (state.fishing.totalCredits||0) + b.cr;
-    state.scrap = (state.scrap||0) + b.sc;
+    state.scrap = (state.scrap||0) + Math.round(b.sc * (1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
     fbSfxSafe("finish", 0.5); saveState();
     try{ renderHeader(); }catch(e){}
     showToast(`📜 Bounty paid — 🪙${b.cr.toLocaleString()}`);
@@ -23917,10 +24059,11 @@ function feBountyOpen(){
   if(wb) wb.onclick = ()=>{
     if(inv.week.claimed) return;
     inv.week.claimed = true;
-    state.credits += 6000; state.scrap = (state.scrap||0) + 12;
+    const rp = ((state.upgrades && state.upgrades.rivalPurse)||0) ? 2 : 1;
+    state.credits += 6000*rp; state.scrap = (state.scrap||0) + Math.round(12*rp*(1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
     fbSfxSafe("perfect", 0.5); saveState();
     try{ renderHeader(); }catch(e){}
-    showToast(`🏆 ${inv.week.rival} tips his hat. 🪙6,000`);
+    showToast(`🏆 ${inv.week.rival} tips his hat. 🪙${(6000*(((state.upgrades && state.upgrades.rivalPurse)||0)?2:1)).toLocaleString()}`);
     m.remove(); feBountyOpen();
   };
 }
@@ -23999,13 +24142,17 @@ function fshLand(){
   const scrap = Math.round(roll(d.scrap[0], d.scrap[1]) * st.lootMult);
   const rep = Math.round(d.rep * c.sizeRoll * st.lootMult);
   /* the quality roll: every fish has a finish. Perfect ones shimmer. */
+  if(((state.upgrades && state.upgrades.masterwork)||0) && !c.boxNeed) credits = Math.round(credits * 1.10);
   if(!c.boss && !c.boxNeed){
     const qr = Math.random();
     c.q = qr < 0.01 ? 3 : qr < 0.08 ? 2 : qr < 0.30 ? 1 : 0;
     credits = Math.round(credits * [1, 1.35, 1.9, 3][c.q]);
   }
   const chips = [`🪙 ${credits.toLocaleString()} Credits`];
-  if(fsh.aimHit && !c.boxNeed){ credits = Math.round(credits * 1.15); chips.push("🎯 Bullseye ×1.15"); }
+  if(fsh.aimHit && !c.boxNeed){
+    const bm = ((state.upgrades && state.upgrades.wideRing)||0) ? 1.25 : 1.15;
+    credits = Math.round(credits * bm); chips.push("🎯 Bullseye ×" + bm);
+  }
   if(fsh.chummed && !c.boxNeed){ credits = Math.round(credits * 1.2); chips.push("🪱 Chummed water ×1.2"); }
   if(c.q) chips.push(["","✨ FINE quality ×1.35","�a PRISTINE ×1.9","🌟 PERFECT ×3 — it shimmers"][c.q].replace("�a","💎"));
   if(c.q && state.fishing.journal[c.name]){
@@ -24135,6 +24282,7 @@ function feRenderSpots(){
       <button id="feMixChip" class="fe-sfx">🎚️</button>
       <button id="feFullChip" class="fe-sfx" title="full screen">⛶</button>
       <button id="feChumChip" class="fe-sfx" title="chum">🪱</button>
+      <button id="feTackleChip" class="fe-sfx" title="tackle shop">🧰</button>
       </div>
     <div class="fe-secrow">
       <button id="feJournalBtn" class="fe-secbtn">📖 Journal <i>${feJournalCount()}/${feSpeciesTotal()}</i></button>
@@ -24155,6 +24303,20 @@ function feRenderSpots(){
     if(mixBtn) mixBtn.onclick = feMixerOpen;
     const chBtn = row.querySelector("#feChumChip");
     if(chBtn) chBtn.onclick = feChumOpen;
+    const tkBtn = row.querySelector("#feTackleChip");
+    if(tkBtn) tkBtn.onclick = ()=>{
+      feAudioUnlock();
+      let m = document.getElementById("feTackle");
+      if(m){ m.remove(); return; }
+      m = document.createElement("div");
+      m.id = "feTackle";
+      m.innerHTML = `<div class="fej-head"><b>🧰 The Tackle Shop</b><button class="fe-secx" id="feTkX">✕</button></div>
+        <div class="fb-sub">Rods, reels, line, hooks, lures and clothes. Bait burns a piece per cast; charms run a set count.</div>
+        <div id="tackleShop"></div>`;
+      (document.fullscreenElement || document.body).appendChild(m);
+      document.getElementById("feTkX").onclick = ()=> m.remove();
+      try{ renderTackleShop(); }catch(e){}
+    };
     const fsBtn = row.querySelector("#feFullChip");
     if(fsBtn) fsBtn.onclick = ()=>{
       const stage = document.querySelector("#tab-fishing .fsh-stage");
@@ -24168,8 +24330,18 @@ function feRenderSpots(){
     if(!window.__feFsWatch){
       window.__feFsWatch = true;
       document.addEventListener("fullscreenchange", ()=>{
-        if(!document.fullscreenElement)
+        if(!document.fullscreenElement){
           document.querySelectorAll(".fe-fs-host").forEach(el => el.classList.remove("fe-fs-host"));
+          document.querySelectorAll(".fe-fs-exit").forEach(el => el.remove());
+        } else {
+          const host = document.fullscreenElement;
+          if(host.classList && host.classList.contains("fe-fs-host") && !host.querySelector(".fe-fs-exit")){
+            const x = document.createElement("button");
+            x.className = "fe-fs-exit"; x.textContent = "✕";
+            x.onclick = ()=>{ try{ document.exitFullscreen(); }catch(e){} };
+            host.appendChild(x);
+          }
+        }
       });
     }
     const mChip = row.querySelector("#feMusicChip");
@@ -24511,7 +24683,7 @@ function fshDrawSky(g){
     const pu = 0.6 + 0.4*Math.sin(fshT*3 + feAim.ph);
     g.globalAlpha = 0.5 * pu;
     g.strokeStyle = "#ffd35c"; g.lineWidth = 2;
-    g.beginPath(); g.ellipse(feAim.x, feAim.y, 34, 13, 0, 0, 7); g.stroke();
+    g.beginPath(); g.ellipse(feAim.x, feAim.y, ((state.upgrades && state.upgrades.wideRing)||0) ? 46 : 34, ((state.upgrades && state.upgrades.wideRing)||0) ? 17 : 13, 0, 0, 7); g.stroke();
     g.globalAlpha = 0.3 * pu;
     g.beginPath(); g.ellipse(feAim.x, feAim.y, 20, 7.6, 0, 0, 7); g.stroke();
     g.globalAlpha = 1;
@@ -25510,7 +25682,7 @@ function feCineStart(bossName){
     <button id="feCineGo" style="display:none; position:absolute; left:50%; bottom:34px; transform:translateX(-50%);
       padding:13px 34px; border-radius:14px; border:1px solid #ffd35c; cursor:pointer;
       background:rgba(20,14,6,.85); color:#ffd35c; font:800 17px system-ui;">⚔️ FIGHT</button></div>`;
-  document.body.appendChild(wrap);
+  (document.fullscreenElement || document.body).appendChild(wrap);
   feCine = { active:true, wrap, cfg, hard, boss:bossName, t:0, phase:"leap",
              hp: cfg.hp || 100, hpMax: cfg.hp || 100, stress:0, round:0,
              ring:null, flash:0, shake:0, bolt:0, boltT:0, floats:[], last:0, cache:feCine.cache };
@@ -25885,7 +26057,7 @@ state.mining.veinSel = state.mining.veinSel || 0;   /* 0 = the richest unlocked 
 if(typeof currentMineRatePerMin === "function" && !window.__mgWrapped){
   window.__mgWrapped = true;
   const _r0 = currentMineRatePerMin;
-  currentMineRatePerMin = function(){ return _r0() * (1 + 0.06*(state.mining.forge||0)); };
+  currentMineRatePerMin = function(){ return _r0() * (1 + 0.06*(state.mining.forge||0)) * (1 + 0.10*(((state.upgrades && state.upgrades.masterwork)||0)?1:0)); };
 }
 const mgPickImgs = {};
 for(const k in MG_PICKS){ const im = new Image(); im.src = MG_PICKS[k].d; mgPickImgs[k] = im; }
@@ -25942,6 +26114,7 @@ function mgMaxTier(){
   return t;
 }
 /* the miner picks the seam: any unlocked tier — old veins never close */
+function mgRockHp(){ return 20 - 2*Math.min(3,((state.upgrades && state.upgrades.blast)||0)); }
 function mgTier(){
   const sel = state.mining && state.mining.veinSel;
   const mx = mgMaxTier();
@@ -26063,16 +26236,18 @@ function mgStrike(player){
     if(mg.hp <= 0){
       const tier = mgTier();
       const bonus = Math.max(250, Math.round(mgRate()*0.75*(1+0.25*(tier-1))));
-      const oreN = 2 + Math.floor(Math.random()*3);
+      let oreN = 2 + Math.floor(Math.random()*3) + (((state.upgrades && state.upgrades.prospectorEye)||0) ? 1 : 0);
+      let oreT = tier;
+      if(((state.upgrades && state.upgrades.prospectorEye)||0) && Math.random() < 0.10 && tier < 7){ oreT = tier+1; }
       state.credits += bonus;
       state.totalMined = (state.totalMined||0) + bonus;
-      state.scrap = (state.scrap||0) + 2;
-      state.mining.ore[tier] = (state.mining.ore[tier]||0) + oreN;
+      state.scrap = (state.scrap||0) + Math.round(2 * (1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
+      state.mining.ore[oreT] = (state.mining.ore[oreT]||0) + oreN;
       mgBurst();
-      mgFloat(W/2, H-230, "VEIN STRUCK  +"+bonus.toLocaleString()+" 🪙  +"+oreN+" Tier-"+tier+" Ore", true);
+      mgFloat(W/2, H-230, "VEIN STRUCK  +"+bonus.toLocaleString()+" 🪙  +"+oreN+" Tier-"+oreT+" Ore"+(oreT>tier?" — RICHER than the seam!":""), true);
       mgWorksRender();
       try{ window.feLedgerBump && feLedgerBump("vein"); }catch(e){}
-      mg.hp = mg.maxHp; mg.seed = (mg.seed*48271)%2147483647 || 7;
+      mg.maxHp = mgRockHp(); mg.hp = mg.maxHp; mg.seed = (mg.seed*48271)%2147483647 || 7;
       mgHeaderRefresh();
       try{ saveState(); }catch(e){}
       try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
@@ -26094,7 +26269,7 @@ setInterval(mgCaption, 2500); mgCaption();
 
 /* ---- the works: smelter + forge ---- */
 const MG_SMELT_ORE = 5;                 /* five ore make one ingot */
-function mgSmeltSecs(t){ return 45*t; }
+function mgSmeltSecs(t){ return Math.round(45*t*Math.pow(0.8,((state.upgrades && state.upgrades.bellows)||0))); }
 function mgForgeCost(next){ return { n: next, t: next-1 }; }   /* Tier-N pick: N ingots of tier N-1 */
 function mgWorksRender(){
   const el = document.getElementById("mgWorks");
@@ -26108,18 +26283,19 @@ function mgWorksRender(){
   for(let t=1;t<=7;t++) if((M.ingots[t]||0) > 0)
     ing += `<span class="mgw-chip"><img src="${MG_INGOTS["t"+t].d}"><b>×${M.ingots[t]}</b></span>`;
   /* smelter */
-  let smelt;
-  if(M.job){
-    const left = Math.max(0, Math.ceil((M.job.done - Date.now())/1000));
-    smelt = left > 0
-      ? `<div class="mgw-job">🔥 Smelting Tier-${M.job.t} ingot — ${left}s</div>`
-      : `<button class="mgw-btn hot" data-collect="1">🔥 Ingot ready — collect</button>`;
-  } else {
-    smelt = "";
+  if(M.job && !M.jobs){ M.jobs=[M.job]; M.job=null; }
+  M.jobs = M.jobs || [];
+  const slots = 1 + (((state.upgrades&&state.upgrades.crucible)||0) ? 1 : 0);
+  let smelt = M.jobs.map((jb,ji)=>{
+    const left = Math.max(0, Math.ceil((jb.done - Date.now())/1000));
+    return left > 0 ? `<div class="mgw-job">🔥 Tier-${jb.t} ingot — ${left}s</div>`
+      : `<button class="mgw-btn hot" data-collect="${ji}">🔥 Ingot ready — collect</button>`;
+  }).join("");
+  if(M.jobs.length < slots){
     for(let t=1;t<=7;t++) if((M.ore[t]||0) >= MG_SMELT_ORE)
       smelt += `<button class="mgw-btn" data-smelt="${t}">Smelt T${t}: ${MG_SMELT_ORE} ore → 1 ingot (${mgSmeltSecs(t)}s)</button>`;
-    if(!smelt) smelt = `<div class="mgw-dim">The smelter waits — five ore of a tier makes an ingot.</div>`;
   }
+  if(!smelt) smelt = `<div class="mgw-dim">The smelter waits — five ore of a tier makes an ingot.</div>`;
   /* forge */
   let forge;
   const next = mgPickTier()+1;
@@ -26147,30 +26323,31 @@ function mgWorksRender(){
     const t = +b.dataset.seam;
     if(t > mgMaxTier()) return;
     state.mining.veinSel = (t === mgMaxTier()) ? 0 : t;   /* picking the top re-follows your progress */
-    mg.hp = mg.maxHp;                                      /* a fresh face on the new seam */
+    mg.maxHp = mgRockHp(); mg.hp = mg.maxHp;                                      /* a fresh face on the new seam */
     try{ saveState(); }catch(e){}
     mgWorksRender(); mgCaption();
   });
   el.querySelectorAll("[data-smelt]").forEach(b => b.onclick = ()=>{
     const t = +b.dataset.smelt;
-    if((M.ore[t]||0) < MG_SMELT_ORE || M.job) return;
+    const slots2 = 1 + (((state.upgrades&&state.upgrades.crucible)||0) ? 1 : 0);
+    if((M.ore[t]||0) < MG_SMELT_ORE || (M.jobs||[]).length >= slots2) return;
     M.ore[t] -= MG_SMELT_ORE;
-    M.job = { t, done: Date.now() + mgSmeltSecs(t)*1000 };
+    M.jobs.push({ t, done: Date.now() + mgSmeltSecs(t)*1000 });
     try{ fbSfxSafe && fbSfxSafe("bait", 0.35); }catch(e){}
     try{ saveState(); }catch(e){}
     mgWorksRender();
   });
-  const col = el.querySelector("[data-collect]");
-  if(col) col.onclick = ()=>{
-    if(!M.job || Date.now() < M.job.done) return;
-    M.ingots[M.job.t] = (M.ingots[M.job.t]||0) + 1;
+  el.querySelectorAll("[data-collect]").forEach(col => col.onclick = ()=>{
+    const jb = (M.jobs||[])[+col.dataset.collect];
+    if(!jb || Date.now() < jb.done) return;
+    M.ingots[jb.t] = (M.ingots[jb.t]||0) + 1;
     try{ window.feLedgerBump && feLedgerBump("smelt"); }catch(e){}
-    mgFloat(W/2, H-200, "🔥 Tier-"+M.job.t+" ingot, cooled and true", true);
-    M.job = null;
+    mgFloat(W/2, H-200, "🔥 Tier-"+jb.t+" ingot, cooled and true", true);
+    M.jobs.splice(+col.dataset.collect, 1);
     try{ fbSfxSafe && fbSfxSafe("reward_good", 0.4); }catch(e){}
     try{ saveState(); }catch(e){}
     mgWorksRender();
-  };
+  });
   const fg = el.querySelector("[data-forge]");
   if(fg) fg.onclick = ()=>{
     const nx = mgPickTier()+1;
@@ -26267,8 +26444,9 @@ function lgState(){
   const day = new Date().toDateString();
   if(!state.ledger || state.ledger.day !== day){
     const picked = [];
+    const nC = 3 + (((state.upgrades && state.upgrades.foremanTrust)||0) ? 1 : 0);
     let h0 = lgHash(day + "#foreman");
-    while(picked.length < 3){
+    while(picked.length < nC){
       const cand = LG_POOL[(h0 >>> (picked.length*5)) % LG_POOL.length];
       if(!picked.some(p => p.kind === cand.kind)){
         const h = lgHash(day + "#" + cand.kind);
@@ -26337,7 +26515,7 @@ function lgRender(){
     const it = L.items[+b.dataset.lgclaim];
     if(it.claimed || it.n < it.goal) return;
     it.claimed = true;
-    state.credits += it.cr; state.scrap = (state.scrap||0) + it.sc;
+    state.credits += it.cr; state.scrap = (state.scrap||0) + Math.round(it.sc * (1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
     try{ renderHeader ? renderHeader() : null; }catch(e){}
     try{ document.getElementById("creditCount").textContent = Math.floor(state.credits).toLocaleString(); }catch(e){}
     showToast(`📜 Contract paid — 🪙${it.cr.toLocaleString()}`);
@@ -26351,8 +26529,10 @@ function lgRender(){
     L.grand = true;
     try{
       const pk = PACKS.find(p=>p.price1===1000) || PACKS[0];
-      const pulls = openOnePack(pk.key, new Set());
-      startReveal(pk, [pulls], 0);
+      const nPk = 1 + (((state.upgrades && state.upgrades.foremanTrust)||0) ? 1 : 0);
+      const arr = [];
+      for(let q=0;q<nPk;q++) arr.push(openOnePack(pk.key, new Set()));
+      startReveal(pk, arr, 0);
       showToast(`🎁 The Prospector's Pack — a ${pk.name} on the house`);
     }catch(e){ state.credits += 10000; showToast("🎁 The foreman pays 🪙10,000 instead"); }
     try{ saveState(); }catch(e){}
@@ -26376,6 +26556,465 @@ if(typeof renderPlayLobby === "function" && !window.__lgLobbyWrap){
 }
 setInterval(()=>{ try{ lgBadge(); }catch(e){} }, 4000);
 setTimeout(()=>{ try{ lgState(); lgBadge(); lgRender(); }catch(e){} }, 400);
+})();
+
+/* ============================================================
+   THE GRADING DESK — pulls come raw. Prof. Mullen takes your
+   card, your fee, and his time; the slab comes back 1 to 10.
+   Like real cardboard: the pull is hope, the grade is truth.
+   ============================================================ */
+(function(){
+state.grading = state.grading || {};
+state.grading.slots = state.grading.slots || [null, null];
+if(((state.upgrades && state.upgrades.deskSlot)||0) && state.grading.slots.length < 3) state.grading.slots.push(null);
+state.grading.graded = state.grading.graded || {};    /* cardId -> grade */
+
+const GR_LABEL = ["","POOR","FAIR","GOOD","GOOD+","EXCELLENT","EX-MINT","NEAR MINT","NM-MINT","MINT","GEM MINT"];
+function grFee(r){ return 400 * Math.pow(Math.floor(r/3)+1, 2); }        /* by band */
+function grSecs(r){ return 60 * (Math.floor(r/3)+1); }
+function grRoll(){
+  let rerolls = Math.min(2,((state.upgrades && state.upgrades.profFavor)||0));
+  const w = [0,1,2,4,8,14,20,22,16,9,4];                                  /* grades 1..10 */
+  let tot = 0; for(let i=1;i<=10;i++) tot += w[i];
+  const draw = ()=>{ let x = Math.random()*tot;
+    for(let i=1;i<=10;i++){ x -= w[i]; if(x <= 0) return i; }
+    return 7; };
+  let g = draw();
+  while(g <= 4 && rerolls > 0){ rerolls--; g = draw(); }   /* Mullen takes another look */
+  return g;
+}
+function grCandidates(){
+  const out = [];
+  for(const id in state.owned){
+    if(!(state.owned[id] > 0)) continue;
+    if(state.grading.graded[id]) continue;
+    if(state.grading.slots.some(s => s && s.id === id)) continue;
+    const c = cards[id];
+    if(c) out.push(c);
+  }
+  out.sort((a,b) => b.rarity - a.rarity);
+  return out.slice(0, 8);
+}
+function grRender(){
+  const tab = document.getElementById("tab-collection");
+  if(!tab) return;
+  let host = document.getElementById("grPanel");
+  if(!host){
+    host = document.createElement("div");
+    host.id = "grPanel"; host.className = "panel gr-panel";
+    tab.insertBefore(host, tab.firstChild);
+  }
+  const G = state.grading;
+  /* the two desk slots */
+  const slots = G.slots.map((s,i)=>{
+    if(!s) return `<div class="gr-slot empty">— open slot —</div>`;
+    const left = Math.max(0, Math.ceil((s.done - Date.now())/1000));
+    const c = cards[s.id];
+    return left > 0
+      ? `<div class="gr-slot">🔎 <b>${c ? c.name : "?"}</b> — with the professional, ${left}s</div>`
+      : `<div class="gr-slot ready"><b>${c ? c.name : "?"}</b><button class="gr-crack" data-crack="${i}">CRACK THE SLAB</button></div>`;
+  }).join("");
+  /* the candidates worth sending */
+  const cand = grCandidates();
+  const hand = cand.length
+    ? cand.map(c=>{
+        const r = RARITIES[c.rarity];
+        return `<button class="gr-card" data-send="${c.id}" style="border-color:${r.color}66"
+          title="${c.name} · fee 🪙${grFee(c.rarity).toLocaleString()} · ${grSecs(c.rarity)}s">
+          <span class="e">${c.emoji}</span><span class="n">${c.name}</span>
+          <span class="f">🪙${grFee(c.rarity).toLocaleString()}</span></button>`;
+      }).join("")
+    : `<div class="gr-dim">Nothing ungraded worth sending — open packs, then come back.</div>`;
+  /* the shelf of finished slabs */
+  const done = Object.keys(G.graded)
+    .map(id => ({ id, g: G.graded[id], c: cards[id] }))
+    .filter(x => x.c)
+    .sort((a,b) => b.g - a.g).slice(0, 10);
+  const shelf = done.length
+    ? `<div class="gr-shelfhead">The slab shelf</div><div class="gr-shelf">` +
+      done.map(x=>`<span class="gr-slab g${x.g}">${x.c.emoji} <b>${x.g}</b></span>`).join("") + `</div>`
+    : "";
+  host.innerHTML = `<div class="gr-head">🔎 <b>The Grading Desk</b><i>raw pulls in, graded slabs out — Prof. Mullen sees all flaws</i></div>
+    <div class="gr-slots">${slots}</div>
+    <div class="gr-handhead">Worth sending (your best raw cards)</div>
+    <div class="gr-hand">${hand}</div>${shelf}`;
+  host.querySelectorAll("[data-send]").forEach(b => b.onclick = ()=>{
+    const id = b.dataset.send;
+    const c = cards[id]; if(!c) return;
+    const si = state.grading.slots.findIndex(s => !s);
+    if(si < 0){ showToast("The desk is full — crack a slab first"); return; }
+    const fee = grFee(c.rarity);
+    if(state.credits < fee){ showToast(`The professional wants 🪙${fee.toLocaleString()}`); return; }
+    state.credits -= fee;
+    state.grading.slots[si] = { id, done: Date.now() + grSecs(c.rarity)*1000 };
+    showToast(`🔎 ${c.name} is with the professional`);
+    try{ fbSfxSafe && fbSfxSafe("bait", 0.35); }catch(e){}
+    try{ saveState(); }catch(e){}
+    grRender();
+  });
+  host.querySelectorAll("[data-crack]").forEach(b => b.onclick = ()=>{
+    const i = +b.dataset.crack;
+    const s = state.grading.slots[i];
+    if(!s || Date.now() < s.done) return;
+    const grade = grRoll();
+    state.grading.graded[s.id] = grade;
+    state.grading.slots[i] = null;
+    const c = cards[s.id];
+    grCeremony(c, grade);
+    /* a graded card works harder in the mine */
+    try{
+      state.miningBonus = computeMiningBonusFromOwned(state.owned);
+      renderMiningStats && renderMiningStats();
+    }catch(e){}
+    if(grade >= 9){
+      state.player.bonusXP = (state.player.bonusXP||0) + 40 * (Math.floor((c?c.rarity:0)/3)+1);
+      try{ recomputeLevelFromXP && recomputeLevelFromXP(); }catch(e){}
+    }
+    try{ saveState(); }catch(e){}
+    grRender();
+  });
+}
+function grCeremony(c, grade){
+  let m = document.getElementById("grModal");
+  if(m) m.remove();
+  m = document.createElement("div");
+  m.id = "grModal";
+  m.innerHTML = `<div class="gr-slabbig g${grade}">
+      <div class="gr-slabtop">PROFESSIONAL GRADING</div>
+      <div class="gr-slabemoji">${c ? c.emoji : "🎴"}</div>
+      <div class="gr-slabname">${c ? c.name : ""}</div>
+      <div class="gr-grade" id="grNum">1</div>
+      <div class="gr-gradelabel" id="grLbl"></div>
+      <button class="gr-close" id="grClose">Take it home</button>
+    </div>`;
+  document.body.appendChild(m);
+  /* the count-up: hope, then truth */
+  let n = 0;
+  const iv = setInterval(()=>{
+    n++;
+    const el = document.getElementById("grNum");
+    if(!el){ clearInterval(iv); return; }
+    el.textContent = n;
+    try{ fbSfxSafe && fbSfxSafe("equip", 0.12); }catch(e){}
+    if(n >= grade){
+      clearInterval(iv);
+      document.getElementById("grLbl").textContent = GR_LABEL[grade];
+      if(grade >= 9){ m.querySelector(".gr-slabbig").classList.add("shine");
+        try{ fbSfxSafe && fbSfxSafe("perfect", 0.5); }catch(e){} }
+      else try{ fbSfxSafe && fbSfxSafe("finish", 0.35); }catch(e){}
+    }
+  }, 260);
+  document.getElementById("grClose").onclick = ()=> m.remove();
+}
+/* graded cards pull extra weight in the mine: +grade/10 of their bonus */
+if(typeof computeMiningBonusFromOwned === "function" && !window.__grMineWrap){
+  window.__grMineWrap = true;
+  const _b0 = computeMiningBonusFromOwned;
+  computeMiningBonusFromOwned = function(ownedMap){
+    let b = _b0(ownedMap);
+    try{
+      const g = (state.grading && state.grading.graded) || {};
+      for(const id in g){
+        if(ownedMap[id] > 0 && cards[id]) b += MINE_BONUS_BY_TIER[cards[id].rarity] * (g[id]/10);
+      }
+    }catch(e){}
+    return b;
+  };
+}
+setInterval(()=>{ try{ grRender(); }catch(e){} }, 1000);
+setTimeout(()=>{ try{ grRender(); }catch(e){} }, 500);
+})();
+
+/* ============================================================
+   THE SALESMAN'S FEED + BINDER SALES — every card has a true
+   value and a seller who may or may not know it. Buy low from
+   the clueless, dodge the fakes, and list your own cardboard
+   for buyers who nibble, stall, or bail.
+   ============================================================ */
+(function(){
+const M2_PERSONAS = [
+  { key:"uncle",  w:18, icon:"🧓", name:"Clueless Uncle",  mult:[0.35,0.7],
+    lines:["found in the attic, no idea","grandkids lost interest","is this worth anything lol","garage cleanout, priced to move"] },
+  { key:"hype",   w:22, icon:"📢", name:"Hype Merchant",   mult:[1.7,2.8],
+    lines:["INVESTMENT GRADE 🚀","this one's going to the moon","last one sold for double (trust me)","banger alert. serious buyers only"] },
+  { key:"scam",   w:12, icon:"🕶️", name:"definitely_real_cards", mult:[0.45,0.75], fake:0.55,
+    lines:["100% authentic no refunds","ships from an undisclosed location","photo is 'representative'","totally legit, why do you ask"] },
+  { key:"fair",   w:40, icon:"🧑‍💼", name:"Fair Dealer",     mult:[0.9,1.15],
+    lines:["priced off last week's sales","honest wear, honest price","smoke-free binder","what it's worth, no games"] },
+  { key:"vault",  w:8,  icon:"🎩", name:"VaultDealer",     mult:[1.25,1.6], minR:9,
+    lines:["curated. authenticated. expensive.","museum quality, museum price","for the discerning collector","you get what you pay for"] },
+];
+function m2TrueVal(c){
+  let v = MARKET_BUY_PRICE_BY_TIER[c.rarity];
+  const g = state.grading && state.grading.graded && state.grading.graded[c.id];
+  if(g) v = Math.round(v * (0.5 + g*0.15));
+  return v;
+}
+function m2Persona(rng){
+  let tot = 0; for(const p of M2_PERSONAS) tot += p.w;
+  let x = rng()*tot;
+  for(const p of M2_PERSONAS){ x -= p.w; if(x <= 0) return p; }
+  return M2_PERSONAS[3];
+}
+function m2RollCard(rng, minR){
+  for(let a=0;a<400;a++){
+    const c = cards[Math.floor(rng()*cards.length)];
+    if(!c) continue;
+    if(typeof EXCLUSIVE_CATEGORIES !== "undefined" && EXCLUSIVE_CATEGORIES.has(c.category)) continue;
+    if(minR && c.rarity < minR) continue;
+    return c;
+  }
+  return cards[0];
+}
+/* the feed replaces the old uniform stock */
+generateMarketOffers = function(bucket, size){
+  const rng = mulberry32(bucket);
+  const offers = [];
+  const used = new Set();
+  const backroom = ((state.upgrades && state.upgrades.backRoom)||0) ? 1 : 0;
+  while(offers.length < size + backroom){
+    const isLast = backroom && offers.length === size + backroom - 1;
+    if(isLast){
+      if(rng() < 0.5){
+        const c = m2RollCard(rng, 9);
+        offers.push({ kind:"card", cardId:c.id, sold:false, persona:"vault",
+          price: Math.max(5, Math.round(m2TrueVal(c) * (1.25 + rng()*0.35))),
+          fake:false, line:"from the back room. don't touch the glass." });
+      } else {
+        const n = 5 + Math.floor(rng()*2);
+        offers.push({ kind:"lot", n, sold:false, price: Math.round((200 + rng()*400) * n),
+          line:"the back-room lot. sealed twice." });
+      }
+      continue;
+    }
+    const roll = rng();
+    if(roll < 0.16 && typeof PACKS !== "undefined"){          /* a sealed pack, price wobbling */
+      const pk = PACKS[Math.floor(rng()*Math.min(PACKS.length,4))];
+      if(!pk || pk.earnOnly){ continue; }
+      const mult = 0.55 + rng()*0.95;
+      offers.push({ kind:"pack", packKey:pk.key, sold:false,
+        price: Math.max(50, Math.round(pk.price1 * mult)),
+        line: mult < 0.85 ? "sealed. probably. dented corner" : "sealed, straight from a case (he says)" });
+      continue;
+    }
+    if(roll < 0.28){                                          /* the mystery lot */
+      const n = 4 + Math.floor(rng()*2);
+      offers.push({ kind:"lot", n, sold:false,
+        price: Math.round((120 + rng()*380) * n),
+        line: ["unsearched, i swear","from a storage unit","my brother's collection, don't ask","binder page fell in a puddle once"][Math.floor(rng()*4)] });
+      continue;
+    }
+    const p = m2Persona(rng);
+    const c = m2RollCard(rng, p.minR);
+    if(used.has(c.id)) continue;
+    used.add(c.id);
+    const mult = p.mult[0] + rng()*(p.mult[1]-p.mult[0]);
+    offers.push({ kind:"card", cardId:c.id, sold:false, persona:p.key,
+      price: Math.max(5, Math.round(m2TrueVal(c) * mult)),
+      fake: p.fake ? (rng() < p.fake) : false,
+      line: p.lines[Math.floor(rng()*p.lines.length)] });
+  }
+  return offers;
+};
+/* THE COUNTER — one visitor at a time. No scroll, just people. */
+const M2_HAGGLE = {
+  uncle: { odds:0.7,  cut:0.18, yes:"oh! sure, that seems fair.", no:"the wife said not below that, sorry." },
+  fair:  { odds:0.55, cut:0.10, yes:"you drive a fair bargain. done.", no:"that's already the honest price, friend." },
+  hype:  { odds:0.25, cut:0.12, yes:"ugh. FINE. you're robbing me.", no:"full price, champ. this thing PRINTS." },
+  scam:  { odds:1.0,  cut:0.25, yes:"deal deal deal. great doing business.", no:"" },
+  vault: { odds:0.0,  cut:0,    yes:"", no:"we do not *haggle* here. that's five percent more for asking.", bump:0.05 },
+  lotpk: { odds:0.5,  cut:0.12, yes:"take it, it's been sitting.", no:"sealed is sealed. price stands." },
+};
+function m2Cursor(){
+  const of = state.market.offers;
+  for(let i=0;i<of.length;i++) if(!of[i].sold && !of[i].passed) return i;
+  return -1;
+}
+renderMarketOffers = function(){
+  ensureMarketFresh();
+  const grid = document.getElementById("marketGrid");
+  if(!grid) return;
+  const of = state.market.offers;
+  const i = m2Cursor();
+  const seen = of.filter(o=>o.sold||o.passed).length;
+  if(i < 0){
+    grid.innerHTML = `<div class="m2-quiet">🚪 The shop's quiet — everyone's been seen.<br>
+      <i>${of.filter(o=>o.sold).length} deals done, ${of.filter(o=>o.passed).length} sent walking. Restock's coming.</i></div>`;
+    return;
+  }
+  const o = of[i];
+  let who, art, name, band = "", pitch = o.line;
+  if(o.kind === "pack"){
+    const pk = PACKS.find(p=>p.key===o.packKey) || {};
+    who = "📦 A courier with a sealed box"; art = "🎴"; name = pk.name || "Pack";
+  } else if(o.kind === "lot"){
+    who = "🧳 Somebody clearing a storage unit"; art = "❔"; name = `${o.n} unsearched cards`;
+  } else {
+    const c = cards[o.cardId]; const p = M2_PERSONAS.find(x=>x.key===o.persona) || M2_PERSONAS[3];
+    if(o.fake && ((state.upgrades && state.upgrades.fakeSpotter)||0) && o.sniff === undefined) o.sniff = Math.random() < 0.5;
+    const r = RARITIES[c.rarity];
+    who = `${p.icon} ${p.name}`; art = c.emoji; name = c.name;
+    band = `<div class="m2-band" style="color:${r.color}">${r.name}</div>`;
+  }
+  const price = o.hagglePrice || o.price;
+  grid.innerHTML = `<div class="m2-counter">
+    <div class="m2-visitn">visitor ${seen+1} of ${of.length}</div>
+    <div class="m2-visitor">${who}</div>
+    <div class="m2-bubble">"${o.reply || pitch}"${o.sniff ? `<div class="m2-sniff">👃 something smells off about this one…</div>` : ""}</div>
+    <div class="m2-itemrow"><span class="m2-art">${art}</span>
+      <span><div class="m2-name">${name}</div>${band}</span></div>
+    <div class="m2-price">🪙 ${price.toLocaleString()}${o.hagglePrice ? ` <s>${o.price.toLocaleString()}</s>` : ""}</div>
+    <div class="m2-acts">
+      <button class="m2-act buy" id="m2Buy">🤝 Buy it</button>
+      <button class="m2-act" id="m2Hag" ${o.haggled ? "disabled" : ""}>💬 Bargain</button>
+      <button class="m2-act" id="m2Pass">👋 No way</button>
+    </div></div>`;
+  document.getElementById("m2Buy").onclick = ()=> m2Buy(i);
+  document.getElementById("m2Pass").onclick = ()=>{
+    o.passed = true; try{ saveState(); }catch(e){} renderMarketOffers();
+  };
+  const hb = document.getElementById("m2Hag");
+  if(hb) hb.onclick = ()=>{
+    if(o.haggled) return;
+    o.haggled = true;
+    const key = o.kind ? "lotpk" : (o.persona || "fair");
+    const H = M2_HAGGLE[key === "card" ? "fair" : key] || M2_HAGGLE.fair;
+    const bonus = 0.15*Math.min(2,((state.upgrades && state.upgrades.silverTongue)||0)) + (((state.upgrades && state.upgrades.masterwork)||0) ? 0.10 : 0);
+    if(H.bump){ o.price = Math.round(o.price * (1 + H.bump)); o.reply = H.no; }
+    else if(Math.random() < Math.min(0.95, H.odds + bonus)){ o.hagglePrice = Math.round(o.price * (1 - H.cut)); o.reply = H.yes; }
+    else { o.reply = H.no; if(((state.upgrades && state.upgrades.silverTongue)||0) >= 2 && !o.haggled2){ o.haggled2 = true; o.haggled = false; o.reply += " …though you sense one more push might land."; } }
+    try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){}
+    try{ saveState(); }catch(e){}
+    renderMarketOffers();
+  };
+};
+function m2Buy(i){
+  ensureMarketFresh();
+  const o = state.market.offers[i];
+  if(!o || o.sold) return;
+  const pay = o.hagglePrice || o.price;
+  if(state.credits < pay){ showToast("Not enough credits for that deal"); return; }
+  state.credits -= pay;
+  o.sold = true;
+  if(o.kind === "pack"){
+    const pk = PACKS.find(p=>p.key===o.packKey);
+    try{ const pulls = openOnePack(pk.key, new Set()); startReveal(pk, [pulls], (o.hagglePrice||o.price)); }catch(e){}
+  } else if(o.kind === "lot"){
+    /* roll the lot with the game's own rarity weights, open it like a pack */
+    const pulls = [];
+    for(let k=0;k<o.n;k++) pulls.push(m2RollCard(Math.random, 0));
+    try{ startReveal({ name:"Mystery Lot", key:"m2lot" }, [pulls], (o.hagglePrice||o.price)); }catch(e){
+      pulls.forEach(c=>{ state.owned[c.id]=(state.owned[c.id]||0)+1; });
+      showToast("📦 The lot's yours — "+o.n+" cards to the binder");
+    }
+  } else if(o.fake){
+    state.scrap = (state.scrap||0) + 3;
+    showToast("🕶️ It never ships. The listing vanishes. (+3 ♻️ — the sleeve was real)");
+    try{ fbSfxSafe && fbSfxSafe("splash_small", 0.4); }catch(e){}
+  } else {
+    const c = cards[o.cardId];
+    state.owned[c.id] = (state.owned[c.id]||0) + 1;
+    state.miningBonus = computeMiningBonusFromOwned(state.owned);
+    showToast(`🤝 ${c.name} is yours — check the binder`);
+    try{ fbSfxSafe && fbSfxSafe("reward_good", 0.4); }catch(e){}
+  }
+  try{ saveState(); renderHeader(); }catch(e){}
+  renderMarketOffers();
+}
+
+/* ================= BINDER SALES ================= */
+state.binderSales = state.binderSales || [];
+const M2_TIERS = [
+  { key:"quick",  label:"Quick sale",  mult:0.75, secs:90,   chance:1.0,  note:"sells fast, sure thing" },
+  { key:"fair",   label:"Fair price",  mult:1.0,  secs:480,  chance:0.9,  note:"most buyers show up" },
+  { key:"greedy", label:"Greedy",      mult:1.45, secs:1200, chance:0.6,  note:"someone MIGHT bite" },
+];
+let m2SellMode = false;
+function m2InjectSellUI(){
+  const grid = document.getElementById("collectionGrid");
+  if(!grid || document.getElementById("m2SellBar")) return;
+  const bar = document.createElement("div");
+  bar.id = "m2SellBar";
+  bar.innerHTML = `<button class="m2-sellmode" id="m2SellToggle">💰 Sell mode: <b>off</b></button>
+    <span class="m2-selltip">arm it, then tap any card you own to list it</span>
+    <div id="m2Listings"></div>`;
+  grid.parentElement.insertBefore(bar, grid);
+  document.getElementById("m2SellToggle").onclick = ()=>{
+    m2SellMode = !m2SellMode;
+    document.getElementById("m2SellToggle").innerHTML = `💰 Sell mode: <b>${m2SellMode?"ON":"off"}</b>`;
+    grid.classList.toggle("m2-armed", m2SellMode);
+  };
+  grid.addEventListener("click", (e)=>{
+    if(!m2SellMode) return;
+    const el = e.target.closest(".mini-card[data-cid]");
+    if(!el) return;
+    const id = el.dataset.cid;
+    if(!(state.owned[id] > 0)) return;
+    e.stopPropagation(); e.preventDefault();
+    m2SellSheet(id);
+  }, true);
+}
+function m2SellSheet(id){
+  const c = cards[id]; if(!c) return;
+  const tv = m2TrueVal(c);
+  const g = state.grading && state.grading.graded && state.grading.graded[id];
+  let m = document.getElementById("m2Sheet"); if(m) m.remove();
+  m = document.createElement("div"); m.id = "m2Sheet";
+  m.innerHTML = `<div class="m2-sheet">
+    <div class="m2-sh-head">${c.emoji} <b>${c.name}</b>${g ? ` <span class="m2-slabchip">SLAB ${g}</span>`:""}</div>
+    <div class="m2-sh-est">the going rate: ~🪙${tv.toLocaleString()} · house takes 10%</div>
+    ${M2_TIERS.map(t=>`<button class="m2-sh-opt" data-m2list="${t.key}">
+      <b>${t.label}</b> — 🪙${Math.round(tv*t.mult).toLocaleString()} <i>${t.note}</i></button>`).join("")}
+    <button class="m2-sh-x" id="m2SheetX">never mind</button></div>`;
+  document.body.appendChild(m);
+  document.getElementById("m2SheetX").onclick = ()=> m.remove();
+  m.querySelectorAll("[data-m2list]").forEach(b => b.onclick = ()=>{
+    const t = M2_TIERS.find(x=>x.key===b.dataset.m2list);
+    if((state.owned[id]||0) <= 0) { m.remove(); return; }
+    if(state.owned[id] === 1 && !confirm(`List your last copy of "${c.name}"? It leaves the binder while listed.`)){ return; }
+    state.owned[id] -= 1;
+    state.miningBonus = computeMiningBonusFromOwned(state.owned);
+    const ch = ((state.upgrades && state.upgrades.storeSign)||0) ? 1 - (1 - t.chance)/2 : t.chance;
+    state.binderSales.push({ id, price: Math.round(tv*t.mult), due: Date.now()+t.secs*1000, chance: ch });
+    showToast(`💰 ${c.name} is listed — ${t.label.toLowerCase()}`);
+    try{ saveState(); renderMiningStats && renderMiningStats(); }catch(e){}
+    m.remove(); m2RenderListings();
+  });
+}
+function m2RenderListings(){
+  const host = document.getElementById("m2Listings");
+  if(!host) return;
+  if(!state.binderSales.length){ host.innerHTML = ""; return; }
+  host.innerHTML = state.binderSales.map(L=>{
+    const c = cards[L.id];
+    const left = Math.max(0, Math.ceil((L.due-Date.now())/1000));
+    return `<span class="m2-live">${c?c.emoji:"🎴"} 🪙${L.price.toLocaleString()} · ${left>0? left+"s" : "…"}</span>`;
+  }).join("");
+}
+function m2Resolve(){
+  let changed = false;
+  for(let i=state.binderSales.length-1; i>=0; i--){
+    const L = state.binderSales[i];
+    if(Date.now() < L.due) continue;
+    state.binderSales.splice(i,1);
+    const c = cards[L.id];
+    if(Math.random() < L.chance){
+      const net = Math.round(L.price * (((state.upgrades && state.upgrades.storeSign)||0) ? 0.93 : 0.9));
+      state.credits += net;
+      showToast(`🤝 SOLD — ${c?c.name:"card"} for 🪙${L.price.toLocaleString()} (you keep ${net.toLocaleString()})`);
+      try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
+    } else {
+      state.owned[L.id] = (state.owned[L.id]||0) + 1;
+      state.miningBonus = computeMiningBonusFromOwned(state.owned);
+      showToast(`👻 The buyer bailed — ${c?c.name:"the card"} is back in your binder`);
+    }
+    changed = true;
+  }
+  if(changed){ try{ saveState(); renderHeader(); }catch(e){} }
+  m2RenderListings();
+}
+setInterval(()=>{ try{ m2InjectSellUI(); m2Resolve(); }catch(e){} }, 1000);
+setTimeout(()=>{ try{ m2InjectSellUI(); }catch(e){} }, 600);
 })();
 
 /* =================== END ADDED MODES =================== */
@@ -26644,7 +27283,6 @@ function renderAll(){
   safeRender("chrome",     ()=>{ uiInitStatStrips(); uiInitHelp(); });
 }
 safeRender("filters",        populateFilters);
-safeRender("market filters", populateMarketFilters);
 safeRender("account filters",populateAccountFilters);
 safeRender("settings",       populateSettingsUI);
 safeRender("offline mining", applyOfflineMining);

@@ -164,11 +164,59 @@ Because this is large, **land it in stages** rather than one drop — grid and
 pathfinding with the old towers first, then placement, then tiers. Each stage
 is playable, which makes each stage testable.
 
+## 6b. REVISED DIRECTION — the island grows outward
+
+Playtest of stage 1 corrected the shape of this feature. Two things were
+wrong in everything above:
+
+**The board is not a fixed 860x540 frame.** The player BUYS SECTIONS of the
+surrounding map to push the island outward into the sea, and the maze gets
+huge because the land does. That reframes several earlier decisions:
+
+- The "sea has no room" problem solves itself. The island starts small in
+  open water; expansion is what fills the frame, and the water the player
+  has not bought yet IS the margin. No map geometry needs reshaping.
+- The camera has to zoom and pan, because the board outgrows the screen by
+  design. This is no longer only a phone concern — it is the core view.
+- Buying sections IS the land purchase that grants tower allowance, so the
+  economy decided earlier lands exactly on this mechanic.
+
+**Building is a PALETTE, not a single wall tool.** Stage 1 shipped
+tap-a-square-for-a-wall; what is wanted is a menu the player picks from,
+placing walls, stairs, paths, towers, and characters — including merchant,
+woodcutter and mining folk, so the keep reads as a settlement rather than
+only a defence.
+
+### What art already exists to place
+
+Terrain and structures, all in the module today: grass, earth and stone as
+full 9-slice sets (`g00-g22`, `e00-e22`, `s00-s22`), water 9-slice
+(`w00-w22`), `wall`, `bridge` / `bridgeH` / `bridgeV`, stairs (`st0-st2`),
+`tree0` / `tree1`, rocks (`rockA0-3`, `rockB0-3`), `foam` animation frames,
+`house`, and `deco0-3`.
+
+Sprites: `castle`, `towerBlue` / `towerRed` / `towerYellow` / `towerPurple`,
+`warrior`, `archer`, plus the five foes (`gnome`, `thief`, `bat`, `troll`,
+`minotaur`) and `sheep`, `tnt`, `barrel`.
+
+So walls, stairs, paths, bridges, towers, trees, rocks, houses and sheep are
+all placeable with what is already committed.
+
+### What art does NOT exist
+
+**Merchant, woodcutter and miner sprites are nowhere in the workshop** —
+checked every module. They have to be cut and committed like the rest of the
+Tiny Swords art before those can be placed. Until then the palette should
+simply not offer them, rather than substituting a warrior and pretending.
+
 ## 7. Still open
 
-Answered by the playtester and settled above: the phone approach (separate
-build screen), sealing (forbidden), maps (curated set plus a free-build map,
-old maps untouched), and the economy (land grants towers, tiers count more).
+Answered by the playtester and settled above: sealing (forbidden), maps
+(curated set plus a free-build map, old maps untouched), the economy (land
+grants towers, tiers count more), and now the expansion model and the
+palette in 6b. The "separate build screen" decision is superseded by the
+zoom-and-pan camera, which it becomes a mode of rather than a substitute
+for.
 
 Left for the bench:
 

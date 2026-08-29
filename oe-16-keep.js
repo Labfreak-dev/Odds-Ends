@@ -22,10 +22,20 @@ const KP_OY = 90;                      /* maps were authored for H=400; content 
 const KP_CELL = 64;
 const KP_COLS = Math.floor(W / KP_CELL);
 const KP_ROWS = Math.floor((H - KP_OY) / KP_CELL);
-/* Build mode ships everywhere but only WAKES on the preview deploy, so a
-   rebuild of the live root can never surface it before it is approved. */
-const KP_BUILD_ENABLED = (typeof location !== "undefined" &&
-                          String(location.pathname||"").indexOf("/preview/") >= 0);
+/* Build mode ships everywhere but stays asleep unless it is asked for, so
+   players never meet it before it is ready. ?build=1 wakes it IN THE LIVE
+   GAME, on the player's own save, and sticks until ?build=0 turns it off. */
+const KP_BUILD_ENABLED = (function(){
+  try{
+    const q = String(location.search || "");
+    if(q.indexOf("build=1") >= 0) localStorage.setItem("oeKeepBuild", "1");
+    if(q.indexOf("build=0") >= 0) localStorage.removeItem("oeKeepBuild");
+    if(localStorage.getItem("oeKeepBuild") === "1") return true;
+  }catch(e){}
+  if(typeof window !== "undefined" && window.__KP_FORCE_BUILD === true) return true;
+  return (typeof location !== "undefined" &&
+          String(location.pathname||"").indexOf("/preview/") >= 0);
+})();
 let kpBuildOn = false;
 let kpWaterFx = [];                    /* animated foam/rocks, rebuilt with the bg */
 (function fit(){ const d = Math.min(2, window.devicePixelRatio||1); cv.width=W*d; cv.height=H*d; g.setTransform(d,0,0,d,0,0); })();

@@ -501,6 +501,48 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 56 — THE ISLAND GROWS (build menu, claimed sea, the folk)
+What was actually asked for; stage 1's tap-a-square wall tool was not it.
+THE BOARD IS NO LONGER THE CANVAS. The world is a field of SECTIONS
+(4x4 cells, 256px) the player claims with credits, pushing the island
+out into the sea. kpBounds() is the extent of what is owned and the
+camera frames exactly that, so the island growing IS the view pulling
+back; zoom in and drag places detail, "fit the island" returns. This
+also dissolves the sea-margin complaint outright — unclaimed water
+surrounds you by definition, and it is the thing you are buying.
+BUILDING IS A MENU: claim sea, wall, stairs, path, tree, rock, the four
+towers, merchant, woodcutter, miner, remove. Towers are PLACED where
+you choose instead of upgraded in fixed slots, and kpTowerCap() ties
+the allowance to sections held — so claiming sea is what buys towers,
+which is the land-grants-towers economy landing on a mechanic.
+THE FOLK ARE DRAWN HERE. Merchant, woodcutter and miner exist nowhere
+in the Tiny Swords art cut for this game — checked every module, hunt
+has only monsters. kpFolkImg() plots them on a 16x20 grid at 3x with
+fillRect blocks, two frames each, so they sit on the same chunky pixel
+grid as the sprites beside them rather than reading as smooth art
+dropped in. They do NOT block the road; they are drawn live in kpFrame
+rather than baked into the bg, so they animate.
+PATHING FOLLOWS THE LAND: kpSpawnCell() walks in from the far edge of
+what is owned, so buying eastward moves the spawn out with it instead
+of stranding it mid-island; unclaimed sea is impassable; sealing the
+last way in is still refused and rolled back.
+Two things worth remembering. Cells live in the map's LOWERED frame —
+the base ground fills the canvas at y=0 but map content rides at
++KP_OY, so owned-section grass has to be drawn at r*CELL+KP_OY or the
+land sits 90px above the mobs walking it. And kpFrame draws sheep and
+the patrol AFTER the held banner, so the camera reset for the HUD
+belongs at the very end, not before the banner, or the ambient sprites
+snap into screen space.
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing
+13/13, smoke-spots 80/80, keep boot 13/13 (live game still shows no
+Build chip), an 11-check world suite (palette, claiming sea, the
+charge, route surviving growth, placing a tower, zoom, fit) and a
+9-check folk suite (all three place, all three sprites actually render
+with pixels, none of them block the road).
+All of it behind ?build=1, which wakes build mode in the LIVE game on
+the player's own save — a preview folder or a separate page starts with
+no credits and cannot test an economy at all.
+
 ## Batch 55 — BUILD MODE, stage 1 (walls that bend the road)
 The first real piece of the maze rewrite, and it needed far less than
 the brief feared. THE FREE LUNCH: kpPathPointRaw maps a mob's progress

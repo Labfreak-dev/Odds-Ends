@@ -218,7 +218,7 @@ src = once(src, old_help, new_help, "poker help text")
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 # ---- MULTI-FILE EXPLOSION: split script blocks into oe-*.js ----------
-import re as _re, glob as _glob
+import re as _re, glob as _glob, hashlib as _hashlib
 outdir = os.path.dirname(OUT)
 for stale in _glob.glob(os.path.join(outdir, "oe-*.js")): os.remove(stale)
 manifest = []
@@ -238,9 +238,26 @@ def _explode(m):
         fn = "oe-%02d-%s.js" % (len(manifest), name)
         io.open(os.path.join(outdir, fn), "w", encoding="utf-8").write(text)
         manifest.append((fn, len(text)))
-        tags.append('<script src="%s"></script>' % fn)
+        # Cache-bust per file, by its OWN content. Without this a returning
+        # player keeps whatever javascript their browser cached and simply
+        # never sees the deploy - the page loads, the game works, the new
+        # thing is silently absent. Hashing each file separately means an
+        # unchanged file keeps its url and stays cached.
+        ver = _hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
+        tags.append('<script src="%s?v=%s"></script>' % (fn, ver))
     return "\n".join(tags)
 html = _re.sub(r"<script>(.*?)</script>", _explode, src, flags=_re.S)
+# Stamp the build into the header chip. Without a visible build id there is no
+# way to answer "am I actually on the new version, or looking at a cached one?"
+# - which is exactly the question a stale index.html makes impossible to settle.
+_stamp = _hashlib.sha1("".join(fn for fn, _ in manifest).encode()
+                       + str(sum(n for _, n in manifest)).encode()).hexdigest()[:6]
+_chip = '<span class="tag">Prototype v0.1</span>'
+if html.count(_chip) == 1:
+    html = html.replace(_chip, '<span class="tag">Prototype v0.1 · %s</span>' % _stamp, 1)
+    print("  build stamp:", _stamp)
+else:
+    print("  NOTE: header chip not found, build stamp skipped")
 io.open(OUT, "w", encoding="utf-8").write(html)
 # keep the node harness fed
 modesdir = os.path.join(outdir, "modes")

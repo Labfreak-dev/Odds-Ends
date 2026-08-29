@@ -106,6 +106,16 @@ lists are Python implicit string concats ending `+ anchor` — deleting the last
 line strands the concat and SyntaxErrors the build itself.
 
 ## Playtesting a change before it ships
+**Standing instruction: don't. Build, verify, and ship straight to main —
+the playtester tests live.** A preview cannot test anything that costs
+money, because a save lives in the site's own browser storage and any other
+folder or origin starts with no credits. Two rounds were lost to that.
+Gate a risky feature behind a flag in the live build instead, the way the
+Keep's build mode was, rather than standing up a second copy of the game.
+
+`preview/` remains below for the rare change that genuinely needs a second
+pair of eyes before shipping. Do not offer it by default.
+
 `preview/index.html` is a PLAYABLE copy served by Pages at
 `/Odds-Ends/preview/`, so a change can be tried on a real phone while the
 live game at the root stays untouched. It is generated — never hand-edit it:
@@ -183,6 +193,13 @@ Use `preview/` (above) for anything that needs a human eye before it ships.
 Commit the regenerated root files (index.html + oe-*.js + modes/) and push to the
 default branch. Pages redeploys in ~1-2 min. Never ship index.html without its
 oe-*.js siblings from the SAME build.
+
+**The build stamp is how a deploy gets confirmed.** integrate.py versions every
+script tag by that file's own hash and stamps a six-character build id into the
+header chip (`Prototype v0.1 · abc123`). A player on a stale cached index.html
+sees the old game with no error of any kind, so "is my change live?" is
+otherwise unanswerable — ask which stamp they see. Pages caches html for about
+ten minutes; a hard refresh or a private tab settles it sooner.
 
 ## Working with the project chat (feature bench)
 Big features, new modes, and asset work happen in a long-running Claude project

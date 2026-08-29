@@ -45,39 +45,65 @@ the full-bleed fix in Batch 54; it was 0.38 before).
 | 128px | 58 | 6 x 4 |
 
 A comfortable touch target is ~44 css px, which means a **97px cell — an 8x5
-grid**. That is a very small maze. Pick one deliberately:
+grid** if the player taps the fitted board directly. That is too small a maze.
 
-- **(a) Small-grid design.** Embrace 8x5-ish. Fewer, more meaningful walls.
-  Simplest, works on every device, no new UI.
-- **(b) Pan/zoom the stage.** Bigger grid, but needs gesture handling that
-  doesn't fight the page scroll — the fishing scene already had to solve
-  exactly this (`pan-y`, no idle capture; see Batch 19d).
-- **(c) A separate build mode** that zooms in to place, then returns to a
-  fitted view for the battle. Most work, best of both.
+**DECIDED: a separate build screen.** Tapping Build zooms into the board to
+place comfortably, then returns to the fitted view to watch the wave. This
+decouples maze size from what fits on a phone, so the grid can be as large as
+the design wants. It is the most work of the three options considered, and it
+brings requirements of its own:
 
-**Do not skip this decision.** Designing a 20x12 maze on desktop and
-discovering it is untappable on a phone is the expensive failure here.
+- The build view needs pan, and a clear way back out.
+- Panning must not fight the page scroll. The fishing scene already solved
+  exactly this — see Batch 19d (`pan-y`, no idle capture) and reuse it.
+- The fitted battle view still has to be readable at 390x245 css px, so
+  towers and mobs need to stay legible at roughly 0.45 scale even though
+  nobody is tapping them there.
 
 ## 3. What has to be built
 
 1. **Map format.** Replace `path:[…]` with a tile grid: per-cell terrain,
    buildable flag, elevation tier, one or more spawns, and the gate. Keep
    `name/cost/scrap/base/note` — the economy reads those.
+
+   **DECIDED: hand-built maps AND a free-build map.** Ship a few pre-made
+   grid maps whose shape carries a player through a difficulty curve, and a
+   separate build map where someone with the credits can raise whatever they
+   like and see what they can come up with. Both run the same engine; they
+   differ only in whether land is fixed or purchasable. The curated maps are
+   the progression, the build map is the sandbox for min/maxers.
+
+   The four existing maps stay on the old lane engine and keep working —
+   nobody loses a Highlands they paid 1,000,000 credits for. That does mean
+   two engines coexist for a while, which is the accepted cost of not
+   breaking saves.
 2. **Pathfinding.** A\* or a flow field from spawn to gate, recomputed on
    every build/sell. A flow field is the better fit: one pass serves every
    mob, and the grid is small.
-3. **The no-seal rule.** A placement that would completely block the route
-   must be rejected *before* it is committed, with a clear refusal. The
-   standard trick is to test the placement on a scratch grid and roll back
-   if no path exists. Decide also whether mobs attack walls when boxed in.
+3. **The no-seal rule. DECIDED: sealing is forbidden.** A placement that
+   would completely block the route is rejected *before* it commits, with a
+   refusal the player can understand ("this would close the last way in").
+   Test the placement on a scratch grid and roll back if no path exists.
+   Mobs never attack walls — that keeps the maze a puzzle rather than a
+   wall-off, and avoids wall health, repair costs and target-priority rules.
 4. **Tiers as gameplay.** This is the actual ask: elevation must *mean*
    something. Suggested: mobs move only between cells within one tier step,
    so a raised tier is a wall unless a ramp/stair connects it — which makes
    terracing the maze-building verb, and reuses the Batch 53 art.
-5. **Placed towers.** Towers gain `(cell, type, level)`. The `{blue:1,…}`
-   level model and the four fixed slots both go away. Needs a new cost
-   curve: per-instance placement cost plus per-instance upgrades, replacing
-   `base * 1.9^level`.
+5. **Placed towers, paid for with LAND. DECIDED.** Towers gain
+   `(cell, type, level)`; the `{blue:1,…}` level model and the four fixed
+   slots go away. The player does **not** buy towers directly. Credits buy
+   and raise LAND, and the land you hold grants how many towers you may
+   place — with higher tiers counting for more than flat ground. So
+   expanding and terracing the map *is* the economy, which is the feature
+   the playtester actually asked for.
+
+   Left to the bench to tune: how much land per tower, and how much extra a
+   raised tier is worth. A defensible starting point is one tower per N flat
+   cells, with a tier-2 cell counting double and tier-3 triple — so building
+   upward is both the maze mechanic and the way to field more towers.
+   Whatever the numbers, the existing `base * 1.9^level` curve should move
+   onto LAND purchases so the Keep's spending curve survives.
 6. **2-D combat.** Radius range, target selection (first/nearest/strongest),
    and projectile fx that fly to a point rather than along the lane.
 7. **Rendering.** Grid overlay, build cursor, range preview, a live route
@@ -133,11 +159,20 @@ Because this is large, **land it in stages** rather than one drop — grid and
 pathfinding with the old towers first, then placement, then tiers. Each stage
 is playable, which makes each stage testable.
 
-## 7. Questions for the bench to answer first
+## 7. Still open
 
-1. Which phone approach — (a) small grid, (b) pan/zoom, or (c) build mode?
-2. Do mobs attack walls when boxed in, or is sealing simply forbidden?
-3. Do the four existing maps become grids, or does this ship as a fifth map
-   while the originals stay on the old lane engine? (Shipping alongside
-   avoids a migration cliff but means maintaining two engines.)
-4. Does tower placement cost scale per-tower, or is there a build budget?
+Answered by the playtester and settled above: the phone approach (separate
+build screen), sealing (forbidden), maps (curated set plus a free-build map,
+old maps untouched), and the economy (land grants towers, tiers count more).
+
+Left for the bench:
+
+1. **How much land per tower, and what a raised tier is worth.** Needs
+   playtesting, not a decision on paper.
+2. **Can players build on the curated maps at all**, or is land fixed there
+   and purchasable only on the build map? The brief assumes fixed — it keeps
+   the difficulty curve meaningful — but say so if that is wrong.
+3. **How many curated maps**, and what each one teaches. Three or four that
+   introduce one idea each will beat a single clever one.
+4. **What the build screen shows** beyond the grid: route preview while
+   placing, tower range, remaining tower allowance.

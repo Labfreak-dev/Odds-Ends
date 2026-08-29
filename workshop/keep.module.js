@@ -53,6 +53,55 @@ let kpWaterFx = [];                    /* animated foam/rocks, rebuilt with the 
 (function fit(){ const d = Math.min(2, window.devicePixelRatio||1); cv.width=W*d; cv.height=H*d; g.setTransform(d,0,0,d,0,0); })();
 const IMG = {};
 for(const k in KP_ART) IMG[k] = KP_ART[k].map(m => { const im = new Image(); im.src = m.d; im.__w=m.w; im.__h=m.h; return im; });
+/* ---------- THE FOLK ----------
+   Merchant, woodcutter and miner exist nowhere in the Tiny Swords art that
+   was cut for this game, so they are drawn here instead: plotted on a 16x20
+   pixel grid at 3x, which keeps them on the same chunky grid as the sprites
+   they stand next to rather than looking like smooth vector art dropped in.
+   Two frames each, matching the game's walk/work toggle. */
+function kpFolkImg(kind, frame){
+  const S = 3, CW = 16, CH = 20;
+  const cn = document.createElement("canvas");
+  cn.width = CW*S; cn.height = CH*S;
+  const q = cn.getContext("2d");
+  const px = (x,y,w,h,c)=>{ q.fillStyle = c; q.fillRect(x*S, y*S, w*S, h*S); };
+  const DK = "#241f17", SKIN = "#f0c090", BOOT = "#3b2b1c",
+        WOOD = "#8b5a2b", STEEL = "#9fb6c2", GOLD = "#ffd35c";
+  const coat = kind === "merchant" ? "#a8552f" : kind === "woodcutter" ? "#4e7a3a" : "#3f6ea8";
+  const lift = frame ? 1 : 0;              /* the working arm rises on frame 2 */
+  /* legs and boots */
+  px(5,15,3,4,DK); px(9,15,3,4,DK);
+  px(5,19,3,1,BOOT); px(9,19,3,1,BOOT);
+  /* torso, outlined then filled */
+  px(4,9,9,7,DK); px(5,10,7,5,coat);
+  /* arms, with bare hands */
+  px(3,10,2,5,DK); px(12,10-lift,2,5,DK);
+  px(3,10,2,4,coat); px(12,10-lift,2,4,coat);
+  px(3,14,2,1,SKIN); px(12,14-lift,2,1,SKIN);
+  /* head */
+  px(5,3,7,7,DK); px(6,4,5,5,SKIN);
+  px(7,6,1,1,DK); px(9,6,1,1,DK);
+  if(kind === "merchant"){
+    px(4,2,9,2,"#6b4a2b"); px(6,1,5,1,"#6b4a2b");   /* wide travelling hat */
+    px(5,12,7,1,GOLD);                               /* money belt */
+    px(13,12-lift,2,2,GOLD);                         /* a coin, held out */
+  } else if(kind === "woodcutter"){
+    px(5,2,7,2,"#5a4632");                           /* flat cap */
+    px(13,9-lift,1,7,WOOD);                          /* axe haft */
+    px(11,8-lift,3,3,DK); px(11,8-lift,3,2,STEEL);   /* axe head */
+  } else {
+    px(5,2,7,2,"#c9a227");                           /* miner's helmet */
+    px(7,1,3,1,"#c9a227"); px(8,1,1,1,GOLD);         /* and its lamp */
+    px(13,9-lift,1,7,WOOD);                          /* pick haft */
+    px(11,8-lift,4,2,DK); px(11,8-lift,4,1,STEEL);   /* pick head */
+  }
+  const im = new Image();
+  im.src = cn.toDataURL();
+  im.__w = 38; im.__h = 48;
+  return im;
+}
+const KP_FOLK = ["merchant","woodcutter","miner"];
+KP_FOLK.forEach(k => { IMG[k] = [kpFolkImg(k,0), kpFolkImg(k,1)]; });
 const TIL = {};
 for(const k in KP_TILES){ const im = new Image(); im.src = KP_TILES[k].d; TIL[k]=im; }
 for(const k in KP_X){ const im = new Image(); im.src = KP_X[k].d; TIL[k]=im; }
@@ -371,6 +420,7 @@ function kpBg(){
       kpTileX(b, "st1", x + KP_CELL/2, y, KP_CELL/2, KP_CELL);
       continue;
     }
+    if(typeof kind === "string" && kind.indexOf("folk:") === 0) continue;  /* drawn live, they breathe */
     if(kind === "tree"){ kpTileX(b, (cc+rr)%2 ? "tree1" : "tree0", x-8, y-26, 84, 84); continue; }
     if(kind === "rock"){ kpTileX(b, "rockA0", x+6, y+8, 52, 42); continue; }
     if(typeof kind === "string" && kind.indexOf("tower:") === 0){
@@ -455,6 +505,18 @@ function kpFrame(){
       g.strokeStyle=`rgba(230,230,210,${fx.life*5})`; g.lineWidth=2;
       g.beginPath(); g.moveTo(a2.px, a2.py-38); g.lineTo(b2.px, b2.py-20); g.stroke(); }
   }
+  /* the folk at work on the land, each on their own beat */
+  {
+    const placed = kpBuildMap();
+    for(const key in placed){
+      const kind = placed[key];
+      if(typeof kind !== "string" || kind.indexOf("folk:") !== 0) continue;
+      const cc = +key.split(",")[0], rr = +key.split(",")[1];
+      const fi = Math.floor(sim.t*1.8 + cc*0.7 + rr*1.3) % 2;
+      spr(IMG[kind.slice(5)], fi,
+          cc*KP_CELL + KP_CELL/2, rr*KP_CELL + KP_CELL + KP_OY, (cc+rr)%2 === 0);
+    }
+  }
   /* the flock drifts where the grass is good */
   for(let sh=0; sh<3; sh++){
     const sx = 560 + Math.sin(sim.t*0.07 + sh*2.1)*90 + sh*34;
@@ -503,6 +565,9 @@ const KP_TOOLS = [
   { id:"tower:red",    icon:"🔴", name:"Archery" },
   { id:"tower:yellow", icon:"🟡", name:"Banner" },
   { id:"tower:purple", icon:"🟣", name:"Chapel" },
+  { id:"folk:merchant",   icon:"🪙", name:"Merchant" },
+  { id:"folk:woodcutter", icon:"🪓", name:"Woodcutter" },
+  { id:"folk:miner",      icon:"⛏️", name:"Miner" },
   { id:"clear",        icon:"🚫", name:"Remove" },
 ];
 function kpPalette(){
@@ -778,7 +843,7 @@ cv.addEventListener("pointermove", function(e){
 cv.addEventListener("pointerup", function(){ setTimeout(()=>{ kpCam.drag = null; }, 0); });
 cv.addEventListener("pointercancel", function(){ kpCam.drag = null; });
 window.__kpBuild = {
-  owned: kpOwnedMap, cam: ()=>kpCam, bounds: kpBounds, tool: ()=>kpTool,
+  owned: kpOwnedMap, cam: ()=>kpCam, bounds: kpBounds, tool: ()=>kpTool, img: (k)=>IMG[k],
   cap: kpTowerCap, placedTowers: kpTowersPlaced, secCost: kpSecCost,
   /* claim the first buyable stretch of sea - used by the tests */
   buyFirst: function(){

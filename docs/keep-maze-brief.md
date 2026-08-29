@@ -69,9 +69,14 @@ brings requirements of its own:
    **DECIDED: hand-built maps AND a free-build map.** Ship a few pre-made
    grid maps whose shape carries a player through a difficulty curve, and a
    separate build map where someone with the credits can raise whatever they
-   like and see what they can come up with. Both run the same engine; they
-   differ only in whether land is fixed or purchasable. The curated maps are
-   the progression, the build map is the sandbox for min/maxers.
+   like and see what they can come up with. Both run the same engine.
+
+   **Building is allowed everywhere**, including the curated maps — a
+   player who wants to tinker should never be told "not here". The curated
+   maps differ by being BOUNDED: they ship with a designed shape and only
+   part of the board unlocked for building, so the difficulty curve still
+   means something. The free-build map has the whole board open. So the
+   difference is how much room you get, not whether you may build at all.
 
    The four existing maps stay on the old lane engine and keep working —
    nobody loses a Highlands they paid 1,000,000 credits for. That does mean
@@ -169,9 +174,9 @@ Left for the bench:
 
 1. **How much land per tower, and what a raised tier is worth.** Needs
    playtesting, not a decision on paper.
-2. **Can players build on the curated maps at all**, or is land fixed there
-   and purchasable only on the build map? The brief assumes fixed — it keeps
-   the difficulty curve meaningful — but say so if that is wrong.
+2. **How much of each curated map is unlocked for building.** Settled that
+   building is allowed everywhere; what is open is how much room each
+   curated map gives before the free-build map takes over.
 3. **How many curated maps**, and what each one teaches. Three or four that
    introduce one idea each will beat a single clever one.
 4. **What the build screen shows** beyond the grid: route preview while

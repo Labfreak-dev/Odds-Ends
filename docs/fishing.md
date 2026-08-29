@@ -501,6 +501,36 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 53 — the Keep grows up (and a false alarm that nearly held it)
+Feature-bench batch: the Keep's stage grew to 860x540, the sea now
+ANIMATES (surf foam, rocks bobbing around the Isle), and all four maps
+CLIMB — every path ascends stairs to a terraced castle, capped by the
+Highlands' three-tier switchback cliff defense. keep.css came back
+byte-identical, so index.html was untouched; the rebuild moved only
+oe-16-keep.js and modes/keep.module.js. No wiring, as before. Numbered
+53 — the handoff proposed "51+51b" and both were long gone.
+THE REAL STORY IS THE FALSE ALARM. smoke-spots failed three times on
+the batch tree (stalling at 7, 28 and 46 checks) while origin/main
+passed 80/80 twice, run INTERLEAVED between them. That looked like
+attribution, so the batch shipped to a branch as BLOCKED with a draft
+PR recommending against merge. After merging anyway on the
+playtester's call, the SAME CODE passed smoke-spots 80/80 three times
+running, plus smoke-fishing 13/13, test-fishing 114/114, node 19/19
+and a 13-check Keep boot probe. The failures never reproduced and no
+cause was ever found — no stray chromium, 14.7GB free, disk fine.
+LESSON, and it is a rule now: smoke-spots is a ~20-minute browser
+suite built on fixed waits, so an alternating 3-vs-2 is comfortably
+inside chance. RUN SEVERAL PER CONDITION BEFORE REPORTING, not after.
+The tell was already in hand and read backwards: four plausible
+mechanisms had each been disproved — the !cv.offsetParent guard was
+intact and identically placed, the Keep's rnd is a local LCG that
+never touches the host's, load was 3.34s vs 3.39s at 61fps both ways,
+and every global was KP_-prefixed and unique. Having eliminated every
+route by which the batch could reach fishing, the conclusion should
+have been "flake", not "blocked". Calling the interleaving the
+STRONGEST evidence inverted it; against a flaky suite it is the
+weakest. Verified post-merge, all green as listed above.
+
 ## Batch 52 — THE KEEP'S SELECTABLE MAPS (four lands, real elevation)
 Feature-bench batch, integrated here. The Keep's territories became four
 SELECTABLE maps instead of a one-way claim ladder: stone terraces with

@@ -501,6 +501,48 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 55 — BUILD MODE, stage 1 (walls that bend the road)
+The first real piece of the maze rewrite, and it needed far less than
+the brief feared. THE FREE LUNCH: kpPathPointRaw maps a mob's progress
+scalar onto whatever polyline KP_PATH happens to hold, so REPLACING
+that polyline with a computed route makes movement, targeting, archer
+fx and the drawn road all follow the maze with the sim untouched. No
+2-D rewrite was needed for stage 1.
+SHIPPED: a 13x7 grid of 64px cells; a 🔨 Build chip; tap a square to
+raise or clear a wall; breadth-first route from spawn cell to gate cell
+around the walls; and sealing REFUSED — the placement is tried, and if
+no route survives it is rolled back with "That would close the last way
+in". An untouched board keeps the hand-drawn road, so nothing changes
+visually until the player builds. Walls persist in state.keep.kpBuild
+keyed by map, a field the live game simply ignores.
+GATED, DELIBERATELY: KP_BUILD_ENABLED is true only when
+location.pathname contains "/preview/". The code ships to root but
+never wakes there, so a future root rebuild cannot surface an
+unapproved feature — and because the gate reads the URL rather than the
+bundle, the LIGHT preview works: 274KB of index.html over root's own
+javascript, no 33MB duplicate.
+TWO BUGS, BOTH MINE, BOTH FOUND BY PROBING RATHER THAN ASSUMING. (1)
+kpBg() reassigns KP_PATH = MP.path every call, so the route has to be
+recomputed INSIDE kpBg before the road is painted or mobs walk a maze
+that isn't drawn. (2) The first pathfinder treated terraces as
+impassable, which made every single placement get refused: the Meadow's
+gate sits at y=116, INSIDE its own plat, so the goal cell was
+permanently blocked and BFS always returned null. Terrain does not
+block now — the authored roads already climb terraces by stairs, so it
+never was a barrier. Lesson: when every action is refused, suspect the
+goal, not the move.
+Also: a first screenshot showed no walls because the test mutated the
+walls object directly instead of clicking. kpBg only repaints from the
+real handler. Probe through the handler — same lesson as Batch 54.
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing
+13/13, smoke-spots 80/80, keep boot 13/13, plus a build-mode suite
+(chip absent on live, present in preview, wall raises, route bends to
+18 cells, seal refused and rolled back) and a clicked-through maze
+screenshot with zero page errors.
+NOT YET: towers are still the four upgrade levels at fixed slots, and
+land is free to raise. The land-buys-towers economy and placeable
+towers are stage 2.
+
 ## Batch 54 — somewhere to playtest (preview/) + the phone-width stage
 Playtest feedback on 53: "the play screen is too small and the island
 covers the whole visible screen." Both reproduced and measured. THE

@@ -14,6 +14,18 @@ stage.innerHTML = `<canvas id="kpCv"></canvas><div class="kp-bar" id="kpBar"></d
 const cv = document.getElementById("kpCv"), g = cv.getContext("2d");
 const W = 860, H = 540;
 const KP_OY = 90;                      /* maps were authored for H=400; content rides lower */
+/* ---------- BUILD MODE (stage 1: raise walls, mobs route around them) ----------
+   The sim is untouched. kpPathPointRaw maps a mob's progress onto whatever
+   polyline KP_PATH holds, so swapping in a computed route makes movement,
+   targeting and fx all follow the maze for free. */
+const KP_CELL = 64;
+const KP_COLS = Math.floor(W / KP_CELL);
+const KP_ROWS = Math.floor((H - KP_OY) / KP_CELL);
+/* Build mode ships everywhere but only WAKES on the preview deploy, so a
+   rebuild of the live root can never surface it before it is approved. */
+const KP_BUILD_ENABLED = (typeof location !== "undefined" &&
+                          String(location.pathname||"").indexOf("/preview/") >= 0);
+let kpBuildOn = false;
 let kpWaterFx = [];                    /* animated foam/rocks, rebuilt with the bg */
 (function fit(){ const d = Math.min(2, window.devicePixelRatio||1); cv.width=W*d; cv.height=H*d; g.setTransform(d,0,0,d,0,0); })();
 const IMG = {};
@@ -218,6 +230,7 @@ function kpBg(){
   const b = bg.getContext("2d");
   const MP = KP_MAPS[K.map] || KP_MAPS[0];
   KP_PATH = MP.path;
+  kpApplyRoute();   /* walls, if any, bend the road before it is painted */
   let sd = 41 + K.map; const rnd = ()=>{ sd=(sd*16807)%2147483647; return sd/2147483647; };
   kpWaterFx = [];
   /* sea, then the ground */
@@ -308,6 +321,15 @@ function kpBg(){
     const nearT = MP.plats.some(P => dx>P.x-10 && dx<P.x+P.w*64+10 && dy>P.y-10 && dy<P.y+P.h*64+50);
     if(!nearP && !nearT) kpTileX(b, dk, dx, dy, 20+rnd()*22, 20+rnd()*22);
   }
+  /* ---- walls the player raised ---- */
+  const kpW = kpBuildMap();
+  for(const key in kpW){
+    const cc = +key.split(",")[0], rr = +key.split(",")[1];
+    b.fillStyle = "rgba(16,24,22,0.32)";
+    b.fillRect(cc*KP_CELL+6, rr*KP_CELL+10, KP_CELL, KP_CELL+18);
+    kpTileX(b, "s11", cc*KP_CELL, rr*KP_CELL, KP_CELL, KP_CELL);
+    kpTileX(b, "g11", cc*KP_CELL+6, rr*KP_CELL-10, KP_CELL-12, KP_CELL-12);
+  }
   b.restore();
 }
 kpBg();
@@ -388,6 +410,7 @@ function kpFrame(){
   const pa = (sim.t*0.12)%2, pb = (sim.t*0.09+1)%2;
   spr(IMG.warrior, Math.floor(sim.t*3)%2, 620 + Math.sin(sim.t*0.4)*46, 160 + KP_OY, Math.cos(sim.t*0.4)<0);
   spr(IMG.warrior, Math.floor(sim.t*3+1)%2, 300 + Math.sin(sim.t*0.3+2)*70, 372 + KP_OY, Math.cos(sim.t*0.3+2)<0);
+  if(kpBuildOn) kpDrawGrid();
 }
 requestAnimationFrame(kpFrame);
 /* ---------- ui ---------- */
@@ -407,13 +430,15 @@ function kpWorks(){
     if(K.mapsOwned[mi]) return `<button class="kp-mini ${K.map===mi?"on":""}" data-kpmap="${mi}">${K.map===mi?"✓ ":""}${MPx.name}</button>`;
     const can = state.credits>=MPx.cost && (state.scrap||0)>=MPx.scrap;
     return `<button class="kp-mini buy" data-kpbuy="${mi}" ${can?"":"disabled"}>${MPx.name} — 🪙${MPx.cost.toLocaleString()} + ♻️${MPx.scrap}</button>`;
-  }).join(" ") + `<i>${KP_MAPS[K.map].note}</i></div>`;
+  }).join(" ") + (KP_BUILD_ENABLED ? ` <button class="kp-mini ${kpBuildOn?"on":""}" id="kpBuildBtn">${kpBuildOn?"\u2713 ":""}\ud83d\udd28 Build</button>` : "") + `<i>${kpBuildOn ? "tap a square to raise or clear a wall" : KP_MAPS[K.map].note}</i></div>`;
   el.innerHTML = landRow + Object.keys(KP_TOWERS).map(c=>{
     const T = KP_TOWERS[c], lvl = K.towers[c], cost = kpCost(c);
     return `<button class="kp-tower" data-kp="${c}" ${state.credits>=cost?"":"disabled"}>
       ${T.icon} <b>${T.name}</b> <span>Lv ${lvl}</span><i>${T.note}</i>
       <em>🪙${cost.toLocaleString()} + ♻️${Math.round(cost/100)}</em></button>`;
   }).join("");
+  const kpBB = el.querySelector("#kpBuildBtn");
+  if(kpBB) kpBB.onclick = ()=>{ kpBuildOn = !kpBuildOn; kpWorks(); };
   el.querySelectorAll("[data-kpmap]").forEach(bm=>bm.onclick=()=>{
     K.map = +bm.dataset.kpmap; K.land = Math.max(K.land, K.map);
     kpBg();
@@ -442,5 +467,90 @@ function kpWorks(){
 }
 setInterval(()=>{ try{ kpBar(); if(!document.activeElement || !document.activeElement.dataset || !document.activeElement.dataset.kp) kpWorks(); }catch(e){} }, 2000);
 setTimeout(()=>{ try{ kpBar(); kpWorks(); }catch(e){} }, 600);
+/* ---------- build mode machinery ---------- */
+function kpBuildMap(){
+  if(!K.kpBuild) K.kpBuild = {};
+  if(!K.kpBuild[K.map]) K.kpBuild[K.map] = {};
+  return K.kpBuild[K.map];
+}
+/* Only PLAYER walls block. Terrain deliberately does not: the castle sits on
+   a terrace (the Meadow's gate is inside its plat), so treating plats as
+   impassable made the goal unreachable and every placement got refused. The
+   authored roads already climb terraces by stairs, so terrain was never a
+   barrier in this game to begin with. */
+function kpCellFree(c, r, walls){
+  if(c<0 || r<0 || c>=KP_COLS || r>=KP_ROWS) return false;
+  if(walls[c+","+r]) return false;
+  return true;
+}
+function kpCellOf(pt){
+  return [ Math.max(0, Math.min(KP_COLS-1, Math.floor(pt[0]/KP_CELL))),
+           Math.max(0, Math.min(KP_ROWS-1, Math.floor(pt[1]/KP_CELL))) ];
+}
+/* breadth-first from spawn to gate; null when the way is sealed */
+function kpRoute(walls){
+  const MP = KP_MAPS[K.map] || KP_MAPS[0];
+  const a = kpCellOf(MP.path[0]), z = kpCellOf(MP.path[MP.path.length-1]);
+  const seen = {}, prev = {}, q = [a];
+  seen[a[0]+","+a[1]] = true;
+  while(q.length){
+    const cur = q.shift(), c = cur[0], r = cur[1];
+    if(c===z[0] && r===z[1]){
+      const out = []; let k = c+","+r;
+      while(k){ const cc=+k.split(",")[0], rr=+k.split(",")[1];
+        out.push([cc*KP_CELL + KP_CELL/2, rr*KP_CELL + KP_CELL/2]); k = prev[k]; }
+      return out.reverse();
+    }
+    const nb = [[c+1,r],[c-1,r],[c,r+1],[c,r-1]];
+    for(let i=0;i<nb.length;i++){
+      const nc=nb[i][0], nr=nb[i][1], k2=nc+","+nr;
+      if(seen[k2] || !kpCellFree(nc,nr,walls)) continue;
+      seen[k2] = true; prev[k2] = c+","+r; q.push([nc,nr]);
+    }
+  }
+  return null;
+}
+/* untouched board keeps the hand-drawn road; walls switch to the computed one */
+function kpApplyRoute(){
+  const MP = KP_MAPS[K.map] || KP_MAPS[0];
+  const walls = kpBuildMap();
+  let any = false; for(const k in walls){ any = true; break; }
+  if(!any){ KP_PATH = MP.path; return true; }
+  const rt = kpRoute(walls);
+  if(!rt) return false;
+  KP_PATH = rt;
+  return true;
+}
+function kpDrawGrid(){
+  g.save(); g.translate(0, KP_OY);
+  g.strokeStyle = "rgba(255,211,92,0.30)"; g.lineWidth = 1;
+  for(let c=0;c<=KP_COLS;c++){ g.beginPath(); g.moveTo(c*KP_CELL,0); g.lineTo(c*KP_CELL, KP_ROWS*KP_CELL); g.stroke(); }
+  for(let r=0;r<=KP_ROWS;r++){ g.beginPath(); g.moveTo(0,r*KP_CELL); g.lineTo(KP_COLS*KP_CELL, r*KP_CELL); g.stroke(); }
+  g.restore();
+  g.fillStyle = "rgba(255,211,92,0.92)"; g.font = "900 13px system-ui"; g.textAlign = "center";
+  g.fillText("BUILD \u00b7 tap a square to raise or clear a wall", W/2, 22);
+  g.textAlign = "left";
+}
+cv.addEventListener("click", function(e){
+  if(!KP_BUILD_ENABLED || !kpBuildOn) return;
+  const rect = cv.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (W / rect.width);
+  const y = (e.clientY - rect.top) * (H / rect.height) - KP_OY;
+  const c = Math.floor(x/KP_CELL), r = Math.floor(y/KP_CELL);
+  if(c<0 || r<0 || c>=KP_COLS || r>=KP_ROWS) return;
+  const walls = kpBuildMap(), key = c+","+r, had = !!walls[key];
+  if(had) delete walls[key]; else walls[key] = 1;
+  if(!kpApplyRoute()){                      /* sealing is refused, never allowed */
+    if(had) walls[key] = 1; else delete walls[key];
+    kpApplyRoute();
+    try{ showToast("That would close the last way in"); }catch(e2){}
+    return;
+  }
+  kpBg();
+  try{ saveState(); }catch(e2){}
+});
+window.__kpBuild = { on:()=>kpBuildOn, route:kpApplyRoute, walls:kpBuildMap, cell:KP_CELL,
+  cols:()=>KP_COLS, rows:()=>KP_ROWS, free:kpCellFree, raw:kpRoute, cellOf:kpCellOf,
+  ends:()=>{ const MP=KP_MAPS[K.map]||KP_MAPS[0]; return [MP.path[0], MP.path[MP.path.length-1], MP.plats]; } };
 window.__kpSim = sim;   /* probe access */
 })();

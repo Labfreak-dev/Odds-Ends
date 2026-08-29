@@ -167,6 +167,18 @@ room before calling it a failure. Expected: 13 checks (fishing), 80 (spots),
 both ending in a pass banner and `exit 0`; the banners only print when zero
 checks failed.
 
+## Merging (standing instruction from the playtester)
+Do NOT ask for permission to merge when BOTH hold: the change is verified
+green by the full suite above, and the outcome is unambiguous — a rebuild, a
+docs edit, a fix whose test now passes. Merge it and say so plainly.
+
+Still stop and ask when any of these is true: the suite is red or flaky, the
+change is a design or balance call rather than a correctness one, it deletes
+or rewrites content that cannot be regenerated, or you are reporting a
+problem you could not explain. "Probably fine" is not certainty — a wrong
+merge here deploys straight to the live game, which has no staging step.
+Use `preview/` (above) for anything that needs a human eye before it ships.
+
 ## Deploy
 Commit the regenerated root files (index.html + oe-*.js + modes/) and push to the
 default branch. Pages redeploys in ~1-2 min. Never ship index.html without its

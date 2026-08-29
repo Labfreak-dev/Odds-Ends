@@ -34,19 +34,19 @@ const KP_HOME_SR = Math.ceil((H - KP_OY) / KP_SECPX);
 const KP_WORLD_SC = 10, KP_WORLD_SR = 7;             /* how far the sea can be claimed */
 let kpCam = { x:0, y:0, z:1, drag:null };
 let kpTool = "wall";                   /* current palette tool */
-/* Build mode ships everywhere but stays asleep unless it is asked for, so
-   players never meet it before it is ready. ?build=1 wakes it IN THE LIVE
-   GAME, on the player's own save, and sticks until ?build=0 turns it off. */
+/* Build mode is LIVE for everyone. Nothing about the Keep looks different
+   until the player taps Build - the board, the waves and the income are
+   exactly as they were - so this adds a door rather than changing the room.
+   ?build=0 shuts the door again for anyone who wants the old screen back,
+   and ?build=1 reopens it. */
 const KP_BUILD_ENABLED = (function(){
   try{
     const q = String(location.search || "");
+    if(q.indexOf("build=0") >= 0) localStorage.setItem("oeKeepBuild", "0");
     if(q.indexOf("build=1") >= 0) localStorage.setItem("oeKeepBuild", "1");
-    if(q.indexOf("build=0") >= 0) localStorage.removeItem("oeKeepBuild");
-    if(localStorage.getItem("oeKeepBuild") === "1") return true;
+    if(localStorage.getItem("oeKeepBuild") === "0") return false;
   }catch(e){}
-  if(typeof window !== "undefined" && window.__KP_FORCE_BUILD === true) return true;
-  return (typeof location !== "undefined" &&
-          String(location.pathname||"").indexOf("/preview/") >= 0);
+  return true;
 })();
 let kpBuildOn = false;
 let kpWaterFx = [];                    /* animated foam/rocks, rebuilt with the bg */
@@ -345,18 +345,25 @@ function kpBg(){
   kpApplyRoute();   /* walls, if any, bend the road before it is painted */
   let sd = 41 + K.map; const rnd = ()=>{ sd=(sd*16807)%2147483647; return sd/2147483647; };
   kpWaterFx = [];
-  /* open sea across the whole world, so unclaimed ground reads as water */
-  for(let x=wp.x-64;x<wp.x+wp.w+64;x+=64) for(let y=wp.y-64;y<wp.y+wp.h+64;y+=64) kpTileX(b,"water",x,y);
-  /* then grass on every section the player holds */
-  const bnd = kpBounds();
+  /* An untouched Keep takes EXACTLY the original path - same sea loop, no
+     claimed-section grass - so a player who never builds sees the board they
+     always saw, pixel for pixel. The world only appears once sea is claimed. */
   const inset = MP.water ? 46 : 6;
-  for(let c=bnd.c0;c<bnd.c1;c++) for(let r=bnd.r0;r<bnd.r1;r++){
-    if(!kpCellOwned(c,r)) continue;
-    const x = c*KP_CELL, y = r*KP_CELL + KP_OY;   /* cells live in the map's lowered frame */
-    const edgeL = !kpCellOwned(c-1,r), edgeR = !kpCellOwned(c+1,r);
-    const edgeT = !kpCellOwned(c,r-1), edgeB = !kpCellOwned(c,r+1);
-    const rr = edgeT ? 0 : (edgeB ? 2 : 1), cc = edgeL ? 0 : (edgeR ? 2 : 1);
-    kpTileX(b, "g"+rr+cc, x, y);
+  if(!kpGrown()){
+    for(let x=0;x<W;x+=64) for(let y=0;y<H;y+=64) kpTileX(b,"water",x,y);
+  } else {
+    /* open sea across the whole world, so unclaimed ground reads as water */
+    for(let x=wp.x-64;x<wp.x+wp.w+64;x+=64) for(let y=wp.y-64;y<wp.y+wp.h+64;y+=64) kpTileX(b,"water",x,y);
+    /* then grass on every section the player holds */
+    const bnd = kpBounds();
+    for(let c=bnd.c0;c<bnd.c1;c++) for(let r=bnd.r0;r<bnd.r1;r++){
+      if(!kpCellOwned(c,r)) continue;
+      const x = c*KP_CELL, y = r*KP_CELL + KP_OY;   /* cells live in the map's lowered frame */
+      const edgeL = !kpCellOwned(c-1,r), edgeR = !kpCellOwned(c+1,r);
+      const edgeT = !kpCellOwned(c,r-1), edgeB = !kpCellOwned(c,r+1);
+      const rr = edgeT ? 0 : (edgeB ? 2 : 1), cc = edgeL ? 0 : (edgeR ? 2 : 1);
+      kpTileX(b, "g"+rr+cc, x, y);
+    }
   }
   /* the drawn island keeps its own hand-made coastline */
   for(let x=inset; x<W-inset; x+=64){
@@ -490,8 +497,11 @@ function kpFrame(){
   kpTick(dt);
   kpCamReset();
   g.clearRect(0,0,W,H);
-  if(kpCam.z === 1 && kpCam.x === 0 && kpCam.y === 0) kpFit();
-  kpCamApply();
+  /* no claimed sea means no camera at all - the untouched board draws 1:1 */
+  if(kpGrown()){
+    if(kpCam.z === 1 && kpCam.x === 0 && kpCam.y === 0) kpFit();
+    kpCamApply();
+  }
   g.drawImage(bg, bg.__ox||0, bg.__oy||0);
   /* the sea breathes */
   for(const wf of kpWaterFx){
@@ -699,8 +709,18 @@ function kpOwnedMap(){
 }
 function kpOwns(sx, sy){ return !!kpOwnedMap()[sx+","+sy]; }
 function kpCellOwned(c, r){ return kpOwns(Math.floor(c/KP_SEC), Math.floor(r/KP_SEC)); }
+/* Has any sea actually been claimed? Until it has, the Keep must look EXACTLY
+   as it always did - same framing, same scale - because build mode is live for
+   everyone and most players will never have touched it. Whole sections round
+   up past the drawn board, so falling back to the board rect is what keeps the
+   camera at 1:1 instead of quietly zooming everyone out. */
+function kpGrown(){
+  let n = 0; for(const k in kpOwnedMap()) n++;
+  return n > KP_HOME_SC * KP_HOME_SR;
+}
 /* the claimed land's extent, in cells - the camera frames exactly this */
 function kpBounds(){
+  if(!kpGrown()) return { c0:0, r0:0, c1:KP_COLS, r1:KP_ROWS };
   let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
   for(const k in kpOwnedMap()){
     const sx=+k.split(",")[0], sy=+k.split(",")[1];
@@ -710,6 +730,7 @@ function kpBounds(){
   return { c0:x0*KP_SEC, r0:y0*KP_SEC, c1:(x1+1)*KP_SEC, r1:(y1+1)*KP_SEC };
 }
 function kpWorldPx(){
+  if(!kpGrown()) return { x:0, y:0, w:W, h:H };   /* pixel-identical to before */
   const b = kpBounds();
   return { x:b.c0*KP_CELL, y:b.r0*KP_CELL,
            w:(b.c1-b.c0)*KP_CELL, h:(b.r1-b.r0)*KP_CELL + KP_OY };
@@ -789,9 +810,7 @@ function kpApplyRoute(){
   const MP = KP_MAPS[K.map] || KP_MAPS[0];
   const walls = kpBuildMap();
   let any = false; for(const k in walls){ any = true; break; }
-  let grown = false; { let n=0; for(const k in kpOwnedMap()) n++;
-                       grown = n > KP_HOME_SC*KP_HOME_SR; }
-  if(!any && !grown){ KP_PATH = MP.path; return true; }
+  if(!any && !kpGrown()){ KP_PATH = MP.path; return true; }
   const rt = kpRoute(walls);
   if(!rt) return false;
   KP_PATH = rt;

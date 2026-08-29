@@ -501,6 +501,35 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 58 — build mode goes live, and the zoom regression it exposed
+Build mode is now ON for every player. Nothing about the Keep looks
+different until Build is tapped — same board, same waves, same income —
+so this adds a door rather than changing the room. ?build=0 shuts it
+again for anyone who wants the old screen, ?build=1 reopens it.
+AND IT CAUGHT A LIVE REGRESSION SHIPPED IN BATCH 56. Stage 2 gated the
+Build CHIP but not the CAMERA: kpFit() framed the owned sections, and
+whole sections round UP past the drawn board (4x2 sections = 1024x512
+against an 860x540 canvas), so kpFit returned z=0.84 and every player
+has been looking at a Keep zoomed out 16% with the framing shifted.
+Nothing caught it because the keep boot check only asserted the canvas
+was sized and painting — never that the framing was UNCHANGED.
+THE FIX: kpGrown() — has any sea actually been claimed? Until it has,
+kpBounds returns the board rect, kpWorldPx returns the canvas exactly,
+kpBg takes the ORIGINAL sea loop with no claimed-section grass, and
+kpFrame skips the camera transform entirely. Proven, not asserted: the
+untouched Keep now renders 0.00% different from the build BEFORE stage
+2 existed (121,880 sampled pixels, zero differ), where current main
+differs by 95%.
+Lesson, and it is the same one twice now: a visual feature needs a
+VISUAL test. Both times the checks passed while the screen was wrong,
+because they measured that something rendered rather than that it
+rendered THE SAME. Pixel-diffing against a known-good build is cheap
+and would have caught this at the source.
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing
+13/13, smoke-spots 80/80, keep boot 13/13, live 9/9 (plain visit shows
+Build, board at rest, map row and towers intact, ?build=0 hides it and
+sticks, ?build=1 restores), world 11/11, folk 9/9, economy 7/7.
+
 ## Batch 57 — the folk earn their keep (a proposed economy)
 The folk were placeable but inert, and "tell me what they should be
 worth" was the wrong answer — proposing the numbers is the job, the

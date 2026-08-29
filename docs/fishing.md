@@ -501,6 +501,37 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 57 — the folk earn their keep (a proposed economy)
+The folk were placeable but inert, and "tell me what they should be
+worth" was the wrong answer — proposing the numbers is the job, the
+playtester adjusts them. So here is a first economy, tuned to be felt
+without replacing the waves, and every value sits in KP_FOLK_DEF so it
+is one line to retune.
+EACH TRADE HOOKS SOMETHING THE KEEP ALREADY DOES, so none of them is a
+number floating on its own. MINER +0.6% mine rate each, folded into
+kpBonus() beside the wave bonus, so it rides the same suppression
+multiplier — miners earn less while the gate is under pressure, which
+is the right pressure. WOODCUTTER +1 scrap/min each, accumulated in
+kpTick and banked a whole unit at a time; it is the only steady scrap
+source on this screen. MERCHANT −4% off the next stretch of sea each,
+floored at half price, so the trade folk are what make expansion
+affordable — which ties them to the feature's core loop rather than
+being a side stat.
+COSTS AND LIMITS: hiring is 3,000-4,000 credits rising 1.5-1.6x per
+hire OF THAT TRADE, so a fourth miner is dear but a first woodcutter is
+cheap — the curve pushes toward a mixed crew. Letting someone go
+refunds half. The crew is capped by sections held, same as towers, so
+claiming sea remains the thing that unlocks everything.
+The palette shows each trade's count and next price, and a crew line
+reads back the live totals (mine %, scrap/min, sea discount) so the
+player can see what the settlement is actually doing.
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing
+13/13, smoke-spots 80/80, keep boot 13/13, world 11/11, folk 9/9, and a
+7-check economy suite proving each effect MOVES — miner raises the
+bonus, merchant lowers the sea price, woodcutter's scrap climbs under a
+fast-forwarded sim, hiring charges, the per-trade price rises, and the
+crew cap tracks land.
+
 ## Batch 56 — THE ISLAND GROWS (build menu, claimed sea, the folk)
 What was actually asked for; stage 1's tap-a-square wall tool was not it.
 THE BOARD IS NO LONGER THE CANVAS. The world is a field of SECTIONS

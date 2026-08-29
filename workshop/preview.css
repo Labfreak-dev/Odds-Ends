@@ -1,0 +1,31 @@
+/* ============================================================
+   PREVIEW-ONLY css, layered on top of the normal build by
+   workshop/make-preview.py. Never part of the shipped game.
+   ============================================================ */
+
+/* THE KEEP'S STAGE, FULL WIDTH ON PHONES.
+   #kpCv normally sits inside two 16px paddings (main + .panel), which
+   costs 64px of a 390px screen: the stage renders at 324x203 css px
+   from an 860x540 scene. Full-bleed reclaims all of it (~390x245, about
+   20% larger each way). The 50%/50vw trick is used instead of negative
+   margins in fixed px so it keeps working if either padding changes.
+   Desktop is untouched - it already sits at the 880px cap. */
+@media (max-width: 700px){
+  #kpCv{
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    border-radius: 0;
+  }
+}
+
+/* So a preview tab is never mistaken for the live game. */
+body::after{
+  content: "PREVIEW BUILD";
+  position: fixed; left: 8px; bottom: 8px; z-index: 99999;
+  padding: 3px 8px; border-radius: 7px;
+  font: 800 10px system-ui; letter-spacing: .5px;
+  color: #0e141d; background: rgba(255,211,92,.85);
+  pointer-events: none;
+}

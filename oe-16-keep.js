@@ -170,8 +170,35 @@ const KP_TOWERS = {
   purple: { name:"Chapel",     icon:"🟣", makes:null,      base:1400, note:"troops regen each lvl" },
 };
 function kpCost(c){ const lvl = K.towers[c]; return Math.round(KP_TOWERS[c].base * Math.pow(1.9, lvl)); }
+/* ---------- WHAT THE FOLK ARE FOR ----------
+   Each trade hooks something the Keep already does, so none of them is a
+   number floating on its own. Tuned to be felt but not to dominate: a full
+   crew is a real bonus, never a replacement for clearing waves.
+     miner      - adds to the mine-rate bonus the Keep already pays
+     woodcutter - the only steady source of scrap on this screen
+     merchant   - shaves the price of the next stretch of sea, so the trade
+                  folk are what make expansion affordable
+   Hiring costs credits and rises per trade, and the crew is capped by land
+   held, so claiming sea is still the thing that unlocks everything. */
+const KP_FOLK_DEF = {
+  miner:      { hire:3000, step:1.5, mine:0.006, note:"+0.6% mine rate each" },
+  woodcutter: { hire:3000, step:1.5, scrap:1.0,  note:"+1 scrap a minute each" },
+  merchant:   { hire:4000, step:1.6, land:0.04,  note:"-4% off the next sea, to half price" },
+};
+function kpFolkCount(kind){
+  const t = kpBuildMap(); let n = 0;
+  for(const k in t) if(t[k] === "folk:" + kind) n++;
+  return n;
+}
+function kpFolkTotal(){ let n = 0; for(const k in KP_FOLK_DEF) n += kpFolkCount(k); return n; }
+function kpFolkCap(){ let n = 0; for(const k in kpOwnedMap()) n++; return n; }
+function kpHireCost(kind){
+  const d = KP_FOLK_DEF[kind];
+  return Math.round(d.hire * Math.pow(d.step, kpFolkCount(kind)));
+}
 function kpBonus(){
-  const grow = 0.05 + (KP_MAPS[K.map]||KP_MAPS[0]).base + 0.01 * K.cleared;
+  const grow = 0.05 + (KP_MAPS[K.map]||KP_MAPS[0]).base + 0.01 * K.cleared
+             + kpFolkCount("miner") * KP_FOLK_DEF.miner.mine;
   return Math.max(0, grow * (1 - Math.min(0.8, K.supp)));
 }
 /* the keep pays on top of the mine */
@@ -210,6 +237,16 @@ function kpSpawnTroop(kind){
 function kpTick(dt){
   dt *= sim.debugFast;
   sim.t += dt;
+  /* the woodcutters keep the scrap pile filling while you are away */
+  const wc = kpFolkCount("woodcutter");
+  if(wc){
+    sim.scrapAcc = (sim.scrapAcc||0) + dt * wc * KP_FOLK_DEF.woodcutter.scrap / 60;
+    if(sim.scrapAcc >= 1){
+      const whole = Math.floor(sim.scrapAcc); sim.scrapAcc -= whole;
+      state.scrap = (state.scrap||0) + whole;
+      try{ renderHeader(); }catch(e){}
+    }
+  }
   /* spawners */
   if(K.towers.blue){ sim.spawnAcc.b = (sim.spawnAcc.b||0)+dt; const iv = 3.2/Math.max(1,K.towers.blue*0.8);
     if(sim.spawnAcc.b > iv){ sim.spawnAcc.b = 0; kpSpawnTroop("warrior"); } }
@@ -572,11 +609,20 @@ const KP_TOOLS = [
   { id:"clear",        icon:"🚫", name:"Remove" },
 ];
 function kpPalette(){
-  const tools = KP_TOOLS.map(t=>
-    `<button class="kp-mini ${kpTool===t.id?"on":""}" data-kptool="${t.id}">${t.icon} ${t.name}</button>`
-  ).join(" ");
+  const tools = KP_TOOLS.map(t=>{
+    let tag = "";
+    if(t.id.indexOf("folk:") === 0){
+      const kind = t.id.slice(5);
+      tag = ` <span>${kpFolkCount(kind)} · 🪙${kpHireCost(kind).toLocaleString()}</span>`;
+    }
+    return `<button class="kp-mini ${kpTool===t.id?"on":""}" data-kptool="${t.id}">${t.icon} ${t.name}${tag}</button>`;
+  }).join(" ");
   const cost = kpSecCost();
-  return `<div class="kp-land">🧰 ${tools}</div>`
+  const crew = `<div class="kp-land">👷 crew ${kpFolkTotal()}/${kpFolkCap()}`
+    + `<i>⛏️ mine +${(kpFolkCount("miner")*KP_FOLK_DEF.miner.mine*100).toFixed(1)}% · `
+    + `🪓 scrap +${kpFolkCount("woodcutter")*KP_FOLK_DEF.woodcutter.scrap}/min · `
+    + `🪙 sea −${Math.round(Math.min(0.5, kpFolkCount("merchant")*KP_FOLK_DEF.merchant.land)*100)}%</i></div>`;
+  return `<div class="kp-land">🧰 ${tools}</div>` + crew
     + `<div class="kp-land">🔍 <button class="kp-mini" data-kpzoom="out">− zoom out</button>`
     + ` <button class="kp-mini" data-kpzoom="in">+ zoom in</button>`
     + ` <button class="kp-mini" data-kpzoom="fit">fit the island</button>`
@@ -678,7 +724,10 @@ function kpSecBuyable(sx, sy){
 function kpSecCost(){
   let n=0; for(const k in kpOwnedMap()) n++;
   const base = KP_HOME_SC*KP_HOME_SR;
-  return Math.round(4000 * Math.pow(1.55, Math.max(0, n - base)));
+  const raw = 4000 * Math.pow(1.55, Math.max(0, n - base));
+  /* merchants talk the price down, never below half */
+  const cut = Math.min(0.5, kpFolkCount("merchant") * KP_FOLK_DEF.merchant.land);
+  return Math.round(raw * (1 - cut));
 }
 /* land grants the tower allowance: one per owned section beyond the first two */
 function kpTowerCap(){ let n=0; for(const k in kpOwnedMap()) n++; return Math.max(4, n); }
@@ -789,11 +838,31 @@ function kpPlace(c, r){
   const walls = kpBuildMap(), key = c+","+r, had = walls[key];
   if(kpTool === "clear"){
     if(!had) return;
-    delete walls[key];
+    /* half the hire back when you let someone go */
+    if(typeof had === "string" && had.indexOf("folk:") === 0){
+      const kind = had.slice(5);
+      delete walls[key];
+      const back = Math.round(kpHireCost(kind) / 2);
+      state.credits += back;
+      try{ showToast("Paid off, " + back.toLocaleString() + " credits back"); renderHeader(); }catch(e){}
+    } else delete walls[key];
     kpApplyRoute(); kpBg(); try{ saveState(); }catch(e){}
+    kpWorks();
     return;
   }
   if(!kpCellOwned(c,r)){ try{ showToast("Buy that land first"); }catch(e){} return; }
+  if(kpTool.indexOf("folk:") === 0 && !had){
+    const kind = kpTool.slice(5);
+    if(kpFolkTotal() >= kpFolkCap()){
+      try{ showToast("No room for more hands - claim more land"); }catch(e){} return;
+    }
+    const cost = kpHireCost(kind);
+    if(state.credits < cost){
+      try{ showToast("Hiring a " + kind + " costs " + cost.toLocaleString() + " credits"); }catch(e){} return;
+    }
+    state.credits -= cost;
+    try{ showToast(kind.charAt(0).toUpperCase()+kind.slice(1) + " hired - " + KP_FOLK_DEF[kind].note); renderHeader(); }catch(e){}
+  }
   if(kpTool.indexOf("tower:")===0 && !had && kpTowersPlaced() >= kpTowerCap()){
     try{ showToast("No room for another tower - claim more land"); }catch(e){}
     return;
@@ -846,6 +915,7 @@ cv.addEventListener("pointercancel", function(){ kpCam.drag = null; });
 window.__kpBuild = {
   owned: kpOwnedMap, cam: ()=>kpCam, bounds: kpBounds, tool: ()=>kpTool, img: (k)=>IMG[k],
   cap: kpTowerCap, placedTowers: kpTowersPlaced, secCost: kpSecCost,
+  bonus: kpBonus, hire: kpHireCost, folkCap: kpFolkCap, folk: kpFolkCount,
   /* claim the first buyable stretch of sea - used by the tests */
   buyFirst: function(){
     for(let sx=0;sx<KP_WORLD_SC;sx++) for(let sy=0;sy<KP_WORLD_SR;sy++)

@@ -105,6 +105,24 @@ anchor, so apply all seven together and rebuild once. And rule 4: those hook
 lists are Python implicit string concats ending `+ anchor` — deleting the last
 line strands the concat and SyntaxErrors the build itself.
 
+## Playtesting a change before it ships
+`preview/index.html` is a PLAYABLE copy served by Pages at
+`/Odds-Ends/preview/`, so a change can be tried on a real phone while the
+live game at the root stays untouched. It is generated — never hand-edit it:
+
+```bash
+python3 workshop/make-preview.py           # light: preview/index.html only
+python3 workshop/make-preview.py --full    # standalone build in preview/
+```
+
+Both layer `workshop/preview.css` (preview-only css, never shipped) onto a
+normal `integrate.py` build. LIGHT rewrites the script tags to `../oe-*.js`
+so the preview runs the ROOT's javascript — 274KB instead of ~33MB, and it
+tracks whatever root serves. That also means **light previews cannot show
+module changes**; use `--full` for those. Promote a preview by folding the
+css into the real mode file and rebuilding root; retire one by deleting the
+folder.
+
 ## Verify before any deploy
 ```bash
 for f in oe-*.js; do node --check "$f"; done          # every split file parses

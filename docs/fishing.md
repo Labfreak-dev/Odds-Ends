@@ -501,6 +501,43 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 54 — somewhere to playtest (preview/) + the phone-width stage
+Playtest feedback on 53: "the play screen is too small and the island
+covers the whole visible screen." Both reproduced and measured. THE
+STAGE ON A PHONE: #kpCv sits inside two 16px paddings (main + .panel),
+so a 390px screen renders the 860x540 scene at 324x203 css px. Note 53
+made this BETTER, not worse — the taller stage took it from 324x151 to
+324x203; the smallness is an older mobile-layout constraint.
+THE ISLAND: on the Isle the land runs edge to edge — margins measured
+from frame edge to land at the midline are L4 R0 T46 B46 of 860x540.
+The only open water is a 46px band top and bottom, which at the phone's
+0.38x scale is ~17 screen px. The surf and bobbing rocks render fine;
+there is nowhere to see them. Sea fills 26.7% of the frame but almost
+none of it is where you look.
+SHIPPED: preview/ — a playable copy at /Odds-Ends/preview/ built by
+workshop/make-preview.py, layering workshop/preview.css over a normal
+build so a change can be tried on a phone with the root untouched. The
+light mode repoints script tags at ../oe-*.js: 274KB instead of ~33MB,
+auto-tracks root's js, and CANNOT show module changes (--full for
+those). First preview carries the full-bleed stage: 324x203 -> 390x245,
+no horizontal overflow, zero page errors, desktop untouched at its
+880px cap.
+NOT SHIPPED, deliberately: the island's geometry. The Keep is not a
+spatial tower defense — a mob's position is a SINGLE SCALAR marching a
+fixed polyline (`f2.x -= f2.spd*dt`), turned into screen coords by
+kpPathPoint(x) off the map's hardcoded path array; towers target by
+comparing those numbers (`tgt.x > t.x`); there is no grid and no
+pathfinding anywhere. The terraces and switchbacks are decoration drawn
+around a 1-D lane. The stated goal — players building mazes out of
+tiers — needs 2-D grid positions, repathing on every build, and 2-D
+range checks: a rewrite of movement, targeting and rendering. Reshaping
+the Isle's polyline now would be thrown away by it, so the sea-margin
+numbers above become a REQUIREMENT for the new map format instead.
+Lesson: probe through the real handler, not the state. A first pass set
+state.keep.map directly and "proved" the background never redrew on a
+map switch — kpBg() is called from the chip's click handler, which
+setting state bypasses. The bug was in the probe.
+
 ## Batch 53 — the Keep grows up (and a false alarm that nearly held it)
 Feature-bench batch: the Keep's stage grew to 860x540, the sea now
 ANIMATES (surf foam, rocks bobbing around the Isle), and all four maps

@@ -52,15 +52,11 @@ if not FULL:
     # The preview shares its javascript URLs with the live game, so a browser
     # that has played the live game will otherwise serve the preview a STALE
     # cached bundle - which looks exactly like the new feature never shipped.
-    import hashlib
-    h = hashlib.sha1()
-    for fn in sorted(os.listdir(ROOT)):
-        if fn.startswith("oe-") and fn.endswith(".js"):
-            h.update(fn.encode())
-            h.update(str(os.path.getsize(os.path.join(ROOT, fn))).encode())
-    ver = h.hexdigest()[:10]
-    html, n = re.subn(r'(<script src=")(oe-[^"]+)(")', r'\1../\2?v=' + ver + r'\3', html)
-    print(f"  light: {n} script tags repointed to ../oe-*.js?v={ver}")
+    # integrate.py already stamps each file with a hash of its own contents,
+    # so the preview only has to point one level up - adding a second ?v=
+    # here would produce a double query string and fetch nothing.
+    html, n = re.subn(r'(<script src=")(oe-)', r'\1../\2', html)
+    print(f"  light: {n} script tags repointed to ../oe-*.js (versions kept)")
     os.makedirs(OUT, exist_ok=True)
     shutil.rmtree(build_dir, ignore_errors=True)
 

@@ -22,6 +22,19 @@ const KP_OY = 90;                      /* maps were authored for H=400; content 
 const KP_CELL = 64;
 const KP_COLS = Math.floor(W / KP_CELL);
 const KP_ROWS = Math.floor((H - KP_OY) / KP_CELL);
+/* ---------- THE ISLAND GROWS ----------
+   The board is no longer the canvas. The world is a field of SECTIONS the
+   player buys, pushing the island out into the sea; the camera pulls back to
+   keep it all in frame, and the build view zooms in to place things. The
+   starting island is the hand-drawn map, so nothing looks different until
+   the first section is bought. */
+const KP_SEC = 4;                      /* cells per section edge */
+const KP_SECPX = KP_SEC * KP_CELL;     /* 256px */
+const KP_HOME_SC = Math.ceil(W / KP_SECPX);          /* sections the drawn island covers */
+const KP_HOME_SR = Math.ceil((H - KP_OY) / KP_SECPX);
+const KP_WORLD_SC = 10, KP_WORLD_SR = 7;             /* how far the sea can be claimed */
+let kpCam = { x:0, y:0, z:1, drag:null };
+let kpTool = "wall";                   /* current palette tool */
 /* Build mode ships everywhere but stays asleep unless it is asked for, so
    players never meet it before it is ready. ?build=1 wakes it IN THE LIVE
    GAME, on the player's own save, and sticks until ?build=0 turns it off. */
@@ -237,16 +250,30 @@ let bg = null;
 function kpTile(b, k, x, y, w, h){ const im = TIL[k]; if(im && im.complete && im.naturalWidth) b.drawImage(im, x, y, w||64, h||64); }
 function kpTileX(b,k,x,y,w,h){ const im=TIL[k]; if(im&&im.complete&&im.naturalWidth) b.drawImage(im,x,y,w||64,h||64); }
 function kpBg(){
-  bg = document.createElement("canvas"); bg.width = W; bg.height = H;
+  const wp = kpWorldPx();
+  bg = document.createElement("canvas"); bg.width = Math.max(W, wp.w); bg.height = Math.max(H, wp.h);
+  bg.__ox = wp.x; bg.__oy = wp.y;          /* where this canvas sits in the world */
   const b = bg.getContext("2d");
+  b.translate(-wp.x, -wp.y);               /* so everything below draws in world coords */
   const MP = KP_MAPS[K.map] || KP_MAPS[0];
   KP_PATH = MP.path;
   kpApplyRoute();   /* walls, if any, bend the road before it is painted */
   let sd = 41 + K.map; const rnd = ()=>{ sd=(sd*16807)%2147483647; return sd/2147483647; };
   kpWaterFx = [];
-  /* sea, then the ground */
-  for(let x=0;x<W;x+=64) for(let y=0;y<H;y+=64) kpTileX(b,"water",x,y);
+  /* open sea across the whole world, so unclaimed ground reads as water */
+  for(let x=wp.x-64;x<wp.x+wp.w+64;x+=64) for(let y=wp.y-64;y<wp.y+wp.h+64;y+=64) kpTileX(b,"water",x,y);
+  /* then grass on every section the player holds */
+  const bnd = kpBounds();
   const inset = MP.water ? 46 : 6;
+  for(let c=bnd.c0;c<bnd.c1;c++) for(let r=bnd.r0;r<bnd.r1;r++){
+    if(!kpCellOwned(c,r)) continue;
+    const x = c*KP_CELL, y = r*KP_CELL + KP_OY;   /* cells live in the map's lowered frame */
+    const edgeL = !kpCellOwned(c-1,r), edgeR = !kpCellOwned(c+1,r);
+    const edgeT = !kpCellOwned(c,r-1), edgeB = !kpCellOwned(c,r+1);
+    const rr = edgeT ? 0 : (edgeB ? 2 : 1), cc = edgeL ? 0 : (edgeR ? 2 : 1);
+    kpTileX(b, "g"+rr+cc, x, y);
+  }
+  /* the drawn island keeps its own hand-made coastline */
   for(let x=inset; x<W-inset; x+=64){
     for(let y=inset; y<H-inset; y+=64){
       const r = y<=inset ? 0 : (y+64>=H-inset ? 2 : 1);
@@ -332,14 +359,31 @@ function kpBg(){
     const nearT = MP.plats.some(P => dx>P.x-10 && dx<P.x+P.w*64+10 && dy>P.y-10 && dy<P.y+P.h*64+50);
     if(!nearP && !nearT) kpTileX(b, dk, dx, dy, 20+rnd()*22, 20+rnd()*22);
   }
-  /* ---- walls the player raised ---- */
+  /* ---- everything the player placed ---- */
   const kpW = kpBuildMap();
+  const bspr = (list, x, y)=>{ const im = list && list[0];
+    if(im && im.complete && im.naturalWidth) b.drawImage(im, x - im.__w/2, y - im.__h, im.__w, im.__h); };
   for(const key in kpW){
     const cc = +key.split(",")[0], rr = +key.split(",")[1];
+    const x = cc*KP_CELL, y = rr*KP_CELL, kind = kpW[key];
+    if(kind === "path"){ kpTileX(b, "e11", x, y, KP_CELL, KP_CELL); continue; }
+    if(kind === "stairs"){
+      kpTileX(b, "st0", x, y, KP_CELL/2, KP_CELL);
+      kpTileX(b, "st1", x + KP_CELL/2, y, KP_CELL/2, KP_CELL);
+      continue;
+    }
+    if(kind === "tree"){ kpTileX(b, (cc+rr)%2 ? "tree1" : "tree0", x-8, y-26, 84, 84); continue; }
+    if(kind === "rock"){ kpTileX(b, "rockA0", x+6, y+8, 52, 42); continue; }
+    if(typeof kind === "string" && kind.indexOf("tower:") === 0){
+      const col = kind.slice(6);
+      bspr(IMG["tower" + col.charAt(0).toUpperCase() + col.slice(1)], x + KP_CELL/2, y + KP_CELL);
+      continue;
+    }
+    /* default: a raised stone wall with a grass crown */
     b.fillStyle = "rgba(16,24,22,0.32)";
-    b.fillRect(cc*KP_CELL+6, rr*KP_CELL+10, KP_CELL, KP_CELL+18);
-    kpTileX(b, "s11", cc*KP_CELL, rr*KP_CELL, KP_CELL, KP_CELL);
-    kpTileX(b, "g11", cc*KP_CELL+6, rr*KP_CELL-10, KP_CELL-12, KP_CELL-12);
+    b.fillRect(x+6, y+10, KP_CELL, KP_CELL+18);
+    kpTileX(b, "s11", x, y, KP_CELL, KP_CELL);
+    kpTileX(b, "g11", x+6, y-10, KP_CELL-12, KP_CELL-12);
   }
   b.restore();
 }
@@ -358,7 +402,11 @@ function kpFrame(){
   const dt = Math.min(0.05, (now - (kpFrame.__t||now))/1000); kpFrame.__t = now;
   if(!cv.offsetParent) return;
   kpTick(dt);
-  g.clearRect(0,0,W,H); g.drawImage(bg,0,0);
+  kpCamReset();
+  g.clearRect(0,0,W,H);
+  if(kpCam.z === 1 && kpCam.x === 0 && kpCam.y === 0) kpFit();
+  kpCamApply();
+  g.drawImage(bg, bg.__ox||0, bg.__oy||0);
   /* the sea breathes */
   for(const wf of kpWaterFx){
     const fi = Math.floor(sim.t*4 + wf.ph)%4;
@@ -408,9 +456,6 @@ function kpFrame(){
       g.strokeStyle=`rgba(230,230,210,${fx.life*5})`; g.lineWidth=2;
       g.beginPath(); g.moveTo(a2.px, a2.py-38); g.lineTo(b2.px, b2.py-20); g.stroke(); }
   }
-  /* held banner */
-  if(K.held){ g.font="900 13px system-ui"; g.textAlign="center";
-    g.fillStyle="rgba(255,211,92,0.9)"; g.fillText("🛡️ THE LINE HOLDS", W/2, 22); g.textAlign="left"; }
   /* the flock drifts where the grass is good */
   for(let sh=0; sh<3; sh++){
     const sx = 560 + Math.sin(sim.t*0.07 + sh*2.1)*90 + sh*34;
@@ -422,6 +467,18 @@ function kpFrame(){
   spr(IMG.warrior, Math.floor(sim.t*3)%2, 620 + Math.sin(sim.t*0.4)*46, 160 + KP_OY, Math.cos(sim.t*0.4)<0);
   spr(IMG.warrior, Math.floor(sim.t*3+1)%2, 300 + Math.sin(sim.t*0.3+2)*70, 372 + KP_OY, Math.cos(sim.t*0.3+2)<0);
   if(kpBuildOn) kpDrawGrid();
+  /* ---- HUD, in screen space ---- */
+  kpCamReset();
+  if(K.held){ g.font="900 13px system-ui"; g.textAlign="center";
+    g.fillStyle="rgba(255,211,92,0.9)"; g.fillText("🛡️ THE LINE HOLDS", W/2, 22); g.textAlign="left"; }
+  if(kpBuildOn){
+    g.fillStyle="rgba(255,211,92,0.92)"; g.font="900 12px system-ui"; g.textAlign="center";
+    g.fillText(kpTool === "land"
+      ? "CLAIM · tap the green sea to buy it · " + kpSecCost().toLocaleString() + " credits"
+      : "BUILD · " + kpTool.replace("tower:","") + " · towers " + kpTowersPlaced() + "/" + kpTowerCap(),
+      W/2, 18);
+    g.textAlign="left";
+  }
 }
 requestAnimationFrame(kpFrame);
 /* ---------- ui ---------- */
@@ -435,13 +492,39 @@ function kpBar(){
   const r = el.querySelector("#kpResume");
   if(r) r.onclick = ()=>{ K.held = false; K.choiceAt = K.cleared + 5; try{ saveState(); }catch(e){} kpBar(); };
 }
+/* the build menu: what you can put on the land, and the land itself */
+const KP_TOOLS = [
+  { id:"land",         icon:"🏝️", name:"Claim sea" },
+  { id:"wall",         icon:"🧱", name:"Wall" },
+  { id:"stairs",       icon:"🪜", name:"Stairs" },
+  { id:"path",         icon:"🛤️", name:"Path" },
+  { id:"tree",         icon:"🌲", name:"Tree" },
+  { id:"rock",         icon:"🪨", name:"Rock" },
+  { id:"tower:blue",   icon:"🔵", name:"Barracks" },
+  { id:"tower:red",    icon:"🔴", name:"Archery" },
+  { id:"tower:yellow", icon:"🟡", name:"Banner" },
+  { id:"tower:purple", icon:"🟣", name:"Chapel" },
+  { id:"clear",        icon:"🚫", name:"Remove" },
+];
+function kpPalette(){
+  const tools = KP_TOOLS.map(t=>
+    `<button class="kp-mini ${kpTool===t.id?"on":""}" data-kptool="${t.id}">${t.icon} ${t.name}</button>`
+  ).join(" ");
+  const cost = kpSecCost();
+  return `<div class="kp-land">🧰 ${tools}</div>`
+    + `<div class="kp-land">🔍 <button class="kp-mini" data-kpzoom="out">− zoom out</button>`
+    + ` <button class="kp-mini" data-kpzoom="in">+ zoom in</button>`
+    + ` <button class="kp-mini" data-kpzoom="fit">fit the island</button>`
+    + `<i>drag to move · towers ${kpTowersPlaced()}/${kpTowerCap()} · next stretch of sea 🪙${cost.toLocaleString()}</i></div>`;
+}
 function kpWorks(){
   const el = document.getElementById("kpWorks"); if(!el) return;
   const landRow = `<div class="kp-land">🗺️ ` + KP_MAPS.map((MPx,mi)=>{
     if(K.mapsOwned[mi]) return `<button class="kp-mini ${K.map===mi?"on":""}" data-kpmap="${mi}">${K.map===mi?"✓ ":""}${MPx.name}</button>`;
     const can = state.credits>=MPx.cost && (state.scrap||0)>=MPx.scrap;
     return `<button class="kp-mini buy" data-kpbuy="${mi}" ${can?"":"disabled"}>${MPx.name} — 🪙${MPx.cost.toLocaleString()} + ♻️${MPx.scrap}</button>`;
-  }).join(" ") + (KP_BUILD_ENABLED ? ` <button class="kp-mini ${kpBuildOn?"on":""}" id="kpBuildBtn">${kpBuildOn?"\u2713 ":""}\ud83d\udd28 Build</button>` : "") + `<i>${kpBuildOn ? "tap a square to raise or clear a wall" : KP_MAPS[K.map].note}</i></div>`;
+  }).join(" ") + (KP_BUILD_ENABLED ? ` <button class="kp-mini ${kpBuildOn?"on":""}" id="kpBuildBtn">${kpBuildOn?"\u2713 ":""}\ud83d\udd28 Build</button>` : "") + `<i>${kpBuildOn ? "pick a tool, then tap the land" : KP_MAPS[K.map].note}</i></div>`
+  + (kpBuildOn ? kpPalette() : "");
   el.innerHTML = landRow + Object.keys(KP_TOWERS).map(c=>{
     const T = KP_TOWERS[c], lvl = K.towers[c], cost = kpCost(c);
     return `<button class="kp-tower" data-kp="${c}" ${state.credits>=cost?"":"disabled"}>
@@ -449,7 +532,17 @@ function kpWorks(){
       <em>🪙${cost.toLocaleString()} + ♻️${Math.round(cost/100)}</em></button>`;
   }).join("");
   const kpBB = el.querySelector("#kpBuildBtn");
-  if(kpBB) kpBB.onclick = ()=>{ kpBuildOn = !kpBuildOn; kpWorks(); };
+  if(kpBB) kpBB.onclick = ()=>{ kpBuildOn = !kpBuildOn; kpFit(); kpWorks(); };
+  el.querySelectorAll("[data-kptool]").forEach(tb=>tb.onclick=()=>{
+    kpTool = tb.dataset.kptool; kpWorks();
+  });
+  el.querySelectorAll("[data-kpzoom]").forEach(zb=>zb.onclick=()=>{
+    const d = zb.dataset.kpzoom;
+    if(d === "fit"){ kpFit(); return; }
+    const cx = kpCam.x + (W/kpCam.z)/2, cy = kpCam.y + (H/kpCam.z)/2;
+    kpCam.z = Math.max(0.2, Math.min(2.5, kpCam.z * (d === "in" ? 1.4 : 1/1.4)));
+    kpCam.x = cx - (W/kpCam.z)/2; kpCam.y = cy - (H/kpCam.z)/2;
+  });
   el.querySelectorAll("[data-kpmap]").forEach(bm=>bm.onclick=()=>{
     K.map = +bm.dataset.kpmap; K.land = Math.max(K.land, K.map);
     kpBg();
@@ -484,24 +577,80 @@ function kpBuildMap(){
   if(!K.kpBuild[K.map]) K.kpBuild[K.map] = {};
   return K.kpBuild[K.map];
 }
-/* Only PLAYER walls block. Terrain deliberately does not: the castle sits on
-   a terrace (the Meadow's gate is inside its plat), so treating plats as
-   impassable made the goal unreachable and every placement got refused. The
-   authored roads already climb terraces by stairs, so terrain was never a
-   barrier in this game to begin with. */
+/* ---- what the player owns ---- */
+function kpOwnedMap(){
+  if(!K.kpOwn) K.kpOwn = {};
+  if(!K.kpOwn[K.map]){
+    const o = {};
+    for(let sx=0; sx<KP_HOME_SC; sx++) for(let sy=0; sy<KP_HOME_SR; sy++) o[sx+","+sy] = 1;
+    K.kpOwn[K.map] = o;                     /* the drawn island is yours to begin with */
+  }
+  return K.kpOwn[K.map];
+}
+function kpOwns(sx, sy){ return !!kpOwnedMap()[sx+","+sy]; }
+function kpCellOwned(c, r){ return kpOwns(Math.floor(c/KP_SEC), Math.floor(r/KP_SEC)); }
+/* the claimed land's extent, in cells - the camera frames exactly this */
+function kpBounds(){
+  let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  for(const k in kpOwnedMap()){
+    const sx=+k.split(",")[0], sy=+k.split(",")[1];
+    x0=Math.min(x0,sx); y0=Math.min(y0,sy); x1=Math.max(x1,sx); y1=Math.max(y1,sy);
+  }
+  if(x1<x0) return {c0:0,r0:0,c1:KP_COLS,r1:KP_ROWS};
+  return { c0:x0*KP_SEC, r0:y0*KP_SEC, c1:(x1+1)*KP_SEC, r1:(y1+1)*KP_SEC };
+}
+function kpWorldPx(){
+  const b = kpBounds();
+  return { x:b.c0*KP_CELL, y:b.r0*KP_CELL,
+           w:(b.c1-b.c0)*KP_CELL, h:(b.r1-b.r0)*KP_CELL + KP_OY };
+}
+/* a section may be bought only next to land you already hold */
+function kpSecBuyable(sx, sy){
+  if(sx<0||sy<0||sx>=KP_WORLD_SC||sy>=KP_WORLD_SR) return false;
+  if(kpOwns(sx,sy)) return false;
+  return kpOwns(sx-1,sy)||kpOwns(sx+1,sy)||kpOwns(sx,sy-1)||kpOwns(sx,sy+1);
+}
+function kpSecCost(){
+  let n=0; for(const k in kpOwnedMap()) n++;
+  const base = KP_HOME_SC*KP_HOME_SR;
+  return Math.round(4000 * Math.pow(1.55, Math.max(0, n - base)));
+}
+/* land grants the tower allowance: one per owned section beyond the first two */
+function kpTowerCap(){ let n=0; for(const k in kpOwnedMap()) n++; return Math.max(4, n); }
+function kpTowersPlaced(){ const t=kpBuildMap(); let n=0;
+  for(const k in t) if(String(t[k]).indexOf("tower:")===0) n++; return n; }
+/* Only walls and unowned sea block. Terrain deliberately does not: the castle
+   sits on a terrace (the Meadow's gate is inside its plat), so treating plats
+   as impassable made the goal unreachable and every placement got refused. */
 function kpCellFree(c, r, walls){
-  if(c<0 || r<0 || c>=KP_COLS || r>=KP_ROWS) return false;
-  if(walls[c+","+r]) return false;
+  const b = kpBounds();
+  if(c<b.c0 || r<b.r0 || c>=b.c1 || r>=b.r1) return false;
+  if(!kpCellOwned(c,r)) return false;
+  const v = walls[c+","+r];
+  if(v === 1 || v === "wall" || v === "tree" || v === "rock") return false;
+  if(typeof v === "string" && v.indexOf("tower:")===0) return false;
   return true;
 }
 function kpCellOf(pt){
-  return [ Math.max(0, Math.min(KP_COLS-1, Math.floor(pt[0]/KP_CELL))),
-           Math.max(0, Math.min(KP_ROWS-1, Math.floor(pt[1]/KP_CELL))) ];
+  const b = kpBounds();
+  return [ Math.max(b.c0, Math.min(b.c1-1, Math.floor(pt[0]/KP_CELL))),
+           Math.max(b.r0, Math.min(b.r1-1, Math.floor(pt[1]/KP_CELL))) ];
+}
+/* mobs come from the far edge of the claimed land, so buying east moves the
+   spawn out with it rather than leaving it stranded mid-island */
+function kpSpawnCell(){
+  const b = kpBounds(), MP = KP_MAPS[K.map] || KP_MAPS[0];
+  const home = kpCellOf(MP.path[0]);
+  for(let c=b.c1-1; c>=b.c0; c--){
+    for(let r=home[1]; r>=b.r0; r--) if(kpCellFree(c,r,kpBuildMap())) return [c,r];
+    for(let r=home[1]; r<b.r1; r++) if(kpCellFree(c,r,kpBuildMap())) return [c,r];
+  }
+  return home;
 }
 /* breadth-first from spawn to gate; null when the way is sealed */
 function kpRoute(walls){
   const MP = KP_MAPS[K.map] || KP_MAPS[0];
-  const a = kpCellOf(MP.path[0]), z = kpCellOf(MP.path[MP.path.length-1]);
+  const a = kpSpawnCell(), z = kpCellOf(MP.path[MP.path.length-1]);
   const seen = {}, prev = {}, q = [a];
   seen[a[0]+","+a[1]] = true;
   while(q.length){
@@ -521,48 +670,138 @@ function kpRoute(walls){
   }
   return null;
 }
-/* untouched board keeps the hand-drawn road; walls switch to the computed one */
+/* A board that is still just the drawn island keeps the hand-drawn road.
+   Once anything is built or any sea is claimed, the route is computed. */
 function kpApplyRoute(){
   const MP = KP_MAPS[K.map] || KP_MAPS[0];
   const walls = kpBuildMap();
   let any = false; for(const k in walls){ any = true; break; }
-  if(!any){ KP_PATH = MP.path; return true; }
+  let grown = false; { let n=0; for(const k in kpOwnedMap()) n++;
+                       grown = n > KP_HOME_SC*KP_HOME_SR; }
+  if(!any && !grown){ KP_PATH = MP.path; return true; }
   const rt = kpRoute(walls);
   if(!rt) return false;
   KP_PATH = rt;
   return true;
 }
+/* ---- the camera: frames the claimed land, zooms in to build ---- */
+function kpFit(){
+  const wp = kpWorldPx();
+  const z = Math.min(W / wp.w, H / wp.h);
+  kpCam.z = z;
+  kpCam.x = wp.x - (W/z - wp.w)/2;
+  kpCam.y = wp.y - (H/z - wp.h)/2;
+}
+function kpCamApply(){ g.setTransform(kpCam.z,0,0,kpCam.z, -kpCam.x*kpCam.z, -kpCam.y*kpCam.z); }
+function kpCamReset(){ g.setTransform(1,0,0,1,0,0); }
+/* screen -> world */
+function kpAt(e){
+  const rect = cv.getBoundingClientRect();
+  const sx = (e.clientX - rect.left) * (W / rect.width);
+  const sy = (e.clientY - rect.top) * (H / rect.height);
+  return { x: sx/kpCam.z + kpCam.x, y: sy/kpCam.z + kpCam.y - KP_OY };
+}
 function kpDrawGrid(){
+  const b = kpBounds();
   g.save(); g.translate(0, KP_OY);
-  g.strokeStyle = "rgba(255,211,92,0.30)"; g.lineWidth = 1;
-  for(let c=0;c<=KP_COLS;c++){ g.beginPath(); g.moveTo(c*KP_CELL,0); g.lineTo(c*KP_CELL, KP_ROWS*KP_CELL); g.stroke(); }
-  for(let r=0;r<=KP_ROWS;r++){ g.beginPath(); g.moveTo(0,r*KP_CELL); g.lineTo(KP_COLS*KP_CELL, r*KP_CELL); g.stroke(); }
+  g.strokeStyle = "rgba(255,211,92,0.22)"; g.lineWidth = 1/kpCam.z;
+  for(let c=b.c0;c<=b.c1;c++){ g.beginPath(); g.moveTo(c*KP_CELL,b.r0*KP_CELL); g.lineTo(c*KP_CELL,b.r1*KP_CELL); g.stroke(); }
+  for(let r=b.r0;r<=b.r1;r++){ g.beginPath(); g.moveTo(b.c0*KP_CELL,r*KP_CELL); g.lineTo(b.c1*KP_CELL,r*KP_CELL); g.stroke(); }
+  /* sea you may claim, marked with its price */
+  if(kpTool === "land"){
+    for(let sx=0;sx<KP_WORLD_SC;sx++) for(let sy=0;sy<KP_WORLD_SR;sy++){
+      if(!kpSecBuyable(sx,sy)) continue;
+      const x=sx*KP_SECPX, y=sy*KP_SECPX;
+      g.fillStyle="rgba(159,208,140,0.16)"; g.fillRect(x+3,y+3,KP_SECPX-6,KP_SECPX-6);
+      g.strokeStyle="rgba(159,208,140,0.85)"; g.lineWidth=2/kpCam.z;
+      g.strokeRect(x+3,y+3,KP_SECPX-6,KP_SECPX-6);
+    }
+  }
   g.restore();
-  g.fillStyle = "rgba(255,211,92,0.92)"; g.font = "900 13px system-ui"; g.textAlign = "center";
-  g.fillText("BUILD \u00b7 tap a square to raise or clear a wall", W/2, 22);
-  g.textAlign = "left";
+}
+/* ---- placing things ---- */
+function kpPlace(c, r){
+  const walls = kpBuildMap(), key = c+","+r, had = walls[key];
+  if(kpTool === "clear"){
+    if(!had) return;
+    delete walls[key];
+    kpApplyRoute(); kpBg(); try{ saveState(); }catch(e){}
+    return;
+  }
+  if(!kpCellOwned(c,r)){ try{ showToast("Buy that land first"); }catch(e){} return; }
+  if(kpTool.indexOf("tower:")===0 && !had && kpTowersPlaced() >= kpTowerCap()){
+    try{ showToast("No room for another tower - claim more land"); }catch(e){}
+    return;
+  }
+  walls[key] = kpTool;
+  if(!kpApplyRoute()){                      /* sealing is refused, never allowed */
+    if(had === undefined) delete walls[key]; else walls[key] = had;
+    kpApplyRoute();
+    try{ showToast("That would close the last way in"); }catch(e){}
+    return;
+  }
+  kpBg(); try{ saveState(); }catch(e){}
+}
+function kpBuyAt(x, y){
+  const sx = Math.floor(x/KP_SECPX), sy = Math.floor(y/KP_SECPX);
+  if(!kpSecBuyable(sx,sy)){ try{ showToast("Claim land next to what you hold"); }catch(e){} return; }
+  const cost = kpSecCost();
+  if(state.credits < cost){ try{ showToast("That stretch costs " + cost.toLocaleString() + " credits"); }catch(e){} return; }
+  state.credits -= cost;
+  kpOwnedMap()[sx+","+sy] = 1;
+  kpApplyRoute(); kpBg(); kpFit();
+  try{ showToast("The island grows - " + cost.toLocaleString() + " credits"); saveState(); renderHeader(); }catch(e){}
+  kpWorks();
 }
 cv.addEventListener("click", function(e){
   if(!KP_BUILD_ENABLED || !kpBuildOn) return;
-  const rect = cv.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (W / rect.width);
-  const y = (e.clientY - rect.top) * (H / rect.height) - KP_OY;
-  const c = Math.floor(x/KP_CELL), r = Math.floor(y/KP_CELL);
-  if(c<0 || r<0 || c>=KP_COLS || r>=KP_ROWS) return;
-  const walls = kpBuildMap(), key = c+","+r, had = !!walls[key];
-  if(had) delete walls[key]; else walls[key] = 1;
-  if(!kpApplyRoute()){                      /* sealing is refused, never allowed */
-    if(had) walls[key] = 1; else delete walls[key];
-    kpApplyRoute();
-    try{ showToast("That would close the last way in"); }catch(e2){}
-    return;
-  }
-  kpBg();
-  try{ saveState(); }catch(e2){}
+  if(kpCam.drag && kpCam.drag.moved) return;      /* that was a pan, not a tap */
+  const p = kpAt(e);
+  if(kpTool === "land"){ kpBuyAt(p.x, p.y); return; }
+  const c = Math.floor(p.x/KP_CELL), r = Math.floor(p.y/KP_CELL);
+  const b = kpBounds();
+  if(c<b.c0 || r<b.r0 || c>=b.c1 || r>=b.r1) return;
+  kpPlace(c, r);
 });
-window.__kpBuild = { on:()=>kpBuildOn, route:kpApplyRoute, walls:kpBuildMap, cell:KP_CELL,
+/* drag to pan once you have zoomed in */
+cv.addEventListener("pointerdown", function(e){
+  if(!KP_BUILD_ENABLED || !kpBuildOn) return;
+  kpCam.drag = { sx:e.clientX, sy:e.clientY, cx:kpCam.x, cy:kpCam.y, moved:false };
+});
+cv.addEventListener("pointermove", function(e){
+  const d = kpCam.drag; if(!d) return;
+  const rect = cv.getBoundingClientRect();
+  const dx = (e.clientX - d.sx) * (W / rect.width) / kpCam.z;
+  const dy = (e.clientY - d.sy) * (H / rect.height) / kpCam.z;
+  if(Math.abs(dx) > 6 || Math.abs(dy) > 6) d.moved = true;
+  if(d.moved){ kpCam.x = d.cx - dx; kpCam.y = d.cy - dy; }
+});
+cv.addEventListener("pointerup", function(){ setTimeout(()=>{ kpCam.drag = null; }, 0); });
+cv.addEventListener("pointercancel", function(){ kpCam.drag = null; });
+window.__kpBuild = {
+  owned: kpOwnedMap, cam: ()=>kpCam, bounds: kpBounds, tool: ()=>kpTool,
+  cap: kpTowerCap, placedTowers: kpTowersPlaced, secCost: kpSecCost,
+  /* claim the first buyable stretch of sea - used by the tests */
+  buyFirst: function(){
+    for(let sx=0;sx<KP_WORLD_SC;sx++) for(let sy=0;sy<KP_WORLD_SR;sy++)
+      if(kpSecBuyable(sx,sy)){ kpBuyAt(sx*KP_SECPX+8, sy*KP_SECPX+8); return sx+","+sy; }
+    return null;
+  },
+  /* drop a thing on the first free owned cell - used by the tests */
+  placeFirst: function(tool){
+    const b = kpBounds(), was = kpTool; kpTool = tool;
+    for(let c=b.c0;c<b.c1;c++) for(let r=b.r0;r<b.r1;r++){
+      if(!kpCellFree(c,r,kpBuildMap())) continue;
+      const before = kpTowersPlaced();
+      kpPlace(c,r);
+      if(kpBuildMap()[c+","+r] === tool){ kpTool = was; return true; }
+    }
+    kpTool = was; return false;
+  }
+};
+Object.assign(window.__kpBuild, { on:()=>kpBuildOn, route:kpApplyRoute, walls:kpBuildMap, cell:KP_CELL,
   cols:()=>KP_COLS, rows:()=>KP_ROWS, free:kpCellFree, raw:kpRoute, cellOf:kpCellOf,
-  ends:()=>{ const MP=KP_MAPS[K.map]||KP_MAPS[0]; return [MP.path[0], MP.path[MP.path.length-1], MP.plats]; } };
+  ends:()=>{ const MP=KP_MAPS[K.map]||KP_MAPS[0]; return [MP.path[0], MP.path[MP.path.length-1], MP.plats]; } });
 window.__kpSim = sim;   /* probe access */
 })();
 

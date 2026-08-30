@@ -161,6 +161,17 @@ const KP_MAPS = [
     path:[[852,392],[700,392],[560,382],[560,318],[430,286],[350,286],[350,208],[300,176],[230,176],[150,176],[150,92],[96,72]],
     castle:[88,54], slots:[[700,368],[440,286],[240,286],[280,176]],
     houses:[[700,60],[780,282],[640,392]], trees:[[380,36],[740,150],[820,392],[440,392]], decos:14 },
+  /* THE FRONTIER - the only map you may reshape. It ships as bare rock in
+     open sea: no terraces, no road, no scenery. Everything on it is the
+     player's, and it is the only place the sea can be claimed. The four maps
+     above are hand-drawn and stay that way - towers and folk only. */
+  { name:"The Frontier", cost:150000, scrap:300, base:0.03, custom:true,
+    note:"bare rock and open sea — yours to shape · +3% base pay",
+    water:true,
+    plats:[], stairs:[], bridge:null,
+    path:[[430,300],[300,300],[190,240],[120,180]],
+    castle:[96,150], slots:[[300,290],[380,220],[220,330],[400,360]],
+    houses:[], trees:[], decos:0 },
 ];
 const KP_LANDS = KP_MAPS;   /* legacy references keep working */
 const KP_TOWERS = {
@@ -366,8 +377,8 @@ function kpBg(){
       kpTileX(b, "g"+rr+cc, x, y);
     }
   }
-  /* the drawn island keeps its own hand-made coastline */
-  for(let x=inset; x<W-inset; x+=64){
+  /* the drawn island keeps its own hand-made coastline - the frontier has none */
+  for(let x=inset; !kpCustom() && x<W-inset; x+=64){
     for(let y=inset; y<H-inset; y+=64){
       const r = y<=inset ? 0 : (y+64>=H-inset ? 2 : 1);
       const c = x<=inset ? 0 : (x+64>=W-inset ? 2 : 1);
@@ -619,7 +630,13 @@ const KP_TOOLS = [
   { id:"clear",        icon:"🚫", name:"Remove" },
 ];
 function kpPalette(){
-  const tools = KP_TOOLS.map(t=>{
+  /* never leave a tool selected that this map forbids - the HUD would name it
+     and every tap would be refused */
+  if(!kpToolAllowed(kpTool)){
+    const first = KP_TOOLS.filter(t=>kpToolAllowed(t.id))[0];
+    if(first) kpTool = first.id;
+  }
+  const tools = KP_TOOLS.filter(t=>kpToolAllowed(t.id)).map(t=>{
     let tag = "";
     if(t.id.indexOf("folk:") === 0){
       const kind = t.id.slice(5);
@@ -696,7 +713,7 @@ function kpWorks(){
   });
 }
 setInterval(()=>{ try{ kpBar(); if(!document.activeElement || !document.activeElement.dataset || !document.activeElement.dataset.kp) kpWorks(); }catch(e){} }, 2000);
-setTimeout(()=>{ try{ kpBar(); kpWorks(); }catch(e){} }, 600);
+setTimeout(()=>{ try{ kpRepairOwned(); kpBg(); kpBar(); kpWorks(); }catch(e){} }, 600);
 /* ---------- build mode machinery ---------- */
 function kpBuildMap(){
   if(!K.kpBuild) K.kpBuild = {};
@@ -708,10 +725,38 @@ function kpOwnedMap(){
   if(!K.kpOwn) K.kpOwn = {};
   if(!K.kpOwn[K.map]){
     const o = {};
-    for(let sx=0; sx<KP_HOME_SC; sx++) for(let sy=0; sy<KP_HOME_SR; sy++) o[sx+","+sy] = 1;
+    if((KP_MAPS[K.map]||KP_MAPS[0]).custom){
+      o["0,0"] = 1; o["1,0"] = 1;           /* the frontier: bare rock to start from */
+    } else {
+      for(let sx=0; sx<KP_HOME_SC; sx++) for(let sy=0; sy<KP_HOME_SR; sy++) o[sx+","+sy] = 1;
+    }
     K.kpOwn[K.map] = o;                     /* the drawn island is yours to begin with */
   }
   return K.kpOwn[K.map];
+}
+/* REPAIR: the hand-drawn maps could be expanded for one build, which left
+   saves holding sea around an authored island - the board then framed a huge
+   empty ocean and the map read as broken. Hand those sections back and refund
+   what they cost, once, per map. */
+function kpRepairOwned(){
+  if(!K.kpOwn) return;
+  let refund = 0;
+  for(const mi in K.kpOwn){
+    if((KP_MAPS[mi]||{}).custom) continue;
+    const o = K.kpOwn[mi]; let extra = 0;
+    for(const k in o){
+      const sx = +k.split(",")[0], sy = +k.split(",")[1];
+      if(sx >= KP_HOME_SC || sy >= KP_HOME_SR){ delete o[k]; extra++; }
+    }
+    for(let i=0;i<extra;i++) refund += Math.round(4000 * Math.pow(1.55, i));
+  }
+  if(refund > 0){
+    state.credits += refund;
+    try{
+      showToast("The sea around the old maps was given back — " + refund.toLocaleString() + " credits refunded");
+      saveState(); renderHeader();
+    }catch(e){}
+  }
 }
 function kpOwns(sx, sy){ return !!kpOwnedMap()[sx+","+sy]; }
 function kpCellOwned(c, r){ return kpOwns(Math.floor(c/KP_SEC), Math.floor(r/KP_SEC)); }
@@ -720,7 +765,15 @@ function kpCellOwned(c, r){ return kpOwns(Math.floor(c/KP_SEC), Math.floor(r/KP_
    everyone and most players will never have touched it. Whole sections round
    up past the drawn board, so falling back to the board rect is what keeps the
    camera at 1:1 instead of quietly zooming everyone out. */
+/* Only THE FRONTIER may be reshaped or expanded. The hand-drawn maps take
+   towers and folk and nothing else - their terrain is authored, not yours. */
+function kpCustom(){ return (KP_MAPS[K.map]||KP_MAPS[0]).custom === true; }
+function kpToolAllowed(id){
+  if(kpCustom()) return true;
+  return id === "clear" || id.indexOf("tower:") === 0 || id.indexOf("folk:") === 0;
+}
 function kpGrown(){
+  if(kpCustom()) return true;              /* the frontier is world-view always */
   let n = 0; for(const k in kpOwnedMap()) n++;
   return n > KP_HOME_SC * KP_HOME_SR;
 }
@@ -885,6 +938,10 @@ function kpPlace(c, r){
     kpWorks();
     return;
   }
+  if(!kpToolAllowed(kpTool)){
+    try{ showToast("This land is already shaped - build on The Frontier"); }catch(e){}
+    return;
+  }
   if(!kpCellOwned(c,r)){ try{ showToast("Buy that land first"); }catch(e){} return; }
   if(kpTool.indexOf("folk:") === 0 && !had){
     const kind = kpTool.slice(5);
@@ -912,6 +969,10 @@ function kpPlace(c, r){
   kpBg(); try{ saveState(); }catch(e){}
 }
 function kpBuyAt(x, y){
+  if(!kpCustom()){
+    try{ showToast("Only The Frontier can be expanded"); }catch(e){}
+    return;
+  }
   const sx = Math.floor(x/KP_SECPX), sy = Math.floor(y/KP_SECPX);
   if(!kpSecBuyable(sx,sy)){ try{ showToast("Claim land next to what you hold"); }catch(e){} return; }
   const cost = kpSecCost();

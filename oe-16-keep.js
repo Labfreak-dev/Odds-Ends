@@ -933,17 +933,32 @@ function kpAt(e){
 function kpDrawGrid(){
   const b = kpBounds();
   g.save(); g.translate(0, KP_OY);
+  /* The cell grid belongs on LAND only. Drawn across the sea as well, the
+     lines plus the old filled section rectangles stacked up into what read as
+     duplicated layers - big flat panes with hard borders piled on the water. */
   g.strokeStyle = "rgba(255,211,92,0.22)"; g.lineWidth = 1/kpCam.z;
-  for(let c=b.c0;c<=b.c1;c++){ g.beginPath(); g.moveTo(c*KP_CELL,b.r0*KP_CELL); g.lineTo(c*KP_CELL,b.r1*KP_CELL); g.stroke(); }
-  for(let r=b.r0;r<=b.r1;r++){ g.beginPath(); g.moveTo(b.c0*KP_CELL,r*KP_CELL); g.lineTo(b.c1*KP_CELL,r*KP_CELL); g.stroke(); }
-  /* sea you may claim, marked with its price */
+  for(let c=b.c0;c<b.c1;c++) for(let r=b.r0;r<b.r1;r++){
+    if(!kpCellOwned(c,r)) continue;
+    g.strokeRect(c*KP_CELL, r*KP_CELL, KP_CELL, KP_CELL);
+  }
+  /* Sea you may claim: a dashed edge and a plus, so it reads as open water
+     with an invitation rather than a pane laid over the map. */
   if(kpTool === "land"){
+    const px = 1/kpCam.z;
     for(let sx=0;sx<KP_WORLD_SC;sx++) for(let sy=0;sy<KP_WORLD_SR;sy++){
       if(!kpSecBuyable(sx,sy)) continue;
-      const x=sx*KP_SECPX, y=sy*KP_SECPX;
-      g.fillStyle="rgba(159,208,140,0.16)"; g.fillRect(x+3,y+3,KP_SECPX-6,KP_SECPX-6);
-      g.strokeStyle="rgba(159,208,140,0.85)"; g.lineWidth=2/kpCam.z;
-      g.strokeRect(x+3,y+3,KP_SECPX-6,KP_SECPX-6);
+      const x=sx*KP_SECPX, y=sy*KP_SECPX, m=10, s=KP_SECPX-m*2;
+      g.save();
+      g.setLineDash([14*px, 10*px]);
+      g.strokeStyle="rgba(180,235,150,0.9)"; g.lineWidth=3*px;
+      g.strokeRect(x+m, y+m, s, s);
+      g.setLineDash([]);
+      const cx=x+KP_SECPX/2, cy=y+KP_SECPX/2, a=26;
+      g.lineWidth=6*px; g.strokeStyle="rgba(14,20,29,0.5)";
+      g.beginPath(); g.moveTo(cx-a,cy); g.lineTo(cx+a,cy); g.moveTo(cx,cy-a); g.lineTo(cx,cy+a); g.stroke();
+      g.lineWidth=3*px; g.strokeStyle="rgba(200,245,170,0.95)";
+      g.beginPath(); g.moveTo(cx-a,cy); g.lineTo(cx+a,cy); g.moveTo(cx,cy-a); g.lineTo(cx,cy+a); g.stroke();
+      g.restore();
     }
   }
   g.restore();

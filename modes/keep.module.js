@@ -349,7 +349,7 @@ function kpBg(){
      claimed-section grass - so a player who never builds sees the board they
      always saw, pixel for pixel. The world only appears once sea is claimed. */
   const inset = MP.water ? 46 : 6;
-  if(!kpGrown()){
+  if(!kpViewGrown()){
     for(let x=0;x<W;x+=64) for(let y=0;y<H;y+=64) kpTileX(b,"water",x,y);
   } else {
     /* open sea across the whole world, so unclaimed ground reads as water */
@@ -498,7 +498,7 @@ function kpFrame(){
   kpCamReset();
   g.clearRect(0,0,W,H);
   /* no claimed sea means no camera at all - the untouched board draws 1:1 */
-  if(kpGrown()){
+  if(kpViewGrown()){
     if(kpCam.z === 1 && kpCam.x === 0 && kpCam.y === 0) kpFit();
     kpCamApply();
   }
@@ -652,7 +652,12 @@ function kpWorks(){
       <em>🪙${cost.toLocaleString()} + ♻️${Math.round(cost/100)}</em></button>`;
   }).join("");
   const kpBB = el.querySelector("#kpBuildBtn");
-  if(kpBB) kpBB.onclick = ()=>{ kpBuildOn = !kpBuildOn; kpFit(); kpWorks(); };
+  if(kpBB) kpBB.onclick = ()=>{
+    kpBuildOn = !kpBuildOn;
+    kpCam.x = 0; kpCam.y = 0; kpCam.z = 1;   /* let the next frame reframe it */
+    kpBg();                                  /* the world view repaints the sea */
+    kpFit(); kpWorks();
+  };
   el.querySelectorAll("[data-kptool]").forEach(tb=>tb.onclick=()=>{
     kpTool = tb.dataset.kptool; kpWorks();
   });
@@ -718,19 +723,30 @@ function kpGrown(){
   let n = 0; for(const k in kpOwnedMap()) n++;
   return n > KP_HOME_SC * KP_HOME_SR;
 }
-/* the claimed land's extent, in cells - the camera frames exactly this */
+/* The world view - pulled-back camera, sea all round - is used whenever the
+   island has grown OR the build menu is open. Opening Build has to pull back:
+   every claimable section sits beyond the drawn board, so at 1:1 the sea you
+   are meant to buy is entirely off-screen and the tool looks broken. Normal
+   play, menu closed and nothing claimed, still renders exactly as it always
+   did. */
+function kpViewGrown(){ return kpGrown() || kpBuildOn; }
+/* the claimed land's extent, in cells - the camera frames exactly this,
+   plus one section of sea all round so there is always something to claim */
 function kpBounds(){
-  if(!kpGrown()) return { c0:0, r0:0, c1:KP_COLS, r1:KP_ROWS };
+  if(!kpViewGrown()) return { c0:0, r0:0, c1:KP_COLS, r1:KP_ROWS };
   let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
   for(const k in kpOwnedMap()){
     const sx=+k.split(",")[0], sy=+k.split(",")[1];
     x0=Math.min(x0,sx); y0=Math.min(y0,sy); x1=Math.max(x1,sx); y1=Math.max(y1,sy);
   }
   if(x1<x0) return {c0:0,r0:0,c1:KP_COLS,r1:KP_ROWS};
+  /* one section of margin so the claimable ring is always on screen */
+  x0 = Math.max(0, x0-1); y0 = Math.max(0, y0-1);
+  x1 = Math.min(KP_WORLD_SC-1, x1+1); y1 = Math.min(KP_WORLD_SR-1, y1+1);
   return { c0:x0*KP_SEC, r0:y0*KP_SEC, c1:(x1+1)*KP_SEC, r1:(y1+1)*KP_SEC };
 }
 function kpWorldPx(){
-  if(!kpGrown()) return { x:0, y:0, w:W, h:H };   /* pixel-identical to before */
+  if(!kpViewGrown()) return { x:0, y:0, w:W, h:H };   /* pixel-identical to before */
   const b = kpBounds();
   return { x:b.c0*KP_CELL, y:b.r0*KP_CELL,
            w:(b.c1-b.c0)*KP_CELL, h:(b.r1-b.r0)*KP_CELL + KP_OY };
@@ -934,6 +950,7 @@ window.__kpBuild = {
   owned: kpOwnedMap, cam: ()=>kpCam, bounds: kpBounds, tool: ()=>kpTool, img: (k)=>IMG[k],
   cap: kpTowerCap, placedTowers: kpTowersPlaced, secCost: kpSecCost,
   bonus: kpBonus, hire: kpHireCost, folkCap: kpFolkCap, folk: kpFolkCount,
+  buyable: kpSecBuyable, viewGrown: kpViewGrown,
   /* claim the first buyable stretch of sea - used by the tests */
   buyFirst: function(){
     for(let sx=0;sx<KP_WORLD_SC;sx++) for(let sy=0;sy<KP_WORLD_SR;sy++)

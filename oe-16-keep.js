@@ -509,6 +509,10 @@ function kpFrame(){
   kpTick(dt);
   kpCamReset();
   g.clearRect(0,0,W,H);
+  /* Beyond the claimable field is still ocean, not a void. Without this the
+     canvas showed dead navy wherever the world canvas did not reach - which
+     is what made a tall thin island look broken rather than remote. */
+  if(kpViewGrown()){ g.fillStyle = "#3f9fa2"; g.fillRect(0,0,W,H); }
   /* no claimed sea means no camera at all - the untouched board draws 1:1 */
   if(kpViewGrown()){
     if(kpCam.z === 1 && kpCam.x === 0 && kpCam.y === 0) kpFit();
@@ -589,16 +593,22 @@ function kpFrame(){
   if(kpBuildOn) kpDrawGrid();
   /* ---- HUD, in screen space ---- */
   kpCamReset();
-  if(K.held){ g.font="900 13px system-ui"; g.textAlign="center";
-    g.fillStyle="rgba(255,211,92,0.9)"; g.fillText("🛡️ THE LINE HOLDS", W/2, 22); g.textAlign="left"; }
-  if(kpBuildOn){
-    g.fillStyle="rgba(255,211,92,0.92)"; g.font="900 12px system-ui"; g.textAlign="center";
-    g.fillText(kpTool === "land"
-      ? "CLAIM · tap the green sea to buy it · " + kpSecCost().toLocaleString() + " credits"
-      : "BUILD · " + kpTool.replace("tower:","") + " · towers " + kpTowersPlaced() + "/" + kpTowerCap(),
-      W/2, 18);
-    g.textAlign="left";
+  /* one line per row - these used to be written on top of each other */
+  let hudY = 20;
+  g.textAlign = "center";
+  if(K.held){
+    g.font="900 13px system-ui"; g.fillStyle="rgba(255,211,92,0.9)";
+    g.fillText("🛡️ THE LINE HOLDS", W/2, hudY); hudY += 18;
   }
+  if(kpBuildOn){
+    g.fillStyle="rgba(255,211,92,0.92)"; g.font="900 12px system-ui";
+    g.fillText(kpTool === "land"
+      ? "CLAIM · tap the outlined sea · " + kpSecCost().toLocaleString() + " credits"
+      : "BUILD · " + kpTool.replace("tower:","").replace("folk:","") +
+        " · towers " + kpTowersPlaced() + "/" + kpTowerCap(),
+      W/2, hudY);
+  }
+  g.textAlign = "left";
 }
 requestAnimationFrame(kpFrame);
 /* ---------- ui ---------- */
@@ -887,12 +897,29 @@ function kpApplyRoute(){
   return true;
 }
 /* ---- the camera: frames the claimed land, zooms in to build ---- */
+/* Frame the LAND YOU HOLD, not the whole claimable field. Fitting the field
+   was the bug behind the sliver-in-an-ocean screenshots: claiming a column
+   southward made the world seven sections tall against a 540px canvas, so the
+   fit collapsed to z=0.29 and the island vanished into letterboxing. The
+   claimable ring is still reachable - pan to it. */
 function kpFit(){
-  const wp = kpWorldPx();
-  const z = Math.min(W / wp.w, H / wp.h);
+  let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  for(const k in kpOwnedMap()){
+    const sx=+k.split(",")[0], sy=+k.split(",")[1];
+    x0=Math.min(x0,sx); y0=Math.min(y0,sy); x1=Math.max(x1,sx); y1=Math.max(y1,sy);
+  }
+  let wx, wy, ww, wh;
+  if(x1 < x0 || !kpViewGrown()){
+    const wp = kpWorldPx(); wx=wp.x; wy=wp.y; ww=wp.w; wh=wp.h;
+  } else {
+    const m = KP_SECPX * 0.55;                 /* a little sea all round */
+    wx = x0*KP_SECPX - m;              wy = y0*KP_SECPX - m;
+    ww = (x1-x0+1)*KP_SECPX + m*2;     wh = (y1-y0+1)*KP_SECPX + KP_OY + m*2;
+  }
+  const z = Math.max(0.3, Math.min(1, Math.min(W/ww, H/wh)));
   kpCam.z = z;
-  kpCam.x = wp.x - (W/z - wp.w)/2;
-  kpCam.y = wp.y - (H/z - wp.h)/2;
+  kpCam.x = wx + ww/2 - (W/z)/2;
+  kpCam.y = wy + wh/2 - (H/z)/2;
 }
 function kpCamApply(){ g.setTransform(kpCam.z,0,0,kpCam.z, -kpCam.x*kpCam.z, -kpCam.y*kpCam.z); }
 function kpCamReset(){ g.setTransform(1,0,0,1,0,0); }

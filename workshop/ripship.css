@@ -69,7 +69,9 @@
 .rz-hand.faced{ height:330px; }
 .rz-hcard{ position:absolute; left:50%; top:14px; width:164px; height:226px; margin-left:-82px; }
 .rz-hand.faced .rz-hcard{ top:4px; }
-.rz-hcard img{ width:100%; height:100%; display:block; -webkit-user-select:none; user-select:none;
+/* backs differ in aspect - fix the HEIGHT so a taller design gets narrower
+   instead of drooping over the hint line below the hand */
+.rz-hcard img{ height:226px; width:auto; display:block; margin:0 auto; -webkit-user-select:none; user-select:none;
   filter:drop-shadow(0 8px 18px rgba(0,0,0,.5)); }
 .rz-hcard.top{ cursor:pointer; }
 .rz-hcard.top img{ filter:drop-shadow(0 8px 18px rgba(0,0,0,.5)) drop-shadow(0 0 14px rgba(255,211,92,.55)); }
@@ -83,3 +85,14 @@
 .rz-hand .rz-card{ position:absolute; left:50%; top:24px; margin-left:-110px; }
 .rz-card.rz-away{ animation:rzAwayUp .22s ease-in forwards; }
 @keyframes rzAwayUp{ to{ transform:translateY(-64px) rotate(-5deg) scale(.85); opacity:0; } }
+/* ---- earnable card backs: the picker (batch 67) ---- */
+.rz-bgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 2px 2px; }
+.rz-bcell{ cursor:pointer; padding:7px 5px 8px; border-radius:12px; border:1.5px solid #2b3142;
+  background:#141a26; }
+.rz-bcell img{ width:100%; height:auto; display:block; border-radius:6px; }
+.rz-bcell.eq{ border-color:#ffd35c; background:rgba(255,211,92,.08); }
+.rz-bcell.locked{ cursor:default; }
+.rz-bcell.locked img{ filter:grayscale(1) brightness(.45); }
+.rz-bname{ font:800 10.5px system-ui; color:#eef4fa; margin-top:6px; }
+.rz-bcell.eq .rz-bname{ color:#ffd35c; }
+.rz-bneed{ font:700 9px system-ui; color:#8b9cae; margin-top:2px; line-height:1.35; }

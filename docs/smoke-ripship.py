@@ -47,6 +47,11 @@ with sync_playwright() as pw:
     pg.on("console", lambda m: errs.append("console:" + m.text) if m.type == "error" else None)
     pg.goto(URL)
     pg.wait_for_timeout(2500)
+    # start from a FRESH save: file:// localStorage persists between runs, so
+    # without this the suite inherits whatever mining rate the last run built
+    # up - and a hot enough rate drips dollars faster than any wait tolerates
+    pg.evaluate("()=>localStorage.clear()")
+    pg.reload(); pg.wait_for_timeout(2200)
     check("page booted clean", not errs, errs[:3])
 
     # ---- the wrapper chain --------------------------------------------

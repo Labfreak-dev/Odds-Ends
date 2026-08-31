@@ -20,7 +20,7 @@ def once(hay, needle, rep, label):
 
 # ---- 1. styles -------------------------------------------------------
 css = "\n".join(["\n/* ===== ADDED MODES ===== */",
-                 read("provenance.css"), read("press.css"), read("puzzles.css"), read("logic.css"), read("arcade.css"), read("fishing2.css"), read("mining2.css"), read("ledger.css"), read("grading.css"), read("market2.css"), read("casino2.css"), read("keep.css"), read("hunt.css")])
+                 read("provenance.css"), read("press.css"), read("puzzles.css"), read("logic.css"), read("arcade.css"), read("fishing2.css"), read("mining2.css"), read("ledger.css"), read("grading.css"), read("market2.css"), read("casino2.css"), read("keep.css"), read("hunt.css"), read("ripship.css")])
 src = once(src, "</style>", css + "\n</style>", "css")
 
 # ---- 2. tab sections -------------------------------------------------
@@ -64,7 +64,7 @@ MODULE_FILES = ["fishing-assets.module.js", "fishing-sfx.module.js",
     "provenance.catalogue.js", "provenance.module.js",
     "press.module.js", "connections.module.js",
     "case.module.js", "oddone.module.js",
-    "fishing2.module.js", "mining2.module.js", "ledger.module.js", "grading.module.js",
+    "fishing2.module.js", "mining2.module.js", "ripship.module.js", "ledger.module.js", "grading.module.js",
     "market2.module.js", "casino2.module.js", "keep.module.js", "hunt.module.js"]
 def sent(name): return "\n/*@@SPLIT:" + name + "@@*/\n"
 modparts = ["\n/* ===================== ADDED MODES ===================== */"]

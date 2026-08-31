@@ -12,10 +12,21 @@ window.__rzWrap = true;
 let RZ = null;                     /* live session */
 let rzStreak = 0;                  /* packs ripped this sitting */
 
+/* What a card is honestly WORTH: the price the collection screen pays for it,
+   graded on the same curve the market uses. Not the market's BUY price - that
+   is what a card costs you, roughly five times what anyone pays for it, and
+   pricing a pull off it turns every pack into free money. */
 function rzVal(card){
-  try{ if(typeof m2TrueVal === "function") return Math.max(2, Math.round(m2TrueVal(card))); }catch(e){}
-  return Math.max(2, Math.round(8 * Math.pow(2.05, card.rarity)));
+  try{
+    let v = MARKET_SELL_PRICE_BY_TIER[card.rarity];
+    const g = state.grading && state.grading.graded && state.grading.graded[card.id];
+    if(g) v = Math.round(v * (0.5 + g*0.15));
+    if(v > 0) return Math.max(2, Math.round(v));
+  }catch(e){}
+  return Math.max(2, Math.round(2 * Math.pow(2.05, card.rarity)));
 }
+/* SHIP is the impatient sale: the money lands now, and the 15% is what that
+   convenience costs against carrying the card to the collection screen. */
 function rzShipPay(card){ return Math.round(rzVal(card) * 0.85); }
 
 const _origStartReveal = startReveal;

@@ -111,7 +111,7 @@ with sync_playwright() as pw:
     got = pg.evaluate("""()=>{
       const f=[...document.querySelectorAll('.mini-card.framed')];
       return { framed: f.length,
-               bg: f.every(e=>e.style.backgroundImage.startsWith('url(')),
+               bg: f.every(e=>getComputedStyle(e).backgroundImage.startsWith('url("data:image/webp')),
                lockedPlain: [...document.querySelectorAll('.mini-card.locked')]
                  .every(e=>!e.classList.contains('framed')) }; }""")
     check("owned collection cards wear their frames", got["framed"] >= 3 and got["bg"], got)
@@ -126,6 +126,18 @@ with sync_playwright() as pw:
     check("a market visitor presents a framed card", saw)
     check("the market prices in dollars",
           pg.evaluate("()=>{ const e=document.querySelector('.m2-price'); return e ? e.textContent.trim().startsWith('$') : true; }"))
+
+    # ---- the card-info panel: framed, and the frame survives the foil fx ----
+    pg.evaluate("()=>{ const c=cards.find(x=>x.rarity===15); state.owned[c.id]=2; openCardInfo(c.id); }")
+    pg.wait_for_timeout(500)
+    got = pg.evaluate("""()=>{
+      const e=document.getElementById('ciCard');
+      return { framed: e.classList.contains('framed'),
+               fx: [...e.classList].some(c=>c.startsWith('fx-')),
+               bg: getComputedStyle(e).backgroundImage.startsWith('url("data:image/webp') }; }""")
+    check("the info panel card wears its frame under the foil fx",
+          got and got["framed"] and got["fx"] and got["bg"], got)
+    pg.evaluate("()=>document.getElementById('cardInfoOverlay').classList.remove('show')")
 
     check("zero page errors", not errs, errs[:3])
     br.close()

@@ -2765,7 +2765,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   border:1px solid rgba(255,255,255,0.09); border-radius:12px; padding:12px 14px; max-width:560px; margin-left:auto; margin-right:auto; }
 .pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
 .pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
-#tab-empire, #tab-siege, #tab-raids{ display:none !important; }
+#tab-empire, #tab-siege, #tab-raids, #tab-dungeon{ display:none !important; }
 </style>
 </head>
 <body>
@@ -18289,11 +18289,9 @@ function uiInitHelp(){
 /* ---------------- Routing: six nav tabs, one Play hub ---------------- */
 const UI_GAMES = [
   { id:"hunt",    name:"The Hunt",    icon:"🗡️", desc:"Every tap fuels the fight. Beasts without end, a blade forged in ingots, and embers for the brave.", meta:"Endless clicker" },
-  { id:"keep",    name:"The Keep",    icon:"🏰", desc:"An idle war. The castle never falls — it earns. Hold the line when it suits you.", meta:"Idle defense" },
   { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Idle-friendly" },
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
-  { id:"dungeon", name:"Mythic Raids", icon:"🏚️", desc:"Daemonheim. Go in with nothing, come out with a level.", meta:"10 floors" },
   /* Runeshard entry removed - it ships as its own build. */
 ];
 const UI_GAME_IDS = UI_GAMES.map(g=>g.id);

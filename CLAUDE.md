@@ -19,7 +19,8 @@ serves the root; the site URL never changes.
 - `workshop/source-pristine.html` — the host: page shell, css, core game
   (cards/packs/collection/upgrades/market host code). Single source of truth.
 - `workshop/*.module.js` + `*.css` — one file per game mode (fishing2, mining2,
-  ledger, grading, market2, casino2, keep, hunt, + puzzle modes). Modules are
+  ledger, grading, market2, casino2, hunt, + puzzle modes; keep is RETIRED —
+  its source stays in workshop/ unwired). Modules are
   self-contained IIFEs/consts appended into the host script at build time.
 - `workshop/integrate.py` — the build. It splices css, tab sections, and modules
   into the host string via labeled `once()` replacements, then EXPLODES the result
@@ -96,9 +97,10 @@ A new mode touches seven of the eight `once()` splices, in build order:
 | 6 | `enter hooks` | `else if(id==="<id>"){ xxOnEnterTab(); }` |
 | 7 | `render list` | `safeRender("<id>", renderXx);` |
 
-(The eighth, `keep section`, is a separate splice that keep and hunt use to sit
-outside the puzzle block.) Modes already present in the host's own `UI_GAMES` —
-fishing, poker, casino, dungeon, keep, hunt — skip step 4.
+(The eighth, `keep section`, is a separate splice hunt uses to sit outside the
+puzzle block.) Modes already present in the host's own `UI_GAMES` — fishing,
+poker, casino, hunt — skip step 4. (keep and dungeon/Mythic Raids are retired:
+not in UI_GAMES, dungeon's tab sealed by the empire/siege/raids CSS rule.)
 
 Remember rule 1: `once()` is atomic per run and aborts the WHOLE build on a bad
 anchor, so apply all seven together and rebuild once. And rule 4: those hook

@@ -14,7 +14,6 @@ const LG_POOL = [
   { kind:"rarefish", mk:h=>({ goal: 1+(h>>>6)%2,  txt:g=>`Land ${g} Rare-or-better fish`,         cr:3200, sc:6 }) },
   { kind:"fbounty",  mk:h=>({ goal: 1,             txt:g=>`Strike a bounty at the fishing board`,  cr:3000, sc:6 }) },
   { kind:"pack",     mk:h=>({ goal: 2+(h>>>7)%2,  txt:g=>`Open ${g} card packs`,                  cr:2400, sc:5 }) },
-  { kind:"keepwave", mk:h=>({ goal: 2+(h>>>8)%3,  txt:g=>`Clear ${g} waves at the Keep`,          cr:2800, sc:6 }) },
   { kind:"hunt",     mk:h=>({ goal: 8+(h>>>9)%8,  txt:g=>`Slay ${g} beasts in the Hunt`,           cr:2600, sc:5 }) },
 ];
 function lgState(){

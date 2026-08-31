@@ -166,8 +166,8 @@ function m2Buy(i){
   const o = state.market.offers[i];
   if(!o || o.sold) return;
   const pay = o.hagglePrice || o.price;
-  if(state.credits < pay){ showToast("Not enough credits for that deal"); return; }
-  state.credits -= pay;
+  if(state.dollars < pay){ showToast("Not enough dollars for that deal"); return; }
+  state.dollars -= pay;
   o.sold = true;
   if(o.kind === "pack"){
     const pk = PACKS.find(p=>p.key===o.packKey);
@@ -273,7 +273,7 @@ function m2Resolve(){
     const c = cards[L.id];
     if(Math.random() < L.chance){
       const net = Math.round(L.price * (((state.upgrades && state.upgrades.storeSign)||0) ? 0.93 : 0.9));
-      state.credits += net;
+      state.dollars += net;
       showToast(`🤝 SOLD — ${c?c.name:"card"} for 🪙${L.price.toLocaleString()} (you keep ${net.toLocaleString()})`);
       try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
     } else {

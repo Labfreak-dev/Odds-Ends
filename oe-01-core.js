@@ -168,7 +168,7 @@ cards.forEach(c=>{
 });
 
 const PACKS = [
-  { key:"everyday", name:"Everyday Items", icon:"📦", categories:EVERYDAY_CATEGORIES, price1:100, price10:900,
+  { key:"everyday", name:"Everyday Items", icon:"📦", categories:EVERYDAY_CATEGORIES, price1:750, price10:6750,
     sub:"Household objects", grad:null },
   { key:"animal", name:"Animal Kingdom", icon:"🐾", categories:["Animal Kingdom"], price1:1000, price10:9000,
     sub:"Real species, land/sea/air", grad:"linear-gradient(135deg,#1f3a2a,#171a24 60%)", border:"#3f8a5e" },
@@ -334,7 +334,7 @@ function grantLevelUpRewards(oldLevel, newLevel){
     creditsGained += Math.round(LEVEL_UP_CREDITS_BASE * lvl);
     scrapGained += Math.round(LEVEL_UP_SCRAP_BASE * lvl);
   }
-  state.credits += creditsGained;
+  state.dollars += creditsGained;
   state.scrap += scrapGained;
   const gained = newLevel - oldLevel;
   showToast(`🎉 Level Up! Reached Level ${newLevel}${gained>1?` (+${gained})`:""} — ${titleForLevel(newLevel)}. ` +
@@ -406,7 +406,7 @@ function grantEverything(){
   if(!state.siege) state.siege = defaultSiege();
   state.siege.cleared = state.siege.cleared || {};
   SG_TIERS.forEach(t=>{ if(!t.endless) state.siege.cleared[t.id] = true; });
-  state.credits = Math.max(state.credits, 1e12);
+  state.dollars = Math.max(state.dollars, 1e12);
   state.scrap = Math.max(state.scrap||0, 1000000);
   state.empire.reputation = Math.max(state.empire.reputation||0, 10000000);
   recomputePlayerXP();
@@ -598,6 +598,67 @@ function levelUpPayout(level){
     rep:     Math.round(LEVEL_UP_REP_BASE * level),
   };
 }
+/* ---------------- THE CHANGE COUNTER ----------------
+   Dollars are what the collection earns: mining, selling, shipping, and what
+   packs and market cards cost. Credits are the arcade token - upgrades, the
+   Keep, the casino, fishing, the hunt. You buy credits with dollars here.
+
+   The base rate is one for one, so nothing in the arcade had to be repriced
+   when the two pockets split. Changing more at once pays a better rate, which
+   is the only decision at this counter - and it is a decision with no wrong
+   answer, since small changes are never penalised. */
+const exNum = v => (typeof v === "number" && isFinite(v)) ? v : 0;
+const EXCHANGE_TIERS = [
+  { cost:1000,   credits:1000   },
+  { cost:5000,   credits:5500   },
+  { cost:25000,  credits:29000  },
+  { cost:100000, credits:120000 },
+];
+function openExchange(){
+  renderExchange();
+  document.getElementById("exModal").classList.add("show");
+}
+function closeExchange(){
+  document.getElementById("exModal").classList.remove("show");
+}
+function renderExchange(){
+  const body = document.getElementById("exBody");
+  if(!body) return;
+  const d = Math.floor(exNum(state.dollars)), c = Math.floor(exNum(state.credits));
+  body.innerHTML =
+    `<div class="ex-bal"><span class="d">💵 $${d.toLocaleString()}</span>` +
+    `<span class="c">🪙 ${c.toLocaleString()} credits</span></div>` +
+    `<div class="ex-rate">Credits buy upgrades and pay your way into the Keep, the tables, ` +
+    `the water and the hunt. Change more at once and the counter pays you better for it.</div>` +
+    EXCHANGE_TIERS.map((t,i)=>{
+      const bonus = Math.round((t.credits / t.cost - 1) * 100);
+      const afford = d >= t.cost;
+      return `<div class="ex-row">
+        <div>
+          <div class="amt">🪙 ${t.credits.toLocaleString()} credits` +
+          (bonus > 0 ? ` <span class="bonus">+${bonus}%</span>` : "") + `</div>
+          <div class="got">for $${t.cost.toLocaleString()}</div>
+        </div>
+        <button class="ex-buy" data-extier="${i}"${afford ? "" : " disabled"}>Change</button>
+      </div>`;
+    }).join("");
+  body.querySelectorAll("[data-extier]").forEach(b=>{
+    b.onclick = ()=> buyCredits(+b.dataset.extier);
+  });
+}
+function buyCredits(i){
+  const t = EXCHANGE_TIERS[i];
+  if(!t) return;
+  if(exNum(state.dollars) < t.cost){ showToast("Not enough dollars for that."); return; }
+  state.dollars -= t.cost;
+  state.credits += t.credits;
+  saveState();
+  renderHeader();
+  renderExchange();
+  try{ renderUpgrades && renderUpgrades(); }catch(e){}
+  showToast(`🪙 Changed $${t.cost.toLocaleString()} into ${t.credits.toLocaleString()} credits`);
+}
+
 function openLevelModal(){
   renderLevelModal();
   document.getElementById("levelModal").classList.add("show");
@@ -634,7 +695,7 @@ function renderLevelModal(){
 
     <div class="lvl-sec-title">Reaching Level ${lvl+1} pays</div>
     <table class="lvl-table">
-      <tr><td>🪙 Credits</td><td><b>+${nextPay.credits.toLocaleString()}</b></td></tr>
+      <tr><td>💵 Dollars</td><td><b>+$${nextPay.credits.toLocaleString()}</b></td></tr>
       <tr><td>♻️ Scrap</td><td><b>+${nextPay.scrap.toLocaleString()}</b></td></tr>
       <tr><td>🎖️ Reputation</td><td><b>+${nextPay.rep.toLocaleString()}</b></td></tr>
       <tr><td>📈 Permanent boosts</td><td>+${(LEVEL_MINE_PCT_PER_LEVEL*100).toFixed(1)}% mining · +${(LEVEL_REP_PCT_PER_LEVEL*100).toFixed(1)}% reputation · +${(LEVEL_LUCK_PCT_PER_LEVEL*100).toFixed(1)}% luck</td></tr>
@@ -742,7 +803,7 @@ function defaultArena(){
   return { glory:0, betsWon:0, betsLost:0, wagered:0, won:0, bestOdds:0, bouts:0, records:{} };
 }
 function freshState(){
-  return { credits:100000, scrap:0, owned:{}, packsOpened:0, totalMined:0, lastMineTs:Date.now(), miningBonus:0,
+  return { dollars:100000, credits:0, econV:2, scrap:0, owned:{}, packsOpened:0, totalMined:0, lastMineTs:Date.now(), miningBonus:0,
     settings:defaultSettings(), upgrades:defaultUpgrades(), market:null, empire:defaultEmpire(), player:defaultPlayer(), siege:defaultSiege(), fishing:defaultFishing(),
     account:defaultAccount(), casino:defaultCasino(), lottery:defaultLottery(), arena:defaultArena(), raids:defaultRaids(), dungeon:defaultDungeon(), redeemedCodes:[] };
 }
@@ -751,6 +812,20 @@ function loadState(){
     const raw = localStorage.getItem(SAVE_KEY);
     if(raw){
       const s = JSON.parse(raw);
+      /* THE ECONOMY SPLIT (v2). What you had is what you keep: the old credit
+         balance becomes DOLLARS, one for one, and credits restart at zero as
+         the arcade token you buy with them. This has to run BEFORE the backfill
+         below, because once that has filled in a missing `dollars` from
+         freshState there is no way left to tell an old save from a new one -
+         and the backfill would hand every returning player a free 100,000.
+         econV is the guard, so reloading can never convert a balance twice. */
+      if(s.econV !== 2){
+        const _had = (typeof s.credits === "number" && isFinite(s.credits)) ? s.credits : 0;
+        const _dol = (typeof s.dollars === "number" && isFinite(s.dollars)) ? s.dollars : 0;
+        s.dollars = _dol + _had;
+        s.credits = 0;
+        s.econV = 2;
+      }
       /* Backfill anything an older (or half-written) save is missing. renderHeader
          runs first in renderAll, so a single undefined key used to blank the whole
          app — packs, casino and everything after it. Never again. */
@@ -771,6 +846,7 @@ function loadState(){
       }
       if(typeof s.owned !== "object") s.owned = {};
       if(typeof s.credits !== "number" || !isFinite(s.credits)) s.credits = 0;
+      if(typeof s.dollars !== "number" || !isFinite(s.dollars)) s.dollars = 0;
       if(typeof s.scrap !== "number" || !isFinite(s.scrap)) s.scrap = 0;
       if(typeof s.packsOpened !== "number") s.packsOpened = 0;
       if(s.totalMined===undefined) s.totalMined = 0;
@@ -847,7 +923,7 @@ function saveState(){
   }
 }
 
-function addCredits(n){ state.credits += n; saveState(); renderHeader(); }
+function addCredits(n){ state.dollars += n; saveState(); renderHeader(); }
 function resetSave(){
   if(confirm("Reset all progress, credits, and collection?")){
     state = freshState();
@@ -1013,7 +1089,7 @@ function applyOfflineMining(){
   const elapsed = Math.min(now - (state.lastMineTs || now), maxOfflineMs());
   if(elapsed > 1000){
     const earned = elapsed * currentMineRatePerMs();
-    state.credits += earned;
+    state.dollars += earned;
     state.totalMined += earned;
     const repEarned = elapsed * currentRepRatePerMs();
     state.empire.reputation += repEarned;
@@ -1033,7 +1109,7 @@ function mineTick(){
      resync the stamp and carry on. */
   const elapsed = Math.max(0, now - (state.lastMineTs || now));
   const earned = elapsed * currentMineRatePerMs();
-  state.credits += earned;
+  state.dollars += earned;
   state.totalMined += earned;
   state.empire.reputation += elapsed * currentRepRatePerMs();
   state.lastMineTs = now;
@@ -1236,8 +1312,8 @@ function marketRerollCost(){
 function resetMarketStock(){
   ensureMarketFresh();
   const cost = marketRerollCost();
-  if(state.credits < cost){ alert("Not enough credits."); return; }
-  state.credits -= cost;
+  if(state.dollars < cost){ alert("Not enough dollars."); return; }
+  state.dollars -= cost;
   state.market.rerolls = (state.market.rerolls||0) + 1;
   state.market.offers = generateMarketOffers(state.market.hourBucket * 1000 + state.market.rerolls, currentMarketSize());
   saveState();
@@ -1253,8 +1329,8 @@ function buyMarketCard(offerIndex){
   if(!c) return;
   const owned = state.owned[c.id] || 0;
   if(UNIQUE_TIERS.has(c.rarity) && owned > 0) return;
-  if(state.credits < offer.price){ alert("Not enough credits."); return; }
-  state.credits -= offer.price;
+  if(state.dollars < offer.price){ alert("Not enough dollars."); return; }
+  state.dollars -= offer.price;
   offer.sold = true;
   if(owned === 0){
     state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[c.rarity];
@@ -1277,7 +1353,7 @@ function sellCard(cardId, sellAll){
   if(owned - qty <= 0){
     if(!confirm(`Sell your last copy of "${c.name}"? It will be removed from your collection.`)) return;
   }
-  state.credits += MARKET_SELL_PRICE_BY_TIER[c.rarity] * qty;
+  state.dollars += MARKET_SELL_PRICE_BY_TIER[c.rarity] * qty;
   state.owned[cardId] = owned - qty;
   if(state.owned[cardId] <= 0){
     state.miningBonus = Math.max(0, (state.miningBonus||0) - MINE_BONUS_BY_TIER[c.rarity]);
@@ -1437,8 +1513,8 @@ function buyPacks(packKey, n){
     const discountLevel = (state.upgrades && state.upgrades.discount) || 0;
     const discount = Math.min(0.5, discountLevel * DISCOUNT_PCT_PER_LEVEL);
     const price = Math.round(rawPrice * (1 - discount));
-    if(state.credits < price){ alert("Not enough credits."); return; }
-    state.credits -= price;
+    if(state.dollars < price){ alert("Not enough dollars."); return; }
+    state.dollars -= price;
     spentCredits = price;
   }
   const packsToOpen = n===1 ? 1 : 10;
@@ -1560,7 +1636,7 @@ function renderPackShelf(){
             : `<div class="price earn">🔒 Earn these in Risk it All</div>`)
         : locked
           ? `<div class="price">🔒 Level ${p.minLevel}</div>`
-          : `<div class="price">${price1} 🪙${discount>0?` <span style="opacity:.55; text-decoration:line-through; font-weight:400;">${p.price1}</span>`:""}</div>`
+          : `<div class="price">$${price1.toLocaleString()}${discount>0?` <span style="opacity:.55; text-decoration:line-through; font-weight:400;">${p.price1}</span>`:""}</div>`
       }
     `;
     if(p.earnOnly){
@@ -1571,7 +1647,7 @@ function renderPackShelf(){
       tenBtn.className = "price";
       tenBtn.style.marginTop = "6px";
       tenBtn.style.background = "rgba(108,140,255,.25)";
-      tenBtn.textContent = `10-Pack: ${price10} 🪙`;
+      tenBtn.textContent = `10-Pack: $${price10.toLocaleString()}`;
       tenBtn.addEventListener("click", (e)=>{ e.stopPropagation(); buyPacks(p.key,10); });
       el.appendChild(tenBtn);
     }
@@ -1615,6 +1691,7 @@ function renderPlayerPanel(){
 function renderHeader(){
   const num = v => (typeof v === "number" && isFinite(v)) ? v : 0;
   if(!state.empire) state.empire = defaultEmpire();
+  document.getElementById("dollarCount").textContent = "$" + Math.floor(num(state.dollars)).toLocaleString();
   document.getElementById("creditCount").textContent = Math.floor(num(state.credits)).toLocaleString();
   document.getElementById("scrapCount").textContent = Math.floor(num(state.scrap)).toLocaleString();
   const repEl = document.getElementById("repCount");
@@ -2501,7 +2578,7 @@ function renderMarketOffers(){
     const r = RARITIES[c.rarity];
     const owned = state.owned[c.id] || 0;
     const alreadyUnique = UNIQUE_TIERS.has(c.rarity) && owned > 0;
-    const affordable = !alreadyUnique && state.credits >= offer.price;
+    const affordable = !alreadyUnique && state.dollars >= offer.price;
     const fx = fxClassForTier(c.rarity);
     const el = document.createElement("div");
     el.className = "market-card" + (fx ? " "+fx : "");
@@ -2516,7 +2593,7 @@ function renderMarketOffers(){
           <div class="mrarity" style="color:${r.color}">${r.name}</div>
         </div>
       </div>
-      <div class="mprice">${offer.price.toLocaleString()} 🪙</div>
+      <div class="mprice">$${offer.price.toLocaleString()}</div>
       <div class="mbuy">
         ${alreadyUnique
           ? `<button class="btn secondary" disabled>Already Owned</button>`
@@ -2538,7 +2615,7 @@ function updateResetStockButton(){
   if(!btn || !costEl) return;
   const cost = marketRerollCost();
   costEl.textContent = cost.toLocaleString();
-  const affordable = state.credits >= cost;
+  const affordable = state.dollars >= cost;
   btn.disabled = !affordable;
 }
 
@@ -2566,7 +2643,7 @@ function renderMarketSell(){ return; /* retired — selling lives in the binder 
       <div class="art">${c.emoji}</div>
       <div class="name">${c.name}</div>
       <div class="count">×${owned} owned</div>
-      <div class="sell-value">${value.toLocaleString()} 🪙 each</div>
+      <div class="sell-value">$${value.toLocaleString()} each</div>
       <div class="sell-btns">
         <button class="btn secondary" data-sell="${c.id}" data-all="0">Sell 1</button>
         ${owned>1 ? `<button class="btn secondary" data-sell="${c.id}" data-all="1">Sell All</button>` : ""}

@@ -32,7 +32,7 @@ def dismiss(pg):
     pg.evaluate("()=>{ const o=document.getElementById('rzOverlay'); if(o) o.style.display='none'; }")
 
 def rich(pg):
-    pg.evaluate("()=>{ state.credits=900000; state.player=state.player||{}; state.player.level=99; }")
+    pg.evaluate("()=>{ state.dollars=900000; state.player=state.player||{}; state.player.level=99; }")
 
 def one_pack(pg, n=1):
     key = "price10" if n == 10 else "price1"
@@ -86,13 +86,14 @@ with sync_playwright() as pw:
     pg.locator("#rzStack").click(); pg.wait_for_timeout(250)
     check("a card face turned over", pg.locator(".rz-card").count() == 1)
     check("it says NEW or DUPLICATE", pg.locator(".rz-b").count() == 1)
-    check("it quotes a payout", "\U0001fa99" in pg.locator("#rzShip").inner_text())
+    check("it quotes a payout", "$" in pg.locator("#rzShip").inner_text(),
+          pg.locator("#rzShip").inner_text())
 
     snap = pg.evaluate("""()=>{ const o={}; for(const k in state.owned) o[k]=state.owned[k];
-        return {owned:o, cr:state.credits, mb:state.miningBonus}; }""")
+        return {owned:o, cr:state.dollars, mb:state.miningBonus}; }""")
     pg.locator("#rzShip").click(); pg.wait_for_timeout(250)
     post = pg.evaluate("""()=>{ const o={}; for(const k in state.owned) o[k]=state.owned[k];
-        return {owned:o, cr:state.credits, mb:state.miningBonus}; }""")
+        return {owned:o, cr:state.dollars, mb:state.miningBonus}; }""")
     diffs = [k for k in snap["owned"] if snap["owned"][k] != post["owned"].get(k, 0)]
     check("SHIP removed exactly one card id", len(diffs) == 1, diffs)
     if diffs:
@@ -103,10 +104,10 @@ with sync_playwright() as pw:
     # ---- KEEP costs and gives nothing ---------------------------------
     if pg.locator("#rzStack").count():
         pg.locator("#rzStack").click(); pg.wait_for_timeout(200)
-        cr = pg.evaluate("()=>state.credits")
+        cr = pg.evaluate("()=>state.dollars")
         own = pg.evaluate("()=>JSON.stringify(state.owned)")
         pg.locator("#rzKeep").click(); pg.wait_for_timeout(200)
-        check("KEEP pays nothing", pg.evaluate("()=>state.credits") == cr)
+        check("KEEP pays nothing", pg.evaluate("()=>state.dollars") == cr)
         check("KEEP leaves the binder alone", pg.evaluate("()=>JSON.stringify(state.owned)") == own)
 
     # ---- keep the rest, then the summary ------------------------------

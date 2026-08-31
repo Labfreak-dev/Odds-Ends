@@ -501,6 +501,66 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 63 — TWO POCKETS: dollars for the business, credits for the arcade
+The playtester picked "cash and tokens" from three shapes. Dollars are what
+the collection earns and spends: mining income, level-up pay, selling and
+shipping cards, buying packs and market cards, grading fees. Credits are
+the arcade token - upgrades, the Keep, the tables, the water, the hunt -
+and you buy them with dollars at THE CHANGE COUNTER.
+
+HOW IT WAS DONE WITHOUT A 132-SITE REWRITE. `state.credits` appears 132
+times across the host and nine modules. About 108 of those are the arcade
+- the casino alone is 45 - and only 24 are the card business. So credits
+KEEP their field and their meaning for the arcade, untouched, and a new
+`state.dollars` was introduced at the 24 business sites. A quarter of the
+diff, and every casino, upgrade, fishing and dungeon path is provably
+unchanged because it was never edited.
+
+THE MIGRATION IS THE DANGEROUS PART, and it has one non-obvious ordering
+rule: it must run BEFORE loadState's backfill loop. That loop fills any
+missing key from freshState, and freshState now carries dollars:100000 -
+so once it has run there is no way left to tell an old save from a new
+one, and every returning player would have been handed a free 100,000 on
+top of their converted balance. Migrating first, while a missing `dollars`
+still MEANS "written before the split", is what makes it safe. econV=2 is
+the idempotence guard, so a reload can never convert a balance twice.
+Balances convert one for one: what you had is what you keep, in dollars,
+with credits restarting at zero.
+
+The counter's base rate is 1:1, which is why nothing in the arcade had to
+be repriced when the pockets split - every upgrade cost, casino stake and
+tower price still means exactly what it meant. Changing more at once pays
+better (+10% at $5k, +16% at $25k, +20% at $100k), so the only decision at
+the counter is how big a handful to change, and small changes are never
+punished.
+
+EVERYDAY ITEMS 100 -> 750 (10-pack 900 -> 6,750). Rarity weights do not
+vary by pack, so every pack holds roughly the same 600-900 in cards. Six
+of the seven priced packs returned 0.41x to 0.78x - a fair gamble. Everyday
+returned 6.32x, because it was priced at a tenth of packs holding the same
+cards. At 750 it sits at 0.84x: still the best value on the shelf, which
+is right for the pack a new player starts on, but no longer a printer.
+
+A returning player wakes up with zero credits, so the counter has to be
+findable. The credit chip in the header opens it, and carries a visible
+"+" - because on a phone there is no hover and no title tooltip, which is
+exactly the kind of thing a DOM check would have called fine.
+
+New suite `docs/smoke-economy.py`, 29 checks, and it found two real
+problems before shipping. First, `renderExchange` called `num()`, which
+is a LOCAL of renderHeader, not a global - the counter threw the moment it
+opened. Second, the first version of the test seeded localStorage after
+navigating, which races the game's own autosave: the seed was overwritten
+by a fresh state, and every migration check passed against freshState
+instead of against the save it was supposed to be testing. Seeding through
+add_init_script, before any page script runs, is what makes those checks
+mean anything. Dollar comparisons carry a small tolerance because mining
+accrues for the whole run; credits are never mined, so those stay exact.
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 31/31, economy 29/29, arcade 12/12, and the
+header checked for overflow at 390px and 430px.
+
 ## Batch 62 — the ledger tells the truth (SHIP was paying off the wrong table)
 Batch 61 shipped with the verdict stuck on PACK PAID. The cause was not
 the scoring rule, it was the price table. `rzVal` called `m2TrueVal`,

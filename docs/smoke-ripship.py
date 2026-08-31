@@ -98,18 +98,26 @@ with sync_playwright() as pw:
     # ---- stage 2: tearing ---------------------------------------------
     tear(pg)
     check("dragging tore the foil open", pg.locator("#rzStack").count() == 1)
+    hand = pg.locator(".rz-hcard").count()
+    check("the whole pack fans out as a hand of card backs",
+          hand == min(pulls, 13), (hand, pulls))
+    check("the card back art decodes",
+          pg.evaluate("""()=>{ const img=document.querySelector('.rz-hcard img');
+            return img && img.complete && img.naturalWidth > 0; }"""))
     check("no error while tearing", not errs, errs[:3])
 
     # ---- stage 3: a card, and SHIP it ---------------------------------
-    pg.locator("#rzStack").click(); pg.wait_for_timeout(250)
+    pg.locator("#rzStack").click(); pg.wait_for_timeout(450)
     check("a card face turned over", pg.locator(".rz-card").count() == 1)
+    check("the rest of the hand stays face-down behind it",
+          pg.locator(".rz-hcard").count() == min(pulls - 1, 13), pg.locator(".rz-hcard").count())
     check("it says NEW or DUPLICATE", pg.locator(".rz-b").count() == 1)
     check("it quotes a payout", "$" in pg.locator("#rzShip").inner_text(),
           pg.locator("#rzShip").inner_text())
 
     snap = pg.evaluate("""()=>{ const o={}; for(const k in state.owned) o[k]=state.owned[k];
         return {owned:o, cr:state.dollars, mb:state.miningBonus}; }""")
-    pg.locator("#rzShip").click(); pg.wait_for_timeout(250)
+    pg.locator("#rzShip").click(); pg.wait_for_timeout(500)
     post = pg.evaluate("""()=>{ const o={}; for(const k in state.owned) o[k]=state.owned[k];
         return {owned:o, cr:state.dollars, mb:state.miningBonus}; }""")
     diffs = [k for k in snap["owned"] if snap["owned"][k] != post["owned"].get(k, 0)]
@@ -121,11 +129,15 @@ with sync_playwright() as pw:
 
     # ---- KEEP costs and gives nothing ---------------------------------
     if pg.locator("#rzStack").count():
-        pg.locator("#rzStack").click(); pg.wait_for_timeout(200)
+        pg.locator("#rzStack").click(); pg.wait_for_timeout(450)
         cr = pg.evaluate("()=>state.dollars")
         own = pg.evaluate("()=>JSON.stringify(state.owned)")
-        pg.locator("#rzKeep").click(); pg.wait_for_timeout(200)
-        check("KEEP pays nothing", pg.evaluate("()=>state.dollars") == cr)
+        # the KEEP handler runs synchronously on the click, so read the pocket
+        # immediately - mining drips dollars into it during any longer wait
+        pg.locator("#rzKeep").click(); pg.wait_for_timeout(60)
+        d = pg.evaluate("()=>state.dollars") - cr
+        check("KEEP pays nothing", 0 <= d < 2, d)
+        pg.wait_for_timeout(450)      # let the fly-away finish and the hand re-lay
         check("KEEP leaves the binder alone", pg.evaluate("()=>JSON.stringify(state.owned)") == own)
 
     # ---- keep the rest, then the summary ------------------------------

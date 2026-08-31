@@ -501,6 +501,52 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 66 — THE HAND (a sliced pack deals a real fan of cards)
+Playtester request, built here: when the pack opens the cards SLIDE OUT
+into a held hand - every undecided pull fanned face-down, offset and
+rotated like cards actually held in front of you, wearing a real card
+back. Tap the front card and it turns over in place while the rest of
+the hand stays fanned behind it, face-down. SHIP or KEEP and the decided
+card flies up out of the hand, the fan closes ranks, and the next card
+takes the front - repeat until the hand is empty, then the summary.
+
+The card back is the playtester's cream-diagonal design - literally the
+matching back for the 3D pack art (same cream, same navy lettering, same
+silver border and O&E medallion) - cut with the batch-64 pipeline:
+flood-filled solid silhouette, 480x662 webp, 71KB, zero alpha holes on
+the first try because the lesson was already written down.
+
+Mechanics worth recording:
+- The deal-in animation plays ONCE per pack (RZ.dealt), staggered by
+  distance from the centre, so the cards pour out of the sliced pack;
+  re-renders after each decision lay the fan straight.
+- The fan is CAPPED AT 13 VISIBLE BACKS. An Everyday ten-pack holds
+  FIFTY pulls, and the first version fanned all of them - the arc's lift
+  term reached 218px and the hand swallowed the whole screen, buttons
+  and all. The nearest thirteen fan; the hint line carries the true
+  count. Found by screenshotting the ten-pack case, not the five.
+- The drooping corners of the outer cards covered the hint line; proved
+  fixed with a rect-overlap probe (0 overlapping cards), not by eye.
+- Flip is two-phase (140ms rotateY out on the back, 160ms rotateY in on
+  the face, perspective on the box); decisions guard against double-taps
+  (RZ.leaving / RZ.flipping) because a 230ms fly-away window is exactly
+  where a second tap used to land.
+- Sigils now bloom at z25 - OVER the fanned backs, UNDER the face card.
+
+One test lesson repeated itself: "KEEP pays nothing" compared exact
+dollar balances 500ms apart, and mining dripped 2.6 dollars into the
+pocket in between. The handler runs synchronously on the click, so the
+check now reads the pocket 60ms after tapping and waits for the
+animation afterwards. A live pocket is never compared exactly.
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80 (one journal-click timeout on the first run - the
+documented flake shape, in code this batch never touched; passed clean
+on the one allowed re-run), ripship 37/37 (now covers the fan count,
+the back art decoding, and the face-down remainder), economy 29/29,
+arcade 12/12, fx-in-hand 4/4, and the five-card hand, the flipped state,
+the fly-away and the fifty-card ten-pack all checked as screenshots.
+
 ## Batch 65 — the pack opening gets its fireworks
 Fx handoff from the bench: a particle canvas over the rip overlay
 (sparks, star confetti, dust poofs, expanding rings) and twelve pixel

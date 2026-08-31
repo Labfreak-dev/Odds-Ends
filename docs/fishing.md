@@ -501,6 +501,47 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 70 — the frames travel (collection grid + the salesman's feed)
+The metal frames leave the flip reveal and dress the other two card
+surfaces. The COLLECTION's mini-cards (60 per page, 5:7 - almost exactly
+the frame's own ratio) wear the full frame as the cell background: the
+dark cell colour shows through the punched window behind the emoji, the
+name rides the plate, the count badge stays. Only OWNED cards get metal -
+undiscovered cells keep their grey mystery, which now reads even better
+by contrast. The opened-stack variant grid gets the same treatment, so a
+subject's editions fan out as a row of differently-metalled cards.
+
+Perf note for the log: sixty cells share at most seven distinct frame
+data-URIs, and the browser decodes each unique image once - the cost is
+sixty background paints of cached bitmaps, which the smokes and a manual
+scroll put well inside comfortable.
+
+THE MARKET NEEDED READING FIRST. The host's marketGrid offers never
+populate on a live save (state.market stays null) - the Market tab the
+player actually sees is market2's Salesman's Feed, one visitor at a
+time. So the visitor's bare emoji became a framed thumbnail (.mthumb,
+also used to seed the host offers grid should it ever stock), while
+sealed packs and unsearched lots keep their plain icons - they are not
+cards yet, and the frame would spoil the gamble.
+
+AND THE SCREENSHOT CAUGHT A CURRENCY STRAGGLER: the feed still PRICED in
+🪙 while its Buy button has deducted DOLLARS since batch 63. Every
+market2 money line (price, going rate, listing tiers, live listing, sold
+toast) now reads $, and the host's Reset Stock button no longer says
+"$100 🪙" with one glyph from each era.
+
+The frames reach the host through window.oeFrameFor, exposed by the
+ripship module and guarded at every host call site - the host's boot
+render can run before the module has loaded, and the old unframed
+markup remains as the fallback for exactly that window.
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 37/37, backs 15/15, cardart 11/11 (now also:
+owned collection cards framed, undiscovered cards plain, a market
+visitor presents a framed card, the market prices in dollars), economy
+29/29, arcade 12/12 - plus collection and market screenshots at phone
+width.
+
 ## Batch 69 — METAL FRAMES: the card front becomes a real card
 The playtester delivered eight metal frame renders (two 2x2 grids) and
 asked for them as the card fronts. The flip reveal's dark panel is gone:

@@ -765,6 +765,32 @@
     padding:2px 7px; border-radius:8px; font-weight:700; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
   }
   .mini-card .rtag{ font-size:8px; font-weight:800; text-transform:uppercase; opacity:.85; }
+  /* a framed mini: the metal frame is the cell's background, the dark cell
+     colour shows through the frame's punched window, and the text rides the
+     frame's own plates instead of the flex column */
+  .mini-card.framed{
+    background-color:#10141d; background-size:100% 100%; background-repeat:no-repeat;
+    padding:0; border-color:transparent;
+  }
+  .mini-card.framed .ftag{
+    position:absolute; top:4%; left:8%; right:8%; text-align:center; opacity:1;
+    text-shadow:0 1px 2px rgba(0,0,0,.6);
+  }
+  .mini-card.framed .fart{
+    position:absolute; left:16%; right:15%; top:22%; height:47%; flex:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .mini-card.framed .fname{
+    position:absolute; left:11%; right:11%; top:73.5%; text-align:center;
+    color:#f2ede2; text-shadow:0 1px 2px rgba(0,0,0,.55);
+  }
+  .mini-card.framed .count{ z-index:2; }
+  .mini-card.framed .fsc{ position:absolute; left:0; right:0; bottom:2.5%; }
+  .mthumb{
+    width:48px; height:69px; flex:none; background-size:100% 100%; background-repeat:no-repeat;
+    background-color:#10141d; display:flex; align-items:center; justify-content:center;
+  }
+  .mthumb span{ font-size:21px; margin-top:-8px; }
 
   .market-countdown{ font-weight:700; color:var(--accent); font-size:13px; }
   .market-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:14px; }
@@ -3924,7 +3950,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 3ffb8e</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · d11409</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -4102,7 +4128,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
           <div class="market-countdown" id="marketCountdown">Restocks in --m --s</div>
-          <button class="btn secondary" id="resetStockBtn" onclick="resetMarketStock()">🔄 Reset Stock — $<span id="resetStockCost">100</span> 🪙</button>
+          <button class="btn secondary" id="resetStockBtn" onclick="resetMarketStock()">🔄 Reset Stock — $<span id="resetStockCost">100</span></button>
         </div>
       </div>
     </div>
@@ -5016,7 +5042,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=27d2e8f747"></script>
+<script src="oe-01-core.js?v=8f80a1ac08"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-sfx.js?v=5424d379ee"></script>
 <script src="oe-04-provenance-catalogue.js?v=ae0deffc21"></script>
@@ -5027,10 +5053,10 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-09-oddone.js?v=e66af7007b"></script>
 <script src="oe-10-fishing2.js?v=ca088c91a6"></script>
 <script src="oe-11-mining2.js?v=2ee842de0b"></script>
-<script src="oe-12-ripship.js?v=5467b93ba9"></script>
+<script src="oe-12-ripship.js?v=851dedbfc1"></script>
 <script src="oe-13-ledger.js?v=c7b9975ca2"></script>
 <script src="oe-14-grading.js?v=817788899f"></script>
-<script src="oe-15-market2.js?v=8029b64826"></script>
+<script src="oe-15-market2.js?v=cb953caf76"></script>
 <script src="oe-16-casino2.js?v=e7e85470f8"></script>
 <script src="oe-17-keep.js?v=4ba6a7a50e"></script>
 <script src="oe-18-hunt.js?v=d04d7c2185"></script>

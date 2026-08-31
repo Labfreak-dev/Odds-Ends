@@ -101,6 +101,32 @@ with sync_playwright() as pw:
     hi = pg.evaluate("()=>document.querySelector('.rz-fframe').src.length")
     check("a Legendary and a Mythic wear different frames", lo != hi, (lo, hi))
 
+    # ---- the frames travel: collection grid and the market visitor ----
+    pg.evaluate("()=>{ const o=document.getElementById('rzOverlay'); if(o) o.style.display='none'; }")
+    pg.evaluate("""()=>{
+      for(const t of [0,9,15]){ const c=cards.find(x=>x.rarity===t); state.owned[c.id]=1; }
+      state.miningBonus = computeMiningBonusFromOwned(state.owned); saveState();
+    }""")
+    pg.click("[data-tab='collection']"); pg.wait_for_timeout(900)
+    got = pg.evaluate("""()=>{
+      const f=[...document.querySelectorAll('.mini-card.framed')];
+      return { framed: f.length,
+               bg: f.every(e=>e.style.backgroundImage.startsWith('url(')),
+               lockedPlain: [...document.querySelectorAll('.mini-card.locked')]
+                 .every(e=>!e.classList.contains('framed')) }; }""")
+    check("owned collection cards wear their frames", got["framed"] >= 3 and got["bg"], got)
+    check("undiscovered cards keep their mystery", got["lockedPlain"])
+
+    pg.click("[data-tab='market']"); pg.wait_for_timeout(1300)
+    saw = False
+    for i in range(14):
+        if pg.evaluate("()=>document.querySelectorAll('.mthumb').length") > 0: saw=True; break
+        pg.evaluate("()=>{ const b=document.getElementById('m2Pass'); if(b) b.click(); }")
+        pg.wait_for_timeout(300)
+    check("a market visitor presents a framed card", saw)
+    check("the market prices in dollars",
+          pg.evaluate("()=>{ const e=document.querySelector('.m2-price'); return e ? e.textContent.trim().startsWith('$') : true; }"))
+
     check("zero page errors", not errs, errs[:3])
     br.close()
 

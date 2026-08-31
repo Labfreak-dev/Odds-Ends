@@ -247,6 +247,8 @@ function rzFrame(tier){
    exposed for the host renderers, which guard on its existence because the
    host's boot render can run before this module has loaded */
 window.oeFrameFor = rzFrame;
+window.oeArtSlug  = rzArtSlug;   /* so the collection and info panel probe the same files */
+window.oeArtMin   = RZ_ART_MIN;
 let RZ = null;                     /* live session */
 let rzStreak = 0;                  /* packs ripped this sitting */
 

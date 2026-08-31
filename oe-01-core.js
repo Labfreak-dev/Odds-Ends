@@ -2237,6 +2237,14 @@ function uiBuildFilterChips(){
 })();
 
 let collectionOpenStack = null;
+window.oeArtMiss = window.oeArtMiss || {};
+function oeArtImgHtml(card){
+  if(typeof window.oeArtSlug !== "function" || card.rarity < (window.oeArtMin||9)) return "";
+  const slug = window.oeArtSlug(card.name);
+  if(window.oeArtMiss[slug]) return "";
+  return `<img class="fartimg" loading="lazy" alt="" draggable="false" src="art/${slug}.webp"
+    onerror="window.oeArtMiss['${slug}']=1; this.remove();">`;
+}
 function renderCollection(){
   const grid = document.getElementById("collectionGrid");
   grid.innerHTML = "";
@@ -2287,7 +2295,7 @@ function renderCollection(){
       }
       el.innerHTML = FR ? `
         <div class="rtag ftag" style="color:${r.color}">${r.name}</div>
-        <div class="art fart">${g.emoji}</div>
+        <div class="art fart">${g.emoji}${oeArtImgHtml(best)}</div>
         <div class="name fname"${FR.ink ? ` style="color:${FR.ink}"` : ""}>${g.subject}</div>
         ${multi
           ? `<div class="scount fsc">${g.ownedCount} / ${g.cards.length} <span class="arr">▼</span></div>`
@@ -2318,7 +2326,7 @@ function renderCollection(){
             if(vFR) return `<div class="mini-card framed${vfx?" "+vfx:""}" data-cid="${c.id}"
                 style="--rc:${vr.color}; border-color:transparent; --frame:url(${vFR.img})">
               <div class="rtag ftag" style="color:${vr.color}">${vr.name}</div>
-              <div class="art fart">${c.emoji}</div>
+              <div class="art fart">${c.emoji}${oeArtImgHtml(c)}</div>
               <div class="name fname"${vFR.ink ? ` style="color:${vFR.ink}"` : ""}>${edition}</div>
               <div class="count">×${owned}</div>
             </div>`;
@@ -10374,7 +10382,7 @@ function openCardInfo(cardId){
   cardEl.style.setProperty("--frame", FR ? `url(${FR.img})` : "none");
   cardEl.innerHTML = FR ? `
     <div class="rtag ftag" style="color:${r.color}">${r.name}</div>
-    <div class="art fart">${c.emoji}</div>
+    <div class="art fart">${c.emoji}${oeArtImgHtml(c)}</div>
     <div class="name fname"${FR.ink ? ` style="color:${FR.ink}"` : ""}>${c.name}</div>
     <div class="cat fcat"${FR.sub ? ` style="color:${FR.sub}"` : ""}>${c.category}</div>
     ${owned ? `<div class="count">×${owned}</div>` : ""}` : `

@@ -501,6 +501,29 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 75 — the paintings reach the collection and the info panel
+The playtester asked whether the collection showed the new art - it did
+not, and the wave-1 announcement had wrongly said it did. The painted
+layer only ever ran on the flip reveal; the collection grid and the
+card-info panel still put the emoji in the frame window. Now all three
+surfaces probe the same art/<slug>.webp files: framed cells carry a
+lazy-loaded painting over the emoji, onerror removes the img so the
+emoji shows through, and misses are remembered per session so re-renders
+do not re-probe. The grid deliberately does NOT call the wiki - sixty
+lookups per page is not a page anyone wants - so unpainted cards show
+their emoji there and their wiki photo in the info panel, as before.
+
+The suite then failed for the best possible reason: its "a Mythic with
+no painting" and "a Legendary where everything misses" premises are
+EXTINCT - every Mythic and Legendary is painted. smoke-cardart now finds
+a genuinely unpainted Rare by diffing cards[] against art/*.webp instead
+of assuming any tier is bare, which also future-proofs it against the
+Epic wave.
+
+Verified: 18/18 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 37/37, backs 15/15, cardart 13/13, economy
+29/29, arcade 12/12, and the pocket-watch-in-the-collection screenshot.
+
 ## Batch 74 — WAVE 2: every Legendary is painted (PRs #46-#49)
 Thirty-seven Legendary paintings in four sittings, same chat pipeline as
 wave 1, and the LEGENDARY TIER IS COMPLETE - 75 paintings in the game,

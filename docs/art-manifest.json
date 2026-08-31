@@ -306,22 +306,6 @@
    "cards": 5
   },
   {
-   "slug": "the-worldsplitter",
-   "subject": "The Worldsplitter",
-   "bucket": "Mythic",
-   "category": "Raid Gear",
-   "tier": 15,
-   "cards": 2
-  },
-  {
-   "slug": "the-cartographer-s-eye",
-   "subject": "The Cartographer's Eye",
-   "bucket": "Mythic",
-   "category": "Raid Gear",
-   "tier": 15,
-   "cards": 2
-  },
-  {
    "slug": "gold-plated-letter-opener",
    "subject": "Gold-Plated Letter Opener",
    "bucket": "Legendary",
@@ -616,22 +600,6 @@
    "category": "Tide & Tackle",
    "tier": 14,
    "cards": 6
-  },
-  {
-   "slug": "skeleton-key",
-   "subject": "Skeleton Key",
-   "bucket": "Legendary",
-   "category": "Raid Gear",
-   "tier": 14,
-   "cards": 2
-  },
-  {
-   "slug": "dragonfire-forge",
-   "subject": "Dragonfire Forge",
-   "bucket": "Legendary",
-   "category": "Raid Gear",
-   "tier": 14,
-   "cards": 2
   },
   {
    "slug": "hand-forged-chef-s-knife",
@@ -1464,38 +1432,6 @@
    "category": "Tide & Tackle",
    "tier": 12,
    "cards": 6
-  },
-  {
-   "slug": "alchemist-s-crucible",
-   "subject": "Alchemist's Crucible",
-   "bucket": "Epic",
-   "category": "Raid Gear",
-   "tier": 12,
-   "cards": 2
-  },
-  {
-   "slug": "ancient-map-fragment",
-   "subject": "Ancient Map Fragment",
-   "bucket": "Epic",
-   "category": "Raid Gear",
-   "tier": 12,
-   "cards": 2
-  },
-  {
-   "slug": "clockwork-mule",
-   "subject": "Clockwork Mule",
-   "bucket": "Epic",
-   "category": "Raid Gear",
-   "tier": 13,
-   "cards": 2
-  },
-  {
-   "slug": "drakescale-gloves",
-   "subject": "Drakescale Gloves",
-   "bucket": "Epic",
-   "category": "Raid Gear",
-   "tier": 13,
-   "cards": 2
   },
   {
    "slug": "golden-egg-timer",
@@ -7800,86 +7736,6 @@
    "category": "Tide & Tackle",
    "tier": 9,
    "cards": 2
-  },
-  {
-   "slug": "dowsing-rod",
-   "subject": "Dowsing Rod",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 9,
-   "cards": 4
-  },
-  {
-   "slug": "diving-bell",
-   "subject": "Diving Bell",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 9,
-   "cards": 4
-  },
-  {
-   "slug": "second-wind-tonic",
-   "subject": "Second Wind Tonic",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 9,
-   "cards": 4
-  },
-  {
-   "slug": "dwarven-pickaxe",
-   "subject": "Dwarven Pickaxe",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 10,
-   "cards": 3
-  },
-  {
-   "slug": "blasting-powder",
-   "subject": "Blasting Powder",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 10,
-   "cards": 3
-  },
-  {
-   "slug": "smoke-bomb",
-   "subject": "Smoke Bomb",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 10,
-   "cards": 3
-  },
-  {
-   "slug": "everburn-lantern",
-   "subject": "Everburn Lantern",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 11,
-   "cards": 3
-  },
-  {
-   "slug": "master-toolbelt",
-   "subject": "Master Toolbelt",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 11,
-   "cards": 3
-  },
-  {
-   "slug": "ghost-lantern",
-   "subject": "Ghost Lantern",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 11,
-   "cards": 3
-  },
-  {
-   "slug": "mine-cart",
-   "subject": "Mine Cart",
-   "bucket": "Rare",
-   "category": "Raid Gear",
-   "tier": 11,
-   "cards": 3
   }
  ]
 }

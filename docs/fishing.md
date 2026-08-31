@@ -501,6 +501,55 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 72 — THE KEEP AND MYTHIC RAIDS RETIRE (playtester's call)
+Two modes leave the game: The Keep ("we can't get that mode working
+right") and Mythic Raids/the dungeon, with all Raid Gear ("a dead game
+mode"). Retirement follows the house pattern, not deletion:
+
+THE KEEP - fully unwired. Its lobby card leaves the host UI_GAMES; the
+css read, the MODULE_FILES entry, and its tab-section splice come out of
+integrate.py in one pass (the hooks needed no touching: keep was always
+SELF-driving - no host reference to any kp* name existed, which is why
+this unwires so cleanly). The build drops from 19 to 18 split files.
+workshop/keep.module.js and keep.css STAY in the workshop, unwired -
+retired source is not deleted source. The stale modes/keep.module.js
+mirror is removed (generated, regenerable). The ledger's "Clear N waves
+at the Keep" daily task leaves the pool - it would have been
+uncompletable, and a dead daily blocks the grand prize.
+
+MYTHIC RAIDS - retired host-side like empire/siege/raids before it: the
+lobby card leaves UI_GAMES and #tab-dungeon joins the sealed-tabs CSS
+rule. The dungeon code sleeps in place - its uiEnterSection branch even
+has to stay, because it is the ANCHOR integrate.py splices the module
+enter-hooks against. Raid Gear needed almost nothing: EXCLUSIVE_
+CATEGORIES already kept it out of every pack pool, the collection and
+stats already filtered it, and the data comment already said "Raid Gear
+cards sleep in the data (ids are indices)" - rule 6 means the 200-odd
+card entries stay in cards[] forever, unobtainable and invisible.
+
+Saves are safe both ways: a save carrying state.keep and owned Raid Gear
+boots clean (proved with a seeded save), the keep slice just goes
+ignored. Players lose the Keep's mining-rate wrap (kpBonus) with the
+mode - that income was the mode's, and the mode is gone.
+
+The art manifest drops its Raid Gear entries: 985 -> 967 images (Mythic
+38, Legendary 37, Epic 104, Rare 788); the brief's wave table now
+carries the real counts. CLAUDE.md's mode lists updated so the next
+chat does not go looking for keep.
+
+One test taught a small lesson: the ripship smoke assumed a "pack" task
+is always on the ledger's daily board - but the board is dealt by hash
+from the pool, and SHRINKING THE POOL RESHUFFLED THE DEAL, so the pack
+task vanished from today's board and the check went null. The check is
+now deal-aware; the wrapper-order assertion was already the real proof.
+
+Verified: 18/18 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 37/37, backs 15/15, cardart 12/12, economy
+29/29, arcade 12/12 (now asserts both retired modes stay out of the
+lobby), plus a 9-check removal pass: keep/dungeon gone from the lobby,
+tab-keep absent, tab-dungeon sealed, no kp code in the page, a
+keep-carrying save boots clean, raid gear stays hidden.
+
 ## Batch 71 — the last card surface (the info panel), and the foil-tier fight
 The card-info panel's 250px card now wears its metal frame like every
 other card surface - name and category on the plate, two-line names

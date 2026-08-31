@@ -501,6 +501,61 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 67 — EARNABLE CARD BACKS (six designs, five locks)
+The playtester's card-back set becomes a collection of its own. Six
+backs, one worn at a time, and the whole hand wears it:
+
+- Wrapper Cream - the default, yours from the start
+- The Ribbons - open 25 packs
+- Gold Foil - ship 100 cards (lifetime, tracked in state.ripship.shipN)
+- The Golden Knot - pull a Mythic (retroactive: owning one counts)
+- The Night Star - own a card of every rarity, Junk to Mythic
+- Crimson Press - rip 10 packs in one sitting (the session streak)
+
+A "🎴 backs" button in the hand opens the picker: earned backs equip on
+tap, locked ones sit greyed with their price named. Owned/equipped ride
+state.ripship through the normal save.
+
+UNLOCKS ARE CHECKED AT FOUR MOMENTS, and the order of the first one
+matters: at pack open the check runs BEFORE applyPulls, so it can only
+see what you already had - otherwise "Golden Knot earned!" would toast
+the moment a pack OPENED, spoiling the mythic sitting face-down in the
+hand you were about to flip. Ship, flip and summary checks catch the
+pack-driven unlocks at their dramatic moments instead. The ownership
+scans walk state.owned (small) and index into cards[], never the 20k+
+cards array itself.
+
+THE CUTOUT PIPELINE GREW A SECOND MODE. The batch-64 flood-fill
+silhouette assumes the subject is brighter than its background
+everywhere along the outline - true for the cream pack, false for a
+navy card on black or a silver card on beige, where the flood poured
+through the matching-colour edges and ate the card bodies down to their
+lettering. Card backs are rounded rectangles, so the right cut is: find
+the largest connected blob of pattern pixels (the printed frame), take
+its bbox, grow 2%, and stamp a rounded-rect alpha. All five cut clean on
+the second pass, including two quarters cropped out of the 2x2 grid
+image. Backs differ in aspect (the ribbons card is taller), so the hand
+sizes them by HEIGHT - a taller design gets narrower instead of drooping
+over the hint line, proved again with the rect-overlap probe.
+
+And the flakiest check in the suite confessed its real cause: "KEEP pays
+nothing" kept failing with ~2.6 dollars of drift even at a 60ms read -
+because file:// localStorage PERSISTS BETWEEN RUNS, and dozens of test
+runs had compounded the save's mining bonus into a rate that drips
+dollars faster than any tolerance. smoke-ripship now clears storage and
+reloads before checking anything. A test that inherits the last run's
+save is not measuring what it thinks it is.
+
+New suite docs/smoke-backs.py, 15 checks: picker opens with all six,
+five locked, locked cells refuse to equip and name their price, every
+back image decodes, the 25-pack and 100th-ship unlocks fire at their
+moments, the whole hand wears the equipped back, no back overlaps the
+hint line, and the worn back + earned set + ship count survive a reload.
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 37/37, backs 15/15, economy 29/29, arcade
+12/12. oe-12-ripship.js grows to 1.15MB - five more backs at 480px.
+
 ## Batch 66 — THE HAND (a sliced pack deals a real fan of cards)
 Playtester request, built here: when the pack opens the cards SLIDE OUT
 into a held hand - every undecided pull fanned face-down, offset and

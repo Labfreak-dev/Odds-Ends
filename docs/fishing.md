@@ -501,6 +501,36 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 65 — the pack opening gets its fireworks
+Fx handoff from the bench: a particle canvas over the rip overlay
+(sparks, star confetti, dust poofs, expanding rings) and twelve pixel
+SIGIL BLOOMS - blue for Rare+, purple for tier 12+, red, and gold for
+Mythic - that flare up behind the card as it turns. The slice now pops
+gold sparks off the cap; flips burst by tier, from a modest puff at
+tier 6 to a full star-storm with fireworks on a Mythic. Flip fx ride a
+60ms delay so the card's own turn animation reads first.
+
+THE HANDOFF WAS AGAIN BRANCHED FROM AN OLD MODULE - two generations
+back this time. Copied in whole it would have reverted batches 62, 63
+AND 64: buy-table valuation, credits instead of dollars, the coin
+glyphs, the old colliding hue hash, the drag guard, and even the old
+58KB speckled pack art (the file carried the superseded blob). The fx
+layer, the sigil table, and the two burst hooks were lifted out of the
+upload and spliced onto the CURRENT module instead; a grep for
+state.credits, the coin glyph and m2TrueVal proving 0 hits is now part
+of the merge routine. Same story in the css: the delivered file was the
+pre-64 one (per-half drop-shadow seam and all) with five fx rules
+appended - the five rules were appended to ours.
+
+Verified with a new fx pass driving the real page: the slice draws >20
+live particles on the canvas (read back via getImageData, not DOM
+presence), a rare pull blooms a sigil, a spectrum-pack run peaks the
+canvas hard on the top tiers, the card z-orders above the bloom, zero
+page errors. Plus the standing sweep: 19/19 node --check, test-fishing
+114/114, smoke-fishing 13/13, smoke-spots 80/80, ripship 34/34,
+economy 29/29, arcade 12/12. oe-12-ripship.js grows to 414KB - the
+twelve sigil PNGs - which is a tenth of fishing2.
+
 ## Batch 64 — the 3D pack (and the three fixes it nearly reverted)
 The bench delivered new pack art: a real rendered wrapper (Meshy model),
 sliced Pocket-style - drag the glowing seam and the foil cap tumbles off.

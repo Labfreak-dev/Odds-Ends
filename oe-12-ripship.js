@@ -244,6 +244,10 @@ function rzFrame(tier){
                     tier >= 12 ? "tealdark" : tier >= 9 ? "red" :
                     tier >= 6 ? "purple" : tier >= 3 ? "tealgold" : "green" ];
 }
+/* the collection grid and the market dress their cards in the same metal -
+   exposed for the host renderers, which guard on its existence because the
+   host's boot render can run before this module has loaded */
+window.oeFrameFor = rzFrame;
 let RZ = null;                     /* live session */
 let rzStreak = 0;                  /* packs ripped this sitting */
 

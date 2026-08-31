@@ -134,9 +134,12 @@ renderMarketOffers = function(){
     <div class="m2-visitn">visitor ${seen+1} of ${of.length}</div>
     <div class="m2-visitor">${who}</div>
     <div class="m2-bubble">"${o.reply || pitch}"${o.sniff ? `<div class="m2-sniff">👃 something smells off about this one…</div>` : ""}</div>
-    <div class="m2-itemrow"><span class="m2-art">${art}</span>
+    <div class="m2-itemrow">${
+      (o.kind !== "pack" && o.kind !== "lot" && typeof window.oeFrameFor === "function")
+        ? `<span class="m2-art mthumb" style="background-image:url(${window.oeFrameFor(cards[o.cardId].rarity).img})"><span>${art}</span></span>`
+        : `<span class="m2-art">${art}</span>`}
       <span><div class="m2-name">${name}</div>${band}</span></div>
-    <div class="m2-price">🪙 ${price.toLocaleString()}${o.hagglePrice ? ` <s>${o.price.toLocaleString()}</s>` : ""}</div>
+    <div class="m2-price">$${price.toLocaleString()}${o.hagglePrice ? ` <s>${o.price.toLocaleString()}</s>` : ""}</div>
     <div class="m2-acts">
       <button class="m2-act buy" id="m2Buy">🤝 Buy it</button>
       <button class="m2-act" id="m2Hag" ${o.haggled ? "disabled" : ""}>💬 Bargain</button>
@@ -235,9 +238,9 @@ function m2SellSheet(id){
   m = document.createElement("div"); m.id = "m2Sheet";
   m.innerHTML = `<div class="m2-sheet">
     <div class="m2-sh-head">${c.emoji} <b>${c.name}</b>${g ? ` <span class="m2-slabchip">SLAB ${g}</span>`:""}</div>
-    <div class="m2-sh-est">the going rate: ~🪙${tv.toLocaleString()} · house takes 10%</div>
+    <div class="m2-sh-est">the going rate: ~$${tv.toLocaleString()} · house takes 10%</div>
     ${M2_TIERS.map(t=>`<button class="m2-sh-opt" data-m2list="${t.key}">
-      <b>${t.label}</b> — 🪙${Math.round(tv*t.mult).toLocaleString()} <i>${t.note}</i></button>`).join("")}
+      <b>${t.label}</b> — $${Math.round(tv*t.mult).toLocaleString()} <i>${t.note}</i></button>`).join("")}
     <button class="m2-sh-x" id="m2SheetX">never mind</button></div>`;
   document.body.appendChild(m);
   document.getElementById("m2SheetX").onclick = ()=> m.remove();
@@ -261,7 +264,7 @@ function m2RenderListings(){
   host.innerHTML = state.binderSales.map(L=>{
     const c = cards[L.id];
     const left = Math.max(0, Math.ceil((L.due-Date.now())/1000));
-    return `<span class="m2-live">${c?c.emoji:"🎴"} 🪙${L.price.toLocaleString()} · ${left>0? left+"s" : "…"}</span>`;
+    return `<span class="m2-live">${c?c.emoji:"🎴"} $${L.price.toLocaleString()} · ${left>0? left+"s" : "…"}</span>`;
   }).join("");
 }
 function m2Resolve(){
@@ -274,7 +277,7 @@ function m2Resolve(){
     if(Math.random() < L.chance){
       const net = Math.round(L.price * (((state.upgrades && state.upgrades.storeSign)||0) ? 0.93 : 0.9));
       state.dollars += net;
-      showToast(`🤝 SOLD — ${c?c.name:"card"} for 🪙${L.price.toLocaleString()} (you keep ${net.toLocaleString()})`);
+      showToast(`🤝 SOLD — ${c?c.name:"card"} for $${L.price.toLocaleString()} (you keep ${net.toLocaleString()})`);
       try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
     } else {
       state.owned[L.id] = (state.owned[L.id]||0) + 1;

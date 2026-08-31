@@ -2276,7 +2276,23 @@ function renderCollection(){
       else el.dataset.cid = g.cards[0].id;
       el.style.setProperty("--rc", r.color);
       el.style.borderColor = anyOwned ? r.color : "#2b3142";
-      el.innerHTML = `
+      /* an owned card wears its rarity's metal frame; undiscovered ones keep
+         their grey mystery. Guarded: the frames live in the ripship module,
+         which may not have loaded yet on the very first boot render. */
+      const FR = anyOwned && typeof window.oeFrameFor === "function" ? window.oeFrameFor(best.rarity) : null;
+      if(FR){
+        el.classList.add("framed");
+        el.style.backgroundImage = `url(${FR.img})`;
+        el.style.borderColor = "transparent";
+      }
+      el.innerHTML = FR ? `
+        <div class="rtag ftag" style="color:${r.color}">${r.name}</div>
+        <div class="art fart">${g.emoji}</div>
+        <div class="name fname"${FR.ink ? ` style="color:${FR.ink}"` : ""}>${g.subject}</div>
+        ${multi
+          ? `<div class="scount fsc">${g.ownedCount} / ${g.cards.length} <span class="arr">▼</span></div>`
+          : `<div class="count">×${state.owned[g.cards[0].id]||0}</div>`}
+      ` : `
         <div class="rtag" style="color:${anyOwned ? r.color : "var(--muted)"}">${anyOwned ? r.name : "UNDISCOVERED"}</div>
         <div class="art">${anyOwned ? g.emoji : "❔"}</div>
         <div class="name">${anyOwned ? g.subject : "???"}</div>
@@ -2298,6 +2314,14 @@ function renderCollection(){
             const vr = RARITIES[c.rarity];
             const vfx = owned>0 ? fxClassForTier(c.rarity) : "";
             const edition = c.name.includes(" — ") ? c.name.split(" — ")[1] : c.name;
+            const vFR = owned>0 && typeof window.oeFrameFor === "function" ? window.oeFrameFor(c.rarity) : null;
+            if(vFR) return `<div class="mini-card framed${vfx?" "+vfx:""}" data-cid="${c.id}"
+                style="--rc:${vr.color}; border-color:transparent; background-image:url(${vFR.img})">
+              <div class="rtag ftag" style="color:${vr.color}">${vr.name}</div>
+              <div class="art fart">${c.emoji}</div>
+              <div class="name fname"${vFR.ink ? ` style="color:${vFR.ink}"` : ""}>${edition}</div>
+              <div class="count">×${owned}</div>
+            </div>`;
             return `<div class="mini-card${owned===0?" locked":""}${vfx?" "+vfx:""}" data-cid="${c.id}"
                 style="--rc:${vr.color}; border-color:${owned>0 ? vr.color : "#2b3142"};">
               <div class="rtag" style="color:${vr.color}">${vr.name}</div>
@@ -2587,7 +2611,9 @@ function renderMarketOffers(){
     el.innerHTML = `
       <div class="mowned-badge ${owned>0?'mowned':'mnew'}">${owned>0?`Owned ×${owned}`:'New'}</div>
       <div class="mhead">
-        <div class="mart">${c.emoji}</div>
+        ${typeof window.oeFrameFor === "function"
+          ? `<div class="mart mthumb" style="background-image:url(${window.oeFrameFor(c.rarity).img})"><span>${c.emoji}</span></div>`
+          : `<div class="mart">${c.emoji}</div>`}
         <div>
           <div class="mname">${c.name}</div>
           <div class="mrarity" style="color:${r.color}">${r.name}</div>

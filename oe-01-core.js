@@ -2282,7 +2282,7 @@ function renderCollection(){
       const FR = anyOwned && typeof window.oeFrameFor === "function" ? window.oeFrameFor(best.rarity) : null;
       if(FR){
         el.classList.add("framed");
-        el.style.backgroundImage = `url(${FR.img})`;
+        el.style.setProperty("--frame", `url(${FR.img})`);
         el.style.borderColor = "transparent";
       }
       el.innerHTML = FR ? `
@@ -2316,7 +2316,7 @@ function renderCollection(){
             const edition = c.name.includes(" — ") ? c.name.split(" — ")[1] : c.name;
             const vFR = owned>0 && typeof window.oeFrameFor === "function" ? window.oeFrameFor(c.rarity) : null;
             if(vFR) return `<div class="mini-card framed${vfx?" "+vfx:""}" data-cid="${c.id}"
-                style="--rc:${vr.color}; border-color:transparent; background-image:url(${vFR.img})">
+                style="--rc:${vr.color}; border-color:transparent; --frame:url(${vFR.img})">
               <div class="rtag ftag" style="color:${vr.color}">${vr.name}</div>
               <div class="art fart">${c.emoji}</div>
               <div class="name fname"${vFR.ink ? ` style="color:${vFR.ink}"` : ""}>${edition}</div>
@@ -10367,10 +10367,17 @@ function openCardInfo(cardId){
   const cardEl = document.getElementById("ciCard");
   fxResetBudget();
   const fx = fxClassForTier(c.rarity);
-  cardEl.className = "mini-card ci-card" + (fx ? " " + fx : "");
+  const FR = typeof window.oeFrameFor === "function" ? window.oeFrameFor(c.rarity) : null;
+  cardEl.className = "mini-card ci-card" + (FR ? " framed" : "") + (fx ? " " + fx : "");
   cardEl.style.setProperty("--rc", r.color);
-  cardEl.style.borderColor = r.color;
-  cardEl.innerHTML = `
+  cardEl.style.borderColor = FR ? "transparent" : r.color;
+  cardEl.style.setProperty("--frame", FR ? `url(${FR.img})` : "none");
+  cardEl.innerHTML = FR ? `
+    <div class="rtag ftag" style="color:${r.color}">${r.name}</div>
+    <div class="art fart">${c.emoji}</div>
+    <div class="name fname"${FR.ink ? ` style="color:${FR.ink}"` : ""}>${c.name}</div>
+    <div class="cat fcat"${FR.sub ? ` style="color:${FR.sub}"` : ""}>${c.category}</div>
+    ${owned ? `<div class="count">×${owned}</div>` : ""}` : `
     <div class="rtag" style="color:${r.color}">${r.name}</div>
     <div class="art">${c.emoji}</div>
     <div class="name">${c.name}</div>

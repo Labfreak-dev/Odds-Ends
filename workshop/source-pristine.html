@@ -769,8 +769,14 @@
      colour shows through the frame's punched window, and the text rides the
      frame's own plates instead of the flex column */
   .mini-card.framed{
-    background-color:#10141d; background-size:100% 100%; background-repeat:no-repeat;
-    padding:0; border-color:transparent;
+    background-color:#10141d; background-image:var(--frame); background-size:100% 100%;
+    background-repeat:no-repeat; padding:0; border-color:transparent;
+  }
+  /* the foil tiers set `background: ... !important`, which would erase the
+     frame - this outranks them on specificity and puts the metal back, while
+     their ::before shimmer and glow keep animating on top of it */
+  .mini-card.framed[class*="fx-"]{
+    background: var(--frame) center / 100% 100% no-repeat #10141d !important;
   }
   .mini-card.framed .ftag{
     position:absolute; top:4%; left:8%; right:8%; text-align:center; opacity:1;
@@ -791,6 +797,16 @@
     background-color:#10141d; display:flex; align-items:center; justify-content:center;
   }
   .mthumb span{ font-size:21px; margin-top:-8px; }
+  .mini-card.framed .fcat{
+    position:absolute; left:11%; right:11%; top:86.5%; text-align:center; margin-top:0;
+    color:#cfc9ba;
+  }
+  /* the info panel's bigger card: two-line names fit the plate, the count
+     badge rides the frame's bottom rail */
+  .ci-card.framed .fname{ top:71%; display:-webkit-box; -webkit-line-clamp:2;
+    -webkit-box-orient:vertical; overflow:hidden; }
+  .ci-card.framed .fcat{ top:87.5%; }
+  .ci-card.framed .count{ bottom:2.5%; right:6%; color:#f2ede2; text-shadow:0 1px 2px rgba(0,0,0,.6); }
 
   .market-countdown{ font-weight:700; color:var(--accent); font-size:13px; }
   .market-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:14px; }
@@ -6115,7 +6131,7 @@ function renderCollection(){
       const FR = anyOwned && typeof window.oeFrameFor === "function" ? window.oeFrameFor(best.rarity) : null;
       if(FR){
         el.classList.add("framed");
-        el.style.backgroundImage = `url(${FR.img})`;
+        el.style.setProperty("--frame", `url(${FR.img})`);
         el.style.borderColor = "transparent";
       }
       el.innerHTML = FR ? `
@@ -6149,7 +6165,7 @@ function renderCollection(){
             const edition = c.name.includes(" — ") ? c.name.split(" — ")[1] : c.name;
             const vFR = owned>0 && typeof window.oeFrameFor === "function" ? window.oeFrameFor(c.rarity) : null;
             if(vFR) return `<div class="mini-card framed${vfx?" "+vfx:""}" data-cid="${c.id}"
-                style="--rc:${vr.color}; border-color:transparent; background-image:url(${vFR.img})">
+                style="--rc:${vr.color}; border-color:transparent; --frame:url(${vFR.img})">
               <div class="rtag ftag" style="color:${vr.color}">${vr.name}</div>
               <div class="art fart">${c.emoji}</div>
               <div class="name fname"${vFR.ink ? ` style="color:${vFR.ink}"` : ""}>${edition}</div>
@@ -14199,10 +14215,17 @@ function openCardInfo(cardId){
   const cardEl = document.getElementById("ciCard");
   fxResetBudget();
   const fx = fxClassForTier(c.rarity);
-  cardEl.className = "mini-card ci-card" + (fx ? " " + fx : "");
+  const FR = typeof window.oeFrameFor === "function" ? window.oeFrameFor(c.rarity) : null;
+  cardEl.className = "mini-card ci-card" + (FR ? " framed" : "") + (fx ? " " + fx : "");
   cardEl.style.setProperty("--rc", r.color);
-  cardEl.style.borderColor = r.color;
-  cardEl.innerHTML = `
+  cardEl.style.borderColor = FR ? "transparent" : r.color;
+  cardEl.style.setProperty("--frame", FR ? `url(${FR.img})` : "none");
+  cardEl.innerHTML = FR ? `
+    <div class="rtag ftag" style="color:${r.color}">${r.name}</div>
+    <div class="art fart">${c.emoji}</div>
+    <div class="name fname"${FR.ink ? ` style="color:${FR.ink}"` : ""}>${c.name}</div>
+    <div class="cat fcat"${FR.sub ? ` style="color:${FR.sub}"` : ""}>${c.category}</div>
+    ${owned ? `<div class="count">×${owned}</div>` : ""}` : `
     <div class="rtag" style="color:${r.color}">${r.name}</div>
     <div class="art">${c.emoji}</div>
     <div class="name">${c.name}</div>

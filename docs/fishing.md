@@ -501,6 +501,43 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 71 — the last card surface (the info panel), and the foil-tier fight
+The card-info panel's 250px card now wears its metal frame like every
+other card surface - name and category on the plate, two-line names
+clamped with an ellipsis, the count badge on the frame's bottom rail.
+Undiscovered handling does not apply here (the panel only opens on a
+real card), so every panel card is framed.
+
+THE REAL FIND: the foil tiers were ERASING FRAMES EVERYWHERE. The
+fx-mythic/legendary/unique/prototype classes set `background: ...
+!important`, which outranks an inline background-image - so a Mythic in
+the collection or the panel silently dropped its metal and showed only
+the old holo gradient. Nobody had noticed because batch 70's screenshots
+framed a Common. The fix: the frame now rides a CSS VARIABLE (--frame),
+which no !important background can touch, and a higher-specificity rule
+(`.mini-card.framed[class*="fx-"]`, 0-3-0 vs their 0-1-0) puts the metal
+back while the foil's ::before shimmer and glow keep animating on top.
+The result is what a foil card should have been all along: sunburst over
+metal. Lesson for the log: any inline style a mode sets can be silently
+beaten by a host `!important` - when a skin must survive every styling
+tier, carry it in a custom property.
+
+Also from this round: element screenshots of foil cards hang playwright's
+stability wait forever (the shimmer never settles) - pass
+animations="disabled" to screenshot() instead of raising timeouts.
+
+The #feJournalBtn click flake hit smoke-spots again - SECOND appearance,
+same button, same shape, in fishing code neither batch touched; clean on
+the single allowed re-run both times. If it shows a third time it stops
+being a flake and earns a root-cause on the journal button itself.
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80 (one re-run, above), ripship 37/37, backs 15/15,
+cardart 12/12 (now: the panel card framed with fx on top, and the
+collection check reads COMPUTED style since inline background is gone),
+economy 29/29, arcade 12/12 - plus mythic/common/long-name panel
+screenshots.
+
 ## Batch 70 — the frames travel (collection grid + the salesman's feed)
 The metal frames leave the flip reveal and dress the other two card
 surfaces. The COLLECTION's mini-cards (60 per page, 5:7 - almost exactly

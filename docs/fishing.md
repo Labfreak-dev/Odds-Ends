@@ -501,6 +501,42 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 62 — the ledger tells the truth (SHIP was paying off the wrong table)
+Batch 61 shipped with the verdict stuck on PACK PAID. The cause was not
+the scoring rule, it was the price table. `rzVal` called `m2TrueVal`,
+which reads MARKET_BUY_PRICE_BY_TIER - what a card COSTS in the market,
+about five times what anyone pays for it. A Common priced at 40 to buy
+sells for 8; a tier-8 at 2,800 sells for 520. Shipping paid 85% of the
+BUY price, so a 100-credit pack returned well over a thousand and the
+screen could not honestly say anything but PACK PAID.
+
+rzVal now reads MARKET_SELL_PRICE_BY_TIER, with the same grading curve
+the market applies, so a pull is scored at exactly what the collection
+screen would pay for it. SHIP still takes 15% off that, which now means
+something real: it is the price of the money landing NOW instead of
+carrying the card to the collection screen yourself. KEEP scores full
+value because a kept card - duplicate or not - can still be sold there
+later. That is the decision the mode is named for, and it is finally a
+decision.
+
+This supersedes the note left at the end of batch 61, which proposed
+scoring kept cards at SCRAP_VALUE. That was written before checking
+which table m2TrueVal read. Scrap values run 1-250 against sell values
+of 8-52,000, so scoring keeps at scrap would have flipped the verdict to
+HOUSE WINS on essentially every pack rather than fixing it. Repricing
+onto the sell table fixes both ends at once and needs no special case.
+
+WHAT THIS EXPOSED, left for the playtester. With honest prices the shelf
+splits cleanly: Animal, Myth, Machines and Cosmos at 1,000 return 0.56x
+to 0.78x of their price, Tide 0.58x, Mega 0.41x - a fair gamble where you
+are buying the chance at a rare. Everyday Items returns 6.32x. Rarity
+weights do not vary by pack, so every pack holds roughly the same 600-900
+in cards; Everyday is simply priced at a tenth of the others. It is the
+starter pack, so it cannot just be raised to match - that is a balance
+call, not a correctness one, and it is not made here.
+
+Verified: 19/19 node --check, test-fishing 114/114, ripship 31/31.
+
 ## Batch 61 — RIP & SHIP (pack opening becomes a decision)
 Handoff from the bench, integrated as `ripship.module.js` + `ripship.css`
 (prefix `rz`, IIFE, no registry entry — it wraps the host's `startReveal`,

@@ -82,9 +82,24 @@ with sync_playwright() as pw:
     got = pg.evaluate("()=>{ const h=document.getElementById('rzArt'); return {img: !!h.querySelector('img'), txt: h.textContent.trim().length>0}; }")
     check("when everything misses, the emoji holds the frame", got and not got["img"] and got["txt"], got)
 
-    # the art box must not change the card's height when an image lands
-    check("the art box is fixed-height",
-          pg.evaluate("()=>getComputedStyle(document.getElementById('rzArt')).height") == "102px")
+    # the framed layout: the art window sits under the frame image, inside the card
+    geo = pg.evaluate("""()=>{
+      const card=document.querySelector('.rz-card'), win=document.getElementById('rzArt'),
+            fr=document.querySelector('.rz-fframe');
+      if(!card||!win||!fr) return null;
+      const cb=card.getBoundingClientRect(), wb=win.getBoundingClientRect();
+      return { frOk: fr.complete && fr.naturalWidth>0,
+               inside: wb.left>=cb.left && wb.right<=cb.right && wb.top>=cb.top && wb.bottom<=cb.bottom,
+               size: wb.width>80 && wb.height>80,
+               under: +getComputedStyle(win).zIndex < +getComputedStyle(fr).zIndex }; }""")
+    check("the frame renders with the window inside the card",
+          geo and geo["frOk"] and geo["inside"] and geo["size"] and geo["under"], geo)
+    # different rarity bands wear different frames
+    lo = pg.evaluate("()=>document.querySelector('.rz-fframe').src.length")
+    pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
+    open_single(pg, "cards.find(x=>x.rarity===15)")
+    hi = pg.evaluate("()=>document.querySelector('.rz-fframe').src.length")
+    check("a Legendary and a Mythic wear different frames", lo != hi, (lo, hi))
 
     check("zero page errors", not errs, errs[:3])
     br.close()

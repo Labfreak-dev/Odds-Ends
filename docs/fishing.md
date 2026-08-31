@@ -501,6 +501,45 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 69 — METAL FRAMES: the card front becomes a real card
+The playtester delivered eight metal frame renders (two 2x2 grids) and
+asked for them as the card fronts. The flip reveal's dark panel is gone:
+a card now IS its frame - art in the punched window, name and category
+on the lower plate, the rarity band told by the metal itself:
+
+  Common green/silver · Uncommon teal/gold · Fine purple/holo ·
+  Rare red/gold · Epic dark-teal/holo · Legendary gold/holo ·
+  Mythic magenta/holo   (the cream variant is held in reserve)
+
+Each frame's dominant colour was matched to the rarity colour the game
+already uses (Mythic #ff5cf0 -> magenta, etc), so the tier language is
+consistent with every border and chip elsewhere.
+
+HOW THE WINDOW WORKS. The art window is punched TRANSPARENT in the frame
+webp; the art layer (emoji floor, wiki photo, painted art - batch 68's
+three layers, unchanged) sits UNDERNEATH and shows through. The art rect
+runs ~1% past the hole on every side, so it can never show a gap, and
+anything larger simply hides under the frame. Each frame's measured hole
+lives beside its image in RZ_FRAMES; text colours are overridable per
+frame because the gold Legendary plate would swallow light text.
+
+TWO CUTTING LESSONS. First: the flood-punch left ragged debris on every
+holo-bordered frame - iridescent border colours sit near background grey,
+so the flood ate into them unevenly and left speckle islands. The window
+is a clean rectangle in the template, so the fix was to punch the
+flood's BBOX as a straight rounded rect: clears every island, crisp
+edge. Second, a regex bug the screenshots caught: replacing the "gold:"
+entry matched INSIDE "tealgold:" and put the gold frame on Uncommon. The
+fix (a lookbehind anchor) came with a guard that asserts all seven
+embedded blobs are distinct - worth keeping for any future frame swap.
+
+All seven frames total ~161KB webp; oe-12-ripship.js is 1.39MB.
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 37/37, backs 15/15, cardart 7/7 (now asserts
+the frame decodes, the window sits inside the card under the frame, and
+different bands wear different frames), economy 29/29, arcade 12/12 -
+plus a seven-tier contact sheet checked by eye at every band.
+
 ## Batch 68 — CARD ART ON THE FLIP (three layers, and a brief for the bench)
 The flip reveal now dresses every card with the best art available, and
 the emoji never leaves the floor:

@@ -26,7 +26,7 @@ def tear(pg):
     for i in range(1, 14):
         pg.mouse.move(box["x"] + 10 + i * 40, box["y"] + 20)
     pg.mouse.up()
-    pg.wait_for_timeout(250)
+    pg.wait_for_timeout(900)          # the cap tumbles off for 620ms first
 
 def dismiss(pg):
     pg.evaluate("()=>{ const o=document.getElementById('rzOverlay'); if(o) o.style.display='none'; }")
@@ -71,9 +71,27 @@ with sync_playwright() as pw:
     check("the old reveal overlay stayed shut",
           not pg.evaluate("()=>document.getElementById('revealOverlay').classList.contains('show')"))
     check("pack face is showing", pg.locator("#rzPack").count() == 1)
+    check("the pack renders its 3D art, both halves",
+          pg.locator(".rz-cap").count() == 1 and pg.locator(".rz-body").count() == 1)
+    check("the art actually decodes",
+          pg.evaluate("""()=>{
+            const el = document.querySelector('.rz-body');
+            const src = getComputedStyle(el).backgroundImage;
+            if(!src.startsWith('url(')) return false;
+            return new Promise(r=>{ const i=new Image();
+              i.onload=()=>r(i.naturalWidth>0); i.onerror=()=>r(false);
+              i.src = src.slice(5,-2); });
+          }"""))
+    # layout offsets, not bounding rects: the pack sways +/-1.6deg, which makes
+    # the two halves' rotated rects overlap even though they sit flush.
+    check("the cap sits flush above the body, so the slice line is real",
+          pg.evaluate("""()=>{ const c=document.querySelector('.rz-cap'),
+                                     b=document.querySelector('.rz-body');
+            return c.offsetTop === 0 && b.offsetTop === c.offsetHeight; }"""))
     check("ledger counted the pack", lg0 is not None and packtask() > lg0, f"{lg0} -> {packtask()}")
 
-    pulls = int(pg.locator(".rz-packsub").inner_text().split()[0])
+    name_line = pg.locator(".rz-packname").inner_text()
+    pulls = int(name_line.split("\u00b7")[-1].strip().split()[0])
     owned1 = pg.evaluate("()=>Object.values(state.owned||{}).reduce((a,b)=>a+(b||0),0)")
     check("pulls applied exactly once", owned1 - owned0 == pulls, f"owned +{owned1-owned0} for {pulls} pulls")
 

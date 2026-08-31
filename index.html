@@ -47,6 +47,16 @@
     padding:8px 14px; border-radius:20px; border:1px solid #2b3142; font-weight:600;
   }
   .credits .coin{ color:#ffd35c; }
+  .credits.cash{ color:#7dffb5; }
+  .credits.cash .coin{ color:#7dffb5; }
+  .credits.tokens{ cursor:pointer; }
+  /* the counter has to be findable on a phone, where there is no hover and no
+     title tooltip - so the chip carries a visible affordance instead */
+  .credits.tokens .ex-plus{
+    margin-left:6px; color:#ffd35c; font-weight:900; opacity:.75; font-size:12px;
+  }
+  .credits.tokens:active{ transform:scale(.97); }
+  .credits.tokens:hover{ border-color:#ffd35c88; }
   .scrap{ display:flex; align-items:center; gap:6px; color:var(--muted); font-size:13px;}
   .level-badge{
     display:inline-flex; align-items:center; font-size:11.5px; font-weight:700; color:var(--accent);
@@ -70,6 +80,30 @@
     align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto;
   }
   #levelModal.show{ display:flex; }
+  #exModal{
+    position:fixed; inset:0; z-index:230; display:none;
+    background:rgba(6,7,11,.86); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto;
+  }
+  #exModal.show{ display:flex; }
+  .ex-sheet{
+    background:var(--panel); border:1px solid #2e3448; border-radius:16px;
+    width:min(460px,100%); box-shadow:0 24px 70px rgba(0,0,0,.6); overflow:hidden;
+  }
+  .ex-body{ padding:16px 18px 20px; }
+  .ex-bal{ display:flex; justify-content:space-between; gap:10px; margin-bottom:14px;
+    font-weight:700; font-size:13px; }
+  .ex-bal .d{ color:#7dffb5; } .ex-bal .c{ color:#ffd35c; }
+  .ex-rate{ font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.5; }
+  .ex-row{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 13px; border-radius:12px; border:1px solid #2b3142; margin-bottom:8px;
+    background:#161b27; }
+  .ex-row .amt{ font-weight:800; font-size:14px; color:#eef4fa; }
+  .ex-row .got{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .ex-row .bonus{ color:#7dffb5; font-weight:800; }
+  .ex-buy{ padding:9px 14px; border-radius:10px; font-weight:800; font-size:13px;
+    border:1.5px solid #ffd35c; color:#ffd35c; background:rgba(255,211,92,.1); cursor:pointer; }
+  .ex-buy[disabled]{ opacity:.35; cursor:not-allowed; }
   .lvl-sheet{
     background:var(--panel); border:1px solid #2e3448; border-radius:16px;
     width:min(760px, 100%); box-shadow:0 24px 70px rgba(0,0,0,.6); overflow:hidden;
@@ -1625,7 +1659,8 @@
     .level-badge{ font-size:10.5px; padding:2px 9px; }
     header .row{ width:100%; gap:8px; justify-content:flex-start; }
     .scrap{ font-size:12px; gap:5px; }
-    .credits{ padding:7px 12px; font-size:13px; margin-left:auto; }
+    .credits{ padding:7px 10px; font-size:12.5px; gap:5px; }
+    .credits.cash{ margin-left:auto; }
 
     nav{
       top:0; padding:5px 5px 6px; gap:2px;
@@ -3832,14 +3867,17 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 024473</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 53ed17</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
   </h1>
   <div class="row">
     <div class="scrap">♻️ <span id="scrapCount">0</span> Scrap</div>
-    <div class="credits"><span class="coin">🪙</span> <span id="creditCount">0</span> Credits</div>
+    <div class="credits cash"><span class="coin">💵</span> <span id="dollarCount">0</span></div>
+    <div class="credits tokens clickable" id="hdrCredits" role="button" tabindex="0"
+      title="Arcade credits — tap to buy more with dollars"
+      onclick="openExchange()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openExchange();}"><span class="coin">🪙</span> <span id="creditCount">0</span><span class="ex-plus">＋</span></div>
     <button class="hdr-gear" id="hdrGear" title="Account &amp; settings" aria-label="Account and settings">⚙️</button>
   </div>
 </header>
@@ -4007,7 +4045,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
           <div class="market-countdown" id="marketCountdown">Restocks in --m --s</div>
-          <button class="btn secondary" id="resetStockBtn" onclick="resetMarketStock()">🔄 Reset Stock — <span id="resetStockCost">100</span> 🪙</button>
+          <button class="btn secondary" id="resetStockBtn" onclick="resetMarketStock()">🔄 Reset Stock — $<span id="resetStockCost">100</span> 🪙</button>
         </div>
       </div>
     </div>
@@ -4825,6 +4863,19 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
 </main>
 
+<div id="exModal" onclick="if(event.target===this) closeExchange()">
+  <div class="ex-sheet">
+    <div class="lvl-head">
+      <div>
+        <h3>The Change Counter</h3>
+        <div class="sub">Dollars run the card business. Credits run the arcade.</div>
+      </div>
+      <button class="lvl-close" onclick="closeExchange()" aria-label="Close">✕</button>
+    </div>
+    <div class="ex-body" id="exBody"></div>
+  </div>
+</div>
+
 <div id="levelModal" onclick="if(event.target===this) closeLevelModal()">
   <div class="lvl-sheet">
     <div class="lvl-head">
@@ -4908,7 +4959,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=bb6f62ab0a"></script>
+<script src="oe-01-core.js?v=27d2e8f747"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-sfx.js?v=5424d379ee"></script>
 <script src="oe-04-provenance-catalogue.js?v=ae0deffc21"></script>
@@ -4918,11 +4969,11 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-08-case.js?v=9be0d06f44"></script>
 <script src="oe-09-oddone.js?v=e66af7007b"></script>
 <script src="oe-10-fishing2.js?v=ca088c91a6"></script>
-<script src="oe-11-mining2.js?v=7d5bfc4be1"></script>
-<script src="oe-12-ripship.js?v=a41ca1ce87"></script>
+<script src="oe-11-mining2.js?v=2ee842de0b"></script>
+<script src="oe-12-ripship.js?v=0973736d36"></script>
 <script src="oe-13-ledger.js?v=c7b9975ca2"></script>
-<script src="oe-14-grading.js?v=cc7f18667a"></script>
-<script src="oe-15-market2.js?v=2b1ded9a6d"></script>
+<script src="oe-14-grading.js?v=817788899f"></script>
+<script src="oe-15-market2.js?v=8029b64826"></script>
 <script src="oe-16-casino2.js?v=e7e85470f8"></script>
 <script src="oe-17-keep.js?v=4ba6a7a50e"></script>
 <script src="oe-18-hunt.js?v=d04d7c2185"></script>

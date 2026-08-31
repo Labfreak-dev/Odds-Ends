@@ -195,7 +195,7 @@ function mgBurst(){
 
 /* ---- the strike ---- */
 function mgHeaderRefresh(){
-  try{ document.getElementById("creditCount").textContent = Math.floor(state.credits).toLocaleString();
+  try{ document.getElementById("dollarCount").textContent = Math.floor(state.dollars).toLocaleString();
        document.getElementById("scrapCount").textContent = Math.floor(state.scrap).toLocaleString(); }catch(e){}
 }
 function mgStrike(player){
@@ -207,7 +207,7 @@ function mgStrike(player){
     mg.hp -= 1;
     if(player){
       const gain = Math.max(3, Math.round(mgRate()/30));   /* two seconds of passive, per swing */
-      state.credits += gain;
+      state.dollars += gain;
       state.totalMined = (state.totalMined||0) + gain;
       mgFloat(cx-40+Math.random()*80, cy-70, "+"+gain.toLocaleString()+" 🪙");
       try{ window.feLedgerBump && feLedgerBump("tap"); }catch(e){}
@@ -220,7 +220,7 @@ function mgStrike(player){
       let oreN = 2 + Math.floor(Math.random()*3) + (((state.upgrades && state.upgrades.prospectorEye)||0) ? 1 : 0);
       let oreT = tier;
       if(((state.upgrades && state.upgrades.prospectorEye)||0) && Math.random() < 0.10 && tier < 7){ oreT = tier+1; }
-      state.credits += bonus;
+      state.dollars += bonus;
       state.totalMined = (state.totalMined||0) + bonus;
       state.scrap = (state.scrap||0) + Math.round(2 * (1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
       state.mining.ore[oreT] = (state.mining.ore[oreT]||0) + oreN;

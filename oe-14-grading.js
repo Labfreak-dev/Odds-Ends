@@ -85,8 +85,8 @@ function grRender(){
     const si = state.grading.slots.findIndex(s => !s);
     if(si < 0){ showToast("The desk is full — crack a slab first"); return; }
     const fee = grFee(c.rarity);
-    if(state.credits < fee){ showToast(`The professional wants 🪙${fee.toLocaleString()}`); return; }
-    state.credits -= fee;
+    if(state.dollars < fee){ showToast(`The professional wants $${fee.toLocaleString()}`); return; }
+    state.dollars -= fee;
     state.grading.slots[si] = { id, done: Date.now() + grSecs(c.rarity)*1000 };
     showToast(`🔎 ${c.name} is with the professional`);
     try{ fbSfxSafe && fbSfxSafe("bait", 0.35); }catch(e){}

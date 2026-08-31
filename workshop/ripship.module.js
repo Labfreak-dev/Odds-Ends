@@ -62,9 +62,9 @@ function rzClose(){
 function rzTally(){
   const net = RZ.shipped + RZ.keptVal - RZ.spent;
   return `<div class="rz-tally">
-    <span>🎁 ${RZ.pack.icon||"🎴"} <b>${RZ.pack.name}</b>${RZ.spent?` · cost 🪙${RZ.spent.toLocaleString()}`:""}</span>
-    <span>📦 shipped <b>🪙${RZ.shipped.toLocaleString()}</b> · 🗃️ kept <b>🪙${RZ.keptVal.toLocaleString()}</b></span>
-    <span class="${net>=0?"up":"down"}">${net>=0?"▲ up":"▼ down"} 🪙${Math.abs(net).toLocaleString()}</span>
+    <span>🎁 ${RZ.pack.icon||"🎴"} <b>${RZ.pack.name}</b>${RZ.spent?` · cost $${RZ.spent.toLocaleString()}`:""}</span>
+    <span>📦 shipped <b>$${RZ.shipped.toLocaleString()}</b> · 🗃️ kept <b>$${RZ.keptVal.toLocaleString()}</b></span>
+    <span class="${net>=0?"up":"down"}">${net>=0?"▲ up":"▼ down"} $${Math.abs(net).toLocaleString()}</span>
   </div>`;
 }
 function rzRender(){
@@ -123,10 +123,10 @@ function rzRender(){
         <div class="rz-cname">${c.name}</div>
         <div class="rz-cat">${c.category}</div>
         <div class="rz-badges"><span class="rz-b ${c._wasNew?"new":"dupe"}">${c._wasNew?"NEW":"DUPLICATE"}</span>
-        <span class="rz-val">worth 🪙${rzVal(c).toLocaleString()}</span></div>
+        <span class="rz-val">worth $${rzVal(c).toLocaleString()}</span></div>
       </div>
       <div class="rz-row">
-        <button class="rz-btn ship" id="rzShip">📦 SHIP IT +🪙${pay.toLocaleString()}</button>
+        <button class="rz-btn ship" id="rzShip">📦 SHIP IT +$${pay.toLocaleString()}</button>
         <button class="rz-btn keep" id="rzKeep">🗃️ KEEP</button>
       </div>
     </div>`;
@@ -137,7 +137,7 @@ function rzRender(){
           try{ if(state.grading && state.grading.graded) delete state.grading.graded[c.id]; }catch(e){}
         }
         try{ state.miningBonus = computeMiningBonusFromOwned(state.owned); }catch(e){}
-        state.credits += pay;
+        state.dollars += pay;
         RZ.shipped += pay;
         try{ fbSfxSafe && fbSfxSafe("reward_good", 0.35); }catch(e){}
       }
@@ -153,14 +153,14 @@ function rzRender(){
     rzStreak += 1;
     const net = RZ.shipped + RZ.keptVal - RZ.spent;
     const b = RZ.best, br = b ? RARITIES[b.rarity] : null;
-    const canAgain = RZ.pack.price1 > 0 && state.credits >= RZ.pack.price1 && typeof buyPacks === "function";
+    const canAgain = RZ.pack.price1 > 0 && state.dollars >= RZ.pack.price1 && typeof buyPacks === "function";
     ov.innerHTML = `<div class="rz-box">
       <div class="rz-doneh">${net >= 0 ? "📈 THE PACK PAID" : "📉 THE HOUSE WINS THIS ONE"}</div>
-      <div class="rz-donenet ${net>=0?"up":"down"}">${net>=0?"+":"−"}🪙${Math.abs(net).toLocaleString()}</div>
+      <div class="rz-donenet ${net>=0?"up":"down"}">${net>=0?"+":"−"}$${Math.abs(net).toLocaleString()}</div>
       ${b ? `<div class="rz-bestline">best pull: <b style="color:${br.color}">${b.emoji} ${b.name}</b> (${br.name})</div>` : ""}
-      <div class="rz-statline">📦 shipped 🪙${RZ.shipped.toLocaleString()} · 🗃️ kept 🪙${RZ.keptVal.toLocaleString()} · 🔥 streak ${rzStreak}</div>
+      <div class="rz-statline">📦 shipped $${RZ.shipped.toLocaleString()} · 🗃️ kept $${RZ.keptVal.toLocaleString()} · 🔥 streak ${rzStreak}</div>
       <div class="rz-row">
-        ${canAgain ? `<button class="rz-btn ship" id="rzAgain">RIP ANOTHER — 🪙${RZ.pack.price1.toLocaleString()}</button>` : ""}
+        ${canAgain ? `<button class="rz-btn ship" id="rzAgain">RIP ANOTHER — $${RZ.pack.price1.toLocaleString()}</button>` : ""}
         <button class="rz-btn keep" id="rzDone">back to the shelf</button>
       </div>
     </div>`;

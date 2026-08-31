@@ -501,6 +501,83 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 61 — RIP & SHIP (pack opening becomes a decision)
+Handoff from the bench, integrated as `ripship.module.js` + `ripship.css`
+(prefix `rz`, IIFE, no registry entry — it wraps the host's `startReveal`,
+so the shelf, the ledger's grand prize and the market's lots all adopt it
+at once). Opening a pack is now a ritual: drag your thumb across the foil
+to tear it, flip the stack one card at a time, and call every pull — SHIP
+for instant coin at 85% of market value, or KEEP it for the binder. A
+running ledger line tracks cost against shipped against kept, and the
+summary rules PACK PAID or HOUSE WINS with the best pull, a session
+streak and one-tap RIP ANOTHER.
+
+TWO CHANGES TO THE HANDOFF, both from reading the wiring rather than the
+module. First, the handoff put `ripship.module.js` LAST in MODULE_FILES.
+That would have broken the daily tasks: `ledger.module.js` already wraps
+`startReveal` to count packs, and ripship does not call through on its
+happy path, so loading ripship last would have made it the outer wrapper
+and silently swallowed every `feLedgerBump("pack")`. Loading it BEFORE
+ledger leaves ledger outermost and the count intact — no code change, and
+the smoke now asserts `startReveal.toString()` still contains the bump.
+Second, the tear drag could outlive the tear: pointer capture keeps
+firing move events after the foil is open, which re-entered the flip
+stage on every pixel. One guard, `if(!RZ || RZ.stage !== "rip") return`.
+
+Also deepened the overlay scrim from .88 to .96 with a 3px blur. On the
+summary screen there is no card panel, so the text sat on the backdrop
+and the Packs tab's own controls read straight through it — "THE PACK
+PAID" was landing on top of the auto-open dropdown. Caught by looking at
+a screenshot, not by a DOM check; every DOM assertion passed while the
+screen was muddy, which is the same lesson as batches 55 and 58.
+
+New suite `docs/smoke-ripship.py`, 31 checks, drives the real page: the
+wrapper order, pulls applied exactly once, a real pointer drag tearing
+the foil, SHIP removing exactly one copy of exactly one id and paying
+out, KEEP costing nothing and touching nothing, keep-the-rest, the
+summary, RIP ANOTHER, and every other pack source — a granted pack
+(price1 = 0, so no RIP ANOTHER), the market's bare `{name, key}` lot with
+no icon and no price, and a ten-pack. Verified: 19/19 `node --check`,
+test-fishing 114/114, smoke-fishing 13/13, smoke-spots 80/80, ripship
+31/31, zero page errors.
+
+ONE THING LEFT FOR THE PLAYTESTER TO CALL. The verdict counts kept cards
+at full market value, so a 100-credit pack that yields ~3,000 in cards
+reads PACK PAID every time — HOUSE WINS is close to unreachable and the
+drama the screen is built around never lands. Fixing it is a balance
+decision, not a correctness one, so it ships as delivered. The cheapest
+lever if it wants changing: score kept cards at what they would fetch
+scrapped rather than at market, so KEEP is a real cost against SHIP.
+
+## Batch 60 — the claim overlay was reading as stacked layers
+Reported as the layer duplicating whenever the camera moved. It was not a
+rendering fault — a pan test rendered clean. Those were the claimable-
+section highlights: 256px filled rectangles with hard yellow borders
+drawn over the sea, several of them around an irregular island, stacking
+into what reads exactly like duplicated layers. The cell grid made it
+worse by running across water as well as land. The grid is now drawn on
+owned cells only, and claimable sea gets a dashed edge with a plus in the
+middle instead of a filled pane, so it reads as open water with an
+invitation. Verified: 19/19 node --check, test-fishing 114/114,
+smoke-fishing 13/13, smoke-spots 80/80, keep boot 13/13, plus the live,
+world, folk, economy, claim, frontier and repair suites, and the
+untouched board still 0.00% different from the build before build mode.
+
+## Batch 59 — the collapsed board (frame the land you hold)
+Reproduced from the playtester's screenshots. Claiming sections southward
+made the world seven sections tall — 1792px against a 540px canvas — and
+kpFit was framing the whole CLAIMABLE field, so it collapsed to z=0.29
+and the island became a sliver lost in empty space. Worse, the area the
+world canvas did not reach painted as dead navy, which is what made it
+read as broken layers rather than a distant island. kpFit now frames the
+land actually OWNED, with about half a section of sea round it, centred,
+clamped so it cannot go below z=0.3; the claimable ring is still reachable
+by panning. Anything beyond the world fills with open sea, so there is
+never a void. Both gated on the world view, so a Keep nobody has built on
+still renders 0.00% different from before build mode. Also split the two
+HUD lines onto separate rows — the hold banner and the build line were
+being written on top of each other.
+
 ## Batch 58 — build mode goes live, and the zoom regression it exposed
 Build mode is now ON for every player. Nothing about the Keep looks
 different until Build is tapped — same board, same waves, same income —

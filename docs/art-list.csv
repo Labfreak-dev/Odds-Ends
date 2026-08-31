@@ -1,0 +1,968 @@
+wave,bucket,subject,filename,category,card_variants_covered
+1,Mythic,Assassin Bug,assassin-bug.webp,Animal Kingdom,8
+1,Mythic,Betta Fish,betta-fish.webp,Animal Kingdom,8
+1,Mythic,Giraffe,giraffe.webp,Animal Kingdom,8
+1,Mythic,Grizzly Bear,grizzly-bear.webp,Animal Kingdom,8
+1,Mythic,Hippopotamus,hippopotamus.webp,Animal Kingdom,8
+1,Mythic,Leopard Gecko,leopard-gecko.webp,Animal Kingdom,8
+1,Mythic,Llama,llama.webp,Animal Kingdom,8
+1,Mythic,Moose,moose.webp,Animal Kingdom,8
+1,Mythic,Snow Leopard,snow-leopard.webp,Animal Kingdom,8
+1,Mythic,White Rhinoceros,white-rhinoceros.webp,Animal Kingdom,8
+1,Mythic,Andromeda Galaxy,andromeda-galaxy.webp,Cosmos & Terra,8
+1,Mythic,Sapphire,sapphire.webp,Cosmos & Terra,8
+1,Mythic,Stonehenge,stonehenge.webp,Cosmos & Terra,8
+1,Mythic,Tornado,tornado.webp,Cosmos & Terra,8
+1,Mythic,Vacuum Tube Radio,vacuum-tube-radio.webp,Electronics,1
+1,Mythic,Lady Luck's Own Coin,lady-luck-s-own-coin.webp,Fortune & Folly,1
+1,Mythic,Midnight Jackpot Bell,midnight-jackpot-bell.webp,Fortune & Folly,1
+1,Mythic,Seventh Seven,seventh-seven.webp,Fortune & Folly,1
+1,Mythic,The Bailed-Out Rocket,the-bailed-out-rocket.webp,Fortune & Folly,1
+1,Mythic,The Cooler's Deck,the-cooler-s-deck.webp,Fortune & Folly,1
+1,Mythic,The Dealer's Last Card,the-dealer-s-last-card.webp,Fortune & Folly,1
+1,Mythic,The Unlosable Ticket,the-unlosable-ticket.webp,Fortune & Folly,1
+1,Mythic,Baldr,baldr.webp,Legends & Myth,8
+1,Mythic,Dolores Huerta,dolores-huerta.webp,Legends & Myth,8
+1,Mythic,Hydra,hydra.webp,Legends & Myth,8
+1,Mythic,Jade Emperor,jade-emperor.webp,Legends & Myth,8
+1,Mythic,Nikola Tesla,nikola-tesla.webp,Legends & Myth,8
+1,Mythic,Pythagoras,pythagoras.webp,Legends & Myth,8
+1,Mythic,Susan B. Anthony,susan-b-anthony.webp,Legends & Myth,8
+1,Mythic,The Morrigan,the-morrigan.webp,Legends & Myth,8
+1,Mythic,Yeti,yeti.webp,Legends & Myth,8
+1,Mythic,3D Printer,3d-printer.webp,Machines in Motion,8
+1,Mythic,Jukebox,jukebox.webp,Machines in Motion,8
+1,Mythic,Speedboat,speedboat.webp,Machines in Motion,8
+1,Mythic,Zamboni,zamboni.webp,Machines in Motion,8
+1,Mythic,Genuine Meteorite Fragment,genuine-meteorite-fragment.webp,Misc,1
+1,Mythic,Kraken's Tentacle,kraken-s-tentacle.webp,Tide & Tackle,5
+1,Mythic,The First Cast,the-first-cast.webp,Tide & Tackle,5
+2,Legendary,African Elephant,african-elephant.webp,Animal Kingdom,7
+2,Legendary,Housefly,housefly.webp,Animal Kingdom,7
+2,Legendary,Manta Ray,manta-ray.webp,Animal Kingdom,7
+2,Legendary,Mosquito,mosquito.webp,Animal Kingdom,7
+2,Legendary,Wallaby,wallaby.webp,Animal Kingdom,7
+2,Legendary,Wandering Albatross,wandering-albatross.webp,Animal Kingdom,7
+2,Legendary,Vintage Pocket Watch,vintage-pocket-watch.webp,Bedroom,1
+2,Legendary,Amber,amber.webp,Cosmos & Terra,7
+2,Legendary,Enceladus,enceladus.webp,Cosmos & Terra,7
+2,Legendary,Tourmaline,tourmaline.webp,Cosmos & Terra,7
+2,Legendary,First-Gen iPod,first-gen-ipod.webp,Electronics,1
+2,Legendary,Loaded Dice,loaded-dice.webp,Fortune & Folly,2
+2,Legendary,Marked Card,marked-card.webp,Fortune & Folly,2
+2,Legendary,Roulette Ball,roulette-ball.webp,Fortune & Folly,2
+2,Legendary,Achilles,achilles.webp,Legends & Myth,7
+2,Legendary,Ares,ares.webp,Legends & Myth,7
+2,Legendary,Buzz Aldrin,buzz-aldrin.webp,Legends & Myth,7
+2,Legendary,Carl Linnaeus,carl-linnaeus.webp,Legends & Myth,7
+2,Legendary,Dragon,dragon.webp,Legends & Myth,7
+2,Legendary,Prometheus,prometheus.webp,Legends & Myth,7
+2,Legendary,Raijin,raijin.webp,Legends & Myth,7
+2,Legendary,Werewolf,werewolf.webp,Legends & Myth,7
+2,Legendary,Yan Wang,yan-wang.webp,Legends & Myth,7
+2,Legendary,Zhulong,zhulong.webp,Legends & Myth,7
+2,Legendary,Combine Harvester,combine-harvester.webp,Machines in Motion,7
+2,Legendary,Excavator,excavator.webp,Machines in Motion,7
+2,Legendary,Ice Cream Truck,ice-cream-truck.webp,Machines in Motion,7
+2,Legendary,Naval Destroyer,naval-destroyer.webp,Machines in Motion,7
+2,Legendary,Paraglider,paraglider.webp,Machines in Motion,7
+2,Legendary,Water Wheel,water-wheel.webp,Machines in Motion,7
+2,Legendary,Solid Gold Paperclip,solid-gold-paperclip.webp,Misc,1
+2,Legendary,Gold-Plated Letter Opener,gold-plated-letter-opener.webp,Office,1
+2,Legendary,Brass Telescope,brass-telescope.webp,Outdoor,1
+2,Legendary,Neptune's Trident,neptune-s-trident.webp,Tide & Tackle,6
+2,Legendary,Pearl of the Deep,pearl-of-the-deep.webp,Tide & Tackle,5
+2,Legendary,Siren's Song,siren-s-song.webp,Tide & Tackle,7
+2,Legendary,The Endless Net,the-endless-net.webp,Tide & Tackle,6
+3,Epic,American Alligator,american-alligator.webp,Animal Kingdom,5
+3,Epic,Barracuda,barracuda.webp,Animal Kingdom,5
+3,Epic,Bearded Dragon,bearded-dragon.webp,Animal Kingdom,5
+3,Epic,Blue Crab,blue-crab.webp,Animal Kingdom,5
+3,Epic,Bumblebee,bumblebee.webp,Animal Kingdom,6
+3,Epic,Cicada,cicada.webp,Animal Kingdom,5
+3,Epic,Desert Locust,desert-locust.webp,Animal Kingdom,5
+3,Epic,Electric Eel,electric-eel.webp,Animal Kingdom,6
+3,Epic,Flying Squirrel,flying-squirrel.webp,Animal Kingdom,6
+3,Epic,Frilled Lizard,frilled-lizard.webp,Animal Kingdom,6
+3,Epic,Green Anole,green-anole.webp,Animal Kingdom,6
+3,Epic,Grevy's Zebra,grevy-s-zebra.webp,Animal Kingdom,6
+3,Epic,Largemouth Bass,largemouth-bass.webp,Animal Kingdom,5
+3,Epic,Leatherback Turtle,leatherback-turtle.webp,Animal Kingdom,5
+3,Epic,Leopard,leopard.webp,Animal Kingdom,5
+3,Epic,Lion,lion.webp,Animal Kingdom,6
+3,Epic,Manatee,manatee.webp,Animal Kingdom,6
+3,Epic,Monitor Lizard,monitor-lizard.webp,Animal Kingdom,5
+3,Epic,Narwhal,narwhal.webp,Animal Kingdom,5
+3,Epic,Northern Cardinal,northern-cardinal.webp,Animal Kingdom,5
+3,Epic,Orb Weaver Spider,orb-weaver-spider.webp,Animal Kingdom,6
+3,Epic,Platypus,platypus.webp,Animal Kingdom,5
+3,Epic,Rock Pigeon,rock-pigeon.webp,Animal Kingdom,6
+3,Epic,Sloth,sloth.webp,Animal Kingdom,5
+3,Epic,Handwoven Wool Poncho,handwoven-wool-poncho.webp,Clothing,1
+3,Epic,Antelope Canyon,antelope-canyon.webp,Cosmos & Terra,5
+3,Epic,Big Ben,big-ben.webp,Cosmos & Terra,5
+3,Epic,Bora Bora Lagoon,bora-bora-lagoon.webp,Cosmos & Terra,5
+3,Epic,Callisto,callisto.webp,Cosmos & Terra,5
+3,Epic,Christ the Redeemer,christ-the-redeemer.webp,Cosmos & Terra,5
+3,Epic,Dead Sea,dead-sea.webp,Cosmos & Terra,5
+3,Epic,Europa,europa.webp,Cosmos & Terra,6
+3,Epic,Ganymede,ganymede.webp,Cosmos & Terra,5
+3,Epic,Great Blue Hole,great-blue-hole.webp,Cosmos & Terra,5
+3,Epic,Great Pyramid of Giza,great-pyramid-of-giza.webp,Cosmos & Terra,6
+3,Epic,Great Wall of China,great-wall-of-china.webp,Cosmos & Terra,5
+3,Epic,Lapis Lazuli,lapis-lazuli.webp,Cosmos & Terra,6
+3,Epic,Loch Ness,loch-ness.webp,Cosmos & Terra,6
+3,Epic,Mars,mars.webp,Cosmos & Terra,6
+3,Epic,Quartz Crystal,quartz-crystal.webp,Cosmos & Terra,6
+3,Epic,Rigel,rigel.webp,Cosmos & Terra,6
+3,Epic,Ruby,ruby.webp,Cosmos & Terra,6
+3,Epic,Sandstone,sandstone.webp,Cosmos & Terra,5
+3,Epic,Vega,vega.webp,Cosmos & Terra,6
+3,Epic,Venus,venus.webp,Cosmos & Terra,6
+3,Epic,Waterspout,waterspout.webp,Cosmos & Terra,6
+3,Epic,Yellowstone Geysers,yellowstone-geysers.webp,Cosmos & Terra,5
+3,Epic,Yosemite El Capitan,yosemite-el-capitan.webp,Cosmos & Terra,5
+3,Epic,Blackjack Shoe,blackjack-shoe.webp,Fortune & Folly,2
+3,Epic,Cooler Deck,cooler-deck.webp,Fortune & Folly,2
+3,Epic,Cursed Chip,cursed-chip.webp,Fortune & Folly,2
+3,Epic,Four-Leaf Clover,four-leaf-clover.webp,Fortune & Folly,2
+3,Epic,Golden Ticket,golden-ticket.webp,Fortune & Folly,2
+3,Epic,Horseshoe,horseshoe.webp,Fortune & Folly,2
+3,Epic,House Ledger,house-ledger.webp,Fortune & Folly,2
+3,Epic,Last Chip,last-chip.webp,Fortune & Folly,2
+3,Epic,Neon Sign,neon-sign.webp,Fortune & Folly,2
+3,Epic,Pit Boss Whistle,pit-boss-whistle.webp,Fortune & Folly,2
+3,Epic,Rabbit's Foot,rabbit-s-foot.webp,Fortune & Folly,2
+3,Epic,Wishing Well Coin,wishing-well-coin.webp,Fortune & Folly,2
+3,Epic,Swiss Army Knife,swiss-army-knife.webp,Garage,1
+3,Epic,Hand-Forged Chef's Knife,hand-forged-chef-s-knife.webp,Kitchen,1
+3,Epic,Archimedes,archimedes.webp,Legends & Myth,5
+3,Epic,Basilisk,basilisk.webp,Legends & Myth,5
+3,Epic,Chang'e,chang-e.webp,Legends & Myth,6
+3,Epic,Christopher Columbus,christopher-columbus.webp,Legends & Myth,5
+3,Epic,Enlil,enlil.webp,Legends & Myth,5
+3,Epic,Frigg,frigg.webp,Legends & Myth,5
+3,Epic,Geb,geb.webp,Legends & Myth,5
+3,Epic,Grace Hopper,grace-hopper.webp,Legends & Myth,6
+3,Epic,Hel,hel.webp,Legends & Myth,5
+3,Epic,Isis,isis.webp,Legends & Myth,6
+3,Epic,King David,king-david.webp,Legends & Myth,6
+3,Epic,Lugh,lugh.webp,Legends & Myth,5
+3,Epic,Marie Curie,marie-curie.webp,Legends & Myth,6
+3,Epic,Martin Luther King Jr.,martin-luther-king-jr.webp,Legends & Myth,5
+3,Epic,Mikhail Gorbachev,mikhail-gorbachev.webp,Legends & Myth,6
+3,Epic,Neil Armstrong,neil-armstrong.webp,Legends & Myth,6
+3,Epic,Ra,ra.webp,Legends & Myth,5
+3,Epic,Rama,rama.webp,Legends & Myth,5
+3,Epic,Ramesses II,ramesses-ii.webp,Legends & Myth,5
+3,Epic,Spartacus,spartacus.webp,Legends & Myth,5
+3,Epic,Sphinx,sphinx.webp,Legends & Myth,5
+3,Epic,Susanoo,susanoo.webp,Legends & Myth,6
+3,Epic,Valkyrie,valkyrie.webp,Legends & Myth,5
+3,Epic,Bullet Train,bullet-train.webp,Machines in Motion,6
+3,Epic,Cargo Container Ship,cargo-container-ship.webp,Machines in Motion,6
+3,Epic,Cement Mixer Truck,cement-mixer-truck.webp,Machines in Motion,6
+3,Epic,Covered Wagon,covered-wagon.webp,Machines in Motion,5
+3,Epic,Double-Decker Bus,double-decker-bus.webp,Machines in Motion,6
+3,Epic,Passenger Jetliner,passenger-jetliner.webp,Machines in Motion,6
+3,Epic,Plow,plow.webp,Machines in Motion,6
+3,Epic,Printing Press,printing-press.webp,Machines in Motion,5
+3,Epic,Rowboat,rowboat.webp,Machines in Motion,6
+3,Epic,Skydiving Plane,skydiving-plane.webp,Machines in Motion,5
+3,Epic,Station Wagon,station-wagon.webp,Machines in Motion,6
+3,Epic,Stunt Plane,stunt-plane.webp,Machines in Motion,5
+3,Epic,Tractor,tractor.webp,Machines in Motion,5
+3,Epic,Washing Machine,washing-machine.webp,Machines in Motion,5
+3,Epic,Weather Balloon,weather-balloon.webp,Machines in Motion,6
+3,Epic,Zeppelin,zeppelin.webp,Machines in Motion,5
+3,Epic,Grandfather's Lucky Coin,grandfather-s-lucky-coin.webp,Misc,1
+3,Epic,Leviathan Scale,leviathan-scale.webp,Tide & Tackle,6
+3,Epic,Mermaid's Comb,mermaid-s-comb.webp,Tide & Tackle,6
+4,Rare,Aardvark,aardvark.webp,Animal Kingdom,2
+4,Rare,Adelie Penguin,adelie-penguin.webp,Animal Kingdom,3
+4,Rare,African Grey Parrot,african-grey-parrot.webp,Animal Kingdom,1
+4,Rare,Alpaca,alpaca.webp,Animal Kingdom,3
+4,Rare,American Beaver,american-beaver.webp,Animal Kingdom,1
+4,Rare,American Bison,american-bison.webp,Animal Kingdom,3
+4,Rare,American Bullfrog,american-bullfrog.webp,Animal Kingdom,2
+4,Rare,American Crow,american-crow.webp,Animal Kingdom,3
+4,Rare,American Flamingo,american-flamingo.webp,Animal Kingdom,3
+4,Rare,American Kestrel,american-kestrel.webp,Animal Kingdom,1
+4,Rare,American Robin,american-robin.webp,Animal Kingdom,3
+4,Rare,American Toad,american-toad.webp,Animal Kingdom,1
+4,Rare,Andean Condor,andean-condor.webp,Animal Kingdom,3
+4,Rare,Angelfish,angelfish.webp,Animal Kingdom,2
+4,Rare,Anglerfish,anglerfish.webp,Animal Kingdom,9
+4,Rare,Anna's Hummingbird,anna-s-hummingbird.webp,Animal Kingdom,1
+4,Rare,Aphid,aphid.webp,Animal Kingdom,3
+4,Rare,Arctic Fox,arctic-fox.webp,Animal Kingdom,2
+4,Rare,Asian Elephant,asian-elephant.webp,Animal Kingdom,2
+4,Rare,Atlantic Puffin,atlantic-puffin.webp,Animal Kingdom,3
+4,Rare,Atlantic Salmon,atlantic-salmon.webp,Animal Kingdom,1
+4,Rare,Axolotl,axolotl.webp,Animal Kingdom,1
+4,Rare,Bactrian Camel,bactrian-camel.webp,Animal Kingdom,1
+4,Rare,Bald Eagle,bald-eagle.webp,Animal Kingdom,1
+4,Rare,Ball Python,ball-python.webp,Animal Kingdom,1
+4,Rare,Barn Owl,barn-owl.webp,Animal Kingdom,1
+4,Rare,Belted Kingfisher,belted-kingfisher.webp,Animal Kingdom,4
+4,Rare,Beluga Whale,beluga-whale.webp,Animal Kingdom,4
+4,Rare,Black Bear,black-bear.webp,Animal Kingdom,1
+4,Rare,Black Widow Spider,black-widow-spider.webp,Animal Kingdom,3
+4,Rare,Black-Capped Chickadee,black-capped-chickadee.webp,Animal Kingdom,1
+4,Rare,Blue Jay,blue-jay.webp,Animal Kingdom,1
+4,Rare,Blue Marlin,blue-marlin.webp,Animal Kingdom,3
+4,Rare,Blue Whale,blue-whale.webp,Animal Kingdom,3
+4,Rare,Blue-Tongued Skink,blue-tongued-skink.webp,Animal Kingdom,1
+4,Rare,Boa Constrictor,boa-constrictor.webp,Animal Kingdom,1
+4,Rare,Bobcat,bobcat.webp,Animal Kingdom,2
+4,Rare,Bonobo,bonobo.webp,Animal Kingdom,1
+4,Rare,Bottlenose Dolphin,bottlenose-dolphin.webp,Animal Kingdom,1
+4,Rare,Brown Pelican,brown-pelican.webp,Animal Kingdom,3
+4,Rare,Budgerigar,budgerigar.webp,Animal Kingdom,1
+4,Rare,Canada Goose,canada-goose.webp,Animal Kingdom,1
+4,Rare,Capybara,capybara.webp,Animal Kingdom,1
+4,Rare,Carpenter Ant,carpenter-ant.webp,Animal Kingdom,2
+4,Rare,Cassowary,cassowary.webp,Animal Kingdom,1
+4,Rare,Catfish,catfish.webp,Animal Kingdom,3
+4,Rare,Chambered Nautilus,chambered-nautilus.webp,Animal Kingdom,1
+4,Rare,Cheetah,cheetah.webp,Animal Kingdom,3
+4,Rare,Chimpanzee,chimpanzee.webp,Animal Kingdom,1
+4,Rare,Chipmunk,chipmunk.webp,Animal Kingdom,3
+4,Rare,Clownfish,clownfish.webp,Animal Kingdom,1
+4,Rare,Cockatiel,cockatiel.webp,Animal Kingdom,1
+4,Rare,Cockroach,cockroach.webp,Animal Kingdom,1
+4,Rare,Common Loon,common-loon.webp,Animal Kingdom,1
+4,Rare,Common Octopus,common-octopus.webp,Animal Kingdom,1
+4,Rare,Common Raven,common-raven.webp,Animal Kingdom,3
+4,Rare,Common Snapping Turtle,common-snapping-turtle.webp,Animal Kingdom,1
+4,Rare,Copperhead,copperhead.webp,Animal Kingdom,1
+4,Rare,Coral Polyp,coral-polyp.webp,Animal Kingdom,1
+4,Rare,Cottonmouth,cottonmouth.webp,Animal Kingdom,4
+4,Rare,Cougar,cougar.webp,Animal Kingdom,1
+4,Rare,Coyote,coyote.webp,Animal Kingdom,1
+4,Rare,Cuttlefish,cuttlefish.webp,Animal Kingdom,1
+4,Rare,Damselfly,damselfly.webp,Animal Kingdom,1
+4,Rare,Double-Crested Cormorant,double-crested-cormorant.webp,Animal Kingdom,2
+4,Rare,Downy Woodpecker,downy-woodpecker.webp,Animal Kingdom,2
+4,Rare,Dragonfly,dragonfly.webp,Animal Kingdom,1
+4,Rare,Dromedary Camel,dromedary-camel.webp,Animal Kingdom,1
+4,Rare,Dung Beetle,dung-beetle.webp,Animal Kingdom,3
+4,Rare,Earwig,earwig.webp,Animal Kingdom,2
+4,Rare,Eastern Box Turtle,eastern-box-turtle.webp,Animal Kingdom,1
+4,Rare,Eastern Newt,eastern-newt.webp,Animal Kingdom,1
+4,Rare,Echidna,echidna.webp,Animal Kingdom,1
+4,Rare,Elk,elk.webp,Animal Kingdom,3
+4,Rare,Emperor Penguin,emperor-penguin.webp,Animal Kingdom,2
+4,Rare,Emperor Scorpion,emperor-scorpion.webp,Animal Kingdom,2
+4,Rare,Emu,emu.webp,Animal Kingdom,2
+4,Rare,Eurasian Hoopoe,eurasian-hoopoe.webp,Animal Kingdom,1
+4,Rare,European Hedgehog,european-hedgehog.webp,Animal Kingdom,2
+4,Rare,European Starling,european-starling.webp,Animal Kingdom,2
+4,Rare,Fennec Fox,fennec-fox.webp,Animal Kingdom,2
+4,Rare,Field Cricket,field-cricket.webp,Animal Kingdom,4
+4,Rare,Fire Ant,fire-ant.webp,Animal Kingdom,4
+4,Rare,Fire Salamander,fire-salamander.webp,Animal Kingdom,3
+4,Rare,Firefly,firefly.webp,Animal Kingdom,2
+4,Rare,Galapagos Tortoise,galapagos-tortoise.webp,Animal Kingdom,4
+4,Rare,Garter Snake,garter-snake.webp,Animal Kingdom,2
+4,Rare,Giant Anteater,giant-anteater.webp,Animal Kingdom,3
+4,Rare,Giant Panda,giant-panda.webp,Animal Kingdom,2
+4,Rare,Giant Squid,giant-squid.webp,Animal Kingdom,1
+4,Rare,Gila Monster,gila-monster.webp,Animal Kingdom,3
+4,Rare,Golden Eagle,golden-eagle.webp,Animal Kingdom,4
+4,Rare,Goldfish,goldfish.webp,Animal Kingdom,1
+4,Rare,Grasshopper,grasshopper.webp,Animal Kingdom,1
+4,Rare,Gray Wolf,gray-wolf.webp,Animal Kingdom,1
+4,Rare,Great Blue Heron,great-blue-heron.webp,Animal Kingdom,3
+4,Rare,Great Horned Owl,great-horned-owl.webp,Animal Kingdom,1
+4,Rare,Great White Shark,great-white-shark.webp,Animal Kingdom,9
+4,Rare,Green Anaconda,green-anaconda.webp,Animal Kingdom,2
+4,Rare,Green Iguana,green-iguana.webp,Animal Kingdom,1
+4,Rare,Green Sea Turtle,green-sea-turtle.webp,Animal Kingdom,1
+4,Rare,Groundhog,groundhog.webp,Animal Kingdom,2
+4,Rare,Hammerhead Shark,hammerhead-shark.webp,Animal Kingdom,1
+4,Rare,Harbor Seal,harbor-seal.webp,Animal Kingdom,1
+4,Rare,Hermit Crab,hermit-crab.webp,Animal Kingdom,1
+4,Rare,Honeybee,honeybee.webp,Animal Kingdom,1
+4,Rare,Horned Lizard,horned-lizard.webp,Animal Kingdom,3
+4,Rare,House Centipede,house-centipede.webp,Animal Kingdom,2
+4,Rare,House Sparrow,house-sparrow.webp,Animal Kingdom,3
+4,Rare,Humpback Whale,humpback-whale.webp,Animal Kingdom,1
+4,Rare,Jaguar,jaguar.webp,Animal Kingdom,1
+4,Rare,Jellyfish,jellyfish.webp,Animal Kingdom,1
+4,Rare,Katydid,katydid.webp,Animal Kingdom,3
+4,Rare,King Cobra,king-cobra.webp,Animal Kingdom,2
+4,Rare,King Penguin,king-penguin.webp,Animal Kingdom,3
+4,Rare,Kiwi,kiwi.webp,Animal Kingdom,3
+4,Rare,Koala,koala.webp,Animal Kingdom,1
+4,Rare,Koi,koi.webp,Animal Kingdom,1
+4,Rare,Komodo Dragon,komodo-dragon.webp,Animal Kingdom,2
+4,Rare,Kookaburra,kookaburra.webp,Animal Kingdom,1
+4,Rare,Ladybug,ladybug.webp,Animal Kingdom,1
+4,Rare,Leaf Insect,leaf-insect.webp,Animal Kingdom,3
+4,Rare,Lionfish,lionfish.webp,Animal Kingdom,2
+4,Rare,Lobster,lobster.webp,Animal Kingdom,3
+4,Rare,Loggerhead Sea Turtle,loggerhead-sea-turtle.webp,Animal Kingdom,1
+4,Rare,Luna Moth,luna-moth.webp,Animal Kingdom,1
+4,Rare,Lynx,lynx.webp,Animal Kingdom,1
+4,Rare,Mallard Duck,mallard-duck.webp,Animal Kingdom,1
+4,Rare,Meerkat,meerkat.webp,Animal Kingdom,1
+4,Rare,Millipede,millipede.webp,Animal Kingdom,1
+4,Rare,Monarch Butterfly,monarch-butterfly.webp,Animal Kingdom,1
+4,Rare,Mongoose,mongoose.webp,Animal Kingdom,1
+4,Rare,Moray Eel,moray-eel.webp,Animal Kingdom,3
+4,Rare,Mourning Dove,mourning-dove.webp,Animal Kingdom,3
+4,Rare,Nile Crocodile,nile-crocodile.webp,Animal Kingdom,2
+4,Rare,Nine-Banded Armadillo,nine-banded-armadillo.webp,Animal Kingdom,3
+4,Rare,Orangutan,orangutan.webp,Animal Kingdom,1
+4,Rare,Orca,orca.webp,Animal Kingdom,1
+4,Rare,Osprey,osprey.webp,Animal Kingdom,2
+4,Rare,Ostrich,ostrich.webp,Animal Kingdom,3
+4,Rare,Peacock,peacock.webp,Animal Kingdom,3
+4,Rare,Peregrine Falcon,peregrine-falcon.webp,Animal Kingdom,2
+4,Rare,Piranha,piranha.webp,Animal Kingdom,2
+4,Rare,Plains Zebra,plains-zebra.webp,Animal Kingdom,3
+4,Rare,Poison Dart Frog,poison-dart-frog.webp,Animal Kingdom,2
+4,Rare,Polar Bear,polar-bear.webp,Animal Kingdom,1
+4,Rare,Porcupine,porcupine.webp,Animal Kingdom,3
+4,Rare,Prairie Dog,prairie-dog.webp,Animal Kingdom,1
+4,Rare,Praying Mantis,praying-mantis.webp,Animal Kingdom,4
+4,Rare,Pufferfish,pufferfish.webp,Animal Kingdom,1
+4,Rare,Raccoon,raccoon.webp,Animal Kingdom,1
+4,Rare,Rainbow Trout,rainbow-trout.webp,Animal Kingdom,1
+4,Rare,Red Fox,red-fox.webp,Animal Kingdom,1
+4,Rare,Red Kangaroo,red-kangaroo.webp,Animal Kingdom,1
+4,Rare,Red Panda,red-panda.webp,Animal Kingdom,3
+4,Rare,Red-Eyed Tree Frog,red-eyed-tree-frog.webp,Animal Kingdom,1
+4,Rare,Red-Tailed Hawk,red-tailed-hawk.webp,Animal Kingdom,1
+4,Rare,Reindeer,reindeer.webp,Animal Kingdom,1
+4,Rare,Rhinoceros Beetle,rhinoceros-beetle.webp,Animal Kingdom,1
+4,Rare,Ring-Necked Pheasant,ring-necked-pheasant.webp,Animal Kingdom,3
+4,Rare,River Otter,river-otter.webp,Animal Kingdom,1
+4,Rare,Roadrunner,roadrunner.webp,Animal Kingdom,1
+4,Rare,Roseate Spoonbill,roseate-spoonbill.webp,Animal Kingdom,4
+4,Rare,Ruby-Throated Hummingbird,ruby-throated-hummingbird.webp,Animal Kingdom,3
+4,Rare,Saltwater Crocodile,saltwater-crocodile.webp,Animal Kingdom,2
+4,Rare,Sandhill Crane,sandhill-crane.webp,Animal Kingdom,1
+4,Rare,Scarlet Ibis,scarlet-ibis.webp,Animal Kingdom,1
+4,Rare,Scarlet Macaw,scarlet-macaw.webp,Animal Kingdom,1
+4,Rare,Sea Anemone,sea-anemone.webp,Animal Kingdom,2
+4,Rare,Sea Cucumber,sea-cucumber.webp,Animal Kingdom,4
+4,Rare,Sea Lion,sea-lion.webp,Animal Kingdom,3
+4,Rare,Sea Otter,sea-otter.webp,Animal Kingdom,3
+4,Rare,Sea Urchin,sea-urchin.webp,Animal Kingdom,1
+4,Rare,Seahorse,seahorse.webp,Animal Kingdom,1
+4,Rare,Shrimp,shrimp.webp,Animal Kingdom,1
+4,Rare,Silkworm Moth,silkworm-moth.webp,Animal Kingdom,3
+4,Rare,Sloth Bear,sloth-bear.webp,Animal Kingdom,1
+4,Rare,Snowy Egret,snowy-egret.webp,Animal Kingdom,1
+4,Rare,Snowy Owl,snowy-owl.webp,Animal Kingdom,2
+4,Rare,Sperm Whale,sperm-whale.webp,Animal Kingdom,1
+4,Rare,Spotted Hyena,spotted-hyena.webp,Animal Kingdom,1
+4,Rare,Stag Beetle,stag-beetle.webp,Animal Kingdom,1
+4,Rare,Starfish,starfish.webp,Animal Kingdom,1
+4,Rare,Stick Insect,stick-insect.webp,Animal Kingdom,2
+4,Rare,Stingray,stingray.webp,Animal Kingdom,1
+4,Rare,Striped Hyena,striped-hyena.webp,Animal Kingdom,4
+4,Rare,Sturgeon,sturgeon.webp,Animal Kingdom,1
+4,Rare,Sun Bear,sun-bear.webp,Animal Kingdom,3
+4,Rare,Superb Lyrebird,superb-lyrebird.webp,Animal Kingdom,3
+4,Rare,Swordfish,swordfish.webp,Animal Kingdom,2
+4,Rare,Tarantula,tarantula.webp,Animal Kingdom,3
+4,Rare,Tasmanian Devil,tasmanian-devil.webp,Animal Kingdom,3
+4,Rare,Termite,termite.webp,Animal Kingdom,1
+4,Rare,Thorny Devil,thorny-devil.webp,Animal Kingdom,3
+4,Rare,Tiger,tiger.webp,Animal Kingdom,1
+4,Rare,Tiger Salamander,tiger-salamander.webp,Animal Kingdom,3
+4,Rare,Tiger Shark,tiger-shark.webp,Animal Kingdom,3
+4,Rare,Tiger Swallowtail Butterfly,tiger-swallowtail-butterfly.webp,Animal Kingdom,1
+4,Rare,Timber Rattlesnake,timber-rattlesnake.webp,Animal Kingdom,2
+4,Rare,Toco Toucan,toco-toucan.webp,Animal Kingdom,3
+4,Rare,Trumpeter Swan,trumpeter-swan.webp,Animal Kingdom,1
+4,Rare,Turkey Vulture,turkey-vulture.webp,Animal Kingdom,2
+4,Rare,Veiled Chameleon,veiled-chameleon.webp,Animal Kingdom,1
+4,Rare,Walking Stick,walking-stick.webp,Animal Kingdom,3
+4,Rare,Walrus,walrus.webp,Animal Kingdom,1
+4,Rare,Water Strider,water-strider.webp,Animal Kingdom,2
+4,Rare,Weevil,weevil.webp,Animal Kingdom,1
+4,Rare,West Indian Manatee,west-indian-manatee.webp,Animal Kingdom,4
+4,Rare,Western Gorilla,western-gorilla.webp,Animal Kingdom,2
+4,Rare,Whale Shark,whale-shark.webp,Animal Kingdom,1
+4,Rare,White Stork,white-stork.webp,Animal Kingdom,4
+4,Rare,Whooping Crane,whooping-crane.webp,Animal Kingdom,1
+4,Rare,Wild Turkey,wild-turkey.webp,Animal Kingdom,3
+4,Rare,Wolf Spider,wolf-spider.webp,Animal Kingdom,2
+4,Rare,Wombat,wombat.webp,Animal Kingdom,1
+4,Rare,Yellow-Bellied Sea Snake,yellow-bellied-sea-snake.webp,Animal Kingdom,1
+4,Rare,Antique Shaving Brush,antique-shaving-brush.webp,Bathroom,1
+4,Rare,Straight Razor,straight-razor.webp,Bathroom,1
+4,Rare,Silk Scarf,silk-scarf.webp,Clothing,1
+4,Rare,Vintage Denim Jacket,vintage-denim-jacket.webp,Clothing,1
+4,Rare,Agate,agate.webp,Cosmos & Terra,2
+4,Rare,Aldebaran,aldebaran.webp,Cosmos & Terra,1
+4,Rare,Alpha Centauri,alpha-centauri.webp,Cosmos & Terra,1
+4,Rare,Amazon Rainforest,amazon-rainforest.webp,Cosmos & Terra,3
+4,Rare,Amethyst,amethyst.webp,Cosmos & Terra,1
+4,Rare,Angkor Wat,angkor-wat.webp,Cosmos & Terra,3
+4,Rare,Antarctic Ice Shelf,antarctic-ice-shelf.webp,Cosmos & Terra,2
+4,Rare,Antares,antares.webp,Cosmos & Terra,3
+4,Rare,Aquamarine,aquamarine.webp,Cosmos & Terra,3
+4,Rare,Aurora Borealis,aurora-borealis.webp,Cosmos & Terra,1
+4,Rare,Avalanche,avalanche.webp,Cosmos & Terra,3
+4,Rare,Basalt,basalt.webp,Cosmos & Terra,3
+4,Rare,Betelgeuse,betelgeuse.webp,Cosmos & Terra,3
+4,Rare,Big Dipper,big-dipper.webp,Cosmos & Terra,4
+4,Rare,Blizzard,blizzard.webp,Cosmos & Terra,1
+4,Rare,Blue Lagoon Iceland,blue-lagoon-iceland.webp,Cosmos & Terra,1
+4,Rare,Bryce Canyon Hoodoos,bryce-canyon-hoodoos.webp,Cosmos & Terra,1
+4,Rare,Buckingham Palace,buckingham-palace.webp,Cosmos & Terra,1
+4,Rare,Burj Khalifa,burj-khalifa.webp,Cosmos & Terra,4
+4,Rare,Ceres,ceres.webp,Cosmos & Terra,2
+4,Rare,Chichen Itza,chichen-itza.webp,Cosmos & Terra,3
+4,Rare,Citrine,citrine.webp,Cosmos & Terra,1
+4,Rare,Cliffs of Moher,cliffs-of-moher.webp,Cosmos & Terra,2
+4,Rare,Colosseum,colosseum.webp,Cosmos & Terra,1
+4,Rare,Copper Ore,copper-ore.webp,Cosmos & Terra,1
+4,Rare,Crab Nebula,crab-nebula.webp,Cosmos & Terra,4
+4,Rare,Death Valley,death-valley.webp,Cosmos & Terra,3
+4,Rare,Deimos,deimos.webp,Cosmos & Terra,1
+4,Rare,Diamond,diamond.webp,Cosmos & Terra,1
+4,Rare,Dust Devil,dust-devil.webp,Cosmos & Terra,2
+4,Rare,Earth,earth.webp,Cosmos & Terra,1
+4,Rare,Eiffel Tower,eiffel-tower.webp,Cosmos & Terra,1
+4,Rare,Emerald,emerald.webp,Cosmos & Terra,1
+4,Rare,Empire State Building,empire-state-building.webp,Cosmos & Terra,4
+4,Rare,Fog Bank,fog-bank.webp,Cosmos & Terra,1
+4,Rare,Forbidden City,forbidden-city.webp,Cosmos & Terra,3
+4,Rare,Garnet,garnet.webp,Cosmos & Terra,2
+4,Rare,Geyser,geyser.webp,Cosmos & Terra,1
+4,Rare,Giant's Causeway,giant-s-causeway.webp,Cosmos & Terra,3
+4,Rare,Glacier,glacier.webp,Cosmos & Terra,3
+4,Rare,Gold Nugget,gold-nugget.webp,Cosmos & Terra,2
+4,Rare,Golden Gate Bridge,golden-gate-bridge.webp,Cosmos & Terra,1
+4,Rare,Grand Canyon,grand-canyon.webp,Cosmos & Terra,1
+4,Rare,Granite,granite.webp,Cosmos & Terra,1
+4,Rare,Great Barrier Reef,great-barrier-reef.webp,Cosmos & Terra,1
+4,Rare,Hailstorm,hailstorm.webp,Cosmos & Terra,1
+4,Rare,Halley's Comet,halley-s-comet.webp,Cosmos & Terra,1
+4,Rare,Hollywood Sign,hollywood-sign.webp,Cosmos & Terra,1
+4,Rare,Hurricane,hurricane.webp,Cosmos & Terra,1
+4,Rare,Iceberg,iceberg.webp,Cosmos & Terra,1
+4,Rare,Iguazu Falls,iguazu-falls.webp,Cosmos & Terra,1
+4,Rare,Io,io.webp,Cosmos & Terra,1
+4,Rare,Iron Ore,iron-ore.webp,Cosmos & Terra,2
+4,Rare,Jade,jade.webp,Cosmos & Terra,3
+4,Rare,Jupiter,jupiter.webp,Cosmos & Terra,1
+4,Rare,Lake Baikal,lake-baikal.webp,Cosmos & Terra,3
+4,Rare,Leaning Tower of Pisa,leaning-tower-of-pisa.webp,Cosmos & Terra,4
+4,Rare,Lightning Bolt,lightning-bolt.webp,Cosmos & Terra,2
+4,Rare,Limestone,limestone.webp,Cosmos & Terra,2
+4,Rare,Lunar Eclipse,lunar-eclipse.webp,Cosmos & Terra,1
+4,Rare,Machu Picchu,machu-picchu.webp,Cosmos & Terra,2
+4,Rare,Malachite,malachite.webp,Cosmos & Terra,1
+4,Rare,Marble,marble.webp,Cosmos & Terra,2
+4,Rare,Matterhorn,matterhorn.webp,Cosmos & Terra,3
+4,Rare,Mercury,mercury.webp,Cosmos & Terra,3
+4,Rare,Meteor Shower,meteor-shower.webp,Cosmos & Terra,1
+4,Rare,Meteorite,meteorite.webp,Cosmos & Terra,2
+4,Rare,Monument Valley,monument-valley.webp,Cosmos & Terra,2
+4,Rare,Moonstone,moonstone.webp,Cosmos & Terra,1
+4,Rare,Mount Everest,mount-everest.webp,Cosmos & Terra,1
+4,Rare,Mount Fuji,mount-fuji.webp,Cosmos & Terra,4
+4,Rare,Mount Kilimanjaro,mount-kilimanjaro.webp,Cosmos & Terra,1
+4,Rare,Mount Rushmore,mount-rushmore.webp,Cosmos & Terra,3
+4,Rare,Neptune,neptune.webp,Cosmos & Terra,1
+4,Rare,Neuschwanstein Castle,neuschwanstein-castle.webp,Cosmos & Terra,4
+4,Rare,Niagara Falls,niagara-falls.webp,Cosmos & Terra,1
+4,Rare,Notre-Dame Cathedral,notre-dame-cathedral.webp,Cosmos & Terra,1
+4,Rare,Obsidian,obsidian.webp,Cosmos & Terra,1
+4,Rare,Onyx,onyx.webp,Cosmos & Terra,4
+4,Rare,Opal,opal.webp,Cosmos & Terra,3
+4,Rare,Orion Nebula,orion-nebula.webp,Cosmos & Terra,1
+4,Rare,Palace of Versailles,palace-of-versailles.webp,Cosmos & Terra,3
+4,Rare,Pearl,pearl.webp,Cosmos & Terra,1
+4,Rare,Peridot,peridot.webp,Cosmos & Terra,3
+4,Rare,Petra,petra.webp,Cosmos & Terra,2
+4,Rare,Phobos,phobos.webp,Cosmos & Terra,1
+4,Rare,Pleiades Cluster,pleiades-cluster.webp,Cosmos & Terra,1
+4,Rare,Pluto,pluto.webp,Cosmos & Terra,1
+4,Rare,Polaris,polaris.webp,Cosmos & Terra,4
+4,Rare,Proxima Centauri,proxima-centauri.webp,Cosmos & Terra,3
+4,Rare,Pyrite,pyrite.webp,Cosmos & Terra,1
+4,Rare,Rainbow,rainbow.webp,Cosmos & Terra,1
+4,Rare,Redwood Forest,redwood-forest.webp,Cosmos & Terra,1
+4,Rare,Ring Nebula,ring-nebula.webp,Cosmos & Terra,1
+4,Rare,Sagrada Familia,sagrada-familia.webp,Cosmos & Terra,1
+4,Rare,Sahara Desert,sahara-desert.webp,Cosmos & Terra,2
+4,Rare,Salar de Uyuni,salar-de-uyuni.webp,Cosmos & Terra,1
+4,Rare,Sandstorm,sandstorm.webp,Cosmos & Terra,3
+4,Rare,Saturn,saturn.webp,Cosmos & Terra,1
+4,Rare,Silver Ore,silver-ore.webp,Cosmos & Terra,1
+4,Rare,Sinkhole,sinkhole.webp,Cosmos & Terra,1
+4,Rare,Sirius,sirius.webp,Cosmos & Terra,1
+4,Rare,Slate,slate.webp,Cosmos & Terra,1
+4,Rare,Snowflake,snowflake.webp,Cosmos & Terra,1
+4,Rare,Solar Eclipse,solar-eclipse.webp,Cosmos & Terra,1
+4,Rare,Southern Cross,southern-cross.webp,Cosmos & Terra,3
+4,Rare,Sphinx of Giza,sphinx-of-giza.webp,Cosmos & Terra,2
+4,Rare,Statue of Liberty,statue-of-liberty.webp,Cosmos & Terra,1
+4,Rare,Sundog,sundog.webp,Cosmos & Terra,1
+4,Rare,Sunspot,sunspot.webp,Cosmos & Terra,3
+4,Rare,Sydney Opera House,sydney-opera-house.webp,Cosmos & Terra,1
+4,Rare,Table Mountain,table-mountain.webp,Cosmos & Terra,2
+4,Rare,Taj Mahal,taj-mahal.webp,Cosmos & Terra,3
+4,Rare,The Kremlin,the-kremlin.webp,Cosmos & Terra,4
+4,Rare,The Milky Way,the-milky-way.webp,Cosmos & Terra,1
+4,Rare,The Moon,the-moon.webp,Cosmos & Terra,1
+4,Rare,The Sun,the-sun.webp,Cosmos & Terra,1
+4,Rare,Thundercloud,thundercloud.webp,Cosmos & Terra,4
+4,Rare,Titan,titan.webp,Cosmos & Terra,3
+4,Rare,Topaz,topaz.webp,Cosmos & Terra,2
+4,Rare,Triton,triton.webp,Cosmos & Terra,2
+4,Rare,Tsunami Wave,tsunami-wave.webp,Cosmos & Terra,1
+4,Rare,Turquoise,turquoise.webp,Cosmos & Terra,2
+4,Rare,Uluru,uluru.webp,Cosmos & Terra,3
+4,Rare,Uranus,uranus.webp,Cosmos & Terra,3
+4,Rare,Victoria Falls,victoria-falls.webp,Cosmos & Terra,1
+4,Rare,Volcanic Eruption,volcanic-eruption.webp,Cosmos & Terra,3
+4,Rare,Whirlpool Galaxy,whirlpool-galaxy.webp,Cosmos & Terra,1
+4,Rare,White Cliffs of Dover,white-cliffs-of-dover.webp,Cosmos & Terra,2
+4,Rare,Zhangjiajie Cliffs,zhangjiajie-cliffs.webp,Cosmos & Terra,3
+4,Rare,Cassette Walkman,cassette-walkman.webp,Electronics,1
+4,Rare,Old Nokia Phone,old-nokia-phone.webp,Electronics,1
+4,Rare,Ace of Spades,ace-of-spades.webp,Fortune & Folly,1
+4,Rare,Beckoning Cat,beckoning-cat.webp,Fortune & Folly,1
+4,Rare,Bingo Dauber,bingo-dauber.webp,Fortune & Folly,1
+4,Rare,Black Cat,black-cat.webp,Fortune & Folly,1
+4,Rare,Brass Talisman,brass-talisman.webp,Fortune & Folly,1
+4,Rare,Card Shoe,card-shoe.webp,Fortune & Folly,1
+4,Rare,Cracked Mirror,cracked-mirror.webp,Fortune & Folly,1
+4,Rare,Craps Stick,craps-stick.webp,Fortune & Folly,1
+4,Rare,Crystal Ball,crystal-ball.webp,Fortune & Folly,1
+4,Rare,Dealer Button,dealer-button.webp,Fortune & Folly,1
+4,Rare,Dreamcatcher,dreamcatcher.webp,Fortune & Folly,1
+4,Rare,Evil Eye Bead,evil-eye-bead.webp,Fortune & Folly,1
+4,Rare,Flipped Coin,flipped-coin.webp,Fortune & Folly,1
+4,Rare,Fortune Cookie,fortune-cookie.webp,Fortune & Folly,1
+4,Rare,Green Felt,green-felt.webp,Fortune & Folly,1
+4,Rare,Keno Ball,keno-ball.webp,Fortune & Folly,1
+4,Rare,Lottery Ball,lottery-ball.webp,Fortune & Folly,1
+4,Rare,Lucky Penny,lucky-penny.webp,Fortune & Folly,1
+4,Rare,Magic 8-Ball,magic-8-ball.webp,Fortune & Folly,1
+4,Rare,Poker Chip,poker-chip.webp,Fortune & Folly,1
+4,Rare,Scratch Ticket,scratch-ticket.webp,Fortune & Folly,1
+4,Rare,Shooting Star,shooting-star.webp,Fortune & Folly,2
+4,Rare,Slot Handle,slot-handle.webp,Fortune & Folly,1
+4,Rare,Spilled Salt,spilled-salt.webp,Fortune & Folly,1
+4,Rare,Tarot Deck,tarot-deck.webp,Fortune & Folly,1
+4,Rare,The Joker,the-joker.webp,Fortune & Folly,1
+4,Rare,Wishbone,wishbone.webp,Fortune & Folly,1
+4,Rare,Golden Egg Timer,golden-egg-timer.webp,Kitchen,1
+4,Rare,Abraham Lincoln,abraham-lincoln.webp,Legends & Myth,2
+4,Rare,Ada Lovelace,ada-lovelace.webp,Legends & Myth,3
+4,Rare,Akbar the Great,akbar-the-great.webp,Legends & Myth,1
+4,Rare,Alan Turing,alan-turing.webp,Legends & Myth,3
+4,Rare,Albert Einstein,albert-einstein.webp,Legends & Myth,1
+4,Rare,Alexander Fleming,alexander-fleming.webp,Legends & Myth,1
+4,Rare,Alexander the Great,alexander-the-great.webp,Legends & Myth,1
+4,Rare,Amaterasu,amaterasu.webp,Legends & Myth,1
+4,Rare,Amelia Earhart,amelia-earhart.webp,Legends & Myth,1
+4,Rare,Amerigo Vespucci,amerigo-vespucci.webp,Legends & Myth,1
+4,Rare,Anu,anu.webp,Legends & Myth,3
+4,Rare,Anubis,anubis.webp,Legends & Myth,1
+4,Rare,Aphrodite,aphrodite.webp,Legends & Myth,3
+4,Rare,Apollo,apollo.webp,Legends & Myth,1
+4,Rare,Aristotle,aristotle.webp,Legends & Myth,3
+4,Rare,Artemis,artemis.webp,Legends & Myth,4
+4,Rare,Ashoka the Great,ashoka-the-great.webp,Legends & Myth,1
+4,Rare,Athena,athena.webp,Legends & Myth,2
+4,Rare,Atlas,atlas.webp,Legends & Myth,1
+4,Rare,Banshee,banshee.webp,Legends & Myth,2
+4,Rare,Bastet,bastet.webp,Legends & Myth,2
+4,Rare,Benjamin Franklin,benjamin-franklin.webp,Legends & Myth,1
+4,Rare,Bigfoot,bigfoot.webp,Legends & Myth,3
+4,Rare,Booker T. Washington,booker-t-washington.webp,Legends & Myth,1
+4,Rare,Brahma,brahma.webp,Legends & Myth,2
+4,Rare,Brigid,brigid.webp,Legends & Myth,1
+4,Rare,Catherine the Great,catherine-the-great.webp,Legends & Myth,4
+4,Rare,Cerberus,cerberus.webp,Legends & Myth,2
+4,Rare,Cernunnos,cernunnos.webp,Legends & Myth,1
+4,Rare,Cesar Chavez,cesar-chavez.webp,Legends & Myth,3
+4,Rare,Charles Darwin,charles-darwin.webp,Legends & Myth,3
+4,Rare,Charles Lindbergh,charles-lindbergh.webp,Legends & Myth,1
+4,Rare,Chimera,chimera.webp,Legends & Myth,1
+4,Rare,Claude Monet,claude-monet.webp,Legends & Myth,1
+4,Rare,Cleopatra,cleopatra.webp,Legends & Myth,1
+4,Rare,Confucius,confucius.webp,Legends & Myth,1
+4,Rare,Constantine the Great,constantine-the-great.webp,Legends & Myth,1
+4,Rare,Cyclops,cyclops.webp,Legends & Myth,1
+4,Rare,Cyrus the Great,cyrus-the-great.webp,Legends & Myth,1
+4,Rare,Dagda,dagda.webp,Legends & Myth,1
+4,Rare,Darius the Great,darius-the-great.webp,Legends & Myth,2
+4,Rare,David Attenborough,david-attenborough.webp,Legends & Myth,1
+4,Rare,Demeter,demeter.webp,Legends & Myth,2
+4,Rare,Dionysus,dionysus.webp,Legends & Myth,1
+4,Rare,Durga,durga.webp,Legends & Myth,1
+4,Rare,Elizabeth Cady Stanton,elizabeth-cady-stanton.webp,Legends & Myth,1
+4,Rare,Emmeline Pankhurst,emmeline-pankhurst.webp,Legends & Myth,3
+4,Rare,Enki,enki.webp,Legends & Myth,3
+4,Rare,Ernest Hemingway,ernest-hemingway.webp,Legends & Myth,3
+4,Rare,Euclid,euclid.webp,Legends & Myth,3
+4,Rare,Fenrir,fenrir.webp,Legends & Myth,1
+4,Rare,Ferdinand Magellan,ferdinand-magellan.webp,Legends & Myth,1
+4,Rare,Florence Nightingale,florence-nightingale.webp,Legends & Myth,1
+4,Rare,Frank Lloyd Wright,frank-lloyd-wright.webp,Legends & Myth,3
+4,Rare,Frederick Douglass,frederick-douglass.webp,Legends & Myth,1
+4,Rare,Freya,freya.webp,Legends & Myth,2
+4,Rare,Frida Kahlo,frida-kahlo.webp,Legends & Myth,1
+4,Rare,Fujin,fujin.webp,Legends & Myth,1
+4,Rare,Fuxi,fuxi.webp,Legends & Myth,4
+4,Rare,Galileo Galilei,galileo-galilei.webp,Legends & Myth,1
+4,Rare,Ganesha,ganesha.webp,Legends & Myth,3
+4,Rare,Garuda,garuda.webp,Legends & Myth,1
+4,Rare,Genghis Khan,genghis-khan.webp,Legends & Myth,2
+4,Rare,George Washington,george-washington.webp,Legends & Myth,1
+4,Rare,Gilgamesh,gilgamesh.webp,Legends & Myth,3
+4,Rare,Golem,golem.webp,Legends & Myth,2
+4,Rare,Gregor Mendel,gregor-mendel.webp,Legends & Myth,1
+4,Rare,Griffin,griffin.webp,Legends & Myth,1
+4,Rare,Guanyin,guanyin.webp,Legends & Myth,1
+4,Rare,Gustave Eiffel,gustave-eiffel.webp,Legends & Myth,2
+4,Rare,Hades,hades.webp,Legends & Myth,1
+4,Rare,Hammurabi,hammurabi.webp,Legends & Myth,1
+4,Rare,Hannibal Barca,hannibal-barca.webp,Legends & Myth,2
+4,Rare,Hanuman,hanuman.webp,Legends & Myth,3
+4,Rare,Harriet Tubman,harriet-tubman.webp,Legends & Myth,1
+4,Rare,Hathor,hathor.webp,Legends & Myth,1
+4,Rare,Heimdall,heimdall.webp,Legends & Myth,3
+4,Rare,Henry Ford,henry-ford.webp,Legends & Myth,2
+4,Rare,Hephaestus,hephaestus.webp,Legends & Myth,1
+4,Rare,Hera,hera.webp,Legends & Myth,2
+4,Rare,Hercules,hercules.webp,Legends & Myth,1
+4,Rare,Hermes,hermes.webp,Legends & Myth,1
+4,Rare,Hestia,hestia.webp,Legends & Myth,2
+4,Rare,Hippocrates,hippocrates.webp,Legends & Myth,1
+4,Rare,Horus,horus.webp,Legends & Myth,1
+4,Rare,Huitzilopochtli,huitzilopochtli.webp,Legends & Myth,1
+4,Rare,Ibn Battuta,ibn-battuta.webp,Legends & Myth,2
+4,Rare,Icarus,icarus.webp,Legends & Myth,1
+4,Rare,Inari,inari.webp,Legends & Myth,2
+4,Rare,Indra,indra.webp,Legends & Myth,1
+4,Rare,Isaac Newton,isaac-newton.webp,Legends & Myth,1
+4,Rare,Ishtar,ishtar.webp,Legends & Myth,2
+4,Rare,Izanagi,izanagi.webp,Legends & Myth,4
+4,Rare,Izanami,izanami.webp,Legends & Myth,4
+4,Rare,Jacques Cousteau,jacques-cousteau.webp,Legends & Myth,4
+4,Rare,James Clerk Maxwell,james-clerk-maxwell.webp,Legends & Myth,2
+4,Rare,Jane Austen,jane-austen.webp,Legends & Myth,3
+4,Rare,Jane Goodall,jane-goodall.webp,Legends & Myth,3
+4,Rare,Joan of Arc,joan-of-arc.webp,Legends & Myth,1
+4,Rare,Johann Sebastian Bach,johann-sebastian-bach.webp,Legends & Myth,1
+4,Rare,Johannes Kepler,johannes-kepler.webp,Legends & Myth,2
+4,Rare,Jormungandr,jormungandr.webp,Legends & Myth,1
+4,Rare,Jose de San Martin,jose-de-san-martin.webp,Legends & Myth,1
+4,Rare,Julius Caesar,julius-caesar.webp,Legends & Myth,2
+4,Rare,Kali,kali.webp,Legends & Myth,2
+4,Rare,Kappa,kappa.webp,Legends & Myth,1
+4,Rare,King Henry VIII,king-henry-viii.webp,Legends & Myth,1
+4,Rare,King Solomon,king-solomon.webp,Legends & Myth,1
+4,Rare,Kitsune,kitsune.webp,Legends & Myth,3
+4,Rare,Kraken,kraken.webp,Legends & Myth,1
+4,Rare,Krishna,krishna.webp,Legends & Myth,2
+4,Rare,Kukulkan,kukulkan.webp,Legends & Myth,3
+4,Rare,Lakshmi,lakshmi.webp,Legends & Myth,1
+4,Rare,Leif Erikson,leif-erikson.webp,Legends & Myth,1
+4,Rare,Leonardo da Vinci,leonardo-da-vinci.webp,Legends & Myth,1
+4,Rare,Leprechaun,leprechaun.webp,Legends & Myth,3
+4,Rare,Loch Ness Monster,loch-ness-monster.webp,Legends & Myth,2
+4,Rare,Loki,loki.webp,Legends & Myth,1
+4,Rare,Louis Pasteur,louis-pasteur.webp,Legends & Myth,1
+4,Rare,Ludwig van Beethoven,ludwig-van-beethoven.webp,Legends & Myth,1
+4,Rare,Ma'at,ma-at.webp,Legends & Myth,3
+4,Rare,Mahatma Gandhi,mahatma-gandhi.webp,Legends & Myth,1
+4,Rare,Malcolm X,malcolm-x.webp,Legends & Myth,3
+4,Rare,Marco Polo,marco-polo.webp,Legends & Myth,1
+4,Rare,Marcus Aurelius,marcus-aurelius.webp,Legends & Myth,3
+4,Rare,Marduk,marduk.webp,Legends & Myth,1
+4,Rare,Mark Twain,mark-twain.webp,Legends & Myth,1
+4,Rare,Martin Luther,martin-luther.webp,Legends & Myth,3
+4,Rare,Medusa,medusa.webp,Legends & Myth,1
+4,Rare,Mermaid,mermaid.webp,Legends & Myth,1
+4,Rare,Michael Faraday,michael-faraday.webp,Legends & Myth,4
+4,Rare,Michelangelo,michelangelo.webp,Legends & Myth,1
+4,Rare,Minotaur,minotaur.webp,Legends & Myth,2
+4,Rare,Naga Serpent,naga-serpent.webp,Legends & Myth,2
+4,Rare,Napoleon Bonaparte,napoleon-bonaparte.webp,Legends & Myth,4
+4,Rare,Nebuchadnezzar II,nebuchadnezzar-ii.webp,Legends & Myth,4
+4,Rare,Nelson Mandela,nelson-mandela.webp,Legends & Myth,3
+4,Rare,Nicolaus Copernicus,nicolaus-copernicus.webp,Legends & Myth,1
+4,Rare,Njord,njord.webp,Legends & Myth,1
+4,Rare,Nut,nut.webp,Legends & Myth,3
+4,Rare,Nuwa,nuwa.webp,Legends & Myth,2
+4,Rare,Odin,odin.webp,Legends & Myth,3
+4,Rare,Odysseus,odysseus.webp,Legends & Myth,2
+4,Rare,Oni,oni.webp,Legends & Myth,3
+4,Rare,Osiris,osiris.webp,Legends & Myth,3
+4,Rare,Otto von Bismarck,otto-von-bismarck.webp,Legends & Myth,1
+4,Rare,Pablo Picasso,pablo-picasso.webp,Legends & Myth,1
+4,Rare,Pegasus,pegasus.webp,Legends & Myth,2
+4,Rare,Persephone,persephone.webp,Legends & Myth,1
+4,Rare,Perseus,perseus.webp,Legends & Myth,2
+4,Rare,Peter the Great,peter-the-great.webp,Legends & Myth,1
+4,Rare,Phoenix,phoenix.webp,Legends & Myth,2
+4,Rare,Pixiu,pixiu.webp,Legends & Myth,1
+4,Rare,Plato,plato.webp,Legends & Myth,1
+4,Rare,Poseidon,poseidon.webp,Legends & Myth,1
+4,Rare,Ptolemy,ptolemy.webp,Legends & Myth,1
+4,Rare,Qilin,qilin.webp,Legends & Myth,1
+4,Rare,Queen Elizabeth I,queen-elizabeth-i.webp,Legends & Myth,1
+4,Rare,Queen Victoria,queen-victoria.webp,Legends & Myth,3
+4,Rare,Quetzalcoatl,quetzalcoatl.webp,Legends & Myth,1
+4,Rare,Rachel Carson,rachel-carson.webp,Legends & Myth,1
+4,Rare,Rembrandt,rembrandt.webp,Legends & Myth,1
+4,Rare,Rosa Parks,rosa-parks.webp,Legends & Myth,1
+4,Rare,Saladin,saladin.webp,Legends & Myth,3
+4,Rare,Sally Ride,sally-ride.webp,Legends & Myth,3
+4,Rare,Salvador Dali,salvador-dali.webp,Legends & Myth,1
+4,Rare,Saraswati,saraswati.webp,Legends & Myth,4
+4,Rare,Sekhmet,sekhmet.webp,Legends & Myth,2
+4,Rare,Selkie,selkie.webp,Legends & Myth,4
+4,Rare,Set,set.webp,Legends & Myth,1
+4,Rare,Shiva,shiva.webp,Legends & Myth,2
+4,Rare,Siddhartha Gautama,siddhartha-gautama.webp,Legends & Myth,3
+4,Rare,Simon Bolivar,simon-bolivar.webp,Legends & Myth,1
+4,Rare,Sir Francis Drake,sir-francis-drake.webp,Legends & Myth,1
+4,Rare,Skadi,skadi.webp,Legends & Myth,4
+4,Rare,Sobek,sobek.webp,Legends & Myth,1
+4,Rare,Socrates,socrates.webp,Legends & Myth,1
+4,Rare,Sojourner Truth,sojourner-truth.webp,Legends & Myth,1
+4,Rare,Stephen Hawking,stephen-hawking.webp,Legends & Myth,3
+4,Rare,Steve Jobs,steve-jobs.webp,Legends & Myth,2
+4,Rare,Suleiman the Magnificent,suleiman-the-magnificent.webp,Legends & Myth,1
+4,Rare,Sun Tzu,sun-tzu.webp,Legends & Myth,1
+4,Rare,Sun Wukong,sun-wukong.webp,Legends & Myth,2
+4,Rare,Tengu,tengu.webp,Legends & Myth,1
+4,Rare,Tezcatlipoca,tezcatlipoca.webp,Legends & Myth,3
+4,Rare,Thomas Aquinas,thomas-aquinas.webp,Legends & Myth,1
+4,Rare,Thomas Edison,thomas-edison.webp,Legends & Myth,3
+4,Rare,Thomas Jefferson,thomas-jefferson.webp,Legends & Myth,1
+4,Rare,Thor,thor.webp,Legends & Myth,1
+4,Rare,Thoth,thoth.webp,Legends & Myth,1
+4,Rare,Tlaloc,tlaloc.webp,Legends & Myth,1
+4,Rare,Toussaint Louverture,toussaint-louverture.webp,Legends & Myth,1
+4,Rare,Tsukuyomi,tsukuyomi.webp,Legends & Myth,3
+4,Rare,Tutankhamun,tutankhamun.webp,Legends & Myth,1
+4,Rare,Tyr,tyr.webp,Legends & Myth,1
+4,Rare,Unicorn,unicorn.webp,Legends & Myth,1
+4,Rare,Vasco da Gama,vasco-da-gama.webp,Legends & Myth,4
+4,Rare,Vincent van Gogh,vincent-van-gogh.webp,Legends & Myth,3
+4,Rare,Virginia Woolf,virginia-woolf.webp,Legends & Myth,1
+4,Rare,Vishnu,vishnu.webp,Legends & Myth,3
+4,Rare,Vladimir Lenin,vladimir-lenin.webp,Legends & Myth,1
+4,Rare,W.E.B. Du Bois,w-e-b-du-bois.webp,Legends & Myth,2
+4,Rare,Walt Disney,walt-disney.webp,Legends & Myth,3
+4,Rare,William Shakespeare,william-shakespeare.webp,Legends & Myth,2
+4,Rare,Winston Churchill,winston-churchill.webp,Legends & Myth,4
+4,Rare,Wolfgang Amadeus Mozart,wolfgang-amadeus-mozart.webp,Legends & Myth,3
+4,Rare,Wright Brothers,wright-brothers.webp,Legends & Myth,1
+4,Rare,Xochiquetzal,xochiquetzal.webp,Legends & Myth,3
+4,Rare,Yggdrasil Guardian,yggdrasil-guardian.webp,Legends & Myth,3
+4,Rare,Yuri Gagarin,yuri-gagarin.webp,Legends & Myth,1
+4,Rare,Zeus,zeus.webp,Legends & Myth,1
+4,Rare,Zheng He,zheng-he.webp,Legends & Myth,4
+4,Rare,ATM Machine,atm-machine.webp,Machines in Motion,1
+4,Rare,Adding Machine,adding-machine.webp,Machines in Motion,1
+4,Rare,Air Ambulance,air-ambulance.webp,Machines in Motion,1
+4,Rare,Air Conditioner Unit,air-conditioner-unit.webp,Machines in Motion,1
+4,Rare,Aircraft Carrier,aircraft-carrier.webp,Machines in Motion,3
+4,Rare,All-Terrain Vehicle,all-terrain-vehicle.webp,Machines in Motion,3
+4,Rare,Ambulance,ambulance.webp,Machines in Motion,1
+4,Rare,Ancient Trireme,ancient-trireme.webp,Machines in Motion,4
+4,Rare,Antique Typewriter,antique-typewriter.webp,Machines in Motion,2
+4,Rare,Armored Personnel Carrier,armored-personnel-carrier.webp,Machines in Motion,4
+4,Rare,Autogyro,autogyro.webp,Machines in Motion,1
+4,Rare,Barge,barge.webp,Machines in Motion,3
+4,Rare,Battle Tank,battle-tank.webp,Machines in Motion,1
+4,Rare,Battleship,battleship.webp,Machines in Motion,3
+4,Rare,Bicycle,bicycle.webp,Machines in Motion,1
+4,Rare,Biplane,biplane.webp,Machines in Motion,1
+4,Rare,Blast Furnace,blast-furnace.webp,Machines in Motion,1
+4,Rare,Blimp,blimp.webp,Machines in Motion,1
+4,Rare,Bomber Plane,bomber-plane.webp,Machines in Motion,2
+4,Rare,Bulldozer,bulldozer.webp,Machines in Motion,1
+4,Rare,Bumper Car,bumper-car.webp,Machines in Motion,1
+4,Rare,Bush Plane,bush-plane.webp,Machines in Motion,1
+4,Rare,Butter Churn,butter-churn.webp,Machines in Motion,4
+4,Rare,Cable Car,cable-car.webp,Machines in Motion,3
+4,Rare,Camera Drone,camera-drone.webp,Machines in Motion,3
+4,Rare,Canoe,canoe.webp,Machines in Motion,3
+4,Rare,Cargo Plane,cargo-plane.webp,Machines in Motion,1
+4,Rare,Carousel,carousel.webp,Machines in Motion,4
+4,Rare,Cash Register,cash-register.webp,Machines in Motion,4
+4,Rare,Catamaran,catamaran.webp,Machines in Motion,1
+4,Rare,Centrifuge,centrifuge.webp,Machines in Motion,4
+4,Rare,Chainsaw,chainsaw.webp,Machines in Motion,1
+4,Rare,Chariot,chariot.webp,Machines in Motion,3
+4,Rare,Coast Guard Cutter,coast-guard-cutter.webp,Machines in Motion,1
+4,Rare,Convertible Roadster,convertible-roadster.webp,Machines in Motion,1
+4,Rare,Conveyor Belt System,conveyor-belt-system.webp,Machines in Motion,1
+4,Rare,Cotton Candy Machine,cotton-candy-machine.webp,Machines in Motion,2
+4,Rare,Cotton Gin,cotton-gin.webp,Machines in Motion,1
+4,Rare,Crane Truck,crane-truck.webp,Machines in Motion,1
+4,Rare,Crop Duster,crop-duster.webp,Machines in Motion,3
+4,Rare,Cruise Liner,cruise-liner.webp,Machines in Motion,2
+4,Rare,Delivery Van,delivery-van.webp,Machines in Motion,1
+4,Rare,Diesel Locomotive,diesel-locomotive.webp,Machines in Motion,1
+4,Rare,Dirt Bike,dirt-bike.webp,Machines in Motion,3
+4,Rare,Dishwasher,dishwasher.webp,Machines in Motion,1
+4,Rare,Drag Racer,drag-racer.webp,Machines in Motion,1
+4,Rare,Dump Truck,dump-truck.webp,Machines in Motion,1
+4,Rare,Dune Buggy,dune-buggy.webp,Machines in Motion,1
+4,Rare,Elevator,elevator.webp,Machines in Motion,1
+4,Rare,Escalator,escalator.webp,Machines in Motion,4
+4,Rare,Espresso Machine,espresso-machine.webp,Machines in Motion,1
+4,Rare,Ferris Wheel,ferris-wheel.webp,Machines in Motion,1
+4,Rare,Ferry Boat,ferry-boat.webp,Machines in Motion,2
+4,Rare,Fighter Biplane,fighter-biplane.webp,Machines in Motion,3
+4,Rare,Fighter Jet,fighter-jet.webp,Machines in Motion,1
+4,Rare,Fire Engine,fire-engine.webp,Machines in Motion,1
+4,Rare,Fishing Trawler,fishing-trawler.webp,Machines in Motion,1
+4,Rare,Flying Boat,flying-boat.webp,Machines in Motion,1
+4,Rare,Food Truck,food-truck.webp,Machines in Motion,1
+4,Rare,Forklift,forklift.webp,Machines in Motion,2
+4,Rare,Formula Race Car,formula-race-car.webp,Machines in Motion,1
+4,Rare,Furnace,furnace.webp,Machines in Motion,1
+4,Rare,Galleon,galleon.webp,Machines in Motion,1
+4,Rare,Garbage Truck,garbage-truck.webp,Machines in Motion,1
+4,Rare,Generator,generator.webp,Machines in Motion,1
+4,Rare,Glider,glider.webp,Machines in Motion,1
+4,Rare,Go-Kart,go-kart.webp,Machines in Motion,1
+4,Rare,Golf Cart,golf-cart.webp,Machines in Motion,2
+4,Rare,Gondola,gondola.webp,Machines in Motion,1
+4,Rare,Grain Thresher,grain-thresher.webp,Machines in Motion,4
+4,Rare,Grandfather Clock,grandfather-clock.webp,Machines in Motion,1
+4,Rare,Hang Glider,hang-glider.webp,Machines in Motion,1
+4,Rare,Hatchback,hatchback.webp,Machines in Motion,2
+4,Rare,Hearse,hearse.webp,Machines in Motion,1
+4,Rare,Helicopter,helicopter.webp,Machines in Motion,2
+4,Rare,Horse-Drawn Carriage,horse-drawn-carriage.webp,Machines in Motion,4
+4,Rare,Hot Air Balloon,hot-air-balloon.webp,Machines in Motion,4
+4,Rare,Houseboat,houseboat.webp,Machines in Motion,1
+4,Rare,Hovercraft,hovercraft.webp,Machines in Motion,3
+4,Rare,Hydrofoil,hydrofoil.webp,Machines in Motion,3
+4,Rare,Icebreaker Ship,icebreaker-ship.webp,Machines in Motion,4
+4,Rare,Jet Ski,jet-ski.webp,Machines in Motion,3
+4,Rare,Jetpack,jetpack.webp,Machines in Motion,1
+4,Rare,Jumbo Jet,jumbo-jet.webp,Machines in Motion,1
+4,Rare,Kayak,kayak.webp,Machines in Motion,1
+4,Rare,Lawn Mower,lawn-mower.webp,Machines in Motion,1
+4,Rare,Lightship,lightship.webp,Machines in Motion,3
+4,Rare,Limousine,limousine.webp,Machines in Motion,3
+4,Rare,Lunar Lander,lunar-lander.webp,Machines in Motion,1
+4,Rare,MRI Machine,mri-machine.webp,Machines in Motion,3
+4,Rare,Mechanical Loom,mechanical-loom.webp,Machines in Motion,1
+4,Rare,Minivan,minivan.webp,Machines in Motion,3
+4,Rare,Monster Truck,monster-truck.webp,Machines in Motion,1
+4,Rare,Moped,moped.webp,Machines in Motion,1
+4,Rare,Motorcycle,motorcycle.webp,Machines in Motion,1
+4,Rare,Muscle Car,muscle-car.webp,Machines in Motion,2
+4,Rare,Oil Rig,oil-rig.webp,Machines in Motion,1
+4,Rare,Oil Tanker,oil-tanker.webp,Machines in Motion,1
+4,Rare,Ornithopter,ornithopter.webp,Machines in Motion,1
+4,Rare,Paddle Wheel Steamboat,paddle-wheel-steamboat.webp,Machines in Motion,2
+4,Rare,Particle Accelerator,particle-accelerator.webp,Machines in Motion,1
+4,Rare,Pickup Truck,pickup-truck.webp,Machines in Motion,2
+4,Rare,Pinball Machine,pinball-machine.webp,Machines in Motion,1
+4,Rare,Pirate Ship,pirate-ship.webp,Machines in Motion,3
+4,Rare,Player Piano,player-piano.webp,Machines in Motion,2
+4,Rare,Police Cruiser,police-cruiser.webp,Machines in Motion,2
+4,Rare,Popcorn Machine,popcorn-machine.webp,Machines in Motion,4
+4,Rare,Radio Telescope,radio-telescope.webp,Machines in Motion,1
+4,Rare,Raft,raft.webp,Machines in Motion,3
+4,Rare,Refrigerator,refrigerator.webp,Machines in Motion,1
+4,Rare,Research Vessel,research-vessel.webp,Machines in Motion,1
+4,Rare,Revolving Door,revolving-door.webp,Machines in Motion,2
+4,Rare,Rickshaw,rickshaw.webp,Machines in Motion,4
+4,Rare,Robotic Arm,robotic-arm.webp,Machines in Motion,1
+4,Rare,Rock Crusher,rock-crusher.webp,Machines in Motion,1
+4,Rare,Rocket,rocket.webp,Machines in Motion,1
+4,Rare,Roller Coaster,roller-coaster.webp,Machines in Motion,1
+4,Rare,Rotary Telephone,rotary-telephone.webp,Machines in Motion,1
+4,Rare,Sailboat,sailboat.webp,Machines in Motion,1
+4,Rare,Sailing Clipper Ship,sailing-clipper-ship.webp,Machines in Motion,1
+4,Rare,Satellite,satellite.webp,Machines in Motion,1
+4,Rare,School Bus,school-bus.webp,Machines in Motion,1
+4,Rare,Scooter,scooter.webp,Machines in Motion,1
+4,Rare,Seaplane,seaplane.webp,Machines in Motion,3
+4,Rare,Sedan,sedan.webp,Machines in Motion,2
+4,Rare,Semi Truck,semi-truck.webp,Machines in Motion,1
+4,Rare,Sewing Machine,sewing-machine.webp,Machines in Motion,1
+4,Rare,Sled,sled.webp,Machines in Motion,1
+4,Rare,Slot Machine,slot-machine.webp,Machines in Motion,1
+4,Rare,Snowmobile,snowmobile.webp,Machines in Motion,4
+4,Rare,Solar Panel Array,solar-panel-array.webp,Machines in Motion,1
+4,Rare,Space Probe,space-probe.webp,Machines in Motion,1
+4,Rare,Space Shuttle,space-shuttle.webp,Machines in Motion,3
+4,Rare,Spinning Wheel,spinning-wheel.webp,Machines in Motion,1
+4,Rare,Stealth Bomber,stealth-bomber.webp,Machines in Motion,1
+4,Rare,Steam Engine,steam-engine.webp,Machines in Motion,3
+4,Rare,Steam Locomotive,steam-locomotive.webp,Machines in Motion,1
+4,Rare,Stock Car,stock-car.webp,Machines in Motion,2
+4,Rare,Submarine,submarine.webp,Machines in Motion,3
+4,Rare,Supersonic Jet,supersonic-jet.webp,Machines in Motion,1
+4,Rare,Tandem Bicycle,tandem-bicycle.webp,Machines in Motion,1
+4,Rare,Tank Truck,tank-truck.webp,Machines in Motion,2
+4,Rare,Telegraph Machine,telegraph-machine.webp,Machines in Motion,2
+4,Rare,Tow Truck,tow-truck.webp,Machines in Motion,1
+4,Rare,Trolley Car,trolley-car.webp,Machines in Motion,1
+4,Rare,Tugboat,tugboat.webp,Machines in Motion,2
+4,Rare,Ultralight Aircraft,ultralight-aircraft.webp,Machines in Motion,1
+4,Rare,Unicycle,unicycle.webp,Machines in Motion,2
+4,Rare,Vending Machine,vending-machine.webp,Machines in Motion,3
+4,Rare,Viking Longship,viking-longship.webp,Machines in Motion,3
+4,Rare,Vintage Propeller Plane,vintage-propeller-plane.webp,Machines in Motion,2
+4,Rare,Water Heater,water-heater.webp,Machines in Motion,4
+4,Rare,Water Pump,water-pump.webp,Machines in Motion,3
+4,Rare,Whaling Ship,whaling-ship.webp,Machines in Motion,1
+4,Rare,Wind Tunnel,wind-tunnel.webp,Machines in Motion,1
+4,Rare,Wind Turbine,wind-turbine.webp,Machines in Motion,4
+4,Rare,Windmill,windmill.webp,Machines in Motion,1
+4,Rare,Wood Chipper,wood-chipper.webp,Machines in Motion,1
+4,Rare,X-Ray Machine,x-ray-machine.webp,Machines in Motion,2
+4,Rare,Yacht,yacht.webp,Machines in Motion,1
+4,Rare,Antique Coin,antique-coin.webp,Misc,1
+4,Rare,Four-Leaf Clover Keychain,four-leaf-clover-keychain.webp,Misc,1
+4,Rare,Kaleidoscope,kaleidoscope.webp,Misc,1
+4,Rare,Typewriter,typewriter.webp,Office,1
+4,Rare,Compass,compass.webp,Outdoor,1
+4,Rare,Barreleye,barreleye.webp,Tide & Tackle,6
+4,Rare,Blobfish,blobfish.webp,Tide & Tackle,5
+4,Rare,Captain's Compass,captain-s-compass.webp,Tide & Tackle,6
+4,Rare,Coelacanth,coelacanth.webp,Tide & Tackle,6
+4,Rare,Colossal Squid,colossal-squid.webp,Tide & Tackle,5
+4,Rare,Coral Reef,coral-reef.webp,Tide & Tackle,5
+4,Rare,Fisherman's Knot,fisherman-s-knot.webp,Tide & Tackle,6
+4,Rare,Frilled Shark,frilled-shark.webp,Tide & Tackle,6
+4,Rare,Giant Isopod,giant-isopod.webp,Tide & Tackle,5
+4,Rare,Goblin Shark,goblin-shark.webp,Tide & Tackle,6
+4,Rare,Golden Koi,golden-koi.webp,Tide & Tackle,6
+4,Rare,Gulper Eel,gulper-eel.webp,Tide & Tackle,6
+4,Rare,Hatchetfish,hatchetfish.webp,Tide & Tackle,6
+4,Rare,Kelp Forest,kelp-forest.webp,Tide & Tackle,6
+4,Rare,Lanternfish,lanternfish.webp,Tide & Tackle,5
+4,Rare,Message in a Bottle,message-in-a-bottle.webp,Tide & Tackle,5
+4,Rare,Midnight Trench,midnight-trench.webp,Tide & Tackle,6
+4,Rare,Moonlit Eel,moonlit-eel.webp,Tide & Tackle,6
+4,Rare,Oarfish,oarfish.webp,Tide & Tackle,6
+4,Rare,Ocean Sunfish,ocean-sunfish.webp,Tide & Tackle,5
+4,Rare,Old Coin Purse,old-coin-purse.webp,Tide & Tackle,6
+4,Rare,Old Man of the Lake,old-man-of-the-lake.webp,Tide & Tackle,5
+4,Rare,Pearl Oyster,pearl-oyster.webp,Tide & Tackle,6
+4,Rare,Ship's Bell,ship-s-bell.webp,Tide & Tackle,6
+4,Rare,Silverscale Leviathan,silverscale-leviathan.webp,Tide & Tackle,6
+4,Rare,Sunken Chest,sunken-chest.webp,Tide & Tackle,5
+4,Rare,Sunken Wreck,sunken-wreck.webp,Tide & Tackle,6
+4,Rare,Taimen,taimen.webp,Tide & Tackle,2
+4,Rare,The Old Lighthouse,the-old-lighthouse.webp,Tide & Tackle,6
+4,Rare,The One That Got Away,the-one-that-got-away.webp,Tide & Tackle,5
+4,Rare,Viperfish,viperfish.webp,Tide & Tackle,6

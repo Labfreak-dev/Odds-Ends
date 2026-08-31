@@ -27,16 +27,26 @@ repo chat: filenames are already correct, so shipping them is commit + push.
 """
 import argparse, base64, csv, io, json, os, pathlib, sys, time, urllib.request, urllib.error
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
 API = "https://api.x.ai/v1/images/generations"
+
+# Works from EITHER layout: the full repo (script in docs/, output to ../art)
+# or a plain folder holding just gen-art.py + art-list.csv + art-prompts.txt
+# (output to an art/ subfolder created next to them).
+HERE = pathlib.Path(__file__).resolve().parent
+if (HERE/"art-list.csv").exists():
+    DOCS, ART = HERE, HERE/"art"
+else:
+    DOCS, ART = HERE.parent/"docs", HERE.parent/"art"
+    if not (DOCS/"art-list.csv").exists():
+        sys.exit("can't find art-list.csv - put it (and art-prompts.txt) in the same folder as this script")
 
 def load_plan(wave, only, limit):
     waves = {}
-    with open(ROOT/"docs"/"art-list.csv", newline="", encoding="utf-8") as f:
+    with open(DOCS/"art-list.csv", newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             waves[row["filename"]] = int(row["wave"])
     plan = []
-    for line in open(ROOT/"docs"/"art-prompts.txt", encoding="utf-8"):
+    for line in open(DOCS/"art-prompts.txt", encoding="utf-8"):
         line = line.strip()
         if not line or line.startswith("#"): continue
         fn, prompt = [p.strip() for p in line.split("|", 1)]
@@ -93,7 +103,7 @@ def main():
 
     only = set(s.strip() for s in a.only.split(",") if s.strip()) or None
     plan = load_plan(a.wave, only, a.limit)
-    art = ROOT/"art"; art.mkdir(exist_ok=True)
+    art = ART; art.mkdir(exist_ok=True)
     todo = [(fn, p) for fn, p in plan if not (art/fn).exists()]
     print(f"{len(plan)} in scope, {len(plan)-len(todo)} already done, {len(todo)} to generate"
           f"  (~${len(todo)*0.02:.2f} at $0.02/image)")

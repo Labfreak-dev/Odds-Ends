@@ -44,7 +44,12 @@ with sync_playwright() as pw:
     pg = br.new_page(viewport={"width":430, "height":900})
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.on("console", lambda m: errs.append("console:" + m.text) if m.type == "error" else None)
+    # resource-load failures are expected here by design: the art layer PROBES
+    # art/<slug>.webp (404s on purpose until a painting lands) and calls the
+    # wiki, which sandboxes may block. The game absorbs both silently, so only
+    # real console errors count - never "Failed to load resource".
+    pg.on("console", lambda m: errs.append("console:" + m.text)
+          if m.type == "error" and "Failed to load resource" not in m.text else None)
     pg.goto(URL)
     pg.wait_for_timeout(2500)
     # start from a FRESH save: file:// localStorage persists between runs, so

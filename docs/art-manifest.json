@@ -1,0 +1,7885 @@
+{
+ "note": "one image per slug covers every listed card variant; drop files into art/<slug>.webp",
+ "images": [
+  {
+   "slug": "vacuum-tube-radio",
+   "subject": "Vacuum Tube Radio",
+   "bucket": "Mythic",
+   "category": "Electronics",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "genuine-meteorite-fragment",
+   "subject": "Genuine Meteorite Fragment",
+   "bucket": "Mythic",
+   "category": "Misc",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "giraffe",
+   "subject": "Giraffe",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "grizzly-bear",
+   "subject": "Grizzly Bear",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "snow-leopard",
+   "subject": "Snow Leopard",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "moose",
+   "subject": "Moose",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "llama",
+   "subject": "Llama",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "white-rhinoceros",
+   "subject": "White Rhinoceros",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "hippopotamus",
+   "subject": "Hippopotamus",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "betta-fish",
+   "subject": "Betta Fish",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "leopard-gecko",
+   "subject": "Leopard Gecko",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "assassin-bug",
+   "subject": "Assassin Bug",
+   "bucket": "Mythic",
+   "category": "Animal Kingdom",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "nikola-tesla",
+   "subject": "Nikola Tesla",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "susan-b-anthony",
+   "subject": "Susan B. Anthony",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "pythagoras",
+   "subject": "Pythagoras",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "dolores-huerta",
+   "subject": "Dolores Huerta",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "baldr",
+   "subject": "Baldr",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "jade-emperor",
+   "subject": "Jade Emperor",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "the-morrigan",
+   "subject": "The Morrigan",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "yeti",
+   "subject": "Yeti",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "hydra",
+   "subject": "Hydra",
+   "bucket": "Mythic",
+   "category": "Legends & Myth",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "zamboni",
+   "subject": "Zamboni",
+   "bucket": "Mythic",
+   "category": "Machines in Motion",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "speedboat",
+   "subject": "Speedboat",
+   "bucket": "Mythic",
+   "category": "Machines in Motion",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "jukebox",
+   "subject": "Jukebox",
+   "bucket": "Mythic",
+   "category": "Machines in Motion",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "3d-printer",
+   "subject": "3D Printer",
+   "bucket": "Mythic",
+   "category": "Machines in Motion",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "andromeda-galaxy",
+   "subject": "Andromeda Galaxy",
+   "bucket": "Mythic",
+   "category": "Cosmos & Terra",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "sapphire",
+   "subject": "Sapphire",
+   "bucket": "Mythic",
+   "category": "Cosmos & Terra",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "tornado",
+   "subject": "Tornado",
+   "bucket": "Mythic",
+   "category": "Cosmos & Terra",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "stonehenge",
+   "subject": "Stonehenge",
+   "bucket": "Mythic",
+   "category": "Cosmos & Terra",
+   "tier": 15,
+   "cards": 8
+  },
+  {
+   "slug": "lady-luck-s-own-coin",
+   "subject": "Lady Luck's Own Coin",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "the-unlosable-ticket",
+   "subject": "The Unlosable Ticket",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "the-dealer-s-last-card",
+   "subject": "The Dealer's Last Card",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "seventh-seven",
+   "subject": "Seventh Seven",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "the-cooler-s-deck",
+   "subject": "The Cooler's Deck",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "midnight-jackpot-bell",
+   "subject": "Midnight Jackpot Bell",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "the-bailed-out-rocket",
+   "subject": "The Bailed-Out Rocket",
+   "bucket": "Mythic",
+   "category": "Fortune & Folly",
+   "tier": 15,
+   "cards": 1
+  },
+  {
+   "slug": "kraken-s-tentacle",
+   "subject": "Kraken's Tentacle",
+   "bucket": "Mythic",
+   "category": "Tide & Tackle",
+   "tier": 15,
+   "cards": 5
+  },
+  {
+   "slug": "the-first-cast",
+   "subject": "The First Cast",
+   "bucket": "Mythic",
+   "category": "Tide & Tackle",
+   "tier": 15,
+   "cards": 5
+  },
+  {
+   "slug": "the-worldsplitter",
+   "subject": "The Worldsplitter",
+   "bucket": "Mythic",
+   "category": "Raid Gear",
+   "tier": 15,
+   "cards": 2
+  },
+  {
+   "slug": "the-cartographer-s-eye",
+   "subject": "The Cartographer's Eye",
+   "bucket": "Mythic",
+   "category": "Raid Gear",
+   "tier": 15,
+   "cards": 2
+  },
+  {
+   "slug": "gold-plated-letter-opener",
+   "subject": "Gold-Plated Letter Opener",
+   "bucket": "Legendary",
+   "category": "Office",
+   "tier": 14,
+   "cards": 1
+  },
+  {
+   "slug": "vintage-pocket-watch",
+   "subject": "Vintage Pocket Watch",
+   "bucket": "Legendary",
+   "category": "Bedroom",
+   "tier": 14,
+   "cards": 1
+  },
+  {
+   "slug": "first-gen-ipod",
+   "subject": "First-Gen iPod",
+   "bucket": "Legendary",
+   "category": "Electronics",
+   "tier": 14,
+   "cards": 1
+  },
+  {
+   "slug": "brass-telescope",
+   "subject": "Brass Telescope",
+   "bucket": "Legendary",
+   "category": "Outdoor",
+   "tier": 14,
+   "cards": 1
+  },
+  {
+   "slug": "solid-gold-paperclip",
+   "subject": "Solid Gold Paperclip",
+   "bucket": "Legendary",
+   "category": "Misc",
+   "tier": 14,
+   "cards": 1
+  },
+  {
+   "slug": "african-elephant",
+   "subject": "African Elephant",
+   "bucket": "Legendary",
+   "category": "Animal Kingdom",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "wallaby",
+   "subject": "Wallaby",
+   "bucket": "Legendary",
+   "category": "Animal Kingdom",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "wandering-albatross",
+   "subject": "Wandering Albatross",
+   "bucket": "Legendary",
+   "category": "Animal Kingdom",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "manta-ray",
+   "subject": "Manta Ray",
+   "bucket": "Legendary",
+   "category": "Animal Kingdom",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "housefly",
+   "subject": "Housefly",
+   "bucket": "Legendary",
+   "category": "Animal Kingdom",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "mosquito",
+   "subject": "Mosquito",
+   "bucket": "Legendary",
+   "category": "Animal Kingdom",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "buzz-aldrin",
+   "subject": "Buzz Aldrin",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "carl-linnaeus",
+   "subject": "Carl Linnaeus",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "ares",
+   "subject": "Ares",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "achilles",
+   "subject": "Achilles",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "prometheus",
+   "subject": "Prometheus",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "yan-wang",
+   "subject": "Yan Wang",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "zhulong",
+   "subject": "Zhulong",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "raijin",
+   "subject": "Raijin",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "dragon",
+   "subject": "Dragon",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "werewolf",
+   "subject": "Werewolf",
+   "bucket": "Legendary",
+   "category": "Legends & Myth",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "combine-harvester",
+   "subject": "Combine Harvester",
+   "bucket": "Legendary",
+   "category": "Machines in Motion",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "excavator",
+   "subject": "Excavator",
+   "bucket": "Legendary",
+   "category": "Machines in Motion",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "ice-cream-truck",
+   "subject": "Ice Cream Truck",
+   "bucket": "Legendary",
+   "category": "Machines in Motion",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "paraglider",
+   "subject": "Paraglider",
+   "bucket": "Legendary",
+   "category": "Machines in Motion",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "naval-destroyer",
+   "subject": "Naval Destroyer",
+   "bucket": "Legendary",
+   "category": "Machines in Motion",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "water-wheel",
+   "subject": "Water Wheel",
+   "bucket": "Legendary",
+   "category": "Machines in Motion",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "enceladus",
+   "subject": "Enceladus",
+   "bucket": "Legendary",
+   "category": "Cosmos & Terra",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "tourmaline",
+   "subject": "Tourmaline",
+   "bucket": "Legendary",
+   "category": "Cosmos & Terra",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "amber",
+   "subject": "Amber",
+   "bucket": "Legendary",
+   "category": "Cosmos & Terra",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "loaded-dice",
+   "subject": "Loaded Dice",
+   "bucket": "Legendary",
+   "category": "Fortune & Folly",
+   "tier": 14,
+   "cards": 2
+  },
+  {
+   "slug": "marked-card",
+   "subject": "Marked Card",
+   "bucket": "Legendary",
+   "category": "Fortune & Folly",
+   "tier": 14,
+   "cards": 2
+  },
+  {
+   "slug": "roulette-ball",
+   "subject": "Roulette Ball",
+   "bucket": "Legendary",
+   "category": "Fortune & Folly",
+   "tier": 14,
+   "cards": 2
+  },
+  {
+   "slug": "the-endless-net",
+   "subject": "The Endless Net",
+   "bucket": "Legendary",
+   "category": "Tide & Tackle",
+   "tier": 14,
+   "cards": 6
+  },
+  {
+   "slug": "pearl-of-the-deep",
+   "subject": "Pearl of the Deep",
+   "bucket": "Legendary",
+   "category": "Tide & Tackle",
+   "tier": 14,
+   "cards": 5
+  },
+  {
+   "slug": "siren-s-song",
+   "subject": "Siren's Song",
+   "bucket": "Legendary",
+   "category": "Tide & Tackle",
+   "tier": 14,
+   "cards": 7
+  },
+  {
+   "slug": "neptune-s-trident",
+   "subject": "Neptune's Trident",
+   "bucket": "Legendary",
+   "category": "Tide & Tackle",
+   "tier": 14,
+   "cards": 6
+  },
+  {
+   "slug": "skeleton-key",
+   "subject": "Skeleton Key",
+   "bucket": "Legendary",
+   "category": "Raid Gear",
+   "tier": 14,
+   "cards": 2
+  },
+  {
+   "slug": "dragonfire-forge",
+   "subject": "Dragonfire Forge",
+   "bucket": "Legendary",
+   "category": "Raid Gear",
+   "tier": 14,
+   "cards": 2
+  },
+  {
+   "slug": "hand-forged-chef-s-knife",
+   "subject": "Hand-Forged Chef's Knife",
+   "bucket": "Epic",
+   "category": "Kitchen",
+   "tier": 12,
+   "cards": 1
+  },
+  {
+   "slug": "swiss-army-knife",
+   "subject": "Swiss Army Knife",
+   "bucket": "Epic",
+   "category": "Garage",
+   "tier": 12,
+   "cards": 1
+  },
+  {
+   "slug": "handwoven-wool-poncho",
+   "subject": "Handwoven Wool Poncho",
+   "bucket": "Epic",
+   "category": "Clothing",
+   "tier": 13,
+   "cards": 1
+  },
+  {
+   "slug": "grandfather-s-lucky-coin",
+   "subject": "Grandfather's Lucky Coin",
+   "bucket": "Epic",
+   "category": "Misc",
+   "tier": 13,
+   "cards": 1
+  },
+  {
+   "slug": "lion",
+   "subject": "Lion",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "grevy-s-zebra",
+   "subject": "Grevy's Zebra",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "leopard",
+   "subject": "Leopard",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "sloth",
+   "subject": "Sloth",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "platypus",
+   "subject": "Platypus",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "manatee",
+   "subject": "Manatee",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "flying-squirrel",
+   "subject": "Flying Squirrel",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "northern-cardinal",
+   "subject": "Northern Cardinal",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "rock-pigeon",
+   "subject": "Rock Pigeon",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "largemouth-bass",
+   "subject": "Largemouth Bass",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "electric-eel",
+   "subject": "Electric Eel",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "barracuda",
+   "subject": "Barracuda",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "blue-crab",
+   "subject": "Blue Crab",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "leatherback-turtle",
+   "subject": "Leatherback Turtle",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "narwhal",
+   "subject": "Narwhal",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "bearded-dragon",
+   "subject": "Bearded Dragon",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "american-alligator",
+   "subject": "American Alligator",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "monitor-lizard",
+   "subject": "Monitor Lizard",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "green-anole",
+   "subject": "Green Anole",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "frilled-lizard",
+   "subject": "Frilled Lizard",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "bumblebee",
+   "subject": "Bumblebee",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "cicada",
+   "subject": "Cicada",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "orb-weaver-spider",
+   "subject": "Orb Weaver Spider",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "desert-locust",
+   "subject": "Desert Locust",
+   "bucket": "Epic",
+   "category": "Animal Kingdom",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "marie-curie",
+   "subject": "Marie Curie",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "martin-luther-king-jr",
+   "subject": "Martin Luther King Jr.",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "christopher-columbus",
+   "subject": "Christopher Columbus",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "neil-armstrong",
+   "subject": "Neil Armstrong",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "archimedes",
+   "subject": "Archimedes",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "grace-hopper",
+   "subject": "Grace Hopper",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "mikhail-gorbachev",
+   "subject": "Mikhail Gorbachev",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "ramesses-ii",
+   "subject": "Ramesses II",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "king-david",
+   "subject": "King David",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "spartacus",
+   "subject": "Spartacus",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "sphinx",
+   "subject": "Sphinx",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "frigg",
+   "subject": "Frigg",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "valkyrie",
+   "subject": "Valkyrie",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "hel",
+   "subject": "Hel",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "ra",
+   "subject": "Ra",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "isis",
+   "subject": "Isis",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "geb",
+   "subject": "Geb",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "rama",
+   "subject": "Rama",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "chang-e",
+   "subject": "Chang'e",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "susanoo",
+   "subject": "Susanoo",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "lugh",
+   "subject": "Lugh",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "enlil",
+   "subject": "Enlil",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "basilisk",
+   "subject": "Basilisk",
+   "bucket": "Epic",
+   "category": "Legends & Myth",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "bullet-train",
+   "subject": "Bullet Train",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "double-decker-bus",
+   "subject": "Double-Decker Bus",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "cement-mixer-truck",
+   "subject": "Cement Mixer Truck",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "station-wagon",
+   "subject": "Station Wagon",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "covered-wagon",
+   "subject": "Covered Wagon",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "tractor",
+   "subject": "Tractor",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "plow",
+   "subject": "Plow",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "passenger-jetliner",
+   "subject": "Passenger Jetliner",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "zeppelin",
+   "subject": "Zeppelin",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "stunt-plane",
+   "subject": "Stunt Plane",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "skydiving-plane",
+   "subject": "Skydiving Plane",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "weather-balloon",
+   "subject": "Weather Balloon",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "cargo-container-ship",
+   "subject": "Cargo Container Ship",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "rowboat",
+   "subject": "Rowboat",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "printing-press",
+   "subject": "Printing Press",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "washing-machine",
+   "subject": "Washing Machine",
+   "bucket": "Epic",
+   "category": "Machines in Motion",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "venus",
+   "subject": "Venus",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "mars",
+   "subject": "Mars",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "europa",
+   "subject": "Europa",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "ganymede",
+   "subject": "Ganymede",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "callisto",
+   "subject": "Callisto",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "vega",
+   "subject": "Vega",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "rigel",
+   "subject": "Rigel",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "ruby",
+   "subject": "Ruby",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "quartz-crystal",
+   "subject": "Quartz Crystal",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "lapis-lazuli",
+   "subject": "Lapis Lazuli",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "sandstone",
+   "subject": "Sandstone",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "waterspout",
+   "subject": "Waterspout",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "great-wall-of-china",
+   "subject": "Great Wall of China",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "great-pyramid-of-giza",
+   "subject": "Great Pyramid of Giza",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "christ-the-redeemer",
+   "subject": "Christ the Redeemer",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "big-ben",
+   "subject": "Big Ben",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "yellowstone-geysers",
+   "subject": "Yellowstone Geysers",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "dead-sea",
+   "subject": "Dead Sea",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "great-blue-hole",
+   "subject": "Great Blue Hole",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "bora-bora-lagoon",
+   "subject": "Bora Bora Lagoon",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "antelope-canyon",
+   "subject": "Antelope Canyon",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "yosemite-el-capitan",
+   "subject": "Yosemite El Capitan",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 12,
+   "cards": 5
+  },
+  {
+   "slug": "loch-ness",
+   "subject": "Loch Ness",
+   "bucket": "Epic",
+   "category": "Cosmos & Terra",
+   "tier": 13,
+   "cards": 6
+  },
+  {
+   "slug": "wishing-well-coin",
+   "subject": "Wishing Well Coin",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "golden-ticket",
+   "subject": "Golden Ticket",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "cursed-chip",
+   "subject": "Cursed Chip",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "blackjack-shoe",
+   "subject": "Blackjack Shoe",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "pit-boss-whistle",
+   "subject": "Pit Boss Whistle",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "cooler-deck",
+   "subject": "Cooler Deck",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "last-chip",
+   "subject": "Last Chip",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "house-ledger",
+   "subject": "House Ledger",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "neon-sign",
+   "subject": "Neon Sign",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "four-leaf-clover",
+   "subject": "Four-Leaf Clover",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "horseshoe",
+   "subject": "Horseshoe",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "rabbit-s-foot",
+   "subject": "Rabbit's Foot",
+   "bucket": "Epic",
+   "category": "Fortune & Folly",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "leviathan-scale",
+   "subject": "Leviathan Scale",
+   "bucket": "Epic",
+   "category": "Tide & Tackle",
+   "tier": 12,
+   "cards": 6
+  },
+  {
+   "slug": "mermaid-s-comb",
+   "subject": "Mermaid's Comb",
+   "bucket": "Epic",
+   "category": "Tide & Tackle",
+   "tier": 12,
+   "cards": 6
+  },
+  {
+   "slug": "alchemist-s-crucible",
+   "subject": "Alchemist's Crucible",
+   "bucket": "Epic",
+   "category": "Raid Gear",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "ancient-map-fragment",
+   "subject": "Ancient Map Fragment",
+   "bucket": "Epic",
+   "category": "Raid Gear",
+   "tier": 12,
+   "cards": 2
+  },
+  {
+   "slug": "clockwork-mule",
+   "subject": "Clockwork Mule",
+   "bucket": "Epic",
+   "category": "Raid Gear",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "drakescale-gloves",
+   "subject": "Drakescale Gloves",
+   "bucket": "Epic",
+   "category": "Raid Gear",
+   "tier": 13,
+   "cards": 2
+  },
+  {
+   "slug": "golden-egg-timer",
+   "subject": "Golden Egg Timer",
+   "bucket": "Rare",
+   "category": "Kitchen",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "typewriter",
+   "subject": "Typewriter",
+   "bucket": "Rare",
+   "category": "Office",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "antique-shaving-brush",
+   "subject": "Antique Shaving Brush",
+   "bucket": "Rare",
+   "category": "Bathroom",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "straight-razor",
+   "subject": "Straight Razor",
+   "bucket": "Rare",
+   "category": "Bathroom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "old-nokia-phone",
+   "subject": "Old Nokia Phone",
+   "bucket": "Rare",
+   "category": "Electronics",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cassette-walkman",
+   "subject": "Cassette Walkman",
+   "bucket": "Rare",
+   "category": "Electronics",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "compass",
+   "subject": "Compass",
+   "bucket": "Rare",
+   "category": "Outdoor",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "silk-scarf",
+   "subject": "Silk Scarf",
+   "bucket": "Rare",
+   "category": "Clothing",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "vintage-denim-jacket",
+   "subject": "Vintage Denim Jacket",
+   "bucket": "Rare",
+   "category": "Clothing",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "kaleidoscope",
+   "subject": "Kaleidoscope",
+   "bucket": "Rare",
+   "category": "Misc",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "antique-coin",
+   "subject": "Antique Coin",
+   "bucket": "Rare",
+   "category": "Misc",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "four-leaf-clover-keychain",
+   "subject": "Four-Leaf Clover Keychain",
+   "bucket": "Rare",
+   "category": "Misc",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tiger",
+   "subject": "Tiger",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "asian-elephant",
+   "subject": "Asian Elephant",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "plains-zebra",
+   "subject": "Plains Zebra",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "western-gorilla",
+   "subject": "Western Gorilla",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "chimpanzee",
+   "subject": "Chimpanzee",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "orangutan",
+   "subject": "Orangutan",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bonobo",
+   "subject": "Bonobo",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "giant-panda",
+   "subject": "Giant Panda",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "red-panda",
+   "subject": "Red Panda",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "polar-bear",
+   "subject": "Polar Bear",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "black-bear",
+   "subject": "Black Bear",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sun-bear",
+   "subject": "Sun Bear",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "sloth-bear",
+   "subject": "Sloth Bear",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "gray-wolf",
+   "subject": "Gray Wolf",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "arctic-fox",
+   "subject": "Arctic Fox",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "red-fox",
+   "subject": "Red Fox",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fennec-fox",
+   "subject": "Fennec Fox",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "raccoon",
+   "subject": "Raccoon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "coyote",
+   "subject": "Coyote",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "striped-hyena",
+   "subject": "Striped Hyena",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "spotted-hyena",
+   "subject": "Spotted Hyena",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cheetah",
+   "subject": "Cheetah",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "jaguar",
+   "subject": "Jaguar",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cougar",
+   "subject": "Cougar",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lynx",
+   "subject": "Lynx",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bobcat",
+   "subject": "Bobcat",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "meerkat",
+   "subject": "Meerkat",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "mongoose",
+   "subject": "Mongoose",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "giant-anteater",
+   "subject": "Giant Anteater",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "nine-banded-armadillo",
+   "subject": "Nine-Banded Armadillo",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "echidna",
+   "subject": "Echidna",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "european-hedgehog",
+   "subject": "European Hedgehog",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "river-otter",
+   "subject": "River Otter",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sea-otter",
+   "subject": "Sea Otter",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "american-beaver",
+   "subject": "American Beaver",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "american-bison",
+   "subject": "American Bison",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "elk",
+   "subject": "Elk",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "reindeer",
+   "subject": "Reindeer",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "dromedary-camel",
+   "subject": "Dromedary Camel",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bactrian-camel",
+   "subject": "Bactrian Camel",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "alpaca",
+   "subject": "Alpaca",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "blue-whale",
+   "subject": "Blue Whale",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "humpback-whale",
+   "subject": "Humpback Whale",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "orca",
+   "subject": "Orca",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bottlenose-dolphin",
+   "subject": "Bottlenose Dolphin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "koala",
+   "subject": "Koala",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "red-kangaroo",
+   "subject": "Red Kangaroo",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tasmanian-devil",
+   "subject": "Tasmanian Devil",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "wombat",
+   "subject": "Wombat",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "chipmunk",
+   "subject": "Chipmunk",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "groundhog",
+   "subject": "Groundhog",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "prairie-dog",
+   "subject": "Prairie Dog",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "capybara",
+   "subject": "Capybara",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "porcupine",
+   "subject": "Porcupine",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "aardvark",
+   "subject": "Aardvark",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "bald-eagle",
+   "subject": "Bald Eagle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "golden-eagle",
+   "subject": "Golden Eagle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "peregrine-falcon",
+   "subject": "Peregrine Falcon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "red-tailed-hawk",
+   "subject": "Red-Tailed Hawk",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "great-horned-owl",
+   "subject": "Great Horned Owl",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "snowy-owl",
+   "subject": "Snowy Owl",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "barn-owl",
+   "subject": "Barn Owl",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "american-robin",
+   "subject": "American Robin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "blue-jay",
+   "subject": "Blue Jay",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "black-capped-chickadee",
+   "subject": "Black-Capped Chickadee",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "house-sparrow",
+   "subject": "House Sparrow",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "european-starling",
+   "subject": "European Starling",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "american-crow",
+   "subject": "American Crow",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "common-raven",
+   "subject": "Common Raven",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ruby-throated-hummingbird",
+   "subject": "Ruby-Throated Hummingbird",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "anna-s-hummingbird",
+   "subject": "Anna's Hummingbird",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "mallard-duck",
+   "subject": "Mallard Duck",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "canada-goose",
+   "subject": "Canada Goose",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "trumpeter-swan",
+   "subject": "Trumpeter Swan",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "great-blue-heron",
+   "subject": "Great Blue Heron",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "snowy-egret",
+   "subject": "Snowy Egret",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sandhill-crane",
+   "subject": "Sandhill Crane",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "whooping-crane",
+   "subject": "Whooping Crane",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "american-flamingo",
+   "subject": "American Flamingo",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "wild-turkey",
+   "subject": "Wild Turkey",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ring-necked-pheasant",
+   "subject": "Ring-Necked Pheasant",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "emperor-penguin",
+   "subject": "Emperor Penguin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "king-penguin",
+   "subject": "King Penguin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "adelie-penguin",
+   "subject": "Adelie Penguin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ostrich",
+   "subject": "Ostrich",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "emu",
+   "subject": "Emu",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "cassowary",
+   "subject": "Cassowary",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "toco-toucan",
+   "subject": "Toco Toucan",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "scarlet-macaw",
+   "subject": "Scarlet Macaw",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "african-grey-parrot",
+   "subject": "African Grey Parrot",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cockatiel",
+   "subject": "Cockatiel",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "budgerigar",
+   "subject": "Budgerigar",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "peacock",
+   "subject": "Peacock",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "mourning-dove",
+   "subject": "Mourning Dove",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "belted-kingfisher",
+   "subject": "Belted Kingfisher",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "downy-woodpecker",
+   "subject": "Downy Woodpecker",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "roadrunner",
+   "subject": "Roadrunner",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "atlantic-puffin",
+   "subject": "Atlantic Puffin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "brown-pelican",
+   "subject": "Brown Pelican",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "double-crested-cormorant",
+   "subject": "Double-Crested Cormorant",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "osprey",
+   "subject": "Osprey",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "american-kestrel",
+   "subject": "American Kestrel",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "turkey-vulture",
+   "subject": "Turkey Vulture",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "andean-condor",
+   "subject": "Andean Condor",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "kiwi",
+   "subject": "Kiwi",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "kookaburra",
+   "subject": "Kookaburra",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "superb-lyrebird",
+   "subject": "Superb Lyrebird",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "eurasian-hoopoe",
+   "subject": "Eurasian Hoopoe",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "white-stork",
+   "subject": "White Stork",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "scarlet-ibis",
+   "subject": "Scarlet Ibis",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "roseate-spoonbill",
+   "subject": "Roseate Spoonbill",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "common-loon",
+   "subject": "Common Loon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "great-white-shark",
+   "subject": "Great White Shark",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 9
+  },
+  {
+   "slug": "hammerhead-shark",
+   "subject": "Hammerhead Shark",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tiger-shark",
+   "subject": "Tiger Shark",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "whale-shark",
+   "subject": "Whale Shark",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "blue-marlin",
+   "subject": "Blue Marlin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "swordfish",
+   "subject": "Swordfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "rainbow-trout",
+   "subject": "Rainbow Trout",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "atlantic-salmon",
+   "subject": "Atlantic Salmon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "koi",
+   "subject": "Koi",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "goldfish",
+   "subject": "Goldfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "clownfish",
+   "subject": "Clownfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "angelfish",
+   "subject": "Angelfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "lionfish",
+   "subject": "Lionfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "pufferfish",
+   "subject": "Pufferfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "seahorse",
+   "subject": "Seahorse",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "stingray",
+   "subject": "Stingray",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "moray-eel",
+   "subject": "Moray Eel",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "piranha",
+   "subject": "Piranha",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "catfish",
+   "subject": "Catfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "sturgeon",
+   "subject": "Sturgeon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "anglerfish",
+   "subject": "Anglerfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 9
+  },
+  {
+   "slug": "jellyfish",
+   "subject": "Jellyfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "common-octopus",
+   "subject": "Common Octopus",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "giant-squid",
+   "subject": "Giant Squid",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cuttlefish",
+   "subject": "Cuttlefish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "starfish",
+   "subject": "Starfish",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sea-urchin",
+   "subject": "Sea Urchin",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sea-cucumber",
+   "subject": "Sea Cucumber",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "hermit-crab",
+   "subject": "Hermit Crab",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lobster",
+   "subject": "Lobster",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "shrimp",
+   "subject": "Shrimp",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "chambered-nautilus",
+   "subject": "Chambered Nautilus",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "loggerhead-sea-turtle",
+   "subject": "Loggerhead Sea Turtle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "green-sea-turtle",
+   "subject": "Green Sea Turtle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "walrus",
+   "subject": "Walrus",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "harbor-seal",
+   "subject": "Harbor Seal",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sea-lion",
+   "subject": "Sea Lion",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "beluga-whale",
+   "subject": "Beluga Whale",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "sperm-whale",
+   "subject": "Sperm Whale",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "west-indian-manatee",
+   "subject": "West Indian Manatee",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "coral-polyp",
+   "subject": "Coral Polyp",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sea-anemone",
+   "subject": "Sea Anemone",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "komodo-dragon",
+   "subject": "Komodo Dragon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "green-iguana",
+   "subject": "Green Iguana",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "veiled-chameleon",
+   "subject": "Veiled Chameleon",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "gila-monster",
+   "subject": "Gila Monster",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "king-cobra",
+   "subject": "King Cobra",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "timber-rattlesnake",
+   "subject": "Timber Rattlesnake",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "boa-constrictor",
+   "subject": "Boa Constrictor",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ball-python",
+   "subject": "Ball Python",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "garter-snake",
+   "subject": "Garter Snake",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "nile-crocodile",
+   "subject": "Nile Crocodile",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "saltwater-crocodile",
+   "subject": "Saltwater Crocodile",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "common-snapping-turtle",
+   "subject": "Common Snapping Turtle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "eastern-box-turtle",
+   "subject": "Eastern Box Turtle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "galapagos-tortoise",
+   "subject": "Galapagos Tortoise",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "poison-dart-frog",
+   "subject": "Poison Dart Frog",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "red-eyed-tree-frog",
+   "subject": "Red-Eyed Tree Frog",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "american-bullfrog",
+   "subject": "American Bullfrog",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "american-toad",
+   "subject": "American Toad",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "axolotl",
+   "subject": "Axolotl",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fire-salamander",
+   "subject": "Fire Salamander",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "tiger-salamander",
+   "subject": "Tiger Salamander",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "eastern-newt",
+   "subject": "Eastern Newt",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "blue-tongued-skink",
+   "subject": "Blue-Tongued Skink",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "horned-lizard",
+   "subject": "Horned Lizard",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "thorny-devil",
+   "subject": "Thorny Devil",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "green-anaconda",
+   "subject": "Green Anaconda",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "cottonmouth",
+   "subject": "Cottonmouth",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "copperhead",
+   "subject": "Copperhead",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "yellow-bellied-sea-snake",
+   "subject": "Yellow-Bellied Sea Snake",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "monarch-butterfly",
+   "subject": "Monarch Butterfly",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tiger-swallowtail-butterfly",
+   "subject": "Tiger Swallowtail Butterfly",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "luna-moth",
+   "subject": "Luna Moth",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "honeybee",
+   "subject": "Honeybee",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "carpenter-ant",
+   "subject": "Carpenter Ant",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "fire-ant",
+   "subject": "Fire Ant",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "praying-mantis",
+   "subject": "Praying Mantis",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "ladybug",
+   "subject": "Ladybug",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "firefly",
+   "subject": "Firefly",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "dragonfly",
+   "subject": "Dragonfly",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "damselfly",
+   "subject": "Damselfly",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "grasshopper",
+   "subject": "Grasshopper",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "field-cricket",
+   "subject": "Field Cricket",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "stick-insect",
+   "subject": "Stick Insect",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "leaf-insect",
+   "subject": "Leaf Insect",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "rhinoceros-beetle",
+   "subject": "Rhinoceros Beetle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "stag-beetle",
+   "subject": "Stag Beetle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "dung-beetle",
+   "subject": "Dung Beetle",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "weevil",
+   "subject": "Weevil",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "termite",
+   "subject": "Termite",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "black-widow-spider",
+   "subject": "Black Widow Spider",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "tarantula",
+   "subject": "Tarantula",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "wolf-spider",
+   "subject": "Wolf Spider",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "emperor-scorpion",
+   "subject": "Emperor Scorpion",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "house-centipede",
+   "subject": "House Centipede",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "millipede",
+   "subject": "Millipede",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "earwig",
+   "subject": "Earwig",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "cockroach",
+   "subject": "Cockroach",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "silkworm-moth",
+   "subject": "Silkworm Moth",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "aphid",
+   "subject": "Aphid",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "katydid",
+   "subject": "Katydid",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "walking-stick",
+   "subject": "Walking Stick",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "water-strider",
+   "subject": "Water Strider",
+   "bucket": "Rare",
+   "category": "Animal Kingdom",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "albert-einstein",
+   "subject": "Albert Einstein",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "isaac-newton",
+   "subject": "Isaac Newton",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "galileo-galilei",
+   "subject": "Galileo Galilei",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "charles-darwin",
+   "subject": "Charles Darwin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "thomas-edison",
+   "subject": "Thomas Edison",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "leonardo-da-vinci",
+   "subject": "Leonardo da Vinci",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "michelangelo",
+   "subject": "Michelangelo",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "wolfgang-amadeus-mozart",
+   "subject": "Wolfgang Amadeus Mozart",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ludwig-van-beethoven",
+   "subject": "Ludwig van Beethoven",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "johann-sebastian-bach",
+   "subject": "Johann Sebastian Bach",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "william-shakespeare",
+   "subject": "William Shakespeare",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "jane-austen",
+   "subject": "Jane Austen",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "mark-twain",
+   "subject": "Mark Twain",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ernest-hemingway",
+   "subject": "Ernest Hemingway",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "virginia-woolf",
+   "subject": "Virginia Woolf",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "confucius",
+   "subject": "Confucius",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "socrates",
+   "subject": "Socrates",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "plato",
+   "subject": "Plato",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "aristotle",
+   "subject": "Aristotle",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "sun-tzu",
+   "subject": "Sun Tzu",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "julius-caesar",
+   "subject": "Julius Caesar",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "cleopatra",
+   "subject": "Cleopatra",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "alexander-the-great",
+   "subject": "Alexander the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "genghis-khan",
+   "subject": "Genghis Khan",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "napoleon-bonaparte",
+   "subject": "Napoleon Bonaparte",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "george-washington",
+   "subject": "George Washington",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "abraham-lincoln",
+   "subject": "Abraham Lincoln",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "thomas-jefferson",
+   "subject": "Thomas Jefferson",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "benjamin-franklin",
+   "subject": "Benjamin Franklin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "winston-churchill",
+   "subject": "Winston Churchill",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "mahatma-gandhi",
+   "subject": "Mahatma Gandhi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "nelson-mandela",
+   "subject": "Nelson Mandela",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "rosa-parks",
+   "subject": "Rosa Parks",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "harriet-tubman",
+   "subject": "Harriet Tubman",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "frederick-douglass",
+   "subject": "Frederick Douglass",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "queen-elizabeth-i",
+   "subject": "Queen Elizabeth I",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "queen-victoria",
+   "subject": "Queen Victoria",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "king-henry-viii",
+   "subject": "King Henry VIII",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "joan-of-arc",
+   "subject": "Joan of Arc",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "marco-polo",
+   "subject": "Marco Polo",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ferdinand-magellan",
+   "subject": "Ferdinand Magellan",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "vasco-da-gama",
+   "subject": "Vasco da Gama",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "amelia-earhart",
+   "subject": "Amelia Earhart",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "charles-lindbergh",
+   "subject": "Charles Lindbergh",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "yuri-gagarin",
+   "subject": "Yuri Gagarin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sally-ride",
+   "subject": "Sally Ride",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "amerigo-vespucci",
+   "subject": "Amerigo Vespucci",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "zheng-he",
+   "subject": "Zheng He",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "ibn-battuta",
+   "subject": "Ibn Battuta",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "leif-erikson",
+   "subject": "Leif Erikson",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hippocrates",
+   "subject": "Hippocrates",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "florence-nightingale",
+   "subject": "Florence Nightingale",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "louis-pasteur",
+   "subject": "Louis Pasteur",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "alexander-fleming",
+   "subject": "Alexander Fleming",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "gregor-mendel",
+   "subject": "Gregor Mendel",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "euclid",
+   "subject": "Euclid",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ptolemy",
+   "subject": "Ptolemy",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "nicolaus-copernicus",
+   "subject": "Nicolaus Copernicus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "johannes-kepler",
+   "subject": "Johannes Kepler",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "michael-faraday",
+   "subject": "Michael Faraday",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "james-clerk-maxwell",
+   "subject": "James Clerk Maxwell",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "alan-turing",
+   "subject": "Alan Turing",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ada-lovelace",
+   "subject": "Ada Lovelace",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "stephen-hawking",
+   "subject": "Stephen Hawking",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "rachel-carson",
+   "subject": "Rachel Carson",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "jacques-cousteau",
+   "subject": "Jacques Cousteau",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "jane-goodall",
+   "subject": "Jane Goodall",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "david-attenborough",
+   "subject": "David Attenborough",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "vincent-van-gogh",
+   "subject": "Vincent van Gogh",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "pablo-picasso",
+   "subject": "Pablo Picasso",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "claude-monet",
+   "subject": "Claude Monet",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "frida-kahlo",
+   "subject": "Frida Kahlo",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "rembrandt",
+   "subject": "Rembrandt",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "salvador-dali",
+   "subject": "Salvador Dali",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "frank-lloyd-wright",
+   "subject": "Frank Lloyd Wright",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "gustave-eiffel",
+   "subject": "Gustave Eiffel",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "wright-brothers",
+   "subject": "Wright Brothers",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "henry-ford",
+   "subject": "Henry Ford",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "steve-jobs",
+   "subject": "Steve Jobs",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "walt-disney",
+   "subject": "Walt Disney",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "siddhartha-gautama",
+   "subject": "Siddhartha Gautama",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "martin-luther",
+   "subject": "Martin Luther",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "thomas-aquinas",
+   "subject": "Thomas Aquinas",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sir-francis-drake",
+   "subject": "Sir Francis Drake",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "elizabeth-cady-stanton",
+   "subject": "Elizabeth Cady Stanton",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "emmeline-pankhurst",
+   "subject": "Emmeline Pankhurst",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "sojourner-truth",
+   "subject": "Sojourner Truth",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "booker-t-washington",
+   "subject": "Booker T. Washington",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "w-e-b-du-bois",
+   "subject": "W.E.B. Du Bois",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "malcolm-x",
+   "subject": "Malcolm X",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "cesar-chavez",
+   "subject": "Cesar Chavez",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "simon-bolivar",
+   "subject": "Simon Bolivar",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "jose-de-san-martin",
+   "subject": "Jose de San Martin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "toussaint-louverture",
+   "subject": "Toussaint Louverture",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "otto-von-bismarck",
+   "subject": "Otto von Bismarck",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "vladimir-lenin",
+   "subject": "Vladimir Lenin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "catherine-the-great",
+   "subject": "Catherine the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "peter-the-great",
+   "subject": "Peter the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "suleiman-the-magnificent",
+   "subject": "Suleiman the Magnificent",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "saladin",
+   "subject": "Saladin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "akbar-the-great",
+   "subject": "Akbar the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ashoka-the-great",
+   "subject": "Ashoka the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tutankhamun",
+   "subject": "Tutankhamun",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hammurabi",
+   "subject": "Hammurabi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "king-solomon",
+   "subject": "King Solomon",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "nebuchadnezzar-ii",
+   "subject": "Nebuchadnezzar II",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "cyrus-the-great",
+   "subject": "Cyrus the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "darius-the-great",
+   "subject": "Darius the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "hannibal-barca",
+   "subject": "Hannibal Barca",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "marcus-aurelius",
+   "subject": "Marcus Aurelius",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "constantine-the-great",
+   "subject": "Constantine the Great",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "zeus",
+   "subject": "Zeus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hera",
+   "subject": "Hera",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "poseidon",
+   "subject": "Poseidon",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hades",
+   "subject": "Hades",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "athena",
+   "subject": "Athena",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "apollo",
+   "subject": "Apollo",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "artemis",
+   "subject": "Artemis",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "aphrodite",
+   "subject": "Aphrodite",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hermes",
+   "subject": "Hermes",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "dionysus",
+   "subject": "Dionysus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "demeter",
+   "subject": "Demeter",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "hestia",
+   "subject": "Hestia",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "hephaestus",
+   "subject": "Hephaestus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "persephone",
+   "subject": "Persephone",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hercules",
+   "subject": "Hercules",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "perseus",
+   "subject": "Perseus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "odysseus",
+   "subject": "Odysseus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "medusa",
+   "subject": "Medusa",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "minotaur",
+   "subject": "Minotaur",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "cyclops",
+   "subject": "Cyclops",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cerberus",
+   "subject": "Cerberus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "pegasus",
+   "subject": "Pegasus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "phoenix",
+   "subject": "Phoenix",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "chimera",
+   "subject": "Chimera",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "atlas",
+   "subject": "Atlas",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "icarus",
+   "subject": "Icarus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "odin",
+   "subject": "Odin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "thor",
+   "subject": "Thor",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "loki",
+   "subject": "Loki",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "freya",
+   "subject": "Freya",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "heimdall",
+   "subject": "Heimdall",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "tyr",
+   "subject": "Tyr",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fenrir",
+   "subject": "Fenrir",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "jormungandr",
+   "subject": "Jormungandr",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "yggdrasil-guardian",
+   "subject": "Yggdrasil Guardian",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "skadi",
+   "subject": "Skadi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "njord",
+   "subject": "Njord",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "osiris",
+   "subject": "Osiris",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "anubis",
+   "subject": "Anubis",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "horus",
+   "subject": "Horus",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "set",
+   "subject": "Set",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "thoth",
+   "subject": "Thoth",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bastet",
+   "subject": "Bastet",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "sekhmet",
+   "subject": "Sekhmet",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "sobek",
+   "subject": "Sobek",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ma-at",
+   "subject": "Ma'at",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hathor",
+   "subject": "Hathor",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "nut",
+   "subject": "Nut",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "brahma",
+   "subject": "Brahma",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "vishnu",
+   "subject": "Vishnu",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "shiva",
+   "subject": "Shiva",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "ganesha",
+   "subject": "Ganesha",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hanuman",
+   "subject": "Hanuman",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "lakshmi",
+   "subject": "Lakshmi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "saraswati",
+   "subject": "Saraswati",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "durga",
+   "subject": "Durga",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "kali",
+   "subject": "Kali",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "indra",
+   "subject": "Indra",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "krishna",
+   "subject": "Krishna",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "garuda",
+   "subject": "Garuda",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "naga-serpent",
+   "subject": "Naga Serpent",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "guanyin",
+   "subject": "Guanyin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "nuwa",
+   "subject": "Nuwa",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "fuxi",
+   "subject": "Fuxi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "sun-wukong",
+   "subject": "Sun Wukong",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "qilin",
+   "subject": "Qilin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "pixiu",
+   "subject": "Pixiu",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "amaterasu",
+   "subject": "Amaterasu",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tsukuyomi",
+   "subject": "Tsukuyomi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "izanagi",
+   "subject": "Izanagi",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "izanami",
+   "subject": "Izanami",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "inari",
+   "subject": "Inari",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "fujin",
+   "subject": "Fujin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "kappa",
+   "subject": "Kappa",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tengu",
+   "subject": "Tengu",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "kitsune",
+   "subject": "Kitsune",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "oni",
+   "subject": "Oni",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "cernunnos",
+   "subject": "Cernunnos",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "brigid",
+   "subject": "Brigid",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "dagda",
+   "subject": "Dagda",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "banshee",
+   "subject": "Banshee",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "leprechaun",
+   "subject": "Leprechaun",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "selkie",
+   "subject": "Selkie",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "quetzalcoatl",
+   "subject": "Quetzalcoatl",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tezcatlipoca",
+   "subject": "Tezcatlipoca",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "huitzilopochtli",
+   "subject": "Huitzilopochtli",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tlaloc",
+   "subject": "Tlaloc",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "xochiquetzal",
+   "subject": "Xochiquetzal",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "kukulkan",
+   "subject": "Kukulkan",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "marduk",
+   "subject": "Marduk",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ishtar",
+   "subject": "Ishtar",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "gilgamesh",
+   "subject": "Gilgamesh",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "enki",
+   "subject": "Enki",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "anu",
+   "subject": "Anu",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "griffin",
+   "subject": "Griffin",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "kraken",
+   "subject": "Kraken",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bigfoot",
+   "subject": "Bigfoot",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "loch-ness-monster",
+   "subject": "Loch Ness Monster",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "unicorn",
+   "subject": "Unicorn",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "mermaid",
+   "subject": "Mermaid",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "golem",
+   "subject": "Golem",
+   "bucket": "Rare",
+   "category": "Legends & Myth",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "steam-locomotive",
+   "subject": "Steam Locomotive",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "diesel-locomotive",
+   "subject": "Diesel Locomotive",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cable-car",
+   "subject": "Cable Car",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "trolley-car",
+   "subject": "Trolley Car",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "school-bus",
+   "subject": "School Bus",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fire-engine",
+   "subject": "Fire Engine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ambulance",
+   "subject": "Ambulance",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "police-cruiser",
+   "subject": "Police Cruiser",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "delivery-van",
+   "subject": "Delivery Van",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "pickup-truck",
+   "subject": "Pickup Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "semi-truck",
+   "subject": "Semi Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tank-truck",
+   "subject": "Tank Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "dump-truck",
+   "subject": "Dump Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tow-truck",
+   "subject": "Tow Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "monster-truck",
+   "subject": "Monster Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "muscle-car",
+   "subject": "Muscle Car",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "convertible-roadster",
+   "subject": "Convertible Roadster",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "minivan",
+   "subject": "Minivan",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hatchback",
+   "subject": "Hatchback",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "sedan",
+   "subject": "Sedan",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "limousine",
+   "subject": "Limousine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hearse",
+   "subject": "Hearse",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "go-kart",
+   "subject": "Go-Kart",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "golf-cart",
+   "subject": "Golf Cart",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "dune-buggy",
+   "subject": "Dune Buggy",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "all-terrain-vehicle",
+   "subject": "All-Terrain Vehicle",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "dirt-bike",
+   "subject": "Dirt Bike",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "motorcycle",
+   "subject": "Motorcycle",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "scooter",
+   "subject": "Scooter",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "moped",
+   "subject": "Moped",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bicycle",
+   "subject": "Bicycle",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "tandem-bicycle",
+   "subject": "Tandem Bicycle",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "unicycle",
+   "subject": "Unicycle",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "rickshaw",
+   "subject": "Rickshaw",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "horse-drawn-carriage",
+   "subject": "Horse-Drawn Carriage",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "chariot",
+   "subject": "Chariot",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "sled",
+   "subject": "Sled",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "snowmobile",
+   "subject": "Snowmobile",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "bulldozer",
+   "subject": "Bulldozer",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "crane-truck",
+   "subject": "Crane Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "forklift",
+   "subject": "Forklift",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "armored-personnel-carrier",
+   "subject": "Armored Personnel Carrier",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "battle-tank",
+   "subject": "Battle Tank",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "formula-race-car",
+   "subject": "Formula Race Car",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "stock-car",
+   "subject": "Stock Car",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "drag-racer",
+   "subject": "Drag Racer",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bumper-car",
+   "subject": "Bumper Car",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "food-truck",
+   "subject": "Food Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "garbage-truck",
+   "subject": "Garbage Truck",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "biplane",
+   "subject": "Biplane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fighter-jet",
+   "subject": "Fighter Jet",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bomber-plane",
+   "subject": "Bomber Plane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "cargo-plane",
+   "subject": "Cargo Plane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "seaplane",
+   "subject": "Seaplane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "glider",
+   "subject": "Glider",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hang-glider",
+   "subject": "Hang Glider",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hot-air-balloon",
+   "subject": "Hot Air Balloon",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "blimp",
+   "subject": "Blimp",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "helicopter",
+   "subject": "Helicopter",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "autogyro",
+   "subject": "Autogyro",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "camera-drone",
+   "subject": "Camera Drone",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "stealth-bomber",
+   "subject": "Stealth Bomber",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "crop-duster",
+   "subject": "Crop Duster",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "jumbo-jet",
+   "subject": "Jumbo Jet",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "supersonic-jet",
+   "subject": "Supersonic Jet",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fighter-biplane",
+   "subject": "Fighter Biplane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "bush-plane",
+   "subject": "Bush Plane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "air-ambulance",
+   "subject": "Air Ambulance",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "vintage-propeller-plane",
+   "subject": "Vintage Propeller Plane",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "space-shuttle",
+   "subject": "Space Shuttle",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "rocket",
+   "subject": "Rocket",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lunar-lander",
+   "subject": "Lunar Lander",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "satellite",
+   "subject": "Satellite",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "space-probe",
+   "subject": "Space Probe",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "jetpack",
+   "subject": "Jetpack",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ornithopter",
+   "subject": "Ornithopter",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "flying-boat",
+   "subject": "Flying Boat",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ultralight-aircraft",
+   "subject": "Ultralight Aircraft",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sailing-clipper-ship",
+   "subject": "Sailing Clipper Ship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "galleon",
+   "subject": "Galleon",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "viking-longship",
+   "subject": "Viking Longship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "pirate-ship",
+   "subject": "Pirate Ship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "fishing-trawler",
+   "subject": "Fishing Trawler",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "oil-tanker",
+   "subject": "Oil Tanker",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cruise-liner",
+   "subject": "Cruise Liner",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "ferry-boat",
+   "subject": "Ferry Boat",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "tugboat",
+   "subject": "Tugboat",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "icebreaker-ship",
+   "subject": "Icebreaker Ship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "submarine",
+   "subject": "Submarine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "aircraft-carrier",
+   "subject": "Aircraft Carrier",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "battleship",
+   "subject": "Battleship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "yacht",
+   "subject": "Yacht",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sailboat",
+   "subject": "Sailboat",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "catamaran",
+   "subject": "Catamaran",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "canoe",
+   "subject": "Canoe",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "kayak",
+   "subject": "Kayak",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "gondola",
+   "subject": "Gondola",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "houseboat",
+   "subject": "Houseboat",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "jet-ski",
+   "subject": "Jet Ski",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "paddle-wheel-steamboat",
+   "subject": "Paddle Wheel Steamboat",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "research-vessel",
+   "subject": "Research Vessel",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lightship",
+   "subject": "Lightship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hovercraft",
+   "subject": "Hovercraft",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "hydrofoil",
+   "subject": "Hydrofoil",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ancient-trireme",
+   "subject": "Ancient Trireme",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "raft",
+   "subject": "Raft",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "barge",
+   "subject": "Barge",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "whaling-ship",
+   "subject": "Whaling Ship",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "coast-guard-cutter",
+   "subject": "Coast Guard Cutter",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "steam-engine",
+   "subject": "Steam Engine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "windmill",
+   "subject": "Windmill",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cotton-gin",
+   "subject": "Cotton Gin",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sewing-machine",
+   "subject": "Sewing Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "grandfather-clock",
+   "subject": "Grandfather Clock",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "telegraph-machine",
+   "subject": "Telegraph Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "rotary-telephone",
+   "subject": "Rotary Telephone",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "player-piano",
+   "subject": "Player Piano",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "pinball-machine",
+   "subject": "Pinball Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "slot-machine",
+   "subject": "Slot Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "vending-machine",
+   "subject": "Vending Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "atm-machine",
+   "subject": "ATM Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cash-register",
+   "subject": "Cash Register",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "antique-typewriter",
+   "subject": "Antique Typewriter",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "adding-machine",
+   "subject": "Adding Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "mechanical-loom",
+   "subject": "Mechanical Loom",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "blast-furnace",
+   "subject": "Blast Furnace",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "conveyor-belt-system",
+   "subject": "Conveyor Belt System",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "robotic-arm",
+   "subject": "Robotic Arm",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "wind-turbine",
+   "subject": "Wind Turbine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "solar-panel-array",
+   "subject": "Solar Panel Array",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "water-pump",
+   "subject": "Water Pump",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "generator",
+   "subject": "Generator",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "elevator",
+   "subject": "Elevator",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "escalator",
+   "subject": "Escalator",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "revolving-door",
+   "subject": "Revolving Door",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "carousel",
+   "subject": "Carousel",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "ferris-wheel",
+   "subject": "Ferris Wheel",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "roller-coaster",
+   "subject": "Roller Coaster",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "cotton-candy-machine",
+   "subject": "Cotton Candy Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "popcorn-machine",
+   "subject": "Popcorn Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "espresso-machine",
+   "subject": "Espresso Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "dishwasher",
+   "subject": "Dishwasher",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "refrigerator",
+   "subject": "Refrigerator",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "air-conditioner-unit",
+   "subject": "Air Conditioner Unit",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "furnace",
+   "subject": "Furnace",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "water-heater",
+   "subject": "Water Heater",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "lawn-mower",
+   "subject": "Lawn Mower",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "chainsaw",
+   "subject": "Chainsaw",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "wood-chipper",
+   "subject": "Wood Chipper",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "grain-thresher",
+   "subject": "Grain Thresher",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "rock-crusher",
+   "subject": "Rock Crusher",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "oil-rig",
+   "subject": "Oil Rig",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "radio-telescope",
+   "subject": "Radio Telescope",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "particle-accelerator",
+   "subject": "Particle Accelerator",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "wind-tunnel",
+   "subject": "Wind Tunnel",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "centrifuge",
+   "subject": "Centrifuge",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "mri-machine",
+   "subject": "MRI Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "x-ray-machine",
+   "subject": "X-Ray Machine",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "spinning-wheel",
+   "subject": "Spinning Wheel",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "butter-churn",
+   "subject": "Butter Churn",
+   "bucket": "Rare",
+   "category": "Machines in Motion",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "mercury",
+   "subject": "Mercury",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "earth",
+   "subject": "Earth",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "jupiter",
+   "subject": "Jupiter",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "saturn",
+   "subject": "Saturn",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "uranus",
+   "subject": "Uranus",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "neptune",
+   "subject": "Neptune",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "pluto",
+   "subject": "Pluto",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "the-moon",
+   "subject": "The Moon",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "titan",
+   "subject": "Titan",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "io",
+   "subject": "Io",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "phobos",
+   "subject": "Phobos",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "deimos",
+   "subject": "Deimos",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "triton",
+   "subject": "Triton",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "ceres",
+   "subject": "Ceres",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "the-sun",
+   "subject": "The Sun",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sirius",
+   "subject": "Sirius",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "betelgeuse",
+   "subject": "Betelgeuse",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "polaris",
+   "subject": "Polaris",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "proxima-centauri",
+   "subject": "Proxima Centauri",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "alpha-centauri",
+   "subject": "Alpha Centauri",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "antares",
+   "subject": "Antares",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "aldebaran",
+   "subject": "Aldebaran",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "the-milky-way",
+   "subject": "The Milky Way",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "orion-nebula",
+   "subject": "Orion Nebula",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "crab-nebula",
+   "subject": "Crab Nebula",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "ring-nebula",
+   "subject": "Ring Nebula",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "whirlpool-galaxy",
+   "subject": "Whirlpool Galaxy",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "pleiades-cluster",
+   "subject": "Pleiades Cluster",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "big-dipper",
+   "subject": "Big Dipper",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "southern-cross",
+   "subject": "Southern Cross",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "halley-s-comet",
+   "subject": "Halley's Comet",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "diamond",
+   "subject": "Diamond",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "emerald",
+   "subject": "Emerald",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "amethyst",
+   "subject": "Amethyst",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "topaz",
+   "subject": "Topaz",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "opal",
+   "subject": "Opal",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "garnet",
+   "subject": "Garnet",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "turquoise",
+   "subject": "Turquoise",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "jade",
+   "subject": "Jade",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "citrine",
+   "subject": "Citrine",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "aquamarine",
+   "subject": "Aquamarine",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "peridot",
+   "subject": "Peridot",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "onyx",
+   "subject": "Onyx",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "obsidian",
+   "subject": "Obsidian",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "pyrite",
+   "subject": "Pyrite",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "malachite",
+   "subject": "Malachite",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "moonstone",
+   "subject": "Moonstone",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "agate",
+   "subject": "Agate",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "pearl",
+   "subject": "Pearl",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "gold-nugget",
+   "subject": "Gold Nugget",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "silver-ore",
+   "subject": "Silver Ore",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "copper-ore",
+   "subject": "Copper Ore",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "iron-ore",
+   "subject": "Iron Ore",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "granite",
+   "subject": "Granite",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "marble",
+   "subject": "Marble",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "limestone",
+   "subject": "Limestone",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "basalt",
+   "subject": "Basalt",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "slate",
+   "subject": "Slate",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "meteorite",
+   "subject": "Meteorite",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "hurricane",
+   "subject": "Hurricane",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lightning-bolt",
+   "subject": "Lightning Bolt",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "rainbow",
+   "subject": "Rainbow",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "aurora-borealis",
+   "subject": "Aurora Borealis",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sandstorm",
+   "subject": "Sandstorm",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "blizzard",
+   "subject": "Blizzard",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "hailstorm",
+   "subject": "Hailstorm",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "fog-bank",
+   "subject": "Fog Bank",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "volcanic-eruption",
+   "subject": "Volcanic Eruption",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "geyser",
+   "subject": "Geyser",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "avalanche",
+   "subject": "Avalanche",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "tsunami-wave",
+   "subject": "Tsunami Wave",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sunspot",
+   "subject": "Sunspot",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "solar-eclipse",
+   "subject": "Solar Eclipse",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lunar-eclipse",
+   "subject": "Lunar Eclipse",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "meteor-shower",
+   "subject": "Meteor Shower",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sundog",
+   "subject": "Sundog",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "dust-devil",
+   "subject": "Dust Devil",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "thundercloud",
+   "subject": "Thundercloud",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "snowflake",
+   "subject": "Snowflake",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "glacier",
+   "subject": "Glacier",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "iceberg",
+   "subject": "Iceberg",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sinkhole",
+   "subject": "Sinkhole",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "eiffel-tower",
+   "subject": "Eiffel Tower",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "statue-of-liberty",
+   "subject": "Statue of Liberty",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sphinx-of-giza",
+   "subject": "Sphinx of Giza",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "machu-picchu",
+   "subject": "Machu Picchu",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "colosseum",
+   "subject": "Colosseum",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "taj-mahal",
+   "subject": "Taj Mahal",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "sydney-opera-house",
+   "subject": "Sydney Opera House",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "golden-gate-bridge",
+   "subject": "Golden Gate Bridge",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "mount-rushmore",
+   "subject": "Mount Rushmore",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "leaning-tower-of-pisa",
+   "subject": "Leaning Tower of Pisa",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "notre-dame-cathedral",
+   "subject": "Notre-Dame Cathedral",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sagrada-familia",
+   "subject": "Sagrada Familia",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "petra",
+   "subject": "Petra",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "angkor-wat",
+   "subject": "Angkor Wat",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "chichen-itza",
+   "subject": "Chichen Itza",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "neuschwanstein-castle",
+   "subject": "Neuschwanstein Castle",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "buckingham-palace",
+   "subject": "Buckingham Palace",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "the-kremlin",
+   "subject": "The Kremlin",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "burj-khalifa",
+   "subject": "Burj Khalifa",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "empire-state-building",
+   "subject": "Empire State Building",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "hollywood-sign",
+   "subject": "Hollywood Sign",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "mount-fuji",
+   "subject": "Mount Fuji",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 4
+  },
+  {
+   "slug": "mount-everest",
+   "subject": "Mount Everest",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "grand-canyon",
+   "subject": "Grand Canyon",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "niagara-falls",
+   "subject": "Niagara Falls",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "great-barrier-reef",
+   "subject": "Great Barrier Reef",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "sahara-desert",
+   "subject": "Sahara Desert",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "amazon-rainforest",
+   "subject": "Amazon Rainforest",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "victoria-falls",
+   "subject": "Victoria Falls",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "uluru",
+   "subject": "Uluru",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "antarctic-ice-shelf",
+   "subject": "Antarctic Ice Shelf",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "zhangjiajie-cliffs",
+   "subject": "Zhangjiajie Cliffs",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "cliffs-of-moher",
+   "subject": "Cliffs of Moher",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "giant-s-causeway",
+   "subject": "Giant's Causeway",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "salar-de-uyuni",
+   "subject": "Salar de Uyuni",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "white-cliffs-of-dover",
+   "subject": "White Cliffs of Dover",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "matterhorn",
+   "subject": "Matterhorn",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "table-mountain",
+   "subject": "Table Mountain",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "iguazu-falls",
+   "subject": "Iguazu Falls",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "death-valley",
+   "subject": "Death Valley",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "redwood-forest",
+   "subject": "Redwood Forest",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "blue-lagoon-iceland",
+   "subject": "Blue Lagoon Iceland",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "bryce-canyon-hoodoos",
+   "subject": "Bryce Canyon Hoodoos",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "monument-valley",
+   "subject": "Monument Valley",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 10,
+   "cards": 2
+  },
+  {
+   "slug": "mount-kilimanjaro",
+   "subject": "Mount Kilimanjaro",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lake-baikal",
+   "subject": "Lake Baikal",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "palace-of-versailles",
+   "subject": "Palace of Versailles",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "forbidden-city",
+   "subject": "Forbidden City",
+   "bucket": "Rare",
+   "category": "Cosmos & Terra",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "shooting-star",
+   "subject": "Shooting Star",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 2
+  },
+  {
+   "slug": "poker-chip",
+   "subject": "Poker Chip",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "lucky-penny",
+   "subject": "Lucky Penny",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "wishbone",
+   "subject": "Wishbone",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 9,
+   "cards": 1
+  },
+  {
+   "slug": "ace-of-spades",
+   "subject": "Ace of Spades",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "the-joker",
+   "subject": "The Joker",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "slot-handle",
+   "subject": "Slot Handle",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "card-shoe",
+   "subject": "Card Shoe",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "dealer-button",
+   "subject": "Dealer Button",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "green-felt",
+   "subject": "Green Felt",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "craps-stick",
+   "subject": "Craps Stick",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "keno-ball",
+   "subject": "Keno Ball",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "bingo-dauber",
+   "subject": "Bingo Dauber",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "scratch-ticket",
+   "subject": "Scratch Ticket",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "lottery-ball",
+   "subject": "Lottery Ball",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "magic-8-ball",
+   "subject": "Magic 8-Ball",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "fortune-cookie",
+   "subject": "Fortune Cookie",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "tarot-deck",
+   "subject": "Tarot Deck",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 10,
+   "cards": 1
+  },
+  {
+   "slug": "crystal-ball",
+   "subject": "Crystal Ball",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "beckoning-cat",
+   "subject": "Beckoning Cat",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "evil-eye-bead",
+   "subject": "Evil Eye Bead",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "dreamcatcher",
+   "subject": "Dreamcatcher",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "brass-talisman",
+   "subject": "Brass Talisman",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "flipped-coin",
+   "subject": "Flipped Coin",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "cracked-mirror",
+   "subject": "Cracked Mirror",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "black-cat",
+   "subject": "Black Cat",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "spilled-salt",
+   "subject": "Spilled Salt",
+   "bucket": "Rare",
+   "category": "Fortune & Folly",
+   "tier": 11,
+   "cards": 1
+  },
+  {
+   "slug": "silverscale-leviathan",
+   "subject": "Silverscale Leviathan",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 11,
+   "cards": 6
+  },
+  {
+   "slug": "ship-s-bell",
+   "subject": "Ship's Bell",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "sunken-wreck",
+   "subject": "Sunken Wreck",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "gulper-eel",
+   "subject": "Gulper Eel",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "frilled-shark",
+   "subject": "Frilled Shark",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "midnight-trench",
+   "subject": "Midnight Trench",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "coral-reef",
+   "subject": "Coral Reef",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 5
+  },
+  {
+   "slug": "hatchetfish",
+   "subject": "Hatchetfish",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "lanternfish",
+   "subject": "Lanternfish",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 5
+  },
+  {
+   "slug": "golden-koi",
+   "subject": "Golden Koi",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 11,
+   "cards": 6
+  },
+  {
+   "slug": "the-one-that-got-away",
+   "subject": "The One That Got Away",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 11,
+   "cards": 5
+  },
+  {
+   "slug": "pearl-oyster",
+   "subject": "Pearl Oyster",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "captain-s-compass",
+   "subject": "Captain's Compass",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "the-old-lighthouse",
+   "subject": "The Old Lighthouse",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "coelacanth",
+   "subject": "Coelacanth",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "blobfish",
+   "subject": "Blobfish",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 5
+  },
+  {
+   "slug": "barreleye",
+   "subject": "Barreleye",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "kelp-forest",
+   "subject": "Kelp Forest",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "oarfish",
+   "subject": "Oarfish",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "fisherman-s-knot",
+   "subject": "Fisherman's Knot",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 11,
+   "cards": 6
+  },
+  {
+   "slug": "old-coin-purse",
+   "subject": "Old Coin Purse",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 6
+  },
+  {
+   "slug": "message-in-a-bottle",
+   "subject": "Message in a Bottle",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 5
+  },
+  {
+   "slug": "viperfish",
+   "subject": "Viperfish",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "giant-isopod",
+   "subject": "Giant Isopod",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 5
+  },
+  {
+   "slug": "moonlit-eel",
+   "subject": "Moonlit Eel",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 11,
+   "cards": 6
+  },
+  {
+   "slug": "ocean-sunfish",
+   "subject": "Ocean Sunfish",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 5
+  },
+  {
+   "slug": "sunken-chest",
+   "subject": "Sunken Chest",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 10,
+   "cards": 5
+  },
+  {
+   "slug": "old-man-of-the-lake",
+   "subject": "Old Man of the Lake",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 11,
+   "cards": 5
+  },
+  {
+   "slug": "colossal-squid",
+   "subject": "Colossal Squid",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 5
+  },
+  {
+   "slug": "goblin-shark",
+   "subject": "Goblin Shark",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 6
+  },
+  {
+   "slug": "taimen",
+   "subject": "Taimen",
+   "bucket": "Rare",
+   "category": "Tide & Tackle",
+   "tier": 9,
+   "cards": 2
+  },
+  {
+   "slug": "dowsing-rod",
+   "subject": "Dowsing Rod",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 9,
+   "cards": 4
+  },
+  {
+   "slug": "diving-bell",
+   "subject": "Diving Bell",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 9,
+   "cards": 4
+  },
+  {
+   "slug": "second-wind-tonic",
+   "subject": "Second Wind Tonic",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 9,
+   "cards": 4
+  },
+  {
+   "slug": "dwarven-pickaxe",
+   "subject": "Dwarven Pickaxe",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 10,
+   "cards": 3
+  },
+  {
+   "slug": "blasting-powder",
+   "subject": "Blasting Powder",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 10,
+   "cards": 3
+  },
+  {
+   "slug": "smoke-bomb",
+   "subject": "Smoke Bomb",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 10,
+   "cards": 3
+  },
+  {
+   "slug": "everburn-lantern",
+   "subject": "Everburn Lantern",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "master-toolbelt",
+   "subject": "Master Toolbelt",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "ghost-lantern",
+   "subject": "Ghost Lantern",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 11,
+   "cards": 3
+  },
+  {
+   "slug": "mine-cart",
+   "subject": "Mine Cart",
+   "bucket": "Rare",
+   "category": "Raid Gear",
+   "tier": 11,
+   "cards": 3
+  }
+ ]
+}

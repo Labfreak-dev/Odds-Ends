@@ -36,7 +36,13 @@
 @keyframes rzIn{ from{ transform:rotateY(-90deg); } to{ transform:rotateY(0); } }
 .rz-card.burst{ box-shadow:0 0 60px var(--rc), 0 0 120px var(--rc), 0 12px 34px rgba(0,0,0,.5); }
 .rz-rname{ font:900 12px system-ui; letter-spacing:1.5px; text-transform:uppercase; }
-.rz-art{ font-size:64px; margin:10px 0 6px; }
+/* fixed-height art box: the emoji shows instantly and a photo or painting
+   replaces it without the card changing size under the buttons */
+.rz-art{ height:102px; display:flex; align-items:center; justify-content:center;
+  font-size:64px; margin:10px 0 6px; }
+.rz-artimg{ height:102px; width:auto; max-width:186px; object-fit:cover; border-radius:12px;
+  box-shadow:0 4px 14px rgba(0,0,0,.45); animation:rzArtIn .25s ease-out; }
+@keyframes rzArtIn{ from{ opacity:0; } }
 .rz-cname{ font:800 15px system-ui; color:#eef4fa; }
 .rz-cat{ font:700 11px system-ui; color:#8b9cae; margin-top:2px; }
 .rz-badges{ display:flex; justify-content:center; gap:8px; margin-top:9px; }

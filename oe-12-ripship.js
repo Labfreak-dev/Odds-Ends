@@ -183,6 +183,45 @@ function rzFanHtml(n, skipTop){
   }
   return html;
 }
+/* ---------- card art on the flip ----------
+   Three layers, best available wins, emoji is the instant floor:
+   1. PAINTED ART for Rare and up: art/<subject-slug>.webp, committed to the
+      repo by the bench in waves (see docs/art-brief.md). Keyed by SUBJECT,
+      not card id, so "Bald Eagle - Sketch Plate" wears the Bald Eagle. A
+      miss costs one cheap 404 per subject per session, then falls through.
+   2. WIKI PHOTO for everything else: the same ciLookup the card-info panel
+      uses, so the two share one 90-day cache and one alias table.
+   3. The emoji, which was already on screen before either fetch started. */
+const RZ_ART_MIN = 9;                    /* Rare and up get painted art */
+const rzArtMiss = {};                    /* subjects that 404'd this session */
+function rzArtSlug(name){
+  return name.split(" \u2014 ")[0].toLowerCase()
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+function rzSetArt(c, src){
+  const h = document.getElementById("rzArt");
+  if(!h || !RZ || RZ.face !== c) return;   /* the hand moved on */
+  const img = document.createElement("img");
+  img.className = "rz-artimg"; img.alt = ""; img.draggable = false;
+  img.src = src;
+  h.innerHTML = ""; h.appendChild(img);
+}
+function rzLoadArt(c){
+  const wiki = ()=>{ try{
+    if(typeof ciLookup !== "function") return;
+    ciLookup(c.name.split(" \u2014 ")[0])
+      .then(e=>{ if(e && e.img) rzSetArt(c, e.img); }).catch(()=>{});
+  }catch(e){} };
+  if(c.rarity >= RZ_ART_MIN){
+    const slug = rzArtSlug(c.name);
+    if(rzArtMiss[slug]) return wiki();
+    const probe = new Image();
+    probe.onload  = ()=> rzSetArt(c, probe.src);
+    probe.onerror = ()=>{ rzArtMiss[slug] = 1; wiki(); };
+    probe.src = "art/" + slug + ".webp";
+  } else wiki();
+}
 let RZ = null;                     /* live session */
 let rzStreak = 0;                  /* packs ripped this sitting */
 
@@ -333,7 +372,7 @@ function rzRender(){
       <div class="rz-hand faced">${rzFanHtml(behind, true)}
       <div class="rz-card ${c.rarity>=14?"burst":""}" style="--rc:${r.color}; border-color:${r.color}">
         <div class="rz-rname" style="color:${r.color}">${r.name}</div>
-        <div class="rz-art">${c.emoji}</div>
+        <div class="rz-art" id="rzArt">${c.emoji}</div>
         <div class="rz-cname">${c.name}</div>
         <div class="rz-cat">${c.category}</div>
         <div class="rz-badges"><span class="rz-b ${c._wasNew?"new":"dupe"}">${c._wasNew?"NEW":"DUPLICATE"}</span>
@@ -345,6 +384,7 @@ function rzRender(){
         <button class="rz-btn keep" id="rzKeep">🗃️ KEEP</button>
       </div>
     </div>`;
+    rzLoadArt(c);
     document.getElementById("rzShip").onclick = ()=>{
       if(RZ.leaving) return;
       if(state.owned[c.id] > 0){

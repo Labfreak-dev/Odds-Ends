@@ -501,6 +501,57 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 64 — the 3D pack (and the three fixes it nearly reverted)
+The bench delivered new pack art: a real rendered wrapper (Meshy model),
+sliced Pocket-style - drag the glowing seam and the foil cap tumbles off.
+One webp, tinted per pack with hue-rotate so every pack on the shelf
+wears its own colour.
+
+THE HANDOFF WAS BRANCHED FROM THE OLD MODULE. Dropped in as sent it
+would have quietly reverted batch 62 (valuation back on the BUY table -
+the money printer returns) and batch 63 (shipping would PAY ARCADE
+CREDITS, minting them from card sales and bypassing the change counter
+entirely), plus the drag guard and the deep scrim. All four re-applied
+onto the new file. A handoff that touches a file this repo has since
+changed has to be treated as a BRANCH TO MERGE, never a file to copy.
+
+Three defects found by looking at screens, none by the suites:
+- A HARD SEAM across the sealed pack: each half carried its own
+  drop-shadow, so the cap shadowed the body of a pack nobody had sliced
+  yet. One shadow on the parent instead; the halves composite flush.
+  Proved by row-luma scan across the join: largest step 3.9, down from a
+  visible hard edge.
+- The pack name printed ON TOP of the hint line - absolute-positioned
+  30px below a pack that reserved no room for it.
+- The delivered hue hash, (h%10)*36, collided three ways on the real
+  shelf: Legends & Myth, Cosmos & Terra and Mega Booster all came out
+  0deg - identical to each other and to the untinted art. Hues now come
+  from the shelf index spaced by the golden angle: 7/7 distinct, no two
+  within 32deg, and the starter pack keeps the artwork's own orange.
+
+THE ART ITSELF WAS THE REAL CASUALTY. The playtester: "the middle part
+of the pack with all the designs on it looks terrible." The module
+embedded a 320x509 webp squeezed to 58KB, and the fine navy line-art had
+been compressed into grey speckle. They posted the clean 1024x1024
+source render, and the asset was re-cut from it at 708x1148, q88, 129KB.
+
+And the re-cut taught an alpha lesson worth writing down. The pack sits
+on a black starfield, so the cutout mask thresholded on brightness - and
+the DARK NAVY ICONS fell below the threshold, punching alpha holes
+through the artwork. Over the game's near-black overlay those holes read
+as solid black blocks stamped on the design; composited over grey they
+read as white. Diagnosis was fully confounded until the difference image
+was checked against the alpha channel: every "corrupt" pixel sat at
+alpha 0. A pack is a SOLID OBJECT: its alpha is its silhouette, holes
+filled - flood-fill the background from the border and everything the
+flood cannot reach stays opaque. (The erode/dilate that removes the
+stars still shapes the outline; the flood fill un-punches the interior.)
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 34/34 (now also asserts both halves render,
+the art decodes, and the halves sit flush), economy 29/29, arcade 12/12,
+and the sealed pack compared against the source render by eye.
+
 ## Batch 63 — TWO POCKETS: dollars for the business, credits for the arcade
 The playtester picked "cash and tokens" from three shapes. Dollars are what
 the collection earns and spends: mining income, level-up pay, selling and

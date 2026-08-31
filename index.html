@@ -3818,18 +3818,25 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rz-tally{ display:flex; flex-direction:column; gap:3px; font:700 12px system-ui; color:#cfd8e6; margin-bottom:12px; }
 .rz-tally b{ color:#ffd35c; }
 .rz-tally .up{ color:#7dffb5; font-weight:800; } .rz-tally .down{ color:#ff8a5c; font-weight:800; }
-.rz-pack{ position:relative; margin:6px auto; width:220px; height:290px; border-radius:16px; cursor:grab;
-  background:linear-gradient(160deg,#2a3550,#141b2a 60%,#1d2740); border:2px solid rgba(255,211,92,.4);
-  box-shadow:0 12px 40px rgba(0,0,0,.5); touch-action:none; overflow:hidden; }
-.rz-foiltop{ position:absolute; top:0; left:0; right:0; height:44px;
-  background:repeating-linear-gradient(115deg,#cdd6ea 0 7px,#8e9cb8 7px 14px); }
-.rz-foiltop::after{ content:""; position:absolute; inset:0;
-  background:linear-gradient(90deg, rgba(20,26,40,.95) var(--tear,0%), transparent var(--tear,0%)); }
-.rz-tearline{ position:absolute; top:42px; left:0; width:var(--tear,0%); height:3px; background:#ffd35c;
-  box-shadow:0 0 9px #ffd35c; }
-.rz-packicon{ font-size:74px; margin-top:74px; filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
-.rz-packname{ font:900 17px system-ui; color:#eef4fa; margin-top:8px; }
-.rz-packsub{ font:700 11.5px system-ui; color:#8b9cae; margin-top:3px; }
+.rz-pack{ position:relative; margin:6px auto 40px; width:236px; height:378px; cursor:grab;
+  touch-action:none; animation:rzSway 3.4s ease-in-out infinite;
+  filter:drop-shadow(0 10px 26px rgba(0,0,0,.55)); }
+@keyframes rzSway{ 0%,100%{ transform:rotate(-1.6deg); } 50%{ transform:rotate(1.6deg); } }
+.rz-pack.sliced{ animation:none; }
+.rz-cap,.rz-body{ position:absolute; left:0; width:236px; background-size:236px 378px; background-repeat:no-repeat;
+  filter:hue-rotate(var(--hue,0deg)); }
+.rz-cap{ top:0; height:34px; background-position:0 0; z-index:2; }
+.rz-body{ top:34px; height:344px; background-position:0 -34px; }
+.rz-tearline{ position:absolute; top:32px; left:8px; width:calc(var(--tear,0%) * 0.94); height:3.5px;
+  background:#ffd35c; box-shadow:0 0 10px #ffd35c, 0 0 22px #ffd35c88; z-index:3; border-radius:2px; }
+.rz-pack.sliced .rz-cap{ animation:rzCapOff .6s ease-in forwards; }
+@keyframes rzCapOff{
+  0%{ transform:none; opacity:1; }
+  30%{ transform:translate(14px,-26px) rotate(9deg); opacity:1; }
+  100%{ transform:translate(90px,-150px) rotate(38deg); opacity:0; } }
+.rz-pack.sliced .rz-body{ animation:rzRecoil .45s ease-out; }
+@keyframes rzRecoil{ 0%{ transform:translateY(0); } 35%{ transform:translateY(7px) scale(1.015); } 100%{ transform:translateY(0); } }
+.rz-packname{ position:absolute; bottom:-26px; left:0; right:0; font:800 12.5px system-ui; color:#cfd8e6; }
 .rz-hint{ font:700 12px system-ui; color:#93a5b7; margin-top:10px; }
 .rz-stack{ width:210px; height:280px; margin:6px auto; border-radius:15px; cursor:pointer;
   background:linear-gradient(150deg,#22304a,#101724); border:2px solid rgba(255,255,255,.2);
@@ -3867,7 +3874,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 53ed17</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 3c759b</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -4970,7 +4977,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-09-oddone.js?v=e66af7007b"></script>
 <script src="oe-10-fishing2.js?v=ca088c91a6"></script>
 <script src="oe-11-mining2.js?v=2ee842de0b"></script>
-<script src="oe-12-ripship.js?v=0973736d36"></script>
+<script src="oe-12-ripship.js?v=50e1409b4a"></script>
 <script src="oe-13-ledger.js?v=c7b9975ca2"></script>
 <script src="oe-14-grading.js?v=817788899f"></script>
 <script src="oe-15-market2.js?v=8029b64826"></script>

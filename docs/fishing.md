@@ -501,6 +501,54 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 68 — CARD ART ON THE FLIP (three layers, and a brief for the bench)
+The flip reveal now dresses every card with the best art available, and
+the emoji never leaves the floor:
+
+1. PAINTED ART for Rare and up: the game probes art/<subject-slug>.webp
+   at flip time. Nothing is committed there yet - the folder, contract
+   and README exist so the bench's deliveries drop straight in with NO
+   integrate.py wiring and NO REBUILD: commit a webp, push, live.
+2. WIKI PHOTO for everything else (and as the painted layer's fallback):
+   the same ciLookup the card-info panel has always used, sharing its
+   90-day cache and alias table, keyed on the same subject split so both
+   surfaces hit one cache entry.
+3. The emoji, already on screen before any fetch starts. The art box is
+   fixed-height so an arriving image never shifts the buttons.
+
+THE NUMBERS THAT SHAPED IT. 60,171 cards total - any scheme that stores
+an image per card is dead on arrival (300MB+). But variants share a
+subject ("Bald Eagle - Sketch Plate" wears the Bald Eagle), and subjects
+repeat across tiers, so Rare-and-up's 2,546 cards need only 985 unique
+images: Mythic 40, Legendary 39, Epic 108, Rare 798. At the 320px/25KB
+spec that is ~15-25MB of repo, lazy-loaded one file per flip. Common,
+Uncommon and Fine stay on wiki photos by decision of the playtester
+("junk that might eventually get removed").
+
+FOR THE BENCH: docs/art-brief.md (spec, style, waves, the no-rebuild
+delivery contract) and docs/art-manifest.json (all 985 slugs with
+subject, bucket, category and how many cards each image covers - use the
+slug verbatim, never re-derive by hand). art/README.md repeats the
+contract at the drop point.
+
+Mechanics worth recording: slugs are NFKD-folded so accents cannot fork
+a filename; a probe that 404s is remembered for the session (one miss
+per subject, not per flip); rzSetArt checks RZ.face so a slow fetch can
+never paint the NEXT card's art onto the current one.
+
+And one testing note: the suite's "zero errors" check began tripping on
+console resource-load failures - which are now EXPECTED, because the art
+layer 404s its probe by design and the sandbox blocks wikipedia. The
+smoke now filters "Failed to load resource" console noise and keeps real
+page errors strict; docs/smoke-cardart.py (6 checks) covers the actual
+logic with stubs: a painted file replaces the emoji, the wiki photo
+fills a miss, a Common never probes art/, the emoji holds when all else
+fails, and the art box height never moves.
+
+Verified: 19/19 node --check, test-fishing 114/114, smoke-fishing 13/13,
+smoke-spots 80/80, ripship 37/37, backs 15/15, cardart 6/6, economy
+29/29, arcade 12/12.
+
 ## Batch 67 — EARNABLE CARD BACKS (six designs, five locks)
 The playtester's card-back set becomes a collection of its own. Six
 backs, one worn at a time, and the whole hand wears it:

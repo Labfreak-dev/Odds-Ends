@@ -64,8 +64,17 @@ with sync_playwright() as pw:
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
 
     # ---- layer 2: no file -> the wiki photo (stubbed) fills in ----
+    # every Mythic and Legendary is painted now, so an "unpainted high-tier
+    # card" must be FOUND, not assumed: pick a Rare whose slug has no file
+    painted = {f.stem for f in (ROOT/"art").glob("*.webp")}
+    unpainted = pg.evaluate("""(have)=>{
+      const strip = s=>s.split(" \u2014 ")[0].toLowerCase().normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+      const c = cards.find(x=>x.rarity>=9 && x.rarity<=11 && !have.includes(strip(x.name)));
+      return c ? cards.indexOf(c) : -1; }""", sorted(painted))
+    check("an unpainted high-tier card still exists to test with", unpainted >= 0)
     pg.evaluate("(u)=>{ ciLookup = async(s)=>({ img:u, title:s }); }", PNG_URI)
-    open_single(pg, "cards.find(x=>x.rarity===15 && x !== cards.find(y=>y.rarity===15))")
+    open_single(pg, f"cards[{unpainted}]")
     got = pg.evaluate("()=>{ const i=document.querySelector('#rzArt img'); return i ? i.src.slice(0,30) : null; }")
     check("with no painting, the wiki photo fills in", got and got.startswith("data:image/png"), got)
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
@@ -78,7 +87,7 @@ with sync_playwright() as pw:
 
     # ---- layer 3: both miss -> the emoji stays ----
     pg.evaluate("()=>{ ciLookup = async(s)=>null; }")
-    open_single(pg, "cards.find(x=>x.rarity===14)")
+    open_single(pg, f"cards[{unpainted}]")
     got = pg.evaluate("()=>{ const h=document.getElementById('rzArt'); return {img: !!h.querySelector('img'), txt: h.textContent.trim().length>0}; }")
     check("when everything misses, the emoji holds the frame", got and not got["img"] and got["txt"], got)
 

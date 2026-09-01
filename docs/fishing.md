@@ -501,6 +501,24 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 77 — the Rare tier starts getting painted (animals 1-12)
+The playtester opened WAVE 4 by generating the first 12 Animal Kingdom
+Rares themselves from docs/rare-art-list.txt (new file: all 788 Rare
+subjects grouped by category under ONE shared mid-tier background brief
+- plain painterly slate-grey gradient, subject at ~70% of frame, less
+drama than the foil heroes) and dropping a zip already NAMED BY SLUG
+(rare-cards/animals/NNN-slug.jpg). That kills the identify-by-eye step;
+eyeballing is now just verification, and all 12 checked out. Aardvark,
+Adelie Penguin, African Grey Parrot, Alpaca, American Beaver / Bison /
+Bullfrog / Crow / Flamingo / Kestrel / Robin / Toad - standard
+per-subject-bias crop to 320x320 webp q82, ~50KB each. NO WIRING
+NEEDED: the Rare bucket is tiers 9-11, already at RZ_ART_MIN=9, so
+these cards have been probing art/ (and 404ing to wiki) since the art
+system shipped - the paintings go live on merge, no rebuild. Proven
+headless: tier-0 Aardvark (Classic Print) correctly shows NO painting;
+tier-9 Heritage Folio renders aardvark.webp at 320px inside the red
+Rare frame. cardart 13/13 with 191 files in art/. 12/788 Rares done.
+
 ## Batch 76 — WAVE 3 COMPLETE: every foil card in the game is painted
 The last four landmarks (Dead Sea, Great Blue Hole, Bora Bora Lagoon,
 Antelope Canyon) close the Epic tier: 104/104. With waves 1 and 2 that

@@ -2769,6 +2769,59 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .pk-handrow{ display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; }
 .pk-handrow span:last-child{ font-weight:700; color:#ffd35c; }
 #tab-empire, #tab-siege, #tab-raids, #tab-dungeon{ display:none !important; }
+  /* ---- Play lobby: grouped shelves ---------------------------------- */
+  /* The container is .play-hub, NOT .play-grid - that lets each group's row
+     reuse the .play-grid rule above verbatim. Putting both classes on one
+     element makes display:flex and display:grid fight, and which one wins
+     depends on stylesheet order. */
+  .play-hub{ display:flex; flex-direction:column; gap:14px; }
+  .play-group{ background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07);
+    border-radius:16px; padding:12px; }
+  .play-group-head{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:10px; margin:0 2px 10px; }
+  .play-group-head h3{ margin:0; font-size:12.5px; font-weight:800; letter-spacing:0.06em;
+    text-transform:uppercase; color:#d5def3; }
+  .play-group-head span{ font-size:11.5px; color:var(--muted); text-align:right; }
+  .play-card[data-group="outdoor"]{ border-color:#2e6b55; }
+  .play-card[data-group="arcade"]{ border-color:#5a4aa0; }
+  .play-card[data-group="puzzle"]{ border-color:#3d5a8c; }
+  .play-card[data-group="outdoor"] .pmeta{ color:#7dffc0; }
+  .play-card[data-group="arcade"] .pmeta{ color:#d2b8ff; }
+  .play-card[data-group="puzzle"] .pmeta{ color:#9db7ff; }
+  /* re-assert hover: the tints above would otherwise outrank it by order */
+  .play-card[data-group]:hover{ border-color:var(--accent); }
+
+  /* ---- Packs: shelf as a real grid ----------------------------------- */
+  .pack-shelf{ display:grid; grid-template-columns:repeat(auto-fill, minmax(176px, 1fr)); gap:12px; }
+  .pack{ width:auto; min-width:0; min-height:0; height:100%; padding:14px 12px 12px; }
+  .pack .icon{ font-size:36px; margin-bottom:6px; }
+  .pack .title{ font-size:14px; line-height:1.2; }
+  .pack .sub{ font-size:11px; line-height:1.35; }
+  .pack .price{ width:100%; box-sizing:border-box; margin-top:auto; }
+  .pack .price + .price{ margin-top:6px; }
+  /* locked packs read as locked at a glance, not just in their price line */
+  .pack.empire-locked, .pack.risk-locked{ opacity:.75; filter:saturate(.75); }
+
+  /* ---- Auto-Open: a drawer, so the shelf is above the fold ----------- */
+  details.auto-open-wrap > summary{ cursor:pointer; font-weight:800; font-size:16px;
+    list-style:none; display:flex; align-items:center; gap:9px; }
+  details.auto-open-wrap > summary::-webkit-details-marker{ display:none; }
+  details.auto-open-wrap > summary::after{ content:"\25B8"; margin-left:auto;
+    color:var(--muted); font-size:12px; }
+  details.auto-open-wrap[open] > summary::after{ content:"\25BE"; }
+  .auto-open-status{ font-size:11px; font-weight:700; letter-spacing:0.02em;
+    color:var(--muted); background:rgba(255,255,255,0.06); border-radius:999px; padding:3px 9px; }
+  .auto-open-status.on{ color:#7dffc0; background:rgba(61,220,132,0.14); }
+  .auto-open-body{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+
+  /* Narrow phones: keep both shelves two-across instead of collapsing to one. */
+  @media (max-width:420px){
+    .pack-shelf{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+    .play-group .play-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:9px; }
+    .play-group{ padding:10px; }
+    .play-group-head{ flex-direction:column; align-items:flex-start; gap:2px; }
+    .play-group-head span{ text-align:left; }
+  }
 </style>
 </head>
 <body>
@@ -2812,7 +2865,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <h2 style="margin-top:0;">🎮 Play</h2>
       <p style="color:var(--muted); font-size:12.5px; margin:4px 0 12px;" id="playBlurb">
         Ways to turn credits into more credits — or into a very good story.</p>
-      <div class="play-grid" id="playGrid"></div>
+      <div class="play-hub" id="playGrid"></div>
     </div>
   </section>
 
@@ -2869,23 +2922,25 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     </div>
 
     <div class="panel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:10px;">Auto-Open</div>
-      <div class="row" style="gap:14px; flex-wrap:wrap;">
-        <label class="toggle-row">
-          <input type="checkbox" id="autoOpenToggle" onchange="updateSettings()"> ⚡ Fast Auto-Open
-        </label>
-        <label class="toggle-row">
-          <input type="checkbox" id="stopOnNewToggle" onchange="updateSettings()"> Stop if new card found
-        </label>
-        <label class="toggle-row">
-          <input type="checkbox" id="stopOnRarityToggle" onchange="updateSettings()"> Stop if rarity ≥
-          <select id="rarityThresholdSelect" onchange="updateSettings()"></select>
-        </label>
-      </div>
-      <div style="color:var(--muted); font-size:12px; margin-top:10px;">
-        With Fast Auto-Open on, packs rip and cards flip automatically — no tapping required. Turn on a stop
-        condition to pause on anything worth a look, which is handy when you're grinding toward a specific rarity.
-      </div>
+      <details class="auto-open-wrap">
+        <summary>⚡ Auto-Open <span class="auto-open-status" id="autoOpenStatus">Off</span></summary>
+        <div class="auto-open-body">
+          <label class="toggle-row">
+            <input type="checkbox" id="autoOpenToggle" onchange="updateSettings()"> ⚡ Fast Auto-Open
+          </label>
+          <label class="toggle-row">
+            <input type="checkbox" id="stopOnNewToggle" onchange="updateSettings()"> Stop if new card found
+          </label>
+          <label class="toggle-row">
+            <input type="checkbox" id="stopOnRarityToggle" onchange="updateSettings()"> Stop if rarity ≥
+            <select id="rarityThresholdSelect" onchange="updateSettings()"></select>
+          </label>
+        </div>
+        <div style="color:var(--muted); font-size:12px; margin-top:10px;">
+          With Fast Auto-Open on, packs rip and cards flip automatically — no tapping required. Turn on a stop
+          condition to pause on anything worth a look, which is handy when you're grinding toward a specific rarity.
+        </div>
+      </details>
     </div>
 
     <div class="panel">
@@ -5805,6 +5860,7 @@ function updateSettings(){
   state.settings.stopOnRarity = document.getElementById("stopOnRarityToggle").checked;
   state.settings.rarityThreshold = Number(document.getElementById("rarityThresholdSelect").value);
   saveState();
+  paintAutoOpenStatus();
   updateAutoPauseButton();
   // if auto was just turned on mid-reveal, kick the chain from wherever we currently are
   if(state.settings.autoOpen && revealState && !autoPausedByUser){
@@ -5858,6 +5914,24 @@ function populateSettingsUI(){
   document.getElementById("stopOnNewToggle").checked = state.settings.stopOnNew;
   document.getElementById("stopOnRarityToggle").checked = state.settings.stopOnRarity;
   sel.value = state.settings.rarityThreshold;
+  paintAutoOpenStatus();
+}
+
+/* The Auto-Open drawer starts closed, so its summary carries the live state -
+   otherwise "is fast open on?" needs a tap to answer. */
+function paintAutoOpenStatus(){
+  const el = document.getElementById("autoOpenStatus");
+  if(!el) return;
+  const s = state.settings || {};
+  if(!s.autoOpen){ el.textContent = "Off"; el.classList.remove("on"); return; }
+  const stops = [];
+  if(s.stopOnNew) stops.push("new cards");
+  if(s.stopOnRarity){
+    const r = RARITIES[s.rarityThreshold];
+    stops.push(r ? r.name.toLowerCase() + "+" : "rarity");
+  }
+  el.textContent = stops.length ? "On \u00b7 stops on " + stops.join(" & ") : "On";
+  el.classList.add("on");
 }
 
 function maybeAutoRip(){
@@ -18455,16 +18529,46 @@ function importSavePaste(){
   applyBackup(box.value.trim());
 }
 
+/* Shelves for the Play lobby. A game's home is looked up by id rather than
+   stored on the UI_GAMES entry, because that array is assembled from two
+   places (the host below + integrate.py's registry splice) - keeping the
+   grouping in one map means adding a mode never has to touch both. */
+const PLAY_GROUPS = [
+  { id:"outdoor", title:"Outdoor & idle", blurb:"Play while something else ticks along." },
+  { id:"arcade",  title:"Arcade",         blurb:"Short sessions, louder payouts." },
+  { id:"puzzle",  title:"Puzzles",        blurb:"Think, then collect." },
+];
+const PLAY_GROUP_OF = {
+  fishing:"outdoor", hunt:"outdoor", press:"outdoor",
+  poker:"arcade", casino:"arcade", oddone:"arcade",
+  provenance:"puzzle", connections:"puzzle", showcase:"puzzle",
+};
 function renderPlayLobby(){
   const grid = document.getElementById("playGrid");
   if(!grid) return;
-  grid.innerHTML = UI_GAMES.map(g=>`
-    <button class="play-card" data-game="${g.id}">
+  const cardHtml = (g, groupId)=>`
+    <button class="play-card" data-game="${g.id}" data-group="${groupId}">
       <span class="pi">${g.icon}</span>
       <span class="pn">${g.name}</span>
       <span class="pd">${g.desc}</span>
       <span class="pmeta">${g.meta}</span>
-    </button>`).join("");
+    </button>`;
+  /* A game missing from PLAY_GROUP_OF falls into the last shelf rather than
+     vanishing from the lobby - a new mode showing up in the wrong group is a
+     nuisance, one that never renders is a bug nobody notices. */
+  grid.innerHTML = PLAY_GROUPS.map((grp, gi)=>{
+    const isLast = gi === PLAY_GROUPS.length - 1;
+    const games = UI_GAMES.filter(g=>{
+      const home = PLAY_GROUP_OF[g.id];
+      return home === grp.id || (isLast && !home);
+    });
+    if(!games.length) return "";
+    return `
+    <section class="play-group" data-group="${grp.id}">
+      <div class="play-group-head"><h3>${grp.title}</h3><span>${grp.blurb}</span></div>
+      <div class="play-grid">${games.map(g=>cardHtml(g, grp.id)).join("")}</div>
+    </section>`;
+  }).join("");
   grid.querySelectorAll("[data-game]").forEach(b=>
     b.addEventListener("click", ()=>uiOpenGame(b.dataset.game)));
   const blurb = document.getElementById("playBlurb");

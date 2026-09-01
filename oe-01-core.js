@@ -1953,6 +1953,7 @@ function updateSettings(){
   state.settings.stopOnRarity = document.getElementById("stopOnRarityToggle").checked;
   state.settings.rarityThreshold = Number(document.getElementById("rarityThresholdSelect").value);
   saveState();
+  paintAutoOpenStatus();
   updateAutoPauseButton();
   // if auto was just turned on mid-reveal, kick the chain from wherever we currently are
   if(state.settings.autoOpen && revealState && !autoPausedByUser){
@@ -2006,6 +2007,24 @@ function populateSettingsUI(){
   document.getElementById("stopOnNewToggle").checked = state.settings.stopOnNew;
   document.getElementById("stopOnRarityToggle").checked = state.settings.stopOnRarity;
   sel.value = state.settings.rarityThreshold;
+  paintAutoOpenStatus();
+}
+
+/* The Auto-Open drawer starts closed, so its summary carries the live state -
+   otherwise "is fast open on?" needs a tap to answer. */
+function paintAutoOpenStatus(){
+  const el = document.getElementById("autoOpenStatus");
+  if(!el) return;
+  const s = state.settings || {};
+  if(!s.autoOpen){ el.textContent = "Off"; el.classList.remove("on"); return; }
+  const stops = [];
+  if(s.stopOnNew) stops.push("new cards");
+  if(s.stopOnRarity){
+    const r = RARITIES[s.rarityThreshold];
+    stops.push(r ? r.name.toLowerCase() + "+" : "rarity");
+  }
+  el.textContent = stops.length ? "On \u00b7 stops on " + stops.join(" & ") : "On";
+  el.classList.add("on");
 }
 
 function maybeAutoRip(){

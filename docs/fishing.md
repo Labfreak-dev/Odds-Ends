@@ -501,6 +501,17 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 78 — animals 13-48 (three zips, one apostrophe)
+Three more playtester zips, 36 paintings: Andean Condor through Cheetah.
+All identified correctly on the contact sheets. One naming lesson: the
+generator dropped the apostrophe from Anna's Hummingbird, producing
+annas-hummingbird where rzArtSlug makes anna-s-hummingbird ("'" is
+non-alnum, so it becomes a dash) - the slug validator caught it against
+the manifest before anything shipped, renamed on crop. That validator
+(every incoming name must exist in art-manifest.json with bucket Rare
+and no file already in art/) is now step one of every drop. cardart
+13/13 with 227 files in art/. 48/788 Rares painted, 48/216 animals.
+
 ## Batch 77 — the Rare tier starts getting painted (animals 1-12)
 The playtester opened WAVE 4 by generating the first 12 Animal Kingdom
 Rares themselves from docs/rare-art-list.txt (new file: all 788 Rare

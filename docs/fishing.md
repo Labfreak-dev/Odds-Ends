@@ -501,6 +501,18 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 80 — animals 97-120 arrive as contact sheets
+New delivery format: two 4x3 GRID IMAGES instead of a zip, no
+filenames. Worked because the tiles run in exact rare-art-list
+alphabetical order, so position = slug (great-horned-owl through
+kookaburra, 24 paintings, all verified by eye against that mapping).
+Slicing lesson: a 6px inset left gutter slivers on tile edges; 12px
+cleans them. Grid tiles carry ~270px of real detail vs 784px from
+single-image drops - upscaled to 320, acceptably soft for the Rare
+tier (the playtester: "not that important to be super special").
+cardart 13/13, 263 files. 84/788 Rares, 84/216 animals; 049-084
+still the open gap.
+
 ## Batch 79 — animals 85-96 (the F-G shelf)
 Firefly through Great Blue Heron, 12 paintings, all identified clean -
 the playtester is working ahead of the alphabet, so 049-084 (chinchilla

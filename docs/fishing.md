@@ -501,6 +501,14 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 92 — Machines in Motion opens: ATM to dune buggy (48)
+The last big shelf begins, and the style pivots perfectly: weathered
+miniature-model renders on the same muted backdrop - the trireme,
+carousel, and blast furnace are standouts. Objects sit mid-frame so
+one 0.32 bias covers nearly everything (ships and the blast furnace
+excepted). All 48 verified. cardart 13/13. 655 files. 476/788 Rares;
+machines 48/160.
+
 ## Batch 91 — LEGENDS & MYTH COMPLETE: 212/212
 Tsukuyomi through Zheng He closes the second giant shelf, proven by
 manifest diff (zero missing). Highlights of the final 20: Van Gogh

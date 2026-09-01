@@ -501,6 +501,20 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 86 — legends 49-144, and the cardart flake root-caused
+NINETY-SIX portraits (Hemingway through Oni) - gods of eight
+pantheons, monsters, kings, scientists. One apostrophe rename
+(maat -> ma-at, same rule as anna-s-hummingbird); Kukulkan arrived
+personified (warrior in feathered-serpent headdress) - curated.
+THE FLAKE IS DEAD: third sighting arrived with full output captured,
+and the failing pair told the story - layers 2/3 reused the SAME card
+layer 1 had temporarily painted, and Chromium's memory cache kept
+serving the unlinked temp file into the wiki-fallback and emoji
+checks. Intermittent because cache eviction timing. Fix: two distinct
+unpainted probes - layer 1 paints one, layers 2/3 use the other, so
+no cache interaction exists at all. 3 consecutive 13/13 runs. 539
+files. 360/788 Rares; legends 144/212.
+
 ## Batch 85 — Legends & Myth opens: Lincoln to Enki (48 portraits)
 The second big shelf begins with people, and the portrait style shifts
 naturally: bust-length, formal, the same muted backdrop. All 48

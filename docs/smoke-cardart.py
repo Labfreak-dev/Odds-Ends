@@ -52,14 +52,25 @@ with sync_playwright() as pw:
     # being fixed. Always find a slug with no file, and refuse to run if the
     # chosen path somehow exists.
     painted = {f.stem for f in (ROOT/"art").glob("*.webp")}
-    probe = pg.evaluate("""(have)=>{
+    # Two DISTINCT unpainted cards: layer 1 temporarily paints the first one,
+    # and layers 2/3 use the second. Reusing one card for all three layers let
+    # Chromium's memory cache serve the unlinked temp painting into layer 2/3
+    # (the intermittent 2-fail flake: batches 79, 85, 86).
+    probes = pg.evaluate("""(have)=>{
       const strip = s=>s.split(" \u2014 ")[0].toLowerCase().normalize("NFKD")
         .replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-      const c = cards.find(x=>x.rarity>=9 && !have.includes(strip(x.name)));
-      return c ? { i: cards.indexOf(c), slug: strip(c.name) } : null; }""", sorted(painted))
-    check("an unpainted high-tier card exists to test with", probe is not None)
+      const out=[], seen=new Set();
+      for(const c of cards){
+        const sl=strip(c.name);
+        if(c.rarity>=9 && !have.includes(sl) && !seen.has(sl)){
+          seen.add(sl); out.push({ i: cards.indexOf(c), slug: sl });
+          if(out.length===2) break; } }
+      return out; }""", sorted(painted))
+    check("an unpainted high-tier card exists to test with", len(probes) == 2)
+    probe, probe2 = probes
     art_file = ROOT / "art" / (probe["slug"] + ".webp")
     assert not art_file.exists(), "refusing to shadow a real painting"
+    assert not (ROOT / "art" / (probe2["slug"] + ".webp")).exists()
 
     # ---- layer 1: a painted file wins ----
     art_file.write_bytes(WEBP_1PX)
@@ -72,8 +83,9 @@ with sync_playwright() as pw:
         art_file.unlink(missing_ok=True)
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
 
-    # ---- layer 2: no file (just unlinked) -> the wiki photo (stubbed) fills in ----
-    unpainted = probe["i"]
+    # ---- layer 2: no file -> the wiki photo (stubbed) fills in ----
+    # probe2, never painted this run, so no stale browser cache for its slug
+    unpainted = probe2["i"]
     pg.evaluate("(u)=>{ ciLookup = async(s)=>({ img:u, title:s }); }", PNG_URI)
     open_single(pg, f"cards[{unpainted}]")
     got = pg.evaluate("()=>{ const i=document.querySelector('#rzArt img'); return i ? i.src.slice(0,30) : null; }")

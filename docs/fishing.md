@@ -501,6 +501,58 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 98 — UI pass: grouped Play shelves, packs grid, Auto-Open drawer
+An outside review (Grok) proposed a Play/Packs redesign. Measured its
+premises against the real page before touching anything: two held up,
+one did not, and one file would have broken the build.
+
+TAKEN, with the numbers that justified them:
+- AUTO-OPEN IS NOW A DRAWER. That panel measured 289px tall and pushed
+  the pack shelf 516px down a 900px phone screen - 57% of the first
+  view was a settings box you touch once a week. Collapsed it to a 19px
+  summary; the shelf now starts at 280px and the whole 8-pack wall fits
+  one screen. Because a closed drawer hides its own state, the summary
+  carries a live chip ("Off" / "On - stops on new cards & mythic+"),
+  painted by paintAutoOpenStatus() from updateSettings + the restore
+  path.
+- PACK SHELF IS A GRID, not fixed-width flex. Cards 170 -> 214px on
+  desktop (they fill the row instead of leaving a ragged edge) and
+  256 -> 190px tall. Locked packs now dim (opacity .75) - previously a
+  level-locked pack looked identical to a buyable one apart from its
+  price line.
+- PLAY LOBBY GROUPS into Outdoor & idle / Arcade / Puzzles, 3 games
+  each, with per-group border + meta tints.
+
+REJECTED:
+- The proposed Play CSS was broken. It declared `.play-grid{display:grid
+  !important}` while adding `.play-hub` to the SAME element (#playGrid
+  already carries class play-grid in the host HTML). !important beat the
+  hub's display:flex, so the three group sections laid out side-by-side
+  at 170px each - proven headless before rejecting it. Fix: the
+  container is now `.play-hub` ONLY and each group's row reuses the
+  existing `.play-grid` rule verbatim - no new grid rule, no !important,
+  nothing to fight. The tints then outranked `.play-card:hover` by
+  source order, so hover is re-asserted at `[data-group]:hover`.
+- Pack filter chips: 8 packs do not need a filter, and "Special"
+  resolved to the same three packs as "Locked". Skipped.
+- Its blurb rewrite ("9 games, sorted so you are not hunting through one
+  pile of buttons") - UI describing itself. Kept the original line.
+
+DELIVERY NOTE: every instruction pointed at generated files ("replace
+UI_GAMES in oe-18-tail.js", "paste at the end of <style> in
+index.html") - a rebuild erases that. Worse, pasting its 9-entry
+UI_GAMES into the host deletes the `/* Runeshard entry removed */`
+comment that integrate.py's registry splice anchors on, so once() would
+abort the whole build (rule 1). Sidestepped entirely: grouping lives in
+a PLAY_GROUP_OF map keyed by id, so UI_GAMES is untouched in BOTH
+places and adding a mode later never has to edit two files. A game
+missing from the map falls into the last shelf rather than vanishing.
+
+Backup before shipping: branch backup/art-complete-3f2abc on GitHub,
+plus a verified 25MB playable zip sent to the playtester.
+Verified: 19/19 parse, test-fishing, cardart 13/13, ripship 37/37,
+backs 15/15, economy 29/29, smoke-fishing, smoke-spots. Stamp d86885.
+
 ## Batch 97 — EVERY CARD IN THE GAME IS PAINTED: 967/967
 The final 31 arrived pre-named with every correction note honored -
 a real cassette walkman (not an iPod), a folding straight razor (not

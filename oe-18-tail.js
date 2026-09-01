@@ -173,16 +173,46 @@ function importSavePaste(){
   applyBackup(box.value.trim());
 }
 
+/* Shelves for the Play lobby. A game's home is looked up by id rather than
+   stored on the UI_GAMES entry, because that array is assembled from two
+   places (the host below + integrate.py's registry splice) - keeping the
+   grouping in one map means adding a mode never has to touch both. */
+const PLAY_GROUPS = [
+  { id:"outdoor", title:"Outdoor & idle", blurb:"Play while something else ticks along." },
+  { id:"arcade",  title:"Arcade",         blurb:"Short sessions, louder payouts." },
+  { id:"puzzle",  title:"Puzzles",        blurb:"Think, then collect." },
+];
+const PLAY_GROUP_OF = {
+  fishing:"outdoor", hunt:"outdoor", press:"outdoor",
+  poker:"arcade", casino:"arcade", oddone:"arcade",
+  provenance:"puzzle", connections:"puzzle", showcase:"puzzle",
+};
 function renderPlayLobby(){
   const grid = document.getElementById("playGrid");
   if(!grid) return;
-  grid.innerHTML = UI_GAMES.map(g=>`
-    <button class="play-card" data-game="${g.id}">
+  const cardHtml = (g, groupId)=>`
+    <button class="play-card" data-game="${g.id}" data-group="${groupId}">
       <span class="pi">${g.icon}</span>
       <span class="pn">${g.name}</span>
       <span class="pd">${g.desc}</span>
       <span class="pmeta">${g.meta}</span>
-    </button>`).join("");
+    </button>`;
+  /* A game missing from PLAY_GROUP_OF falls into the last shelf rather than
+     vanishing from the lobby - a new mode showing up in the wrong group is a
+     nuisance, one that never renders is a bug nobody notices. */
+  grid.innerHTML = PLAY_GROUPS.map((grp, gi)=>{
+    const isLast = gi === PLAY_GROUPS.length - 1;
+    const games = UI_GAMES.filter(g=>{
+      const home = PLAY_GROUP_OF[g.id];
+      return home === grp.id || (isLast && !home);
+    });
+    if(!games.length) return "";
+    return `
+    <section class="play-group" data-group="${grp.id}">
+      <div class="play-group-head"><h3>${grp.title}</h3><span>${grp.blurb}</span></div>
+      <div class="play-grid">${games.map(g=>cardHtml(g, grp.id)).join("")}</div>
+    </section>`;
+  }).join("");
   grid.querySelectorAll("[data-game]").forEach(b=>
     b.addEventListener("click", ()=>uiOpenGame(b.dataset.game)));
   const blurb = document.getElementById("playBlurb");

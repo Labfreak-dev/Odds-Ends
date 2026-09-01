@@ -45,34 +45,35 @@ with sync_playwright() as pw:
     pg.reload(); pg.wait_for_timeout(2200)
     pg.evaluate("()=>{ state.dollars=9e6; state.player.level=99; }")
 
-    # pick a real Mythic and derive its slug exactly as the module does
-    subj = pg.evaluate("()=>{ const c=cards.find(x=>x.rarity===15); return {i:cards.indexOf(c), name:c.name}; }")
-    slug = pg.evaluate("""(n)=>n.split(" \\u2014 ")[0].toLowerCase()
-      .normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"")
-      .replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")""", subj["name"])
-    art_file = ROOT / "art" / (slug + ".webp")
+    # THE TEMP FILE MUST NEVER SHADOW A REAL PAINTING. This test once targeted
+    # 'the first Mythic' - fine while nothing was painted, but the day the real
+    # vacuum-tube-radio.webp landed, the temp write-then-unlink DELETED it, the
+    # deletion shipped, and the suite ate the restored copy twice more while
+    # being fixed. Always find a slug with no file, and refuse to run if the
+    # chosen path somehow exists.
+    painted = {f.stem for f in (ROOT/"art").glob("*.webp")}
+    probe = pg.evaluate("""(have)=>{
+      const strip = s=>s.split(" \u2014 ")[0].toLowerCase().normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+      const c = cards.find(x=>x.rarity>=9 && !have.includes(strip(x.name)));
+      return c ? { i: cards.indexOf(c), slug: strip(c.name) } : null; }""", sorted(painted))
+    check("an unpainted high-tier card exists to test with", probe is not None)
+    art_file = ROOT / "art" / (probe["slug"] + ".webp")
+    assert not art_file.exists(), "refusing to shadow a real painting"
 
     # ---- layer 1: a painted file wins ----
     art_file.write_bytes(WEBP_1PX)
     try:
-        open_single(pg, f"cards[{subj['i']}]")
+        open_single(pg, f"cards[{probe['i']}]")
         got = pg.evaluate("()=>{ const i=document.querySelector('#rzArt img'); return i ? i.src : null; }")
-        check("a painted file replaces the emoji on a Mythic",
-              got and got.endswith(f"art/{slug}.webp"), got)
+        check("a painted file replaces the emoji",
+              got and got.endswith(f"art/{probe['slug']}.webp"), got)
     finally:
         art_file.unlink(missing_ok=True)
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
 
-    # ---- layer 2: no file -> the wiki photo (stubbed) fills in ----
-    # every Mythic and Legendary is painted now, so an "unpainted high-tier
-    # card" must be FOUND, not assumed: pick a Rare whose slug has no file
-    painted = {f.stem for f in (ROOT/"art").glob("*.webp")}
-    unpainted = pg.evaluate("""(have)=>{
-      const strip = s=>s.split(" \u2014 ")[0].toLowerCase().normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-      const c = cards.find(x=>x.rarity>=9 && x.rarity<=11 && !have.includes(strip(x.name)));
-      return c ? cards.indexOf(c) : -1; }""", sorted(painted))
-    check("an unpainted high-tier card still exists to test with", unpainted >= 0)
+    # ---- layer 2: no file (just unlinked) -> the wiki photo (stubbed) fills in ----
+    unpainted = probe["i"]
     pg.evaluate("(u)=>{ ciLookup = async(s)=>({ img:u, title:s }); }", PNG_URI)
     open_single(pg, f"cards[{unpainted}]")
     got = pg.evaluate("()=>{ const i=document.querySelector('#rzArt img'); return i ? i.src.slice(0,30) : null; }")

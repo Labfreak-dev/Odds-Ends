@@ -501,6 +501,15 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 81 — animals 97-144 as full-res singles; grid tiles upgraded
+A 48-image zip covering 097-144: the 24 grid-tile paintings from batch
+80 re-delivered at full 784px (SAME slugs, so a plain cp upgraded them
+in place - the batch-80 softness lasted one deploy), plus 24 new
+(ladybug through plains-zebra), all verified on contact sheets. The
+two-format story resolved itself: grids were a preview, singles are
+the canon delivery. cardart 13/13, 287 files. 108/788 Rares, 108/216
+animals - exactly half the Animal Kingdom. 049-084 still the open gap.
+
 ## Batch 80 — animals 97-120 arrive as contact sheets
 New delivery format: two 4x3 GRID IMAGES instead of a zip, no
 filenames. Worked because the tiles run in exact rare-art-list

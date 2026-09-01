@@ -252,6 +252,7 @@ window.oeArtSlug  = rzArtSlug;   /* so the collection and info panel probe the s
 window.oeArtMin   = RZ_ART_MIN;
 window.oePackImg  = RZ_PACK_IMG;  /* the shelf shows the same foil the rip stage tears */
 window.oePackHue  = rzHue;        /* ...tinted the same way, so shelf and rip agree */
+window.oeRipState = ()=>RZ;       /* read-only peek for the smoke suites */
 let RZ = null;                     /* live session */
 let rzStreak = 0;                  /* packs ripped this sitting */
 
@@ -312,6 +313,87 @@ function rzTally(){
     <span class="${net>=0?"up":"down"}">${net>=0?"▲ up":"▼ down"} $${Math.abs(net).toLocaleString()}</span>
   </div>`;
 }
+/* ---- the tear geometry, in pack pixels (236 x 378) ----
+   A cut is a point + a direction (ux,uy) + the normal (nx,ny) that points at
+   the piece which comes away, plus how many finger-pixels finish it. */
+const RZ_PW = 236, RZ_PH = 378;
+const RZ_TEAR_HINT = {
+  top:    "✂️ slicing the cap — keep dragging across",
+  bottom: "✂️ peeling the footer — keep dragging across",
+  left:   "✂️ zipping the left edge — drag down the side",
+  right:  "✂️ zipping the right edge — drag down the side",
+  slash:  "✂️ slashing the foil — drag it through",
+  pinch:  "✂️ pinching it open — work the middle" };
+function rzPackPt(pk, e){
+  const r = pk.getBoundingClientRect();
+  return { x:(e.clientX - r.left) * RZ_PW / r.width, y:(e.clientY - r.top) * RZ_PH / r.height };
+}
+function rzPickCut(p){
+  const fx = p.x / RZ_PW, fy = p.y / RZ_PH;
+  /* the cap band is tight (the cap itself is 9% of the pack) so a zipper
+     started near a top corner is still a zipper */
+  if(fy < 0.15) return { kind:"top",    px:8, py:32,  ux:1, uy:0, nx:0,  ny:-1, ang:0,  len:RZ_PW*0.94, rate:220 };
+  if(fy > 0.85) return { kind:"bottom", px:8, py:342, ux:1, uy:0, nx:0,  ny:1,  ang:0,  len:RZ_PW*0.94, rate:240 };
+  if(fx < 0.16) return { kind:"left",  px:12,       py:8, ux:0, uy:1, nx:-1, ny:0, ang:90, len:RZ_PH*0.96, rate:240 };
+  if(fx > 0.84) return { kind:"right", px:RZ_PW-12, py:8, ux:0, uy:1, nx:1,  ny:0, ang:90, len:RZ_PH*0.96, rate:240 };
+  if(fx > 0.32 && fx < 0.68 && fy > 0.36 && fy < 0.66){
+    const a = (fx - 0.5) * 50 * Math.PI/180;
+    return { kind:"pinch", px:RZ_PW/2, py:RZ_PH/2, ux:Math.cos(a), uy:Math.sin(a), nx:-Math.sin(a), ny:Math.cos(a),
+             ang:a*180/Math.PI, len:RZ_PW*1.15, rate:150, free:true };
+  }
+  return { kind:"slash", px:p.x, py:p.y, ux:0, uy:0, nx:0, ny:1, ang:null, len:0, rate:1e9, sx:0, sy:0 };
+}
+function rzLockSlash(cut, ux, uy){
+  cut.ux = ux; cut.uy = uy; cut.nx = -uy; cut.ny = ux;
+  cut.ang = Math.atan2(uy, ux) * 180/Math.PI;
+  let L = 1e9;   /* how far the foil runs from the finger to the edge */
+  if(ux >  0.001) L = Math.min(L, (RZ_PW - cut.px)/ux);
+  if(ux < -0.001) L = Math.min(L, -cut.px/ux);
+  if(uy >  0.001) L = Math.min(L, (RZ_PH - cut.py)/uy);
+  if(uy < -0.001) L = Math.min(L, -cut.py/uy);
+  cut.len = Math.max(40, L); cut.rate = Math.max(140, cut.len);
+}
+function rzTearVars(pk, cut){
+  pk.style.setProperty("--px", cut.px.toFixed(1)+"px");
+  pk.style.setProperty("--py", cut.py.toFixed(1)+"px");
+  pk.style.setProperty("--ang", (cut.ang===null ? 0 : cut.ang).toFixed(1)+"deg");
+}
+function rzBuzz(pat){
+  try{ if(typeof feCanVibe === "function" ? feCanVibe() : (navigator.vibrate)) navigator.vibrate(pat); }catch(e){}
+}
+/* the foil gives: everything but the classic cap slice splits the pack into
+   two clipped copies of the foil along the cut, and the piece on the normal
+   side comes away - the footer drops, a zipper strip peels off like the cap
+   does, a slash or pinch throws both halves apart */
+function rzSplit(pk, cut){
+  const L = 1200, hue = pk.style.getPropertyValue("--hue") || "0deg";
+  const poly = (s)=>[
+    [cut.px - cut.ux*L, cut.py - cut.uy*L], [cut.px + cut.ux*L, cut.py + cut.uy*L],
+    [cut.px + cut.ux*L + cut.nx*s*L, cut.py + cut.uy*L + cut.ny*s*L],
+    [cut.px - cut.ux*L + cut.nx*s*L, cut.py - cut.uy*L + cut.ny*s*L]
+  ].map(q=>q[0].toFixed(0)+"px "+q[1].toFixed(0)+"px").join(",");
+  const nx = cut.nx, ny = cut.ny;
+  const M = {
+    bottom:{ a:[0,-8,0,.9],   b:[0,150,12,0] },
+    left:  { a:[10,0,0,.9],   b:[-110,-30,-28,0] },
+    right: { a:[-10,0,0,.9],  b:[110,-30,28,0] },
+    slash: { a:[-nx*30,-ny*30,-5,.35], b:[nx*30,ny*30,5,.35] },
+    pinch: { a:[-nx*42,-ny*42,-6,.3],  b:[nx*42,ny*42,6,.3] }
+  }[cut.kind];
+  if(!M) return;
+  RZ.split = { kind:cut.kind, halves:2 };   /* outlives the 620ms the halves are on screen */
+  pk.querySelectorAll(".rz-cap,.rz-body").forEach(el=>{ el.style.visibility = "hidden"; });
+  [["a",-1,M.a],["b",1,M.b]].forEach(([id,s,t])=>{
+    const h = document.createElement("div");
+    h.className = "rz-half rz-half-" + id;
+    h.style.backgroundImage = "url('" + RZ_PACK_IMG + "')";
+    h.style.clipPath = "polygon(" + poly(s) + ")";
+    h.style.setProperty("--hue", hue);
+    h.style.setProperty("--tx", t[0].toFixed(1)+"px"); h.style.setProperty("--ty", t[1].toFixed(1)+"px");
+    h.style.setProperty("--tr", t[2]+"deg");           h.style.setProperty("--to", t[3]);
+    pk.appendChild(h);
+  });
+}
 function rzRender(){
   const ov = document.getElementById("rzOverlay");
   if(!ov || !RZ) return;
@@ -319,27 +401,70 @@ function rzRender(){
     const hue = rzHue(RZ.pack.key||"basic");
     ov.innerHTML = `<div class="rz-box">
       ${rzTally()}
-      <div class="rz-pack" id="rzPack" style="--tear:${(RZ.tear*100).toFixed(1)}%; --hue:${hue}deg">
+      <div class="rz-pack" id="rzPack" style="--tear:${(RZ.tear*100).toFixed(1)}%; --tn:${(RZ.tear*100).toFixed(1)}; --hue:${hue}deg; --len:${(RZ.tear*(RZ.cut ? RZ.cut.len : 222)).toFixed(1)}px">
         <div class="rz-cap" style="background-image:url('${RZ_PACK_IMG}')"></div>
         <div class="rz-body" style="background-image:url('${RZ_PACK_IMG}')"></div>
         <div class="rz-tearline"></div>
         <div class="rz-packname">${RZ.pack.icon||"🎴"} ${RZ.pack.name} · ${RZ.pulls.length} cards</div>
       </div>
-      <div class="rz-hint">👉 drag across the seam to SLICE the top off</div>
+      <div class="rz-hint">👉 tear it open — slice the top, zip an edge, slash across, or pinch the middle</div>
     </div>`;
     const pk = document.getElementById("rzPack");
-    let lastX = null;
-    const move = (x)=>{
-      if(!RZ || RZ.stage !== "rip") return;   /* the drag can outlive the slice */
-      if(lastX !== null){ RZ.tear = Math.min(1, RZ.tear + Math.abs(x-lastX)/220); }
-      lastX = x;
+    /* ---- directional tear: WHERE the first swipe starts picks how the foil
+       parts. Top band = slice the cap (the classic), bottom band = peel the
+       footer, either edge = zipper down that side, the middle = pinch it
+       open, anywhere else = a slash that follows the finger. The first
+       choice sticks for the pack - a second swipe continues the same tear -
+       and progress only counts movement ALONG the cut, so scrubbing
+       sideways on a zipper does nothing. RZ.cut carries the geometry the
+       split needs when the foil finally gives (rzSplit). */
+    let last = null, cut = RZ.cut || null;
+    if(cut){ pk.dataset.tear = cut.kind; rzTearVars(pk, cut); }
+    const tick = (e)=>{
+      if(!RZ || RZ.stage !== "rip" || !cut) return;   /* the drag can outlive the slice */
+      const p = rzPackPt(pk, e);
+      if(last){
+        const dx = p.x - last.x, dy = p.y - last.y;
+        let along;
+        if(cut.free){ along = Math.hypot(dx, dy); }
+        else if(cut.ang === null){
+          /* the slash waits for 14px of travel, then locks to that direction
+             and measures how far the foil runs before the edge */
+          cut.sx += dx; cut.sy += dy;
+          const h = Math.hypot(cut.sx, cut.sy);
+          if(h < 14){ last = p; return; }
+          rzLockSlash(cut, cut.sx/h, cut.sy/h);
+          rzTearVars(pk, cut);
+          along = h;
+        } else along = Math.abs(dx*cut.ux + dy*cut.uy);
+        const before = RZ.tear;
+        RZ.tear = Math.min(1, RZ.tear + along/cut.rate);
+        if(Math.floor(RZ.tear*8) !== Math.floor(before*8)) rzBuzz(6);   /* the foil gives in steps */
+      }
+      last = p;
       pk.style.setProperty("--tear", (RZ.tear*100).toFixed(1)+"%");
+      pk.style.setProperty("--tn", (RZ.tear*100).toFixed(1));
+      pk.style.setProperty("--len", (RZ.tear*cut.len).toFixed(1)+"px");
       if(RZ.tear >= 1) rzRipDone();
     };
-    pk.onpointerdown = (e)=>{ RZ.tearing = true; lastX = e.clientX; pk.setPointerCapture(e.pointerId);
-      RZ.tear = Math.min(1, RZ.tear + 0.2); move(e.clientX); };
-    pk.onpointermove = (e)=>{ if(RZ && RZ.tearing) move(e.clientX); };
-    pk.onpointerup = ()=>{ if(RZ) RZ.tearing = false; lastX = null; };
+    pk.onpointerdown = (e)=>{
+      if(!RZ || RZ.stage !== "rip") return;
+      const p = rzPackPt(pk, e);
+      if(!cut){
+        cut = RZ.cut = rzPickCut(p);
+        pk.dataset.tear = cut.kind; rzTearVars(pk, cut);
+        const hint = pk.parentNode && pk.parentNode.querySelector(".rz-hint");
+        if(hint) hint.textContent = RZ_TEAR_HINT[cut.kind] || hint.textContent;
+      }
+      RZ.tearing = true; last = p;
+      try{ pk.setPointerCapture(e.pointerId); }catch(_){}
+      /* the press itself starts the tear, as it always did for the cap */
+      if(cut.kind === "top") RZ.tear = Math.min(1, RZ.tear + 0.2);
+      else if(cut.ang !== null && RZ.tear === 0) RZ.tear = 0.1;   /* only the first press bites */
+      tick(e);
+    };
+    pk.onpointermove = (e)=>{ if(RZ && RZ.tearing) tick(e); };
+    pk.onpointerup = pk.onpointercancel = ()=>{ if(RZ) RZ.tearing = false; last = null; };
   }
   else if(RZ.stage === "cards"){
     const c = RZ.pulls[RZ.idx];
@@ -472,9 +597,15 @@ function rzRipDone(){
   const pk = document.getElementById("rzPack");
   if(pk){
     pk.classList.add("sliced");
+    const cut = RZ.cut;
+    if(cut && cut.kind !== "top"){ try{ rzSplit(pk, cut); }catch(e){} }
+    rzBuzz([18, 24, 42]);
     try{
       const r = pk.getBoundingClientRect(), ov = document.getElementById("rzOverlay").getBoundingClientRect();
-      const cx = r.left - ov.left + r.width/2, cy = r.top - ov.top + 46;
+      /* the burst rises from the cut, not always from the cap */
+      const sx = cut ? (cut.px + cut.ux*cut.len*0.5) / RZ_PW : 0.5, sy = cut ? (cut.py + cut.uy*cut.len*0.5) / RZ_PH : 0.12;
+      const cx = r.left - ov.left + r.width*(cut && cut.kind !== "top" ? sx : 0.5),
+            cy = r.top - ov.top + (cut && cut.kind !== "top" ? r.height*sy : 46);
       rzPoof(cx, cy, "#ffd35c");
       rzBurst(cx, cy, ["#ffd35c","#ff9a5c","#e8e2d6","#8fd0ff"], { n:34, sp:330, s:8, life:1.1 });
     }catch(e){}

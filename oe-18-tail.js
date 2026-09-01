@@ -350,14 +350,19 @@ setInterval(mineTick, 1000);
     }
     box.appendChild(frag);
   }
-  function dismiss(){
+  function dismiss(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
     if(done) return; done = true;
     host.classList.add("out");
     try{ if(typeof feAudioUnlock === "function") feAudioUnlock(); }catch(e){}
     setTimeout(()=>{ try{ host.remove(); }catch(e){} }, 520);
   }
-  host.addEventListener("pointerdown", dismiss, { passive:true });
+  /* Dismiss on CLICK, not pointerdown: the first tap once took the overlay
+     down mid-gesture and the same finger's pointerup bought a pack on the
+     shelf underneath. The overlay also stays hit-testable while it fades. */
   host.addEventListener("click", dismiss);
+  host.addEventListener("pointerdown", (e)=>{ e.preventDefault(); e.stopPropagation(); });
+  host.addEventListener("pointerup",   (e)=>{ e.preventDefault(); e.stopPropagation(); });
   window.addEventListener("keydown", (e)=>{
     if(!done && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); dismiss(); }
   });

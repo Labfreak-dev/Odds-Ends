@@ -2999,7 +2999,9 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     background:radial-gradient(120% 80% at 50% 28%, #15305f 0%, #0a1a3c 45%, #050b1e 100%);
     user-select:none; -webkit-user-select:none; touch-action:manipulation;
     transition:opacity .45s ease; }
-  .oe-start.out{ opacity:0; pointer-events:none; }
+  /* NO pointer-events:none here: the overlay keeps swallowing input until
+     it is removed, or the tap's own pointerup/click lands on the page below */
+  .oe-start.out{ opacity:0; }
   .oe-start-rain{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:1; }
   .oe-fall{ position:absolute; top:0; left:var(--x); width:var(--w); aspect-ratio:2/3;
     border-radius:6%; background:var(--frame, none) center/100% 100% no-repeat #10141d;
@@ -18900,14 +18902,19 @@ setInterval(mineTick, 1000);
     }
     box.appendChild(frag);
   }
-  function dismiss(){
+  function dismiss(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
     if(done) return; done = true;
     host.classList.add("out");
     try{ if(typeof feAudioUnlock === "function") feAudioUnlock(); }catch(e){}
     setTimeout(()=>{ try{ host.remove(); }catch(e){} }, 520);
   }
-  host.addEventListener("pointerdown", dismiss, { passive:true });
+  /* Dismiss on CLICK, not pointerdown: the first tap once took the overlay
+     down mid-gesture and the same finger's pointerup bought a pack on the
+     shelf underneath. The overlay also stays hit-testable while it fades. */
   host.addEventListener("click", dismiss);
+  host.addEventListener("pointerdown", (e)=>{ e.preventDefault(); e.stopPropagation(); });
+  host.addEventListener("pointerup",   (e)=>{ e.preventDefault(); e.stopPropagation(); });
   window.addEventListener("keydown", (e)=>{
     if(!done && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); dismiss(); }
   });

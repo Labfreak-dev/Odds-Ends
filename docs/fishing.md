@@ -501,6 +501,28 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 106 — the start tap bought a pack
+Playtester: "when I click to start, the screen behind the logo is still
+active so it made me buy a card pack."
+
+WHY. The overlay dismissed on pointerDOWN and its fade class set
+pointer-events:none at once, so the same finger's pointerup and click
+fell through to whatever sat under the crest - on the Packs tab, the
+shelf's buy buttons. Batch 104 tested "one tap takes the screen down"
+and never asked where the tap went afterwards.
+
+FIX. Dismiss on CLICK (the end of the gesture, not the start), swallow
+pointerdown/pointerup/click with preventDefault + stopPropagation, and
+drop pointer-events:none from the fade so the overlay stays hit-testable
+until it is removed 520ms later. Keyboard Enter/Space unchanged.
+
+VERIFIED. smoke-start grows to 32: the tap lands dead centre over the
+shelf; the overlay still reports pointer-events:auto mid-fade; afterwards
+dollars have not dropped (mining ticks them UP a few cents, which the
+first draft of the check tripped on), no rip overlay is open, and the
+Packs tab is still the active tab. Fast suites and long smokes green.
+Stamp 5e5e03.
+
 ## Batch 105 — the fishing HUD gets its plates
 Playtester: "do the fishing HUD plates too." Grok's fish-hud sheet has five
 pieces - a CAST plank, a TACKLE plate, a BAIT tin, a SPOTS shield, and a

@@ -501,6 +501,52 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 107 — the tear goes where the finger goes
+Playtester handed over a Grok "directional pack tear" (packtearstyles
+js+css): where the swipe starts picks the cut - top band slices the cap,
+bottom band peels the footer, either edge zips down that side, the middle
+pinches, anywhere else slashes. Brief: "a more realistic feel."
+
+WHAT GROK HAD RIGHT. The zone idea, and the mechanics: it swaps the pack's
+on-pointer handlers (the module assigns properties, so nothing double
+fires) and moves the tear line per kind.
+
+WHAT IT LACKED. Every non-top tear still ended with the CAP flying off the
+top; the slash was anchored at the pack's corner instead of the finger;
+any movement counted as progress, so scrubbing sideways zipped an edge;
+and each new press re-picked the zone, so a second swipe could switch a
+zipper into a slash mid-tear. Its pinch ring used calc(% * px), which is
+invalid css.
+
+BUILT INTO THE MODULE instead of layered over it. A cut is a point, a
+direction, a normal, and a rate, in pack pixels (rzPickCut). Progress is
+the finger's travel projected onto the cut (a zipper ignores sideways
+scrubbing; the pinch is free-form). The slash waits for 14px of travel,
+locks to that direction, and measures how far the foil runs to the edge so
+the line grows from under the finger and finishes at the edge. The first
+choice sticks for the pack. The tear line reads its geometry from
+--px/--py/--ang/--len; the defaults reproduce the cap seam exactly, so the
+four suites that tear across the top see the classic unchanged. The phone
+buzzes as the foil gives in eighths, and once more when it goes (rzBuzz,
+honouring the fishing vibration switch).
+
+THE SPLIT (rzSplit). When a non-top cut finishes, cap and body hide and
+two clipped copies of the foil take their place, clip-path polygons on
+either side of the cut line: the footer drops, a zipper strip peels off
+like the cap does, a slash or pinch throws both halves apart, the burst
+rises from the cut. RZ.split records it, since the halves are on screen
+only for the 620ms before the deal.
+
+ZONES. Top band 15% (the cap is 9%), bottom 15%, edges 16% each, pinch
+the middle third; the cap band was 20% and swallowed zippers started near
+a top corner.
+
+VERIFIED. New docs/smoke-tear.py, 19 checks: all six cuts, the classic
+leaves no split, footer/zipper/slash/pinch split with clipped halves,
+sideways scrubbing does not zip, the slash locks to ~39 degrees and starts
+under the finger, the deal follows every cut. ripship 37, backs 15,
+cardart 13, economy 29 unchanged. Long smokes green. Stamp a2ebb1.
+
 ## Batch 106 — the start tap bought a pack
 Playtester: "when I click to start, the screen behind the logo is still
 active so it made me buy a card pack."

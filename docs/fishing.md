@@ -501,6 +501,16 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 90 — legends 181-192: the delivery format perfects itself
+The zip carried BOTH a labeled reference sheet AND the 12 full-res
+pre-named singles - review sheet plus canon files in one drop, the
+best format yet. Suleiman through Toussaint Louverture, all verified:
+Sun Wukong's gold fillet, red-faced winged Tengu, Tezcatlipoca's
+smoking mirror, ibis-headed Thoth, Thor with Mjolnir, and Tlaloc's
+goggle-eyed mask (project highlight). cardart 13/13. 587 files.
+408/788 Rares; legends 192/212 - one drop of 20 closes the shelf
+(tsukumogami through zeus).
+
 ## Batch 89 — legends 169-180 as a LABELED sheet
 New format again: one 4x3 grid with each subject's name painted into
 the tile bottom - self-documenting, and the labels confirmed all 12

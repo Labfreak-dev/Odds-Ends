@@ -501,6 +501,35 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 108 — themed plates: each set's pills wear its material
+Playtester: "next. more menu stuff and buttons" - Grok's themed-buttons
+pass (js + css). Its js tagged packs by TITLE TEXT on a 2s interval and a
+MutationObserver, and guessed upgrade families with a regex over card
+text; its css restyled the cast button and shore buttons with !important
+(both superseded by the plates in batch 105) and touched a #sellModeBtn
+that does not exist.
+
+TAKEN, keyed on real hooks. The pack shelf sets data-pack from p.key at
+render, so the pills are themed with no polling: kraft-and-tape for
+Everyday, hide-and-paw for Animal, parchment-and-wax for Legends, oiled
+steel with gear teeth for Machines, night sky for Cosmos, wet wood for
+Tide, foil streak for Mega, card-back weave for Risk (and a quiet teal
+for the dev test pack). Both pills of a set wear the material; the 10-pack
+keeps a gold ring so the primary buy still reads. The market deal is gold
+Buy / steel Bargain / brass-ghost No way, at .m2-acts specificity so it
+beats market2.css regardless of cascade order. Upgrade cards carry
+data-cat from def.category and wear a rail colour per family (copper
+mining, steel workshop, gold luck, green economy). Every Play card gets
+its own accent colour; the group tints stay on the meta chips.
+
+LEFT OUT: the fishing restyle (superseded), the sell button (no such
+element), the upgrade glyph regex.
+
+VERIFIED. smoke-start grows to 38: eight keyed packs with seven or more
+distinct pill materials, the market's gold/steel/ghost trio, eight or
+more distinct Play accents. All other suites unchanged and green; long
+smokes green. Stamp 383ab3.
+
 ## Batch 107 — the tear goes where the finger goes
 Playtester handed over a Grok "directional pack tear" (packtearstyles
 js+css): where the swipe starts picks the cut - top band slices the cap,

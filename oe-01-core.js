@@ -1626,6 +1626,7 @@ function renderPackShelf(){
     const earned = p.earnOnly ? (typeof riskPacksOwned === "function" ? riskPacksOwned() : 0) : 0;
     const el = document.createElement("div");
     el.className = "pack" + (locked ? " empire-locked" : "") + (p.earnOnly && earned <= 0 ? " risk-locked" : "");
+    el.dataset.pack = p.key;   /* the set's pills wear the set's material (themed plates css) */
     if(p.grad) el.style.background = p.grad;
     if(p.border) el.style.borderColor = p.border;
     el.innerHTML = `
@@ -2453,6 +2454,7 @@ function renderUpgrades(){
 
     const el = document.createElement("div");
     el.className = "upgrade-card" + (maxed ? " maxed" : "");
+    el.dataset.cat = def.category || "";   /* the card's rail wears its family's colour */
     el.innerHTML = `
       <div class="uhead">
         <div class="uicon">${def.icon}</div>

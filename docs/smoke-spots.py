@@ -152,9 +152,20 @@ async def main():
           return false;
         })()""", timeout=25000)
         await pg.evaluate("fshHookSet(); fsh.holding=true; fsh.fight.progress=fsh.fight.need-1;")
-        await pg.wait_for_timeout(700)
+        # Wait on the CONDITION, not a stopwatch. This was a fixed 700ms sleep for
+        # a landing that has to tick through the fight, resolve, and write the
+        # journal - fine on an idle box, missed under load. Third failure in the
+        # suite's history, all in fishing code the batch never touched.
+        try:
+            await pg.wait_for_function(
+                """(()=>{ try{
+                     return feJournalCount()===1 && fsh.result &&
+                            fsh.result.chips.some(c=>c.includes('New species'));
+                   }catch(e){ return false; } })()""", timeout=9000)
+        except Exception:
+            pass   # fall through so check() reports the real state, not a raw timeout
         check("a first catch enters the journal with a bonus chip", await pg.evaluate(
-            "feJournalCount()===1 && fsh.result.chips.some(c=>c.includes('New species'))"))
+            "feJournalCount()===1 && !!fsh.result && fsh.result.chips.some(c=>c.includes('New species'))"))
         check("conditions gate the landed species", await pg.evaluate(
             "(()=>{ const c=feConds()[fsh.result.title]; return !c || feCondOk(c); })()"))
         # sight fishing: park a shadow on the bobber target and cast into it

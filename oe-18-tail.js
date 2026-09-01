@@ -299,6 +299,72 @@ renderAll();
 try{ saveState(); }catch(e){ console.error("saveState failed", e); }
 setInterval(mineTick, 1000);
 
+/* ---------------- START SCREEN: the crest, a rain of cards, tap to start ----
+   The overlay is in the markup so it paints first; this fills it with the
+   game's own cards (real frames, real paintings) and takes it down on the
+   first tap, which is also the gesture that unlocks audio. Automation
+   (navigator.webdriver) and ?nostart never see it; ?start forces it on. */
+(function(){
+  const host = document.getElementById("oeStart");
+  if(!host) return;
+  const q = location.search || "";
+  if(/[?&]nostart\b/.test(q) || (navigator.webdriver && !/[?&]start\b/.test(q))){ host.remove(); return; }
+  let done = false;
+  function rain(){
+    const box = document.getElementById("oeStartRain");
+    if(!box || typeof cards === "undefined") return;
+    const FR = window.oeFrameFor, SL = window.oeArtSlug, MIN = window.oeArtMin || 9;
+    /* four frame bands, drawn round-robin so the rain is not all Rare-red
+       (tiers 9-11 are most of the pool) */
+    const bands = [[9,11],[12,13],[14,14],[15,15]].map(([lo,hi]) =>
+      cards.filter(c => c.rarity >= Math.max(lo, MIN) && c.rarity <= hi && c.category !== "Raid Gear"))
+      .filter(b => b.length);
+    const seen = new Set(), picks = [];
+    const want = Math.max(10, Math.min(18, Math.round(window.innerWidth / 40)));
+    for(let t = 0; t < 600 && picks.length < want && bands.length; t++){
+      const b = bands[t % bands.length];
+      const c = b[Math.floor(Math.random() * b.length)];
+      const key = c.name.split(" — ")[0];
+      if(seen.has(key)) continue;
+      seen.add(key); picks.push(c);
+    }
+    const n = picks.length, scale = Math.min(1.4, Math.max(1, window.innerWidth / 760));
+    const frag = document.createDocumentFragment();
+    for(let i = 0; i < n; i++){
+      const c = picks[i], fr = typeof FR === "function" ? FR(c.rarity) : null;
+      const d = document.createElement("div"); d.className = "oe-fall";
+      const w = (46 + Math.random() * 40) * scale;
+      d.style.cssText = "--x:" + ((i + Math.random()) * 100 / n).toFixed(1) + "%;--w:" + w.toFixed(0) + "px;"
+        + "--d:" + (7 + Math.random() * 7).toFixed(2) + "s;--delay:" + (-Math.random() * 14).toFixed(2) + "s;"
+        + "--r0:" + (Math.random() * 60 - 30).toFixed(0) + "deg;--r1:" + (Math.random() * 120 - 60).toFixed(0) + "deg;"
+        + "--dx:" + (Math.random() * 120 - 60).toFixed(0) + "px;" + (fr ? "--frame:url(" + fr.img + ")" : "");
+      const em = document.createElement("span"); em.className = "oe-fall-em"; em.textContent = c.emoji;
+      d.appendChild(em);
+      if(typeof SL === "function"){
+        const img = new Image(); img.alt = ""; img.draggable = false; img.decoding = "async";
+        img.onerror = ()=> img.remove();
+        img.src = "art/" + SL(c.name) + ".webp";
+        d.appendChild(img);
+      }
+      frag.appendChild(d);
+    }
+    box.appendChild(frag);
+  }
+  function dismiss(){
+    if(done) return; done = true;
+    host.classList.add("out");
+    try{ if(typeof feAudioUnlock === "function") feAudioUnlock(); }catch(e){}
+    setTimeout(()=>{ try{ host.remove(); }catch(e){} }, 520);
+  }
+  host.addEventListener("pointerdown", dismiss, { passive:true });
+  host.addEventListener("click", dismiss);
+  window.addEventListener("keydown", (e)=>{
+    if(!done && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); dismiss(); }
+  });
+  window.oeStartDismiss = dismiss;
+  try{ rain(); }catch(e){ console.warn("start screen rain skipped", e); }
+})();
+
 /* ---------------- POKER SMASH: challenge hands, chain bolts, banners ----------
    Wraps the poker functions rather than editing them, so the layer can be
    lifted out in one piece. The felt and the tile faces live in pkDraw /

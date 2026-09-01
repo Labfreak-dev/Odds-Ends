@@ -501,6 +501,62 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 104 — a start screen, and the menu gets its plates
+Playtester handed over the second Grok chrome pack (illustrated tab plates,
+play tiles, a button kit, a fishing HUD sheet) plus a new owl crest, with
+the brief: "whole new menu rebuild and a new logo. I want the logo to be an
+opening Start screen with a Tap to Start flashing underneath. Cards from
+the game fall from the top of the screen behind the logo, in front of the
+background."
+
+THE START SCREEN. A fixed overlay (#oeStart) is in the MARKUP, before the
+header, so it is the first thing painted rather than something a script
+bolts on after the game has flashed past. The crest is art/ui/logo.webp,
+the delivered JPG with its navy exterior flood-keyed to alpha (from the
+border only, so the navy inside the oval stays), so the cards really do
+pass behind the oval and not behind a rectangle. The rain is the game's
+own cards: the tail script picks 10-18 subjects round-robin across the
+four high-tier frame bands (9-11 red, 12-13 teal, 14 gold, 15 magenta -
+random picks came out all red, tiers 9-11 being most of the pool), dresses
+each in its real frame via oeFrameFor and its real painting from art/, and
+lets a CSS keyframe carry it from -45vh to 115vh with a negative delay so
+the sky is already full at first paint. One tap, click, Enter or Space
+fades it out and removes it; the same gesture calls feAudioUnlock, so the
+first tap is also the audio unlock the browser wants.
+
+AUTOMATION. Every suite drives the page by clicking, and a full-screen
+overlay would make Playwright's actionability check wait forever on every
+tab button. The tail script removes the overlay when navigator.webdriver is
+set (Playwright sets it) or ?nostart is in the URL; ?start=1 forces it back
+on, which is how docs/smoke-start.py tests it. No inline <script> for this:
+integrate.py explodes EVERY script block into its own oe-NN file, so a
+one-line inline script at the top of body would have renumbered all
+nineteen files.
+
+THE MENU. The nav keeps its <i>emoji</i> markup - every renderer that
+toggles .active or reads data-tab is untouched - and the plate is painted
+onto the <i> as an embedded webp background with the emoji shrunk to
+font-size:0. Six plates cropped from Grok's sheet (bounding boxes found by
+column projection, corners flood-keyed so the sheet's navy does not show
+on the nav's near-black), ~4.5KB each. Play cards get the nine tiles the
+same way, keyed on data-game; the descriptions stay (Grok's css hid them).
+Buttons: primary is now gold metal, secondary steel, and the brass/ghost
+family is re-declared at button.btn.btn-ghost specificity so it FINALLY
+wins over button.btn - the pre-existing "ghost buttons render accent blue"
+bug from batch 98 is closed by this. The 10-pack pill is the gold plate.
+
+NOT TAKEN from the pack: the fishing HUD sheet (CAST/TACKLE/BAIT/SPOTS
+plates - the css only recoloured the fishing buttons and never used the
+art; that is a mode restyle for its own batch), the header-logo swap (it
+would replace the player's avatar badge), the blurb-hiding rules, and the
+generic input/.chip restyles.
+
+VERIFIED. New docs/smoke-start.py: 28 checks at phone and desktop (overlay
+covers, crest loads, 10+ framed cards with paintings across 2+ bands,
+Tap-to-Start pulses, cards move, one tap removes it, six plates, 44px nav,
+gold/ghost/brass palette, nine tiles, zero errors, automation skips).
+Fast suites green; long smokes green. Stamp 600304.
+
 ## Batch 103 — the shelf shows the real foil
 Playtester: "change the packs to the actual pack assets on the pack shelf.
 its got old placeholder text/box style." The shelf tiles still carried the

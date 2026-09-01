@@ -501,6 +501,26 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 96 — the great triage: 129 shipped from five mixed dumps
+rendered02-06 (346 unlabeled images) triaged in one pass: 129 new
+subjects shipped, the rest re-renders or not-in-game extras, zero
+misassignments caught by the labeled-crop review. The dedupe pipeline
+resolved earlier holds too - the three red spheres became antares /
+betelgeuse / aldebaran (judgment calls, flagged), and better takes
+replaced earlier picks before shipping (iceberg, the-moon, garnet,
+crab-nebula, monument-valley, card-shoe, geyser each had 2+
+candidates; best won). Filename lesson: the generator's random names
+mix l and I - matching normalizes both to one glyph. Standouts:
+Saturn, the full moon, Machu Picchu, the maneki-neko, old-man-of-the-
+lake, pearl-oyster. cardart 13/13, 936 files (~16MB). 757/788 (96%).
+The last 31: 8 household (walkman, nokia, razor, scarf, denim,
+egg-timer, office typewriter, outdoor compass), 18 cosmos (neptune,
+deimos, proxima, orion-nebula, big-dipper, opal, peridot, onyx,
+obsidian, blizzard, avalanche, glacier, rushmore, notre-dame,
+neuschwanstein, amazon, iguazu, versailles), 4 fortune (shooting-
+star, dealer-button, green-felt, flipped-coin), 1 tide (old-coin-
+purse).
+
 ## Batch 95 — the new categories finally arrive (40 from a raw mix)
 After SIX raw-archive zips of pure re-renders (553 images checked,
 zero shipped - the dedupe pipeline earned its keep), rarerawrendered01

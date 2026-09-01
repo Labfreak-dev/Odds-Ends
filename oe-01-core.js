@@ -1609,6 +1609,9 @@ function applyPulls(pulls){
 function renderPackShelf(){
   const shelf = document.getElementById("packShelf");
   shelf.innerHTML = "";
+  /* one copy of the foil as a CSS variable; every card's art references it */
+  const packArt = window.oePackImg || null;
+  if(packArt) shelf.style.setProperty("--pack-img", `url("${packArt}")`);
   const discountLevel = (state.upgrades && state.upgrades.discount) || 0;
   const discount = Math.min(0.5, discountLevel * DISCOUNT_PCT_PER_LEVEL);
   const playerLevel = (state.player && state.player.level) || 1;
@@ -1626,7 +1629,10 @@ function renderPackShelf(){
     if(p.grad) el.style.background = p.grad;
     if(p.border) el.style.borderColor = p.border;
     el.innerHTML = `
-      <div class="icon">${p.icon}</div>
+      ${packArt
+        ? `<div class="pack-art" style="--hue:${(typeof window.oePackHue==="function" ? window.oePackHue(p.key) : 0)}deg">
+             <div class="pa-img"></div><span class="pa-badge">${p.icon}</span></div>`
+        : `<div class="icon">${p.icon}</div>`}
       <div class="title">${p.name}</div>
       <div class="sub">${p.sub}</div>
       <div class="sub" style="margin-top:2px; opacity:.7;">${count.toLocaleString()} cards in set</div>

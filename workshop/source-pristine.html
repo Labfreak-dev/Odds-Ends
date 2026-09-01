@@ -2911,6 +2911,17 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     25%{ transform:translate(-50%,-50%) scale(1.12); opacity:1; }
     100%{ transform:translate(-50%,-70%) scale(1); opacity:0; }
   }
+  /* ---- Pack shelf: the real foil, tinted per set like the rip stage ------- */
+  .pack-art{ position:relative; width:104px; height:166px; margin:2px auto 8px;
+    filter:hue-rotate(var(--hue,0deg)) drop-shadow(0 8px 14px rgba(0,0,0,.45)); }
+  .pack-art .pa-img{ width:100%; height:100%; background:var(--pack-img) center/contain no-repeat; }
+  /* the set emoji rides the corner; counter-rotate so it keeps its own colours */
+  .pack-art .pa-badge{ position:absolute; right:-8px; bottom:-4px; width:30px; height:30px;
+    display:flex; align-items:center; justify-content:center; font-size:17px; line-height:1;
+    background:rgba(10,12,18,.88); border:1px solid rgba(255,255,255,.16); border-radius:999px;
+    filter:hue-rotate(calc(-1 * var(--hue,0deg))); }
+  .pack:hover .pack-art{ transform:translateY(-2px) rotate(-1.5deg); transition:transform .15s ease; }
+  @media (max-width:420px){ .pack-art{ width:92px; height:147px; } }
 </style>
 </head>
 <body>
@@ -5605,6 +5616,9 @@ function applyPulls(pulls){
 function renderPackShelf(){
   const shelf = document.getElementById("packShelf");
   shelf.innerHTML = "";
+  /* one copy of the foil as a CSS variable; every card's art references it */
+  const packArt = window.oePackImg || null;
+  if(packArt) shelf.style.setProperty("--pack-img", `url("${packArt}")`);
   const discountLevel = (state.upgrades && state.upgrades.discount) || 0;
   const discount = Math.min(0.5, discountLevel * DISCOUNT_PCT_PER_LEVEL);
   const playerLevel = (state.player && state.player.level) || 1;
@@ -5622,7 +5636,10 @@ function renderPackShelf(){
     if(p.grad) el.style.background = p.grad;
     if(p.border) el.style.borderColor = p.border;
     el.innerHTML = `
-      <div class="icon">${p.icon}</div>
+      ${packArt
+        ? `<div class="pack-art" style="--hue:${(typeof window.oePackHue==="function" ? window.oePackHue(p.key) : 0)}deg">
+             <div class="pa-img"></div><span class="pa-badge">${p.icon}</span></div>`
+        : `<div class="icon">${p.icon}</div>`}
       <div class="title">${p.name}</div>
       <div class="sub">${p.sub}</div>
       <div class="sub" style="margin-top:2px; opacity:.7;">${count.toLocaleString()} cards in set</div>

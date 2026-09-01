@@ -2911,6 +2911,17 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     25%{ transform:translate(-50%,-50%) scale(1.12); opacity:1; }
     100%{ transform:translate(-50%,-70%) scale(1); opacity:0; }
   }
+  /* ---- Pack shelf: the real foil, tinted per set like the rip stage ------- */
+  .pack-art{ position:relative; width:104px; height:166px; margin:2px auto 8px;
+    filter:hue-rotate(var(--hue,0deg)) drop-shadow(0 8px 14px rgba(0,0,0,.45)); }
+  .pack-art .pa-img{ width:100%; height:100%; background:var(--pack-img) center/contain no-repeat; }
+  /* the set emoji rides the corner; counter-rotate so it keeps its own colours */
+  .pack-art .pa-badge{ position:absolute; right:-8px; bottom:-4px; width:30px; height:30px;
+    display:flex; align-items:center; justify-content:center; font-size:17px; line-height:1;
+    background:rgba(10,12,18,.88); border:1px solid rgba(255,255,255,.16); border-radius:999px;
+    filter:hue-rotate(calc(-1 * var(--hue,0deg))); }
+  .pack:hover .pack-art{ transform:translateY(-2px) rotate(-1.5deg); transition:transform .15s ease; }
+  @media (max-width:420px){ .pack-art{ width:92px; height:147px; } }
 
 /* ===== ADDED MODES ===== */
 /* ============ PROVENANCE ============
@@ -4082,7 +4093,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · a6650a</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · c1297c</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5172,7 +5183,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=4cc6f9d082"></script>
+<script src="oe-01-core.js?v=8cea84d952"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-sfx.js?v=5424d379ee"></script>
 <script src="oe-04-provenance-catalogue.js?v=ae0deffc21"></script>
@@ -5183,7 +5194,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-09-oddone.js?v=e66af7007b"></script>
 <script src="oe-10-fishing2.js?v=ca088c91a6"></script>
 <script src="oe-11-mining2.js?v=2ee842de0b"></script>
-<script src="oe-12-ripship.js?v=9a1760b456"></script>
+<script src="oe-12-ripship.js?v=f194b5cfa1"></script>
 <script src="oe-13-ledger.js?v=b36867f39e"></script>
 <script src="oe-14-grading.js?v=817788899f"></script>
 <script src="oe-15-market2.js?v=cb953caf76"></script>

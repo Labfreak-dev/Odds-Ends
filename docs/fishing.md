@@ -501,6 +501,32 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 103 — the shelf shows the real foil
+Playtester: "change the packs to the actual pack assets on the pack shelf.
+its got old placeholder text/box style." The shelf tiles still carried the
+prototype's emoji-in-a-box icon while the tear overlay had been drawing the
+real "Odds & Ends COLLECTIBLES PACK" foil for forty batches.
+
+WHAT. The foil image and the per-set hue live in the ripship module
+(RZ_PACK_IMG, rzHue), so the module now exports both on window
+(oePackImg, oePackHue) beside oeFrameFor/oeArtSlug/oeArtMin. renderPackShelf
+sets one --pack-img custom property on the shelf and renders a .pack-art
+tile per pack: the foil in a 104x166 window, hue-rotated by the set's
+rzHue so each pack's crimps wear the same colour they wear on the tear
+overlay, with the old emoji shrunk to a 30px badge in the corner
+(counter-rotated so the emoji keeps its true colours). The emoji box stays
+as the fallback when the module is absent.
+
+WHY THE RE-RENDER. The host's boot render runs before oe-12-ripship loads,
+so the first paint of the shelf has no oePackImg and would show the
+fallback until the next render. The module calls renderPackShelf() once at
+the end of its IIFE (guarded, try/catch) so the foil lands on boot.
+
+VERIFIED. Headless at 430 and 980px: 8/8 packs render the foil, 0
+fallbacks, eight distinct hues, eight badges, zero page errors. Fast suites
+green (test-fishing, cardart 13, ripship 37, backs 15, economy 29); long
+smokes green (fishing visual/fight, spots 80). Stamp c1297c.
+
 ## Batch 102 — card ink goes dark: the four-colour deck, deepened
 Playtester: "the colors are too bright and every card looks the same."
 Both halves were my doing. The per-rank wash added last batch tinted

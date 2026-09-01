@@ -249,6 +249,8 @@ function rzFrame(tier){
 window.oeFrameFor = rzFrame;
 window.oeArtSlug  = rzArtSlug;   /* so the collection and info panel probe the same files */
 window.oeArtMin   = RZ_ART_MIN;
+window.oePackImg  = RZ_PACK_IMG;  /* the shelf shows the same foil the rip stage tears */
+window.oePackHue  = rzHue;        /* ...tinted the same way, so shelf and rip agree */
 let RZ = null;                     /* live session */
 let rzStreak = 0;                  /* packs ripped this sitting */
 
@@ -527,4 +529,7 @@ function rzNext(){
   try{ saveState(); renderHeader(); }catch(e){}
   rzRender();
 }
+/* The host's boot render of the pack shelf runs before this module exists and
+   falls back to the emoji tile; now that the foil is exported, redraw it. */
+try{ if(typeof renderPackShelf === "function") renderPackShelf(); }catch(e){}
 })();

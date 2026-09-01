@@ -170,3 +170,65 @@
   width:min(560px, 94vw); max-height:86vh; overflow:auto; padding:0 14px 14px; border-radius:14px;
   background:rgba(12,17,24,.98); border:1px solid rgba(255,255,255,.16);
   box-shadow:0 18px 60px rgba(0,0,0,.6); }
+
+/* ---- the HUD plates: Grok's fish-hud sheet, cut into pieces in art/ui ----
+   CAST is a three-slice plank (knob+strap, a mirror-tiled clean plank
+   STRETCHED under the ends - tiling it read as a grille, hinge+end) so the
+   label can keep changing; the sign is three slices for the same reason.
+   Everything sits at #feCtl / id specificity on purpose: the host's gold
+   button.btn and .btn.fsh-cast.urgent/.reeling backgrounds must lose to
+   the plank, and the fight states tint the wood with a filter instead. */
+#feCtl .btn.fsh-cast{
+  --fe-plank: url(art/ui/fish-cast-l.webp) left center/auto 100% no-repeat,
+              url(art/ui/fish-cast-r.webp) right center/auto 100% no-repeat,
+              url(art/ui/fish-cast-m.webp) center/100% 100% no-repeat;
+  background:var(--fe-plank); border:none; border-radius:30px 8px 8px 30px;
+  min-height:60px; padding:0 34px 0 58px; min-width:0;
+  color:#f1d27b; font:800 17px/1 Georgia,'Times New Roman',serif; letter-spacing:.12em;
+  text-transform:uppercase; text-shadow:0 1px 0 #2a1808, 0 2px 6px rgba(0,0,0,.75);
+  box-shadow:0 12px 26px rgba(0,0,0,.5); transition:filter .15s ease, transform .08s ease;
+}
+#feCtl .btn.fsh-cast:hover{ filter:brightness(1.08); }
+#feCtl .btn.fsh-cast.urgent{ filter:saturate(1.5) hue-rotate(-18deg) brightness(1.2); color:#fff1d6; }
+#feCtl .btn.fsh-cast.reeling{ filter:hue-rotate(55deg) saturate(1.1) brightness(1.1); color:#f6ffe0; }
+#feCtl .btn.fsh-cast:disabled{ filter:grayscale(.5) brightness(.7); box-shadow:none; }
+@media (max-width:640px){ #feCtl .btn.fsh-cast{ font-size:15px; letter-spacing:.09em; padding:0 26px 0 52px; } }
+
+.fe-hud-head{ display:flex; align-items:center; gap:10px; margin:0 0 8px; min-width:0; }
+.fe-shield{ flex:none; width:44px; height:66px;
+  background:url(art/ui/fish-spots.webp) center/contain no-repeat;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
+.fe-sign{ flex:0 1 auto; min-width:0; max-width:300px; height:66px; display:flex; align-items:center;
+  justify-content:center; padding:0 30px;
+  background:url(art/ui/fish-sign-l.webp) left center/auto 100% no-repeat,
+             url(art/ui/fish-sign-r.webp) right center/auto 100% no-repeat,
+             url(art/ui/fish-sign-m.webp) center/auto 100% repeat-x;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
+.fe-sign b{ font:800 15px/1.1 Georgia,'Times New Roman',serif; letter-spacing:.05em; color:#3a2410;
+  text-shadow:0 1px 0 rgba(255,235,190,.4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* spot tags and the shore buttons: wood and brass, the active spot on the
+   TACKLE plate's painted blue */
+.fe-spot{ font:700 12px Georgia,'Times New Roman',serif; border:1px solid #8a6a3a;
+  background:linear-gradient(180deg,#5a3d22,#3b2716); color:#f3e2b0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 #1a1008; }
+.fe-spot:hover{ background:linear-gradient(180deg,#6a4a2a,#45301a); }
+.fe-spot.active{ border-color:#e0b35a; background:linear-gradient(180deg,#3d6f8f,#28506a); color:#ffe9a8;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16), 0 0 0 1px #e0b35a66, 0 2px 0 #10202a; }
+.fe-spot.locked{ opacity:.72; }
+.fe-secbtn{ font:700 12.5px Georgia,'Times New Roman',serif; border:1px solid #8a6a3a;
+  background:linear-gradient(180deg,#5a3d22,#3b2716); color:#f3e2b0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 #1a1008; }
+.fe-secbtn:hover{ border-color:#e0b35a; background:linear-gradient(180deg,#6a4a2a,#45301a); }
+.fe-secbtn i{ color:#d9c08a; }
+.fe-sfx{ border:1px solid #5a3a10; color:#2a1a04;
+  background:radial-gradient(circle at 40% 35%,#e6c46e,#a5732a 70%,#7a4e14); }
+#feChumChip, #feTackleChip{ font-size:0; line-height:0; color:transparent; height:34px; padding:0;
+  border:none; background:center/contain no-repeat; vertical-align:middle;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+#feChumChip{ width:34px; background-image:url(art/ui/fish-bait.webp); }
+#feTackleChip{ width:66px; background-image:url(art/ui/fish-tackle.webp); }
+#feTackle .fej-head b::before, #feChum .fej-head b::before{ content:""; display:inline-block;
+  vertical-align:middle; margin-right:8px; height:34px; background:center/contain no-repeat; }
+#feTackle .fej-head b::before{ width:66px; background-image:url(art/ui/fish-tackle.webp); }
+#feChum .fej-head b::before{ width:34px; background-image:url(art/ui/fish-bait.webp); }

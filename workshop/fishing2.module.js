@@ -2130,7 +2130,13 @@ function feRenderSpots(){
     ? (night ? ` · 🌙 <b style="color:#ffcf40">the dark water is open — Legendary ×${cur.nightLegend}</b>`
              : ` · 🌙 Legendary ×${cur.nightLegend} after dark`)
     : "";
-  const html = `<div class="fe-spots">${chips}</div>
+  /* the HUD plates: the SPOTS shield heads the picker and the wooden sign
+     names where you are standing (its baked-in text was painted out) */
+  const html = `<div class="fe-hud-head">
+      <span class="fe-shield" aria-hidden="true"></span>
+      <span class="fe-sign"><b>${cur.icon} ${cur.name}</b></span>
+    </div>
+    <div class="fe-spots">${chips}</div>
     <div class="fe-spot-line">${cur.line}${special} · 🎴 ${feTTOwned()}/1000
       <button id="feSfxChip" class="fe-sfx">${feMuted() ? "🔇" : "🔊"}</button>
       <button id="feMusicChip" class="fe-sfx">${fshInv().musicMute ? "🎵̸" : "🎵"}</button>

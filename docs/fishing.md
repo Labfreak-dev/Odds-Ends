@@ -527,9 +527,18 @@ and the override rewrote c.rank AFTER that check passed. Playtester
 chose to take the change done properly, so PK_RANKS itself is now
 [10..A] and pkSafe still applies.
 
-Consequence worth knowing: PK_SCORES still lists 6-card tiers, and a
-6-long straight is now impossible (only five distinct ranks). 6-of-a-
-kind is still reachable across the six columns. Left as-is.
+Consequence, CORRECTED: I first recorded that a 6-long straight was now
+impossible. Wrong - the playtester caught it. Jokers are wilds for BOTH
+rank and suit ("a joker is any rank AND any suit" in pkScanLine), and
+the straight scanner walks by POSITION (base + dir*(j - baseIdx)), so a
+joker occupies a slot in the run rather than breaking it. Proven on a
+live board: [10 J Q K A + joker] scans as sflush:6, as does
+[joker + J Q K A + joker]; the same row without a joker caps at
+sflush:5. Both 6-tiers stay reachable.
+Better still: 10-J-Q-K-A is now the ONLY straight, so every straight
+completed is the full run, and one joker on either end tops it to the
+6-long straight flush - the 4,000 top tier. Dropping the 9s raised the
+ceiling's reachability rather than removing it.
 Verified: no 9s dealt, four colours on the board, felt intact, zero
 errors. 19/19 parse, test-fishing, cardart 13/13, ripship 37/37,
 backs 15/15, economy 29/29. Stamp c794e7.

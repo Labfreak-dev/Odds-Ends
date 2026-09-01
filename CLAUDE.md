@@ -139,7 +139,7 @@ folder.
 ```bash
 for f in oe-*.js; do node --check "$f"; done          # every split file parses
 node docs/test-fishing.js                              # fight-engine invariants
-python3 docs/smoke-start.py                            # start screen + menu chrome (28)
+python3 docs/smoke-start.py                            # start screen + menu chrome (32)
 python3 docs/smoke-fishhud.py                          # fishing HUD plates (24)
 python3 docs/smoke-fishing.py && python3 docs/smoke-spots.py   # needs playwright
 ```

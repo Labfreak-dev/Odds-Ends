@@ -49,8 +49,16 @@ with sync_playwright() as pw:
         pg.wait_for_timeout(700)
         y2 = pg.evaluate("()=>[...document.querySelectorAll('.oe-fall')].slice(0,6).map(f=>f.getBoundingClientRect().top)")
         check(f"[{tag}] the cards are falling", st["anim"] == "oeFall" and any(abs(a-b) > 5 for a, b in zip(st["y"], y2)))
-        pg.mouse.click(W // 2, H // 2); pg.wait_for_timeout(900)
+        # tap dead centre, where the Pack Shelf's buy buttons sit underneath
+        before = pg.evaluate("()=>({ d: state.dollars, open: !!document.querySelector('#rzOverlay') && getComputedStyle(document.querySelector('#rzOverlay')).display!=='none' })")
+        pg.mouse.move(W // 2, H // 2); pg.mouse.down(); pg.wait_for_timeout(80); pg.mouse.up(); pg.wait_for_timeout(150)
+        mid = pg.evaluate("()=>{ const s=document.getElementById('oeStart'); return s ? getComputedStyle(s).pointerEvents : 'gone'; }")
+        check(f"[{tag}] the overlay keeps swallowing input while it fades", mid == "auto", mid)
+        pg.wait_for_timeout(800)
         check(f"[{tag}] one tap takes the screen down", not pg.evaluate("()=>!!document.getElementById('oeStart')"))
+        after = pg.evaluate("()=>({ d: state.dollars, open: !!document.querySelector('#rzOverlay') && getComputedStyle(document.querySelector('#rzOverlay')).display!=='none', tab: document.querySelector('nav button.active').dataset.tab })")
+        check(f"[{tag}] the tap never reaches the shelf underneath",
+              after["d"] >= before["d"] and not after["open"] and after["tab"] == "packs", (before, after))  # mining ticks up; a pack would drop it by 750+
         ch = pg.evaluate("""()=>{
           const plates=[...document.querySelectorAll('nav button i')];
           const bg=e=>e?getComputedStyle(e).backgroundColor:null;

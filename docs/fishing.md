@@ -501,6 +501,17 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 93 — machines 49-144: the fleet doubles twice
+Ninety-six in two zips: elevator through muscle-car, then oil-rig
+through tow-truck. All verified; the lookalike families stay distinct
+(fighter-jet / supersonic-jet / stealth-bomber; sailboat / clipper /
+galleon / pirate-ship). One curated note: 'Steam Engine' arrived as a
+second locomotive rather than a stationary engine - visually distinct
+from steam-locomotive's profile, shipped. Tall subjects (oil rig,
+ferris wheel, balloon, rocket, grandfather clock) got low biases.
+cardart 13/13. 751 files. 572/788 Rares; machines 144/160 - one
+16-drop closes the shelf (tractor through zamboni or thereabouts).
+
 ## Batch 92 — Machines in Motion opens: ATM to dune buggy (48)
 The last big shelf begins, and the style pivots perfectly: weathered
 miniature-model renders on the same muted backdrop - the trireme,

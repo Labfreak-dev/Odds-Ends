@@ -72,7 +72,20 @@ with sync_playwright() as pw:
         check(f"[{tag}] menu buttons are at least a 44px touch target", ch["navBtn"] >= 44, ch["navBtn"])
         check(f"[{tag}] primary buttons are gold, ghost stays clear, brass stays brass",
               ch["primary"] == "rgb(217, 166, 63)" and ch["ghost"] == "rgba(0, 0, 0, 0)" and ch["brass"] == "rgb(212, 162, 74)", ch)
+        th = pg.evaluate("""()=>{ const packs=[...document.querySelectorAll('.pack')];
+          const pills=packs.map(p=>p.querySelector('.price')).filter(Boolean).map(e=>getComputedStyle(e).backgroundImage+getComputedStyle(e).backgroundColor);
+          return { packs: packs.length, keyed: packs.filter(p=>p.dataset.pack).length, distinct: new Set(pills).size }; }""")
+        check(f"[{tag}] every pack's pills wear that set's material", th["packs"] >= 8 and th["keyed"] == th["packs"] and th["distinct"] >= 7, th)
+        pg.click("[data-tab='market']"); pg.wait_for_timeout(1200)
+        mk = pg.evaluate("""()=>{ for(let i=0;i<14;i++){ if(document.getElementById('m2Buy')) break; const b=document.getElementById('m2Pass'); if(b) b.click(); }
+          const b=document.getElementById('m2Buy'), h=document.getElementById('m2Hag'), p=document.getElementById('m2Pass'); if(!b) return null;
+          return { buy:getComputedStyle(b).backgroundImage.includes('linear-gradient') && getComputedStyle(b).color==='rgb(42, 26, 4)',
+                   hag: h ? getComputedStyle(h).backgroundImage.includes('linear-gradient') : true,
+                   pass: getComputedStyle(p).backgroundColor==='rgba(0, 0, 0, 0)' }; }""")
+        check(f"[{tag}] the market deal is gold / steel / brass-ghost", mk and mk["buy"] and mk["hag"] and mk["pass"], mk)
         pg.click("[data-tab='play']"); pg.wait_for_timeout(600)
+        pb = pg.evaluate("()=>new Set([...document.querySelectorAll('.play-card')].map(c=>getComputedStyle(c).borderTopColor)).size")
+        check(f"[{tag}] each Play card wears its own accent", pb >= 8, pb)
         pl = pg.evaluate("""()=>{ const p=[...document.querySelectorAll('.play-card .pi')];
           return { n:p.length, tiled:p.filter(e=>getComputedStyle(e).backgroundImage.startsWith('url("data:image/webp') && getComputedStyle(e).fontSize==='0px').length }; }""")
         check(f"[{tag}] every Play card wears its illustrated tile", pl["n"] >= 9 and pl["tiled"] == pl["n"], pl)

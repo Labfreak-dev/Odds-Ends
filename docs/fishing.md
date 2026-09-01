@@ -501,6 +501,14 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 79 — animals 85-96 (the F-G shelf)
+Firefly through Great Blue Heron, 12 paintings, all identified clean -
+the playtester is working ahead of the alphabet, so 049-084 (chinchilla
+through emperor penguin territory) are still open. cardart flaked 2
+checks on one run then passed 13/13 twice; watching for a third
+appearance before root-causing (same policy as the feJournalBtn flake).
+239 files in art/. 60/788 Rares painted, 60/216 animals.
+
 ## Batch 78 — animals 13-48 (three zips, one apostrophe)
 Three more playtester zips, 36 paintings: Andean Condor through Cheetah.
 All identified correctly on the contact sheets. One naming lesson: the

@@ -501,6 +501,17 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 89 — legends 169-180 as a LABELED sheet
+New format again: one 4x3 grid with each subject's name painted into
+the tile bottom - self-documenting, and the labels confirmed all 12
+against the manifest order (selkie through steve-jobs; Set's red
+beast-head, Sobek's crocodile, blue Shiva, recognizable Hawking and
+Jobs). Slice trims 42px off each tile bottom to drop the label band,
+then squares from the top. Same resolution tradeoff as batch 80's
+grids (~250px native) - if full-res singles arrive later, same-slug
+overwrite upgrades them in place, no other action needed. cardart
+13/13. 575 files. 396/788 Rares; legends 180/212, 32 to go.
+
 ## Batch 88 — legends 157-168: two queens, a qilin, Dali's mustache
 Twelve loose images, all mapped by eye: Sekhmet (lioness with cobra
 crown), Saraswati (correctly white-sari'd), Sally Ride, Dali

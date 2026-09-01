@@ -501,6 +501,53 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 99 — control chrome: one shape language for buttons and menus
+Second outside CSS proposal (buttons/menus). Safer than the last one -
+measured clean at 980 and 430px: no clipping, no overflow, no page
+errors - so most of it shipped, adapted.
+
+TAKEN:
+- Fields and rows settle on ONE height. Before: toggle rows 48px,
+  collection selects 37px, search box 35px, the rarity dropdown 28px.
+  Now 34px across the board. That scatter was most of the "not
+  designed" feeling.
+- Mobile nav min-height 39 -> 44px, the standard touch-target floor.
+- Buttons get geometry (min-height 38, inline-flex centring, one
+  radius) plus a subtle gloss; pack price pills become real 32px pills
+  and the 10-pack pill gets the gradient.
+- nav gets a frosted background. Worth it here specifically because
+  nav is position:sticky, so content really does scroll under it.
+- Defines --line, which the host USES at .market-empty but never
+  defined - that dashed border was falling back to currentColor.
+
+REJECTED as dead selectors (match nothing in this game): .btn.ghost
+(the real class is btn-ghost, hyphenated, already brass-styled),
+.btn.sm, .btn.block, .filters button, .cfilt-more button (that
+container holds selects), .pack-chip (the filter chips were skipped in
+batch 98). The supplied preview HTML was built on that invented markup
+- class="btn ghost", class="btn sm secondary" - which is why it
+showed a tidier button family than the game actually has.
+
+THE ONE THAT MATTERED: the proposal set `button.btn{background:...}`.
+A synthetic probe showed why that is dangerous - `button.btn` is
+(0,1,1) and `.btn-ghost`/`.btn-brass` are (0,1,0), so the base rule
+already wins. Adopting a background shorthand would have repainted all
+39 btn-ghost buttons. Fix: this block sets background-IMAGE only (a
+gloss overlay), never background-colour, so every variant keeps its own
+palette. Verified by probing all six variants before and after - every
+background-colour is byte-identical to the previous build.
+
+PRE-EXISTING BUG FOUND, NOT FIXED (needs a design call): because of
+that same specificity, .btn-ghost and .btn-brass currently render as
+accent BLUE, not brass - their palette has never applied. Fixing it
+would visibly change ~39 fishing/tackle buttons, so it is the
+playtester's call, not a silent ride-along.
+
+Also removed the 10-pack pill's inline background so its styling lives
+in the stylesheet with every other pill.
+Verified: 19/19 parse, test-fishing, cardart 13/13, ripship 37/37,
+backs 15/15, economy 29/29, smoke-fishing, smoke-spots. Stamp 5d3145.
+
 ## Batch 98 — UI pass: grouped Play shelves, packs grid, Auto-Open drawer
 An outside review (Grok) proposed a Play/Packs redesign. Measured its
 premises against the real page before touching anything: two held up,

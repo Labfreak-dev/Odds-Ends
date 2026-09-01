@@ -2822,6 +2822,55 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     .play-group-head{ flex-direction:column; align-items:flex-start; gap:2px; }
     .play-group-head span{ text-align:left; }
   }
+  /* ---- Control chrome: one shape language for buttons and menus ------ */
+  :root{ --btn-h:38px; --btn-r:11px; --line:#2c3348; --line-hot:#6c8cff88; }
+
+  button.btn, .toggle-row, .play-back button, .hdr-gear, nav button,
+  select, input[type=text]{ font-family:inherit; -webkit-tap-highlight-color:transparent; }
+
+  /* Geometry for every .btn, including the brass/ghost family, so sizing is
+     consistent everywhere. Colour is deliberately NOT set here: .btn-ghost and
+     .btn-brass carry their own palette and already lose to button.btn on
+     specificity, so a `background:` shorthand here would repaint them. The
+     gloss below is background-IMAGE only, which layers over whatever
+     background-colour each variant already has. */
+  button.btn{
+    min-height:var(--btn-h); padding:8px 16px;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    border-radius:var(--btn-r); letter-spacing:.01em;
+    background-image:linear-gradient(180deg, rgba(255,255,255,.14), rgba(0,0,0,.07));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+    transition:transform .08s ease, filter .12s ease, box-shadow .15s ease;
+  }
+  button.btn:hover{ filter:brightness(1.06); }
+  button.btn:disabled{ background-image:none; box-shadow:none; filter:none; transform:none; }
+
+  /* ---- Top menu ------------------------------------------------------ */
+  nav{ gap:4px; padding:8px 14px; background:rgba(16,18,26,.92); backdrop-filter:blur(10px); }
+  nav button{ min-height:36px; padding:0 14px; border-radius:10px; font-weight:700; font-size:13px; }
+  nav button:hover{ color:#e8eefc; background:rgba(255,255,255,.04); }
+  nav button.active{ color:#fff; background:#1d2436; border-color:var(--line-hot);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06); }
+  @media (max-width:640px){
+    nav{ padding:6px 6px 7px; }
+    /* 44px is the minimum comfortable touch target; the bar was under it. */
+    nav button{ min-height:44px; padding:6px 2px 5px; border-radius:12px; font-size:10px; }
+    nav button.active{ background:#222a40; color:#fff; }
+  }
+
+  .hdr-gear{ border-radius:11px; }
+  .play-back button{ min-height:32px; padding:0 12px; border-radius:999px; }
+
+  /* Menu rows and fields settle on one height instead of 48/37/35/28. */
+  .toggle-row{ min-height:34px; padding:0 10px; border-radius:10px; font-size:12.5px; gap:7px; }
+  .toggle-row input[type=checkbox]{ width:15px; height:15px; }
+  select, input[type=text]{ min-height:34px; padding:0 10px; border-radius:10px;
+    border-color:var(--line); background:var(--panel2); }
+
+  /* Pack buy pills speak the same shape language as the buttons. */
+  .pack .price{ min-height:32px; display:flex; align-items:center; justify-content:center;
+    border-radius:999px; border:1px solid rgba(255,255,255,.08); font-weight:700; font-size:12.5px; }
+  .pack .price + .price{ background:linear-gradient(180deg,#3a4d86,#2b3a68); border-color:#6c8cff55; }
 
 /* ===== ADDED MODES ===== */
 /* ============ PROVENANCE ============
@@ -3993,7 +4042,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · d86885</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 5d3145</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5083,7 +5132,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=1a1de85de0"></script>
+<script src="oe-01-core.js?v=e88f10158f"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-sfx.js?v=5424d379ee"></script>
 <script src="oe-04-provenance-catalogue.js?v=ae0deffc21"></script>

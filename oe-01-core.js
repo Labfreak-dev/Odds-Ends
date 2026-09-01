@@ -1646,7 +1646,6 @@ function renderPackShelf(){
       const tenBtn = document.createElement("div");
       tenBtn.className = "price";
       tenBtn.style.marginTop = "6px";
-      tenBtn.style.background = "rgba(108,140,255,.25)";
       tenBtn.textContent = `10-Pack: $${price10.toLocaleString()}`;
       tenBtn.addEventListener("click", (e)=>{ e.stopPropagation(); buyPacks(p.key,10); });
       el.appendChild(tenBtn);

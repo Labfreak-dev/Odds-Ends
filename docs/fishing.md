@@ -501,6 +501,18 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 85 — Legends & Myth opens: Lincoln to Enki (48 portraits)
+The second big shelf begins with people, and the portrait style shifts
+naturally: bust-length, formal, the same muted backdrop. All 48
+verified - the traps held (Cyrus vs Darius by regalia, Athena's helmet
+vs Artemis's quiver, Anubis jackal vs Bastet cat, the Celtic trio
+distinct). Uniform bias 0.20 works for busts; Atlas got 0.08 for his
+globe. FLAKE WATCH: cardart's 2-fail-then-pass happened again (2nd
+time, both first-runs after copying a big batch into art/) - the
+failure detail scrolled off because only the tail was kept. Next
+first-run gets full output captured; a third sighting earns
+root-cause. 443 files. 264/788 Rares; legends 48/212.
+
 ## Batch 84 — ANIMAL KINGDOM COMPLETE: 216/216
 Termite through yellow-bellied sea snake closes the category - every
 Animal Kingdom Rare in the game now has a painting, proven by diffing

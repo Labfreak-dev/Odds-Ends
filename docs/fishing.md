@@ -501,6 +501,16 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 82 — the gap half-closes: animals 49-60 and 73-84
+Two zips into the 049-084 hole: chimpanzee through cottonmouth, then
+echidna through fire-salamander. All 24 verified (copperhead and
+cottonmouth are properly distinct snakes; the coral polyp came back
+a stylized pink anemone - shipped as curated). Crop notes: elk got
+bias 0.10 for the antlers, fennec 0.15 for the ears, hoopoe 0.15 for
+the crest - tall headgear is the one thing the default biases clip.
+cardart 13/13, 311 files. 132/788 Rares, 132/216 animals. Open gap
+narrows to 061-072 (crayfish-to-eastern-bluebird country, 12 subjects).
+
 ## Batch 81 — animals 97-144 as full-res singles; grid tiles upgraded
 A 48-image zip covering 097-144: the 24 grid-tile paintings from batch
 80 re-delivered at full 784px (SAME slugs, so a plain cp upgraded them

@@ -501,6 +501,16 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 87 — legends 145-156, dropped loose
+Twelve images with no filenames and slightly shuffled order - mapped
+by identification against the next manifest stretch: Osiris (white
+crown), Bismarck (the mustache), young Picasso, Persephone (sprig),
+Perseus, Peter the Great, Pegasus, Phoenix, Pixiu (the Chinese winged
+lion, correctly beast-form), Plato, Poseidon, Ptolemy. First cardart
+run after the copy: 13/13 - the two-probe fix holds under exactly the
+condition that used to flake. 551 files. 372/788 Rares; legends
+156/212, resuming at qilin.
+
 ## Batch 86 — legends 49-144, and the cardart flake root-caused
 NINETY-SIX portraits (Hemingway through Oni) - gods of eight
 pantheons, monsters, kings, scientists. One apostrophe rename

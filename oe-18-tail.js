@@ -298,6 +298,150 @@ safeRender("lottery",        resolveLotteryDraws);
 renderAll();
 try{ saveState(); }catch(e){ console.error("saveState failed", e); }
 setInterval(mineTick, 1000);
+
+/* ---------------- POKER SMASH: challenge hands, chain bolts, banners ----------
+   Wraps the poker functions rather than editing them, so the layer can be
+   lifted out in one piece. The felt and the tile faces live in pkDraw /
+   pkDrawFace above - a wrapper CANNOT repaint the background, because
+   pkDraw opens with clearRect and would erase anything drawn beforehand. */
+(function(){
+  const CHALLENGES = [
+    { kind:"kind",     n:3, label:"THREE OF A KIND" },
+    { kind:"kind",     n:4, label:"FOUR OF A KIND" },
+    { kind:"straight", n:3, label:"STRAIGHT" },
+    { kind:"flush",    n:4, label:"FLUSH" },
+    { kind:"sflush",   n:3, label:"STRAIGHT FLUSH" }
+  ];
+  window.pkSmash = { challenge:null, challengeT:0, nextAt:18, bolts:[], flash:0 };
+
+  function banner(txt){
+    const stage = document.getElementById("pkStage");
+    if(!stage) return;
+    const el = document.createElement("div");
+    el.className = "pk-smash-float";
+    el.textContent = txt;
+    stage.appendChild(el);
+    setTimeout(()=>el.remove(), 750);
+  }
+  function ensureHud(){
+    if(document.getElementById("pkChallenge")) return;
+    const stage = document.getElementById("pkStage");
+    if(!stage || !stage.parentNode) return;
+    const bar = document.createElement("div");
+    bar.id = "pkChallenge"; bar.className = "pk-challenge";
+    stage.parentNode.insertBefore(bar, stage.nextSibling);
+  }
+  function barText(){
+    const bar = document.getElementById("pkChallenge");
+    if(bar && pkSmash.challenge){
+      bar.textContent = "CHALLENGE  \u00b7  " + pkSmash.challenge.label +
+        "  \u00b7  " + Math.max(0, Math.ceil(pkSmash.challengeT)) + "s";
+    }
+  }
+  function setChallenge(ch, secs){
+    pkSmash.challenge = ch; pkSmash.challengeT = secs;
+    ensureHud();
+    const bar = document.getElementById("pkChallenge");
+    if(bar) bar.classList.add("show");
+    barText();
+  }
+  function endChallenge(won){
+    if(won && pkSmash.challenge && pk){
+      const bonus = 180 + (pkSmash.challenge.n || 3) * 40;
+      pk.score += bonus;
+      if(pk.pops) pk.pops.push({ x: PK_COLS*PK_CELL/2, y: 80, t:0,
+        txt:"CHALLENGE +" + bonus, col:"#ffd35c", size:18 });
+      banner("CHALLENGE!");
+    }
+    pkSmash.challenge = null;
+    const bar = document.getElementById("pkChallenge");
+    if(bar) bar.classList.remove("show");
+  }
+
+  const _draw = pkDraw;
+  window.pkDraw = function(dt){
+    _draw(dt);
+    if(pkCtx){
+      const ctx = pkCtx;
+      pkSmash.bolts = pkSmash.bolts.filter(b=>{
+        b.t += (dt || 0.016);
+        const a = 1 - b.t / b.life;
+        if(a <= 0) return false;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = a * 0.95;
+        ctx.strokeStyle = b.col; ctx.lineWidth = 3.5;
+        ctx.shadowColor = b.col; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.moveTo(b.ax, b.ay);
+        for(let i = 1; i < 6; i++){
+          const t = i/6;
+          ctx.lineTo(b.ax + (b.bx-b.ax)*t + (Math.random()-0.5)*10,
+                     b.ay + (b.by-b.ay)*t + (Math.random()-0.5)*10);
+        }
+        ctx.lineTo(b.bx, b.by); ctx.stroke();
+        ctx.lineWidth = 1.2; ctx.strokeStyle = "#fff"; ctx.stroke();
+        ctx.restore();
+        return true;
+      });
+      if(pkSmash.flash > 0){
+        ctx.fillStyle = "rgba(170,230,255," + (pkSmash.flash*0.35) + ")";
+        ctx.fillRect(0, 0, PK_COLS*PK_CELL, (PK_ROWS+1)*PK_CELL);
+        pkSmash.flash *= 0.82;
+      }
+    }
+    barText();
+  };
+
+  const _apply = pkApplyMatches;
+  window.pkApplyMatches = function(sets){
+    if(sets && sets.length){
+      let cleared = false;
+      sets.forEach(s=>{
+        const n = (s.cells && s.cells.length) || 0;
+        if(pkSmash.challenge && s.type === pkSmash.challenge.kind && n >= pkSmash.challenge.n) cleared = true;
+      });
+      banner(PK_HANDNAME[sets[0].type] || "HAND");
+      const pts = [];
+      sets.forEach(s=>(s.cells||[]).forEach(cell=>pts.push({
+        x:(cell.x + 0.5) * PK_CELL,
+        y: pkScreenY(cell.y) + PK_CELL/2 })));
+      for(let i = 0; i < pts.length - 1; i++){
+        pkSmash.bolts.push({ ax:pts[i].x, ay:pts[i].y, bx:pts[i+1].x, by:pts[i+1].y,
+                             t:0, life:0.42, col:"#9be7ff" });
+      }
+      pkSmash.flash = Math.min(1, 0.35 + sets.length * 0.15);
+      if(cleared) endChallenge(true);
+    }
+    return _apply(sets);
+  };
+
+  const _update = pkUpdate;
+  window.pkUpdate = function(dt){
+    _update(dt);
+    if(!pk || pk.over) return;
+    if(pkSmash.challenge){
+      pkSmash.challengeT -= dt;
+      if(pkSmash.challengeT <= 0) endChallenge(false);
+    } else if(pk.time > pkSmash.nextAt){
+      setChallenge(CHALLENGES[Math.floor(Math.random()*CHALLENGES.length)], 12 + Math.random()*6);
+      pkSmash.nextAt = pk.time + 22 + Math.random()*14;
+    }
+  };
+
+  const _render = renderPoker;
+  window.renderPoker = function(){
+    _render();
+    ensureHud();
+    if(!pk){
+      /* a fresh board resets the challenge clock with it */
+      pkSmash.challenge = null; pkSmash.nextAt = 18;
+      pkSmash.bolts.length = 0; pkSmash.flash = 0;
+      const bar = document.getElementById("pkChallenge");
+      if(bar) bar.classList.remove("show");
+    }
+  };
+})();
+
 setInterval(()=>{
   resolveLotteryDraws();
   const panel = document.getElementById("brGame-lottery");

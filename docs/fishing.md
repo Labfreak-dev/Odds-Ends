@@ -501,6 +501,42 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 100 — POKER SMASH: felt, white tiles, challenge hands
+Third outside proposal, and the first that ships real game code rather
+than CSS. Tested by playing actual rounds headless before judging.
+
+WORKED AS DELIVERED: white arcade tiles, gold HUD/RAISE, stage chrome,
+the POKER SMASH overlay copy, timed Challenge Hands, chain lightning,
+floating hand banners. Zero page errors. Every assumption it made about
+the host held - PK_HANDNAME's keys (kind/straight/flush/sflush) match
+the challenge types exactly, pkFaces and pkCtx are `let` so its
+reassignments were legal, and all the DOM ids exist.
+
+THE BUG: its green felt never appeared. The skin painted the canvas
+background BEFORE calling the original pkDraw - and pkDraw opens with
+clearRect() then fills its own dark gradient straight over it. Measured
+the corner pixel: [17,19,23] with the skin, byte-identical to stock. A
+wrapper fundamentally cannot repaint that background. Fix: the felt now
+lives in pkDraw itself (two gradient stops plus a faint horizontal
+weave). Corner now reads [15,42,30].
+
+HOW IT LANDED: the visual identity went into the host functions
+directly - pkDrawFace is the white tile, pkDrawJokerFace is the
+dark/gold JOKER, pkDraw carries the felt - so there is no
+double-implementation and no load-order dependency. Only the genuinely
+ADDITIVE layer (challenges, bolts, banners) stays a wrapper block, kept
+liftable in one piece. pkJokerGlyph is now unused but harmless.
+
+DROPPED: cards.jpg + felt.jpg, 508KB shipped in the zip and referenced
+by nothing. And its INSTALL.txt wanted a new root .js plus hand-edits to
+index.html - both generated, wiped on the next build.
+
+BALANCE (playtester's call, taken): challenges pay 180 + n*40, and
+poker cashes out at min(12000, score*0.25), so each cleared challenge
+is roughly +75-85 credits. Kept as proposed; the 12k cap bounds it.
+Verified in play: bolts peak 8, banners firing, challenge cleared,
+score 4,680, no errors. Stamp dcd3ff.
+
 ## Batch 99 — control chrome: one shape language for buttons and menus
 Second outside CSS proposal (buttons/menus). Safer than the last one -
 measured clean at 980 and 430px: no clipping, no overflow, no page

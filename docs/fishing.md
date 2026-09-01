@@ -501,6 +501,47 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 105 — the fishing HUD gets its plates
+Playtester: "do the fishing HUD plates too." Grok's fish-hud sheet has five
+pieces - a CAST plank, a TACKLE plate, a BAIT tin, a SPOTS shield, and a
+wooden LOCATION NAME sign - all with their text baked in, which is the
+whole problem: the cast button's label changes every phase and the sign
+has to say where you are standing.
+
+CAST. The plank is cut into three slices: the knob-and-strap end, a clean
+piece of plank between the strap and the C, and the hinge end after the T.
+The clean piece is mirror-tiled ten wide and STRETCHED under the ends
+(background-size 100% 100%) - tiled at its natural width it read as a
+10px grille on a phone. The label stays the module's own text, set in gold
+serif capitals. The bite/reeling states used to repaint the button red and
+green; they now tint the wood with a filter (hue-rotate/saturate) so the
+plank never disappears. All of it sits at #feCtl specificity on purpose:
+the host's gold button.btn and the .urgent/.reeling backgrounds must lose.
+
+SIGN. The "-- LOCATION NAME --" text and the compass are painted out with
+a bracket-free strip of clean board, tiled down with alternating flips and
+feathered in, then the board is cut into three slices like the plank so it
+stretches to fit any spot name. A new .fe-hud-head row in the module puts
+the SPOTS shield beside the sign, and the sign carries feSpot().name; it
+follows the walk to a new spot.
+
+CHIPS. The chum and tackle chips ARE the BAIT tin and TACKLE plate now
+(font-size 0 hides the emoji); the same two head the Chum Grinder and
+Tackle Shop modals via ::before. Spot tags and the shore buttons are wood
+and brass, the active spot on the TACKLE plate's painted blue; the sfx
+chips are brass coins.
+
+LESSON. A test that adds a class and reads a style in two round-trips
+fails on a phone viewport and passes on desktop, because the fishing loop
+rewrites the button's className every frame - the phone just happened to
+tick between the two. Add and read in the same evaluate.
+
+VERIFIED. New docs/smoke-fishhud.py, 24 checks at phone and desktop
+(three-slice plank, 60px serif label, bite tints not repaints, shield,
+three-slice sign naming the current spot and following a walk, chips as
+plates, wood tags, both modal headers, all nine files load, zero errors).
+Fast suites green; long smokes green. Stamp d964db.
+
 ## Batch 104 — a start screen, and the menu gets its plates
 Playtester handed over the second Grok chrome pack (illustrated tab plates,
 play tiles, a button kit, a fishing HUD sheet) plus a new owl crest, with

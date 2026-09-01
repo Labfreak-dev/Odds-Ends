@@ -509,7 +509,7 @@ a stylized pink anemone - shipped as curated). Crop notes: elk got
 bias 0.10 for the antlers, fennec 0.15 for the ears, hoopoe 0.15 for
 the crest - tall headgear is the one thing the default biases clip.
 cardart 13/13, 311 files. 132/788 Rares, 132/216 animals. Open gap
-narrows to 061-072 (crayfish-to-eastern-bluebird country, 12 subjects).
+narrows to 061-072 (cougar through eastern-newt, 12 subjects).
 
 ## Batch 81 — animals 97-144 as full-res singles; grid tiles upgraded
 A 48-image zip covering 097-144: the 24 grid-tile paintings from batch

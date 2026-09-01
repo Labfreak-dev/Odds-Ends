@@ -501,6 +501,15 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 88 — legends 157-168: two queens, a qilin, Dali's mustache
+Twelve loose images, all mapped by eye: Sekhmet (lioness with cobra
+crown), Saraswati (correctly white-sari'd), Sally Ride, Dali
+(unmistakable), Saladin, Rosa Parks, Rembrandt, Rachel Carson (older
+than her famous photos - curated), Quetzalcoatl (scale-skinned, a
+strong one), Queen Victoria in widow's black, Elizabeth I in full
+ruff, and the qilin (0.12 bias for the antlers). cardart 13/13 first
+run. 563 files. 384/788 Rares; legends 168/212, resuming at selkie.
+
 ## Batch 87 — legends 145-156, dropped loose
 Twelve images with no filenames and slightly shuffled order - mapped
 by identification against the next manifest stretch: Osiris (white

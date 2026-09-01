@@ -501,6 +501,39 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 102 — card ink goes dark: the four-colour deck, deepened
+Playtester: "the colors are too bright and every card looks the same."
+Both halves were my doing. The per-rank wash added last batch tinted
+every tile a slightly different pastel, so they all read as the same
+washed-out square, and the suit colours were PK_SCOLORS - a NEON set
+picked for the old dark tiles, garish once the tile turned cream.
+
+Rendered four palettes onto real card faces and let the playtester
+pick from the image rather than a description. Chose the deepest:
+wine #8f1f28, navy #17456e, forest #155230, charcoal #20242c - the
+standard four-colour poker deck, deepened for cream. Rank wash gone;
+a faint tint of the SUIT now sits on the tile instead, so a flush
+reads as a block of colour rather than fighting the suit signal.
+
+TWO PALETTES, ON PURPOSE. PK_SCOLORS is still used for the clear-burst
+particles that fly across the DARK felt - dark navy would have
+vanished there. So card faces get PK_SMASH_INK (dark, for cream) and
+PK_SCOLORS stays bright (for the table). Colour follows what it sits
+on; one shared palette could not serve both.
+ALSO: THE SMOKE-SPOTS FLAKE, ROOT-CAUSED AT LAST. It failed a third
+time this batch - "a first catch enters the journal with a bonus chip",
+in fishing code a poker palette change cannot touch. Not a flake: the
+test sets fsh.fight.progress = need-1 and then sleeps a FIXED 700ms
+while the landing has to tick through the fight, resolve, and write the
+journal. Fine on an idle box, missed under load (this run had
+smoke-fishing going back-to-back on a busy container). Fixed by waiting
+on the CONDITION - wait_for_function on the same expression the check
+asserts, 9s cap, wrapped so a real failure still reports through
+check() instead of a raw timeout. 80/80 after.
+Verified: ink applied, particles still bright, wash gone, zero errors.
+19/19 parse, test-fishing, cardart 13/13, ripship 37/37, backs 15/15,
+economy 29/29, smoke-fishing, smoke-spots 80/80. Stamp a6650a.
+
 ## Batch 101 — Poker Smash v2: four-colour suits back, 9s out
 Revised skin. Three changes, all different in kind.
 

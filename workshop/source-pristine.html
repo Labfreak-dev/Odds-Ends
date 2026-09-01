@@ -15993,9 +15993,12 @@ const PK_SCORES = {
   flush:    { 4:150, 5:400, 6:900         },
   sflush:   { 3:300, 4:800, 5:2000, 6:4000 }
 };
-/* faint per-rank wash so pairs and trips read at a glance */
-const PK_SMASH_WASH = { 10:"rgba(111,168,255,.15)", 11:"rgba(61,220,132,.15)",
-  12:"rgba(176,92,255,.15)", 13:"rgba(255,176,32,.17)", 14:"rgba(255,92,110,.15)" };
+/* Card ink: the standard four-colour deck, deepened for a cream tile. Kept
+   separate from PK_SCOLORS, which stays bright because it also tints the
+   clear-burst particles thrown across the dark felt. */
+const PK_SMASH_INK  = { "\u2665":"#8f1f28", "\u2666":"#17456e", "\u2663":"#155230", "\u2660":"#20242c" };
+const PK_SMASH_TINT = { "\u2665":"rgba(143,31,40,.09)", "\u2666":"rgba(23,69,110,.09)",
+  "\u2663":"rgba(21,82,48,.09)", "\u2660":"rgba(32,36,44,.07)" };
 const PK_HANDNAME = { kind:"OF A KIND", straight:"STRAIGHT", flush:"FLUSH", sflush:"STRAIGHT FLUSH" };
 /* Neon block faces, pre-rendered once per rank+suit (plus a "hot" version for clears). */
 let pkFaces = null;
@@ -16005,7 +16008,7 @@ function pkMixWhite(hex, f){
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 function pkDrawFace(c, rank, suit, hot){
-  const pip = PK_SCOLORS[suit] || "#1a1a1a";
+  const pip = PK_SMASH_INK[suit] || "#20242c";
   const m = 2.2, r = 8, w = PK_CELL - m*2;
   c.save();
   c.shadowColor = "rgba(0,0,0,.45)"; c.shadowBlur = 6; c.shadowOffsetY = 3;
@@ -16015,8 +16018,8 @@ function pkDrawFace(c, rank, suit, hot){
   c.fillStyle = g;
   c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
   c.restore();
-  if(PK_SMASH_WASH[rank]){
-    c.fillStyle = PK_SMASH_WASH[rank];
+  if(PK_SMASH_TINT[suit]){
+    c.fillStyle = PK_SMASH_TINT[suit];
     c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
   }
   /* the border carries the suit colour - that is the flush read */

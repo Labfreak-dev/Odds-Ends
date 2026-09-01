@@ -2871,6 +2871,46 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   .pack .price{ min-height:32px; display:flex; align-items:center; justify-content:center;
     border-radius:999px; border:1px solid rgba(255,255,255,.08); font-weight:700; font-size:12.5px; }
   .pack .price + .price{ background:linear-gradient(180deg,#3a4d86,#2b3a68); border-color:#6c8cff55; }
+  /* ---- Poker Smash table chrome -------------------------------------- */
+  #tab-poker .pk-stage{
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(255,211,92,.08), transparent 55%),
+      linear-gradient(180deg, #0f2a20, #07150f);
+    border:2px solid #c9a44a55; border-radius:18px; padding:10px 10px 14px;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.45), 0 12px 40px rgba(0,0,0,.35);
+  }
+  #pkCanvas{ border-radius:12px; box-shadow:inset 0 0 0 2px #1e5a3e, 0 8px 24px rgba(0,0,0,.4); }
+  #tab-poker .pk-hud{
+    background:linear-gradient(180deg,#1a1408,#0e0b06);
+    border:1px solid #c9a44a66; border-radius:999px; padding:8px 12px; color:#f3e2b0;
+  }
+  #tab-poker .pk-raise{
+    background:linear-gradient(180deg,#ffd86a,#e09a2a); color:#2d1c00;
+    border:1px solid #c47d18; font-weight:800;
+  }
+  #tab-poker .pk-over{ background:rgba(6,18,12,.88); backdrop-filter:blur(6px); }
+  #tab-poker .pk-over .t{ color:#ffd35c; text-shadow:0 0 18px rgba(255,211,92,.45); letter-spacing:3px; }
+  #tab-poker .pk-help{ background:#0c1f16; border:1px solid #2a5a40; }
+  .pk-challenge{
+    display:none; margin:8px auto 0; max-width:560px; text-align:center;
+    padding:8px 12px; border-radius:12px;
+    background:linear-gradient(90deg,#5a1d12,#8a3a16); border:1px solid #ffb020;
+    color:#ffe7b0; font-weight:800; letter-spacing:.04em;
+    animation:pkPulse 1.1s ease-in-out infinite;
+  }
+  .pk-challenge.show{ display:block; }
+  @keyframes pkPulse{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.18); } }
+  .pk-smash-float{
+    pointer-events:none; position:absolute; left:50%; top:38%;
+    transform:translate(-50%,-50%); font:900 28px system-ui; color:#fff6c8;
+    text-shadow:0 2px 0 #7a4a00, 0 0 22px #ffd35c;
+    animation:pkSmash .7s ease-out forwards;
+  }
+  @keyframes pkSmash{
+    0%{ transform:translate(-50%,-40%) scale(.6); opacity:0; }
+    25%{ transform:translate(-50%,-50%) scale(1.12); opacity:1; }
+    100%{ transform:translate(-50%,-70%) scale(1); opacity:0; }
+  }
 
 /* ===== ADDED MODES ===== */
 /* ============ PROVENANCE ============
@@ -4042,7 +4082,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 5d3145</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · dcd3ff</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5132,7 +5172,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=e88f10158f"></script>
+<script src="oe-01-core.js?v=442922bd79"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-sfx.js?v=5424d379ee"></script>
 <script src="oe-04-provenance-catalogue.js?v=ae0deffc21"></script>
@@ -5149,7 +5189,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-15-market2.js?v=cb953caf76"></script>
 <script src="oe-16-casino2.js?v=e7e85470f8"></script>
 <script src="oe-17-hunt.js?v=d04d7c2185"></script>
-<script src="oe-18-tail.js?v=dfc58cb0ed"></script>
+<script src="oe-18-tail.js?v=82b38b81c0"></script>
 
 </body>
 </html>

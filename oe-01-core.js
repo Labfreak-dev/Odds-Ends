@@ -11998,6 +11998,7 @@ const PK_SCORES = {
   flush:    { 4:150, 5:400, 6:900         },
   sflush:   { 3:300, 4:800, 5:2000, 6:4000 }
 };
+const PK_SMASH_PIP = { "\u2665":"#c41e3a", "\u2666":"#c41e3a", "\u2663":"#1a1a1a", "\u2660":"#1a1a1a" };
 const PK_HANDNAME = { kind:"OF A KIND", straight:"STRAIGHT", flush:"FLUSH", sflush:"STRAIGHT FLUSH" };
 /* Neon block faces, pre-rendered once per rank+suit (plus a "hot" version for clears). */
 let pkFaces = null;
@@ -12007,46 +12008,38 @@ function pkMixWhite(hex, f){
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 function pkDrawFace(c, rank, suit, hot){
-  const col = PK_SCOLORS[suit];
-  const m = 2.5, r = 11, w = PK_CELL - m*2;
-  /* the block: soft 3-D key */
+  const pip = PK_SMASH_PIP[suit] || "#1a1a1a";
+  const m = 2.2, r = 8, w = PK_CELL - m*2;
   c.save();
-  c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowBlur = 5; c.shadowOffsetY = 3;
+  c.shadowColor = "rgba(0,0,0,.45)"; c.shadowBlur = 6; c.shadowOffsetY = 3;
   const g = c.createLinearGradient(0, m, 0, m + w);
-  g.addColorStop(0, "#262a31"); g.addColorStop(0.55, "#1b1f25"); g.addColorStop(1, "#131619");
+  g.addColorStop(0, hot ? "#fff6d4" : "#fffdf8");
+  g.addColorStop(1, hot ? "#f3d48a" : "#e4e0d6");
   c.fillStyle = g;
   c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
   c.restore();
-  /* bevel: top highlight, bottom shade */
-  c.strokeStyle = "rgba(255,255,255,0.09)"; c.lineWidth = 1.2;
-  c.beginPath(); c.roundRect(m + 0.8, m + 0.8, w - 1.6, w - 1.6, r - 1); c.stroke();
-  c.strokeStyle = "rgba(0,0,0,0.5)"; c.lineWidth = 1;
-  c.beginPath(); c.roundRect(m + 0.4, m + 0.4, w - 0.8, w - 0.8, r); c.stroke();
-  /* faint ambient wash from the neon */
-  c.save();
-  c.beginPath(); c.roundRect(m, m, w, w, r); c.clip();
-  const amb = c.createRadialGradient(PK_CELL/2, PK_CELL/2, 4, PK_CELL/2, PK_CELL/2, PK_CELL*0.62);
-  amb.addColorStop(0, col); amb.addColorStop(1, "rgba(0,0,0,0)");
-  c.globalAlpha = hot ? 0.34 : 0.13;
-  c.fillStyle = amb; c.fillRect(0, 0, PK_CELL, PK_CELL);
-  c.restore();
-  /* neon text: colored bloom passes, then a hot core */
-  const passes = hot ? 3 : 2;
+  c.strokeStyle = hot ? "#e0b84a" : "rgba(0,0,0,.18)";
+  c.lineWidth = 1.2;
+  c.beginPath(); c.roundRect(m + .4, m + .4, w - .8, w - .8, r - 1); c.stroke();
+  c.fillStyle = pip;
+  c.textAlign = "left"; c.textBaseline = "top";
+  c.font = "bold 13px Georgia, serif";
+  c.fillText(PK_RNAME[rank], m + 5, m + 4);
+  c.font = "14px Georgia, serif";
+  c.fillText(suit, m + 5, m + 18);
   c.textAlign = "center"; c.textBaseline = "middle";
-  const draw = (txt, y, font)=>{
-    c.font = font;
-    c.save();
-    c.shadowColor = col; c.shadowBlur = hot ? 15 : 9;
-    c.fillStyle = col;
-    for(let i=0;i<passes;i++) c.fillText(txt, PK_CELL/2, y);
-    c.shadowBlur = 2.5;
-    c.fillStyle = pkMixWhite(col, hot ? 0.85 : 0.55);
-    c.fillText(txt, PK_CELL/2, y);
-    c.restore();
-  };
-  draw(PK_RNAME[rank], PK_CELL/2 - 8.5, "bold 20px system-ui");
-  draw(suit, PK_CELL/2 + 12.5, "16px system-ui");
+  c.font = (rank === 10 ? "22px" : "26px") + " Georgia, serif";
+  c.fillText(suit, PK_CELL/2, PK_CELL*0.62);
+  c.save();
+  c.translate(PK_CELL - m - 5, PK_CELL - m - 4);
+  c.rotate(Math.PI);
+  c.fillStyle = pip;
+  c.textAlign = "left"; c.textBaseline = "top";
+  c.font = "bold 11px Georgia, serif";
+  c.fillText(PK_RNAME[rank], 0, 0);
+  c.restore();
 }
+
 function pkJokerGlyph(c, kind, col, cx, cy, hot){
   c.save();
   c.strokeStyle = col; c.fillStyle = col;
@@ -12083,41 +12076,22 @@ function pkJokerGlyph(c, kind, col, cx, cy, hot){
   c.restore();
 }
 function pkDrawJokerFace(c, kind, hot){
-  const K = PK_JOKER_INFO[kind], col = K.col;
-  const m = 2.5, r = 11, w = PK_CELL - m*2;
-  c.save();
-  c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowBlur = 5; c.shadowOffsetY = 3;
+  const info = PK_JOKER_INFO[kind] || { col:"#ffd35c", tag:"\u2605" };
+  const m = 2.2, r = 8, w = PK_CELL - m*2;
   const g = c.createLinearGradient(0, m, 0, m + w);
-  g.addColorStop(0, "#2b2130"); g.addColorStop(0.55, "#1d1722"); g.addColorStop(1, "#14101a");
+  g.addColorStop(0, hot ? "#3a2610" : "#2a1a08"); g.addColorStop(1, "#120c06");
   c.fillStyle = g;
   c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
-  c.restore();
-  /* prismatic edge — a joker is every suit at once */
-  const pg = c.createLinearGradient(m, m, m + w, m + w);
-  pg.addColorStop(0, "#ff5c6e"); pg.addColorStop(0.34, "#ffb020");
-  pg.addColorStop(0.67, "#3ddc84"); pg.addColorStop(1, "#6fa8ff");
-  c.strokeStyle = pg; c.lineWidth = 2;
+  c.strokeStyle = info.col; c.lineWidth = hot ? 2.6 : 2;
   c.beginPath(); c.roundRect(m + 1, m + 1, w - 2, w - 2, r - 1); c.stroke();
-  c.save();
-  c.beginPath(); c.roundRect(m, m, w, w, r); c.clip();
-  const amb = c.createRadialGradient(PK_CELL/2, PK_CELL/2, 3, PK_CELL/2, PK_CELL/2, PK_CELL*0.62);
-  amb.addColorStop(0, col); amb.addColorStop(1, "rgba(0,0,0,0)");
-  c.globalAlpha = hot ? 0.42 : 0.2;
-  c.fillStyle = amb; c.fillRect(0, 0, PK_CELL, PK_CELL);
-  c.restore();
-  /* the wild star */
+  c.fillStyle = info.col;
   c.textAlign = "center"; c.textBaseline = "middle";
-  c.save();
-  c.font = "bold 19px system-ui";
-  c.shadowColor = col; c.shadowBlur = hot ? 16 : 10;
-  c.fillStyle = col;
-  for(let i=0;i<(hot?3:2);i++) c.fillText("★", PK_CELL/2, PK_CELL/2 - 9);
-  c.shadowBlur = 2.5;
-  c.fillStyle = pkMixWhite(col, hot ? 0.85 : 0.6);
-  c.fillText("★", PK_CELL/2, PK_CELL/2 - 9);
-  c.restore();
-  pkJokerGlyph(c, kind, col, PK_CELL/2, PK_CELL/2 + 12, hot);
+  c.font = "22px system-ui";
+  c.fillText(info.tag || "\u2605", PK_CELL/2, PK_CELL/2 - 4);
+  c.font = "bold 8px system-ui";
+  c.fillText("JOKER", PK_CELL/2, PK_CELL/2 + 16);
 }
+
 function pkBuildFaces(){
   pkFaces = {};
   const R = 3;   /* cache render scale — glow stays crisp when popped */
@@ -12581,8 +12555,11 @@ function pkDraw(dt){
   ctx.setTransform(2, 0, 0, 2, 0, 0);       /* canvas is 2× for crisp neon */
   ctx.clearRect(0, 0, W, H);
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#111318"); bg.addColorStop(1, "#0a0c0f");
+  bg.addColorStop(0, "#102b1f"); bg.addColorStop(1, "#07150f");
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  /* felt weave: faint horizontal threads, same idea as a card table */
+  ctx.fillStyle = "rgba(30,110,70,.16)";
+  for(let i = 0; i < PK_ROWS + 1; i++) ctx.fillRect(0, i * PK_CELL, W, 1);
   if(!pk){
     ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = "bold 20px system-ui"; ctx.textAlign = "center";
     ctx.fillText("🃏", W/2, H/2 - 40);

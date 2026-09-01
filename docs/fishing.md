@@ -501,6 +501,16 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 83 — the gap closes; the alphabet reaches Tasmania
+Sixty paintings in two zips: 061-072 (cougar through eastern-newt)
+seals the last hole in the low alphabet, and 145-192 (poison-dart-frog
+through tasmanian-devil) runs the S-shelf nearly to the end. Identity
+traps all passed: spotted vs striped hyena, the three dark bears
+(sloth's pale muzzle, sun's chest crescent, the devil's ears), and
+ruby-throated vs anna-s hummingbird. cardart 13/13, 371 files.
+192/788 Rares, 192/216 animals - only 193-216 (tiger-fish through the
+end) remain, and Animal Kingdom is contiguous 001-192.
+
 ## Batch 82 — the gap half-closes: animals 49-60 and 73-84
 Two zips into the 049-084 hole: chimpanzee through cottonmouth, then
 echidna through fire-salamander. All 24 verified (copperhead and

@@ -501,6 +501,16 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 84 — ANIMAL KINGDOM COMPLETE: 216/216
+Termite through yellow-bellied sea snake closes the category - every
+Animal Kingdom Rare in the game now has a painting, proven by diffing
+the manifest against art/ (zero missing). Nine drops start to finish
+(batches 77-84), all playtester-generated from rare-art-list.txt,
+zero misnamed files shipped. cardart 13/13, 395 files, ~9MB.
+216/788 Rares painted overall. Next shelves: Legends & Myth (212),
+Machines in Motion (160), Cosmos & Terra (130), Tide & Tackle (31),
+Fortune & Folly (27), plus 12 household stragglers.
+
 ## Batch 83 — the gap closes; the alphabet reaches Tasmania
 Sixty paintings in two zips: 061-072 (cougar through eastern-newt)
 seals the last hole in the low alphabet, and 145-192 (poison-dart-frog

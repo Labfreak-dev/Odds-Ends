@@ -130,14 +130,25 @@ with sync_playwright() as pw:
       state.miningBonus = computeMiningBonusFromOwned(state.owned); saveState();
     }""")
     pg.click("[data-tab='collection']"); pg.wait_for_timeout(900)
+    # Filter to owned-only first: the grid is paginated by subject group, so the
+    # three cards owned above are not guaranteed to land on page 1. (This check
+    # used to pass by accident - the layer probes' open_single applied pulls to
+    # state.owned, and the probe subjects happened to sit on page 1. Once every
+    # non-Raid-Gear card was painted, the probes became Raid Gear, which the
+    # collection filters out, and the accidental frames vanished.)
+    pg.evaluate("""()=>{ document.getElementById('ownedFilter').value='owned'; onFilterChange(); }""")
+    pg.wait_for_timeout(500)
     got = pg.evaluate("""()=>{
       const f=[...document.querySelectorAll('.mini-card.framed')];
       return { framed: f.length,
-               bg: f.every(e=>getComputedStyle(e).backgroundImage.startsWith('url("data:image/webp')),
-               lockedPlain: [...document.querySelectorAll('.mini-card.locked')]
-                 .every(e=>!e.classList.contains('framed')) }; }""")
+               bg: f.every(e=>getComputedStyle(e).backgroundImage.startsWith('url("data:image/webp')) }; }""")
     check("owned collection cards wear their frames", got["framed"] >= 3 and got["bg"], got)
-    check("undiscovered cards keep their mystery", got["lockedPlain"])
+    pg.evaluate("""()=>{ document.getElementById('ownedFilter').value='all'; onFilterChange(); }""")
+    pg.wait_for_timeout(500)
+    got = pg.evaluate("""()=>({ lockedPlain: [...document.querySelectorAll('.mini-card.locked')]
+      .every(e=>!e.classList.contains('framed')),
+      lockedN: document.querySelectorAll('.mini-card.locked').length })""")
+    check("undiscovered cards keep their mystery", got["lockedPlain"] and got["lockedN"] > 0)
 
     pg.click("[data-tab='market']"); pg.wait_for_timeout(1300)
     saw = False

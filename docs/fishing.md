@@ -501,6 +501,16 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 91 — LEGENDS & MYTH COMPLETE: 212/212
+Tsukuyomi through Zheng He closes the second giant shelf, proven by
+manifest diff (zero missing). Highlights of the final 20: Van Gogh
+unmistakable, the Wright Brothers correctly a TWO-man portrait,
+Gagarin in his helmet, Tsukuyomi's crescent crown, and Zeus to close.
+One initials rename (web-du-bois -> w-e-b-du-bois). With animals done
+that is BOTH 200+ shelves finished: 428/788 Rares. cardart 13/13, 607
+files (~12MB). Remaining: Machines in Motion 160, Cosmos & Terra 130,
+Tide & Tackle 31, Fortune & Folly 27, 12 household stragglers.
+
 ## Batch 90 — legends 181-192: the delivery format perfects itself
 The zip carried BOTH a labeled reference sheet AND the 12 full-res
 pre-named singles - review sheet plus canon files in one drop, the

@@ -11988,7 +11988,7 @@ function renderRaids(){
 
 /* ================= POKER RUSH — rising card-stack action puzzle ================= */
 const PK_COLS = 6, PK_ROWS = 12, PK_CELL = 56;
-const PK_RANKS = [9,10,11,12,13,14];
+const PK_RANKS = [10,11,12,13,14];   /* 10-A, Smash-style: five ranks, hands form readily */
 const PK_RNAME = { 9:"9", 10:"10", 11:"J", 12:"Q", 13:"K", 14:"A" };
 const PK_SUITS = ["♥","♦","♣","♠"];
 const PK_SCOLORS = { "♥":"#ff5c6e", "♦":"#ffb020", "♣":"#3ddc84", "♠":"#6fa8ff" };
@@ -11998,7 +11998,9 @@ const PK_SCORES = {
   flush:    { 4:150, 5:400, 6:900         },
   sflush:   { 3:300, 4:800, 5:2000, 6:4000 }
 };
-const PK_SMASH_PIP = { "\u2665":"#c41e3a", "\u2666":"#c41e3a", "\u2663":"#1a1a1a", "\u2660":"#1a1a1a" };
+/* faint per-rank wash so pairs and trips read at a glance */
+const PK_SMASH_WASH = { 10:"rgba(111,168,255,.15)", 11:"rgba(61,220,132,.15)",
+  12:"rgba(176,92,255,.15)", 13:"rgba(255,176,32,.17)", 14:"rgba(255,92,110,.15)" };
 const PK_HANDNAME = { kind:"OF A KIND", straight:"STRAIGHT", flush:"FLUSH", sflush:"STRAIGHT FLUSH" };
 /* Neon block faces, pre-rendered once per rank+suit (plus a "hot" version for clears). */
 let pkFaces = null;
@@ -12008,7 +12010,7 @@ function pkMixWhite(hex, f){
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 function pkDrawFace(c, rank, suit, hot){
-  const pip = PK_SMASH_PIP[suit] || "#1a1a1a";
+  const pip = PK_SCOLORS[suit] || "#1a1a1a";
   const m = 2.2, r = 8, w = PK_CELL - m*2;
   c.save();
   c.shadowColor = "rgba(0,0,0,.45)"; c.shadowBlur = 6; c.shadowOffsetY = 3;
@@ -12018,9 +12020,16 @@ function pkDrawFace(c, rank, suit, hot){
   c.fillStyle = g;
   c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
   c.restore();
-  c.strokeStyle = hot ? "#e0b84a" : "rgba(0,0,0,.18)";
-  c.lineWidth = 1.2;
+  if(PK_SMASH_WASH[rank]){
+    c.fillStyle = PK_SMASH_WASH[rank];
+    c.beginPath(); c.roundRect(m, m, w, w, r); c.fill();
+  }
+  /* the border carries the suit colour - that is the flush read */
+  c.save();
+  c.globalAlpha = hot ? 1 : 0.85;
+  c.strokeStyle = pip; c.lineWidth = 2;
   c.beginPath(); c.roundRect(m + .4, m + .4, w - .8, w - .8, r - 1); c.stroke();
+  c.restore();
   c.fillStyle = pip;
   c.textAlign = "left"; c.textBaseline = "top";
   c.font = "bold 13px Georgia, serif";

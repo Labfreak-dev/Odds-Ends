@@ -501,6 +501,39 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 101 — Poker Smash v2: four-colour suits back, 9s out
+Revised skin. Three changes, all different in kind.
+
+FOUR-COLOUR SUITS - AND THIS FIXES A REGRESSION FROM BATCH 100. The
+game ALREADY had four-colour suits: PK_SCOLORS is red/amber/green/blue.
+The v1 skin's SMASH_SUIT collapsed them to red-and-black and I shipped
+it without noticing, throwing away the cue a player reads flushes by.
+v2 walks it back; this build uses the host's OWN PK_SCOLORS rather than
+v2's near-duplicate palette, so there is one source of truth. The tile
+border now carries the suit colour, which is where the read lives.
+
+RANK WASH: a faint per-rank tint (PK_SMASH_WASH) so pairs and trips
+read without counting glyphs.
+
+THE 9s - NOT A SKIN CHANGE. Buried mid-file as "No 9s - re-roll onto
+10-A like Smash", and it did two things wrong. (1) Balance: the deck
+was [9..A], six ranks; forcing five makes hands form materially more
+often. Measured over 5x26s passive runs each way: mean score 300 ->
+426, ~1.4x - and that UNDERSTATES it, because passive runs only match
+by luck while a player building hands benefits more from a smaller
+pool. (2) The implementation defeated a guard: pkSpawn retries up to 30
+times calling pkSafe() so a new card never lands in an instant match,
+and the override rewrote c.rank AFTER that check passed. Playtester
+chose to take the change done properly, so PK_RANKS itself is now
+[10..A] and pkSafe still applies.
+
+Consequence worth knowing: PK_SCORES still lists 6-card tiers, and a
+6-long straight is now impossible (only five distinct ranks). 6-of-a-
+kind is still reachable across the six columns. Left as-is.
+Verified: no 9s dealt, four colours on the board, felt intact, zero
+errors. 19/19 parse, test-fishing, cardart 13/13, ripship 37/37,
+backs 15/15, economy 29/29. Stamp c794e7.
+
 ## Batch 100 — POKER SMASH: felt, white tiles, challenge hands
 Third outside proposal, and the first that ships real game code rather
 than CSS. Tested by playing actual rounds headless before judging.

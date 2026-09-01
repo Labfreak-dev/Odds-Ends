@@ -501,6 +501,26 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 95 — the new categories finally arrive (40 from a raw mix)
+After SIX raw-archive zips of pure re-renders (553 images checked,
+zero shipped - the dedupe pipeline earned its keep), rarerawrendered01
+mixed the first genuinely new material in with more dupes and 16
+subjects that are not in the game at all (giraffe, leopard, Marie
+Curie, roulette wheel...). Triage: 83 in -> 40 shipped, 23 subject-
+dupes skipped, 16 extras skipped, 4 HELD as too ambiguous to name
+(two red star/planet spheres - antares vs betelgeuse vs aldebaran;
+a grey disc; a blue-jeweled amulet - brass-talisman vs evil-eye-bead).
+Shipped: 21 Cosmos (diamond, citrine, pyrite, malachite, marble,
+iron/silver ore, meteorite, Fuji, Chichen Itza, Colosseum, Sagrada,
+Sydney Opera, hurricane, hailstorm, rainbow, io, sirius, ring-nebula,
+whirlpool-galaxy, milky-way), 12 Tide (blobfish, viperfish, goblin +
+frilled sharks, taimen, the-one-that-got-away as a lunging bass,
+silverscale-leviathan as a silver dragon, moonlit-eel, colossal-squid
+tentacles, coral-reef, sunken-wreck, captain-s-compass), 5 Fortune
+(ace-of-spades, tarot-deck, the-joker, dreamcatcher, wishbone), 2
+Misc (antique-coin, kaleidoscope). cardart 13/13, 807 files.
+628/788 Rares (80%).
+
 ## Batch 94 — MACHINES IN MOTION COMPLETE: 160/160
 Trolley car through yacht closes the third big shelf, proven by
 manifest diff. Windmill vs wind-turbine properly distinct; the

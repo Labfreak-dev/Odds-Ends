@@ -501,6 +501,15 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 94 — MACHINES IN MOTION COMPLETE: 160/160
+Trolley car through yacht closes the third big shelf, proven by
+manifest diff. Windmill vs wind-turbine properly distinct; the
+whaling ship reads apart from the clipper/galleon/pirate trio. Three
+of the four large categories are now DONE (animals 216, legends 212,
+machines 160): 588/788 Rares, 75%. cardart 13/13, 767 files (~13MB).
+Remaining: Cosmos & Terra 130, Tide & Tackle 31, Fortune & Folly 27,
+12 household stragglers - exactly 200 to the finish.
+
 ## Batch 93 — machines 49-144: the fleet doubles twice
 Ninety-six in two zips: elevator through muscle-car, then oil-rig
 through tow-truck. All verified; the lookalike families stay distinct

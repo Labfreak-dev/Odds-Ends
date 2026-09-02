@@ -1005,14 +1005,16 @@ function drawScene(t,dt){
       else drawMob(px[i],gy+py[i]-(cd.shape==='beast'?58:78),cd,t+1+i,1,0);});
     if(activePrayers().length){ctx.strokeStyle='#ffd24a';ctx.lineWidth=2.5;ctx.shadowColor='#ffd24a';ctx.shadowBlur=8;ctx.beginPath();ctx.ellipse(120+pl,gy-102+Math.sin(t*3)*1.8,14,4.5,0,0,7);ctx.stroke();ctx.shadowBlur=0;}}
   const heroSpr=sprReady('hero_idle');   // per-pose fallbacks live in heroFrame
+  // Keep this if/else chain intact: an extra statement between the branches
+  // re-binds the else to it, and the procedural hero paints over the sprite.
   if(heroSpr){const hf=heroFrame(t);drawSprite(hf.img,120+pl,gy+4,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);}
+  else if(G.dead){ctx.save();ctx.translate(120,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
+  else drawHero(120+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
   if(!G.dead&&FX.pLunge>0){ // the shot leaves the bow / staff on the release frame
     const cs2=cstyle(),pk=cs2==='ranged'?'proj_arrow':cs2==='magic'?'proj_bolt':null;
     const q=1-FX.pLunge;
     if(pk&&q>0.34&&sprReady(pk)){const px=150+(345-150)*((q-0.34)/0.66);
       drawSprite(sprFrame(pk,0),px,gy-52,false,0,SPR_SC[pk]);}}
-  else if(G.dead){ctx.save();ctx.translate(120,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
-  else drawHero(120+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
   if(G.mob){const mk=mobSprKey(G.mob);
     if(mk&&sprReady(mk+'_idle')){const atk=FX.mLunge>0&&sprReady(mk+'_atk');drawSprite(atk?sprFrame(mk+'_atk',0):sprFrame(mk+'_idle',0),370-ml,gy+6+Math.sin(t*2.5)*1.5,false,FX.mFlash,mobSprScale(G.mob));}
     else drawMob(370-ml,gy-90,G.mob,t,-1,FX.mFlash);}
@@ -1512,7 +1514,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b4-icons';
+  const BUILD='b5-hero';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

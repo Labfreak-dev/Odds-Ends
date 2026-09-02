@@ -399,6 +399,30 @@
       gap:12px 8px;min-height:320px}
     #chDoll .slot{width:56px;height:56px}
   }
+
+  /* --- section chips: one panel of a tab at a time --- */
+  .secbar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;flex:0 0 auto}
+  .secbar button{background:var(--panel-2);border:2px solid #000;box-shadow:inset 0 0 0 1px #4a3a28;
+    color:var(--muted);font:bold 12px Georgia,serif;letter-spacing:.2px;padding:5px 12px;min-height:30px}
+  .secbar button.on{background:var(--panel);color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold)}
+  .tab>.panel[data-sec]{display:none}
+  .tab>.panel[data-sec].on{display:block}
+
+  /* --- desktop: the hold fits the screen, panels scroll inside --- */
+  @media (min-width:980px){
+    html{height:100%}
+    /* the dock is a sibling of the shell, so the page grid lives on the body */
+    body{height:100dvh;overflow:hidden;display:grid;grid-template-rows:minmax(0,1fr) auto}
+    #shell{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;padding:8px 8px 0}
+    #desk{min-height:0;overflow:hidden;align-items:stretch}
+    #stageCol{position:static;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+    #stageCol>.panel{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+    #feed{flex:1 1 auto;min-height:96px;overflow:auto}
+    #bench{min-height:0;display:flex;flex-direction:column}
+    #bench>.tab.on{display:flex;flex-direction:column;min-height:0;height:100%}
+    #bench>.tab.on>.panel{min-height:0;overflow:auto;flex:0 1 auto}
+    #dock{position:static;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+  }
 </style>
 </head>
 <body>
@@ -444,7 +468,7 @@
       </section>
 
       <section class="tab" id="tab-vault">
-        <div class="panel">
+        <div class="panel" data-sec="Vault">
           <h2>Vault <span id="bagCnt" class="sub"></span></h2>
           <div class="filters">
             <select id="fltSlot"></select>
@@ -460,7 +484,7 @@
           <div class="chk" style="margin-top:8px"><input type="checkbox" id="autoSalv"><label for="autoSalv">Auto-salvage drops that aren't an upgrade</label></div>
           <div class="row"><span>Metal scrap <b class="gold" id="scrapCnt">0</b></span><span class="sub">Feeds the Forge</span></div>
         </div>
-        <div class="panel">
+        <div class="panel" data-sec="Runes">
           <h2>Rune pouch</h2>
           <div class="runes" id="runes"></div>
           <div class="sub" style="margin-bottom:4px">Runewords need three runes. Inscribe them from an item's window. One per item, permanent.</div>
@@ -469,7 +493,7 @@
       </section>
 
       <section class="tab" id="tab-skills">
-        <div class="panel">
+        <div class="panel" data-sec="Skills">
           <h2>Skills <span class="sub" id="cbLvl"></span></h2>
           <div id="skills"></div>
           <h3 style="margin:10px 0 4px">Combat style</h3>
@@ -479,11 +503,11 @@
           <div class="styles" id="styles"></div>
           <p class="sub" style="margin-top:6px">Accurate trains Attack, Aggressive trains Strength, Defensive trains Defence, Controlled splits it. In Ranged or Magic those feed that skill instead. Hitpoints always trains.</p>
         </div>
-        <div class="panel">
+        <div class="panel" data-sec="Mastery">
           <h2>Mastery</h2>
           <div class="mastery" id="mastery"></div>
         </div>
-        <div class="panel">
+        <div class="panel" data-sec="Auto-eat">
           <h2>Auto-eat</h2>
           <div class="chk"><input type="checkbox" id="autoEat" checked><label for="autoEat">Eat automatically below <b id="eatPctTxt">50</b>% HP</label></div>
           <input type="range" id="eatPct" min="10" max="90" value="50">
@@ -501,8 +525,8 @@
       </section>
 
       <section class="tab" id="tab-world">
-        <div class="panel"><h2>Bounty board <span class="sub" id="bountyDay"></span></h2><div id="bounties"></div></div>
-        <div class="panel"><h2>World</h2><div class="sub" style="text-align:center;margin-bottom:8px">Choose where the blade works.</div><div id="areas"></div></div>
+        <div class="panel" data-sec="Bounties"><h2>Bounty board <span class="sub" id="bountyDay"></span></h2><div id="bounties"></div></div>
+        <div class="panel" data-sec="Map"><h2>World</h2><div class="sub" style="text-align:center;margin-bottom:8px">Choose where the blade works.</div><div id="areas"></div></div>
       </section>
 
       <section class="tab" id="tab-keep">
@@ -510,19 +534,19 @@
       </section>
 
       <section class="tab" id="tab-codex">
-        <div class="panel">
+        <div class="panel" data-sec="Collection">
           <h2>Collection <span class="sub" id="collCnt"></span></h2>
           <p class="sub" style="margin-bottom:8px">Unique weapons and set armour you've found. Area uniques drop from that area's monsters, boss uniques from bosses (best odds on the first kill), set pieces in their home area once its boss is down, and hold relics from chests.</p>
           <div class="coll" id="coll"></div>
         </div>
-        <div class="panel">
+        <div class="panel" data-sec="Guide">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
           <p class="sub" style="margin-top:8px"><b>Keep</b>: raise the five buildings with gold and scrap for permanent perks. The Barracks hires a companion (hound, cleric or squire) who fights beside you.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the World tab. Records every five floors pay a chest. Dying just sends you home.<br><b>Bounties</b>: three posted daily on the World tab; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Party</b>: the Barracks holds up to three companions; slots 2 and 3 open at Barracks level 2 and 4.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the vault, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
           <p class="kbd" style="margin-top:8px">Keys: 1–7 menus · Space special · E eat · B bury bones</p>
           <p class="kbd" id="buildTag">Build 2026-09-02 · gear pass (kits, sets, unique weapons)</p>
         </div>
-        <div class="panel">
+        <div class="panel" data-sec="Save">
           <h2>Save</h2>
           <p class="sub">Saves every 10 seconds when browser storage is available. Copy the code to move your save elsewhere.</p>
           <textarea id="saveTxt" spellcheck="false"></textarea>
@@ -1399,7 +1423,7 @@ function tick(dt){
 // ============ UI ============
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
-function uiDefaults(){S.tab=S.tab||'hero';
+function uiDefaults(){S.tab=S.tab||'hero';S.sec=S.sec||{};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
@@ -1511,12 +1535,41 @@ function cqWire(){
   $('cqModal').addEventListener('click',e=>{if(e.target.id==='cqModal')cqClose();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cqUI.open)cqClose();});
 }
+
+// --- section chips ---
+// Tabs that carried three stacked panels now show one at a time, so a menu is
+// a screenful instead of a scroll.
+function buildSecs(){
+  document.querySelectorAll('#bench .tab').forEach(tab=>{
+    const panels=[...tab.querySelectorAll(':scope > .panel[data-sec]')];
+    if(panels.length<2)return;
+    const bar=document.createElement('div');bar.className='secbar';
+    panels.forEach((p,i)=>{
+      const btn=document.createElement('button');btn.type='button';btn.textContent=p.dataset.sec;
+      btn.onclick=()=>showSec(tab.id.slice(4),i);
+      bar.appendChild(btn);});
+    tab.insertBefore(bar,tab.firstChild);});
+}
+function showSec(tabId,i){
+  const tab=$('tab-'+tabId);if(!tab)return;
+  const panels=[...tab.querySelectorAll(':scope > .panel[data-sec]')];
+  if(!panels.length)return;
+  i=Math.max(0,Math.min(i,panels.length-1));
+  S.sec=S.sec||{};S.sec[tabId]=i;
+  panels.forEach((p,j)=>p.classList.toggle('on',j===i));
+  const bar=tab.querySelector('.secbar');
+  if(bar)[...bar.children].forEach((b,j)=>b.className=j===i?'on':'');
+}
+function applySecs(){
+  document.querySelectorAll('#bench .tab').forEach(tab=>{
+    if(tab.querySelector(':scope > .panel[data-sec]'))showSec(tab.id.slice(4),(S.sec&&S.sec[tab.id.slice(4)])||0);});
+}
 function buildDock(){
   $('dockIn').innerHTML=TABS.map(([id,n,ic],i)=>`<button data-tab="${id}" aria-label="${n} (${i+1})">${svg(ic)}<span>${n}</span></button>`).join('');
   document.querySelectorAll('#dock button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 }
 function showTab(id){
-  S.tab=id;
+  S.tab=id;applySecs();
   document.querySelectorAll('#dock button').forEach(b=>b.className=b.dataset.tab===id?'on':'');
   document.querySelectorAll('.tab').forEach(t=>t.className='tab'+(t.id==='tab-'+id?' on':''));
   renderAll();
@@ -1925,7 +1978,7 @@ function offline(){
 }
 
 // ============ WIRING ============
-buildTop();buildDock();buildFilters();cqWire();chWire();
+buildTop();buildDock();buildSecs();buildFilters();cqWire();chWire();
 $('btnSpec').onclick=special;
 $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
@@ -1957,7 +2010,7 @@ document.addEventListener('keydown',e=>{
   let saved=null;try{saved=localStorage.getItem(KEY);}catch(e){}
   if(saved&&load(saved)){offline();}
   else{S.equip.weapon=makeItem(0,'weapon',1,1);S.food[0]=10;log('The hold is yours. Bronze scimitar. Pasture first. You coach — the blade works.','g');}
-  uiDefaults();
+  uiDefaults();applySecs();
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);
   let last=performance.now(),acc=0,uiT=0,saveT=0;
@@ -1970,7 +2023,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b24-champwin';
+  const BUILD='b25-menus';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

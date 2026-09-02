@@ -810,17 +810,15 @@ function heroLook(){
   if(w&&sprReady('wep_'+w.wt))return 'wep_'+w.wt;
   return null;
 }
+// The animated hero: 4-frame idle, 3-frame attack, always. The painted
+// champion looks (kit_/set_/uq_/wep_) are single stills with no attack art,
+// so selecting one replaced the slash with a rotation tilt. heroLook() is
+// kept below, unused, so re-enabling them is a one-line change.
 function heroFrame(t){
   const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0});
   if(G.dead){const e=15-G.deadT;return f('hero_death',Math.min(3,Math.floor(e/0.22)));}
-  const look=heroLook();const base=!look||look.startsWith('wep_');
-  const w=S.equip.weapon;const gs=w&&!w.uq&&WEAPONS[w.wt].two;
-  if(FX.pLunge>0){const p=1-FX.pLunge;
-    if(base&&gs&&sprReady('hero_atk_gs'))return f('hero_atk_gs',0);
-    if(base)return f('hero_atk',Math.min(2,Math.floor(p*3)));
-    const r=f(look,0);r.rot=-0.28*Math.sin(p*Math.PI);return r;}
-  if(FX.pFlash>0.25&&!look)return f('hero_hurt',0);
-  if(look)return f(look,0);
+  if(FX.pLunge>0)return f('hero_atk',Math.min(2,Math.floor((1-FX.pLunge)*3)));
+  if(FX.pFlash>0.25)return f('hero_hurt',0);
   return f('hero_idle',Math.floor(t*6)%4);
 }
 function areaBg(i){const b=AREA_BG[i];return b&&b.complete&&b.naturalWidth?b:null;}
@@ -915,7 +913,7 @@ function drawScene(t,dt){
       else drawMob(px[i],gy+py[i]-(cd.shape==='beast'?58:78),cd,t+1+i,1,0);});
     if(activePrayers().length){ctx.strokeStyle='#ffd24a';ctx.lineWidth=2.5;ctx.shadowColor='#ffd24a';ctx.shadowBlur=8;ctx.beginPath();ctx.ellipse(120+pl,gy-102+Math.sin(t*3)*1.8,14,4.5,0,0,7);ctx.stroke();ctx.shadowBlur=0;}}
   const heroSpr=sprReady('hero_idle')&&sprReady('hero_atk')&&sprReady('hero_hurt')&&sprReady('hero_death');
-  if(heroSpr){const hf=heroFrame(t);const bob=heroLook()&&!G.dead&&FX.pLunge<=0?Math.sin(t*3)*1.2:0;drawSprite(hf.img,120+pl,gy+4+bob,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);}
+  if(heroSpr){const hf=heroFrame(t);drawSprite(hf.img,120+pl,gy+4,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);}
   else if(G.dead){ctx.save();ctx.translate(120,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
   else drawHero(120+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
   if(G.mob){const mk=mobSprKey(G.mob);

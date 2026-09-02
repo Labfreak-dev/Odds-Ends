@@ -801,11 +801,13 @@ function drawSprite(img,x,y,flip,flash,scale,rot){
   c.restore();
   if(flash>0)ctx.drawImage(OFF,0,0);
 }
-// Which painted champion to show: set kit > tier kit > unique weapon on base kit > weapon shape on base kit > bare base
+// Which painted champion to show: set kit > unique weapon > tier kit > weapon shape on base kit > bare base
 function heroLook(){
   const b=S.equip.body,w=S.equip.weapon;
-  if(b){if(b.set&&sprReady('set_'+b.set))return 'set_'+b.set;if(sprReady('kit_'+b.tier))return 'kit_'+b.tier;}
-  if(w){if(w.uq&&sprReady('uq_'+w.uq))return 'uq_'+w.uq;if(sprReady('wep_'+w.wt))return 'wep_'+w.wt;}
+  if(b&&b.set&&sprReady('set_'+b.set))return 'set_'+b.set;
+  if(w&&w.uq&&sprReady('uq_'+w.uq))return 'uq_'+w.uq;
+  if(b&&sprReady('kit_'+b.tier))return 'kit_'+b.tier;
+  if(w&&sprReady('wep_'+w.wt))return 'wep_'+w.wt;
   return null;
 }
 function heroFrame(t){

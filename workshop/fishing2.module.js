@@ -2945,12 +2945,16 @@ function feCoverAndBoat(g){
 }
 /* ---- THE ANGLER (batch 113): a two-layer sprite, body over legs, on a
    332x600 canvas rendered from the Meshy model. Frame in band coords: he
-   sits with the front of his seat at the plank end (band x 320) on the
-   deck surface (band y 330), which is what every painting's band offset
+   sits with the front of his seat just behind the plank end (band x 320)
+   on the deck surface (band y 330), which is what every painting's band offset
    aligns. The legs swing around the hip, the body breathes and sways,
    reeling pumps the rod; the rod is drawn from the returned grip. The
    painted-man matte and patch are gone. */
-const FE_MAN = { x:270, y:194, w:110.7, h:200, ax:316, ay:310, gripX:358, gripY:284, hipX:316, hipY:310 };
+/* 314x600 three-quarter render, 170 band px tall (15% down from the first
+   cut); seat line 68% / hip 40%,58% / hands 85%,45% of the canvas, the
+   front of his seat set 14px back from the plank end so the thighs rest
+   on the planks and only the shins hang */
+const FE_MAN = { x:263, y:214, w:89, h:170, ax:299, ay:313, gripX:339, gripY:291, hipX:299, hipY:313 };
 const feManBody = new Image(), feManLegs = new Image();
 try{ if(typeof FE_MAN_BODY !== "undefined"){ feManBody.src = FE_MAN_BODY; feManLegs.src = FE_MAN_LEGS; } }catch(e){}
 function feManReady(){ return feManBody.complete && feManBody.naturalWidth > 0 && feManLegs.complete && feManLegs.naturalWidth > 0; }
@@ -2972,7 +2976,7 @@ function fshDrawFisherman(g){
   const legAng = (Math.sin(t*1.05)*0.030 + Math.sin(t*0.63 + 1.3)*0.013)*(reeling ? 0.3 : 1) + (reeling ? -0.018 : 0);
   /* contact shadow on the planks, under his seat */
   g.save(); g.globalAlpha = 0.22; g.fillStyle = "#101820";
-  g.beginPath(); g.ellipse(M.x + M.w*0.28, 329, M.w*0.26, 3.5, 0, 0, 7); g.fill(); g.restore();
+  g.beginPath(); g.ellipse(M.x + M.w*0.28, 329, M.w*0.24, 3.2, 0, 0, 7); g.fill(); g.restore();
   g.save(); g.translate(M.hipX, M.hipY + bob); g.rotate(legAng); g.translate(-M.hipX, -M.hipY);
   g.drawImage(feManLegs, M.x, M.y, M.w, M.h); g.restore();
   g.save(); g.translate(M.ax, M.ay + bob); g.rotate(ang); g.scale(1, breathe); g.translate(-M.ax, -M.ay);

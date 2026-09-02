@@ -501,6 +501,20 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 114 — the angler turned, sized, and seated
+Playtester: turn him so it reads as sitting on the dock, he is a little
+big against the scene items, and make sure he is aligned on every dock.
+The model is 3D, so the turn is a camera move: the render is now
+three-quarter (camera on his left swung 32 degrees toward his front, a
+touch above eye level), which shows his face and his near thigh on the
+planks. Frame 170 band px tall (15% down), 314x600 canvas, seat line
+68% / hip 40%,58% / hands 85%,45% measured on the gridded render, and
+the front of his seat set 14px back from the plank end so the thighs
+rest on the planks and only the shins hang. Close crops of all six piers
+checked at noon; dock mid-cast. The textured Meshy export has not
+arrived yet - this is still the stand-in paint, and the same pipeline
+swaps it. Stamp 28a3c9.
+
 ## Batch 113 — the angler is a sprite, and the dock joins the set
 Playtester: "on all these scenes its very obvious that's a painted
 character... should I just generate a 2d asset instead of using this old

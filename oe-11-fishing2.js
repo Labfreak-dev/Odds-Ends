@@ -431,7 +431,7 @@ function feVibeTick(dt){
 function feDrawGrade(g, pal, hour){
   /* celestial bodies go UNDER the tint so they belong to the scene */
   const sun = feSunPos(hour), moon = feMoonPos(hour);
-  if(pal.sun > 0.02 && sun.up && feBgSpot === "dock"){   /* the other paintings carry their own light */
+  if(pal.sun > 0.02 && sun.up && feBgSpot === "lake"){   /* the paintings carry their own light */
     const r = g.createRadialGradient(sun.x, sun.y, 2, sun.x, sun.y, 90);
     r.addColorStop(0, `rgba(255,240,200,${0.5*pal.sun})`);
     r.addColorStop(0.25, `rgba(255,220,160,${0.22*pal.sun})`);
@@ -463,7 +463,7 @@ function feDrawGrade(g, pal, hour){
      keep a bright sky under the night tint - a deeper blue-black wash
      scaled by the stars takes them down to night */
   const feNight = feNightAmt();
-  if(feBgSpot !== "dock" && feBgSpot !== "midnight" && feNight > 0.01){
+  if(feBgSpot !== "lake" && feBgSpot !== "midnight" && feNight > 0.01){
     g.fillStyle = `rgba(6,8,24,${(0.45*feNight).toFixed(3)})`; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200);
   }
   /* warm hour overlay, biased to the sky and the water's far band */
@@ -478,7 +478,7 @@ function feDrawGrade(g, pal, hour){
   }
   const feRidgeAt = x => feRidgeBand(x);
   const moonOcc = Math.max(0, Math.min(1, (feRidgeAt(moon.x) - 6 - moon.y) / 26));
-  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02 && feBgSpot !== "midnight" && (feBgSpot === "dock" || feNightAmt() > 0.6)){   /* the Mark has its own moon; a painted day sky takes one only once dusk has gone */
+  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02 && feBgSpot !== "midnight" && feBgSpot === "lake"){   /* the painted skies carry their own night */
     g.save(); g.globalAlpha = moonOcc * (moon.edge !== undefined ? moon.edge : 1);
     /* moonlight lies on the water as a soft glowing pool near the
        horizon, breaking into scattered glints that widen and thin as
@@ -2666,7 +2666,7 @@ const FE_OFF = 292;
    painting with its painted angler, cover and sun-cover machinery; on the
    other waters the angler is that same painted man, cut out by his matte
    and stamped onto the new pier. */
-let feBgSpot = "dock";
+let feBgSpot = "lake";   /* "lake" = the host's original painting, shown only until the dock painting decodes */
 const feBgCache = {};
 function feBandInfo(){
   const id = (typeof feSpot === "function" && feSpot().id) || "dock";
@@ -2692,16 +2692,16 @@ function feDeckX(x){ const k = Math.min(1, (320 + feBandDx())/320); return 320 -
 function feRidgeBand(x){
   const id = (typeof feSpot === "function" && feSpot().id) || "dock";
   const k = Math.max(0, Math.min(100, Math.round(x/8)));
-  if(id !== "dock" && typeof FE_SPOT_RIDGE !== "undefined" && FE_SPOT_RIDGE[id]) return FE_SPOT_RIDGE[id][k] - feBandOff();
+  if(typeof FE_SPOT_RIDGE !== "undefined" && FE_SPOT_RIDGE[id]) return FE_SPOT_RIDGE[id][k] - feBandOff();
   return (typeof FE_RIDGE !== "undefined") ? FE_RIDGE[k] : 200;
 }
 function feApplySpotBg(){
-  if(fshBgImg && !feBgCache.dock && feBgSpot === "dock") feBgCache.dock = fshBgImg;
+  if(fshBgImg && !feBgCache.lake && feBgSpot === "lake") feBgCache.lake = fshBgImg;
   const id = (typeof feSpot === "function" && feSpot().id) || "dock";
-  const want = (id !== "dock" && typeof FE_SPOT_BG !== "undefined" && FE_SPOT_BG[id]) ? id : "dock";
+  const want = (typeof FE_SPOT_BG !== "undefined" && FE_SPOT_BG[id]) ? id : "lake";
   if(want === feBgSpot) return;
-  if(want === "dock"){
-    if(feBgCache.dock){ fshBgImg = feBgCache.dock; fshBgReady = !!(fshBgImg.complete && fshBgImg.naturalWidth); feBgSpot = "dock"; }
+  if(want === "lake"){
+    if(feBgCache.lake){ fshBgImg = feBgCache.lake; fshBgReady = !!(fshBgImg.complete && fshBgImg.naturalWidth); feBgSpot = "lake"; }
     return;
   }
   let im = feBgCache[want];
@@ -2727,7 +2727,7 @@ function fshDrawSky(g){
       if(h >= 20.2 || h < 4.8){ return Math.min(1, h >= 20.2 ? (h-20.2)/1.3 : 1); }
       return 0;
     })();
-    if(nAmt > 0.01 && feBgSpot === "dock"){
+    if(nAmt > 0.01 && feBgSpot === "lake"){
       if(!fshDrawSky._sunCover){
         try{
           const sc = document.createElement("canvas");
@@ -2752,7 +2752,7 @@ function fshDrawSky(g){
       }
     }
     g.restore();
-    if(feBgSpot === "dock") feCoverAndBoat(g);
+    if(feBgSpot === "lake") feCoverAndBoat(g);
   } else if(typeof fshBackdrop !== "undefined" && fshBackdrop){ g.drawImage(fshBackdrop, 0, 0); }
   /* ambient ripples — the water moves everywhere, thickest around the
      dock legs and the moored boat */
@@ -2810,9 +2810,7 @@ function fshDrawSky(g){
   }
 }
 function fshDrawReflection(g){ /* the painting carries its own mirror */ }
-const feManMatteImg = new Image();
-feManMatteImg.src = "data:image/png;base64,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";
-let feManPatch = null, feCoverCv = null;
+let feCoverCv = null;
 function feSampleBg(x, y){
   if(!feSampleBg._cv){
     const c = document.createElement("canvas");
@@ -2946,40 +2944,42 @@ function feCoverAndBoat(g){
   g.beginPath(); g.ellipse(0, 17, 66, 7, 0, 0, 7); g.fill();
   g.restore();
 }
+/* ---- THE ANGLER (batch 113): a two-layer sprite, body over legs, on a
+   332x600 canvas rendered from the Meshy model. Frame in band coords: he
+   sits with the front of his seat at the plank end (band x 320) on the
+   deck surface (band y 330), which is what every painting's band offset
+   aligns. The legs swing around the hip, the body breathes and sways,
+   reeling pumps the rod; the rod is drawn from the returned grip. The
+   painted-man matte and patch are gone. */
+const FE_MAN = { x:270, y:194, w:110.7, h:200, ax:316, ay:310, gripX:358, gripY:284, hipX:316, hipY:310 };
+const feManBody = new Image(), feManLegs = new Image();
+try{ if(typeof FE_MAN_BODY !== "undefined"){ feManBody.src = FE_MAN_BODY; feManLegs.src = FE_MAN_LEGS; } }catch(e){}
+function feManReady(){ return feManBody.complete && feManBody.naturalWidth > 0 && feManLegs.complete && feManLegs.naturalWidth > 0; }
 function fshDrawFisherman(g){
-  /* The angler is paint — but the water layers draw after the painting,
-     so his patch is stamped back ON TOP here (this runs after foam and
-     dock), and the rod gets a real grip. */
-  if(fshBgReady){
-    const manSrc = feBgCache.dock || (feBgSpot === "dock" ? fshBgImg : null);   /* the man is cut from the DOCK painting */
-    if(!feManPatch && manSrc && manSrc.complete && manSrc.naturalWidth && feManMatteImg.complete && feManMatteImg.naturalWidth){
-      /* the silhouette matte is TRACED offline from the painting itself
-         (flood-fill through water pixels; him alone — no dock corner,
-         no sandwiches, no waterline band; 1.6px feather). Until it's
-         decoded we simply skip the stamp — the grip must ALWAYS return,
-         or the rod renderer dies on undefined. */
-      const c = document.createElement("canvas");
-      const fx = manSrc.naturalWidth/800, fyy = manSrc.naturalHeight/1200;
-      c.width = 240; c.height = 464;
-      const cg = c.getContext("2d");
-      cg.drawImage(manSrc, 238*fx, 492*fyy, 120*fx, 232*fyy, 0, 0, 240, 464);
-      /* the matte is a LUMINANCE mask (opaque greys, white = him), not an
-         alpha one - destination-in against it kept the whole rectangle,
-         which nobody saw while the patch sat over its own painting. Turn
-         luminance into alpha first. */
-      const mc = document.createElement("canvas"); mc.width = 240; mc.height = 464;
-      const mg = mc.getContext("2d"); mg.drawImage(feManMatteImg, 0, 0, 240, 464);
-      const md = mg.getImageData(0, 0, 240, 464), mp = md.data;
-      for(let q=0; q<mp.length; q+=4){ mp[q+3] = mp[q]; mp[q] = mp[q+1] = mp[q+2] = 0; }
-      mg.putImageData(md, 0, 0);
-      cg.globalCompositeOperation = "destination-in";
-      cg.drawImage(mc, 0, 0);
-      cg.globalCompositeOperation = "source-over";
-      feManPatch = c;
-    }
-    if(feManPatch) g.drawImage(feManPatch, 238, 200, 120, 232);
-  }
-  return { gripX: 305, gripY: 305 };
+  const M = FE_MAN;
+  if(!feManReady()) return { gripX: M.gripX, gripY: M.gripY };   /* the grip must ALWAYS return */
+  const t = (typeof fshT === "number") ? fshT : 0;
+  const snap = v => Math.round(v*2)/2;
+  const reeling = fsh && fsh.phase === "reeling", charging = fsh && fsh.phase === "charging";
+  const bob = snap(Math.sin(t*1.25)*1.0 + Math.sin(t*0.31)*0.5);
+  let ang = Math.sin(t*0.55)*0.011;
+  const breathe = 1 + Math.sin(t*1.25 + 0.7)*0.006;
+  let crankX = 0, crankY = 0;
+  if(reeling){
+    const p = t*2*Math.PI*1.9, heave = Math.pow(Math.max(0, Math.sin(p)), 1.5);
+    ang += -0.030*heave + 0.006*Math.sin(p*2);
+    crankX = Math.cos(p*2)*1.1; crankY = Math.sin(p*2)*1.1;
+  } else if(charging){ ang -= 0.020 + ((fsh.power||0)/100)*0.022; }
+  const legAng = (Math.sin(t*1.05)*0.030 + Math.sin(t*0.63 + 1.3)*0.013)*(reeling ? 0.3 : 1) + (reeling ? -0.018 : 0);
+  /* contact shadow on the planks, under his seat */
+  g.save(); g.globalAlpha = 0.22; g.fillStyle = "#101820";
+  g.beginPath(); g.ellipse(M.x + M.w*0.28, 329, M.w*0.26, 3.5, 0, 0, 7); g.fill(); g.restore();
+  g.save(); g.translate(M.hipX, M.hipY + bob); g.rotate(legAng); g.translate(-M.hipX, -M.hipY);
+  g.drawImage(feManLegs, M.x, M.y, M.w, M.h); g.restore();
+  g.save(); g.translate(M.ax, M.ay + bob); g.rotate(ang); g.scale(1, breathe); g.translate(-M.ax, -M.ay);
+  g.drawImage(feManBody, M.x, M.y, M.w, M.h); g.restore();
+  const ca = Math.cos(ang), sa = Math.sin(ang), rx = M.gripX - M.ax, ry = M.gripY - M.ay;
+  return { gripX: M.ax + crankX + rx*ca - ry*sa, gripY: M.ay + bob + crankY + (rx*sa + ry*ca)*breathe };
 }
 
 /* -------------- 8b · DOCK COMFORTS: CAUGHT, KEPT, STACKED ----------

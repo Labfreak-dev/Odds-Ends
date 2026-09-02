@@ -18,6 +18,8 @@ serves the root; the site URL never changes.
 ## Architecture
 - `workshop/source-pristine.html` — the host: page shell, css, core game
   (cards/packs/collection/upgrades/market host code). Single source of truth.
+- `workshop/fishing-spot-bgs.module.js` — GENERATED data: the six water paintings,
+  their ridge samples and band offsets, and the angler sprite layers (batch 111-113).
 - `workshop/*.module.js` + `*.css` — one file per game mode (fishing2, mining2,
   ledger, grading, market2, casino2, hunt, + puzzle modes; keep is RETIRED —
   its source stays in workshop/ unwired). Modules are

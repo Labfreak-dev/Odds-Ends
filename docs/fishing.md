@@ -501,6 +501,48 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 113 — the angler is a sprite, and the dock joins the set
+Playtester: "on all these scenes its very obvious that's a painted
+character... should I just generate a 2d asset instead of using this old
+painted fisherman and having cut out issues constantly?" Yes. They built
+one in Meshy and sent the GLB.
+
+THE MODEL. Meshy's untextured preview: six colour segments (flat vertex
+colours - yellow, pink, blue, red - not paint), no normals, no texture,
+KHR_mesh_quantization. Rendered here rather than in Meshy's viewer:
+three.js r128 fetched with `npm pack three@0.128.0` (the CDNs are blocked
+by the egress policy, npm is not), the GLB embedded as base64 and parsed
+with GLTFLoader.parse, headless Chromium with swiftshader WebGL,
+orthographic camera on his left so he faces right, normals computed,
+stand-in paint per segment (jacket, trousers, boots, hands, head split at
+the hat brim), LinearEncoding so the colours land as given, screenshot
+with omit_background for real alpha. Two layers by mesh group: body
+(jacket, head, hands) and legs (trousers, boots), cropped to the same box,
+332x600 webp data URIs in the fishing-spot-bgs data module. When the
+TEXTURED export lands the same pipeline swaps it in.
+
+THE SPRITE PATH. fshDrawFisherman is the host's two-layer animator again
+(breath bob, sway, reel heave, leg swing around the hip, grip returned
+for the rod), on new constants FE_MAN measured on the sprite: seat line
+at 68% of the canvas, hip pivot 42%/58%, hands 80%/45%. Frame in band
+coords puts the front of his seat at the plank end (band x 320) on the
+deck surface (band y 330) - the two lines every painting's band offset
+aligns - so he sits at the end of every pier. The matte and the patch are
+deleted.
+
+THE DOCK. The original lake painting has the old man painted INTO it, so
+behind the sprite there were two men. Grok's dock painting (same set,
+same style, no man, no clutter) is the dock now: seat 53%, planks end
+44%, band offset +12/+32, its own ridge sample. The original stays in the
+host as the first frame only ("lake"): the sun-cover, reflection cover,
+drawn sun glow and drawn moon key on "lake" and never fire. Every painted
+sky does night with the wash alone; the dock's painted sun reads as a
+moon glow under it, which is fine.
+
+VERIFIED. scenes 18, fishhud 24, map 24, test-fishing, long smokes green.
+Screenshots: six waters at noon with furniture, close crops of three
+piers, the dock at night and mid-cast. Stamp 771ca8.
+
 ## Batch 112 — the paintings, fine-tuned
 Playtester, with phone screenshots: "the fisherman and item are very
 offset on some scenes. so is the background sun and moon cycle. if all of

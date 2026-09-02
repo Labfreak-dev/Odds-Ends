@@ -1514,7 +1514,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b5-hero';
+  const BUILD='b6';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;
@@ -1523,12 +1523,12 @@ document.addEventListener('keydown',e=>{
     const missing=hk.filter(k=>!SPR[k]);
     const notReady=hk.filter(k=>SPR[k]&&!sprReady(k));
     const bad=sprArtReport();
+    if(!missing.length&&!notReady.length&&!bad)return;   // quiet unless something is actually wrong
     log(`Art [${BUILD}]: ${ready}/${frames} frames in ${groups} sets. `+
         (missing.length?`MISSING: ${missing.join(', ')}. `:'')+
         (notReady.length?`NOT READY: ${notReady.join(', ')}. `:'')+
         (bad?bad+'. ':'')+
-        (missing.length||notReady.length?'Champion falls back to the old model.':'Champion art ok.'),
-        (missing.length||notReady.length||bad)?'e':'b');
+        'Champion falls back to the old model.','e');
     G.dirty=true;
   },9000);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});

@@ -265,7 +265,7 @@
 <body>
 <div id="shell">
   <div id="topbar">
-    <div id="brand"><span id="crest"></span><h1>Ironhold Idle <span class="sub" style="font:11px Verdana;color:var(--muted)" title="Build 2026-09-02 gear pass">v0.9</span></h1></div>
+    <div id="brand"><span id="crest"></span><h1>Ironhold Idle <span class="sub" id="bstamp" style="font:11px Verdana;color:var(--muted)" title="build stamp">v0.9</span></h1></div>
     <div id="pills"></div>
     <div id="lamp"><span id="lampDot"></span><span id="lampTxt">Auto-battle</span></div>
   </div>
@@ -1512,7 +1512,23 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  setTimeout(()=>{const r=sprArtReport();if(r){log('Art warning: '+r+'. Reload to retry.','e');G.dirty=true;}},9000);
+  const BUILD='b3-art';
+  {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
+  setTimeout(()=>{
+    let groups=0,frames=0,ready=0;
+    for(const k in SPR){groups++;for(const i of SPR[k]){frames++;if(sprOk(i))ready++;}}
+    const hk=['hero_idle','hero_atk','hero_hurt','hero_death'];
+    const missing=hk.filter(k=>!SPR[k]);
+    const notReady=hk.filter(k=>SPR[k]&&!sprReady(k));
+    const bad=sprArtReport();
+    log(`Art [${BUILD}]: ${ready}/${frames} frames in ${groups} sets. `+
+        (missing.length?`MISSING: ${missing.join(', ')}. `:'')+
+        (notReady.length?`NOT READY: ${notReady.join(', ')}. `:'')+
+        (bad?bad+'. ':'')+
+        (missing.length||notReady.length?'Champion falls back to the old model.':'Champion art ok.'),
+        (missing.length||notReady.length||bad)?'e':'b');
+    G.dirty=true;
+  },9000);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 })();
 </script>

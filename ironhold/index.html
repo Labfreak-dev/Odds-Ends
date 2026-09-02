@@ -452,7 +452,7 @@ const RARITY=[null,
 ];
 const AFFIX={
  hp:{n:'+{v} Hitpoints',min:2,max:10},
- crit:{n:'+{v}% Crit chance',min:2,max:8},
+ mh:{n:'+{v}% Max hit',min:2,max:8},
  leech:{n:'{v}% Lifesteal',min:2,max:6},
  xp:{n:'+{v}% XP',min:3,max:12},
  gold:{n:'+{v}% Gold',min:5,max:20},
@@ -561,41 +561,41 @@ const UNIQUES={
  cowhide_cleaver:{n:'Cowhide Cleaver',wt:3,tier:0,home:0,eff:{gold:12},d:'A butcher\'s blade that pays in coin.'},
  goblin_poker:{n:'Goblin Poker',wt:0,tier:1,home:1,eff:{luck:8,spd:8},d:'Crooked, quick, and lucky.'},
  ratfang:{n:'Ratfang',wt:0,tier:2,home:2,eff:{leech:4},d:'Serrated. Drinks a little with every bite.'},
- sewer_needle:{n:'Sewer Needle',wt:0,tier:2,home:2,eff:{crit:6},d:'Finds the gap in the armour.'},
+ sewer_needle:{n:'Sewer Needle',wt:0,tier:2,home:2,eff:{mh:6},d:'Finds the gap in the armour.'},
  meadowhorn:{n:'Meadowhorn',wt:2,tier:1,home:'boss:0',eff:{str:8,hp:4},d:'Horn-hilted sword of the meadow bull.'},
  chieftain_tribute:{n:"Chieftain's Tribute",wt:1,tier:2,home:'boss:1',eff:{gold:10},d:'Gilded scimitar taken from a warlord of goblins.'},
  bone_choir:{col:'#d8cfb0',hl:'#fff8e0',n:'Bone Choir',wt:2,tier:2,home:2,eff:{xp:8},d:'A femur blade that sings while you learn.'},
- widows_kiss:{n:"Widow's Kiss",wt:0,tier:2,home:2,eff:{crit:5,leech:3},d:'Spider-fanged dagger, still wet.'},
+ widows_kiss:{n:"Widow's Kiss",wt:0,tier:2,home:2,eff:{mh:5,leech:3},d:'Spider-fanged dagger, still wet.'},
  gunnars_maul:{n:"Gunnar's Maul",wt:4,tier:4,home:'boss:3',eff:{str:14},d:'The warlord\'s own hammer. Slow and final.'},
  hillbone_crusher:{col:'#d8cfb0',hl:'#fff8e0',n:'Hillbone Crusher',wt:4,tier:4,home:4,eff:{str:18,spd:-4},d:'A giant\'s club of stacked skulls.'},
- frostbite:{col:'#8fdcf5',hl:'#ffffff',n:'Frostbite',wt:2,tier:5,home:5,eff:{crit:8},d:'Ice longsword. Bites deep in the cold.'},
+ frostbite:{col:'#8fdcf5',hl:'#ffffff',n:'Frostbite',wt:2,tier:5,home:5,eff:{mh:8},d:'Ice longsword. Bites deep in the cold.'},
  warlords_due:{n:"Warlord's Due",wt:3,tier:3,home:3,eff:{str:12,leech:4},d:'Battleaxe with a blood-tassel.'},
  grothek_palmsplitter:{n:"Grothek's Palmsplitter",wt:4,tier:5,home:'boss:4',eff:{str:24,spd:-6},d:'A slab of hill-stone with an edge.'},
  gravetender:{n:'Gravetender',wt:2,tier:2,home:2,eff:{xp:10},d:'Shovel-sword. Teaches as it buries.'},
  nightwatch:{n:'Nightwatch',wt:2,tier:4,home:'mid',eff:{def:6},d:'Black longsword of the wall guard.'},
  bloodletter:{col:'#b0102a',hl:'#ff5a5a',n:'Bloodletter',wt:1,tier:6,home:6,eff:{leech:6},d:'Crimson scimitar that never dries.'},
- ashborn_fang:{n:'Ashborn Fang',wt:0,tier:6,home:6,eff:{crit:8},d:'Ember dagger with cracks of lava.'},
+ ashborn_fang:{n:'Ashborn Fang',wt:0,tier:6,home:6,eff:{mh:8},d:'Ember dagger with cracks of lava.'},
  overlord_brand:{n:"Overlord's Brand",wt:2,tier:7,home:'boss:6',eff:{str:14,gold:6},d:'Infernal longsword of the Ashborn Overlord.'},
- matriarch_breath:{col:'#a8e0ff',hl:'#ffffff',n:"Matriarch's Breath",wt:0,tier:6,home:'boss:5',eff:{crit:10},d:'A fang of living frost.'},
+ matriarch_breath:{col:'#a8e0ff',hl:'#ffffff',n:"Matriarch's Breath",wt:0,tier:6,home:'boss:5',eff:{mh:10},d:'A fang of living frost.'},
  wyrmtooth:{col:'#7aa040',hl:'#c8e080',n:'Wyrmtooth',wt:4,tier:7,home:7,eff:{str:16},d:'Green dragon tooth, hafted.'},
  elder_fang:{n:'Elder Fang',wt:4,tier:7,home:'boss:7',eff:{str:22,hp:8},d:'Torn from the Elder Wyrm itself.'},
  storm_splitter:{col:'#6a8ad8',hl:'#bfe0ff',n:'Storm Splitter',wt:3,tier:5,home:5,eff:{spd:8},d:'Lightning-wreathed axe. Swings fast.'},
- glass_fang:{col:'#d8e0ff',hl:'#ffffff',n:'Glass Fang',wt:0,tier:5,home:'chest',eff:{crit:12},d:'Crystal dagger. Beautiful and vicious.'},
+ glass_fang:{col:'#d8e0ff',hl:'#ffffff',n:'Glass Fang',wt:0,tier:5,home:'chest',eff:{mh:12},d:'Crystal dagger. Beautiful and vicious.'},
  oathkeeper:{n:'Oathkeeper',wt:2,tier:5,home:'chest',eff:{atk:8,def:8},d:'Rune-oath longsword of the hold.'},
  last_light:{col:'#fff2c0',hl:'#ffffff',n:'Last Light',wt:2,tier:6,home:'late',eff:{xp:6,hp:4},d:'Radiant shortsword of the Last Saint.'},
  hollow_crown:{n:'Hollow Crown Blade',wt:4,tier:7,home:'late',eff:{str:18,luck:6},d:'Crowned greatsword of a forgotten king.'},
  sanctum_edge:{n:'Sanctum Edge',wt:1,tier:6,home:'chest',eff:{gold:10,xp:4},d:'Stained-glass scimitar from the sanctum.'},
  idle_king:{col:'#e0b030',hl:'#fff0a0',n:"Idle King's Tribute",wt:4,tier:7,home:'late',eff:{gold:15},d:'Gilded greatsword. Heavy with tribute.'},
  ironhold_heirloom:{n:'Ironhold Heirloom',wt:2,tier:6,home:'chest',eff:{atk:6,str:6,def:6},d:'Crest longsword passed down the hold.'},
- thornstring:{n:'Thornstring',wt:5,tier:0,home:0,eff:{crit:8},d:'Barbed shortbow strung from pasture thorn.'},
+ thornstring:{n:'Thornstring',wt:5,tier:0,home:0,eff:{mh:8},d:'Barbed shortbow strung from pasture thorn.'},
  cowgut_longbow:{n:'Cowgut Longbow',wt:6,tier:0,home:0,eff:{gold:12},d:'Strung with gut. It pays for itself.'},
  goblin_scrapbow:{n:'Goblin Scrapbow',wt:7,tier:1,home:1,eff:{luck:8},d:'Lashed from scrap. Somehow lucky.'},
- widows_recurve:{n:'Widow\'s Recurve',wt:5,tier:2,home:2,eff:{crit:5,leech:3},d:'Spider-silk string, still tacky.'},
+ widows_recurve:{n:'Widow\'s Recurve',wt:5,tier:2,home:2,eff:{mh:5,leech:3},d:'Spider-silk string, still tacky.'},
  gunnars_warbow:{n:'Gunnar\'s War Bow',wt:6,tier:4,home:'boss:3',eff:{str:14},d:'The warlord\'s own bow. It takes two to string.'},
- frostlash:{n:'Frostlash',wt:6,tier:5,home:5,eff:{crit:8},d:'The string never thaws.'},
+ frostlash:{n:'Frostlash',wt:6,tier:5,home:5,eff:{mh:8},d:'The string never thaws.'},
  stormlash:{n:'Stormlash',wt:7,tier:5,home:5,eff:{spd:8},d:'Looses faster than the eye follows.'},
  wyrmgut_longbow:{n:'Wyrmgut Longbow',wt:6,tier:7,home:7,eff:{str:16},d:'Strung with dragon sinew.'},
- ashborn_recurve:{n:'Ashborn Recurve',wt:5,tier:6,home:6,eff:{crit:8},d:'Warm to the touch, always.'},
+ ashborn_recurve:{n:'Ashborn Recurve',wt:5,tier:6,home:6,eff:{mh:8},d:'Warm to the touch, always.'},
  elderhorn_bow:{n:'Elderhorn Bow',wt:6,tier:7,home:'boss:7',eff:{str:22},d:'Horn of the Elder Wyrm, bent to a bow.'},
  nightwatch_xbow:{n:'Nightwatch Crossbow',wt:8,tier:3,home:'mid',eff:{def:6},d:'Standard issue on the long watch.'},
  idle_king_bow:{n:'Idle King\'s Longbow',wt:6,tier:5,home:'chest',eff:{gold:15},d:'Never drawn. Still worth a fortune.'},
@@ -604,15 +604,15 @@ const UNIQUES={
  last_light_bow:{n:'Last Light Longbow',wt:6,tier:7,home:'late',eff:{xp:6},d:'Draws slow. Teaches much.'},
  pasture_crook:{n:'Pasture Crook',wt:11,tier:0,home:0,eff:{gold:12},d:'A herder\'s crook that learned a trick.'},
  bone_choir_staff:{n:'Bone Choir Staff',wt:11,tier:2,home:2,eff:{xp:8},d:'It hums while you learn.'},
- sewer_rod:{n:'Sewer Rod',wt:10,tier:2,home:2,eff:{crit:6},d:'Short, filthy, precise.'},
+ sewer_rod:{n:'Sewer Rod',wt:10,tier:2,home:2,eff:{mh:6},d:'Short, filthy, precise.'},
  chieftain_totem:{n:'Chieftain Totem',wt:11,tier:2,home:'boss:1',eff:{gold:10},d:'Skull-topped and still shouting.'},
  gunnars_stormpole:{n:'Gunnar\'s Stormpole',wt:12,tier:4,home:'boss:3',eff:{str:14},d:'It answers weather with weather.'},
- matriarch_rod:{n:'Frost Matriarch Rod',wt:11,tier:5,home:'boss:5',eff:{crit:10},d:'Cold enough to still a heart.'},
+ matriarch_rod:{n:'Frost Matriarch Rod',wt:11,tier:5,home:'boss:5',eff:{mh:10},d:'Cold enough to still a heart.'},
  grothek_pillar:{n:'Grothek Pillar',wt:11,tier:4,home:'boss:4',eff:{str:20},d:'Less a staff than a standing stone.'},
  gravetender_staff:{n:'Gravetender Staff',wt:11,tier:2,home:2,eff:{xp:10},d:'The dead teach, if you tend them.'},
  bloodletter_wand:{n:'Bloodletter Wand',wt:10,tier:6,home:6,eff:{leech:6},d:'It drinks first and asks after.'},
  overlord_staff:{n:'Overlord Brand Staff',wt:12,tier:6,home:'boss:6',eff:{str:14,gold:6},d:'Branded by the Ashborn Overlord.'},
- ashborn_emberstaff:{n:'Ashborn Emberstaff',wt:11,tier:6,home:6,eff:{crit:8},d:'Embers gather at the head.'},
+ ashborn_emberstaff:{n:'Ashborn Emberstaff',wt:11,tier:6,home:6,eff:{mh:8},d:'Embers gather at the head.'},
  elder_scepter:{n:'Elder Wyrm Scepter',wt:11,tier:7,home:'boss:7',eff:{str:22,hp:8},d:'The wyrm\'s own authority, in hand.'},
  sanctum_crozier:{n:'Sanctum Crozier',wt:11,tier:5,home:'chest',eff:{gold:10,xp:4},d:'Carried at the front of processions.'},
  idle_king_scepter:{n:'Idle King Scepter',wt:11,tier:5,home:'chest',eff:{gold:15},d:'A scepter for a king who never rose.'},
@@ -623,19 +623,19 @@ const SETS={
  meadow:{col:'#8a6a4a',hl:'#e8e0d0',n:'Meadow Guard',tier:0,home:0,pieces:{head:'helm',body:'body',legs:'legs',shield:'kite'},b2:{gold:8},b4:{hp:6,gold:6}},
  goblin:{col:'#5a6a3a',hl:'#9aa06a',n:'Goblin Spoils',tier:1,home:1,pieces:{head:'helm',body:'body',legs:'legs',shield:'kite'},b2:{luck:6},b4:{gold:10}},
  sewer:{col:'#5a5a3a',hl:'#9a9a4a',n:'Sewer Warden',tier:2,home:2,pieces:{head:'helm',body:'body',legs:'greaves',shield:'kite'},b2:{leech:4},b4:{def:8}},
- barb:{col:'#6a5a4a',hl:'#c9c0b0',n:'Barbarian',tier:3,home:3,pieces:{head:'helm',body:'ringmail',legs:'legs',shield:'round'},b2:{str:8},b4:{crit:6}},
+ barb:{col:'#6a5a4a',hl:'#c9c0b0',n:'Barbarian',tier:3,home:3,pieces:{head:'helm',body:'ringmail',legs:'legs',shield:'round'},b2:{str:8},b4:{mh:6}},
  giant:{col:'#a89070',hl:'#e8dcc0',n:'Giant-Hide',tier:4,home:4,pieces:{head:'helm',body:'chest',legs:'legs',shield:'tower'},b2:{hp:10},b4:{def:12}},
- frost:{col:'#6fa8d8',hl:'#d8ecff',n:'Frostbound',tier:5,home:5,pieces:{head:'helm',body:'chest',legs:'greaves',shield:'kite'},b2:{crit:6},b4:{xp:8}},
+ frost:{col:'#6fa8d8',hl:'#d8ecff',n:'Frostbound',tier:5,home:5,pieces:{head:'helm',body:'chest',legs:'greaves',shield:'kite'},b2:{mh:6},b4:{xp:8}},
  ash:{col:'#3a1f1f',hl:'#ff5a2a',n:'Ashborn',tier:6,home:6,pieces:{head:'helm',body:'chest',legs:'greaves',shield:'kite'},b2:{leech:6},b4:{gold:10}},
  wyrm:{col:'#4a7a3a',hl:'#c9a83a',n:'Wyrmscale',tier:7,home:7,pieces:{head:'helm',body:'chest',legs:'legs',shield:'kite'},b2:{str:10},b4:{luck:8}},
  hold:{col:'#7a7a84',hl:'#ffd24a',n:'Ironhold',tier:5,home:'chest',pieces:{head:'helm',body:'chest',legs:'legs',shield:'shield'},b2:{atk:6,def:6},b4:{xp:8}},
  set_scout:{col:'#7a8a4a',hl:'#d8e0b0',n:'Meadow Scout',tier:0,home:0,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{gold:8},b4:{hp:6}},
  set_skirmish:{col:'#5a6a3a',hl:'#a8b878',n:'Goblin Skirmish',tier:1,home:1,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{luck:6},b4:{gold:10}},
  set_stalker:{col:'#4a5a4a',hl:'#8aa08a',n:'Sewer Stalker',tier:2,home:2,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{leech:4},b4:{def:8}},
- set_frostranger:{col:'#6f9ab8',hl:'#d8ecff',n:'Frost Ranger',tier:5,home:5,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{crit:6},b4:{xp:8}},
+ set_frostranger:{col:'#6f9ab8',hl:'#d8ecff',n:'Frost Ranger',tier:5,home:5,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{mh:6},b4:{xp:8}},
  set_wyrmhide:{col:'#4a7a3a',hl:'#c9a83a',n:'Wyrmhide Ranger',tier:7,home:7,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{str:10},b4:{luck:8}},
  set_adept:{col:'#5a5a7a',hl:'#9a9ac8',n:'Sewer Adept',tier:2,home:2,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{leech:4},b4:{def:8}},
- set_channeler:{col:'#5a8ac8',hl:'#d8ecff',n:'Frost Channeler',tier:5,home:5,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{crit:6},b4:{xp:8}},
+ set_channeler:{col:'#5a8ac8',hl:'#d8ecff',n:'Frost Channeler',tier:5,home:5,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{mh:6},b4:{xp:8}},
  set_warlock:{col:'#5a2a2a',hl:'#ff7a4a',n:'Ashborn Warlock',tier:6,home:6,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{leech:6},b4:{gold:10}},
  set_battlemage:{col:'#6a6a8a',hl:'#ffd24a',n:'Ironhold Battlemage',tier:5,home:'chest',arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{atk:6,def:6},b4:{xp:8}},
  set_vestment:{col:'#c8c0a0',hl:'#fff4d0',n:'Last Saint Vestments',tier:7,home:'late',arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{hp:8},b4:{leech:6,xp:6}},
@@ -693,7 +693,7 @@ for(const s of SLOTS)S.equip[s]=null;
 const lv=s=>lvlFor(S.xp[s]);
 function combatLvl(){return Math.floor(0.25*(lv('def')+lv('hp'))+0.325*Math.max(lv('atk')+lv('str'),1.5*lv('rng'),1.5*lv('mag')));}
 function bonuses(){
-  const b={atk:0,str:0,def:0,hp:0,crit:0,leech:0,xp:0,gold:0,luck:0,spd:0,dr:0};
+  const b={atk:0,str:0,def:0,hp:0,mh:0,leech:0,xp:0,gold:0,luck:0,spd:0,dr:0};
   for(const s of SLOTS){const it=S.equip[s];if(!it)continue;const st=itemStats(it);
     b.atk+=st.atk*(it.arm&&ARMK[it.arm].style!==cstyle()?0.4:1);b.str+=st.str;b.def+=st.def;for(const k in it.aff)b[k]+=it.aff[k];
     const rw=rwOf(it);if(rw)for(const k in rw.eff)b[k]+=rw.eff[k];}
@@ -709,7 +709,7 @@ function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
 function attackDelay(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-b.spd/100);}
 function styleBonus(){const st=STYLES[S.style].s;return {atk:st==='atk'?3:st==='all'?1:0,str:st==='str'?3:st==='all'?1:0,def:st==='def'?3:st==='all'?1:0};}
 function playerMaxHit(){const b=bonuses();const sb=styleBonus();const sk=cskill();
-  return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')));}
+  return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')*(1+b.mh/100)));}
 function playerAtkRoll(){const b=bonuses();const sb=styleBonus();const sk=cskill();
   return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk');}
 function playerDefRoll(){const b=bonuses();return (lv('def')+styleBonus().def+8)*(b.def+64)*prayMult('def');}
@@ -732,7 +732,7 @@ function buildKeep(k){const c=keepCost(k);if(keepLv(k)>=KEEP_MAX||S.gold<c.gold|
 const RUNES=['Ash','Oak','Iron','Storm','Blood','Star'];
 const RUNE_COL=['#c96a3a','#6f9a3a','#9a9aa2','#4d8ee0','#d13a2f','#ffd24a'];
 const RUNEWORDS=[
- {n:'Fury',slots:['weapon'],r:[0,2,4],eff:{crit:12,str:12},d:'+12% crit · +12 strength bonus'},
+ {n:'Fury',slots:['weapon'],r:[0,2,4],eff:{mh:12,str:12},d:'+12% max hit · +12 strength bonus'},
  {n:'Swiftness',slots:['weapon'],r:[3,0,5],eff:{spd:10,atk:8},d:'-10% attack delay · +8 attack bonus'},
  {n:'Thirst',slots:['weapon','body'],r:[4,4,0],eff:{leech:6},d:'6% lifesteal'},
  {n:'Wardstone',slots:['body'],r:[1,2,5],eff:{hp:20,def:15},d:'+20 hitpoints · +15 defence bonus'},
@@ -771,7 +771,7 @@ const COMPS=[
  {id:'goldragon',n:'Golden Dragon',role:'dmg',pow:2.2, req:0, spr:'comp_goldragon',shape:'dragon',  col:'#e8c04a',hidden:true},
 ];
 const compSpr=cd=>cd.spr||cd.id;
-const COMP_ITEMS={"hound":[{"i":"comp_hound_collar","n":"Leather collar","k":"pow","v":8},{"i":"comp_hound_spiked_collar","n":"Spiked war-collar","k":"pow","v":10},{"i":"comp_hound_whistle","n":"Hunting whistle","k":"xp","v":5},{"i":"comp_hound_steak","n":"Raw steak","k":"pow","v":15},{"i":"comp_hound_bone","n":"Marrow bone","k":"pow","v":18},{"i":"comp_hound_mail","n":"Hound-mail","k":"pow","v":22},{"i":"comp_hound_fang","n":"Alpha fang pendant","k":"pow","v":30}],"cleric":[{"i":"comp_cleric_beads","n":"Prayer beads","k":"gold","v":3},{"i":"comp_cleric_holywater","n":"Holy water","k":"pow","v":10},{"i":"comp_cleric_staffcharm","n":"Oak staff charm","k":"xp","v":5},{"i":"comp_cleric_sash","n":"Vestment sash","k":"pow","v":15},{"i":"comp_cleric_bandage","n":"Blessed bandage","k":"pow","v":18},{"i":"comp_cleric_scripture","n":"Scripture page","k":"luck","v":8},{"i":"comp_cleric_crucifix","n":"Golden crucifix","k":"xp","v":10}],"squire":[{"i":"comp_squire_trainingsword","n":"Training sword","k":"pow","v":8},{"i":"comp_squire_keep_badge","n":"Keep crest badge","k":"luck","v":4},{"i":"comp_squire_k_shield","n":"Squire kite","k":"pow","v":12},{"i":"comp_squire_polish","n":"Armor polish","k":"crit","v":6},{"i":"comp_squire_tabard","n":"Page tabard","k":"pow","v":18},{"i":"comp_squire_dummy","n":"Practice dummy","k":"pow","v":22},{"i":"comp_squire_ribbon","n":"Knight's favor","k":"xp","v":10}],"barbarian":[{"i":"comp_barbarian_throwingaxe","n":"Throwing axe","k":"pow","v":8},{"i":"comp_barbarian_warpaint","n":"Warpaint pot","k":"luck","v":4},{"i":"comp_barbarian_helmcharm","n":"Horned helm charm","k":"xp","v":5},{"i":"comp_barbarian_meadhorn","n":"Mead horn","k":"pow","v":15},{"i":"comp_barbarian_furmantle","n":"Fur mantle","k":"pow","v":18},{"i":"comp_barbarian_totem","n":"Berserker totem","k":"luck","v":8},{"i":"comp_barbarian_oathring","n":"Blood-oath ring","k":"xp","v":10}],"knight":[{"i":"comp_knight_heater","n":"Blue-cross heater","k":"pow","v":8},{"i":"comp_knight_swordcharm","n":"Sword charm","k":"luck","v":4},{"i":"comp_knight_clasp","n":"Tabard clasp","k":"xp","v":5},{"i":"comp_knight_visoroil","n":"Visor oil","k":"crit","v":6},{"i":"comp_knight_vowscroll","n":"Knight's vow","k":"gold","v":7},{"i":"comp_knight_spurs","n":"Gold spurs","k":"pow","v":22},{"i":"comp_knight_pennant","n":"Lance pennant","k":"xp","v":10}],"assassin":[{"i":"comp_assassin_smokebomb","n":"Smoke bomb","k":"pow","v":8},{"i":"comp_assassin_poison","n":"Poison vial","k":"pow","v":10},{"i":"comp_assassin_wristblades","n":"Wrist blades","k":"pow","v":12},{"i":"comp_assassin_hoodpin","n":"Hood pin","k":"crit","v":6},{"i":"comp_assassin_bells","n":"Silent bells","k":"gold","v":7},{"i":"comp_assassin_contract","n":"Contract","k":"luck","v":8},{"i":"comp_assassin_lotus","n":"Black lotus","k":"xp","v":10}],"goldragon":[{"i":"comp_goldragon_scale","n":"Gold scale","k":"pow","v":8},{"i":"comp_goldragon_hoardcoin","n":"Hoard coin","k":"luck","v":4},{"i":"comp_goldragon_eyegem","n":"Amber eye gem","k":"xp","v":5},{"i":"comp_goldragon_collar","n":"Wyrm collar","k":"pow","v":15},{"i":"comp_goldragon_moltentreat","n":"Molten treat","k":"pow","v":18},{"i":"comp_goldragon_wyrmheart","n":"Wyrmheart crystal","k":"pow","v":22},{"i":"comp_goldragon_crown","n":"Crown of the hoard","k":"xp","v":10}],"tiger":[{"i":"comp_tiger_peltband","n":"Striped pelt band","k":"pow","v":8},{"i":"comp_tiger_haunch","n":"Raw haunch","k":"pow","v":10},{"i":"comp_tiger_clawsheath","n":"Claw sheath","k":"pow","v":12},{"i":"comp_tiger_bell","n":"Hunting bell","k":"crit","v":6},{"i":"comp_tiger_ambereye","n":"Tiger-eye","k":"gold","v":7},{"i":"comp_tiger_leafcharm","n":"Jungle charm","k":"luck","v":8},{"i":"comp_tiger_sabrefang","n":"Saber fang","k":"pow","v":30}],"bear":[{"i":"comp_bear_helm","n":"Bear helm","k":"pow","v":8},{"i":"comp_bear_honeypot","n":"Honey pot","k":"pow","v":10},{"i":"comp_bear_muzzle","n":"Iron muzzle","k":"pow","v":12},{"i":"comp_bear_greave","n":"Paw greave","k":"pow","v":15},{"i":"comp_bear_berries","n":"Berry mash","k":"pow","v":18},{"i":"comp_bear_standard","n":"War-bear standard","k":"luck","v":8},{"i":"comp_bear_collar","n":"Riveted collar","k":"pow","v":30}],"imp":[{"i":"comp_imp_pitchfork","n":"Tiny pitchfork","k":"pow","v":8},{"i":"comp_imp_brimstone","n":"Brimstone coal","k":"luck","v":4},{"i":"comp_imp_contract","n":"Imp contract","k":"xp","v":5},{"i":"comp_imp_hellberries","n":"Hellberries","k":"pow","v":15},{"i":"comp_imp_sulfur","n":"Sulfur pouch","k":"gold","v":7},{"i":"comp_imp_bell","n":"Infernal bell","k":"luck","v":8},{"i":"comp_imp_soulcrumb","n":"Soul crumb","k":"pow","v":30}],"fairy":[{"i":"comp_fairy_dew","n":"Dew vial","k":"pow","v":8},{"i":"comp_fairy_pixiedust","n":"Pixie dust","k":"luck","v":4},{"i":"comp_fairy_wand","n":"Twig wand","k":"pow","v":12},{"i":"comp_fairy_moonflower","n":"Moonflower","k":"crit","v":6},{"i":"comp_fairy_ribbon","n":"Gossamer ribbon","k":"gold","v":7},{"i":"comp_fairy_glowcap","n":"Glowcap","k":"pow","v":22},{"i":"comp_fairy_locket","n":"Queen's favor","k":"xp","v":10}],"ent":[{"i":"comp_ent_acorn","n":"Acorn of ages","k":"pow","v":8},{"i":"comp_ent_mosspoultice","n":"Moss poultice","k":"pow","v":10},{"i":"comp_ent_branch","n":"Living branch","k":"pow","v":12},{"i":"comp_ent_rootwrap","n":"Root wrap","k":"pow","v":15},{"i":"comp_ent_ambersap","n":"Amber sap","k":"gold","v":7},{"i":"comp_ent_leafcrown","n":"Leaf crown","k":"luck","v":8},{"i":"comp_ent_heartwood","n":"Heartwood chip","k":"pow","v":30}],"necro":[{"i":"comp_necro_bonedust","n":"Bone dust","k":"gold","v":3},{"i":"comp_necro_soulshard","n":"Soul shard","k":"luck","v":4},{"i":"comp_necro_phylactery","n":"Phylactery shard","k":"xp","v":5},{"i":"comp_necro_gravecandle","n":"Grave candle","k":"crit","v":6},{"i":"comp_necro_witherrose","n":"Wither rose","k":"pow","v":18},{"i":"comp_necro_skullcharm","n":"Skull charm","k":"luck","v":8},{"i":"comp_necro_voidink","n":"Void ink","k":"xp","v":10}],"sword":[{"i":"comp_sword_scabbardwrap","n":"Scabbard wrap","k":"pow","v":8},{"i":"comp_sword_lakestone","n":"Lake-stone","k":"luck","v":4},{"i":"comp_sword_oathribbon","n":"Oath ribbon","k":"xp","v":5},{"i":"comp_sword_runeoil","n":"Rune oil","k":"crit","v":6},{"i":"comp_sword_sapphire","n":"Hilt sapphire","k":"gold","v":7},{"i":"comp_sword_prayer","n":"Knight's prayer","k":"luck","v":8},{"i":"comp_sword_brokenscabbard","n":"Broken scabbard","k":"pow","v":30}]};
+const COMP_ITEMS={"hound":[{"i":"comp_hound_collar","n":"Leather collar","k":"pow","v":8},{"i":"comp_hound_spiked_collar","n":"Spiked war-collar","k":"pow","v":10},{"i":"comp_hound_whistle","n":"Hunting whistle","k":"xp","v":5},{"i":"comp_hound_steak","n":"Raw steak","k":"pow","v":15},{"i":"comp_hound_bone","n":"Marrow bone","k":"pow","v":18},{"i":"comp_hound_mail","n":"Hound-mail","k":"pow","v":22},{"i":"comp_hound_fang","n":"Alpha fang pendant","k":"pow","v":30}],"cleric":[{"i":"comp_cleric_beads","n":"Prayer beads","k":"gold","v":3},{"i":"comp_cleric_holywater","n":"Holy water","k":"pow","v":10},{"i":"comp_cleric_staffcharm","n":"Oak staff charm","k":"xp","v":5},{"i":"comp_cleric_sash","n":"Vestment sash","k":"pow","v":15},{"i":"comp_cleric_bandage","n":"Blessed bandage","k":"pow","v":18},{"i":"comp_cleric_scripture","n":"Scripture page","k":"luck","v":8},{"i":"comp_cleric_crucifix","n":"Golden crucifix","k":"xp","v":10}],"squire":[{"i":"comp_squire_trainingsword","n":"Training sword","k":"pow","v":8},{"i":"comp_squire_keep_badge","n":"Keep crest badge","k":"luck","v":4},{"i":"comp_squire_k_shield","n":"Squire kite","k":"pow","v":12},{"i":"comp_squire_polish","n":"Armor polish","k":"mh","v":6},{"i":"comp_squire_tabard","n":"Page tabard","k":"pow","v":18},{"i":"comp_squire_dummy","n":"Practice dummy","k":"pow","v":22},{"i":"comp_squire_ribbon","n":"Knight's favor","k":"xp","v":10}],"barbarian":[{"i":"comp_barbarian_throwingaxe","n":"Throwing axe","k":"pow","v":8},{"i":"comp_barbarian_warpaint","n":"Warpaint pot","k":"luck","v":4},{"i":"comp_barbarian_helmcharm","n":"Horned helm charm","k":"xp","v":5},{"i":"comp_barbarian_meadhorn","n":"Mead horn","k":"pow","v":15},{"i":"comp_barbarian_furmantle","n":"Fur mantle","k":"pow","v":18},{"i":"comp_barbarian_totem","n":"Berserker totem","k":"luck","v":8},{"i":"comp_barbarian_oathring","n":"Blood-oath ring","k":"xp","v":10}],"knight":[{"i":"comp_knight_heater","n":"Blue-cross heater","k":"pow","v":8},{"i":"comp_knight_swordcharm","n":"Sword charm","k":"luck","v":4},{"i":"comp_knight_clasp","n":"Tabard clasp","k":"xp","v":5},{"i":"comp_knight_visoroil","n":"Visor oil","k":"mh","v":6},{"i":"comp_knight_vowscroll","n":"Knight's vow","k":"gold","v":7},{"i":"comp_knight_spurs","n":"Gold spurs","k":"pow","v":22},{"i":"comp_knight_pennant","n":"Lance pennant","k":"xp","v":10}],"assassin":[{"i":"comp_assassin_smokebomb","n":"Smoke bomb","k":"pow","v":8},{"i":"comp_assassin_poison","n":"Poison vial","k":"pow","v":10},{"i":"comp_assassin_wristblades","n":"Wrist blades","k":"pow","v":12},{"i":"comp_assassin_hoodpin","n":"Hood pin","k":"mh","v":6},{"i":"comp_assassin_bells","n":"Silent bells","k":"gold","v":7},{"i":"comp_assassin_contract","n":"Contract","k":"luck","v":8},{"i":"comp_assassin_lotus","n":"Black lotus","k":"xp","v":10}],"goldragon":[{"i":"comp_goldragon_scale","n":"Gold scale","k":"pow","v":8},{"i":"comp_goldragon_hoardcoin","n":"Hoard coin","k":"luck","v":4},{"i":"comp_goldragon_eyegem","n":"Amber eye gem","k":"xp","v":5},{"i":"comp_goldragon_collar","n":"Wyrm collar","k":"pow","v":15},{"i":"comp_goldragon_moltentreat","n":"Molten treat","k":"pow","v":18},{"i":"comp_goldragon_wyrmheart","n":"Wyrmheart crystal","k":"pow","v":22},{"i":"comp_goldragon_crown","n":"Crown of the hoard","k":"xp","v":10}],"tiger":[{"i":"comp_tiger_peltband","n":"Striped pelt band","k":"pow","v":8},{"i":"comp_tiger_haunch","n":"Raw haunch","k":"pow","v":10},{"i":"comp_tiger_clawsheath","n":"Claw sheath","k":"pow","v":12},{"i":"comp_tiger_bell","n":"Hunting bell","k":"mh","v":6},{"i":"comp_tiger_ambereye","n":"Tiger-eye","k":"gold","v":7},{"i":"comp_tiger_leafcharm","n":"Jungle charm","k":"luck","v":8},{"i":"comp_tiger_sabrefang","n":"Saber fang","k":"pow","v":30}],"bear":[{"i":"comp_bear_helm","n":"Bear helm","k":"pow","v":8},{"i":"comp_bear_honeypot","n":"Honey pot","k":"pow","v":10},{"i":"comp_bear_muzzle","n":"Iron muzzle","k":"pow","v":12},{"i":"comp_bear_greave","n":"Paw greave","k":"pow","v":15},{"i":"comp_bear_berries","n":"Berry mash","k":"pow","v":18},{"i":"comp_bear_standard","n":"War-bear standard","k":"luck","v":8},{"i":"comp_bear_collar","n":"Riveted collar","k":"pow","v":30}],"imp":[{"i":"comp_imp_pitchfork","n":"Tiny pitchfork","k":"pow","v":8},{"i":"comp_imp_brimstone","n":"Brimstone coal","k":"luck","v":4},{"i":"comp_imp_contract","n":"Imp contract","k":"xp","v":5},{"i":"comp_imp_hellberries","n":"Hellberries","k":"pow","v":15},{"i":"comp_imp_sulfur","n":"Sulfur pouch","k":"gold","v":7},{"i":"comp_imp_bell","n":"Infernal bell","k":"luck","v":8},{"i":"comp_imp_soulcrumb","n":"Soul crumb","k":"pow","v":30}],"fairy":[{"i":"comp_fairy_dew","n":"Dew vial","k":"pow","v":8},{"i":"comp_fairy_pixiedust","n":"Pixie dust","k":"luck","v":4},{"i":"comp_fairy_wand","n":"Twig wand","k":"pow","v":12},{"i":"comp_fairy_moonflower","n":"Moonflower","k":"mh","v":6},{"i":"comp_fairy_ribbon","n":"Gossamer ribbon","k":"gold","v":7},{"i":"comp_fairy_glowcap","n":"Glowcap","k":"pow","v":22},{"i":"comp_fairy_locket","n":"Queen's favor","k":"xp","v":10}],"ent":[{"i":"comp_ent_acorn","n":"Acorn of ages","k":"pow","v":8},{"i":"comp_ent_mosspoultice","n":"Moss poultice","k":"pow","v":10},{"i":"comp_ent_branch","n":"Living branch","k":"pow","v":12},{"i":"comp_ent_rootwrap","n":"Root wrap","k":"pow","v":15},{"i":"comp_ent_ambersap","n":"Amber sap","k":"gold","v":7},{"i":"comp_ent_leafcrown","n":"Leaf crown","k":"luck","v":8},{"i":"comp_ent_heartwood","n":"Heartwood chip","k":"pow","v":30}],"necro":[{"i":"comp_necro_bonedust","n":"Bone dust","k":"gold","v":3},{"i":"comp_necro_soulshard","n":"Soul shard","k":"luck","v":4},{"i":"comp_necro_phylactery","n":"Phylactery shard","k":"xp","v":5},{"i":"comp_necro_gravecandle","n":"Grave candle","k":"mh","v":6},{"i":"comp_necro_witherrose","n":"Wither rose","k":"pow","v":18},{"i":"comp_necro_skullcharm","n":"Skull charm","k":"luck","v":8},{"i":"comp_necro_voidink","n":"Void ink","k":"xp","v":10}],"sword":[{"i":"comp_sword_scabbardwrap","n":"Scabbard wrap","k":"pow","v":8},{"i":"comp_sword_lakestone","n":"Lake-stone","k":"luck","v":4},{"i":"comp_sword_oathribbon","n":"Oath ribbon","k":"xp","v":5},{"i":"comp_sword_runeoil","n":"Rune oil","k":"mh","v":6},{"i":"comp_sword_sapphire","n":"Hilt sapphire","k":"gold","v":7},{"i":"comp_sword_prayer","n":"Knight's prayer","k":"luck","v":8},{"i":"comp_sword_brokenscabbard","n":"Broken scabbard","k":"pow","v":30}]};
 const COMP_ITEM_SLOTS=3;
 function compItemsOf(id){return COMP_ITEMS[id]||[];}
 function compItem(iid){for(const c in COMP_ITEMS){const f=COMP_ITEMS[c].find(x=>x.i===iid);if(f)return f;}return null;}
@@ -1129,7 +1129,6 @@ function playerHit(spec){
   if(Math.random()<hitChance(roll,mobDefRoll(m))){
     dmg=rnd(0,playerMaxHit());
     if(spec)dmg=Math.max(dmg,Math.round(playerMaxHit()*(0.75+Math.random()*0.5)));
-    if(Math.random()<b.crit/100){dmg=Math.floor(dmg*1.5);}
   }
   dmg=Math.min(dmg,G.mobHp);
   G.mobHp-=dmg;
@@ -1234,6 +1233,10 @@ function uiDefaults(){S.tab=S.tab||'hero';
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     c.items=c.items||[];while(c.items.length<COMP_ITEM_SLOTS)c.items.push(null);
     c.items.length=COMP_ITEM_SLOTS;}
+  {// crit became a max-hit bonus; carry old rolls over so saved gear keeps its affix
+    const mhFix=it=>{if(it&&it.aff&&it.aff.crit!==undefined){it.aff.mh=(it.aff.mh||0)+it.aff.crit;delete it.aff.crit;}};
+    for(const k in S.equip)mhFix(S.equip[k]);
+    for(const it of S.inv)mhFix(it);}
   if(S.comp&&S.comp.type&&!S.party.length){S.party=[{type:S.comp.type,lvl:S.comp.lvl||0}];S.comp={type:null,lvl:0};}
   {// one of each kind, and at most PARTY_MAX of them: keep the best-trained, refund the rest
     const best={};S.party.forEach(c=>{if(!best[c.type]||(c.lvl||0)>(best[c.type].lvl||0))best[c.type]=c;});
@@ -1339,7 +1342,7 @@ function renderSlots(){
     else d.innerHTML=`<span class="nm">${s}</span>`;
     el.appendChild(d);}
   const b=bonuses();const hc=G.mob?Math.round(hitChance(playerAtkRoll(),mobDefRoll(G.mob))*100)+'%':'–';
-  $('stats').innerHTML=[['Attack bonus','+'+b.atk],['Strength bonus','+'+b.str],['Defence bonus','+'+b.def],['Max hit',playerMaxHit()],['Attack delay',attackDelay().toFixed(2)+'s'],['Hit chance',hc],['Crit',b.crit+'%'],['Lifesteal',b.leech+'%'],['XP bonus','+'+b.xp+'%'],['Gold bonus','+'+b.gold+'%'],['Drop bonus','+'+b.luck+'%'],['Damage reduction',Math.round(dmgReduction())+'%'],['Prayers lit',activePrayers().length||'none'],['Set pieces',Object.entries(setCounts()).map(([k,v])=>SETS[k].n+' '+v+'/4').join(', ')||'none'],['Companions',party().map(c=>c.def.n).join(', ')||'none'],['Realm',(S.asc.realm+1)+' · '+S.asc.shards+' shards'],['Combat level',combatLvl()]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
+  $('stats').innerHTML=[['Attack bonus','+'+b.atk],['Strength bonus','+'+b.str],['Defence bonus','+'+b.def],['Max hit',playerMaxHit()],['Attack delay',attackDelay().toFixed(2)+'s'],['Hit chance',hc],['Max hit bonus','+'+b.mh+'%'],['Lifesteal',b.leech+'%'],['XP bonus','+'+b.xp+'%'],['Gold bonus','+'+b.gold+'%'],['Drop bonus','+'+b.luck+'%'],['Damage reduction',Math.round(dmgReduction())+'%'],['Prayers lit',activePrayers().length||'none'],['Set pieces',Object.entries(setCounts()).map(([k,v])=>SETS[k].n+' '+v+'/4').join(', ')||'none'],['Companions',party().map(c=>c.def.n).join(', ')||'none'],['Realm',(S.asc.realm+1)+' · '+S.asc.shards+' shards'],['Combat level',combatLvl()]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
 }
 
 // --- vault ---
@@ -1382,8 +1385,8 @@ const MASTERY=[
  ['atk',10,'Blade',{atk:5}],       ['str',10,'Brawn',{str:5}],
  ['def',10,'Guard',{def:5}],       ['hp',20,'Vigour',{hp:10}],
  ['rng',10,'Marksman',{atk:5}],    ['mag',10,'Adept',{str:5}],
- ['atk',40,'Edge',{crit:5}],       ['def',40,'Bulwark',{dr:5}],
- ['rng',40,'Deadeye',{crit:6}],    ['mag',40,'Archmage',{xp:8}],
+ ['atk',40,'Edge',{mh:5}],       ['def',40,'Bulwark',{dr:5}],
+ ['rng',40,'Deadeye',{mh:6}],    ['mag',40,'Archmage',{xp:8}],
  ['hp',60,'Iron heart',{hp:25}],   ['atk',60,'Warmaster',{atk:10,str:10}],
 ];
 function masteryBonus(b){for(const [k,n,,eff] of MASTERY){if(lv(k)>=n)for(const e in eff)b[e]+=eff[e];}}
@@ -1468,7 +1471,7 @@ function renderKeep(){
     const c=P[i];
     if(c){const d=COMPS.find(x=>x.id===c.type);
       const owned=compItemsOf(c.type).filter(x=>S.compOwn[x.i]);
-      const eff=x=>x.k==='pow'?`+${x.v}% power`:`+${x.v}% ${({gold:'gold',luck:'drops',xp:'XP',crit:'crit'})[x.k]}`;
+      const eff=x=>x.k==='pow'?`+${x.v}% power`:`+${x.v}% ${({gold:'gold',luck:'drops',xp:'XP',mh:'max hit'})[x.k]}`;
       const gsel=n=>{const cur=c.items[n];
         const opts=[`<option value="">— empty —</option>`].concat(owned.map(x=>{
           const usedElsewhere=c.items.some((v,j)=>j!==n&&v===x.i);
@@ -1661,7 +1664,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b21-compkit';
+  const BUILD='b22-maxhit';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

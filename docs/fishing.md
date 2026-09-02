@@ -3322,19 +3322,6 @@ fshInv().collapse and survive tab re-entry without double-decorating
 (dataset guard). The keys/strongbox shelf lives inside Equipment and
 folds with it. Browser-proven end to end.
 
-## Ironhold Idle — a second standalone game folder
-`ironhold/index.html` is a self-contained single-file game dropped in
-beside `runeshard/`, served by Pages at `/Odds-Ends/ironhold/`. It is NOT
-part of the workshop build: nothing in `workshop/` or the root `oe-*.js`
-was touched, so `integrate.py` never sees it and the main game's build
-stamp is unchanged. Saves under its own localStorage key
-(`ironhold_idle_v1`) — checked against the host's `oddsandends_save_v1`
-first, because Pages serves both from ONE origin and a key collision
-there would eat a save. No external requests, no CDN, no sibling assets;
-the one embedded script parses under `node --check` and a headless boot
-reached the combat loop with zero console errors. README carries the
-link, same as runeshard.
-
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

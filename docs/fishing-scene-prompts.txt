@@ -1,0 +1,69 @@
+FISHING SCENE PAINTINGS — one per water
+=======================================
+
+Reference: docs/fishing-scene-reference.webp (the current lake, 1200x1800).
+Feed it to the generator as the layout reference for EVERY prompt below.
+
+LAYOUT RULES (the game draws on top of the painting, so these must hold)
+- Portrait 2:3. Deliver 1200x1800 or 1600x2400, jpg or png.
+- The far shore's waterline sits at 45% from the top. Sky above it, water below.
+- A wooden pier enters from the LEFT edge and ends about a third of the way
+  across, its deck at 40-46% height. The angler is drawn by the game and sits
+  on the END of that pier, so keep the deck flat and clear of clutter there.
+- A rowing boat rests at the bottom-left, around 72-78% height.
+- Keep the bottom 8% quiet: the cast button covers it.
+- No people, no fish, no birds, no reeds: the game animates all of those.
+- Painted, storybook style, soft edges, same rendering as the reference.
+- Same camera, same horizon, same pier, same boat in every painting; only the
+  place changes. Say "same composition as the reference image" in each prompt.
+
+PROMPTS
+
+1. The Old Dock (this is the reference; only regenerate it if you want a
+   fresh take)
+   "Same composition as the reference image: a calm lake at midday, wooden pier
+   from the left, rowing boat bottom-left, green rolling hills on the far shore,
+   fluffy clouds, warm sun, clear blue water. Storybook painting, soft edges."
+
+2. Reedy Shallows
+   "Same composition as the reference image, but a marsh: shallow olive-green
+   water with lily pads and cattail beds along BOTH shores, a low morning mist
+   lying on the water, willows and reeds on the far bank instead of hills, dragonfly
+   light, muddy shallows near the boat. Wooden pier from the left, rowing boat
+   bottom-left. Storybook painting, soft edges."
+
+3. Deepwater Ledge
+   "Same composition as the reference image, but a cold deep cove: a sheer dark
+   slate cliff rises along the RIGHT side from the far shore down into the
+   water, grey-blue deep water with long slow swells, a few gulls' worth of sky
+   left empty, overcast pale light, foam at the cliff's foot. Wooden pier from
+   the left, rowing boat bottom-left. Storybook painting, soft edges."
+
+4. The Midnight Mark
+   "Same composition as the reference image, but at night: a deep purple-black
+   sky full of stars and a low moon, the water a dark violet with a faint
+   glowing purple patch on the surface right of center, thin wisps of mist,
+   silhouetted hills on the far shore, the pier lit by two small warm
+   lanterns. Wooden pier from the left, rowing boat bottom-left. Storybook
+   painting, soft edges."
+
+5. The Coral Shelf
+   "Same composition as the reference image, but a tropical reef: crystal
+   turquoise water so clear the coral shows beneath it, pink, purple and orange
+   coral heads along the bottom third, white sand bars, bright hard sunlight
+   and light caustics on the water, a palm-fringed far shore. Wooden pier from
+   the left, rowing boat bottom-left. Storybook painting, soft edges."
+
+6. The Confluence
+   "Same composition as the reference image, but where five waters meet: a
+   great slow whirlpool turning in the middle distance right of center, the
+   water streaked in five colours (amber, green, slate blue, violet, teal)
+   spiralling into a dark eye, a stormy bruised sky with a break of light, the
+   far shore half marsh and half cliff. Wooden pier from the left, rowing boat
+   bottom-left. Storybook painting, soft edges."
+
+DELIVERY
+Name the files by spot id: dock, shallows, ledge, midnight, reef, confluence.
+The build embeds the painting and samples the far-shore ridge line from it
+(FE_RIDGE) so stars stay in the sky, so each new painting gets its own ridge
+sample at build time. That wiring is on this side; send the six files.

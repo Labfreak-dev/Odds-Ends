@@ -684,7 +684,7 @@ function rollDrop(tier,rarBonus){const t=clamp(tier+(Math.random()<0.15?1:0)-(Ma
 // ============ STATE ============
 const S={
   xp:{atk:0,str:0,def:0,hp:XP[10],rng:0,mag:0},hp:10,gold:0,scrap:0,chests:0,food:[0,0,0,0,0],
-  equip:{},inv:[],style:3,combat:'melee',area:0,kills:AREAS.map(()=>0),cleared:AREAS.map(()=>false),
+  equip:{},inv:[],style:3,combat:'melee',diff:0,area:0,kills:AREAS.map(()=>0),cleared:AREAS.map(()=>false),
   spec:100,autoEat:true,eatPct:50,autoSalv:false,last:Date.now(),totalKills:0,
   keep:{forge:0,yard:0,larder:0,chest:0,barracks:0},runes:[0,0,0,0,0,0],tower:{best:0},asc:{shards:0,realm:0,count:0},comp:{type:null,lvl:0},
   party:[],pray:{pts:30,on:[],autoBury:true},bones:0,bounty:{day:'',list:[]},found:{},
@@ -862,6 +862,16 @@ function rerollCost(){return (maxUnlockedArea()+1)*100;}
 function bountyReward(b){const r=b.rw;return [fmt(r.gold)+'g',r.scrap?r.scrap+' scrap':'',r.rune?'1 rune':'',r.chest?'1 chest':''].filter(Boolean).join(' + ');}
 
 function realmMult(){return 1+0.5*((S.asc&&S.asc.realm)||0);}
+// Difficulty. Monsters hit harder and hold more gold; drops and XP pay more.
+const DIFFS=[
+ {n:'Normal',mob:1,   xp:1,    luck:1,   need:0},
+ {n:'Hard',  mob:1.7, xp:1.35, luck:1.5, need:1},
+ {n:'Expert',mob:2.8, xp:1.8,  luck:2.2, need:4},
+ {n:'Master',mob:4.5, xp:2.5,  luck:3.0, need:8},
+];
+function clearedCount(){return (S.cleared||[]).filter(Boolean).length;}
+function diffMax(){let m=0;for(let i=0;i<DIFFS.length;i++)if(DIFFS[i].need<=clearedCount())m=i;return m;}
+const diff=()=>DIFFS[Math.min(S.diff||0,diffMax())];   // clamped, so an ascension reset cannot strand you on a locked tier
 function ascReady(){return S.cleared[AREAS.length-1]||combatLvl()>=70;}
 function ascShards(){return Math.floor(combatLvl()/5)+S.cleared.filter(Boolean).length*2+Math.floor(((S.tower&&S.tower.best)||0)/5);}
 function ascend(){
@@ -1069,7 +1079,7 @@ const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirt
 function spawn(boss){
   const A=AREAS[S.area];
   let m=G.tower?towerMob(G.tower):(boss?A.boss:A.mobs[rnd(0,A.mobs.length-1)]);
-  const k=realmMult();if(k>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*k),str:Math.round(m.str*k),def:Math.round(m.def*k),gold:[Math.round(m.gold[0]*k),Math.round(m.gold[1]*k)]});
+  const k=realmMult()*diff().mob;if(k>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*k),str:Math.round(m.str*k),def:Math.round(m.def*k),gold:[Math.round(m.gold[0]*k),Math.round(m.gold[1]*k)]});
   G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());
   G.dirty=true;
 }
@@ -1077,7 +1087,7 @@ function log(msg,cls){const el=document.getElementById('log');const d=document.c
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2200);}
 
 function addXp(dmg){
-  const b=bonuses();const mult=1+b.xp/100;const st=STYLES[S.style].s;const sk=cskill();
+  const b=bonuses();const mult=(1+b.xp/100)*diff().xp;const st=STYLES[S.style].s;const sk=cskill();
   const KEYS=['atk','str','def','hp','rng','mag'];
   const before={};for(const k of KEYS)before[k]=lv(k);
   if(sk){
@@ -1127,7 +1137,7 @@ function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   S.totalKills++;G.streak=0;
   const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100));S.gold+=g;
-  const luck=1+b.luck/100;
+  const luck=(1+b.luck/100)*diff().luck;
   if(G.tower){ // Tower of Trials floor cleared
     const f=G.tower;const tier=towerTier(f);const boss=f%10===0;
     if(Math.random()<(boss?1:0.12)*luck)gainItem(makeItem(tier,SLOTS[rnd(0,9)],boss?Math.max(3,rollRarity(0.6)):rollRarity(0.2)));
@@ -1195,7 +1205,7 @@ function tick(dt){
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
 function uiDefaults(){S.tab=S.tab||'hero';
-  S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
+  S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
   S.party=S.party||[];for(const c of S.party){c.gear=c.gear||{};for(const sl of COMP_SLOTS)if(c.gear[sl]===undefined)c.gear[sl]=null;}
@@ -1394,6 +1404,16 @@ function renderBounties(){
 function renderAreas(){
   renderBounties();
   const el=$('areas');el.innerHTML='';
+  {const d=document.createElement('div');d.className='panel';d.style.cssText='margin-bottom:8px;padding:8px 10px';
+   const cur=diff(),mx=diffMax();
+   d.innerHTML=`<div class="sub" style="margin-bottom:5px">Difficulty · monsters x${cur.mob} · drops x${cur.luck} · XP x${cur.xp}</div>`+
+     `<div class="styles" id="diffs">`+DIFFS.map((x,i)=>`<button class="sm${i===Math.min(S.diff||0,mx)?' on':''}" data-diff="${i}" ${i<=mx?'':'disabled'} title="${i<=mx?'':'Clear '+x.need+' areas to unlock'}">${x.n}</button>`).join('')+`</div>`+
+     (mx<3?`<div class="sub" style="margin-top:5px;opacity:.75">Next tier unlocks after clearing ${DIFFS[mx+1].need} areas (${clearedCount()} cleared).</div>`:'');
+   el.appendChild(d);
+   d.querySelectorAll('[data-diff]').forEach(btn=>btn.onclick=()=>{
+     const i=+btn.dataset.diff; if(i>diffMax())return;
+     S.diff=i; if(!G.dead)spawn(!!G.isBoss);
+     toast(DIFFS[i].n); renderAll();});}
   const tw=document.createElement('div');tw.className='tower';
   tw.innerHTML=`<div class="thumb">${svg('tower',52)}</div><div><div class="tag">${G.tower?'CLIMBING · FLOOR '+G.tower:'TRIALS'}</div><div class="nm" style="font:bold 15px Georgia,serif;color:var(--tan)">Tower of Trials</div><div class="meta" style="font-size:11px;color:var(--muted);line-height:1.5">Endless floors, stronger each step. Wardens every 10th.<br>Best floor <b class="gold">${S.tower.best}</b> · records every 5 floors drop a chest · runes on the way</div></div><button id="btnTower" style="min-width:78px;font-family:Georgia,serif" ${G.dead?'disabled':''}>${G.tower?'Leave':'Climb'}</button>`;
   tw.querySelector('#btnTower').onclick=()=>{G.tower?leaveTower():enterTower();renderAll();};el.appendChild(tw);
@@ -1599,7 +1619,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b17-compgear';
+  const BUILD='b18-difficulty';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -890,7 +890,11 @@ const MOB_SPR={'Chicken':'chicken','Cow':'cow','Bull of the Meadow':'bull','Gobl
  'Lesser demon':'lesser_demon','Greater demon':'greater_demon','Ashborn Overlord':'overlord','Green dragon':'green_dragon','Blue dragon':'blue_dragon','Black dragon':'black_dragon','The Elder Wyrm':'elder_wyrm',
  'Tower sentinel':'tower_sentinel','Cursed knight':'cursed_knight','Pit hound':'pit_hound','Gargoyle':'gargoyle','Stone giant':'stone_giant','Tower wyrm':'tower_wyrm'};
 function mobSprKey(m){return m.spr||MOB_SPR[m.n]||null;}
-function mobSprScale(m){const s=SPR_SC[mobSprKey(m)]||1;if(m.tower&&m.big>1)return s*1.25;return s;}
+// SPR_SC is keyed by the full sprite name (chicken_idle), not the base (chicken),
+// so this used to look up undefined and fall back to 1 — drawing chicken, cow and
+// bull at authored size, i.e. twice the scale their art was cut for.
+function mobSprScale(m){const k=mobSprKey(m);const s=SPR_SC[k+'_idle']||SPR_SC[k]||1;
+  if(m.tower&&m.big>1)return s*1.25;return s;}
 function sprFrame(k,i){const a=SPR[k];if(!a||!a.length)return null;
   const n=a.length;i=Math.min(i,n-1);
   for(let d=0;d<n;d++){const im=a[(i+d)%n];if(sprOk(im))return im;}
@@ -1554,7 +1558,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b11-party2';
+  const BUILD='b12-mobscale';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

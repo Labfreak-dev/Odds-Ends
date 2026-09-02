@@ -413,6 +413,17 @@ const TIERS=[
  {n:'Dragon',c:'#c4262a',hl:'#ff7a5a',lv:60,v:52},
 ];
 const SLOTS=['head','cape','amulet','weapon','body','shield','legs','gloves','boots','ring'];
+// Armour lines. Hide and robes trade Defence for accuracy, and only pay that
+// accuracy in full to their own combat style. Their slots come from the catalog.
+const ARMK={
+ hide:{style:'ranged',def:0.72,atk:0.55,slots:['head','body','legs','gloves'],
+   kits:["Leather","Hardleather","Studded","Green d'hide","Blue d'hide","Red d'hide","Black d'hide","Dragonhide"],
+   sn:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'}},
+ robe:{style:'magic',def:0.5,atk:0.9,slots:['head','body','legs','boots'],
+   kits:["Cloth","Wizard blue","Mystic grey","Black mystic","Enchanted","Battlemage","Ancient","Infernal"],
+   sn:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'}},
+};
+const ARM_FOR={};for(const k in ARMK)for(const sl of ARMK[k].slots)(ARM_FOR[sl]=ARM_FOR[sl]||[]).push(k);
 const SLOT_NAME={head:'helm',cape:'cape',amulet:'amulet',weapon:'weapon',body:'platebody',shield:'kiteshield',legs:'platelegs',gloves:'gauntlets',boots:'boots',ring:'ring'};
 const WEAPONS=[
  {n:'dagger',spd:2.4,dm:0.85,am:1.1,two:false},
@@ -501,10 +512,12 @@ function hitChance(aRoll,dRoll){return aRoll>dRoll?1-(dRoll+2)/(2*(aRoll+1)):aRo
 
 // ============ ITEMS ============
 let uid=1;
-function makeItem(tier,slot,rar,wt){
+function makeItem(tier,slot,rar,wt,arm){
   const T=TIERS[tier];const R=RARITY[rar];
   const it={id:uid++,tier,slot,rar,up:0,aff:{}};
   if(slot==='weapon'){it.wt=wt??rnd(0,WEAPONS.length-1);}
+  else if(arm!==undefined){if(arm)it.arm=arm;}
+  else if(ARM_FOR[slot]&&Math.random()<0.5)it.arm=ARM_FOR[slot][rnd(0,ARM_FOR[slot].length-1)];
   const v=T.v*R.m;
   const base={atk:0,str:0,def:0};
   const W=it.wt!=null?WEAPONS[it.wt]:null;
@@ -520,6 +533,7 @@ function makeItem(tier,slot,rar,wt){
     case 'amulet':base.atk=v*0.6;base.str=v*0.6;break;
     case 'ring':base.atk=v*0.35;base.str=v*0.35;base.def=v*0.35;break;
   }
+  if(it.arm){const AC=ARMK[it.arm];base.atk+=base.def*AC.atk*0.5;base.def*=AC.def;}
   it.base={atk:Math.round(base.atk),str:Math.round(base.str),def:Math.round(base.def)};
   const pool=Object.keys(AFFIX).filter(k=>!AFFIX[k].fixed&&(!AFFIX[k].wep||slot==='weapon'));
   for(let i=0;i<R.aff&&pool.length;i++){const k=pool.splice(rnd(0,pool.length-1),1)[0];it.aff[k]=rnd(AFFIX[k].min,AFFIX[k].max);}
@@ -529,7 +543,9 @@ function itemName(it){
   let n;
   if(it.uq&&UNIQUES[it.uq])n=UNIQUES[it.uq].n;
   else if(it.set&&SETS[it.set])n=SETS[it.set].n+' '+SETS[it.set].pieces[it.slot];
-  else{const T=TIERS[it.tier];const R=RARITY[it.rar];const base=it.slot==='weapon'?WEAPONS[it.wt].n:SLOT_NAME[it.slot];n=(R.n?R.n+' ':'')+T.n+' '+base;}
+  else{const T=TIERS[it.tier];const R=RARITY[it.rar];const AC=it.arm?ARMK[it.arm]:null;
+    const base=it.slot==='weapon'?WEAPONS[it.wt].n:(AC?AC.sn[it.slot]:SLOT_NAME[it.slot]);
+    n=(R.n?R.n+' ':'')+(AC?AC.kits[it.tier]:T.n)+' '+base;}
   return n+(it.up?' +'+it.up:'')+(it.rw?' ['+it.rw+']':'');}
 function itemStats(it){const m=1+it.up*0.06;return {atk:Math.round(it.base.atk*m),str:Math.round(it.base.str*m),def:Math.round(it.base.def*m)};}
 function itemValue(it){return Math.round((TIERS[it.tier].v*TIERS[it.tier].v*0.6+5)*RARITY[it.rar].m*(1+it.up*0.3));}
@@ -570,6 +586,36 @@ const UNIQUES={
  sanctum_edge:{n:'Sanctum Edge',wt:1,tier:6,home:'chest',eff:{gold:10,xp:4},d:'Stained-glass scimitar from the sanctum.'},
  idle_king:{col:'#e0b030',hl:'#fff0a0',n:"Idle King's Tribute",wt:4,tier:7,home:'late',eff:{gold:15},d:'Gilded greatsword. Heavy with tribute.'},
  ironhold_heirloom:{n:'Ironhold Heirloom',wt:2,tier:6,home:'chest',eff:{atk:6,str:6,def:6},d:'Crest longsword passed down the hold.'},
+ thornstring:{n:'Thornstring',wt:5,tier:0,home:0,eff:{crit:8},d:'Barbed shortbow strung from pasture thorn.'},
+ cowgut_longbow:{n:'Cowgut Longbow',wt:6,tier:0,home:0,eff:{gold:12},d:'Strung with gut. It pays for itself.'},
+ goblin_scrapbow:{n:'Goblin Scrapbow',wt:7,tier:1,home:1,eff:{luck:8},d:'Lashed from scrap. Somehow lucky.'},
+ widows_recurve:{n:'Widow\'s Recurve',wt:5,tier:2,home:2,eff:{crit:5,leech:3},d:'Spider-silk string, still tacky.'},
+ gunnars_warbow:{n:'Gunnar\'s War Bow',wt:6,tier:4,home:'boss:3',eff:{str:14},d:'The warlord\'s own bow. It takes two to string.'},
+ frostlash:{n:'Frostlash',wt:6,tier:5,home:5,eff:{crit:8},d:'The string never thaws.'},
+ stormlash:{n:'Stormlash',wt:7,tier:5,home:5,eff:{spd:8},d:'Looses faster than the eye follows.'},
+ wyrmgut_longbow:{n:'Wyrmgut Longbow',wt:6,tier:7,home:7,eff:{str:16},d:'Strung with dragon sinew.'},
+ ashborn_recurve:{n:'Ashborn Recurve',wt:5,tier:6,home:6,eff:{crit:8},d:'Warm to the touch, always.'},
+ elderhorn_bow:{n:'Elderhorn Bow',wt:6,tier:7,home:'boss:7',eff:{str:22},d:'Horn of the Elder Wyrm, bent to a bow.'},
+ nightwatch_xbow:{n:'Nightwatch Crossbow',wt:8,tier:3,home:'mid',eff:{def:6},d:'Standard issue on the long watch.'},
+ idle_king_bow:{n:'Idle King\'s Longbow',wt:6,tier:5,home:'chest',eff:{gold:15},d:'Never drawn. Still worth a fortune.'},
+ ironhold_ballista:{n:'Ironhold Ballista',wt:8,tier:5,home:'chest',eff:{atk:8,def:8},d:'A siege piece, shrunk to the shoulder.'},
+ meadow_flight:{n:'Meadow Flight',wt:5,tier:0,home:0,eff:{gold:20},d:'Light as the field it came from.'},
+ last_light_bow:{n:'Last Light Longbow',wt:6,tier:7,home:'late',eff:{xp:6},d:'Draws slow. Teaches much.'},
+ pasture_crook:{n:'Pasture Crook',wt:11,tier:0,home:0,eff:{gold:12},d:'A herder\'s crook that learned a trick.'},
+ bone_choir_staff:{n:'Bone Choir Staff',wt:11,tier:2,home:2,eff:{xp:8},d:'It hums while you learn.'},
+ sewer_rod:{n:'Sewer Rod',wt:10,tier:2,home:2,eff:{crit:6},d:'Short, filthy, precise.'},
+ chieftain_totem:{n:'Chieftain Totem',wt:11,tier:2,home:'boss:1',eff:{gold:10},d:'Skull-topped and still shouting.'},
+ gunnars_stormpole:{n:'Gunnar\'s Stormpole',wt:12,tier:4,home:'boss:3',eff:{str:14},d:'It answers weather with weather.'},
+ matriarch_rod:{n:'Frost Matriarch Rod',wt:11,tier:5,home:'boss:5',eff:{crit:10},d:'Cold enough to still a heart.'},
+ grothek_pillar:{n:'Grothek Pillar',wt:11,tier:4,home:'boss:4',eff:{str:20},d:'Less a staff than a standing stone.'},
+ gravetender_staff:{n:'Gravetender Staff',wt:11,tier:2,home:2,eff:{xp:10},d:'The dead teach, if you tend them.'},
+ bloodletter_wand:{n:'Bloodletter Wand',wt:10,tier:6,home:6,eff:{leech:6},d:'It drinks first and asks after.'},
+ overlord_staff:{n:'Overlord Brand Staff',wt:12,tier:6,home:'boss:6',eff:{str:14,gold:6},d:'Branded by the Ashborn Overlord.'},
+ ashborn_emberstaff:{n:'Ashborn Emberstaff',wt:11,tier:6,home:6,eff:{crit:8},d:'Embers gather at the head.'},
+ elder_scepter:{n:'Elder Wyrm Scepter',wt:11,tier:7,home:'boss:7',eff:{str:22,hp:8},d:'The wyrm\'s own authority, in hand.'},
+ sanctum_crozier:{n:'Sanctum Crozier',wt:11,tier:5,home:'chest',eff:{gold:10,xp:4},d:'Carried at the front of processions.'},
+ idle_king_scepter:{n:'Idle King Scepter',wt:11,tier:5,home:'chest',eff:{gold:15},d:'A scepter for a king who never rose.'},
+ last_saint_staff:{n:'Last Saint Staff',wt:11,tier:7,home:'late',eff:{xp:6,hp:4},d:'The last saint leaned on this.'},
  pasture_justice:{n:'Pasture Justice',wt:3,tier:3,home:0,eff:{gold:20},d:'A cleaver engraved with the meadow.'},
 };
 const SETS={
@@ -582,6 +628,16 @@ const SETS={
  ash:{col:'#3a1f1f',hl:'#ff5a2a',n:'Ashborn',tier:6,home:6,pieces:{head:'helm',body:'chest',legs:'greaves',shield:'kite'},b2:{leech:6},b4:{gold:10}},
  wyrm:{col:'#4a7a3a',hl:'#c9a83a',n:'Wyrmscale',tier:7,home:7,pieces:{head:'helm',body:'chest',legs:'legs',shield:'kite'},b2:{str:10},b4:{luck:8}},
  hold:{col:'#7a7a84',hl:'#ffd24a',n:'Ironhold',tier:5,home:'chest',pieces:{head:'helm',body:'chest',legs:'legs',shield:'shield'},b2:{atk:6,def:6},b4:{xp:8}},
+ set_scout:{col:'#7a8a4a',hl:'#d8e0b0',n:'Meadow Scout',tier:0,home:0,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{gold:8},b4:{hp:6}},
+ set_skirmish:{col:'#5a6a3a',hl:'#a8b878',n:'Goblin Skirmish',tier:1,home:1,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{luck:6},b4:{gold:10}},
+ set_stalker:{col:'#4a5a4a',hl:'#8aa08a',n:'Sewer Stalker',tier:2,home:2,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{leech:4},b4:{def:8}},
+ set_frostranger:{col:'#6f9ab8',hl:'#d8ecff',n:'Frost Ranger',tier:5,home:5,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{crit:6},b4:{xp:8}},
+ set_wyrmhide:{col:'#4a7a3a',hl:'#c9a83a',n:'Wyrmhide Ranger',tier:7,home:7,arm:'hide',sl:['head','body','legs','gloves'],ik:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},pieces:{head:'coif',body:'body',legs:'chaps',gloves:'vambraces'},b2:{str:10},b4:{luck:8}},
+ set_adept:{col:'#5a5a7a',hl:'#9a9ac8',n:'Sewer Adept',tier:2,home:2,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{leech:4},b4:{def:8}},
+ set_channeler:{col:'#5a8ac8',hl:'#d8ecff',n:'Frost Channeler',tier:5,home:5,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{crit:6},b4:{xp:8}},
+ set_warlock:{col:'#5a2a2a',hl:'#ff7a4a',n:'Ashborn Warlock',tier:6,home:6,arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{leech:6},b4:{gold:10}},
+ set_battlemage:{col:'#6a6a8a',hl:'#ffd24a',n:'Ironhold Battlemage',tier:5,home:'chest',arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{atk:6,def:6},b4:{xp:8}},
+ set_vestment:{col:'#c8c0a0',hl:'#fff4d0',n:'Last Saint Vestments',tier:7,home:'late',arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{hp:8},b4:{leech:6,xp:6}},
  saint:{col:'#e8e0cc',hl:'#ffd24a',n:'Last Saint',tier:7,home:'late',pieces:{head:'helm',body:'tabard',legs:'greaves',shield:'kite'},b2:{hp:8},b4:{leech:6,xp:6}},
 };
 const SET_SLOTS=['head','body','legs','shield'];
@@ -589,10 +645,13 @@ function itemCol(it){if(it.set)return SETS[it.set].col;if(it.uq&&UNIQUES[it.uq].
 function itemHl(it){if(it.set)return SETS[it.set].hl;if(it.uq&&UNIQUES[it.uq].hl)return UNIQUES[it.uq].hl;return TIERS[it.tier].hl;}
 function effText(eff){return Object.keys(eff).map(k=>AFFIX[k].n.replace('{v}',eff[k]).replace('--','+')).join(' · ');}
 function makeUnique(key){const U=UNIQUES[key];const it=makeItem(U.tier,'weapon',6,U.wt);it.uq=key;it.aff=Object.assign({},U.eff);return it;}
-function makeSetPiece(key,slot){const T=SETS[key];const it=makeItem(T.tier,slot,6,undefined);it.set=key;return it;}
+function makeSetPiece(key,slot){const T=SETS[key];const it=makeItem(T.tier,slot,6,undefined,T.arm||null);it.set=key;return it;}
 function isSpecial(it){return !!(it&&(it.uq||it.set));}
-function iconKey(it){return it.uq?it.uq:it.set?(it.set+'_'+({head:'helm',body:'body',legs:'legs',shield:'shield'})[it.slot]):null;}
-function setCounts(){const c={};for(const s of SET_SLOTS){const it=S.equip[s];if(it&&it.set)c[it.set]=(c[it.set]||0)+1;}return c;}
+const SET_IK={head:'helm',body:'body',legs:'legs',shield:'shield'};
+const setSlots=k=>SETS[k].sl||SET_SLOTS;
+const setIk=k=>SETS[k].ik||SET_IK;
+function iconKey(it){return it.uq?it.uq:it.set?(it.set+'_'+setIk(it.set)[it.slot]):null;}
+function setCounts(){const c={};for(const s of SLOTS){const it=S.equip[s];if(it&&it.set)c[it.set]=(c[it.set]||0)+1;}return c;}
 function setBonuses(b){const c=setCounts();for(const k in c){const T=SETS[k];if(c[k]>=2)for(const e in T.b2)b[e]+=T.b2[e];if(c[k]>=4)for(const e in T.b4)b[e]+=T.b4[e];}}
 function markFound(it){const k=iconKey(it);if(!k)return;S.found=S.found||{};if(!S.found[k]){S.found[k]=1;if(!G.sim)toast('New to the collection: '+itemName(it));}}
 // drop rolls. ctx: {area, boss, firstClear, chest, tower}
@@ -608,7 +667,7 @@ function rollUnique(ctx,luck){
   for(const k in SETS){const h=SETS[k].home;
     if(ctx.area!=null&&ctx.boss==null){if(h===ctx.area&&S.cleared[ctx.area])st.push(k);ps=1/120;}
     else if(ctx.chest){if(h==='chest'||(h==='late'&&ctx.late))st.push(k);ps=0.04;}}
-  if(st.length&&Math.random()<ps*luck)return makeSetPiece(st[rnd(0,st.length-1)],SET_SLOTS[rnd(0,3)]);
+  if(st.length&&Math.random()<ps*luck){const sk=st[rnd(0,st.length-1)];const sl=setSlots(sk);return makeSetPiece(sk,sl[rnd(0,sl.length-1)]);}
   return null;
 }
 function rollRarity(bonus){const w=RARITY.slice(1).map((r,i)=>r.w*(i>0?1+bonus:1));const t=w.reduce((a,b)=>a+b,0);let r=Math.random()*t;for(let i=0;i<w.length;i++){r-=w[i];if(r<=0)return i+1;}return 1;}
@@ -627,7 +686,8 @@ const lv=s=>lvlFor(S.xp[s]);
 function combatLvl(){return Math.floor(0.25*(lv('def')+lv('hp'))+0.325*Math.max(lv('atk')+lv('str'),1.5*lv('rng'),1.5*lv('mag')));}
 function bonuses(){
   const b={atk:0,str:0,def:0,hp:0,crit:0,leech:0,xp:0,gold:0,luck:0,spd:0,dr:0};
-  for(const s of SLOTS){const it=S.equip[s];if(!it)continue;const st=itemStats(it);b.atk+=st.atk;b.str+=st.str;b.def+=st.def;for(const k in it.aff)b[k]+=it.aff[k];
+  for(const s of SLOTS){const it=S.equip[s];if(!it)continue;const st=itemStats(it);
+    b.atk+=st.atk*(it.arm&&ARMK[it.arm].style!==cstyle()?0.4:1);b.str+=st.str;b.def+=st.def;for(const k in it.aff)b[k]+=it.aff[k];
     const rw=rwOf(it);if(rw)for(const k in rw.eff)b[k]+=rw.eff[k];}
   setBonuses(b);
   b.gold+=keepLv('chest')*5;
@@ -1235,9 +1295,11 @@ function renderSkills(){
 const THUMB=[['#7fb5d8','#4e8a3a'],['#6f9a6a','#5f7a3a'],['#2c2c34','#3a3a3a'],['#8aa3c2','#6a5a3a'],['#7f9fb5','#5a6a3a'],['#cfe8f5','#dfe8ee'],['#3a1414','#3a2020'],['#2a2a2a','#3a3030']];
 function unlocked(i){return i===0||S.cleared[i-1];}
 function renderCodex(){
-  const keys=Object.keys(UNIQUES).concat(Object.keys(SETS).flatMap(k=>['helm','body','legs','shield'].map(p=>k+'_'+p)));
+  const CN={};for(const k in UNIQUES)CN[k]=UNIQUES[k].n;
+  for(const k in SETS)for(const sl of setSlots(k))CN[k+'_'+setIk(k)[sl]]=SETS[k].n+' '+SETS[k].pieces[sl];
+  const keys=Object.keys(CN);
   const f=S.found||{};const n=keys.filter(k=>f[k]).length;$('collCnt').textContent=`${n}/${keys.length}`;
-  $('coll').innerHTML=keys.map(k=>{const nm=UNIQUES[k]?UNIQUES[k].n:SETS[k.split('_')[0]].n+' '+SETS[k.split('_')[0]].pieces[({helm:'head',body:'body',legs:'legs',shield:'shield'})[k.split('_')[1]]];const ok=!!f[k];const tip=UNIQUES[k]?(ok?effText(UNIQUES[k].eff):'Not found yet'):(ok?'Found':'Not found yet');return `<div class="ce ${ok?'ok':'no'}" title="${nm} — ${tip}"><img src="${ICONS[k]||''}" alt=""><span>${ok?nm:'???'}</span></div>`;}).join('');
+  $('coll').innerHTML=keys.map(k=>{const nm=CN[k];const ok=!!f[k];const tip=UNIQUES[k]?(ok?effText(UNIQUES[k].eff):'Not found yet'):(ok?'Found':'Not found yet');return `<div class="ce ${ok?'ok':'no'}" title="${nm} — ${tip}"><img src="${ICONS[k]||''}" alt=""><span>${ok?nm:'???'}</span></div>`;}).join('');
 }
 function renderPrayer(){
   $('prayPts').textContent=`${Math.floor(S.pray.pts)}/${prayMax()}`;$('boneCnt').textContent=S.bones;$('autoBury').checked=S.pray.autoBury;

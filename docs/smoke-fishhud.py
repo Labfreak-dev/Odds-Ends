@@ -50,8 +50,9 @@ with sync_playwright() as pw:
         # walk to another spot and the sign follows
         pg.evaluate("""()=>{ const sp=feSpots(); if(!sp.open.includes('shallows')) sp.open.push('shallows'); sp.cur='shallows';
           feSpotHtml=''; }""")
-        pg.click(".fe-spot[data-spot='dock']"); pg.wait_for_timeout(400)
-        pg.click(".fe-spot[data-spot='shallows']"); pg.wait_for_timeout(600)
+        # the chips are hidden now (the map is the way); walk through the same handler
+        pg.evaluate("()=>feSpotTap('dock')"); pg.wait_for_timeout(400)
+        pg.evaluate("()=>feSpotTap('shallows')"); pg.wait_for_timeout(600)
         nm = pg.evaluate("()=>({ sign: document.querySelector('.fe-sign').textContent.trim(), cur: feSpot().name })")
         check(f"[{tag}] the sign follows the walk to a new spot", nm["cur"] in nm["sign"] and "Shallows" in nm["sign"], nm)
         chips = pg.evaluate("""()=>{ const c=document.getElementById('feChumChip'), t=document.getElementById('feTackleChip');

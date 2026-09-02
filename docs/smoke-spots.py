@@ -10,6 +10,11 @@ fails=[]
 def check(l,c,d=""):
     print(("  ok   " if c else "  FAIL ")+l+("" if c or not d else "  -> "+str(d)))
     if not c: fails.append(l)
+async def go(pg, sid):
+    """travel the way the player does now: open the map, tap the pin, let the boat sail"""
+    await pg.evaluate("feMapOpen()"); await pg.wait_for_timeout(150)
+    await pg.click(f".fsm-pin[data-spot='{sid}']"); await pg.wait_for_timeout(1250)
+
 async def main():
     async with async_playwright() as pw:
         b=await pw.chromium.launch()
@@ -21,19 +26,23 @@ async def main():
         await pg.wait_for_timeout(700)
 
         check("spot picker renders six waters", await pg.evaluate("document.querySelectorAll('.fe-spot').length===6"))
+        await pg.evaluate("feMapOpen()"); await pg.wait_for_timeout(200)
+        check("the map opens with six pins and the boat at the dock", await pg.evaluate(
+            "document.getElementById('feSpotMap').classList.contains('open') && document.querySelectorAll('.fsm-pin').length===6 && document.querySelector('.fsm-pin.here').dataset.spot==='dock'"))
+        await pg.evaluate("feMapClose()")
         check("dock starts active, rest locked", await pg.evaluate(
             "document.querySelector('.fe-spot.active').textContent.includes('Old Dock') && document.querySelectorAll('.fe-spot.locked').length===5"))
         # too poor: buying fails politely
         await pg.evaluate("state.credits=5")
-        await pg.click(".fe-spot[data-spot='shallows']"); await pg.wait_for_timeout(250)
+        await go(pg, 'shallows')
         check("can't buy what you can't afford", await pg.evaluate("!fshInv().spots.open.includes('shallows')"))
         # fund and buy
         await pg.evaluate("state.credits=10000000")
-        await pg.click(".fe-spot[data-spot='shallows']"); await pg.wait_for_timeout(250)
+        await go(pg, 'shallows')
         detail=await pg.evaluate("JSON.stringify({open:fshInv().spots.open, cur:fshInv().spots.cur, credits:state.credits})")
         check("buying the Shallows unlocks and selects it", await pg.evaluate(
             "fshInv().spots.open.includes('shallows') && fshInv().spots.cur==='shallows' && Math.abs(state.credits-(10000000-120000))<2000"), detail)   # idle income ticks during the test
-        await pg.click(".fe-spot[data-spot='midnight']"); await pg.wait_for_timeout(250)
+        await go(pg, 'midnight')
         check("the Mark unlocks too", await pg.evaluate("fshInv().spots.cur==='midnight'"))
         await pg.evaluate("feEnv.hour=1.5; feEnv.weather='clear'; feEnv.blend=1;")
         await pg.wait_for_timeout(900)
@@ -61,9 +70,9 @@ async def main():
             check("result chips count the collection", await pg.evaluate(
                 "fsh.result.chips.some(c=>c.includes('Tide & Tackle') && c.includes('/1000'))"))
         # switching during the result card is allowed by design — pick your next water
-        await pg.click(".fe-spot[data-spot='dock']"); await pg.wait_for_timeout(200)
+        await go(pg, 'dock')
         check("switching while the card is up is fine", await pg.evaluate("fshInv().spots.cur==='dock'"))
-        await pg.click(".fe-spot[data-spot='midnight']"); await pg.wait_for_timeout(200)
+        await go(pg, 'midnight')
         # mid-cast switching is now impossible through the UI: the picker
         # hides itself entirely (asserted below); the in-handler phase
         # guard remains as defense-in-depth.
@@ -249,7 +258,7 @@ async def main():
         # --- the coral shelf ---
         await pg.evaluate("state.credits=30000000; fshInv().spots.open=['dock','shallows','ledge','midnight']; feSpotHtml=''; feRenderSpots();")
         await pg.wait_for_timeout(300)
-        await pg.click(".fe-spot[data-spot='reef']"); await pg.wait_for_timeout(400)
+        await go(pg, 'reef')
         check("the Coral Shelf unlocks and selects", await pg.evaluate(
             "feSpot().id==='reef' && fshInv().spots.open.includes('reef')"))
         check("reef species live in the tables, reef-gated", await pg.evaluate(

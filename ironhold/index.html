@@ -260,6 +260,78 @@
   #toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#000d;border:2px solid var(--gold);box-shadow:inset 0 0 0 1px #000,0 0 0 2px #000;padding:8px 14px;border-radius:3px;display:none;z-index:20;font-size:13px;max-width:90%;text-align:center}
   .kbd{font:11px monospace;color:var(--muted)}
   @media (prefers-reduced-motion:reduce){.fill{transition:none}}
+
+  /* --- companion equipment window --- */
+  #cqModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:30;padding:8px}
+  #cqModal.on{display:flex}
+  #cqBox{width:min(980px,100%);max-height:94vh;overflow:auto;background:linear-gradient(var(--panel),#24180f);
+    border:3px solid var(--line);box-shadow:inset 0 0 0 2px var(--bevel),inset 0 0 0 3px #000,0 18px 50px rgba(0,0,0,.65);border-radius:4px}
+  #cqHead{display:flex;align-items:center;gap:6px;padding:6px 8px;background:linear-gradient(#4a3724,var(--panel-2));
+    border-bottom:3px solid #000;box-shadow:inset 0 -2px 0 var(--bevel);position:sticky;top:0;z-index:5}
+  #cqHead h2{flex:1;text-align:center;font:bold 17px/1 Georgia,serif;color:var(--gold);margin:0}
+  #cqBody{display:grid;grid-template-columns:84px 1fr 226px;gap:8px;padding:8px}
+  #cqPick{display:flex;flex-direction:column;gap:5px;max-height:430px;overflow:auto}
+  .cqpic{width:100%;aspect-ratio:1;background:var(--ink);border:2px solid #000;box-shadow:inset 0 0 0 1px #5a4630;
+    padding:0;position:relative;overflow:hidden;min-height:0}
+  .cqpic img{width:100%;height:100%;object-fit:contain}
+  .cqpic.on{box-shadow:inset 0 0 0 2px var(--gold)}
+  .cqpic .tag{position:absolute;left:0;right:0;bottom:0;font-size:8px;color:var(--gold);background:#000a;padding:1px 2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cqpic .hire{position:absolute;right:2px;top:2px;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 1px #000}
+  .cqmark{font:bold 26px Georgia,serif;display:flex;align-items:center;justify-content:center;height:100%}
+  #cqDollWrap{background:#16120c;border:2px solid #000;box-shadow:inset 0 0 0 1px #5a4630,inset 0 0 40px rgba(0,0,0,.45)}
+  #cqDoll{display:grid;grid-template-columns:66px 1fr 66px;grid-template-rows:66px 1fr 66px 66px;
+    grid-template-areas:". head ." "weapon stage neck" "body stage relic" "food . charm";gap:10px;padding:10px;min-height:330px}
+  .cqslot{width:66px;height:66px;background:var(--ink);border:2px solid #000;
+    box-shadow:inset 0 0 0 1px #5a4630,inset 0 0 18px rgba(0,0,0,.55);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+  .cqslot.head{grid-area:head}.cqslot.weapon{grid-area:weapon}.cqslot.neck{grid-area:neck}
+  .cqslot.body{grid-area:body}.cqslot.relic{grid-area:relic}.cqslot.food{grid-area:food}.cqslot.charm{grid-area:charm}
+  .cqslot img{width:54px;height:54px}
+  .cqslot .lab{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);font-size:8px;
+    letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
+  .cqslot.empty::before{content:"";width:38px;height:38px;border-radius:50%;
+    background:radial-gradient(var(--bg),#0c0906);box-shadow:inset 0 0 0 1px var(--panel)}
+  #cqStage{grid-area:stage;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:170px}
+  #cqStage img{max-height:200px;max-width:100%;object-fit:contain;filter:drop-shadow(0 8px 0 rgba(0,0,0,.35))}
+  #cqStage .cqmark{font-size:64px}
+  #cqStage .nm{margin-top:4px;font:bold 14px Georgia,serif;color:var(--gold)}
+  #cqStage .role{font-size:11px;color:var(--muted)}
+  #cqStats{align-self:start;background:linear-gradient(#e8d7b0,#d4c091);color:#3a2a14;text-shadow:none;border:2px solid #000;
+    box-shadow:inset 0 0 0 1px #b79b62;padding:8px 10px;font-size:12px}
+  #cqStats h4{font:bold 13px Georgia,serif;text-align:center;margin:0 0 6px;border-bottom:1px solid #b79b62;padding-bottom:5px}
+  #cqStats .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #cqStats h5{font:bold 10px Verdana;text-transform:uppercase;letter-spacing:.3px;margin:0 0 3px;color:#6a4e24}
+  #cqStats .r{display:flex;justify-content:space-between;gap:6px;padding:1px 0}
+  #cqStats .r b{min-width:26px;text-align:right}
+  #cqStats .oth{margin-top:8px;border-top:1px solid #b79b62;padding-top:6px}
+  #cqStats .up{color:#2c6e2c}#cqStats .dn{color:#a02020}#cqStats .z{color:#8a7550}
+  #cqBagWrap{padding:0 8px 8px}
+  #cqBagWrap h3{font:bold 13px Georgia,serif;color:var(--gold);margin:2px 0 5px}
+  #cqBag{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cqb{aspect-ratio:1;background:var(--ink);border:2px solid #000;box-shadow:inset 0 0 0 1px #5a4630;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;min-height:48px}
+  .cqb img{width:80%;height:80%;object-fit:contain}
+  .cqb.locked img{filter:grayscale(1) brightness(.45)}
+  .cqb.locked .px{position:absolute;left:0;right:0;bottom:1px;font-size:8px;color:var(--gold);text-align:center;background:#000b}
+  .cqb.worn{cursor:default;box-shadow:inset 0 0 0 1px #3a2c1d}
+  .cqb.worn img{opacity:.22}
+  .cqb.worn .px{position:absolute;left:0;right:0;bottom:1px;font-size:8px;color:var(--muted);
+    text-align:center;background:#000b;text-transform:uppercase}
+  .cqtip{display:none;position:absolute;left:50%;bottom:108%;transform:translateX(-50%);background:var(--ink);
+    border:2px solid var(--gold);padding:3px 6px;font-size:10px;white-space:nowrap;z-index:6;color:var(--tan)}
+  .cqb:hover .cqtip,.cqslot:hover .cqtip{display:block}
+  .cqslot .cqtip{bottom:auto;top:108%}
+  #cqFoot{display:flex;gap:8px;padding:0 8px 10px;align-items:center}
+  @media(max-width:880px){
+    #cqBody{grid-template-columns:1fr}
+    #cqPick{flex-direction:row;max-height:none;overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+    .cqpic{min-width:58px;width:58px;flex:0 0 auto}
+    .cqpic .tag{font-size:7px}
+    #cqStats{align-self:start}
+    #cqBag{grid-template-columns:repeat(4,1fr)}
+  }
+  #cqFoot .msg{flex:1;font-size:11px;color:var(--muted);min-height:15px}
 </style>
 </head>
 <body>
@@ -301,6 +373,7 @@
           <h2>Champion</h2>
           <div class="doll" id="slots"></div>
           <div class="stats recess" id="stats"></div>
+          <button class="sm" id="btnComp" style="width:100%;margin-top:8px">Companions</button>
         </div>
       </section>
 
@@ -398,6 +471,17 @@
 
 <nav id="dock"><div class="in" id="dockIn"></div></nav>
 <div id="modal"><div class="box panel" id="modalBox"></div></div>
+<div id="cqModal"><div id="cqBox">
+  <header id="cqHead"><button class="sm" id="cqPrev">&#9664;</button><h2>Companion</h2>
+    <button class="sm" id="cqNext">&#9654;</button><button class="sm" id="cqX">&#10005;</button></header>
+  <div id="cqBody">
+    <aside id="cqPick"></aside>
+    <div id="cqDollWrap"><div id="cqDoll"></div></div>
+    <aside id="cqStats"></aside>
+  </div>
+  <div id="cqBagWrap"><h3>Companion armoury <span class="sub" id="cqBagLab"></span></h3><div id="cqBag"></div></div>
+  <div id="cqFoot"><div class="msg" id="cqMsg"></div><button class="sm" id="cqStrip">Strip all</button></div>
+</div></div>
 <div id="toast"></div>
 
 <script>
@@ -687,7 +771,7 @@ const S={
   equip:{},inv:[],style:3,combat:'melee',diff:0,area:0,kills:AREAS.map(()=>0),cleared:AREAS.map(()=>false),
   spec:100,autoEat:true,eatPct:50,autoSalv:false,last:Date.now(),totalKills:0,
   keep:{forge:0,yard:0,larder:0,chest:0,barracks:0},runes:[0,0,0,0,0,0],tower:{best:0},asc:{shards:0,realm:0,count:0},comp:{type:null,lvl:0},
-  party:[],compFound:{},compOwn:{},pray:{pts:30,on:[],autoBury:true},bones:0,bounty:{day:'',list:[]},found:{},
+  party:[],compFound:{},compOwn:{},compWorn:{},pray:{pts:30,on:[],autoBury:true},bones:0,bounty:{day:'',list:[]},found:{},
 };
 for(const s of SLOTS)S.equip[s]=null;
 const lv=s=>lvlFor(S.xp[s]);
@@ -771,39 +855,51 @@ const COMPS=[
  {id:'goldragon',n:'Golden Dragon',role:'dmg',pow:2.2, req:0, spr:'comp_goldragon',shape:'dragon',  col:'#e8c04a',hidden:true},
 ];
 const compSpr=cd=>cd.spr||cd.id;
-const COMP_ITEMS={"hound":[{"i":"comp_hound_collar","n":"Leather collar","k":"pow","v":8},{"i":"comp_hound_spiked_collar","n":"Spiked war-collar","k":"pow","v":10},{"i":"comp_hound_whistle","n":"Hunting whistle","k":"xp","v":5},{"i":"comp_hound_steak","n":"Raw steak","k":"pow","v":15},{"i":"comp_hound_bone","n":"Marrow bone","k":"pow","v":18},{"i":"comp_hound_mail","n":"Hound-mail","k":"pow","v":22},{"i":"comp_hound_fang","n":"Alpha fang pendant","k":"pow","v":30}],"cleric":[{"i":"comp_cleric_beads","n":"Prayer beads","k":"gold","v":3},{"i":"comp_cleric_holywater","n":"Holy water","k":"pow","v":10},{"i":"comp_cleric_staffcharm","n":"Oak staff charm","k":"xp","v":5},{"i":"comp_cleric_sash","n":"Vestment sash","k":"pow","v":15},{"i":"comp_cleric_bandage","n":"Blessed bandage","k":"pow","v":18},{"i":"comp_cleric_scripture","n":"Scripture page","k":"luck","v":8},{"i":"comp_cleric_crucifix","n":"Golden crucifix","k":"xp","v":10}],"squire":[{"i":"comp_squire_trainingsword","n":"Training sword","k":"pow","v":8},{"i":"comp_squire_keep_badge","n":"Keep crest badge","k":"luck","v":4},{"i":"comp_squire_k_shield","n":"Squire kite","k":"pow","v":12},{"i":"comp_squire_polish","n":"Armor polish","k":"mh","v":6},{"i":"comp_squire_tabard","n":"Page tabard","k":"pow","v":18},{"i":"comp_squire_dummy","n":"Practice dummy","k":"pow","v":22},{"i":"comp_squire_ribbon","n":"Knight's favor","k":"xp","v":10}],"barbarian":[{"i":"comp_barbarian_throwingaxe","n":"Throwing axe","k":"pow","v":8},{"i":"comp_barbarian_warpaint","n":"Warpaint pot","k":"luck","v":4},{"i":"comp_barbarian_helmcharm","n":"Horned helm charm","k":"xp","v":5},{"i":"comp_barbarian_meadhorn","n":"Mead horn","k":"pow","v":15},{"i":"comp_barbarian_furmantle","n":"Fur mantle","k":"pow","v":18},{"i":"comp_barbarian_totem","n":"Berserker totem","k":"luck","v":8},{"i":"comp_barbarian_oathring","n":"Blood-oath ring","k":"xp","v":10}],"knight":[{"i":"comp_knight_heater","n":"Blue-cross heater","k":"pow","v":8},{"i":"comp_knight_swordcharm","n":"Sword charm","k":"luck","v":4},{"i":"comp_knight_clasp","n":"Tabard clasp","k":"xp","v":5},{"i":"comp_knight_visoroil","n":"Visor oil","k":"mh","v":6},{"i":"comp_knight_vowscroll","n":"Knight's vow","k":"gold","v":7},{"i":"comp_knight_spurs","n":"Gold spurs","k":"pow","v":22},{"i":"comp_knight_pennant","n":"Lance pennant","k":"xp","v":10}],"assassin":[{"i":"comp_assassin_smokebomb","n":"Smoke bomb","k":"pow","v":8},{"i":"comp_assassin_poison","n":"Poison vial","k":"pow","v":10},{"i":"comp_assassin_wristblades","n":"Wrist blades","k":"pow","v":12},{"i":"comp_assassin_hoodpin","n":"Hood pin","k":"mh","v":6},{"i":"comp_assassin_bells","n":"Silent bells","k":"gold","v":7},{"i":"comp_assassin_contract","n":"Contract","k":"luck","v":8},{"i":"comp_assassin_lotus","n":"Black lotus","k":"xp","v":10}],"goldragon":[{"i":"comp_goldragon_scale","n":"Gold scale","k":"pow","v":8},{"i":"comp_goldragon_hoardcoin","n":"Hoard coin","k":"luck","v":4},{"i":"comp_goldragon_eyegem","n":"Amber eye gem","k":"xp","v":5},{"i":"comp_goldragon_collar","n":"Wyrm collar","k":"pow","v":15},{"i":"comp_goldragon_moltentreat","n":"Molten treat","k":"pow","v":18},{"i":"comp_goldragon_wyrmheart","n":"Wyrmheart crystal","k":"pow","v":22},{"i":"comp_goldragon_crown","n":"Crown of the hoard","k":"xp","v":10}],"tiger":[{"i":"comp_tiger_peltband","n":"Striped pelt band","k":"pow","v":8},{"i":"comp_tiger_haunch","n":"Raw haunch","k":"pow","v":10},{"i":"comp_tiger_clawsheath","n":"Claw sheath","k":"pow","v":12},{"i":"comp_tiger_bell","n":"Hunting bell","k":"mh","v":6},{"i":"comp_tiger_ambereye","n":"Tiger-eye","k":"gold","v":7},{"i":"comp_tiger_leafcharm","n":"Jungle charm","k":"luck","v":8},{"i":"comp_tiger_sabrefang","n":"Saber fang","k":"pow","v":30}],"bear":[{"i":"comp_bear_helm","n":"Bear helm","k":"pow","v":8},{"i":"comp_bear_honeypot","n":"Honey pot","k":"pow","v":10},{"i":"comp_bear_muzzle","n":"Iron muzzle","k":"pow","v":12},{"i":"comp_bear_greave","n":"Paw greave","k":"pow","v":15},{"i":"comp_bear_berries","n":"Berry mash","k":"pow","v":18},{"i":"comp_bear_standard","n":"War-bear standard","k":"luck","v":8},{"i":"comp_bear_collar","n":"Riveted collar","k":"pow","v":30}],"imp":[{"i":"comp_imp_pitchfork","n":"Tiny pitchfork","k":"pow","v":8},{"i":"comp_imp_brimstone","n":"Brimstone coal","k":"luck","v":4},{"i":"comp_imp_contract","n":"Imp contract","k":"xp","v":5},{"i":"comp_imp_hellberries","n":"Hellberries","k":"pow","v":15},{"i":"comp_imp_sulfur","n":"Sulfur pouch","k":"gold","v":7},{"i":"comp_imp_bell","n":"Infernal bell","k":"luck","v":8},{"i":"comp_imp_soulcrumb","n":"Soul crumb","k":"pow","v":30}],"fairy":[{"i":"comp_fairy_dew","n":"Dew vial","k":"pow","v":8},{"i":"comp_fairy_pixiedust","n":"Pixie dust","k":"luck","v":4},{"i":"comp_fairy_wand","n":"Twig wand","k":"pow","v":12},{"i":"comp_fairy_moonflower","n":"Moonflower","k":"mh","v":6},{"i":"comp_fairy_ribbon","n":"Gossamer ribbon","k":"gold","v":7},{"i":"comp_fairy_glowcap","n":"Glowcap","k":"pow","v":22},{"i":"comp_fairy_locket","n":"Queen's favor","k":"xp","v":10}],"ent":[{"i":"comp_ent_acorn","n":"Acorn of ages","k":"pow","v":8},{"i":"comp_ent_mosspoultice","n":"Moss poultice","k":"pow","v":10},{"i":"comp_ent_branch","n":"Living branch","k":"pow","v":12},{"i":"comp_ent_rootwrap","n":"Root wrap","k":"pow","v":15},{"i":"comp_ent_ambersap","n":"Amber sap","k":"gold","v":7},{"i":"comp_ent_leafcrown","n":"Leaf crown","k":"luck","v":8},{"i":"comp_ent_heartwood","n":"Heartwood chip","k":"pow","v":30}],"necro":[{"i":"comp_necro_bonedust","n":"Bone dust","k":"gold","v":3},{"i":"comp_necro_soulshard","n":"Soul shard","k":"luck","v":4},{"i":"comp_necro_phylactery","n":"Phylactery shard","k":"xp","v":5},{"i":"comp_necro_gravecandle","n":"Grave candle","k":"mh","v":6},{"i":"comp_necro_witherrose","n":"Wither rose","k":"pow","v":18},{"i":"comp_necro_skullcharm","n":"Skull charm","k":"luck","v":8},{"i":"comp_necro_voidink","n":"Void ink","k":"xp","v":10}],"sword":[{"i":"comp_sword_scabbardwrap","n":"Scabbard wrap","k":"pow","v":8},{"i":"comp_sword_lakestone","n":"Lake-stone","k":"luck","v":4},{"i":"comp_sword_oathribbon","n":"Oath ribbon","k":"xp","v":5},{"i":"comp_sword_runeoil","n":"Rune oil","k":"mh","v":6},{"i":"comp_sword_sapphire","n":"Hilt sapphire","k":"gold","v":7},{"i":"comp_sword_prayer","n":"Knight's prayer","k":"luck","v":8},{"i":"comp_sword_brokenscabbard","n":"Broken scabbard","k":"pow","v":30}]};
-const COMP_ITEM_SLOTS=3;
-function compItemsOf(id){return COMP_ITEMS[id]||[];}
-function compItem(iid){for(const c in COMP_ITEMS){const f=COMP_ITEMS[c].find(x=>x.i===iid);if(f)return f;}return null;}
-function compItemCost(r){return 400*Math.pow(2,r);}
+const CQ_ITEMS={"hound":[{"i":"comp_hound_collar","n":"Leather collar","s":"head","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":0,"pw":2},{"i":"comp_hound_spiked_collar","n":"Spiked war-collar","s":"neck","a":[0,0,2,0,0],"d":[2,1,2,0,0],"st":1,"pr":0,"pw":4},{"i":"comp_hound_mail","n":"Hound-mail","s":"body","a":[0,0,0,-1,0],"d":[4,4,3,-2,2],"st":0,"pr":0,"pw":5},{"i":"comp_hound_whistle","n":"Hunting whistle","s":"weapon","a":[0,0,0,0,3],"d":[0,0,0,0,0],"st":0,"pr":0,"pw":3},{"i":"comp_hound_bone","n":"Marrow bone","s":"relic","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":2},{"i":"comp_hound_steak","n":"Raw steak","s":"food","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":1},{"i":"comp_hound_fang","n":"Alpha fang pendant","s":"charm","a":[2,1,0,0,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":4}],"cleric":[{"i":"comp_cleric_beads","n":"Prayer beads","s":"head","a":[0,0,0,1,0],"d":[0,0,0,2,0],"st":0,"pr":3,"pw":2},{"i":"comp_cleric_crucifix","n":"Golden crucifix","s":"neck","a":[0,0,0,2,0],"d":[1,1,1,3,0],"st":0,"pr":4,"pw":4},{"i":"comp_cleric_sash","n":"Vestment sash","s":"body","a":[0,0,0,2,0],"d":[1,1,1,4,0],"st":0,"pr":2,"pw":3},{"i":"comp_cleric_staffcharm","n":"Oak staff charm","s":"weapon","a":[0,0,1,3,0],"d":[0,0,0,1,0],"st":0,"pr":1,"pw":3},{"i":"comp_cleric_scripture","n":"Scripture page","s":"relic","a":[0,0,0,2,0],"d":[0,0,0,2,0],"st":0,"pr":3,"pw":3},{"i":"comp_cleric_holywater","n":"Holy water","s":"food","a":[0,0,0,1,0],"d":[0,0,0,1,0],"st":0,"pr":2,"pw":2},{"i":"comp_cleric_bandage","n":"Blessed bandage","s":"charm","a":[0,0,0,0,0],"d":[0,0,0,1,0],"st":0,"pr":1,"pw":2}],"squire":[{"i":"comp_squire_dummy","n":"Practice dummy","s":"head","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":0,"pw":1},{"i":"comp_squire_ribbon","n":"Knight's favor","s":"neck","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":1,"pw":3},{"i":"comp_squire_tabard","n":"Page tabard","s":"body","a":[0,0,0,0,0],"d":[2,2,2,0,1],"st":0,"pr":0,"pw":2},{"i":"comp_squire_trainingsword","n":"Training sword","s":"weapon","a":[2,3,1,0,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":3},{"i":"comp_squire_k_shield","n":"Squire kite","s":"relic","a":[0,0,0,-1,0],"d":[4,5,4,-1,3],"st":0,"pr":0,"pw":4},{"i":"comp_squire_polish","n":"Armor polish","s":"food","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":0,"pw":1},{"i":"comp_squire_keep_badge","n":"Keep crest badge","s":"charm","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":0,"pw":3}],"barbarian":[{"i":"comp_barbarian_helmcharm","n":"Horned helm charm","s":"head","a":[0,1,2,-1,0],"d":[3,2,3,-2,1],"st":1,"pr":0,"pw":3},{"i":"comp_barbarian_oathring","n":"Blood-oath ring","s":"neck","a":[1,1,1,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":4},{"i":"comp_barbarian_furmantle","n":"Fur mantle","s":"body","a":[0,0,0,0,0],"d":[3,3,2,1,2],"st":1,"pr":0,"pw":3},{"i":"comp_barbarian_throwingaxe","n":"Throwing axe","s":"weapon","a":[1,4,2,0,2],"d":[0,0,0,0,0],"st":3,"pr":0,"pw":5},{"i":"comp_barbarian_totem","n":"Berserker totem","s":"relic","a":[2,2,2,0,0],"d":[0,0,0,-1,0],"st":3,"pr":0,"pw":5},{"i":"comp_barbarian_meadhorn","n":"Mead horn","s":"food","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":2},{"i":"comp_barbarian_warpaint","n":"Warpaint pot","s":"charm","a":[1,1,1,0,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":3}],"knight":[{"i":"comp_knight_clasp","n":"Tabard clasp","s":"head","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":1,"pw":2},{"i":"comp_knight_pennant","n":"Lance pennant","s":"neck","a":[1,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":1,"pw":3},{"i":"comp_knight_heater","n":"Blue-cross heater","s":"body","a":[0,0,0,-2,0],"d":[6,7,6,-1,5],"st":0,"pr":0,"pw":6},{"i":"comp_knight_swordcharm","n":"Sword charm","s":"weapon","a":[3,4,2,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":5},{"i":"comp_knight_vowscroll","n":"Knight's vow","s":"relic","a":[0,0,0,1,0],"d":[2,2,2,1,1],"st":0,"pr":2,"pw":4},{"i":"comp_knight_visoroil","n":"Visor oil","s":"food","a":[0,0,0,0,0],"d":[1,1,1,0,0],"st":0,"pr":0,"pw":1},{"i":"comp_knight_spurs","n":"Gold spurs","s":"charm","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":1,"pr":1,"pw":3}],"assassin":[{"i":"comp_assassin_hoodpin","n":"Hood pin","s":"head","a":[2,1,0,0,0],"d":[1,1,0,1,1],"st":0,"pr":0,"pw":3},{"i":"comp_assassin_lotus","n":"Black lotus","s":"neck","a":[1,1,0,1,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":4},{"i":"comp_assassin_contract","n":"Contract","s":"body","a":[0,0,0,0,0],"d":[1,1,1,1,1],"st":0,"pr":0,"pw":2},{"i":"comp_assassin_wristblades","n":"Wrist blades","s":"weapon","a":[5,4,0,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":6},{"i":"comp_assassin_smokebomb","n":"Smoke bomb","s":"relic","a":[0,0,0,0,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":3},{"i":"comp_assassin_poison","n":"Poison vial","s":"food","a":[1,1,0,0,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":3},{"i":"comp_assassin_bells","n":"Silent bells","s":"charm","a":[0,0,0,0,0],"d":[0,0,0,1,0],"st":0,"pr":0,"pw":2}],"goldragon":[{"i":"comp_goldragon_crown","n":"Crown of the hoard","s":"head","a":[2,2,2,3,0],"d":[3,3,3,3,2],"st":2,"pr":1,"pw":8},{"i":"comp_goldragon_collar","n":"Wyrm collar","s":"neck","a":[1,1,1,2,0],"d":[3,3,3,2,2],"st":1,"pr":0,"pw":6},{"i":"comp_goldragon_scale","n":"Gold scale","s":"body","a":[0,0,0,1,0],"d":[6,6,6,4,4],"st":1,"pr":0,"pw":7},{"i":"comp_goldragon_wyrmheart","n":"Wyrmheart crystal","s":"weapon","a":[0,0,0,6,0],"d":[0,0,0,2,0],"st":2,"pr":0,"pw":8},{"i":"comp_goldragon_hoardcoin","n":"Hoard coin","s":"relic","a":[0,0,0,2,0],"d":[1,1,1,1,1],"st":1,"pr":0,"pw":5},{"i":"comp_goldragon_moltentreat","n":"Molten treat","s":"food","a":[0,0,0,1,0],"d":[0,0,0,0,0],"st":3,"pr":0,"pw":4},{"i":"comp_goldragon_eyegem","n":"Amber eye gem","s":"charm","a":[0,0,0,3,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":6}],"tiger":[{"i":"comp_tiger_peltband","n":"Striped pelt band","s":"head","a":[0,1,0,0,0],"d":[1,1,1,0,1],"st":0,"pr":0,"pw":2},{"i":"comp_tiger_ambereye","n":"Tiger-eye","s":"neck","a":[1,1,0,0,0],"d":[0,0,0,1,0],"st":0,"pr":0,"pw":3},{"i":"comp_tiger_clawsheath","n":"Claw sheath","s":"body","a":[2,2,0,0,0],"d":[2,2,1,0,1],"st":1,"pr":0,"pw":4},{"i":"comp_tiger_sabrefang","n":"Saber fang","s":"weapon","a":[5,3,0,0,0],"d":[0,0,0,0,0],"st":3,"pr":0,"pw":6},{"i":"comp_tiger_leafcharm","n":"Jungle charm","s":"relic","a":[0,0,0,1,0],"d":[0,0,0,1,0],"st":0,"pr":0,"pw":2},{"i":"comp_tiger_haunch","n":"Raw haunch","s":"food","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":2},{"i":"comp_tiger_bell","n":"Hunting bell","s":"charm","a":[0,0,0,0,1],"d":[0,0,0,0,0],"st":0,"pr":0,"pw":2}],"bear":[{"i":"comp_bear_helm","n":"Bear helm","s":"head","a":[0,0,2,-1,0],"d":[4,3,4,-2,2],"st":1,"pr":0,"pw":4},{"i":"comp_bear_collar","n":"Riveted collar","s":"neck","a":[0,0,1,0,0],"d":[2,2,2,0,1],"st":1,"pr":0,"pw":3},{"i":"comp_bear_muzzle","n":"Iron muzzle","s":"body","a":[0,0,0,-1,0],"d":[5,5,5,-2,3],"st":0,"pr":0,"pw":5},{"i":"comp_bear_greave","n":"Paw greave","s":"weapon","a":[0,0,4,0,0],"d":[1,1,1,0,0],"st":3,"pr":0,"pw":5},{"i":"comp_bear_standard","n":"War-bear standard","s":"relic","a":[1,1,1,0,0],"d":[1,1,1,0,0],"st":1,"pr":0,"pw":4},{"i":"comp_bear_honeypot","n":"Honey pot","s":"food","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":2,"pr":0,"pw":2},{"i":"comp_bear_berries","n":"Berry mash","s":"charm","a":[0,0,0,0,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":1}],"imp":[{"i":"comp_imp_bell","n":"Infernal bell","s":"head","a":[0,0,0,2,0],"d":[0,0,0,1,0],"st":0,"pr":0,"pw":2},{"i":"comp_imp_contract","n":"Imp contract","s":"neck","a":[0,0,0,2,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":3},{"i":"comp_imp_sulfur","n":"Sulfur pouch","s":"body","a":[0,0,0,1,0],"d":[1,1,1,2,0],"st":0,"pr":0,"pw":2},{"i":"comp_imp_pitchfork","n":"Tiny pitchfork","s":"weapon","a":[1,0,2,3,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":5},{"i":"comp_imp_brimstone","n":"Brimstone coal","s":"relic","a":[0,0,0,3,0],"d":[0,0,0,1,0],"st":1,"pr":0,"pw":4},{"i":"comp_imp_hellberries","n":"Hellberries","s":"food","a":[0,0,0,1,0],"d":[0,0,0,0,0],"st":1,"pr":0,"pw":2},{"i":"comp_imp_soulcrumb","n":"Soul crumb","s":"charm","a":[0,0,0,3,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":4}],"fairy":[{"i":"comp_fairy_glowcap","n":"Glowcap","s":"head","a":[0,0,0,2,0],"d":[0,0,0,2,0],"st":0,"pr":1,"pw":3},{"i":"comp_fairy_locket","n":"Queen's favor","s":"neck","a":[0,0,0,2,0],"d":[1,1,1,2,0],"st":0,"pr":2,"pw":4},{"i":"comp_fairy_ribbon","n":"Gossamer ribbon","s":"body","a":[0,0,0,1,0],"d":[1,1,1,3,1],"st":0,"pr":1,"pw":3},{"i":"comp_fairy_wand","n":"Twig wand","s":"weapon","a":[0,0,0,5,0],"d":[0,0,0,1,0],"st":0,"pr":1,"pw":5},{"i":"comp_fairy_pixiedust","n":"Pixie dust","s":"relic","a":[0,0,0,3,0],"d":[0,0,0,2,0],"st":0,"pr":1,"pw":4},{"i":"comp_fairy_dew","n":"Dew vial","s":"food","a":[0,0,0,1,0],"d":[0,0,0,1,0],"st":0,"pr":1,"pw":2},{"i":"comp_fairy_moonflower","n":"Moonflower","s":"charm","a":[0,0,0,2,0],"d":[0,0,0,2,0],"st":0,"pr":2,"pw":3}],"ent":[{"i":"comp_ent_leafcrown","n":"Leaf crown","s":"head","a":[0,0,1,1,0],"d":[2,2,2,2,1],"st":0,"pr":1,"pw":3},{"i":"comp_ent_acorn","n":"Acorn of ages","s":"neck","a":[0,0,0,2,0],"d":[1,1,1,2,0],"st":0,"pr":1,"pw":4},{"i":"comp_ent_heartwood","n":"Heartwood chip","s":"body","a":[0,0,0,0,0],"d":[5,4,6,2,3],"st":1,"pr":0,"pw":5},{"i":"comp_ent_branch","n":"Living branch","s":"weapon","a":[0,0,5,1,0],"d":[0,0,1,0,0],"st":3,"pr":0,"pw":5},{"i":"comp_ent_mosspoultice","n":"Moss poultice","s":"relic","a":[0,0,0,1,0],"d":[1,1,1,1,0],"st":0,"pr":1,"pw":3},{"i":"comp_ent_ambersap","n":"Amber sap","s":"food","a":[0,0,0,1,0],"d":[0,0,0,1,0],"st":1,"pr":0,"pw":2},{"i":"comp_ent_rootwrap","n":"Root wrap","s":"charm","a":[0,0,0,0,0],"d":[2,2,2,1,1],"st":0,"pr":0,"pw":2}],"necro":[{"i":"comp_necro_skullcharm","n":"Skull charm","s":"head","a":[0,0,0,3,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":3},{"i":"comp_necro_phylactery","n":"Phylactery shard","s":"neck","a":[0,0,0,4,0],"d":[1,1,1,3,0],"st":0,"pr":0,"pw":6},{"i":"comp_necro_witherrose","n":"Wither rose","s":"body","a":[0,0,0,2,0],"d":[1,1,1,3,0],"st":0,"pr":0,"pw":3},{"i":"comp_necro_voidink","n":"Void ink","s":"weapon","a":[0,0,0,5,0],"d":[0,0,0,1,0],"st":0,"pr":0,"pw":5},{"i":"comp_necro_soulshard","n":"Soul shard","s":"relic","a":[0,0,0,4,0],"d":[0,0,0,2,0],"st":0,"pr":0,"pw":5},{"i":"comp_necro_bonedust","n":"Bone dust","s":"food","a":[0,0,0,1,0],"d":[0,0,0,1,0],"st":0,"pr":0,"pw":2},{"i":"comp_necro_gravecandle","n":"Grave candle","s":"charm","a":[0,0,0,2,0],"d":[0,0,0,2,0],"st":0,"pr":1,"pw":3}],"sword":[{"i":"comp_sword_brokenscabbard","n":"Broken scabbard","s":"head","a":[1,1,0,1,0],"d":[1,1,1,1,0],"st":0,"pr":1,"pw":3},{"i":"comp_sword_oathribbon","n":"Oath ribbon","s":"neck","a":[0,0,0,1,0],"d":[1,1,1,1,0],"st":0,"pr":3,"pw":4},{"i":"comp_sword_scabbardwrap","n":"Scabbard wrap","s":"body","a":[0,1,0,0,0],"d":[2,3,2,1,1],"st":0,"pr":1,"pw":3},{"i":"comp_sword_sapphire","n":"Hilt sapphire","s":"weapon","a":[3,5,2,3,0],"d":[0,0,0,1,0],"st":3,"pr":1,"pw":8},{"i":"comp_sword_lakestone","n":"Lake-stone","s":"relic","a":[0,0,0,3,0],"d":[1,1,1,3,0],"st":0,"pr":2,"pw":6},{"i":"comp_sword_runeoil","n":"Rune oil","s":"food","a":[1,1,0,2,0],"d":[0,0,0,1,0],"st":1,"pr":0,"pw":3},{"i":"comp_sword_prayer","n":"Knight's prayer","s":"charm","a":[0,0,0,1,0],"d":[0,0,0,1,0],"st":0,"pr":4,"pw":4}]};
+// Seven slots, seven items — every companion owns exactly one piece per slot.
+const CQ_SLOTS=['head','weapon','body','neck','relic','food','charm'];
+const CQ_STYLE=['Stab','Slash','Crush','Magic','Range'];
+const CQ_ROLE={dmg:'Damage companion',heal:'Support companion',dr:'Guardian companion'};
+const cqSum=a=>a.reduce((x,y)=>x+y,0);
+function cqItemsOf(t){return CQ_ITEMS[t]||[];}
+function cqItem(iid){for(const t in CQ_ITEMS){const f=CQ_ITEMS[t].find(x=>x.i===iid);if(f)return f;}return null;}
+function cqScore(it){return it.pw*3+it.st*2+it.pr*2+cqSum(it.a)+cqSum(it.d);}
+function cqCost(it){return 200+90*Math.max(1,cqScore(it));}
+function cqWorn(t){return (S.compWorn&&S.compWorn[t])||{};}
+function cqTally(t){const q={a:[0,0,0,0,0],d:[0,0,0,0,0],st:0,pr:0,pw:0,n:0};const w=cqWorn(t);
+  for(const sl of CQ_SLOTS){const it=w[sl]&&cqItem(w[sl]);if(!it)continue;q.n++;
+    for(let i=0;i<5;i++){q.a[i]+=it.a[i];q.d[i]+=it.d[i];}
+    q.st+=it.st;q.pr+=it.pr;q.pw+=it.pw;}
+  return q;}
+// Power and attack bonuses raise the companion's own damage; defence shields YOU;
+// strength is flat on every hit; prayer widens the hold's prayer pool.
+function cqPow(t){const q=cqTally(t);return q.pw*3+cqSum(q.a);}
+function cqDR(t){return Math.floor(cqSum(cqTally(t).d)/12);}
+function cqPrayer(){let p=0;for(const c of party())p+=cqTally(c.type).pr;return p;}
 const PARTY_MAX=2;
 const HOUND_HIT=0.10,CLERIC_HEAL=0.04,SQUIRE_DR=15;   // used by compTick AND the barracks readout
 const SLOT_REQ=[0,2]; // barracks level needed per party slot
 function slotOpen(i){return keepLv('barracks')>=SLOT_REQ[i];}
 function hireCost(i){return [500,2000][i];}
 function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def);}
-// A companion's three item slots hold ITS OWN kit — collars, food, relics.
-// Hero equipment does not go on companions.
-function compItemPow(c){let p=0;for(const iid of ((c&&c.items)||[])){const it=iid&&compItem(iid);
-  if(it&&it.k==='pow')p+=it.v;}return p;}
-function compPerks(b){for(const c of party())for(const iid of (c.items||[])){const it=iid&&compItem(iid);
-  if(it&&it.k!=='pow')b[it.k]+=it.v;}}
-function compMult(c){return 1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+compItemPow(c)/100;}
+function compPerks(b){for(const c of party())b.dr+=cqDR(c.type);}
+function compMult(c){return 1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100;}
 function compCost(c){return Math.round(600*Math.pow(1.8,c.lvl||0));}
 // What the companion is worth RIGHT NOW. The old menu printed a fixed blurb, so
 // training changed the fight but never the numbers on screen.
 function compDesc(c){
   const cd=COMPS.find(x=>x.id===c.type)||COMPS[0],m=compMult(c)*cd.pow;
-  if(cd.role==='dmg')return `Strikes every 3s for up to <b class="gold">${Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*m))}</b> damage.`;
-  if(cd.role==='heal')return `Heals <b class="gold">${Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*m))}</b> HP every 3s.`;
+  const st=cqTally(c.type).st;
+  if(cd.role==='dmg')return `Strikes every 3s for up to <b class="gold">${Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*m))+st}</b> damage.`;
+  if(cd.role==='heal')return `Heals <b class="gold">${Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*m))+st}</b> HP every 3s.`;
   return `Takes hits for you: <b class="gold">${Math.round(SQUIRE_DR*m)}%</b> damage reduction.`;
 }
 const partyHas=t=>(S.party||[]).some(c=>c.type===t);
 function compTick(){
   if(G.dead)return;
   party().forEach((c,ci)=>{
-    if(c.def.role==='dmg'&&G.mob&&G.mobHp>0){if(!G.sim)FX.cAct[ci]=1;const dmg=Math.min(G.mobHp,rnd(0,Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*c.def.pow*compMult(c)))));G.mobHp-=dmg;if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();}}
-    else if(c.def.role==='heal'&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const h=Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*c.def.pow*compMult(c)));S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(HX-72,130,'+'+h,'#2e9a3a');}
+    if(c.def.role==='dmg'&&G.mob&&G.mobHp>0){if(!G.sim)FX.cAct[ci]=1;const dmg=Math.min(G.mobHp,rnd(0,Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*c.def.pow*compMult(c))))+cqTally(c.type).st);G.mobHp-=dmg;if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();}}
+    else if(c.def.role==='heal'&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const h=Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*c.def.pow*compMult(c)))+cqTally(c.type).st;S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(HX-72,130,'+'+h,'#2e9a3a');}
   });
 }
 function dmgReduction(){let dr=bonuses().dr+prayDR();for(const c of party())if(c.def.role==='dr')dr+=SQUIRE_DR*c.def.pow*compMult(c);return Math.min(70,dr);}
@@ -818,7 +914,7 @@ const PRAYERS=[
  {id:'piety',n:'Piety',d:'+20% accuracy, max hit and defence',drain:2.0,req:50,eff:{atk:1.2,str:1.2,def:1.2},ex:['clarity','burst','skin']},
 ];
 const BONE_PTS=8;
-function prayMax(){return 30+combatLvl();}
+function prayMax(){return 30+combatLvl()+cqPrayer();}
 function prayOn(id){return S.pray.on.includes(id);}
 function activePrayers(){return PRAYERS.filter(p=>prayOn(p.id));}
 function prayMult(k){let m=1;for(const p of activePrayers())if(p.eff[k])m*=p.eff[k];return m;}
@@ -1228,11 +1324,13 @@ function uiDefaults(){S.tab=S.tab||'hero';
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
-    c.items=c.items||[];while(c.items.length<COMP_ITEM_SLOTS)c.items.push(null);
-    c.items.length=COMP_ITEM_SLOTS;}
+    if(c.items){// the flat three-slot kit became a seven-slot paperdoll
+      const w=S.compWorn[c.type]||(S.compWorn[c.type]={});
+      for(const iid of c.items){const it=iid&&cqItem(iid);if(it&&!w[it.s])w[it.s]=it.i;}
+      delete c.items;}}
   {// crit became a max-hit bonus; carry old rolls over so saved gear keeps its affix
     const mhFix=it=>{if(it&&it.aff&&it.aff.crit!==undefined){it.aff.mh=(it.aff.mh||0)+it.aff.crit;delete it.aff.crit;}};
     for(const k in S.equip)mhFix(S.equip[k]);
@@ -1323,6 +1421,12 @@ function renderPills(){for(const [k,,f] of PILLS)$('pill-'+k).textContent=f();
 
 // --- dock ---
 const TABS=[['hero','Champion','champion'],['vault','Vault','vault'],['skills','Skills','skills'],['world','World','world'],['keep','Keep','keep'],['prayer','Prayer','prayer'],['codex','Codex','codex']];
+function cqWire(){
+  $('cqX').onclick=cqClose;$('cqPrev').onclick=()=>cqStep(-1);$('cqNext').onclick=()=>cqStep(1);
+  $('cqStrip').onclick=cqStripAll;$('btnComp').onclick=()=>cqOpen(S.party[0]&&S.party[0].type);
+  $('cqModal').addEventListener('click',e=>{if(e.target.id==='cqModal')cqClose();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cqUI.open)cqClose();});
+}
 function buildDock(){
   $('dockIn').innerHTML=TABS.map(([id,n,ic],i)=>`<button data-tab="${id}" aria-label="${n} (${i+1})">${svg(ic)}<span>${n}</span></button>`).join('');
   document.querySelectorAll('#dock button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -1470,21 +1574,8 @@ function renderKeep(){
   for(let i=0;i<PARTY_MAX;i++){
     const c=P[i];
     if(c){const d=COMPS.find(x=>x.id===c.type);
-      const owned=compItemsOf(c.type).filter(x=>S.compOwn[x.i]);
-      const eff=x=>x.k==='pow'?`+${x.v}% power`:`+${x.v}% ${({gold:'gold',luck:'drops',xp:'XP',mh:'max hit'})[x.k]}`;
-      const gsel=n=>{const cur=c.items[n];
-        const opts=[`<option value="">— empty —</option>`].concat(owned.map(x=>{
-          const usedElsewhere=c.items.some((v,j)=>j!==n&&v===x.i);
-          return usedElsewhere?'':`<option value="${x.i}"${cur===x.i?' selected':''}>${x.n} · ${eff(x)}</option>`;}).filter(Boolean));
-        return `<select data-citem="${i}:${n}">${opts.join('')}</select>`;};
-      const unowned=compItemsOf(c.type).map((x,r)=>({x,r})).filter(o=>!S.compOwn[o.x.i]);
-      const shop=unowned.length
-        ? `<select data-cbuy="${i}">`+unowned.map(o=>`<option value="${o.x.i}">${o.x.n} · ${eff(o.x)} · ${fmt(compItemCost(o.r))}g</option>`).join('')+`</select>`
-          +`<button class="sm" data-cbuygo="${i}">Buy</button>`
-        : `<span class="sub">All kit acquired</span>`;
       compRows+=`<div class="pslot"><span><b>${d.n}</b> lv ${c.lvl}<br><span class="sub">${compDesc(c)}</span></span><span style="display:flex;gap:4px;flex-direction:column"><button class="sm" data-train="${i}" ${S.gold>=compCost(c)?'':'disabled'}>Train ${fmt(compCost(c))}g</button><button class="sm" data-dismiss="${i}">Dismiss</button></span></div>`;
-      compRows+=`<div class="pslot"><span class="sub">Kit · power ×${compMult(c).toFixed(2)}</span><span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${gsel(0)}${gsel(1)}${gsel(2)}</span></div>`;
-      compRows+=`<div class="pslot"><span class="sub">Quartermaster</span><span style="display:flex;gap:4px">${shop}</span></div>`;}
+      compRows+=`<div class="pslot"><span class="sub">Kit ${cqTally(c.type).n}/7 worn · power ×${compMult(c).toFixed(2)}</span><button class="sm" data-ckit="${c.type}">Equipment</button></div>`;}
     else if(slotOpen(i)&&i<=P.length){
       const avail=COMPS.filter(x=>!partyHas(x.id)&&(!x.hidden||S.compFound[x.id])&&keepLv('barracks')>=x.req);
       compRows+=avail.length
@@ -1498,33 +1589,98 @@ function renderKeep(){
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
-   keepCard('barracks',`Two companions fight beside you, one of each kind. Hound bites, Cleric heals, Squire shields.`,compRows)+
+   keepCard('barracks',`Two companions fight beside you, one of each kind. Hire and train them here; their equipment lives in the companion window.`,compRows)+
    `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1} · ${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
   document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;if(partyHas(type)){toast('You already have a '+COMPS.find(x=>x.id===type).n);return;}S.gold-=hireCost(i);S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
   document.querySelectorAll('#keep [data-train]').forEach(b=>b.onclick=()=>{const c=S.party[+b.dataset.train];if(!c||S.gold<compCost(c))return;S.gold-=compCost(c);c.lvl++;toast(`${COMPS.find(x=>x.id===c.type).n} trained to ${c.lvl}`);renderAll();});
-  document.querySelectorAll('#keep [data-citem]').forEach(sel=>sel.onchange=()=>{
-    const [ci,n]=sel.dataset.citem.split(':');const c=S.party[+ci];if(!c)return;
-    const iid=sel.value||null;
-    if(iid&&!S.compOwn[iid]){renderAll();return;}
-    if(iid&&compItemsOf(c.type).every(x=>x.i!==iid)){renderAll();return;}   // never another companion's kit
-    for(let j=0;j<c.items.length;j++)if(j!==+n&&c.items[j]===iid)c.items[j]=null;
-    c.items[+n]=iid;renderAll();});
-  document.querySelectorAll('#keep [data-cbuygo]').forEach(btn=>btn.onclick=()=>{
-    const i=+btn.dataset.cbuygo;const c=S.party[i];if(!c)return;
-    const sel=document.querySelector(`#keep [data-cbuy="${i}"]`);if(!sel)return;
-    const iid=sel.value;const list=compItemsOf(c.type);const r=list.findIndex(x=>x.i===iid);
-    if(r<0||S.compOwn[iid])return;
-    const cost=compItemCost(r);
-    if(S.gold<cost){toast('Not enough gold');return;}
-    S.gold-=cost;S.compOwn[iid]=1;
-    const it=list[r];log(`Bought ${it.n} for the ${COMPS.find(x=>x.id===c.type).n}.`,'g');toast(it.n);
-    renderAll();});
-  document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost; its gear returns to the vault.`)){
+  document.querySelectorAll('#keep [data-ckit]').forEach(b=>b.onclick=()=>cqOpen(b.dataset.ckit));
+  document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost; its kit stays in the armoury.`)){
       S.party.splice(i,1);renderAll();}});
   $('kAsc').onclick=()=>{if(!ascReady())return;if(confirm(`Ascend for +${ascShards()} shards? Skills, gear, gold and areas reset.`)){ascend();toast('Realm '+(S.asc.realm+1));showTab('hero');}};
 }
+
+// ============ COMPANION EQUIPMENT WINDOW ============
+// The armoury board: seven slots, seven items, one per slot. Buy what you don't
+// own, click to wear, click the worn slot to take it off.
+const cqUI={open:false,sel:'hound',msg:''};
+function cqSprSrc(t){const cd=COMPS.find(x=>x.id===t);const k=(cd&&cd.spr)||t;
+  const g=SPR_SRC[k+'_idle'];return (g&&g.f&&g.f[0]&&g.f[0].src)||'';}
+function cqShown(cd){return cd.hidden?!!S.compFound[cd.id]:true;}
+function cqList(){return COMPS.filter(cqShown);}
+function cqOpen(t){
+  const l=cqList();if(!l.length)return;
+  if(t&&l.some(x=>x.id===t))cqUI.sel=t;
+  if(!l.some(x=>x.id===cqUI.sel))cqUI.sel=l[0].id;
+  cqUI.open=true;cqUI.msg='';$('cqModal').classList.add('on');cqRender();}
+function cqClose(){cqUI.open=false;$('cqModal').classList.remove('on');}
+function cqStep(d){const l=cqList();const i=l.findIndex(x=>x.id===cqUI.sel);
+  cqUI.sel=l[(i+d+l.length)%l.length].id;cqUI.msg='';cqRender();}
+function cqNum(n){return (n>0?'+':'')+n;}
+function cqCls(n){return n>0?'up':n<0?'dn':'z';}
+function cqRender(){
+  if(!cqUI.open)return;
+  const l=cqList();const cd=COMPS.find(x=>x.id===cqUI.sel)||l[0];
+  const w=cqWorn(cd.id),q=cqTally(cd.id),items=cqItemsOf(cd.id);
+  $('cqHead').querySelector('h2').textContent=cd.n;
+  $('cqPick').innerHTML=l.map(x=>{const src=cqSprSrc(x.id);
+    return `<button class="cqpic${x.id===cd.id?' on':''}" data-cqsel="${x.id}" title="${x.n}">`
+      +(src?`<img src="${src}" alt="">`:`<span class="cqmark" style="color:${x.col}">${x.n[0]}</span>`)
+      +(partyHas(x.id)?'<span class="hire"></span>':'')
+      +`<span class="tag">${x.n}</span></button>`;}).join('');
+  const src=cqSprSrc(cd.id);
+  $('cqDoll').innerHTML=CQ_SLOTS.map(sl=>{const it=w[sl]&&cqItem(w[sl]);
+    return `<div class="cqslot ${sl}${it?'':' empty'}" data-cqoff="${sl}">`
+      +(it?`<img src="${ICONS[it.i]}" alt=""><span class="cqtip">${it.n} — click to take off</span>`
+          :`<span class="cqtip">${sl[0].toUpperCase()+sl.slice(1)} — empty</span>`)
+      +`<span class="lab">${sl}</span></div>`;}).join('')
+    +`<div id="cqStage">`+(src?`<img src="${src}" alt="">`:`<span class="cqmark" style="color:${cd.col}">${cd.n[0]}</span>`)
+    +`<div class="nm">${cd.n}</div><div class="role">${CQ_ROLE[cd.role]||''}${cd.hidden?' · rare':''}</div></div>`;
+  const row=(n,v)=>`<div class="r"><span>${n}</span><b class="${cqCls(v)}">${cqNum(v)}</b></div>`;
+  $('cqStats').innerHTML=`<h4>Worn bonuses</h4><div class="cols">`
+    +`<div><h5>Attack</h5>${CQ_STYLE.map((n,i)=>row(n,q.a[i])).join('')}</div>`
+    +`<div><h5>Defence</h5>${CQ_STYLE.map((n,i)=>row(n,q.d[i])).join('')}</div></div>`
+    +`<div class="oth"><h5 style="text-align:center">Effect</h5>`
+    +row('Strength',q.st)+row('Prayer',q.pr)
+    +`<div class="r"><span>Companion power</span><b class="${cqCls(cqPow(cd.id))}">${cqNum(cqPow(cd.id))}%</b></div>`
+    +`<div class="r"><span>Your damage taken</span><b class="${cqCls(cqDR(cd.id))}">−${cqDR(cd.id)}%</b></div></div>`;
+  $('cqBagLab').textContent=`${items.filter(x=>S.compOwn[x.i]).length}/7 owned · ${q.n}/7 worn`;
+  $('cqBag').innerHTML=items.map(it=>{
+    if(w[it.s]===it.i)return `<div class="cqb worn"><img src="${ICONS[it.i]}" alt="">`
+      +`<span class="px">worn</span><span class="cqtip">${it.n} — worn on ${it.s}</span></div>`;
+    if(S.compOwn[it.i])return `<div class="cqb" data-cqon="${it.i}"><img src="${ICONS[it.i]}" alt="">`
+      +`<span class="cqtip">${it.n} → ${it.s}</span></div>`;
+    return `<div class="cqb locked" data-cqbuy="${it.i}"><img src="${ICONS[it.i]}" alt="">`
+      +`<span class="px">${fmt(cqCost(it))}g</span>`
+      +`<span class="cqtip">${it.n} → ${it.s} · buy for ${fmt(cqCost(it))}g</span></div>`;}).join('');
+  $('cqMsg').textContent=cqUI.msg||(partyHas(cd.id)?'Fighting beside you.':'Not hired — kit is kept ready in the armoury.');
+  $('cqPick').querySelectorAll('[data-cqsel]').forEach(b=>b.onclick=()=>{cqUI.sel=b.dataset.cqsel;cqUI.msg='';cqRender();});
+  $('cqDoll').querySelectorAll('[data-cqoff]').forEach(b=>b.onclick=()=>cqOff(cd.id,b.dataset.cqoff));
+  $('cqBag').querySelectorAll('[data-cqon]').forEach(b=>b.onclick=()=>cqOn(cd.id,b.dataset.cqon));
+  $('cqBag').querySelectorAll('[data-cqbuy]').forEach(b=>b.onclick=()=>cqBuy(cd.id,b.dataset.cqbuy));
+}
+function cqOn(t,iid){
+  const it=cqItem(iid);if(!it||!S.compOwn[iid])return;
+  if(cqItemsOf(t).every(x=>x.i!==iid))return;            // never another companion's kit
+  (S.compWorn[t]||(S.compWorn[t]={}))[it.s]=iid;
+  cqUI.msg=`${it.n} worn on ${it.s}.`;cqRender();renderAll();}
+function cqOff(t,sl){
+  const w=S.compWorn[t];const iid=w&&w[sl];if(!iid)return;
+  delete w[sl];cqUI.msg=`${cqItem(iid).n} back in the armoury.`;cqRender();renderAll();}
+function cqBuy(t,iid){
+  const it=cqItem(iid);if(!it||S.compOwn[iid])return;
+  if(cqItemsOf(t).every(x=>x.i!==iid))return;
+  const cost=cqCost(it);
+  if(S.gold<cost){cqUI.msg='Not enough gold.';toast('Not enough gold');cqRender();return;}
+  S.gold-=cost;S.compOwn[iid]=1;
+  log(`Bought ${it.n} for the ${COMPS.find(x=>x.id===t).n}.`,'g');toast(it.n);
+  cqOn(t,iid);}
+function cqStripAll(){
+  const t=cqUI.sel;const w=S.compWorn[t];if(!w)return;
+  for(const sl of CQ_SLOTS)delete w[sl];
+  cqUI.msg='Everything back in the armoury.';cqRender();renderAll();}
+
 function renderTop(){
   renderPills();
   const mh=maxHp();$('pHp').textContent=`${Math.ceil(S.hp)}/${mh}`;$('pHpBar').style.width=(S.hp/mh*100)+'%';
@@ -1619,7 +1775,7 @@ function offline(){
 }
 
 // ============ WIRING ============
-buildTop();buildDock();buildFilters();
+buildTop();buildDock();buildFilters();cqWire();
 $('btnSpec').onclick=special;
 $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
@@ -1664,7 +1820,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b22-maxhit';
+  const BUILD='b23-compkit2';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

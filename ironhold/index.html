@@ -752,25 +752,35 @@ function enterTower(){if(G.dead)return;G.tower=1;G.isBoss=false;spawn(false);log
 function leaveTower(){if(!G.tower)return;const f=G.tower;G.tower=0;spawn(false);log(`You leave the tower at floor ${f}.`);G.dirty=true;}
 
 const COMPS=[
- {id:'hound',n:'War hound',d:'Bites every 3s for up to half your max hit.',shape:'beast',col:'#6a4a2a',big:0.55},
+ {id:'hound',n:'War hound',d:'Bites every 3s for a tenth of your max hit.',shape:'beast',col:'#6a4a2a',big:0.55},
  {id:'cleric',n:'Cleric',d:'Heals 4% of your max HP every 3s.',shape:'humanoid',col:'#e8e2cc',big:0.8},
  {id:'squire',n:'Squire',d:'Takes hits for you: 15% damage reduction.',shape:'humanoid',col:'#8f8f96',big:0.8},
 ];
 const PARTY_MAX=3;
+const HOUND_HIT=0.10,CLERIC_HEAL=0.04,SQUIRE_DR=15;   // used by compTick AND the barracks readout
 const SLOT_REQ=[0,2,4]; // barracks level needed per party slot
 function slotOpen(i){return keepLv('barracks')>=SLOT_REQ[i];}
 function hireCost(i){return [500,2000,4500][i];}
 function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def);}
 function compMult(c){return 1+0.2*keepLv('barracks')+0.1*(c.lvl||0);}
 function compCost(c){return Math.round(600*Math.pow(1.8,c.lvl||0));}
+// What the companion is worth RIGHT NOW. The old menu printed a fixed blurb, so
+// training changed the fight but never the numbers on screen.
+function compDesc(type,lvl){
+  const m=1+0.2*keepLv('barracks')+0.1*(lvl||0);
+  if(type==='hound')return `Bites every 3s for up to <b class="gold">${Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*m))}</b> damage.`;
+  if(type==='cleric')return `Heals <b class="gold">${Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*m))}</b> HP every 3s.`;
+  return `Takes hits for you: <b class="gold">${Math.round(SQUIRE_DR*m)}%</b> damage reduction.`;
+}
+const partyHas=t=>(S.party||[]).some(c=>c.type===t);
 function compTick(){
   if(G.dead)return;
   party().forEach((c,ci)=>{
-    if(c.def.id==='hound'&&G.mob&&G.mobHp>0){if(!G.sim)FX.cAct[ci]=1;const dmg=Math.min(G.mobHp,rnd(0,Math.max(1,Math.floor(playerMaxHit()*0.5*compMult(c)))));G.mobHp-=dmg;if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();}}
-    else if(c.def.id==='cleric'&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const h=Math.max(1,Math.floor(maxHp()*0.04*compMult(c)));S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(80,130,'+'+h,'#2e9a3a');}
+    if(c.def.id==='hound'&&G.mob&&G.mobHp>0){if(!G.sim)FX.cAct[ci]=1;const dmg=Math.min(G.mobHp,rnd(0,Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*compMult(c)))));G.mobHp-=dmg;if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();}}
+    else if(c.def.id==='cleric'&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const h=Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*compMult(c)));S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(80,130,'+'+h,'#2e9a3a');}
   });
 }
-function dmgReduction(){let dr=bonuses().dr+prayDR();for(const c of party())if(c.def.id==='squire')dr+=15*compMult(c);return Math.min(70,dr);}
+function dmgReduction(){let dr=bonuses().dr+prayDR();for(const c of party())if(c.def.id==='squire')dr+=SQUIRE_DR*compMult(c);return Math.min(70,dr);}
 
 // ---- prayers ----
 const PRAYERS=[
@@ -1173,6 +1183,17 @@ function uiDefaults(){S.tab=S.tab||'hero';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
   S.party=S.party||[];if(S.comp&&S.comp.type&&!S.party.length){S.party=[{type:S.comp.type,lvl:S.comp.lvl||0}];S.comp={type:null,lvl:0};}
+  {// one of each companion now: keep the best-trained of any duplicate, refund what the rest cost
+    const best={};S.party.forEach(c=>{if(!best[c.type]||(c.lvl||0)>(best[c.type].lvl||0))best[c.type]=c;});
+    const keep=S.party.filter(c=>best[c.type]===c);
+    if(keep.length<S.party.length){
+      let refund=0;
+      S.party.forEach((c,i)=>{if(best[c.type]===c)return;
+        refund+=hireCost(Math.min(i,2));
+        for(let l=0;l<(c.lvl||0);l++)refund+=Math.round(600*Math.pow(1.8,l));});
+      const n=S.party.length-keep.length;S.party=keep;S.gold+=refund;
+      log(`The hold keeps one of each companion now. ${n} duplicate${n>1?'s':''} dismissed, ${fmt(refund)} gold refunded.`,'b');
+    }}
   S.pray=S.pray||{pts:30,on:[],autoBury:true};S.pray.on=S.pray.on||[];S.bones=S.bones||0;S.bounty=S.bounty||{day:'',list:[]};S.found=S.found||{};}
 
 // --- inline SVG glyphs (original, simple silhouettes in the art-kit palette) ---
@@ -1371,8 +1392,12 @@ function renderKeep(){
   let compRows='';
   for(let i=0;i<PARTY_MAX;i++){
     const c=P[i];
-    if(c){const d=COMPS.find(x=>x.id===c.type);compRows+=`<div class="pslot"><span><b>${d.n}</b> lv ${c.lvl}<br><span class="sub">${d.d}</span></span><span style="display:flex;gap:4px;flex-direction:column"><button class="sm" data-train="${i}" ${S.gold>=compCost(c)?'':'disabled'}>Train ${fmt(compCost(c))}g</button><button class="sm" data-dismiss="${i}">Dismiss</button></span></div>`;}
-    else if(slotOpen(i)&&i<=P.length){compRows+=`<div class="pslot"><select data-hsel="${i}">${COMPS.map(x=>`<option value="${x.id}">${x.n}</option>`).join('')}</select><button class="sm" data-hire="${i}" ${S.gold>=hireCost(i)?'':'disabled'}>Hire ${fmt(hireCost(i))}g</button></div>`;}
+    if(c){const d=COMPS.find(x=>x.id===c.type);compRows+=`<div class="pslot"><span><b>${d.n}</b> lv ${c.lvl}<br><span class="sub">${compDesc(c.type,c.lvl)}</span></span><span style="display:flex;gap:4px;flex-direction:column"><button class="sm" data-train="${i}" ${S.gold>=compCost(c)?'':'disabled'}>Train ${fmt(compCost(c))}g</button><button class="sm" data-dismiss="${i}">Dismiss</button></span></div>`;}
+    else if(slotOpen(i)&&i<=P.length){
+      const avail=COMPS.filter(x=>!partyHas(x.id));
+      compRows+=avail.length
+        ? `<div class="pslot"><select data-hsel="${i}">${avail.map(x=>`<option value="${x.id}">${x.n}</option>`).join('')}</select><button class="sm" data-hire="${i}" ${S.gold>=hireCost(i)?'':'disabled'}>Hire ${fmt(hireCost(i))}g</button></div>`
+        : `<div class="pslot sub"><span>Slot ${i+1}</span><span>You already have one of each</span></div>`;}
     else compRows+=`<div class="pslot sub"><span>Slot ${i+1}</span><span>${slotOpen(i)?'Fill the slot above first':'Needs Barracks level '+SLOT_REQ[i]}</span></div>`;
   }
   const ready=ascReady();
@@ -1381,11 +1406,11 @@ function renderKeep(){
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
-   keepCard('barracks',`Up to three companions fight beside you. Hound bites, Cleric heals, Squire shields. Mix freely.`,compRows)+
+   keepCard('barracks',`Up to three companions fight beside you — one of each. Hound bites, Cleric heals, Squire shields.`,compRows)+
    `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1} · ${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
-  document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;S.gold-=hireCost(i);const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
+  document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;if(partyHas(type)){toast('You already have a '+COMPS.find(x=>x.id===type).n);return;}S.gold-=hireCost(i);S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
   document.querySelectorAll('#keep [data-train]').forEach(b=>b.onclick=()=>{const c=S.party[+b.dataset.train];if(!c||S.gold<compCost(c))return;S.gold-=compCost(c);c.lvl++;toast(`${COMPS.find(x=>x.id===c.type).n} trained to ${c.lvl}`);renderAll();});
   document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost.`)){S.party.splice(i,1);renderAll();}});
   $('kAsc').onclick=()=>{if(!ascReady())return;if(confirm(`Ascend for +${ascShards()} shards? Skills, gear, gold and areas reset.`)){ascend();toast('Realm '+(S.asc.realm+1));showTab('hero');}};
@@ -1526,7 +1551,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b9-hidpi';
+  const BUILD='b10-comp';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

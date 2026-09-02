@@ -335,7 +335,7 @@
           <div id="skills"></div>
           <h3 style="margin:10px 0 4px">Combat style</h3>
           <div class="styles" id="cstyles"></div>
-          <p class="sub" style="margin-top:6px">Melee uses Attack and Strength with your weapon. Ranged draws a bow — faster, and it trains Ranged. Magic casts from the staff — slower but hits harder, and it trains Magic. Bow and staff take half the benefit of melee gear bonuses.</p>
+          <p class="sub" style="margin-top:6px">Your weapon decides this. Swords and axes fight in Melee on Attack and Strength; bows, crossbows and knives fight in Ranged; wands, staves, orbs and tomes fight in Magic. Each trains its own skill and needs its own level to wield.</p>
           <h3 style="margin:10px 0 4px">Stance</h3>
           <div class="styles" id="styles"></div>
           <p class="sub" style="margin-top:6px">Accurate trains Attack, Aggressive trains Strength, Defensive trains Defence, Controlled splits it. In Ranged or Magic those feed that skill instead. Hitpoints always trains.</p>
@@ -420,6 +420,16 @@ const WEAPONS=[
  {n:'longsword',spd:3.0,dm:1.25,am:1.05,two:false},
  {n:'battleaxe',spd:3.0,dm:1.4,am:0.9,two:false},
  {n:'greatsword',spd:3.6,dm:1.9,am:1.0,two:true},
+ {n:'shortbow',spd:2.4,dm:0.95,am:1.05,two:true,style:'ranged'},
+ {n:'longbow',spd:3.0,dm:1.35,am:1.05,two:true,style:'ranged'},
+ {n:'composite bow',spd:2.4,dm:1.05,am:1.15,two:true,style:'ranged'},
+ {n:'light crossbow',spd:3.0,dm:1.3,am:1.2,two:false,style:'ranged'},
+ {n:'throwing knives',spd:2.4,dm:0.9,am:1.0,two:false,style:'ranged'},
+ {n:'wand',spd:2.4,dm:0.95,am:1.05,two:false,style:'magic'},
+ {n:'staff',spd:3.0,dm:1.35,am:1.0,two:true,style:'magic'},
+ {n:'battlestaff',spd:3.0,dm:1.45,am:1.05,two:true,style:'magic'},
+ {n:'orb',spd:2.4,dm:1.0,am:1.15,two:false,style:'magic'},
+ {n:'tome',spd:3.0,dm:1.3,am:1.05,two:false,style:'magic'},
 ];
 const RARITY=[null,
  {n:'',aff:0,m:1.0,c:'#bdbdbd',w:60},
@@ -527,7 +537,7 @@ function itemScrap(it){return 1+it.tier+it.rar+keepLv('yard');}
 function upgradeCost(it){return {gold:Math.round(itemValue(it)*(1+it.up)*1.2*(1-0.1*keepLv('forge'))),scrap:2+it.up*2+it.tier};}
 function forgeMax(){return 10+keepLv('forge');}
 function itemScore(it){const s=itemStats(it);let sc=s.atk*1.1+s.str*1.4+s.def;for(const k in it.aff)sc+=it.aff[k]*1.5;if(it.rw)sc+=25;return sc;}
-function reqFor(it){return it.slot==='weapon'?{s:'atk',lv:TIERS[it.tier].lv}:(it.slot==='amulet'||it.slot==='ring'||it.slot==='cape')?{s:'def',lv:Math.max(1,TIERS[it.tier].lv-5)}:{s:'def',lv:TIERS[it.tier].lv};}
+function reqFor(it){return it.slot==='weapon'?{s:({ranged:'rng',magic:'mag'})[WEAPONS[it.wt].style]||'atk',lv:TIERS[it.tier].lv}:(it.slot==='amulet'||it.slot==='ring'||it.slot==='cape')?{s:'def',lv:Math.max(1,TIERS[it.tier].lv-5)}:{s:'def',lv:TIERS[it.tier].lv};}
 // ============ UNIQUES & SETS ============
 // wt: 0 dagger 1 scimitar 2 longsword 3 battleaxe 4 greatsword. home: area index | 'boss:i' | 'chest' | 'late' | 'mid'
 const UNIQUES={
@@ -626,17 +636,12 @@ function bonuses(){
 }
 function maxHp(){return lv('hp')+bonuses().hp;}
 function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
-function attackDelay(){const w=weapon();const b=bonuses();const cs=cstyle();
-  const base=cs==='ranged'?2.4:cs==='magic'?2.9:(w?w.spd:2.4);
-  return base*(1-b.spd/100);}
+function attackDelay(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-b.spd/100);}
 function styleBonus(){const st=STYLES[S.style].s;return {atk:st==='atk'?3:st==='all'?1:0,str:st==='str'?3:st==='all'?1:0,def:st==='def'?3:st==='all'?1:0};}
 function playerMaxHit(){const b=bonuses();const sb=styleBonus();const sk=cskill();
-  if(sk){const gear=b.str*(sk==='rng'?0.5:0.45),base=sk==='mag'?80:64;
-    return Math.max(1,Math.floor(0.5+(lv(sk)+sb.str+8)*(gear+base)/320*prayMult('str')));}
-  return Math.max(1,Math.floor(0.5+(lv('str')+sb.str+8)*(b.str+64)/320*prayMult('str')));}
+  return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')));}
 function playerAtkRoll(){const b=bonuses();const sb=styleBonus();const sk=cskill();
-  if(sk){const gear=b.atk*(sk==='rng'?0.5:0.4);return (lv(sk)+sb.atk+8)*(gear+64)*prayMult('atk');}
-  return (lv('atk')+sb.atk+8)*(b.atk+64)*prayMult('atk');}
+  return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk');}
 function playerDefRoll(){const b=bonuses();return (lv('def')+styleBonus().def+8)*(b.def+64)*prayMult('def');}
 function mobMaxHit(m){return Math.max(1,Math.floor(0.5+(m.str+9)*(m.str+64)/640));}
 function mobAtkRoll(m){return (m.atk+9)*(m.atk*1.5+64);}
@@ -1212,14 +1217,15 @@ function renderBag(){
 const MASTERY=[['atk',10,'Blade'],['str',10,'Brawn'],['def',10,'Guard'],['hp',20,'Vigour'],['atk',40,'Edge'],['def',40,'Bulwark'],['hp',60,'Iron heart'],['atk',60,'Warmaster'],['rng',10,'Marksman'],['mag',10,'Adept'],['rng',40,'Deadeye'],['mag',40,'Archmage']];
 const SK_NAME={atk:'Attack',str:'Strength',def:'Defence',hp:'Hitpoints',rng:'Ranged',mag:'Magic'};
 const CSTYLES=[{k:'melee',n:'Melee'},{k:'ranged',n:'Ranged'},{k:'magic',n:'Magic'}];
-const cstyle=()=>S.combat||'melee';
+const cstyle=()=>{const w=S.equip.weapon;return (w&&WEAPONS[w.wt].style)||'melee';};
 const cskill=()=>cstyle()==='ranged'?'rng':cstyle()==='magic'?'mag':null;
 function renderSkills(){
   const el=$('skills');el.innerHTML='';$('cbLvl').textContent='Combat level '+combatLvl();
   for(const k of ['atk','str','def','hp','rng','mag']){
     const l=lv(k),x=S.xp[k],lo=XP[l],hi=l<99?XP[l+1]:lo+1;const p=l<99?(x-lo)/(hi-lo)*100:100;
     el.insertAdjacentHTML('beforeend',`<div class="skill"><div class="lab"><span>${SK_NAME[k]}</span><span>${l}${l<99?' <span class="sub">('+fmt(hi-x)+' xp to go)</span>':''}</span></div><div class="track"><div class="fill" style="width:${p}%"></div></div></div>`);}
-  const cs=$('cstyles');cs.innerHTML='';CSTYLES.forEach(c=>{const b=document.createElement('button');b.textContent=c.n;if(c.k===cstyle())b.className='on';b.onclick=()=>{S.combat=c.k;G.dirty=true;renderSkills();renderSlots();};cs.appendChild(b);});
+  const cw=S.equip.weapon;const cn=({melee:'Melee',ranged:'Ranged',magic:'Magic'})[cstyle()];
+  $('cstyles').innerHTML=`<b class="gold">${cn}</b><span class="sub"> — ${cw?itemName(cw)+' · '+WEAPONS[cw.wt].spd+'s':'unarmed'}</span>`;
   const st=$('styles');st.innerHTML='';STYLES.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;if(i===S.style)b.className='on';b.onclick=()=>{S.style=i;renderSkills();renderSlots();};st.appendChild(b);});
   $('mastery').innerHTML=MASTERY.map(([k,n,t])=>`<div class="mcard${lv(k)>=n?' lit':''}"><div class="rune">${lv(k)>=n?'✦':'·'}</div><div>${t}</div><div class="sub">${SK_NAME[k]} ${n}</div></div>`).join('');
   $('autoEat').checked=S.autoEat;$('eatPct').value=S.eatPct;$('eatPctTxt').textContent=S.eatPct;
@@ -1323,7 +1329,7 @@ function openItem(it,equipped){
   const req=reqFor(it);const ok=lv(req.s)>=req.lv;const uc=upgradeCost(it);
   const W=it.slot==='weapon'?WEAPONS[it.wt]:null;
   let h=`<div class="mhead">${itemGlyph(it)}<div><h2 style="color:${rc(it)}">${itemName(it)}</h2>
-   <div class="sub">${RARITY[it.rar].n||'Common'} · needs ${req.s==='atk'?'Attack':'Defence'} ${req.lv}${ok?'':' <span style="color:#ff7b6b">(too low)</span>'}${W?` · ${W.spd}s, ${W.two?'two-handed':'one-handed'}`:''}</div></div></div>`;
+   <div class="sub">${RARITY[it.rar].n||'Common'} · needs ${SK_NAME[req.s]} ${req.lv}${ok?'':' <span style="color:#ff7b6b">(too low)</span>'}${W?` · ${W.spd}s, ${W.two?'two-handed':'one-handed'}`:''}</div></div></div>`;
   if(cur)h+=`<div class="sub">Compared to ${itemName(cur)}</div>`;
   h+=`<div class="cmp">Attack +${st.atk}${d(st.atk,cs.atk)} · Strength +${st.str}${d(st.str,cs.str)} · Defence +${st.def}${d(st.def,cs.def)}</div>`;
   if(it.uq)h+=`<div class="sub" style="font-style:italic;margin:2px 0">${UNIQUES[it.uq].d}</div>`;

@@ -2954,7 +2954,7 @@ function feCoverAndBoat(g){
    cut); seat line 68% / hip 40%,58% / hands 85%,45% of the canvas, the
    front of his seat set 14px back from the plank end so the thighs rest
    on the planks and only the shins hang */
-const FE_MAN = { x:263, y:214, w:89, h:170, ax:299, ay:313, gripX:339, gripY:291, hipX:299, hipY:313 };
+const FE_MAN = { x:263, y:214, w:89, h:170, ax:299, ay:313, gripX:335, gripY:283, hipX:299, hipY:313 };   /* grip lifted into his hands */
 const feManBody = new Image(), feManLegs = new Image();
 try{ if(typeof FE_MAN_BODY !== "undefined"){ feManBody.src = FE_MAN_BODY; feManLegs.src = FE_MAN_LEGS; } }catch(e){}
 function feManReady(){ return feManBody.complete && feManBody.naturalWidth > 0 && feManLegs.complete && feManLegs.naturalWidth > 0; }
@@ -3105,15 +3105,27 @@ function feRedrawDockBand(g){
      painted dock back on top before dressing it */
   if(!feDockPatch || feDockPatch.spot !== feBgSpot){
     /* cut from THIS water's painting, at the band rect's place in it - the
-       band is offset per painting, so (0,250) is not (0,542) everywhere */
+       band is offset per painting, so (0,250) is not (0,542) everywhere.
+       The rect runs from the canvas's left edge to just past the plank end
+       (band x 320) and is FEATHERED on its right and bottom: a hard-edged
+       stamp erased the shimmer inside a box that showed on open water. */
     const c = document.createElement("canvas");
     const fx = fshBgImg.naturalWidth/800, fyy = fshBgImg.naturalHeight/1200;
-    c.width = 372; c.height = 176;
-    c.getContext("2d").drawImage(fshBgImg, feBandDx()*fx, (250 + feBandOff())*fyy, 372*fx, 176*fyy, 0, 0, 372, 176);
-    c.spot = feBgSpot;
+    const x0 = -feBandDx(), w = 344 - x0, h = 176;
+    c.width = Math.max(1, Math.round(w)); c.height = h;
+    const cg = c.getContext("2d");
+    cg.drawImage(fshBgImg, 0, (250 + feBandOff())*fyy, w*fx, h*fyy, 0, 0, c.width, h);
+    cg.globalCompositeOperation = "destination-in";
+    const gx = cg.createLinearGradient(c.width - 34, 0, c.width, 0);
+    gx.addColorStop(0, "rgba(0,0,0,1)"); gx.addColorStop(1, "rgba(0,0,0,0)");
+    cg.fillStyle = gx; cg.fillRect(0, 0, c.width, h);
+    const gy = cg.createLinearGradient(0, h - 56, 0, h);
+    gy.addColorStop(0, "rgba(0,0,0,1)"); gy.addColorStop(1, "rgba(0,0,0,0)");
+    cg.fillStyle = gy; cg.fillRect(0, 0, c.width, h);
+    c.spot = feBgSpot; c.x0 = x0;
     feDockPatch = c;
   }
-  g.drawImage(feDockPatch, 0, 250, 372, 176);
+  g.drawImage(feDockPatch, feDockPatch.x0, 250);
   /* The tall painting brought the old clutter back with it — bucket,
      thermos, box, sandwich painted straight onto the deck. This strip
      repaints the walkway in clean planks matching the painting's wood,

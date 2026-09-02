@@ -501,6 +501,20 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 115 — the angler, painted
+The textured Meshy export arrived (7.7MB: one 13.9k-vertex mesh with UVs,
+normals, tangents, and 2K JPEG base colour / metallic-roughness / normal
+maps - the first export was over 30MB because of 4K maps, not polygons).
+Rendered through the batch 113 pipeline with the model's own materials
+(sRGB output this time, roughness floored at .85, metalness 0), the same
+three-quarter camera, and the body/legs split done with clip planes on
+the single mesh (body y > 0.40 of his height, legs y < 0.47, the overlap
+hidden under the jacket) instead of mesh groups. Note for next time:
+setView resets the material clip planes, so showGroup must run AFTER it
+and render itself - the first pass produced two identical full-body
+layers. Same model, same bbox (313x600 vs 314x600), so FE_MAN holds
+unchanged. The stand-in paint is gone. Stamp a4e096.
+
 ## Batch 114 — the angler turned, sized, and seated
 Playtester: turn him so it reads as sitting on the dock, he is a little
 big against the scene items, and make sure he is aligned on every dock.

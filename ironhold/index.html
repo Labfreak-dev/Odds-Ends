@@ -764,12 +764,16 @@ const SLOT_REQ=[0,2]; // barracks level needed per party slot
 function slotOpen(i){return keepLv('barracks')>=SLOT_REQ[i];}
 function hireCost(i){return [500,2000][i];}
 function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def);}
-function compMult(c){return 1+0.2*keepLv('barracks')+0.1*(c.lvl||0);}
+const COMP_SLOTS=['weapon','body'];
+function compGearScore(c){let s=0;const g=(c&&c.gear)||{};
+  for(const k of COMP_SLOTS){const it=g[k];if(it)s+=itemScore(it);}
+  return s;}
+function compMult(c){return 1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+compGearScore(c)/500;}
 function compCost(c){return Math.round(600*Math.pow(1.8,c.lvl||0));}
 // What the companion is worth RIGHT NOW. The old menu printed a fixed blurb, so
 // training changed the fight but never the numbers on screen.
-function compDesc(type,lvl){
-  const m=1+0.2*keepLv('barracks')+0.1*(lvl||0);
+function compDesc(c){
+  const type=c.type,m=compMult(c);
   if(type==='hound')return `Bites every 3s for up to <b class="gold">${Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*m))}</b> damage.`;
   if(type==='cleric')return `Heals <b class="gold">${Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*m))}</b> HP every 3s.`;
   return `Takes hits for you: <b class="gold">${Math.round(SQUIRE_DR*m)}%</b> damage reduction.`;
@@ -1194,7 +1198,8 @@ function uiDefaults(){S.tab=S.tab||'hero';
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];if(S.comp&&S.comp.type&&!S.party.length){S.party=[{type:S.comp.type,lvl:S.comp.lvl||0}];S.comp={type:null,lvl:0};}
+  S.party=S.party||[];for(const c of S.party){c.gear=c.gear||{};for(const sl of COMP_SLOTS)if(c.gear[sl]===undefined)c.gear[sl]=null;}
+  if(S.comp&&S.comp.type&&!S.party.length){S.party=[{type:S.comp.type,lvl:S.comp.lvl||0}];S.comp={type:null,lvl:0};}
   {// one of each kind, and at most PARTY_MAX of them: keep the best-trained, refund the rest
     const best={};S.party.forEach(c=>{if(!best[c.type]||(c.lvl||0)>(best[c.type].lvl||0))best[c.type]=c;});
     const uniq=S.party.filter(c=>best[c.type]===c);
@@ -1416,7 +1421,14 @@ function renderKeep(){
   let compRows='';
   for(let i=0;i<PARTY_MAX;i++){
     const c=P[i];
-    if(c){const d=COMPS.find(x=>x.id===c.type);compRows+=`<div class="pslot"><span><b>${d.n}</b> lv ${c.lvl}<br><span class="sub">${compDesc(c.type,c.lvl)}</span></span><span style="display:flex;gap:4px;flex-direction:column"><button class="sm" data-train="${i}" ${S.gold>=compCost(c)?'':'disabled'}>Train ${fmt(compCost(c))}g</button><button class="sm" data-dismiss="${i}">Dismiss</button></span></div>`;}
+    if(c){const d=COMPS.find(x=>x.id===c.type);
+      const gsel=sl=>{const cur=c.gear&&c.gear[sl];
+        const opts=[`<option value="">${sl==='weapon'?'no weapon':'no armour'}</option>`]
+          .concat(cur?[`<option value="cur" selected>${itemName(cur)}</option>`]:[])
+          .concat(S.inv.map((it,ii)=>it.slot===sl?`<option value="${ii}">${itemName(it)}</option>`:'').filter(Boolean));
+        return `<select data-cgear="${i}:${sl}" title="${sl}">${opts.join('')}</select>`;};
+      compRows+=`<div class="pslot"><span><b>${d.n}</b> lv ${c.lvl}<br><span class="sub">${compDesc(c)}</span></span><span style="display:flex;gap:4px;flex-direction:column"><button class="sm" data-train="${i}" ${S.gold>=compCost(c)?'':'disabled'}>Train ${fmt(compCost(c))}g</button><button class="sm" data-dismiss="${i}">Dismiss</button></span></div>`;
+      compRows+=`<div class="pslot"><span class="sub">Gear · power ×${compMult(c).toFixed(2)}</span><span style="display:flex;gap:4px">${gsel('weapon')}${gsel('body')}</span></div>`;}
     else if(slotOpen(i)&&i<=P.length){
       const avail=COMPS.filter(x=>!partyHas(x.id));
       compRows+=avail.length
@@ -1436,7 +1448,19 @@ function renderKeep(){
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
   document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;if(partyHas(type)){toast('You already have a '+COMPS.find(x=>x.id===type).n);return;}S.gold-=hireCost(i);S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
   document.querySelectorAll('#keep [data-train]').forEach(b=>b.onclick=()=>{const c=S.party[+b.dataset.train];if(!c||S.gold<compCost(c))return;S.gold-=compCost(c);c.lvl++;toast(`${COMPS.find(x=>x.id===c.type).n} trained to ${c.lvl}`);renderAll();});
-  document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost.`)){S.party.splice(i,1);renderAll();}});
+  document.querySelectorAll('#keep [data-cgear]').forEach(sel=>sel.onchange=()=>{
+    const [ci,sl]=sel.dataset.cgear.split(':');const c=S.party[+ci];if(!c)return;
+    c.gear=c.gear||{};
+    if(sel.value==='cur')return;
+    const old=c.gear[sl]; if(old)S.inv.push(old);          // whatever came off goes back to the vault
+    if(sel.value===''){c.gear[sl]=null;}
+    else{const idx=+sel.value;const it=S.inv[idx];
+      if(!it||it.slot!==sl){renderAll();return;}
+      S.inv.splice(idx,1);c.gear[sl]=it;}
+    renderAll();});
+  document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost; its gear returns to the vault.`)){
+      for(const sl of COMP_SLOTS){if(c.gear&&c.gear[sl]){S.inv.push(c.gear[sl]);c.gear[sl]=null;}}
+      S.party.splice(i,1);renderAll();}});
   $('kAsc').onclick=()=>{if(!ascReady())return;if(confirm(`Ascend for +${ascShards()} shards? Skills, gear, gold and areas reset.`)){ascend();toast('Realm '+(S.asc.realm+1));showTab('hero');}};
 }
 function renderTop(){
@@ -1575,7 +1599,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b16-mastery';
+  const BUILD='b17-compgear';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

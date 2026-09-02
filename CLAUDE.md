@@ -142,6 +142,8 @@ node docs/test-fishing.js                              # fight-engine invariants
 python3 docs/smoke-start.py                            # start screen + menu chrome (38)
 python3 docs/smoke-fishhud.py                          # fishing HUD plates (24)
 python3 docs/smoke-tear.py                             # directional pack tear (19)
+python3 docs/smoke-map.py                              # fishing map travel (24)
+python3 docs/smoke-scenes.py                           # per-water scenery + arrival (18)
 python3 docs/smoke-fishing.py && python3 docs/smoke-spots.py   # needs playwright
 ```
 The smokes drive the real page headless; if playwright is unavailable, at minimum

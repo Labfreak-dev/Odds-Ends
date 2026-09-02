@@ -501,6 +501,22 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 116 — the box around him, and the rod in his hands
+Playtester, with a crop from the Mark: the rod sits just under his hands,
+and "that box is still around him."
+
+THE BOX was the dock patch (feRedrawDockBand): the painting re-stamped
+over the water shimmer so ripples stay off the planks. On the original
+lake the 372x176 rect was all dock; on the painted piers it reaches into
+open water, and inside it the shimmer is erased - a clean rectangle in
+rippled water, invisible by day on some waters and plain at the Mark.
+The rect now runs from the canvas's left edge to just past the plank end
+(band x 344) and is feathered over its last 34px on the right and 56px
+on the bottom with destination-in gradients, so the stamp fades into the
+shimmer instead of cutting it. THE ROD: FE_MAN grip lifted from
+(339,291) to (335,283), into his hands. Crops at the Mark (day, night),
+Shelf, Confluence, dock, Ledge at night. Stamp 1901a8.
+
 ## Batch 115 — the angler, painted
 The textured Meshy export arrived (7.7MB: one 13.9k-vertex mesh with UVs,
 normals, tangents, and 2K JPEG base colour / metallic-roughness / normal

@@ -178,7 +178,7 @@ pip download playwright==X.Y.Z --no-deps -d /tmp/w && \
 Budget time: smoke-fishing takes a couple of minutes, smoke-spots can run past
 15. A cut-off mid-run looks like a hang ("retrying click action") but is just
 the timeout landing inside playwright's normal actionability retry — give it
-room before calling it a failure. Expected: 13 checks (fishing), 80 (spots),
+room before calling it a failure. Expected: 13 checks (fishing), 81 (spots),
 both ending in a pass banner and `exit 0`; the banners only print when zero
 checks failed.
 

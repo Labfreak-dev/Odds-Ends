@@ -2101,6 +2101,75 @@ function fshLand(){
 }
 
 /* -------------------- 8 · THE SPOT PICKER (UI) ---------------------- */
+/* ---- THE MAP: the means of travel. The SPOTS shield and the sign open a
+   painted chart of the six waters; every water is a pin at its place on
+   the painting, wearing its Legend's name, and a boat sails from where you
+   stand to the pin you tap before the spot actually changes. Locked waters
+   are bought from the pin the same way the chips used to (feSpotTap). */
+const FE_MAP_POS = { dock:[20,28], midnight:[44,13], ledge:[80,26], confluence:[52,45], shallows:[23,73], reef:[75,78] };
+let feMapBusy = false;
+function feMapEnsure(){
+  let ov = document.getElementById("feSpotMap");
+  if(ov) return ov;
+  ov = document.createElement("div");
+  ov.id = "feSpotMap";
+  ov.innerHTML = `<div class="fsm-sheet" role="dialog" aria-label="The waters">
+      <div class="fsm-head"><span class="fsm-title">The Waters</span>
+        <button type="button" class="fsm-close" aria-label="Close">✕</button></div>
+      <div class="fsm-map"><div class="fsm-pins"></div><div class="fsm-boat" aria-hidden="true">⛵</div></div>
+      <div class="fsm-foot">tap a water to sail there · a locked water names its price</div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector(".fsm-close").onclick = feMapClose;
+  ov.addEventListener("click", e=>{ if(e.target === ov) feMapClose(); });
+  window.addEventListener("keydown", e=>{ if(e.key === "Escape" && ov.classList.contains("open")) feMapClose(); });
+  return ov;
+}
+function feMapPaint(){
+  const ov = feMapEnsure(), box = ov.querySelector(".fsm-pins"), boat = ov.querySelector(".fsm-boat");
+  const sp = feSpots();
+  box.innerHTML = FE_SPOTS.map(d=>{
+    const open = sp.open.includes(d.id), here = d.id === sp.cur, pos = FE_MAP_POS[d.id] || [50,50];
+    const boss = FE_BOSSES.find(b=>b.spot === d.id);
+    const lock = open ? "" : (d.gate === "legends" ? `<i>🔒 the five</i>`
+      : `<i>🔒 ${d.cost>=1e6 ? (d.cost/1e6)+"M" : (d.cost/1e3)+"k"}</i>`);
+    return `<button type="button" class="fsm-pin${here?" here":""}${open?"":" locked"}" data-spot="${d.id}"
+        style="left:${pos[0]}%; top:${pos[1]}%">
+        <b>${d.icon} ${d.name}</b><small>${boss ? boss.name : d.line}</small>${lock}${here ? `<em>you are here</em>` : ""}
+      </button>`;
+  }).join("");
+  box.querySelectorAll(".fsm-pin").forEach(b=>{ b.onclick = ()=> feMapTravel(b.dataset.spot); });
+  const cur = FE_MAP_POS[sp.cur] || [50,50];
+  boat.style.transition = "none"; boat.style.left = cur[0]+"%"; boat.style.top = (cur[1]+9)+"%";
+  void boat.offsetWidth; boat.style.transition = "";
+}
+function feMapOpen(e){
+  if(e && e.preventDefault) e.preventDefault();
+  feMapPaint();
+  feMapEnsure().classList.add("open");
+  try{ feAudioUnlock(); }catch(_){}
+}
+function feMapClose(){ const ov = document.getElementById("feSpotMap"); if(ov) ov.classList.remove("open"); feMapBusy = false; }
+function feMapTravel(id){
+  if(feMapBusy) return;
+  const sp = feSpots(), d = FE_SPOTS.find(x=>x.id===id);
+  if(!d) return;
+  if(id === sp.cur){ feMapClose(); return; }
+  const wasOpen = sp.open.includes(id);
+  /* a locked water is bought first; the tap explains itself if it cannot be */
+  if(!wasOpen && !feSpotTap(id)){ feMapPaint(); return; }
+  /* an open water: sail there, then step ashore */
+  const ov = feMapEnsure(), boat = ov.querySelector(".fsm-boat"), to = FE_MAP_POS[id] || [50,50];
+  feMapBusy = true;
+  boat.classList.add("sailing");
+  boat.style.left = to[0]+"%"; boat.style.top = (to[1]+9)+"%";
+  setTimeout(()=>{
+    boat.classList.remove("sailing");
+    if(wasOpen) feSpotTap(id);   /* switch happens on arrival; a purchase already switched */
+    feMapPaint();
+    setTimeout(feMapClose, 260);
+  }, 780);
+}
 let feSpotHtml = "";
 function feRenderSpots(){
   const bars = document.getElementById("fshBars");
@@ -2135,7 +2204,8 @@ function feRenderSpots(){
      names where you are standing (its baked-in text was painted out) */
   const html = `<div class="fe-hud-head">
       <span class="fe-shield" aria-hidden="true"></span>
-      <span class="fe-sign"><b>${cur.icon} ${cur.name}</b></span>
+      <span class="fe-sign" title="Open the map"><b>${cur.icon} ${cur.name}</b></span>
+      <span class="fe-mapcue">🗺️ tap the sign to sail</span>
     </div>
     <div class="fe-spots">${chips}</div>
     <div class="fe-spot-line">${cur.line}${special} · 🎴 ${feTTOwned()}/1000
@@ -2221,42 +2291,49 @@ function feRenderSpots(){
       else feSound("train", { vol: 0.42 });   // instant proof your device has sound
       saveState(); feSpotHtml=""; feRenderSpots();
     };
-    row.querySelectorAll(".fe-spot").forEach(b=>{
-      b.onclick = ()=>{
-        const d = FE_SPOTS.find(x=>x.id===b.dataset.spot);
-        if(!d) return;
+    row.querySelectorAll(".fe-spot").forEach(b=>{ b.onclick = ()=> feSpotTap(b.dataset.spot); });
+    /* the SPOTS shield and the sign open the map - the means of travel */
+    const sh = row.querySelector(".fe-shield"), sg = row.querySelector(".fe-sign");
+    if(sh) sh.onclick = feMapOpen;
+    if(sg) sg.onclick = feMapOpen;
+  }
+}
+/* One tap on a water, from a chip or a map pin: switch to it if it is open,
+   buy it if it is for sale, or explain the gate. Returns true when the
+   player is now standing on it. */
+function feSpotTap(id){
+        const d = FE_SPOTS.find(x=>x.id===id);
+        if(!d) return false;
         const spx = feSpots();
         if(fsh && fsh.phase !== "idle" && fsh.phase !== "result"){
-          fshFlash("Finish this cast first", "#ffd35c"); return;
+          fshFlash("Finish this cast first", "#ffd35c"); return false;
         }
         if(spx.open.includes(d.id)){
           if(spx.cur !== d.id){ spx.cur = d.id; saveState(); showToast(`${d.icon} ${d.name}`);
             feSound("spot", { vol: 0.4 });
             feInitAmbient();                          // the water changes with the spot
             feSpotHtml=""; feRenderSpots(); }
-          return;
+          return true;
         }
         if(d.gate === "legends"){
           const BJ = (typeof feBossState === "function" ? feBossState().bossJournal : {}) || {};
           const five = ["Old Ironjaw","The Marsh King","The Black Phantom","The Pale Hunter","The Rooster King"];
           const slain = five.filter(n => BJ[n]).length;
-          if(slain < 5){ showToast(`🌀 The Confluence answers only to those who've bested all five Legends (${slain}/5)`); return; }
+          if(slain < 5){ showToast(`🌀 The Confluence answers only to those who've bested all five Legends (${slain}/5)`); return false; }
           spx.open.push(d.id); spx.cur = d.id;
           saveState(); feInitAmbient();
           showToast("🌀 THE FIVE WATERS PART — The Confluence is yours");
           fbSfxSafe("treasure", 0.6);
           feSpotHtml=""; feRenderSpots();
-          return;
+          return true;
         }
-        if(state.credits < d.cost){ showToast(`Need 🪙 ${d.cost.toLocaleString()} for ${d.name}`); return; }
+        if(state.credits < d.cost){ showToast(`Need 🪙 ${d.cost.toLocaleString()} for ${d.name}`); return false; }
         state.credits -= d.cost;
         spx.open.push(d.id); spx.cur = d.id;
         saveState(); renderHeader(); feInitAmbient();
         showToast(`${d.icon} ${d.name} unlocked!`);
         feSpotHtml=""; feRenderSpots();
-      };
-    });
-  }
+        return true;
 }
 
 /* The rod is now the uploaded pole art — tier follows your equipped rod

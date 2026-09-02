@@ -3990,6 +3990,57 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 #feTackle .fej-head b::before{ width:66px; background-image:url(art/ui/fish-tackle.webp); }
 #feChum .fej-head b::before{ width:34px; background-image:url(art/ui/fish-bait.webp); }
 
+/* ---- the map: the means of travel ---- */
+.fe-spots{ display:none; }               /* the chips moved onto the map (still in the DOM for the suites) */
+.fe-sign{ cursor:pointer; } .fe-shield{ cursor:pointer; }
+.fe-sign:hover, .fe-shield:hover{ filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)) brightness(1.08); }
+.fe-mapcue{ font:700 11px system-ui; color:#9fb2c2; }
+@media (max-width:480px){ .fe-mapcue{ display:none; } }
+#feSpotMap{ position:fixed; inset:0; z-index:12050; display:none; align-items:center; justify-content:center;
+  background:rgba(4,8,14,.8); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+#feSpotMap.open{ display:flex; }
+.fsm-sheet{ position:relative; width:min(440px,94vw); max-height:92vh; display:flex; flex-direction:column;
+  border-radius:18px; overflow:hidden; border:1px solid #c9a44a88; background:#0b1520;
+  box-shadow:0 24px 70px rgba(0,0,0,.7); }
+.fsm-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 8px 8px 14px;
+  background:linear-gradient(180deg,#3a2a18,#1a140c); border-bottom:1px solid #8a6a3a; }
+.fsm-title{ font:800 15px Georgia,'Times New Roman',serif; letter-spacing:.12em; text-transform:uppercase; color:#f1d27b;
+  text-shadow:0 1px 0 #2a1808; }
+.fsm-close{ width:34px; height:34px; border-radius:50%; cursor:pointer; border:1px solid #c9a44a88;
+  background:#141820; color:#f3ead2; font:800 14px system-ui; }
+.fsm-map{ position:relative; width:100%; aspect-ratio:784/1168; max-height:calc(92vh - 96px);
+  background:url(art/ui/fish-map.webp) center/cover no-repeat; }
+.fsm-foot{ padding:8px 12px; font:700 11px system-ui; color:#9fb2c2; text-align:center;
+  background:#0b1520; border-top:1px solid rgba(255,255,255,.08); }
+.fsm-pin{ position:absolute; transform:translate(-50%,-50%); min-width:112px; max-width:150px; padding:7px 10px 8px;
+  border-radius:12px; cursor:pointer; text-align:left; color:#f3ead2; font-family:Georgia,'Times New Roman',serif;
+  box-shadow:0 8px 18px rgba(0,0,0,.5); transition:transform .12s ease, box-shadow .12s ease; }
+.fsm-pin:hover{ transform:translate(-50%,-50%) scale(1.04); }
+.fsm-pin b{ display:block; font:800 11.5px/1.2 Georgia,'Times New Roman',serif; }
+.fsm-pin small{ display:block; font:600 9px/1.3 system-ui; opacity:.85; margin-top:3px; }
+.fsm-pin i{ display:block; font:700 9.5px system-ui; color:#ffd35c; margin-top:3px; }
+.fsm-pin em{ display:block; font:700 8.5px system-ui; letter-spacing:.08em; text-transform:uppercase; color:#ffd35c; margin-top:3px; }
+.fsm-pin.here{ outline:2px solid #ffd35c; box-shadow:0 0 0 4px rgba(255,211,92,.25), 0 8px 18px rgba(0,0,0,.5); }
+.fsm-pin.locked{ opacity:.78; filter:grayscale(.2); }
+.fsm-boat{ position:absolute; transform:translate(-50%,-50%); font-size:22px; pointer-events:none; z-index:3;
+  filter:drop-shadow(0 3px 5px rgba(0,0,0,.7)); transition:left .78s ease-in-out, top .78s ease-in-out;
+  animation:fsmBob 1.6s ease-in-out infinite; }
+.fsm-boat.sailing{ animation:fsmSail .78s ease-in-out; }
+@keyframes fsmBob{ 0%,100%{ margin-top:0; } 50%{ margin-top:-3px; } }
+@keyframes fsmSail{ 0%,100%{ transform:translate(-50%,-50%) rotate(0); } 50%{ transform:translate(-50%,-60%) rotate(-8deg) scale(1.15); } }
+.fsm-pin[data-spot="dock"]{ background:linear-gradient(180deg,#6a4a2a,#2a1a10); border:1px solid #c9a06a; }
+.fsm-pin[data-spot="shallows"]{ background:radial-gradient(10px 6px at 12% 80%, rgba(40,80,20,.7), transparent 70%), linear-gradient(180deg,#4a7a38,#1a3418);
+  border:1px solid #8aba60; color:#e8f8d0; }
+.fsm-pin[data-spot="ledge"]{ background:linear-gradient(180deg,#4a5a78,#1a2438); border:1px solid #8aa0c0; color:#e0e8f8; }
+.fsm-pin[data-spot="midnight"]{ background:linear-gradient(180deg,#2a1848,#0a0618); border:1px solid #8a70d0; color:#e8d8ff; }
+.fsm-pin[data-spot="midnight"]::before{ content:""; position:absolute; inset:0; pointer-events:none; border-radius:12px;
+  background-image:radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 20%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 80% 70%, #cde, transparent); }
+.fsm-pin[data-spot="reef"]{ background:linear-gradient(180deg,#2a8a88,#104848); border:1px solid #6ae0d0; color:#e8fff8; }
+.fsm-pin[data-spot="confluence"]{ background:conic-gradient(from 20deg, #6a4a2a, #4a7a38, #4a5a78, #2a1848, #2a8a88, #6a4a2a);
+  border:1px solid #e0d090; color:#fff8e0; text-shadow:0 1px 2px rgba(0,0,0,.7); }
+@media (max-width:480px){ .fsm-pin{ min-width:96px; max-width:128px; padding:6px 8px 7px; } .fsm-pin small{ display:none; } }
+
 /* ---- mining 2: the vein ---- */
 #mineScene.mine-scene, .mine-scene{
   display:block !important; height:auto !important; padding:0 !important;
@@ -4328,7 +4379,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 383ab3</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · c9599a</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5427,7 +5478,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-07-connections.js?v=07edc26b73"></script>
 <script src="oe-08-case.js?v=9be0d06f44"></script>
 <script src="oe-09-oddone.js?v=e66af7007b"></script>
-<script src="oe-10-fishing2.js?v=ab18b5b7af"></script>
+<script src="oe-10-fishing2.js?v=12d339e8e9"></script>
 <script src="oe-11-mining2.js?v=2ee842de0b"></script>
 <script src="oe-12-ripship.js?v=4476b8212f"></script>
 <script src="oe-13-ledger.js?v=b36867f39e"></script>

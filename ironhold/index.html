@@ -459,6 +459,7 @@ const AFFIX={
  luck:{n:'+{v}% Drop chance',min:3,max:12},
  spd:{n:'-{v}% Attack delay',min:3,max:10,wep:true},
  atk:{n:'+{v} Attack bonus',fixed:true},str:{n:'+{v} Strength bonus',fixed:true},def:{n:'+{v} Defence bonus',fixed:true},
+ dr:{n:'{v}% Damage reduction',fixed:true},
 };
 const FOOD=[{n:'Shrimp',h:3},{n:'Trout',h:7},{n:'Lobster',h:12},{n:'Swordfish',h:14},{n:'Shark',h:20}];
 const STYLES=[{n:'Accurate',s:'atk'},{n:'Aggressive',s:'str'},{n:'Defensive',s:'def'},{n:'Controlled',s:'all'}];
@@ -697,6 +698,7 @@ function bonuses(){
     b.atk+=st.atk*(it.arm&&ARMK[it.arm].style!==cstyle()?0.4:1);b.str+=st.str;b.def+=st.def;for(const k in it.aff)b[k]+=it.aff[k];
     const rw=rwOf(it);if(rw)for(const k in rw.eff)b[k]+=rw.eff[k];}
   setBonuses(b);
+  masteryBonus(b);
   b.gold+=keepLv('chest')*5;
   const sh=S.asc?S.asc.shards:0;b.xp+=sh*2;b.gold+=sh;b.luck+=sh;b.atk+=Math.floor(sh*0.5);b.str+=Math.floor(sh*0.5);b.def+=Math.floor(sh*0.5);
   return b;
@@ -1024,9 +1026,13 @@ function drawScene(t,dt){
   const pl=Math.sin(FX.pLunge*Math.PI)*22,ml=Math.sin(FX.mLunge*Math.PI)*22;
   const gy=H*0.72;
   // shadows
-  ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(120+pl,gy+28,26,7,0,0,7);ctx.fill();
-  ctx.beginPath();ctx.ellipse(370-ml,gy+28,34,8,0,0,7);ctx.fill();
-  if(!G.dead){const px=[66,22,98],py=[2,8,-2];party().map((c,i)=>[c,i]).sort((a,b)=>px[a[1]]-px[b[1]]).forEach(([c,i])=>{const cd=c.def;FX.cAct[i]=Math.max(0,(FX.cAct[i]||0)-dt*2);ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(px[i],gy+22+py[i],16,5,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(120+pl,gy+6,26,7,0,0,7);ctx.fill();
+  {// size the monster's shadow to the monster: a chicken had a dragon's shadow
+   let mw=34;
+   if(G.mob){const mk0=mobSprKey(G.mob);const im0=mk0?sprFrame(mk0+'_idle',0):null;
+     if(im0)mw=clamp(im0.naturalWidth*mobSprScale(G.mob)*0.42,13,52);}
+   ctx.beginPath();ctx.ellipse(370-ml,gy+8,mw,Math.max(4,mw*0.24),0,0,7);ctx.fill();}
+  if(!G.dead){const px=[66,22,98],py=[2,8,-2];party().map((c,i)=>[c,i]).sort((a,b)=>px[a[1]]-px[b[1]]).forEach(([c,i])=>{const cd=c.def;FX.cAct[i]=Math.max(0,(FX.cAct[i]||0)-dt*2);ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(px[i],gy+py[i]+6,16,5,0,0,7);ctx.fill();
       const k=cd.id;if(sprReady(k+'_idle')){const act=cd.id==='squire'?FX.pFlash>0:FX.cAct[i]>0;drawSprite(act&&sprReady(k+'_atk')?sprFrame(k+'_atk',0):sprFrame(k+'_idle',0),px[i],gy+py[i]+4+Math.sin((t+i)*3)*1.2,false,0,1);}
       else drawMob(px[i],gy+py[i]-(cd.shape==='beast'?58:78),cd,t+1+i,1,0);});
     if(activePrayers().length){ctx.strokeStyle='#ffd24a';ctx.lineWidth=2.5;ctx.shadowColor='#ffd24a';ctx.shadowBlur=8;ctx.beginPath();ctx.ellipse(120+pl,gy-102+Math.sin(t*3)*1.8,14,4.5,0,0,7);ctx.stroke();ctx.shadowBlur=0;}}
@@ -1331,7 +1337,16 @@ function renderBag(){
 }
 
 // --- skills ---
-const MASTERY=[['atk',10,'Blade'],['str',10,'Brawn'],['def',10,'Guard'],['hp',20,'Vigour'],['atk',40,'Edge'],['def',40,'Bulwark'],['hp',60,'Iron heart'],['atk',60,'Warmaster'],['rng',10,'Marksman'],['mag',10,'Adept'],['rng',40,'Deadeye'],['mag',40,'Archmage']];
+// [skill, level, title, passive]. Fed into bonuses() — these are real, not decoration.
+const MASTERY=[
+ ['atk',10,'Blade',{atk:5}],       ['str',10,'Brawn',{str:5}],
+ ['def',10,'Guard',{def:5}],       ['hp',20,'Vigour',{hp:10}],
+ ['rng',10,'Marksman',{atk:5}],    ['mag',10,'Adept',{str:5}],
+ ['atk',40,'Edge',{crit:5}],       ['def',40,'Bulwark',{dr:5}],
+ ['rng',40,'Deadeye',{crit:6}],    ['mag',40,'Archmage',{xp:8}],
+ ['hp',60,'Iron heart',{hp:25}],   ['atk',60,'Warmaster',{atk:10,str:10}],
+];
+function masteryBonus(b){for(const [k,n,,eff] of MASTERY){if(lv(k)>=n)for(const e in eff)b[e]+=eff[e];}}
 const SK_NAME={atk:'Attack',str:'Strength',def:'Defence',hp:'Hitpoints',rng:'Ranged',mag:'Magic'};
 const CSTYLES=[{k:'melee',n:'Melee'},{k:'ranged',n:'Ranged'},{k:'magic',n:'Magic'}];
 const cstyle=()=>{const w=S.equip.weapon;return (w&&WEAPONS[w.wt].style)||'melee';};
@@ -1344,7 +1359,7 @@ function renderSkills(){
   const cw=S.equip.weapon;const cn=({melee:'Melee',ranged:'Ranged',magic:'Magic'})[cstyle()];
   $('cstyles').innerHTML=`<b class="gold">${cn}</b><span class="sub"> — ${cw?itemName(cw)+' · '+WEAPONS[cw.wt].spd+'s':'unarmed'}</span>`;
   const st=$('styles');st.innerHTML='';STYLES.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;if(i===S.style)b.className='on';b.onclick=()=>{S.style=i;renderSkills();renderSlots();};st.appendChild(b);});
-  $('mastery').innerHTML=MASTERY.map(([k,n,t])=>`<div class="mcard${lv(k)>=n?' lit':''}"><div class="rune">${lv(k)>=n?'✦':'·'}</div><div>${t}</div><div class="sub">${SK_NAME[k]} ${n}</div></div>`).join('');
+  $('mastery').innerHTML=MASTERY.map(([k,n,t,eff])=>`<div class="mcard${lv(k)>=n?' lit':''}" title="${SK_NAME[k]} ${n} — ${effText(eff)}"><div class="rune">${lv(k)>=n?'✦':'·'}</div><div>${t}</div><div class="sub">${effText(eff)}</div><div class="sub" style="opacity:.7">${SK_NAME[k]} ${n}${lv(k)>=n?'':' — locked'}</div></div>`).join('');
   $('autoEat').checked=S.autoEat;$('eatPct').value=S.eatPct;$('eatPctTxt').textContent=S.eatPct;
 }
 
@@ -1560,7 +1575,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b15-wyrm';
+  const BUILD='b16-mastery';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

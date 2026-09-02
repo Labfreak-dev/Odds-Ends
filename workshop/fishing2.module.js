@@ -226,14 +226,15 @@ function feInitAmbient(){
   const rnd = (n)=>{ const v=Math.sin(n*127.1)*43758.5453; return v-Math.floor(v); };
   /* stars keep to the sky: the painted ridge line was sampled from the
      painting itself at build time (FE_RIDGE, one point per 8px) */
-  const ridgeAt = x => FE_RIDGE[Math.max(0, Math.min(FE_RIDGE.length-1, Math.round(x/FE_RIDGE_STEP)))];
+  const ridgeAt = x => feRidgeBand(x);
+  const off = feBandOff();
   feStars = Array.from({length:110}, (_,i)=>{
-    const x = rnd(i)*FSH_W;
-    const ceil = ridgeAt(x) - 12;
-    /* the sky runs FE_OFF above the band now — stars fill all of it */
-    return { x, y: -FE_OFF + 6 + rnd(i+300)*Math.max(8, ceil + FE_OFF - 6), s: 0.8+rnd(i+600)*1.3, ph: rnd(i+900)*6.28 };
+    const x = -100 + rnd(i)*(FSH_W+200);   /* a little past both edges: the band may sit shifted sideways */
+    const ceil = ridgeAt(Math.max(0, Math.min(FSH_W, x))) - 12;
+    /* the sky runs FE_OFF (plus this water's offset) above the band — stars fill all of it */
+    return { x, y: -off + 6 + rnd(i+300)*Math.max(8, ceil + off - 6), s: 0.8+rnd(i+600)*1.3, ph: rnd(i+900)*6.28 };
   });
-  feRain = Array.from({length:230}, (_,i)=>({ x: rnd(i+50)*FSH_W, y: -FE_OFF + rnd(i+80)*1200, sp: 340+rnd(i+30)*160 }));
+  feRain = Array.from({length:230}, (_,i)=>({ x: -100 + rnd(i+50)*(FSH_W+200), y: -off + rnd(i+80)*1200, sp: 340+rnd(i+30)*160 }));
   feRings = [];
   feWind = { base: 0.5, gust: 0, gustT: 3 };
   const dressGulls = (typeof feSpot === "function" && feSpot().dress && feSpot().dress.gulls) || 3;
@@ -445,7 +446,7 @@ function feDrawGrade(g, pal, hour){
     g.globalCompositeOperation = "multiply";
     g.globalAlpha = feDress.tint[3];
     g.fillStyle = `rgb(${feDress.tint[0]},${feDress.tint[1]},${feDress.tint[2]})`;
-    g.fillRect(0,-FE_OFF,FSH_W,1200);
+    g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200);
     g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
   }
   /* the multiply tint — the single line that turns noon into midnight */
@@ -453,23 +454,23 @@ function feDrawGrade(g, pal, hour){
     g.globalCompositeOperation = "multiply";
     g.globalAlpha = Math.min(0.9, pal.tint[3]);
     g.fillStyle = `rgb(${pal.tint[0]|0},${pal.tint[1]|0},${pal.tint[2]|0})`;
-    g.fillRect(0,-FE_OFF,FSH_W,1200);
+    g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200);
     g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
   }
-  if(pal.dark > 0){ g.fillStyle = `rgba(10,14,26,${pal.dark})`; g.fillRect(0,-FE_OFF,FSH_W,1200); }
+  if(pal.dark > 0){ g.fillStyle = `rgba(10,14,26,${pal.dark})`; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200); }
   /* warm hour overlay, biased to the sky and the water's far band */
   if(pal.warm[3] > 0.004){
     /* the warm wash starts at the true top of the tall sky — starting at
        the band's y0 stamped a hard seam across the dusk */
-    const wg = g.createLinearGradient(0,-FE_OFF,0,FSH_SURF_END);
+    const wg = g.createLinearGradient(0,-feBandOff(),0,FSH_SURF_END);
     wg.addColorStop(0, `rgba(${pal.warm[0]|0},${pal.warm[1]|0},${pal.warm[2]|0},${pal.warm[3]})`);
     wg.addColorStop(0.55, `rgba(${pal.warm[0]|0},${pal.warm[1]|0},${pal.warm[2]|0},${pal.warm[3]*0.55})`);
     wg.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = wg; g.fillRect(0,-FE_OFF,FSH_W,FSH_SURF_END+FE_OFF);
+    g.fillStyle = wg; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,FSH_SURF_END+feBandOff());
   }
-  const feRidgeAt = x => (typeof FE_RIDGE !== "undefined" ? FE_RIDGE[Math.max(0,Math.min(100,Math.round(x/8)))] : 200);
+  const feRidgeAt = x => feRidgeBand(x);
   const moonOcc = Math.max(0, Math.min(1, (feRidgeAt(moon.x) - 6 - moon.y) / 26));
-  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02){
+  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02 && feBgSpot !== "midnight"){   /* the Mark's painting has its own moon */
     g.save(); g.globalAlpha = moonOcc * (moon.edge !== undefined ? moon.edge : 1);
     /* moonlight lies on the water as a soft glowing pool near the
        horizon, breaking into scattered glints that widen and thin as
@@ -554,13 +555,13 @@ function feDrawGrade(g, pal, hour){
     for(let i=0;i<n;i++){
       const d = feRain[i];
       d.y += d.sp*0.016; d.x -= slant*0.6;
-      if(d.y > 1200-FE_OFF){ d.y = -FE_OFF-8; d.x = Math.random()*FSH_W; }
+      if(d.y > 1200-feBandOff()){ d.y = -feBandOff()-8; d.x = -100 + Math.random()*(FSH_W+200); }
       if(d.x < -4) d.x += FSH_W;
       g.moveTo(d.x, d.y); g.lineTo(d.x - slant, d.y + 9 + pal.rain*4);
     }
     g.stroke();
   }
-  if(feFlash > 0.02){ g.fillStyle = `rgba(235,242,255,${feFlash*0.55})`; g.fillRect(0,-FE_OFF,FSH_W,1200); }
+  if(feFlash > 0.02){ g.fillStyle = `rgba(235,242,255,${feFlash*0.55})`; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200); }
   /* a caught lantern earns its keep from dusk on — big, warm, alive */
   if(pal.sun < 0.35 && feProps().lantern > 0){
     const P = FE_PROPS.find(p=>p.key==="lantern");
@@ -719,7 +720,7 @@ function feDrawAmbient(g, pal){
   /* rooted at the tall frame's very bottom now — foreground framing,
      not stalks sprouting from open water mid-lake */
   const lean = (feWind ? feWind.cur : 0.6);
-  const feBot = 1200 - FE_OFF;
+  const feBot = 1200 - feBandOff();
   for(const r of feAgents.reeds){
     const sway = Math.sin(fshT*1.9 + r.ph) * 2.6 * lean + lean*3;
     const h = r.h * 1.45;
@@ -1060,6 +1061,7 @@ function fshDraw(){
   const cv = document.getElementById("fshCanvas");
   if(!cv) return;
   const g = cv.getContext("2d");
+  feApplySpotBg();
   if(!feEnv) feEnvInit();
   if(!feStars) feInitAmbient();
   const pal = fePalette(feEnv.hour, feEnv.weather, feEnv.prev, feEnv.blend);
@@ -1163,7 +1165,7 @@ function fshDraw(){
     g.globalAlpha = 1;
   }
   if(fsh && fsh.phase === "result"){
-    g.fillStyle = "rgba(6,14,24,.55)"; g.fillRect(0,-FE_OFF,FSH_W,1200);
+    g.fillStyle = "rgba(6,14,24,.55)"; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200);
   }
   g.restore();
 }
@@ -2117,8 +2119,8 @@ function fshLand(){
 const feScene = { id:null, t:0, last:0, arrive:0, bits:[], name:"" };
 /* the scene space: the band is 800x560 but the canvas runs FE_OFF above it
    and on down to 1200-FE_OFF; the cast plank covers the last ~95px */
-function feSceneBot(){ return 1200 - FE_OFF; }
-function feSceneFloor(){ return 1200 - FE_OFF - 95; }
+function feSceneBot(){ return 1200 - feBandOff(); }
+function feSceneFloor(){ return 1200 - feBandOff() - 95; }
 function feSceneTick(){
   const now = performance.now();
   const dt = feScene.last ? Math.min(0.05, (now - feScene.last)/1000) : 0.016;
@@ -2133,49 +2135,27 @@ function feSceneTick(){
 }
 function feSceneSeed(id){
   const rnd = (n)=>{ const v = Math.sin(n*311.7 + id.length*13.1)*43758.5453; return v - Math.floor(v); };
-  const n = { reef:24, shallows:16, midnight:18 }[id] || 0;
+  const n = { reef:24, midnight:18 }[id] || 0;
   return Array.from({length:n}, (_,i)=>({
     x: rnd(i)*FSH_W, y: FSH_SURF_END + 24 + rnd(i+50)*(feSceneFloor() - FSH_SURF_END - 60),
     s: 2 + rnd(i+90)*6, p: rnd(i+130)*6.28 }));
 }
-/* a wash over the water that fades in from the far shore instead of
-   stamping a hard rectangle across the horizon */
-function feSceneWash(g, rgb, a, bot){
-  const gr = g.createLinearGradient(0, FSH_HORIZON, 0, FSH_HORIZON + 70);
-  gr.addColorStop(0, `rgba(${rgb},0)`); gr.addColorStop(1, `rgba(${rgb},${a})`);
-  g.fillStyle = gr; g.fillRect(0, FSH_HORIZON, FSH_W, 70);
-  g.fillStyle = `rgba(${rgb},${a})`; g.fillRect(0, FSH_HORIZON + 70, FSH_W, bot - FSH_HORIZON - 70);
-}
 function feSceneWater(g, pal){
   feSceneTick();
-  const id = feScene.id, t = feScene.t, BOT = feSceneBot(), FLOOR = feSceneFloor(), WH = BOT - FSH_HORIZON;
+  const id = feScene.id, t = feScene.t;
   if(id === "dock") return;
   g.save();
-  if(id === "shallows"){
-    const gr = g.createLinearGradient(0, FSH_SURF_END, 0, BOT);
-    gr.addColorStop(0, "rgba(90,120,50,0)"); gr.addColorStop(1, "rgba(70,90,30,.6)");
-    g.fillStyle = gr; g.fillRect(0, FSH_SURF_END, FSH_W, BOT - FSH_SURF_END);
-    g.strokeStyle = "rgba(60,110,40,.75)"; g.lineWidth = 3.5; g.lineCap = "round";
-    for(const b of feScene.bits){
-      const h = 50 + b.s*9, sway = Math.sin(t*1.2 + b.p), base = FLOOR + 20;
-      g.beginPath(); g.moveTo(b.x, base);
-      g.quadraticCurveTo(b.x + sway*8, base - h*0.5, b.x + sway*16, base - h); g.stroke();
-    }
-  } else if(id === "ledge"){
-    feSceneWash(g, "20,40,90", .28, BOT);
-    g.strokeStyle = "rgba(170,200,240,.14)"; g.lineWidth = 2;
-    for(let i=0;i<6;i++){
+  if(id === "ledge"){
+    /* long cold swells on the painted deep water */
+    g.strokeStyle = "rgba(170,200,240,.12)"; g.lineWidth = 2;
+    for(let i=0;i<5;i++){
       g.beginPath();
-      const y = FSH_HORIZON + 40 + i*100 + Math.sin(t*0.5 + i)*5;
+      const y = FSH_SURF_END + 20 + i*90 + Math.sin(t*0.5 + i)*5;
       for(let x=0; x<=FSH_W; x+=16){ const yy = y + Math.sin(x*0.02 + t*0.9 + i)*4; x ? g.lineTo(x, yy) : g.moveTo(x, yy); }
       g.stroke();
     }
   } else if(id === "midnight"){
-    feSceneWash(g, "70,30,120", .30, BOT);
-    const gx = FSH_W*0.62 + Math.sin(t*0.3)*30, gy = FSH_HORIZON + 70;
-    const rg = g.createRadialGradient(gx, gy, 4, gx, gy, 170);
-    rg.addColorStop(0, "rgba(190,120,255,.42)"); rg.addColorStop(1, "rgba(120,60,200,0)");
-    g.fillStyle = rg; g.fillRect(0, FSH_HORIZON, FSH_W, WH);
+    /* motes over the dark water and something long passing beneath */
     for(const b of feScene.bits){
       const a = 0.2 + 0.5*(0.5 + 0.5*Math.sin(t*2 + b.p));
       g.fillStyle = `rgba(220,200,255,${a.toFixed(2)})`;
@@ -2184,17 +2164,16 @@ function feSceneWater(g, pal){
     g.fillStyle = "rgba(6,2,18,.35)";
     g.beginPath(); g.ellipse(FSH_W*0.55 + Math.sin(t*0.35)*110, FSH_SURF_END + 150 + Math.sin(t*0.7)*10, 90, 14, Math.sin(t*0.35)*0.2, 0, 7); g.fill();
   } else if(id === "reef"){
-    feSceneWash(g, "40,190,180", .22, BOT);
-    g.strokeStyle = "rgba(220,255,250,.16)"; g.lineWidth = 1.5;
-    for(let i=0;i<7;i++){
+    /* caustics and darting reef fish over the painted coral */
+    g.strokeStyle = "rgba(220,255,250,.14)"; g.lineWidth = 1.5;
+    for(let i=0;i<6;i++){
       g.beginPath();
       for(let x=0; x<=FSH_W; x+=14){
-        const y = FSH_SURF_END + 20 + i*70 + Math.sin(x*0.05 + t*1.6 + i*1.3)*6 + Math.sin(x*0.013 - t + i)*5;
+        const y = FSH_SURF_END + 30 + i*70 + Math.sin(x*0.05 + t*1.6 + i*1.3)*6 + Math.sin(x*0.013 - t + i)*5;
         x ? g.lineTo(x, y) : g.moveTo(x, y);
       }
       g.stroke();
     }
-    feSceneCoral(g, t);
     for(const b of feScene.bits){
       b.x += Math.sin(t*0.8 + b.p)*0.6*(b.s > 4 ? 1 : -1);
       if(b.x < -10) b.x = FSH_W + 10; if(b.x > FSH_W + 10) b.x = -10;
@@ -2204,68 +2183,23 @@ function feSceneWater(g, pal){
       g.beginPath(); g.moveTo(b.x - 5*dir, y); g.lineTo(b.x - 9*dir, y - 3); g.lineTo(b.x - 9*dir, y + 3); g.closePath(); g.fill();
     }
   } else if(id === "confluence"){
-    const cx = FSH_W*0.56, cy = FSH_SURF_END + 170;
-    feSceneWash(g, "30,40,80", .25, BOT);
-    /* the eye of it, dark, then five coloured rings turning at five speeds */
-    g.save(); g.translate(cx, cy); g.scale(1.6, 0.6);
-    const eye = g.createRadialGradient(0, 0, 4, 0, 0, 90);
-    eye.addColorStop(0, "rgba(6,10,24,.75)"); eye.addColorStop(1, "rgba(6,10,24,0)");
-    g.fillStyle = eye; g.beginPath(); g.arc(0, 0, 90, 0, 7); g.fill();
-    g.globalAlpha = 0.5;
-    const cols = ["#c9a06a","#6aaa50","#6a80c0","#8a70d0","#40c0b8"];
-    for(let i=0;i<5;i++){
-      g.rotate(t*0.5*(1 + i*0.08)); g.strokeStyle = cols[i]; g.lineWidth = 9 - i;
-      g.beginPath(); g.arc(0, 0, 40 + i*32, 0, 4.4); g.stroke();
-    }
+    /* a slow sheen turning over the painted whirlpool (its eye, in band coords) */
+    const cx = 536, cy = 363;
+    g.save(); g.translate(cx, cy); g.scale(1, 0.5); g.globalAlpha = 0.16; g.strokeStyle = "#ffffff"; g.lineWidth = 3;
+    for(let i=0;i<3;i++){ g.rotate(-t*0.35 + i*2.1); g.beginPath(); g.arc(0, 0, 70 + i*60, 0, 2.4); g.stroke(); }
     g.restore();
-    g.strokeStyle = "rgba(235,245,255,.45)"; g.lineWidth = 3; g.lineCap = "round"; g.beginPath();
-    for(let a=0; a<6.28*2.5; a+=0.12){
-      const r = 8 + a*20, x = cx + Math.cos(a - t*0.5)*r, y = cy + Math.sin(a - t*0.5)*r*0.42;
-      a ? g.lineTo(x, y) : g.moveTo(x, y);
-    }
-    g.stroke();
   }
   g.restore();
 }
-function feSceneCoral(g, t){
-  const cols = ["#d0608a","#ff9a6a","#b070e0","#40c0b0","#f0c060"];
-  const FLOOR = feSceneFloor();
-  g.fillStyle = "rgba(60,90,100,.55)"; g.fillRect(0, FLOOR - 10, FSH_W, 40);   /* the shelf itself */
-  for(let i=0;i<14;i++){
-    const x = 12 + i*58 + (i%3)*9, h = 30 + (i*37)%30, y = FLOOR;
-    g.fillStyle = cols[i%5];
-    g.fillRect(x - 3, y - h*0.5, 6, h*0.5);
-    for(let j=0;j<3;j++){
-      const r = 6 + ((i+j)*13)%7, ox = (j-1)*7, oy = -h*(0.35 + j*0.25) + Math.sin(t*1.5 + i + j)*1.2;
-      g.beginPath(); g.arc(x + ox, y + oy, r, 0, 7); g.fill();
-    }
-  }
-}
 function feSceneFore(g, pal){
   const id = feScene.id, t = feScene.t;
-  if(id === "ledge"){
+  if(id === "shallows"){
+    /* a low marsh mist lying on the painted water */
     g.save();
-    /* the cliff on the right, from the far shore down into the water */
-    const cg = g.createLinearGradient(FSH_W - 170, 0, FSH_W, 0);
-    cg.addColorStop(0, "#2c3446"); cg.addColorStop(1, "#141a26");
-    g.fillStyle = cg;
-    g.beginPath();
-    g.moveTo(FSH_W, FSH_HORIZON - 150); g.lineTo(FSH_W - 40, FSH_HORIZON - 120); g.lineTo(FSH_W - 70, FSH_HORIZON - 60);
-    g.lineTo(FSH_W - 120, FSH_HORIZON - 30); g.lineTo(FSH_W - 150, FSH_HORIZON + 40); g.lineTo(FSH_W - 135, FSH_HORIZON + 100);
-    g.lineTo(FSH_W - 170, FSH_HORIZON + 150); g.lineTo(FSH_W - 120, FSH_HORIZON + 300); g.lineTo(FSH_W - 150, FSH_HORIZON + 450);
-    g.lineTo(FSH_W - 110, feSceneBot()); g.lineTo(FSH_W, feSceneBot()); g.closePath(); g.fill();
-    g.strokeStyle = "rgba(140,160,190,.35)"; g.lineWidth = 2;
-    [[-70,-60,-30,-52],[-120,-30,-80,-18],[-150,40,-100,52],[-135,100,-90,108],[-120,300,-70,312],[-150,450,-100,460]].forEach(([a,b,c,d])=>{
-      g.beginPath(); g.moveTo(FSH_W + a, FSH_HORIZON + b); g.lineTo(FSH_W + c, FSH_HORIZON + d); g.stroke(); });
-    g.fillStyle = "rgba(230,240,255,.35)";
-    for(let i=0;i<6;i++){ g.beginPath(); g.arc(FSH_W - 168 + i*8, FSH_HORIZON + 148 + Math.sin(t*3 + i)*3, 3 + (i%2), 0, 7); g.fill(); }
-    g.restore();
-  } else if(id === "shallows"){
-    g.save();
-    const a = 0.16 + 0.06*Math.sin(t*0.7);
+    const a = 0.14 + 0.06*Math.sin(t*0.7);
     const gr = g.createLinearGradient(0, FSH_HORIZON + 20, 0, FSH_HORIZON + 90);
     gr.addColorStop(0, "rgba(210,225,190,0)"); gr.addColorStop(0.5, `rgba(210,225,190,${a.toFixed(3)})`); gr.addColorStop(1, "rgba(210,225,190,0)");
-    g.fillStyle = gr; g.fillRect(0, FSH_HORIZON + 20, FSH_W, 70);
+    g.fillStyle = gr; g.fillRect(-FSH_W, FSH_HORIZON + 20, 3*FSH_W, 70);
     g.restore();
   }
 }
@@ -2274,7 +2208,7 @@ function feSceneArrive(g){
   if(k <= 0) return;
   const a = k > 1.2 ? (1.5 - k)/0.3 : Math.min(1, k/0.7);   /* in fast, hold, out slow */
   g.save();
-  g.fillStyle = `rgba(4,8,16,${(0.55*a).toFixed(3)})`; g.fillRect(0, -FE_OFF, FSH_W, 1200);
+  g.fillStyle = `rgba(4,8,16,${(0.55*a).toFixed(3)})`; g.fillRect(-FSH_W, -feBandOff(), 3*FSH_W, 1200);
   const w = 320, h = 56, x = FSH_W/2 - w/2, y = FSH_HORIZON - 96;   /* over the far shore, clear of the angler */
   g.globalAlpha = a;
   g.fillStyle = "#3a2614"; g.strokeStyle = "#b08a4a"; g.lineWidth = 2;
@@ -2716,6 +2650,45 @@ function feSpeciesArt(name){
    action lives. Sky above and deep water below come straight from the
    painting. */
 const FE_OFF = 292;
+/* ---- one painting per water (batch 111). Every painting puts its pier
+   somewhere else, so the whole gameplay band - casts, fights, angler, props,
+   tints, stars - is translated by that painting's offset (FE_SPOT_BAND) on
+   top of FE_OFF, and the far-shore ridge for the stars comes from that
+   painting's own sample (FE_SPOT_RIDGE). The dock keeps the original
+   painting with its painted angler, cover and sun-cover machinery; on the
+   other waters the angler is that same painted man, cut out by his matte
+   and stamped onto the new pier. */
+let feBgSpot = "dock";
+const feBgCache = {};
+function feBandInfo(){
+  const id = (typeof feSpot === "function" && feSpot().id) || "dock";
+  return (typeof FE_SPOT_BAND !== "undefined" && FE_SPOT_BAND[id]) || { dx:0, dy:0 };
+}
+function feBandOff(){ return FE_OFF + feBandInfo().dy; }
+function feBandDx(){ return feBandInfo().dx; }
+/* ridge in band coordinates for the current water */
+function feRidgeBand(x){
+  const id = (typeof feSpot === "function" && feSpot().id) || "dock";
+  const k = Math.max(0, Math.min(100, Math.round(x/8)));
+  if(id !== "dock" && typeof FE_SPOT_RIDGE !== "undefined" && FE_SPOT_RIDGE[id]) return FE_SPOT_RIDGE[id][k] - feBandOff();
+  return (typeof FE_RIDGE !== "undefined") ? FE_RIDGE[k] : 200;
+}
+function feApplySpotBg(){
+  if(fshBgImg && !feBgCache.dock && feBgSpot === "dock") feBgCache.dock = fshBgImg;
+  const id = (typeof feSpot === "function" && feSpot().id) || "dock";
+  const want = (id !== "dock" && typeof FE_SPOT_BG !== "undefined" && FE_SPOT_BG[id]) ? id : "dock";
+  if(want === feBgSpot) return;
+  if(want === "dock"){
+    if(feBgCache.dock){ fshBgImg = feBgCache.dock; fshBgReady = !!(fshBgImg.complete && fshBgImg.naturalWidth); feBgSpot = "dock"; }
+    return;
+  }
+  let im = feBgCache[want];
+  if(!im){ im = new Image(); im.src = FE_SPOT_BG[want]; feBgCache[want] = im; }
+  if(im.complete && im.naturalWidth){ fshBgImg = im; fshBgReady = true; feBgSpot = want; }
+  else im.onload = ()=>{ feApplySpotBg(); };   /* the old painting stays up until the new one has decoded */
+}
+/* decode the five paintings early so the first sail is not a blank */
+try{ if(typeof FE_SPOT_BG !== "undefined") for(const k in FE_SPOT_BG){ const im = new Image(); im.src = FE_SPOT_BG[k]; feBgCache[k] = im; } }catch(e){}
 function fshBobberTarget(t){
   return { x: 380 + t*366, y: 470 - t*160 };
 }
@@ -2732,7 +2705,7 @@ function fshDrawSky(g){
       if(h >= 20.2 || h < 4.8){ return Math.min(1, h >= 20.2 ? (h-20.2)/1.3 : 1); }
       return 0;
     })();
-    if(nAmt > 0.01){
+    if(nAmt > 0.01 && feBgSpot === "dock"){
       if(!fshDrawSky._sunCover){
         try{
           const sc = document.createElement("canvas");
@@ -2757,7 +2730,7 @@ function fshDrawSky(g){
       }
     }
     g.restore();
-    feCoverAndBoat(g);
+    if(feBgSpot === "dock") feCoverAndBoat(g);
   } else if(typeof fshBackdrop !== "undefined" && fshBackdrop){ g.drawImage(fshBackdrop, 0, 0); }
   /* ambient ripples — the water moves everywhere, thickest around the
      dock legs and the moored boat */
@@ -2802,7 +2775,7 @@ function fshDrawSky(g){
   }
   g.restore();
   /* everything after the sky lives on the band */
-  g.translate(0, FE_OFF);
+  g.translate(feBandDx(), feBandOff());
   /* the marksman's ring, while the cast is still yours to make */
   if(feAim && fsh && (fsh.phase === "idle" || fsh.phase === "charging" || fsh.phase === "casting")){
     const pu = 0.6 + 0.4*Math.sin(fshT*3 + feAim.ph);
@@ -2956,19 +2929,29 @@ function fshDrawFisherman(g){
      so his patch is stamped back ON TOP here (this runs after foam and
      dock), and the rod gets a real grip. */
   if(fshBgReady){
-    if(!feManPatch && feManMatteImg.complete && feManMatteImg.naturalWidth){
+    const manSrc = feBgCache.dock || (feBgSpot === "dock" ? fshBgImg : null);   /* the man is cut from the DOCK painting */
+    if(!feManPatch && manSrc && manSrc.complete && manSrc.naturalWidth && feManMatteImg.complete && feManMatteImg.naturalWidth){
       /* the silhouette matte is TRACED offline from the painting itself
          (flood-fill through water pixels; him alone — no dock corner,
          no sandwiches, no waterline band; 1.6px feather). Until it's
          decoded we simply skip the stamp — the grip must ALWAYS return,
          or the rod renderer dies on undefined. */
       const c = document.createElement("canvas");
-      const fx = fshBgImg.naturalWidth/800, fyy = fshBgImg.naturalHeight/1200;
+      const fx = manSrc.naturalWidth/800, fyy = manSrc.naturalHeight/1200;
       c.width = 240; c.height = 464;
       const cg = c.getContext("2d");
-      cg.drawImage(fshBgImg, 238*fx, 492*fyy, 120*fx, 232*fyy, 0, 0, 240, 464);
+      cg.drawImage(manSrc, 238*fx, 492*fyy, 120*fx, 232*fyy, 0, 0, 240, 464);
+      /* the matte is a LUMINANCE mask (opaque greys, white = him), not an
+         alpha one - destination-in against it kept the whole rectangle,
+         which nobody saw while the patch sat over its own painting. Turn
+         luminance into alpha first. */
+      const mc = document.createElement("canvas"); mc.width = 240; mc.height = 464;
+      const mg = mc.getContext("2d"); mg.drawImage(feManMatteImg, 0, 0, 240, 464);
+      const md = mg.getImageData(0, 0, 240, 464), mp = md.data;
+      for(let q=0; q<mp.length; q+=4){ mp[q+3] = mp[q]; mp[q] = mp[q+1] = mp[q+2] = 0; }
+      mg.putImageData(md, 0, 0);
       cg.globalCompositeOperation = "destination-in";
-      cg.drawImage(feManMatteImg, 0, 0, 240, 464);
+      cg.drawImage(mc, 0, 0);
       cg.globalCompositeOperation = "source-over";
       feManPatch = c;
     }
@@ -3095,11 +3078,14 @@ function feRedrawDockBand(g){
   feDrawTrophies._want = true;
   /* the water shimmer draws across everything in the band — stamp the
      painted dock back on top before dressing it */
-  if(!feDockPatch){
+  if(!feDockPatch || feDockPatch.spot !== feBgSpot){
+    /* cut from THIS water's painting, at the band rect's place in it - the
+       band is offset per painting, so (0,250) is not (0,542) everywhere */
     const c = document.createElement("canvas");
     const fx = fshBgImg.naturalWidth/800, fyy = fshBgImg.naturalHeight/1200;
     c.width = 372; c.height = 176;
-    c.getContext("2d").drawImage(fshBgImg, 0, 542*fyy, 372*fx, 176*fyy, 0, 0, 372, 176);
+    c.getContext("2d").drawImage(fshBgImg, feBandDx()*fx, (250 + feBandOff())*fyy, 372*fx, 176*fyy, 0, 0, 372, 176);
+    c.spot = feBgSpot;
     feDockPatch = c;
   }
   g.drawImage(feDockPatch, 0, 250, 372, 176);

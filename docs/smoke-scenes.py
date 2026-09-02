@@ -43,7 +43,7 @@ with sync_playwright() as pw:
     d, m, r, s = seen["dock"], seen["midnight"], seen["reef"], seen["shallows"]
     check("the Mark's water shifts purple against the dock (green falls away from red and blue)",
           m["g"]/m["b"] < d["g"]/d["b"] - 0.05 and m["r"]/m["g"] > d["r"]/d["g"] + 0.05, (d, m))
-    check("the Shelf's water runs teal-green against the dock", r["g"] > d["g"] - 2 and r["r"] < d["r"] + 8 and r["h"] != d["h"], (d, r))
+    check("the Shelf's water runs teal-green against the dock", r["g"] >= r["b"] - 4 and r["g"] > d["g"] and r["h"] != d["h"], (d, r))
     check("the Shallows go murky green", s["g"] >= s["b"] or s["r"] > d["r"], (d, s))
     a = pg.evaluate(HASH)["h"]; pg.wait_for_timeout(1300); b = pg.evaluate(HASH)["h"]
     check("the scenery moves on its own", a != b)

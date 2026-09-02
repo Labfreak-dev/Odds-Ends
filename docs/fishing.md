@@ -501,6 +501,87 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 112 — the paintings, fine-tuned
+Playtester, with phone screenshots: "the fisherman and item are very
+offset on some scenes. so is the background sun and moon cycle. if all of
+the scenes were really carefully fine tuned I feel like this is the best
+update yet."
+
+OFFSETS, MEASURED PROPERLY. Batch 111 read pier positions off a 10% grid
+and got the reference wrong too: FSH_DOCK_Y/END are the OLD procedural
+dock's lines, not the painted one's. Measured on a 2% grid: in the
+reference the man's seat is at 52% of the height and the planks end at
+40% of the width. Each painting's seat line and plank end were read the
+same way (front-edge top minus the 1.5% he sits back), so the band
+offsets are now shallows +48/+24, ledge +90/+12, midnight +42/+24, reef
+-24/+28, confluence +66/-80 (dy/dx, logical px). Two automatic detectors
+(wood colour, deck flood-fill) were tried first and failed on the varied
+plank styles; the labelled grid read was the reliable one.
+
+FURNITURE. The comforts slide toward the pier end on a shorter pier
+(feDeckX: the planks end at band x 320 on every water, and a pier that
+starts closer scales the furniture toward that end), so nothing hangs
+over the water. The trophy wall and the rail board stay at the home dock:
+the painted piers have their own edges and no front wall to hang from.
+
+SUN AND MOON. The drawn sun glow belongs to the dock painting only. On
+the daylight paintings the moon appears only once dusk has gone
+(feNightAmt > 0.6) and a blue-black wash scaled by the same night amount
+(ramping over dusk 20.2-21.5 and dawn 4.8-6.3, the dock sun-cover's own
+edges) takes their bright skies down to night; the Mark keeps its painted
+crescent and no drawn moon at all.
+
+VERIFIED. scenes 18, fishhud 24, map 24, test-fishing; screenshots at all
+six waters at noon with furniture, the reef through dusk (20.3, 21, 22.5),
+the Confluence at dawn, the dock at night. Long smokes green.
+Stamp e48775.
+
+## Batch 111 — one painting per water
+Grok's six scene paintings (fishingspotbgs.zip) as data URIs in a new
+generated data module, workshop/fishing-spot-bgs.module.js, listed in
+integrate.py's MODULE_FILES (20 split files now). The dock keeps the
+original painting. Every painting puts its pier somewhere else, so the
+whole gameplay band (casts, fights, angler, props, tints, stars, arrival)
+is translated by that painting's offset on top of FE_OFF (feBandOff /
+feBandDx), every -FE_OFF fill follows it and spans past both edges, the
+far-shore ridge for stars and moon comes from that painting's own sample
+(FE_SPOT_RIDGE, one point per 8px, measured offline), and the dock patch
+that re-stamps the pier over the water layers is cut from the CURRENT
+painting at the band's place in it. Dock-only machinery stays dock-only:
+sun-cover, reflection cover and drawn rowboat.
+
+THE MATTE. The angler's matte was a LUMINANCE image, and destination-in
+against an opaque image keeps everything - the whole 120x232 rectangle
+was stamped, invisible while it sat over its own painting. Luminance is
+turned into alpha first; the man is always cut from the dock painting and
+stamped on the new pier. Grok's own dock.jpg is unused (the original
+carries the painted man and its tuning).
+
+SCENERY trims to what the paintings cannot carry: swells at the Ledge,
+motes and the shape beneath at the Mark, caustics and darting fish at the
+Shelf, a turning sheen over the painted whirlpool, mist in the Shallows.
+Stamp b50ecd.
+
+## Batch 110 — each water looks like somewhere, and arriving is a moment
+Grok's per-spot scene overlay, rebuilt inside the draw pipeline (its
+coordinates assumed an 800x560 canvas; the water is the tall painting
+offset by FE_OFF). feSceneWater between the water and the fisherman,
+feSceneFore above the props, feSceneArrive over everything: when the
+water changes (not on the first frame after load) the view dims and a
+plank over the far shore names where you are for 1.5s. New
+docs/smoke-scenes.py (18). Stamp 76b0a3.
+
+## Batch 109 — the painted map is the means of travel
+Grok's fishingspotmap (js+css) built into the fishing module: the SPOTS
+shield and the sign open a chart of the six waters (art/ui/fish-map.webp),
+each water a pin at its place on the painting wearing its Legend's name
+(FE_BOSSES), a boat sails from where you stand to the tapped pin before
+the spot changes, locked waters are bought from their pin through the one
+handler the chips used (feSpotTap, lifted out of the chip onclick), and
+the chips leave the page (still in the DOM for the suites). New
+docs/smoke-map.py (24); smoke-spots travels through the map (81);
+smoke-fishhud walks via feSpotTap. Stamp c9599a.
+
 ## Batch 108 — themed plates: each set's pills wear its material
 Playtester: "next. more menu stuff and buttons" - Grok's themed-buttons
 pass (js + css). Its js tagged packs by TITLE TEXT on a 2s interval and a

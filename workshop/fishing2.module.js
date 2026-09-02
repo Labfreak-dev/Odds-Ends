@@ -430,7 +430,7 @@ function feVibeTick(dt){
 function feDrawGrade(g, pal, hour){
   /* celestial bodies go UNDER the tint so they belong to the scene */
   const sun = feSunPos(hour), moon = feMoonPos(hour);
-  if(pal.sun > 0.02 && sun.up){
+  if(pal.sun > 0.02 && sun.up && feBgSpot === "dock"){   /* the other paintings carry their own light */
     const r = g.createRadialGradient(sun.x, sun.y, 2, sun.x, sun.y, 90);
     r.addColorStop(0, `rgba(255,240,200,${0.5*pal.sun})`);
     r.addColorStop(0.25, `rgba(255,220,160,${0.22*pal.sun})`);
@@ -458,6 +458,13 @@ function feDrawGrade(g, pal, hour){
     g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
   }
   if(pal.dark > 0){ g.fillStyle = `rgba(10,14,26,${pal.dark})`; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200); }
+  /* the other paintings were painted in daylight (the Mark excepted) and
+     keep a bright sky under the night tint - a deeper blue-black wash
+     scaled by the stars takes them down to night */
+  const feNight = feNightAmt();
+  if(feBgSpot !== "dock" && feBgSpot !== "midnight" && feNight > 0.01){
+    g.fillStyle = `rgba(6,8,24,${(0.45*feNight).toFixed(3)})`; g.fillRect(-FSH_W,-feBandOff(),3*FSH_W,1200);
+  }
   /* warm hour overlay, biased to the sky and the water's far band */
   if(pal.warm[3] > 0.004){
     /* the warm wash starts at the true top of the tall sky — starting at
@@ -470,7 +477,7 @@ function feDrawGrade(g, pal, hour){
   }
   const feRidgeAt = x => feRidgeBand(x);
   const moonOcc = Math.max(0, Math.min(1, (feRidgeAt(moon.x) - 6 - moon.y) / 26));
-  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02 && feBgSpot !== "midnight"){   /* the Mark's painting has its own moon */
+  if(pal.moon > 0.05 && moon.up && moonOcc > 0.02 && feBgSpot !== "midnight" && (feBgSpot === "dock" || feNightAmt() > 0.6)){   /* the Mark has its own moon; a painted day sky takes one only once dusk has gone */
     g.save(); g.globalAlpha = moonOcc * (moon.edge !== undefined ? moon.edge : 1);
     /* moonlight lies on the water as a soft glowing pool near the
        horizon, breaking into scattered glints that widen and thin as
@@ -2666,6 +2673,20 @@ function feBandInfo(){
 }
 function feBandOff(){ return FE_OFF + feBandInfo().dy; }
 function feBandDx(){ return feBandInfo().dx; }
+/* how much night is on the painted skies: ramps in over dusk (20.2-21.5)
+   and out over dawn (4.8-6.3), the same edges the dock's sun-cover uses */
+function feNightAmt(){
+  if(!feEnv) return 0;
+  const h = feEnv.hour;
+  if(h >= 20.2) return Math.min(1, (h - 20.2)/1.3);
+  if(h < 4.8) return 1;
+  if(h < 6.3) return 1 - (h - 4.8)/1.5;
+  return 0;
+}
+/* the painted planks end at band x 320 on every water (that is what the
+   offset aligns); a pier that starts closer to that end scales the deck
+   furniture toward it so nothing hangs over the water */
+function feDeckX(x){ const k = Math.min(1, (320 + feBandDx())/320); return 320 - (320 - x)*k; }
 /* ridge in band coordinates for the current water */
 function feRidgeBand(x){
   const id = (typeof feSpot === "function" && feSpot().id) || "dock";
@@ -3094,6 +3115,7 @@ function feRedrawDockBand(g){
      repaints the walkway in clean planks matching the painting's wood,
      and the comforts furnish it from bare. */
   const top = 252, deck = 331;
+  if(feBgSpot !== "dock") return;   /* the painted piers have their own edges */
   /* the clutter and the plank wall were INPAINTED OUT of the painting
      itself — nothing to cover at runtime, so nothing can billboard */
   /* a slim rail board, nothing more */
@@ -3123,6 +3145,7 @@ function feDrawTrophies(g){
   /* the biggest three hang mounted on the dock's front — the wall of
      personal bests every visitor sees first */
   const T = feTrophies();
+  if(feBgSpot !== "dock") return;   /* the wall of personal bests hangs at home */
   for(let i=0; i<T.length; i++){
     const x = 34 + i*66, y = 352;
     g.fillStyle = "#5d4128"; 
@@ -3169,15 +3192,16 @@ function feDrawProps(g){
     /* contact shadow first — this is what makes it SIT on the planks */
     g.globalAlpha = 0.3;
     g.fillStyle = "#1c2836";
-    g.beginPath(); g.ellipse(p.x + dx, baseY - 1, w*0.42, 3.2, 0, 0, 7); g.fill();
+    const px = feDeckX(p.x);
+    g.beginPath(); g.ellipse(px + dx, baseY - 1, w*0.42, 3.2, 0, 0, 7); g.fill();
     g.globalAlpha = 1;
-    g.drawImage(im, p.x - w/2 + dx, baseY - h + pad, w, h);
+    g.drawImage(im, px - w/2 + dx, baseY - h + pad, w, h);
     if(p.key === "lantern"){
       /* glass glint by day, so it catches the eye even unlit */
       const tw = 0.5 + 0.5*Math.sin(fshT*2.6);
       g.globalAlpha = 0.35 + 0.3*tw;
       g.fillStyle = "#fff8e0";
-      g.beginPath(); g.arc(p.x - w*0.16, p.y - h*0.62, 1.6, 0, 7); g.fill();
+      g.beginPath(); g.arc(px - w*0.16, p.y - h*0.62, 1.6, 0, 7); g.fill();
       g.globalAlpha = 1;
     }
   }

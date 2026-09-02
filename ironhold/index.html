@@ -756,11 +756,11 @@ const COMPS=[
  {id:'cleric',n:'Cleric',d:'Heals 4% of your max HP every 3s.',shape:'humanoid',col:'#e8e2cc',big:0.8},
  {id:'squire',n:'Squire',d:'Takes hits for you: 15% damage reduction.',shape:'humanoid',col:'#8f8f96',big:0.8},
 ];
-const PARTY_MAX=3;
+const PARTY_MAX=2;
 const HOUND_HIT=0.10,CLERIC_HEAL=0.04,SQUIRE_DR=15;   // used by compTick AND the barracks readout
-const SLOT_REQ=[0,2,4]; // barracks level needed per party slot
+const SLOT_REQ=[0,2]; // barracks level needed per party slot
 function slotOpen(i){return keepLv('barracks')>=SLOT_REQ[i];}
-function hireCost(i){return [500,2000,4500][i];}
+function hireCost(i){return [500,2000][i];}
 function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def);}
 function compMult(c){return 1+0.2*keepLv('barracks')+0.1*(c.lvl||0);}
 function compCost(c){return Math.round(600*Math.pow(1.8,c.lvl||0));}
@@ -1183,16 +1183,19 @@ function uiDefaults(){S.tab=S.tab||'hero';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
   S.party=S.party||[];if(S.comp&&S.comp.type&&!S.party.length){S.party=[{type:S.comp.type,lvl:S.comp.lvl||0}];S.comp={type:null,lvl:0};}
-  {// one of each companion now: keep the best-trained of any duplicate, refund what the rest cost
+  {// one of each kind, and at most PARTY_MAX of them: keep the best-trained, refund the rest
     const best={};S.party.forEach(c=>{if(!best[c.type]||(c.lvl||0)>(best[c.type].lvl||0))best[c.type]=c;});
-    const keep=S.party.filter(c=>best[c.type]===c);
+    const uniq=S.party.filter(c=>best[c.type]===c);
+    const keep=uniq.slice().sort((a,b)=>(b.lvl||0)-(a.lvl||0)).slice(0,PARTY_MAX);
     if(keep.length<S.party.length){
       let refund=0;
-      S.party.forEach((c,i)=>{if(best[c.type]===c)return;
-        refund+=hireCost(Math.min(i,2));
+      S.party.forEach((c,i)=>{if(keep.includes(c))return;
+        refund+=hireCost(Math.min(i,PARTY_MAX-1));
         for(let l=0;l<(c.lvl||0);l++)refund+=Math.round(600*Math.pow(1.8,l));});
-      const n=S.party.length-keep.length;S.party=keep;S.gold+=refund;
-      log(`The hold keeps one of each companion now. ${n} duplicate${n>1?'s':''} dismissed, ${fmt(refund)} gold refunded.`,'b');
+      const n=S.party.length-keep.length;
+      S.party=uniq.filter(c=>keep.includes(c));   // keep original slot order
+      S.gold+=refund;
+      log(`The hold now fields ${PARTY_MAX} companions, one of each kind. ${n} dismissed, ${fmt(refund)} gold refunded.`,'b');
     }}
   S.pray=S.pray||{pts:30,on:[],autoBury:true};S.pray.on=S.pray.on||[];S.bones=S.bones||0;S.bounty=S.bounty||{day:'',list:[]};S.found=S.found||{};}
 
@@ -1406,7 +1409,7 @@ function renderKeep(){
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
-   keepCard('barracks',`Up to three companions fight beside you — one of each. Hound bites, Cleric heals, Squire shields.`,compRows)+
+   keepCard('barracks',`Two companions fight beside you, one of each kind. Hound bites, Cleric heals, Squire shields.`,compRows)+
    `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1} · ${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
@@ -1551,7 +1554,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b10-comp';
+  const BUILD='b11-party2';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

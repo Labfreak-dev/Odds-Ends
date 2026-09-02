@@ -1077,6 +1077,7 @@ function fshDraw(){
   fshDrawClouds(g);
   fshDrawWater(g);
   fshDrawUnderwater(g);
+  feSceneWater(g, pal);      /* what makes this water look like somewhere */
   fshDrawReflection(g);
   fshDrawFishSchool(g);
   fshDrawFoamLine(g);
@@ -1093,6 +1094,7 @@ function fshDraw(){
   feShadowDraw(g, pal);
   fshDrawDock(g);
   feDrawProps(g);
+  feSceneFore(g, pal);
   const grip = fshDrawFisherman(g);
   const tip = fshDrawRod(g, grip);
   fshDrawLineAndBobber(g, tip);
@@ -1111,6 +1113,7 @@ function fshDraw(){
   }
   feDrawGrade(g, pal, feEnv.hour);
   feDrawPropFx(g);
+  feSceneArrive(g);          /* the moment you step ashore somewhere new */
 
   /* tension ring around the bobber during the fight — eyes on the water */
   if(fsh && fsh.phase === "reeling" && fsh.fight){
@@ -2101,6 +2104,190 @@ function fshLand(){
 }
 
 /* -------------------- 8 · THE SPOT PICKER (UI) ---------------------- */
+
+/* ---- SCENERY: what makes each water look like somewhere. ------------------
+   The painting is one lake; the dress tints it. This layer adds the things
+   the map promises - weed and murk in the Shallows, a cliff and cold swells
+   at the Ledge, purple water with a glow and a shape beneath at the Mark,
+   coral, caustics and darting fish at the Shelf, the five-colour whirlpool
+   at the Confluence - and an arrival: when the water changes (not on the
+   first frame after load), the view dims and a plank names where you are.
+   The dock is left as painted; it is home, and the fishing suite samples
+   it. Drawn in the scene's logical 800x560 space, between the water and
+   the fisherman, then above the props, then over everything. */
+const feScene = { id:null, t:0, last:0, arrive:0, bits:[], name:"" };
+/* the scene space: the band is 800x560 but the canvas runs FE_OFF above it
+   and on down to 1200-FE_OFF; the cast plank covers the last ~95px */
+function feSceneBot(){ return 1200 - FE_OFF; }
+function feSceneFloor(){ return 1200 - FE_OFF - 95; }
+function feSceneTick(){
+  const now = performance.now();
+  const dt = feScene.last ? Math.min(0.05, (now - feScene.last)/1000) : 0.016;
+  feScene.last = now; feScene.t += dt;
+  const sp = feSpot(), id = sp.id;
+  if(feScene.id !== id){
+    const first = feScene.id === null;
+    feScene.id = id; feScene.bits = feSceneSeed(id);
+    if(!first){ feScene.arrive = 1.5; feScene.name = sp.icon + " " + sp.name; }
+  }
+  if(feScene.arrive > 0) feScene.arrive = Math.max(0, feScene.arrive - dt);
+}
+function feSceneSeed(id){
+  const rnd = (n)=>{ const v = Math.sin(n*311.7 + id.length*13.1)*43758.5453; return v - Math.floor(v); };
+  const n = { reef:24, shallows:16, midnight:18 }[id] || 0;
+  return Array.from({length:n}, (_,i)=>({
+    x: rnd(i)*FSH_W, y: FSH_SURF_END + 24 + rnd(i+50)*(feSceneFloor() - FSH_SURF_END - 60),
+    s: 2 + rnd(i+90)*6, p: rnd(i+130)*6.28 }));
+}
+/* a wash over the water that fades in from the far shore instead of
+   stamping a hard rectangle across the horizon */
+function feSceneWash(g, rgb, a, bot){
+  const gr = g.createLinearGradient(0, FSH_HORIZON, 0, FSH_HORIZON + 70);
+  gr.addColorStop(0, `rgba(${rgb},0)`); gr.addColorStop(1, `rgba(${rgb},${a})`);
+  g.fillStyle = gr; g.fillRect(0, FSH_HORIZON, FSH_W, 70);
+  g.fillStyle = `rgba(${rgb},${a})`; g.fillRect(0, FSH_HORIZON + 70, FSH_W, bot - FSH_HORIZON - 70);
+}
+function feSceneWater(g, pal){
+  feSceneTick();
+  const id = feScene.id, t = feScene.t, BOT = feSceneBot(), FLOOR = feSceneFloor(), WH = BOT - FSH_HORIZON;
+  if(id === "dock") return;
+  g.save();
+  if(id === "shallows"){
+    const gr = g.createLinearGradient(0, FSH_SURF_END, 0, BOT);
+    gr.addColorStop(0, "rgba(90,120,50,0)"); gr.addColorStop(1, "rgba(70,90,30,.6)");
+    g.fillStyle = gr; g.fillRect(0, FSH_SURF_END, FSH_W, BOT - FSH_SURF_END);
+    g.strokeStyle = "rgba(60,110,40,.75)"; g.lineWidth = 3.5; g.lineCap = "round";
+    for(const b of feScene.bits){
+      const h = 50 + b.s*9, sway = Math.sin(t*1.2 + b.p), base = FLOOR + 20;
+      g.beginPath(); g.moveTo(b.x, base);
+      g.quadraticCurveTo(b.x + sway*8, base - h*0.5, b.x + sway*16, base - h); g.stroke();
+    }
+  } else if(id === "ledge"){
+    feSceneWash(g, "20,40,90", .28, BOT);
+    g.strokeStyle = "rgba(170,200,240,.14)"; g.lineWidth = 2;
+    for(let i=0;i<6;i++){
+      g.beginPath();
+      const y = FSH_HORIZON + 40 + i*100 + Math.sin(t*0.5 + i)*5;
+      for(let x=0; x<=FSH_W; x+=16){ const yy = y + Math.sin(x*0.02 + t*0.9 + i)*4; x ? g.lineTo(x, yy) : g.moveTo(x, yy); }
+      g.stroke();
+    }
+  } else if(id === "midnight"){
+    feSceneWash(g, "70,30,120", .30, BOT);
+    const gx = FSH_W*0.62 + Math.sin(t*0.3)*30, gy = FSH_HORIZON + 70;
+    const rg = g.createRadialGradient(gx, gy, 4, gx, gy, 170);
+    rg.addColorStop(0, "rgba(190,120,255,.42)"); rg.addColorStop(1, "rgba(120,60,200,0)");
+    g.fillStyle = rg; g.fillRect(0, FSH_HORIZON, FSH_W, WH);
+    for(const b of feScene.bits){
+      const a = 0.2 + 0.5*(0.5 + 0.5*Math.sin(t*2 + b.p));
+      g.fillStyle = `rgba(220,200,255,${a.toFixed(2)})`;
+      g.beginPath(); g.arc(b.x + Math.sin(t*0.4 + b.p)*20, b.y - 60 + Math.cos(t*0.3 + b.p)*20, 1.4, 0, 7); g.fill();
+    }
+    g.fillStyle = "rgba(6,2,18,.35)";
+    g.beginPath(); g.ellipse(FSH_W*0.55 + Math.sin(t*0.35)*110, FSH_SURF_END + 150 + Math.sin(t*0.7)*10, 90, 14, Math.sin(t*0.35)*0.2, 0, 7); g.fill();
+  } else if(id === "reef"){
+    feSceneWash(g, "40,190,180", .22, BOT);
+    g.strokeStyle = "rgba(220,255,250,.16)"; g.lineWidth = 1.5;
+    for(let i=0;i<7;i++){
+      g.beginPath();
+      for(let x=0; x<=FSH_W; x+=14){
+        const y = FSH_SURF_END + 20 + i*70 + Math.sin(x*0.05 + t*1.6 + i*1.3)*6 + Math.sin(x*0.013 - t + i)*5;
+        x ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.stroke();
+    }
+    feSceneCoral(g, t);
+    for(const b of feScene.bits){
+      b.x += Math.sin(t*0.8 + b.p)*0.6*(b.s > 4 ? 1 : -1);
+      if(b.x < -10) b.x = FSH_W + 10; if(b.x > FSH_W + 10) b.x = -10;
+      const y = b.y + Math.sin(t*2 + b.p)*3, dir = b.s > 4 ? 1 : -1;
+      g.fillStyle = b.s > 5 ? "#ff9a5c" : b.s > 3 ? "#ffd35c" : "#7ad0ff";
+      g.beginPath(); g.ellipse(b.x, y, 5, 2.2, 0, 0, 7); g.fill();
+      g.beginPath(); g.moveTo(b.x - 5*dir, y); g.lineTo(b.x - 9*dir, y - 3); g.lineTo(b.x - 9*dir, y + 3); g.closePath(); g.fill();
+    }
+  } else if(id === "confluence"){
+    const cx = FSH_W*0.56, cy = FSH_SURF_END + 170;
+    feSceneWash(g, "30,40,80", .25, BOT);
+    /* the eye of it, dark, then five coloured rings turning at five speeds */
+    g.save(); g.translate(cx, cy); g.scale(1.6, 0.6);
+    const eye = g.createRadialGradient(0, 0, 4, 0, 0, 90);
+    eye.addColorStop(0, "rgba(6,10,24,.75)"); eye.addColorStop(1, "rgba(6,10,24,0)");
+    g.fillStyle = eye; g.beginPath(); g.arc(0, 0, 90, 0, 7); g.fill();
+    g.globalAlpha = 0.5;
+    const cols = ["#c9a06a","#6aaa50","#6a80c0","#8a70d0","#40c0b8"];
+    for(let i=0;i<5;i++){
+      g.rotate(t*0.5*(1 + i*0.08)); g.strokeStyle = cols[i]; g.lineWidth = 9 - i;
+      g.beginPath(); g.arc(0, 0, 40 + i*32, 0, 4.4); g.stroke();
+    }
+    g.restore();
+    g.strokeStyle = "rgba(235,245,255,.45)"; g.lineWidth = 3; g.lineCap = "round"; g.beginPath();
+    for(let a=0; a<6.28*2.5; a+=0.12){
+      const r = 8 + a*20, x = cx + Math.cos(a - t*0.5)*r, y = cy + Math.sin(a - t*0.5)*r*0.42;
+      a ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.stroke();
+  }
+  g.restore();
+}
+function feSceneCoral(g, t){
+  const cols = ["#d0608a","#ff9a6a","#b070e0","#40c0b0","#f0c060"];
+  const FLOOR = feSceneFloor();
+  g.fillStyle = "rgba(60,90,100,.55)"; g.fillRect(0, FLOOR - 10, FSH_W, 40);   /* the shelf itself */
+  for(let i=0;i<14;i++){
+    const x = 12 + i*58 + (i%3)*9, h = 30 + (i*37)%30, y = FLOOR;
+    g.fillStyle = cols[i%5];
+    g.fillRect(x - 3, y - h*0.5, 6, h*0.5);
+    for(let j=0;j<3;j++){
+      const r = 6 + ((i+j)*13)%7, ox = (j-1)*7, oy = -h*(0.35 + j*0.25) + Math.sin(t*1.5 + i + j)*1.2;
+      g.beginPath(); g.arc(x + ox, y + oy, r, 0, 7); g.fill();
+    }
+  }
+}
+function feSceneFore(g, pal){
+  const id = feScene.id, t = feScene.t;
+  if(id === "ledge"){
+    g.save();
+    /* the cliff on the right, from the far shore down into the water */
+    const cg = g.createLinearGradient(FSH_W - 170, 0, FSH_W, 0);
+    cg.addColorStop(0, "#2c3446"); cg.addColorStop(1, "#141a26");
+    g.fillStyle = cg;
+    g.beginPath();
+    g.moveTo(FSH_W, FSH_HORIZON - 150); g.lineTo(FSH_W - 40, FSH_HORIZON - 120); g.lineTo(FSH_W - 70, FSH_HORIZON - 60);
+    g.lineTo(FSH_W - 120, FSH_HORIZON - 30); g.lineTo(FSH_W - 150, FSH_HORIZON + 40); g.lineTo(FSH_W - 135, FSH_HORIZON + 100);
+    g.lineTo(FSH_W - 170, FSH_HORIZON + 150); g.lineTo(FSH_W - 120, FSH_HORIZON + 300); g.lineTo(FSH_W - 150, FSH_HORIZON + 450);
+    g.lineTo(FSH_W - 110, feSceneBot()); g.lineTo(FSH_W, feSceneBot()); g.closePath(); g.fill();
+    g.strokeStyle = "rgba(140,160,190,.35)"; g.lineWidth = 2;
+    [[-70,-60,-30,-52],[-120,-30,-80,-18],[-150,40,-100,52],[-135,100,-90,108],[-120,300,-70,312],[-150,450,-100,460]].forEach(([a,b,c,d])=>{
+      g.beginPath(); g.moveTo(FSH_W + a, FSH_HORIZON + b); g.lineTo(FSH_W + c, FSH_HORIZON + d); g.stroke(); });
+    g.fillStyle = "rgba(230,240,255,.35)";
+    for(let i=0;i<6;i++){ g.beginPath(); g.arc(FSH_W - 168 + i*8, FSH_HORIZON + 148 + Math.sin(t*3 + i)*3, 3 + (i%2), 0, 7); g.fill(); }
+    g.restore();
+  } else if(id === "shallows"){
+    g.save();
+    const a = 0.16 + 0.06*Math.sin(t*0.7);
+    const gr = g.createLinearGradient(0, FSH_HORIZON + 20, 0, FSH_HORIZON + 90);
+    gr.addColorStop(0, "rgba(210,225,190,0)"); gr.addColorStop(0.5, `rgba(210,225,190,${a.toFixed(3)})`); gr.addColorStop(1, "rgba(210,225,190,0)");
+    g.fillStyle = gr; g.fillRect(0, FSH_HORIZON + 20, FSH_W, 70);
+    g.restore();
+  }
+}
+function feSceneArrive(g){
+  const k = feScene.arrive;
+  if(k <= 0) return;
+  const a = k > 1.2 ? (1.5 - k)/0.3 : Math.min(1, k/0.7);   /* in fast, hold, out slow */
+  g.save();
+  g.fillStyle = `rgba(4,8,16,${(0.55*a).toFixed(3)})`; g.fillRect(0, -FE_OFF, FSH_W, 1200);
+  const w = 320, h = 56, x = FSH_W/2 - w/2, y = FSH_HORIZON - 96;   /* over the far shore, clear of the angler */
+  g.globalAlpha = a;
+  g.fillStyle = "#3a2614"; g.strokeStyle = "#b08a4a"; g.lineWidth = 2;
+  g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, 10) : g.rect(x, y, w, h); g.fill(); g.stroke();
+  g.fillStyle = "#f1d27b"; g.font = "bold 21px Georgia, 'Times New Roman', serif";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(feScene.name, FSH_W/2, y + h/2);
+  g.font = "bold 11px system-ui"; g.fillStyle = "#cfc9ba";
+  g.fillText("you have arrived", FSH_W/2, y + h + 14);
+  g.restore();
+}
+
 /* ---- THE MAP: the means of travel. The SPOTS shield and the sign open a
    painted chart of the six waters; every water is a pin at its place on
    the painting, wearing its Legend's name, and a boat sails from where you

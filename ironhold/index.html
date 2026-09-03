@@ -541,6 +541,9 @@
           <h3 style="margin:10px 0 4px">Combat style</h3>
           <div class="styles" id="cstyles"></div>
           <p class="sub" style="margin-top:6px">Your weapon decides this. Swords and axes fight in Melee on Attack and Strength; bows, crossbows and knives fight in Ranged; wands, staves, orbs and tomes fight in Magic. Each trains its own skill and needs its own level to wield.</p>
+          <h3 style="margin:10px 0 4px">Training weapons</h3>
+          <div class="styles" id="freeWep"></div>
+          <p class="sub" style="margin-top:6px">Claim a free Bronze weapon to fight in any style. Training weapons can be wielded and upgraded like any other, but are worth nothing to sell or salvage.</p>
           <h3 style="margin:10px 0 4px">Stance</h3>
           <div class="styles" id="styles"></div>
           <p class="sub" style="margin-top:6px">Accurate trains Attack, Aggressive trains Strength, Defensive trains Defence, Controlled splits it. In Ranged or Magic those feed that skill instead. Hitpoints always trains.</p>
@@ -777,9 +780,13 @@ function itemName(it){
     n=(R.n?R.n+' ':'')+(AC?AC.kits[it.tier]:T.n)+' '+base;}
   return n+(it.up?' +'+it.up:'')+(it.rw?' ['+it.rw+']':'');}
 function itemStats(it){const m=1+it.up*0.06;return {atk:Math.round(it.base.atk*m),str:Math.round(it.base.str*m),def:Math.round(it.base.def*m)};}
-function itemValue(it){return Math.round((TIERS[it.tier].v*TIERS[it.tier].v*0.6+5)*RARITY[it.rar].m*(1+it.up*0.3));}
-function itemScrap(it){return 1+it.tier+it.rar+keepLv('yard');}
-function upgradeCost(it){return {gold:Math.round(itemValue(it)*(1+it.up)*1.2*(1-0.1*keepLv('forge'))),scrap:2+it.up*2+it.tier};}
+function baseValue(it){return Math.round((TIERS[it.tier].v*TIERS[it.tier].v*0.6+5)*RARITY[it.rar].m*(1+it.up*0.3));}
+// A training weapon (it.free) is worth nothing to sell or salvage. Forge and
+// bench costs still price it as the weapon it would be, so it cannot be
+// upgraded or tempered for scrap alone.
+function itemValue(it){return it.free?0:baseValue(it);}
+function itemScrap(it){return it.free?0:1+it.tier+it.rar+keepLv('yard');}
+function upgradeCost(it){return {gold:Math.round(baseValue(it)*(1+it.up)*1.2*(1-0.1*keepLv('forge'))),scrap:2+it.up*2+it.tier};}
 function forgeMax(){return 10+keepLv('forge');}
 function itemScore(it){const s=itemStats(it);let sc=s.atk*1.1+s.str*1.4+s.def;for(const k in it.aff)sc+=it.aff[k]*1.5;if(it.rw)sc+=25;return sc;}
 function reqFor(it){return it.slot==='weapon'?{s:({ranged:'rng',magic:'mag'})[WEAPONS[it.wt].style]||'atk',lv:TIERS[it.tier].lv}:(it.slot==='amulet'||it.slot==='ring'||it.slot==='cape')?{s:'def',lv:Math.max(1,TIERS[it.tier].lv-5)}:{s:'def',lv:TIERS[it.tier].lv};}
@@ -1892,6 +1899,7 @@ function renderSkills(){
     el.insertAdjacentHTML('beforeend',`<div class="skill"><div class="lab"><span>${SK_NAME[k]}</span><span>${l}${l<99?' <span class="sub">('+fmt(hi-x)+' xp to go)</span>':''}</span></div><div class="track"><div class="fill" style="width:${p}%"></div></div></div>`);}
   const cw=S.equip.weapon;const cn=({melee:'Melee',ranged:'Ranged',magic:'Magic'})[cstyle()];
   $('cstyles').innerHTML=`<b class="gold">${cn}</b><span class="sub"> — ${cw?itemName(cw)+' · '+WEAPONS[cw.wt].spd+'s':'unarmed'}</span>`;
+  const fw=$('freeWep');fw.innerHTML='';FREE_WEPS.forEach(([wt,n])=>{const b=document.createElement('button');b.textContent='Claim '+n;b.title='Free Bronze '+WEAPONS[wt].n+' · worth nothing to sell or salvage';b.onclick=()=>claimFree(wt);fw.appendChild(b);});
   const st=$('styles');st.innerHTML='';STYLES.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;if(i===S.style)b.className='on';b.onclick=()=>{S.style=i;renderSkills();renderSlots();};st.appendChild(b);});
   $('mastery').innerHTML=MASTERY.map(([k,n,t,eff])=>`<div class="mcard${lv(k)>=n?' lit':''}" title="${SK_NAME[k]} ${n} — ${effText(eff)}"><div class="rune">${lv(k)>=n?'✦':'·'}</div><div>${t}</div><div class="sub">${effText(eff)}</div><div class="sub" style="opacity:.7">${SK_NAME[k]} ${n}${lv(k)>=n?'':' — locked'}</div></div>`).join('');
   $('autoEat').checked=S.autoEat;$('eatPct').value=S.eatPct;$('eatPctTxt').textContent=S.eatPct;
@@ -2165,10 +2173,10 @@ function renderAll(){
 const REROLL_FORGE=1, TEMPER_FORGE=3;
 function affPool(it){return Object.keys(AFFIX).filter(k=>!AFFIX[k].fixed&&(!AFFIX[k].wep||it.slot==='weapon'));}
 function canCraft(it){return !!it&&!isSpecial(it);}
-function benchRerollCost(it){return {gold:Math.round(itemValue(it)*0.8),scrap:3+it.tier+it.rar};}
+function benchRerollCost(it){return {gold:Math.round(baseValue(it)*0.8),scrap:3+it.tier+it.rar};}
 function nextRar(it){const i=RAR_LADDER.indexOf(it.rar);return i<0||i>=RAR_LADDER.length-1?0:RAR_LADDER[i+1];}
 function benchTemperCost(it){const nr=nextRar(it);
-  return {gold:Math.round(itemValue(it)*3),scrap:10+4*it.tier+5*(RAR_LADDER.indexOf(nr)||1),
+  return {gold:Math.round(baseValue(it)*3),scrap:10+4*it.tier+5*(RAR_LADDER.indexOf(nr)||1),
           ingots:nr===7?MYTHIC_INGOTS:0};}
 function rollAffixes(it,n){
   const pool=affPool(it);it.aff={};
@@ -2232,6 +2240,7 @@ function openItem(it,equipped){
   if(canCraft(it)){
     h+=`<button id="mReroll" ${keepLv('forge')>=REROLL_FORGE&&RARITY[it.rar].aff&&S.gold>=rr.gold&&S.scrap>=rr.scrap?'':'disabled'}>Reroll</button>`;
     h+=`<button id="mTemper" ${nr&&keepLv('forge')>=TEMPER_FORGE&&S.gold>=tc.gold&&S.scrap>=tc.scrap&&(S.ingots||0)>=tc.ingots?'':'disabled'}>Temper</button>`;}
+  if(it.free)h+=`<div class="sub" style="margin:4px 0">Training weapon — worth nothing to sell or salvage.</div>`;
   if(!equipped)h+=`<button id="mSell">Sell (${itemValue(it)}g)</button><button id="mSalv">Salvage (${itemScrap(it)} scrap)</button>`;
   h+=`<button id="mClose" style="grid-column:1/-1">Close</button></div>`;
   $('modalBox').innerHTML=h;$('modal').className='on';
@@ -2254,6 +2263,19 @@ function equip(it){
   if(it.slot==='shield'&&S.equip.weapon&&WEAPONS[S.equip.weapon.wt].two){S.inv.push(S.equip.weapon);S.equip.weapon=null;}
   S.equip[it.slot]=it;S.hp=Math.min(S.hp,maxHp());
   if(it.slot==='weapon')wpnWarm();
+}
+// Free training weapons, claimed from the Train tab. Bronze, Common, +0, and
+// flagged so they sell and salvage for nothing. Equipped straight away if the
+// champion is unarmed, otherwise dropped in the pack.
+const FREE_WEPS=[[1,'Scimitar'],[5,'Shortbow'],[10,'Wand']];
+function claimFree(wt){
+  if(S.inv.length>=28){toast('Pack is full.');return;}
+  const it=makeItem(0,'weapon',1,wt);it.free=1;it.aff={};it.up=0;
+  S.inv.push(it);
+  if(!S.equip.weapon)equip(it);
+  log('Claimed a training '+WEAPONS[wt].n+'. It is worth nothing to sell or salvage.','g');
+  toast('Training '+WEAPONS[wt].n+(S.equip.weapon===it?' — equipped.':' — in your pack.'));
+  renderAll();
 }
 function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 function openChest(){
@@ -2334,7 +2356,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b40-wpnalways';
+  const BUILD='b41-freewep';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

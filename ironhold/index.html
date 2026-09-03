@@ -997,7 +997,7 @@ const TOWER_MOBS=[['Tower sentinel','undead','#cfc9b8','tower_sentinel'],['Curse
 function towerMob(f){const t=TOWER_MOBS[(f-1)%TOWER_MOBS.length];const boss=f%10===0;
   return {n:boss?`Warden of floor ${f}`:`${t[0]} (floor ${f})`,lv:f*3,hp:Math.round((10+8*f)*(boss?3:1)),atk:Math.round(2+2.2*f),str:Math.round(2+2.2*f),def:Math.round(1+1.8*f),spd:boss?3.0:2.4+(f%3)*0.6,gold:[4*f,10*f],shape:t[1],col:t[2],big:boss?1.4:1,tower:true,spr:t[3]};}
 function towerTier(f){return clamp(Math.floor(f/8),0,7);}
-function enterTower(){if(G.dead)return;G.tower=1;G.isBoss=false;spawn(false);log('You enter the Tower of Trials.','g');G.dirty=true;}
+function enterTower(){if(G.dead)return;if(S.curse)endCurse('abandoned');G.tower=1;G.isBoss=false;spawn(false);log('You enter the Tower of Trials.','g');G.dirty=true;}
 function leaveTower(){if(!G.tower)return;const f=G.tower;G.tower=0;spawn(false);log(`You leave the tower at floor ${f}.`);G.dirty=true;}
 
 const COMPS=[
@@ -1618,6 +1618,8 @@ function spawn(boss){
   const A=AREAS[S.area];
   let m=G.tower?towerMob(G.tower):(boss?A.boss:A.mobs[rnd(0,A.mobs.length-1)]);
   const k=realmMult()*diff().mob;if(k>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*k),str:Math.round(m.str*k),def:Math.round(m.def*k),gold:[Math.round(m.gold[0]*k),Math.round(m.gold[1]*k)]});
+  if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
+    m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
   G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());
   G.dirty=true;
 }
@@ -1625,7 +1627,7 @@ function log(msg,cls){const el=document.getElementById('log');const d=document.c
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2200);}
 
 function addXp(dmg){
-  const b=bonuses();const mult=(1+b.xp/100)*diff().xp*creedEff('xp',1);const st=STYLES[S.style].s;const sk=cskill();
+  const b=bonuses();const mult=(1+b.xp/100)*diff().xp*creedEff('xp',1)*curseEff('xp',1);const st=STYLES[S.style].s;const sk=cskill();
   const KEYS=['atk','str','def','hp','rng','mag'];
   const before={};for(const k of KEYS)before[k]=lv(k);
   if(sk){
@@ -1663,7 +1665,7 @@ function mobHit(){
   if(S.hp<=0)die();
 }
 function die(){
-  G.dead=true;G.deadT=15;S.hp=0;S.deaths=(S.deaths||0)+1;
+  G.dead=true;G.deadT=15;S.hp=0;S.deaths=(S.deaths||0)+1;if(curseActive())endCurse('broken');
   log(`You were killed by ${G.mob.n}.`,'e');
   if(G.tower){log(`The tower spits you out at floor ${G.tower}.`,'e');G.tower=0;spawn(false);return;}
   G.streak++;
@@ -1680,6 +1682,36 @@ function gainIngot(n){
   if(!G.sim)toast(`Starsteel ingot${n>1?' ×'+n:''}`);
 }
 function ingotChance(){return 0.12+0.06*(S.diff||0);}
+
+// ============ CURSED GROUNDS ============
+// A scroll from a boss turns the area you are camping into a run under a
+// curse: monsters are worse in one way, the ground pays better in another.
+// Forty kills raise the warden; slay it and the curse lifts with a bonus. Die,
+// leave, or climb the tower and the curse breaks with nothing.
+const CURSES=[
+ {id:'bloodlust',n:'Bloodlust',d:'Monsters hit 60% harder · drops doubled',mob:{atk:1.6,str:1.6},luck:2.0},
+ {id:'famine',   n:'Famine',   d:'No food drops · gold doubled',mob:{},food:0,gold:2.0},
+ {id:'ironhide', n:'Ironhide', d:'Monsters have double defence · seals drop three times as often',mob:{def:2.0},seal:3.0},
+ {id:'starfall', n:'Starfall', d:'Monsters hit 80% harder · Starsteel drops four times as often',mob:{atk:1.8,str:1.8},ingot:4.0},
+ {id:'horde',    n:'Horde',    d:'Monsters attack 50% faster · XP doubled',mob:{spd:0.66},xp:2.0},
+];
+const CURSE_KILLS=40;
+function curse(){return S.curse?CURSES.find(c=>c.id===S.curse.id)||null:null;}
+function curseActive(){return !!(S.curse&&curse()&&S.curse.area===S.area&&!G.tower);}
+function curseEff(k,dflt){const c=curseActive()?curse():null;return c&&c[k]!==undefined?c[k]:dflt;}
+function gainScroll(n){n=n||1;S.scrolls=(S.scrolls||0)+n;log(`Cursed scroll${n>1?' ×'+n:''} found.`,'g');if(!G.sim)toast('Cursed scroll');}
+function castCurse(){
+  if(G.dead||G.tower||curseActive()||(S.scrolls||0)<1||!unlocked(S.area))return false;
+  S.scrolls--;const C=CURSES[rnd(0,CURSES.length-1)];S.curse={area:S.area,id:C.id,kills:0};
+  log(`You unroll the scroll. ${AREAS[S.area].n} falls under ${C.n}: ${C.d}. Slay ${CURSE_KILLS} and the warden rises.`,'e');if(!G.sim)toast(C.n+' curses the ground');
+  spawn(!!G.isBoss);G.dirty=true;return true;}
+function endCurse(how){
+  if(!S.curse)return;const C=curse(),A=AREAS[S.curse.area];S.curse=null;
+  log(how==='lifted'?`The warden falls. ${C?C.n:'The curse'} lifts from ${A.n}.`:how==='broken'?`You fall, and ${C?C.n:'the curse'} breaks with nothing to show.`:`You leave ${A.n} and ${C?C.n:'the curse'} fades.`,how==='lifted'?'g':'e');
+  S.cursesLifted=(S.cursesLifted||0)+(how==='lifted'?1:0);G.dirty=true;}
+// after a normal kill on cursed ground: count it, and raise the warden at forty
+function curseStep(){if(!curseActive())return false;S.curse.kills++;
+  if(S.curse.kills>=CURSE_KILLS){log('The warden of the cursed ground rises!','e');if(!G.sim)toast('The warden rises');spawn(true);return true;}return false;}
 
 // ============ SEALS ============
 // Where the bench rerolls every affix at once, a seal does one surgical thing
@@ -1715,15 +1747,15 @@ function useSeal(k,it,aff){
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   S.totalKills++;G.streak=0;
-  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100));S.gold+=g;
-  const luck=(1+b.luck/100)*diff().luck;
+  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1));S.gold+=g;
+  const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1);
   if(G.tower){ // Tower of Trials floor cleared
     const f=G.tower;const tier=towerTier(f);const boss=f%10===0;
     if(Math.random()<(boss?1:0.12)*luck)gainItem(makeItem(tier,SLOTS[rnd(0,9)],boss?Math.max(3,rollRarity(0.6)):rollRarity(0.2)));
     if(Math.random()<(boss?1:0.06)*luck)gainRune(boss);
     if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);
       if(Math.random()<0.25+0.05*(S.diff||0))gainIngot(1);
-      rollSeal(0,luck*0.7,true);}
+      rollSeal(0,luck*0.7,true);if(Math.random()<0.5)gainScroll(1);}
     if(f>S.tower.best){S.tower.best=f;if(f%5===0){S.chests++;log(`New record: floor ${f}. A chest is yours.`,'g');if(!G.sim)toast(`Tower record: floor ${f}`);}}
     if(Math.random()<0.15)S.scrap+=1+keepLv('yard');
     bounty('kills',1);bounty('tower',f);
@@ -1733,7 +1765,7 @@ function killMob(){
   {const u=rollUnique({area:S.area,boss:G.isBoss?S.area:null,firstClear:G.isBoss&&!S.cleared[S.area]},luck);if(u)gainItem(u);}
   if(Math.random()<0.7)S.bones++;
   // food
-  if(Math.random()<0.4*(1+0.08*keepLv('larder'))){const f=A.food;S.food[f]++;}
+  if(curseEff('food',1)>0&&Math.random()<0.4*(1+0.08*keepLv('larder'))){const f=A.food;S.food[f]++;}
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1,0,7),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
@@ -1743,14 +1775,16 @@ function killMob(){
   if(G.isBoss){
     // the first clear of an area always yields a bar; after that the wardens are stingier
     if(!S.cleared[S.area])gainIngot(1);
-    else if(Math.random()<ingotChance())gainIngot(1);
-    rollSeal(S.area,luck,false);
+    else if(Math.random()<ingotChance()*curseEff('ingot',1)*(curseActive()?2:1))gainIngot(1);
+    rollSeal(S.area,luck*curseEff('seal',1),false);
+    if(Math.random()<0.3*luck)gainScroll(1);
+    if(curseActive()){gainRune(true);rollSeal(S.area,3,false);endCurse('lifted');}
     log(`You defeated ${m.n}! ${A.n} is cleared.`,'g');
     if(diff().n==='Master')S.masterClears=(S.masterClears||0)+1;
     S.cleared[S.area]=true;
     if(!G.sim){toast(`${m.n} defeated! Next area unlocked.`);}
     spawn(false);
-  }else{S.kills[S.area]++;spawn(false);}
+  }else{S.kills[S.area]++;if(!curseStep())spawn(false);}
   G.dirty=true;
 }
 function gainItem(it){
@@ -1794,7 +1828,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -2088,7 +2122,7 @@ function renderAreas(){
   const el=$('areas');el.innerHTML='';
   {const d=document.createElement('div');d.className='panel';d.style.cssText='margin-bottom:8px;padding:8px 10px';
    const cur=diff(),mx=diffMax();
-   d.innerHTML=`<div class="sub" style="margin-bottom:5px">Difficulty · monsters x${cur.mob} · drops x${cur.luck} · XP x${cur.xp}</div>`+
+   d.innerHTML=`<div class="sub" style="margin-bottom:5px">Difficulty · monsters x${cur.mob} · drops x${cur.luck} · XP x${cur.xp} · <b class="gold">${S.scrolls||0}</b> cursed scroll${(S.scrolls||0)===1?'':'s'}</div>`+
      `<div class="styles" id="diffs">`+DIFFS.map((x,i)=>`<button class="sm${i===Math.min(S.diff||0,mx)?' on':''}" data-diff="${i}" ${i<=mx?'':'disabled'} title="${i<=mx?'':'Clear '+x.need+' areas to unlock'}">${x.n}</button>`).join('')+`</div>`+
      (mx<3?`<div class="sub" style="margin-top:5px;opacity:.75">Next tier unlocks after clearing ${DIFFS[mx+1].need} areas (${clearedCount()} cleared).</div>`:'');
    el.appendChild(d);
@@ -2104,11 +2138,15 @@ function renderAreas(){
     d.innerHTML=`<div class="thumb${AREA_BG_SRC[i]?' pic':''}" style="background:${THUMB[i][0]};--gnd:${THUMB[i][1]};${AREA_BG_SRC[i]?`background-image:url(${AREA_BG_SRC[i]});background-size:cover;background-position:center`:''}"></div>
       <div><div class="tag">${S.cleared[i]?'CLEARED':u?'UNLOCKED':'LOCKED'}</div><div class="nm">${A.n}</div>
       <div class="meta">Lv. ${Math.min(...lvls)}–${Math.max(...lvls)} · ${TIERS[A.tier].n} gear · ${FOOD[A.food].n}<br>${S.cleared[i]?'Boss defeated':u?`Boss ${k}/${A.need}`:'Clear the previous boss'}</div>
-      <div class="track"><div class="fill" style="width:${S.cleared[i]?100:k/A.need*100}%"></div></div></div>
+      <div class="track"><div class="fill" style="width:${S.cleared[i]?100:k/A.need*100}%"></div></div>
+      ${cur&&!G.tower?(curseActive()?`<div class="sub" style="margin-top:4px;color:#ff9c6b"><b>${curse().n}</b> · ${curse().d} · ${S.curse.kills}/${CURSE_KILLS} to the warden</div>`
+        :`<div class="sub" style="margin-top:4px">Cursed ground: a scroll makes monsters worse one way and the ground pay better another, for ${CURSE_KILLS} kills and a warden. <button class="sm" data-curse="1" ${(S.scrolls||0)>0&&!G.dead?'':'disabled'}>Curse this ground</button></div>`):''}</div>
       <button ${u?'':'disabled'} ${cur?'disabled':''}>${cur?'Camping':u?'March':'Locked'}</button>`;
-    if(u&&!cur)d.querySelector('button').onclick=()=>goArea(i);el.appendChild(d);});
+    if(u&&!cur)d.querySelector('button').onclick=()=>goArea(i);
+    const cb=d.querySelector('[data-curse]');if(cb)cb.onclick=()=>{if(castCurse())renderAll();};
+    el.appendChild(d);});
 }
-function goArea(i){if(!unlocked(i))return;S.area=i;G.tower=0;spawn(false);G.dirty=true;renderAll();}
+function goArea(i){if(!unlocked(i))return;if(S.curse&&S.curse.area!==i)endCurse('abandoned');S.area=i;G.tower=0;spawn(false);G.dirty=true;renderAll();}
 
 // --- keep ---
 function keepCard(k,body,action){
@@ -2317,7 +2355,7 @@ function renderTop(){
   if(G.tower){$('areaName').textContent='Tower · Floor '+G.tower;$('prevArea').disabled=$('nextArea').disabled=true;$('bossTxt').textContent='Leave tower';$('btnBoss').disabled=G.dead;}
   else{$('areaName').textContent=A.n+(S.asc.realm?' · Realm '+(S.asc.realm+1)+(creed()?' ('+creed().n.replace(' Creed','')+')':''):'');$('prevArea').disabled=S.area===0;$('nextArea').disabled=!unlocked(S.area+1);}
   if(G.dead)$('status').textContent='Downed. Recovering...';
-  else if(G.mob){const hc=hitChance(playerAtkRoll(),mobDefRoll(G.mob));const dps=(playerMaxHit()/2*hc/attackDelay()).toFixed(1);$('status').textContent=`${STYLES[S.style].n} stance · hit ${Math.round(hc*100)}% · ~${dps} dps${G.isBoss?' · Boss engaged':''}`;}
+  else if(G.mob){const hc=hitChance(playerAtkRoll(),mobDefRoll(G.mob));const dps=(playerMaxHit()/2*hc/attackDelay()).toFixed(1);$('status').textContent=`${STYLES[S.style].n} stance · hit ${Math.round(hc*100)}% · ~${dps} dps${G.isBoss?' · Boss engaged':''}${curseActive()?` · ${curse().n} ${S.curse.kills}/${CURSE_KILLS}`:''}`;}
 }
 function renderAll(){
   renderTop();
@@ -2527,7 +2565,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b45-creeds';
+  const BUILD='b46-curse';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

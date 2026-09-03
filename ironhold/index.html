@@ -1748,7 +1748,7 @@ const UQ_FIT={
   ashborn_fang:[-0.879,0.118,0.869], overlord_brand:[-0.847,0.143,0.858], matriarch_breath:[-0.977,0.145,0.828], wyrmtooth:[-0.859,0.117,0.869],
   elder_fang:[-0.862,0.118,0.87], storm_splitter:[-0.88,0.14,0.85], glass_fang:[-0.903,0.091,0.857], oathkeeper:[-0.886,0.13,0.87],
   last_light:[-0.729,0.129,0.844], hollow_crown:[-0.647,0.123,0.853], sanctum_edge:[-0.697,0.118,0.827], idle_king:[-0.757,0.118,0.867],
-  ironhold_heirloom:[-0.742,0.125,0.854], thornstring:[2.19,0.294,0.365], cowgut_longbow:[2.212,0.376,0.339], goblin_scrapbow:[-1.213,0.872,0.597],
+  ironhold_heirloom:[-0.742,0.125,0.854], thornstring:[2.19,0.294,0.365], cowgut_longbow:[2.212,0.376,0.339], goblin_scrapbow:[-1.012,0.435,0.439],
   widows_recurve:[2.138,0.295,0.418], gunnars_warbow:[2.066,0.139,0.377], frostlash:[2.141,0.132,0.375], stormlash:[2.174,0.296,0.368],
   wyrmgut_longbow:[2.147,0.217,0.431], ashborn_recurve:[2.156,0.198,0.419], elderhorn_bow:[2.15,0.237,0.312], nightwatch_xbow:[-1.016,0.3,0.699],
   idle_king_bow:[2.153,0.336,0.396], ironhold_ballista:[-1.0,0.368,0.715], meadow_flight:[2.197,0.288,0.296], last_light_bow:[2.174,0.294,0.381],
@@ -1760,6 +1760,13 @@ const UQ_FIT={
 const WPN_ALONG={xbow:1,knives:1,wand:1,staff:1,battlestaff:1,orb:1,tome:1};
 // an orb or a tome is carried level in the palm and does not swing with the arm
 const WPN_UP={orb:1,tome:1};
+// Icons painted with the string toward the target. Mirroring the canvas and the
+// fit together reflects the bow about its own axis, so the grip stays on the hand.
+const WPN_FLIP={composite:1};
+// Uniques painted as crossbows despite their type: the stock runs along the arm.
+const UQ_ALONG={goblin_scrapbow:1};
+const WPN_MIRROR={};
+function mirrorCanvas(k,c){if(WPN_MIRROR[k])return WPN_MIRROR[k];const o=document.createElement('canvas');o.width=c.width;o.height=c.height;const x=o.getContext('2d');x.translate(c.width,0);x.scale(-1,1);x.drawImage(c,0,0);WPN_MIRROR[k]=o;return o;}
 const WPN={},WPN_TRY={},WPN_WAIT={};
 // A weapon that failed to key (a decode hiccup under memory pressure) used to be
 // cached as null for the rest of the session and never drawn again. Now a
@@ -1799,6 +1806,14 @@ function wpnCanvas(k){
       while(sp){const i=st[--sp],px=i%W,py=(i/W)|0;
         if(px>0)push(i-1);if(px<W-1)push(i+1);if(py>0)push(i-W);if(py<H-1)push(i+W);}
       for(let i=0;i<N;i++)if(seen[i])p[i*4+3]=0;
+      // Background the flood could not reach: the wedge a bow's string closes off
+      // against its limb, or the panel inside a crossbow's stirrup. Any pocket of
+      // background colour of forty pixels or more is background too; a weapon's
+      // own black lines are thin and never pool that wide.
+      {const comp=new Int32Array(N);for(let i=0;i<N;i++){if(!bg[i]||seen[i]||comp[i])continue;let sp2=0;st[sp2++]=i;comp[i]=1;const members=[];
+          while(sp2){const j=st[--sp2];members.push(j);const px=j%W,py=(j/W)|0;
+            for(const q of [px>0?j-1:-1,px<W-1?j+1:-1,py>0?j-W:-1,py<H-1?j+W:-1])if(q>=0&&bg[q]&&!seen[q]&&!comp[q]){comp[q]=1;st[sp2++]=q;}}
+          if(members.length>=40)for(const j of members)p[j*4+3]=0;}}
       // Some unique icons also carry an inset 1 px frame that survives the flood.
       // A straight line spanning most of a column or row, one pixel wide, is never
       // part of a weapon; a diagonal bowstring never fills a column, so it stays.
@@ -1830,13 +1845,14 @@ function gripScreen(img,grip,x,y,sc){
 }
 function drawWeapon(hf,x,y){
   const it=S.equip.weapon;if(!it||!hf.grip)return;
-  const c=wpnCanvas(iconKey(it));if(!c)return;
+  let c=wpnCanvas(iconKey(it));if(!c)return;
   const g=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!g)return;
-  const ik=wepIk(it.wt),fit=(it.uq&&UQ_FIT[it.uq])||WPN_FIT[ik];if(!fit)return;
+  const ik=wepIk(it.wt);let fit=(it.uq&&UQ_FIT[it.uq])||WPN_FIT[ik];if(!fit)return;
+  if(!it.uq&&WPN_FLIP[ik]){c=mirrorCanvas(iconKey(it),c);fit=[Math.PI-fit[0],1-fit[1],fit[2]];}
   // looks with a hand line set the angle from the art itself; the melee looks
   // mark one hand only, so they fall back to the per-frame table
   const pose=WPN_UP[ik]?fit[0]
-            :hf.a!=null?hf.a-(WPN_ALONG[ik]?0:Math.PI/2)
+            :hf.a!=null?hf.a-((WPN_ALONG[ik]||(it.uq&&UQ_ALONG[it.uq]))?0:Math.PI/2)
             :(WPN_ANG[hf.fi]||0);
   const L=(WPN_LEN[it.wt]!=null?WPN_LEN[it.wt]:0.42)*100;
   const k=L/Math.max(c.width,c.height),w=c.width*k,h=c.height*k;

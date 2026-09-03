@@ -1226,8 +1226,11 @@ const WPN_ANG=[0.75,-2.44,0.14,0.72];
 // hilt-bottom-right, scimitars and greatswords hilt-bottom-left — so each shape
 // carries its measured tip direction and the grip's place in its own bounding
 // box. Measured off the art, not guessed.
-const WPN_FIT={dagger:[-2.14,0.96,0.98],scimitar:[-0.89,0.07,0.96],longsword:[-2.14,0.96,0.98],
-  battleaxe:[-2.08,0.95,0.98],greatsword:[-0.94,0.04,0.98]};
+// Read off the art: daggers and longswords are drawn POINT-DOWN with the hilt at
+// the top; scimitars, greatswords and axes are hilt-down. Getting that backwards
+// puts the pommel in the monster and the blade in the champion's fist.
+const WPN_FIT={dagger:[0.98,0.05,0.04],scimitar:[-0.89,0.06,0.95],longsword:[1.00,0.07,0.04],
+  battleaxe:[-2.08,0.94,0.96],greatsword:[-0.94,0.05,0.96]};
 const WPN={},WPN_TRY={};
 function wpnCanvas(k){
   if(!k||!ICONS[k])return null;
@@ -1241,13 +1244,25 @@ function wpnCanvas(k){
       const c=document.createElement('canvas');c.width=im.width;c.height=im.height;
       const x=c.getContext('2d');x.drawImage(im,0,0);
       const d=x.getImageData(0,0,c.width,c.height),p=d.data;
-      let x0=c.width,y0=c.height,x1=-1,y1=-1;
-      for(let i=0;i<p.length;i+=4){
-        const r=p[i],gg=p[i+1],b=p[i+2];
-        if(Math.abs(r-22)<16&&Math.abs(gg-22)<16&&Math.abs(b-22)<16){p[i+3]=0;continue;}
-        const q=i>>2,px=q%c.width,py=(q/c.width)|0;
-        if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;
-      }
+      const W=c.width,H=c.height,N=W*H;
+      // Some icons — the battleaxes especially — carry a pure black panel behind
+      // the art that is darker than the #161616 ground. Testing colour alone
+      // leaves it behind as a slab; flooding in from the border takes it out
+      // while leaving Black tier gear, which is charcoal rather than black, alone.
+      const bg=new Uint8Array(N);
+      for(let i=0;i<N;i++){const r=p[i*4],gg=p[i*4+1],b=p[i*4+2];
+        bg[i]=((Math.abs(r-22)<16&&Math.abs(gg-22)<16&&Math.abs(b-22)<16)||Math.max(r,gg,b)<30)?1:0;}
+      const seen=new Uint8Array(N),st=new Int32Array(N);let sp=0;
+      const push=i=>{if(bg[i]&&!seen[i]){seen[i]=1;st[sp++]=i;}};
+      for(let px=0;px<W;px++){push(px);push((H-1)*W+px);}
+      for(let py=0;py<H;py++){push(py*W);push(py*W+W-1);}
+      while(sp){const i=st[--sp],px=i%W,py=(i/W)|0;
+        if(px>0)push(i-1);if(px<W-1)push(i+1);if(py>0)push(i-W);if(py<H-1)push(i+W);}
+      let x0=W,y0=H,x1=-1,y1=-1;
+      for(let i=0;i<N;i++){
+        if(seen[i]){p[i*4+3]=0;continue;}
+        const px=i%W,py=(i/W)|0;
+        if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;}
       x.putImageData(d,0,0);
       if(x1<0){WPN[k]=null;return;}
       const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;
@@ -2253,7 +2268,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b31-looks';
+  const BUILD='b32-grip';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

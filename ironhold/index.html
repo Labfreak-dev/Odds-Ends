@@ -74,6 +74,9 @@
   #brand svg{width:34px;height:38px;flex:none}
   #pills{display:flex;gap:6px;flex-wrap:wrap;flex:1}
   .hid{display:none!important}
+  .feat{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(0,0,0,.35);font-size:12px}
+  .feat .nm{font-weight:bold}.feat.done .nm{color:var(--gold)}.feat .sub{display:block}
+  .feat button.on{box-shadow:inset 0 0 0 1px var(--gold)}
   .pill{
     display:flex;align-items:center;gap:6px;min-width:84px;
     background:var(--ink);border:2px solid #000;border-radius:3px;
@@ -551,6 +554,11 @@
         <div class="panel" data-sec="Mastery">
           <h2>Mastery</h2>
           <div class="mastery" id="mastery"></div>
+        </div>
+        <div class="panel" data-sec="Feats">
+          <h2>Feats <span class="sub" id="featCnt"></span></h2>
+          <p class="sub" style="margin-bottom:6px">Deeds pay once. Some carry a title: wear it on your name plate and a pennant flies behind you.</p>
+          <div id="feats"></div>
         </div>
         <div class="panel" data-sec="Prayer">
           <h2>Prayer</h2>
@@ -1157,7 +1165,7 @@ function bounty(t,amt,key){
     if(b.prog>=b.a.n){b.prog=b.a.n;b.done=true;log(`Bounty complete: ${bountyName(b)}. Claim it at the board.`,'g');if(!G.sim)toast('Bounty complete: '+bountyName(b));G.dirty=true;}}
 }
 function claimBounty(i){
-  const b=S.bounty.list[i];if(!b||!b.done||b.claimed)return;b.claimed=true;
+  const b=S.bounty.list[i];if(!b||!b.done||b.claimed)return;b.claimed=true;S.bountiesClaimed=(S.bountiesClaimed||0)+1;
   const r=b.rw;S.gold+=r.gold;if(r.scrap)S.scrap+=r.scrap;if(r.chest)S.chests+=r.chest;if(r.rune){const k=rollRune(true);S.runes[k]++;}
   log(`Bounty claimed: ${bountyName(b)}.`,'g');toast('Bounty claimed');
 }
@@ -1166,6 +1174,54 @@ function rerollCost(){return (maxUnlockedArea()+1)*100;}
 function bountyReward(b){const r=b.rw;return [fmt(r.gold)+'g',r.scrap?r.scrap+' scrap':'',r.rune?'1 rune':'',r.chest?'1 chest':''].filter(Boolean).join(' + ');}
 
 function realmMult(){return 1+0.5*((S.asc&&S.asc.realm)||0);}
+
+// ============ FEATS ============
+// Deeds, checked every few seconds and paid once. Some carry a title the
+// champion can wear on the name plate; wearing one raises a pennant behind
+// them in the arena.
+const FEATS=[
+ {id:'first_blood',n:'First Blood',d:'Slay a monster',t:()=>S.totalKills>=1,rw:{gold:50}},
+ {id:'k100',n:'Hundred Hands',d:'Slay 100 monsters',t:()=>S.totalKills>=100,rw:{gold:300}},
+ {id:'k1000',n:'Thousand Cuts',d:'Slay 1,000 monsters',t:()=>S.totalKills>=1000,rw:{chest:1},title:'the Tireless'},
+ {id:'k10000',n:'Ten Thousand',d:'Slay 10,000 monsters',t:()=>S.totalKills>=10000,rw:{shards:3},title:'the Relentless'},
+ {id:'pasture',n:'Pasture Warden',d:'Clear the Cow Pasture',t:()=>!!S.cleared[0],rw:{gold:100}},
+ {id:'wyrm',n:'Wyrmslayer',d:()=>'Clear '+AREAS[7].n,t:()=>!!S.cleared[7],rw:{ingot:1},title:'Wyrmslayer'},
+ {id:'allclear',n:'Sovereign of the Hold',d:'Clear every area',t:()=>S.cleared.every(Boolean),rw:{shards:5},title:'Sovereign'},
+ {id:'tower10',n:'Ten Floors',d:'Reach tower floor 10',t:()=>S.tower.best>=10,rw:{chest:1}},
+ {id:'tower25',n:'Halfway Up',d:'Reach tower floor 25',t:()=>S.tower.best>=25,rw:{rune:1},title:'the Climber'},
+ {id:'tower50',n:'The Spire',d:'Reach tower floor 50',t:()=>S.tower.best>=50,rw:{shards:5},title:'of the Spire'},
+ {id:'uniq1',n:'One of a Kind',d:'Find a unique or set piece',t:()=>Object.keys(S.found).length>=1,rw:{gold:200}},
+ {id:'uniq10',n:'Collector',d:'Find 10 uniques or set pieces',t:()=>Object.keys(S.found).length>=10,rw:{chest:2},title:'the Collector'},
+ {id:'set4',n:'Matched Set',d:'Wear four pieces of one set',t:()=>Object.values(setCounts()).some(n=>n>=4),rw:{rune:1}},
+ {id:'mythic',n:'Starforged',d:'Temper a piece to Mythic',t:()=>(S.mythics||0)>=1,rw:{shards:2},title:'Starforged'},
+ {id:'forge10',n:'Ten Times Tempered',d:'Forge a piece to +10',t:()=>[...S.inv,...Object.values(S.equip)].some(it=>it&&it.up>=10),rw:{scrap:40}},
+ {id:'cl50',n:'Veteran',d:'Reach combat level 50',t:()=>combatLvl()>=50,rw:{chest:1}},
+ {id:'cl99',n:'Master at Arms',d:'Reach combat level 99',t:()=>combatLvl()>=99,rw:{shards:5},title:'Master at Arms'},
+ {id:'trio',n:'Three Ways',d:'Raise Attack, Ranged and Magic to 30',t:()=>lv('atk')>=30&&lv('rng')>=30&&lv('mag')>=30,rw:{rune:2},title:'the Versatile'},
+ {id:'asc1',n:'Ascendant',d:'Ascend once',t:()=>S.asc.count>=1,rw:{shards:2}},
+ {id:'asc3',n:'Thrice Risen',d:'Ascend three times',t:()=>S.asc.count>=3,rw:{shards:5},title:'Thrice Risen'},
+ {id:'hold',n:'Lord of Ironhold',d:'Raise every building to its top',t:()=>Object.keys(KEEP).every(k=>keepLv(k)>=KEEP_MAX),rw:{chest:3},title:'Lord of Ironhold'},
+ {id:'party',n:'Company',d:'Field two companions',t:()=>(S.party||[]).length>=2,rw:{gold:500}},
+ {id:'seal',n:'Sealed',d:'Use a seal',t:()=>(S.sealsUsed||0)>=1,rw:{scrap:20}},
+ {id:'errand',n:'Errand Run',d:'Complete an errand',t:()=>(S.errandsDone||0)>=1,rw:{gold:300}},
+ {id:'errand10',n:'Quartermaster',d:'Complete 10 errands',t:()=>(S.errandsDone||0)>=10,rw:{chest:2},title:'the Quartermaster'},
+ {id:'master',n:'No Quarter',d:'Clear an area on Master difficulty',t:()=>(S.masterClears||0)>=1,rw:{shards:3},title:'of No Quarter'},
+ {id:'bounty25',n:'Board Regular',d:'Claim 25 bounties',t:()=>(S.bountiesClaimed||0)>=25,rw:{chest:1}},
+ {id:'stubborn',n:'Stubborn',d:'Go down ten times',t:()=>(S.deaths||0)>=10,rw:{gold:100},title:'the Stubborn'},
+];
+function featDone(id){return !!(S.feats&&S.feats.done&&S.feats.done[id]);}
+function featText(rw){return [rw.gold?fmt(rw.gold)+'g':'',rw.scrap?rw.scrap+' scrap':'',rw.chest?rw.chest+' chest'+(rw.chest>1?'s':''):'',rw.rune?rw.rune+' rune'+(rw.rune>1?'s':''):'',
+  rw.shards?rw.shards+' shard'+(rw.shards>1?'s':''):'',rw.ingot?rw.ingot+' Starsteel':''].filter(Boolean).join(' + ');}
+function featGrant(rw){if(rw.gold)S.gold+=rw.gold;if(rw.scrap)S.scrap+=rw.scrap;if(rw.chest)S.chests+=rw.chest;
+  if(rw.rune)for(let i=0;i<rw.rune;i++)S.runes[rollRune(true)]++;if(rw.shards)S.asc.shards+=rw.shards;if(rw.ingot)S.ingots=(S.ingots||0)+rw.ingot;}
+function featTick(){
+  S.feats=S.feats||{done:{},title:null};S.feats.done=S.feats.done||{};
+  for(const f of FEATS){if(featDone(f.id))continue;let ok=false;try{ok=!!f.t();}catch(e){}
+    if(!ok)continue;S.feats.done[f.id]=Date.now();featGrant(f.rw);
+    log(`Feat: ${f.n} — ${featText(f.rw)}${f.title?` · title "${f.title}" earned`:''}.`,'g');if(!G.sim)toast('Feat: '+f.n);G.dirty=true;}
+}
+function wearTitle(t){S.feats=S.feats||{done:{},title:null};S.feats.title=S.feats.title===t?null:t;}
+function heroTitle(){return (S.feats&&S.feats.title)||'';}
 // Difficulty. Monsters hit harder and hold more gold; drops and XP pay more.
 const DIFFS=[
  {n:'Normal',mob:1,   xp:1,    luck:1,   need:0},
@@ -1513,6 +1569,10 @@ function drawScene(t,dt){
       const k=compSpr(cd);if(sprReady(k+'_idle')){const act=cd.role==='dr'?FX.pFlash>0:FX.cAct[i]>0;drawSprite(act&&sprReady(k+'_atk')?sprFrame(k+'_atk',0):sprFrame(k+'_idle',0),px[i],gy+py[i]+4+Math.sin((t+i)*3)*1.2,false,0,SPR_SC[k+'_idle']||1);}
       else drawMob(px[i],gy+py[i]-(cd.shape==='beast'?58:78),cd,t+1+i,1,0);});
     if(activePrayers().length){ctx.strokeStyle='#ffd24a';ctx.lineWidth=2.5;ctx.shadowColor='#ffd24a';ctx.shadowBlur=8;ctx.beginPath();ctx.ellipse(HX+pl,gy-102+Math.sin(t*3)*1.8,14,4.5,0,0,7);ctx.stroke();ctx.shadowBlur=0;}}
+  if(heroTitle()&&!G.dead){ // a worn title raises a pennant behind the champion
+    const px=HX-46,top=gy-118;ctx.fillStyle='#4a3520';ctx.fillRect(px-1,top,3,124);
+    ctx.fillStyle='#ffd24a';ctx.beginPath();ctx.moveTo(px+2,top+2);ctx.lineTo(px+30,top+12);ctx.lineTo(px+2,top+24);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=1;ctx.stroke();}
   const heroSpr=sprReady('hero_idle');   // per-pose fallbacks live in heroFrame
   // Keep this if/else chain intact: an extra statement between the branches
   // re-binds the else to it, and the procedural hero paints over the sprite.
@@ -1589,7 +1649,7 @@ function mobHit(){
   if(S.hp<=0)die();
 }
 function die(){
-  G.dead=true;G.deadT=15;S.hp=0;
+  G.dead=true;G.deadT=15;S.hp=0;S.deaths=(S.deaths||0)+1;
   log(`You were killed by ${G.mob.n}.`,'e');
   if(G.tower){log(`The tower spits you out at floor ${G.tower}.`,'e');G.tower=0;spawn(false);return;}
   G.streak++;
@@ -1672,6 +1732,7 @@ function killMob(){
     else if(Math.random()<ingotChance())gainIngot(1);
     rollSeal(S.area,luck,false);
     log(`You defeated ${m.n}! ${A.n} is cleared.`,'g');
+    if(diff().n==='Master')S.masterClears=(S.masterClears||0)+1;
     S.cleared[S.area]=true;
     if(!G.sim){toast(`${m.n} defeated! Next area unlocked.`);}
     spawn(false);
@@ -1709,7 +1770,7 @@ function tick(dt){
   G.pT-=dt;G.mT-=dt;
   if(G.pT<=0){playerHit(false);G.pT+=attackDelay();}
   if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd;}
-  G.cT=(G.cT||0)+dt;if(G.cT>=3){G.cT-=3;compTick();errandTick();}
+  G.cT=(G.cT||0)+dt;if(G.cT>=3){G.cT-=3;compTick();errandTick();featTick();}
 }
 
 // ============ UI ============
@@ -1719,7 +1780,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -1976,6 +2037,15 @@ function renderSkills(){
   $('autoEat').checked=S.autoEat;$('eatPct').value=S.eatPct;$('eatPctTxt').textContent=S.eatPct;
 }
 
+function renderFeats(){
+  const el=$('feats');if(!el)return;const done=FEATS.filter(f=>featDone(f.id)).length;
+  $('featCnt').textContent=`${done}/${FEATS.length}`;
+  el.innerHTML=FEATS.slice().sort((a,b)=>featDone(b.id)-featDone(a.id)).map(f=>{const d=featDone(f.id);const desc=typeof f.d==='function'?f.d():f.d;
+    return `<div class="feat${d?' done':''}"><span><span class="nm">${d?'✦ ':''}${f.n}</span><span class="sub">${desc} · ${featText(f.rw)}${f.title?` · title: ${f.title}`:''}</span></span>`
+      +(f.title&&d?`<button class="sm${heroTitle()===f.title?' on':''}" data-title="${f.title}">${heroTitle()===f.title?'Worn':'Wear'}</button>`:'')+`</div>`;}).join('');
+  el.querySelectorAll('[data-title]').forEach(b=>b.onclick=()=>{wearTitle(b.dataset.title);renderAll();});
+}
+
 // --- world ---
 const THUMB=[['#7fb5d8','#4e8a3a'],['#6f9a6a','#5f7a3a'],['#2c2c34','#3a3a3a'],['#8aa3c2','#6a5a3a'],['#7f9fb5','#5a6a3a'],['#cfe8f5','#dfe8ee'],['#3a1414','#3a2020'],['#2a2a2a','#3a3030']];
 function unlocked(i){return i===0||S.cleared[i-1];}
@@ -2217,7 +2287,7 @@ function chStripAll(){
 function renderTop(){
   renderPills();
   const mh=maxHp();$('pHp').textContent=`${Math.ceil(S.hp)}/${mh}`;$('pHpBar').style.width=(S.hp/mh*100)+'%';
-  $('pName').textContent='You (lvl '+combatLvl()+')';
+  $('pName').textContent=(heroTitle()?'You, '+heroTitle():'You')+' (lvl '+combatLvl()+')';
   if(G.mob){$('mName').textContent=`${G.mob.n} (lvl ${G.mob.lv})`;$('mHp').textContent=`${G.mobHp}/${G.mob.hp}`;$('mHpBar').style.width=(G.mobHp/G.mob.hp*100)+'%';$('mHpBar').className='fill'+(G.isBoss?' boss':'');}
   $('prayTxt').textContent=`${Math.floor(S.pray.pts)}/${prayMax()}`;$('prayBar').style.width=(S.pray.pts/prayMax()*100)+'%';const ap=activePrayers();$('prayOnTxt').textContent=ap.length?'· '+ap.map(p=>p.n).join(', ')+` (−${prayDrain().toFixed(1)}/s)`:'';
   $('specTxt').textContent=Math.floor(S.spec)+'%';$('specBar').style.width=S.spec+'%';$('btnSpec').disabled=S.spec<50||G.dead;
@@ -2234,7 +2304,7 @@ function renderAll(){
   switch(S.tab){
     case 'hero':renderSlots();break;
     case 'vault':renderBag();renderCodex();break;      // the Pack carries the Collection
-    case 'skills':renderSkills();renderPrayer();break; // Train carries Prayer
+    case 'skills':renderSkills();renderPrayer();renderFeats();break; // Train carries Prayer and Feats
     case 'world':renderAreas();break;
     case 'keep':renderKeep();break;}
   if(chUI.open){if(S.tab!=='hero')renderSlots();chRender();}
@@ -2275,7 +2345,7 @@ function temperItem(it){
   // base scales with the rarity multiplier, so carry it up rather than rebuilding the piece
   const k=RARITY[nr].m/RARITY[it.rar].m;
   it.base={atk:Math.round(it.base.atk*k),str:Math.round(it.base.str*k),def:Math.round(it.base.def*k)};
-  it.rar=nr;
+  it.rar=nr;if(nr===7)S.mythics=(S.mythics||0)+1;
   // keep what it already rolled and fill the new slots from what is left
   const have=Object.keys(it.aff),pool=affPool(it).filter(x=>!have.includes(x));
   for(let i=have.length;i<RARITY[nr].aff&&pool.length;i++){
@@ -2437,7 +2507,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b43-errands';
+  const BUILD='b44-feats';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

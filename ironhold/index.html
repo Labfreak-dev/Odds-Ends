@@ -1264,19 +1264,27 @@ const UQ_FIT={
   wyrmgut_longbow:[2.147,0.217,0.431], ashborn_recurve:[2.156,0.198,0.419], elderhorn_bow:[2.15,0.237,0.312], nightwatch_xbow:[-1.016,0.3,0.699],
   idle_king_bow:[2.153,0.336,0.396], ironhold_ballista:[-1.0,0.368,0.715], meadow_flight:[2.197,0.288,0.296], last_light_bow:[2.174,0.294,0.381],
   pasture_crook:[-1.284,0.268,0.573], bone_choir_staff:[-1.273,0.444,0.578], sewer_rod:[-1.287,0.344,0.573], chieftain_totem:[-1.287,0.333,0.573],
-  gunnars_stormpole:[-1.234,0.315,0.573], matriarch_rod:[-1.238,0.363,0.573], grothek_pillar:[-1.454,0.544,0.573]};
+  gunnars_stormpole:[-1.234,0.315,0.573], matriarch_rod:[-1.238,0.363,0.573], grothek_pillar:[-1.454,0.544,0.573], ashborn_emberstaff:[-1.122,0.31,0.609],
+  bloodletter_wand:[-1.062,0.306,0.653], elder_scepter:[-1.093,0.3,0.631], gravetender_staff:[-1.28,0.335,0.642], idle_king_scepter:[-1.177,0.273,0.645],
+  last_saint_staff:[-1.114,0.288,0.627], overlord_staff:[-1.079,0.291,0.642], pasture_justice:[2.456,0.877,0.078], sanctum_crozier:[-1.14,0.276,0.633]};
 // a bow sits ACROSS the line between the hands; everything else lies along it
 const WPN_ALONG={xbow:1,knives:1,wand:1,staff:1,battlestaff:1,orb:1,tome:1};
 // an orb or a tome is carried level in the palm and does not swing with the arm
 const WPN_UP={orb:1,tome:1};
-const WPN={},WPN_TRY={};
+const WPN={},WPN_TRY={},WPN_WAIT={};
+// A weapon that failed to key (a decode hiccup under memory pressure) used to be
+// cached as null for the rest of the session and never drawn again. Now a
+// failure backs off and retries, up to three times, before it is given up on.
+const wpnFail=k=>{WPN[k]=undefined;WPN_WAIT[k]=performance.now()+800;};
+function wpnWarm(){const it=S.equip.weapon;if(it)wpnCanvas(iconKey(it));}
 function wpnCanvas(k){
   if(!k||!ICONS[k])return null;
   if(WPN[k]!==undefined)return WPN[k];
-  if(WPN_TRY[k])return null;
-  WPN_TRY[k]=1;
+  if((WPN_TRY[k]||0)>=3)return null;
+  if(WPN_WAIT[k]&&performance.now()<WPN_WAIT[k])return null;
+  WPN_TRY[k]=(WPN_TRY[k]||0)+1;
   const im=new Image();
-  im.onerror=()=>{WPN[k]=null;};
+  im.onerror=()=>{wpnFail(k);};
   im.onload=()=>{
     try{
       const c=document.createElement('canvas');c.width=im.width;c.height=im.height;
@@ -1320,7 +1328,7 @@ function wpnCanvas(k){
       const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;
       o.getContext('2d').drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);
       WPN[k]=o;
-    }catch(e){WPN[k]=null;}
+    }catch(e){wpnFail(k);}
   };
   im.src=ICONS[k];
   return null;
@@ -2245,6 +2253,7 @@ function equip(it){
   if(it.slot==='weapon'&&WEAPONS[it.wt].two&&S.equip.shield){S.inv.push(S.equip.shield);S.equip.shield=null;}
   if(it.slot==='shield'&&S.equip.weapon&&WEAPONS[S.equip.weapon.wt].two){S.inv.push(S.equip.weapon);S.equip.weapon=null;}
   S.equip[it.slot]=it;S.hp=Math.min(S.hp,maxHp());
+  if(it.slot==='weapon')wpnWarm();
 }
 function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 function openChest(){
@@ -2312,7 +2321,7 @@ document.addEventListener('keydown',e=>{
   let saved=null;try{saved=localStorage.getItem(KEY);}catch(e){}
   if(saved&&load(saved)){offline();}
   else{S.equip.weapon=makeItem(0,'weapon',1,1);S.food[0]=10;log('The hold is yours. Bronze scimitar. Pasture first. You coach — the blade works.','g');}
-  uiDefaults();applySecs();
+  uiDefaults();applySecs();wpnWarm();
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);
   let last=performance.now(),acc=0,uiT=0,saveT=0;
@@ -2325,7 +2334,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b39-uqfit';
+  const BUILD='b40-wpnalways';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

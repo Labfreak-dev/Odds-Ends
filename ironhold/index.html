@@ -489,7 +489,7 @@
         <div class="bar" style="margin-top:6px"><div class="lab"><span>Special</span><span id="specTxt">0%</span></div><div class="track" style="height:12px"><div class="fill spec" id="specBar" style="width:0%"></div></div></div>
         <div class="bar" style="margin-top:6px"><div class="lab"><span><span id="prayIco"></span>Prayer <span class="sub" id="prayOnTxt"></span></span><span id="prayTxt">0/30</span></div><div class="track" style="height:10px"><div class="fill pray" id="prayBar" style="width:0%"></div></div></div>
         <div class="actions">
-          <button class="spec" id="btnSpec"><span class="ico" data-ico="spec"></span>Special</button>
+          <button class="spec" id="btnSpec"><span class="ico" data-ico="spec"></span><span id="specName">Special</span></button>
           <button id="btnEat"><span class="ico" data-ico="eat"></span>Eat <span id="foodCnt">0</span></button>
           <button class="boss" id="btnBoss"><span class="ico" data-ico="skull"></span><span id="bossTxt">Boss</span></button>
         </div>
@@ -1613,14 +1613,14 @@ function drawScene(t,dt){
   if(G.dead){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd24a';ctx.font='bold 22px Georgia';ctx.fillText('Oh dear, you are dead!',W/2,H/2-6);ctx.font='13px Verdana';ctx.fillStyle='#fff';ctx.fillText('Respawning in '+Math.ceil(G.deadT)+'s',W/2,H/2+18);}
 }
 // ============ GAME LOOP ============
-const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirty:true,streak:0,tower:0,cT:0};
+const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirty:true,streak:0,tower:0,cT:0,parry:0,sunderT:0,hexT:0,ward:0};
 function spawn(boss){
   const A=AREAS[S.area];
   let m=G.tower?towerMob(G.tower):(boss?A.boss:A.mobs[rnd(0,A.mobs.length-1)]);
   const k=realmMult()*diff().mob;if(k>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*k),str:Math.round(m.str*k),def:Math.round(m.def*k),gold:[Math.round(m.gold[0]*k),Math.round(m.gold[1]*k)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
     m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
-  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());
+  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;
   G.dirty=true;
 }
 function log(msg,cls){const el=document.getElementById('log');const d=document.createElement('div');if(cls)d.className=cls;d.textContent=msg;el.prepend(d);while(el.children.length>40)el.lastChild.remove();}
@@ -1640,26 +1640,32 @@ function addXp(dmg){
   S.xp.hp+=dmg*1.33*mult;
   for(const k of KEYS){if(lv(k)>before[k]){log(`Congratulations! ${SK_NAME[k]} is now level ${lv(k)}.`,'b');if(!G.sim)toast(`${SK_NAME[k]} level ${lv(k)}!`);G.dirty=true;}}
 }
-function playerHit(spec){
-  const m=G.mob;if(!m)return;
+function playerHit(spec,sp){
+  const m=G.mob;if(!m)return;sp=sp||{};
   const b=bonuses();
   let roll=playerAtkRoll();if(spec)roll*=2.5;
+  let def=mobDefRoll(m);if(sp.pierce)def*=(1-sp.pierce);if((G.sunderT||0)>0)def*=0.5;
   let dmg=0;
-  if(Math.random()<hitChance(roll,mobDefRoll(m))){
+  if(sp.sure||Math.random()<hitChance(roll,def)){
     dmg=rnd(0,playerMaxHit());
     if(spec)dmg=Math.max(dmg,Math.round(playerMaxHit()*(0.75+Math.random()*0.5)));
+    if(sp.mult)dmg=Math.round(dmg*sp.mult);
+    if((G.hexT||0)>0)dmg=Math.round(dmg*1.25);
   }
   dmg=Math.min(dmg,G.mobHp);
   G.mobHp-=dmg;
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
+  if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
   if(!G.sim){FX.pLunge=1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');}
   addXp(dmg);
   if(G.mobHp<=0)killMob();
 }
 function mobHit(){
   const m=G.mob;let dmg=0;
+  if((G.parry||0)>0){G.parry--;if(!G.sim){FX.mLunge=1;splat(HX,60+Math.random()*30,'Parried','#8fdcf5');}return;}
   if(Math.random()<hitChance(mobAtkRoll(m),playerDefRoll()))dmg=rnd(0,mobMaxHit(m));
   const dr=dmgReduction();if(dr>0)dmg=Math.floor(dmg*(1-dr/100));
+  if((G.ward||0)>0&&dmg>0){const a=Math.min(G.ward,dmg);G.ward-=a;dmg-=a;if(!G.sim)splat(HX,84,'Ward −'+a,'#8fdcf5');}
   dmg=Math.min(dmg,S.hp);S.hp-=dmg;
   if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');}
   if(S.hp<=0)die();
@@ -1804,9 +1810,36 @@ function eat(manual){
   if(!G.sim){splat(HX,110,'+'+FOOD[idx].h,'#2e9a3a');}
   return true;
 }
+// ============ WEAPON SPECIALS ============
+// One special per weapon type, in WEAPONS order. Melee trades on the blow
+// itself, ranged on tempo and reach, magic on what lingers afterwards.
+const SPECIALS=[
+ {n:'Backstab',      d:'A sure hit for up to 1.6× your max hit.',                         hits:1,mult:1.6,sure:1},
+ {n:'Twin Cut',      d:'Two quick cuts, each up to 0.9× your max hit.',                    hits:2,mult:0.9},
+ {n:'Riposte',       d:'A heavy cut, and the next blow against you is parried.',            hits:1,mult:1.2,parry:1},
+ {n:'Sunder',        d:'A crushing blow that halves the foe\'s defence for 10 s.',           hits:1,mult:1.2,sunder:10},
+ {n:'Cleave',        d:'One enormous swing for up to 2.2× your max hit.',                  hits:1,mult:2.2},
+ {n:'Quick Shot',    d:'A sure hit, and your next shot comes at once.',                     hits:1,mult:1.0,sure:1,reset:1},
+ {n:'Piercing Shot', d:'A sure hit for up to 1.8× your max hit.',                         hits:1,mult:1.8,sure:1},
+ {n:'Volley',        d:'Three arrows, each up to 0.6× your max hit.',                      hits:3,mult:0.6},
+ {n:'Heavy Bolt',    d:'Up to 2× your max hit, and the foe is staggered for 3 s.',         hits:1,mult:2.0,stagger:3},
+ {n:'Fan of Knives', d:'Four knives, each up to 0.45× your max hit.',                      hits:4,mult:0.45},
+ {n:'Spark',         d:'A quick bolt that refunds half the special.',                       hits:1,mult:1.0,refund:25},
+ {n:'Ward',          d:'A strike, and a ward that soaks damage worth 30% of your health.',  hits:1,mult:1.0,ward:0.3},
+ {n:'Blast',         d:'Up to 2× your max hit, ignoring half the foe\'s defence.',          hits:1,mult:2.0,pierce:0.5},
+ {n:'Drain',         d:'A strike that heals you for half the damage dealt.',                hits:1,mult:1.2,drain:0.5},
+ {n:'Hex',           d:'A strike, and the foe takes 25% more damage for 12 s.',             hits:1,mult:1.0,hex:12},
+];
+const SPEC_BARE={n:'Haymaker',d:'A heavy blow, up to 1.25× your max hit.',hits:1,mult:1.25};
+function specialOf(){const w=S.equip.weapon;return (w&&SPECIALS[w.wt])||SPEC_BARE;}
 function special(){
-  if(G.dead||S.spec<50)return;
-  S.spec-=50;bounty('special',1);playerHit(true);G.dirty=true;
+  if(G.dead||S.spec<50||!G.mob)return;
+  const sp=specialOf();S.spec-=50;bounty('special',1);
+  for(let i=0;i<sp.hits&&G.mob&&G.mobHp>0&&!G.dead;i++)playerHit(true,sp);
+  if(sp.parry)G.parry=(G.parry||0)+sp.parry;if(sp.sunder)G.sunderT=sp.sunder;if(sp.stagger)G.mT+=sp.stagger;
+  if(sp.ward)G.ward=Math.max(G.ward||0,Math.round(maxHp()*sp.ward));if(sp.hex)G.hexT=sp.hex;
+  if(sp.refund)S.spec=Math.min(100,S.spec+sp.refund);if(sp.reset)G.pT=0;
+  G.dirty=true;
 }
 function tick(dt){
   S.spec=Math.min(100,S.spec+dt*(10/30)); // 10% per 30s
@@ -1815,7 +1848,7 @@ function tick(dt){
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(!G.mob)spawn(false);
   if(S.autoEat&&S.hp<maxHp()*S.eatPct/100)eat(false);
-  G.pT-=dt;G.mT-=dt;
+  G.pT-=dt;G.mT-=dt;if(G.sunderT>0)G.sunderT=Math.max(0,G.sunderT-dt);if(G.hexT>0)G.hexT=Math.max(0,G.hexT-dt);
   if(G.pT<=0){playerHit(false);G.pT+=attackDelay();}
   if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd;}
   G.cT=(G.cT||0)+dt;if(G.cT>=3){G.cT-=3;compTick();errandTick();featTick();}
@@ -2078,7 +2111,7 @@ function renderSkills(){
     const l=lv(k),x=S.xp[k],lo=XP[l],hi=l<99?XP[l+1]:lo+1;const p=l<99?(x-lo)/(hi-lo)*100:100;
     el.insertAdjacentHTML('beforeend',`<div class="skill"><div class="lab"><span>${SK_NAME[k]}</span><span>${l}${l<99?' <span class="sub">('+fmt(hi-x)+' xp to go)</span>':''}</span></div><div class="track"><div class="fill" style="width:${p}%"></div></div></div>`);}
   const cw=S.equip.weapon;const cn=({melee:'Melee',ranged:'Ranged',magic:'Magic'})[cstyle()];
-  $('cstyles').innerHTML=`<b class="gold">${cn}</b><span class="sub"> — ${cw?itemName(cw)+' · '+WEAPONS[cw.wt].spd+'s':'unarmed'}</span>`;
+  $('cstyles').innerHTML=`<b class="gold">${cn}</b><span class="sub"> — ${cw?itemName(cw)+' · '+WEAPONS[cw.wt].spd+'s':'unarmed'}</span><br><span class="sub">Special: <b>${specialOf().n}</b> — ${specialOf().d}</span>`;
   const fw=$('freeWep');fw.innerHTML='';FREE_WEPS.forEach(([wt,n])=>{const b=document.createElement('button');b.textContent='Claim '+n;b.title='Free Bronze '+WEAPONS[wt].n+' · worth nothing to sell or salvage';b.onclick=()=>claimFree(wt);fw.appendChild(b);});
   const st=$('styles');st.innerHTML='';STYLES.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.n;if(i===S.style)b.className='on';b.onclick=()=>{S.style=i;renderSkills();renderSlots();};st.appendChild(b);});
   $('mastery').innerHTML=MASTERY.map(([k,n,t,eff])=>`<div class="mcard${lv(k)>=n?' lit':''}" title="${SK_NAME[k]} ${n} — ${effText(eff)}"><div class="rune">${lv(k)>=n?'✦':'·'}</div><div>${t}</div><div class="sub">${effText(eff)}</div><div class="sub" style="opacity:.7">${SK_NAME[k]} ${n}${lv(k)>=n?'':' — locked'}</div></div>`).join('');
@@ -2349,6 +2382,7 @@ function renderTop(){
   if(G.mob){$('mName').textContent=`${G.mob.n} (lvl ${G.mob.lv})`;$('mHp').textContent=`${G.mobHp}/${G.mob.hp}`;$('mHpBar').style.width=(G.mobHp/G.mob.hp*100)+'%';$('mHpBar').className='fill'+(G.isBoss?' boss':'');}
   $('prayTxt').textContent=`${Math.floor(S.pray.pts)}/${prayMax()}`;$('prayBar').style.width=(S.pray.pts/prayMax()*100)+'%';const ap=activePrayers();$('prayOnTxt').textContent=ap.length?'· '+ap.map(p=>p.n).join(', ')+` (−${prayDrain().toFixed(1)}/s)`:'';
   $('specTxt').textContent=Math.floor(S.spec)+'%';$('specBar').style.width=S.spec+'%';$('btnSpec').disabled=S.spec<50||G.dead;
+  {const sp=specialOf();$('specName').textContent=sp.n;$('btnSpec').title=sp.d;}
   const fc=S.food.reduce((a,b)=>a+b,0);$('foodCnt').textContent=fc;$('btnEat').disabled=fc===0||G.dead||S.hp>=maxHp();
   const A=AREAS[S.area];const ready=S.kills[S.area]>=A.need;
   $('bossTxt').textContent=S.cleared[S.area]?'Boss again':ready?'Fight boss':`Boss ${S.kills[S.area]}/${A.need}`;$('btnBoss').disabled=!(ready||S.cleared[S.area])||G.isBoss||G.dead;
@@ -2420,6 +2454,7 @@ function openItem(it,equipped){
   if(cur)h+=`<div class="sub">Compared to ${itemName(cur)}</div>`;
   h+=`<div class="cmp">Attack +${st.atk}${d(st.atk,cs.atk)} · Strength +${st.str}${d(st.str,cs.str)} · Defence +${st.def}${d(st.def,cs.def)}</div>`;
   if(it.uq)h+=`<div class="sub" style="font-style:italic;margin:2px 0">${UNIQUES[it.uq].d}</div>`;
+  if(W&&SPECIALS[it.wt])h+=`<div class="sub" style="margin:2px 0">Special <b>${SPECIALS[it.wt].n}</b>: ${SPECIALS[it.wt].d}</div>`;
   const sealBtn=(k,a,lab)=>canCraft(it)&&sealCount(k)>0?` <button class="sm" data-seal="${k}" data-aff="${a}" title="${SEALS[k].n} — ${SEALS[k].d} (you hold ${sealCount(k)})">${lab}</button>`:'';
   for(const k in it.aff)h+=`<div class="aff">${AFFIX[k].n.replace('{v}',it.aff[k]).replace('--','+')}${sealBtn('chief',k,'Reroll')}${sealBtn('warlord',k,'Swap')}${sealBtn('wyrm',k,'Strip')}</div>`;
   if(canCraft(it)&&sealCount('matriarch')>0&&Object.keys(it.aff).length<sealMaxAff(it))h+=`<div class="aff"><button class="sm" data-seal="matriarch" data-aff="" title="${SEALS.matriarch.d}">Add an affix</button> <span class="sub">Matriarch's Tear ×${sealCount('matriarch')}</span></div>`;
@@ -2565,7 +2600,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b46-curse';
+  const BUILD='b47-specials';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

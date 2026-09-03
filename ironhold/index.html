@@ -1569,6 +1569,38 @@ function gainIngot(n){
   if(!G.sim)toast(`Starsteel ingot${n>1?' ×'+n:''}`);
 }
 function ingotChance(){return 0.12+0.06*(S.diff||0);}
+
+// ============ SEALS ============
+// Where the bench rerolls every affix at once, a seal does one surgical thing
+// to one affix. Each is guarded by a boss; any boss at or past a seal's home
+// area can give it up, so farming a favourite boss is a plan, not a lottery.
+const SEALS={
+ chief:    {n:"Chieftain's Seal", home:1,v:'reroll',d:'Reroll the value of one affix'},
+ warlord:  {n:"Warlord's Mark",   home:3,v:'swap',  d:'Swap one affix for a different kind'},
+ matriarch:{n:"Matriarch's Tear", home:5,v:'add',   d:'Add an affix, one beyond what the rarity allows'},
+ wyrm:     {n:'Wyrm Scale',       home:7,v:'strip', d:'Strip one affix away'},
+};
+function sealCount(k){return (S.seals&&S.seals[k])||0;}
+function sealsHeld(){return Object.keys(SEALS).filter(k=>sealCount(k)>0);}
+function gainSeal(k,n){n=n||1;S.seals=S.seals||{};S.seals[k]=(S.seals[k]||0)+n;
+  log(`${SEALS[k].n}${n>1?' ×'+n:''} recovered.`,'g');if(!G.sim)toast(SEALS[k].n);}
+function rollSeal(area,luck,any){
+  const pool=Object.keys(SEALS).filter(k=>any||SEALS[k].home<=area);
+  if(pool.length&&Math.random()<0.22*luck)gainSeal(pool[rnd(0,pool.length-1)]);
+}
+// a Tear may push one affix past the rarity's count; a full bench reroll drops it again
+function sealMaxAff(it){return RARITY[it.rar].aff+1;}
+function useSeal(k,it,aff){
+  if(!canCraft(it)||sealCount(k)<=0||!SEALS[k])return false;
+  const v=SEALS[k].v,open=()=>affPool(it).filter(x=>!(x in it.aff)),roll=a=>{it.aff[a]=rnd(AFFIX[a].min,AFFIX[a].max);};
+  if(v==='add'){if(Object.keys(it.aff).length>=sealMaxAff(it))return false;const p=open();if(!p.length)return false;roll(p[rnd(0,p.length-1)]);}
+  else{if(!(aff in it.aff))return false;
+    if(v==='reroll')roll(aff);
+    else if(v==='strip')delete it.aff[aff];
+    else if(v==='swap'){const p=open();if(!p.length)return false;delete it.aff[aff];roll(p[rnd(0,p.length-1)]);}
+    else return false;}
+  S.seals[k]--;S.sealsUsed=(S.sealsUsed||0)+1;return true;
+}
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   S.totalKills++;G.streak=0;
@@ -1579,7 +1611,8 @@ function killMob(){
     if(Math.random()<(boss?1:0.12)*luck)gainItem(makeItem(tier,SLOTS[rnd(0,9)],boss?Math.max(3,rollRarity(0.6)):rollRarity(0.2)));
     if(Math.random()<(boss?1:0.06)*luck)gainRune(boss);
     if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);
-      if(Math.random()<0.25+0.05*(S.diff||0))gainIngot(1);}
+      if(Math.random()<0.25+0.05*(S.diff||0))gainIngot(1);
+      rollSeal(0,luck*0.7,true);}
     if(f>S.tower.best){S.tower.best=f;if(f%5===0){S.chests++;log(`New record: floor ${f}. A chest is yours.`,'g');if(!G.sim)toast(`Tower record: floor ${f}`);}}
     if(Math.random()<0.15)S.scrap+=1+keepLv('yard');
     bounty('kills',1);bounty('tower',f);
@@ -1600,6 +1633,7 @@ function killMob(){
     // the first clear of an area always yields a bar; after that the wardens are stingier
     if(!S.cleared[S.area])gainIngot(1);
     else if(Math.random()<ingotChance())gainIngot(1);
+    rollSeal(S.area,luck,false);
     log(`You defeated ${m.n}! ${A.n} is cleared.`,'g');
     S.cleared[S.area]=true;
     if(!G.sim){toast(`${m.n} defeated! Next area unlocked.`);}
@@ -1648,7 +1682,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -1980,7 +2014,7 @@ function renderKeep(){
   }
   const ready=ascReady();
   $('keep').innerHTML=
-   keepCard('forge',`Upgrade, reroll and temper gear from any item window. Rerolling opens at Forge ${REROLL_FORGE}, tempering at ${TEMPER_FORGE}. Mythic needs ${MYTHIC_INGOTS} Starsteel from bosses. Scrap: <b class="gold">${S.scrap}</b> · Starsteel: <b class="gold">${S.ingots||0}</b>`,`<button class="sm" id="kForge">Open pack</button>`)+
+   keepCard('forge',`Upgrade, reroll and temper gear from any item window. Rerolling opens at Forge ${REROLL_FORGE}, tempering at ${TEMPER_FORGE}. Mythic needs ${MYTHIC_INGOTS} Starsteel from bosses. Scrap: <b class="gold">${S.scrap}</b> · Starsteel: <b class="gold">${S.ingots||0}</b>`+(sealsHeld().length?`<br>Seals: `+sealsHeld().map(k=>`<b class="gold">${SEALS[k].n} ×${sealCount(k)}</b>`).join(' · ')+` — use them from an item window`:`<br><span class="sub">Bosses also guard seals: single-purpose crafting currencies used from an item window.</span>`),`<button class="sm" id="kForge">Open pack</button>`)+
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
@@ -2215,7 +2249,10 @@ function openItem(it,equipped){
   if(cur)h+=`<div class="sub">Compared to ${itemName(cur)}</div>`;
   h+=`<div class="cmp">Attack +${st.atk}${d(st.atk,cs.atk)} · Strength +${st.str}${d(st.str,cs.str)} · Defence +${st.def}${d(st.def,cs.def)}</div>`;
   if(it.uq)h+=`<div class="sub" style="font-style:italic;margin:2px 0">${UNIQUES[it.uq].d}</div>`;
-  for(const k in it.aff)h+=`<div class="aff">${AFFIX[k].n.replace('{v}',it.aff[k]).replace('--','+')}</div>`;
+  const sealBtn=(k,a,lab)=>canCraft(it)&&sealCount(k)>0?` <button class="sm" data-seal="${k}" data-aff="${a}" title="${SEALS[k].n} — ${SEALS[k].d} (you hold ${sealCount(k)})">${lab}</button>`:'';
+  for(const k in it.aff)h+=`<div class="aff">${AFFIX[k].n.replace('{v}',it.aff[k]).replace('--','+')}${sealBtn('chief',k,'Reroll')}${sealBtn('warlord',k,'Swap')}${sealBtn('wyrm',k,'Strip')}</div>`;
+  if(canCraft(it)&&sealCount('matriarch')>0&&Object.keys(it.aff).length<sealMaxAff(it))h+=`<div class="aff"><button class="sm" data-seal="matriarch" data-aff="" title="${SEALS.matriarch.d}">Add an affix</button> <span class="sub">Matriarch's Tear ×${sealCount('matriarch')}</span></div>`;
+  if(canCraft(it)&&sealsHeld().length)h+=`<div class="sub" style="margin-top:4px">Seals held: ${sealsHeld().map(k=>`${SEALS[k].n} ×${sealCount(k)}`).join(' · ')}</div>`;
   if(it.set){const T=SETS[it.set];const c=setCounts()[it.set]||0;h+=`<div class="setb">${T.n} set (${c}/4 worn)</div><div class="setb" style="opacity:${c>=2?1:.55}">2 pieces: ${effText(T.b2)}</div><div class="setb" style="opacity:${c>=4?1:.55}">4 pieces: ${effText(T.b4)}</div>`;}
   const rw=rwOf(it);
   if(rw)h+=`<div class="aff" style="color:#c9a6ff"><b>Runeword ${rw.n}</b>: ${rw.d}</div>`;
@@ -2247,6 +2284,7 @@ function openItem(it,equipped){
   const close=()=>{$('modal').className='';renderAll();};
   $('mClose').onclick=close;
   document.querySelectorAll('#modalBox [data-rw]').forEach(b=>b.onclick=()=>{const r=RUNEWORDS.find(x=>x.n===b.dataset.rw);if(inscribe(it,r)){toast(`${r.n} inscribed`);openItem(it,equipped);}});
+  document.querySelectorAll('#modalBox [data-seal]').forEach(b=>b.onclick=()=>{if(useSeal(b.dataset.seal,it,b.dataset.aff)){log(`${SEALS[b.dataset.seal].n} used on ${itemName(it)}.`,'g');toast(SEALS[b.dataset.seal].n+' used');openItem(it,equipped);renderAll();}});
   if($('mEquip'))$('mEquip').onclick=()=>{equip(it);close();};
   if($('mUnequip'))$('mUnequip').onclick=()=>{unequip(it.slot);close();};
   $('mUp').onclick=()=>{S.gold-=uc.gold;S.scrap-=uc.scrap;it.up++;toast('Forged: '+itemName(it));openItem(it,equipped);renderAll();};
@@ -2356,7 +2394,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b41-freewep';
+  const BUILD='b42-seals';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

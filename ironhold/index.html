@@ -493,7 +493,7 @@
           <button id="btnEat"><span class="ico" data-ico="eat"></span>Eat <span id="foodCnt">0</span></button>
           <button class="boss" id="btnBoss"><span class="ico" data-ico="skull"></span><span id="bossTxt">Boss</span></button>
         </div>
-        <div id="status">Fighting...</div>
+        <div id="status">Loading…</div><noscript><div class="sub" style="color:#ff8a7a;padding:6px 0">Ironhold needs JavaScript turned on.</div></noscript>
         <div id="feed" class="recess"><div id="log"></div></div>
       </section>
     </div>
@@ -641,6 +641,18 @@
 <div id="toast"></div>
 
 <script>
+// Boot guard. If the game script below fails to parse (a cut-off download) or
+// throws while loading, the page would otherwise sit silently on its static
+// defaults. Put the error where the player can read and report it.
+window.__ihBoot=false;
+window.addEventListener('error',function(e){
+  if(window.__ihBoot)return;
+  var m=(e&&e.message)||'unknown error',ln=e&&e.lineno?' line '+e.lineno:'';
+  var st=document.getElementById('status');if(st)st.textContent='Boot error: '+m+ln+' \u00b7 reload the page; if it stays, report this line.';
+  var lg=document.getElementById('log');if(lg){var d=document.createElement('div');d.textContent='Boot error: '+m+ln;d.style.color='#ff8a7a';lg.insertBefore(d,lg.firstChild);}
+});
+</script>
+<script>
 // ============ DATA ============
 const TIERS=[
  {n:'Bronze',c:'#b5713a',hl:'#e0a06a',lv:1,v:4},
@@ -759,7 +771,7 @@ let uid=1;
 function makeItem(tier,slot,rar,wt,arm){
   const T=TIERS[tier];const R=RARITY[rar];
   const it={id:uid++,tier,slot,rar,up:0,aff:{}};
-  if(slot==='weapon'){it.wt=wt??rnd(0,WEAPONS.length-1);}
+  if(slot==='weapon'){it.wt=wt!=null?wt:rnd(0,WEAPONS.length-1);}
   else if(arm!==undefined){if(arm)it.arm=arm;}
   else if(ARM_FOR[slot]&&Math.random()<0.5)it.arm=ARM_FOR[slot][rnd(0,ARM_FOR[slot].length-1)];
   const v=T.v*R.m;
@@ -2660,9 +2672,9 @@ document.addEventListener('keydown',e=>{
 // init
 (function(){
   let saved=null;try{saved=localStorage.getItem(KEY);}catch(e){}
-  if(saved&&load(saved)){offline();}
+  if(saved&&load(saved)){try{offline();}catch(e){log('Catch-up while away failed: '+(e&&e.message),'e');}}
   else{S.equip.weapon=makeItem(0,'weapon',1,1);S.food[0]=10;log('The hold is yours. Bronze scimitar. Pasture first. You coach — the blade works.','g');}
-  uiDefaults();applySecs();wpnWarm();
+  uiDefaults();applySecs();try{wpnWarm();}catch(e){}
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);
   let last=performance.now(),acc=0,uiT=0,saveT=0;
@@ -2675,7 +2687,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b50-balance';
+  const BUILD='b51-bootguard';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

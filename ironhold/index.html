@@ -73,6 +73,7 @@
   #brand{display:flex;align-items:center;gap:8px;padding-right:10px;border-right:2px solid var(--bevel);margin-right:2px}
   #brand svg{width:34px;height:38px;flex:none}
   #pills{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+  .hid{display:none!important}
   .pill{
     display:flex;align-items:center;gap:6px;min-width:84px;
     background:var(--ink);border:2px solid #000;border-radius:3px;
@@ -561,7 +562,7 @@
         <div class="panel">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
-          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Uniques and set pieces keep what they were made with.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
+          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
           <p class="kbd" style="margin-top:8px">Keys: 1–5 menus · Space special · E eat · B bury bones</p>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p>
         </div>
@@ -891,7 +892,7 @@ const S={
   equip:{},inv:[],style:3,combat:'melee',diff:0,area:0,kills:AREAS.map(()=>0),cleared:AREAS.map(()=>false),
   spec:100,autoEat:true,eatPct:50,autoSalv:false,last:Date.now(),totalKills:0,
   keep:{forge:0,yard:0,larder:0,chest:0,barracks:0},runes:[0,0,0,0,0,0],tower:{best:0},asc:{shards:0,realm:0,count:0},comp:{type:null,lvl:0},
-  party:[],compFound:{},compOwn:{},compWorn:{},pray:{pts:30,on:[],autoBury:true},bones:0,bounty:{day:'',list:[]},found:{},
+  party:[],compFound:{},compOwn:{},compWorn:{},ingots:0,pray:{pts:30,on:[],autoBury:true},bones:0,bounty:{day:'',list:[]},found:{},
 };
 for(const s of SLOTS)S.equip[s]=null;
 const lv=s=>lvlFor(S.xp[s]);
@@ -1369,6 +1370,16 @@ function die(){
   if(!G.isBoss&&G.streak>=3&&S.area>0){S.area--;G.streak=0;log(`Three deaths in a row. You retreat to ${AREAS[S.area].n}.`,'e');if(!G.sim)toast('Retreated to '+AREAS[S.area].n);spawn(false);return;}
   if(G.isBoss){log('The boss shrugs you off. Try again when stronger.','e');spawn(false);}
 }
+
+// Starsteel: the one thing gold cannot buy. Bosses guard it, and only the last
+// rung of the bench — Legendary into Mythic — asks for it.
+const MYTHIC_INGOTS=3;
+function gainIngot(n){
+  S.ingots=(S.ingots||0)+n;
+  log(`Starsteel ingot${n>1?' ×'+n:''} recovered.`,'g');
+  if(!G.sim)toast(`Starsteel ingot${n>1?' ×'+n:''}`);
+}
+function ingotChance(){return 0.12+0.06*(S.diff||0);}
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   S.totalKills++;G.streak=0;
@@ -1378,7 +1389,8 @@ function killMob(){
     const f=G.tower;const tier=towerTier(f);const boss=f%10===0;
     if(Math.random()<(boss?1:0.12)*luck)gainItem(makeItem(tier,SLOTS[rnd(0,9)],boss?Math.max(3,rollRarity(0.6)):rollRarity(0.2)));
     if(Math.random()<(boss?1:0.06)*luck)gainRune(boss);
-    if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);}
+    if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);
+      if(Math.random()<0.25+0.05*(S.diff||0))gainIngot(1);}
     if(f>S.tower.best){S.tower.best=f;if(f%5===0){S.chests++;log(`New record: floor ${f}. A chest is yours.`,'g');if(!G.sim)toast(`Tower record: floor ${f}`);}}
     if(Math.random()<0.15)S.scrap+=1+keepLv('yard');
     bounty('kills',1);bounty('tower',f);
@@ -1396,6 +1408,9 @@ function killMob(){
   if(Math.random()<0.15*(1+0.1*keepLv('yard')))S.scrap+=1+keepLv('yard');
   if(Math.random()<(G.isBoss?1:0.02)*luck)gainRune(G.isBoss);
   if(G.isBoss){
+    // the first clear of an area always yields a bar; after that the wardens are stingier
+    if(!S.cleared[S.area])gainIngot(1);
+    else if(Math.random()<ingotChance())gainIngot(1);
     log(`You defeated ${m.n}! ${A.n} is cleared.`,'g');
     S.cleared[S.area]=true;
     if(!G.sim){toast(`${m.n} defeated! Next area unlocked.`);}
@@ -1444,7 +1459,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -1492,6 +1507,7 @@ const GL={
   eat:`<path d="M3 15 l5-5 a4 4 0 1 1 4-4 l-5 5z" fill="#c96a3a" stroke="#000"/><path d="M10 6 a2 2 0 1 0 2 2" fill="#f0c9a0"/>`,
   // keep buildings
   anvil:`<path d="M6 20 h30 v6 h-8 v4 h-8 v-4 h-8 v-4 h-6z" fill="#4a4a52" stroke="#000"/><path d="M10 12 h32 l-6 8 h-26z" fill="#6a6a74" stroke="#000"/><rect x="14" y="34" width="20" height="6" fill="#3a2c1d" stroke="#000"/><path d="M40 8 l4-4 M44 10 l4-1 M38 4 l1-3" stroke="#ff9c1a" stroke-width="2"/>`,
+  ingot:`<path d="M2 12 h14 l-2 4 h-10z" fill="#7ec8e6" stroke="#000"/><path d="M4 7 h11 l-2 4 h-8z" fill="#a8e2f5" stroke="#000"/><path d="M6 2 h8 l-1 4 h-6z" fill="#dff4ff" stroke="#000"/><path d="M8 3 l-1 2 M12 3 l-1 2" stroke="#4e97b8"/>`,
   pile:`<path d="M4 44 l10-20 8 6 6-12 10 14 6-4 4 16z" fill="#7a7a84" stroke="#000"/><path d="M14 24 l3 10 M28 18 l2 8 M38 28 l2 8" stroke="#3a3a42"/><rect x="20" y="30" width="6" height="14" fill="#5a3a1a" stroke="#000"/>`,
   larder:`<rect x="4" y="4" width="44" height="4" fill="#5a3a1a" stroke="#000"/><path d="M12 8 v4 c-4 6-4 14 0 22 c4-8 4-16 0-22" fill="#c96a3a" stroke="#000"/><path d="M26 8 v4 c-5 5-5 15 0 24 c5-9 5-19 0-24" fill="#b04a3a" stroke="#000"/><path d="M40 8 v4 c-4 6-4 14 0 22 c4-8 4-16 0-22" fill="#c96a3a" stroke="#000"/>`,
   barracks:`<path d="M6 40 L26 10 46 40z" fill="#8a5a2a" stroke="#000"/><path d="M20 40 L26 28 32 40z" fill="#2a2016"/><rect x="24" y="4" width="3" height="10" fill="#5a3a1a"/><path d="M27 4 h9 l-3 3 3 3 h-9z" fill="#b0302a" stroke="#000"/>`,
@@ -1530,13 +1546,16 @@ function itemGlyph(it){
 }
 
 // --- topbar ---
-const PILLS=[['gold','Gold',()=>fmt(S.gold)],['scrap','Scrap',()=>fmt(S.scrap)],['chest','Chests',()=>S.chests],['fish','Food',()=>S.food.reduce((a,b)=>a+b,0)]];
+const PILLS=[['gold','Gold',()=>fmt(S.gold)],['scrap','Scrap',()=>fmt(S.scrap)],['chest','Chests',()=>S.chests],['fish','Food',()=>S.food.reduce((a,b)=>a+b,0)],
+ // only shows once a boss has given up its first bar, so the topbar stays short early
+ ['ingot','Starsteel',()=>S.ingots,()=>S.ingots>0]];
 function buildTop(){
   $('crest').innerHTML=`<svg viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg"><path d="M2 3 h30 v16 c0 9-8 14-15 17 C10 33 2 28 2 19z" fill="#2c2116" stroke="#ffd24a" stroke-width="2"/><path d="M11 24 v-9 h3 v-3 h2 v3 h2 v-3 h2 v3 h3 v9z" fill="#ffd24a"/><rect x="15" y="19" width="4" height="5" fill="#2c2116"/></svg>`;
-  $('pills').innerHTML=PILLS.map(([k,n])=>`<div class="pill">${svg(k,18)}<div><span>${n}</span><b id="pill-${k}">0</b></div></div>`).join('');
+  $('pills').innerHTML=PILLS.map(([k,n])=>`<div class="pill" id="pillbox-${k}">${svg(k,18)}<div><span>${n}</span><b id="pill-${k}">0</b></div></div>`).join('');
   document.querySelectorAll('.ico').forEach(e=>e.innerHTML=svg(e.dataset.ico,18));
 }
-function renderPills(){for(const [k,,f] of PILLS)$('pill-'+k).textContent=f();
+function renderPills(){for(const [k,,f,when] of PILLS){$('pill-'+k).textContent=f();
+    const box=$('pillbox-'+k);if(box)box.classList.toggle('hid',!!when&&!when());}
   const L=$('lamp');L.className=G.dead?'dead':(G.isBoss||G.tower)?'boss':'';$('lampTxt').textContent=G.dead?'Downed':G.isBoss?'Boss engaged':G.tower?'Tower floor '+G.tower:'Auto-battle';}
 
 // --- dock ---
@@ -1748,7 +1767,7 @@ function renderKeep(){
   }
   const ready=ascReady();
   $('keep').innerHTML=
-   keepCard('forge',`Upgrade, reroll and temper gear from any item window. Rerolling opens at Forge ${REROLL_FORGE}, tempering at ${TEMPER_FORGE}. Scrap: <b class="gold">${S.scrap}</b>`,`<button class="sm" id="kForge">Open pack</button>`)+
+   keepCard('forge',`Upgrade, reroll and temper gear from any item window. Rerolling opens at Forge ${REROLL_FORGE}, tempering at ${TEMPER_FORGE}. Mythic needs ${MYTHIC_INGOTS} Starsteel from bosses. Scrap: <b class="gold">${S.scrap}</b> · Starsteel: <b class="gold">${S.ingots||0}</b>`,`<button class="sm" id="kForge">Open pack</button>`)+
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
@@ -1943,7 +1962,9 @@ function affPool(it){return Object.keys(AFFIX).filter(k=>!AFFIX[k].fixed&&(!AFFI
 function canCraft(it){return !!it&&!isSpecial(it);}
 function benchRerollCost(it){return {gold:Math.round(itemValue(it)*0.8),scrap:3+it.tier+it.rar};}
 function nextRar(it){const i=RAR_LADDER.indexOf(it.rar);return i<0||i>=RAR_LADDER.length-1?0:RAR_LADDER[i+1];}
-function benchTemperCost(it){const nr=nextRar(it);return {gold:Math.round(itemValue(it)*3),scrap:10+4*it.tier+5*(RAR_LADDER.indexOf(nr)||1)};}
+function benchTemperCost(it){const nr=nextRar(it);
+  return {gold:Math.round(itemValue(it)*3),scrap:10+4*it.tier+5*(RAR_LADDER.indexOf(nr)||1),
+          ingots:nr===7?MYTHIC_INGOTS:0};}
 function rollAffixes(it,n){
   const pool=affPool(it);it.aff={};
   for(let i=0;i<n&&pool.length;i++){const k=pool.splice(rnd(0,pool.length-1),1)[0];it.aff[k]=rnd(AFFIX[k].min,AFFIX[k].max);}
@@ -1958,8 +1979,9 @@ function rerollItem(it){
 function temperItem(it){
   if(!canCraft(it)||keepLv('forge')<TEMPER_FORGE)return false;
   const nr=nextRar(it);if(!nr)return false;
-  const c=benchTemperCost(it);if(S.gold<c.gold||S.scrap<c.scrap)return false;
-  S.gold-=c.gold;S.scrap-=c.scrap;
+  const c=benchTemperCost(it);
+  if(S.gold<c.gold||S.scrap<c.scrap||(S.ingots||0)<c.ingots)return false;
+  S.gold-=c.gold;S.scrap-=c.scrap;if(c.ingots)S.ingots-=c.ingots;
   // base scales with the rarity multiplier, so carry it up rather than rebuilding the piece
   const k=RARITY[nr].m/RARITY[it.rar].m;
   it.base={atk:Math.round(it.base.atk*k),str:Math.round(it.base.str*k),def:Math.round(it.base.def*k)};
@@ -1995,6 +2017,7 @@ function openItem(it,equipped){
       +(nr
         ? (keepLv('forge')>=TEMPER_FORGE
            ? `<br>Temper to <b style="color:${RARITY[nr].c}">${RARITY[nr].n||'Common'}</b> for ${fmt(tc.gold)} gold + ${tc.scrap} scrap`
+             +(tc.ingots?` + <b class="${(S.ingots||0)>=tc.ingots?'gold':'dn'}">${tc.ingots} Starsteel</b> <span class="sub">(you hold ${S.ingots||0} · bosses drop them)</span>`:'')
            : `<br>Tempering needs Forge ${TEMPER_FORGE}`)
         : `<br>Already Mythic — nothing above it`)
       +`</div>`;}
@@ -2003,7 +2026,7 @@ function openItem(it,equipped){
   h+=`<button id="mUp" ${it.up<forgeMax()&&S.gold>=uc.gold&&S.scrap>=uc.scrap?'':'disabled'}>Upgrade</button>`;
   if(canCraft(it)){
     h+=`<button id="mReroll" ${keepLv('forge')>=REROLL_FORGE&&RARITY[it.rar].aff&&S.gold>=rr.gold&&S.scrap>=rr.scrap?'':'disabled'}>Reroll</button>`;
-    h+=`<button id="mTemper" ${nr&&keepLv('forge')>=TEMPER_FORGE&&S.gold>=tc.gold&&S.scrap>=tc.scrap?'':'disabled'}>Temper</button>`;}
+    h+=`<button id="mTemper" ${nr&&keepLv('forge')>=TEMPER_FORGE&&S.gold>=tc.gold&&S.scrap>=tc.scrap&&(S.ingots||0)>=tc.ingots?'':'disabled'}>Temper</button>`;}
   if(!equipped)h+=`<button id="mSell">Sell (${itemValue(it)}g)</button><button id="mSalv">Salvage (${itemScrap(it)} scrap)</button>`;
   h+=`<button id="mClose" style="grid-column:1/-1">Close</button></div>`;
   $('modalBox').innerHTML=h;$('modal').className='on';
@@ -2105,7 +2128,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b27-bench';
+  const BUILD='b28-starsteel';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -1207,12 +1207,16 @@ function heroLook(){
 // The look art is drawn with an EMPTY hand and carries a grip point per frame.
 // The weapon you have equipped is cut out of its own item icon and drawn into
 // that hand, so one set of armour frames covers every weapon in the game.
+// Melee looks are keyed lk_*, ranged lk_bow_*, magic lk_wiz_*. Until a style's art
+// lands none of its keys resolve and heroFrame falls through to the generic poses.
+// Hide and robe set ids already start with "set_", so the prefix must not double up.
 function lookKey(){
-  if(cstyle()!=='melee')return null;              // bow and staff have their own poses
+  const cs=cstyle(),P=cs==='ranged'?'lk_bow_':cs==='magic'?'lk_wiz_':'lk_';
   const b=S.equip.body;
-  if(b&&b.set&&sprReady('lk_set_'+b.set+'_idle'))return 'lk_set_'+b.set;
-  if(b&&sprReady('lk_kit_'+b.tier+'_idle'))return 'lk_kit_'+b.tier;
-  return sprReady('lk_base_idle')?'lk_base':null;
+  const sk=b&&b.set?(b.set.indexOf('set_')===0?b.set:'set_'+b.set):null;
+  if(sk&&sprReady(P+sk+'_idle'))return P+sk;
+  if(b&&sprReady(P+'kit_'+b.tier+'_idle'))return P+'kit_'+b.tier;
+  return sprReady(P+'base_idle')?P+'base':null;
 }
 function lookGrip(k,i){const G=SPR_SRC[k];return (G&&G.f[i]&&G.f[i].g)||null;}
 
@@ -1293,17 +1297,17 @@ function drawWeapon(hf,x,y){
 function heroFrame(t){
   const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0,grip:lookGrip(k,i),fi:0});
   if(G.dead&&sprReady('hero_death')){const e=15-G.deadT;return f('hero_death',Math.min(3,Math.floor(e/0.22)));}
+  const lk=lookKey();
+  if(lk){
+    if(FX.pLunge>0){const i=Math.min(2,Math.floor((1-FX.pLunge)*3));
+      const r=f(lk+'_atk',i);r.fi=i+1;return r;}
+    const r=f(lk+'_idle',0);r.fi=0;return r;}
   const cs=cstyle();
   const kit=cs==='ranged'&&sprReady('hero_bow_idle')?'hero_bow'
           :cs==='magic'&&sprReady('hero_wiz_idle')?'hero_wiz':null;
   if(kit){
     if(FX.pLunge>0&&sprReady(kit+'_atk'))return f(kit+'_atk',Math.min(2,Math.floor((1-FX.pLunge)*3)));
     return f(kit+'_idle',0);}
-  const lk=lookKey();
-  if(lk){
-    if(FX.pLunge>0){const i=Math.min(2,Math.floor((1-FX.pLunge)*3));
-      const r=f(lk+'_atk',i);r.fi=i+1;return r;}
-    const r=f(lk+'_idle',0);r.fi=0;return r;}
   if(FX.pLunge>0&&sprReady('hero_atk'))return f('hero_atk',Math.min(2,Math.floor((1-FX.pLunge)*3)));
   if(FX.pFlash>0.25&&sprReady('hero_hurt'))return f('hero_hurt',0);
   return f('hero_idle',Math.floor(t*6)%4);
@@ -2268,7 +2272,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b34-batch1';
+  const BUILD='b35-rmlook';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

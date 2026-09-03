@@ -342,7 +342,11 @@
   #cqFoot .msg{flex:1;font-size:11px;color:var(--muted);min-height:15px}
 
   /* --- champion equipment window --- */
-  .heroBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+  .heroBtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
+  .jewel{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid rgba(0,0,0,.35)}
+  .jewel .gem{flex:none;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8 0,var(--jc) 40%,#000 130%);border:2px solid #000;box-shadow:0 0 6px var(--jc);display:flex;align-items:center;justify-content:center;font:bold 13px Georgia,serif;color:#fff;text-shadow:0 1px 2px #000}
+  .jewel .jbody{flex:1;min-width:0;font-size:12px}
+  .jewel .jrow{margin:4px 0}
   #chModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:28;padding:8px}
   #chModal.on{display:flex}
   #chBox{width:min(940px,100%);max-height:94vh;overflow:auto;background:linear-gradient(var(--panel),#24180f);
@@ -505,7 +509,7 @@
       <section class="tab" id="tab-hero">
         <div class="panel">
           <h2>Champion</h2>
-          <div class="heroBtns"><button class="sm" id="btnGear">Equipment</button><button class="sm" id="btnComp">Companions</button></div>
+          <div class="heroBtns"><button class="sm" id="btnGear">Equipment</button><button class="sm" id="btnComp">Companions</button><button class="sm" id="btnMed">Medallion</button></div>
           <div class="stats recess" id="stats"></div>
         </div>
       </section>
@@ -603,7 +607,7 @@
         <div class="panel">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
-          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain.<br><b>Offerings</b>: from realm 10 the altar burns gold for permanent boons — the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each rank costs more than twice the last, and ascending empties the purse, so pay before you climb. Resets your champion for permanent shards and a harder, richer realm.</p>
+          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain.<br><b>Medallion</b>: forged on your first ascension, under Worn. Six sockets for six jewel colours; the Elder Wyrm gives one up each realm and deep tower wardens carry them. Fuse duplicates to raise a grade, carve three runes to inscribe — Cinder, Lightning, Bastion, Thorns, Frost, Haste, Vampiric, Verdant, Hoard, Fortune, Zeal, Wrath, Warlord, Pack. Grade multiplies the inscription.<br><b>Offerings</b>: from realm 10 the altar burns gold for permanent boons — the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each rank costs more than twice the last, and ascending empties the purse, so pay before you climb. Resets your champion for permanent shards and a harder, richer realm.</p>
           <p class="kbd" style="margin-top:8px">Keys: 1–5 menus · Space special · E eat · B bury bones</p>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p>
         </div>
@@ -975,6 +979,7 @@ function bonuses(){
   b.gold+=keepLv('chest')*5;
   b.dr+=creedEff('dr',0);b.gold+=creedEff('gold',0);
   b.dr+=boonRank('iron');b.spd+=3*boonRank('swift');b.luck+=25*boonRank('star');b.gold+=2*boonRank('star');
+  if(medOwned())for(const k of ['mh','dr','spd','gold','luck','leech','xp'])b[k]+=medEff(k);
   // Shards: XP, gold and luck taper off; combat bonuses and health keep growing,
   // because health is the one thing the level cap otherwise freezes.
   const sh=S.asc?S.asc.shards:0;b.xp+=Math.min(sh,150)*2;b.gold+=Math.min(sh,300)*0.5;b.luck+=Math.min(sh,200)*0.5;
@@ -985,12 +990,12 @@ function bonuses(){
 // twenty is the first realm writ large, never a realm whose brutes out-hit a
 // champion who out-damages them. Growth past parity comes from the hold,
 // companions, feats and the tower record, which ascension keeps.
-function hpMult(){return shardMult()*(1+0.08*boonRank('iron'));}
+function hpMult(){return shardMult()*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100);}
 function hpBase(){return lv('hp')+bonuses().hp;}
 function maxHp(){return Math.floor(hpBase()*hpMult());}
 function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
 function attackDelay(){return attackDelay0()*creedEff('spd',1);}
-function attackDelay0(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-b.spd/100);}
+function attackDelay0(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-Math.min(60,b.spd)/100);}   // speed bonuses cap at 60%: two and a half swings for one
 function styleBonus(){const st=STYLES[S.style].s;return {atk:st==='atk'?3:st==='all'?1:0,str:st==='str'?3:st==='all'?1:0,def:st==='def'?3:st==='all'?1:0};}
 function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('mh',1)*draughtMh()));}
 // Shards are the champion's growth past the level and forge caps. Their power
@@ -1129,7 +1134,7 @@ function finishErrand(type){
   const msg=`${cd.n} returns from the ${ERRANDS[cd.role].n.toLowerCase()}: ${errandText(p)}.`;log(msg,'g');if(!G.sim)toast(`${cd.n} is back: ${errandText(p)}`);G.dirty=true;}
 function errandTick(){if(!S.errands)return;for(const t in S.errands){if(errandLeft(t)<=0)finishErrand(t);}}
 function compPerks(b){for(const c of party())b.dr+=cqDR(c.type);}
-function compMult(c){return (1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100)*creedEff('comp',1);}
+function compMult(c){return (1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100)*creedEff('comp',1)*(1+medEff('comp')/100);}
 function compCost(c){return Math.round(900*Math.pow(2.0,c.lvl||0));}
 // What the companion is worth RIGHT NOW. The old menu printed a fixed blurb, so
 // training changed the fight but never the numbers on screen.
@@ -1160,13 +1165,13 @@ const PRAYERS=[
  {id:'piety',n:'Piety',d:'+20% accuracy, max hit and defence',drain:2.0,req:50,eff:{atk:1.2,str:1.2,def:1.2},ex:['clarity','burst','skin']},
 ];
 const BONE_PTS=8;
-function prayMax(){return 30+combatLvl()+cqPrayer();}
+function prayMax(){return 30+combatLvl()+cqPrayer()+medEff('pray');}
 function prayOn(id){return S.pray.on.includes(id);}
 function activePrayers(){return PRAYERS.filter(p=>prayOn(p.id));}
 function prayMult(k){let m=1;for(const p of activePrayers())if(p.eff[k])m*=p.eff[k];return m;}
 function prayDR(){let d=0;for(const p of activePrayers())d+=p.eff.dr||0;return d;}
 function prayRegen(){let m=1;for(const p of activePrayers())if(p.eff.regen)m=Math.max(m,p.eff.regen);return m;}
-function prayDrain(){return activePrayers().reduce((a,p)=>a+p.drain,0);}
+function prayDrain(){return activePrayers().reduce((a,p)=>a+p.drain,0)*(1-medEff('drainCut')/100);}
 function togglePrayer(id){
   const P=PRAYERS.find(p=>p.id===id);if(!P||combatLvl()<P.req)return;
   if(prayOn(id)){S.pray.on=S.pray.on.filter(x=>x!==id);return;}
@@ -1321,11 +1326,97 @@ function offeringsHtml(){const r=(S.asc&&S.asc.realm)||0;const first=BOONS[0].re
 function ascend(){
   if(!ascReady())return false;const sh=ascShards();
   S.asc.shards+=sh;S.asc.realm++;S.asc.count++;
+  if(!S.med){S.med={sock:{},loose:{}};log('The altar forges your Ascension Medallion. Six sockets wait for six jewels.','g');}
   S.xp={atk:0,str:0,def:0,hp:XP[10],rng:0,mag:0};S.gold=0;S.chests=0;S.food=[10,0,0,0,0];
   for(const s of SLOTS)S.equip[s]=null;S.inv=[];S.area=0;S.kills=AREAS.map(()=>0);S.cleared=AREAS.map(()=>false);S.spec=100;
   S.equip.weapon=makeItem(0,'weapon',1,1);S.hp=maxHp();G.tower=0;G.dead=false;S.pray.on=[];S.pray.pts=30;S.bones=0;spawn(false);
   log(`You ascend. Realm ${S.asc.realm+1} awakens: +${sh} shards, monsters ×${realmMult().toFixed(1)}.`,'g');return true;
 }
+
+// ============ THE MEDALLION ============
+// Forged on the first ascension and kept for every one after. Six sockets,
+// one per colour; a jewel's grade scales its base stat, and three runes
+// carved into it change its nature the way a runeword changes a blade. The
+// grade multiplies the inscription too, so a grade-ten jewel is the object
+// the whole late game points at.
+const JEWELS=[
+ {id:'ruby',n:'Ruby',col:'#e0413a',stat:g=>`+${2*g}% max hit`,base:g=>({mh:2*g})},
+ {id:'sapphire',n:'Sapphire',col:'#3f7fe0',stat:g=>`${g}% damage reduction`,base:g=>({dr:g})},
+ {id:'emerald',n:'Emerald',col:'#3fbf6a',stat:g=>`+${g}% attack speed · +${(0.2*g).toFixed(1)} HP/s`,base:g=>({spd:g,regen:0.2*g})},
+ {id:'amber',n:'Amber',col:'#ffb43a',stat:g=>`+${3*g}% gold · +${2*g}% drops`,base:g=>({gold:3*g,luck:2*g})},
+ {id:'amethyst',n:'Amethyst',col:'#a86ae0',stat:g=>`+${3*g} prayer · special charges +${10*g}%`,base:g=>({pray:3*g,specR:10*g})},
+ {id:'onyx',n:'Onyx',col:'#8a8a9a',stat:g=>`companions +${4*g}% power`,base:g=>({comp:4*g})},
+];
+const JEWEL_MAX=10;
+// Inscriptions. r = the three runes (indices into RUNES). eff values are at
+// grade 1 and scale by insPot(g); flags are read where they act.
+const INSCR=[
+ {id:'cinder',n:'Cinder',j:'ruby',r:[0,2,4],eff:{spd:25,mh:10,burn:10},d:'+{spd}% attack speed · +{mh}% max hit · hits Burn for {burn}% of your max hit a second, 4s'},
+ {id:'lightning',n:'Lightning',j:'ruby',r:[3,3,5],eff:{twice:15},d:'{twice}% of hits strike twice'},
+ {id:'bastion',n:'Bastion',j:'sapphire',r:[1,1,2],eff:{dr:8,hpPct:10},d:'{dr}% damage reduction · +{hpPct}% hitpoints'},
+ {id:'thorns',n:'Thorns',j:'sapphire',r:[4,1,5],eff:{thorns:30},d:'monsters take {thorns}% of the damage they deal you'},
+ {id:'frost',n:'Frost',j:'sapphire',r:[3,1,2],eff:{chill:20},d:'hits Chill: monsters swing {chill}% slower for 4s'},
+ {id:'haste',n:'Haste',j:'emerald',r:[3,1,0],eff:{spd:15,specR:20},d:'+{spd}% attack speed · special charges +{specR}%'},
+ {id:'vampiric',n:'Vampiric',j:'emerald',r:[4,4,1],eff:{leech:8},d:'{leech}% lifesteal'},
+ {id:'verdant',n:'Verdant',j:'emerald',r:[1,1,5],eff:{regenPct:50,foodPct:30},d:'+{regenPct}% regen · food heals {foodPct}% more'},
+ {id:'hoard',n:'Hoard',j:'amber',r:[5,5,1],eff:{gold:30,chest:50},d:'+{gold}% gold · chests {chest}% more often'},
+ {id:'fortune',n:'Fortune',j:'amber',r:[5,0,2],eff:{luck:25,xp:15},d:'+{luck}% drops · +{xp}% XP'},
+ {id:'zeal',n:'Zeal',j:'amethyst',r:[5,0,4],eff:{zeal:4},d:'every hit you take charges your special {zeal}%'},
+ {id:'wrath',n:'Wrath',j:'amethyst',r:[0,0,3],eff:{specDmg:30,drainCut:25},d:'specials hit {specDmg}% harder · prayers drain {drainCut}% slower'},
+ {id:'warlord',n:'Warlord',j:'onyx',r:[2,2,4],eff:{comp:30},d:'companions +{comp}% power'},
+ {id:'pack',n:'Pack',j:'onyx',r:[1,2,5],eff:{compFast:35,dr:3},d:'companions act {compFast}% more often · {dr}% damage reduction'},
+];
+function insPot(g){return 1+0.08*((g||1)-1);}
+function insOf(id){return INSCR.find(x=>x.id===id)||null;}
+function insVal(ins,k,g){return Math.round(ins.eff[k]*insPot(g)*10)/10;}
+function insText(ins,g){return ins.d.replace(/\{(\w+)\}/g,(m,k)=>insVal(ins,k,g));}
+function medOwned(){return !!(S.asc&&S.asc.count>0);}
+function medSock(j){return (S.med&&S.med.sock&&S.med.sock[j])||null;}
+function medLoose(j){return (S.med&&S.med.loose&&S.med.loose[j])||0;}
+function medEff(k){if(!medOwned()||!S.med)return 0;let v=0;
+  for(const J of JEWELS){const jw=medSock(J.id);if(!jw)continue;const b=J.base(jw.g);if(b[k])v+=b[k];
+    const ins=jw.ins&&insOf(jw.ins);if(ins&&ins.eff[k])v+=insVal(ins,k,jw.g);}
+  return v;}
+function medGrades(){let n=0;for(const J of JEWELS){const jw=medSock(J.id);if(jw)n+=jw.g;}return n;}
+function gainJewel(j,why){S.med=S.med||{sock:{},loose:{}};S.med.sock=S.med.sock||{};S.med.loose=S.med.loose||{};
+  const J=JEWELS.find(x=>x.id===j);if(!J)return;
+  if(!S.med.sock[j]){S.med.sock[j]={g:1,ins:null};log(`A ${J.n} from ${why} — set into the medallion.`,'g');}
+  else{S.med.loose[j]=(S.med.loose[j]||0)+1;log(`A ${J.n} from ${why}. Fuse it at the medallion.`,'g');}
+  if(!G.sim)toast(J.n+' jewel!');G.dirty=true;}
+function jewelDrop(why,pLack){const lack=JEWELS.filter(J=>!medSock(J.id));
+  const J=lack.length&&(pLack===undefined||Math.random()<pLack)?lack[rnd(0,lack.length-1)]:JEWELS[rnd(0,JEWELS.length-1)];gainJewel(J.id,why);}
+function fuseCost(jw){return {gold:Math.round(300000*jw.g),scrap:150*jw.g};}
+function fuseJewel(j){const jw=medSock(j);if(!jw||jw.g>=JEWEL_MAX||medLoose(j)<1)return false;const c=fuseCost(jw);if(S.gold<c.gold||S.scrap<c.scrap)return false;
+  S.gold-=c.gold;S.scrap-=c.scrap;S.med.loose[j]--;jw.g++;log(`${JEWELS.find(x=>x.id===j).n} fused to grade ${jw.g}.`,'g');G.dirty=true;return true;}
+function inscribeJewel(j,id){const jw=medSock(j);const ins=insOf(id);if(!jw||!ins||ins.j!==j||jw.ins===id||!canInscribe(ins))return false;
+  for(const r of ins.r)S.runes[r]--;jw.ins=id;log(`${ins.n} carved into the ${JEWELS.find(x=>x.id===j).n}.`,'g');G.dirty=true;return true;}
+// status effects on the monster: burn and bleed tick once a second, chill slows the swing
+function applyDot(k,pct,t){G.dot=G.dot||{};G.dot[k]={pct,t};}
+function dotTick(dt){if(!G.dot||!G.mob||G.dead)return;G.dotT=(G.dotT||0)+dt;const fire=G.dotT>=1;if(fire)G.dotT-=1;
+  for(const k in G.dot){const d=G.dot[k];d.t-=dt;if(d.t<=0){delete G.dot[k];continue;}
+    if(fire&&G.mobHp>0){const dmg=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*d.pct/100)));G.mobHp-=dmg;
+      if(!G.sim)splat(MX-10,50+Math.random()*20,dmg,k==='burn'?'#ff8c1a':'#b0213a');addXp(dmg);
+      if(G.mobHp<=0){killMob();return;}}}}
+function medHtml(){
+  if(!medOwned())return `<div class="mhead"><div><h2>Ascension Medallion</h2><div class="sub">Forged on your first ascension. Six sockets for six jewels; the Elder Wyrm gives one up each realm, and the tower's deep wardens carry them too.</div></div></div><div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;
+  let h=`<div class="mhead"><div><h2>Ascension Medallion</h2><div class="sub">Grades ${medGrades()}/${JEWELS.length*JEWEL_MAX}. Fuse a duplicate jewel to raise a grade; carve three runes to inscribe. Runes held: ${RUNES.map((r,i)=>`<b style="color:${RUNE_COL[i]}">${r} ${S.runes[i]||0}</b>`).join(' · ')}</div></div></div>`;
+  for(const J of JEWELS){const jw=medSock(J.id),loose=medLoose(J.id);
+    h+=`<div class="jewel"><div class="gem" style="--jc:${J.col}">${jw?jw.g:''}</div><div class="jbody"><b style="color:${J.col}">${J.n}</b> `;
+    if(!jw){h+=`<span class="sub">empty socket${loose?` · ${loose} loose`:''}</span>`;
+      h+=loose?`<button class="sm" data-jsock="${J.id}">Set</button>`:'';h+=`</div></div>`;continue;}
+    const ins=jw.ins&&insOf(jw.ins);const fc=fuseCost(jw);
+    h+=`<span class="sub">grade ${jw.g} · ${J.stat(jw.g)}</span>`;
+    h+=ins?`<div class="aff" style="color:#c9a6ff"><b>${ins.n}</b>: ${insText(ins,jw.g)}</div>`:`<div class="sub">Uninscribed</div>`;
+    h+=`<div class="jrow">`+(jw.g<JEWEL_MAX?`<button class="sm" data-jfuse="${J.id}" ${loose&&S.gold>=fc.gold&&S.scrap>=fc.scrap?'':'disabled'} title="One loose ${J.n} + ${fmt(fc.gold)} gold + ${fc.scrap} scrap">Fuse (${loose} loose · ${fmt(fc.gold)}g + ${fc.scrap} scrap)</button>`:`<span class="gold">Grade ${JEWEL_MAX} — perfect</span>`)+`</div>`;
+    for(const I of INSCR.filter(x=>x.j===J.id)){const can=canInscribe(I)&&jw.ins!==I.id;
+      h+=`<div class="rw"><div><span class="rn">${I.n}</span> <span class="sub">${I.r.map(x=>`<b style="color:${RUNE_COL[x]}">${RUNES[x]}</b>`).join(' ')}</span><br><span class="sub">${insText(I,jw.g)}</span></div>`+(jw.ins===I.id?`<span class="ok">Carved</span>`:`<button class="sm" data-jins="${J.id}" data-ins="${I.id}" ${can?'':'disabled'}>${jw.ins?'Recarve':'Carve'}</button>`)+`</div>`;}
+    h+=`</div></div>`;}
+  h+=`<div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;return h;}
+function openMed(){$('modalBox').innerHTML=medHtml();$('modal').className='on';
+  $('mClose').onclick=()=>{$('modal').className='';renderAll();};
+  document.querySelectorAll('#modalBox [data-jsock]').forEach(b=>b.onclick=()=>{const j=b.dataset.jsock;if(medLoose(j)<1)return;S.med.loose[j]--;S.med.sock[j]={g:1,ins:null};openMed();});
+  document.querySelectorAll('#modalBox [data-jfuse]').forEach(b=>b.onclick=()=>{if(fuseJewel(b.dataset.jfuse)){toast('Fused');openMed();}});
+  document.querySelectorAll('#modalBox [data-jins]').forEach(b=>b.onclick=()=>{if(inscribeJewel(b.dataset.jins,b.dataset.ins)){toast(insOf(b.dataset.ins).n+' carved');openMed();}});}
 
 // ============ DRAWING ============
 const cv=document.getElementById('scene');const ctx=cv.getContext('2d');
@@ -1693,7 +1784,7 @@ function spawn(boss){
   if(k>1||ka>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*ka),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
     m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
-  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;if(boss)draughtBoss();
+  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;G.dot=null;G.chillT=0;if(boss)draughtBoss();
   G.dirty=true;
 }
 function log(msg,cls){const el=document.getElementById('log');const d=document.createElement('div');if(cls)d.className=cls;d.textContent=msg;el.prepend(d);while(el.children.length>40)el.lastChild.remove();}
@@ -1725,9 +1816,12 @@ function playerHit(spec,sp){
     if(spec)dmg=Math.max(dmg,Math.round(playerMaxHit()*(0.75+Math.random()*0.5)));
     if(sp.mult)dmg=Math.round(dmg*sp.mult);
     if((G.hexT||0)>0)dmg=Math.round(dmg*1.25);
+    if(spec&&medEff('specDmg'))dmg=Math.round(dmg*(1+medEff('specDmg')/100));
+    if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
   }
   dmg=Math.min(dmg,G.mobHp);
   G.mobHp-=dmg;
+  if(dmg>0){if(medEff('burn'))applyDot('burn',medEff('burn'),4);if(medEff('chill'))G.chillT=4;}
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
   if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
   if(!G.sim){FX.pLunge=1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');}
@@ -1742,6 +1836,8 @@ function mobHit(){
   if((G.ward||0)>0&&dmg>0){const a=Math.min(G.ward,dmg);G.ward-=a;dmg-=a;if(!G.sim)splat(HX,84,'Ward −'+a,'#8fdcf5');}
   dmg=Math.min(dmg,S.hp);S.hp-=dmg;
   if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');}
+  if(dmg>0&&medEff('zeal'))S.spec=Math.min(100,S.spec+medEff('zeal'));
+  if(dmg>0&&medEff('thorns')&&G.mobHp>0){const r=Math.min(G.mobHp,Math.max(1,Math.round(dmg*medEff('thorns')/100)));G.mobHp-=r;if(!G.sim)splat(MX-10,70,r,'#9adf6a');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
   if(S.hp<=0)die();
 }
 function die(){
@@ -1835,7 +1931,8 @@ function killMob(){
     if(Math.random()<(boss?1:0.06)*luck)gainRune(boss);
     if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);
       if(Math.random()<0.25+0.05*(S.diff||0))gainIngot(1);
-      rollSeal(0,luck*0.7,true);if(Math.random()<0.5)gainScroll(1);}
+      rollSeal(0,luck*0.7,true);if(Math.random()<0.5)gainScroll(1);
+      if(f>=50&&medOwned()&&Math.random()<0.35)jewelDrop(`the warden of floor ${f}`,0.5);}
     if(f>S.tower.best){S.tower.best=f;if(f%5===0){S.chests++;log(`New record: floor ${f}. A chest is yours.`,'g');if(!G.sim)toast(`Tower record: floor ${f}`);}}
     if(Math.random()<0.15)S.scrap+=1+keepLv('yard');
     bounty('kills',1);bounty('tower',f);
@@ -1849,7 +1946,7 @@ function killMob(){
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1,0,7),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
-  if(Math.random()<(G.isBoss?1:0.025)*luck*(1+0.25*keepLv('chest'))){S.chests++;log('You found a chest!','g');}
+  if(Math.random()<(G.isBoss?1:0.025)*luck*(1+0.25*keepLv('chest'))*(1+medEff('chest')/100)){S.chests++;log('You found a chest!','g');}
   if(Math.random()<0.10*(1+0.1*keepLv('yard')))S.scrap+=1+keepLv('yard');
   if(Math.random()<(G.isBoss?1:0.02)*luck)gainRune(G.isBoss);
   if(G.isBoss){
@@ -1859,6 +1956,7 @@ function killMob(){
     rollSeal(S.area,luck*curseEff('seal',1),false);
     if(Math.random()<0.3*luck)gainScroll(1);
     if(curseActive()){gainRune(true);rollSeal(S.area,3,false);endCurse('lifted');}
+    if(S.area===AREAS.length-1&&!S.cleared[S.area]&&medOwned())jewelDrop(m.n);
     log(`You defeated ${m.n}! ${A.n} is cleared.`,'g');
     if(diff().n==='Master')S.masterClears=(S.masterClears||0)+1;
     S.cleared[S.area]=true;
@@ -1909,7 +2007,7 @@ function draughtHtml(){const d=draught();
     +`<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">`+DRAUGHTS.map(x=>`<button class="sm" data-brew="${x.id}" ${canBrew(x)?'':'disabled'} title="${x.d}">Brew ${x.n.replace(' Draught','')} · ${x.cost.food} food + ${x.cost.gold}g${keepLv('larder')<x.need?' · Larder '+x.need:''}</button>`).join('')+`</div>`;}
 function eat(manual){
   const mh=maxHp();
-  const fh=i=>Math.round(FOOD[i].h*hpMult());
+  const fh=i=>Math.round(FOOD[i].h*hpMult()*(1+medEff('foodPct')/100));
   let idx=-1;for(let i=FOOD.length-1;i>=0;i--){if(S.food[i]>0){idx=i;if(mh-S.hp>=fh(i))break;}}
   if(idx<0){if(manual)toast('No food left.');return false;}
   S.food[idx]--;S.hp=Math.min(mh,S.hp+fh(idx));G.dirty=true;
@@ -1948,8 +2046,8 @@ function special(){
   G.dirty=true;
 }
 function tick(dt){
-  S.spec=Math.min(100,S.spec+dt*(10/30)); // 10% per 30s
-  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*(0.5+hpBase()/60+0.3*keepLv('larder'))*hpMult()*prayRegen());}
+  S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)); // 10% per 30s
+  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepLv('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*prayRegen());}
   prayTick(dt);
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(!G.mob)spawn(false);
@@ -1957,8 +2055,10 @@ function tick(dt){
   draughtTick(dt);
   G.pT-=dt;G.mT-=dt;if(G.sunderT>0)G.sunderT=Math.max(0,G.sunderT-dt);if(G.hexT>0)G.hexT=Math.max(0,G.hexT-dt);
   if(G.pT<=0){playerHit(false);G.pT+=attackDelay();}
-  if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd;}
-  G.cT=(G.cT||0)+dt;if(G.cT>=3){G.cT-=3;compTick();errandTick();featTick();}
+  if(G.chillT>0)G.chillT=Math.max(0,G.chillT-dt);
+  if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd*(G.chillT>0?1+medEff('chill')/100:1);}
+  dotTick(dt);
+  G.cT=(G.cT||0)+dt;const cEvery=3/(1+medEff('compFast')/100);if(G.cT>=cEvery){G.cT-=cEvery;compTick();errandTick();featTick();}
 }
 
 // ============ UI ============
@@ -1967,7 +2067,7 @@ function rc(it){return RARITY[it.rar].c;}
 function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';S.sec=S.sec||{};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
-  S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.asc.boons=S.asc.boons||{};S.comp=S.comp||{type:null,lvl:0};
+  S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.asc.boons=S.asc.boons||{};if(S.asc.count>0)S.med=S.med||{sock:{},loose:{}};if(S.med){S.med.sock=S.med.sock||{};S.med.loose=S.med.loose||{};}S.comp=S.comp||{type:null,lvl:0};
   S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;S.draught=S.draught||null;S.keepIf=S.keepIf||{rar:0,aff:'',style:false};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
@@ -2104,7 +2204,7 @@ function chWire(){
 }
 function cqWire(){
   $('cqX').onclick=cqClose;$('cqPrev').onclick=()=>cqStep(-1);$('cqNext').onclick=()=>cqStep(1);
-  $('cqStrip').onclick=cqStripAll;$('btnComp').onclick=()=>cqOpen(S.party[0]&&S.party[0].type);
+  $('cqStrip').onclick=cqStripAll;$('btnComp').onclick=()=>cqOpen(S.party[0]&&S.party[0].type);$('btnMed').onclick=openMed;
   $('cqModal').addEventListener('click',e=>{if(e.target.id==='cqModal')cqClose();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cqUI.open)cqClose();});
 }
@@ -2714,7 +2814,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b54-offerings';window.__ihBoot=true;
+  const BUILD='b55-medallion';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

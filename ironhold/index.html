@@ -1219,6 +1219,9 @@ function lookKey(){
   return sprReady(P+'base_idle')?P+'base':null;
 }
 function lookGrip(k,i){const G=SPR_SRC[k];return (G&&G.f[i]&&G.f[i].g)||null;}
+// ranged and magic frames carry the angle of the line between the two hands;
+// melee frames mark one hand only and leave this undefined.
+function lookAng(k,i){const G=SPR_SRC[k];return G&&G.f[i]?G.f[i].a:undefined;}
 
 // how long each weapon reads on screen, as a fraction of the champion's height
 const WPN_LEN=[0.30,0.42,0.48,0.46,0.60, 0.44,0.56,0.48,0.40,0.26, 0.30,0.60,0.56,0.28,0.28];
@@ -1234,7 +1237,13 @@ const WPN_ANG=[0.75,-2.44,0.14,0.72];
 // the top; scimitars, greatswords and axes are hilt-down. Getting that backwards
 // puts the pommel in the monster and the blade in the champion's fist.
 const WPN_FIT={dagger:[-2.16,0.95,0.96],scimitar:[-0.89,0.06,0.94],longsword:[1.00,0.07,0.05],
-  battleaxe:[-2.08,0.93,0.96],greatsword:[2.21,0.94,0.05]};
+  battleaxe:[-2.08,0.93,0.96],greatsword:[2.21,0.94,0.05],
+  // ranged: fit[0] is the icon's own principal axis, measured off the art; the
+  // pivot is the mid-stave station where the hand grips.
+  shortbow:[-0.952,0.680,0.700],longbow:[-0.997,0.640,0.660],composite:[-1.022,0.380,0.370],
+  xbow:[-0.589,0.384,0.420],knives:[-0.979,0.535,0.430]};
+// a bow sits ACROSS the line between the hands; everything else lies along it
+const WPN_ALONG={xbow:1,knives:1,wand:1,staff:1,battlestaff:1,orb:1,tome:1};
 const WPN={},WPN_TRY={};
 function wpnCanvas(k){
   if(!k||!ICONS[k])return null;
@@ -1287,15 +1296,18 @@ function drawWeapon(hf,x,y){
   const it=S.equip.weapon;if(!it||!hf.grip)return;
   const c=wpnCanvas(iconKey(it));if(!c)return;
   const g=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!g)return;
-  const fit=WPN_FIT[wepIk(it.wt)];if(!fit)return;
+  const ik=wepIk(it.wt),fit=WPN_FIT[ik];if(!fit)return;
+  // looks with a hand line set the angle from the art itself; the melee looks
+  // mark one hand only, so they fall back to the per-frame table
+  const pose=hf.a!=null?hf.a-(WPN_ALONG[ik]?0:Math.PI/2):(WPN_ANG[hf.fi]||0);
   const L=(WPN_LEN[it.wt]!=null?WPN_LEN[it.wt]:0.42)*100;
   const k=L/Math.max(c.width,c.height),w=c.width*k,h=c.height*k;
-  ctx.save();ctx.translate(g[0],g[1]);ctx.rotate((WPN_ANG[hf.fi]||0)-fit[0]);
+  ctx.save();ctx.translate(g[0],g[1]);ctx.rotate(pose-fit[0]);
   ctx.drawImage(c,-w*fit[1],-h*fit[2],w,h);   // the grip lands on the hand
   ctx.restore();
 }
 function heroFrame(t){
-  const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0,grip:lookGrip(k,i),fi:0});
+  const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0,grip:lookGrip(k,i),a:lookAng(k,i),fi:0});
   if(G.dead&&sprReady('hero_death')){const e=15-G.deadT;return f('hero_death',Math.min(3,Math.floor(e/0.22)));}
   const lk=lookKey();
   if(lk){
@@ -2272,7 +2284,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b36-batch3';
+  const BUILD='b37-bowfit';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

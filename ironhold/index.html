@@ -257,6 +257,9 @@
   .mimic-art img,.mimic-art svg{max-width:100%;max-height:100%}
   .offer{display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(0,0,0,.25);border:1px solid #000;border-radius:3px;padding:5px 7px;font-size:11px}
   .offer button{flex:none;min-width:96px}
+  .vowlist{display:grid;gap:3px;margin:4px 0 4px;font-size:12px}
+  .vowlist label{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:start;padding:3px 0;border-top:1px solid rgba(0,0,0,.3)}
+  .vowlist input{margin-top:3px}
   .vaultlist{display:grid;gap:3px;margin:4px 0 8px;font-size:12px}
   .vaultlist label{display:flex;gap:6px;align-items:center}
   .hall{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}
@@ -630,7 +633,7 @@
         <div class="panel">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
-          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain.<br><b>Medallion</b>: forged on your first ascension, under Worn. Six sockets for six jewel colours; the Elder Wyrm gives one up each realm and deep tower wardens carry them. Fuse duplicates to raise a grade. Each colour hides two or three recipes of three runes; carve a guess and a miss tells you how many belonged. Grade multiplies the inscription. Two inscriptions carved at once can resonate into a third effect. A grade-ten stone can be re-cut for a Flawless one, or crack. A nemesis of the fifth rank opens a seventh socket that takes any colour.<br><b>Omens</b>: from realm 10 each ascension rolls an omen for the whole realm, a way the monsters are worse and a way the realm pays better; at the altar, shards can buy the next one instead of rolling.<br><b>Realm deeds</b>: under Train, a second board that wipes every realm: the whole map, three Master clears, the nemesis before the sixth area, five thousand kills, floor 150, no deaths, a six-hour realm. Shards and jewels.<br><b>Vault</b>: a sixth building, priced for the Mimic's purse, that keeps one, two, then three chosen items through an ascension.<br><b>Sworn companions</b>: at level ten and twenty million gold a companion swears an oath: power ×1.5, never dismissed.<br><b>Expeditions</b>: twelve- and twenty-four-hour errands that bring back a jewel, a cursed scroll and Starsteel.<br><b>Eternity floors</b>: past tower floor 200 every floor carries an omen and every tenth warden is a slain nemesis returned, carrying a jewel; the hall records each realm's best floor.<br><b>Lieutenants</b>: a nemesis of the third rank sends one underling per area, each carrying a piece of your last champion's gear; kill it and the piece is yours again.<br><b>Nemesis</b>: once the medallion is forged, a named hunter stalks each realm after three areas are cleared. Slay it for gold, shards, Starsteel and a jewel; let it outlive an ascension and it grows, bounty and all.<br><b>Ascended floors</b>: past floor 100 the tower takes realm scaling, pays realm gold, and its wardens carry jewels.<br><b>Hall of Ancestors</b>: every ascension leaves a portrait under the altar, with a small permanent perk from the skill that champion carried furthest.<br><b>The Mimic</b>: a chest that is not a chest, by the altar. From realm 10 it eats gold for permanent gifts — the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each feeding costs more than twice the last, and ascending empties the purse, so feed it before you climb. Resets your champion for permanent shards and a harder, richer realm.</p>
+          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain.<br><b>Medallion</b>: forged on your first ascension, under Worn. Six sockets for six jewel colours; the Elder Wyrm gives one up each realm and deep tower wardens carry them. Fuse duplicates to raise a grade. Each colour hides two or three recipes of three runes; carve a guess and a miss tells you how many belonged. Grade multiplies the inscription. Two inscriptions carved at once can resonate into a third effect. A grade-ten stone can be re-cut for a Flawless one, or crack. A nemesis of the fifth rank opens a seventh socket that takes any colour.<br><b>Vows</b>: at the altar, before ascending, swear as many as you dare for the realm ahead — Blood, Greed, Hunger, Iron, the Storm, Silence, Solitude, Plenty, the Sprint. Each is a big gift and a real cost; they multiply together and each pays 15% more shards at the next ascension.<br><b>Omens</b>: from realm 10 each ascension rolls an omen for the whole realm, a way the monsters are worse and a way the realm pays better; at the altar, shards can buy the next one instead of rolling.<br><b>Realm deeds</b>: under Train, a second board that wipes every realm: the whole map, three Master clears, the nemesis before the sixth area, five thousand kills, floor 150, no deaths, a six-hour realm. Shards and jewels.<br><b>Vault</b>: a sixth building, priced for the Mimic's purse, that keeps one, two, then three chosen items through an ascension.<br><b>Sworn companions</b>: at level ten and twenty million gold a companion swears an oath: power ×1.5, never dismissed.<br><b>Expeditions</b>: twelve- and twenty-four-hour errands that bring back a jewel, a cursed scroll and Starsteel.<br><b>Eternity floors</b>: past tower floor 200 every floor carries an omen and every tenth warden is a slain nemesis returned, carrying a jewel; the hall records each realm's best floor.<br><b>Lieutenants</b>: a nemesis of the third rank sends one underling per area, each carrying a piece of your last champion's gear; kill it and the piece is yours again.<br><b>Nemesis</b>: once the medallion is forged, a named hunter stalks each realm after three areas are cleared. Slay it for gold, shards, Starsteel and a jewel; let it outlive an ascension and it grows, bounty and all.<br><b>Ascended floors</b>: past floor 100 the tower takes realm scaling, pays realm gold, and its wardens carry jewels.<br><b>Hall of Ancestors</b>: every ascension leaves a portrait under the altar, with a small permanent perk from the skill that champion carried furthest.<br><b>The Mimic</b>: a chest that is not a chest, by the altar. From realm 10 it eats gold for permanent gifts — the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each feeding costs more than twice the last, and ascending empties the purse, so feed it before you climb. Resets your champion for permanent shards and a harder, richer realm.</p>
           <p class="kbd" style="margin-top:8px">Keys: 1–5 menus · Space special · E eat · B bury bones</p>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p>
         </div>
@@ -1001,7 +1004,7 @@ function bonuses(){
   compPerks(b);
   b.gold+=keepLv('chest')*5;
   b.dr+=creedEff('dr',0);b.gold+=creedEff('gold',0);
-  b.dr+=boonRank('iron')+0.5*hallEff('def');b.spd+=3*boonRank('swift');b.luck+=25*boonRank('star');b.gold+=2*boonRank('star');
+  b.dr+=boonRank('iron')+0.5*hallEff('def')+vowAdd('dr');b.spd+=3*boonRank('swift');b.luck+=25*boonRank('star');b.gold+=2*boonRank('star');
   if(medOwned())for(const k of ['mh','dr','spd','gold','luck','leech','xp'])b[k]+=medEff(k);
   // Shards: XP, gold and luck taper off; combat bonuses and health keep growing,
   // because health is the one thing the level cap otherwise freezes.
@@ -1013,14 +1016,14 @@ function bonuses(){
 // twenty is the first realm writ large, never a realm whose brutes out-hit a
 // champion who out-damages them. Growth past parity comes from the hold,
 // companions, feats and the tower record, which ascension keeps.
-function hpMult(){return shardMult()*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100)*(1+0.01*hallEff('hp'));}
+function hpMult(){return shardMult()*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100)*(1+0.01*hallEff('hp'))*vowMul('hp');}
 function hpBase(){return lv('hp')+bonuses().hp;}
 function maxHp(){return Math.floor(hpBase()*hpMult());}
 function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
-function attackDelay(){return attackDelay0()*creedEff('spd',1);}
+function attackDelay(){return attackDelay0()*creedEff('spd',1)*vowMul('spd');}
 function attackDelay0(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-Math.min(60,b.spd)/100);}   // speed bonuses cap at 60%: two and a half swings for one
 function styleBonus(){const st=STYLES[S.style].s;return {atk:st==='atk'?3:st==='all'?1:0,str:st==='str'?3:st==='all'?1:0,def:st==='def'?3:st==='all'?1:0};}
-function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('mh',1)*draughtMh()));}
+function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('mh',1)*draughtMh()*vowMul('mh')));}
 // Shards are the champion's growth past the level and forge caps. Their power
 // grows with the square root of the count while each realm pays more of them
 // than the last, so power tracks realm difficulty instead of racing it: no
@@ -1029,8 +1032,8 @@ function shardMult(){return 1+0.13*Math.sqrt((S.asc&&S.asc.shards)||0);}
 function playerMaxHit0(){const b=bonuses();const sb=styleBonus();const sk=cskill();
   return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')*(1+b.mh/100)*shardMult()*(1+0.05*boonRank('wyrm'))*(1+0.005*hallEff('str'))));}
 function playerAtkRoll(){const b=bonuses();const sb=styleBonus();const sk=cskill();
-  return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk')*shardMult()*(1+0.05*boonRank('wyrm'))*(1+0.005*hallEff('atk'));}
-function playerDefRoll(){const b=bonuses();return (lv('def')+styleBonus().def+8)*(b.def+64)*prayMult('def')*shardMult();}
+  return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk')*shardMult()*(1+0.05*boonRank('wyrm'))*(1+0.005*hallEff('atk'))*vowMul('rolls');}
+function playerDefRoll(){const b=bonuses();return (lv('def')+styleBonus().def+8)*(b.def+64)*prayMult('def')*shardMult()*vowMul('rolls');}
 // A realm raises a monster's max hit linearly (hk) rather than its strength,
 // which would compound: a realm-twenty brute should hit three times harder, not seven.
 function mobMaxHit(m){return Math.max(1,Math.floor(0.5+(m.str+9)*(m.str+64)/640*(m.hk||1)));}
@@ -1129,7 +1132,7 @@ const HOUND_HIT=0.10,CLERIC_HEAL=0.04,SQUIRE_DR=15;   // used by compTick AND th
 const SLOT_REQ=[0,2]; // barracks level needed per party slot
 function slotOpen(i){return keepLv('barracks')>=SLOT_REQ[i];}
 function hireCost(i){return [500,2000][i];}
-function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def&&!onErrand(c.type));}
+function party(){if(vowMul('comp')===0)return [];return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def&&!onErrand(c.type));}
 
 // ============ ERRANDS ============
 // Send a companion away on real time for loot while the other holds the line.
@@ -1209,7 +1212,7 @@ const PRAYERS=[
 const BONE_PTS=8;
 function prayMax(){return 30+combatLvl()+cqPrayer()+medEff('pray');}
 function prayOn(id){return S.pray.on.includes(id);}
-function activePrayers(){return PRAYERS.filter(p=>prayOn(p.id));}
+function activePrayers(){if(vowMul('pray')===0)return [];return PRAYERS.filter(p=>prayOn(p.id));}
 function prayMult(k){let m=1;for(const p of activePrayers())if(p.eff[k])m*=p.eff[k];return m;}
 function prayDR(){let d=0;for(const p of activePrayers())d+=p.eff.dr||0;return d;}
 function prayRegen(){let m=1;for(const p of activePrayers())if(p.eff.regen)m=Math.max(m,p.eff.regen);return m;}
@@ -1341,7 +1344,7 @@ function diffMax(){let m=0;for(let i=0;i<DIFFS.length;i++)if(DIFFS[i].need<=clea
 const diff=()=>DIFFS[Math.min(S.diff||0,diffMax())];   // clamped, so an ascension reset cannot strand you on a locked tier
 // Every realm must be won: ascension needs the last area cleared in this realm.
 function ascReady(){return !!S.cleared[AREAS.length-1];}
-function ascShards(){return Math.floor(combatLvl()/5)+S.cleared.filter(Boolean).length*2+Math.floor(((S.tower&&S.tower.best)||0)/5)+10*(((S.asc&&S.asc.realm)||0)+1);}
+function ascShards(){return Math.floor((Math.floor(combatLvl()/5)+S.cleared.filter(Boolean).length*2+Math.floor(((S.tower&&S.tower.best)||0)/5)+10*(((S.asc&&S.asc.realm)||0)+1))*vowShardMult());}
 // ============ THE MIMIC ============
 // The hold's gold sink, a chest that is not a chest. Ascending burns the purse, so gold is worth nothing
 // past the hold and the forge caps; offerings give it somewhere to go that
@@ -1366,12 +1369,13 @@ function mimicHtml(){const r=(S.asc&&S.asc.realm)||0;const first=BOONS[0].realm;
   return `<div class="altar mimic">${art}<div><h3>The Mimic</h3><p>Feed it gold and it gives back what shards cannot. Each feeding costs more than twice the last, and ascending empties the purse — feed it before you climb.</p><div class="offer-list">`+BOONS.map(b=>{const k=boonRank(b.id),open=boonOpen(b),full=k>=b.max,c=boonCost(b);
     return `<div class="offer"><div><b>${b.n}</b> <span class="gold">${'★'.repeat(k)}</span><span class="sub">${'☆'.repeat(b.max-k)}</span><br><span class="sub">${b.d}${open?'':` · opens at realm ${b.realm+1}`}</span></div>`+
       `<button class="sm" data-offer="${b.id}" ${open&&!full&&S.gold>=c?'':'disabled'}>${full?'Sated':open?'Feed '+fmt(c)+' gold':'Sealed'}</button></div>`;}).join('')+`</div></div></div>`;}
-function ascend(kept){
-  if(!ascReady())return false;const sh=ascShards();kept=(kept||[]).slice(0,keepLv('vault'));
+function ascend(kept,newVows){
+  if(!ascReady())return false;const sh=ascShards();kept=(kept||[]).slice(0,keepLv('vault'));const held=vowText();
   S.asc.hall=S.asc.hall||[];for(const a of S.asc.hall)delete a.gear;S.asc.hall.push(hallEntry());if(S.asc.hall.length>HALL_CAP+8)S.asc.hall.splice(0,S.asc.hall.length-HALL_CAP-8);
   {const n=nem();n.lts={};}rdReset();
   {const n=nem();if(n.slain)n.slain=false;else if(clearedCount()>=3){n.lvl++;log(`${nemName()} survived the realm. It grows.`,'e');}}
   S.asc.shards+=sh;S.asc.realm++;S.asc.count++;const om=rollOmen();
+  S.asc.vows=(newVows||[]).filter(id=>VOWS.find(v=>v.id===id));if(held)log(`The vows of the old realm are kept: ${held}.`,'b');if(S.asc.vows.length)log(`Sworn for this realm: ${vowText()}. Shards at the next ascension ×${vowShardMult().toFixed(2)}.`,'e');
   if(!S.med){S.med={sock:{},loose:{}};log('The altar forges your Ascension Medallion. Six sockets wait for six jewels.','g');}
   S.xp={atk:0,str:0,def:0,hp:XP[10],rng:0,mag:0};S.gold=0;S.chests=0;S.food=[10,0,0,0,0];
   for(const s of SLOTS)S.equip[s]=null;S.inv=[];S.area=0;S.kills=AREAS.map(()=>0);S.cleared=AREAS.map(()=>false);S.spec=100;
@@ -1401,6 +1405,30 @@ function rollOmen(){const pick=S.asc.omenPick;S.asc.omenPick=null;
   if(S.asc.realm>=OMEN_FROM&&pick&&OMENS.find(o=>o.id===pick)&&S.asc.shards>=omenPrice()){S.asc.shards-=omenPrice();S.asc.omen=pick;log(`The bargain holds: ${omenPrice()} shards bought the omen.`,'b');}
   else S.asc.omen=S.asc.realm>=OMEN_FROM?OMENS[rnd(0,OMENS.length-1)].id:null;
   return S.asc.omen?OMENS.find(o=>o.id===S.asc.omen):null;}
+
+// ============ VOWS ============
+// Sworn at the altar for the realm ahead, as many as the player dares. Each
+// is a big gift and a real cost, they multiply together, and every vow held
+// pays fifteen percent more shards at the next ascension. A realm under
+// three vows should feel like a different game.
+const VOWS=[
+ {id:'blood',   n:'Vow of Blood',     up:'+40% max hit',                    down:'−30% hitpoints',                      eff:{mh:1.4,hp:0.7}},
+ {id:'greed',   n:'Vow of Greed',     up:'gold ×1.75',                      down:'XP ×0.6',                             eff:{gold:1.75,xp:0.6}},
+ {id:'hunger',  n:'Vow of Hunger',    up:'regen ×2.5',                      down:'no food drops',                       eff:{regen:2.5,food:0}},
+ {id:'iron',    n:'Vow of Iron',      up:'+15% damage reduction',           down:'attack 25% slower',                   eff:{dr:15,spd:1.25}},
+ {id:'storm',   n:'Vow of the Storm', up:'attack 25% faster',               down:'monsters hit 40% harder',             eff:{spd:0.8,mobhit:1.4}},
+ {id:'silence', n:'Vow of Silence',   up:'special charges twice as fast',   down:'no prayers',                          eff:{specR:2,pray:0}},
+ {id:'solitude',n:'Vow of Solitude',  up:'+30% to every combat roll',       down:'companions stay home',                eff:{rolls:1.3,comp:0}},
+ {id:'plenty',  n:'Vow of Plenty',    up:'drops ×2',                        down:'monsters have double health',         eff:{luck:2,mob:2}},
+ {id:'sprint',  n:'Vow of the Sprint',up:'XP ×1.5',                         down:'each death costs a tenth of your gold',eff:{xp:1.5,deathGold:0.1}},
+];
+const VOW_SHARDS=0.15;
+function vows(){return ((S.asc&&S.asc.vows)||[]).map(id=>VOWS.find(v=>v.id===id)).filter(Boolean);}
+function vowCount(){return vows().length;}
+function vowMul(k){let m=1;for(const v of vows())if(v.eff[k]!==undefined)m*=v.eff[k];return m;}
+function vowAdd(k){let a=0;for(const v of vows())if(v.eff[k]!==undefined)a+=v.eff[k];return a;}
+function vowText(){return vows().map(v=>v.n).join(', ');}
+function vowShardMult(n){return 1+VOW_SHARDS*(n===undefined?vowCount():n);}
 
 // ============ REALM DEEDS ============
 // A second board that resets every realm: goals for the realm beyond the
@@ -2011,8 +2039,8 @@ function spawn(boss){
   // ladder and takes no realm scaling at all.
   // The tower is a fixed ladder for a hundred floors; past that it is ascended ground and takes the realm's scaling too.
   const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,rm=(G.tower&&!asc)?1:realmMult(),ra=rm,rs=rm;
-  const k=rm*diff().mob,ka=ra*diff().mob,ks=rs*diff().mob,kg=((G.tower&&!asc)?1:1+0.1*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
-  if(k>1||ka>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*ka),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
+  const k=rm*diff().mob*vowMul('mob'),ka=ra*diff().mob,ks=rs*diff().mob*vowMul('mobhit'),kg=((G.tower&&!asc)?1:1+0.1*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
+  if(k>1||ka>1||ks>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*ka),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
     m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
   {const o=omen();const mm=o&&Object.assign({},o.mob||{},(boss&&o.boss)||{});if(mm&&Object.keys(mm).length)
@@ -2026,7 +2054,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 const XP_PER=0.85;  // xp per point of damage to the trained skill (was 4)
 function addXp(dmg){
-  const b=bonuses();const mult=(1+b.xp/100)*diff().xp*creedEff('xp',1)*curseEff('xp',1)*omenEff('xp',1);const st=STYLES[S.style].s;const sk=cskill();
+  const b=bonuses();const mult=(1+b.xp/100)*diff().xp*creedEff('xp',1)*curseEff('xp',1)*omenEff('xp',1)*vowMul('xp');const st=STYLES[S.style].s;const sk=cskill();
   const KEYS=['atk','str','def','hp','rng','mag'];
   const before={};for(const k of KEYS)before[k]=lv(k);
   if(sk){
@@ -2077,7 +2105,8 @@ function mobHit(){
   if(S.hp<=0)die();
 }
 function die(){
-  G.dead=true;G.deadT=15;S.hp=0;S.deaths=(S.deaths||0)+1;rd().deaths++;if(curseActive())endCurse('broken');
+  G.dead=true;G.deadT=15;S.hp=0;S.deaths=(S.deaths||0)+1;rd().deaths++;
+  if(vowAdd('deathGold')>0&&S.gold>0){const l=Math.floor(S.gold*vowAdd('deathGold'));S.gold-=l;log(`The Vow of the Sprint takes ${fmt(l)} gold for the fall.`,'e');}if(curseActive())endCurse('broken');
   log(`You were killed by ${G.mob.n}.`,'e');
   if(G.tower){log(`The tower spits you out at floor ${G.tower}.`,'e');G.tower=0;spawn(false);return;}
   G.streak++;
@@ -2161,8 +2190,8 @@ function useSeal(k,it,aff){
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   S.totalKills++;G.streak=0;draughtKill();
-  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1));S.gold+=g;
-  const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1);
+  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold'));S.gold+=g;
+  const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck');
   rd().kills++;
   if(G.nem){if(clearedCount()<6)rd().nemEarly=true;nemSlain();G.nem=false;G.isBoss=false;bounty('boss',1);spawn(false);G.dirty=true;return;}
   if(G.lt){ltSlain();G.lt=false;G.isBoss=false;spawn(false);G.dirty=true;return;}
@@ -2185,7 +2214,7 @@ function killMob(){
   {const u=rollUnique({area:S.area,boss:G.isBoss?S.area:null,firstClear:G.isBoss&&!S.cleared[S.area]},luck);if(u)gainItem(u);}
   if(Math.random()<0.7)S.bones++;
   // food
-  if(curseEff('food',1)>0&&omenEff('food',1)>0&&Math.random()<0.4*(1+0.08*keepLv('larder'))){const f=A.food;S.food[f]++;}
+  if(curseEff('food',1)>0&&omenEff('food',1)>0&&vowMul('food')>0&&Math.random()<0.4*(1+0.08*keepLv('larder'))){const f=A.food;S.food[f]++;}
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1,0,7),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
@@ -2291,8 +2320,8 @@ function special(){
   G.dirty=true;
 }
 function tick(dt){
-  S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)); // 10% per 30s
-  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepLv('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*prayRegen());}
+  S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*vowMul('specR')); // 10% per 30s
+  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepLv('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*prayRegen()*vowMul('regen'));}
   prayTick(dt);
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(!G.mob)spawn(false);
@@ -2314,7 +2343,7 @@ function rc(it){return RARITY[it.rar].c;}
 function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';S.sec=S.sec||{};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault'])S.keep[k]=S.keep[k]||0;
-  S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.asc.boons=S.asc.boons||{};if(S.asc.count>0)S.med=S.med||{sock:{},loose:{}};if(S.med){S.med.sock=S.med.sock||{};S.med.loose=S.med.loose||{};S.med.known=S.med.known||{};S.med.reson=S.med.reson||{};}S.comp=S.comp||{type:null,lvl:0};
+  S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.asc.boons=S.asc.boons||{};S.asc.vows=S.asc.vows||[];if(S.asc.count>0)S.med=S.med||{sock:{},loose:{}};if(S.med){S.med.sock=S.med.sock||{};S.med.loose=S.med.loose||{};S.med.known=S.med.known||{};S.med.reson=S.med.reson||{};}S.comp=S.comp||{type:null,lvl:0};
   S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;S.draught=S.draught||null;S.keepIf=S.keepIf||{rar:0,aff:'',style:false};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
@@ -2616,7 +2645,7 @@ function renderAreas(){
    d.innerHTML=`<div class="sub" style="margin-bottom:5px">Difficulty · monsters x${cur.mob} · drops x${cur.luck} · XP x${cur.xp} · <b class="gold">${S.scrolls||0}</b> cursed scroll${(S.scrolls||0)===1?'':'s'}</div>`+
      `<div class="styles" id="diffs">`+DIFFS.map((x,i)=>`<button class="sm${i===Math.min(S.diff||0,mx)?' on':''}" data-diff="${i}" ${i<=mx?'':'disabled'} title="${i<=mx?'':'Clear '+x.need+' areas to unlock'}">${x.n}</button>`).join('')+`</div>`+
      (mx<3?`<div class="sub" style="margin-top:5px;opacity:.75">Next tier unlocks after clearing ${DIFFS[mx+1].need} areas (${clearedCount()} cleared).</div>`:'')+
-     (S.asc.omen&&OMENS.find(o=>o.id===S.asc.omen)?`<div class="sub" style="margin-top:5px;color:#c9a6ff"><b>Omen · ${OMENS.find(o=>o.id===S.asc.omen).n}</b>: ${OMENS.find(o=>o.id===S.asc.omen).d}</div>`:S.asc.realm>=OMEN_FROM-1&&S.asc.count>0?`<div class="sub" style="margin-top:5px;opacity:.75">From realm ${OMEN_FROM+1} each realm carries an omen.</div>`:'')+nemHtml();
+     (S.asc.omen&&OMENS.find(o=>o.id===S.asc.omen)?`<div class="sub" style="margin-top:5px;color:#c9a6ff"><b>Omen · ${OMENS.find(o=>o.id===S.asc.omen).n}</b>: ${OMENS.find(o=>o.id===S.asc.omen).d}</div>`:S.asc.realm>=OMEN_FROM-1&&S.asc.count>0?`<div class="sub" style="margin-top:5px;opacity:.75">From realm ${OMEN_FROM+1} each realm carries an omen.</div>`:'')+nemHtml()+(vowCount()?`<div class="sub" style="margin-top:5px;color:#ff9c6b"><b>Vows</b> · ${vows().map(v=>`${v.n} (${v.up}; ${v.down})`).join(' · ')}</div>`:'');
    el.appendChild(d);
    d.querySelectorAll('[data-diff]').forEach(btn=>btn.onclick=()=>{
      const i=+btn.dataset.diff; if(i>diffMax())return;
@@ -2676,7 +2705,7 @@ function renderKeep(){
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
    keepCard('barracks',`Two companions fight beside you, one of each kind. Hire and train them here; their equipment lives in the companion window. Send one on an errand and it leaves the fight to bring back loot on real time — the longer the errand, the richer the haul.`,compRows)+
    keepCard('vault',medOwned()?`A strongroom under the altar. Choose what it keeps when you ascend: the Elder Wyrm's blade, a runeword, a Mythic piece — anything that would otherwise be lost. Priced for the Mimic's purse.`:`Opens with your first ascension.`,'')+
-   `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1}${creed()?` under the <b class="gold">${creed().n}</b> — ${creed().d}`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to every combat roll and your max hit now, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${(realmMult()+0.3).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain this realm.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+mimicHtml()+hallHtml();
+   `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1}${creed()?` under the <b class="gold">${creed().n}</b> — ${creed().d}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to every combat roll and your max hit now, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${(realmMult()+0.3).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain this realm.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+mimicHtml()+hallHtml();
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
   document.querySelectorAll('#keep [data-brew]').forEach(b=>b.onclick=()=>{if(brew(b.dataset.brew)){toast('Brewed');renderAll();}});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
@@ -2691,6 +2720,7 @@ function renderKeep(){
   document.querySelectorAll('#keep [data-offer]').forEach(b=>b.onclick=()=>{if(offer(b.dataset.offer)){toast('The Mimic is pleased');renderAll();}});
   $('kAsc').onclick=()=>{if(!ascReady())return;
     let h=`<div class="mhead"><div><h2>Ascend</h2><div class="sub">+${ascShards()} shards. Skills, gear, gold, food and areas reset. Choose the creed the next realm is fought under — it holds until you ascend again.</div></div></div>`;
+    h+=`<div class="aff" style="margin:8px 0 4px"><b>Vows for the next realm</b><br><span class="sub">Swear as many as you dare. They multiply together and hold for the whole realm; each one pays +${Math.round(VOW_SHARDS*100)}% shards when you ascend again.</span></div><div class="vowlist">`+VOWS.map(v=>`<label><input type="checkbox" data-vow="${v.id}"><span><b>${v.n}</b><br><span style="color:var(--green)">${v.up}</span> <span class="sub">·</span> <span style="color:#ff8a7a">${v.down}</span></span></label>`).join('')+`</div><div class="sub" id="vowSum">No vows: an ordinary realm.</div>`;
     const vl=keepLv('vault');const cands=vl?SLOTS.map(s=>S.equip[s]).filter(Boolean).concat(S.inv).filter(it=>!it.free):[];
     if(vl)h+=`<div class="aff" style="margin:8px 0 4px"><b>The vault keeps ${vl}</b><br><span class="sub">Tick what survives the ascension.</span></div><div class="vaultlist">`+cands.map((it,i)=>`<label><input type="checkbox" data-vault="${i}"> <span style="color:${rc(it)}">${itemName(it)}</span>${it.up?' +'+it.up:''}</label>`).join('')+`</div>`;
     if(S.asc.realm+1>=OMEN_FROM)h+=`<div class="aff" style="margin:8px 0 4px"><b>Omen of the next realm</b><br><span class="sub">Rolled at the altar, or bought for <b class="gold">${omenPrice()} shards</b> (you hold ${S.asc.shards}). ${S.asc.omenPick?`Chosen: <b class="gold">${OMENS.find(o=>o.id===S.asc.omenPick).n}</b>`:'Nothing chosen: the sky decides.'}</span></div><div class="styles">`+OMENS.map(o=>`<button class="sm${S.asc.omenPick===o.id?' on':''}" data-omenpick="${o.id}" title="${o.d}" ${S.asc.shards>=omenPrice()?'':'disabled'}>${o.n}</button>`).join('')+`<button class="sm" data-omenpick="">Let it roll</button></div>`;
@@ -2699,8 +2729,10 @@ function renderKeep(){
     $('modalBox').innerHTML=h;$('modal').className='on';
     $('mClose').onclick=()=>{$('modal').className='';};
     document.querySelectorAll('#modalBox [data-omenpick]').forEach(b=>b.onclick=()=>{if(b.dataset.omenpick){if(omenPick(b.dataset.omenpick))toast('Omen chosen');}else{S.asc.omenPick=null;}$('kAsc').onclick();});
+    const vowSum=()=>{const n=document.querySelectorAll('#modalBox [data-vow]:checked').length;$('vowSum').textContent=n?`${n} vow${n===1?'':'s'}: shards ×${vowShardMult(n).toFixed(2)} at the next ascension.`:'No vows: an ordinary realm.';};
+    document.querySelectorAll('#modalBox [data-vow]').forEach(cb=>cb.onchange=vowSum);
     document.querySelectorAll('#modalBox [data-vault]').forEach(cb=>cb.onchange=()=>{const on=[...document.querySelectorAll('#modalBox [data-vault]:checked')];if(on.length>vl){cb.checked=false;toast(`The vault holds ${vl}`);}});
-    document.querySelectorAll('#modalBox [data-creed]').forEach(b=>b.onclick=()=>{const kept=[...document.querySelectorAll('#modalBox [data-vault]:checked')].map(cb=>cands[+cb.dataset.vault]);S.asc.creed=b.dataset.creed;$('modal').className='';ascend(kept);toast('Realm '+(S.asc.realm+1)+' · '+creed().n);showTab('hero');});};
+    document.querySelectorAll('#modalBox [data-creed]').forEach(b=>b.onclick=()=>{const kept=[...document.querySelectorAll('#modalBox [data-vault]:checked')].map(cb=>cands[+cb.dataset.vault]);const nv=[...document.querySelectorAll('#modalBox [data-vow]:checked')].map(cb=>cb.dataset.vow);S.asc.creed=b.dataset.creed;$('modal').className='';ascend(kept,nv);toast('Realm '+(S.asc.realm+1)+' · '+creed().n);showTab('hero');});};
 }
 
 // ============ COMPANION EQUIPMENT WINDOW ============
@@ -3071,7 +3103,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b62-vault';window.__ihBoot=true;
+  const BUILD='b63-vows';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

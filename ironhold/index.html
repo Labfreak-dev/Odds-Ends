@@ -561,7 +561,7 @@
         </div>
         <div class="panel" data-sec="Feats">
           <h2>Feats <span class="sub" id="featCnt"></span></h2>
-          <p class="sub" style="margin-bottom:6px">Deeds pay once. Some carry a title: wear it on your name plate and a pennant flies behind you.</p>
+          <p class="sub" style="margin-bottom:6px">Deeds pay once. Some carry a title: wear it on your name plate.</p>
           <div id="feats"></div>
         </div>
         <div class="panel" data-sec="Prayer">
@@ -1234,8 +1234,7 @@ function creedEff(k,dflt){const c=creed();return c&&c.eff[k]!==undefined?c.eff[k
 
 // ============ FEATS ============
 // Deeds, checked every few seconds and paid once. Some carry a title the
-// champion can wear on the name plate; wearing one raises a pennant behind
-// them in the arena.
+// champion can wear on the name plate.
 const FEATS=[
  {id:'first_blood',n:'First Blood',d:'Slay a monster',t:()=>S.totalKills>=1,rw:{gold:50}},
  {id:'k100',n:'Hundred Hands',d:'Slay 100 monsters',t:()=>S.totalKills>=100,rw:{gold:300}},
@@ -1627,10 +1626,7 @@ function drawScene(t,dt){
       const k=compSpr(cd);if(sprReady(k+'_idle')){const act=cd.role==='dr'?FX.pFlash>0:FX.cAct[i]>0;drawSprite(act&&sprReady(k+'_atk')?sprFrame(k+'_atk',0):sprFrame(k+'_idle',0),px[i],gy+py[i]+4+Math.sin((t+i)*3)*1.2,false,0,SPR_SC[k+'_idle']||1);}
       else drawMob(px[i],gy+py[i]-(cd.shape==='beast'?58:78),cd,t+1+i,1,0);});
     if(activePrayers().length){ctx.strokeStyle='#ffd24a';ctx.lineWidth=2.5;ctx.shadowColor='#ffd24a';ctx.shadowBlur=8;ctx.beginPath();ctx.ellipse(HX+pl,gy-102+Math.sin(t*3)*1.8,14,4.5,0,0,7);ctx.stroke();ctx.shadowBlur=0;}}
-  if(heroTitle()&&!G.dead){ // a worn title raises a pennant behind the champion
-    const px=HX-46,top=gy-118;ctx.fillStyle='#4a3520';ctx.fillRect(px-1,top,3,124);
-    ctx.fillStyle='#ffd24a';ctx.beginPath();ctx.moveTo(px+2,top+2);ctx.lineTo(px+30,top+12);ctx.lineTo(px+2,top+24);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=1;ctx.stroke();}
+  // A worn title shows on the name plate only; nothing is drawn over the party.
   const heroSpr=sprReady('hero_idle');   // per-pose fallbacks live in heroFrame
   // Keep this if/else chain intact: an extra statement between the branches
   // re-binds the else to it, and the procedural hero paints over the sprite.
@@ -2690,7 +2686,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b52-areafix';window.__ihBoot=true;
+  const BUILD='b53-nopennant';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

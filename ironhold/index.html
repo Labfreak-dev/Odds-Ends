@@ -10,7 +10,7 @@
     --bevel:#8a6d48; --line:#0a0704; --tan:#f3dfa6; --muted:#b89a6c; --gold:#ffd24a;
     --hp:#3fbf4a; --hpbg:#5a1616; --red:#d13a2f; --blue:#4d8ee0; --green:#6ac66a;
     --dock:#1c1510;
-    --r1:#6a6a6a; --r2:#3a9a3a; --r3:#3f7fd6; --r4:#a24fd6; --r5:#ff9c1a;
+    --r1:#6a6a6a; --r2:#3a9a3a; --r3:#3f7fd6; --r4:#a24fd6; --r5:#ff9c1a; --r7:#ff3b5c;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
@@ -191,7 +191,8 @@
   .coll .ce.ok{box-shadow:inset 0 0 0 1px var(--gold)}
   .coll .ce.ok span{color:var(--tan)}
   .setb{font-size:11px;color:#8fdcf5;margin:2px 0}
-  .item.r1{--rc:var(--r1)}.item.r2{--rc:var(--r2)}.item.r3{--rc:var(--r3)}.item.r4{--rc:var(--r4)}.item.r5{--rc:var(--r5)}
+  .item.r1{--rc:var(--r1)}.item.r2{--rc:var(--r2)}.item.r3{--rc:var(--r3)}.item.r4{--rc:var(--r4)}.item.r5{--rc:var(--r5)}.item.r7{--rc:var(--r7)}
+  .item.r7 .nm{color:var(--r7)}
   .empty-tile{background:var(--ink);border:2px solid #000;box-shadow:inset 0 0 0 1px #2a2016,inset 0 3px 8px rgba(0,0,0,.6);border-radius:3px;min-height:84px;opacity:.6}
 
   /* --- skills --- */
@@ -560,7 +561,7 @@
         <div class="panel">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
-          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
+          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Uniques and set pieces keep what they were made with.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
           <p class="kbd" style="margin-top:8px">Keys: 1–5 menus · Space special · E eat · B bury bones</p>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p>
         </div>
@@ -649,7 +650,10 @@ const RARITY=[null,
  {n:'Masterwork',aff:3,m:1.22,c:'#a24fd6',w:4},
  {n:'Legendary',aff:4,m:1.35,c:'#ff9c1a',w:1},
  {n:'Unique',aff:0,m:1.3,c:'#ffd24a',w:0},
+ {n:'Mythic',aff:5,m:1.55,c:'#ff3b5c',w:0.15},
 ];
+// Unique sits at 6 and never rolls, so the ladder the bench climbs skips it.
+const RAR_LADDER=[1,2,3,4,5,7];
 const AFFIX={
  hp:{n:'+{v} Hitpoints',min:2,max:10},
  mh:{n:'+{v}% Max hit',min:2,max:8},
@@ -918,7 +922,7 @@ function mobAtkRoll(m){return (m.atk+9)*(m.atk*1.5+64);}
 function mobDefRoll(m){return (m.def+9)*(m.def*0.6+64);}
 // ============ HOLD SYSTEMS (keep, runes, tower, companions, ascension) ============
 const KEEP={
-  forge:{n:'Forge',ic:'anvil',d:l=>`Forge costs -${l*10}% · gear can reach +${10+l}`},
+  forge:{n:'Forge',ic:'anvil',d:l=>`Forge costs -${l*10}% · gear can reach +${10+l}${l>=TEMPER_FORGE?' · reroll and temper':l>=REROLL_FORGE?' · reroll':''}`},
   yard:{n:'Salvage Yard',ic:'pile',d:l=>`+${l} scrap per salvage · scrap drops +${l*10}%`},
   larder:{n:'Larder',ic:'larder',d:l=>`+${(l*0.3).toFixed(1)} HP/s regen · food drops +${l*8}%`},
   chest:{n:'War Chest',ic:'warchest',d:l=>`Chest chance +${l*25}% · gold +${l*5}%`},
@@ -1611,7 +1615,7 @@ function renderSlots(){
 // --- vault ---
 function buildFilters(){
   $('fltSlot').innerHTML='<option value="">All slots</option>'+SLOTS.map(s=>`<option value="${s}">${s}</option>`).join('');
-  $('fltRar').innerHTML='<option value="">All rarities</option>'+RARITY.slice(1).map((r,i)=>`<option value="${i+1}">${r.n||'Common'}</option>`).join('');
+  $('fltRar').innerHTML='<option value="">All rarities</option>'+RAR_LADDER.concat([6]).map(i=>`<option value="${i}">${RARITY[i].n||'Common'}</option>`).join('');
   $('fltSort').innerHTML=[['score','Best first'],['newest','Newest'],['tier','Tier'],['name','Name']].map(([v,n])=>`<option value="${v}">${n}</option>`).join('');
   $('fltSlot').onchange=e=>{S.fltSlot=e.target.value;renderBag();};
   $('fltRar').onchange=e=>{S.fltRar=e.target.value;renderBag();};
@@ -1744,7 +1748,7 @@ function renderKeep(){
   }
   const ready=ascReady();
   $('keep').innerHTML=
-   keepCard('forge',`Upgrade gear from any item window. Scrap: <b class="gold">${S.scrap}</b>`,`<button class="sm" id="kForge">Open pack</button>`)+
+   keepCard('forge',`Upgrade, reroll and temper gear from any item window. Rerolling opens at Forge ${REROLL_FORGE}, tempering at ${TEMPER_FORGE}. Scrap: <b class="gold">${S.scrap}</b>`,`<button class="sm" id="kForge">Open pack</button>`)+
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
@@ -1930,6 +1934,42 @@ function renderAll(){
 }
 
 // --- item modal ---
+
+// ============ CRAFTING BENCH ============
+// The Forge stopped at +N. Rerolling and tempering give the building a second
+// and third job, and give scrap somewhere to go once your gear is upgraded.
+const REROLL_FORGE=1, TEMPER_FORGE=3;
+function affPool(it){return Object.keys(AFFIX).filter(k=>!AFFIX[k].fixed&&(!AFFIX[k].wep||it.slot==='weapon'));}
+function canCraft(it){return !!it&&!isSpecial(it);}
+function benchRerollCost(it){return {gold:Math.round(itemValue(it)*0.8),scrap:3+it.tier+it.rar};}
+function nextRar(it){const i=RAR_LADDER.indexOf(it.rar);return i<0||i>=RAR_LADDER.length-1?0:RAR_LADDER[i+1];}
+function benchTemperCost(it){const nr=nextRar(it);return {gold:Math.round(itemValue(it)*3),scrap:10+4*it.tier+5*(RAR_LADDER.indexOf(nr)||1)};}
+function rollAffixes(it,n){
+  const pool=affPool(it);it.aff={};
+  for(let i=0;i<n&&pool.length;i++){const k=pool.splice(rnd(0,pool.length-1),1)[0];it.aff[k]=rnd(AFFIX[k].min,AFFIX[k].max);}
+}
+function rerollItem(it){
+  if(!canCraft(it)||keepLv('forge')<REROLL_FORGE)return false;
+  const c=benchRerollCost(it);if(S.gold<c.gold||S.scrap<c.scrap)return false;
+  S.gold-=c.gold;S.scrap-=c.scrap;
+  rollAffixes(it,RARITY[it.rar].aff);
+  return true;
+}
+function temperItem(it){
+  if(!canCraft(it)||keepLv('forge')<TEMPER_FORGE)return false;
+  const nr=nextRar(it);if(!nr)return false;
+  const c=benchTemperCost(it);if(S.gold<c.gold||S.scrap<c.scrap)return false;
+  S.gold-=c.gold;S.scrap-=c.scrap;
+  // base scales with the rarity multiplier, so carry it up rather than rebuilding the piece
+  const k=RARITY[nr].m/RARITY[it.rar].m;
+  it.base={atk:Math.round(it.base.atk*k),str:Math.round(it.base.str*k),def:Math.round(it.base.def*k)};
+  it.rar=nr;
+  // keep what it already rolled and fill the new slots from what is left
+  const have=Object.keys(it.aff),pool=affPool(it).filter(x=>!have.includes(x));
+  for(let i=have.length;i<RARITY[nr].aff&&pool.length;i++){
+    const a=pool.splice(rnd(0,pool.length-1),1)[0];it.aff[a]=rnd(AFFIX[a].min,AFFIX[a].max);}
+  return true;
+}
 function openItem(it,equipped){
   const st=itemStats(it),cur=equipped?null:S.equip[it.slot],cs=cur?itemStats(cur):{atk:0,str:0,def:0};
   const d=(a,b)=>{const x=a-b;return x===0||equipped?'':` <span class="${x>0?'up':'dn'}">(${x>0?'+':''}${x})</span>`;};
@@ -1945,9 +1985,25 @@ function openItem(it,equipped){
   const rw=rwOf(it);
   if(rw)h+=`<div class="aff" style="color:#c9a6ff"><b>Runeword ${rw.n}</b>: ${rw.d}</div>`;
   else{const opts=RUNEWORDS.filter(r=>r.slots.includes(it.slot));if(opts.length)h+=`<div class="sub" style="margin-top:6px">Runewords for this slot</div>`+opts.map((r,i)=>`<div class="rw"><div><span class="rn">${r.n}</span> <span class="sub">${r.r.map(x=>RUNES[x]).join(' + ')}</span><br>${r.d}</div><button class="sm" data-rw="${r.n}" ${canInscribe(r)?'':'disabled'}>Inscribe</button></div>`).join('');}
-  h+=`<div class="sub" style="margin-top:6px">Forge upgrade ${it.up}/${forgeMax()} · next costs ${uc.gold} gold + ${uc.scrap} scrap</div><div class="btns">`;
+  h+=`<div class="sub" style="margin-top:6px">Forge upgrade ${it.up}/${forgeMax()} · next costs ${uc.gold} gold + ${uc.scrap} scrap</div>`;
+  const rr=benchRerollCost(it),tc=benchTemperCost(it),nr=nextRar(it);
+  if(canCraft(it)){
+    h+=`<div class="sub" style="margin-top:6px">Bench`
+      +(keepLv('forge')>=REROLL_FORGE
+        ? ` · reroll ${RARITY[it.rar].aff} affix${RARITY[it.rar].aff===1?'':'es'} for ${fmt(rr.gold)} gold + ${rr.scrap} scrap`
+        : ` · rerolling needs Forge ${REROLL_FORGE}`)
+      +(nr
+        ? (keepLv('forge')>=TEMPER_FORGE
+           ? `<br>Temper to <b style="color:${RARITY[nr].c}">${RARITY[nr].n||'Common'}</b> for ${fmt(tc.gold)} gold + ${tc.scrap} scrap`
+           : `<br>Tempering needs Forge ${TEMPER_FORGE}`)
+        : `<br>Already Mythic — nothing above it`)
+      +`</div>`;}
+  h+=`<div class="btns">`;
   if(equipped)h+=`<button id="mUnequip">Unequip</button>`;else h+=`<button id="mEquip" ${ok?'':'disabled'}>Equip</button>`;
   h+=`<button id="mUp" ${it.up<forgeMax()&&S.gold>=uc.gold&&S.scrap>=uc.scrap?'':'disabled'}>Upgrade</button>`;
+  if(canCraft(it)){
+    h+=`<button id="mReroll" ${keepLv('forge')>=REROLL_FORGE&&RARITY[it.rar].aff&&S.gold>=rr.gold&&S.scrap>=rr.scrap?'':'disabled'}>Reroll</button>`;
+    h+=`<button id="mTemper" ${nr&&keepLv('forge')>=TEMPER_FORGE&&S.gold>=tc.gold&&S.scrap>=tc.scrap?'':'disabled'}>Temper</button>`;}
   if(!equipped)h+=`<button id="mSell">Sell (${itemValue(it)}g)</button><button id="mSalv">Salvage (${itemScrap(it)} scrap)</button>`;
   h+=`<button id="mClose" style="grid-column:1/-1">Close</button></div>`;
   $('modalBox').innerHTML=h;$('modal').className='on';
@@ -1957,6 +2013,8 @@ function openItem(it,equipped){
   if($('mEquip'))$('mEquip').onclick=()=>{equip(it);close();};
   if($('mUnequip'))$('mUnequip').onclick=()=>{unequip(it.slot);close();};
   $('mUp').onclick=()=>{S.gold-=uc.gold;S.scrap-=uc.scrap;it.up++;toast('Forged: '+itemName(it));openItem(it,equipped);renderAll();};
+  if($('mReroll'))$('mReroll').onclick=()=>{if(rerollItem(it)){log('Rerolled '+itemName(it),'g');toast('Rerolled');openItem(it,equipped);renderAll();}};
+  if($('mTemper'))$('mTemper').onclick=()=>{if(temperItem(it)){log('Tempered to '+itemName(it),'g');toast(RARITY[it.rar].n+'!');openItem(it,equipped);renderAll();}};
   if($('mSell'))$('mSell').onclick=()=>{S.gold+=itemValue(it);S.inv=S.inv.filter(x=>x!==it);close();};
   if($('mSalv'))$('mSalv').onclick=()=>{S.scrap+=itemScrap(it);S.inv=S.inv.filter(x=>x!==it);bounty('salvage',1);close();};
 }
@@ -2047,7 +2105,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b26-fivemenus';
+  const BUILD='b27-bench';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

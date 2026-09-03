@@ -1659,6 +1659,7 @@ function drawScene(t,dt){
 // ============ GAME LOOP ============
 const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirty:true,streak:0,tower:0,cT:0,parry:0,sunderT:0,hexT:0,ward:0,dEff:null,dEffT:0};
 function spawn(boss){
+  if(!AREAS[S.area])S.area=0;
   const A=AREAS[S.area];
   let m=G.tower?towerMob(G.tower):(boss?A.boss:A.mobs[rnd(0,A.mobs.length-1)]);
   // Realms grow monster health at the full rate but attack and defence at half of
@@ -1941,7 +1942,7 @@ function tick(dt){
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
 function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';S.sec=S.sec||{};
-  S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
+  S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
   S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;S.draught=S.draught||null;S.keepIf=S.keepIf||{rar:0,aff:'',style:false};
@@ -2213,7 +2214,9 @@ function renderFeats(){
 
 // --- world ---
 const THUMB=[['#7fb5d8','#4e8a3a'],['#6f9a6a','#5f7a3a'],['#2c2c34','#3a3a3a'],['#8aa3c2','#6a5a3a'],['#7f9fb5','#5a6a3a'],['#cfe8f5','#dfe8ee'],['#3a1414','#3a2020'],['#2a2a2a','#3a3030']];
-function unlocked(i){return i===0||S.cleared[i-1];}
+// Bounded on both ends: the arrows past the last area used to step onto an
+// area that does not exist, and a save made there could never boot again.
+function unlocked(i){return i>=0&&i<AREAS.length&&(i===0||!!S.cleared[i-1]);}
 function renderCodex(){
   const CN={};for(const k in UNIQUES)CN[k]=UNIQUES[k].n;
   for(const k in SETS)for(const sl of setSlots(k))CN[k+'_'+setIk(k)[sl]]=SETS[k].n+' '+SETS[k].pieces[sl];
@@ -2687,7 +2690,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b51-bootguard';window.__ihBoot=true;
+  const BUILD='b52-areafix';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

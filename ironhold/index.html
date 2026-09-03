@@ -1229,8 +1229,8 @@ const WPN_ANG=[0.75,-2.44,0.14,0.72];
 // Read off the art: daggers and longswords are drawn POINT-DOWN with the hilt at
 // the top; scimitars, greatswords and axes are hilt-down. Getting that backwards
 // puts the pommel in the monster and the blade in the champion's fist.
-const WPN_FIT={dagger:[0.98,0.05,0.04],scimitar:[-0.89,0.06,0.95],longsword:[1.00,0.07,0.04],
-  battleaxe:[-2.08,0.94,0.96],greatsword:[-0.94,0.05,0.96]};
+const WPN_FIT={dagger:[-2.16,0.95,0.96],scimitar:[-0.89,0.06,0.94],longsword:[1.00,0.07,0.05],
+  battleaxe:[-2.08,0.93,0.96],greatsword:[2.21,0.94,0.05]};
 const WPN={},WPN_TRY={};
 function wpnCanvas(k){
   if(!k||!ICONS[k])return null;
@@ -2268,7 +2268,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b32-grip';
+  const BUILD='b33-hilt';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

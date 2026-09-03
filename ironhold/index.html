@@ -953,7 +953,7 @@ function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
 function attackDelay(){return attackDelay0()*creedEff('spd',1);}
 function attackDelay0(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-b.spd/100);}
 function styleBonus(){const st=STYLES[S.style].s;return {atk:st==='atk'?3:st==='all'?1:0,str:st==='str'?3:st==='all'?1:0,def:st==='def'?3:st==='all'?1:0};}
-function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('mh',1)));}
+function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('mh',1)*draughtMh()));}
 function playerMaxHit0(){const b=bonuses();const sb=styleBonus();const sk=cskill();
   return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')*(1+b.mh/100)));}
 function playerAtkRoll(){const b=bonuses();const sb=styleBonus();const sk=cskill();
@@ -1101,7 +1101,7 @@ function compTick(){
     else if(c.def.role==='heal'&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const h=Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*c.def.pow*compMult(c)))+cqTally(c.type).st;S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(HX-72,130,'+'+h,'#2e9a3a');}
   });
 }
-function dmgReduction(){let dr=bonuses().dr+prayDR();for(const c of party())if(c.def.role==='dr')dr+=SQUIRE_DR*c.def.pow*compMult(c);return Math.min(70,dr);}
+function dmgReduction(){let dr=bonuses().dr+prayDR()+draughtDR();for(const c of party())if(c.def.role==='dr')dr+=SQUIRE_DR*c.def.pow*compMult(c);return Math.min(70,dr);}
 
 // ---- prayers ----
 const PRAYERS=[
@@ -1613,14 +1613,14 @@ function drawScene(t,dt){
   if(G.dead){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd24a';ctx.font='bold 22px Georgia';ctx.fillText('Oh dear, you are dead!',W/2,H/2-6);ctx.font='13px Verdana';ctx.fillStyle='#fff';ctx.fillText('Respawning in '+Math.ceil(G.deadT)+'s',W/2,H/2+18);}
 }
 // ============ GAME LOOP ============
-const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirty:true,streak:0,tower:0,cT:0,parry:0,sunderT:0,hexT:0,ward:0};
+const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirty:true,streak:0,tower:0,cT:0,parry:0,sunderT:0,hexT:0,ward:0,dEff:null,dEffT:0};
 function spawn(boss){
   const A=AREAS[S.area];
   let m=G.tower?towerMob(G.tower):(boss?A.boss:A.mobs[rnd(0,A.mobs.length-1)]);
   const k=realmMult()*diff().mob;if(k>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*k),str:Math.round(m.str*k),def:Math.round(m.def*k),gold:[Math.round(m.gold[0]*k),Math.round(m.gold[1]*k)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
     m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
-  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;
+  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;if(boss)draughtBoss();
   G.dirty=true;
 }
 function log(msg,cls){const el=document.getElementById('log');const d=document.createElement('div');if(cls)d.className=cls;d.textContent=msg;el.prepend(d);while(el.children.length>40)el.lastChild.remove();}
@@ -1752,7 +1752,7 @@ function useSeal(k,it,aff){
 }
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
-  S.totalKills++;G.streak=0;
+  S.totalKills++;G.streak=0;draughtKill();
   const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1));S.gold+=g;
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1);
   if(G.tower){ // Tower of Trials floor cleared
@@ -1802,6 +1802,37 @@ function gainItem(it){
   S.inv.push(it);log('Loot: '+itemName(it),it.rar>=3?'g':'');
   if(!G.sim&&it.rar>=3)toast('Rare drop: '+itemName(it));
 }
+// ============ DRAUGHTS ============
+// A flask, sized for idle: brewed at the Larder from food and gold, it drinks
+// itself when its moment comes and refills a charge every few kills.
+const DRAUGHTS=[
+ {id:'bloodmoss',n:'Bloodmoss Draught',d:'Below 35% health, drink for 30% of your health back.',need:1,below:0.35,heal:0.30,charges:3,cost:{food:6,gold:150}},
+ {id:'ironbark', n:'Ironbark Draught', d:'Below 50% health, drink for 25% less damage taken over 10 s.',need:2,below:0.50,dr:25,dur:10,charges:3,cost:{food:8,gold:300}},
+ {id:'wolfsbane',n:'Wolfsbane Draught',d:'When a boss engages, drink for +30% max hit over 12 s.',need:3,boss:1,mh:1.3,dur:12,charges:2,cost:{food:10,gold:500}},
+];
+const DRAUGHT_REFILL=6;   // kills per charge
+function draught(){return S.draught?DRAUGHTS.find(d=>d.id===S.draught.id)||null:null;}
+function foodCount(){return S.food.reduce((a,b)=>a+b,0);}
+function takeFood(n){for(let i=0;i<FOOD.length&&n>0;i++){const k=Math.min(n,S.food[i]);S.food[i]-=k;n-=k;}}
+function canBrew(d){return keepLv('larder')>=d.need&&foodCount()>=d.cost.food&&S.gold>=d.cost.gold;}
+function brew(id){const d=DRAUGHTS.find(x=>x.id===id);if(!d||!canBrew(d))return false;
+  takeFood(d.cost.food);S.gold-=d.cost.gold;S.draught={id:d.id,charges:d.charges,kills:0};
+  log(`You brew a ${d.n}: ${d.charges} charges.`,'g');G.dirty=true;return true;}
+function drink(d){S.draught.charges--;G.dEff=d.id;G.dEffT=d.dur||0;
+  if(d.heal){const h=Math.round(maxHp()*d.heal);S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(HX,110,'+'+h,'#2e9a3a');}
+  log(`You drink the ${d.n}. ${S.draught.charges} charge${S.draught.charges===1?'':'s'} left.`);G.dirty=true;}
+function draughtTick(dt){
+  if(G.dEffT>0)G.dEffT=Math.max(0,G.dEffT-dt);
+  const d=draught();if(!d||G.dead||S.draught.charges<=0||d.boss)return;
+  if(S.hp<maxHp()*d.below&&!(d.dur&&G.dEff===d.id&&G.dEffT>0))drink(d);}
+function draughtBoss(){const d=draught();if(d&&d.boss&&!G.dead&&S.draught.charges>0)drink(d);}
+function draughtKill(){const d=draught();if(!d||S.draught.charges>=d.charges)return;
+  S.draught.kills=(S.draught.kills||0)+1;if(S.draught.kills>=DRAUGHT_REFILL){S.draught.kills=0;S.draught.charges++;}}
+function draughtDR(){return G.dEff==='ironbark'&&G.dEffT>0?25:0;}
+function draughtMh(){return G.dEff==='wolfsbane'&&G.dEffT>0?1.3:1;}
+function draughtHtml(){const d=draught();
+  return `<div class="sub" style="margin-top:6px">${d?`<b class="gold">${d.n}</b> · ${S.draught.charges}/${d.charges} charges · refills 1 per ${DRAUGHT_REFILL} kills<br>${d.d}`:'No draught brewed. A draught drinks itself when its moment comes.'}</div>`
+    +`<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">`+DRAUGHTS.map(x=>`<button class="sm" data-brew="${x.id}" ${canBrew(x)?'':'disabled'} title="${x.d}">Brew ${x.n.replace(' Draught','')} · ${x.cost.food} food + ${x.cost.gold}g${keepLv('larder')<x.need?' · Larder '+x.need:''}</button>`).join('')+`</div>`;}
 function eat(manual){
   const mh=maxHp();
   let idx=-1;for(let i=FOOD.length-1;i>=0;i--){if(S.food[i]>0){idx=i;if(mh-S.hp>=FOOD[i].h)break;}}
@@ -1848,6 +1879,7 @@ function tick(dt){
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(!G.mob)spawn(false);
   if(S.autoEat&&S.hp<maxHp()*S.eatPct/100)eat(false);
+  draughtTick(dt);
   G.pT-=dt;G.mT-=dt;if(G.sunderT>0)G.sunderT=Math.max(0,G.sunderT-dt);if(G.hexT>0)G.hexT=Math.max(0,G.hexT-dt);
   if(G.pT<=0){playerHit(false);G.pT+=attackDelay();}
   if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd;}
@@ -1861,7 +1893,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;S.draught=S.draught||null;
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -2212,11 +2244,12 @@ function renderKeep(){
   $('keep').innerHTML=
    keepCard('forge',`Upgrade, reroll and temper gear from any item window. Rerolling opens at Forge ${REROLL_FORGE}, tempering at ${TEMPER_FORGE}. Mythic needs ${MYTHIC_INGOTS} Starsteel from bosses. Scrap: <b class="gold">${S.scrap}</b> · Starsteel: <b class="gold">${S.ingots||0}</b>`+(sealsHeld().length?`<br>Seals: `+sealsHeld().map(k=>`<b class="gold">${SEALS[k].n} ×${sealCount(k)}</b>`).join(' · ')+` — use them from an item window`:`<br><span class="sub">Bosses also guard seals: single-purpose crafting currencies used from an item window.</span>`),`<button class="sm" id="kForge">Open pack</button>`)+
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
-   keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
+   keepCard('larder',larder+draughtHtml(),`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
    keepCard('barracks',`Two companions fight beside you, one of each kind. Hire and train them here; their equipment lives in the companion window. Send one on an errand and it leaves the fight to bring back loot on real time — the longer the errand, the richer the haul.`,compRows)+
    `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1}${creed()?` under the <b class="gold">${creed().n}</b> — ${creed().d}`:''}<br>${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
+  document.querySelectorAll('#keep [data-brew]').forEach(b=>b.onclick=()=>{if(brew(b.dataset.brew)){toast('Brewed');renderAll();}});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
   document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;if(partyHas(type)){toast('You already have a '+COMPS.find(x=>x.id===type).n);return;}S.gold-=hireCost(i);S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
   document.querySelectorAll('#keep [data-train]').forEach(b=>b.onclick=()=>{const c=S.party[+b.dataset.train];if(!c||S.gold<compCost(c))return;S.gold-=compCost(c);c.lvl++;toast(`${COMPS.find(x=>x.id===c.type).n} trained to ${c.lvl}`);renderAll();});
@@ -2600,7 +2633,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b47-specials';
+  const BUILD='b48-draughts';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

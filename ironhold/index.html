@@ -1032,7 +1032,44 @@ const HOUND_HIT=0.10,CLERIC_HEAL=0.04,SQUIRE_DR=15;   // used by compTick AND th
 const SLOT_REQ=[0,2]; // barracks level needed per party slot
 function slotOpen(i){return keepLv('barracks')>=SLOT_REQ[i];}
 function hireCost(i){return [500,2000][i];}
-function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def);}
+function party(){return (S.party||[]).map(c=>Object.assign({def:COMPS.find(x=>x.id===c.type)},c)).filter(c=>c.def&&!onErrand(c.type));}
+
+// ============ ERRANDS ============
+// Send a companion away on real time for loot while the other holds the line.
+// The errand follows the companion's role -- hunters hunt, healers forage,
+// defenders escort -- and pays on the hold's reach and the companion's power.
+const ERRANDS={
+ dmg: {n:'Hunt',   d:'gold and gear from the wilds',      ic:'⚔'},
+ heal:{n:'Forage', d:'food and bones from the hedgerows', ic:'✚'},
+ dr:  {n:'Escort', d:'scrap and chests off the roads',    ic:'⛨'},
+};
+const ERRAND_LEN=[[30*60,'30 min',1],[2*3600,'2 h',3.6],[8*3600,'8 h',12]];   // seconds, label, pay multiplier
+function onErrand(t){return !!(S.errands&&S.errands[t]);}
+function errandLeft(t){const e=S.errands&&S.errands[t];return e?Math.max(0,e.start+e.dur*1000-Date.now()):0;}
+function errandPay(c,li){const cd=COMPS.find(x=>x.id===c.type);const m=compMult(c)*cd.pow*ERRAND_LEN[li][2];const t=maxUnlockedArea()+1;
+  const p={role:cd.role,gold:Math.round(80*t*m)};
+  if(cd.role==='dmg'){p.gear=li>=1?1:0;p.uniq=li===2?0.35:li===1?0.1:0;}
+  else if(cd.role==='heal'){p.food=Math.round(4*m);p.bones=Math.round(6*m);p.chest=li===2?1:0;}
+  else{p.scrap=Math.round(5*t*m);p.chest=li>=1?1:0;p.rune=li===2?1:0;}
+  return p;}
+function errandText(p){return [fmt(p.gold)+'g',p.food?p.food+' food':'',p.bones?p.bones+' bones':'',p.scrap?p.scrap+' scrap':'',p.gear?'a piece of gear':'',
+  p.chest?p.chest+' chest':'',p.rune?'1 rune':'',p.uniq?Math.round(p.uniq*100)+'% unique':''].filter(Boolean).join(' + ');}
+function sendErrand(type,li){
+  const c=(S.party||[]).find(x=>x.type===type);if(!c||onErrand(type)||G.dead)return false;
+  S.errands=S.errands||{};S.errands[type]={li,start:Date.now(),dur:ERRAND_LEN[li][0]};
+  const cd=COMPS.find(x=>x.id===type);log(`${cd.n} sets out to ${ERRANDS[cd.role].n.toLowerCase()} for ${ERRAND_LEN[li][1]}.`,'g');G.dirty=true;return true;}
+function recallErrand(type){if(!onErrand(type))return;delete S.errands[type];const cd=COMPS.find(x=>x.id===type);log(`${cd.n} is recalled, empty-handed.`);G.dirty=true;}
+function finishErrand(type){
+  const e=S.errands[type];delete S.errands[type];
+  const c=(S.party||[]).find(x=>x.type===type);if(!c)return;
+  const cd=COMPS.find(x=>x.id===type),p=errandPay(c,e.li),t=maxUnlockedArea();
+  S.gold+=p.gold;if(p.food){const f=AREAS[t].food;S.food[f]+=p.food;}if(p.bones)S.bones+=p.bones;if(p.scrap)S.scrap+=p.scrap;
+  if(p.chest)S.chests+=p.chest;if(p.rune){S.runes[rollRune(true)]++;}
+  if(p.gear)gainItem(makeItem(AREAS[t].tier,SLOTS[rnd(0,9)],Math.max(2,rollRarity(0.4))));
+  if(p.uniq&&Math.random()<p.uniq){const u=rollUnique({area:t,boss:t},3);if(u)gainItem(u);}
+  S.errandsDone=(S.errandsDone||0)+1;
+  const msg=`${cd.n} returns from the ${ERRANDS[cd.role].n.toLowerCase()}: ${errandText(p)}.`;log(msg,'g');if(!G.sim)toast(`${cd.n} is back: ${errandText(p)}`);G.dirty=true;}
+function errandTick(){if(!S.errands)return;for(const t in S.errands){if(errandLeft(t)<=0)finishErrand(t);}}
 function compPerks(b){for(const c of party())b.dr+=cqDR(c.type);}
 function compMult(c){return 1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100;}
 function compCost(c){return Math.round(600*Math.pow(1.8,c.lvl||0));}
@@ -1672,7 +1709,7 @@ function tick(dt){
   G.pT-=dt;G.mT-=dt;
   if(G.pT<=0){playerHit(false);G.pT+=attackDelay();}
   if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd;}
-  G.cT=(G.cT||0)+dt;if(G.cT>=3){G.cT-=3;compTick();}
+  G.cT=(G.cT||0)+dt;if(G.cT>=3){G.cT-=3;compTick();errandTick();}
 }
 
 // ============ UI ============
@@ -1682,7 +1719,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -2004,7 +2041,11 @@ function renderKeep(){
     const c=P[i];
     if(c){const d=COMPS.find(x=>x.id===c.type);
       compRows+=`<div class="pslot"><span><b>${d.n}</b> lv ${c.lvl}<br><span class="sub">${compDesc(c)}</span></span><span style="display:flex;gap:4px;flex-direction:column"><button class="sm" data-train="${i}" ${S.gold>=compCost(c)?'':'disabled'}>Train ${fmt(compCost(c))}g</button><button class="sm" data-dismiss="${i}">Dismiss</button></span></div>`;
-      compRows+=`<div class="pslot"><span class="sub">Kit ${cqTally(c.type).n}/7 worn · power ×${compMult(c).toFixed(2)}</span><button class="sm" data-ckit="${c.type}">Equipment</button></div>`;}
+      compRows+=`<div class="pslot"><span class="sub">Kit ${cqTally(c.type).n}/7 worn · power ×${compMult(c).toFixed(2)}</span><button class="sm" data-ckit="${c.type}">Equipment</button></div>`;
+      const E=ERRANDS[d.role];
+      if(onErrand(c.type)){const ms=errandLeft(c.type),h=Math.floor(ms/3600000),m=Math.ceil(ms%3600000/60000);
+        compRows+=`<div class="pslot"><span><b>${E.ic} On ${E.n.toLowerCase()}</b> · back in ${h?h+'h ':''}${m}m<br><span class="sub">Out of the fight until then</span></span><button class="sm" data-recall="${c.type}">Recall</button></div>`;}
+      else compRows+=`<div class="pslot"><span><b>${E.ic} ${E.n}</b> <span class="sub">— ${E.d}</span><br><span class="sub">${ERRAND_LEN.map((L,li)=>L[1]+': '+errandText(errandPay(c,li))).join('<br>')}</span></span><span style="display:flex;gap:4px;flex-direction:column">${ERRAND_LEN.map((L,li)=>`<button class="sm" data-errand="${c.type}" data-len="${li}" ${G.dead?'disabled':''}>${L[1]}</button>`).join('')}</span></div>`;}
     else if(slotOpen(i)&&i<=P.length){
       const avail=COMPS.filter(x=>!partyHas(x.id)&&(!x.hidden||S.compFound[x.id])&&keepLv('barracks')>=x.req);
       compRows+=avail.length
@@ -2018,15 +2059,17 @@ function renderKeep(){
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
-   keepCard('barracks',`Two companions fight beside you, one of each kind. Hire and train them here; their equipment lives in the companion window.`,compRows)+
+   keepCard('barracks',`Two companions fight beside you, one of each kind. Hire and train them here; their equipment lives in the companion window. Send one on an errand and it leaves the fight to bring back loot on real time — the longer the errand, the richer the haul.`,compRows)+
    `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1} · ${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
   document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;if(partyHas(type)){toast('You already have a '+COMPS.find(x=>x.id===type).n);return;}S.gold-=hireCost(i);S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
   document.querySelectorAll('#keep [data-train]').forEach(b=>b.onclick=()=>{const c=S.party[+b.dataset.train];if(!c||S.gold<compCost(c))return;S.gold-=compCost(c);c.lvl++;toast(`${COMPS.find(x=>x.id===c.type).n} trained to ${c.lvl}`);renderAll();});
   document.querySelectorAll('#keep [data-ckit]').forEach(b=>b.onclick=()=>cqOpen(b.dataset.ckit));
+  document.querySelectorAll('#keep [data-errand]').forEach(b=>b.onclick=()=>{if(sendErrand(b.dataset.errand,+b.dataset.len)){toast('Sent on an errand');renderAll();}});
+  document.querySelectorAll('#keep [data-recall]').forEach(b=>b.onclick=()=>{recallErrand(b.dataset.recall);renderAll();});
   document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost; its kit stays in the armoury.`)){
-      S.party.splice(i,1);renderAll();}});
+      if(S.errands)delete S.errands[c.type];S.party.splice(i,1);renderAll();}});
   $('kAsc').onclick=()=>{if(!ascReady())return;if(confirm(`Ascend for +${ascShards()} shards? Skills, gear, gold and areas reset.`)){ascend();toast('Realm '+(S.asc.realm+1));showTab('hero');}};
 }
 
@@ -2394,7 +2437,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b42-seals';
+  const BUILD='b43-errands';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

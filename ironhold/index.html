@@ -944,14 +944,17 @@ function bonuses(){
   masteryBonus(b);
   compPerks(b);
   b.gold+=keepLv('chest')*5;
+  b.dr+=creedEff('dr',0);b.gold+=creedEff('gold',0);
   const sh=S.asc?S.asc.shards:0;b.xp+=sh*2;b.gold+=sh;b.luck+=sh;b.atk+=Math.floor(sh*0.5);b.str+=Math.floor(sh*0.5);b.def+=Math.floor(sh*0.5);
   return b;
 }
 function maxHp(){return lv('hp')+bonuses().hp;}
 function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
-function attackDelay(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-b.spd/100);}
+function attackDelay(){return attackDelay0()*creedEff('spd',1);}
+function attackDelay0(){const w=weapon();const b=bonuses();return (w?w.spd:2.4)*(1-b.spd/100);}
 function styleBonus(){const st=STYLES[S.style].s;return {atk:st==='atk'?3:st==='all'?1:0,str:st==='str'?3:st==='all'?1:0,def:st==='def'?3:st==='all'?1:0};}
-function playerMaxHit(){const b=bonuses();const sb=styleBonus();const sk=cskill();
+function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('mh',1)));}
+function playerMaxHit0(){const b=bonuses();const sb=styleBonus();const sk=cskill();
   return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')*(1+b.mh/100)));}
 function playerAtkRoll(){const b=bonuses();const sb=styleBonus();const sk=cskill();
   return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk');}
@@ -1079,7 +1082,7 @@ function finishErrand(type){
   const msg=`${cd.n} returns from the ${ERRANDS[cd.role].n.toLowerCase()}: ${errandText(p)}.`;log(msg,'g');if(!G.sim)toast(`${cd.n} is back: ${errandText(p)}`);G.dirty=true;}
 function errandTick(){if(!S.errands)return;for(const t in S.errands){if(errandLeft(t)<=0)finishErrand(t);}}
 function compPerks(b){for(const c of party())b.dr+=cqDR(c.type);}
-function compMult(c){return 1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100;}
+function compMult(c){return (1+0.2*keepLv('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100)*creedEff('comp',1);}
 function compCost(c){return Math.round(600*Math.pow(1.8,c.lvl||0));}
 // What the companion is worth RIGHT NOW. The old menu printed a fixed blurb, so
 // training changed the fight but never the numbers on screen.
@@ -1174,6 +1177,17 @@ function rerollCost(){return (maxUnlockedArea()+1)*100;}
 function bountyReward(b){const r=b.rw;return [fmt(r.gold)+'g',r.scrap?r.scrap+' scrap':'',r.rune?'1 rune':'',r.chest?'1 chest':''].filter(Boolean).join(' + ');}
 
 function realmMult(){return 1+0.5*((S.asc&&S.asc.realm)||0);}
+
+// ============ CREEDS ============
+// Ascending used to be a multiplier. Now it is a choice: the banner the next
+// realm is fought under, held until you ascend again.
+const CREEDS=[
+ {id:'iron',  n:'Iron Creed',  d:'Take 12% less damage, but attack 15% slower.',eff:{dr:12,spd:1.15}},
+ {id:'wild',  n:'Wild Creed',  d:'Companions strike and heal twice as hard; your own max hit falls by 15%.',eff:{comp:2,mh:0.85}},
+ {id:'gilded',n:'Gilded Creed',d:'Gold +40%, but XP -20%.',eff:{gold:40,xp:0.8}},
+];
+function creed(){return CREEDS.find(c=>c.id===(S.asc&&S.asc.creed))||null;}
+function creedEff(k,dflt){const c=creed();return c&&c.eff[k]!==undefined?c.eff[k]:dflt;}
 
 // ============ FEATS ============
 // Deeds, checked every few seconds and paid once. Some carry a title the
@@ -1611,7 +1625,7 @@ function log(msg,cls){const el=document.getElementById('log');const d=document.c
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2200);}
 
 function addXp(dmg){
-  const b=bonuses();const mult=(1+b.xp/100)*diff().xp;const st=STYLES[S.style].s;const sk=cskill();
+  const b=bonuses();const mult=(1+b.xp/100)*diff().xp*creedEff('xp',1);const st=STYLES[S.style].s;const sk=cskill();
   const KEYS=['atk','str','def','hp','rng','mag'];
   const before={};for(const k of KEYS)before[k]=lv(k);
   if(sk){
@@ -2130,7 +2144,7 @@ function renderKeep(){
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
    keepCard('barracks',`Two companions fight beside you, one of each kind. Hire and train them here; their equipment lives in the companion window. Send one on an errand and it leaves the fight to bring back loot on real time — the longer the errand, the richer the haul.`,compRows)+
-   `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1} · ${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
+   `<div class="altar"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1}${creed()?` under the <b class="gold">${creed().n}</b> — ${creed().d}`:''}<br>${S.asc.shards} shards (each: +2% XP, +1% gold, +1% drops, +½ to every bonus).<br>Ascending resets skills, gear, gold, food and areas. Keep buildings, runes, companions, prayers and tower record stay. Monsters grow ×${(realmMult()+0.5).toFixed(1)} next realm.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain or combat level 70.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`;
   document.querySelectorAll('#keep [data-build]').forEach(b=>b.onclick=()=>{if(buildKeep(b.dataset.build))toast(KEEP[b.dataset.build].n+' raised');renderAll();});
   $('kForge').onclick=()=>showTab('vault');$('kSalv').onclick=salvageJunk;$('kEat').onclick=()=>{eat(true);renderAll();};$('kChest').onclick=()=>{openChest();};
   document.querySelectorAll('#keep [data-hire]').forEach(b=>b.onclick=()=>{const i=+b.dataset.hire;if(S.gold<hireCost(i)||S.party[i])return;const type=document.querySelector(`#keep [data-hsel="${i}"]`).value;if(partyHas(type)){toast('You already have a '+COMPS.find(x=>x.id===type).n);return;}S.gold-=hireCost(i);S.party[i]={type,lvl:0};log(`${COMPS.find(x=>x.id===type).n} joins the hold.`,'g');renderAll();});
@@ -2140,7 +2154,13 @@ function renderKeep(){
   document.querySelectorAll('#keep [data-recall]').forEach(b=>b.onclick=()=>{recallErrand(b.dataset.recall);renderAll();});
   document.querySelectorAll('#keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost; its kit stays in the armoury.`)){
       if(S.errands)delete S.errands[c.type];S.party.splice(i,1);renderAll();}});
-  $('kAsc').onclick=()=>{if(!ascReady())return;if(confirm(`Ascend for +${ascShards()} shards? Skills, gear, gold and areas reset.`)){ascend();toast('Realm '+(S.asc.realm+1));showTab('hero');}};
+  $('kAsc').onclick=()=>{if(!ascReady())return;
+    let h=`<div class="mhead"><div><h2>Ascend</h2><div class="sub">+${ascShards()} shards. Skills, gear, gold, food and areas reset. Choose the creed the next realm is fought under — it holds until you ascend again.</div></div></div>`;
+    h+=CREEDS.map(c=>`<div class="aff" style="margin:8px 0 4px"><b>${c.n}</b><br><span class="sub">${c.d}</span></div><button class="sm" data-creed="${c.id}" style="width:100%">Ascend under the ${c.n}</button>`).join('');
+    h+=`<div class="btns"><button id="mClose" style="grid-column:1/-1">Not yet</button></div>`;
+    $('modalBox').innerHTML=h;$('modal').className='on';
+    $('mClose').onclick=()=>{$('modal').className='';};
+    document.querySelectorAll('#modalBox [data-creed]').forEach(b=>b.onclick=()=>{S.asc.creed=b.dataset.creed;$('modal').className='';ascend();toast('Realm '+(S.asc.realm+1)+' · '+creed().n);showTab('hero');});};
 }
 
 // ============ COMPANION EQUIPMENT WINDOW ============
@@ -2295,7 +2315,7 @@ function renderTop(){
   const A=AREAS[S.area];const ready=S.kills[S.area]>=A.need;
   $('bossTxt').textContent=S.cleared[S.area]?'Boss again':ready?'Fight boss':`Boss ${S.kills[S.area]}/${A.need}`;$('btnBoss').disabled=!(ready||S.cleared[S.area])||G.isBoss||G.dead;
   if(G.tower){$('areaName').textContent='Tower · Floor '+G.tower;$('prevArea').disabled=$('nextArea').disabled=true;$('bossTxt').textContent='Leave tower';$('btnBoss').disabled=G.dead;}
-  else{$('areaName').textContent=A.n+(S.asc.realm?' · Realm '+(S.asc.realm+1):'');$('prevArea').disabled=S.area===0;$('nextArea').disabled=!unlocked(S.area+1);}
+  else{$('areaName').textContent=A.n+(S.asc.realm?' · Realm '+(S.asc.realm+1)+(creed()?' ('+creed().n.replace(' Creed','')+')':''):'');$('prevArea').disabled=S.area===0;$('nextArea').disabled=!unlocked(S.area+1);}
   if(G.dead)$('status').textContent='Downed. Recovering...';
   else if(G.mob){const hc=hitChance(playerAtkRoll(),mobDefRoll(G.mob));const dps=(playerMaxHit()/2*hc/attackDelay()).toFixed(1);$('status').textContent=`${STYLES[S.style].n} stance · hit ${Math.round(hc*100)}% · ~${dps} dps${G.isBoss?' · Boss engaged':''}`;}
 }
@@ -2507,7 +2527,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b44-feats';
+  const BUILD='b45-creeds';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

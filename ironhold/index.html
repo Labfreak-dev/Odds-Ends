@@ -522,6 +522,10 @@
           </div>
           <div class="bag" id="bag"></div>
           <div class="chk" style="margin-top:8px"><input type="checkbox" id="autoSalv"><label for="autoSalv">Auto-salvage drops that aren't an upgrade</label></div>
+          <div class="sub" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">Keep if
+            <select id="kiRar"><option value="0">any rarity</option><option value="2">Fine or better</option><option value="3">Superior or better</option><option value="4">Masterwork or better</option><option value="5">Legendary or better</option></select>
+            or has <select id="kiAff"><option value="">no particular affix</option><option value="gold">Gold</option><option value="luck">Drop chance</option><option value="xp">XP</option><option value="leech">Lifesteal</option><option value="mh">Max hit</option><option value="hp">Hitpoints</option><option value="spd">Attack delay</option></select>
+            <label><input type="checkbox" id="kiStyle"> salvage kit for other styles, even upgrades</label></div>
           <div class="row"><span>Metal scrap <b class="gold" id="scrapCnt">0</b></span><span class="sub">Feeds the Forge</span></div>
         </div>
         <div class="panel" data-sec="Collection">
@@ -891,6 +895,15 @@ function effText(eff){return Object.keys(eff).map(k=>AFFIX[k].n.replace('{v}',ef
 function makeUnique(key){const U=UNIQUES[key];const it=makeItem(U.tier,'weapon',6,U.wt);it.uq=key;it.aff=Object.assign({},U.eff);return it;}
 function makeSetPiece(key,slot){const T=SETS[key];const it=makeItem(T.tier,slot,6,undefined,T.arm||null);it.set=key;return it;}
 function isSpecial(it){return !!(it&&(it.uq||it.set));}
+// Provenance: a found piece remembers where it dropped and carries a tiny
+// implicit in that ground's character. Claimed and crafted pieces carry none.
+const PROV=[{hp:2},{gold:2},{leech:1},{str:1},{def:2},{mh:1},{xp:2},{luck:2}],PROV_TOWER={atk:1};
+function provOf(it){if(!it||it.from===undefined||it.from===null)return null;return it.from==='t'?PROV_TOWER:(PROV[it.from]||null);}
+function provName(it){return it.from==='t'?'the Tower of Trials':(AREAS[it.from]?AREAS[it.from].n:'');}
+// Keep-if: rules that hold a drop back from auto-salvage and the junk pile, and
+// one that throws off-style kit onto it even when it scores higher.
+function keepRule(it){const k=S.keepIf||{};if(k.rar&&it.rar>=k.rar)return true;if(k.aff&&it.aff&&it.aff[k.aff]!==undefined)return true;return false;}
+function offStyle(it){const k=S.keepIf||{};const st=itemStyleOf(it);return !!(k.style&&st&&st!==cstyle());}
 const SET_IK={head:'helm',body:'body',legs:'legs',shield:'shield'};
 const setSlots=k=>SETS[k].sl||SET_SLOTS;
 const setIk=k=>SETS[k].ik||SET_IK;
@@ -939,6 +952,7 @@ function bonuses(){
   const b={atk:0,str:0,def:0,hp:0,mh:0,leech:0,xp:0,gold:0,luck:0,spd:0,dr:0};
   for(const s of SLOTS){const it=S.equip[s];if(!it)continue;const st=itemStats(it);
     b.atk+=st.atk*(it.arm&&ARMK[it.arm].style!==cstyle()?0.4:1);b.str+=st.str;b.def+=st.def;for(const k in it.aff)b[k]+=it.aff[k];
+    const pv=provOf(it);if(pv)for(const k in pv)b[k]+=pv[k];
     const rw=rwOf(it);if(rw)for(const k in rw.eff)b[k]+=rw.eff[k];}
   setBonuses(b);
   masteryBonus(b);
@@ -1794,10 +1808,10 @@ function killMob(){
   G.dirty=true;
 }
 function gainItem(it){
-  const cur=S.equip[it.slot];
+  const cur=S.equip[it.slot];if(it.from===undefined)it.from=G.tower?'t':S.area;
   if(isSpecial(it)){markFound(it);if(S.inv.length>=28){const j=S.inv.findIndex(x=>!isSpecial(x)&&!x.rw);if(j>=0){const junk=S.inv.splice(j,1)[0];S.scrap+=itemScrap(junk);log('Pack full: salvaged '+itemName(junk)+' to make room.');}}
     if(S.inv.length<28){S.inv.push(it);log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));}return;}
-  if(S.autoSalv&&cur&&itemScore(it)<=itemScore(cur)){S.scrap+=itemScrap(it);S.gold+=Math.floor(itemValue(it)/2);bounty('salvage',1);return;}
+  if(S.autoSalv&&!keepRule(it)&&((cur&&itemScore(it)<=itemScore(cur))||offStyle(it))){S.scrap+=itemScrap(it);S.gold+=Math.floor(itemValue(it)/2);bounty('salvage',1);return;}
   if(S.inv.length>=28){S.gold+=Math.floor(itemValue(it)/2);if(!G.sim)log('Backpack full: sold '+itemName(it)+' for '+Math.floor(itemValue(it)/2)+' gold.');return;}
   S.inv.push(it);log('Loot: '+itemName(it),it.rar>=3?'g':'');
   if(!G.sim&&it.rar>=3)toast('Rare drop: '+itemName(it));
@@ -1893,7 +1907,7 @@ function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'he
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
-  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;S.draught=S.draught||null;
+  S.party=S.party||[];S.compOwn=S.compOwn||{};S.compWorn=S.compWorn||{};S.ingots=S.ingots||0;S.seals=S.seals||{};S.errands=S.errands||{};S.feats=S.feats||{done:{},title:null};S.scrolls=S.scrolls||0;S.curse=S.curse||null;S.draught=S.draught||null;S.keepIf=S.keepIf||{rar:0,aff:'',style:false};
   for(const c of S.party){
     if(c.gear){for(const k in c.gear){if(c.gear[k])S.inv.push(c.gear[k]);}delete c.gear;}  // hero gear is no longer companion gear
     if(c.items){// the flat three-slot kit became a seven-slot paperdoll
@@ -2097,7 +2111,7 @@ function buildFilters(){
   $('fltRar').onchange=e=>{S.fltRar=e.target.value;renderBag();};
   $('fltSort').onchange=e=>{S.fltSort=e.target.value;renderBag();};
 }
-function isJunk(it){if(it.rw||isSpecial(it))return false;const cur=S.equip[it.slot];return !!cur&&itemScore(it)<=itemScore(cur);}
+function isJunk(it){if(it.rw||isSpecial(it)||keepRule(it))return false;if(offStyle(it))return true;const cur=S.equip[it.slot];return !!cur&&itemScore(it)<=itemScore(cur);}
 function salvageJunk(){
   let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);
   toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the pack is junk.');renderAll();
@@ -2106,6 +2120,7 @@ function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest();
 function renderBag(){
   const el=$('bag');el.innerHTML='';$('bagCnt').textContent=S.inv.length+'/28';
   $('chestCnt').textContent=S.chests;$('scrapCnt').textContent=S.scrap;$('autoSalv').checked=S.autoSalv;
+  $('kiRar').value=String((S.keepIf&&S.keepIf.rar)||0);$('kiAff').value=(S.keepIf&&S.keepIf.aff)||'';$('kiStyle').checked=!!(S.keepIf&&S.keepIf.style);
   $('fltSlot').value=S.fltSlot;$('fltRar').value=S.fltRar;$('fltSort').value=S.fltSort;
   $('btnChest').disabled=$('btnChestAll').disabled=S.chests<=0;
   $('runes').innerHTML=RUNES.map((r,i)=>`<div class="rune"><div class="g" style="color:${RUNE_COL[i]}">${r[0]}</div>${r}<br><b>×${S.runes[i]}</b></div>`).join('');
@@ -2492,6 +2507,7 @@ function openItem(it,equipped){
   for(const k in it.aff)h+=`<div class="aff">${AFFIX[k].n.replace('{v}',it.aff[k]).replace('--','+')}${sealBtn('chief',k,'Reroll')}${sealBtn('warlord',k,'Swap')}${sealBtn('wyrm',k,'Strip')}</div>`;
   if(canCraft(it)&&sealCount('matriarch')>0&&Object.keys(it.aff).length<sealMaxAff(it))h+=`<div class="aff"><button class="sm" data-seal="matriarch" data-aff="" title="${SEALS.matriarch.d}">Add an affix</button> <span class="sub">Matriarch's Tear ×${sealCount('matriarch')}</span></div>`;
   if(canCraft(it)&&sealsHeld().length)h+=`<div class="sub" style="margin-top:4px">Seals held: ${sealsHeld().map(k=>`${SEALS[k].n} ×${sealCount(k)}`).join(' · ')}</div>`;
+  {const pv=provOf(it);if(pv)h+=`<div class="sub" style="margin:2px 0">Found in ${provName(it)} · ${Object.keys(pv).map(k=>AFFIX[k].n.replace('{v}',pv[k]).replace('--','+')).join(', ')}</div>`;}
   if(it.set){const T=SETS[it.set];const c=setCounts()[it.set]||0;h+=`<div class="setb">${T.n} set (${c}/4 worn)</div><div class="setb" style="opacity:${c>=2?1:.55}">2 pieces: ${effText(T.b2)}</div><div class="setb" style="opacity:${c>=4?1:.55}">4 pieces: ${effText(T.b4)}</div>`;}
   const rw=rwOf(it);
   if(rw)h+=`<div class="aff" style="color:#c9a6ff"><b>Runeword ${rw.n}</b>: ${rw.d}</div>`;
@@ -2598,6 +2614,7 @@ $('btnSalvJunk').onclick=salvageJunk;
 $('prevArea').onclick=()=>{if(!G.tower)goArea(S.area-1);};
 $('nextArea').onclick=()=>{if(!G.tower)goArea(S.area+1);};
 $('autoSalv').onchange=e=>S.autoSalv=e.target.checked;
+$('kiRar').onchange=e=>{S.keepIf.rar=+e.target.value;};$('kiAff').onchange=e=>{S.keepIf.aff=e.target.value;};$('kiStyle').onchange=e=>{S.keepIf.style=e.target.checked;renderAll();};
 $('autoBury').onchange=e=>S.pray.autoBury=e.target.checked;
 $('btnBury').onclick=()=>{const n=bury(99);toast(n?`Buried ${n} bones`:'Nothing to bury.');renderAll();};
 $('autoEat').onchange=e=>S.autoEat=e.target.checked;
@@ -2633,7 +2650,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b48-draughts';
+  const BUILD='b49-provkeep';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

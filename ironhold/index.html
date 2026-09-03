@@ -141,7 +141,7 @@
 
   /* --- dock --- */
   #dock{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--dock);border-top:3px solid #000;box-shadow:inset 0 2px 0 var(--bevel);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
-  #dock .in{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  #dock .in{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
   #dock button{
     display:flex;flex-direction:column;align-items:center;gap:3px;
     background:var(--panel-2);border:2px solid #000;box-shadow:inset 0 0 0 1px #4a3a28;
@@ -423,6 +423,17 @@
     #bench>.tab.on>.panel{min-height:0;overflow:auto;flex:0 1 auto}
     #dock{position:static;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
   }
+
+  /* --- ledger: the guide and the save code, off the dock --- */
+  #btnLedger{min-height:30px;padding:5px 10px;font-size:15px;line-height:1}
+  #lgModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:28;padding:8px}
+  #lgModal.on{display:flex}
+  #lgBox{width:min(760px,100%);max-height:94vh;overflow:auto;background:linear-gradient(var(--panel),#24180f);
+    border:3px solid var(--line);box-shadow:inset 0 0 0 2px var(--bevel),inset 0 0 0 3px #000,0 18px 50px rgba(0,0,0,.65);border-radius:4px}
+  #lgHead{display:flex;align-items:center;gap:6px;padding:6px 8px;background:linear-gradient(#4a3724,var(--panel-2));
+    border-bottom:3px solid #000;box-shadow:inset 0 -2px 0 var(--bevel);position:sticky;top:0;z-index:5}
+  #lgHead h2{flex:1;text-align:center;font:bold 17px/1 Georgia,serif;color:var(--gold);margin:0}
+  #lgBody{display:flex;flex-direction:column;gap:8px;padding:8px}
 </style>
 </head>
 <body>
@@ -431,6 +442,7 @@
     <div id="brand"><span id="crest"></span><h1>Ironhold Idle <span class="sub" id="bstamp" style="font:11px Verdana;color:var(--muted)" title="build stamp">v0.9</span></h1></div>
     <div id="pills"></div>
     <div id="lamp"><span id="lampDot"></span><span id="lampTxt">Auto-battle</span></div>
+    <button class="sm" id="btnLedger" title="Ledger — guide and save">&#9881;</button>
   </div>
 
   <div id="desk">
@@ -468,8 +480,8 @@
       </section>
 
       <section class="tab" id="tab-vault">
-        <div class="panel" data-sec="Vault">
-          <h2>Vault <span id="bagCnt" class="sub"></span></h2>
+        <div class="panel" data-sec="Pack">
+          <h2>Pack <span id="bagCnt" class="sub"></span></h2>
           <div class="filters">
             <select id="fltSlot"></select>
             <select id="fltRar"></select>
@@ -483,6 +495,11 @@
           <div class="bag" id="bag"></div>
           <div class="chk" style="margin-top:8px"><input type="checkbox" id="autoSalv"><label for="autoSalv">Auto-salvage drops that aren't an upgrade</label></div>
           <div class="row"><span>Metal scrap <b class="gold" id="scrapCnt">0</b></span><span class="sub">Feeds the Forge</span></div>
+        </div>
+        <div class="panel" data-sec="Collection">
+          <h2>Collection <span class="sub" id="collCnt"></span></h2>
+          <p class="sub" style="margin-bottom:8px">Unique weapons and set armour you've found. Area uniques drop from that area's monsters, boss uniques from bosses (best odds on the first kill), set pieces in their home area once its boss is down, and hold relics from chests.</p>
+          <div class="coll" id="coll"></div>
         </div>
         <div class="panel" data-sec="Runes">
           <h2>Rune pouch</h2>
@@ -507,6 +524,13 @@
           <h2>Mastery</h2>
           <div class="mastery" id="mastery"></div>
         </div>
+        <div class="panel" data-sec="Prayer">
+          <h2>Prayer</h2>
+          <div class="row"><span>Points <b class="gold" id="prayPts">0/30</b></span><span>Bones <b class="gold" id="boneCnt">0</b></span><button class="sm" id="btnBury">Bury bones</button></div>
+          <div class="chk"><input type="checkbox" id="autoBury" checked><label for="autoBury">Bury bones automatically when points run low</label></div>
+          <p class="sub" style="margin:4px 0 8px">Prayers drain points while active. Points refill slowly only when no prayer is lit. Each bone restores 8. Points cap at 30 + combat level.</p>
+          <div class="prayers" id="prayers"></div>
+        </div>
         <div class="panel" data-sec="Auto-eat">
           <h2>Auto-eat</h2>
           <div class="chk"><input type="checkbox" id="autoEat" checked><label for="autoEat">Eat automatically below <b id="eatPctTxt">50</b>% HP</label></div>
@@ -514,39 +538,33 @@
         </div>
       </section>
 
-      <section class="tab" id="tab-prayer">
-        <div class="panel">
-          <h2>Prayer</h2>
-          <div class="row"><span>Points <b class="gold" id="prayPts">0/30</b></span><span>Bones <b class="gold" id="boneCnt">0</b></span><button class="sm" id="btnBury">Bury bones</button></div>
-          <div class="chk"><input type="checkbox" id="autoBury" checked><label for="autoBury">Bury bones automatically when points run low</label></div>
-          <p class="sub" style="margin:4px 0 8px">Prayers drain points while active. Points refill slowly only when no prayer is lit. Each bone restores 8. Points cap at 30 + combat level.</p>
-          <div class="prayers" id="prayers"></div>
-        </div>
-      </section>
 
       <section class="tab" id="tab-world">
-        <div class="panel" data-sec="Bounties"><h2>Bounty board <span class="sub" id="bountyDay"></span></h2><div id="bounties"></div></div>
         <div class="panel" data-sec="Map"><h2>World</h2><div class="sub" style="text-align:center;margin-bottom:8px">Choose where the blade works.</div><div id="areas"></div></div>
+        <div class="panel" data-sec="Bounties"><h2>Bounty board <span class="sub" id="bountyDay"></span></h2><div id="bounties"></div></div>
       </section>
 
       <section class="tab" id="tab-keep">
         <div class="panel"><h2>Keep</h2><div class="keep" id="keep"></div></div>
       </section>
 
-      <section class="tab" id="tab-codex">
-        <div class="panel" data-sec="Collection">
-          <h2>Collection <span class="sub" id="collCnt"></span></h2>
-          <p class="sub" style="margin-bottom:8px">Unique weapons and set armour you've found. Area uniques drop from that area's monsters, boss uniques from bosses (best odds on the first kill), set pieces in their home area once its boss is down, and hold relics from chests.</p>
-          <div class="coll" id="coll"></div>
-        </div>
-        <div class="panel" data-sec="Guide">
+    </div>
+  </div>
+</div>
+
+<nav id="dock"><div class="in" id="dockIn"></div></nav>
+<div id="modal"><div class="box panel" id="modalBox"></div></div>
+<div id="lgModal"><div id="lgBox">
+  <header id="lgHead"><h2>Ledger</h2><button class="sm" id="lgX">&#10005;</button></header>
+  <div id="lgBody">
+        <div class="panel">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
-          <p class="sub" style="margin-top:8px"><b>Keep</b>: raise the five buildings with gold and scrap for permanent perks. The Barracks hires a companion (hound, cleric or squire) who fights beside you.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the World tab. Records every five floors pay a chest. Dying just sends you home.<br><b>Bounties</b>: three posted daily on the World tab; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Party</b>: the Barracks holds up to three companions; slots 2 and 3 open at Barracks level 2 and 4.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the vault, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
-          <p class="kbd" style="margin-top:8px">Keys: 1–7 menus · Space special · E eat · B bury bones</p>
-          <p class="kbd" id="buildTag">Build 2026-09-02 · gear pass (kits, sets, unique weapons)</p>
+          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: hire and train them in the Barracks; two fight beside you, one of each kind, the second slot opening at Barracks level 2. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain or you reach combat 70. Resets your champion for permanent shards and a harder, richer realm.</p>
+          <p class="kbd" style="margin-top:8px">Keys: 1–5 menus · Space special · E eat · B bury bones</p>
+          <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p>
         </div>
-        <div class="panel" data-sec="Save">
+        <div class="panel">
           <h2>Save</h2>
           <p class="sub">Saves every 10 seconds when browser storage is available. Copy the code to move your save elsewhere.</p>
           <textarea id="saveTxt" spellcheck="false"></textarea>
@@ -554,13 +572,8 @@
             <button id="btnExport">Export</button><button id="btnImport">Import</button><button id="btnReset">Reset</button>
           </div>
         </div>
-      </section>
-    </div>
   </div>
-</div>
-
-<nav id="dock"><div class="in" id="dockIn"></div></nav>
-<div id="modal"><div class="box panel" id="modalBox"></div></div>
+</div></div>
 <div id="chModal"><div id="chBox">
   <header id="chHead"><h2>Champion</h2><button class="sm" id="chX">&#10005;</button></header>
   <div id="chBody">
@@ -571,7 +584,7 @@
     <aside id="chStats"></aside>
   </div>
   <div id="chPills"></div>
-  <div id="chBagWrap"><h3>Vault <span class="sub" id="chBagLab"></span></h3><div id="chBag"></div></div>
+  <div id="chBagWrap"><h3>Pack <span class="sub" id="chBagLab"></span></h3><div id="chBag"></div></div>
   <div id="chFoot"><div class="msg" id="chMsg"></div><button class="sm" id="chStrip">Strip all</button></div>
 </div></div>
 <div id="cqModal"><div id="cqBox">
@@ -1388,8 +1401,8 @@ function killMob(){
 }
 function gainItem(it){
   const cur=S.equip[it.slot];
-  if(isSpecial(it)){markFound(it);if(S.inv.length>=28){const j=S.inv.findIndex(x=>!isSpecial(x)&&!x.rw);if(j>=0){const junk=S.inv.splice(j,1)[0];S.scrap+=itemScrap(junk);log('Vault full: salvaged '+itemName(junk)+' to make room.');}}
-    if(S.inv.length<28){S.inv.push(it);log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));}else{S.gold+=itemValue(it);log('Vault full: sold '+itemName(it));}return;}
+  if(isSpecial(it)){markFound(it);if(S.inv.length>=28){const j=S.inv.findIndex(x=>!isSpecial(x)&&!x.rw);if(j>=0){const junk=S.inv.splice(j,1)[0];S.scrap+=itemScrap(junk);log('Pack full: salvaged '+itemName(junk)+' to make room.');}}
+    if(S.inv.length<28){S.inv.push(it);log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));}return;}
   if(S.autoSalv&&cur&&itemScore(it)<=itemScore(cur)){S.scrap+=itemScrap(it);S.gold+=Math.floor(itemValue(it)/2);bounty('salvage',1);return;}
   if(S.inv.length>=28){S.gold+=Math.floor(itemValue(it)/2);if(!G.sim)log('Backpack full: sold '+itemName(it)+' for '+Math.floor(itemValue(it)/2)+' gold.');return;}
   S.inv.push(it);log('Loot: '+itemName(it),it.rar>=3?'g':'');
@@ -1423,7 +1436,7 @@ function tick(dt){
 // ============ UI ============
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
-function uiDefaults(){S.tab=S.tab||'hero';S.sec=S.sec||{};
+function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';S.sec=S.sec||{};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,3);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks'])S.keep[k]=S.keep[k]||0;
   S.runes=S.runes||[0,0,0,0,0,0];S.tower=S.tower||{best:0};S.asc=S.asc||{shards:0,realm:0,count:0};S.comp=S.comp||{type:null,lvl:0};
@@ -1513,7 +1526,7 @@ function itemGlyph(it){
 }
 
 // --- topbar ---
-const PILLS=[['gold','Gold',()=>fmt(S.gold)],['scrap','Scrap',()=>fmt(S.scrap)],['chest','Chests',()=>S.chests],['fish','Food',()=>S.food.reduce((a,b)=>a+b,0)],['skull','Kills',()=>fmt(S.totalKills)],['swords','Combat',()=>'Lv. '+combatLvl()]];
+const PILLS=[['gold','Gold',()=>fmt(S.gold)],['scrap','Scrap',()=>fmt(S.scrap)],['chest','Chests',()=>S.chests],['fish','Food',()=>S.food.reduce((a,b)=>a+b,0)]];
 function buildTop(){
   $('crest').innerHTML=`<svg viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg"><path d="M2 3 h30 v16 c0 9-8 14-15 17 C10 33 2 28 2 19z" fill="#2c2116" stroke="#ffd24a" stroke-width="2"/><path d="M11 24 v-9 h3 v-3 h2 v3 h2 v-3 h2 v3 h3 v9z" fill="#ffd24a"/><rect x="15" y="19" width="4" height="5" fill="#2c2116"/></svg>`;
   $('pills').innerHTML=PILLS.map(([k,n])=>`<div class="pill">${svg(k,18)}<div><span>${n}</span><b id="pill-${k}">0</b></div></div>`).join('');
@@ -1523,7 +1536,13 @@ function renderPills(){for(const [k,,f] of PILLS)$('pill-'+k).textContent=f();
   const L=$('lamp');L.className=G.dead?'dead':(G.isBoss||G.tower)?'boss':'';$('lampTxt').textContent=G.dead?'Downed':G.isBoss?'Boss engaged':G.tower?'Tower floor '+G.tower:'Auto-battle';}
 
 // --- dock ---
-const TABS=[['hero','Champion','champion'],['vault','Vault','vault'],['skills','Skills','skills'],['world','World','world'],['keep','Keep','keep'],['prayer','Prayer','prayer'],['codex','Codex','codex']];
+const TABS=[['hero','Worn','champion'],['vault','Pack','vault'],['skills','Train','skills'],['world','March','world'],['keep','Hold','keep']];
+function lgWire(){
+  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';};
+  $('lgX').onclick=()=>$('lgModal').classList.remove('on');
+  $('lgModal').addEventListener('click',e=>{if(e.target.id==='lgModal')$('lgModal').classList.remove('on');});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')$('lgModal').classList.remove('on');});
+}
 function chWire(){
   $('chX').onclick=chClose;$('chStrip').onclick=chStripAll;$('btnGear').onclick=chOpen;
   $('chModal').addEventListener('click',e=>{if(e.target.id==='chModal')chClose();});
@@ -1601,9 +1620,9 @@ function buildFilters(){
 function isJunk(it){if(it.rw||isSpecial(it))return false;const cur=S.equip[it.slot];return !!cur&&itemScore(it)<=itemScore(cur);}
 function salvageJunk(){
   let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);
-  toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the vault is junk.');renderAll();
+  toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the pack is junk.');renderAll();
 }
-function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest();n++;}if(!n)toast(S.chests?'Vault is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
+function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest();n++;}if(!n)toast(S.chests?'Pack is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
 function renderBag(){
   const el=$('bag');el.innerHTML='';$('bagCnt').textContent=S.inv.length+'/28';
   $('chestCnt').textContent=S.chests;$('scrapCnt').textContent=S.scrap;$('autoSalv').checked=S.autoSalv;
@@ -1614,7 +1633,7 @@ function renderBag(){
   let list=S.inv.filter(it=>(!S.fltSlot||it.slot===S.fltSlot)&&(!S.fltRar||it.rar===+S.fltRar));
   const sorts={score:(a,b)=>(itemScore(b)-(S.equip[b.slot]?itemScore(S.equip[b.slot]):0))-(itemScore(a)-(S.equip[a.slot]?itemScore(S.equip[a.slot]):0)),newest:(a,b)=>b.id-a.id,tier:(a,b)=>b.tier-a.tier||b.rar-a.rar,name:(a,b)=>itemName(a).localeCompare(itemName(b))};
   list.sort(sorts[S.fltSort]||sorts.score);
-  if(!S.inv.length){el.innerHTML='<div class="sub" style="grid-column:1/-1;padding:10px 0;text-align:center">Empty vault. The blade will fill it.</div>';return;}
+  if(!S.inv.length){el.innerHTML='<div class="sub" style="grid-column:1/-1;padding:10px 0;text-align:center">Empty pack. The blade will fill it.</div>';return;}
   if(!list.length){el.innerHTML='<div class="sub" style="grid-column:1/-1;padding:10px 0;text-align:center">Nothing matches those filters.</div>';return;}
   for(const it of list){const cur=S.equip[it.slot];const diff=itemScore(it)-(cur?itemScore(cur):0);
     const d=document.createElement('div');d.className='item r'+it.rar;
@@ -1725,7 +1744,7 @@ function renderKeep(){
   }
   const ready=ascReady();
   $('keep').innerHTML=
-   keepCard('forge',`Upgrade gear from any item window. Scrap: <b class="gold">${S.scrap}</b>`,`<button class="sm" id="kForge">Open vault</button>`)+
+   keepCard('forge',`Upgrade gear from any item window. Scrap: <b class="gold">${S.scrap}</b>`,`<button class="sm" id="kForge">Open pack</button>`)+
    keepCard('yard',`${junk} junk piece${junk===1?'':'s'} waiting.`,`<button class="sm" id="kSalv" ${junk?'':'disabled'}>Salvage junk</button>`)+
    keepCard('larder',larder,`<button class="sm" id="kEat" ${fc&&!G.dead&&S.hp<maxHp()?'':'disabled'}>Eat now</button>`)+
    keepCard('chest',`<b class="gold">${S.chests}</b> chest${S.chests===1?'':'s'} waiting.`,`<button class="sm" id="kChest" ${S.chests?'':'disabled'}>Open chest</button>`)+
@@ -1866,8 +1885,8 @@ function chRender(){
     return `<div class="chb${ok?'':' locked'}" data-chwear="${i}" style="--rc:${rc(it)}">${itemGlyph(it)}`
       +(ok?'':`<span class="rq">${req.s} ${req.lv}</span>`)
       +`<span class="cqtip">${chName(it)}${ok?'':` — needs ${SK_NAME[req.s]} ${req.lv}`}</span></div>`;
-  }).join(''):`<div class="empty">The vault is empty.</div>`;
-  $('chMsg').textContent=chUI.msg||'Click a worn slot for its item window. Click a vault piece to wear it.';
+  }).join(''):`<div class="empty">The pack is empty.</div>`;
+  $('chMsg').textContent=chUI.msg||'Click a worn slot for its item window. Click a pack piece to wear it.';
   $('chBag').querySelectorAll('[data-chwear]').forEach(el=>el.onclick=()=>chWear(+el.dataset.chwear));
 }
 function chWear(i){
@@ -1878,8 +1897,8 @@ function chWear(i){
 }
 function chStripAll(){
   let n=0;
-  for(const sl of SLOTS){if(!S.equip[sl])continue;if(S.inv.length>=28){toast('Vault is full.');break;}unequip(sl);n++;}
-  chUI.msg=n?`${n} piece${n===1?'':'s'} returned to the vault.`:'Nothing to strip.';renderAll();
+  for(const sl of SLOTS){if(!S.equip[sl])continue;if(S.inv.length>=28){toast('Pack is full.');break;}unequip(sl);n++;}
+  chUI.msg=n?`${n} piece${n===1?'':'s'} returned to the pack.`:'Nothing to strip.';renderAll();
 }
 
 function renderTop(){
@@ -1899,7 +1918,12 @@ function renderTop(){
 }
 function renderAll(){
   renderTop();
-  switch(S.tab){case 'hero':renderSlots();break;case 'vault':renderBag();break;case 'skills':renderSkills();break;case 'world':renderAreas();break;case 'keep':renderKeep();break;case 'prayer':renderPrayer();break;case 'codex':renderCodex();break;}
+  switch(S.tab){
+    case 'hero':renderSlots();break;
+    case 'vault':renderBag();renderCodex();break;      // the Pack carries the Collection
+    case 'skills':renderSkills();renderPrayer();break; // Train carries Prayer
+    case 'world':renderAreas();break;
+    case 'keep':renderKeep();break;}
   if(chUI.open){if(S.tab!=='hero')renderSlots();chRender();}
   if(cqUI.open)cqRender();
   G.dirty=false;
@@ -1944,9 +1968,9 @@ function equip(it){
   if(it.slot==='shield'&&S.equip.weapon&&WEAPONS[S.equip.weapon.wt].two){S.inv.push(S.equip.weapon);S.equip.weapon=null;}
   S.equip[it.slot]=it;S.hp=Math.min(S.hp,maxHp());
 }
-function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Vault is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
+function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 function openChest(){
-  if(S.chests<=0)return;if(S.inv.length>=28){toast('Vault is full.');return;}
+  if(S.chests<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
   S.chests--;bounty('chests',1);const A=AREAS[S.area];
   const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,7),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
   const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.inv.push(it);markFound(it);
@@ -1978,7 +2002,7 @@ function offline(){
 }
 
 // ============ WIRING ============
-buildTop();buildDock();buildSecs();buildFilters();cqWire();chWire();
+buildTop();buildDock();buildSecs();buildFilters();cqWire();chWire();lgWire();
 $('btnSpec').onclick=special;
 $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
@@ -1998,7 +2022,7 @@ $('btnReset').onclick=()=>{if(confirm('Reset all progress?')){try{localStorage.r
 $('modal').onclick=e=>{if(e.target.id==='modal'){$('modal').className='';renderAll();}};
 document.addEventListener('keydown',e=>{
   const t=e.target;if(t&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT'||t.tagName==='SELECT'))return;
-  if(e.key>='1'&&e.key<='7'){showTab(TABS[+e.key-1][0]);e.preventDefault();}
+  if(e.key>='1'&&e.key<='5'){showTab(TABS[+e.key-1][0]);e.preventDefault();}
   else if(e.key===' '){special();e.preventDefault();}
   else if(e.key==='e'||e.key==='E'){eat(true);}
   else if(e.key==='b'||e.key==='B'){const n=bury(5);toast(n?`Buried ${n} bones`:'Nothing to bury.');renderAll();}
@@ -2023,7 +2047,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b25-menus';
+  const BUILD='b26-fivemenus';
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

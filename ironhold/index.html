@@ -275,6 +275,7 @@
   #modal .aff{font-size:12px;color:#c9a6ff;margin:2px 0}
   #modal .btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
   #modal .mhead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  #modal .mx{position:sticky;top:0;float:right;z-index:2;width:32px;height:32px;padding:0;margin:-4px -4px 0 0;font:bold 16px Georgia,serif;line-height:30px;text-align:center}
   #modal .mhead svg{width:44px;height:44px;flex:none}
   #toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#000d;border:2px solid var(--gold);box-shadow:inset 0 0 0 1px #000,0 0 0 2px #000;padding:8px 14px;border-radius:3px;display:none;z-index:20;font-size:13px;max-width:90%;text-align:center}
   .kbd{font:11px monospace;color:var(--muted)}
@@ -1641,8 +1642,9 @@ function jewelCard(k){const jw=medSock(k);const col=sockCol(k,jw);const J=col&&J
   h+=`<div class="carve"><span class="sub">Carve three runes:</span> ${sel(0)}${sel(1)}${sel(2)}<button class="sm" data-jcarve="${k}">Carve</button></div>`;
   return h+`</div></div>`;}
 function medHtml(){
-  if(!medOwned())return `<div class="mhead"><div><h2>Ascension Medallion</h2><div class="sub">Forged on your first ascension. Six sockets for six jewels; the Elder Wyrm gives one up each realm, and the tower's deep wardens carry them too.</div></div></div><div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;
-  let h=`<div class="medring"><img src="${MED_ART.base}" alt="">`+JEWELS.map(J=>{const jw=medSock(J.id);const [x,y]=MED_ART.sock[J.id];return jw?`<div class="mj" style="left:${x}%;top:${y}%"><img src="${MED_ART.jewels[J.id]}" alt=""><span>${jw.g}${jw.fl?'✦':''}</span></div>`:'';}).join('')+`</div>`;
+  const topX=`<button class="mx" id="mCloseTop" aria-label="Close">✕</button>`;
+  if(!medOwned())return topX+`<div class="mhead"><div><h2>Ascension Medallion</h2><div class="sub">Forged on your first ascension. Six sockets for six jewels; the Elder Wyrm gives one up each realm, and the tower's deep wardens carry them too.</div></div></div><div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;
+  let h=topX+`<div class="medring"><img src="${MED_ART.base}" alt="">`+JEWELS.map(J=>{const jw=medSock(J.id);const [x,y]=MED_ART.sock[J.id];return jw?`<div class="mj" style="left:${x}%;top:${y}%"><img src="${MED_ART.jewels[J.id]}" alt=""><span>${jw.g}${jw.fl?'✦':''}</span></div>`:'';}).join('')+`</div>`;
   h+=`<div class="mhead"><div><h2>Ascension Medallion</h2><div class="sub">Grades ${medGrades()}/${JEWELS.length*JEWEL_MAX+(wildOpen()?JEWEL_MAX:0)}. Fuse a duplicate jewel to raise a grade. Each colour keeps two or three recipes of three runes, and nothing says which: carve, and a miss tells you how many belonged. Runes held: ${RUNES.map((r,i)=>`<b style="color:${RUNE_COL[i]}">${r} ${S.runes[i]||0}</b>`).join(' · ')}</div></div></div>`;
   for(const J of JEWELS)h+=jewelCard(J.id);
   h+=jewelCard('wild');
@@ -1651,8 +1653,8 @@ function medHtml(){
      known.map(r=>`<div class="aff" style="color:${act.includes(r)?'#c9a6ff':'var(--muted)'}"><b>${r.n}</b> (${insOf(r.a).n} + ${insOf(r.b).n}): ${r.d}${act.includes(r)?'':' · dormant'}</div>`).join('')+
      (known.length<RESON.length?`<div class="sub">${RESON.length-known.length} undiscovered</div>`:'')+`</div>`;}
   h+=`<div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;return h;}
-function openMed(){$('modalBox').innerHTML=medHtml();$('modal').className='on';
-  $('mClose').onclick=()=>{$('modal').className='';renderAll();};
+function openMed(){$('modalBox').innerHTML=medHtml();$('modal').className='on';$('modalBox').scrollTop=0;
+  const close=()=>{$('modal').className='';renderAll();};$('mClose').onclick=close;if($('mCloseTop'))$('mCloseTop').onclick=close;
   document.querySelectorAll('#modalBox [data-jsock]').forEach(b=>b.onclick=()=>{const j=b.dataset.jsock;if(medLoose(j)<1)return;S.med.loose[j]--;S.med.sock[j]={g:1,ins:null};openMed();});
   document.querySelectorAll('#modalBox [data-jwild]').forEach(b=>b.onclick=()=>{if(setWild(b.dataset.jwild))openMed();});
   document.querySelectorAll('#modalBox [data-jfuse]').forEach(b=>b.onclick=()=>{if(fuseJewel(b.dataset.jfuse)){toast('Fused');openMed();}});
@@ -3103,7 +3105,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b63-vows';window.__ihBoot=true;
+  const BUILD='b64-medclose';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

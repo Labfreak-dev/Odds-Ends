@@ -1910,13 +1910,13 @@ function openTrialOffer(){if(!trialOffered())return false;G.modalKind='trial';
   $('modal').className='on';
   document.querySelectorAll('#modalBox [data-trial]').forEach(b=>b.onclick=()=>{if(startTrial(b.dataset.trial)){G.modalKind=null;$('modal').className='';showTab('hero');}});
   $('mNoTrial').onclick=()=>{declineTrials();G.modalKind=null;$('modal').className='';renderAll();};return true;}
-function abandonTrial(){if(!S.trial)return false;const T=trial();S.trial=null;log(`You set the trial of ${T.n} aside. The realm's areas stay as they are.`,'e');G.dirty=true;return true;}
+function abandonTrial(){if(!S.trial)return false;const T=trial();S.trial=null;log(`The trial of ${T.n} is forfeited. Nothing is lost and nothing changes: no bonus gained or taken, the rules lift, and the realm goes on as an ordinary one with its areas as they are.`,'b');if(!G.sim)toast('Trial forfeited');G.dirty=true;return true;}
 function trialClear(){const T=trial();if(!T)return;const sec=Math.max(1,Math.round(S.trial.sec));S.trials=S.trials||{};const rec=S.trials[T.id]||{best:0,clears:0};const first=!rec.clears;rec.clears++;const best=!rec.best||sec<rec.best;if(best)rec.best=sec;S.trials[T.id]=rec;S.trial=null;
   if(first){featGrant(T.rw);S.titles=S.titles||[];if(!S.titles.includes(T.title))S.titles.push(T.title);}
   log(`Trial cleared — ${T.n} in ${fmtTime(sec)}${first?`: ${featText(T.rw)}, and the title "${T.title}"`:best?': a new best':''}.`,'g');if(!G.sim)toast('Trial cleared: '+T.n);G.dirty=true;}
 function trialsHtml(){if(!medOwned())return '';const T=trial();
   let h=`<div class="altar trials"><div><h3>Trials</h3>`;
-  if(T)h+=`<p>Under way: <b style="color:#ff9c6b">${T.n}</b> — ${T.d} ${fmtTime(S.trial.sec)} on the clock, ${clearedCount()}/8 areas.</p></div><button class="boss" data-trial-abandon="1">Abandon</button></div>`;
+  if(T)h+=`<p>Under way: <b style="color:#ff9c6b">${T.n}</b> — ${T.d} ${fmtTime(S.trial.sec)} on the clock, ${clearedCount()}/8 areas.<br><span class="sub">Forfeit at any time: nothing is lost and nothing changes, no bonus gained or taken; the rules lift and the realm goes on as an ordinary one${trialRule('weapon')===0?', your weapon waiting in the pack':''}.</span></p></div><button class="boss" data-trial-abandon="1">Forfeit the trial</button></div>`;
   else if(trialOffered()){h+=`<p>Offered at the altar's door: begin one now for the realm ahead, or refuse and the trials close until you ascend again.</p>`+trialListHtml()+`<div class="btns" style="margin-top:6px"><button class="sm" data-trial-decline="1">No — an ordinary realm</button></div>`;
     const titles=(S.titles||[]);if(titles.length)h+=`<div class="sub" style="margin-top:6px">Titles won: `+titles.map(t=>`<button class="sm${heroTitle()===t?' on':''}" data-title="${t}">${heroTitle()===t?'Worn: ':''}${t}</button>`).join(' ')+`</div>`;
     h+=`</div></div>`;}
@@ -3265,7 +3265,7 @@ const FOLD_SUM={
   chest:()=>S.chests?`${S.chests} chest${S.chests===1?'':'s'} waiting`:'No chests waiting',
   barracks:()=>{const n=(S.party||[]).length;return `${n} companion${n===1?'':'s'} · ${fieldCount()}/${fieldMax()} in the field`;},
   vault:()=>`Keeps ${keepLv('vault')} through ascension`,
-  trials:()=>trial()?`${trial().n} under way · ${fmtTime(S.trial.sec)}`:trialOffered()?'Offered: choose for the realm ahead':`${(S.titles||[]).length} title${(S.titles||[]).length===1?'':'s'} won`,
+  trials:()=>trial()?`${trial().n} under way · ${fmtTime(S.trial.sec)} · forfeit any time`:trialOffered()?'Offered: choose for the realm ahead':`${(S.titles||[]).length} title${(S.titles||[]).length===1?'':'s'} won`,
   siegecard:()=>siegeActive()?`Siege under way · walls ${siege().act.walls}/${SIEGE_WALLS}`:siegeReady()?'The horde is due today':'Quiet today',
   dyn:()=>`${dynRank()?`Rank ${dynRank()} · `:''}${RAZE_KEYS.filter(k=>keepLv(k)>=KEEP_MAX).length}/5 buildings at the top`,
   heir:()=>S.heir?itemName(S.heir):'Not yet forged',
@@ -3715,7 +3715,7 @@ function renderKeep(){
   document.querySelectorAll('#tab-keep [data-dismiss]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dismiss;const c=S.party[i];if(!c)return;if(confirm(`Dismiss your ${COMPS.find(x=>x.id===c.type).n}? Training is lost; its kit stays in the armoury.`)){
       if(S.errands)delete S.errands[c.type];S.party.splice(i,1);renderAll();}});
   document.querySelectorAll('#tab-keep [data-trial]').forEach(b=>b.onclick=()=>{if(confirm('Begin this trial? The realm starts over under its rules: areas cleared this realm are cleared no more.')){if(startTrial(b.dataset.trial))renderAll();}});
-  document.querySelectorAll('#tab-keep [data-trial-abandon]').forEach(b=>b.onclick=()=>{if(abandonTrial())renderAll();});
+  document.querySelectorAll('#tab-keep [data-trial-abandon]').forEach(b=>b.onclick=()=>{if(confirm('Forfeit the trial? Nothing happens to you: no bonus is gained or taken, and nothing is lost. The rules simply lift and the realm carries on as an ordinary one. The trials stay closed until you ascend again.')){if(abandonTrial())renderAll();}});
   document.querySelectorAll('#tab-keep [data-trial-decline]').forEach(b=>b.onclick=()=>{if(confirm('Go in as an ordinary realm? The trials close until you ascend again.')){declineTrials();renderAll();}});
   document.querySelectorAll('#tab-keep [data-title]').forEach(b=>b.onclick=()=>{wearTitle(b.dataset.title);renderAll();});
   document.querySelectorAll('#tab-keep [data-siege]').forEach(b=>b.onclick=()=>{if(startSiege())renderAll();});
@@ -4120,7 +4120,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b94-creeds';window.__ihBoot=true;
+  const BUILD='b95-forfeit';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

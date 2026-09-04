@@ -1691,9 +1691,19 @@ function creedDescHtml(c){return Object.keys(c.eff).map(k=>`<span style="color:$
 function creedCounts(){const n={};for(const id of ((S.asc&&S.asc.creeds)||[]))n[id]=(n[id]||0)+1;return n;}
 function creedSummary(){const t={};for(const c of creeds())for(const k in c.eff){if(CREED_ADD[k])t[k]=(t[k]||0)+c.eff[k];else t[k]=(t[k]||1)*c.eff[k];}
   return Object.keys(t).filter(k=>CREED_ADD[k]?t[k]!==0:Math.abs(t[k]-1)>0.001).map(k=>creedPhrase(k,CREED_ADD[k]?t[k]:+t[k].toFixed(3))).join(' · ');}
+function creedDraw(){const held=creedCounts();let pool=CREEDS.filter(c=>!held[c.id]).map(c=>c.id);if(pool.length<3)pool=CREEDS.map(c=>c.id);
+  const ids=[];while(ids.length<3&&pool.length){ids.push(pool.splice(rnd(0,pool.length-1),1)[0]);}return ids;}
 function creedOffer(){const r=(S.asc&&S.asc.realm)||0;if(S.asc.creedOffer&&S.asc.creedOffer.realm===r&&S.asc.creedOffer.ids.length===3)return S.asc.creedOffer.ids;
-  const held=creedCounts();let pool=CREEDS.filter(c=>!held[c.id]).map(c=>c.id);if(pool.length<3)pool=CREEDS.map(c=>c.id);
-  const ids=[];while(ids.length<3&&pool.length){ids.push(pool.splice(rnd(0,pool.length-1),1)[0]);}S.asc.creedOffer={realm:r,ids};return ids;}
+  const ids=creedDraw();S.asc.creedOffer={realm:r,ids};return ids;}
+// Realms ascended before creeds were kept still owe one each; the debt is settled at the next ascension, one choice at a time.
+function creedDebt(){return Math.max(0,((S.asc&&S.asc.count)||0)-((S.asc&&S.asc.creeds)||[]).length);}
+function openCreedDebt(then){const n=creedDebt();if(!n||!S.asc.creedDebtOpen){S.asc.creedDebtOpen=false;if(then)then();return false;}G.modalKind='creeddebt';
+  const ids=creedDraw();
+  $('modalBox').innerHTML=`<div class="mhead"><div><h2>Creeds owed</h2><div class="sub">You ascended before creeds were kept, and every ascension swears one. <b class="gold">${n}</b> remain${n===1?'s':''} to choose; each stays with you for good, like the rest.${creeds().length?` Sworn so far: ${creedText()}.`:''}</div></div></div>`
+    +ids.map(id=>CREEDS.find(c=>c.id===id)).filter(Boolean).map(c=>`<div class="aff" style="margin:8px 0 4px"><b>${c.n}</b><br>${creedDescHtml(c)}</div><button class="sm" data-debt="${c.id}" style="width:100%">Swear the ${c.n}</button>`).join('');
+  $('modal').className='on';
+  document.querySelectorAll('#modalBox [data-debt]').forEach(b=>b.onclick=()=>{S.asc.creeds=[b.dataset.creed||b.dataset.debt].concat(S.asc.creeds||[]);log(`Sworn for a realm past: the ${CREEDS.find(c=>c.id===b.dataset.debt).n}.`,'g');G.dirty=true;
+    if(creedDebt()>0)openCreedDebt(then);else{S.asc.creedDebtOpen=false;$('modal').className='';renderAll();if(then)then();}});return true;}
 // One creed is sworn at each ascension and none is ever lost: every creed sworn stays in force, and they stack
 // (multipliers multiply, flat bonuses add). The same creed sworn twice counts twice.
 function creeds(){const ids=(S.asc&&S.asc.creeds)||[];return ids.map(id=>CREEDS.find(c=>c.id===id)).filter(Boolean);}
@@ -3908,7 +3918,7 @@ function renderKeep(){
     const vowSum=()=>{const n=document.querySelectorAll('#modalBox [data-vow]:checked').length;$('vowSum').textContent=n?`${n} vow${n===1?'':'s'}: shards ×${vowShardMult(n).toFixed(2)} at the next ascension.`:'No vows: an ordinary realm.';};
     document.querySelectorAll('#modalBox [data-vow]').forEach(cb=>cb.onchange=vowSum);
     document.querySelectorAll('#modalBox [data-vault]').forEach(cb=>cb.onchange=()=>{const on=[...document.querySelectorAll('#modalBox [data-vault]:checked')];if(on.length>vl){cb.checked=false;toast(`The vault holds ${vl}`);}});
-    document.querySelectorAll('#modalBox [data-creed]').forEach(b=>b.onclick=()=>{const kept=[...document.querySelectorAll('#modalBox [data-vault]:checked')].map(cb=>cands[+cb.dataset.vault]);const nv=[...document.querySelectorAll('#modalBox [data-vow]:checked')].map(cb=>cb.dataset.vow);S.asc.creeds=[b.dataset.creed].concat(S.asc.creeds||[]);S.asc.creedOffer=null;$('modal').className='';ascend(kept,nv);toast('Realm '+(S.asc.realm+1)+' · '+creedText());showTab('hero');openTrialOffer();});};
+    document.querySelectorAll('#modalBox [data-creed]').forEach(b=>b.onclick=()=>{const kept=[...document.querySelectorAll('#modalBox [data-vault]:checked')].map(cb=>cands[+cb.dataset.vault]);const nv=[...document.querySelectorAll('#modalBox [data-vow]:checked')].map(cb=>cb.dataset.vow);S.asc.creeds=[b.dataset.creed].concat(S.asc.creeds||[]);S.asc.creedOffer=null;$('modal').className='';ascend(kept,nv);toast('Realm '+(S.asc.realm+1)+' · '+creedText());showTab('hero');if(creedDebt()>0){S.asc.creedDebtOpen=true;openCreedDebt(openTrialOffer);}else openTrialOffer();});};
 }
 
 // ============ COMPANION EQUIPMENT WINDOW ============
@@ -4279,7 +4289,7 @@ document.addEventListener('keydown',e=>{
   else{S.equip.weapon=makeItem(0,'weapon',1,1);S.food[0]=10;log('The hold is yours. Bronze scimitar. Pasture first. You coach — the blade works.','g');}
   uiDefaults();applySecs();try{wpnWarm();}catch(e){}
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
-  refreshBounties();spawn(false);showTab(S.tab);if(trialOffered())openTrialOffer();
+  refreshBounties();spawn(false);showTab(S.tab);if(S.asc&&S.asc.creedDebtOpen&&creedDebt()>0)openCreedDebt(()=>{if(trialOffered())openTrialOffer();});else if(trialOffered())openTrialOffer();
   let last=performance.now(),acc=0,uiT=0,saveT=0;
   function frame(now){
     const dt=Math.min(0.25,(now-last)/1000);last=now;acc+=dt;
@@ -4290,7 +4300,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b105-barracks';window.__ihBoot=true;
+  const BUILD='b106-creeddebt';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

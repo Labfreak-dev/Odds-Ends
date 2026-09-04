@@ -2315,7 +2315,10 @@ function drawScene(t,dt){
     const q=1-FX.pLunge;
     if(pk&&q>0.34&&sprReady(pk)){const px=(HX+26)+((MX-25)-(HX+26))*((q-0.34)/0.66);
       drawSprite(sprFrame(pk,0),px,gy-52,false,0,SPR_SC[pk]);}}
-  if(G.mob){const mk=mobSprKey(G.mob);
+  if(G.mob&&G.duel!=null&&sprReady('lk_base_idle')){ // an ancestor: the champion's own look, mirrored to the monster's mark
+    const atk=FX.mLunge>0&&sprReady('lk_base_atk');const fi=atk?Math.min(2,Math.floor((1-FX.mLunge)*3)):0;const k=atk?'lk_base_atk':'lk_base_idle';
+    drawSprite(sprFrame(k,fi),MX-ml,gy+4,true,FX.mFlash,SPR_SC[k]||SPR_SC['lk_base_idle']);}
+  else if(G.mob){const mk=mobSprKey(G.mob);
     if(mk&&sprReady(mk+'_idle')){const atk=FX.mLunge>0&&sprReady(mk+'_atk');
       const fi=atk?Math.min(2,Math.floor((1-FX.mLunge)*3)):0;
       drawSprite(atk?sprFrame(mk+'_atk',fi):sprFrame(mk+'_idle',0),MX-ml,gy+6+Math.sin(t*2.5)*1.5,false,FX.mFlash,mobSprScale(G.mob));}
@@ -3434,7 +3437,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b72-souls';window.__ihBoot=true;
+  const BUILD='b73-duelface';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

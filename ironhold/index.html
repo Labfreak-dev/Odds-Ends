@@ -2646,7 +2646,23 @@ function drawWeapon(hf,x,y,flip,item){
   ctx.save();ctx.translate(g[0],g[1]);if(flip)ctx.scale(-1,1);ctx.rotate(pose-fit[0]);
   ctx.drawImage(c,-w*fit[1],-h*fit[2],w,h);   // the grip lands on the hand
   ctx.restore();
+  if(!item&&!flip){ // remember where the champion's weapon sits, for the shot: its middle (a bow) and its far end (a staff)
+    const rot=pose-fit[0],cs=Math.cos(rot),sn=Math.sin(rot);const P=(lx,ly)=>[g[0]+lx*cs-ly*sn,g[1]+lx*sn+ly*cs];
+    FX.wpnMid=P(-w*fit[1]+w/2,-h*fit[2]+h/2);
+    let best=null,bd=-1e9;for(const [lx,ly] of [[-w*fit[1],-h*fit[2]],[-w*fit[1]+w,-h*fit[2]],[-w*fit[1],-h*fit[2]+h],[-w*fit[1]+w,-h*fit[2]+h]]){const p=P(lx,ly);const d=p[0]*0.35-p[1];if(d>bd){bd=d;best=p;}}   // the head of a staff: the corner highest and nearest the foe
+    FX.wpnTip=best;}
 }
+// The magic shot: three castings in rotation, a ball of light, a fireball and an ice shard, drawn on the canvas.
+function drawBolt(x,y,ang,f,kind,t){ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+  if(kind===0){const r=9+Math.sin(t*20)*1.5;const g=ctx.createRadialGradient(0,0,0,0,0,r*2.2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.35,'rgba(255,240,170,0.9)');g.addColorStop(1,'rgba(255,220,90,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r*2.2,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(255,245,200,0.8)';ctx.lineWidth=1.5;for(let i=0;i<6;i++){const a=t*6+i*Math.PI/3;ctx.beginPath();ctx.moveTo(Math.cos(a)*r*0.6,Math.sin(a)*r*0.6);ctx.lineTo(Math.cos(a)*r*2.6,Math.sin(a)*r*2.6);ctx.stroke();}
+    for(let k=1;k<=3;k++){ctx.globalAlpha=0.35-k*0.1;ctx.fillStyle='rgba(255,235,150,1)';ctx.beginPath();ctx.arc(-k*9,0,r*(1-k*0.22),0,7);ctx.fill();}}
+  else if(kind===1){for(let k=4;k>=1;k--){ctx.globalAlpha=0.5-k*0.1;ctx.fillStyle=k>2?'rgba(255,90,20,1)':'rgba(255,170,40,1)';ctx.beginPath();ctx.ellipse(-k*8-4,Math.sin(t*30+k)*2,10-k*1.5,6-k,0,0,7);ctx.fill();}
+    ctx.globalAlpha=1;const g=ctx.createRadialGradient(0,0,0,0,0,13);g.addColorStop(0,'#fff6c0');g.addColorStop(0.4,'#ffb030');g.addColorStop(0.8,'rgba(255,70,10,0.9)');g.addColorStop(1,'rgba(200,30,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.fill();}
+  else{ctx.globalAlpha=0.5;ctx.fillStyle='rgba(200,240,255,1)';for(let k=1;k<=3;k++){ctx.beginPath();ctx.arc(-k*10,Math.sin(t*25+k*2)*3,3-k*0.6,0,7);ctx.fill();}
+    ctx.globalAlpha=1;ctx.fillStyle='#dff6ff';ctx.strokeStyle='#8fd8ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(16,0);ctx.lineTo(2,-6);ctx.lineTo(-14,-2);ctx.lineTo(-10,0);ctx.lineTo(-14,2);ctx.lineTo(2,6);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.beginPath();ctx.moveTo(12,-1);ctx.lineTo(-8,-2);ctx.stroke();}
+  ctx.restore();ctx.globalAlpha=1;}
 function heroFrame(t){
   const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0,grip:lookGrip(k,i),h:lookHand(k,i),a:lookAng(k,i),fi:0});
   if(G.dead&&sprReady('hero_death')){const e=15-G.deadT;return f('hero_death',Math.min(3,Math.floor(e/0.22)));}
@@ -2769,11 +2785,17 @@ function drawScene(t,dt){
     if(!G.dead)drawWeapon(hf,HX+pl,gy+4);}
   else if(G.dead){ctx.save();ctx.translate(HX,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
   else drawHero(HX+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
-  if(!G.dead&&FX.pLunge>0){ // the shot leaves the bow / staff on the release frame
-    const cs2=cstyle(),pk=cs2==='ranged'?'proj_arrow':cs2==='magic'?'proj_bolt':null;
-    const q=1-FX.pLunge;
-    if(pk&&q>0.34&&sprReady(pk)){const px=(HX+26)+((MX-25)-(HX+26))*((q-0.34)/0.66);
-      drawSprite(sprFrame(pk,0),px,gy-52,false,0,SPR_SC[pk]);}}
+  if(!G.dead&&FX.pLunge>0){ // the shot leaves the middle of the bow, or the head of the staff, on the release frame, and flies straight at the monster
+    const cs2=cstyle();const q=1-FX.pLunge;
+    if((cs2==='ranged'||cs2==='magic')&&q>0.34){const f=(q-0.34)/0.66;
+      const o=cs2==='ranged'?(FX.wpnMid||[HX+26,gy-52]):(FX.wpnTip||FX.wpnMid||[HX+26,gy-60]);
+      const tx=MX-25-ml,ty=gy-52;const px=o[0]+(tx-o[0])*f,py=o[1]+(ty-o[1])*f;const ang=Math.atan2(ty-o[1],tx-o[0]);
+      if(cs2==='ranged'){if(sprReady('proj_arrow')){const im=sprFrame('proj_arrow',0);const sc=(SPR_SC.proj_arrow||0.5)*1.7;const w=im.naturalWidth*sc,h=im.naturalHeight*sc;ctx.save();ctx.translate(px,py);ctx.rotate(ang);
+        ctx.globalAlpha=0.35;ctx.strokeStyle='#fff3c0';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-w/2-28,0);ctx.lineTo(-w/2+4,0);ctx.stroke();ctx.globalAlpha=1;   // the streak behind the shaft
+        ctx.shadowColor='rgba(0,0,0,.7)';ctx.shadowBlur=3;ctx.drawImage(im,-w/2,-h/2,w,h);ctx.shadowBlur=0;
+        ctx.globalAlpha=0.85;ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-w/2+8,-1);ctx.lineTo(w/2-12,-1);ctx.stroke();   // a glint along the shaft
+        ctx.restore();ctx.globalAlpha=1;}}
+      else drawBolt(px,py,ang,f,(FX.shot||0)%3,t);}}
   if(G.mob&&G.duel!=null&&sprReady('lk_base_idle')){ // an ancestor: the champion's own look, mirrored to the monster's mark
     const atk=FX.mLunge>0&&sprReady('lk_base_atk');const fi=atk?Math.min(2,Math.floor((1-FX.mLunge)*3)):0;const k=atk?'lk_base_atk':'lk_base_idle';
     drawSprite(sprFrame(k,fi),MX-ml,gy+4,true,FX.mFlash,SPR_SC[k]||SPR_SC['lk_base_idle']);
@@ -2861,7 +2883,7 @@ function playerHit(spec,sp){
   if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn(),discEff('burn'));if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
   if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
-  if(!G.sim){FX.pLunge=1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');}
+  if(!G.sim){FX.pLunge=1;FX.shot=(FX.shot||0)+1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');}
   addXp(dmg);
   if(G.mobHp<=0)killMob();
 }
@@ -4178,7 +4200,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b98-drcap';window.__ihBoot=true;
+  const BUILD='b99-shots';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

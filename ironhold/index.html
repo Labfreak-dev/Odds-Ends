@@ -199,6 +199,7 @@
   .vault-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
   @media (min-width:980px){.vault-actions{grid-template-columns:repeat(4,1fr)}}
   .packH{font:bold 15px Georgia,serif;color:var(--gold);text-align:center;margin:10px 0 6px}
+  .secH{font:bold 15px Georgia,serif;color:var(--gold);margin:14px 0 4px;padding-top:10px;border-top:1px solid rgba(0,0,0,.35)}
   .bag{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   @media (min-width:980px){.bag{grid-template-columns:repeat(5,1fr)}}
   @media (min-width:1180px){.bag{grid-template-columns:repeat(6,1fr)}}
@@ -740,14 +741,10 @@
           <h2>Feats <span class="sub" id="featCnt"></span></h2>
           <p class="sub" style="margin-bottom:6px">Deeds pay once. Some carry a title: wear it on your name plate.</p>
           <div id="feats"></div>
-        </div>
-        <div class="panel" data-sec="Road">
-          <h2>The Road <span class="sub" id="roadCnt"></span></h2>
+          <h3 class="secH">The Road <span class="sub" id="roadCnt"></span></h3>
           <p class="sub" style="margin-bottom:6px">Milestones in order, each paid once: the next thing to reach for.</p>
           <div id="road"></div>
-        </div>
-        <div class="panel" data-sec="Deeds">
-          <h2>Realm Deeds <span class="sub" id="deedCnt"></span></h2>
+          <h3 class="secH">Realm Deeds <span class="sub" id="deedCnt"></span></h3>
           <p class="sub" style="margin-bottom:6px">Goals for this realm alone; the board wipes clean when you ascend. Shards and jewels for the taking.</p>
           <div id="deeds"></div>
         </div>
@@ -757,14 +754,12 @@
           <div class="chk"><input type="checkbox" id="autoBury" checked><label for="autoBury">Bury bones automatically when points run low</label></div>
           <p class="sub" style="margin:4px 0 8px">Prayers drain points while active. Points refill slowly only when no prayer is lit. Each bone restores 8. Points cap at 30 + combat level.</p>
           <div class="prayers" id="prayers"></div>
-        </div>
-        <div class="panel" data-sec="Ascension"><h2>Ascension</h2><div class="keep stack" id="skAsc"></div></div>
-        <div class="panel" data-sec="Ancestors"><h2>Hall of Ancestors</h2><div class="keep stack" id="skHall"></div></div>
-        <div class="panel" data-sec="Auto-eat">
-          <h2>Auto-eat</h2>
+          <h3 class="secH">Auto-eat</h3>
           <div class="chk"><input type="checkbox" id="autoEat" checked><label for="autoEat">Eat automatically below <b id="eatPctTxt">50</b>% HP</label></div>
           <input type="range" id="eatPct" min="10" max="90" value="50">
         </div>
+        <div class="panel" data-sec="Ascension"><h2>Ascension</h2><div class="keep stack" id="skAsc"></div></div>
+        <div class="panel" data-sec="Ancestors"><h2>Hall of Ancestors</h2><div class="keep stack" id="skHall"></div></div>
       </section>
 
 
@@ -4427,7 +4422,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b111-altars';window.__ihBoot=true;
+  const BUILD='b112-fold';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

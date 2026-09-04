@@ -1546,6 +1546,7 @@ function merchOpen(){return maxUnlockedArea()>=1||medOwned();}
 function merchHere(){return merchOpen()&&!!merch().seen;}
 function merchLeft(){return Math.max(0,merch().seen+MERCH_STAY-Date.now());}
 function merchTick(){if(G.sim||!merchOpen())return;const m=merch();if(m.seen&&bandOffered()&&!m.stock.some(y=>y.k==='band')){m.stock.push(bandStock(maxUnlockedArea()));G.dirty=true;}
+  for(const y of m.stock)if(y.k==='band'&&!y.bought&&!y.lab){Object.assign(y,bandStock(0));G.dirty=true;}   // a line laid out before the band named its price
   if(m.seen&&Date.now()-m.seen<MERCH_STAY)return;const first=!m.seen;m.seen=Date.now();m.day=dayKey();m.stock=merchStock();
   if(first){log('A peddler\'s cart creaks up the road and stops for good. His goods are under March; he lays out new ones every hour.','g');if(!G.sim)toast('The peddler is here');}else log('The peddler lays out new goods.','b');G.dirty=true;}
 function merchStock(){const t=maxUnlockedArea();const st=[];
@@ -4220,7 +4221,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b103-pesos';window.__ihBoot=true;
+  const BUILD='b104-pesos2';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

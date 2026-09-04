@@ -1559,18 +1559,18 @@ function merchStock(){const t=maxUnlockedArea();const st=[];
   if(bandOffered())st.push(bandStock(t));
   return st.map(x=>Object.assign({bought:false},x));}
 function bandOffered(){return (S.merchBought||0)>=1&&!(S.compFound&&S.compFound.band);}
-function bandStock(t){return {k:'band',n:'Three men and a song',d:'A mariachi trio between patrons, sombreros and all. They will play for whoever feeds them, and they play well.',p:(t+1)*12000,bought:false};}
+function bandStock(t){return {k:'band',n:'Three men and a song',d:'A mariachi trio between patrons, sombreros and all. They will play for whoever feeds them, and they play well. They name their own price.',p:10000,lab:'100 Pesos',bought:false};}
 function merchBuy(i){if(!merchHere())return false;const x=merch().stock[i];if(!x||x.bought||S.gold<x.p)return false;
   if(x.k==='gear'||x.k==='uq'){if(S.inv.length>=28){if(!G.sim)toast('Your pack is full');return false;}if(x.k==='gear')S.inv.push(x.it);else gainItem(makeUnique(x.uq));}
   else if(x.k==='rune')S.runes[x.rune]++;else if(x.k==='scroll')S.scrolls=(S.scrolls||0)+1;else if(x.k==='ingot')S.ingots=(S.ingots||0)+1;else if(x.k==='meal')S.food[x.food]=(S.food[x.food]||0)+x.qty;
   else if(x.k==='band'){S.compFound=S.compFound||{};S.compFound.band=1;log('The Mariachis take your coin and your banner. Hire them at the Barracks; they need both places in the field.','g');}
   S.gold-=x.p;x.bought=true;S.merchBought=(S.merchBought||0)+1;
-  if(x.k!=='band'&&bandOffered()&&!merch().stock.some(y=>y.k==='band'))merch().stock.push(bandStock(maxUnlockedArea()));log(`Bought ${x.n} from the peddler for ${fmt(x.p)} gold.`,'g');if(!G.sim)toast('Bought '+x.n);G.dirty=true;return true;}
+  if(x.k!=='band'&&bandOffered()&&!merch().stock.some(y=>y.k==='band'))merch().stock.push(bandStock(maxUnlockedArea()));log(x.lab?`Bought ${x.n} from the peddler for ${x.lab}.`:`Bought ${x.n} from the peddler for ${fmt(x.p)} gold.`,'g');if(!G.sim)toast('Bought '+x.n);G.dirty=true;return true;}
 function merchWaiting(){return merchHere()&&merch().stock.some(x=>!x.bought&&S.gold>=x.p);}
 function renderMerch(){const el=$('merch');if(!el)return;const m=merch();
   if(!merchHere()){$('merchTime').textContent='';el.innerHTML=`<p class="sub">A peddler works these roads: his cart parks by the crossroads with goods priced for the ground you have reached, each sold once, and new ones every hour. He has not come by yet.</p>`;return;}
   const ms=merchLeft();$('merchTime').textContent=`new goods in ${Math.max(1,Math.ceil(ms/60000))}m`;
-  el.innerHTML=`<p class="sub" style="margin-bottom:6px">"Coin for goods, friend. I don't haggle and I don't stay."</p><div class="offer-list">`+m.stock.map((x,i)=>`<div class="offer"><div><b>${x.n}</b><br><span class="sub">${x.d}</span></div><button class="sm" data-buy="${i}" ${x.bought||S.gold<x.p?'disabled':''}>${x.bought?'Sold':fmt(x.p)+'g'}</button></div>`).join('')+`</div>`;
+  el.innerHTML=`<p class="sub" style="margin-bottom:6px">"Coin for goods, friend. I don't haggle and I don't stay."</p><div class="offer-list">`+m.stock.map((x,i)=>`<div class="offer"><div><b>${x.n}</b><br><span class="sub">${x.d}</span></div><button class="sm" data-buy="${i}" ${x.bought||S.gold<x.p?'disabled':''}>${x.bought?'Sold':x.lab||fmt(x.p)+'g'}</button></div>`).join('')+`</div>`;
   el.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{if(merchBuy(+b.dataset.buy))renderAll();});}
 
 // ============ WEEKLY CONTRACTS ============
@@ -4220,7 +4220,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b102-bandstock';window.__ihBoot=true;
+  const BUILD='b103-pesos';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

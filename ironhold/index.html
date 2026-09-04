@@ -1264,7 +1264,7 @@ const COMP_UNLOCK={
 function compUnlocked(id){const u=COMP_UNLOCK[id];if(!u)return true;if(u.feat)return featDone(u.feat);return !!(S.compFound&&S.compFound[id]);}
 function compLockText(id){const u=COMP_UNLOCK[id];if(!u)return '';if(u.feat){const f=FEATS.find(x=>x.id===u.feat);return f?`feat "${f.n}"`:'a feat';}return `drops from ${AREAS[u.drop].boss.n}`;}
 function compDrops(area){for(const id in COMP_UNLOCK){const u=COMP_UNLOCK[id];if(u.drop!==area||compUnlocked(id))continue;
-  const p=S.cleared[area]?0.10:0.25;if(Math.random()<p*(1+bonuses().luck/100)){S.compFound=S.compFound||{};S.compFound[id]=1;const cd=COMPS.find(x=>x.id===id);
+  const p=S.cleared[area]?0.05:0.125;if(Math.random()<p*(1+bonuses().luck/100)){S.compFound=S.compFound||{};S.compFound[id]=1;const cd=COMPS.find(x=>x.id===id);
     log(`${cd.n} steps from the ruin of ${AREAS[area].boss.n} and takes your banner. Hire it at the Barracks.`,'g');if(!G.sim)toast(cd.n+' found!');G.dirty=true;}}}
 function hireComp(type){const cd=COMPS.find(x=>x.id===type);if(!cd||partyHas(type)||!compUnlocked(type)||keepLv('barracks')<cd.req||S.gold<hireCost())return false;S.gold-=hireCost();S.party.push({type,lvl:0,field:fieldCount()<fieldMax()});log(`${cd.n} joins the hold${fieldCount()<=fieldMax()?'':' and waits at the barracks'}.`,'g');G.dirty=true;return true;}
 function fieldMax(){return keepLv('barracks')>=SLOT_REQ[1]?2:1;}
@@ -4080,7 +4080,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b89-maplabels';window.__ihBoot=true;
+  const BUILD='b90-compdrop';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -629,6 +629,14 @@
         <div class="panel" data-sec="Mastery">
           <h2>Mastery</h2>
           <div class="mastery" id="mastery"></div>
+          <h3 style="margin:12px 0 4px">Weapon proficiency</h3>
+          <p class="sub" style="margin-bottom:6px">Kills with a weapon in hand, counted across every realm. Each weapon teaches its own edge at 500, 2,000 and 5,000, and the lesson is kept for good.</p>
+          <div id="prof"></div>
+        </div>
+        <div class="panel" data-sec="Disciplines">
+          <h2>Disciplines <span class="sub" id="discCnt"></span></h2>
+          <p class="sub" style="margin-bottom:6px">At combat level 30, 50 and 70 the champion chooses one of three for their style of fighting. A discipline holds until you ascend, then is chosen again; each style keeps its own.</p>
+          <div id="disc"></div>
         </div>
         <div class="panel" data-sec="Feats">
           <h2>Feats <span class="sub" id="featCnt"></span></h2>
@@ -683,7 +691,7 @@
         <div class="panel">
           <h2>Codex</h2>
           <p class="sub">Combat runs on its own. You coach: stance, gear, eat threshold, area, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests. Weapons need Attack levels, armour needs Defence. Kill enough in an area to unlock its boss; beat the boss to open the next area. Upgrade favourite pieces at the Forge with scrap from salvaging.</p>
-          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings, walls and altar in three rooms that open as you reach them; every card there folds to its header, tap to open it. A gold dot on a menu means something waits there. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: the hold's three are free; the rest are earned on the feats board (the Tiger, Fairy, Assassin, Knight, Ent, Excalibur) or dropped by a boss (the Necromancer from the Sewer Wyrm, the Barbarian from Warlord Gunnar, the Bear from the Frost Matriarch, the Imp from the Ashborn Overlord, the Golden Dragon from the Elder Wyrm). The roster has no cap: two fight beside you, the second slot at Barracks level 2, and the rest hold the barracks, run errands and expeditions, and all of them defend a siege. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters; Nightmare opens at realm 15 and Torment at Dynasty rank 1. Torment alone drops seals from ordinary monsters and can leave a worn jewel Flawless.<br><b>The Forge of Souls</b>: a duplicate unique or set piece renders to essence from its item window; ten essence and gold forge any unique you have found, at Mythic.<br><b>The Wyrm's phases</b>: from realm 20 the Elder Wyrm fights armoured (a tenth damage until a special cracks it), then burning (the floor takes 2% of your health a second), then enraged below a quarter; slain past the armour it gives ten shards more.<br><b>Talents</b>: at levels 5, 10 and 15 a companion picks one of two talents for its role, from the Barracks.<br><b>Item ascension</b>: a Mythic at the forge cap climbs one rung a realm for shards, to +25, from its item window.<br><b>Duels</b>: any portrait in the hall can be challenged once a realm; beat the ancestor and their perk counts twice until you ascend.<br><b>Title perks</b>: every title carries a small edge that fits it, shown beside it on the feats board.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain.<br><b>Medallion</b>: forged on your first ascension, under Worn. Six sockets for six jewel colours; the Elder Wyrm gives one up each realm and deep tower wardens carry them. Fuse duplicates to raise a grade. Each colour hides two or three recipes of three runes; carve a guess and a miss tells you how many belonged. Grade multiplies the inscription. Two inscriptions carved at once can resonate into a third effect. A grade-ten stone can be re-cut for a Flawless one, or crack. A nemesis of the fifth rank opens a seventh socket that takes any colour.<br><b>The Road</b>: under Train, a milestone track in order, each paid once — combat levels, first clears, first unique, first runeword, up to the Elder Wyrm.<br><b>Mid-game runes and prayers</b>: Tempest, Warden, Hunter and Pilgrim join the runewords; Smite, Stone Skin and Sight join the prayers from combat 55.<br><b>Cooking</b>: the Larder turns raw food into meals — three shrimp into a stew, two trout into a pie that restores prayer, a lobster, swordfish and shark into a feast that charges the special.<br><b>Matched kits</b>: helm, body, legs, gloves and boots all of one tier pay +4% to every combat roll, shown on the Worn tab.<br><b>Elites</b>: one monster in twenty comes up Swift, Stony, Venomous, Gilded or Hulking, with twice the drops.<br><b>Lairs</b>: every area hides one; 150 kills of its first monster in a realm open it, and its keeper drops a unique of the area, once a realm.<br><b>Area mastery</b>: kills per area across every realm pay back there — gold at 500, drops at 2,000, max hit at 5,000.<br><b>Trials</b>: from the Hold tab, fixed-rule runs at the current realm — bare hands, alone, iron rules, the silent realm. The realm starts over under the rules; slay the Elder Wyrm and the time is kept, and a first clear pays a title.<br><b>Sieges</b>: once a real day the horde comes to the gates for ten minutes; kill fast and the walls stand, let one live fifteen seconds and they take a blow. Companions fight twice as often. Hold and the hold pays; fall and a building is wrecked a level.<br><b>Dynasty</b>: raise all five buildings to their top and the hold can be razed; it must be built again, and comes back a rank stronger for good.<br><b>The Heirloom</b>: forged at the altar from a Mythic weapon and two loose jewels; it survives every ascension and inherits one affix from each champion's last weapon, six at most.<br><b>Marks</b>: three named monsters posted each realm, wearing two omens of their own, hunted anywhere; a mark that outlives the realm gains a rank.<br><b>The Abyss</b>: on the March map beside the tower. Waves, not floors; each raises the run's loot; bank and leave at any wave, or die and lose it all.<br><b>Bestiary</b>: under Pack. Kills counted by kind; a thousand, ten thousand and a hundred thousand of a kind each teach a permanent edge against it.<br><b>Vows</b>: at the altar, before ascending, swear as many as you dare for the realm ahead — Blood, Greed, Hunger, Iron, the Storm, Silence, Solitude, Plenty, the Sprint. Each is a big gift and a real cost; they multiply together and each pays 15% more shards at the next ascension.<br><b>Omens</b>: from realm 10 each ascension rolls an omen for the whole realm, a way the monsters are worse and a way the realm pays better; at the altar, shards can buy the next one instead of rolling.<br><b>Realm deeds</b>: under Train, a second board that wipes every realm: the whole map, three Master clears, the nemesis before the sixth area, five thousand kills, floor 150, no deaths, a six-hour realm. Shards and jewels.<br><b>Vault</b>: a sixth building, priced for the Mimic's purse, that keeps one, two, then three chosen items through an ascension.<br><b>Sworn companions</b>: at level ten and twenty million gold a companion swears an oath: power ×1.3, never dismissed.<br><b>Expeditions</b>: twelve- and twenty-four-hour errands that bring back a jewel, a cursed scroll and Starsteel.<br><b>Eternity floors</b>: past tower floor 200 every floor carries an omen and every tenth warden is a slain nemesis returned, carrying a jewel; the hall records each realm's best floor.<br><b>Lieutenants</b>: a nemesis of the third rank sends one underling per area, each carrying a piece of your last champion's gear; kill it and the piece is yours again.<br><b>Nemesis</b>: once the medallion is forged, a named hunter stalks each realm after three areas are cleared. Slay it for gold, shards, Starsteel and a jewel; let it outlive an ascension and it grows, bounty and all.<br><b>Ascended floors</b>: past floor 100 the tower takes realm scaling, pays realm gold, and its wardens carry jewels.<br><b>Hall of Ancestors</b>: every ascension leaves a portrait under the altar, with a small permanent perk from the skill that champion carried furthest.<br><b>The Mimic</b>: a chest that is not a chest, by the altar. From realm 10 it eats gold for permanent gifts — the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each feeding costs more than twice the last, and ascending empties the purse, so feed it before you climb. Resets your champion for permanent shards and a harder, richer realm.</p>
+          <p class="sub" style="margin-top:8px"><b>Menus</b>: Worn is your champion, Pack your gear and collection, Train your skills and prayers, March the map and bounties, Hold your buildings, walls and altar in three rooms that open as you reach them; every card there folds to its header, tap to open it. A gold dot on a menu means something waits there. This ledger holds the guide and the save code.<br><b>Hold</b>: raise the five buildings with gold and scrap for permanent perks.<br><b>Companions</b>: the hold's three are free; the rest are earned on the feats board (the Tiger, Fairy, Assassin, Knight, Ent, Excalibur) or dropped by a boss (the Necromancer from the Sewer Wyrm, the Barbarian from Warlord Gunnar, the Bear from the Frost Matriarch, the Imp from the Ashborn Overlord, the Golden Dragon from the Elder Wyrm). The roster has no cap: two fight beside you, the second slot at Barracks level 2, and the rest hold the barracks, run errands and expeditions, and all of them defend a siege. Each of the fourteen owns a seven-piece kit bought and worn in the companion window — power and attack sharpen its blows, defence shields you, strength is flat damage, prayer widens your pool.<br><b>Bench</b>: at the Forge, reroll a piece's affixes for gold and scrap, or temper it up a rarity — Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> and its five affixes. Gold and scrap buy every rung but the last: Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with.<br><b>Starsteel</b>: an area boss gives up a bar the first time it falls, and sometimes after — more often on the harder tiers. Tower wardens carry it too.<br><b>Runes</b> drop from monsters, bosses and the tower; three runes make a Runeword you inscribe onto a piece of gear for a permanent bonus.<br><b>Tower of Trials</b>: endless floors from the March map. Records every five floors pay a chest. Dying just sends you home.<br><b>Difficulty</b>: Hard, Expert and Master open as you clear areas, and pay more gold, drops and XP for tougher monsters; Nightmare opens at realm 15 and Torment at Dynasty rank 1. Torment alone drops seals from ordinary monsters and can leave a worn jewel Flawless.<br><b>The Forge of Souls</b>: a duplicate unique or set piece renders to essence from its item window; ten essence and gold forge any unique you have found, at Mythic.<br><b>The Wyrm's phases</b>: from realm 20 the Elder Wyrm fights armoured (a tenth damage until a special cracks it), then burning (the floor takes 2% of your health a second), then enraged below a quarter; slain past the armour it gives ten shards more.<br><b>Talents</b>: at levels 5, 10 and 15 a companion picks one of two talents for its role, from the Barracks.<br><b>Item ascension</b>: a Mythic at the forge cap climbs one rung a realm for shards, to +25, from its item window.<br><b>Duels</b>: any portrait in the hall can be challenged once a realm; beat the ancestor and their perk counts twice until you ascend.<br><b>Title perks</b>: every title carries a small edge that fits it, shown beside it on the feats board.<br><b>Bounties</b>: three posted daily under March; claim rewards there, reroll ones you dislike.<br><b>Prayer</b>: light prayers for accuracy, damage, defence, regen or protection. They drain points; bones from kills restore them (auto-bury by default).<br><b>Mastery</b>: passive titles that arrive at set skill levels and feed your real bonuses.<br><b>Disciplines</b>: at combat level 30, 50 and 70, one of three for your style of fighting, under Train; they hold until you ascend, then are chosen again.<br><b>Weapon proficiency</b>: kills with each weapon in hand, kept across realms; 500, 2,000 and 5,000 each teach that weapon's own edge, for good.<br><b>Uniques &amp; sets</b>: 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged.<br><b>Ascension</b>: at the Altar, once the Elder Wyrm is slain.<br><b>Medallion</b>: forged on your first ascension, under Worn. Six sockets for six jewel colours; the Elder Wyrm gives one up each realm and deep tower wardens carry them. Fuse duplicates to raise a grade. Each colour hides two or three recipes of three runes; carve a guess and a miss tells you how many belonged. Grade multiplies the inscription. Two inscriptions carved at once can resonate into a third effect. A grade-ten stone can be re-cut for a Flawless one, or crack. A nemesis of the fifth rank opens a seventh socket that takes any colour.<br><b>The Road</b>: under Train, a milestone track in order, each paid once — combat levels, first clears, first unique, first runeword, up to the Elder Wyrm.<br><b>Mid-game runes and prayers</b>: Tempest, Warden, Hunter and Pilgrim join the runewords; Smite, Stone Skin and Sight join the prayers from combat 55.<br><b>Cooking</b>: the Larder turns raw food into meals — three shrimp into a stew, two trout into a pie that restores prayer, a lobster, swordfish and shark into a feast that charges the special.<br><b>Matched kits</b>: helm, body, legs, gloves and boots all of one tier pay +4% to every combat roll, shown on the Worn tab.<br><b>Elites</b>: one monster in twenty comes up Swift, Stony, Venomous, Gilded or Hulking, with twice the drops.<br><b>Lairs</b>: every area hides one; 150 kills of its first monster in a realm open it, and its keeper drops a unique of the area, once a realm.<br><b>Area mastery</b>: kills per area across every realm pay back there — gold at 500, drops at 2,000, max hit at 5,000.<br><b>Trials</b>: from the Hold tab, fixed-rule runs at the current realm — bare hands, alone, iron rules, the silent realm. The realm starts over under the rules; slay the Elder Wyrm and the time is kept, and a first clear pays a title.<br><b>Sieges</b>: once a real day the horde comes to the gates for ten minutes; kill fast and the walls stand, let one live fifteen seconds and they take a blow. Companions fight twice as often. Hold and the hold pays; fall and a building is wrecked a level.<br><b>Dynasty</b>: raise all five buildings to their top and the hold can be razed; it must be built again, and comes back a rank stronger for good.<br><b>The Heirloom</b>: forged at the altar from a Mythic weapon and two loose jewels; it survives every ascension and inherits one affix from each champion's last weapon, six at most.<br><b>Marks</b>: three named monsters posted each realm, wearing two omens of their own, hunted anywhere; a mark that outlives the realm gains a rank.<br><b>The Abyss</b>: on the March map beside the tower. Waves, not floors; each raises the run's loot; bank and leave at any wave, or die and lose it all.<br><b>Bestiary</b>: under Pack. Kills counted by kind; a thousand, ten thousand and a hundred thousand of a kind each teach a permanent edge against it.<br><b>Vows</b>: at the altar, before ascending, swear as many as you dare for the realm ahead — Blood, Greed, Hunger, Iron, the Storm, Silence, Solitude, Plenty, the Sprint. Each is a big gift and a real cost; they multiply together and each pays 15% more shards at the next ascension.<br><b>Omens</b>: from realm 10 each ascension rolls an omen for the whole realm, a way the monsters are worse and a way the realm pays better; at the altar, shards can buy the next one instead of rolling.<br><b>Realm deeds</b>: under Train, a second board that wipes every realm: the whole map, three Master clears, the nemesis before the sixth area, five thousand kills, floor 150, no deaths, a six-hour realm. Shards and jewels.<br><b>Vault</b>: a sixth building, priced for the Mimic's purse, that keeps one, two, then three chosen items through an ascension.<br><b>Sworn companions</b>: at level ten and twenty million gold a companion swears an oath: power ×1.3, never dismissed.<br><b>Expeditions</b>: twelve- and twenty-four-hour errands that bring back a jewel, a cursed scroll and Starsteel.<br><b>Eternity floors</b>: past tower floor 200 every floor carries an omen and every tenth warden is a slain nemesis returned, carrying a jewel; the hall records each realm's best floor.<br><b>Lieutenants</b>: a nemesis of the third rank sends one underling per area, each carrying a piece of your last champion's gear; kill it and the piece is yours again.<br><b>Nemesis</b>: once the medallion is forged, a named hunter stalks each realm after three areas are cleared. Slay it for gold, shards, Starsteel and a jewel; let it outlive an ascension and it grows, bounty and all.<br><b>Ascended floors</b>: past floor 100 the tower takes realm scaling, pays realm gold, and its wardens carry jewels.<br><b>Hall of Ancestors</b>: every ascension leaves a portrait under the altar, with a small permanent perk from the skill that champion carried furthest.<br><b>The Mimic</b>: a chest that is not a chest, by the altar. From realm 10 it eats gold for permanent gifts — the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each feeding costs more than twice the last, and ascending empties the purse, so feed it before you climb. Resets your champion for permanent shards and a harder, richer realm.</p>
           <p class="kbd" style="margin-top:8px">Keys: 1–5 menus · Space special · E eat · B bury bones</p>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p>
         </div>
@@ -1069,7 +1077,7 @@ function bonuses(){
     const pv=provOf(it);if(pv)for(const k in pv)b[k]+=pv[k];
     const rw=rwOf(it);if(rw)for(const k in rw.eff)b[k]+=rw.eff[k];}
   setBonuses(b);
-  masteryBonus(b);
+  masteryBonus(b);discBonus(b);profBonus(b);
   compPerks(b);
   b.gold+=keepEff('chest')*5;
   b.dr+=creedEff('dr',0);b.gold+=creedEff('gold',0);
@@ -1086,7 +1094,7 @@ function bonuses(){
 // twenty is the first realm writ large, never a realm whose brutes out-hit a
 // champion who out-damages them. Growth past parity comes from the hold,
 // companions, feats and the tower record, which ascension keeps.
-function hpMult(){return shardMult()*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100)*(1+0.01*hallEff('hp'))*vowMul('hp')*(1+titleEff('hpPct')/100)*Math.pow(1.08,talN('vigor'))*Math.pow(1.10,talN('anchor'));}
+function hpMult(){return shardMult()*(1+discEff('hpPct')/100)*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100)*(1+0.01*hallEff('hp'))*vowMul('hp')*(1+titleEff('hpPct')/100)*Math.pow(1.08,talN('vigor'))*Math.pow(1.10,talN('anchor'));}
 function hpBase(){return lv('hp')+bonuses().hp;}
 function maxHp(){return Math.floor(hpBase()*hpMult());}
 function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
@@ -1500,6 +1508,7 @@ function ascend(kept,newVows){
   S.asc.shards+=sh;S.asc.realm++;S.asc.count++;const om=rollOmen();
   S.trial=null;S.asc.vows=(newVows||[]).filter(id=>VOWS.find(v=>v.id===id));if(held)log(`The vows of the old realm are kept: ${held}.`,'b');if(S.asc.vows.length)log(`Sworn for this realm: ${vowText()}. Shards at the next ascension ×${vowShardMult().toFixed(2)}.`,'e');
   if(!S.med){S.med={sock:{},loose:{}};log('The altar forges your Ascension Medallion. Six sockets wait for six jewels.','g');}
+  if(discAny()){S.disc={};log('The disciplines of the old realm are forgotten; choose again at combat level 30.','b');}
   S.xp={atk:0,str:0,def:0,hp:XP[10],rng:0,mag:0};S.gold=0;S.chests=0;S.food=FOOD.map((f,i)=>i?0:10);
   for(const s of SLOTS)S.equip[s]=null;S.inv=[];S.area=0;S.kills=AREAS.map(()=>0);S.cleared=AREAS.map(()=>false);S.spec=100;
   S.equip.weapon=makeItem(0,'weapon',1,1);for(const it of kept){it.up=Math.min(it.up||0,forgeMax()+(it.asc||0));S.inv.push(it);}if(kept.length)log(`The vault kept ${kept.map(itemName).join(', ')}.`,'g');
@@ -2525,7 +2534,7 @@ function spawn(boss){
     m=Object.assign({},m,{hp:Math.round(m.hp*(mm.hp||1)),atk:Math.round(m.atk*(mm.atk||1)),def:Math.round(m.def*(mm.def||1)),hk:(m.hk||1)*(mm.hk||1),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
   const carry=!!(G.dot&&G.dot.burn&&G.mob&&G.mobHp<=0&&resonEff('ashfall')&&medEff('burn'));   // Ashfall: the last one died burning
   G.wyrm=(boss===true&&!G.tower&&!abyssW()&&S.area===AREAS.length-1&&((S.asc&&S.asc.realm)||0)>=WYRM_FROM)?{phase:1}:null;
-  G.mob=m;G.mobHp=m.hp;G.isBoss=!!boss;G.nem=boss==='nem';G.lt=boss==='lt';G.mark=boss==='mark'?m.mark:null;G.duel=(Array.isArray(boss)&&boss[0]==='duel')?boss[1]:null;G.lair=(Array.isArray(boss)&&boss[0]==='lair')?boss[1]:null;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;G.dot=carry?{burn:{pct:medEff('burn'),t:4}}:null;G.chillT=0;if(boss)draughtBoss();
+  G.mob=m;G.mobHp=m.hp;G.first=true;G.isBoss=!!boss;G.nem=boss==='nem';G.lt=boss==='lt';G.mark=boss==='mark'?m.mark:null;G.duel=(Array.isArray(boss)&&boss[0]==='duel')?boss[1]:null;G.lair=(Array.isArray(boss)&&boss[0]==='lair')?boss[1]:null;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;G.dot=carry?{burn:{pct:medEff('burn'),t:4}}:null;G.chillT=0;if(boss)draughtBoss();
   G.dirty=true;
 }
 function log(msg,cls){const el=document.getElementById('log');const d=document.createElement('div');if(cls)d.className=cls;d.textContent=msg;el.prepend(d);while(el.children.length>40)el.lastChild.remove();}
@@ -2555,19 +2564,23 @@ function playerHit(spec,sp){
   let roll=playerAtkRoll();if(spec)roll*=2.5;
   let def=mobDefRoll(m);if(sp.pierce)def*=(1-sp.pierce);if((G.sunderT||0)>0)def*=0.5;
   let dmg=0;
-  if(sp.sure||Math.random()<hitChance(roll,def)){
-    dmg=rnd(0,playerMaxHit());
+  const first=!spec&&G.first&&discHas('first');G.first=false;
+  if(sp.sure||first||Math.random()<hitChance(roll,def)){
+    dmg=first?playerMaxHit():rnd(0,playerMaxHit());
     if(spec)dmg=Math.max(dmg,Math.round(playerMaxHit()*(0.75+Math.random()*0.5)));
     if(sp.mult)dmg=Math.round(dmg*sp.mult);
     if((G.hexT||0)>0)dmg=Math.round(dmg*1.25);
     if(spec&&medEff('specDmg'))dmg=Math.round(dmg*(1+medEff('specDmg')/100));
+    if(spec&&discEff('spec'))dmg=Math.round(dmg*(1+discEff('spec')/100));
+    if(discHas('exec')&&G.mobHp<G.mob.hp*0.25)dmg=Math.round(dmg*1.5);
+    if(spec&&discHas('cleave')){const x=rnd(0,Math.round(playerMaxHit()*0.5));dmg+=x;if(!G.sim)splat(MX+20,50,'cleave','#ffd24a');}
     if(m.shape&&bestBonus(m.shape))dmg=Math.round(dmg*(1+bestBonus(m.shape)/100));
     if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;if(resonEff('stormcall'))S.spec=Math.min(100,S.spec+resonEff('stormcall'));if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
   }
   if(G.wyrm&&G.wyrm.phase===1&&dmg>0){if(spec){G.wyrm.phase=2;log('Your special cracks the Wyrm\'s armour. The floor begins to burn.','e');if(!G.sim)toast('Armour cracked!');}else dmg=Math.max(1,Math.round(dmg*0.1));}
   dmg=Math.min(dmg,G.mobHp);
   G.mobHp-=dmg;dmgWindow(dmg);wyrmCheck();
-  if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn());if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
+  if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn(),discEff('burn'));if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
   if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
   if(!G.sim){FX.pLunge=1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');}
@@ -2584,7 +2597,7 @@ function mobHit(){
   if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');}
   if(dmg>0&&medEff('zeal'))S.spec=Math.min(100,S.spec+medEff('zeal'));
   if(dmg>0&&eliteOf(m)&&eliteOf(m).poison)G.poisonT=eliteOf(m).poison;
-  if(dmg>0&&talN('riposte')&&G.mobHp>0&&Math.random()<0.2){const r=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*0.5)));G.mobHp-=r;if(!G.sim)splat(MX-10,90,r,'#c8ccd4');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
+  if(dmg>0&&(talN('riposte')||discHas('riposte'))&&G.mobHp>0&&Math.random()<0.2){const r=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*0.5)));G.mobHp-=r;if(!G.sim)splat(MX-10,90,r,'#c8ccd4');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
   if(dmg>0&&medEff('thorns')&&G.mobHp>0){const r=Math.min(G.mobHp,Math.max(1,Math.round(dmg*medEff('thorns')/100)));G.mobHp-=r;if(!G.sim)splat(MX-10,70,r,'#9adf6a');
     if(resonEff('bloodthorn'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(r*resonEff('bloodthorn')/100)));
     if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
@@ -2680,7 +2693,7 @@ function useSeal(k,it,aff){
 }
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
-  S.totalKills++;G.streak=0;draughtKill();
+  S.totalKills++;G.streak=0;draughtKill();profCount();
   const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;   // the Abyss holds its gold until it is banked
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck')*(1+areaMast(S.area,'luck')/100)*(eliteOf(m)?2:1);
   rd().kills++;bestCount(m);
@@ -2998,10 +3011,12 @@ function cqWire(){
 const SEC_GATE={
   'keep:Walls':()=>medOwned()||canRaze(),
   'keep:Ascension':()=>medOwned()||ascReady()||unlocked(AREAS.length-1),
+  'skills:Disciplines':()=>combatLvl()>=DISC_LV[0]||discAny(),
 };
 const SEC_OPEN_MSG={
   'keep:Walls':'The Walls open in the Hold: trials, the siege, the Dynasty and the Heirloom, in their own room.',
   'keep:Ascension':'The Altar of Ascension stands in the Hold, in its own room beside the buildings.',
+  'skills:Disciplines':'Combat level 30: a discipline waits under Train. Choose how you fight.',
 };
 function secOpen(tabId,name){const g=SEC_GATE[tabId+':'+name];return !g||!!g();}
 function secWatch(){
@@ -3009,7 +3024,7 @@ function secWatch(){
   let ch=false;
   for(const k in SEC_GATE){if(S.opened[k]||!SEC_GATE[k]())continue;S.opened[k]=1;ch=true;
     log(SEC_OPEN_MSG[k],'g');if(!G.sim)toast('New in the Hold');
-    if(k==='keep:Ascension')setFold('asc',false);if(k==='keep:Walls')setFold('trials',false);}
+    if(k==='keep:Ascension')setFold('asc',false);if(k==='keep:Walls')setFold('trials',false);if(k==='skills:Disciplines')toast('A discipline waits');}
   if(ch){applySecs();G.dirty=true;}
 }
 function folded(k){const f=S.fold||{};return f[k]!==false;}
@@ -3043,6 +3058,7 @@ function foldCards(root){
 }
 const BADGE={
   hero:()=>medOwned()&&looseTotal()>0,
+  skills:()=>discPending(),
   world:()=>bountyWaiting()||lairWaiting(),
   keep:()=>ascReady()||siegeReady()||siegeActive()||S.chests>0||canRaze()||canForgeHeir()||hireOpen(),
 };
@@ -3050,6 +3066,7 @@ const SEC_BADGE={
   'keep:Buildings':()=>S.chests>0||hireOpen(),
   'keep:Walls':()=>siegeReady()||siegeActive()||canRaze()||canForgeHeir(),
   'keep:Ascension':()=>ascReady(),
+  'skills:Disciplines':()=>discPending(),
   'world:Map':()=>lairWaiting(),
   'world:Bounties':()=>bountyWaiting(),
 };
@@ -3165,6 +3182,78 @@ const MASTERY=[
  ['rng',40,'Deadeye',{mh:6}],    ['mag',40,'Archmage',{xp:8}],
  ['hp',60,'Iron heart',{hp:25}],   ['atk',60,'Warmaster',{atk:10,str:10}],
 ];
+// ============ DISCIPLINES ============
+// At combat level 30, 50 and 70 the champion picks one of three for the style
+// in hand. Kept until ascension, then chosen again, so every realm is played a
+// little differently. Each style remembers its own picks.
+const DISC_LV=[30,50,70];
+const DISC={
+ melee:[
+  [{id:'riposte',n:'Riposte',d:'One blow in five that lands on you is answered with half your max hit',fl:{riposte:1}},
+   {id:'cleave',n:'Cleave',d:'Specials strike a second time at half',fl:{cleave:1}},
+   {id:'bulwark',n:'Bulwark',d:'+6% damage reduction',eff:{dr:6}}],
+  [{id:'bloodlust',n:'Bloodlust',d:'+4% of damage dealt heals you',eff:{leech:4}},
+   {id:'heavyhand',n:'Heavy Hand',d:'+8% max hit, −5% attack speed',eff:{mh:8,spd:-5}},
+   {id:'quickstep',n:'Quick Step',d:'+8% attack speed, −4% max hit',eff:{spd:8,mh:-4}}],
+  [{id:'executioner',n:'Executioner',d:'Hits on a monster below a quarter of its health deal half again',fl:{exec:1}},
+   {id:'juggernaut',n:'Juggernaut',d:'+15% hitpoints',fl:{hpPct:15}},
+   {id:'warlord',n:'Warlord',d:'+5 to attack, strength and defence',eff:{atk:5,str:5,def:5}}]],
+ ranged:[
+  [{id:'barbed',n:'Barbed Arrows',d:'Every hit leaves the monster bleeding 3% of its health over four seconds',fl:{burn:3}},
+   {id:'snapshot',n:'Snap Shot',d:'+10% attack speed, −5 accuracy',eff:{spd:10,atk:-5}},
+   {id:'pointblank',n:'Point Blank',d:'+8% max hit',eff:{mh:8}}],
+  [{id:'hawkeye',n:'Hawk Eye',d:'+12 accuracy',eff:{atk:12}},
+   {id:'volley',n:'Volley',d:'Specials strike a second time at half',fl:{cleave:1}},
+   {id:'poacher',n:'Poacher',d:'+15% gold and +15 luck',eff:{gold:15,luck:15}}],
+  [{id:'firstmark',n:'The First Mark',d:'The first shot at a fresh monster cannot miss and hits for your max',fl:{first:1}},
+   {id:'longshot',n:'Longshot',d:'Hits on a monster below a quarter of its health deal half again',fl:{exec:1}},
+   {id:'eagle',n:'Eagle',d:'+15% hitpoints',fl:{hpPct:15}}]],
+ magic:[
+  [{id:'kindling',n:'Kindling',d:'Every hit sets the monster burning for 3% of its health over four seconds',fl:{burn:3}},
+   {id:'ward',n:'Ward',d:'+6% damage reduction',eff:{dr:6}},
+   {id:'focus',n:'Focus',d:'+8% max hit',eff:{mh:8}}],
+  [{id:'siphon',n:'Siphon',d:'+4% of damage dealt heals you',eff:{leech:4}},
+   {id:'haste',n:'Haste',d:'+8% attack speed',eff:{spd:8}},
+   {id:'scholar',n:'Scholar',d:'+15% XP',eff:{xp:15}}],
+  [{id:'overload',n:'Overload',d:'Specials deal half again',fl:{spec:50}},
+   {id:'immolate',n:'Immolate',d:'Hits on a monster below a quarter of its health deal half again',fl:{exec:1}},
+   {id:'archon',n:'Archon',d:'+15% hitpoints',fl:{hpPct:15}}]],
+};
+function discPicks(st){return (S.disc&&S.disc[st||cstyle()])||[];}
+function discAny(){return Object.values(S.disc||{}).some(a=>a.some(Boolean));}
+function discOpen(t){return combatLvl()>=DISC_LV[t];}
+function discOf(st,t){const id=discPicks(st)[t];return id?DISC[st][t].find(d=>d.id===id)||null:null;}
+function discActive(){const st=cstyle();return DISC_LV.map((l,t)=>discOf(st,t)).filter(Boolean);}
+function discEff(k){let v=0;for(const d of discActive())if(d.fl&&d.fl[k])v+=d.fl[k];return v;}
+function discHas(k){return discEff(k)>0;}
+function discBonus(b){for(const d of discActive())if(d.eff)for(const k in d.eff)b[k]+=d.eff[k];}
+function discPending(){const st=cstyle();return DISC_LV.some((l,t)=>discOpen(t)&&!discOf(st,t));}
+function pickDisc(t,id){const st=cstyle();if(!discOpen(t)||discOf(st,t)||!DISC[st][t].some(d=>d.id===id))return false;S.disc=S.disc||{};S.disc[st]=S.disc[st]||[];S.disc[st][t]=id;
+  const d=discOf(st,t);log(`Discipline: ${d.n} — ${d.d}.`,'g');if(!G.sim)toast('Discipline: '+d.n);G.dirty=true;return true;}
+function renderDisc(){const el=$('disc');if(!el)return;const st=cstyle();const sn=({melee:'Melee',ranged:'Ranged',magic:'Magic'})[st];
+  const n=DISC_LV.filter((l,t)=>discOf(st,t)).length;$('discCnt').textContent=`${sn} · ${n}/${DISC_LV.length}`;
+  el.innerHTML=DISC_LV.map((l,t)=>{const cur=discOf(st,t);const open=discOpen(t);
+    return `<div class="aff" style="margin:6px 0 4px"><b>Combat level ${l}</b>${cur?` · <span class="gold">${cur.n}</span> <span class="sub">— ${cur.d}</span>`:open?' <span class="sub">· choose one; it holds until you ascend</span>':` <span class="sub">· locked (combat level ${combatLvl()} now)</span>`}</div>`+
+      (cur?'':`<div class="offer-list">`+DISC[st][t].map(d=>`<div class="offer"><div><b>${d.n}</b><br><span class="sub">${d.d}</span></div><button class="sm" data-disc="${t}" data-id="${d.id}" ${open?'':'disabled'}>Take</button></div>`).join('')+`</div>`);}).join('');
+  el.querySelectorAll('[data-disc]').forEach(b=>b.onclick=()=>{if(pickDisc(+b.dataset.disc,b.dataset.id))renderAll();});}
+
+// ============ WEAPON PROFICIENCY ============
+// Kills with a weapon in hand, kept across every realm. Each weapon teaches its
+// own edge at three thresholds; the lesson is permanent, and it is a reason to
+// swap styles instead of settling on one.
+const PROF_TIERS=[500,2000,5000];
+const PROF_EFF=[{spd:3},{atk:4},{mh:3},{mh:3},{str:4},{spd:3},{mh:3},{atk:4},{mh:3},{spd:3},{spd:3},{mh:3},{str:4},{atk:4},{xp:5}];
+function profK(wt){return (S.prof&&S.prof[wt])||0;}
+function profTier(wt){const k=profK(wt);let t=0;for(const n of PROF_TIERS)if(k>=n)t++;return t;}
+function profEffOf(wt){const t=profTier(wt);const e={};if(!t)return e;for(const k in PROF_EFF[wt])e[k]=PROF_EFF[wt][k]*t;return e;}
+function profBonus(b){const w=S.equip.weapon;if(!w)return;const e=profEffOf(w.wt);for(const k in e)b[k]+=e[k];}
+function profCount(){const w=S.equip.weapon;if(!w||G.sim)return;S.prof=S.prof||{};const t0=profTier(w.wt);S.prof[w.wt]=(S.prof[w.wt]||0)+1;
+  if(profTier(w.wt)>t0){log(`Your hand knows the ${WEAPONS[w.wt].n}: ${effText(profEffOf(w.wt))} with one in hand, for good.`,'g');toast('Proficiency: '+WEAPONS[w.wt].n);G.dirty=true;}}
+function renderProf(){const el=$('prof');if(!el)return;const cur=S.equip.weapon?S.equip.weapon.wt:-1;
+  el.innerHTML=`<div class="offer-list">`+WEAPONS.map((w,i)=>{const k=profK(i),t=profTier(i);const next=PROF_TIERS[t];if(!k&&i!==cur)return '';
+    return `<div class="offer"${i===cur?' style="box-shadow:inset 0 0 0 1px var(--gold)"':''}><div><b>${w.n[0].toUpperCase()+w.n.slice(1)}</b> <span class="gold">${'✦'.repeat(t)}</span><span class="sub">${'·'.repeat(PROF_TIERS.length-t)}</span><br><span class="sub">${fmt(k)} kills${next?` · next at ${fmt(next)}`:' · mastered'}${t?' · '+effText(profEffOf(i)):' · '+effText(PROF_EFF[i])+' per rank'}</span></div></div>`;}).join('')+`</div>`+
+    (WEAPONS.every((w,i)=>!profK(i)&&i!==cur)?'':'')+`<div class="sub" style="margin-top:4px;opacity:.75">Weapons you have never wielded are not listed.</div>`;}
+
 function masteryBonus(b){for(const [k,n,,eff] of MASTERY){if(lv(k)>=n)for(const e in eff)b[e]+=eff[e];}}
 const SK_NAME={atk:'Attack',str:'Strength',def:'Defence',hp:'Hitpoints',rng:'Ranged',mag:'Magic'};
 const CSTYLES=[{k:'melee',n:'Melee'},{k:'ranged',n:'Ranged'},{k:'magic',n:'Magic'}];
@@ -3499,7 +3588,7 @@ function renderAll(){
   switch(S.tab){
     case 'hero':renderSlots();break;
     case 'vault':renderBag();renderCodex();renderBestiary();break;      // the Pack carries the Collection
-    case 'skills':renderSkills();renderPrayer();renderFeats();renderRoad();renderDeeds();break; // Train carries Prayer and Feats
+    case 'skills':renderSkills();renderDisc();renderProf();renderPrayer();renderFeats();renderRoad();renderDeeds();break; // Train carries Prayer and Feats
     case 'world':renderAreas();break;
     case 'keep':renderKeep();break;}
   if(chUI.open){if(S.tab!=='hero')renderSlots();chRender();}
@@ -3707,7 +3796,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b82-lairart';window.__ihBoot=true;
+  const BUILD='b83-discipline';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

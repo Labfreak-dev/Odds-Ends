@@ -1545,7 +1545,8 @@ function merch(){if(!S.merch)S.merch={day:null,seen:0,stock:[]};return S.merch;}
 function merchOpen(){return maxUnlockedArea()>=1||medOwned();}
 function merchHere(){return merchOpen()&&!!merch().seen;}
 function merchLeft(){return Math.max(0,merch().seen+MERCH_STAY-Date.now());}
-function merchTick(){if(G.sim||!merchOpen())return;const m=merch();if(m.seen&&Date.now()-m.seen<MERCH_STAY)return;const first=!m.seen;m.seen=Date.now();m.day=dayKey();m.stock=merchStock();
+function merchTick(){if(G.sim||!merchOpen())return;const m=merch();if(m.seen&&bandOffered()&&!m.stock.some(y=>y.k==='band')){m.stock.push(bandStock(maxUnlockedArea()));G.dirty=true;}
+  if(m.seen&&Date.now()-m.seen<MERCH_STAY)return;const first=!m.seen;m.seen=Date.now();m.day=dayKey();m.stock=merchStock();
   if(first){log('A peddler\'s cart creaks up the road and stops for good. His goods are under March; he lays out new ones every hour.','g');if(!G.sim)toast('The peddler is here');}else log('The peddler lays out new goods.','b');G.dirty=true;}
 function merchStock(){const t=maxUnlockedArea();const st=[];
   {const it=makeItem(clamp(t+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],rnd(3,4));st.push({k:'gear',n:itemName(it),d:(Object.keys(it.aff).length?effText(it.aff):'Plain, but sound')+' · a piece for your tier',it,p:Math.round(baseValue(it)*6)});}
@@ -4219,7 +4220,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b101-peddler';window.__ihBoot=true;
+  const BUILD='b102-bandstock';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -871,7 +871,9 @@ function baseValue(it){return Math.round((TIERS[it.tier].v*TIERS[it.tier].v*0.6+
 // A training weapon (it.free) is worth nothing to sell or salvage. Forge and
 // bench costs still price it as the weapon it would be, so it cannot be
 // upgraded or tempered for scrap alone.
-function itemValue(it){return it.free?0:Math.round(baseValue(it)*0.35);}
+// Selling pays by rarity as well as tier: a Legendary is worth many Commons, not a third more.
+const SELL_RAR=[1,1,1.8,3.5,7,14,20,30];
+function itemValue(it){return it.free?0:Math.round(baseValue(it)*0.35*(SELL_RAR[it.rar]||1));}
 function itemScrap(it){return it.free?0:1+it.tier+it.rar+keepEff('yard');}
 function upgradeCost(it){return {gold:Math.round(baseValue(it)*Math.pow(1+it.up,1.6)*1.2*(1-0.1*Math.min(8,keepEff('forge')))),scrap:2+it.up*2+it.tier};}
 function forgeMax(){return 10+keepEff('forge')+boonRank('anvil');}
@@ -1520,7 +1522,7 @@ const LAIRS=[
 function lairK(i){return (S.lairK&&S.lairK[i])||0;}
 function lairDone(i){return !!(S.lairDone&&S.lairDone[i]);}
 function lairOpen(i){return lairK(i)>=LAIR_NEED&&!lairDone(i);}
-function lairMob(i){const A=AREAS[i],b=A.boss,L=LAIRS[i];return Object.assign({},b,{n:L.n,lv:b.lv,hp:Math.round(b.hp*0.8),shape:L.shape,col:L.col,big:1.2,lair:i});}
+function lairMob(i){const A=AREAS[i],b=A.boss,L=LAIRS[i];return Object.assign({},b,{n:L.n,base:b.n,spr:'lair_'+i,lv:b.lv,hp:Math.round(b.hp*0.8),shape:L.shape,col:L.col,big:1.2,lair:i});}
 function enterLair(i){if(G.dead||G.tower||abyssW()||siegeActive()||G.isBoss||i!==S.area||!lairOpen(i))return false;if(S.curse)endCurse('abandoned');spawn(['lair',i]);log(`You find the lair. ${G.mob.n} wakes.`,'e');if(!G.sim)toast('The lair');G.dirty=true;return true;}
 function lairSlain(i){S.lairDone=S.lairDone||{};S.lairDone[i]=true;const A=AREAS[i];const keys=Object.keys(UNIQUES).filter(k=>UNIQUES[k].home===i);
   if(keys.length){const it=makeUnique(keys[rnd(0,keys.length-1)]);gainItem(it);}if(Math.random()<0.35)gainIngot(1);
@@ -1670,7 +1672,7 @@ function siegeReady(){return medOwned()&&!siegeActive()&&siege().day!==dayKey();
 function startSiege(){if(!siegeReady()||G.dead)return false;if(G.tower)leaveTower();if(abyssW())abyssBank();const s=siege();s.day=dayKey();s.act={t:0,walls:SIEGE_WALLS,kills:0,mobT:0};spawn(false);
   log('The horde is at the gates. Hold the walls for ten minutes; the companions fight for the hold itself.','e');if(!G.sim)toast('Siege!');G.dirty=true;return true;}
 function siegeMob(){const A=AREAS[clamp(maxUnlockedArea(),0,AREAS.length-1)];const base=A.mobs[rnd(0,A.mobs.length-1)];const a=siege().act;const k=1.2+0.05*a.kills;
-  return Object.assign({},base,{n:`${base.n} of the horde`,hp:Math.round(base.hp*k),atk:Math.round(base.atk*(1+0.02*a.kills)),gold:[base.gold[0]*2,base.gold[1]*2],siege:true});}
+  return Object.assign({},base,{n:`${base.n} of the horde`,base:base.n,hp:Math.round(base.hp*k),atk:Math.round(base.atk*(1+0.02*a.kills)),gold:[base.gold[0]*2,base.gold[1]*2],siege:true});}
 function siegeTick(dt){const a=siege().act;if(!a)return;a.t+=dt;a.mobT+=dt;
   if(a.mobT>=SIEGE_EVERY){a.mobT-=SIEGE_EVERY;a.walls-=SIEGE_BLOW;if(!G.sim)splat(HX+60,40,'Walls −'+SIEGE_BLOW,'#ff8a7a');G.dirty=true;if(a.walls<=0){siegeEnd(false);return;}}
   if(a.t>=SIEGE_LEN)siegeEnd(true);}
@@ -1730,7 +1732,7 @@ function postMarks(){const old=marks();const keep=old.filter(m=>!m.slain).map(m=
 function markOpen(){return marks().filter(m=>!m.slain);}
 function markReady(){return medOwned()&&!G.tower&&!abyssW()&&!siegeActive()&&!G.isBoss&&!curseActive()&&markOpen().length>0;}
 function markMob(A){const open=markOpen();const mk=open[rnd(0,open.length-1)];const b=A.boss,k=1.5+0.25*mk.rank,q=1.1+0.08*mk.rank;
-  let m=Object.assign({},b,{n:mk.n,lv:b.lv+3*mk.rank,hp:Math.round(b.hp*k),atk:Math.round(b.atk*q),str:Math.round(b.str*q),def:Math.round(b.def*q),gold:[b.gold[0]*3,b.gold[1]*3],mark:mk.n,big:1.2,col:'#2a1a0a'});
+  let m=Object.assign({},b,{n:mk.n,base:b.n,spr:'mark_'+mk.om[0],lv:b.lv+3*mk.rank,hp:Math.round(b.hp*k),atk:Math.round(b.atk*q),str:Math.round(b.str*q),def:Math.round(b.def*q),gold:[b.gold[0]*3,b.gold[1]*3],mark:mk.n,big:1.2,col:'#2a1a0a'});
   for(const id of mk.om){const o=OMENS.find(x=>x.id===id);const mm=Object.assign({},(o&&o.mob)||{},(o&&o.boss)||{});m=Object.assign({},m,{hp:Math.round(m.hp*(mm.hp||1)),atk:Math.round(m.atk*(mm.atk||1)),def:Math.round(m.def*(mm.def||1)),hk:(m.hk||1)*(mm.hk||1),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
   return m;}
 function markPay(mk){return {shards:5+3*mk.rank,jewel:mk.rank>=1,scroll:mk.rank===0};}
@@ -1874,7 +1876,7 @@ function omenPick(id){if(!OMENS.find(o=>o.id===id))return false;if(S.asc.realm+1
 // ============ LIEUTENANTS ============
 // A nemesis of the third rank sends underlings ahead: one per area per realm,
 // each carrying a piece of your last champion's gear, stolen from the hall.
-function ltMob(A){const n=nem(),b=A.boss;return Object.assign({},b,{n:`${n.name}'s lieutenant`,lv:b.lv+2,hp:Math.round(b.hp*1.2),atk:Math.round(b.atk*1.05),def:Math.round(b.def*1.05),gold:[b.gold[0]*2,b.gold[1]*2],lt:true,big:1.1,col:'#3a1a2a'});}
+function ltMob(A){const n=nem(),b=A.boss;return Object.assign({},b,{n:nemEntry(n).min,base:b.n,spr:'min_'+nemEntry(n).id,lv:b.lv+2,hp:Math.round(b.hp*1.2),atk:Math.round(b.atk*1.05),def:Math.round(b.def*1.05),gold:[b.gold[0]*2,b.gold[1]*2],lt:true,big:1.1,col:'#3a1a2a'});}
 function ltReady(){const n=nem();return medOwned()&&!G.tower&&!abyssW()&&!G.isBoss&&!curseActive()&&n.lvl>=3&&!(n.lts&&n.lts[S.area]);}
 function ltSlain(){const n=nem();n.lts=n.lts||{};n.lts[S.area]=true;const h=hallList();const last=h[h.length-1];const g=last&&last.gear&&last.gear.length?last.gear:null;
   if(g){const it=JSON.parse(JSON.stringify(g[rnd(0,g.length-1)]));it.from='h';gainItem(it);log(`The lieutenant falls. It carried your ancestor's ${itemName(it)} — yours again.`,'g');}
@@ -1886,18 +1888,30 @@ function ltSlain(){const n=nem();n.lts=n.lts||{};n.lts[S.area]=true;const h=hall
 // won, in place of an ordinary monster. Kill it and it pays a jewel, gold
 // and shards; let it live through an ascension and it grows, and so does
 // its bounty.
-const NEM_NAMES=['Vorgath','Maldrek','Skarn','Ulthra','Karzoth','Nyxeth','Draveth','Ossira'];
+// Thirty nemeses, in the order they come: each slain hunter is followed by the next, worse.
+// spr keys name the art each will wear once it exists (nem_<id>, min_<id>); until then the area boss's.
+const NEM_ROSTER=[
+ {id:'vorgath',n:'Vorgath',min:'Vorgath\'s Hound'},{id:'skarn',n:'Skarn',min:'Skarn\'s Cutthroat'},{id:'ulthra',n:'Ulthra',min:'Bog Wisp'},{id:'maldrek',n:'Maldrek',min:'Plague Rat'},
+ {id:'ossira',n:'Ossira',min:'Ossira\'s Marksman'},{id:'karzoth',n:'Karzoth',min:'Chain Thrall'},{id:'draveth',n:'Draveth',min:'Gravebound'},{id:'nyxeth',n:'Nyxeth',min:'Shade'},
+ {id:'brannoc',n:'Brannoc',min:'Throne-Bearer'},{id:'widow',n:'the Pale Widow',min:'Widow\'s Brood'},{id:'gorrum',n:'Gorrum Ironbelly',min:'Slag Golem'},{id:'ash',n:'Sister Ash',min:'Ember Acolyte'},
+ {id:'tollman',n:'the Tollman',min:'Drowned One'},{id:'vexil',n:'Vexil the Tongue',min:'Imp Scribe'},{id:'hollowjaw',n:'Hollowjaw',min:'Bone Kite'},{id:'marrow',n:'Queen Marrow',min:'Marrow Guard'},
+ {id:'stitched',n:'the Stitched Man',min:'Stitchling'},{id:'ilvara',n:'Ilvara Frostmere',min:'Rime Sprite'},{id:'gilt',n:'Baron Gilt',min:'Gilded Bat'},{id:'wyrmpriest',n:'the Wyrm Priest',min:'Wyrmling'},
+ {id:'thessaly',n:'Thessaly of the Nine Eyes',min:'Watcher Eye'},{id:'grimwald',n:'Grimwald the Unburied',min:'Root Wight'},{id:'ashking',n:'the Ashen King',min:'Cinder Steed'},{id:'sallow',n:'Mother Sallow',min:'Reed Hound'},
+ {id:'kael',n:'Kael Voidrender',min:'Rift Mote'},{id:'bellringer',n:'the Bell-Ringer',min:'Bell Toll'},{id:'seraphel',n:'Seraphel the Fallen',min:'Iron Feather'},{id:'dragonknight',n:'the Last Dragon Knight',min:'Bone Drake'},
+ {id:'ossuary',n:'Ossuary',min:'Ossuary Hand'},{id:'inevitable',n:'the Inevitable',min:'Reflection'},
+];
+function nemEntry(n){return NEM_ROSTER.find(x=>x.id===n.id)||NEM_ROSTER[Math.min(n.kills||0,NEM_ROSTER.length-1)];}
 const NEM_EPITHET=['the Hunter','the Relentless','the Unbroken','the Undying','the Eternal','the Inevitable'];
-function nem(){if(!S.nem)S.nem={name:NEM_NAMES[rnd(0,NEM_NAMES.length-1)],lvl:0,kills:0,seen:0,slain:false};return S.nem;}
+function nem(){if(!S.nem)S.nem={id:NEM_ROSTER[0].id,name:NEM_ROSTER[0].n,lvl:0,kills:0,seen:0,slain:false};const n=S.nem;if(!n.id){const e=NEM_ROSTER[Math.min(n.kills||0,NEM_ROSTER.length-1)];n.id=e.id;n.name=e.n;}return n;}
 function nemName(){const n=nem();return `${n.name} ${NEM_EPITHET[Math.min(n.lvl,NEM_EPITHET.length-1)]}`;}
 function nemReady(){return medOwned()&&!G.tower&&!abyssW()&&!siegeActive()&&!S.trial&&!G.isBoss&&!curseActive()&&clearedCount()>=3&&!nem().slain;}
 function nemMob(A){const n=nem(),b=A.boss,k=1.4+0.3*n.lvl,q=1.1+0.1*n.lvl;
-  return Object.assign({},b,{n:nemName(),lv:b.lv+5*n.lvl,hp:Math.round(b.hp*k),atk:Math.round(b.atk*q),str:Math.round(b.str*q),def:Math.round(b.def*q),gold:[b.gold[0]*4,b.gold[1]*4],nem:true,big:1.25,col:'#3a0a14'});}
+  return Object.assign({},b,{n:nemName(),base:b.n,spr:'nem_'+nemEntry(n).id,lv:b.lv+5*n.lvl,hp:Math.round(b.hp*k),atk:Math.round(b.atk*q),str:Math.round(b.str*q),def:Math.round(b.def*q),gold:[b.gold[0]*4,b.gold[1]*4],nem:true,big:1.25,col:'#3a0a14'});}
 function nemBounty(){const n=nem(),r=(S.asc&&S.asc.realm)||0;return {gold:Math.round(400000*(1+n.lvl)*(1+0.1*r)),shards:5*(n.lvl+1)};}
 function nemSlain(){const n=nem(),pay=nemBounty();n.slain=true;n.kills++;n.past=n.past||[];if(!n.past.includes(n.name))n.past.push(n.name);
   if(n.lvl>=5&&S.med&&!S.med.wildOpen){S.med.wildOpen=true;log('Something clicks on the back of the medallion: a seventh socket, hidden until now.','g');if(!G.sim)toast('The seventh socket opens');}S.gold+=pay.gold;S.asc.shards+=pay.shards;gainIngot(1);jewelDrop(nemName());
   log(`${nemName()} is slain. ${fmt(pay.gold)} gold, +${pay.shards} shards. It will return, next realm, changed.`,'g');if(!G.sim)toast('Nemesis slain!');
-  n.lvl=0;n.name=NEM_NAMES[rnd(0,NEM_NAMES.length-1)];}
+  n.lvl=0;{const e=NEM_ROSTER[Math.min(n.kills,NEM_ROSTER.length-1)];n.id=e.id;n.name=e.n;}}
 function nemHtml(){if(!medOwned())return '';const n=nem(),pay=nemBounty();
   return `<div class="sub" style="margin-top:5px;color:#ff9c6b"><b>Nemesis</b> · ${n.slain?`${n.name} is dead this realm; a new hunter comes with the next.`:`${nemName()} stalks this realm once three areas are cleared. Bounty ${fmt(pay.gold)} gold + ${pay.shards} shards + a jewel.`}${n.kills?` · ${n.kills} slain`:''}</div>`;}
 
@@ -2095,7 +2109,9 @@ const MOB_SPR={'Chicken':'chicken','Cow':'cow','Bull of the Meadow':'bull','Gobl
  'Hill giant':'hill_giant','Moss giant':'moss_giant','Grothek the Broad':'grothek','Ice warrior':'ice_warrior','Ice troll':'ice_troll','Frost Matriarch':'frost_matriarch',
  'Lesser demon':'lesser_demon','Greater demon':'greater_demon','Ashborn Overlord':'overlord','Green dragon':'green_dragon','Blue dragon':'blue_dragon','Black dragon':'black_dragon','The Elder Wyrm':'elder_wyrm',
  'Tower sentinel':'tower_sentinel','Cursed knight':'cursed_knight','Pit hound':'pit_hound','Gargoyle':'gargoyle','Stone giant':'stone_giant','Tower wyrm':'tower_wyrm'};
-function mobSprKey(m){return m.spr||MOB_SPR[m.n]||null;}
+// A monster made from another (a siege horde, an elite, a mark, a lieutenant) keeps its
+// base name, so it wears the base's art until it has art of its own.
+function mobSprKey(m){if(!m)return null;const ks=[m.spr,MOB_SPR[m.n],m.base&&MOB_SPR[m.base]].filter(Boolean);for(const k of ks)if(sprReady(k+'_idle'))return k;return ks[0]||null;}
 // SPR_SC is keyed by the full sprite name (chicken_idle), not the base (chicken),
 // so this used to look up undefined and fall back to 1 — drawing chicken, cow and
 // bull at authored size, i.e. twice the scale their art was cut for.
@@ -2148,6 +2164,7 @@ function lookKey(){
   return sprReady(P+'base_idle')?P+'base':null;
 }
 function lookGrip(k,i){const G=SPR_SRC[k];return (G&&G.f[i]&&G.f[i].g)||null;}
+function lookHand(k,i){const G=SPR_SRC[k];const h=G&&G.f[i]&&G.f[i].h;return Array.isArray(h)&&h.length===2?h:null;}   // the melee looks use h for a height
 // ranged and magic frames carry the angle of the line between the two hands;
 // melee frames mark one hand only and leave this undefined.
 function lookAng(k,i){const G=SPR_SRC[k];return G&&G.f[i]?G.f[i].a:undefined;}
@@ -2212,7 +2229,7 @@ const WPN={},WPN_TRY={},WPN_WAIT={};
 // cached as null for the rest of the session and never drawn again. Now a
 // failure backs off and retries, up to three times, before it is given up on.
 const wpnFail=k=>{WPN[k]=undefined;WPN_WAIT[k]=performance.now()+800;};
-function wpnWarm(){const it=S.equip.weapon;if(it)wpnCanvas(iconKey(it));}
+function wpnWarm(){const it=S.equip.weapon;if(it)wpnCanvas(iconKey(it));const sh=S.equip.shield;if(sh)wpnCanvas(iconKey(sh));}
 function wpnCanvas(k){
   if(!k||!ICONS[k])return null;
   if(WPN[k]!==undefined)return WPN[k];
@@ -2285,6 +2302,12 @@ function gripScreen(img,grip,x,y,sc){
 }
 // flip mirrors the whole weapon about the vertical through the grip, which is
 // exactly what a mirrored sprite needs: the grip stays on the mirrored hand.
+// The shield rides the far hand: the rear-hand marker where the look has one, else a
+// hand's width behind the grip. Drawn before the champion so the body overlaps it.
+function drawShield(hf,x,y){const it=S.equip.shield;if(!it||!hf.grip||!hf.img)return;const c=wpnCanvas(iconKey(it));if(!c)return;
+  let g=hf.h?gripScreen(hf.img,hf.h,x,y,hf.sc):null;if(!g){const gg=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!gg)return;g=[gg[0]-hf.img.naturalWidth*(hf.sc||0.5)*0.30,gg[1]-6];}
+  const H=52,k=H/Math.max(c.width,c.height),w=c.width*k,h=c.height*k;
+  ctx.save();ctx.translate(g[0],g[1]);ctx.drawImage(c,-w*0.5,-h*0.5,w,h);ctx.restore();}
 function drawWeapon(hf,x,y,flip,item){
   const it=item||S.equip.weapon;if(!it||!hf.grip)return;
   let c=wpnCanvas(iconKey(it));if(!c)return;
@@ -2304,7 +2327,7 @@ function drawWeapon(hf,x,y,flip,item){
   ctx.restore();
 }
 function heroFrame(t){
-  const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0,grip:lookGrip(k,i),a:lookAng(k,i),fi:0});
+  const f=(k,i)=>({img:sprFrame(k,i),sc:SPR_SC[k],rot:0,grip:lookGrip(k,i),h:lookHand(k,i),a:lookAng(k,i),fi:0});
   if(G.dead&&sprReady('hero_death')){const e=15-G.deadT;return f('hero_death',Math.min(3,Math.floor(e/0.22)));}
   const lk=lookKey();
   if(lk){
@@ -2421,7 +2444,7 @@ function drawScene(t,dt){
   const heroSpr=sprReady('hero_idle');   // per-pose fallbacks live in heroFrame
   // Keep this if/else chain intact: an extra statement between the branches
   // re-binds the else to it, and the procedural hero paints over the sprite.
-  if(heroSpr){const hf=heroFrame(t);drawSprite(hf.img,HX+pl,gy+4,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);
+  if(heroSpr){const hf=heroFrame(t);if(!G.dead)drawShield(hf,HX+pl,gy+4);drawSprite(hf.img,HX+pl,gy+4,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);
     if(!G.dead)drawWeapon(hf,HX+pl,gy+4);}
   else if(G.dead){ctx.save();ctx.translate(HX,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
   else drawHero(HX+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
@@ -2684,7 +2707,7 @@ function killMob(){
     spawn(false);
   }else{S.kills[S.area]++;if(!curseStep()){if(nemReady()&&Math.random()<1/150){spawn('nem');log(`${nemName()} steps out of the dark. Your nemesis.`,'e');if(!G.sim)toast('Nemesis!');}
       else if(markReady()&&Math.random()<1/120){spawn('mark');log(`${G.mob.n}, one of the marked, crosses your road.`,'e');if(!G.sim)toast('A mark!');}
-      else if(ltReady()&&Math.random()<1/200){spawn('lt');log(`${nem().name}'s lieutenant blocks the road, wearing something of yours.`,'e');if(!G.sim)toast('Lieutenant!');}else spawn(false);}}
+      else if(ltReady()&&Math.random()<1/200){spawn('lt');log(`${G.mob.n}, ${nem().name}'s creature, blocks the road wearing something of yours.`,'e');if(!G.sim)toast('Lieutenant!');}else spawn(false);}}
   G.dirty=true;
 }
 function gainItem(it){
@@ -3566,7 +3589,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b77-road';window.__ihBoot=true;
+  const BUILD='b78-horde';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

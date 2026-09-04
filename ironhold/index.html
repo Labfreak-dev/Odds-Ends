@@ -1162,7 +1162,7 @@ function hireComp(type){const cd=COMPS.find(x=>x.id===type);if(!cd||partyHas(typ
 function fieldMax(){return keepLv('barracks')>=SLOT_REQ[1]?2:1;}
 function fieldCount(){return (S.party||[]).filter(c=>c.field).length;}
 function setField(i,on){const c=S.party[i];if(!c)return false;if(on&&!c.field&&fieldCount()>=fieldMax())return false;c.field=!!on;G.dirty=true;return true;}
-function party(){if(vowMul('comp')===0||trialRule('comp')===0)return [];const all=(S.party||[]).map((c,i)=>Object.assign({def:COMPS.find(x=>x.id===c.type),idx:i},c)).filter(c=>c.def&&compUnlocked(c.type)&&!onErrand(c.type));
+function party(){if(vowMul('comp')===0||trialRule('comp')===0||G.duel!=null)return [];const all=(S.party||[]).map((c,i)=>Object.assign({def:COMPS.find(x=>x.id===c.type),idx:i},c)).filter(c=>c.def&&compUnlocked(c.type)&&!onErrand(c.type));
   return siegeActive()?all:all.filter(c=>c.field).slice(0,fieldMax());}
 
 // ============ ERRANDS ============
@@ -1534,7 +1534,9 @@ function duelMob(i){const a=hallList()[i];if(!a)return null;const cl=a.cl||10,mh
   return {n:`${a.t?a.t+', ':''}Champion of Realm ${a.r+1}`,lv:cl,hp:Math.round(mh*24+cl*12),atk:Math.round(cl*1.6+10),str:Math.round(cl*1.1+8),def:Math.round(cl*1.3+8),spd:2.4,gold:[cl*20,cl*50],shape:'humanoid',col:'#b8a070',big:1.05,duel:i,hk:1};}
 function duelOpen(i){const a=hallList()[i];return !!a&&a.dueled!==((S.asc&&S.asc.realm)||0);}
 function duelReady(){return medOwned()&&!G.dead&&!G.tower&&!abyssW()&&!siegeActive()&&!G.isBoss;}
-function startDuel(i){if(!duelReady()||!duelOpen(i))return false;if(S.curse)endCurse('abandoned');spawn(['duel',i]);log(`${G.mob.n} steps down from the hall. A duel.`,'e');if(!G.sim)toast('Duel!');G.dirty=true;return true;}
+function startDuel(i){if(!duelReady()||!duelOpen(i))return false;if(S.curse)endCurse('abandoned');
+  {const a=hallList()[i];const w=(a.gear||[]).find(it=>it.slot==='weapon');G.duelWpn=w?JSON.parse(JSON.stringify(w)):makeItem(Math.min(7,Math.floor((a.cl||10)/14)),'weapon',1,1);wpnCanvas(iconKey(G.duelWpn));}
+  spawn(['duel',i]);log(`${G.mob.n} steps down from the hall. A duel: your companions stand aside.`,'e');if(!G.sim)toast('Duel!');G.dirty=true;return true;}
 function duelWon(i){const a=hallList()[i];if(!a)return;a.dueled=(S.asc&&S.asc.realm)||0;const g=Math.round(50000*(1+0.1*((S.asc&&S.asc.realm)||0)));S.gold+=g;
   log(`The ancestor yields. ${HALL_PERK[a.p][0]} counts twice this realm; ${fmt(g)} gold from the hall's purse.`,'g');if(!G.sim)toast('Duel won');}
 function hallEff(k){const r=(S.asc&&S.asc.realm)||0;let n=0;for(const a of hallList().slice(-HALL_CAP))if(a.p===k)n+=a.dueled===r?2:1;return n;}
@@ -2171,10 +2173,13 @@ function gripScreen(img,grip,x,y,sc){
   let s2=sc||0.5;if(img.naturalHeight*s2>162)s2=162/img.naturalHeight;
   return [x+(grip[0]-img.naturalWidth/2)*s2, y-(img.naturalHeight-grip[1])*s2, s2];
 }
-function drawWeapon(hf,x,y){
-  const it=S.equip.weapon;if(!it||!hf.grip)return;
+// flip mirrors the whole weapon about the vertical through the grip, which is
+// exactly what a mirrored sprite needs: the grip stays on the mirrored hand.
+function drawWeapon(hf,x,y,flip,item){
+  const it=item||S.equip.weapon;if(!it||!hf.grip)return;
   let c=wpnCanvas(iconKey(it));if(!c)return;
   const g=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!g)return;
+  if(flip)g[0]=2*x-g[0];
   const ik=wepIk(it.wt);let fit=(it.uq&&UQ_FIT[it.uq])||WPN_FIT[ik];if(!fit)return;
   if(!it.uq&&WPN_FLIP[ik]){c=mirrorCanvas(iconKey(it),c);fit=[Math.PI-fit[0],1-fit[1],fit[2]];}
   // looks with a hand line set the angle from the art itself; the melee looks
@@ -2184,7 +2189,7 @@ function drawWeapon(hf,x,y){
             :(WPN_ANG[hf.fi]||0);
   const L=(WPN_LEN[it.wt]!=null?WPN_LEN[it.wt]:0.42)*100;
   const k=L/Math.max(c.width,c.height),w=c.width*k,h=c.height*k;
-  ctx.save();ctx.translate(g[0],g[1]);ctx.rotate(pose-fit[0]);
+  ctx.save();ctx.translate(g[0],g[1]);if(flip)ctx.scale(-1,1);ctx.rotate(pose-fit[0]);
   ctx.drawImage(c,-w*fit[1],-h*fit[2],w,h);   // the grip lands on the hand
   ctx.restore();
 }
@@ -2317,7 +2322,8 @@ function drawScene(t,dt){
       drawSprite(sprFrame(pk,0),px,gy-52,false,0,SPR_SC[pk]);}}
   if(G.mob&&G.duel!=null&&sprReady('lk_base_idle')){ // an ancestor: the champion's own look, mirrored to the monster's mark
     const atk=FX.mLunge>0&&sprReady('lk_base_atk');const fi=atk?Math.min(2,Math.floor((1-FX.mLunge)*3)):0;const k=atk?'lk_base_atk':'lk_base_idle';
-    drawSprite(sprFrame(k,fi),MX-ml,gy+4,true,FX.mFlash,SPR_SC[k]||SPR_SC['lk_base_idle']);}
+    drawSprite(sprFrame(k,fi),MX-ml,gy+4,true,FX.mFlash,SPR_SC[k]||SPR_SC['lk_base_idle']);
+    if(G.duelWpn)drawWeapon({img:sprFrame(k,fi),sc:SPR_SC[k]||SPR_SC['lk_base_idle'],grip:lookGrip(k,fi),a:lookAng(k,fi),fi:atk?fi+1:0},MX-ml,gy+4,true,G.duelWpn);}
   else if(G.mob){const mk=mobSprKey(G.mob);
     if(mk&&sprReady(mk+'_idle')){const atk=FX.mLunge>0&&sprReady(mk+'_atk');
       const fi=atk?Math.min(2,Math.floor((1-FX.mLunge)*3)):0;
@@ -3437,7 +3443,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b73-duelface';window.__ihBoot=true;
+  const BUILD='b74-duelarm';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

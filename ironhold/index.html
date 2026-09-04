@@ -163,7 +163,7 @@
   .actions2{grid-template-columns:1fr 1fr;margin-top:6px}
   .actions2 button{min-height:38px;font-size:12px}
   .actions2 button .sub{font-size:10px;color:var(--gold)}
-  #status{margin-top:6px;text-align:center;font-size:12px;color:var(--muted)}
+  #status{display:none}   /* the stance line now lives in the champion's stats */
   #feed{margin-top:8px;height:96px;overflow:auto;padding:6px 8px;font-size:11px;color:var(--muted);line-height:1.45}
   #feed .g{color:var(--gold)}#feed .e{color:#ff7b6b}#feed .b{color:var(--green)}
 
@@ -3589,7 +3589,7 @@ function renderSlots(){
     else d.innerHTML=`<span class="nm">${s}</span>`;
     el.appendChild(d);}
   const b=bonuses();const hc=G.mob?Math.round(hitChance(playerAtkRoll(),mobDefRoll(G.mob))*100)+'%':'–';
-  $('stats').innerHTML=[['Matched kit',kitTier()>=0?TIERS[kitTier()].n+' (+4% rolls)':'mixed'],['Attack bonus','+'+Math.round(b.atk)],['Strength bonus','+'+Math.round(b.str)],['Defence bonus','+'+Math.round(b.def)],['Max hit',playerMaxHit()],['Attack delay',attackDelay().toFixed(2)+'s'],['Hit chance',hc],['Max hit bonus','+'+b.mh+'%'],['Lifesteal',b.leech+'%'],['XP bonus','+'+b.xp+'%'],['Gold bonus','+'+b.gold+'%'],['Drop bonus','+'+b.luck+'%'],['Damage reduction',Math.round(dmgReduction())+'%'],['Prayers lit',activePrayers().length||'none'],['Set pieces',Object.entries(setCounts()).map(([k,v])=>SETS[k].n+' '+v+'/4').join(', ')||'none'],['Companions',party().map(c=>c.def.n).join(', ')||'none'],['Realm',(S.asc.realm+1)+' · '+S.asc.shards+' shards'],['Combat level',combatLvl()]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
+  $('stats').innerHTML=[['Matched kit',kitTier()>=0?TIERS[kitTier()].n+' (+4% rolls)':'mixed'],['Attack bonus','+'+Math.round(b.atk)],['Strength bonus','+'+Math.round(b.str)],['Defence bonus','+'+Math.round(b.def)],['Max hit',playerMaxHit()],['Attack delay',attackDelay().toFixed(2)+'s'],['Hit chance',hc],['Stance',STYLES[S.style].n],['Damage / sec',G.mob&&!G.dead?'~'+(playerMaxHit()/2*hitChance(playerAtkRoll(),mobDefRoll(G.mob))/attackDelay()).toFixed(1):'–'],['Max hit bonus','+'+b.mh+'%'],['Lifesteal',b.leech+'%'],['XP bonus','+'+b.xp+'%'],['Gold bonus','+'+b.gold+'%'],['Drop bonus','+'+b.luck+'%'],['Damage reduction',Math.round(dmgReduction())+'%'],['Prayers lit',activePrayers().length||'none'],['Set pieces',Object.entries(setCounts()).map(([k,v])=>SETS[k].n+' '+v+'/4').join(', ')||'none'],['Companions',party().map(c=>c.def.n).join(', ')||'none'],['Realm',(S.asc.realm+1)+' · '+S.asc.shards+' shards'],['Combat level',combatLvl()]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
 }
 
 // --- vault ---
@@ -4400,7 +4400,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b107-hud';window.__ihBoot=true;
+  const BUILD='b108-stance';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

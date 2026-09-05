@@ -809,6 +809,7 @@
 
 <nav id="dock"><div class="in" id="dockIn"></div></nav>
 <div id="modal"><div class="box panel" id="modalBox"></div></div>
+<audio id="bgm" loop preload="none"></audio>
 <div id="lgModal"><div id="lgBox">
   <header id="lgHead"><h2>Ledger</h2><button class="sm" id="lgX">&#10005;</button></header>
   <div id="lgBody">
@@ -821,6 +822,10 @@
     <details class="lg"><summary>The March<span class="sub">map, tower, abyss, road</span></summary><div class="lgc"><p><span class="lgt">The Realm</span> — A map of everything there is to do, each thing pinned where it lives and dotted when it waits. Tap a place to go there or to do the thing; the area list sits beneath it.</p><p><span class="lgt">Tower of Trials</span> — Endless floors. Records every five floors pay a chest; dying just sends you home. Past floor 100 the tower takes realm scaling, pays realm gold, and its wardens carry jewels. Past 200 every floor carries an omen and every tenth warden is a slain nemesis returned.</p><p><span class="lgt">The Abyss</span> — Beside the tower. Waves, not floors; each raises the run's loot. Bank and leave at any wave, or die and lose it all.</p><p><span class="lgt">The road</span> — Every quarter hour or so something crosses it with a choice of two, under the battle; ignore it for a minute and you walk on.</p><p><span class="lgt">Delves</span> — Elites sometimes drop a black-iron key; from the map it opens a door under the current ground, three rooms of two doors each, ending in a chest and better.</p><p><span class="lgt">Lairs and area mastery</span> — Every area hides a lair; 150 kills of its first monster in a realm open it, and its keeper drops a unique of the area, once a realm. Kills per area across every realm pay back there: gold at 500, drops at 2,000, max hit at 5,000.</p><p><span class="lgt">Marks and the nemesis</span> — Three named monsters are posted each realm, hunted anywhere; a mark that outlives the realm gains a rank. Once the medallion is forged, a named hunter stalks each realm after three areas are cleared; slay it for gold, shards, Starsteel and a jewel, or let it grow. A nemesis of the third rank sends a lieutenant per area carrying a piece of your last champion's gear.</p><p><span class="lgt">The Wyrm's phases</span> — From realm 20 the Elder Wyrm fights armoured (a tenth damage until a special cracks it), then burning, then enraged below a quarter; slain past the armour it gives ten shards more.</p></div></details>
     <details class="lg"><summary>Feats and training<span class="sub">boards, disciplines, mastery</span></summary><div class="lgc"><p><span class="lgt">Feats and titles</span> — Deeds pay once; some carry a title with a small edge that fits it. Wear it on your name plate.</p><p><span class="lgt">Bounties</span> — Three posted daily under Feats; claim rewards there, reroll ones you dislike. A contract is posted each Monday beside them: one long goal for the week, paying a unique of a cleared area.</p><p><span class="lgt">The Road and realm deeds</span> — The Road is a milestone track paid once each, up to the Elder Wyrm. Realm deeds are a second board that wipes every realm: the whole map, three Master clears, the nemesis early, five thousand kills, floor 150, no deaths, a six-hour realm.</p><p><span class="lgt">Disciplines</span> — At combat level 30, 50 and 70, one of three for your style of fighting; they hold until you ascend, then are chosen again.</p><p><span class="lgt">Mastery</span> — Passive titles that arrive at set skill levels and feed your real bonuses. Weapon proficiency counts kills with each weapon across realms; 500, 2,000 and 5,000 each teach that weapon's own edge, for good.</p><p><span class="lgt">Bestiary</span> — Under the Collection. Kills counted by kind; a thousand, ten thousand and a hundred thousand of a kind each teach a permanent edge against it.</p></div></details>
     <details class="lg"><summary>Ascension<span class="sub">creeds, medallion, trials</span></summary><div class="lgc"><p><span class="lgt">Ascending</span> — At the altar under Train, once the Elder Wyrm is slain. Skills, gear, gold, food and areas reset for permanent shards and a harder, richer realm. Swear one of three creeds offered from forty-three; none is ever lost, every creed sworn stays in force and they stack.</p><p><span class="lgt">Vows and omens</span> — Before ascending, swear as many vows as you dare for the realm ahead; each is a big gift and a real cost, and each pays 15% more shards. From realm 10 each ascension rolls an omen for the whole realm; shards can buy the next one instead.</p><p><span class="lgt">The Medallion</span> — Forged on your first ascension, under Vault. Six sockets for six jewel colours; the Elder Wyrm gives one up each realm and deep tower wardens carry them. Fuse duplicates to raise a grade; carve recipes of three runes; two inscriptions carved at once can resonate; a grade-ten stone can be re-cut for a Flawless one, or crack. A nemesis of the fifth rank opens a seventh socket.</p><p><span class="lgt">Trials</span> — Offered once, right after each ascension: bare hands, alone, iron rules, the silent realm. Begin one and the whole realm is fought under its rules; slay the Elder Wyrm and the time is kept. Refuse and the trials close until you ascend again. Forfeit any time from the card, with nothing lost.</p><p><span class="lgt">The Heirloom</span> — Forged from a Mythic weapon and two loose jewels; it survives every ascension and inherits one affix from each champion's last weapon, six at most.</p><p><span class="lgt">Hall of Ancestors</span> — Every ascension leaves a portrait beneath the altar, with a small permanent perk from the skill that champion carried furthest. Any portrait can be challenged to a duel once a realm; beat the ancestor and their perk counts twice until you ascend.</p><p><span class="lgt">The Mimic</span> — In Storage, under Vault. From realm 10 it eats gold for permanent gifts: the forge cap, max hit and accuracy, hitpoints, attack speed, luck. Each feeding costs more than twice the last, and ascending empties the purse, so feed it before you climb.</p></div></details>
+    <details class="lg"><summary>Sound<span class="sub">effects, music, volume</span></summary><div class="lgc"><p><span class="lgt">Effects</span> — Every cue is made on the spot: a blow landing, a miss, a hit taken, a kill, a chest, a level, prayers lit, the Sovereign's burst. Nothing to download. The first tap on the page wakes the sound.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><label><input type="checkbox" id="sfxOn"> Effects on <span class="sub">(key M)</span></label><label><input type="checkbox" id="musicOn"> Music on</label></div>
+          <p style="margin-top:8px"><span class="lgt">Volume</span> <input type="range" id="volume" min="0" max="100" step="5" style="width:60%;vertical-align:middle"> <b id="volTxt">60</b>%</p>
+          <p><span class="lgt">Music</span> — Music is a file, not code: the toggle plays <b>music/theme.mp3</b> beside the game when that file exists, and says so when it does not.</p></div></details>
     <details class="lg"><summary>Save<span class="sub">export, import, reset</span></summary><div class="lgc"><p>Saves every 10 seconds when browser storage is available. Copy the code to move your save elsewhere.</p>
           <textarea id="saveTxt" spellcheck="false" style="margin-top:8px"></textarea>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
@@ -1311,7 +1316,7 @@ function runeNeed(rw){const need={};for(const r of rw.r)need[r]=(need[r]||0)+1;r
 function canInscribe(rw){const need=runeNeed(rw);return Object.keys(need).every(r=>(S.runes[r]||0)>=need[r]);}
 function inscribe(it,rw){if(it.rw||!canInscribe(rw)||!rw.slots.includes(it.slot))return false;for(const r of rw.r)S.runes[r]--;it.rw=rw.n;S.rwCount=(S.rwCount||0)+1;log(`Inscribed ${rw.n} onto ${itemName(it)}.`,'g');return true;}
 function rollRune(boss){const w=[40,28,16,9,5,2].map((x,i)=>x*(boss?1+i*0.7:1));const t=w.reduce((a,b)=>a+b,0);let r=Math.random()*t;for(let i=0;i<w.length;i++){r-=w[i];if(r<=0)return i;}return 0;}
-function gainRune(boss){const i=rollRune(boss);S.runes[i]++;bounty('runes',1);log(`Rune found: ${RUNES[i]}`,'g');if(!G.sim)toast(`${RUNES[i]} rune`);}
+function gainRune(boss){const i=rollRune(boss);S.runes[i]++;bounty('runes',1);sfx('rare');log(`Rune found: ${RUNES[i]}`,'g');if(!G.sim)toast(`${RUNES[i]} rune`);}
 
 const TOWER_MOBS=[['Tower sentinel','undead','#cfc9b8','tower_sentinel'],['Cursed knight','humanoid','#3a3a44','cursed_knight'],['Pit hound','beast','#4a3a2a','pit_hound'],['Gargoyle','demon','#6a6a74','gargoyle'],['Stone giant','giant','#8a8a8a','stone_giant'],['Tower wyrm','dragon','#5a3a8a','tower_wyrm']];
 function towerMob(f){const t=TOWER_MOBS[(f-1)%TOWER_MOBS.length];const boss=f%10===0;
@@ -1507,13 +1512,13 @@ function togglePrayer(id){
 }
 // The prayer orb on the fight screen: one tap snuffs every lit prayer and remembers the set; the next tap lights that set again.
 function hudPrayToggle(){
-  if(activePrayers().length){S.quick=S.pray.on.slice();S.pray.on=[];log('Prayers snuffed.');G.dirty=true;return;}
+  if(activePrayers().length){S.quick=S.pray.on.slice();S.pray.on=[];sfx('snuff');log('Prayers snuffed.');G.dirty=true;return;}
   if(vowMul('pray')===0||trialRule('pray')===0){toast('No prayers here.');return;}
   const q=(S.quick||[]).filter(id=>{const P=PRAYERS.find(p=>p.id===id);return P&&combatLvl()>=P.req;});
   if(!q.length){openPray();return;}
   if(S.pray.pts<=0){toast('No prayer points. Bury bones.');return;}
   for(const id of q)if(!prayOn(id))togglePrayer(id);
-  log('Prayers lit: '+activePrayers().map(p=>p.n).join(', ')+'.','g');G.dirty=true;
+  sfx('pray');log('Prayers lit: '+activePrayers().map(p=>p.n).join(', ')+'.','g');G.dirty=true;
 }
 function hudSpecTap(){if(G.dead)return;if(S.spec<specCost()){toast(`Special needs ${specCost()}%.`);return;}special();renderTop();}
 // The chronicle is folded away on a phone until asked for; a wide screen has the room, so it starts open there.
@@ -3017,7 +3022,7 @@ function drawScene(t,dt){
   else if(G.dead){ctx.save();ctx.translate(HX,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
   else drawHero(HX+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
   { // the transformation burst plays once over the champion when the tenth Sovereign piece goes on
-    const full=sovFull();if(full&&!FX.sovWas&&FX.sovWas!==undefined&&sprReady('sov_burst')){FX.sovBurst=t;log('The tenth piece closes. Light takes you: you are the Sovereign Ascended.','g');if(!G.sim)toast('The Sovereign Ascended');}
+    const full=sovFull();if(full&&!FX.sovWas&&FX.sovWas!==undefined&&sprReady('sov_burst')){FX.sovBurst=t;sfx('burst');log('The tenth piece closes. Light takes you: you are the Sovereign Ascended.','g');if(!G.sim)toast('The Sovereign Ascended');}
     FX.sovWas=full;
     if(FX.sovBurst!=null){const i=Math.floor((t-FX.sovBurst)/0.09);if(i>=8||i<0)FX.sovBurst=null;else{const im=sprFrame('sov_burst',i);if(im){ctx.save();ctx.globalCompositeOperation='lighter';drawSprite(im,HX+pl,gy+12,false,0,SPR_SC.sov_burst);ctx.restore();}}}}
   if(!G.dead&&FX.pLunge>0){ // the shot leaves the middle of the bow, or the head of the staff, on the release frame, and flies straight at the monster
@@ -3051,6 +3056,56 @@ function drawScene(t,dt){
   if(G.dead){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd24a';ctx.font='bold 22px Georgia';ctx.fillText('Oh dear, you are dead!',W/2,H/2-6);ctx.font='13px Verdana';ctx.fillStyle='#fff';ctx.fillText('Respawning in '+Math.ceil(G.deadT)+'s',W/2,H/2+18);}
 }
 // ============ GAME LOOP ============
+// ============ SOUND ============
+// Every cue is synthesised on the spot with the Web Audio API: nothing to download, nothing to load, nothing that can 404.
+// The context wakes on the first tap or key (browsers demand a gesture), so the very first swing may be silent; after that every blow speaks.
+const SFX={ctx:null,master:null,last:{},noise:null};
+function sfxOn(){return S.sfx!==false;}
+function sfxVol(){return (S.vol==null?60:S.vol)/100;}
+function sfxCtx(){if(SFX.ctx)return SFX.ctx;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+  try{SFX.ctx=new AC();SFX.master=SFX.ctx.createGain();SFX.master.gain.value=sfxVol()*0.9;SFX.master.connect(SFX.ctx.destination);}catch(e){SFX.ctx=null;}return SFX.ctx;}
+function sfxWake(){const c=sfxCtx();if(c&&c.state==='suspended')c.resume().catch(()=>{});musicSet();}
+function sfxApplyVol(){if(SFX.master)SFX.master.gain.value=sfxVol()*0.9;const a=$('bgm');if(a)a.volume=Math.min(1,sfxVol()*0.7);}
+function sfxToggle(){S.sfx=!sfxOn();toast(sfxOn()?'Sound on.':'Sound off.');if(sfxOn())sfx('tap');const e=$('sfxOn');if(e)e.checked=sfxOn();}
+function sfx(name){if(G.sim||!sfxOn())return;const c=SFX.ctx;if(!c||c.state!=='running')return;const f=SFX_LIB[name];if(!f)return;
+  const now=c.currentTime;if(SFX.last[name]!=null&&now-SFX.last[name]<0.05)return;SFX.last[name]=now;   // the same cue never stacks on itself inside fifty milliseconds
+  try{f(c,now+0.005);}catch(e){}}
+function sfxTone(c,t,o){const osc=c.createOscillator(),g=c.createGain();osc.type=o.w||'sine';osc.frequency.setValueAtTime(o.f,t);if(o.f2)osc.frequency.exponentialRampToValueAtTime(o.f2,t+o.d);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(o.v||0.3,t+(o.a||0.005));g.gain.exponentialRampToValueAtTime(0.0001,t+o.d);
+  osc.connect(g);g.connect(SFX.master);osc.start(t);osc.stop(t+o.d+0.03);}
+function sfxNoise(c,t,o){if(!SFX.noise){const n=c.sampleRate;SFX.noise=c.createBuffer(1,n,n);const d=SFX.noise.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;}
+  const src=c.createBufferSource();src.buffer=SFX.noise;src.loop=true;src.playbackRate.value=0.7+Math.random()*0.6;
+  const fl=c.createBiquadFilter();fl.type=o.type||'bandpass';fl.frequency.setValueAtTime(o.f||1500,t);if(o.f2)fl.frequency.exponentialRampToValueAtTime(o.f2,t+o.d);fl.Q.value=o.q||1;
+  const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(o.v||0.3,t+(o.a||0.004));g.gain.exponentialRampToValueAtTime(0.0001,t+o.d);
+  src.connect(fl);fl.connect(g);g.connect(SFX.master);src.start(t,Math.random()*0.5);src.stop(t+o.d+0.03);}
+const SFX_LIB={
+  hit:(c,t)=>{sfxNoise(c,t,{d:0.08,v:0.32,f:1800,f2:500,q:0.8});sfxTone(c,t,{w:'sine',f:180,f2:70,d:0.12,v:0.35});},
+  spec:(c,t)=>{sfxNoise(c,t,{d:0.18,v:0.45,f:2600,f2:350,q:0.7});sfxTone(c,t,{w:'sine',f:220,f2:50,d:0.24,v:0.5});sfxTone(c,t+0.02,{w:'triangle',f:660,f2:300,d:0.16,v:0.14});},
+  miss:(c,t)=>{sfxNoise(c,t,{d:0.16,v:0.4,f:500,f2:2600,q:1.2,a:0.04});},
+  hurt:(c,t)=>{sfxTone(c,t,{w:'sine',f:110,f2:42,d:0.18,v:0.45});sfxNoise(c,t,{d:0.09,v:0.2,type:'lowpass',f:500});},
+  block:(c,t)=>{sfxTone(c,t,{w:'square',f:1500,f2:900,d:0.05,v:0.1});sfxNoise(c,t,{d:0.05,v:0.18,type:'highpass',f:3000});},
+  kill:(c,t)=>{sfxTone(c,t,{w:'triangle',f:392,f2:330,d:0.12,v:0.32});sfxTone(c,t+0.1,{w:'triangle',f:262,f2:196,d:0.22,v:0.32});sfxNoise(c,t,{d:0.2,v:0.12,type:'lowpass',f:800,f2:200});},
+  bosskill:(c,t)=>{[262,330,392,523].forEach((f,i)=>sfxTone(c,t+i*0.09,{w:'triangle',f,d:0.38,v:0.22}));sfxNoise(c,t,{d:0.6,v:0.2,type:'lowpass',f:1200,f2:150});sfxTone(c,t,{w:'sine',f:80,f2:38,d:0.5,v:0.4});},
+  chest:(c,t)=>{[880,1109,1319,1760].forEach((f,i)=>sfxTone(c,t+i*0.06,{w:'triangle',f,d:0.42,v:0.24}));},
+  level:(c,t)=>{[523,659,784,1047].forEach((f,i)=>{sfxTone(c,t+i*0.11,{w:'square',f,d:0.28,v:0.08});sfxTone(c,t+i*0.11,{w:'triangle',f:f*2,d:0.28,v:0.13});});sfxTone(c,t+0.44,{w:'triangle',f:1568,d:0.7,v:0.16});},
+  eat:(c,t)=>{sfxTone(c,t,{w:'sine',f:320,f2:140,d:0.13,v:0.25,a:0.02});sfxTone(c,t+0.09,{w:'sine',f:200,f2:110,d:0.1,v:0.15});},
+  die:(c,t)=>{sfxTone(c,t,{w:'sawtooth',f:180,f2:38,d:0.8,v:0.18,a:0.02});sfxTone(c,t,{w:'sine',f:90,f2:28,d:0.8,v:0.35});sfxNoise(c,t,{d:0.5,v:0.15,type:'lowpass',f:600,f2:100});},
+  boss:(c,t)=>{[0,0.22,0.44].forEach(o=>{sfxTone(c,t+o,{w:'sine',f:70,f2:34,d:0.3,v:0.5});sfxNoise(c,t+o,{d:0.12,v:0.25,type:'lowpass',f:400});});sfxTone(c,t+0.5,{w:'sawtooth',f:110,f2:55,d:0.9,v:0.1,a:0.1});},
+  burst:(c,t)=>{sfxNoise(c,t,{d:1.4,v:0.3,type:'bandpass',f:300,f2:4000,q:0.5,a:0.9});sfxTone(c,t,{w:'sawtooth',f:55,f2:110,d:1.6,v:0.16,a:0.8});[523,659,784,1047,1319,1568].forEach((f,i)=>sfxTone(c,t+0.8+i*0.07,{w:'triangle',f,d:1.2,v:0.13}));},
+  coin:(c,t)=>{sfxTone(c,t,{w:'triangle',f:2400,d:0.06,v:0.2});sfxTone(c,t+0.05,{w:'triangle',f:3200,d:0.12,v:0.16});},
+  pray:(c,t)=>{sfxTone(c,t,{w:'sine',f:1046,d:0.25,v:0.18});sfxTone(c,t+0.06,{w:'sine',f:1568,d:0.35,v:0.12});},
+  snuff:(c,t)=>{sfxTone(c,t,{w:'sine',f:1046,f2:523,d:0.2,v:0.16});},
+  rare:(c,t)=>{[659,880,1319].forEach((f,i)=>sfxTone(c,t+i*0.08,{w:'sine',f,d:0.5,v:0.2}));sfxTone(c,t+0.24,{w:'triangle',f:2637,d:0.7,v:0.08});},
+  tap:(c,t)=>{sfxTone(c,t,{w:'sine',f:900,d:0.05,v:0.1});},
+};
+// Music is the one thing not made in code: a file at music/theme.mp3 beside the game, when it exists. The toggle is silent without it and says so.
+function musicOn(){return !!S.music;}
+function musicSet(){const a=$('bgm');if(!a)return;a.volume=Math.min(1,sfxVol()*0.7);
+  if(!musicOn()){if(!a.paused)a.pause();return;}
+  if(!a.getAttribute('src'))a.setAttribute('src','music/theme.mp3');
+  if(a.paused){const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}}
+function musicToggle(){S.music=!musicOn();musicSet();const e=$('musicOn');if(e)e.checked=musicOn();toast(musicOn()?'Music on.':'Music off.');}
+function musicFail(){if(!musicOn())return;S.music=false;const e=$('musicOn');if(e)e.checked=false;toast('No music file: put music/theme.mp3 beside the game.');}
 const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirty:true,streak:0,tower:0,cT:0,parry:0,sunderT:0,hexT:0,ward:0,dEff:null,dEffT:0};
 function spawn(boss){
   if(!AREAS[S.area])S.area=0;
@@ -3092,7 +3147,7 @@ function addXp(dmg){
   }else if(st==='all'){S.xp.atk+=dmg*XP_PER*0.335*mult;S.xp.str+=dmg*XP_PER*0.335*mult;S.xp.def+=dmg*XP_PER*0.335*mult;}
   else S.xp[st]+=dmg*XP_PER*mult;
   S.xp.hp+=dmg*XP_PER*0.335*mult;
-  for(const k of KEYS){if(lv(k)>before[k]){log(`Congratulations! ${SK_NAME[k]} is now level ${lv(k)}.`,'b');if(!G.sim)toast(`${SK_NAME[k]} level ${lv(k)}!`);G.dirty=true;}}
+  for(const k of KEYS){if(lv(k)>before[k]){log(`Congratulations! ${SK_NAME[k]} is now level ${lv(k)}.`,'b');if(!G.sim){toast(`${SK_NAME[k]} level ${lv(k)}!`);sfx('level');}G.dirty=true;}}
 }
 // damage landed in the last sixty seconds, for the feat that asks for a thousand of it
 function dmgWindow(dmg){if(dmg<=0)return;G.dw=G.dw||{t:0,b:new Array(60).fill(0)};const w=G.dw;w.b[Math.floor(w.t)%60]+=dmg;const sum=w.b.reduce((a,x)=>a+x,0);if(sum>(S.best60||0)){S.best60=sum;}}
@@ -3122,18 +3177,18 @@ function playerHit(spec,sp){
   if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn(),discEff('burn'));if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
   if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
-  if(!G.sim){FX.pLunge=1;FX.shot=(FX.shot||0)+1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');}
+  if(!G.sim){FX.pLunge=1;FX.shot=(FX.shot||0)+1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':'#c0392b'):'#2f6fd6');sfx(dmg>0?(spec?'spec':'hit'):'miss');}
   addXp(dmg);
   if(G.mobHp<=0)killMob();
 }
 function mobHit(){
   const m=G.mob;let dmg=0;
-  if((G.parry||0)>0){G.parry--;if(!G.sim){FX.mLunge=1;splat(HX,60+Math.random()*30,'Parried','#8fdcf5');}return;}
+  if((G.parry||0)>0){G.parry--;if(!G.sim){FX.mLunge=1;splat(HX,60+Math.random()*30,'Parried','#8fdcf5');sfx('block');}return;}
   if(Math.random()<hitChance(mobAtkRoll(m),playerDefRoll()))dmg=rnd(0,mobMaxHit(m));
   const dr=dmgReduction();if(dmg>0&&dr!==0)dmg=Math.max(1,Math.floor(dmg*(1-dr/100)));
   if((G.ward||0)>0&&dmg>0){const a=Math.min(G.ward,dmg);G.ward-=a;dmg-=a;if(!G.sim)splat(HX,84,'Ward −'+a,'#8fdcf5');}
   dmg=Math.min(dmg,S.hp);S.hp-=dmg;
-  if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');}
+  if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');sfx(dmg>0?'hurt':'block');}
   if(dmg>0&&medEff('zeal'))S.spec=Math.min(100,S.spec+medEff('zeal'));
   if(dmg>0&&eliteOf(m)&&eliteOf(m).poison)G.poisonT=eliteOf(m).poison;
   if(dmg>0&&(talN('riposte')||discHas('riposte'))&&G.mobHp>0&&Math.random()<0.2){const r=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*0.5)));G.mobHp-=r;if(!G.sim)splat(MX-10,90,r,'#c8ccd4');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
@@ -3143,7 +3198,7 @@ function mobHit(){
   if(S.hp<=0)die();
 }
 function die(){
-  G.dead=true;G.deadT=15;S.hp=0;S.deaths=(S.deaths||0)+1;rd().deaths++;
+  G.dead=true;G.deadT=15;S.hp=0;sfx('die');S.deaths=(S.deaths||0)+1;rd().deaths++;
   if(vowAdd('deathGold')>0&&S.gold>0){const l=Math.floor(S.gold*vowAdd('deathGold'));S.gold-=l;log(`The Vow of the Sprint takes ${fmt(l)} gold for the fall.`,'e');}if(curseActive())endCurse('broken');
   log(`You were killed by ${G.mob.n}.`,'e');
   if(G.tower){log(`The tower spits you out at floor ${G.tower}.`,'e');G.tower=0;spawn(false);return;}
@@ -3233,7 +3288,7 @@ function useSeal(k,it,aff){
 }
 function killMob(){
   const m=G.mob,A=AREAS[S.area],b=bonuses();
-  S.totalKills++;G.streak=0;draughtKill();profCount();
+  sfx(G.isBoss||G.nem||G.lt||G.mark||G.lair!=null||G.duel!=null?'bosskill':'kill');S.totalKills++;G.streak=0;draughtKill();profCount();
   const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;   // the Abyss holds its gold until it is banked
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck')*(1+areaMast(S.area,'luck')/100)*(eliteOf(m)?2:1)*((G.ambush||0)>0?3:1);if((G.ambush||0)>0)G.ambush--;
   rd().kills++;bestCount(m);
@@ -3302,7 +3357,7 @@ function killMob(){
 function gainItem(it){
   const cur=S.equip[it.slot];if(it.from===undefined)it.from=G.tower?'t':S.area;
   if(isSpecial(it)){markFound(it);if(S.inv.length>=28){const j=S.inv.findIndex(x=>!isSpecial(x)&&!x.rw);if(j>=0){const junk=S.inv.splice(j,1)[0];S.scrap+=itemScrap(junk);log('Pack full: salvaged '+itemName(junk)+' to make room.');}}
-    if(S.inv.length<28){S.inv.push(it);log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));return 'kept';}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));return 'sold';}}
+    if(S.inv.length<28){S.inv.push(it);sfx('rare');log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));return 'kept';}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));return 'sold';}}
   if(S.autoSalv&&!keepRule(it)&&((cur&&itemScore(it)<=itemScore(cur))||offStyle(it))){S.scrap+=itemScrap(it);S.gold+=Math.floor(itemValue(it)/2);bounty('salvage',1);return 'salvaged';}
   if(S.inv.length>=28){S.gold+=Math.floor(itemValue(it)/2);if(!G.sim)log('Backpack full: sold '+itemName(it)+' for '+Math.floor(itemValue(it)/2)+' gold.');return 'sold';}
   S.inv.push(it);log('Loot: '+itemName(it),it.rar>=3?'g':'');
@@ -3346,7 +3401,7 @@ function eat(manual){
   const fh=i=>Math.round(FOOD[i].h*hpMult()*(1+medEff('foodPct')/100)*creedEff('foodx',1)*(1+tuneEff('food')/100));
   let idx=-1;for(let i=FOOD.length-1;i>=0;i--){if(S.food[i]>0){idx=i;if(mh-S.hp>=fh(i))break;}}
   if(idx<0){if(manual)toast('No food left.');return false;}
-  S.food[idx]--;S.foodEaten=(S.foodEaten||0)+1;S.hp=Math.min(mh,S.hp+fh(idx));G.dirty=true;
+  S.food[idx]--;S.foodEaten=(S.foodEaten||0)+1;sfx('eat');S.hp=Math.min(mh,S.hp+fh(idx));G.dirty=true;
   {const F=FOOD[idx];if(F.pray)S.pray.pts=Math.min(prayMax(),S.pray.pts+prayMax()*F.pray);if(F.spec)S.spec=Math.min(100,S.spec+F.spec);}
   if(!G.sim){splat(HX,110,'+'+fh(idx),'#2e9a3a');}
   return true;
@@ -3753,17 +3808,17 @@ function buildFilters(){
 }
 function isJunk(it){if(it.rw||isSpecial(it)||keepRule(it))return false;if(offStyle(it))return true;const cur=S.equip[it.slot];return !!cur&&itemScore(it)<=itemScore(cur);}
 function sellJunk(){
-  let n=0,g=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;g+=itemValue(it);return false;}return true;});S.gold+=g;
+  let n=0,g=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;g+=itemValue(it);return false;}return true;});S.gold+=g;if(n)sfx('coin');
   toast(n?`Sold ${n} piece${n>1?'s':''} for ${fmt(g)} gold.`:'Nothing in the pack is junk.');renderAll();
 }
 function sellAll(){
   const sell=S.inv.filter(it=>it&&!it.heir);if(!sell.length){toast('Nothing in the pack to sell.');return;}
   const g=sell.reduce((a,it)=>a+itemValue(it),0);const rare=sell.filter(isSpecial).length;
   if(!G.sim&&!confirm(`Sell ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold?${rare?` That includes ${rare} unique or set piece${rare===1?'':'s'}.`:''} Only the Heirloom stays.`))return;
-  S.inv=S.inv.filter(it=>!sell.includes(it));S.gold+=g;toast(`Sold ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);log(`Sold the pack: ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);renderAll();
+  S.inv=S.inv.filter(it=>!sell.includes(it));S.gold+=g;sfx('coin');toast(`Sold ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);log(`Sold the pack: ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);renderAll();
 }
 function salvageJunk(){
-  let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);
+  let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);if(n)sfx('coin');
   toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the pack is junk.');renderAll();
 }
 function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest();n++;}if(!n)toast(S.chests?'Pack is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
@@ -4558,7 +4613,7 @@ function openChest(){
   const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
   const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.inv.push(it);markFound(it);
 
-  log(`Chest: ${itemName(it)} and ${g} gold.`,'g');toast(`Chest: ${itemName(it)}`);renderAll();
+  sfx('chest');log(`Chest: ${itemName(it)} and ${g} gold.`,'g');toast(`Chest: ${itemName(it)}`);renderAll();
 }
 
 
@@ -4585,9 +4640,14 @@ function offline(){
 // ============ WIRING ============
 buildTop();buildDock();buildSecs();buildFilters();cqWire();chWire();lgWire();
 $('btnSpec').onclick=special;
+{const so=$('sfxOn'),mo=$('musicOn'),vo=$('volume');so.checked=sfxOn();mo.checked=musicOn();vo.value=S.vol==null?60:S.vol;$('volTxt').textContent=vo.value;
+  so.onchange=e=>{S.sfx=e.target.checked;if(S.sfx)sfx('tap');};mo.onchange=e=>{S.music=e.target.checked;musicSet();};
+  vo.oninput=e=>{S.vol=+e.target.value;$('volTxt').textContent=S.vol;sfxApplyVol();};vo.onchange=()=>sfx('coin');
+  $('bgm').addEventListener('error',musicFail);
+  document.addEventListener('pointerdown',sfxWake,{capture:true,passive:true});document.addEventListener('keydown',sfxWake,true);}
 $('onbGo').onclick=()=>{const st=onbCur();if(st&&st.tab)showTab(st.tab);};$('onbX').onclick=onbOff;$('btnOnb').onclick=()=>{onbReplay();$('lgModal').className='';renderAll();};
 $('btnEat').onclick=()=>eat(true);
-$('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
+$('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);sfx('boss');log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
 $('btnChest').onclick=openChest;
 $('btnChestAll').onclick=openAllChests;
 $('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;$('btnSellAll').onclick=sellAll;
@@ -4609,6 +4669,7 @@ document.addEventListener('keydown',e=>{
   else if(e.key===' '){special();e.preventDefault();}
   else if(e.key==='e'||e.key==='E'){eat(true);}
   else if(e.key==='b'||e.key==='B'){const n=bury(5);toast(n?`Buried ${n} bones`:'Nothing to bury.');renderAll();}
+  else if(e.key==='m'||e.key==='M'){sfxToggle();}
   else if(e.key==='Escape'&&$('modal').className==='on'){$('modal').className='';renderAll();}
 });
 
@@ -4630,7 +4691,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b134-opening';window.__ihBoot=true;
+  const BUILD='b135-sound';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

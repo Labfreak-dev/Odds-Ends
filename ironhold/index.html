@@ -650,6 +650,7 @@
           <button id="prevArea" aria-label="Previous area">&#9664;</button>
           <button class="ib" id="btnMap" title="Realm map" aria-label="Realm map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
           <div class="area-name" id="areaName">Cow Pasture</div>
+          <button class="ib" id="btnPause" title="Pause the fighting" aria-label="Pause the fighting"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
           <button class="ib" id="btnLog" title="Chronicle" aria-label="Show the chronicle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8 9h8M8 12h5"/></svg></button>
           <button id="nextArea" aria-label="Next area">&#9654;</button>
         </div>
@@ -697,6 +698,7 @@
           <div class="vault-actions">
             <button class="sm" id="btnSalvJunk">Salvage junk</button>
             <button class="sm" id="btnSellJunk">Sell junk</button>
+            <button class="sm" id="btnSellAll" title="Sell everything in the pack except uniques, set pieces and the Heirloom">Sell all</button>
             <button class="sm" id="btnChest">Open 1 (<span id="chestCnt">0</span>)</button>
             <button class="sm" id="btnChestAll">Open all</button>
           </div>
@@ -1509,6 +1511,7 @@ function hudPrayToggle(){
 function hudSpecTap(){if(G.dead)return;if(S.spec<specCost()){toast(`Special needs ${specCost()}%.`);return;}special();renderTop();}
 // The chronicle is folded away on a phone until asked for; a wide screen has the room, so it starts open there.
 function logShown(){return S.showLog===undefined?window.matchMedia('(min-width:980px)').matches:!!S.showLog;}
+function togglePause(){if(siegeActive()){toast('The horde does not wait.');return;}if(S.trial){toast('A trial keeps its own time: no pausing until it ends.');return;}S.paused=!S.paused;$('btnPause').classList.toggle('on',!!S.paused);log(S.paused?'You lower the blade. The fighting waits.':'You raise the blade again.');G.dirty=true;renderAll();}
 function toggleLog(){S.showLog=!logShown();applyLog();if(S.showLog){G.logNew=0;$('btnLog').classList.remove('new');}}
 function applyLog(){const on=logShown();$('feed').hidden=!on;$('btnLog').classList.toggle('on',on);if(on)$('btnLog').classList.remove('new');}
 function bury(n){n=Math.min(n,S.bones,Math.ceil((prayMax()-S.pray.pts)/BONE_PTS));if(n<=0)return 0;S.bones-=n;S.pray.pts=Math.min(prayMax(),S.pray.pts+n*BONE_PTS);bounty('bury',n);return n;}
@@ -3037,6 +3040,7 @@ function drawScene(t,dt){
     const w=ctx.measureText(s.txt).width+14;ctx.fillStyle=s.col;ctx.beginPath();ctx.ellipse(s.x,s.y,w/2+2,12,0,0,7);ctx.fill();ctx.strokeStyle='#000';ctx.lineWidth=1.5;ctx.stroke();
     ctx.fillStyle='#fff';ctx.fillText(s.txt,s.x,s.y+6);ctx.globalAlpha=1;}
   FX.splats=FX.splats.filter(s=>s.life>0);
+  if(S.paused&&!G.dead){ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(0,H/2-22,W,44);ctx.fillStyle='#ffd24a';ctx.font='bold 18px Georgia';ctx.textAlign='center';ctx.fillText('Paused',W/2,H/2-2);ctx.font='11px Verdana';ctx.fillStyle='#fff';ctx.fillText('Tap the pause button to fight on',W/2,H/2+14);}
   if(G.dead){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd24a';ctx.font='bold 22px Georgia';ctx.fillText('Oh dear, you are dead!',W/2,H/2-6);ctx.font='13px Verdana';ctx.fillStyle='#fff';ctx.fillText('Respawning in '+Math.ceil(G.deadT)+'s',W/2,H/2+18);}
 }
 // ============ GAME LOOP ============
@@ -3382,6 +3386,8 @@ function tick(dt){richTick();
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
+  if(S.paused&&(siegeActive()||S.trial))S.paused=false;   // the horde does not wait, and a trial's clock is honest
+  if(S.paused)return;                             // paused: no blows either way, no spawns; the champion rests and regens
   if(!G.mob)spawn(false);
   if(S.autoEat&&S.hp<maxHp()*S.eatPct/100)eat(false);
   draughtTick(dt);
@@ -3527,7 +3533,7 @@ function buildTop(){
   $('hudPot').onclick=openPot;
   $('hudBoss').onclick=()=>$('btnBoss').onclick();
   $('btnMap').onclick=()=>goRoom('world','Realm');
-  $('btnLog').onclick=toggleLog;
+  $('btnLog').onclick=toggleLog;$('btnPause').onclick=togglePause;$('btnPause').classList.toggle('on',!!S.paused);
   applyLog();
 }
 function renderPills(){for(const [k,,f,when] of PILLS){$('pill-'+k).textContent=f();
@@ -3741,6 +3747,12 @@ function isJunk(it){if(it.rw||isSpecial(it)||keepRule(it))return false;if(offSty
 function sellJunk(){
   let n=0,g=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;g+=itemValue(it);return false;}return true;});S.gold+=g;
   toast(n?`Sold ${n} piece${n>1?'s':''} for ${fmt(g)} gold.`:'Nothing in the pack is junk.');renderAll();
+}
+function sellAll(){
+  const sell=S.inv.filter(it=>it&&!isSpecial(it));if(!sell.length){toast('Nothing in the pack to sell: uniques, set pieces and the Heirloom stay.');return;}
+  const g=sell.reduce((a,it)=>a+itemValue(it),0);
+  if(!G.sim&&!confirm(`Sell ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold? Uniques, set pieces and the Heirloom stay in the pack.`))return;
+  S.inv=S.inv.filter(it=>!sell.includes(it));S.gold+=g;toast(`Sold ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);log(`Sold the pack: ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);renderAll();
 }
 function salvageJunk(){
   let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);
@@ -4540,7 +4552,7 @@ $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
 $('btnChest').onclick=openChest;
 $('btnChestAll').onclick=openAllChests;
-$('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;
+$('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;$('btnSellAll').onclick=sellAll;
 $('prevArea').onclick=()=>{if(!G.tower)goArea(S.area-1);};
 $('nextArea').onclick=()=>{if(!G.tower)goArea(S.area+1);};
 $('autoSalv').onchange=e=>S.autoSalv=e.target.checked;
@@ -4580,7 +4592,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b130-devcodes';window.__ihBoot=true;
+  const BUILD='b131-pause';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -2710,6 +2710,8 @@ const UQ_FIT={
   gunnars_stormpole:[-1.234,0.315,0.573], matriarch_rod:[-1.238,0.363,0.573], grothek_pillar:[-1.454,0.544,0.573], ashborn_emberstaff:[-1.122,0.31,0.609],
   bloodletter_wand:[-1.062,0.306,0.653], elder_scepter:[-1.093,0.3,0.631], gravetender_staff:[-1.28,0.335,0.642], idle_king_scepter:[-1.177,0.273,0.645],
   last_saint_staff:[-1.114,0.288,0.627], overlord_staff:[-1.079,0.291,0.642], pasture_justice:[2.456,0.877,0.078], sanctum_crozier:[-1.14,0.276,0.633]};
+// Per-icon fits for the Obsidian, Starsteel and Sovereign weapons, measured off the art the way the older tiers were: [blade angle, grip x, grip y].
+const ICON_FIT={"wep_8_dagger":[2.129,0.922,0.04],"wep_8_scimitar":[2.319,0.974,0.057],"wep_8_longsword":[2.154,0.924,0.066],"wep_8_battleaxe":[-0.953,-0.002,0.919],"wep_8_greatsword":[2.104,0.935,0.047],"wep_8_shortbow":[-1.094,0.481,0.571],"wep_8_longbow":[-1.184,0.683,0.621],"wep_8_composite":[-0.953,0.382,0.414],"wep_8_xbow":[1.765,0.524,0.52],"wep_8_knives":[-1.093,0.439,0.527],"wep_8_wand":[-1.152,0.26,0.773],"wep_8_staff":[-1.164,0.468,0.493],"wep_8_battlestaff":[-1.061,0.461,0.501],"wep_8_orb":[1.1,0.435,0.801],"wep_8_tome":[-0.282,0.553,0.714],"wep_9_dagger":[2.092,0.928,0.029],"wep_9_scimitar":[-0.97,0.069,0.969],"wep_9_longsword":[-1.029,0.052,0.928],"wep_9_battleaxe":[-1.042,0.068,0.945],"wep_9_greatsword":[-1.013,0.04,0.946],"wep_9_shortbow":[-1.024,0.664,0.648],"wep_9_longbow":[-1.523,0.808,0.58],"wep_9_composite":[-3.529,0.369,0.445],"wep_9_xbow":[-0.818,0.32,0.64],"wep_9_knives":[-1.717,0.471,0.488],"wep_9_wand":[-1.117,0.255,0.762],"wep_9_staff":[-1.064,0.488,0.494],"wep_9_battlestaff":[-1.059,0.446,0.5],"wep_9_orb":[1.517,0.496,0.799],"wep_9_tome":[0.528,0.52,0.752],"sov_greatsword":[-1.006,0.038,0.945],"sov_longbow":[-1.578,0.748,0.567],"sov_battlestaff":[-1.987,0.411,0.496]};
 // a bow sits ACROSS the line between the hands; everything else lies along it
 const WPN_ALONG={xbow:1,knives:1,wand:1,staff:1,battlestaff:1,orb:1,tome:1};
 // an orb or a tome is carried level in the palm and does not swing with the arm
@@ -2810,7 +2812,7 @@ function drawWeapon(hf,x,y,flip,item){
   let c=wpnCanvas(iconKey(it));if(!c)return;
   const g=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!g)return;
   if(flip)g[0]=2*x-g[0];
-  const ik=wepIk(it.wt);let fit=(it.uq&&UQ_FIT[it.uq])||WPN_FIT[ik];if(!fit)return;
+  const ik=wepIk(it.wt);let fit=(it.uq&&UQ_FIT[it.uq])||ICON_FIT[iconKey(it)]||WPN_FIT[ik];if(!fit)return;
   if(!it.uq&&WPN_FLIP[ik]){c=mirrorCanvas(iconKey(it),c);fit=[Math.PI-fit[0],1-fit[1],fit[2]];}
   // looks with a hand line set the angle from the art itself; the melee looks
   // mark one hand only, so they fall back to the per-frame table
@@ -4567,7 +4569,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b126-sovpair';window.__ihBoot=true;
+  const BUILD='b127-grips';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

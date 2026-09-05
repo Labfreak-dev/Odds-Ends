@@ -821,7 +821,8 @@
     <details class="lg"><summary>Redeem<span class="sub">a code for rewards</span></summary><div class="lgc">
           <p>Codes are handed out by the keeper of the hold. Each works once per save.</p>
           <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:8px"><input id="redeemTxt" type="text" placeholder="IRON-…" spellcheck="false" autocapitalize="characters" style="min-width:0"><button class="sm" id="btnRedeem">Redeem</button></div>
-          <p class="sub" id="redeemMsg" style="margin-top:6px"></p></div></details>
+          <p class="sub" id="redeemMsg" style="margin-top:6px"></p>
+          <div id="richBox" hidden style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.35)"><div class="chk"><input type="checkbox" id="richOn"><label for="richOn"><b>Unlimited resources</b> — while this is on, everything that can be spent or used is kept topped up: gold, scrap, chests, food, runes, Starsteel, delve keys, essence, cursed scrolls, bones, prayer points and special energy.</label></div></div></div></details>
   </div>
 </div></div>
 <div id="chModal"><div id="chBox">
@@ -3355,7 +3356,13 @@ function special(){
   if(sp.refund)S.spec=Math.min(100,S.spec+sp.refund);if(sp.reset)G.pT=0;
   G.dirty=true;
 }
-function tick(dt){
+// The keeper's purse: with the switch on, the spendable things never run out.
+const RICH_FLOOR={gold:1e9,scrap:1e6,chests:100,ingots:999,keys:99,essence:999,scrolls:99,bones:999};
+function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(S[k]>=RICH_FLOOR[k]))S[k]=RICH_FLOOR[k];
+  for(let i=0;i<S.food.length;i++)if(S.food[i]<999)S.food[i]=999;for(let i=0;i<S.runes.length;i++)if(S.runes[i]<999)S.runes[i]=999;
+  S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
+function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
+function tick(dt){richTick();
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
@@ -3519,6 +3526,7 @@ const TABS=[['hero','Worn','champion'],['vault','Vault','vault'],['skills','Trai
 // sig is a hash of the body and a salt. Made with ironhold/make-code.py.
 const RD_SALT='ironhold'+'-keeper-'+'2026';
 const RD_KINDS={G:['gold',n=>S.gold+=n],S:['scrap',n=>S.scrap+=n],C:['chests',n=>S.chests+=n],F:['shrimp',n=>S.food[0]+=n],H:['shards',n=>{S.asc.shards+=n;}],R:['of every rune',n=>{for(let i=0;i<S.runes.length;i++)S.runes[i]+=n;}],I:['Starsteel',n=>S.ingots=(S.ingots||0)+n],K:['delve keys',n=>S.keys=(S.keys||0)+n],E:['essence',n=>S.essence=(S.essence||0)+n],
+  U:['the keeper\'s purse',n=>{S.rich=1;}],
   L:['in every combat skill',n=>{const l=Math.min(99,n);for(const k of ['atk','str','def','hp','rng','mag'])if(lv(k)<l)S.xp[k]=XP[l];S.hp=maxHp();}],
   Y:['Sovereign harness',n=>{const its=setSlots('sov').map(sl=>makeSetPiece('sov',sl)).concat(['sov_greatsword','sov_longbow','sov_battlestaff'].map(makeUnique));rdStow(its);}],
   T:['-tier Legendary kits and weapons',n=>{const t=Math.min(n,TIERS.length-1);const its=[];
@@ -3532,12 +3540,13 @@ function redeem(raw){const c=String(raw||'').trim().toUpperCase().replace(/\s+/g
   const body=m[1];if(rdSig(body)!==m[2])return {ok:false,msg:'The seal is wrong. Check the letters.'};
   const parts=body.split('.');const id=parts[0];S.redeemed=S.redeemed||{};if(S.redeemed[id])return {ok:false,msg:'This code has been redeemed on this save already.'};
   const got=[];for(const pt of parts.slice(1)){const k=pt[0],n=parseInt(pt.slice(1),10);const K=RD_KINDS[k];if(!K||!(n>0))return {ok:false,msg:'The code names a reward this hold does not know.'};got.push([K,n]);}
-  for(const [K,n] of got)K[1](n);S.redeemed[id]=1;const txt=got.map(([K,n])=>K[0].startsWith('-')?`${TIERS[Math.min(n,TIERS.length-1)].n}${K[0]}`:K[0]==='Sovereign harness'?'the Sovereign harness':`${fmt(n)} ${K[0]}`).join(', ');
+  for(const [K,n] of got)K[1](n);S.redeemed[id]=1;const txt=got.map(([K,n])=>K[0]==='the keeper\'s purse'?'the keeper\'s purse: an unlimited-resources switch under Redeem':K[0].startsWith('-')?`${TIERS[Math.min(n,TIERS.length-1)].n}${K[0]}`:K[0]==='Sovereign harness'?'the Sovereign harness':`${fmt(n)} ${K[0]}`).join(', ');
   log(`Code redeemed: ${txt}.`,'g');G.dirty=true;return {ok:true,msg:'Redeemed: '+txt+'.'};}
 function lgWire(){
-  $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);renderAll();}};
+  $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);richUI();renderAll();}};
+  $('richOn').onchange=e=>{S.richOn=e.target.checked?1:0;if(S.richOn){richTick();log('The keeper opens the purse: nothing runs out.','g');}else log('The keeper closes the purse.');G.dirty=true;renderAll();};
   $('redeemTxt').onkeydown=e=>{if(e.key==='Enter')$('btnRedeem').click();};
-  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';};
+  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';richUI();};
   $('lgX').onclick=()=>$('lgModal').classList.remove('on');
   $('lgModal').addEventListener('click',e=>{if(e.target.id==='lgModal')$('lgModal').classList.remove('on');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')$('lgModal').classList.remove('on');});
@@ -4542,7 +4551,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b123-godmode';window.__ihBoot=true;
+  const BUILD='b124-purse';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

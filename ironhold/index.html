@@ -1002,7 +1002,7 @@ function makeItem(tier,slot,rar,wt,arm){
   const T=TIERS[tier];const R=RARITY[rar];
   const it={id:uid++,tier,slot,rar,up:0,aff:{}};
   if(slot==='weapon'){it.wt=wt!=null?wt:rnd(0,WEAPONS.length-1);}
-  else if(arm!==undefined){if(arm)it.arm=arm;}
+  else if(arm!==undefined){if(arm&&ARMK[arm]&&ARMK[arm].slots.includes(slot))it.arm=arm;}
   else if(ARM_FOR[slot]&&Math.random()<0.5)it.arm=ARM_FOR[slot][rnd(0,ARM_FOR[slot].length-1)];
   const v=T.v*R.m;
   const base={atk:0,str:0,def:0};
@@ -3406,7 +3406,8 @@ function tick(dt){richTick();
 // ============ UI ============
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
-function uiDefaults(){S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
+function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
+function uiDefaults(){fixKits();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,DIFFS.length-1);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.food=S.food||[];while(S.food.length<FOOD.length)S.food.push(0);
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault','peddler'])S.keep[k]=S.keep[k]||0;
@@ -3564,7 +3565,7 @@ const RD_KINDS={G:['gold',n=>S.gold+=n],S:['scrap',n=>S.scrap+=n],C:['chests',n=
   L:['in every combat skill',n=>{const l=Math.min(99,n);for(const k of ['atk','str','def','hp','rng','mag'])if(lv(k)<l)S.xp[k]=XP[l];S.hp=maxHp();}],
   Y:['Sovereign harness',n=>{const its=setSlots('sov').map(sl=>makeSetPiece('sov',sl)).concat(['sov_greatsword','sov_longbow','sov_battlestaff'].map(makeUnique));rdStow(its);}],
   T:['-tier Legendary kits and weapons',n=>{const t=Math.min(n,TIERS.length-1);const its=[];
-    for(const arm of ['','hide','robe'])for(const sl of SLOTS){if(sl==='weapon')continue;its.push(makeItem(t,sl,5,undefined,ARM_FOR[sl]&&ARM_FOR[sl].length?arm:undefined));}
+    for(const arm of ['','hide','robe'])for(const sl of SLOTS){if(sl==='weapon')continue;if(arm&&!ARMK[arm].slots.includes(sl))continue;its.push(makeItem(t,sl,5,undefined,arm||undefined));}
     WEAPONS.forEach((w,wi)=>its.push(makeItem(t,'weapon',5,wi)));rdStow(its);}]};
 // Redeemed gear goes to storage first, then the pack; whatever fits nowhere is left behind, and the message says so.
 function rdStow(its){let dropped=0;for(const it of its){if(store().length<STORE_CAP)store().push(it);else if(S.inv.length<28)S.inv.push(it);else dropped++;}if(dropped)log(`${dropped} piece${dropped===1?'':'s'} found no room and stayed with the keeper.`,'e');}
@@ -4592,7 +4593,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b132-sellall';window.__ihBoot=true;
+  const BUILD='b133-kits';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

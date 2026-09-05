@@ -3493,7 +3493,8 @@ function tick(dt){richTick();onbTick(dt);
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
 function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
-function uiDefaults(){fixKits();onbDefault();hallMigrate();fixHall();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
+function fixOpened(){if(S.opened!==undefined&&(typeof S.opened!=='object'||S.opened===null)){if(typeof S.opened==='number')S.chestsOpened=Math.max(S.chestsOpened||0,S.opened);S.opened={};for(const k in SEC_GATE)if(SEC_GATE[k]())S.opened[k]=1;}}
+function uiDefaults(){fixKits();onbDefault();hallMigrate();fixHall();fixOpened();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,DIFFS.length-1);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.food=S.food||[];while(S.food.length<FOOD.length)S.food.push(0);
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault','peddler'])S.keep[k]=S.keep[k]||0;
@@ -4439,7 +4440,7 @@ const ONB=[
   {id:'watch',t:'Combat runs on its own. Your health is the left pool, the monster\'s the right. You coach; the blade works.',done:()=>S.totalKills>=3},
   {id:'boss',t:'Enough kills here: the boss of this area is ready. Tap the skull orb at the foot of the scene.',when:()=>!G.tower&&S.kills[S.area]>=AREAS[S.area].need&&!S.cleared[S.area],done:()=>G.isBoss||S.cleared.some(Boolean)},
   {id:'map',t:'The boss is down and the road east is open. The map icon beside the area name shows the realm and every place on it.',tab:'world',gl:'March',when:()=>S.cleared.some(Boolean),done:()=>S.tab==='world'||S.area>0},
-  {id:'chest',t:'A chest fell. Open it from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,snap:()=>S.opened||0,done:()=>(S.opened||0)>S.onb.s0},
+  {id:'chest',t:'A chest fell. Open it from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,snap:()=>S.chestsOpened||0,done:()=>(S.chestsOpened||0)>S.onb.s0},
   {id:'pack',t:'Monsters drop gear into your pack. See what fell under Worn, and wear anything better.',tab:'hero',gl:'Worn',when:()=>S.totalKills>=3,done:()=>S.tab==='hero'},
   {id:'eat',t:'Taking hits? The food orb eats a meal. Auto-eat is already on, and lives with the prayers under Train.',when:()=>S.totalKills>=6,done:()=>S.totalKills>=14},
   {id:'skills',t:'Damage trains your skills. Attack unlocks better weapons, Defence better armour, and the stance decides which one grows.',tab:'skills',gl:'Train',when:()=>S.totalKills>=14,done:()=>S.tab==='skills'},
@@ -4633,7 +4634,7 @@ function claimFree(wt){
 function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 function openChest(){
   if(S.chests<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
-  S.chests--;S.opened=(S.opened||0)+1;bounty('chests',1);const A=AREAS[S.area];
+  S.chests--;S.chestsOpened=(S.chestsOpened||0)+1;bounty('chests',1);const A=AREAS[S.area];
   const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
   const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.inv.push(it);markFound(it);
 
@@ -4732,7 +4733,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b139-hall';window.__ihBoot=true;
+  const BUILD='b140-opened';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

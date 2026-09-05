@@ -2825,8 +2825,10 @@ function gripScreen(img,grip,x,y,sc){
 // exactly what a mirrored sprite needs: the grip stays on the mirrored hand.
 // The shield rides the far hand: the rear-hand marker where the look has one, else a
 // hand's width behind the grip. Drawn before the champion so the body overlaps it.
+// The shield sits on the off arm, across the front of the body, drawn over the look and under the weapon.
+// Ranged and magic looks mark that hand; melee looks mark only the weapon hand, so the shield hangs a little behind it at the torso.
 function drawShield(hf,x,y){const it=S.equip.shield;if(!it||!hf.grip||!hf.img)return;const c=wpnCanvas(iconKey(it));if(!c)return;
-  let g=hf.h?gripScreen(hf.img,hf.h,x,y,hf.sc):null;if(!g){const gg=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!gg)return;g=[gg[0]-hf.img.naturalWidth*(hf.sc||0.5)*0.30,gg[1]-6];}
+  let g=hf.h?gripScreen(hf.img,hf.h,x,y,hf.sc):null;if(!g){const gg=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!gg)return;g=[gg[0]-hf.img.naturalWidth*(hf.sc||0.5)*0.11,gg[1]+8];}
   const H=52,k=H/Math.max(c.width,c.height),w=c.width*k,h=c.height*k;
   ctx.save();ctx.translate(g[0],g[1]);ctx.drawImage(c,-w*0.5,-h*0.5,w,h);ctx.restore();}
 function drawWeapon(hf,x,y,flip,item){
@@ -3021,8 +3023,8 @@ function drawScene(t,dt){
   const heroSpr=sprReady('hero_idle');   // per-pose fallbacks live in heroFrame
   // Keep this if/else chain intact: an extra statement between the branches
   // re-binds the else to it, and the procedural hero paints over the sprite.
-  if(heroSpr){const hf=heroFrame(t);if(!G.dead)drawShield(hf,HX+pl,gy+4);drawSprite(hf.img,HX+pl,gy+4,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);
-    if(!G.dead)drawWeapon(hf,HX+pl,gy+4);}
+  if(heroSpr){const hf=heroFrame(t);drawSprite(hf.img,HX+pl,gy+4,false,G.dead?0:FX.pFlash,hf.sc,hf.rot);
+    if(!G.dead){drawShield(hf,HX+pl,gy+4);drawWeapon(hf,HX+pl,gy+4);}}
   else if(G.dead){ctx.save();ctx.translate(HX,gy+20);ctx.rotate(-Math.PI/2);drawHero(0,-50,S.equip,0,1,1.2,0);ctx.restore();}
   else drawHero(HX+pl,gy-95,S.equip,t,1,1.2,FX.pFlash);
   { // the transformation burst plays once over the champion when the tenth Sovereign piece goes on
@@ -3812,17 +3814,17 @@ function buildFilters(){
 }
 function isJunk(it){if(it.rw||isSpecial(it)||keepRule(it))return false;if(offStyle(it))return true;const cur=S.equip[it.slot];return !!cur&&itemScore(it)<=itemScore(cur);}
 function sellJunk(){
-  let n=0,g=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;g+=itemValue(it);return false;}return true;});S.gold+=g;if(n)sfx('coin');
+  let n=0,g=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;g+=itemValue(it);return false;}return true;});S.gold+=g;if(n){sfx('coin');S.junkActs=(S.junkActs||0)+1;}
   toast(n?`Sold ${n} piece${n>1?'s':''} for ${fmt(g)} gold.`:'Nothing in the pack is junk.');renderAll();
 }
 function sellAll(){
   const sell=S.inv.filter(it=>it&&!it.heir);if(!sell.length){toast('Nothing in the pack to sell.');return;}
   const g=sell.reduce((a,it)=>a+itemValue(it),0);const rare=sell.filter(isSpecial).length;
   if(!G.sim&&!confirm(`Sell ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold?${rare?` That includes ${rare} unique or set piece${rare===1?'':'s'}.`:''} Only the Heirloom stays.`))return;
-  S.inv=S.inv.filter(it=>!sell.includes(it));S.gold+=g;sfx('coin');toast(`Sold ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);log(`Sold the pack: ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);renderAll();
+  S.inv=S.inv.filter(it=>!sell.includes(it));S.gold+=g;sfx('coin');S.junkActs=(S.junkActs||0)+1;toast(`Sold ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);log(`Sold the pack: ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);renderAll();
 }
 function salvageJunk(){
-  let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);if(n)sfx('coin');
+  let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);if(n){sfx('coin');S.junkActs=(S.junkActs||0)+1;}
   toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the pack is junk.');renderAll();
 }
 function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest();n++;}if(!n)toast(S.chests?'Pack is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
@@ -4419,12 +4421,12 @@ const ONB=[
   {id:'watch',t:'Combat runs on its own. Your health is the left pool, the monster\'s the right. You coach; the blade works.',done:()=>S.totalKills>=3},
   {id:'boss',t:'Enough kills here: the boss of this area is ready. Tap the skull orb at the foot of the scene.',when:()=>!G.tower&&S.kills[S.area]>=AREAS[S.area].need&&!S.cleared[S.area],done:()=>G.isBoss||S.cleared.some(Boolean)},
   {id:'map',t:'The boss is down and the road east is open. The map icon beside the area name shows the realm and every place on it.',tab:'world',gl:'March',when:()=>S.cleared.some(Boolean),done:()=>S.tab==='world'||S.area>0},
-  {id:'chest',t:'A chest fell. Open it from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,done:()=>S.chests===0},
+  {id:'chest',t:'A chest fell. Open it from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,snap:()=>S.opened||0,done:()=>(S.opened||0)>S.onb.s0},
   {id:'pack',t:'Monsters drop gear into your pack. See what fell under Worn, and wear anything better.',tab:'hero',gl:'Worn',when:()=>S.totalKills>=3,done:()=>S.tab==='hero'},
   {id:'eat',t:'Taking hits? The food orb eats a meal. Auto-eat is already on, and lives with the prayers under Train.',when:()=>S.totalKills>=6,done:()=>S.totalKills>=14},
   {id:'skills',t:'Damage trains your skills. Attack unlocks better weapons, Defence better armour, and the stance decides which one grows.',tab:'skills',gl:'Train',when:()=>S.totalKills>=14,done:()=>S.tab==='skills'},
   {id:'hold',t:'Gold builds the Hold. A larder heals faster and a yard makes scrap: raise a building.',tab:'keep',gl:'Hold',when:()=>S.gold>=150,done:()=>S.tab==='keep'},
-  {id:'junk',t:'Gear you will not wear is junk: salvage it for scrap to feed the Forge, or sell it. Both buttons sit above the pack.',tab:'hero',gl:'Worn',when:()=>S.inv.filter(isJunk).length>=6,done:()=>S.inv.filter(isJunk).length<3},
+  {id:'junk',t:'Gear you will not wear is junk: salvage it for scrap to feed the Forge, or sell it. Both buttons sit above the pack.',tab:'hero',gl:'Worn',when:()=>S.inv.filter(isJunk).length>=6,snap:()=>S.junkActs||0,done:()=>(S.junkActs||0)>S.onb.s0||S.inv.filter(isJunk).length<3},
   {id:'end',t:'That is the opening. The strip above the realm map lists what is worth doing next, and the Ledger at the top holds the whole guide.',when:()=>S.totalKills>=30,sec:40,done:()=>false},
 ];
 function onbDefault(){if(S.onb&&S.onb.done)return;S.onb=S.totalKills>=40?{done:Object.fromEntries(ONB.map(o=>[o.id,1])),t:0,off:true}:{done:{},t:0};}
@@ -4435,7 +4437,7 @@ function onbTick(dt){const o=S.onb;if(!o||o.off)return;
   const cur=o.cur&&ONB.find(x=>x.id===o.cur);   // judge the line on show first, so a step whose moment passes (the chest opened) still counts as done
   if(cur){o.t+=dt;const gone=!!(cur.when&&!cur.when());if((o.t>=3||gone)&&((cur.sec&&o.t>=cur.sec)||(cur.done&&cur.done()))){o.done[cur.id]=1;o.cur=null;o.t=0;G.dirty=true;}}
   const st=ONB.find(x=>!o.done[x.id]&&(!x.when||x.when()));const id=st?st.id:null;
-  if(o.cur!==id){o.cur=id;o.t=0;G.dirty=true;}}
+  if(o.cur!==id){o.cur=id;o.t=0;o.s0=st&&st.snap?st.snap():0;G.dirty=true;}}
 function renderOnb(){const el=$('onb');if(!el)return;const st=onbCur();el.hidden=!st;if(!st)return;
   if($('onbTxt').textContent!==st.t)$('onbTxt').textContent=st.t;
   const g=$('onbGo');g.hidden=!st.tab;if(st.tab)g.textContent=st.gl+' \u203a';}
@@ -4613,7 +4615,7 @@ function claimFree(wt){
 function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 function openChest(){
   if(S.chests<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
-  S.chests--;bounty('chests',1);const A=AREAS[S.area];
+  S.chests--;S.opened=(S.opened||0)+1;bounty('chests',1);const A=AREAS[S.area];
   const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
   const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.inv.push(it);markFound(it);
 
@@ -4712,7 +4714,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b137-sovkeys';window.__ihBoot=true;
+  const BUILD='b138-shield';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

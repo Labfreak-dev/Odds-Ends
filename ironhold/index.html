@@ -324,6 +324,7 @@
   #modal .cmp .up{color:var(--green)}#modal .cmp .dn{color:#ff7b6b}
   #modal .aff{font-size:12px;color:#c9a6ff;margin:2px 0}
   #modal .btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+  #modal .awayG{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:13px;margin-top:6px}
   #modal .mhead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
   #modal .mx{position:sticky;top:0;float:right;z-index:2;width:32px;height:32px;padding:0;margin:-4px -4px 0 0;font:bold 16px Georgia,serif;line-height:30px;text-align:center}
   #modal .mhead svg{width:44px;height:44px;flex:none}
@@ -813,7 +814,7 @@
 <div id="lgModal"><div id="lgBox">
   <header id="lgHead"><h2>Ledger</h2><button class="sm" id="lgX">&#10005;</button></header>
   <div id="lgBody">
-    <details class="lg" open><summary>How to play<span class="sub">the short version</span></summary><div class="lgc"><p><span class="lgt">The idea</span> — Combat runs on its own. You coach: stance, gear, when to eat, where to fight, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests.</p><p><span class="lgt">Getting further</span> — Kill enough in an area to unlock its boss; beat the boss to open the next area. Weapons need Attack, armour needs Defence. Salvage junk for scrap and raise favourite pieces at the Forge.</p><p><span class="lgt">The fight screen</span> — The two pools at the top of the scene are your health and the monster's. The orbs along the foot are your prayers (tap to light or snuff the set you last chose; tap the number to pick prayers), food, special attack (it glows when it has the energy; tap to loose it), potions and the boss. The map icon opens the realm; the speech bubble shows or hides the chronicle.</p><p><span class="lgt">Dots</span> — A gold dot on a menu or a room chip means something waits there. The strip above the realm map lists what is worth doing right now.</p><p><span class="lgt">Keys</span> — 1–5 menus · Space special · E eat · B bury bones.</p><p><span class="lgt">The opening</span> — A gold line above the scene walks a new champion through the first ten minutes, one hint at a time, each with a button that goes where it points. The ✕ hides them. <button class="sm" id="btnOnb">Play the opening again</button></p></div></details>
+    <details class="lg" open><summary>How to play<span class="sub">the short version</span></summary><div class="lgc"><p><span class="lgt">The idea</span> — Combat runs on its own. You coach: stance, gear, when to eat, where to fight, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests.</p><p><span class="lgt">Getting further</span> — Kill enough in an area to unlock its boss; beat the boss to open the next area. Weapons need Attack, armour needs Defence. Salvage junk for scrap and raise favourite pieces at the Forge.</p><p><span class="lgt">The fight screen</span> — The two pools at the top of the scene are your health and the monster's. The orbs along the foot are your prayers (tap to light or snuff the set you last chose; tap the number to pick prayers), food, special attack (it glows when it has the energy; tap to loose it), potions and the boss. The map icon opens the realm; the speech bubble shows or hides the chronicle.</p><p><span class="lgt">Dots</span> — A gold dot on a menu or a room chip means something waits there. The strip above the realm map lists what is worth doing right now.</p><p><span class="lgt">Keys</span> — 1–5 menus · Space special · E eat · B bury bones.</p><p><span class="lgt">Away</span> — The hold fights on without you for up to eight hours, at the area you left it in. Come back to a summary of what fell, and a chronicle line when the phone only put the page to sleep.</p><p><span class="lgt">The opening</span> — A gold line above the scene walks a new champion through the first ten minutes, one hint at a time, each with a button that goes where it points. The ✕ hides them. <button class="sm" id="btnOnb">Play the opening again</button></p></div></details>
     <details class="lg"><summary>The menus<span class="sub">where everything lives</span></summary><div class="lgc"><p><span class="lgt">Worn</span> — Your champion: the Equipment window with the paperdoll and stat sheet, and the pack beneath it with filters, chests, salvage and sell-junk, and the auto-salvage rules.</p><p><span class="lgt">Vault</span> — The Medallion; Storage with the Mimic, the Vault building and the rune pouch beneath the strongroom; the Collection with the Bestiary under it.</p><p><span class="lgt">Train</span> — Skills with Prayer beside them and the combat style, training weapons and stance; Feats with the bounty board, the Road, realm deeds, Disciplines and Mastery; Ascension with the trials, the altar, the Heirloom and the Hall of Ancestors.</p><p><span class="lgt">March</span> — The realm map, pinned with everything there is to do, and the area list beneath it.</p><p><span class="lgt">Hold</span> — Buildings with the Dynasty at the top; the Barracks with the siege above the roster and the companion armoury; the Peddler with his licence.</p></div></details>
     <details class="lg"><summary>Fighting well<span class="sub">prayer, food, potions, defence</span></summary><div class="lgc"><p><span class="lgt">Prayer</span> — Light prayers for accuracy, damage, defence, regen or protection, from the prayer orb under the fight or the Prayer section under Train. They drain points; bones from kills restore them, and auto-bury is on by default. Smite, Stone Skin and Sight join from combat 55.</p><p><span class="lgt">Food and potions</span> — Eat from the orb or automatically below the threshold set under Prayer. Draughts are brewed at the Larder and drunk from the potion orb.</p><p><span class="lgt">Damage reduction</span> — From gear, prayers, draughts, creeds, the medallion and a defender companion, capped at 70%; a landed blow always costs at least a point, and reduction below nothing raises the damage taken.</p><p><span class="lgt">Matched kits</span> — Helm, body, legs, gloves and boots all of one tier pay +4% to every combat roll.</p><p><span class="lgt">Elites</span> — One monster in twenty comes up Swift, Stony, Venomous, Gilded or Hulking, with twice the drops.</p><p><span class="lgt">Difficulty</span> — Hard, Expert and Master open as you clear areas and pay more gold, drops and XP for tougher monsters. Nightmare opens at Dynasty rank 1 and Torment at realm 15; Torment alone drops seals from ordinary monsters and can leave a worn jewel Flawless.</p></div></details>
     <details class="lg"><summary>Gear<span class="sub">forge, runes, uniques, tiers</span></summary><div class="lgc"><p><span class="lgt">The Forge</span> — Reroll a piece's affixes for gold and scrap, or temper it up a rarity: Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> with five affixes. Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with. A Mythic at the forge cap climbs one rung a realm for shards, to +25.</p><p><span class="lgt">Starsteel</span> — An area boss gives up a bar the first time it falls, and sometimes after, more often on the harder tiers. Tower wardens carry it too, and the peddler sells it under a licence.</p><p><span class="lgt">Runes</span> — Drop from monsters, bosses and the tower; three make a Runeword you inscribe onto a piece for a permanent bonus. Tempest, Warden, Hunter and Pilgrim join in the mid game.</p><p><span class="lgt">Uniques and sets</span> — 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged. Area uniques drop from that area's monsters, boss uniques from bosses, set pieces in their home area once its boss is down.</p><p><span class="lgt">Storage</span> — A strongroom beside the pack: gear sent there takes no pack space, is never auto-salvaged, and the Vault may pick from it. Ascension empties it.</p><p><span class="lgt">Obsidian and Starsteel tiers</span> — Two tiers past Dragon, at Defence 75 and 90 (Basilisk and Phoenix hide for rangers, Voidweave and Celestial robes for mages). Drops reach Obsidian from realm 3 and Starsteel from realm 8; the tower at floors 64 and 72, the Abyss at waves 32 and 36.</p><p><span class="lgt">The Sovereign harness</span> — One set for a champion with 99 in every combat skill, nine pieces and a weapon for each style. It drops only once you have them: from any boss at about one in three hundred, the Elder Wyrm at one in sixty, tower wardens past floor 100 at one in forty.</p><p><span class="lgt">The Forge of Souls</span> — Inside the Forge card. A duplicate unique or set piece renders to essence from its item window; ten essence and gold forge any unique you have found, at Mythic.</p></div></details>
@@ -4625,17 +4626,33 @@ function load(str){
   try{const d=JSON.parse(decodeURIComponent(escape(atob(str))));Object.assign(S,d.S);uid=d.uid||uid;
     for(const s of SLOTS)if(S.equip[s]===undefined)S.equip[s]=null;uiDefaults();return true;}catch(e){return false;}
 }
-function offline(){
-  const away=Math.min((Date.now()-S.last)/1000,8*3600);
-  if(away<30)return;
-  const g0=S.gold,k0=S.totalKills,x0=Object.values(S.xp).reduce((a,b)=>a+b,0);
-  G.sim=true;const step=0.6;const oldLog=log;
-  for(let t=0;t<away;t+=step)tick(step);
-  G.sim=false;
-  const h=Math.floor(away/3600),m=Math.floor(away%3600/60);
-  const msg=`Welcome back! While you were away ${h?h+'h ':''}${m}m: ${S.totalKills-k0} kills, ${fmt(S.gold-g0)} gold, ${fmt(Object.values(S.xp).reduce((a,b)=>a+b,0)-x0)} xp.`;
-  log(msg,'g');setTimeout(()=>toast(msg),300);
-}
+// The hold fights on without you: the time away is replayed through the real tick, at full rate, for up to eight hours.
+// Two ways in: the boot (a modal tells the tale) and the tab coming back into view after a phone put it to sleep (a chronicle line).
+const OFF_CAP=8*3600;
+function offline(quiet){
+  const gone=(Date.now()-S.last)/1000,away=Math.min(gone,OFF_CAP);
+  if(away<30)return null;
+  const KEYS=['atk','str','def','hp','rng','mag'];const lv0={};for(const k of KEYS)lv0[k]=lv(k);
+  const xpT=()=>Object.values(S.xp).reduce((a,b)=>a+b,0);
+  const b={gold:S.gold,kills:S.totalKills,xp:xpT(),chests:S.chests,inv:S.inv.length,scrap:S.scrap,food:S.foodEaten||0,deaths:S.deaths||0,runes:(S.runes||[]).reduce((a,x)=>a+x,0),keys:S.keys||0};
+  if(!S.paused){G.sim=true;const step=0.6;try{for(let t=0;t<away;t+=step)tick(step);}finally{G.sim=false;}}
+  S.last=Date.now();
+  const d={t:away,capped:gone>OFF_CAP+60,paused:!!S.paused,gold:S.gold-b.gold,kills:S.totalKills-b.kills,xp:xpT()-b.xp,chests:S.chests-b.chests,inv:S.inv.length-b.inv,scrap:S.scrap-b.scrap,food:(S.foodEaten||0)-b.food,deaths:(S.deaths||0)-b.deaths,runes:(S.runes||[]).reduce((a,x)=>a+x,0)-b.runes,keys:(S.keys||0)-b.keys,
+    lv:KEYS.filter(k=>lv(k)>lv0[k]).map(k=>({k,n:SK_NAME[k],a:lv0[k],b:lv(k)}))};
+  const msg=d.paused?`Back after ${fmtTime(away)}. The fighting was paused, so the blade waited.`:`While you were away ${fmtTime(away)}: ${d.kills} kill${d.kills===1?'':'s'}, ${fmt(d.gold)} gold, ${fmt(d.xp)} xp${d.lv.length?', '+d.lv.map(l=>`${l.n} ${l.a}→${l.b}`).join(', '):''}.`;
+  log(msg,'g');
+  if(quiet){if(!d.paused&&d.kills>0)toast(`Away ${fmtTime(away)}: ${d.kills} kills, ${fmt(d.gold)} gold`);}else G.away=d;
+  G.dirty=true;return d;}
+function openAway(){const d=G.away;if(!d)return;G.away=null;if($('modal').className==='on')return;   // another window (a trial, a creed's debt) already has the floor; the chronicle keeps the line
+  G.modalKind='away';
+  const row=(n,v)=>v?`<div>${n}</div><b class="gold">${v}</b>`:'';
+  const body=d.paused?`<p class="sub">The fighting was paused when you left, so the champion rested. Tap the pause button by the area name to raise the blade again.</p>`
+    :`<div class="awayG">${row('Kills',d.kills)}${row('Gold',fmt(d.gold))}${row('Experience',fmt(d.xp))}${row('Chests found',d.chests)}${row('Gear into the pack',d.inv)}${row('Scrap',d.scrap)}${row('Runes',d.runes)}${row('Delve keys',d.keys)}${row('Meals eaten',d.food)}${row('Deaths',d.deaths)}</div>`
+    +(d.lv.length?`<h3 class="secH">Levels</h3><div class="sub">${d.lv.map(l=>`<div>· ${l.n} ${l.a} → <b class="gold">${l.b}</b></div>`).join('')}</div>`:'')
+    +(d.kills===0?`<p class="sub">Nothing fell. The champion could not win a fight here: eat, wear better gear, or fight somewhere gentler before you leave next time.</p>`:'');
+  $('modalBox').innerHTML=`<button class="mx" id="mCloseTop" aria-label="Close">✕</button><div class="mhead"><div><h2>While you were away</h2><div class="sub">${fmtTime(d.t)}${d.capped?' counted: the hold fights on for eight hours at most without you':''}.</div></div></div>`+body+`<div class="btns"><button id="mClose" style="grid-column:1/-1">Onward</button></div>`;
+  $('modal').className='on';$('modalBox').scrollTop=0;
+  const close=()=>{G.modalKind=null;$('modal').className='';renderAll();};$('mClose').onclick=close;$('mCloseTop').onclick=close;}
 
 // ============ WIRING ============
 buildTop();buildDock();buildSecs();buildFilters();cqWire();chWire();lgWire();
@@ -4681,6 +4698,7 @@ document.addEventListener('keydown',e=>{
   uiDefaults();applySecs();try{wpnWarm();}catch(e){}
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);if(S.asc&&S.asc.creedDebtOpen&&creedDebt()>0)openCreedDebt(()=>{if(trialOffered())openTrialOffer();});else if(trialOffered())openTrialOffer();
+  setTimeout(openAway,350);
   let last=performance.now(),acc=0,uiT=0,saveT=0;
   function frame(now){
     const dt=Math.min(0.25,(now-last)/1000);last=now;acc+=dt;
@@ -4691,7 +4709,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b135-sound';window.__ihBoot=true;
+  const BUILD='b136-away';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;
@@ -4708,7 +4726,7 @@ document.addEventListener('keydown',e=>{
         'Champion falls back to the old model.','e');
     G.dirty=true;
   },9000);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)save();else if(Date.now()-S.last>30e3){try{offline(true);}catch(e){}last=performance.now();acc=0;renderAll();}});
 })();
 </script>
 </body>

@@ -552,6 +552,12 @@
   .pin .pk{position:absolute;left:-8px;bottom:-6px;font-size:13px;font-style:normal;filter:drop-shadow(0 1px 2px #000)}
   .pin .pl{max-width:70px;white-space:normal;line-height:1.1;text-align:center}
   #mapSub{display:block;font-weight:normal;margin-top:2px}
+  #onb{display:flex;align-items:center;gap:7px;margin:0 0 6px;padding:5px 6px 5px 9px;border:1px solid var(--gold);border-radius:8px;background:linear-gradient(90deg,rgba(255,210,74,.14),rgba(255,210,74,.04));font-size:12px;line-height:1.35}
+  #onb .ot{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+  #onb .ot::before{content:"\25C8  ";color:var(--gold)}
+  #onb .sm{flex:0 0 auto;font-size:11px;padding:3px 9px;min-height:24px;box-shadow:inset 0 0 0 1px var(--gold);white-space:nowrap}
+  #onb .ox{flex:0 0 auto;min-width:0;width:24px;height:24px;padding:0;font-size:12px;line-height:1;opacity:.7;background:none;border:none;color:var(--muted)}
+  #onb .ox:hover{opacity:1;color:#fff}
   .now{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;align-items:center;min-height:26px}
   .now button{font-size:11px;padding:4px 9px;min-height:26px;box-shadow:inset 0 0 0 1px var(--gold)}
   @media (min-width:600px){.pin .pi{width:38px;height:38px;font-size:19px}.pin{font-size:11px}}
@@ -654,6 +660,7 @@
           <button class="ib" id="btnLog" title="Chronicle" aria-label="Show the chronicle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8 9h8M8 12h5"/></svg></button>
           <button id="nextArea" aria-label="Next area">&#9654;</button>
         </div>
+        <div id="onb" hidden><span class="ot" id="onbTxt"></span><button class="sm" id="onbGo"></button><button class="ox" id="onbX" title="Hide the opening hints" aria-label="Hide the opening hints">✕</button></div>
         <div id="stage">
         <canvas id="scene" width="500" height="230"></canvas>
         <div id="hud">
@@ -805,7 +812,7 @@
 <div id="lgModal"><div id="lgBox">
   <header id="lgHead"><h2>Ledger</h2><button class="sm" id="lgX">&#10005;</button></header>
   <div id="lgBody">
-    <details class="lg" open><summary>How to play<span class="sub">the short version</span></summary><div class="lgc"><p><span class="lgt">The idea</span> — Combat runs on its own. You coach: stance, gear, when to eat, where to fight, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests.</p><p><span class="lgt">Getting further</span> — Kill enough in an area to unlock its boss; beat the boss to open the next area. Weapons need Attack, armour needs Defence. Salvage junk for scrap and raise favourite pieces at the Forge.</p><p><span class="lgt">The fight screen</span> — The two pools at the top of the scene are your health and the monster's. The orbs along the foot are your prayers (tap to light or snuff the set you last chose; tap the number to pick prayers), food, special attack (it glows when it has the energy; tap to loose it), potions and the boss. The map icon opens the realm; the speech bubble shows or hides the chronicle.</p><p><span class="lgt">Dots</span> — A gold dot on a menu or a room chip means something waits there. The strip above the realm map lists what is worth doing right now.</p><p><span class="lgt">Keys</span> — 1–5 menus · Space special · E eat · B bury bones.</p></div></details>
+    <details class="lg" open><summary>How to play<span class="sub">the short version</span></summary><div class="lgc"><p><span class="lgt">The idea</span> — Combat runs on its own. You coach: stance, gear, when to eat, where to fight, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests.</p><p><span class="lgt">Getting further</span> — Kill enough in an area to unlock its boss; beat the boss to open the next area. Weapons need Attack, armour needs Defence. Salvage junk for scrap and raise favourite pieces at the Forge.</p><p><span class="lgt">The fight screen</span> — The two pools at the top of the scene are your health and the monster's. The orbs along the foot are your prayers (tap to light or snuff the set you last chose; tap the number to pick prayers), food, special attack (it glows when it has the energy; tap to loose it), potions and the boss. The map icon opens the realm; the speech bubble shows or hides the chronicle.</p><p><span class="lgt">Dots</span> — A gold dot on a menu or a room chip means something waits there. The strip above the realm map lists what is worth doing right now.</p><p><span class="lgt">Keys</span> — 1–5 menus · Space special · E eat · B bury bones.</p><p><span class="lgt">The opening</span> — A gold line above the scene walks a new champion through the first ten minutes, one hint at a time, each with a button that goes where it points. The ✕ hides them. <button class="sm" id="btnOnb">Play the opening again</button></p></div></details>
     <details class="lg"><summary>The menus<span class="sub">where everything lives</span></summary><div class="lgc"><p><span class="lgt">Worn</span> — Your champion: the Equipment window with the paperdoll and stat sheet, and the pack beneath it with filters, chests, salvage and sell-junk, and the auto-salvage rules.</p><p><span class="lgt">Vault</span> — The Medallion; Storage with the Mimic, the Vault building and the rune pouch beneath the strongroom; the Collection with the Bestiary under it.</p><p><span class="lgt">Train</span> — Skills with Prayer beside them and the combat style, training weapons and stance; Feats with the bounty board, the Road, realm deeds, Disciplines and Mastery; Ascension with the trials, the altar, the Heirloom and the Hall of Ancestors.</p><p><span class="lgt">March</span> — The realm map, pinned with everything there is to do, and the area list beneath it.</p><p><span class="lgt">Hold</span> — Buildings with the Dynasty at the top; the Barracks with the siege above the roster and the companion armoury; the Peddler with his licence.</p></div></details>
     <details class="lg"><summary>Fighting well<span class="sub">prayer, food, potions, defence</span></summary><div class="lgc"><p><span class="lgt">Prayer</span> — Light prayers for accuracy, damage, defence, regen or protection, from the prayer orb under the fight or the Prayer section under Train. They drain points; bones from kills restore them, and auto-bury is on by default. Smite, Stone Skin and Sight join from combat 55.</p><p><span class="lgt">Food and potions</span> — Eat from the orb or automatically below the threshold set under Prayer. Draughts are brewed at the Larder and drunk from the potion orb.</p><p><span class="lgt">Damage reduction</span> — From gear, prayers, draughts, creeds, the medallion and a defender companion, capped at 70%; a landed blow always costs at least a point, and reduction below nothing raises the damage taken.</p><p><span class="lgt">Matched kits</span> — Helm, body, legs, gloves and boots all of one tier pay +4% to every combat roll.</p><p><span class="lgt">Elites</span> — One monster in twenty comes up Swift, Stony, Venomous, Gilded or Hulking, with twice the drops.</p><p><span class="lgt">Difficulty</span> — Hard, Expert and Master open as you clear areas and pay more gold, drops and XP for tougher monsters. Nightmare opens at Dynasty rank 1 and Torment at realm 15; Torment alone drops seals from ordinary monsters and can leave a worn jewel Flawless.</p></div></details>
     <details class="lg"><summary>Gear<span class="sub">forge, runes, uniques, tiers</span></summary><div class="lgc"><p><span class="lgt">The Forge</span> — Reroll a piece's affixes for gold and scrap, or temper it up a rarity: Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> with five affixes. Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with. A Mythic at the forge cap climbs one rung a realm for shards, to +25.</p><p><span class="lgt">Starsteel</span> — An area boss gives up a bar the first time it falls, and sometimes after, more often on the harder tiers. Tower wardens carry it too, and the peddler sells it under a licence.</p><p><span class="lgt">Runes</span> — Drop from monsters, bosses and the tower; three make a Runeword you inscribe onto a piece for a permanent bonus. Tempest, Warden, Hunter and Pilgrim join in the mid game.</p><p><span class="lgt">Uniques and sets</span> — 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged. Area uniques drop from that area's monsters, boss uniques from bosses, set pieces in their home area once its boss is down.</p><p><span class="lgt">Storage</span> — A strongroom beside the pack: gear sent there takes no pack space, is never auto-salvaged, and the Vault may pick from it. Ascension empties it.</p><p><span class="lgt">Obsidian and Starsteel tiers</span> — Two tiers past Dragon, at Defence 75 and 90 (Basilisk and Phoenix hide for rangers, Voidweave and Celestial robes for mages). Drops reach Obsidian from realm 3 and Starsteel from realm 8; the tower at floors 64 and 72, the Abyss at waves 32 and 36.</p><p><span class="lgt">The Sovereign harness</span> — One set for a champion with 99 in every combat skill, nine pieces and a weapon for each style. It drops only once you have them: from any boss at about one in three hundred, the Elder Wyrm at one in sixty, tower wardens past floor 100 at one in forty.</p><p><span class="lgt">The Forge of Souls</span> — Inside the Forge card. A duplicate unique or set piece renders to essence from its item window; ten essence and gold forge any unique you have found, at Mythic.</p></div></details>
@@ -3381,7 +3388,7 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   for(let i=0;i<S.food.length;i++)if(S.food[i]<999)S.food[i]=999;for(let i=0;i<S.runes.length;i++)if(S.runes[i]<999)S.runes[i]=999;
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
-function tick(dt){richTick();
+function tick(dt){richTick();onbTick(dt);
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
@@ -3407,7 +3414,7 @@ function tick(dt){richTick();
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
 function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
-function uiDefaults(){fixKits();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
+function uiDefaults(){fixKits();onbDefault();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,DIFFS.length-1);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.food=S.food||[];while(S.food.length<FOOD.length)S.food.push(0);
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault','peddler'])S.keep[k]=S.keep[k]||0;
@@ -4345,8 +4352,37 @@ function chStripAll(){
   chUI.msg=n?`${n} piece${n===1?'':'s'} returned to the pack.`:'Nothing to strip.';renderAll();
 }
 
+// ============ THE OPENING ============
+// Ten minutes of guidance for a new champion: one line at a time above the scene, each with a tap that goes where it points.
+// Steps are a priority list, not a script: the first step that is not done and whose moment has come is the one shown.
+// A step cannot finish in its first three seconds, so a line is always read before it is judged done.
+const ONB=[
+  {id:'watch',t:'Combat runs on its own. Your health is the left pool, the monster\'s the right. You coach; the blade works.',done:()=>S.totalKills>=3},
+  {id:'boss',t:'Enough kills here: the boss of this area is ready. Tap the skull orb at the foot of the scene.',when:()=>!G.tower&&S.kills[S.area]>=AREAS[S.area].need&&!S.cleared[S.area],done:()=>G.isBoss||S.cleared.some(Boolean)},
+  {id:'map',t:'The boss is down and the road east is open. The map icon beside the area name shows the realm and every place on it.',tab:'world',gl:'March',when:()=>S.cleared.some(Boolean),done:()=>S.tab==='world'||S.area>0},
+  {id:'chest',t:'A chest fell. Open it from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,done:()=>S.chests===0},
+  {id:'pack',t:'Monsters drop gear into your pack. See what fell under Worn, and wear anything better.',tab:'hero',gl:'Worn',when:()=>S.totalKills>=3,done:()=>S.tab==='hero'},
+  {id:'eat',t:'Taking hits? The food orb eats a meal. Auto-eat is already on, and lives with the prayers under Train.',when:()=>S.totalKills>=6,done:()=>S.totalKills>=14},
+  {id:'skills',t:'Damage trains your skills. Attack unlocks better weapons, Defence better armour, and the stance decides which one grows.',tab:'skills',gl:'Train',when:()=>S.totalKills>=14,done:()=>S.tab==='skills'},
+  {id:'hold',t:'Gold builds the Hold. A larder heals faster and a yard makes scrap: raise a building.',tab:'keep',gl:'Hold',when:()=>S.gold>=150,done:()=>S.tab==='keep'},
+  {id:'junk',t:'Gear you will not wear is junk: salvage it for scrap to feed the Forge, or sell it. Both buttons sit above the pack.',tab:'hero',gl:'Worn',when:()=>S.inv.filter(isJunk).length>=6,done:()=>S.inv.filter(isJunk).length<3},
+  {id:'end',t:'That is the opening. The strip above the realm map lists what is worth doing next, and the Ledger at the top holds the whole guide.',when:()=>S.totalKills>=30,sec:40,done:()=>false},
+];
+function onbDefault(){if(S.onb&&S.onb.done)return;S.onb=S.totalKills>=40?{done:Object.fromEntries(ONB.map(o=>[o.id,1])),t:0,off:true}:{done:{},t:0};}
+function onbReplay(){S.onb={done:{},t:0};G.dirty=true;toast('The opening plays again.');}
+function onbOff(){S.onb.off=true;S.onb.cur=null;G.dirty=true;toast('Opening hints hidden. Ledger › How to play brings them back.');}
+function onbCur(){if(!S.onb||S.onb.off)return null;return ONB.find(o=>o.id===S.onb.cur)||null;}
+function onbTick(dt){const o=S.onb;if(!o||o.off)return;
+  const cur=o.cur&&ONB.find(x=>x.id===o.cur);   // judge the line on show first, so a step whose moment passes (the chest opened) still counts as done
+  if(cur){o.t+=dt;const gone=!!(cur.when&&!cur.when());if((o.t>=3||gone)&&((cur.sec&&o.t>=cur.sec)||(cur.done&&cur.done()))){o.done[cur.id]=1;o.cur=null;o.t=0;G.dirty=true;}}
+  const st=ONB.find(x=>!o.done[x.id]&&(!x.when||x.when()));const id=st?st.id:null;
+  if(o.cur!==id){o.cur=id;o.t=0;G.dirty=true;}}
+function renderOnb(){const el=$('onb');if(!el)return;const st=onbCur();el.hidden=!st;if(!st)return;
+  if($('onbTxt').textContent!==st.t)$('onbTxt').textContent=st.t;
+  const g=$('onbGo');g.hidden=!st.tab;if(st.tab)g.textContent=st.gl+' \u203a';}
+
 function renderTop(){
-  dockBadges();renderEnc();renderPills();
+  dockBadges();renderEnc();renderPills();renderOnb();
   const mh=maxHp();$('pHp').textContent=`${Math.ceil(S.hp)}/${mh}`;$('pHpBar').style.width=(S.hp/mh*100)+'%';
   $('pName').textContent=(heroTitle()?'You, '+heroTitle():'You')+' (lvl '+combatLvl()+')';
   if(G.mob){$('mName').textContent=`${G.mob.n} (lvl ${G.mob.lv})${G.nem?' · NEMESIS':G.lt?' · LIEUTENANT':G.mark?' · MARKED':G.duel!=null?' · DUEL':G.lair!=null?' · LAIR':G.wyrm?' · '+wyrmName():eliteOf(G.mob)?' · ELITE, '+eliteOf(G.mob).d:''}`;$('mHp').textContent=`${G.mobHp}/${G.mob.hp}`;$('mHpBar').style.width=(G.mobHp/G.mob.hp*100)+'%';$('mHpBar').className='fill'+(G.isBoss?' boss':'');}
@@ -4549,6 +4585,7 @@ function offline(){
 // ============ WIRING ============
 buildTop();buildDock();buildSecs();buildFilters();cqWire();chWire();lgWire();
 $('btnSpec').onclick=special;
+$('onbGo').onclick=()=>{const st=onbCur();if(st&&st.tab)showTab(st.tab);};$('onbX').onclick=onbOff;$('btnOnb').onclick=()=>{onbReplay();$('lgModal').className='';renderAll();};
 $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
 $('btnChest').onclick=openChest;
@@ -4593,7 +4630,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b133-kits';window.__ihBoot=true;
+  const BUILD='b134-opening';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

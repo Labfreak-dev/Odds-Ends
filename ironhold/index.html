@@ -221,6 +221,10 @@
   .item img.pic{height:44px;width:44px;margin:0 auto 4px}
   .slot img.pic{width:70%;height:70%}
   .item.r6{--rc:#ffd24a}.item.r6 .nm{color:var(--gold)}
+  .statsG{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .statsG div{background:rgba(0,0,0,.28);border:1px solid rgba(0,0,0,.4);border-radius:4px;padding:6px 8px;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+  .statsG b{display:block;color:var(--gold);font:bold 15px Georgia,serif}
+  @media (min-width:980px){.statsG{grid-template-columns:repeat(3,1fr)}}
   .coll{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
   .coll>*{min-width:0}
   @media (min-width:980px){.coll{grid-template-columns:repeat(8,1fr)}}
@@ -744,6 +748,9 @@
           <h3 class="secH">Bestiary <span class="sub" id="bestCnt"></span></h3>
           <p class="sub" style="margin-bottom:6px">Every kill counted by kind. A thousand of a kind teaches you where it is soft; ten thousand how it moves; a hundred thousand more than there are. Each lesson is a permanent edge against that kind.</p>
           <div id="bestiary"></div>
+          <h3 class="secH">The numbers</h3>
+          <p class="sub" style="margin-bottom:6px">Everything this save has done, counted. Rates are this sitting's, from the moment the page opened.</p>
+          <div class="statsG" id="statsG"></div>
         </div>
       </section>
 
@@ -833,6 +840,7 @@
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px">
             <button id="btnExport">Export</button><button id="btnImport">Import</button><button id="btnReset">Reset</button>
           </div>
+          <p id="bakBox" style="margin-top:8px"></p>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p></div></details>
     <details class="lg"><summary>Redeem<span class="sub">a code for rewards</span></summary><div class="lgc">
           <p>Codes are handed out by the keeper of the hold. Each works once per save.</p>
@@ -1006,7 +1014,7 @@ const XP=[0,0];for(let l=2;l<=99;l++){let s=0;for(let i=1;i<l;i++)s+=Math.floor(
 function lvlFor(xp){let l=1;while(l<99&&XP[l+1]<=xp)l++;return l;}
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const fmt=n=>n>=1e6?(n/1e6).toFixed(2)+'m':n>=1e4?(n/1e3).toFixed(1)+'k':Math.floor(n).toString();
+const fmt=n=>n>=1e12?(n/1e12).toFixed(2)+'t':n>=1e9?(n/1e9).toFixed(2)+'b':n>=1e6?(n/1e6).toFixed(2)+'m':n>=1e4?(n/1e3).toFixed(1)+'k':Math.floor(n).toString();
 
 function hitChance(aRoll,dRoll){return aRoll>dRoll?1-(dRoll+2)/(2*(aRoll+1)):aRoll/(2*(dRoll+1));}
 
@@ -2246,6 +2254,22 @@ function bestCount(m){if(!m)return;S.best=S.best||{};S.bestK=S.bestK||{};S.best[
 function beastList(){const L=[];AREAS.forEach((A,i)=>{A.mobs.forEach((m,mi)=>L.push({n:m.n,m,area:i,first:mi===0}));L.push({n:A.boss.n,m:A.boss,area:i,boss:true});});
   TOWER_MOBS.forEach((t,ti)=>L.push({n:t[0],m:{n:t[0],shape:t[1],spr:t[3]},tower:ti}));return L;}
 function beastPic(b){const k=b.m.spr||MOB_SPR[b.n];const e=k&&SPR_SRC[k+'_idle'];return e&&e.f&&e.f[0]?e.f[0].src:'';}
+// The numbers: every counter the save keeps, and this sitting's rates. Kills, gold and time are measured from the moment the page opened.
+function dpsNow(){const w=G.dw;if(!w)return 0;return w.b.reduce((a,x)=>a+x,0)/60;}
+function renderStats(){const el=$('statsG');if(!el)return;const ss=G.sess||{};const dt=Math.max(0,(S.played||0)-(ss.t||0));const rate=(n,per)=>dt<60?'—':fmt(n/dt*3600)+per;
+  const rows=[
+   ['Time played',fmtTime(S.played||0)],['Kills',fmt(S.totalKills||0)],['Kills per hour',rate((S.totalKills||0)-(ss.k||0),'')],
+   ['Gold earned',fmt(S.goldEarned||0)],['Gold per hour',rate((S.goldEarned||0)-(ss.g||0),'')],['Damage per second',dpsNow().toFixed(1)],
+   ['Best hit',fmt(S.bestHit||0)],['Best minute',fmt(S.best60||0)+' damage'],['Deaths',fmt(S.deaths||0)],
+   ['Chests opened',fmt(S.chestsOpened||0)],['Meals eaten',fmt(S.foodEaten||0)],['Specials loosed',fmt(S.specials||0)],
+   ['Goblins met',fmt(S.gobs||0)],['Uniques and set pieces found',fmt(Object.keys(S.found||{}).length)],['Runewords inscribed',fmt(S.rwCount||0)],
+   ['Mythics forged',fmt(S.mythics||0)],['Tower record','floor '+fmt((S.tower&&S.tower.best)||0)],['Abyss record','wave '+fmt((S.ab&&S.ab.best)||0)],
+   ['Realm',fmt(((S.asc&&S.asc.realm)||0)+1)],['Ascensions',fmt((S.asc&&S.asc.count)||0)],['Feats done',fmt(Object.keys((S.feats&&S.feats.done)||{}).length)],
+   ['Bounties claimed',fmt(S.bountiesClaimed||0)],['Sieges',`${fmt((S.siege&&S.siege.won)||0)} won · ${fmt((S.siege&&S.siege.lost)||0)} lost`],['Delves',fmt(S.delves||0)],
+   ['On the road',fmt(S.encs||0)+' met'],['Trials cleared',fmt(Object.values(S.trials||{}).reduce((a,t)=>a+((t&&t.clears)||0),0))],['Ancestors',fmt(hallList().length)],
+  ];
+  const kinds=Object.entries(S.bestK||{}).sort((a,b)=>b[1]-a[1]);if(kinds.length)rows.push(['Kills by kind',kinds.map(([k,n])=>`${k} ${fmt(n)}`).join(' · ')]);
+  const h=rows.map(([n,v])=>`<div><b>${v}</b>${n}</div>`).join('');if(el.innerHTML!==h)el.innerHTML=h;}
 function renderBestiary(){const el=$('bestiary');if(!el)return;const names=S.best||{};
   let total=0;for(const k in S.bestK||{})total+=S.bestK[k];$('bestCnt').textContent=fmt(total)+' kills';
   const L=beastList();const met=L.filter(b=>names[b.n]).length;
@@ -3173,7 +3197,7 @@ function gobHit(dmg){const gb=G.gob;if(!gb)return;const A=AREAS[S.area];const b=
   const f=Math.min(2,dmg/Math.max(1,playerMaxHit()));gb.dmg+=dmg;   // a full-strength blow is worth one share; a special can be worth two
   const got=(k,n)=>{gb.got[k]=(gb.got[k]||0)+n;};
   switch(gb.id){
-   case 'gold':{const gold=Math.round(Math.pow(A.tier+1,1.5)*20*f*(1+b.gold/100)*(1+0.1*r));S.gold+=gold;got('gold',gold);if(!G.sim)splat(MX+10,40,'+'+fmt(gold),'#ffd24a');break;}
+   case 'gold':{const gold=Math.round(Math.pow(A.tier+1,1.5)*20*f*(1+b.gold/100)*(1+0.1*r));S.gold+=gold;S.goldEarned=(S.goldEarned||0)+gold;got('gold',gold);if(!G.sim)splat(MX+10,40,'+'+fmt(gold),'#ffd24a');break;}
    case 'loot':{gb.acc+=f;while(gb.acc>=6){gb.acc-=6;const it=makeItem(clamp(A.tier+(Math.random()<0.4?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1.5)));gainItem(it);got('gear',1);if(!G.sim)splat(MX+10,40,itemName(it),rc(it));}break;}
    case 'rune':{gb.acc+=f;while(gb.acc>=8){gb.acc-=8;gainRune(Math.random()<0.15);got('runes',1);}break;}
    case 'chest':{gb.acc+=f;while(gb.acc>=8){gb.acc-=8;S.chests++;got('chests',1);if(!G.sim)splat(MX+10,40,'+1 chest','#ffd24a');}break;}
@@ -3181,7 +3205,7 @@ function gobHit(dmg){const gb=G.gob;if(!gb)return;const A=AREAS[S.area];const b=
   }}
 function gobFlee(){const gb=G.gob;if(!gb)return;const g=gobDef(gb.id);const A=AREAS[S.area];const r=(S.asc&&S.asc.realm)||0;
   switch(gb.id){   // the parting gift: one thing it could not hold onto
-   case 'gold':{const gold=Math.round(Math.pow(A.tier+1,1.5)*200*(1+0.1*r));S.gold+=gold;gb.got.gold=(gb.got.gold||0)+gold;break;}
+   case 'gold':{const gold=Math.round(Math.pow(A.tier+1,1.5)*200*(1+0.1*r));S.gold+=gold;S.goldEarned=(S.goldEarned||0)+gold;gb.got.gold=(gb.got.gold||0)+gold;break;}
    case 'loot':{const u=rollUnique({chest:true,late:S.area>=5},1.5);if(u){gainItem(u);gb.got.unique=1;}else{gainItem(makeItem(clamp(A.tier+1,0,tierCap()),SLOTS[rnd(0,9)],5));gb.got.gear=(gb.got.gear||0)+1;}break;}
    case 'rune':gainRune(true);gb.got.runes=(gb.got.runes||0)+1;break;
    case 'chest':S.chests+=2;gb.got.chests=(gb.got.chests||0)+2;break;
@@ -3256,7 +3280,7 @@ function playerHit(spec,sp){
     if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;if(resonEff('stormcall'))S.spec=Math.min(100,S.spec+resonEff('stormcall'));if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
   }
   if(G.wyrm&&G.wyrm.phase===1&&dmg>0){if(spec){G.wyrm.phase=2;log('Your special cracks the Wyrm\'s armour. The floor begins to burn.','e');if(!G.sim)toast('Armour cracked!');}else dmg=Math.max(1,Math.round(dmg*0.1));}
-  dmg=Math.min(dmg,G.mobHp);
+  dmg=Math.min(dmg,G.mobHp);if(dmg>(S.bestHit||0))S.bestHit=dmg;
   G.mobHp-=dmg;dmgWindow(dmg);wyrmCheck();
   if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn(),discEff('burn'));if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
@@ -3374,7 +3398,7 @@ function killMob(){
   if(G.mob&&G.mob.gob){G.mobHp=G.mob.hp;return;}   // cannot be killed, only shaken
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   sfx(G.isBoss||G.nem||G.lt||G.mark||G.lair!=null||G.duel!=null?'bosskill':'kill');S.totalKills++;G.streak=0;draughtKill();profCount();
-  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;   // the Abyss holds its gold until it is banked
+  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;   // the Abyss holds its gold until it is banked
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck')*(1+areaMast(S.area,'luck')/100)*(eliteOf(m)?2:1)*((G.ambush||0)>0?3:1);if((G.ambush||0)>0)G.ambush--;
   rd().kills++;bestCount(m);
   if(!G.tower&&!abyssW()&&!siegeActive()){S.areaK=S.areaK||{};S.areaK[S.area]=(S.areaK[S.area]||0)+1;if(!G.isBoss&&(m.base||m.n)===A.mobs[0].n){S.lairK=S.lairK||{};S.lairK[S.area]=(S.lairK[S.area]||0)+1;if(S.lairK[S.area]===LAIR_NEED){log(`You find the tracks of ${LAIRS[S.area].n}. The lair is open, on the March map.`,'g');if(!G.sim)toast('A lair opens');}}}
@@ -3528,7 +3552,7 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   for(let i=0;i<S.food.length;i++)if(S.food[i]<999)S.food[i]=999;for(let i=0;i<S.runes.length;i++)if(S.runes[i]<999)S.runes[i]=999;
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
-function tick(dt){richTick();onbTick(dt);
+function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
@@ -3730,7 +3754,7 @@ function lgWire(){
   $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);richUI();tunerUI();renderAll();}};
   $('richOn').onchange=e=>{S.richOn=e.target.checked?1:0;if(S.richOn){richTick();log('The keeper opens the purse: nothing runs out.','g');}else log('The keeper closes the purse.');G.dirty=true;renderAll();};
   $('redeemTxt').onkeydown=e=>{if(e.key==='Enter')$('btnRedeem').click();};
-  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';richUI();tunerUI();};
+  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';richUI();tunerUI();renderBak();};
   $('lgX').onclick=()=>$('lgModal').classList.remove('on');
   $('lgModal').addEventListener('click',e=>{if(e.target.id==='lgModal')$('lgModal').classList.remove('on');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')$('lgModal').classList.remove('on');});
@@ -4556,7 +4580,7 @@ function renderAll(){
   renderTop();
   switch(S.tab){
     case 'hero':renderSlots();renderBag();break;
-    case 'vault':renderBag();renderMed();renderStore();renderCodex();renderBestiary();renderAltars();break;      // the Pack carries the Collection
+    case 'vault':renderBag();renderMed();renderStore();renderCodex();renderBestiary();renderStats();renderAltars();break;      // the Pack carries the Collection
     case 'skills':renderSkills();{const d=$('discSec');if(d)d.hidden=!(combatLvl()>=DISC_LV[0]||discAny());}renderDisc();renderProf();renderPrayer();renderFeats();renderBounties();renderRoad();renderDeeds();renderAltars();break; // Train carries Prayer and Feats
     case 'world':renderMap();renderAreas();break;
     case 'keep':renderKeep();break;}
@@ -4699,7 +4723,7 @@ function openChest(){
   if(S.chests<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
   S.chests--;S.chestsOpened=(S.chestsOpened||0)+1;bounty('chests',1);const A=AREAS[S.area];
   const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
-  const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.inv.push(it);markFound(it);
+  const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;S.inv.push(it);markFound(it);
 
   sfx('chest');log(`Chest: ${itemName(it)} and ${g} gold.`,'g');toast(`Chest: ${itemName(it)}`);renderAll();
 }
@@ -4708,7 +4732,23 @@ function openChest(){
 // ============ SAVE / OFFLINE ============
 const KEY='ironhold_idle_v1';
 function serialize(){return btoa(unescape(encodeURIComponent(JSON.stringify({S,uid,t:Date.now()}))));}
-function save(){S.last=Date.now();try{localStorage.setItem(KEY,serialize());}catch(e){}}
+function save(){S.last=Date.now();try{localStorage.setItem(KEY,serialize());}catch(e){}bakDaily();}
+// The backup slot: a second copy of the save, written at the first save of each calendar day and again just before a Reset,
+// restorable from the Ledger. Restoring swaps the two, so a restore can itself be undone the same way.
+const KEY_BAK='ironhold_idle_bak',KEY_BAKDAY='ironhold_idle_bakday';
+function dayKey(){const d=new Date();return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
+function bakWrite(){try{localStorage.setItem(KEY_BAK,serialize());localStorage.setItem(KEY_BAKDAY,dayKey());}catch(e){}renderBak();}
+function bakDaily(){let d=null;try{d=localStorage.getItem(KEY_BAKDAY);}catch(e){}if(d!==dayKey())bakWrite();}
+function bakInfo(){try{const b=localStorage.getItem(KEY_BAK);if(!b)return null;const d=JSON.parse(decodeURIComponent(escape(atob(b))));if(!d||!d.S)return null;return {t:d.t||0,S:d.S};}catch(e){return null;}}
+function bakRestore(){const b=bakInfo();if(!b){toast('No backup yet.');return false;}
+  if(!G.sim&&!confirm(`Restore the backup from ${new Date(b.t).toLocaleString()}? Your current save moves into the backup slot, so this can be undone the same way.`))return false;
+  try{const old=localStorage.getItem(KEY_BAK);localStorage.setItem(KEY_BAK,serialize());localStorage.setItem(KEY_BAKDAY,dayKey());localStorage.setItem(KEY,old);}catch(e){toast('The backup could not be restored.');return false;}
+  if(!G.sim)location.reload();return true;}
+function renderBak(){const el=$('bakBox');if(!el)return;const b=bakInfo();
+  if(!b){el.innerHTML='<span class="sub">No backup yet: one is written at the first save of each day.</span>';return;}
+  const xp=b.S.xp||{};const cl=Math.floor(0.25*(lvlFor(xp.def||0)+lvlFor(xp.hp||0))+0.325*Math.max(lvlFor(xp.atk||0)+lvlFor(xp.str||0),1.5*lvlFor(xp.rng||0),1.5*lvlFor(xp.mag||0)));
+  el.innerHTML=`<span class="lgt">Backup</span> from ${new Date(b.t).toLocaleString()}: level ${cl}, ${fmt(b.S.totalKills||0)} kills, realm ${((b.S.asc&&b.S.asc.realm)||0)+1}. Written once a day and before a Reset. <button class="sm" id="btnRestore">Restore backup</button>`;
+  $('btnRestore').onclick=bakRestore;}
 function load(str){
   try{const d=JSON.parse(decodeURIComponent(escape(atob(str))));Object.assign(S,d.S);uid=d.uid||uid;
     for(const s of SLOTS)if(S.equip[s]===undefined)S.equip[s]=null;uiDefaults();return true;}catch(e){return false;}
@@ -4765,7 +4805,7 @@ $('autoEat').onchange=e=>S.autoEat=e.target.checked;
 $('eatPct').oninput=e=>{S.eatPct=+e.target.value;$('eatPctTxt').textContent=S.eatPct;};
 $('btnExport').onclick=()=>{$('saveTxt').value=serialize();$('saveTxt').select();toast('Save code exported.');};
 $('btnImport').onclick=()=>{if(load($('saveTxt').value.trim())){spawn(false);renderAll();toast('Save imported.');}else toast('That code could not be read.');};
-$('btnReset').onclick=()=>{if(confirm('Reset all progress?')){try{localStorage.removeItem(KEY);}catch(e){}location.reload();}};
+$('btnReset').onclick=()=>{if(confirm('Reset all progress? A backup of this save is kept in the Ledger and can be restored.')){bakWrite();try{localStorage.removeItem(KEY);}catch(e){}location.reload();}};
 $('modal').onclick=e=>{if(e.target.id==='modal'){$('modal').className='';renderAll();}};
 document.addEventListener('keydown',e=>{
   const t=e.target;if(t&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT'||t.tagName==='SELECT'))return;
@@ -4783,6 +4823,7 @@ document.addEventListener('keydown',e=>{
   if(saved&&load(saved)){try{offline();}catch(e){log('Catch-up while away failed: '+(e&&e.message),'e');}}
   else{S.equip.weapon=makeItem(0,'weapon',1,1);S.food[0]=10;log('The hold is yours. Bronze scimitar. Pasture first. You coach — the blade works.','g');}
   uiDefaults();applySecs();try{wpnWarm();}catch(e){}
+  G.sess={t:S.played||0,k:S.totalKills||0,g:S.goldEarned||0};renderBak();
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);if(S.asc&&S.asc.creedDebtOpen&&creedDebt()>0)openCreedDebt(()=>{if(trialOffered())openTrialOffer();});else if(trialOffered())openTrialOffer();
   setTimeout(openAway,350);
@@ -4796,7 +4837,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b144-gobart';window.__ihBoot=true;
+  const BUILD='b145-numbers';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

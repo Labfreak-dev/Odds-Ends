@@ -698,7 +698,7 @@
           <div class="vault-actions">
             <button class="sm" id="btnSalvJunk">Salvage junk</button>
             <button class="sm" id="btnSellJunk">Sell junk</button>
-            <button class="sm" id="btnSellAll" title="Sell everything in the pack except uniques, set pieces and the Heirloom">Sell all</button>
+            <button class="sm" id="btnSellAll" title="Sell everything in the pack; only the Heirloom stays">Sell all</button>
             <button class="sm" id="btnChest">Open 1 (<span id="chestCnt">0</span>)</button>
             <button class="sm" id="btnChestAll">Open all</button>
           </div>
@@ -3749,9 +3749,9 @@ function sellJunk(){
   toast(n?`Sold ${n} piece${n>1?'s':''} for ${fmt(g)} gold.`:'Nothing in the pack is junk.');renderAll();
 }
 function sellAll(){
-  const sell=S.inv.filter(it=>it&&!isSpecial(it));if(!sell.length){toast('Nothing in the pack to sell: uniques, set pieces and the Heirloom stay.');return;}
-  const g=sell.reduce((a,it)=>a+itemValue(it),0);
-  if(!G.sim&&!confirm(`Sell ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold? Uniques, set pieces and the Heirloom stay in the pack.`))return;
+  const sell=S.inv.filter(it=>it&&!it.heir);if(!sell.length){toast('Nothing in the pack to sell.');return;}
+  const g=sell.reduce((a,it)=>a+itemValue(it),0);const rare=sell.filter(isSpecial).length;
+  if(!G.sim&&!confirm(`Sell ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold?${rare?` That includes ${rare} unique or set piece${rare===1?'':'s'}.`:''} Only the Heirloom stays.`))return;
   S.inv=S.inv.filter(it=>!sell.includes(it));S.gold+=g;toast(`Sold ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);log(`Sold the pack: ${sell.length} piece${sell.length===1?'':'s'} for ${fmt(g)} gold.`);renderAll();
 }
 function salvageJunk(){
@@ -4592,7 +4592,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b131-pause';window.__ihBoot=true;
+  const BUILD='b132-sellall';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

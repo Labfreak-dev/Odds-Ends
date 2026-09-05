@@ -92,10 +92,15 @@
   #lamp.dead #lampDot{background:#e03a2f;box-shadow:0 0 8px #e03a2f}
   #lamp.boss{color:#ffd68a}#lamp.dead{color:#ff9b93}
   @media (max-width:979px){
-    #topbar{display:grid;grid-template-columns:1fr auto;gap:6px 8px;padding:6px 8px}
-    #brand{border-right:0;padding-right:0;grid-area:1/1}
+    html,body{overflow-x:hidden;max-width:100%}
+    #shell{max-width:100%;box-sizing:border-box}
+    #topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 8px;padding:6px 8px}
+    #brand{border-right:0;padding-right:0;grid-area:1/1;min-width:0}
+    #brand h1{white-space:normal;display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.05;min-width:0}
+    #brand h1 .sub{white-space:nowrap}
+    #btnLedger{flex:none}
     #btnLedger{grid-area:1/2;justify-self:end;align-self:center}
-    #pills{grid-area:2/1/3/3;display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+    #pills{grid-area:2/1/3/3;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;min-width:0}
     .pill{min-width:0;padding:3px 5px;flex-direction:column;gap:1px;text-align:center}
     .pill div{line-height:1.1}.pill b{font-size:11px}.pill span{font-size:9px}
     .actions button{font-size:12px;gap:4px}
@@ -4431,7 +4436,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b116-ledger';window.__ihBoot=true;
+  const BUILD='b117-fit';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

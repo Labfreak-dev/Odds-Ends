@@ -822,6 +822,7 @@
           <p>Codes are handed out by the keeper of the hold. Each works once per save.</p>
           <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:8px"><input id="redeemTxt" type="text" placeholder="IRON-…" spellcheck="false" autocapitalize="characters" style="min-width:0"><button class="sm" id="btnRedeem">Redeem</button></div>
           <p class="sub" id="redeemMsg" style="margin-top:6px"></p>
+          <div id="tuneBox" hidden style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.35)"><b class="lgt">The Tuner</b><p class="sub" style="margin:4px 0 6px">Extra percent on every stat a champion can earn, applied live and kept in the save. Zero is off.</p><div id="tuneRows"></div><div class="btns" style="margin-top:6px"><button class="sm" id="tuneReset" style="grid-column:1/-1">Clear the tuner</button></div></div>
           <div id="richBox" hidden style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.35)"><div class="chk"><input type="checkbox" id="richOn"><label for="richOn"><b>Unlimited resources</b> — while this is on, everything that can be spent or used is kept topped up: gold, scrap, chests, food, runes, Starsteel, delve keys, essence, cursed scrolls, bones, prayer points and special energy.</label></div></div></div></details>
   </div>
 </div></div>
@@ -1226,6 +1227,7 @@ function bonuses(){
   // Shards: XP, gold and luck taper off; combat bonuses and health keep growing,
   // because health is the one thing the level cap otherwise freezes.
   const sh=S.asc?S.asc.shards:0;b.xp+=Math.min(sh,150)*2;b.gold+=Math.min(sh,300)*0.5;b.luck+=Math.min(sh,200)*0.5;
+  if(S.tuner&&S.tune){for(const k of ['atk','str','def'])if(tuneEff(k))b[k]=Math.round(b[k]*(1+tuneEff(k)/100));for(const k of ['hp','mh','spd','dr','leech','xp','gold','luck'])b[k]+=tuneEff(k);}
   return b;
 }
 // Health, regen and food ride the same shard curve as the combat rolls, and a
@@ -1427,7 +1429,7 @@ function compPerks(b){for(const c of party())b.dr+=cqDR(c.type)+resonEff('shield
 // Companion power. Barracks, training, kit, creed, medallion and the oath all
 // feed it, but past x2 it grows with the logarithm: a companion is a second
 // blade, never the first. Endgame lands near x6 where it once passed x20.
-function compMult0(c){return (1+0.2*keepEff('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100)*creedEff('comp',1)*(1+medEff('comp')/100)*(c&&c.sworn?1.3:1)*(hasTal(c,'savage')?1.2:1)*(hasTal(c,'encore')?1.15:1);}
+function compMult0(c){return (1+0.2*keepEff('barracks')+0.1*((c&&c.lvl)||0)+cqPow(c&&c.type)/100)*creedEff('comp',1)*(1+medEff('comp')/100)*(1+tuneEff('comp')/100)*(c&&c.sworn?1.3:1)*(hasTal(c,'savage')?1.2:1)*(hasTal(c,'encore')?1.15:1);}
 function compMult(c){const P=compMult0(c);return P<=2?P:2+2*Math.log(P/2);}
 function compCost(c){return Math.round(900*Math.pow(2.0,c.lvl||0));}
 // Swearing: a companion of the tenth level, for Mimic-scale gold, takes an oath. Half again the power, a title, and it cannot be dismissed.
@@ -1479,7 +1481,7 @@ const PRAYERS=[
 ];
 function prayBurn(){let b=0;for(const p of activePrayers())if(p.eff.burn)b=Math.max(b,p.eff.burn);return b;}
 const BONE_PTS=8;
-function prayMax(){return 30+combatLvl()+cqPrayer()+medEff('pray');}
+function prayMax(){return 30+combatLvl()+cqPrayer()+medEff('pray')+tuneEff('pray');}
 function prayOn(id){return S.pray.on.includes(id);}
 function activePrayers(){if(vowMul('pray')===0||trialRule('pray')===0)return [];return PRAYERS.filter(p=>prayOn(p.id));}
 function prayMult(k){let m=1;for(const p of activePrayers())if(p.eff[k])m*=p.eff[k];return m;}
@@ -3317,7 +3319,7 @@ function draughtHtml(){const d=draught();
 function eat(manual){
   if(trialRule('food')===0){if(manual)toast('The trial forbids it.');return false;}
   const mh=maxHp();
-  const fh=i=>Math.round(FOOD[i].h*hpMult()*(1+medEff('foodPct')/100)*creedEff('foodx',1));
+  const fh=i=>Math.round(FOOD[i].h*hpMult()*(1+medEff('foodPct')/100)*creedEff('foodx',1)*(1+tuneEff('food')/100));
   let idx=-1;for(let i=FOOD.length-1;i>=0;i--){if(S.food[i]>0){idx=i;if(mh-S.hp>=fh(i))break;}}
   if(idx<0){if(manual)toast('No food left.');return false;}
   S.food[idx]--;S.foodEaten=(S.foodEaten||0)+1;S.hp=Math.min(mh,S.hp+fh(idx));G.dirty=true;
@@ -3363,8 +3365,8 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
 function tick(dt){richTick();
-  S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
-  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
+  S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
+  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(!G.mob)spawn(false);
@@ -3521,12 +3523,24 @@ function renderPills(){for(const [k,,f,when] of PILLS){$('pill-'+k).textContent=
 
 // --- dock ---
 const TABS=[['hero','Worn','champion'],['vault','Vault','vault'],['skills','Train','skills'],['world','March','world'],['keep','Hold','keep']];
+// ============ THE TUNER ============
+// A hidden ledger section, opened by a code, that adds a live percentage to every stat a player can earn.
+const TUNE=[['atk','Attack bonus','% on top of the gear and set total'],['str','Strength bonus','% on top of the gear and set total'],['def','Defence bonus','% on top of the gear and set total'],
+ ['hp','Hitpoints','% more health'],['mh','Max hit','% harder'],['spd','Attack speed','% less delay'],['dr','Damage reduction','points, before the cap'],['leech','Lifesteal','% of damage dealt'],
+ ['xp','XP','% more'],['gold','Gold','% more'],['luck','Drop chance','% more'],['regen','Regen','% faster health regen'],['specR','Special charge','% faster'],['pray','Prayer points','more at the cap'],
+ ['comp','Companion power','% more'],['food','Food','% more healing']];
+function tuneEff(k){return (S.tuner&&S.tune&&+S.tune[k])||0;}
+function tunerUI(){const b=$('tuneBox');if(!b)return;b.hidden=!S.tuner;if(!S.tuner)return;S.tune=S.tune||{};
+  $('tuneRows').innerHTML=TUNE.map(([k,n,d])=>`<div class="pslot"><span><b>${n}</b><br><span class="sub">${d}</span></span><input type="number" step="1" inputmode="numeric" data-tune="${k}" value="${S.tune[k]||0}" style="width:74px;padding:4px;text-align:right"></div>`).join('');
+  $('tuneRows').querySelectorAll('[data-tune]').forEach(e=>e.oninput=()=>{S.tune[e.dataset.tune]=+e.value||0;S.hp=Math.min(S.hp,maxHp());G.dirty=true;renderAll();});
+  $('tuneReset').onclick=()=>{S.tune={};tunerUI();S.hp=Math.min(S.hp,maxHp());G.dirty=true;renderAll();toast('Tuner cleared.');};}
 // ============ REDEEM CODES ============
 // IRON-<ID>.<K><n>.<K><n>…-<sig>: ID names the code (once per save), each K<n> is a reward,
 // sig is a hash of the body and a salt. Made with ironhold/make-code.py.
 const RD_SALT='ironhold'+'-keeper-'+'2026';
 const RD_KINDS={G:['gold',n=>S.gold+=n],S:['scrap',n=>S.scrap+=n],C:['chests',n=>S.chests+=n],F:['shrimp',n=>S.food[0]+=n],H:['shards',n=>{S.asc.shards+=n;}],R:['of every rune',n=>{for(let i=0;i<S.runes.length;i++)S.runes[i]+=n;}],I:['Starsteel',n=>S.ingots=(S.ingots||0)+n],K:['delve keys',n=>S.keys=(S.keys||0)+n],E:['essence',n=>S.essence=(S.essence||0)+n],
   U:['the keeper\'s purse',n=>{S.rich=1;}],
+  A:['the tuner',n=>{S.tuner=1;S.tune=S.tune||{};}],
   L:['in every combat skill',n=>{const l=Math.min(99,n);for(const k of ['atk','str','def','hp','rng','mag'])if(lv(k)<l)S.xp[k]=XP[l];S.hp=maxHp();}],
   Y:['Sovereign harness',n=>{const its=setSlots('sov').map(sl=>makeSetPiece('sov',sl)).concat(['sov_greatsword','sov_longbow','sov_battlestaff'].map(makeUnique));rdStow(its);}],
   T:['-tier Legendary kits and weapons',n=>{const t=Math.min(n,TIERS.length-1);const its=[];
@@ -3540,13 +3554,13 @@ function redeem(raw){const c=String(raw||'').trim().toUpperCase().replace(/\s+/g
   const body=m[1];if(rdSig(body)!==m[2])return {ok:false,msg:'The seal is wrong. Check the letters.'};
   const parts=body.split('.');const id=parts[0];S.redeemed=S.redeemed||{};if(S.redeemed[id])return {ok:false,msg:'This code has been redeemed on this save already.'};
   const got=[];for(const pt of parts.slice(1)){const k=pt[0],n=parseInt(pt.slice(1),10);const K=RD_KINDS[k];if(!K||!(n>0))return {ok:false,msg:'The code names a reward this hold does not know.'};got.push([K,n]);}
-  for(const [K,n] of got)K[1](n);S.redeemed[id]=1;const txt=got.map(([K,n])=>K[0]==='the keeper\'s purse'?'the keeper\'s purse: an unlimited-resources switch under Redeem':K[0].startsWith('-')?`${TIERS[Math.min(n,TIERS.length-1)].n}${K[0]}`:K[0]==='Sovereign harness'?'the Sovereign harness':`${fmt(n)} ${K[0]}`).join(', ');
+  for(const [K,n] of got)K[1](n);S.redeemed[id]=1;const txt=got.map(([K,n])=>K[0]==='the tuner'?'the tuner: a stat panel under Redeem':K[0]==='the keeper\'s purse'?'the keeper\'s purse: an unlimited-resources switch under Redeem':K[0].startsWith('-')?`${TIERS[Math.min(n,TIERS.length-1)].n}${K[0]}`:K[0]==='Sovereign harness'?'the Sovereign harness':`${fmt(n)} ${K[0]}`).join(', ');
   log(`Code redeemed: ${txt}.`,'g');G.dirty=true;return {ok:true,msg:'Redeemed: '+txt+'.'};}
 function lgWire(){
-  $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);richUI();renderAll();}};
+  $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);richUI();tunerUI();renderAll();}};
   $('richOn').onchange=e=>{S.richOn=e.target.checked?1:0;if(S.richOn){richTick();log('The keeper opens the purse: nothing runs out.','g');}else log('The keeper closes the purse.');G.dirty=true;renderAll();};
   $('redeemTxt').onkeydown=e=>{if(e.key==='Enter')$('btnRedeem').click();};
-  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';richUI();};
+  $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';richUI();tunerUI();};
   $('lgX').onclick=()=>$('lgModal').classList.remove('on');
   $('lgModal').addEventListener('click',e=>{if(e.target.id==='lgModal')$('lgModal').classList.remove('on');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')$('lgModal').classList.remove('on');});
@@ -4551,7 +4565,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b124-purse';window.__ihBoot=true;
+  const BUILD='b125-tuner';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

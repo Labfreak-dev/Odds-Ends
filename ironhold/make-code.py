@@ -9,6 +9,7 @@ new name for each hand-out. Rewards are a letter and a number:
   G gold   S scrap   C chests   F shrimp   H shards   R of every rune
   I Starsteel   K delve keys   E essence
   U reveals the unlimited-resources switch under Redeem (any number)
+  A reveals the tuner, a live stat panel, under Redeem (any number)
   L every combat skill to that level (99 at most)
   Y the Sovereign harness and its three weapons, into storage (any number)
   T Legendary kits for all three styles and every weapon at that tier index
@@ -29,7 +30,7 @@ def main(a):
     if len(a)<2: print(__doc__); sys.exit(1)
     name=a[0].upper(); parts=[x.upper() for x in a[1:]]
     for p in parts:
-        if p[0] not in 'GSCFHRIKELYTU' or not p[1:].isdigit() or int(p[1:])<=0: sys.exit('bad reward: '+p)
+        if p[0] not in 'GSCFHRIKELYTUA' or not p[1:].isdigit() or int(p[1:])<=0: sys.exit('bad reward: '+p)
     if not name.isalnum(): sys.exit('the name must be letters and digits only')
     body='.'.join([name]+parts); print('IRON-'+body+'-'+sig(body))
 if __name__=='__main__': main(sys.argv[1:])

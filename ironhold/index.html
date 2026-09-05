@@ -818,6 +818,10 @@
             <button id="btnExport">Export</button><button id="btnImport">Import</button><button id="btnReset">Reset</button>
           </div>
           <p class="kbd" id="buildTag">Build 2026-09-03 · five menus, companion and champion windows</p></div></details>
+    <details class="lg"><summary>Redeem<span class="sub">a code for rewards</span></summary><div class="lgc">
+          <p>Codes are handed out by the keeper of the hold. Each works once per save.</p>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:8px"><input id="redeemTxt" type="text" placeholder="IRON-…" spellcheck="false" autocapitalize="characters" style="min-width:0"><button class="sm" id="btnRedeem">Redeem</button></div>
+          <p class="sub" id="redeemMsg" style="margin-top:6px"></p></div></details>
   </div>
 </div></div>
 <div id="chModal"><div id="chBox">
@@ -3510,7 +3514,22 @@ function renderPills(){for(const [k,,f,when] of PILLS){$('pill-'+k).textContent=
 
 // --- dock ---
 const TABS=[['hero','Worn','champion'],['vault','Vault','vault'],['skills','Train','skills'],['world','March','world'],['keep','Hold','keep']];
+// ============ REDEEM CODES ============
+// IRON-<ID>.<K><n>.<K><n>…-<sig>: ID names the code (once per save), each K<n> is a reward,
+// sig is a hash of the body and a salt. Made with ironhold/make-code.py.
+const RD_SALT='ironhold'+'-keeper-'+'2026';
+const RD_KINDS={G:['gold',n=>S.gold+=n],S:['scrap',n=>S.scrap+=n],C:['chests',n=>S.chests+=n],F:['shrimp',n=>S.food[0]+=n],H:['shards',n=>{S.asc.shards+=n;}],R:['of every rune',n=>{for(let i=0;i<S.runes.length;i++)S.runes[i]+=n;}],I:['Starsteel',n=>S.ingots=(S.ingots||0)+n],K:['delve keys',n=>S.keys=(S.keys||0)+n],E:['essence',n=>S.essence=(S.essence||0)+n]};
+function rdSig(body){let h=2166136261;const t=body+RD_SALT;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h.toString(36).padStart(7,'0').slice(-6).toUpperCase();}
+function redeem(raw){const c=String(raw||'').trim().toUpperCase().replace(/\s+/g,'');const m=c.match(/^IRON-([A-Z0-9]+(?:\.[A-Z][0-9]+)+)-([A-Z0-9]{6})$/);
+  if(!m)return {ok:false,msg:'That is not a code the keeper cut.'};
+  const body=m[1];if(rdSig(body)!==m[2])return {ok:false,msg:'The seal is wrong. Check the letters.'};
+  const parts=body.split('.');const id=parts[0];S.redeemed=S.redeemed||{};if(S.redeemed[id])return {ok:false,msg:'This code has been redeemed on this save already.'};
+  const got=[];for(const pt of parts.slice(1)){const k=pt[0],n=parseInt(pt.slice(1),10);const K=RD_KINDS[k];if(!K||!(n>0))return {ok:false,msg:'The code names a reward this hold does not know.'};got.push([K,n]);}
+  for(const [K,n] of got)K[1](n);S.redeemed[id]=1;const txt=got.map(([K,n])=>`${fmt(n)} ${K[0]}`).join(', ');
+  log(`Code redeemed: ${txt}.`,'g');G.dirty=true;return {ok:true,msg:'Redeemed: '+txt+'.'};}
 function lgWire(){
+  $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);renderAll();}};
+  $('redeemTxt').onkeydown=e=>{if(e.key==='Enter')$('btnRedeem').click();};
   $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';};
   $('lgX').onclick=()=>$('lgModal').classList.remove('on');
   $('lgModal').addEventListener('click',e=>{if(e.target.id==='lgModal')$('lgModal').classList.remove('on');});
@@ -4516,7 +4535,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b121-beasts';window.__ihBoot=true;
+  const BUILD='b122-redeem';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

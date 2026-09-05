@@ -2432,10 +2432,28 @@ function nemHtml(){if(!medOwned())return '';const n=nem(),pay=nemBounty();
 const HALL_PERK={atk:['Aim','+0.5% accuracy'],str:['Blade','+0.5% max hit'],def:['Wall','+0.5% damage reduction'],hp:['Heart','+1% hitpoints']};
 const HALL_CAP=40;
 function hallList(){return (S.asc&&S.asc.hall)||[];}
+// The hall was rebuilt once (HALL_V 2): a save that already had ancestors loses them all and gets six champions of old in their
+// place, hard mid-to-late portraits with a duel each. A save that never had one keeps an empty hall: its first true ascension
+// starts it. From then on every ascension leaves an honest portrait, and fixHall keeps each one sane on load.
+const HALL_V=2;
+const HALL_SEED=[
+  {r:1,cl:62,mh:95,k:14200,p:'str',t:'the Relentless',tw:25},
+  {r:2,cl:74,mh:128,k:22600,p:'def',t:'the Stubborn',tw:40},
+  {r:3,cl:83,mh:160,k:31800,p:'atk',t:'the Collector',tw:55},
+  {r:4,cl:91,mh:205,k:45300,p:'hp',t:'of the Spire',tw:70},
+  {r:5,cl:99,mh:250,k:60900,p:'str',t:'Wyrmslayer',tw:85},
+  {r:6,cl:108,mh:300,k:80400,p:'def',t:'Starforged',tw:100},
+];
+function hallMigrate(){if(!S.asc)return;if((S.asc.hallV||0)>=HALL_V)return;S.asc.hallV=HALL_V;const h=S.asc.hall||[];if(!h.length)return;
+  S.asc.hall=HALL_SEED.map(a=>Object.assign({},a));
+  const last=S.asc.hall[S.asc.hall.length-1];   // only the newest portrait keeps its gear, as ascend() does
+  try{last.gear=[makeItem(8,'weapon',5,2),makeItem(8,'body',4),makeItem(8,'legs',4),makeItem(8,'head',4),makeItem(8,'shield',4)];}catch(e){last.gear=[];}
+  log('The Hall of Ancestors has been rebuilt. Six champions of old stand in it now, each with a duel to offer; every ascension from here adds a true portrait.','g');}
+function fixHall(){for(const a of hallList()){if(!a||typeof a!=='object')continue;if(!HALL_PERK[a.p])a.p='str';a.r=Math.max(0,Math.floor(+a.r||0));a.cl=clamp(Math.round(+a.cl||10),3,126);a.mh=clamp(Math.round(+a.mh||5),1,2000);a.k=Math.max(0,Math.floor(+a.k||0));if(typeof a.t!=='string')a.t='';if(a.gear&&!Array.isArray(a.gear))delete a.gear;}}
 
 function hallEntry(){const best=['atk','str','def','hp'].reduce((a,b)=>lv(b)>lv(a)?b:a);
   const gear=SLOTS.map(s=>S.equip[s]).filter(it=>it&&!it.free).map(it=>JSON.parse(JSON.stringify(it)));
-  return {r:S.asc.realm,cl:combatLvl(),mh:playerMaxHit(),k:S.totalKills,p:best,t:heroTitle()||'',gear,tw:rd().tower||0};}
+  return {r:S.asc.realm,cl:combatLvl(),mh:clamp(Math.round(playerMaxHit()/(1+tuneEff('mh')/100)),1,2000),k:S.totalKills,p:best,t:heroTitle()||'',gear,tw:rd().tower||0};}
 function hallHtml(){const h=hallList();if(!h.length)return '';
   const tot=['atk','str','def','hp'].map(k=>hallEff(k)?`${HALL_PERK[k][0]} ×${hallEff(k)}`:'').filter(Boolean).join(' · ');
   return `<div class="altar hallc"><div><h3>Hall of Ancestors</h3><p>${h.length} champion${h.length===1?'':'s'} before this one${h.length>HALL_CAP?` (the last ${HALL_CAP} count)`:''}. ${tot||''}<br>`+
@@ -3475,7 +3493,7 @@ function tick(dt){richTick();onbTick(dt);
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
 function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
-function uiDefaults(){fixKits();onbDefault();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
+function uiDefaults(){fixKits();onbDefault();hallMigrate();fixHall();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,DIFFS.length-1);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.food=S.food||[];while(S.food.length<FOOD.length)S.food.push(0);
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault','peddler'])S.keep[k]=S.keep[k]||0;
@@ -4714,7 +4732,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b138-shield';window.__ihBoot=true;
+  const BUILD='b139-hall';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

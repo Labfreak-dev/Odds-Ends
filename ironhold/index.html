@@ -1156,7 +1156,7 @@ const SET_SLOTS=['head','body','legs','shield'];
 function itemCol(it){if(it.set)return SETS[it.set].col;if(it.uq&&UNIQUES[it.uq].col)return UNIQUES[it.uq].col;return TIERS[it.tier].c;}
 function itemHl(it){if(it.set)return SETS[it.set].hl;if(it.uq&&UNIQUES[it.uq].hl)return UNIQUES[it.uq].hl;return TIERS[it.tier].hl;}
 function effText(eff){return Object.keys(eff).map(k=>AFFIX[k].n.replace('{v}',eff[k]).replace('--','+')).join(' · ');}
-function sovPair(w,sh){return !!(w&&sh&&w.uq==='sov_greatsword'&&sh.set==='sov'&&sh.slot==='shield');}
+function sovPair(w,sh){return !!(w&&sh&&w.uq&&w.uq.startsWith('sov_')&&sh.set==='sov'&&sh.slot==='shield');}   // any of the three Sovereign weapons: the bow and the sceptre carry the shield on the back
 function makeUnique(key){const U=UNIQUES[key];const it=makeItem(U.tier,'weapon',6,U.wt);it.uq=key;it.aff=Object.assign({},U.eff);return it;}
 // ============ THE SOVEREIGN HARNESS ============
 // One set for a champion with 99 in everything: nine pieces and a weapon for
@@ -2671,7 +2671,10 @@ function heroLook(){
 // All ten Sovereign pieces worn at once: the champion is the Sovereign Ascended, its own sprite with the blade and the shield painted in.
 function sovFull(){if(!S.equip.weapon||!S.equip.weapon.uq||!S.equip.weapon.uq.startsWith('sov_'))return false;for(const sl of setSlots('sov')){const it=S.equip[sl];if(!it||it.set!=='sov')return false;}return true;}
 function lookKey(){
-  if(sovFull()&&sprReady('lk_sov_idle'))return 'lk_sov';
+  if(sovFull()){   // the Ascended: the bow and the sceptre get their own frames when that art exists; the sword's form stands in until then
+    const w=S.equip.weapon.uq;const v=w==='sov_longbow'?'lk_sov_bow':w==='sov_battlestaff'?'lk_sov_staff':null;
+    if(v&&sprReady(v+'_idle'))return v;
+    if(sprReady('lk_sov_idle'))return 'lk_sov';}
   const cs=cstyle(),P=cs==='ranged'?'lk_bow_':cs==='magic'?'lk_wiz_':'lk_';
   const b=S.equip.body;
   const sk=b&&b.set?(b.set.indexOf('set_')===0?b.set:'set_'+b.set):null;
@@ -2865,7 +2868,7 @@ function heroFrame(t){
   if(G.dead&&sprReady('hero_death')){const e=15-G.deadT;return f('hero_death',Math.min(3,Math.floor(e/0.22)));}
   const lk=lookKey();
   if(lk){
-    if(lk==='lk_sov'){ // the Ascended: a twelve-frame hover and a four-frame cut, no weapon or shield drawn over it
+    if(lk.startsWith('lk_sov')){ // the Ascended: a twelve-frame hover and an eight-frame strike, no weapon or shield drawn over it
       if(FX.pLunge>0){const i=Math.min(7,Math.floor((1-FX.pLunge)*8));const r=f(lk+'_atk',i);r.fi=i+1;r.grip=null;return r;}
       const r=f(lk+'_idle',Math.floor(t*9)%12);r.fi=0;r.grip=null;return r;}
     if(FX.pLunge>0){const i=Math.min(2,Math.floor((1-FX.pLunge)*3));
@@ -4524,7 +4527,7 @@ function openItem(it,equipped,where){
   const req=reqFor(it);const ok=reqOk(req)&&!handsBound(it);const uc=upgradeCost(it);
   const W=it.slot==='weapon'?WEAPONS[it.wt]:null;
   let h=`<div class="mhead">${itemGlyph(it)}<div><h2 style="color:${rc(it)}">${itemName(it)}</h2>
-   <div class="sub">${RARITY[it.rar].n||'Common'}${itemStyleOf(it)?` · <b class="styname" data-sty="${itemStyleOf(it)}">${STYLE_TAG[itemStyleOf(it)].n}</b>`:''} · needs ${SK_NAME[req.s]} ${req.lv}${ok?'':' <span style="color:#ff7b6b">(too low)</span>'}${W?` · ${W.spd}s, ${W.two?(it.uq==='sov_greatsword'?'two-handed, but the Sovereign shield rides beside it':'two-handed'):'one-handed'}`:''}</div></div></div>`;
+   <div class="sub">${RARITY[it.rar].n||'Common'}${itemStyleOf(it)?` · <b class="styname" data-sty="${itemStyleOf(it)}">${STYLE_TAG[itemStyleOf(it)].n}</b>`:''} · needs ${SK_NAME[req.s]} ${req.lv}${ok?'':' <span style="color:#ff7b6b">(too low)</span>'}${W?` · ${W.spd}s, ${W.two?(it.uq&&it.uq.startsWith('sov_')?'two-handed, but the Sovereign shield rides beside it':'two-handed'):'one-handed'}`:''}</div></div></div>`;
   if(cur)h+=`<div class="sub">Compared to ${itemName(cur)}</div>`;
   h+=`<div class="cmp">Attack +${st.atk}${d(st.atk,cs.atk)} · Strength +${st.str}${d(st.str,cs.str)} · Defence +${st.def}${d(st.def,cs.def)}</div>`;
   if(it.uq)h+=`<div class="sub" style="font-style:italic;margin:2px 0">${UNIQUES[it.uq].d}</div>`;
@@ -4588,7 +4591,7 @@ function equip(it){
   const req=reqFor(it);if(!reqOk(req)||handsBound(it))return;
   S.inv=S.inv.filter(x=>x!==it);
   if(S.equip[it.slot])S.inv.push(S.equip[it.slot]);
-  // Two hands, one exception: the Sovereign Blade and the Sovereign shield are worn together, the only pair that can be.
+  // Two hands, one exception: a Sovereign weapon and the Sovereign shield are worn together, the only pair that can be.
   if(it.slot==='weapon'&&WEAPONS[it.wt].two&&S.equip.shield&&!sovPair(it,S.equip.shield)){S.inv.push(S.equip.shield);S.equip.shield=null;}
   if(it.slot==='shield'&&S.equip.weapon&&WEAPONS[S.equip.weapon.wt].two&&!sovPair(S.equip.weapon,it)){S.inv.push(S.equip.weapon);S.equip.weapon=null;}
   S.equip[it.slot]=it;S.hp=Math.min(S.hp,maxHp());
@@ -4709,7 +4712,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b136-away';window.__ihBoot=true;
+  const BUILD='b137-sovkeys';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

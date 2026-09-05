@@ -229,6 +229,13 @@
   .coll .ce.no img{filter:grayscale(1) brightness(.3)}
   .coll .ce.ok{box-shadow:inset 0 0 0 1px var(--gold)}
   .coll .ce.ok span{color:var(--tan)}
+  .coll .ce{cursor:pointer}
+  .cdx{display:flex;flex-direction:column;gap:4px}
+  .cdr{display:flex;align-items:center;gap:8px;padding:4px 6px;background:var(--ink);border:2px solid #000;border-radius:3px;box-shadow:inset 0 0 0 1px var(--bevel);font-size:12px;color:var(--muted);cursor:pointer}
+  .cdr img{width:28px;height:28px;object-fit:contain;flex:none;filter:grayscale(1) brightness(.35)}
+  .cdr.ok img{filter:none}.cdr.ok .nm{color:var(--tan)}
+  .cdr .nm{flex:1;min-width:0}.cdr .st{font-size:10px;white-space:nowrap}
+  .cdr.cur{box-shadow:inset 0 0 0 2px var(--gold)}
   .setb{font-size:11px;color:#8fdcf5;margin:2px 0}
   .item.r1{--rc:var(--r1)}.item.r2{--rc:var(--r2)}.item.r3{--rc:var(--r3)}.item.r4{--rc:var(--r4)}.item.r5{--rc:var(--r5)}.item.r7{--rc:var(--r7)}
   .item.r7 .nm{color:var(--r7)}
@@ -3798,7 +3805,40 @@ function renderCodex(){
   for(const k in SETS)for(const sl of setSlots(k))CN[k+'_'+setIk(k)[sl]]=SETS[k].n+' '+SETS[k].pieces[sl];
   const keys=Object.keys(CN);
   const f=S.found||{};const n=keys.filter(k=>f[k]).length;$('collCnt').textContent=`${n}/${keys.length}`;
-  $('coll').innerHTML=keys.map(k=>{const nm=CN[k];const ok=!!f[k];const tip=UNIQUES[k]?(ok?effText(UNIQUES[k].eff):'Not found yet'):(ok?'Found':'Not found yet');return `<div class="ce ${ok?'ok':'no'}" title="${nm} — ${tip}"><img src="${ICONS[k]||''}" alt=""><span>${ok?nm:'???'}</span></div>`;}).join('');
+  $('coll').innerHTML=keys.map(k=>{const nm=CN[k];const ok=!!f[k];const tip=UNIQUES[k]?(ok?effText(UNIQUES[k].eff):'Not found yet'):(ok?'Found':'Not found yet');return `<div class="ce ${ok?'ok':'no'}" data-ck="${k}" role="button" tabindex="0" title="${nm} — ${tip}"><img src="${ICONS[k]||''}" alt=""><span>${ok?nm:'???'}</span></div>`;}).join('');
+  $('coll').querySelectorAll('[data-ck]').forEach(e=>{const f=()=>openCodex(e.dataset.ck);e.onclick=f;e.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();f();}};});
+}
+// ---- the collection's detail window: one entry, where it drops, and the whole set it belongs to ----
+function codexSetOf(k){for(const sk in SETS){if(!k.startsWith(sk+'_'))continue;const ik=setIk(sk);for(const sl of setSlots(sk))if(k===sk+'_'+ik[sl])return {sk,sl};}return null;}
+function codexSource(h,kind){
+  if(typeof h==='number')return kind==='set'?`Drops from the monsters of ${AREAS[h].n} once its boss is down, about one piece in 300 kills.`:`Drops from the monsters of ${AREAS[h].n}, about one in 700 kills.`;
+  if(typeof h==='string'&&h.startsWith('boss:')){const A=AREAS[+h.slice(5)];return `Carried by ${A.boss.n}, the boss of ${A.n}: 8% on the first clear, 2% after.`;}
+  if(h==='mid')return 'Drops from the monsters of any area from the Barbarian Camp on, about one in 700 kills.';
+  if(h==='chest')return 'A hold relic: found in chests, about one chest in twenty.';
+  if(h==='late')return 'Found in chests once you have reached the Frozen Pass or tower floor 30.';
+  if(h==='sov')return 'The Sovereign harness: drops only for a champion with 99 in every combat skill, from bosses (1 in 300), the Elder Wyrm (1 in 60) and tower wardens past floor 100 (1 in 40).';
+  return '';}
+function codexOwned(test){let n=0;for(const sl of SLOTS){const it=S.equip[sl];if(it&&test(it))n++;}for(const it of S.inv)if(it&&test(it))n++;for(const it of store())if(it&&test(it))n++;return n;}
+function openCodex(k){const f=S.found||{};const ok=!!f[k];G.modalKind='codex';
+  const pic=`<img src="${ICONS[k]||''}" alt="" style="width:56px;height:56px;object-fit:contain;flex:none;${ok?'':'filter:grayscale(1) brightness(.4)'}">`;
+  let h='';
+  if(UNIQUES[k]){const U=UNIQUES[k];const W=WEAPONS[U.wt];const owned=codexOwned(it=>it.uq===k);
+    h=`<div class="mhead">${pic}<div><h2 style="color:${ok?(U.hl||'#ffd24a'):'var(--muted)'}">${ok?U.n:'An unfound unique'}</h2><div class="sub">Unique ${W.n.toLowerCase()} · ${TIERS[U.tier].n}${ok?` · ${owned?`you hold ${owned}`:'none in hand'}`:' · not found yet'}</div></div></div>`;
+    if(ok){h+=`<div class="sub" style="font-style:italic;margin:2px 0 6px">${U.d}</div><div class="cmp">${effText(U.eff)}</div>`;if(SPECIALS[U.wt])h+=`<div class="sub" style="margin:4px 0">Special <b>${SPECIALS[U.wt].n}</b>: ${SPECIALS[U.wt].d}</div>`;}
+    h+=`<div class="sub" style="margin-top:6px"><b>Where</b> — ${codexSource(U.home,'uq')}</div>`;}
+  else{const m=codexSetOf(k);if(!m)return;const T=SETS[m.sk];const ik=setIk(m.sk);const slots=setSlots(m.sk);const worn=setCounts()[m.sk]||0;
+    const owned=codexOwned(it=>it.set===m.sk&&it.slot===m.sl);
+    h=`<div class="mhead">${pic}<div><h2 style="color:${ok?T.hl:'var(--muted)'}">${ok?T.n+' '+T.pieces[m.sl]:'An unfound set piece'}</h2><div class="sub">${T.n} set · ${TIERS[T.tier].n} ${m.sl}${ok?` · ${owned?`you hold ${owned}`:'none in hand'}`:' · not found yet'}</div></div></div>`;
+    h+=`<div class="sub" style="margin-top:2px"><b>Where</b> — ${codexSource(T.home,'set')}</div>`;
+    const have=slots.filter(sl=>f[m.sk+'_'+ik[sl]]).length;
+    h+=`<h3 class="secH" style="margin-top:10px">The ${T.n} set <span class="sub">${have}/${slots.length} found · ${worn} worn</span></h3><div class="cdx">`+slots.map(sl=>{const kk=m.sk+'_'+ik[sl];const got=!!f[kk];const held=codexOwned(it=>it.set===m.sk&&it.slot===sl);
+      return `<div class="cdr${got?' ok':''}${kk===k?' cur':''}" data-ck="${kk}"><img src="${ICONS[kk]||''}" alt=""><span class="nm">${got?T.n+' '+T.pieces[sl]:'???'}</span><span class="st">${got?(held?`held ×${held}`:'found'):'not found'}</span></div>`;}).join('')+`</div>`;
+    const bon=[[2,T.b2],[4,T.b4]].concat(T.bfull?[[slots.length,T.bfull]]:[]).filter(([n,b])=>b&&Object.keys(b).length);
+    h+=`<div class="cmp" style="margin-top:8px">`+bon.map(([n,b])=>`<div><b class="${worn>=n?'gold':''}">${n} piece${n===1?'':'s'}</b>: ${effText(b)}${worn>=n?' · active':''}</div>`).join('')+`</div>`;}
+  h+=`<div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;
+  $('modalBox').innerHTML=`<button class="mx" id="mCloseTop" aria-label="Close">✕</button>`+h;$('modal').className='on';$('modalBox').scrollTop=0;
+  const close=()=>{G.modalKind=null;$('modal').className='';};$('mClose').onclick=close;$('mCloseTop').onclick=close;
+  $('modalBox').querySelectorAll('.cdr[data-ck]').forEach(e=>e.onclick=()=>openCodex(e.dataset.ck));
 }
 // --- the fight screen's prayer and potion windows ---
 const ICO_PRAY='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M6 9h12"/></svg>';
@@ -4444,7 +4484,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b119-steel';window.__ihBoot=true;
+  const BUILD='b120-codex';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

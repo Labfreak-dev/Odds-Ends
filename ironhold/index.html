@@ -236,6 +236,8 @@
   .cdr.ok img{filter:none}.cdr.ok .nm{color:var(--tan)}
   .cdr .nm{flex:1;min-width:0}.cdr .st{font-size:10px;white-space:nowrap}
   .cdr.cur{box-shadow:inset 0 0 0 2px var(--gold)}
+  #beasts .ce b{font-size:8px;color:var(--gold);line-height:1}
+  #beasts .ce img{width:62%;height:56%}
   .setb{font-size:11px;color:#8fdcf5;margin:2px 0}
   .item.r1{--rc:var(--r1)}.item.r2{--rc:var(--r2)}.item.r3{--rc:var(--r3)}.item.r4{--rc:var(--r4)}.item.r5{--rc:var(--r5)}.item.r7{--rc:var(--r7)}
   .item.r7 .nm{color:var(--r7)}
@@ -2205,12 +2207,42 @@ function bestTier(k){const n=bestKind(k);let t=0;for(let i=0;i<BEST_TIERS.length
 function bestBonus(k){const t=bestTier(k);return t?BEST_TIERS[t-1][1]:0;}
 function bestCount(m){if(!m)return;S.best=S.best||{};S.bestK=S.bestK||{};S.best[m.n]=(S.best[m.n]||0)+1;if(m.shape){const k=m.shape;const before=bestTier(k);S.bestK[k]=(S.bestK[k]||0)+1;
   if(bestTier(k)>before){const T=BEST_TIERS[bestTier(k)-1];log(`Bestiary — ${KINDS[k]||k}: ${T[2]} +${T[1]}% damage to ${(KINDS[k]||k).toLowerCase()}.`,'g');if(!G.sim)toast(`${KINDS[k]||k}: +${T[1]}% damage`);G.dirty=true;}}}
+// Every monster in the game, met or not, as a tile; tap one for its page. The kind lessons sit above.
+function beastList(){const L=[];AREAS.forEach((A,i)=>{A.mobs.forEach((m,mi)=>L.push({n:m.n,m,area:i,first:mi===0}));L.push({n:A.boss.n,m:A.boss,area:i,boss:true});});
+  TOWER_MOBS.forEach((t,ti)=>L.push({n:t[0],m:{n:t[0],shape:t[1],spr:t[3]},tower:ti}));return L;}
+function beastPic(b){const k=b.m.spr||MOB_SPR[b.n];const e=k&&SPR_SRC[k+'_idle'];return e&&e.f&&e.f[0]?e.f[0].src:'';}
 function renderBestiary(){const el=$('bestiary');if(!el)return;const names=S.best||{};
-  const byKind={};for(const A of AREAS){for(const m of A.mobs)byKind[m.shape]=(byKind[m.shape]||[]).concat(m.n);byKind[A.boss.shape]=(byKind[A.boss.shape]||[]).concat(A.boss.n);}
-  for(const t of TOWER_MOBS)byKind[t[1]]=(byKind[t[1]]||[]).concat(t[0]);
   let total=0;for(const k in S.bestK||{})total+=S.bestK[k];$('bestCnt').textContent=fmt(total)+' kills';
-  el.innerHTML=Object.keys(KINDS).map(k=>{const n=bestKind(k),t=bestTier(k),next=BEST_TIERS[t];const seen=(byKind[k]||[]).filter(nm=>names[nm]);
-    return `<div class="feat${t?' done':''}"><span><span class="nm">${KINDS[k]}</span><span class="sub">${fmt(n)} slain · ${t?`+${bestBonus(k)}% damage · ${BEST_TIERS[t-1][2]}`:'nothing learned yet'}${next?` · next at ${fmt(next[0])}`:' · complete'}<br>${seen.length?seen.map(nm=>`${nm} ${fmt(names[nm])}`).join(' · '):'<i>none met</i>'}</span></span></div>`;}).join('');}
+  const L=beastList();const met=L.filter(b=>names[b.n]).length;
+  el.innerHTML=`<div class="sub" style="margin-bottom:6px">Lessons by kind. A thousand of a kind teaches you where it is soft, ten thousand how it moves, a hundred thousand more than there are.</div>`
+   +Object.keys(KINDS).map(k=>{const n=bestKind(k),t=bestTier(k),next=BEST_TIERS[t];
+    return `<div class="feat${t?' done':''}"><span><span class="nm">${KINDS[k]}</span><span class="sub">${fmt(n)} slain · ${t?`+${bestBonus(k)}% damage`:'nothing learned yet'}${next?` · next at ${fmt(next[0])}`:' · complete'}</span></span></div>`;}).join('')
+   +`<h3 class="secH">Monsters <span class="sub">${met}/${L.length} met · tap one</span></h3><div class="coll" id="beasts">`
+   +L.map(b=>{const n=names[b.n]||0;const ok=n>0;return `<div class="ce ${ok?'ok':'no'}" data-bm="${b.n}" role="button" tabindex="0" title="${ok?b.n+' — '+fmt(n)+' slain':'Not met yet'}"><img src="${beastPic(b)}" alt=""><span>${ok?b.n:'???'}</span>${ok?`<b>${fmt(n)}</b>`:''}</div>`;}).join('')+`</div>`;
+  el.querySelectorAll('[data-bm]').forEach(e=>{const f=()=>openBeast(e.dataset.bm);e.onclick=f;e.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();f();}};});}
+function openBeast(name){const b=beastList().find(x=>x.n===name);if(!b)return;const n=(S.best&&S.best[name])||0;const ok=n>0;G.modalKind='beast';
+  const pic=`<img src="${beastPic(b)}" alt="" style="width:64px;height:64px;object-fit:contain;flex:none;${ok?'':'filter:grayscale(1) brightness(.35)'}">`;
+  const m=b.m;const where=b.tower!=null?`Tower of Trials, every sixth floor from ${b.tower+1}`:b.boss?`Boss of ${AREAS[b.area].n}`:AREAS[b.area].n;
+  let h=`<div class="mhead">${pic}<div><h2 style="color:${ok?'var(--gold)':'var(--muted)'}">${ok?name:'A monster not yet met'}</h2><div class="sub">${KINDS[m.shape]||m.shape} · ${where}${ok?` · <b class="gold">${fmt(n)}</b> slain`:''}</div></div></div>`;
+  if(b.tower!=null)h+=`<div class="cmp">Strength, health and defence climb with the floor; every tenth floor it comes as a warden with a chest behind it.</div>`;
+  else h+=`<div class="cmp">Level ${m.lv} · ${m.hp} health · hits up to ${mobMaxHit(m)} · swings every ${m.spd}s · ${m.gold[0]}–${m.gold[1]} gold${S.asc.realm?`<br><span class="sub">In realm ${S.asc.realm+1}: ×${realmMult().toFixed(1)} health, ×${(1+0.45*S.asc.realm).toFixed(1)} attack.</span>`:''}</div>`;
+  const k=m.shape;const t=bestTier(k),next=BEST_TIERS[t];
+  h+=`<div class="sub" style="margin-top:6px"><b>${KINDS[k]||k}</b> — ${fmt(bestKind(k))} of the kind slain · ${t?`+${bestBonus(k)}% damage against them`:'nothing learned yet'}${next?` · next lesson at ${fmt(next[0])}`:' · every lesson learned'}.</div>`;
+  const drops=[];
+  if(b.tower!=null){drops.push('Runes, and Starsteel from the wardens. Past floor 100 the wardens carry jewels; past 200 every tenth is a slain nemesis returned.');}
+  else{const i=b.area;
+    if(b.boss){for(const u in UNIQUES)if(UNIQUES[u].home==='boss:'+i)drops.push(`<b>${UNIQUES[u].n}</b> (unique, 8% on the first clear, 2% after)`);
+      for(const c in COMP_UNLOCK)if(COMP_UNLOCK[c].drop===i){const C=COMPS.find(x=>x.id===c);if(C)drops.push(`<b>${C.n}</b> (companion, ${S.cleared[i]?'5%':'12.5%'} a kill)`);}
+      drops.push('A Starsteel bar the first time it falls, sometimes after');if(i===AREAS.length-1)drops.push('A jewel for the medallion, once a realm');}
+    else{for(const u in UNIQUES){const hm=UNIQUES[u].home;if(hm===i||(hm==='mid'&&i>=3))drops.push(`<b>${UNIQUES[u].n}</b> (unique, about 1 in 700)`);}
+      for(const sk in SETS)if(SETS[sk].home===i)drops.push(`<b>${SETS[sk].n}</b> set pieces (once the boss is down, about 1 in 300)`);
+      drops.push('Gold, food, gear of the area\'s tier, chests and bones');
+      if(b.first)drops.push(`150 kills in a realm open the lair of ${AREAS[i].n}; its keeper drops a unique of the area`);
+      drops.push('One in twenty comes up an elite, with twice the drops and sometimes a delve key');}}
+  h+=`<h3 class="secH">Drops</h3><div class="sub">`+drops.map(d=>`<div>· ${d}</div>`).join('')+`</div>`;
+  h+=`<div class="btns"><button id="mClose" style="grid-column:1/-1">Close</button></div>`;
+  $('modalBox').innerHTML=`<button class="mx" id="mCloseTop" aria-label="Close">✕</button>`+h;$('modal').className='on';$('modalBox').scrollTop=0;
+  const close=()=>{G.modalKind=null;$('modal').className='';};$('mClose').onclick=close;$('mCloseTop').onclick=close;}
 
 // ============ THE ABYSS ============
 // Waves instead of floors, beside the tower. Every wave raises the run's loot
@@ -4484,7 +4516,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b120-codex';window.__ihBoot=true;
+  const BUILD='b121-beasts';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

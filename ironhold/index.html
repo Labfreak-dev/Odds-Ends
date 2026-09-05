@@ -559,6 +559,7 @@
   #onb .sm{flex:0 0 auto;font-size:11px;padding:3px 9px;min-height:24px;box-shadow:inset 0 0 0 1px var(--gold);white-space:nowrap}
   #onb .ox{flex:0 0 auto;min-width:0;width:24px;height:24px;padding:0;font-size:12px;line-height:1;opacity:.7;background:none;border:none;color:var(--muted)}
   #onb .ox:hover{opacity:1;color:#fff}
+  #onb[hidden],#onb .sm[hidden]{display:none}   /* an author display rule beats the hidden attribute's own, so say it again */
   .now{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;align-items:center;min-height:26px}
   .now button{font-size:11px;padding:4px 9px;min-height:26px;box-shadow:inset 0 0 0 1px var(--gold)}
   @media (min-width:600px){.pin .pi{width:38px;height:38px;font-size:19px}.pin{font-size:11px}}
@@ -4733,7 +4734,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b140-opened';window.__ihBoot=true;
+  const BUILD='b141-onbhide';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

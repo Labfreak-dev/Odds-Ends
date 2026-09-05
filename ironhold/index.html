@@ -1219,7 +1219,7 @@ function bonuses(){
 // twenty is the first realm writ large, never a realm whose brutes out-hit a
 // champion who out-damages them. Growth past parity comes from the hold,
 // companions, feats and the tower record, which ascension keeps.
-function hpMult(){return shardMult()*creedEff('hpx',1)*(1+discEff('hpPct')/100)*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100)*(1+0.01*hallEff('hp'))*vowMul('hp')*(1+titleEff('hpPct')/100)*Math.pow(1.08,talN('vigor'))*Math.pow(1.10,talN('anchor'));}
+function hpMult(){return shardMultRoll()*creedEff('hpx',1)*(1+discEff('hpPct')/100)*(1+0.08*boonRank('iron'))*(1+medEff('hpPct')/100)*(1+0.01*hallEff('hp'))*vowMul('hp')*(1+titleEff('hpPct')/100)*Math.pow(1.08,talN('vigor'))*Math.pow(1.10,talN('anchor'));}
 function hpBase(){return lv('hp')+bonuses().hp;}
 function maxHp(){return Math.floor(hpBase()*hpMult());}
 function weapon(){return S.equip.weapon?WEAPONS[S.equip.weapon.wt]:null;}
@@ -1231,17 +1231,21 @@ function playerMaxHit(){return Math.max(1,Math.round(playerMaxHit0()*creedEff('m
 // grows with the square root of the count while each realm pays more of them
 // than the last, so power tracks realm difficulty instead of racing it: no
 // runaway ascension spiral, no realm that can never be won.
-function shardMult(){return 1+0.13*Math.sqrt((S.asc&&S.asc.shards)||0);}
+function shardMult(){return 1+0.11*Math.sqrt((S.asc&&S.asc.shards)||0);}          // max hit takes the whole of it
+function shardMultRoll(){return 1+0.065*Math.sqrt((S.asc&&S.asc.shards)||0);}     // rolls and hitpoints take half: shards must not square a champion's power
 function playerMaxHit0(){const b=bonuses();const sb=styleBonus();const sk=cskill();
   return Math.max(1,Math.floor(0.5+((sk?lv(sk):lv('str'))+sb.str+8)*(b.str+64)/320*prayMult('str')*(1+b.mh/100)*shardMult()*(1+0.05*boonRank('wyrm'))*(1+0.005*hallEff('str'))));}
 function playerAtkRoll(){const b=bonuses();const sb=styleBonus();const sk=cskill();
-  return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk')*shardMult()*(1+0.05*boonRank('wyrm'))*(1+0.005*hallEff('atk'))*vowMul('rolls')*(1+titleEff('rolls')/100)*kitMult();}
-function playerDefRoll(){const b=bonuses();return (lv('def')+styleBonus().def+8)*(b.def+64)*prayMult('def')*shardMult()*vowMul('rolls')*(1+titleEff('rolls')/100)*kitMult();}
+  return ((sk?lv(sk):lv('atk'))+sb.atk+8)*(b.atk+64)*prayMult('atk')*shardMultRoll()*(1+0.05*boonRank('wyrm'))*(1+0.005*hallEff('atk'))*vowMul('rolls')*(1+titleEff('rolls')/100)*kitMult();}
+function playerDefRoll(){const b=bonuses();return (lv('def')+styleBonus().def+8)*(b.def+64)*prayMult('def')*shardMultRoll()*vowMul('rolls')*(1+titleEff('rolls')/100)*kitMult();}
 // A realm raises a monster's max hit linearly (hk) rather than its strength,
 // which would compound: a realm-twenty brute should hit three times harder, not seven.
-function mobMaxHit(m){return Math.max(1,Math.floor(0.5+(m.str+9)*(m.str+64)/640*(m.hk||1)));}
-function mobAtkRoll(m){return (m.atk+9)*(m.atk*1.5+64);}
-function mobDefRoll(m){return (m.def+9)*(m.def*0.6+64);}
+// Steel: how much of the stiffer formulas a monster gets, by level. Cows and goblins keep the soft ones;
+// from the Barbarian Camp on (level 38) they fight at full strength, so mid-game gear stays a fight.
+function mobSteel(m){return clamp(((m.lv||1)-8)/30,0,1);}
+function mobMaxHit(m){const st=mobSteel(m);return Math.max(1,Math.floor(0.5+(m.str+9)*(m.str+64)/(640-160*st)*(m.hk||1)));}
+function mobAtkRoll(m){const st=mobSteel(m);return (m.atk+9)*(m.atk*(1.5+0.7*st)+64);}
+function mobDefRoll(m){const st=mobSteel(m);return (m.def+9)*(m.def*(0.6+0.6*st)+64);}
 // ============ HOLD SYSTEMS (keep, runes, tower, companions, ascension) ============
 const KEEP={
   forge:{n:'Forge',ic:'anvil',d:l=>`Forge costs -${l*10}% · gear can reach +${10+l}${l>=TEMPER_FORGE?' · reroll and temper':l>=REROLL_FORGE?' · reroll':''}`},
@@ -2988,9 +2992,10 @@ function spawn(boss){
   // it, so a maxed champion's hit chance never collapses; the Tower is a fixed
   // ladder and takes no realm scaling at all.
   // The tower is a fixed ladder for a hundred floors; past that it is ascended ground and takes the realm's scaling too.
-  const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,rm=(G.tower&&!asc)?1:realmMult(),ra=rm,rs=rm;
-  const k=rm*diff().mob*vowMul('mob')*creedEff('mobx',1),ka=ra*diff().mob,ks=rs*diff().mob*vowMul('mobhit')*creedEff('mobhitx',1),kg=((G.tower&&!asc)?1:1+0.1*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
-  if(k>1||ka>1||ks>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*ka),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
+  if(!G.tower&&!abyssW()){const sh=1+0.6*mobSteel(m);if(sh>1)m=Object.assign({},m,{hp:Math.round(m.hp*sh)});}   // steel: seasoned monsters carry more health, so a mid-game blade needs three swings, not one
+  const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,rm=(G.tower&&!asc)?1:realmMult(),ra=(G.tower&&!asc)?1:1+0.45*r,rs=rm;   // attack sharpens half again as fast as health
+  const k=rm*diff().mob*vowMul('mob')*creedEff('mobx',1),ka=ra*diff().mob,kd=rm*diff().mob,ks=rs*diff().mob*vowMul('mobhit')*creedEff('mobhitx',1),kg=((G.tower&&!asc)?1:1+0.1*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
+  if(k>1||ka>1||ks>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*kd),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
     m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
   {const o=omen();const mm=o&&Object.assign({},o.mob||{},(boss&&o.boss)||{});if(mm&&Object.keys(mm).length)
@@ -4009,7 +4014,7 @@ const kq=sel=>document.querySelectorAll(KEEP_ROOTS.map(r=>r+' '+sel).join(','));
 function renderAltars(){const ready=ascReady();
   S.fold=S.fold||{};for(const k of ['asc','mimic','hallc'])if(S.fold[k]===undefined)S.fold[k]=false;   // a card alone in its room starts open
   $('skAsc').innerHTML=trialsHtml()+
-   `<div class="altar asc"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1}${creeds().length?` · sworn: <b class="gold">${creedText()}</b> — ${creedSummary()}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to every combat roll and your max hit now, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${(realmMult()+0.3).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain this realm.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+heirHtml();
+   `<div class="altar asc"><div><h3>Altar of Ascension</h3><p>Realm ${S.asc.realm+1}${creeds().length?` · sworn: <b class="gold">${creedText()}</b> — ${creedSummary()}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to your max hit now, +${Math.round((shardMultRoll()-1)*100)}% to every combat roll, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${(realmMult()+0.3).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain this realm.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+heirHtml();
   $('skHall').innerHTML=hallList().length?`<h3 class="secH">Hall of Ancestors</h3>`+hallHtml():'';
   const mimicDue=medOwned()||ascReady()||unlocked(AREAS.length-1);
   $('vVault').innerHTML=medOwned()?`<h3 class="secH">The Vault</h3>`+keepCard('vault',`A strongroom under the altar. Choose what it keeps when you ascend: the Elder Wyrm's blade, a runeword, a Mythic piece — anything that would otherwise be lost. Priced for the Mimic's purse.`,''):'';
@@ -4439,7 +4444,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b118-pack';window.__ihBoot=true;
+  const BUILD='b119-steel';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

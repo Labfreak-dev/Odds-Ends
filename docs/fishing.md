@@ -501,6 +501,32 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 118c — the slide switch, and the face-down cards that vanished
+Playtester: "the keep buttons per card aren't working, I want them to slide
+to the right when a player clicks keep and to the left when a player clicks
+ship. also biggest problem, now the new cards aren't showing up at all."
+
+SWITCH. The two buttons were a segmented pair with keep already lit, so
+tapping keep on an unshipped card did nothing visible. Each cell now carries
+a slide switch (`.rz-sw`): SHIP `+$pay` on the left, KEEP on the right, a
+knob (`.rz-swk`) that slides to whichever half was tapped. A decision
+patches the cell, the tally and the hint in place (`rzSpRefresh`) instead
+of re-rendering the grid - a re-render would replace the knob before it
+moved. The suites' `.rz-sps` / `.rz-spk` hooks now sit on the two halves.
+
+VANISHED. Could not reproduce headless (Chromium paints them), so the fix
+is the one thing the face-down cells did that face-up cells did not: an
+infinite keyframe animation on `filter: drop-shadow`. Mobile Safari is
+known to paint an element blank while a filter animates - the whole cell,
+back image included. All card glows are box-shadows now, the breathing
+gold ring is its own layer (`.rz-spglow`) animating OPACITY only, and the
+card box holds its shape with a padding-top block instead of
+`aspect-ratio` (one fewer thing an older phone browser can lack). Rule for
+the future: never animate `filter` on anything a phone has to draw.
+
+smoke-ripship's KEEP check read the pocket 60ms apart and mining's drip
+tripped it (2.49 > 2); it reads the shipped ledger now.
+
 ## Batch 118 — the spread: every pull face up, decide each where it lies
 Playtester: "the whole pack opening feels tedious, lets have all the cards
 show face up unless its new or a legendary/mythic, spread them out and let

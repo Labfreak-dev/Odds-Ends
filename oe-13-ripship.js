@@ -209,6 +209,22 @@ function rzUnship(i){
   try{ saveState(); renderHeader(); }catch(e){}
   return true;
 }
+/* patch one cell + the tally after a decision, without rebuilding the grid */
+function rzSpRefresh(el, i){
+  const sold = !!RZ.sold[i];
+  el.classList.toggle("sold", sold);
+  const sw = el.querySelector(".rz-sw");
+  if(sw){ sw.classList.toggle("ship", sold); sw.classList.toggle("keep", !sold); }
+  RZ.keptVal = rzKeptVal();
+  const t = document.querySelector("#rzOverlay .rz-tally");
+  if(t) t.outerHTML = rzTally();
+  const h = document.querySelector("#rzOverlay .rz-hint");
+  if(h) h.innerHTML = rzSpreadHint();
+}
+function rzSpreadHint(){
+  const n = RZ.pulls.length, downN = RZ.down.filter(Boolean).length, soldN = RZ.sold.filter(Boolean).length;
+  return `${downN ? `🃏 ${downN} face-down · tap to turn ${downN===1?"it":"them"} over · ` : ""}${n} card${n===1?"":"s"} · ${soldN} shipped · slide each card to ship or keep · tap one to zoom`;
+}
 function rzFinish(){
   if(!RZ) return;
   RZ.keptVal = rzKeptVal();
@@ -220,7 +236,7 @@ function rzCellHtml(c, i){
   const r = RARITIES[c.rarity], sold = RZ.sold[i], d = Math.min(i, 24);
   if(RZ.down[i]){
     return `<div class="rz-sp down" data-i="${i}" style="--d:${d}">
-      <div class="rz-spcard"><img class="rz-spback" src="${rzBackImg()}" alt="" draggable="false"/><span class="rz-spq">?</span></div>
+      <div class="rz-spcard"><i class="rz-spglow"></i><img class="rz-spback" src="${rzBackImg()}" alt="" draggable="false"/><span class="rz-spq">?</span></div>
       <div class="rz-spmeta"><span class="rz-spb hid">tap to turn</span></div>
     </div>`;
   }
@@ -238,9 +254,10 @@ function rzCellHtml(c, i){
       </div>
     </div>
     <div class="rz-spmeta"><span class="rz-spb ${c._wasNew?"new":"dupe"}">${c._wasNew?"NEW":"DUPE"}</span><span class="rz-spval">$${rzVal(c).toLocaleString()}</span></div>
-    <div class="rz-spbtns">
-      <button class="rz-spk${sold?"":" on"}">${sold?"↩ undo":"🗃️ keep"}</button>
-      <button class="rz-sps${sold?" on":""}">${sold?"📦 shipped":"📦 +$"+rzShipPay(c).toLocaleString()}</button>
+    <div class="rz-sw ${sold?"ship":"keep"}">
+      <span class="rz-swl rz-sps">📦 +$${rzShipPay(c).toLocaleString()}</span>
+      <span class="rz-swl rz-spk">🗃️ keep</span>
+      <i class="rz-swk"></i>
     </div>
   </div>`;
 }
@@ -533,13 +550,13 @@ function rzRender(){
     pk.onpointerup = pk.onpointercancel = ()=>{ if(RZ) RZ.tearing = false; last = null; };
   }
   else if(RZ.stage === "spread"){
-    const n = RZ.pulls.length, downN = RZ.down.filter(Boolean).length, soldN = RZ.sold.filter(Boolean).length;
+    const downN = RZ.down.filter(Boolean).length;
     const deal = !RZ.dealt; RZ.dealt = true;   /* the deal-in plays once, as the pack opens */
     RZ.keptVal = rzKeptVal();
     ov.innerHTML = `<div class="rz-box wide">
       ${rzTally()}
       <div class="rz-spread${deal?" deal":""}" id="rzSpread">${RZ.pulls.map((c,i)=>rzCellHtml(c,i)).join("")}</div>
-      <div class="rz-hint">${downN ? `🃏 ${downN} face-down · tap to turn ${downN===1?"it":"them"} over · ` : ""}${n} card${n===1?"":"s"} · ${soldN} shipped · tap a card to zoom</div>
+      <div class="rz-hint">${rzSpreadHint()}</div>
       <div class="rz-row">
         <button class="rz-btn dim" id="rzBacksBtn">🎴 backs</button>
         ${downN ? `<button class="rz-btn dim" id="rzRevealAll">👁 turn the rest over</button>` : ""}
@@ -556,9 +573,12 @@ function rzRender(){
         if(RZ.down[i]) rzReveal(i, el);
         else { RZ.face = c; RZ.faceIdx = i; RZ.stage = "face"; rzRender(); }
       };
+      /* the switch: ship slides the knob left, keep slides it right. The cell
+         is patched in place so the slide is seen - a re-render would replace
+         the knob before it moved. */
       const k = el.querySelector(".rz-spk"), sh = el.querySelector(".rz-sps");
-      if(k)  k.onclick  = ()=>{ if(!RZ) return; if(RZ.sold[i]) rzUnship(i); rzRender(); };
-      if(sh) sh.onclick = ()=>{ if(!RZ) return; if(!RZ.sold[i]) rzShipNow(i); rzRender(); };
+      if(k)  k.onclick  = ()=>{ if(!RZ) return; if(RZ.sold[i]) rzUnship(i); rzSpRefresh(el, i); };
+      if(sh) sh.onclick = ()=>{ if(!RZ) return; if(!RZ.sold[i]) rzShipNow(i); rzSpRefresh(el, i); };
     });
     /* painted art on the Rare+ minis: one cheap 404 per subject, then the emoji */
     sp.querySelectorAll(".rz-spart").forEach(img=>{

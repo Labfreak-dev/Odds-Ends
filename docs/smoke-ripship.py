@@ -185,13 +185,12 @@ with sync_playwright() as pw:
     # ---- KEEP costs and gives nothing ---------------------------------
     if pg.locator(".rz-sp:not(.down):not(.sold)").count():
         pg.locator(".rz-sp:not(.down):not(.sold) .rz-spcard").first.click(); pg.wait_for_timeout(450)
-        cr = pg.evaluate("()=>state.dollars")
+        shipped = pg.evaluate("()=>window.oeRipState().shipped")
         own = pg.evaluate("()=>JSON.stringify(state.owned)")
-        # the KEEP handler runs synchronously on the click, so read the pocket
-        # immediately - mining drips dollars into it during any longer wait
+        # the shipped ledger, not the pocket: mining drips dollars into the
+        # pocket between any two reads and made this check flaky at 60ms
         pg.locator("#rzKeep").click(); pg.wait_for_timeout(60)
-        d = pg.evaluate("()=>state.dollars") - cr
-        check("KEEP pays nothing", 0 <= d < 2, d)
+        check("KEEP pays nothing", pg.evaluate("()=>window.oeRipState().shipped") == shipped)
         pg.wait_for_timeout(300)
         check("KEEP leaves the binder alone", pg.evaluate("()=>JSON.stringify(state.owned)") == own)
         check("KEEP returns to the spread", pg.locator(".rz-spread").count() == 1)

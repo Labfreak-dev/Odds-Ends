@@ -22,6 +22,7 @@ async def main():
         errors=[]; pg.on("pageerror", lambda e: errors.append(str(e)))
         await pg.goto(_URL); await pg.wait_for_timeout(900)
         await pg.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
+        await pg.wait_for_function("oeBundleReady('fishing')", timeout=30000)   # the water is a lazy bundle (batch 127)
         await pg.evaluate("FE_TEST_EVERY5=false")
         await pg.wait_for_timeout(700)
 

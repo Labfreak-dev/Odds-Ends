@@ -24,6 +24,7 @@ with sync_playwright() as pw:
         pg.evaluate("()=>localStorage.clear()"); pg.reload(); pg.wait_for_timeout(2000)
         pg.click("[data-tab='play']"); pg.wait_for_timeout(300)
         pg.click(".play-card[data-game='fishing']"); pg.wait_for_timeout(1400)
+        pg.wait_for_function("oeBundleReady('fishing') && !!document.getElementById('fshCanvas')", timeout=30000); pg.wait_for_timeout(600)
         check(f"[{tag}] the spot chips are off the page", pg.evaluate("()=>getComputedStyle(document.querySelector('.fe-spots')).display==='none'"))
         pg.click(".fe-sign"); pg.wait_for_timeout(300)
         st = pg.evaluate("""()=>{ const ov=document.getElementById('feSpotMap'); if(!ov) return null;

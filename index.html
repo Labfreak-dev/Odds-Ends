@@ -4465,7 +4465,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · ef0575</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 21a555</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -4814,6 +4814,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   </section>
 
   <section id="tab-fishing" style="display:none;">
+      <div id="fshLazyNote" style="display:none; text-align:center; color:var(--muted); padding:28px 0 10px; font-weight:700;">🎣 Loading the water…</div>
     <div class="panel">
       <div class="fsh-stage">
         <canvas id="fshCanvas" width="1600" height="2400"></canvas>
@@ -5567,26 +5568,23 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
+<script>window.OE_LAZY_FILES={"fishing": ["oe-02-fishing-assets.js?v=b5eb98fa8b", "oe-03-fishing-spot-bgs.js?v=bf0210bfe5", "oe-04-fishing-sfx.js?v=dddb642dcf", "oe-12-fishing2.js?v=8e4d7a1a96"], "fishing-cine": ["oe-05-fishing-cine.js?v=dfe5a2ea4e"]};</script>
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
 <script src="oe-01-core.js?v=4474314b92"></script>
-<script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
-<script src="oe-03-fishing-spot-bgs.js?v=bf0210bfe5"></script>
-<script src="oe-04-fishing-sfx.js?v=dddb642dcf"></script>
-<script src="oe-05-provenance-catalogue.js?v=ae0deffc21"></script>
-<script src="oe-06-provenance.js?v=5f726dd3e1"></script>
-<script src="oe-07-press.js?v=4f1a3937cf"></script>
-<script src="oe-08-connections.js?v=dc99049015"></script>
-<script src="oe-09-case.js?v=fcc2ad9a3d"></script>
-<script src="oe-10-oddone.js?v=d5c686594c"></script>
-<script src="oe-11-fishing2.js?v=7ecc1fb356"></script>
-<script src="oe-12-mining2.js?v=10e04316a7"></script>
-<script src="oe-13-ripship.js?v=342be79b97"></script>
-<script src="oe-14-ledger.js?v=b36867f39e"></script>
-<script src="oe-15-grading.js?v=1d53abce28"></script>
-<script src="oe-16-market2.js?v=07e39c2e23"></script>
-<script src="oe-17-casino2.js?v=e7e85470f8"></script>
-<script src="oe-18-hunt.js?v=d04d7c2185"></script>
-<script src="oe-19-tail.js?v=6722c9a61c"></script>
+<script src="oe-06-provenance-catalogue.js?v=ae0deffc21"></script>
+<script src="oe-07-provenance.js?v=5f726dd3e1"></script>
+<script src="oe-08-press.js?v=4f1a3937cf"></script>
+<script src="oe-09-connections.js?v=dc99049015"></script>
+<script src="oe-10-case.js?v=fcc2ad9a3d"></script>
+<script src="oe-11-oddone.js?v=d5c686594c"></script>
+<script src="oe-13-mining2.js?v=10e04316a7"></script>
+<script src="oe-14-ripship.js?v=342be79b97"></script>
+<script src="oe-15-ledger.js?v=b36867f39e"></script>
+<script src="oe-16-grading.js?v=1d53abce28"></script>
+<script src="oe-17-market2.js?v=07e39c2e23"></script>
+<script src="oe-18-casino2.js?v=e7e85470f8"></script>
+<script src="oe-19-hunt.js?v=d04d7c2185"></script>
+<script src="oe-20-tail.js?v=ea4925f389"></script>
 
 </body>
 </html>

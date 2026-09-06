@@ -38,7 +38,39 @@ function uiLeaveGames(except){
     stopAllCasinoAuto();
   }
 }
+/* ---- lazy bundles (batch 127) ----
+   The build leaves the fishing scripts out of the page and lists them in
+   window.OE_LAZY_FILES; they are fetched, in order, the first time they are
+   needed. Paths resolve against the core script's own url so the preview's
+   ../oe-*.js layout keeps working. Everything fishing is 11MB of base64 -
+   half the cold load - and a player who never fishes never pays for it. */
+const OE_SCRIPT_BASE = (function(){ try{ const s = document.currentScript && document.currentScript.src; return s ? s.slice(0, s.lastIndexOf("/")+1) : ""; }catch(e){ return ""; } })();
+const oeLazy = {};
+function oeBundleReady(name){ return !!(oeLazy[name] && oeLazy[name].done); }
+function oeLoadBundle(name){
+  if(oeLazy[name]) return oeLazy[name].p;
+  const files = (window.OE_LAZY_FILES && window.OE_LAZY_FILES[name]) || [];
+  const rec = { done:false };
+  rec.p = files.reduce((p, f) => p.then(() => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = OE_SCRIPT_BASE + f; s.async = false;
+    s.onload = res; s.onerror = () => rej(new Error("bundle " + name + ": " + f));
+    document.head.appendChild(s);
+  })), Promise.resolve()).then(() => { rec.done = true; try{ oeBundleLanded(name); }catch(e){} });
+  rec.p.catch(e => { delete oeLazy[name]; try{ showToast("Couldn't load " + (name === "fishing" ? "the water" : name) + " — check the connection and try again."); }catch(x){} });
+  oeLazy[name] = rec;
+  return rec.p;
+}
+/* what the page does once a bundle has arrived */
+function oeBundleLanded(name){
+  if(name === "fishing"){
+    safeRender("fishing", renderFishing);
+    safeRender("tackle", renderTackleShop);
+  }
+}
+let oeSection = null;
 function uiEnterSection(id){
+  oeSection = id;
   if(id==="collection") renderCollection();
   else if(id==="upgrades") renderUpgrades();
   else if(id==="market"){ renderMarket(); renderTackleShop(); }
@@ -49,7 +81,17 @@ function uiEnterSection(id){
   else if(id==="raids"){ renderRaids(); rdOnEnterTab(); }
   else if(id==="poker"){ renderPoker(); pkOnEnterTab(); }
   else if(id==="arena"){ renderArena(); arOnEnterTab(); }
-  else if(id==="fishing"){ renderFishing(); fshOnEnterTab(); }
+  else if(id==="fishing"){
+    if(oeBundleReady("fishing")){ renderFishing(); fshOnEnterTab(); }
+    else {
+      const note = document.getElementById("fshLazyNote");
+      if(note) note.style.display = "block";
+      oeLoadBundle("fishing").then(()=>{
+        if(note) note.style.display = "none";
+        if(oeSection === "fishing"){ renderFishing(); fshOnEnterTab(); }
+      });
+    }
+  }
   else if(id==="casino"){ renderCasino(); brShowLobby(); }
   else if(id==="provenance"){ pvOnEnterTab(); }
   else if(id==="press"){ prOnEnterTab(); }
@@ -274,8 +316,10 @@ function renderAll(){
   safeRender("market",     renderMarket);
   safeRender("empire",     renderEmpire);
   safeRender("siege",      renderSiege);
-  safeRender("fishing",    renderFishing);
-  safeRender("tackle",     renderTackleShop);
+  if(oeBundleReady("fishing")){          /* the water renders once its bundle is in (batch 127) */
+    safeRender("fishing",    renderFishing);
+    safeRender("tackle",     renderTackleShop);
+  }
   safeRender("account",    renderAccount);
   safeRender("casino",     renderCasino);
   safeRender("arena",      renderArena);
@@ -296,6 +340,12 @@ safeRender("xp migrate",     migratePlayerXP);
 safeRender("xp recompute",   recomputePlayerXP);
 safeRender("lottery",        resolveLotteryDraws);
 renderAll();
+/* batch 127: after the first paint, fetch the water in the background so the
+   tab is usually ready before anyone taps it - the cold load never waits */
+try{
+  const _pre = ()=>{ try{ oeLoadBundle("fishing"); }catch(e){} };
+  if(window.requestIdleCallback) requestIdleCallback(_pre, { timeout: 4000 }); else setTimeout(_pre, 2500);
+}catch(e){}
 try{ saveState(); }catch(e){ console.error("saveState failed", e); }
 setInterval(mineTick, 1000);
 

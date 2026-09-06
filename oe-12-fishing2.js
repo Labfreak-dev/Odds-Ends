@@ -1,3 +1,4 @@
+
 /* =====================================================================
    FISHING REBUILD — the living scene and the real fight
    ---------------------------------------------------------------------
@@ -4317,3 +4318,5 @@ function feCineEnd(won){
     showToast("👑 The Rooster King dives — the water goes still. He'll rise again.");
   }
 }
+
+

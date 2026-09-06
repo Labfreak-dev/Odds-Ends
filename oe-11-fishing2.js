@@ -3541,19 +3541,29 @@ function feShadowSpawn(){
     band, sz, ph: Math.random()*6.28, hit: 0,
   };
 }
+let feBossWait = -1;                 /* seconds until the legend's shadow shows; -1 = not counting */
 function feShadowTick(dt){
   const active = fsh && (fsh.phase === "idle" || fsh.phase === "charging" || fsh.phase === "casting" || fsh.phase === "waiting");
   if(active && feShadows.length < 3 && Math.random() < dt*0.25) feShadows.push(feShadowSpawn());
-  /* the legend's patrol: if today's boss is unfought, its enormous
-     shadow shows itself now and then */
-  if(active && !feShadows.some(sh=>sh.bossOf) && Math.random() < dt*0.02){
-    const b = feBossAvailable();
-    if(b){
-      const dir = Math.random() < 0.5 ? -1 : 1;
-      feShadows.push({ x: dir===1 ? 240 : FSH_W+40, y: FSH_HORIZON + 46 + Math.random()*22,
-        vx: dir * 5.5, band:[5,5], sz: 42, ph: Math.random()*6.28, hit:0, bossOf: b, wake: 0 });
+  /* the legend's patrol: if today's boss is unfought, its enormous shadow
+     shows itself within 4-10s of the water going quiet, and again on that
+     cadence each time it passes out of view. (Was a 0.02/s roll - a mean
+     50s wait, and the only route to the fight once the test hook went;
+     batch 125.) */
+  const hasBoss = feShadows.some(sh=>sh.bossOf);
+  if(active && !hasBoss){
+    if(feBossWait < 0) feBossWait = 4 + Math.random()*6;
+    feBossWait -= dt;
+    if(feBossWait <= 0){
+      feBossWait = -1;
+      const b = feBossAvailable();
+      if(b){
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        feShadows.push({ x: dir===1 ? 240 : FSH_W+40, y: FSH_HORIZON + 46 + Math.random()*22,
+          vx: dir * 5.5, band:[5,5], sz: 42, ph: Math.random()*6.28, hit:0, bossOf: b, wake: 0 });
+      }
     }
-  }
+  } else if(hasBoss) feBossWait = -1;
   for(const sh of feShadows){
     sh.x += sh.vx * dt * (sh.hit ? 6 : 1);          // a spooked shadow bolts
     sh.ph += dt * (sh.bossOf ? 1.2 : 3);

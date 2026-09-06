@@ -501,6 +501,15 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 125 — the legend's shadow shows up faster
+Playtester: "make the fishing boss shadow show up faster." The patrol was
+a 0.02-per-second roll while the water was idle - a mean wait of 50
+seconds before the legend's wake even appeared, and with the every-fifth
+hook retired (batch 122) that roll was the only door to the fight. Now a
+countdown: 4-10 seconds of quiet water and the shadow crosses; when it
+passes out of view the countdown starts again. Crossing speed unchanged
+(5.5px/s), so there is still time to line up the cast.
+
 ## Batch 124 — The Case: a grid shape, three difficulties, a smaller prize
 Playtester: "the case add grids mode and different difficulties, reduce
 the prize."

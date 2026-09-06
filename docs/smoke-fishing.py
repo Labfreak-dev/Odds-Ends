@@ -76,6 +76,10 @@ async def main():
         await pg.wait_for_timeout(1000)
         await pg.evaluate("fsh.waitMs=40; fsh.waitTimer=0;")
         await pg.wait_for_timeout(500)
+        # the every-fifth-catch test hook (FE_TEST_EVERY5) turns a landing into
+        # the true-form cinematic, which parks the fight in phase "cine" since
+        # batch 119 - pin the counter so THIS landing is an ordinary one
+        await pg.evaluate("fshInv().testN = 0;")
         await pg.evaluate("fshHookSet(); fsh.holding=true; fsh.fight.progress = fsh.fight.need - 1;")
         await pg.wait_for_timeout(600)
         landed=await pg.evaluate("fsh.phase==='result' && fsh.result && !fsh.result.failed")

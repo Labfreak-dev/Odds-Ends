@@ -2878,10 +2878,10 @@ function gripScreen(img,grip,x,y,sc){
 // exactly what a mirrored sprite needs: the grip stays on the mirrored hand.
 // The shield rides the far hand: the rear-hand marker where the look has one, else a
 // hand's width behind the grip. Drawn before the champion so the body overlaps it.
-// The shield sits on the off arm, across the front of the body, drawn over the look and under the weapon.
-// Ranged and magic looks mark that hand; melee looks mark only the weapon hand, so the shield hangs a little behind it at the torso.
-function drawShield(hf,x,y){const it=S.equip.shield;if(!it||!hf.grip||!hf.img)return;const c=wpnCanvas(iconKey(it));if(!c)return;
-  let g=hf.h?gripScreen(hf.img,hf.h,x,y,hf.sc):null;if(!g){const gg=gripScreen(hf.img,hf.grip,x,y,hf.sc);if(!gg)return;g=[gg[0]-hf.img.naturalWidth*(hf.sc||0.5)*0.11,gg[1]+8];}
+// The shield sits on the off arm, drawn over the look and under the weapon, only for looks that mark that hand: the ranged
+// and magic looks. Every melee look is painted with its own shield on the arm already, so drawing the worn one over it doubled it.
+function drawShield(hf,x,y){const it=S.equip.shield;if(!it||!hf.h||!hf.img)return;const c=wpnCanvas(iconKey(it));if(!c)return;
+  const g=gripScreen(hf.img,hf.h,x,y,hf.sc);if(!g)return;
   const H=52,k=H/Math.max(c.width,c.height),w=c.width*k,h=c.height*k;
   ctx.save();ctx.translate(g[0],g[1]);ctx.drawImage(c,-w*0.5,-h*0.5,w,h);ctx.restore();}
 function drawWeapon(hf,x,y,flip,item){
@@ -4837,7 +4837,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b145-numbers';window.__ihBoot=true;
+  const BUILD='b146-oneshield';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

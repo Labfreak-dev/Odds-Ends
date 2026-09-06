@@ -229,6 +229,50 @@ function rzFinish(){
   RZ.keptVal = rzKeptVal();
   RZ.stage = "done"; rzRender();
 }
+/* ---- photos for the spread ----
+   The zoom already layers painted art (Rare+) over the Wikipedia photo over
+   the emoji; the spread does the same for every face-up cell. A ten-pack is
+   fifty subjects, so lookups go through a four-wide queue rather than fifty
+   parallel fetches, and every photo found is remembered for the session so
+   a re-render (a reveal, a zoom and back) fills the cell synchronously. */
+const rzWikiSrc = {};                    /* subject -> photo url, this session */
+const rzWikiQ = []; let rzWikiN = 0;
+function rzWikiPump(){
+  while(rzWikiN < 4 && rzWikiQ.length){
+    const [subject, cb] = rzWikiQ.shift();
+    if(rzWikiSrc[subject]){ try{ cb(rzWikiSrc[subject]); }catch(e){} continue; }
+    rzWikiN++;
+    let p; try{ p = (typeof ciLookup === "function") ? ciLookup(subject) : null; }catch(e){ p = null; }
+    Promise.resolve(p).then(e=>{
+      if(e && e.img){ rzWikiSrc[subject] = e.img; try{ cb(e.img); }catch(x){} }
+    }).catch(()=>{}).then(()=>{ rzWikiN--; rzWikiPump(); });
+  }
+}
+function rzWiki(subject, cb){ rzWikiQ.push([subject, cb]); rzWikiPump(); }
+function rzSpSubject(c){ return c.name.split(" \u2014 ")[0]; }
+/* drop a photo into cell i's window, if the cell is still up and still bare */
+function rzSpPut(i, src){
+  if(!RZ || RZ.stage !== "spread") return;
+  const win = document.querySelector(`.rz-sp[data-i="${i}"]:not(.down) .rz-spwin`);
+  if(!win || win.querySelector(".rz-spart")) return;
+  const img = document.createElement("img");
+  img.className = "rz-spart"; img.alt = ""; img.draggable = false; img.src = src;
+  win.appendChild(img);
+}
+function rzSpArt(i){
+  const c = RZ.pulls[i], subject = rzSpSubject(c);
+  const wiki = ()=> rzWiki(subject, src => rzSpPut(i, src));
+  if(c.rarity >= RZ_ART_MIN){
+    const slug = rzArtSlug(c.name);
+    if(rzArtMiss[slug]) return wiki();
+    /* the markup already carries the painted probe; on a 404 it removes
+       itself and the cell falls through to the photo */
+    const el = document.querySelector(`.rz-sp[data-i="${i}"] .rz-spart[data-slug]`);
+    if(el){ el.onerror = ()=>{ rzArtMiss[slug] = 1; el.remove(); wiki(); }; return; }
+    return wiki();
+  }
+  wiki();
+}
 /* one mini card. Face-down cells carry the worn back and no buttons - the
    player cannot price a card they have not seen. */
 function rzCellHtml(c, i){
@@ -241,7 +285,9 @@ function rzCellHtml(c, i){
   }
   const fr = rzFrame(c.rarity), w = fr.win, gx = 0.012, gy = 0.010;
   const slug = c.rarity >= RZ_ART_MIN ? rzArtSlug(c.name) : null;
-  const art = slug && !rzArtMiss[slug] ? `<img class="rz-spart" data-slug="${slug}" src="art/${slug}.webp" alt="" draggable="false"/>` : "";
+  const known = rzWikiSrc[rzSpSubject(c)];
+  const art = slug && !rzArtMiss[slug] ? `<img class="rz-spart" data-slug="${slug}" src="art/${slug}.webp" alt="" draggable="false"/>`
+            : known ? `<img class="rz-spart" src="${known}" alt="" draggable="false"/>` : "";
   return `<div class="rz-sp${sold?" sold":""}${c._wasNew?" new":""}" data-i="${i}" style="--rc:${r.color}; --d:${d}">
     <div class="rz-spcard${c.rarity>=14?" glow":""}">
       <div class="rz-spwin" style="left:${((w[0]-gx)*100).toFixed(1)}%; top:${((w[1]-gy)*100).toFixed(1)}%;
@@ -579,10 +625,8 @@ function rzRender(){
       if(k)  k.onclick  = ()=>{ if(!RZ) return; if(RZ.sold[i]) rzUnship(i); rzSpRefresh(el, i); };
       if(sh) sh.onclick = ()=>{ if(!RZ) return; if(!RZ.sold[i]) rzShipNow(i); rzSpRefresh(el, i); };
     });
-    /* painted art on the Rare+ minis: one cheap 404 per subject, then the emoji */
-    sp.querySelectorAll(".rz-spart").forEach(img=>{
-      img.onerror = ()=>{ rzArtMiss[img.dataset.slug] = 1; img.remove(); };
-    });
+    /* art for every face-up cell: painted (Rare+) over the wiki photo over the emoji */
+    RZ.pulls.forEach((c,i)=>{ if(!RZ.down[i]) rzSpArt(i); });
     document.getElementById("rzBacksBtn").onclick = ()=>{ RZ.stage = "backs"; rzRender(); };
     const ra = document.getElementById("rzRevealAll");
     if(ra) ra.onclick = rzRevealAll;

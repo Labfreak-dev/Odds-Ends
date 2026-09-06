@@ -266,7 +266,7 @@ function mgWorksRender(){
   /* smelter */
   if(M.job && !M.jobs){ M.jobs=[M.job]; M.job=null; }
   M.jobs = M.jobs || [];
-  const slots = 1 + (((state.upgrades&&state.upgrades.crucible)||0) ? 1 : 0);
+  const slots = 1 + ((state.upgrades&&state.upgrades.crucible)||0);   /* one slot per crucible level */
   let smelt = M.jobs.map((jb,ji)=>{
     const left = Math.max(0, Math.ceil((jb.done - Date.now())/1000));
     return left > 0 ? `<div class="mgw-job">🔥 Tier-${jb.t} ingot — ${left}s</div>`
@@ -310,7 +310,7 @@ function mgWorksRender(){
   });
   el.querySelectorAll("[data-smelt]").forEach(b => b.onclick = ()=>{
     const t = +b.dataset.smelt;
-    const slots2 = 1 + (((state.upgrades&&state.upgrades.crucible)||0) ? 1 : 0);
+    const slots2 = 1 + ((state.upgrades&&state.upgrades.crucible)||0);
     if((M.ore[t]||0) < MG_SMELT_ORE || (M.jobs||[]).length >= slots2) return;
     M.ore[t] -= MG_SMELT_ORE;
     M.jobs.push({ t, done: Date.now() + mgSmeltSecs(t)*1000 });

@@ -5169,9 +5169,13 @@ const DISCOUNT_PCT_PER_LEVEL = 0.02; // -2% pack price per Bulk Discount level
 
 const UPGRADES = [
   /* ---------------- THE WORKSHOP (the torn wallet) ---------------- */
-  { key:"crucible", name:"Second Crucible", icon:"🔥", category:"workshop", baseCost:4000, scale:1, maxLevel:1,
-    desc:"A second smelting slot. Two jobs cooling at once — the furnace never sleeps.",
-    effectText:(l)=> l ? "Two smelter slots" : "One smelter slot" },
+  /* three levels, and the card is named for the crucible you would buy NEXT:
+     Second, then Third, then Fourth (batch 123). Each level is one more
+     smelter slot in the works. */
+  { key:"crucible", name:"Second Crucible", icon:"🔥", category:"workshop", baseCost:4000, scale:2.2, maxLevel:3, hardMax:true,
+    nameAt:(l)=> ["Second","Third","Fourth"][Math.min(l, 2)] + " Crucible",
+    desc:"Another smelting slot. More jobs cooling at once — the furnace never sleeps.",
+    effectText:(l)=> `${["One","Two","Three","Four"][Math.min(l,3)]} smelter slot${l ? "s" : ""}` },
   { key:"bellows", name:"Forge Bellows", icon:"💨", category:"workshop", baseCost:2500, scale:1.6, maxLevel:3,
     desc:"Hotter fire, faster ingots.",
     effectText:(l)=>`Smelt time −${Math.round((1-Math.pow(0.8,l))*100)}%` },
@@ -5249,7 +5253,7 @@ function buyUpgrade(key){
   const def = UPGRADES.find(u=>u.key===key);
   if(!def) return;
   const level = state.upgrades[key]||0;
-  if(level >= effectiveMaxLevel(def.maxLevel)) return;
+  if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = upgradeCost(def, level);
   if(state.scrap < cost) return;
   state.scrap -= cost;
@@ -5653,7 +5657,7 @@ function buyVillageBuilding(key){
   const playerLevel = (state.player && state.player.level) || 1;
   if(def.minLevel && playerLevel < def.minLevel) return;
   const level = state.empire.buildings[key]||0;
-  if(level >= effectiveMaxLevel(def.maxLevel)) return;
+  if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = empireCost(def, level);
   if(state.credits < cost) return;
   state.credits -= cost;
@@ -5668,7 +5672,7 @@ function buyCastleUpgrade(key){
   const def = CASTLE_UPGRADES.find(d=>d.key===key);
   if(!def) return;
   const level = state.empire.castle[key]||0;
-  if(level >= effectiveMaxLevel(def.maxLevel)) return;
+  if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = empireCost(def, level);
   if(state.empire.reputation < cost) return;
   state.empire.reputation -= cost;
@@ -6647,7 +6651,7 @@ function renderUpgrades(){
     const container = document.getElementById(groups[def.category]);
     if(!container) return;
     const level = (state.upgrades && state.upgrades[def.key]) || 0;
-    const maxLvl = effectiveMaxLevel(def.maxLevel);
+    const maxLvl = (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel));
     const maxed = level >= maxLvl;
     const cost = maxed ? null : upgradeCost(def, level);
     const affordable = !maxed && state.scrap >= cost;
@@ -6659,7 +6663,7 @@ function renderUpgrades(){
       <div class="uhead">
         <div class="uicon">${def.icon}</div>
         <div>
-          <div class="utitle">${def.name}</div>
+          <div class="utitle">${def.nameAt ? def.nameAt(level) : def.name}</div>
           <div class="ulevel">${maxed ? "MAX LEVEL" : `Level ${level} / ${maxLvl}`}</div>
         </div>
       </div>
@@ -6687,7 +6691,7 @@ function renderUpgrades(){
 function buildEmpireCard(def, level, currency, onBuy){
   const playerLevel = (state.player && state.player.level) || 1;
   const locked = def.minLevel && playerLevel < def.minLevel;
-  const maxLvl = effectiveMaxLevel(def.maxLevel);
+  const maxLvl = (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel));
   const maxed = !locked && level >= maxLvl;
   const cost = (locked || maxed) ? null : empireCost(def, level);
   const balance = currency==="credits" ? state.credits : state.empire.reputation;

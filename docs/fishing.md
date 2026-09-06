@@ -501,6 +501,17 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 123 — Second, Third, Fourth Crucible
+Playtester: "in the workshop the second crucible need to change to third
+and fourth respective to the upgrades." The crucible upgrade was a single
+level named "Second Crucible". It has three now, and the card is named for
+the crucible you would buy NEXT - Second Crucible at level 0, Third at
+level 1, Fourth at level 2 (and once maxed) - via a `nameAt(level)` hook
+the upgrade card renders when a definition carries one. The works gives
+one smelter slot per level (1 + level, so up to four), and the price
+climbs 4,000 -> 8,800 -> 19,360 scrap. Saves that already own the old
+single level keep it as level 1 of 3.
+
 ## Batch 122 — the every-fifth-catch test hook is off
 Playtester: "turn off the every fifth catch boss test hook." FE_TEST_EVERY5
 = false. The true-form cinematic now plays only the way it was designed

@@ -501,6 +501,13 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 122 — the every-fifth-catch test hook is off
+Playtester: "turn off the every fifth catch boss test hook." FE_TEST_EVERY5
+= false. The true-form cinematic now plays only the way it was designed
+to: hook the legend's shadow at its water (one attempt a day) and land it.
+smoke-fishing had already pinned the counter (batch 120), so nothing in
+the suites depended on the hook.
+
 ## Batch 121 — Connections: no rule twice, eight rule types; The Case says "lower"
 Playtester: "connection categories dont allow them to show up more than
 once. add more categories. humbler doesnt make sense, change it."

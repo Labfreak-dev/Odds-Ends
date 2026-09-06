@@ -2056,7 +2056,7 @@ try{
     }
   }
 }catch(e){}
-let FE_TEST_EVERY5 = true;   /* TESTING: every fifth landed fish becomes
+let FE_TEST_EVERY5 = false;  /* retired at the playtester's word, batch 122 */   /* TESTING: every fifth landed fish becomes
                                   the Rooster King's true-form fight.
                                   Flip to false to retire the test hook. */
 function fshLand(){

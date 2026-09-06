@@ -3859,8 +3859,14 @@ function feBossRecord(name, weightLb){
   const inv = feBossState();
   const J = inv.bossJournal;
   if(!J[name]) J[name] = { n:0, best:0, first: Date.now() };
-  J[name].n++;
-  if(weightLb > J[name].best) J[name].best = weightLb;
+  /* the cinematic's win path creates the record first, with only `hard` -
+     n++ on that was NaN once the catch stopped landing behind it (batch 119) */
+  const rec = J[name];
+  if(!(rec.n >= 0)) rec.n = 0;
+  if(!(rec.best >= 0)) rec.best = 0;
+  if(!rec.first) rec.first = Date.now();
+  rec.n++;
+  if(weightLb > rec.best) rec.best = weightLb;
 }
 
 

@@ -28,6 +28,10 @@ async def main():
         await pg.evaluate("FE_TEST_EVERY5=false")
         await pg.wait_for_timeout(800)
         check("fishing boots with the rebuild live", await pg.evaluate("!!feEnv && !!feStars && typeof feFightStep==='function'"))
+        # the legend's shadow shows within seconds of quiet water (batch 125)
+        # and a cast that lands on it opens the cinematic - spend today's
+        # attempt so every cast below hooks an ordinary fish
+        await pg.evaluate("(()=>{ const inv=feBossState(); inv.bossDay[feSpot().id]=inv.dayN; feShadows.length=0; })()")
 
         # --- the five skies ---
         scenes=[("dawn",5.9,"fog"),("noon",12.2,"clear"),("golden",18.4,"clear"),("night",0.4,"clear"),("storm",13.0,"storm")]

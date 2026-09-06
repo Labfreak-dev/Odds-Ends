@@ -21,17 +21,36 @@
      grantBonusXP, recomputePlayerXP
    ===================================================================== */
 
-const CS_HAND     = 12;
-const CS_SLOTS    = 5;
-const CS_CREDITS  = 3400;    // per slot filled
-const CS_SOLVE    = 11000;   // for completing the case
+/* Two shapes and three difficulties (batch 124). A LINE is the classic
+   row, every relational rule looking left. A GRID adds rules that look UP
+   as well, so a slot can be pinned by two neighbours. `hand` is how many
+   cards are dealt, `rel` how eagerly the builder prefers relational rules,
+   `mult` the payout scale. */
+const CS_LAYOUTS = {
+  line: { easy:   { cols:4, rows:1, hand:10, rel:0.35, mult:0.6,  label:"Easy",   blurb:"four slots, ten cards" },
+          normal: { cols:5, rows:1, hand:12, rel:0.55, mult:1.0,  label:"Normal", blurb:"five slots, twelve cards" },
+          hard:   { cols:6, rows:1, hand:14, rel:0.75, mult:1.4,  label:"Hard",   blurb:"six slots, fourteen cards" } },
+  grid: { easy:   { cols:2, rows:2, hand:10, rel:0.5,  mult:0.8,  label:"Easy",   blurb:"2×2, ten cards" },
+          normal: { cols:3, rows:2, hand:13, rel:0.6,  mult:1.25, label:"Normal", blurb:"3×2, thirteen cards" },
+          hard:   { cols:3, rows:3, hand:16, rel:0.7,  mult:1.6,  label:"Hard",   blurb:"3×3, sixteen cards" } },
+};
+const CS_CREDITS  = 1200;    // per slot filled, at normal - was 3400 (batch 124: "reduce the prize")
+const CS_SOLVE    = 4000;    // for completing the case, at normal - was 11000
 const CS_XP       = 16;
 const CS_HINT_COST= 0.45;    // a hint costs this share of the payout
+function csLayout(){
+  const st = csStats();
+  const shape = CS_LAYOUTS[st.mode] ? st.mode : "line";
+  const diff = CS_LAYOUTS[shape][st.diff] ? st.diff : "normal";
+  return Object.assign({ shape, diff }, CS_LAYOUTS[shape][diff]);
+}
 
 function csStats(){
   if(!state.showcase){
     state.showcase = { played:0, solved:0, perfect:0, slots:0, credits:0, cards:0 };
   }
+  if(!state.showcase.mode) state.showcase.mode = "line";
+  if(!state.showcase.diff) state.showcase.diff = "normal";
   return state.showcase;
 }
 
@@ -60,21 +79,28 @@ const CS_KINDS = [
     text:r=>`Shows ${r.v}`,
     ok:(c,r)=> c.emoji === r.v },
 
+  /* relational kinds compare against a neighbour: `dir` in the requirement
+     says which - "left" (the classic) or "up" (grid cases only) */
   { id:"rarer",  rel:true,
-    make:()=>({}),
-    text:()=>`Rarer than the slot on its left`,
-    ok:(c,r,left)=> !!left && c.rarity > left.rarity },
+    make:(c,dir)=>({ dir: dir || "left" }),
+    text:r=>`Rarer than the slot ${r.dir === "up" ? "above" : "on its left"}`,
+    ok:(c,r,ref)=> !!ref && c.rarity > ref.rarity },
 
   { id:"plainer", rel:true,
-    make:()=>({}),
-    text:()=>`Lower rarity than the slot on its left`,
-    ok:(c,r,left)=> !!left && c.rarity < left.rarity },
+    make:(c,dir)=>({ dir: dir || "left" }),
+    text:r=>`Lower rarity than the slot ${r.dir === "up" ? "above" : "on its left"}`,
+    ok:(c,r,ref)=> !!ref && c.rarity < ref.rarity },
 
   { id:"sameSet", rel:true,
-    make:()=>({}),
-    text:()=>`Same collection as the slot on its left`,
-    ok:(c,r,left)=> !!left && c.category === left.category },
+    make:(c,dir)=>({ dir: dir || "left" }),
+    text:r=>`Same collection as the slot ${r.dir === "up" ? "above" : "on its left"}`,
+    ok:(c,r,ref)=> !!ref && c.category === ref.category },
 ];
+/* the neighbour a slot's relational rule points at, in a cols-wide case */
+function csRefIndex(i, dir, cols){
+  if(dir === "up") return i - cols >= 0 ? i - cols : -1;
+  return i % cols > 0 ? i - 1 : -1;
+}
 
 function csKind(id){ return CS_KINDS.find(k=>k.id === id); }
 function csShuffle(a){
@@ -96,49 +122,55 @@ function csPool(){
 
 /* Build backwards: choose the five that will sit in the case, then write
    requirements they happen to satisfy. */
-function csBuild(){
+function csBuild(L){
+  L = L || csLayout();
+  const N = L.cols * L.rows, HAND = L.hand;
   const pool = csPool();
-  if(pool.length < CS_HAND + 4) return null;
+  if(pool.length < HAND + 4) return null;
 
-  for(let attempt = 0; attempt < 80; attempt++){
-    const answer = csShuffle(pool.slice()).slice(0, CS_SLOTS);
+  for(let attempt = 0; attempt < 120; attempt++){
+    const answer = csShuffle(pool.slice()).slice(0, N);
     const slots = [];
     let ok = true;
 
-    for(let i = 0; i < CS_SLOTS; i++){
+    for(let i = 0; i < N; i++){
       const card = answer[i];
-      const left = i > 0 ? answer[i-1] : null;
-      const usable = CS_KINDS.filter(k=>{
-        if(k.rel && !left) return false;
-        const r = k.make(card);
-        return k.ok(card, r, left);
-      });
+      const li = csRefIndex(i, "left", L.cols), ui = csRefIndex(i, "up", L.cols);
+      const left = li >= 0 ? answer[li] : null, up = ui >= 0 ? answer[ui] : null;
+      /* every kind that this card satisfies here; a relational kind is
+         offered once per neighbour it can point at */
+      const usable = [];
+      for(const k of CS_KINDS){
+        if(!k.rel){ const r = k.make(card); if(k.ok(card, r, null)) usable.push({ k, r }); continue; }
+        if(left){ const r = k.make(card, "left"); if(k.ok(card, r, left)) usable.push({ k, r }); }
+        if(up){   const r = k.make(card, "up");   if(k.ok(card, r, up))   usable.push({ k, r }); }
+      }
       if(!usable.length){ ok = false; break; }
       /* Prefer a relational requirement when one fits — they're what make
          the case a puzzle instead of a filter. */
-      const rel = usable.filter(k=>k.rel);
-      const pick = (rel.length && Math.random() < 0.55)
+      const rel = usable.filter(u=>u.k.rel);
+      const pick = (rel.length && Math.random() < L.rel)
         ? rel[Math.floor(Math.random()*rel.length)]
         : usable[Math.floor(Math.random()*usable.length)];
-      slots.push({ kind:pick.id, req:pick.make(card) });
+      slots.push({ kind:pick.k.id, req:pick.r });
     }
     if(!ok) continue;
 
     /* A case where one slot accepts almost anything is dull; require that
-       at least two slots are genuinely selective against the full hand. */
+       enough slots are genuinely selective against the full hand. */
     const filler = csShuffle(pool.filter(c => !answer.some(a=>a.id === c.id)))
-      .slice(0, CS_HAND - CS_SLOTS);
-    if(filler.length < CS_HAND - CS_SLOTS) continue;
+      .slice(0, HAND - N);
+    if(filler.length < HAND - N) continue;
     const hand = csShuffle(answer.concat(filler));
 
     const selective = slots.filter((s,i)=>{
       if(csKind(s.kind).rel) return true;
       const n = hand.filter(c => csKind(s.kind).ok(c, s.req, null)).length;
-      return n <= Math.ceil(CS_HAND * 0.5);
+      return n <= Math.ceil(HAND * 0.5);
     }).length;
-    if(selective < 2) continue;
+    if(selective < Math.min(2, N)) continue;
 
-    return { slots, hand, answer };
+    return { slots, hand, answer, cols:L.cols, rows:L.rows, mult:L.mult, shape:L.shape, diff:L.diff };
   }
   return null;
 }
@@ -152,8 +184,9 @@ function csStart(){
     showToast("The binder is too thin to lay out a case. Open a few packs.");
     return;
   }
-  cs = { slots:p.slots, hand:p.hand, answer:p.answer,
-         placed:new Array(CS_SLOTS).fill(null),
+  cs = { slots:p.slots, hand:p.hand, answer:p.answer, cols:p.cols, rows:p.rows, n:p.slots.length,
+         mult:p.mult, shape:p.shape, diff:p.diff,
+         placed:new Array(p.slots.length).fill(null),
          selected:null, hinted:false, done:false, banked:false };
   csStats().played++;
   saveState();
@@ -171,9 +204,11 @@ function csSlotOk(i){
   const card = csCardAt(i);
   if(!card) return null;
   const k = csKind(cs.slots[i].kind);
-  const left = i > 0 ? csCardAt(i-1) : null;
-  if(k.rel && !left) return null;
-  return k.ok(card, cs.slots[i].req, left);
+  if(!k.rel) return k.ok(card, cs.slots[i].req, null);
+  const ri = csRefIndex(i, cs.slots[i].req.dir, cs.cols);
+  const ref = ri >= 0 ? csCardAt(ri) : null;
+  if(!ref) return null;
+  return k.ok(card, cs.slots[i].req, ref);
 }
 
 function csPick(id){
@@ -233,8 +268,9 @@ function csFinish(won){
   const st = csStats();
 
   const filled = cs.slots.filter((s,i)=> csSlotOk(i) === true).length;
-  let credits = filled * CS_CREDITS + (won ? CS_SOLVE : 0);
-  let xp = won ? CS_XP : 0;
+  const mult = cs.mult || 1;
+  let credits = Math.round((filled * CS_CREDITS + (won ? CS_SOLVE : 0)) * mult);
+  let xp = won ? Math.round(CS_XP * mult) : 0;
   if(cs.hinted){ credits = Math.round(credits * (1 - CS_HINT_COST)); xp = Math.round(xp * (1 - CS_HINT_COST)); }
 
   state.credits += credits;
@@ -316,11 +352,11 @@ function csPaint(){
 
   stage.innerHTML = `
     <div class="cs-hud">
-      <span class="cs-eyebrow">The Case</span>
-      <span class="cs-prog">${filled} of ${CS_SLOTS} slots satisfied</span>
+      <span class="cs-eyebrow">The Case · ${cs.shape === "grid" ? `${cs.cols}×${cs.rows} grid` : "line"} · ${csEsc((CS_LAYOUTS[cs.shape][cs.diff]||{}).label || "")}</span>
+      <span class="cs-prog">${filled} of ${cs.n} slots satisfied</span>
     </div>
 
-    <div class="cs-case">${slotHTML}</div>
+    <div class="cs-case${cs.shape === "grid" ? " grid" : ""}" style="--cols:${cs.cols}">${slotHTML}</div>
 
     <div class="cs-handhead">
       <span class="cs-eyebrow">Your hand</span>
@@ -351,15 +387,29 @@ function csPaintLobby(){
   const st = csStats();
   const rate = st.played ? Math.round((st.solved / st.played) * 100) : 0;
 
+  const L = csLayout();
+  const pill = (group, key, on, label, sub) =>
+    `<button class="cs-opt${on ? " on" : ""}" data-group="${group}" data-key="${key}"><b>${label}</b>${sub ? `<i>${csEsc(sub)}</i>` : ""}</button>`;
+  const n = L.cols * L.rows;
   stage.innerHTML = `
     <div class="cs-lobby">
       <div class="cs-lede">
         <span class="cs-eyebrow">The Case</span>
-        <h3>Five slots, each with a rule.<br>Twelve cards. Make them fit.</h3>
+        <h3>${L.shape === "grid" ? `A ${L.cols}×${L.rows} grid of slots` : `${["","One","Two","Three","Four","Five","Six","Seven"][n] || n} slots`}, each with a rule.<br>${["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen"][L.hand] || L.hand} cards. Make them fit.</h3>
         <p>Some slots want a collection or a rarity floor. Others compare against
-           the slot on their left — rarer than, lower than, same collection as —
-           so the order you fill them in matters. Every rule is written on the
-           slot and every card shows what it's judged on.</p>
+           a neighbour — rarer than, lower than, same collection as the slot on
+           the left${L.shape === "grid" ? ", or the slot above" : ""} — so the order you
+           fill them in matters. Every rule is written on the slot and every card
+           shows what it's judged on.</p>
+        <div class="cs-opts">
+          <div class="cs-optrow">
+            ${pill("mode","line", L.shape==="line", "Line", "rules look left")}
+            ${pill("mode","grid", L.shape==="grid", "Grid", "rules look left and up")}
+          </div>
+          <div class="cs-optrow">
+            ${["easy","normal","hard"].map(d=>{ const o = CS_LAYOUTS[L.shape][d]; return pill("diff", d, L.diff===d, o.label, `${o.blurb} · ×${o.mult} pay`); }).join("")}
+          </div>
+        </div>
         <p class="cs-broad">A wider binder deals a wider hand, which is the point:
            this is the one mode where owning many different things beats owning
            a few good ones.</p>
@@ -376,6 +426,11 @@ function csPaintLobby(){
     </div>`;
 
   document.getElementById("csStart").addEventListener("click", csStart);
+  stage.querySelectorAll(".cs-opt").forEach(b => b.addEventListener("click", ()=>{
+    const st = csStats();
+    if(b.dataset.group === "mode") st.mode = b.dataset.key; else st.diff = b.dataset.key;
+    saveState(); csPaintLobby();
+  }));
 }
 
 function csPaintSummary(won, filled, credits, xp, pulled){
@@ -397,7 +452,7 @@ function csPaintSummary(won, filled, credits, xp, pulled){
   stage.innerHTML = `
     <div class="cs-summary">
       <span class="cs-eyebrow">${won ? "Case closed" : "Case left open"}</span>
-      <h3>${filled} of ${CS_SLOTS} satisfied${won && !cs.hinted ? " — unaided" : ""}</h3>
+      <h3>${filled} of ${cs.n} satisfied${won && !cs.hinted ? " — unaided" : ""}</h3>
 
       <div class="cs-lobstats">
         <div><b>${credits.toLocaleString()}</b><span>Credits</span></div>

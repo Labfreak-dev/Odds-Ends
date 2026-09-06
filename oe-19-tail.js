@@ -8,7 +8,7 @@ const UI_GAMES = [
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
   { id:"provenance",  name:"Provenance",   icon:"🗃️", desc:"An archive record with the name struck out. Four cards. Name the thing.", meta:"1,215 subjects" },
   { id:"connections", name:"Connections",  icon:"🧩", desc:"Sixteen cards, four groups of four. Everything you need is on the cards.", meta:"Daily-style puzzle" },
-  { id:"showcase",    name:"The Case",     icon:"🗄️", desc:"Five slots, each with a rule. Twelve cards. Make them fit.", meta:"Constraint puzzle" },
+  { id:"showcase",    name:"The Case",     icon:"🗄️", desc:"Slots with rules — a line or a grid, three difficulties. Make the hand fit.", meta:"Constraint puzzle" },
   { id:"oddone",      name:"Odd One Out",  icon:"👀", desc:"Three belong together, one doesn't. Ten seconds.", meta:"Fast rounds" },
   { id:"press",       name:"The Press",    icon:"⚙️", desc:"Spare prints in, one good print out. Merge tiers until the plate jams.", meta:"Duplicate sink" },
   /* Runeshard entry removed - it ships as its own build. */

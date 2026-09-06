@@ -3498,7 +3498,16 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .cs-hud{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
 .cs-prog{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
-.cs-case{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-bottom:22px; }
+.cs-case{ display:grid; grid-template-columns:repeat(var(--cols,5),1fr); gap:9px; margin-bottom:22px; }
+.cs-case.grid{ max-width:560px; }
+.cs-opts{ display:flex; flex-direction:column; gap:8px; margin:14px 0 4px; }
+.cs-optrow{ display:flex; gap:8px; flex-wrap:wrap; }
+.cs-opt{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:8px 12px; border-radius:10px; cursor:pointer;
+  background:var(--panel2); border:1px solid #333a52; color:var(--text); font:inherit; text-align:left; }
+.cs-opt b{ font-size:12.5px; font-weight:800; }
+.cs-opt i{ font-style:normal; font-size:10px; color:var(--muted); }
+.cs-opt.on{ border-color:var(--accent); background:rgba(125,185,255,.12); }
+.cs-opt:hover{ border-color:var(--accent); }
 .cs-slot{
   display:flex; flex-direction:column; gap:8px; cursor:pointer;
   background:var(--panel2); border:1px solid #333a52; border-radius:12px; padding:11px 10px;
@@ -4456,7 +4465,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 67e77b</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · ed3d62</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5568,7 +5577,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-06-provenance.js?v=5f726dd3e1"></script>
 <script src="oe-07-press.js?v=4f1a3937cf"></script>
 <script src="oe-08-connections.js?v=dc99049015"></script>
-<script src="oe-09-case.js?v=180d925785"></script>
+<script src="oe-09-case.js?v=fcc2ad9a3d"></script>
 <script src="oe-10-oddone.js?v=d5c686594c"></script>
 <script src="oe-11-fishing2.js?v=b3b7381372"></script>
 <script src="oe-12-mining2.js?v=10e04316a7"></script>
@@ -5578,7 +5587,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-16-market2.js?v=07e39c2e23"></script>
 <script src="oe-17-casino2.js?v=e7e85470f8"></script>
 <script src="oe-18-hunt.js?v=d04d7c2185"></script>
-<script src="oe-19-tail.js?v=1636399ffe"></script>
+<script src="oe-19-tail.js?v=6722c9a61c"></script>
 
 </body>
 </html>

@@ -501,6 +501,30 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 124 — The Case: a grid shape, three difficulties, a smaller prize
+Playtester: "the case add grids mode and different difficulties, reduce
+the prize."
+
+SHAPES. Line (the classic row, every relational rule looks left) or Grid
+(rules may look UP as well, so a slot can be pinned by two neighbours).
+The relational kinds take a `dir` in their requirement and `csRefIndex`
+resolves the neighbour in a cols-wide case; the builder offers a
+relational kind once per neighbour the answer card satisfies.
+
+DIFFICULTIES (CS_LAYOUTS): line easy 4 slots/10 cards, normal 5/12, hard
+6/14; grid easy 2×2/10, normal 3×2/13, hard 3×3/16. Picked in the lobby
+(pills, remembered in state.showcase.mode/diff); the heading and the
+Play-card blurb follow.
+
+PRIZE. Per slot 3,400 -> 1,200 credits and the solve bonus 11,000 ->
+4,000, scaled by difficulty (×0.6 easy, ×1 normal, ×1.4 line hard; grid
+×0.8 / ×1.25 / ×1.6). A normal line case pays 10,000 where it paid
+28,000; the 3×3 hard grid tops out around 23,700, under the old normal.
+
+Verified headless: 40 builds per layout, all six deal every time and the
+answer solves each; a 3×3 hard case played through the real hand and
+slot taps to "9 of 9 satisfied"; the pickers persist across the lobby.
+
 ## Batch 123 — Second, Third, Fourth Crucible
 Playtester: "in the workshop the second crucible need to change to third
 and fourth respective to the upgrades." The crucible upgrade was a single

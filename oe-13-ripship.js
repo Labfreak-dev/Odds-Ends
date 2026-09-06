@@ -225,6 +225,12 @@ function rzSpreadHint(){
   const n = RZ.pulls.length, downN = RZ.down.filter(Boolean).length, soldN = RZ.sold.filter(Boolean).length;
   return `${downN ? `🃏 ${downN} face-down · tap to turn ${downN===1?"it":"them"} over · ` : ""}${n} card${n===1?"":"s"} · ${soldN} shipped · slide each card to ship or keep · tap one to zoom`;
 }
+/* the face-up duplicates still unshipped: what "ship dupes" would move */
+function rzDupes(){
+  let n = 0, pay = 0;
+  RZ.pulls.forEach((c,i)=>{ if(!RZ.down[i] && !RZ.sold[i] && !c._wasNew){ n++; pay += rzShipPay(c); } });
+  return { n, pay };
+}
 function rzFinish(){
   if(!RZ) return;
   RZ.keptVal = rzKeptVal();
@@ -597,6 +603,7 @@ function rzRender(){
   }
   else if(RZ.stage === "spread"){
     const downN = RZ.down.filter(Boolean).length;
+    const dupes = rzDupes();
     const deal = !RZ.dealt; RZ.dealt = true;   /* the deal-in plays once, as the pack opens */
     RZ.keptVal = rzKeptVal();
     ov.innerHTML = `<div class="rz-box wide">
@@ -606,6 +613,7 @@ function rzRender(){
       <div class="rz-row">
         <button class="rz-btn dim" id="rzBacksBtn">🎴 backs</button>
         ${downN ? `<button class="rz-btn dim" id="rzRevealAll">👁 turn the rest over</button>` : ""}
+        ${dupes.n ? `<button class="rz-btn ship" id="rzShipDupes">📦 ship ${dupes.n} dupe${dupes.n===1?"":"s"} · +$${dupes.pay.toLocaleString()}</button>` : ""}
         <button class="rz-btn keep" id="rzKeepAll">🗃️ keep the rest · finish</button>
       </div>
     </div>`;
@@ -631,6 +639,14 @@ function rzRender(){
     document.getElementById("rzBacksBtn").onclick = ()=>{ RZ.stage = "backs"; rzRender(); };
     const ra = document.getElementById("rzRevealAll");
     if(ra) ra.onclick = rzRevealAll;
+    const sd = document.getElementById("rzShipDupes");
+    if(sd) sd.onclick = ()=>{
+      if(!RZ) return;
+      let n = 0;
+      RZ.pulls.forEach((c,i)=>{ if(!RZ.down[i] && !RZ.sold[i] && !c._wasNew && rzShipNow(i)) n++; });
+      if(n) { try{ showToast(`📦 shipped ${n} duplicate${n===1?"":"s"}`); }catch(e){} }
+      rzRender();
+    };
     document.getElementById("rzKeepAll").onclick = rzFinish;
   }
   else if(RZ.stage === "backs"){

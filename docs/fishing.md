@@ -501,6 +501,100 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 119 — the playtester's list: cash, rules, badges, dupes, the boss, the desktop
+Seven items in one message.
+
+MINING SHOWED COINS. The game pays dollars but the mining loop said coins
+everywhere: the per-swing float ("+120 🪙"), the vein-struck banner, the
+offline welcome toast ("earned N coins"), the "Total Coins Mined" stat, the
+level-up toast, the passive tick's 🪙 particles, the pickaxe/miner/
+blacksmith blurbs ("coins/min"), the grading fee (🪙), the Bulk Discount
+copy ("credit cost") and the dev button. All now "$". Found alongside: the
+mining header refresh wrote the balance WITHOUT the "$" on every swing, so
+the cash readout was a bare number while mining - fixed. The 🪙 that
+remain are genuine credits (arcade tokens, the ledger, the casino Mines
+crate game, the retired raid tables) and the coin-artwork cards.
+
+ODD ONE OUT. The rarity axis keyed on the numeric tier id (0-15) while the
+tile shows the tier NAME, and ids 0/1/2 are all "Common" - so three id-1
+Commons and one id-0 Common was a "fair" board the player could not solve
+(the screenshot: Bar of Soap / Taj Mahal / Hel / Osprey, all Common). The
+axis now keys on RARITIES[rarity].name, which is what the fairness gate
+compares too, so ambiguous boards are rejected for free. 300 rounds
+headless: 0 boards where the three do not visibly agree. Connections had
+the same latent mismatch in cxProp; fixed the same way, and its group label
+no longer indexes RARITIES by the (now string) value.
+
+"PRESS CATEGORIES". The Press is the 2048 duplicate sink and has no
+categories; the report ("2 of the same show up... add more categories")
+describes CONNECTIONS, where a board's four groups drew rule types WITH
+replacement, so two "One collection" bands could share a board. Now: four
+distinct rule types per board, padding with a repeat only when the binder
+cannot offer four (never more than two of one), and two new rule types -
+"Same print run" (the variant after the dash: 472 distinct across the
+catalogue) and "Same first letter" (27). 200 boards headless: 0 with a
+repeated rule, all six rules dealt, every group label renders.
+
+MARKET. The live counter (market2) had lost the ownership badge the old
+grid renderer carried. Each card visitor now shows "NEW TO YOU" or
+"owned ×N" beside its rarity, read live from state.owned.
+
+SHIP DUPES. The spread's button row gains "📦 ship N dupes · +$x": every
+face-up, unsold duplicate ships in one tap (face-down cards are new or
+Legendary+, so they are never swept). Probe: 31 dupes on a ten-pack, all
+sold, none left, button gone.
+
+DESKTOP. main was capped at 1200px. Above 1400px it grows to 1660px (2000px
+above 2200px); every grid on the page is auto-fill, so the columns simply
+multiply - eight packs in one row at 2000px. The spread box follows to
+1560px.
+
+THE BOSS FIGHT. "It waits a really long time or doesn't do the next
+mechanic." Two independent boss systems, each with its own stall, both
+verified numerically before the fix:
+- The cinematic QTE (feCine*, the true-form fight every fifth catch while
+  FE_TEST_EVERY5 is on): the ring mechanic clamped C.t to 0.54 every frame
+  while waiting, against a `> 0.55` spawn gate. Only a frame longer than
+  10ms could cross it, so at 60Hz it worked and on any 100Hz+ display
+  (ProMotion phones, gaming monitors) the fight played ONE mechanic and
+  then sat forever; the RAF watchdog never fired because frames were still
+  landing. Clamp deleted; the ring step is its own function
+  (feCineRingStep) so the node harness steps it at 120Hz.
+- The scripted mood fight (feFightStep): the tired-recovery branch picked
+  the next mood without arming it, so tired -> jump left jumpTele=0 and
+  airT=0 with moodT frozen - a silent heavy run until the 62s pace
+  checkpoint or the 260s failsafe. Hit 21-48% of fights per legend. Every
+  transition arms its mood now.
+Also fixed on the way: the catch resolved and PAID behind the cinematic
+(fshLand re-entered every frame with phase still "reeling", then paid
+again on the win) - the fight is parked in phase "cine" until feCineEnd;
+the Fight button, the watchdog and the catch handler each started a fresh
+RAF chain that never ended (N draws per frame after a few tab switches) -
+one chain through feCineKick; a mouse released off the canvas never ended
+a hold/swipe - pointer capture.
+
+THE RETUNE THAT FOLLOWED. With the freeze gone the harness's smart bot
+landed all six legends 100% of the time: the freeze had been the legends'
+only real teeth (every pre-fix loss in the histogram was a "slip"). The
+bands in test-fishing.js (every legend 40%+, at least two at 80% or under,
+the Drowned King 12-60%) are the design, so the fights were retuned to
+meet them honestly, by sweep: `need` past ~1300 trips the "overpowered"
+cliff, pull past ~1.6x becomes one-frame snaps, and STAMINA is the
+gradient knob. The four mid legends carry 30% more pull and roughly double
+the stamina (Marsh King 820, Rooster King 792, Pale Hunter 1040, Black
+Phantom 1073); the Drowned King needs 874 line and has 784 stamina. Bot
+rates now: Ironjaw 100, Marsh 62, Pale 68, Rooster 72, Phantom 59, Drowned
+in band. The entry-legend check changed from "<=97%" to ">=85%": a perfect
+bot has no loss path but the pace checkpoint once the fish never freezes,
+so the old cap was measuring the bug. Three new harness checks: tired ->
+jump arms the telegraph; no legend goes 40s without an event; rings keep
+spawning at 120Hz.
+
+Left as found, flagged to the playtester: FE_TEST_EVERY5 = true ships the
+cinematic on every fifth ordinary catch (a test hook), and the legend's
+shadow spawns at 0.02/s of idle time - a mean 50s wait before it even
+shows.
+
 ## Batch 118d — photos in the spread, and a desktop that uses its screen
 Playtester (PC screenshot): "the picture is defaulting to the emojis. also
 there is a whole lot of my screen on pc that isn't being used."

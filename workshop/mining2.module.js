@@ -194,7 +194,7 @@ function mgBurst(){
 
 /* ---- the strike ---- */
 function mgHeaderRefresh(){
-  try{ document.getElementById("dollarCount").textContent = Math.floor(state.dollars).toLocaleString();
+  try{ document.getElementById("dollarCount").textContent = "$" + Math.floor(state.dollars).toLocaleString();
        document.getElementById("scrapCount").textContent = Math.floor(state.scrap).toLocaleString(); }catch(e){}
 }
 function mgStrike(player){
@@ -208,7 +208,7 @@ function mgStrike(player){
       const gain = Math.max(3, Math.round(mgRate()/30));   /* two seconds of passive, per swing */
       state.dollars += gain;
       state.totalMined = (state.totalMined||0) + gain;
-      mgFloat(cx-40+Math.random()*80, cy-70, "+"+gain.toLocaleString()+" 🪙");
+      mgFloat(cx-40+Math.random()*80, cy-70, "+$"+gain.toLocaleString());
       try{ window.feLedgerBump && feLedgerBump("tap"); }catch(e){}
       mgHeaderRefresh();
       try{ fbSfxSafe && fbSfxSafe("equip", 0.18); }catch(e){}
@@ -224,7 +224,7 @@ function mgStrike(player){
       state.scrap = (state.scrap||0) + Math.round(2 * (1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
       state.mining.ore[oreT] = (state.mining.ore[oreT]||0) + oreN;
       mgBurst();
-      mgFloat(W/2, H-230, "VEIN STRUCK  +"+bonus.toLocaleString()+" 🪙  +"+oreN+" Tier-"+oreT+" Ore"+(oreT>tier?" — RICHER than the seam!":""), true);
+      mgFloat(W/2, H-230, "VEIN STRUCK  +$"+bonus.toLocaleString()+"  +"+oreN+" Tier-"+oreT+" Ore"+(oreT>tier?" — RICHER than the seam!":""), true);
       mgWorksRender();
       try{ window.feLedgerBump && feLedgerBump("vein"); }catch(e){}
       mg.maxHp = mgRockHp(); mg.hp = mg.maxHp; mg.seed = (mg.seed*48271)%2147483647 || 7;

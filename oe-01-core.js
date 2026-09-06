@@ -338,7 +338,7 @@ function grantLevelUpRewards(oldLevel, newLevel){
   state.scrap += scrapGained;
   const gained = newLevel - oldLevel;
   showToast(`🎉 Level Up! Reached Level ${newLevel}${gained>1?` (+${gained})`:""} — ${titleForLevel(newLevel)}. ` +
-    `+${creditsGained.toLocaleString()} 🪙 +${scrapGained.toLocaleString()} ♻️`);
+    `+$${creditsGained.toLocaleString()} +${scrapGained.toLocaleString()} ♻️`);
 }
 
 /* Recompute XP from the current collection. Level only ever goes up — selling cards
@@ -964,8 +964,8 @@ function offlineCapLabel(){
 }
 
 /* ---------------- UPGRADES ---------------- */
-const PICKAXE_RATE_PER_LEVEL = 8;    // flat coins/min per Sturdier Pickaxe level
-const MINER_RATE_PER_LEVEL = 60;     // flat coins/min per extra miner hired
+const PICKAXE_RATE_PER_LEVEL = 8;    // flat $/min per Sturdier Pickaxe level
+const MINER_RATE_PER_LEVEL = 60;     // flat $/min per extra miner hired
 const SPEED_PCT_PER_LEVEL = 0.04;    // +4% total mining rate per Speed Training level
 const LUCK_PCT_PER_LEVEL = 0.03;     // +3% reroll chance per Lucky Charm level
 const SCRAP_PCT_PER_LEVEL = 0.10;    // +10% scrap per Scrap Refinery level
@@ -1026,10 +1026,10 @@ const UPGRADES = [
     effectText:(l)=> l ? "+10% mine rate · +10% catch credits · +10% haggle odds" : "the summit" },
   { key:"pickaxe", name:"Sturdier Pickaxe", icon:"⛏️", category:"mining", retired:true, baseCost:20, scale:1.18, maxLevel:999,
     desc:"Permanently increases your miner's base output.",
-    effectText:(lvl)=>`+${(lvl*PICKAXE_RATE_PER_LEVEL).toFixed(0)} coins/min` },
+    effectText:(lvl)=>`+$${(lvl*PICKAXE_RATE_PER_LEVEL).toFixed(0)}/min` },
   { key:"miners", name:"Hire a Miner", icon:"👷", category:"mining", retired:true, baseCost:150, scale:2.2, maxLevel:4,
     desc:"Adds another miner to the crew. Each one pulls their own weight.",
-    effectText:(lvl)=>`${lvl} extra miner${lvl===1?"":"s"} · +${(lvl*MINER_RATE_PER_LEVEL).toFixed(0)} coins/min` },
+    effectText:(lvl)=>`${lvl} extra miner${lvl===1?"":"s"} · +$${(lvl*MINER_RATE_PER_LEVEL).toFixed(0)}/min` },
   { key:"speed", name:"Speed Training", icon:"🏃", category:"mining", baseCost:60, scale:1.35, maxLevel:25,
     desc:"Boosts your entire mining rate by a percentage, stacking on top of everything else.",
     effectText:(lvl)=>`+${Math.round(lvl*SPEED_PCT_PER_LEVEL*100)}% total rate` },
@@ -1043,7 +1043,7 @@ const UPGRADES = [
     desc:"Duplicate pulls are worth more Scrap.",
     effectText:(lvl)=>`+${Math.round(lvl*SCRAP_PCT_PER_LEVEL*100)}% scrap from dupes` },
   { key:"discount", name:"Bulk Discount", icon:"🏷️", category:"economy", baseCost:80, scale:1.5, maxLevel:10,
-    desc:"Reduces the credit cost of every pack on the shelf.",
+    desc:"Reduces the dollar cost of every pack on the shelf.",
     effectText:(lvl)=>`-${Math.round(lvl*DISCOUNT_PCT_PER_LEVEL*100)}% pack price` },
 ];
 
@@ -1096,7 +1096,7 @@ function applyOfflineMining(){
     const repEarned = elapsed * currentRepRatePerMs();
     state.empire.reputation += repEarned;
     if(earned >= 1){
-      showToast(`Welcome back! Your miner earned ${Math.floor(earned).toLocaleString()} coins while you were away.`);
+      showToast(`Welcome back! Your miner earned $${Math.floor(earned).toLocaleString()} while you were away.`);
     }
   }
   state.lastMineTs = now;
@@ -1128,7 +1128,7 @@ function spawnCoinParticle(){
   if(!scene) return;
   const p = document.createElement("div");
   p.className = "coin-particle";
-  p.textContent = "🪙";
+  p.textContent = "💵";
   p.style.left = (scene.clientWidth/2 - 10 + (Math.random()*20-10)) + "px";
   p.style.bottom = "70px";
   p.style.setProperty("--dx", (Math.random()*40-20)+"px");
@@ -1371,7 +1371,7 @@ const REP_PER_LEVEL_FARM = 0.5;              // reputation/min per Farmstead lev
 const REP_PER_LEVEL_MARKET = 1.2;            // reputation/min per Marketplace level
 const ARMY_PER_LEVEL = 12;                   // Army Strength per Barracks level
 const WEAPON_PER_LEVEL = 10;                 // Weapon Power per Blacksmith level
-const BLACKSMITH_MINE_BONUS_PER_LEVEL = 3;   // flat coins/min per Blacksmith level
+const BLACKSMITH_MINE_BONUS_PER_LEVEL = 3;   // flat $/min per Blacksmith level
 const TOWER_PER_LEVEL = 14;                  // Tower Defense per Watchtower level
 const TAVERN_REP_PCT_PER_LEVEL = 0.03;       // +3% village-wide reputation production per Tavern level
 const KEEP_DEF_PER_LEVEL = 20;               // Castle Defense per Keep level
@@ -1392,7 +1392,7 @@ const VILLAGE_BUILDINGS = [
     effectText:(lvl)=>`+${(lvl*ARMY_PER_LEVEL).toLocaleString()} Army Strength` },
   { key:"blacksmith", name:"Blacksmith", icon:"🔨", baseCost:900, scale:1.3, maxLevel:40,
     desc:"Forges Weapons for your Army — and the good tools always find their way to the mines too.",
-    effectText:(lvl)=>`+${(lvl*WEAPON_PER_LEVEL).toLocaleString()} Weapon Power · +${(lvl*BLACKSMITH_MINE_BONUS_PER_LEVEL).toFixed(0)} coins/min` },
+    effectText:(lvl)=>`+${(lvl*WEAPON_PER_LEVEL).toLocaleString()} Weapon Power · +$${(lvl*BLACKSMITH_MINE_BONUS_PER_LEVEL).toFixed(0)}/min` },
   { key:"watchtower", name:"Watchtower", icon:"🗼", baseCost:1000, scale:1.32, maxLevel:40, minLevel:5,
     desc:"Village lookout towers. Adds to your Tower Defense.",
     effectText:(lvl)=>`+${(lvl*TOWER_PER_LEVEL).toLocaleString()} Tower Defense` },

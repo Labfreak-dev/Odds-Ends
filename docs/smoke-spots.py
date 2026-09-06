@@ -318,6 +318,11 @@ async def main():
             "fsh.fight.script && fsh.fight.script.length===6 && fsh.catch.boss"))
         await pg.evaluate("fsh.holding=true; fsh.fight.progress=fsh.fight.need-1;")
         await pg.wait_for_timeout(800)
+        # batch 119: the true form rises FIRST and the catch waits behind it -
+        # nothing is recorded or paid until the cinematic ends
+        check("the true form rises before the catch is recorded", await pg.evaluate(
+            "feCine.active && !!document.getElementById('feCineWrap') && fsh.phase==='cine' && !(feBossState().bossJournal['The Rooster King']||{}).n"))
+        await pg.evaluate("feCineEnd(true)"); await pg.wait_for_timeout(500)
         check("the legend lands with crown and journal page", await pg.evaluate(
             "fsh.result.chips.some(c=>c.includes('LEGEND OF THE WATER')) && feBossState().bossJournal['The Rooster King'].n===1"))
         check("the legend keeps its portrait — no encyclopedia", await pg.evaluate("""(()=>{

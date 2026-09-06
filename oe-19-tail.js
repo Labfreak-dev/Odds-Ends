@@ -3,7 +3,7 @@
 
 const UI_GAMES = [
   { id:"hunt",    name:"The Hunt",    icon:"🗡️", desc:"Every tap fuels the fight. Beasts without end, a blade forged in ingots, and embers for the brave.", meta:"Endless clicker" },
-  { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Idle-friendly" },
+  { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Hold, hook & fight" },
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
   { id:"provenance",  name:"Provenance",   icon:"🗃️", desc:"An archive record with the name struck out. Four cards. Name the thing.", meta:"1,215 subjects" },

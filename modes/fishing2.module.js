@@ -42,7 +42,48 @@ function feAudioCtx(){
   return feAC;
 }
 function feAudioUnlock(){ const c = feAudioCtx(); if(c && c.state === "suspended") c.resume().catch(()=>{}); }
-function feMuted(){ try{ return !!fshInv().sfxMute; }catch(e){ return true; } }
+/* ---- SOUND SETTINGS (batch 117). The game's only audio path is this
+   module, so the fishing chips used to mute the whole game. Now: the
+   Settings menu owns master on/off and volume for effects and music
+   (state.settings.sfxOff/musicOff/sfxVol/musicVol); the fishing chips and
+   mixer are QUIET-ON-THE-WATER controls that apply only while the fishing
+   tab is up. Effects run through a bus (lowpass + gentle compressor), the
+   loud and bright samples carry trims, the bright ones an extra lowpass,
+   and the pack/market keys a rate limit, so nothing barks or stacks. */
+function feGlobalSfxOff(){ try{ return !!(state.settings && state.settings.sfxOff); }catch(e){ return false; } }
+function feGlobalMusicOff(){ try{ return !!(state.settings && state.settings.musicOff); }catch(e){ return false; } }
+function feGlobalVol(k, d){ try{ const v = state.settings && state.settings[k]; return v === undefined ? d : v; }catch(e){ return d; } }
+function feInFishing(){ const t = document.getElementById("tab-fishing"); return !!t && t.style.display !== "none"; }
+function feMuted(){ if(feGlobalSfxOff()) return true; try{ return feInFishing() && !!fshInv().sfxMute; }catch(e){ return false; } }
+function feMusicMuted(){ if(feGlobalMusicOff()) return true; try{ return !!fshInv().musicMute; }catch(e){ return false; } }
+const FE_SFX_TRIM = { treasure:.5, tension_hi:.5, bait:.4, breach:.5, backlash:.5, junk:.5, jump:.6, creak:.5, reward_good:.6,
+  train:.5, hookset:.6, splash_big:.6, flop:.5, reel_loop:.6, tension_max:.7, reward_legend:.7, plunk:.7, snag:.7 };
+const FE_SFX_GAP  = { treasure:.25, reward_good:.3, equip:.3, box_open:.3, perfect:.3, snag:.3, splash_small:.25, bait:.4, reward_common:.3, reward_rare:.3 };
+const FE_SFX_SOFT = new Set(["bait","breach","backlash","junk","jump","creak","reward_good","tension_max","train","hookset","splash_big","land","reward_common","run"]);
+let feBus = null;
+function feSfxBus(){
+  const c = feAudioCtx(); if(!c) return null;
+  if(feBus) return feBus;
+  try{
+    const g = c.createGain(); g.gain.value = 1;
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 6500; lp.Q.value = 0.6;
+    const comp = c.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.16;
+    g.connect(lp); lp.connect(comp); comp.connect(c.destination);
+    feBus = g;
+  }catch(e){ feBus = null; }
+  return feBus;
+}
+/* the Settings menu calls this after any change: volumes re-apply live,
+   and a mute stops what is already playing */
+function feSoundSettingsChanged(){
+  try{
+    feApplyVols();
+    if(feMuted()) for(const k in feLoops){ if(!feLoops[k].isMus) feLoopStop(k); }
+    if(feMusicMuted()) for(const k in feLoops){ if(feLoops[k].isMus) feLoopStop(k); }
+  }catch(e){}
+}
+try{ window.oeSoundSettingsChanged = feSoundSettingsChanged; }catch(e){}   /* the node harness has no window */
 function feBuffer(key){
   if(feBuf[key]) return Promise.resolve(feBuf[key] === "pending" ? null : feBuf[key]);
   const c = feAudioCtx();
@@ -67,25 +108,36 @@ function feBuffer(key){
     }catch(e){ fail(); }
   });
 }
-function feSfxVol(){ try{ const v = fshInv().sfxVol; return v===undefined?1:v; }catch(e){ return 1; } }
-function feMusVol(){ try{ const v = fshInv().musicVol; return v===undefined?1:v; }catch(e){ return 1; } }
+function feSfxVol(){
+  const g = feGlobalVol("sfxVol", 0.7);
+  try{ const v = fshInv().sfxVol; return g * (feInFishing() && v !== undefined ? v : 1); }catch(e){ return g; }
+}
+function feMusVol(){
+  const g = feGlobalVol("musicVol", 0.8);
+  try{ const v = fshInv().musicVol; return g * (v === undefined ? 1 : v); }catch(e){ return g; }
+}
 function feSound(key, opt){
   opt = opt || {};
   if(feMuted()) return;
-  if(opt.gap){ const last = feLastPlay[key]||-9; if(fshT - last < opt.gap) return; feLastPlay[key] = fshT; }
+  /* rate limit on the wall clock - fshT only ticks while the water is up,
+     and a fishing-clock gap froze every repeat outside the tab */
+  const gap = opt.gap !== undefined ? opt.gap : FE_SFX_GAP[key];
+  if(gap){ const now = performance.now()/1000, last = feLastPlay[key]||-9; if(now - last < gap) return; feLastPlay[key] = now; }
   const c = feAudioCtx(); if(!c) return;
   feBuffer(key).then(buf=>{
     if(!buf || feMuted()) return;
     const src = c.createBufferSource(); src.buffer = buf;
     if(opt.rate) src.playbackRate.value = opt.rate;
-    const g = c.createGain(); g.gain.value = (opt.vol !== undefined ? opt.vol : 0.8) * feSfxVol();
-    src.connect(g); g.connect(c.destination); src.start();
+    const g = c.createGain(); g.gain.value = (opt.vol !== undefined ? opt.vol : 0.8) * (FE_SFX_TRIM[key] || 1) * feSfxVol();
+    let tail = g;
+    if(FE_SFX_SOFT.has(key)){ const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800; g.connect(lp); tail = lp; }
+    src.connect(g); tail.connect(feSfxBus() || c.destination); src.start();
   }).catch(()=>{});
 }
 function feLoopStart(key, vol){
   /* music answers only to the music switch; everything else to the sfx one */
   const isMus = key.indexOf("music") === 0;
-  const muted = isMus ? (function(){ try{ return !!fshInv().musicMute; }catch(e){ return true; } })() : feMuted();
+  const muted = isMus ? feMusicMuted() : feMuted();
   if(muted || feLoops[key]) return;
   const c = feAudioCtx(); if(!c) return;
   feLoops[key] = { pending:true };
@@ -94,7 +146,7 @@ function feLoopStart(key, vol){
     const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
     const base = vol !== undefined ? vol : 0.5;
     const g = c.createGain(); g.gain.value = base * (isMus ? feMusVol() : feSfxVol());
-    src.connect(g); g.connect(c.destination); src.start();
+    src.connect(g); g.connect(isMus ? c.destination : (feSfxBus() || c.destination)); src.start();
     feLoops[key] = { src, g, base, isMus };
   }).catch(()=>{ delete feLoops[key]; });
 }
@@ -976,7 +1028,7 @@ function fshTick(dt){
   const track = feNight() ? "music_night" : "music";
   const other = track === "music" ? "music_night" : "music";
   feLoopStop(other);
-  if(ctxLive && !fshInv().musicMute) feLoopStart(track, track === "music" ? 0.3 : 0.24);
+  if(ctxLive && !feMusicMuted()) feLoopStart(track, track === "music" ? 0.3 : 0.24);
   else feLoopStop(track);
   if(ctxLive && !feMuted()) feLoopStart("amb_water", 0.10); else feLoopStop("amb_water");
   if(fsh.shake > 0) fsh.shake = Math.max(0, fsh.shake - dt*3.2);
@@ -1411,8 +1463,8 @@ function feMixerOpen(){
   const inv = fshInv();
   m = document.createElement("div");
   m.id = "feMixer";
-  m.innerHTML = `<div class="fej-head"><b>🎚️ Sound &amp; Feel</b><button class="fe-secx" id="feMixX">✕</button></div>
-    <div style="font:600 10px system-ui; color:#5f7288; margin:-4px 0 2px;">scene build B24 · five signatures</div>
+  m.innerHTML = `<div class="fej-head"><b>🎚️ Sound on the water</b><button class="fe-secx" id="feMixX">✕</button></div>
+    <div style="font:600 10px system-ui; color:#5f7288; margin:-4px 0 2px;">these only shape the fishing tab · master sound lives in Settings</div>
     <label>🔊 Effects <input id="feMixSfx" type="range" min="0" max="100" value="${Math.round((inv.sfxVol===undefined?1:inv.sfxVol)*100)}"></label>
     <label>🎵 Music <input id="feMixMus" type="range" min="0" max="100" value="${Math.round((inv.musicVol===undefined?1:inv.musicVol)*100)}"></label>
     <button id="feMixVibe" class="fe-secbtn">${inv.vibeOff ? "📳 Vibration: off" : "📳 Vibration: on"}</button>`;

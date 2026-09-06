@@ -3041,6 +3041,15 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   .play-card[data-game="connections"]{ border-color:#6a8ad0; }
   .play-card[data-game="showcase"]{ border-color:#d0a060; }
 
+  .snd-grid{ display:grid; grid-template-columns:auto 1fr; gap:10px 16px; align-items:center; max-width:520px; }
+  .snd-slider{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted); }
+  .snd-slider input[type=range]{ flex:1; accent-color:#e0b35a; min-width:120px; }
+  @media (max-width:520px){ .snd-grid{ grid-template-columns:1fr; } }
+  .pack-prog{ margin-top:4px; }
+  .pack-prog span{ font-size:11.5px; color:var(--muted); }
+  .pack-prog i{ display:block; height:4px; border-radius:2px; margin-top:4px;
+    background:linear-gradient(90deg, #e0b35a var(--p,0%), rgba(255,255,255,.12) var(--p,0%)); }
+  .pack-prog.full span{ color:#ffd35c; font-weight:800; }
   /* ---- Start screen: the crest over a rain of the game's own cards ------
      Present in the markup so it is the first thing painted; the tail script
      fills the rain and removes it on the first tap. Automation and ?nostart
@@ -4320,6 +4329,13 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rz-donenet{ font:900 34px system-ui; margin:6px 0; }
 .rz-donenet.up{ color:#7dffb5; } .rz-donenet.down{ color:#ff8a5c; }
 .rz-bestline,.rz-statline{ font:700 12.5px system-ui; color:#cfd8e6; margin:5px 0; }
+.rz-donenet small{ font:800 13px system-ui; color:#93a5b7; margin-left:4px; }
+.rz-newh{ font:800 12px system-ui; color:#ffd35c; margin:12px 0 6px; letter-spacing:.04em; text-transform:uppercase; }
+.rz-newh.dim{ color:#93a5b7; }
+.rz-newrow{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.rz-newchip{ font:700 11.5px system-ui; color:#eef4fa; padding:5px 9px; border-radius:999px;
+  border:1px solid var(--rc,#93a5b7); background:rgba(255,255,255,.05); }
+.rz-newchip.more{ color:#93a5b7; border-color:#93a5b755; }
 /* ---- the fx layer (batch 65): particle canvas + sigil blooms ---- */
 #rzFx{ position:absolute; inset:0; pointer-events:none; z-index:5; }
 .rz-sigil{ position:absolute; left:50%; top:46%; width:150px; height:150px; transform:translate(-50%,-50%);
@@ -4379,7 +4395,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 1901a8</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 0804c4</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5369,6 +5385,19 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         sparkle/glow/holo animations on rarity cards across the app.
       </div>
     </div>
+
+    <div class="panel" id="soundPanel">
+      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🔊 Sound</div>
+      <div class="snd-grid">
+        <label class="toggle-row"><input type="checkbox" id="sfxOnToggle" onchange="updateSoundSettings()"> 🔔 Effects</label>
+        <label class="snd-slider"><span>Effects volume</span><input type="range" id="sfxVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
+        <label class="toggle-row"><input type="checkbox" id="musicOnToggle" onchange="updateSoundSettings()"> 🎵 Music</label>
+        <label class="snd-slider"><span>Music volume</span><input type="range" id="musicVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
+      </div>
+      <div style="color:var(--muted); font-size:12px; margin-top:10px;">
+        These are the master switches for the whole game. The chips on the fishing tab only quiet the water while you're there.
+      </div>
+    </div>
   </section>
 
 </main>
@@ -5469,7 +5498,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=8ea665bbd7"></script>
+<script src="oe-01-core.js?v=9562629283"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-spot-bgs.js?v=bf0210bfe5"></script>
 <script src="oe-04-fishing-sfx.js?v=5424d379ee"></script>
@@ -5479,15 +5508,15 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-08-connections.js?v=07edc26b73"></script>
 <script src="oe-09-case.js?v=9be0d06f44"></script>
 <script src="oe-10-oddone.js?v=e66af7007b"></script>
-<script src="oe-11-fishing2.js?v=549976f4f1"></script>
+<script src="oe-11-fishing2.js?v=554613d832"></script>
 <script src="oe-12-mining2.js?v=2ee842de0b"></script>
-<script src="oe-13-ripship.js?v=4476b8212f"></script>
+<script src="oe-13-ripship.js?v=4c8a5b6039"></script>
 <script src="oe-14-ledger.js?v=b36867f39e"></script>
 <script src="oe-15-grading.js?v=817788899f"></script>
 <script src="oe-16-market2.js?v=cb953caf76"></script>
 <script src="oe-17-casino2.js?v=e7e85470f8"></script>
 <script src="oe-18-hunt.js?v=d04d7c2185"></script>
-<script src="oe-19-tail.js?v=5dadca9641"></script>
+<script src="oe-19-tail.js?v=1636399ffe"></script>
 
 </body>
 </html>

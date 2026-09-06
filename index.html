@@ -4356,9 +4356,14 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 /* the deal plays once, as the sliced pack spills its cards into the grid */
 .rz-spread.deal .rz-sp{ animation:rzDeal .42s ease-out backwards; animation-delay:calc(var(--d,0)*38ms); }
 @keyframes rzDeal{ from{ transform:translateY(60px) scale(.6); opacity:0; } to{ transform:none; opacity:1; } }
-.rz-spcard{ position:relative; width:100%; aspect-ratio:246/354; cursor:pointer;
-  filter:drop-shadow(0 0 8px var(--rc,#fff2)) drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
-.rz-spcard.glow{ filter:drop-shadow(0 0 14px var(--rc)) drop-shadow(0 0 30px var(--rc)) drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+/* the card box keeps its shape with a padding-top block, not aspect-ratio,
+   and NOTHING here animates a filter: mobile Safari paints an element blank
+   while a drop-shadow filter is animating, which is how the face-down cards
+   vanished on the playtester's phone (batch 118c). Glows are box-shadows. */
+.rz-spcard{ position:relative; width:100%; cursor:pointer; border-radius:7px;
+  box-shadow:0 0 10px var(--rc,rgba(255,255,255,.08)), 0 6px 14px rgba(0,0,0,.5); }
+.rz-spcard::before{ content:""; display:block; padding-top:143.9%; }
+.rz-spcard.glow{ box-shadow:0 0 14px var(--rc), 0 0 30px var(--rc), 0 6px 14px rgba(0,0,0,.5); }
 .rz-spwin{ position:absolute; background:#10141d; display:flex; align-items:center; justify-content:center;
   font-size:30px; overflow:hidden; z-index:1; }
 .rz-spart{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
@@ -4367,16 +4372,18 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   display:flex; flex-direction:column; justify-content:center; color:#f2ede2; }
 .rz-sprn{ font:900 6.5px system-ui; letter-spacing:1px; text-transform:uppercase; }
 .rz-spname{ font:800 8.5px system-ui; line-height:1.12; max-height:19px; overflow:hidden; }
-/* face-down: the worn back, breathing gold until it is tapped */
-.rz-spback{ width:100%; height:100%; object-fit:contain; display:block; -webkit-user-select:none; user-select:none; }
-.rz-sp.down .rz-spcard{ animation:rzSpPulse 2.2s ease-in-out infinite; }
-@keyframes rzSpPulse{
-  0%,100%{ filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)) drop-shadow(0 0 6px rgba(255,211,92,.25)); }
-  50%{ filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)) drop-shadow(0 0 16px rgba(255,211,92,.7)); } }
-.rz-spq{ position:absolute; right:5%; bottom:5%; width:22px; height:22px; border-radius:50%; pointer-events:none;
+/* face-down: the worn back, with a gold ring breathing behind it until it is tapped */
+.rz-sp.down .rz-spcard{ box-shadow:0 6px 14px rgba(0,0,0,.5); }
+.rz-spback{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; z-index:1;
+  -webkit-user-select:none; user-select:none; }
+.rz-spglow{ position:absolute; inset:0; border-radius:7px; pointer-events:none; z-index:0;
+  box-shadow:0 0 0 2px rgba(255,211,92,.55), 0 0 18px 4px rgba(255,211,92,.55);
+  animation:rzSpPulse 2.2s ease-in-out infinite; }
+@keyframes rzSpPulse{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
+.rz-spq{ position:absolute; right:5%; bottom:5%; width:22px; height:22px; border-radius:50%; pointer-events:none; z-index:2;
   display:flex; align-items:center; justify-content:center; font:900 14px system-ui; color:#1a1408;
   background:#ffd35c; box-shadow:0 2px 6px rgba(0,0,0,.6); }
-.rz-spcard.rz-spflip{ animation:rzFlipOut .14s ease-in forwards; }
+.rz-sp.down .rz-spcard.rz-spflip{ animation:rzFlipOut .14s ease-in forwards; }
 @keyframes rzFlipOut{ to{ transform:rotateY(90deg); } }
 .rz-sp.rz-spjust .rz-spcard{ animation:rzIn .24s ease-out; }
 .rz-spmeta{ display:flex; justify-content:center; gap:4px; }
@@ -4385,14 +4392,18 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rz-spb.dupe{ color:#c8d2dc; background:rgba(10,14,20,.5); }
 .rz-spb.hid{ color:#93a5b7; background:rgba(10,14,20,.5); }
 .rz-spval{ font:800 9px system-ui; color:#ffd35c; background:rgba(10,14,20,.5); border-radius:6px; padding:2px 5px; }
-.rz-spbtns{ display:flex; gap:3px; }
-.rz-spbtns button{ flex:1; padding:6px 2px; border-radius:8px; cursor:pointer; font:800 9.5px system-ui;
-  border:1.5px solid; white-space:nowrap; }
-.rz-spk{ color:#7db9ff; border-color:#7db9ff55; background:transparent; }
-.rz-spk.on{ background:rgba(125,185,255,.18); border-color:#7db9ff; }
-.rz-sps{ color:#ffd35c; border-color:#ffd35c66; background:transparent; }
-.rz-sps.on{ background:rgba(255,211,92,.2); border-color:#ffd35c; }
-.rz-sp.sold .rz-spcard{ opacity:.55; filter:grayscale(.5) drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+/* the slide switch: SHIP on the left, KEEP on the right, the knob slides to
+   whichever the player tapped. A card starts on keep. */
+.rz-sw{ position:relative; display:flex; height:27px; border-radius:14px; cursor:pointer; overflow:hidden;
+  background:#111621; border:1.5px solid #2b3142; -webkit-user-select:none; user-select:none; }
+.rz-swl{ position:relative; flex:1; z-index:2; display:flex; align-items:center; justify-content:center;
+  font:800 9.5px system-ui; color:#7b8a9c; white-space:nowrap; transition:color .22s; }
+.rz-swk{ position:absolute; top:2px; bottom:2px; left:2px; width:calc(50% - 3px); border-radius:11px; z-index:1;
+  transition:left .24s cubic-bezier(.4,1.4,.6,1), background .24s, border-color .24s; border:1px solid transparent; }
+.rz-sw.keep .rz-swk{ left:calc(50% + 1px); background:rgba(125,185,255,.22); border-color:#7db9ff; }
+.rz-sw.ship .rz-swk{ left:2px; background:rgba(255,211,92,.22); border-color:#ffd35c; }
+.rz-sw.keep .rz-spk{ color:#bcdcff; } .rz-sw.ship .rz-sps{ color:#ffe08a; }
+.rz-sp.sold .rz-spcard{ opacity:.55; }
 /* the zoom: one card of the spread at full size */
 .rz-zoom{ position:relative; }
 .rz-btn.on{ box-shadow:0 0 0 2px currentColor inset; }
@@ -4424,7 +4435,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · b1b8e7</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · c7dbff</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5540,7 +5551,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-10-oddone.js?v=e66af7007b"></script>
 <script src="oe-11-fishing2.js?v=554613d832"></script>
 <script src="oe-12-mining2.js?v=2ee842de0b"></script>
-<script src="oe-13-ripship.js?v=56ef79dda6"></script>
+<script src="oe-13-ripship.js?v=c1780cdee8"></script>
 <script src="oe-14-ledger.js?v=b36867f39e"></script>
 <script src="oe-15-grading.js?v=817788899f"></script>
 <script src="oe-16-market2.js?v=cb953caf76"></script>

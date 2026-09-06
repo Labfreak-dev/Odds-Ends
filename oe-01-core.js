@@ -732,7 +732,7 @@ function currentMarketSize(){
 
 function defaultSettings(){
   return { autoOpen:false, stopOnNew:false, stopOnRarity:false, rarityThreshold:14,
-    flashingEnabled:true, foilEffectsEnabled:true, sfxOff:false, musicOff:false, sfxVol:0.7, musicVol:0.8 };
+    flashingEnabled:true, foilEffectsEnabled:true, sfxOff:false, musicOff:false, sfxVol:0.5, musicVol:0.7 };
 }
 function defaultAccount(){
   return { name:"", empireName:"", email:"", avatarCardId:null };
@@ -855,8 +855,12 @@ function loadState(){
       if(s.settings===undefined) s.settings = defaultSettings();
       if(s.settings.flashingEnabled===undefined) s.settings.flashingEnabled = true;
       if(s.settings.foilEffectsEnabled===undefined) s.settings.foilEffectsEnabled = true;
-      if(s.settings.sfxVol===undefined) s.settings.sfxVol = 0.7;
-      if(s.settings.musicVol===undefined) s.settings.musicVol = 0.8;
+      if(s.settings.sfxVol===undefined) s.settings.sfxVol = 0.5;
+      if(s.settings.musicVol===undefined) s.settings.musicVol = 0.7;
+      /* batch 120 tamed the effects; a save that still sits at the old
+         louder default comes down with it, once - a slider the player has
+         moved since stays where they put it */
+      if(s.settings.sfxTame !== 2){ if(s.settings.sfxVol > 0.5) s.settings.sfxVol = 0.5; s.settings.sfxTame = 2; }
       if(s.upgrades===undefined) s.upgrades = defaultUpgrades();
       if(s.market===undefined) s.market = null;
       if(s.market && s.market.rerolls===undefined) s.market.rerolls = 0;
@@ -2768,7 +2772,7 @@ function populateSoundSettings(){
   if(!on("sfxOnToggle")) return;
   on("sfxOnToggle").checked = !state.settings.sfxOff;
   on("musicOnToggle").checked = !state.settings.musicOff;
-  on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.7 : state.settings.sfxVol)*100);
+  on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.5 : state.settings.sfxVol)*100);
   on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
 }
 function updateAccountSettings(){

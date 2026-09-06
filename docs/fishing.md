@@ -501,6 +501,34 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 120 — the sounds, tamed for real
+Playtester: "the sounds are still super bad. make them less jarring."
+Batch 117 trimmed, gapped and filtered; not enough. This pass changes how
+every effect is PLAYED rather than which ones play:
+- Every one-shot wears an envelope: 12ms fade-in, 90ms fade-out. Most of
+  the samples are hard-cut, and the click at the front of a hard-cut
+  sample is most of what reads as "jarring".
+- 5% random pitch drift per play, so a repeated sample never machine-guns;
+  a 120ms minimum gap on every key (not just the listed ones); at most
+  four one-shots sounding at once - a pile-up is noise, not information.
+- Loops (reel, tension, ambience) swell in over 0.35s and fade out over
+  0.25s instead of snapping on and off; volume changes ramp too.
+- The bus: rumble cut at 110Hz, lowpass down from 6.5kHz to 4.2kHz (the
+  fizz lives above it), the per-sample soft filter down to 3kHz, a gentle
+  compressor, a fast limiter, then a trim.
+- Defaults: sfx 0.5 (was 0.7), music 0.7 (was 0.8). A save still at the
+  old default comes down once (settings.sfxTame=2); a slider the player
+  has moved stays.
+
+Measured, not guessed: the first cut of the bus came out LOUDER than the
+old one - Web Audio's DynamicsCompressor adds automatic make-up gain, and
+two of them with low thresholds raised every peak 10-20%. Rendered offline
+through both chains (junk, treasure, tension_hi, backlash, reward_good,
+hookset, splash_big, plunk), the shipped bus lands peaks at ~37% of the
+batch-117 chain (about -9dB) with the energy above 4kHz down a quarter to
+a third. Lesson: never trust a compressor chain by ear alone in a headless
+session - render it and read the numbers.
+
 ## Batch 119 — the playtester's list: cash, rules, badges, dupes, the boss, the desktop
 Seven items in one message.
 

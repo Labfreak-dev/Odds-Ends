@@ -501,6 +501,51 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 118 — the spread: every pull face up, decide each where it lies
+Playtester: "the whole pack opening feels tedious, lets have all the cards
+show face up unless its new or a legendary/mythic, spread them out and let
+the player decide per card keep or ship. instead of a reveal screen for each
+card."
+
+WHAT. The hand (batch 66) is gone. After the tear, every pull lands in one
+scrollable grid (`.rz-spread`, `.rz-sp` cells, 3 across on a phone, 4-5 on
+a desktop) already face up in its rarity frame with its NEW/DUPE badge,
+value, and two buttons: `keep` and `+$pay`. Only a NEW card or a
+Legendary/Mythic waits face-down (worn card back, gold `?` badge, breathing
+glow); tap it and it turns over where it lies with the old flip's bursts,
+sigil bloom and mythic fireworks, sized for a mini. Tap a face-up card to
+zoom it (the old face view, now `.rz-zoom`, with SHIP / KEEP / back). Ship
+lands the money NOW, as before, but is undoable until the summary: the
+cell's `↩ undo` (or KEEP in the zoom) buys the copy back at exactly the
+price it went for, so a mis-tap on a 50-card ten-pack costs nothing. A pull
+that reaches zero copies was NEW, so dropping its grading entry loses
+nothing. `👁 turn the rest over` reveals every face-down card at once (staggered
+bursts); `🗃️ keep the rest · finish` goes to the batch-117 summary without
+forcing the reveals (the summary lists them anyway).
+
+AUTO-OPEN is live again. The rip-and-ship override never set revealState,
+so the host's auto chain (kickAutoChain) had been dead since batch 64. Now
+`state.settings.autoOpen` tears the foil by itself 450ms after the pack
+appears and lands the spread with NOTHING face-down - unless a stop
+condition is on, in which case exactly those cards (new / rarity ≥ the
+threshold) wait. The drawer copy says so.
+
+STAMP. integrate.py's build id hashed only the script manifest, so a
+css-only change never moved the chip and "is it live?" was unanswerable for
+exactly the changes people ask about. It now folds a hash of the host page
+in too.
+
+SUITES. smoke-ripship (now 47 checks), smoke-backs, smoke-economy and
+smoke-cardart all drove the hand (`#rzStack`, `.rz-hcard`); rewritten for
+the spread: cell counts equal pulls (no 13-cap), the face-down rule is
+asserted against `oeRipState()`, ship from the zoom, undo, ship from the
+cell, keep from the zoom, turn-the-rest-over, keep-all.
+
+Lessons: `.rz-b` stays the ZOOM's badge only - the mini badges are
+`.rz-spb`, so the suite's "exactly one badge" check still means something.
+A grid of fifty data-URI frames re-renders on every decision without a
+hitch; the scroll position is carried in RZ.scroll across renders.
+
 ## Batch 117 — sound settings, tamed effects, Gudgeon, the shelf counter, the summary
 Playtester's list. Five of six here; the pack-opening redesign is its own
 batch (118).

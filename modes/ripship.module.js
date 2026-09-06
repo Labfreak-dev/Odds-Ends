@@ -157,30 +157,90 @@ function rzCheckBacks(){
     try{ showToast(`🎴 New card back earned: ${won.name} — tap 🎴 backs in the hand to wear it`); }catch(e){}
   }
 }
-/* The hand: every undecided pull fanned face-down in an arc, the way a hand
-   of cards is actually held. Slot spacing and rotation tighten as the hand
-   grows, so a 30-card ten-pack still fits the box. The centre slot is the
-   active card - lifted, glowing, and the one that takes the tap. */
-function rzFanHtml(n, skipTop){
-  if(n <= 0) return "";
-  /* a ten-pack holds fifty pulls - fan only the nearest thirteen, the rest sit
-     hidden behind them; the hint line carries the true count. Uncapped, the
-     arc's lift term reached 200px+ and the hand swallowed the whole screen. */
-  const shown = Math.min(n, 13);
-  const step = Math.min(30, 290/shown), rot = Math.min(4.5, 46/shown), mid = (shown-1)/2;
-  const jTop = Math.round(mid);
-  let html = "";
-  for(let j=0;j<shown;j++){
-    const sl = j - mid;
-    const top = !skipTop && j === jTop;
-    const lift = top ? -14 : Math.min(22, Math.pow(Math.abs(sl), 1.25)*4);
-    const z = top ? 22 : 20 - Math.ceil(Math.abs(sl));
-    html += `<div class="rz-hcard${top?" top":""}"${top?` id="rzStack"`:""}
-      style="transform:translateX(${(sl*step).toFixed(1)}px) translateY(${lift.toFixed(1)}px) rotate(${(sl*rot).toFixed(2)}deg); z-index:${Math.max(1,z)}">
-      <div class="rz-hface" style="--d:${Math.abs(sl).toFixed(1)}"><img src="${rzBackImg()}" alt="" draggable="false"/></div>
+/* ---- the spread (batch 118) ----
+   Every pull lands face UP in one grid, and the player decides each card
+   where it lies. Only the cards worth a moment stay face-down: a NEW card
+   or a Legendary/Mythic, and under Fast Auto-Open only the stop conditions
+   the player asked for (nothing at all if there are none). */
+function rzHidden(c, auto){
+  const st = state.settings || {};
+  if(auto) return !!((st.stopOnNew && c._wasNew) || (st.stopOnRarity && c.rarity >= (st.rarityThreshold || 14)));
+  return !!c._wasNew || c.rarity >= 14;
+}
+function rzKeptVal(){
+  let v = 0;
+  RZ.pulls.forEach((c,i)=>{ if(!RZ.sold[i]) v += rzVal(c); });
+  return v;
+}
+/* SHIP lands the money NOW - and stays undoable until the summary, so a
+   mis-tap on a 50-card spread costs nothing: the card comes back at the same
+   price it went for. A pull that reaches zero copies was never graded (it
+   was NEW), so dropping its grading entry loses nothing. */
+function rzShipNow(i){
+  const c = RZ.pulls[i];
+  if(RZ.sold[i] || !(state.owned[c.id] > 0)) return false;
+  const pay = rzShipPay(c);
+  state.owned[c.id] -= 1;
+  if(!(state.owned[c.id] > 0)){
+    try{ if(state.grading && state.grading.graded) delete state.grading.graded[c.id]; }catch(e){}
+  }
+  try{ state.miningBonus = computeMiningBonusFromOwned(state.owned); }catch(e){}
+  state.dollars += pay;
+  RZ.shipped += pay; RZ.sold[i] = true;
+  rzBk().shipN += 1;
+  rzCheckBacks();
+  try{ fbSfxSafe && fbSfxSafe("reward_good", 0.35); }catch(e){}
+  try{ saveState(); renderHeader(); }catch(e){}
+  return true;
+}
+function rzUnship(i){
+  const c = RZ.pulls[i];
+  if(!RZ.sold[i]) return false;
+  const pay = rzShipPay(c);
+  if(state.dollars < pay) return false;   /* never let the pocket go negative */
+  state.owned[c.id] = (state.owned[c.id] || 0) + 1;
+  try{ state.miningBonus = computeMiningBonusFromOwned(state.owned); }catch(e){}
+  state.dollars -= pay;
+  RZ.shipped -= pay; RZ.sold[i] = false;
+  rzBk().shipN = Math.max(0, rzBk().shipN - 1);
+  try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){}
+  try{ saveState(); renderHeader(); }catch(e){}
+  return true;
+}
+function rzFinish(){
+  if(!RZ) return;
+  RZ.keptVal = rzKeptVal();
+  RZ.stage = "done"; rzRender();
+}
+/* one mini card. Face-down cells carry the worn back and no buttons - the
+   player cannot price a card they have not seen. */
+function rzCellHtml(c, i){
+  const r = RARITIES[c.rarity], sold = RZ.sold[i], d = Math.min(i, 24);
+  if(RZ.down[i]){
+    return `<div class="rz-sp down" data-i="${i}" style="--d:${d}">
+      <div class="rz-spcard"><img class="rz-spback" src="${rzBackImg()}" alt="" draggable="false"/><span class="rz-spq">?</span></div>
+      <div class="rz-spmeta"><span class="rz-spb hid">tap to turn</span></div>
     </div>`;
   }
-  return html;
+  const fr = rzFrame(c.rarity), w = fr.win, gx = 0.012, gy = 0.010;
+  const slug = c.rarity >= RZ_ART_MIN ? rzArtSlug(c.name) : null;
+  const art = slug && !rzArtMiss[slug] ? `<img class="rz-spart" data-slug="${slug}" src="art/${slug}.webp" alt="" draggable="false"/>` : "";
+  return `<div class="rz-sp${sold?" sold":""}${c._wasNew?" new":""}" data-i="${i}" style="--rc:${r.color}; --d:${d}">
+    <div class="rz-spcard${c.rarity>=14?" glow":""}">
+      <div class="rz-spwin" style="left:${((w[0]-gx)*100).toFixed(1)}%; top:${((w[1]-gy)*100).toFixed(1)}%;
+        width:${((w[2]-w[0]+2*gx)*100).toFixed(1)}%; height:${((w[3]-w[1]+2*gy)*100).toFixed(1)}%">${c.emoji}${art}</div>
+      <img class="rz-spframe" src="${fr.img}" alt="" draggable="false"/>
+      <div class="rz-spbody"${fr.ink?` style="color:${fr.ink}"`:""}>
+        <div class="rz-sprn" style="color:${fr.rname||r.color}">${r.name}</div>
+        <div class="rz-spname">${c.name.split(" — ")[0]}</div>
+      </div>
+    </div>
+    <div class="rz-spmeta"><span class="rz-spb ${c._wasNew?"new":"dupe"}">${c._wasNew?"NEW":"DUPE"}</span><span class="rz-spval">$${rzVal(c).toLocaleString()}</span></div>
+    <div class="rz-spbtns">
+      <button class="rz-spk${sold?"":" on"}">${sold?"↩ undo":"🗃️ keep"}</button>
+      <button class="rz-sps${sold?" on":""}">${sold?"📦 shipped":"📦 +$"+rzShipPay(c).toLocaleString()}</button>
+    </div>
+  </div>`;
 }
 /* ---------- card art on the flip ----------
    Three layers, best available wins, emoji is the instant floor:
@@ -279,10 +339,15 @@ startReveal = function(pack, packsArr, spentCredits){
     const allPulls = packsArr.reduce((a,p)=>a.concat(p), []);
     const gains = applyPulls(allPulls);
     try{ saveState(); renderHeader(); renderPackShelf(); }catch(e){}
-    RZ = { pack, pulls: allPulls, idx: 0, tear: 0, tearing:false,
+    const auto = !!(state.settings && state.settings.autoOpen);
+    RZ = { pack, pulls: allPulls, tear: 0, tearing:false, auto,
            spent: spentCredits || 0, shipped: 0, keptVal: 0, stage: "rip",
+           down: allPulls.map(c => rzHidden(c, auto)),   /* still face-down in the spread */
+           sold: allPulls.map(() => false),              /* shipped already (undoable) */
            best: allPulls.reduce((a,c)=> (!a || c.rarity > a.rarity) ? c : a, null) };
     rzOpen();
+    /* Fast Auto-Open: the foil parts by itself and the spread lands face up */
+    if(auto) setTimeout(()=>{ if(RZ && RZ.stage === "rip" && !RZ.ripping){ RZ.cut = null; rzRipDone(); } }, 450);
   }catch(e){
     try{ _origStartReveal(pack, packsArr, spentCredits); }catch(e2){}
   }
@@ -465,29 +530,42 @@ function rzRender(){
     pk.onpointermove = (e)=>{ if(RZ && RZ.tearing) tick(e); };
     pk.onpointerup = pk.onpointercancel = ()=>{ if(RZ) RZ.tearing = false; last = null; };
   }
-  else if(RZ.stage === "cards"){
-    const c = RZ.pulls[RZ.idx];
-    const left = RZ.pulls.length - RZ.idx;
-    const deal = !RZ.dealt; RZ.dealt = true;   /* the slide-out plays once, as the pack opens */
-    ov.innerHTML = `<div class="rz-box">
+  else if(RZ.stage === "spread"){
+    const n = RZ.pulls.length, downN = RZ.down.filter(Boolean).length, soldN = RZ.sold.filter(Boolean).length;
+    const deal = !RZ.dealt; RZ.dealt = true;   /* the deal-in plays once, as the pack opens */
+    RZ.keptVal = rzKeptVal();
+    ov.innerHTML = `<div class="rz-box wide">
       ${rzTally()}
-      <div class="rz-hand${deal?" deal":""}">${rzFanHtml(left, false)}</div>
-      <div class="rz-hint">${left} card${left===1?"":"s"} in hand · tap the front one to turn it</div>
-      <div class="rz-row"><button class="rz-btn dim" id="rzBacksBtn">🎴 backs</button>
-      <button class="rz-btn dim" id="rzKeepAll">🗃️ keep the rest</button></div>
+      <div class="rz-spread${deal?" deal":""}" id="rzSpread">${RZ.pulls.map((c,i)=>rzCellHtml(c,i)).join("")}</div>
+      <div class="rz-hint">${downN ? `🃏 ${downN} face-down · tap to turn ${downN===1?"it":"them"} over · ` : ""}${n} card${n===1?"":"s"} · ${soldN} shipped · tap a card to zoom</div>
+      <div class="rz-row">
+        <button class="rz-btn dim" id="rzBacksBtn">🎴 backs</button>
+        ${downN ? `<button class="rz-btn dim" id="rzRevealAll">👁 turn the rest over</button>` : ""}
+        <button class="rz-btn keep" id="rzKeepAll">🗃️ keep the rest · finish</button>
+      </div>
     </div>`;
-    document.getElementById("rzStack").onclick = ()=>{
-      if(RZ.flipping) return;
-      RZ.flipping = true;
-      const f = document.querySelector("#rzStack .rz-hface");
-      if(f) f.classList.add("rz-flipout");
-      setTimeout(()=>{ if(RZ) rzFlip(c); }, 130);
-    };
+    const sp = document.getElementById("rzSpread");
+    if(RZ.scroll) sp.scrollTop = RZ.scroll;
+    sp.onscroll = ()=>{ if(RZ) RZ.scroll = sp.scrollTop; };
+    sp.querySelectorAll(".rz-sp").forEach(el=>{
+      const i = +el.dataset.i, c = RZ.pulls[i];
+      el.querySelector(".rz-spcard").onclick = ()=>{
+        if(!RZ) return;
+        if(RZ.down[i]) rzReveal(i, el);
+        else { RZ.face = c; RZ.faceIdx = i; RZ.stage = "face"; rzRender(); }
+      };
+      const k = el.querySelector(".rz-spk"), sh = el.querySelector(".rz-sps");
+      if(k)  k.onclick  = ()=>{ if(!RZ) return; if(RZ.sold[i]) rzUnship(i); rzRender(); };
+      if(sh) sh.onclick = ()=>{ if(!RZ) return; if(!RZ.sold[i]) rzShipNow(i); rzRender(); };
+    });
+    /* painted art on the Rare+ minis: one cheap 404 per subject, then the emoji */
+    sp.querySelectorAll(".rz-spart").forEach(img=>{
+      img.onerror = ()=>{ rzArtMiss[img.dataset.slug] = 1; img.remove(); };
+    });
     document.getElementById("rzBacksBtn").onclick = ()=>{ RZ.stage = "backs"; rzRender(); };
-    document.getElementById("rzKeepAll").onclick = ()=>{
-      for(let i=RZ.idx; i<RZ.pulls.length; i++) RZ.keptVal += rzVal(RZ.pulls[i]);
-      RZ.stage = "done"; rzRender();
-    };
+    const ra = document.getElementById("rzRevealAll");
+    if(ra) ra.onclick = rzRevealAll;
+    document.getElementById("rzKeepAll").onclick = rzFinish;
   }
   else if(RZ.stage === "backs"){
     const bk = rzBk();
@@ -502,7 +580,7 @@ function rzRender(){
           <div class="rz-bneed">${own ? (eq ? "wearing it" : "tap to wear") : "🔒 " + b.need}</div>
         </div>`;
       }).join("") + `</div>
-      <div class="rz-row"><button class="rz-btn keep" id="rzBacksBack">back to the hand</button></div>
+      <div class="rz-row"><button class="rz-btn keep" id="rzBacksBack">back to the spread</button></div>
     </div>`;
     ov.querySelectorAll("[data-back]").forEach(el=>{
       el.onclick = ()=>{
@@ -513,19 +591,18 @@ function rzRender(){
         rzRender();
       };
     });
-    document.getElementById("rzBacksBack").onclick = ()=>{ RZ.stage = "cards"; rzRender(); };
+    document.getElementById("rzBacksBack").onclick = ()=>{ RZ.stage = "spread"; rzRender(); };
   }
   else if(RZ.stage === "face"){
-    const c = RZ.face, r = RARITIES[c.rarity];
-    const pay = rzShipPay(c);
-    const sig = c.rarity >= 9 ? rzSigil(c.rarity) : null;
-    const behind = RZ.pulls.length - RZ.idx - 1;   /* still face-down in the hand */
+    /* the zoom: one card of the spread, full size, with its two answers */
+    const c = RZ.face, i = RZ.faceIdx, r = RARITIES[c.rarity];
+    const pay = rzShipPay(c), sold = !!RZ.sold[i];
     const fr = rzFrame(c.rarity);
     const w = fr.win, gx = 0.012, gy = 0.010;   /* the art runs past the hole */
+    RZ.keptVal = rzKeptVal();
     ov.innerHTML = `<div class="rz-box">
       ${rzTally()}
-      ${sig ? `<img class="rz-sigil ${c.rarity>=14?"big":""}" src="${sig}" alt=""/>` : ""}
-      <div class="rz-hand faced">${rzFanHtml(behind, true)}
+      <div class="rz-zoom">
       <div class="rz-card framed ${c.rarity>=14?"burst":""}" style="--rc:${r.color}">
         <div class="rz-fwin" id="rzArt" style="left:${((w[0]-gx)*100).toFixed(1)}%; top:${((w[1]-gy)*100).toFixed(1)}%;
           width:${((w[2]-w[0]+2*gx)*100).toFixed(1)}%; height:${((w[3]-w[1]+2*gy)*100).toFixed(1)}%">${c.emoji}</div>
@@ -540,33 +617,20 @@ function rzRender(){
       </div>
       </div>
       <div class="rz-row">
-        <button class="rz-btn ship" id="rzShip">📦 SHIP IT +$${pay.toLocaleString()}</button>
-        <button class="rz-btn keep" id="rzKeep">🗃️ KEEP</button>
+        <button class="rz-btn ship${sold?" on":""}" id="rzShip">${sold ? "📦 SHIPPED ✓" : `📦 SHIP IT +$${pay.toLocaleString()}`}</button>
+        <button class="rz-btn keep${sold?"":" on"}" id="rzKeep">${sold ? `🗃️ TAKE IT BACK −$${pay.toLocaleString()}` : "🗃️ KEEP"}</button>
       </div>
+      <div class="rz-row"><button class="rz-btn dim" id="rzFaceBack">↩ back to the spread</button></div>
     </div>`;
     rzLoadArt(c);
-    document.getElementById("rzShip").onclick = ()=>{
-      if(RZ.leaving) return;
-      if(state.owned[c.id] > 0){
-        state.owned[c.id] -= 1;
-        if(!(state.owned[c.id] > 0)){
-          try{ if(state.grading && state.grading.graded) delete state.grading.graded[c.id]; }catch(e){}
-        }
-        try{ state.miningBonus = computeMiningBonusFromOwned(state.owned); }catch(e){}
-        state.dollars += pay;
-        RZ.shipped += pay;
-        rzBk().shipN += 1;
-        rzCheckBacks();
-        try{ fbSfxSafe && fbSfxSafe("reward_good", 0.35); }catch(e){}
-      }
-      rzAway();
-    };
+    const back = ()=>{ if(!RZ) return; RZ.stage = "spread"; rzRender(); };
+    document.getElementById("rzShip").onclick = ()=>{ if(!RZ) return; if(!sold) rzShipNow(i); back(); };
     document.getElementById("rzKeep").onclick = ()=>{
-      if(RZ.leaving) return;
-      RZ.keptVal += rzVal(c);
-      try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){}
-      rzAway();
+      if(!RZ) return;
+      if(sold) rzUnship(i); else { try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){} }
+      back();
     };
+    document.getElementById("rzFaceBack").onclick = back;
   }
   else if(RZ.stage === "done"){
     rzStreak += 1;
@@ -618,56 +682,85 @@ function rzRipDone(){
       rzBurst(cx, cy, ["#ffd35c","#ff9a5c","#e8e2d6","#8fd0ff"], { n:34, sp:330, s:8, life:1.1 });
     }catch(e){}
     try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
-    setTimeout(()=>{ if(!RZ) return; RZ.ripping = false; RZ.stage = "cards"; rzRender(); }, 620);
+    setTimeout(()=>{ if(!RZ) return; RZ.ripping = false; RZ.stage = "spread"; rzRender(); }, 620);
   } else {
-    RZ.ripping = false; RZ.stage = "cards"; rzRender();
+    RZ.ripping = false; RZ.stage = "spread"; rzRender();
   }
 }
-function rzFlip(c){
-  RZ.flipping = false;
-  RZ.face = c;
-  RZ.stage = "face";
-  rzCheckBacks();   /* the flipped card is revealed now, so a mythic may unlock the knot */
-  setTimeout(()=>{
-    try{
-      const el = document.querySelector(".rz-card");
-      if(!el) return;
-      const r = el.getBoundingClientRect(), ov = document.getElementById("rzOverlay").getBoundingClientRect();
-      const cx = r.left - ov.left + r.width/2, cy = r.top - ov.top + r.height/2;
-      const col = RARITIES[c.rarity].color;
-      if(c.rarity >= 15){
-        rzPoof(cx, cy, col);
-        rzBurst(cx, cy, [col,"#ffd35c","#ffffff"], { n:46, sp:420, kind:"star", s:22, g:0.35, life:1.5 });
-        rzBurst(cx, cy, [col,"#ffd35c"], { n:30, sp:300, s:8, life:1.2 });
-      } else if(c.rarity >= 12){
-        rzPoof(cx, cy, col);
-        rzBurst(cx, cy, [col,"#ffd35c"], { n:30, sp:320, kind:"star", s:17, g:0.5, life:1.1 });
-      } else if(c.rarity >= 9){
-        rzBurst(cx, cy, [col,"#e8e2d6"], { n:20, sp:240, s:7, life:0.9 });
-      } else if(c.rarity >= 6){
-        rzBurst(cx, cy, [col], { n:10, sp:170, s:5, life:0.7 });
+/* the reveal burst, sized to the card it plays on - a mini in the spread
+   gets the same colours as the old full-size flip at about half the spray */
+function rzBurstOn(el, c){
+  try{
+    const r = el.getBoundingClientRect(), ov = document.getElementById("rzOverlay").getBoundingClientRect();
+    const cx = r.left - ov.left + r.width/2, cy = r.top - ov.top + r.height/2;
+    const col = RARITIES[c.rarity].color;
+    if(c.rarity >= 15){
+      rzPoof(cx, cy, col);
+      rzBurst(cx, cy, [col,"#ffd35c","#ffffff"], { n:40, sp:380, kind:"star", s:18, g:0.35, life:1.5 });
+      rzBurst(cx, cy, [col,"#ffd35c"], { n:24, sp:280, s:7, life:1.2 });
+    } else if(c.rarity >= 12){
+      rzPoof(cx, cy, col);
+      rzBurst(cx, cy, [col,"#ffd35c"], { n:24, sp:280, kind:"star", s:14, g:0.5, life:1.1 });
+    } else if(c.rarity >= 9){
+      rzBurst(cx, cy, [col,"#e8e2d6"], { n:16, sp:220, s:6, life:0.9 });
+    } else if(c.rarity >= 6){
+      rzBurst(cx, cy, [col], { n:8, sp:150, s:4, life:0.7 });
+    }
+    if(c.rarity >= 9){
+      const box = document.querySelector("#rzOverlay .rz-box");
+      const sig = rzSigil(c.rarity);
+      if(box && sig){
+        const im = document.createElement("img");
+        im.className = "rz-sigil" + (c.rarity >= 14 ? " big" : ""); im.src = sig; im.alt = "";
+        box.appendChild(im);
+        setTimeout(()=>{ try{ im.remove(); }catch(e){} }, 1600);
       }
-    }catch(e){}
-  }, 60);
+    }
+  }catch(e){}
+}
+function rzRevealSfx(c){
+  try{ fbSfxSafe && fbSfxSafe(c.rarity >= 14 ? "reward_legend" : c.rarity >= 9 ? "reward_rare" : "reward_common", c.rarity >= 14 ? 0.5 : 0.3); }catch(e){}
   if(c.rarity >= 15 && typeof triggerMythicFireworksEvent === "function"){
     try{ if(!state.settings || state.settings.flashingEnabled !== false) triggerMythicFireworksEvent(); }catch(e){}
   }
-  rzRender();
 }
-/* the decided card leaves the hand before the fan closes ranks */
-function rzAway(){
-  if(RZ.leaving) return;
-  RZ.leaving = true;
-  const el = document.querySelector(".rz-card");
-  if(el) el.classList.add("rz-away");
-  setTimeout(()=>{ if(RZ) rzNext(); }, 230);
+/* a face-down cell turns over where it lies */
+function rzReveal(i, el){
+  if(!RZ || !RZ.down[i] || RZ.flipping) return;
+  RZ.flipping = true;
+  const c = RZ.pulls[i];
+  const card = el && el.querySelector(".rz-spcard");
+  if(card) card.classList.add("rz-spflip");
+  setTimeout(()=>{
+    if(!RZ) return;
+    RZ.flipping = false;
+    if(RZ.stage !== "spread") return;
+    RZ.down[i] = false;
+    rzCheckBacks();   /* the card is revealed now, so a mythic may unlock the knot */
+    rzRender();
+    const el2 = document.querySelector(`.rz-sp[data-i="${i}"]`);
+    if(el2){ el2.classList.add("rz-spjust"); rzBurstOn(el2, c); }
+    rzRevealSfx(c);
+  }, 140);
 }
-function rzNext(){
-  RZ.leaving = false;
-  RZ.idx += 1;
-  RZ.stage = RZ.idx >= RZ.pulls.length ? "done" : "cards";
-  try{ saveState(); renderHeader(); }catch(e){}
+function rzRevealAll(){
+  if(!RZ || RZ.stage !== "spread") return;
+  const idx = [];
+  RZ.down.forEach((d,i)=>{ if(d){ RZ.down[i] = false; idx.push(i); } });
+  if(!idx.length) return;
+  rzCheckBacks();
   rzRender();
+  let top = null;
+  idx.forEach((i,k)=>{
+    const c = RZ.pulls[i];
+    if(!top || c.rarity > top.rarity) top = c;
+    setTimeout(()=>{
+      if(!RZ || RZ.stage !== "spread") return;
+      const el = document.querySelector(`.rz-sp[data-i="${i}"]`);
+      if(el){ el.classList.add("rz-spjust"); rzBurstOn(el, c); }
+    }, 90*k);
+  });
+  if(top) rzRevealSfx(top);
 }
 /* The host's boot render of the pack shelf runs before this module exists and
    falls back to the emoji tile; now that the foil is exported, redraw it. */

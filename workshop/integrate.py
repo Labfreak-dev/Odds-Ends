@@ -158,7 +158,7 @@ src = once(src,
 anchor = '  /* Runeshard entry removed - it ships as its own build. */\n];'
 entries = """  { id:"provenance",  name:"Provenance",   icon:"\U0001F5C3\uFE0F", desc:"An archive record with the name struck out. Four cards. Name the thing.", meta:"1,215 subjects" },
   { id:"connections", name:"Connections",  icon:"\U0001F9E9", desc:"Sixteen cards, four groups of four. Everything you need is on the cards.", meta:"Daily-style puzzle" },
-  { id:"showcase",    name:"The Case",     icon:"\U0001F5C4\uFE0F", desc:"Five slots, each with a rule. Twelve cards. Make them fit.", meta:"Constraint puzzle" },
+  { id:"showcase",    name:"The Case",     icon:"\U0001F5C4\uFE0F", desc:"Slots with rules — a line or a grid, three difficulties. Make the hand fit.", meta:"Constraint puzzle" },
   { id:"oddone",      name:"Odd One Out",  icon:"\U0001F440", desc:"Three belong together, one doesn't. Ten seconds.", meta:"Fast rounds" },
   { id:"press",       name:"The Press",    icon:"\u2699\uFE0F", desc:"Spare prints in, one good print out. Merge tiers until the plate jams.", meta:"Duplicate sink" },
   /* Runeshard entry removed - it ships as its own build. */

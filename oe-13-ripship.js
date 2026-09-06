@@ -160,13 +160,14 @@ function rzCheckBacks(){
 }
 /* ---- the spread (batch 118) ----
    Every pull lands face UP in one grid, and the player decides each card
-   where it lies. Only the cards worth a moment stay face-down: a NEW card
-   or a Legendary/Mythic, and under Fast Auto-Open only the stop conditions
-   the player asked for (nothing at all if there are none). */
+   where it lies. Only the cards worth a moment stay face-down - a NEW card
+   or a Legendary/Mythic, ALWAYS, in every mode: the reveal is the fun part.
+   Fast Auto-Open only adds to that: a rarity stop lower than Legendary
+   keeps those cards down too. */
 function rzHidden(c, auto){
+  if(c._wasNew || c.rarity >= 14) return true;
   const st = state.settings || {};
-  if(auto) return !!((st.stopOnNew && c._wasNew) || (st.stopOnRarity && c.rarity >= (st.rarityThreshold || 14)));
-  return !!c._wasNew || c.rarity >= 14;
+  return !!(auto && st.stopOnRarity && c.rarity >= (st.rarityThreshold || 14));
 }
 function rzKeptVal(){
   let v = 0;

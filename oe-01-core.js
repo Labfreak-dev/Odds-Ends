@@ -2761,22 +2761,15 @@ function onAccountFieldChange(field, value){
 
 function updateSoundSettings(){
   const on = id => document.getElementById(id);
-  state.settings.sfxOff = !on("sfxOnToggle").checked;
   state.settings.musicOff = !on("musicOnToggle").checked;
-  state.settings.sfxVol = Number(on("sfxVolRange").value)/100;
   state.settings.musicVol = Number(on("musicVolRange").value)/100;
   saveState();
   try{ if(typeof window.oeSoundSettingsChanged === "function") window.oeSoundSettingsChanged(); }catch(e){}
-  /* a little proof the effects switch is live */
-  try{ if(!state.settings.sfxOff && typeof fbSfxSafe === "function" && updateSoundSettings._armed) fbSfxSafe("equip", 0.3); }catch(e){}
-  updateSoundSettings._armed = true;
 }
 function populateSoundSettings(){
   const on = id => document.getElementById(id);
-  if(!on("sfxOnToggle")) return;
-  on("sfxOnToggle").checked = !state.settings.sfxOff;
+  if(!on("musicOnToggle")) return;
   on("musicOnToggle").checked = !state.settings.musicOff;
-  on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.5 : state.settings.sfxVol)*100);
   on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
 }
 function updateAccountSettings(){

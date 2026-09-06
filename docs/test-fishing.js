@@ -539,12 +539,9 @@ console.log("\n=== conditions & the journal ===");
   global.fsh=null;
   for(let i=0;i<3000;i++){ const c=FE.rollCatch(0.4,false); if(c.def.tier===4||c.def.tier===5) base++; }
   check(`aiming at a big shadow more than doubles its band (${base}→${hi})`, hi > base*1.7, `${base} vs ${hi}`);
-  // sound coverage: every key the code plays exists in the pack
-  const played=[...SRC.matchAll(/fe(?:Sound|LoopStart)\("([a-z_]+)"/g)].map(m=>m[1]);
-  const fan=[...SRC.matchAll(/FANFARE = \[([^\]]+)\]/g)][0][1].match(/[a-z_]+/g);
-  const need=[...new Set([...played,...fan])];
-  const missing=need.filter(k=>!FE.FE_SFX_KEYS.includes(k));
-  check(`all ${need.length} referenced sounds exist in the pack`, missing.length===0, missing.join(","));
+  // sound: effects are retired (batch 126) - the pack carries the three beds and nothing else
+  const beds=["music","music_night","amb_water"];
+  check("the pack carries exactly the three beds", FE.FE_SFX_KEYS.length===3 && beds.every(k=>FE.FE_SFX_KEYS.includes(k)), FE.FE_SFX_KEYS.join(","));
 }
 
 console.log("\n=== sprites & the ridge line ===");

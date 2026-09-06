@@ -501,6 +501,30 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 126 — sound effects retired
+Playtester: "the mining click sound is still annoying, cut it" - then "the
+sound effects are still super bad. if you cant make them good then lets
+remove them all together." Three passes (117, 120 and the trims between)
+did not get there, so they are gone.
+
+WHAT STAYS. The beds: the Dreams piano by day and by night, and the water.
+All three sit on the MUSIC switch now (the water bed used to follow
+effects). Settings keeps one panel - Music on/off and volume - and says
+why the effects controls are gone; the fishing HUD loses the 🔊 chip; the
+mixer keeps the music slider and the vibration switch.
+
+WHAT WENT. feSound returns before it does anything, so every one of the
+~70 call sites across fishing, mining, the spread, the ledger and the rest
+stays as written and plays nothing; feLoopStart refuses anything but the
+three beds (the reel loop was the last effect standing). The sample pack
+shrank from 43 sounds and 2.2MB to the three beds. The bus, envelopes and
+trims from 117/120 are still in the file, inert, should effects ever come
+back with better samples.
+
+Suites: test-fishing checks the pack carries exactly the three beds;
+smoke-spots checks feSound is inert, the reel loop never starts, and the
+mixer has no effects slider.
+
 ## Batch 125 — the legend's shadow shows up faster
 Playtester: "make the fishing boss shadow show up faster." The patrol was
 a 0.02-per-second roll while the water was idle - a mean wait of 50

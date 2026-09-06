@@ -4077,10 +4077,9 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     </div>
 
     <div class="panel" id="soundPanel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🔊 Sound</div>
+      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🎵 Music</div>
+      <div style="color:var(--muted); font-size:12px; margin:-6px 0 12px;">Sound effects were retired in batch 126. The fishing water's piano and the water itself are all that plays.</div>
       <div class="snd-grid">
-        <label class="toggle-row"><input type="checkbox" id="sfxOnToggle" onchange="updateSoundSettings()"> 🔔 Effects</label>
-        <label class="snd-slider"><span>Effects volume</span><input type="range" id="sfxVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
         <label class="toggle-row"><input type="checkbox" id="musicOnToggle" onchange="updateSoundSettings()"> 🎵 Music</label>
         <label class="snd-slider"><span>Music volume</span><input type="range" id="musicVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
       </div>
@@ -6953,22 +6952,15 @@ function onAccountFieldChange(field, value){
 
 function updateSoundSettings(){
   const on = id => document.getElementById(id);
-  state.settings.sfxOff = !on("sfxOnToggle").checked;
   state.settings.musicOff = !on("musicOnToggle").checked;
-  state.settings.sfxVol = Number(on("sfxVolRange").value)/100;
   state.settings.musicVol = Number(on("musicVolRange").value)/100;
   saveState();
   try{ if(typeof window.oeSoundSettingsChanged === "function") window.oeSoundSettingsChanged(); }catch(e){}
-  /* a little proof the effects switch is live */
-  try{ if(!state.settings.sfxOff && typeof fbSfxSafe === "function" && updateSoundSettings._armed) fbSfxSafe("equip", 0.3); }catch(e){}
-  updateSoundSettings._armed = true;
 }
 function populateSoundSettings(){
   const on = id => document.getElementById(id);
-  if(!on("sfxOnToggle")) return;
-  on("sfxOnToggle").checked = !state.settings.sfxOff;
+  if(!on("musicOnToggle")) return;
   on("musicOnToggle").checked = !state.settings.musicOff;
-  on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.5 : state.settings.sfxVol)*100);
   on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
 }
 function updateAccountSettings(){

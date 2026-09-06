@@ -191,9 +191,11 @@ async def main():
             "JSON.stringify(fsh.sightBias)==='[4,5]'"))
         check("the spooked shadow bolts with a ring", await pg.evaluate(
             "feShadows.length===0 || feShadows[0].hit>0 || Math.abs(feShadows[0].vx)>0"))
-        # sound: one buffer decodes, mute chip flips and persists
-        dec=await pg.evaluate("(async()=>{ feAudioUnlock(); const b=await feBuffer('plunk'); return !!(b && b.duration>0.01); })()")
-        check("the plunk decodes into a real audio buffer", dec)
+        # sound: effects are retired (batch 126); the beds decode, feSound is inert
+        dec=await pg.evaluate("(async()=>{ feAudioUnlock(); const b=await feBuffer('music'); return !!(b && b.duration>0.01); })()")
+        check("the piano decodes into a real audio buffer", dec)
+        check("feSound is inert - no effect ever plays", await pg.evaluate(
+            "(()=>{ feAudioUnlock(); feSound('plunk',{gap:0}); feSound('treasure',{gap:0}); return feVoices===0 && !document.getElementById('feSfxChip'); })()"))
         await pg.evaluate("fsh.phase='idle'; fshRenderControls();"); await pg.wait_for_timeout(300)
         # ambience: with the context awake, the music pad and water bed loop
         amb=await pg.evaluate("""(async()=>{
@@ -203,7 +205,7 @@ async def main():
                    keys: Object.keys(FE_SFX).length };
         })()""")
         check("the piano and water bed loop when awake", amb["music"] and amb["water"], amb)
-        check("the pack now carries 43 sounds", amb["keys"]==43, amb["keys"])
+        check("the pack carries the three beds and nothing else", amb["keys"]==3, amb["keys"])
         night=await pg.evaluate("""(async()=>{
           feEnv.hour=23.5;
           await new Promise(r=>setTimeout(r, 600));
@@ -214,13 +216,9 @@ async def main():
         })()""")
         check("the piano keeps the hours (Blue after dark, Calm by day)", night)
         await pg.evaluate("document.getElementById('feMusicChip').click()"); await pg.wait_for_timeout(400)
-        check("the music chip silences the pad alone", await pg.evaluate(
-            "fshInv().musicMute===true && !feLoops.music && !!feLoops.amb_water"))
+        check("the music chip silences the beds", await pg.evaluate(
+            "fshInv().musicMute===true && !feLoops.music && !feLoops.amb_water"))
         await pg.evaluate("document.getElementById('feMusicChip').click()")
-        await pg.evaluate("document.getElementById('feSfxChip').click()"); await pg.wait_for_timeout(300)
-        check("the mute chip flips and persists", await pg.evaluate(
-            "fshInv().sfxMute===true && document.getElementById('feSfxChip').textContent.includes('🔇')"))
-        await pg.evaluate("document.getElementById('feSfxChip').click()")
         # --- species portraits ---
         chk=await pg.evaluate("""(()=>{
           const names=new Set(FSH_CATCH.flatMap(d=>d.items.map(it=>it[0])));
@@ -378,19 +376,18 @@ async def main():
         # --- the mixer & the buzz ---
         check("the mixer chip rides the row", await pg.evaluate("!!document.getElementById('feMixChip')"))
         await pg.evaluate("feMixerOpen()"); await pg.wait_for_timeout(200)
-        check("two sliders and a vibe switch", await pg.evaluate(
-            "!!document.getElementById('feMixSfx') && !!document.getElementById('feMixMus') && !!document.getElementById('feMixVibe')"))
-        await pg.evaluate("""(()=>{ const s=document.getElementById('feMixSfx'); s.value=40; s.oninput({target:s});
-          const m2=document.getElementById('feMixMus'); m2.value=65; m2.oninput({target:m2});
+        check("a music slider and a vibe switch, no effects slider", await pg.evaluate(
+            "!document.getElementById('feMixSfx') && !!document.getElementById('feMixMus') && !!document.getElementById('feMixVibe')"))
+        await pg.evaluate("""(()=>{ const m2=document.getElementById('feMixMus'); m2.value=65; m2.oninput({target:m2});
           document.getElementById('feMixVibe').onclick({target:document.getElementById('feMixVibe')}); })()""")
         await pg.wait_for_timeout(200)
-        check("volumes and vibe choice persist", await pg.evaluate(
-            "Math.abs(fshInv().sfxVol-0.4)<0.01 && Math.abs(fshInv().musicVol-0.65)<0.01 && fshInv().vibeOff===true"))
-        check("muting effects leaves music free to start", await pg.evaluate("""(()=>{
-          fshInv().sfxMute = true; fshInv().musicMute = false;
-          feLoopStart('music', 0.3);
-          const ok = !!feLoops['music'];
-          feLoopStop('music'); fshInv().sfxMute = false;
+        check("volume and vibe choice persist", await pg.evaluate(
+            "Math.abs(fshInv().musicVol-0.65)<0.01 && fshInv().vibeOff===true"))
+        check("the retired reel loop never starts", await pg.evaluate("""(()=>{
+          fshInv().musicMute = false;
+          feLoopStart('reel_loop', 0.3); feLoopStart('music', 0.3);
+          const ok = !feLoops['reel_loop'] && !!feLoops['music'];
+          feLoopStop('music');
           return ok;
         })()"""))
         check("the fight buzzes harder as it drags", await pg.evaluate("""(()=>{

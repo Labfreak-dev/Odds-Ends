@@ -132,7 +132,13 @@ function feMusVol(){
   const g = feGlobalVol("musicVol", 0.8);
   try{ const v = fshInv().musicVol; return g * (v === undefined ? 1 : v); }catch(e){ return g; }
 }
+/* batch 126: sound EFFECTS are retired at the playtester's word ("if you
+   can't make them good, remove them"). Every call site stays so the game
+   reads the same; nothing plays. The beds - the two piano loops and the
+   water - remain, on the music switch. */
+const FE_BEDS = new Set(["music", "music_night", "amb_water"]);
 function feSound(key, opt){
+  return;
   opt = opt || {};
   if(feMuted()) return;
   /* rate limit on the wall clock - fshT only ticks while the water is up,
@@ -167,9 +173,9 @@ function feSound(key, opt){
   }).catch(()=>{});
 }
 function feLoopStart(key, vol){
-  /* music answers only to the music switch; everything else to the sfx one */
-  const isMus = key.indexOf("music") === 0;
-  const muted = isMus ? feMusicMuted() : feMuted();
+  if(!FE_BEDS.has(key)) return;            /* the reel loop and every other effect are retired */
+  const isMus = true;                       /* every bed answers to the music switch */
+  const muted = feMusicMuted();
   if(muted || feLoops[key]) return;
   const c = feAudioCtx(); if(!c) return;
   feLoops[key] = { pending:true };
@@ -1078,7 +1084,7 @@ function fshTick(dt){
   feLoopStop(other);
   if(ctxLive && !feMusicMuted()) feLoopStart(track, track === "music" ? 0.3 : 0.24);
   else feLoopStop(track);
-  if(ctxLive && !feMuted()) feLoopStart("amb_water", 0.10); else feLoopStop("amb_water");
+  if(ctxLive && !feMusicMuted()) feLoopStart("amb_water", 0.10); else feLoopStop("amb_water");
   if(fsh.shake > 0) fsh.shake = Math.max(0, fsh.shake - dt*3.2);
 
   for(let i=fsh.ripples.length-1;i>=0;i--){ fsh.ripples[i].t += dt; if(fsh.ripples[i].t > 1.5) fsh.ripples.splice(i,1); }
@@ -1512,13 +1518,11 @@ function feMixerOpen(){
   m = document.createElement("div");
   m.id = "feMixer";
   m.innerHTML = `<div class="fej-head"><b>🎚️ Sound on the water</b><button class="fe-secx" id="feMixX">✕</button></div>
-    <div style="font:600 10px system-ui; color:#5f7288; margin:-4px 0 2px;">these only shape the fishing tab · master sound lives in Settings</div>
-    <label>🔊 Effects <input id="feMixSfx" type="range" min="0" max="100" value="${Math.round((inv.sfxVol===undefined?1:inv.sfxVol)*100)}"></label>
+    <div style="font:600 10px system-ui; color:#5f7288; margin:-4px 0 2px;">shapes the fishing tab · master music lives in Settings</div>
     <label>🎵 Music <input id="feMixMus" type="range" min="0" max="100" value="${Math.round((inv.musicVol===undefined?1:inv.musicVol)*100)}"></label>
     <button id="feMixVibe" class="fe-secbtn">${inv.vibeOff ? "📳 Vibration: off" : "📳 Vibration: on"}</button>`;
   (document.fullscreenElement || document.body).appendChild(m);
   document.getElementById("feMixX").onclick = ()=> m.remove();
-  document.getElementById("feMixSfx").oninput = e => { inv.sfxVol = e.target.value/100; feApplyVols(); saveState(); };
   document.getElementById("feMixMus").oninput = e => { inv.musicVol = e.target.value/100; feApplyVols(); saveState(); };
   document.getElementById("feMixVibe").onclick = e => {
     inv.vibeOff = !inv.vibeOff; saveState();
@@ -2441,7 +2445,6 @@ function feRenderSpots(){
     </div>
     <div class="fe-spots">${chips}</div>
     <div class="fe-spot-line">${cur.line}${special} · 🎴 ${feTTOwned()}/1000
-      <button id="feSfxChip" class="fe-sfx">${feMuted() ? "🔇" : "🔊"}</button>
       <button id="feMusicChip" class="fe-sfx">${fshInv().musicMute ? "🎵̸" : "🎵"}</button>
       <button id="feMixChip" class="fe-sfx">🎚️</button>
       <button id="feFullChip" class="fe-sfx" title="full screen">⛶</button>
@@ -2512,15 +2515,7 @@ function feRenderSpots(){
     if(mChip) mChip.onclick = ()=>{
       feAudioUnlock();
       fshInv().musicMute = !fshInv().musicMute;
-      if(fshInv().musicMute){ feLoopStop("music"); feLoopStop("music_night"); }
-      saveState(); feSpotHtml=""; feRenderSpots();
-    };
-    const sfxChip = row.querySelector("#feSfxChip");
-    if(sfxChip) sfxChip.onclick = ()=>{
-      feAudioUnlock();
-      fshInv().sfxMute = !fshInv().sfxMute;
-      if(feMuted()) for(const k in feLoops){ if(!feLoops[k].isMus) feLoopStop(k); }
-      else feSound("train", { vol: 0.42 });   // instant proof your device has sound
+      if(fshInv().musicMute){ feLoopStop("music"); feLoopStop("music_night"); feLoopStop("amb_water"); }
       saveState(); feSpotHtml=""; feRenderSpots();
     };
     row.querySelectorAll(".fe-spot").forEach(b=>{ b.onclick = ()=> feSpotTap(b.dataset.spot); });

@@ -3041,6 +3041,15 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   .play-card[data-game="connections"]{ border-color:#6a8ad0; }
   .play-card[data-game="showcase"]{ border-color:#d0a060; }
 
+  .snd-grid{ display:grid; grid-template-columns:auto 1fr; gap:10px 16px; align-items:center; max-width:520px; }
+  .snd-slider{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted); }
+  .snd-slider input[type=range]{ flex:1; accent-color:#e0b35a; min-width:120px; }
+  @media (max-width:520px){ .snd-grid{ grid-template-columns:1fr; } }
+  .pack-prog{ margin-top:4px; }
+  .pack-prog span{ font-size:11.5px; color:var(--muted); }
+  .pack-prog i{ display:block; height:4px; border-radius:2px; margin-top:4px;
+    background:linear-gradient(90deg, #e0b35a var(--p,0%), rgba(255,255,255,.12) var(--p,0%)); }
+  .pack-prog.full span{ color:#ffd35c; font-weight:800; }
   /* ---- Start screen: the crest over a rain of the game's own cards ------
      Present in the markup so it is the first thing painted; the tail script
      fills the rain and removes it on the first tap. Automation and ?nostart
@@ -4061,6 +4070,19 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
         sparkle/glow/holo animations on rarity cards across the app.
       </div>
     </div>
+
+    <div class="panel" id="soundPanel">
+      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🔊 Sound</div>
+      <div class="snd-grid">
+        <label class="toggle-row"><input type="checkbox" id="sfxOnToggle" onchange="updateSoundSettings()"> 🔔 Effects</label>
+        <label class="snd-slider"><span>Effects volume</span><input type="range" id="sfxVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
+        <label class="toggle-row"><input type="checkbox" id="musicOnToggle" onchange="updateSoundSettings()"> 🎵 Music</label>
+        <label class="snd-slider"><span>Music volume</span><input type="range" id="musicVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
+      </div>
+      <div style="color:var(--muted); font-size:12px; margin-top:10px;">
+        These are the master switches for the whole game. The chips on the fishing tab only quiet the water while you're there.
+      </div>
+    </div>
   </section>
 
 </main>
@@ -4897,7 +4919,7 @@ function currentMarketSize(){
 
 function defaultSettings(){
   return { autoOpen:false, stopOnNew:false, stopOnRarity:false, rarityThreshold:14,
-    flashingEnabled:true, foilEffectsEnabled:true };
+    flashingEnabled:true, foilEffectsEnabled:true, sfxOff:false, musicOff:false, sfxVol:0.7, musicVol:0.8 };
 }
 function defaultAccount(){
   return { name:"", empireName:"", email:"", avatarCardId:null };
@@ -5020,6 +5042,8 @@ function loadState(){
       if(s.settings===undefined) s.settings = defaultSettings();
       if(s.settings.flashingEnabled===undefined) s.settings.flashingEnabled = true;
       if(s.settings.foilEffectsEnabled===undefined) s.settings.foilEffectsEnabled = true;
+      if(s.settings.sfxVol===undefined) s.settings.sfxVol = 0.7;
+      if(s.settings.musicVol===undefined) s.settings.musicVol = 0.8;
       if(s.upgrades===undefined) s.upgrades = defaultUpgrades();
       if(s.market===undefined) s.market = null;
       if(s.market && s.market.rerolls===undefined) s.market.rerolls = 0;
@@ -5784,8 +5808,10 @@ function renderPackShelf(){
     if(p.hidden) return; // dev/test packs stay in the data model but never render in the shelf
     if(p.testOnly && !devModeOn()) return; // test packs only appear once dev tools are unlocked
     const locked = p.minLevel && playerLevel < p.minLevel;
-    const count = p.categories===null ? cards.length :
-      p.categories.reduce((s,cat)=> s + (poolByCategoryTier[cat] ? poolByCategoryTier[cat].reduce((a,b)=>a+b.length,0) : 0), 0);
+    const pool = p.categories===null ? cards :
+      p.categories.flatMap(cat => poolByCategoryTier[cat] ? poolByCategoryTier[cat].flat() : []);
+    const count = pool.length;
+    const have = pool.reduce((n,c)=> n + ((state.owned[c.id]||0) > 0 ? 1 : 0), 0);
     const price1 = Math.round(p.price1 * (1-discount));
     const price10 = Math.round(p.price10 * (1-discount));
     const earned = p.earnOnly ? (typeof riskPacksOwned === "function" ? riskPacksOwned() : 0) : 0;
@@ -5801,7 +5827,7 @@ function renderPackShelf(){
         : `<div class="icon">${p.icon}</div>`}
       <div class="title">${p.name}</div>
       <div class="sub">${p.sub}</div>
-      <div class="sub" style="margin-top:2px; opacity:.7;">${count.toLocaleString()} cards in set</div>
+      <div class="pack-prog${have>=count&&count>0?" full":""}" title="${have.toLocaleString()} of ${count.toLocaleString()} collected"><span>${have.toLocaleString()}/${count.toLocaleString()} cards in set</span><i style="--p:${count?Math.round(have/count*100):0}%"></i></div>
       ${p.earnOnly
         ? (earned > 0
             ? `<div class="price risk-open">Open a pack — ${earned} held</div>`
@@ -6912,6 +6938,26 @@ function onAccountFieldChange(field, value){
   if(field==="empireName") renderEmpire();
 }
 
+function updateSoundSettings(){
+  const on = id => document.getElementById(id);
+  state.settings.sfxOff = !on("sfxOnToggle").checked;
+  state.settings.musicOff = !on("musicOnToggle").checked;
+  state.settings.sfxVol = Number(on("sfxVolRange").value)/100;
+  state.settings.musicVol = Number(on("musicVolRange").value)/100;
+  saveState();
+  try{ if(typeof window.oeSoundSettingsChanged === "function") window.oeSoundSettingsChanged(); }catch(e){}
+  /* a little proof the effects switch is live */
+  try{ if(!state.settings.sfxOff && typeof fbSfxSafe === "function" && updateSoundSettings._armed) fbSfxSafe("equip", 0.3); }catch(e){}
+  updateSoundSettings._armed = true;
+}
+function populateSoundSettings(){
+  const on = id => document.getElementById(id);
+  if(!on("sfxOnToggle")) return;
+  on("sfxOnToggle").checked = !state.settings.sfxOff;
+  on("musicOnToggle").checked = !state.settings.musicOff;
+  on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.7 : state.settings.sfxVol)*100);
+  on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
+}
 function updateAccountSettings(){
   state.settings.flashingEnabled = document.getElementById("flashingToggle").checked;
   state.settings.foilEffectsEnabled = document.getElementById("foilEffectsToggle").checked;
@@ -6998,6 +7044,7 @@ function renderAccount(){
   if(empireEl) empireEl.value = state.account.empireName || "";
   const emailEl = document.getElementById("accountEmailInput");
   if(emailEl) emailEl.value = state.account.email || "";
+  populateSoundSettings();
   const flashEl = document.getElementById("flashingToggle");
   if(flashEl) flashEl.checked = state.settings.flashingEnabled !== false;
   const foilEl = document.getElementById("foilEffectsToggle");
@@ -14512,8 +14559,17 @@ async function ciFetchJson(url, ms){
     return await r.json();
   } finally { clearTimeout(timer); }
 }
+/* a Tide & Tackle name is a fish, and Wikipedia's plain title is often the
+   other thing (Gudgeon the pintle fitting, Perch the bird's roost...) */
+function ciIsFish(subject){
+  try{ return cards.some(c => c.category === "Tide & Tackle" && c.name.split(" \u2014 ")[0] === subject); }catch(e){ return false; }
+}
 async function ciLookup(subject){
   const cache = ciLoadCache();
+  /* a fish cached before the "(fish)" lookup existed may be the wrong
+     article (Gudgeon the pintle): drop it once so it refetches */
+  const fish = ciIsFish(subject);
+  if(fish && cache[subject] && !cache[subject].fishOk && !cache[subject].miss) delete cache[subject];
   const hit = cache[subject];
   if(hit && hit.t && (Date.now() - hit.t) < 1000*60*60*24*90) return hit.miss ? null : hit;
   const base = "https://en.wikipedia.org/api/rest_v1/page/summary/";
@@ -14528,6 +14584,7 @@ async function ciLookup(subject){
   try{
     let j = null;
     if(CI_ALIAS[subject]) j = await summary(CI_ALIAS[subject]);
+    if(!j && fish) j = await summary(subject + " (fish)");
     if(!j) j = await summary(subject);
     if(!j){
       const plain = ciStripDecor(subject);
@@ -14542,7 +14599,7 @@ async function ciLookup(subject){
       }
     }
     if(j){
-      entry = { t: Date.now(), title: j.title || subject,
+      entry = { t: Date.now(), fishOk: fish, title: j.title || subject,
         desc: j.description || "",
         extract: ciTrimExtract(j.extract),
         img: (j.thumbnail && j.thumbnail.source) || "",
@@ -18628,7 +18685,7 @@ function uiInitHelp(){
 /* ---------------- Routing: six nav tabs, one Play hub ---------------- */
 const UI_GAMES = [
   { id:"hunt",    name:"The Hunt",    icon:"🗡️", desc:"Every tap fuels the fight. Beasts without end, a blade forged in ingots, and embers for the brave.", meta:"Endless clicker" },
-  { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Idle-friendly" },
+  { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Hold, hook & fight" },
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
   /* Runeshard entry removed - it ships as its own build. */

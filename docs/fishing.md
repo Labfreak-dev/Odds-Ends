@@ -501,6 +501,51 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 117 — sound settings, tamed effects, Gudgeon, the shelf counter, the summary
+Playtester's list. Five of six here; the pack-opening redesign is its own
+batch (118).
+
+SOUND. The game's only audio path is fishing2's feSound/feLoopStart, so the
+fishing chips muted the whole game. Now the Settings menu owns master
+on/off and volume for effects and music (state.settings.sfxOff/musicOff/
+sfxVol/musicVol, defaults .7/.8, migrated on load, a new Sound panel under
+Preferences); the fishing chips and the mixer are quiet-on-the-water
+controls that apply only while the fishing tab is up (feInFishing). The
+Settings panel calls window.oeSoundSettingsChanged so a mute stops what
+is already playing. The node harness has no window, so that export is
+try-wrapped.
+
+THE EFFECTS THEMSELVES are 40 short mp3 blips (decoded headless with an
+OfflineAudioContext to measure them: treasure and tension_hi sit at
+-13dB RMS, and bait, breach, backlash, junk, creak, train and reward_good
+have zero-crossing rates over 7k/s - bright, buzzy). Rather than replace
+them blind: every effect now runs through a bus (lowpass 6.5kHz, gentle
+compressor), the loud and bright keys carry trims (FE_SFX_TRIM), the
+bright ones an extra 3.8kHz lowpass (FE_SFX_SOFT), the pack/market keys
+a rate limit (FE_SFX_GAP) so ten rips do not stack ten treasures, and
+the master default is .7. The rate limit moved from the fishing clock
+(fshT only ticks on the water, so a gap froze every repeat elsewhere) to
+performance.now.
+
+GUDGEON. Wikipedia's plain "Gudgeon" is the pintle fitting. Tide & Tackle
+names (ciIsFish) try "<name> (fish)" first, and a fish cached before this
+existed is dropped once so it refetches. The build's own ci splices anchor
+on the hit line and the miss line, so both stay byte-identical (the first
+attempt changed them and the build aborted).
+
+SHELF. "N cards in set" is now "have/N cards in set" with a thin bar, right
+above the buy pill, counted over the pack's own pool.
+
+SUMMARY. The pack's last screen dropped "THE HOUSE WINS THIS ONE": it names
+the pack and count, the net, the rarity tally, best pull, shipped / kept /
+paid / streak, and chips for everything new to the binder.
+
+LABEL. Fishing's Play meta reads "Hold, hook & fight", not "Idle-friendly".
+
+VERIFIED. ripship 37, backs 15, cardart 13, economy 29, start 38, fishhud
+24, map 24, scenes 18, tear 19, test-fishing; long smokes green.
+Stamp 0804c4.
+
 ## Batch 116 — the box around him, and the rod in his hands
 Playtester, with a crop from the Mark: the rod sits just under his hands,
 and "that box is still around him."

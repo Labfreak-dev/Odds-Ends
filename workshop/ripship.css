@@ -75,6 +75,13 @@
 .rz-donenet{ font:900 34px system-ui; margin:6px 0; }
 .rz-donenet.up{ color:#7dffb5; } .rz-donenet.down{ color:#ff8a5c; }
 .rz-bestline,.rz-statline{ font:700 12.5px system-ui; color:#cfd8e6; margin:5px 0; }
+.rz-donenet small{ font:800 13px system-ui; color:#93a5b7; margin-left:4px; }
+.rz-newh{ font:800 12px system-ui; color:#ffd35c; margin:12px 0 6px; letter-spacing:.04em; text-transform:uppercase; }
+.rz-newh.dim{ color:#93a5b7; }
+.rz-newrow{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.rz-newchip{ font:700 11.5px system-ui; color:#eef4fa; padding:5px 9px; border-radius:999px;
+  border:1px solid var(--rc,#93a5b7); background:rgba(255,255,255,.05); }
+.rz-newchip.more{ color:#93a5b7; border-color:#93a5b755; }
 /* ---- the fx layer (batch 65): particle canvas + sigil blooms ---- */
 #rzFx{ position:absolute; inset:0; pointer-events:none; z-index:5; }
 .rz-sigil{ position:absolute; left:50%; top:46%; width:150px; height:150px; transform:translate(-50%,-50%);

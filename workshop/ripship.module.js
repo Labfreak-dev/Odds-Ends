@@ -574,11 +574,20 @@ function rzRender(){
     const net = RZ.shipped + RZ.keptVal - RZ.spent;
     const b = RZ.best, br = b ? RARITIES[b.rarity] : null;
     const canAgain = RZ.pack.price1 > 0 && state.dollars >= RZ.pack.price1 && typeof buyPacks === "function";
+    /* the summary: what came out, what it was worth, what was new */
+    const news = RZ.pulls.filter(c => c._wasNew);
+    const tiers = {};
+    RZ.pulls.forEach(c => { const n = RARITIES[c.rarity].name; tiers[n] = (tiers[n]||0) + 1; });
+    const tierLine = Object.keys(tiers).map(n => `${tiers[n]}× ${n}`).join(" · ");
     ov.innerHTML = `<div class="rz-box">
-      <div class="rz-doneh">${net >= 0 ? "📈 THE PACK PAID" : "📉 THE HOUSE WINS THIS ONE"}</div>
-      <div class="rz-donenet ${net>=0?"up":"down"}">${net>=0?"+":"−"}$${Math.abs(net).toLocaleString()}</div>
+      <div class="rz-doneh">${RZ.pack.icon||"🎴"} ${RZ.pack.name} · ${RZ.pulls.length} card${RZ.pulls.length===1?"":"s"}</div>
+      <div class="rz-donenet ${net>=0?"up":"down"}">${net>=0?"+":"−"}$${Math.abs(net).toLocaleString()} <small>net</small></div>
+      <div class="rz-statline">${tierLine}</div>
       ${b ? `<div class="rz-bestline">best pull: <b style="color:${br.color}">${b.emoji} ${b.name}</b> (${br.name})</div>` : ""}
-      <div class="rz-statline">📦 shipped $${RZ.shipped.toLocaleString()} · 🗃️ kept $${RZ.keptVal.toLocaleString()} · 🔥 streak ${rzStreak}</div>
+      <div class="rz-statline">📦 shipped $${RZ.shipped.toLocaleString()} · 🗃️ kept $${RZ.keptVal.toLocaleString()} · 💸 paid $${RZ.spent.toLocaleString()} · 🔥 streak ${rzStreak}</div>
+      ${news.length ? `<div class="rz-newh">✨ ${news.length} new to the binder</div><div class="rz-newrow">${news.slice(0,8).map(c =>
+        `<span class="rz-newchip" style="--rc:${RARITIES[c.rarity].color}">${c.emoji} ${c.name.split(" \u2014 ")[0]}</span>`).join("")}${news.length>8?`<span class="rz-newchip more">+${news.length-8} more</span>`:""}</div>`
+        : `<div class="rz-newh dim">nothing new this time — all duplicates</div>`}
       <div class="rz-row">
         ${canAgain ? `<button class="rz-btn ship" id="rzAgain">RIP ANOTHER — $${RZ.pack.price1.toLocaleString()}</button>` : ""}
         <button class="rz-btn keep" id="rzDone">back to the shelf</button>

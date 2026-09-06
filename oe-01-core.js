@@ -732,7 +732,7 @@ function currentMarketSize(){
 
 function defaultSettings(){
   return { autoOpen:false, stopOnNew:false, stopOnRarity:false, rarityThreshold:14,
-    flashingEnabled:true, foilEffectsEnabled:true };
+    flashingEnabled:true, foilEffectsEnabled:true, sfxOff:false, musicOff:false, sfxVol:0.7, musicVol:0.8 };
 }
 function defaultAccount(){
   return { name:"", empireName:"", email:"", avatarCardId:null };
@@ -855,6 +855,8 @@ function loadState(){
       if(s.settings===undefined) s.settings = defaultSettings();
       if(s.settings.flashingEnabled===undefined) s.settings.flashingEnabled = true;
       if(s.settings.foilEffectsEnabled===undefined) s.settings.foilEffectsEnabled = true;
+      if(s.settings.sfxVol===undefined) s.settings.sfxVol = 0.7;
+      if(s.settings.musicVol===undefined) s.settings.musicVol = 0.8;
       if(s.upgrades===undefined) s.upgrades = defaultUpgrades();
       if(s.market===undefined) s.market = null;
       if(s.market && s.market.rerolls===undefined) s.market.rerolls = 0;
@@ -1619,8 +1621,10 @@ function renderPackShelf(){
     if(p.hidden) return; // dev/test packs stay in the data model but never render in the shelf
     if(p.testOnly && !devModeOn()) return; // test packs only appear once dev tools are unlocked
     const locked = p.minLevel && playerLevel < p.minLevel;
-    const count = p.categories===null ? cards.length :
-      p.categories.reduce((s,cat)=> s + (poolByCategoryTier[cat] ? poolByCategoryTier[cat].reduce((a,b)=>a+b.length,0) : 0), 0);
+    const pool = p.categories===null ? cards :
+      p.categories.flatMap(cat => poolByCategoryTier[cat] ? poolByCategoryTier[cat].flat() : []);
+    const count = pool.length;
+    const have = pool.reduce((n,c)=> n + ((state.owned[c.id]||0) > 0 ? 1 : 0), 0);
     const price1 = Math.round(p.price1 * (1-discount));
     const price10 = Math.round(p.price10 * (1-discount));
     const earned = p.earnOnly ? (typeof riskPacksOwned === "function" ? riskPacksOwned() : 0) : 0;
@@ -1636,7 +1640,7 @@ function renderPackShelf(){
         : `<div class="icon">${p.icon}</div>`}
       <div class="title">${p.name}</div>
       <div class="sub">${p.sub}</div>
-      <div class="sub" style="margin-top:2px; opacity:.7;">${count.toLocaleString()} cards in set</div>
+      <div class="pack-prog${have>=count&&count>0?" full":""}" title="${have.toLocaleString()} of ${count.toLocaleString()} collected"><span>${have.toLocaleString()}/${count.toLocaleString()} cards in set</span><i style="--p:${count?Math.round(have/count*100):0}%"></i></div>
       ${p.earnOnly
         ? (earned > 0
             ? `<div class="price risk-open">Open a pack — ${earned} held</div>`
@@ -2747,6 +2751,26 @@ function onAccountFieldChange(field, value){
   if(field==="empireName") renderEmpire();
 }
 
+function updateSoundSettings(){
+  const on = id => document.getElementById(id);
+  state.settings.sfxOff = !on("sfxOnToggle").checked;
+  state.settings.musicOff = !on("musicOnToggle").checked;
+  state.settings.sfxVol = Number(on("sfxVolRange").value)/100;
+  state.settings.musicVol = Number(on("musicVolRange").value)/100;
+  saveState();
+  try{ if(typeof window.oeSoundSettingsChanged === "function") window.oeSoundSettingsChanged(); }catch(e){}
+  /* a little proof the effects switch is live */
+  try{ if(!state.settings.sfxOff && typeof fbSfxSafe === "function" && updateSoundSettings._armed) fbSfxSafe("equip", 0.3); }catch(e){}
+  updateSoundSettings._armed = true;
+}
+function populateSoundSettings(){
+  const on = id => document.getElementById(id);
+  if(!on("sfxOnToggle")) return;
+  on("sfxOnToggle").checked = !state.settings.sfxOff;
+  on("musicOnToggle").checked = !state.settings.musicOff;
+  on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.7 : state.settings.sfxVol)*100);
+  on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
+}
 function updateAccountSettings(){
   state.settings.flashingEnabled = document.getElementById("flashingToggle").checked;
   state.settings.foilEffectsEnabled = document.getElementById("foilEffectsToggle").checked;
@@ -2833,6 +2857,7 @@ function renderAccount(){
   if(empireEl) empireEl.value = state.account.empireName || "";
   const emailEl = document.getElementById("accountEmailInput");
   if(emailEl) emailEl.value = state.account.email || "";
+  populateSoundSettings();
   const flashEl = document.getElementById("flashingToggle");
   if(flashEl) flashEl.checked = state.settings.flashingEnabled !== false;
   const foilEl = document.getElementById("foilEffectsToggle");
@@ -10347,8 +10372,17 @@ async function ciFetchJson(url, ms){
     return await r.json();
   } finally { clearTimeout(timer); }
 }
+/* a Tide & Tackle name is a fish, and Wikipedia's plain title is often the
+   other thing (Gudgeon the pintle fitting, Perch the bird's roost...) */
+function ciIsFish(subject){
+  try{ return cards.some(c => c.category === "Tide & Tackle" && c.name.split(" \u2014 ")[0] === subject); }catch(e){ return false; }
+}
 async function ciLookup(subject){
   const cache = ciLoadCache();
+  /* a fish cached before the "(fish)" lookup existed may be the wrong
+     article (Gudgeon the pintle): drop it once so it refetches */
+  const fish = ciIsFish(subject);
+  if(fish && cache[subject] && !cache[subject].fishOk && !cache[subject].miss) delete cache[subject];
   const hit = cache[subject];
   if(!subject) return null;
   if(hit && hit.t && (Date.now() - hit.t) < ((hit.miss || !hit.img) ? 1000*60*60*2 : 1000*60*60*24*90)) return hit.miss ? null : hit;
@@ -10364,6 +10398,7 @@ async function ciLookup(subject){
   try{
     let j = null;
     if(CI_ALIAS[subject]) j = await summary(CI_ALIAS[subject]);
+    if(!j && fish) j = await summary(subject + " (fish)");
     if(!j) j = await summary(subject);
     if(!j){
       const plain = ciStripDecor(subject);
@@ -10378,7 +10413,7 @@ async function ciLookup(subject){
       }
     }
     if(j){
-      entry = { t: Date.now(), title: j.title || subject,
+      entry = { t: Date.now(), fishOk: fish, title: j.title || subject,
         desc: j.description || "",
         extract: ciTrimExtract(j.extract),
         img: (j.thumbnail && j.thumbnail.source) || "",

@@ -111,7 +111,7 @@ with sync_playwright() as pw:
     st = state(pg)
     check("the pinch bursts the pack into two halves", st["sliced"] and st["split"] and st["split"]["kind"] == "pinch", st)
     pg.wait_for_timeout(800)
-    check("the deal still follows every cut", pg.evaluate("()=>{ const RZ=window.oeRipState(); return RZ && RZ.stage; }") == "cards")
+    check("the deal still follows every cut", pg.evaluate("()=>{ const RZ=window.oeRipState(); return RZ && RZ.stage; }") == "spread")
     check("zero page errors", not errs, errs[:3])
     br.close()
 print()

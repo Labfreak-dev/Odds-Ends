@@ -246,8 +246,11 @@ html = _re.sub(r"<script>(.*?)</script>", _explode, src, flags=_re.S)
 # Stamp the build into the header chip. Without a visible build id there is no
 # way to answer "am I actually on the new version, or looking at a cached one?"
 # - which is exactly the question a stale index.html makes impossible to settle.
+# the host page (css, markup) is hashed too - a css-only change must move the
+# stamp, or "is it live?" is unanswerable for exactly the changes people ask about
 _stamp = _hashlib.sha1("".join(fn for fn, _ in manifest).encode()
-                       + str(sum(n for _, n in manifest)).encode()).hexdigest()[:6]
+                       + str(sum(n for _, n in manifest)).encode()
+                       + _hashlib.sha1(html.encode("utf-8")).digest()).hexdigest()[:6]
 _chip = '<span class="tag">Prototype v0.1</span>'
 if html.count(_chip) == 1:
     html = html.replace(_chip, '<span class="tag">Prototype v0.1 · %s</span>' % _stamp, 1)

@@ -146,6 +146,8 @@ python3 docs/smoke-fishhud.py                          # fishing HUD plates (24)
 python3 docs/smoke-tear.py                             # directional pack tear (19)
 python3 docs/smoke-map.py                              # fishing map travel (24)
 python3 docs/smoke-scenes.py                           # per-water scenery + arrival (18)
+python3 docs/smoke-ripship.py                          # pack tear -> spread -> summary (47)
+python3 docs/smoke-backs.py && python3 docs/smoke-cardart.py && python3 docs/smoke-economy.py
 python3 docs/smoke-fishing.py && python3 docs/smoke-spots.py   # needs playwright
 ```
 The smokes drive the real page headless; if playwright is unavailable, at minimum
@@ -205,7 +207,8 @@ oe-*.js siblings from the SAME build.
 
 **The build stamp is how a deploy gets confirmed.** integrate.py versions every
 script tag by that file's own hash and stamps a six-character build id into the
-header chip (`Prototype v0.1 · abc123`). A player on a stale cached index.html
+header chip (`Prototype v0.1 · abc123`); the id covers the scripts AND the host
+page, so a css-only change moves it too. A player on a stale cached index.html
 sees the old game with no error of any kind, so "is my change live?" is
 otherwise unanswerable — ask which stamp they see. Pages caches html for about
 ten minutes; a hard refresh or a private tab settles it sooner.

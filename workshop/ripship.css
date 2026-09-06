@@ -93,27 +93,56 @@
   25%{ opacity:.85; }
   100%{ opacity:0; transform:translate(-50%,-50%) scale(2.1) rotate(10deg); } }
 .rz-card{ position:relative; z-index:30; }
-/* ---- the hand (batch 66): the pack deals into a held fan of card backs ---- */
-.rz-hand{ position:relative; height:288px; margin:2px auto 0; }
-.rz-hand.faced{ height:392px; }
-.rz-hcard{ position:absolute; left:50%; top:14px; width:164px; height:226px; margin-left:-82px; }
-.rz-hand.faced .rz-hcard{ top:4px; }
-/* backs differ in aspect - fix the HEIGHT so a taller design gets narrower
-   instead of drooping over the hint line below the hand */
-.rz-hcard img{ height:226px; width:auto; display:block; margin:0 auto; -webkit-user-select:none; user-select:none;
-  filter:drop-shadow(0 8px 18px rgba(0,0,0,.5)); }
-.rz-hcard.top{ cursor:pointer; }
-.rz-hcard.top img{ filter:drop-shadow(0 8px 18px rgba(0,0,0,.5)) drop-shadow(0 0 14px rgba(255,211,92,.55)); }
-.rz-hface{ width:100%; height:100%; }
-/* the deal plays once, as the sliced pack spills its cards upward */
-.rz-hand.deal .rz-hface{ animation:rzDeal .5s ease-out backwards; animation-delay:calc(var(--d,0)*70ms); }
-@keyframes rzDeal{ from{ transform:translateY(150px) scale(.55); opacity:0; } to{ transform:none; opacity:1; } }
-.rz-hface.rz-flipout{ animation:rzFlipOut .14s ease-in forwards; }
+/* ---- the spread (batch 118): every pull face up in one grid ---- */
+.rz-box.wide{ width:min(560px,96vw); }
+.rz-spread{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px 8px;
+  max-height:min(58vh,560px); overflow-y:auto; padding:6px 4px 10px; margin-top:4px;
+  scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+.rz-sp{ position:relative; display:flex; flex-direction:column; gap:4px; }
+/* the deal plays once, as the sliced pack spills its cards into the grid */
+.rz-spread.deal .rz-sp{ animation:rzDeal .42s ease-out backwards; animation-delay:calc(var(--d,0)*38ms); }
+@keyframes rzDeal{ from{ transform:translateY(60px) scale(.6); opacity:0; } to{ transform:none; opacity:1; } }
+.rz-spcard{ position:relative; width:100%; aspect-ratio:246/354; cursor:pointer;
+  filter:drop-shadow(0 0 8px var(--rc,#fff2)) drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+.rz-spcard.glow{ filter:drop-shadow(0 0 14px var(--rc)) drop-shadow(0 0 30px var(--rc)) drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+.rz-spwin{ position:absolute; background:#10141d; display:flex; align-items:center; justify-content:center;
+  font-size:30px; overflow:hidden; z-index:1; }
+.rz-spart{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.rz-spframe{ position:absolute; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
+.rz-spbody{ position:absolute; left:9%; right:9%; top:72%; bottom:6%; z-index:3; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:center; color:#f2ede2; }
+.rz-sprn{ font:900 6.5px system-ui; letter-spacing:1px; text-transform:uppercase; }
+.rz-spname{ font:800 8.5px system-ui; line-height:1.12; max-height:19px; overflow:hidden; }
+/* face-down: the worn back, breathing gold until it is tapped */
+.rz-spback{ width:100%; height:100%; object-fit:contain; display:block; -webkit-user-select:none; user-select:none; }
+.rz-sp.down .rz-spcard{ animation:rzSpPulse 2.2s ease-in-out infinite; }
+@keyframes rzSpPulse{
+  0%,100%{ filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)) drop-shadow(0 0 6px rgba(255,211,92,.25)); }
+  50%{ filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)) drop-shadow(0 0 16px rgba(255,211,92,.7)); } }
+.rz-spq{ position:absolute; right:5%; bottom:5%; width:22px; height:22px; border-radius:50%; pointer-events:none;
+  display:flex; align-items:center; justify-content:center; font:900 14px system-ui; color:#1a1408;
+  background:#ffd35c; box-shadow:0 2px 6px rgba(0,0,0,.6); }
+.rz-spcard.rz-spflip{ animation:rzFlipOut .14s ease-in forwards; }
 @keyframes rzFlipOut{ to{ transform:rotateY(90deg); } }
-/* the hand's face card sits front-centre, absolutely, over the fan */
-.rz-hand .rz-card{ position:absolute; left:50%; top:18px; margin-left:-123px; }
-.rz-card.rz-away{ animation:rzAwayUp .22s ease-in forwards; }
-@keyframes rzAwayUp{ to{ transform:translateY(-64px) rotate(-5deg) scale(.85); opacity:0; } }
+.rz-sp.rz-spjust .rz-spcard{ animation:rzIn .24s ease-out; }
+.rz-spmeta{ display:flex; justify-content:center; gap:4px; }
+.rz-spb{ font:800 9px system-ui; padding:2px 6px; border-radius:6px; }
+.rz-spb.new{ color:#7dffb5; background:rgba(10,20,14,.55); }
+.rz-spb.dupe{ color:#c8d2dc; background:rgba(10,14,20,.5); }
+.rz-spb.hid{ color:#93a5b7; background:rgba(10,14,20,.5); }
+.rz-spval{ font:800 9px system-ui; color:#ffd35c; background:rgba(10,14,20,.5); border-radius:6px; padding:2px 5px; }
+.rz-spbtns{ display:flex; gap:3px; }
+.rz-spbtns button{ flex:1; padding:6px 2px; border-radius:8px; cursor:pointer; font:800 9.5px system-ui;
+  border:1.5px solid; white-space:nowrap; }
+.rz-spk{ color:#7db9ff; border-color:#7db9ff55; background:transparent; }
+.rz-spk.on{ background:rgba(125,185,255,.18); border-color:#7db9ff; }
+.rz-sps{ color:#ffd35c; border-color:#ffd35c66; background:transparent; }
+.rz-sps.on{ background:rgba(255,211,92,.2); border-color:#ffd35c; }
+.rz-sp.sold .rz-spcard{ opacity:.55; filter:grayscale(.5) drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+/* the zoom: one card of the spread at full size */
+.rz-zoom{ position:relative; }
+.rz-btn.on{ box-shadow:0 0 0 2px currentColor inset; }
+.rz-row{ flex-wrap:wrap; }
 /* ---- earnable card backs: the picker (batch 67) ---- */
 .rz-bgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 2px 2px; }
 .rz-bcell{ cursor:pointer; padding:7px 5px 8px; border-radius:12px; border:1.5px solid #2b3142;

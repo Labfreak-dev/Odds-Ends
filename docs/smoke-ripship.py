@@ -114,20 +114,33 @@ with sync_playwright() as pw:
 
     # ---- stage 2: tearing ---------------------------------------------
     tear(pg)
-    check("dragging tore the foil open", pg.locator("#rzStack").count() == 1)
-    hand = pg.locator(".rz-hcard").count()
-    check("the whole pack fans out as a hand of card backs",
-          hand == min(pulls, 13), (hand, pulls))
-    check("the card back art decodes",
-          pg.evaluate("""()=>{ const img=document.querySelector('.rz-hcard img');
-            return img && img.complete && img.naturalWidth > 0; }"""))
+    check("dragging tore the foil open", pg.locator(".rz-spread").count() == 1)
+    cells = pg.locator(".rz-sp").count()
+    check("the whole pack lands in the spread, every card its own cell",
+          cells == pulls, (cells, pulls))
+    # only a NEW card or a Legendary+ waits face-down; everything else is up
+    check("new and big pulls wait face-down, the rest are face up",
+          pg.evaluate("""()=>{ const R=window.oeRipState();
+            return R.pulls.every((c,i)=> (!!c._wasNew || c.rarity>=14) === !!R.down[i]); }"""))
+    check("face-down cells wear the card back, face-up cells their frame",
+          pg.evaluate("""()=>[...document.querySelectorAll('.rz-sp')].every(el=>{
+            const img = el.querySelector(el.classList.contains('down') ? '.rz-spback' : '.rz-spframe');
+            return img && img.complete && img.naturalWidth > 0; })"""))
+    check("face-down cells carry no ship button",
+          pg.locator(".rz-sp.down .rz-sps").count() == 0)
     check("no error while tearing", not errs, errs[:3])
 
-    # ---- stage 3: a card, and SHIP it ---------------------------------
-    pg.locator("#rzStack").click(); pg.wait_for_timeout(450)
-    check("a card face turned over", pg.locator(".rz-card").count() == 1)
-    check("the rest of the hand stays face-down behind it",
-          pg.locator(".rz-hcard").count() == min(pulls - 1, 13), pg.locator(".rz-hcard").count())
+    # ---- stage 3: turn a card, zoom it, and SHIP it -------------------
+    down0 = pg.locator(".rz-sp.down").count()
+    first = pg.locator(".rz-sp").first
+    if "down" in (first.get_attribute("class") or ""):
+        first.locator(".rz-spcard").click(); pg.wait_for_timeout(450)
+        check("tapping a face-down card turns it over where it lies",
+              pg.locator(".rz-sp.down").count() == down0 - 1 and "down" not in first.get_attribute("class"))
+    else:
+        check("the first card was already face up", True)
+    first.locator(".rz-spcard").click(); pg.wait_for_timeout(450)
+    check("tapping a face-up card zooms it", pg.locator(".rz-card").count() == 1)
     check("it says NEW or DUPLICATE", pg.locator(".rz-b").count() == 1)
     check("it quotes a payout", "$" in pg.locator("#rzShip").inner_text(),
           pg.locator("#rzShip").inner_text())
@@ -143,10 +156,35 @@ with sync_playwright() as pw:
         check("...and exactly one copy of it", snap["owned"][diffs[0]] - post["owned"].get(diffs[0], 0) == 1)
     check("SHIP paid out", post["cr"] > snap["cr"], f"{snap['cr']} -> {post['cr']}")
     check("mining bonus recomputed, not left stale", post["mb"] is not None)
+    check("SHIP drops back onto the spread with the card marked",
+          pg.locator(".rz-spread").count() == 1 and pg.locator(".rz-sp.sold").count() == 1)
+
+    # ---- a shipped card can be taken back at the same price ----------
+    # the exact payout, not the pocket delta - mining drips into the pocket
+    # during the 500ms wait above and would put the refund off by a few dollars
+    pay = pg.evaluate("()=>window.oeRipState().shipped")
+    pg.locator(".rz-sp.sold .rz-spk").first.click(); pg.wait_for_timeout(60)
+    back = pg.evaluate("""()=>{ const o={}; for(const k in state.owned) o[k]=state.owned[k];
+        return {owned:o, cr:state.dollars}; }""")
+    check("undo puts the copy back in the binder",
+          all(back["owned"].get(k, 0) == snap["owned"][k] for k in snap["owned"]))
+    check("...and takes the same money back", abs((post["cr"] - back["cr"]) - pay) < 2, (pay, post["cr"] - back["cr"]))
+    check("nothing marked shipped after the undo", pg.locator(".rz-sp.sold").count() == 0)
+
+    # ---- the cell's own ship button pays without the zoom -------------
+    if pulls > 1:
+        cell = pg.locator(".rz-sp:not(.down)").nth(1) if pg.locator(".rz-sp:not(.down)").count() > 1 else None
+        if cell is None:
+            pg.locator(".rz-sp.down .rz-spcard").first.click(); pg.wait_for_timeout(450)
+            cell = pg.locator(".rz-sp:not(.down)").nth(1)
+        cr = pg.evaluate("()=>state.dollars")
+        cell.locator(".rz-sps").click(); pg.wait_for_timeout(60)
+        check("the cell's SHIP button pays straight from the spread", pg.evaluate("()=>state.dollars") > cr + 1)
+        check("...and marks that cell", "sold" in (cell.get_attribute("class") or ""))
 
     # ---- KEEP costs and gives nothing ---------------------------------
-    if pg.locator("#rzStack").count():
-        pg.locator("#rzStack").click(); pg.wait_for_timeout(450)
+    if pg.locator(".rz-sp:not(.down):not(.sold)").count():
+        pg.locator(".rz-sp:not(.down):not(.sold) .rz-spcard").first.click(); pg.wait_for_timeout(450)
         cr = pg.evaluate("()=>state.dollars")
         own = pg.evaluate("()=>JSON.stringify(state.owned)")
         # the KEEP handler runs synchronously on the click, so read the pocket
@@ -154,8 +192,14 @@ with sync_playwright() as pw:
         pg.locator("#rzKeep").click(); pg.wait_for_timeout(60)
         d = pg.evaluate("()=>state.dollars") - cr
         check("KEEP pays nothing", 0 <= d < 2, d)
-        pg.wait_for_timeout(450)      # let the fly-away finish and the hand re-lay
+        pg.wait_for_timeout(300)
         check("KEEP leaves the binder alone", pg.evaluate("()=>JSON.stringify(state.owned)") == own)
+        check("KEEP returns to the spread", pg.locator(".rz-spread").count() == 1)
+
+    # ---- turn the rest over, all at once ------------------------------
+    if pg.locator("#rzRevealAll").count():
+        pg.locator("#rzRevealAll").click(); pg.wait_for_timeout(500)
+        check("turn-the-rest-over leaves nothing face-down", pg.locator(".rz-sp.down").count() == 0)
 
     # ---- keep the rest, then the summary ------------------------------
     if pg.locator("#rzKeepAll").count():

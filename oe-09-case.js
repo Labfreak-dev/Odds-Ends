@@ -52,7 +52,7 @@ const CS_KINDS = [
 
   { id:"maxTier", rel:false,
     make:c=>({ v:c.rarity }),
-    text:r=>`${RARITIES[r.v].name} or humbler`,
+    text:r=>`${RARITIES[r.v].name} or lower`,
     ok:(c,r)=> c.rarity <= r.v },
 
   { id:"emoji",  rel:false,
@@ -67,7 +67,7 @@ const CS_KINDS = [
 
   { id:"plainer", rel:true,
     make:()=>({}),
-    text:()=>`Humbler than the slot on its left`,
+    text:()=>`Lower rarity than the slot on its left`,
     ok:(c,r,left)=> !!left && c.rarity < left.rarity },
 
   { id:"sameSet", rel:true,
@@ -357,7 +357,7 @@ function csPaintLobby(){
         <span class="cs-eyebrow">The Case</span>
         <h3>Five slots, each with a rule.<br>Twelve cards. Make them fit.</h3>
         <p>Some slots want a collection or a rarity floor. Others compare against
-           the slot on their left — rarer than, humbler than, same collection as —
+           the slot on their left — rarer than, lower than, same collection as —
            so the order you fill them in matters. Every rule is written on the
            slot and every card shows what it's judged on.</p>
         <p class="cs-broad">A wider binder deals a wider hand, which is the point:

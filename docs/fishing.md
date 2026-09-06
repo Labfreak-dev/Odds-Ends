@@ -526,9 +526,12 @@ forcing the reveals (the summary lists them anyway).
 AUTO-OPEN is live again. The rip-and-ship override never set revealState,
 so the host's auto chain (kickAutoChain) had been dead since batch 64. Now
 `state.settings.autoOpen` tears the foil by itself 450ms after the pack
-appears and lands the spread with NOTHING face-down - unless a stop
-condition is on, in which case exactly those cards (new / rarity ≥ the
-threshold) wait. The drawer copy says so.
+appears and lands the spread. NEW, Legendary and Mythic still wait
+face-down there too - the playtester was firm that the reveal is the fun
+part - and a rarity stop below Legendary keeps those tiers down as well.
+The drawer copy says so. (First cut had auto-open land everything face up
+unless a stop was on; a save with the old dead toggle still on saw every
+card face up. Batch 118b.)
 
 STAMP. integrate.py's build id hashed only the script manifest, so a
 css-only change never moved the chip and "is it live?" was unanswerable for

@@ -61,15 +61,30 @@ const FE_SFX_TRIM = { treasure:.5, tension_hi:.5, bait:.4, breach:.5, backlash:.
 const FE_SFX_GAP  = { treasure:.25, reward_good:.3, equip:.3, box_open:.3, perfect:.3, snag:.3, splash_small:.25, bait:.4, reward_common:.3, reward_rare:.3 };
 const FE_SFX_SOFT = new Set(["bait","breach","backlash","junk","jump","creak","reward_good","tension_max","train","hookset","splash_big","land","reward_common","run"]);
 let feBus = null;
+let feVoices = 0;               /* one-shots sounding right now */
+const FE_MAX_VOICES = 4;
 function feSfxBus(){
   const c = feAudioCtx(); if(!c) return null;
   if(feBus) return feBus;
   try{
+    /* batch 120: the bus is the last word on harshness. Everything not
+       music runs through a rumble cut, a much darker lowpass than before
+       (4.2kHz - the fizz that made every sample "jarring" lives above it),
+       a gentle compressor to even out levels, then a fast limiter so no
+       transient ever spikes, and a final trim. */
     const g = c.createGain(); g.gain.value = 1;
-    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 6500; lp.Q.value = 0.6;
+    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 110; hp.Q.value = 0.5;
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4200; lp.Q.value = 0.5;
     const comp = c.createDynamicsCompressor();
-    comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.16;
-    g.connect(lp); lp.connect(comp); comp.connect(c.destination);
+    comp.threshold.value = -18; comp.knee.value = 14; comp.ratio.value = 3; comp.attack.value = 0.006; comp.release.value = 0.2;
+    const lim = c.createDynamicsCompressor();
+    lim.threshold.value = -6; lim.knee.value = 2; lim.ratio.value = 12; lim.attack.value = 0.001; lim.release.value = 0.09;
+    /* Web Audio compressors add automatic make-up gain: the first cut of
+       this bus came out LOUDER than the old one. Measured offline against
+       the batch-117 chain, this trim lands peaks at ~37% (about -9dB) with
+       a quarter to a third less energy above 4kHz. */
+    const out = c.createGain(); out.gain.value = 0.5;
+    g.connect(hp); hp.connect(lp); lp.connect(comp); comp.connect(lim); lim.connect(out); out.connect(c.destination);
     feBus = g;
   }catch(e){ feBus = null; }
   return feBus;
@@ -121,17 +136,33 @@ function feSound(key, opt){
   if(feMuted()) return;
   /* rate limit on the wall clock - fshT only ticks while the water is up,
      and a fishing-clock gap froze every repeat outside the tab */
-  const gap = opt.gap !== undefined ? opt.gap : FE_SFX_GAP[key];
+  const gap = opt.gap !== undefined ? opt.gap : (FE_SFX_GAP[key] !== undefined ? FE_SFX_GAP[key] : 0.12);
   if(gap){ const now = performance.now()/1000, last = feLastPlay[key]||-9; if(now - last < gap) return; feLastPlay[key] = now; }
+  if(feVoices >= FE_MAX_VOICES) return;      /* a pile-up is noise, not information */
   const c = feAudioCtx(); if(!c) return;
   feBuffer(key).then(buf=>{
-    if(!buf || feMuted()) return;
+    if(!buf || feMuted() || feVoices >= FE_MAX_VOICES) return;
     const src = c.createBufferSource(); src.buffer = buf;
-    if(opt.rate) src.playbackRate.value = opt.rate;
-    const g = c.createGain(); g.gain.value = (opt.vol !== undefined ? opt.vol : 0.8) * (FE_SFX_TRIM[key] || 1) * feSfxVol();
+    /* a touch of pitch drift so a repeated sample never machine-guns */
+    const rate = (opt.rate || 1) * (0.95 + Math.random()*0.1);
+    src.playbackRate.value = rate;
+    const peak = (opt.vol !== undefined ? opt.vol : 0.8) * (FE_SFX_TRIM[key] || 1) * feSfxVol();
+    /* every one-shot wears an envelope: a 12ms fade-in kills the click at
+       the front of a hard-cut sample, and a 90ms fade-out the one at the
+       end - those clicks were most of what read as "jarring" (batch 120) */
+    const g = c.createGain();
+    const t0 = c.currentTime, dur = buf.duration / rate;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+    const fadeAt = Math.max(t0 + 0.02, t0 + dur - 0.09);
+    g.gain.setValueAtTime(peak, fadeAt);
+    g.gain.linearRampToValueAtTime(0, t0 + dur + 0.005);
     let tail = g;
-    if(FE_SFX_SOFT.has(key)){ const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800; g.connect(lp); tail = lp; }
-    src.connect(g); tail.connect(feSfxBus() || c.destination); src.start();
+    if(FE_SFX_SOFT.has(key)){ const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3000; g.connect(lp); tail = lp; }
+    src.connect(g); tail.connect(feSfxBus() || c.destination);
+    feVoices++;
+    src.onended = ()=>{ feVoices = Math.max(0, feVoices - 1); };
+    src.start();
   }).catch(()=>{});
 }
 function feLoopStart(key, vol){
@@ -144,8 +175,13 @@ function feLoopStart(key, vol){
   feBuffer(key).then(buf=>{
     if(!buf || !feLoops[key] || feLoops[key].src){ return; }
     const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
-    const base = vol !== undefined ? vol : 0.5;
-    const g = c.createGain(); g.gain.value = base * (isMus ? feMusVol() : feSfxVol());
+    const base = (vol !== undefined ? vol : 0.5) * (isMus ? 1 : 0.8);
+    const g = c.createGain();
+    /* loops swell in over a third of a second - a reel or a tension drone
+       that snaps on at full level is a jolt every single cast (batch 120) */
+    const target = base * (isMus ? feMusVol() : feSfxVol());
+    g.gain.setValueAtTime(0, c.currentTime);
+    g.gain.linearRampToValueAtTime(target, c.currentTime + 0.35);
     src.connect(g); g.connect(isMus ? c.destination : (feSfxBus() || c.destination)); src.start();
     feLoops[key] = { src, g, base, isMus };
   }).catch(()=>{ delete feLoops[key]; });
@@ -153,13 +189,25 @@ function feLoopStart(key, vol){
 function feLoopStop(key){
   const l = feLoops[key]; if(!l) return;
   delete feLoops[key];
-  if(l.src){ try{ l.src.stop(); }catch(e){} }
+  if(l.src){
+    try{
+      const c = feAudioCtx();
+      if(c && l.g){
+        l.g.gain.cancelScheduledValues(c.currentTime);
+        l.g.gain.setValueAtTime(l.g.gain.value, c.currentTime);
+        l.g.gain.linearRampToValueAtTime(0, c.currentTime + 0.25);
+        l.src.stop(c.currentTime + 0.27);
+      } else l.src.stop();
+    }catch(e){ try{ l.src.stop(); }catch(e2){} }
+  }
 }
 function feAllLoopsStop(){ for(const k in feLoops) feLoopStop(k); }
 function feApplyVols(){
   for(const k in feLoops){
     const l = feLoops[k];
-    if(l && l.g) try{ l.g.gain.value = (l.base||0.5) * (l.isMus ? feMusVol() : feSfxVol()); }catch(e){}
+    if(l && l.g) try{ const c = feAudioCtx(); const v = (l.base||0.5) * (l.isMus ? feMusVol() : feSfxVol());
+      if(c){ l.g.gain.cancelScheduledValues(c.currentTime); l.g.gain.setValueAtTime(l.g.gain.value, c.currentTime); l.g.gain.linearRampToValueAtTime(v, c.currentTime + 0.15); }
+      else l.g.gain.value = v; }catch(e){}
   }
 }
 

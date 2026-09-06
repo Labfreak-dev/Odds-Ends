@@ -501,6 +501,56 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 119 — the playtester's list: cash, rules, badges, dupes, the boss, the desktop
+Seven items in one message.
+
+MINING SHOWED COINS. The game pays dollars but the mining loop said coins
+everywhere: the per-swing float ("+120 🪙"), the vein-struck banner, the
+offline welcome toast ("earned N coins"), the "Total Coins Mined" stat, the
+level-up toast, the passive tick's 🪙 particles, the pickaxe/miner/
+blacksmith blurbs ("coins/min"), the grading fee (🪙), the Bulk Discount
+copy ("credit cost") and the dev button. All now "$". Found alongside: the
+mining header refresh wrote the balance WITHOUT the "$" on every swing, so
+the cash readout was a bare number while mining - fixed. The 🪙 that
+remain are genuine credits (arcade tokens, the ledger, the casino Mines
+crate game, the retired raid tables) and the coin-artwork cards.
+
+ODD ONE OUT. The rarity axis keyed on the numeric tier id (0-15) while the
+tile shows the tier NAME, and ids 0/1/2 are all "Common" - so three id-1
+Commons and one id-0 Common was a "fair" board the player could not solve
+(the screenshot: Bar of Soap / Taj Mahal / Hel / Osprey, all Common). The
+axis now keys on RARITIES[rarity].name, which is what the fairness gate
+compares too, so ambiguous boards are rejected for free. 300 rounds
+headless: 0 boards where the three do not visibly agree. Connections had
+the same latent mismatch in cxProp; fixed the same way, and its group label
+no longer indexes RARITIES by the (now string) value.
+
+"PRESS CATEGORIES". The Press is the 2048 duplicate sink and has no
+categories; the report ("2 of the same show up... add more categories")
+describes CONNECTIONS, where a board's four groups drew rule types WITH
+replacement, so two "One collection" bands could share a board. Now: four
+distinct rule types per board, padding with a repeat only when the binder
+cannot offer four (never more than two of one), and two new rule types -
+"Same print run" (the variant after the dash: 472 distinct across the
+catalogue) and "Same first letter" (27). 200 boards headless: 0 with a
+repeated rule, all six rules dealt, every group label renders.
+
+MARKET. The live counter (market2) had lost the ownership badge the old
+grid renderer carried. Each card visitor now shows "NEW TO YOU" or
+"owned ×N" beside its rarity, read live from state.owned.
+
+SHIP DUPES. The spread's button row gains "📦 ship N dupes · +$x": every
+face-up, unsold duplicate ships in one tap (face-down cards are new or
+Legendary+, so they are never swept). Probe: 31 dupes on a ten-pack, all
+sold, none left, button gone.
+
+DESKTOP. main was capped at 1200px. Above 1400px it grows to 1660px (2000px
+above 2200px); every grid on the page is auto-fill, so the columns simply
+multiply - eight packs in one row at 2000px. The spread box follows to
+1560px.
+
+THE BOSS FIGHT - see the note below the entry once the fix lands.
+
 ## Batch 118d — photos in the spread, and a desktop that uses its screen
 Playtester (PC screenshot): "the picture is defaulting to the emojis. also
 there is a whole lot of my screen on pc that isn't being used."

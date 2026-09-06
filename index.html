@@ -4165,6 +4165,10 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
   background:#121a24; border:1px solid rgba(255,255,255,.18); box-shadow:0 20px 70px rgba(0,0,0,.65); }
 .m2-sh-head{ font:800 15px system-ui; color:#eef4fa; margin-bottom:3px; }
 .m2-slabchip{ font:800 10px system-ui; color:#ffd35c; border:1px solid #ffd35c; border-radius:6px; padding:1px 6px; }
+.m2-own{ display:inline-block; margin-left:7px; padding:2px 8px; border-radius:7px; font:800 10px system-ui;
+  letter-spacing:.04em; text-transform:uppercase; vertical-align:middle; }
+.m2-own.new{ color:#7dffb5; background:rgba(10,20,14,.6); border:1px solid rgba(125,255,181,.35); }
+.m2-own.dupe{ color:#c8d2dc; background:rgba(10,14,20,.55); border:1px solid rgba(200,210,220,.2); }
 .m2-sh-est{ font:600 11.5px system-ui; color:#93a5b7; margin-bottom:10px; }
 .m2-sh-opt{ display:block; width:100%; text-align:left; padding:9px 11px; margin:6px 0; border-radius:10px;
   cursor:pointer; font:600 12.5px system-ui; color:#dfe9f2; background:rgba(255,255,255,.05);
@@ -4452,7 +4456,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 33045a</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 75f0dc</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -4496,7 +4500,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     <div class="panel">
       <div class="stats-bar">
         <div class="stat"><div class="num" id="mineRate">100.00/min</div><div class="lbl">Mining Rate</div></div>
-        <div class="stat"><div class="num" id="mineTotal">0</div><div class="lbl">Total Coins Mined</div></div>
+        <div class="stat"><div class="num" id="mineTotal">0</div><div class="lbl">Total Cash Mined</div></div>
       </div>
       <div id="mineBonusBreakdown" style="color:var(--muted); font-size:13px; margin-top:10px;">
         Base 100/min · collect cards to boost this
@@ -4535,10 +4539,10 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
       <div class="row" style="justify-content:space-between; margin-bottom:16px; gap:12px;">
         <div>
           <div style="font-weight:800; font-size:16px;">🛠️ Testing Tools <span class="dev-flag">DEV</span></div>
-          <div style="color:var(--muted); font-size:13px;">Unlocked by code. Grant credits and force rare pulls to stress-test odds &amp; the collection loop.</div>
+          <div style="color:var(--muted); font-size:13px;">Unlocked by code. Grant dollars and force rare pulls to stress-test odds &amp; the collection loop.</div>
         </div>
         <div class="row">
-          <button class="btn gold" onclick="addCredits(50000)">+50,000 Credits</button>
+          <button class="btn gold" onclick="addCredits(50000)">+$50,000</button>
           <button class="btn secondary" onclick="setDevMode(false)">Lock Dev Tools</button>
         </div>
       </div>
@@ -5556,22 +5560,22 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=9562629283"></script>
+<script src="oe-01-core.js?v=f9d522f124"></script>
 <script src="oe-02-fishing-assets.js?v=b5eb98fa8b"></script>
 <script src="oe-03-fishing-spot-bgs.js?v=bf0210bfe5"></script>
 <script src="oe-04-fishing-sfx.js?v=5424d379ee"></script>
 <script src="oe-05-provenance-catalogue.js?v=ae0deffc21"></script>
 <script src="oe-06-provenance.js?v=5f726dd3e1"></script>
 <script src="oe-07-press.js?v=4f1a3937cf"></script>
-<script src="oe-08-connections.js?v=07edc26b73"></script>
+<script src="oe-08-connections.js?v=f27765eb9f"></script>
 <script src="oe-09-case.js?v=9be0d06f44"></script>
-<script src="oe-10-oddone.js?v=e66af7007b"></script>
+<script src="oe-10-oddone.js?v=d5c686594c"></script>
 <script src="oe-11-fishing2.js?v=554613d832"></script>
-<script src="oe-12-mining2.js?v=2ee842de0b"></script>
+<script src="oe-12-mining2.js?v=6a7615f032"></script>
 <script src="oe-13-ripship.js?v=342be79b97"></script>
 <script src="oe-14-ledger.js?v=b36867f39e"></script>
-<script src="oe-15-grading.js?v=817788899f"></script>
-<script src="oe-16-market2.js?v=cb953caf76"></script>
+<script src="oe-15-grading.js?v=1d53abce28"></script>
+<script src="oe-16-market2.js?v=07e39c2e23"></script>
 <script src="oe-17-casino2.js?v=e7e85470f8"></script>
 <script src="oe-18-hunt.js?v=d04d7c2185"></script>
 <script src="oe-19-tail.js?v=1636399ffe"></script>

@@ -60,9 +60,9 @@ function grRender(){
     ? cand.map(c=>{
         const r = RARITIES[c.rarity];
         return `<button class="gr-card" data-send="${c.id}" style="border-color:${r.color}66"
-          title="${c.name} · fee 🪙${grFee(c.rarity).toLocaleString()} · ${grSecs(c.rarity)}s">
+          title="${c.name} · fee $${grFee(c.rarity).toLocaleString()} · ${grSecs(c.rarity)}s">
           <span class="e">${c.emoji}</span><span class="n">${c.name}</span>
-          <span class="f">🪙${grFee(c.rarity).toLocaleString()}</span></button>`;
+          <span class="f">$${grFee(c.rarity).toLocaleString()}</span></button>`;
       }).join("")
     : `<div class="gr-dim">Nothing ungraded worth sending — open packs, then come back.</div>`;
   /* the shelf of finished slabs */

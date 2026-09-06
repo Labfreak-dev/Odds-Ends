@@ -25,6 +25,10 @@
   background:#121a24; border:1px solid rgba(255,255,255,.18); box-shadow:0 20px 70px rgba(0,0,0,.65); }
 .m2-sh-head{ font:800 15px system-ui; color:#eef4fa; margin-bottom:3px; }
 .m2-slabchip{ font:800 10px system-ui; color:#ffd35c; border:1px solid #ffd35c; border-radius:6px; padding:1px 6px; }
+.m2-own{ display:inline-block; margin-left:7px; padding:2px 8px; border-radius:7px; font:800 10px system-ui;
+  letter-spacing:.04em; text-transform:uppercase; vertical-align:middle; }
+.m2-own.new{ color:#7dffb5; background:rgba(10,20,14,.6); border:1px solid rgba(125,255,181,.35); }
+.m2-own.dupe{ color:#c8d2dc; background:rgba(10,14,20,.55); border:1px solid rgba(200,210,220,.2); }
 .m2-sh-est{ font:600 11.5px system-ui; color:#93a5b7; margin-bottom:10px; }
 .m2-sh-opt{ display:block; width:100%; text-align:left; padding:9px 11px; margin:6px 0; border-radius:10px;
   cursor:pointer; font:600 12.5px system-ui; color:#dfe9f2; background:rgba(255,255,255,.05);

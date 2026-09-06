@@ -35,8 +35,10 @@ const CX_CARD_ON    = 3;      // groups solved before a print is pulled
 const CX_RULES = [
   { id:"subject",  label:"Prints of one thing", rank:0 },
   { id:"emoji",    label:"Same picture",        rank:1 },
-  { id:"category", label:"One collection",      rank:2 },
-  { id:"tier",     label:"One rarity",          rank:3 },
+  { id:"print",    label:"Same print run",      rank:2 },   /* Dawn Print, Archive Print... */
+  { id:"category", label:"One collection",      rank:3 },
+  { id:"letter",   label:"Same first letter",   rank:4 },
+  { id:"tier",     label:"One rarity",          rank:5 },
 ];
 const CX_BAND = ["#3ddc84","#6c8cff","#c98cff","#ffd35c"];
 
@@ -52,7 +54,9 @@ function cxProp(card, rule){
   if(rule === "subject")  return card.name.split(" — ")[0];
   if(rule === "emoji")    return card.emoji;
   if(rule === "category") return card.category;
-  if(rule === "tier")     return String(card.rarity);
+  if(rule === "tier")     return RARITIES[card.rarity].name;   /* the name the tile shows, not the 0-15 id */
+  if(rule === "print")    return card.name.split(" — ")[1] || "Original";
+  if(rule === "letter")   return card.name.split(" — ")[0].trim().charAt(0).toUpperCase();
   return null;
 }
 
@@ -196,15 +200,22 @@ function cxBuild(){
   if(pool.length < 60) return null;
 
   for(let attempt = 0; attempt < 900; attempt++){
-    /* Only rules that can actually form a group in this binder, and they
-       may repeat — two category groups is a perfectly good board. Taking
-       all four types every time meant a 600-card binder with no subject
-       owned four times over could never deal at all. */
+    /* Only rules that can actually form a group in this binder, and FOUR
+       DIFFERENT ones - two "one collection" bands on a board read as the
+       same puzzle twice (batch 119). With six rule types the pool (owned
+       binder or a catalogue sample, never under 60 cards) always offers
+       four; the pad below is the last resort for a binder that cannot,
+       and even then no rule appears more than twice. */
     const viable = CX_RULES.map(r=>r.id)
       .filter(id => { for(const l of idx[id].values()) if(l.length >= 4) return true; return false; });
     if(!viable.length) return null;
     const rules = cxShuffle(viable.slice()).slice(0, 4);
-    while(rules.length < 4) rules.push(viable[Math.floor(Math.random()*viable.length)]);
+    while(rules.length < 4){
+      const cand = viable.filter(id => rules.filter(r=>r===id).length < 2);
+      if(!cand.length) break;
+      rules.push(cand[Math.floor(Math.random()*cand.length)]);
+    }
+    if(rules.length < 4) return null;
     const groups = [];
     const taken = new Set();
     let ok = true;
@@ -277,7 +288,8 @@ function cxBuild(){
 
 function cxGroupLabel(g){
   const rule = CX_RULES.find(r=>r.id === g.rule);
-  if(g.rule === "tier")     return `${RARITIES[+g.value].name} — ${rule.label}`;
+  if(g.rule === "tier")     return `${g.value} — ${rule.label}`;
+  if(g.rule === "letter")   return `Starts with ${g.value} — ${rule.label}`;
   if(g.rule === "subject")  return `${g.value} — ${rule.label}`;
   if(g.rule === "emoji")    return `${g.value} — ${rule.label}`;
   return `${g.value} — ${rule.label}`;

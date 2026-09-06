@@ -94,10 +94,22 @@
   100%{ opacity:0; transform:translate(-50%,-50%) scale(2.1) rotate(10deg); } }
 .rz-card{ position:relative; z-index:30; }
 /* ---- the spread (batch 118): every pull face up in one grid ---- */
-.rz-box.wide{ width:min(560px,96vw); }
+.rz-box.wide{ width:min(1180px,96vw); }
 .rz-spread{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px 8px;
   max-height:min(58vh,560px); overflow-y:auto; padding:6px 4px 10px; margin-top:4px;
   scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+/* a desktop gets the room it has: bigger cells, more of them, a taller grid */
+@media (min-width:900px){
+  .rz-spread{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:16px 14px; max-height:min(72vh,1000px); padding:10px 8px 14px; }
+  .rz-spwin{ font-size:44px; }
+  .rz-sprn{ font-size:8.5px; letter-spacing:1.4px; }
+  .rz-spname{ font-size:11.5px; max-height:26px; }
+  .rz-spb,.rz-spval{ font-size:10.5px; }
+  .rz-sw{ height:32px; border-radius:16px; }
+  .rz-swl{ font-size:11.5px; }
+  .rz-swk{ border-radius:14px; }
+  .rz-spq{ width:28px; height:28px; font-size:17px; }
+}
 .rz-sp{ position:relative; display:flex; flex-direction:column; gap:4px; }
 /* the deal plays once, as the sliced pack spills its cards into the grid */
 .rz-spread.deal .rz-sp{ animation:rzDeal .42s ease-out backwards; animation-delay:calc(var(--d,0)*38ms); }

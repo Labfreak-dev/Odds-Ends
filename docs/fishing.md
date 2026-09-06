@@ -501,6 +501,26 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 118d — photos in the spread, and a desktop that uses its screen
+Playtester (PC screenshot): "the picture is defaulting to the emojis. also
+there is a whole lot of my screen on pc that isn't being used."
+
+PHOTOS. The spread only probed painted art (Rare+), so every Common and
+Uncommon sat on its emoji while the zoom showed the Wikipedia photo. Now
+every face-up cell layers the same three: painted art over the wiki photo
+over the emoji. A ten-pack is fifty subjects, so lookups run through a
+four-wide queue (`rzWiki`/`rzWikiPump`) instead of fifty parallel fetches,
+and every photo found is remembered for the session (`rzWikiSrc`) so a
+re-render - a reveal, a zoom and back - fills the cell synchronously with
+no refetch. Verified with a stubbed ciLookup (Wikipedia is unreachable from
+the build sandbox): 36 face-up cells, 36 photos, at most 4 in flight, one
+extra lookup after a reveal.
+
+DESKTOP. `.rz-box.wide` grows to min(1180px, 96vw); above 900px the grid
+uses 150px cells, 16px gaps, 72vh of height, and the type, badges, switch
+and ? badge all step up a size. 1920px wide = seven columns, three rows on
+screen at once.
+
 ## Batch 118c — the slide switch, and the face-down cards that vanished
 Playtester: "the keep buttons per card aren't working, I want them to slide
 to the right when a player clicks keep and to the left when a player clicks

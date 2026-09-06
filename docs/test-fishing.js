@@ -66,7 +66,7 @@ eval(ASSETS+";"+SFX+";"+SRC+`;global.__fe={fePalette,feBasePalette,feWeatherMod,
   FE_PROPS,feProps,feAwardProp,feNextProp,fePropSchedule,FE_PROP_ORDER,stats:fshStats,
   feConds,feCondOk,feCondHint,FE_COND_ICONIC,feJournalRecord,feJournalCount,feSpeciesTotal,
   feShadowSpawn,FE_SFX_KEYS:Object.keys(FE_SFX),
-  FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,
+  FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,feCineRingStep,
   feKeys,feKeyRoll,feBestKeyFor,FE_ARCH,
   feInitAmbient, get stars(){return feStars;},
   rollCatch:fshRollCatch,release:fshRelease,
@@ -266,10 +266,48 @@ console.log("\n=== legends & strongboxes ===");
   }
   check("maxed gear can land every legend (40%+)", results.every(([n,p])=>p>=40), JSON.stringify(results));
   check("the Drowned King is brutal but honest (12%+)", kingR >= 12 && kingR <= 60, kingR);
-  check("the entry legend tops out near-certain (<=97%)", results.every(([n,p])=>p<=97), JSON.stringify(results));
+  // the entry legend is near-certain for maxed gear: a perfect bot has no
+  // loss path but the pace checkpoint once the fish never freezes (batch 119),
+  // so the old <=97% cap was measuring the freeze bug, not the tuning
+  check("the entry legend is near-certain (>=85%)", results[0][1] >= 85, JSON.stringify(results[0]));
   check("at least two legends are real challenges (<=80%)", results.filter(([n,p])=>p<=80).length>=2, JSON.stringify(results));
   const easy = rate(FE.feBossDef(FE.FE_BOSSES[0]), GEAR.mid, smart, 80, "landed");
   check(`mid gear has a real shot at Old Ironjaw (${Math.round(easy.p*100)}%)`, easy.p>=0.2, easy.p);
+  // batch 119: the two stalls the playtester hit
+  {
+    // tired -> jump used to skip the telegraph, freezing the fish in a silent run
+    const st = GEAR.maxed, rng = mulberry(11);
+    const f = FE.feFightNew(FE.feBossDef(FE.FE_BOSSES[0]), st, rng);
+    let armed = null;
+    for(let k=0;k<60 && armed===null;k++){
+      f.mood = "tired"; f.moodT = 0.001; f.jumpTele = 0; f.airT = 0; f.stamina = f.maxStam;
+      FE.feFightStep(f, 1/60, false, st, rng);
+      if(f.mood === "jump") armed = f.jumpTele > 0 && f.event === "telegraph";
+    }
+    check("tired -> jump arms the telegraph", armed === true, armed);
+    // no legend goes quiet: an event at least every 40s of any fight
+    let worst = 0, worstB = "";
+    for(const b of FE.FE_BOSSES){
+      for(let i=0;i<12;i++){
+        const r2 = mulberry(i*31+5);
+        const f2 = FE.feFightNew(FE.feBossDef(b), st, r2); f2._st = st;
+        let t = 0, last = 0, g = 0;
+        while(!f2.over && g++<40000){
+          FE.feFightStep(f2, 1/60, smart(f2), st, r2); t += 1/60;
+          if(f2.event){ last = t; f2.event = null; }
+          if(t - last > worst){ worst = t - last; worstB = b.name; }
+        }
+      }
+    }
+    check("no legend goes silent for 40s", worst < 40, worstB + " " + worst.toFixed(1) + "s");
+    // the cinematic's rings keep coming at 120Hz (the clamp froze them)
+    const C = { phase:"fight", mode:"ring", t:0, round:0, ring:null, hard:0, stress:0 };
+    for(let i=0;i<20*120;i++){
+      C.t += 1/120; FE.feCineRingStep(C, 1/120);
+      if(C.ring){ C.ring = null; C.t = 0; }   // a clean hit, as feCineHit does
+    }
+    check("rings keep spawning at 120Hz", C.round >= 20, C.round);
+  }
   // daily gate
   INV.bossDay=null; INV.bossJournal=null; INV.dayN=undefined;
   FE.feBossState(); INV.spots={cur:"dock",open:["dock"]};

@@ -876,17 +876,16 @@ function feFightStep(f, dt, holding, st, rng){
   } else {
     f.moodT -= dt;
     if(f.moodT <= 0){
-      if(f.mood === "tired"){
-        f.maxStam *= 0.62; f.stamina = f.maxStam;            // each recovery is weaker
-        const nxt = fePickMood(f, rng); f.mood = nxt.mood; f.moodT = nxt.dur;
-      } else {
-        const nxt = fePickMood(f, rng);
-        f.mood = nxt.mood; f.moodT = nxt.dur;
-        if(f.mood === "jump"){ f.jumpTele = 0.5; f.event = "telegraph"; }
-        else if(f.mood === "run") f.event = "run";
-        else if(f.mood === "dive") f.event = "dive";
-        else if(f.mood === "snag") f.event = "snag";
-      }
+      if(f.mood === "tired"){ f.maxStam *= 0.62; f.stamina = f.maxStam; }   // each recovery is weaker
+      const nxt = fePickMood(f, rng);
+      f.mood = nxt.mood; f.moodT = nxt.dur;
+      /* every transition arms the new mood - the tired path used to skip
+         this, so tired -> jump left jumpTele=0, airT=0, moodT frozen: the
+         fish sat in a silent heavy run until the 260s failsafe (batch 119) */
+      if(f.mood === "jump"){ f.jumpTele = 0.5; f.event = "telegraph"; }
+      else if(f.mood === "run") f.event = "run";
+      else if(f.mood === "dive") f.event = "dive";
+      else if(f.mood === "snag") f.event = "snag";
     }
   }
   const moodKey = f.mood === "slackfall" ? "tired" : (f.mood === "jump" ? (f.airT > 0 ? "jump" : "run") : f.mood);
@@ -2043,6 +2042,11 @@ function fshLand(){
   }
   if(c0 && c0.boss && FE_CINE_BOSSES[c0.name] && !c0._trueForm){
     c0._trueForm = 1;
+    /* park the underlying fight: with phase left at "reeling" and
+       over="landed", fshTick called fshLand again next frame and the catch
+       was recorded and paid BEHIND the cinematic, then paid again on the
+       win (batch 119). feCineEnd restores the phase before landing. */
+    fsh.phase = "cine";
     feCineStart(c0.name);
     return;
   }
@@ -3793,6 +3797,14 @@ function feOpenStrongbox(need, viaKeyTier){
    hook. Boss fights follow a SCRIPT (a fixed mood rotation you can
    learn), the attempt is spent on the hook, and the reward is a small
    fortune plus a page in the journal's Legends section. */
+/* Retuned in batch 119: the tired->jump freeze had been every legend's only
+   real teeth (a perfect bot landed all six once it was fixed), so the four
+   mid legends carry 30% more pull and roughly double the stamina, and the
+   Drowned King more line to win and 40% more stamina. Bands are held by
+   docs/test-fishing.js: every legend 40%+ with maxed gear, at least two
+   at 80% or under, the Drowned King between 12 and 60, the entry legend
+   near-certain. Stamina is the honest knob - need past ~1300 trips the
+   "overpowered" cliff and pull past ~1.6x becomes one-frame snaps. */
 const FE_BOSSES = [
   { spot:"dock",     name:"Old Ironjaw",      icon:"🐟", art:"sp_cap21",
     line:"The dock's oldest story. Bent three gaffs, they say.",
@@ -3800,23 +3812,23 @@ const FE_BOSSES = [
     script:["run","sulk","dive","jump","run","sulk"] },
   { spot:"shallows", name:"The Marsh King",   icon:"🐟", art:"sp_cc13",
     line:"A dragon in the reeds. The lilies part when it passes.",
-    need:560, pull:22.5, strain:1.75, maxStam:420, wLo:48, wHi:70, cr:300000,
+    need:560, pull:29.3, strain:1.75, maxStam:820, wLo:48, wHi:70, cr:300000,
     script:["jump","run","sulk","run","jump","sulk"] },
   { spot:"ledge",    name:"The Pale Hunter",  icon:"🦈", art:"sp_red9",
     line:"Two colors, no mercy. The gulls go quiet when it's near.",
-    need:700, pull:25.5, strain:1.85, maxStam:520, wLo:400, wHi:700, cr:500000,
+    need:700, pull:33.2, strain:1.85, maxStam:1040, wLo:400, wHi:700, cr:500000,
     script:["run","sulk","dive","jump","run","sulk"] },
   { spot:"reef",     name:"The Rooster King", icon:"🐟", art:"sp_cc112",
     line:"Its comb breaks the surface like a crown. Bow or reel.",
-    need:620, pull:23, strain:1.8, maxStam:440, wLo:70, wHi:110, cr:420000,
+    need:620, pull:29.9, strain:1.8, maxStam:792, wLo:70, wHi:110, cr:420000,
     script:["jump","run","sulk","run","jump","sulk"] },
   { spot:"midnight", name:"The Black Phantom","icon":"🐟", art:"sp_cap3",
     line:"Older than the Mark itself. Seen only as an absence of stars.",
-    need:820, pull:27, strain:1.9, maxStam:580, wLo:90, wHi:140, cr:650000,
+    need:820, pull:35.1, strain:1.9, maxStam:1073, wLo:90, wHi:140, cr:650000,
     script:["sulk","dive","jump","run","jump","sulk"] },
   { spot:"confluence", name:"The Drowned King", icon:"🐙", art:null,
     line:"A king needs no crown — the water swallowed it long ago. The five Legends were only his heralds.",
-    need:760, pull:27, strain:1.95, maxStam:560, wLo:1400, wHi:2400, cr:2500000,
+    need:874, pull:27, strain:1.95, maxStam:784, wLo:1400, wHi:2400, cr:2500000,
     script:["dive","run","sulk","run","jump","dive","run","sulk","jump","run"] }
 ];
 function feBossFor(spotId){ return FE_BOSSES.find(b=>b.spot===spotId) || null; }
@@ -3895,23 +3907,24 @@ function feCineStart(bossName){
     const r = cv.getBoundingClientRect();
     return { x: (e.clientX - r.left) * 470 / r.width, y: (e.clientY - r.top) * 705 / r.height };
   };
-  cv.addEventListener("pointerdown", e=>{ e.preventDefault(); const p2=xy(e); feCineDown(p2.x, p2.y); });
+  cv.addEventListener("pointerdown", e=>{ e.preventDefault(); try{ cv.setPointerCapture(e.pointerId); }catch(x){} const p2=xy(e); feCineDown(p2.x, p2.y); });
   cv.addEventListener("pointerup",   e=>{ const p2=xy(e); feCineUp(p2.x, p2.y); });
+  cv.addEventListener("pointercancel", e=>{ const p2=xy(e); feCineUp(p2.x, p2.y); });
   const go = document.getElementById("feCineGo");
   go.onclick = ()=>{
     if(!feCine.active) return;
     feCine.phase = "fight"; feCine.t = 0; go.style.display = "none";
     feCine.mode = "sig"; feSigNew(feCine);
     feAudioUnlock(); fbSfxSafe("snag", 0.4);
-    feCine.last = 0; requestAnimationFrame(feCineFrame);   /* restart kick */
+    feCine.last = 0; feCineKick();   /* restart kick */
   };
-  requestAnimationFrame(feCineFrame);
+  feCineKick();
   /* watchdog: preview panes and background tabs can stall RAF — if no
      frame lands for 400ms, kick the chain back to life */
   feCine.dog = setInterval(()=>{
     if(!feCine.active){ clearInterval(feCine.dog); return; }
     if(performance.now() - (feCine.wall||0) > 400){
-      feCine.last = 0; requestAnimationFrame(feCineFrame);
+      feCine.last = 0; feCine.pending = false; feCineKick();
     }
   }, 420);
 }
@@ -4008,10 +4021,37 @@ function feCineMiss(){
   fbSfxSafe("slip", 0.5);
   if(C.stress >= 3){ C.phase = "escape"; C.t = 0; }
 }
+/* one frame chain, ever: every kick goes through here, and a kick while a
+   frame is already pending is a no-op. The old code requested a fresh chain
+   from the Fight button, the watchdog and the catch handler, and none of
+   them ever ended - a few tab switches meant the fight drew N times a frame */
+function feCineKick(){
+  const C = feCine;
+  if(!C.active || C.pending) return;
+  C.pending = true;
+  requestAnimationFrame(feCineFrame);
+}
 function feCineFrame(ts){
   const C = feCine;
+  C.pending = false;
   if(!C.active) return;
-  try{ feCineFrameBody(ts); }catch(e){ requestAnimationFrame(feCineFrame); }
+  try{ feCineFrameBody(ts); }catch(e){ feCineKick(); }
+}
+/* the shrinking-ring mechanic, one frame. Pulled out of the frame body so
+   the node harness can step it at 120Hz: the old body clamped C.t to 0.54
+   while waiting against a `> 0.55` spawn gate, which only a frame longer
+   than 10ms could cross, so any 100Hz+ display sat on the first ring
+   forever (batch 119). C.t is reset to 0 by every transition into ring
+   mode, so no clamp is needed. */
+function feCineRingStep(C, dt){
+  if(!C.ring && C.t > 0.55){
+    C.round++;
+    C.ring = { x: 120 + Math.random()*230, y: 200 + Math.random()*260, r: 130, sp: 96 * (1 + 0.22*(C.hard||0)) };
+  }
+  if(C.ring){
+    C.ring.r -= dt * (C.ring.sp || 96);
+    if(C.ring.r < 22) feCineMiss(), C.t = 0;
+  }
 }
 function feCineFrameBody(ts){
   const C = feCine;
@@ -4039,22 +4079,11 @@ function feCineFrameBody(ts){
       else if(S.win > 0){ S.win -= dt; if(S.win <= 0) feCineFail(); }
     }
   }
-  if(C.phase === "fight" && C.mode === "ring"){
-    if(!C.ring && C.t > 0.55){
-      C.round++;
-      C.ring = { x: 120 + Math.random()*230, y: 200 + Math.random()*260, r: 130, sp: 96 * (1 + 0.22*C.hard) };
-    }
-    if(C.ring){
-      C.ring.r -= dt * (C.ring.sp || 96);
-      if(C.ring.r < 22) feCineMiss(), C.t = 0;
-      else if(!C.ring) C.t = 0;
-    }
-    if(!C.ring) C.t = Math.min(C.t, 0.54);
-  }
+  if(C.phase === "fight" && C.mode === "ring") feCineRingStep(C, dt);
   if(C.phase === "defeat" && C.t > 2.3) return feCineEnd(true);
   if(C.phase === "escape" && C.t > 1.9) return feCineEnd(false);
   feCineDraw();
-  requestAnimationFrame(feCineFrame);
+  feCineKick();
 }
 function feCineDraw(){
   const cv = document.getElementById("feCineCv");
@@ -4213,6 +4242,7 @@ function feCineEnd(won){
         fsh.catch.weightLb = +(fsh.catch.weightLb * (1 + 0.15*prev)).toFixed(1);
       }
     }catch(e){}
+    if(fsh && fsh.phase === "cine") fsh.phase = "reeling";
     fshLand();                     /* the flag is set — this time he lands */
   } else {
     if(fsh && fsh.catch) fsh.catch._trueForm = 0;

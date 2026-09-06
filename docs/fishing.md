@@ -549,7 +549,51 @@ above 2200px); every grid on the page is auto-fill, so the columns simply
 multiply - eight packs in one row at 2000px. The spread box follows to
 1560px.
 
-THE BOSS FIGHT - see the note below the entry once the fix lands.
+THE BOSS FIGHT. "It waits a really long time or doesn't do the next
+mechanic." Two independent boss systems, each with its own stall, both
+verified numerically before the fix:
+- The cinematic QTE (feCine*, the true-form fight every fifth catch while
+  FE_TEST_EVERY5 is on): the ring mechanic clamped C.t to 0.54 every frame
+  while waiting, against a `> 0.55` spawn gate. Only a frame longer than
+  10ms could cross it, so at 60Hz it worked and on any 100Hz+ display
+  (ProMotion phones, gaming monitors) the fight played ONE mechanic and
+  then sat forever; the RAF watchdog never fired because frames were still
+  landing. Clamp deleted; the ring step is its own function
+  (feCineRingStep) so the node harness steps it at 120Hz.
+- The scripted mood fight (feFightStep): the tired-recovery branch picked
+  the next mood without arming it, so tired -> jump left jumpTele=0 and
+  airT=0 with moodT frozen - a silent heavy run until the 62s pace
+  checkpoint or the 260s failsafe. Hit 21-48% of fights per legend. Every
+  transition arms its mood now.
+Also fixed on the way: the catch resolved and PAID behind the cinematic
+(fshLand re-entered every frame with phase still "reeling", then paid
+again on the win) - the fight is parked in phase "cine" until feCineEnd;
+the Fight button, the watchdog and the catch handler each started a fresh
+RAF chain that never ended (N draws per frame after a few tab switches) -
+one chain through feCineKick; a mouse released off the canvas never ended
+a hold/swipe - pointer capture.
+
+THE RETUNE THAT FOLLOWED. With the freeze gone the harness's smart bot
+landed all six legends 100% of the time: the freeze had been the legends'
+only real teeth (every pre-fix loss in the histogram was a "slip"). The
+bands in test-fishing.js (every legend 40%+, at least two at 80% or under,
+the Drowned King 12-60%) are the design, so the fights were retuned to
+meet them honestly, by sweep: `need` past ~1300 trips the "overpowered"
+cliff, pull past ~1.6x becomes one-frame snaps, and STAMINA is the
+gradient knob. The four mid legends carry 30% more pull and roughly double
+the stamina (Marsh King 820, Rooster King 792, Pale Hunter 1040, Black
+Phantom 1073); the Drowned King needs 874 line and has 784 stamina. Bot
+rates now: Ironjaw 100, Marsh 62, Pale 68, Rooster 72, Phantom 59, Drowned
+in band. The entry-legend check changed from "<=97%" to ">=85%": a perfect
+bot has no loss path but the pace checkpoint once the fish never freezes,
+so the old cap was measuring the bug. Three new harness checks: tired ->
+jump arms the telegraph; no legend goes 40s without an event; rings keep
+spawning at 120Hz.
+
+Left as found, flagged to the playtester: FE_TEST_EVERY5 = true ships the
+cinematic on every fifth ordinary catch (a test hook), and the legend's
+shadow spawns at 0.02/s of idle time - a mean 50s wait before it even
+shows.
 
 ## Batch 118d — photos in the spread, and a desktop that uses its screen
 Playtester (PC screenshot): "the picture is defaulting to the emojis. also

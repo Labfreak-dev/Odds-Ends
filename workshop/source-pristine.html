@@ -152,6 +152,10 @@
   nav button i{ display:none; }
   nav button.active{ background:var(--panel2); color:var(--text); border-color:#333a52;}
   main{ padding:24px; max-width:1200px; margin:0 auto; }
+  /* a desktop gets the room it has: every grid in the page is auto-fill, so
+     the columns simply multiply (batch 119) */
+  @media (min-width:1400px){ main{ max-width:1660px; padding:28px 40px; } }
+  @media (min-width:2200px){ main{ max-width:2000px; } }
   .panel{ background:var(--panel); border:1px solid #262b3a; border-radius:var(--radius); padding:20px; margin-bottom:20px;}
   .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
   button.btn{

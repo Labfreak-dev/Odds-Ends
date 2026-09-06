@@ -152,6 +152,10 @@
   nav button i{ display:none; }
   nav button.active{ background:var(--panel2); color:var(--text); border-color:#333a52;}
   main{ padding:24px; max-width:1200px; margin:0 auto; }
+  /* a desktop gets the room it has: every grid in the page is auto-fill, so
+     the columns simply multiply (batch 119) */
+  @media (min-width:1400px){ main{ max-width:1660px; padding:28px 40px; } }
+  @media (min-width:2200px){ main{ max-width:2000px; } }
   .panel{ background:var(--panel); border:1px solid #262b3a; border-radius:var(--radius); padding:20px; margin-bottom:20px;}
   .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
   button.btn{
@@ -4349,6 +4353,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rz-card{ position:relative; z-index:30; }
 /* ---- the spread (batch 118): every pull face up in one grid ---- */
 .rz-box.wide{ width:min(1180px,96vw); }
+@media (min-width:1400px){ .rz-box.wide{ width:min(1560px,94vw); } }
 .rz-spread{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:10px 8px;
   max-height:min(58vh,560px); overflow-y:auto; padding:6px 4px 10px; margin-top:4px;
   scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
@@ -4447,7 +4452,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · f10753</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 33045a</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5563,7 +5568,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-10-oddone.js?v=e66af7007b"></script>
 <script src="oe-11-fishing2.js?v=554613d832"></script>
 <script src="oe-12-mining2.js?v=2ee842de0b"></script>
-<script src="oe-13-ripship.js?v=e87305b531"></script>
+<script src="oe-13-ripship.js?v=342be79b97"></script>
 <script src="oe-14-ledger.js?v=b36867f39e"></script>
 <script src="oe-15-grading.js?v=817788899f"></script>
 <script src="oe-16-market2.js?v=cb953caf76"></script>

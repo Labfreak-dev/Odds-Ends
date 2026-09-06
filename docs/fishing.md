@@ -501,6 +501,26 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 121 — Connections: no rule twice, eight rule types; The Case says "lower"
+Playtester: "connection categories dont allow them to show up more than
+once. add more categories. humbler doesnt make sense, change it."
+
+CONNECTIONS. Strict now: a rule type appears at most once on a board, no
+pad, no exceptions - a binder that cannot offer four different rules gets
+the "not enough variety" toast instead of a board with a repeat. Eight
+rule types, up from six; the card name's variant is mined two ways instead
+of one: "Same edition" (the adjective: Weathered, Archive, Museum... 67
+distinct) and "Same format" (the noun: Print, Snapshot, Edition, Study...
+43), replacing the single "Same print run"; plus "Same last letter" (25)
+alongside "Same first letter". Verified headless: 300 boards on the
+catalogue sample and 300 on a 600-card owned binder, 0 boards with a
+repeated rule, 0 undealable, all eight rules in rotation, every group
+label renders.
+
+THE CASE. "Common or humbler" / "Humbler than the slot on its left" read
+as a riddle. Now "Common or lower" / "Lower rarity than the slot on its
+left"; the lobby copy matches.
+
 ## Batch 120 — the sounds, tamed for real
 Playtester: "the sounds are still super bad. make them less jarring."
 Batch 117 trimmed, gapped and filtered; not enough. This pass changes how

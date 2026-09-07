@@ -162,6 +162,8 @@
   .bty .bb{display:flex;flex-direction:column;gap:4px}
   .pslot{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(0,0,0,.35);font-size:11px;text-align:left}
   .pslot select{max-width:110px;padding:4px}
+  .coachRow select{max-width:150px;padding:4px 6px;font-size:12px;flex:0 0 auto}
+  .coachRow>span:first-child{min-width:0;flex:1 1 auto}
   .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
   .actions button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;font-size:13px}
   .actions svg{width:18px;height:18px;flex:none}
@@ -765,6 +767,9 @@
           <div class="prayers" id="prayers"></div>
           <div class="chk" style="margin-top:8px"><input type="checkbox" id="autoEat" checked><label for="autoEat">Eat automatically below <b id="eatPctTxt">50</b>% HP</label></div>
           <input type="range" id="eatPct" min="10" max="90" value="50">
+          <h3 class="secH">The Coach</h3>
+          <p class="sub" style="margin-bottom:4px">What the champion does on their own, here and while you are away. Every switch is earned.</p>
+          <div id="coach"></div>
           <h3 class="secH">Combat style</h3>
           <div class="styles" id="cstyles"></div>
           <p class="sub" style="margin-top:6px">Your weapon decides this. Swords and axes fight in Melee on Attack and Strength; bows, crossbows and knives fight in Ranged; wands, staves, orbs and tomes fight in Magic. Each trains its own skill and needs its own level to wield.</p>
@@ -824,7 +829,7 @@
   <div id="lgBody">
     <details class="lg" open><summary>How to play<span class="sub">the short version</span></summary><div class="lgc"><p><span class="lgt">The idea</span> — Combat runs on its own. You coach: stance, gear, when to eat, where to fight, and when to pull the boss. Damage you deal trains your skills. Monsters drop gold, food, gear and chests.</p><p><span class="lgt">Getting further</span> — Kill enough in an area to unlock its boss; beat the boss to open the next area. Weapons need Attack, armour needs Defence. Salvage junk for scrap and raise favourite pieces at the Forge.</p><p><span class="lgt">The fight screen</span> — The two pools at the top of the scene are your health and the monster's. The orbs along the foot are your prayers (tap to light or snuff the set you last chose; tap the number to pick prayers), food, special attack (it glows when it has the energy; tap to loose it), potions and the boss. The map icon opens the realm; the speech bubble shows or hides the chronicle.</p><p><span class="lgt">Dots</span> — A gold dot on a menu or a room chip means something waits there. The strip above the realm map lists what is worth doing right now.</p><p><span class="lgt">Keys</span> — 1–5 menus · Space special · E eat · B bury bones.</p><p><span class="lgt">Away</span> — The hold fights on without you for up to eight hours, at the area you left it in. Come back to a summary of what fell, and a chronicle line when the phone only put the page to sleep.</p><p><span class="lgt">The opening</span> — A gold line above the scene walks a new champion through the first ten minutes, one hint at a time, each with a button that goes where it points. The ✕ hides them. <button class="sm" id="btnOnb">Play the opening again</button></p></div></details>
     <details class="lg"><summary>The menus<span class="sub">where everything lives</span></summary><div class="lgc"><p><span class="lgt">Worn</span> — Your champion: the Equipment window with the paperdoll and stat sheet, and the pack beneath it with filters, chests, salvage and sell-junk, and the auto-salvage rules.</p><p><span class="lgt">Vault</span> — The Medallion; Storage with the Mimic, the Vault building and the rune pouch beneath the strongroom; the Collection with the Bestiary under it.</p><p><span class="lgt">Train</span> — Skills with Prayer beside them and the combat style, training weapons and stance; Feats with the bounty board, the Road, realm deeds, Disciplines and Mastery; Ascension with the trials, the altar, the Heirloom and the Hall of Ancestors.</p><p><span class="lgt">March</span> — The realm map, pinned with everything there is to do, and the area list beneath it.</p><p><span class="lgt">Hold</span> — Buildings with the Dynasty at the top; the Barracks with the siege above the roster and the companion armoury; the Peddler with his licence.</p></div></details>
-    <details class="lg"><summary>Fighting well<span class="sub">prayer, food, potions, defence</span></summary><div class="lgc"><p><span class="lgt">Goblins</span> — Now and then one scurries onto the field with something it should not have: a sack of coin, a bag of gear, a satchel of runes, a strongbox, or a pouch of jewels once you hold the medallion. It cannot be killed and never swings back. For sixty seconds every blow, yours or a companion's, shakes loose a share of what it carries; hard blows and specials shake more. Then it bolts, dropping one last thing on the way out.</p><p><span class="lgt">Prayer</span> — Light prayers for accuracy, damage, defence, regen or protection, from the prayer orb under the fight or the Prayer section under Train. They drain points; bones from kills restore them, and auto-bury is on by default. Smite, Stone Skin and Sight join from combat 55.</p><p><span class="lgt">Food and potions</span> — Eat from the orb or automatically below the threshold set under Prayer. Draughts are brewed at the Larder and drunk from the potion orb.</p><p><span class="lgt">Damage reduction</span> — From gear, prayers, draughts, creeds, the medallion and a defender companion, capped at 70%; a landed blow always costs at least a point, and reduction below nothing raises the damage taken.</p><p><span class="lgt">Matched kits</span> — Helm, body, legs, gloves and boots all of one tier pay +4% to every combat roll.</p><p><span class="lgt">Elites</span> — One monster in twenty comes up Swift, Stony, Venomous, Gilded or Hulking, with twice the drops.</p><p><span class="lgt">Difficulty</span> — Hard, Expert and Master open as you clear areas and pay more gold, drops and XP for tougher monsters. Nightmare opens at Dynasty rank 1 and Torment at realm 15; Torment alone drops seals from ordinary monsters and can leave a worn jewel Flawless.</p></div></details>
+    <details class="lg"><summary>Fighting well<span class="sub">prayer, food, potions, defence</span></summary><div class="lgc"><p><span class="lgt">The Coach</span> — Under Train › Skills: switches for what the champion does alone. Loose the special when charged, challenge the boss each time the count is met, march on to the next area when your hit chance there clears your mark, relight prayers, retreat when the food is gone, and double time. Each is earned: combat 20 for the special, the first boss for the boss, the first ascension for marching, combat 30 for prayers, three deaths for retreat, every area cleared for double time. All of them run while you are away too. A death drops you back one area; the away window says who killed you and how often they hit.</p><p><span class="lgt">Goblins</span> — Now and then one scurries onto the field with something it should not have: a sack of coin, a bag of gear, a satchel of runes, a strongbox, or a pouch of jewels once you hold the medallion. It cannot be killed and never swings back. For sixty seconds every blow, yours or a companion's, shakes loose a share of what it carries; hard blows and specials shake more. Then it bolts, dropping one last thing on the way out.</p><p><span class="lgt">Prayer</span> — Light prayers for accuracy, damage, defence, regen or protection, from the prayer orb under the fight or the Prayer section under Train. They drain points; bones from kills restore them, and auto-bury is on by default. Smite, Stone Skin and Sight join from combat 55.</p><p><span class="lgt">Food and potions</span> — Eat from the orb or automatically below the threshold set under Prayer. Draughts are brewed at the Larder and drunk from the potion orb.</p><p><span class="lgt">Damage reduction</span> — From gear, prayers, draughts, creeds, the medallion and a defender companion, capped at 70%; a landed blow always costs at least a point, and reduction below nothing raises the damage taken.</p><p><span class="lgt">Matched kits</span> — Helm, body, legs, gloves and boots all of one tier pay +4% to every combat roll.</p><p><span class="lgt">Elites</span> — One monster in twenty comes up Swift, Stony, Venomous, Gilded or Hulking, with twice the drops.</p><p><span class="lgt">Difficulty</span> — Hard, Expert and Master open as you clear areas and pay more gold, drops and XP for tougher monsters. Nightmare opens at Dynasty rank 1 and Torment at realm 15; Torment alone drops seals from ordinary monsters and can leave a worn jewel Flawless.</p></div></details>
     <details class="lg"><summary>Gear<span class="sub">forge, runes, uniques, tiers</span></summary><div class="lgc"><p><span class="lgt">The Forge</span> — Reroll a piece's affixes for gold and scrap, or temper it up a rarity: Fine, Superior, Masterwork, Legendary, then <b style="color:#ff3b5c">Mythic</b> with five affixes. Mythic also costs three Starsteel ingots. Uniques and set pieces keep what they were made with. A Mythic at the forge cap climbs one rung a realm for shards, to +25.</p><p><span class="lgt">Starsteel</span> — An area boss gives up a bar the first time it falls, and sometimes after, more often on the harder tiers. Tower wardens carry it too, and the peddler sells it under a licence.</p><p><span class="lgt">Runes</span> — Drop from monsters, bosses and the tower; three make a Runeword you inscribe onto a piece for a permanent bonus. Tempest, Warden, Hunter and Pilgrim join in the mid game. Every slot has a fighting word: Ironhide, Grip, Titan and Stride for legs, gloves and boots, Crown for the head, Mantle for the cape, Talisman and Bloodoath for the jewellery, and Sovereign (Blood, Star, Star) for any piece.</p><p><span class="lgt">Uniques and sets</span> — 30 named weapons with their own bonuses and 10 four-piece armour sets with 2- and 4-piece bonuses. Gold-bordered in the pack, never auto-salvaged. Area uniques drop from that area's monsters, boss uniques from bosses, set pieces in their home area once its boss is down.</p><p><span class="lgt">Storage</span> — A strongroom beside the pack: gear sent there takes no pack space, is never auto-salvaged, and the Vault may pick from it. Ascension empties it.</p><p><span class="lgt">Obsidian and Starsteel tiers</span> — Two tiers past Dragon, at Defence 75 and 90 (Basilisk and Phoenix hide for rangers, Voidweave and Celestial robes for mages). Drops reach Obsidian from realm 3 and Starsteel from realm 8; the tower at floors 64 and 72, the Abyss at waves 32 and 36.</p><p><span class="lgt">The Sovereign harness</span> — One set for a champion with 99 in every combat skill, nine pieces and a weapon for each style. It drops only once you have them: from any boss at about one in three hundred, the Elder Wyrm at one in sixty, tower wardens past floor 100 at one in forty.</p><p><span class="lgt">The Forge of Souls</span> — Inside the Forge card. A duplicate unique or set piece renders to essence from its item window; ten essence and gold forge any unique you have found, at Mythic.</p></div></details>
     <details class="lg"><summary>Companions<span class="sub">the roster and the barracks</span></summary><div class="lgc"><p><span class="lgt">Earning them</span> — The hold's three are free. Six come from the feats board (Tiger, Fairy, Assassin, Knight, Ent, Excalibur), five drop from bosses (the Necromancer from the Sewer Wyrm, the Barbarian from Warlord Gunnar, the Bear from the Frost Matriarch, the Imp from the Ashborn Overlord, the Golden Dragon from the Elder Wyrm). The Mariachis are bought from the peddler once you have bought anything else from him: three men, one companion, both places in the field.</p><p><span class="lgt">The field</span> — Two fight beside you, the second slot at Barracks level 2. The rest hold the barracks, run errands and expeditions, and all of them defend a siege.</p><p><span class="lgt">The Barracks room</span> — One row per companion; tap one for its kit, talents and errands in one window, with Train, Swear, Field and Dismiss at the bottom. The companion armoury button sells and fits seven-piece kits: power and attack sharpen blows, defence shields you, strength is flat damage, prayer widens your pool.</p><p><span class="lgt">Talents</span> — At levels 5, 10 and 15 a companion picks one of two talents for its role; every option's description shows before the choice.</p><p><span class="lgt">Oaths and expeditions</span> — At level ten and twenty million gold a companion swears an oath: power ×1.3, never dismissed. Twelve- and twenty-four-hour expeditions bring back a jewel, a cursed scroll and Starsteel.</p></div></details>
     <details class="lg"><summary>The Hold<span class="sub">buildings, siege, peddler</span></summary><div class="lgc"><p><span class="lgt">Buildings</span> — Raise the Forge, Salvage Yard, Larder, War Chest and Barracks with gold and scrap for permanent perks. Every card folds to its header; tap to open it.</p><p><span class="lgt">Cooking</span> — The Larder turns raw food into meals: three shrimp into a stew, two trout into a pie that restores prayer, a lobster, swordfish and shark into a feast that charges the special.</p><p><span class="lgt">The Vault</span> — A sixth building in Storage, priced for the Mimic's purse, that keeps one, two, then three chosen items through an ascension.</p><p><span class="lgt">Dynasty</span> — Raise all five buildings to their top and the hold can be razed; it must be built again, and comes back a rank stronger for good.</p><p><span class="lgt">Sieges</span> — Once a real day the horde comes to the gates for ten minutes, from the card above the roster. Kill fast and the walls stand; let one live fifteen seconds and they take a blow. Companions fight twice as often. Hold and the hold pays; fall and a building is wrecked a level.</p><p><span class="lgt">The Peddler</span> — His cart stands in the Hold, always open, with goods priced for the ground you have reached, each sold once and laid out fresh every hour. Raise his licence and each level adds a line to the cart and takes 8% off every price.</p></div></details>
@@ -1532,13 +1537,12 @@ function togglePrayer(id){
 }
 // The prayer orb on the fight screen: one tap snuffs every lit prayer and remembers the set; the next tap lights that set again.
 function hudPrayToggle(){
-  if(activePrayers().length){S.quick=S.pray.on.slice();S.pray.on=[];sfx('snuff');log('Prayers snuffed.');G.dirty=true;return;}
+  if(activePrayers().length){praySnuff();return;}
   if(vowMul('pray')===0||trialRule('pray')===0){toast('No prayers here.');return;}
   const q=(S.quick||[]).filter(id=>{const P=PRAYERS.find(p=>p.id===id);return P&&combatLvl()>=P.req;});
   if(!q.length){openPray();return;}
   if(S.pray.pts<=0){toast('No prayer points. Bury bones.');return;}
-  for(const id of q)if(!prayOn(id))togglePrayer(id);
-  sfx('pray');log('Prayers lit: '+activePrayers().map(p=>p.n).join(', ')+'.','g');G.dirty=true;
+  prayLight(false);
 }
 function hudSpecTap(){if(G.dead)return;if(S.spec<specCost()){toast(`Special needs ${specCost()}%.`);return;}special();renderTop();}
 // The chronicle is folded away on a phone until asked for; a wide screen has the room, so it starts open there.
@@ -3004,7 +3008,7 @@ function drawMob(x,y,m,t,facing,flash){
   if(flash>0){ctx.globalAlpha=flash;ctx.fillStyle='#fff';ctx.fillRect(-60,-10,120,110);ctx.globalAlpha=1;}
   ctx.restore();
 }
-const FX={splats:[],pFlash:0,mFlash:0,pLunge:0,mLunge:0,cAct:[0,0,0]};
+const FX={splats:[],pFlash:0,mFlash:0,pLunge:0,mLunge:0,cAct:[0,0,0],shake:0,gold:0};
 function splat(x,y,txt,col){FX.splats.push({x,y,txt,col,life:1});}
 // Two health pools at the top of the scene, one each side: a glass orb that drains as the fighter is hurt.
 function drawOrb(x,y,r,frac,cols,ring,t,txt){
@@ -3033,15 +3037,17 @@ function drawOrbs(t){
   ctx.font='bold 10px Georgia,serif';ctx.textAlign='center';ctx.fillStyle='#ffe9b0';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(pn.length>40?pn.slice(0,39)+'…':pn,ox,y+r+13,130);
   if(G.mob){const gob=!!(G.mob.gob&&G.gob);const tag=gob?'GOBLIN · '+gobDef(G.mob.gob).bag.toUpperCase():G.nem?'NEMESIS':G.lt?'LIEUTENANT':G.mark?'MARKED':G.duel!=null?'DUEL':G.lair!=null?'LAIR':G.wyrm?wyrmName():eliteOf(G.mob)?'ELITE':'';
     const boss=G.isBoss||G.nem||G.lt;
-    drawOrb(W-ox,y,r,gob?Math.max(0,G.gob.left)/GOB_SECS:G.mobHp/G.mob.hp,gob?['#b8f070','#2a5a10']:boss?['#ffb347','#8a3a10']:['#c96be0','#4a1560'],gob?'#ffd24a':boss?'#ffd24a':'#8a6d48',t,gob?`${Math.ceil(Math.max(0,G.gob.left))}s`:`${G.mobHp}/${G.mob.hp}`);
+    drawOrb(W-ox,y,r,gob?Math.max(0,G.gob.left)/GOB_SECS:G.mobHp/G.mob.hp,gob&&FX.gold>0?['#fff2a0','#8a6a10']:gob?['#b8f070','#2a5a10']:boss?['#ffb347','#8a3a10']:['#c96be0','#4a1560'],gob?'#ffd24a':boss?'#ffd24a':'#8a6d48',t,gob?`${Math.ceil(Math.max(0,G.gob.left))}s`:`${G.mobHp}/${G.mob.hp}`);
     let mn=G.mob.n+' · lvl '+G.mob.lv;if(mn.length>40)mn=mn.slice(0,39)+'…';
     ctx.font='bold 10px Georgia,serif';ctx.fillStyle=boss?'#ffd24a':'#ffe9b0';ctx.fillText(mn,W-ox,y+r+13,130);
-    if(tag){ctx.font='bold 9px Verdana';ctx.fillStyle='#ff8a70';ctx.fillText(tag,W-ox,y+r+24,130);}}
+    if(tag){ctx.font='bold 9px Verdana';ctx.fillStyle='#ff8a70';ctx.fillText(tag,W-ox,y+r+24,130);}
+    {const kpm=(G.killT||[]).filter(x=>Date.now()-x<60000).length;const st=G.kstreak||0;if(!gob&&(st>=2||kpm>=2)){ctx.font='9px Verdana';ctx.fillStyle='rgba(255,233,176,.85)';ctx.fillText(`${st>=2?'streak '+st:''}${st>=2&&kpm>=2?' · ':''}${kpm>=2?kpm+'/min':''}`,W-ox,y+r+(tag?35:24),130);}}}
   ctx.shadowBlur=0;ctx.restore();
 }
 function drawScene(t,dt){
   const W=VW,H=VH;const A=AREAS[S.area];
   ctx.setTransform(SCALE,0,0,SCALE,0,0);   // re-assert every frame; save/restore inside must not leak
+  if(FX.shake>0){FX.shake=Math.max(0,FX.shake-dt);const k=FX.shake*14;ctx.translate((Math.random()-0.5)*k,(Math.random()-0.5)*k);}if(FX.gold>0)FX.gold=Math.max(0,FX.gold-dt);
   // background per area
   const skies=['#7fb5d8','#6f9a6a','#2c2c34','#8aa3c2','#7f9fb5','#cfe8f5','#3a1414','#2a2a2a'];
   const grounds=['#4e8a3a','#5f7a3a','#3a3a3a','#6a5a3a','#5a6a3a','#dfe8ee','#3a2020','#3a3030'];
@@ -3166,6 +3172,45 @@ function musicSet(){const a=$('bgm');if(!a)return;a.volume=Math.min(1,sfxVol()*0
   if(a.paused){const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}}
 function musicToggle(){S.music=!musicOn();musicSet();const e=$('musicOn');if(e)e.checked=musicOn();toast(musicOn()?'Music on.':'Music off.');}
 function musicFail(){if(!musicOn())return;S.music=false;const e=$('musicOn');if(e)e.checked=false;toast('No music file: put music/theme.mp3 beside the game.');}
+// ============ THE COACH ============
+// The switches that make eight hours away worth eight hours watching: each one runs inside tick(), so the offline replay
+// and the phone catch-up honour them too. Every switch is earned, not handed out; a locked row shows what earns it.
+const COACH=[
+ {id:'spec',n:'Special attack',d:'Loose the special the moment it is charged.',opts:[['off','Off'],['always','Always'],['boss','Bosses and goblins']],need:()=>combatLvl()>=20,lock:'combat level 20'},
+ {id:'boss',n:'Fight the boss',d:'Challenge the boss each time the kill count is met, cleared or not.',opts:[['off','Off'],['on','On']],need:()=>S.cleared.some(Boolean)||!!(S.asc&&S.asc.count>0),lock:'your first boss kill'},
+ {id:'march',n:'March on',d:'After a boss falls, move to the next area if your hit chance there is at least the mark and you have not died in ten minutes.',opts:[['off','Off'],['on','On']],need:()=>!!(S.asc&&S.asc.count>0),lock:'your first ascension'},
+ {id:'pray',n:'Prayers',d:'Relight your quick prayers when a quarter of your points are back.',opts:[['off','Off'],['always','Always'],['boss','Bosses and goblins']],need:()=>combatLvl()>=30,lock:'combat level 30'},
+ {id:'retreat',n:'Retreat',d:'With no food and under a third of your health, fall back an area before the blow that would kill you.',opts:[['off','Off'],['on','On']],need:()=>(S.deaths||0)>=3,lock:'three deaths, learned the hard way'},
+ {id:'speed',n:'Double time',d:'The fight runs at twice the pace, here and while you are away. The numbers do not change; the hours do.',opts:[['1','Off'],['2','Twice']],need:()=>S.cleared.every(Boolean)||!!(S.feats&&S.feats.done&&S.feats.done.allclear),lock:'every area cleared once'},
+];
+function coachDef(k){return COACH.find(x=>x.id===k);}
+function coachOpen(k){const d=coachDef(k);let ok=false;try{ok=!!(d&&d.need());}catch(e){}return ok;}
+function coach(k){const d=coachDef(k);if(!d)return null;const off=d.opts[0][0];if(!coachOpen(k))return off;const v=(S.coach||{})[k];return d.opts.some(o=>o[0]===v)?v:off;}
+function coachSet(k,v){S.coach=S.coach||{};S.coach[k]=v;G.dirty=true;}
+function coachSpeed(){return coach('speed')==='2'?2:1;}
+function marchMark(){return clamp(+((S.coach||{}).marchHit||60),30,90);}
+// the strongest ordinary monster of an area, scaled the way spawn() scales it, and your chance to hit it
+function areaHit(i){const A=AREAS[i];if(!A)return 0;const b=A.mobs[A.mobs.length-1];const m=Object.assign({},b,{def:Math.round(b.def*realmMult()*diff().mob)});return hitChance(playerAtkRoll(),mobDefRoll(m));}
+function prayLight(auto){if(vowMul('pray')===0||trialRule('pray')===0)return false;const q=(S.quick||[]).filter(id=>{const P=PRAYERS.find(p=>p.id===id);return P&&combatLvl()>=P.req;});if(!q.length||S.pray.pts<=0)return false;
+  for(const id of q)if(!prayOn(id))togglePrayer(id);if(!activePrayers().length)return false;G.coachLit=!!auto;if(!G.sim){sfx('pray');log('Prayers lit: '+activePrayers().map(p=>p.n).join(', ')+'.','g');}G.dirty=true;return true;}
+function praySnuff(){S.quick=S.pray.on.slice();S.pray.on=[];G.coachLit=false;if(!G.sim){sfx('snuff');log('Prayers snuffed.');}G.dirty=true;}
+function coachTick(dt){if(G.coachRt>0)G.coachRt-=dt;if(G.dead||!G.mob)return;const m=G.mob,A=AREAS[S.area];const big=G.isBoss||!!m.gob;
+  const sp=coach('spec');if(sp!=='off'&&S.spec>=specCost()&&(sp==='always'||big))special();
+  const pr=coach('pray');if(pr!=='off'){const lit=S.pray.on.length>0;
+    if((pr==='always'||big)&&!lit&&S.pray.pts>=prayMax()*0.25)prayLight(true);
+    else if(pr==='boss'&&!big&&lit&&G.coachLit)praySnuff();}
+  if(G.tower||abyssW()||siegeActive()||S.trial||S.delve||m.gob||G.isBoss||G.duel!=null||G.lair!=null||G.nem||G.lt||G.mark)return;
+  if(coach('retreat')==='on'&&S.area>0&&foodCount()===0&&S.hp<maxHp()/3&&!(G.coachRt>0)){G.coachRt=60;S.area--;G.kstreak=0;spawn(false);if(!G.sim){log(`No food and a third of your health left: you fall back to ${AREAS[S.area].n}.`,'e');toast('Retreated to '+AREAS[S.area].n);}return;}
+  if(coach('boss')==='on'){const at=Math.min(S.kills[S.area],((S.bossAt||{})[S.area]||0));if(S.kills[S.area]-at>=A.need){spawn(true);if(!G.sim){log(`The count is met: you challenge ${G.mob.n}.`,'e');sfx('boss');}return;}}
+  if(coach('march')==='on'&&S.cleared[S.area]&&unlocked(S.area+1)&&(S.fightT||0)-(S.lastDeathT==null?-1e9:S.lastDeathT)>600&&areaHit(S.area+1)*100>=marchMark()){const to=S.area+1;goArea(to);if(!G.sim){log(`You march on to ${AREAS[to].n}.`,'g');toast('Marching on: '+AREAS[to].n);}}}
+function renderCoach(){const el=$('coach');if(!el)return;
+  const h=COACH.map(c=>{const open=coachOpen(c.id);const v=coach(c.id);
+    return `<div class="row coachRow"><span><b>${c.n}</b><br><span class="sub">${c.d}</span>${c.id==='march'&&open&&v==='on'?`<br><span class="sub">March when the hit chance ahead is at least <b class="gold" id="marchTxt">${marchMark()}</b>%</span><input type="range" id="marchHit" min="30" max="90" step="5" value="${marchMark()}" style="width:100%">`:''}</span>`+
+      (open?`<select data-coach="${c.id}">${c.opts.map(o=>`<option value="${o[0]}"${o[0]===v?' selected':''}>${o[1]}</option>`).join('')}</select>`:`<span class="sub" style="white-space:nowrap">&#128274; ${c.lock}</span>`)+`</div>`;}).join('');
+  if(el.innerHTML!==h){el.innerHTML=h;
+    el.querySelectorAll('[data-coach]').forEach(sel=>sel.onchange=()=>{coachSet(sel.dataset.coach,sel.value);if(sel.dataset.coach==='speed')toast(coachSpeed()>1?'Double time.':'Ordinary time.');renderCoach();});
+    const mh=$('marchHit');if(mh)mh.oninput=()=>{S.coach=S.coach||{};S.coach.marchHit=+mh.value;$('marchTxt').textContent=mh.value;};}}
+
 // ============ GOBLINS ============
 // Now and then a goblin scurries onto the field with something it should not have. It cannot be killed and does not fight
 // back: for sixty seconds every point of damage it takes, from you, your companions, a burn or a riposte, shakes loose a
@@ -3197,7 +3242,7 @@ function gobHit(dmg){const gb=G.gob;if(!gb)return;const A=AREAS[S.area];const b=
   const f=Math.min(2,dmg/Math.max(1,playerMaxHit()));gb.dmg+=dmg;   // a full-strength blow is worth one share; a special can be worth two
   const got=(k,n)=>{gb.got[k]=(gb.got[k]||0)+n;};
   switch(gb.id){
-   case 'gold':{const gold=Math.round(Math.pow(A.tier+1,1.5)*20*f*(1+b.gold/100)*(1+0.1*r));S.gold+=gold;S.goldEarned=(S.goldEarned||0)+gold;got('gold',gold);if(!G.sim)splat(MX+10,40,'+'+fmt(gold),'#ffd24a');break;}
+   case 'gold':{const gold=Math.round(Math.pow(A.tier+1,1.5)*20*f*(1+b.gold/100)*(1+0.1*r));S.gold+=gold;S.goldEarned=(S.goldEarned||0)+gold;got('gold',gold);if(!G.sim){splat(MX+10,40,'+'+fmt(gold),'#ffd24a');FX.gold=0.35;}break;}
    case 'loot':{gb.acc+=f;while(gb.acc>=6){gb.acc-=6;const it=makeItem(clamp(A.tier+(Math.random()<0.4?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1.5)));gainItem(it);got('gear',1);if(!G.sim)splat(MX+10,40,itemName(it),rc(it));}break;}
    case 'rune':{gb.acc+=f;while(gb.acc>=8){gb.acc-=8;gainRune(Math.random()<0.15);got('runes',1);}break;}
    case 'chest':{gb.acc+=f;while(gb.acc>=8){gb.acc-=8;S.chests++;got('chests',1);if(!G.sim)splat(MX+10,40,'+1 chest','#ffd24a');}break;}
@@ -3235,6 +3280,7 @@ function spawn(boss){
     m=Object.assign({},m,{hp:Math.round(m.hp*(mm.hp||1)),atk:Math.round(m.atk*(mm.atk||1)),def:Math.round(m.def*(mm.def||1)),hk:(m.hk||1)*(mm.hk||1),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
   const carry=!!(G.dot&&G.dot.burn&&G.mob&&G.mobHp<=0&&resonEff('ashfall')&&medEff('burn'));   // Ashfall: the last one died burning
   G.wyrm=(boss===true&&!G.tower&&!abyssW()&&S.area===AREAS.length-1&&((S.asc&&S.asc.realm)||0)>=WYRM_FROM)?{phase:1}:null;
+  if(boss===true&&!G.tower&&!abyssW()&&!siegeActive()){S.bossAt=S.bossAt||{};S.bossAt[S.area]=S.kills[S.area];}
   G.mob=m;G.mobHp=m.hp;G.first=true;G.isBoss=!!boss;G.nem=boss==='nem';G.lt=boss==='lt';G.mark=boss==='mark'?m.mark:null;G.duel=(Array.isArray(boss)&&boss[0]==='duel')?boss[1]:null;G.lair=(Array.isArray(boss)&&boss[0]==='lair')?boss[1]:null;G.mT=m.spd*0.6;G.pT=Math.min(G.pT,attackDelay());G.sunderT=0;G.hexT=0;G.dot=carry?{burn:{pct:medEff('burn'),t:4}}:null;G.chillT=0;if(boss)draughtBoss();
   G.dirty=true;
 }
@@ -3313,8 +3359,9 @@ function die(){
   if(abyssW()){abyssLose();spawn(false);return;}
   if(siegeActive()){const a=siege().act;a.walls-=SIEGE_BLOW*3;log('You fall at the gate; the walls take the horde alone.','e');if(a.walls<=0){siegeEnd(false);return;}spawn(false);return;}
   if(S.delve){delveFail();G.isBoss=false;spawn(false);return;}
+  {const m=G.mob;S.deathLog=(S.deathLog||[]).slice(-4);S.deathLog.push({m:m.n,a:AREAS[S.area].n,mh:Math.round(hitChance(mobAtkRoll(m),playerDefRoll())*100),ph:Math.round(hitChance(playerAtkRoll(),mobDefRoll(m))*100),t:Date.now()});S.lastDeathT=S.fightT||0;G.kstreak=0;}
   G.streak++;
-  if(!G.isBoss&&G.streak>=3&&S.area>0){S.area--;G.streak=0;log(`Three deaths in a row. You retreat to ${AREAS[S.area].n}.`,'e');if(!G.sim)toast('Retreated to '+AREAS[S.area].n);spawn(false);return;}
+  if(!G.isBoss&&!G.nem&&!G.lt&&G.lair==null&&!G.mark&&G.duel==null&&S.area>0){S.area--;G.streak=0;log(`You fall back to ${AREAS[S.area].n} to recover.`,'e');if(!G.sim)toast('Fell back to '+AREAS[S.area].n);spawn(false);return;}
   if(G.nem){log(`${nemName()} leaves you in the dirt and melts back into the dark.`,'e');G.nem=false;spawn(false);return;}
   if(G.lt){log('The lieutenant slips away with its prize.','e');G.lt=false;spawn(false);return;}
   if(G.lair!=null){log(`${G.mob.n} drives you from the lair. It is still open.`,'e');G.lair=null;spawn(false);return;}
@@ -3397,7 +3444,7 @@ function useSeal(k,it,aff){
 function killMob(){
   if(G.mob&&G.mob.gob){G.mobHp=G.mob.hp;return;}   // cannot be killed, only shaken
   const m=G.mob,A=AREAS[S.area],b=bonuses();
-  sfx(G.isBoss||G.nem||G.lt||G.mark||G.lair!=null||G.duel!=null?'bosskill':'kill');S.totalKills++;G.streak=0;draughtKill();profCount();
+  sfx(G.isBoss||G.nem||G.lt||G.mark||G.lair!=null||G.duel!=null?'bosskill':'kill');S.totalKills++;G.streak=0;G.kstreak=(G.kstreak||0)+1;if(!G.sim){G.killT=(G.killT||[]).filter(x=>Date.now()-x<60000);G.killT.push(Date.now());}draughtKill();profCount();
   const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;   // the Abyss holds its gold until it is banked
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck')*(1+areaMast(S.area,'luck')/100)*(eliteOf(m)?2:1)*((G.ambush||0)>0?3:1);if((G.ambush||0)>0)G.ambush--;
   rd().kills++;bestCount(m);
@@ -3539,7 +3586,7 @@ const SPEC_BARE={n:'Haymaker',d:'A heavy blow, up to 1.25× your max hit.',hits:
 function specialOf(){const w=S.equip.weapon;return (w&&SPECIALS[w.wt])||SPEC_BARE;}
 function special(){
   if(G.dead||S.spec<specCost()||!G.mob)return;
-  const sp=specialOf();S.spec-=specCost();bounty('special',1);S.specials=(S.specials||0)+1;
+  const sp=specialOf();S.spec-=specCost();bounty('special',1);S.specials=(S.specials||0)+1;if(!G.sim)FX.shake=0.28;
   for(let i=0;i<sp.hits&&G.mob&&G.mobHp>0&&!G.dead;i++)playerHit(true,sp);
   if(sp.parry)G.parry=(G.parry||0)+sp.parry;if(sp.sunder)G.sunderT=sp.sunder;if(sp.stagger)G.mT+=sp.stagger;
   if(sp.ward)G.ward=Math.max(G.ward||0,Math.round(maxHp()*sp.ward));if(sp.hex)G.hexT=sp.hex;
@@ -3552,7 +3599,7 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   for(let i=0;i<S.food.length;i++)if(S.food[i]<999)S.food[i]=999;for(let i=0;i<S.runes.length;i++)if(S.runes[i]<999)S.runes[i]=999;
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
-function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;
+function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
@@ -3562,6 +3609,7 @@ function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;
   if(!G.mob)spawn(false);
   gobTick(dt);
   if(S.autoEat&&S.hp<maxHp()*S.eatPct/100)eat(false);
+  coachTick(dt);
   draughtTick(dt);
   G.pT-=dt;G.mT-=dt;if(G.sunderT>0)G.sunderT=Math.max(0,G.sunderT-dt);if(G.hexT>0)G.hexT=Math.max(0,G.hexT-dt);
   if(G.pT<=0){playerHit(false);G.pT+=attackDelay();}
@@ -3781,12 +3829,19 @@ const SEC_GATE={
   'skills:Disciplines':()=>combatLvl()>=DISC_LV[0]||discAny(),
   'keep:Peddler':()=>merchOpen(),
   'vault:Medallion':()=>medOwned(),
+  'skills:Coach:spec':()=>coachOpen('spec'),'skills:Coach:boss':()=>coachOpen('boss'),'skills:Coach:march':()=>coachOpen('march'),'skills:Coach:pray':()=>coachOpen('pray'),'skills:Coach:retreat':()=>coachOpen('retreat'),'skills:Coach:speed':()=>coachOpen('speed'),
 };
 const SEC_OPEN_MSG={
   'vault:Medallion':'The Ascension Medallion hangs in the Vault, in its own room.',
   'skills:Ascension':'The Altar of Ascension stands under Train, in its own room, with the Heirloom beside it.',
   'skills:Ancestors':'The Hall of Ancestors opens under Train, beneath the altar: those who came before you.',
   'skills:Disciplines':'Combat level 30: a discipline waits under Train, with the feats. Choose how you fight.',
+  'skills:Coach:spec':'The Coach learns a trick: the special can loose itself when charged. Train › Skills › The Coach.',
+  'skills:Coach:boss':'The Coach learns a trick: the boss can be challenged the moment the count is met. Train › Skills › The Coach.',
+  'skills:Coach:march':'The Coach learns a trick: after a boss falls the champion can march on alone. Train › Skills › The Coach.',
+  'skills:Coach:pray':'The Coach learns a trick: prayers can relight themselves. Train › Skills › The Coach.',
+  'skills:Coach:retreat':'The Coach learns a trick, the hard way: retreat before the killing blow. Train › Skills › The Coach.',
+  'skills:Coach:speed':'The Coach learns the last trick: double time. Train › Skills › The Coach.',
   'keep:Peddler':'Word on the road: a peddler works these parts. His cart parks inside the Hold, in its own room, with new goods every hour. Raise his licence and he brings more, for less.',
 };
 function secOpen(tabId,name){const g=SEC_GATE[tabId+':'+name];return !g||!!g();}
@@ -4247,7 +4302,7 @@ function renderAreas(){
     const db=d.querySelector('[data-delve]');if(db)db.onclick=()=>{if(delveStart()){showTab('hero');}};
     el.appendChild(d);});
 }
-function goArea(i){if(!unlocked(i))return;if(abyssW())abyssBank();if(S.curse&&S.curse.area!==i)endCurse('abandoned');S.area=i;G.tower=0;spawn(false);G.dirty=true;renderAll();}
+function goArea(i){if(!unlocked(i))return;if(abyssW())abyssBank();if(S.curse&&S.curse.area!==i)endCurse('abandoned');S.area=i;G.tower=0;G.kstreak=0;spawn(false);G.dirty=true;if(!G.sim)renderAll();}
 
 // --- keep ---
 function keepCard(k,body,action){
@@ -4581,7 +4636,7 @@ function renderAll(){
   switch(S.tab){
     case 'hero':renderSlots();renderBag();break;
     case 'vault':renderBag();renderMed();renderStore();renderCodex();renderBestiary();renderStats();renderAltars();break;      // the Pack carries the Collection
-    case 'skills':renderSkills();{const d=$('discSec');if(d)d.hidden=!(combatLvl()>=DISC_LV[0]||discAny());}renderDisc();renderProf();renderPrayer();renderFeats();renderBounties();renderRoad();renderDeeds();renderAltars();break; // Train carries Prayer and Feats
+    case 'skills':renderSkills();renderCoach();{const d=$('discSec');if(d)d.hidden=!(combatLvl()>=DISC_LV[0]||discAny());}renderDisc();renderProf();renderPrayer();renderFeats();renderBounties();renderRoad();renderDeeds();renderAltars();break; // Train carries Prayer and Feats
     case 'world':renderMap();renderAreas();break;
     case 'keep':renderKeep();break;}
   if(chUI.open){if(S.tab!=='hero')renderSlots();chRender();}
@@ -4757,14 +4812,14 @@ function load(str){
 // Two ways in: the boot (a modal tells the tale) and the tab coming back into view after a phone put it to sleep (a chronicle line).
 const OFF_CAP=8*3600;
 function offline(quiet){
-  const gone=(Date.now()-S.last)/1000,away=Math.min(gone,OFF_CAP);
-  if(away<30)return null;
+  const gone=(Date.now()-S.last)/1000,away=Math.min(gone,OFF_CAP)*coachSpeed();
+  if(away<30)return null;const t0=Date.now();
   const KEYS=['atk','str','def','hp','rng','mag'];const lv0={};for(const k of KEYS)lv0[k]=lv(k);
   const xpT=()=>Object.values(S.xp).reduce((a,b)=>a+b,0);
   const b={gold:S.gold,kills:S.totalKills,xp:xpT(),chests:S.chests,inv:S.inv.length,scrap:S.scrap,food:S.foodEaten||0,deaths:S.deaths||0,runes:(S.runes||[]).reduce((a,x)=>a+x,0),keys:S.keys||0};
   if(!S.paused){G.sim=true;const step=0.6;try{for(let t=0;t<away;t+=step)tick(step);}finally{G.sim=false;}}
   S.last=Date.now();
-  const d={t:away,capped:gone>OFF_CAP+60,paused:!!S.paused,gold:S.gold-b.gold,kills:S.totalKills-b.kills,xp:xpT()-b.xp,chests:S.chests-b.chests,inv:S.inv.length-b.inv,scrap:S.scrap-b.scrap,food:(S.foodEaten||0)-b.food,deaths:(S.deaths||0)-b.deaths,runes:(S.runes||[]).reduce((a,x)=>a+x,0)-b.runes,keys:(S.keys||0)-b.keys,
+  const d={t:away,capped:gone>OFF_CAP+60,paused:!!S.paused,dl:(S.deathLog||[]).filter(e=>e.t>=t0),gold:S.gold-b.gold,kills:S.totalKills-b.kills,xp:xpT()-b.xp,chests:S.chests-b.chests,inv:S.inv.length-b.inv,scrap:S.scrap-b.scrap,food:(S.foodEaten||0)-b.food,deaths:(S.deaths||0)-b.deaths,runes:(S.runes||[]).reduce((a,x)=>a+x,0)-b.runes,keys:(S.keys||0)-b.keys,
     lv:KEYS.filter(k=>lv(k)>lv0[k]).map(k=>({k,n:SK_NAME[k],a:lv0[k],b:lv(k)}))};
   const msg=d.paused?`Back after ${fmtTime(away)}. The fighting was paused, so the blade waited.`:`While you were away ${fmtTime(away)}: ${d.kills} kill${d.kills===1?'':'s'}, ${fmt(d.gold)} gold, ${fmt(d.xp)} xp${d.lv.length?', '+d.lv.map(l=>`${l.n} ${l.a}→${l.b}`).join(', '):''}.`;
   log(msg,'g');
@@ -4775,6 +4830,7 @@ function openAway(){const d=G.away;if(!d)return;G.away=null;if($('modal').classN
   const row=(n,v)=>v?`<div>${n}</div><b class="gold">${v}</b>`:'';
   const body=d.paused?`<p class="sub">The fighting was paused when you left, so the champion rested. Tap the pause button by the area name to raise the blade again.</p>`
     :`<div class="awayG">${row('Kills',d.kills)}${row('Gold',fmt(d.gold))}${row('Experience',fmt(d.xp))}${row('Chests found',d.chests)}${row('Gear into the pack',d.inv)}${row('Scrap',d.scrap)}${row('Runes',d.runes)}${row('Delve keys',d.keys)}${row('Meals eaten',d.food)}${row('Deaths',d.deaths)}</div>`
+    +(d.dl&&d.dl.length?`<h3 class="secH">Deaths</h3><div class="sub">${d.dl.map(e=>`<div>· ${e.m} at ${e.a}: it hit you ${e.mh}% of the time, you hit it ${e.ph}%.</div>`).join('')}<div style="margin-top:3px">Each death drops you back an area. Better food, more Defence, or a lower area fixes it.</div></div>`:'')
     +(d.lv.length?`<h3 class="secH">Levels</h3><div class="sub">${d.lv.map(l=>`<div>· ${l.n} ${l.a} → <b class="gold">${l.b}</b></div>`).join('')}</div>`:'')
     +(d.kills===0?`<p class="sub">Nothing fell. The champion could not win a fight here: eat, wear better gear, or fight somewhere gentler before you leave next time.</p>`:'');
   $('modalBox').innerHTML=`<button class="mx" id="mCloseTop" aria-label="Close">✕</button><div class="mhead"><div><h2>While you were away</h2><div class="sub">${fmtTime(d.t)}${d.capped?' counted: the hold fights on for eight hours at most without you':''}.</div></div></div>`+body+`<div class="btns"><button id="mClose" style="grid-column:1/-1">Onward</button></div>`;
@@ -4830,14 +4886,14 @@ document.addEventListener('keydown',e=>{
   let last=performance.now(),acc=0,uiT=0,saveT=0;
   function frame(now){
     const dt=Math.min(0.25,(now-last)/1000);last=now;acc+=dt;
-    while(acc>=0.1){tick(0.1);acc-=0.1;}
+    while(acc>=0.1){tick(0.1);if(coachSpeed()>1)tick(0.1);acc-=0.1;}
     drawScene(now/1000,dt);
     uiT+=dt;if(uiT>0.2){uiT=0;if(G.dirty)renderAll();else renderTop();}
     saveT+=dt;if(saveT>10){saveT=0;save();}
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b146-oneshield';window.__ihBoot=true;
+  const BUILD='b147-coach';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

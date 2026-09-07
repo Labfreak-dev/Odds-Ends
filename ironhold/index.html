@@ -117,7 +117,12 @@
   @media (min-width:980px){#scene{height:260px}}
   .area-row{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
   .area-row button{padding:6px 12px;min-height:32px}
-  .area-name{font:bold 15px Georgia,serif;text-align:center;flex:1;color:var(--gold);line-height:1.15}
+  .area-name{font:bold 16px Georgia,serif;text-align:center;color:var(--gold);line-height:1.15;margin-bottom:6px}
+#btnClog{flex:1;width:auto;gap:6px;font:bold 12px Georgia,serif;padding:0 10px}#btnClog span{white-space:nowrap}
+#clog{margin-bottom:8px;padding:8px 10px;font-size:11px;color:var(--muted);line-height:1.45;max-height:300px;overflow:auto;background:rgba(0,0,0,.38);border:1px solid rgba(0,0,0,.55);border-radius:4px}
+#clog .clh{font:bold 12px Georgia,serif;color:var(--gold);margin:8px 0 2px;border-top:1px solid rgba(0,0,0,.35);padding-top:6px}#clog .clh:first-child{margin-top:0;border-top:0;padding-top:0}
+#clog .clg{display:grid;grid-template-columns:1fr auto auto;gap:1px 10px}#clog .clg b{color:var(--tan);font-weight:normal}#clog .clg .v{color:#e8e0cc;text-align:right}#clog .clg .p{text-align:right;min-width:36px}
+#clog .clx{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
   .area-row .ib{padding:0;min-height:32px;width:36px;display:flex;align-items:center;justify-content:center;color:var(--tan)}
   .area-row .ib svg{width:20px;height:20px}
   .area-row .ib.on{box-shadow:inset 0 0 0 2px var(--gold),0 0 8px rgba(255,210,74,.35);color:var(--gold)}
@@ -662,14 +667,16 @@
   <div id="desk">
     <div id="stageCol">
       <section class="panel">
+        <div class="area-name" id="areaName">Cow Pasture</div>
         <div class="area-row">
           <button id="prevArea" aria-label="Previous area">&#9664;</button>
           <button class="ib" id="btnMap" title="Realm map" aria-label="Realm map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
-          <div class="area-name" id="areaName">Cow Pasture</div>
+          <button class="ib" id="btnClog" title="Combat log" aria-label="Combat log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Combat log</span></button>
           <button class="ib" id="btnPause" title="Pause the fighting" aria-label="Pause the fighting"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
           <button class="ib" id="btnLog" title="Chronicle" aria-label="Show the chronicle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8 9h8M8 12h5"/></svg></button>
           <button id="nextArea" aria-label="Next area">&#9654;</button>
         </div>
+        <div id="clog" hidden></div>
         <div id="onb" hidden><span class="ot" id="onbTxt"></span><button class="sm" id="onbGo"></button><button class="ox" id="onbX" title="Hide the opening hints" aria-label="Hide the opening hints">✕</button></div>
         <div id="stage">
         <canvas id="scene" width="500" height="230"></canvas>
@@ -1262,6 +1269,34 @@ function pwExtra(spec){const sw=G.swings||0;
   if(hasPw('pyre')&&!spec&&sw%5===0)return [1.0,'infernal','#ff8c1a',0];
   return null;}
 // what an element does to the foe when a hit lands
+// ============ COMBAT LOG ============
+// A running tally of the realm's fighting: what you dealt and with what, what each companion did, what you healed and what you took.
+// Kept in the save until the next ascension; the button in the area row folds it open under the row.
+function cl(){if(!S.clog)S.clog={t:0,dealt:{},el:{},mobs:{},heal:{},taken:{},ward:0,hits:0,misses:0,best:0};const c=S.clog;for(const k of ['dealt','el','mobs','heal','taken'])c[k]=c[k]||{};return c;}
+function clAdd(cat,key,n){if(!(n>0))return;const c=cl();c[cat][key]=(c[cat][key]||0)+n;}
+function clMob(m,d,k,t){if(!m||!m.n)return;const c=cl();const r=c.mobs[m.n]=c.mobs[m.n]||{d:0,k:0,t:0};r.d+=d||0;r.k+=k||0;r.t+=t||0;}
+function clHit(m,dmg,spec){const c=cl();if(dmg>0){c.hits++;if(dmg>c.best)c.best=dmg;}else c.misses++;if(dmg<=0)return;const x=Math.min(dmg,G.clx||0);clAdd('dealt',spec?'spec':'hit',dmg-x);clAdd('dealt','extra',x);clAdd('el',setElem()||'none',dmg);clMob(m,dmg,0,0);}
+const CL_SRC={hit:'Your blows',spec:'Specials',extra:'Second hits (arcs, hail, flurries, breath)',dot_burn:'Burning',dot_poison:'Poison',riposte:'Ripostes',thorns:'Thorns'};
+const CL_HEAL={leech:'Lifesteal',food:'Food',smite:'Smite',drain:'Drain',meadow:'Second Wind',hold:'Shield Wall',warlock:'Immolate',dark:'Miasma'};
+function clRows(rows,total){const fx=v=>typeof v==='string'?v:v>0&&v<100&&Math.floor(v)!==v?(+v).toFixed(1):fmt(v);return `<div class="clg">`+rows.map(([n,v,extra])=>`<b>${n}</b><span class="v">${fx(v)}</span><span class="p">${extra!=null?extra:(total>0?Math.round(v/total*100)+'%':'')}</span>`).join('')+`</div>`;}
+function renderClog(){const el=$('clog');if(!el||el.hidden)return;const c=cl();const now=Date.now();if(el.dataset.t&&now-(+el.dataset.t)<500)return;el.dataset.t=now;
+  const cname=t=>{const cd=COMPS.find(x=>x.id===t);return cd?cd.n:t;};
+  const dealt=Object.entries(c.dealt);const total=dealt.reduce((a,[,v])=>a+v,0);
+  const src=dealt.map(([k,v])=>[k.startsWith('comp_')?cname(k.slice(5)):(CL_SRC[k]||k),v]).sort((a,b)=>b[1]-a[1]);
+  const elr=Object.entries(c.el).map(([k,v])=>[k==='none'?'No element':ELEM[k]?ELEM[k].n:k,v]).sort((a,b)=>b[1]-a[1]);
+  const mobs=Object.entries(c.mobs).sort((a,b)=>b[1].d-a[1].d).map(([n,r])=>[n,r.d,`${fmt(r.k)} slain · ${fmt(r.t)} taken`]);
+  const heal=Object.entries(c.heal).map(([k,v])=>[k.startsWith('comp_')?cname(k.slice(5)):(CL_HEAL[k]||k),v]).sort((a,b)=>b[1]-a[1]);const htot=heal.reduce((a,[,v])=>a+v,0);
+  const tk=Object.entries(c.taken).map(([k,v])=>[k==='hit'?'Blows':k==='poison'?'Poison':k==='burn'?'Fire':k,v]).sort((a,b)=>b[1]-a[1]);const ttot=tk.reduce((a,[,v])=>a+v,0);
+  const acc=c.hits+c.misses?Math.round(c.hits/(c.hits+c.misses)*100):0;
+  let h=`<div class="clh">This realm — ${fmtTime(c.t)} of fighting</div>`+clRows([['Damage a second, now',dpsNow(),''],['Damage a second, over the realm',c.t>0?total/c.t:0,''],['Best minute',(S.best60||0)/60,'a second'],['Damage dealt',total,''],['Biggest hit',c.best,''],['Blows landed',c.hits,`${acc}% of ${fmt(c.hits+c.misses)}`]],0);
+  if(src.length)h+=`<div class="clh">Damage by source</div>`+clRows(src,total);
+  if(elr.length)h+=`<div class="clh">Damage by element</div>`+clRows(elr,total);
+  if(mobs.length)h+=`<div class="clh">Against the realm's monsters</div>`+clRows(mobs,total);
+  if(heal.length)h+=`<div class="clh">Healing</div>`+clRows(heal,htot);
+  h+=`<div class="clh">Damage taken</div>`+clRows(tk.concat([['Soaked by wards',c.ward,'']]),ttot);
+  h+=`<div class="clx"><span class="sub">Kept until the next ascension.</span><button class="sm" id="clReset">Reset the log</button></div>`;
+  el.innerHTML=h;const b=$('clReset');if(b)b.onclick=()=>{S.clog=null;cl();el.dataset.t=0;renderClog();};}
+function applyClog(){const on=!!S.showClog;const el=$('clog');if(el)el.hidden=!on;const b=$('btnClog');if(b)b.classList.toggle('on',on);if(on){const e=$('clog');if(e)e.dataset.t=0;renderClog();}}
 // ============ LABFREAK'S LABORATORY ============
 // Eight strange beakers hide about the game: five tucked into the menus, two painted into the land, one in a thousand chests.
 // Gather all eight and the Cow Pasture's boss is no longer a bull but Labfreak, a scientist with a beaker in each hand, until
@@ -1310,7 +1345,7 @@ function pwElemHit(el,dmg){
   if(el==='fire'){const pct=hasPw('pyre')?12:8;const cur=G.dot&&G.dot.burn?G.dot.burn.pct:0;applyDot('burn',Math.max(cur,pct),4);}
   else if(el==='poison'){G.dot=G.dot||{};const st=Math.min(5,((G.dot.poison&&G.dot.poison.st)||0)+1);G.dot.poison={pct:3*st,t:6,st};}
   else if(el==='ice'){G.chillT=4;G.chillPct=hasPw('frost')?25:20;}
-  else if(el==='dark'){G.curseT=6;S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(dmg*0.05)));}
+  else if(el==='dark'){G.curseT=6;S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(dmg*0.05)));clAdd('heal','dark',Math.max(1,Math.round(dmg*0.05)));}
 }
 function itemCol(it){if(it.set)return SETS[it.set].col;if(it.uq&&UNIQUES[it.uq].col)return UNIQUES[it.uq].col;return TIERS[it.tier].c;}
 function itemHl(it){if(it.set)return SETS[it.set].hl;if(it.uq&&UNIQUES[it.uq].hl)return UNIQUES[it.uq].hl;return TIERS[it.tier].hl;}
@@ -1647,11 +1682,11 @@ function compTick(){
     if(hits&&G.mob&&G.mobHp>0){if(!G.sim)FX.cAct[ci]=1;const acts=hasTal(c,'frenzy')&&Math.random()<0.25?2:1;
       for(let a=0;a<acts&&G.mob&&G.mobHp>0;a++){const lands=Math.random()<hitChance(playerAtkRoll()*0.9,mobDefRoll(G.mob)*(hasTal(c,'stalk')?0.5:1));let dmg=lands?Math.min(G.mobHp,rnd(0,Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*c.def.pow*compMult(c))))+cqTally(c.type).st):0;
         if(dmg>0&&hasTal(c,'pounce')&&G.mobHp===G.mob.hp)dmg*=2;if(dmg>0&&hasTal(c,'executioner')&&G.mobHp<G.mob.hp*0.25)dmg*=2;dmg=Math.min(G.mobHp,dmg);
-        G.mobHp-=dmg;if(dmg>0&&hasTal(c,'bloodrite'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.02)));
+        G.mobHp-=dmg;clAdd('dealt','comp_'+c.type,dmg);clMob(G.mob,dmg,0,0);if(dmg>0&&hasTal(c,'bloodrite'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.02)));
         if(dmg>0&&c.type==='labfreak'&&G.mobHp>0&&!G.mob.gob){G.labBk=(G.labBk||0)+1;if(G.labBk%2){G.dot=G.dot||{};const st=Math.min(5,((G.dot.poison&&G.dot.poison.st)||0)+1);G.dot.poison={pct:3*st,t:6,st};if(!G.sim)splat(350,100,'green beaker','#7ac943');}else{const cur=G.dot&&G.dot.burn?G.dot.burn.pct:0;applyDot('burn',Math.max(cur,6),4);if(!G.sim)splat(350,100,'red beaker','#ff5a2a');}}if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();break;}}}
     if(c.def.role==='dr'&&hasTal(c,'aegis')){G.aegT=(G.aegT||0)+cEveryNow();if(G.aegT>=10){G.aegT-=10;G.ward=Math.max(G.ward||0,Math.round(maxHp()*0.10));}}
     if(resonEff('wildheart')&&S.hp<maxHp())S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*resonEff('wildheart')/100)));
-    else if(heals&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const cap=hasTal(c,'grace')?0.16:HEAL_CAP;const h=Math.min(Math.floor(maxHp()*cap),Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*c.def.pow*compMult(c)))+cqTally(c.type).st);S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(HX-72,130,'+'+h,'#2e9a3a');
+    else if(heals&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const cap=hasTal(c,'grace')?0.16:HEAL_CAP;const h=Math.min(Math.floor(maxHp()*cap),Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*c.def.pow*compMult(c)))+cqTally(c.type).st);S.hp=Math.min(maxHp(),S.hp+h);clAdd('heal','comp_'+c.type,h);if(!G.sim)splat(HX-72,130,'+'+h,'#2e9a3a');
       if(hasTal(c,'radiance')&&G.mob&&G.mobHp>0){const r=Math.min(G.mobHp,Math.max(1,Math.round(h*0.25)));G.mobHp-=r;if(G.mobHp<=0)killMob();}}
     if(heals){if(hasTal(c,'mend'))S.pray.pts=Math.min(prayMax(),S.pray.pts+prayMax()*0.05);if(hasTal(c,'bless'))S.spec=Math.min(100,S.spec+3);if(hasTal(c,'ward')&&!(G.ward>0))G.ward=Math.round(maxHp()*0.05);}
   });
@@ -2124,7 +2159,7 @@ function ascend(kept,newVows){
   if(!ascReady())return false;const sh=ascShards();kept=(kept||[]).slice(0,keepLv('vault'));const held=vowText();
   heirInherit();if(S.heir&&!kept.includes(S.heir))kept=[S.heir].concat(kept);
   S.asc.hall=S.asc.hall||[];for(const a of S.asc.hall)delete a.gear;S.asc.hall.push(hallEntry());if(S.asc.hall.length>HALL_CAP+8)S.asc.hall.splice(0,S.asc.hall.length-HALL_CAP-8);
-  {const n=nem();n.lts={};n.taken=[];n.fled=false;n.vend=0;}rdReset();postMarks();S.lairK={};S.lairDone={};{const L=lab();S.lab={found:{},runs:(L.runs||0)+(L.unlocked?1:0),kills:L.kills||0};}
+  {const n=nem();n.lts={};n.taken=[];n.fled=false;n.vend=0;}rdReset();postMarks();S.lairK={};S.lairDone={};{const L=lab();S.lab={found:{},runs:(L.runs||0)+(L.unlocked?1:0),kills:L.kills||0};}S.clog=null;
   {const n=nem();if(n.slain)n.slain=false;else if(clearedCount()>=3){n.lvl++;log(`${nemName()} survived the realm. It grows.`,'e');}}
   S.asc.shards+=sh;S.asc.realm++;S.asc.count++;const om=rollOmen();S.pre=null;preNew();
   S.trial=null;S.trialOffer=S.asc.realm;S.asc.vows=(newVows||[]).filter(id=>VOWS.find(v=>v.id===id));if(held)log(`The vows of the old realm are kept: ${held}.`,'b');if(S.asc.vows.length)log(`Sworn for this realm: ${vowText()}. Shards at the next ascension ×${vowShardMult().toFixed(2)}.`,'e');
@@ -2845,8 +2880,8 @@ function setWild(col){if(!wildOpen()||medLoose(col)<1||!JEWELS.find(x=>x.id===co
 function applyDot(k,pct,t){G.dot=G.dot||{};G.dot[k]={pct,t};}
 function dotTick(dt){if(!G.dot||!G.mob||G.dead)return;G.dotT=(G.dotT||0)+dt;const fire=G.dotT>=1;if(fire)G.dotT-=1;
   for(const k in G.dot){const d=G.dot[k];d.t-=dt;if(d.t<=0){delete G.dot[k];continue;}
-    if(fire&&G.mobHp>0){const dmg=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*d.pct/100)));G.mobHp-=dmg;dmgWindow(dmg);
-      if(!G.sim)splat(MX-10,50+Math.random()*20,dmg,k==='burn'?'#ff8c1a':k==='poison'?'#7ac943':'#b0213a');addXp(dmg);if(k==='burn'&&hasPw('set_warlock'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(dmg*0.5)));
+    if(fire&&G.mobHp>0){const dmg=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*d.pct/100)));G.mobHp-=dmg;dmgWindow(dmg);clAdd('dealt','dot_'+k,dmg);clAdd('el',k==='burn'?'fire':k==='poison'?'poison':'none',dmg);clMob(G.mob,dmg,0,0);
+      if(!G.sim)splat(MX-10,50+Math.random()*20,dmg,k==='burn'?'#ff8c1a':k==='poison'?'#7ac943':'#b0213a');addXp(dmg);if(k==='burn'&&hasPw('set_warlock')){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(dmg*0.5)));clAdd('heal','warlock',Math.max(1,Math.round(dmg*0.5)));}
       if(G.mobHp<=0){killMob();return;}}}}
 function jewelCard(k){const jw=medSock(k);const col=sockCol(k,jw);const J=col&&JEWELS.find(x=>x.id===col);const wild=k==='wild';
   let h=`<div class="jewel"><div class="gem" style="--jc:${J?J.col:'#888'}">`+(J?`<img src="${MED_ART.jewels[J.id]}" alt="" style="${jw?'':'opacity:.28;filter:grayscale(.6)'}">`:`<span class="wildq">7</span>`)+(jw?`<span>${jw.g}${jw.fl?'✦':''}</span>`:'')+`</div><div class="jbody">`;
@@ -3642,7 +3677,7 @@ function dmgWindow(dmg){if(dmg<=0)return;G.dw=G.dw||{t:0,b:new Array(60).fill(0)
 function dmgWindowTick(dt){const w=G.dw;if(!w)return;const before=Math.floor(w.t);w.t+=dt;const after=Math.floor(w.t);for(let t=before+1;t<=after;t++)w.b[t%60]=0;}
 function playerHit(spec,sp){
   const m=G.mob;if(!m)return;sp=sp||{};
-  const b=bonuses();
+  const b=bonuses();G.clx=0;
   let roll=playerAtkRoll();if(spec)roll*=2.5;
   let def=mobDefRoll(m);if(sp.pierce)def*=(1-sp.pierce);if((G.sunderT||0)>0)def*=0.5;
   let dmg=0;
@@ -3655,21 +3690,21 @@ function playerHit(spec,sp){
     if(spec&&medEff('specDmg'))dmg=Math.round(dmg*(1+medEff('specDmg')/100));
     if(spec&&discEff('spec'))dmg=Math.round(dmg*(1+discEff('spec')/100));
     if(discHas('exec')&&G.mobHp<G.mob.hp*0.25)dmg=Math.round(dmg*1.5);
-    if(spec&&discHas('cleave')){const x=rnd(0,Math.round(playerMaxHit()*0.5));dmg+=x;if(!G.sim)splat(MX+20,50,'cleave','#ffd24a');}
+    if(spec&&discHas('cleave')){const x=rnd(0,Math.round(playerMaxHit()*0.5));dmg+=x;G.clx+=x;if(!G.sim)splat(MX+20,50,'cleave','#ffd24a');}
     if(m.shape&&bestBonus(m.shape))dmg=Math.round(dmg*(1+bestBonus(m.shape)/100));
     {const pm=pwMult(spec);if(pm!==1)dmg=Math.round(dmg*pm);}
-    if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;if(resonEff('stormcall'))S.spec=Math.min(100,S.spec+resonEff('stormcall'));if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
-    {const ex=pwExtra(spec);if(ex){const x=rnd(0,Math.round(playerMaxHit()*ex[0]));dmg+=x;if(ex[3])S.spec=Math.min(100,S.spec+ex[3]);if(!G.sim)splat(MX+20,40,ex[1],ex[2]);}}
+    if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;G.clx+=x;if(resonEff('stormcall'))S.spec=Math.min(100,S.spec+resonEff('stormcall'));if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
+    {const ex=pwExtra(spec);if(ex){const x=rnd(0,Math.round(playerMaxHit()*ex[0]));dmg+=x;G.clx+=x;if(ex[3])S.spec=Math.min(100,S.spec+ex[3]);if(!G.sim)splat(MX+20,40,ex[1],ex[2]);}}
   }
   {const wu=S.equip.weapon&&S.equip.weapon.uq&&UNIQUES[S.equip.weapon.uq];if(wu&&wu.vs&&dmg>0&&m.shape===wu.vs)dmg=Math.round(dmg*1.4);}   // a bane against its kind
   {const el=setElem();if(el&&dmg>0&&!m.gob){dmg=Math.round(dmg*elemMult(el,m));pwElemHit(el,dmg);}}
-  if(dmg>0){G.rage=Math.min(10,(G.rage||0)+1);G.still=false;if(smite)S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(dmg*0.1)));if(hasPw('goblin')&&!abyssW()&&!m.gob){const g=Math.max(1,Math.round(((m.gold||[0,0])[0]+(m.gold||[0,0])[1])/2*0.05));S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;}if(hasPw('set_skirmish')&&Math.random()<0.2){G.parry=(G.parry||0)+1;if(!G.sim)splat(MX+20,70,'blinded','#c8ccd4');}}else{G.rage=0;if(hasPw('tr_silent'))G.still=true;}
+  if(dmg>0){G.rage=Math.min(10,(G.rage||0)+1);G.still=false;if(smite){const hh=Math.max(1,Math.round(dmg*0.1));S.hp=Math.min(maxHp(),S.hp+hh);clAdd('heal','smite',hh);}if(hasPw('goblin')&&!abyssW()&&!m.gob){const g=Math.max(1,Math.round(((m.gold||[0,0])[0]+(m.gold||[0,0])[1])/2*0.05));S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;}if(hasPw('set_skirmish')&&Math.random()<0.2){G.parry=(G.parry||0)+1;if(!G.sim)splat(MX+20,70,'blinded','#c8ccd4');}}else{G.rage=0;if(hasPw('tr_silent'))G.still=true;}
   if(G.wyrm&&G.wyrm.phase===1&&dmg>0){if(spec){G.wyrm.phase=2;log('Your special cracks the Wyrm\'s armour. The floor begins to burn.','e');if(!G.sim)toast('Armour cracked!');}else dmg=Math.max(1,Math.round(dmg*0.1));}
   dmg=Math.min(dmg,G.mobHp);if(dmg>(S.bestHit||0))S.bestHit=dmg;if(dmg>(rd().mh||0))rd().mh=dmg;
-  G.mobHp-=dmg;dmgWindow(dmg);wyrmCheck();
+  G.mobHp-=dmg;dmgWindow(dmg);wyrmCheck();clHit(m,dmg,spec);
   if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn(),discEff('burn'));if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
-  if(dmg>0&&b.leech>0){const heal=Math.max(1,Math.floor(dmg*b.leech/100));if(song()==='dirge')G.ward=Math.min(Math.round(maxHp()/2),(G.ward||0)+heal);else S.hp=Math.min(maxHp(),S.hp+heal);}
-  if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
+  if(dmg>0&&b.leech>0){const heal=Math.max(1,Math.floor(dmg*b.leech/100));clAdd('heal','leech',heal);if(song()==='dirge')G.ward=Math.min(Math.round(maxHp()/2),(G.ward||0)+heal);else S.hp=Math.min(maxHp(),S.hp+heal);}
+  if(dmg>0&&sp.drain){S.hp=Math.min(maxHp(),S.hp+Math.round(dmg*sp.drain));clAdd('heal','drain',Math.round(dmg*sp.drain));if(!G.sim)splat(HX,110,'+'+Math.round(dmg*sp.drain),'#2e9a3a');}
   if(!G.sim){FX.pLunge=1;FX.shot=(FX.shot||0)+1;if(dmg>0)FX.mFlash=0.6;splat(MX-10,60+Math.random()*30,dmg,dmg>0?(spec?'#ff8c1a':(setElem()?ELEM[setElem()].c:'#c0392b')):'#2f6fd6');sfx(dmg>0?(spec?'spec':'hit'):'miss');}
   addXp(dmg);
   if(G.mobHp<=0)killMob();
@@ -3679,17 +3714,17 @@ function mobHit(){
   if((G.parry||0)>0){G.parry--;if(!G.sim){FX.mLunge=1;splat(HX,60+Math.random()*30,'Parried','#8fdcf5');sfx('block');}return;}
   if(Math.random()<hitChance(mobAtkRoll(m),playerDefRoll()))dmg=rnd(0,mobMaxHit(m));
   if(dmg>0&&(G.curseT||0)>0)dmg=Math.round(dmg*0.85);if(hasPw('giant')){G.hideN=(G.hideN||0)+1;if(G.hideN%4===0&&dmg>0){dmg=0;if(!G.sim)splat(HX,84,'shrugged','#c8ccd4');}}
-  if(dmg===0&&hasPw('hold')){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.02)));S.spec=Math.min(100,S.spec+3);}
+  if(dmg===0&&hasPw('hold')){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.02)));clAdd('heal','hold',Math.max(1,Math.round(maxHp()*0.02)));S.spec=Math.min(100,S.spec+3);}
   const dr=dmgReduction();if(dmg>0&&dr!==0)dmg=Math.max(1,Math.floor(dmg*(1-dr/100)));
   if(dmg>0&&hasPw('tr_iron')&&S.hp<maxHp()*0.3)dmg=Math.max(1,Math.round(dmg*0.7));if(dmg>0&&hasPw('tr_alone')&&fieldCount()===0)dmg=Math.max(1,Math.round(dmg*0.9));
-  if((G.ward||0)>0&&dmg>0){const a=Math.min(G.ward,dmg);G.ward-=a;dmg-=a;if(!G.sim)splat(HX,84,'Ward −'+a,'#8fdcf5');}
-  dmg=Math.min(dmg,S.hp);S.hp-=dmg;
+  if((G.ward||0)>0&&dmg>0){const a=Math.min(G.ward,dmg);G.ward-=a;dmg-=a;cl().ward+=a;if(!G.sim)splat(HX,84,'Ward −'+a,'#8fdcf5');}
+  dmg=Math.min(dmg,S.hp);S.hp-=dmg;if(dmg>0){clAdd('taken','hit',dmg);clMob(m,0,0,dmg);}
   if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');sfx(dmg>0?'hurt':'block');}
   if(dmg>0&&medEff('zeal'))S.spec=Math.min(100,S.spec+medEff('zeal'));
   if(dmg>0&&eliteOf(m)&&eliteOf(m).poison)G.poisonT=eliteOf(m).poison;
   if(dmg>0&&m.lab){G.labN=(G.labN||0)+1;if(G.labN%2){G.poisonT=Math.max(G.poisonT||0,8);if(!G.sim)splat(HX,100,'green beaker','#7ac943');}else{G.burnT=Math.max(G.burnT||0,6);if(!G.sim)splat(HX,100,'red beaker','#ff5a2a');}}
-  if(dmg>0&&(talN('riposte')||discHas('riposte'))&&G.mobHp>0&&Math.random()<0.2){const r=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*0.5)));G.mobHp-=r;if(!G.sim)splat(MX-10,90,r,'#c8ccd4');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
-  if(dmg>0&&medEff('thorns')&&G.mobHp>0){const r=Math.min(G.mobHp,Math.max(1,Math.round(dmg*medEff('thorns')/100)));G.mobHp-=r;if(!G.sim)splat(MX-10,70,r,'#9adf6a');
+  if(dmg>0&&(talN('riposte')||discHas('riposte'))&&G.mobHp>0&&Math.random()<0.2){const r=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*0.5)));G.mobHp-=r;clAdd('dealt','riposte',r);clMob(m,r,0,0);if(!G.sim)splat(MX-10,90,r,'#c8ccd4');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
+  if(dmg>0&&medEff('thorns')&&G.mobHp>0){const r=Math.min(G.mobHp,Math.max(1,Math.round(dmg*medEff('thorns')/100)));G.mobHp-=r;clAdd('dealt','thorns',r);clMob(m,r,0,0);if(!G.sim)splat(MX-10,70,r,'#9adf6a');
     if(resonEff('bloodthorn'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(r*resonEff('bloodthorn')/100)));
     if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
   if(S.hp<=0)die();
@@ -3797,8 +3832,8 @@ function killMob(){
   sfx(G.isBoss||G.nem||G.lt||G.mark||G.lair!=null||G.duel!=null?'bosskill':'kill');S.totalKills++;G.streak=0;G.kstreak=(G.kstreak||0)+1;if(!G.sim){G.killT=(G.killT||[]).filter(x=>Date.now()-x<60000);G.killT.push(Date.now());}draughtKill();profCount();
   const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;   // the Abyss holds its gold until it is banked
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck')*(1+areaMast(S.area,'luck')/100)*(eliteOf(m)?2:1)*((G.ambush||0)>0?3:1);if((G.ambush||0)>0)G.ambush--;
-  rd().kills++;bestCount(m);
-  if(hasPw('meadow'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.05)));if(hasPw('set_scout'))G.pT=0;if(hasPw('chron')){S.chronK=(S.chronK||0)+1;if(S.chronK%25===0){S.chests++;if(!G.sim)toast('Footnote: a chest');}}if(hasPw('ash'))G.carryBurn=8;if(hasPw('pyre'))G.carryBurn=12;
+  rd().kills++;bestCount(m);clMob(m,0,1,0);
+  if(hasPw('meadow')){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.05)));clAdd('heal','meadow',Math.max(1,Math.round(maxHp()*0.05)));}if(hasPw('set_scout'))G.pT=0;if(hasPw('chron')){S.chronK=(S.chronK||0)+1;if(S.chronK%25===0){S.chests++;if(!G.sim)toast('Footnote: a chest');}}if(hasPw('ash'))G.carryBurn=8;if(hasPw('pyre'))G.carryBurn=12;
   if(!G.tower&&!abyssW()&&!siegeActive()){S.areaK=S.areaK||{};S.areaK[S.area]=(S.areaK[S.area]||0)+1;if(!G.isBoss&&(m.base||m.n)===A.mobs[0].n){S.lairK=S.lairK||{};S.lairK[S.area]=(S.lairK[S.area]||0)+1;if(S.lairK[S.area]===LAIR_NEED){log(`You find the tracks of ${LAIRS[S.area].n}. The lair is open, on the March map.`,'g');if(!G.sim)toast('A lair opens');}}}
   if(abyssW()){abyssKill(m,b,luck);bounty('kills',1);spawn(false);G.dirty=true;return;}
   if(m.siege){siegeKill();bounty('kills',1);if(Math.random()<0.7)S.bones++;spawn(false);G.dirty=true;return;}
@@ -3912,7 +3947,7 @@ function eat(manual){
   const fh=i=>Math.round(FOOD[i].h*hpMult()*(1+medEff('foodPct')/100)*creedEff('foodx',1)*(1+tuneEff('food')/100));
   let idx=-1;for(let i=FOOD.length-1;i>=0;i--){if(S.food[i]>0){idx=i;if(mh-S.hp>=fh(i))break;}}
   if(idx<0){if(manual)toast('No food left.');return false;}
-  S.food[idx]--;S.foodEaten=(S.foodEaten||0)+1;sfx('eat');S.hp=Math.min(mh,S.hp+fh(idx));G.dirty=true;
+  S.food[idx]--;S.foodEaten=(S.foodEaten||0)+1;sfx('eat');clAdd('heal','food',Math.min(mh-S.hp,fh(idx)));S.hp=Math.min(mh,S.hp+fh(idx));G.dirty=true;
   {const F=FOOD[idx];if(F.pray)S.pray.pts=Math.min(prayMax(),S.pray.pts+prayMax()*F.pray);if(F.spec)S.spec=Math.min(100,S.spec+F.spec);}
   if(!G.sim){splat(HX,110,'+'+fh(idx),'#2e9a3a');}
   return true;
@@ -3954,7 +3989,7 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   for(let i=0;i<S.food.length;i++)if(S.food[i]<999)S.food[i]=999;for(let i=0;i<S.runes.length;i++)if(S.runes[i]<999)S.runes[i]=999;
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
-function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;
+function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;if(G.mob&&!G.dead&&!S.paused)cl().t+=dt;
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
   prayTick(dt);encTick(dt);
@@ -3972,8 +4007,8 @@ function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.f
   if(G.chillT>0)G.chillT=Math.max(0,G.chillT-dt);
   if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd*(G.chillT>0?1+Math.max(medEff('chill'),G.chillPct||0)/100:1)*(1+0.1*talN('taunt'));}
   dotTick(dt);
-  if(G.poisonT>0&&!G.dead){G.poisonT=Math.max(0,G.poisonT-dt);S.hp-=maxHp()*0.01*dt;if(S.hp<=0){S.hp=0;die();}}
-  if((G.burnT||0)>0&&!G.dead){G.burnT=Math.max(0,G.burnT-dt);S.hp-=maxHp()*0.015*dt;if(S.hp<=0){S.hp=0;die();}}
+  if(G.poisonT>0&&!G.dead){G.poisonT=Math.max(0,G.poisonT-dt);S.hp-=maxHp()*0.01*dt;clAdd('taken','poison',maxHp()*0.01*dt);if(S.hp<=0){S.hp=0;die();}}
+  if((G.burnT||0)>0&&!G.dead){G.burnT=Math.max(0,G.burnT-dt);S.hp-=maxHp()*0.015*dt;clAdd('taken','burn',maxHp()*0.015*dt);if(S.hp<=0){S.hp=0;die();}}
   if(G.wyrm&&G.wyrm.phase>=2&&!G.dead&&G.mob){S.hp-=maxHp()*0.02*dt;if(S.hp<=0){S.hp=0;die();}}
   if(G.mob&&G.mobHp>0&&omenEff('regen',0))G.mobHp=Math.min(G.mob.hp,G.mobHp+G.mob.hp*omenEff('regen',0)*dt);
   if(medOwned())rd().sec+=dt;if(S.trial)S.trial.sec+=dt;siegeTick(dt);dmgWindowTick(dt);
@@ -4159,6 +4194,7 @@ function lgWire(){
   $('btnRedeem').onclick=()=>{const r=redeem($('redeemTxt').value);$('redeemMsg').textContent=r.msg;$('redeemMsg').style.color=r.ok?'var(--gold)':'#ff8a7a';if(r.ok){$('redeemTxt').value='';toast(r.msg);richUI();tunerUI();renderAll();}};
   $('richOn').onchange=e=>{S.richOn=e.target.checked?1:0;if(S.richOn){richTick();log('The keeper opens the purse: nothing runs out.','g');}else log('The keeper closes the purse.');G.dirty=true;renderAll();};
   $('redeemTxt').onkeydown=e=>{if(e.key==='Enter')$('btnRedeem').click();};
+  $('btnClog').onclick=()=>{S.showClog=!S.showClog;applyClog();};applyClog();
   $('btnLedger').onclick=()=>{$('lgModal').classList.add('on');$('saveTxt').value='';richUI();tunerUI();renderBak();};
   $('lgX').onclick=()=>$('lgModal').classList.remove('on');
   $('lgModal').addEventListener('click',e=>{if(e.target.id==='lgModal')$('lgModal').classList.remove('on');});
@@ -5004,7 +5040,7 @@ function renderOnb(){const el=$('onb');if(!el)return;const st=onbCur();el.hidden
   if($('onbTxt').textContent!==st.t)$('onbTxt').textContent=st.t;
   const g=$('onbGo');g.hidden=!st.tab;if(st.tab)g.textContent=st.gl+' \u203a';}
 
-function renderTop(){
+function renderTop(){renderClog();
   dockBadges();renderEnc();renderPills();renderOnb();
   const mh=maxHp();$('pHp').textContent=`${Math.ceil(S.hp)}/${mh}`;$('pHpBar').style.width=(S.hp/mh*100)+'%';
   $('pName').textContent=(heroTitle()?'You, '+heroTitle():'You')+' (lvl '+combatLvl()+')';
@@ -5296,7 +5332,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b170-labstage';window.__ihBoot=true;
+  const BUILD='b171-combatlog';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

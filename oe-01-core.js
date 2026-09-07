@@ -1031,7 +1031,7 @@ const UPGRADES = [
     effectText:(l)=>`+${12*l}% scrap from the mine, the water, and the board` },
   { key:"masterwork", name:"THE MASTERWORK", icon:"⚜️", category:"workshop", baseCost:50000, scale:1, maxLevel:1,
     desc:"The whole operation, tuned by a master's hand. Mining, catches, and bargains all run 10% hotter. There is nothing after this.",
-    effectText:(l)=> l ? "+10% mine rate · +10% catch credits · +10% haggle odds" : "the summit" },
+    effectText:(l)=> l ? "+10% mine rate · +10% fishing payouts · +10% haggle odds" : "the summit" },
   { key:"pickaxe", name:"Sturdier Pickaxe", icon:"⛏️", category:"mining", retired:true, baseCost:20, scale:1.18, maxLevel:999,
     desc:"Permanently increases your miner's base output.",
     effectText:(lvl)=>`+$${(lvl*PICKAXE_RATE_PER_LEVEL).toFixed(0)}/min` },
@@ -1148,16 +1148,16 @@ function renderMiningStats(){
   const el = document.getElementById("mineTotal");
   if(el) el.textContent = Math.floor(state.totalMined).toLocaleString();
   const rateEl = document.getElementById("mineRate");
-  if(rateEl) rateEl.textContent = currentMineRatePerMin().toFixed(2) + "/min";
+  if(rateEl) rateEl.textContent = "$" + currentMineRatePerMin().toFixed(2) + "/min";
   const bonusEl = document.getElementById("mineBonusBreakdown");
   if(bonusEl){
     const u = state.upgrades || defaultUpgrades();
     const bonus = state.miningBonus||0;
     const upgradeFlat = (u.pickaxe||0)*PICKAXE_RATE_PER_LEVEL + (u.miners||0)*MINER_RATE_PER_LEVEL;
     const speedPct = Math.round((u.speed||0)*SPEED_PCT_PER_LEVEL*100);
-    const parts = [`Base ${MINE_RATE_BASE_PER_MIN}/min`];
-    if(bonus>0) parts.push(`+${bonus.toFixed(2)} from collection`);
-    if(upgradeFlat>0) parts.push(`+${upgradeFlat.toFixed(0)} from upgrades`);
+    const parts = [`Base $${MINE_RATE_BASE_PER_MIN}/min`];
+    if(bonus>0) parts.push(`+$${bonus.toFixed(2)} from collection`);
+    if(upgradeFlat>0) parts.push(`+$${upgradeFlat.toFixed(0)} from upgrades`);
     if(speedPct>0) parts.push(`×${(1+speedPct/100).toFixed(2)} speed`);
     bonusEl.textContent = (parts.length>1 ? parts.join(" ") : `${parts[0]} · collect cards & buy upgrades to boost this`) + " · " + offlineCapLabel();
   }
@@ -2439,7 +2439,7 @@ function renderMineBoostTable(){
     const row = document.createElement("tr");
     row.innerHTML = `
       <td><span class="swatch" style="background:${r.color}"></span><span class="rarity-name" style="color:${r.color}">${r.name}</span></td>
-      <td>+${MINE_BONUS_BY_TIER[r.id].toFixed(2)}/min</td>
+      <td>+$${MINE_BONUS_BY_TIER[r.id].toFixed(2)}/min</td>
     `;
     body.appendChild(row);
   });

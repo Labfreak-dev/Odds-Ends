@@ -501,6 +501,13 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 130 — leftover wording
+"Do 4": the mining rate stat and its breakdown ("Base 100/min · +2.40 from
+collection · +8 from upgrades") and the mine-boost table carried no unit -
+all "$" now. The masterwork blurb's "+10% catch credits" reads "+10%
+fishing payouts" (fishing does pay credits, but nobody calls a catch a
+credit). The Auto-Open drawer's toggle and copy drop the "Fast".
+
 ## Batch 129 — the cinematic's hold scales with hardness
 "Do 3": in the true-form fight every timed mechanic shortens with the
 legend's hardness (tl × (1 − 0.12·hard)) except the hold, which gave six

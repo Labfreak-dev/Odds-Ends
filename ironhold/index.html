@@ -245,6 +245,7 @@
   #beasts .ce b{font-size:8px;color:var(--gold);line-height:1}
   #beasts .ce img{width:62%;height:56%}
   .setb{font-size:11px;color:#8fdcf5;margin:2px 0}
+.labBk{position:absolute;width:15px;height:19px;background:center/contain no-repeat;opacity:.26;cursor:pointer;z-index:4;filter:sepia(.5) saturate(.6)}.labBk:hover{opacity:.75;filter:none}
   .item.r1{--rc:var(--r1)}.item.r2{--rc:var(--r2)}.item.r3{--rc:var(--r3)}.item.r4{--rc:var(--r4)}.item.r5{--rc:var(--r5)}.item.r7{--rc:var(--r7)}
   .item.r7 .nm{color:var(--r7)}
   .empty-tile{background:var(--ink);border:2px solid #000;box-shadow:inset 0 0 0 1px #2a2016,inset 0 3px 8px rgba(0,0,0,.6);border-radius:3px;min-height:84px;opacity:.6}
@@ -1261,6 +1262,50 @@ function pwExtra(spec){const sw=G.swings||0;
   if(hasPw('pyre')&&!spec&&sw%5===0)return [1.0,'infernal','#ff8c1a',0];
   return null;}
 // what an element does to the foe when a hit lands
+// ============ LABFREAK'S LABORATORY ============
+// Eight strange beakers hide about the game: five tucked into the menus, two painted into the land, one in a thousand chests.
+// Gather all eight and the Cow Pasture's boss is no longer a bull but Labfreak, a scientist with a beaker in each hand, until
+// the next ascension. He drops a copy of himself as a companion the first time he falls, and a strongbox every time after.
+const LAB_BEAKERS=[
+ {id:'ledger',host:'lgModal',pos:'right:16px;bottom:10px'},
+ {id:'barracks',host:'barracks',pos:'left:6px;top:2px'},
+ {id:'bestiary',host:'bestiary',pos:'right:8px;top:4px'},
+ {id:'feats',host:'feats',pos:'right:10px;bottom:4px'},
+ {id:'map',host:'map',pos:'left:8px;bottom:8px'},
+ {id:'sewer',scene:2,x:46,y:156},
+ {id:'pass',scene:5,x:456,y:126},
+ {id:'chest'},
+];
+const LAB_GLYPH='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 20"><path d="M6 1h4v6l4 10a1.5 1.5 0 0 1-1.4 2H3.4A1.5 1.5 0 0 1 2 17L6 7z" fill="#3a4a3a" stroke="#222" stroke-width=".6"/><path d="M4.2 13h7.6l1.6 4H2.6z" fill="#7ac943"/><rect x="6.6" y="2" width="1.2" height="6" fill="#fff" opacity=".35"/></svg>');
+function lab(){S.lab=S.lab||{found:{}};S.lab.found=S.lab.found||{};return S.lab;}
+function labCount(){return Object.keys(lab().found).length;}
+function labActive(){return !!lab().unlocked;}
+function labFind(id){const L=lab();if(L.found[id]||!LAB_BEAKERS.some(b=>b.id===id))return false;L.found[id]=1;sfx('rare');const n=labCount();document.querySelectorAll('.labBk[data-lab="'+id+'"]').forEach(e=>e.remove());
+  log(n===1?'A strange beaker, tucked where no beaker should be. You pocket it. Something glows inside.':`Another strange beaker, glowing faintly. That makes ${n}.`,'g');if(!G.sim)toast(`Strange glassware ${n}/${LAB_BEAKERS.length}`);
+  if(n>=LAB_BEAKERS.length&&!L.unlocked){L.unlocked=true;log('The eight beakers hum together in your pack, and the ground under the Cow Pasture answers. Go back to the pasture and call its boss.','e');if(!G.sim)toast('The pasture hums. Call its boss.');}
+  G.dirty=true;renderAll();return true;}
+function labPlant(){for(const B of LAB_BEAKERS){if(!B.host)continue;const host=$(B.host);if(!host)continue;const old=host.querySelector('.labBk[data-lab="'+B.id+'"]');
+  if(lab().found[B.id]){if(old)old.remove();continue;}if(old)continue;
+  if(getComputedStyle(host).position==='static')host.style.position='relative';
+  const e=document.createElement('span');e.className='labBk';e.dataset.lab=B.id;e.style.cssText=B.pos;e.style.backgroundImage="url('"+LAB_GLYPH+"')";e.onclick=ev=>{ev.stopPropagation();labFind(B.id);};host.appendChild(e);}}
+function labHtml(){const L=lab();const n=labCount();if(!n&&!L.runs&&!L.kills)return '';
+  return `<h3 class="secH" style="margin-top:10px">Strange glassware</h3><div class="sub">${n}/${LAB_BEAKERS.length} beakers found${L.unlocked?' · the pasture hums: call its boss':n?'. They turn up where no beaker should be: tucked into the menus, painted into the land, once in a thousand chests.':' this realm.'}${L.kills?` · Labfreak slain ×${L.kills}`:''}${L.runs?` · laboratories opened: ${L.runs}`:''}</div>`;}
+function labMob(){const lv=Math.max(15,combatLvl());return {n:'Labfreak',lv,hp:Math.max(150,Math.round(playerMaxHit()*25)),atk:Math.round(lv*1.2),str:Math.round(lv*0.9),def:Math.round(lv*1.0),spd:3.0,gold:[lv*40,lv*80],shape:'humanoid',col:'#9ae04a',big:1.15,spr:'labfreak',lab:true};}
+function labSlain(){const L=lab();L.kills=(L.kills||0)+1;S.compFound=S.compFound||{};
+  if(!S.compFound.labfreak){S.compFound.labfreak=1;log('Labfreak goes down in a shower of glass, and something small crawls out of the wreck: a copy of him, beakers and all. He will follow you. Hire him in the Barracks.','g');if(!G.sim)toast('Companion found: Labfreak');}
+  else{S.chests++;log('Labfreak goes down again, cursing. A strongbox in the rubble.','g');}
+  if(!G.sim)FX.shake=0.5;}
+const LAB_BG_SRC='';const LAB_BG=new Image();if(LAB_BG_SRC)LAB_BG.src=LAB_BG_SRC;
+function labBg(){return LAB_BG_SRC&&LAB_BG.complete&&LAB_BG.naturalWidth?LAB_BG:null;}
+function labDrawBg(W,H,t){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#14181c');g.addColorStop(0.7,'#23282c');g.addColorStop(1,'#1a1d20');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#2c2f33';ctx.fillRect(0,H*0.72,W,H*0.28);ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;for(let x=0;x<W+40;x+=50){ctx.beginPath();ctx.moveTo(x,H*0.72);ctx.lineTo(x-30,H);ctx.stroke();}
+  for(const [sx,sy,sw] of [[20,40,150],[330,52,150],[200,96,110]]){ctx.fillStyle='#3a2e22';ctx.fillRect(sx,sy+26,sw,5);for(let i=0;i<Math.floor(sw/26);i++){const bx=sx+8+i*26,col=i%3===0?'#7ac943':i%3===1?'#ff5a2a':'#4d8ee0';ctx.globalAlpha=0.55+0.25*Math.sin(t*2+i);ctx.fillStyle=col;ctx.fillRect(bx,sy+8,10,18);ctx.globalAlpha=1;ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(bx+2,sy+4,6,6);}}
+  ctx.strokeStyle='#555';ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,28);ctx.stroke();const lg=ctx.createRadialGradient(W/2,34,4,W/2,34,120);lg.addColorStop(0,'rgba(200,255,120,.35)');lg.addColorStop(1,'rgba(200,255,120,0)');ctx.fillStyle=lg;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#3a3026';ctx.fillRect(300,H*0.72-30,150,30);ctx.fillStyle='#2a2a2e';ctx.fillRect(360,H*0.72-58,40,28);const vg=ctx.createRadialGradient(380,H*0.72-44,2,380,H*0.72-44,40);vg.addColorStop(0,'rgba(122,201,67,.6)');vg.addColorStop(1,'rgba(122,201,67,0)');ctx.fillStyle=vg;ctx.fillRect(330,H*0.72-90,100,60);
+  ctx.strokeStyle='rgba(220,220,200,.25)';for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(60,110+i*8);ctx.lineTo(100+(i*17)%50,110+i*8);ctx.stroke();}}
+function labDrawBeaker(x,y,a){ctx.save();ctx.globalAlpha=a;ctx.translate(x,y);ctx.fillStyle='#3a4a3a';ctx.beginPath();ctx.moveTo(-3,-14);ctx.lineTo(3,-14);ctx.lineTo(3,-6);ctx.lineTo(9,8);ctx.lineTo(-9,8);ctx.lineTo(-3,-6);ctx.closePath();ctx.fill();ctx.fillStyle='#7ac943';ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.lineTo(8,7);ctx.lineTo(-8,7);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillRect(-2,-13,2,10);ctx.restore();}
+function labDrawBeakers(){if(G.tower||abyssW())return;for(const B of LAB_BEAKERS){if(B.scene!==S.area||lab().found[B.id])continue;labDrawBeaker(B.x,B.y,0.5);}}
+function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKERS){if(B.scene!==S.area||lab().found[B.id])continue;if(Math.abs(x-B.x)<=18&&Math.abs(y-B.y)<=20){labFind(B.id);return true;}}return false;}
 function pwElemHit(el,dmg){
   if(el==='fire'){const pct=hasPw('pyre')?12:8;const cur=G.dot&&G.dot.burn?G.dot.burn.pct:0;applyDot('burn',Math.max(cur,pct),4);}
   else if(el==='poison'){G.dot=G.dot||{};const st=Math.min(5,((G.dot.poison&&G.dot.poison.st)||0)+1);G.dot.poison={pct:3*st,t:6,st};}
@@ -1481,6 +1526,7 @@ const COMPS=[
  {id:'sword',   n:'Excalibur',    role:'dmg', pow:1.4, req:4, spr:'comp_sword',    shape:'humanoid',col:'#e8e0b0'},
  {id:'goldragon',n:'Golden Dragon',role:'dmg',pow:1.6, req:0, spr:'comp_goldragon',shape:'dragon',  col:'#e8c04a'},
  {id:'band',    n:'The Mariachis', role:'band',pow:0.85, req:2, spr:'band',          shape:'humanoid',col:'#1a1a2a',slots:2},
+ {id:'labfreak',n:'Labfreak',     role:'dmg', pow:1.15, req:0, spr:'comp_labfreak', shape:'humanoid',col:'#9ae04a'},
 ];
 // Three men, one companion: the band fills both places in the field and does all three jobs at once.
 function compSlots(c){const cd=c&&COMPS.find(x=>x.id===c.type);return (cd&&cd.slots)||1;}
@@ -1517,9 +1563,9 @@ function hireCost(n){return Math.round(500*Math.pow(2.5,n===undefined?(S.party||
 // earned on the feats board or dropped by the boss that fits them.
 const COMP_UNLOCK={
   tiger:{feat:'c_tiger'},imp:{drop:6},fairy:{feat:'c_fairy'},barbarian:{drop:3},assassin:{feat:'c_assassin'},necro:{drop:2},
-  knight:{feat:'c_knight'},bear:{drop:5},ent:{feat:'c_ent'},sword:{feat:'c_sword'},goldragon:{drop:7},band:{merch:1}};
+  knight:{feat:'c_knight'},bear:{drop:5},ent:{feat:'c_ent'},sword:{feat:'c_sword'},goldragon:{drop:7},band:{merch:1},labfreak:{lab:1}};
 function compUnlocked(id){const u=COMP_UNLOCK[id];if(!u)return true;if(u.feat)return featDone(u.feat);return !!(S.compFound&&S.compFound[id]);}
-function compLockText(id){const u=COMP_UNLOCK[id];if(!u)return '';if(u.merch)return 'bought from the peddler, once you have bought anything else from him';if(u.feat){const f=FEATS.find(x=>x.id===u.feat);return f?`feat "${f.n}"`:'a feat';}return `drops from ${AREAS[u.drop].boss.n}`;}
+function compLockText(id){const u=COMP_UNLOCK[id];if(!u)return '';if(u.merch)return 'bought from the peddler, once you have bought anything else from him';if(u.lab)return 'crawls out of the wreck of Labfreak, the boss under the Cow Pasture, once eight strange beakers are gathered';if(u.feat){const f=FEATS.find(x=>x.id===u.feat);return f?`feat "${f.n}"`:'a feat';}return `drops from ${AREAS[u.drop].boss.n}`;}
 function compDrops(area){for(const id in COMP_UNLOCK){const u=COMP_UNLOCK[id];if(u.drop!==area||compUnlocked(id))continue;
   const p=S.cleared[area]?0.05:0.125;if(Math.random()<p*(1+bonuses().luck/100)){S.compFound=S.compFound||{};S.compFound[id]=1;const cd=COMPS.find(x=>x.id===id);
     log(`${cd.n} steps from the ruin of ${AREAS[area].boss.n} and takes your banner. Hire it at the Barracks.`,'g');if(!G.sim)toast(cd.n+' found!');G.dirty=true;}}}
@@ -1601,7 +1647,8 @@ function compTick(){
     if(hits&&G.mob&&G.mobHp>0){if(!G.sim)FX.cAct[ci]=1;const acts=hasTal(c,'frenzy')&&Math.random()<0.25?2:1;
       for(let a=0;a<acts&&G.mob&&G.mobHp>0;a++){const lands=Math.random()<hitChance(playerAtkRoll()*0.9,mobDefRoll(G.mob)*(hasTal(c,'stalk')?0.5:1));let dmg=lands?Math.min(G.mobHp,rnd(0,Math.max(1,Math.floor(playerMaxHit()*HOUND_HIT*c.def.pow*compMult(c))))+cqTally(c.type).st):0;
         if(dmg>0&&hasTal(c,'pounce')&&G.mobHp===G.mob.hp)dmg*=2;if(dmg>0&&hasTal(c,'executioner')&&G.mobHp<G.mob.hp*0.25)dmg*=2;dmg=Math.min(G.mobHp,dmg);
-        G.mobHp-=dmg;if(dmg>0&&hasTal(c,'bloodrite'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.02)));if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();break;}}}
+        G.mobHp-=dmg;if(dmg>0&&hasTal(c,'bloodrite'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.02)));
+        if(dmg>0&&c.type==='labfreak'&&G.mobHp>0&&!G.mob.gob){G.labBk=(G.labBk||0)+1;if(G.labBk%2){G.dot=G.dot||{};const st=Math.min(5,((G.dot.poison&&G.dot.poison.st)||0)+1);G.dot.poison={pct:3*st,t:6,st};if(!G.sim)splat(350,100,'green beaker','#7ac943');}else{const cur=G.dot&&G.dot.burn?G.dot.burn.pct:0;applyDot('burn',Math.max(cur,6),4);if(!G.sim)splat(350,100,'red beaker','#ff5a2a');}}if(!G.sim)splat(350,120+Math.random()*20,dmg,dmg>0?'#a0522d':'#2f6fd6');addXp(Math.floor(dmg*0.5));if(G.mobHp<=0){killMob();break;}}}
     if(c.def.role==='dr'&&hasTal(c,'aegis')){G.aegT=(G.aegT||0)+cEveryNow();if(G.aegT>=10){G.aegT-=10;G.ward=Math.max(G.ward||0,Math.round(maxHp()*0.10));}}
     if(resonEff('wildheart')&&S.hp<maxHp())S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*resonEff('wildheart')/100)));
     else if(heals&&S.hp<maxHp()){if(!G.sim)FX.cAct[ci]=1;const cap=hasTal(c,'grace')?0.16:HEAL_CAP;const h=Math.min(Math.floor(maxHp()*cap),Math.max(1,Math.floor(maxHp()*CLERIC_HEAL*c.def.pow*compMult(c)))+cqTally(c.type).st);S.hp=Math.min(maxHp(),S.hp+h);if(!G.sim)splat(HX-72,130,'+'+h,'#2e9a3a');
@@ -2077,7 +2124,7 @@ function ascend(kept,newVows){
   if(!ascReady())return false;const sh=ascShards();kept=(kept||[]).slice(0,keepLv('vault'));const held=vowText();
   heirInherit();if(S.heir&&!kept.includes(S.heir))kept=[S.heir].concat(kept);
   S.asc.hall=S.asc.hall||[];for(const a of S.asc.hall)delete a.gear;S.asc.hall.push(hallEntry());if(S.asc.hall.length>HALL_CAP+8)S.asc.hall.splice(0,S.asc.hall.length-HALL_CAP-8);
-  {const n=nem();n.lts={};n.taken=[];n.fled=false;n.vend=0;}rdReset();postMarks();S.lairK={};S.lairDone={};
+  {const n=nem();n.lts={};n.taken=[];n.fled=false;n.vend=0;}rdReset();postMarks();S.lairK={};S.lairDone={};{const L=lab();S.lab={found:{},runs:(L.runs||0)+(L.unlocked?1:0),kills:L.kills||0};}
   {const n=nem();if(n.slain)n.slain=false;else if(clearedCount()>=3){n.lvl++;log(`${nemName()} survived the realm. It grows.`,'e');}}
   S.asc.shards+=sh;S.asc.realm++;S.asc.count++;const om=rollOmen();S.pre=null;preNew();
   S.trial=null;S.trialOffer=S.asc.realm;S.asc.vows=(newVows||[]).filter(id=>VOWS.find(v=>v.id===id));if(held)log(`The vows of the old realm are kept: ${held}.`,'b');if(S.asc.vows.length)log(`Sworn for this realm: ${vowText()}. Shards at the next ascension ×${vowShardMult().toFixed(2)}.`,'e');
@@ -2451,7 +2498,7 @@ function renderBestiary(){const el=$('bestiary');if(!el)return;const names=S.bes
   el.innerHTML=`<div class="sub" style="margin-bottom:6px">Lessons by kind. A thousand of a kind teaches you where it is soft, ten thousand how it moves, a hundred thousand more than there are. Every kind is weak to one element (+30%) and shrugs off another (−25%); a full set carries its element into every hit.</div>`
    +Object.keys(KINDS).map(k=>{const n=bestKind(k),t=bestTier(k),next=BEST_TIERS[t];
     return `<div class="feat${t?' done':''}"><span><span class="nm">${KINDS[k]}</span><span class="sub">${fmt(n)} slain · ${t?`+${bestBonus(k)}% damage`:'nothing learned yet'}${next?` · next at ${fmt(next[0])}`:' · complete'} · weak to ${ELEM[ELEM_WEAK[k]].n.toLowerCase()}, resists ${ELEM[ELEM_RESIST[k]].n.toLowerCase()}</span></span></div>`;}).join('')
-   +huntHtml()+nightHtml()
+   +huntHtml()+nightHtml()+labHtml()
    +`<h3 class="secH">Monsters <span class="sub">${met}/${L.length} met · tap one</span></h3><div class="coll" id="beasts">`
    +L.map(b=>{const n=names[b.n]||0;const ok=n>0;return `<div class="ce ${ok?'ok':'no'}" data-bm="${b.n}" role="button" tabindex="0" title="${ok?b.n+' — '+fmt(n)+' slain':'Not met yet'}"><img src="${beastPic(b)}" alt=""><span>${ok?b.n:'???'}</span>${ok?`<b>${fmt(n)}</b>`:''}</div>`;}).join('')+`</div>`;
   el.querySelectorAll('[data-bm]').forEach(e=>{const f=()=>openBeast(e.dataset.bm);e.onclick=f;e.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();f();}};});}
@@ -2847,6 +2894,7 @@ function openMed(){goRoom('vault','Medallion');renderMed();}
 
 // ============ DRAWING ============
 const cv=document.getElementById('scene');const ctx=cv.getContext('2d');
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();if(!r.width)return;labTap((e.clientX-r.left)*VW/r.width,(e.clientY-r.top)*VH/r.height);});
 const VW=500,VH=230;
 const HX=178,MX=370;   // champion and monster anchors
 const SCALE=Math.min(2,Math.max(1,window.devicePixelRatio||1));   // 1 on a plain desktop, 2 on a phone
@@ -3262,7 +3310,7 @@ function drawOrbs(t){
   drawOrb(ox,y,r,S.hp/mh,['#ff6a52','#8a1a10'],G.dead?'#555':'#d9a83a',t,`${Math.ceil(S.hp)}/${mh}`);
   const pn=(heroTitle()?heroTitle():'You')+' · lvl '+combatLvl();
   ctx.font='bold 10px Georgia,serif';ctx.textAlign='center';ctx.fillStyle='#ffe9b0';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(pn.length>40?pn.slice(0,39)+'…':pn,ox,y+r+13,130);
-  if(G.mob){const gob=!!(G.mob.gob&&G.gob);const tag=gob?'GOBLIN · '+gobDef(G.mob.gob).bag.toUpperCase():G.mob.night?'OF THE NIGHT':G.nem?'NEMESIS':G.lt?'LIEUTENANT':G.mark?'MARKED':G.pre?'THE PRETENDER':G.hunt!=null?'TROPHY':G.duel!=null?'DUEL':G.lair!=null?'LAIR':G.wyrm?wyrmName():eliteOf(G.mob)?'ELITE':'';
+  if(G.mob){const gob=!!(G.mob.gob&&G.gob);const tag=gob?'GOBLIN · '+gobDef(G.mob.gob).bag.toUpperCase():G.mob.lab?'THE LABORATORY':G.mob.night?'OF THE NIGHT':G.nem?'NEMESIS':G.lt?'LIEUTENANT':G.mark?'MARKED':G.pre?'THE PRETENDER':G.hunt!=null?'TROPHY':G.duel!=null?'DUEL':G.lair!=null?'LAIR':G.wyrm?wyrmName():eliteOf(G.mob)?'ELITE':'';
     const boss=G.isBoss||G.nem||G.lt;
     drawOrb(W-ox,y,r,gob?Math.max(0,G.gob.left)/(G.gob.secs||GOB_SECS):G.mobHp/G.mob.hp,gob&&FX.gold>0?['#fff2a0','#8a6a10']:gob?['#b8f070','#2a5a10']:boss?['#ffb347','#8a3a10']:['#c96be0','#4a1560'],gob?'#ffd24a':boss?'#ffd24a':'#8a6d48',t,gob?`${Math.ceil(Math.max(0,G.gob.left))}s`:`${G.mobHp}/${G.mob.hp}`);
     let mn=G.mob.n+' · lvl '+G.mob.lv;if(mn.length>40)mn=mn.slice(0,39)+'…';
@@ -3278,15 +3326,17 @@ function drawScene(t,dt){
   // background per area
   const skies=['#7fb5d8','#6f9a6a','#2c2c34','#8aa3c2','#7f9fb5','#cfe8f5','#3a1414','#2a2a2a'];
   const grounds=['#4e8a3a','#5f7a3a','#3a3a3a','#6a5a3a','#5a6a3a','#dfe8ee','#3a2020','#3a3030'];
-  const bg=areaBg((G.tower||abyssW())?8:S.area);
+  const labScene=labActive()&&S.area===0&&!G.tower&&!abyssW();const bg=labScene?labBg():areaBg((G.tower||abyssW())?8:S.area);
   if(bg){ctx.drawImage(bg,0,0,W,H);
     if(G.tower){ctx.fillStyle='rgba(28,18,64,.16)';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,210,74,.06)';ctx.fillRect(0,0,W,H*0.35);}
     if(G.isBoss){ctx.fillStyle='rgba(120,10,10,.18)';ctx.fillRect(0,0,W,H);}
     const vg=ctx.createLinearGradient(0,H*0.55,0,H);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.28)');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
     const nt=(G.tower||abyssW())?0:nightTint();if(nt>0){ctx.fillStyle=`rgba(8,12,44,${(0.46*nt).toFixed(3)})`;ctx.fillRect(0,0,W,H);if(nt>0.6){const a=(nt-0.6)/0.4;ctx.save();ctx.globalAlpha=0.85*a;const mx=W*0.62,my=22;const mg=ctx.createRadialGradient(mx,my,2,mx,my,24);mg.addColorStop(0,'#fff9e0');mg.addColorStop(0.42,'#efe6c0');mg.addColorStop(0.47,'rgba(239,230,192,.25)');mg.addColorStop(1,'rgba(239,230,192,0)');ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,24,0,7);ctx.fill();ctx.restore();}}}
+  else if(labScene)labDrawBg(W,H,t);
   else{ctx.fillStyle=skies[S.area];ctx.fillRect(0,0,W,H);
     ctx.fillStyle=grounds[S.area];ctx.fillRect(0,H*0.72,W,H*0.28);
     ctx.fillStyle='rgba(0,0,0,.15)';for(let i=0;i<8;i++)ctx.fillRect(i*70+20,H*0.72+8+(i%3)*12,40,3);}
+  labDrawBeakers();
   // decay fx
   FX.pFlash=Math.max(0,FX.pFlash-dt*4);FX.mFlash=Math.max(0,FX.mFlash-dt*4);
   FX.pLunge=Math.max(0,FX.pLunge-dt*3);FX.mLunge=Math.max(0,FX.mLunge-dt*3);
@@ -3541,7 +3591,7 @@ const G={mob:null,mobHp:0,isBoss:false,pT:0,mT:0,dead:false,deadT:0,specT:0,dirt
 function spawn(boss){
   if(!AREAS[S.area])S.area=0;G.gob=null;   // any other spawn sends a goblin packing
   const A=AREAS[S.area];
-  let m=G.tower?towerMob(G.tower):abyssW()?abyssMob(abyssW()):siegeActive()?siegeMob():(boss==='nem'?nemMob(A):boss==='lt'?ltMob(A):boss==='mark'?markMob(A):(Array.isArray(boss)&&boss[0]==='duel')?duelMob(boss[1]):(Array.isArray(boss)&&boss[0]==='pre')?preMob():(Array.isArray(boss)&&boss[0]==='hunt')?huntMob(boss[1]):(Array.isArray(boss)&&boss[0]==='lair')?lairMob(boss[1]):(Array.isArray(boss)&&boss[0]==='delve')?boss[1]:boss?A.boss:A.mobs[rnd(0,A.mobs.length-1)]);
+  let m=G.tower?towerMob(G.tower):abyssW()?abyssMob(abyssW()):siegeActive()?siegeMob():(boss==='nem'?nemMob(A):boss==='lt'?ltMob(A):boss==='mark'?markMob(A):(Array.isArray(boss)&&boss[0]==='duel')?duelMob(boss[1]):(Array.isArray(boss)&&boss[0]==='pre')?preMob():(Array.isArray(boss)&&boss[0]==='hunt')?huntMob(boss[1]):(Array.isArray(boss)&&boss[0]==='lair')?lairMob(boss[1]):(Array.isArray(boss)&&boss[0]==='delve')?boss[1]:boss?(boss===true&&S.area===0&&labActive()?labMob():A.boss):A.mobs[rnd(0,A.mobs.length-1)]);
   if(!boss&&!G.tower&&!abyssW()&&!siegeActive()&&isNight()&&Math.random()<0.25)m=nightMob(A);
   if(!boss&&!G.tower&&!abyssW()&&!siegeActive()&&((G.ambush||0)>0||Math.random()<ELITE_P*creedEff('elitex',1)))m=eliteUp(m);
   if(abyssW())boss=abyssW()%5===0;
@@ -3632,6 +3682,7 @@ function mobHit(){
   if(!G.sim){FX.mLunge=1;if(dmg>0)FX.pFlash=0.6;splat(HX,60+Math.random()*30,dmg,dmg>0?'#c0392b':'#2f6fd6');sfx(dmg>0?'hurt':'block');}
   if(dmg>0&&medEff('zeal'))S.spec=Math.min(100,S.spec+medEff('zeal'));
   if(dmg>0&&eliteOf(m)&&eliteOf(m).poison)G.poisonT=eliteOf(m).poison;
+  if(dmg>0&&m.lab){G.labN=(G.labN||0)+1;if(G.labN%2){G.poisonT=Math.max(G.poisonT||0,8);if(!G.sim)splat(HX,100,'green beaker','#7ac943');}else{G.burnT=Math.max(G.burnT||0,6);if(!G.sim)splat(HX,100,'red beaker','#ff5a2a');}}
   if(dmg>0&&(talN('riposte')||discHas('riposte'))&&G.mobHp>0&&Math.random()<0.2){const r=Math.min(G.mobHp,Math.max(1,Math.round(playerMaxHit()*0.5)));G.mobHp-=r;if(!G.sim)splat(MX-10,90,r,'#c8ccd4');if(G.mobHp<=0){S.hp=Math.max(S.hp,0);killMob();return;}}
   if(dmg>0&&medEff('thorns')&&G.mobHp>0){const r=Math.min(G.mobHp,Math.max(1,Math.round(dmg*medEff('thorns')/100)));G.mobHp-=r;if(!G.sim)splat(MX-10,70,r,'#9adf6a');
     if(resonEff('bloodthorn'))S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(r*resonEff('bloodthorn')/100)));
@@ -3754,6 +3805,7 @@ function killMob(){
   if(G.pre){preWon();G.pre=false;G.isBoss=false;bounty('boss',1);spawn(false);G.dirty=true;return;}
   if(G.hunt!=null){huntSlain(G.hunt);G.hunt=null;G.isBoss=false;bounty('boss',1);spawn(false);G.dirty=true;return;}
   if(G.lair!=null){lairSlain(G.lair);G.lair=null;G.isBoss=false;bounty('boss',1);spawn(false);G.dirty=true;return;}
+  if(m.lab){labSlain();G.isBoss=false;bounty('boss',1);spawn(false);G.dirty=true;return;}
   if(eliteOf(m)&&eliteOf(m).rune)gainRune(false);
   if(eliteOf(m)&&!G.tower&&Math.random()<0.3){S.keys=(S.keys||0)+1;log('A delve key of black iron falls from the elite. It opens a door under this ground, from the March map.','g');if(!G.sim)toast('A delve key');}
   if(G.tower){ // Tower of Trials floor cleared
@@ -3916,6 +3968,7 @@ function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.f
   if(G.mob&&!G.dead&&G.mT<=0){mobHit();G.mT+=G.mob.spd*(G.chillT>0?1+Math.max(medEff('chill'),G.chillPct||0)/100:1)*(1+0.1*talN('taunt'));}
   dotTick(dt);
   if(G.poisonT>0&&!G.dead){G.poisonT=Math.max(0,G.poisonT-dt);S.hp-=maxHp()*0.01*dt;if(S.hp<=0){S.hp=0;die();}}
+  if((G.burnT||0)>0&&!G.dead){G.burnT=Math.max(0,G.burnT-dt);S.hp-=maxHp()*0.015*dt;if(S.hp<=0){S.hp=0;die();}}
   if(G.wyrm&&G.wyrm.phase>=2&&!G.dead&&G.mob){S.hp-=maxHp()*0.02*dt;if(S.hp<=0){S.hp=0;die();}}
   if(G.mob&&G.mobHp>0&&omenEff('regen',0))G.mobHp=Math.min(G.mob.hp,G.mobHp+G.mob.hp*omenEff('regen',0)*dt);
   if(medOwned())rd().sec+=dt;if(S.trial)S.trial.sec+=dt;siegeTick(dt);dmgWindowTick(dt);
@@ -4984,6 +5037,7 @@ function renderAll(){
     case 'keep':renderKeep();break;}
   if(chUI.open){if(S.tab!=='hero')renderSlots();chRender();}
   if(cqUI.open)cqRender();
+  labPlant();
   G.dirty=false;
 }
 
@@ -5119,7 +5173,7 @@ function claimFree(wt){
 function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 function openChest(){
   if(S.chests<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
-  S.chests--;S.chestsOpened=(S.chestsOpened||0)+1;bounty('chests',1);const A=AREAS[S.area];
+  S.chests--;S.chestsOpened=(S.chestsOpened||0)+1;bounty('chests',1);const A=AREAS[S.area];if(!lab().found.chest&&Math.random()<0.001)labFind('chest');
   const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
   const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;S.inv.push(it);markFound(it);
 
@@ -5237,7 +5291,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b165-setpowers';window.__ihBoot=true;
+  const BUILD='b166-laboratory';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

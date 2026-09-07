@@ -4008,7 +4008,9 @@ function feSigNew(C){
   const hm = 1 - 0.12 * (C.hard || 0);
   if(t === "mash")   C.sig = { type:t, bar:0, tl:3.6*hm };
   if(t === "swipe")  C.sig = { type:t, dir:["⬅","➡","⬆","⬇"][(Math.random()*4)|0], tl:3.0*hm, sx:0, sy:0 };
-  if(t === "hold")   C.sig = { type:t, v:0, holding:false, tl:6.0, done:false };
+  /* hold scales like the rest (batch 129): less time to start, and the bar
+     fills faster so the release window narrows - 0.62s wide at hard 0, 0.39s at hard 3 */
+  if(t === "hold")   C.sig = { type:t, v:0, holding:false, tl:6.0*hm, rate:0.42/hm, done:false };
   if(t === "multi")  C.sig = { type:t, next:1, tl:3.4*hm,
     pts:[0,1,2].map(i=>({ n:i+1, x:90+Math.random()*290, y:170+Math.random()*330, hit:false })) };
   if(t === "vanish") C.sig = { type:t, dark:0.9, win:0, hm, x:80+Math.random()*310, y:170+Math.random()*330 };
@@ -4141,7 +4143,7 @@ function feCineFrameBody(ts){
     const S = C.sig;
     if(S.tl !== undefined){ S.tl -= dt; if(S.tl <= 0){ feCineFail(); } }
     if(S && S.type === "mash"){ S.bar = Math.max(0, S.bar - dt*0.34); }
-    if(S && S.type === "hold" && S.holding){ S.v += dt*0.42; if(S.v > 0.97){ S.holding=false; feCineFail(); } }
+    if(S && S.type === "hold" && S.holding){ S.v += dt*(S.rate || 0.42); if(S.v > 0.97){ S.holding=false; feCineFail(); } }
     if(S && S.type === "vanish"){
       if(S.dark > 0){ S.dark -= dt; if(S.dark <= 0){ S.win = 0.85 * (S.hm || 1); fbSfxSafe("splash_big", 0.3); } }
       else if(S.win > 0){ S.win -= dt; if(S.win <= 0) feCineFail(); }

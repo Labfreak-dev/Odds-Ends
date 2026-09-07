@@ -501,6 +501,14 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 129 — the cinematic's hold scales with hardness
+"Do 3": in the true-form fight every timed mechanic shortens with the
+legend's hardness (tl × (1 − 0.12·hard)) except the hold, which gave six
+seconds at every level. Now its time limit scales the same way and the
+bar fills faster (0.42/s ÷ hm), so the release window narrows from 0.62s
+wide at hard 0 to 0.39s at hard 3. Harness: the hold and every other
+timed signature tighten on hard.
+
 ## Batch 128 — the spread can be sorted
 "Do 2": a fifty-card ten-pack is a lot to scan. A pill row above the grid
 lays the spread in pack order (default), new first, rarity, or value; the

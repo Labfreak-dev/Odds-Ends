@@ -66,7 +66,7 @@ eval(ASSETS+";"+SFX+";"+SRC+`;global.__fe={fePalette,feBasePalette,feWeatherMod,
   FE_PROPS,feProps,feAwardProp,feNextProp,fePropSchedule,FE_PROP_ORDER,stats:fshStats,
   feConds,feCondOk,feCondHint,FE_COND_ICONIC,feJournalRecord,feJournalCount,feSpeciesTotal,
   feShadowSpawn,FE_SFX_KEYS:Object.keys(FE_SFX),
-  FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,feCineRingStep,
+  FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,feCineRingStep,feSigNew,
   feKeys,feKeyRoll,feBestKeyFor,FE_ARCH,
   feInitAmbient, get stars(){return feStars;},
   rollCatch:fshRollCatch,release:fshRelease,
@@ -307,6 +307,11 @@ console.log("\n=== legends & strongboxes ===");
       if(C.ring){ C.ring = null; C.t = 0; }   // a clean hit, as feCineHit does
     }
     check("rings keep spawning at 120Hz", C.round >= 20, C.round);
+    // every signature tightens with hardness, the hold included (batch 129)
+    const sigAt = (sig, hard) => { const c = { cfg:{ sig }, hard }; FE.feSigNew(c); return c.sig; };
+    const h0 = sigAt("hold", 0), h3 = sigAt("hold", 3);
+    check("the hold gives less time and fills faster on hard", h3.tl < h0.tl && h3.rate > h0.rate && h0.tl === 6, `${h0.tl}->${h3.tl.toFixed(2)}s, ${h0.rate}->${h3.rate.toFixed(2)}/s`);
+    check("every timed signature tightens on hard", ["mash","swipe","multi"].every(s => sigAt(s,3).tl < sigAt(s,0).tl));
   }
   // daily gate
   INV.bossDay=null; INV.bossJournal=null; INV.dayN=undefined;

@@ -320,6 +320,7 @@
   .vaultlist label{display:flex;gap:6px;align-items:center}
   .hall{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}
   .anc{background:rgba(0,0,0,.25);border:1px solid #000;border-radius:3px;padding:5px 7px;font-size:11px}
+  .anc .saga{margin-top:4px;font:italic 11px Georgia,serif;color:#d8c9a0;line-height:1.35}
   @media(max-width:520px){.hall{grid-template-columns:1fr}}
 
   /* --- modal --- */
@@ -2100,7 +2101,7 @@ function duelOpen(i){const a=hallList()[i];return !!a&&a.dueled!==((S.asc&&S.asc
 function duelReady(){return medOwned()&&!G.dead&&!G.tower&&!abyssW()&&!siegeActive()&&!G.isBoss;}
 function startDuel(i){if(!duelReady()||!duelOpen(i))return false;if(S.curse)endCurse('abandoned');
   {const a=hallList()[i];const w=(a.gear||[]).find(it=>it.slot==='weapon');G.duelWpn=w?JSON.parse(JSON.stringify(w)):makeItem(Math.min(7,Math.floor((a.cl||10)/14)),'weapon',1,1);wpnCanvas(iconKey(G.duelWpn));}
-  spawn(['duel',i]);log(`${G.mob.n} steps down from the hall. A duel: your companions stand aside.`,'e');if(!G.sim)toast('Duel!');G.dirty=true;return true;}
+  spawn(['duel',i]);log(`${G.mob.n} steps down from the hall. A duel: your companions stand aside.`,'e');{const a=hallList()[i];if(a&&a.line)log(`“${a.line}”`,'b');}if(!G.sim)toast('Duel!');G.dirty=true;return true;}
 function duelWon(i){const a=hallList()[i];if(!a)return;a.dueled=(S.asc&&S.asc.realm)||0;const g=Math.round(50000*(1+0.1*((S.asc&&S.asc.realm)||0)));S.gold+=g;
   log(`The ancestor yields. ${HALL_PERK[a.p][0]} counts twice this realm; ${fmt(g)} gold from the hall's purse.`,'g');if(!G.sim)toast('Duel won');}
 function hallEff(k){const r=(S.asc&&S.asc.realm)||0;let n=0;for(const a of hallList().slice(-HALL_CAP))if(a.p===k)n+=a.dueled===r?2:1;return n;}
@@ -2476,12 +2477,12 @@ function hallList(){return (S.asc&&S.asc.hall)||[];}
 // starts it. From then on every ascension leaves an honest portrait, and fixHall keeps each one sane on load.
 const HALL_V=2;
 const HALL_SEED=[
-  {r:1,cl:62,mh:95,k:14200,p:'str',t:'the Relentless',tw:25},
-  {r:2,cl:74,mh:128,k:22600,p:'def',t:'the Stubborn',tw:40},
-  {r:3,cl:83,mh:160,k:31800,p:'atk',t:'the Collector',tw:55},
-  {r:4,cl:91,mh:205,k:45300,p:'hp',t:'of the Spire',tw:70},
-  {r:5,cl:99,mh:250,k:60900,p:'str',t:'Wyrmslayer',tw:85},
-  {r:6,cl:108,mh:300,k:80400,p:'def',t:'Starforged',tw:100},
+  {r:1,cl:62,mh:95,k:14200,p:'str',t:'the Relentless',tw:25,saga:'The Relentless, Champion of Realm 2: 14.2k kills. Fell nine times, most often at the Giants. A best hit of 95, floor 25 of the tower. They did what the realm asked, and then some.',line:'They did what the realm asked, and then some.'},
+  {r:2,cl:74,mh:128,k:22600,p:'def',t:'the Stubborn',tw:40,saga:'The Stubborn, Champion of Realm 3: 22.6k kills. Fell fourteen times, most often at the Frozen Pass. Vorgath the Hunter hunted them and was never caught. Stubborn to the last, and past it.',line:'Stubborn to the last, and past it.'},
+  {r:3,cl:83,mh:160,k:31800,p:'atk',t:'the Collector',tw:55,saga:'The Collector, Champion of Realm 4: 31.8k kills. Fell four times. Skarn the Relentless hunted them and was slain for it. A best hit of 160, floor 55 of the tower, seven goblins shaken. The goblins knew them by name.',line:'The goblins knew them by name.'},
+  {r:4,cl:91,mh:205,k:45300,p:'hp',t:'of the Spire',tw:70,saga:'Of the Spire, Champion of Realm 5: 45.3k kills. Fell twice, both at the Demons. A best hit of 205, floor 70 of the tower. Hunters learned to fear the hunted.',line:'Hunters learned to fear the hunted.'},
+  {r:5,cl:99,mh:250,k:60900,p:'str',t:'Wyrmslayer',tw:85,saga:'Wyrmslayer, Champion of Realm 6: 60.9k kills. Never fell. Ulthra the Unbroken hunted them and was slain for it. A best hit of 250, floor 85 of the tower. The realm never once saw them on their back.',line:'The realm never once saw them on their back.'},
+  {r:6,cl:108,mh:300,k:80400,p:'def',t:'Starforged',tw:100,saga:'Starforged, Champion of Realm 7: 80.4k kills. Fell once, at the Dragons. Maldrek the Undying hunted them and was never caught. A best hit of 300, floor 100 of the tower. The tower still remembers the footsteps.',line:'The tower still remembers the footsteps.'},
 ];
 function hallMigrate(){if(!S.asc)return;if((S.asc.hallV||0)>=HALL_V)return;S.asc.hallV=HALL_V;const h=S.asc.hall||[];if(!h.length)return;
   S.asc.hall=HALL_SEED.map(a=>Object.assign({},a));
@@ -2490,14 +2491,28 @@ function hallMigrate(){if(!S.asc)return;if((S.asc.hallV||0)>=HALL_V)return;S.asc
   log('The Hall of Ancestors has been rebuilt. Six champions of old stand in it now, each with a duel to offer; every ascension from here adds a true portrait.','g');}
 function fixHall(){for(const a of hallList()){if(!a||typeof a!=='object')continue;if(!HALL_PERK[a.p])a.p='str';a.r=Math.max(0,Math.floor(+a.r||0));a.cl=clamp(Math.round(+a.cl||10),3,126);a.mh=clamp(Math.round(+a.mh||5),1,2000);a.k=Math.max(0,Math.floor(+a.k||0));if(typeof a.t!=='string')a.t='';if(a.gear&&!Array.isArray(a.gear))delete a.gear;}}
 
-function hallEntry(){const best=['atk','str','def','hp'].reduce((a,b)=>lv(b)>lv(a)?b:a);
+// ============ THE SAGA ============
+// At ascension the game writes the champion's epitaph from the realm's own record: where they fell, who hunted them, what
+// they hit, how high they climbed, which goblins knew them. It is carved into the portrait, and an ancestor says a line of
+// it when they step down to duel.
+function sagaWrite(){const R=rd(),n=nem();const lines=[];
+  const t=heroTitle();const who=t?`${t[0].toUpperCase()+t.slice(1)}, Champion of Realm ${S.asc.realm+1}`:`The Champion of Realm ${S.asc.realm+1}`;
+  lines.push(`${who}: ${fmt(R.kills||S.totalKills)} kills${medOwned()&&R.sec?` in ${fmtTime(R.sec)} under the medallion`:''}.`);
+  if(!(R.deaths||0))lines.push('Never fell.');
+  else{const at=R.deathAt||{};const worst=Object.keys(at).sort((a,b)=>at[b]-at[a])[0];lines.push(`Fell ${R.deaths} time${R.deaths===1?'':'s'}${worst!=null&&AREAS[worst]?`, most often at ${AREAS[worst].n}`:''}.`);}
+  if(medOwned()&&clearedCount()>=3)lines.push(n.slain?`${n.name} hunted them and was slain for it.`:`${nemName()} hunted them and was never caught.`);
+  const feats=[];if(R.mh)feats.push(`a best hit of ${fmt(R.mh)}`);if(R.tower)feats.push(`floor ${R.tower} of the tower`);if(R.gobs)feats.push(`${R.gobs} goblin${R.gobs===1?'':'s'} shaken`);
+  if(feats.length)lines.push(feats.join(', ').replace(/^./,c=>c.toUpperCase())+'.');
+  const flour=(R.gobs||0)>=5?'The goblins knew them by name.':(R.deaths||0)===0?'The realm never once saw them on their back.':(R.tower||0)>=100?'The tower still remembers the footsteps.':n.slain?'Hunters learned to fear the hunted.':(R.deaths||0)>=10?'Stubborn to the last, and past it.':'They did what the realm asked, and then some.';
+  lines.push(flour);return {saga:lines.join(' '),line:flour};}
+function hallEntry(){const best=['atk','str','def','hp'].reduce((a,b)=>lv(b)>lv(a)?b:a);const sg=sagaWrite();
   const gear=SLOTS.map(s=>S.equip[s]).filter(it=>it&&!it.free).map(it=>JSON.parse(JSON.stringify(it)));
-  return {r:S.asc.realm,cl:combatLvl(),mh:clamp(Math.round(playerMaxHit()/(1+tuneEff('mh')/100)),1,2000),k:S.totalKills,p:best,t:heroTitle()||'',gear,tw:rd().tower||0};}
+  return {r:S.asc.realm,cl:combatLvl(),mh:clamp(Math.round(playerMaxHit()/(1+tuneEff('mh')/100)),1,2000),k:S.totalKills,p:best,t:heroTitle()||'',gear,tw:rd().tower||0,saga:sg.saga,line:sg.line};}
 function hallHtml(){const h=hallList();if(!h.length)return '';
   const tot=['atk','str','def','hp'].map(k=>hallEff(k)?`${HALL_PERK[k][0]} ×${hallEff(k)}`:'').filter(Boolean).join(' · ');
   return `<div class="altar hallc"><div><h3>Hall of Ancestors</h3><p>${h.length} champion${h.length===1?'':'s'} before this one${h.length>HALL_CAP?` (the last ${HALL_CAP} count)`:''}. ${tot||''}<br>`+
     `+${(0.5*hallEff('atk')).toFixed(1)}% accuracy · +${(0.5*hallEff('str')).toFixed(1)}% max hit · +${(0.5*hallEff('def')).toFixed(1)}% damage reduction · +${hallEff('hp')}% hitpoints</p>`+
-    `<div class="hall">`+h.map((a,i)=>[a,i]).slice(-8).reverse().map(([a,i])=>`<div class="anc"><b>Realm ${a.r+1}</b>${a.t?` · ${a.t}`:''}${a.dueled===((S.asc&&S.asc.realm)||0)?' <span class="gold">· beaten this realm, perk ×2</span>':''}<br><span class="sub">lvl ${a.cl} · max hit ${a.mh} · ${fmt(a.k)} kills${a.tw?` · floor ${a.tw}`:''} · ${HALL_PERK[a.p][0]}: ${HALL_PERK[a.p][1]}</span>${duelOpen(i)?`<br><button class="sm" data-duel="${i}" ${duelReady()?'':'disabled'}>Duel</button>`:''}</div>`).join('')+`</div></div></div>`;}
+    `<div class="hall">`+h.map((a,i)=>[a,i]).slice(-8).reverse().map(([a,i])=>`<div class="anc"><b>Realm ${a.r+1}</b>${a.t?` · ${a.t}`:''}${a.dueled===((S.asc&&S.asc.realm)||0)?' <span class="gold">· beaten this realm, perk ×2</span>':''}<br><span class="sub">lvl ${a.cl} · max hit ${a.mh} · ${fmt(a.k)} kills${a.tw?` · floor ${a.tw}`:''} · ${HALL_PERK[a.p][0]}: ${HALL_PERK[a.p][1]}</span>${a.saga?`<div class="saga">${a.saga}</div>`:''}${duelOpen(i)?`<br><button class="sm" data-duel="${i}" ${duelReady()?'':'disabled'}>Duel</button>`:''}</div>`).join('')+`</div></div></div>`;}
 
 // ============ THE MEDALLION ============
 // Forged on the first ascension and kept for every one after. Six sockets,
@@ -3236,7 +3251,7 @@ function gobSpawn(id){const pool=GOBLINS.filter(g=>(!g.need||g.need())&&g.id!==S
   const A=AREAS[S.area];const ref=A.mobs[A.mobs.length-1];
   G.mob={n:g.n,lv:ref.lv,hp:1e9,atk:0,str:0,def:Math.round(ref.def*realmMult()*0.8),spd:99,gold:[0,0],shape:'humanoid',col:g.col,big:0.85,gob:g.id,spr:'gob_'+g.id};
   G.mobHp=G.mob.hp;G.isBoss=false;G.nem=false;G.lt=false;G.mark=null;G.duel=null;G.lair=null;G.wyrm=null;G.first=true;G.dot=null;G.sunderT=0;G.hexT=0;
-  G.gob={id:g.id,left:GOB_SECS,dmg:0,got:{},acc:0};S.gobs=(S.gobs||0)+1;
+  G.gob={id:g.id,left:GOB_SECS,dmg:0,got:{},acc:0};S.gobs=(S.gobs||0)+1;rd().gobs=(rd().gobs||0)+1;
   log(g.first,'e');if(!G.sim){toast(g.n+'!');sfx('rare');}G.dirty=true;return true;}
 function gobHit(dmg){const gb=G.gob;if(!gb)return;const A=AREAS[S.area];const b=bonuses();const r=(S.asc&&S.asc.realm)||0;
   const f=Math.min(2,dmg/Math.max(1,playerMaxHit()));gb.dmg+=dmg;   // a full-strength blow is worth one share; a special can be worth two
@@ -3326,7 +3341,7 @@ function playerHit(spec,sp){
     if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;if(resonEff('stormcall'))S.spec=Math.min(100,S.spec+resonEff('stormcall'));if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
   }
   if(G.wyrm&&G.wyrm.phase===1&&dmg>0){if(spec){G.wyrm.phase=2;log('Your special cracks the Wyrm\'s armour. The floor begins to burn.','e');if(!G.sim)toast('Armour cracked!');}else dmg=Math.max(1,Math.round(dmg*0.1));}
-  dmg=Math.min(dmg,G.mobHp);if(dmg>(S.bestHit||0))S.bestHit=dmg;
+  dmg=Math.min(dmg,G.mobHp);if(dmg>(S.bestHit||0))S.bestHit=dmg;if(dmg>(rd().mh||0))rd().mh=dmg;
   G.mobHp-=dmg;dmgWindow(dmg);wyrmCheck();
   if(dmg>0){const pb=Math.max(medEff('burn'),prayBurn(),discEff('burn'));if(pb)applyDot('burn',pb,4);if(medEff('chill'))G.chillT=4;}
   if(dmg>0&&b.leech>0){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.floor(dmg*b.leech/100)));}
@@ -3359,6 +3374,7 @@ function die(){
   if(abyssW()){abyssLose();spawn(false);return;}
   if(siegeActive()){const a=siege().act;a.walls-=SIEGE_BLOW*3;log('You fall at the gate; the walls take the horde alone.','e');if(a.walls<=0){siegeEnd(false);return;}spawn(false);return;}
   if(S.delve){delveFail();G.isBoss=false;spawn(false);return;}
+  {const R=rd();R.deathAt=R.deathAt||{};R.deathAt[S.area]=(R.deathAt[S.area]||0)+1;}
   {const m=G.mob;S.deathLog=(S.deathLog||[]).slice(-4);S.deathLog.push({m:m.n,a:AREAS[S.area].n,mh:Math.round(hitChance(mobAtkRoll(m),playerDefRoll())*100),ph:Math.round(hitChance(playerAtkRoll(),mobDefRoll(m))*100),t:Date.now()});S.lastDeathT=S.fightT||0;G.kstreak=0;}
   G.streak++;
   if(!G.isBoss&&!G.nem&&!G.lt&&G.lair==null&&!G.mark&&G.duel==null&&S.area>0){S.area--;G.streak=0;log(`You fall back to ${AREAS[S.area].n} to recover.`,'e');if(!G.sim)toast('Fell back to '+AREAS[S.area].n);spawn(false);return;}
@@ -4893,7 +4909,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b147-coach';window.__ihBoot=true;
+  const BUILD='b148-saga';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -4434,6 +4434,10 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 .rz-sw.ship .rz-swk{ left:2px; background:rgba(255,211,92,.22); border-color:#ffd35c; }
 .rz-sw.keep .rz-spk{ color:#bcdcff; } .rz-sw.ship .rz-sps{ color:#ffe08a; }
 .rz-sp.sold .rz-spcard{ opacity:.55; }
+.rz-sortrow{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:2px 0 4px; }
+.rz-sortpill{ font:800 10.5px system-ui; padding:5px 11px; border-radius:999px; cursor:pointer;
+  border:1px solid #93a5b755; color:#93a5b7; background:transparent; }
+.rz-sortpill.on{ color:#ffd35c; border-color:#ffd35c; background:rgba(255,211,92,.1); }
 /* the zoom: one card of the spread at full size */
 .rz-zoom{ position:relative; }
 .rz-btn.on{ box-shadow:0 0 0 2px currentColor inset; }
@@ -4465,7 +4469,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 21a555</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · 8bedda</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5578,7 +5582,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <script src="oe-10-case.js?v=fcc2ad9a3d"></script>
 <script src="oe-11-oddone.js?v=d5c686594c"></script>
 <script src="oe-13-mining2.js?v=10e04316a7"></script>
-<script src="oe-14-ripship.js?v=342be79b97"></script>
+<script src="oe-14-ripship.js?v=ec61710d89"></script>
 <script src="oe-15-ledger.js?v=b36867f39e"></script>
 <script src="oe-16-grading.js?v=1d53abce28"></script>
 <script src="oe-17-market2.js?v=07e39c2e23"></script>

@@ -501,6 +501,15 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 128 — the spread can be sorted
+"Do 2": a fifty-card ten-pack is a lot to scan. A pill row above the grid
+lays the spread in pack order (default), new first, rarity, or value; the
+choice is remembered across packs (state.ripship.sort). Face-down cards
+always come first as a group, in pack order - laying them by what they
+hide would give the reveal away - and the face-up cards sort behind them
+(new first breaks ties by rarity). Decisions patch cells in place as
+before, so a sort never loses a ship.
+
 ## Batch 127 — the water loads when it is wanted: lazy bundles
 "What's next?" -> the cold load. The build shipped 22MB of script on every
 first visit, and 11MB of it was fishing: the cinematic keyframes (5MB of

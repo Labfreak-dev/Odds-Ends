@@ -23,6 +23,10 @@ async def main():
         await pg.goto(_URL); await pg.wait_for_timeout(900)
         await pg.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
         await pg.wait_for_function("oeBundleReady('fishing')", timeout=30000)   # the water is a lazy bundle (batch 127)
+        # the legend's shadow shows within seconds of quiet water (batch 125) and
+        # a cast that lands on it hooks the legend - spend today's attempt so the
+        # ordinary casts below stay ordinary; the legend section re-arms it
+        await pg.evaluate("(()=>{ const inv=feBossState(); inv.bossDay[feSpot().id]=inv.dayN; feShadows.length=0; })()")
         await pg.evaluate("FE_TEST_EVERY5=false")
         await pg.wait_for_timeout(700)
 

@@ -501,6 +501,17 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 131 — the mine hits back: shake, flash, buzz
+"Do 5": with the click sound gone the swing had no feel. Now the whole
+scene rides the shake (it was the rock alone): a player strike kicks 11
+with a short warm flash and an 18ms buzz; a vein break kicks 26, washes a
+flash over the scene and buzzes [30,40,70]. Floats pop in oversized and
+settle (900-weight 26px for the vein, 800 18px for a swing, heavy dark
+outlines), drift with a little sideways life, and the vein float holds
+2.4s. Shake decays faster the bigger it is so the big kick never lingers
+into a wobble. Vibration respects the fishing mixer's switch when it is
+loaded.
+
 ## Batch 130 — leftover wording
 "Do 4": the mining rate stat and its breakdown ("Base 100/min · +2.40 from
 collection · +8 from upgrades") and the mine-boost table carried no unit -

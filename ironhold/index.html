@@ -220,6 +220,7 @@
   .item{background:var(--ink);border:2px solid #000;box-shadow:inset 0 0 0 1px var(--bevel),inset 0 0 0 3px var(--rc,#000),inset 0 3px 8px rgba(0,0,0,.6);border-radius:3px;padding:6px;cursor:pointer;font-size:11px;min-height:84px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
   .item svg{width:44px;height:44px;display:block;margin:0 auto 4px}
   .item .nm{line-height:1.15;color:var(--tan);overflow-wrap:anywhere}
+.item .wr{position:absolute;top:3px;right:3px;font-size:9px;line-height:1;padding:2px 4px;border-radius:3px;background:rgba(0,0,0,.62);border:1px solid rgba(0,0,0,.75);white-space:nowrap;pointer-events:none;font-weight:bold}.item .wr.ok{color:var(--green)}.item .wr.no{color:#ff7b6b}.item.locked{opacity:.82}.item.locked .nm{color:#a89a8a}
   .item .ft{display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-top:4px;flex-wrap:wrap;min-width:0}
   .item .dl{font-weight:bold;font-size:11px;white-space:nowrap}
   .item .dl.up{color:var(--green)}.item .dl.dn{color:#ff7b6b}
@@ -4425,8 +4426,8 @@ function storeItem(it){if(!storeRoom()||!S.inv.includes(it)||it.heir)return fals
 function takeItem(it){if(S.inv.length>=28||!store().includes(it))return false;S.store=store().filter(x=>x!==it);S.inv.push(it);log(`${itemName(it)} taken from storage.`);return true;}
 function renderStore(){const el=$('store');if(!el)return;el.innerHTML='';$('storeCnt').textContent=`${store().length}/${STORE_CAP}`;
   if(!store().length){el.innerHTML='<div class="sub" style="grid-column:1/-1;padding:10px 0;text-align:center">Nothing stored. Send gear here from its window in the pack.</div>';return;}
-  for(const it of store().slice().sort((a,b)=>b.tier-a.tier||b.rar-a.rar)){const d=document.createElement('div');d.className='item r'+it.rar;
-    d.innerHTML=itemGlyph(it)+`<div class="nm">${itemName(it)}</div><div class="ft"><span class="sub">${TIERS[it.tier].n}${it.up?' +'+it.up:''}</span><span class="rl">${RARITY[it.rar].n||'Common'}</span></div>`;
+  for(const it of store().slice().sort((a,b)=>b.tier-a.tier||b.rar-a.rar)){const d=document.createElement('div');d.className='item r'+it.rar+(chWearable(it)?'':' locked');
+    d.innerHTML=wearBadge(it)+itemGlyph(it)+`<div class="nm">${itemName(it)}</div><div class="ft"><span class="sub">${TIERS[it.tier].n}${it.up?' +'+it.up:''}</span><span class="rl">${RARITY[it.rar].n||'Common'}</span></div>`;
     d.onclick=()=>openItem(it,false,'store');el.appendChild(d);}}
 
 function renderBag(){
@@ -4443,8 +4444,8 @@ function renderBag(){
   if(!S.inv.length){el.innerHTML='<div class="sub" style="grid-column:1/-1;padding:10px 0;text-align:center">Empty pack. The blade will fill it.</div>';return;}
   if(!list.length){el.innerHTML='<div class="sub" style="grid-column:1/-1;padding:10px 0;text-align:center">Nothing matches those filters.</div>';return;}
   for(const it of list){const cur=S.equip[it.slot];const diff=itemScore(it)-(cur?itemScore(cur):0);
-    const d=document.createElement('div');d.className='item r'+it.rar;
-    d.innerHTML=itemGlyph(it)+`<div class="nm">${itemName(it)}</div><div class="ft"><span class="dl ${diff>0?'up':'dn'}">${diff>0?'▲':'▼'} ${Math.abs(diff).toFixed(0)}</span><span class="rl">${RARITY[it.rar].n||'Common'}</span></div>`;
+    const d=document.createElement('div');d.className='item r'+it.rar+(chWearable(it)?'':' locked');
+    d.innerHTML=wearBadge(it)+itemGlyph(it)+`<div class="nm">${itemName(it)}</div><div class="ft"><span class="dl ${diff>0?'up':'dn'}">${diff>0?'▲':'▼'} ${Math.abs(diff).toFixed(0)}</span><span class="rl">${RARITY[it.rar].n||'Common'}</span></div>`;
     d.onclick=()=>openItem(it,false);el.appendChild(d);}
   for(let i=S.inv.length;i<28&&i<list.length+4;i++){const d=document.createElement('div');d.className='empty-tile';el.appendChild(d);}
 }
@@ -4533,6 +4534,10 @@ function renderProf(){const el=$('prof');if(!el)return;const cur=S.equip.weapon?
 
 function masteryBonus(b){for(const [k,n,,eff] of MASTERY){if(lv(k)>=n)for(const e in eff)b[e]+=eff[e];}}
 const SK_NAME={atk:'Attack',str:'Strength',def:'Defence',hp:'Hitpoints',rng:'Ranged',mag:'Magic',all:'every combat skill at'};
+const SK_SHORT={atk:'Atk',str:'Str',def:'Def',hp:'HP',rng:'Rng',mag:'Mag',all:'All'};
+// at a glance: can the champion wear this? a green tick, or a lock with the skill and level it wants
+function wearHave(q){return q.s==='all'?Math.min(...['atk','str','def','hp','rng','mag'].map(k=>lv(k))):lv(q.s);}
+function wearBadge(it){const q=reqFor(it);if(handsBound(it))return '<span class="wr no" title="The trial binds your hands">&#128274; trial</span>';return reqOk(q)?'<span class="wr ok" title="You can wear this">&#10003;</span>':`<span class="wr no" title="Needs ${SK_NAME[q.s]} ${q.lv}; you have ${wearHave(q)}">&#128274; ${SK_SHORT[q.s]} ${q.lv}</span>`;}
 const CSTYLES=[{k:'melee',n:'Melee'},{k:'ranged',n:'Ranged'},{k:'magic',n:'Magic'}];
 const cstyle=()=>{const w=S.equip.weapon;return (w&&WEAPONS[w.wt].style)||'melee';};
 const cskill=()=>cstyle()==='ranged'?'rng':cstyle()==='magic'?'mag':null;
@@ -5130,7 +5135,7 @@ function openItem(it,equipped,where){
   const req=reqFor(it);const ok=reqOk(req)&&!handsBound(it);const uc=upgradeCost(it);
   const W=it.slot==='weapon'?WEAPONS[it.wt]:null;
   let h=`<div class="mhead">${itemGlyph(it)}<div><h2 style="color:${rc(it)}">${itemName(it)}</h2>
-   <div class="sub">${it.rec?'<b class="gold">Reclaimed</b> · won back from the nemesis: +4% max hit, +4% XP · ':''}${RARITY[it.rar].n||'Common'}${itemStyleOf(it)?` · <b class="styname" data-sty="${itemStyleOf(it)}">${STYLE_TAG[itemStyleOf(it)].n}</b>`:''} · needs ${SK_NAME[req.s]} ${req.lv}${ok?'':' <span style="color:#ff7b6b">(too low)</span>'}${W?` · ${W.spd}s, ${W.two?(it.uq&&it.uq.startsWith('sov_')?'two-handed, but the Sovereign shield rides beside it':'two-handed'):'one-handed'}`:''}</div></div></div>`;
+   <div class="sub">${it.rec?'<b class="gold">Reclaimed</b> · won back from the nemesis: +4% max hit, +4% XP · ':''}${RARITY[it.rar].n||'Common'}${itemStyleOf(it)?` · <b class="styname" data-sty="${itemStyleOf(it)}">${STYLE_TAG[itemStyleOf(it)].n}</b>`:''} · needs ${SK_NAME[req.s]} ${req.lv}${ok?' <b style="color:var(--green)">· ready to wear</b>':handsBound(it)?' <b style="color:#ff7b6b">· the trial binds your hands</b>':` <b style="color:#ff7b6b">· you have ${wearHave(req)}, ${req.lv-wearHave(req)} more to go</b>`}${W?` · ${W.spd}s, ${W.two?(it.uq&&it.uq.startsWith('sov_')?'two-handed, but the Sovereign shield rides beside it':'two-handed'):'one-handed'}`:''}</div></div></div>`;
   if(cur)h+=`<div class="sub">Compared to ${itemName(cur)}</div>`;
   h+=`<div class="cmp">Attack +${st.atk}${d(st.atk,cs.atk)} · Strength +${st.str}${d(st.str,cs.str)} · Defence +${st.def}${d(st.def,cs.def)}</div>`;
   if(it.uq)h+=`<div class="sub" style="font-style:italic;margin:2px 0">${UNIQUES[it.uq].d}</div>`;
@@ -5334,7 +5339,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b174-kiticons';window.__ihBoot=true;
+  const BUILD='b175-wearable';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

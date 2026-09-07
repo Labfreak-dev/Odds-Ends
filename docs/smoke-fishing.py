@@ -25,9 +25,14 @@ async def main():
 
         # into the dock through the real lobby route
         await pg.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
+        await pg.wait_for_function("oeBundleReady('fishing')", timeout=30000)   # the water is a lazy bundle (batch 127)
         await pg.evaluate("FE_TEST_EVERY5=false")
         await pg.wait_for_timeout(800)
         check("fishing boots with the rebuild live", await pg.evaluate("!!feEnv && !!feStars && typeof feFightStep==='function'"))
+        # the legend's shadow shows within seconds of quiet water (batch 125)
+        # and a cast that lands on it opens the cinematic - spend today's
+        # attempt so every cast below hooks an ordinary fish
+        await pg.evaluate("(()=>{ const inv=feBossState(); inv.bossDay[feSpot().id]=inv.dayN; feShadows.length=0; })()")
 
         # --- the five skies ---
         scenes=[("dawn",5.9,"fog"),("noon",12.2,"clear"),("golden",18.4,"clear"),("night",0.4,"clear"),("storm",13.0,"storm")]
@@ -76,6 +81,10 @@ async def main():
         await pg.wait_for_timeout(1000)
         await pg.evaluate("fsh.waitMs=40; fsh.waitTimer=0;")
         await pg.wait_for_timeout(500)
+        # the every-fifth-catch test hook (FE_TEST_EVERY5) turns a landing into
+        # the true-form cinematic, which parks the fight in phase "cine" since
+        # batch 119 - pin the counter so THIS landing is an ordinary one
+        await pg.evaluate("fshInv().testN = 0;")
         await pg.evaluate("fshHookSet(); fsh.holding=true; fsh.fight.progress = fsh.fight.need - 1;")
         await pg.wait_for_timeout(600)
         landed=await pg.evaluate("fsh.phase==='result' && fsh.result && !fsh.result.failed")
@@ -88,6 +97,7 @@ async def main():
         pg2=await b.new_page(viewport={"width":390,"height":844}, has_touch=True, is_mobile=True)
         await pg2.goto(URL); await pg2.wait_for_timeout(900)
         await pg2.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
+        await pg2.wait_for_function("oeBundleReady('fishing')", timeout=30000)
         await pg2.wait_for_timeout(600)
         await pg2.evaluate("fshStartCharge(); fsh.power=84; fshRelease();")
         await pg2.wait_for_timeout(1000)

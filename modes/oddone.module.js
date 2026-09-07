@@ -28,7 +28,7 @@ const OO_CARD_EVERY = 12;
 
 const OO_PROPS = [
   { id:"category", label:"collection", of:c=>c.category },
-  { id:"tier",     label:"rarity",     of:c=>String(c.rarity) },
+  { id:"tier",     label:"rarity",     of:c=>RARITIES[c.rarity].name },   /* the NAME the tile shows - ids 0/1/2 are all "Common" */
   { id:"emoji",    label:"picture",    of:c=>c.emoji },
   { id:"subject",  label:"subject",    of:c=>c.name.split(" — ")[0] },
 ];

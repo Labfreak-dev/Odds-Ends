@@ -501,6 +501,435 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 131 — the mine hits back: shake, flash, buzz
+"Do 5": with the click sound gone the swing had no feel. Now the whole
+scene rides the shake (it was the rock alone): a player strike kicks 11
+with a short warm flash and an 18ms buzz; a vein break kicks 26, washes a
+flash over the scene and buzzes [30,40,70]. Floats pop in oversized and
+settle (900-weight 26px for the vein, 800 18px for a swing, heavy dark
+outlines), drift with a little sideways life, and the vein float holds
+2.4s. Shake decays faster the bigger it is so the big kick never lingers
+into a wobble. Vibration respects the fishing mixer's switch when it is
+loaded.
+
+## Batch 130 — leftover wording
+"Do 4": the mining rate stat and its breakdown ("Base 100/min · +2.40 from
+collection · +8 from upgrades") and the mine-boost table carried no unit -
+all "$" now. The masterwork blurb's "+10% catch credits" reads "+10%
+fishing payouts" (fishing does pay credits, but nobody calls a catch a
+credit). The Auto-Open drawer's toggle and copy drop the "Fast".
+
+## Batch 129 — the cinematic's hold scales with hardness
+"Do 3": in the true-form fight every timed mechanic shortens with the
+legend's hardness (tl × (1 − 0.12·hard)) except the hold, which gave six
+seconds at every level. Now its time limit scales the same way and the
+bar fills faster (0.42/s ÷ hm), so the release window narrows from 0.62s
+wide at hard 0 to 0.39s at hard 3. Harness: the hold and every other
+timed signature tighten on hard.
+
+## Batch 128 — the spread can be sorted
+"Do 2": a fifty-card ten-pack is a lot to scan. A pill row above the grid
+lays the spread in pack order (default), new first, rarity, or value; the
+choice is remembered across packs (state.ripship.sort). Face-down cards
+always come first as a group, in pack order - laying them by what they
+hide would give the reveal away - and the face-up cards sort behind them
+(new first breaks ties by rarity). Decisions patch cells in place as
+before, so a sort never loses a ship.
+
+## Batch 127 — the water loads when it is wanted: lazy bundles
+"What's next?" -> the cold load. The build shipped 22MB of script on every
+first visit, and 11MB of it was fishing: the cinematic keyframes (5MB of
+jpeg), the species art (3MB), the beds (2MB), the paintings (0.8MB) - all
+base64, which gzip cannot touch, on a page most players open to rip packs.
+
+THE MECHANISM. integrate.py has a LAZY map: chunks named there are written
+like any other oe-NN file (same per-file content hash, same modes/ copy
+for the node harness) but get NO script tag; the build writes
+`window.OE_LAZY_FILES = {bundle: [files...]}` ahead of the first script.
+The host's `oeLoadBundle(name)` appends those scripts in order (async=false,
+resolved against the core script's own url so the preview's ../oe-*.js
+layout still works) and resolves once; `oeBundleReady(name)` answers the
+question. Classic scripts injected later still share the global lexical
+scope, and a `function` declared again in a later script replaces the
+host's - which is exactly how fishing2 already took over the host's fsh*
+functions, so nothing about the takeover changed, only WHEN it happens.
+
+TWO TIERS. "fishing" = assets, paintings, beds, fishing2 (6MB): fetched on
+idle right after the first paint, so it is usually in before anyone taps
+Play -> Fishing; the tab's enter hook awaits it (a "Loading the water…"
+line shows if it is not) and renderAll skips the fishing renderers until
+it lands. "fishing-cine" = the 98 keyframes, split out of fishing2 into
+fishing-cine.module.js (5MB): fetched the moment a legend's shadow is
+hooked, and again by feCineStart as a backstop; feCineImg draws nothing
+for a frame that has not arrived.
+
+RESULT. Cold load 21.7MB -> 10.7MB of files. Of the base64 that gzip
+cannot shrink, 13.7MB -> 2.9MB stays on the first paint; what remains
+eager is mostly the card catalogue text, which compresses ~5x over the
+wire.
+
+Suites: the fishing smokes wait on oeBundleReady('fishing') after entering
+the tab (file:// loads in well under a second, but the wait is what makes
+the check honest). Verified headless: first paint fetched only the core
+files, the prefetch landed, tab entry rendered, a cold page that went
+straight to fishing rendered, the cine bundle landed on hook.
+
+## Batch 126 — sound effects retired
+Playtester: "the mining click sound is still annoying, cut it" - then "the
+sound effects are still super bad. if you cant make them good then lets
+remove them all together." Three passes (117, 120 and the trims between)
+did not get there, so they are gone.
+
+WHAT STAYS. The beds: the Dreams piano by day and by night, and the water.
+All three sit on the MUSIC switch now (the water bed used to follow
+effects). Settings keeps one panel - Music on/off and volume - and says
+why the effects controls are gone; the fishing HUD loses the 🔊 chip; the
+mixer keeps the music slider and the vibration switch.
+
+WHAT WENT. feSound returns before it does anything, so every one of the
+~70 call sites across fishing, mining, the spread, the ledger and the rest
+stays as written and plays nothing; feLoopStart refuses anything but the
+three beds (the reel loop was the last effect standing). The sample pack
+shrank from 43 sounds and 2.2MB to the three beds. The bus, envelopes and
+trims from 117/120 are still in the file, inert, should effects ever come
+back with better samples.
+
+Suites: test-fishing checks the pack carries exactly the three beds;
+smoke-spots checks feSound is inert, the reel loop never starts, and the
+mixer has no effects slider.
+
+## Batch 125 — the legend's shadow shows up faster
+Playtester: "make the fishing boss shadow show up faster." The patrol was
+a 0.02-per-second roll while the water was idle - a mean wait of 50
+seconds before the legend's wake even appeared, and with the every-fifth
+hook retired (batch 122) that roll was the only door to the fight. Now a
+countdown: 4-10 seconds of quiet water and the shadow crosses; when it
+passes out of view the countdown starts again. Crossing speed unchanged
+(5.5px/s), so there is still time to line up the cast.
+
+## Batch 124 — The Case: a grid shape, three difficulties, a smaller prize
+Playtester: "the case add grids mode and different difficulties, reduce
+the prize."
+
+SHAPES. Line (the classic row, every relational rule looks left) or Grid
+(rules may look UP as well, so a slot can be pinned by two neighbours).
+The relational kinds take a `dir` in their requirement and `csRefIndex`
+resolves the neighbour in a cols-wide case; the builder offers a
+relational kind once per neighbour the answer card satisfies.
+
+DIFFICULTIES (CS_LAYOUTS): line easy 4 slots/10 cards, normal 5/12, hard
+6/14; grid easy 2×2/10, normal 3×2/13, hard 3×3/16. Picked in the lobby
+(pills, remembered in state.showcase.mode/diff); the heading and the
+Play-card blurb follow.
+
+PRIZE. Per slot 3,400 -> 1,200 credits and the solve bonus 11,000 ->
+4,000, scaled by difficulty (×0.6 easy, ×1 normal, ×1.4 line hard; grid
+×0.8 / ×1.25 / ×1.6). A normal line case pays 10,000 where it paid
+28,000; the 3×3 hard grid tops out around 23,700, under the old normal.
+
+Verified headless: 40 builds per layout, all six deal every time and the
+answer solves each; a 3×3 hard case played through the real hand and
+slot taps to "9 of 9 satisfied"; the pickers persist across the lobby.
+
+## Batch 123 — Second, Third, Fourth Crucible
+Playtester: "in the workshop the second crucible need to change to third
+and fourth respective to the upgrades." The crucible upgrade was a single
+level named "Second Crucible". It has three now, and the card is named for
+the crucible you would buy NEXT - Second Crucible at level 0, Third at
+level 1, Fourth at level 2 (and once maxed) - via a `nameAt(level)` hook
+the upgrade card renders when a definition carries one. The works gives
+one smelter slot per level (1 + level, so up to four), and the price
+climbs 4,000 -> 8,800 -> 19,360 scrap. Saves that already own the old
+single level keep it as level 1 of 3.
+
+## Batch 122 — the every-fifth-catch test hook is off
+Playtester: "turn off the every fifth catch boss test hook." FE_TEST_EVERY5
+= false. The true-form cinematic now plays only the way it was designed
+to: hook the legend's shadow at its water (one attempt a day) and land it.
+smoke-fishing had already pinned the counter (batch 120), so nothing in
+the suites depended on the hook.
+
+## Batch 121 — Connections: no rule twice, eight rule types; The Case says "lower"
+Playtester: "connection categories dont allow them to show up more than
+once. add more categories. humbler doesnt make sense, change it."
+
+CONNECTIONS. Strict now: a rule type appears at most once on a board, no
+pad, no exceptions - a binder that cannot offer four different rules gets
+the "not enough variety" toast instead of a board with a repeat. Eight
+rule types, up from six; the card name's variant is mined two ways instead
+of one: "Same edition" (the adjective: Weathered, Archive, Museum... 67
+distinct) and "Same format" (the noun: Print, Snapshot, Edition, Study...
+43), replacing the single "Same print run"; plus "Same last letter" (25)
+alongside "Same first letter". Verified headless: 300 boards on the
+catalogue sample and 300 on a 600-card owned binder, 0 boards with a
+repeated rule, 0 undealable, all eight rules in rotation, every group
+label renders.
+
+THE CASE. "Common or humbler" / "Humbler than the slot on its left" read
+as a riddle. Now "Common or lower" / "Lower rarity than the slot on its
+left"; the lobby copy matches.
+
+## Batch 120 — the sounds, tamed for real
+Playtester: "the sounds are still super bad. make them less jarring."
+Batch 117 trimmed, gapped and filtered; not enough. This pass changes how
+every effect is PLAYED rather than which ones play:
+- Every one-shot wears an envelope: 12ms fade-in, 90ms fade-out. Most of
+  the samples are hard-cut, and the click at the front of a hard-cut
+  sample is most of what reads as "jarring".
+- 5% random pitch drift per play, so a repeated sample never machine-guns;
+  a 120ms minimum gap on every key (not just the listed ones); at most
+  four one-shots sounding at once - a pile-up is noise, not information.
+- Loops (reel, tension, ambience) swell in over 0.35s and fade out over
+  0.25s instead of snapping on and off; volume changes ramp too.
+- The bus: rumble cut at 110Hz, lowpass down from 6.5kHz to 4.2kHz (the
+  fizz lives above it), the per-sample soft filter down to 3kHz, a gentle
+  compressor, a fast limiter, then a trim.
+- Defaults: sfx 0.5 (was 0.7), music 0.7 (was 0.8). A save still at the
+  old default comes down once (settings.sfxTame=2); a slider the player
+  has moved stays.
+
+Measured, not guessed: the first cut of the bus came out LOUDER than the
+old one - Web Audio's DynamicsCompressor adds automatic make-up gain, and
+two of them with low thresholds raised every peak 10-20%. Rendered offline
+through both chains (junk, treasure, tension_hi, backlash, reward_good,
+hookset, splash_big, plunk), the shipped bus lands peaks at ~37% of the
+batch-117 chain (about -9dB) with the energy above 4kHz down a quarter to
+a third. Lesson: never trust a compressor chain by ear alone in a headless
+session - render it and read the numbers.
+
+## Batch 119 — the playtester's list: cash, rules, badges, dupes, the boss, the desktop
+Seven items in one message.
+
+MINING SHOWED COINS. The game pays dollars but the mining loop said coins
+everywhere: the per-swing float ("+120 🪙"), the vein-struck banner, the
+offline welcome toast ("earned N coins"), the "Total Coins Mined" stat, the
+level-up toast, the passive tick's 🪙 particles, the pickaxe/miner/
+blacksmith blurbs ("coins/min"), the grading fee (🪙), the Bulk Discount
+copy ("credit cost") and the dev button. All now "$". Found alongside: the
+mining header refresh wrote the balance WITHOUT the "$" on every swing, so
+the cash readout was a bare number while mining - fixed. The 🪙 that
+remain are genuine credits (arcade tokens, the ledger, the casino Mines
+crate game, the retired raid tables) and the coin-artwork cards.
+
+ODD ONE OUT. The rarity axis keyed on the numeric tier id (0-15) while the
+tile shows the tier NAME, and ids 0/1/2 are all "Common" - so three id-1
+Commons and one id-0 Common was a "fair" board the player could not solve
+(the screenshot: Bar of Soap / Taj Mahal / Hel / Osprey, all Common). The
+axis now keys on RARITIES[rarity].name, which is what the fairness gate
+compares too, so ambiguous boards are rejected for free. 300 rounds
+headless: 0 boards where the three do not visibly agree. Connections had
+the same latent mismatch in cxProp; fixed the same way, and its group label
+no longer indexes RARITIES by the (now string) value.
+
+"PRESS CATEGORIES". The Press is the 2048 duplicate sink and has no
+categories; the report ("2 of the same show up... add more categories")
+describes CONNECTIONS, where a board's four groups drew rule types WITH
+replacement, so two "One collection" bands could share a board. Now: four
+distinct rule types per board, padding with a repeat only when the binder
+cannot offer four (never more than two of one), and two new rule types -
+"Same print run" (the variant after the dash: 472 distinct across the
+catalogue) and "Same first letter" (27). 200 boards headless: 0 with a
+repeated rule, all six rules dealt, every group label renders.
+
+MARKET. The live counter (market2) had lost the ownership badge the old
+grid renderer carried. Each card visitor now shows "NEW TO YOU" or
+"owned ×N" beside its rarity, read live from state.owned.
+
+SHIP DUPES. The spread's button row gains "📦 ship N dupes · +$x": every
+face-up, unsold duplicate ships in one tap (face-down cards are new or
+Legendary+, so they are never swept). Probe: 31 dupes on a ten-pack, all
+sold, none left, button gone.
+
+DESKTOP. main was capped at 1200px. Above 1400px it grows to 1660px (2000px
+above 2200px); every grid on the page is auto-fill, so the columns simply
+multiply - eight packs in one row at 2000px. The spread box follows to
+1560px.
+
+THE BOSS FIGHT. "It waits a really long time or doesn't do the next
+mechanic." Two independent boss systems, each with its own stall, both
+verified numerically before the fix:
+- The cinematic QTE (feCine*, the true-form fight every fifth catch while
+  FE_TEST_EVERY5 is on): the ring mechanic clamped C.t to 0.54 every frame
+  while waiting, against a `> 0.55` spawn gate. Only a frame longer than
+  10ms could cross it, so at 60Hz it worked and on any 100Hz+ display
+  (ProMotion phones, gaming monitors) the fight played ONE mechanic and
+  then sat forever; the RAF watchdog never fired because frames were still
+  landing. Clamp deleted; the ring step is its own function
+  (feCineRingStep) so the node harness steps it at 120Hz.
+- The scripted mood fight (feFightStep): the tired-recovery branch picked
+  the next mood without arming it, so tired -> jump left jumpTele=0 and
+  airT=0 with moodT frozen - a silent heavy run until the 62s pace
+  checkpoint or the 260s failsafe. Hit 21-48% of fights per legend. Every
+  transition arms its mood now.
+Also fixed on the way: the catch resolved and PAID behind the cinematic
+(fshLand re-entered every frame with phase still "reeling", then paid
+again on the win) - the fight is parked in phase "cine" until feCineEnd;
+the Fight button, the watchdog and the catch handler each started a fresh
+RAF chain that never ended (N draws per frame after a few tab switches) -
+one chain through feCineKick; a mouse released off the canvas never ended
+a hold/swipe - pointer capture.
+
+THE RETUNE THAT FOLLOWED. With the freeze gone the harness's smart bot
+landed all six legends 100% of the time: the freeze had been the legends'
+only real teeth (every pre-fix loss in the histogram was a "slip"). The
+bands in test-fishing.js (every legend 40%+, at least two at 80% or under,
+the Drowned King 12-60%) are the design, so the fights were retuned to
+meet them honestly, by sweep: `need` past ~1300 trips the "overpowered"
+cliff, pull past ~1.6x becomes one-frame snaps, and STAMINA is the
+gradient knob. The four mid legends carry 30% more pull and roughly double
+the stamina (Marsh King 820, Rooster King 792, Pale Hunter 1040, Black
+Phantom 1073); the Drowned King needs 874 line and has 784 stamina. Bot
+rates now: Ironjaw 100, Marsh 62, Pale 68, Rooster 72, Phantom 59, Drowned
+in band. The entry-legend check changed from "<=97%" to ">=85%": a perfect
+bot has no loss path but the pace checkpoint once the fish never freezes,
+so the old cap was measuring the bug. Three new harness checks: tired ->
+jump arms the telegraph; no legend goes 40s without an event; rings keep
+spawning at 120Hz.
+
+Left as found, flagged to the playtester: FE_TEST_EVERY5 = true ships the
+cinematic on every fifth ordinary catch (a test hook), and the legend's
+shadow spawns at 0.02/s of idle time - a mean 50s wait before it even
+shows.
+
+## Batch 118d — photos in the spread, and a desktop that uses its screen
+Playtester (PC screenshot): "the picture is defaulting to the emojis. also
+there is a whole lot of my screen on pc that isn't being used."
+
+PHOTOS. The spread only probed painted art (Rare+), so every Common and
+Uncommon sat on its emoji while the zoom showed the Wikipedia photo. Now
+every face-up cell layers the same three: painted art over the wiki photo
+over the emoji. A ten-pack is fifty subjects, so lookups run through a
+four-wide queue (`rzWiki`/`rzWikiPump`) instead of fifty parallel fetches,
+and every photo found is remembered for the session (`rzWikiSrc`) so a
+re-render - a reveal, a zoom and back - fills the cell synchronously with
+no refetch. Verified with a stubbed ciLookup (Wikipedia is unreachable from
+the build sandbox): 36 face-up cells, 36 photos, at most 4 in flight, one
+extra lookup after a reveal.
+
+DESKTOP. `.rz-box.wide` grows to min(1180px, 96vw); above 900px the grid
+uses 150px cells, 16px gaps, 72vh of height, and the type, badges, switch
+and ? badge all step up a size. 1920px wide = seven columns, three rows on
+screen at once.
+
+## Batch 118c — the slide switch, and the face-down cards that vanished
+Playtester: "the keep buttons per card aren't working, I want them to slide
+to the right when a player clicks keep and to the left when a player clicks
+ship. also biggest problem, now the new cards aren't showing up at all."
+
+SWITCH. The two buttons were a segmented pair with keep already lit, so
+tapping keep on an unshipped card did nothing visible. Each cell now carries
+a slide switch (`.rz-sw`): SHIP `+$pay` on the left, KEEP on the right, a
+knob (`.rz-swk`) that slides to whichever half was tapped. A decision
+patches the cell, the tally and the hint in place (`rzSpRefresh`) instead
+of re-rendering the grid - a re-render would replace the knob before it
+moved. The suites' `.rz-sps` / `.rz-spk` hooks now sit on the two halves.
+
+VANISHED. Could not reproduce headless (Chromium paints them), so the fix
+is the one thing the face-down cells did that face-up cells did not: an
+infinite keyframe animation on `filter: drop-shadow`. Mobile Safari is
+known to paint an element blank while a filter animates - the whole cell,
+back image included. All card glows are box-shadows now, the breathing
+gold ring is its own layer (`.rz-spglow`) animating OPACITY only, and the
+card box holds its shape with a padding-top block instead of
+`aspect-ratio` (one fewer thing an older phone browser can lack). Rule for
+the future: never animate `filter` on anything a phone has to draw.
+
+smoke-ripship's KEEP check read the pocket 60ms apart and mining's drip
+tripped it (2.49 > 2); it reads the shipped ledger now.
+
+## Batch 118 — the spread: every pull face up, decide each where it lies
+Playtester: "the whole pack opening feels tedious, lets have all the cards
+show face up unless its new or a legendary/mythic, spread them out and let
+the player decide per card keep or ship. instead of a reveal screen for each
+card."
+
+WHAT. The hand (batch 66) is gone. After the tear, every pull lands in one
+scrollable grid (`.rz-spread`, `.rz-sp` cells, 3 across on a phone, 4-5 on
+a desktop) already face up in its rarity frame with its NEW/DUPE badge,
+value, and two buttons: `keep` and `+$pay`. Only a NEW card or a
+Legendary/Mythic waits face-down (worn card back, gold `?` badge, breathing
+glow); tap it and it turns over where it lies with the old flip's bursts,
+sigil bloom and mythic fireworks, sized for a mini. Tap a face-up card to
+zoom it (the old face view, now `.rz-zoom`, with SHIP / KEEP / back). Ship
+lands the money NOW, as before, but is undoable until the summary: the
+cell's `↩ undo` (or KEEP in the zoom) buys the copy back at exactly the
+price it went for, so a mis-tap on a 50-card ten-pack costs nothing. A pull
+that reaches zero copies was NEW, so dropping its grading entry loses
+nothing. `👁 turn the rest over` reveals every face-down card at once (staggered
+bursts); `🗃️ keep the rest · finish` goes to the batch-117 summary without
+forcing the reveals (the summary lists them anyway).
+
+AUTO-OPEN is live again. The rip-and-ship override never set revealState,
+so the host's auto chain (kickAutoChain) had been dead since batch 64. Now
+`state.settings.autoOpen` tears the foil by itself 450ms after the pack
+appears and lands the spread. NEW, Legendary and Mythic still wait
+face-down there too - the playtester was firm that the reveal is the fun
+part - and a rarity stop below Legendary keeps those tiers down as well.
+The drawer copy says so. (First cut had auto-open land everything face up
+unless a stop was on; a save with the old dead toggle still on saw every
+card face up. Batch 118b.)
+
+STAMP. integrate.py's build id hashed only the script manifest, so a
+css-only change never moved the chip and "is it live?" was unanswerable for
+exactly the changes people ask about. It now folds a hash of the host page
+in too.
+
+SUITES. smoke-ripship (now 47 checks), smoke-backs, smoke-economy and
+smoke-cardart all drove the hand (`#rzStack`, `.rz-hcard`); rewritten for
+the spread: cell counts equal pulls (no 13-cap), the face-down rule is
+asserted against `oeRipState()`, ship from the zoom, undo, ship from the
+cell, keep from the zoom, turn-the-rest-over, keep-all.
+
+Lessons: `.rz-b` stays the ZOOM's badge only - the mini badges are
+`.rz-spb`, so the suite's "exactly one badge" check still means something.
+A grid of fifty data-URI frames re-renders on every decision without a
+hitch; the scroll position is carried in RZ.scroll across renders.
+
+## Batch 117 — sound settings, tamed effects, Gudgeon, the shelf counter, the summary
+Playtester's list. Five of six here; the pack-opening redesign is its own
+batch (118).
+
+SOUND. The game's only audio path is fishing2's feSound/feLoopStart, so the
+fishing chips muted the whole game. Now the Settings menu owns master
+on/off and volume for effects and music (state.settings.sfxOff/musicOff/
+sfxVol/musicVol, defaults .7/.8, migrated on load, a new Sound panel under
+Preferences); the fishing chips and the mixer are quiet-on-the-water
+controls that apply only while the fishing tab is up (feInFishing). The
+Settings panel calls window.oeSoundSettingsChanged so a mute stops what
+is already playing. The node harness has no window, so that export is
+try-wrapped.
+
+THE EFFECTS THEMSELVES are 40 short mp3 blips (decoded headless with an
+OfflineAudioContext to measure them: treasure and tension_hi sit at
+-13dB RMS, and bait, breach, backlash, junk, creak, train and reward_good
+have zero-crossing rates over 7k/s - bright, buzzy). Rather than replace
+them blind: every effect now runs through a bus (lowpass 6.5kHz, gentle
+compressor), the loud and bright keys carry trims (FE_SFX_TRIM), the
+bright ones an extra 3.8kHz lowpass (FE_SFX_SOFT), the pack/market keys
+a rate limit (FE_SFX_GAP) so ten rips do not stack ten treasures, and
+the master default is .7. The rate limit moved from the fishing clock
+(fshT only ticks on the water, so a gap froze every repeat elsewhere) to
+performance.now.
+
+GUDGEON. Wikipedia's plain "Gudgeon" is the pintle fitting. Tide & Tackle
+names (ciIsFish) try "<name> (fish)" first, and a fish cached before this
+existed is dropped once so it refetches. The build's own ci splices anchor
+on the hit line and the miss line, so both stay byte-identical (the first
+attempt changed them and the build aborted).
+
+SHELF. "N cards in set" is now "have/N cards in set" with a thin bar, right
+above the buy pill, counted over the pack's own pool.
+
+SUMMARY. The pack's last screen dropped "THE HOUSE WINS THIS ONE": it names
+the pack and count, the net, the rarity tally, best pull, shipped / kept /
+paid / streak, and chips for everything new to the binder.
+
+LABEL. Fishing's Play meta reads "Hold, hook & fight", not "Idle-friendly".
+
+VERIFIED. ripship 37, backs 15, cardart 13, economy 29, start 38, fishhud
+24, map 24, scenes 18, tear 19, test-fishing; long smokes green.
+Stamp 0804c4.
+
 ## Batch 116 — the box around him, and the rod in his hands
 Playtester, with a crop from the Mark: the rod sits just under his hands,
 and "that box is still around him."

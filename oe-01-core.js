@@ -338,7 +338,7 @@ function grantLevelUpRewards(oldLevel, newLevel){
   state.scrap += scrapGained;
   const gained = newLevel - oldLevel;
   showToast(`🎉 Level Up! Reached Level ${newLevel}${gained>1?` (+${gained})`:""} — ${titleForLevel(newLevel)}. ` +
-    `+${creditsGained.toLocaleString()} 🪙 +${scrapGained.toLocaleString()} ♻️`);
+    `+$${creditsGained.toLocaleString()} +${scrapGained.toLocaleString()} ♻️`);
 }
 
 /* Recompute XP from the current collection. Level only ever goes up — selling cards
@@ -732,7 +732,7 @@ function currentMarketSize(){
 
 function defaultSettings(){
   return { autoOpen:false, stopOnNew:false, stopOnRarity:false, rarityThreshold:14,
-    flashingEnabled:true, foilEffectsEnabled:true };
+    flashingEnabled:true, foilEffectsEnabled:true, sfxOff:false, musicOff:false, sfxVol:0.5, musicVol:0.7 };
 }
 function defaultAccount(){
   return { name:"", empireName:"", email:"", avatarCardId:null };
@@ -855,6 +855,12 @@ function loadState(){
       if(s.settings===undefined) s.settings = defaultSettings();
       if(s.settings.flashingEnabled===undefined) s.settings.flashingEnabled = true;
       if(s.settings.foilEffectsEnabled===undefined) s.settings.foilEffectsEnabled = true;
+      if(s.settings.sfxVol===undefined) s.settings.sfxVol = 0.5;
+      if(s.settings.musicVol===undefined) s.settings.musicVol = 0.7;
+      /* batch 120 tamed the effects; a save that still sits at the old
+         louder default comes down with it, once - a slider the player has
+         moved since stays where they put it */
+      if(s.settings.sfxTame !== 2){ if(s.settings.sfxVol > 0.5) s.settings.sfxVol = 0.5; s.settings.sfxTame = 2; }
       if(s.upgrades===undefined) s.upgrades = defaultUpgrades();
       if(s.market===undefined) s.market = null;
       if(s.market && s.market.rerolls===undefined) s.market.rerolls = 0;
@@ -962,8 +968,8 @@ function offlineCapLabel(){
 }
 
 /* ---------------- UPGRADES ---------------- */
-const PICKAXE_RATE_PER_LEVEL = 8;    // flat coins/min per Sturdier Pickaxe level
-const MINER_RATE_PER_LEVEL = 60;     // flat coins/min per extra miner hired
+const PICKAXE_RATE_PER_LEVEL = 8;    // flat $/min per Sturdier Pickaxe level
+const MINER_RATE_PER_LEVEL = 60;     // flat $/min per extra miner hired
 const SPEED_PCT_PER_LEVEL = 0.04;    // +4% total mining rate per Speed Training level
 const LUCK_PCT_PER_LEVEL = 0.03;     // +3% reroll chance per Lucky Charm level
 const SCRAP_PCT_PER_LEVEL = 0.10;    // +10% scrap per Scrap Refinery level
@@ -971,9 +977,13 @@ const DISCOUNT_PCT_PER_LEVEL = 0.02; // -2% pack price per Bulk Discount level
 
 const UPGRADES = [
   /* ---------------- THE WORKSHOP (the torn wallet) ---------------- */
-  { key:"crucible", name:"Second Crucible", icon:"🔥", category:"workshop", baseCost:4000, scale:1, maxLevel:1,
-    desc:"A second smelting slot. Two jobs cooling at once — the furnace never sleeps.",
-    effectText:(l)=> l ? "Two smelter slots" : "One smelter slot" },
+  /* three levels, and the card is named for the crucible you would buy NEXT:
+     Second, then Third, then Fourth (batch 123). Each level is one more
+     smelter slot in the works. */
+  { key:"crucible", name:"Second Crucible", icon:"🔥", category:"workshop", baseCost:4000, scale:2.2, maxLevel:3, hardMax:true,
+    nameAt:(l)=> ["Second","Third","Fourth"][Math.min(l, 2)] + " Crucible",
+    desc:"Another smelting slot. More jobs cooling at once — the furnace never sleeps.",
+    effectText:(l)=> `${["One","Two","Three","Four"][Math.min(l,3)]} smelter slot${l ? "s" : ""}` },
   { key:"bellows", name:"Forge Bellows", icon:"💨", category:"workshop", baseCost:2500, scale:1.6, maxLevel:3,
     desc:"Hotter fire, faster ingots.",
     effectText:(l)=>`Smelt time −${Math.round((1-Math.pow(0.8,l))*100)}%` },
@@ -1021,13 +1031,13 @@ const UPGRADES = [
     effectText:(l)=>`+${12*l}% scrap from the mine, the water, and the board` },
   { key:"masterwork", name:"THE MASTERWORK", icon:"⚜️", category:"workshop", baseCost:50000, scale:1, maxLevel:1,
     desc:"The whole operation, tuned by a master's hand. Mining, catches, and bargains all run 10% hotter. There is nothing after this.",
-    effectText:(l)=> l ? "+10% mine rate · +10% catch credits · +10% haggle odds" : "the summit" },
+    effectText:(l)=> l ? "+10% mine rate · +10% fishing payouts · +10% haggle odds" : "the summit" },
   { key:"pickaxe", name:"Sturdier Pickaxe", icon:"⛏️", category:"mining", retired:true, baseCost:20, scale:1.18, maxLevel:999,
     desc:"Permanently increases your miner's base output.",
-    effectText:(lvl)=>`+${(lvl*PICKAXE_RATE_PER_LEVEL).toFixed(0)} coins/min` },
+    effectText:(lvl)=>`+$${(lvl*PICKAXE_RATE_PER_LEVEL).toFixed(0)}/min` },
   { key:"miners", name:"Hire a Miner", icon:"👷", category:"mining", retired:true, baseCost:150, scale:2.2, maxLevel:4,
     desc:"Adds another miner to the crew. Each one pulls their own weight.",
-    effectText:(lvl)=>`${lvl} extra miner${lvl===1?"":"s"} · +${(lvl*MINER_RATE_PER_LEVEL).toFixed(0)} coins/min` },
+    effectText:(lvl)=>`${lvl} extra miner${lvl===1?"":"s"} · +$${(lvl*MINER_RATE_PER_LEVEL).toFixed(0)}/min` },
   { key:"speed", name:"Speed Training", icon:"🏃", category:"mining", baseCost:60, scale:1.35, maxLevel:25,
     desc:"Boosts your entire mining rate by a percentage, stacking on top of everything else.",
     effectText:(lvl)=>`+${Math.round(lvl*SPEED_PCT_PER_LEVEL*100)}% total rate` },
@@ -1041,7 +1051,7 @@ const UPGRADES = [
     desc:"Duplicate pulls are worth more Scrap.",
     effectText:(lvl)=>`+${Math.round(lvl*SCRAP_PCT_PER_LEVEL*100)}% scrap from dupes` },
   { key:"discount", name:"Bulk Discount", icon:"🏷️", category:"economy", baseCost:80, scale:1.5, maxLevel:10,
-    desc:"Reduces the credit cost of every pack on the shelf.",
+    desc:"Reduces the dollar cost of every pack on the shelf.",
     effectText:(lvl)=>`-${Math.round(lvl*DISCOUNT_PCT_PER_LEVEL*100)}% pack price` },
 ];
 
@@ -1051,7 +1061,7 @@ function buyUpgrade(key){
   const def = UPGRADES.find(u=>u.key===key);
   if(!def) return;
   const level = state.upgrades[key]||0;
-  if(level >= effectiveMaxLevel(def.maxLevel)) return;
+  if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = upgradeCost(def, level);
   if(state.scrap < cost) return;
   state.scrap -= cost;
@@ -1094,7 +1104,7 @@ function applyOfflineMining(){
     const repEarned = elapsed * currentRepRatePerMs();
     state.empire.reputation += repEarned;
     if(earned >= 1){
-      showToast(`Welcome back! Your miner earned ${Math.floor(earned).toLocaleString()} coins while you were away.`);
+      showToast(`Welcome back! Your miner earned $${Math.floor(earned).toLocaleString()} while you were away.`);
     }
   }
   state.lastMineTs = now;
@@ -1126,7 +1136,7 @@ function spawnCoinParticle(){
   if(!scene) return;
   const p = document.createElement("div");
   p.className = "coin-particle";
-  p.textContent = "🪙";
+  p.textContent = "💵";
   p.style.left = (scene.clientWidth/2 - 10 + (Math.random()*20-10)) + "px";
   p.style.bottom = "70px";
   p.style.setProperty("--dx", (Math.random()*40-20)+"px");
@@ -1138,16 +1148,16 @@ function renderMiningStats(){
   const el = document.getElementById("mineTotal");
   if(el) el.textContent = Math.floor(state.totalMined).toLocaleString();
   const rateEl = document.getElementById("mineRate");
-  if(rateEl) rateEl.textContent = currentMineRatePerMin().toFixed(2) + "/min";
+  if(rateEl) rateEl.textContent = "$" + currentMineRatePerMin().toFixed(2) + "/min";
   const bonusEl = document.getElementById("mineBonusBreakdown");
   if(bonusEl){
     const u = state.upgrades || defaultUpgrades();
     const bonus = state.miningBonus||0;
     const upgradeFlat = (u.pickaxe||0)*PICKAXE_RATE_PER_LEVEL + (u.miners||0)*MINER_RATE_PER_LEVEL;
     const speedPct = Math.round((u.speed||0)*SPEED_PCT_PER_LEVEL*100);
-    const parts = [`Base ${MINE_RATE_BASE_PER_MIN}/min`];
-    if(bonus>0) parts.push(`+${bonus.toFixed(2)} from collection`);
-    if(upgradeFlat>0) parts.push(`+${upgradeFlat.toFixed(0)} from upgrades`);
+    const parts = [`Base $${MINE_RATE_BASE_PER_MIN}/min`];
+    if(bonus>0) parts.push(`+$${bonus.toFixed(2)} from collection`);
+    if(upgradeFlat>0) parts.push(`+$${upgradeFlat.toFixed(0)} from upgrades`);
     if(speedPct>0) parts.push(`×${(1+speedPct/100).toFixed(2)} speed`);
     bonusEl.textContent = (parts.length>1 ? parts.join(" ") : `${parts[0]} · collect cards & buy upgrades to boost this`) + " · " + offlineCapLabel();
   }
@@ -1369,7 +1379,7 @@ const REP_PER_LEVEL_FARM = 0.5;              // reputation/min per Farmstead lev
 const REP_PER_LEVEL_MARKET = 1.2;            // reputation/min per Marketplace level
 const ARMY_PER_LEVEL = 12;                   // Army Strength per Barracks level
 const WEAPON_PER_LEVEL = 10;                 // Weapon Power per Blacksmith level
-const BLACKSMITH_MINE_BONUS_PER_LEVEL = 3;   // flat coins/min per Blacksmith level
+const BLACKSMITH_MINE_BONUS_PER_LEVEL = 3;   // flat $/min per Blacksmith level
 const TOWER_PER_LEVEL = 14;                  // Tower Defense per Watchtower level
 const TAVERN_REP_PCT_PER_LEVEL = 0.03;       // +3% village-wide reputation production per Tavern level
 const KEEP_DEF_PER_LEVEL = 20;               // Castle Defense per Keep level
@@ -1390,7 +1400,7 @@ const VILLAGE_BUILDINGS = [
     effectText:(lvl)=>`+${(lvl*ARMY_PER_LEVEL).toLocaleString()} Army Strength` },
   { key:"blacksmith", name:"Blacksmith", icon:"🔨", baseCost:900, scale:1.3, maxLevel:40,
     desc:"Forges Weapons for your Army — and the good tools always find their way to the mines too.",
-    effectText:(lvl)=>`+${(lvl*WEAPON_PER_LEVEL).toLocaleString()} Weapon Power · +${(lvl*BLACKSMITH_MINE_BONUS_PER_LEVEL).toFixed(0)} coins/min` },
+    effectText:(lvl)=>`+${(lvl*WEAPON_PER_LEVEL).toLocaleString()} Weapon Power · +$${(lvl*BLACKSMITH_MINE_BONUS_PER_LEVEL).toFixed(0)}/min` },
   { key:"watchtower", name:"Watchtower", icon:"🗼", baseCost:1000, scale:1.32, maxLevel:40, minLevel:5,
     desc:"Village lookout towers. Adds to your Tower Defense.",
     effectText:(lvl)=>`+${(lvl*TOWER_PER_LEVEL).toLocaleString()} Tower Defense` },
@@ -1455,7 +1465,7 @@ function buyVillageBuilding(key){
   const playerLevel = (state.player && state.player.level) || 1;
   if(def.minLevel && playerLevel < def.minLevel) return;
   const level = state.empire.buildings[key]||0;
-  if(level >= effectiveMaxLevel(def.maxLevel)) return;
+  if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = empireCost(def, level);
   if(state.credits < cost) return;
   state.credits -= cost;
@@ -1470,7 +1480,7 @@ function buyCastleUpgrade(key){
   const def = CASTLE_UPGRADES.find(d=>d.key===key);
   if(!def) return;
   const level = state.empire.castle[key]||0;
-  if(level >= effectiveMaxLevel(def.maxLevel)) return;
+  if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = empireCost(def, level);
   if(state.empire.reputation < cost) return;
   state.empire.reputation -= cost;
@@ -1619,8 +1629,10 @@ function renderPackShelf(){
     if(p.hidden) return; // dev/test packs stay in the data model but never render in the shelf
     if(p.testOnly && !devModeOn()) return; // test packs only appear once dev tools are unlocked
     const locked = p.minLevel && playerLevel < p.minLevel;
-    const count = p.categories===null ? cards.length :
-      p.categories.reduce((s,cat)=> s + (poolByCategoryTier[cat] ? poolByCategoryTier[cat].reduce((a,b)=>a+b.length,0) : 0), 0);
+    const pool = p.categories===null ? cards :
+      p.categories.flatMap(cat => poolByCategoryTier[cat] ? poolByCategoryTier[cat].flat() : []);
+    const count = pool.length;
+    const have = pool.reduce((n,c)=> n + ((state.owned[c.id]||0) > 0 ? 1 : 0), 0);
     const price1 = Math.round(p.price1 * (1-discount));
     const price10 = Math.round(p.price10 * (1-discount));
     const earned = p.earnOnly ? (typeof riskPacksOwned === "function" ? riskPacksOwned() : 0) : 0;
@@ -1636,7 +1648,7 @@ function renderPackShelf(){
         : `<div class="icon">${p.icon}</div>`}
       <div class="title">${p.name}</div>
       <div class="sub">${p.sub}</div>
-      <div class="sub" style="margin-top:2px; opacity:.7;">${count.toLocaleString()} cards in set</div>
+      <div class="pack-prog${have>=count&&count>0?" full":""}" title="${have.toLocaleString()} of ${count.toLocaleString()} collected"><span>${have.toLocaleString()}/${count.toLocaleString()} cards in set</span><i style="--p:${count?Math.round(have/count*100):0}%"></i></div>
       ${p.earnOnly
         ? (earned > 0
             ? `<div class="price risk-open">Open a pack — ${earned} held</div>`
@@ -2427,7 +2439,7 @@ function renderMineBoostTable(){
     const row = document.createElement("tr");
     row.innerHTML = `
       <td><span class="swatch" style="background:${r.color}"></span><span class="rarity-name" style="color:${r.color}">${r.name}</span></td>
-      <td>+${MINE_BONUS_BY_TIER[r.id].toFixed(2)}/min</td>
+      <td>+$${MINE_BONUS_BY_TIER[r.id].toFixed(2)}/min</td>
     `;
     body.appendChild(row);
   });
@@ -2447,7 +2459,7 @@ function renderUpgrades(){
     const container = document.getElementById(groups[def.category]);
     if(!container) return;
     const level = (state.upgrades && state.upgrades[def.key]) || 0;
-    const maxLvl = effectiveMaxLevel(def.maxLevel);
+    const maxLvl = (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel));
     const maxed = level >= maxLvl;
     const cost = maxed ? null : upgradeCost(def, level);
     const affordable = !maxed && state.scrap >= cost;
@@ -2459,7 +2471,7 @@ function renderUpgrades(){
       <div class="uhead">
         <div class="uicon">${def.icon}</div>
         <div>
-          <div class="utitle">${def.name}</div>
+          <div class="utitle">${def.nameAt ? def.nameAt(level) : def.name}</div>
           <div class="ulevel">${maxed ? "MAX LEVEL" : `Level ${level} / ${maxLvl}`}</div>
         </div>
       </div>
@@ -2487,7 +2499,7 @@ function renderUpgrades(){
 function buildEmpireCard(def, level, currency, onBuy){
   const playerLevel = (state.player && state.player.level) || 1;
   const locked = def.minLevel && playerLevel < def.minLevel;
-  const maxLvl = effectiveMaxLevel(def.maxLevel);
+  const maxLvl = (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel));
   const maxed = !locked && level >= maxLvl;
   const cost = (locked || maxed) ? null : empireCost(def, level);
   const balance = currency==="credits" ? state.credits : state.empire.reputation;
@@ -2747,6 +2759,19 @@ function onAccountFieldChange(field, value){
   if(field==="empireName") renderEmpire();
 }
 
+function updateSoundSettings(){
+  const on = id => document.getElementById(id);
+  state.settings.musicOff = !on("musicOnToggle").checked;
+  state.settings.musicVol = Number(on("musicVolRange").value)/100;
+  saveState();
+  try{ if(typeof window.oeSoundSettingsChanged === "function") window.oeSoundSettingsChanged(); }catch(e){}
+}
+function populateSoundSettings(){
+  const on = id => document.getElementById(id);
+  if(!on("musicOnToggle")) return;
+  on("musicOnToggle").checked = !state.settings.musicOff;
+  on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
+}
 function updateAccountSettings(){
   state.settings.flashingEnabled = document.getElementById("flashingToggle").checked;
   state.settings.foilEffectsEnabled = document.getElementById("foilEffectsToggle").checked;
@@ -2833,6 +2858,7 @@ function renderAccount(){
   if(empireEl) empireEl.value = state.account.empireName || "";
   const emailEl = document.getElementById("accountEmailInput");
   if(emailEl) emailEl.value = state.account.email || "";
+  populateSoundSettings();
   const flashEl = document.getElementById("flashingToggle");
   if(flashEl) flashEl.checked = state.settings.flashingEnabled !== false;
   const foilEl = document.getElementById("foilEffectsToggle");
@@ -10347,8 +10373,17 @@ async function ciFetchJson(url, ms){
     return await r.json();
   } finally { clearTimeout(timer); }
 }
+/* a Tide & Tackle name is a fish, and Wikipedia's plain title is often the
+   other thing (Gudgeon the pintle fitting, Perch the bird's roost...) */
+function ciIsFish(subject){
+  try{ return cards.some(c => c.category === "Tide & Tackle" && c.name.split(" \u2014 ")[0] === subject); }catch(e){ return false; }
+}
 async function ciLookup(subject){
   const cache = ciLoadCache();
+  /* a fish cached before the "(fish)" lookup existed may be the wrong
+     article (Gudgeon the pintle): drop it once so it refetches */
+  const fish = ciIsFish(subject);
+  if(fish && cache[subject] && !cache[subject].fishOk && !cache[subject].miss) delete cache[subject];
   const hit = cache[subject];
   if(!subject) return null;
   if(hit && hit.t && (Date.now() - hit.t) < ((hit.miss || !hit.img) ? 1000*60*60*2 : 1000*60*60*24*90)) return hit.miss ? null : hit;
@@ -10364,6 +10399,7 @@ async function ciLookup(subject){
   try{
     let j = null;
     if(CI_ALIAS[subject]) j = await summary(CI_ALIAS[subject]);
+    if(!j && fish) j = await summary(subject + " (fish)");
     if(!j) j = await summary(subject);
     if(!j){
       const plain = ciStripDecor(subject);
@@ -10378,7 +10414,7 @@ async function ciLookup(subject){
       }
     }
     if(j){
-      entry = { t: Date.now(), title: j.title || subject,
+      entry = { t: Date.now(), fishOk: fish, title: j.title || subject,
         desc: j.description || "",
         extract: ciTrimExtract(j.extract),
         img: (j.thumbnail && j.thumbnail.source) || "",

@@ -129,9 +129,10 @@ with sync_playwright() as pw:
     pg.mouse.move(box["x"]+10, box["y"]+20); pg.mouse.down()
     for i in range(1,14): pg.mouse.move(box["x"]+10+i*40, box["y"]+20)
     pg.mouse.up(); pg.wait_for_timeout(250)
-    pg.locator("#rzStack").click(); pg.wait_for_timeout(250)
+    if pg.locator(".rz-sps").count() == 0:
+        pg.locator(".rz-sp.down .rz-spcard").first.click(); pg.wait_for_timeout(450)
     d1 = pg.evaluate("()=>state.dollars"); c1 = pg.evaluate("()=>state.credits")
-    pg.locator("#rzShip").click(); pg.wait_for_timeout(250)
+    pg.locator(".rz-sps").first.click(); pg.wait_for_timeout(250)
     check("shipping a card pays dollars", pg.evaluate("()=>state.dollars") > d1)
     check("...and no credits", pg.evaluate("()=>state.credits") == c1)
     pg.evaluate("()=>{ const o=document.getElementById('rzOverlay'); if(o) o.style.display='none'; }")

@@ -36,7 +36,7 @@ with sync_playwright() as pw:
     check("a fresh save wears the cream back",
           pg.evaluate("()=>state.ripship && state.ripship.eq") == "cream")
     pg.locator("#rzBacksBtn").click(); pg.wait_for_timeout(300)
-    check("the picker opens from the hand", pg.locator(".rz-bgrid").count() == 1)
+    check("the picker opens from the spread", pg.locator(".rz-bgrid").count() == 1)
     check("all six backs on show", pg.locator(".rz-bcell").count() == 6)
     check("five locked at the start", pg.locator(".rz-bcell.locked").count() == 5)
     check("locked cells name their price",
@@ -46,7 +46,7 @@ with sync_playwright() as pw:
     pg.locator("[data-back='knot']").click(); pg.wait_for_timeout(200)
     check("a locked back cannot be worn", pg.evaluate("()=>state.ripship.eq") == "cream")
     pg.locator("#rzBacksBack").click(); pg.wait_for_timeout(300)
-    check("back to the hand", pg.locator(".rz-hcard").count() > 0)
+    check("back to the spread", pg.locator(".rz-spread").count() == 1 and pg.locator(".rz-sp").count() > 0)
     pg.locator("#rzKeepAll").click(); pg.wait_for_timeout(300)
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
 
@@ -60,18 +60,18 @@ with sync_playwright() as pw:
     pg.locator("[data-back='ribbons']").click(); pg.wait_for_timeout(300)
     check("an earned back can be worn", pg.evaluate("()=>state.ripship.eq") == "ribbons")
     pg.locator("#rzBacksBack").click(); pg.wait_for_timeout(300)
-    check("the whole hand wears it",
+    # every face-down cell wears the worn back (a spread with nothing face-down
+    # - all duplicates - still passes: the worn back is what matters)
+    check("every face-down card in the spread wears it",
           pg.evaluate("""()=>{
-            const eq = document.querySelector('.rz-bgrid') ? null : state.ripship.eq;
-            const imgs = [...document.querySelectorAll('.rz-hcard img')];
-            return imgs.length > 0 && imgs.every(i=>i.src === imgs[0].src); }"""))
-    # a taller back must never droop over the hint line
-    check("no back overlaps the hint line",
+            const imgs = [...document.querySelectorAll('.rz-spback')];
+            return state.ripship.eq === 'ribbons' && imgs.every(i=>i.src === imgs[0].src); }"""))
+    # the grid scrolls inside its box; it must never run under the buttons
+    check("the spread never runs under the hint line",
           pg.evaluate("""()=>{
             const hint = document.querySelector('.rz-hint').getBoundingClientRect();
-            return ![...document.querySelectorAll('.rz-hcard img')].some(c=>{
-              const b=c.getBoundingClientRect();
-              return b.bottom > hint.top+3 && b.left < hint.right && b.right > hint.left; }); }"""))
+            const sp = document.getElementById('rzSpread').getBoundingClientRect();
+            return sp.bottom <= hint.top + 1; }"""))
     pg.locator("#rzKeepAll").click(); pg.wait_for_timeout(300)
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")
 
@@ -79,8 +79,10 @@ with sync_playwright() as pw:
     pg.evaluate("()=>{ state.ripship.shipN = 99; }")
     pg.evaluate("()=>buyPacks('everyday',1)"); pg.wait_for_timeout(400)
     tear(pg)
-    pg.locator("#rzStack").click(); pg.wait_for_timeout(450)
-    pg.locator("#rzShip").click(); pg.wait_for_timeout(500)
+    # a fresh cell's own ship button; a face-down first card is turned first
+    if pg.locator(".rz-sps").count() == 0:
+        pg.locator(".rz-sp.down .rz-spcard").first.click(); pg.wait_for_timeout(450)
+    pg.locator(".rz-sps").first.click(); pg.wait_for_timeout(500)
     check("the hundredth shipped card earns Gold Foil",
           pg.evaluate("()=>!!(state.ripship.backs && state.ripship.backs.gold)"))
     pg.evaluate("()=>{ document.getElementById('rzOverlay').style.display='none'; }")

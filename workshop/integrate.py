@@ -56,7 +56,7 @@ anchor = '<section id="tab-collection" style="display:none;">'
 src = once(src, anchor, sections + "  " + anchor, "sections")
 
 # ---- 3. modules ------------------------------------------------------
-MODULE_FILES = ["fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishing-sfx.module.js",
+MODULE_FILES = ["fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishing-sfx.module.js", "fishing-cine.module.js",
     "provenance.catalogue.js", "provenance.module.js",
     "press.module.js", "connections.module.js",
     "case.module.js", "oddone.module.js",
@@ -158,7 +158,7 @@ src = once(src,
 anchor = '  /* Runeshard entry removed - it ships as its own build. */\n];'
 entries = """  { id:"provenance",  name:"Provenance",   icon:"\U0001F5C3\uFE0F", desc:"An archive record with the name struck out. Four cards. Name the thing.", meta:"1,215 subjects" },
   { id:"connections", name:"Connections",  icon:"\U0001F9E9", desc:"Sixteen cards, four groups of four. Everything you need is on the cards.", meta:"Daily-style puzzle" },
-  { id:"showcase",    name:"The Case",     icon:"\U0001F5C4\uFE0F", desc:"Five slots, each with a rule. Twelve cards. Make them fit.", meta:"Constraint puzzle" },
+  { id:"showcase",    name:"The Case",     icon:"\U0001F5C4\uFE0F", desc:"Slots with rules — a line or a grid, three difficulties. Make the hand fit.", meta:"Constraint puzzle" },
   { id:"oddone",      name:"Odd One Out",  icon:"\U0001F440", desc:"Three belong together, one doesn't. Ten seconds.", meta:"Fast rounds" },
   { id:"press",       name:"The Press",    icon:"\u2699\uFE0F", desc:"Spare prints in, one good print out. Merge tiers until the plate jams.", meta:"Duplicate sink" },
   /* Runeshard entry removed - it ships as its own build. */
@@ -218,6 +218,14 @@ import re as _re, glob as _glob, hashlib as _hashlib
 outdir = os.path.dirname(OUT)
 for stale in _glob.glob(os.path.join(outdir, "oe-*.js")): os.remove(stale)
 manifest = []
+# Lazy bundles (batch 127): these chunks are written like any other but get NO
+# script tag - the host fetches them on demand through oeLoadBundle(name), in
+# this order. Everything fishing is 11MB of mostly base64 that gzip cannot
+# touch; the cold load no longer waits for it.
+LAZY = { "fishing": ["fishing-assets", "fishing-spot-bgs", "fishing-sfx", "fishing2"],
+         "fishing-cine": ["fishing-cine"] }
+_lazy_of = { c: b for b, cs in LAZY.items() for c in cs }
+lazy_files = { b: [] for b in LAZY }
 def _explode(m):
     body = m.group(1)
     n = len(manifest)
@@ -240,14 +248,26 @@ def _explode(m):
         # thing is silently absent. Hashing each file separately means an
         # unchanged file keeps its url and stays cached.
         ver = _hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
-        tags.append('<script src="%s?v=%s"></script>' % (fn, ver))
+        if name in _lazy_of:
+            lazy_files[_lazy_of[name]].append("%s?v=%s" % (fn, ver))
+        else:
+            tags.append('<script src="%s?v=%s"></script>' % (fn, ver))
     return "\n".join(tags)
 html = _re.sub(r"<script>(.*?)</script>", _explode, src, flags=_re.S)
+# the lazy manifest rides ahead of the first script so the loader can read it
+import json as _json
+_lazy_tag = '<script>window.OE_LAZY_FILES=%s;</script>\n' % _json.dumps(lazy_files)
+_first = html.index('<script src="oe-')
+html = html[:_first] + _lazy_tag + html[_first:]
+for b, fs in lazy_files.items(): print("  lazy bundle %-13s %s" % (b, ", ".join(fs)))
 # Stamp the build into the header chip. Without a visible build id there is no
 # way to answer "am I actually on the new version, or looking at a cached one?"
 # - which is exactly the question a stale index.html makes impossible to settle.
+# the host page (css, markup) is hashed too - a css-only change must move the
+# stamp, or "is it live?" is unanswerable for exactly the changes people ask about
 _stamp = _hashlib.sha1("".join(fn for fn, _ in manifest).encode()
-                       + str(sum(n for _, n in manifest)).encode()).hexdigest()[:6]
+                       + str(sum(n for _, n in manifest)).encode()
+                       + _hashlib.sha1(html.encode("utf-8")).digest()).hexdigest()[:6]
 _chip = '<span class="tag">Prototype v0.1</span>'
 if html.count(_chip) == 1:
     html = html.replace(_chip, '<span class="tag">Prototype v0.1 · %s</span>' % _stamp, 1)

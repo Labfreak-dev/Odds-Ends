@@ -66,7 +66,7 @@ eval(ASSETS+";"+SFX+";"+SRC+`;global.__fe={fePalette,feBasePalette,feWeatherMod,
   FE_PROPS,feProps,feAwardProp,feNextProp,fePropSchedule,FE_PROP_ORDER,stats:fshStats,
   feConds,feCondOk,feCondHint,FE_COND_ICONIC,feJournalRecord,feJournalCount,feSpeciesTotal,
   feShadowSpawn,FE_SFX_KEYS:Object.keys(FE_SFX),
-  FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,
+  FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,feCineRingStep,feSigNew,
   feKeys,feKeyRoll,feBestKeyFor,FE_ARCH,
   feInitAmbient, get stars(){return feStars;},
   rollCatch:fshRollCatch,release:fshRelease,
@@ -266,10 +266,53 @@ console.log("\n=== legends & strongboxes ===");
   }
   check("maxed gear can land every legend (40%+)", results.every(([n,p])=>p>=40), JSON.stringify(results));
   check("the Drowned King is brutal but honest (12%+)", kingR >= 12 && kingR <= 60, kingR);
-  check("the entry legend tops out near-certain (<=97%)", results.every(([n,p])=>p<=97), JSON.stringify(results));
+  // the entry legend is near-certain for maxed gear: a perfect bot has no
+  // loss path but the pace checkpoint once the fish never freezes (batch 119),
+  // so the old <=97% cap was measuring the freeze bug, not the tuning
+  check("the entry legend is near-certain (>=85%)", results[0][1] >= 85, JSON.stringify(results[0]));
   check("at least two legends are real challenges (<=80%)", results.filter(([n,p])=>p<=80).length>=2, JSON.stringify(results));
   const easy = rate(FE.feBossDef(FE.FE_BOSSES[0]), GEAR.mid, smart, 80, "landed");
   check(`mid gear has a real shot at Old Ironjaw (${Math.round(easy.p*100)}%)`, easy.p>=0.2, easy.p);
+  // batch 119: the two stalls the playtester hit
+  {
+    // tired -> jump used to skip the telegraph, freezing the fish in a silent run
+    const st = GEAR.maxed, rng = mulberry(11);
+    const f = FE.feFightNew(FE.feBossDef(FE.FE_BOSSES[0]), st, rng);
+    let armed = null;
+    for(let k=0;k<60 && armed===null;k++){
+      f.mood = "tired"; f.moodT = 0.001; f.jumpTele = 0; f.airT = 0; f.stamina = f.maxStam;
+      FE.feFightStep(f, 1/60, false, st, rng);
+      if(f.mood === "jump") armed = f.jumpTele > 0 && f.event === "telegraph";
+    }
+    check("tired -> jump arms the telegraph", armed === true, armed);
+    // no legend goes quiet: an event at least every 40s of any fight
+    let worst = 0, worstB = "";
+    for(const b of FE.FE_BOSSES){
+      for(let i=0;i<12;i++){
+        const r2 = mulberry(i*31+5);
+        const f2 = FE.feFightNew(FE.feBossDef(b), st, r2); f2._st = st;
+        let t = 0, last = 0, g = 0;
+        while(!f2.over && g++<40000){
+          FE.feFightStep(f2, 1/60, smart(f2), st, r2); t += 1/60;
+          if(f2.event){ last = t; f2.event = null; }
+          if(t - last > worst){ worst = t - last; worstB = b.name; }
+        }
+      }
+    }
+    check("no legend goes silent for 40s", worst < 40, worstB + " " + worst.toFixed(1) + "s");
+    // the cinematic's rings keep coming at 120Hz (the clamp froze them)
+    const C = { phase:"fight", mode:"ring", t:0, round:0, ring:null, hard:0, stress:0 };
+    for(let i=0;i<20*120;i++){
+      C.t += 1/120; FE.feCineRingStep(C, 1/120);
+      if(C.ring){ C.ring = null; C.t = 0; }   // a clean hit, as feCineHit does
+    }
+    check("rings keep spawning at 120Hz", C.round >= 20, C.round);
+    // every signature tightens with hardness, the hold included (batch 129)
+    const sigAt = (sig, hard) => { const c = { cfg:{ sig }, hard }; FE.feSigNew(c); return c.sig; };
+    const h0 = sigAt("hold", 0), h3 = sigAt("hold", 3);
+    check("the hold gives less time and fills faster on hard", h3.tl < h0.tl && h3.rate > h0.rate && h0.tl === 6, `${h0.tl}->${h3.tl.toFixed(2)}s, ${h0.rate}->${h3.rate.toFixed(2)}/s`);
+    check("every timed signature tightens on hard", ["mash","swipe","multi"].every(s => sigAt(s,3).tl < sigAt(s,0).tl));
+  }
   // daily gate
   INV.bossDay=null; INV.bossJournal=null; INV.dayN=undefined;
   FE.feBossState(); INV.spots={cur:"dock",open:["dock"]};
@@ -501,12 +544,9 @@ console.log("\n=== conditions & the journal ===");
   global.fsh=null;
   for(let i=0;i<3000;i++){ const c=FE.rollCatch(0.4,false); if(c.def.tier===4||c.def.tier===5) base++; }
   check(`aiming at a big shadow more than doubles its band (${base}→${hi})`, hi > base*1.7, `${base} vs ${hi}`);
-  // sound coverage: every key the code plays exists in the pack
-  const played=[...SRC.matchAll(/fe(?:Sound|LoopStart)\("([a-z_]+)"/g)].map(m=>m[1]);
-  const fan=[...SRC.matchAll(/FANFARE = \[([^\]]+)\]/g)][0][1].match(/[a-z_]+/g);
-  const need=[...new Set([...played,...fan])];
-  const missing=need.filter(k=>!FE.FE_SFX_KEYS.includes(k));
-  check(`all ${need.length} referenced sounds exist in the pack`, missing.length===0, missing.join(","));
+  // sound: effects are retired (batch 126) - the pack carries the three beds and nothing else
+  const beds=["music","music_night","amb_water"];
+  check("the pack carries exactly the three beds", FE.FE_SFX_KEYS.length===3 && beds.every(k=>FE.FE_SFX_KEYS.includes(k)), FE.FE_SFX_KEYS.join(","));
 }
 
 console.log("\n=== sprites & the ridge line ===");

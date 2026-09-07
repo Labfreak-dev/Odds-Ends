@@ -33,10 +33,14 @@ const CX_CARD_ON    = 3;      // groups solved before a print is pulled
 /* Difficulty of a rule, used to colour the solved bands and to keep a
    mix of easy and hard in every puzzle. */
 const CX_RULES = [
-  { id:"subject",  label:"Prints of one thing", rank:0 },
-  { id:"emoji",    label:"Same picture",        rank:1 },
-  { id:"category", label:"One collection",      rank:2 },
-  { id:"tier",     label:"One rarity",          rank:3 },
+  { id:"subject",  label:"Prints of one thing",    rank:0 },
+  { id:"emoji",    label:"Same picture",           rank:1 },
+  { id:"edition",  label:"Same edition",           rank:2 },   /* Weathered, Archive, Museum... (67) */
+  { id:"format",   label:"Same format",            rank:3 },   /* Print, Snapshot, Edition, Study... (43) */
+  { id:"category", label:"One collection",         rank:4 },
+  { id:"letter",   label:"Same first letter",      rank:5 },
+  { id:"ending",   label:"Same last letter",       rank:6 },
+  { id:"tier",     label:"One rarity",             rank:7 },
 ];
 const CX_BAND = ["#3ddc84","#6c8cff","#c98cff","#ffd35c"];
 
@@ -52,7 +56,11 @@ function cxProp(card, rule){
   if(rule === "subject")  return card.name.split(" — ")[0];
   if(rule === "emoji")    return card.emoji;
   if(rule === "category") return card.category;
-  if(rule === "tier")     return String(card.rarity);
+  if(rule === "tier")     return RARITIES[card.rarity].name;   /* the name the tile shows, not the 0-15 id */
+  if(rule === "edition"){ const w = (card.name.split(" — ")[1] || "Original Print").split(" "); return w.length > 1 ? w.slice(0,-1).join(" ") : "Original"; }
+  if(rule === "format"){  const w = (card.name.split(" — ")[1] || "Original Print").split(" "); return w[w.length-1]; }
+  if(rule === "letter")   return card.name.split(" — ")[0].trim().charAt(0).toUpperCase();
+  if(rule === "ending"){  const s = card.name.split(" — ")[0].trim(); return s.charAt(s.length-1).toUpperCase(); }
   return null;
 }
 
@@ -196,15 +204,14 @@ function cxBuild(){
   if(pool.length < 60) return null;
 
   for(let attempt = 0; attempt < 900; attempt++){
-    /* Only rules that can actually form a group in this binder, and they
-       may repeat — two category groups is a perfectly good board. Taking
-       all four types every time meant a 600-card binder with no subject
-       owned four times over could never deal at all. */
+    /* Only rules that can actually form a group in this binder, and FOUR
+       DIFFERENT ones, no exceptions - a rule never appears twice on a board
+       (batch 121). With eight rule types the pool (owned binder or a
+       catalogue sample, never under 60 cards) always offers four. */
     const viable = CX_RULES.map(r=>r.id)
       .filter(id => { for(const l of idx[id].values()) if(l.length >= 4) return true; return false; });
-    if(!viable.length) return null;
+    if(viable.length < 4) return null;
     const rules = cxShuffle(viable.slice()).slice(0, 4);
-    while(rules.length < 4) rules.push(viable[Math.floor(Math.random()*viable.length)]);
     const groups = [];
     const taken = new Set();
     let ok = true;
@@ -277,7 +284,10 @@ function cxBuild(){
 
 function cxGroupLabel(g){
   const rule = CX_RULES.find(r=>r.id === g.rule);
-  if(g.rule === "tier")     return `${RARITIES[+g.value].name} — ${rule.label}`;
+  if(g.rule === "tier")     return `${g.value} — ${rule.label}`;
+  if(g.rule === "letter")   return `Starts with ${g.value} — ${rule.label}`;
+  if(g.rule === "ending")   return `Ends with ${g.value} — ${rule.label}`;
+  if(g.rule === "format")   return `${g.value}s — ${rule.label}`;
   if(g.rule === "subject")  return `${g.value} — ${rule.label}`;
   if(g.rule === "emoji")    return `${g.value} — ${rule.label}`;
   return `${g.value} — ${rule.label}`;

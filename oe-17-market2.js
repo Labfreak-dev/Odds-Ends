@@ -128,7 +128,9 @@ renderMarketOffers = function(){
     if(o.fake && ((state.upgrades && state.upgrades.fakeSpotter)||0) && o.sniff === undefined) o.sniff = Math.random() < 0.5;
     const r = RARITIES[c.rarity];
     who = `${p.icon} ${p.name}`; art = c.emoji; name = c.name;
-    band = `<div class="m2-band" style="color:${r.color}">${r.name}</div>`;
+    const own = (state.owned && state.owned[c.id]) || 0;
+    band = `<div class="m2-band" style="color:${r.color}">${r.name}
+      <span class="m2-own ${own ? "dupe" : "new"}">${own ? `owned ×${own}` : "NEW to you"}</span></div>`;
   }
   const price = o.hagglePrice || o.price;
   grid.innerHTML = `<div class="m2-counter">

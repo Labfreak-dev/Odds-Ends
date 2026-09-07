@@ -33,7 +33,10 @@ def open_single(pg, card_expr):
     pg.evaluate("(e)=>{ const c=eval(e); startReveal({name:'Art Probe', key:'artprobe'}, [[c]], 0); }", card_expr)
     pg.wait_for_timeout(400)
     tear(pg)
-    pg.locator("#rzStack").click(); pg.wait_for_timeout(500)
+    sp = pg.locator(".rz-sp").first
+    if "down" in (sp.get_attribute("class") or ""):     # a new card waits face-down: turn it first
+        sp.locator(".rz-spcard").click(); pg.wait_for_timeout(450)
+    sp.locator(".rz-spcard").click(); pg.wait_for_timeout(500)   # then zoom it
 
 with sync_playwright() as pw:
     br = pw.chromium.launch()

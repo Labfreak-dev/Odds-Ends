@@ -3858,9 +3858,9 @@ function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.f
 // ============ UI ============
 const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
-function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;if(it&&it.set&&SETS[it.set]&&!SETS[it.set].sl.includes(it.slot)){const T=SETS[it.set];const nb=makeItem(T.tier,'ring',6,undefined,T.arm||null);Object.assign(it,{slot:'ring',base:nb.base,arm:undefined});delete it.arm;}};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
+function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;if(it&&it.set&&SETS[it.set]&&setSlots(it.set).indexOf(it.slot)<0){const T=SETS[it.set];const nb=makeItem(T.tier,'ring',6,undefined,T.arm||null);Object.assign(it,{slot:'ring',base:nb.base,arm:undefined});delete it.arm;}};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
 function fixOpened(){if(S.opened!==undefined&&(typeof S.opened!=='object'||S.opened===null)){if(typeof S.opened==='number')S.chestsOpened=Math.max(S.chestsOpened||0,S.opened);S.opened={};for(const k in SEC_GATE)if(SEC_GATE[k]())S.opened[k]=1;}}
-function uiDefaults(){fixKits();onbDefault();hallMigrate();fixHall();fixOpened();if(S.asc&&S.asc.count>0&&!S.pre&&hallList().length)preNew();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
+function uiDefaults(){for(const f of [fixKits,onbDefault,hallMigrate,fixHall,fixOpened])try{f();}catch(e){console.error('save repair',f.name,e);}if(S.asc&&S.asc.count>0&&!S.pre&&hallList().length)preNew();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,DIFFS.length-1);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.food=S.food||[];while(S.food.length<FOOD.length)S.food.push(0);
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault','peddler'])S.keep[k]=S.keep[k]||0;
@@ -5170,7 +5170,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b163-bowwiz';window.__ihBoot=true;
+  const BUILD='b164-bootfix';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

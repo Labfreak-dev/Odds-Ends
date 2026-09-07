@@ -182,7 +182,15 @@ function mgSparks(x, y, n, gold){
     c: gold ? "255,205,80" : "220,220,225", r: 1.4+Math.random()*2.2 });
 }
 function mgFloat(x, y, txt, big){
-  mg.floats.push({ x, y, txt, life: 1.4, big: !!big });
+  /* floats pop in oversized and settle (batch 131) - with the click sound
+     gone, the number IS the feedback */
+  mg.floats.push({ x, y, txt, life: big ? 2.4 : 1.5, big: !!big, pop: 0, dx: (Math.random()-0.5)*18 });
+}
+function mgVibe(pat){
+  try{
+    if(typeof fshInv === "function" && fshInv().vibeOff) return;
+    if(navigator.vibrate) navigator.vibrate(pat);
+  }catch(e){}
 }
 function mgBurst(){
   const cx = W/2, cy = H-146;
@@ -202,7 +210,8 @@ function mgStrike(player){
   mg.swingT = 0;
   setTimeout(()=>{
     const cx = W/2, cy = H-150;
-    mg.shake = player ? 7 : 4;
+    mg.shake = player ? 11 : 4;
+    if(player){ mg.flash = Math.max(mg.flash||0, 0.28); mgVibe(18); }
     mgSparks(cx-96, cy+6, player ? 16 : 8, true);   /* at the rock face, where the tip lands */
     mg.hp -= 1;
     if(player){
@@ -225,7 +234,10 @@ function mgStrike(player){
       state.scrap = (state.scrap||0) + Math.round(2 * (1 + 0.12*((state.upgrades && state.upgrades.scrapMagnet)||0)));
       state.mining.ore[oreT] = (state.mining.ore[oreT]||0) + oreN;
       mgBurst();
-      mgFloat(W/2, H-230, "VEIN STRUCK  +$"+bonus.toLocaleString()+"  +"+oreN+" Tier-"+oreT+" Ore"+(oreT>tier?" — RICHER than the seam!":""), true);
+      /* the vein break is the mine's big moment: the whole scene kicks, a
+         flash washes over it, the phone buzzes (batch 131) */
+      mg.shake = 26; mg.flash = 1; mgVibe([30, 40, 70]);
+      mgFloat(W/2, H-262, "VEIN STRUCK  +$"+bonus.toLocaleString()+"  +"+oreN+" Tier-"+oreT+" Ore"+(oreT>tier?" — RICHER than the seam!":""), true);
       mgWorksRender();
       try{ window.feLedgerBump && feLedgerBump("vein"); }catch(e){}
       mg.maxHp = mgRockHp(); mg.hp = mg.maxHp; mg.seed = (mg.seed*48271)%2147483647 || 7;
@@ -354,13 +366,16 @@ function mgFrame(now){
   const dt = Math.min(0.05, (now-mgLast)/1000); mgLast = now;
   if(!cv.offsetParent) return;                     /* tab hidden: sleep */
   mg.t += dt; mg.swingT += dt;
-  mg.shake = Math.max(0, mg.shake - dt*26);
+  mg.shake = Math.max(0, mg.shake - dt*(18 + mg.shake*1.4));
+  mg.flash = Math.max(0, (mg.flash||0) - dt*2.6);
   /* auto strikes pace with the mine's real rate */
   const sps = Math.min(2.2, Math.max(0.45, mgRate()/240));
   mg.strikeAcc += dt*sps;
   if(mg.strikeAcc >= 1){ mg.strikeAcc = 0; mgStrike(false); }
-  /* draw */
+  /* draw - the whole scene rides the shake, not just the rock */
   g.clearRect(0,0,W,H);
+  g.save();
+  if(mg.shake > 0.3) g.translate((Math.random()-0.5)*mg.shake, (Math.random()-0.5)*mg.shake*0.7);
   g.drawImage(bg, 0, 0);
   mgDrawRock();
   mgDrawPick();
@@ -389,18 +404,26 @@ function mgFrame(now){
     g.restore();
   }
   g.globalAlpha = 1;
-  /* floaters */
+  /* floaters: pop in big, settle, drift up */
   for(let i=mg.floats.length-1;i>=0;i--){
     const f = mg.floats[i];
     f.life -= dt; if(f.life<=0){ mg.floats.splice(i,1); continue; }
-    f.y -= dt*34;
+    f.pop = Math.min(1, (f.pop||0) + dt*6.5);
+    f.y -= dt*(f.big ? 20 : 46); f.x += (f.dx||0)*dt;
+    const sc = 1 + (1 - f.pop)*(f.big ? 1.1 : 0.7);
+    g.save();
     g.globalAlpha = Math.min(1, f.life*1.4);
-    g.font = f.big ? "800 21px system-ui" : "700 15px system-ui";
+    g.translate(f.x, f.y); g.scale(sc, sc);
+    g.font = f.big ? "900 26px system-ui" : "800 18px system-ui";
     g.textAlign = "center";
-    g.lineWidth = 4; g.strokeStyle = "rgba(0,0,0,0.7)"; g.strokeText(f.txt, f.x, f.y);
-    g.fillStyle = f.big ? "#ffd35c" : "#ffe9b0"; g.fillText(f.txt, f.x, f.y);
+    g.lineWidth = f.big ? 6 : 5; g.strokeStyle = "rgba(0,0,0,0.85)"; g.strokeText(f.txt, 0, 0);
+    g.fillStyle = f.big ? "#ffd35c" : "#fff1c2"; g.fillText(f.txt, 0, 0);
+    g.restore();
   }
   g.globalAlpha = 1; g.textAlign = "left";
+  g.restore();
+  /* the flash sits over everything, unshaken */
+  if(mg.flash > 0){ g.fillStyle = `rgba(255,236,190,${(mg.flash*0.55).toFixed(3)})`; g.fillRect(0,0,W,H); }
 }
 requestAnimationFrame(mgFrame);
 })();

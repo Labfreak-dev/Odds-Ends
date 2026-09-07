@@ -1143,6 +1143,38 @@ const UNIQUES={
  sov_greatsword:{n:'Sovereign Blade',wt:4,tier:9,home:'sov',col:'#3a2a10',hl:'#fff2c0',eff:{mh:15,str:20},d:'A king\'s sword, black gold with a white flame in the fuller.'},
  sov_longbow:{n:'Sovereign Bow',wt:6,tier:9,home:'sov',col:'#3a2a10',hl:'#fff2c0',eff:{mh:15,atk:20},d:'A king\'s bow, strung with white flame.'},
  sov_battlestaff:{n:'Sovereign Sceptre',wt:12,tier:9,home:'sov',col:'#3a2a10',hl:'#fff2c0',eff:{mh:15,xp:10,spd:8},d:'A king\'s sceptre, a caged white flame at its head.'},
+ // Slayer weapons: the hundred-thousandth kill of a kind. Each hits its kind a good deal harder and nothing else.
+ fowlbane:{n:'Fowlbane',wt:10,tier:6,home:'feat',feat:'slay_bird_3',vs:'bird',eff:{spd:8,luck:6},d:'Throwing knives fletched with the feathers of the ten thousand. +40% damage to fowl.'},
+ beastbane:{n:'Beastbane',wt:3,tier:7,home:'feat',feat:'slay_beast_3',vs:'beast',eff:{str:12,leech:3},d:'An axe that knows where the hide is thin. +40% damage to beasts.'},
+ kingsbane:{n:'Kingsbane',wt:2,tier:7,home:'feat',feat:'slay_humanoid_3',vs:'humanoid',eff:{atk:12,gold:8},d:'A longsword that has ended every kind of man. +40% damage to men and goblins.'},
+ websplitter:{n:'Websplitter',wt:0,tier:7,home:'feat',feat:'slay_spider_3',vs:'spider',eff:{spd:10,atk:6},d:'A dagger that parts silk and chitin alike. +40% damage to spiders.'},
+ gravebane:{n:'Gravebane',wt:12,tier:8,home:'feat',feat:'slay_undead_3',vs:'undead',eff:{xp:8,mh:6},d:'A staff of yew and bone that the dead remember. +40% damage to the dead.'},
+ giantsbane:{n:'Giantsbane',wt:4,tier:8,home:'feat',feat:'slay_giant_3',vs:'giant',eff:{mh:10,str:8},d:'A greatsword long enough to reach the heart. +40% damage to giants.'},
+ demonsbane:{n:'Demonsbane',wt:11,tier:9,home:'feat',feat:'slay_demon_3',vs:'demon',eff:{mh:8,dr:4,xp:5},d:'A wand of cold iron that hell cannot abide. +40% damage to demons.'},
+ dragonsbane:{n:'Dragonsbane',wt:6,tier:9,home:'feat',feat:'slay_dragon_3',vs:'dragon',eff:{mh:10,atk:10,luck:6},d:'A longbow strung for the one shot that matters. +40% damage to dragons.'},
+ // the deeds of the new systems
+ kingmaker_cloak:{n:'Kingmaker\'s Cloak',slot:'cape',tier:9,home:'feat',feat:'pre_kneel',eff:{xp:8,gold:8},d:'Worn by one who saw a rival kneel. While it is worn the Pretender walks a quarter slower.'},
+ usurper_ring:{n:'Usurper\'s Ring',slot:'ring',tier:9,home:'feat',feat:'pre_cast',eff:{mh:8,dr:4},d:'Taken from a hand that held a throne for an hour.'},
+ vendetta_ring:{n:'Vendetta Ring',slot:'ring',tier:9,home:'feat',feat:'reclaim3',eff:{leech:5,atk:6},d:'While it is worn the nemesis takes your worst piece, not any piece.'},
+ watch_lantern:{n:'Lantern of the Watch',slot:'amulet',tier:9,home:'feat',feat:'night3',eff:{luck:8,hp:10},d:'While it is worn the lessons of the night count twice.'},
+ bandleader_ring:{n:'Bandleader\'s Ring',slot:'ring',tier:9,home:'feat',feat:'songs3',eff:{gold:8,spd:4},d:'While it is worn the band plays from the roster, fielded or not.'},
+ huntsman_horn:{n:'Huntsman\'s Horn',slot:'amulet',tier:9,home:'feat',feat:'hunt8',eff:{mh:6,luck:6},d:'While it is worn a trophy wakes at eight thousand, not ten.'},
+ // oath gear: what a sworn companion brings you at level 30
+ hound_collar:{n:'War Hound\'s Collar',slot:'amulet',tier:8,home:'oath:hound',eff:{atk:8,spd:4},d:'The first collar, kept. It never stopped pulling.'},
+ cleric_censer:{n:'Cleric\'s Censer',slot:'amulet',tier:8,home:'oath:cleric',eff:{hp:20,dr:3},d:'Still warm. The smoke settles the blood.'},
+ squire_pennon:{n:'Squire\'s Pennon',slot:'cape',tier:8,home:'oath:squire',eff:{def:12,hp:10},d:'Carried at the head of every march.'},
+ tiger_pelt:{n:'Tiger\'s Pelt',slot:'cape',tier:8,home:'oath:tiger',eff:{mh:6,spd:6},d:'Its own, shed. The stripes still move.'},
+ imp_ring:{n:'Imp\'s Ring',slot:'ring',tier:8,home:'oath:imp',eff:{luck:10,gold:6},d:'Stolen, it says. It does not say from whom.'},
+ fairy_charm:{n:'Fairy Charm',slot:'amulet',tier:8,home:'oath:fairy',eff:{hp:15,xp:6},d:'A seed on a thread. It hums when you are hurt.'},
+ barbarian_torc:{n:'Barbarian\'s Torc',slot:'amulet',tier:8,home:'oath:barbarian',eff:{str:12,mh:4},d:'Iron, twisted by hand. There was a bet.'},
+ assassin_hood:{n:'Assassin\'s Hood',slot:'head',tier:8,home:'oath:assassin',eff:{atk:10,spd:5},d:'Nobody has seen it and remembered.'},
+ necro_signet:{n:'Necromancer\'s Signet',slot:'ring',tier:8,home:'oath:necro',eff:{leech:6,xp:4},d:'Cold to the touch. Colder to be touched by.'},
+ knight_favour:{n:'Knight\'s Favour',slot:'ring',tier:8,home:'oath:knight',eff:{def:10,dr:3},d:'A ribbon in an iron band, from a tourney nobody records.'},
+ bear_hide:{n:'Bear\'s Hide',slot:'body',tier:8,home:'oath:bear',eff:{hp:30,dr:4},d:'It fits. Do not ask how.'},
+ ent_bark:{n:'Ent\'s Bark',slot:'boots',tier:8,home:'oath:ent',eff:{def:10,hp:12},d:'Root-soled. The ground holds you.'},
+ excalibur_scabbard:{n:'Excalibur\'s Scabbard',slot:'cape',tier:8,home:'oath:sword',eff:{leech:4,dr:5},d:'The sword is the sword. The scabbard was the gift.'},
+ dragon_scale:{n:'Golden Dragon\'s Scale',slot:'amulet',tier:9,home:'oath:goldragon',eff:{mh:8,gold:12,luck:6},d:'One scale. It is worth the hoard it came from.'},
+ mariachi_guitar:{n:'The Guitar',wt:12,tier:8,home:'oath:band',eff:{xp:8,gold:10,spd:6},d:'A staff, if you hold it right. It plays in the swing.'},
  pyre_greatsword:{n:'Pyrelord Cleaver',wt:4,tier:9,home:'pyre',col:'#3a0a0a',hl:'#ff7a2a',eff:{mh:15,str:15,leech:5},d:'A hunter\'s blade of black iron, the edge always red.'},
  pyre_longbow:{n:'Pyrelord Bow',wt:6,tier:9,home:'pyre',col:'#3a0a0a',hl:'#ff7a2a',eff:{mh:15,atk:15,leech:5},d:'A hunter\'s bow of horn and brand, the string a line of ember.'},
  pyre_battlestaff:{n:'Pyrelord Sceptre',wt:12,tier:9,home:'pyre',col:'#3a0a0a',hl:'#ff7a2a',eff:{mh:15,xp:8,spd:6,leech:5},d:'A hunter\'s sceptre, a horned skull that breathes cinders.'},
@@ -1169,6 +1201,11 @@ const SETS={
  set_vestment:{col:'#c8c0a0',hl:'#fff4d0',n:'Last Saint Vestments',tier:7,home:'late',arm:'robe',sl:['head','body','legs','boots'],ik:{head:'hat',body:'robe',legs:'legs',boots:'boots'},pieces:{head:'hat',body:'robe top',legs:'robe bottom',boots:'boots'},b2:{hp:8},b4:{leech:6,xp:6}},
  saint:{col:'#e8e0cc',hl:'#ffd24a',n:'Last Saint',tier:7,home:'late',pieces:{head:'helm',body:'tabard',legs:'greaves',shield:'kite'},b2:{hp:8},b4:{leech:6,xp:6}},
  sov:{col:'#3a2a10',hl:'#fff2c0',n:'Sovereign',tier:9,home:'sov',sl:['head','body','legs','gloves','boots','shield','cape','amulet','ring'],ik:{head:'head',body:'body',legs:'legs',gloves:'gloves',boots:'boots',shield:'shield',cape:'cape',amulet:'amulet',ring:'ring'},pieces:{head:'Crown',body:'Cuirass',legs:'Greaves',gloves:'Gauntlets',boots:'Sabatons',shield:'Aegis',cape:'Mantle',amulet:'Torc',ring:'Signet'},b2:{atk:10,str:10,def:10},b4:{mh:10,dr:5},bfull:{spd:15,leech:8,luck:20,xp:20,hp:50}},
+ chron:{col:'#2a2418',hl:'#d8b060',n:'Chronicler',tier:8,home:'chron',sl:['head','body','legs','gloves','boots','cape','amulet','ring'],ik:{head:'head',body:'body',legs:'legs',gloves:'gloves',boots:'boots',cape:'cape',amulet:'amulet',ring:'ring'},pieces:{head:'Cap',body:'Coat',legs:'Breeches',gloves:'Ink Gloves',boots:'Walking Boots',cape:'Ledger Cloak',amulet:'Seal',ring:'Signet'},b2:{xp:6},b4:{luck:10,gold:10},bfull:{xp:15,luck:15,gold:15,hp:30}},
+ tr_bare:{col:'#4a3a2a',hl:'#e0c090',n:'Barehanded',tier:9,home:'trial:bare',sl:['gloves','boots','ring'],ik:{gloves:'gloves',boots:'boots',ring:'ring'},pieces:{gloves:'Knuckle Wraps',boots:'Bare Boots',ring:'Knuckle Ring'},b2:{spd:6,mh:4},b4:{},bfull:{spd:10,mh:8,atk:10}},
+ tr_alone:{col:'#2a2a3a',hl:'#a0a8c8',n:'Lone Blade',tier:9,home:'trial:alone',sl:['head','cape','amulet'],ik:{head:'head',cape:'cape',amulet:'amulet'},pieces:{head:'Lone Hood',cape:'Lone Cloak',amulet:'Lone Token'},b2:{dr:4,hp:15},b4:{},bfull:{dr:6,hp:30,mh:6}},
+ tr_iron:{col:'#3a3a3a',hl:'#c0c0c8',n:'Iron Rules',tier:9,home:'trial:ironrules',sl:['body','legs','boots'],ik:{body:'body',legs:'legs',boots:'boots'},pieces:{body:'Iron Cuirass',legs:'Iron Greaves',boots:'Iron Sabatons'},b2:{def:15,hp:20},b4:{},bfull:{def:20,hp:40,dr:6}},
+ tr_silent:{col:'#2a2020',hl:'#c8b8a8',n:'Ascetic',tier:9,home:'trial:silent',sl:['head','body','cape'],ik:{head:'head',body:'body',cape:'cape'},pieces:{head:'Ascetic Cowl',body:'Ascetic Robe',cape:'Ascetic Shawl'},b2:{xp:8,mh:4},b4:{},bfull:{xp:12,mh:8,dr:5,luck:8}},
  pyre:{col:'#3a0a0a',hl:'#ff7a2a',n:'Pyrelord',tier:9,home:'pyre',sl:['head','body','legs','gloves','boots','cape','amulet','ring'],ik:{head:'head',body:'body',legs:'legs',gloves:'gloves',boots:'boots',cape:'cape',amulet:'amulet',ring:'ring'},pieces:{head:'Horned Crown',body:'Brandplate',legs:'Ashen Greaves',gloves:'Clawed Gauntlets',boots:'Hoofplate',cape:'Wings',amulet:'Coal Heart',ring:'Brand Ring'},b2:{mh:8,leech:4},b4:{spd:10,dr:8},bfull:{mh:20,atk:15,str:15,def:15,luck:15,hp:60}},
 };
 const SET_SLOTS=['head','body','legs','shield'];
@@ -1176,7 +1213,8 @@ function itemCol(it){if(it.set)return SETS[it.set].col;if(it.uq&&UNIQUES[it.uq].
 function itemHl(it){if(it.set)return SETS[it.set].hl;if(it.uq&&UNIQUES[it.uq].hl)return UNIQUES[it.uq].hl;return TIERS[it.tier].hl;}
 function effText(eff){return Object.keys(eff).map(k=>AFFIX[k].n.replace('{v}',eff[k]).replace('--','+')).join(' · ');}
 function sovPair(w,sh){return !!(w&&sh&&w.uq&&sh.slot==='shield'&&w.uq.startsWith('sov_')&&sh.set==='sov');}   // any of the three Sovereign weapons: the bow and the sceptre carry the shield on the back
-function makeUnique(key){const U=UNIQUES[key];const it=makeItem(U.tier,'weapon',6,U.wt);it.uq=key;it.aff=Object.assign({},U.eff);return it;}
+function makeUnique(key){const U=UNIQUES[key];const it=makeItem(U.tier,U.slot||'weapon',6,U.slot?undefined:U.wt);it.uq=key;it.aff=Object.assign({},U.eff);return it;}
+function uqWorn(key){return SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].uq===key);}
 // ============ THE SOVEREIGN HARNESS ============
 // One set for a champion with 99 in everything: nine pieces and a weapon for
 // each style. It drops only once every combat skill is maxed, one missing
@@ -1204,8 +1242,8 @@ const setIk=k=>SETS[k].ik||SET_IK;
 const WEP_IK={'composite bow':'composite','light crossbow':'xbow','throwing knives':'knives'};
 const wepIk=wt=>{const n=WEAPONS[wt].n;return WEP_IK[n]||n;};
 function iconKey(it){
-  if(it.uq)return it.uq;
-  if(it.set)return it.set+'_'+setIk(it.set)[it.slot];
+  if(it.uq)return ICONS[it.uq]?it.uq:(it.slot==='weapon'?'wep_'+it.tier+'_'+wepIk(it.wt):'arm_plate_'+it.tier+'_'+it.slot);   // a unique without its own icon yet wears its tier's
+  if(it.set){const k=it.set+'_'+setIk(it.set)[it.slot];return ICONS[k]?k:'arm_plate_'+it.tier+'_'+it.slot;}
   if(it.slot==='weapon')return 'wep_'+it.tier+'_'+wepIk(it.wt);
   return 'arm_'+(it.arm||'plate')+'_'+it.tier+'_'+it.slot;
 }
@@ -1894,11 +1932,38 @@ const FEATS=[
  {id:'master',n:'No Quarter',d:'Clear an area on Master difficulty',t:()=>(S.masterClears||0)>=1,rw:{shards:3},title:'of No Quarter'},
  {id:'bounty25',n:'Board Regular',d:'Claim 25 bounties',t:()=>(S.bountiesClaimed||0)>=25,rw:{chest:1}},
  {id:'stubborn',n:'Stubborn',d:'Go down ten times',t:()=>(S.deaths||0)>=10,rw:{gold:100},title:'the Stubborn'},
+ // the slayer lines: a thousand, ten thousand, a hundred thousand of a kind; the last hands you the kind's bane
+ ...[['bird','Fowl','fowlbane','Fowlslayer'],['beast','Beasts','beastbane','Beastslayer'],['humanoid','Men and goblins','kingsbane','Kingslayer'],['spider','Spiders','websplitter','Spiderslayer'],['undead','The dead','gravebane','Graveslayer'],['giant','Giants','giantsbane','Giantslayer'],['demon','Demons','demonsbane','Demonslayer'],['dragon','Dragons','dragonsbane','Dragonslayer']].flatMap(([k,n,uq,title])=>[
+   {id:`slay_${k}_1`,n:`${n}: a thousand`,d:`Slay 1,000 of them`,t:()=>bestKind(k)>=1000,rw:{gold:2000,scrap:20}},
+   {id:`slay_${k}_2`,n:`${n}: ten thousand`,d:`Slay 10,000 of them`,t:()=>bestKind(k)>=10000,rw:{shards:5,rune:2}},
+   {id:`slay_${k}_3`,n:`${n}: a hundred thousand`,d:`Slay 100,000 of them`,t:()=>bestKind(k)>=100000,rw:{item:uq},title}]),
+ // the Chronicler's set, earned by the numbers and nothing else
+ {id:'ch_kills',n:'A Hundred Thousand',d:'Slay 100,000 monsters',t:()=>S.totalKills>=100000,rw:{piece:['chron','body']}},
+ {id:'ch_gold',n:'Ten Million',d:'Earn 10,000,000 gold',t:()=>(S.goldEarned||0)>=1e7,rw:{piece:['chron','ring']}},
+ {id:'ch_chests',n:'A Thousand Chests',d:'Open 1,000 chests',t:()=>(S.chestsOpened||0)>=1000,rw:{piece:['chron','gloves']}},
+ {id:'ch_tower',n:'Two Hundred Floors',d:'Reach floor 200 of the tower',t:()=>(S.tower&&S.tower.best||0)>=200,rw:{piece:['chron','boots']}},
+ {id:'ch_abyss',n:'A Hundred Waves',d:'Reach wave 100 of the Abyss',t:()=>((S.ab&&S.ab.best)||0)>=100,rw:{piece:['chron','legs']}},
+ {id:'ch_gobs',n:'Fifty Goblins',d:'Shake fifty goblins',t:()=>(S.gobs||0)>=50,rw:{piece:['chron','cape']}},
+ {id:'ch_asc',n:'Ten Times Risen',d:'Ascend ten times',t:()=>((S.asc&&S.asc.count)||0)>=10,rw:{piece:['chron','head']}},
+ {id:'ch_time',n:'A Thousand Hours',d:'Play for a thousand hours',t:()=>(S.played||0)>=3600000,rw:{piece:['chron','amulet']}},
+ // the deeds of the new systems
+ {id:'pre_kneel',n:'Kingmaker',d:'See a Pretender kneel',t:()=>hallList().some(a=>a.pre&&/kneel/.test(a.t||'')),rw:{item:'kingmaker_cloak'},title:'Kingmaker'},
+ {id:'pre_cast',n:'Throne-Taker',d:'Cast a Pretender down in a duel',t:()=>hallList().some(a=>a.pre&&/cast/.test(a.t||'')),rw:{item:'usurper_ring'},title:'the Usurper'},
+ {id:'reclaim3',n:'Reclaimer',d:'Win three pieces back from the nemesis',t:()=>(S.reclaimed||0)>=3,rw:{item:'vendetta_ring'},title:'the Reclaimer'},
+ {id:'night3',n:'Night Warden',d:'Slay all three that walk by night',t:()=>NIGHT_MOBS.every(N=>nightKind(N.n)>0),rw:{item:'watch_lantern'},title:'the Night Warden'},
+ {id:'songs3',n:'Bandleader',d:'Hear all three of the band\'s songs',t:()=>SONGS.every(x=>songKnown(x.id)),rw:{item:'bandleader_ring'},title:'Bandleader'},
+ {id:'hunt8',n:'Huntmaster',d:'Take all eight trophies of the Long Hunt',t:()=>HUNTS.every((H,i)=>huntDone(i)>0),rw:{item:'huntsman_horn'},title:'Huntmaster'},
+ // trial sets: ten, twenty and thirty clears
+ ...[['bare','Bare Hands','tr_bare',['gloves','boots','ring']],['alone','Alone','tr_alone',['head','cape','amulet']],['ironrules','Iron Rules','tr_iron',['body','legs','boots']],['silent','The Silent Realm','tr_silent',['head','body','cape']]].flatMap(([tid,tn,set,sl])=>[10,20,30].map((n,i)=>(
+   {id:`tr_${tid}_${n}`,n:`${tn} ×${n}`,d:`Clear the trial ${n} times`,t:()=>(((S.trials||{})[tid]||{}).clears||0)>=n,rw:{piece:[set,sl[i]]}}))),
+ // oath gear: a sworn companion at level 30 brings you something of its own
+ ...[['hound','hound_collar'],['cleric','cleric_censer'],['squire','squire_pennon'],['tiger','tiger_pelt'],['imp','imp_ring'],['fairy','fairy_charm'],['barbarian','barbarian_torc'],['assassin','assassin_hood'],['necro','necro_signet'],['knight','knight_favour'],['bear','bear_hide'],['ent','ent_bark'],['sword','excalibur_scabbard'],['goldragon','dragon_scale'],['band','mariachi_guitar']].map(([ct,uq])=>(
+   {id:`oath_${ct}`,n:`Oath: ${COMPS.find(x=>x.id===ct).n}`,d:'Sworn, and raised to level 30',t:()=>(S.party||[]).some(c=>c.type===ct&&c.sworn&&(c.lvl||0)>=30),rw:{item:uq}})),
 ];
 function featDone(id){return !!(S.feats&&S.feats.done&&S.feats.done[id]);}
-function featText(rw){return [rw.gold?fmt(rw.gold)+'g':'',rw.scrap?rw.scrap+' scrap':'',rw.chest?rw.chest+' chest'+(rw.chest>1?'s':''):'',rw.rune?rw.rune+' rune'+(rw.rune>1?'s':''):'',
+function featText(rw){return [rw.item&&UNIQUES[rw.item]?UNIQUES[rw.item].n:'',rw.piece&&SETS[rw.piece[0]]?SETS[rw.piece[0]].n+' '+SETS[rw.piece[0]].pieces[rw.piece[1]]:'',rw.gold?fmt(rw.gold)+'g':'',rw.scrap?rw.scrap+' scrap':'',rw.chest?rw.chest+' chest'+(rw.chest>1?'s':''):'',rw.rune?rw.rune+' rune'+(rw.rune>1?'s':''):'',
   rw.shards?rw.shards+' shard'+(rw.shards>1?'s':''):'',rw.ingot?rw.ingot+' Starsteel':'',rw.jewel?'a jewel':''].filter(Boolean).join(' + ');}
-function featGrant(rw){if(rw.gold)S.gold+=rw.gold;if(rw.scrap)S.scrap+=rw.scrap;if(rw.chest)S.chests+=rw.chest;
+function featGrant(rw){if(rw.item&&UNIQUES[rw.item])rdStow([makeUnique(rw.item)]);if(rw.piece&&SETS[rw.piece[0]])rdStow([makeSetPiece(rw.piece[0],rw.piece[1])]);if(rw.gold)S.gold+=rw.gold;if(rw.scrap)S.scrap+=rw.scrap;if(rw.chest)S.chests+=rw.chest;
   if(rw.rune)for(let i=0;i<rw.rune;i++)S.runes[rollRune(true)]++;if(rw.shards)S.asc.shards+=rw.shards;if(rw.ingot)S.ingots=(S.ingots||0)+rw.ingot;if(rw.jewel&&medOwned())jewelDrop('a realm deed');}
 function featTick(){
   S.feats=S.feats||{done:{},title:null};S.feats.done=S.feats.done||{};
@@ -2129,7 +2194,7 @@ function preNew(){const h=hallList();if(!h.length)return null;const r=(S.asc&&S.
   log(`${S.pre.name} sets out for the throne of Realm ${r+1} the day you do: ${beaten.t?beaten.t+"'s":'an ancestor\'s'} shadow, at level ${cl}, and no slower than they were.`,'e');return S.pre;}
 function preArea(){const p=S.pre;if(!p)return 0;return clamp(Math.floor(p.prog),0,AREAS.length-1);}
 function preTick(dt){const p=S.pre;if(!p||p.done||p.holds)return;
-  p.prog=Math.min(AREAS.length,p.prog+p.pace*dt*(1+0.1*((S.asc&&S.asc.realm)||0)));
+  p.prog=Math.min(AREAS.length,p.prog+p.pace*dt*(1+0.1*((S.asc&&S.asc.realm)||0))*(uqWorn('kingmaker_cloak')?0.75:1));
   if(p.prog>=AREAS.length){if(S.cleared[AREAS.length-1]){preKneel();return;}
     p.holds=true;log(`${p.name} has slain the Elder Wyrm before you. The Pretender holds the throne of Realm ${p.r+1}: the altar will not answer you until you cast them down. Find them on the March map.`,'e');if(!G.sim){toast('The Pretender holds the throne');sfx('boss');}G.dirty=true;}}
 function prePortrait(how){const p=S.pre;const saga=how==='knelt'?`${p.name}, the Pretender of Realm ${p.r+1}: reached ${AREAS[preArea()].n} before the Elder Wyrm fell to you, and knelt. ${p.from?`Cut from ${p.from}'s cloth. `:''}Better a knee bent than a head lost.`:`${p.name}, the Pretender of Realm ${p.r+1}: slew the Elder Wyrm first and held the throne until you cast them down in a duel. ${p.from?`Cut from ${p.from}'s cloth. `:''}A throne is only a chair until someone fights for it.`;
@@ -2157,6 +2222,8 @@ const TITLE_PERK={
  'the Climber':{d:'+2% attack speed',eff:{spd:2}},'of the Spire':{d:'+3% hitpoints',eff:{hpPct:3}},'of No Quarter':{d:'+3% max hit',eff:{mh:3}},
  'Wyrmslayer':{d:'+4% max hit',eff:{mh:4}},'Starforged':{d:'+3% every combat roll',eff:{rolls:3}},'Thrice Risen':{d:'+5% XP',eff:{xp:5}},
  'Sovereign':{d:'+8% gold',eff:{gold:8}},'Master at Arms':{d:'+3 attack and strength bonus',eff:{atk:3,str:3}},'Lord of Ironhold':{d:'+3% damage reduction',eff:{dr:3}},
+ 'Kingmaker':{d:'+5% gold',eff:{gold:5}},'the Usurper':{d:'+3% max hit',eff:{mh:3}},'the Reclaimer':{d:'+2% lifesteal',eff:{leech:2}},'the Night Warden':{d:'+4% drops',eff:{luck:4}},'Bandleader':{d:'+4% gold',eff:{gold:4}},'Huntmaster':{d:'+2% max hit and drops',eff:{mh:2,luck:2}},
+ 'Fowlslayer':{d:'+2% attack speed',eff:{spd:2}},'Beastslayer':{d:'+2 strength bonus',eff:{str:2}},'Kingslayer':{d:'+3% gold',eff:{gold:3}},'Spiderslayer':{d:'+2 attack bonus',eff:{atk:2}},'Graveslayer':{d:'+3% XP',eff:{xp:3}},'Giantslayer':{d:'+2% max hit',eff:{mh:2}},'Demonslayer':{d:'+2% damage reduction',eff:{dr:2}},'Dragonslayer':{d:'+3% max hit',eff:{mh:3}},
  'the Barehanded':{d:'+2% max hit',eff:{mh:2}},'the Lone Blade':{d:'+5% every roll with no companion fielded',eff:{lone:5}},'of Iron Rules':{d:'+4% damage reduction',eff:{dr:4}},'the Ascetic':{d:'+4% every combat roll',eff:{rolls:4}},
 };
 function titlePerk(){const t=heroTitle();return (t&&TITLE_PERK[t])||null;}
@@ -2504,7 +2571,7 @@ function nemWear(){const t=nemTaken();return t.length?`, in your ${itemName(t[t.
 function nemMob(A){const n=nem(),b=A.boss,v=1+0.08*nemTaken().length,k=(1.4+0.3*n.lvl)*v,q=(1.1+0.1*n.lvl)*v;
   return Object.assign({},b,{n:nemName()+nemWear(),base:b.n,spr:'nem_'+nemEntry(n).id,lv:b.lv+5*n.lvl,hp:Math.round(b.hp*k),atk:Math.round(b.atk*q),str:Math.round(b.str*q),def:Math.round(b.def*q),gold:[b.gold[0]*4,b.gold[1]*4],nem:true,big:1.25,col:'#3a0a14'});}
 function nemBounty(){const n=nem(),r=(S.asc&&S.asc.realm)||0;return {gold:Math.round(400000*(1+n.lvl)*(1+0.1*r)),shards:5*(n.lvl+1)};}
-function nemReclaim(){const n=nem();const t=n.taken||[];n.taken=[];n.fled=false;n.vend=0;for(const it of t){it.rec=true;gainItem(it);}if(t.length)log(`Won back from ${n.name}: ${t.map(itemName).join(', ')}. Reclaimed: each carries +4% max hit and +4% XP from here.`,'g');}
+function nemReclaim(){const n=nem();const t=n.taken||[];n.taken=[];n.fled=false;n.vend=0;S.reclaimed=(S.reclaimed||0)+t.length;for(const it of t){it.rec=true;gainItem(it);}if(t.length)log(`Won back from ${n.name}: ${t.map(itemName).join(', ')}. Reclaimed: each carries +4% max hit and +4% XP from here.`,'g');}
 function nemSlain(){const n=nem(),pay=nemBounty();n.slain=true;n.kills++;songLearn('dirge');n.past=n.past||[];if(!n.past.includes(n.name))n.past.push(n.name);nemReclaim();
   if(n.lvl>=5&&S.med&&!S.med.wildOpen){S.med.wildOpen=true;log('Something clicks on the back of the medallion: a seventh socket, hidden until now.','g');if(!G.sim)toast('The seventh socket opens');}S.gold+=pay.gold;S.asc.shards+=pay.shards;gainIngot(1);jewelDrop(nemName());
   log(`${nemName()} is slain. ${fmt(pay.gold)} gold, +${pay.shards} shards. It will return, next realm, changed.`,'g');if(!G.sim)toast('Nemesis slain!');
@@ -3253,7 +3320,7 @@ function songDef(id){return SONGS.find(x=>x.id===id);}
 function songKnown(id){return !!(S.songs&&S.songs.known&&S.songs.known.includes(id));}
 function songLearn(id){S.songs=S.songs||{known:[],play:null};if(S.songs.known.includes(id))return false;S.songs.known.push(id);if(!S.songs.play)S.songs.play=id;const sg=songDef(id);
   log(`The band has a new song, ${sg.how}: ${sg.n}. ${sg.d} Choose what they play in the Barracks.`,'g');if(!G.sim){toast('A new song');sfx('rare');}G.dirty=true;return true;}
-function bandFielded(){return party().some(c=>c.type==='band');}
+function bandFielded(){return party().some(c=>c.type==='band')||(uqWorn('bandleader_ring')&&partyHas('band'));}
 function song(){if(!S.songs||!S.songs.play||!songKnown(S.songs.play)||!bandFielded())return null;return S.songs.play;}
 function gobSecs(){return song()==='reel'?90:GOB_SECS;}
 function songsHtml(){const known=(S.songs&&S.songs.known)||[];if(!partyHas('band')&&!known.length)return '';
@@ -3279,7 +3346,7 @@ function nightMob(A){const b=A.mobs[A.mobs.length-1];const N=NIGHT_MOBS[rnd(0,NI
   return Object.assign({},b,{n:N.n,base:N.n,shape:N.shape,col:N.col,spr:N.spr,lv:b.lv+3,hp:Math.round(b.hp*1.15),atk:Math.round(b.atk*1.1),str:Math.round(b.str*1.1),def:Math.round(b.def*1.05),gold:[Math.round(b.gold[0]*1.5),Math.round(b.gold[1]*1.5)],night:true,big:1.05});}
 function nightKind(n){return (S.bestN&&S.bestN[n])||0;}
 function nightTier(n){const k=nightKind(n);let t=0;for(let i=0;i<NIGHT_TIERS.length;i++)if(k>=NIGHT_TIERS[i][0])t=i+1;return t;}
-function nightLuck(){if(!isNight())return 0;let l=0;for(const N of NIGHT_MOBS){const t=nightTier(N.n);if(t)l+=NIGHT_TIERS[t-1][1];}return l;}
+function nightLuck(){if(!isNight())return 0;let l=0;for(const N of NIGHT_MOBS){const t=nightTier(N.n);if(t)l+=NIGHT_TIERS[t-1][1];}return l*(uqWorn('watch_lantern')?2:1);}
 function nightKill(m){const k=m.base||m.n;S.bestN=S.bestN||{};const before=nightTier(k);S.bestN[k]=(S.bestN[k]||0)+1;S.bones=(S.bones||0)+1;
   if(Math.random()<0.05){S.chests++;if(!G.sim)log(`The ${k.toLowerCase()} was guarding a chest.`,'g');}
   const after=nightTier(k);if(after>before){log(`${fmt(NIGHT_TIERS[after-1][0])} ${k.toLowerCase()}s by night: +${NIGHT_TIERS[after-1][1]}% drops after dark from every one of them.`,'g');if(!G.sim)toast('A lesson of the night');}}
@@ -3441,6 +3508,7 @@ function playerHit(spec,sp){
     if(m.shape&&bestBonus(m.shape))dmg=Math.round(dmg*(1+bestBonus(m.shape)/100));
     if(!spec&&medEff('twice')&&Math.random()*100<medEff('twice')){const x=rnd(0,playerMaxHit());dmg+=x;if(resonEff('stormcall'))S.spec=Math.min(100,S.spec+resonEff('stormcall'));if(!G.sim)splat(MX+20,40,'×2','#ffd24a');}
   }
+  {const wu=S.equip.weapon&&S.equip.weapon.uq&&UNIQUES[S.equip.weapon.uq];if(wu&&wu.vs&&dmg>0&&m.shape===wu.vs)dmg=Math.round(dmg*1.4);}   // a bane against its kind
   if(G.wyrm&&G.wyrm.phase===1&&dmg>0){if(spec){G.wyrm.phase=2;log('Your special cracks the Wyrm\'s armour. The floor begins to burn.','e');if(!G.sim)toast('Armour cracked!');}else dmg=Math.max(1,Math.round(dmg*0.1));}
   dmg=Math.min(dmg,G.mobHp);if(dmg>(S.bestHit||0))S.bestHit=dmg;if(dmg>(rd().mh||0))rd().mh=dmg;
   G.mobHp-=dmg;dmgWindow(dmg);wyrmCheck();
@@ -3480,7 +3548,7 @@ function die(){
   G.streak++;
   if(!G.isBoss&&!G.nem&&!G.lt&&G.lair==null&&!G.mark&&G.duel==null&&S.area>0){S.area--;G.streak=0;log(`You fall back to ${AREAS[S.area].n} to recover.`,'e');if(!G.sim)toast('Fell back to '+AREAS[S.area].n);spawn(false);return;}
   if(G.nem){const n=nem();const worn=SLOTS.map(sl=>[sl,S.equip[sl]]).filter(([sl,it])=>it&&!it.heir&&!it.free);
-    if(worn.length){const [sl,it]=worn[rnd(0,worn.length-1)];S.equip[sl]=null;n.taken=n.taken||[];n.taken.push(it);n.vend=(n.vend||0)+1;
+    if(worn.length){const [sl,it]=uqWorn('vendetta_ring')?worn.slice().sort((a,b)=>itemScore(a[1])-itemScore(b[1]))[0]:worn[rnd(0,worn.length-1)];S.equip[sl]=null;n.taken=n.taken||[];n.taken.push(it);n.vend=(n.vend||0)+1;
       log(`${nemName()} takes your ${itemName(it)} from your body and wears it. Kill them and it comes back changed.`,'e');if(!G.sim)toast(`${n.name} took your ${itemName(it)}`);
       if(n.vend>=3&&!n.fled){n.fled=true;log(`Three times ${n.name} has left you in the dirt. They fall back to the Tower of Trials with everything they took: find them on a boss floor past twenty.`,'e');if(!G.sim)toast(`${n.name} flees to the tower`);}}
     else log(`${nemName()} leaves you in the dirt and melts back into the dark.`,'e');G.nem=false;spawn(false);return;}
@@ -4044,7 +4112,7 @@ const HUNTS=[
 ];
 function huntK(i){return (S.areaK&&S.areaK[i])||0;}
 function huntDone(i){return (S.hunt&&S.hunt[i])||0;}
-function huntNext(i){return HUNT_NEED*(huntDone(i)+1);}
+function huntNext(i){return Math.round(HUNT_NEED*(uqWorn('huntsman_horn')?0.8:1))*(huntDone(i)+1);}
 function huntOpen(i){return unlocked(i)&&huntK(i)>=huntNext(i);}
 function huntWaiting(){return AREAS.some((A,i)=>huntOpen(i));}
 function huntMob(i){const A=AREAS[i],b=A.boss,H=HUNTS[i];return Object.assign({},b,{n:H.n,base:b.n,spr:'hunt_'+i,lv:b.lv*2+20,hp:Math.round(b.hp*6),atk:Math.round(b.atk*1.8),str:Math.round(b.str*1.6),def:Math.round(b.def*1.8),gold:[b.gold[0]*10,b.gold[1]*10],shape:H.shape,col:H.col,big:1.35,hunt:i,hk:1.3});}
@@ -4304,12 +4372,16 @@ function renderCodex(){
 }
 // ---- the collection's detail window: one entry, where it drops, and the whole set it belongs to ----
 function codexSetOf(k){for(const sk in SETS){if(!k.startsWith(sk+'_'))continue;const ik=setIk(sk);for(const sl of setSlots(sk))if(k===sk+'_'+ik[sl])return {sk,sl};}return null;}
-function codexSource(h,kind){
+function codexSource(h,kind,key){
   if(typeof h==='number')return kind==='set'?`Drops from the monsters of ${AREAS[h].n} once its boss is down, about one piece in 300 kills.`:`Drops from the monsters of ${AREAS[h].n}, about one in 700 kills.`;
   if(typeof h==='string'&&h.startsWith('boss:')){const A=AREAS[+h.slice(5)];return `Carried by ${A.boss.n}, the boss of ${A.n}: 8% on the first clear, 2% after.`;}
   if(h==='mid')return 'Drops from the monsters of any area from the Barbarian Camp on, about one in 700 kills.';
   if(h==='chest')return 'A hold relic: found in chests, about one chest in twenty.';
   if(h==='late')return 'Found in chests once you have reached the Frozen Pass or tower floor 30.';
+  if(h==='feat'){const U=UNIQUES[key];const f=U&&U.feat&&FEATS.find(x=>x.id===U.feat);return `Earned on the feats board under Train${f?`: “${f.n}”, ${typeof f.d==='function'?f.d():f.d.toLowerCase()}`:''}.`;}
+  if(h==='chron')return 'The Chronicler\'s set: earned by the numbers, one piece per milestone on the feats board. A hundred thousand kills, ten million gold, a thousand chests, tower floor 200, Abyss wave 100, fifty goblins, ten ascensions, a thousand hours. No drop luck anywhere in it.';
+  if(typeof h==='string'&&h.startsWith('trial:')){const T=TRIALS.find(t=>t.id===h.slice(6));return `The ${T?T.n:'trial'} set: ten, twenty and thirty clears of the trial, one piece each.`;}
+  if(typeof h==='string'&&h.startsWith('oath:')){const C=COMPS.find(x=>x.id===h.slice(5));return `Oath gear: brought to you by the ${C?C.n:'companion'} once sworn and raised to level 30.`;}
   if(h==='pyre')return 'The Pyrelord set: the Long Hunt. Ten thousand kills in an area wake its trophy, a named monster far above its level, on the March map. Each of the eight trophies drops one piece; the three weapons come from the trophies after that. No shield: the wings are guard enough. Every ten thousand more, the trophy returns.';
   if(h==='sov')return 'The Sovereign harness: drops only for a champion with 99 in every combat skill, from bosses (1 in 300), the Elder Wyrm (1 in 60) and tower wardens past floor 100 (1 in 40).';
   return '';}
@@ -4317,10 +4389,10 @@ function codexOwned(test){let n=0;for(const sl of SLOTS){const it=S.equip[sl];if
 function openCodex(k){const f=S.found||{};const ok=!!f[k];G.modalKind='codex';
   const pic=`<img src="${ICONS[k]||''}" alt="" style="width:56px;height:56px;object-fit:contain;flex:none;${ok?'':'filter:grayscale(1) brightness(.4)'}">`;
   let h='';
-  if(UNIQUES[k]){const U=UNIQUES[k];const W=WEAPONS[U.wt];const owned=codexOwned(it=>it.uq===k);
-    h=`<div class="mhead">${pic}<div><h2 style="color:${ok?(U.hl||'#ffd24a'):'var(--muted)'}">${ok?U.n:'An unfound unique'}</h2><div class="sub">Unique ${W.n.toLowerCase()} · ${TIERS[U.tier].n}${ok?` · ${owned?`you hold ${owned}`:'none in hand'}`:' · not found yet'}</div></div></div>`;
+  if(UNIQUES[k]){const U=UNIQUES[k];const W=U.wt!=null?WEAPONS[U.wt]:null;const owned=codexOwned(it=>it.uq===k);
+    h=`<div class="mhead">${pic}<div><h2 style="color:${ok?(U.hl||'#ffd24a'):'var(--muted)'}">${ok?U.n:'An unfound unique'}</h2><div class="sub">Unique ${W?W.n.toLowerCase():SLOT_NAME[U.slot].toLowerCase()} · ${TIERS[U.tier].n}${ok?` · ${owned?`you hold ${owned}`:'none in hand'}`:' · not found yet'}</div></div></div>`;
     if(ok){h+=`<div class="sub" style="font-style:italic;margin:2px 0 6px">${U.d}</div><div class="cmp">${effText(U.eff)}</div>`;if(SPECIALS[U.wt])h+=`<div class="sub" style="margin:4px 0">Special <b>${SPECIALS[U.wt].n}</b>: ${SPECIALS[U.wt].d}</div>`;}
-    h+=`<div class="sub" style="margin-top:6px"><b>Where</b> — ${codexSource(U.home,'uq')}</div>`;}
+    h+=`<div class="sub" style="margin-top:6px"><b>Where</b> — ${codexSource(U.home,'uq',k)}</div>`;}
   else{const m=codexSetOf(k);if(!m)return;const T=SETS[m.sk];const ik=setIk(m.sk);const slots=setSlots(m.sk);const worn=setCounts()[m.sk]||0;
     const owned=codexOwned(it=>it.set===m.sk&&it.slot===m.sl);
     h=`<div class="mhead">${pic}<div><h2 style="color:${ok?T.hl:'var(--muted)'}">${ok?T.n+' '+T.pieces[m.sl]:'An unfound set piece'}</h2><div class="sub">${T.n} set · ${TIERS[T.tier].n} ${m.sl}${ok?` · ${owned?`you hold ${owned}`:'none in hand'}`:' · not found yet'}</div></div></div>`;
@@ -5060,7 +5132,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b158-risen2';window.__ihBoot=true;
+  const BUILD='b159-deeds';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

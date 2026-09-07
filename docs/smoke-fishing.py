@@ -25,6 +25,7 @@ async def main():
 
         # into the dock through the real lobby route
         await pg.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
+        await pg.wait_for_function("oeBundleReady('fishing')", timeout=30000)   # the water is a lazy bundle (batch 127)
         await pg.evaluate("FE_TEST_EVERY5=false")
         await pg.wait_for_timeout(800)
         check("fishing boots with the rebuild live", await pg.evaluate("!!feEnv && !!feStars && typeof feFightStep==='function'"))
@@ -96,6 +97,7 @@ async def main():
         pg2=await b.new_page(viewport={"width":390,"height":844}, has_touch=True, is_mobile=True)
         await pg2.goto(URL); await pg2.wait_for_timeout(900)
         await pg2.evaluate("uiEnterSection('fishing'); document.querySelectorAll('main > section').forEach(s=>s.style.display='none'); document.getElementById('tab-fishing').style.display='block';")
+        await pg2.wait_for_function("oeBundleReady('fishing')", timeout=30000)
         await pg2.wait_for_timeout(600)
         await pg2.evaluate("fshStartCharge(); fsh.power=84; fshRelease();")
         await pg2.wait_for_timeout(1000)

@@ -25,6 +25,7 @@ with sync_playwright() as pw:
         pg.evaluate("()=>localStorage.clear()"); pg.reload(); pg.wait_for_timeout(2000)
         pg.click("[data-tab='play']"); pg.wait_for_timeout(300)
         pg.click(".play-card[data-game='fishing']"); pg.wait_for_timeout(1400)
+        pg.wait_for_function("oeBundleReady('fishing') && !!document.getElementById('fshCanvas')", timeout=30000); pg.wait_for_timeout(600)
         cast = bgs(pg, "#feCtl .btn.fsh-cast")
         check(f"[{tag}] the cast button is the three-slice plank",
               cast and cast.count("fish-cast-") == 3, (cast or "")[:120])

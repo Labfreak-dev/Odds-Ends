@@ -29,6 +29,13 @@ serves the root; the site URL never changes.
   into multi-file form: slim `index.html` + ordered `oe-NN-name.js` scripts
   (split on `/*@@SPLIT:name@@*/` sentinels). Top-level const/let in classic
   scripts are visible across files, so module boundaries are safe splits.
+  Its `LAZY` map names chunks that get NO script tag: the build lists them in
+  `window.OE_LAZY_FILES` and the host fetches them on demand through
+  `oeLoadBundle(name)` / `oeBundleReady(name)` (batch 127). Today: "fishing"
+  (assets, paintings, beds, fishing2 — prefetched on idle after first paint,
+  awaited by the tab's enter hook) and "fishing-cine" (the true-form keyframes
+  in `fishing-cine.module.js`, fetched when a legend is hooked). A suite that
+  enters fishing must `wait_for_function("oeBundleReady('fishing')")`.
 
 ## Hard-won rules (violate these and the build WILL break)
 1. `once()` is ATOMIC per script run: it asserts the anchor appears exactly once

@@ -225,6 +225,28 @@ function rzSpreadHint(){
   const n = RZ.pulls.length, downN = RZ.down.filter(Boolean).length, soldN = RZ.sold.filter(Boolean).length;
   return `${downN ? `🃏 ${downN} face-down · tap to turn ${downN===1?"it":"them"} over · ` : ""}${n} card${n===1?"":"s"} · ${soldN} shipped · slide each card to ship or keep · tap one to zoom`;
 }
+/* ---- the order the spread is laid in (batch 128) ----
+   Pack order by default; "new first", "rarity" and "value" re-lay the
+   face-up cards. Face-down cards always come first, as a group, in pack
+   order - sorting them by what they hide would give the reveal away. The
+   choice is remembered across packs. */
+const RZ_SORTS = [ ["pack","pack order"], ["new","new first"], ["rarity","rarity"], ["value","value"] ];
+function rzSort(){ const s = rzBk().sort; return RZ_SORTS.some(x=>x[0]===s) ? s : "pack"; }
+function rzOrder(){
+  const idx = RZ.pulls.map((c,i)=>i);
+  const s = rzSort();
+  if(s === "pack") return idx;
+  const key = i => { const c = RZ.pulls[i]; return s === "new" ? (c._wasNew ? 1 : 0) : s === "rarity" ? c.rarity : rzVal(c); };
+  return idx.sort((a,b)=>{
+    const da = RZ.down[a] ? 1 : 0, db = RZ.down[b] ? 1 : 0;
+    if(da !== db) return db - da;
+    if(da) return a - b;
+    const ka = key(a), kb = key(b);
+    if(ka !== kb) return kb - ka;
+    if(s === "new" && RZ.pulls[a].rarity !== RZ.pulls[b].rarity) return RZ.pulls[b].rarity - RZ.pulls[a].rarity;
+    return a - b;
+  });
+}
 /* the face-up duplicates still unshipped: what "ship dupes" would move */
 function rzDupes(){
   let n = 0, pay = 0;
@@ -282,8 +304,8 @@ function rzSpArt(i){
 }
 /* one mini card. Face-down cells carry the worn back and no buttons - the
    player cannot price a card they have not seen. */
-function rzCellHtml(c, i){
-  const r = RARITIES[c.rarity], sold = RZ.sold[i], d = Math.min(i, 24);
+function rzCellHtml(c, i, pos){
+  const r = RARITIES[c.rarity], sold = RZ.sold[i], d = Math.min(pos === undefined ? i : pos, 24);
   if(RZ.down[i]){
     return `<div class="rz-sp down" data-i="${i}" style="--d:${d}">
       <div class="rz-spcard"><i class="rz-spglow"></i><img class="rz-spback" src="${rzBackImg()}" alt="" draggable="false"/><span class="rz-spq">?</span></div>
@@ -608,7 +630,8 @@ function rzRender(){
     RZ.keptVal = rzKeptVal();
     ov.innerHTML = `<div class="rz-box wide">
       ${rzTally()}
-      <div class="rz-spread${deal?" deal":""}" id="rzSpread">${RZ.pulls.map((c,i)=>rzCellHtml(c,i)).join("")}</div>
+      <div class="rz-sortrow">${RZ_SORTS.map(([k,l])=>`<button class="rz-sortpill${rzSort()===k?" on":""}" data-sort="${k}">${l}</button>`).join("")}</div>
+      <div class="rz-spread${deal?" deal":""}" id="rzSpread">${rzOrder().map((i,pos)=>rzCellHtml(RZ.pulls[i],i,pos)).join("")}</div>
       <div class="rz-hint">${rzSpreadHint()}</div>
       <div class="rz-row">
         <button class="rz-btn dim" id="rzBacksBtn">🎴 backs</button>
@@ -618,6 +641,12 @@ function rzRender(){
       </div>
     </div>`;
     const sp = document.getElementById("rzSpread");
+    ov.querySelectorAll(".rz-sortpill").forEach(b=> b.onclick = ()=>{
+      if(!RZ) return;
+      rzBk().sort = b.dataset.sort;
+      try{ saveState(); }catch(e){}
+      RZ.scroll = 0; rzRender();
+    });
     if(RZ.scroll) sp.scrollTop = RZ.scroll;
     sp.onscroll = ()=>{ if(RZ) RZ.scroll = sp.scrollTop; };
     sp.querySelectorAll(".rz-sp").forEach(el=>{

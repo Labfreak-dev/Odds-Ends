@@ -501,6 +501,61 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 129 — the cinematic's hold scales with hardness
+"Do 3": in the true-form fight every timed mechanic shortens with the
+legend's hardness (tl × (1 − 0.12·hard)) except the hold, which gave six
+seconds at every level. Now its time limit scales the same way and the
+bar fills faster (0.42/s ÷ hm), so the release window narrows from 0.62s
+wide at hard 0 to 0.39s at hard 3. Harness: the hold and every other
+timed signature tighten on hard.
+
+## Batch 128 — the spread can be sorted
+"Do 2": a fifty-card ten-pack is a lot to scan. A pill row above the grid
+lays the spread in pack order (default), new first, rarity, or value; the
+choice is remembered across packs (state.ripship.sort). Face-down cards
+always come first as a group, in pack order - laying them by what they
+hide would give the reveal away - and the face-up cards sort behind them
+(new first breaks ties by rarity). Decisions patch cells in place as
+before, so a sort never loses a ship.
+
+## Batch 127 — the water loads when it is wanted: lazy bundles
+"What's next?" -> the cold load. The build shipped 22MB of script on every
+first visit, and 11MB of it was fishing: the cinematic keyframes (5MB of
+jpeg), the species art (3MB), the beds (2MB), the paintings (0.8MB) - all
+base64, which gzip cannot touch, on a page most players open to rip packs.
+
+THE MECHANISM. integrate.py has a LAZY map: chunks named there are written
+like any other oe-NN file (same per-file content hash, same modes/ copy
+for the node harness) but get NO script tag; the build writes
+`window.OE_LAZY_FILES = {bundle: [files...]}` ahead of the first script.
+The host's `oeLoadBundle(name)` appends those scripts in order (async=false,
+resolved against the core script's own url so the preview's ../oe-*.js
+layout still works) and resolves once; `oeBundleReady(name)` answers the
+question. Classic scripts injected later still share the global lexical
+scope, and a `function` declared again in a later script replaces the
+host's - which is exactly how fishing2 already took over the host's fsh*
+functions, so nothing about the takeover changed, only WHEN it happens.
+
+TWO TIERS. "fishing" = assets, paintings, beds, fishing2 (6MB): fetched on
+idle right after the first paint, so it is usually in before anyone taps
+Play -> Fishing; the tab's enter hook awaits it (a "Loading the water…"
+line shows if it is not) and renderAll skips the fishing renderers until
+it lands. "fishing-cine" = the 98 keyframes, split out of fishing2 into
+fishing-cine.module.js (5MB): fetched the moment a legend's shadow is
+hooked, and again by feCineStart as a backstop; feCineImg draws nothing
+for a frame that has not arrived.
+
+RESULT. Cold load 21.7MB -> 10.7MB of files. Of the base64 that gzip
+cannot shrink, 13.7MB -> 2.9MB stays on the first paint; what remains
+eager is mostly the card catalogue text, which compresses ~5x over the
+wire.
+
+Suites: the fishing smokes wait on oeBundleReady('fishing') after entering
+the tab (file:// loads in well under a second, but the wait is what makes
+the check honest). Verified headless: first paint fetched only the core
+files, the prefetch landed, tab entry rendered, a cold page that went
+straight to fishing rendered, the cine bundle landed on hook.
+
 ## Batch 126 — sound effects retired
 Playtester: "the mining click sound is still annoying, cut it" - then "the
 sound effects are still super bad. if you cant make them good then lets

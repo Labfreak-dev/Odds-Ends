@@ -163,6 +163,10 @@
 .rz-sw.ship .rz-swk{ left:2px; background:rgba(255,211,92,.22); border-color:#ffd35c; }
 .rz-sw.keep .rz-spk{ color:#bcdcff; } .rz-sw.ship .rz-sps{ color:#ffe08a; }
 .rz-sp.sold .rz-spcard{ opacity:.55; }
+.rz-sortrow{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:2px 0 4px; }
+.rz-sortpill{ font:800 10.5px system-ui; padding:5px 11px; border-radius:999px; cursor:pointer;
+  border:1px solid #93a5b755; color:#93a5b7; background:transparent; }
+.rz-sortpill.on{ color:#ffd35c; border-color:#ffd35c; background:rgba(255,211,92,.1); }
 /* the zoom: one card of the spread at full size */
 .rz-zoom{ position:relative; }
 .rz-btn.on{ box-shadow:0 0 0 2px currentColor inset; }

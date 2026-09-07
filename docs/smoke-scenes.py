@@ -27,6 +27,7 @@ with sync_playwright() as pw:
     pg.evaluate("()=>{ fshInv().spots.open=['dock','shallows','ledge','midnight','reef','confluence']; }")
     pg.click("[data-tab='play']"); pg.wait_for_timeout(300)
     pg.click(".play-card[data-game='fishing']"); pg.wait_for_timeout(1200)
+    pg.wait_for_function("oeBundleReady('fishing') && !!document.getElementById('fshCanvas')", timeout=30000); pg.wait_for_timeout(600)
     # feEnv exists only once the water has drawn; pin it to a clear noon so the scenes compare fairly
     pg.evaluate("()=>{ feEnv.hour=12; feEnv.weather='clear'; feEnv.blend=1; }"); pg.wait_for_timeout(400)
     check("the first frame after load is not an arrival", pg.evaluate("()=>feScene.id==='dock' && feScene.arrive===0"))

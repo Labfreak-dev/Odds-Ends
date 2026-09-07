@@ -3389,8 +3389,9 @@ function drawScene(t,dt){
     if(G.duelWpn)drawWeapon({img:sprFrame(k,fi),sc:SPR_SC[k]||SPR_SC['lk_base_idle'],grip:lookGrip(k,fi),a:lookAng(k,fi),fi:atk?fi+1:0},MX-ml,gy+4,true,G.duelWpn);}
   else if(G.mob){const mk=mobSprKey(G.mob);
     if(mk&&sprReady(mk+'_idle')){const atk=FX.mLunge>0&&sprReady(mk+'_atk');const run=!atk&&G.mob.gob&&sprReady(mk+'_run');
-      const fi=atk?Math.min(2,Math.floor((1-FX.mLunge)*3)):0;
-      drawSprite(atk?sprFrame(mk+'_atk',fi):run?sprFrame(mk+'_run',Math.floor(t*7)%Math.max(1,SPR[mk+'_run'].length)):sprFrame(mk+'_idle',0),MX-ml,gy+6+Math.sin(t*2.5)*1.5,false,FX.mFlash,mobSprScale(G.mob));}
+      const nI=(SPR[mk+'_idle']||[]).length||1,nA=(SPR[mk+'_atk']||[]).length||1;   // a monster with many frames plays them all: the idle loops, the attack runs its length over the lunge
+      const fi=atk?Math.min(nA-1,Math.floor((1-FX.mLunge)*nA)):0;
+      drawSprite(atk?sprFrame(mk+'_atk',fi):run?sprFrame(mk+'_run',Math.floor(t*7)%Math.max(1,SPR[mk+'_run'].length)):sprFrame(mk+'_idle',nI>1?Math.floor(t*8)%nI:0),MX-ml,gy+6+(nI>1?0:Math.sin(t*2.5)*1.5),false,FX.mFlash,mobSprScale(G.mob));}
     else drawMob(MX-ml,gy-90,G.mob,t,-1,FX.mFlash);}
   drawOrbs(t);
   // splats
@@ -5291,7 +5292,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b166-laboratory';window.__ihBoot=true;
+  const BUILD='b167-frames';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -251,7 +251,8 @@
   #beasts .ce b{font-size:8px;color:var(--gold);line-height:1}
   #beasts .ce img{width:62%;height:56%}
   .setb{font-size:11px;color:#8fdcf5;margin:2px 0}
-.labBk{position:absolute;width:15px;height:19px;background:center/contain no-repeat;opacity:.26;cursor:pointer;z-index:4;filter:sepia(.5) saturate(.6)}.labBk:hover{opacity:.75;filter:none}
+.labBk{position:absolute;width:15px;height:19px;background:center/contain no-repeat;opacity:.34;cursor:pointer;z-index:4;filter:sepia(.4) saturate(.7) drop-shadow(0 0 2px rgba(122,201,67,.55));animation:labPulse 3.2s ease-in-out infinite}.labBk:hover{opacity:.9;filter:none;animation:none}.labBk.big{width:24px;height:30px;opacity:.7;filter:drop-shadow(0 0 4px rgba(122,201,67,.9)) drop-shadow(0 0 1px #000)}
+@keyframes labPulse{0%,100%{opacity:.34}50%{opacity:.6}}.labBk.big{animation:labPulseBig 2.6s ease-in-out infinite}@keyframes labPulseBig{0%,100%{opacity:.62}50%{opacity:.95}}
   .item.r1{--rc:var(--r1)}.item.r2{--rc:var(--r2)}.item.r3{--rc:var(--r3)}.item.r4{--rc:var(--r4)}.item.r5{--rc:var(--r5)}.item.r7{--rc:var(--r7)}
   .item.r7 .nm{color:var(--r7)}
   .empty-tile{background:var(--ink);border:2px solid #000;box-shadow:inset 0 0 0 1px #2a2016,inset 0 3px 8px rgba(0,0,0,.6);border-radius:3px;min-height:84px;opacity:.6}
@@ -1307,7 +1308,7 @@ const LAB_BEAKERS=[
  {id:'barracks',host:'barracks',pos:'left:6px;top:2px'},
  {id:'bestiary',host:'bestiary',pos:'right:8px;top:4px'},
  {id:'feats',host:'feats',pos:'right:10px;bottom:4px'},
- {id:'map',host:'map',pos:'left:8px;bottom:8px'},
+ {id:'map',host:'map',pos:'left:4px;bottom:2px',big:true},
  {id:'sewer',scene:2,x:46,y:156},
  {id:'pass',scene:5,x:456,y:126},
  {id:'chest'},
@@ -1323,7 +1324,7 @@ function labFind(id){const L=lab();if(L.found[id]||!LAB_BEAKERS.some(b=>b.id===i
 function labPlant(){for(const B of LAB_BEAKERS){if(!B.host)continue;const host=$(B.host);if(!host)continue;const old=host.querySelector('.labBk[data-lab="'+B.id+'"]');
   if(lab().found[B.id]){if(old)old.remove();continue;}if(old)continue;
   if(getComputedStyle(host).position==='static')host.style.position='relative';
-  const e=document.createElement('span');e.className='labBk';e.dataset.lab=B.id;e.style.cssText=B.pos;e.style.backgroundImage="url('"+LAB_GLYPH+"')";e.onclick=ev=>{ev.stopPropagation();labFind(B.id);};host.appendChild(e);}}
+  const e=document.createElement('span');e.className='labBk'+(B.big?' big':'');e.dataset.lab=B.id;e.style.cssText=B.pos;e.style.backgroundImage="url('"+LAB_GLYPH+"')";e.onclick=ev=>{ev.stopPropagation();labFind(B.id);};host.appendChild(e);}}
 function labHtml(){const L=lab();const n=labCount();if(!n&&!L.runs&&!L.kills)return '';
   return `<h3 class="secH" style="margin-top:10px">Strange glassware</h3><div class="sub">${n}/${LAB_BEAKERS.length} beakers found${L.unlocked?' · the pasture hums: call its boss':n?'. They turn up where no beaker should be: tucked into the menus, painted into the land, once in a thousand chests.':' this realm.'}${L.kills?` · Labfreak slain ×${L.kills}`:''}${L.runs?` · laboratories opened: ${L.runs}`:''}</div>`;}
 function labMob(){const lv=Math.max(15,combatLvl());return {n:'Labfreak',lv,hp:Math.max(150,Math.round(playerMaxHit()*25)),atk:Math.round(lv*1.2),str:Math.round(lv*0.9),def:Math.round(lv*1.0),spd:3.0,gold:[lv*40,lv*80],shape:'humanoid',col:'#9ae04a',big:1.15,spr:'labfreak',lab:true};}
@@ -5339,7 +5340,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b175-wearable';window.__ihBoot=true;
+  const BUILD='b176-mapbeaker';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

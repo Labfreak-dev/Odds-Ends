@@ -115,10 +115,11 @@
   /* --- fight column --- */
   #scene{display:block;width:100%;height:230px;background:#1c2a1a;border:2px solid #000;border-radius:2px;box-shadow:inset 0 0 0 1px var(--bevel)}
   @media (min-width:980px){#scene{height:260px}}
-  .area-row{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
+  .area-row{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px;min-width:0}.area-row>*{min-width:0;flex-shrink:1}.area-row .ib{flex:0 0 36px}#desk>*,#stageCol,.panel{min-width:0}
   .area-row button{padding:6px 12px;min-height:32px}
   .area-name{font:bold 16px Georgia,serif;text-align:center;color:var(--gold);line-height:1.15;margin-bottom:6px}
-#btnClog{flex:1;width:auto;gap:6px;font:bold 12px Georgia,serif;padding:0 10px}#btnClog span{white-space:nowrap}
+#btnClog{flex:1 1 60px;width:auto;min-width:36px;overflow:hidden;gap:6px;font:bold 12px Georgia,serif;padding:0 10px}#btnClog span{white-space:nowrap}
+@media (max-width:519px){#btnClog span{display:none}#btnClog{flex:0 0 36px;padding:0}.area-row{gap:4px}}
 #clog{margin-bottom:8px;padding:8px 10px;font-size:11px;color:var(--muted);line-height:1.45;max-height:300px;overflow:auto;background:rgba(0,0,0,.38);border:1px solid rgba(0,0,0,.55);border-radius:4px}
 #clog .clh{font:bold 12px Georgia,serif;color:var(--gold);margin:8px 0 2px;border-top:1px solid rgba(0,0,0,.35);padding-top:6px}#clog .clh:first-child{margin-top:0;border-top:0;padding-top:0}
 #clog .clg{display:grid;grid-template-columns:1fr auto auto;gap:1px 10px}#clog .clg b{color:var(--tan);font-weight:normal}#clog .clg .v{color:#e8e0cc;text-align:right}#clog .clg .p{text-align:right;min-width:36px}
@@ -5317,7 +5318,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b178-split';window.__ihBoot=true;
+  const BUILD='b179-fit';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

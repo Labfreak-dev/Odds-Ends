@@ -2089,6 +2089,11 @@ const FEATS=[
    {id:`slay_${k}_3`,n:`${n}: a hundred thousand`,d:`Slay 100,000 of them`,t:()=>bestKind(k)>=100000,rw:{item:uq},title}]),
  // the Chronicler's set, earned by the numbers and nothing else
  {id:'ch_kills',n:'A Hundred Thousand',d:'Slay 100,000 monsters',t:()=>S.totalKills>=100000,rw:{piece:['chron','body']}},
+ // Labfreak's Laboratory: the beaker hunt and the boss under the pasture
+ {id:'lab_first',n:'Strange Glassware',d:()=>`Pocket a beaker that should not be there (${labCount()}/${LAB_BEAKERS.length} this realm)`,t:()=>labCount()>=1||(lab().runs||0)>0,rw:{rune:1}},
+ {id:'lab_all',n:'The Full Rack',d:()=>`Gather all ${LAB_BEAKERS.length} beakers and wake the laboratory under the Cow Pasture`,t:()=>labActive()||(lab().runs||0)>0,rw:{shards:10}},
+ {id:'lab_slay',n:'Mad Science',d:'Slay Labfreak in his laboratory',t:()=>(lab().kills||0)>=1,rw:{jewel:1},title:'the Alchemist'},
+ {id:'lab_five',n:'Lab Rat',d:()=>`Slay Labfreak five times (${Math.min(5,lab().kills||0)}/5)`,t:()=>(lab().kills||0)>=5,rw:{shards:20},title:'the Lab Rat'},
  {id:'ch_gold',n:'Ten Million',d:'Earn 10,000,000 gold',t:()=>(S.goldEarned||0)>=1e7,rw:{piece:['chron','ring']}},
  {id:'ch_chests',n:'A Thousand Chests',d:'Open 1,000 chests',t:()=>(S.chestsOpened||0)>=1000,rw:{piece:['chron','gloves']}},
  {id:'ch_tower',n:'Two Hundred Floors',d:'Reach floor 200 of the tower',t:()=>(S.tower&&S.tower.best||0)>=200,rw:{piece:['chron','boots']}},
@@ -2373,7 +2378,7 @@ const TITLE_PERK={
  'Wyrmslayer':{d:'+4% max hit',eff:{mh:4}},'Starforged':{d:'+3% every combat roll',eff:{rolls:3}},'Thrice Risen':{d:'+5% XP',eff:{xp:5}},
  'Sovereign':{d:'+8% gold',eff:{gold:8}},'Master at Arms':{d:'+3 attack and strength bonus',eff:{atk:3,str:3}},'Lord of Ironhold':{d:'+3% damage reduction',eff:{dr:3}},
  'Kingmaker':{d:'+5% gold',eff:{gold:5}},'the Usurper':{d:'+3% max hit',eff:{mh:3}},'the Reclaimer':{d:'+2% lifesteal',eff:{leech:2}},'the Night Warden':{d:'+4% drops',eff:{luck:4}},'Bandleader':{d:'+4% gold',eff:{gold:4}},'Huntmaster':{d:'+2% max hit and drops',eff:{mh:2,luck:2}},
- 'Fowlslayer':{d:'+2% attack speed',eff:{spd:2}},'Beastslayer':{d:'+2 strength bonus',eff:{str:2}},'Kingslayer':{d:'+3% gold',eff:{gold:3}},'Spiderslayer':{d:'+2 attack bonus',eff:{atk:2}},'Graveslayer':{d:'+3% XP',eff:{xp:3}},'Giantslayer':{d:'+2% max hit',eff:{mh:2}},'Demonslayer':{d:'+2% damage reduction',eff:{dr:2}},'Dragonslayer':{d:'+3% max hit',eff:{mh:3}},
+ 'Fowlslayer':{d:'+2% attack speed',eff:{spd:2}},'the Alchemist':{d:'+2% max hit',eff:{mh:2}},'the Lab Rat':{d:'+3% XP',eff:{xp:3}},'Beastslayer':{d:'+2 strength bonus',eff:{str:2}},'Kingslayer':{d:'+3% gold',eff:{gold:3}},'Spiderslayer':{d:'+2 attack bonus',eff:{atk:2}},'Graveslayer':{d:'+3% XP',eff:{xp:3}},'Giantslayer':{d:'+2% max hit',eff:{mh:2}},'Demonslayer':{d:'+2% damage reduction',eff:{dr:2}},'Dragonslayer':{d:'+3% max hit',eff:{mh:3}},
  'the Barehanded':{d:'+2% max hit',eff:{mh:2}},'the Lone Blade':{d:'+5% every roll with no companion fielded',eff:{lone:5}},'of Iron Rules':{d:'+4% damage reduction',eff:{dr:4}},'the Ascetic':{d:'+4% every combat roll',eff:{rolls:4}},
 };
 function titlePerk(){const t=heroTitle();return (t&&TITLE_PERK[t])||null;}
@@ -5318,7 +5323,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b179-fit';window.__ihBoot=true;
+  const BUILD='b180-labfeats';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

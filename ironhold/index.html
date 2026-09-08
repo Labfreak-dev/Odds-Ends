@@ -3031,7 +3031,7 @@ function lookKey(){
   if(!(sk&&sprReady(P+sk+'_idle')))for(const id of ['tr_alone','tr_bare']){   // no body piece in these two: the full three-piece set wears the look
     if(setSlots(id).every(sl=>S.equip[sl]&&S.equip[sl].set===id)&&sprReady(P+'set_'+id+'_idle')){sk='set_'+id;break;}}
   if(sk&&sprReady(P+sk+'_idle'))return P+sk;
-  if(b&&sprReady(P+'kit_'+b.tier+'_idle'))return P+'kit_'+b.tier;
+  if(b)for(let t=b.tier;t>=0;t--)if(sprReady(P+'kit_'+t+'_idle'))return P+'kit_'+t;   // a tier without a look of its own wears the highest look beneath it, not the bare champion
   return sprReady(P+'base_idle')?P+'base':null;
 }
 function lookGrip(k,i){const G=SPR_SRC[k];return (G&&G.f[i]&&G.f[i].g)||null;}
@@ -5323,7 +5323,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b180-labfeats';window.__ihBoot=true;
+  const BUILD='b181-tierlook';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

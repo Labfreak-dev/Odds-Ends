@@ -731,7 +731,10 @@
             <button class="sm" id="btnChestAll">Open all</button>
           </div>
           <div class="bag" id="bag"></div>
-          <div class="chk" style="margin-top:8px"><input type="checkbox" id="autoSalv"><label for="autoSalv">Auto-salvage drops that aren't an upgrade</label></div>
+          <div class="sub" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><b class="gold">Quartermaster</b>
+            <select id="qmMode"><option value="off">off</option><option value="salvage">salvages drops that are not upgrades</option><option value="sell">sells drops that are not upgrades</option></select>
+            <select id="qmFloor"><option value="0">no tier floor</option><option value="1">and anything below Iron</option><option value="2">and anything below Steel</option><option value="3">and anything below Black</option><option value="4">and anything below Mithril</option><option value="5">and anything below Adamant</option><option value="6">and anything below Rune</option><option value="7">and anything below Dragon</option><option value="8">and anything below Obsidian</option><option value="9">and anything below Starsteel</option></select>
+            <label><input type="checkbox" id="qmBest"> an upgrade must beat everything you own for the slot, not only what you wear</label></div>
           <div class="sub" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">Keep if
             <select id="kiRar"><option value="0">any rarity</option><option value="2">Fine or better</option><option value="3">Superior or better</option><option value="4">Masterwork or better</option><option value="5">Legendary or better</option></select>
             or has <select id="kiAff"><option value="">no particular affix</option><option value="gold">Gold</option><option value="luck">Drop chance</option><option value="xp">XP</option><option value="leech">Lifesteal</option><option value="mh">Max hit</option><option value="hp">Hitpoints</option><option value="spd">Attack delay</option></select>
@@ -1300,6 +1303,7 @@ function renderClog(){const el=$('clog');if(!el||el.hidden)return;const short=S.
   if(elr.length)h+=`<div class="clh">Damage by element</div>`+clRows(elr,total);
   if(mobs.length)h+=`<div class="clh">Against the realm's monsters</div>`+clRows(mobs,total);
   if(heal.length)h+=`<div class="clh">Healing</div>`+clRows(heal,htot);
+  {const L=qmLog();if(L.kept||L.worn||L.salv||L.sold)h+=`<div class="clh">Loot, this realm</div>`+clRows([['Kept',L.kept,''],['Worn by the Quartermaster',L.worn,''],['Salvaged',L.salv,''],['Sold',L.sold,''],['Scrap from it',L.scrap,''],['Gold from it',L.gold,'']],0)+(L.last.length?`<div class="sub" style="margin-top:3px">Last to go: ${L.last.join(' · ')}</div>`:'');}
   h+=`<div class="clh">Damage taken</div>`+clRows(tk.concat([['Soaked by wards',c.ward,'']]),ttot);
   h+=`<div class="clx"><span class="sub">${short?'A second tally you can clear whenever you like.':'Kept until the next ascension.'}</span><button class="sm" id="clReset">${short?'Reset this tally':'Reset the realm log'}</button></div>`;
   el.innerHTML=h;const b=$('clReset');if(b)b.onclick=()=>{if(short)S.clogS=null;else S.clog=null;el.dataset.t=0;renderClog();};el.querySelectorAll('[data-clv]').forEach(x=>x.onclick=()=>{S.clView=x.dataset.clv;el.dataset.t=0;renderClog();});}
@@ -1380,6 +1384,25 @@ function provOf(it){if(!it||it.from===undefined||it.from===null)return null;retu
 function provName(it){return it.from==='t'?'the Tower of Trials':(AREAS[it.from]?AREAS[it.from].n:'');}
 // Keep-if: rules that hold a drop back from auto-salvage and the junk pile, and
 // one that throws off-style kit onto it even when it scores higher.
+// ============ THE QUARTERMASTER ============
+// What happens to a drop that is not worth keeping: nothing, salvage (scrap and half its gold) or a sale (full gold).
+// Junk is anything plain that fails the keep-if rules and is no better than what you own for its slot, or sits under the tier floor,
+// or belongs to another combat style when that switch is on. Uniques, set pieces, the heirloom and rune-worded gear are never junk.
+function qm(){if(!S.qm)S.qm={mode:S.autoSalv?'salvage':'off',floor:0,best:true};return S.qm;}
+function qmLog(){if(!S.qmLog)S.qmLog={kept:0,worn:0,salv:0,sold:0,scrap:0,gold:0,last:[]};const L=S.qmLog;L.last=L.last||[];return L;}
+function bestOwned(slot,skip){let b=S.equip[slot]&&S.equip[slot]!==skip?itemScore(S.equip[slot]):0;for(const x of S.inv)if(x&&x!==skip&&x.slot===slot)b=Math.max(b,itemScore(x));return b;}
+function qmJunk(it){if(!it||isSpecial(it)||it.rw||it.heir||keepRule(it))return false;if(offStyle(it))return true;const q=qm();if(q.floor&&it.tier<q.floor)return true;const cur=S.equip[it.slot];return q.best!==false?itemScore(it)<=bestOwned(it.slot,it):(!!cur&&itemScore(it)<=itemScore(cur));}
+function qmDispose(it,why){const q=qm(),L=qmLog();if(q.mode==='sell'){const g=itemValue(it);S.gold+=g;L.sold++;L.gold+=g;}else{const sc=itemScrap(it),g=Math.floor(itemValue(it)/2);S.scrap+=sc;S.gold+=g;L.salv++;L.scrap+=sc;L.gold+=g;bounty('salvage',1);}
+  L.last.unshift(itemName(it)+(why?' · '+why:''));if(L.last.length>10)L.last.length=10;return q.mode==='sell'?'sold':'salvaged';}
+// pack pressure: from 24 of 28 the worst plain piece that is junk by the rules goes first, so a unique or a set piece always finds room
+function qmPressure(){if(qm().mode==='off')return;let guard=0;while(S.inv.length>=24&&guard++<8){let worst=null,ws=Infinity;for(const x of S.inv){if(!x||isSpecial(x)||x.rw||x.heir||keepRule(x))continue;const sc=itemScore(x);if(sc<ws){ws=sc;worst=x;}}if(!worst||!qmJunk(worst))break;S.inv=S.inv.filter(x=>x!==worst);qmDispose(worst,'pack pressure');}}
+// wear a plain upgrade on the spot: never over a set piece, a unique or a rune-worded item, never another style, never something you cannot wear yet
+function qmWear(it){if(coach('wear')!=='on'||isSpecial(it)||it.rw||!chWearable(it)||offStyle(it))return false;const st=itemStyleOf(it);if(st&&st!==cstyle())return false;
+  const cur=S.equip[it.slot];if(cur&&(isSpecial(cur)||cur.rw||cur.heir))return false;if(cur&&itemScore(it)<=itemScore(cur))return false;if(!cur&&itemScore(it)<=0)return false;
+  if(it.slot==='weapon'&&WEAPONS[it.wt].two&&S.equip.shield)return false;if(it.slot==='shield'&&S.equip.weapon&&WEAPONS[S.equip.weapon.wt].two)return false;
+  S.inv.push(it);equip(it);if(S.equip[it.slot]!==it){S.inv=S.inv.filter(x=>x!==it);return false;}
+  qmLog().worn++;log(`The Quartermaster hands you ${itemName(it)}${cur?' in place of '+itemName(cur):''}.`,'g');
+  if(cur&&qm().mode!=='off'&&qmJunk(cur)){S.inv=S.inv.filter(x=>x!==cur);qmDispose(cur,'replaced');}G.dirty=true;return true;}
 function keepRule(it){const k=S.keepIf||{};if(k.rar&&it.rar>=k.rar)return true;if(k.aff&&it.aff&&it.aff[k.aff]!==undefined)return true;return false;}
 function offStyle(it){const k=S.keepIf||{};const st=itemStyleOf(it);return !!(k.style&&st&&st!==cstyle());}
 const SET_IK={head:'helm',body:'body',legs:'legs',shield:'shield'};
@@ -2172,7 +2195,7 @@ function ascend(kept,newVows){
   if(!ascReady())return false;const sh=ascShards();kept=(kept||[]).slice(0,keepLv('vault'));const held=vowText();
   heirInherit();if(S.heir&&!kept.includes(S.heir))kept=[S.heir].concat(kept);
   S.asc.hall=S.asc.hall||[];for(const a of S.asc.hall)delete a.gear;S.asc.hall.push(hallEntry());if(S.asc.hall.length>HALL_CAP+8)S.asc.hall.splice(0,S.asc.hall.length-HALL_CAP-8);
-  {const n=nem();n.lts={};n.taken=[];n.fled=false;n.vend=0;}rdReset();postMarks();S.lairK={};S.lairDone={};{const L=lab();S.lab={found:{},runs:(L.runs||0)+(L.unlocked?1:0),kills:L.kills||0};}S.clog=null;S.clogS=null;
+  {const n=nem();n.lts={};n.taken=[];n.fled=false;n.vend=0;}rdReset();postMarks();S.lairK={};S.lairDone={};{const L=lab();S.lab={found:{},runs:(L.runs||0)+(L.unlocked?1:0),kills:L.kills||0};}S.clog=null;S.clogS=null;S.qmLog=null;
   {const n=nem();if(n.slain)n.slain=false;else if(clearedCount()>=3){n.lvl++;log(`${nemName()} survived the realm. It grows.`,'e');}}
   S.asc.shards+=sh;S.asc.realm++;S.asc.count++;const om=rollOmen();S.pre=null;preNew();
   S.trial=null;S.trialOffer=S.asc.realm;S.asc.vows=(newVows||[]).filter(id=>VOWS.find(v=>v.id===id));if(held)log(`The vows of the old realm are kept: ${held}.`,'b');if(S.asc.vows.length)log(`Sworn for this realm: ${vowText()}. Shards at the next ascension ×${vowShardMult().toFixed(2)}.`,'e');
@@ -3528,6 +3551,7 @@ function nightHtml(){const any=NIGHT_MOBS.some(N=>nightKind(N.n));
 // and the phone catch-up honour them too. Every switch is earned, not handed out; a locked row shows what earns it.
 const COACH=[
  {id:'spec',n:'Special attack',d:'Loose the special the moment it is charged.',opts:[['off','Off'],['always','Always'],['boss','Bosses and goblins']],need:()=>combatLvl()>=20,lock:'combat level 20'},
+ {id:'wear',n:'Quartermaster: wear upgrades',d:'When a plain drop you can wear beats the plain piece in its slot, wear it on the spot and let the Quartermaster deal with the old one. Never over a set piece, a unique or rune-worded gear; never another style.',opts:[['off','Off'],['on','On']],need:()=>combatLvl()>=20,lock:'combat level 20'},
  {id:'boss',n:'Fight the boss',d:'Challenge the boss each time the kill count is met, cleared or not.',opts:[['off','Off'],['on','On']],need:()=>S.cleared.some(Boolean)||!!(S.asc&&S.asc.count>0),lock:'your first boss kill'},
  {id:'march',n:'March on',d:'After a boss falls, move to the next area if your hit chance there is at least the mark and you have not died in ten minutes.',opts:[['off','Off'],['on','On']],need:()=>!!(S.asc&&S.asc.count>0),lock:'your first ascension'},
  {id:'pray',n:'Prayers',d:'Relight your quick prayers when a quarter of your points are back.',opts:[['off','Off'],['always','Always'],['boss','Bosses and goblins']],need:()=>combatLvl()>=30,lock:'combat level 30'},
@@ -3889,9 +3913,11 @@ function gainItem(it){
   const cur=S.equip[it.slot];if(it.from===undefined)it.from=G.tower?'t':S.area;
   if(isSpecial(it)){markFound(it);if(S.inv.length>=28){const j=S.inv.findIndex(x=>!isSpecial(x)&&!x.rw);if(j>=0){const junk=S.inv.splice(j,1)[0];S.scrap+=itemScrap(junk);log('Pack full: salvaged '+itemName(junk)+' to make room.');}}
     if(S.inv.length<28){S.inv.push(it);sfx('rare');log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));return 'kept';}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));return 'sold';}}
-  if(S.autoSalv&&!keepRule(it)&&((cur&&itemScore(it)<=itemScore(cur))||offStyle(it))){S.scrap+=itemScrap(it);S.gold+=Math.floor(itemValue(it)/2);bounty('salvage',1);return 'salvaged';}
+  qmPressure();
+  if(qm().mode!=='off'&&qmJunk(it))return qmDispose(it,'drop');
+  if(qmWear(it))return 'worn';
   if(S.inv.length>=28){S.gold+=Math.floor(itemValue(it)/2);if(!G.sim)log('Backpack full: sold '+itemName(it)+' for '+Math.floor(itemValue(it)/2)+' gold.');return 'sold';}
-  S.inv.push(it);log('Loot: '+itemName(it),it.rar>=3?'g':'');
+  S.inv.push(it);qmLog().kept++;log('Loot: '+itemName(it),it.rar>=3?'g':'');
   if(!G.sim&&it.rar>=3)toast('Rare drop: '+itemName(it));
   return 'kept';
 }
@@ -4383,7 +4409,7 @@ function buildFilters(){
   $('fltRar').onchange=e=>{S.fltRar=e.target.value;renderBag();};
   $('fltSort').onchange=e=>{S.fltSort=e.target.value;renderBag();};
 }
-function isJunk(it){if(it.rw||isSpecial(it)||keepRule(it))return false;if(offStyle(it))return true;const cur=S.equip[it.slot];return !!cur&&itemScore(it)<=itemScore(cur);}
+function isJunk(it){return qmJunk(it);}   // the Sell junk and Salvage junk buttons follow the Quartermaster's rules
 function sellJunk(){
   let n=0,g=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;g+=itemValue(it);return false;}return true;});S.gold+=g;if(n){sfx('coin');S.junkActs=(S.junkActs||0)+1;}
   toast(n?`Sold ${n} piece${n>1?'s':''} for ${fmt(g)} gold.`:'Nothing in the pack is junk.');renderAll();
@@ -4415,7 +4441,7 @@ function renderStore(){const el=$('store');if(!el)return;el.innerHTML='';$('stor
 
 function renderBag(){
   const el=$('bag');el.innerHTML='';$('bagCnt').textContent=S.inv.length+'/28';
-  $('chestCnt').textContent=S.chests;$('scrapCnt').textContent=S.scrap;$('autoSalv').checked=S.autoSalv;
+  $('chestCnt').textContent=S.chests;$('scrapCnt').textContent=S.scrap;$('qmMode').value=qm().mode;$('qmFloor').value=String(qm().floor||0);$('qmBest').checked=qm().best!==false;
   $('kiRar').value=String((S.keepIf&&S.keepIf.rar)||0);$('kiAff').value=(S.keepIf&&S.keepIf.aff)||'';$('kiStyle').checked=!!(S.keepIf&&S.keepIf.style);
   $('fltSlot').value=S.fltSlot;$('fltRar').value=S.fltRar;$('fltSort').value=S.fltSort;
   $('btnChest').disabled=$('btnChestAll').disabled=S.chests<=0;
@@ -5282,7 +5308,7 @@ $('btnChestAll').onclick=openAllChests;
 $('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;$('btnSellAll').onclick=sellAll;
 $('prevArea').onclick=()=>{if(!G.tower)goArea(S.area-1);};
 $('nextArea').onclick=()=>{if(!G.tower)goArea(S.area+1);};
-$('autoSalv').onchange=e=>S.autoSalv=e.target.checked;
+$('qmMode').onchange=e=>{qm().mode=e.target.value;S.autoSalv=e.target.value!=='off';renderAll();};$('qmFloor').onchange=e=>{qm().floor=+e.target.value;renderAll();};$('qmBest').onchange=e=>{qm().best=e.target.checked;renderAll();};
 $('kiRar').onchange=e=>{S.keepIf.rar=+e.target.value;};$('kiAff').onchange=e=>{S.keepIf.aff=e.target.value;};$('kiStyle').onchange=e=>{S.keepIf.style=e.target.checked;renderAll();};
 $('autoBury').onchange=e=>S.pray.autoBury=e.target.checked;
 $('btnBury').onclick=()=>{const n=bury(99);toast(n?`Buried ${n} bones`:'Nothing to bury.');renderAll();};
@@ -5323,7 +5349,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b182-kit89m';window.__ihBoot=true;
+  const BUILD='b183-quartermaster';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

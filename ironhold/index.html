@@ -3020,18 +3020,16 @@ function sprFrame(k,i){const a=SPR[k];if(!a||!a.length)return null;
   const n=a.length;i=Math.min(i,n-1);
   for(let d=0;d<n;d++){const im=a[(i+d)%n];if(sprOk(im))return im;}
   return null;}
-const OFF=document.createElement('canvas');OFF.width=Math.round(VW*SCALE);OFF.height=Math.round(VH*SCALE);
-const octx=OFF.getContext('2d');octx.setTransform(SCALE,0,0,SCALE,0,0);
+// The hit flash is an additive redraw of the sprite over itself: no offscreen buffer, which some phones hand back as
+// uninitialised (magenta) memory when the tinted copy is drawn back.
 // x = anchor (between the feet), y = ground line. Frames are 2x, so scale 0.5.
 function drawSprite(img,x,y,flip,flash,scale,rot){
   if(!img||!img.naturalWidth)return;
   scale=scale||0.5;if(img.naturalHeight*scale>162)scale=162/img.naturalHeight;const w=img.naturalWidth*scale,h=img.naturalHeight*scale;
-  const c=flash>0?octx:ctx;
-  if(flash>0){octx.clearRect(0,0,VW,VH);}
+  const c=ctx;
   c.save();c.translate(x,y);if(flip)c.scale(-1,1);if(rot)c.rotate(rot);c.drawImage(img,-w/2,-h,w,h);
-  if(flash>0){c.globalCompositeOperation='source-atop';c.globalAlpha=flash;c.fillStyle='#fff';c.fillRect(-w/2-2,-h-2,w+4,h+4);}
+  if(flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=Math.min(1,flash);c.drawImage(img,-w/2,-h,w,h);c.drawImage(img,-w/2,-h,w,h);}
   c.restore();
-  if(flash>0)ctx.drawImage(OFF,0,0,VW,VH);
 }
 // Which painted champion to show: set kit > unique weapon > tier kit > weapon shape on base kit > bare base
 function heroLook(){
@@ -5366,7 +5364,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b184-balance';window.__ihBoot=true;
+  const BUILD='b185-flash';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

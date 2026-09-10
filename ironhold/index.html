@@ -729,6 +729,8 @@
             <button class="sm" id="btnSellAll" title="Sell everything in the pack; only the Heirloom stays">Sell all</button>
             <button class="sm" id="btnChest">Open 1 (<span id="chestCnt">0</span>)</button>
             <button class="sm" id="btnChestAll">Open all</button>
+            <button class="sm" id="btnChest2" hidden>Open Banded (<span id="chest2Cnt">0</span>)</button>
+            <button class="sm" id="btnChest3" hidden>Open Gilded (<span id="chest3Cnt">0</span>)</button>
           </div>
           <div class="bag" id="bag"></div>
           <div class="sub" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><b class="gold">Quartermaster</b>
@@ -1222,6 +1224,8 @@ const SETS={
  tr_alone:{col:'#2a2a3a',hl:'#a0a8c8',n:'Lone Blade',tier:9,home:'trial:alone',sl:['head','cape','amulet'],ik:{head:'head',cape:'cape',amulet:'amulet'},pieces:{head:'Lone Hood',cape:'Lone Cloak',amulet:'Lone Token'},b2:{dr:4,hp:15},b4:{},bfull:{dr:6,hp:30,mh:6}},
  tr_iron:{col:'#3a3a3a',hl:'#c0c0c8',n:'Iron Rules',tier:9,home:'trial:ironrules',sl:['body','legs','boots'],ik:{body:'body',legs:'legs',boots:'boots'},pieces:{body:'Iron Cuirass',legs:'Iron Greaves',boots:'Iron Sabatons'},b2:{def:15,hp:20},b4:{},bfull:{def:20,hp:40,dr:6}},
  tr_silent:{col:'#2a2020',hl:'#c8b8a8',n:'Ascetic',tier:9,home:'trial:silent',sl:['head','body','cape'],ik:{head:'head',body:'body',cape:'cape'},pieces:{head:'Ascetic Cowl',body:'Ascetic Robe',cape:'Ascetic Shawl'},b2:{xp:8,mh:4},b4:{},bfull:{xp:12,mh:8,dr:5,luck:8}},
+ vault:{col:'#4a3a2a',hl:'#c9a04a',n:'Vaultkeeper',tier:8,home:'chest2',sl:['head','body','legs','gloves','boots','cape','amulet','ring'],ik:{head:'head',body:'body',legs:'legs',gloves:'gloves',boots:'boots',cape:'cape',amulet:'amulet',ring:'ring'},pieces:{head:'Warden\'s Helm',body:'Strongroom Plate',legs:'Banded Greaves',gloves:'Locksmith\'s Gloves',boots:'Ironshod Boots',cape:'Keeper\'s Cloak',amulet:'Key Amulet',ring:'Tumbler Ring'},b2:{gold:10},b4:{luck:8,hp:10},bfull:{gold:20,luck:12,def:10,hp:30}},
+ gilt:{col:'#5a4210',hl:'#ffe08a',n:'Gilded',tier:9,home:'chest3',sl:['head','body','legs','gloves','boots','cape','amulet','ring'],ik:{head:'head',body:'body',legs:'legs',gloves:'gloves',boots:'boots',cape:'cape',amulet:'amulet',ring:'ring'},pieces:{head:'Gilded Crown',body:'Gilded Cuirass',legs:'Gilded Greaves',gloves:'Gilded Gauntlets',boots:'Gilded Sabatons',cape:'Cloth of Gold',amulet:'Gilded Torc',ring:'Gilded Band'},b2:{mh:6,gold:8},b4:{atk:10,str:10,luck:8},bfull:{mh:15,atk:15,str:15,def:12,gold:20,hp:40}},
  pyre:{col:'#3a0a0a',hl:'#ff7a2a',n:'Pyrelord',tier:9,home:'pyre',sl:['head','body','legs','gloves','boots','cape','amulet','ring'],ik:{head:'head',body:'body',legs:'legs',gloves:'gloves',boots:'boots',cape:'cape',amulet:'amulet',ring:'ring'},pieces:{head:'Horned Crown',body:'Brandplate',legs:'Ashen Greaves',gloves:'Clawed Gauntlets',boots:'Hoofplate',cape:'Wings',amulet:'Coal Heart',ring:'Brand Ring'},b2:{mh:8,leech:4},b4:{spd:10,dr:8},bfull:{mh:20,atk:15,str:15,def:15,luck:15,hp:60}},
 };
 const SET_SLOTS=['head','body','legs','shield'];
@@ -1259,6 +1263,8 @@ const SET_POWERS={
  tr_alone:{n:'Solitude',d:'With no companion fielded: +15% max hit and 10% less damage taken.'},
  tr_iron:{n:'Last Stand',d:'Below 30% health you take 30% less damage.'},
  tr_silent:{n:'Stillness',d:'After a miss, your next swing is a sure hit.'},
+ vault:{n:'Coffer',d:'One kill in ten drops double gold, and every chest you open holds a second piece.'},
+ gilt:{n:'Gilded Storm',el:'lightning',d:'Every fifth swing chains: a second hit up to your full max hit.'},
  pyre:{n:'Hellfire',el:'fire',d:'Hits burn for 12% a second, the fire passes on at a kill, and every fifth swing is an infernal second hit up to your full max hit.'},
 };
 function setPowers(){const c=setCounts();const out=[];for(const k in c)if(SET_POWERS[k]&&c[k]>=setNeed(k))out.push(k);return out;}
@@ -1275,6 +1281,7 @@ function pwExtra(spec){const sw=G.swings||0;
   if(hasPw('tr_bare')&&Math.random()<0.3)return [0.6,'flurry','#ffd24a',0];
   if(hasPw('wyrm')&&!spec&&sw%6===0)return [1.0,'breath','#ff8c1a',0];
   if(hasPw('pyre')&&!spec&&sw%5===0)return [1.0,'infernal','#ff8c1a',0];
+  if(hasPw('gilt')&&!spec&&sw%5===0)return [1.0,'chain','#ffe66a',0];
   return null;}
 // what an element does to the foe when a hit lands
 // ============ COMBAT LOG ============
@@ -1357,6 +1364,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b186',t:'The Mimic\'s appetite',w:'Chests fall a little less often. The Mimic (Vault › Medallion) eats five chests for a Banded chest and five Banded for a Gilded one; the Vaultkeeper and Gilded sets come only from those.'},
  {b:'b184',t:'Balance: Sovereign, poison, ice',w:'Crown of Light lands 30% harder and smites every fourth swing; poison caps at four stacks; chilled foes take 20% more; Hail one shot in four.'},
  {b:'b183',t:'The Quartermaster',w:'Vault › Pack: salvage or sell drops that are not upgrades, with a tier floor. Train › The Coach: wear plain upgrades on the spot. The Combat log has a Loot section.'},
  {b:'b181',t:'Top-tier looks',w:'Obsidian and Starsteel plate wear their own armour; the hide and robe tiers borrow Dragon until their art lands.'},
@@ -2128,6 +2136,8 @@ const FEATS=[
  // the Chronicler's set, earned by the numbers and nothing else
  {id:'ch_kills',n:'A Hundred Thousand',d:'Slay 100,000 monsters',t:()=>S.totalKills>=100000,rw:{piece:['chron','body']}},
  // Labfreak's Laboratory: the beaker hunt and the boss under the pasture
+ {id:'mimic_banded',n:'Fed the Mimic',d:'Open a Banded chest',t:()=>(S.chestsOpened2||0)>=1,rw:{shards:10}},
+ {id:'mimic_gilded',n:'Gilded Appetite',d:'Open a Gilded chest',t:()=>(S.chestsOpened3||0)>=1,rw:{shards:25},title:'the Keeper'},
  {id:'lab_first',n:'Strange Glassware',d:()=>`Pocket a beaker that should not be there (${labCount()}/${LAB_BEAKERS.length} this realm)`,t:()=>labCount()>=1||(lab().runs||0)>0,rw:{rune:1}},
  {id:'lab_all',n:'The Full Rack',d:()=>`Gather all ${LAB_BEAKERS.length} beakers and wake the laboratory under the Cow Pasture`,t:()=>labActive()||(lab().runs||0)>0,rw:{shards:10}},
  {id:'lab_slay',n:'Mad Science',d:'Slay Labfreak in his laboratory',t:()=>(lab().kills||0)>=1,rw:{jewel:1},title:'the Alchemist'},
@@ -2202,10 +2212,10 @@ function offer(id){const b=BOONS.find(x=>x.id===id);if(!b||!boonOpen(b)||boonRan
   S.gold-=c;S.asc.boons=S.asc.boons||{};S.asc.boons[id]=boonRank(id)+1;log(`The Mimic swallows ${fmt(c)} gold and grins. ${b.n} ${boonRank(id)}.`,'g');G.dirty=true;return true;}
 function mimicHtml(){const r=(S.asc&&S.asc.realm)||0;const first=BOONS[0].realm;
   const art=`<div class="mimic-art" id="mimicArt"><img src="${MIMIC_ART}" alt=""></div>`;
-  if(r<first)return `<div class="altar mimic">${art}<div><h3>The Mimic</h3><p>A chest that is not a chest, squatting by the altar. It wants gold, and it knows things shards do not. From realm ${first+1} it will take an offering.</p></div></div>`;
+  if(r<first)return `<div class="altar mimic">${art}<div><h3>The Mimic</h3><p>A chest that is not a chest, squatting by the altar. It wants gold, and it knows things shards do not. From realm ${first+1} it will take an offering.</p>${mimicFeedHtml()}</div></div>`;
   return `<div class="altar mimic">${art}<div><h3>The Mimic</h3><p>Feed it gold and it gives back what shards cannot. Each feeding costs more than twice the last, and ascending empties the purse — feed it before you climb.</p><div class="offer-list">`+BOONS.map(b=>{const k=boonRank(b.id),open=boonOpen(b),full=k>=b.max,c=boonCost(b);
     return `<div class="offer"><div><b>${b.n}</b> <span class="gold">${'★'.repeat(k)}</span><span class="sub">${'☆'.repeat(b.max-k)}</span><br><span class="sub">${b.d}${open?'':` · opens at realm ${b.realm+1}`}</span></div>`+
-      `<button class="sm" data-offer="${b.id}" ${open&&!full&&S.gold>=c?'':'disabled'}>${full?'Sated':open?'Feed '+fmt(c)+' gold':'Sealed'}</button></div>`;}).join('')+`</div></div></div>`;}
+      `<button class="sm" data-offer="${b.id}" ${open&&!full&&S.gold>=c?'':'disabled'}>${full?'Sated':open?'Feed '+fmt(c)+' gold':'Sealed'}</button></div>`;}).join('')+`</div>${mimicFeedHtml()}</div></div>`;}
 function ascend(kept,newVows){
   if(!ascReady())return false;const sh=ascShards();kept=(kept||[]).slice(0,keepLv('vault'));const held=vowText();
   heirInherit();if(S.heir&&!kept.includes(S.heir))kept=[S.heir].concat(kept);
@@ -2416,7 +2426,7 @@ const TITLE_PERK={
  'Wyrmslayer':{d:'+4% max hit',eff:{mh:4}},'Starforged':{d:'+3% every combat roll',eff:{rolls:3}},'Thrice Risen':{d:'+5% XP',eff:{xp:5}},
  'Sovereign':{d:'+8% gold',eff:{gold:8}},'Master at Arms':{d:'+3 attack and strength bonus',eff:{atk:3,str:3}},'Lord of Ironhold':{d:'+3% damage reduction',eff:{dr:3}},
  'Kingmaker':{d:'+5% gold',eff:{gold:5}},'the Usurper':{d:'+3% max hit',eff:{mh:3}},'the Reclaimer':{d:'+2% lifesteal',eff:{leech:2}},'the Night Warden':{d:'+4% drops',eff:{luck:4}},'Bandleader':{d:'+4% gold',eff:{gold:4}},'Huntmaster':{d:'+2% max hit and drops',eff:{mh:2,luck:2}},
- 'Fowlslayer':{d:'+2% attack speed',eff:{spd:2}},'the Alchemist':{d:'+2% max hit',eff:{mh:2}},'the Lab Rat':{d:'+3% XP',eff:{xp:3}},'Beastslayer':{d:'+2 strength bonus',eff:{str:2}},'Kingslayer':{d:'+3% gold',eff:{gold:3}},'Spiderslayer':{d:'+2 attack bonus',eff:{atk:2}},'Graveslayer':{d:'+3% XP',eff:{xp:3}},'Giantslayer':{d:'+2% max hit',eff:{mh:2}},'Demonslayer':{d:'+2% damage reduction',eff:{dr:2}},'Dragonslayer':{d:'+3% max hit',eff:{mh:3}},
+ 'Fowlslayer':{d:'+2% attack speed',eff:{spd:2}},'the Keeper':{d:'+5% gold',eff:{gold:5}},'the Alchemist':{d:'+2% max hit',eff:{mh:2}},'the Lab Rat':{d:'+3% XP',eff:{xp:3}},'Beastslayer':{d:'+2 strength bonus',eff:{str:2}},'Kingslayer':{d:'+3% gold',eff:{gold:3}},'Spiderslayer':{d:'+2 attack bonus',eff:{atk:2}},'Graveslayer':{d:'+3% XP',eff:{xp:3}},'Giantslayer':{d:'+2% max hit',eff:{mh:2}},'Demonslayer':{d:'+2% damage reduction',eff:{dr:2}},'Dragonslayer':{d:'+3% max hit',eff:{mh:3}},
  'the Barehanded':{d:'+2% max hit',eff:{mh:2}},'the Lone Blade':{d:'+5% every roll with no companion fielded',eff:{lone:5}},'of Iron Rules':{d:'+4% damage reduction',eff:{dr:4}},'the Ascetic':{d:'+4% every combat roll',eff:{rolls:4}},
 };
 function titlePerk(){const t=heroTitle();return (t&&TITLE_PERK[t])||null;}
@@ -3852,7 +3862,7 @@ function killMob(){
   if(G.mob&&G.mob.gob){G.mobHp=G.mob.hp;return;}   // cannot be killed, only shaken
   const m=G.mob,A=AREAS[S.area],b=bonuses();
   sfx(G.isBoss||G.nem||G.lt||G.mark||G.lair!=null||G.duel!=null?'bosskill':'kill');S.totalKills++;G.streak=0;G.kstreak=(G.kstreak||0)+1;if(!G.sim){G.killT=(G.killT||[]).filter(x=>Date.now()-x<60000);G.killT.push(Date.now());}draughtKill();profCount();
-  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;   // the Abyss holds its gold until it is banked
+  const g=Math.round(rnd(m.gold[0],m.gold[1])*(1+b.gold/100)*curseEff('gold',1)*omenEff('gold',1)*vowMul('gold')*(1+areaMast(S.area,'gold')/100)*(eliteOf(m)?(eliteOf(m).gold||1.5):1));if(!abyssW())S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;if(hasPw('vault')&&!abyssW()&&Math.random()<0.1){S.gold+=g;S.goldEarned+=g;if(!G.sim)splat(MX-10,36,'double gold','#ffd24a');}   // the Abyss holds its gold until it is banked
   const luck=(1+b.luck/100)*diff().luck*curseEff('luck',1)*omenEff('luck',1)*vowMul('luck')*(1+areaMast(S.area,'luck')/100)*(eliteOf(m)?2:1)*((G.ambush||0)>0?3:1);if((G.ambush||0)>0)G.ambush--;
   rd().kills++;bestCount(m);clMob(m,0,1,0);
   if(hasPw('meadow')){S.hp=Math.min(maxHp(),S.hp+Math.max(1,Math.round(maxHp()*0.05)));clAdd('heal','meadow',Math.max(1,Math.round(maxHp()*0.05)));}if(hasPw('set_scout'))G.pT=0;if(hasPw('chron')){S.chronK=(S.chronK||0)+1;if(S.chronK%25===0){S.chests++;if(!G.sim)toast('Footnote: a chest');}}if(hasPw('ash'))G.carryBurn=8;if(hasPw('pyre'))G.carryBurn=12;
@@ -3894,7 +3904,7 @@ function killMob(){
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1+tierBonus(),0,tierCap()),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
-  if(Math.random()<(G.isBoss?1:0.025)*luck*(1+0.25*keepEff('chest'))*(1+medEff('chest')/100)*creedEff('chestx',1)){S.chests++;log('You found a chest!','g');}
+  if(Math.random()<(G.isBoss?1:0.02)*(1+(luck-1)*0.5)*(1+0.25*keepEff('chest'))*(1+medEff('chest')/100)*creedEff('chestx',1)){S.chests++;log('You found a chest!','g');}
   if(Math.random()<0.10*(1+0.1*keepEff('yard'))*creedEff('scrapx',1))S.scrap+=(1+keepEff('yard'))*omenEff('scrap',1);
   if(Math.random()<(G.isBoss?1:0.02)*luck*omenEff('rune',1)*creedEff('runex',1))gainRune(G.isBoss);
   if(!G.isBoss&&diff().n==='Torment')rollSeal(S.area,luck*0.12,false);
@@ -4437,7 +4447,7 @@ function salvageJunk(){
   let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);if(n){sfx('coin');S.junkActs=(S.junkActs||0)+1;}
   toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the pack is junk.');renderAll();
 }
-function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest();n++;}if(!n)toast(S.chests?'Pack is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
+function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest(1);n++;}if(!n)toast(S.chests?'Pack is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
 // ============ STORAGE ============
 // A strongroom off the pack. Gear sent here takes no pack space and is never
 // auto-salvaged; the vault may pick from it; ascension empties it.
@@ -4457,7 +4467,7 @@ function renderBag(){
   $('chestCnt').textContent=S.chests;$('scrapCnt').textContent=S.scrap;$('qmMode').value=qm().mode;$('qmFloor').value=String(qm().floor||0);$('qmBest').checked=qm().best!==false;
   $('kiRar').value=String((S.keepIf&&S.keepIf.rar)||0);$('kiAff').value=(S.keepIf&&S.keepIf.aff)||'';$('kiStyle').checked=!!(S.keepIf&&S.keepIf.style);
   $('fltSlot').value=S.fltSlot;$('fltRar').value=S.fltRar;$('fltSort').value=S.fltSort;
-  $('btnChest').disabled=$('btnChestAll').disabled=S.chests<=0;
+  $('btnChest').disabled=$('btnChestAll').disabled=S.chests<=0;$('chest2Cnt').textContent=S.chests2||0;$('chest3Cnt').textContent=S.chests3||0;$('btnChest2').hidden=!(S.chests2>0);$('btnChest3').hidden=!(S.chests3>0);
   $('runes').innerHTML=RUNES.map((r,i)=>`<div class="rune"><div class="g" style="color:${RUNE_COL[i]}">${r[0]}</div>${r}<br><b>×${S.runes[i]}</b></div>`).join('');
   $('runewords').innerHTML=RUNEWORDS.map(rw=>`<div class="rw"><div><span class="rn">${rw.n}</span> <span class="sub">${rw.slots.length===SLOTS.length?'any slot':rw.slots.join(' / ')}</span><br>${rw.d}</div><div class="${canInscribe(rw)?'ok':'no'}">${rw.r.map(i=>RUNES[i]).join(' + ')}</div></div>`).join('');
   let list=S.inv.filter(it=>(!S.fltSlot||it.slot===S.fltSlot)&&(!S.fltRar||it.rar===+S.fltRar));
@@ -4605,6 +4615,8 @@ function codexSource(h,kind,key){
   if(typeof h==='string'&&h.startsWith('boss:')){const A=AREAS[+h.slice(5)];return `Carried by ${A.boss.n}, the boss of ${A.n}: 8% on the first clear, 2% after.`;}
   if(h==='mid')return 'Drops from the monsters of any area from the Barbarian Camp on, about one in 700 kills.';
   if(h==='chest')return 'A hold relic: found in chests, about one chest in twenty.';
+  if(h==='chest2')return 'The Vaultkeeper set: only from Banded chests, one chest in five. The Mimic makes a Banded chest of five plain ones.';
+  if(h==='chest3')return 'The Gilded set: only from Gilded chests, one chest in three. The Mimic makes a Gilded chest of five Banded ones, and a Banded chest of five plain.';
   if(h==='late')return 'Found in chests once you have reached the Frozen Pass or tower floor 30.';
   if(h==='feat'){const U=UNIQUES[key];const f=U&&U.feat&&FEATS.find(x=>x.id===U.feat);return `Earned on the feats board under Train${f?`: “${f.n}”, ${typeof f.d==='function'?f.d():f.d.toLowerCase()}`:''}.`;}
   if(h==='chron')return 'The Chronicler\'s set: earned by the numbers, one piece per milestone on the feats board. A hundred thousand kills, ten million gold, a thousand chests, tower floor 200, Abyss wave 100, fifty goblins, ten ascensions, a thousand hours. No drop luck anywhere in it.';
@@ -4888,6 +4900,7 @@ function wireKeep(){
   kq('[data-raze]').forEach(b=>b.onclick=()=>{if(!canRaze())return;if(confirm('Raze the hold? All five buildings fall to level 0 and must be raised again. The hold comes back a Dynasty rank stronger, for good.')){razeHold();renderAll();}});
   kq('[data-heir]').forEach(b=>b.onclick=()=>{if(forgeHeir())renderAll();});
   kq('[data-offer]').forEach(b=>b.onclick=()=>{if(offer(b.dataset.offer)){toast('The Mimic is pleased');renderAll();}});
+  kq('[data-feed]').forEach(b=>b.onclick=()=>{if(mimicFeed(+b.dataset.feed))renderAll();});
   $('kAsc').onclick=()=>{if(!ascReady())return;
     let h=`<div class="mhead"><div><h2>Ascend</h2><div class="sub">+${ascShards()} shards. Skills, gear, gold, food and areas reset. Swear one of three creeds for the realm ahead. No creed is ever lost: every one you have sworn stays in force and they stack, so choose for the champion you are becoming.</div></div></div>`;
     h+=`<div class="aff" style="margin:8px 0 4px"><b>Vows for the next realm</b><br><span class="sub">Swear as many as you dare. They multiply together and hold for the whole realm; each one pays +${Math.round(VOW_SHARDS*100)}% shards when you ascend again.</span></div><div class="vowlist">`+VOWS.map(v=>`<label><input type="checkbox" data-vow="${v.id}"><span><b>${v.n}</b><br><span style="color:var(--green)">${v.up}</span> <span class="sub">·</span> <span style="color:#ff8a7a">${v.down}</span></span></label>`).join('')+`</div><div class="sub" id="vowSum">No vows: an ordinary realm.</div>`;
@@ -5241,14 +5254,27 @@ function claimFree(wt){
   renderAll();
 }
 function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
-function openChest(){
-  if(S.chests<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
-  S.chests--;S.chestsOpened=(S.chestsOpened||0)+1;bounty('chests',1);const A=AREAS[S.area];if(!lab().found.chest&&Math.random()<0.001)labFind('chest');
-  const it=rollUnique({chest:true,late:S.area>=5||(S.tower.best||0)>=30},1+bonuses().luck/100)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));
-  const g=rnd(20,60)*(A.tier+1);S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;S.inv.push(it);markFound(it);
-
-  sfx('chest');log(`Chest: ${itemName(it)} and ${g} gold.`,'g');toast(`Chest: ${itemName(it)}`);renderAll();
+// Three kinds of chest. Plain ones fall in the field; the Mimic eats five plain for a Banded chest and five Banded for a Gilded one.
+// Banded chests roll better gear and one in five holds a Vaultkeeper piece; Gilded chests roll the best and one in three holds a Gilded piece.
+const CHEST_KINDS={1:{n:'Chest',k:'chests'},2:{n:'Banded chest',k:'chests2'},3:{n:'Gilded chest',k:'chests3'}};
+const MIMIC_FEED=5;
+function chestCount(kind){return S[CHEST_KINDS[kind||1].k]||0;}
+function chestRoll(kind){const A=AREAS[S.area];const late=S.area>=5||(S.tower.best||0)>=30;const lk=1+bonuses().luck/100;
+  if(kind===3){if(Math.random()<1/3){const sl=setSlots('gilt');return makeSetPiece('gilt',sl[rnd(0,sl.length-1)]);}return rollUnique({chest:true,late:true},lk*4)||makeItem(tierCap(),SLOTS[rnd(0,9)],Math.min(RARITY.length-1,Math.max(5,rollRarity(3))));}
+  if(kind===2){if(Math.random()<1/5){const sl=setSlots('vault');return makeSetPiece('vault',sl[rnd(0,sl.length-1)]);}return rollUnique({chest:true,late:late||S.area>=3},lk*2)||makeItem(clamp(A.tier+1,0,tierCap()),SLOTS[rnd(0,9)],Math.min(RARITY.length-1,Math.max(4,rollRarity(2))));}
+  return rollUnique({chest:true,late},lk)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));}
+function openChest(kind){kind=kind||1;const K=CHEST_KINDS[kind];
+  if(chestCount(kind)<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
+  S[K.k]--;S.chestsOpened=(S.chestsOpened||0)+1;if(kind>1)S['chestsOpened'+kind]=(S['chestsOpened'+kind]||0)+1;bounty('chests',1);const A=AREAS[S.area];if(kind===1&&!lab().found.chest&&Math.random()<0.001)labFind('chest');
+  const it=chestRoll(kind);const g=rnd(20,60)*(A.tier+1)*(kind===3?25:kind===2?5:1);S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;S.inv.push(it);markFound(it);
+  let extra=null;if(hasPw('vault')&&S.inv.length<28){extra=chestRoll(kind);S.inv.push(extra);markFound(extra);}
+  if(kind===3&&Math.random()<1/6)gainRune(true);
+  sfx(kind>1?'rare':'chest');log(`${K.n}: ${itemName(it)}${extra?' and '+itemName(extra):''} and ${fmt(g)} gold.`,'g');toast(`${K.n}: ${itemName(it)}`);renderAll();
 }
+function mimicFeed(kind){const from=kind===3?2:1;if(chestCount(from)<MIMIC_FEED)return false;S[CHEST_KINDS[from].k]-=MIMIC_FEED;S[CHEST_KINDS[kind].k]=(S[CHEST_KINDS[kind].k]||0)+1;S.mimicFed=(S.mimicFed||0)+1;sfx('rare');
+  log(`The Mimic swallows ${MIMIC_FEED} ${CHEST_KINDS[from].n.toLowerCase()}s and coughs up a ${CHEST_KINDS[kind].n.toLowerCase()}.`,'g');if(!G.sim)toast(`The Mimic gives back a ${CHEST_KINDS[kind].n.toLowerCase()}`);return true;}
+function mimicFeedHtml(){const row=(kind)=>{const from=kind===3?2:1;const have=chestCount(from);return `<div class="offer"><div><b>${CHEST_KINDS[kind].n}</b><br><span class="sub">${MIMIC_FEED} ${CHEST_KINDS[from].n.toLowerCase()}s go in, one comes out. ${kind===2?'Better gear, and one in five holds a Vaultkeeper piece.':'The best gear, one in three holds a Gilded piece, one in six a rune.'} You have ${have}.</span></div><button class="sm" data-feed="${kind}" ${have>=MIMIC_FEED?'':'disabled'}>Feed ${MIMIC_FEED}</button></div>`;};
+  return `<div class="offer-list" style="margin-top:6px"><div class="sub"><b>Its appetite.</b> Chests, too, and it gives back a finer one.</div>${row(2)}${row(3)}</div>`;}
 
 
 // ============ SAVE / OFFLINE ============
@@ -5317,7 +5343,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 $('onbGo').onclick=()=>{const st=onbCur();if(st&&st.tab)showTab(st.tab);};$('onbX').onclick=onbOff;$('btnOnb').onclick=()=>{onbReplay();$('lgModal').className='';renderAll();};
 $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);sfx('boss');log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
-$('btnChest').onclick=openChest;
+$('btnChest').onclick=()=>openChest(1);$('btnChest2').onclick=()=>openChest(2);$('btnChest3').onclick=()=>openChest(3);
 $('btnChestAll').onclick=openAllChests;
 $('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;$('btnSellAll').onclick=sellAll;
 $('prevArea').onclick=()=>{if(!G.tower)goArea(S.area-1);};
@@ -5364,7 +5390,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b185-flash';window.__ihBoot=true;
+  const BUILD='b186-mimic';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

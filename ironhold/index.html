@@ -712,9 +712,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:-6px}
 .bdg{top:-3px;right:-3px}
 /* the fight HUD */
 .hb .o{width:44px;height:44px;border:0;box-shadow:none;background:var(--ui-orb) center/100% 100% no-repeat,radial-gradient(circle at 40% 35%,#3a2a18,#0d0906 75%);transition:none}
-.hb.on .o,.hb.ready .o{background-image:var(--ui-orb-lit),radial-gradient(circle at 40% 35%,#5a4220,#1a120a 75%);box-shadow:none}
-.hb.off .o{background-image:var(--ui-orb-off),radial-gradient(circle at 40% 35%,#241a10,#0d0906 75%)}.hb.off{opacity:.8}
-.hb.skull .o{background-image:var(--ui-orb-boss),radial-gradient(circle at 40% 35%,#3a1418,#0d0608 75%)}
+.hb.on .o,.hb.ready .o{background:var(--ui-orb-lit) center/100% 100% no-repeat,radial-gradient(circle at 40% 35%,#5a4220,#1a120a 75%);box-shadow:none}
+.hb.off .o{background:var(--ui-orb-off) center/100% 100% no-repeat,radial-gradient(circle at 40% 35%,#241a10,#0d0906 75%)}.hb.off{opacity:.8}
+.hb.skull .o{background:var(--ui-orb-boss) center/100% 100% no-repeat,radial-gradient(circle at 40% 35%,#3a1418,#0d0608 75%)}
 .hb .o .ico,.hb .o .ico-pot,#hudPrayIco{width:24px;height:24px;display:block;background:var(--ico-spec) center/contain no-repeat}
 .hb .o .ico svg,.hb .o .ico-pot svg,#hudPrayIco img{display:none}
 .hb .o .ico[data-ico=eat]{background-image:var(--ico-eat)}.hb .o .ico[data-ico=skull]{background-image:var(--ico-boss)}
@@ -737,12 +737,12 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:-6px}
 .pk{background:var(--ui-key) center/contain no-repeat;font-size:0;width:14px;height:14px;display:inline-block}
 
 /* ---- kit, batches 6-9: map pins, slots, rarity frames, room and skill icons, chests ---- */
-.pin .pi{width:38px;height:38px;border:0;border-radius:0;box-shadow:none;background:var(--ui-pin) center/100% 100% no-repeat}
-.pin .pi[style]::before{content:"";position:absolute;inset:8px;background:var(--pi) center/contain no-repeat}
+.pin .pi{width:34px;height:34px;border:0;border-radius:0;box-shadow:none;background:var(--ui-pin) center/100% 100% no-repeat}
+.pin .pi[style]::before{content:"";position:absolute;inset:7px;background:var(--pi) center/contain no-repeat}
 .pin:hover .pi{background:var(--ui-pin) center/100% 100% no-repeat;filter:brightness(1.25)}
 .pin.cur .pi{background-image:var(--ui-pin-cur);box-shadow:none}
 .pin .pi{background:var(--ui-pin) center/100% 100% no-repeat,radial-gradient(circle,#1a120a 58%,transparent 62%)}.pin.cur .pi{background-image:var(--ui-pin-cur),radial-gradient(circle,#2a1d10 58%,transparent 62%)}.pin.lock .pi{background-image:var(--ui-pin-lock),radial-gradient(circle,#0e0a07 58%,transparent 62%)}.pin.lock .pi::before{opacity:.7;filter:grayscale(.8)}
-.pin .pl{border:6px solid transparent;border-image:var(--ui-pin-label) 16 fill / 6px stretch;color:#2a1a08;text-shadow:none;font:bold 9px Cinzel,Georgia,serif;padding:0 2px;margin-top:-2px}
+.pin .pl{border:4px solid transparent;border-image:var(--ui-pin-label) 16 fill / 4px stretch;color:#2a1a08;text-shadow:none;font:bold 8px/1.3 Cinzel,Georgia,serif;letter-spacing:0;padding:0 3px;margin-top:-3px;max-width:70px;text-align:center}
 .slot.recess{border:9px solid transparent;border-image:var(--ui-slot) 24 fill / 9px stretch;background:none;box-shadow:none;border-radius:0;padding:2px}
 .slot.filled{box-shadow:none;outline:2px solid var(--rc,#000);outline-offset:-10px}
 .slot.empty::before{width:64%;aspect-ratio:1;border-radius:0;background:var(--gh) center/contain no-repeat;box-shadow:none;opacity:.7;margin-bottom:0}
@@ -760,6 +760,14 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:-6px}
 .bld[data-fold=barracks] .art{background-image:var(--bld-barracks)}.bld[data-fold=vault] .art{background-image:var(--bld-vault)}
 #btnChest::before,#btnChest2::before,#btnChest3::before,#kChest::before,[data-feed]::before{content:"";display:inline-block;width:20px;height:20px;vertical-align:-5px;margin-right:4px;background:var(--chest-1) center/contain no-repeat}
 #btnChest2::before{background-image:var(--chest-2)}#btnChest3::before{background-image:var(--chest-3)}[data-feed]::before{background-image:var(--ui-feed)}
+
+/* ---- fit: button grids on a phone, the stance text block, Cinzel's width ---- */
+button{min-width:0}
+.styles{grid-template-columns:repeat(4,minmax(0,1fr))}
+.styles button{font-size:11px;letter-spacing:0;padding:0 2px}
+#cstyles{display:block}
+@media(max-width:600px){.styles{grid-template-columns:repeat(2,minmax(0,1fr))}#diffs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){button{font-size:12px;letter-spacing:.1px}.secbar button{font-size:10px;padding:0 4px}}
 </style>
 </head>
 <body>
@@ -1467,6 +1475,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b192',t:'Fit and finish',w:'Button rows fit a phone again, the lit orbs sit square, the map tags slim down.'},
  {b:'b191',t:'The kit, finished',w:'Painted map pins, slot wells with a ghost of the missing piece, rarity frames on every card, room, skill and building icons, and the chests on their buttons.'},
  {b:'b190',t:'A new face',w:'Painted oak-and-iron frames, buttons, bars, tabs and the fight orbs; carved headings. More of the kit lands as it arrives.'},
  {b:'b189',t:'Vaultkeeper and Gilded art',w:'The two chest sets have their own icons and worn looks in every class.'},
@@ -5499,7 +5508,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b191-uikit2';window.__ihBoot=true;
+  const BUILD='b192-uifit';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

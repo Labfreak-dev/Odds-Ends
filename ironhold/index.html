@@ -1364,7 +1364,8 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
- {b:'b186',t:'The Mimic\'s appetite',w:'Chests fall a little less often. The Mimic (Vault › Medallion) eats five chests for a Banded chest and five Banded for a Gilded one; the Vaultkeeper and Gilded sets come only from those.'},
+ {b:'b187',t:'Basilisk and Phoenix hide',w:'The two top ranged tiers have their own looks at last, with an eight-frame draw and loose.'},
+ {b:'b186',t:'The Mimic\'s appetite',w:'Chests fall a little less often. The Mimic (Vault › Storage) eats five chests for a Banded chest and five Banded for a Gilded one; the Vaultkeeper and Gilded sets come only from those.'},
  {b:'b184',t:'Balance: Sovereign, poison, ice',w:'Crown of Light lands 30% harder and smites every fourth swing; poison caps at four stacks; chilled foes take 20% more; Hail one shot in four.'},
  {b:'b183',t:'The Quartermaster',w:'Vault › Pack: salvage or sell drops that are not upgrades, with a tier floor. Train › The Coach: wear plain upgrades on the spot. The Combat log has a Loot section.'},
  {b:'b181',t:'Top-tier looks',w:'Obsidian and Starsteel plate wear their own armour; the hide and robe tiers borrow Dragon until their art lands.'},
@@ -3007,7 +3008,7 @@ sprLoad(SPR_SRC);
 // The art lives in art.js, fetched after the first paint so the page shows in a second or two on a phone.
 // Until it lands every monster, companion and champion draws in outline and the areas wear flat colour.
 window.oeArtInstall=function(a){Object.assign(SPR_SRC,a.SPR_SRC||{});sprLoad(a.SPR_SRC||{});if(a.AREA_BG_SRC&&a.AREA_BG_SRC.length&&!AREA_BG.length){AREA_BG_SRC.push(...a.AREA_BG_SRC);bgLoad(a.AREA_BG_SRC);}if(a.LAB_BG_SRC)LAB_BG.src=a.LAB_BG_SRC;window.__ihArt=true;G.dirty=true;};
-const ART_V='c14e28be';
+const ART_V='4d7cfbe1';
 function artFetch(){const t=document.createElement('script');t.src='art.js?v='+ART_V;t.async=true;t.onerror=()=>{log('The art file did not arrive; the hold fights on in outline. Reload to try again.','e');};document.body.appendChild(t);}
 function sprArtReport(){const b=Object.keys(SPR_BAD);let n=0;for(const k in SPR_BAD)n+=SPR_BAD[k];
   return b.length?`${n} art frame${n>1?'s':''} failed to load (${b.slice(0,4).join(', ')}${b.length>4?'…':''})`:'';}
@@ -3271,8 +3272,8 @@ function heroFrame(t){
     if(lk.startsWith('lk_sov')||lk==='lk_pyre'){ // the Ascended or the Pyrelord Risen: a twelve-frame hover and an eight-frame strike, no weapon or shield drawn over it
       if(FX.pLunge>0){const i=Math.min(7,Math.floor((1-FX.pLunge)*8));const r=f(lk+'_atk',i);r.fi=i+1;r.grip=null;return r;}
       const r=f(lk+'_idle',Math.floor(t*9)%12);r.fi=0;r.grip=null;return r;}
-    if(FX.pLunge>0){const i=Math.min(2,Math.floor((1-FX.pLunge)*3));
-      const r=f(lk+'_atk',i);r.fi=i+1;return r;}
+    if(FX.pLunge>0){const n=(SPR_SRC[lk+'_atk']&&SPR_SRC[lk+'_atk'].f.length)||3;const i=Math.min(n-1,Math.floor((1-FX.pLunge)*n));   // a look plays however many strike frames its art carries: three for most, eight for the newest
+      const r=f(lk+'_atk',i);r.fi=n===3?i+1:i<n/3?1:i<2*n/3?2:3;return r;}
     const r=f(lk+'_idle',0);r.fi=0;return r;}
   const cs=cstyle();
   const kit=cs==='ranged'&&sprReady('hero_bow_idle')?'hero_bow'
@@ -5390,7 +5391,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b186-mimic';window.__ihBoot=true;
+  const BUILD='b187-bowkit89';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

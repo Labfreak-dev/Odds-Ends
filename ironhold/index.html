@@ -1475,6 +1475,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b198',t:'The long road, measured',w:'Monster health compounds 1.25x a realm instead of 1.3x, and the Wyrm\'s tally grows by 1,100 a realm instead of 900: the late realms are long because there is more to do, not because the champion bleeds out.'},
  {b:'b197',t:'The old Wyrm',w:'Monster defence stops growing after realm 9, so the Lair stays hittable. The Elder Wyrm\'s health grows slower than the spawn\'s, so the fight ends before the food does.'},
  {b:'b196',t:'The Wyrm sleeps',w:'The Elder Wyrm will not rise until a tally of the realm\'s monsters has fallen, in any area: 2,500 in realm 1 and 900 more each realm. The Lair\'s boss button and the Ascension room show the count.'},
  {b:'b195',t:'Seasoned',w:'Monster blows grow fast to realm 5 and slowly after. Natural regen mends 6% faster each realm and food falls 8% oftener, so the long realms are long rather than a bleed-out.'},
@@ -2126,7 +2127,7 @@ function contractHtml(){if(!contractOpen())return '';const c=contract();if(!c)re
   return `<div class="bty${c.done?' done':''}${c.claimed?' claimed':''}" style="margin-top:10px"><div><div style="font-size:10px;font-weight:bold;letter-spacing:.5px;color:var(--gold)">CONTRACT OF THE WEEK</div><div class="bn">${contractName(c)}</div><div class="sub">Reward: ${contractReward(c)}${c.claimed?' · claimed':''}</div><div class="track"><div class="fill" style="width:${Math.min(100,c.prog/c.a.n*100)}%"></div></div><div class="sub">${fmt(Math.min(c.prog,c.a.n))}/${fmt(c.a.n)} · a new contract every Monday</div></div><div class="bb">${c.claimed?'':c.done?`<button class="sm" data-cclaim="1">Claim</button>`:''}</div></div>`;}
 
 function realmMult(){return Math.min(3.4,1+0.3*((S.asc&&S.asc.realm)||0));}   /* defence: linear to realm 9 and flat after, so a maxed champion still lands two blows in five at the Lair */
-function realmHpMult(){return Math.pow(1.3,(S.asc&&S.asc.realm)||0);}   // health: compounding, so every realm is longer than the last
+function realmHpMult(){return Math.pow(1.25,(S.asc&&S.asc.realm)||0);}   // health: compounding, so every realm is longer than the last
 
 // ============ CREEDS ============
 // Ascending used to be a multiplier. Now it is a choice: the banner the next
@@ -2315,7 +2316,7 @@ const diff=()=>DIFFS[trialRule('master')?3:Math.min(S.diff||0,diffMax())];   // 
 // Every realm must be won: ascension needs the last area cleared in this realm.
 function ascReady(){return !!S.cleared[AREAS.length-1]&&!preHolds();}
 // The Elder Wyrm sleeps until the realm's tally is met: the blade must fell this many of the realm's monsters, in any area, before the Lair's boss will rise. The tally grows with the realm; it is what makes each realm longer than the last.
-function wyrmNeed(){return 2500+900*((S.asc&&S.asc.realm)||0);}
+function wyrmNeed(){return 2500+1100*((S.asc&&S.asc.realm)||0);}
 function realmKills(){return (S.kills||[]).reduce((a,b)=>a+b,0);}
 function wyrmAwake(){return !!S.cleared[AREAS.length-1]||realmKills()>=wyrmNeed();}
 function ascShards(){return Math.floor((Math.floor(combatLvl()/5)+S.cleared.filter(Boolean).length*2+Math.floor(((S.tower&&S.tower.best)||0)/5)+10*(((S.asc&&S.asc.realm)||0)+1))*vowShardMult()*creedEff('shardx',1));}
@@ -4998,7 +4999,7 @@ const kq=sel=>document.querySelectorAll(KEEP_ROOTS.map(r=>r+' '+sel).join(','));
 function renderAltars(){const ready=ascReady();
   S.fold=S.fold||{};for(const k of ['asc','mimic','hallc'])if(S.fold[k]===undefined)S.fold[k]=false;   // a card alone in its room starts open
   $('skAsc').innerHTML=trialsHtml()+
-   `<div class="altar asc"><div><h3>Altar of Ascension</h3>${preHolds()?`<p style="color:#ff8a70"><b>${S.pre.name} holds the throne.</b> The altar will not answer until the Pretender is cast down: find them on the March map.</p>`:''}<p>Realm ${S.asc.realm+1}${creeds().length?` · sworn: <b class="gold">${creedText()}</b> — ${creedSummary()}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to your max hit now, +${Math.round((shardMultRoll()-1)*100)}% to every combat roll, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${Math.pow(1.3,((S.asc&&S.asc.realm)||0)+1).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:wyrmAwake()?'Requires the Elder Wyrm slain this realm.':`Requires the Elder Wyrm slain this realm. It sleeps until ${fmt(wyrmNeed())} of the realm's monsters have fallen (${fmt(realmKills())} so far).`}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+heirHtml();
+   `<div class="altar asc"><div><h3>Altar of Ascension</h3>${preHolds()?`<p style="color:#ff8a70"><b>${S.pre.name} holds the throne.</b> The altar will not answer until the Pretender is cast down: find them on the March map.</p>`:''}<p>Realm ${S.asc.realm+1}${creeds().length?` · sworn: <b class="gold">${creedText()}</b> — ${creedSummary()}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to your max hit now, +${Math.round((shardMultRoll()-1)*100)}% to every combat roll, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${Math.pow(1.25,((S.asc&&S.asc.realm)||0)+1).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:wyrmAwake()?'Requires the Elder Wyrm slain this realm.':`Requires the Elder Wyrm slain this realm. It sleeps until ${fmt(wyrmNeed())} of the realm's monsters have fallen (${fmt(realmKills())} so far).`}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+heirHtml();
   $('skHall').innerHTML=hallList().length?`<h3 class="secH">Hall of Ancestors</h3>`+hallHtml():'';
   const mimicDue=medOwned()||ascReady()||unlocked(AREAS.length-1);
   $('vVault').innerHTML=medOwned()?`<h3 class="secH">The Vault</h3>`+keepCard('vault',`A strongroom under the altar. Choose what it keeps when you ascend: the Elder Wyrm's blade, a runeword, a Mythic piece — anything that would otherwise be lost. Priced for the Mimic's purse.`,''):'';
@@ -5520,7 +5521,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b197-oldwyrm';window.__ihBoot=true;
+  const BUILD='b198-measured';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

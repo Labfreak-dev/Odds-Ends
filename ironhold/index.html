@@ -1475,6 +1475,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b193',t:'The realms bite',w:'Monsters hit 50% harder per realm (health still 30%). Buildings cost real gold past level two. A boss carries a chest on the first clear and one time in three after. Uniques are about three times rarer from every source. The Pretender no longer wears realm scaling: the duel is a fair one. The Sovereign harness, once found, survives every ascension.'},
  {b:'b192',t:'Fit and finish',w:'Button rows fit a phone again, the lit orbs sit square, the map tags slim down.'},
  {b:'b191',t:'The kit, finished',w:'Painted map pins, slot wells with a ghost of the missing piece, rarity frames on every card, room, skill and building icons, and the chests on their buttons.'},
  {b:'b190',t:'A new face',w:'Painted oak-and-iron frames, buttons, bars, tabs and the fight orbs; carved headings. More of the kit lands as it arrives.'},
@@ -1570,9 +1571,9 @@ function rollUnique(ctx,luck){
   // one roll per event: a class chance decides if anything drops, then one candidate is picked evenly from the pool
   let uq=[],pu=0;
   for(const k in UNIQUES){const h=UNIQUES[k].home;
-    if(ctx.boss!=null){if(h==='boss:'+ctx.boss){uq.push(k);pu=ctx.firstClear?0.08:0.02;}}
-    else if(ctx.area!=null){if(h===ctx.area||(h==='mid'&&ctx.area>=3))uq.push(k);pu=1/700;}
-    else if(ctx.chest){if(h==='chest'||(h==='late'&&ctx.late))uq.push(k);pu=0.05;}}
+    if(ctx.boss!=null){if(h==='boss:'+ctx.boss){uq.push(k);pu=ctx.firstClear?0.025:0.005;}}
+    else if(ctx.area!=null){if(h===ctx.area||(h==='mid'&&ctx.area>=3))uq.push(k);pu=1/2500;}
+    else if(ctx.chest){if(h==='chest'||(h==='late'&&ctx.late))uq.push(k);pu=0.012;}}
   if(uq.length&&Math.random()<pu*luck)return makeUnique(uq[rnd(0,uq.length-1)]);
   let st=[],ps=0;
   for(const k in SETS){const h=SETS[k].home;
@@ -1663,7 +1664,7 @@ const KEEP_LVMAX={vault:3};
 function keepMax(k){return KEEP_LVMAX[k]||KEEP_MAX;}
 const KEEP_MAX=5;
 function keepLv(k){return (S.keep&&S.keep[k])||0;}
-function keepCost(k){const l=keepLv(k);if(k==='vault')return {gold:Math.round(5000000*Math.pow(3,l)),scrap:Math.round(500*Math.pow(2,l))};return {gold:Math.round(1000*Math.pow(3.6,l)),scrap:Math.round(12*Math.pow(2.2,l))};}
+function keepCost(k){const l=keepLv(k);if(k==='vault')return {gold:Math.round(5000000*Math.pow(3,l)),scrap:Math.round(500*Math.pow(2,l))};return {gold:Math.round(2500*Math.pow(5,l)),scrap:Math.round(20*Math.pow(2.5,l))};}
 function buildKeep(k){const c=keepCost(k);if(keepLv(k)>=keepMax(k)||(k==='vault'&&!medOwned())||S.gold<c.gold||S.scrap<c.scrap)return false;S.gold-=c.gold;S.scrap-=c.scrap;S.keep[k]=keepLv(k)+1;log(`${KEEP[k].n} raised to level ${S.keep[k]}.`,'g');return true;}
 
 const RUNES=['Ash','Oak','Iron','Storm','Blood','Star'];
@@ -2061,7 +2062,7 @@ function merchStock(){const t=maxUnlockedArea();const L=keepLv('peddler');const 
   if(t>=3||L>=3)st.push({k:'ingot',n:'Starsteel bar',d:'A bar of it, for the bench',p:(t+1)*2500});
   st.push({k:'meal',n:'Three shrimp stews',d:'Hot, and worth more than their parts',food:5,qty:3,p:(t+1)*150});
   {const cl=[];for(let i=0;i<AREAS.length;i++)if(S.cleared[i])for(const k in UNIQUES)if(UNIQUES[k].home===i)cl.push(k);
-   if(cl.length&&(L>=5||Math.random()<0.6)){const k=cl[rnd(0,cl.length-1)];st.push({k:'uq',n:UNIQUES[k].n,d:'A curiosity from the bottom of his sack. '+UNIQUES[k].d,uq:k,p:(t+1)*20000});}}
+   if(cl.length&&(L>=5||Math.random()<0.2)){const k=cl[rnd(0,cl.length-1)];st.push({k:'uq',n:UNIQUES[k].n,d:'A curiosity from the bottom of his sack. '+UNIQUES[k].d,uq:k,p:(t+1)*20000});}}
   if(L>=1)gear('a second piece, under the licence');
   if(L>=2)st.push({k:'rune',n:RUNES[short[1]]+' rune',d:'The next your pouch is short of',rune:short[1],p:(t+1)*400});
   if(L>=3)st.push({k:'key',n:'Delve key',d:'Black iron. Opens a door under the ground you stand on',p:(t+1)*1200});
@@ -2344,8 +2345,10 @@ function ascend(kept,newVows){
   if(!S.med){S.med={sock:{},loose:{}};log('The altar forges your Ascension Medallion. Six sockets wait for six jewels.','g');}
   if(discAny()){S.disc={};log('The disciplines of the old realm are forgotten; choose again at combat level 30.','b');}
   S.xp={atk:0,str:0,def:0,hp:XP[10],rng:0,mag:0};S.gold=0;S.chests=0;S.food=FOOD.map((f,i)=>i?0:10);
+  const sovKeep=[].concat(SLOTS.map(sl=>S.equip[sl]),S.inv,store()).filter(it=>it&&isSov(it)&&!kept.includes(it));   // the harness of a champion with nothing left to learn is never lost
   for(const s of SLOTS)S.equip[s]=null;S.inv=[];if(store().length){log(`Storage is emptied with the realm: ${store().length} piece${store().length===1?'':'s'} gone${kept.length?', the vault aside':''}.`,'e');}S.store=[];S.area=0;S.kills=AREAS.map(()=>0);S.cleared=AREAS.map(()=>false);S.spec=100;
   S.equip.weapon=makeItem(0,'weapon',1,1);for(const it of kept){it.up=Math.min(it.up||0,forgeMax()+(it.asc||0));S.inv.push(it);}if(kept.length)log(`The vault kept ${kept.map(itemName).join(', ')}.`,'g');
+  for(const it of sovKeep){it.up=Math.min(it.up||0,forgeMax()+(it.asc||0));S.inv.push(it);}if(sovKeep.length)log(`The Sovereign harness crosses with you: ${sovKeep.length} piece${sovKeep.length===1?'':'s'} kept, to be worn again at 99.`,'g');
   S.hp=maxHp();G.tower=0;G.dead=false;S.pray.on=[];S.pray.pts=30;S.bones=0;spawn(false);
   log(`You ascend. Realm ${S.asc.realm+1} awakens: +${sh} shards, monsters ×${realmMult().toFixed(1)}.`,'g');
   if(om)log(`Omen of the realm — ${om.n}: ${om.d}`,'e');else if(S.asc.realm===OMEN_FROM-1)log('The sky is quiet. From the next realm on, each carries an omen.','b');
@@ -2401,7 +2404,7 @@ function lairOpen(i){return lairK(i)>=LAIR_NEED&&!lairDone(i);}
 function lairMob(i){const A=AREAS[i],b=A.boss,L=LAIRS[i];return Object.assign({},b,{n:L.n,base:b.n,spr:'lair_'+i,lv:b.lv,hp:Math.round(b.hp*0.8),shape:L.shape,col:L.col,big:1.2,lair:i});}
 function enterLair(i){if(G.dead||G.tower||abyssW()||siegeActive()||G.isBoss||i!==S.area||!lairOpen(i))return false;if(S.curse)endCurse('abandoned');spawn(['lair',i]);log(`You find the lair. ${G.mob.n} wakes.`,'e');if(!G.sim)toast('The lair');G.dirty=true;return true;}
 function lairSlain(i){S.lairDone=S.lairDone||{};S.lairDone[i]=true;const A=AREAS[i];const keys=Object.keys(UNIQUES).filter(k=>UNIQUES[k].home===i);
-  if(keys.length){const it=makeUnique(keys[rnd(0,keys.length-1)]);gainItem(it);}if(Math.random()<0.35)gainIngot(1);
+  if(keys.length&&Math.random()<0.4){const it=makeUnique(keys[rnd(0,keys.length-1)]);gainItem(it);}if(Math.random()<0.35)gainIngot(1);
   log(`${LAIRS[i].n} is dead. The lair gives up its hoard.`,'g');if(!G.sim)toast('Lair cleared');}
 function lairHtml(i){const A=AREAS[i],key=A.mobs[0].n;
   if(lairDone(i))return `<div class="sub" style="margin-top:4px;color:#9adf6a">Lair cleared this realm — ${LAIRS[i].n} lies dead.</div>`;
@@ -2729,7 +2732,7 @@ function openBeast(name){const b=beastList().find(x=>x.n===name);if(!b)return;co
     if(b.boss){for(const u in UNIQUES)if(UNIQUES[u].home==='boss:'+i)drops.push(`<b>${UNIQUES[u].n}</b> (unique, 8% on the first clear, 2% after)`);
       for(const c in COMP_UNLOCK)if(COMP_UNLOCK[c].drop===i){const C=COMPS.find(x=>x.id===c);if(C)drops.push(`<b>${C.n}</b> (companion, ${S.cleared[i]?'5%':'12.5%'} a kill)`);}
       drops.push('A Starsteel bar the first time it falls, sometimes after');if(i===AREAS.length-1)drops.push('A jewel for the medallion, once a realm');}
-    else{for(const u in UNIQUES){const hm=UNIQUES[u].home;if(hm===i||(hm==='mid'&&i>=3))drops.push(`<b>${UNIQUES[u].n}</b> (unique, about 1 in 700)`);}
+    else{for(const u in UNIQUES){const hm=UNIQUES[u].home;if(hm===i||(hm==='mid'&&i>=3))drops.push(`<b>${UNIQUES[u].n}</b> (unique, about 1 in 2500)`);}
       for(const sk in SETS)if(SETS[sk].home===i)drops.push(`<b>${SETS[sk].n}</b> set pieces (once the boss is down, about 1 in 300)`);
       drops.push('Gold, food, gear of the area\'s tier, chests and bones');
       if(b.first)drops.push(`150 kills in a realm open the lair of ${AREAS[i].n}; its keeper drops a unique of the area`);
@@ -3786,9 +3789,9 @@ function spawn(boss){
   // it, so a maxed champion's hit chance never collapses; the Tower is a fixed
   // ladder and takes no realm scaling at all.
   // The tower is a fixed ladder for a hundred floors; past that it is ascended ground and takes the realm's scaling too.
-  if(!G.tower&&!abyssW()){const sh=1+0.6*mobSteel(m);if(sh>1)m=Object.assign({},m,{hp:Math.round(m.hp*sh)});}   // steel: seasoned monsters carry more health, so a mid-game blade needs three swings, not one
-  const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,rm=(G.tower&&!asc)?1:realmMult(),ra=(G.tower&&!asc)?1:1+0.45*r,rs=rm;   // attack sharpens half again as fast as health
-  const k=rm*diff().mob*vowMul('mob')*creedEff('mobx',1),ka=ra*diff().mob,kd=rm*diff().mob,ks=rs*diff().mob*vowMul('mobhit')*creedEff('mobhitx',1),kg=((G.tower&&!asc)?1:1+0.1*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
+  if(!G.tower&&!abyssW()&&!m.pre){const sh=1+0.6*mobSteel(m);if(sh>1)m=Object.assign({},m,{hp:Math.round(m.hp*sh)});}   // steel: seasoned monsters carry more health, so a mid-game blade needs three swings, not one
+  const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,fixed=(G.tower&&!asc)||!!m.pre,rm=fixed?1:realmMult(),ra=fixed?1:1+0.45*r,rs=fixed?1:1+0.5*r,dm=m.pre?1:diff().mob;   // health grows 30% a realm, the blow 50%: the realms bite harder, not only longer; the Pretender is a shadow of a champion and scales with no realm   // attack sharpens half again as fast as health
+  const k=rm*dm*vowMul('mob')*creedEff('mobx',1),ka=ra*dm,kd=rm*dm,ks=rs*dm*vowMul('mobhit')*creedEff('mobhitx',1),kg=(fixed?1:1+0.1*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
   if(k>1||ka>1||ks>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*kd),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
     m=Object.assign({},m,{atk:Math.round(m.atk*(mm.atk||1)),str:Math.round(m.str*(mm.str||1)),def:Math.round(m.def*(mm.def||1)),spd:+(m.spd*(mm.spd||1)).toFixed(2)});}
@@ -4001,7 +4004,7 @@ function killMob(){
     const f=G.tower;if(m.vend){bounty('boss',1);nemSlain();}const tier=towerTier(f);const boss=f%10===0;
     if(Math.random()<(boss?1:0.12)*luck)gainItem(makeItem(tier,SLOTS[rnd(0,9)],boss?Math.max(3,rollRarity(0.6)):rollRarity(0.2)));
     if(Math.random()<(boss?1:0.06)*luck)gainRune(boss);
-    if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);if(f>100)sovDrop(1/40);
+    if(boss){const u=rollUnique({chest:true,late:f>=30},luck*0.5);if(u)gainItem(u);if(f>100)sovDrop(1/120);
       if(Math.random()<0.25+0.05*(S.diff||0))gainIngot(1);
       rollSeal(0,luck*0.7,true);if(Math.random()<0.5)gainScroll(1);
       if(m.returned&&medOwned())jewelDrop(`${m.n}`);
@@ -4014,14 +4017,14 @@ function killMob(){
   }
   if(m.night)nightKill(m);
   bounty('kills',1);bounty('area',1,S.area);if(G.isBoss)bounty('boss',1);
-  {const u=rollUnique({area:S.area,boss:G.isBoss?S.area:null,firstClear:G.isBoss&&!S.cleared[S.area]},luck);if(u)gainItem(u);if(G.isBoss)sovDrop(S.area===AREAS.length-1?1/60:1/300);}
+  {const u=rollUnique({area:S.area,boss:G.isBoss?S.area:null,firstClear:G.isBoss&&!S.cleared[S.area]},luck);if(u)gainItem(u);if(G.isBoss)sovDrop(S.area===AREAS.length-1?1/200:1/900);}
   if(Math.random()<0.7*creedEff('bonesx',1))S.bones++;
   // food
   if(curseEff('food',1)>0&&omenEff('food',1)>0&&vowMul('food')>0&&trialRule('food')!==0&&Math.random()<0.4*(1+0.08*keepEff('larder'))*creedEff('foodDropx',1)){const f=A.food;S.food[f]++;}
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1+tierBonus(),0,tierCap()),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
-  if(Math.random()<(G.isBoss?1:0.02)*(1+(luck-1)*0.5)*(1+0.25*keepEff('chest'))*(1+medEff('chest')/100)*creedEff('chestx',1)){S.chests++;log('You found a chest!','g');}
+  if(Math.random()<(G.isBoss?(S.cleared[S.area]?0.35:1):0.02)*(1+(luck-1)*0.5)*(1+0.25*keepEff('chest'))*(1+medEff('chest')/100)*creedEff('chestx',1)){S.chests++;log('You found a chest!','g');}
   if(Math.random()<0.10*(1+0.1*keepEff('yard'))*creedEff('scrapx',1))S.scrap+=(1+keepEff('yard'))*omenEff('scrap',1);
   if(Math.random()<(G.isBoss?1:0.02)*luck*omenEff('rune',1)*creedEff('runex',1))gainRune(G.isBoss);
   if(!G.isBoss&&diff().n==='Torment')rollSeal(S.area,luck*0.12,false);
@@ -4728,10 +4731,10 @@ function renderCodex(){
 // ---- the collection's detail window: one entry, where it drops, and the whole set it belongs to ----
 function codexSetOf(k){for(const sk in SETS){if(!k.startsWith(sk+'_'))continue;const ik=setIk(sk);for(const sl of setSlots(sk))if(k===sk+'_'+ik[sl])return {sk,sl};}return null;}
 function codexSource(h,kind,key){
-  if(typeof h==='number')return kind==='set'?`Drops from the monsters of ${AREAS[h].n} once its boss is down, about one piece in 300 kills.`:`Drops from the monsters of ${AREAS[h].n}, about one in 700 kills.`;
-  if(typeof h==='string'&&h.startsWith('boss:')){const A=AREAS[+h.slice(5)];return `Carried by ${A.boss.n}, the boss of ${A.n}: 8% on the first clear, 2% after.`;}
-  if(h==='mid')return 'Drops from the monsters of any area from the Barbarian Camp on, about one in 700 kills.';
-  if(h==='chest')return 'A hold relic: found in chests, about one chest in twenty.';
+  if(typeof h==='number')return kind==='set'?`Drops from the monsters of ${AREAS[h].n} once its boss is down, about one piece in 300 kills.`:`Drops from the monsters of ${AREAS[h].n}, about one in 2500 kills.`;
+  if(typeof h==='string'&&h.startsWith('boss:')){const A=AREAS[+h.slice(5)];return `Carried by ${A.boss.n}, the boss of ${A.n}: 2.5% on the first clear, one in 200 after.`;}
+  if(h==='mid')return 'Drops from the monsters of any area from the Barbarian Camp on, about one in 2500 kills.';
+  if(h==='chest')return 'A hold relic: found in chests, about one chest in eighty; Banded and Gilded chests hold them oftener.';
   if(h==='chest2')return 'The Vaultkeeper set: only from Banded chests, one chest in five. The Mimic makes a Banded chest of five plain ones.';
   if(h==='chest3')return 'The Gilded set: only from Gilded chests, one chest in three. The Mimic makes a Gilded chest of five Banded ones, and a Banded chest of five plain.';
   if(h==='late')return 'Found in chests once you have reached the Frozen Pass or tower floor 30.';
@@ -4740,7 +4743,7 @@ function codexSource(h,kind,key){
   if(typeof h==='string'&&h.startsWith('trial:')){const T=TRIALS.find(t=>t.id===h.slice(6));return `The ${T?T.n:'trial'} set: ten, twenty and thirty clears of the trial, one piece each.`;}
   if(typeof h==='string'&&h.startsWith('oath:')){const C=COMPS.find(x=>x.id===h.slice(5));return `Oath gear: brought to you by the ${C?C.n:'companion'} once sworn and raised to level 30.`;}
   if(h==='pyre')return 'The Pyrelord set: the Long Hunt. Ten thousand kills in an area wake its trophy, a named monster far above its level, on the March map. Each of the eight trophies drops one piece; the three weapons come from the trophies after that. No shield: the wings are guard enough. Every ten thousand more, the trophy returns.';
-  if(h==='sov')return 'The Sovereign harness: drops only for a champion with 99 in every combat skill, from bosses (1 in 300), the Elder Wyrm (1 in 60) and tower wardens past floor 100 (1 in 40).';
+  if(h==='sov')return 'The Sovereign harness: drops only for a champion with 99 in every combat skill, from bosses (1 in 900), the Elder Wyrm (1 in 200) and tower wardens past floor 100 (1 in 120). Once found, a Sovereign piece is yours for good: it survives every ascension.';
   return '';}
 function codexOwned(test){let n=0;for(const sl of SLOTS){const it=S.equip[sl];if(it&&test(it))n++;}for(const it of S.inv)if(it&&test(it))n++;for(const it of store())if(it&&test(it))n++;return n;}
 function openCodex(k){const f=S.found||{};const ok=!!f[k];G.modalKind='codex';
@@ -5508,7 +5511,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b192-uifit';window.__ihBoot=true;
+  const BUILD='b193-bite';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

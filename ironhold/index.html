@@ -1475,6 +1475,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b195',t:'Seasoned',w:'Monster blows grow fast to realm 5 and slowly after. Natural regen mends 6% faster each realm and food falls 8% oftener, so the long realms are long rather than a bleed-out.'},
  {b:'b194',t:'The long road',w:'Monster health now compounds 1.3x a realm, so each realm is longer than the last; defence stays on the old curve. Companions join for nothing once unlocked, and their kit and training cost more. The forge is dearer with every plus. Repeat bosses drop a rune one time in four. Set pieces are half as common. Double time unlocks at realm 10. XP +25% under combat level 40.'},
  {b:'b193',t:'The realms bite',w:'Monsters hit 50% harder per realm (health still 30%). Buildings cost real gold past level two. A boss carries a chest on the first clear and one time in three after. Uniques are about three times rarer from every source. The Pretender no longer wears realm scaling: the duel is a fair one. The Sovereign harness, once found, survives every ascension.'},
  {b:'b192',t:'Fit and finish',w:'Button rows fit a phone again, the lit orbs sit square, the map tags slim down.'},
@@ -3792,7 +3793,7 @@ function spawn(boss){
   // ladder and takes no realm scaling at all.
   // The tower is a fixed ladder for a hundred floors; past that it is ascended ground and takes the realm's scaling too.
   if(!G.tower&&!abyssW()&&!m.pre){const sh=1+0.6*mobSteel(m);if(sh>1)m=Object.assign({},m,{hp:Math.round(m.hp*sh)});}   // steel: seasoned monsters carry more health, so a mid-game blade needs three swings, not one
-  const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,fixed=(G.tower&&!asc)||!!m.pre,rm=fixed?1:realmMult(),rh=fixed?1:realmHpMult(),ra=fixed?1:1+0.45*r,rs=fixed?1:1+0.5*r,dm=m.pre?1:diff().mob;   // health grows 30% a realm, the blow 50%: the realms bite harder, not only longer; the Pretender is a shadow of a champion and scales with no realm   // attack sharpens half again as fast as health
+  const r=(S.asc&&S.asc.realm)||0,asc=G.tower>ASC_FLOOR,fixed=(G.tower&&!asc)||!!m.pre,rm=fixed?1:realmMult(),rh=fixed?1:realmHpMult(),ra=fixed?1:1+0.45*r,rs=fixed?1:(r<=4?1+0.5*r:3+0.1*(r-4)),dm=m.pre?1:diff().mob;   /* the blow grows fast to realm 5 (x3) and slowly after (x4.5 at realm 20): the long realms are long, not a bleed-out */   // health grows 30% a realm, the blow 50%: the realms bite harder, not only longer; the Pretender is a shadow of a champion and scales with no realm   // attack sharpens half again as fast as health
   const k=rh*dm*vowMul('mob')*creedEff('mobx',1),ka=ra*dm,kd=rm*dm,ks=rs*dm*vowMul('mobhit')*creedEff('mobhitx',1),kg=(fixed?1:1+0.05*r)*diff().gold;   // gold grows a tenth per realm, not with the monsters
   if(k>1||ka>1||ks>1||kg>1)m=Object.assign({},m,{hp:Math.round(m.hp*k),atk:Math.round(m.atk*ka),hk:ks,def:Math.round(m.def*kd),gold:[Math.round(m.gold[0]*kg),Math.round(m.gold[1]*kg)]});
   if(!G.tower&&S.curse&&S.curse.area===S.area&&curse()){const mm=curse().mob||{};
@@ -4022,7 +4023,7 @@ function killMob(){
   {const u=rollUnique({area:S.area,boss:G.isBoss?S.area:null,firstClear:G.isBoss&&!S.cleared[S.area]},luck);if(u)gainItem(u);if(G.isBoss)sovDrop(S.area===AREAS.length-1?1/200:1/900);}
   if(Math.random()<0.7*creedEff('bonesx',1))S.bones++;
   // food
-  if(curseEff('food',1)>0&&omenEff('food',1)>0&&vowMul('food')>0&&trialRule('food')!==0&&Math.random()<0.4*(1+0.08*keepEff('larder'))*creedEff('foodDropx',1)){const f=A.food;S.food[f]++;}
+  if(curseEff('food',1)>0&&omenEff('food',1)>0&&vowMul('food')>0&&trialRule('food')!==0&&Math.random()<0.4*(1+0.08*keepEff('larder'))*(1+0.08*((S.asc&&S.asc.realm)||0))*creedEff('foodDropx',1)){const f=A.food;S.food[f]++;}   /* food keeps pace with fights that last longer each realm */
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1+tierBonus(),0,tierCap()),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
@@ -4147,7 +4148,7 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
 function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;if(G.mob&&!G.dead&&!S.paused)for(const c of clBoth())c.t+=dt;
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
-  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));}
+  if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+0.06*((S.asc&&S.asc.realm)||0))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));   /* a seasoned champion mends 6% faster each realm */}
   prayTick(dt);encTick(dt);
   if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(S.paused&&(siegeActive()||S.trial))S.paused=false;   // the horde does not wait, and a trial's clock is honest
@@ -5513,7 +5514,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b194-longroad';window.__ihBoot=true;
+  const BUILD='b195-seasoned';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

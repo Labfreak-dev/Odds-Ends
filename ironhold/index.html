@@ -1475,6 +1475,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b199',t:'The Restless Dead, bounded',w:'Under the Restless Dead omen a monster mends 1.5% a second but never more than a third of what you deal, so a big boss in a late realm is slower to kill, not impossible.'},
  {b:'b198',t:'The long road, measured',w:'Monster health compounds 1.25x a realm instead of 1.3x, and the Wyrm\'s tally grows by 1,100 a realm instead of 900: the late realms are long because there is more to do, not because the champion bleeds out.'},
  {b:'b197',t:'The old Wyrm',w:'Monster defence stops growing after realm 9, so the Lair stays hittable. The Elder Wyrm\'s health grows slower than the spawn\'s, so the fight ends before the food does.'},
  {b:'b196',t:'The Wyrm sleeps',w:'The Elder Wyrm will not rise until a tally of the realm\'s monsters has fallen, in any area: 2,500 in realm 1 and 900 more each realm. The Lair\'s boss button and the Ascension room show the count.'},
@@ -2314,6 +2315,7 @@ function clearedCount(){return (S.cleared||[]).filter(Boolean).length;}
 function diffMax(){let m=0;for(let i=0;i<DIFFS.length;i++)if(diffOpen(i))m=i;return m;}
 const diff=()=>DIFFS[trialRule('master')?3:Math.min(S.diff||0,diffMax())];   // clamped, so an ascension reset cannot strand you on a locked tier
 // Every realm must be won: ascension needs the last area cleared in this realm.
+function playerDps(){const m=G.mob;if(!m)return 0;return playerMaxHit()*0.5*hitChance(playerAtkRoll(),mobDefRoll(m))/Math.max(0.5,attackDelay());}
 function ascReady(){return !!S.cleared[AREAS.length-1]&&!preHolds();}
 // The Elder Wyrm sleeps until the realm's tally is met: the blade must fell this many of the realm's monsters, in any area, before the Lair's boss will rise. The tally grows with the realm; it is what makes each realm longer than the last.
 function wyrmNeed(){return 2500+1100*((S.asc&&S.asc.realm)||0);}
@@ -2374,7 +2376,7 @@ const OMENS=[
  {id:'ash',   n:'Ashen Sky',     d:'Monsters hit 40% harder · drops +60%',mob:{atk:1.4,hk:1.4},luck:1.6},
  {id:'famine',n:'Gilded Famine', d:'No food drops · gold doubled',food:0,gold:2.0},
  {id:'twins', n:'Twin Wardens',  d:'Bosses have double health and hit 30% harder · bosses pay twice',boss:{hp:2,hk:1.3},bossPay:2},
- {id:'dead',  n:'Restless Dead', d:'Monsters regain 1.5% health a second · XP +50%',regen:0.015,xp:1.5},
+ {id:'dead',  n:'Restless Dead', d:'Monsters regain 1.5% health a second, never more than a third of your damage · XP +50%',regen:0.015,xp:1.5},
  {id:'iron',  n:'Iron Age',      d:'Monsters have double defence · Starsteel three times as often, scrap doubled',mob:{def:2},ingot:3,scrap:2},
  {id:'storm', n:'Storm Season',  d:'Monsters attack 40% faster · runes three times as often',mob:{spd:0.71},rune:3},
 ];
@@ -4174,7 +4176,7 @@ function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.f
   if(G.poisonT>0&&!G.dead){G.poisonT=Math.max(0,G.poisonT-dt);S.hp-=maxHp()*0.01*dt;clAdd('taken','poison',maxHp()*0.01*dt);if(S.hp<=0){S.hp=0;die();}}
   if((G.burnT||0)>0&&!G.dead){G.burnT=Math.max(0,G.burnT-dt);S.hp-=maxHp()*0.015*dt;clAdd('taken','burn',maxHp()*0.015*dt);if(S.hp<=0){S.hp=0;die();}}
   if(G.wyrm&&G.wyrm.phase>=2&&!G.dead&&G.mob){S.hp-=maxHp()*0.02*dt;if(S.hp<=0){S.hp=0;die();}}
-  if(G.mob&&G.mobHp>0&&omenEff('regen',0))G.mobHp=Math.min(G.mob.hp,G.mobHp+G.mob.hp*omenEff('regen',0)*dt);
+  if(G.mob&&G.mobHp>0&&omenEff('regen',0))G.mobHp=Math.min(G.mob.hp,G.mobHp+Math.min(G.mob.hp*omenEff('regen',0),playerDps()*0.35)*dt);   /* the Restless Dead mend 1.5% a second, but never more than a third of what the blade deals: a fight under the omen is slower, never endless */
   if(medOwned())rd().sec+=dt;if(S.trial)S.trial.sec+=dt;siegeTick(dt);dmgWindowTick(dt);
   G.cT=(G.cT||0)+dt;const cEvery=3/(1+medEff('compFast')/100)/(siegeActive()?2:1);if(G.cT>=cEvery){G.cT-=cEvery;compTick();errandTick();featTick();deedTick();roadTick();merchTick();contractTick();tempTick();}
 }
@@ -5521,7 +5523,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b198-measured';window.__ihBoot=true;
+  const BUILD='b199-restless';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

@@ -1475,6 +1475,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'b196',t:'The Wyrm sleeps',w:'The Elder Wyrm will not rise until a tally of the realm\'s monsters has fallen, in any area: 2,500 in realm 1 and 900 more each realm. The Lair\'s boss button and the Ascension room show the count.'},
  {b:'b195',t:'Seasoned',w:'Monster blows grow fast to realm 5 and slowly after. Natural regen mends 6% faster each realm and food falls 8% oftener, so the long realms are long rather than a bleed-out.'},
  {b:'b194',t:'The long road',w:'Monster health now compounds 1.3x a realm, so each realm is longer than the last; defence stays on the old curve. Companions join for nothing once unlocked, and their kit and training cost more. The forge is dearer with every plus. Repeat bosses drop a rune one time in four. Set pieces are half as common. Double time unlocks at realm 10. XP +25% under combat level 40.'},
  {b:'b193',t:'The realms bite',w:'Monsters hit 50% harder per realm (health still 30%). Buildings cost real gold past level two. A boss carries a chest on the first clear and one time in three after. Uniques are about three times rarer from every source. The Pretender no longer wears realm scaling: the duel is a fair one. The Sovereign harness, once found, survives every ascension.'},
@@ -2312,6 +2313,10 @@ function diffMax(){let m=0;for(let i=0;i<DIFFS.length;i++)if(diffOpen(i))m=i;ret
 const diff=()=>DIFFS[trialRule('master')?3:Math.min(S.diff||0,diffMax())];   // clamped, so an ascension reset cannot strand you on a locked tier
 // Every realm must be won: ascension needs the last area cleared in this realm.
 function ascReady(){return !!S.cleared[AREAS.length-1]&&!preHolds();}
+// The Elder Wyrm sleeps until the realm's tally is met: the blade must fell this many of the realm's monsters, in any area, before the Lair's boss will rise. The tally grows with the realm; it is what makes each realm longer than the last.
+function wyrmNeed(){return 2500+900*((S.asc&&S.asc.realm)||0);}
+function realmKills(){return (S.kills||[]).reduce((a,b)=>a+b,0);}
+function wyrmAwake(){return !!S.cleared[AREAS.length-1]||realmKills()>=wyrmNeed();}
 function ascShards(){return Math.floor((Math.floor(combatLvl()/5)+S.cleared.filter(Boolean).length*2+Math.floor(((S.tower&&S.tower.best)||0)/5)+10*(((S.asc&&S.asc.realm)||0)+1))*vowShardMult()*creedEff('shardx',1));}
 // ============ THE MIMIC ============
 // The hold's gold sink, a chest that is not a chest. Ascending burns the purse, so gold is worth nothing
@@ -3722,7 +3727,7 @@ function coachTick(dt){if(G.coachRt>0)G.coachRt-=dt;if(G.dead||!G.mob)return;con
     else if(pr==='boss'&&!big&&lit&&G.coachLit)praySnuff();}
   if(G.tower||abyssW()||siegeActive()||S.trial||S.delve||m.gob||G.isBoss||G.duel!=null||G.pre||G.lair!=null||G.nem||G.lt||G.mark)return;
   if(coach('retreat')==='on'&&S.area>0&&foodCount()===0&&S.hp<maxHp()/3&&!(G.coachRt>0)){G.coachRt=60;S.area--;G.kstreak=0;spawn(false);if(!G.sim){log(`No food and a third of your health left: you fall back to ${AREAS[S.area].n}.`,'e');toast('Retreated to '+AREAS[S.area].n);}return;}
-  if(coach('boss')==='on'){const at=Math.min(S.kills[S.area],((S.bossAt||{})[S.area]||0));if(S.kills[S.area]-at>=A.need){spawn(true);if(!G.sim){log(`The count is met: you challenge ${G.mob.n}.`,'e');sfx('boss');}return;}}
+  if(coach('boss')==='on'&&(S.area!==AREAS.length-1||wyrmAwake())){const at=Math.min(S.kills[S.area],((S.bossAt||{})[S.area]||0));if(S.kills[S.area]-at>=A.need){spawn(true);if(!G.sim){log(`The count is met: you challenge ${G.mob.n}.`,'e');sfx('boss');}return;}}
   if(coach('march')==='on'&&S.cleared[S.area]&&unlocked(S.area+1)&&(S.fightT||0)-(S.lastDeathT==null?-1e9:S.lastDeathT)>600&&areaHit(S.area+1)*100>=marchMark()){const to=S.area+1;goArea(to);if(!G.sim){log(`You march on to ${AREAS[to].n}.`,'g');toast('Marching on: '+AREAS[to].n);}}}
 function renderCoach(){const el=$('coach');if(!el)return;
   const h=COACH.map(c=>{const open=coachOpen(c.id);const v=coach(c.id);
@@ -4992,7 +4997,7 @@ const kq=sel=>document.querySelectorAll(KEEP_ROOTS.map(r=>r+' '+sel).join(','));
 function renderAltars(){const ready=ascReady();
   S.fold=S.fold||{};for(const k of ['asc','mimic','hallc'])if(S.fold[k]===undefined)S.fold[k]=false;   // a card alone in its room starts open
   $('skAsc').innerHTML=trialsHtml()+
-   `<div class="altar asc"><div><h3>Altar of Ascension</h3>${preHolds()?`<p style="color:#ff8a70"><b>${S.pre.name} holds the throne.</b> The altar will not answer until the Pretender is cast down: find them on the March map.</p>`:''}<p>Realm ${S.asc.realm+1}${creeds().length?` · sworn: <b class="gold">${creedText()}</b> — ${creedSummary()}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to your max hit now, +${Math.round((shardMultRoll()-1)*100)}% to every combat roll, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${Math.pow(1.3,((S.asc&&S.asc.realm)||0)+1).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:'Requires the Elder Wyrm slain this realm.'}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+heirHtml();
+   `<div class="altar asc"><div><h3>Altar of Ascension</h3>${preHolds()?`<p style="color:#ff8a70"><b>${S.pre.name} holds the throne.</b> The altar will not answer until the Pretender is cast down: find them on the March map.</p>`:''}<p>Realm ${S.asc.realm+1}${creeds().length?` · sworn: <b class="gold">${creedText()}</b> — ${creedSummary()}`:''}${vowCount()?`<br>Sworn: <b style="color:#ff9c6b">${vowText()}</b> — shards ×${vowShardMult().toFixed(2)} at the next ascension.`:''}<br>${S.asc.shards} shards (power grows with their square root: +${Math.round((shardMult()-1)*100)}% to your max hit now, +${Math.round((shardMultRoll()-1)*100)}% to every combat roll, +${Math.round((hpMult()-1)*100)}% hitpoints; XP, gold and drop bonuses taper off past 150–300). Each realm pays ten more shards than the last.<br>Ascending resets skills, gear, gold, food and areas — feed the Mimic first. Keep buildings, runes, companions, prayers, tower record and the Mimic's gifts stay. Monsters carry ×${Math.pow(1.3,((S.asc&&S.asc.realm)||0)+1).toFixed(1)} health next realm, and hit harder.<br>${ready?`Ready: <b class="gold">+${ascShards()} shards</b>`:wyrmAwake()?'Requires the Elder Wyrm slain this realm.':`Requires the Elder Wyrm slain this realm. It sleeps until ${fmt(wyrmNeed())} of the realm's monsters have fallen (${fmt(realmKills())} so far).`}</p></div><button class="boss" id="kAsc" ${ready?'':'disabled'}>Ascend</button></div>`+heirHtml();
   $('skHall').innerHTML=hallList().length?`<h3 class="secH">Hall of Ancestors</h3>`+hallHtml():'';
   const mimicDue=medOwned()||ascReady()||unlocked(AREAS.length-1);
   $('vVault').innerHTML=medOwned()?`<h3 class="secH">The Vault</h3>`+keepCard('vault',`A strongroom under the altar. Choose what it keeps when you ascend: the Elder Wyrm's blade, a runeword, a Mythic piece — anything that would otherwise be lost. Priced for the Mimic's purse.`,''):'';
@@ -5216,8 +5221,8 @@ function renderTop(){renderClog();
   {const sp=specialOf();$('specName').textContent=sp.n;$('btnSpec').title=sp.d;}
   const fc=S.food.reduce((a,b)=>a+b,0);$('foodCnt').textContent=fc;$('btnEat').disabled=fc===0||G.dead||S.hp>=maxHp();
   {const ap2=activePrayers();$('prayBtnTxt').textContent=ap2.length?ap2.length+' lit':'';const dd=draught();$('potBtnTxt').textContent=dd?S.draught.charges+'/'+dd.charges:'';if(G.modalKind==='pray'&&$('mPrayPts'))$('mPrayPts').textContent=`${Math.floor(S.pray.pts)}/${prayMax()}`;}
-  const A=AREAS[S.area];const ready=S.kills[S.area]>=A.need;
-  $('bossTxt').textContent=S.cleared[S.area]?'Boss again':ready?'Fight boss':`Boss ${S.kills[S.area]}/${A.need}`;$('btnBoss').disabled=!(ready||S.cleared[S.area])||G.isBoss||G.dead;
+  const A=AREAS[S.area];const ready=S.kills[S.area]>=A.need;const asleep=S.area===AREAS.length-1&&!wyrmAwake();
+  $('bossTxt').textContent=asleep?`Wyrm sleeps ${fmt(realmKills())}/${fmt(wyrmNeed())}`:S.cleared[S.area]?'Boss again':ready?'Fight boss':`Boss ${S.kills[S.area]}/${A.need}`;$('btnBoss').disabled=asleep||!(ready||S.cleared[S.area])||G.isBoss||G.dead;
   if(G.tower){$('areaName').textContent='Tower · Floor '+G.tower;$('prevArea').disabled=$('nextArea').disabled=true;$('bossTxt').textContent='Leave tower';$('btnBoss').disabled=G.dead;}
   else if(siegeActive()){const a=siege().act;$('areaName').textContent=`Siege · walls ${a.walls} · ${fmtTime(SIEGE_LEN-a.t)}`;$('prevArea').disabled=$('nextArea').disabled=true;$('bossTxt').textContent='Hold the gate';$('btnBoss').disabled=true;}
   else if(abyssW()){$('areaName').textContent=`The Abyss · Wave ${abyssW()} · ×${abyssMult().toFixed(1)}`;$('prevArea').disabled=$('nextArea').disabled=true;$('bossTxt').textContent='Bank & leave';$('btnBoss').disabled=G.dead;}
@@ -5228,7 +5233,7 @@ function renderTop(){renderClog();
     $('hudEatTxt').textContent=fc;$('hudEat').classList.toggle('off',$('btnEat').disabled);
     const sr=S.spec>=specCost()&&!G.dead;$('hudSpecTxt').textContent=Math.floor(S.spec)+'%';$('hudSpec').classList.toggle('ready',sr);$('hudSpec').classList.toggle('off',!sr);$('hudSpec').title=specialOf().n+' — '+specialOf().d+` (${specCost()}%)`;
     const dd2=draught();$('hudPotTxt').textContent=dd2?S.draught.charges+'/'+dd2.charges:'–';$('hudPot').classList.toggle('off',!dd2);$('hudPot').title=dd2?dd2.n+' · '+S.draught.charges+' of '+dd2.charges+' charges':'Potions';
-    const bt=$('bossTxt').textContent;$('hudBossTxt').textContent=G.tower?'Leave':abyssW()?'Bank':siegeActive()?'Gate':S.cleared[S.area]?'Again':bt.startsWith('Boss ')?bt.slice(5):'Fight';
+    const bt=$('bossTxt').textContent;$('hudBossTxt').textContent=G.tower?'Leave':abyssW()?'Bank':siegeActive()?'Gate':bt.startsWith('Wyrm ')?'Asleep':S.cleared[S.area]?'Again':bt.startsWith('Boss ')?bt.slice(5):'Fight';
     $('hudBoss').classList.toggle('off',$('btnBoss').disabled);$('hudBoss').classList.toggle('ready',!$('btnBoss').disabled&&!G.isBoss&&!G.tower&&!abyssW());$('hudBoss').title=bt;
     $('btnMap').disabled=!!(G.tower||siegeActive()||abyssW()||S.delve);}
   if(G.dead)$('status').textContent='Downed. Recovering...';
@@ -5466,7 +5471,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   document.addEventListener('pointerdown',sfxWake,{capture:true,passive:true});document.addEventListener('keydown',sfxWake,true);}
 $('onbGo').onclick=()=>{const st=onbCur();if(st&&st.tab)showTab(st.tab);};$('onbX').onclick=onbOff;$('btnOnb').onclick=()=>{onbReplay();$('lgModal').className='';renderAll();};
 $('btnEat').onclick=()=>eat(true);
-$('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;spawn(true);sfx('boss');log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
+$('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;if(S.area===AREAS.length-1&&!wyrmAwake()){toast(`The Elder Wyrm sleeps: ${fmt(wyrmNeed()-realmKills())} more of the realm's monsters must fall.`);return;}spawn(true);sfx('boss');log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
 $('btnChest').onclick=()=>openChest(1);$('btnChest2').onclick=()=>openChest(2);$('btnChest3').onclick=()=>openChest(3);
 $('btnChestAll').onclick=openAllChests;
 $('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;$('btnSellAll').onclick=sellAll;
@@ -5514,7 +5519,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b195-seasoned';window.__ihBoot=true;
+  const BUILD='b196-wyrmsleeps';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

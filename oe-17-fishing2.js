@@ -4323,8 +4323,19 @@ function feCineDraw(){
       g.fillStyle = gr; g.fillRect(0,0,470,705);
     }
   }
+  /* the frames are bright and busy: a dark band top and bottom keeps every
+     prompt readable, whatever the fish is doing behind it */
+  if(C.phase !== "defeat" && C.phase !== "escape"){
+    let gr = g.createLinearGradient(0, 0, 0, 200);
+    gr.addColorStop(0, "rgba(4,8,16,0.82)"); gr.addColorStop(1, "rgba(4,8,16,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 470, 200);
+    gr = g.createLinearGradient(0, 600, 0, 705);
+    gr.addColorStop(0, "rgba(4,8,16,0)"); gr.addColorStop(1, "rgba(4,8,16,0.8)");
+    g.fillStyle = gr; g.fillRect(0, 600, 470, 105);
+  }
   /* title & bars */
   g.textAlign = "center";
+  const say = (txt, x, y, font, col, lw) => { g.font = font; g.lineWidth = lw || 4; g.strokeStyle = "rgba(0,0,0,0.85)"; g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y); };
   if(C.phase === "leap"){
     if(C.t < 2.2){
       g.font = "800 21px system-ui"; g.fillStyle = "#ffd35c";
@@ -4346,56 +4357,49 @@ function feCineDraw(){
     g.fillStyle = stg === 0 ? "#ff5c5c" : stg === 1 ? "#ff8a3c" : "#ffd35c";
     g.fillRect(60, 26, 350 * C.hp/(C.hpMax||100), 13);
     g.fillStyle = "rgba(0,0,0,0.6)"; g.fillRect(60 + 350/3 - 1, 24, 2, 17); g.fillRect(60 + 700/3 - 1, 24, 2, 17);
-    g.font = "700 11px system-ui"; g.fillStyle = "#ffe9ec";
-    g.fillText(["HIS FURY", "HIS FURY · II", "HIS FURY · III"][stg], 235, 56);
+    say(["HIS FURY", "HIS FURY · II", "HIS FURY · III"][stg], 235, 56, "700 11px system-ui", "#ffe9ec", 3);
     for(let i=0;i<3;i++){
       g.fillStyle = i < C.stress ? "#ff8a5c" : "rgba(255,255,255,0.25)";
       g.beginPath(); g.arc(210 + i*25, 674, 7, 0, 7); g.fill();
     }
-    g.font = "700 12px system-ui"; g.fillStyle = "#cfe0ee";
-    g.fillText(C.phase === "fight" && C.mode === "ring" ? "tap inside the gold band" : "", 235, 650);
+    if(C.phase === "fight" && C.mode === "ring") say("tap inside the gold band", 235, 650, "700 12px system-ui", "#cfe0ee", 3);
   }
   if(C.phase === "fight" && C.mode === "sig" && C.sig){
     const S = C.sig;
     g.textAlign = "center";
     if(S.type === "mash"){
-      g.font = "800 20px system-ui"; g.fillStyle = "#ffd35c";
-      g.fillText("HE RUNS — TAP! TAP! TAP!", 235, 140);
+      say("HE RUNS — TAP! TAP! TAP!", 235, 140, "800 20px system-ui", "#ffd35c");
       g.fillStyle = "rgba(0,0,0,0.6)"; g.fillRect(85, 160, 300, 20);
       g.fillStyle = "#ff8a5c"; g.fillRect(85, 160, 300*S.bar, 20);
       g.strokeStyle = "#ffd35c"; g.lineWidth = 2; g.strokeRect(85, 160, 300, 20);
     }
     if(S.type === "swipe"){
-      g.font = "800 20px system-ui"; g.fillStyle = "#ffd35c";
-      g.fillText("HE SWINGS — SWIPE " + S.dir, 235, 140);
+      say("HE SWINGS — SWIPE " + S.dir, 235, 140, "800 20px system-ui", "#ffd35c");
       g.font = "800 92px system-ui";
       g.globalAlpha = 0.6 + 0.4*Math.sin(C.t*6);
       g.fillText(S.dir, 235, 380);
       g.globalAlpha = 1;
     }
     if(S.type === "hold"){
-      g.font = "800 19px system-ui"; g.fillStyle = "#ffd35c";
-      g.fillText("HOLD THE LINE — RELEASE IN THE BAND", 235, 140);
+      say("HOLD THE LINE — RELEASE IN THE BAND", 235, 140, "800 19px system-ui", "#ffd35c");
       g.fillStyle = "rgba(0,0,0,0.6)"; g.fillRect(85, 160, 300, 18);
       g.fillStyle = "rgba(255,211,92,0.5)"; g.fillRect(85 + 300*0.60, 160, 300*0.26, 18);
       g.fillStyle = S.v > 0.86 ? "#ff5c5c" : "#9fd8ff"; g.fillRect(85, 160, 300*Math.min(1,S.v), 18);
     }
     if(S.type === "multi"){
-      g.font = "800 20px system-ui"; g.fillStyle = "#ffd35c";
-      g.fillText("CUT THE LIGHTNING — IN ORDER", 235, 140);
+      say("CUT THE LIGHTNING — IN ORDER", 235, 140, "800 20px system-ui", "#ffd35c");
       for(const q of S.pts){
         if(q.hit) continue;
         const on = q.n === S.next;
         g.strokeStyle = on ? "#ffd35c" : "rgba(255,255,255,0.5)"; g.lineWidth = on ? 5 : 3;
         g.beginPath(); g.arc(q.x, q.y, 34, 0, 7); g.stroke();
-        g.font = "800 26px system-ui"; g.fillStyle = on ? "#ffd35c" : "#cfe0ee";
-        g.fillText(q.n, q.x, q.y + 9);
+        g.fillStyle = "rgba(0,0,0,0.45)"; g.beginPath(); g.arc(q.x, q.y, 34, 0, 7); g.fill();
+        say(q.n, q.x, q.y + 9, "800 26px system-ui", on ? "#ffd35c" : "#cfe0ee", 3);
       }
     }
     if(S.type === "vanish"){
       g.fillStyle = `rgba(3,7,14,${S.dark > 0 ? 0.88 : 0.8})`; g.fillRect(0, 0, 470, 705);
-      g.font = "800 20px system-ui"; g.fillStyle = "#9fb2c2";
-      g.fillText(S.dark > 0 ? "HE VANISHES…" : "THERE — STRIKE!", 235, 140);
+      say(S.dark > 0 ? "HE VANISHES…" : "THERE — STRIKE!", 235, 140, "800 20px system-ui", "#9fb2c2");
       if(S.dark > 0){
         const rr2 = (0.9 - S.dark) * 60;
         g.strokeStyle = "rgba(159,216,255,0.25)"; g.lineWidth = 1.5;

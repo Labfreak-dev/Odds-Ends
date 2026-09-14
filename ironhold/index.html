@@ -1475,7 +1475,8 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
- {b:'b200',t:'The tally, set',w:'The Wyrm\'s tally is 2,500 in realm 1 and 1,600 more each realm: 16,900 in realm 10, 32,900 in realm 20. Measured from a full simulated road, that puts realm 20 near the hundred-day mark.'},
+ {b:'b201',t:'The tally, measured twice',w:'The Wyrm\'s tally is 2,500 in realm 1 and 1,350 more each realm: 14,650 in realm 10, 28,150 in realm 20. Two full simulated roads bracket it: realm 20 lands near the hundred-day mark.'},
+ {b:'b200',t:'The tally, set',w:'The Wyrm\'s tally rose to 1,600 more each realm.'},
  {b:'b199',t:'The Restless Dead, bounded',w:'Under the Restless Dead omen a monster mends 1.5% a second but never more than a third of what you deal, so a big boss in a late realm is slower to kill, not impossible.'},
  {b:'b198',t:'The long road, measured',w:'Monster health compounds 1.25x a realm instead of 1.3x, and the Wyrm\'s tally grows by 1,100 a realm instead of 900: the late realms are long because there is more to do, not because the champion bleeds out.'},
  {b:'b197',t:'The old Wyrm',w:'Monster defence stops growing after realm 9, so the Lair stays hittable. The Elder Wyrm\'s health grows slower than the spawn\'s, so the fight ends before the food does.'},
@@ -2319,7 +2320,7 @@ const diff=()=>DIFFS[trialRule('master')?3:Math.min(S.diff||0,diffMax())];   // 
 function playerDps(){const m=G.mob;if(!m)return 0;return playerMaxHit()*0.5*hitChance(playerAtkRoll(),mobDefRoll(m))/Math.max(0.5,attackDelay());}
 function ascReady(){return !!S.cleared[AREAS.length-1]&&!preHolds();}
 // The Elder Wyrm sleeps until the realm's tally is met: the blade must fell this many of the realm's monsters, in any area, before the Lair's boss will rise. The tally grows with the realm; it is what makes each realm longer than the last.
-function wyrmNeed(){return 2500+1600*((S.asc&&S.asc.realm)||0);}
+function wyrmNeed(){return 2500+1350*((S.asc&&S.asc.realm)||0);}
 function realmKills(){return (S.kills||[]).reduce((a,b)=>a+b,0);}
 function wyrmAwake(){return !!S.cleared[AREAS.length-1]||realmKills()>=wyrmNeed();}
 function ascShards(){return Math.floor((Math.floor(combatLvl()/5)+S.cleared.filter(Boolean).length*2+Math.floor(((S.tower&&S.tower.best)||0)/5)+10*(((S.asc&&S.asc.realm)||0)+1))*vowShardMult()*creedEff('shardx',1));}
@@ -5524,7 +5525,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b200-tally';window.__ihBoot=true;
+  const BUILD='b201-tally2';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

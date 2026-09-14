@@ -67,6 +67,7 @@ function oeBundleLanded(name){
     safeRender("fishing", renderFishing);
     safeRender("tackle", renderTackleShop);
   }
+  if(name === "hunt"){ const n = document.getElementById("huLazyNote"); if(n) n.style.display = "none"; }
 }
 let oeSection = null;
 function uiEnterSection(id){
@@ -93,6 +94,12 @@ function uiEnterSection(id){
     }
   }
   else if(id==="casino"){ renderCasino(); brShowLobby(); }
+  else if(id==="hunt"){
+    /* the Hunt is a lazy bundle (batch 136): its module builds the stage the
+       moment it runs, so loading it IS entering it */
+    const note = document.getElementById("huLazyNote");
+    if(!oeBundleReady("hunt")){ if(note) note.style.display = "block"; oeLoadBundle("hunt"); }
+  }
   else if(id==="provenance"){ pvOnEnterTab(); }
   else if(id==="press"){ prOnEnterTab(); }
   else if(id==="connections"){ cxOnEnterTab(); }

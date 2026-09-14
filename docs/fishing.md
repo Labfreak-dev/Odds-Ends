@@ -501,6 +501,54 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 136 — the Hunt is a lazy bundle; the pack module stays eager
+Item 3 of the list, the second lazy tier, decided by the map: the pack
+module (ripship, 1.1MB of base64) draws the very first screen - the
+shelf foil and the start-screen card rain both read its exports at 0ms -
+and its startReveal wrapper must stay INSIDE the ledger's for the daily
+pack task to count; making it lazy would either downgrade the first
+paint or need a prefetch that defeats the point. Left eager, on purpose.
+The Hunt (0.5MB) is the clean one: behind Play -> The Hunt, no suite, no
+host caller - except that its module wrapped currentMineRatePerMin at
+load for the ember bonus (+0.5% per ember), which a lazy load would have
+switched off until the tab was opened. The multiplier now lives in the
+host's own currentMineRatePerMin; the wrapper is gone; uiEnterSection
+loads the bundle on entry with a "Loading the hunt…" line (the module
+builds its stage the moment it runs). docs/smoke-hunt.py (6): not in
+the page at boot, embers warm the rate with the hunt unloaded, the tab
+fetches and builds, the bonus is applied once after the load.
+
+ITEM 5, measured and left alone: under 4x CPU throttling the whole boot
+to the start screen is 1.6s, of which the 6MB card catalogue's parse is
+253ms (50ms unthrottled). It compresses ~5x over the wire, so compacting
+it would buy a fifth of a second on a slow phone for a generator step
+that would touch every card id. Not worth it now; the numbers are here
+for later.
+
+## Batch 135 — set completion rewards
+Item 2 of the list. The shelf's "have/total cards in set" counter now pays:
+crossing 25/50/75/100% of a set pays once, for good - count × 4 × (1 /
+1.6 / 2.4 / 5) dollars, so Everyday Items (107 cards) pays $428 at a
+quarter and $2,140 complete, Animal Kingdom (17,379) $69,516 and
+$347,580. Claimed milestones live in state.setMilestones (migrated in on
+old saves). There is no central "card granted" hook - eighteen sites
+write state.owned - so the check hangs off saveState, throttled to run
+only when the NUMBER of owned ids has grown since the last look (one
+scan of the catalogue, ~5ms), plus a forced check from the shelf. The
+shelf shows "next: 50% · +$684" under the bar, or "🏆 SET COMPLETE". The
+Mega Booster is not a set (it pulls from every set and its shelf count
+includes the exclusive categories it cannot pull); test packs are not on
+the shelf. Suite: docs/smoke-sets.py (10).
+
+## Batch 134 — the existing Backup & Restore, now covered
+Item 1 of the list was "save export/import". Turns out the host already
+has it: Settings -> 💾 Backup & Restore downloads, copies or pastes a
+JSON backup, and applyBackup restores it in place through the same
+loader migrations a boot runs. Nothing in the suite touched it, so
+docs/smoke-save.py (10) now round-trips a save through the paste box and
+the real Restore button, checks the confirm, the reload, and that
+garbage is refused without a prompt.
+
 ## Batch 133 — a suite for the three binder puzzles
 Item 4 of the list: The Case, Connections and Odd One Out had changed a
 lot (batches 119, 121, 124) with zero automated coverage. docs/

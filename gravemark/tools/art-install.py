@@ -198,13 +198,20 @@ def main():
     ap.add_argument("--dest", default=os.path.join(HERE, "..", "art"))
     ap.add_argument("--manifest", default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--exclude", action="append", default=[],
+                    metavar="PREFIX",
+                    help="skip keys starting with this prefix (repeatable)")
     a = ap.parse_args()
 
     specs = manifest(a.manifest)
     installed, skipped, matted, problems, collapsed = [], [], [], [], []
+    excluded, wrong_size = [], []
 
     for spec in specs:
         key = spec["key"]
+        if any(key.startswith(pre) for pre in a.exclude):
+            excluded.append(key)
+            continue
         src = os.path.join(a.src, key + ".png")
         if not os.path.exists(src):
             continue
@@ -215,6 +222,16 @@ def main():
 
         if not is_painted(img, spec):
             skipped.append(key)
+            continue
+
+        # Refuse anything that is not a whole strip of the spec's cell size.
+        # A wrong-sized asset is worse than a missing one: it installs quietly
+        # and only breaks when that key is eventually wired into the UI.
+        iw, ih = img.size
+        cells = max(1, round(iw / spec["w"]))
+        if ih != spec["h"] or iw != spec["w"] * cells or cells > (spec.get("frames") or 1):
+            wrong_size.append((key, "%dx%d vs %dx%d cells"
+                               % (iw, ih, spec["w"], spec["h"])))
             continue
 
         frames = spec.get("frames") or 1
@@ -274,6 +291,12 @@ def main():
     print(f"skipped (filler)    : {len(skipped)}")
     print(f"mattes repaired     : {len(matted)}")
     print(f"static sheets collapsed to 1 frame : {len(collapsed)}")
+    if excluded:
+        print(f"excluded by request  : {len(excluded)}")
+    if wrong_size:
+        print(f"refused, wrong size  : {len(wrong_size)}")
+        for k, why in wrong_size:
+            print(f"  - {k}: {why}")
     if problems:
         print(f"unreadable          : {len(problems)}")
     if matted:

@@ -63,9 +63,15 @@ def main():
 
     for spec in spec_list:
         key = spec["key"]
-        ext = ".jpg" if key.startswith("bg/") else ".png"
-        path = os.path.join(a.artdir, key + ext)
-        if not os.path.exists(path):
+        # A SOURCE pack delivers everything as .png; the INSTALLED tree has
+        # backdrops converted to .jpg. Accept either so one checker serves both.
+        path = None
+        for ext in (".png", ".jpg"):
+            cand = os.path.join(a.artdir, key + ext)
+            if os.path.exists(cand):
+                path = cand
+                break
+        if path is None:
             missing.append(key)
             continue
         try:
@@ -88,7 +94,7 @@ def main():
         elif frames > declared:
             problems.append((key, "%d frames, spec allows at most %d" % (frames, declared)))
 
-        needs_alpha = not key.startswith("bg/")   # backdrops ship as JPEG
+        needs_alpha = not key.startswith("bg/") and not path.endswith(".jpg")
         if needs_alpha and img.mode not in ("RGBA", "LA", "P"):
             problems.append((key, "no alpha channel (mode %s)" % img.mode))
 

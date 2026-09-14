@@ -115,9 +115,11 @@ sheets and 45 paper-doll gear layers. It is built programmatically from the game
 data, so adding a monster to `03-data-world.js` adds its art keys automatically
 and the brief cannot drift out of date.
 
-**Current coverage: 104 of 288 painted.** `ART-REMAINING.md` lists the rest.
-What is outstanding is mostly the paper-doll gear (all 45 layers), 11 of the 12
-bosses, and most item/rune/UI icons.
+**Current coverage: 158 of 288 painted.** `ART-REMAINING.md` lists the rest.
+All twelve bosses, all fifteen monsters, the hero, and seventeen of eighteen
+backdrops are in. Outstanding: the paper-doll gear, most item and rune icons,
+and the UI chrome and rarity frames (neither of which the renderer consumes
+yet — the UI is CSS).
 
 **Nothing delivered so far is animated.** Every painted sheet arrived with all
 frames identical, and all twelve hero states are byte-for-byte the same image —
@@ -148,6 +150,14 @@ python3 tools/art-check.py art --remaining ART-REMAINING.md
    card. Seeding from the frame border does not work: the card's own boundary is
    a hard edge the flood cannot cross.
 3. **Collapses static sheets** to a single frame.
+4. **Refuses wrong-sized assets.** One that installs quietly is worse than one
+   that is missing, because it only breaks when that key is finally wired up.
+
+`--exclude <prefix>` skips a category. The `doll/` layers delivered so far need
+this: they arrived as standalone item illustrations on white cards rather than
+body-aligned gear layers, so compositing them puts a picture of a sword across
+the hero's chest. Verify any doll delivery by compositing it over
+`actor/hero-idle` before installing.
 
 Deliver art at `art/<key>.png` — e.g. `art/mon/shambler-idle.png`. Sprite sheets
 are a single horizontal strip of frames.

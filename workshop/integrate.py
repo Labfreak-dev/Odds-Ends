@@ -48,7 +48,7 @@ sections = """
 """
 src = once(src, '<section id="tab-collection" style="display:none;">',
   """  <section id="tab-hunt" style="display:none;">
-    <div class="panel"><div id="huStage"></div></div>
+    <div class="panel"><div id="huLazyNote" style="display:none; text-align:center; color:var(--muted); padding:28px 0 10px; font-weight:700;">🏹 Loading the hunt…</div><div id="huStage"></div></div>
   </section>
 
 <section id="tab-collection" style="display:none;">""", "keep section")
@@ -56,7 +56,9 @@ anchor = '<section id="tab-collection" style="display:none;">'
 src = once(src, anchor, sections + "  " + anchor, "sections")
 
 # ---- 3. modules ------------------------------------------------------
-MODULE_FILES = ["fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishing-sfx.module.js", "fishing-cine.module.js",
+MODULE_FILES = ["fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishing-sfx.module.js",
+    "fishing-cine-ironjaw.module.js", "fishing-cine-marshking.module.js", "fishing-cine-palehunter.module.js",
+    "fishing-cine-roosterking.module.js", "fishing-cine-blackphantom.module.js", "fishing-cine-drownedking.module.js",
     "provenance.catalogue.js", "provenance.module.js",
     "press.module.js", "connections.module.js",
     "case.module.js", "oddone.module.js",
@@ -223,7 +225,10 @@ manifest = []
 # this order. Everything fishing is 11MB of mostly base64 that gzip cannot
 # touch; the cold load no longer waits for it.
 LAZY = { "fishing": ["fishing-assets", "fishing-spot-bgs", "fishing-sfx", "fishing2"],
-         "fishing-cine": ["fishing-cine"] }
+         "cine-ironjaw": ["fishing-cine-ironjaw"], "cine-marshking": ["fishing-cine-marshking"],
+         "cine-palehunter": ["fishing-cine-palehunter"], "cine-roosterking": ["fishing-cine-roosterking"],
+         "cine-blackphantom": ["fishing-cine-blackphantom"], "cine-drownedking": ["fishing-cine-drownedking"],
+         "hunt": ["hunt"] }
 _lazy_of = { c: b for b, cs in LAZY.items() for c in cs }
 lazy_files = { b: [] for b in LAZY }
 def _explode(m):

@@ -179,7 +179,8 @@ async def main():
         except Exception:
             pass   # fall through so check() reports the real state, not a raw timeout
         check("a first catch enters the journal with a bonus chip", await pg.evaluate(
-            "feJournalCount()===1 && !!fsh.result && fsh.result.chips.some(c=>c.includes('New species'))"))
+            "feJournalCount()===1 && !!fsh.result && fsh.result.chips.some(c=>c.includes('New species'))"),
+            await pg.evaluate("JSON.stringify({p:fsh.phase, jc:feJournalCount(), chips:fsh.result&&fsh.result.chips, catch:fsh.catch&&fsh.catch.name, boss:fsh.bossHook&&fsh.bossHook.name, cine:feCine.active, over:fsh.fight&&fsh.fight.over})"))
         check("conditions gate the landed species", await pg.evaluate(
             "(()=>{ const c=feConds()[fsh.result.title]; return !c || feCondOk(c); })()"))
         # sight fishing: park a shadow on the bobber target and cast into it

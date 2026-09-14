@@ -1,0 +1,77 @@
+LEGEND FIGHT CLIPS — the true-form cinematic, one set per legend
+================================================================
+
+The fight plays in a portrait window (440x660 in the game, 2:3). Today each
+legend has a 14-frame breach plus two stills. The new fight wants FIVE shots
+per legend, four of them short video clips the game turns into frame
+sequences, one a still. Generate them in Grok Imagine as VIDEO where it says
+clip; deliver the mp4 (or a folder of frames, 24 per clip is plenty). Name
+the files <legend>-<shot>.mp4, e.g. ironjaw-breach.mp4. I extract, crop,
+convert to webp and wire them in.
+
+GLOBAL STYLE (paste at the top of every prompt)
+- "Portrait 2:3, 720x1080. Painted storybook style with soft edges, the same
+  rendering as the water paintings in the reference. Camera low at the water,
+  just above the surface, looking slightly up at the fish. The fish faces the
+  camera. No people, no rod, no line, no text, no watermark. Water spray and
+  droplets in every shot. Keep the SAME creature design in every shot of a
+  legend: same colours, same scars, same proportions."
+- Feed the matching water painting from docs/fishing-scene-reference.webp
+  (dock) or your six scene paintings as the style reference for its legend.
+
+THE FIVE SHOTS (same list for every legend; only the creature line changes)
+
+  A. breach   (clip, 3s)  The legend erupts from calm water straight toward
+                          the camera, rising to fill the frame, a wall of
+                          spray behind it. Starts with only a wake, ends with
+                          the fish at its highest, mouth open.
+  B. fury     (clip, 3s, loopable)  The legend thrashing at the surface,
+                          filling the middle of the frame, water churning,
+                          head swinging left and right. Start and end on the
+                          same pose so it loops.
+  C. lunge    (clip, 1.5s)  The legend lunges AT the camera, jaws wide, and
+                          the spray hits the lens. Fast.
+  D. beaten   (still)     The legend exhausted at the surface, on its side,
+                          gills working, calm water, first light. Dignified,
+                          not gory.
+  E. gone     (clip, 2s)  The legend turns and dives away, tail up, then only
+                          rings on the water.
+
+THE LEGENDS (the creature line; keep it word for word across all five shots)
+
+1. Old Ironjaw — the dock
+   "A colossal, ancient common carp, 60 pounds, bronze scales like armour
+   plates, a torn tail fin and three old gaff scars on its jaw, lake water
+   at midday with green hills behind."
+
+2. The Marsh King — the reedy shallows
+   "A monstrous alligator gar, 70 pounds, long armoured body, olive-green
+   with black speckles, needle teeth, rising among lily pads and cattails in
+   misty marsh water."
+
+3. The Pale Hunter — the deep ledge
+   "A great white shark, huge, two-toned: slate grey above, bone white
+   below, black eye, rising from cold dark blue water under a grey sky."
+
+4. The Rooster King — the coral reef
+   "A giant crested reef fish, 100 pounds, a tall red-and-gold dorsal crest
+   like a rooster's comb, iridescent scales, over turquoise water and living
+   coral in warm sun."
+
+5. The Black Phantom — the midnight water
+   "A vast pitch-black catfish, 140 pounds, skin like wet obsidian that
+   swallows the light, pale whiskers, silver eyes, at night on still black
+   water under a sky of stars, the only light a low moon."
+
+6. The Drowned King — the confluence
+   "A colossal kraken-like octopus, the size of a rowing boat, drowned-green
+   skin with barnacles and old rope caught on it, a rusted crown sunk into
+   its head, rising where five rivers meet under a storm sky."
+
+DELIVERY
+- 5 files per legend, 30 total. mp4 is easiest; frames (jpg/png/webp) in a
+  folder also fine.
+- Don't worry about matching sizes exactly; I crop to 2:3 and scale.
+- If a clip drifts (the creature changes mid-shot), regenerate that one shot
+  rather than the set. Consistency across the five matters more than any one
+  shot being perfect.

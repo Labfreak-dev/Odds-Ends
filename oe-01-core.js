@@ -861,6 +861,7 @@ function loadState(){
          louder default comes down with it, once - a slider the player has
          moved since stays where they put it */
       if(s.settings.sfxTame !== 2){ if(s.settings.sfxVol > 0.5) s.settings.sfxVol = 0.5; s.settings.sfxTame = 2; }
+      if(!s.setMilestones || typeof s.setMilestones !== "object") s.setMilestones = {};
       if(s.upgrades===undefined) s.upgrades = defaultUpgrades();
       if(s.market===undefined) s.market = null;
       if(s.market && s.market.rerolls===undefined) s.market.rerolls = 0;
@@ -917,9 +918,67 @@ function loadState(){
   return freshState();
 }
 let saveFailWarned = false;
+/* ---- set completion rewards (batch 135) ----
+   Every pack on the shelf is a set; the shelf already counts have/total.
+   Crossing a quarter of a set pays out once, for good: the pay scales with
+   the set's size so a 17,000-card set is worth chasing and a 107-card set
+   is a nice afternoon. Claimed milestones live in state.setMilestones so
+   they never pay twice. The Mega Booster is not a set (it pulls from all
+   of them), test packs are not on the shelf. */
+const SET_MILESTONES = [ [25, 1], [50, 1.6], [75, 2.4], [100, 5] ];   /* [percent, pay multiplier] */
+function packSetPool(p){
+  if(!p || p.categories === null || p.testOnly) return null;
+  return p.categories.flatMap(cat => poolByCategoryTier[cat] ? poolByCategoryTier[cat].flat() : []);
+}
+function packSetProgress(p){
+  const pool = packSetPool(p);
+  if(!pool || !pool.length) return null;
+  const have = pool.reduce((n,c)=> n + ((state.owned[c.id]||0) > 0 ? 1 : 0), 0);
+  return { have, count: pool.length, pct: have / pool.length * 100 };
+}
+function setMilestonePay(count, mult){ return Math.round(count * 4 * mult); }
+let oeMilestoneBusy = false, oeOwnedSeen = -1;
+function checkSetMilestones(force){
+  if(oeMilestoneBusy) return;
+  const ownedN = Object.keys(state.owned || {}).length;
+  if(!force && ownedN === oeOwnedSeen) return;      /* nothing new in the binder since the last look */
+  oeOwnedSeen = ownedN;
+  oeMilestoneBusy = true;
+  try{
+    if(!state.setMilestones || typeof state.setMilestones !== "object") state.setMilestones = {};
+    const won = [];
+    for(const p of PACKS){
+      const pr = packSetProgress(p); if(!pr) continue;
+      const got = state.setMilestones[p.key] = state.setMilestones[p.key] || {};
+      for(const [pct, mult] of SET_MILESTONES){
+        if(got[pct] || pr.pct + 1e-9 < pct) continue;
+        const pay = setMilestonePay(pr.count, mult);
+        got[pct] = Date.now();
+        state.dollars += pay;
+        won.push({ p, pct, pay });
+      }
+    }
+    if(won.length){
+      const last = won[won.length-1];
+      const extra = won.length > 1 ? ` (+${won.length-1} more)` : "";
+      setTimeout(()=>{ try{ showToast(`🏆 ${last.p.icon} ${last.p.name} ${last.pct}% complete — +$${last.pay.toLocaleString()}${extra}`); }catch(e){} }, 300);
+      try{ renderHeader(); }catch(e){}
+      try{ renderPackShelf(); }catch(e){}
+      try{ saveState(); }catch(e){}
+    }
+  }catch(e){}
+  oeMilestoneBusy = false;
+}
+/* the next unclaimed milestone for the shelf line */
+function packSetNext(p, pr){
+  const got = (state.setMilestones && state.setMilestones[p.key]) || {};
+  for(const [pct, mult] of SET_MILESTONES) if(!got[pct]) return { pct, pay: setMilestonePay(pr.count, mult) };
+  return null;
+}
 function saveState(){
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    checkSetMilestones(false);
   } catch(e){
     console.error("saveState failed", e);
     if(!saveFailWarned){
@@ -1081,7 +1140,11 @@ function currentMineRatePerMin(){
     + (u.pickaxe||0)*PICKAXE_RATE_PER_LEVEL
     + (u.miners||0)*MINER_RATE_PER_LEVEL
     + blacksmithLevel*BLACKSMITH_MINE_BONUS_PER_LEVEL;
-  const mult = 1 + (u.speed||0)*SPEED_PCT_PER_LEVEL + (playerLevel-1)*LEVEL_MINE_PCT_PER_LEVEL;
+  /* the Hunt's embers warm the whole operation, +0.5% each. This lived in a
+     wrapper the hunt module applied at load; with hunt a lazy bundle (batch
+     136) the bonus must not wait for the tab to be opened. */
+  const embers = (state.hunt && state.hunt.embers) || 0;
+  const mult = (1 + (u.speed||0)*SPEED_PCT_PER_LEVEL + (playerLevel-1)*LEVEL_MINE_PCT_PER_LEVEL) * (1 + 0.005*embers);
   return flat * mult;
 }
 function currentMineRatePerMs(){ return currentMineRatePerMin() / 60000; }
@@ -1633,6 +1696,10 @@ function renderPackShelf(){
       p.categories.flatMap(cat => poolByCategoryTier[cat] ? poolByCategoryTier[cat].flat() : []);
     const count = pool.length;
     const have = pool.reduce((n,c)=> n + ((state.owned[c.id]||0) > 0 ? 1 : 0), 0);
+    const setPr = packSetProgress(p), setNext = setPr ? packSetNext(p, setPr) : null;
+    const setLine = !setPr ? "" : setNext
+      ? `<div class="pack-next">next: ${setNext.pct}% · +$${setNext.pay.toLocaleString()}</div>`
+      : `<div class="pack-next done">🏆 SET COMPLETE</div>`;
     const price1 = Math.round(p.price1 * (1-discount));
     const price10 = Math.round(p.price10 * (1-discount));
     const earned = p.earnOnly ? (typeof riskPacksOwned === "function" ? riskPacksOwned() : 0) : 0;
@@ -1648,7 +1715,7 @@ function renderPackShelf(){
         : `<div class="icon">${p.icon}</div>`}
       <div class="title">${p.name}</div>
       <div class="sub">${p.sub}</div>
-      <div class="pack-prog${have>=count&&count>0?" full":""}" title="${have.toLocaleString()} of ${count.toLocaleString()} collected"><span>${have.toLocaleString()}/${count.toLocaleString()} cards in set</span><i style="--p:${count?Math.round(have/count*100):0}%"></i></div>
+      <div class="pack-prog${have>=count&&count>0?" full":""}" title="${have.toLocaleString()} of ${count.toLocaleString()} collected"><span>${have.toLocaleString()}/${count.toLocaleString()} cards in set</span><i style="--p:${count?Math.round(have/count*100):0}%"></i></div>${setLine}
       ${p.earnOnly
         ? (earned > 0
             ? `<div class="price risk-open">Open a pack — ${earned} held</div>`

@@ -114,12 +114,9 @@ function huWeaponCost(){
 }
 function huHunterCost(h){ return Math.round(h.base * Math.pow(1.35, U.hunters[h.key]||0)); }
 function huEmberGain(){ return U.depth >= 15 ? Math.floor((U.depth - 10)/5) + 1 : 0; }
-/* embers warm the whole operation: +0.5% mine rate each */
-if(typeof currentMineRatePerMin === "function" && !window.__huWrap){
-  window.__huWrap = true;
-  const _r = currentMineRatePerMin;
-  currentMineRatePerMin = function(){ return _r() * (1 + 0.005*((state.hunt&&state.hunt.embers)||0)); };
-}
+/* embers warm the whole operation: +0.5% mine rate each - applied inside
+   the host's currentMineRatePerMin since batch 136 (hunt is a lazy bundle
+   and the bonus cannot wait for the tab) */
 
 /* ---------- the fight ---------- */
 const F = { hp: huMaxHp(), kind: HU_BEASTS[0], t: 0, shake: 0, flash: 0, slashes: [], nums: [], bossT: 0, dead: 0 };

@@ -60,7 +60,8 @@ for f in src/*.js; do node --check "$f"; done   # every file parses
 node tools/check-globals.js                      # no top-level collisions
 node tools/test-core.js                          # 64 logic checks
 node tools/balance.js                            # pacing across depths
-python3 tools/smoke.py                           # 31 checks, real page headless
+python3 tools/smoke.py                           # 36 checks, real page headless
+python3 tools/art-check.py art                   # delivered art matches the manifest
 ```
 
 `smoke.py` needs playwright **pinned**:
@@ -106,19 +107,54 @@ immortal.
 
 The game references **no image path directly**. It asks `GM.art(key)` and gets
 either the real asset or a procedurally drawn, labelled placeholder, so it is
-fully playable with zero image files.
+fully playable with zero image files. Backdrops resolve to `.jpg` (no alpha,
+a tenth the bytes); everything else to `.png`.
 
 `src/18-assets.js` is the manifest: 288 keys, including 169 animated sprite
-sheets (1,288 frames) and 45 paper-doll gear layers. It is built programmatically
-from the game data, so adding a monster to `03-data-world.js` adds its art keys
-automatically and the brief cannot drift out of date.
+sheets and 45 paper-doll gear layers. It is built programmatically from the game
+data, so adding a monster to `03-data-world.js` adds its art keys automatically
+and the brief cannot drift out of date.
+
+**Current coverage: 104 of 288 painted.** `ART-REMAINING.md` lists the rest.
+What is outstanding is mostly the paper-doll gear (all 45 layers), 11 of the 12
+bosses, and most item/rune/UI icons.
+
+**Nothing delivered so far is animated.** Every painted sheet arrived with all
+frames identical, and all twelve hero states are byte-for-byte the same image —
+so the hero renders as one pose and never changes. The renderer derives frame
+count from each image's own width rather than from the manifest, so these ship
+collapsed to a single frame and a genuinely animated replacement drops in later
+with no code change.
+
+### Installing an art delivery
 
 ```bash
-node tools/art-brief.js            # regenerate the full brief from the manifest
+node tools/art-manifest.js > /tmp/manifest.json
+python3 tools/art-install.py <unzipped-art-dir>      # writes art/
+python3 tools/art-check.py art --remaining ART-REMAINING.md
 ```
 
-Drop finished art at `art/<key>.png` — e.g. `art/mon/shambler-idle.png`. Sprite
-sheets are a single horizontal strip of frames. Nothing in the game code changes.
+`art-install.py` does three things that matter:
+
+1. **Installs only what is actually painted.** Deliveries ship on-spec filler
+   for unfinished keys. A placeholder file on disk *loads successfully*, and the
+   renderer then composites it — 45 doll layers of captioned boxes over the
+   hero. A file that is ABSENT falls back to the game's own placeholder, which
+   is what we want, so filler is detected and left out.
+2. **Repairs mattes.** Figures frequently arrive pasted on a light card rather
+   than cut out, which on a dark backdrop reads as a bright rectangle. Detection
+   samples the opaque bounding-box perimeter (a card has a uniform opaque ring;
+   a cut-out sprite's is mostly transparent), then region-grows from inside the
+   card. Seeding from the frame border does not work: the card's own boundary is
+   a hard edge the flood cannot cross.
+3. **Collapses static sheets** to a single frame.
+
+Deliver art at `art/<key>.png` — e.g. `art/mon/shambler-idle.png`. Sprite sheets
+are a single horizontal strip of frames.
+
+```bash
+node tools/art-brief.js > ART-BRIEF.md    # regenerate the full brief
+```
 
 ## Deploy
 

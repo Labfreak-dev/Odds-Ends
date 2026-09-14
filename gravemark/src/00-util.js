@@ -5,7 +5,7 @@
 
 var GM = window.GM || (window.GM = {});
 
-GM.BUILD = "b001-foundations";
+GM.BUILD = "b002-first-art";
 GM.TITLE = "Gravemark";
 
 /* ---------- RNG ---------------------------------------------------------

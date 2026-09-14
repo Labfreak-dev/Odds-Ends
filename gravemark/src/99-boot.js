@@ -69,6 +69,10 @@ function boot() {
   var season = GM.lastSeason();
   GM.startSeason(season);
 
+  /* Fire-and-forget: tells the art loader which keys exist so it never
+     requests the ones that do not. */
+  GM.loadArtIndex();
+
   GM.ui.init();
   GM.ui.initFight();
   GM.ui.initGear();

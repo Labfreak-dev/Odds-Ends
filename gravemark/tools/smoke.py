@@ -8,7 +8,7 @@ survives a reload. Console errors and uncaught exceptions fail the run.
     pip install playwright==1.56.0     # pinned; see the repo CLAUDE.md
     python3 tools/smoke.py
 """
-import http.server, socketserver, threading, functools, sys, os, time, json
+import http.server, socketserver, threading, functools, sys, os, time, json, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PORT = 8731
@@ -123,6 +123,25 @@ def main():
         ok(page.eval_on_selector_all("#graveList .grave", "e => e.length") >= 1, "a gravemark renders")
         ok(page.eval_on_selector("#graveBadge", "e => !e.hidden"), "the graves tab badges")
 
+        print("\n-- art")
+        # Regression guard: drawSprite used to call artReady(), which only
+        # INSPECTED the cache and never started a request, so every asset
+        # silently fell back to a placeholder forever.
+        page.click('#tabs .tab[data-view="delve"]')
+        page.wait_for_timeout(2500)
+        stats = page.evaluate("GM.artStats()")
+        ok(stats["have"] > 0, "art files actually load", json.dumps(stats))
+        ok(page.evaluate("GM.artReady('mon/shambler-idle')"), "a monster sprite is ready")
+        ok(page.evaluate("GM.artReady('actor/hero-idle')"), "the hero sprite is ready")
+        ok(page.evaluate("GM.artURL('bg/realm-1').endsWith('.jpg')"), "backdrops resolve to jpg")
+        ok(page.evaluate("GM.artURL('mon/shambler-idle').endsWith('.png')"), "sprites resolve to png")
+        # a collapsed single-frame sheet must still render
+        ok(page.evaluate("""() => {
+            const c = document.createElement('canvas');
+            c.width = c.height = 64;
+            return GM.drawSprite(c.getContext('2d'), 'mon/shambler-idle', 3, 0, 0, 64, 64);
+        }"""), "a collapsed sheet draws from real art, not a placeholder")
+
         print("\n-- persistence")
         page.evaluate("GM.state.char.gold = 424242; GM.save();")
         depth = page.evaluate("GM.state.depth.maxEver")
@@ -150,6 +169,12 @@ def main():
     print(("PASS" if passed == total else "FAIL") + f"  {passed}/{total} checks")
     return 0 if passed == total else 1
 
-GM_BUILD = "b001"
+def build_id():
+    """Read GM.BUILD from source so bumping it cannot fail the smoke test."""
+    src = open(os.path.join(ROOT, "src", "00-util.js")).read()
+    m = re.search(r'GM\.BUILD\s*=\s*"([^"]+)"', src)
+    return m.group(1) if m else ""
+
+GM_BUILD = build_id()
 if __name__ == "__main__":
     sys.exit(main())

@@ -200,13 +200,48 @@ GM.ART_BY_KEY = (function () {
 var _artCache = Object.create(null);
 var _artMissing = Object.create(null);
 
-GM.artURL = function (key) { return GM.ART_DIR + key + ".png"; };
+/* Backdrops are opaque 1280x720 paintings and carry no alpha, so they ship as
+   JPEG - about a tenth the bytes of the same image as PNG, and visually
+   indistinguishable on a dark painterly backdrop. Everything else needs its
+   alpha and stays PNG. */
+GM.artURL = function (key) {
+  return GM.ART_DIR + key + (key.indexOf("bg/") === 0 ? ".jpg" : ".png");
+};
+
+/* Which keys are actually on disk. Loaded once from art/available.json; until
+   it arrives (or if it is absent) every key is attempted, which is the old
+   behaviour and still correct - just noisier. */
+var _artIndex = null;
+var _artIndexState = "none";   /* none | pending | ready */
+
+GM.loadArtIndex = function () {
+  if (typeof fetch !== "function") return;
+  _artIndexState = "pending";
+  function settle(list) {
+    if (list && list.length) {
+      _artIndex = Object.create(null);
+      for (var i = 0; i < list.length; i++) _artIndex[list[i]] = true;
+    }
+    _artIndexState = "ready";
+    GM.bus.emit("art:index", list ? list.length : 0);
+  }
+  fetch(GM.ART_DIR + "available.json", { cache: "no-cache" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(settle)
+    .catch(function () { settle(null); });   /* no index: try every key */
+};
 
 GM.art = function (key) {
   if (_artCache[key]) return _artCache[key];
   var spec = GM.ART_BY_KEY[key];
   if (!spec) return null;
   if (_artMissing[key]) return null;
+  /* Hold every request until the index has settled. Firing during the fetch
+     is a race that costs a 404 for each key drawn in those first few frames;
+     the cost of waiting is a few hundred milliseconds of placeholder. */
+  if (_artIndexState === "pending") return null;
+  /* Known-absent: do not spend a request and a console 404 on it. */
+  if (_artIndex && !_artIndex[key]) return null;
 
   if (typeof Image === "undefined") return null;
   var img = new Image();
@@ -221,7 +256,7 @@ GM.art = function (key) {
 };
 
 GM.artReady = function (key) {
-  var img = _artCache[key];
+  var img = GM.art(key);          /* requests it if this is the first ask */
   return !!(img && img.complete && img.naturalWidth > 0);
 };
 
@@ -274,9 +309,17 @@ GM.drawPlaceholder = function (ctx, key, x, y, w, h, opts) {
 /* Draw one frame of an animated key, falling back to the placeholder. */
 GM.drawSprite = function (ctx, key, frame, x, y, w, h, opts) {
   var spec = GM.ART_BY_KEY[key];
-  if (spec && GM.artReady(key)) {
-    var img = _artCache[key];
-    var n = spec.frames || 1;
+  /* Ask for the asset, which STARTS the load on first call. Checking
+     readiness alone never populates the cache, so nothing would ever load and
+     every key would draw as a placeholder forever. */
+  var img = spec ? GM.art(key) : null;
+  if (img && img.complete && img.naturalWidth > 0) {
+    /* The ART decides its own frame count, not the manifest. A delivered sheet
+       whose frames are all identical can then ship as a single frame instead of
+       eight copies of the same pixels, and a partially animated set still plays
+       at whatever length it actually has. The manifest's `frames` stays the
+       intended spec for the brief. */
+    var n = Math.max(1, Math.round(img.naturalWidth / (spec.w || img.naturalWidth)));
     var fw = img.naturalWidth / n;
     var f = ((frame | 0) % n + n) % n;
     ctx.drawImage(img, f * fw, 0, fw, img.naturalHeight, x, y, w, h);
@@ -305,11 +348,15 @@ GM.dollKeyFor = function (layerId, slot) {
 
 /* Coverage, for the art brief and for a quick "how much is left" answer. */
 GM.artStats = function () {
-  var total = GM.ART.length, have = 0, byKind = {};
+  var total = GM.ART.length, have = 0, pending = 0, byKind = {};
   for (var i = 0; i < GM.ART.length; i++) {
     var a = GM.ART[i];
     byKind[a.kind] = (byKind[a.kind] || 0) + 1;
-    if (GM.artReady(a.key)) have++;
+    /* Read the cache directly — going through artReady() here would fire a
+       request for all 288 keys just to count how many had arrived. */
+    var img = _artCache[a.key];
+    if (img && img.complete && img.naturalWidth > 0) have++;
+    else if (img) pending++;
   }
-  return { total: total, have: have, byKind: byKind };
+  return { total: total, have: have, pending: pending, byKind: byKind };
 };

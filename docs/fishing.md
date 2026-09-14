@@ -501,6 +501,53 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 133 — a suite for the three binder puzzles
+Item 4 of the list: The Case, Connections and Odd One Out had changed a
+lot (batches 119, 121, 124) with zero automated coverage. docs/
+smoke-puzzles.py (26 checks) hammers each builder for fairness - every
+Case layout deals and its answer solves, grid cases look up and line
+cases never do; 100 Connections boards with no repeated rule and all
+eight rules in rotation; 200 Odd One Out rounds with exactly one
+arguable exception and rarity agreeing on the tier NAME - then plays each
+mode through its real tiles and buttons: a 3x3 hard case to 9 of 9 and
+the reduced prizes, a near-miss reading "One away." and a won board, a
+right call, a wrong call and the explanation line. In the verify list.
+
+## Batch 132 — the true-form fight, rebuilt on the playtester's clips
+"Can we afford a bigger, better boss fight?" Yes, because of the lazy
+bundles. The playtester generated 30 Grok clips (5 per legend, 720x1080,
+30fps) to docs/boss-fight-prompts.txt; this batch cuts them into frames
+and rebuilds the fight around them.
+
+CLIPS. Per legend: breach (24 frames, the intro), fury (16, loops under the
+whole fight), lunge (10), gone (10), beaten (1 still). Extracted with a
+bundled ffmpeg at even spacing, scaled to 400x600, webp q64, and written
+as fishing-cine-<key>.module.js registering on FE_CLIPS (declared in
+fishing2). Six lazy bundles "cine-<key>", 2.2-4.3MB each, fetched the
+moment that legend's shadow is hooked (feCineFramesLoad(name)); the old
+98-jpeg fishing-cine bundle is retired. Frames crossfade
+(feClipDraw), every frame is warmed on landing so the first pass never
+stutters, and the intro waits on "the water stirs…" rings if the bundle
+is not in yet.
+
+THE FIGHT. Three STAGES by fury left, each faster (tempo 1 / 1.15 / 1.3
+shortens every timer and speeds every ring), the bar notched to show
+them. Crossing a stage plays the LUNGE at the camera with the mechanics
+paused, a big kick, spray and a warning float; a slip plays a short bite
+from the same clip under a red flash. Hits get a 90ms hit-stop, a flash,
+a kick and a spray burst; a perfect answer (drag, storm cut, dodge,
+found) earns half a second of slow-motion. The fury loop breathes and
+sways more with each stage and each slip; a red vignette grows with the
+slips and pulses on the one just taken. The last hit is a FINISHER -
+slow-motion lunge, "THE LINE HOLDS" - then the BEATEN still with a warm
+glow; three slips play GONE. Vibration patterns per moment; no sound
+(retired).
+
+Harness: feSigNew and feCineRingStep keep their signatures (tempo now
+folds into both). Verified headless at the reef: hook -> bundle fetch ->
+breach -> FIGHT -> slip-bite -> stage break -> stage three -> finisher ->
+beaten -> journal n=1, hard=1; the escape path plays gone; zero errors.
+
 ## Batch 131 — the mine hits back: shake, flash, buzz
 "Do 5": with the click sound gone the swing had no feel. Now the whole
 scene rides the shake (it was the rock alone): a player strike kicks 11

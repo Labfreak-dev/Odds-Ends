@@ -33,8 +33,9 @@ serves the root; the site URL never changes.
   `window.OE_LAZY_FILES` and the host fetches them on demand through
   `oeLoadBundle(name)` / `oeBundleReady(name)` (batch 127). Today: "fishing"
   (assets, paintings, beds, fishing2 — prefetched on idle after first paint,
-  awaited by the tab's enter hook) and "fishing-cine" (the true-form keyframes
-  in `fishing-cine.module.js`, fetched when a legend is hooked). A suite that
+  awaited by the tab's enter hook) and six "cine-<key>" bundles (one legend's
+  true-form clips each, `fishing-cine-<key>.module.js`, GENERATED from the
+  playtester's Grok clips, fetched when that legend is hooked). A suite that
   enters fishing must `wait_for_function("oeBundleReady('fishing')")`.
 
 ## Hard-won rules (violate these and the build WILL break)
@@ -155,6 +156,7 @@ python3 docs/smoke-map.py                              # fishing map travel (24)
 python3 docs/smoke-scenes.py                           # per-water scenery + arrival (18)
 python3 docs/smoke-ripship.py                          # pack tear -> spread -> summary (47)
 python3 docs/smoke-backs.py && python3 docs/smoke-cardart.py && python3 docs/smoke-economy.py
+python3 docs/smoke-puzzles.py                          # The Case, Connections, Odd One Out (26)
 python3 docs/smoke-fishing.py && python3 docs/smoke-spots.py   # needs playwright
 ```
 The smokes drive the real page headless; if playwright is unavailable, at minimum

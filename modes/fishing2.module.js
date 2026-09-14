@@ -1801,7 +1801,7 @@ function fshLandCast(){
       if(sh.bossOf){
         const inv = feBossState();
         fsh.bossHook = sh.bossOf;
-        feCineFramesLoad();
+        feCineFramesLoad(sh.bossOf.name);
         inv.bossDay[sh.bossOf.spot] = inv.dayN;   // the attempt is spent on the hook
         saveState();
         fsh.waitMs = 750;
@@ -3928,31 +3928,68 @@ function feBossRecord(name, weightLb){
    storm-devil — thrashes on the line. Shrinking rings; tap the gold band
    to strike. Three slips and he dives. Zero his fury and the crown is
    yours. Frames cut from the playtester's footage. */
-/* FE_CINE_IMG lives in fishing-cine.module.js (lazy bundle "fishing-cine", batch 127) */
+/* ---- the clips (batch 132) ----
+   Each legend has five shots cut from the playtester's Grok clips - breach
+   (24 frames), fury (16, loops), lunge (10), gone (10), beaten (1 still) -
+   in its own lazy bundle "cine-<key>", fetched the moment its shadow is
+   hooked. The data modules register on FE_CLIPS below. */
+const FE_CLIPS = {};
 const FE_CINE_BOSSES = {
-  "The Rooster King": { pfx:"", n:16, leapDur:2.7, title:"SOMETHING ANCIENT TAKES THE LINE", sig:"multi" },
-  "Old Ironjaw":      { pfx:"ij_", n:14, leapDur:2.5, title:"OLD IRONJAW ANSWERS THE LINE", sig:"mash" },
-  "The Black Phantom":{ pfx:"bp_", n:14, leapDur:3.0, title:"THE NIGHT ITSELF TAKES THE HOOK", sig:"vanish" },
-  "The Marsh King":   { pfx:"mk_", n:14, leapDur:3.0, title:"THE MARSH ITSELF STANDS UP", sig:"swipe" },
-  "The Pale Hunter":  { pfx:"ph_", n:14, leapDur:3.0, title:"SOMETHING PALE RISES FROM THE COLD", sig:"hold" },
-  "The Drowned King": { pfx:"dk_", n:14, leapDur:3.4, title:"THE KING OF ALL FIVE WATERS", sig:"gauntlet", hp:150 },
+  "The Rooster King": { clip:"roosterking",  title:"SOMETHING ANCIENT TAKES THE LINE", sig:"multi" },
+  "Old Ironjaw":      { clip:"ironjaw",      title:"OLD IRONJAW ANSWERS THE LINE",     sig:"mash" },
+  "The Black Phantom":{ clip:"blackphantom", title:"THE NIGHT ITSELF TAKES THE HOOK",  sig:"vanish" },
+  "The Marsh King":   { clip:"marshking",    title:"THE MARSH ITSELF STANDS UP",       sig:"swipe" },
+  "The Pale Hunter":  { clip:"palehunter",   title:"SOMETHING PALE RISES FROM THE COLD", sig:"hold" },
+  "The Drowned King": { clip:"drownedking",  title:"THE KING OF ALL FIVE WATERS",      sig:"gauntlet", hp:150 },
 };
+const FE_CLIP_LEN = { breach:2.8, fury:2.6, lunge:1.15, gone:2.0 };   /* seconds per pass */
 let feCine = { active:false };
-function feCineImg(k){
-  feCine.cache = feCine.cache || {};
-  if(typeof FE_CINE_IMG === "undefined"){ feCineFramesLoad(); return null; }   /* frames still on their way */
-  if(!feCine.cache[k]){ const im=new Image(); im.src=FE_CINE_IMG[k] || ""; feCine.cache[k]=im; }
-  const im=feCine.cache[k];
+function feClipKeyFor(bossName){ const c = FE_CINE_BOSSES[bossName]; return c ? c.clip : null; }
+function feClipSet(C){ return FE_CLIPS[C.cfg.clip] || null; }
+function feClipReady(C){ const s = feClipSet(C); return !!(s && s.breach && s.fury); }
+/* one Image per frame, made on first use and kept for the session */
+function feClipImg(C, shot, i){
+  const s = feClipSet(C); if(!s || !s[shot] || !s[shot].length) return null;
+  const arr = s[shot]; i = Math.max(0, Math.min(arr.length-1, i|0));
+  C.cache = C.cache || {};
+  const k = C.cfg.clip + ":" + shot + ":" + i;
+  if(!C.cache[k]){ const im = new Image(); im.src = arr[i]; C.cache[k] = im; }
+  const im = C.cache[k];
   return (im.complete && im.naturalWidth) ? im : null;
 }
-/* the keyframes are a 5MB bundle of their own; fetch them the moment a legend
-   is hooked so they are decoded by the time the true form rises */
-function feCineFramesLoad(){
-  try{ if(typeof oeLoadBundle === "function") oeLoadBundle("fishing-cine"); }catch(e){}
+/* warm every frame of a set so the first pass never stutters on decode */
+function feClipWarm(C){
+  const s = feClipSet(C); if(!s) return;
+  for(const shot in s) for(let i=0;i<s[shot].length;i++) feClipImg(C, shot, i);
 }
+/* draw a shot at progress u (0..1), neighbouring frames crossfaded; loop
+   wraps, otherwise the last frame holds. Optional zoom/sway on top. */
+function feClipDraw(g, C, shot, u, loop, zm, rot){
+  const s = feClipSet(C); if(!s || !s[shot]) return false;
+  const n = s[shot].length;
+  let f = loop ? ((u % 1) + 1) % 1 * n : Math.min(n - 1.001, Math.max(0, u) * (n - 1));
+  const i0 = f | 0, i1 = loop ? (i0 + 1) % n : Math.min(n-1, i0 + 1), mix = f - i0;
+  const a = feClipImg(C, shot, i0), b = feClipImg(C, shot, i1);
+  g.save();
+  g.translate(235, 352); g.scale(zm || 1, zm || 1); g.rotate(rot || 0); g.translate(-235, -352);
+  if(a) g.drawImage(a, -6, -6, 482, 717);
+  if(b && mix > 0.02){ g.globalAlpha = mix; g.drawImage(b, -6, -6, 482, 717); g.globalAlpha = 1; }
+  g.restore();
+  return !!(a || b);
+}
+/* fetch the legend's own bundle the moment its shadow is hooked, so the
+   frames are decoded by the time the true form rises */
+function feCineFramesLoad(bossName){
+  try{
+    const name = bossName || (fsh && fsh.bossHook && fsh.bossHook.name) || null;
+    const key = name ? feClipKeyFor(name) : null;
+    if(key && typeof oeLoadBundle === "function") oeLoadBundle("cine-" + key);
+  }catch(e){}
+}
+function feVibe(pat){ try{ if(!fshInv().vibeOff && navigator.vibrate) navigator.vibrate(pat); }catch(e){} }
 function feCineStart(bossName){
   if(feCine.active) return;
-  feCineFramesLoad();
+  feCineFramesLoad(bossName);
   const cfg = FE_CINE_BOSSES[bossName] || FE_CINE_BOSSES["The Rooster King"];
   let hard = 0;
   try{ hard = Math.min(3, (feBossState().bossJournal[bossName] || {}).hard || 0); }catch(e){}
@@ -3966,9 +4003,9 @@ function feCineStart(bossName){
       background:rgba(20,14,6,.85); color:#ffd35c; font:800 17px system-ui;">⚔️ FIGHT</button></div>`;
   (document.fullscreenElement || document.body).appendChild(wrap);
   feCine = { active:true, wrap, cfg, hard, boss:bossName, t:0, phase:"leap",
-             hp: cfg.hp || 100, hpMax: cfg.hp || 100, stress:0, round:0,
-             ring:null, flash:0, shake:0, bolt:0, boltT:0, floats:[], last:0, cache:feCine.cache };
-  fbSfxSafe("splash_big", 0.6);
+             hp: cfg.hp || 100, hpMax: cfg.hp || 100, stress:0, round:0, tempo:1, stage:0,
+             ring:null, flash:0, shake:0, boltT:0, floats:[], drops:[], last:0, cache:feCine.cache,
+             stop:0, slow:0, loopT:0, lungeT:0, lungeDur:0, after:null, pulse:0 };
   const cv = document.getElementById("feCineCv");
   const xy = e => {
     const r = cv.getBoundingClientRect();
@@ -3982,7 +4019,7 @@ function feCineStart(bossName){
     if(!feCine.active) return;
     feCine.phase = "fight"; feCine.t = 0; go.style.display = "none";
     feCine.mode = "sig"; feSigNew(feCine);
-    feAudioUnlock(); fbSfxSafe("snag", 0.4);
+    feAudioUnlock(); feVibe(30);
     feCine.last = 0; feCineKick();   /* restart kick */
   };
   feCineKick();
@@ -3996,6 +4033,9 @@ function feCineStart(bossName){
   }, 420);
 }
 function fbSfxSafe(k,v){ try{ if(typeof FE_SFX!=="undefined" && FE_SFX[k]) feSound(k,{vol:v}); }catch(e){} }
+/* the fight has three stages by fury left; each one is faster than the last
+   (the tempo shortens every timer and speeds every ring) */
+function feCineStage(C){ const f = C.hp / (C.hpMax || 100); return f > 2/3 ? 0 : f > 1/3 ? 1 : 2; }
 function feSigNew(C){
   let t = C.cfg.sig;
   if(t === "gauntlet"){
@@ -4004,7 +4044,7 @@ function feSigNew(C){
     t = ["mash","swipe","hold","multi","vanish"][C.sigN % 5];
     C.sigN++;
   }
-  const hm = 1 - 0.12 * (C.hard || 0);
+  const hm = (1 - 0.12 * (C.hard || 0)) / (C.tempo || 1);
   if(t === "mash")   C.sig = { type:t, bar:0, tl:3.6*hm };
   if(t === "swipe")  C.sig = { type:t, dir:["⬅","➡","⬆","⬇"][(Math.random()*4)|0], tl:3.0*hm, sx:0, sy:0 };
   /* hold scales like the rest (batch 129): less time to start, and the bar
@@ -4014,31 +4054,56 @@ function feSigNew(C){
     pts:[0,1,2].map(i=>({ n:i+1, x:90+Math.random()*290, y:170+Math.random()*330, hit:false })) };
   if(t === "vanish") C.sig = { type:t, dark:0.9, win:0, hm, x:80+Math.random()*310, y:170+Math.random()*330 };
 }
+/* spray: droplets thrown from the fish, drawn over everything */
+function feCineSpray(C, n, x, y, sp){
+  for(let i=0;i<n;i++){
+    const a = -Math.PI/2 + (Math.random()-0.5)*2.2, v = (sp||260) * (0.4 + Math.random()*0.8);
+    C.drops.push({ x: x + (Math.random()-0.5)*90, y: y + (Math.random()-0.5)*40, vx: Math.cos(a)*v, vy: Math.sin(a)*v,
+                   r: 1.5 + Math.random()*3.2, life: 0.6 + Math.random()*0.6 });
+  }
+}
+/* the legend comes at the camera: a lunge pass with the mechanics paused.
+   Phase breaks get the full clip; a slip gets a short bite. */
+function feCineLunge(C, dur, txt){
+  C.after = { mode: C.mode, sig: C.sig };
+  C.mode = "lunge"; C.lungeT = 0; C.lungeDur = dur; C.sig = null; C.ring = null;
+  C.shake = Math.max(C.shake, 14); feCineSpray(C, 26, 235, 420, 320);
+  if(txt) C.floats.push({ txt, t: 0, warn: true });
+}
 function feCineHit(txt){
   const C = feCine;
+  const before = feCineStage(C);
   C.hp = Math.max(0, C.hp - 25);
-  C.boltT = 0.32; C.flash = 0.5; C.shake = 9;
+  C.boltT = 0.32; C.flash = 0.55; C.shake = 12; C.stop = 0.09;
   C.floats.push({ txt: txt || "-25", t: 0, crit: true });
-  fbSfxSafe("snag", 0.55);
-  try{ if(!fshInv().vibeOff && navigator.vibrate) navigator.vibrate(70); }catch(e){}
+  feCineSpray(C, 34, 235, 400, 300);
+  if(txt) C.slow = 0.45;                          /* a perfect answer earns the slow-motion */
+  feVibe(txt ? [40, 30, 60] : 70);
   C.ring = null; C.sig = null;
-  if(C.hp <= 0){ C.phase = "defeat"; C.t = 0; fbSfxSafe("finish", 0.6); }
-  else { C.mode = (C.mode === "sig") ? "ring" : "sig"; C.t = 0; if(C.mode === "sig") feSigNew(C); }
+  if(C.hp <= 0){ C.phase = "finisher"; C.t = 0; C.slow = 1.0; C.shake = 20; C.flash = 0.9; feVibe([60, 40, 120]); return; }
+  const now = feCineStage(C);
+  C.tempo = 1 + 0.15 * now;
+  const next = (C.mode === "sig") ? "ring" : "sig";
+  C.mode = next; C.t = 0; if(next === "sig") feSigNew(C);
+  if(now !== before){ C.stage = now; feCineLunge(C, FE_CLIP_LEN.lunge, now === 1 ? "HE TURNS — FASTER" : "HIS LAST FURY"); }
 }
 function feCineFail(){
   const C = feCine;
   C.ring = null; C.sig = null;
   feCineMiss();
-  if(C.phase === "fight"){ C.mode = (C.mode === "sig") ? "ring" : "sig"; C.t = 0; if(C.mode === "sig") feSigNew(C); }
+  if(C.phase === "fight"){
+    C.mode = (C.mode === "sig") ? "ring" : "sig"; C.t = 0; if(C.mode === "sig") feSigNew(C);
+    feCineLunge(C, 0.55, null);                    /* the bite: he comes at you for the slip */
+  }
 }
 function feCineDown(x, y){
   const C = feCine;
   if(C.phase === "leap"){
     /* the thirtieth viewing has earned a fast-forward */
-    C.t = C.cfg.leapDur + 0.01;
+    if(feClipReady(C)) C.t = FE_CLIP_LEN.breach + 0.01;
     return;
   }
-  if(C.phase !== "fight") return;
+  if(C.phase !== "fight" || C.mode === "lunge") return;
   if(C.mode === "ring"){
     if(!C.ring) return;
     const r = C.ring.r;
@@ -4049,14 +4114,14 @@ function feCineDown(x, y){
   }
   const S = C.sig; if(!S) return;
   if(S.type === "mash"){ S.bar = Math.min(1, S.bar + 0.11); C.shake = Math.max(C.shake, 2.5);
-    try{ if(!fshInv().vibeOff && navigator.vibrate) navigator.vibrate(12); }catch(e){}
+    feVibe(12);
     if(S.bar >= 1) feCineHit("BROKEN!"); return; }
   if(S.type === "swipe"){ S.sx = x; S.sy = y; return; }
   if(S.type === "hold"){ S.holding = true; return; }
   if(S.type === "multi"){
     const p2 = S.pts.find(q=>q.n === S.next);
     if(p2 && Math.hypot(x-p2.x, y-p2.y) < 52){ p2.hit = true; S.next++;
-      fbSfxSafe("give_line", 0.3);
+      feCineSpray(C, 8, p2.x, p2.y, 160);
       if(S.next > 3) feCineHit("STORM CUT!"); }
     else feCineFail();
     return; }
@@ -4085,10 +4150,10 @@ function feCineUp(x, y){
 }
 function feCineMiss(){
   const C = feCine;
-  C.stress++; C.flash = -0.4; C.shake = 4; C.ring = null;
+  C.stress++; C.flash = -0.45; C.shake = 8; C.ring = null; C.pulse = 1;
   C.floats.push({ txt: "SLIPS!", t: 0 });
-  fbSfxSafe("slip", 0.5);
-  if(C.stress >= 3){ C.phase = "escape"; C.t = 0; }
+  feVibe([20, 30, 20]);
+  if(C.stress >= 3){ C.phase = "escape"; C.t = 0; C.mode = null; C.sig = null; }
 }
 /* one frame chain, ever: every kick goes through here, and a kick while a
    frame is already pending is a no-op. The old code requested a fresh chain
@@ -4115,7 +4180,7 @@ function feCineFrame(ts){
 function feCineRingStep(C, dt){
   if(!C.ring && C.t > 0.55){
     C.round++;
-    C.ring = { x: 120 + Math.random()*230, y: 200 + Math.random()*260, r: 130, sp: 96 * (1 + 0.22*(C.hard||0)) };
+    C.ring = { x: 120 + Math.random()*230, y: 200 + Math.random()*260, r: 130, sp: 96 * (1 + 0.22*(C.hard||0)) * (C.tempo || 1) };
   }
   if(C.ring){
     C.ring.r -= dt * (C.ring.sp || 96);
@@ -4125,18 +4190,46 @@ function feCineRingStep(C, dt){
 function feCineFrameBody(ts){
   const C = feCine;
   if(!C.last) C.last = ts;
-  const dt = Math.min(0.05, (ts - C.last)/1000); C.last = ts;
+  const real = Math.min(0.05, (ts - C.last)/1000); C.last = ts;
   C.wall = performance.now();
-  C.t += dt;
-  C.flash = C.flash > 0 ? Math.max(0, C.flash - dt*2.2) : Math.min(0, C.flash + dt*2.2);
-  C.shake = Math.max(0, C.shake - dt*26);
-  C.boltT = Math.max(0, C.boltT - dt);
-  for(const f of C.floats) f.t += dt;
+  /* the frames arrive by bundle; the intro waits for them, the water stirring */
+  if(!feClipReady(C)){
+    C.waitT = (C.waitT || 0) + real;
+    if(!C.warmed && feClipSet(C)){ C.warmed = true; feClipWarm(C); }
+    feCineDraw(); feCineKick(); return;
+  }
+  if(!C.warmed){ C.warmed = true; feClipWarm(C); }
+  /* hit-stop freezes the fight for a beat; slow-motion stretches it */
+  let dt = real;
+  if(C.stop > 0){ C.stop -= real; dt = 0; }
+  else if(C.slow > 0){ C.slow -= real; dt = real * 0.35; }
+  C.t += dt; C.loopT += dt;
+  C.flash = C.flash > 0 ? Math.max(0, C.flash - real*2.2) : Math.min(0, C.flash + real*2.2);
+  C.shake = Math.max(0, C.shake - real*(20 + C.shake*1.2));
+  C.boltT = Math.max(0, C.boltT - real);
+  C.pulse = Math.max(0, (C.pulse||0) - real*1.4);
+  for(const f of C.floats) f.t += real;
   C.floats = C.floats.filter(f=>f.t < 1);
-  if(C.phase === "leap" && C.t > C.cfg.leapDur){
-    C.phase = "ready"; C.t = 0; C.flash = 1.0; C.shake = 10; fbSfxSafe("snag", 0.5);
-    const gb = document.getElementById("feCineGo");
-    if(gb) gb.style.display = "block";
+  for(let i=C.drops.length-1;i>=0;i--){
+    const d = C.drops[i]; d.life -= real; if(d.life <= 0){ C.drops.splice(i,1); continue; }
+    d.vy += 720*real; d.x += d.vx*real; d.y += d.vy*real;
+  }
+  if(C.phase === "leap"){
+    if(C.t > FE_CLIP_LEN.breach*0.55 && Math.random() < 0.6) feCineSpray(C, 2, 235, 300, 200);
+    if(C.t > FE_CLIP_LEN.breach){
+      C.phase = "ready"; C.t = 0; C.flash = 1.0; C.shake = 12; feVibe(40);
+      const gb = document.getElementById("feCineGo");
+      if(gb) gb.style.display = "block";
+    }
+  }
+  if(C.phase === "fight" && C.mode === "lunge"){
+    C.lungeT += dt;
+    if(C.lungeT < 0.25 && Math.random() < 0.7) feCineSpray(C, 3, 235, 380, 260);
+    if(C.lungeT >= C.lungeDur){
+      const a = C.after || { mode:"sig", sig:null };
+      C.mode = a.mode; C.sig = a.sig; C.after = null; C.t = 0; C.ring = null;
+      if(C.mode === "sig" && !C.sig) feSigNew(C);
+    }
   }
   if(C.phase === "fight" && C.mode === "sig" && C.sig){
     const S = C.sig;
@@ -4144,13 +4237,14 @@ function feCineFrameBody(ts){
     if(S && S.type === "mash"){ S.bar = Math.max(0, S.bar - dt*0.34); }
     if(S && S.type === "hold" && S.holding){ S.v += dt*(S.rate || 0.42); if(S.v > 0.97){ S.holding=false; feCineFail(); } }
     if(S && S.type === "vanish"){
-      if(S.dark > 0){ S.dark -= dt; if(S.dark <= 0){ S.win = 0.85 * (S.hm || 1); fbSfxSafe("splash_big", 0.3); } }
+      if(S.dark > 0){ S.dark -= dt; if(S.dark <= 0){ S.win = 0.85 * (S.hm || 1); } }
       else if(S.win > 0){ S.win -= dt; if(S.win <= 0) feCineFail(); }
     }
   }
   if(C.phase === "fight" && C.mode === "ring") feCineRingStep(C, dt);
-  if(C.phase === "defeat" && C.t > 2.3) return feCineEnd(true);
-  if(C.phase === "escape" && C.t > 1.9) return feCineEnd(false);
+  if(C.phase === "finisher" && C.t > 1.05){ C.phase = "defeat"; C.t = 0; C.flash = 1; C.slow = 0; }
+  if(C.phase === "defeat" && C.t > 2.8) return feCineEnd(true);
+  if(C.phase === "escape" && C.t > FE_CLIP_LEN.gone + 0.4) return feCineEnd(false);
   feCineDraw();
   feCineKick();
 }
@@ -4161,21 +4255,47 @@ function feCineDraw(){
   const C = feCine;
   g.save();
   if(C.shake > 0) g.translate((Math.random()-0.5)*C.shake, (Math.random()-0.5)*C.shake);
-  g.fillStyle = "#061019"; g.fillRect(-10,-10,490,725);
+  g.fillStyle = "#061019"; g.fillRect(-12,-12,494,729);
+  g.textAlign = "center";
+  if(!feClipReady(C)){
+    /* the water stirs while the legend's frames come down the wire */
+    const w = C.waitT || 0;
+    for(let i=0;i<3;i++){
+      const p = ((w*0.6 + i/3) % 1);
+      g.strokeStyle = `rgba(159,216,255,${(1-p)*0.5})`; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(235, 400, 20 + p*170, (20 + p*170)*0.38, 0, 0, 7); g.stroke();
+    }
+    g.font = "800 20px system-ui"; g.fillStyle = "#ffd35c"; g.fillText(C.cfg.title, 235, 72);
+    g.font = "700 13px system-ui"; g.fillStyle = "rgba(255,255,255,0.6)"; g.fillText("the water stirs…", 235, 470);
+    g.restore(); return;
+  }
+  const stg = feCineStage(C);
   if(C.phase === "leap"){
-    /* the pop-out plays smooth: neighbouring frames crossfaded */
-    const N = C.cfg.n - 1;
-    const f = Math.min(N - 0.001, (C.t/C.cfg.leapDur)*N);
-    const a = feCineImg(C.cfg.pfx + "leap" + String(f|0).padStart(2,"0"));
-    const b2 = feCineImg(C.cfg.pfx + "leap" + String(Math.min(N,(f|0)+1)).padStart(2,"0"));
-    if(a) g.drawImage(a, 0, 0, 470, 705);
-    if(b2){ g.globalAlpha = f - (f|0); g.drawImage(b2, 0, 0, 470, 705); g.globalAlpha = 1; }
+    feClipDraw(g, C, "breach", C.t / FE_CLIP_LEN.breach, false, 1, 0);
+  } else if(C.phase === "escape"){
+    feClipDraw(g, C, "gone", C.t / FE_CLIP_LEN.gone, false, 1, 0);
+    g.fillStyle = `rgba(8,16,28,${Math.min(0.6, C.t*0.3)})`; g.fillRect(0,0,470,705);
+  } else if(C.phase === "defeat"){
+    const zm = 1.04 + 0.03*Math.min(1, C.t/2.8);
+    feClipDraw(g, C, "beaten", 0, false, zm, 0);
+    const gr = g.createRadialGradient(235, 300, 80, 235, 352, 520);
+    gr.addColorStop(0, "rgba(255,220,150,0)"); gr.addColorStop(1, "rgba(255,190,90,0.28)");
+    g.fillStyle = gr; g.fillRect(0,0,470,705);
+  } else if(C.phase === "fight" && C.mode === "lunge"){
+    const u = Math.min(1, C.lungeT / C.lungeDur);
+    const zm = 1 + 0.06*Math.sin(u*Math.PI);
+    feClipDraw(g, C, "lunge", C.lungeDur < 0.8 ? 0.35 + u*0.6 : u, false, zm, (Math.random()-0.5)*0.01);
+  } else if(C.phase === "finisher"){
+    const u = Math.min(1, C.t / 1.05);
+    feClipDraw(g, C, "lunge", 0.15 + u*0.5, false, 1.1 + u*0.12, 0);
+    g.fillStyle = `rgba(255,255,255,${0.25*(1-u)})`; g.fillRect(0,0,470,705);
   } else {
-    /* the fury holds one dramatic still; the fight lives in overlays */
-    const key = C.cfg.pfx + ((C.phase === "defeat") ? "ko" : "hero");
-    const im = feCineImg(key);
-    const zm = 1 + 0.014*Math.sin(C.t*1.7);
-    if(im){ g.save(); g.translate(235, 352); g.scale(zm, zm); g.drawImage(im, -235, -352, 470, 705); g.restore(); }
+    /* the fury loops under the fight: a breathing zoom, a sway that grows
+       with the stage, and a heavier bob for every slip taken */
+    const sp = 1 + 0.35*stg + 0.15*C.stress;
+    const zm = 1.02 + 0.02*Math.sin(C.loopT*1.7*sp) + 0.05*(C.pulse||0);
+    const rot = 0.012*Math.sin(C.loopT*2.3*sp) * (1 + 0.6*stg);
+    feClipDraw(g, C, "fury", C.loopT / (FE_CLIP_LEN.fury / sp), true, zm, rot);
     if(C.boltT > 0){
       /* a drawn strike, not a frame swap */
       g.strokeStyle = `rgba(160,220,255,${Math.min(1, C.boltT*3)})`; g.lineWidth = 3.4;
@@ -4187,7 +4307,21 @@ function feCineDraw(){
       }
     }
   }
-  if(C.phase === "escape"){ g.fillStyle = "rgba(8,16,28,0.6)"; g.fillRect(0,0,470,705); }
+  /* spray over the frame */
+  for(const d of C.drops){
+    g.globalAlpha = Math.min(1, d.life*1.8) * 0.85;
+    g.fillStyle = "#e8f6ff"; g.beginPath(); g.arc(d.x, d.y, d.r, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+  /* the vignette: red with every slip, pulsing on the one just taken */
+  if(C.phase === "fight" || C.phase === "ready"){
+    const v = 0.10*C.stress + 0.25*(C.pulse||0) + 0.06*stg;
+    if(v > 0){
+      const gr = g.createRadialGradient(235, 352, 160, 235, 352, 470);
+      gr.addColorStop(0, "rgba(120,0,0,0)"); gr.addColorStop(1, `rgba(140,0,10,${Math.min(0.7, v)})`);
+      g.fillStyle = gr; g.fillRect(0,0,470,705);
+    }
+  }
   /* title & bars */
   g.textAlign = "center";
   if(C.phase === "leap"){
@@ -4201,22 +4335,24 @@ function feCineDraw(){
       g.font = "600 11px system-ui"; g.fillStyle = "rgba(255,255,255,0.55)";
       g.fillText("tap to skip", 235, 686);
     }
-  } else {
+  } else if(C.phase !== "escape" && C.phase !== "defeat"){
     if(C.hard > 0){
-      g.font = "800 12px system-ui"; g.fillStyle = "#ff8a5c"; g.textAlign = "center";
+      g.font = "800 12px system-ui"; g.fillStyle = "#ff8a5c";
       g.fillText("⚔ HARDENED " + ["","I","II","III"][C.hard], 235, 74);
     }
+    /* the fury bar, notched at the three stages */
     g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(60, 26, 350, 13);
-    g.fillStyle = C.hp > (C.hpMax||100)/2 ? "#ff5c5c" : "#ffd35c";
+    g.fillStyle = stg === 0 ? "#ff5c5c" : stg === 1 ? "#ff8a3c" : "#ffd35c";
     g.fillRect(60, 26, 350 * C.hp/(C.hpMax||100), 13);
+    g.fillStyle = "rgba(0,0,0,0.6)"; g.fillRect(60 + 350/3 - 1, 24, 2, 17); g.fillRect(60 + 700/3 - 1, 24, 2, 17);
     g.font = "700 11px system-ui"; g.fillStyle = "#ffe9ec";
-    g.fillText("HIS FURY", 235, 56);
+    g.fillText(["HIS FURY", "HIS FURY · II", "HIS FURY · III"][stg], 235, 56);
     for(let i=0;i<3;i++){
       g.fillStyle = i < C.stress ? "#ff8a5c" : "rgba(255,255,255,0.25)";
       g.beginPath(); g.arc(210 + i*25, 674, 7, 0, 7); g.fill();
     }
     g.font = "700 12px system-ui"; g.fillStyle = "#cfe0ee";
-    g.fillText(C.phase === "fight" ? "tap inside the gold band" : "", 235, 650);
+    g.fillText(C.phase === "fight" && C.mode === "ring" ? "tap inside the gold band" : "", 235, 650);
   }
   if(C.phase === "fight" && C.mode === "sig" && C.sig){
     const S = C.sig;
@@ -4230,7 +4366,7 @@ function feCineDraw(){
     }
     if(S.type === "swipe"){
       g.font = "800 20px system-ui"; g.fillStyle = "#ffd35c";
-      g.fillText("HIS FIST SWINGS — SWIPE " + S.dir, 235, 140);
+      g.fillText("HE SWINGS — SWIPE " + S.dir, 235, 140);
       g.font = "800 92px system-ui";
       g.globalAlpha = 0.6 + 0.4*Math.sin(C.t*6);
       g.fillText(S.dir, 235, 380);
@@ -4279,17 +4415,27 @@ function feCineDraw(){
   }
   for(const f of C.floats){
     g.globalAlpha = 1 - f.t;
-    g.font = f.crit ? "800 34px system-ui" : "800 26px system-ui";
-    g.fillStyle = f.txt === "SLIPS!" ? "#ff9d8a" : "#ffd35c";
-    g.fillText(f.txt, 235, 330 - f.t*46);
+    const sc = f.crit ? 1 + Math.max(0, 0.25 - f.t)*2.4 : 1;
+    g.save(); g.translate(235, 330 - f.t*46); g.scale(sc, sc);
+    g.font = f.crit ? "800 34px system-ui" : f.warn ? "800 24px system-ui" : "800 26px system-ui";
+    g.lineWidth = 5; g.strokeStyle = "rgba(0,0,0,0.75)"; g.strokeText(f.txt, 0, 0);
+    g.fillStyle = f.txt === "SLIPS!" ? "#ff9d8a" : f.warn ? "#ff8a3c" : "#ffd35c";
+    g.fillText(f.txt, 0, 0);
+    g.restore();
     g.globalAlpha = 1;
+  }
+  if(C.phase === "finisher"){
+    g.font = "800 30px system-ui"; g.fillStyle = "#ffd35c";
+    g.lineWidth = 6; g.strokeStyle = "rgba(0,0,0,0.8)"; g.strokeText("THE LINE HOLDS", 235, 380); g.fillText("THE LINE HOLDS", 235, 380);
   }
   if(C.phase === "defeat"){
     g.font = "800 22px system-ui"; g.fillStyle = "#7dffb5";
+    g.lineWidth = 5; g.strokeStyle = "rgba(0,0,0,0.7)"; g.strokeText("THE STORM BREAKS — HE IS YOURS", 235, 640);
     g.fillText("THE STORM BREAKS — HE IS YOURS", 235, 640);
   }
   if(C.phase === "escape"){
     g.font = "800 22px system-ui"; g.fillStyle = "#9fb2c2";
+    g.lineWidth = 5; g.strokeStyle = "rgba(0,0,0,0.7)"; g.strokeText("HE DIVES — GONE INTO THE DEEP", 235, 640);
     g.fillText("HE DIVES — GONE INTO THE DEEP", 235, 640);
   }
   if(C.flash > 0){ g.fillStyle = `rgba(255,255,255,${C.flash})`; g.fillRect(0,0,470,705); }

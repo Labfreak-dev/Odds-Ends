@@ -773,8 +773,8 @@ button{min-width:0}
 .coll .ce{aspect-ratio:auto;min-height:74px;padding:4px 2px 3px;justify-content:flex-start;gap:3px;overflow:visible}
 .coll .ce img{width:32px;height:32px;flex:none}
 .coll .ce span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.15;max-height:2.3em;width:100%}
-button.sm{padding:0 9px;white-space:nowrap}
-.feat button{flex:none}
+button.sm{padding:0 9px}
+.feat button{flex:none;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -5536,7 +5536,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b205-tiles';window.__ihBoot=true;
+  const BUILD='b206-tiles';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v0.9 \u00b7 '+BUILD;}
   setTimeout(()=>{
     let groups=0,frames=0,ready=0;

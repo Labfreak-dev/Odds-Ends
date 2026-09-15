@@ -1,5 +1,7 @@
 # Gravemark — Grok prompt: the revenant, and the rig parts that make the crew move
 
+**Delivered and installed (build b012-rig): all five class sheets, the five weapons and the revenant.** Kept as the template for the monster and boss parts, which use the same convention with their own rigs (see GROK-PARTS.md tiers 3-5).
+
 Same world as the class looks: bright post-apocalypse, chunky painterly figures.
 Two jobs in this pack.
 

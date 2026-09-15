@@ -61,7 +61,8 @@ GM.blankSave = function (seasonId) {
     epitaphs: [],     /* recovered, inscribable rolls */
 
     opts: {
-      showLog: true
+      showLog: true,
+      shake: false        /* panel shake on hits; off by default */
     },
 
     tally: {

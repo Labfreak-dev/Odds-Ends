@@ -49,7 +49,10 @@ RIGS.humanoid = {
     { id: "shin_f",   parent: "thigh_f", x: 50,  y: 0,  len: 48, a: 92,  part: "shin_f",   z: 41, w: 17 },
     { id: "uarm_f",   parent: "torso",   x: 50,  y: -6, len: 32, a: 76,  part: "uarm_f",   z: 50, w: 16 },
     { id: "farm_f",   parent: "uarm_f",  x: 32,  y: 0,  len: 30, a: 60,  part: "farm_f",   z: 51, w: 14 },
-    { id: "weapon",   parent: "farm_f",  x: 30,  y: 0,  len: 70, a: -30, part: "weapon",   z: 52, w: 8 }
+    /* Held low and forward at rest, tip toward the ground, like the standing
+       paintings; the swings raise it from there. The painting is drawn along
+       the bone (see drawPartImage), so this angle IS the weapon's angle. */
+    { id: "weapon",   parent: "farm_f",  x: 30,  y: 0,  len: 70, a: 35, part: "weapon",   z: 52, w: 8 }
   ]
 };
 
@@ -116,7 +119,7 @@ GM.Rig.PARTS = {
     shin_f:  { w: 44,  h: 72,  px: 0.50, py: 0.06, joint: "the knee",               desc: "the NEAR shin, knee to sole, boot included" },
     thigh_b: { w: 48,  h: 72,  px: 0.50, py: 0.06, joint: "the hip",                desc: "the FAR thigh, hip to knee (a little darker)" },
     shin_b:  { w: 44,  h: 72,  px: 0.50, py: 0.06, joint: "the knee",               desc: "the FAR shin, knee to sole, boot included" },
-    weapon:  { w: 64,  h: 180, px: 0.50, py: 0.82, joint: "the grip",               desc: "the weapon alone, no hand, painted vertically with the grip near the bottom and the business end at the top" }
+    weapon:  { w: 52,  h: 150, px: 0.50, py: 0.82, joint: "the grip",               desc: "the weapon alone, no hand, painted vertically with the grip near the bottom and the business end at the top" }
   },
   quadruped: {
     body:   { w: 128, h: 64,  px: 0.05, py: 0.50, joint: "the rear of the body", desc: "the torso from haunches to shoulders, no legs, no neck, no tail" },

@@ -4,10 +4,10 @@ A standalone browser idle ARPG served by GitHub Pages at `/Odds-Ends/gravemark/`
 It shares nothing with the card game at the repo root or with `ironhold/`, and
 is exempt from the root's generated-file rule.
 
-Built in the shape of **Path of Idle: Old Gods Rising** — auto-battle, a loot
-treadmill, sockets and runewords, a passive tree, a town, five adventure modes,
-seasons and prestige — with one system of its own bolted through the middle of
-it.
+Built in the shape of **Path of Idle: Old Gods Rising** — auto-battle, a
+warband, a passive tree, a town, five adventure modes, seasons and prestige —
+with two decisions of its own: **there are no items**, and **death is the
+crafting system**.
 
 ## The shape of it
 
@@ -26,31 +26,48 @@ manage a menu:
 
 A **warband** of up to 22 heroes, split across **three squads that delve
 simultaneously**. Each squad has its own depth, its own orders and its own life
-pool; each hero has their own class, rank, level and full set of equipment. The
-passive tree, the parish and ascension are shared, because those are the
-player's institution rather than any one person's kit.
+pool; each hero has their own class, rank, level and traits. The passive tree,
+the parish and ascension are shared, because those are the player's
+institution rather than any one person's.
 
-Everything that used to be a tab — gear, bench, tree, parish, gravemarks,
+Everything that used to be a tab — hero, names, tree, parish, gravemarks,
 ascension — opens as an overlay over the three columns.
+
+## A hero is a whole unit
+
+Hire a Reaver and you get a Reaver: sword, scarred leathers, the lot. There is
+nothing to equip and nothing to take off. Each class fixes a **weapon** (family,
+damage factor, attack speed, crit) and a **kit** (armour, evasion, life
+multipliers on one shared curve); the **level** grows the kit along
+`GM.CURVE.kitG`; the **rank** (I / II / III) multiplies the whole hero, raises
+the level cap and adds a trait slot; and **anointing** (shards) raises the
+rank of a hero you already have. The only thing ever *added* to a hero is a
+trait — an epitaph cut in after a death.
+
+That is the whole of a hero's progression: level, rank, names. No drops, no
+stash, no bench, no runes. Gold hires and builds; shards cut names and anoint.
 
 ## The spin: death is the crafting system
 
 Path of Idle's most common complaint is that the endgame collapses into an
 RNG-fest for equipment stats. Gravemark's answer:
 
-- A squad that is broken does **not** lose its gear. It leaves a **gravemark**
-  at that depth recording every affix the whole squad wore.
+- A squad that is broken loses **nothing**. It leaves a **gravemark** at that
+  depth naming everyone who fell: every trait they carried, and one thing each
+  of them *learned* dying there — a roll for their class at that depth (two if
+  a boss did it). A green squad's first death is still worth something.
 - Kill at or below that depth to recover it. It pays an **Epitaph**: one of
   those exact rolls, at its exact tier and its exact value.
-- An Epitaph can be **inscribed** onto any legal item — deterministically. No
-  roll, no range, no second attempt.
-- Leave a gravemark too long and it stands up as a **Revenant** wearing the old
-  kit. Beat it to claim double epitaphs and a guaranteed high-rarity item.
+- An Epitaph can be **inscribed** onto any hero whose class can carry it —
+  deterministically. No roll, no range, no second attempt. A same-group name
+  replaces the weaker one; a full hero (two names at rank I, four at III)
+  needs one cut away.
+- Leave a gravemark too long and it stands up as a **Revenant** of the squad
+  that fell. Beat it to claim double epitaphs and a purse of shards.
 
-So the endgame is "die in good gear, remember the good rolls, put them where you
-want them" rather than "reroll until the dice are kind". Shards still buy random
-outcomes and are plentiful; epitaphs buy exact outcomes and are scarce, because
-each one cost a wipe.
+So the endgame is "die deep, remember what it taught you, cut it into the hero
+who needs it" rather than "reroll until the dice are kind". The vocabulary
+lives in `src/01-data-kit.js`; every name says which classes can learn it.
 
 ## Files
 
@@ -86,7 +103,7 @@ Everything hangs off the single global `GM`.
 ```bash
 for f in src/*.js; do node --check "$f"; done   # every file parses
 node tools/check-globals.js                      # no top-level collisions
-node tools/test-core.js                          # 105 logic checks
+node tools/test-core.js                          # 123 logic checks
 node tools/balance.js                            # pacing across depths
 python3 tools/smoke.py                           # 37 checks, real page headless
 python3 tools/art-check.py art                   # delivered art matches the manifest
@@ -111,14 +128,23 @@ realm's boss separately. Sampling only round-numbered depths measures nothing bu
 bosses, since every tenth stage is one.
 
 All scaling constants live in `GM.CURVE` in `src/03-data-world.js` and nowhere
-else. Four of them are load-bearing and were measured rather than guessed:
+else. These are load-bearing and were measured rather than guessed:
 
 | constant | why it is what it is |
 |---|---|
-| `monHpG` / `monDmgG` | A geared squad's damage grows 1.111 per depth and its life 1.082 — **until levels cap**, after which damage growth falls to ~1.087 (item scaling alone). These sit between the two, so the mid-game keeps pace and the post-cap depths tighten into an endgame instead of a wall. |
-| `itemScale` | Base tiers are discrete and run out at ilvl 84. Without continuous per-ilvl scaling on flat stats the game walls permanently around depth 90. |
+| `kitDmg0`, `kitArm0`, `kitEva0`, `kitLife0`, `kitG` | The class kit at level 1 and its per-level growth. With class growth on top a levelling squad's damage grows ~1.10 per depth, matching `monHpG`; the tree, ranks and names are the edge. |
+| `monHpG` / `monDmgG` | 1.100 and 1.075. Life grows a shade faster than damage so a warband gains ground on offence before it needs every defensive name. |
+| `deepFrom` / `deepG` | Past depth 60 the world hardens 1.8% a depth faster. Without it a rank III warband with a full tree made depth 100+ a half-second pack; with it the endgame tightens and anointing, deep epitaphs and ascension carry it. |
+| `early0` | Monster strength at depth 1 as a fraction of the curve, ramping to 1 by 25. With gear tiers gone the kit is a smooth curve, and a 0.10 start made depths 22–55 a valley the warband could not climb out of. 0.18 keeps the opening brisk without stealing the mid-game. |
+| `depthScale` | The flat half of an epitaph scales 1.035 per depth it was learned at, so a depth-120 lesson genuinely beats a depth-84 one of the same tier. |
 | `packsPerStage` | The single most important pacing number. At one pack per depth a squad gained a depth every ~15s, so difficulty compounded 1.10× per quarter-minute while three level-1 heroes split experience three ways. It out-climbed its own power and wiped inside two minutes, every time. |
-| `GM.earlyScale` | A farmed squad is ~9× stronger than the three heroes a new save starts with, so one constant cannot serve both. This ramps the first 25 depths down. |
+
+One bug found while re-measuring is worth recording: `GM.squadStats` used to
+sum each member's raw *hit* and then declare the squad's attack speed and crit
+factor to be 1, so a squad fought at roughly half the damage its sheet showed
+and every speed or crit node on the tree did nothing in combat. The squad's
+`elemHit` is now damage per second by element; against an unresisting target
+it equals the members' summed dps exactly, and the suite checks that it does.
 
 Two behaviours keep a squad from grinding itself to death on Auto:
 
@@ -144,16 +170,18 @@ either the real asset or a procedurally drawn, labelled placeholder, so it is
 fully playable with zero image files. Backdrops resolve to `.jpg` (no alpha,
 a tenth the bytes); everything else to `.png`.
 
-`src/18-assets.js` is the manifest: 311 keys, including 169 animated sprite
-sheets and 45 paper-doll gear layers. It is built programmatically from the game
-data, so adding a monster to `03-data-world.js` adds its art keys automatically
-and the brief cannot drift out of date.
+`src/18-assets.js` is the manifest: 493 keys, most of them rig parts. It is
+built programmatically from the game data, so adding a monster to
+`03-data-world.js` adds its art keys automatically and the brief cannot drift
+out of date. With items gone there are no item icons, rune glyphs, rarity
+frames or paper-doll layers in it; the five **class looks**
+(`actor/look-<class>`, one standing figure each) took their place.
 
-**Current coverage: 158 of 311 painted.** `ART-REMAINING.md` lists the rest.
-All twelve bosses, all fifteen monsters, the hero, and seventeen of eighteen
-backdrops are in. Outstanding: the paper-doll gear, most item and rune icons,
-and the UI chrome and rarity frames (neither of which the renderer consumes
-yet — the UI is CSS).
+**Current coverage: 151 of 493 painted.** `ART-REMAINING.md` lists the rest.
+All twelve bosses, all fifteen monsters, the hero, the five weapons and
+seventeen of eighteen backdrops are in. Outstanding: the class looks, the rig
+parts, and the UI chrome (which the renderer does not consume yet — the UI is
+CSS).
 
 Until per-class hero art exists the battle panels and roster portraits tint
 each hero toward their class colour (cached per key+hue, not composited per
@@ -179,9 +207,8 @@ python3 tools/art-check.py art --remaining ART-REMAINING.md
 
 1. **Installs only what is actually painted.** Deliveries ship on-spec filler
    for unfinished keys. A placeholder file on disk *loads successfully*, and the
-   renderer then composites it — 45 doll layers of captioned boxes over the
-   hero. A file that is ABSENT falls back to the game's own placeholder, which
-   is what we want, so filler is detected and left out.
+   renderer then draws it. A file that is ABSENT falls back to the game's own
+   placeholder, which is what we want, so filler is detected and left out.
 2. **Repairs mattes.** Figures frequently arrive pasted on a light card rather
    than cut out, which on a dark backdrop reads as a bright rectangle. Detection
    samples the opaque bounding-box perimeter (a card has a uniform opaque ring;
@@ -192,11 +219,7 @@ python3 tools/art-check.py art --remaining ART-REMAINING.md
 4. **Refuses wrong-sized assets.** One that installs quietly is worse than one
    that is missing, because it only breaks when that key is finally wired up.
 
-`--exclude <prefix>` skips a category. The `doll/` layers delivered so far need
-this: they arrived as standalone item illustrations on white cards rather than
-body-aligned gear layers, so compositing them puts a picture of a sword across
-the hero's chest. Verify any doll delivery by compositing it over
-`actor/hero-idle` before installing.
+`--exclude <prefix>` skips a category.
 
 Deliver art at `art/<key>.png` — e.g. `art/mon/shambler-idle.png`. Sprite sheets
 are a single horizontal strip of frames.
@@ -244,7 +267,7 @@ node tools/grok-parts.js > GROK-PARTS.md     # the parts brief, tiered
 proved a generator asked for "only the forearm" crops a rectangle of cloth out
 of the reference — no silhouette, nothing a bone can carry. Asked for a cut-out
 puppet sheet (the figure taken apart, pieces laid out with gaps on magenta) it
-paints real pieces. `tools/slice-parts.py sheet.png hero-mid --out DIR` finds
+paints real pieces. `tools/slice-parts.py sheet.png hero --out DIR` finds
 the pieces, sorts them into the brief's rows, and places each on its manifest
 canvas with the joint on the pivot; `art-install.py DIR` then installs them.
 `GROK-TIER1.md` is the current ask. `tools/shot-swing.py . out.png` freezes
@@ -274,19 +297,15 @@ the magenta and writes the strip. The rule that makes it work is that every
 frame of an action must be the same character at the same size and footing with
 only the pose changed — prompt frame 2 with frame 1 attached as reference.
 
-### Hero looks — the paper-doll fallback
+### Class looks
 
-Layered gear needs every piece drawn over the same body at the same footing.
-Three deliveries of `doll/` came back as item illustrations on cards instead,
-because a text-to-image tool cannot register a layer to a body it cannot see.
-
-So `actor/hero-look-<weapon>-<band>` exists: **one finished figure already
-wearing a whole kit**, picked by weapon family and average armour tier. Fifteen
-images instead of forty-five aligned layers, and any single one is useful the
-day it arrives. `GM.heroLookKey()` resolves the current kit to a look; when the
-art is present the renderer draws it *instead of* the body-plus-layers stack,
-and falls back automatically when it is not. The `doll/` path stays for a
-delivery that genuinely aligns.
+A hero is a whole unit, so its whole appearance is one painting:
+`actor/look-<class>`, a finished standing figure per class. Until a class has
+its own, the battle panels and roster portraits tint the shared hero painting
+to the class hue. `GM.heroLookKey()` resolves a hero to its look; the rig
+prefers `parts/<class>/` when a class's set is complete on disk and falls back
+to the shared `parts/hero/` set (`GM.heroPartsId()`), so the Tier 1 parts
+delivery animates every class the day it lands.
 
 ### Backgrounds on delivered art
 

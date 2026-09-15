@@ -1,7 +1,7 @@
 /* Gravemark — 34-ui-overlay.js
-   Everything that is not one of the three columns lives here: the hero sheet,
-   the stash and bench, the parish, the passive tree, the gravemarks, ascension
-   and the squad settings.
+   Everything that is not one of the three columns lives here: the hero sheet
+   (with its traits), the Names (held epitaphs), the parish, the passive tree,
+   the gravemarks, ascension and the squad settings.
 
    The tab bar is gone, so these open over the game instead. That keeps the
    three columns permanently visible, which is the whole point of the layout —
@@ -12,7 +12,7 @@ var ovView = null, ovArg = null;
 
 var TABS = [
   { id: "hero",   label: "Hero" },
-  { id: "stash",  label: "Stash" },
+  { id: "names",  label: "Names" },
   { id: "town",   label: "Parish" },
   { id: "tree",   label: "Tree" },
   { id: "graves", label: "Graves" },
@@ -41,7 +41,7 @@ GM.ui.renderOverlay = function () {
   if (!ov) return;
 
   var title = {
-    hero: "Hero", stash: "Stash & Bench", town: "The Parish", tree: "Passive Tree",
+    hero: "Hero", names: "Names & Epitaphs", town: "The Parish", tree: "Passive Tree",
     graves: "Gravemarks", ascend: "Ascension", squad: "Squad Orders",
     squadstats: "Squad", settings: "Settings", codex: "Codex", manual: "Manual"
   }[ovView] || ovView;
@@ -65,7 +65,7 @@ GM.ui.renderOverlay = function () {
   ov.appendChild(body);
 
   var fn = {
-    hero: viewHero, stash: viewStash, town: viewTown, tree: viewTree,
+    hero: viewHero, names: viewNames, town: viewTown, tree: viewTree,
     graves: viewGraves, ascend: viewAscend, squad: viewSquad,
     squadstats: viewSquadStats, settings: viewSettings,
     codex: viewCodex, manual: viewManual
@@ -153,187 +153,146 @@ function viewHero(body) {
    ["Evasion", GM.fmt(st.evasion)],
    ["Fire res", GM.pct(st.res.fire, 0)], ["Frost res", GM.pct(st.res.cold, 0)],
    ["Storm res", GM.pct(st.res.lit, 0)], ["Void res", GM.pct(st.res.void, 0)],
-   ["Item rarity", "+" + GM.pct(st.findRarity, 0)], ["Gold find", "+" + GM.pct(st.findGold, 0)]
+   ["Shards found", "+" + GM.pct(st.findShards, 0)], ["Gold find", "+" + GM.pct(st.findGold, 0)]
   ].forEach(function (r) { stats.appendChild(GM.ui.statRow(r[0], r[1])); });
   sp.appendChild(stats);
 
-  var gp = panel(body, "Equipped", GM.fmt(st.dps) + " dps · " + GM.fmt(st.life) + " life");
-  var slots = GM.el("div", "slots");
-  GM.SLOTS.forEach(function (sl) {
-    var it = hero.equip[sl.id];
-    if (!it) {
-      var e = GM.el("div", "slot empty");
-      e.innerHTML = '<div class="ico"></div><div class="nm"><span class="sl">' +
-                    GM.esc(sl.name) + '</span><span class="faint">empty</span></div>';
-      slots.appendChild(e);
-      return;
-    }
-    var cell = GM.ui.itemCell(it, hero);
-    cell.dataset.where = "equip";
-    cell.dataset.slot = sl.id;
-    cell.dataset.heroId = hero.id;
-    slots.appendChild(cell);
+  /* --- the kit: fixed by the class, grown by the level --- */
+  var w = GM.classWeapon(hero);
+  var kp = panel(body, "Kit", w.fam.charAt(0).toUpperCase() + w.fam.slice(1) + " · " + rank.name);
+  kp.appendChild(GM.el("p", "flavour",
+    "A " + cls.name + " swings a " + w.fam + " and wears what a " + cls.name + " wears. Nothing is taken off, nothing is put on. " +
+    "The level grows the kit; the rank multiplies it; the names cut below are the only things ever added."));
+
+  /* --- traits --- */
+  var cap = GM.heroTraitCap(hero);
+  var traits = hero.traits || [];
+  var tp = panel(body, "Names cut", traits.length + " / " + cap);
+  var tg = GM.el("div", "traits");
+  traits.forEach(function (t) {
+    var d = GM.el("div", "trait");
+    d.innerHTML = '<span class="tn">' + GM.esc(t.name || t.affixId) + " T" + (t.displayTier || t.tier) + "</span>" +
+                  '<span class="tv">' + GM.esc(GM.statLine(t.stat, t.value)) + "</span>" +
+                  '<span class="faint">from depth ' + (t.from || 0) + "</span>";
+    tg.appendChild(d);
   });
-  gp.appendChild(slots);
+  for (var e = traits.length; e < cap; e++) {
+    var em = GM.el("div", "trait empty");
+    em.innerHTML = '<span class="tn">empty</span><span class="faint">recover a gravemark, then inscribe</span>';
+    tg.appendChild(em);
+  }
+  tp.appendChild(tg);
+
+  var ar = GM.el("div", "row");
+  ar.style.marginTop = "7px";
+  if (GM.canAnoint(hero)) {
+    var acost = GM.anointCost(hero);
+    act(ar, "Anoint · " + GM.fmt(acost) + " shards", GM.state.char.shards >= acost, function () {
+      var r = GM.anoint(hero.id);
+      GM.ui.toast(r.ok ? hero.name + " is " + GM.heroRank(hero).name + " now." : r.why, r.ok ? "good" : "bad");
+      GM.ui.renderOverlay(); GM.ui.markDirty();
+    }, "primary");
+    var nx = GM.RANK_BY_ID[hero.rank + 1];
+    ar.appendChild(GM.el("span", "faint small", "Rank " + nx.numeral + ": ×" + nx.mult.toFixed(2) +
+      " power, level cap " + nx.maxLevel + ", " + nx.traits + " names."));
+  } else {
+    ar.appendChild(GM.el("span", "faint small", "Vigil rank. There is no higher."));
+  }
+  tp.appendChild(ar);
+
+  /* --- names this hero could learn, from what is held --- */
+  var legal = (GM.state.epitaphs || []).filter(function (ep) { return GM.canInscribe(hero, ep).ok; });
+  var lp = panel(body, "Names held", legal.length + " this " + cls.name + " could learn");
+  if (!legal.length) {
+    lp.appendChild(GM.el("div", "empty", GM.state.epitaphs.length
+      ? "None of the held names suit a " + cls.name + "."
+      : "No epitaphs held. Recover a gravemark to earn one."));
+  } else {
+    var lg = GM.el("div", "epis");
+    legal.slice().sort(function (a, b) { return b.tier - a.tier; }).forEach(function (ep) {
+      var can = GM.canInscribe(hero, ep);
+      var cost = GM.inscribeCost(ep, hero);
+      var before = GM.powerScore(st);
+      var after = GM.powerScore(GM.heroStatsWith(hero, ep, can.replaces));
+      var gain = (after - before) / Math.max(1, before);
+      var card = GM.el("div", "epi");
+      card.dataset.tip = "epitaph:" + ep.id;
+      card.innerHTML = '<span class="gold">' + GM.esc(ep.name) + " T" + (ep.displayTier || ep.tier) + "</span>" +
+        "<span>" + GM.esc(GM.statLine(ep.stat, ep.value)) + "</span>" +
+        '<span class="' + (gain > 0.0005 ? "up" : gain < -0.0005 ? "down" : "faint") + ' small">' +
+        (gain > 0 ? "+" : "") + (gain * 100).toFixed(1) + "% power" +
+        (can.replaces ? " · replaces " + GM.esc(can.replaces.name || can.replaces.affixId) : "") +
+        (can.needsVictim ? " · replaces the oldest" : "") + "</span>";
+      var b = GM.el("button", "btn sm primary", "Inscribe · " + GM.fmt(cost) + " shards");
+      b.disabled = GM.state.char.shards < cost;
+      GM.on(b, "click", function () {
+        report(GM.inscribe(hero, ep, can.needsVictim ? hero.traits[0] : null));
+      });
+      card.appendChild(b);
+      lg.appendChild(card);
+    });
+    lp.appendChild(lg);
+  }
 }
 
-/* ---------- stash & bench ------------------------------------------------ */
-var benchId = null;
+/* ---------- names: the epitaphs held ------------------------------------ */
+var namesSel = null;
 
-function viewStash(body) {
-  var p = panel(body, "Stash", GM.state.stash.length + " / " + GM.STASH_MAX);
-  var row = GM.el("div", "row");
-  row.style.marginBottom = "7px";
-  act(row, "Salvage unlocked", true, function () {
-    var n = 0, sh = 0;
-    GM.state.stash.slice().forEach(function (it) {
-      if (it.locked) return;
-      var v = GM.salvage(it); n++; sh += v.shards;
-    });
-    GM.ui.toast(n ? "Salvaged " + n + " · +" + GM.fmt(sh) + " shards" : "Nothing to salvage.", n ? "good" : "bad");
-    GM.ui.renderOverlay(); GM.ui.markDirty();
-  });
-  act(row, "Re-equip everyone", true, function () {
-    var swaps = 0, guard = 0, changed = true;
-    while (changed && guard++ < 10) {
-      changed = false;
-      GM.state.stash.slice().forEach(function (it) {
-        var best = null;
-        (GM.state.heroes || []).forEach(function (h) {
-          var r = GM.evaluateForHero(h, it, null);
-          if (r && r.gain > 0.001 && (!best || r.gain > best.gain)) best = { hero: h, slot: r.slot, gain: r.gain };
-        });
-        if (best) {
-          var prev = GM.equipOn(best.hero, it, best.slot);
-          if (prev) GM.stashItem(prev);
-          swaps++; changed = true;
-        }
-      });
-    }
-    GM.ui.toast(swaps ? "Swapped " + swaps + " pieces." : "Already optimal.", swaps ? "good" : "");
-    GM.ui.renderOverlay(); GM.ui.markDirty();
-  });
-  var ae = GM.el("label", "opt");
-  ae.innerHTML = '<input type="checkbox"' + (GM.state.opts.autoEquip ? " checked" : "") + "> Auto-equip";
-  GM.on(GM.$("input", ae), "change", function (e) { GM.state.opts.autoEquip = e.target.checked; });
-  row.appendChild(ae);
-  var as = GM.el("label", "opt");
-  as.innerHTML = '<input type="checkbox"' + (GM.state.opts.autoSalvage ? " checked" : "") + "> Auto-salvage";
-  GM.on(GM.$("input", as), "change", function (e) { GM.state.opts.autoSalvage = e.target.checked; });
-  row.appendChild(as);
-  p.appendChild(row);
-
-  var grid = GM.el("div", "stash");
-  if (!GM.state.stash.length) grid.appendChild(GM.el("div", "empty", "Nothing stashed."));
-  GM.state.stash.slice().sort(function (a, b) {
-    if (b.rarity !== a.rarity) return b.rarity - a.rarity;
-    return b.ilvl - a.ilvl;
-  }).forEach(function (it) {
-    var c = GM.ui.itemCell(it, null, { cls: it.id === benchId ? "sel" : "" });
-    c.dataset.where = "stash";
-    grid.appendChild(c);
+function viewNames(body) {
+  var eps = GM.state.epitaphs || [];
+  var p = panel(body, "Names held", eps.length + " / " + GM.EPITAPH_MAX + " · " + GM.fmt(GM.state.char.shards) + " shards");
+  p.appendChild(GM.el("p", "flavour",
+    "Recovered from your own gravemarks. An epitaph remembers one exact roll — cutting it into a hero is certain, not a gamble. " +
+    "Pick a name, then choose who carries it."));
+  if (!eps.length) {
+    p.appendChild(GM.el("div", "empty", "None. Recover a gravemark to earn one."));
+    return;
+  }
+  var grid = GM.el("div", "epis");
+  eps.slice().sort(function (a, b) { return b.tier - a.tier; }).forEach(function (ep) {
+    var card = GM.el("div", "epi" + (ep.id === namesSel ? " sel" : ""));
+    card.dataset.tip = "epitaph:" + ep.id;
+    card.innerHTML = '<span class="gold">' + GM.esc(ep.name) + " T" + (ep.displayTier || ep.tier) + "</span>" +
+      "<span>" + GM.esc(GM.statLine(ep.stat, ep.value)) + "</span>" +
+      '<span class="faint small">depth ' + ep.from + (ep.who ? " · " + GM.esc(ep.who) : "") + "</span>";
+    GM.on(card, "click", function () { namesSel = ep.id; GM.ui.renderOverlay(); });
+    grid.appendChild(card);
   });
   p.appendChild(grid);
 
-  /* --- bench --- */
-  var it = benchId ? (GM.ui.findItem(benchId) || {}).item : null;
-  var bp = panel(body, "Bench", it ? GM.itemName(it) : "no workpiece");
-  if (!it) {
-    bp.appendChild(GM.el("div", "empty", "Click an item to work on it."));
-  } else {
-    var tip = GM.el("div", "small");
-    tip.innerHTML = GM.ui.itemTipHTML(it, null);
-    bp.appendChild(tip);
-    var acts = GM.el("div", "row");
-    acts.style.marginTop = "7px";
-    var c = GM.state.char;
-    act(acts, "Add socket (" + GM.fmt(GM.addSocketCost(it)) + "s)",
-      (it.sockets || []).length < GM.maxSockets(it) && c.shards >= GM.addSocketCost(it),
-      function () { report(GM.addSocket(it)); });
-    act(acts, "Reroll (" + GM.fmt(GM.rerollCost(it)) + "s)",
-      it.rarity >= 1 && c.shards >= GM.rerollCost(it), function () { report(GM.reroll(it)); });
-    act(acts, "Augment (" + GM.fmt(GM.augmentCost(it)) + "s)",
-      it.affixes.length < GM.maxAffixes(it) && c.shards >= GM.augmentCost(it),
-      function () { report(GM.augment(it)); });
-    act(acts, "Upgrade rarity (" + GM.fmt(GM.upgradeCost(it)) + "s)",
-      it.rarity < GM.RARITIES.length - 1 && c.shards >= GM.upgradeCost(it),
-      function () { report(GM.upgradeRarity(it)); });
-    act(acts, it.locked ? "Unlock" : "Lock", true, function () {
-      it.locked = !it.locked; GM.ui.renderOverlay();
-    });
-    (it.sockets || []).forEach(function (r, i) {
-      act(acts, r ? (GM.RUNE_BY_ID[r] || {}).name + " ✖" : "socket " + (i + 1), true, function () {
-        if (r) report(GM.pullRune(it, i));
-        else pickRune(it, i);
-      });
-    });
-    bp.appendChild(acts);
+  var sel = GM.byId(eps, namesSel);
+  if (!sel) return;
+  var cands = GM.inscribeCandidates(sel);
+  var cp = panel(body, sel.name + " T" + (sel.displayTier || sel.tier), GM.statLine(sel.stat, sel.value));
+  if (!cands.length) {
+    cp.appendChild(GM.el("div", "empty", "Nobody on the roster can learn this."));
+    return;
   }
-
-  /* --- epitaphs --- */
-  var ep = panel(body, "Epitaphs", GM.state.epitaphs.length + " held · " + GM.fmt(GM.state.char.shards) + " shards");
-  ep.appendChild(GM.el("p", "flavour",
-    "Recovered from your own graves. An epitaph remembers one exact roll — inscribing it is certain, not a gamble."));
-  if (!GM.state.epitaphs.length) {
-    ep.appendChild(GM.el("div", "empty", "None. Recover a gravemark to earn one."));
-  } else {
-    var eg = GM.el("div", "grid g3");
-    GM.state.epitaphs.slice().sort(function (a, b) { return b.tier - a.tier; }).forEach(function (e) {
-      var card = GM.el("div", "card");
-      var can = it ? GM.canInscribe(it, e) : { ok: false, why: "Pick a workpiece." };
-      card.innerHTML = "<h4>" + GM.esc(e.name) + ' <span class="lvl">T' + (e.displayTier || e.tier) + "</span></h4>" +
-        '<div class="small">' + GM.esc(GM.statLine(e.stat, e.value)) + "</div>" +
-        '<div class="small faint">from depth ' + e.from + "</div>";
-      var b = GM.el("button", "btn sm" + (can.ok ? " primary" : ""),
-        can.ok ? "Inscribe (" + GM.fmt(GM.inscribeCost(e, it)) + "s)" : (can.why || "—"));
-      b.disabled = !can.ok || !it || GM.state.char.shards < GM.inscribeCost(e, it);
-      b.style.marginTop = "5px";
-      GM.on(b, "click", function () {
-        report(GM.inscribe(it, e, can.needsVictim ? it.affixes[it.affixes.length - 1] : null));
-      });
-      card.appendChild(b);
-      eg.appendChild(card);
-    });
-    ep.appendChild(eg);
-  }
-
-  /* --- runes --- */
-  var rp = panel(body, "Runes");
-  var rg = GM.el("div", "grid g3");
-  var any = false;
-  GM.RUNES.forEach(function (r) {
-    var n = GM.runeCount(r.id);
-    if (!n) return;
-    any = true;
+  var g = GM.el("div", "grid g2");
+  cands.forEach(function (c) {
+    var h = c.hero, cls = GM.heroClass(h), rank = GM.heroRank(h);
+    var cost = GM.inscribeCost(sel, h);
     var card = GM.el("div", "card");
-    card.innerHTML = "<h4>" + GM.esc(r.name) + ' <span class="lvl">×' + n + "</span></h4>" +
-      '<div class="small faint">Weapon: ' + GM.esc(inline(r.wep)) + "</div>" +
-      '<div class="small faint">Armour: ' + GM.esc(inline(r.arm)) + "</div>";
-    rg.appendChild(card);
+    card.innerHTML = "<h4>" + cls.icon + " " + GM.esc(h.name) + ' <span class="' + rank.css + '">' + rank.numeral + "</span>" +
+      ' <span class="lvl">L' + h.level + "</span></h4>" +
+      '<div class="small faint">' + GM.esc(cls.name) + " · " + (h.traits || []).length + " / " + GM.heroTraitCap(h) + " names" +
+      (c.can.replaces ? " · replaces " + GM.esc(c.can.replaces.name || c.can.replaces.affixId) : "") +
+      (c.can.needsVictim ? " · replaces the oldest" : "") + "</div>" +
+      '<div class="small ' + (c.gain > 0.0005 ? "up" : "faint") + '">' + (c.gain > 0 ? "+" : "") + (c.gain * 100).toFixed(1) + "% power</div>";
+    act(card, "Inscribe · " + GM.fmt(cost) + " shards", GM.state.char.shards >= cost, function () {
+      var r = GM.inscribe(h, sel, c.can.needsVictim ? h.traits[0] : null);
+      if (r.ok) namesSel = null;
+      report(r);
+    }, "primary");
+    g.appendChild(card);
   });
-  if (!any) rg.appendChild(GM.el("div", "empty", "No runes yet."));
-  rp.appendChild(rg);
+  cp.appendChild(g);
 }
 
 function inline(bag, mult) {
   var out = [];
   for (var k in bag) out.push(GM.statLine(k, bag[k] * (mult == null ? 1 : mult)));
   return out.join(", ");
-}
-
-function pickRune(item, index) {
-  var held = GM.RUNES.filter(function (r) { return GM.runeCount(r.id) > 0; });
-  if (!held.length) { GM.ui.toast("You hold no runes.", "bad"); return; }
-  var body = GM.$("#overlay .ovbody");
-  var p = panel(body, "Socket a rune");
-  var g = GM.el("div", "grid g3");
-  held.forEach(function (r) {
-    act(g, r.name + " ×" + GM.runeCount(r.id), true, function () {
-      report(GM.socketRune(item, index, r.id));
-    });
-  });
-  p.appendChild(g);
-  p.scrollIntoView({ block: "nearest" });
 }
 
 /* ---------- parish ------------------------------------------------------- */
@@ -367,7 +326,7 @@ function viewGraves(body) {
   panel(body, "Gravemarks",
     GM.buriedGraves().length + " buried · " + GM.revenants().length + " standing")
     .appendChild(GM.el("p", "flavour",
-      "Every squad that falls cuts a stone where it happened, recording what they wore. Kill at or below that depth to recover it. Neglect one and it stands up."));
+      "Every squad that falls cuts a stone where it happened, naming who fell and what dying there taught them. Kill at or below that depth to recover it. Neglect one and it stands up."));
 
   if (!GM.state.graves.length) {
     body.appendChild(GM.el("div", "empty", "No gravemarks. Nobody has died yet."));
@@ -379,12 +338,12 @@ function viewGraves(body) {
     var html = "<h2>Depth " + g.stage + " · " + GM.esc(g.realm) +
       '<span class="sub">' + (g.state === "revenant" ? "REVENANT" : "buried") + "</span></h2>" +
       '<div class="flavour">' + GM.esc(g.squad || "A squad") + " killed by " + GM.esc(g.killer) +
-      ". " + g.recorded.length + " modifiers recorded.</div>";
+      ". " + g.recorded.length + " names on the stone.</div>";
     if (best) {
       html += '<div class="small" style="margin-top:4px">Best held: <span class="gold">' +
         GM.esc((GM.AFFIX_BY_ID[best.affixId] || {}).name || best.affixId) +
         " T" + (best.displayTier || best.tier) + "</span> — " +
-        GM.esc(GM.statLine(best.stat, best.value)) + "</div>";
+        GM.esc(GM.statLine(best.stat, best.value)) + (best.who ? " (" + GM.esc(best.who) + ")" : "") + "</div>";
     }
     if (g.state === "buried") {
       var f = GM.clamp(g.progress / g.required, 0, 1);
@@ -418,7 +377,7 @@ function viewAscend(body) {
   var p = panel(body, "Ascension", GM.fmt(GM.state.char.ichor) + " Ichor · " +
     GM.state.tally.ascensions + " ascensions");
   p.appendChild(GM.el("p", "flavour",
-    "Give up the warband. Keep the parish, the perks, the runes and every epitaph you recovered."));
+    "Give up the warband. Keep the parish, the perks and every epitaph you recovered."));
   var r = GM.el("div", "row");
   r.style.marginTop = "7px";
   act(r, "Ascend", can, function () {
@@ -470,8 +429,8 @@ function viewAscend(body) {
   var t = GM.el("div", "stats");
   var y = GM.state.tally;
   [["Kills", GM.fmt(y.kills)], ["Bosses", GM.fmt(y.bosses)], ["Squad wipes", GM.fmt(y.deaths)],
-   ["Items found", GM.fmt(y.drops)], ["Salvaged", GM.fmt(y.salvaged)],
-   ["Inscribed", GM.fmt(y.inscribed)], ["Revenants", GM.fmt(y.revenants)],
+   ["Names cut", GM.fmt(y.inscribed)], ["Anointed", GM.fmt(y.anointed || 0)],
+   ["Revenants", GM.fmt(y.revenants)],
    ["Recruited", GM.fmt(y.recruited || 0)], ["Ascensions", GM.fmt(y.ascensions)],
    ["Best depth", GM.fmt(GM.state.depth.maxEver)], ["Playtime", GM.fmtTime(y.playtime)]
   ].forEach(function (rw) { t.appendChild(GM.ui.statRow(rw[0], rw[1])); });
@@ -547,7 +506,7 @@ function viewSquadStats(body) {
   [["Squad damage", GM.fmt(st.dps) + " dps"], ["Squad life", GM.fmt(st.life)],
    ["Armour", GM.fmt(st.armour)], ["Evasion", GM.fmt(st.evasion)],
    ["Regen", GM.fmt(st.regen) + "/s"], ["Leech cap", GM.fmt(st.life * GM.LEECH_CAP) + "/s"],
-   ["Item rarity", "+" + GM.pct(st.findRarity, 0)], ["Item quantity", "+" + GM.pct(st.findQuantity, 0)],
+   ["Shards found", "+" + GM.pct(st.findShards, 0)],
    ["Gold find", "+" + GM.pct(st.findGold, 0)], ["Epitaph chance", "+" + GM.pct(st.epitaphChance, 0)]
   ].forEach(function (r) { t.appendChild(GM.ui.statRow(r[0], r[1])); });
   p.appendChild(t);
@@ -580,9 +539,7 @@ function viewSquadStats(body) {
 function viewSettings(body) {
   var p = panel(body, "Settings");
   var o = GM.state.opts;
-  [["autoEquip", "Auto-equip upgrades as they drop"],
-   ["autoSalvage", "Auto-salvage what nobody wants"],
-   ["showLog", "Keep the chronicle"]
+  [["showLog", "Keep the chronicle"]
   ].forEach(function (pair) {
     var l = GM.el("label", "opt");
     l.innerHTML = '<input type="checkbox"' + (o[pair[0]] ? " checked" : "") + "> " + GM.esc(pair[1]);
@@ -624,14 +581,15 @@ function viewCodex(body) {
     p.appendChild(card);
   });
 
-  var bp = panel(body, "Runewords");
-  GM.RUNEWORDS.forEach(function (rw) {
-    var seq = rw.seq.map(function (id) { return (GM.RUNE_BY_ID[id] || {}).name; }).join(" · ");
+  var bp = panel(body, "Classes");
+  GM.CLASSES.forEach(function (c) {
+    var learn = GM.AFFIXES.filter(function (a) { return a.classes.indexOf(c.id) >= 0; })
+      .map(function (a) { return a.name; });
     var card = GM.el("div", "card");
     card.style.marginBottom = "4px";
-    card.innerHTML = "<h4>" + GM.esc(rw.name) + ' <span class="lvl">' + GM.esc(seq) + "</span></h4>" +
-      '<div class="small faint">' + GM.esc(inline(rw.stats)) + "</div>" +
-      '<div class="flavour">"' + GM.esc(rw.flavour) + '"</div>';
+    card.innerHTML = "<h4>" + c.icon + " " + GM.esc(c.name) + ' <span class="lvl">' + GM.esc(c.role) + " · " + GM.esc(c.weapon.fam) + "</span></h4>" +
+      '<div class="flavour">' + GM.esc(c.blurb) + "</div>" +
+      '<div class="small faint">Can learn: ' + GM.esc(learn.join(", ")) + "</div>";
     bp.appendChild(card);
   });
 }
@@ -640,10 +598,11 @@ function viewManual(body) {
   var p = panel(body, "How this works");
   p.innerHTML += [
     "<p class='small'><b>Three squads delve at once.</b> Each panel in the middle is one squad running its own depth. They fight on their own; you decide who is in them and what orders they have.</p>",
-    "<p class='small'><b>Death is the crafting system.</b> When a squad is broken it does not lose its gear — it leaves a <b>gravemark</b> recording every modifier it wore. Recover the gravemark and it pays an <b>Epitaph</b>: that exact roll, at that exact value, which you can inscribe onto any item with no dice involved.</p>",
-    "<p class='small'><b>Neglect a gravemark and it stands up.</b> A Revenant wears your old kit and has to be put down to claim what it holds.</p>",
-    "<p class='small'><b>The parish is permanent.</b> Buildings, ascension perks, runes and epitaphs survive an ascension. Heroes and gear do not.</p>",
-    "<p class='small'><b>Shards buy chance; epitaphs buy certainty.</b> That is the whole economy.</p>"
+    "<p class='small'><b>A hero is a whole unit.</b> Hire a Reaver and you get a Reaver: sword, leathers, the lot. There is nothing to equip and nothing to take off. Levels grow the kit, rank multiplies it, and <b>anointing</b> (shards) raises the rank.</p>",
+    "<p class='small'><b>Death is the crafting system.</b> When a squad is broken it loses nothing — it leaves a <b>gravemark</b> naming who fell and what dying there taught them. Recover the gravemark and it pays an <b>Epitaph</b>: that exact roll, at that exact value, which you can cut into a hero as a permanent trait with no dice involved.</p>",
+    "<p class='small'><b>Neglect a gravemark and it stands up.</b> A Revenant of the fallen squad has to be put down to claim what it remembers.</p>",
+    "<p class='small'><b>The parish is permanent.</b> Buildings, ascension perks and epitaphs survive an ascension. Heroes do not.</p>",
+    "<p class='small'><b>Gold hires and builds; shards cut names and anoint.</b> That is the whole economy.</p>"
   ].join("");
 }
 
@@ -807,34 +766,8 @@ function bindTree() {
   }, { passive: false });
 }
 
-/* ---------- item clicks inside the overlay ------------------------------- */
+/* ---------- wiring ------------------------------------------------------- */
 GM.ui.initOverlay = function () {
   var wrap = GM.$("#overlayWrap");
   GM.on(wrap, "click", function (e) { if (e.target.id === "overlayWrap") GM.ui.closeOverlay(); });
-
-  GM.delegate(GM.$("#overlay"), "click", "[data-item]", function (e, node) {
-    var found = GM.ui.findItem(node.dataset.item);
-    if (!found) return;
-    if (node.dataset.where === "equip") {
-      GM.unequipFrom(found.hero, node.dataset.slot);
-      GM.ui.toast("Unequipped.", "");
-      GM.ui.renderOverlay();
-      return;
-    }
-    /* From the stash: equip on whoever gains most, else open it on the bench. */
-    var best = null;
-    (GM.state.heroes || []).forEach(function (h) {
-      var r = GM.evaluateForHero(h, found.item, null);
-      if (r && (!best || r.gain > best.gain)) best = { hero: h, slot: r.slot, gain: r.gain };
-    });
-    if (best && best.gain > 0) {
-      var prev = GM.equipOn(best.hero, found.item, best.slot);
-      if (prev) GM.stashItem(prev);
-      GM.ui.toast(best.hero.name + " equips it · +" + (best.gain * 100).toFixed(1) + "%", "good");
-    } else {
-      benchId = found.item.id;
-    }
-    GM.ui.renderOverlay();
-    GM.ui.markDirty();
-  });
 };

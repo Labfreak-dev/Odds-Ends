@@ -187,8 +187,7 @@ GM.tick = function (budget, opts) {
   opts = opts || {};
   var report = {
     kills: 0, bosses: 0, deaths: 0, xp: 0, gold: 0, shards: 0,
-    items: 0, runes: 0, equipped: 0, cleared: 0, seconds: budget,
-    epitaphs: 0, best: null, bySquad: {}
+    cleared: 0, seconds: budget, epitaphs: 0, bySquad: {}
   };
   var squads = GM.state.squads || [];
   for (var i = 0; i < squads.length; i++) {
@@ -196,10 +195,8 @@ GM.tick = function (budget, opts) {
     report.bySquad[squads[i].id] = r;
     report.kills += r.kills; report.bosses += r.bosses; report.deaths += r.deaths;
     report.xp += r.xp; report.gold += r.gold; report.shards += r.shards;
-    report.items += r.items; report.runes += r.runes;
-    report.equipped += r.equipped; report.cleared += r.cleared;
+    report.cleared += r.cleared;
     report.epitaphs += r.epitaphs;
-    if (r.best && (!report.best || r.best.rarity >= report.best.rarity)) report.best = r.best;
   }
   if (report.kills || report.deaths || report.cleared) {
     GM.bus.emit("combat:progress", report);
@@ -211,7 +208,7 @@ GM.tickSquad = function (sq, budget, opts) {
   opts = opts || {};
   var report = {
     kills: 0, bosses: 0, deaths: 0, xp: 0, gold: 0, shards: 0,
-    items: 0, runes: 0, equipped: 0, cleared: 0, epitaphs: 0, best: null
+    cleared: 0, epitaphs: 0
   };
   if (!sq.running) return report;
 
@@ -295,51 +292,24 @@ GM.onSquadKill = function (sq, mon, st, report, ctx) {
   GM.awardSquadXP(sq, xp);
   report.xp += xp;
 
-  var kindDrop = mon.kind === "boss" ? 3.2 : mon.kind === "elite" ? 1.8 : mon.kind === "revenant" ? 2.5 : 1;
-  var kindRune = mon.kind === "boss" ? 4   : mon.kind === "elite" ? 2   : mon.kind === "revenant" ? 3   : 1;
-  var kindGold = mon.kind === "boss" ? 5   : mon.kind === "elite" ? 2   : mon.kind === "revenant" ? 3   : 1;
-  var ctxFloor = (ctx && ctx.floorRarity) || 0;
+  var kindShard = mon.kind === "boss" ? 4 : mon.kind === "elite" ? 2 : mon.kind === "revenant" ? 3 : 1;
+  var kindGold  = mon.kind === "boss" ? 5 : mon.kind === "elite" ? 2 : mon.kind === "revenant" ? 3 : 1;
 
-  var drops = GM.rollDrops(stage, st, {
-    dropMult:  kindDrop * ((ctx && ctx.dropMult) || 1),
-    runeMult:  kindRune * ((ctx && ctx.runeMult) || 1),
-    goldMult:  mult * kindGold,
-    floorRarity: Math.max(mon.kind === "boss" ? 1 : 0, ctxFloor) || null
+  var drops = GM.rollRewards(stage, st, {
+    shardMult: kindShard * ((ctx && ctx.shardMult) || 1),
+    goldMult:  mult * kindGold
   });
 
   s.char.gold += drops.gold;
   s.char.shards += drops.shards;
   report.gold += drops.gold;
   report.shards += drops.shards;
+  if (drops.shards) GM.questProgress("shard", drops.shards);
 
   /* Banked on the squad so the victory banner can show the haul. */
-  sq.haul = sq.haul || { gold: 0, shards: 0, items: 0, runes: 0, chests: 0 };
+  sq.haul = sq.haul || { gold: 0, shards: 0 };
   sq.haul.gold += drops.gold;
   sq.haul.shards += drops.shards;
-
-  for (var i = 0; i < drops.items.length; i++) {
-    var it = drops.items[i];
-    report.items++;
-    sq.haul.items++;
-    GM.questProgress("loot", 1);
-    var res = GM.intakeItem(it, ctx, sq);
-    if (res.action === "equipped") {
-      report.equipped++;
-      if (!report.best || it.rarity >= report.best.rarity) report.best = it;
-      GM.log(res.hero.name + " equips " + GM.itemName(it) + ".", "equip");
-    } else if (res.action === "stashed" && it.rarity >= 3) {
-      if (!report.best || it.rarity >= report.best.rarity) report.best = it;
-      GM.log("Found " + GM.itemName(it) + ".", "rare");
-    }
-  }
-
-  for (i = 0; i < drops.runes.length; i++) {
-    GM.addRune(drops.runes[i], 1);
-    report.runes++;
-    sq.haul.runes++;
-    GM.questProgress("rune", 1);
-    GM.log("The " + GM.RUNE_BY_ID[drops.runes[i]].name + " rune surfaces.", "rune");
-  }
 
   if (GM.graveOnKill) GM.graveOnKill(sq, st, report, ctx);
 };
@@ -350,7 +320,7 @@ GM.onStageCleared = function (sq, report, ctx) {
   sq.victory = {
     time: secs,
     kills: sq.packKills || 0,
-    haul: sq.haul || { gold: 0, shards: 0, items: 0, runes: 0 },
+    haul: sq.haul || { gold: 0, shards: 0 },
     hold: GM.VICTORY_HOLD,
     stage: GM.squadStage(sq)
   };
@@ -404,6 +374,7 @@ GM.heroGainXP = function (hero, amount) {
     hero.xp -= GM.heroXpToLevel(hero);
     hero.level++;
     GM.state.tree.points += GM.TREE_POINTS_PER_LEVEL;
+    GM.questProgress("level", 1);
     GM.log(hero.name + " reaches level " + hero.level + ".", "level");
     GM.bus.emit("level:changed", hero);
   }

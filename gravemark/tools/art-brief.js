@@ -34,11 +34,6 @@ const PALETTE = [
   ["Void",           "#a45fd1", "wrong purple"],
 ];
 
-const RARITY_COLOURS = {
-  common: "#8b909c grey", magic: "#5b8fd6 blue", rare: "#d9b45c gold",
-  epic: "#a45fd1 purple", legendary: "#e0662f orange", mythic: "#e03a5f red"
-};
-
 /* ------------------------------------------------------------------ */
 W("# Gravemark — Art Brief");
 W("");
@@ -47,7 +42,7 @@ W("");
 const st = GM.artStats();
 W(`**${st.total} assets** · ${st.byKind.sheet || 0} animated sprite sheets · ` +
   `${GM.ART.filter(a => a.kind === "sheet").reduce((s, a) => s + (a.frames || 1), 0)} individual frames · ` +
-  `${GM.ART.filter(a => a.key.startsWith("doll/")).length} paper-doll gear layers`);
+  `${GM.ART.filter(a => a.kind === "part").length} rig parts`);
 W("");
 W("The game references **no image path directly** — it asks `GM.art(key)` and falls back to a labelled placeholder. Drop a finished file at `art/<key>.png` and it appears. Nothing in the game code changes. Deliver in any order; partial sets work.");
 W("");
@@ -87,13 +82,6 @@ W("| role | hex | note |");
 W("|---|---|---|");
 PALETTE.forEach(p => W(`| ${p[0]} | \`${p[1]}\` | ${p[2]} |`));
 W("");
-W("Rarity colours (used on item icons and frames):");
-W("");
-W("| rarity | colour |");
-W("|---|---|");
-GM.RARITIES.forEach(r => W(`| ${r.name} | ${RARITY_COLOURS[r.key]} |`));
-W("");
-
 W("## 3. Technical spec — read before drawing anything animated");
 W("");
 W("**Sprite sheets are a single horizontal strip.** Frame 1 leftmost. No padding, no gaps, no grid. Sheet width = frame width × frame count; sheet height = frame height. The loader slices by `naturalWidth / frames`, so an off-by-one column breaks every frame.");
@@ -110,15 +98,6 @@ W("- **Footing:** the character's feet rest at **96% of frame height**, horizont
 W("- **Transparency:** true alpha. No matte, no halo, no semi-transparent fringe inside the silhouette.");
 W("- **No baked shadow.** The game draws the ground.");
 W("");
-W("**Anchor points** (fractions of the frame) — weapons are drawn at the grip, so the hand must be here in every frame:");
-W("");
-W("| anchor | x | y | meaning |");
-W("|---|---|---|---|");
-Object.keys(GM.DOLL_ANCHORS).forEach(k => {
-  const a = GM.DOLL_ANCHORS[k];
-  W(`| \`${k}\` | ${a.x} | ${a.y} | ${k === "gripMain" ? "main hand — weapon pivots here" : k === "gripOff" ? "off hand — shield/tome" : k === "head" ? "helm sits here" : "ground contact"} |`);
-});
-W("");
 
 W("### Animation states");
 W("");
@@ -133,23 +112,17 @@ W("");
 W("**Walk and run must loop seamlessly** — frame 8 flows into frame 1 with no hitch. Standard 8-frame stride: contact, down, pass, up, contact (opposite), down, pass, up.");
 W("");
 
-/* ---- 4. paper doll ---- */
-W("## 4. Paper-doll gear — every equipped item is visible on the character");
+/* ---- 4. the classes ---- */
+W("## 4. The five classes — a hero is a whole unit");
 W("");
-W("This is the largest and most important part of the pack. The character is drawn as a **stack of layers**, one per equipped slot, composited in z-order. Every gear layer is its own sprite sheet that must align **frame-for-frame** with the body sheets: gloves layer frame 4 must match body frame 4 exactly, or the hand detaches mid-swing.");
+W("There is no equipment. Hiring a Reaver gives you a Reaver: sword, scarred leathers, the lot, painted once and never changed. Each class needs ONE finished standing figure (`actor/look-<class>`), and the shared hero sheets carry its motion until the class has rig parts of its own.");
 W("");
-W("| z | layer | slot | note |");
+W("| class | role | weapon | the look |");
 W("|---|---|---|---|");
-GM.DOLL_LAYERS.slice().sort((a, b) => a.z - b.z).forEach(L => {
-  W(`| ${L.z} | \`${L.id}\` | ${L.slot || "—"} | ${L.note || ""} |`);
+GM.CLASSES.forEach(c => {
+  const ch = GM.Rig.CHARS.find(x => x.id === c.id) || {};
+  W(`| \`${c.id}\` | ${c.role} | ${c.weapon.fam} | ${ch.label || c.blurb} |`);
 });
-W("");
-W("**Rules for every gear layer:**");
-W("");
-W("1. Draw it *on* a copy of the base body so the fit is right, then delete the body and export only the gear.");
-W("2. Same 256×256 cells, same footing, same frame count as the body state it accompanies.");
-W("3. Only the parts the slot covers. A `gloves` layer is two hands and forearms — nothing else.");
-W("4. Gear must read at three tier bands: **low** (rusted, lashed, improvised), **mid** (forged, fitted, ornamented), **high** (reliquary-grade, gilded, carved with names).");
 W("");
 
 /* helper to list a section */
@@ -172,8 +145,11 @@ W("");
 W("## 5. The asset list, by category");
 W("");
 
+section("Class looks", "actor/look-",
+"One finished standing figure per class, facing right, feet at 96% height. See section 4.");
+
 section("Hero — body", "actor/hero-",
-"Prompt: `A lone gravedigger-warrior, wiry and weather-beaten, wrapped in oilcloth and leather, face shadowed under a hood. Neutral undyed clothing — this is the naked base that all gear layers paint over, so keep it plain and keep the silhouette narrow. Facing right. [STATE].`\n\n" +
+"Prompt: `A lone gravedigger-warrior, wiry and weather-beaten, wrapped in oilcloth and leather, face shadowed under a hood. This is the shared body every class wears tinted to its colour until it has a look of its own, so keep the silhouette clean. Facing right. [STATE].`\n\n" +
 "Draw the generic `hero-attack` first, then the five weapon-specific swings — a maul does not move like a dagger:\n\n" +
 "- `dagger` — short, fast, low stab; body stays compact, minimal follow-through\n" +
 "- `sword` — diagonal shoulder-to-hip cut with a clean recovery\n" +
@@ -183,9 +159,6 @@ section("Hero — body", "actor/hero-",
 
 section("Revenant — the player's own corpse", "actor/revenant-",
 "Prompt: `The same gravedigger silhouette as the hero, but drowned-pale and wrong: jaw slack, eyes lamplit from inside, still wearing the gear it died in, hanging off it. Must be instantly recognisable as the hero — same proportions, same hood — and instantly wrong. Void purple #a45fd1 accent. Facing left.`");
-
-section("Paper-doll gear layers", "doll/",
-"Each key is `doll/<layer>-<family>-<band>`. Bands: `low` rusted/improvised, `mid` forged/fitted, `high` reliquary-grade/gilded. Must align frame-for-frame with the hero sheets (8 frames, 256×256, footing at 96%).");
 
 W("### Monsters  _(" + GM.MONSTERS.length + " archetypes × 4 states)_");
 W("");
@@ -258,20 +231,11 @@ GM.REALMS.forEach(r => W(`| \`bg/realm-${r.n}\` | **${r.name}** | ${r.flavour} |
 });
 W("");
 
-section("Item icons", "item/",
-"Square inventory icons, three-quarter view, lit from upper left, on transparent background. Tier band drives the material: `low` rusted iron and lashed cord, `mid` clean forged steel and fitted leather, `high` reliquary-grade with gilding and carved names.");
-
-section("Rune glyphs", "rune/",
-"48×48 carved stone chips, each with ONE incised glyph lit from within. Invented alphabet — angular, chiselled, no resemblance to real letters. The glow colour follows the rune's role. All sixteen must be distinguishable at a glance and feel like one alphabet.");
-
 section("UI chrome", "ui/",
 "Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `nineslice` number is the corner inset in pixels — corners must not stretch. Button states: `normal` resting, `hover` gold edge brightening, `pressed` inset by 1px with the highlight flipped, `disabled` desaturated to 35%.");
 
 section("Icons", "icon/",
 "64×64 flat-ish symbolic icons, single accent colour each, readable at 24px. Resource icons, element icons, and tab icons.");
-
-section("Rarity frames and sockets", "frame/",
-"Nine-slice item frames, one per rarity, in that rarity's colour. Restrained — the frame surrounds the item icon and must never compete with it. Socket pips are small circular stone settings, empty and filled.");
 
 W("---");
 W("");

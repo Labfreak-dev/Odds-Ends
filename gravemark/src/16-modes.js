@@ -77,7 +77,7 @@ GM.finalityStage = function (wave) {
 GM.squadCtx = function (sq) {
   switch (sq.mode) {
     case "exploration":
-      return { rewardMult: 1, dropMult: 1.6, runeMult: 1.5, noProgress: true };
+      return { rewardMult: 1, shardMult: 1.6, noProgress: true };
 
     case "tower": {
       var f = sq.towerRun || 1;
@@ -86,14 +86,13 @@ GM.squadCtx = function (sq) {
         hpMult: 1.6 * Math.pow(1.05, f),
         dmgMult: 1.25 * Math.pow(1.03, f),
         resAdd: Math.min(0.60, 0.02 * f),
-        dropMult: 1.2, noBoss: true, single: true
+        shardMult: 1.2, noBoss: true, single: true
       };
     }
 
     case "dimension": {
       if (!sq.dim) return {};
-      return { mutators: sq.dim.mutators, rewardMult: sq.dim.reward,
-               dropMult: 1.3, runeMult: 1.4 };
+      return { mutators: sq.dim.mutators, rewardMult: sq.dim.reward, shardMult: 1.4 };
     }
 
     case "finality": {
@@ -103,7 +102,7 @@ GM.squadCtx = function (sq) {
         hpMult: Math.pow(1.34, w),
         dmgMult: Math.pow(1.18, w),
         resAdd: Math.min(0.70, 0.03 * w),
-        dropMult: 2.2, runeMult: 2.5, floorRarity: 2, noBoss: true
+        shardMult: 2.5, noBoss: true
       };
     }
 
@@ -145,7 +144,7 @@ GM.safeToAdvance = function (sq) {
 };
 
 /* The same pessimism applied to where the squad already stands: if the depth
-   it is holding has become lethal (a hero died, gear was moved away), step
+   it is holding has become lethal (a hero was dismissed or moved), step
    back rather than grinding a losing fight forever. */
 GM.shouldFallBack = function (sq) {
   if (sq.push || sq.stage <= 1) return false;
@@ -323,8 +322,8 @@ GM.toggleSquad = function (sq) {
 };
 
 /* ---------- ascension ----------------------------------------------------
-   Reset the run, keep the institution. Town, perks, runes and epitaphs
-   survive — they are what makes the next descent faster than the last. */
+   Reset the run, keep the institution. Town, perks and epitaphs survive —
+   they are what makes the next descent faster than the last. */
 GM.canAscend = function () {
   return GM.state.depth.maxEver >= GM.ASCEND_MIN_STAGE;
 };
@@ -348,10 +347,8 @@ GM.ascend = function () {
   /* The warband is re-founded: the heroes are new, the parish is not. Keeping
      the roster would make ascension a pure upgrade with no cost at all. */
   GM.foundWarband();
-  s.stash = [];
   s.tree = { points: 0, spent: [] };
   s.graves = [];
-  if (GM.grantStartingKit) GM.grantStartingKit();
 
   var st = GM.derive(GM.collect(s.heroes[0], {}));
   var start = Math.max(1, 1 + (st.startStage || 0));
@@ -370,7 +367,6 @@ GM.ascend = function () {
   GM.bus.emit("ascend", { gained: gained });
   GM.bus.emit("roster:changed");
   GM.bus.emit("squads:changed");
-  GM.bus.emit("gear:changed");
   GM.bus.emit("tree:changed");
   GM.bus.emit("depth:changed");
   GM.save();

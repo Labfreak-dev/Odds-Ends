@@ -1,14 +1,15 @@
 /* Gravemark — 11-stats.js
-   The stat pipeline: fold gear, runes, runewords, tree, town, perks, season
-   and mutators into one derived block the combat solver can read.
+   The stat pipeline: fold the class kit, the hero's traits, the tree, the
+   town, the perks, the season and the mutators into one derived block the
+   combat solver can read.
 
    Everything funnels through `GM.collect()` -> `GM.derive()`. Nothing else in
-   the codebase is allowed to read a stat off an item directly, so there is
-   exactly one place where "does this affix actually do anything" is answered. */
+   the codebase reads a stat off a trait directly, so there is exactly one
+   place where "does this epitaph actually do anything" is answered. */
 "use strict";
 
 /* An empty stat bag. Additive stats sum; there are no multiplicative "more"
-   modifiers on gear by design — those belong to keystones and mutators, where
+   modifiers on traits by design — those belong to keystones and mutators, where
    the player can see them all in one list. */
 GM.emptyBag = function () {
   return {
@@ -18,7 +19,7 @@ GM.emptyBag = function () {
     flatLife: 0, incLife: 0, flatArmour: 0, incArmour: 0, flatEvasion: 0, incEvasion: 0,
     resFire: 0, resCold: 0, resLit: 0, resVoid: 0, resAll: 0,
     regenPct: 0, regenFlat: 0, leechPct: 0,
-    findRarity: 0, findQuantity: 0, findGold: 0, findXP: 0,
+    findShards: 0, findGold: 0, findXP: 0,
     epitaphChance: 0, graveHaste: 0,
     craftDiscount: 0, offlineHours: 0, startStage: 0
   };
@@ -34,79 +35,49 @@ GM.addBag = function (bag, src, scale) {
   return bag;
 };
 
-/* ---------- per-item stats ----------------------------------------------
-   Returns the full contribution of one item: base implicit, rolled affixes,
-   socketed runes (using the face that matches the slot), and any runeword. */
-GM.itemStats = function (item) {
-  var bag = GM.emptyBag();
-  if (!item) return bag;
-  var base = GM.BASE_BY_ID[item.baseId];
-  if (!base) return bag;
-
-  /* Base tiers are discrete; the item level it dropped at scales them the rest
-     of the way. Percentage implicits are left alone (see GM.ilvlScale). */
-  var k = GM.ilvlScale(item.ilvl || 1);
-
-  if (base.implicit) {
-    var impDef = GM.STAT_DEFS[base.implicit.stat];
-    bag[base.implicit.stat] += base.implicit.value * (impDef && impDef.pct ? 1 : k);
-  }
-  if (base.armour)  bag.flatArmour  += base.armour  * k;
-  if (base.evasion) bag.flatEvasion += base.evasion * k;
-  if (base.life)    bag.flatLife    += base.life    * k;
-
-  var i;
-  for (i = 0; i < (item.affixes || []).length; i++) {
-    var a = item.affixes[i];
-    if (bag[a.stat] !== undefined) bag[a.stat] += a.value;
-  }
-
-  var pool = base.pool;
-  for (i = 0; i < (item.sockets || []).length; i++) {
-    var face = GM.runeFace(GM.RUNE_BY_ID[item.sockets[i]], pool);
-    if (face) GM.addBag(bag, face);
-  }
-
-  var rw = GM.matchRuneword(pool, item.sockets || []);
-  if (rw) GM.addBag(bag, rw.stats);
-
-  return bag;
-};
-
-/* The weapon's own base damage, routed to its element(s). Elemental weapons
-   split their base evenly across fire/cold/storm, which is what lets a wand
-   build exist before it finds a single flat-elemental affix. */
-GM.weaponBaseDamage = function (item, bag) {
-  var base = item && GM.BASE_BY_ID[item.baseId];
-  if (!base || base.pool !== "weapon") {
-    bag.flatPhys += 2;              /* unarmed */
-    return { as: 1.0, crit: 0.05 };
-  }
-  var dmg = base.dmg * GM.ilvlScale(item.ilvl || 1);
-  if (base.elemental) {
+/* ---------- the class kit -----------------------------------------------
+   What a hero of this class wears and swings at this level. One curve, five
+   multipliers per class, no items. Returns the weapon's own numbers and adds
+   the kit's flats into the bag. */
+GM.kitStats = function (hero, bag) {
+  var cls = GM.heroClass(hero);
+  var k = GM.kitScale(hero.level);
+  var w = cls.weapon;
+  var dmg = GM.CURVE.kitDmg0 * w.dmg * k;
+  if (w.elemental) {
+    /* Wands convert their base to the three elements, which is what lets an
+       elemental build exist from level one. */
     var third = dmg / 3;
     bag.flatFire += third; bag.flatCold += third; bag.flatLit += third;
   } else {
     bag.flatPhys += dmg;
   }
-  return { as: base.as, crit: base.crit };
+  bag.flatArmour  += GM.CURVE.kitArm0  * cls.kit.armour  * k;
+  bag.flatEvasion += GM.CURVE.kitEva0  * cls.kit.evasion * k;
+  bag.flatLife    += GM.CURVE.kitLife0 * cls.kit.life    * k;
+  return { as: w.as, crit: w.crit };
 };
 
 /* ---------- collection ---------------------------------------------------
-   Stats are now derived PER HERO. Gear belongs to the hero; the passive tree,
-   the parish and ascension perks are shared across the whole warband, because
-   those are the player's institution rather than any one person's kit. */
-GM.collect = function (hero, ctx) {
+   Stats are derived PER HERO. The kit and the traits belong to the hero; the
+   passive tree, the parish and ascension perks are shared across the whole
+   warband, because those are the player's institution rather than any one
+   person's. `extraTrait` / `minusTrait` let the inscription preview ask
+   "what if" without touching the hero. */
+GM.collect = function (hero, ctx, extraTrait, minusTrait) {
   var bag = GM.emptyBag();
   var i;
 
-  var wep = hero ? hero.equip.weapon : null;
-  var wepInfo = GM.weaponBaseDamage(wep, bag);
-
+  var wepInfo = { as: 1.0, crit: 0.05 };
   if (hero) {
-    for (i = 0; i < GM.SLOT_IDS.length; i++) {
-      GM.addBag(bag, GM.itemStats(hero.equip[GM.SLOT_IDS[i]]));
+    wepInfo = GM.kitStats(hero, bag);
+    var traits = hero.traits || [];
+    for (i = 0; i < traits.length; i++) {
+      var t = traits[i];
+      if (t === minusTrait) continue;
+      if (bag[t.stat] !== undefined) bag[t.stat] += t.value;
     }
+    if (extraTrait && bag[extraTrait.stat] !== undefined) bag[extraTrait.stat] += extraTrait.value;
     /* The class's own leaning, scaled by level so it stays relevant. */
     var cls = GM.heroClass(hero);
     GM.addBag(bag, cls.bias, 1 + (hero.level - 1) * 0.35);
@@ -213,18 +184,17 @@ GM.derive = function (collected) {
   var regen = noRegen ? 0 : (bag.regenFlat + life * bag.regenPct);
   var leech = noLeech ? 0 : bag.leechPct;
 
-  var findQ = bag.findQuantity, findR = bag.findRarity, findG = bag.findGold;
+  var findS = bag.findShards, findG = bag.findGold;
   var epi = bag.epitaphChance;
   for (i = 0; i < mut.length; i++) {
     var mm = GM.MUTATOR_BY_ID[mut[i]];
     if (!mm || !mm.find) continue;
     if (mm.find.gold)    findG += mm.find.gold;
-    if (mm.find.qty)     findQ += mm.find.qty;
-    if (mm.find.rarity)  findR += mm.find.rarity;
+    if (mm.find.shards)  findS += mm.find.shards;
     if (mm.find.epitaph) epi   += mm.find.epitaph;
   }
   if (rule.gold)     findG = (1 + findG) * rule.gold - 1;
-  if (rule.quantity) findQ = (1 + findQ) * rule.quantity - 1;
+  if (rule.shards)   findS = (1 + findS) * rule.shards - 1;
   if (rule.epitaph)  epi   = epi * rule.epitaph;
 
   return {
@@ -232,7 +202,7 @@ GM.derive = function (collected) {
     crit: crit, critMulti: critMulti, attackSpeed: attackSpeed, pen: bag.pen,
     life: life, armour: armour, evasion: evasion, res: res,
     regen: regen, leech: leech,
-    findRarity: findR, findQuantity: findQ, findGold: findG, findXP: bag.findXP,
+    findShards: findS, findGold: findG, findXP: bag.findXP,
     epitaphChance: epi, graveHaste: bag.graveHaste,
     craftDiscount: GM.clamp(bag.craftDiscount, 0, 0.75),
     offlineHours: 2 + bag.offlineHours,
@@ -262,14 +232,14 @@ GM.heroStats = function (hero, ctx) {
 
 GM.invalidateStats = function () { _statCache = Object.create(null); };
 
-["gear:changed", "tree:changed", "town:changed", "perks:changed",
+["tree:changed", "town:changed", "perks:changed",
  "level:changed", "season:started", "mode:changed", "roster:changed",
  "squads:changed"].forEach(function (evt) {
   GM.bus.on(evt, GM.invalidateStats);
 });
 
 /* Warband-wide numbers that do not belong to any hero: the away cap, the
-   crafting discount. Derived with no gear so a hero swap cannot move them. */
+   inscription discount. Derived with no hero so a roster change cannot move them. */
 GM.playerStats = function () {
   return GM.heroStats(null, null);
 };
@@ -292,7 +262,7 @@ GM.squadStats = function (sq, ctx) {
     elemHit: { phys: 0, fire: 0, cold: 0, lit: 0, void: 0 },
     res: { phys: 0, fire: 0, cold: 0, lit: 0, void: 0 },
     pen: 0, critFactor: 1, attackSpeed: 1,
-    findRarity: 0, findQuantity: 0, findGold: 0, findXP: 0,
+    findShards: 0, findGold: 0, findXP: 0,
     epitaphChance: 0, graveHaste: 0,
     count: heroes.length, members: []
   };
@@ -306,7 +276,12 @@ GM.squadStats = function (sq, ctx) {
     agg.life += st.life;
     agg.regen += st.regen;
     lifeSum += st.life;
-    for (e in agg.elemHit) agg.elemHit[e] += st.elemHit[e] || 0;
+    /* Each member's hit is folded in AT THEIR OWN speed and crit, so the
+       squad's elemHit is damage per second by element — the solver multiplies
+       by the aggregate's unit factors below and gets exactly st.dps back
+       against an unresisting target. */
+    var rate = st.critFactor * st.attackSpeed;
+    for (e in agg.elemHit) agg.elemHit[e] += (st.elemHit[e] || 0) * rate;
   }
   for (i = 0; i < agg.members.length; i++) {
     var m = agg.members[i];
@@ -319,35 +294,24 @@ GM.squadStats = function (sq, ctx) {
     agg.attackSpeed += (m.st.attackSpeed - 1) * w;
     for (e in agg.res) agg.res[e] += (m.st.res[e] || 0) * w;
     /* Find stats take the BEST on the team, not the average — one Sexton
-       carrying rarity gear should benefit the whole squad's haul. */
-    agg.findRarity   = Math.max(agg.findRarity, m.st.findRarity);
-    agg.findQuantity = Math.max(agg.findQuantity, m.st.findQuantity);
+       who knows where the shards are should benefit the whole squad's haul. */
+    agg.findShards   = Math.max(agg.findShards, m.st.findShards);
     agg.findGold     = Math.max(agg.findGold, m.st.findGold);
     agg.findXP       = Math.max(agg.findXP, m.st.findXP);
     agg.epitaphChance = Math.max(agg.epitaphChance, m.st.epitaphChance);
     agg.graveHaste    = Math.max(agg.graveHaste, m.st.graveHaste);
   }
-  /* The squad's hit already includes each member's crit and speed, so the
+  /* The squad's elemHit already carries each member's crit and speed, so the
      aggregate must not apply them a second time. */
   agg.critFactor = 1;
   agg.attackSpeed = 1;
   return agg;
 };
 
-/* ---------- what an item would do ---------------------------------------- */
-GM.heroStatsWith = function (hero, slot, item, ctx) {
+/* ---------- what a trait would do ---------------------------------------- */
+GM.heroStatsWith = function (hero, trait, replacing, ctx) {
   if (!hero) return GM.heroStats(null, ctx);
-  var prev = hero.equip[slot];
-  hero.equip[slot] = item;
-  var out;
-  try {
-    out = GM.derive(GM.collect(hero, ctx));
-  } finally {
-    /* Restore even if derivation throws — a half-swapped equip block would
-       corrupt the save on the next autosave. */
-    hero.equip[slot] = prev;
-  }
-  return out;
+  return GM.derive(GM.collect(hero, ctx, trait, replacing || null));
 };
 
 /* A single number for "is this better". Offence and defence are both needed

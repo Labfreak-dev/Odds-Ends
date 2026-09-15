@@ -93,7 +93,7 @@ GM.ui.tipProvider("txt", function (s) { return "<div>" + GM.esc(s) + "</div>"; }
 GM.ui.tipProvider("cur", function (which) {
   var T = {
     gold:   ["Gold", "Raises the parish and respecs the tree."],
-    shards: ["Shards", "The crafting bench: sockets, rerolls, inscription."],
+    shards: ["Shards", "Cut names into heroes, and anoint them."],
     ichor:  ["Ichor", "Won by ascending. Buys permanent warband perks."],
     marks:  ["Marks", "Cleared floors of the Divine Tower."],
     dust:   ["Dust", "Folded out of Alternate Dimensions."]
@@ -101,84 +101,6 @@ GM.ui.tipProvider("cur", function (which) {
   if (!T) return "";
   return '<div class="tname gold">' + T[0] + "</div><div>" + GM.esc(T[1]) + "</div>";
 });
-
-/* ---------- item tooltip ------------------------------------------------- */
-GM.ui.itemTipHTML = function (item, hero, compareSlot) {
-  if (!item) return "";
-  var base = GM.BASE_BY_ID[item.baseId];
-  var rar = GM.RARITY_BY_ID[item.rarity];
-  var h = [];
-
-  h.push('<div class="tname ' + rar.css + '">' + GM.esc(GM.itemName(item)) + "</div>");
-  h.push('<div class="tbase">' + GM.esc(base ? base.name : "?") + " · " +
-         GM.esc(rar.name) + " · ilvl " + item.ilvl + "</div>");
-
-  if (base && base.pool === "weapon") {
-    h.push('<div class="tstat faint">' + Math.round(base.dmg * GM.ilvlScale(item.ilvl)) +
-           " base damage · " + base.as.toFixed(2) + " atk/s</div>");
-  }
-  if (base && base.implicit) {
-    var d = GM.STAT_DEFS[base.implicit.stat];
-    h.push('<div class="tstat" style="color:var(--r1)">' +
-      GM.esc(GM.statLine(base.implicit.stat,
-        d && d.pct ? base.implicit.value : base.implicit.value * GM.ilvlScale(item.ilvl))) + "</div>");
-  }
-
-  var inscribed = item.inscribed || [];
-  (item.affixes || []).forEach(function (a) {
-    var ins = inscribed.indexOf(a.id) >= 0;
-    h.push('<div class="tstat' + (ins ? " tinscribed" : "") + '">' +
-      GM.esc(GM.statLine(a.stat, a.value)) +
-      ' <span class="tt">T' + (a.displayTier || a.tier) + (ins ? " ✓" : "") + "</span></div>");
-  });
-
-  if ((item.sockets || []).length) {
-    h.push('<div class="tstat faint" style="margin-top:3px">Sockets: ' +
-      GM.esc(item.sockets.map(function (r) {
-        return r ? (GM.RUNE_BY_ID[r] || {}).name || "?" : "○";
-      }).join(" · ")) + "</div>");
-    var rw = GM.matchRuneword(base ? base.pool : null, item.sockets);
-    if (rw) {
-      h.push('<div class="trw">' + GM.esc(rw.name));
-      for (var k in rw.stats) h.push("<br>" + GM.esc(GM.statLine(k, rw.stats[k])));
-      h.push('<br><span class="faint">"' + GM.esc(rw.flavour) + '"</span></div>');
-    }
-  }
-
-  if (hero) {
-    var slot = compareSlot || GM.slotsForItem(item)[0];
-    if (slot && hero.equip[slot] !== item) {
-      var now = GM.powerScore(GM.heroStats(hero, null));
-      var then = GM.powerScore(GM.heroStatsWith(hero, slot, item, null));
-      var delta = (then - now) / Math.max(1, now);
-      var cls = delta > 0.0005 ? "up" : delta < -0.0005 ? "down" : "faint";
-      h.push('<div class="tcmp">on ' + GM.esc(hero.name) + ': <span class="' + cls + '">' +
-        (delta > 0 ? "+" : "") + (delta * 100).toFixed(1) + "%</span> power</div>");
-    }
-  }
-  if (item.locked) h.push('<div class="tstat gold">\u{1F512} Locked</div>');
-  return h.join("");
-};
-
-GM.ui.tipProvider("item", function (id) {
-  var f = GM.ui.findItem(id);
-  return f ? GM.ui.itemTipHTML(f.item, f.hero) : "";
-});
-
-/* Find an item anywhere: worn by any hero, or in the stash. */
-GM.ui.findItem = function (id) {
-  var hs = GM.state.heroes || [];
-  for (var h = 0; h < hs.length; h++) {
-    for (var i = 0; i < GM.SLOT_IDS.length; i++) {
-      var it = hs[h].equip[GM.SLOT_IDS[i]];
-      if (it && it.id === id) return { item: it, hero: hs[h], slot: GM.SLOT_IDS[i] };
-    }
-  }
-  for (i = 0; i < GM.state.stash.length; i++) {
-    if (GM.state.stash[i].id === id) return { item: GM.state.stash[i], hero: null };
-  }
-  return null;
-};
 
 /* ---------- hero tooltip ------------------------------------------------- */
 GM.ui.tipProvider("hero", function (id) {
@@ -195,42 +117,33 @@ GM.ui.tipProvider("hero", function (id) {
   out.push('<div class="tstat faint">' + GM.fmt(st.armour) + " armour · " +
            GM.fmt(st.evasion) + " evasion · " + st.attackSpeed.toFixed(2) + " atk/s</div>");
   out.push('<div class="tstat faint">' + GM.esc(sq ? sq.name : "Benched") + "</div>");
+  (h.traits || []).forEach(function (t) {
+    out.push('<div class="tstat tinscribed">' + GM.esc(GM.statLine(t.stat, t.value)) +
+             ' <span class="tt">T' + (t.displayTier || t.tier) + "</span></div>");
+  });
   out.push('<div class="flavour" style="margin-top:4px">' + GM.esc(cls.blurb) + "</div>");
-  out.push('<div class="tcmp">Click to inspect and equip.</div>');
+  out.push('<div class="tcmp">Click to inspect.</div>');
   return out.join("");
 });
 
-/* ---------- shared bits -------------------------------------------------- */
-GM.ui.itemCell = function (item, hero, opts) {
-  opts = opts || {};
-  var rar = GM.RARITY_BY_ID[item.rarity];
-  var base = GM.BASE_BY_ID[item.baseId];
-  var d = GM.el("div", "slot bl" + item.rarity + (opts.cls ? " " + opts.cls : ""));
-  d.dataset.tip = "item:" + item.id;
-  d.dataset.item = item.id;
-
-  var ico = GM.el("canvas", "ico");
-  ico.width = ico.height = 28;
-  var c = ico.getContext("2d");
-  if (c) GM.drawSprite(c, GM.itemArtKey(item), 0, 0, 0, 28, 28, { label: false, dark: true });
-  d.appendChild(ico);
-
-  var nm = GM.el("div", "nm");
-  nm.innerHTML = '<span class="sl">' + GM.esc(base ? base.kindLabel : "?") +
-                 (item.locked ? " \u{1F512}" : "") + "</span>" +
-                 '<span class="' + rar.css + '">' + GM.esc(GM.itemName(item)) + "</span>";
-  if ((item.sockets || []).length) {
-    var sw = GM.el("div", "socks");
-    item.sockets.forEach(function (r) {
-      sw.appendChild(GM.el("span", "sock" + (r ? " full" : ""),
-        r ? (GM.RUNE_BY_ID[r] || {}).name.charAt(0) : ""));
-    });
-    nm.appendChild(sw);
-  }
-  d.appendChild(nm);
-  return d;
+/* ---------- epitaph tooltip ---------------------------------------------- */
+GM.ui.epitaphTipHTML = function (e) {
+  var def = GM.AFFIX_BY_ID[e.affixId];
+  var h = ['<div class="tname gold">' + GM.esc(e.name) + ' <span class="tt">T' + (e.displayTier || e.tier) + "</span></div>"];
+  h.push('<div class="tstat">' + GM.esc(GM.statLine(e.stat, e.value)) + "</div>");
+  h.push('<div class="tbase">from depth ' + e.from + (e.who ? ", " + GM.esc(e.who) : "") + "</div>");
+  if (def) h.push('<div class="tstat faint">' + GM.esc(def.classes.map(function (c) {
+    return (GM.CLASS_BY_ID[c] || {}).name || c;
+  }).join(", ")) + "</div>");
+  return h.join("");
 };
 
+GM.ui.tipProvider("epitaph", function (id) {
+  var e = GM.byId(GM.state.epitaphs, id);
+  return e ? GM.ui.epitaphTipHTML(e) : "";
+});
+
+/* ---------- shared bits -------------------------------------------------- */
 GM.ui.statRow = function (k, v) {
   var d = GM.el("div", "stat");
   d.innerHTML = '<span class="k">' + GM.esc(k) + '</span><span class="v">' + GM.esc(v) + "</span>";
@@ -242,7 +155,7 @@ GM.ui.init = function () {
   GM.on(document, "keydown", function (e) {
     if (e.key === "Escape") GM.ui.closeOverlay();
   });
-  ["gear:changed", "stash:changed", "tree:changed", "town:changed", "perks:changed",
+  ["tree:changed", "town:changed", "perks:changed",
    "graves:changed", "epitaphs:changed", "roster:changed", "squads:changed",
    "depth:changed", "mode:changed", "ascend", "quest:changed", "level:changed"
   ].forEach(function (evt) {

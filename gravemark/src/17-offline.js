@@ -2,7 +2,7 @@
    While-you-were-away.
 
    Offline runs the SAME `GM.tick` the live loop runs, just with a much larger
-   budget and `fast` mode on. That is deliberate: an idle game whose offline
+   budget. That is deliberate: an idle game whose offline
    maths is a separate estimate will always drift from its online maths, and
    the player will always notice in the direction that annoys them. */
 "use strict";
@@ -39,16 +39,7 @@ GM.runOffline = function (elapsedSec) {
     epitaphs: GM.state.epitaphs.length
   };
 
-  GM.fast.active = true;
-  GM.fast.evals = 0;
-  var report;
-  try {
-    report = GM.tick(budget, { offline: true });
-  } finally {
-    /* Leaving fast mode on would silently ruin live auto-equip for the rest
-       of the session. */
-    GM.fast.active = false;
-  }
+  var report = GM.tick(budget, { offline: true });
 
   report.awaySeconds = raw;
   report.creditedSeconds = credited;
@@ -92,7 +83,6 @@ GM.offlineSummary = function (r) {
   if (r.levelsGained > 0)   rows.push({ label: "Levels", value: "+" + r.levelsGained });
   if (r.depthGained > 0)    rows.push({ label: "New record", value: "+" + r.depthGained + " depth" });
   if (r.bosses > 0)         rows.push({ label: "Bosses", value: GM.fmt(r.bosses) });
-  if (r.runes > 0)          rows.push({ label: "Runes", value: GM.fmt(r.runes) });
   if (r.epitaphsGained > 0) rows.push({ label: "Epitaphs", value: "+" + r.epitaphsGained });
   if (r.deaths > 0)         rows.push({ label: "Deaths", value: GM.fmt(r.deaths) });
   return rows;

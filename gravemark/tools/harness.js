@@ -71,42 +71,47 @@ function load(opts) {
   return sandbox.GM;
 }
 
-/* Build a plausible player at a given depth: gear rolled at that item level,
-   keeping the best of `tries` rolls per slot the way a farming player would,
-   plus a level's worth of tree points spent greedily. */
-/* Build a plausible SQUAD at a given depth: five heroes of mixed class, geared
-   at that item level, plus a level's worth of tree points spent greedily. */
+/* Build a plausible SQUAD at a given depth: five heroes of mixed class at
+   the level a player farming that depth would have, ranked as high as that
+   level needs (rank I caps at 60, II at 90), carrying `names` epitaphs each
+   rolled at that depth, plus a level's worth of tree points spent greedily. */
 function outfit(GM, depth, opts) {
   opts = opts || {};
-  const tries = opts.tries == null ? 6 : opts.tries;
-  const rarity = opts.rarity == null ? 2 : opts.rarity;
   const size = opts.size == null ? GM.SQUAD_SIZE : opts.size;
-  const gearDepth = Math.max(1, depth - (opts.behind || 0));
-  const level = Math.min(120, Math.max(1, Math.round(gearDepth * 0.95)));
+  const names = opts.names == null ? 0 : opts.names;
+  const traitDepth = Math.max(1, depth - (opts.behind || 0));
+  const level = Math.min(120, Math.max(1, Math.round(traitDepth * 0.95)));
+  const rank = opts.rank || (level > 90 ? 3 : level > 60 ? 2 : 1);
 
   const sq = GM.state.squads[0];
   GM.state.heroes = [];
   sq.members = [];
   const classes = ["warden", "reaver", "pyre", "stalker", "sexton"];
   for (let i = 0; i < size; i++) {
-    const h = GM.makeHero({ classId: classes[i % classes.length], rank: opts.rank || 1 });
-    h.level = level;
+    const h = GM.makeHero({ classId: classes[i % classes.length], rank });
+    h.level = Math.min(level, GM.heroMaxLevel(h));
     GM.state.heroes.push(h);
     sq.members.push(h.id);
   }
   sq.stage = depth; sq.max = depth;
   GM.state.depth.maxEver = depth;
 
+  /* Names: the best of a few rolls per slot, the way a player who picks
+     which epitaph to cut would. */
   for (const h of GM.state.heroes) {
-    for (const slot of GM.SLOT_IDS) {
-      const pool = GM.slotPool(slot);
+    const used = {};
+    for (let n = 0; n < Math.min(names, GM.heroTraitCap(h)); n++) {
       let best = null, bestScore = -Infinity;
-      for (let i = 0; i < tries; i++) {
-        const it = GM.makeItem({ pool, ilvl: gearDepth, rarity });
-        const sc = GM.powerScore(GM.heroStatsWith(h, slot, it, null));
-        if (sc > bestScore) { bestScore = sc; best = it; }
+      for (let t = 0; t < 4; t++) {
+        const probe = Object.assign({}, used);
+        const rec = GM.rollEpitaphRecord(h.classId, traitDepth, probe);
+        if (!rec) continue;
+        const sc = GM.powerScore(GM.heroStatsWith(h, rec, null, null));
+        if (sc > bestScore) { bestScore = sc; best = rec; }
       }
-      h.equip[slot] = best;
+      if (!best) break;
+      used[GM.AFFIX_BY_ID[best.affixId].group] = true;
+      h.traits.push(Object.assign({ from: traitDepth, name: GM.AFFIX_BY_ID[best.affixId].name }, best));
     }
   }
   GM.invalidateStats();

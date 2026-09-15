@@ -12,22 +12,24 @@
 GM.STAGES_PER_REALM = 10;
 
 GM.CURVE = {
-  /* Monster growth is tuned against what gear can actually deliver per depth:
-     an affix tier gate every 11 ilvl (~1.050/depth) times the continuous item
-     scaling below (1.035/depth) is ~1.087/depth of player flat stats. Monster
-     life grows a shade slower so a well-geared player gains ground, and
-     monster damage slower still so defence does not need every slot. Change
-     `itemScale` and these three MUST be re-measured with tools/balance.js. */
-  itemScale: 1.035, /* continuous per-ilvl multiplier on flat item stats */
+  /* The hero's KIT is fixed by class and grows with level: there are no
+     items. `kit*0` are the level-1 numbers a class multiplies, `kitG` the
+     per-level growth. Epitaph flats scale by `depthScale` per depth learned.
+     Change any of these and the monster curve below MUST be re-measured with
+     tools/balance.js. */
+  kitDmg0:  5.0,   kitArm0:  26,   kitEva0:  14,   kitLife0: 18,
+  kitG:     1.078,  /* per-level growth of every kit number */
+  early0:   0.18,   /* monster strength at depth 1, as a fraction of the curve; ramps to 1 by 25 */
+  depthScale: 1.035, /* per-depth multiplier on flat epitaph values */
 
-  /* Measured, not guessed (tools/balance.js): a geared squad's damage grows
-     1.111 per depth and its life 1.082 — but only until levels cap, after
-     which damage growth falls to about 1.087 (item scaling alone). These sit
-     between the two, so the mid-game keeps pace and the post-cap depths
-     tighten into an endgame rather than slamming into a wall. Ascension is
-     what is meant to carry a warband past that point. */
+  /* Measured, not guessed (tools/balance.js): a levelling squad's damage
+     grows about 1.11 per depth and its life 1.08 — until its rank's level cap,
+     after which only traits and the tree move. These sit between the two, so
+     the mid-game keeps pace and the post-cap depths tighten into an endgame
+     that anointing, deeper epitaphs and ascension are meant to carry. */
   monHp0:   245,   monHpG:   1.1000,   /* monster life at stage 1, and per-stage growth */
   monDmg0:  22,    monDmgG:  1.0750,   /* monster damage per second */
+  deepFrom: 60,    deepG:    1.018,    /* extra per-depth growth past deepFrom: the endgame tightens */
   monArm0:  30,    monArmG:  1.0900,   /* monster armour, reduces incoming physical */
   monAcc0:  90,    monAccG:  1.0800,   /* accuracy, fought against player evasion */
   bossHp:   8.0,   bossDmg:  2.0,      /* stage-10 boss multipliers */
@@ -49,37 +51,42 @@ GM.realmOf = function (stage) { return Math.floor((stage - 1) / GM.STAGES_PER_RE
 GM.floorOf = function (stage) { return ((stage - 1) % GM.STAGES_PER_REALM) + 1; };
 GM.isBossStage = function (stage) { return GM.floorOf(stage) === GM.STAGES_PER_REALM; };
 
-/* Continuous item-level scaling. Base tiers are discrete and run out at ilvl
-   84; without this, a depth-120 drop is no stronger than a depth-84 one and
-   the game walls permanently. Applies to FLAT stats only — percentages are
-   already multiplicative and inflating them too would compound twice. */
-GM.ilvlScale = function (ilvl) { return Math.pow(GM.CURVE.itemScale, Math.max(0, ilvl - 1)); };
+/* Continuous depth scaling for the flat half of an epitaph. Tiers are
+   discrete and run out at depth 84; without this a depth-120 death teaches
+   nothing a depth-84 one did not. FLAT stats only — percentages are already
+   multiplicative and inflating them too would compound twice. */
+GM.depthScale = function (depth) { return Math.pow(GM.CURVE.depthScale, Math.max(0, depth - 1)); };
+
+/* The class kit's growth with level: one curve for every kit number. */
+GM.kitScale = function (level) { return Math.pow(GM.CURVE.kitG, Math.max(0, level - 1)); };
 
 /* The opening is the one place a single curve cannot serve.
 
-   A squad that has farmed its depth is about nine times stronger than the
-   three heroes a new save starts with, so a constant tuned for the steady
-   state makes the first pack a thirty-seven second slog. This ramps the first
-   first depths down and reaches full strength by depth 25.
-
-   The window has to be this wide because a squad advances a depth every time
-   it clears a pack, which makes the next one 1.10x harder, while three level-1
-   heroes split their experience three ways. Tuned at 15 depths the founding
-   squad out-climbed its own power and wiped about eighty seconds into a new
-   save, which is the worst possible first impression. */
+   A squad that has farmed its depth is a few times stronger than the three
+   heroes a new save starts with, so a constant tuned for the steady state
+   makes the first pack a slog. This ramps the first depths down and reaches
+   full strength by depth 25. With a smooth kit curve (no gear tiers to jump
+   through) the ramp has to be gentle — 0.10 at depth 1 made depths 22-55 a
+   valley the warband could not climb out of; 0.18 keeps the opening brisk
+   without stealing the mid-game. */
 GM.earlyScale = function (s) {
-  return GM.clamp(0.10 + 0.90 * ((s - 1) / 24), 0.10, 1);
+  var e0 = GM.CURVE.early0;
+  return GM.clamp(e0 + (1 - e0) * ((s - 1) / 24), e0, 1);
 };
 
-GM.monHp    = function (s) { return GM.CURVE.monHp0  * Math.pow(GM.CURVE.monHpG,  s - 1) * GM.earlyScale(s); };
-GM.monDmg   = function (s) { return GM.CURVE.monDmg0 * Math.pow(GM.CURVE.monDmgG, s - 1) * GM.earlyScale(s); };
+/* Past `deepFrom` the world hardens a little faster than a levelling warband
+   grows, so ranks, names and ascension are what carry it — a hundred depths
+   of the same ratio would be a hundred depths of the same fight. */
+GM.deepScale = function (s) { return Math.pow(GM.CURVE.deepG, Math.max(0, s - GM.CURVE.deepFrom)); };
+GM.monHp    = function (s) { return GM.CURVE.monHp0  * Math.pow(GM.CURVE.monHpG,  s - 1) * GM.earlyScale(s) * GM.deepScale(s); };
+GM.monDmg   = function (s) { return GM.CURVE.monDmg0 * Math.pow(GM.CURVE.monDmgG, s - 1) * GM.earlyScale(s) * Math.sqrt(GM.deepScale(s)); };
 GM.monArmour= function (s) { return GM.CURVE.monArm0 * Math.pow(GM.CURVE.monArmG, s - 1); };
 GM.monAcc   = function (s) { return GM.CURVE.monAcc0 * Math.pow(GM.CURVE.monAccG, s - 1); };
 GM.xpFor    = function (s) { return GM.CURVE.xp0     * Math.pow(GM.CURVE.xpG,     s - 1); };
 GM.goldFor  = function (s) { return GM.CURVE.gold0   * Math.pow(GM.CURVE.goldG,   s - 1); };
 
-/* Character level curve. Levels hand out tree points, which are the player's
-   own growth curve running alongside gear. */
+/* Level curve. Levels hand out tree points, which are the warband's shared
+   growth running alongside each hero's own kit. */
 GM.MAX_LEVEL = 120;
 GM.xpToLevel = function (level) { return Math.round(40 * Math.pow(1.128, level - 1)); };
 GM.TREE_POINTS_PER_LEVEL = 1;
@@ -191,8 +198,8 @@ GM.MUTATORS = [
   { id: "m_slow",    name: "Leaden",        desc: "You have -35% Attack Speed.",            you: { as: 0.65 },                 rew: 1.25 },
   { id: "m_blind",   name: "Unlit",         desc: "You have -70% Evasion.",                 you: { eva: 0.3 },                 rew: 1.15 },
   { id: "m_naked",   name: "Stripped",      desc: "You have -50% Armour.",                  you: { arm: 0.5 },                 rew: 1.15 },
-  { id: "m_rich",    name: "Gilded",        desc: "+120% Gold and Item Quantity.",          rew: 1.10, find: { gold: 1.2, qty: 1.2 } },
-  { id: "m_hoard",   name: "Hoarding",      desc: "+80% Item Rarity.",                      rew: 1.10, find: { rarity: 0.8 } },
+  { id: "m_rich",    name: "Gilded",        desc: "+120% Gold Found.",                      rew: 1.10, find: { gold: 1.2 } },
+  { id: "m_hoard",   name: "Hoarding",      desc: "+80% Shards Found.",                     rew: 1.10, find: { shards: 0.8 } },
   { id: "m_bleak",   name: "Bleak",         desc: "You regenerate no Life.",                you: { noRegen: true },            rew: 1.35 },
   { id: "m_hungry",  name: "Hungry Earth",  desc: "You cannot leech.",                      you: { noLeech: true },            rew: 1.30 },
   { id: "m_restless",name: "Restless",      desc: "Monsters have +40% Life and +40% Damage.", mon: { hp: 1.4, dmg: 1.4 },      rew: 1.45 },

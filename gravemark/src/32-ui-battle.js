@@ -156,7 +156,6 @@ function syncVictory(sq, p) {
       "<span>Depth <b>" + v.stage + "</b></span></div>" +
       '<div class="vicloot">' +
         lootCell("◉", haul.gold) + lootCell("◆", haul.shards) +
-        lootCell("❖", haul.items) + lootCell("ᛞ", haul.runes) +
       "</div>";
     var b = GM.el("button", "btn primary", "Leave (" + Math.max(0, Math.ceil(v.hold)) + ")");
     GM.on(b, "click", function () { GM.leaveVictory(sq); });
@@ -213,15 +212,9 @@ function heroActor(p, hero, now) {
   }
   a.hero = hero;
   a.hue = GM.heroClass(hero).hue;
-  /* which parts set and weapon the rig would wear */
-  var wep = hero.equip.weapon, wb = wep && GM.BASE_BY_ID[wep.baseId];
-  a.weaponFam = wb && wb.pool === "weapon" ? wb.family : "sword";
-  var tiers = 0, n = 0;
-  for (var i = 0; i < GM.ARMOUR_SLOTS.length; i++) {
-    var it = hero.equip[GM.ARMOUR_SLOTS[i]], b = it && GM.BASE_BY_ID[it.baseId];
-    if (b) { tiers += b.tier; n++; }
-  }
-  a.partsId = "hero-" + GM.tierBand(n ? Math.round(tiers / n) : 1);
+  /* which parts set and weapon the rig wears: fixed by the class */
+  a.weaponFam = GM.classWeapon(hero).fam;
+  a.partsId = GM.heroPartsId(hero);
   a.spriteKey = (function () {
     var look = GM.heroLookKey(hero);
     return (look && GM.artReady(look)) ? look : "actor/hero-idle";
@@ -573,7 +566,6 @@ GM.bus.on("combat:progress", function (rep) {
       p.vfx.number(p.canvas.width * 0.18, p.canvas.height * 0.3, "BROKEN", "bad");
       p.vfx.flashShake(p.canvas.height * 0.03);
     }
-    if (r.equipped) p.vfx.number(p.canvas.width * 0.18, p.canvas.height * 0.32, "upgrade", "crit");
     if (r.epitaphs) p.vfx.number(p.canvas.width * 0.18, p.canvas.height * 0.36, "+" + r.epitaphs + " epitaph", "crit");
   }
 });

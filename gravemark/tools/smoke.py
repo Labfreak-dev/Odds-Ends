@@ -89,7 +89,7 @@ def main():
         ok(page.evaluate("GM.state.squads.some(s => s.members.length > 0)"), "auto-assign fills squads")
 
         print("\n-- overlays")
-        for view in ["hero", "stash", "town", "tree", "graves", "ascend"]:
+        for view in ["hero", "names", "town", "tree", "graves", "ascend"]:
             page.evaluate(f"GM.ui.openOverlay('{view}')")
             page.wait_for_timeout(350)
             vis = page.eval_on_selector("#overlayWrap", "e => !e.hidden")

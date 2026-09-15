@@ -39,7 +39,7 @@ def is_painted(img, spec):
     cols = flat.getcolors(maxcolors=200000)
     ncol = len(cols) if cols else 200000
     var = sum(ImageStat.Stat(flat).stddev) / 3.0
-    return ncol > 900 and var > 16 or (silhouette(frame) and ncol > 6 and var > 8)
+    return ncol > 900 and var > 16 or (silhouette(frame) and ncol > 6 and var > 3)
 
 def silhouette(frame):
     """A cut-out with real transparency around it (or a magenta matte with a

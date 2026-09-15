@@ -40,8 +40,10 @@ RIGS.humanoid = {
     /* far side first so it draws behind */
     { id: "thigh_b",  parent: "root",    x: -4,  y: 4,  len: 50, a: 96,  part: "thigh_b",  z: 10, w: 20 },
     { id: "shin_b",   parent: "thigh_b", x: 50,  y: 0,  len: 48, a: 88,  part: "shin_b",   z: 11, w: 16 },
-    { id: "uarm_b",   parent: "torso",   x: 50,  y: 6,  len: 32, a: 104, part: "uarm_b",   z: 12, w: 15 },
-    { id: "farm_b",   parent: "uarm_b",  x: 32,  y: 0,  len: 30, a: 96,  part: "farm_b",   z: 13, w: 13 },
+    /* The far arm hangs close behind the torso, not out beside it: a wide
+       painted sleeve at 104° read as a loose chunk next to the body. */
+    { id: "uarm_b",   parent: "torso",   x: 48,  y: 2,  len: 32, a: 98,  part: "uarm_b",   z: 12, w: 15 },
+    { id: "farm_b",   parent: "uarm_b",  x: 32,  y: 0,  len: 30, a: 92,  part: "farm_b",   z: 13, w: 13 },
     { id: "torso",    parent: "root",    x: 0,   y: 0,  len: 58, a: -90, part: "torso",    z: 20, w: 40 },
     { id: "pelvis",   parent: "root",    x: 0,   y: 0,  len: 14, a: 90,  part: "pelvis",   z: 19, w: 36 },
     { id: "head",     parent: "torso",   x: 58,  y: 0,  len: 30, a: -90, part: "head",     z: 30, w: 30 },
@@ -49,10 +51,12 @@ RIGS.humanoid = {
     { id: "shin_f",   parent: "thigh_f", x: 50,  y: 0,  len: 48, a: 92,  part: "shin_f",   z: 41, w: 17 },
     { id: "uarm_f",   parent: "torso",   x: 50,  y: -6, len: 32, a: 76,  part: "uarm_f",   z: 50, w: 16 },
     { id: "farm_f",   parent: "uarm_f",  x: 32,  y: 0,  len: 30, a: 60,  part: "farm_f",   z: 51, w: 14 },
-    /* Held low and forward at rest, tip toward the ground, like the standing
-       paintings; the swings raise it from there. The painting is drawn along
-       the bone (see drawPartImage), so this angle IS the weapon's angle. */
-    { id: "weapon",   parent: "farm_f",  x: 30,  y: 0,  len: 70, a: 35, part: "weapon",   z: 52, w: 8 }
+    /* Held up and forward at rest, a ready stance: from the hand at the hip
+       the blade rises in front of the shoulder, clear of the face, and every
+       swing draws it back over the shoulder and chops it down. Tip-down was
+       fine for a maul and wrong for a scythe. The painting is drawn along the
+       bone (see drawPartImage), so this angle IS the weapon's angle. */
+    { id: "weapon",   parent: "farm_f",  x: 30,  y: 0,  len: 70, a: -60, part: "weapon",   z: 52, w: 8 }
   ]
 };
 

@@ -374,7 +374,9 @@ function drawRigMode(ctx, p, a, scale, now) {
    squash compound rather than compete. */
 function sheetFor(a) {
   var clip = a.anim.clip;
-  var base = a.kind === "hero" ? "actor/hero-" : null;
+  /* Only the shared hero painting has per-clip sheets. A class look is one
+     still, and must never fall back to another character's frames. */
+  var base = a.kind === "hero" && a.spriteKey === "actor/hero-idle" ? "actor/hero-" : null;
   if (!base) return null;
   var key = base + clip.replace("_", "-");
   if (!GM.ART_BY_KEY[key] || !GM.artReady(key)) return null;
@@ -494,14 +496,18 @@ GM.ui.drawBattles = function (now) {
     var heroes = GM.squadHeroes(sq);
     var frontAlive = (sq.monsters || []).some(function (m) { return m.hp > 0; });
 
-    /* --- heroes --- */
+    /* --- heroes ---
+       The squad owns the left 44% of the stage and the pack the right 44%,
+       whatever the figure size: five big heroes at a fixed stride used to
+       march across the whole panel and stand on the monsters. */
+    var heroStride = Math.min(size * 0.60, heroes.length > 1 ? (w * 0.44 - size) / (heroes.length - 1) : size);
     for (var i = 0; i < heroes.length; i++) {
       var hero = heroes[i];
       var a = heroActor(p, hero, now);
       var st = GM.heroStats(hero, ctxm);
       var jitter = GM.hash(hero.id);
       var hs = size * (0.90 + ((jitter % 17) / 17) * 0.20);
-      var hx = w * 0.06 + i * size * 0.60 + hs / 2;
+      var hx = w * 0.04 + i * heroStride + hs / 2;
       var hy = ground + ((jitter >>> 5) % 7) / 7 * (h * 0.03);
 
       if (!a.anim.dead) {
@@ -520,12 +526,13 @@ GM.ui.drawBattles = function (now) {
 
     /* --- the pack --- */
     var mons = sq.monsters || [];
+    var monStride = Math.min(size * 0.56, mons.length > 1 ? (w * 0.44 - size) / (mons.length - 1) : size);
     for (i = 0; i < mons.length; i++) {
       var m = mons[i];
       var ma = monActor(p, m, i, now);
       var big = m.kind === "boss" ? 1.3 : m.kind === "revenant" ? 1.15 : 1;
       var ms = size * big;
-      var mx = w * 0.52 + i * size * 0.56 + ms / 2;
+      var mx = w * 0.54 + i * monStride + ms / 2;
       if (mx > w - ms * 0.35) mx = w - ms * 0.35;
 
       if (m.hp <= 0) {

@@ -392,7 +392,9 @@ function drawSpriteMode(ctx, p, a, size, scale, now) {
   ctx.rotate((sheet && a.anim.clip === "death" ? 0 : m.lean * 0.6) * Math.PI / 180);
   ctx.scale(m.sx, m.sy);
   var x = -size / 2, y = -size * 0.96;
-  if (a.kind === "hero") {
+  if (a.kind === "hero" && key.indexOf("actor/look-") !== 0) {
+    /* the shared hero painting is tinted to the class; a class's own look is
+       already the class and is drawn as painted */
     GM.drawTinted(ctx, key, a.hue, frame, x, y, size, size, { label: false, strength: 0.26 });
   } else {
     GM.drawSprite(ctx, key, frame, x, y, size, size, { label: true });
@@ -415,9 +417,12 @@ function drawSpriteMode(ctx, p, a, size, scale, now) {
 
 function drawActor(ctx, p, a, fx, fy, size, now) {
   var scale = size / 256;
-  var left = a.facing === "left";
+  /* Paintings are stored facing the way their manifest entry says (heroes
+     right, monsters left); the rig is authored facing right. Flip only when
+     what is drawn faces the other way from where the actor looks. */
   var rigMode = GM.RIG_DEBUG || GM.partsReady(a.partsId, a.anim.rig.id);
-
+  var artFacing = rigMode ? "right" : ((GM.ART_BY_KEY[a.spriteKey] || {}).facing || "right");
+  var left = a.facing !== artFacing;
   ctx.save();
   ctx.translate(fx, fy);
   if (left) ctx.scale(-1, 1);

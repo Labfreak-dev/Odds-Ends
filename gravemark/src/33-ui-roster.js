@@ -24,9 +24,12 @@ function portraitInto(canvas, hero) {
   var look = GM.heroLookKey(hero);
   var key = (look && GM.artReady(look)) ? look
           : GM.artReady("actor/hero-idle") ? "actor/hero-idle" : null;
-  if (key) {
-    /* Crop the head and shoulders out of the full figure, tinted to the class
-       so a roster of identical sprites is still readable at a glance. */
+  if (key === look) {
+    /* The class's own painting: head and shoulders, untinted. */
+    GM.drawSprite(ctx, key, 0, -w * 0.4, -h * 0.02, w * 1.8, h * 1.8, { label: false });
+  } else if (key) {
+    /* Crop the head and shoulders out of the shared figure, tinted to the
+       class so a roster of identical sprites is still readable at a glance. */
     GM.drawTinted(ctx, key, cls.hue, 0, -w * 0.32, -h * 0.12, w * 1.64, h * 1.64,
                   { label: false, strength: 0.26 });
   } else {

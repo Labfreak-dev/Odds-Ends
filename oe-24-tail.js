@@ -2,7 +2,6 @@
 /* =================== END ADDED MODES =================== */
 
 const UI_GAMES = [
-  { id:"hunt",    name:"The Hunt",    icon:"🗡️", desc:"Every tap fuels the fight. Beasts without end, a blade forged in ingots, and embers for the brave.", meta:"Endless clicker" },
   { id:"fishing", name:"Fishing",     icon:"🎣", desc:"Cast a line. The water pays out in Credits — some catches handsomely.", meta:"Hold, hook & fight" },
   { id:"poker",   name:"Poker Rush",  icon:"🃏", desc:"The stack rises. Make poker hands. Jokers go off.",   meta:"Arcade" },
   { id:"casino",  name:"Risk it All", icon:"🎰", desc:"Six ways to lose it, and a few to win big.",          meta:"6 games" },
@@ -67,7 +66,6 @@ function oeBundleLanded(name){
     safeRender("fishing", renderFishing);
     safeRender("tackle", renderTackleShop);
   }
-  if(name === "hunt"){ const n = document.getElementById("huLazyNote"); if(n) n.style.display = "none"; }
 }
 let oeSection = null;
 function uiEnterSection(id){
@@ -94,12 +92,6 @@ function uiEnterSection(id){
     }
   }
   else if(id==="casino"){ renderCasino(); brShowLobby(); }
-  else if(id==="hunt"){
-    /* the Hunt is a lazy bundle (batch 136): its module builds the stage the
-       moment it runs, so loading it IS entering it */
-    const note = document.getElementById("huLazyNote");
-    if(!oeBundleReady("hunt")){ if(note) note.style.display = "block"; oeLoadBundle("hunt"); }
-  }
   else if(id==="provenance"){ pvOnEnterTab(); }
   else if(id==="press"){ prOnEnterTab(); }
   else if(id==="connections"){ cxOnEnterTab(); }
@@ -232,7 +224,7 @@ const PLAY_GROUPS = [
   { id:"puzzle",  title:"Puzzles",        blurb:"Think, then collect." },
 ];
 const PLAY_GROUP_OF = {
-  fishing:"outdoor", hunt:"outdoor", press:"outdoor",
+  fishing:"outdoor", press:"outdoor",
   poker:"arcade", casino:"arcade", oddone:"arcade",
   provenance:"puzzle", connections:"puzzle", showcase:"puzzle",
 };

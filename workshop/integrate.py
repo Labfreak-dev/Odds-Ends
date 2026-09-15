@@ -20,7 +20,7 @@ def once(hay, needle, rep, label):
 
 # ---- 1. styles -------------------------------------------------------
 css = "\n".join(["\n/* ===== ADDED MODES ===== */",
-                 read("provenance.css"), read("press.css"), read("puzzles.css"), read("logic.css"), read("arcade.css"), read("fishing2.css"), read("mining2.css"), read("ledger.css"), read("grading.css"), read("market2.css"), read("casino2.css"), read("hunt.css"), read("ripship.css")])
+                 read("provenance.css"), read("press.css"), read("puzzles.css"), read("logic.css"), read("arcade.css"), read("fishing2.css"), read("mining2.css"), read("ledger.css"), read("grading.css"), read("market2.css"), read("casino2.css"), read("ripship.css")])
 src = once(src, "</style>", css + "\n</style>", "css")
 
 # ---- 2. tab sections -------------------------------------------------
@@ -46,12 +46,8 @@ sections = """
   </section>
 
 """
-src = once(src, '<section id="tab-collection" style="display:none;">',
-  """  <section id="tab-hunt" style="display:none;">
-    <div class="panel"><div id="huLazyNote" style="display:none; text-align:center; color:var(--muted); padding:28px 0 10px; font-weight:700;">🏹 Loading the hunt…</div><div id="huStage"></div></div>
-  </section>
-
-<section id="tab-collection" style="display:none;">""", "keep section")
+# (the "keep section" splice that once seated the Hunt's tab outside the puzzle
+#  block is gone with the Hunt - batch 137. Its source stays in workshop/, unwired.)
 anchor = '<section id="tab-collection" style="display:none;">'
 src = once(src, anchor, sections + "  " + anchor, "sections")
 
@@ -63,7 +59,7 @@ MODULE_FILES = ["fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishi
     "press.module.js", "connections.module.js",
     "case.module.js", "oddone.module.js",
     "fishing2.module.js", "mining2.module.js", "ripship.module.js", "ledger.module.js", "grading.module.js",
-    "market2.module.js", "casino2.module.js", "hunt.module.js"]
+    "market2.module.js", "casino2.module.js"]
 def sent(name): return "\n/*@@SPLIT:" + name + "@@*/\n"
 modparts = ["\n/* ===================== ADDED MODES ===================== */"]
 for mf in MODULE_FILES:
@@ -227,8 +223,7 @@ manifest = []
 LAZY = { "fishing": ["fishing-assets", "fishing-spot-bgs", "fishing-sfx", "fishing2"],
          "cine-ironjaw": ["fishing-cine-ironjaw"], "cine-marshking": ["fishing-cine-marshking"],
          "cine-palehunter": ["fishing-cine-palehunter"], "cine-roosterking": ["fishing-cine-roosterking"],
-         "cine-blackphantom": ["fishing-cine-blackphantom"], "cine-drownedking": ["fishing-cine-drownedking"],
-         "hunt": ["hunt"] }
+         "cine-blackphantom": ["fishing-cine-blackphantom"], "cine-drownedking": ["fishing-cine-drownedking"] }
 _lazy_of = { c: b for b, cs in LAZY.items() for c in cs }
 lazy_files = { b: [] for b in LAZY }
 def _explode(m):

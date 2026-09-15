@@ -13,10 +13,12 @@ const LG_POOL = [
   { kind:"rarefish", mk:h=>({ goal: 1+(h>>>6)%2,  txt:g=>`Land ${g} Rare-or-better fish`,         cr:3200, sc:6 }) },
   { kind:"fbounty",  mk:h=>({ goal: 1,             txt:g=>`Strike a bounty at the fishing board`,  cr:3000, sc:6 }) },
   { kind:"pack",     mk:h=>({ goal: 2+(h>>>7)%2,  txt:g=>`Open ${g} card packs`,                  cr:2400, sc:5 }) },
-  { kind:"hunt",     mk:h=>({ goal: 8+(h>>>9)%8,  txt:g=>`Slay ${g} beasts in the Hunt`,           cr:2600, sc:5 }) },
 ];
 function lgState(){
   const day = new Date().toDateString();
+  /* a contract for a mode that is gone (the Hunt, batch 137) can never be
+     met - re-deal the day rather than leave a dead line on the board */
+  if(state.ledger && Array.isArray(state.ledger.items) && state.ledger.items.some(it => !LG_POOL.some(p => p.kind === it.kind))) state.ledger = null;
   if(!state.ledger || state.ledger.day !== day){
     const picked = [];
     const nC = 3 + (((state.upgrades && state.upgrades.foremanTrust)||0) ? 1 : 0);

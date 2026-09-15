@@ -88,7 +88,7 @@ with sync_playwright() as pw:
         check(f"[{tag}] each Play card wears its own accent", pb >= 8, pb)
         pl = pg.evaluate("""()=>{ const p=[...document.querySelectorAll('.play-card .pi')];
           return { n:p.length, tiled:p.filter(e=>getComputedStyle(e).backgroundImage.startsWith('url("data:image/webp') && getComputedStyle(e).fontSize==='0px').length }; }""")
-        check(f"[{tag}] every Play card wears its illustrated tile", pl["n"] >= 9 and pl["tiled"] == pl["n"], pl)
+        check(f"[{tag}] every Play card wears its illustrated tile", pl["n"] >= 8 and pl["tiled"] == pl["n"], pl)
         check(f"[{tag}] zero page errors", not errs, errs[:3])
         pg.close()
     pg = br.new_page(viewport={"width": 430, "height": 900})

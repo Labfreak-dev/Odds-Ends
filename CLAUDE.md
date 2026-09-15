@@ -21,8 +21,8 @@ serves the root; the site URL never changes.
 - `workshop/fishing-spot-bgs.module.js` — GENERATED data: the six water paintings,
   their ridge samples and band offsets, and the angler sprite layers (batch 111-113).
 - `workshop/*.module.js` + `*.css` — one file per game mode (fishing2, mining2,
-  ledger, grading, market2, casino2, hunt, + puzzle modes; keep is RETIRED —
-  its source stays in workshop/ unwired). Modules are
+  ledger, grading, market2, casino2, + puzzle modes; keep and hunt are RETIRED —
+  their source stays in workshop/ unwired). Modules are
   self-contained IIFEs/consts appended into the host script at build time.
 - `workshop/integrate.py` — the build. It splices css, tab sections, and modules
   into the host string via labeled `once()` replacements, then EXPLODES the result
@@ -35,9 +35,8 @@ serves the root; the site URL never changes.
   (assets, paintings, beds, fishing2 — prefetched on idle after first paint,
   awaited by the tab's enter hook) and six "cine-<key>" bundles (one legend's
   true-form clips each, `fishing-cine-<key>.module.js`, GENERATED from the
-  playtester's Grok clips, fetched when that legend is hooked), and "hunt"
-  (loaded when the tab opens; its ember mine-rate bonus lives in the host).
-  The pack module stays eager on purpose: it draws the first screen. A suite
+  playtester's Grok clips, fetched when that legend is hooked). The pack module
+  stays eager on purpose: it draws the first screen. A suite
   that enters fishing must `wait_for_function("oeBundleReady('fishing')")`.
 
 ## Hard-won rules (violate these and the build WILL break)
@@ -97,7 +96,7 @@ THE REPO — an asset that exists only on someone's machine is exactly how the
 build became unreproducible (Batch 51).
 
 ### The seven wiring points in integrate.py
-A new mode touches seven of the eight `once()` splices, in build order:
+A new mode touches seven `once()` splices, in build order:
 
 | # | `once()` label | what to add |
 |---|---|---|
@@ -109,10 +108,9 @@ A new mode touches seven of the eight `once()` splices, in build order:
 | 6 | `enter hooks` | `else if(id==="<id>"){ xxOnEnterTab(); }` |
 | 7 | `render list` | `safeRender("<id>", renderXx);` |
 
-(The eighth, `keep section`, is a separate splice hunt uses to sit outside the
-puzzle block.) Modes already present in the host's own `UI_GAMES` — fishing,
-poker, casino, hunt — skip step 4. (keep and dungeon/Mythic Raids are retired:
-not in UI_GAMES, dungeon's tab sealed by the empire/siege/raids CSS rule.)
+Modes already present in the host's own `UI_GAMES` — fishing, poker, casino —
+skip step 4. (keep, hunt and dungeon/Mythic Raids are retired: not in
+UI_GAMES, dungeon's tab sealed by the empire/siege/raids CSS rule.)
 
 Remember rule 1: `once()` is atomic per run and aborts the WHOLE build on a bad
 anchor, so apply all seven together and rebuild once. And rule 4: those hook
@@ -160,7 +158,6 @@ python3 docs/smoke-ripship.py                          # pack tear -> spread -> 
 python3 docs/smoke-backs.py && python3 docs/smoke-cardart.py && python3 docs/smoke-economy.py
 python3 docs/smoke-puzzles.py                          # The Case, Connections, Odd One Out (26)
 python3 docs/smoke-save.py && python3 docs/smoke-sets.py   # Backup & Restore (10), set milestones (10)
-python3 docs/smoke-hunt.py                             # the Hunt as a lazy bundle (6)
 python3 docs/smoke-fishing.py && python3 docs/smoke-spots.py   # needs playwright
 ```
 The smokes drive the real page headless; if playwright is unavailable, at minimum

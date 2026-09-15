@@ -21,6 +21,20 @@ function have(key) {
          fs.existsSync(path.join(ART, key + ".jpg"));
 }
 
+/* A sheet that is present but only one frame wide is a still image wearing an
+   animation's clothes: it loads and plays and nothing moves. Those are the
+   keys the animation section asks for. */
+function isStill(spec) {
+  if (!have(spec.key) || spec.kind !== "sheet") return false;
+  try {
+    const buf = fs.readFileSync(path.join(ART, spec.key + ".png"));
+    /* PNG IHDR width lives at bytes 16-19, big-endian. Cheaper and more
+       dependable here than pulling in an image library. */
+    const w = buf.readUInt32BE(16);
+    return Math.max(1, Math.round(w / spec.w)) < 2;
+  } catch (e) { return false; }
+}
+
 const out = [];
 const W = s => out.push(s);
 
@@ -46,7 +60,8 @@ W("_Regenerate after every delivery — the list shrinks as art lands._");
 W("");
 
 const gaps = GM.ART.filter(a => !have(a.key) && !a.key.startsWith("doll/"));
-W(`**${gaps.length} assets still needed.**`);
+const stillCount = GM.ART.filter(isStill).length;
+W(`**${gaps.length} assets missing, and ${stillCount} more that exist but do not move.**`);
 W("");
 
 W("## Read this first — it is why the last three packs did not work");
@@ -124,6 +139,65 @@ if (looks.length) {
       prompt: `Full-body standing gravedigger-warrior facing right, hooded, face in shadow, wearing a complete set of ${band}-tier armour — ${MATERIAL[band]} — and carrying ${FAM[fam]}. Same character and proportions in every look. Feet near the bottom edge. Flat magenta #FF00FF background.`
     };
   }));
+}
+
+/* 1b. animation — the thing eight deliveries have not produced */
+const stills = GM.ART.filter(isStill);
+if (stills.length) {
+  const pick = k => stills.filter(a => a.key.indexOf(k) === 0);
+  const heroAnim = pick("actor/hero-");
+  const monAnim = pick("mon/").filter(a => /-(attack|death)$/.test(a.key));
+
+  W("---");
+  W("");
+  W("## 1b. Animation — read this, it is why eight packs produced none");
+  W("");
+  W(`**${stills.length} sheets are currently a single still image.** They load and play and nothing moves. Every previous delivery asked for "an 8-frame sheet" and returned the same pose copied eight times.`);
+  W("");
+  W("**Do not ask for a sheet. Ask for individual poses, numbered.**");
+  W("");
+  W("The game reads frame count from the image's own width, so a **3-frame** animation is completely valid art. Three real key poses beat eight identical ones. Deliver separate files:");
+  W("");
+  W("```");
+  W(`  actor/hero-attack-sword-1.png     wind-up
+  actor/hero-attack-sword-2.png     the strike landing
+  actor/hero-attack-sword-3.png     recovery`);
+  W("```");
+  W("");
+  W("and I stitch them into the strip the game wants:");
+  W("");
+  W("```bash");
+  W("python3 tools/make-sheet.py <your-folder>");
+  W("```");
+  W("");
+  W("**The one rule that makes or breaks this:** every frame of an action must be the *same character in the same place* — same size, same footing, same distance from the camera. Only the pose changes. Upload frame 1 as a reference image when prompting frame 2, and say *\"identical character, identical framing and scale, only the pose changes\"*. Without that they come back as three different drawings and the animation strobes.");
+  W("");
+  W("Priority order: the hero's attack swings first (they fire on every hit, so they are the most visible motion in the game), then monster attack and death, then walk cycles.");
+  W("");
+  W("| key | frames wanted | what each frame is |");
+  W("|---|---|---|");
+  const POSE = {
+    attack: "1 wind-up, weapon drawn back &middot; 2 the strike landing, fully committed &middot; 3 recovery, settling back",
+    cast:   "1 gathering, hands drawing in &middot; 2 the release, light leaving the hands &middot; 3 settling",
+    walk:   "1 contact, forward foot down &middot; 2 passing, legs together &middot; 3 opposite contact",
+    run:    "1 drive, hard lean &middot; 2 airborne, both feet off &middot; 3 opposite drive",
+    idle:   "1 settled &middot; 2 the breath in, chest and shoulders lifted",
+    hit:    "1 the flinch, head snapped back &middot; 2 recovering",
+    death:  "1 the buckle, legs going &middot; 2 falling &middot; 3 down and still on the ground"
+  };
+  function poseFor(key) {
+    const m = key.match(/-(attack|cast|walk|run|idle|hit|death)(-\w+)?$/);
+    return POSE[m ? m[1] : "idle"] || POSE.idle;
+  }
+  function framesFor(key) { return /-(idle|hit)$/.test(key) ? 2 : 3; }
+  heroAnim.concat(monAnim).slice(0, 60).forEach(a => {
+    W(`| \`${a.key}\` | ${framesFor(a.key)} | ${poseFor(a.key)} |`);
+  });
+  W("");
+  if (stills.length > heroAnim.length + monAnim.length) {
+    W(`_${stills.length - heroAnim.length - monAnim.length} further still sheets (bosses, the revenant, remaining monster states) follow the same pattern — same poses, same numbering._`);
+    W("");
+  }
 }
 
 /* 2. item icons */

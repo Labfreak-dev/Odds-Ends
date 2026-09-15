@@ -202,9 +202,27 @@ Deliver art at `art/<key>.png` — e.g. `art/mon/shambler-idle.png`. Sprite shee
 are a single horizontal strip of frames.
 
 ```bash
-node tools/art-brief.js    > ART-BRIEF.md    # the full brief, all 303 keys
+node tools/art-brief.js    > ART-BRIEF.md    # the full brief, every key
 node tools/grok-prompts.js > GROK-PROMPTS.md # one prompt per MISSING asset
 ```
+
+### Getting animation out of a tool that makes single images
+
+Eight deliveries have asked for "an 8-frame sheet" and returned the same pose
+copied eight times. Image generators cannot lay out a sprite strip.
+
+The renderer derives frame count from each image's own width, so a **3-frame**
+animation is valid art. Ask for numbered single frames instead and stitch them:
+
+```bash
+# delivered: actor/hero-attack-sword-1.png, -2.png, -3.png
+python3 tools/make-sheet.py <their-folder>
+```
+
+It groups by the key before the trailing `-<n>`, orders by that number, keys out
+the magenta and writes the strip. The rule that makes it work is that every
+frame of an action must be the same character at the same size and footing with
+only the pose changed — prompt frame 2 with frame 1 attached as reference.
 
 ### Hero looks — the paper-doll fallback
 

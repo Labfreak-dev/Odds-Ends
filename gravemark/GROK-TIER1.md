@@ -1,72 +1,72 @@
-# Gravemark — Grok prompt, Tier 1 parts (16 images)
+# Gravemark — Grok prompt, Tier 1 (round 2)
 
-Copy everything below the line into Grok. Attach `art/actor/hero-idle.png` to every hero part,
-`dagger-high.png` to the dagger and `maul-high.png` to the maul; the other three weapons have no reference yet. Make image 1 (the torso) first and check it before
-asking for the rest. Save each result as the file name given, drop them all into one zip.
+**Round 1 result.** The five weapons arrived and are installed: `parts/weapon/sword`,
+`wand` and `scythe` are painterly and right; `dagger` and `maul` came back as flat
+vector icons (a dozen colours) and are in the game as stopgaps. The eleven body parts
+did not work: asked for "only the forearm", the generator cropped a rectangle of cloth
+out of the reference instead of painting the limb as a cut-out with its own silhouette.
+Rectangles cannot hang on a skeleton.
+
+**Round 2 asks for ONE image instead of eleven**: the classic cut-out puppet sheet,
+the figure taken apart and laid out with gaps. Generators paint that reliably. The
+tool `tools/slice-parts.py` cuts the pieces out and places each on its canvas with the
+joint on the pivot, so the layout below is the only thing that has to be right.
+
+Attach `art/actor/hero-idle.png`. Then paste:
 
 ---
 
-I am building a 2D game with a bone-animated hero. The character is already animated in code.
-I need you to paint the hero's BODY PARTS as separate still images, cut from the attached
-reference painting, so the skeleton can move them. No animation, no sprite sheets, no frames.
-Each image is ONE part, painted once.
+Hand-painted 2D game art, painterly with visible brush texture. Cold, damp, cut-stone
+world. NOT vector, NOT pixel art, NOT 3D render, NOT cartoon, NOT flat cel shading.
+One low warm key light against a cold blue-grey ambient, rim light on the edges. Dark
+overall; bone #e6e0cf is the brightest neutral. Match the attached reference painting
+exactly in style, lighting, colour and scale.
 
-STYLE (applies to every image):
-Hand-painted 2D game art, painterly with visible brush texture. Cold, damp, cut stone world.
-NOT vector, NOT pixel art, NOT 3D render, NOT cartoon. One low warm key light against a cold
-blue-grey ambient, rim light on the edges. Dark overall; bone #e6e0cf is the brightest neutral.
-Every image is a CROP OF THE ATTACHED REFERENCE and must match it exactly in style, lighting,
-colour and scale.
+Paint a CUT-OUT PUPPET PARTS SHEET of the attached hooded character, for a paper-doll
+style skeletal animation. The figure is taken apart into eleven separate pieces and
+laid out on the canvas with clear gaps between them, on a flat solid magenta #FF00FF
+background edge to edge. Each piece is a complete cut-out with its own silhouette and
+finished edges, as if cut from the painting with scissors and set down on the magenta.
+Every piece is painted UPRIGHT, exactly as it sits on the reference at rest, at the
+same scale as the others, so that reassembled they would make the reference figure.
+Do not draw the assembled figure. No text, no labels, no numbers, no lines, no arrows,
+no watermark, no border. Nothing may touch or overlap another piece.
 
-RULES (every image, no exceptions):
-1. Paint ONLY the named part. A forearm is elbow to fingertips and nothing else. No neighbouring
-   body, no shadow of the torso, no ground.
-2. Paint it UPRIGHT, exactly as it sits on the reference in its resting pose. Do not rotate,
-   straighten or re-pose it. The skeleton does the posing.
-3. Fill the given canvas size, with the named JOINT at the given position. The joint is the
-   pivot the part hangs from. If it is off, the limb detaches when it swings.
-4. Flat solid magenta #FF00FF background, edge to edge. Not transparent, not white, not a card.
-5. No text, no watermark, no border, no frame.
-6. "Near" parts face the viewer. "Far" parts are the same limb on the other side of the body:
-   paint those a touch darker, they are further from the light.
+Canvas 1024 x 1024 pixels. Three rows, left to right in each row:
 
-THE HERO — reference: hero-idle.png (attached). 11 parts.
+ROW 1 (top): the HEAD (head and hood, from the crown down to and including the neck),
+the TORSO (chest and shoulders from the collarbone down to the waist, no arms, no
+head), the PELVIS (belt and hips only, waist to the top of the thighs).
 
- 1. head.png      112x128 px. Head and hood, from the crown down to and including the neck.
-                  Joint: base of the neck, at 50% across, 92% down.
- 2. torso.png     144x160 px. Chest and shoulders from the collarbone down to the waist.
-                  No arms, no head. Joint: the hips, at 50% across, 95% down.
- 3. pelvis.png    112x72 px. Belt and hips only, waist to the top of the thighs.
-                  Joint: the hips, at 50% across, 10% down.
- 4. uarm_f.png    64x96 px. The NEAR upper arm, shoulder to elbow.
-                  Joint: the shoulder, at 50% across, 8% down.
- 5. farm_f.png    56x96 px. The NEAR forearm, elbow to fingertips, hand included, hand open.
-                  Joint: the elbow, at 50% across, 8% down.
- 6. uarm_b.png    64x96 px. The FAR upper arm, shoulder to elbow. A touch darker.
-                  Joint: the shoulder, at 50% across, 8% down.
- 7. farm_b.png    56x96 px. The FAR forearm, elbow to fingertips, hand included. A touch darker.
-                  Joint: the elbow, at 50% across, 8% down.
- 8. thigh_f.png   72x128 px. The NEAR thigh, hip to knee.
-                  Joint: the hip, at 50% across, 6% down.
- 9. shin_f.png    64x128 px. The NEAR shin, knee to sole, boot included.
-                  Joint: the knee, at 50% across, 6% down.
-10. thigh_b.png   72x128 px. The FAR thigh, hip to knee. A touch darker.
-                  Joint: the hip, at 50% across, 6% down.
-11. shin_b.png    64x128 px. The FAR shin, knee to sole, boot included. A touch darker.
-                  Joint: the knee, at 50% across, 6% down.
+ROW 2 (middle), four pieces: the NEAR UPPER ARM (shoulder to elbow), the NEAR FOREARM
+(elbow to fingertips, hand included, hand open), the FAR UPPER ARM (a touch darker,
+it is further from the light), the FAR FOREARM (a touch darker, hand included).
 
-THE FIVE WEAPONS — 5 parts. Same style block. Each is the weapon ALONE, no hand, no arm,
-painted VERTICALLY: grip near the bottom, business end at the top, as if held point-up at rest.
-Every one is 80x224 px, with the JOINT at the middle of the grip, at 50% across, 82% down.
-Magenta background, same rules.
+ROW 3 (bottom), four pieces: the NEAR THIGH (hip to knee), the NEAR SHIN (knee to
+sole, boot included), the FAR THIGH (a touch darker), the FAR SHIN (a touch darker,
+boot included).
 
-12. dagger.png    Reference: dagger-high.png (attached). A short cruel blade, wrapped grip.
-13. sword.png     No reference: match the dagger's metal and the hero's palette. A straight
-                  double-edged arming sword, plain iron crossguard, leather-wrapped grip, round pommel.
-14. maul.png      Reference: maul-high.png (attached). A heavy two-handed hammer, long haft.
-15. wand.png      No reference: match the hero's palette. A short carved bone rod, bound with
-                  dark leather at the grip, a dull ember glowing at the tip.
-16. scythe.png    No reference: match the maul's haft and the dagger's metal. A long dark wooden
-                  haft, a curved iron blade at the top with its edge facing left.
+Arms and legs are painted hanging straight down. The pieces must be the SAME hooded
+figure as the reference: same cloak, same leathers, same colours.
 
-Deliver all 16 as PNG at the exact sizes above, named exactly as listed, in one zip.
+---
+
+Two more, same style block, each its own image, 80 x 224 pixels, flat magenta
+background, the weapon alone with no hand, painted vertically with the grip near the
+bottom and the business end at the top, grip centred at 50% across and 82% down.
+PAINTERLY with brush texture and worn metal, not a flat icon:
+
+1. dagger.png  A short cruel blade, wrapped grip, dark iron with a bright worn edge.
+2. maul.png    A heavy two-handed hammer on a long haft, pitted iron head, bound grip.
+
+---
+
+When the sheet comes back:
+
+```bash
+python3 tools/slice-parts.py sheet.png hero-mid --out /tmp/stage   # cuts + places 11 parts
+python3 tools/art-install.py /tmp/stage                            # installs, rebuilds the index
+python3 tools/shot-swing.py . /tmp/swing.png                       # heroes frozen mid-swing
+```
+If the pieces came back in a different arrangement, the slicer writes
+`slice-contact.png` with each piece numbered; pass `--order head,torso,...` in that order.

@@ -308,6 +308,33 @@ function drawCapsule(ctx, x1, y1, x2, y2, width, hue, dark) {
   ctx.restore();
 }
 
+/* One painted part hung from its bone: translate to the pivot, rotate by the
+   bone's delta from rest, draw with the manifest pivot at the origin. Shared
+   by rig mode and by the weapon overlay in sprite mode. */
+function drawPartImage(ctx, b, partKey, scale, flash) {
+  var spec = GM.ART_BY_KEY[partKey], img = GM.art(partKey);
+  var px = (b.x - 128) * scale, py = (b.y - 246) * scale;
+  var rad = (b.angle - b.bone.a) * Math.PI / 180;
+  var w = spec.w / 2 * scale, h = spec.h / 2 * scale;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(rad);
+  ctx.scale(b.sx, b.sy);
+  ctx.drawImage(img, -spec.pivot.x * w, -spec.pivot.y * h, w, h);
+  if (flash) {
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.7;
+    ctx.drawImage(img, -spec.pivot.x * w, -spec.pivot.y * h, w, h);
+  }
+  ctx.restore();
+}
+
+/* The weapon key for a humanoid actor: the hero's equipped family, sword by
+   default. Shared parts, so not keyed by character. */
+function weaponKey(a) {
+  return "parts/weapon/" + (a.weaponFam || "sword");
+}
+
 function drawRigMode(ctx, p, a, scale, now) {
   var posed = a.anim.pose();
   var flash = a.flashUntil > now;
@@ -316,25 +343,11 @@ function drawRigMode(ctx, p, a, scale, now) {
     if (!bone.part) continue;
     var px = (b.x - 128) * scale, py = (b.y - 246) * scale;
     var rad = (b.angle - bone.a) * Math.PI / 180;
-    var partKey = bone.id === "weapon"
-      ? "parts/weapon/" + (a.weaponFam || "sword")
-      : "parts/" + a.partsId + "/" + bone.id;
+    var partKey = bone.id === "weapon" ? weaponKey(a) : "parts/" + a.partsId + "/" + bone.id;
     var spec = GM.ART_BY_KEY[partKey];
 
     if (spec && GM.artReady(partKey)) {
-      var img = GM.art(partKey);
-      var w = spec.w / 2 * scale, h = spec.h / 2 * scale;
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(rad);
-      ctx.scale(b.sx, b.sy);
-      ctx.drawImage(img, -spec.pivot.x * w, -spec.pivot.y * h, w, h);
-      if (flash) {
-        ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = 0.7;
-        ctx.drawImage(img, -spec.pivot.x * w, -spec.pivot.y * h, w, h);
-      }
-      ctx.restore();
+      drawPartImage(ctx, b, partKey, scale, flash);
     } else {
       /* placeholder bone: a capsule from pivot along the bone */
       var arad = b.angle * Math.PI / 180;
@@ -395,7 +408,16 @@ function drawSpriteMode(ctx, p, a, size, scale, now) {
   ctx.restore();
   /* The rig runs whether or not it is drawn, so the weapon tip is always
      known — that is what makes the trail arc even on a flat painting. */
-  return GM.Rig.tip(a.anim.pose(), a.anim.rig.id === "humanoid" ? "weapon" : "head");
+  var posed = a.anim.pose();
+  /* A delivered weapon rides the invisible rig's hand over the painting, so
+     the swing the trail already follows carries the real blade too. Only
+     while a swing is in flight: at rest the painting's own hands hold it. */
+  if (a.anim.rig.id === "humanoid" && /^attack/.test(a.anim.clip) && GM.artReady(weaponKey(a))) {
+    for (var i = 0; i < posed.length; i++) {
+      if (posed[i].bone.id === "weapon") { drawPartImage(ctx, posed[i], weaponKey(a), scale, a.flashUntil > now); break; }
+    }
+  }
+  return GM.Rig.tip(posed, a.anim.rig.id === "humanoid" ? "weapon" : "head");
 }
 
 function drawActor(ctx, p, a, fx, fy, size, now) {

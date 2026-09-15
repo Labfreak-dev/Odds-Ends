@@ -37,7 +37,21 @@ def is_painted(img, spec):
     cols = flat.getcolors(maxcolors=200000)
     ncol = len(cols) if cols else 200000
     var = sum(ImageStat.Stat(flat).stddev) / 3.0
-    return ncol > 900 and var > 16
+    return ncol > 900 and var > 16 or (silhouette(frame) and ncol > 6 and var > 8)
+
+def silhouette(frame):
+    """A cut-out with real transparency around it (or a magenta matte with a
+    figure inside) is art even when flat-shaded: the first dagger and maul
+    had 400 colours and were refused as filler."""
+    a = frame.getchannel("A")
+    bb = a.getbbox()
+    if bb and (bb[2] - bb[0] < frame.size[0] * 0.9 or bb[3] - bb[1] < frame.size[1] * 0.9):
+        return True
+    px = frame.convert("RGB").load(); w, h = frame.size
+    mag = sum(1 for y in range(0, h, 4) for x in range(0, w, 4)
+              if px[x, y][0] > 200 and px[x, y][1] < 80 and px[x, y][2] > 200)
+    share = mag / ((w // 4 + 1) * (h // 4 + 1))
+    return 0.2 < share < 0.97
 
 def strip_matte(frame, tol=34, flat_thresh=52.0, min_share=0.62):
     """Remove a background card and return (frame, changed).
@@ -281,10 +295,16 @@ def main():
     # An index of what exists, so the game never requests art that is not
     # there. Without it every missing key costs a 404 per page load - 182 of
     # them here - and fills the console for players.
-    if not a.dry_run and installed:
+    # The index is rebuilt from what is ON DISK, not from this run's installs:
+    # a partial delivery (five weapons) must not shrink the index to five keys
+    # and silently unload the other hundred and fifty.
+    if not a.dry_run:
         os.makedirs(a.dest, exist_ok=True)
+        present = [s["key"] for s in specs
+                   if os.path.exists(os.path.join(a.dest, s["key"] + ".png"))
+                   or os.path.exists(os.path.join(a.dest, s["key"] + ".jpg"))]
         with open(os.path.join(a.dest, "available.json"), "w") as fh:
-            json.dump(sorted(installed), fh)
+            json.dump(sorted(present), fh)
 
     print("=" * 64)
     print(f"installed (painted) : {len(installed)}")

@@ -222,7 +222,9 @@ Every actor on a battle panel is drawn in one of two modes, chosen per frame:
 - **SPRITE** — otherwise. The whole-figure painting is driven by the ROOT bone
   (lunge, squash, lean, bob), so it works with the art in the repo today. If a
   delivered multi-frame sheet exists for the clip, its frame is picked by clip
-  progress and the root motion applies on top.
+  progress and the root motion applies on top. A delivered weapon part is drawn
+  at the invisible rig's hand during a swing, so the real blade follows the
+  trail even before the body parts exist (the five weapons are in).
 
 `src/20-vfx.js` is the layer on top of either mode: weapon trails (the rig's
 weapon tip is known even when the rig is not drawn, so the trail arcs on a flat
@@ -237,6 +239,22 @@ brief and the game cannot disagree.
 ```bash
 node tools/grok-parts.js > GROK-PARTS.md     # the parts brief, tiered
 ```
+
+**Ask for parts as ONE exploded sheet, not eleven crops.** The first delivery
+proved a generator asked for "only the forearm" crops a rectangle of cloth out
+of the reference — no silhouette, nothing a bone can carry. Asked for a cut-out
+puppet sheet (the figure taken apart, pieces laid out with gaps on magenta) it
+paints real pieces. `tools/slice-parts.py sheet.png hero-mid --out DIR` finds
+the pieces, sorts them into the brief's rows, and places each on its manifest
+canvas with the joint on the pivot; `art-install.py DIR` then installs them.
+`GROK-TIER1.md` is the current ask. `tools/shot-swing.py . out.png` freezes
+every hero mid-swing on a different weapon for a look.
+
+Two installer lessons from that delivery: the index (`art/available.json`) is
+rebuilt from what is on disk, never from one run's installs — a five-file
+delivery used to shrink it to five keys and unload everything else; and the
+filler test accepts a flat-shaded piece when it has a real silhouette, since a
+dozen-colour dagger is art, if off-style, not a blank card.
 
 ### Getting animation out of a tool that makes single images
 

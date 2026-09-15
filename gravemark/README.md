@@ -163,8 +163,30 @@ Deliver art at `art/<key>.png` — e.g. `art/mon/shambler-idle.png`. Sprite shee
 are a single horizontal strip of frames.
 
 ```bash
-node tools/art-brief.js > ART-BRIEF.md    # regenerate the full brief
+node tools/art-brief.js    > ART-BRIEF.md    # the full brief, all 303 keys
+node tools/grok-prompts.js > GROK-PROMPTS.md # one prompt per MISSING asset
 ```
+
+### Hero looks — the paper-doll fallback
+
+Layered gear needs every piece drawn over the same body at the same footing.
+Three deliveries of `doll/` came back as item illustrations on cards instead,
+because a text-to-image tool cannot register a layer to a body it cannot see.
+
+So `actor/hero-look-<weapon>-<band>` exists: **one finished figure already
+wearing a whole kit**, picked by weapon family and average armour tier. Fifteen
+images instead of forty-five aligned layers, and any single one is useful the
+day it arrives. `GM.heroLookKey()` resolves the current kit to a look; when the
+art is present the renderer draws it *instead of* the body-plus-layers stack,
+and falls back automatically when it is not. The `doll/` path stays for a
+delivery that genuinely aligns.
+
+### Backgrounds on delivered art
+
+Ask for a **flat magenta `#FF00FF`** background, never "transparent" — requests
+for transparency come back as a white card, and a white card on a dark backdrop
+is a bright rectangle. `art-install.py` keys magenta out on install (verified:
+55k background pixels removed, 3 survivors, figure untouched).
 
 ## Deploy
 

@@ -44,6 +44,14 @@ function weaponFamily() {
 }
 
 function drawHero(now, x, y, w, h) {
+  /* A composite look, when one has been delivered, replaces the whole
+     body-plus-gear stack: it is already wearing the kit. */
+  var look = GM.heroLookKey();
+  if (look && GM.artReady(look)) {
+    GM.drawSprite(ctx, look, 0, x, y, w, h, { label: false });
+    return;
+  }
+
   var fam = weaponFamily();
   var key = heroState === "attack" && fam
     ? "actor/hero-attack-" + fam

@@ -132,6 +132,25 @@ GM.ART = (function () {
     });
   });
 
+  /* --- composite hero "looks" ---------------------------------------------
+     A fallback for the paper doll. Layered gear needs every piece drawn over
+     the same body at the same footing, which a text-to-image tool cannot do -
+     three deliveries of doll/ have come back as item illustrations on cards.
+     A LOOK sidesteps the problem: one finished figure already wearing a whole
+     kit, chosen by weapon family and armour tier. Fifteen images instead of
+     forty-five aligned layers, and any single one of them is useful the day it
+     arrives. When a look exists the renderer prefers it; the doll path stays
+     for a future delivery that genuinely aligns. */
+  ["dagger", "sword", "maul", "wand", "scythe"].forEach(function (fam) {
+    ["low", "mid", "high"].forEach(function (band) {
+      add("actor/hero-look-" + fam + "-" + band, "image", GM.ART_SIZES.actor, {
+        label: "hero in " + band + "-tier armour with a " + fam,
+        facing: "right",
+        note: "one complete standing figure, whole kit worn, feet at 96% height"
+      });
+    });
+  });
+
   /* --- paper-doll gear layers: every slot, every family, every tier band --- */
   GM.DOLL_LAYERS.forEach(function (layer) {
     if (!layer.slot) return;
@@ -336,6 +355,25 @@ GM.itemArtKey = function (item) {
   var b = GM.BASE_BY_ID[item.baseId];
   if (!b) return "item/sword-low";
   return "item/" + b.family + "-" + GM.tierBand(b.tier);
+};
+
+/* The look that matches the current kit: weapon family plus the average tier
+   band of worn armour. Returns null when no such art is present, so the
+   renderer falls back to the body-plus-layers path. */
+GM.heroLookKey = function () {
+  var wep = GM.state.equip.weapon;
+  var wb = wep && GM.BASE_BY_ID[wep.baseId];
+  var fam = wb && wb.pool === "weapon" ? wb.family : "sword";
+
+  var tiers = 0, n = 0;
+  for (var i = 0; i < GM.ARMOUR_SLOTS.length; i++) {
+    var it = GM.state.equip[GM.ARMOUR_SLOTS[i]];
+    var b = it && GM.BASE_BY_ID[it.baseId];
+    if (b) { tiers += b.tier; n++; }
+  }
+  var band = GM.tierBand(n ? Math.round(tiers / n) : 1);
+  var key = "actor/hero-look-" + fam + "-" + band;
+  return GM.ART_BY_KEY[key] ? key : null;
 };
 
 GM.dollKeyFor = function (layerId, slot) {

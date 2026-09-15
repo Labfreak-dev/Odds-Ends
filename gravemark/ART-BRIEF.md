@@ -2,7 +2,7 @@
 
 _Generated from `src/18-assets.js` by `tools/art-brief.js`. Do not hand-edit — regenerate._
 
-**288 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
+**303 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
 
 The game references **no image path directly** — it asks `GM.art(key)` and falls back to a labelled placeholder. Drop a finished file at `art/<key>.png` and it appears. Nothing in the game code changes. Deliver in any order; partial sets work.
 
@@ -131,7 +131,7 @@ This is the largest and most important part of the pack. The character is drawn 
 
 ## 5. The asset list, by category
 
-### Hero — body  _(12 assets)_
+### Hero — body  _(27 assets)_
 
 Prompt: `A lone gravedigger-warrior, wiry and weather-beaten, wrapped in oilcloth and leather, face shadowed under a hood. Neutral undyed clothing — this is the naked base that all gear layers paint over, so keep it plain and keep the silhouette narrow. Facing right. [STATE].`
 
@@ -157,6 +157,21 @@ Draw the generic `hero-attack` first, then the five weapon-specific swings — a
 | `actor/hero-attack-maul` | 256×256 | 8 | attack swing specific to the maul family |
 | `actor/hero-attack-wand` | 256×256 | 8 | attack swing specific to the wand family |
 | `actor/hero-attack-scythe` | 256×256 | 8 | attack swing specific to the scythe family |
+| `actor/hero-look-dagger-low` | 256×256 | — | hero in low-tier armour with a dagger |
+| `actor/hero-look-dagger-mid` | 256×256 | — | hero in mid-tier armour with a dagger |
+| `actor/hero-look-dagger-high` | 256×256 | — | hero in high-tier armour with a dagger |
+| `actor/hero-look-sword-low` | 256×256 | — | hero in low-tier armour with a sword |
+| `actor/hero-look-sword-mid` | 256×256 | — | hero in mid-tier armour with a sword |
+| `actor/hero-look-sword-high` | 256×256 | — | hero in high-tier armour with a sword |
+| `actor/hero-look-maul-low` | 256×256 | — | hero in low-tier armour with a maul |
+| `actor/hero-look-maul-mid` | 256×256 | — | hero in mid-tier armour with a maul |
+| `actor/hero-look-maul-high` | 256×256 | — | hero in high-tier armour with a maul |
+| `actor/hero-look-wand-low` | 256×256 | — | hero in low-tier armour with a wand |
+| `actor/hero-look-wand-mid` | 256×256 | — | hero in mid-tier armour with a wand |
+| `actor/hero-look-wand-high` | 256×256 | — | hero in high-tier armour with a wand |
+| `actor/hero-look-scythe-low` | 256×256 | — | hero in low-tier armour with a scythe |
+| `actor/hero-look-scythe-mid` | 256×256 | — | hero in mid-tier armour with a scythe |
+| `actor/hero-look-scythe-high` | 256×256 | — | hero in high-tier armour with a scythe |
 
 ### Revenant — the player's own corpse  _(4 assets)_
 

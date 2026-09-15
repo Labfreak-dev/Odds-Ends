@@ -83,7 +83,7 @@ GM.Vfx.Panel.prototype.draw = function (ctx, w, h, now, dt) {
     for (i = 1; i < t.length; i++) {
       var age = (now - t[i].t) / (TRAIL_LIFE * 1000);
       ctx.strokeStyle = "rgba(232,226,209," + (0.8 * (1 - age)) + ")";
-      ctx.lineWidth = Math.max(1.5, (h * 0.03) * (1 - age) * (i / t.length));
+      ctx.lineWidth = Math.max(1, (h * 0.014) * (1 - age) * (i / t.length));
       ctx.beginPath();
       ctx.moveTo(t[i - 1].x, t[i - 1].y);
       ctx.lineTo(t[i].x, t[i].y);

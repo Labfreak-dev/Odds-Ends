@@ -222,15 +222,20 @@ anim("walk", 0.72, true, {
 
 /* --- the hero's five swings ---
    The strike is always the "hit" event; VFX and damage key off it. Root x is
-   the lunge, root sx/sy the impact squash, torso the lean. */
+   the lunge, root sx/sy the impact squash, torso the lean.
+
+   Arm angles stay inside what a painted sleeve can do: an upper arm turned
+   150-190 degrees over the head hangs upside down off its shoulder pivot and
+   reads as a loose chunk, not a wind-up. Draws go to about the shoulder line
+   (-75) and only the maul lifts higher (-110). */
 anim("attack_sword", 0.62, false, {
   root:   [{ t: 0, x: 0, sx: 1, sy: 1 }, { t: 0.32, x: -10, sx: 0.97, sy: 1.03 }, { t: 0.5, x: 30, sx: 1.06, sy: 0.95, e: "out" }, { t: 0.78, x: 18 }, { t: 1, x: 0, sx: 1, sy: 1 }],
   torso:  [{ t: 0, a: 0 }, { t: 0.32, a: -16 }, { t: 0.5, a: 22 }, { t: 0.78, a: 10 }, { t: 1, a: 0 }],
   head:   [{ t: 0, a: 0 }, { t: 0.32, a: 8 }, { t: 0.5, a: -10 }, { t: 1, a: 0 }],
-  uarm_f: [{ t: 0, a: 0 }, { t: 0.32, a: -150 }, { t: 0.5, a: 20, e: "out" }, { t: 0.78, a: 40 }, { t: 1, a: 0 }],
-  farm_f: [{ t: 0, a: 0 }, { t: 0.32, a: -60 }, { t: 0.5, a: 30 }, { t: 0.78, a: 20 }, { t: 1, a: 0 }],
+  uarm_f: [{ t: 0, a: 0 }, { t: 0.32, a: -75 }, { t: 0.5, a: 20, e: "out" }, { t: 0.78, a: 30 }, { t: 1, a: 0 }],
+  farm_f: [{ t: 0, a: 0 }, { t: 0.32, a: -50 }, { t: 0.5, a: 30 }, { t: 0.78, a: 20 }, { t: 1, a: 0 }],
   weapon: [{ t: 0, a: 0 }, { t: 0.32, a: -40 }, { t: 0.5, a: 60 }, { t: 0.78, a: 50 }, { t: 1, a: 0 }],
-  uarm_b: [{ t: 0, a: 0 }, { t: 0.32, a: 30 }, { t: 0.5, a: -40 }, { t: 1, a: 0 }],
+  uarm_b: [{ t: 0, a: 0 }, { t: 0.32, a: 20 }, { t: 0.5, a: -30 }, { t: 1, a: 0 }],
   thigh_f:[{ t: 0, a: 0 }, { t: 0.5, a: -24 }, { t: 1, a: 0 }],
   thigh_b:[{ t: 0, a: 0 }, { t: 0.5, a: 20 }, { t: 1, a: 0 }]
 }, [{ t: 0.5, name: "hit" }]);
@@ -248,10 +253,10 @@ anim("attack_maul", 0.92, false, {
   root:   [{ t: 0, x: 0, sx: 1, sy: 1 }, { t: 0.4, x: -12, sy: 1.04 }, { t: 0.58, x: 24, sx: 1.12, sy: 0.88, e: "out" }, { t: 0.72, x: 22, sx: 1.0, sy: 1.0 }, { t: 1, x: 0 }],
   torso:  [{ t: 0, a: 0 }, { t: 0.4, a: -26 }, { t: 0.58, a: 38 }, { t: 0.72, a: 34 }, { t: 1, a: 0 }],
   head:   [{ t: 0, a: 0 }, { t: 0.4, a: 14 }, { t: 0.58, a: -16 }, { t: 1, a: 0 }],
-  uarm_f: [{ t: 0, a: 0 }, { t: 0.4, a: -190 }, { t: 0.58, a: 30, e: "out" }, { t: 0.72, a: 40 }, { t: 1, a: 0 }],
-  farm_f: [{ t: 0, a: 0 }, { t: 0.4, a: -30 }, { t: 0.58, a: 20 }, { t: 1, a: 0 }],
-  uarm_b: [{ t: 0, a: 0 }, { t: 0.4, a: 170 }, { t: 0.58, a: -30 }, { t: 0.72, a: -40 }, { t: 1, a: 0 }],
-  farm_b: [{ t: 0, a: 0 }, { t: 0.4, a: 30 }, { t: 0.58, a: -20 }, { t: 1, a: 0 }],
+  uarm_f: [{ t: 0, a: 0 }, { t: 0.4, a: -110 }, { t: 0.58, a: 30, e: "out" }, { t: 0.72, a: 40 }, { t: 1, a: 0 }],
+  farm_f: [{ t: 0, a: 0 }, { t: 0.4, a: -40 }, { t: 0.58, a: 20 }, { t: 1, a: 0 }],
+  uarm_b: [{ t: 0, a: 0 }, { t: 0.4, a: -60 }, { t: 0.58, a: 20 }, { t: 0.72, a: 20 }, { t: 1, a: 0 }],
+  farm_b: [{ t: 0, a: 0 }, { t: 0.4, a: -30 }, { t: 0.58, a: 0 }, { t: 1, a: 0 }],
   weapon: [{ t: 0, a: 0 }, { t: 0.4, a: -30 }, { t: 0.58, a: 70 }, { t: 0.72, a: 74 }, { t: 1, a: 0 }],
   thigh_f:[{ t: 0, a: 0 }, { t: 0.58, a: -34 }, { t: 1, a: 0 }],
   thigh_b:[{ t: 0, a: 0 }, { t: 0.58, a: 26 }, { t: 1, a: 0 }]
@@ -270,9 +275,9 @@ anim("attack_scythe", 0.8, false, {
   root:   [{ t: 0, x: 0, sx: 1 }, { t: 0.36, x: -14, sx: 0.96 }, { t: 0.55, x: 26, sx: 1.08, sy: 0.96, e: "out" }, { t: 0.8, x: 16 }, { t: 1, x: 0, sx: 1, sy: 1 }],
   torso:  [{ t: 0, a: 0 }, { t: 0.36, a: -30 }, { t: 0.55, a: 34 }, { t: 0.8, a: 20 }, { t: 1, a: 0 }],
   head:   [{ t: 0, a: 0 }, { t: 0.36, a: 12 }, { t: 0.55, a: -14 }, { t: 1, a: 0 }],
-  uarm_f: [{ t: 0, a: 0 }, { t: 0.36, a: -120 }, { t: 0.55, a: 60, e: "out" }, { t: 0.8, a: 70 }, { t: 1, a: 0 }],
-  farm_f: [{ t: 0, a: 0 }, { t: 0.36, a: -20 }, { t: 0.55, a: 10 }, { t: 1, a: 0 }],
-  uarm_b: [{ t: 0, a: 0 }, { t: 0.36, a: 90 }, { t: 0.55, a: -70 }, { t: 1, a: 0 }],
+  uarm_f: [{ t: 0, a: 0 }, { t: 0.36, a: -70 }, { t: 0.55, a: 45, e: "out" }, { t: 0.8, a: 50 }, { t: 1, a: 0 }],
+  farm_f: [{ t: 0, a: 0 }, { t: 0.36, a: -30 }, { t: 0.55, a: 10 }, { t: 1, a: 0 }],
+  uarm_b: [{ t: 0, a: 0 }, { t: 0.36, a: 35 }, { t: 0.55, a: -35 }, { t: 1, a: 0 }],
   weapon: [{ t: 0, a: 0 }, { t: 0.36, a: -60 }, { t: 0.55, a: 40 }, { t: 0.8, a: 50 }, { t: 1, a: 0 }],
   thigh_f:[{ t: 0, a: 0 }, { t: 0.55, a: -28 }, { t: 1, a: 0 }],
   thigh_b:[{ t: 0, a: 0 }, { t: 0.55, a: 24 }, { t: 1, a: 0 }]
@@ -284,9 +289,9 @@ anim("attack_scythe", 0.8, false, {
 anim("attack_claw", 0.66, false, {
   root:   [{ t: 0, x: 0 }, { t: 0.3, x: -10 }, { t: 0.5, x: 28, sx: 1.06, sy: 0.95, e: "out" }, { t: 1, x: 0, sx: 1, sy: 1 }],
   torso:  [{ t: 0, a: 0 }, { t: 0.3, a: -14 }, { t: 0.5, a: 24 }, { t: 1, a: 0 }],
-  uarm_f: [{ t: 0, a: 0 }, { t: 0.3, a: -120 }, { t: 0.5, a: 10, e: "out" }, { t: 1, a: 0 }],
+  uarm_f: [{ t: 0, a: 0 }, { t: 0.3, a: -75 }, { t: 0.5, a: 10, e: "out" }, { t: 1, a: 0 }],
   farm_f: [{ t: 0, a: 0 }, { t: 0.3, a: -50 }, { t: 0.5, a: -40 }, { t: 1, a: 0 }],
-  uarm_b: [{ t: 0, a: 0 }, { t: 0.3, a: -100 }, { t: 0.55, a: 0 }, { t: 1, a: 0 }],
+  uarm_b: [{ t: 0, a: 0 }, { t: 0.3, a: -60 }, { t: 0.55, a: 0 }, { t: 1, a: 0 }],
   head:   [{ t: 0, a: 0 }, { t: 0.5, a: -12 }, { t: 1, a: 0 }]
 }, [{ t: 0.5, name: "hit" }]);
 

@@ -437,8 +437,9 @@ function drawActor(ctx, p, a, fx, fy, size, now) {
   /* remember where this actor stands, for numbers and bursts */
   a.pos = { x: fx, y: fy };
 
-  /* trail only while swinging */
-  if (tip && /^attack/.test(a.anim.clip)) {
+  /* trail only through the strike itself, not the draw-back or the recovery:
+     a big weapon's whole arc drew a crescent the size of the figure */
+  if (tip && /^attack/.test(a.anim.clip) && a.anim.t > 0.28 && a.anim.t < 0.66) {
     var tx = rigMode ? (tip.x - 128) * scale : (tip.x - 128) * scale;
     var ty = rigMode ? (tip.y - 246) * scale : (tip.y - 246) * scale;
     p.vfx.trail(a.id, fx + (left ? -tx : tx), fy + ty, now);

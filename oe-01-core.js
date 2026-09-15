@@ -601,7 +601,7 @@ function levelUpPayout(level){
 /* ---------------- THE CHANGE COUNTER ----------------
    Dollars are what the collection earns: mining, selling, shipping, and what
    packs and market cards cost. Credits are the arcade token - upgrades, the
-   Keep, the casino, fishing, the hunt. You buy credits with dollars here.
+   Keep, the casino, fishing. You buy credits with dollars here.
 
    The base rate is one for one, so nothing in the arcade had to be repriced
    when the two pockets split. Changing more at once pays a better rate, which
@@ -629,7 +629,7 @@ function renderExchange(){
     `<div class="ex-bal"><span class="d">💵 $${d.toLocaleString()}</span>` +
     `<span class="c">🪙 ${c.toLocaleString()} credits</span></div>` +
     `<div class="ex-rate">Credits buy upgrades and pay your way into the Keep, the tables, ` +
-    `the water and the hunt. Change more at once and the counter pays you better for it.</div>` +
+    `the water. Change more at once and the counter pays you better for it.</div>` +
     EXCHANGE_TIERS.map((t,i)=>{
       const bonus = Math.round((t.credits / t.cost - 1) * 100);
       const afford = d >= t.cost;
@@ -1140,11 +1140,7 @@ function currentMineRatePerMin(){
     + (u.pickaxe||0)*PICKAXE_RATE_PER_LEVEL
     + (u.miners||0)*MINER_RATE_PER_LEVEL
     + blacksmithLevel*BLACKSMITH_MINE_BONUS_PER_LEVEL;
-  /* the Hunt's embers warm the whole operation, +0.5% each. This lived in a
-     wrapper the hunt module applied at load; with hunt a lazy bundle (batch
-     136) the bonus must not wait for the tab to be opened. */
-  const embers = (state.hunt && state.hunt.embers) || 0;
-  const mult = (1 + (u.speed||0)*SPEED_PCT_PER_LEVEL + (playerLevel-1)*LEVEL_MINE_PCT_PER_LEVEL) * (1 + 0.005*embers);
+  const mult = 1 + (u.speed||0)*SPEED_PCT_PER_LEVEL + (playerLevel-1)*LEVEL_MINE_PCT_PER_LEVEL;
   return flat * mult;
 }
 function currentMineRatePerMs(){ return currentMineRatePerMin() / 60000; }

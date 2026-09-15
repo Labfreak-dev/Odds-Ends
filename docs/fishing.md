@@ -501,6 +501,20 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 137 — the Hunt is retired
+Playtester: "Remove the hunt. It just doesn't fit well." Unwired the way
+the Keep was: hunt.module.js and hunt.css stay in workshop/, out of the
+build. Gone from the page: the css read, the tab section (and the "keep
+section" splice that seated it), the module and its lazy bundle, the
+Play-card registry entry, its play group, the enter hook and the loading
+note, the two Play-card css rules, the ember mine-rate multiplier (a
+bonus for a mode nobody can reach), the two lines of credits copy that
+named it, the ledger's "Slay N beasts" contract - and a ledger dealt
+before today that still carries a contract for a mode that no longer
+exists re-deals itself instead of showing a line that can never be met.
+docs/smoke-hunt.py deleted; the verify list and the workshop guide
+updated. state.hunt stays in old saves, inert.
+
 ## Batch 136 — the Hunt is a lazy bundle; the pack module stays eager
 Item 3 of the list, the second lazy tier, decided by the map: the pack
 module (ripship, 1.1MB of base64) draws the very first screen - the

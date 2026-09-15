@@ -2,12 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0b0e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gravemark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Gravemark</title>
 <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-<div id="app">
+<div id="app" data-view="delves">
 
   <!-- ============ LEFT: the parish ============ -->
   <section id="hub">
@@ -61,6 +68,12 @@
     </div>
     <div id="rosterList"></div>
   </aside>
+
+  <nav id="mobileTabs">
+    <button data-view="parish">Parish</button>
+    <button data-view="delves" class="on">Delves</button>
+    <button data-view="warband">Warband</button>
+  </nav>
 
 </div>
 

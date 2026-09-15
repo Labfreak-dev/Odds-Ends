@@ -394,6 +394,27 @@ GM.drawSprite = function (ctx, key, frame, x, y, w, h, opts) {
   return false;
 };
 
+/* Draw a backdrop the way CSS background-size:cover would: scaled to fill
+   the box without distortion, the overflow cropped. `anchorY` says which part
+   survives the crop — 1 keeps the bottom (a battle stage keeps its ground),
+   0.5 keeps the middle. A 16:9 painting drawn straight into a 3:1 panel was
+   squashed to half its height, which real paintings make obvious. */
+GM.drawCover = function (ctx, key, x, y, w, h, anchorY, opts) {
+  var spec = GM.ART_BY_KEY[key];
+  var img = spec ? GM.art(key) : null;
+  if (img && img.complete && img.naturalWidth > 0) {
+    var iw = img.naturalWidth, ih = img.naturalHeight;
+    var s = Math.max(w / iw, h / ih);
+    var sw = w / s, sh = h / s;
+    var sx = (iw - sw) / 2;
+    var sy = (ih - sh) * (anchorY == null ? 0.5 : anchorY);
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    return true;
+  }
+  GM.drawPlaceholder(ctx, key, x, y, w, h, opts);
+  return false;
+};
+
 /* The painting that IS this hero: the class look when it exists, else the
    shared hero painting (tinted to the class by the caller). Returns null when
    no such key is in the manifest at all. */

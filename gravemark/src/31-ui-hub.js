@@ -39,7 +39,7 @@ function drawHub() {
   fitCanvas();
   var w = hubCanvas.width, h = hubCanvas.height;
   hubCtx.clearRect(0, 0, w, h);
-  GM.drawSprite(hubCtx, "bg/town", 0, 0, 0, w, h, { label: false, dark: true });
+  GM.drawCover(hubCtx, "bg/town", 0, 0, w, h, 0.5, { label: false, dark: true });
 
   /* A vignette so the markers and the charter strip stay legible over whatever
      the backdrop happens to be. */

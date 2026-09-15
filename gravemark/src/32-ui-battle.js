@@ -465,7 +465,7 @@ GM.ui.drawBattles = function (now) {
     ctx.save();
     ctx.translate(shake.x, shake.y);
 
-    GM.drawSprite(ctx, bgKey, 0, -4, -4, w + 8, h + 8, { label: false, dark: true });
+    GM.drawCover(ctx, bgKey, -4, -4, w + 8, h + 8, 1, { label: false, dark: true });
     ctx.save();
     ctx.globalAlpha = 0.45;
     ctx.fillStyle = "#04060a";

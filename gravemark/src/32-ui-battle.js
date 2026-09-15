@@ -307,7 +307,10 @@ function drawCapsule(ctx, x1, y1, x2, y2, width, hue, dark) {
 function drawPartImage(ctx, b, partKey, scale, flash) {
   var spec = GM.ART_BY_KEY[partKey], img = GM.art(partKey);
   var px = (b.x - 128) * scale, py = (b.y - 246) * scale;
-  var rad = (b.angle - b.bone.a) * Math.PI / 180;
+  /* Body parts are painted upright as they sit on the reference, so they turn
+     by the bone's delta from rest. The weapon is painted point-UP and must
+     point along its bone, so it turns by the bone's whole angle from up. */
+  var rad = (b.bone.id === "weapon" ? b.angle + 90 : b.angle - b.bone.a) * Math.PI / 180;
   var w = spec.w / 2 * scale, h = spec.h / 2 * scale;
   ctx.save();
   ctx.translate(px, py);
@@ -461,7 +464,7 @@ GM.ui.drawBattles = function (now) {
               : sq.mode === "vigil" ? "bg/graveyard"
               : "bg/realm-" + Math.min(GM.realmOf(stage), GM.REALMS.length);
 
-    var shake = p.vfx.shakeOffset(now);
+    var shake = GM.state.opts.shake ? p.vfx.shakeOffset(now) : { x: 0, y: 0 };
     ctx.save();
     ctx.translate(shake.x, shake.y);
 

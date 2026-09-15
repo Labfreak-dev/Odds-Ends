@@ -294,7 +294,14 @@ brief and the game cannot disagree. The canvases run deliberately LARGER than
 the bones they hang on: a part is fitted to its canvas on install, so a bigger
 canvas is a chunkier limb that overlaps its neighbour at the joint. Change a
 canvas size and re-slice the sheets (`tools/slice-parts.py`) so the installed
-parts match.
+parts match. Body parts are painted upright as they sit on the reference and
+turn by their bone's delta from rest; the WEAPON is painted point-up and is
+drawn along its bone, so its rest angle in the bone table (35°, low and
+forward, tip toward the ground) is the angle the blade actually sits at. With
+the rest angle pointing up, a big weapon stood across the chest and face in
+every pose.
+
+Panel shake on hits is off by default (`opts.shake`, a Settings toggle).
 
 ```bash
 node tools/grok-parts.js > GROK-PARTS.md     # the parts brief, tiered

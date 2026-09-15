@@ -74,47 +74,58 @@ function load(opts) {
 /* Build a plausible player at a given depth: gear rolled at that item level,
    keeping the best of `tries` rolls per slot the way a farming player would,
    plus a level's worth of tree points spent greedily. */
+/* Build a plausible SQUAD at a given depth: five heroes of mixed class, geared
+   at that item level, plus a level's worth of tree points spent greedily. */
 function outfit(GM, depth, opts) {
   opts = opts || {};
   const tries = opts.tries == null ? 6 : opts.tries;
   const rarity = opts.rarity == null ? 2 : opts.rarity;
-  /* `behind` models pushing: gear found N depths shallower than where you are
-     fighting. Farming at your own depth is the best case and hides the wall. */
+  const size = opts.size == null ? GM.SQUAD_SIZE : opts.size;
   const gearDepth = Math.max(1, depth - (opts.behind || 0));
+  const level = Math.min(120, Math.max(1, Math.round(gearDepth * 0.95)));
 
-  GM.state.char.level = Math.min(GM.MAX_LEVEL, Math.max(1, Math.round(gearDepth * 0.95)));
-  GM.state.depth.current = depth;
-  GM.state.depth.max = depth;
+  const sq = GM.state.squads[0];
+  GM.state.heroes = [];
+  sq.members = [];
+  const classes = ["warden", "reaver", "pyre", "stalker", "sexton"];
+  for (let i = 0; i < size; i++) {
+    const h = GM.makeHero({ classId: classes[i % classes.length], rank: opts.rank || 1 });
+    h.level = level;
+    GM.state.heroes.push(h);
+    sq.members.push(h.id);
+  }
+  sq.stage = depth; sq.max = depth;
   GM.state.depth.maxEver = depth;
 
-  for (const slot of GM.SLOT_IDS) {
-    const pool = GM.slotPool(slot);
-    let best = null, bestScore = -Infinity;
-    for (let i = 0; i < tries; i++) {
-      const it = GM.makeItem({ pool, ilvl: gearDepth, rarity });
-      const sc = GM.powerScore(GM.statsWith(slot, it, {}));
-      if (sc > bestScore) { bestScore = sc; best = it; }
+  for (const h of GM.state.heroes) {
+    for (const slot of GM.SLOT_IDS) {
+      const pool = GM.slotPool(slot);
+      let best = null, bestScore = -Infinity;
+      for (let i = 0; i < tries; i++) {
+        const it = GM.makeItem({ pool, ilvl: gearDepth, rarity });
+        const sc = GM.powerScore(GM.heroStatsWith(h, slot, it, null));
+        if (sc > bestScore) { bestScore = sc; best = it; }
+      }
+      h.equip[slot] = best;
     }
-    GM.state.equip[slot] = best;
   }
   GM.invalidateStats();
 
-  /* Spend tree points greedily on whatever raises power score most. */
-  GM.state.tree.points = GM.state.char.level;
+  GM.state.tree.points = level;
   let guard = 0;
+  const probe = GM.state.heroes[0];
   while (GM.state.tree.points > 0 && guard++ < 400) {
     let bestNode = null, bestGain = -Infinity;
     for (const node of GM.TREE_NODES) {
       if (node.kind === "root" || GM.hasNode(node.id)) continue;
       if (!GM.canAllocate(node.id).ok) continue;
-      const before = GM.powerScore(GM.stats({}));
+      const before = GM.powerScore(GM.heroStats(probe, null));
       GM.state.tree.spent.push(node.id);
       GM.invalidateStats();
-      const after = GM.powerScore(GM.stats({}));
+      const after = GM.powerScore(GM.heroStats(probe, null));
       GM.state.tree.spent.pop();
       GM.invalidateStats();
-      const gain = after - before;
-      if (gain > bestGain) { bestGain = gain; bestNode = node; }
+      if (after - before > bestGain) { bestGain = after - before; bestNode = node; }
     }
     if (!bestNode) break;
     GM.state.tree.points--;
@@ -122,14 +133,10 @@ function outfit(GM, depth, opts) {
     GM.invalidateStats();
   }
 
-  if (opts.town) {
-    for (const b of GM.BUILDINGS) GM.state.town[b.id] = opts.town;
-  }
-  if (opts.perks) {
-    for (const p of GM.PERKS) GM.state.perks[p.id] = opts.perks;
-  }
+  if (opts.town)  for (const b of GM.BUILDINGS) GM.state.town[b.id] = opts.town;
+  if (opts.perks) for (const p of GM.PERKS) GM.state.perks[p.id] = opts.perks;
   GM.invalidateStats();
-  return GM.stats({});
+  return GM.squadStats(sq, null);
 }
 
 module.exports = { load, outfit, sourceFiles };

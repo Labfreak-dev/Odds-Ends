@@ -13,7 +13,7 @@ GM.OFFLINE_TICK_CAP = 60 * 60 * 48;
 /* How long the player is credited for, in seconds. The Lychgate and the Night
    Shift perk both extend the cap; base is two hours. */
 GM.offlineCapSeconds = function () {
-  var st = GM.stats();
+  var st = GM.playerStats();
   return GM.clamp(st.offlineHours * 3600, 3600, GM.OFFLINE_TICK_CAP);
 };
 
@@ -32,8 +32,9 @@ GM.runOffline = function (elapsedSec) {
   var before = {
     gold: GM.state.char.gold,
     shards: GM.state.char.shards,
-    level: GM.state.char.level,
+    level: GM.warbandLevel(),
     depth: GM.state.depth.current,
+    level: GM.warbandLevel(),
     maxEver: GM.state.depth.maxEver,
     epitaphs: GM.state.epitaphs.length
   };
@@ -53,7 +54,7 @@ GM.runOffline = function (elapsedSec) {
   report.creditedSeconds = credited;
   report.cappedBy = raw > cap ? cap : 0;
   report.rate = RATE;
-  report.levelsGained = GM.state.char.level - before.level;
+  report.levelsGained = GM.warbandLevel() - before.level;
   report.depthGained = GM.state.depth.maxEver - before.maxEver;
   report.goldGained = GM.state.char.gold - before.gold;
   report.shardsGained = GM.state.char.shards - before.shards;

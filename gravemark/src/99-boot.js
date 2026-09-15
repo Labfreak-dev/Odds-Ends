@@ -1,8 +1,7 @@
 /* Gravemark — 99-boot.js
-   Wiring: the game loop, season switching, autosave, and first-run setup. */
+   Wiring: the game loop, season switching, autosave, first-run setup. */
 "use strict";
 
-GM.TICK_MS = 100;          /* ten logic ticks a second */
 GM.MAX_FRAME_SEC = 0.5;    /* a backgrounded tab must not resolve an hour at once */
 
 var lastTick = 0;
@@ -13,11 +12,8 @@ GM.switchSeason = function (seasonId) {
   GM.save();
   GM.startSeason(seasonId);
   GM.invalidateStats();
-  GM.fight.monster = null;
-  var st = GM.stats({});
-  GM.fight.php = GM.fight.phpMax = st.life;
-  GM.ui.closeModal();
-  GM.ui.renderTop();
+  (GM.state.squads || []).forEach(function (sq) { sq.monsters = []; sq.victory = null; });
+  GM.ui.buildBattles();
   GM.ui.markDirty();
   GM.ui.toast("Season: " + (GM.SEASON_BY_ID[seasonId] || {}).name, "good");
 };
@@ -27,27 +23,26 @@ function loop(now) {
   var dt = (now - lastTick) / 1000;
   lastTick = now;
 
-  /* A hidden tab throttles rAF to ~1Hz; clamping here keeps each resolved
-     slice honest and lets the offline pass handle real absences. */
+  /* A hidden tab throttles rAF to ~1Hz; clamping keeps each resolved slice
+     honest and leaves real absences to the offline pass. */
   if (dt > GM.MAX_FRAME_SEC) dt = GM.MAX_FRAME_SEC;
   if (dt > 0) {
     GM.state.tally.playtime += dt;
-    try {
-      GM.tick(dt);
-    } catch (e) {
-      /* One bad tick must not kill the loop and strand the player. */
-      console.error("[GM] tick failed", e);
-    }
+    try { GM.tick(dt); }
+    catch (e) { console.error("[GM] tick failed", e); }
   }
 
-  if (GM.ui.currentView() === "delve") GM.ui.renderFight();
-  GM.ui.renderTop();
+  /* Battle panels carry live numbers, so they refresh every frame; the hub and
+     roster only repaint when something marks them dirty. */
+  GM.ui.renderBattles();
+  GM.ui.drawBattles(now);
+  GM.ui.renderCurrencies();
+  GM.ui.flush();
 
   if (now - lastSave > GM.AUTOSAVE_MS) {
     lastSave = now;
     GM.save();
   }
-
   requestAnimationFrame(loop);
 }
 
@@ -59,43 +54,48 @@ function showOfflineReport(r) {
            '</span><span class="v">' + GM.esc(x.value) + "</span></div>";
   }).join("") + "</div>";
   if (r.cappedBy) {
-    html += '<p class="flavour" style="margin-top:8px">Your away time is capped at ' +
-      GM.fmtTime(r.creditedSeconds) + ". Raise the Lychgate in the parish, or take the Night Shift perk, to extend it.</p>";
+    html += '<p class="flavour" style="margin-top:8px">Away time is capped at ' +
+      GM.fmtTime(r.creditedSeconds) + ". Raise the Lychgate, or take the Night Shift perk, to extend it.</p>";
   }
-  GM.ui.modal("While you were away", html, [{ label: "Carry on", cls: "primary" }]);
+  GM.ui.openOverlay("away");
+  var body = GM.$("#overlay .ovbody");
+  if (body) {
+    body.innerHTML = '<div class="panel"><h2>While you were away</h2>' + html + "</div>";
+    var b = GM.el("button", "btn primary", "Carry on");
+    GM.on(b, "click", GM.ui.closeOverlay);
+    body.appendChild(b);
+  }
 }
 
 function boot() {
-  var season = GM.lastSeason();
-  GM.startSeason(season);
+  GM.startSeason(GM.lastSeason());
 
   /* Fire-and-forget: tells the art loader which keys exist so it never
      requests the ones that do not. */
   GM.loadArtIndex();
 
   GM.ui.init();
-  GM.ui.initFight();
-  GM.ui.initGear();
-  GM.ui.initTree();
-  GM.ui.initMeta();
+  GM.ui.initHub();
+  GM.ui.initBattles();
+  GM.ui.initRoster();
+  GM.ui.initOverlay();
 
   GM.invalidateStats();
-  var st = GM.stats({});
-  GM.fight.phpMax = st.life;
-  GM.fight.php = st.life;
+  (GM.state.squads || []).forEach(function (sq) {
+    var st = GM.squadStats(sq, GM.squadCtx(sq));
+    sq.hpMax = st.life || 1;
+    if (!sq.hp || sq.hp > sq.hpMax) sq.hp = sq.hpMax;
+  });
 
-  /* Offline is resolved before the first frame so the opening screen already
+  /* Offline resolves before the first frame so the opening screen already
      reflects the away gains rather than briefly showing stale numbers. */
   var report = null;
-  try {
-    report = GM.checkOffline();
-  } catch (e) {
-    console.error("[GM] offline pass failed", e);
-  }
+  try { report = GM.checkOffline(); }
+  catch (e) { console.error("[GM] offline pass failed", e); }
 
-  GM.ui.renderTop();
-  GM.ui.show("delve");
   GM.ui.markDirty();
+  GM.ui.flush();
+  GM.ui.redrawHub();
 
   running = true;
   lastTick = performance.now();
@@ -103,18 +103,12 @@ function boot() {
   requestAnimationFrame(loop);
 
   if (report) showOfflineReport(report);
+  if (!GM.storageOK) GM.ui.toast("Storage is blocked — progress will not be saved.", "bad");
 
-  if (!GM.storageOK) {
-    GM.ui.toast("Storage is blocked — progress will not be saved.", "bad");
-  }
-
-  /* Save on the way out. `visibilitychange` fires on mobile where `unload`
-     does not, so both are bound. */
   GM.on(window, "beforeunload", function () { GM.save(); });
   GM.on(document, "visibilitychange", function () {
     if (document.visibilityState === "hidden") GM.save();
   });
-
   GM.bus.on("save:failed", function () {
     GM.ui.toast("Could not save — storage may be full.", "bad");
   });

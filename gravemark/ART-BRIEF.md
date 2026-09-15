@@ -2,7 +2,7 @@
 
 _Generated from `src/18-assets.js` by `tools/art-brief.js`. Do not hand-edit — regenerate._
 
-**303 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
+**311 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
 
 The game references **no image path directly** — it asks `GM.art(key)` and falls back to a labelled placeholder. Drop a finished file at `art/<key>.png` and it appears. Nothing in the game code changes. Deliver in any order; partial sets work.
 
@@ -374,7 +374,7 @@ Square inventory icons, three-quarter view, lit from upper left, on transparent 
 | `rune/vael` | 48×48 | — | Vael rune |
 | `rune/zil` | 48×48 | — | Zil rune |
 
-### UI chrome  _(13 assets)_
+### UI chrome  _(15 assets)_
 
 Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `nineslice` number is the corner inset in pixels — corners must not stretch. Button states: `normal` resting, `hover` gold edge brightening, `pressed` inset by 1px with the highlight flipped, `disabled` desaturated to 35%.
 
@@ -393,8 +393,10 @@ Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `n
 | `ui/progress-fill-hp` | 256×32 | — |  |
 | `ui/progress-fill-mhp` | 256×32 | — |  |
 | `ui/progress-fill-xp` | 256×32 | — |  |
+| `ui/marker-plate` | 192×40 | — | parish building marker plate (level chip + name banner) |
+| `ui/flag-banner` | 256×40 | — | battle panel depth banner |
 
-### Icons  _(22 assets)_
+### Icons  _(27 assets)_
 
 64×64 flat-ish symbolic icons, single accent colour each, readable at 24px. Resource icons, element icons, and tab icons.
 
@@ -414,6 +416,11 @@ Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `n
 | `icon/elem-cold` | 64×64 | — | Frost |
 | `icon/elem-lit` | 64×64 | — | Storm |
 | `icon/elem-void` | 64×64 | — | Void |
+| `icon/class-warden` | 64×64 | — | Warden class badge |
+| `icon/class-reaver` | 64×64 | — | Reaver class badge |
+| `icon/class-pyre` | 64×64 | — | Pyre class badge |
+| `icon/class-stalker` | 64×64 | — | Stalker class badge |
+| `icon/class-sexton` | 64×64 | — | Sexton class badge |
 | `icon/tab-delve` | 64×64 | — |  |
 | `icon/tab-gear` | 64×64 | — |  |
 | `icon/tab-bench` | 64×64 | — |  |
@@ -423,12 +430,13 @@ Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `n
 | `icon/tab-modes` | 64×64 | — |  |
 | `icon/tab-ascend` | 64×64 | — |  |
 
-### Rarity frames and sockets  _(8 assets)_
+### Rarity frames and sockets  _(9 assets)_
 
 Nine-slice item frames, one per rarity, in that rarity's colour. Restrained — the frame surrounds the item icon and must never compete with it. Socket pips are small circular stone settings, empty and filled.
 
 | key | size | frames | subject |
 |---|---|---|---|
+| `frame/portrait` | 96×96 | — | roster portrait frame |
 | `frame/rarity-common` | 96×96 | — | Common |
 | `frame/rarity-magic` | 96×96 | — | Magic |
 | `frame/rarity-rare` | 96×96 | — | Rare |

@@ -93,30 +93,35 @@ GM.weaponBaseDamage = function (item, bag) {
 };
 
 /* ---------- collection ---------------------------------------------------
-   `ctx` may carry mutators (Alternate Dimension) and a season rule. */
-GM.collect = function (ctx) {
-  var s = GM.state;
+   Stats are now derived PER HERO. Gear belongs to the hero; the passive tree,
+   the parish and ascension perks are shared across the whole warband, because
+   those are the player's institution rather than any one person's kit. */
+GM.collect = function (hero, ctx) {
   var bag = GM.emptyBag();
-  var wep = s.equip.weapon;
+  var i;
 
-  /* Weapon base first so its damage is in the bag before increases apply. */
+  var wep = hero ? hero.equip.weapon : null;
   var wepInfo = GM.weaponBaseDamage(wep, bag);
 
-  for (var i = 0; i < GM.SLOT_IDS.length; i++) {
-    GM.addBag(bag, GM.itemStats(s.equip[GM.SLOT_IDS[i]]));
+  if (hero) {
+    for (i = 0; i < GM.SLOT_IDS.length; i++) {
+      GM.addBag(bag, GM.itemStats(hero.equip[GM.SLOT_IDS[i]]));
+    }
+    /* The class's own leaning, scaled by level so it stays relevant. */
+    var cls = GM.heroClass(hero);
+    GM.addBag(bag, cls.bias, 1 + (hero.level - 1) * 0.35);
   }
 
+  var s = GM.state;
   for (i = 0; i < s.tree.spent.length; i++) {
     var node = GM.TREE_BY_ID[s.tree.spent[i]];
     if (node) GM.addBag(bag, node.stats);
   }
-
   for (i = 0; i < GM.BUILDINGS.length; i++) {
     var b = GM.BUILDINGS[i];
     var lv = GM.townLevel(b.id);
     if (lv) GM.addBag(bag, b.per, lv);
   }
-
   for (i = 0; i < GM.PERKS.length; i++) {
     var p = GM.PERKS[i];
     var pl = GM.perkLevel(p.id);
@@ -131,20 +136,22 @@ GM.collect = function (ctx) {
     bag.resAll = 0;
   }
 
-  return { bag: bag, weapon: wepInfo, ctx: ctx || {} };
+  return { bag: bag, weapon: wepInfo, ctx: ctx || {}, hero: hero };
 };
 
-/* ---------- derivation ---------------------------------------------------
-   Turns the raw bag into the numbers the solver and the UI actually use. */
+/* ---------- derivation --------------------------------------------------- */
 GM.derive = function (collected) {
-  var s = GM.state;
   var bag = collected.bag;
   var wep = collected.weapon;
   var ctx = collected.ctx || {};
+  var hero = collected.hero;
   var mut = ctx.mutators || [];
   var rule = GM.seasonRule();
 
-  /* Mutator and season multipliers on the player side. */
+  var cls = hero ? GM.heroClass(hero) : { mod: { life: 1, armour: 1, dmg: 1, as: 1 }, grow: { life: 1, dmg: 1 } };
+  var rank = hero ? GM.heroRank(hero) : { mult: 1 };
+  var level = hero ? hero.level : 1;
+
   var mDmg = 1, mLife = 1, mAS = 1, mEva = 1, mArm = 1;
   var noRegen = false, noLeech = false;
   for (var i = 0; i < mut.length; i++) {
@@ -160,6 +167,13 @@ GM.derive = function (collected) {
   }
   if (rule.playerDmg) mDmg *= rule.playerDmg;
 
+  /* Class and rank multiply the hero's whole contribution; growth compounds
+     with level so a Reaver pulls further ahead on damage as they advance. */
+  var clsDmg  = cls.mod.dmg    * Math.pow(cls.grow.dmg,  level - 1) * rank.mult;
+  var clsLife = cls.mod.life   * Math.pow(cls.grow.life, level - 1) * rank.mult;
+  var clsArm  = cls.mod.armour * rank.mult;
+  var clsAS   = cls.mod.as;
+
   /* --- offence --- */
   var elemHit = {};
   var totalHit = 0;
@@ -171,21 +185,21 @@ GM.derive = function (collected) {
     var e = GM.ELEMENTS[i];
     var flat = bag["flat" + e.charAt(0).toUpperCase() + e.slice(1)];
     var inc = 1 + bag.incDmg + (incByElem[e] || 0);
-    var v = Math.max(0, flat) * Math.max(0.05, inc) * mDmg;
+    var v = Math.max(0, flat) * Math.max(0.05, inc) * mDmg * clsDmg;
     elemHit[e] = v;
     totalHit += v;
   }
 
   var crit = GM.clamp(wep.crit + bag.critChance, 0, 0.95);
   var critMulti = GM.CRIT_BASE_MULTI + bag.critMulti;
-  var attackSpeed = Math.max(0.1, wep.as * (1 + bag.incAS) * mAS);
+  var attackSpeed = Math.max(0.1, wep.as * (1 + bag.incAS) * mAS * clsAS);
   var critFactor = 1 + crit * (critMulti - 1);
   var dps = totalHit * critFactor * attackSpeed;
 
   /* --- defence --- */
-  var baseLife = 60 + 14 * s.char.level;
-  var life = Math.max(1, (baseLife + bag.flatLife) * Math.max(0.05, 1 + bag.incLife) * mLife);
-  var armour = Math.max(0, bag.flatArmour * Math.max(0, 1 + bag.incArmour) * mArm);
+  var baseLife = 60 + 14 * level;
+  var life = Math.max(1, (baseLife + bag.flatLife) * Math.max(0.05, 1 + bag.incLife) * mLife * clsLife);
+  var armour = Math.max(0, bag.flatArmour * Math.max(0, 1 + bag.incArmour) * mArm * clsArm);
   var evasion = Math.max(0, bag.flatEvasion * Math.max(0, 1 + bag.incEvasion) * mEva);
 
   var res = {
@@ -199,7 +213,6 @@ GM.derive = function (collected) {
   var regen = noRegen ? 0 : (bag.regenFlat + life * bag.regenPct);
   var leech = noLeech ? 0 : bag.leechPct;
 
-  /* --- find / utility --- */
   var findQ = bag.findQuantity, findR = bag.findRarity, findG = bag.findGold;
   var epi = bag.epitaphChance;
   for (i = 0; i < mut.length; i++) {
@@ -210,18 +223,15 @@ GM.derive = function (collected) {
     if (mm.find.rarity)  findR += mm.find.rarity;
     if (mm.find.epitaph) epi   += mm.find.epitaph;
   }
-  if (rule.gold)      findG = (1 + findG) * rule.gold - 1;
-  if (rule.quantity)  findQ = (1 + findQ) * rule.quantity - 1;
-  if (rule.epitaph)   epi   = epi * rule.epitaph;
+  if (rule.gold)     findG = (1 + findG) * rule.gold - 1;
+  if (rule.quantity) findQ = (1 + findQ) * rule.quantity - 1;
+  if (rule.epitaph)  epi   = epi * rule.epitaph;
 
   return {
-    /* offence */
     dps: dps, hit: totalHit, elemHit: elemHit, critFactor: critFactor,
     crit: crit, critMulti: critMulti, attackSpeed: attackSpeed, pen: bag.pen,
-    /* defence */
     life: life, armour: armour, evasion: evasion, res: res,
     regen: regen, leech: leech,
-    /* utility */
     findRarity: findR, findQuantity: findQ, findGold: findG, findXP: bag.findXP,
     epitaphChance: epi, graveHaste: bag.graveHaste,
     craftDiscount: GM.clamp(bag.craftDiscount, 0, 0.75),
@@ -231,57 +241,125 @@ GM.derive = function (collected) {
   };
 };
 
-/* Cached because the fight loop asks for this every tick and the UI asks on
-   every repaint. Invalidated by anything that can change a stat. */
-var _statCache = null;
-var _statCacheKey = null;
+/* ---------- caching ------------------------------------------------------
+   Keyed by hero AND context, because three squads can be under different
+   mutators at the same time. Cleared wholesale by anything that can move a
+   number; per-hero invalidation would be a bug farm for a cache this cheap. */
+var _statCache = Object.create(null);
 
-GM.stats = function (ctx) {
-  var key = ctx && ctx.mutators ? ctx.mutators.join(",") : "";
-  if (_statCache && _statCacheKey === key) return _statCache;
-  _statCache = GM.derive(GM.collect(ctx));
-  _statCacheKey = key;
-  return _statCache;
+function cacheKey(hero, ctx) {
+  return (hero ? hero.id : "-") + "|" + (ctx && ctx.mutators ? ctx.mutators.join(",") : "");
+}
+
+GM.heroStats = function (hero, ctx) {
+  var k = cacheKey(hero, ctx);
+  var hit = _statCache[k];
+  if (hit) return hit;
+  var v = GM.derive(GM.collect(hero, ctx));
+  _statCache[k] = v;
+  return v;
 };
 
-GM.invalidateStats = function () { _statCache = null; _statCacheKey = null; };
+GM.invalidateStats = function () { _statCache = Object.create(null); };
 
-/* Anything that mutates gear, tree, town, perks or level must announce it. */
 ["gear:changed", "tree:changed", "town:changed", "perks:changed",
- "level:changed", "season:started", "mode:changed"].forEach(function (evt) {
+ "level:changed", "season:started", "mode:changed", "roster:changed",
+ "squads:changed"].forEach(function (evt) {
   GM.bus.on(evt, GM.invalidateStats);
 });
 
-/* ---------- what an item would do ---------------------------------------
-   Used by auto-equip and the compare tooltip: derive stats with `item` in
-   `slot` instead of whatever is there, without disturbing real state. */
-GM.statsWith = function (slot, item, ctx) {
-  var prev = GM.state.equip[slot];
-  GM.state.equip[slot] = item;
+/* Warband-wide numbers that do not belong to any hero: the away cap, the
+   crafting discount. Derived with no gear so a hero swap cannot move them. */
+GM.playerStats = function () {
+  return GM.heroStats(null, null);
+};
+
+/* Legacy shim. A handful of callers just want "some representative stats" —
+   the first hero is the honest answer. */
+GM.stats = function (ctx) {
+  var h = (GM.state.heroes && GM.state.heroes[0]) || null;
+  return GM.heroStats(h, ctx);
+};
+
+/* ---------- squads -------------------------------------------------------
+   A squad fights as one body: damage sums, life sums, and the defensive
+   numbers are averaged weighted by each hero's life, so the tank soaking the
+   pack actually moves the squad's mitigation. */
+GM.squadStats = function (sq, ctx) {
+  var heroes = GM.squadHeroes(sq);
+  var agg = {
+    dps: 0, life: 0, armour: 0, evasion: 0, regen: 0, leech: 0,
+    elemHit: { phys: 0, fire: 0, cold: 0, lit: 0, void: 0 },
+    res: { phys: 0, fire: 0, cold: 0, lit: 0, void: 0 },
+    pen: 0, critFactor: 1, attackSpeed: 1,
+    findRarity: 0, findQuantity: 0, findGold: 0, findXP: 0,
+    epitaphChance: 0, graveHaste: 0,
+    count: heroes.length, members: []
+  };
+  if (!heroes.length) return agg;
+
+  var lifeSum = 0, i, e;
+  for (i = 0; i < heroes.length; i++) {
+    var st = GM.heroStats(heroes[i], ctx);
+    agg.members.push({ hero: heroes[i], st: st });
+    agg.dps += st.dps;
+    agg.life += st.life;
+    agg.regen += st.regen;
+    lifeSum += st.life;
+    for (e in agg.elemHit) agg.elemHit[e] += st.elemHit[e] || 0;
+  }
+  for (i = 0; i < agg.members.length; i++) {
+    var m = agg.members[i];
+    var w = lifeSum > 0 ? m.st.life / lifeSum : 1 / agg.members.length;
+    agg.armour  += m.st.armour * w;
+    agg.evasion += m.st.evasion * w;
+    agg.pen     += m.st.pen * w;
+    agg.leech   += m.st.leech * w;
+    agg.critFactor  += (m.st.critFactor - 1) * w;
+    agg.attackSpeed += (m.st.attackSpeed - 1) * w;
+    for (e in agg.res) agg.res[e] += (m.st.res[e] || 0) * w;
+    /* Find stats take the BEST on the team, not the average — one Sexton
+       carrying rarity gear should benefit the whole squad's haul. */
+    agg.findRarity   = Math.max(agg.findRarity, m.st.findRarity);
+    agg.findQuantity = Math.max(agg.findQuantity, m.st.findQuantity);
+    agg.findGold     = Math.max(agg.findGold, m.st.findGold);
+    agg.findXP       = Math.max(agg.findXP, m.st.findXP);
+    agg.epitaphChance = Math.max(agg.epitaphChance, m.st.epitaphChance);
+    agg.graveHaste    = Math.max(agg.graveHaste, m.st.graveHaste);
+  }
+  /* The squad's hit already includes each member's crit and speed, so the
+     aggregate must not apply them a second time. */
+  agg.critFactor = 1;
+  agg.attackSpeed = 1;
+  return agg;
+};
+
+/* ---------- what an item would do ---------------------------------------- */
+GM.heroStatsWith = function (hero, slot, item, ctx) {
+  if (!hero) return GM.heroStats(null, ctx);
+  var prev = hero.equip[slot];
+  hero.equip[slot] = item;
   var out;
   try {
-    out = GM.derive(GM.collect(ctx));
+    out = GM.derive(GM.collect(hero, ctx));
   } finally {
     /* Restore even if derivation throws — a half-swapped equip block would
        corrupt the save on the next autosave. */
-    GM.state.equip[slot] = prev;
+    hero.equip[slot] = prev;
   }
   return out;
 };
 
 /* A single number for "is this better". Offence and defence are both needed
-   to progress, so neither alone can dominate: geometric weighting means a
-   item that doubles dps but halves life scores flat, which is honest. */
+   to progress, so neither alone can dominate. */
 GM.powerScore = function (st) {
   var off = Math.max(1, st.dps);
   var ehp = Math.max(1, GM.effectiveLife(st));
   return Math.pow(off, 0.58) * Math.pow(ehp, 0.42);
 };
 
-/* Life scaled by the mitigation that applies to a generic hit. Armour and
-   evasion are stage-relative, so this is only meaningful for comparison. */
 GM.effectiveLife = function (st, stage) {
-  var s = stage || GM.state.depth.current || 1;
+  var s = stage || 1;
   var incoming = GM.monDmg(s);
   var physRed = st.armour / (st.armour + 10 * incoming + 1);
   var dodge = GM.dodgeChance(st.evasion, GM.monAcc(s));

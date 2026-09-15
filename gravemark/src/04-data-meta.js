@@ -252,3 +252,47 @@ GM.SEASONS = [
 ];
 
 GM.SEASON_BY_ID = GM.indexById(GM.SEASONS);
+
+/* ---------- quests -------------------------------------------------------
+   The strip under the parish. One at a time, drawn from a small pool, each
+   paying a lump the player can feel. Deliberately shallow: it exists to give
+   an idle session a near-term target, not to be a second game. */
+GM.QUESTS = [
+  { id: "explore", need: 30,  text: "Clear 30 depths",            gold: 4000,  shards: 40,  ichor: 0 },
+  { id: "slay",    need: 400, text: "Put down 400 of them",       gold: 6500,  shards: 60,  ichor: 0 },
+  { id: "boss",    need: 5,   text: "Break 5 bosses",             gold: 12000, shards: 120, ichor: 1 },
+  { id: "loot",    need: 60,  text: "Recover 60 items",           gold: 5000,  shards: 90,  ichor: 0 },
+  { id: "rune",    need: 8,   text: "Surface 8 runes",            gold: 9000,  shards: 150, ichor: 0 },
+  { id: "grave",   need: 3,   text: "Recover 3 gravemarks",       gold: 15000, shards: 200, ichor: 2 }
+];
+GM.QUEST_BY_ID = GM.indexById(GM.QUESTS);
+
+GM.questDef = function () {
+  return GM.QUEST_BY_ID[GM.state.quest && GM.state.quest.id] || GM.QUESTS[0];
+};
+
+GM.questComplete = function () {
+  var q = GM.state.quest;
+  return !!(q && q.done >= q.need);
+};
+
+/* Claiming pays out and rolls the next one, scaling the reward with how deep
+   the warband has reached so an early quest is not worth more than a late. */
+GM.claimQuest = function () {
+  if (!GM.questComplete()) return { ok: false, why: "Not finished." };
+  var def = GM.questDef();
+  var scale = 1 + GM.state.depth.maxEver / 25;
+  var gold = Math.round(def.gold * scale);
+  var shards = Math.round(def.shards * scale);
+  GM.state.char.gold += gold;
+  GM.state.char.shards += shards;
+  GM.state.char.ichor += def.ichor || 0;
+
+  var pool = GM.QUESTS.filter(function (x) { return x.id !== def.id; });
+  var next = GM.pick(pool.length ? pool : GM.QUESTS);
+  GM.state.quest = { id: next.id, done: 0, need: next.need };
+
+  GM.log("Charter fulfilled: " + def.text + ". +" + GM.fmt(gold) + " gold.", "quest");
+  GM.bus.emit("quest:changed", GM.state.quest);
+  return { ok: true, gold: gold, shards: shards, ichor: def.ichor || 0 };
+};

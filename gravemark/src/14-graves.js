@@ -18,27 +18,30 @@ GM.GRAVE_BASE_KILLS = 60;    /* kills needed to recover, before graveHaste */
 GM.EPITAPH_MAX = 60;
 
 /* ---------- planting ----------------------------------------------------- */
-GM.plantGrave = function (stage, killer) {
+GM.plantGrave = function (sq, stage, killer) {
   var s = GM.state;
 
-  /* Record the affixes actually on the gear, with their rolled values. A
-     gravemark of a naked character is worth nothing, which is correct. */
+  /* Record the affixes worn by the whole squad that fell, with their rolled
+     values. A gravemark of a naked squad is worth nothing, which is correct. */
   var recorded = [];
-  for (var i = 0; i < GM.SLOT_IDS.length; i++) {
-    var it = s.equip[GM.SLOT_IDS[i]];
-    if (!it || !it.affixes) continue;
-    for (var j = 0; j < it.affixes.length; j++) {
-      var a = it.affixes[j];
-      var def = GM.AFFIX_BY_ID[a.id];
-      if (!def) continue;
-      recorded.push({
-        affixId: a.id, stat: a.stat, tier: a.tier,
-        displayTier: a.displayTier, value: a.value, pct: !!a.pct
-      });
+  var heroes = sq ? GM.squadHeroes(sq) : [];
+  for (var h = 0; h < heroes.length; h++) {
+    for (var i = 0; i < GM.SLOT_IDS.length; i++) {
+      var it = heroes[h].equip[GM.SLOT_IDS[i]];
+      if (!it || !it.affixes) continue;
+      for (var j = 0; j < it.affixes.length; j++) {
+        var a = it.affixes[j];
+        var def = GM.AFFIX_BY_ID[a.id];
+        if (!def) continue;
+        recorded.push({
+          affixId: a.id, stat: a.stat, tier: a.tier,
+          displayTier: a.displayTier, value: a.value, pct: !!a.pct
+        });
+      }
     }
   }
 
-  var haste = GM.stats().graveHaste || 0;
+  var haste = (sq ? GM.squadStats(sq, null).graveHaste : 0) || 0;
   var required = Math.max(8, Math.round(GM.GRAVE_BASE_KILLS / (1 + haste)));
 
   var grave = {
@@ -46,12 +49,13 @@ GM.plantGrave = function (stage, killer) {
     stage: stage,
     at: Date.now(),
     killer: killer ? killer.name : "something",
+    squad: sq ? sq.name : "",
     realm: GM.realmInfo(GM.realmOf(stage)).name,
     recorded: recorded,
     state: "buried",          /* buried -> revenant -> (claimed) */
     progress: 0,
     required: required,
-    level: s.char.level
+    level: GM.warbandLevel()
   };
 
   s.graves.push(grave);
@@ -82,10 +86,10 @@ GM.plantGrave = function (stage, killer) {
    Progress accrues on kills at or below the gravemark's depth: you have to go
    back for it. Kills deeper than the grave count double — clearing past where
    you died is the strongest way to settle old business. */
-GM.graveOnKill = function (st, report, ctx) {
+GM.graveOnKill = function (sq, st, report, ctx) {
   var s = GM.state;
   if (!s.graves.length) return;
-  var here = GM.modeStage ? GM.modeStage() : s.depth.current;
+  var here = GM.squadStage(sq);
 
   for (var i = 0; i < s.graves.length; i++) {
     var g = s.graves[i];
@@ -104,7 +108,7 @@ GM.graveOnKill = function (st, report, ctx) {
    always worth something specific, never a lottery ticket. */
 GM.recoverGrave = function (g, st) {
   var s = GM.state;
-  st = st || GM.stats();
+  st = st || GM.playerStats();
   var out = [];
 
   if (!g.recorded.length) {
@@ -125,6 +129,7 @@ GM.recoverGrave = function (g, st) {
     count = Math.min(count, sorted.length);
 
     for (var i = 0; i < count; i++) out.push(GM.makeEpitaph(sorted[i], g));
+    GM.questProgress("grave", 1);
     GM.log("Recovered the gravemark at depth " + g.stage + ": " +
            out.map(function (e) { return e.label; }).join(", ") + ".", "epitaph");
   }
@@ -205,7 +210,7 @@ GM.revenantMonster = function (g) {
 /* Claiming a revenant pays double, and hands over a guaranteed high-rarity
    item as the "your old kit, improved" payoff. */
 GM.claimRevenant = function (g, st) {
-  st = st || GM.stats();
+  st = st || GM.playerStats();
   var out = [];
   var sorted = g.recorded.slice().sort(function (a, b) {
     if (b.tier !== a.tier) return b.tier - a.tier;

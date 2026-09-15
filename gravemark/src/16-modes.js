@@ -51,255 +51,210 @@ GM.modeUnlocked = function (id) {
   return !!(d && d.unlock());
 };
 
-GM.setMode = function (id, cfg) {
-  if (!GM.modeUnlocked(id)) return { ok: false, why: (GM.MODE_BY_ID[id] || {}).unlockText || "Locked." };
-  var m = GM.state.mode;
-  m.id = id;
-  if (cfg) GM.assign(m, cfg);
-
-  if (id === "exploration" && !m.target) m.target = GM.state.depth.maxEver;
-  if (id === "dimension" && !m.dim) m.dim = GM.rollDimension(Math.max(1, GM.state.depth.maxEver - 5));
-  if (id === "tower") m.towerRun = GM.towerCheckpoint();
-  if (id === "finality" && !m.wave) m.wave = 1;
-
-  /* A mode switch always ends the current encounter — otherwise the player
-     carries a half-killed Expedition monster into the Tower. */
-  GM.fight.monster = null;
-  GM.bus.emit("mode:changed", m);
-  return { ok: true };
+/* ---------- a squad's depth ---------------------------------------------- */
+GM.squadStage = function (sq) {
+  switch (sq.mode) {
+    case "exploration": return GM.clamp(sq.target || 1, 1, Math.max(1, sq.max));
+    case "tower":       return GM.towerStage(sq.towerRun || 1);
+    case "dimension":   return (sq.dim && sq.dim.stage) || 1;
+    case "finality":    return GM.finalityStage(sq.wave || 1);
+    case "vigil":       var g = GM.graveById(sq.graveId); return g ? g.stage : sq.stage;
+    default:            return sq.stage;
+  }
 };
 
-/* ---------- depth -------------------------------------------------------- */
 GM.towerStage = function (floor) {
   return Math.max(1, Math.floor(GM.state.depth.maxEver * 0.6) + floor);
 };
-GM.towerCheckpoint = function () {
-  return Math.floor(GM.state.depth.towerFloor / 5) * 5 + 1;
+GM.towerCheckpoint = function (sq) {
+  return Math.floor((sq.towerBest || 0) / 5) * 5 + 1;
 };
 GM.finalityStage = function (wave) {
   return Math.max(1, GM.state.depth.maxEver + wave * 2);
 };
 
-GM.modeStage = function () {
-  var m = GM.state.mode;
-  switch (m.id) {
-    case "exploration": return GM.clamp(m.target || 1, 1, GM.state.depth.maxEver);
-    case "tower":       return GM.towerStage(m.towerRun || 1);
-    case "dimension":   return (m.dim && m.dim.stage) || 1;
-    case "finality":    return GM.finalityStage(m.wave || 1);
-    case "vigil":       var g = GM.graveById(m.graveId); return g ? g.stage : GM.state.depth.current;
-    default:            return GM.state.depth.current;
-  }
-};
-
-/* ---------- context ------------------------------------------------------
-   Multipliers handed to the spawner and the drop roller. */
-GM.modeCtx = function () {
-  var m = GM.state.mode;
-  switch (m.id) {
+/* ---------- a squad's context -------------------------------------------- */
+GM.squadCtx = function (sq) {
+  switch (sq.mode) {
     case "exploration":
-      /* The farming mode: more and better drops, no record progress. */
       return { rewardMult: 1, dropMult: 1.6, runeMult: 1.5, noProgress: true };
 
     case "tower": {
-      var f = m.towerRun || 1;
+      var f = sq.towerRun || 1;
       return {
         rewardMult: 1 + f * 0.04,
         hpMult: 1.6 * Math.pow(1.05, f),
         dmgMult: 1.25 * Math.pow(1.03, f),
         resAdd: Math.min(0.60, 0.02 * f),
-        dropMult: 1.2,
-        noBoss: true, single: true
+        dropMult: 1.2, noBoss: true, single: true
       };
     }
 
     case "dimension": {
-      var d = m.dim;
-      if (!d) return {};
-      return { mutators: d.mutators, rewardMult: d.reward, dropMult: 1.3, runeMult: 1.4 };
+      if (!sq.dim) return {};
+      return { mutators: sq.dim.mutators, rewardMult: sq.dim.reward,
+               dropMult: 1.3, runeMult: 1.4 };
     }
 
     case "finality": {
-      var w = m.wave || 1;
+      var w = sq.wave || 1;
       return {
         rewardMult: 2 + w * 0.25,
         hpMult: Math.pow(1.34, w),
         dmgMult: Math.pow(1.18, w),
         resAdd: Math.min(0.70, 0.03 * w),
-        dropMult: 2.2, runeMult: 2.5,
-        floorRarity: 2, noBoss: true
+        dropMult: 2.2, runeMult: 2.5, floorRarity: 2, noBoss: true
       };
     }
 
-    case "vigil": {
-      var g = GM.graveById(m.graveId);
-      return g ? { revenant: g.id, single: true, noBoss: true } : {};
-    }
+    case "vigil":
+      return sq.graveId ? { revenant: sq.graveId, single: true, noBoss: true } : {};
 
     default:
       return { rewardMult: 1 };
   }
 };
 
-/* The vigil replaces the spawn entirely with the revenant. */
-var _baseSpawn = GM.spawn;
-GM.spawn = function (stage, ctx) {
-  if (ctx && ctx.revenant) {
-    var g = GM.graveById(ctx.revenant);
-    if (g) return GM.revenantMonster(g);
-  }
-  return _baseSpawn(stage, ctx);
-};
-
-/* ---------- kill and death hooks ----------------------------------------- */
-GM.modeOnKill = function (mon, report, ctx) {
+/* ---------- advancing and retreating ------------------------------------- */
+GM.squadAdvance = function (sq) {
   var s = GM.state;
-  var m = s.mode;
-
-  switch (m.id) {
-    case "expedition": {
-      s.depth.kills++;
-      var need = GM.isBossStage(s.depth.current) ? 1 : GM.CURVE.packSize;
-      if (s.depth.kills >= need) {
-        s.depth.kills = 0;
-        s.depth.current++;
-        if (s.depth.current > s.depth.max) s.depth.max = s.depth.current;
-        if (s.depth.current > s.depth.maxEver) {
-          s.depth.maxEver = s.depth.current;
-          if (GM.floorOf(s.depth.current) === 1) {
-            GM.log("You reach " + GM.realmInfo(GM.realmOf(s.depth.current)).name + ".", "realm");
-          }
+  switch (sq.mode) {
+    case "expedition":
+      /* A depth takes several packs. The panel's top bar is this counter. */
+      sq.clears = (sq.clears || 0) + 1;
+      if (sq.clears < GM.CURVE.packsPerStage) return;
+      sq.clears = 0;
+      sq.stage++;
+      if (sq.stage > sq.max) sq.max = sq.stage;
+      if (sq.stage > s.depth.maxEver) {
+        s.depth.maxEver = sq.stage;
+        if (GM.floorOf(sq.stage) === 1) {
+          GM.log(sq.name + " reaches " + GM.realmInfo(GM.realmOf(sq.stage)).name + ".", "realm");
         }
-        report.cleared++;
-        GM.bus.emit("depth:changed");
       }
       break;
-    }
 
     case "exploration":
-      /* Nothing advances. That is the deal. */
-      break;
-
-    case "tower": {
-      s.depth.kills = 0;
-      m.towerRun = (m.towerRun || 1) + 1;
-      if (m.towerRun - 1 > s.depth.towerFloor) {
-        s.depth.towerFloor = m.towerRun - 1;
-        var marks = Math.max(1, Math.round(Math.pow(s.depth.towerFloor, 1.25)));
-        s.char.marks += marks;
-        GM.log("Tower floor " + s.depth.towerFloor + " cleared. " + marks + " Marks.", "tower");
-      }
-      report.cleared++;
-      GM.bus.emit("depth:changed");
-      break;
-    }
-
-    case "dimension": {
-      s.depth.kills++;
-      if (s.depth.kills >= GM.CURVE.packSize) {
-        s.depth.kills = 0;
-        var dust = Math.max(1, Math.round(m.dim.reward * 4 * Math.pow(1.04, m.dim.stage)));
-        s.char.dust += dust;
-        report.cleared++;
-        /* Each clear pushes the dimension one depth deeper until it kills you. */
-        m.dim.stage++;
-        GM.log("The dimension folds deeper. " + dust + " Dust.", "dimension");
-        GM.bus.emit("depth:changed");
-      }
-      break;
-    }
-
-    case "finality": {
-      m.wave = (m.wave || 1) + 1;
-      if (m.wave - 1 > s.depth.finality) {
-        s.depth.finality = m.wave - 1;
-        GM.log("Finality wave " + s.depth.finality + " survived.", "finality");
-      }
-      report.cleared++;
-      GM.bus.emit("depth:changed");
-      break;
-    }
-
-    case "vigil": {
-      var g = GM.graveById(m.graveId);
-      if (g) {
-        GM.claimRevenant(g);
-        report.cleared++;
-      }
-      GM.setMode("expedition");
-      break;
-    }
-  }
-};
-
-GM.modeOnDeath = function (mon, report, ctx) {
-  var s = GM.state;
-  var m = s.mode;
-
-  switch (m.id) {
-    case "expedition": {
-      /* Back to the first floor of the current realm — losing the realm, not
-         the run. Never below where a perk says you start. */
-      var realm = GM.realmOf(s.depth.current);
-      var floor1 = (realm - 1) * GM.STAGES_PER_REALM + 1;
-      var st = GM.stats();
-      s.depth.current = Math.max(1, Math.max(floor1, 1 + (st.startStage || 0)));
-      s.depth.kills = 0;
-      GM.bus.emit("depth:changed");
-      break;
-    }
-
-    case "exploration":
-      s.depth.kills = 0;
-      break;
+      break;                                  /* farming: nothing advances */
 
     case "tower":
-      m.towerRun = GM.towerCheckpoint();
-      GM.log("Thrown from the Tower. Back to floor " + m.towerRun + ".", "tower");
-      GM.bus.emit("depth:changed");
+      sq.towerRun = (sq.towerRun || 1) + 1;
+      if (sq.towerRun - 1 > (sq.towerBest || 0)) {
+        sq.towerBest = sq.towerRun - 1;
+        var marks = Math.max(1, Math.round(Math.pow(sq.towerBest, 1.25)));
+        s.char.marks += marks;
+        GM.log(sq.name + " clears tower floor " + sq.towerBest + ". " + marks + " Marks.", "tower");
+      }
       break;
 
-    case "dimension":
-      GM.log("The dimension collapses. Roll another.", "dimension");
-      m.dim = null;
-      GM.setMode("expedition");
+    case "dimension": {
+      var dust = Math.max(1, Math.round(sq.dim.reward * 4 * Math.pow(1.04, sq.dim.stage)));
+      s.char.dust += dust;
+      sq.dim.stage++;
+      GM.log(sq.name + " folds deeper. " + dust + " Dust.", "dimension");
       break;
+    }
 
     case "finality":
-      m.wave = 1;
-      GM.log("Finality resets. It always does.", "finality");
-      GM.bus.emit("depth:changed");
+      sq.wave = (sq.wave || 1) + 1;
+      if (sq.wave - 1 > s.depth.finality) s.depth.finality = sq.wave - 1;
       break;
 
     case "vigil": {
-      var g = GM.graveById(m.graveId);
-      if (g) GM.reburyRevenant(g);
-      GM.setMode("expedition");
+      var g = GM.graveById(sq.graveId);
+      if (g) GM.claimRevenant(g);
+      sq.graveId = null;
+      GM.setSquadMode(sq, "expedition");
       break;
     }
   }
+  GM.bus.emit("depth:changed");
 };
 
-/* ---------- mode helpers used by the UI ---------------------------------- */
-GM.rerollDimension = function () {
-  var m = GM.state.mode;
-  m.dim = GM.rollDimension(Math.max(1, GM.state.depth.maxEver - 5));
-  GM.fight.monster = null;
-  GM.bus.emit("mode:changed", m);
-  return m.dim;
+GM.squadRetreat = function (sq) {
+  var s = GM.state;
+  switch (sq.mode) {
+    case "expedition": {
+      var realm = GM.realmOf(sq.stage);
+      var floor1 = (realm - 1) * GM.STAGES_PER_REALM + 1;
+      sq.stage = Math.max(1, floor1);
+      sq.clears = 0;
+      break;
+    }
+    case "tower":
+      sq.towerRun = GM.towerCheckpoint(sq);
+      GM.log(sq.name + " is thrown from the Tower.", "tower");
+      break;
+    case "dimension":
+      sq.dim = null;
+      GM.setSquadMode(sq, "expedition");
+      break;
+    case "finality":
+      sq.wave = 1;
+      break;
+    case "vigil": {
+      var g = GM.graveById(sq.graveId);
+      if (g) GM.reburyRevenant(g);
+      sq.graveId = null;
+      GM.setSquadMode(sq, "expedition");
+      break;
+    }
+  }
+  GM.bus.emit("depth:changed");
 };
 
-GM.setExplorationTarget = function (stage) {
-  GM.state.mode.target = GM.clamp(Math.floor(stage), 1, GM.state.depth.maxEver);
-  GM.fight.monster = null;
-  GM.bus.emit("mode:changed", GM.state.mode);
+/* Manual retreat from the panel button: back to the realm floor, no gravemark
+   (you left under your own power). */
+GM.manualRetreat = function (sq) {
+  sq.victory = null;
+  sq.monsters = [];
+  sq.hp = sq.hpMax;
+  GM.squadRetreat(sq);
+  GM.log(sq.name + " withdraws.", "info");
+  GM.bus.emit("squads:changed");
 };
 
-GM.beginVigil = function (graveId) {
+/* ---------- squad mode switching ----------------------------------------- */
+GM.setSquadMode = function (sq, id, cfg) {
+  if (!GM.modeUnlocked(id)) {
+    return { ok: false, why: (GM.MODE_BY_ID[id] || {}).unlockText || "Locked." };
+  }
+  sq.mode = id;
+  if (cfg) GM.assign(sq, cfg);
+  if (id === "exploration" && !sq.target) sq.target = sq.max;
+  if (id === "dimension" && !sq.dim) sq.dim = GM.rollDimension(Math.max(1, GM.state.depth.maxEver - 5));
+  if (id === "tower") sq.towerRun = GM.towerCheckpoint(sq);
+  if (id === "finality" && !sq.wave) sq.wave = 1;
+  sq.monsters = [];
+  sq.victory = null;
+  GM.bus.emit("mode:changed", sq);
+  return { ok: true };
+};
+
+GM.rerollDimension = function (sq) {
+  sq.dim = GM.rollDimension(Math.max(1, GM.state.depth.maxEver - 5));
+  sq.monsters = [];
+  GM.bus.emit("mode:changed", sq);
+  return sq.dim;
+};
+
+GM.setExplorationTarget = function (sq, stage) {
+  sq.target = GM.clamp(Math.floor(stage), 1, Math.max(1, sq.max));
+  sq.monsters = [];
+  GM.bus.emit("mode:changed", sq);
+};
+
+GM.beginVigil = function (sq, graveId) {
   var g = GM.graveById(graveId);
   if (!g || g.state !== "revenant") return { ok: false, why: "Nothing is standing." };
-  GM.state.mode.graveId = graveId;
-  return GM.setMode("vigil");
+  sq.graveId = graveId;
+  return GM.setSquadMode(sq, "vigil");
+};
+
+GM.toggleSquad = function (sq) {
+  sq.running = !sq.running;
+  GM.bus.emit("squads:changed");
+  return sq.running;
 };
 
 /* ---------- ascension ----------------------------------------------------
@@ -321,29 +276,35 @@ GM.ascend = function () {
   var s = GM.state;
 
   s.char.ichor += gained;
-  s.char.level = 1;
   s.char.xp = 0;
   s.char.gold = 0;
   s.char.shards = Math.floor(s.char.shards * 0.25);   /* a little seed capital */
 
-  GM.SLOT_IDS.forEach(function (slot) { s.equip[slot] = null; });
+  /* The warband is re-founded: the heroes are new, the parish is not. Keeping
+     the roster would make ascension a pure upgrade with no cost at all. */
+  GM.foundWarband();
   s.stash = [];
   s.tree = { points: 0, spent: [] };
   s.graves = [];
+  if (GM.grantStartingKit) GM.grantStartingKit();
 
-  var st = GM.derive(GM.collect({}));
+  var st = GM.derive(GM.collect(s.heroes[0], {}));
   var start = Math.max(1, 1 + (st.startStage || 0));
   s.depth.current = start;
   s.depth.max = start;
-  s.depth.kills = 0;
-
-  s.mode = { id: "expedition", target: 1, dim: null };
-  GM.fight.monster = null;
+  s.squads.forEach(function (sq) {
+    sq.stage = start; sq.max = start; sq.mode = "expedition";
+    sq.monsters = []; sq.victory = null; sq.dim = null;
+    sq.hp = 0; sq.hpMax = 0;
+  });
+  s.char.level = GM.warbandLevel();
   s.tally.ascensions++;
 
   GM.invalidateStats();
   GM.log("Ascended. " + gained + " Ichor. The ground looks familiar.", "ascend");
   GM.bus.emit("ascend", { gained: gained });
+  GM.bus.emit("roster:changed");
+  GM.bus.emit("squads:changed");
   GM.bus.emit("gear:changed");
   GM.bus.emit("tree:changed");
   GM.bus.emit("depth:changed");

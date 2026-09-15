@@ -1,27 +1,20 @@
 /* Gravemark — 13-combat.js
-   The encounter solver.
+   The encounter solver, now for three squads at once.
 
-   ONE tick function serves both live play and offline catch-up: `GM.tick(dt)`
-   loops internally until `dt` is spent, resolving as many encounters as fit.
-   Live play passes ~1/30s; offline passes hours. Online and offline therefore
-   cannot drift apart, which is the usual source of "my away gains were wrong"
-   bug reports in idle games. */
+   Each squad delves independently: its own depth, its own pack, its own life
+   pool. `GM.tick(dt)` advances all three, so one tick function still serves
+   both live play and offline catch-up and the two cannot drift apart.
+
+   A squad fights as one body. Its damage focuses the front monster; the whole
+   surviving pack hits back into a pooled life bar. That is why the panel can
+   show six monsters and one green bar without lying about the maths. */
 "use strict";
 
-/* The live encounter. Player life carries between fights; monster life does
-   not. Both are plain numbers so the whole thing survives a save. */
-GM.fight = {
-  monster: null,
-  mhp: 0, mhpMax: 0,
-  php: 1, phpMax: 1,
-  elapsed: 0,
-  stage: 1
-};
+GM.ELITE_CHANCE = 0.12;
+GM.VICTORY_HOLD = 2.6;         /* seconds the "victorious" banner sits */
 
 /* ---------- spawning ----------------------------------------------------- */
-GM.ELITE_CHANCE = 0.12;
-
-GM.spawn = function (stage, ctx) {
+GM.spawnOne = function (stage, ctx) {
   ctx = ctx || {};
   var realm = GM.realmOf(stage);
   var boss = GM.isBossStage(stage) && !ctx.noBoss;
@@ -37,10 +30,6 @@ GM.spawn = function (stage, ctx) {
   } else {
     var pool = GM.monstersFor(realm);
     arch = GM.pickW(pool);
-    /* Elites are 2.6x life and 1.35x damage. Rolling one in the opening
-       minute, before the player has found anything, reads as the game being
-       broken rather than as a challenge — so they ramp in over the first
-       realm instead of appearing immediately. */
     var eliteChance = GM.ELITE_CHANCE * GM.clamp((stage - 2) / 8, 0, 1);
     kind = GM.chance(eliteChance) ? "elite" : "normal";
     if (kind === "elite") {
@@ -51,7 +40,6 @@ GM.spawn = function (stage, ctx) {
     name = (kind === "elite" ? "Risen " : "") + arch.name;
   }
 
-  /* Mutators and the season rule layer on top of the archetype. */
   var accMult = 1, armMult = 1;
   var mut = ctx.mutators || [];
   for (var i = 0; i < mut.length; i++) {
@@ -79,9 +67,10 @@ GM.spawn = function (stage, ctx) {
     }
   }
 
+  var hp = GM.monHp(stage) * (arch.hp || 1) * hpMult;
   return {
     id: arch.id, name: name, kind: kind, elem: arch.elem, res: res,
-    hp: GM.monHp(stage) * (arch.hp || 1) * hpMult,
+    hp: hp, hpMax: hp,
     dmg: GM.monDmg(stage) * (arch.dmg || 1) * dmgMult,
     armour: GM.monArmour(stage) * armMult,
     acc: GM.monAcc(stage) * accMult,
@@ -89,10 +78,22 @@ GM.spawn = function (stage, ctx) {
   };
 };
 
-/* ---------- the two rates ------------------------------------------------
-   Everything about whether a fight is winnable comes down to these. */
+/* A whole pack. Boss stages are a single large enemy; everything else is a
+   line of them, which is what the panel draws. */
+GM.spawnPack = function (stage, ctx) {
+  ctx = ctx || {};
+  if (ctx.revenant) {
+    var g = GM.graveById(ctx.revenant);
+    if (g) return [GM.revenantMonster(g)];
+  }
+  if (GM.isBossStage(stage) && !ctx.noBoss) return [GM.spawnOne(stage, ctx)];
+  var n = ctx.single ? 1 : GM.CURVE.packSize;
+  var out = [];
+  for (var i = 0; i < n; i++) out.push(GM.spawnOne(stage, ctx));
+  return out;
+};
 
-/* Player damage per second against THIS monster's resistances. */
+/* ---------- the two rates ------------------------------------------------ */
 GM.dpsAgainst = function (st, mon) {
   var total = 0;
   for (var i = 0; i < GM.ELEMENTS.length; i++) {
@@ -100,10 +101,8 @@ GM.dpsAgainst = function (st, mon) {
     var hit = st.elemHit[e] || 0;
     if (hit <= 0) continue;
     var r = (mon.res && mon.res[e]) || 0;
-    /* Penetration reduces resistance but cannot push it below -100%. */
     var eff = GM.clamp(r - st.pen, -1, 0.95);
     if (e === "phys") {
-      /* Physical is additionally reduced by monster armour, diminishing. */
       var red = mon.armour / (mon.armour + 8 * Math.max(1, hit));
       eff = GM.clamp(eff + red * (1 - eff), -1, 0.95);
     }
@@ -112,7 +111,6 @@ GM.dpsAgainst = function (st, mon) {
   return total * st.critFactor * st.attackSpeed;
 };
 
-/* Monster damage per second actually landing on the player. */
 GM.incomingDps = function (st, mon) {
   var raw = mon.dmg;
   var dodge = GM.dodgeChance(st.evasion, mon.acc);
@@ -126,154 +124,187 @@ GM.incomingDps = function (st, mon) {
   return afterDodge * (1 - res);
 };
 
-/* Leech is capped as a fraction of MAXIMUM LIFE per second, not left as a
-   flat fraction of damage dealt. Uncapped, leech scales with dps while
-   incoming damage scales with depth, so past a certain point every build is
-   immortal and defence stops being a decision. The cap is the standard ARPG
-   fix and it is the single most load-bearing number in the combat model. */
-GM.LEECH_CAP = 0.20;
+/* Everything still alive in the pack hits back at once. */
+GM.packIncoming = function (st, pack) {
+  var t = 0;
+  for (var i = 0; i < pack.length; i++) {
+    if (pack[i].hp > 0) t += GM.incomingDps(st, pack[i]);
+  }
+  return t;
+};
 
+GM.LEECH_CAP = 0.20;
 GM.leechRate = function (st, pdps) {
   return Math.min(pdps * st.leech, st.life * GM.LEECH_CAP);
 };
 
-/* Net life change per second while fighting this monster. Positive means the
-   player is winning the attrition war and cannot lose the fight. */
-GM.netLifeRate = function (st, mon, pdpsIn) {
-  var pdps = pdpsIn == null ? GM.dpsAgainst(st, mon) : pdpsIn;
-  return st.regen + GM.leechRate(st, pdps) - GM.incomingDps(st, mon);
+GM.netLifeRate = function (st, incoming, pdps) {
+  return st.regen + GM.leechRate(st, pdps) - incoming;
 };
 
-/* A read-only verdict used by the UI to show whether the current stage is
-   survivable before the player walks into it. */
-GM.forecast = function (stage, ctx) {
-  var st = GM.stats(ctx);
-  var mon = GM.spawn(stage, GM.assign({ noBoss: false }, ctx || {}));
-  var pdps = GM.dpsAgainst(st, mon);
-  var net = GM.netLifeRate(st, mon, pdps);
-  var ttk = pdps > 0 ? mon.hp / pdps : Infinity;
+/* Read-only verdict for the UI: can this squad hold this depth? */
+GM.forecastSquad = function (sq, stage) {
+  var ctx = GM.squadCtx(sq);
+  var st = GM.squadStats(sq, ctx);
+  if (!st.count) return { win: false, empty: true, ttk: Infinity, ttd: 0 };
+  var pack = GM.spawnPack(stage == null ? sq.stage : stage, ctx);
+  var totalHp = 0, i;
+  for (i = 0; i < pack.length; i++) totalHp += pack[i].hp;
+  var pdps = GM.dpsAgainst(st, pack[0]);
+  var incoming = GM.packIncoming(st, pack);
+  var net = GM.netLifeRate(st, incoming, pdps);
+  var ttk = pdps > 0 ? totalHp / pdps : Infinity;
   var ttd = net >= 0 ? Infinity : st.life / -net;
-  return {
-    monster: mon, dps: pdps, ttk: ttk, ttd: ttd,
-    win: ttk < ttd, margin: ttd === Infinity ? Infinity : ttd / Math.max(0.001, ttk)
-  };
+  return { ttk: ttk, ttd: ttd, win: ttk < ttd, dps: pdps, pack: pack };
+};
+
+/* ---------- per-squad fight state ---------------------------------------- */
+GM.ensureSquadFight = function (sq, ctx) {
+  var st = GM.squadStats(sq, ctx);
+  if (!st.count) return null;
+
+  if (sq.hpMax !== st.life) {
+    var frac = sq.hpMax > 0 ? sq.hp / sq.hpMax : 1;
+    sq.hpMax = st.life;
+    sq.hp = st.life * GM.clamp(frac, 0, 1);
+  }
+  if (!sq.monsters || !sq.monsters.length) {
+    sq.monsters = GM.spawnPack(GM.squadStage(sq), ctx);
+    sq.packMax = sq.monsters.length;
+    sq.startedAt = Date.now();
+    sq.packKills = 0;
+  }
+  return st;
 };
 
 /* ---------- the tick -----------------------------------------------------
-   `budget` is seconds of game time to resolve. `maxSteps` bounds the work so
-   a twelve-hour offline catch-up cannot hang the page. */
+   `budget` is seconds of game time. Each squad gets the full budget; they run
+   in parallel, not in turns. */
 GM.MAX_STEPS_LIVE = 64;
-GM.MAX_STEPS_OFFLINE = 40000;
-
-GM.ensureFight = function (stage, ctx) {
-  var f = GM.fight;
-  if (!f.monster || f.stage !== stage) {
-    f.monster = GM.spawn(stage, ctx);
-    f.mhp = f.mhpMax = f.monster.hp;
-    f.stage = stage;
-    f.elapsed = 0;
-  }
-  var st = GM.stats(ctx);
-  if (f.phpMax !== st.life) {
-    /* Keep the damage taken, not the absolute number, when max life changes —
-       equipping a life roll mid-fight must not be a free heal. */
-    var frac = f.phpMax > 0 ? f.php / f.phpMax : 1;
-    f.phpMax = st.life;
-    f.php = st.life * GM.clamp(frac, 0, 1);
-  }
-  return f;
-};
+GM.MAX_STEPS_OFFLINE = 20000;
 
 GM.tick = function (budget, opts) {
   opts = opts || {};
-  var ctx = GM.modeCtx ? GM.modeCtx() : {};
-  var maxSteps = opts.offline ? GM.MAX_STEPS_OFFLINE : GM.MAX_STEPS_LIVE;
   var report = {
     kills: 0, bosses: 0, deaths: 0, xp: 0, gold: 0, shards: 0,
-    items: 0, runes: 0, equipped: 0, cleared: 0, seconds: 0, epitaphs: 0,
-    best: null
+    items: 0, runes: 0, equipped: 0, cleared: 0, seconds: budget,
+    epitaphs: 0, best: null, bySquad: {}
   };
+  var squads = GM.state.squads || [];
+  for (var i = 0; i < squads.length; i++) {
+    var r = GM.tickSquad(squads[i], budget, opts);
+    report.bySquad[squads[i].id] = r;
+    report.kills += r.kills; report.bosses += r.bosses; report.deaths += r.deaths;
+    report.xp += r.xp; report.gold += r.gold; report.shards += r.shards;
+    report.items += r.items; report.runes += r.runes;
+    report.equipped += r.equipped; report.cleared += r.cleared;
+    report.epitaphs += r.epitaphs;
+    if (r.best && (!report.best || r.best.rarity >= report.best.rarity)) report.best = r.best;
+  }
+  if (report.kills || report.deaths || report.cleared) {
+    GM.bus.emit("combat:progress", report);
+  }
+  return report;
+};
 
-  var steps = 0;
+GM.tickSquad = function (sq, budget, opts) {
+  opts = opts || {};
+  var report = {
+    kills: 0, bosses: 0, deaths: 0, xp: 0, gold: 0, shards: 0,
+    items: 0, runes: 0, equipped: 0, cleared: 0, epitaphs: 0, best: null
+  };
+  if (!sq.running) return report;
+
+  var ctx = GM.squadCtx(sq);
+  var maxSteps = opts.offline ? GM.MAX_STEPS_OFFLINE : GM.MAX_STEPS_LIVE;
   var left = budget;
+  var steps = 0;
 
   while (left > 1e-6 && steps++ < maxSteps) {
-    var stage = GM.modeStage ? GM.modeStage() : GM.state.depth.current;
-    var f = GM.ensureFight(stage, ctx);
-    var st = GM.stats(ctx);
-    var mon = f.monster;
+    /* A cleared stage holds its banner before moving on — the "Leave"
+       countdown. The hold burns GAME time, not wall-clock: counting real
+       milliseconds would mean a single tick() call could never get past one
+       victory, so an eight-hour offline pass would resolve exactly one pack. */
+    if (sq.victory) {
+      var wait = Math.min(left, sq.victory.hold);
+      sq.victory.hold -= wait;
+      left -= wait;
+      if (sq.victory.hold <= 1e-9) GM.leaveVictory(sq);
+      continue;
+    }
 
-    var pdps = GM.dpsAgainst(st, mon);
-    var net = GM.netLifeRate(st, mon, pdps);
+    var st = GM.ensureSquadFight(sq, ctx);
+    if (!st) return report;                 /* empty squad: nothing happens */
 
-    /* Time until each side falls over. */
-    var tKill = pdps > 0 ? f.mhp / pdps : Infinity;
-    var tDie = net < 0 ? f.php / -net : Infinity;
+    var front = null;
+    for (var i = 0; i < sq.monsters.length; i++) {
+      if (sq.monsters[i].hp > 0) { front = sq.monsters[i]; break; }
+    }
+    if (!front) { GM.onStageCleared(sq, report, ctx); continue; }
 
-    /* A build that can neither kill nor die would spin the loop forever.
-       Treat it as a stall: burn the budget and let the UI say so. */
+    var pdps = GM.dpsAgainst(st, front);
+    var incoming = GM.packIncoming(st, sq.monsters);
+    var net = GM.netLifeRate(st, incoming, pdps);
+
+    var tKill = pdps > 0 ? front.hp / pdps : Infinity;
+    var tDie = net < 0 ? sq.hp / -net : Infinity;
+
     if (tKill === Infinity && tDie === Infinity) {
-      f.elapsed += left;
-      report.seconds += left;
       report.stalled = true;
       left = 0;
       break;
     }
 
     var step = Math.min(left, tKill, tDie);
-    f.mhp -= pdps * step;
-    f.php = GM.clamp(f.php + net * step, 0, f.phpMax);
-    f.elapsed += step;
-    report.seconds += step;
+    front.hp -= pdps * step;
+    sq.hp = GM.clamp(sq.hp + net * step, 0, sq.hpMax);
     left -= step;
 
-    if (f.mhp <= 1e-9) {
-      GM.onKill(mon, st, report, ctx);
-      f.monster = null;                 /* next loop spawns the next one */
-      /* Out-of-combat regeneration between packs: a small top-up so a build
-         with regen actually benefits from clearing quickly. */
-      f.php = GM.clamp(f.php + st.regen * 0.5, 0, f.phpMax);
-    } else if (f.php <= 1e-9) {
-      GM.onDeath(mon, st, report, ctx);
-      f.monster = null;
-      f.php = f.phpMax;                 /* you come back whole; you come back poorer */
+    if (front.hp <= 1e-9) {
+      front.hp = 0;
+      sq.packKills = (sq.packKills || 0) + 1;
+      GM.onSquadKill(sq, front, st, report, ctx);
+      /* A breather between kills, so regen builds matter. */
+      sq.hp = GM.clamp(sq.hp + st.regen * 0.4, 0, sq.hpMax);
+    } else if (sq.hp <= 1e-9) {
+      GM.onSquadWipe(sq, front, st, report, ctx);
+      /* Keep going: the squad respawns at the realm floor and delves again,
+         which is what makes an unattended wipe loop self-correcting rather
+         than a dead stop. */
     }
   }
-
-  if (report.kills || report.deaths || report.cleared) GM.bus.emit("combat:progress", report);
   return report;
 };
 
-/* ---------- kill and death ----------------------------------------------- */
-GM.onKill = function (mon, st, report, ctx) {
+/* ---------- kill, clear, wipe -------------------------------------------- */
+GM.onSquadKill = function (sq, mon, st, report, ctx) {
   var s = GM.state;
   var stage = mon.stage;
   var mult = (ctx && ctx.rewardMult) || 1;
 
   report.kills++;
   s.tally.kills++;
-  if (mon.kind === "boss") { report.bosses++; s.tally.bosses++; }
+  GM.questProgress("slay", 1);
+  if (mon.kind === "boss") {
+    report.bosses++; s.tally.bosses++;
+    GM.questProgress("boss", 1);
+  }
 
-  /* xp and gold */
   var xp = GM.xpFor(stage) * (1 + st.findXP) * mult *
            (mon.kind === "boss" ? 6 : mon.kind === "elite" ? 2.2 : 1);
-  GM.gainXP(xp);
+  GM.awardSquadXP(sq, xp);
   report.xp += xp;
 
-  /* Kind multipliers and mode multipliers stack: a boss inside Finality is
-     both. `floorRarity` takes whichever of the two is stricter. */
   var kindDrop = mon.kind === "boss" ? 3.2 : mon.kind === "elite" ? 1.8 : mon.kind === "revenant" ? 2.5 : 1;
   var kindRune = mon.kind === "boss" ? 4   : mon.kind === "elite" ? 2   : mon.kind === "revenant" ? 3   : 1;
   var kindGold = mon.kind === "boss" ? 5   : mon.kind === "elite" ? 2   : mon.kind === "revenant" ? 3   : 1;
-  var kindFloor = mon.kind === "boss" ? 1 : null;
-  var ctxFloor = (ctx && ctx.floorRarity) || null;
+  var ctxFloor = (ctx && ctx.floorRarity) || 0;
 
   var drops = GM.rollDrops(stage, st, {
-    dropMult:  kindDrop * ((ctx && ctx.dropMult)  || 1),
-    runeMult:  kindRune * ((ctx && ctx.runeMult)  || 1),
+    dropMult:  kindDrop * ((ctx && ctx.dropMult) || 1),
+    runeMult:  kindRune * ((ctx && ctx.runeMult) || 1),
     goldMult:  mult * kindGold,
-    shardMult: (ctx && ctx.shardMult) || 1,
-    floorRarity: Math.max(kindFloor || 0, ctxFloor || 0) || null
+    floorRarity: Math.max(mon.kind === "boss" ? 1 : 0, ctxFloor) || null
   });
 
   s.char.gold += drops.gold;
@@ -281,14 +312,21 @@ GM.onKill = function (mon, st, report, ctx) {
   report.gold += drops.gold;
   report.shards += drops.shards;
 
+  /* Banked on the squad so the victory banner can show the haul. */
+  sq.haul = sq.haul || { gold: 0, shards: 0, items: 0, runes: 0, chests: 0 };
+  sq.haul.gold += drops.gold;
+  sq.haul.shards += drops.shards;
+
   for (var i = 0; i < drops.items.length; i++) {
     var it = drops.items[i];
     report.items++;
-    var res = GM.intakeItem(it, ctx);
+    sq.haul.items++;
+    GM.questProgress("loot", 1);
+    var res = GM.intakeItem(it, ctx, sq);
     if (res.action === "equipped") {
       report.equipped++;
       if (!report.best || it.rarity >= report.best.rarity) report.best = it;
-      GM.log("Equipped " + GM.itemName(it) + ".", "equip");
+      GM.log(res.hero.name + " equips " + GM.itemName(it) + ".", "equip");
     } else if (res.action === "stashed" && it.rarity >= 3) {
       if (!report.best || it.rarity >= report.best.rarity) report.best = it;
       GM.log("Found " + GM.itemName(it) + ".", "rare");
@@ -298,36 +336,80 @@ GM.onKill = function (mon, st, report, ctx) {
   for (i = 0; i < drops.runes.length; i++) {
     GM.addRune(drops.runes[i], 1);
     report.runes++;
+    sq.haul.runes++;
+    GM.questProgress("rune", 1);
     GM.log("The " + GM.RUNE_BY_ID[drops.runes[i]].name + " rune surfaces.", "rune");
   }
 
-  /* A kill is also the chance for a gravemark of YOURS to give something up. */
-  if (GM.graveOnKill) GM.graveOnKill(st, report, ctx);
-
-  /* Pack progress. */
-  if (GM.modeOnKill) GM.modeOnKill(mon, report, ctx);
+  if (GM.graveOnKill) GM.graveOnKill(sq, st, report, ctx);
 };
 
-GM.onDeath = function (mon, st, report, ctx) {
+GM.onStageCleared = function (sq, report, ctx) {
+  report.cleared++;
+  var secs = sq.startedAt ? (Date.now() - sq.startedAt) / 1000 : 0;
+  sq.victory = {
+    time: secs,
+    kills: sq.packKills || 0,
+    haul: sq.haul || { gold: 0, shards: 0, items: 0, runes: 0 },
+    hold: GM.VICTORY_HOLD,
+    stage: GM.squadStage(sq)
+  };
+  sq.haul = null;
+  sq.monsters = [];
+  GM.questProgress("explore", 1);
+  GM.bus.emit("squad:victory", sq);
+};
+
+/* Advance past a victory banner — automatically, or from the Leave button. */
+GM.leaveVictory = function (sq) {
+  if (!sq.victory) return;
+  sq.victory = null;
+  GM.squadAdvance(sq);
+  sq.monsters = [];
+  GM.bus.emit("squads:changed");
+};
+
+GM.onSquadWipe = function (sq, mon, st, report, ctx) {
   report.deaths++;
   GM.state.tally.deaths++;
-  GM.log("Killed by " + mon.name + " at depth " + mon.stage + ".", "death");
-  /* The spin: dying is not purely a loss. It plants a gravemark. */
-  if (GM.plantGrave) GM.plantGrave(mon.stage, mon);
-  if (GM.modeOnDeath) GM.modeOnDeath(mon, report, ctx);
+  GM.log(sq.name + " is broken at depth " + GM.squadStage(sq) + " by " + mon.name + ".", "death");
+  if (GM.plantGrave) GM.plantGrave(sq, GM.squadStage(sq), mon);
+  GM.squadRetreat(sq);
+  sq.hp = sq.hpMax;
+  sq.monsters = [];
+  GM.bus.emit("squads:changed");
 };
 
-/* ---------- levelling ---------------------------------------------------- */
-GM.gainXP = function (amount) {
-  var c = GM.state.char;
-  c.xp += amount;
+/* ---------- experience ---------------------------------------------------
+   Split across the squad. Everyone present learns something; the split means
+   a five-strong squad levels slower per head than a lone pair, which is the
+   trade for their combined power. */
+GM.awardSquadXP = function (sq, amount) {
+  var heroes = GM.squadHeroes(sq);
+  if (!heroes.length) return;
+  var each = amount / heroes.length;
+  for (var i = 0; i < heroes.length; i++) GM.heroGainXP(heroes[i], each);
+};
+
+GM.heroGainXP = function (hero, amount) {
+  hero.xp += amount;
+  var cap = GM.heroMaxLevel(hero);
   var guard = 0;
-  while (c.level < GM.MAX_LEVEL && c.xp >= GM.xpToLevel(c.level) && guard++ < 500) {
-    c.xp -= GM.xpToLevel(c.level);
-    c.level++;
+  while (hero.level < cap && hero.xp >= GM.heroXpToLevel(hero) && guard++ < 500) {
+    hero.xp -= GM.heroXpToLevel(hero);
+    hero.level++;
     GM.state.tree.points += GM.TREE_POINTS_PER_LEVEL;
-    GM.log("Level " + c.level + ". A point to spend.", "level");
-    GM.bus.emit("level:changed", c.level);
+    GM.log(hero.name + " reaches level " + hero.level + ".", "level");
+    GM.bus.emit("level:changed", hero);
   }
-  if (c.level >= GM.MAX_LEVEL) c.xp = 0;
+  if (hero.level >= cap) hero.xp = 0;
+  GM.state.char.level = GM.warbandLevel();
+};
+
+/* ---------- quests ------------------------------------------------------- */
+GM.questProgress = function (id, n) {
+  var q = GM.state.quest;
+  if (!q || q.id !== id) return;
+  q.done += n;
+  GM.bus.emit("quest:changed", q);
 };

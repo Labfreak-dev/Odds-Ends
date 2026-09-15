@@ -9,34 +9,62 @@ treadmill, sockets and runewords, a passive tree, a town, five adventure modes,
 seasons and prestige — with one system of its own bolted through the middle of
 it.
 
+## The shape of it
+
+Three columns, all visible at once, so you never stop watching the game to
+manage a menu:
+
+```
+  the parish          three live delves        the warband
+  ----------          -----------------        -----------
+  painted scene       squad 1 fighting         22-hero roster
+  building markers    squad 2 fighting         portraits, ranks,
+  currencies          squad 3 fighting         levels, squad
+  charter strip       each with its own        assignment
+                      depth and orders
+```
+
+A **warband** of up to 22 heroes, split across **three squads that delve
+simultaneously**. Each squad has its own depth, its own orders and its own life
+pool; each hero has their own class, rank, level and full set of equipment. The
+passive tree, the parish and ascension are shared, because those are the
+player's institution rather than any one person's kit.
+
+Everything that used to be a tab — gear, bench, tree, parish, gravemarks,
+ascension — opens as an overlay over the three columns.
+
 ## The spin: death is the crafting system
 
 Path of Idle's most common complaint is that the endgame collapses into an
 RNG-fest for equipment stats. Gravemark's answer:
 
-- Dying does **not** take your gear. It takes a **rubbing** of it, and plants a
-  **gravemark** at the depth where you died recording every affix you wore.
-- Kill at or below that depth to recover the gravemark. It pays out an
-  **Epitaph**: one of those exact rolls, at its exact tier and its exact value.
+- A squad that is broken does **not** lose its gear. It leaves a **gravemark**
+  at that depth recording every affix the whole squad wore.
+- Kill at or below that depth to recover it. It pays an **Epitaph**: one of
+  those exact rolls, at its exact tier and its exact value.
 - An Epitaph can be **inscribed** onto any legal item — deterministically. No
   roll, no range, no second attempt.
-- Leave a gravemark too long and it stands up as a **Revenant** wearing your old
-  kit, scaled by how good that kit was. Beat it to claim double epitaphs and a
-  guaranteed high-rarity item.
+- Leave a gravemark too long and it stands up as a **Revenant** wearing the old
+  kit. Beat it to claim double epitaphs and a guaranteed high-rarity item.
 
 So the endgame is "die in good gear, remember the good rolls, put them where you
 want them" rather than "reroll until the dice are kind". Shards still buy random
 outcomes and are plentiful; epitaphs buy exact outcomes and are scarce, because
-each one cost a death.
+each one cost a wipe.
 
 ## Files
 
 ```
-index.html          the shell; script tags in load order
+index.html          the three-column shell; script tags in load order
 css/main.css        every colour is a token on :root — retheme here
 src/00-18-*.js      logic layer (no DOM)
-src/30-34,99-*.js   UI layer and boot
-tools/              harness, tests, balance, art brief
+src/30-ui.js        shell core: currencies, tooltips, render router
+src/31-ui-hub.js    left column: the parish
+src/32-ui-battle.js centre column: three live battle panels
+src/33-ui-roster.js right column: the warband
+src/34-ui-overlay.js everything that used to be a tab
+src/99-boot.js      the game loop
+tools/              harness, tests, balance, art tooling
 art/                drop real art here; absent art draws as placeholders
 ```
 
@@ -58,9 +86,9 @@ Everything hangs off the single global `GM`.
 ```bash
 for f in src/*.js; do node --check "$f"; done   # every file parses
 node tools/check-globals.js                      # no top-level collisions
-node tools/test-core.js                          # 64 logic checks
+node tools/test-core.js                          # 88 logic checks
 node tools/balance.js                            # pacing across depths
-python3 tools/smoke.py                           # 36 checks, real page headless
+python3 tools/smoke.py                           # 37 checks, real page headless
 python3 tools/art-check.py art                   # delivered art matches the manifest
 ```
 
@@ -77,31 +105,26 @@ that are already there.
 
 ## Balance
 
-`tools/balance.js` outfits a plausible character at a range of depths and
-reports time-to-kill against time-to-die, for a normal monster and for that
-realm's boss separately. Sampling only round-numbered depths measures nothing
-but bosses, since every tenth stage is one.
-
-The intended shape, and what it currently reports:
-
-| profile | expected |
-|---|---|
-| farming at your own depth | safe; you idle without dying |
-| pushing ~15 ahead of gear | fights lengthen, bosses become real events |
-| pushing ~30 ahead of gear | **bosses wall you** |
-
-Bosses are the gate. Dying is what plants gravemarks, so the difficulty curve
-feeds the crafting system.
+`tools/balance.js` outfits a plausible SQUAD at a range of depths and reports
+time-to-clear-the-pack against time-to-be-broken, for a normal pack and for that
+realm's boss separately. Sampling only round-numbered depths measures nothing but
+bosses, since every tenth stage is one.
 
 All scaling constants live in `GM.CURVE` in `src/03-data-world.js` and nowhere
-else. `itemScale` is load-bearing: base tiers are discrete and run out at ilvl
-84, so without continuous per-ilvl scaling on flat stats the game walls
-permanently around depth 90. Change it and re-run `balance.js`.
+else. Four of them are load-bearing and were measured rather than guessed:
 
-`GM.LEECH_CAP` is the other load-bearing number. Leech capped as a fraction of
-maximum life per second, not of damage dealt — uncapped, leech scales with dps
-while incoming damage scales with depth, and past a point every build is
-immortal.
+| constant | why it is what it is |
+|---|---|
+| `monHpG` / `monDmgG` | A geared squad's damage grows 1.111 per depth and its life 1.082 — **until levels cap**, after which damage growth falls to ~1.087 (item scaling alone). These sit between the two, so the mid-game keeps pace and the post-cap depths tighten into an endgame instead of a wall. |
+| `itemScale` | Base tiers are discrete and run out at ilvl 84. Without continuous per-ilvl scaling on flat stats the game walls permanently around depth 90. |
+| `packsPerStage` | The single most important pacing number. At one pack per depth a squad gained a depth every ~15s, so difficulty compounded 1.10× per quarter-minute while three level-1 heroes split experience three ways. It out-climbed its own power and wiped inside two minutes, every time. |
+| `GM.earlyScale` | A farmed squad is ~9× stronger than the three heroes a new save starts with, so one constant cannot serve both. This ramps the first 25 depths down. |
+
+`GM.LEECH_CAP` matters just as much: leech is capped as a fraction of maximum
+life per second, not of damage dealt. Uncapped, leech scales with damage while
+incoming scales with depth, and past a point every squad is immortal.
+
+Change any of these and re-run `balance.js`.
 
 ## Art
 
@@ -110,12 +133,12 @@ either the real asset or a procedurally drawn, labelled placeholder, so it is
 fully playable with zero image files. Backdrops resolve to `.jpg` (no alpha,
 a tenth the bytes); everything else to `.png`.
 
-`src/18-assets.js` is the manifest: 288 keys, including 169 animated sprite
+`src/18-assets.js` is the manifest: 311 keys, including 169 animated sprite
 sheets and 45 paper-doll gear layers. It is built programmatically from the game
 data, so adding a monster to `03-data-world.js` adds its art keys automatically
 and the brief cannot drift out of date.
 
-**Current coverage: 158 of 288 painted.** `ART-REMAINING.md` lists the rest.
+**Current coverage: 158 of 311 painted.** `ART-REMAINING.md` lists the rest.
 All twelve bosses, all fifteen monsters, the hero, and seventeen of eighteen
 backdrops are in. Outstanding: the paper-doll gear, most item and rune icons,
 and the UI chrome and rarity frames (neither of which the renderer consumes

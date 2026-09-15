@@ -2,190 +2,78 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Gravemark</title>
 <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 <div id="app">
 
-  <header id="topbar">
-    <div id="brand">GRAVEMARK<small id="buildStamp">v0 &middot; ------</small></div>
-    <div id="res">
-      <span class="res"><span class="rl">Lv</span><b id="rLevel">1</b></span>
-      <span class="res"><span class="rl">Depth</span><b id="rDepth">1</b></span>
-      <span class="res"><span class="rl">Gold</span><b id="rGold">0</b></span>
-      <span class="res"><span class="rl">Shards</span><b id="rShards">0</b></span>
-      <span class="res"><span class="rl">Ichor</span><b id="rIchor">0</b></span>
-      <span class="res" id="rMarksWrap" hidden><span class="rl">Marks</span><b id="rMarks">0</b></span>
-      <span class="res" id="rDustWrap" hidden><span class="rl">Dust</span><b id="rDust">0</b></span>
+  <!-- ============ LEFT: the parish ============ -->
+  <section id="hub">
+    <div id="hubScene">
+      <canvas id="hubCanvas"></canvas>
+
+      <div id="hubTop">
+        <span class="cur" data-tip="cur:gold"><i class="ci ci-gold"></i><b id="cGold">0</b></span>
+        <span class="cur" data-tip="cur:shards"><i class="ci ci-shard"></i><b id="cShards">0</b></span>
+        <span class="cur" data-tip="cur:ichor"><i class="ci ci-ichor"></i><b id="cIchor">0</b></span>
+        <span class="cur" id="cMarksWrap" hidden data-tip="cur:marks"><i class="ci ci-mark"></i><b id="cMarks">0</b></span>
+        <span class="cur" id="cDustWrap" hidden data-tip="cur:dust"><i class="ci ci-dust"></i><b id="cDust">0</b></span>
+      </div>
+
+      <div id="hubSide">
+        <button class="sideBtn" data-open="settings"><span>&#9881;</span>Settings</button>
+        <button class="sideBtn" data-open="codex"><span>&#128220;</span>Codex</button>
+        <button class="sideBtn" data-open="manual"><span>&#128214;</span>Manual</button>
+        <button class="sideBtn hot" data-open="ascend"><span>&#10022;</span>Ascend</button>
+      </div>
+
+      <div id="hubMarkers"></div>
+
+      <div id="questStrip">
+        <div class="qtext"><span id="questName">&mdash;</span>
+          <span class="qcount"><b id="questDone">0</b>/<span id="questNeed">30</span></span></div>
+        <div class="qbar"><div class="qfill" id="questFill"></div></div>
+        <div class="qrow">
+          <span class="qreward"><i class="ci ci-gold"></i><b id="qrGold">0</b></span>
+          <span class="qreward"><i class="ci ci-shard"></i><b id="qrShards">0</b></span>
+          <span class="qreward"><i class="ci ci-ichor"></i><b id="qrIchor">0</b></span>
+          <button class="btn sm" id="questClaim" disabled>Not Completed</button>
+        </div>
+      </div>
     </div>
-  </header>
+  </section>
 
-  <nav id="tabs">
-    <button class="tab on" data-view="delve">Delve</button>
-    <button class="tab" data-view="gear">Gear</button>
-    <button class="tab" data-view="bench">Bench</button>
-    <button class="tab" data-view="tree">Tree<span class="badge" id="treeBadge" hidden>0</span></button>
-    <button class="tab" data-view="town">Town</button>
-    <button class="tab" data-view="graves">Graves<span class="badge" id="graveBadge" hidden>0</span></button>
-    <button class="tab" data-view="modes">Modes</button>
-    <button class="tab" data-view="ascend">Ascend</button>
-  </nav>
+  <!-- ============ CENTRE: three delves ============ -->
+  <section id="battles"></section>
 
-  <main id="main">
+  <!-- ============ RIGHT: the warband ============ -->
+  <aside id="roster">
+    <div id="rosterHead">
+      <div class="rh-title">Warband</div>
+      <div class="rh-count"><b id="rosterCount">0</b>/<span id="rosterMax">22</span></div>
+      <div class="rh-btns">
+        <button class="ibtn" id="btnRecruit" data-tip="txt:Recruit a new hero">&#43;</button>
+        <button class="ibtn" id="btnAutoAssign" data-tip="txt:Fill squads with the strongest benched heroes">&#9776;</button>
+        <button class="ibtn" id="btnStash" data-tip="txt:Stash and crafting bench">&#128230;</button>
+      </div>
+    </div>
+    <div id="rosterList"></div>
+  </aside>
 
-    <!-- ============ DELVE ============ -->
-    <section class="view" id="view-delve">
-      <div id="stage">
-        <canvas id="fightCanvas" width="1120" height="490"></canvas>
-        <div id="stageTag">&mdash;</div>
-        <div id="stageMode">&mdash;</div>
-      </div>
-
-      <div class="panel" style="margin-top:10px">
-        <div class="spread"><span id="monName" class="mono">&mdash;</span><span id="monKind" class="faint small">&mdash;</span></div>
-        <div class="bar" style="margin:4px 0 8px"><div class="fill mhp" id="monBar"></div><div class="txt" id="monBarTxt"></div></div>
-        <div class="spread"><span class="mono">You</span><span id="fightDps" class="faint small">&mdash;</span></div>
-        <div class="bar" style="margin:4px 0 8px"><div class="fill hp" id="youBar"></div><div class="txt" id="youBarTxt"></div></div>
-        <div class="bar slim"><div class="fill xp" id="xpBar"></div><div class="txt" id="xpBarTxt"></div></div>
-        <div class="spread small faint" style="margin-top:6px">
-          <span id="packTxt">&mdash;</span><span id="forecastTxt">&mdash;</span>
-        </div>
-      </div>
-
-      <div class="grid g2">
-        <div class="panel">
-          <h2>Character <span class="sub" id="statSub"></span></h2>
-          <div class="stats" id="statList"></div>
-        </div>
-        <div class="panel">
-          <h2>Chronicle</h2>
-          <div id="log"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ GEAR ============ -->
-    <section class="view" id="view-gear" hidden>
-      <div class="panel">
-        <h2>Equipped <span class="sub" id="gearSub"></span></h2>
-        <div class="slots" id="equipSlots"></div>
-      </div>
-      <div class="panel">
-        <h2>Stash <span class="sub" id="stashSub"></span></h2>
-        <div class="row" style="margin-bottom:8px">
-          <button class="btn sm" id="btnSalvageAll">Salvage unlocked</button>
-          <button class="btn sm" id="btnEquipBest">Re-equip best</button>
-          <label class="opt"><input type="checkbox" id="optAutoEquip"> Auto-equip upgrades</label>
-          <label class="opt"><input type="checkbox" id="optAutoSalvage"> Auto-salvage</label>
-        </div>
-        <div class="stash" id="stashGrid"></div>
-      </div>
-      <div class="panel">
-        <h2>Runes</h2>
-        <div class="grid g3" id="runeGrid"></div>
-      </div>
-    </section>
-
-    <!-- ============ BENCH ============ -->
-    <section class="view" id="view-bench" hidden>
-      <div class="grid g2">
-        <div class="panel">
-          <h2>Workpiece</h2>
-          <div id="benchItem"><div class="empty">Choose an item from Gear or the list below.</div></div>
-          <div class="sep"></div>
-          <div class="row" id="benchActions"></div>
-          <div class="sep"></div>
-          <h2>Runewords</h2>
-          <div id="benchRunewords"></div>
-        </div>
-        <div class="panel">
-          <h2>Epitaphs <span class="sub" id="epiSub"></span></h2>
-          <p class="flavour" style="margin-bottom:8px">Recovered from your own graves. An epitaph remembers one exact roll &mdash; inscribing it is certain, not a gamble.</p>
-          <div id="epiList"></div>
-        </div>
-      </div>
-      <div class="panel">
-        <h2>Pick a workpiece</h2>
-        <div class="stash" id="benchPicker"></div>
-      </div>
-    </section>
-
-    <!-- ============ TREE ============ -->
-    <section class="view" id="view-tree" hidden>
-      <div class="panel">
-        <h2>Passive Tree <span class="sub" id="treeSub"></span></h2>
-        <div id="treeWrap">
-          <canvas id="treeCanvas"></canvas>
-          <div id="treeHud"></div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn sm" id="btnTreeReset">Recentre</button>
-          <button class="btn sm danger" id="btnRespec">Respec</button>
-          <span class="faint small" id="respecCost"></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ TOWN ============ -->
-    <section class="view" id="view-town" hidden>
-      <div class="panel"><h2>The Parish <span class="sub" id="townSub"></span></h2>
-        <p class="flavour">Gold buried in the parish comes back as something that outlives you.</p>
-      </div>
-      <div class="grid g2" id="townGrid"></div>
-    </section>
-
-    <!-- ============ GRAVES ============ -->
-    <section class="view" id="view-graves" hidden>
-      <div class="panel">
-        <h2>Gravemarks <span class="sub" id="graveSub"></span></h2>
-        <p class="flavour">Every death cuts a stone where it happened, recording what you wore. Kill at or below that depth to recover it. Neglect one and it stands up.</p>
-      </div>
-      <div id="graveList"></div>
-    </section>
-
-    <!-- ============ MODES ============ -->
-    <section class="view" id="view-modes" hidden>
-      <div class="panel"><h2>Adventure <span class="sub" id="modeSub"></span></h2></div>
-      <div class="grid g2" id="modeGrid"></div>
-      <div class="panel" id="modeConfig"></div>
-    </section>
-
-    <!-- ============ ASCEND ============ -->
-    <section class="view" id="view-ascend" hidden>
-      <div class="panel">
-        <h2>Ascension <span class="sub" id="ascSub"></span></h2>
-        <p class="flavour">Give up the run. Keep the parish, the perks, the runes and every epitaph you recovered.</p>
-        <div class="row" style="margin-top:8px">
-          <button class="btn primary" id="btnAscend">Ascend</button>
-          <span id="ascPreview" class="faint small"></span>
-        </div>
-      </div>
-      <div class="grid g2" id="perkGrid"></div>
-      <div class="panel">
-        <h2>Seasons</h2>
-        <p class="flavour" style="margin-bottom:8px">A season is a separate save with one rule. Nothing carries across.</p>
-        <div class="grid g2" id="seasonGrid"></div>
-      </div>
-      <div class="panel">
-        <h2>Record</h2>
-        <div class="stats" id="tallyList"></div>
-      </div>
-    </section>
-
-  </main>
 </div>
 
 <div id="tip"></div>
 <div id="toasts"></div>
-<div id="modalWrap" hidden><div id="modal"></div></div>
+<div id="overlayWrap" hidden><div id="overlay"></div></div>
 
 <script src="src/00-util.js"></script>
 <script src="src/01-data-items.js"></script>
 <script src="src/02-data-runes.js"></script>
 <script src="src/03-data-world.js"></script>
 <script src="src/04-data-meta.js"></script>
+<script src="src/05-data-heroes.js"></script>
 <script src="src/10-state.js"></script>
 <script src="src/11-stats.js"></script>
 <script src="src/12-loot.js"></script>
@@ -196,10 +84,10 @@
 <script src="src/17-offline.js"></script>
 <script src="src/18-assets.js"></script>
 <script src="src/30-ui.js"></script>
-<script src="src/31-ui-fight.js"></script>
-<script src="src/32-ui-gear.js"></script>
-<script src="src/33-ui-tree.js"></script>
-<script src="src/34-ui-meta.js"></script>
+<script src="src/31-ui-hub.js"></script>
+<script src="src/32-ui-battle.js"></script>
+<script src="src/33-ui-roster.js"></script>
+<script src="src/34-ui-overlay.js"></script>
 <script src="src/99-boot.js"></script>
 </body>
 </html>

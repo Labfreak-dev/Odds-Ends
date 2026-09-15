@@ -171,19 +171,32 @@ GM.grantStartingKit = function () {
     { pool: "body",   family: "body"  },
     { pool: "boots",  family: "boots" }
   ];
-  for (var i = 0; i < kit.length; i++) {
-    var spec = kit[i];
-    var base = null;
-    for (var j = 0; j < GM.BASES.length; j++) {
-      if (GM.BASES[j].family === spec.family && GM.BASES[j].tier === 1) { base = GM.BASES[j]; break; }
+  /* Every founding hero, not just one — a squad where two of three are unarmed
+     reads as broken rather than as a starting point. */
+  var heroes = GM.state.heroes || [];
+  for (var h = 0; h < heroes.length; h++) {
+    for (var i = 0; i < kit.length; i++) {
+      var spec = kit[i];
+      var famWanted = spec.family;
+      /* Give each class a weapon that suits it, so the roster does not open
+         with five identical swords. */
+      if (spec.pool === "weapon") {
+        var byClass = { warden: "maul", reaver: "sword", pyre: "wand",
+                        stalker: "dagger", sexton: "scythe" };
+        famWanted = byClass[heroes[h].classId] || "sword";
+      }
+      var base = null;
+      for (var j = 0; j < GM.BASES.length; j++) {
+        if (GM.BASES[j].family === famWanted && GM.BASES[j].tier === 1) { base = GM.BASES[j]; break; }
+      }
+      if (!base) continue;
+      var item = {
+        id: GM.uid("it"), baseId: base.id, pool: base.pool, ilvl: 1, rarity: 0,
+        affixes: [], sockets: [], inscribed: [], locked: false, foundAt: 1
+      };
+      item.name = GM.itemName(item);
+      heroes[h].equip[base.pool] = item;
     }
-    if (!base) continue;
-    var item = {
-      id: GM.uid("it"), baseId: base.id, pool: base.pool, ilvl: 1, rarity: 0,
-      affixes: [], sockets: [], inscribed: [], locked: false, foundAt: 1
-    };
-    item.name = GM.itemName(item);
-    GM.state.equip[spec.pool] = item;
   }
   GM.invalidateStats();
   GM.bus.emit("gear:changed");
@@ -234,42 +247,58 @@ GM.slotsForItem = function (item) {
   return [base.pool];
 };
 
-/* Returns {slot, gain} for the best placement, or null if it is not an
-   upgrade anywhere. Gain is a fraction of current power. */
-GM.evaluate = function (item, ctx) {
+/* Best placement of `item` on ONE hero: {slot, gain} or null. */
+GM.evaluateForHero = function (hero, item, ctx) {
+  if (!hero) return null;
   var slots = GM.slotsForItem(item);
   if (!slots.length) return null;
-  var current = GM.powerScore(GM.stats(ctx));
+  var current = GM.powerScore(GM.heroStats(hero, ctx));
   var best = null;
   for (var i = 0; i < slots.length; i++) {
     var slot = slots[i];
-    if (GM.state.equip[slot] && GM.state.equip[slot].locked) continue;
-    var score = GM.powerScore(GM.statsWith(slot, item, ctx));
+    var worn = hero.equip[slot];
+    if (worn && worn.locked) continue;
+    var score = GM.powerScore(GM.heroStatsWith(hero, slot, item, ctx));
     var gain = (score - current) / Math.max(1, current);
     if (!best || gain > best.gain) best = { slot: slot, gain: gain, score: score };
   }
   return best;
 };
 
-GM.equipItem = function (item, slot) {
+/* Best placement across a whole squad. A drop belongs to whoever gains most
+   from it, which is the only sane rule once loot is shared by five people. */
+GM.evaluateForSquad = function (sq, item, ctx) {
+  var heroes = GM.squadHeroes(sq);
+  var best = null;
+  for (var i = 0; i < heroes.length; i++) {
+    var r = GM.evaluateForHero(heroes[i], item, ctx);
+    if (r && (!best || r.gain > best.gain)) {
+      best = { hero: heroes[i], slot: r.slot, gain: r.gain };
+    }
+  }
+  return best;
+};
+
+GM.equipOn = function (hero, item, slot) {
+  if (!hero) return null;
   var slots = GM.slotsForItem(item);
   if (!slot) slot = slots[0];
   if (slots.indexOf(slot) < 0) return null;
-  var prev = GM.state.equip[slot] || null;
-  GM.state.equip[slot] = item;
-  /* Remove from stash if it was there. */
+  var prev = hero.equip[slot] || null;
+  hero.equip[slot] = item;
   var idx = GM.state.stash.indexOf(item);
   if (idx >= 0) GM.state.stash.splice(idx, 1);
-  GM.bus.emit("gear:changed", { slot: slot, item: item, replaced: prev });
+  GM.bus.emit("gear:changed", { hero: hero, slot: slot, item: item, replaced: prev });
   return prev;
 };
 
-GM.unequip = function (slot) {
-  var it = GM.state.equip[slot];
+GM.unequipFrom = function (hero, slot) {
+  if (!hero) return null;
+  var it = hero.equip[slot];
   if (!it) return null;
-  GM.state.equip[slot] = null;
+  hero.equip[slot] = null;
   GM.stashItem(it);
-  GM.bus.emit("gear:changed", { slot: slot, item: null, replaced: it });
+  GM.bus.emit("gear:changed", { hero: hero, slot: slot, item: null, replaced: it });
   return it;
 };
 
@@ -323,7 +352,7 @@ GM.stashItem = function (item) {
    and the rest go straight to salvage. */
 GM.fast = { active: false, evals: 0, maxEvals: 300 };
 
-GM.intakeItem = function (item, ctx) {
+GM.intakeItem = function (item, ctx, sq) {
   GM.state.tally.drops++;
 
   if (GM.fast.active) {
@@ -335,17 +364,18 @@ GM.intakeItem = function (item, ctx) {
     GM.fast.evals++;
   }
 
-  if (GM.state.opts.autoEquip) {
-    var best = GM.evaluate(item, ctx);
+  if (GM.state.opts.autoEquip && sq) {
+    var best = GM.evaluateForSquad(sq, item, ctx);
     if (best && best.gain > 0.0005) {
-      var replaced = GM.equipItem(item, best.slot);
+      var replaced = GM.equipOn(best.hero, item, best.slot);
       if (replaced) {
         if (GM.state.opts.autoSalvage && !replaced.locked) GM.salvage(replaced);
         else GM.stashItem(replaced);
       }
-      return { action: "equipped", slot: best.slot, gain: best.gain };
+      return { action: "equipped", hero: best.hero, slot: best.slot, gain: best.gain };
     }
   }
+
   if (GM.state.opts.autoSalvage && item.rarity < GM.state.opts.salvageBelow) {
     GM.state.stash.push(item);
     var v = GM.salvage(item);

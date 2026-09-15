@@ -226,10 +226,15 @@ GM.afterCraft = function (item) {
   GM.bus.emit("stash:changed");
 };
 
-/* Is this item currently equipped, and where? */
+/* Is this item worn by anyone, and where? Returns {hero, slot} or null. */
 GM.equippedSlotOf = function (item) {
-  for (var i = 0; i < GM.SLOT_IDS.length; i++) {
-    if (GM.state.equip[GM.SLOT_IDS[i]] === item) return GM.SLOT_IDS[i];
+  var hs = GM.state.heroes || [];
+  for (var h = 0; h < hs.length; h++) {
+    for (var i = 0; i < GM.SLOT_IDS.length; i++) {
+      if (hs[h].equip[GM.SLOT_IDS[i]] === item) {
+        return { hero: hs[h], slot: GM.SLOT_IDS[i] };
+      }
+    }
   }
   return null;
 };

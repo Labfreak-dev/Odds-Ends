@@ -20,15 +20,29 @@ GM.CURVE = {
      `itemScale` and these three MUST be re-measured with tools/balance.js. */
   itemScale: 1.035, /* continuous per-ilvl multiplier on flat item stats */
 
-  monHp0:   15,    monHpG:   1.0820,   /* monster life at stage 1, and per-stage growth */
-  monDmg0:  2.8,   monDmgG:  1.0715,   /* monster damage per second */
-  monArm0:  6,     monArmG:  1.0700,   /* monster armour, reduces incoming physical */
-  monAcc0:  36,    monAccG:  1.0680,   /* accuracy, fought against player evasion */
+  /* Measured, not guessed (tools/balance.js): a geared squad's damage grows
+     1.111 per depth and its life 1.082 — but only until levels cap, after
+     which damage growth falls to about 1.087 (item scaling alone). These sit
+     between the two, so the mid-game keeps pace and the post-cap depths
+     tighten into an endgame rather than slamming into a wall. Ascension is
+     what is meant to carry a warband past that point. */
+  monHp0:   245,   monHpG:   1.1000,   /* monster life at stage 1, and per-stage growth */
+  monDmg0:  22,    monDmgG:  1.0750,   /* monster damage per second */
+  monArm0:  30,    monArmG:  1.0900,   /* monster armour, reduces incoming physical */
+  monAcc0:  90,    monAccG:  1.0800,   /* accuracy, fought against player evasion */
   bossHp:   8.0,   bossDmg:  2.0,      /* stage-10 boss multipliers */
   eliteHp:  2.6,   eliteDmg: 1.35,     /* random elite multipliers */
   xp0:      6,     xpG:      1.0760,
   gold0:    4,     goldG:    1.0790,
-  packSize: 8                          /* kills required to clear a normal stage */
+  packSize: 6,                         /* monsters in a normal pack */
+
+  /* Packs cleared before the depth counter moves. This is the single most
+     load-bearing pacing number in the game. At one pack per depth the squad
+     gained a depth every ~15 seconds, so difficulty compounded 1.10x per
+     quarter-minute while three level-1 heroes split experience three ways —
+     it out-climbed its own power and wiped inside two minutes, every time.
+     Three packs per depth lets levels and gear keep up. */
+  packsPerStage: 3
 };
 
 GM.realmOf = function (stage) { return Math.floor((stage - 1) / GM.STAGES_PER_REALM) + 1; };
@@ -41,8 +55,24 @@ GM.isBossStage = function (stage) { return GM.floorOf(stage) === GM.STAGES_PER_R
    already multiplicative and inflating them too would compound twice. */
 GM.ilvlScale = function (ilvl) { return Math.pow(GM.CURVE.itemScale, Math.max(0, ilvl - 1)); };
 
-GM.monHp    = function (s) { return GM.CURVE.monHp0  * Math.pow(GM.CURVE.monHpG,  s - 1); };
-GM.monDmg   = function (s) { return GM.CURVE.monDmg0 * Math.pow(GM.CURVE.monDmgG, s - 1); };
+/* The opening is the one place a single curve cannot serve.
+
+   A squad that has farmed its depth is about nine times stronger than the
+   three heroes a new save starts with, so a constant tuned for the steady
+   state makes the first pack a thirty-seven second slog. This ramps the first
+   first depths down and reaches full strength by depth 25.
+
+   The window has to be this wide because a squad advances a depth every time
+   it clears a pack, which makes the next one 1.10x harder, while three level-1
+   heroes split their experience three ways. Tuned at 15 depths the founding
+   squad out-climbed its own power and wiped about eighty seconds into a new
+   save, which is the worst possible first impression. */
+GM.earlyScale = function (s) {
+  return GM.clamp(0.10 + 0.90 * ((s - 1) / 24), 0.10, 1);
+};
+
+GM.monHp    = function (s) { return GM.CURVE.monHp0  * Math.pow(GM.CURVE.monHpG,  s - 1) * GM.earlyScale(s); };
+GM.monDmg   = function (s) { return GM.CURVE.monDmg0 * Math.pow(GM.CURVE.monDmgG, s - 1) * GM.earlyScale(s); };
 GM.monArmour= function (s) { return GM.CURVE.monArm0 * Math.pow(GM.CURVE.monArmG, s - 1); };
 GM.monAcc   = function (s) { return GM.CURVE.monAcc0 * Math.pow(GM.CURVE.monAccG, s - 1); };
 GM.xpFor    = function (s) { return GM.CURVE.xp0     * Math.pow(GM.CURVE.xpG,     s - 1); };

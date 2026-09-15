@@ -90,6 +90,24 @@ GM.ART = (function () {
     add("icon/elem-" + e, "icon", GM.ART_SIZES.icon, { label: GM.ELEM_META[e].label });
   });
 
+  /* --- class badges, worn by every roster row --- */
+  GM.CLASSES.forEach(function (c) {
+    add("icon/class-" + c.id, "icon", GM.ART_SIZES.icon, {
+      label: c.name + " class badge", note: c.role + " — " + c.blurb
+    });
+  });
+
+  /* --- chrome the three-column shell introduced --- */
+  add("ui/marker-plate", "nineslice", { w: 192, h: 40 }, {
+    nineslice: 10, label: "parish building marker plate (level chip + name banner)"
+  });
+  add("ui/flag-banner", "nineslice", { w: 256, h: 40 }, {
+    nineslice: 10, label: "battle panel depth banner"
+  });
+  add("frame/portrait", "nineslice", { w: 96, h: 96 }, {
+    nineslice: 10, label: "roster portrait frame"
+  });
+
   /* --- tabs --- */
   ["delve", "gear", "bench", "tree", "town", "graves", "modes", "ascend"]
     .forEach(function (k) { add("icon/tab-" + k, "icon", GM.ART_SIZES.icon); });
@@ -269,6 +287,9 @@ GM.art = function (key) {
     _artMissing[key] = true;
     delete _artCache[key];
   };
+  /* Anything drawn once rather than every frame — the parish scene — has no
+     way to know the image arrived unless it is told. */
+  img.onload = function () { GM.bus.emit("art:loaded", key); };
   img.src = GM.artURL(key);
   _artCache[key] = img;
   return img;
@@ -360,14 +381,16 @@ GM.itemArtKey = function (item) {
 /* The look that matches the current kit: weapon family plus the average tier
    band of worn armour. Returns null when no such art is present, so the
    renderer falls back to the body-plus-layers path. */
-GM.heroLookKey = function () {
-  var wep = GM.state.equip.weapon;
+GM.heroLookKey = function (hero) {
+  hero = hero || (GM.state.heroes && GM.state.heroes[0]);
+  if (!hero) return null;
+  var wep = hero.equip.weapon;
   var wb = wep && GM.BASE_BY_ID[wep.baseId];
   var fam = wb && wb.pool === "weapon" ? wb.family : "sword";
 
   var tiers = 0, n = 0;
   for (var i = 0; i < GM.ARMOUR_SLOTS.length; i++) {
-    var it = GM.state.equip[GM.ARMOUR_SLOTS[i]];
+    var it = hero.equip[GM.ARMOUR_SLOTS[i]];
     var b = it && GM.BASE_BY_ID[it.baseId];
     if (b) { tiers += b.tier; n++; }
   }
@@ -376,8 +399,10 @@ GM.heroLookKey = function () {
   return GM.ART_BY_KEY[key] ? key : null;
 };
 
-GM.dollKeyFor = function (layerId, slot) {
-  var it = GM.state.equip[slot];
+GM.dollKeyFor = function (layerId, slot, hero) {
+  hero = hero || (GM.state.heroes && GM.state.heroes[0]);
+  if (!hero) return null;
+  var it = hero.equip[slot];
   if (!it) return null;
   var b = GM.BASE_BY_ID[it.baseId];
   if (!b) return null;

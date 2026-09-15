@@ -6,7 +6,7 @@
    Maps — because the save has to survive JSON.stringify unchanged. */
 "use strict";
 
-GM.SAVE_VERSION = 1;
+GM.SAVE_VERSION = 2;
 GM.SAVE_PREFIX = "gravemark.save.";
 GM.SAVE_META_KEY = "gravemark.meta";
 GM.AUTOSAVE_MS = 15000;
@@ -24,8 +24,14 @@ GM.blankSave = function (seasonId) {
     createdAt: now,
     lastSeen: now,
 
+    /* The warband. `char` keeps only what the PLAYER owns rather than any one
+       hero: currencies and the shared institution. Levels and gear moved onto
+       the heroes themselves in save v2. */
+    heroes: [],
+    squads: [GM.blankSquad(0), GM.blankSquad(1), GM.blankSquad(2)],
+
     char: {
-      level: 1,
+      level: 1,          /* warband level: the highest level on the roster */
       xp: 0,
       gold: 0,
       shards: 0,      /* crafting */
@@ -45,10 +51,6 @@ GM.blankSave = function (seasonId) {
 
     mode: { id: "expedition", target: 1, dim: null },
 
-    equip: {
-      weapon: null, offhand: null, helm: null, body: null, gloves: null,
-      boots: null, belt: null, amulet: null, ring1: null, ring2: null
-    },
     stash: [],
     runes: {},        /* runeId -> count */
 
@@ -69,8 +71,11 @@ GM.blankSave = function (seasonId) {
 
     tally: {
       kills: 0, bosses: 0, deaths: 0, drops: 0, salvaged: 0,
-      ascensions: 0, inscribed: 0, revenants: 0, playtime: 0
+      ascensions: 0, inscribed: 0, revenants: 0, playtime: 0, recruited: 0
     },
+
+    /* The quest strip under the hub. */
+    quest: { id: "explore", done: 0, need: 30 },
 
     log: []
   };
@@ -161,13 +166,60 @@ GM.migrate = function (raw) {
   }
   fill(raw, blank);
 
+  /* v1 -> v2: the single character becomes hero one of the warband, keeping
+     their level, experience and everything they were wearing. */
+  if (!raw.heroes || !raw.heroes.length) {
+    raw.heroes = [];
+    var first = GM.makeHero({ classId: "reaver", rank: 2, name: "Yvain" });
+    first.level = (raw.char && raw.char.level) || 1;
+    first.xp = (raw.char && raw.char.xp) || 0;
+    if (raw.equip) {
+      GM.SLOT_IDS.forEach(function (slot) {
+        var it = raw.equip[slot];
+        if (it && GM.BASE_BY_ID[it.baseId]) first.equip[slot] = it;
+      });
+    }
+    raw.heroes.push(first);
+  }
+  delete raw.equip;
+
+  if (!raw.squads || raw.squads.length !== GM.SQUAD_COUNT) {
+    raw.squads = [GM.blankSquad(0), GM.blankSquad(1), GM.blankSquad(2)];
+  }
+  /* The generic field-fill above has already copied blank squads in, so
+     "raw.squads is missing" is never true on a v1 save. What actually
+     identifies an unmigrated save is squads that exist but hold nobody while
+     the roster is populated. */
+  var anyAssigned = raw.squads.some(function (sq) {
+    return (sq.members || []).length > 0;
+  });
+  if (!anyAssigned && raw.heroes.length) {
+    if (raw.depth) {
+      raw.squads[0].stage = raw.depth.current || 1;
+      raw.squads[0].max = raw.depth.max || 1;
+    }
+    raw.squads[0].members = raw.heroes.slice(0, GM.SQUAD_SIZE)
+      .map(function (h) { return h.id; });
+  }
+
   /* Drop equipped or stashed items whose base no longer exists — a renamed
      base would otherwise crash every stat recalculation. */
-  GM.SLOT_IDS.forEach(function (slot) {
-    var it = raw.equip[slot];
-    if (it && !GM.BASE_BY_ID[it.baseId]) raw.equip[slot] = null;
+  raw.heroes.forEach(function (h) {
+    if (!h.equip) h.equip = {};
+    GM.SLOT_IDS.forEach(function (slot) {
+      if (h.equip[slot] && !GM.BASE_BY_ID[h.equip[slot].baseId]) h.equip[slot] = null;
+      if (h.equip[slot] === undefined) h.equip[slot] = null;
+    });
   });
   raw.stash = (raw.stash || []).filter(function (it) { return it && GM.BASE_BY_ID[it.baseId]; });
+
+  /* A squad must never reference a hero who no longer exists. */
+  var live = {};
+  raw.heroes.forEach(function (h) { live[h.id] = true; });
+  raw.squads.forEach(function (sq) {
+    sq.members = (sq.members || []).filter(function (id) { return live[id]; });
+    if (!sq.monsters) sq.monsters = [];
+  });
 
   /* Same for allocated tree nodes and known runes. */
   raw.tree.spent = (raw.tree.spent || []).filter(function (id) { return !!GM.TREE_BY_ID[id]; });
@@ -195,6 +247,7 @@ GM.startSeason = function (seasonId) {
 
   if (fresh) {
     GM.applySeasonStart();
+    GM.foundWarband();
     if (GM.grantStartingKit) GM.grantStartingKit();
     GM.log("You arrive at " + GM.realmInfo(1).name + ". Someone has already been digging.", "flavour");
   }
@@ -235,6 +288,32 @@ GM.log = function (text, kind) {
     GM.state.log.splice(0, GM.state.log.length - GM.LOG_MAX);
   }
   GM.bus.emit("log", { text: text, kind: kind || "info" });
+};
+
+/* A new season opens with three heroes — one per squad is too thin to read as
+   a warband, and five is enough to hide how the squad maths works. Three lets
+   the first squad fight immediately and leaves the other two visibly empty,
+   which is the clearest possible hint that they are waiting for recruits. */
+GM.foundWarband = function () {
+  GM.state.heroes = [];
+  var seed = [
+    { classId: "warden", rank: 2, name: "Yvain" },
+    { classId: "reaver", rank: 1, name: "Zephan" },
+    { classId: "sexton", rank: 1, name: "Roland" }
+  ];
+  for (var i = 0; i < seed.length; i++) {
+    GM.state.heroes.push(GM.makeHero(seed[i]));
+  }
+  GM.state.squads = [GM.blankSquad(0), GM.blankSquad(1), GM.blankSquad(2)];
+  GM.autoAssign();
+};
+
+/* The warband's level is the best on the roster — what the header shows. */
+GM.warbandLevel = function () {
+  var best = 1;
+  var hs = GM.state.heroes || [];
+  for (var i = 0; i < hs.length; i++) if (hs[i].level > best) best = hs[i].level;
+  return best;
 };
 
 /* ---------- small accessors used everywhere ------------------------------ */

@@ -540,7 +540,8 @@ function viewSettings(body) {
   var p = panel(body, "Settings");
   var o = GM.state.opts;
   [["showLog", "Keep the chronicle"],
-   ["shake", "Screen shake on hits"]
+   ["shake", "Screen shake on hits"],
+   ["rig", "Full puppet: heroes built limb by limb from their parts (off: the painting, with a swinging arm)"]
   ].forEach(function (pair) {
     var l = GM.el("label", "opt");
     l.innerHTML = '<input type="checkbox"' + (o[pair[0]] ? " checked" : "") + "> " + GM.esc(pair[1]);

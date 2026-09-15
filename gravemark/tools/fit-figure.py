@@ -27,7 +27,7 @@ def manifest():
 
 def key_for(name):
     base = os.path.splitext(os.path.basename(name))[0]
-    if base.startswith("look-"): return "actor/" + base
+    if base.startswith("look-") or base.startswith("body-"): return "actor/" + base
     if base.startswith("b_"): return "boss/" + base
     if base.startswith("revenant"): return "actor/" + base
     return "mon/" + base

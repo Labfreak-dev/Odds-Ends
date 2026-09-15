@@ -2,7 +2,7 @@
 
 _Generated from `src/18-assets.js` by `tools/art-brief.js`. Do not hand-edit — regenerate._
 
-**493 assets** · 124 animated sprite sheets · 928 individual frames · 304 rig parts
+**498 assets** · 124 animated sprite sheets · 928 individual frames · 304 rig parts
 
 The game references **no image path directly** — it asks `GM.art(key)` and falls back to a labelled placeholder. Drop a finished file at `art/<key>.png` and it appears. Nothing in the game code changes. Deliver in any order; partial sets work.
 

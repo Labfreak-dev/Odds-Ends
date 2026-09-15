@@ -62,7 +62,8 @@ GM.blankSave = function (seasonId) {
 
     opts: {
       showLog: true,
-      shake: false        /* panel shake on hits; off by default */
+      shake: false,       /* panel shake on hits; off by default */
+      rig: false          /* full jointed puppet from the parts; off: painting + swinging arm */
     },
 
     tally: {

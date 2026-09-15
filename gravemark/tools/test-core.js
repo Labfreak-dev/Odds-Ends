@@ -349,6 +349,7 @@ section("rig");
   ok(GM.Rig.CHARS.some(c => c.id === "hero") && GM.CLASSES.every(c => GM.Rig.CHARS.some(r => r.id === c.id)),
      "a shared hero parts set plus one per class");
   ok(GM.heroPartsId(GM.state.heroes[0]) === "hero", "a class with no parts of its own wears the shared set");
+  ok(GM.state.opts.rig === false, "the puppet rig is opt-in; the painting is the default");
 
   let nan = 0;
   Object.keys(GM.Rig.anims).forEach(n => {

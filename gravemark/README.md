@@ -270,7 +270,24 @@ them, and the motion is keyframed on the bones in code: idle, five weapon
 swings, hit, death, walk, plus monster attacks. One rig and one set of clips
 drive every humanoid in the game.
 
-Every actor on a battle panel is drawn in one of two modes, chosen per frame:
+Every actor on a battle panel is drawn in one of three ways, best available
+first:
+
+- **PAINT+ARM** — the class painting with its weapon arm removed
+  (`actor/body-<class>`, see `GROK-BODIES.md`) is the body, and the rig's near
+  arm and weapon are hung on it at the class's shoulder (`GM.Rig.ARM_OFFSET`).
+  The painting keeps its look; the arm swings. Automatic once the body art
+  exists; `GM.BODY_TEST = true` draws the arm over the full look to line it up.
+- **PAINT** — the whole class painting, driven by the root bone. The default
+  today.
+- **PUPPET** — every limb from the parts. A Settings option (`opts.rig`).
+
+The older description of the two modes follows.
+**The painting is the default; the puppet is a Settings option (`opts.rig`).**
+With the class looks in, a whole finished figure lunging, leaning and
+squashing reads better at phone scale than a jointed puppet cut from it — and
+the playtester noticed exactly that when the parts finished downloading a
+minute into a session and the puppet replaced the painting.
 
 - **RIG** — the character has a complete set of parts in `art/parts/<char>/`.
   Bones carry the parts. `GM.RIG_DEBUG = true` forces this mode with capsule

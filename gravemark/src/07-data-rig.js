@@ -144,6 +144,11 @@ GM.Rig.PARTS = {
 /* Which characters get parts, and what armour band they are painted in. The
    hero exists at three bands so equipped gear is visible on the rig; that is
    the point of the whole exercise. Monsters and bosses get one set each. */
+/* Where each class's painted shoulder sits relative to the rig's, in rig
+   units, for hanging the puppet arm on the painting (PAINT+ARM). Tuned by eye
+   against the look with GM.BODY_TEST. */
+GM.Rig.ARM_OFFSET = { warden: { x: 0, y: 0 }, reaver: { x: 0, y: 0 }, pyre: { x: 0, y: 0 }, stalker: { x: 0, y: 0 }, sexton: { x: 0, y: 0 } };
+
 GM.Rig.CHARS = [
   /* One shared hero set, tinted per class until each class has its own. */
   { id: "hero",    rig: "humanoid", ref: "actor/hero-idle", label: "the hero: the hooded figure of the reference painting, cleanly forged steel, fitted leather, carved bone" },

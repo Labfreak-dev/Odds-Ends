@@ -281,7 +281,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
   #app[data-view="parish"] #battles,#app[data-view="parish"] #roster{display:none}
   #app[data-view="warband"] #hub,#app[data-view="warband"] #battles{display:none}
   #battles{padding:4px;gap:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
-  .bpanel{flex:0 0 auto;min-height:0;height:min(58vw,46vh)}
+  .bpanel{flex:0 0 auto;min-height:0;height:min(74vw,50vh)}
   #hubScene{height:100%}
   #mobileTabs{display:flex;grid-column:1;grid-row:2;gap:0;background:var(--stone);border-top:1px solid var(--edge);
     padding-bottom:env(safe-area-inset-bottom,0px)}

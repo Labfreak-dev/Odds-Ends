@@ -286,7 +286,7 @@ puppet sheet (the figure taken apart, pieces laid out with gaps on magenta) it
 paints real pieces. `tools/slice-parts.py sheet.png hero --out DIR` finds
 the pieces, sorts them into the brief's rows, and places each on its manifest
 canvas with the joint on the pivot; `art-install.py DIR` then installs them.
-`GROK-TIER1.md` is the current ask. `tools/shot-swing.py . out.png` freezes
+`GROK-RIG.md` is the current ask. `tools/shot-swing.py . out.png` freezes
 every hero mid-swing on a different weapon for a look.
 
 Two installer lessons from that delivery: the index (`art/available.json`) is

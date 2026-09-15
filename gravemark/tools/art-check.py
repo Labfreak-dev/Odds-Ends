@@ -159,6 +159,8 @@ def main():
     if a.remaining:
         by = {}
         for k in missing + placeholder:
+            if k.startswith("parts/"):
+                continue          # the rig parts have their own brief
             by.setdefault(k.split("/")[0], []).append(k)
         spec_by = {s["key"]: s for s in spec_list}
         lines = ["# Gravemark — art still needed", "",

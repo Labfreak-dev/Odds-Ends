@@ -2,7 +2,7 @@
 
 _Generated from `src/18-assets.js` by `tools/art-brief.js`. Do not hand-edit — regenerate._
 
-**311 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
+**582 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
 
 The game references **no image path directly** — it asks `GM.art(key)` and falls back to a labelled placeholder. Drop a finished file at `art/<key>.png` and it appears. Nothing in the game code changes. Deliver in any order; partial sets work.
 

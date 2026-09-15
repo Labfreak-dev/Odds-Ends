@@ -46,7 +46,13 @@ def classify(img, spec):
     ncol = len(colours) if colours else 200000
     stat = ImageStat.Stat(flat)
     var = sum(stat.stddev) / 3.0
-    return ("PAINTED" if (ncol > 900 and var > 16) else "PLACEHOLDER"), ncol, var
+    real = (ncol > 900 and var > 16) or (ncol > 6 and var > 8 and silhouette(frame))
+    return ("PAINTED" if real else "PLACEHOLDER"), ncol, var
+
+def silhouette(frame):
+    """A cut-out with real transparency around it is art even when flat-shaded."""
+    bb = frame.getchannel("A").getbbox()
+    return bool(bb) and (bb[2] - bb[0] < frame.size[0] * 0.9 or bb[3] - bb[1] < frame.size[1] * 0.9)
 
 def main():
     ap = argparse.ArgumentParser()

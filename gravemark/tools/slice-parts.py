@@ -36,8 +36,12 @@ def manifest():
     return json.loads(out.stdout)
 
 def is_bg(px, tol=60):
+    """Magenta, or the deeper pink card a generator likes to lay the pieces on
+    inside the magenta (this delivery: #e9017e). Both are far from any paint
+    the figures use: reds have no blue, purples have green."""
     r, g, b = px[:3]
-    return r > 255 - tol and g < tol and b > 255 - tol
+    if r > 255 - tol and g < tol and b > 255 - tol: return True
+    return r > 190 and g < 60 and b > 100
 
 def components(img, min_area=120):
     """Connected components of non-magenta pixels (4-neighbour), as bboxes."""
@@ -65,20 +69,26 @@ def components(img, min_area=120):
     return comps
 
 def merge_close(comps, gap=6):
-    """A boot sole or a hand can split off its limb by a strip of matte;
-    merge boxes whose gaps are smaller than any real spacing on the sheet."""
-    changed = True
-    while changed:
-        changed = False
-        for i in range(len(comps)):
-            for j in range(i + 1, len(comps)):
-                a, b = comps[i]["box"], comps[j]["box"]
-                if a[0] - gap <= b[2] and b[0] - gap <= a[2] and a[1] - gap <= b[3] and b[1] - gap <= a[3]:
-                    comps[i] = {"box": (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3])),
-                                "area": comps[i]["area"] + comps[j]["area"]}
-                    del comps[j]; changed = True; break
-            if changed: break
-    return comps
+    """A boot sole or a fingertip can split off its limb by a strip of matte.
+    Attach every SMALL component to the nearest big one. Big pieces are never
+    merged with each other: on a tightly packed sheet the bounding boxes of
+    neighbouring pieces overlap even when their paint does not, and merging on
+    box overlap turned a whole sheet into one piece."""
+    if not comps: return comps
+    biggest = max(c["area"] for c in comps)
+    big = [c for c in comps if c["area"] >= biggest * 0.10]
+    small = [c for c in comps if c["area"] < biggest * 0.10]
+    def dist(a, b):
+        dx = max(0, max(a[0], b[0]) - min(a[2], b[2]))
+        dy = max(0, max(a[1], b[1]) - min(a[3], b[3]))
+        return dx + dy
+    for sm in small:
+        best = min(big, key=lambda c: dist(c["box"], sm["box"]))
+        if dist(best["box"], sm["box"]) > 40: continue      # stray speck: drop it
+        a, b = best["box"], sm["box"]
+        best["box"] = (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
+        best["area"] += sm["area"]
+    return big
 
 def into_rows(comps, rows_wanted):
     """Cluster by vertical centre into the number of rows the layout has."""

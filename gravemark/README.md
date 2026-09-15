@@ -177,11 +177,13 @@ out of date. With items gone there are no item icons, rune glyphs, rarity
 frames or paper-doll layers in it; the five **class looks**
 (`actor/look-<class>`, one standing figure each) took their place.
 
-**Current coverage: 159 of 493 painted.** `ART-REMAINING.md` lists the rest.
+**Current coverage: 214 of 493 painted.** `ART-REMAINING.md` lists the rest.
 All twelve bosses, all fifteen monsters, the five class looks, the hero, the
-five weapons and all eighteen backdrops are in, in the new style. Outstanding:
-the rig parts and the UI chrome (which the renderer does not consume yet — the
-UI is CSS).
+five weapons, all eighteen backdrops, the revenant and a full set of rig parts
+for every class are in, in the new style — so every hero now moves limb by
+limb on the skeleton. Outstanding: rig parts for the monsters and bosses (they
+still animate as whole paintings), and the UI chrome (which the renderer does
+not consume yet — the UI is CSS).
 
 Backdrops are drawn with `GM.drawCover`, scaled to fill the box and cropped
 rather than stretched: a 16:9 painting drawn straight into a 3:1 battle panel
@@ -283,9 +285,14 @@ node tools/grok-parts.js > GROK-PARTS.md     # the parts brief, tiered
 proved a generator asked for "only the forearm" crops a rectangle of cloth out
 of the reference — no silhouette, nothing a bone can carry. Asked for a cut-out
 puppet sheet (the figure taken apart, pieces laid out with gaps on magenta) it
-paints real pieces. `tools/slice-parts.py sheet.png hero --out DIR` finds
-the pieces, sorts them into the brief's rows, and places each on its manifest
-canvas with the joint on the pivot; `art-install.py DIR` then installs them.
+paints real pieces — the five class sheets arrived exactly that way and all
+fifty-five parts sliced first time. `tools/slice-parts.py sheet.png <class>
+--out DIR` keys the magenta AND the deeper pink card a generator lays the
+pieces on, finds the pieces (small fragments such as a boot sole attach to
+their nearest big piece; big pieces are never merged with each other, since
+on a packed sheet their boxes overlap even when their paint does not), sorts
+them into the brief's rows, and places each on its manifest canvas with the
+joint on the pivot; `art-install.py DIR` then installs them.
 `GROK-RIG.md` is the current ask. `tools/shot-swing.py . out.png` freezes
 every hero mid-swing on a different weapon for a look.
 

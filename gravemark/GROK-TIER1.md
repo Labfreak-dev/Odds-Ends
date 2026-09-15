@@ -1,7 +1,7 @@
 # Gravemark — Grok prompt, Tier 1 parts (16 images)
 
 Copy everything below the line into Grok. Attach `art/actor/hero-idle.png` to every hero part,
-and the named reference to every weapon. Make image 1 (the torso) first and check it before
+`dagger-high.png` to the dagger and `maul-high.png` to the maul; the other three weapons have no reference yet. Make image 1 (the torso) first and check it before
 asking for the rest. Save each result as the file name given, drop them all into one zip.
 
 ---
@@ -61,12 +61,12 @@ Every one is 80x224 px, with the JOINT at the middle of the grip, at 50% across,
 Magenta background, same rules.
 
 12. dagger.png    Reference: dagger-high.png (attached). A short cruel blade, wrapped grip.
-13. sword.png     Reference: hero-attack-sword.png (attached). Paint the sword the hero holds
-                  in that image, alone and upright. Straight double-edged blade, plain crossguard.
+13. sword.png     No reference: match the dagger's metal and the hero's palette. A straight
+                  double-edged arming sword, plain iron crossguard, leather-wrapped grip, round pommel.
 14. maul.png      Reference: maul-high.png (attached). A heavy two-handed hammer, long haft.
-15. wand.png      Reference: hero-attack-wand.png (attached). Paint the wand the hero holds,
-                  alone and upright. A short carved bone rod with a dull ember at the tip.
-16. scythe.png    Reference: hero-attack-scythe.png (attached). Paint the scythe the hero holds,
-                  alone and upright. Long haft, curved blade at the top, the blade's edge facing left.
+15. wand.png      No reference: match the hero's palette. A short carved bone rod, bound with
+                  dark leather at the grip, a dull ember glowing at the tip.
+16. scythe.png    No reference: match the maul's haft and the dagger's metal. A long dark wooden
+                  haft, a curved iron blade at the top with its edge facing left.
 
 Deliver all 16 as PNG at the exact sizes above, named exactly as listed, in one zip.

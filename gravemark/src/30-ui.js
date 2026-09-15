@@ -152,6 +152,16 @@ GM.ui.statRow = function (k, v) {
 
 GM.ui.init = function () {
   GM.ui.bindTips(document.body);
+  /* Phone layout: one column, one section at a time, switched by the bottom
+     tabs. On a wide screen the tabs are hidden and all three columns show. */
+  GM.delegate(GM.$("#mobileTabs"), "click", "[data-view]", function (e, node) {
+    var app = GM.$("#app");
+    if (app) app.dataset.view = node.dataset.view;
+    GM.$$("#mobileTabs button").forEach(function (b) { b.classList.toggle("on", b === node); });
+    GM.ui.markDirty();
+    GM.ui.redrawHub();
+    window.dispatchEvent(new Event("resize"));
+  });
   GM.on(document, "keydown", function (e) {
     if (e.key === "Escape") GM.ui.closeOverlay();
   });

@@ -69,6 +69,21 @@ So the endgame is "die deep, remember what it taught you, cut it into the hero
 who needs it" rather than "reroll until the dice are kind". The vocabulary
 lives in `src/01-data-kit.js`; every name says which classes can learn it.
 
+### The screen
+
+Desktop is three columns: the parish (30%), the delves (64%), the warband
+(168px). Figures on a stage are as tall as the stage allows (80% of its
+height, capped by width so five heroes and six monsters still fit), because
+the figures are the point of the panel.
+
+Under 760px wide the page becomes ONE column with a bottom tab bar (Parish /
+Delves / Warband) and shows one section at a time; each delve panel is a
+wide stage of its own and empty squads collapse to a strip. The page carries
+a web app manifest (`manifest.webmanifest`, display fullscreen) and the
+Apple meta tags, so "Add to Home Screen" on a phone launches it without the
+browser chrome. The tab bar and the bottom padding respect the safe-area
+insets.
+
 ## Files
 
 ```
@@ -275,7 +290,11 @@ against that monster's resistances — honest numbers, not random ones.
 
 Parts are specified once in `GM.Rig.PARTS` — canvas size, pivot joint, what to
 paint — and both the drawer and `tools/grok-parts.js` read that table, so the
-brief and the game cannot disagree.
+brief and the game cannot disagree. The canvases run deliberately LARGER than
+the bones they hang on: a part is fitted to its canvas on install, so a bigger
+canvas is a chunkier limb that overlaps its neighbour at the joint. Change a
+canvas size and re-slice the sheets (`tools/slice-parts.py`) so the installed
+parts match.
 
 ```bash
 node tools/grok-parts.js > GROK-PARTS.md     # the parts brief, tiered

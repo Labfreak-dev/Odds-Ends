@@ -99,21 +99,24 @@ GM.Rig.templates = RIGS;
    with the named joint at the pivot. The engine rotates the part by
    (world angle - bind angle), so at rest nothing is rotated at all — which is
    what makes "paint it as it looks on the reference" a sufficient instruction.
-   Sizes are in the 256-unit rig space; pivots are fractions of the canvas. */
+   Sizes are in the 256-unit rig space; pivots are fractions of the canvas.
+   Canvases run deliberately LARGER than the bones they hang on: a part is
+   fitted to its canvas on install, so a bigger canvas is a chunkier limb
+   that overlaps its neighbour at the joint — the Path of Idle build. */
 GM.Rig.PARTS = {
   humanoid: {
-    head:    { w: 56,  h: 64,  px: 0.50, py: 0.92, joint: "the base of the neck",   desc: "head and hood, from the crown down to and including the neck" },
-    torso:   { w: 72,  h: 80,  px: 0.50, py: 0.95, joint: "the hips",               desc: "chest and shoulders from the collarbone down to the waist, no arms, no head" },
-    pelvis:  { w: 56,  h: 36,  px: 0.50, py: 0.10, joint: "the hips",               desc: "belt and hips only, from the waist to the top of the thighs" },
-    uarm_f:  { w: 32,  h: 48,  px: 0.50, py: 0.08, joint: "the shoulder",           desc: "the NEAR upper arm, shoulder to elbow" },
-    farm_f:  { w: 28,  h: 48,  px: 0.50, py: 0.08, joint: "the elbow",              desc: "the NEAR forearm, elbow to fingertips, hand included, hand open" },
-    uarm_b:  { w: 32,  h: 48,  px: 0.50, py: 0.08, joint: "the shoulder",           desc: "the FAR upper arm, shoulder to elbow (a little darker: it is further from the light)" },
-    farm_b:  { w: 28,  h: 48,  px: 0.50, py: 0.08, joint: "the elbow",              desc: "the FAR forearm, elbow to fingertips, hand included" },
-    thigh_f: { w: 36,  h: 64,  px: 0.50, py: 0.06, joint: "the hip",                desc: "the NEAR thigh, hip to knee" },
-    shin_f:  { w: 32,  h: 64,  px: 0.50, py: 0.06, joint: "the knee",               desc: "the NEAR shin, knee to sole, boot included" },
-    thigh_b: { w: 36,  h: 64,  px: 0.50, py: 0.06, joint: "the hip",                desc: "the FAR thigh, hip to knee (a little darker)" },
-    shin_b:  { w: 32,  h: 64,  px: 0.50, py: 0.06, joint: "the knee",               desc: "the FAR shin, knee to sole, boot included" },
-    weapon:  { w: 40,  h: 112, px: 0.50, py: 0.82, joint: "the grip",               desc: "the weapon alone, no hand, painted vertically with the grip near the bottom and the business end at the top" }
+    head:    { w: 64,  h: 72,  px: 0.50, py: 0.92, joint: "the base of the neck",   desc: "head and hood, from the crown down to and including the neck" },
+    torso:   { w: 92,  h: 96,  px: 0.50, py: 0.95, joint: "the hips",               desc: "chest and shoulders from the collarbone down to the waist, no arms, no head" },
+    pelvis:  { w: 72,  h: 44,  px: 0.50, py: 0.10, joint: "the hips",               desc: "belt and hips only, from the waist to the top of the thighs" },
+    uarm_f:  { w: 42,  h: 56,  px: 0.50, py: 0.08, joint: "the shoulder",           desc: "the NEAR upper arm, shoulder to elbow" },
+    farm_f:  { w: 38,  h: 56,  px: 0.50, py: 0.08, joint: "the elbow",              desc: "the NEAR forearm, elbow to fingertips, hand included, hand open" },
+    uarm_b:  { w: 42,  h: 56,  px: 0.50, py: 0.08, joint: "the shoulder",           desc: "the FAR upper arm, shoulder to elbow (a little darker: it is further from the light)" },
+    farm_b:  { w: 38,  h: 56,  px: 0.50, py: 0.08, joint: "the elbow",              desc: "the FAR forearm, elbow to fingertips, hand included" },
+    thigh_f: { w: 48,  h: 72,  px: 0.50, py: 0.06, joint: "the hip",                desc: "the NEAR thigh, hip to knee" },
+    shin_f:  { w: 44,  h: 72,  px: 0.50, py: 0.06, joint: "the knee",               desc: "the NEAR shin, knee to sole, boot included" },
+    thigh_b: { w: 48,  h: 72,  px: 0.50, py: 0.06, joint: "the hip",                desc: "the FAR thigh, hip to knee (a little darker)" },
+    shin_b:  { w: 44,  h: 72,  px: 0.50, py: 0.06, joint: "the knee",               desc: "the FAR shin, knee to sole, boot included" },
+    weapon:  { w: 64,  h: 180, px: 0.50, py: 0.82, joint: "the grip",               desc: "the weapon alone, no hand, painted vertically with the grip near the bottom and the business end at the top" }
   },
   quadruped: {
     body:   { w: 128, h: 64,  px: 0.05, py: 0.50, joint: "the rear of the body", desc: "the torso from haunches to shoulders, no legs, no neck, no tail" },

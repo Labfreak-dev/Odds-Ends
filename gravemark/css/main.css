@@ -24,7 +24,8 @@ html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font:13px/1.4 var(--sans);user-select:none;-webkit-user-select:none}
 button,input,select{font:inherit;color:inherit}
 
-#app{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,50fr) 168px;height:100%;gap:0}
+#app{display:grid;grid-template-columns:minmax(0,30fr) minmax(0,64fr) 168px;height:100%;gap:0}
+#mobileTabs{display:none}
 
 /* ---------------- LEFT: the parish ---------------- */
 #hub{position:relative;overflow:hidden;border-right:1px solid var(--edge);background:var(--ink)}
@@ -80,7 +81,7 @@ button,input,select{font:inherit;color:inherit}
 #battles::-webkit-scrollbar{width:8px}
 #battles::-webkit-scrollbar-thumb{background:var(--edge);border-radius:4px}
 
-.bpanel{position:relative;flex:1 1 0;min-height:210px;background:var(--ink);
+.bpanel{position:relative;flex:1 1 0;min-height:240px;background:var(--ink);
   border:1px solid var(--edge);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
 .bpanel.empty{opacity:.55}
 .bstage{position:relative;flex:1 1 auto;min-height:0}
@@ -270,4 +271,29 @@ input[type=range]{width:100%;accent-color:var(--gold)}
   #battles{grid-column:1;grid-row:2}
   #roster{grid-column:2;grid-row:2}
   #toasts{right:160px}
+}
+
+/* ---------------- PHONE: one column, one section at a time ---------------- */
+@media (max-width:760px){
+  #app{grid-template-columns:1fr;grid-template-rows:1fr auto;height:100%}
+  #hub,#battles,#roster{grid-column:1;grid-row:1;border:0}
+  #app[data-view="delves"] #hub,#app[data-view="delves"] #roster{display:none}
+  #app[data-view="parish"] #battles,#app[data-view="parish"] #roster{display:none}
+  #app[data-view="warband"] #hub,#app[data-view="warband"] #battles{display:none}
+  #battles{padding:4px;gap:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  .bpanel{flex:0 0 auto;min-height:0;height:min(58vw,46vh)}
+  #hubScene{height:100%}
+  #mobileTabs{display:flex;grid-column:1;grid-row:2;gap:0;background:var(--stone);border-top:1px solid var(--edge);
+    padding-bottom:env(safe-area-inset-bottom,0px)}
+  #mobileTabs button{flex:1;padding:10px 0 9px;background:none;border:0;border-top:2px solid transparent;
+    color:var(--dim);font-family:var(--font);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  #mobileTabs button.on{color:var(--gold);border-top-color:var(--gold)}
+  .bhead{gap:5px;padding:4px 5px}
+  .flag{font-size:10px;padding:2px 12px 2px 7px;white-space:nowrap;max-width:46%;overflow:hidden;text-overflow:ellipsis;display:block}
+  .flag .pin{margin-right:3px}
+  .bhp{max-width:none}
+  .bpanel.empty{height:112px}
+  #toasts{right:10px;bottom:64px}
+  #overlayWrap{padding:6px}
+  #overlay{max-height:calc(100% - 12px)}
 }

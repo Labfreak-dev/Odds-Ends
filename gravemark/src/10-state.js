@@ -6,7 +6,7 @@
    Maps — because the save has to survive JSON.stringify unchanged. */
 "use strict";
 
-GM.SAVE_VERSION = 2;
+GM.SAVE_VERSION = 3;
 GM.SAVE_PREFIX = "gravemark.save.";
 GM.SAVE_META_KEY = "gravemark.meta";
 GM.AUTOSAVE_MS = 15000;
@@ -25,8 +25,9 @@ GM.blankSave = function (seasonId) {
     lastSeen: now,
 
     /* The warband. `char` keeps only what the PLAYER owns rather than any one
-       hero: currencies and the shared institution. Levels and gear moved onto
-       the heroes themselves in save v2. */
+       hero: currencies and the shared institution. Levels moved onto the
+       heroes in save v2; v3 removed items altogether — a hero's traits are
+       the only thing they carry. */
     heroes: [],
     squads: [GM.blankSquad(0), GM.blankSquad(1), GM.blankSquad(2)],
 
@@ -34,7 +35,7 @@ GM.blankSave = function (seasonId) {
       level: 1,          /* warband level: the highest level on the roster */
       xp: 0,
       gold: 0,
-      shards: 0,      /* crafting */
+      shards: 0,      /* inscription and anointing */
       ichor: 0,       /* ascension, persists across resets within a season */
       marks: 0,       /* Divine Tower currency */
       dust: 0         /* Alternate Dimension currency */
@@ -51,26 +52,20 @@ GM.blankSave = function (seasonId) {
 
     mode: { id: "expedition", target: 1, dim: null },
 
-    stash: [],
-    runes: {},        /* runeId -> count */
-
     tree: { points: 0, spent: [] },
     town: {},         /* buildingId -> level */
     perks: {},        /* perkId -> level */
 
     /* --- the Gravemark systems --- */
     graves: [],       /* see 15-graves.js */
-    epitaphs: [],     /* recovered, inscribable affixes */
+    epitaphs: [],     /* recovered, inscribable rolls */
 
     opts: {
-      autoEquip: true,
-      autoSalvage: true,
-      salvageBelow: 2,   /* salvage anything under this rarity id */
       showLog: true
     },
 
     tally: {
-      kills: 0, bosses: 0, deaths: 0, drops: 0, salvaged: 0,
+      kills: 0, bosses: 0, deaths: 0, anointed: 0,
       ascensions: 0, inscribed: 0, revenants: 0, playtime: 0, recruited: 0
     },
 
@@ -167,21 +162,22 @@ GM.migrate = function (raw) {
   fill(raw, blank);
 
   /* v1 -> v2: the single character becomes hero one of the warband, keeping
-     their level, experience and everything they were wearing. */
+     their level and experience. */
   if (!raw.heroes || !raw.heroes.length) {
     raw.heroes = [];
     var first = GM.makeHero({ classId: "reaver", rank: 2, name: "Yvain" });
     first.level = (raw.char && raw.char.level) || 1;
     first.xp = (raw.char && raw.char.xp) || 0;
-    if (raw.equip) {
-      GM.SLOT_IDS.forEach(function (slot) {
-        var it = raw.equip[slot];
-        if (it && GM.BASE_BY_ID[it.baseId]) first.equip[slot] = it;
-      });
-    }
     raw.heroes.push(first);
   }
   delete raw.equip;
+
+  /* v2 -> v3: items are gone. Whatever a hero wore is forgotten; the stash
+     and the rune hoard with it. Epitaphs and gravemarks keep their shape. */
+  delete raw.stash;
+  delete raw.runes;
+  if (raw.opts) { delete raw.opts.autoEquip; delete raw.opts.autoSalvage; delete raw.opts.salvageBelow; }
+  if (raw.tally) { delete raw.tally.drops; delete raw.tally.salvaged; }
 
   if (!raw.squads || raw.squads.length !== GM.SQUAD_COUNT) {
     raw.squads = [GM.blankSquad(0), GM.blankSquad(1), GM.blankSquad(2)];
@@ -202,16 +198,14 @@ GM.migrate = function (raw) {
       .map(function (h) { return h.id; });
   }
 
-  /* Drop equipped or stashed items whose base no longer exists — a renamed
-     base would otherwise crash every stat recalculation. */
+  /* A trait whose epitaph no longer exists would crash every stat
+     recalculation; drop it, and drop the equip block v2 heroes carried. */
   raw.heroes.forEach(function (h) {
-    if (!h.equip) h.equip = {};
-    GM.SLOT_IDS.forEach(function (slot) {
-      if (h.equip[slot] && !GM.BASE_BY_ID[h.equip[slot].baseId]) h.equip[slot] = null;
-      if (h.equip[slot] === undefined) h.equip[slot] = null;
-    });
+    delete h.equip;
+    h.traits = (h.traits || []).filter(function (t) { return t && GM.AFFIX_BY_ID[t.affixId]; });
+    if (!GM.CLASS_BY_ID[h.classId]) h.classId = GM.CLASSES[0].id;
   });
-  raw.stash = (raw.stash || []).filter(function (it) { return it && GM.BASE_BY_ID[it.baseId]; });
+  raw.epitaphs = (raw.epitaphs || []).filter(function (e) { return e && GM.AFFIX_BY_ID[e.affixId]; });
 
   /* A squad must never reference a hero who no longer exists. */
   var live = {};
@@ -221,11 +215,9 @@ GM.migrate = function (raw) {
     if (!sq.monsters) sq.monsters = [];
   });
 
-  /* Same for allocated tree nodes and known runes. */
+  /* Same for allocated tree nodes. */
   raw.tree.spent = (raw.tree.spent || []).filter(function (id) { return !!GM.TREE_BY_ID[id]; });
-  var cleanRunes = {};
-  for (var rid in raw.runes) if (GM.RUNE_BY_ID[rid]) cleanRunes[rid] = raw.runes[rid];
-  raw.runes = cleanRunes;
+  if (!GM.QUEST_BY_ID[(raw.quest || {}).id]) raw.quest = { id: "explore", done: 0, need: 30 };
 
   raw.v = GM.SAVE_VERSION;
   return raw;
@@ -248,7 +240,6 @@ GM.startSeason = function (seasonId) {
   if (fresh) {
     GM.applySeasonStart();
     GM.foundWarband();
-    if (GM.grantStartingKit) GM.grantStartingKit();
     GM.log("You arrive at " + GM.realmInfo(1).name + ". Someone has already been digging.", "flavour");
   }
 
@@ -319,13 +310,7 @@ GM.warbandLevel = function () {
 /* ---------- small accessors used everywhere ------------------------------ */
 GM.townLevel = function (id) { return GM.state.town[id] || 0; };
 GM.perkLevel = function (id) { return GM.state.perks[id] || 0; };
-GM.runeCount = function (id) { return GM.state.runes[id] || 0; };
 GM.hasNode   = function (id) { return GM.state.tree.spent.indexOf(id) >= 0; };
-
-GM.addRune = function (id, n) {
-  GM.state.runes[id] = (GM.state.runes[id] || 0) + (n == null ? 1 : n);
-  if (GM.state.runes[id] <= 0) delete GM.state.runes[id];
-};
 
 GM.spendGold = function (n) {
   if (GM.state.char.gold < n) return false;

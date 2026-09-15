@@ -1,6 +1,6 @@
 /* Gravemark — 04-data-meta.js
-   The three progression systems that sit above gear: the passive tree, the
-   town, and ascension (with seasons).
+   The three progression systems shared by the whole warband: the passive
+   tree, the town, and ascension (with seasons).
 
    Tree minors are generated on a polar layout; notables and keystones are
    hand-authored because those are the nodes a build is actually planned
@@ -21,7 +21,7 @@ GM.TREE_CLUSTERS = [
   { id: "stalker", name: "The Stalker", angle: 126, hue: 190, theme: "Evasion and Speed",
     minor: { flatEvasion: 34, incAS: 0.02 }, minorAlt: { incEvasion: 0.04 } },
   { id: "sexton",  name: "The Sexton",  angle: 198, hue: 268, theme: "Spoils and Remembrance",
-    minor: { findRarity: 0.04, findGold: 0.06 }, minorAlt: { findQuantity: 0.03 } }
+    minor: { findShards: 0.04, findGold: 0.06 }, minorAlt: { findXP: 0.03 } }
 ];
 
 /* Notables sit at rings 2, 4 and 6 of their cluster; keystones cap ring 7 and
@@ -48,9 +48,9 @@ var NOTABLES = {
     { ring: 6, name: "The Last Mile",   stats: { incAS: 0.18, incEvasion: 0.45, graveHaste: 0.35 } }
   ],
   sexton: [
-    { ring: 2, name: "Tally Book",      stats: { findRarity: 0.18, findXP: 0.10 } },
-    { ring: 4, name: "Sexton's Due",    stats: { findGold: 0.45, findQuantity: 0.14 } },
-    { ring: 6, name: "Buried Names",    stats: { epitaphChance: 0.12, findRarity: 0.30, graveHaste: 0.25 } }
+    { ring: 2, name: "Tally Book",      stats: { findShards: 0.18, findXP: 0.10 } },
+    { ring: 4, name: "Sexton's Due",    stats: { findGold: 0.45, findShards: 0.14 } },
+    { ring: 6, name: "Buried Names",    stats: { epitaphChance: 0.12, findShards: 0.30, graveHaste: 0.25 } }
   ]
 };
 
@@ -63,7 +63,7 @@ var KEYSTONES = {
              desc: "Physical damage is for people with hands." },
   stalker: { name: "Unlit Lamp",   stats: { incEvasion: 0.90, incAS: 0.25, flatArmour: -99999 },
              desc: "Armour is a promise. Evasion is a habit." },
-  sexton:  { name: "The Long Wake", stats: { epitaphChance: 0.30, findRarity: 0.80, findQuantity: 0.35, incDmg: -0.25 },
+  sexton:  { name: "The Long Wake", stats: { epitaphChance: 0.30, findShards: 0.80, findGold: 0.35, incDmg: -0.25 },
              desc: "You are not here to fight. You are here to collect." }
 };
 
@@ -174,9 +174,9 @@ GM.BUILDINGS = [
     per: { findXP: 0.06 },           cost0: 110,  costG: 1.40, max: 50 },
   { id: "watchtower", name: "Watchtower",  icon: "\u{1F5FC}",
     blurb: "Sees what is worth taking before you get there.",
-    per: { findRarity: 0.07 },       cost0: 140,  costG: 1.44, max: 50 },
+    per: { findShards: 0.07 },       cost0: 140,  costG: 1.44, max: 50 },
   { id: "forge",      name: "The Forge",   icon: "\u{1F525}",
-    blurb: "Cheapens the work. Never cheapens the result.",
+    blurb: "Cuts the names cheaper. Never cuts them shallower.",
     per: { craftDiscount: 0.015 },   cost0: 200,  costG: 1.48, max: 40 },
   { id: "lychgate",   name: "Lychgate",    icon: "\u{1F6AA}",
     blurb: "The dead keep working while you are away.",
@@ -193,7 +193,7 @@ GM.buildingCost = function (b, level) {
 };
 
 /* ---------- ascension ----------------------------------------------------
-   Reset gear, level and depth for Ichor, spent on permanent multipliers that
+   Reset the warband and depth for Ichor, spent on permanent multipliers that
    survive every future reset. Ichor is superlinear in depth, so pushing two
    realms further is worth far more than resetting twice as often. */
 GM.ASCEND_MIN_STAGE = 40;
@@ -215,7 +215,7 @@ GM.PERKS = [
   { id: "a_crit",   name: "Practised Cruelty",blurb: "You know where it goes now.",
     per: { critMulti: 0.12 },     cost0: 3,  costG: 1.42, max: 30 },
   { id: "a_find",   name: "Grave Instinct",   blurb: "You can smell a good one through the lid.",
-    per: { findRarity: 0.12, findQuantity: 0.05 }, cost0: 3, costG: 1.40, max: 30 },
+    per: { findShards: 0.15 },    cost0: 3,  costG: 1.40, max: 30 },
   { id: "a_xp",     name: "Hard Schooling",   blurb: "Lessons stick when they cost this much.",
     per: { findXP: 0.10 },        cost0: 2,  costG: 1.36, max: 30 },
   { id: "a_start",  name: "Familiar Ground",  blurb: "Begin each descent further down.",
@@ -243,8 +243,8 @@ GM.SEASONS = [
     rule: {} },
   { id: "s_frail",  name: "Season of Glass", blurb: "Everything hits twice as hard. You hit three times as hard.",
     rule: { monDmg: 2.0, playerDmg: 3.0 } },
-  { id: "s_poor",   name: "Season of Want",  blurb: "Half the gold, double the drops.",
-    rule: { gold: 0.5, quantity: 2.0 } },
+  { id: "s_poor",   name: "Season of Want",  blurb: "Half the gold, double the shards.",
+    rule: { gold: 0.5, shards: 2.0 } },
   { id: "s_deep",   name: "Season of Depth", blurb: "Start at realm 3. Monsters gain 20% life per realm beyond 6.",
     rule: { startStage: 21, deepScale: 0.20 } },
   { id: "s_vigil",  name: "Season of Vigils",blurb: "Gravemarks pay triple. Everything else pays nothing extra.",
@@ -261,8 +261,8 @@ GM.QUESTS = [
   { id: "explore", need: 30,  text: "Clear 30 depths",            gold: 4000,  shards: 40,  ichor: 0 },
   { id: "slay",    need: 400, text: "Put down 400 of them",       gold: 6500,  shards: 60,  ichor: 0 },
   { id: "boss",    need: 5,   text: "Break 5 bosses",             gold: 12000, shards: 120, ichor: 1 },
-  { id: "loot",    need: 60,  text: "Recover 60 items",           gold: 5000,  shards: 90,  ichor: 0 },
-  { id: "rune",    need: 8,   text: "Surface 8 runes",            gold: 9000,  shards: 150, ichor: 0 },
+  { id: "shard",   need: 400, text: "Gather 400 shards",          gold: 5000,  shards: 90,  ichor: 0 },
+  { id: "level",   need: 20,  text: "Raise 20 hero levels",       gold: 9000,  shards: 150, ichor: 0 },
   { id: "grave",   need: 3,   text: "Recover 3 gravemarks",       gold: 15000, shards: 200, ichor: 2 }
 ];
 GM.QUEST_BY_ID = GM.indexById(GM.QUESTS);

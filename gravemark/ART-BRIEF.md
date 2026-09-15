@@ -2,7 +2,7 @@
 
 _Generated from `src/18-assets.js` by `tools/art-brief.js`. Do not hand-edit — regenerate._
 
-**582 assets** · 169 animated sprite sheets · 1288 individual frames · 45 paper-doll gear layers
+**493 assets** · 124 animated sprite sheets · 928 individual frames · 304 rig parts
 
 The game references **no image path directly** — it asks `GM.art(key)` and falls back to a labelled placeholder. Drop a finished file at `art/<key>.png` and it appears. Nothing in the game code changes. Deliver in any order; partial sets work.
 
@@ -50,17 +50,6 @@ baked in.
 | Storm | `#e0c53a` | sick yellow |
 | Void | `#a45fd1` | wrong purple |
 
-Rarity colours (used on item icons and frames):
-
-| rarity | colour |
-|---|---|
-| Common | #8b909c grey |
-| Magic | #5b8fd6 blue |
-| Rare | #d9b45c gold |
-| Epic | #a45fd1 purple |
-| Legendary | #e0662f orange |
-| Mythic | #e03a5f red |
-
 ## 3. Technical spec — read before drawing anything animated
 
 **Sprite sheets are a single horizontal strip.** Frame 1 leftmost. No padding, no gaps, no grid. Sheet width = frame width × frame count; sheet height = frame height. The loader slices by `naturalWidth / frames`, so an off-by-one column breaks every frame.
@@ -76,15 +65,6 @@ Rarity colours (used on item icons and frames):
 - **Footing:** the character's feet rest at **96% of frame height**, horizontally centred at 50%. Every frame of every state and every gear layer uses the same footing, or the character bobs when the state changes.
 - **Transparency:** true alpha. No matte, no halo, no semi-transparent fringe inside the silhouette.
 - **No baked shadow.** The game draws the ground.
-
-**Anchor points** (fractions of the frame) — weapons are drawn at the grip, so the hand must be here in every frame:
-
-| anchor | x | y | meaning |
-|---|---|---|---|
-| `gripMain` | 0.62 | 0.52 | main hand — weapon pivots here |
-| `gripOff` | 0.34 | 0.55 | off hand — shield/tome |
-| `head` | 0.5 | 0.22 | helm sits here |
-| `feet` | 0.5 | 0.96 | ground contact |
 
 ### Animation states
 
@@ -102,38 +82,37 @@ Rarity colours (used on item icons and frames):
 
 **Walk and run must loop seamlessly** — frame 8 flows into frame 1 with no hitch. Standard 8-frame stride: contact, down, pass, up, contact (opposite), down, pass, up.
 
-## 4. Paper-doll gear — every equipped item is visible on the character
+## 4. The five classes — a hero is a whole unit
 
-This is the largest and most important part of the pack. The character is drawn as a **stack of layers**, one per equipped slot, composited in z-order. Every gear layer is its own sprite sheet that must align **frame-for-frame** with the body sheets: gloves layer frame 4 must match body frame 4 exactly, or the hand detaches mid-swing.
+There is no equipment. Hiring a Reaver gives you a Reaver: sword, scarred leathers, the lot, painted once and never changed. Each class needs ONE finished standing figure (`actor/look-<class>`), and the shared hero sheets carry its motion until the class has rig parts of its own.
 
-| z | layer | slot | note |
+| class | role | weapon | the look |
 |---|---|---|---|
-| 0 | `back` | offhand | slung shield / tome, behind the body |
-| 10 | `body` | — | the bare character; every other layer aligns to this |
-| 20 | `boots` | boots |  |
-| 25 | `legs` | body | lower half of the body armour |
-| 30 | `chest` | body | upper half of the body armour |
-| 35 | `belt` | belt |  |
-| 40 | `gloves` | gloves |  |
-| 50 | `helm` | helm |  |
-| 55 | `offhand` | offhand | when actively held rather than slung |
-| 60 | `weapon` | weapon | held at the grip point; follows the attack arc |
-| 70 | `fx` | — | element tint, crit flash, leech motes |
-
-**Rules for every gear layer:**
-
-1. Draw it *on* a copy of the base body so the fit is right, then delete the body and export only the gear.
-2. Same 256×256 cells, same footing, same frame count as the body state it accompanies.
-3. Only the parts the slot covers. A `gloves` layer is two hands and forearms — nothing else.
-4. Gear must read at three tier bands: **low** (rusted, lashed, improvised), **mid** (forged, fitted, ornamented), **high** (reliquary-grade, gilded, carved with names).
+| `warden` | Front | maul | the Warden: heavy plate, tower shield slung, the maul-bearer of the line |
+| `reaver` | Strike | sword | the Reaver: scarred leathers, a sword and no shield, built to trade blows |
+| `pyre` | Ruin | wand | the Pyre: ash-grey robes, bone wand, ember light in the hood |
+| `stalker` | Flank | dagger | the Stalker: wrapped in shadow-cloth, twin daggers, hood low |
+| `sexton` | Support | scythe | the Sexton: a gravedigger's coat and a long scythe, lantern at the belt |
 
 ---
 
 ## 5. The asset list, by category
 
-### Hero — body  _(27 assets)_
+### Class looks  _(5 assets)_
 
-Prompt: `A lone gravedigger-warrior, wiry and weather-beaten, wrapped in oilcloth and leather, face shadowed under a hood. Neutral undyed clothing — this is the naked base that all gear layers paint over, so keep it plain and keep the silhouette narrow. Facing right. [STATE].`
+One finished standing figure per class, facing right, feet at 96% height. See section 4.
+
+| key | size | frames | subject |
+|---|---|---|---|
+| `actor/look-warden` | 256×256 | — | the Warden, standing: Stands where the ground is worst. |
+| `actor/look-reaver` | 256×256 | — | the Reaver, standing: Paid by the swing, not the hour. |
+| `actor/look-pyre` | 256×256 | — | the Pyre, standing: Burns the field, then salts it. |
+| `actor/look-stalker` | 256×256 | — | the Stalker, standing: Never where the blow lands. |
+| `actor/look-sexton` | 256×256 | — | the Sexton, standing: Knows which graves are worth opening. |
+
+### Hero — body  _(12 assets)_
+
+Prompt: `A lone gravedigger-warrior, wiry and weather-beaten, wrapped in oilcloth and leather, face shadowed under a hood. This is the shared body every class wears tinted to its colour until it has a look of its own, so keep the silhouette clean. Facing right. [STATE].`
 
 Draw the generic `hero-attack` first, then the five weapon-specific swings — a maul does not move like a dagger:
 
@@ -157,21 +136,6 @@ Draw the generic `hero-attack` first, then the five weapon-specific swings — a
 | `actor/hero-attack-maul` | 256×256 | 8 | attack swing specific to the maul family |
 | `actor/hero-attack-wand` | 256×256 | 8 | attack swing specific to the wand family |
 | `actor/hero-attack-scythe` | 256×256 | 8 | attack swing specific to the scythe family |
-| `actor/hero-look-dagger-low` | 256×256 | — | hero in low-tier armour with a dagger |
-| `actor/hero-look-dagger-mid` | 256×256 | — | hero in mid-tier armour with a dagger |
-| `actor/hero-look-dagger-high` | 256×256 | — | hero in high-tier armour with a dagger |
-| `actor/hero-look-sword-low` | 256×256 | — | hero in low-tier armour with a sword |
-| `actor/hero-look-sword-mid` | 256×256 | — | hero in mid-tier armour with a sword |
-| `actor/hero-look-sword-high` | 256×256 | — | hero in high-tier armour with a sword |
-| `actor/hero-look-maul-low` | 256×256 | — | hero in low-tier armour with a maul |
-| `actor/hero-look-maul-mid` | 256×256 | — | hero in mid-tier armour with a maul |
-| `actor/hero-look-maul-high` | 256×256 | — | hero in high-tier armour with a maul |
-| `actor/hero-look-wand-low` | 256×256 | — | hero in low-tier armour with a wand |
-| `actor/hero-look-wand-mid` | 256×256 | — | hero in mid-tier armour with a wand |
-| `actor/hero-look-wand-high` | 256×256 | — | hero in high-tier armour with a wand |
-| `actor/hero-look-scythe-low` | 256×256 | — | hero in low-tier armour with a scythe |
-| `actor/hero-look-scythe-mid` | 256×256 | — | hero in mid-tier armour with a scythe |
-| `actor/hero-look-scythe-high` | 256×256 | — | hero in high-tier armour with a scythe |
 
 ### Revenant — the player's own corpse  _(4 assets)_
 
@@ -183,58 +147,6 @@ Prompt: `The same gravedigger silhouette as the hero, but drowned-pale and wrong
 | `actor/revenant-attack` | 256×256 | 8 | silhouette must read as the hero, corrupted |
 | `actor/revenant-hit` | 256×256 | 8 | silhouette must read as the hero, corrupted |
 | `actor/revenant-death` | 256×256 | 8 | silhouette must read as the hero, corrupted |
-
-### Paper-doll gear layers  _(45 assets)_
-
-Each key is `doll/<layer>-<family>-<band>`. Bands: `low` rusted/improvised, `mid` forged/fitted, `high` reliquary-grade/gilded. Must align frame-for-frame with the hero sheets (8 frames, 256×256, footing at 96%).
-
-| key | size | frames | subject |
-|---|---|---|---|
-| `doll/back-shield-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/back-shield-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/back-shield-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/back-tome-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/back-tome-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/back-tome-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/boots-boots-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/boots-boots-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/boots-boots-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/legs-body-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/legs-body-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/legs-body-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/chest-body-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/chest-body-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/chest-body-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/belt-belt-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/belt-belt-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/belt-belt-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/gloves-gloves-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/gloves-gloves-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/gloves-gloves-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/helm-helm-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/helm-helm-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/helm-helm-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-dagger-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-dagger-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-dagger-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-sword-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-sword-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-sword-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-maul-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-maul-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-maul-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-wand-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-wand-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-wand-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-scythe-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-scythe-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/weapon-scythe-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/offhand-shield-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/offhand-shield-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/offhand-shield-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/offhand-tome-low` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/offhand-tome-mid` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
-| `doll/offhand-tome-high` | 256×256 | 8 | gear layer, must align frame-for-frame with actor/hero-* sheets |
 
 ### Monsters  _(15 archetypes × 4 states)_
 
@@ -302,78 +214,6 @@ Wide parallax-friendly paintings. The figures stand on a ground line at ~82% hei
 | `bg/graveyard` | A field of the player's own gravemarks under low fog | |
 | `bg/title` | The title screen: one lantern, one open grave, rain | |
 
-### Item icons  _(42 assets)_
-
-Square inventory icons, three-quarter view, lit from upper left, on transparent background. Tier band drives the material: `low` rusted iron and lashed cord, `mid` clean forged steel and fitted leather, `high` reliquary-grade with gilding and carved names.
-
-| key | size | frames | subject |
-|---|---|---|---|
-| `item/dagger-low` | 64×64 | — | Dagger (low tier) |
-| `item/dagger-mid` | 64×64 | — | Dagger (mid tier) |
-| `item/dagger-high` | 64×64 | — | Dagger (high tier) |
-| `item/sword-low` | 64×64 | — | Sword (low tier) |
-| `item/sword-mid` | 64×64 | — | Sword (mid tier) |
-| `item/sword-high` | 64×64 | — | Sword (high tier) |
-| `item/maul-low` | 64×64 | — | Maul (low tier) |
-| `item/maul-mid` | 64×64 | — | Maul (mid tier) |
-| `item/maul-high` | 64×64 | — | Maul (high tier) |
-| `item/wand-low` | 64×64 | — | Wand (low tier) |
-| `item/wand-mid` | 64×64 | — | Wand (mid tier) |
-| `item/wand-high` | 64×64 | — | Wand (high tier) |
-| `item/scythe-low` | 64×64 | — | Scythe (low tier) |
-| `item/scythe-mid` | 64×64 | — | Scythe (mid tier) |
-| `item/scythe-high` | 64×64 | — | Scythe (high tier) |
-| `item/shield-low` | 64×64 | — | Shield (low tier) |
-| `item/shield-mid` | 64×64 | — | Shield (mid tier) |
-| `item/shield-high` | 64×64 | — | Shield (high tier) |
-| `item/tome-low` | 64×64 | — | Tome (low tier) |
-| `item/tome-mid` | 64×64 | — | Tome (mid tier) |
-| `item/tome-high` | 64×64 | — | Tome (high tier) |
-| `item/helm-low` | 64×64 | — | Helm (low tier) |
-| `item/helm-mid` | 64×64 | — | Helm (mid tier) |
-| `item/helm-high` | 64×64 | — | Helm (high tier) |
-| `item/body-low` | 64×64 | — | Body (low tier) |
-| `item/body-mid` | 64×64 | — | Body (mid tier) |
-| `item/body-high` | 64×64 | — | Body (high tier) |
-| `item/gloves-low` | 64×64 | — | Gloves (low tier) |
-| `item/gloves-mid` | 64×64 | — | Gloves (mid tier) |
-| `item/gloves-high` | 64×64 | — | Gloves (high tier) |
-| `item/boots-low` | 64×64 | — | Boots (low tier) |
-| `item/boots-mid` | 64×64 | — | Boots (mid tier) |
-| `item/boots-high` | 64×64 | — | Boots (high tier) |
-| `item/belt-low` | 64×64 | — | Belt (low tier) |
-| `item/belt-mid` | 64×64 | — | Belt (mid tier) |
-| `item/belt-high` | 64×64 | — | Belt (high tier) |
-| `item/amulet-low` | 64×64 | — | Amulet (low tier) |
-| `item/amulet-mid` | 64×64 | — | Amulet (mid tier) |
-| `item/amulet-high` | 64×64 | — | Amulet (high tier) |
-| `item/ring-low` | 64×64 | — | Ring (low tier) |
-| `item/ring-mid` | 64×64 | — | Ring (mid tier) |
-| `item/ring-high` | 64×64 | — | Ring (high tier) |
-
-### Rune glyphs  _(16 assets)_
-
-48×48 carved stone chips, each with ONE incised glyph lit from within. Invented alphabet — angular, chiselled, no resemblance to real letters. The glow colour follows the rune's role. All sixteen must be distinguishable at a glance and feel like one alphabet.
-
-| key | size | frames | subject |
-|---|---|---|---|
-| `rune/mor` | 48×48 | — | Mor rune |
-| `rune/ith` | 48×48 | — | Ith rune |
-| `rune/kesh` | 48×48 | — | Kesh rune |
-| `rune/dol` | 48×48 | — | Dol rune |
-| `rune/var` | 48×48 | — | Var rune |
-| `rune/sesh` | 48×48 | — | Sesh rune |
-| `rune/rhen` | 48×48 | — | Rhen rune |
-| `rune/ebb` | 48×48 | — | Ebb rune |
-| `rune/tor` | 48×48 | — | Tor rune |
-| `rune/nara` | 48×48 | — | Nara rune |
-| `rune/quell` | 48×48 | — | Quell rune |
-| `rune/sarn` | 48×48 | — | Sarn rune |
-| `rune/hark` | 48×48 | — | Hark rune |
-| `rune/umbra` | 48×48 | — | Umbra rune |
-| `rune/vael` | 48×48 | — | Vael rune |
-| `rune/zil` | 48×48 | — | Zil rune |
-
 ### UI chrome  _(15 assets)_
 
 Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `nineslice` number is the corner inset in pixels — corners must not stretch. Button states: `normal` resting, `hover` gold edge brightening, `pressed` inset by 1px with the highlight flipped, `disabled` desaturated to 35%.
@@ -396,7 +236,7 @@ Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `n
 | `ui/marker-plate` | 192×40 | — | parish building marker plate (level chip + name banner) |
 | `ui/flag-banner` | 256×40 | — | battle panel depth banner |
 
-### Icons  _(27 assets)_
+### Icons  _(26 assets)_
 
 64×64 flat-ish symbolic icons, single accent colour each, readable at 24px. Resource icons, element icons, and tab icons.
 
@@ -422,29 +262,12 @@ Nine-slice panel skins and buttons in cut granite with a gold inlay edge. The `n
 | `icon/class-stalker` | 64×64 | — | Stalker class badge |
 | `icon/class-sexton` | 64×64 | — | Sexton class badge |
 | `icon/tab-delve` | 64×64 | — |  |
-| `icon/tab-gear` | 64×64 | — |  |
-| `icon/tab-bench` | 64×64 | — |  |
+| `icon/tab-names` | 64×64 | — |  |
 | `icon/tab-tree` | 64×64 | — |  |
 | `icon/tab-town` | 64×64 | — |  |
 | `icon/tab-graves` | 64×64 | — |  |
 | `icon/tab-modes` | 64×64 | — |  |
 | `icon/tab-ascend` | 64×64 | — |  |
-
-### Rarity frames and sockets  _(9 assets)_
-
-Nine-slice item frames, one per rarity, in that rarity's colour. Restrained — the frame surrounds the item icon and must never compete with it. Socket pips are small circular stone settings, empty and filled.
-
-| key | size | frames | subject |
-|---|---|---|---|
-| `frame/portrait` | 96×96 | — | roster portrait frame |
-| `frame/rarity-common` | 96×96 | — | Common |
-| `frame/rarity-magic` | 96×96 | — | Magic |
-| `frame/rarity-rare` | 96×96 | — | Rare |
-| `frame/rarity-epic` | 96×96 | — | Epic |
-| `frame/rarity-legendary` | 96×96 | — | Legendary |
-| `frame/rarity-mythic` | 96×96 | — | Mythic |
-| `frame/socket-empty` | 32×32 | — |  |
-| `frame/socket-filled` | 32×32 | — |  |
 
 ---
 

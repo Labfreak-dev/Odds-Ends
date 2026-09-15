@@ -25,37 +25,11 @@ GM.ANIM_STATES = [
   { id: "death",  frames: 8,  fps: 10, loop: false, note: "collapse; final frame rests on the ground" }
 ];
 
-/* The character is drawn as a stack of layers in this order. Every equipped
-   item contributes one layer, so gear is visible on the body — the paper-doll
-   the art brief has to cover slot by slot. */
-GM.DOLL_LAYERS = [
-  { id: "back",    z: 0,  slot: "offhand", note: "slung shield / tome, behind the body" },
-  { id: "body",    z: 10, slot: null,      note: "the bare character; every other layer aligns to this" },
-  { id: "boots",   z: 20, slot: "boots" },
-  { id: "legs",    z: 25, slot: "body",    note: "lower half of the body armour" },
-  { id: "chest",   z: 30, slot: "body",    note: "upper half of the body armour" },
-  { id: "belt",    z: 35, slot: "belt" },
-  { id: "gloves",  z: 40, slot: "gloves" },
-  { id: "helm",    z: 50, slot: "helm" },
-  { id: "weapon",  z: 60, slot: "weapon",  note: "held at the grip point; follows the attack arc" },
-  { id: "offhand", z: 55, slot: "offhand", note: "when actively held rather than slung" },
-  { id: "fx",      z: 70, slot: null,      note: "element tint, crit flash, leech motes" }
-];
-
-/* Grip anchors, in fractions of the frame, so a weapon sprite lands in the
-   hand regardless of which body art is loaded. */
-GM.DOLL_ANCHORS = {
-  gripMain: { x: 0.62, y: 0.52 },
-  gripOff:  { x: 0.34, y: 0.55 },
-  head:     { x: 0.50, y: 0.22 },
-  feet:     { x: 0.50, y: 0.96 }
-};
-
 GM.ART_SIZES = {
   actor:    { w: 256, h: 256 },  /* character and monsters */
   boss:     { w: 384, h: 320 },
-  icon:     { w: 64,  h: 64 },   /* item, rune, resource, tab icons */
-  frame:    { w: 96,  h: 96 },   /* rarity frames, socket plates */
+  icon:     { w: 64,  h: 64 },   /* class, resource, tab icons */
+  frame:    { w: 96,  h: 96 },   /* portrait and panel frames */
   bg:       { w: 1280, h: 720 }, /* realm backdrops */
   button:   { w: 192, h: 56 },
   panel:    { w: 512, h: 512 }   /* nine-slice panel skins */
@@ -109,32 +83,8 @@ GM.ART = (function () {
   });
 
   /* --- tabs --- */
-  ["delve", "gear", "bench", "tree", "town", "graves", "modes", "ascend"]
+  ["delve", "names", "tree", "town", "graves", "modes", "ascend"]
     .forEach(function (k) { add("icon/tab-" + k, "icon", GM.ART_SIZES.icon); });
-
-  /* --- rarity frames and sockets --- */
-  GM.RARITIES.forEach(function (r) {
-    add("frame/rarity-" + r.key, "nineslice", GM.ART_SIZES.frame, { nineslice: 12, label: r.name });
-  });
-  add("frame/socket-empty", "icon", { w: 32, h: 32 });
-  add("frame/socket-filled", "icon", { w: 32, h: 32 });
-
-  /* --- item icons: one per base family per tier band (low/mid/high) --- */
-  var families = {};
-  GM.BASES.forEach(function (b) { families[b.family] = b; });
-  Object.keys(families).forEach(function (fam) {
-    ["low", "mid", "high"].forEach(function (band) {
-      add("item/" + fam + "-" + band, "icon", GM.ART_SIZES.icon, {
-        label: families[fam].kindLabel + " (" + band + " tier)",
-        pool: families[fam].pool
-      });
-    });
-  });
-
-  /* --- rune glyphs --- */
-  GM.RUNES.forEach(function (r) {
-    add("rune/" + r.id, "icon", { w: 48, h: 48 }, { label: r.name + " rune" });
-  });
 
   /* --- the character: body + every animation state --- */
   GM.ANIM_STATES.forEach(function (a) {
@@ -150,29 +100,23 @@ GM.ART = (function () {
     });
   });
 
-  /* --- composite hero "looks" ---------------------------------------------
-     A fallback for the paper doll. Layered gear needs every piece drawn over
-     the same body at the same footing, which a text-to-image tool cannot do -
-     three deliveries of doll/ have come back as item illustrations on cards.
-     A LOOK sidesteps the problem: one finished figure already wearing a whole
-     kit, chosen by weapon family and armour tier. Fifteen images instead of
-     forty-five aligned layers, and any single one of them is useful the day it
-     arrives. When a look exists the renderer prefers it; the doll path stays
-     for a future delivery that genuinely aligns. */
-  ["dagger", "sword", "maul", "wand", "scythe"].forEach(function (fam) {
-    ["low", "mid", "high"].forEach(function (band) {
-      add("actor/hero-look-" + fam + "-" + band, "image", GM.ART_SIZES.actor, {
-        label: "hero in " + band + "-tier armour with a " + fam,
-        facing: "right",
-        note: "one complete standing figure, whole kit worn, feet at 96% height"
-      });
+  /* --- class looks ---------------------------------------------------------
+     One finished standing figure per class. A hero is a whole unit with a
+     fixed kit, so this is the whole of their appearance: five images, and
+     any single one is useful the day it arrives. Until a class has its own,
+     the renderer tints the shared hero painting to the class hue. */
+  GM.CLASSES.forEach(function (c) {
+    add("actor/look-" + c.id, "image", GM.ART_SIZES.actor, {
+      label: "the " + c.name + ", standing: " + c.blurb,
+      facing: "right",
+      note: "one complete standing figure, whole kit worn, feet at 96% height"
     });
   });
 
   /* --- rig parts: what the skeletal animator wears ------------------------
-     Generated from GM.Rig.PARTS so the drawer and the art brief agree. The
-     hero has three gear bands; weapons are their own set; every monster and
-     boss gets one set for its rig type. Painted at 2x rig units. */
+     Generated from GM.Rig.PARTS so the drawer and the art brief agree. One
+     shared hero set plus one per class; weapons are their own set; every
+     monster and boss gets one set for its rig type. Painted at 2x rig units. */
   if (GM.Rig && GM.Rig.PARTS) {
     var chars = GM.Rig.CHARS.slice();
     GM.MONSTERS.forEach(function (m) { chars.push({ id: m.id, rig: GM.Rig.forChar(m.id).id, ref: "mon/" + m.id + "-idle", label: m.name }); });
@@ -192,26 +136,10 @@ GM.ART = (function () {
       var pt = GM.Rig.PARTS.humanoid.weapon;
       add("parts/weapon/" + fam, "part", { w: pt.w * 2, h: pt.h * 2 }, {
         label: "the hero's " + fam + " \u2014 " + pt.desc, rig: "humanoid", part: "weapon", charId: "weapon",
-        ref: "item/" + fam + "-mid", pivot: { x: pt.px, y: pt.py }, joint: pt.joint
+        ref: "actor/hero-idle", pivot: { x: pt.px, y: pt.py }, joint: pt.joint
       });
     });
   }
-
-  /* --- paper-doll gear layers: every slot, every family, every tier band --- */
-  GM.DOLL_LAYERS.forEach(function (layer) {
-    if (!layer.slot) return;
-    var pool = GM.slotPool(layer.slot);
-    var fams = {};
-    GM.BASES.forEach(function (b) { if (b.pool === pool) fams[b.family] = b; });
-    Object.keys(fams).forEach(function (fam) {
-      ["low", "mid", "high"].forEach(function (band) {
-        add("doll/" + layer.id + "-" + fam + "-" + band, "sheet", GM.ART_SIZES.actor, {
-          frames: 8, fps: 14, loop: false, layer: layer.id, z: layer.z, slot: layer.slot,
-          note: "gear layer, must align frame-for-frame with actor/hero-* sheets"
-        });
-      });
-    });
-  });
 
   /* --- monsters --- */
   GM.MONSTERS.forEach(function (m) {
@@ -466,44 +394,21 @@ GM.drawSprite = function (ctx, key, frame, x, y, w, h, opts) {
   return false;
 };
 
-/* Which tier band a base falls in, for picking an item/doll art key. */
-GM.tierBand = function (tier) { return tier <= 3 ? "low" : tier <= 6 ? "mid" : "high"; };
-
-GM.itemArtKey = function (item) {
-  var b = GM.BASE_BY_ID[item.baseId];
-  if (!b) return "item/sword-low";
-  return "item/" + b.family + "-" + GM.tierBand(b.tier);
-};
-
-/* The look that matches the current kit: weapon family plus the average tier
-   band of worn armour. Returns null when no such art is present, so the
-   renderer falls back to the body-plus-layers path. */
+/* The painting that IS this hero: the class look when it exists, else the
+   shared hero painting (tinted to the class by the caller). Returns null when
+   no such key is in the manifest at all. */
 GM.heroLookKey = function (hero) {
   hero = hero || (GM.state.heroes && GM.state.heroes[0]);
   if (!hero) return null;
-  var wep = hero.equip.weapon;
-  var wb = wep && GM.BASE_BY_ID[wep.baseId];
-  var fam = wb && wb.pool === "weapon" ? wb.family : "sword";
-
-  var tiers = 0, n = 0;
-  for (var i = 0; i < GM.ARMOUR_SLOTS.length; i++) {
-    var it = hero.equip[GM.ARMOUR_SLOTS[i]];
-    var b = it && GM.BASE_BY_ID[it.baseId];
-    if (b) { tiers += b.tier; n++; }
-  }
-  var band = GM.tierBand(n ? Math.round(tiers / n) : 1);
-  var key = "actor/hero-look-" + fam + "-" + band;
+  var key = "actor/look-" + hero.classId;
   return GM.ART_BY_KEY[key] ? key : null;
 };
 
-GM.dollKeyFor = function (layerId, slot, hero) {
-  hero = hero || (GM.state.heroes && GM.state.heroes[0]);
-  if (!hero) return null;
-  var it = hero.equip[slot];
-  if (!it) return null;
-  var b = GM.BASE_BY_ID[it.baseId];
-  if (!b) return null;
-  return "doll/" + layerId + "-" + b.family + "-" + GM.tierBand(b.tier);
+/* Which parts set the rig should wear for a hero: the class's own when it is
+   complete on disk, otherwise the shared hero set. */
+GM.heroPartsId = function (hero) {
+  if (hero && GM.partsReady(hero.classId, "humanoid")) return hero.classId;
+  return "hero";
 };
 
 /* Does a character have a COMPLETE set of rig parts on disk? Incomplete sets

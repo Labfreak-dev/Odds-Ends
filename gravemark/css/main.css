@@ -234,21 +234,17 @@ button,input,select{font:inherit;color:inherit}
   font-family:var(--font);font-size:10px;text-shadow:0 1px 2px #000}
 .bar.slim{height:11px}
 
-.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:5px}
-.slot{display:flex;gap:6px;align-items:center;padding:4px 6px;min-height:40px;background:var(--stone);
-  border:1px solid var(--edge);border-left-width:3px;border-radius:2px;cursor:pointer}
-.slot:hover{border-color:var(--edge-hi);background:#1c202a}
-.slot.empty{opacity:.5;border-left-color:var(--faint)}
-.slot .ico{width:28px;height:28px;flex:0 0 auto;border:1px solid var(--edge);border-radius:2px;background:var(--ink)}
-.slot .nm{font-size:11px;line-height:1.25;overflow:hidden}
-.slot .nm .sl{display:block;color:var(--faint);font-size:9px;text-transform:uppercase}
-.bl0{border-left-color:var(--r0)} .bl1{border-left-color:var(--r1)} .bl2{border-left-color:var(--r2)}
-.bl3{border-left-color:var(--r3)} .bl4{border-left-color:var(--r4)} .bl5{border-left-color:var(--r5)}
-.stash{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:4px;max-height:360px;overflow-y:auto}
-.socks{display:flex;gap:3px;margin-top:2px}
-.sock{width:12px;height:12px;border-radius:50%;border:1px solid var(--edge-hi);background:var(--ink);
-  font-size:8px;display:flex;align-items:center;justify-content:center;color:var(--gold)}
-.sock.full{background:#2a2416;border-color:var(--gold)}
+.traits{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:5px}
+.trait{display:flex;flex-direction:column;gap:2px;padding:5px 7px;min-height:40px;background:var(--stone);
+  border:1px solid var(--edge);border-left:3px solid var(--gold);border-radius:3px;font-size:11px}
+.trait.empty{opacity:.5;border-left-color:var(--faint)}
+.trait .tn{color:var(--gold);font-family:var(--font);font-size:10px;text-transform:uppercase}
+.trait .tv{color:var(--bone)}
+.epi{display:flex;flex-direction:column;gap:3px;padding:6px 8px;background:var(--stone);border:1px solid var(--edge);
+  border-radius:3px;cursor:pointer;font-size:11px}
+.epi:hover{border-color:var(--edge-hi);background:#1c202a}
+.epi.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.epis{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:4px;max-height:300px;overflow-y:auto}
 label.opt{display:flex;gap:6px;align-items:center;font-size:11px;cursor:pointer}
 input[type=checkbox]{accent-color:var(--gold);cursor:pointer}
 input[type=range]{width:100%;accent-color:var(--gold)}

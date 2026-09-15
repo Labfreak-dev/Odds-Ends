@@ -135,9 +135,13 @@ GM.Rig.PARTS = {
    hero exists at three bands so equipped gear is visible on the rig; that is
    the point of the whole exercise. Monsters and bosses get one set each. */
 GM.Rig.CHARS = [
-  { id: "hero-low",  rig: "humanoid", ref: "actor/hero-idle", label: "the hero in LOW-tier gear: rusted iron, lashed cord, chipped bone, everything improvised and much-repaired" },
-  { id: "hero-mid",  rig: "humanoid", ref: "actor/hero-idle", label: "the hero in MID-tier gear: cleanly forged steel, fitted leather, carved bone — the reference painting IS this band" },
-  { id: "hero-high", rig: "humanoid", ref: "actor/hero-idle", label: "the hero in HIGH-tier gear: reliquary-grade, blackened steel with gold inlay, names cut into every surface" },
+  /* One shared hero set, tinted per class until each class has its own. */
+  { id: "hero",    rig: "humanoid", ref: "actor/hero-idle", label: "the hero: the hooded figure of the reference painting, cleanly forged steel, fitted leather, carved bone" },
+  { id: "warden",  rig: "humanoid", ref: "actor/look-warden",  label: "the Warden: heavy plate, tower shield slung, the maul-bearer of the line" },
+  { id: "reaver",  rig: "humanoid", ref: "actor/look-reaver",  label: "the Reaver: scarred leathers, a sword and no shield, built to trade blows" },
+  { id: "pyre",    rig: "humanoid", ref: "actor/look-pyre",    label: "the Pyre: ash-grey robes, bone wand, ember light in the hood" },
+  { id: "stalker", rig: "humanoid", ref: "actor/look-stalker", label: "the Stalker: wrapped in shadow-cloth, twin daggers, hood low" },
+  { id: "sexton",  rig: "humanoid", ref: "actor/look-sexton",  label: "the Sexton: a gravedigger's coat and a long scythe, lantern at the belt" },
   { id: "revenant",  rig: "humanoid", ref: "actor/revenant-idle", label: "the revenant: the hero's silhouette, drowned-pale and wrong, still wearing the gear it died in" }
 ];
 

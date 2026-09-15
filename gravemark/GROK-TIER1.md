@@ -64,7 +64,7 @@ PAINTERLY with brush texture and worn metal, not a flat icon:
 When the sheet comes back:
 
 ```bash
-python3 tools/slice-parts.py sheet.png hero-mid --out /tmp/stage   # cuts + places 11 parts
+python3 tools/slice-parts.py sheet.png hero --out /tmp/stage   # cuts + places 11 parts
 python3 tools/art-install.py /tmp/stage                            # installs, rebuilds the index
 python3 tools/shot-swing.py . /tmp/swing.png                       # heroes frozen mid-swing
 ```

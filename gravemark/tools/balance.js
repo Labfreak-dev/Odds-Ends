@@ -1,7 +1,8 @@
 /* Gravemark — tools/balance.js
    Measures pacing for a SQUAD. For a range of depths it outfits a plausible
-   squad and reports time-to-clear-the-pack against time-to-be-broken, for a
-   normal pack and for that realm's boss.
+   squad (levelled for the depth, optionally carrying names cut from
+   gravemarks) and reports time-to-clear-the-pack against time-to-be-broken,
+   for a normal pack and for that realm's boss.
 
    Targets
      pack ttk : 2s - 14s      (a stage is a beat, not a chore)
@@ -68,9 +69,9 @@ function run(label, opts) {
 }
 
 const PROFILES = [
-  ["farming: rare gear at depth", {}],
-  ["developed: + town 12, perks 3", { town: 12, perks: 3 }],
-  ["PUSHING 20 ahead of gear", { behind: 20, town: 8, perks: 2 }],
+  ["levelling: no names cut", {}],
+  ["developed: 2 names each, town 12, perks 3", { names: 2, town: 12, perks: 3 }],
+  ["PUSHING 20 ahead of level", { behind: 20, names: 1, town: 8, perks: 2 }],
   ["thin squad of 3", { size: 3 }]
 ];
 

@@ -118,14 +118,14 @@ function tier(n, title, why, ids, notes) {
 
 let total = 0;
 
-total += tier(1, "The hero at mid tier, and the five weapons",
-  "Do this first. Eleven body parts and five weapons put a fully animated hero in the game with a visible weapon — every swing, hit and death already authored. The reference painting is the mid-tier band, so these are the most faithful crops of all.\n\n**Make `parts/hero-mid/torso` alone as a test.** One image proves the crop, the scale and the pivot before the other fifteen are made.",
-  ["hero-mid", "weapon"],
-  { weapon: "Weapons are painted **vertically, grip near the bottom, business end at the top**, as if held point-up at rest. The reference for each is its item icon: `art/item/<family>-mid.png`. No hand." });
+total += tier(1, "The hero, and the five weapons",
+  "Do this first. Eleven body parts and five weapons put a fully animated hero in the game with a visible weapon — every swing, hit and death already authored. Every class wears this set, tinted to its colour, until it has parts of its own.\n\n**Make `parts/hero/torso` alone as a test.** One image proves the crop, the scale and the pivot before the other fifteen are made.",
+  ["hero", "weapon"],
+  { weapon: "Weapons are painted **vertically, grip near the bottom, business end at the top**, as if held point-up at rest. No hand. The Warden swings the maul, the Reaver the sword, the Pyre the wand, the Stalker the dagger, the Sexton the scythe." });
 
-total += tier(2, "The hero's other two gear bands",
-  "This is what makes equipment show on the character. Same figure, same proportions, same pivots — only the gear changes. Low tier is rusted, lashed and improvised; high tier is reliquary-grade with gold inlay and names cut into the metal. Use the same reference and describe the band's materials in the prompt.",
-  ["hero-low", "hero-high"]);
+total += tier(2, "The five classes",
+  "A hero is a whole unit: a Warden is always the Warden, plate and maul, and nothing is ever taken off. One parts set per class gives each its own silhouette on the rig. Same skeleton, same joints, same swing — only the figure changes. Paint each from its class look (`actor/look-<class>`) once that exists, else from the hero reference with the class described.",
+  GM.CLASSES.map(c => c.id));
 
 const humanoidMon = GM.MONSTERS.filter(m => GM.Rig.forChar(m.id).id === "humanoid").map(m => m.id);
 total += tier(3, "The revenant and the humanoid monsters",
@@ -147,7 +147,7 @@ W("");
 W("## Delivery");
 W("");
 W(`- **${total} images** across five tiers. Partial deliveries land the same day: a finished Tier 1 is an animated hero.`);
-W("- One PNG per part, named exactly as the key: `parts/hero-mid/torso.png`. Keep the folder structure.");
+W("- One PNG per part, named exactly as the key: `parts/hero/torso.png`. Keep the folder structure.");
 W("- Exact canvas sizes matter — the rig positions each part by its pivot, and the pivot is a fraction of the canvas.");
 W("- Magenta is keyed out on install. Do not deliver on white or transparent.");
 W("- Zip and send. `python3 tools/art-install.py <folder>` installs; the rig picks the parts up automatically and drops back to the whole-figure painting for any character whose set is incomplete.");

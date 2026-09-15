@@ -72,7 +72,8 @@ GM.ui.renderRoster = function () {
     var info = GM.el("div", "hinfo");
     info.innerHTML =
       '<div class="hname">' + GM.esc(h.name) + "</div>" +
-      '<div class="hlvl">Level ' + h.level + "</div>" +
+      '<div class="hlvl">Level ' + h.level + " · " + GM.esc(cls.name) +
+      ((h.traits || []).length ? ' · <span class="gold">' + h.traits.length + "✎</span>" : "") + "</div>" +
       '<div class="hsq">' + (sq ? GM.esc(sq.name) : "Benched") + "</div>";
     row.appendChild(info);
 
@@ -120,8 +121,8 @@ GM.ui.initRoster = function () {
     GM.ui.markDirty();
   });
 
-  var st = GM.$("#btnStash");
-  if (st) GM.on(st, "click", function () { GM.ui.openOverlay("stash"); });
+  var nm = GM.$("#btnNames");
+  if (nm) GM.on(nm, "click", function () { GM.ui.openOverlay("names"); });
 
   GM.ui.region("roster", GM.ui.renderRoster);
 };

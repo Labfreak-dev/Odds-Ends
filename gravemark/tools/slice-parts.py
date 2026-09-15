@@ -9,7 +9,7 @@ with gaps on a flat background. This tool takes that sheet and produces the
 per-part files the rig wants, each on its manifest canvas with the joint at
 the manifest pivot.
 
-    python3 tools/slice-parts.py sheet.png hero-mid --out /tmp/stage
+    python3 tools/slice-parts.py sheet.png hero --out /tmp/stage
     python3 tools/art-install.py /tmp/stage
 
 Layout the brief asks for (rows top to bottom, left to right):
@@ -127,7 +127,7 @@ def keyed(img):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("sheet")
-    ap.add_argument("char", help="character id, e.g. hero-mid")
+    ap.add_argument("char", help="character id, e.g. hero")
     ap.add_argument("--rig", default="humanoid")
     ap.add_argument("--out", default=os.path.join(HERE, "..", "art"))
     ap.add_argument("--order", help="comma list of part ids in found order (rows top-down, left-right)")

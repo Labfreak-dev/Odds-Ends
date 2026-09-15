@@ -38,14 +38,6 @@ function isStill(spec) {
 const out = [];
 const W = s => out.push(s);
 
-/* Representative base name per family/band, so an icon prompt can name the
-   actual item rather than say "a mid-tier sword". */
-const bandTier = { low: 2, mid: 5, high: 8 };
-function baseFor(family, band) {
-  return GM.BASES.filter(b => b.family === family && b.tier === bandTier[band])[0]
-      || GM.BASES.filter(b => b.family === family)[0];
-}
-
 const MATERIAL = {
   low:  "rusted iron, lashed cord, chipped bone, improvised and much-repaired",
   mid:  "cleanly forged steel, fitted leather, carved bone, the work of a real smith",
@@ -70,7 +62,7 @@ W("");
 W("Grok makes **one image per prompt**. It cannot produce:");
 W("");
 W("- **Sprite strips.** Every sheet so far came back as the same pose copied eight times. Do not ask for strips. Ask for one pose; the game now reads frame count from the image itself, so a single frame is valid art and installs cleanly.");
-W("- **Aligned paper-doll layers.** Three attempts returned item illustrations on white cards instead of gear drawn onto the body. Compositing them puts a sword across the hero's chest. **The `doll/` keys are dropped from this pack** and replaced by the *hero looks* in section 1 — complete figures already wearing a kit, which is a thing Grok can actually draw.");
+W("- **Aligned paper-doll layers.** Three attempts returned item illustrations on white cards instead of gear drawn onto the body. There is no longer any gear to draw: a hero is a whole unit, and each class needs exactly one finished figure (section 1).");
 W("");
 W("### Rules for every prompt below");
 W("");
@@ -112,32 +104,26 @@ function table(rows) {
   W("");
 }
 
-/* 1. hero looks — the doll replacement, highest value */
-const looks = gaps.filter(a => a.key.indexOf("actor/hero-look-") === 0);
+/* 1. class looks — one figure per class, highest value */
+const looks = gaps.filter(a => a.key.indexOf("actor/look-") === 0);
 if (looks.length) {
   W("---");
   W("");
-  W("## 1. Hero looks — do these first  _(" + looks.length + ")_");
+  W("## 1. Class looks — do these first  _(" + looks.length + ")_");
   W("");
-  W("**This replaces the whole paper-doll request.** One finished figure per weapon and armour tier, already wearing the kit. The game picks the look that matches what the player has equipped, so gear becomes visible on the character without a single aligned layer.");
+  W("**A hero is a whole unit.** There is no equipment: hiring a Reaver gives you a Reaver, sword and leathers and all, and nothing is ever taken off. So each class needs exactly ONE finished standing figure. The game tints the shared hero painting to the class colour until its own look arrives, and swaps the moment it does.");
   W("");
-  W("Every look is the **same character**: a wiry, weather-beaten gravedigger-warrior, hooded, oilcloth and leather, face in shadow. Same build, same height, same hood in all fifteen — only the gear changes. **Standing, facing RIGHT, full body, feet near the bottom of the frame.**");
+  W("All five are the **same world and the same scale**: wiry, weather-beaten gravediggers-turned-soldiers, hooded, oilcloth and leather, faces in shadow. **Standing, facing RIGHT, full body, feet near the bottom of the frame.**");
   W("");
-  W("> Upload `art/actor/hero-idle.png` with the prompt and say *\"same character and proportions as this reference, facing right\"*. That is the single biggest thing you can do to keep the fifteen consistent.");
+  W("> Upload `art/actor/hero-idle.png` with the prompt and say *\"same proportions and footing as this reference, facing right\"*. That is the single biggest thing you can do to keep the five consistent.");
   W("");
-  const FAM = {
-    dagger: "a short curved dagger held low in a reverse grip",
-    sword:  "a straight single-handed sword held down at his side",
-    maul:   "a heavy two-handed maul resting head-down on the ground",
-    wand:   "a slender wand or rod raised slightly, faint cold light at its tip",
-    scythe: "a long scythe held upright, blade curving overhead"
-  };
   table(looks.map(a => {
-    const m = a.key.match(/hero-look-(\w+)-(\w+)$/);
-    const fam = m[1], band = m[2];
+    const id = a.key.replace("actor/look-", "");
+    const c = GM.CLASS_BY_ID[id] || {};
+    const ch = GM.Rig.CHARS.find(x => x.id === id) || {};
     return {
       key: a.key, size: `${a.w}×${a.h}`,
-      prompt: `Full-body standing gravedigger-warrior facing right, hooded, face in shadow, wearing a complete set of ${band}-tier armour — ${MATERIAL[band]} — and carrying ${FAM[fam]}. Same character and proportions in every look. Feet near the bottom edge. Flat magenta #FF00FF background.`
+      prompt: `Full-body standing figure facing right, hooded, face in shadow: ${ch.label || c.name}. Carrying ${c.weapon ? "a " + c.weapon.fam : "their weapon"} at rest. Same proportions and footing as the reference. Feet near the bottom edge. Flat magenta #FF00FF background.`
     };
   }));
 }
@@ -199,50 +185,6 @@ if (stills.length) {
     W(`_${stills.length - heroAnim.length - monAnim.length} further still sheets (bosses, the revenant, remaining monster states) follow the same pattern — same poses, same numbering._`);
     W("");
   }
-}
-
-/* 2. item icons */
-const items = gaps.filter(a => a.key.indexOf("item/") === 0);
-if (items.length) {
-  W("---");
-  W("");
-  W("## 2. Item icons  _(" + items.length + ")_");
-  W("");
-  W("Inventory icons. Three-quarter view, lit from upper left, the object alone — no hand, no stand, no background scene, no frame.");
-  W("");
-  table(items.map(a => {
-    const m = a.key.match(/item\/(\w+)-(\w+)$/);
-    const fam = m[1], band = m[2];
-    const base = baseFor(fam, band);
-    return {
-      key: a.key, size: `${a.w}×${a.h}`,
-      prompt: `A single ${base.kindLabel.toLowerCase()} called "${base.name}" — ${MATERIAL[band]}. Object only, three-quarter view, lit from upper left. Flat magenta #FF00FF background.`
-    };
-  }));
-}
-
-/* 3. runes */
-const runes = gaps.filter(a => a.key.indexOf("rune/") === 0);
-if (runes.length) {
-  W("---");
-  W("");
-  W("## 3. Rune glyphs  _(" + runes.length + ")_");
-  W("");
-  W("Small carved stone chips, each bearing ONE incised glyph lit from within. **An invented alphabet** — angular, chiselled, no resemblance to Latin, Norse or any real script. All sixteen must look like one alphabet and be distinguishable at a glance.");
-  W("");
-  const GLOW = {
-    1:"dull bone white", 2:"pale grey-green", 3:"ember orange", 4:"pale ice blue",
-    5:"sick yellow", 6:"cold white", 7:"dull gold", 8:"deep red",
-    9:"bright gold", 10:"void purple", 11:"blue-white", 12:"pale green",
-    13:"hot gold", 14:"deep violet", 15:"white-hot", 16:"black light, purple corona"
-  };
-  table(runes.map(a => {
-    const r = GM.RUNE_BY_ID[a.key.split("/")[1]];
-    return {
-      key: a.key, size: `${a.w}×${a.h}`,
-      prompt: `A single small flat stone chip, chipped granite, bearing one deeply incised angular glyph glowing ${GLOW[r.tier] || "pale gold"} from inside the cut. Invented script, not any real alphabet. Rune tier ${r.tier} of 16 — ${r.tier > 12 ? "ornate and powerful" : r.tier > 6 ? "cleanly cut" : "crude and worn"}. Flat magenta #FF00FF background.`
-    };
-  }));
 }
 
 /* 4. monsters */
@@ -330,6 +272,6 @@ W("- Any size is accepted if the aspect is right — the installer will not resi
 W("- Magenta backgrounds are keyed out automatically on install; a stray magenta fringe is fine.");
 W("- Zip the `art/` tree and send it. Partial deliveries are fine and land the same day.");
 W("");
-W("**If only one thing gets made next, make `actor/hero-look-sword-mid`.** It proves the look approach end to end in a single image, and I can tell you within a minute of receiving it whether it works.");
+W("**If only one thing gets made next, make `actor/look-reaver`.** It proves the class-look approach end to end in a single image, and I can tell you within a minute of receiving it whether it works.");
 
 console.log(out.join("\n"));

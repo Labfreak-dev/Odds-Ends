@@ -1,11 +1,13 @@
 /* Gravemark — 05-data-heroes.js
    The roster: classes, ranks, the name pool, and how a hero is made.
 
-   The game is no longer one character. It is a WARBAND of up to 22, split
-   across three squads that delve simultaneously. A hero owns their own level,
-   experience, class and full set of equipment; the passive tree, the parish
-   and ascension stay shared, because those are the player's institution rather
-   than any one person's. */
+   The game is a WARBAND of up to 22, split across three squads that delve
+   simultaneously. A hero is a WHOLE UNIT: the class fixes the weapon and the
+   armour, the level grows them, the rank multiplies them, and the only thing
+   ever added is a TRAIT — an epitaph inscribed after a death. There is nothing
+   to equip and nothing to take off. The passive tree, the parish and ascension
+   stay shared, because those are the player's institution rather than any one
+   person's. */
 "use strict";
 
 GM.ROSTER_MAX = 22;
@@ -15,48 +17,64 @@ GM.SQUAD_SIZE = 5;
 /* ---------- classes ------------------------------------------------------
    Deliberately the same five identities as the passive tree's clusters, so a
    Reaver on the roster and the Reaver branch of the tree mean the same thing.
-   `mod` scales the hero's contribution; `grow` is per-level growth. */
+
+   `weapon` is what the class swings, forever: family (which picks the swing
+   animation and the painted weapon), damage factor, attacks per second, base
+   crit. `kit` is the armour they wear, as multipliers on the kit curve in
+   GM.CURVE. `mod` scales the hero's whole contribution; `grow` is per-level
+   growth on top of the kit's own; `bias` is a flat lean scaled by level. */
 GM.CLASSES = [
   { id: "warden",  name: "Warden",  role: "Front",   icon: "\u{1F6E1}", hue: 140,
     blurb: "Stands where the ground is worst.",
+    weapon: { fam: "maul",   dmg: 1.70, as: 0.72, crit: 0.04 },
+    kit:    { armour: 1.60, evasion: 0.40, life: 1.50 },
     mod:  { life: 1.55, armour: 1.70, dmg: 0.70, as: 0.90 },
     grow: { life: 1.030, dmg: 1.018 },
     bias: { flatArmour: 40, flatLife: 30 } },
 
   { id: "reaver",  name: "Reaver",  role: "Strike",  icon: "⚔", hue: 8,
     blurb: "Paid by the swing, not the hour.",
+    weapon: { fam: "sword",  dmg: 1.00, as: 1.20, crit: 0.06 },
+    kit:    { armour: 1.00, evasion: 0.70, life: 0.90 },
     mod:  { life: 0.90, armour: 0.85, dmg: 1.55, as: 1.10 },
     grow: { life: 1.020, dmg: 1.030 },
     bias: { flatPhys: 8, critChance: 0.02 } },
 
   { id: "pyre",    name: "Pyre",    role: "Ruin",    icon: "\u{1F525}", hue: 30,
     blurb: "Burns the field, then salts it.",
+    weapon: { fam: "wand",   dmg: 0.70, as: 1.40, crit: 0.07, elemental: true },
+    kit:    { armour: 0.35, evasion: 0.80, life: 0.70 },
     mod:  { life: 0.80, armour: 0.65, dmg: 1.70, as: 0.95 },
     grow: { life: 1.018, dmg: 1.032 },
     bias: { flatFire: 6, flatCold: 6, flatLit: 6 } },
 
   { id: "stalker", name: "Stalker", role: "Flank",   icon: "\u{1F3F9}", hue: 190,
     blurb: "Never where the blow lands.",
+    weapon: { fam: "dagger", dmg: 0.62, as: 1.75, crit: 0.09 },
+    kit:    { armour: 0.45, evasion: 1.60, life: 0.80 },
     mod:  { life: 0.85, armour: 0.70, dmg: 1.25, as: 1.45 },
     grow: { life: 1.019, dmg: 1.026 },
     bias: { flatEvasion: 45, incAS: 0.05 } },
 
   { id: "sexton",  name: "Sexton",  role: "Support", icon: "\u{1F5DD}", hue: 268,
     blurb: "Knows which graves are worth opening.",
+    weapon: { fam: "scythe", dmg: 1.32, as: 0.95, crit: 0.05 },
+    kit:    { armour: 0.90, evasion: 0.90, life: 1.10 },
     mod:  { life: 1.00, armour: 0.95, dmg: 0.85, as: 1.00 },
     grow: { life: 1.024, dmg: 1.020 },
-    bias: { findRarity: 0.10, findGold: 0.15, regenFlat: 4 } }
+    bias: { findShards: 0.10, findGold: 0.15, regenFlat: 4 } }
 ];
 
 GM.CLASS_BY_ID = GM.indexById(GM.CLASSES);
 
 /* ---------- ranks --------------------------------------------------------
-   The I / II / III numeral beside a name. A higher rank is flatly stronger and
-   levels further, so recruiting is its own progression axis alongside gear. */
+   The I / II / III numeral beside a name. A higher rank is flatly stronger,
+   levels further and carries more traits, so recruiting is its own
+   progression axis — and ANOINTING (shards) raises a hero you already love. */
 GM.RANKS = [
-  { id: 1, numeral: "I",   name: "Sworn",    mult: 1.00, maxLevel: 60,  w: 100, css: "rk1" },
-  { id: 2, numeral: "II",  name: "Anointed", mult: 1.45, maxLevel: 90,  w: 34,  css: "rk2" },
-  { id: 3, numeral: "III", name: "Vigil",    mult: 2.10, maxLevel: 120, w: 9,   css: "rk3" }
+  { id: 1, numeral: "I",   name: "Sworn",    mult: 1.00, maxLevel: 60,  traits: 2, w: 100, css: "rk1" },
+  { id: 2, numeral: "II",  name: "Anointed", mult: 1.35, maxLevel: 90,  traits: 3, w: 34,  css: "rk2" },
+  { id: 3, numeral: "III", name: "Vigil",    mult: 1.80, maxLevel: 120, traits: 4, w: 9,   css: "rk3" }
 ];
 GM.RANK_BY_ID = GM.indexById(GM.RANKS);
 
@@ -81,9 +99,6 @@ GM.makeHero = function (opts) {
   var pool = GM.HERO_NAMES.filter(function (n) { return !used[n]; });
   var name = opts.name || (pool.length ? GM.pick(pool) : GM.pick(GM.HERO_NAMES));
 
-  var equip = {};
-  for (var i = 0; i < GM.SLOT_IDS.length; i++) equip[GM.SLOT_IDS[i]] = null;
-
   return {
     id: GM.uid("h"),
     name: name,
@@ -91,7 +106,7 @@ GM.makeHero = function (opts) {
     rank: rank.id,
     level: opts.level || 1,
     xp: 0,
-    equip: equip,
+    traits: [],           /* inscribed epitaphs: {affixId, stat, tier, value, ...} */
     portrait: Math.floor(GM.rng() * 12),   /* which portrait art to use */
     hired: Date.now(),
     /* Per-hero life carries between fights, like the old single character. */
@@ -102,6 +117,8 @@ GM.makeHero = function (opts) {
 GM.heroClass = function (h) { return GM.CLASS_BY_ID[h.classId] || GM.CLASSES[0]; };
 GM.heroRank  = function (h) { return GM.RANK_BY_ID[h.rank] || GM.RANKS[0]; };
 GM.heroMaxLevel = function (h) { return GM.heroRank(h).maxLevel; };
+GM.heroTraitCap = function (h) { return GM.heroRank(h).traits; };
+GM.classWeapon = function (h) { return GM.heroClass(h).weapon; };
 
 GM.heroById = function (id) {
   var hs = GM.state.heroes || [];
@@ -139,8 +156,8 @@ GM.recruit = function () {
   return { ok: true, hero: h, cost: cost };
 };
 
-/* Dismissing returns a fraction of what was paid and frees the name. Gear on
-   a dismissed hero goes to the stash rather than vanishing. */
+/* Dismissing frees the name and the roster slot. The traits go with them:
+   an epitaph, once cut, belongs to the one it was cut for. */
 GM.dismiss = function (heroId) {
   var hs = GM.state.heroes;
   var idx = -1;
@@ -149,10 +166,6 @@ GM.dismiss = function (heroId) {
   if (hs.length <= 1) return { ok: false, why: "Someone has to hold the lantern." };
 
   var h = hs[idx];
-  for (var j = 0; j < GM.SLOT_IDS.length; j++) {
-    var it = h.equip[GM.SLOT_IDS[j]];
-    if (it) GM.stashItem(it);
-  }
   hs.splice(idx, 1);
   /* Pull them out of whatever squad they were in. */
   (GM.state.squads || []).forEach(function (sq) {
@@ -162,6 +175,33 @@ GM.dismiss = function (heroId) {
   GM.log(h.name + " is released from the oath.", "recruit");
   GM.bus.emit("roster:changed");
   return { ok: true };
+};
+
+/* ---------- anointing ----------------------------------------------------
+   Shards raise a hero one rank: more power, a higher level cap, another
+   trait slot. Cost climbs with the rank and the hero's level, so anointing a
+   veteran is a real spend and anointing a recruit is a gamble on them. */
+GM.anointCost = function (h) {
+  var rank = GM.heroRank(h);
+  return Math.ceil(180 * Math.pow(3.2, rank.id - 1) * (1 + h.level / 30));
+};
+
+GM.canAnoint = function (h) {
+  return !!h && h.rank < GM.RANKS[GM.RANKS.length - 1].id;
+};
+
+GM.anoint = function (heroId) {
+  var h = GM.heroById(heroId);
+  if (!h) return { ok: false, why: "No such hero." };
+  if (!GM.canAnoint(h)) return { ok: false, why: "There is no higher rank." };
+  var cost = GM.anointCost(h);
+  if (!GM.spendShards(cost)) return { ok: false, why: "Not enough shards." };
+  h.rank++;
+  GM.state.tally.anointed = (GM.state.tally.anointed || 0) + 1;
+  GM.invalidateStats();
+  GM.log(h.name + " is anointed " + GM.heroRank(h).name + ".", "recruit");
+  GM.bus.emit("roster:changed");
+  return { ok: true, cost: cost };
 };
 
 /* ---------- squads ------------------------------------------------------- */

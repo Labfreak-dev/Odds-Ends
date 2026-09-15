@@ -197,8 +197,12 @@ var _artMissing = Object.create(null);
    JPEG - about a tenth the bytes of the same image as PNG, and visually
    indistinguishable on a dark painterly backdrop. Everything else needs its
    alpha and stays PNG. */
+/* Every art URL carries the build stamp, so a new build never draws with a
+   phone's cached copy of an older painting — a part cut for a smaller canvas,
+   a monster that faced the other way. Same reason the script tags in
+   index.html carry it: tools/stamp.py sets both together. */
 GM.artURL = function (key) {
-  return GM.ART_DIR + key + (key.indexOf("bg/") === 0 ? ".jpg" : ".png");
+  return GM.ART_DIR + key + (key.indexOf("bg/") === 0 ? ".jpg" : ".png") + "?v=" + GM.BUILD;
 };
 
 /* Which keys are actually on disk. Loaded once from art/available.json; until
@@ -218,7 +222,7 @@ GM.loadArtIndex = function () {
     _artIndexState = "ready";
     GM.bus.emit("art:index", list ? list.length : 0);
   }
-  fetch(GM.ART_DIR + "available.json", { cache: "no-cache" })
+  fetch(GM.ART_DIR + "available.json?v=" + GM.BUILD, { cache: "no-cache" })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(settle)
     .catch(function () { settle(null); });   /* no index: try every key */

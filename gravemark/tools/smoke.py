@@ -115,7 +115,7 @@ def main():
         stats = page.evaluate("GM.artStats()")
         ok(stats["have"] > 0, "art files actually load", json.dumps(stats))
         ok(page.evaluate("GM.artReady('bg/town')"), "the parish backdrop is ready")
-        ok(page.evaluate("GM.artURL('bg/realm-1').endsWith('.jpg')"), "backdrops resolve to jpg")
+        ok(page.evaluate("GM.artURL('bg/realm-1').indexOf('.jpg?v=') > 0"), "backdrops resolve to jpg, stamped")
 
         print("\n-- persistence")
         page.evaluate("GM.state.char.gold = 424242; GM.save();")

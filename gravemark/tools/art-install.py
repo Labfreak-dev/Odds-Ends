@@ -29,7 +29,9 @@ def manifest(path=None):
 
 def is_painted(img, spec):
     w, h = img.size
-    frames = spec.get("frames") or 1
+    # The renderer derives the frame count from the image's own width, so a
+    # single still delivered for a sheet key is one frame, not a sixth of one.
+    frames = max(1, round(w / max(1, spec.get("w") or w)))
     fw = max(1, w // frames)
     frame = img.crop((0, 0, fw, h)).convert("RGBA")
     bg = Image.new("RGBA", frame.size, (128, 128, 128, 255))

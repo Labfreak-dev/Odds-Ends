@@ -177,11 +177,21 @@ out of date. With items gone there are no item icons, rune glyphs, rarity
 frames or paper-doll layers in it; the five **class looks**
 (`actor/look-<class>`, one standing figure each) took their place.
 
-**Current coverage: 151 of 493 painted.** `ART-REMAINING.md` lists the rest.
-All twelve bosses, all fifteen monsters, the hero, the five weapons and
-seventeen of eighteen backdrops are in. Outstanding: the class looks, the rig
-parts, and the UI chrome (which the renderer does not consume yet — the UI is
-CSS).
+**Current coverage: 158 of 493 painted.** `ART-REMAINING.md` lists the rest.
+All twelve bosses, all fifteen monsters, the five class looks, the hero, the
+five weapons and seventeen of eighteen backdrops are in. Outstanding: the rig
+parts, the post-apocalypse backdrops (the current ones are the old night
+graveyards), and the UI chrome (which the renderer does not consume yet — the
+UI is CSS).
+
+The art direction changed with the class looks: a sun-bleached, colourful
+post-apocalypse rather than a graveyard at night. `GROK-CHARACTERS.md` and
+`GROK-BACKDROPS.md` are the prompts. Deliveries arrive as tall portraits on
+magenta; `tools/fit-figure.py <dir> --out STAGE --mirror a,b` keys them, crops
+to the figure, fits each onto its manifest canvas with the feet at 96%, and
+mirrors the named ones so every hero file faces right and every monster file
+faces left. The renderer flips a painting only when its manifest facing
+differs from the way the actor looks, and draws a class look untinted.
 
 Until per-class hero art exists the battle panels and roster portraits tint
 each hero toward their class colour (cached per key+hue, not composited per

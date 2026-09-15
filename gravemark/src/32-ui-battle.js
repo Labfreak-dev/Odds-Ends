@@ -386,11 +386,24 @@ function sheetFor(a) {
   return { key: key, frame: Math.min(n - 1, Math.floor(Math.min(0.999, a.anim.t) * n)) };
 }
 
+/* The body painting for PAINT+ARM, if it is on disk (or the look itself when
+   GM.BODY_TEST is set, to line the arm up against the painted one). */
+function bodyKeyFor(a) {
+  if (a.kind !== "hero" || !a.hero) return null;
+  var key = "actor/body-" + a.hero.classId;
+  if (GM.BODY_TEST) key = a.spriteKey;
+  return GM.ART_BY_KEY[key] && GM.artReady(key) ? key : null;
+}
+
+/* Bones the painting does not carry when it has no weapon arm. */
+var ARM_BONES = { uarm_f: true, farm_f: true, weapon: true };
+
 function drawSpriteMode(ctx, p, a, size, scale, now) {
   var m = a.anim.spriteMotion();
   var sheet = sheetFor(a);
-  var key = sheet ? sheet.key : a.spriteKey;
-  var frame = sheet ? sheet.frame : 0;
+  var body = bodyKeyFor(a);
+  var key = body || (sheet ? sheet.key : a.spriteKey);
+  var frame = body ? 0 : (sheet ? sheet.frame : 0);
   ctx.save();
   ctx.translate(m.x * scale, m.y * scale);
   /* a delivered death pose already lies down; do not also tip it over */
@@ -409,12 +422,26 @@ function drawSpriteMode(ctx, p, a, size, scale, now) {
   /* The rig runs whether or not it is drawn, so the weapon tip is always
      known — that is what makes the trail arc even on a flat painting. */
   var posed = a.anim.pose();
-  /* A delivered weapon rides the invisible rig's hand over the painting, so
-     the swing the trail already follows carries the real blade too. Only
-     while a swing is in flight: at rest the painting's own hands hold it. */
-  if (a.anim.rig.id === "humanoid" && /^attack/.test(a.anim.clip) && GM.artReady(weaponKey(a))) {
+  if (body && a.anim.rig.id === "humanoid" && !a.anim.dead) {
+    /* PAINT+ARM: the near arm and the weapon from the parts, hung on the
+       painting at the class's shoulder. The rig pose already carries the root
+       motion the painting was drawn with, so the two move together. */
+    var off = (GM.Rig.ARM_OFFSET && GM.Rig.ARM_OFFSET[a.hero.classId]) || { x: 0, y: 0 };
+    ctx.save();
+    ctx.translate(off.x * scale, off.y * scale);
     for (var i = 0; i < posed.length; i++) {
-      if (posed[i].bone.id === "weapon") { drawPartImage(ctx, posed[i], weaponKey(a), scale, a.flashUntil > now); break; }
+      var b = posed[i];
+      if (!ARM_BONES[b.bone.id]) continue;
+      var pk = b.bone.id === "weapon" ? weaponKey(a) : "parts/" + a.partsId + "/" + b.bone.id;
+      if (GM.ART_BY_KEY[pk] && GM.artReady(pk)) drawPartImage(ctx, b, pk, scale, a.flashUntil > now);
+    }
+    ctx.restore();
+  } else if (!body && a.spriteKey === "actor/hero-idle" && a.anim.rig.id === "humanoid" &&
+             /^attack/.test(a.anim.clip) && GM.artReady(weaponKey(a))) {
+    /* The shared hero painting has empty hands: give it the blade while it
+       swings. A class look already holds its own weapon. */
+    for (var j = 0; j < posed.length; j++) {
+      if (posed[j].bone.id === "weapon") { drawPartImage(ctx, posed[j], weaponKey(a), scale, a.flashUntil > now); break; }
     }
   }
   return GM.Rig.tip(posed, a.anim.rig.id === "humanoid" ? "weapon" : "head");
@@ -425,7 +452,13 @@ function drawActor(ctx, p, a, fx, fy, size, now) {
   /* Paintings are stored facing the way their manifest entry says (heroes
      right, monsters left); the rig is authored facing right. Flip only when
      what is drawn faces the other way from where the actor looks. */
-  var rigMode = GM.RIG_DEBUG || GM.partsReady(a.partsId, a.anim.rig.id);
+  /* The whole painting, driven by the root bone, is the default: a finished
+     figure with its own weapon, lunging, leaning and squashing. The jointed
+     puppet built from the parts is an option (Settings) — it moves limb by
+     limb but at phone scale reads as a puppet, and the first minute of a
+     session showed the painting while the parts were still downloading,
+     which is how the difference got noticed. */
+  var rigMode = GM.RIG_DEBUG || (GM.state.opts.rig && GM.partsReady(a.partsId, a.anim.rig.id));
   var artFacing = rigMode ? "right" : ((GM.ART_BY_KEY[a.spriteKey] || {}).facing || "right");
   var left = a.facing !== artFacing;
   ctx.save();

@@ -111,6 +111,14 @@ GM.ART = (function () {
       facing: "right",
       note: "one complete standing figure, whole kit worn, feet at 96% height"
     });
+    /* The same painting with the weapon arm and weapon removed. When this
+       exists the game draws it as the body and hangs the rig's near arm and
+       weapon on it, so the painting keeps its look and the arm swings. */
+    add("actor/body-" + c.id, "image", GM.ART_SIZES.actor, {
+      label: "the " + c.name + " look with the near (weapon) arm and weapon removed, shoulder left clean",
+      facing: "right",
+      note: "identical to look-<class> in every other pixel"
+    });
   });
 
   /* --- rig parts: what the skeletal animator wears ------------------------

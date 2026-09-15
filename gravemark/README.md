@@ -177,12 +177,18 @@ out of date. With items gone there are no item icons, rune glyphs, rarity
 frames or paper-doll layers in it; the five **class looks**
 (`actor/look-<class>`, one standing figure each) took their place.
 
-**Current coverage: 158 of 493 painted.** `ART-REMAINING.md` lists the rest.
+**Current coverage: 159 of 493 painted.** `ART-REMAINING.md` lists the rest.
 All twelve bosses, all fifteen monsters, the five class looks, the hero, the
-five weapons and seventeen of eighteen backdrops are in. Outstanding: the rig
-parts, the post-apocalypse backdrops (the current ones are the old night
-graveyards), and the UI chrome (which the renderer does not consume yet — the
+five weapons and all eighteen backdrops are in, in the new style. Outstanding:
+the rig parts and the UI chrome (which the renderer does not consume yet — the
 UI is CSS).
+
+Backdrops are drawn with `GM.drawCover`, scaled to fill the box and cropped
+rather than stretched: a 16:9 painting drawn straight into a 3:1 battle panel
+used to be squashed to half its height. Battle panels keep the bottom of the
+painting (the ground the fight stands on); the parish keeps the middle. A
+delivery at 3:2 is cropped to 1280x720 on install with a bottom bias for the
+same reason.
 
 The art direction changed with the class looks: a sun-bleached, colourful
 post-apocalypse rather than a graveyard at night. `GROK-CHARACTERS.md` and

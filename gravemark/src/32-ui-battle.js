@@ -475,7 +475,7 @@ GM.ui.drawBattles = function (now) {
     var ground = h * 0.9;
     /* Figures are the point of the panel: as tall as the stage allows, capped
        by width so five heroes and six monsters still fit across it. */
-    var size = Math.min(h * 0.8, w * 0.21);
+    var size = Math.min(h * 0.8, w * (w < 600 ? 0.27 : 0.21));
     var ctxm = GM.squadCtx(sq);
 
     /* pack change => monster actors are stale */

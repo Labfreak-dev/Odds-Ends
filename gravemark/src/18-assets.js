@@ -1,0 +1,535 @@
+/* Gravemark — 18-assets.js
+   The art manifest.
+
+   Every piece of art in the game is named here with its exact dimensions and,
+   where it moves, its animation states and frame counts. The game NEVER
+   references an image path directly — it asks `GM.art(key)` and gets either
+   the real asset or a procedurally drawn placeholder. That means art can be
+   replaced wholesale by dropping files into art/ and changing nothing else,
+   and it means the art brief is generated from this file rather than written
+   by hand and drifting out of date (see tools/art-brief.js). */
+"use strict";
+
+GM.ART_DIR = "art/";
+
+/* Animation states every animated actor is expected to provide. `loop` says
+   whether it cycles; `fps` is the intended playback rate. A missing state
+   falls back to `idle`, so partial art sets still run. */
+GM.ANIM_STATES = [
+  { id: "idle",   frames: 6,  fps: 8,  loop: true,  note: "breathing / weapon at rest" },
+  { id: "walk",   frames: 8,  fps: 12, loop: true,  note: "full stride cycle, contact-down-pass-up x2" },
+  { id: "run",    frames: 8,  fps: 16, loop: true,  note: "faster stride, longer extension, more lean" },
+  { id: "attack", frames: 8,  fps: 14, loop: false, note: "wind-up, strike on frame 4, recovery" },
+  { id: "cast",   frames: 8,  fps: 12, loop: false, note: "gather on 1-4, release on 5, settle" },
+  { id: "hit",    frames: 3,  fps: 14, loop: false, note: "flinch back and recover" },
+  { id: "death",  frames: 8,  fps: 10, loop: false, note: "collapse; final frame rests on the ground" }
+];
+
+/* The character is drawn as a stack of layers in this order. Every equipped
+   item contributes one layer, so gear is visible on the body — the paper-doll
+   the art brief has to cover slot by slot. */
+GM.DOLL_LAYERS = [
+  { id: "back",    z: 0,  slot: "offhand", note: "slung shield / tome, behind the body" },
+  { id: "body",    z: 10, slot: null,      note: "the bare character; every other layer aligns to this" },
+  { id: "boots",   z: 20, slot: "boots" },
+  { id: "legs",    z: 25, slot: "body",    note: "lower half of the body armour" },
+  { id: "chest",   z: 30, slot: "body",    note: "upper half of the body armour" },
+  { id: "belt",    z: 35, slot: "belt" },
+  { id: "gloves",  z: 40, slot: "gloves" },
+  { id: "helm",    z: 50, slot: "helm" },
+  { id: "weapon",  z: 60, slot: "weapon",  note: "held at the grip point; follows the attack arc" },
+  { id: "offhand", z: 55, slot: "offhand", note: "when actively held rather than slung" },
+  { id: "fx",      z: 70, slot: null,      note: "element tint, crit flash, leech motes" }
+];
+
+/* Grip anchors, in fractions of the frame, so a weapon sprite lands in the
+   hand regardless of which body art is loaded. */
+GM.DOLL_ANCHORS = {
+  gripMain: { x: 0.62, y: 0.52 },
+  gripOff:  { x: 0.34, y: 0.55 },
+  head:     { x: 0.50, y: 0.22 },
+  feet:     { x: 0.50, y: 0.96 }
+};
+
+GM.ART_SIZES = {
+  actor:    { w: 256, h: 256 },  /* character and monsters */
+  boss:     { w: 384, h: 320 },
+  icon:     { w: 64,  h: 64 },   /* item, rune, resource, tab icons */
+  frame:    { w: 96,  h: 96 },   /* rarity frames, socket plates */
+  bg:       { w: 1280, h: 720 }, /* realm backdrops */
+  button:   { w: 192, h: 56 },
+  panel:    { w: 512, h: 512 }   /* nine-slice panel skins */
+};
+
+/* ---------- the manifest -------------------------------------------------
+   Built programmatically from the game data so it cannot fall out of sync:
+   add a monster to 03-data-world.js and its art keys appear here. */
+GM.ART = (function () {
+  var out = [];
+
+  function add(key, kind, size, meta) {
+    out.push(GM.assign({ key: key, kind: kind, w: size.w, h: size.h }, meta || {}));
+  }
+
+  /* --- UI chrome --- */
+  ["panel", "panel-inset", "panel-raised", "header-bar", "footer-bar"].forEach(function (k) {
+    add("ui/" + k, "nineslice", GM.ART_SIZES.panel, { nineslice: 24 });
+  });
+  ["normal", "hover", "pressed", "disabled"].forEach(function (st) {
+    add("ui/button-" + st, "nineslice", GM.ART_SIZES.button, { nineslice: 16, state: st });
+  });
+  ["progress-track", "progress-fill-hp", "progress-fill-mhp", "progress-fill-xp"].forEach(function (k) {
+    add("ui/" + k, "nineslice", { w: 256, h: 32 }, { nineslice: 8 });
+  });
+
+  /* --- resource and stat icons --- */
+  ["gold", "shards", "ichor", "marks", "dust", "epitaph", "rune", "level", "depth"]
+    .forEach(function (k) { add("icon/res-" + k, "icon", GM.ART_SIZES.icon); });
+
+  GM.ELEMENTS.forEach(function (e) {
+    add("icon/elem-" + e, "icon", GM.ART_SIZES.icon, { label: GM.ELEM_META[e].label });
+  });
+
+  /* --- class badges, worn by every roster row --- */
+  GM.CLASSES.forEach(function (c) {
+    add("icon/class-" + c.id, "icon", GM.ART_SIZES.icon, {
+      label: c.name + " class badge", note: c.role + " — " + c.blurb
+    });
+  });
+
+  /* --- chrome the three-column shell introduced --- */
+  add("ui/marker-plate", "nineslice", { w: 192, h: 40 }, {
+    nineslice: 10, label: "parish building marker plate (level chip + name banner)"
+  });
+  add("ui/flag-banner", "nineslice", { w: 256, h: 40 }, {
+    nineslice: 10, label: "battle panel depth banner"
+  });
+  add("frame/portrait", "nineslice", { w: 96, h: 96 }, {
+    nineslice: 10, label: "roster portrait frame"
+  });
+
+  /* --- tabs --- */
+  ["delve", "gear", "bench", "tree", "town", "graves", "modes", "ascend"]
+    .forEach(function (k) { add("icon/tab-" + k, "icon", GM.ART_SIZES.icon); });
+
+  /* --- rarity frames and sockets --- */
+  GM.RARITIES.forEach(function (r) {
+    add("frame/rarity-" + r.key, "nineslice", GM.ART_SIZES.frame, { nineslice: 12, label: r.name });
+  });
+  add("frame/socket-empty", "icon", { w: 32, h: 32 });
+  add("frame/socket-filled", "icon", { w: 32, h: 32 });
+
+  /* --- item icons: one per base family per tier band (low/mid/high) --- */
+  var families = {};
+  GM.BASES.forEach(function (b) { families[b.family] = b; });
+  Object.keys(families).forEach(function (fam) {
+    ["low", "mid", "high"].forEach(function (band) {
+      add("item/" + fam + "-" + band, "icon", GM.ART_SIZES.icon, {
+        label: families[fam].kindLabel + " (" + band + " tier)",
+        pool: families[fam].pool
+      });
+    });
+  });
+
+  /* --- rune glyphs --- */
+  GM.RUNES.forEach(function (r) {
+    add("rune/" + r.id, "icon", { w: 48, h: 48 }, { label: r.name + " rune" });
+  });
+
+  /* --- the character: body + every animation state --- */
+  GM.ANIM_STATES.forEach(function (a) {
+    add("actor/hero-" + a.id, "sheet", GM.ART_SIZES.actor, {
+      frames: a.frames, fps: a.fps, loop: a.loop, note: a.note, facing: "right"
+    });
+  });
+  /* Weapon-specific attack swings — a maul does not swing like a dagger. */
+  ["dagger", "sword", "maul", "wand", "scythe"].forEach(function (fam) {
+    add("actor/hero-attack-" + fam, "sheet", GM.ART_SIZES.actor, {
+      frames: 8, fps: 14, loop: false, facing: "right",
+      note: "attack swing specific to the " + fam + " family"
+    });
+  });
+
+  /* --- composite hero "looks" ---------------------------------------------
+     A fallback for the paper doll. Layered gear needs every piece drawn over
+     the same body at the same footing, which a text-to-image tool cannot do -
+     three deliveries of doll/ have come back as item illustrations on cards.
+     A LOOK sidesteps the problem: one finished figure already wearing a whole
+     kit, chosen by weapon family and armour tier. Fifteen images instead of
+     forty-five aligned layers, and any single one of them is useful the day it
+     arrives. When a look exists the renderer prefers it; the doll path stays
+     for a future delivery that genuinely aligns. */
+  ["dagger", "sword", "maul", "wand", "scythe"].forEach(function (fam) {
+    ["low", "mid", "high"].forEach(function (band) {
+      add("actor/hero-look-" + fam + "-" + band, "image", GM.ART_SIZES.actor, {
+        label: "hero in " + band + "-tier armour with a " + fam,
+        facing: "right",
+        note: "one complete standing figure, whole kit worn, feet at 96% height"
+      });
+    });
+  });
+
+  /* --- rig parts: what the skeletal animator wears ------------------------
+     Generated from GM.Rig.PARTS so the drawer and the art brief agree. The
+     hero has three gear bands; weapons are their own set; every monster and
+     boss gets one set for its rig type. Painted at 2x rig units. */
+  if (GM.Rig && GM.Rig.PARTS) {
+    var chars = GM.Rig.CHARS.slice();
+    GM.MONSTERS.forEach(function (m) { chars.push({ id: m.id, rig: GM.Rig.forChar(m.id).id, ref: "mon/" + m.id + "-idle", label: m.name }); });
+    GM.BOSSES.forEach(function (b) { chars.push({ id: b.id, rig: GM.Rig.forChar(b.id).id, ref: "boss/" + b.id + "-idle", label: b.name }); });
+    chars.forEach(function (c) {
+      var parts = GM.Rig.PARTS[c.rig];
+      Object.keys(parts).forEach(function (pid) {
+        if (pid === "weapon") return;      /* weapons are shared, below */
+        var pt = parts[pid];
+        add("parts/" + c.id + "/" + pid, "part", { w: pt.w * 2, h: pt.h * 2 }, {
+          label: c.label + " \u2014 " + pt.desc, rig: c.rig, part: pid, charId: c.id, ref: c.ref,
+          pivot: { x: pt.px, y: pt.py }, joint: pt.joint
+        });
+      });
+    });
+    ["dagger", "sword", "maul", "wand", "scythe"].forEach(function (fam) {
+      var pt = GM.Rig.PARTS.humanoid.weapon;
+      add("parts/weapon/" + fam, "part", { w: pt.w * 2, h: pt.h * 2 }, {
+        label: "the hero's " + fam + " \u2014 " + pt.desc, rig: "humanoid", part: "weapon", charId: "weapon",
+        ref: "item/" + fam + "-mid", pivot: { x: pt.px, y: pt.py }, joint: pt.joint
+      });
+    });
+  }
+
+  /* --- paper-doll gear layers: every slot, every family, every tier band --- */
+  GM.DOLL_LAYERS.forEach(function (layer) {
+    if (!layer.slot) return;
+    var pool = GM.slotPool(layer.slot);
+    var fams = {};
+    GM.BASES.forEach(function (b) { if (b.pool === pool) fams[b.family] = b; });
+    Object.keys(fams).forEach(function (fam) {
+      ["low", "mid", "high"].forEach(function (band) {
+        add("doll/" + layer.id + "-" + fam + "-" + band, "sheet", GM.ART_SIZES.actor, {
+          frames: 8, fps: 14, loop: false, layer: layer.id, z: layer.z, slot: layer.slot,
+          note: "gear layer, must align frame-for-frame with actor/hero-* sheets"
+        });
+      });
+    });
+  });
+
+  /* --- monsters --- */
+  GM.MONSTERS.forEach(function (m) {
+    ["idle", "attack", "hit", "death"].forEach(function (st) {
+      var a = GM.byId(GM.ANIM_STATES, st) || { frames: 6, fps: 10, loop: true };
+      add("mon/" + m.id + "-" + st, "sheet", GM.ART_SIZES.actor, {
+        frames: a.frames, fps: a.fps, loop: a.loop, facing: "left", label: m.name,
+        elem: m.elem
+      });
+    });
+  });
+
+  /* --- bosses --- */
+  GM.BOSSES.forEach(function (b) {
+    ["idle", "attack", "special", "death"].forEach(function (st) {
+      add("boss/" + b.id + "-" + st, "sheet", GM.ART_SIZES.boss, {
+        frames: st === "special" ? 12 : 8, fps: 12, loop: st === "idle",
+        facing: "left", label: b.name, elem: b.elem
+      });
+    });
+  });
+
+  /* --- the revenant: the player's own corpse, wearing their old kit --- */
+  ["idle", "attack", "hit", "death"].forEach(function (st) {
+    add("actor/revenant-" + st, "sheet", GM.ART_SIZES.actor, {
+      frames: 8, fps: 11, loop: st === "idle", facing: "left",
+      note: "silhouette must read as the hero, corrupted"
+    });
+  });
+
+  /* --- backdrops --- */
+  GM.REALMS.forEach(function (r) {
+    add("bg/realm-" + r.n, "image", GM.ART_SIZES.bg, { label: r.name, flavour: r.flavour });
+  });
+  ["town", "tower", "dimension", "finality", "graveyard", "title"].forEach(function (k) {
+    add("bg/" + k, "image", GM.ART_SIZES.bg);
+  });
+
+  return out;
+})();
+
+GM.ART_BY_KEY = (function () {
+  var m = Object.create(null);
+  for (var i = 0; i < GM.ART.length; i++) m[GM.ART[i].key] = GM.ART[i];
+  return m;
+})();
+
+/* ---------- loading and placeholders -------------------------------------
+   Real art is opt-in: anything present in art/ is used, anything missing is
+   drawn procedurally. The game is fully playable with zero image files. */
+var _artCache = Object.create(null);
+var _artMissing = Object.create(null);
+
+/* Backdrops are opaque 1280x720 paintings and carry no alpha, so they ship as
+   JPEG - about a tenth the bytes of the same image as PNG, and visually
+   indistinguishable on a dark painterly backdrop. Everything else needs its
+   alpha and stays PNG. */
+GM.artURL = function (key) {
+  return GM.ART_DIR + key + (key.indexOf("bg/") === 0 ? ".jpg" : ".png");
+};
+
+/* Which keys are actually on disk. Loaded once from art/available.json; until
+   it arrives (or if it is absent) every key is attempted, which is the old
+   behaviour and still correct - just noisier. */
+var _artIndex = null;
+var _artIndexState = "none";   /* none | pending | ready */
+
+GM.loadArtIndex = function () {
+  if (typeof fetch !== "function") return;
+  _artIndexState = "pending";
+  function settle(list) {
+    if (list && list.length) {
+      _artIndex = Object.create(null);
+      for (var i = 0; i < list.length; i++) _artIndex[list[i]] = true;
+    }
+    _artIndexState = "ready";
+    GM.bus.emit("art:index", list ? list.length : 0);
+  }
+  fetch(GM.ART_DIR + "available.json", { cache: "no-cache" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(settle)
+    .catch(function () { settle(null); });   /* no index: try every key */
+};
+
+GM.art = function (key) {
+  if (_artCache[key]) return _artCache[key];
+  var spec = GM.ART_BY_KEY[key];
+  if (!spec) return null;
+  if (_artMissing[key]) return null;
+  /* Hold every request until the index has settled. Firing during the fetch
+     is a race that costs a 404 for each key drawn in those first few frames;
+     the cost of waiting is a few hundred milliseconds of placeholder. */
+  if (_artIndexState === "pending") return null;
+  /* Known-absent: do not spend a request and a console 404 on it. */
+  if (_artIndex && !_artIndex[key]) return null;
+
+  if (typeof Image === "undefined") return null;
+  var img = new Image();
+  img.onerror = function () {
+    /* Record and stop asking — a 404 per frame would flood the console. */
+    _artMissing[key] = true;
+    delete _artCache[key];
+  };
+  /* Anything drawn once rather than every frame — the parish scene — has no
+     way to know the image arrived unless it is told. */
+  img.onload = function () { GM.bus.emit("art:loaded", key); };
+  img.src = GM.artURL(key);
+  _artCache[key] = img;
+  return img;
+};
+
+GM.artReady = function (key) {
+  var img = GM.art(key);          /* requests it if this is the first ask */
+  return !!(img && img.complete && img.naturalWidth > 0);
+};
+
+/* Deterministic placeholder colour, so the same key is always the same shade
+   and the eye can still tell two monsters apart before any art exists. */
+GM.placeholderHue = function (key) { return GM.hash(key) % 360; };
+
+/* Draw a labelled placeholder into a 2d context. Used by the fight view and
+   the item grid until real art lands. */
+GM.drawPlaceholder = function (ctx, key, x, y, w, h, opts) {
+  opts = opts || {};
+  var hue = GM.placeholderHue(key);
+  /* `label` is overloaded: a string overrides the caption, `false` suppresses
+     it, and `true`/absent means "use the manifest's own label". Reading it as
+     text unconditionally is how every monster ended up captioned "true". */
+  var label = typeof opts.label === "string"
+    ? opts.label
+    : (GM.ART_BY_KEY[key] && GM.ART_BY_KEY[key].label) || key.split("/").pop();
+
+  ctx.save();
+  ctx.fillStyle = "hsla(" + hue + ",34%," + (opts.dark ? 18 : 26) + "%,1)";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "hsla(" + hue + ",46%,52%,0.85)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+
+  /* A diagonal hatch so a placeholder never reads as finished art. */
+  ctx.globalAlpha = 0.13;
+  ctx.beginPath();
+  for (var i = -h; i < w; i += 12) {
+    ctx.moveTo(x + i, y + h);
+    ctx.lineTo(x + i + h, y);
+  }
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  if (opts.label !== false && w >= 48) {
+    ctx.fillStyle = "hsla(" + hue + ",60%,84%,0.95)";
+    ctx.font = Math.max(9, Math.min(13, Math.floor(w / 9))) + "px ui-monospace,Menlo,Consolas,monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    var text = label.length > 18 ? label.slice(0, 17) + "…" : label;
+    ctx.fillText(text, x + w / 2, y + h / 2);
+  }
+  ctx.restore();
+};
+
+/* ---------- tinting ------------------------------------------------------
+   Until per-class hero art exists, five heroes in a squad are five copies of
+   the same sprite, which reads as one person standing in a queue. Tinting each
+   by their class colour makes a squad legible at a glance — you can see the
+   Warden at the front and the Pyre behind him.
+
+   The tint is baked ONCE per (key, hue) into an offscreen canvas and reused.
+   Compositing per frame would mean fifteen offscreen draws every frame across
+   three panels. */
+var _tintCache = Object.create(null);
+
+GM.tintedSprite = function (key, hue, strength) {
+  if (!GM.artReady(key)) return null;
+  var k = key + "|" + hue + "|" + (strength || 0.4);
+  if (_tintCache[k]) return _tintCache[k];
+  if (typeof document === "undefined") return null;
+
+  var img = _artCache[key];
+  var c = document.createElement("canvas");
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  var x = c.getContext("2d");
+  if (!x) return null;
+
+  x.drawImage(img, 0, 0);
+  /* `source-atop` keeps the sprite's own alpha, so the tint lands on the
+     figure and never on the transparent background around it. */
+  x.globalCompositeOperation = "source-atop";
+  x.fillStyle = "hsla(" + hue + ",70%,52%," + (strength || 0.4) + ")";
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = "source-over";
+
+  _tintCache[k] = c;
+  return c;
+};
+
+/* A pure white silhouette of a sprite, for the hit flash. Cached like the
+   tint. Brightening the original with 'lighter' reads as pink on brown art;
+   a white stamp reads as impact. */
+var _whiteCache = Object.create(null);
+GM.whiteSprite = function (key) {
+  if (!GM.artReady(key)) return null;
+  if (_whiteCache[key]) return _whiteCache[key];
+  if (typeof document === "undefined") return null;
+  var img = _artCache[key];
+  var c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  var x = c.getContext("2d");
+  if (!x) return null;
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = "source-atop";
+  x.fillStyle = "rgba(255,255,255,0.92)";
+  x.fillRect(0, 0, c.width, c.height);
+  _whiteCache[key] = c;
+  return c;
+};
+
+/* Draw a sprite tinted toward a hue. Falls back to the plain draw. */
+GM.drawTinted = function (ctx, key, hue, frame, x, y, w, h, opts) {
+  var tinted = GM.tintedSprite(key, hue, opts && opts.strength);
+  if (!tinted) return GM.drawSprite(ctx, key, frame, x, y, w, h, opts);
+  var spec = GM.ART_BY_KEY[key];
+  var n = Math.max(1, Math.round(tinted.width / (spec.w || tinted.width)));
+  var fw = tinted.width / n;
+  var f = ((frame | 0) % n + n) % n;
+  ctx.drawImage(tinted, f * fw, 0, fw, tinted.height, x, y, w, h);
+  return true;
+};
+
+/* Draw one frame of an animated key, falling back to the placeholder. */
+GM.drawSprite = function (ctx, key, frame, x, y, w, h, opts) {
+  var spec = GM.ART_BY_KEY[key];
+  /* Ask for the asset, which STARTS the load on first call. Checking
+     readiness alone never populates the cache, so nothing would ever load and
+     every key would draw as a placeholder forever. */
+  var img = spec ? GM.art(key) : null;
+  if (img && img.complete && img.naturalWidth > 0) {
+    /* The ART decides its own frame count, not the manifest. A delivered sheet
+       whose frames are all identical can then ship as a single frame instead of
+       eight copies of the same pixels, and a partially animated set still plays
+       at whatever length it actually has. The manifest's `frames` stays the
+       intended spec for the brief. */
+    var n = Math.max(1, Math.round(img.naturalWidth / (spec.w || img.naturalWidth)));
+    var fw = img.naturalWidth / n;
+    var f = ((frame | 0) % n + n) % n;
+    ctx.drawImage(img, f * fw, 0, fw, img.naturalHeight, x, y, w, h);
+    return true;
+  }
+  GM.drawPlaceholder(ctx, key, x, y, w, h, opts);
+  return false;
+};
+
+/* Which tier band a base falls in, for picking an item/doll art key. */
+GM.tierBand = function (tier) { return tier <= 3 ? "low" : tier <= 6 ? "mid" : "high"; };
+
+GM.itemArtKey = function (item) {
+  var b = GM.BASE_BY_ID[item.baseId];
+  if (!b) return "item/sword-low";
+  return "item/" + b.family + "-" + GM.tierBand(b.tier);
+};
+
+/* The look that matches the current kit: weapon family plus the average tier
+   band of worn armour. Returns null when no such art is present, so the
+   renderer falls back to the body-plus-layers path. */
+GM.heroLookKey = function (hero) {
+  hero = hero || (GM.state.heroes && GM.state.heroes[0]);
+  if (!hero) return null;
+  var wep = hero.equip.weapon;
+  var wb = wep && GM.BASE_BY_ID[wep.baseId];
+  var fam = wb && wb.pool === "weapon" ? wb.family : "sword";
+
+  var tiers = 0, n = 0;
+  for (var i = 0; i < GM.ARMOUR_SLOTS.length; i++) {
+    var it = hero.equip[GM.ARMOUR_SLOTS[i]];
+    var b = it && GM.BASE_BY_ID[it.baseId];
+    if (b) { tiers += b.tier; n++; }
+  }
+  var band = GM.tierBand(n ? Math.round(tiers / n) : 1);
+  var key = "actor/hero-look-" + fam + "-" + band;
+  return GM.ART_BY_KEY[key] ? key : null;
+};
+
+GM.dollKeyFor = function (layerId, slot, hero) {
+  hero = hero || (GM.state.heroes && GM.state.heroes[0]);
+  if (!hero) return null;
+  var it = hero.equip[slot];
+  if (!it) return null;
+  var b = GM.BASE_BY_ID[it.baseId];
+  if (!b) return null;
+  return "doll/" + layerId + "-" + b.family + "-" + GM.tierBand(b.tier);
+};
+
+/* Does a character have a COMPLETE set of rig parts on disk? Incomplete sets
+   fall back to the whole-figure painting rather than drawing a figure with a
+   missing forearm. Weapons are checked separately since they are shared. */
+GM.partsReady = function (charId, rigId) {
+  var parts = GM.Rig && GM.Rig.PARTS && GM.Rig.PARTS[rigId];
+  if (!parts) return false;
+  for (var pid in parts) {
+    if (pid === "weapon") continue;
+    if (!GM.artReady("parts/" + charId + "/" + pid)) return false;
+  }
+  return true;
+};
+
+/* Coverage, for the art brief and for a quick "how much is left" answer. */
+GM.artStats = function () {
+  var total = GM.ART.length, have = 0, pending = 0, byKind = {};
+  for (var i = 0; i < GM.ART.length; i++) {
+    var a = GM.ART[i];
+    byKind[a.kind] = (byKind[a.kind] || 0) + 1;
+    /* Read the cache directly — going through artReady() here would fire a
+       request for all 288 keys just to count how many had arrived. */
+    var img = _artCache[a.key];
+    if (img && img.complete && img.naturalWidth > 0) have++;
+    else if (img) pending++;
+  }
+  return { total: total, have: have, pending: pending, byKind: byKind };
+};

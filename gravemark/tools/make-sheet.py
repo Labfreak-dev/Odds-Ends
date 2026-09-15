@@ -47,6 +47,11 @@ def main():
     ap.add_argument("src")
     ap.add_argument("--dest", default=os.path.join(HERE, "..", "art"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--cell", type=int, default=256,
+                    help="resize every frame to this square cell (the manifest's "
+                         "actor cell is 256). Delivered frames arrive at whatever "
+                         "size the generator felt like; the game slices by the "
+                         "manifest cell, so they must match.")
     a = ap.parse_args()
 
     # reuse the installer's matte repair so keyed backgrounds are handled
@@ -69,9 +74,18 @@ def main():
             im, _changed = ai.strip_matte(im)
             frames.append(im)
 
-        # every cell must be the same size; the first frame sets it
-        w, h = frames[0].size
-        frames = [f if f.size == (w, h) else f.resize((w, h)) for f in frames]
+        # every cell is the manifest cell: fit each frame into it, preserving
+        # aspect, feet to the bottom edge so footing stays consistent
+        w = h = a.cell
+        fitted = []
+        for f in frames:
+            fw, fh = f.size
+            k = min(w / fw, h / fh)
+            g = f.resize((max(1, round(fw * k)), max(1, round(fh * k))), Image.LANCZOS)
+            cell = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            cell.paste(g, ((w - g.size[0]) // 2, h - g.size[1]))
+            fitted.append(cell)
+        frames = fitted
 
         strip = Image.new("RGBA", (w * len(frames), h), (0, 0, 0, 0))
         for i, f in enumerate(frames):

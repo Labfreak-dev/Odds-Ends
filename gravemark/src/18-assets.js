@@ -169,6 +169,34 @@ GM.ART = (function () {
     });
   });
 
+  /* --- rig parts: what the skeletal animator wears ------------------------
+     Generated from GM.Rig.PARTS so the drawer and the art brief agree. The
+     hero has three gear bands; weapons are their own set; every monster and
+     boss gets one set for its rig type. Painted at 2x rig units. */
+  if (GM.Rig && GM.Rig.PARTS) {
+    var chars = GM.Rig.CHARS.slice();
+    GM.MONSTERS.forEach(function (m) { chars.push({ id: m.id, rig: GM.Rig.forChar(m.id).id, ref: "mon/" + m.id + "-idle", label: m.name }); });
+    GM.BOSSES.forEach(function (b) { chars.push({ id: b.id, rig: GM.Rig.forChar(b.id).id, ref: "boss/" + b.id + "-idle", label: b.name }); });
+    chars.forEach(function (c) {
+      var parts = GM.Rig.PARTS[c.rig];
+      Object.keys(parts).forEach(function (pid) {
+        if (pid === "weapon") return;      /* weapons are shared, below */
+        var pt = parts[pid];
+        add("parts/" + c.id + "/" + pid, "part", { w: pt.w * 2, h: pt.h * 2 }, {
+          label: c.label + " \u2014 " + pt.desc, rig: c.rig, part: pid, charId: c.id, ref: c.ref,
+          pivot: { x: pt.px, y: pt.py }, joint: pt.joint
+        });
+      });
+    });
+    ["dagger", "sword", "maul", "wand", "scythe"].forEach(function (fam) {
+      var pt = GM.Rig.PARTS.humanoid.weapon;
+      add("parts/weapon/" + fam, "part", { w: pt.w * 2, h: pt.h * 2 }, {
+        label: "the hero's " + fam + " \u2014 " + pt.desc, rig: "humanoid", part: "weapon", charId: "weapon",
+        ref: "item/" + fam + "-mid", pivot: { x: pt.px, y: pt.py }, joint: pt.joint
+      });
+    });
+  }
+
   /* --- paper-doll gear layers: every slot, every family, every tier band --- */
   GM.DOLL_LAYERS.forEach(function (layer) {
     if (!layer.slot) return;
@@ -382,6 +410,27 @@ GM.tintedSprite = function (key, hue, strength) {
   return c;
 };
 
+/* A pure white silhouette of a sprite, for the hit flash. Cached like the
+   tint. Brightening the original with 'lighter' reads as pink on brown art;
+   a white stamp reads as impact. */
+var _whiteCache = Object.create(null);
+GM.whiteSprite = function (key) {
+  if (!GM.artReady(key)) return null;
+  if (_whiteCache[key]) return _whiteCache[key];
+  if (typeof document === "undefined") return null;
+  var img = _artCache[key];
+  var c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  var x = c.getContext("2d");
+  if (!x) return null;
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = "source-atop";
+  x.fillStyle = "rgba(255,255,255,0.92)";
+  x.fillRect(0, 0, c.width, c.height);
+  _whiteCache[key] = c;
+  return c;
+};
+
 /* Draw a sprite tinted toward a hue. Falls back to the plain draw. */
 GM.drawTinted = function (ctx, key, hue, frame, x, y, w, h, opts) {
   var tinted = GM.tintedSprite(key, hue, opts && opts.strength);
@@ -455,6 +504,19 @@ GM.dollKeyFor = function (layerId, slot, hero) {
   var b = GM.BASE_BY_ID[it.baseId];
   if (!b) return null;
   return "doll/" + layerId + "-" + b.family + "-" + GM.tierBand(b.tier);
+};
+
+/* Does a character have a COMPLETE set of rig parts on disk? Incomplete sets
+   fall back to the whole-figure painting rather than drawing a figure with a
+   missing forearm. Weapons are checked separately since they are shared. */
+GM.partsReady = function (charId, rigId) {
+  var parts = GM.Rig && GM.Rig.PARTS && GM.Rig.PARTS[rigId];
+  if (!parts) return false;
+  for (var pid in parts) {
+    if (pid === "weapon") continue;
+    if (!GM.artReady("parts/" + charId + "/" + pid)) return false;
+  }
+  return true;
 };
 
 /* Coverage, for the art brief and for a quick "how much is left" answer. */

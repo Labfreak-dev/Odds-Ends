@@ -280,6 +280,80 @@ section("modes and ascension");
   ok(GM.state.squads.every(s => s.members.length || true), "squads survive the reset");
 }
 
+/* ---------- the rig ------------------------------------------------------ */
+section("rig");
+{
+  const GM = load({ quiet: true });
+  GM.startSeason("s_none");
+
+  /* every part a bone names must exist in the parts table, or the brief and
+     the drawer disagree about what the artist is painting */
+  let missing = [];
+  Object.keys(GM.Rig.templates).forEach(rid => {
+    const rig = GM.Rig.templates[rid];
+    rig.bones.forEach(b => { if (b.part && !GM.Rig.PARTS[rid][b.part]) missing.push(rid + ":" + b.part); });
+  });
+  ok(missing.length === 0, "every rigged part has a painting spec", missing.join(","));
+
+  /* bind pose: no animation delta means every bone sits at its authored world angle */
+  const hero = GM.Rig.forChar("hero");
+  const rest = GM.Rig.pose(hero, "idle", 0);
+  const torso = rest.find(x => x.bone.id === "torso");
+  ok(Math.abs(torso.angle - (-90)) < 0.01, "bind pose reproduces authored world angles", torso.angle);
+
+  /* a child follows its parent: rotate the upper arm and the forearm's pivot moves */
+  const p0 = GM.Rig.pose(hero, "attack_sword", 0);
+  const p1 = GM.Rig.pose(hero, "attack_sword", 0.32);
+  const f0 = p0.find(x => x.bone.id === "farm_f"), f1 = p1.find(x => x.bone.id === "farm_f");
+  ok(Math.hypot(f1.x - f0.x, f1.y - f0.y) > 10, "child bones follow their parents", Math.hypot(f1.x - f0.x, f1.y - f0.y).toFixed(1));
+
+  /* the strike lunges forward and the weapon tip travels */
+  const strike = GM.Rig.pose(hero, "attack_sword", 0.5);
+  ok(strike.root.x > p0.root.x + 20, "the sword strike lunges forward", (strike.root.x - p0.root.x).toFixed(0));
+  const t0 = GM.Rig.tip(p0, "weapon"), t1 = GM.Rig.tip(strike, "weapon");
+  ok(Math.hypot(t1.x - t0.x, t1.y - t0.y) > 60, "the weapon tip travels on the strike", Math.hypot(t1.x - t0.x, t1.y - t0.y).toFixed(0));
+
+  /* every attack clip has exactly one hit event, which the VFX depend on */
+  const bad = Object.keys(GM.Rig.anims).filter(n => /^attack/.test(n))
+    .filter(n => GM.Rig.anims[n].ev.filter(e => e.name === "hit").length !== 1);
+  ok(bad.length === 0, "every attack clip fires exactly one hit", bad.join(","));
+
+  /* animator: one-shot fires its event once and returns to idle; death sticks */
+  const fired = [];
+  const A = new GM.Rig.Animator("hero", { onEvent: n => fired.push(n) });
+  A.play("attack_maul");
+  for (let i = 0; i < 40; i++) A.update(1 / 30);
+  ok(fired.filter(n => n === "hit").length === 1, "a swing fires hit exactly once", fired.join(","));
+  ok(A.clip === "idle", "and returns to idle", A.clip);
+  A.play("death");
+  for (let i = 0; i < 60; i++) A.update(1 / 30);
+  ok(A.dead && A.done && A.clip === "death", "death holds its final frame");
+  A.play("attack_sword");
+  ok(A.clip === "death", "a dead actor cannot be told to attack");
+
+  /* rig routing */
+  ok(GM.Rig.forChar("gravedog").id === "quadruped", "the grave dog is a quadruped");
+  ok(GM.Rig.forChar("bonepile").id === "blob", "the bone pile is a mass");
+  ok(GM.Rig.attackFor("hero", "wand") === "attack_wand", "the hero's wand casts");
+  ok(GM.Rig.attackFor("gravedog") === "attack_bite", "the dog bites");
+  ok(GM.Rig.attackFor("shambler") === "attack_claw", "a humanoid monster claws");
+
+  /* every posed value must be finite for every clip at every time */
+  let nan = 0;
+  Object.keys(GM.Rig.anims).forEach(n => {
+    for (let t = 0; t <= 1.0001; t += 0.125) {
+      GM.Rig.pose(hero, n, t).forEach(b => { if (![b.x, b.y, b.angle, b.sx, b.sy].every(isFinite)) nan++; });
+    }
+  });
+  ok(nan === 0, "every clip poses finitely at every time", nan);
+
+  /* sprite fallback: root motion exists for the whole-figure mode */
+  const S = new GM.Rig.Animator("hero");
+  S.play("attack_maul"); S.t = 0.58;
+  const m = S.spriteMotion();
+  ok(m.x > 10 && m.sx > 1 && m.sy < 1, "sprite mode gets lunge and squash from the root", JSON.stringify(m));
+}
+
 /* ---------- quests ------------------------------------------------------- */
 section("quests");
 {

@@ -86,7 +86,7 @@ Everything hangs off the single global `GM`.
 ```bash
 for f in src/*.js; do node --check "$f"; done   # every file parses
 node tools/check-globals.js                      # no top-level collisions
-node tools/test-core.js                          # 88 logic checks
+node tools/test-core.js                          # 105 logic checks
 node tools/balance.js                            # pacing across depths
 python3 tools/smoke.py                           # 37 checks, real page headless
 python3 tools/art-check.py art                   # delivered art matches the manifest
@@ -204,6 +204,38 @@ are a single horizontal strip of frames.
 ```bash
 node tools/art-brief.js    > ART-BRIEF.md    # the full brief, every key
 node tools/grok-prompts.js > GROK-PROMPTS.md # one prompt per MISSING asset
+```
+
+### How the characters move
+
+`src/07-data-rig.js` is a small skeletal animator — the way Path of Idle moves.
+A character is painted once as separate body parts, a bone hierarchy carries
+them, and the motion is keyframed on the bones in code: idle, five weapon
+swings, hit, death, walk, plus monster attacks. One rig and one set of clips
+drive every humanoid in the game.
+
+Every actor on a battle panel is drawn in one of two modes, chosen per frame:
+
+- **RIG** — the character has a complete set of parts in `art/parts/<char>/`.
+  Bones carry the parts. `GM.RIG_DEBUG = true` forces this mode with capsule
+  bones so the motion can be judged before any parts exist.
+- **SPRITE** — otherwise. The whole-figure painting is driven by the ROOT bone
+  (lunge, squash, lean, bob), so it works with the art in the repo today. If a
+  delivered multi-frame sheet exists for the clip, its frame is picked by clip
+  progress and the root motion applies on top.
+
+`src/20-vfx.js` is the layer on top of either mode: weapon trails (the rig's
+weapon tip is known even when the rig is not drawn, so the trail arcs on a flat
+painting), a white hit flash, spark and dust bursts, floating damage numbers
+and panel shake. Per-swing damage is the hero's share of the squad's rate
+against that monster's resistances — honest numbers, not random ones.
+
+Parts are specified once in `GM.Rig.PARTS` — canvas size, pivot joint, what to
+paint — and both the drawer and `tools/grok-parts.js` read that table, so the
+brief and the game cannot disagree.
+
+```bash
+node tools/grok-parts.js > GROK-PARTS.md     # the parts brief, tiered
 ```
 
 ### Getting animation out of a tool that makes single images

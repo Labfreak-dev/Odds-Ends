@@ -120,6 +120,17 @@ else. Four of them are load-bearing and were measured rather than guessed:
 | `packsPerStage` | The single most important pacing number. At one pack per depth a squad gained a depth every ~15s, so difficulty compounded 1.10× per quarter-minute while three level-1 heroes split experience three ways. It out-climbed its own power and wiped inside two minutes, every time. |
 | `GM.earlyScale` | A farmed squad is ~9× stronger than the three heroes a new save starts with, so one constant cannot serve both. This ramps the first 25 depths down. |
 
+Two behaviours keep a squad from grinding itself to death on Auto:
+
+- **The advance gate.** A squad holds at the deepest depth it can survive and
+  only advances once the next one looks winnable with room to spare. The check
+  is sampled five times and judged on the WORST roll, because elites are 2.6x
+  life and a pack that rolls three of them is a different fight from the mean.
+  Turning `push` on removes the brake for a player who wants the gravemarks.
+- **The wipe ceiling.** A broken squad remembers the depth that broke it and
+  will not climb straight back into it. Without these two, five hours of
+  unattended play produced 126 wipes; with them, 69, and the same depth.
+
 `GM.LEECH_CAP` matters just as much: leech is capped as a fraction of maximum
 life per second, not of damage dealt. Uncapped, leech scales with damage while
 incoming scales with depth, and past a point every squad is immortal.
@@ -143,6 +154,11 @@ All twelve bosses, all fifteen monsters, the hero, and seventeen of eighteen
 backdrops are in. Outstanding: the paper-doll gear, most item and rune icons,
 and the UI chrome and rarity frames (neither of which the renderer consumes
 yet — the UI is CSS).
+
+Until per-class hero art exists the battle panels and roster portraits tint
+each hero toward their class colour (cached per key+hue, not composited per
+frame) and jitter their scale and footing from a hash of their id, so five
+copies of one sprite still read as five people.
 
 **Nothing delivered so far is animated.** Every painted sheet arrived with all
 frames identical, and all twelve hero states are byte-for-byte the same image —

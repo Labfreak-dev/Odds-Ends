@@ -346,6 +346,54 @@ GM.drawPlaceholder = function (ctx, key, x, y, w, h, opts) {
   ctx.restore();
 };
 
+/* ---------- tinting ------------------------------------------------------
+   Until per-class hero art exists, five heroes in a squad are five copies of
+   the same sprite, which reads as one person standing in a queue. Tinting each
+   by their class colour makes a squad legible at a glance — you can see the
+   Warden at the front and the Pyre behind him.
+
+   The tint is baked ONCE per (key, hue) into an offscreen canvas and reused.
+   Compositing per frame would mean fifteen offscreen draws every frame across
+   three panels. */
+var _tintCache = Object.create(null);
+
+GM.tintedSprite = function (key, hue, strength) {
+  if (!GM.artReady(key)) return null;
+  var k = key + "|" + hue + "|" + (strength || 0.4);
+  if (_tintCache[k]) return _tintCache[k];
+  if (typeof document === "undefined") return null;
+
+  var img = _artCache[key];
+  var c = document.createElement("canvas");
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  var x = c.getContext("2d");
+  if (!x) return null;
+
+  x.drawImage(img, 0, 0);
+  /* `source-atop` keeps the sprite's own alpha, so the tint lands on the
+     figure and never on the transparent background around it. */
+  x.globalCompositeOperation = "source-atop";
+  x.fillStyle = "hsla(" + hue + ",70%,52%," + (strength || 0.4) + ")";
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = "source-over";
+
+  _tintCache[k] = c;
+  return c;
+};
+
+/* Draw a sprite tinted toward a hue. Falls back to the plain draw. */
+GM.drawTinted = function (ctx, key, hue, frame, x, y, w, h, opts) {
+  var tinted = GM.tintedSprite(key, hue, opts && opts.strength);
+  if (!tinted) return GM.drawSprite(ctx, key, frame, x, y, w, h, opts);
+  var spec = GM.ART_BY_KEY[key];
+  var n = Math.max(1, Math.round(tinted.width / (spec.w || tinted.width)));
+  var fw = tinted.width / n;
+  var f = ((frame | 0) % n + n) % n;
+  ctx.drawImage(tinted, f * fw, 0, fw, tinted.height, x, y, w, h);
+  return true;
+};
+
 /* Draw one frame of an animated key, falling back to the placeholder. */
 GM.drawSprite = function (ctx, key, frame, x, y, w, h, opts) {
   var spec = GM.ART_BY_KEY[key];

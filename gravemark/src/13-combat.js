@@ -372,6 +372,11 @@ GM.leaveVictory = function (sq) {
 GM.onSquadWipe = function (sq, mon, st, report, ctx) {
   report.deaths++;
   GM.state.tally.deaths++;
+  /* Remember where it went wrong. Climbing straight back into the depth that
+     just broke the squad is the difference between ten wipes an hour and
+     fifty. The gate re-checks on the way up, so this only costs a depth when
+     the squad genuinely cannot hold it. */
+  if (!sq.push) sq.ceiling = Math.max(1, GM.squadStage(sq) - 1);
   GM.log(sq.name + " is broken at depth " + GM.squadStage(sq) + " by " + mon.name + ".", "death");
   if (GM.plantGrave) GM.plantGrave(sq, GM.squadStage(sq), mon);
   GM.squadRetreat(sq);

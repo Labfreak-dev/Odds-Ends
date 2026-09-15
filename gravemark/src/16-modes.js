@@ -115,6 +115,46 @@ GM.squadCtx = function (sq) {
   }
 };
 
+/* ---------- knowing when to stop -----------------------------------------
+   A squad left on Auto will happily walk into a depth that kills it, wipe,
+   retreat, re-climb and wipe again. That loop technically works — it is how
+   gravemarks get planted — but an hour of it produced thirty-two wipes and no
+   progress, which reads as the game being broken rather than as difficulty.
+
+   So by default a squad HOLDS at its ceiling: it keeps clearing the depth it
+   can handle, gaining levels and gear, and only advances once the next depth
+   looks survivable with room to spare. Turning `push` on removes the brake for
+   a player who actually wants the gravemarks. */
+GM.ADVANCE_MARGIN = 1.6;
+
+GM.safeToAdvance = function (sq) {
+  /* Sampled several times and judged on the WORST roll, not the average.
+     Elites are 2.6x life and 1.35x damage; a pack that rolls three of them is
+     a different fight from the mean, and checking the mean is exactly how a
+     squad ends up holding at a depth that kills it every fourth pack. */
+  var next = sq.stage + 1;
+  var worst = Infinity;
+  for (var i = 0; i < 5; i++) {
+    var f = GM.forecastSquad(sq, next);
+    if (f.empty) return false;
+    if (!isFinite(f.ttk)) return false;         /* cannot hurt it at all */
+    var ratio = f.ttd === Infinity ? Infinity : f.ttd / f.ttk;
+    if (ratio < worst) worst = ratio;
+  }
+  return worst > GM.ADVANCE_MARGIN;
+};
+
+/* The same pessimism applied to where the squad already stands: if the depth
+   it is holding has become lethal (a hero died, gear was moved away), step
+   back rather than grinding a losing fight forever. */
+GM.shouldFallBack = function (sq) {
+  if (sq.push || sq.stage <= 1) return false;
+  var f = GM.forecastSquad(sq, sq.stage);
+  if (f.empty || !isFinite(f.ttk)) return false;
+  if (f.ttd === Infinity) return false;
+  return f.ttd / f.ttk < 1.0;
+};
+
 /* ---------- advancing and retreating ------------------------------------- */
 GM.squadAdvance = function (sq) {
   var s = GM.state;
@@ -123,6 +163,24 @@ GM.squadAdvance = function (sq) {
       /* A depth takes several packs. The panel's top bar is this counter. */
       sq.clears = (sq.clears || 0) + 1;
       if (sq.clears < GM.CURVE.packsPerStage) return;
+
+      /* Hold at the ceiling unless told to push. Clears stay banked so the
+         next cleared pack re-checks immediately rather than starting over. */
+      var blockedByCeiling = !sq.push && sq.ceiling && sq.stage >= sq.ceiling;
+      if (blockedByCeiling && !GM.safeToAdvance(sq)) {
+        sq.clears = GM.CURVE.packsPerStage;
+        sq.holding = true;
+        return;
+      }
+      /* Cleared the gate above its old ceiling: the squad has grown into it. */
+      if (sq.ceiling && sq.stage >= sq.ceiling) sq.ceiling = 0;
+
+      if (!sq.push && !GM.safeToAdvance(sq)) {
+        sq.clears = GM.CURVE.packsPerStage;
+        sq.holding = true;
+        return;
+      }
+      sq.holding = false;
       sq.clears = 0;
       sq.stage++;
       if (sq.stage > sq.max) sq.max = sq.stage;
@@ -249,6 +307,13 @@ GM.beginVigil = function (sq, graveId) {
   if (!g || g.state !== "revenant") return { ok: false, why: "Nothing is standing." };
   sq.graveId = graveId;
   return GM.setSquadMode(sq, "vigil");
+};
+
+GM.togglePush = function (sq) {
+  sq.push = !sq.push;
+  if (sq.push) sq.holding = false;
+  GM.bus.emit("squads:changed");
+  return sq.push;
 };
 
 GM.toggleSquad = function (sq) {

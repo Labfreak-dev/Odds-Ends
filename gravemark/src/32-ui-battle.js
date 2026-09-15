@@ -98,7 +98,10 @@ GM.ui.renderBattles = function () {
     if (sq.mode === "tower") label = "Divine Tower-" + (sq.towerRun || 1);
     if (sq.mode === "finality") label = "Finality-" + (sq.wave || 1);
     if (sq.mode === "vigil") label = "Vigil-" + stage;
-    p.fname.textContent = empty ? sq.name + " · no one assigned" : label;
+    if (empty) label = sq.name + " · no one assigned";
+    else if (sq.holding) label += " · holding";
+    else if (sq.push) label += " · pushing";
+    p.fname.textContent = label;
 
     if (p.auto.checked !== !!sq.running) p.auto.checked = !!sq.running;
 
@@ -206,13 +209,23 @@ GM.ui.drawBattles = function (now) {
        panel does not draw figures taller than it is. */
     var size = Math.min(h * 0.52, w * 0.15);
 
-    /* the squad, left, facing right */
+    /* The squad, left, facing right. Each hero is tinted to their class and
+       jittered in size and footing from a hash of their id, so five copies of
+       one sprite still read as five different people. Deterministic, so nobody
+       shuffles between frames. */
     var heroes = GM.squadHeroes(sq);
     for (var i = 0; i < heroes.length; i++) {
-      var hx = w * 0.06 + i * size * 0.62;
-      var look = GM.heroLookKey(heroes[i]);
+      var hero = heroes[i];
+      var cls = GM.heroClass(hero);
+      var jitter = GM.hash(hero.id);
+      var scale = 0.90 + ((jitter % 17) / 17) * 0.20;       /* 0.90 - 1.10 */
+      var lift = ((jitter >>> 5) % 7) / 7 * (h * 0.03);
+      var hs = size * scale;
+      var hx = w * 0.05 + i * size * 0.60;
+      var look = GM.heroLookKey(hero);
       var key = (look && GM.artReady(look)) ? look : "actor/hero-idle";
-      GM.drawSprite(ctx, key, 0, hx, ground - size, size, size, { label: false });
+      GM.drawTinted(ctx, key, cls.hue, 0, hx, ground - hs + lift, hs, hs,
+                    { label: false, strength: 0.26 });
     }
 
     /* the pack, right, facing left */

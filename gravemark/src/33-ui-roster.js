@@ -22,11 +22,13 @@ function portraitInto(canvas, hero) {
   ctx.fillRect(0, 0, w, h);
 
   var look = GM.heroLookKey(hero);
-  if (look && GM.artReady(look)) {
-    /* Crop the head and shoulders out of the full figure. */
-    GM.drawSprite(ctx, look, 0, -w * 0.32, -h * 0.12, w * 1.64, h * 1.64, { label: false });
-  } else if (GM.artReady("actor/hero-idle")) {
-    GM.drawSprite(ctx, "actor/hero-idle", 0, -w * 0.32, -h * 0.12, w * 1.64, h * 1.64, { label: false });
+  var key = (look && GM.artReady(look)) ? look
+          : GM.artReady("actor/hero-idle") ? "actor/hero-idle" : null;
+  if (key) {
+    /* Crop the head and shoulders out of the full figure, tinted to the class
+       so a roster of identical sprites is still readable at a glance. */
+    GM.drawTinted(ctx, key, cls.hue, 0, -w * 0.32, -h * 0.12, w * 1.64, h * 1.64,
+                  { label: false, strength: 0.26 });
   } else {
     ctx.fillStyle = "hsla(" + cls.hue + ",50%,70%,.9)";
     ctx.font = "600 " + Math.floor(h * 0.5) + "px ui-monospace,monospace";

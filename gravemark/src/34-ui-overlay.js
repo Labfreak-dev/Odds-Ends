@@ -482,7 +482,22 @@ function viewAscend(body) {
 function viewSquad(body) {
   var sq = GM.squadById(ovArg) || (GM.state.squads || [])[0];
   if (!sq) return;
-  var p = panel(body, sq.name, "depth " + GM.squadStage(sq));
+  var p = panel(body, sq.name, "depth " + GM.squadStage(sq) + (sq.holding ? " · holding" : ""));
+
+  var pushRow = GM.el("div", "row");
+  pushRow.style.marginBottom = "8px";
+  var lab = GM.el("label", "opt");
+  lab.innerHTML = '<input type="checkbox"' + (sq.push ? " checked" : "") + "> Push past the ceiling";
+  GM.on(GM.$("input", lab), "change", function () {
+    GM.togglePush(sq);
+    GM.ui.renderOverlay(); GM.ui.markDirty();
+  });
+  pushRow.appendChild(lab);
+  pushRow.appendChild(GM.el("span", "faint small", sq.push
+    ? "Advancing regardless. Expect wipes — and gravemarks."
+    : "Holds at the deepest depth it can survive, farming until it outgrows it."));
+  p.appendChild(pushRow);
+
   var g = GM.el("div", "grid g2");
   GM.MODE_DEFS.forEach(function (m) {
     if (m.hidden && !m.unlock()) return;

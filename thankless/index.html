@@ -92,7 +92,10 @@
   .hb i{position:absolute;inset:0;width:100%;transform-origin:left;background:var(--hp)}
   .hb.m i{background:var(--mana)}
   .hb span{position:absolute;inset:0;text-align:center;font-size:9px;line-height:9px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 #000}
-  #spells{position:absolute;right:calc(8px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:8px;pointer-events:auto}
+  #spells{position:absolute;right:calc(8px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;pointer-events:auto}
+  .sp.rev{grid-column:1 / -1;height:40px;flex-direction:row;gap:8px;font-size:18px;background:#4a2a2a}
+  .sp.rev.hide{display:none}
+  @media (max-width:420px){.sp{width:56px;height:56px;font-size:19px}.sp small{font-size:8px}}
   .sp{width:64px;height:64px;border-radius:8px;border:2px solid #000;background:#2a2140;box-shadow:inset 0 0 0 1px var(--bevel);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:#fff;text-shadow:1px 1px 0 #000;overflow:hidden}
   .sp small{font-size:9px;font-weight:bold;letter-spacing:.5px}
   .sp .cd{position:absolute;inset:0;background:conic-gradient(rgba(0,0,0,.72) var(--p,0%),transparent 0);pointer-events:none}
@@ -169,7 +172,7 @@
       <div class="sub" style="line-height:1.5">
         Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
         <b>Mend</b> casts itself on the most wounded ally in range — if you have the mana. Mana is scarce. Picking up the motes your party drops refills it, so you have to go where the fighting is.<br>
-        Spells: <b>1</b> Surge · <b>2</b> Ward · <b>3</b> Rouse · <b>4</b> Revive. Tap the buttons on a phone.<br>
+        <b>Mend</b> keeps them standing, but your spells decide whether they win. <b>1</b> Surge heals. <b>2</b> Bless doubles the busiest ally’s damage. <b>3</b> Haste speeds everyone up and keeps Brom awake. <b>4</b> Fortify shields the party and makes Brom the only thing enemies can see. <b>5</b> Rouse wakes, calms and shoves. <b>R</b> Revive when someone falls. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
         Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them into something better.<br>
         From two minutes in, elites arrive with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Hexers lob bolts at you from a distance; keep moving.<br>
         Enemies that get close to a healer forget everything else. Brom snores. Pip panics. Vex casts through you. Nobody says thank you.
@@ -206,7 +209,7 @@
 
 <script>
 'use strict';
-const BUILD='b009-mire';
+const BUILD='b010-conductor';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -282,8 +285,10 @@ const TREE=[
   {id:'h_card_martyr',br:'healer',name:'Learn: Martyr',desc:'Adds the Martyr card to level-ups: allies in range pass a share of their pain to you',max:1,cost:200,req:['h_vit',2]},
   {id:'h_surge',br:'healer',name:'Surge Mastery',desc:'Surge heals 25% more per rank',max:3,cost:80,req:['h_power',2]},
   {id:'h_card_echo',br:'healer',name:'Learn: Echo',desc:'Adds the Echo card: Surge repeats itself a second later',max:1,cost:220,req:['h_surge',2]},
-  {id:'h_ward',br:'healer',name:'Ward Mastery',desc:'Ward absorbs 25% more per rank',max:3,cost:80,req:['h_mana',2]},
-  {id:'h_card_sanct',br:'healer',name:'Learn: Sanctuary',desc:'Adds the Sanctuary card: Ward also heals',max:1,cost:200,req:['h_ward',1]},
+  {id:'h_ward',br:'healer',name:'Fortify Mastery',desc:'Fortify’s shield absorbs 25% more per rank',max:3,cost:80,req:['h_mana',2]},
+  {id:'h_buff',br:'healer',name:'Long Breath',desc:'Bless and Haste last 8% longer per rank',max:4,cost:70,req:['h_power',1]},
+  {id:'h_bless',br:'healer',name:'Bless Mastery',desc:'Blessed allies deal 15% more per rank',max:3,cost:110,req:['h_buff',2]},
+  {id:'h_card_sanct',br:'healer',name:'Learn: Sanctuary',desc:'Adds the Sanctuary card: Fortify also heals',max:1,cost:200,req:['h_ward',1]},
   {id:'h_cdr',br:'healer',name:'Rehearsed Rites',desc:'Spell cooldowns −6% per rank',max:4,cost:120,req:['h_surge',1]},
   {id:'h_start',br:'healer',name:'Head Start',desc:'Begin each run one level higher',max:3,cost:120},
   {id:'h_keepsake',br:'healer',name:'Keepsake',desc:'Begin each run holding a random relic you have found before, one per rank',max:3,cost:300,req:['h_start',1]},
@@ -355,6 +360,8 @@ const RELICS=[
   {id:'coin',name:'Lucky Coin',icon:'🪙',desc:'Gold +25%'},
   {id:'bandage',name:'Bandage Roll',icon:'🩹',desc:'Mend keeps healing a little for three seconds'},
   {id:'compass',name:'Bent Compass',icon:'🧭',desc:'Chests drop half again as often'},
+  {id:'metronome',name:'Metronome',icon:'🎼',desc:'Spells cost 20% less while a buff is running'},
+  {id:'hymnal',name:'Hymnal',icon:'📜',desc:'Bless and Haste last 3 seconds longer'},
   // evolutions: hold both halves and the next chest fuses them
   {id:'fountain',evo:['chalice','beads'],name:'The Fountain',icon:'⛲',desc:'Mend is free on anyone above half health, and overheal refunds 40% as mana'},
   {id:'lullaby',evo:['snore','bell'],name:'Brom’s Lullaby',icon:'🎵',desc:'Enemies near a sleeping Brom fall asleep too, and his waking swing hits for five times'},
@@ -365,6 +372,7 @@ const RELICS=[
   {id:'legend',evo:['medal','guestbook'],name:'Legend',icon:'🏅',desc:'Every thank-you: +5% heal power and +2% party damage. Even Vex, sometimes'},
   {id:'stew',evo:['kettle','bonecharm'],name:'Stew of Bones',icon:'🍲',desc:'The party has 30% more HP and every kill heals them 1%'},
   {id:'motestorm',evo:['whistle','jar'],name:'Mote Storm',icon:'🌀',desc:'Motes fly to you from anywhere on screen and give twice the mana'},
+  {id:'choir',evo:['metronome','hymnal'],name:'The Choir',icon:'🎶',desc:'Every Bless and Fortify also lifts everyone else in range: half the damage, half the speed, for as long'},
 ];
 const EVOS=RELICS.filter(r=>r.evo);
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
@@ -444,19 +452,31 @@ const UPS=[
   {id:'glasses',who:'archer',name:'Glasses for Pip',desc:'Pip misses less and shoots nearer targets',max:3},
   {id:'manners',who:'mage',name:'Manners for Vex',desc:'Vex’s friendly fire −30%',max:3},
   {id:'martyr',who:'healer',name:'Martyr',desc:'Allies in range pass 15% of their pain to you',max:2,needs:'h_card_martyr'},
-  {id:'sanct',who:'healer',name:'Sanctuary',desc:'Ward also heals 15% of max HP',max:2,needs:'h_card_sanct'},
+  {id:'sanct',who:'healer',name:'Sanctuary',desc:'Fortify also heals 15% of max HP',max:2,needs:'h_card_sanct'},
   {id:'echo',who:'healer',name:'Echo',desc:'Surge repeats at half strength a second later',max:1,needs:'h_card_echo'},
+  {id:'longbuff',who:'healer',name:'Long Breath',desc:'Bless and Haste last 25% longer',max:4},
+  {id:'blesschain',who:'healer',name:'Shared Blessing',desc:'Bless also blesses the next-busiest ally for half as long',max:1},
+  {id:'blessburst',who:'healer',name:'Holy Kill',desc:'A blessed ally’s kills have a 20% chance to burst with holy fire',max:3},
+  {id:'fortburst',who:'healer',name:'Bellow',desc:'Fortify also shoves enemies off its target',max:1},
 ];
 const upRank=id=>G?(G.up[id]||0):0;
 
 // ---------- spells ----------
 const SPELLS=[
-  {id:'surge',name:'Surge',icon:'✚',key:'1',cd:6,mana:30,desc:'A big heal on the most wounded ally in range'},
-  {id:'ward',name:'Ward',icon:'◈',key:'2',cd:14,mana:40,desc:'Shields every ally in range'},
-  {id:'rouse',name:'Rouse',icon:'!!',key:'3',cd:10,mana:20,desc:'Wakes Brom, calms Pip, scares nearby enemies'},
-  {id:'revive',name:'Revive',icon:'☥',key:'4',cd:40,mana:60,desc:'Raises a fallen ally in range at half HP'},
-  {id:'radiance',name:'Radiance',icon:'☀',key:'5',cd:18,mana:50,desc:'Heals every ally in range and scorches every enemy in it'},
+  {id:'surge',name:'Surge',icon:'✚',key:'1',cd:6,mana:25,desc:'A big heal on the most wounded ally in range'},
+  {id:'bless',name:'Bless',icon:'✦',key:'2',cd:10,mana:35,desc:'The ally in the thick of it deals two and a half times damage for 10s, and their kills refund mana'},
+  {id:'haste',name:'Haste',icon:'»',key:'3',cd:14,mana:40,desc:'Everyone in range attacks 60% faster and moves 40% faster for 10s. Brom cannot nap, Pip cannot panic'},
+  {id:'fortify',name:'Fortify',icon:'◈',key:'4',cd:12,mana:40,desc:'Shields everyone in range; Brom bellows and every enemy nearby turns on him for 6s'},
+  {id:'rouse',name:'Rouse',icon:'!!',key:'5',cd:10,mana:20,desc:'Wakes Brom, calms Pip, scares nearby enemies'},
+  {id:'radiance',name:'Radiance',icon:'☀',key:'6',cd:18,mana:50,desc:'Heals every ally in range and scorches every enemy in it'},
 ];
+const REVIVE={id:'revive',name:'Revive',icon:'☥',key:'R',cd:40,mana:60,desc:'Raises a fallen ally in range at half HP'};
+const REV=6;   // the revive's slot in h.cd
+const buffDur=()=>10*(1+0.25*upRank('longbuff'))*(1+0.08*rank('h_buff'))+(hasRelic('hymnal')?3:0);
+const dmgMul=m=>m.buffDmgT>0?2.5*(1+0.15*rank('h_bless')):(m.choirT>0?1.75:1);
+const hasteMul=m=>m.hasteT>0?1.6:(m.choirT>0?1.3:1);
+const spdMul=m=>m.hasteT>0?1.4:(m.choirT>0?1.2:1);
+const anyBuff=()=>allies().some(m=>m.buffDmgT>0||m.hasteT>0||m.fortT>0);
 
 // ---------- lines ----------
 const LINES={
@@ -498,7 +518,7 @@ window.addEventListener('keydown',e=>{
   keys[e.key.toLowerCase()]=true; keys[e.code]=true;
   if(!G||G.over)return;
   const k=e.key;
-  if(k==='1'||k==='q'||k==='Q')cast(0); else if(k==='2'||k==='e'||k==='E')cast(1); else if(k==='3'||k==='r'||k==='R')cast(2); else if(k==='4'||k==='f'||k==='F')cast(3); else if(k==='5')cast(4);
+  if(k>='1'&&k<='6')cast(k.charCodeAt(0)-49); else if(k==='r'||k==='R')cast(REV);
   else if(k==='p'||k==='P'||k==='Escape')togglePause();
 });
 window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;keys[e.code]=false});
@@ -529,7 +549,7 @@ function inputVec(){
 
 // ---------- run state ----------
 let G=null;
-function member(key,name,col){return {key,name,col,x:0,y:0,r:13,hp:100,maxhp:100,spd:80,dmg:10,atkCd:1,cdT:0,alive:true,shield:0,hot:0,hotT:0,blessT:0,bubble:'',bubbleT:0,face:1,anim:0,hitT:0,kills:0,ffTaken:0,talkCd:0,moveT:0,shotT:0,castT:0}}
+function member(key,name,col){return {key,name,col,x:0,y:0,r:13,hp:100,maxhp:100,spd:80,dmg:10,atkCd:1,cdT:0,alive:true,shield:0,hot:0,hotT:0,blessT:0,bubble:'',bubbleT:0,face:1,anim:0,hitT:0,kills:0,ffTaken:0,talkCd:0,moveT:0,shotT:0,castT:0,buffDmgT:0,hasteT:0,fortT:0,choirT:0}}
 function say(m,txt,t){ if(m.talkCd>0&&t===undefined)return; m.bubble=txt; m.bubbleT=t||2.2; m.talkCd=1.2; }
 
 function newRun(){
@@ -537,7 +557,7 @@ function newRun(){
   const hp=r=>1+0.15*rank(r);
   const healer={key:'healer',name:'Wren',col:'#ffe9a8',x:ARENA/2,y:ARENA/2,r:11,hp:0,maxhp:100+20*rank('h_vit'),alive:true,shield:0,hot:0,hotT:0,blessT:0,bubble:'',bubbleT:0,talkCd:0,hitT:0,
     mana:0,manaMax:100+15*rank('h_mana'),regen:6*(1+0.12*rank('h_regen')),healPower:30*(1+0.1*rank('h_power')),range:170*(1+0.08*rank('h_range')),spd:150*(1+0.06*rank('h_speed')),
-    mendCd:1.0,mendT:0,mendCost:8,pickup:46,cd:[0,0,0,0,0],face:1,anim:0,kills:0,moveT:0,shotT:0,castT:0,invT:0};
+    mendCd:1.0,mendT:0,mendCost:5,pickup:46,cd:[0,0,0,0,0,0,0],face:1,anim:0,kills:0,moveT:0,shotT:0,castT:0,invT:0,buffDmgT:0,hasteT:0,fortT:0,choirT:0};
   healer.manaMax+=25*rank('h_mana2'); healer.regen*=1+0.2*rank('h_regen2'); healer.healPower*=1+0.15*rank('h_power2'); healer.pickup*=1+0.12*rank('h_mote');
   healer.hp=healer.maxhp; healer.mana=healer.manaMax;
   const tank=Object.assign(member('tank','Brom','#9aa7b8'),{r:17,maxhp:Math.round(380*hp('t_hp')*(1+0.2*rank('t_hp2'))),spd:72*(1+0.08*rank('t_speed')),dmg:15*(1+0.12*rank('t_dmg')),atkCd:0.85,reach:48,asleep:false,napT:0,sleepT:rnd(12,20),swing:0});
@@ -550,7 +570,7 @@ function newRun(){
      level:1,xp:0,xpNext:8,up:{},lvQueue:0,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
      relics:[],chests:[],fires:[],timers:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
-  G.spells=rank('h_radiance')?SPELLS:SPELLS.slice(0,4);
+  G.spells=SPELLS.slice(0,rank('h_radiance')?6:5);
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
@@ -663,7 +683,7 @@ function downMember(m){
 }
 function hurtEnemy(e,dmg,by){
   if(e.dead)return; if(e.elite==='armored')dmg*=0.5; e.hp-=dmg; e.hitT=0.12;
-  if(e.hp<=0){e.dead=true; if(by&&by.kills!==undefined)by.kills++; killEnemy(e)}
+  if(e.hp<=0){e.dead=true; if(by&&by.kills!==undefined)by.kills++; if(by&&by.buffDmgT>0)G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+1); if(by&&by.buffDmgT>0&&upRank('blessburst')&&Math.random()<0.2*upRank('blessburst')){for(const o of G.enemies)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<60)hurtEnemy(o,G.healer.healPower*1.5,G.healer);G.blasts.push({x:e.x,y:e.y,r:60,life:0.3,col:'rgba(255,240,160,'})} killEnemy(e)}
 }
 function killEnemy(e){
   G.kills++; META.kills++;
@@ -682,12 +702,37 @@ function inRange(m){return m.alive&&Math.hypot(m.x-G.healer.x,m.y-G.healer.y)<G.
 function mostWounded(){let b=null,br=1;for(const m of allies()){if(!inRange(m))continue;const r=m.hp/m.maxhp;if(r<br){br=r;b=m}}return b}
 function cast(i){
   if(!G||G.over||G.paused||G.lvOpen)return;
-  const h=G.healer,s=G.spells[i];
+  const h=G.healer,s=i===REV?REVIVE:G.spells[i];
   if(!s||h.cd[i]>0)return;
   if(h.mana<s.mana){G.stats.oom++;toast('Not enough mana',0.9);if(Math.random()<0.3)say(G.party[2],'Pathetic.');return}
-  let ok=false;
+  let ok=false; const D=buffDur(); const [tank,archer,mage]=G.party;
   if(s.id==='surge'){const m=mostWounded();if(m){const amt=h.healPower*4*(1+0.25*rank('h_surge'));heal(m,amt,'surge');G.blasts.push({x:m.x,y:m.y,r:36,life:0.3,col:'rgba(140,255,180,'});if(upRank('echo'))later(1,()=>{if(m.alive){heal(m,amt*0.5,'surge');G.blasts.push({x:m.x,y:m.y,r:28,life:0.3,col:'rgba(140,255,180,'})}});ok=true}else toast('Nobody needs it',0.8)}
-  else if(s.id==='ward'){for(const m of allies())if(inRange(m)){m.shield=Math.max(m.shield,55*(1+0.1*G.level)*(1+0.25*rank('h_ward')));if(upRank('sanct'))heal(m,m.maxhp*0.15*upRank('sanct'),'ward');puff(m.x,m.y,6,'#c8e8ff',50,2)}ok=true;G.blasts.push({x:h.x,y:h.y,r:h.range,life:0.4,col:'rgba(120,180,255,'})}
+  else if(s.id==='bless'){
+    // the ally with the most enemies around them is the one whose damage matters
+    let best=null,bn=-1;for(const m of G.party){if(!inRange(m))continue;let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<220)n++;if(n>bn){bn=n;best=m}}
+    if(!best){toast('No one in range',0.8);return}
+    best.buffDmgT=Math.max(best.buffDmgT,0)+D; say(best,best.key==='mage'?'Obviously.':best.key==='tank'?'FOR THE STEW!':'I feel taller!',2);
+    G.blasts.push({x:best.x,y:best.y,r:40,life:0.4,col:'rgba(255,225,120,'});puff(best.x,best.y,12,'#ffd24a',90,2.5);
+    if(upRank('blesschain')){let o=null,on=-1;for(const m of G.party){if(m===best||!inRange(m))continue;let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<220)n++;if(n>on){on=n;o=m}}if(o){o.buffDmgT=Math.max(o.buffDmgT,0)+D*0.5;puff(o.x,o.y,6,'#ffd24a',60,2)}}
+    if(hasRelic('choir'))for(const m of allies())if(inRange(m)&&m!==best)m.choirT=Math.max(m.choirT,D);
+    G.stats.blesses=(G.stats.blesses||0)+1; ok=true;
+  }
+  else if(s.id==='haste'){
+    for(const m of allies())if(inRange(m)){m.hasteT=Math.max(m.hasteT,0)+D;puff(m.x,m.y,6,'#7cc9ff',70,2)}
+    if(tank.alive&&inRange(tank)&&tank.asleep){wakeTank(tank);say(tank,'Wha— yes! Fast!',2)} if(archer.alive&&inRange(archer))archer.panicT=0;
+    if(mage.alive&&inRange(mage))say(mage,'I was already fast.',1.6);
+    G.blasts.push({x:h.x,y:h.y,r:h.range,life:0.4,col:'rgba(120,200,255,'}); G.stats.hastes=(G.stats.hastes||0)+1; ok=true;
+  }
+  else if(s.id==='fortify'){
+    for(const m of allies())if(inRange(m)){m.shield=Math.max(m.shield,55*(1+0.1*G.level)*(1+0.25*rank('h_ward')));if(upRank('sanct'))heal(m,m.maxhp*0.15*upRank('sanct'),'ward');puff(m.x,m.y,6,'#c8e8ff',50,2)}
+    const t=tank.alive&&inRange(tank)?tank:G.party.filter(m=>m.alive&&inRange(m)).sort((a,b)=>b.hp-a.hp)[0];
+    if(t){if(t.asleep)wakeTank(t);t.fortT=Math.max(t.fortT,0)+6;for(const e of G.enemies)if(!e.boss&&Math.hypot(e.x-t.x,e.y-t.y)<320){e.target=t;e.tT=6}
+      say(t,t.key==='tank'?pick(['COME HERE!','OI! ALL OF YOU!','I AM VERY LARGE!']):t.key==='archer'?'Why are they all looking at me':'Must I do everything.',2.2,true);
+      if(upRank('fortburst'))for(const e of G.enemies){const d=Math.hypot(e.x-t.x,e.y-t.y);if(d<100&&!e.boss){e.x+=(e.x-t.x)/Math.max(d,1)*70;e.y+=(e.y-t.y)/Math.max(d,1)*70;e.slow=1;keepIn(e)}}
+      G.blasts.push({x:t.x,y:t.y,r:90,life:0.4,col:'rgba(180,220,255,'})}
+    if(hasRelic('choir'))for(const m of allies())if(inRange(m))m.choirT=Math.max(m.choirT,D);
+    G.stats.forts=(G.stats.forts||0)+1; ok=true;
+  }
   else if(s.id==='radiance'){
     for(const m of allies())if(inRange(m))heal(m,h.healPower*1.5,'radiance');
     let n=0;for(const e of G.enemies)if(Math.hypot(e.x-h.x,e.y-h.y)<h.range+e.r){hurtEnemy(e,h.healPower*2.5,h);n++}
@@ -695,7 +740,6 @@ function cast(i){
   }
   else if(s.id==='rouse'){
     const R=h.range*1.3*(1+0.2*rank('h_rouse')), KR=110*(1+0.2*rank('h_rouse')), KB=90*(1+0.3*rank('h_rouse')); ok=true;
-    const [tank,archer,mage]=G.party;
     if(tank.alive&&Math.hypot(tank.x-h.x,tank.y-h.y)<R){if(tank.asleep){wakeTank(tank);say(tank,pick(LINES.tankRouse),2.5)}}
     if(archer.alive&&archer.panicT>0&&Math.hypot(archer.x-h.x,archer.y-h.y)<R){archer.panicT=0;archer.panicCd=6;say(archer,pick(LINES.archerCalm))}
     if(mage.alive&&Math.hypot(mage.x-h.x,mage.y-h.y)<R)say(mage,pick(LINES.mageRouse));
@@ -713,7 +757,7 @@ function cast(i){
     say(m,m.key==='mage'?'I was resting.':m.key==='tank'?'Did I win?':'I’m alive?! I’m alive!',3); say(h,pick(LINES.revive));
     G.blasts.push({x:m.x,y:m.y,r:50,life:0.5,col:'rgba(255,240,160,'}); ok=true;
   }
-  if(ok){h.castT=0.45;h.mana-=s.mana;let cd=s.cd*cdMul();if(s.id==='revive')cd*=1-0.15*rank('h_revive');h.cd[i]=cd;if(hasRelic('halo'))h.invT=hasRelic('saint')?2:1}
+  if(ok){h.castT=0.45;let mana=s.mana;if(hasRelic('metronome')&&i!==REV&&anyBuff())mana*=0.8;h.mana-=mana;let cd=s.cd*cdMul();if(s.id==='revive')cd*=1-0.15*rank('h_revive');h.cd[i]=cd;if(hasRelic('halo'))h.invT=hasRelic('saint')?2:1;G.stats.casts=(G.stats.casts||0)+1}
 }
 function wakeTank(m){
   m.asleep=false; m.sleepT=rnd(18,28)*napMul();
@@ -736,8 +780,8 @@ const ETYPES={
 };
 function spawnEnemy(type,x,y){
   if(G.enemies.length>260&&!ETYPES[type].boss)return null;
-  const T=ETYPES[type]; const scale=(1+G.t/150)*G.hpMul;
-  const e={type,x,y,r:T.r,hp:T.hp*scale,maxhp:T.hp*scale,spd:T.spd*rnd(0.9,1.1),dmg:T.dmg*(1+G.t/360)*G.dmgMul,atkCd:T.atk,atkT:rnd(0,T.atk),xp:T.xp,gold:T.gold,gems:T.gems,col:T.col,boss:!!T.boss,target:null,tT:rnd(0,0.4),hitT:0,slow:0,dead:false,wob:rnd(0,6.28),chargeT:rnd(3,6),charging:0,sumT:5};
+  const T=ETYPES[type]; const scale=(G.t<180?1+G.t/150:2.2+(G.t-180)/400)*G.hpMul;
+  const e={type,x,y,r:T.r,hp:T.hp*scale,maxhp:T.hp*scale,spd:T.spd*rnd(0.9,1.1),dmg:T.dmg*(1+G.t/420)*G.dmgMul,atkCd:T.atk,atkT:rnd(0,T.atk),xp:T.xp,gold:T.gold,gems:T.gems,col:T.col,boss:!!T.boss,target:null,tT:rnd(0,0.4),hitT:0,slow:0,dead:false,wob:rnd(0,6.28),chargeT:rnd(3,6),charging:0,sumT:5};
   if(G.field.speedMul)e.spd*=G.field.speedMul;
   G.enemies.push(e); return e;
 }
@@ -778,7 +822,7 @@ function updateSpawns(dt){
   if(G.king&&!G.king.dead){G.spawnT-=dt*0.5}else G.spawnT-=dt;
   if(G.spawnT<=0){
     const iv=clamp(1.15-t/600,0.35,1.15)/(1+G.circle*0.12); G.spawnT=iv;
-    const n=1+Math.floor(t/200);
+    const n=1+Math.floor(t/300);
     for(let i=0;i<n;i++)spawnAtEdge(pickType(t));
   }
   G.eliteT-=dt;
@@ -805,7 +849,9 @@ function updateEnemies(dt){
     if(e.tT<=0){
       e.tT=0.4;
       const dh=Math.hypot(h.x-e.x,h.y-e.y);
-      if((dh<115||(e.elite==='hunter'&&dh<460))&&(e.boss?Math.random()<0.5:true))e.target=h;
+      const ft=G.party.find(m=>m.alive&&m.fortT>0&&Math.hypot(m.x-e.x,m.y-e.y)<340);
+      if(ft&&!e.boss)e.target=ft;
+      else if((dh<115||(e.elite==='hunter'&&dh<460))&&(e.boss?Math.random()<0.5:true))e.target=h;
       else if(tank.alive&&Math.hypot(tank.x-e.x,tank.y-e.y)<(tank.asleep?320:250)*G.tauntMul&&(tank.asleep||Math.random()<0.7))e.target=tank;
       else{let b=null,bd=1e9;for(const m of G.party){if(!m.alive)continue;const d=Math.hypot(m.x-e.x,m.y-e.y);if(d<bd){bd=d;b=m}}e.target=b||h;}
     }
@@ -844,7 +890,7 @@ function updateEnemies(dt){
 // ---------- party AI ----------
 function updateTank(m,dt){
   const h=G.healer;
-  m.cdT-=dt; if(m.swing>0)m.swing-=dt;
+  m.cdT-=dt*hasteMul(m); if(m.swing>0)m.swing-=dt;
   if(m.asleep){
     m.napT-=dt;
     if(m.hp<m.maxhp*0.3||m.napT<=0){wakeTank(m);say(m,pick(LINES.tankWake),2)}
@@ -852,23 +898,23 @@ function updateTank(m,dt){
       if(rank('t_snore')){const dps=m.dmg*pdmg()*0.35*rank('t_snore');for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<120+o.r)hurtEnemy(o,dps*dt,m)}
       return}
   }
-  m.sleepT-=dt; for(const e of G.enemies)if(e.elite==='lullaby'&&Math.hypot(e.x-m.x,e.y-m.y)<260){m.sleepT-=dt*2;break}
+  if(m.hasteT<=0&&m.fortT<=0)m.sleepT-=dt; for(const e of G.enemies)if(e.elite==='lullaby'&&Math.hypot(e.x-m.x,e.y-m.y)<260){m.sleepT-=dt*2;break}
   if(rank('t_regen')&&m.hp<m.maxhp)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.005*rank('t_regen')*dt);
   if(m.sleepT<=0){m.asleep=true;m.napT=rnd(6,9)*(1-0.2*rank('t_light'))*(hasRelic('bell')?0.7:1)*(hasRelic('cushion')?2:1);G.stats.naps++;m.napStart=G.t;m.napFoes=G.enemies.length;say(m,pick(LINES.tankSleep),2.5,true);return}
   const e=nearestEnemy(m,520), dh=Math.hypot(h.x-m.x,h.y-m.y);
   if(e&&(dh<230||Math.hypot(e.x-h.x,e.y-h.y)<dh)){
     const d=Math.hypot(e.x-m.x,e.y-m.y);
-    if(d>m.reach+e.r-8)moveToward(m,e.x,e.y,m.spd,dt); else m.face=e.x<m.x?-1:1;
+    if(d>m.reach+e.r-8)moveToward(m,e.x,e.y,m.spd*spdMul(m),dt); else m.face=e.x<m.x?-1:1;
     if(m.cdT<=0&&d<m.reach+e.r+6){
       m.cdT=m.atkCd; m.swing=0.25; let n=0;
-      const dmg=m.dmg*pdmg();
+      const dmg=m.dmg*pdmg()*dmgMul(m);
       for(const o of G.enemies){if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+10&&(o.x-m.x)*m.face>-12){hurtEnemy(o,dmg,m);n++;if(n>=6+rank('t_cleave'))break}}
     }
-  }else{if(dh>70)moveToward(m,h.x,h.y,m.spd*(dh>230?1.6:1),dt)}
+  }else{if(dh>70)moveToward(m,h.x,h.y,m.spd*spdMul(m)*(dh>230?1.6:1),dt)}
 }
 function updateArcher(m,dt){
   const h=G.healer;
-  m.cdT-=dt; if(m.panicCd>0)m.panicCd-=dt;
+  m.cdT-=dt*hasteMul(m); if(m.panicCd>0)m.panicCd-=dt;
   if(m.panicT>0){
     m.panicT-=dt; moveToward(m,m.x+Math.cos(m.panicDir)*50,m.y+Math.sin(m.panicDir)*50,m.spd*1.3,dt);
     if(Math.random()<dt*1.5)m.panicDir+=rnd(-1.5,1.5);
@@ -876,11 +922,11 @@ function updateArcher(m,dt){
     if(m.panicT<=0){m.panicCd=5;say(m,pick(LINES.archerCalm))}
     return;
   }
-  if(m.hp<m.maxhp*m.panicAt&&m.panicCd<=0&&nearestEnemy(m,200)){m.panicT=rnd(2,3.2)*(1-0.25*rank('a_calm'));m.panicDir=rnd(0,6.283);say(m,pick(LINES.archerPanic),1.5,true);return}
+  if(m.hp<m.maxhp*m.panicAt&&m.panicCd<=0&&m.hasteT<=0&&nearestEnemy(m,200)){m.panicT=rnd(2,3.2)*(1-0.25*rank('a_calm'));m.panicDir=rnd(0,6.283);say(m,pick(LINES.archerPanic),1.5,true);return}
   const near=nearestEnemy(m,600);
   if(near){
     const d=Math.hypot(near.x-m.x,near.y-m.y);
-    if(d<150){moveToward(m,m.x-(near.x-m.x),m.y-(near.y-m.y),m.spd,dt);m.face=near.x<m.x?-1:1}
+    if(d<150){moveToward(m,m.x-(near.x-m.x),m.y-(near.y-m.y),m.spd*spdMul(m),dt);m.face=near.x<m.x?-1:1}
     else if(d>260&&Math.hypot(h.x-m.x,h.y-m.y)<200)moveToward(m,near.x,near.y,m.spd*0.8,dt);
     if(Math.hypot(h.x-m.x,h.y-m.y)>240)moveToward(m,h.x,h.y,m.spd*1.2,dt);
     if(m.cdT<=0){
@@ -892,7 +938,7 @@ function updateArcher(m,dt){
       if(tg){
         let a=Math.atan2(tg.y-m.y,tg.x-m.x); const miss=Math.random()<m.miss*(1-0.3*gl);
         if(miss){a+=rnd(0.25,0.6)*(Math.random()<0.5?-1:1);if(Math.random()<0.3)say(m,pick(LINES.archerMiss),1.2)}
-        const crit=Math.random()<0.05*rank('a_crit'); const dmg=m.dmg*pdmg()*(crit?3:1);
+        const crit=Math.random()<0.05*rank('a_crit'); const dmg=m.dmg*pdmg()*dmgMul(m)*(crit?3:1);
         G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*460,vy:Math.sin(a)*460,dmg,life:1.1,age:0,from:m,pierce:rank('a_pierce'),hit:[],crit});
         const storm=hasRelic('arrowstorm'), pierce=rank('a_pierce')+(storm?1:0);
         if(storm||Math.random()<0.15*rank('a_multi')+(hasRelic('quiver')?0.2:0)){const a2=a+0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a2)*460,vy:Math.sin(a2)*460,dmg,life:1.1,age:0,from:m,pierce,hit:[],crit})}
@@ -904,7 +950,7 @@ function updateArcher(m,dt){
 }
 function updateMage(m,dt){
   const h=G.healer;
-  m.cdT-=dt; m.metT-=dt; if(m.blinkCd>0)m.blinkCd-=dt;
+  m.cdT-=dt*hasteMul(m); m.metT-=dt*hasteMul(m); if(m.blinkCd>0)m.blinkCd-=dt;
   const close=nearestEnemy(m,34);
   if(m.blinkCd<=0){
     if(close){const ox=m.x,oy=m.y,a=rnd(0,6.283);m.x+=Math.cos(a)*130;m.y+=Math.sin(a)*130;keepIn(m);m.blinkCd=3.5*(1-0.2*rank('m_blink'));puff(m.x,m.y,8,'#c07cff',80,2);say(m,pick(LINES.mageBlink));if(rank('m_blink'))G.fires.push({x:ox,y:oy,r:46,dps:m.dmg*pdmg()*0.6,life:2})}
@@ -914,17 +960,17 @@ function updateMage(m,dt){
   const cluster=(R)=>{let best=null,bn=-1;const en=G.enemies;const step=Math.max(1,Math.floor(en.length/45));for(let i=0;i<en.length;i+=step){const e=en[i];const d=Math.hypot(e.x-m.x,e.y-m.y);if(d>R)continue;let n=0;for(const o of en){if(Math.hypot(o.x-e.x,o.y-e.y)<60)n++;}if(n>bn){bn=n;best=e}}return best};
   if(m.cdT<=0){
     const tg=cluster(340);
-    if(tg){m.cdT=m.atkCd;m.face=tg.x<m.x?-1:1;const dx=tg.x-m.x,dy=tg.y-m.y,d=Math.hypot(dx,dy)||1;m.castT=0.4;G.shots.push({kind:'fire',x:m.x,y:m.y-10,vx:dx/d*300,vy:dy/d*300,tx:tg.x,ty:tg.y,dmg:m.dmg*pdmg()*mageMul(m),r:70*(1+0.1*rank('m_radius'))*(hasRelic('eyebrows')?1.2:1),life:d/300,age:0,from:m})}
+    if(tg){m.cdT=m.atkCd;m.face=tg.x<m.x?-1:1;const dx=tg.x-m.x,dy=tg.y-m.y,d=Math.hypot(dx,dy)||1;m.castT=0.4;G.shots.push({kind:'fire',x:m.x,y:m.y-10,vx:dx/d*300,vy:dy/d*300,tx:tg.x,ty:tg.y,dmg:m.dmg*pdmg()*mageMul(m)*dmgMul(m),r:70*(1+0.1*rank('m_radius'))*(hasRelic('eyebrows')?1.2:1),life:d/300,age:0,from:m})}
     else m.cdT=0.3;
   }
   if(m.metT<=0){
     const tg=cluster(360);
     let n=0; if(tg)for(const e of G.enemies)if(Math.hypot(e.x-tg.x,e.y-tg.y)<110)n++;
-    if(tg&&n>=5){m.metT=13/(1+0.08*rank('m_focus'))*(1-0.12*rank('m_meteor'))*(hasRelic('pyromania')?0.5:1);m.castT=0.6;G.shots.push({kind:'meteor',x:tg.x,y:tg.y,t:1.1,dmg:m.dmg*4.5*pdmg()*mageMul(m)*(hasRelic('tome')?1.3:1),r:115*(1+0.1*rank('m_radius'))*(hasRelic('eyebrows')?1.2:1),from:m});say(m,pick(LINES.mageMeteor),1.6,true)}
+    if(tg&&n>=5){m.metT=13/(1+0.08*rank('m_focus'))*(1-0.12*rank('m_meteor'))*(hasRelic('pyromania')?0.5:1);m.castT=0.6;G.shots.push({kind:'meteor',x:tg.x,y:tg.y,t:1.1,dmg:m.dmg*4.5*pdmg()*mageMul(m)*dmgMul(m)*(hasRelic('tome')?1.3:1),r:115*(1+0.1*rank('m_radius'))*(hasRelic('eyebrows')?1.2:1),from:m});say(m,pick(LINES.mageMeteor),1.6,true)}
     else m.metT=1;
   }
 }
-const pdmg=()=>(1+0.15*upRank('pdmg'))*(1+0.1*(G.level-1))*(1+G.legendDmg);
+const pdmg=()=>0.6*(1+0.15*upRank('pdmg'))*(1+0.1*(G.level-1))*(1+G.legendDmg);
 const mageMul=m=>m.hp>m.maxhp*0.8?1+0.12*rank('m_arrogance'):1;
 function explode(x,y,r,dmg,from){
   for(const e of G.enemies)if(Math.hypot(e.x-x,e.y-y)<r+e.r)hurtEnemy(e,dmg,from);
@@ -967,10 +1013,10 @@ function updateShots(dt){
 const mendCost=()=>G.healer.mendCost*Math.sqrt(G.healer.healPower/30)*(1-0.08*rank('h_frugal'));   // bigger heals cost more — Kale's rule
 function updateHealer(dt){
   const h=G.healer; const v=inputVec();
-  if(v.x||v.y){h.x+=v.x*h.spd*dt;h.y+=v.y*h.spd*dt;h.face=v.x<0?-1:v.x>0?1:h.face;h.anim+=dt*9;h.moveT=0.15}
+  if(v.x||v.y){const sp=h.spd*spdMul(h);h.x+=v.x*sp*dt;h.y+=v.y*sp*dt;h.face=v.x<0?-1:v.x>0?1:h.face;h.anim+=dt*9;h.moveT=0.15}
   keepIn(h);
   h.mana=Math.min(h.manaMax,h.mana+h.regen*dt);
-  for(let i=0;i<5;i++)if(h.cd[i]>0)h.cd[i]-=dt;
+  for(let i=0;i<7;i++)if(h.cd[i]>0)h.cd[i]-=dt;
   if(h.invT>0)h.invT-=dt;
   for(let i=G.chests.length-1;i>=0;i--){const c=G.chests[i];c.t+=dt;if(Math.hypot(c.x-h.x,c.y-h.y)<h.r+20){G.chests.splice(i,1);puff(c.x,c.y,16,'#ffd24a',120,3);openChest();break}}
   h.mendT-=dt;
@@ -996,6 +1042,7 @@ function updateHealer(dt){
 function updateAllies(dt){
   for(const m of allies()){
     if(m.hitT>0)m.hitT-=dt; if(m.blessT>0)m.blessT-=dt; if(m.talkCd>0)m.talkCd-=dt; if(m.moveT>0)m.moveT-=dt; if(m.shotT>0)m.shotT-=dt; if(m.castT>0)m.castT-=dt;
+    if(m.buffDmgT>0)m.buffDmgT-=dt; if(m.hasteT>0)m.hasteT-=dt; if(m.fortT>0)m.fortT-=dt; if(m.choirT>0)m.choirT-=dt;
     if(m.bubbleT>0){m.bubbleT-=dt;if(m.bubbleT<=0)m.bubble=''}
     if(m.hotT>0){m.hotT-=dt;const a=m.hot*dt;const real=Math.min(a,m.maxhp-m.hp);m.hp+=real;G.stats.healed+=real}
     if(m.shield>0)m.shield=Math.max(0,m.shield-dt*4);
@@ -1058,6 +1105,7 @@ function runStory(won,why){
   if(S.biggestHeal>0)L.push('Biggest single heal: '+Math.round(S.biggestHeal)+'. '+(S.overheal>S.healed?'More healing was wasted on the healthy ('+Math.round(S.overheal)+') than landed.':'Another '+Math.round(S.overheal)+' was wasted on people who were fine.'));
   const rv=Object.entries(S.revivedWho).sort((a,b)=>b[1]-a[1])[0]; if(rv)L.push(rv[0]+' was raised from the dead '+(rv[1]===1?'once':rv[1]+' times')+'. No card came.');
   if(S.firstRelic)L.push('First relic: '+esc(RELIC[S.firstRelic].name)+' at '+fmt(S.firstRelicAt)+(G.relics.some(id=>RELIC[id].evo)?'. Two of them became something more.':'.'));
+  const casts=(S.blesses||0)+(S.hastes||0)+(S.forts||0); if(G.t>60)L.push(casts===0?'You cast no buffs at all. The party fought at three-quarters and wondered why.':casts<G.t/25?'You cast '+casts+' buffs. A busier healer would have cast twice that.':'You cast '+casts+' buffs. The party was rarely without one. That is the job.');
   if(S.thanks===0)L.push('Thank-yous received: none. As usual.');
   if(won)L.push('The Demon King is dead. The song they will sing about it does not have a verse for the healer.');
   return L.slice(0,6);
@@ -1076,6 +1124,7 @@ function buildHud(){
   hudFaces();
   const s=$('spells'); s.innerHTML='';
   hudRelics();
+  {const b=document.createElement('div');b.className='sp rev hide';b.id='sp-'+REV;b.innerHTML='<span class="k">R</span>'+REVIVE.icon+'<small>'+REVIVE.name.toUpperCase()+'</small><span class="mc">'+REVIVE.mana+'</span><div class="cd"></div>';b.title=REVIVE.desc;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(REV)});s.appendChild(b)}
   G.spells.forEach((sp,i)=>{const b=document.createElement('div');b.className='sp';b.id='sp-'+i;b.innerHTML='<span class="k">'+sp.key+'</span>'+sp.icon+'<small>'+sp.name.toUpperCase()+'</small><span class="mc">'+sp.mana+'</span><div class="cd"></div>';b.title=sp.desc;
     b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(i)});s.appendChild(b)});
 }
@@ -1098,7 +1147,7 @@ function updateHud(){
     d.querySelector('s').style.transform='scaleX('+Math.min(1,m.shield/m.maxhp).toFixed(3)+')';}
   $('hhp').style.transform='scaleX('+(h.hp/h.maxhp).toFixed(3)+')'; $('hhpt').textContent=Math.ceil(h.hp)+' / '+h.maxhp;
   $('hmana').style.transform='scaleX('+(h.mana/h.manaMax).toFixed(3)+')'; $('hmanat').textContent=Math.floor(h.mana)+' / '+Math.floor(h.manaMax);
-  G.spells.forEach((sp,i)=>{const b=$('sp-'+i);if(!b)return;let cd=sp.cd*cdMul();if(sp.id==='revive')cd*=1-0.15*rank('h_revive');const p=h.cd[i]>0?h.cd[i]/cd:0;b.querySelector('.cd').style.setProperty('--p',(p*100).toFixed(1)+'%');b.classList.toggle('nomana',h.mana<sp.mana);b.classList.toggle('ready',p<=0&&h.mana>=sp.mana&&(sp.id!=='revive'||G.graves.length>0))});
+  G.spells.concat([REVIVE]).forEach((sp,j)=>{const i=sp.id==='revive'?REV:j;const b=$('sp-'+i);if(!b)return;let cd=sp.cd*cdMul();if(sp.id==='revive'){cd*=1-0.15*rank('h_revive');b.classList.toggle('hide',G.graves.length===0)}const p=h.cd[i]>0?h.cd[i]/cd:0;b.querySelector('.cd').style.setProperty('--p',(p*100).toFixed(1)+'%');b.classList.toggle('nomana',h.mana<sp.mana);b.classList.toggle('ready',p<=0&&h.mana>=sp.mana)});
   if(G.toastT>0){G.toastT-=1/60;if(G.toastT<=0)$('toast').style.opacity=0}
 }
 
@@ -1224,6 +1273,9 @@ function drawMember(m){
   }
   ctx.restore();
   }
+  if(m.buffDmgT>0){ctx.strokeStyle='rgba(255,215,80,'+(0.5+0.3*Math.sin(G.t*8))+')';ctx.lineWidth=2.5;ctx.setLineDash([5,4]);ctx.beginPath();ctx.arc(x,y,m.r+10,G.t*2,G.t*2+6.283);ctx.stroke();ctx.setLineDash([]);if(Math.random()<0.3)G.parts.push({x:x+rnd(-m.r,m.r),y:y+rnd(-m.r,m.r),vx:0,vy:-40,life:0.5,col:'#ffd24a',r:2})}
+  if(m.hasteT>0&&m.moveT>0){ctx.strokeStyle='rgba(120,200,255,.6)';ctx.lineWidth=2;for(let i=0;i<3;i++){const yy=y-6+i*6,xx=x-m.face*(m.r+4);ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx-m.face*(10+i*4),yy);ctx.stroke()}}
+  if(m.fortT>0){ctx.strokeStyle='rgba(200,225,255,.85)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,m.r+12,0,6.283);ctx.stroke();ctx.font='bold 13px Verdana';ctx.fillStyle='#fff';ctx.fillText('!',x-3,y-m.r-26+Math.sin(G.t*10)*2)}
   if(m.shield>0){ctx.strokeStyle='rgba(180,220,255,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,m.r+7,0,6.283);ctx.stroke()}
   if(m.blessT>0){ctx.strokeStyle='rgba(255,233,168,.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,m.r+4,0,6.283);ctx.stroke()}
   if(m.asleep){ctx.fillStyle='#cfe';ctx.font='bold 12px Georgia';ctx.fillText('z',x+12,y-22+Math.sin(G.t*3)*2);ctx.font='bold 9px Georgia';ctx.fillText('z',x+20,y-30+Math.sin(G.t*3+1)*2)}

@@ -17,6 +17,7 @@ ap.add_argument('--fast',type=float,default=8)
 ap.add_argument('--circle',type=int,default=0)
 ap.add_argument('--tree',action='store_true')
 ap.add_argument('--field',type=int,default=0)
+ap.add_argument('--nobuffs',action='store_true',help='the bot never casts Bless, Haste or Fortify (a control run)')
 ap.add_argument('--shots',action='store_true')
 ap.add_argument('--every',type=float,default=60,help='log interval in game seconds')
 ap.add_argument('--url',default='',help='page to drive instead of ../index.html (tests of a packed copy)')
@@ -44,7 +45,7 @@ BOT=r"""
     // chests: always worth the walk
     if(G.chests.length){let bc=null,bd=1e9;for(const c of G.chests){const d=Math.hypot(c.x-h.x,c.y-h.y);if(d<bd){bd=d;bc=c}}if(bd<700){tx=bc.x;ty=bc.y;}}
     // graves: go revive if the spell is ready
-    if(G.graves.length && h.cd[3]<=0){ tx=G.graves[0].x; ty=G.graves[0].y; }
+    if(G.graves.length && h.cd[6]<=0){ tx=G.graves[0].x; ty=G.graves[0].y; }
     // low mana: nearest mote
     if(h.mana<h.manaMax*0.45 && G.gems.length){ let bg=null,bd=1e9; for(const g of G.gems){const d=Math.hypot(g.x-h.x,g.y-h.y); if(d<bd){bd=d;bg=g;}} if(bg && bd<420){tx=bg.x;ty=bg.y;} }
     let vx=tx-h.x, vy=ty-h.y; const d=Math.hypot(vx,vy);
@@ -52,12 +53,17 @@ BOT=r"""
     // flee enemies
     for(const e of G.enemies){ const ex=h.x-e.x, ey=h.y-e.y, ed=Math.hypot(ex,ey); const R=e.boss?200:120; if(ed<R){ const k=(R-ed)/R*(e.boss?4:2.6); vx+=ex/ed*k; vy+=ey/ed*k; } }
     const n=Math.hypot(vx,vy); if(n>1){vx/=n;vy/=n;}
-    // spells
-    if(G.graves.length && h.cd[3]<=0 && h.mana>=60){ TL.cast(3); }
-    if(G.spells.length>4 && h.cd[4]<=0 && h.mana>=50 && G.enemies.filter(e=>Math.hypot(e.x-h.x,e.y-h.y)<h.range).length>=6) TL.cast(4);
-    if(target && best<0.45 && h.cd[0]<=0 && h.mana>=30) TL.cast(0);
-    const tank=G.party[0]; if(tank.alive && tank.asleep && h.cd[2]<=0 && h.mana>=20 && G.enemies.length>4) TL.cast(2);
-    if(h.cd[1]<=0 && h.mana>=40 && alive.filter(m=>m.hp<m.maxhp*0.7).length>=2) TL.cast(1);
+    // spells: revive first, then keep buffs rolling, then heal
+    const near=m=>G.enemies.filter(e=>Math.hypot(e.x-m.x,e.y-m.y)<220).length;
+    const busiest=alive.filter(m=>Math.hypot(m.x-h.x,m.y-h.y)<h.range).sort((a,b)=>near(b)-near(a))[0];
+    if(G.graves.length && h.cd[6]<=0 && h.mana>=60){ TL.cast(6); }
+    if(target && best<0.4 && h.cd[0]<=0 && h.mana>=25) TL.cast(0);
+    const tank=G.party[0];
+    if(!NOBUFFS && h.cd[3]<=0 && h.mana>=40 && ((tank.alive && alive.some(m=>m!==tank && m.hp<m.maxhp*0.6 && near(m)>=2)) || G.enemies.length>=14)) TL.cast(3);
+    if(!NOBUFFS && h.cd[1]<=0 && h.mana>=35 && busiest && near(busiest)>=3 && busiest.buffDmgT<=0) TL.cast(1);
+    if(!NOBUFFS && h.cd[2]<=0 && h.mana>=40 && G.enemies.length>=8 && !alive.some(m=>m.hasteT>0)) TL.cast(2);
+    if(tank.alive && tank.asleep && h.cd[4]<=0 && h.mana>=20 && G.enemies.length>4) TL.cast(4);
+    if(G.spells.length>5 && h.cd[5]<=0 && h.mana>=50 && G.enemies.filter(e=>Math.hypot(e.x-h.x,e.y-h.y)<h.range).length>=6) TL.cast(5);
     return {x:vx,y:vy};
   };
 })();
@@ -77,7 +83,7 @@ def main():
         pg.evaluate(f"()=>{{window.TL.META.circle={a.circle}; window.TL.META.maxCircle=Math.max(window.TL.META.maxCircle,{a.circle},{a.field}); window.TL.META.field={a.field};}}")
         pg.click('#start')
         pg.wait_for_function('window.TL.G')
-        pg.evaluate(BOT)
+        pg.evaluate(BOT.replace('(() => {','(() => { const NOBUFFS='+('true' if a.nobuffs else 'false')+';',1))
         pg.evaluate(f'()=>window.TL.setFast({a.fast})')
         if a.shots: os.makedirs(OUT,exist_ok=True)
         last_min=-1; t0=time.time()

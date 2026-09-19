@@ -50,9 +50,14 @@ Demon King comes to you.
 - A Demon Knight arrives at 5:00, the Demon King at 10:00. Killing the King
   wins the run and opens the next **Circle** (+35% enemy HP, +20% damage,
   ×1.5 gold per circle).
-- Gold from a run buys permanent **Training** ranks on the menu — four
-  branches, one per party member. Save lives in `localStorage` under
-  `thankless-save-v1`.
+- Chests fall at 3:00 and 7:00 and the Demon Knight drops one; each offers
+  one of three **relics**, run-long passives with a twist (Pip's misses
+  ricochet, Brom snores enemies to death, overheal refunds mana).
+- Gold from a run buys permanent **Training** ranks on the menu — 58 nodes
+  in four branches, one per party member, with prerequisites so choices
+  open other choices. Some nodes add level-up cards, one adds a fifth spell
+  (Radiance), and Keepsake starts a run with relics found before. Save
+  lives in `localStorage` under `thankless-save-v1`.
 
 ## Art: generating and packing
 ```bash

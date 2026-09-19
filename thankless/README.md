@@ -40,9 +40,13 @@ Demon King comes to you.
 - **Mend** casts itself on the most wounded ally inside Wren's range, at a
   mana cost. Mana regenerates slowly; the motes enemies drop refill it, so
   the healer has to move toward the fight to keep healing.
-- Four spells on `1`–`4` (or the buttons): **Surge** (big heal), **Ward**
-  (shield everyone in range), **Rouse** (wake Brom, calm Pip, scare nearby
-  enemies), **Revive** (raise a fallen ally at half HP).
+- The spells are what make the party dangerous; Mend only keeps it standing.
+  **Surge** heals. **Bless** gives the ally in the thick of it two and a half
+  times damage for ten seconds, kills refunding mana. **Haste** speeds
+  everyone up and keeps Brom awake. **Fortify** shields the party and makes
+  Brom the only thing enemies can see. **Rouse** wakes, calms and shoves.
+  **Revive** (R, its own button when someone is down) raises at half HP. An
+  unbuffed party fights at 60%; a busy healer keeps two buffs rolling.
 - Kills your party makes earn XP for you. Level-ups offer three cards: heal
   power, mana, range, party damage and HP, and the healer's only offense —
   overhealing that burns enemies, blessed allies that scorch attackers.

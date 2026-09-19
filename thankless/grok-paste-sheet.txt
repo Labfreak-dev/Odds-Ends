@@ -21,6 +21,7 @@ RULES THAT MATTER
 
 
 
+
 ================ THE PARTY — 14 images ================
 
 --- block 1 (wren_idle, wren_walk, wren_cast, brom_idle) ---
@@ -50,7 +51,7 @@ files: 1=vex_cast.webp  2=vex_annoyed.webp
 2. a haughty slender mage in a deep purple robe and a tall pointed lavender hat, pale, rolling her eyes with hands on hips, crooked staff with an orange flame tucked under one arm. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
 
-================ ENEMIES — 18 images ================
+================ ENEMIES — 22 images ================
 
 --- block 5 (imp_a, imp_b, bat_a, bat_b) ---
 files: 1=imp_a.webp  2=imp_b.webp  3=bat_a.webp  4=bat_b.webp
@@ -80,39 +81,63 @@ files: 1=knight_a.webp  2=knight_b.webp  3=knight_charge.webp  4=king_a.webp
 3. a towering demon knight in black spiked full plate with a horned helm, glowing red eye slits, lowered into a shoulder charge with the greatsword trailing, cape streaming back. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 4. the Demon King, a massive dark crimson demon with a gold crown between huge curling golden horns, burning yellow eyes, a jagged black mouth, tattered black wings and a black iron sceptre, looming. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
---- block 9 (king_b, king_charge) ---
-files: 1=king_b.webp  2=king_charge.webp
+--- block 9 (king_b, king_charge, ghoul_a, ghoul_b) ---
+files: 1=king_b.webp  2=king_charge.webp  3=ghoul_a.webp  4=ghoul_b.webp
 1. the Demon King, a massive dark crimson demon with a gold crown between huge curling golden horns, burning yellow eyes, tattered black wings spread, raising a black iron sceptre, mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 2. the Demon King, a massive dark crimson demon with a gold crown between huge curling golden horns, burning yellow eyes, wings swept back, lunging forward horns-first in a furious charge. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a hunched grey-green ghoul with long claws, sunken yellow eyes and dirt on its knees, loping forward. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a hunched grey-green ghoul with long claws and sunken yellow eyes, lunging with both claws raised, dirt flying. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 10 (wisp_a, wisp_b) ---
+files: 1=wisp_a.webp  2=wisp_b.webp
+1. a small floating pale blue will-o-the-wisp, a glowing orb with two dark eye-holes and a wispy trailing tail. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a small floating pale blue will-o-the-wisp flaring bright, its wispy tail whipping. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
 
-================ GROUND TILES — 3 images ================
+================ THE PILGRIM — 2 images ================
 
---- block 10 (tile_grass, tile_dirt, tile_bone) ---
-files: 1=tile_grass.webp  2=tile_dirt.webp  3=tile_bone.webp
+--- block 11 (pilgrim_idle, pilgrim_walk) ---
+files: 1=pilgrim_idle.webp  2=pilgrim_walk.webp
+1. a weary old pilgrim in a dusty brown travelling robe and a wide straw hat, clutching a walking staff and a small bundle, nervous. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a weary old pilgrim in a dusty brown travelling robe and a wide straw hat, hurrying mid-stride with a walking staff and a small bundle. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+
+================ GROUND TILES — 4 images ================
+
+--- block 12 (tile_grass, tile_dirt, tile_bone, tile_flagstone) ---
+files: 1=tile_grass.webp  2=tile_dirt.webp  3=tile_bone.webp  4=tile_flagstone.webp
 1. dark mossy grass with scattered small stones and faint dead leaves. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
 2. trodden dark brown earth with faint boot prints and small pebbles. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
 3. ashen grey ground strewn with tiny bone fragments and dark scorched patches. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
+4. worn grey stone flagstones with cracks, dust and faint scorch marks. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
 
 
-================ PROPS — 6 images ================
+================ PROPS — 11 images ================
 
---- block 11 (decal_grave, decal_rock, decal_stump, decal_cart) ---
+--- block 13 (decal_grave, decal_rock, decal_stump, decal_cart) ---
 files: 1=decal_grave.webp  2=decal_rock.webp  3=decal_stump.webp  4=decal_cart.webp
 1. a crooked mossy stone gravestone with a cracked top. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 2. a squat grey boulder with a mossy top. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 3. a rotten tree stump with a few mushrooms growing on it. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 4. a broken wooden cart tipped on its side with one wheel missing. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
---- block 12 (decal_bush, decal_bones) ---
-files: 1=decal_bush.webp  2=decal_bones.webp
+--- block 14 (decal_bush, decal_bones, decal_shrine, decal_trap) ---
+files: 1=decal_bush.webp  2=decal_bones.webp  3=decal_shrine.webp  4=decal_trap.webp
 1. a scraggly dark thorn bush with a few red berries. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 2. a small pile of old bones with a skull on top. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a small weathered stone shrine with a glowing golden holy symbol on top and candles at its base. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a small iron jaw trap, open and set, with sharp teeth. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 15 (decal_pillar, decal_brazier, decal_rubble) ---
+files: 1=decal_pillar.webp  2=decal_brazier.webp  3=decal_rubble.webp
+1. a broken grey stone pillar, snapped off at chest height, carved with faded runes. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. an iron brazier on three legs with orange flames still burning. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a low heap of grey stone rubble and broken masonry. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
 
 ================ HUD FACES — 4 images ================
 
---- block 13 (face_wren, face_brom, face_pip, face_vex) ---
+--- block 16 (face_wren, face_brom, face_pip, face_vex) ---
 files: 1=face_wren.webp  2=face_brom.webp  3=face_pip.webp  4=face_vex.webp
 1. a young healer with short brown hair and a white and gold robe collar, kind tired smile. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
 2. a huge tank warrior with a thick brown beard and a dented grey helmet, half-closed sleepy eyes. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
@@ -122,72 +147,108 @@ files: 1=face_wren.webp  2=face_brom.webp  3=face_pip.webp  4=face_vex.webp
 
 ================ MENU PAINTING — 1 images ================
 
---- block 14 (title) ---
+--- block 17 (title) ---
 files: 1=title.webp
 1. wide painted scene: a small exhausted healer in a white and gold robe stands in a dark field at dusk holding a glowing staff, behind her a huge armoured warrior snores standing up, a tiny archer hides behind him, and a mage in a pointed hat looks at her phone bored, while a horde of red imps and skeletons pours over the hill toward them. chunky chibi fantasy game style, thick dark outlines, flat cel shading, rich dark purple and orange dusk palette, cinematic wide composition, no text, no border
 
 
 ================ RELICS — 35 images ================
 
---- block 15 (relic_chalice, relic_snore, relic_rico, relic_ego) ---
+--- block 18 (relic_chalice, relic_snore, relic_rico, relic_ego) ---
 files: 1=relic_chalice.webp  2=relic_snore.webp  3=relic_rico.webp  4=relic_ego.webp
 1. an ornate golden chalice brimming over with glowing green liquid. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a small carved wooden charm shaped like a sleeping face, on a leather cord. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a single lucky white fletching feather tied with a red ribbon. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a tiny ornate gold crown far too small for anyone, resting on a purple cushion. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 16 (relic_lantern, relic_beads, relic_cord, relic_medal) ---
+--- block 19 (relic_lantern, relic_beads, relic_cord, relic_medal) ---
 files: 1=relic_lantern.webp  2=relic_beads.webp  3=relic_cord.webp  4=relic_medal.webp
 1. a brass lantern with a warm glowing flame inside. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a loop of dark wooden prayer beads with a small gold cross. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a knotted dark red cord with frayed ends. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a tarnished bronze medal on a faded ribbon, blank where a name should be. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 17 (relic_bell, relic_whistle, relic_bonecharm, relic_kettle) ---
+--- block 20 (relic_bell, relic_whistle, relic_bonecharm, relic_kettle) ---
 files: 1=relic_bell.webp  2=relic_whistle.webp  3=relic_bonecharm.webp  4=relic_kettle.webp
 1. a small brass hand bell with a wooden handle. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a small carved bone whistle on a string. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a carved bone charm shaped like a tiny skull. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a dented black iron cooking kettle with steam rising. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 18 (relic_hourglass, relic_halo, relic_quiver, relic_eyebrows) ---
+--- block 21 (relic_hourglass, relic_halo, relic_quiver, relic_eyebrows) ---
 files: 1=relic_hourglass.webp  2=relic_halo.webp  3=relic_quiver.webp  4=relic_eyebrows.webp
 1. a cracked hourglass with sand leaking out of the crack. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a small floating golden halo, glowing softly. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. an overstuffed leather quiver bursting with arrows. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. two singed black eyebrows floating in the air with wisps of smoke. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 19 (relic_guestbook, relic_jar, relic_boot, relic_mirror) ---
+--- block 22 (relic_guestbook, relic_jar, relic_boot, relic_mirror) ---
 files: 1=relic_guestbook.webp  2=relic_jar.webp  3=relic_boot.webp  4=relic_mirror.webp
 1. an open leather guest book with a quill and a single scrawled signature. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a corked glass jar holding a swirling glowing blue mote of light. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a single worn old brown leather boot with a hole in the toe. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a small ornate silver hand mirror with cracked glass. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 20 (relic_cushion, relic_tonic, relic_tome, relic_coin) ---
+--- block 23 (relic_cushion, relic_tonic, relic_tome, relic_coin) ---
 files: 1=relic_cushion.webp  2=relic_tonic.webp  3=relic_tome.webp  4=relic_coin.webp
 1. a plump embroidered purple pillow with a deep dent in the middle. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a small corked glass bottle of murky green tonic with a sour face drawn on the label. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a thick red leather spellbook with a ribbon bookmark, corners slightly scorched. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a single shiny gold coin stamped with a four-leaf clover. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 21 (relic_bandage, relic_compass, relic_fountain, relic_lullaby) ---
+--- block 24 (relic_bandage, relic_compass, relic_fountain, relic_lullaby) ---
 files: 1=relic_bandage.webp  2=relic_compass.webp  3=relic_fountain.webp  4=relic_lullaby.webp
 1. a roll of white linen bandage with one end unrolling. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a brass compass with a bent needle pointing the wrong way. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a small marble fountain overflowing with glowing green water. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a golden music note surrounded by floating Zs and sparkles. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 22 (relic_arrowstorm, relic_pyromania, relic_beacon, relic_saint) ---
+--- block 25 (relic_arrowstorm, relic_pyromania, relic_beacon, relic_saint) ---
 files: 1=relic_arrowstorm.webp  2=relic_pyromania.webp  3=relic_beacon.webp  4=relic_saint.webp
 1. three arrows fanned out inside a swirling gust of wind. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a flaming comet with a wicked grinning face. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a tall brass lantern beaming golden light in every direction. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 4. a white dove with a golden halo. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 
---- block 23 (relic_legend, relic_stew, relic_motestorm) ---
+--- block 26 (relic_legend, relic_stew, relic_motestorm) ---
 files: 1=relic_legend.webp  2=relic_stew.webp  3=relic_motestorm.webp
 1. a gleaming gold medal with a laurel wreath on a red ribbon. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 2. a bubbling iron cauldron of stew with a bone sticking out. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 3. a spiral vortex of glowing blue motes of light. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+
+================ SKILL ICONS — 18 images ================
+
+--- block 27 (skill_t_hide, skill_t_wind, skill_t_sleepwalk, skill_t_slam) ---
+files: 1=skill_t_hide.webp  2=skill_t_wind.webp  3=skill_t_sleepwalk.webp  4=skill_t_slam.webp
+1. a thick grey stone shield. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a swirling gust of wind around a small red heart. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a sleeping face with closed eyes and a floating Z, beside a raised fist. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a round iron shield with impact lines. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 28 (skill_t_cry, skill_t_quake, skill_a_eye, skill_a_barb) ---
+files: 1=skill_t_cry.webp  2=skill_t_quake.webp  3=skill_a_eye.webp  4=skill_a_barb.webp
+1. an open shouting mouth with sound lines. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a cracked ground with a boot stomping down. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a sharp golden eagle eye. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. an arrowhead with jagged barbs. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 29 (skill_a_steady, skill_a_volley, skill_a_trap, skill_a_focus) ---
+files: 1=skill_a_steady.webp  2=skill_a_volley.webp  3=skill_a_trap.webp  4=skill_a_focus.webp
+1. two steady hands holding a bow. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a fan of five arrows. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. an open iron jaw trap. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a single arrow through a target ring. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 30 (skill_m_mind, skill_m_cinder, skill_m_disdain, skill_m_nova) ---
+files: 1=skill_m_mind.webp  2=skill_m_cinder.webp  3=skill_m_disdain.webp  4=skill_m_nova.webp
+1. a glowing purple brain with sparks. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a small pile of glowing orange embers. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a rolled eye with a raised eyebrow. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a burst of ice crystals. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 31 (skill_m_chain, skill_m_barrier) ---
+files: 1=skill_m_chain.webp  2=skill_m_barrier.webp
+1. a jagged blue lightning bolt. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a translucent purple bubble shield. small chunky fantasy game skill icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
 

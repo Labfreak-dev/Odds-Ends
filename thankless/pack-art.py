@@ -28,7 +28,7 @@ from collections import deque
 
 HERE = pathlib.Path(__file__).resolve().parent
 TOL = 70.0         # colour distance (0..441) that still counts as background
-FEATHER = 2        # px of alpha ramp inside the cut
+EDGE = 24          # px inward from the cut that may still be a background mix (a glow fades that far)
 
 def median_border(px, w, h):
     cols = [px[x, 0] for x in range(w)] + [px[x, h-1] for x in range(w)] + [px[0, y] for y in range(h)] + [px[w-1, y] for y in range(h)]
@@ -58,24 +58,37 @@ def key_out(im):
     for y in range(h):
         for x in range(w):
             if d[y][x] < TOL * 0.5: back[y][x] = True      # enclosed holes of pure background
-    # alpha: 0 for background; feathered for foreground pixels bordering it
+    # foreground pixels within EDGE px of the background are a mix of the two: estimate
+    # each one's alpha from its distance to the background colour, then unmix its true
+    # colour (c = a*fg + (1-a)*bg  =>  fg = (c - (1-a)*bg) / a). This is what removes
+    # a magenta halo from a glow or a soft outline without touching purples deeper in.
+    magenta = bg[0] > 180 and bg[2] > 180 and bg[1] < 80
+    depth = [[-1]*w for _ in range(h)]; q = deque()
+    for y in range(h):
+        for x in range(w):
+            if back[y][x]: depth[y][x] = 0; q.append((x, y))
+    while q:
+        x, y = q.popleft()
+        if depth[y][x] >= EDGE: continue
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if 0 <= nx < w and 0 <= ny < h and depth[ny][nx] < 0:
+                depth[ny][nx] = depth[y][x] + 1; q.append((nx, ny))
     out = Image.new("RGBA", (w, h)); op = out.load()
     for y in range(h):
         for x in range(w):
             r, g, b, a = px[x, y]
             if back[y][x]: op[x, y] = (0, 0, 0, 0); continue
-            near = False
-            for k in range(1, FEATHER+1):
-                for nx, ny in ((x+k, y), (x-k, y), (x, y+k), (x, y-k)):
-                    if 0 <= nx < w and 0 <= ny < h and back[ny][nx]: near = True; break
-                if near: break
-            if near:
-                # partial edge pixel: alpha from how far its colour is from the background, and despill
-                t = min(1.0, max(0.0, (d[y][x] - TOL * 0.5) / TOL))
-                a = int(255 * (0.35 + 0.65 * t))
-                if bg[0] > 180 and bg[2] > 180 and bg[1] < 80:       # magenta lock: pull the pink out of the fringe
-                    m = (r + b) / 2
-                    if m > g: r = int(min(r, g + (r - g) * 0.4)); b = int(min(b, g + (b - g) * 0.4))
+            dd = d[y][x]; al = None
+            if magenta and depth[y][x] > 0 and dd < TOL * 2.6 and abs(r - b) < 40 and g < min(r, b) - 20:
+                # a magenta-hued pixel near the cut is spill: its alpha is how much red and blue exceed green
+                al = min(1.0, max(0.05, 1.0 - 1.1 * ((r + b) / 2 - g) / 255))
+            elif 0 < depth[y][x] <= 6 and dd < TOL * 1.7:
+                al = min(1.0, max(0.06, (dd - TOL * 0.35) / (TOL * 1.2)))
+            if al is not None and al < 1.0:
+                r = int(min(255, max(0, (r - (1-al) * bg[0]) / al)))
+                g = int(min(255, max(0, (g - (1-al) * bg[1]) / al)))
+                b = int(min(255, max(0, (b - (1-al) * bg[2]) / al)))
+                a = int(255 * al)
             op[x, y] = (r, g, b, a)
     return out
 

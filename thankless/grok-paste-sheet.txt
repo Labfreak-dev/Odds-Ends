@@ -1,0 +1,121 @@
+HOW TO USE (in Grok chat / Grok Imagine):
+1. Copy ONE block below and paste it to Grok with this line in front:
+   "Generate one square image for each numbered prompt below, one at a time."
+2. Download the images it gives you.
+3. EITHER save each one under the filename shown for its number, into
+   thankless/art-src/ (png, jpg or webp all work), then run
+       python3 thankless/pack-art.py
+   and reload the game — OR drag them into the repo chat and say which block
+   they came from; Claude names, keys, packs and ships them.
+Missing images keep their vector stand-ins, so stop whenever you like: every
+block that ships goes live on its own. No API key needed for this route.
+
+RULES THAT MATTER
+- Sprites and props must come back on a flat MAGENTA background: the packer
+  keys on it. Wrong background, or pink anywhere in the character, ask again.
+  Faces, tiles and the title keep their backgrounds.
+- Everything faces RIGHT. The game flips it when needed.
+- One style for the whole set. Do block 1 (the party idles) first; if the look
+  is right, keep going. If not, change the style words and redo block 1.
+
+
+================ THE PARTY — 14 images ================
+
+--- block 1 (wren_idle, wren_walk, wren_cast, brom_idle) ---
+files: 1=wren_idle.webp  2=wren_walk.webp  3=wren_cast.webp  4=brom_idle.webp
+1. a young healer with a white and gold robe, short brown hair, holding a wooden staff topped with a gold cross, kind tired face, standing calmly. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a young healer with a white and gold robe, short brown hair, holding a wooden staff topped with a gold cross, mid-stride running, robe swinging, worried face. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a young healer with a white and gold robe, short brown hair, raising a wooden staff topped with a gold cross, soft green light glowing at the staff tip, eyes closed in concentration. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a huge broad tank warrior in dented grey plate armour with a round iron shield and a war hammer, small sleepy eyes, thick brown beard, standing ready. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 2 (brom_walk, brom_swing, brom_asleep, pip_idle) ---
+files: 1=brom_walk.webp  2=brom_swing.webp  3=brom_asleep.webp  4=pip_idle.webp
+1. a huge broad tank warrior in dented grey plate armour with a round iron shield and a war hammer, thick brown beard, lumbering forward mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a huge broad tank warrior in dented grey plate armour with a round iron shield, swinging a war hammer overhead in a big arc, thick brown beard, shouting. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a huge broad tank warrior in dented grey plate armour standing upright but fast asleep, eyes shut, mouth open snoring, war hammer drooping, shield hanging loose, thick brown beard. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a small nervous young archer in green leather with a floppy green cap, freckles, holding a wooden bow, wide anxious eyes, standing. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 3 (pip_walk, pip_shoot, pip_panic, vex_idle) ---
+files: 1=pip_walk.webp  2=pip_shoot.webp  3=pip_panic.webp  4=vex_idle.webp
+1. a small nervous young archer in green leather with a floppy green cap, freckles, holding a wooden bow, scurrying mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a small nervous young archer in green leather with a floppy green cap, freckles, drawing a wooden bow with an arrow nocked, one eye squinted, tongue out in concentration. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a small young archer in green leather with a floppy green cap, freckles, running in blind panic with arms flailing, bow held over head, mouth wide open screaming, tears flying. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a haughty slender mage in a deep purple robe and a tall pointed lavender hat, pale, sharp narrowed eyes, arms crossed holding a crooked staff with an orange flame, unimpressed. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 4 (vex_cast, vex_annoyed) ---
+files: 1=vex_cast.webp  2=vex_annoyed.webp
+1. a haughty slender mage in a deep purple robe and a tall pointed lavender hat, pale, sharp narrowed eyes, thrusting a crooked staff forward with a big orange fireball forming, smirking. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a haughty slender mage in a deep purple robe and a tall pointed lavender hat, pale, rolling her eyes with hands on hips, crooked staff with an orange flame tucked under one arm. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+
+================ ENEMIES — 16 images ================
+
+--- block 5 (imp_a, imp_b, bat_a, bat_b) ---
+files: 1=imp_a.webp  2=imp_b.webp  3=bat_a.webp  4=bat_b.webp
+1. a small red imp with stubby horns, yellow eyes, a wide toothy grin and tiny claws, crouched mid-scamper. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a small red imp with stubby horns, yellow eyes, a wide toothy grin and tiny claws, leaping forward with arms out. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a plump dark purple cave bat with yellow eyes and tiny fangs, wings spread wide mid-flap. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a plump dark purple cave bat with yellow eyes and tiny fangs, wings folded down mid-flap. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 6 (skel_a, skel_b, brute_a, brute_b) ---
+files: 1=skel_a.webp  2=skel_b.webp  3=brute_a.webp  4=brute_b.webp
+1. a rattling bone-white skeleton warrior with a rusty short sword and a cracked skull, shambling mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a rattling bone-white skeleton warrior with a rusty short sword and a cracked skull, lurching forward with the sword raised. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a hulking dark brown ogre brute with a tiny head, huge shoulders, a wooden club, small angry yellow eyes, stomping mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a hulking dark brown ogre brute with a tiny head, huge shoulders, a wooden club raised to smash, small angry yellow eyes. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 7 (cultist_a, cultist_b, knight_a, knight_b) ---
+files: 1=cultist_a.webp  2=cultist_b.webp  3=knight_a.webp  4=knight_b.webp
+1. a hooded cultist in a dark crimson robe, face hidden in shadow with two glowing red eyes, clutching a curved dagger, creeping forward. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a hooded cultist in a dark crimson robe, face hidden in shadow with two glowing red eyes, curved dagger raised to strike, robe billowing. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a towering demon knight in black spiked full plate with a horned helm, glowing red eye slits and a huge greatsword, striding forward. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a towering demon knight in black spiked full plate with a horned helm, glowing red eye slits, huge greatsword swung low, mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 8 (knight_charge, king_a, king_b, king_charge) ---
+files: 1=knight_charge.webp  2=king_a.webp  3=king_b.webp  4=king_charge.webp
+1. a towering demon knight in black spiked full plate with a horned helm, glowing red eye slits, lowered into a shoulder charge with the greatsword trailing, cape streaming back. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. the Demon King, a massive dark crimson demon with a gold crown between huge curling golden horns, burning yellow eyes, a jagged black mouth, tattered black wings and a black iron sceptre, looming. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. the Demon King, a massive dark crimson demon with a gold crown between huge curling golden horns, burning yellow eyes, tattered black wings spread, raising a black iron sceptre, mid-stride. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. the Demon King, a massive dark crimson demon with a gold crown between huge curling golden horns, burning yellow eyes, wings swept back, lunging forward horns-first in a furious charge. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+
+================ GROUND TILES — 3 images ================
+
+--- block 9 (tile_grass, tile_dirt, tile_bone) ---
+files: 1=tile_grass.webp  2=tile_dirt.webp  3=tile_bone.webp
+1. dark mossy grass with scattered small stones and faint dead leaves. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
+2. trodden dark brown earth with faint boot prints and small pebbles. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
+3. ashen grey ground strewn with tiny bone fragments and dark scorched patches. seamless tileable top-down ground texture for a dark fantasy game, muted, low contrast, evenly lit, no objects, no text, no border, fills the whole frame edge to edge
+
+
+================ PROPS — 6 images ================
+
+--- block 10 (decal_grave, decal_rock, decal_stump, decal_cart) ---
+files: 1=decal_grave.webp  2=decal_rock.webp  3=decal_stump.webp  4=decal_cart.webp
+1. a crooked mossy stone gravestone with a cracked top. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a squat grey boulder with a mossy top. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a rotten tree stump with a few mushrooms growing on it. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a broken wooden cart tipped on its side with one wheel missing. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 11 (decal_bush, decal_bones) ---
+files: 1=decal_bush.webp  2=decal_bones.webp
+1. a scraggly dark thorn bush with a few red berries. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a small pile of old bones with a skull on top. small chunky fantasy game prop seen from a high three-quarter view, thick dark outlines, flat cel shading lit from the upper left, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+
+================ HUD FACES — 4 images ================
+
+--- block 12 (face_wren, face_brom, face_pip, face_vex) ---
+files: 1=face_wren.webp  2=face_brom.webp  3=face_pip.webp  4=face_vex.webp
+1. a young healer with short brown hair and a white and gold robe collar, kind tired smile. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
+2. a huge tank warrior with a thick brown beard and a dented grey helmet, half-closed sleepy eyes. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
+3. a small nervous young archer with freckles and a floppy green cap, wide anxious eyes. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
+4. a haughty pale mage in a tall pointed lavender hat, sharp narrowed eyes, faint smirk. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
+
+
+================ MENU PAINTING — 1 images ================
+
+--- block 13 (title) ---
+files: 1=title.webp
+1. wide painted scene: a small exhausted healer in a white and gold robe stands in a dark field at dusk holding a glowing staff, behind her a huge armoured warrior snores standing up, a tiny archer hides behind him, and a mage in a pointed hat looks at her phone bored, while a horde of red imps and skeletons pours over the hill toward them. chunky chibi fantasy game style, thick dark outlines, flat cel shading, rich dark purple and orange dusk palette, cinematic wide composition, no text, no border
+

@@ -19,7 +19,7 @@ Demon King comes to you.
   a data URI under `window.TL_ART`. `index.html` fetches it after its first
   paint and swaps each sprite in as it decodes; anything missing keeps its
   vector fallback, so art ships in waves.
-- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 81
+- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 111
   in all (party poses, enemy walk and charge poses, three ground tiles, six
   props, four HUD faces, the menu painting). The name before the dot is the
   key the game looks up; prefixes decide how the packer treats it.
@@ -72,6 +72,9 @@ Demon King comes to you.
   hexers from the third, the Knight at 4:30, elites every 30s, +15% enemy HP,
   ×1.3 gold. The Sodden Mire opens after a win on Circle 1: mud that slows
   everyone to nine-tenths, bats in every wave, hexers early, ×1.6 gold.
+  The Ashen Keep opens after a win on Circle 2: flagstones and braziers,
+  ghouls that burrow and surface under someone, wisps that ignore the party
+  and drink the healer's mana on touch, the Knight at three, ×2 gold.
   Fields are data in `FIELDS`; a new one needs no new art.
 - The end screen tells the story of the run in a few lines: who did the
   killing, Brom's longest nap and what arrived during it, whose friendly

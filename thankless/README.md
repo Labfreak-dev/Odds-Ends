@@ -50,6 +50,11 @@ Demon King comes to you.
 - From 2:00 an elite arrives every 38 seconds: an existing enemy drawn larger
   with an aura and one affix (swift, armored, healer-hunting, brood, lullaby).
   Hexers, a ranged type, join the mix at 7:00 and lob bolts at the healer.
+- Two **fields**, chosen on the menu. The Long Meadow is the story as told.
+  The Bone Fields opens after the first win: ash ground built from the same
+  tiles, props weighted to graves and bones, skeletons from the first minute,
+  hexers from the third, the Knight at 4:30, elites every 30s, +15% enemy HP,
+  ×1.3 gold. Fields are data in `FIELDS`; a new one needs no new art.
 - A Demon Knight arrives at 5:00, the Demon King at 10:00. Killing the King
   wins the run and opens the next **Circle** (+35% enemy HP, +20% damage,
   ×1.5 gold per circle).

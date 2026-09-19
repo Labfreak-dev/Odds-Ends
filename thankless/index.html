@@ -133,6 +133,8 @@
       </div>
       <button class="big" id="start">Set out</button>
       <div class="sub" id="circdesc" style="margin-top:8px"></div>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="sm" id="fieldPrev">◂</button><b id="fieldName"></b><button class="sm" id="fieldNext">▸</button></div>
+      <div class="sub" id="fielddesc" style="margin-top:4px"></div>
     </div>
     <div class="panel">
       <h2>The party</h2>
@@ -197,18 +199,29 @@
 
 <script>
 'use strict';
-const BUILD='b005-elites';
+const BUILD='b006-bonefields';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
-const KNIGHT_AT=300;        // the mini-boss at five
+const KNIGHT_AT=300;        // the mini-boss at five (the meadow's default; a field may move it)
+// ---------- fields: where a run happens. Data only, so a field needs no new art ----------
+const FIELDS=[
+  {id:'meadow',name:'The Long Meadow',desc:'Grass, graves and a horde. The story as told.',base:'tile_grass',patches:['tile_dirt','tile_bone'],
+   decalW:[1,1,1,1,1,1],waveType:t=>t<200?'imp':t<400?'bat':'skel',knightAt:300,eliteEvery:38,hpMul:1,goldMul:1,tint:null,
+   pal:{bg:'#1c261a',a:'#1f2d1c',b:'#18211a',c:'#253620',d:'#2a2820',tuft:['#2d4326','#243a22'],stone:['#2b2a26','#3a3934']}},
+  {id:'bonefields',name:'The Bone Fields',desc:'Ash, old graves, and everything that was buried in them. Skeletons from the first minute, hexers from the third, the Knight early. Gold ×1.3.',
+   base:'tile_bone',patches:['tile_dirt','tile_grass'],decalW:[3,1,0.3,0.5,0.3,3],waveType:t=>t<300?'skel':'cultist',knightAt:270,eliteEvery:30,hpMul:1.15,goldMul:1.3,tint:'rgba(110,130,170,.10)',
+   pal:{bg:'#3a3834',a:'#403c36',b:'#33302c',c:'#46423c',d:'#2e2a26',tuft:['#4a463e','#3c3832'],stone:['#5a5650','#6a665e']},
+   pick:t=>{const r=Math.random();if(t<60)return r<0.6?'skel':'imp';if(t<180)return r<0.5?'skel':r<0.8?'imp':'cultist';if(t<360)return r<0.4?'skel':r<0.6?'cultist':r<0.8?'hexer':'brute';return r<0.3?'skel':r<0.5?'cultist':r<0.7?'hexer':r<0.9?'brute':'bat'}},
+];
+const fieldOpen=i=>i===0||META.maxCircle>=1;
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
 const ART_V='49f4523f';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
-  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_'))hudFaces();if(k==='title')menuArt();if(k==='tile_dirt'||k==='tile_bone')ART.soft[k]=softPatch(im)};im.src=A[k].src;ART.img[k]=im}
+  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_'))hudFaces();if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im)};im.src=A[k].src;ART.img[k]=im}
 }
 function softPatch(im){ // the tile with feathered edges, so it sits on the grass as a patch rather than a square
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(im,0,0,256,256);
@@ -339,6 +352,9 @@ function renderMenu(){
   $('circdesc').textContent=META.circle===0?'Circle 0: the story as told. Beat the Demon King to open the next circle.':
     'Circle '+META.circle+': enemies +'+Math.round(META.circle*35)+'% HP, +'+Math.round(META.circle*20)+'% damage, gold ×'+(1+META.circle*0.5).toFixed(1)+'.';
   $('circDown').disabled=META.circle<=0; $('circUp').disabled=META.circle>=META.maxCircle;
+  META.field=clamp(META.field||0,0,FIELDS.length-1); if(!fieldOpen(META.field))META.field=0;
+  const F=FIELDS[META.field]; $('fieldName').textContent=F.name; $('fielddesc').textContent=F.desc+(FIELDS.length>1&&!fieldOpen(1)?' — beat the Demon King once to open '+FIELDS[1].name+'.':'');
+  $('fieldPrev').disabled=META.field<=0; $('fieldNext').disabled=META.field>=FIELDS.length-1||!fieldOpen(META.field+1);
   const tabs=$('tabs'); tabs.innerHTML='';
   for(const k in BRANCH){const b=document.createElement('button');b.textContent=BRANCH[k];if(k===treeTab)b.className='on';b.onclick=()=>{treeTab=k;renderMenu()};tabs.appendChild(b)}
   const tree=$('tree'); tree.innerHTML='';
@@ -362,6 +378,8 @@ function renderMenu(){
 }
 $('circDown').onclick=()=>{META.circle=Math.max(0,META.circle-1);save();renderMenu()};
 $('circUp').onclick=()=>{META.circle=Math.min(META.maxCircle,META.circle+1);save();renderMenu()};
+$('fieldPrev').onclick=()=>{META.field=Math.max(0,(META.field||0)-1);save();renderMenu()};
+$('fieldNext').onclick=()=>{if(fieldOpen((META.field||0)+1)){META.field=Math.min(FIELDS.length-1,(META.field||0)+1);save();renderMenu()}};
 
 // ---------- in-run upgrades (level-up cards) ----------
 const UPS=[
@@ -489,9 +507,10 @@ function newRun(){
   G={t:0,circle:c,healer,party:[tank,archer,mage],enemies:[],shots:[],gems:[],parts:[],texts:[],graves:[],blasts:[],
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
      level:1,xp:0,xpNext:8,up:{},lvQueue:0,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0},
-     cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,
+     cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
      relics:[],chests:[],fires:[],timers:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt')};
   G.spells=rank('h_radiance')?SPELLS:SPELLS.slice(0,4);
+  G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
   { const known=RELICS.filter(r=>META.relicsSeen[r.id]).map(r=>r.id); for(let i=0;i<rank('h_keepsake')&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
   META.runs++; save();
@@ -684,6 +703,7 @@ function spawnAtEdge(type){
   return spawnEnemy(type,x,y);
 }
 function pickType(t){
+  if(G.field.pick)return G.field.pick(t);
   const r=Math.random();
   if(t<50)return 'imp';
   if(t<120)return r<0.7?'imp':'skel';
@@ -701,16 +721,16 @@ function updateSpawns(dt){
     for(let i=0;i<n;i++)spawnAtEdge(pickType(t));
   }
   G.eliteT-=dt;
-  if(G.eliteT<=0){G.eliteT=38/(1+0.2*G.circle);spawnElite()}
+  if(G.eliteT<=0){G.eliteT=G.field.eliteEvery/(1+0.2*G.circle);spawnElite()}
   G.waveT-=dt;
-  if(G.waveT<=0){G.waveT=45; const n=8+Math.floor(t/40); const type=t<200?'imp':t<400?'bat':'skel';
+  if(G.waveT<=0){G.waveT=45; const n=8+Math.floor(t/40); const type=G.field.waveType(t);
     const h=G.healer,R=Math.max(VW,VH)/ZOOM*0.62;
     for(let i=0;i<n;i++){const a=i/n*6.283;spawnEnemy(type,clamp(h.x+Math.cos(a)*R,10,ARENA-10),clamp(h.y+Math.sin(a)*R,10,ARENA-10))}
     toast('They come in numbers.',1.4);
   }
   if(!G.drop1&&t>=180){G.drop1=true;dropChest()}
   if(!G.drop2&&t>=420){G.drop2=true;dropChest()}
-  if(!G.knight&&t>=KNIGHT_AT){G.knight=true;const e=spawnAtEdge('knight');if(e)toast('A Demon Knight. Brom, wake up.',3)}
+  if(!G.knight&&t>=G.field.knightAt){G.knight=true;const e=spawnAtEdge('knight');if(e)toast('A Demon Knight. Brom, wake up.',3)}
   if(!G.king&&t>=RUN_LEN){G.king=spawnAtEdge('king');toast('THE DEMON KING',4);G.shake=0.6}
 }
 function updateEnemies(dt){
@@ -952,6 +972,7 @@ function endRun(won,why){
   const gold=Math.round(G.gold); META.gold+=gold;
   if(won){META.wins++;META.maxCircle=Math.max(META.maxCircle,G.circle+1)}
   META.bestTime=Math.max(META.bestTime,G.t); save();
+  if(won&&META.maxCircle===1&&G.circle===0)later(0,()=>{}); // (the field unlock is read from maxCircle on the menu)
   $('ovtitle').textContent=won?'The Demon King is dead':why==='healer'?'The healer died':'Party wiped';
   $('ovline').textContent=won?'Your party will tell this story for years. You are not in it.':why==='healer'?'Nobody noticed for a while.':'You stood there with a full mana bar. No. You didn’t. There was never enough mana.';
   const [tank,archer,mage]=G.party;
@@ -1023,12 +1044,13 @@ function step(dt){
 // ---------- drawing ----------
 let groundTex=null;
 function makeGroundTex(){
+  const P=(G&&G.field?G.field:FIELDS[0]).pal;
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
-  g.fillStyle='#1c261a';g.fillRect(0,0,256,256);
+  g.fillStyle=P.bg;g.fillRect(0,0,256,256);
   let sd=987654;const r=()=>{sd=(sd*1103515245+12345)>>>0;return (sd>>>8)/16777216};
-  for(let i=0;i<1400;i++){const x=r()*256,y=r()*256,k=r();g.fillStyle=k<0.45?'#1f2d1c':k<0.75?'#18211a':k<0.92?'#253620':'#2a2820';g.fillRect(x,y,1+r()*3,1+r()*2)}
-  for(let i=0;i<90;i++){const x=8+r()*240,y=8+r()*240;g.strokeStyle=r()<0.5?'#2d4326':'#243a22';g.lineWidth=1;g.beginPath();g.moveTo(x,y);g.lineTo(x-2,y-5);g.moveTo(x+1,y);g.lineTo(x+3,y-6);g.moveTo(x-1,y);g.lineTo(x-4,y-3);g.stroke()}
-  for(let i=0;i<14;i++){const x=6+r()*244,y=6+r()*244;g.fillStyle='#2b2a26';g.beginPath();g.ellipse(x,y,2+r()*3,1.5+r()*2,r()*3,0,6.283);g.fill();g.fillStyle='#3a3934';g.fillRect(x-1,y-1.5,2,1)}
+  for(let i=0;i<1400;i++){const x=r()*256,y=r()*256,k=r();g.fillStyle=k<0.45?P.a:k<0.75?P.b:k<0.92?P.c:P.d;g.fillRect(x,y,1+r()*3,1+r()*2)}
+  for(let i=0;i<90;i++){const x=8+r()*240,y=8+r()*240;g.strokeStyle=r()<0.5?P.tuft[0]:P.tuft[1];g.lineWidth=1;g.beginPath();g.moveTo(x,y);g.lineTo(x-2,y-5);g.moveTo(x+1,y);g.lineTo(x+3,y-6);g.moveTo(x-1,y);g.lineTo(x-4,y-3);g.stroke()}
+  for(let i=0;i<14;i++){const x=6+r()*244,y=6+r()*244;g.fillStyle=P.stone[0];g.beginPath();g.ellipse(x,y,2+r()*3,1.5+r()*2,r()*3,0,6.283);g.fill();g.fillStyle=P.stone[1];g.fillRect(x-1,y-1.5,2,1)}
   return c;
 }
 function drawDecalVec(i,x,y){
@@ -1043,22 +1065,23 @@ function drawDecalVec(i,x,y){
 function drawGround(cx,cy){
   const vw=VW/ZOOM,vh=VH/ZOOM,T=256;
   if(!groundTex)groundTex=makeGroundTex();
-  const tg=spr('tile_grass'),td=spr('tile_dirt'),tb=spr('tile_bone');
+  const F=G.field, tg=spr(F.base);
   const x0=Math.floor(cx/T)*T,y0=Math.floor(cy/T)*T;
   for(let x=x0;x<cx+vw;x+=T)for(let y=y0;y<cy+vh;y+=T)ctx.drawImage(tg||groundTex,x,y,T,T);
   // patches of dirt and bone, feathered, laid over the grass on a half-offset grid so they straddle tile seams
   for(let x=x0-T;x<cx+vw;x+=T)for(let y=y0-T;y<cy+vh;y+=T){
     const hv=hash01(x+3,y+5); if(hv>0.34)continue;
-    const px=x+T/2+(hash01(x,y+9)-0.5)*T*0.6, py=y+T/2+(hash01(x+9,y)-0.5)*T*0.6, bone=hv>0.26, sz=T*(0.8+hash01(x+2,y+2)*0.5);
-    const soft=bone?ART.soft.tile_bone:ART.soft.tile_dirt;
-    if(soft){if(bone)ctx.globalAlpha=0.55;ctx.drawImage(soft,px-sz/2,py-sz/2,sz,sz);ctx.globalAlpha=1}
-    else{const gr=ctx.createRadialGradient(px,py,sz*0.15,px,py,sz*0.5);gr.addColorStop(0,bone?'rgba(150,145,130,.14)':'rgba(80,52,24,.3)');gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.ellipse(px,py,sz*0.5,sz*0.4,0,0,6.283);ctx.fill()}
+    const px=x+T/2+(hash01(x,y+9)-0.5)*T*0.6, py=y+T/2+(hash01(x+9,y)-0.5)*T*0.6, second=hv>0.26, sz=T*(0.8+hash01(x+2,y+2)*0.5);
+    const key=F.patches[second?1:0], soft=ART.soft[key];
+    if(soft){if(key==='tile_bone')ctx.globalAlpha=0.55;else if(key==='tile_grass'&&F.base!=='tile_grass')ctx.globalAlpha=0.7;ctx.drawImage(soft,px-sz/2,py-sz/2,sz,sz);ctx.globalAlpha=1}
+    else{const gr=ctx.createRadialGradient(px,py,sz*0.15,px,py,sz*0.5);gr.addColorStop(0,key==='tile_bone'?'rgba(150,145,130,.14)':key==='tile_grass'?'rgba(40,70,30,.28)':'rgba(80,52,24,.3)');gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.ellipse(px,py,sz*0.5,sz*0.4,0,0,6.283);ctx.fill()}
   }
   if(G.stainCv)ctx.drawImage(G.stainCv,0,0,ARENA,ARENA);
   const D=160,dx0=Math.floor(cx/D)*D,dy0=Math.floor(cy/D)*D;
   for(let x=dx0;x<cx+vw;x+=D)for(let y=dy0;y<cy+vh;y+=D){
     const hv=hash01(x+7,y+13); if(hv>0.26)continue;
-    const px=x+30+hash01(x+1,y)*100,py=y+30+hash01(x,y+1)*100,idx=Math.floor(hv/0.26*DECALS.length)%DECALS.length;
+    const px=x+30+hash01(x+1,y)*100,py=y+30+hash01(x,y+1)*100;
+    let idx=0;{const W=F.decalW,tot=W.reduce((a,b)=>a+b,0);let v=hv/0.26*tot;for(idx=0;idx<W.length-1&&v>=W[idx];idx++)v-=W[idx]}
     if(px<24||py<24||px>ARENA-24||py>ARENA-24)continue;
     const im=spr(DECALS[idx]);
     if(im){const h=DECAL_H[idx];ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(px,py+2,h*0.4,h*0.14,0,0,6.283);ctx.fill();drawSpr(im,px,py+4,h,1)}
@@ -1163,6 +1186,7 @@ function draw(){
   G.cam.x=cx;G.cam.y=cy;
   ctx.scale(ZOOM,ZOOM); ctx.translate(-cx,-cy);
   drawGround(cx,cy);
+  if(G.field.tint){ctx.fillStyle=G.field.tint;ctx.fillRect(cx-40,cy-40,vw+80,vh+80)}
   // range ring
   ctx.strokeStyle='rgba(255,233,168,.16)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.arc(h.x,h.y,h.range,0,6.283);ctx.stroke();ctx.setLineDash([]);
   for(const g of G.graves){ctx.fillStyle='#7a7a88';ctx.fillRect(g.x-7,g.y-14,14,18);ctx.fillStyle='#000';ctx.fillRect(g.x-1,g.y-11,2,10);ctx.fillRect(g.x-4,g.y-8,8,2);ctx.font='9px Verdana';ctx.fillStyle='#ccc';ctx.fillText(g.m.name,g.x-ctx.measureText(g.m.name).width/2,g.y+14)}
@@ -1212,7 +1236,7 @@ requestAnimationFrame(frame);
 requestAnimationFrame(()=>setTimeout(artFetch,60));   // the art arrives after first paint
 
 // debug / test hooks
-window.TL={get G(){return G},get META(){return META},ART,RELICS,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
+window.TL={get G(){return G},get META(){return META},ART,RELICS,FIELDS,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
 const _inputVec=inputVec; inputVec=function(){return window.TL.inputOverride?window.TL.inputOverride():_inputVec()};
 </script>
 </body>

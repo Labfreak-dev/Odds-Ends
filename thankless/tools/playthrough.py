@@ -18,10 +18,12 @@ ap.add_argument('--circle',type=int,default=0)
 ap.add_argument('--tree',action='store_true')
 ap.add_argument('--shots',action='store_true')
 ap.add_argument('--every',type=float,default=60,help='log interval in game seconds')
+ap.add_argument('--url',default='',help='page to drive instead of ../index.html (tests of a packed copy)')
+ap.add_argument('--stop',type=float,default=0,help='stop after this many game seconds')
 a=ap.parse_args()
 
 HERE=os.path.dirname(os.path.abspath(__file__))
-URL='file://'+os.path.join(HERE,'..','index.html')
+URL=a.url or 'file://'+os.path.join(HERE,'..','index.html')
 OUT=os.environ.get('TL_SHOTS',os.path.join(HERE,'..','..','..','shots'))
 
 BOT=r"""
@@ -89,6 +91,7 @@ def main():
             if st['over']:
                 print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'upgrades', json.dumps(st['up']))
                 break
+            if a.stop and st['t']>=a.stop: print('STOPPED at',int(st['t']),'s, art keys ready:',pg.evaluate('()=>Object.keys(window.TL.ART.ready).length')); break
             if time.time()-t0>400: print('TIMEOUT'); break
             pg.wait_for_timeout(250)
         pg.wait_for_timeout(1200)

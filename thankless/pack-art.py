@@ -8,6 +8,7 @@
 What happens to each file, by key prefix:
   tile_   ground texture: square crop, 256x256, seams blended so it tiles
   decal_  ground prop: keyed off magenta, trimmed, fitted into 128x128
+  relic_  item icon: keyed off magenta, trimmed, fitted into 64x64
   face_   HUD bust: square crop, 96x96, background kept
   title   menu painting: 16:9 crop, 640x360, background kept
   (else)  sprite: keyed off magenta, trimmed, fitted into 128x128
@@ -125,6 +126,8 @@ def pack_one(path):
     key = path.stem; im = Image.open(path)
     if key.startswith("tile_"):
         out = seamless(square(im.convert("RGB"), 256)); q = 80
+    elif key.startswith("relic_"):
+        out = fit(trim(key_out(im)), 64); q = 88
     elif key.startswith("face_"):
         im = im.convert("RGB"); w, h = im.size; sq = min(w, h)
         out = im.crop(((w-sq)//2, 0, (w-sq)//2+sq, sq)).resize((96, 96), Image.LANCZOS); q = 85   # a bust keeps its head: crop from the top

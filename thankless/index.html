@@ -59,6 +59,10 @@
   .lvcard .lv{float:right;font-size:11px;color:var(--muted)}
   .lvcard.evo{box-shadow:inset 0 0 0 2px var(--gold),0 0 18px rgba(255,210,74,.35)}
   #relics .evo{text-shadow:0 0 6px var(--gold),0 0 12px var(--gold)}
+  .ricon{width:22px;height:22px;vertical-align:middle;object-fit:contain}
+  .ricon.big{width:30px;height:30px;margin-right:4px}
+  #relics .ricon{width:24px;height:24px;margin:0 1px}
+  #relics .evo .ricon{filter:drop-shadow(0 0 4px var(--gold))}
   .who{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:#000;margin-right:6px;vertical-align:middle}
   .who.healer{background:var(--healer)}.who.tank{background:var(--tank)}.who.archer{background:var(--archer)}.who.mage{background:var(--mage)}.who.party{background:#f0b0d0}
 
@@ -201,7 +205,7 @@
 
 <script>
 'use strict';
-const BUILD='b007-evolutions';
+const BUILD='b008-trinkets';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -223,7 +227,7 @@ const ART_V='3178df7b';         // stamped by pack-art.py; 'none' means no art.j
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
-  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_'))hudFaces();if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im)};im.src=A[k].src;ART.img[k]=im}
+  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_'))hudFaces();if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics()};im.src=A[k].src;ART.img[k]=im}
 }
 function softPatch(im){ // the tile with feathered edges, so it sits on the grass as a patch rather than a square
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(im,0,0,256,256);
@@ -360,6 +364,7 @@ const RELICS=[
 const EVOS=RELICS.filter(r=>r.evo);
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
 const hasRelic=id=>!!(G&&G.relics&&G.relics.includes(id));
+const relicIcon=(id,cls)=>ART.ready['relic_'+id]?'<img class="ricon '+(cls||'')+'" alt="" src="'+ART.img['relic_'+id].src+'">':RELIC[id].icon;
 const BRANCH={healer:'Wren',tank:'Brom',archer:'Pip',mage:'Vex'};
 function defaults(){return {gold:0,tree:{},circle:0,maxCircle:0,bestTime:0,wins:0,runs:0,totalHeal:0,thanks:0,kills:0,ff:0,relicsSeen:{}}}
 function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&typeof s==='object')return Object.assign(defaults(),s)}catch(e){}return defaults()}
@@ -397,10 +402,10 @@ function renderMenu(){
   }
   const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo), knownEvo=EVOS.filter(r=>META.relicsSeen[r.id]);
   const hints=EVOS.filter(r=>!META.relicsSeen[r.id]&&META.relicsSeen[r.evo[0]]&&META.relicsSeen[r.evo[1]]);
-  $('relicsKnown').innerHTML=(known.length?known.map(r=>'<div><b>'+r.icon+' '+esc(r.name)+'</b> — '+esc(r.desc)+'</div>').join(''):'<div>None yet. Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might.</div>')
+  $('relicsKnown').innerHTML=(known.length?known.map(r=>'<div><b>'+relicIcon(r.id)+' '+esc(r.name)+'</b> — '+esc(r.desc)+'</div>').join(''):'<div>None yet. Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might.</div>')
     +(known.length<RELICS.length-EVOS.length?'<div class="sub" style="margin-top:4px">'+(RELICS.length-EVOS.length-known.length)+' still out there.</div>':'')
     +'<div style="margin-top:8px"><b style="color:var(--gold)">Evolutions</b> — hold both halves and the next chest fuses them.</div>'
-    +knownEvo.map(r=>'<div><b>'+r.icon+' '+esc(r.name)+'</b> = '+esc(RELIC[r.evo[0]].name)+' + '+esc(RELIC[r.evo[1]].name)+' — '+esc(r.desc)+'</div>').join('')
+    +knownEvo.map(r=>'<div><b>'+relicIcon(r.id)+' '+esc(r.name)+'</b> = '+esc(RELIC[r.evo[0]].name)+' + '+esc(RELIC[r.evo[1]].name)+' — '+esc(r.desc)+'</div>').join('')
     +hints.map(r=>'<div>❔ = '+esc(RELIC[r.evo[0]].name)+' + '+esc(RELIC[r.evo[1]].name)+' … something happens.</div>').join('')
     +'<div class="sub" style="margin-top:4px">'+(EVOS.length-knownEvo.length)+' of '+EVOS.length+' undiscovered.</div>';
   const st=$('mstats');
@@ -576,7 +581,7 @@ function applyRelic(id,quiet){
   else if(id==='tonic'){G.party[1].panicAt=0;G.party[1].miss+=0.1;G.party[1].panicT=0}
   else if(id==='stew')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.3);m.hp=m.maxhp*r}
   else if(id==='beacon')h.range*=1.2; else if(id==='pyromania')G.party[2].ff*=0.5; else if(id==='motestorm')h.pickup*=4;
-  if(!quiet){toast(RELIC[id].icon+' '+RELIC[id].name,2.2);G.blasts.push({x:h.x,y:h.y,r:60,life:0.5,col:'rgba(255,220,120,'})}
+  if(!quiet){toast(RELIC[id].name,2.2);G.blasts.push({x:h.x,y:h.y,r:60,life:0.5,col:'rgba(255,220,120,'})}
   hudRelics();
 }
 function spawnChest(x,y){G.chests.push({x:clamp(x,40,ARENA-40),y:clamp(y,40,ARENA-40),t:0})}
@@ -586,7 +591,7 @@ function openChest(){
   if(evo){
     G.lvOpen=true;G.pickKind='relic';G.pendingPicks=[evo];
     $('lvtitle').textContent='Evolution!';$('lvsub').textContent=RELIC[evo.evo[0]].name+' and '+RELIC[evo.evo[1]].name+' fuse in the chest’s light.';
-    const box=$('lvcards');box.innerHTML='';const b=document.createElement('button');b.className='lvcard evo';b.innerHTML='<b>'+evo.icon+' '+esc(evo.name)+'</b><i>'+esc(evo.desc)+'</i>';b.onclick=()=>chooseRelic(evo.id);box.appendChild(b);
+    const box=$('lvcards');box.innerHTML='';const b=document.createElement('button');b.className='lvcard evo';b.innerHTML='<b>'+relicIcon(evo.id,'big')+' '+esc(evo.name)+'</b><i>'+esc(evo.desc)+'</i>';b.onclick=()=>chooseRelic(evo.id);box.appendChild(b);
     $('lvl').classList.remove('hide');return;
   }
   const pool=RELICS.filter(r=>!r.evo&&!G.relics.includes(r.id));
@@ -595,7 +600,7 @@ function openChest(){
   G.lvOpen=true;G.pickKind='relic';G.pendingPicks=picks;
   $('lvtitle').textContent='A chest!';$('lvsub').textContent=pick(['Nobody else wanted to open it.','Brom says it was his idea.','Pip thinks it might be a mimic. It is not.','Vex is not impressed by treasure.']);
   const box=$('lvcards');box.innerHTML='';
-  for(const r of picks){const b=document.createElement('button');b.className='lvcard';b.innerHTML='<b>'+r.icon+' '+esc(r.name)+'</b><i>'+esc(r.desc)+'</i>';b.onclick=()=>chooseRelic(r.id);box.appendChild(b)}
+  for(const r of picks){const b=document.createElement('button');b.className='lvcard';b.innerHTML='<b>'+relicIcon(r.id,'big')+' '+esc(r.name)+'</b><i>'+esc(r.desc)+'</i>';b.onclick=()=>chooseRelic(r.id);box.appendChild(b)}
   $('lvl').classList.remove('hide');
 }
 function chooseRelic(id){
@@ -603,7 +608,7 @@ function chooseRelic(id){
   applyRelic(id); G.lvOpen=false; G.pickKind='up'; $('lvl').classList.add('hide');
   if(G.lvQueue>0)showLevelUp();
 }
-function hudRelics(){const el=$('relics');if(el&&G)el.innerHTML=G.relics.map(id=>RELIC[id].evo?'<span class="evo">'+RELIC[id].icon+'</span>':RELIC[id].icon).join('')}
+function hudRelics(){const el=$('relics');if(el&&G)el.innerHTML=G.relics.map(id=>RELIC[id].evo?'<span class="evo">'+relicIcon(id)+'</span>':relicIcon(id)).join('')}
 const cdMul=()=>Math.pow(0.88,upRank('cdr'))*(1-0.06*rank('h_cdr'))*(hasRelic('hourglass')?0.85:1)*(hasRelic('beacon')?0.85:1);
 
 // ---------- healing & damage ----------
@@ -1026,7 +1031,7 @@ function endRun(won,why){
   $('ovtitle').textContent=won?'The Demon King is dead':why==='healer'?'The healer died':'Party wiped';
   $('ovline').textContent=won?'Your party will tell this story for years. You are not in it.':why==='healer'?'Nobody noticed for a while.':'You stood there with a full mana bar. No. You didn’t. There was never enough mana.';
   const [tank,archer,mage]=G.party;
-  $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold],['Healing done',Math.floor(G.stats.healed)],['Kills — Brom / Pip / Vex',tank.kills+' / '+archer.kills+' / '+mage.kills],['Kills — Wren',G.healer.kills+(G.healer.kills?' (overflow counts)':' (as intended)')],['Brom’s naps',G.stats.naps],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>RELIC[id].icon).join(' '):'none']]
+  $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold],['Healing done',Math.floor(G.stats.healed)],['Kills — Brom / Pip / Vex',tank.kills+' / '+archer.kills+' / '+mage.kills],['Kills — Wren',G.healer.kills+(G.healer.kills?' (overflow counts)':' (as intended)')],['Brom’s naps',G.stats.naps],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>relicIcon(id)).join(' '):'none']]
     .map(([k,v])=>'<span>'+k+'</span><span>'+v+'</span>').join('');
   if(won&&G.circle===META.maxCircle-1)$('ovline').textContent+=' Circle '+(G.circle+1)+' is open.';
   setTimeout(()=>{$('over').classList.remove('hide');$('hud').classList.remove('run')},won?900:600);

@@ -20,6 +20,7 @@ RULES THAT MATTER
 
 
 
+
 ================ THE PARTY — 14 images ================
 
 --- block 1 (wren_idle, wren_walk, wren_cast, brom_idle) ---
@@ -124,4 +125,69 @@ files: 1=face_wren.webp  2=face_brom.webp  3=face_pip.webp  4=face_vex.webp
 --- block 14 (title) ---
 files: 1=title.webp
 1. wide painted scene: a small exhausted healer in a white and gold robe stands in a dark field at dusk holding a glowing staff, behind her a huge armoured warrior snores standing up, a tiny archer hides behind him, and a mage in a pointed hat looks at her phone bored, while a horde of red imps and skeletons pours over the hill toward them. chunky chibi fantasy game style, thick dark outlines, flat cel shading, rich dark purple and orange dusk palette, cinematic wide composition, no text, no border
+
+
+================ RELICS — 35 images ================
+
+--- block 15 (relic_chalice, relic_snore, relic_rico, relic_ego) ---
+files: 1=relic_chalice.webp  2=relic_snore.webp  3=relic_rico.webp  4=relic_ego.webp
+1. an ornate golden chalice brimming over with glowing green liquid. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a small carved wooden charm shaped like a sleeping face, on a leather cord. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a single lucky white fletching feather tied with a red ribbon. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a tiny ornate gold crown far too small for anyone, resting on a purple cushion. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 16 (relic_lantern, relic_beads, relic_cord, relic_medal) ---
+files: 1=relic_lantern.webp  2=relic_beads.webp  3=relic_cord.webp  4=relic_medal.webp
+1. a brass lantern with a warm glowing flame inside. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a loop of dark wooden prayer beads with a small gold cross. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a knotted dark red cord with frayed ends. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a tarnished bronze medal on a faded ribbon, blank where a name should be. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 17 (relic_bell, relic_whistle, relic_bonecharm, relic_kettle) ---
+files: 1=relic_bell.webp  2=relic_whistle.webp  3=relic_bonecharm.webp  4=relic_kettle.webp
+1. a small brass hand bell with a wooden handle. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a small carved bone whistle on a string. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a carved bone charm shaped like a tiny skull. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a dented black iron cooking kettle with steam rising. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 18 (relic_hourglass, relic_halo, relic_quiver, relic_eyebrows) ---
+files: 1=relic_hourglass.webp  2=relic_halo.webp  3=relic_quiver.webp  4=relic_eyebrows.webp
+1. a cracked hourglass with sand leaking out of the crack. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a small floating golden halo, glowing softly. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. an overstuffed leather quiver bursting with arrows. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. two singed black eyebrows floating in the air with wisps of smoke. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 19 (relic_guestbook, relic_jar, relic_boot, relic_mirror) ---
+files: 1=relic_guestbook.webp  2=relic_jar.webp  3=relic_boot.webp  4=relic_mirror.webp
+1. an open leather guest book with a quill and a single scrawled signature. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a corked glass jar holding a swirling glowing blue mote of light. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a single worn old brown leather boot with a hole in the toe. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a small ornate silver hand mirror with cracked glass. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 20 (relic_cushion, relic_tonic, relic_tome, relic_coin) ---
+files: 1=relic_cushion.webp  2=relic_tonic.webp  3=relic_tome.webp  4=relic_coin.webp
+1. a plump embroidered purple pillow with a deep dent in the middle. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a small corked glass bottle of murky green tonic with a sour face drawn on the label. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a thick red leather spellbook with a ribbon bookmark, corners slightly scorched. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a single shiny gold coin stamped with a four-leaf clover. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 21 (relic_bandage, relic_compass, relic_fountain, relic_lullaby) ---
+files: 1=relic_bandage.webp  2=relic_compass.webp  3=relic_fountain.webp  4=relic_lullaby.webp
+1. a roll of white linen bandage with one end unrolling. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a brass compass with a bent needle pointing the wrong way. small chunky fantasy game item icon, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a small marble fountain overflowing with glowing green water. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a golden music note surrounded by floating Zs and sparkles. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 22 (relic_arrowstorm, relic_pyromania, relic_beacon, relic_saint) ---
+files: 1=relic_arrowstorm.webp  2=relic_pyromania.webp  3=relic_beacon.webp  4=relic_saint.webp
+1. three arrows fanned out inside a swirling gust of wind. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a flaming comet with a wicked grinning face. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a tall brass lantern beaming golden light in every direction. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+4. a white dove with a golden halo. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+
+--- block 23 (relic_legend, relic_stew, relic_motestorm) ---
+files: 1=relic_legend.webp  2=relic_stew.webp  3=relic_motestorm.webp
+1. a gleaming gold medal with a laurel wreath on a red ribbon. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+2. a bubbling iron cauldron of stew with a bone sticking out. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
+3. a spiral vortex of glowing blue motes of light. small chunky fantasy game item icon with a radiant golden glow around it, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no hand holding it, no ground shadow, no text, no border
 

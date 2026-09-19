@@ -193,6 +193,7 @@
     <div class="panel" style="text-align:center">
       <h2 id="ovtitle">Party wiped</h2>
       <div class="sub" id="ovline" style="margin-bottom:10px"></div>
+      <div class="sub" id="ovstory" style="text-align:left;margin:0 0 12px;line-height:1.55;border-top:1px solid #000;border-bottom:1px solid #000;padding:8px 0"></div>
       <div class="stat" id="ovstats" style="text-align:left;margin-bottom:12px"></div>
       <button class="big" id="back">Back to camp</button>
     </div>
@@ -205,7 +206,7 @@
 
 <script>
 'use strict';
-const BUILD='b008-trinkets';
+const BUILD='b009-mire';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -219,8 +220,12 @@ const FIELDS=[
    base:'tile_bone',patches:['tile_dirt','tile_grass'],decalW:[3,1,0.3,0.5,0.3,3],waveType:t=>t<300?'skel':'cultist',knightAt:270,eliteEvery:30,hpMul:1.15,goldMul:1.3,tint:'rgba(110,130,170,.10)',
    pal:{bg:'#3a3834',a:'#403c36',b:'#33302c',c:'#46423c',d:'#2e2a26',tuft:['#4a463e','#3c3832'],stone:['#5a5650','#6a665e']},
    pick:t=>{const r=Math.random();if(t<60)return r<0.6?'skel':'imp';if(t<180)return r<0.5?'skel':r<0.8?'imp':'cultist';if(t<360)return r<0.4?'skel':r<0.6?'cultist':r<0.8?'hexer':'brute';return r<0.3?'skel':r<0.5?'cultist':r<0.7?'hexer':r<0.9?'brute':'bat'}},
+  {id:'mire',name:'The Sodden Mire',desc:'Mud to the ankle, bats in the reeds, and things in hoods that keep their distance. Everyone moves at nine-tenths. Vex is not pleased about the damp. Gold ×1.6.',
+   base:'tile_dirt',patches:['tile_grass','tile_bone'],decalW:[0.5,1,2,1.5,2.5,0.4],waveType:t=>'bat',knightAt:240,eliteEvery:34,hpMul:1.3,goldMul:1.6,tint:'rgba(30,110,80,.13)',speedMul:0.9,
+   pal:{bg:'#2c2418',a:'#33291b',b:'#251e14',c:'#3a3020',d:'#1f2a1a',tuft:['#3e5a2a','#2e4620'],stone:['#3a3226','#4a4236']},
+   pick:t=>{const r=Math.random();if(t<60)return r<0.6?'bat':'imp';if(t<180)return r<0.4?'bat':r<0.7?'skel':'cultist';if(t<360)return r<0.3?'cultist':r<0.55?'hexer':r<0.8?'bat':'brute';return r<0.3?'hexer':r<0.5?'brute':r<0.7?'cultist':r<0.85?'bat':'skel'}},
 ];
-const fieldOpen=i=>i===0||META.maxCircle>=1;
+const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
 const ART_V='3178df7b';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
@@ -383,7 +388,7 @@ function renderMenu(){
     'Circle '+META.circle+': enemies +'+Math.round(META.circle*35)+'% HP, +'+Math.round(META.circle*20)+'% damage, gold ×'+(1+META.circle*0.5).toFixed(1)+'.';
   $('circDown').disabled=META.circle<=0; $('circUp').disabled=META.circle>=META.maxCircle;
   META.field=clamp(META.field||0,0,FIELDS.length-1); if(!fieldOpen(META.field))META.field=0;
-  const F=FIELDS[META.field]; $('fieldName').textContent=F.name; $('fielddesc').textContent=F.desc+(FIELDS.length>1&&!fieldOpen(1)?' — beat the Demon King once to open '+FIELDS[1].name+'.':'');
+  const F=FIELDS[META.field]; $('fieldName').textContent=F.name; $('fielddesc').textContent=F.desc+(!fieldOpen(1)?' — beat the Demon King once to open '+FIELDS[1].name+'.':!fieldOpen(2)?' — beat him on Circle 1 to open '+FIELDS[2].name+'.':'');
   $('fieldPrev').disabled=META.field<=0; $('fieldNext').disabled=META.field>=FIELDS.length-1||!fieldOpen(META.field+1);
   const tabs=$('tabs'); tabs.innerHTML='';
   for(const k in BRANCH){const b=document.createElement('button');b.textContent=BRANCH[k];if(k===treeTab)b.className='on';b.onclick=()=>{treeTab=k;renderMenu()};tabs.appendChild(b)}
@@ -542,11 +547,12 @@ function newRun(){
   tank.x=healer.x+40;tank.y=healer.y-30; archer.x=healer.x-50;archer.y=healer.y+30; mage.x=healer.x+10;mage.y=healer.y+55;
   G={t:0,circle:c,healer,party:[tank,archer,mage],enemies:[],shots:[],gems:[],parts:[],texts:[],graves:[],blasts:[],
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
-     level:1,xp:0,xpNext:8,up:{},lvQueue:0,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0},
+     level:1,xp:0,xpNext:8,up:{},lvQueue:0,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
      relics:[],chests:[],fires:[],timers:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
   G.spells=rank('h_radiance')?SPELLS:SPELLS.slice(0,4);
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
+  if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
   { const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo).map(r=>r.id); for(let i=0;i<rank('h_keepsake')&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
   META.runs++; save();
@@ -573,6 +579,7 @@ function toast(t,d){const el=$('toast');el.textContent=t;el.style.opacity=1;G.to
 function later(t,fn){G.timers.push({t,fn})}
 function applyRelic(id,quiet){
   if(!G||G.relics.includes(id))return; G.relics.push(id); META.relicsSeen[id]=1; save();
+  if(!G.stats.firstRelic&&!quiet){G.stats.firstRelic=id;G.stats.firstRelicAt=G.t}
   const h=G.healer;
   if(id==='lantern')h.range*=1.25; else if(id==='whistle')h.pickup*=2;
   else if(id==='kettle')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.15);m.hp=m.maxhp*r}
@@ -615,7 +622,7 @@ const cdMul=()=>Math.pow(0.88,upRank('cdr'))*(1-0.06*rank('h_cdr'))*(hasRelic('h
 function heal(m,amt,src){
   if(!m.alive)return 0;
   const missing=m.maxhp-m.hp; const real=Math.min(amt,missing); const over=amt-real;
-  m.hp+=real; G.stats.healed+=real; META.totalHeal+=real;
+  m.hp+=real; G.stats.healed+=real; META.totalHeal+=real; G.stats.overheal+=over; if(real>G.stats.biggestHeal)G.stats.biggestHeal=real;
   if(real>0){ftext(m.x,m.y-m.r-8,'+'+Math.round(real),'#7dffa0');puff(m.x,m.y,4,'#a8ffc0',40,2)}
   if(over>0&&upRank('overheal')){m.shield=Math.min(m.maxhp*0.3*upRank('overheal'),m.shield+over*0.6)}
   if(over>0&&hasRelic('chalice'))G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+over*(hasRelic('fountain')?0.4:0.2));
@@ -643,6 +650,7 @@ function hurtAlly(m,dmg,src){
   if(m!==G.healer&&inRange(m)){const share=Math.min(0.5,(hasRelic('saint')?0.3:hasRelic('cord')?0.25:0)+0.15*upRank('martyr'));if(share>0){hurtAlly(G.healer,dmg*share,src);dmg*=1-share;if(!m.alive)return}}
   if(m.shield>0){const a=Math.min(m.shield,dmg);m.shield-=a;dmg-=a;if(dmg<=0){puff(m.x,m.y,3,'#c8e8ff',60,2);return}}
   m.hp-=dmg; m.hitT=0.15;
+  if(m===G.healer&&m.hp>0&&m.hp/m.maxhp<G.stats.closest){G.stats.closest=m.hp/m.maxhp;G.stats.closestAt=G.t}
   if(m.blessT>0&&src&&src.hp!==undefined&&src.type){hurtEnemy(src,8*upRank('thorns')*(1+G.level*0.05),G.healer);puff(src.x,src.y,3,'#ffe9a8',60,2)}
   if(m.hp<=0){m.hp=0; if(m===G.healer)endRun(false,'healer'); else downMember(m)}
 }
@@ -699,7 +707,7 @@ function cast(i){
     for(const g of G.graves){const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;best=g}}
     if(!best){toast('No one to raise in range',0.9);return}
     const m=best.m; G.graves.splice(G.graves.indexOf(best),1);
-    m.alive=true;m.hp=Math.round(m.maxhp*0.5);m.x=best.x;m.y=best.y;m.shield=30;m.blessT=2;G.stats.revives++;
+    m.alive=true;m.hp=Math.round(m.maxhp*0.5);m.x=best.x;m.y=best.y;m.shield=30;m.blessT=2;G.stats.revives++;G.stats.revivedWho[m.name]=(G.stats.revivedWho[m.name]||0)+1;
     if(m.key==='tank'){m.asleep=false;m.sleepT=rnd(18,28)*napMul()}
     if(m.key==='archer'){m.panicT=0;m.panicCd=4}
     say(m,m.key==='mage'?'I was resting.':m.key==='tank'?'Did I win?':'I’m alive?! I’m alive!',3); say(h,pick(LINES.revive));
@@ -709,6 +717,7 @@ function cast(i){
 }
 function wakeTank(m){
   m.asleep=false; m.sleepT=rnd(18,28)*napMul();
+  if(m.napStart!==undefined){const len=G.t-m.napStart;if(len>G.stats.napLongest){G.stats.napLongest=len;G.stats.napLongestAt=m.napStart;G.stats.napLongestFoes=Math.max(0,G.enemies.length-m.napFoes)}m.napStart=undefined}
   if(rank('t_wake')||hasRelic('bell')){const dmg=m.dmg*pdmg()*(hasRelic('lullaby')?5:3);let n=0;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+30){hurtEnemy(o,dmg,m);n++}
     m.swing=0.25;G.blasts.push({x:m.x,y:m.y,r:m.reach+30,life:0.35,col:'rgba(200,220,255,'});if(n)ftext(m.x,m.y-40,'RAAH','#fff',14)}
 }
@@ -729,6 +738,7 @@ function spawnEnemy(type,x,y){
   if(G.enemies.length>260&&!ETYPES[type].boss)return null;
   const T=ETYPES[type]; const scale=(1+G.t/150)*G.hpMul;
   const e={type,x,y,r:T.r,hp:T.hp*scale,maxhp:T.hp*scale,spd:T.spd*rnd(0.9,1.1),dmg:T.dmg*(1+G.t/360)*G.dmgMul,atkCd:T.atk,atkT:rnd(0,T.atk),xp:T.xp,gold:T.gold,gems:T.gems,col:T.col,boss:!!T.boss,target:null,tT:rnd(0,0.4),hitT:0,slow:0,dead:false,wob:rnd(0,6.28),chargeT:rnd(3,6),charging:0,sumT:5};
+  if(G.field.speedMul)e.spd*=G.field.speedMul;
   G.enemies.push(e); return e;
 }
 const AFFIX={
@@ -781,8 +791,8 @@ function updateSpawns(dt){
   }
   if(!G.drop1&&t>=180){G.drop1=true;dropChest()}
   if(!G.drop2&&t>=420){G.drop2=true;dropChest()}
-  if(!G.knight&&t>=G.field.knightAt){G.knight=true;const e=spawnAtEdge('knight');if(e)toast('A Demon Knight. Brom, wake up.',3)}
-  if(!G.king&&t>=RUN_LEN){G.king=spawnAtEdge('king');toast('THE DEMON KING',4);G.shake=0.6}
+  if(!G.knight&&t>=G.field.knightAt){G.knight=true;const e=spawnAtEdge('knight');if(e)toast('A Demon Knight. Brom, wake up.',3);if(G.party[0].asleep)G.stats.knightAsleep=true}
+  if(!G.king&&t>=RUN_LEN){G.king=spawnAtEdge('king');toast('THE DEMON KING',4);G.shake=0.6;if(G.party[0].asleep)G.stats.kingAsleep=true}
 }
 function updateEnemies(dt){
   const h=G.healer, en=G.enemies, tank=G.party[0];
@@ -844,7 +854,7 @@ function updateTank(m,dt){
   }
   m.sleepT-=dt; for(const e of G.enemies)if(e.elite==='lullaby'&&Math.hypot(e.x-m.x,e.y-m.y)<260){m.sleepT-=dt*2;break}
   if(rank('t_regen')&&m.hp<m.maxhp)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.005*rank('t_regen')*dt);
-  if(m.sleepT<=0){m.asleep=true;m.napT=rnd(6,9)*(1-0.2*rank('t_light'))*(hasRelic('bell')?0.7:1)*(hasRelic('cushion')?2:1);G.stats.naps++;say(m,pick(LINES.tankSleep),2.5,true);return}
+  if(m.sleepT<=0){m.asleep=true;m.napT=rnd(6,9)*(1-0.2*rank('t_light'))*(hasRelic('bell')?0.7:1)*(hasRelic('cushion')?2:1);G.stats.naps++;m.napStart=G.t;m.napFoes=G.enemies.length;say(m,pick(LINES.tankSleep),2.5,true);return}
   const e=nearestEnemy(m,520), dh=Math.hypot(h.x-m.x,h.y-m.y);
   if(e&&(dh<230||Math.hypot(e.x-h.x,e.y-h.y)<dh)){
     const d=Math.hypot(e.x-m.x,e.y-m.y);
@@ -920,7 +930,7 @@ function explode(x,y,r,dmg,from){
   for(const e of G.enemies)if(Math.hypot(e.x-x,e.y-y)<r+e.r)hurtEnemy(e,dmg,from);
   let ffHit=false;
   if(from.key==='mage'&&(rank('m_burn')||hasRelic('pyromania'))&&r<100)G.fires.push({x,y,r:r*0.7,dps:dmg*0.2,life:1+rank('m_burn')+(hasRelic('pyromania')?1:0)});
-  for(const m of allies()){if(m===from)continue;if(m===G.healer&&rank('m_precise'))continue;if(Math.hypot(m.x-x,m.y-y)<r+m.r*0.5){const f=dmg*from.ff;if(f>0.5){hurtAlly(m,f,null);m.ffTaken=(m.ffTaken||0)+f;G.stats.ff++;META.ff++;ffHit=true;ftext(m.x,m.y-m.r-14,'ow','#ffb0a0',11)}}}
+  for(const m of allies()){if(m===from)continue;if(m===G.healer&&rank('m_precise'))continue;if(Math.hypot(m.x-x,m.y-y)<r+m.r*0.5){const f=dmg*from.ff;if(f>0.5){hurtAlly(m,f,null);m.ffTaken=(m.ffTaken||0)+f;G.stats.ff++;G.stats.ffVex+=f;META.ff++;ffHit=true;ftext(m.x,m.y-m.r-14,'ow','#ffb0a0',11)}}}
   if(ffHit&&Math.random()<0.6)say(from,pick(LINES.mageFF),1.8);
   G.blasts.push({x,y,r,life:0.35,col:'rgba(255,140,60,'}); puff(x,y,10,'#ff9a3a',120,3); stain(x,y,'scorch',r); G.shake=Math.max(G.shake,r>100?0.35:0.08);
 }
@@ -947,7 +957,7 @@ function updateShots(dt){
     if(!gone)for(const e of G.enemies){if(!s.hit.includes(e)&&Math.hypot(e.x-s.x,e.y-s.y)<e.r+4){hurtEnemy(e,s.dmg,s.from);puff(s.x,s.y,3,s.crit?'#ffd24a':'#fff',50,1.5);if(s.crit)ftext(e.x,e.y-e.r-10,'crit!','#ffd24a',11);s.hit.push(e);if(s.pierce>0)s.pierce--;else{gone=true;break}}}
     if(!gone&&s.age>0.08)for(const m of allies()){if(m===s.from)continue;if(Math.hypot(m.x-s.x,m.y-s.y)<m.r+2){
       if(rank('a_sorry')){heal(m,s.dmg*0.6,'sorry');say(s.from,'Sorry! Wait. That helped?',1.8,true)}
-      else{hurtAlly(m,s.dmg*0.6,null);m.ffTaken=(m.ffTaken||0)+s.dmg*0.6;G.stats.ff++;META.ff++;say(s.from,pick(LINES.archerFF),1.8,true);ftext(m.x,m.y-m.r-14,m.key==='mage'?'...':'ow!','#ffb0a0',11)}
+      else{hurtAlly(m,s.dmg*0.6,null);m.ffTaken=(m.ffTaken||0)+s.dmg*0.6;G.stats.ff++;G.stats.ffPip+=s.dmg*0.6;META.ff++;say(s.from,pick(LINES.archerFF),1.8,true);ftext(m.x,m.y-m.r-14,m.key==='mage'?'...':'ow!','#ffb0a0',11)}
       gone=true;break}}
     if(gone)sh.splice(i,1);
   }
@@ -1031,10 +1041,26 @@ function endRun(won,why){
   $('ovtitle').textContent=won?'The Demon King is dead':why==='healer'?'The healer died':'Party wiped';
   $('ovline').textContent=won?'Your party will tell this story for years. You are not in it.':why==='healer'?'Nobody noticed for a while.':'You stood there with a full mana bar. No. You didn’t. There was never enough mana.';
   const [tank,archer,mage]=G.party;
+  $('ovstory').innerHTML=runStory(won,why).map(l=>'<div>'+l+'</div>').join('');
   $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold],['Healing done',Math.floor(G.stats.healed)],['Kills — Brom / Pip / Vex',tank.kills+' / '+archer.kills+' / '+mage.kills],['Kills — Wren',G.healer.kills+(G.healer.kills?' (overflow counts)':' (as intended)')],['Brom’s naps',G.stats.naps],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>relicIcon(id)).join(' '):'none']]
     .map(([k,v])=>'<span>'+k+'</span><span>'+v+'</span>').join('');
   if(won&&G.circle===META.maxCircle-1)$('ovline').textContent+=' Circle '+(G.circle+1)+' is open.';
   setTimeout(()=>{$('over').classList.remove('hide');$('hud').classList.remove('run')},won?900:600);
+}
+function runStory(won,why){
+  const S=G.stats,[tank,archer,mage]=G.party,h=G.healer,L=[];
+  const kills=[[tank,'Brom'],[archer,'Pip'],[mage,'Vex']].sort((a,b)=>b[0].kills-a[0].kills);
+  if(kills[0][0].kills>0)L.push(kills[0][1]+' did most of the killing ('+kills[0][0].kills+'). '+(kills[0][1]==='Vex'?'She will mention it.':kills[0][1]==='Pip'?'She is as surprised as anyone.':'He does not remember most of it.'));
+  if(S.napLongest>0)L.push('Brom’s longest nap ran '+S.napLongest.toFixed(1)+' seconds at '+fmt(S.napLongestAt)+(S.napLongestFoes>=5?', during which '+S.napLongestFoes+' more enemies arrived.':'.'));
+  if(S.kingAsleep)L.push('He was asleep when the Demon King arrived.'); else if(S.knightAsleep)L.push('He was asleep when the Demon Knight arrived.');
+  if(S.ffPip>0||S.ffVex>0)L.push(S.ffVex>=S.ffPip?'Vex did '+Math.round(S.ffVex)+' damage to her own party. She stands by it.':'Pip put '+Math.round(S.ffPip)+' damage worth of arrows into her friends, and apologised every time.');
+  if(S.closest<0.25)L.push('Wren’s closest call: '+Math.max(1,Math.round(S.closest*h.maxhp))+' HP at '+fmt(S.closestAt)+'. Nobody noticed.');
+  if(S.biggestHeal>0)L.push('Biggest single heal: '+Math.round(S.biggestHeal)+'. '+(S.overheal>S.healed?'More healing was wasted on the healthy ('+Math.round(S.overheal)+') than landed.':'Another '+Math.round(S.overheal)+' was wasted on people who were fine.'));
+  const rv=Object.entries(S.revivedWho).sort((a,b)=>b[1]-a[1])[0]; if(rv)L.push(rv[0]+' was raised from the dead '+(rv[1]===1?'once':rv[1]+' times')+'. No card came.');
+  if(S.firstRelic)L.push('First relic: '+esc(RELIC[S.firstRelic].name)+' at '+fmt(S.firstRelicAt)+(G.relics.some(id=>RELIC[id].evo)?'. Two of them became something more.':'.'));
+  if(S.thanks===0)L.push('Thank-yous received: none. As usual.');
+  if(won)L.push('The Demon King is dead. The song they will sing about it does not have a verse for the healer.');
+  return L.slice(0,6);
 }
 function togglePause(){if(!G||G.over||G.lvOpen)return;G.paused=!G.paused;$('pauseov').classList.toggle('hide',!G.paused)}
 $('pause').onclick=togglePause; $('resume').onclick=togglePause;

@@ -74,7 +74,7 @@ def main():
         pg.wait_for_function('window.TL && document.getElementById("start")')
         if a.tree:
             pg.evaluate("""()=>{const M=window.TL.META; for(const n of window.TL.TREE){M.tree[n.id]=n.max;} M.gold=0; for(const r of window.TL.RELICS)M.relicsSeen[r.id]=1;}""")
-        pg.evaluate(f"()=>{{window.TL.META.circle={a.circle}; window.TL.META.maxCircle=Math.max(window.TL.META.maxCircle,{a.circle},{1 if a.field else 0}); window.TL.META.field={a.field};}}")
+        pg.evaluate(f"()=>{{window.TL.META.circle={a.circle}; window.TL.META.maxCircle=Math.max(window.TL.META.maxCircle,{a.circle},{a.field}); window.TL.META.field={a.field};}}")
         pg.click('#start')
         pg.wait_for_function('window.TL.G')
         pg.evaluate(BOT)
@@ -99,6 +99,8 @@ def main():
             if time.time()-t0>400: print('TIMEOUT'); break
             pg.wait_for_timeout(250)
         pg.wait_for_timeout(1200)
+        try: print('STORY:', ' | '.join(pg.evaluate("()=>[...document.querySelectorAll('#ovstory div')].map(d=>d.textContent)")))
+        except Exception: pass
         if a.shots: pg.screenshot(path=os.path.join(OUT,'tl-end.png'))
         if errors: print('ERRORS:'); [print(' ',e) for e in errors]
         else: print('no page errors')

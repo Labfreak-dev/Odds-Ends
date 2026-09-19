@@ -54,7 +54,12 @@ Demon King comes to you.
   The Bone Fields opens after the first win: ash ground built from the same
   tiles, props weighted to graves and bones, skeletons from the first minute,
   hexers from the third, the Knight at 4:30, elites every 30s, +15% enemy HP,
-  ×1.3 gold. Fields are data in `FIELDS`; a new one needs no new art.
+  ×1.3 gold. The Sodden Mire opens after a win on Circle 1: mud that slows
+  everyone to nine-tenths, bats in every wave, hexers early, ×1.6 gold.
+  Fields are data in `FIELDS`; a new one needs no new art.
+- The end screen tells the story of the run in a few lines: who did the
+  killing, Brom's longest nap and what arrived during it, whose friendly
+  fire hurt more, Wren's closest call, the first relic.
 - A Demon Knight arrives at 5:00, the Demon King at 10:00. Killing the King
   wins the run and opens the next **Circle** (+35% enemy HP, +20% damage,
   ×1.5 gold per circle).

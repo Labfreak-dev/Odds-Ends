@@ -42,6 +42,8 @@ BOT=r"""
     if(alive.length){cx=alive.reduce((s,m)=>s+m.x,0)/alive.length; cy=alive.reduce((s,m)=>s+m.y,0)/alive.length;}
     let tx=cx, ty=cy;
     if(target && best<0.6){ tx=(cx+target.x)/2; ty=(cy+target.y)/2; }
+    // events: go where the event is
+    const ev=G.event; if(ev&&!ev.done){ if(ev.id==='shrine'){tx=ev.x;ty=ev.y;} else if(ev.id==='pilgrim'&&ev.npc.alive){tx=ev.npc.x;ty=ev.npc.y-30;} else if(ev.id==='moterain'){let bg=null,bd=1e9;for(const g of G.gems){if(!g.ev)continue;const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;bg=g;}}if(bg){tx=bg.x;ty=bg.y;}} else if(ev.id==='vigil'&&G.party[0].alive&&G.party[0].asleep&&h.cd[4]<=0&&h.mana>=20)TL.cast(4); }
     // chests: always worth the walk
     if(G.chests.length){let bc=null,bd=1e9;for(const c of G.chests){const d=Math.hypot(c.x-h.x,c.y-h.y);if(d<bd){bd=d;bc=c}}if(bd<700){tx=bc.x;ty=bc.y;}}
     // graves: go revive if the spell is ready
@@ -51,7 +53,8 @@ BOT=r"""
     let vx=tx-h.x, vy=ty-h.y; const d=Math.hypot(vx,vy);
     if(d<40 && !(h.mana<h.manaMax*0.45 && G.gems.length)){vx=0;vy=0;} else if(d>0){vx/=d;vy/=d;}
     // flee enemies
-    for(const e of G.enemies){ const ex=h.x-e.x, ey=h.y-e.y, ed=Math.hypot(ex,ey); const R=e.boss?200:120; if(ed<R){ const k=(R-ed)/R*(e.boss?4:2.6); vx+=ex/ed*k; vy+=ey/ed*k; } }
+    const holding=ev&&!ev.done&&ev.id==='shrine'&&h.hp>h.maxhp*0.5;
+    for(const e of G.enemies){ const ex=h.x-e.x, ey=h.y-e.y, ed=Math.hypot(ex,ey); const R=e.boss?200:(holding?50:120); if(ed<R){ const k=(R-ed)/R*(e.boss?4:2.6); vx+=ex/ed*k; vy+=ey/ed*k; } }
     const n=Math.hypot(vx,vy); if(n>1){vx/=n;vy/=n;}
     // spells: revive first, then keep buffs rolling, then heal
     const near=m=>G.enemies.filter(e=>Math.hypot(e.x-m.x,e.y-m.y)<220).length;
@@ -91,7 +94,7 @@ def main():
             # auto-pick level-ups
             st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=['pdmg','power','php','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']; let c=p.slice().sort((x,y)=>pref.indexOf(x.id)-pref.indexOf(y.id))[0]; window.TL.chooseUp(c.id);} 
               const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
-                party:G.party.map(m=>m.name+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
+                party:G.party.map(m=>m.name+'L'+m.lvl+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
             if st is None: break
             m=int(st['t']//a.every)
             if m!=last_min:
@@ -99,7 +102,7 @@ def main():
                 print(f"[{int(st['t'])//60}:{int(st['t'])%60:02d}] lv{st['level']} kills {st['kills']} foes {st['enemies']} | Wren {st['hp']} mana {st['mana']}/{st['manaMax']} heal {st['healPower']} | "+' '.join(st['party'])+f" | healed {int(st['stats']['healed'])} ff {st['stats']['ff']} naps {st['stats']['naps']} oom {st['stats']['oom']}")
                 if a.shots: pg.screenshot(path=os.path.join(OUT,f'tl-{m:03d}.png'))
             if st['over']:
-                print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'relics', st['relics'] or 'none', 'upgrades', json.dumps(st['up']))
+                print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'relics', st['relics'] or 'none', 'events', pg.evaluate('()=>(window.TL.G.stats.eventsWon||0)+"/"+(window.TL.G.stats.events||0)'), 'skills', pg.evaluate('()=>window.TL.G.party.map(m=>m.name+":"+Object.entries(m.skills).map(([k,v])=>k+v).join("+")).join(" ")'), 'upgrades', json.dumps(st['up']))
                 break
             if a.stop and st['t']>=a.stop: print('STOPPED at',int(st['t']),'s, art keys ready:',pg.evaluate('()=>Object.keys(window.TL.ART.ready).length')); break
             if time.time()-t0>400: print('TIMEOUT'); break

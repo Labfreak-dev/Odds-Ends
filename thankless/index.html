@@ -194,7 +194,7 @@ const RUN_LEN=600;          // the Demon King arrives at ten minutes
 const KNIGHT_AT=300;        // the mini-boss at five
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='ecab152a';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='72354b95';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -944,7 +944,7 @@ function drawMember(m){
 function drawEnemy(e){
   const x=e.x,y=e.y+Math.sin(G.t*9+e.wob)*1.5,f=e.face||1;
   shadow(x,e.y,e.r);
-  const im=e.boss&&e.charging>0?spr(e.type+'_charge',e.type+'_a'):spr(Math.sin(G.t*7+e.wob)>0?e.type+'_a':e.type+'_b',e.type+'_a');
+  const im=e.boss&&e.charging>0?spr(e.type+'_charge',e.type+'_a',e.type+'_b'):spr(Math.sin(G.t*7+e.wob)>0?e.type+'_a':e.type+'_b',e.type+'_a',e.type+'_b');
   if(im){ctx.save();if(e.hitT>0)ctx.filter='brightness(2.5)';drawSpr(im,x,e.y+e.r*0.8,SPR_H[e.type],f);ctx.restore()}
   else{
   ctx.save(); if(e.hitT>0)ctx.filter='brightness(2.5)';

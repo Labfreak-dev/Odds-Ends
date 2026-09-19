@@ -19,9 +19,10 @@ Demon King comes to you.
   a data URI under `window.TL_ART`. `index.html` fetches it after its first
   paint and swaps each sprite in as it decodes; anything missing keeps its
   vector fallback, so art ships in waves.
-- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 111
+- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 147
   in all (party poses, enemy walk and charge poses, three ground tiles, six
-  props, four HUD faces, the menu painting). The name before the dot is the
+  props, HUD faces, the menu painting, relic and skill icons, and three poses
+  plus a face for each of the nine recruits). The name before the dot is the
   key the game looks up; prefixes decide how the packer treats it.
 - `art-src/` — the raw takes from the generator, 512px with backgrounds.
   Committed: the packer rebuilds `art.js` from here.
@@ -63,6 +64,29 @@ Demon King comes to you.
   Pip's Barbed Arrows, Vex's Arcane Mind) and actives they cast on cooldown
   by themselves (Shield Slam, Warcry, Earthquake; Volley, Snare Trap, Focus
   Shot; Frost Nova, Chain Lightning, Arcane Barrier).
+- **Pick three.** The menu's party panel lists twelve characters; a run takes
+  three. Brom, Pip and Vex come free. Nine **recruits** unlock from all-time
+  stats and each is useless in a new way: Mortimer the necromancer raises
+  skeletons from your kills and jolts Brom awake with a shock (escort three
+  pilgrims); Sable the assassin backstabs for a fortune, vanishes and
+  sometimes forgets to come back — hidden means unhealable (beat the King);
+  Gideon the paladin heals only himself, loudly, and sneers at your Mend
+  (thirty thank-yous); Frost the ice wizard freezes the party along with the
+  crowd unless he takes the mittens (win the Bone Fields); Bramble the ent
+  will not walk and sinks into the ground to catch up (last eight minutes);
+  Lupa the werewolf turns every forty motes and bites whoever is nearest
+  (twenty-five elites); Valerian the vampire drinks what he deals, refuses
+  healing and burns in Radiance (fuse an evolution); Dusty the gunslinger
+  hits hardest for six shots and then reloads for eight seconds at full
+  volume (15,000 gold); Unit 7 never sleeps or panics but overheats, and
+  Mend is its coolant (win the Ashen Keep). Each has six skills of their own
+  and their own level-up lines, thank-yous and story beats.
+- **Starting weapons.** Every character has two. The second turns up once as
+  a "Swap" card at member level 3 (Brom's Boar Spear, Pip's Heavy Crossbow,
+  Vex's Frost Wand that never touches the party, the necromancer's Grimoire
+  for four skeletons, Lupa's Silver Collar that stops the turning, and so
+  on); once seen, it can be chosen on the menu as the character's starting
+  weapon. Weapons change behaviour, not just numbers.
 - From 2:00 an elite arrives every 38 seconds: an existing enemy drawn larger
   with an aura and one affix (swift, armored, healer-hunting, brood, lullaby).
   Hexers, a ranged type, join the mix at 7:00 and lob bolts at the healer.
@@ -126,7 +150,8 @@ draw at 44–62px and fodder at 24–58px, so silhouettes matter more than detai
 4. Commit and push to main. Pages redeploys in a minute or two.
 
 ## Balance notes
-Tuned with the bot at 8× speed. An untrained save should wipe somewhere past
+Tuned with the bot at 8× speed (`--party a,b,c` starts a run with any
+three characters, unlocked or not). An untrained save should wipe somewhere past
 four minutes; a fully trained one should reach the King. Enemy HP scales
 `1 + t/150`, damage `1 + t/360`; the party's damage grows 10% per healer
 level so the run snowballs the way a survivors game should.

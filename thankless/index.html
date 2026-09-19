@@ -194,7 +194,7 @@ const RUN_LEN=600;          // the Demon King arrives at ten minutes
 const KNIGHT_AT=300;        // the mini-boss at five
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='35348cfe';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='49f4523f';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -870,7 +870,7 @@ function drawGround(cx,cy){
     const hv=hash01(x+3,y+5); if(hv>0.34)continue;
     const px=x+T/2+(hash01(x,y+9)-0.5)*T*0.6, py=y+T/2+(hash01(x+9,y)-0.5)*T*0.6, bone=hv>0.26, sz=T*(0.8+hash01(x+2,y+2)*0.5);
     const soft=bone?ART.soft.tile_bone:ART.soft.tile_dirt;
-    if(soft)ctx.drawImage(soft,px-sz/2,py-sz/2,sz,sz);
+    if(soft){if(bone)ctx.globalAlpha=0.55;ctx.drawImage(soft,px-sz/2,py-sz/2,sz,sz);ctx.globalAlpha=1}
     else{const gr=ctx.createRadialGradient(px,py,sz*0.15,px,py,sz*0.5);gr.addColorStop(0,bone?'rgba(150,145,130,.14)':'rgba(80,52,24,.3)');gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.ellipse(px,py,sz*0.5,sz*0.4,0,0,6.283);ctx.fill()}
   }
   if(G.stainCv)ctx.drawImage(G.stainCv,0,0,ARENA,ARENA);

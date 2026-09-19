@@ -126,7 +126,8 @@ def pack_one(path):
     if key.startswith("tile_"):
         out = seamless(square(im.convert("RGB"), 256)); q = 80
     elif key.startswith("face_"):
-        out = square(im.convert("RGB"), 96); q = 85
+        im = im.convert("RGB"); w, h = im.size; sq = min(w, h)
+        out = im.crop(((w-sq)//2, 0, (w-sq)//2+sq, sq)).resize((96, 96), Image.LANCZOS); q = 85   # a bust keeps its head: crop from the top
     elif key == "title":
         w, h = im.size; tw, th = w, int(w * 9 / 16)
         if th > h: th, tw = h, int(h * 16 / 9)

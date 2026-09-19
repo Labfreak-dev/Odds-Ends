@@ -57,6 +57,8 @@
   .lvcard b{display:block;font-size:15px;color:var(--gold)}
   .lvcard i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:3px}
   .lvcard .lv{float:right;font-size:11px;color:var(--muted)}
+  .lvcard.evo{box-shadow:inset 0 0 0 2px var(--gold),0 0 18px rgba(255,210,74,.35)}
+  #relics .evo{text-shadow:0 0 6px var(--gold),0 0 12px var(--gold)}
   .who{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:#000;margin-right:6px;vertical-align:middle}
   .who.healer{background:var(--healer)}.who.tank{background:var(--tank)}.who.archer{background:var(--archer)}.who.mage{background:var(--mage)}.who.party{background:#f0b0d0}
 
@@ -164,7 +166,7 @@
         Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
         <b>Mend</b> casts itself on the most wounded ally in range — if you have the mana. Mana is scarce. Picking up the motes your party drops refills it, so you have to go where the fighting is.<br>
         Spells: <b>1</b> Surge · <b>2</b> Ward · <b>3</b> Rouse · <b>4</b> Revive. Tap the buttons on a phone.<br>
-        Chests fall at 3:00 and 7:00, and the Demon Knight drops one. Walk over a chest to pick one of three relics for the run.<br>
+        Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them into something better.<br>
         From two minutes in, elites arrive with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Hexers lob bolts at you from a distance; keep moving.<br>
         Enemies that get close to a healer forget everything else. Brom snores. Pip panics. Vex casts through you. Nobody says thank you.
       </div>
@@ -199,7 +201,7 @@
 
 <script>
 'use strict';
-const BUILD='b006-bonefields';
+const BUILD='b007-evolutions';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -332,7 +334,30 @@ const RELICS=[
   {id:'kettle',name:'Iron Kettle',icon:'🫕',desc:'The party has 15% more HP'},
   {id:'hourglass',name:'Cracked Hourglass',icon:'⏳',desc:'Spell cooldowns −15%'},
   {id:'halo',name:'Halo',icon:'😇',desc:'Nothing can touch you for a second after you cast a spell'},
+  {id:'quiver',name:'Quiver of Plenty',icon:'🏹',desc:'One shot in five, Pip looses two arrows'},
+  {id:'eyebrows',name:'Singed Eyebrows',icon:'🔥',desc:'Vex’s blasts are 20% wider'},
+  {id:'guestbook',name:'Guest Book',icon:'📖',desc:'Thank-yous come twice as often'},
+  {id:'jar',name:'Glass Jar',icon:'🫙',desc:'Motes are worth half again as much XP'},
+  {id:'boot',name:'Old Boot',icon:'🥾',desc:'Wren runs 15% faster'},
+  {id:'mirror',name:'Cracked Mirror',icon:'🪞',desc:'Whatever hits Wren takes triple that back'},
+  {id:'cushion',name:'Brom’s Cushion',icon:'🛏️',desc:'Brom naps half as often. They last twice as long'},
+  {id:'tonic',name:'Bitter Tonic',icon:'🧪',desc:'Pip never panics. She also aims worse'},
+  {id:'tome',name:'Borrowed Tome',icon:'📕',desc:'Meteors hit 30% harder'},
+  {id:'coin',name:'Lucky Coin',icon:'🪙',desc:'Gold +25%'},
+  {id:'bandage',name:'Bandage Roll',icon:'🩹',desc:'Mend keeps healing a little for three seconds'},
+  {id:'compass',name:'Bent Compass',icon:'🧭',desc:'Chests drop half again as often'},
+  // evolutions: hold both halves and the next chest fuses them
+  {id:'fountain',evo:['chalice','beads'],name:'The Fountain',icon:'⛲',desc:'Mend is free on anyone above half health, and overheal refunds 40% as mana'},
+  {id:'lullaby',evo:['snore','bell'],name:'Brom’s Lullaby',icon:'🎵',desc:'Enemies near a sleeping Brom fall asleep too, and his waking swing hits for five times'},
+  {id:'arrowstorm',evo:['rico','quiver'],name:'Arrow Storm',icon:'🌪️',desc:'Pip looses three arrows at once and every one pierces'},
+  {id:'pyromania',evo:['ego','eyebrows'],name:'Pyromania',icon:'☄️',desc:'Every fireball leaves burning ground, meteors come twice as often, and her friendly fire is halved. She is still not sorry'},
+  {id:'beacon',evo:['lantern','hourglass'],name:'The Beacon',icon:'🔆',desc:'Heal range +20%, cooldowns −15%, and allies in range mend 1% a second on their own'},
+  {id:'saint',evo:['cord','halo'],name:'Saint',icon:'🕊️',desc:'You take 30% of allies’ pain, are untouchable for two seconds after a spell, and every hit you take hurries Surge'},
+  {id:'legend',evo:['medal','guestbook'],name:'Legend',icon:'🏅',desc:'Every thank-you: +5% heal power and +2% party damage. Even Vex, sometimes'},
+  {id:'stew',evo:['kettle','bonecharm'],name:'Stew of Bones',icon:'🍲',desc:'The party has 30% more HP and every kill heals them 1%'},
+  {id:'motestorm',evo:['whistle','jar'],name:'Mote Storm',icon:'🌀',desc:'Motes fly to you from anywhere on screen and give twice the mana'},
 ];
+const EVOS=RELICS.filter(r=>r.evo);
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
 const hasRelic=id=>!!(G&&G.relics&&G.relics.includes(id));
 const BRANCH={healer:'Wren',tank:'Brom',archer:'Pip',mage:'Vex'};
@@ -370,8 +395,14 @@ function renderMenu(){
       row.appendChild(b)}
     tree.appendChild(d);
   }
-  const known=RELICS.filter(r=>META.relicsSeen[r.id]);
-  $('relicsKnown').innerHTML=(known.length?known.map(r=>'<div><b>'+r.icon+' '+esc(r.name)+'</b> — '+esc(r.desc)+'</div>').join(''):'<div>None yet. Chests fall at 3:00 and 7:00, and the Demon Knight drops one.</div>')+(known.length<RELICS.length?'<div class="sub" style="margin-top:4px">'+(RELICS.length-known.length)+' still out there.</div>':'');
+  const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo), knownEvo=EVOS.filter(r=>META.relicsSeen[r.id]);
+  const hints=EVOS.filter(r=>!META.relicsSeen[r.id]&&META.relicsSeen[r.evo[0]]&&META.relicsSeen[r.evo[1]]);
+  $('relicsKnown').innerHTML=(known.length?known.map(r=>'<div><b>'+r.icon+' '+esc(r.name)+'</b> — '+esc(r.desc)+'</div>').join(''):'<div>None yet. Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might.</div>')
+    +(known.length<RELICS.length-EVOS.length?'<div class="sub" style="margin-top:4px">'+(RELICS.length-EVOS.length-known.length)+' still out there.</div>':'')
+    +'<div style="margin-top:8px"><b style="color:var(--gold)">Evolutions</b> — hold both halves and the next chest fuses them.</div>'
+    +knownEvo.map(r=>'<div><b>'+r.icon+' '+esc(r.name)+'</b> = '+esc(RELIC[r.evo[0]].name)+' + '+esc(RELIC[r.evo[1]].name)+' — '+esc(r.desc)+'</div>').join('')
+    +hints.map(r=>'<div>❔ = '+esc(RELIC[r.evo[0]].name)+' + '+esc(RELIC[r.evo[1]].name)+' … something happens.</div>').join('')
+    +'<div class="sub" style="margin-top:4px">'+(EVOS.length-knownEvo.length)+' of '+EVOS.length+' undiscovered.</div>';
   const st=$('mstats');
   st.innerHTML=[['Runs',META.runs],['Demon Kings slain',META.wins],['Best time',fmt(META.bestTime)],['Healing done, all time',Math.floor(META.totalHeal)],['Enemies your party killed',META.kills],['Times your party hit itself',META.ff],['Thank-yous received',META.thanks]]
     .map(([k,v])=>'<span>'+k+'</span><span>'+v+'</span>').join('');
@@ -508,11 +539,11 @@ function newRun(){
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
      level:1,xp:0,xpNext:8,up:{},lvQueue:0,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
-     relics:[],chests:[],fires:[],timers:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt')};
+     relics:[],chests:[],fires:[],timers:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
   G.spells=rank('h_radiance')?SPELLS:SPELLS.slice(0,4);
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
-  { const known=RELICS.filter(r=>META.relicsSeen[r.id]).map(r=>r.id); for(let i=0;i<rank('h_keepsake')&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
+  { const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo).map(r=>r.id); for(let i=0;i<rank('h_keepsake')&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
   META.runs++; save();
   try{G.stainCv=document.createElement('canvas');G.stainCv.width=G.stainCv.height=ARENA/2;G.stainCtx=G.stainCv.getContext('2d')}catch(e){G.stainCv=null}
   buildHud(); toast('Keep them alive.',2.5);
@@ -541,13 +572,24 @@ function applyRelic(id,quiet){
   if(id==='lantern')h.range*=1.25; else if(id==='whistle')h.pickup*=2;
   else if(id==='kettle')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.15);m.hp=m.maxhp*r}
   else if(id==='ego'){G.party[2].dmg*=1.3;G.party[2].ff*=1.3}
+  else if(id==='boot')h.spd*=1.15; else if(id==='coin')G.goldMul*=1.25;
+  else if(id==='tonic'){G.party[1].panicAt=0;G.party[1].miss+=0.1;G.party[1].panicT=0}
+  else if(id==='stew')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.3);m.hp=m.maxhp*r}
+  else if(id==='beacon')h.range*=1.2; else if(id==='pyromania')G.party[2].ff*=0.5; else if(id==='motestorm')h.pickup*=4;
   if(!quiet){toast(RELIC[id].icon+' '+RELIC[id].name,2.2);G.blasts.push({x:h.x,y:h.y,r:60,life:0.5,col:'rgba(255,220,120,'})}
   hudRelics();
 }
 function spawnChest(x,y){G.chests.push({x:clamp(x,40,ARENA-40),y:clamp(y,40,ARENA-40),t:0})}
 function dropChest(){const h=G.healer,a=rnd(0,6.283);spawnChest(h.x+Math.cos(a)*150,h.y+Math.sin(a)*150);toast('Something fell from the sky.',2)}
 function openChest(){
-  const pool=RELICS.filter(r=>!G.relics.includes(r.id));
+  const evo=EVOS.find(r=>!G.relics.includes(r.id)&&hasRelic(r.evo[0])&&hasRelic(r.evo[1]));
+  if(evo){
+    G.lvOpen=true;G.pickKind='relic';G.pendingPicks=[evo];
+    $('lvtitle').textContent='Evolution!';$('lvsub').textContent=RELIC[evo.evo[0]].name+' and '+RELIC[evo.evo[1]].name+' fuse in the chest’s light.';
+    const box=$('lvcards');box.innerHTML='';const b=document.createElement('button');b.className='lvcard evo';b.innerHTML='<b>'+evo.icon+' '+esc(evo.name)+'</b><i>'+esc(evo.desc)+'</i>';b.onclick=()=>chooseRelic(evo.id);box.appendChild(b);
+    $('lvl').classList.remove('hide');return;
+  }
+  const pool=RELICS.filter(r=>!r.evo&&!G.relics.includes(r.id));
   if(!pool.length){G.gold+=100*G.goldMul;G.healer.mana=G.healer.manaMax;toast('An empty chest. Well, some gold.',1.6);return}
   const picks=[];while(picks.length<3&&pool.length)picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
   G.lvOpen=true;G.pickKind='relic';G.pendingPicks=picks;
@@ -561,8 +603,8 @@ function chooseRelic(id){
   applyRelic(id); G.lvOpen=false; G.pickKind='up'; $('lvl').classList.add('hide');
   if(G.lvQueue>0)showLevelUp();
 }
-function hudRelics(){const el=$('relics');if(el&&G)el.textContent=G.relics.map(id=>RELIC[id].icon).join('')}
-const cdMul=()=>Math.pow(0.88,upRank('cdr'))*(1-0.06*rank('h_cdr'))*(hasRelic('hourglass')?0.85:1);
+function hudRelics(){const el=$('relics');if(el&&G)el.innerHTML=G.relics.map(id=>RELIC[id].evo?'<span class="evo">'+RELIC[id].icon+'</span>':RELIC[id].icon).join('')}
+const cdMul=()=>Math.pow(0.88,upRank('cdr'))*(1-0.06*rank('h_cdr'))*(hasRelic('hourglass')?0.85:1)*(hasRelic('beacon')?0.85:1);
 
 // ---------- healing & damage ----------
 function heal(m,amt,src){
@@ -571,18 +613,18 @@ function heal(m,amt,src){
   m.hp+=real; G.stats.healed+=real; META.totalHeal+=real;
   if(real>0){ftext(m.x,m.y-m.r-8,'+'+Math.round(real),'#7dffa0');puff(m.x,m.y,4,'#a8ffc0',40,2)}
   if(over>0&&upRank('overheal')){m.shield=Math.min(m.maxhp*0.3*upRank('overheal'),m.shield+over*0.6)}
-  if(over>0&&hasRelic('chalice'))G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+over*0.2);
+  if(over>0&&hasRelic('chalice'))G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+over*(hasRelic('fountain')?0.4:0.2));
   if(over>0&&upRank('holy')){
     const dmg=over*0.5*upRank('holy'); let hit=0;
     for(const e of G.enemies){if(Math.hypot(e.x-m.x,e.y-m.y)<70+e.r){hurtEnemy(e,dmg,G.healer);hit++}}
     if(hit)G.blasts.push({x:m.x,y:m.y,r:70,life:0.35,col:'rgba(255,240,160,'});
   }
   if(upRank('thorns'))m.blessT=2;
-  if(src==='mend'&&upRank('hot')){m.hot=amt*0.25*upRank('hot');m.hotT=3}
+  if(src==='mend'&&(upRank('hot')||hasRelic('bandage'))){m.hot=amt*(0.25*upRank('hot')+(hasRelic('bandage')?0.2:0));m.hotT=3}
   // gratitude, such as it is
   if(real>10&&m!==G.healer){
-    const p=m.key==='tank'?0.05:m.key==='archer'?0.08:0;
-    if(Math.random()<p){say(m,pick(m.key==='tank'?LINES.tankThanks:LINES.archerThanks));G.stats.thanks++;META.thanks++;ftext(m.x,m.y-m.r-22,'thanks!','#ffd24a',11);if(hasRelic('medal'))G.healer.healPower*=1.03}
+    const p=(m.key==='tank'?0.05:m.key==='archer'?0.08:hasRelic('legend')?0.02:0)*(hasRelic('guestbook')?2:1);
+    if(Math.random()<p){say(m,pick(m.key==='tank'?LINES.tankThanks:LINES.archerThanks));G.stats.thanks++;META.thanks++;ftext(m.x,m.y-m.r-22,'thanks!','#ffd24a',11);if(hasRelic('medal'))G.healer.healPower*=1.03;if(hasRelic('legend')){G.healer.healPower*=1.05;G.legendDmg+=0.02}}
     else if(m.key==='mage'&&Math.random()<0.25)say(m,pick(LINES.mageHealed));
   }
   return real;
@@ -591,7 +633,9 @@ function hurtAlly(m,dmg,src){
   if(!m.alive||dmg<=0)return;
   if(m===G.healer&&m.invT>0)return;
   if(m.key==='tank')dmg*=1-0.06*rank('t_armor');
-  if(m!==G.healer&&inRange(m)){const share=Math.min(0.5,(hasRelic('cord')?0.25:0)+0.15*upRank('martyr'));if(share>0){hurtAlly(G.healer,dmg*share,src);dmg*=1-share;if(!m.alive)return}}
+  if(m===G.healer&&src&&src.type&&hasRelic('mirror'))hurtEnemy(src,dmg*0.15*3,G.healer);
+  if(m===G.healer&&hasRelic('saint')&&m.cd[0]>0)m.cd[0]=Math.max(0,m.cd[0]-dmg/20);
+  if(m!==G.healer&&inRange(m)){const share=Math.min(0.5,(hasRelic('saint')?0.3:hasRelic('cord')?0.25:0)+0.15*upRank('martyr'));if(share>0){hurtAlly(G.healer,dmg*share,src);dmg*=1-share;if(!m.alive)return}}
   if(m.shield>0){const a=Math.min(m.shield,dmg);m.shield-=a;dmg-=a;if(dmg<=0){puff(m.x,m.y,3,'#c8e8ff',60,2);return}}
   m.hp-=dmg; m.hitT=0.15;
   if(m.blessT>0&&src&&src.hp!==undefined&&src.type){hurtEnemy(src,8*upRank('thorns')*(1+G.level*0.05),G.healer);puff(src.x,src.y,3,'#ffe9a8',60,2)}
@@ -614,6 +658,8 @@ function killEnemy(e){
   puff(e.x,e.y,e.boss?40:6,e.col,e.boss?160:70,e.boss?4:2.5); stain(e.x,e.y,'blood',e.boss?30:e.r); ghost(e,e.poseKey,SPR_H[e.type]*(POSE_SCALE[e.poseKey]||1));
   const gems=e.gems*(e.type==='skel'&&hasRelic('bonecharm')?2:1);
   for(let i=0;i<gems;i++)G.gems.push({x:e.x+rnd(-8,8),y:e.y+rnd(-8,8),v:e.xp,life:40});
+  if(hasRelic('stew'))for(const m of G.party)if(m.alive)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.01);
+  if(!e.boss&&!e.elite&&G.chestCd<=0&&G.chests.length===0&&Math.random()<0.006*(hasRelic('compass')?1.5:1)){spawnChest(e.x,e.y);G.chestCd=40;toast('Something glints on the ground.',1.6)}
   if(e.elite){ftext(e.x,e.y-e.r-16,'elite down','#ffd24a',13);if(e.elite==='brood')for(let i=0;i<4;i++)spawnEnemy('imp',e.x+rnd(-30,30),e.y+rnd(-30,30));if(Math.random()<0.15)spawnChest(e.x,e.y)}
   if(e.type==='king'){endRun(true,'king')} else if(e.type==='knight'){toast('The Demon Knight falls. He dropped something.',3);spawnChest(e.x,e.y)}
 }
@@ -654,14 +700,14 @@ function cast(i){
     say(m,m.key==='mage'?'I was resting.':m.key==='tank'?'Did I win?':'I’m alive?! I’m alive!',3); say(h,pick(LINES.revive));
     G.blasts.push({x:m.x,y:m.y,r:50,life:0.5,col:'rgba(255,240,160,'}); ok=true;
   }
-  if(ok){h.castT=0.45;h.mana-=s.mana;let cd=s.cd*cdMul();if(s.id==='revive')cd*=1-0.15*rank('h_revive');h.cd[i]=cd;if(hasRelic('halo'))h.invT=1}
+  if(ok){h.castT=0.45;h.mana-=s.mana;let cd=s.cd*cdMul();if(s.id==='revive')cd*=1-0.15*rank('h_revive');h.cd[i]=cd;if(hasRelic('halo'))h.invT=hasRelic('saint')?2:1}
 }
 function wakeTank(m){
   m.asleep=false; m.sleepT=rnd(18,28)*napMul();
-  if(rank('t_wake')||hasRelic('bell')){const dmg=m.dmg*pdmg()*3;let n=0;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+30){hurtEnemy(o,dmg,m);n++}
+  if(rank('t_wake')||hasRelic('bell')){const dmg=m.dmg*pdmg()*(hasRelic('lullaby')?5:3);let n=0;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+30){hurtEnemy(o,dmg,m);n++}
     m.swing=0.25;G.blasts.push({x:m.x,y:m.y,r:m.reach+30,life:0.35,col:'rgba(200,220,255,'});if(n)ftext(m.x,m.y-40,'RAAH','#fff',14)}
 }
-const napMul=()=>(1+0.15*rank('t_coffee'))*(1+0.25*upRank('coffee'));
+const napMul=()=>(1+0.15*rank('t_coffee'))*(1+0.25*upRank('coffee'))*(hasRelic('cushion')?2:1);
 
 // ---------- enemies ----------
 const ETYPES={
@@ -756,7 +802,7 @@ function updateEnemies(dt){
       else if(e.chargeT<=0){e.chargeT=e.type==='king'?4.5:6;e.charging=0.7;e.cx=(tg.x-e.x);e.cy=(tg.y-e.y);const d=Math.hypot(e.cx,e.cy)||1;e.cx/=d;e.cy/=d;ftext(e.x,e.y-e.r-10,'!!','#ff5a5a',18)}
       if(e.type==='king'){e.sumT-=dt;if(e.sumT<=0){e.sumT=7;for(let i=0;i<6;i++)spawnEnemy('imp',e.x+rnd(-40,40),e.y+rnd(-40,40));G.blasts.push({x:e.x,y:e.y,r:60,life:0.4,col:'rgba(255,60,80,'})}}
     }
-    const spd=e.spd*(e.slow>0?0.45:1)*(e.charging>0?3.2:1)*(hasRelic('snore')&&tank.alive&&tank.asleep&&Math.hypot(tank.x-e.x,tank.y-e.y)<320*G.tauntMul?0.75:1);
+    const spd=e.spd*(e.slow>0?0.45:1)*(e.charging>0?3.2:1)*(hasRelic('snore')&&tank.alive&&tank.asleep&&Math.hypot(tank.x-e.x,tank.y-e.y)<320*G.tauntMul?(hasRelic('lullaby')?0.05:0.75):1);
     const dx=tg.x-e.x,dy=tg.y-e.y,d=Math.hypot(dx,dy)||1;
     const reach=e.r+tg.r+3;
     const T=ETYPES[e.type];
@@ -772,7 +818,8 @@ function updateEnemies(dt){
     if(e.atkT<=0){
       if(e.charging>0){ // charge tramples anyone in the way
         for(const m of allies()){if(Math.hypot(m.x-e.x,m.y-e.y)<e.r+m.r+2){hurtAlly(m,e.dmg*1.5,e);e.atkT=0.5;G.shake=0.25}}
-      }else if(T.ranged){if(d<340){const sp=210;G.shots.push({kind:'bolt',x:e.x,y:e.y-8,vx:dx/d*sp,vy:dy/d*sp,dmg:e.dmg,life:d/sp+0.4,age:0,from:e});e.atkT=e.atkCd;e.castT=0.3}else e.atkT=0.3}
+      }else if(hasRelic('lullaby')&&tank.alive&&tank.asleep&&Math.hypot(tank.x-e.x,tank.y-e.y)<320*G.tauntMul&&!e.boss){e.atkT=0.5;if(Math.random()<dt*2)ftext(e.x,e.y-e.r-8,'z','#cfe',10)}
+      else if(T.ranged){if(d<340){const sp=210;G.shots.push({kind:'bolt',x:e.x,y:e.y-8,vx:dx/d*sp,vy:dy/d*sp,dmg:e.dmg,life:d/sp+0.4,age:0,from:e});e.atkT=e.atkCd;e.castT=0.3}else e.atkT=0.3}
       else if(Math.hypot(tg.x-e.x,tg.y-e.y)<reach+4){hurtAlly(tg,e.dmg,e);e.atkT=e.atkCd;if(tg===h)G.shake=Math.max(G.shake,0.12)}
     }
   }
@@ -792,7 +839,7 @@ function updateTank(m,dt){
   }
   m.sleepT-=dt; for(const e of G.enemies)if(e.elite==='lullaby'&&Math.hypot(e.x-m.x,e.y-m.y)<260){m.sleepT-=dt*2;break}
   if(rank('t_regen')&&m.hp<m.maxhp)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.005*rank('t_regen')*dt);
-  if(m.sleepT<=0){m.asleep=true;m.napT=rnd(6,9)*(1-0.2*rank('t_light'))*(hasRelic('bell')?0.7:1);G.stats.naps++;say(m,pick(LINES.tankSleep),2.5,true);return}
+  if(m.sleepT<=0){m.asleep=true;m.napT=rnd(6,9)*(1-0.2*rank('t_light'))*(hasRelic('bell')?0.7:1)*(hasRelic('cushion')?2:1);G.stats.naps++;say(m,pick(LINES.tankSleep),2.5,true);return}
   const e=nearestEnemy(m,520), dh=Math.hypot(h.x-m.x,h.y-m.y);
   if(e&&(dh<230||Math.hypot(e.x-h.x,e.y-h.y)<dh)){
     const d=Math.hypot(e.x-m.x,e.y-m.y);
@@ -832,7 +879,9 @@ function updateArcher(m,dt){
         if(miss){a+=rnd(0.25,0.6)*(Math.random()<0.5?-1:1);if(Math.random()<0.3)say(m,pick(LINES.archerMiss),1.2)}
         const crit=Math.random()<0.05*rank('a_crit'); const dmg=m.dmg*pdmg()*(crit?3:1);
         G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*460,vy:Math.sin(a)*460,dmg,life:1.1,age:0,from:m,pierce:rank('a_pierce'),hit:[],crit});
-        if(Math.random()<0.15*rank('a_multi')){const a2=a+0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a2)*460,vy:Math.sin(a2)*460,dmg,life:1.1,age:0,from:m,pierce:rank('a_pierce'),hit:[],crit})}
+        const storm=hasRelic('arrowstorm'), pierce=rank('a_pierce')+(storm?1:0);
+        if(storm||Math.random()<0.15*rank('a_multi')+(hasRelic('quiver')?0.2:0)){const a2=a+0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a2)*460,vy:Math.sin(a2)*460,dmg,life:1.1,age:0,from:m,pierce,hit:[],crit})}
+        if(storm){const a3=a-0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a3)*460,vy:Math.sin(a3)*460,dmg,life:1.1,age:0,from:m,pierce,hit:[],crit})}
         m.face=Math.cos(a)<0?-1:1; m.anim+=0.5; m.shotT=0.25;
       }
     }
@@ -850,22 +899,22 @@ function updateMage(m,dt){
   const cluster=(R)=>{let best=null,bn=-1;const en=G.enemies;const step=Math.max(1,Math.floor(en.length/45));for(let i=0;i<en.length;i+=step){const e=en[i];const d=Math.hypot(e.x-m.x,e.y-m.y);if(d>R)continue;let n=0;for(const o of en){if(Math.hypot(o.x-e.x,o.y-e.y)<60)n++;}if(n>bn){bn=n;best=e}}return best};
   if(m.cdT<=0){
     const tg=cluster(340);
-    if(tg){m.cdT=m.atkCd;m.face=tg.x<m.x?-1:1;const dx=tg.x-m.x,dy=tg.y-m.y,d=Math.hypot(dx,dy)||1;m.castT=0.4;G.shots.push({kind:'fire',x:m.x,y:m.y-10,vx:dx/d*300,vy:dy/d*300,tx:tg.x,ty:tg.y,dmg:m.dmg*pdmg()*mageMul(m),r:70*(1+0.1*rank('m_radius')),life:d/300,age:0,from:m})}
+    if(tg){m.cdT=m.atkCd;m.face=tg.x<m.x?-1:1;const dx=tg.x-m.x,dy=tg.y-m.y,d=Math.hypot(dx,dy)||1;m.castT=0.4;G.shots.push({kind:'fire',x:m.x,y:m.y-10,vx:dx/d*300,vy:dy/d*300,tx:tg.x,ty:tg.y,dmg:m.dmg*pdmg()*mageMul(m),r:70*(1+0.1*rank('m_radius'))*(hasRelic('eyebrows')?1.2:1),life:d/300,age:0,from:m})}
     else m.cdT=0.3;
   }
   if(m.metT<=0){
     const tg=cluster(360);
     let n=0; if(tg)for(const e of G.enemies)if(Math.hypot(e.x-tg.x,e.y-tg.y)<110)n++;
-    if(tg&&n>=5){m.metT=13/(1+0.08*rank('m_focus'))*(1-0.12*rank('m_meteor'));m.castT=0.6;G.shots.push({kind:'meteor',x:tg.x,y:tg.y,t:1.1,dmg:m.dmg*4.5*pdmg()*mageMul(m),r:115*(1+0.1*rank('m_radius')),from:m});say(m,pick(LINES.mageMeteor),1.6,true)}
+    if(tg&&n>=5){m.metT=13/(1+0.08*rank('m_focus'))*(1-0.12*rank('m_meteor'))*(hasRelic('pyromania')?0.5:1);m.castT=0.6;G.shots.push({kind:'meteor',x:tg.x,y:tg.y,t:1.1,dmg:m.dmg*4.5*pdmg()*mageMul(m)*(hasRelic('tome')?1.3:1),r:115*(1+0.1*rank('m_radius'))*(hasRelic('eyebrows')?1.2:1),from:m});say(m,pick(LINES.mageMeteor),1.6,true)}
     else m.metT=1;
   }
 }
-const pdmg=()=>(1+0.15*upRank('pdmg'))*(1+0.1*(G.level-1));
+const pdmg=()=>(1+0.15*upRank('pdmg'))*(1+0.1*(G.level-1))*(1+G.legendDmg);
 const mageMul=m=>m.hp>m.maxhp*0.8?1+0.12*rank('m_arrogance'):1;
 function explode(x,y,r,dmg,from){
   for(const e of G.enemies)if(Math.hypot(e.x-x,e.y-y)<r+e.r)hurtEnemy(e,dmg,from);
   let ffHit=false;
-  if(from.key==='mage'&&rank('m_burn')&&r<100)G.fires.push({x,y,r:r*0.7,dps:dmg*0.2,life:1+rank('m_burn')});
+  if(from.key==='mage'&&(rank('m_burn')||hasRelic('pyromania'))&&r<100)G.fires.push({x,y,r:r*0.7,dps:dmg*0.2,life:1+rank('m_burn')+(hasRelic('pyromania')?1:0)});
   for(const m of allies()){if(m===from)continue;if(m===G.healer&&rank('m_precise'))continue;if(Math.hypot(m.x-x,m.y-y)<r+m.r*0.5){const f=dmg*from.ff;if(f>0.5){hurtAlly(m,f,null);m.ffTaken=(m.ffTaken||0)+f;G.stats.ff++;META.ff++;ffHit=true;ftext(m.x,m.y-m.r-14,'ow','#ffb0a0',11)}}}
   if(ffHit&&Math.random()<0.6)say(from,pick(LINES.mageFF),1.8);
   G.blasts.push({x,y,r,life:0.35,col:'rgba(255,140,60,'}); puff(x,y,10,'#ff9a3a',120,3); stain(x,y,'scorch',r); G.shake=Math.max(G.shake,r>100?0.35:0.08);
@@ -913,7 +962,7 @@ function updateHealer(dt){
   if(h.mendT<=0){
     const m=mostWounded();
     if(m&&m.hp<m.maxhp*0.995){
-      const cost=hasRelic('beads')&&Math.random()<0.2?0:mendCost();
+      const cost=(hasRelic('beads')&&Math.random()<0.2)||(hasRelic('fountain')&&m.hp>m.maxhp*0.5)?0:mendCost();
       if(h.mana>=cost){
         h.mana-=cost; h.mendT=h.mendCd*Math.pow(0.85,upRank('haste'));
         heal(m,h.healPower,'mend'); h.castT=0.3; G.beam={x1:h.x,y1:h.y,x2:m.x,y2:m.y,t:0.2};
@@ -924,7 +973,7 @@ function updateHealer(dt){
   // gems
   const pr=h.pickup*(1+0.4*upRank('magnet')), gm=G.gems;
   for(let i=gm.length-1;i>=0;i--){const g=gm[i];g.life-=dt;const dx=h.x-g.x,dy=h.y-g.y,d=Math.hypot(dx,dy);
-    if(d<pr){const s=(260+ (pr-d)*4)*dt;if(d<10){gm.splice(i,1);G.xp+=g.v;h.mana=Math.min(h.manaMax,h.mana+g.v*(2+0.8*upRank('magnet'))*(1+0.3*rank('h_motemana')));continue}g.x+=dx/d*Math.min(s,d);g.y+=dy/d*Math.min(s,d)}
+    if(d<pr){const s=(260+ (pr-d)*4)*dt;if(d<10){gm.splice(i,1);G.xp+=g.v*(hasRelic('jar')?1.5:1);h.mana=Math.min(h.manaMax,h.mana+g.v*(2+0.8*upRank('magnet'))*(1+0.3*rank('h_motemana'))*(hasRelic('motestorm')?2:1));continue}g.x+=dx/d*Math.min(s,d);g.y+=dy/d*Math.min(s,d)}
     else if(g.life<=0)gm.splice(i,1);
   }
   while(G.xp>=G.xpNext){G.xp-=G.xpNext;G.level++;G.xpNext=xpFor(G.level);openLevelUp()}
@@ -935,6 +984,7 @@ function updateAllies(dt){
     if(m.bubbleT>0){m.bubbleT-=dt;if(m.bubbleT<=0)m.bubble=''}
     if(m.hotT>0){m.hotT-=dt;const a=m.hot*dt;const real=Math.min(a,m.maxhp-m.hp);m.hp+=real;G.stats.healed+=real}
     if(m.shield>0)m.shield=Math.max(0,m.shield-dt*4);
+    if(hasRelic('beacon')&&m!==G.healer&&m.hp<m.maxhp&&inRange(m))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.01*dt);
   }
 }
 
@@ -1035,6 +1085,7 @@ function step(dt){
   for(let i=G.texts.length-1;i>=0;i--){const p=G.texts[i];p.life-=dt;p.y+=p.vy*dt;if(p.life<=0)G.texts.splice(i,1)}
   for(let i=G.blasts.length-1;i>=0;i--){const b=G.blasts[i];b.life-=dt;if(b.life<=0)G.blasts.splice(i,1)}
   for(let i=G.ghosts.length-1;i>=0;i--){const g=G.ghosts[i];g.life-=dt;if(g.life<=0)G.ghosts.splice(i,1)}
+  if(G.chestCd>0)G.chestCd-=dt;
   for(let i=G.timers.length-1;i>=0;i--){const t=G.timers[i];t.t-=dt;if(t.t<=0){G.timers.splice(i,1);t.fn()}}
   for(let i=G.fires.length-1;i>=0;i--){const f=G.fires[i];f.life-=dt;if(f.life<=0){G.fires.splice(i,1);continue}for(const e of G.enemies)if(Math.hypot(e.x-f.x,e.y-f.y)<f.r+e.r*0.5)hurtEnemy(e,f.dps*dt,G.party[2]);if(Math.random()<dt*12)G.parts.push({x:f.x+rnd(-f.r,f.r)*0.7,y:f.y+rnd(-f.r,f.r)*0.5,vx:0,vy:-30,life:0.4,col:'#ff9a3a',r:2.5})}
   if(G.beam){G.beam.t-=dt;if(G.beam.t<=0)G.beam=null}
@@ -1236,7 +1287,7 @@ requestAnimationFrame(frame);
 requestAnimationFrame(()=>setTimeout(artFetch,60));   // the art arrives after first paint
 
 // debug / test hooks
-window.TL={get G(){return G},get META(){return META},ART,RELICS,FIELDS,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
+window.TL={get G(){return G},get META(){return META},ART,RELICS,EVOS,FIELDS,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
 const _inputVec=inputVec; inputVec=function(){return window.TL.inputOverride?window.TL.inputOverride():_inputVec()};
 </script>
 </body>

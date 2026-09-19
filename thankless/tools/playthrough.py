@@ -40,6 +40,8 @@ BOT=r"""
     if(alive.length){cx=alive.reduce((s,m)=>s+m.x,0)/alive.length; cy=alive.reduce((s,m)=>s+m.y,0)/alive.length;}
     let tx=cx, ty=cy;
     if(target && best<0.6){ tx=(cx+target.x)/2; ty=(cy+target.y)/2; }
+    // chests: always worth the walk
+    if(G.chests.length){let bc=null,bd=1e9;for(const c of G.chests){const d=Math.hypot(c.x-h.x,c.y-h.y);if(d<bd){bd=d;bc=c}}if(bd<700){tx=bc.x;ty=bc.y;}}
     // graves: go revive if the spell is ready
     if(G.graves.length && h.cd[3]<=0){ tx=G.graves[0].x; ty=G.graves[0].y; }
     // low mana: nearest mote
@@ -51,6 +53,7 @@ BOT=r"""
     const n=Math.hypot(vx,vy); if(n>1){vx/=n;vy/=n;}
     // spells
     if(G.graves.length && h.cd[3]<=0 && h.mana>=60){ TL.cast(3); }
+    if(G.spells.length>4 && h.cd[4]<=0 && h.mana>=50 && G.enemies.filter(e=>Math.hypot(e.x-h.x,e.y-h.y)<h.range).length>=6) TL.cast(4);
     if(target && best<0.45 && h.cd[0]<=0 && h.mana>=30) TL.cast(0);
     const tank=G.party[0]; if(tank.alive && tank.asleep && h.cd[2]<=0 && h.mana>=20 && G.enemies.length>4) TL.cast(2);
     if(h.cd[1]<=0 && h.mana>=40 && alive.filter(m=>m.hp<m.maxhp*0.7).length>=2) TL.cast(1);
@@ -69,7 +72,7 @@ def main():
         pg.goto(URL)
         pg.wait_for_function('window.TL && document.getElementById("start")')
         if a.tree:
-            pg.evaluate("""()=>{const M=window.TL.META; for(const n of window.TL.TREE){M.tree[n.id]=n.max;} M.gold=0;}""")
+            pg.evaluate("""()=>{const M=window.TL.META; for(const n of window.TL.TREE){M.tree[n.id]=n.max;} M.gold=0; for(const r of window.TL.RELICS)M.relicsSeen[r.id]=1;}""")
         pg.evaluate(f"()=>{{window.TL.META.circle={a.circle}; window.TL.META.maxCircle=Math.max(window.TL.META.maxCircle,{a.circle});}}")
         pg.click('#start')
         pg.wait_for_function('window.TL.G')
@@ -81,7 +84,7 @@ def main():
             # auto-pick level-ups
             st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=['pdmg','power','php','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']; let c=p.slice().sort((x,y)=>pref.indexOf(x.id)-pref.indexOf(y.id))[0]; window.TL.chooseUp(c.id);} 
               const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
-                party:G.party.map(m=>m.name+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast}}""")
+                party:G.party.map(m=>m.name+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
             if st is None: break
             m=int(st['t']//a.every)
             if m!=last_min:
@@ -89,7 +92,7 @@ def main():
                 print(f"[{int(st['t'])//60}:{int(st['t'])%60:02d}] lv{st['level']} kills {st['kills']} foes {st['enemies']} | Wren {st['hp']} mana {st['mana']}/{st['manaMax']} heal {st['healPower']} | "+' '.join(st['party'])+f" | healed {int(st['stats']['healed'])} ff {st['stats']['ff']} naps {st['stats']['naps']} oom {st['stats']['oom']}")
                 if a.shots: pg.screenshot(path=os.path.join(OUT,f'tl-{m:03d}.png'))
             if st['over']:
-                print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'upgrades', json.dumps(st['up']))
+                print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'relics', st['relics'] or 'none', 'upgrades', json.dumps(st['up']))
                 break
             if a.stop and st['t']>=a.stop: print('STOPPED at',int(st['t']),'s, art keys ready:',pg.evaluate('()=>Object.keys(window.TL.ART.ready).length')); break
             if time.time()-t0>400: print('TIMEOUT'); break

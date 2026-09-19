@@ -52,6 +52,17 @@ Demon King comes to you.
   overhealing that burns enemies, blessed allies that scorch attackers.
 - Enemies that get within reach of a healer forget everything else. Brom
   (awake or asleep) draws them otherwise.
+- Every minute or so an **event** lands with a banner and a timer: hold a
+  shrine while enemies pour in, a bounty, escort a pilgrim across the field,
+  keep Brom awake for a vigil, survive an ambush with nobody dying, grab a
+  rain of motes. Rewards scale with the ask, from gold and motes to chests,
+  a level, and every cooldown reset.
+- **The party levels up too.** Each member earns XP from their own kills and
+  a share of everyone's, and picks from their own pool of six MMO-style
+  skills in their own voice: passives (Brom's Thick Hide and Sleepwalker,
+  Pip's Barbed Arrows, Vex's Arcane Mind) and actives they cast on cooldown
+  by themselves (Shield Slam, Warcry, Earthquake; Volley, Snare Trap, Focus
+  Shot; Frost Nova, Chain Lightning, Arcane Barrier).
 - From 2:00 an elite arrives every 38 seconds: an existing enemy drawn larger
   with an aura and one affix (swift, armored, healer-hunting, brood, lullaby).
   Hexers, a ranged type, join the mix at 7:00 and lob bolts at the healer.

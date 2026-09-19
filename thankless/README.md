@@ -18,7 +18,7 @@ Demon King comes to you.
   a data URI under `window.TL_ART`. `index.html` fetches it after its first
   paint and swaps each sprite in as it decodes; anything missing keeps its
   vector fallback, so art ships in waves.
-- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 44
+- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 46
   in all (party poses, enemy walk and charge poses, three ground tiles, six
   props, four HUD faces, the menu painting). The name before the dot is the
   key the game looks up; prefixes decide how the packer treats it.
@@ -47,6 +47,9 @@ Demon King comes to you.
   overhealing that burns enemies, blessed allies that scorch attackers.
 - Enemies that get within reach of a healer forget everything else. Brom
   (awake or asleep) draws them otherwise.
+- From 2:00 an elite arrives every 38 seconds: an existing enemy drawn larger
+  with an aura and one affix (swift, armored, healer-hunting, brood, lullaby).
+  Hexers, a ranged type, join the mix at 7:00 and lob bolts at the healer.
 - A Demon Knight arrives at 5:00, the Demon King at 10:00. Killing the King
   wins the run and opens the next **Circle** (+35% enemy HP, +20% damage,
   ×1.5 gold per circle).

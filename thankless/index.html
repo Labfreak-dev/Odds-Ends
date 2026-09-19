@@ -187,7 +187,7 @@
 
 <script>
 'use strict';
-const BUILD='b002-fresh-paint';
+const BUILD='b003-limber';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -208,7 +208,14 @@ function softPatch(im){ // the tile with feathered edges, so it sits on the gras
 window.tlArtLoaded=tlArtLoaded;
 function artFetch(){if(ART_V==='none')return;const t=document.createElement('script');t.src='art.js?v='+ART_V;t.async=true;document.body.appendChild(t)}
 function spr(){for(let i=0;i<arguments.length;i++){const k=arguments[i];if(ART.ready[k])return ART.img[k]}return null}
-function drawSpr(im,x,y,h,face){const w=h*im.width/im.height;ctx.save();ctx.translate(x,y);if(face<0)ctx.scale(-1,1);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
+function sprKey(list){for(const k of list)if(ART.ready[k])return k;return null}
+// Every take is fitted to the same box, so a pose with a raised weapon shrinks the body. Set by eye per pose.
+const POSE_SCALE={brom_swing:1.16,brom_asleep:0.95,wren_cast:1.08,wren_walk:0.93,pip_shoot:0.95,pip_panic:0.96,knight_charge:0.95,king_charge:0.92,brute_b:1.2,vex_cast:1.04};
+function drawSpr(im,x,y,h,face,sx,sy){const w=h*im.width/im.height;ctx.save();ctx.translate(x,y);ctx.scale((face<0?-1:1)*(sx||1),sy||1);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
+// a pose swap gets a short squash; a death gets a collapse-and-fade of the last pose
+function poseSwap(o,key){if(o.poseKey!==key){o.poseKey=key;o.sqUntil=G.t+0.14}}
+function squash(o){const k=o.sqUntil?clamp((o.sqUntil-G.t)/0.14,0,1):0;return [1+0.14*k,1-0.14*k]}
+function ghost(o,key,h){if(!key||!ART.ready[key])return;G.ghosts.push({key,x:o.x,y:o.y+o.r*0.8,face:o.face||1,h,life:0.38,t:0.38})}
 const SPR_H={healer:46,tank:62,archer:44,mage:50,imp:30,bat:24,skel:40,brute:58,cultist:42,knight:80,king:112};
 const DECALS=['decal_grave','decal_rock','decal_stump','decal_cart','decal_bush','decal_bones'], DECAL_H=[52,40,44,70,46,36];
 const hash01=(x,y)=>((((x|0)*73856093)^((y|0)*19349663))>>>0)%1000/1000;
@@ -400,7 +407,7 @@ function newRun(){
   G={t:0,circle:c,healer,party:[tank,archer,mage],enemies:[],shots:[],gems:[],parts:[],texts:[],graves:[],blasts:[],
      spawnT:1.5,waveT:35,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
      level:1,xp:0,xpNext:8,up:{},lvQueue:0,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0},
-     cam:{x:0,y:0},shake:0,fast:1,stainCv:null,hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0};
+     cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0};
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
   META.runs++; save();
   try{G.stainCv=document.createElement('canvas');G.stainCv.width=G.stainCv.height=ARENA/2;G.stainCtx=G.stainCv.getContext('2d')}catch(e){G.stainCv=null}
@@ -419,7 +426,7 @@ function puff(x,y,n,col,spd,r){for(let i=0;i<n;i++){const a=rnd(0,6.283),s=rnd(0
 function stain(x,y,kind,r){
   const g=G.stainCtx; if(!g)return; x/=2;y/=2;
   if(kind==='blood'){const n=r>20?9:3+Math.floor(Math.random()*3);for(let i=0;i<n;i++){g.fillStyle='rgba('+(48+Math.random()*34|0)+',6,10,'+(0.3+Math.random()*0.28)+')';g.beginPath();g.ellipse(x+rnd(-r,r)*0.5,y+rnd(-r,r)*0.4,rnd(1.5,3.5)*(r>20?2.2:1),rnd(1,2.5)*(r>20?2.2:1),rnd(0,3),0,6.283);g.fill()}}
-  else if(r>100){g.fillStyle='rgba(10,6,4,.3)';g.beginPath();g.ellipse(x,y,r*0.4,r*0.32,0,0,6.283);g.fill();g.fillStyle='rgba(30,16,8,.22)';g.beginPath();g.ellipse(x,y,r*0.26,r*0.2,0,0,6.283);g.fill()}
+  else if(r>100){g.fillStyle='rgba(10,6,4,.18)';g.beginPath();g.ellipse(x,y,r*0.36,r*0.28,0,0,6.283);g.fill();g.fillStyle='rgba(30,16,8,.16)';g.beginPath();g.ellipse(x,y,r*0.22,r*0.17,0,0,6.283);g.fill()}
   else{g.fillStyle='rgba(12,8,4,.07)';g.beginPath();g.ellipse(x,y,r*0.2,r*0.15,rnd(0,3),0,6.283);g.fill()}
 }
 function toast(t,d){const el=$('toast');el.textContent=t;el.style.opacity=1;G.toastT=d||1.6}
@@ -457,7 +464,7 @@ function hurtAlly(m,dmg,src){
 function downMember(m){
   m.alive=false;m.asleep=false;m.panicT=0;m.shield=0;m.hot=0;m.bubble='';
   G.graves.push({x:m.x,y:m.y,m});
-  puff(m.x,m.y,14,'#666',90,3); toast(m.name+' is down!',1.8);
+  puff(m.x,m.y,14,'#666',90,3); toast(m.name+' is down!',1.8); ghost(m,m.poseKey,SPR_H[m.key]*(POSE_SCALE[m.poseKey]||1));
   const mage=G.party[2]; if(mage.alive&&mage!==m)say(mage,pick(LINES.mageDown));
   if(!G.party.some(p=>p.alive))endRun(false,'wipe');
 }
@@ -468,7 +475,7 @@ function hurtEnemy(e,dmg,by){
 function killEnemy(e){
   G.kills++; META.kills++;
   const g=e.gold*G.goldMul; G.gold+=g;
-  puff(e.x,e.y,e.boss?40:6,e.col,e.boss?160:70,e.boss?4:2.5); stain(e.x,e.y,'blood',e.boss?30:e.r);
+  puff(e.x,e.y,e.boss?40:6,e.col,e.boss?160:70,e.boss?4:2.5); stain(e.x,e.y,'blood',e.boss?30:e.r); ghost(e,e.poseKey,SPR_H[e.type]*(POSE_SCALE[e.poseKey]||1));
   for(let i=0;i<e.gems;i++)G.gems.push({x:e.x+rnd(-8,8),y:e.y+rnd(-8,8),v:e.xp,life:40});
   if(e.type==='king'){endRun(true,'king')} else if(e.type==='knight'){toast('The Demon Knight falls. Nobody thanks you.',3)}
 }
@@ -835,6 +842,7 @@ function step(dt){
   for(let i=G.parts.length-1;i>=0;i--){const p=G.parts[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.9;p.vy*=0.9;if(p.life<=0)G.parts.splice(i,1)}
   for(let i=G.texts.length-1;i>=0;i--){const p=G.texts[i];p.life-=dt;p.y+=p.vy*dt;if(p.life<=0)G.texts.splice(i,1)}
   for(let i=G.blasts.length-1;i>=0;i--){const b=G.blasts[i];b.life-=dt;if(b.life<=0)G.blasts.splice(i,1)}
+  for(let i=G.ghosts.length-1;i>=0;i--){const g=G.ghosts[i];g.life-=dt;if(g.life<=0)G.ghosts.splice(i,1)}
   if(G.beam){G.beam.t-=dt;if(G.beam.t<=0)G.beam=null}
   if(G.shake>0)G.shake-=dt;
 }
@@ -899,9 +907,10 @@ function memberPose(m){
 }
 function drawMember(m){
   const bob=Math.sin(m.anim)*2, x=m.x, y=m.y+(m.alive?bob:0), f=m.face;
-  shadow(x,m.y,m.r);
-  const im=spr.apply(null,memberPose(m));
-  if(im){ctx.save();if(m.hitT>0)ctx.filter='brightness(2)';drawSpr(im,x,m.y+m.r*0.8+(m.alive?bob*0.5:0),SPR_H[m.key],f);ctx.restore()}
+  const hop=m.panicT>0?Math.abs(Math.sin(G.t*14))*7:0;
+  shadow(x,m.y,m.r*(1-hop/24));
+  const pk=sprKey(memberPose(m)), im=pk?ART.img[pk]:null;
+  if(im){poseSwap(m,pk);const [sx,sy]=squash(m);ctx.save();if(m.hitT>0)ctx.filter='brightness(2)';drawSpr(im,x,m.y+m.r*0.8+(m.alive?bob*0.5:0)-hop,SPR_H[m.key]*(POSE_SCALE[pk]||1),f,sx,sy);ctx.restore()}
   else{
   ctx.save();
   if(m.hitT>0){ctx.filter='brightness(2)'}
@@ -944,8 +953,8 @@ function drawMember(m){
 function drawEnemy(e){
   const x=e.x,y=e.y+Math.sin(G.t*9+e.wob)*1.5,f=e.face||1;
   shadow(x,e.y,e.r);
-  const im=e.boss&&e.charging>0?spr(e.type+'_charge',e.type+'_a',e.type+'_b'):spr(Math.sin(G.t*7+e.wob)>0?e.type+'_a':e.type+'_b',e.type+'_a',e.type+'_b');
-  if(im){ctx.save();if(e.hitT>0)ctx.filter='brightness(2.5)';drawSpr(im,x,e.y+e.r*0.8,SPR_H[e.type],f);ctx.restore()}
+  const pk=sprKey(e.boss&&e.charging>0?[e.type+'_charge',e.type+'_a',e.type+'_b']:[Math.sin(G.t*7+e.wob)>0?e.type+'_a':e.type+'_b',e.type+'_a',e.type+'_b']), im=pk?ART.img[pk]:null;
+  if(im){poseSwap(e,pk);const [sx,sy]=squash(e);const hover=e.type==='bat'?6+Math.sin(G.t*6+e.wob)*3:0;ctx.save();if(e.hitT>0)ctx.filter='brightness(2.5)';drawSpr(im,x,y+e.r*0.8-hover,SPR_H[e.type]*(POSE_SCALE[pk]||1),f,sx*(e.charging>0?1.12:1),sy*(e.charging>0?0.9:1));ctx.restore()}
   else{
   ctx.save(); if(e.hitT>0)ctx.filter='brightness(2.5)';
   ctx.fillStyle=e.col;
@@ -983,6 +992,7 @@ function draw(){
   for(const g of G.graves){ctx.fillStyle='#7a7a88';ctx.fillRect(g.x-7,g.y-14,14,18);ctx.fillStyle='#000';ctx.fillRect(g.x-1,g.y-11,2,10);ctx.fillRect(g.x-4,g.y-8,8,2);ctx.font='9px Verdana';ctx.fillStyle='#ccc';ctx.fillText(g.m.name,g.x-ctx.measureText(g.m.name).width/2,g.y+14)}
   for(const g of G.gems){ctx.fillStyle=g.v>=4?'#ffd24a':'#7cc9ff';ctx.beginPath();ctx.moveTo(g.x,g.y-5);ctx.lineTo(g.x+4,g.y);ctx.lineTo(g.x,g.y+5);ctx.lineTo(g.x-4,g.y);ctx.closePath();ctx.fill()}
   for(const s of G.shots)if(s.kind==='meteor'){ctx.strokeStyle='rgba(255,120,40,'+(0.3+0.5*(1-s.t/1.1))+')';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,120,40,.12)';ctx.fill()}
+  for(const g of G.ghosts){const k=g.life/g.t,im=ART.img[g.key];if(!im)continue;ctx.globalAlpha=k*0.9;drawSpr(im,g.x,g.y,g.h,g.face,1+0.35*(1-k),Math.max(0.12,k*k));}ctx.globalAlpha=1;
   const ents=[]; for(const e of G.enemies)ents.push(e); for(const m of G.party)if(m.alive)ents.push(m); ents.push(h);
   ents.sort((a,b)=>a.y-b.y);
   for(const o of ents){if(o.type)drawEnemy(o);else drawMember(o)}

@@ -58,9 +58,13 @@ Demon King comes to you.
 - A Demon Knight arrives at 5:00, the Demon King at 10:00. Killing the King
   wins the run and opens the next **Circle** (+35% enemy HP, +20% damage,
   ×1.5 gold per circle).
-- Chests fall at 3:00 and 7:00 and the Demon Knight drops one; each offers
-  one of three **relics**, run-long passives with a twist (Pip's misses
-  ricochet, Brom snores enemies to death, overheal refunds mana).
+- Chests fall at 3:00 and 7:00, the Demon Knight drops one, elites
+  sometimes do, and any kill has a small chance (one chest at a time, 40s
+  apart). Each offers one of three **relics**, 26 run-long passives with a
+  twist (Pip's misses ricochet, Brom snores enemies to death, overheal
+  refunds mana), several of them tradeoffs. Hold both halves of one of nine
+  pairs and the next chest fuses them into an **evolution**; the menu lists
+  recipes once found.
 - Gold from a run buys permanent **Training** ranks on the menu — 58 nodes
   in four branches, one per party member, with prerequisites so choices
   open other choices. Some nodes add level-up cards, one adds a fifth spell

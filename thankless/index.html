@@ -217,7 +217,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||META.maxCircle>=1;
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='49f4523f';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='752ba82d';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -1004,7 +1004,7 @@ function hudFaces(){
 }
 function menuArt(){
   if(!ART.ready.title)return;
-  $('titleP').style.backgroundImage='linear-gradient(rgba(20,14,30,.6),rgba(20,14,30,.94)),url('+ART.img.title.src+')';
+  $('titleP').style.backgroundImage='linear-gradient(rgba(20,14,30,.3),rgba(20,14,30,.55) 45%,rgba(20,14,30,.9)),url('+ART.img.title.src+')';
 }
 function updateHud(){
   const h=G.healer;

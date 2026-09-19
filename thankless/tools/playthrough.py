@@ -18,6 +18,7 @@ ap.add_argument('--circle',type=int,default=0)
 ap.add_argument('--tree',action='store_true')
 ap.add_argument('--field',type=int,default=0)
 ap.add_argument('--nobuffs',action='store_true',help='the bot never casts Bless, Haste or Fortify (a control run)')
+ap.add_argument('--party',default='',help='comma list of 3 member keys; unlocks everything')
 ap.add_argument('--shots',action='store_true')
 ap.add_argument('--every',type=float,default=60,help='log interval in game seconds')
 ap.add_argument('--url',default='',help='page to drive instead of ../index.html (tests of a packed copy)')
@@ -43,7 +44,7 @@ BOT=r"""
     let tx=cx, ty=cy;
     if(target && best<0.6){ tx=(cx+target.x)/2; ty=(cy+target.y)/2; }
     // events: go where the event is
-    const ev=G.event; if(ev&&!ev.done){ if(ev.id==='shrine'){tx=ev.x;ty=ev.y;} else if(ev.id==='pilgrim'&&ev.npc.alive){tx=ev.npc.x;ty=ev.npc.y-30;} else if(ev.id==='moterain'){let bg=null,bd=1e9;for(const g of G.gems){if(!g.ev)continue;const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;bg=g;}}if(bg){tx=bg.x;ty=bg.y;}} else if(ev.id==='vigil'&&G.party[0].alive&&G.party[0].asleep&&h.cd[4]<=0&&h.mana>=20)TL.cast(4); }
+    const ev=G.event; if(ev&&!ev.done){ if(ev.id==='shrine'){tx=ev.x;ty=ev.y;} else if(ev.id==='pilgrim'&&ev.npc.alive){tx=ev.npc.x;ty=ev.npc.y-30;} else if(ev.id==='moterain'){let bg=null,bd=1e9;for(const g of G.gems){if(!g.ev)continue;const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;bg=g;}}if(bg){tx=bg.x;ty=bg.y;}} else if(ev.id==='vigil'&&(G.party.find(m=>m.key==='tank')||{}).alive&&G.party.find(m=>m.key==='tank').asleep&&h.cd[4]<=0&&h.mana>=20)TL.cast(4); }
     // chests: always worth the walk
     if(G.chests.length){let bc=null,bd=1e9;for(const c of G.chests){const d=Math.hypot(c.x-h.x,c.y-h.y);if(d<bd){bd=d;bc=c}}if(bd<700){tx=bc.x;ty=bc.y;}}
     // graves: go revive if the spell is ready
@@ -61,7 +62,7 @@ BOT=r"""
     const busiest=alive.filter(m=>Math.hypot(m.x-h.x,m.y-h.y)<h.range).sort((a,b)=>near(b)-near(a))[0];
     if(G.graves.length && h.cd[6]<=0 && h.mana>=60){ TL.cast(6); }
     if(target && best<0.4 && h.cd[0]<=0 && h.mana>=25) TL.cast(0);
-    const tank=G.party[0];
+    const tank=G.party.find(m=>m.key==='tank')||{alive:false};
     if(!NOBUFFS && h.cd[3]<=0 && h.mana>=40 && ((tank.alive && alive.some(m=>m!==tank && m.hp<m.maxhp*0.6 && near(m)>=2)) || G.enemies.length>=14)) TL.cast(3);
     if(!NOBUFFS && h.cd[1]<=0 && h.mana>=35 && busiest && near(busiest)>=3 && busiest.buffDmgT<=0) TL.cast(1);
     if(!NOBUFFS && h.cd[2]<=0 && h.mana>=40 && G.enemies.length>=8 && !alive.some(m=>m.hasteT>0)) TL.cast(2);
@@ -84,6 +85,9 @@ def main():
         if a.tree:
             pg.evaluate("""()=>{const M=window.TL.META; for(const n of window.TL.TREE){M.tree[n.id]=n.max;} M.gold=0; for(const r of window.TL.RELICS)M.relicsSeen[r.id]=1;}""")
         pg.evaluate(f"()=>{{window.TL.META.circle={a.circle}; window.TL.META.maxCircle=Math.max(window.TL.META.maxCircle,{a.circle},{a.field}); window.TL.META.field={a.field};}}")
+        if a.party:
+            pg.evaluate("(p)=>{const M=window.TL.META; M.unlockAll=true; M.party=p.split(','); window.TL.save&&window.TL.save(); location.reload();}", a.party)
+            pg.wait_for_function('window.TL && document.getElementById("start") && !document.getElementById("start").disabled')
         pg.click('#start')
         pg.wait_for_function('window.TL.G')
         pg.evaluate(BOT.replace('(() => {','(() => { const NOBUFFS='+('true' if a.nobuffs else 'false')+';',1))

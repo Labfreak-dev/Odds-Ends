@@ -19,7 +19,7 @@ Demon King comes to you.
   a data URI under `window.TL_ART`. `index.html` fetches it after its first
   paint and swaps each sprite in as it decodes; anything missing keeps its
   vector fallback, so art ships in waves.
-- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 147
+- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 159
   in all (party poses, enemy walk and charge poses, three ground tiles, six
   props, HUD faces, the menu painting, relic and skill icons, and three poses
   plus a face for each of the nine recruits). The name before the dot is the

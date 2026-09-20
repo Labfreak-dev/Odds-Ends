@@ -241,7 +241,7 @@
 
 <script>
 'use strict';
-const BUILD='b020-prayers';
+const BUILD='b021-spellart';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -271,7 +271,7 @@ const ART_V='5cef4efe';         // stamped by pack-art.py; 'none' means no art.j
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
-  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics()};im.src=A[k].src;ART.img[k]=im}
+  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics();if(k.startsWith('spell_')&&G)buildChips()};im.src=A[k].src;ART.img[k]=im}
 }
 function softPatch(im){ // the tile with feathered edges, so it sits on the grass as a patch rather than a square
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(im,0,0,256,256);
@@ -292,6 +292,7 @@ function ghost(o,key,h){if(!key||!ART.ready[key])return;G.ghosts.push({key,x:o.x
 const SPR_H={healer:46,tank:62,archer:44,mage:50,imp:30,bat:24,skel:40,brute:58,cultist:42,hexer:44,knight:80,king:112,ghoul:44,wisp:26,pilgrim:42,necro:48,assassin:44,paladin:56,frost:50,ent:72,wolf:48,vampire:50,gunner:48,robot:52};
 const DECALS=['decal_grave','decal_rock','decal_stump','decal_cart','decal_bush','decal_bones','decal_pillar','decal_brazier','decal_rubble'], DECAL_H=[52,40,44,70,46,36,64,50,40];
 const skillIcon=id=>ART.ready['skill_'+id]?'<img class="ricon big" alt="" src="'+ART.img['skill_'+id].src+'">':'';
+const spellIcon=(id,fallback)=>ART.ready['spell_'+id]?'<img class="ricon big" alt="" src="'+ART.img['spell_'+id].src+'">':(fallback||'');
 const hash01=(x,y)=>((((x|0)*73856093)^((y|0)*19349663))>>>0)%1000/1000;
 
 // ---------- utils ----------
@@ -1869,7 +1870,7 @@ function showLevelUp(){
   $('lvsub').textContent=pick(['Your party killed things. You get the credit.','Somebody has to grow. It is you.','Nobody said thank you, but you did level up.','Brom slept through most of that.','Vex says it was all her.']);
   const box=$('lvcards'); box.innerHTML='';
   for(const u of picks){const b=document.createElement('button');const t=G.pickTiers[u.id]||0;b.className='lvcard t'+t;const r=upRank(u.id);const wkey=u.who==='weapon'?(r?G.wOwner[u.id]:G.pickGive[u.id]):null;const gain=t===4?u.max-r:Math.min(u.max-r,TIERS[t].ranks);
-    b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+gain):(u.who==='weapon'?'new weapon':'new')+(gain>1?' · '+gain+' ranks':''))+'</span><span class="tier">'+TIERS[t].name.toUpperCase()+'</span><b><span class="who '+u.who+'"'+(u.who==='weapon'&&wkey?' style="background:'+CHARS[wkey].col+'"':'')+'>'+esc(u.who==='party'?'Party':u.who==='healer'?'Wren':u.who==='weapon'?(wkey?CHARS[wkey].name:'Weapon'):CHARS[u.who]?CHARS[u.who].name:u.who)+'</span>'+(u.icon?u.icon+' ':'')+esc(u.name)+'</b><i>'+esc((u.who==='weapon'&&wkey?(r?CHARS[wkey].name+' keeps it. ':CHARS[wkey].name+' takes it. '):'')+u.desc)+'</i>'+(upVal(u,r,gain)?'<em class="nv">'+esc(upVal(u,r,gain))+'</em>':'')+(t===4?'<em class="nv">Mythic: maxed out, and everyone healed to full.</em>':'');
+    b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+gain):(u.who==='weapon'?'new weapon':'new')+(gain>1?' · '+gain+' ranks':''))+'</span><span class="tier">'+TIERS[t].name.toUpperCase()+'</span><b><span class="who '+u.who+'"'+(u.who==='weapon'&&wkey?' style="background:'+CHARS[wkey].col+'"':'')+'>'+esc(u.who==='party'?'Party':u.who==='healer'?'Wren':u.who==='weapon'?(wkey?CHARS[wkey].name:'Weapon'):CHARS[u.who]?CHARS[u.who].name:u.who)+'</span>'+(u.spell?spellIcon(u.spell,u.icon+' '):(u.icon?u.icon+' ':''))+esc(u.name)+'</b><i>'+esc((u.who==='weapon'&&wkey?(r?CHARS[wkey].name+' keeps it. ':CHARS[wkey].name+' takes it. '):'')+u.desc)+'</i>'+(upVal(u,r,gain)?'<em class="nv">'+esc(upVal(u,r,gain))+'</em>':'')+(t===4?'<em class="nv">Mythic: maxed out, and everyone healed to full.</em>':'');
     b.onclick=()=>chooseUp(u.id); box.appendChild(b)}
   $('lvl').classList.remove('hide'); return true;
 }
@@ -1956,12 +1957,12 @@ function buildHud(){
   const s=$('spells'); s.innerHTML='';
   hudRelics();
   {const c=document.createElement('div');c.id='chips';s.appendChild(c)}
-  {const b=document.createElement('div');b.className='sp rev hide';b.id='sp-'+REV;b.innerHTML='<span class="k">R</span>'+REVIVE.icon+'<small>'+REVIVE.name.toUpperCase()+'</small><span class="mc">'+reviveCost()+'</span><div class="cd"></div>';b.title=REVIVE.desc;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(REV)});s.appendChild(b)}
+  {const b=document.createElement('div');b.className='sp rev hide';b.id='sp-'+REV;b.innerHTML='<span class="k">R</span>'+spellIcon('revive',REVIVE.icon)+'<small>'+REVIVE.name.toUpperCase()+'</small><span class="mc">'+reviveCost()+'</span><div class="cd"></div>';b.title=REVIVE.desc;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(REV)});s.appendChild(b)}
   buildChips();
 }
 function buildChips(){
   const c=$('chips'); if(!c||!G)return; c.innerHTML='';
-  SPELLS.forEach((sp,i)=>{if(!G.learned[sp.id])return;const d=document.createElement('div');d.className='spc '+sp.kind;d.id='spc-'+sp.id;d.title=sp.name+' — auto. '+sp.desc;d.innerHTML='<span>'+sp.icon+'</span><div class="cd"></div>';c.appendChild(d)});
+  SPELLS.forEach((sp,i)=>{if(!G.learned[sp.id])return;const d=document.createElement('div');d.className='spc '+sp.kind;d.id='spc-'+sp.id;d.title=sp.name+' — auto. '+sp.desc;d.innerHTML=(ART.ready['spell_'+sp.id]?'<img class="ricon" alt="" src="'+ART.img['spell_'+sp.id].src+'">':'<span>'+sp.icon+'</span>')+'<div class="cd"></div>';c.appendChild(d)});
 }
 function hudFaces(){
   if(!G)return;

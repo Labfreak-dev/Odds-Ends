@@ -126,7 +126,7 @@ def pack_one(path):
     key = path.stem; im = Image.open(path)
     if key.startswith("tile_"):
         out = seamless(square(im.convert("RGB"), 256)); q = 80
-    elif key.startswith("relic_") or key.startswith("skill_"):
+    elif key.startswith("relic_") or key.startswith("skill_") or key.startswith("spell_"):
         out = fit(trim(key_out(im)), 64); q = 88
     elif key.startswith("face_"):
         im = im.convert("RGB"); w, h = im.size; sq = min(w, h)

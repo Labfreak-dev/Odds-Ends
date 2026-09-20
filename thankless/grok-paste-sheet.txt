@@ -24,6 +24,7 @@ RULES THAT MATTER
 
 
 
+
 ================ THE PARTY — 14 images ================
 
 --- block 1 (wren_idle, wren_walk, wren_cast, brom_idle) ---
@@ -319,4 +320,28 @@ files: 1=robot_idle.webp  2=robot_walk.webp  3=robot_act.webp  4=face_robot.webp
 2. a boxy brass and steel clockwork robot with a round glass dome head showing a single glowing blue eye, riveted plates, a beam-emitter cannon for one arm, steam vents on its back, rolling forward mid-motion on stubby treaded feet, small puffs of steam. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 3. a boxy brass and steel clockwork robot with a round glass dome head showing a single glowing blue eye, riveted plates, a beam-emitter cannon for one arm, steam vents on its back, firing its cannon arm with a bright red beam and glowing hot vents, steam pouring out. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 4. a boxy brass clockwork robot head, a round glass dome with a single glowing blue eye, riveted plates, small steam puffs. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
+
+
+================ SPELL ICONS — 12 images ================
+
+--- block 41 (spell_surge, spell_mending, spell_regrowth, spell_sanctuary) ---
+files: 1=spell_surge.webp  2=spell_mending.webp  3=spell_regrowth.webp  4=spell_sanctuary.webp
+1. a big glowing white and gold cross of healing light with a burst of sparkles around it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a gold chain of light with four small green healing sparks strung along it, bending as it bounces. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a bright green sprouting seedling with two leaves, small healing motes rising from it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a small round patch of golden holy ground with a soft green light above it and a tiny kneeling figure silhouette. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 42 (spell_radiance, spell_fortify, spell_ward, spell_wall) ---
+files: 1=spell_radiance.webp  2=spell_fortify.webp  3=spell_ward.webp  4=spell_wall.webp
+1. a blazing golden sun with rays reaching out, a small white cross at its heart. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a big blue and silver kite shield with a golden cross, ringed by a pale blue glow. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a translucent blue bubble shield with a small golden heart inside it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a tall glowing wall of golden light seen edge-on, white-hot at the top, standing on dark ground. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 43 (spell_bless, spell_haste, spell_rouse, spell_revive) ---
+files: 1=spell_bless.webp  2=spell_haste.webp  3=spell_rouse.webp  4=spell_revive.webp
+1. a four-pointed golden star of light with a small halo above it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. three curved pale blue speed lines around a pair of winged sandals. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. two loud yellow exclamation marks with a small ringing bell between them. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a golden ankh glowing with white light, a small feather rising from it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
 

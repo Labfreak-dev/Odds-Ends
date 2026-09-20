@@ -274,7 +274,7 @@
 
 <script>
 'use strict';
-const BUILD='b051-steady';
+const BUILD='b052-cineart';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -307,7 +307,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)||(i===3&&META.maxCircle>=3);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='251bda31';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='a79dc910';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -331,8 +331,8 @@ function drawFlames(f,k){const n=Math.max(3,Math.round(f.r/9));for(let i=0;i<n;i
   if(G.parts.length<600&&RAND()<0.35)G.parts.push({x:f.x+rnd(-f.r,f.r)*0.7,y:f.y+rnd(-f.r,f.r)*0.4,vx:rnd(-8,8),vy:-45,life:0.5,col:RAND()<0.5?'#ff9a3a':'#ffd24a',r:2})}
 // b049: the cinematic layer every ultimate shares. Sigil on the ground, entrance flash, pulsing aura, a vignette in the ultimate's colour.
 function ultProg(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);return U?Math.min(1,(U.dur-m.ultT)/0.5):1}
-function ultGround(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m),R=(U.big||80)*1.6+40;
-  if(U.sigil)fxDraw(U.sigil,m.x,m.y+6,R*2*k,R*2*k*0.55,G.t*0.5,0.5*k);
+function ultGround(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m),R=Math.min(150,(U.big||80)*1.1+40);
+  if(U.sigil)fxDraw(U.sigil,m.x,m.y+6,R*2*k,R*2*k*0.55,G.t*0.5,0.35*k);
   ctx.strokeStyle='rgba('+(U.col||'255,230,140')+','+(0.35+0.25*Math.sin(G.t*6))+')';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(m.x,m.y+6,R*k*(1+0.05*Math.sin(G.t*6)),R*k*0.55,0,0,6.283);ctx.stroke()}
 function ultFlash(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m);if(k<1){const g=ctx.createRadialGradient(m.x,m.y-20,10,m.x,m.y-20,260*k+60);g.addColorStop(0,'rgba(255,255,255,'+(0.9*(1-k))+')');g.addColorStop(1,'rgba('+(U.col||'255,230,140')+',0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(m.x,m.y-20,260*k+60,0,6.283);ctx.fill()}
   if(G.parts.length<600&&RAND()<0.5){const a=rnd(0,6.283),rr=rnd(20,(U.big||80)*0.9);G.parts.push({x:m.x+Math.cos(a)*rr,y:m.y+Math.sin(a)*rr*0.5,vx:0,vy:-40,life:0.8,col:'rgb('+(U.col||'255,230,140')+')',r:2.5})}}
@@ -1622,7 +1622,7 @@ const ULTS={
   wren:[
     {id:'lastrites',name:'Last Rites',dur:8,form:'ult_wren',big:110,sigil:'fx_sigil_holy',col:'255,230,140',rays:true,desc:'A wave of light raises every fallen ally at once and makes the whole party untouchable for eight seconds.',
       cast(h){for(const g of G.graves.slice())reviveGrave(g,0.6);for(const a of allies())a.invT=Math.max(a.invT||0,8);G.blasts.push({x:h.x,y:h.y,r:420,life:0.9,col:'rgba(255,245,200,'});puff(h.x,h.y,50,'#fff4c0',300,4);say(h,pick(['Nobody stays down. Not today.','Up. All of you. UP.']),3,true)}},
-    {id:'stayed',name:'The Boy Who Stayed',dur:12,form:'ult_wren2',big:64,col:'140,255,180',desc:'Wren runs at triple speed for twelve seconds, trailing healing light that mends anyone he passes.',
+    {id:'stayed',name:'The Boy Who Stayed',dur:12,form:'ult_wren2',big:76,col:'140,255,180',desc:'Wren runs at triple speed for twelve seconds, trailing healing light that mends anyone he passes.',
       cast(h){h.ultSpdMul=3;h.trT=0;say(h,pick(['Coming! Coming!','Hold on. Hold ON.']),2,true)},
       tick(h,dt){for(const m of G.party)if(m.alive&&!m.noHeal&&m.hp<m.maxhp&&Math.hypot(m.x-h.x,m.y-h.y)<80)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.08*dt);h.trT-=dt;if(h.trT<=0){h.trT=0.22;G.holy.push({x:h.x,y:h.y,r:38,dps:0,life:3,heal:0.02,col:'rgba(160,255,200,'});puff(h.x,h.y,3,'#b0ffc8',40,1.5)}},
       end(h){h.ultSpdMul=1}}],
@@ -1633,7 +1633,7 @@ const ULTS={
     {id:'excomm',name:'Excommunication',dur:2.5,sigil:'fx_sigil_holy',col:'255,255,220',desc:'One enormous smite. Every enemy on screen loses half its health and stands stunned for three seconds. Bosses lose a sixth.',
       cast(h){h.hamT=0;for(const e of uNear(h.x,h.y,720)){hurtEnemy(e,e.hp*(e.boss?0.15:0.5),null);if(!e.dead){e.frozen=Math.max(e.frozen,3);G.zaps.push({pts:[{x:e.x+rnd(-20,20),y:e.y-420},{x:e.x,y:e.y-e.r}],life:0.3,col:'rgba(255,240,160,'})}}G.shake=0.9;say(h,'OUT.',2,true)},
       tick(h,dt){h.hamT+=dt},
-      draw(h){const k=Math.min(1,(h.hamT||0)/0.7);const y=h.y-520+520*k*k;if(!fxDraw('fx_ult_hammer',h.x,y-120,300,300,0,Math.min(1,2-k*1.2))){ctx.fillStyle='#ffd24a';ctx.fillRect(h.x-60,y-200,120,80)}if(k>=1&&(h.hamT||0)<1.1){ctx.fillStyle='rgba(255,255,255,'+(1-(h.hamT-0.7)/0.4)+')';ctx.beginPath();ctx.arc(h.x,h.y,400*(h.hamT-0.5),0,6.283);ctx.fill()}}}],
+      draw(h){const k=Math.min(1,(h.hamT||0)/0.7);const y=h.y-520+520*k*k;if(!fxDraw('fx_ult_hammer',h.x,y-100,220,220,0,Math.min(1,2-k*1.2))){ctx.fillStyle='#ffd24a';ctx.fillRect(h.x-60,y-200,120,80)}if(k>=1&&(h.hamT||0)<1.1){ctx.fillStyle='rgba(255,255,255,'+(0.6*(1-(h.hamT-0.7)/0.4))+')';ctx.beginPath();ctx.arc(h.x,h.y,400*(h.hamT-0.5),0,6.283);ctx.fill()}}}],
   ivy:[
     {id:'oldgrowth',name:'The Old Growth',dur:15,lock:true,form:'ult_ivy',big:170,rays:true,desc:'Ivy roots where she stands and becomes something older: sunlight pours in, trees and beasts rise in every direction, everyone near her mends and everything hostile is shoved away. Nothing can hurt her while it lasts.',
       cast(h){h.minionCap=9;h.ultBeast=0;h.ultRoot=0;for(let i=0;i<6;i++){const a=i*1.047+0.3;raiseMinion(h,h.x+Math.cos(a)*90,h.y+Math.sin(a)*90,'sapling')}
@@ -1650,7 +1650,7 @@ const ULTS={
       tick(h,dt){for(const m of G.party)if(m.alive&&!m.noHeal&&m.hp<m.maxhp&&Math.hypot(m.x-h.x,m.y-h.y)<200)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.08*dt);h.bearT-=dt;if(h.bearT<=0){h.bearT=0.35;for(const e of uNear(h.x,h.y,60)){hurtEnemy(e,h.healPower*3,null);if(!e.boss){const d=Math.hypot(e.x-h.x,e.y-h.y)||1;e.x+=(e.x-h.x)/d*70;e.y+=(e.y-h.y)/d*70;keepIn(e)}puff(e.x,e.y,5,'#b0ffc8',60,2)}}},
       end(h){h.ultSpdMul=1}}],
   tank:[
-    {id:'bignap',name:'The Big Nap',dur:10,form:'ult_tank_nap',big:90,col:'160,190,255',desc:'Brom lies down on purpose. Every snore is a shockwave that throws everything back, and he wakes with a swing five times his usual.',
+    {id:'bignap',name:'The Big Nap',dur:10,form:'ult_tank_nap',big:120,col:'160,190,255',desc:'Brom lies down on purpose. Every snore is a shockwave that throws everything back, and he wakes with a swing five times his usual.',
       cast(m){m.asleep=true;m.napStart=G.t;m.sleepT=99;m.ultNap=true;m.invT=10;m.napT=0.5;say(m,'...zzz. On purpose.',2,true)},
       tick(m,dt){m.napT-=dt;if(m.napT<=0){m.napT=1;for(const e of uNear(m.x,m.y,220)){hurtEnemy(e,m.dmg*pdmg()*dmgMul(m)*1.5,m);if(!e.boss){const d=Math.hypot(e.x-m.x,e.y-m.y)||1;e.x+=(e.x-m.x)/d*100;e.y+=(e.y-m.y)/d*100;keepIn(e)}}G.blasts.push({x:m.x,y:m.y,r:220,life:0.4,col:'rgba(200,220,255,'});ftext(m.x,m.y-m.r-20,'ZZZ','#fff',16);G.shake=Math.max(G.shake,0.25)}},
       end(m){m.ultNap=false;if(m.asleep)wakeTank(m);for(const e of uNear(m.x,m.y,m.reach+90))hurtEnemy(e,m.dmg*pdmg()*dmgMul(m)*5,m);m.swing=0.3;G.blasts.push({x:m.x,y:m.y,r:m.reach+90,life:0.5,col:'rgba(255,255,255,'});ftext(m.x,m.y-40,'RAAAH','#fff',18)}},
@@ -1659,7 +1659,7 @@ const ULTS={
       tick(m,dt){m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.3*dt);m.stT-=dt;if(m.stT<=0){m.stT=0.5;for(const e of uNear(m.x,m.y,360))if(!e.boss){e.target=m;e.tT=1}}},
       end(m){m.spd=m.ultSpd;m.hp=m.maxhp;say(m,'Better.',1.5,true)}}],
   archer:[
-    {id:'rain',name:'Arrow Rain',dur:8,form:'ult_archer',big:80,col:'255,220,120',desc:'Pip climbs a shot and fires a thousand arrows down on the whole field for eight seconds. She does not miss. Once.',
+    {id:'rain',name:'Arrow Rain',dur:8,form:'ult_archer',big:100,col:'255,220,120',desc:'Pip climbs a shot and fires a thousand arrows down on the whole field for eight seconds. She does not miss. Once.',
       cast(m){m.invT=8;m.rainT=0;m.floatY=40;say(m,'WATCH THIS!',2,true)},
       tick(m,dt){m.rainT-=dt;if(m.rainT<=0){m.rainT=0.12;const es=uNear(m.x,m.y,460);for(let i=0;i<4;i++){const e=uPick(es);if(!e)break;G.shots.push({kind:'arrow',x:e.x+rnd(-24,24),y:e.y-330,vx:0,vy:950,dmg:m.dmg*pdmg()*dmgMul(m)*1.1,life:0.36,age:0,from:m,pierce:0,hit:[],noff:true,col:'#ffe9a8'})}m.shotT=0.2}},
       end(m){m.floatY=0;say(m,'Did you SEE that?',2,true)}},
@@ -1684,11 +1684,11 @@ const ULTS={
       tick(m,dt){for(const z of m.readList)if(z.alive)z.hp=z.maxhp},
       end(m){for(const z of m.readList){if(!z.alive)continue;z.big=false;z.dmg/=3;z.maxhp/=3;z.hp=Math.min(z.hp,z.maxhp)}m.readList=[]}}],
   assassin:[
-    {id:'cuts',name:'A Thousand Cuts',dur:4,form:'ult_assassin',big:80,sigil:'fx_sigil_shadow',col:'200,120,255',desc:'Sable vanishes and backstabs every enemy on screen, once each, in four seconds.',
+    {id:'cuts',name:'A Thousand Cuts',dur:4,form:'ult_assassin',big:96,sigil:'fx_sigil_shadow',col:'200,120,255',desc:'Sable vanishes and backstabs every enemy on screen, once each, in four seconds.',
       cast(m){m.hidden=true;m.invT=4;m.cutList=uNear(m.x,m.y,540);m.cutT=0;say(m,'Hold still. All of you.',1.5,true)},
       tick(m,dt){m.cutT-=dt;if(m.cutT<=0){m.cutT=0.1;let e=m.cutList.shift();while(e&&e.dead)e=m.cutList.shift();if(e){m.x=e.x-(e.face||1)*(e.r+8);m.y=e.y;keepIn(m);m.face=e.x<m.x?-1:1;hurtEnemy(e,m.dmg*pdmg()*dmgMul(m)*4,m);m.swing=0.15;puff(m.x,m.y,4,'#fff',50,1.5);ftext(e.x,e.y-e.r-10,'cut','#ffb0b0',11)}}},
       end(m){m.hidden=false;m.hideT=0;m.stalkCd=1;say(m,'Done.',1.5,true)}},
-    {id:'clones',name:'Shadow Clones',dur:12,form:'ult_assassin',big:80,sigil:'fx_sigil_shadow',col:'200,120,255',desc:'Four copies of Sable step out of her shadow and fight beside her for twelve seconds.',
+    {id:'clones',name:'Shadow Clones',dur:12,form:'ult_assassin',big:96,sigil:'fx_sigil_shadow',col:'200,120,255',desc:'Four copies of Sable step out of her shadow and fight beside her for twelve seconds.',
       cast(m){m.clones=[];for(let i=0;i<4;i++)m.clones.push(mkTwin(m,12));say(m,'We. Not I.',2,true)},
       end(m){for(const z of m.clones||[]){z.alive=false;puff(z.x,z.y,8,m.col,60,2)}m.clones=[]}}],
   paladin:[
@@ -1727,12 +1727,12 @@ const ULTS={
       draw(m){const b=m.bat;if(!b)return;const w=150+Math.sin(G.t*9)*14;if(!fxDraw('fx_batstorm',b.x,b.y-20,w,w*0.7,Math.sin(G.t*3)*0.15,0.95,(m.batDir=m.batDir||1)<0)){ctx.fillStyle='rgba(40,20,60,.7)';ctx.beginPath();ctx.ellipse(b.x,b.y-20,70,40,0,0,6.283);ctx.fill()}},
       tick(m,dt){const b=m.bat;const t=nearestEnemy(b,600);if(t){const d=Math.hypot(t.x-b.x,t.y-b.y)||1;b.x+=(t.x-b.x)/d*230*dt;b.y+=(t.y-b.y)/d*230*dt}m.x=b.x;m.y=b.y;keepIn(m);m.batT-=dt;if(m.batT<=0){m.batT=0.3;for(const e of uNear(b.x,b.y,130)){const dmg=m.dmg*pdmg()*dmgMul(m)*1.2;hurtEnemy(e,dmg,m);m.hp=Math.min(m.maxhp,m.hp+dmg*0.3)}}if(G.parts.length<600)for(let i=0;i<3;i++)G.parts.push({x:b.x+rnd(-60,60),y:b.y+rnd(-40,20),vx:rnd(-60,60),vy:rnd(-60,30),life:0.5,col:'#2a1a3a',r:3})},
       end(m){m.hidden=false;m.hp=m.maxhp;m.bat=null;puff(m.x,m.y,20,'#3a2a4a',120,3);say(m,'Refreshed.',2,true)}},
-    {id:'night',name:'Eternal Night',dur:12,form:'ult_vampire',big:84,sigil:'fx_sigil_shadow',col:'160,30,70',desc:'The field goes dark for twelve seconds. Valerian cannot be seen or touched, every hit he lands is a backstab, and enemies forget what they were doing.',
+    {id:'night',name:'Eternal Night',dur:12,form:'ult_vampire',big:100,sigil:'fx_sigil_shadow',col:'160,30,70',desc:'The field goes dark for twelve seconds. Valerian cannot be seen or touched, every hit he lands is a backstab, and enemies forget what they were doing.',
       cast(m){G.nightT=12;m.invT=12;m.ultDmg=4;m.ntT=0;say(m,'Lights out.',2,true)},
       tick(m,dt){G.nightT=m.ultT;m.ntT-=dt;if(m.ntT<=0){m.ntT=2;for(const e of uNear(m.x,m.y,420))if(!e.boss){e.dazed=1.5;e.target=null}}},
       end(m){G.nightT=0;m.ultDmg=1}}],
   gunner:[
-    {id:'highnoon',name:'High Noon',dur:6,form:'ult_gunner',big:80,col:'240,180,90',desc:'Time slows for six seconds while Dusty fans the hammer at everything on screen. He does not reload.',
+    {id:'highnoon',name:'High Noon',dur:6,form:'ult_gunner',big:96,col:'240,180,90',desc:'Time slows for six seconds while Dusty fans the hammer at everything on screen. He does not reload.',
       cast(m){G.slowT=6;m.invT=6;m.hnT=0;m.hnHit=new Set();say(m,'Draw.',1.5,true)},
       tick(m,dt){G.slowT=m.ultT;for(const e of G.enemies)e.slow=Math.max(e.slow||0,0.2);m.hnT-=dt;if(m.hnT<=0){m.hnT=0.15;let es=uNear(m.x,m.y,460).filter(e=>!m.hnHit.has(e));if(!es.length){m.hnHit=new Set();es=uNear(m.x,m.y,460)}let t=null,bd=1e9;for(const e of es){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<bd){bd=d;t=e}}if(t){shoot(m,t,{dmg:m.dmg*pdmg()*dmgMul(m)*1.5,speed:900,pierce:1,col:'#ffd24a'});m.hnHit.add(t)}}},
       end(m){G.slowT=0;say(m,'...yep.',1.5,true)}},
@@ -1741,7 +1741,7 @@ const ULTS={
       draw(m){const f=m.face||1;if(!fxDraw('fx_wagon',m.x-f*46,m.y-16,74,74,0,1,f<0)){ctx.fillStyle='#6a4a2a';ctx.fillRect(m.x-f*46-22,m.y-28,44,22)}},
       tick(m,dt){m.wgT-=dt;if(m.wgT<=0){m.wgT=0.5;const e=uPick(uNear(m.x,m.y,440));if(e){G.shots.push({kind:'meteor',x:e.x+rnd(-20,20),y:e.y+rnd(-20,20),t:1.0,dmg:m.dmg*pdmg()*dmgMul(m)*3,r:100,from:m});m.shotT=0.2}}}}],
   robot:[
-    {id:'meltdown',name:'Meltdown',dur:10,form:'ult_robot',big:84,sigil:'fx_sigil_fire',col:'255,90,50',desc:'Unit 7 overheats on purpose and vents a ring of fire that grows for ten seconds, then reboots at full.',
+    {id:'meltdown',name:'Meltdown',dur:10,form:'ult_robot',big:100,sigil:'fx_sigil_fire',col:'255,90,50',desc:'Unit 7 overheats on purpose and vents a ring of fire that grows for ten seconds, then reboots at full.',
       cast(m){m.invT=10;m.overheated=false;m.heat=0;m.melt=40;say(m,'THERMAL LIMITS: DISENGAGED.',2,true)},
       tick(m,dt){m.melt+=28*dt;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<m.melt+30&&d>m.melt-40){hurtEnemy(e,m.dmg*pdmg()*dmgMul(m)*2.5*dt,m);if(!e.dead&&(!e.bleed||e.bleed.t<=0))e.bleed={dps:m.dmg*pdmg()*0.3,t:3,by:m}}}},
       end(m){m.heat=0;m.hp=m.maxhp;m.melt=0;m.overheated=false;say(m,'REBOOT COMPLETE.',2,true)},
@@ -3117,7 +3117,7 @@ function draw(){
   for(const id of WFAM('orbit'))if(upRank(id)){const o=holderOf(id);if(!holderReady(o))continue;const ev=wEvo(id),el=UPS_BY[id].el,n=[0,2,3,3,4,5][upRank(id)]+(ev?2:0),OR=(66+(ev?20:0))*aoe(),off=WFAM('orbit').indexOf(id)*0.7,key={w_ob_spikes:'fx_ob_spike',w_ob_fire:'fx_ob_fireorb',w_ob_ice:'fx_ob_iceshard',w_ob_skulls:'fx_ob_skull',w_ob_stars:'fx_ob_star'}[id];
     for(let i=0;i<n;i++){const a=(G.orbB||0)+off+i*6.283/n,bx=o.x+Math.cos(a)*OR,by=o.y+Math.sin(a)*OR;if(fxDraw(key,bx,by,28,28,a+1.57,1))continue;ctx.fillStyle=EL_COL[el];ctx.beginPath();ctx.arc(bx,by,7,0,6.283);ctx.fill()}}
   for(const z of G.roots){const k=Math.min(1,z.life);if(fxDraw('fx_roots',z.x,z.y,z.r*2.3,z.r*2,0,0.75*k))continue;ctx.strokeStyle='rgba(90,140,60,'+(0.8*k)+')';ctx.lineWidth=3;for(let i=0;i<5;i++){const a=i*1.257+z.x*0.01;ctx.beginPath();ctx.moveTo(z.x,z.y+4);ctx.quadraticCurveTo(z.x+Math.cos(a)*z.r*0.6,z.y-10-Math.sin(G.t*6+i)*4,z.x+Math.cos(a)*z.r,z.y+Math.sin(a)*z.r*0.5);ctx.stroke()}ctx.fillStyle='rgba(140,220,80,'+(0.25*k)+')';ctx.beginPath();ctx.ellipse(z.x,z.y+4,z.r,z.r*0.5,0,0,6.283);ctx.fill()}
-  for(const f of G.fronts){if(f.glacier){const a=Math.atan2(f.vy,f.vx)+1.571;if(fxDraw('fx_glacier',f.x,f.y-20,f.w,110,a,1))continue}if(fxDraw('fx_front',f.x,f.y,f.w,52,Math.atan2(f.vy,f.vx)+1.571,0.7)){for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2});continue}ctx.save();ctx.translate(f.x,f.y);ctx.rotate(Math.atan2(f.vy,f.vx));ctx.fillStyle='rgba(220,240,255,.55)';ctx.fillRect(-14,-f.w/2,28,f.w);ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(-4,-f.w/2,8,f.w);ctx.restore();for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2})}
+  for(const f of G.fronts){if(f.glacier){const a=Math.atan2(f.vy,f.vx)+1.571;if(fxDraw('fx_glacier',f.x,f.y-20,f.w,f.w*0.35,a,0.95))continue}if(fxDraw('fx_front',f.x,f.y,f.w,52,Math.atan2(f.vy,f.vx)+1.571,0.7)){for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2});continue}ctx.save();ctx.translate(f.x,f.y);ctx.rotate(Math.atan2(f.vy,f.vx));ctx.fillStyle='rgba(220,240,255,.55)';ctx.fillRect(-14,-f.w/2,28,f.w);ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(-4,-f.w/2,8,f.w);ctx.restore();for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2})}
   for(const t of G.tornados){if(fxDraw('fx_tornado',t.x,t.y-t.r*0.5,t.r*2.2,t.r*2.2,0,0.7,Math.sin(G.t*18)>0))continue;ctx.strokeStyle='rgba(200,220,240,.6)';ctx.lineWidth=3;for(let i=0;i<4;i++){const rr=t.r*(0.35+i*0.22);ctx.beginPath();ctx.ellipse(t.x,t.y-i*12,rr,rr*0.4,t.a*0.2,0,6.283);ctx.stroke()}}
   for(const sl of G.slashes){const k=sl.life/0.25;if(fxDraw('fx_slash',sl.x+sl.f*sl.R*0.15,sl.y,sl.R*2.1,sl.R*2.1,0,0.95*k,sl.f<0))continue;ctx.strokeStyle='rgba(255,255,255,'+(0.9*k)+')';ctx.lineWidth=7*k+2;ctx.beginPath();ctx.arc(sl.x,sl.y,sl.R,-1.1*sl.f+(sl.f<0?3.1416:0),1.1*sl.f+(sl.f<0?3.1416:0),sl.f<0);ctx.stroke();ctx.strokeStyle='rgba(180,220,255,'+(0.7*k)+')';ctx.lineWidth=2;ctx.stroke()}
   for(const w of G.whips){const k=w.life/0.22;if(fxDraw('fx_whip',w.x+w.d*w.R*0.52,w.y-4,w.R*1.1,70,0,0.95*k,w.d<0))continue;ctx.strokeStyle='rgba(255,230,160,'+(k*0.9)+')';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(w.x+w.d*10,w.y-30*k);ctx.quadraticCurveTo(w.x+w.d*w.R*0.6,w.y-12,w.x+w.d*w.R,w.y+18*(1-k));ctx.stroke();ctx.strokeStyle='rgba(255,255,255,'+(k*0.7)+')';ctx.lineWidth=2;ctx.stroke()}

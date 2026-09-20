@@ -156,7 +156,7 @@
   <div id="clock">0:00<small id="lvtxt">Lv 1</small></div>
   <div id="evbar" class="hide"><b id="evname"></b><span id="evdesc"></span><div class="bar"><i id="evfill"></i></div><em id="evtime"></em></div>
   <div id="party"></div>
-  <div id="right"><div id="kills"></div><div id="goldtxt"></div><div id="relics"></div></div>
+  <div id="right"><div id="kills"></div><div id="goldtxt"></div><div id="lucktxt"></div><div id="relics"></div></div>
   <button id="pause" class="sm">❚❚</button>
   <div id="bottom"><div id="hbars"><div class="hb"><i id="hhp"></i><span id="hhpt"></span></div><div class="hb m"><i id="hmana"></i><span id="hmanat"></span></div></div></div>
   <div id="spells"></div>
@@ -265,7 +265,7 @@
 
 <script>
 'use strict';
-const BUILD='b039-chat';
+const BUILD='b040-luck';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -362,7 +362,7 @@ const TREE=[
   {id:'h_start',br:'healer',name:'Head Start',desc:'Start each run 1 level higher',max:3,cost:120},
   {id:'h_keepsake',br:'healer',name:'Keepsake',desc:'Start each run with 1 random relic you have found before, per rank',max:3,cost:300,req:['h_start',1]},
   {id:'h_revive',br:'healer',name:'Second Wind',desc:'Revived allies come back with +15% HP per rank',max:3,cost:90},
-  {id:'h_luck',br:'healer',name:'Lucky Star',desc:'Higher card tiers more often, per rank',max:3,cost:180,req:['h_start',1]},
+  {id:'h_luck',br:'healer',name:'Lucky Star',desc:'+15% luck per rank',max:3,cost:180,req:['h_start',1]},
   {id:'h_radiance',br:'healer',name:'Radiance',desc:'A fifth spell: heals and blesses everyone in range at once',max:1,cost:500,req:['h_power2',1]},
   // Brom
   {id:'t_hp',br:'tank',name:'Iron Gut',desc:'Brom +15% HP per rank',max:5,cost:30},
@@ -438,7 +438,7 @@ const TREE=[
     H(k,'speed','Sandals',nm+' +6% move speed per rank',4,45);
     H(k,'vit','Thick Robe',nm+' +20 HP per rank',4,35);
     H(k,'brace','Brace','Party −3% damage taken per rank',4,90,['paspd',2]);
-    H(k,'luck','Lucky Star','Higher card tiers more often, per rank',3,180,['vit',1]);
+    H(k,'luck','Lucky Star','+15% luck per rank',3,180,['vit',1]);
     H(k,'revive','Second Wind','Revived allies come back with +15% HP per rank',3,90);
     H(k,'start','Head Start','Begin each run one level higher',3,120);
   }
@@ -518,6 +518,7 @@ const RELICS=[
   {id:'coin',name:'Lucky Coin',icon:'🪙',desc:'Gold +25%'},
   {id:'bandage',name:'Bandage Roll',icon:'🩹',desc:'Mend also heals over 3s'},
   {id:'compass',name:'Bent Compass',icon:'🧭',desc:'+50% chest drops'},
+  {id:'clover',name:'Four-Leaf Clover',icon:'🍀',desc:'Luck +25%'},
   {id:'metronome',name:'Metronome',icon:'🎼',desc:'+30% buff duration'},
   {id:'hymnal',name:'Hymnal',icon:'📜',desc:'+3s Bless and Haste duration'},
   // b028: the recruits' relics — offered only when they are in the party
@@ -682,6 +683,7 @@ const UPS=[
   {id:'range',who:'healer',name:'Long Arms',desc:'+15% heal range',max:4},
   {id:'boots',who:'healer',name:'Sandals of Fleeing',desc:'+12% move speed',max:4},
   {id:'magnet',who:'healer',name:'Sticky Fingers',desc:'+40% pickup distance; every mote heals the party 1% HP',max:4},
+  {id:'luck',who:'healer',name:'Lucky Streak',desc:'Luck +10%: every tier roll, yours and the party’s, bumps up more often',max:8},
   {id:'vit',who:'healer',name:'Thick Robe',desc:'+25 healer HP, and heal to full',max:4},
   {id:'cdr',who:'healer',name:'Rehearsed Rites',desc:'Spell cooldowns −12%',max:4},
   {id:'overheal',who:'healer',name:'Overflowing Cup',desc:'Overheal becomes a shield',max:3},
@@ -772,7 +774,7 @@ const UPS=[
 ];
 // what each card is worth now, for the "now → next" line
 const UPVAL={power:r=>'+'+20*r+'% heal power',pspd:r=>'+'+10*r+'% party move speed',brace:r=>'−'+Math.round(100-100*Math.pow(0.94,r))+'% party damage taken',haste:r=>'Mend '+Math.round(100-100*Math.pow(0.85,r))+'% faster',range:r=>'+'+Math.round(100*(Math.pow(1.15,r)-1))+'% range',boots:r=>'+'+Math.round(100*(Math.pow(1.12,r)-1))+'% speed',
-  magnet:r=>'+'+40*r+'% pickup, motes heal '+r+'%',vit:r=>'+'+25*r+' HP',cdr:r=>'cooldowns −'+Math.round(100-100*Math.pow(0.88,r))+'%',overheal:r=>'shield up to '+30*r+'% HP',holy:r=>'burn = '+50*r+'% of overheal',hot:r=>'+'+25*r+'% extra healing over 3s',chain:r=>r?'2nd ally healed for 50%':'—',
+  luck:r=>'+'+10*r+'% luck',magnet:r=>'+'+40*r+'% pickup, motes heal '+r+'%',vit:r=>'+'+25*r+' HP',cdr:r=>'cooldowns −'+Math.round(100-100*Math.pow(0.88,r))+'%',overheal:r=>'shield up to '+30*r+'% HP',holy:r=>'burn = '+50*r+'% of overheal',hot:r=>'+'+25*r+'% extra healing over 3s',chain:r=>r?'2nd ally healed for 50%':'—',
   thorns:r=>8*r+' damage per hit taken (scales with level)',pdmg:r=>'+'+15*r+'% party damage',php:r=>'+'+Math.round(100*(Math.pow(1.2,r)-1))+'% party HP',coffee:r=>'naps '+Math.round(100-100/(1+0.25*r))+'% less often',glasses:r=>'misses −'+Math.round(100-100*Math.pow(0.75,r))+'%',manners:r=>'friendly fire −'+Math.round(100-100*Math.pow(0.7,r))+'%',
   martyr:r=>15*r+'% of ally damage taken by you',sanct:r=>'Fortify heals '+15*r+'%',echo:r=>r?'Surge echoes':'—',longbuff:r=>'buffs +'+25*r+'% longer',blesschain:r=>r?'Bless spreads':'—',blessburst:r=>20*r+'% chance to burst',fortburst:r=>r?'knockback':'—',
   w_ember:r=>(1+Math.floor(r/2))+' ember'+(r>=2?'s':'')+', '+Math.round(100*(0.9+0.25*(r-1)))+'% dmg',w_knife:r=>(1+r)+' knives'+(r>=5?', pierce 2':''),w_whip:r=>Math.round(100*(1.3+0.3*(r-1)))+'% dmg, '+(110+10*r)+' reach'+(r>=3?', both sides':''),w_incense:r=>(52+9*r)+' radius, '+Math.round(100*(0.9+0.25*(r-1)))+'% dps',
@@ -787,8 +789,9 @@ const UPVAL={power:r=>'+'+20*r+'% heal power',pspd:r=>'+'+10*r+'% party move spe
 // b018: every card comes in a tier. The tier is how many ranks the pick grants; Mythic maxes the card and heals everyone.
 const TIERS=[{name:'Common',w:70,ranks:2},{name:'Rare',w:19,ranks:3},{name:'Epic',w:7.5,ranks:4},{name:'Legendary',w:2.8,ranks:5},{name:'Mythic',w:0.7,ranks:99}];
 function rollTier(luck){let r=WR()*100,t=0;for(let i=0;i<TIERS.length;i++){r-=TIERS[i].w;if(r<=0){t=i;break}}
-  for(let i=0;i<Math.floor(luck||0);i++)if(t<4&&WR()<0.35)t++;
-  if((luck||0)%1>0&&t<4&&WR()<0.35*((luck||0)%1))t++; return t}
+  // b040: luck is a percent. Each full 100% is a guaranteed bump; the remainder is that chance of one more.
+  let L=luck||0;while(L>0&&t<4){if(WR()*100<Math.min(L,100))t++;L-=100}return t}
+const runLuck=()=>G?15*hr('luck')+10*upRank('luck')+(hasRelic('clover')?25:0):0;
 const upVal=(u,r,g)=>{if(u.evoOf)return '';const f=UPVAL[u.id];g=g||1;if(!f)return '';try{return r?'now '+f(r)+' → '+f(r+g):'→ '+f(g)}catch(e){return ''}};
 const WEAPON_CAP=4;
 // b033: every weapon evolves at rank 5. The Evolve card turns up once the holder has it maxed.
@@ -2346,7 +2349,7 @@ function showMemberLevelUp(m){
   const qpool=(m.q&&Object.keys(m.q).length>=QUIRK_CAP)?[]:QUIRKS.filter(q=>!hasQ(m,q.id)&&!(q.id==='q_swift'&&!m.spd)&&!(q.id==='q_rage'&&!m.atkCd));
   while(picks.length<3&&(pool.length||qpool.length)){const takeQ=qpool.length&&(!pool.length||WR()<0.45);const src=takeQ?qpool:pool;picks.push(src.splice(Math.floor(WR()*src.length),1)[0])}
   if(!picks.length){m.dmg*=1.1;return false}
-  G.pickTiers={};for(const k of picks)if(k.max&&k.kind!=='weapon'){let t=rollTier(0.5*hr('luck'));const left=k.max-skl(m,k.id);if(t<4&&TIERS[t].ranks>left)t=Math.max(0,left-1);G.pickTiers[k.id]=t}
+  G.pickTiers={};for(const k of picks)if(k.max&&k.kind!=='weapon'){let t=rollTier(runLuck());const left=k.max-skl(m,k.id);if(t<4&&TIERS[t].ranks>left)t=Math.max(0,left-1);G.pickTiers[k.id]=t}
   if(!G.askParty){ // b039: they choose for themselves — best tier first, quirks over Common, a new weapon only over Common
     const score=k=>(k.id.startsWith('q_')?0.5:k.kind==='weapon'?0.25:(G.pickTiers[k.id]||0))+WR()*0.9;
     picks.sort((a,b)=>score(b)-score(a)); const k=picks[0];
@@ -2376,7 +2379,7 @@ function showLevelUp(){
   if(!picks.length){G.healer.mana=G.healer.manaMax;return false}
   G.lvOpen=true; G.pickKind='up'; G.pendingPicks=picks;
   {const ev=UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>=u.max&&!wEvo(u.id)&&WEVO[u.id]);if(ev.length&&picks.length>=3){const w=ev[Math.floor(WR()*ev.length)];picks[picks.length-1]={id:'evo_'+w.id,who:'weapon',name:'Evolve: '+WEVO[w.id].name,desc:WEVO[w.id].desc,max:1,icon:w.icon,evoOf:w.id}}}
-  const luck=(G.chestBonus?1.5:0)+0.5*hr('luck')+(hasAch('wins5')&&G.level<=2?1.5:0); G.pickTiers={}; G.pickGive={};
+  const luck=runLuck()+(G.chestBonus?50:0)+(hasAch('wins5')&&G.level<=2?50:0); G.pickTiers={}; G.pickGive={};
   for(const u of picks)if(u.who==='weapon'&&!upRank(u.id)){const cands=G.party.filter(m=>m.alive&&weaponsHeld(m.key)<2);if(cands.length)G.pickGive[u.id]=wpick(cands).key}
   for(const u of picks){let t=rollTier(luck);const left=u.max-upRank(u.id);if(t<4&&TIERS[t].ranks>left)t=Math.max(0,left-1);G.pickTiers[u.id]=t}
   $('lvtitle').textContent=G.chestBonus?'From the chest':'Level '+G.level; G.chestBonus=false;
@@ -2457,6 +2460,7 @@ function runStory(won,why){
   {const evs=Object.keys(G.wEvo||{}).map(id=>WEVO[id].name);if(evs.length)L.push('Something evolved: '+evs.join(', ')+'. Nobody is sure how.')}
   {const held=UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0&&holderOf(u.id));if(held.length)L.push(held.map(u=>holderOf(u.id).name+' carried the '+u.name).join('; ')+'. '+HN()+' only handed them over.')}
   {const qq=G.party.filter(m=>m.q&&Object.keys(m.q).length);if(qq.length)L.push(qq.map(m=>m.name+' went '+Object.keys(m.q).map(id=>(QUIRK[id]||{name:id}).name).join(' and ')).join('. ')+'.')}
+  if(runLuck()>=40)L.push('Luck ran at +'+Math.round(runLuck())+'%. '+(S.tiers&&(S.tiers[3]||S.tiers[4])?'It showed.':'It did not show.'));
   if(S.tiers&&S.tiers[4])L.push(S.tiers[4]===1?'One Mythic card came up. '+HN()+' has not told anyone.':S.tiers[4]+' Mythic cards came up. Somebody is going to ask questions.'); else if(S.tiers&&S.tiers[3])L.push(S.tiers[3]+' Legendary card'+(S.tiers[3]>1?'s':'')+'. '+HN()+' assumes a clerical error.');
   {const srt=[...G.party].sort((a,b)=>(b.grat||0)-(a.grat||0));const top=srt[0],low=srt[srt.length-1];if(top&&(top.grat||0)>=70)L.push(top.name+' ended the run grateful ('+Math.round(top.grat)+'). '+(low!==top&&(low.grat||0)<30?low.name+' owes you and will not say so.':'It took ten minutes.'));else if(low)L.push('Nobody got past warm. '+low.name+' owes you the most and knows it.')}
   if(G.freshAch&&G.freshAch.length)L.push('New: '+G.freshAch.map(a=>a.name).join(', ')+'. '+HN()+' may now be called '+G.freshAch[0].title+'. Nobody will insist.');
@@ -2503,7 +2507,7 @@ function updateHud(){
   const h=G.healer;
   $('clock').firstChild.nodeValue=fmt(G.t); $('lvtxt').textContent='Lv '+G.level;
   $('xp').style.width=(100*G.xp/G.xpNext).toFixed(1)+'%';
-  $('kills').textContent='Kills '+G.kills; $('goldtxt').textContent='Gold '+Math.round(G.gold)+(G.contracts&&G.contracts.length?' · '+G.contracts.map(c=>(c.failed?'✗ ':c.done?'✓ ':'')+contractName(c)).join(', '):'');
+  $('kills').textContent='Kills '+G.kills; {const lk=runLuck();$('lucktxt').textContent=lk?'🍀 Luck +'+Math.round(lk)+'%':''} $('goldtxt').textContent='Gold '+Math.round(G.gold)+(G.contracts&&G.contracts.length?' · '+G.contracts.map(c=>(c.failed?'✗ ':c.done?'✓ ':'')+contractName(c)).join(', '):'');
   for(const m of G.party){const d=$('pc-'+m.key);if(!d)continue;d.classList.toggle('down',!m.alive);
     {const g=d.querySelector('.grat');if(g){g.firstChild.style.transform='scaleX('+((m.grat||0)/100).toFixed(3)+')';g.classList.toggle('b',(m.grat||0)>=70)}}
     d.querySelector('em').textContent=!m.alive?'DOWN':m.asleep?'zzZ':m.panicT>0?'PANIC':m.hidden?'hidden':m.overheated?'OVERHEAT':m.reloadT>0?'reloading':m.wolfT>0?'WOLF':m.frozenT>0?'frozen':m.sinkT>0?'...':m.buffDmgT>0?'blessed':m.hasteT>0?'hasted':m.shield>0?'warded':'';

@@ -260,7 +260,7 @@
 
 <script>
 'use strict';
-const BUILD='b037-he';
+const BUILD='b038-whose';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -457,9 +457,9 @@ const TREE=[
   N('mage','nova2','Colder Nova','+1s Frost Nova freeze per rank',2,130,['focus',1]);
   N('mage','chain2','Longer Chain','+2 Chain Lightning jumps per rank',2,130,['dmg',2]);
   N('mage','barrier2','Thicker Barrier','+50% Arcane Barrier shield per rank',2,120,['hp',1]);
-  N('necro','cap','Deeper Graves','+1 skeleton per rank',2,200,['dmg',2]);
-  N('necro','swift','Restless Dead','+25% skeleton damage per rank',3,100,['dmg',1]);
-  N('necro','bone','Sturdier Bones','+20% skeleton HP per rank',3,80,['hp',1]);
+  N('necro','cap','Deeper Graves','Mortimer raises +1 skeleton per rank',2,200,['dmg',2]);
+  N('necro','swift','Restless Dead','Mortimer’s skeletons +25% damage per rank',3,100,['dmg',1]);
+  N('necro','bone','Sturdier Bones','Mortimer’s skeletons +20% HP per rank',3,80,['hp',1]);
   N('necro','jolt','Gentler Jolt','Mortimer’s wake-up shock no longer damages Brom',1,150,['thanks',1]);
   N('assassin','focus','Focus','Sable −10% chance to forget to come back, per rank',3,120,['xp',1]);
   N('assassin','deep','Deeper Cuts','+1× backstab damage per rank',2,180,['dmg',3]);
@@ -497,7 +497,7 @@ const RELICS=[
   {id:'medal',name:'Thankless Medal',icon:'🎖️',desc:'+3% heal power per thank-you'},
   {id:'bell',who:'tank',name:'Bell of Waking',icon:'🔔',desc:'Brom −30% nap length, wakes swinging'},
   {id:'whistle',name:'Mote Whistle',icon:'🎐',desc:'Double pickup distance'},
-  {id:'bonecharm',name:'Bone Charm',icon:'🦴',desc:'Skeletons drop 2× motes'},
+  {id:'bonecharm',name:'Bone Charm',icon:'🦴',desc:'Enemy skeletons drop 2× motes'},
   {id:'kettle',name:'Iron Kettle',icon:'🫕',desc:'+15% party HP'},
   {id:'hourglass',name:'Cracked Hourglass',icon:'⏳',desc:'Spell cooldowns −15%'},
   {id:'halo',name:'Halo',icon:'😇',desc:'Untouchable for 1s after casting a spell'},
@@ -516,8 +516,8 @@ const RELICS=[
   {id:'metronome',name:'Metronome',icon:'🎼',desc:'+30% buff duration'},
   {id:'hymnal',name:'Hymnal',icon:'📜',desc:'+3s Bless and Haste duration'},
   // b028: the recruits' relics — offered only when they are in the party
-  {id:'phylactery',who:'necro',name:'Phylactery',icon:'⚱️',desc:'2× skeleton lifetime'},
-  {id:'gravedust',who:'necro',name:'Grave Dust',icon:'🪦',desc:'+1 skeleton; skeletons explode on death'},
+  {id:'phylactery',who:'necro',name:'Phylactery',icon:'⚱️',desc:'Mortimer’s skeletons last 2× longer'},
+  {id:'gravedust',who:'necro',name:'Grave Dust',icon:'🪦',desc:'Mortimer raises +1 skeleton, and they explode on death'},
   {id:'smokebomb',who:'assassin',name:'Smoke Bomb',icon:'💨',desc:'Sable −2s hide time and never forgets to come back'},
   {id:'garrote',who:'assassin',name:'Garrote',icon:'🧵',desc:'Backstabs kill enemies under 33% HP (not bosses)'},
   {id:'reliquary',who:'paladin',name:'Reliquary',icon:'🕍',desc:'Gideon’s self-heal also heals nearby allies for 33%'},
@@ -541,7 +541,7 @@ const RELICS=[
   {id:'greencap',who:'archer',name:'Lucky Green Cap',icon:'🧢',desc:'Pip is invisible while panicking'},
   {id:'monocle',who:'mage',name:'Monocle',icon:'🧐',desc:'+25% Vex blast radius, never hits the healer'},
   {id:'scorchmark',who:'mage',name:'Scorch Mark',icon:'♨️',desc:'2× burning ground duration'},
-  {id:'skullcap',who:'necro',name:'Skullcap',icon:'💀',desc:'+50% skeleton HP'},
+  {id:'skullcap',who:'necro',name:'Skullcap',icon:'💀',desc:'Mortimer’s skeletons +50% HP'},
   {id:'blackcandle',who:'necro',name:'Black Candle',icon:'🕯️',desc:'Mortimer’s bolts pierce 2 enemies'},
   {id:'darkcloak',who:'assassin',name:'Dark Cloak',icon:'🧥',desc:'Sable heals 4% HP/s while hidden'},
   {id:'poisonvial',who:'assassin',name:'Poison Vial',icon:'⚗️',desc:'Backstabs poison'},
@@ -569,7 +569,7 @@ const RELICS=[
   {id:'legend',evo:['medal','guestbook'],name:'Legend',icon:'🏅',desc:'+5% heal power and +2% party damage per thank-you'},
   {id:'stew',evo:['kettle','bonecharm'],name:'Stew of Bones',icon:'🍲',desc:'+30% party HP; every kill heals the party 1%'},
   {id:'motestorm',evo:['whistle','jar'],name:'Mote Storm',icon:'🌀',desc:'Unlimited pickup distance; every mote heals the party 2% HP'},
-  {id:'bonecrown',evo:['phylactery','gravedust'],name:'Bone Crown',icon:'👑',desc:'Skeletons never expire, +2 skeletons, they explode on death'},
+  {id:'bonecrown',evo:['phylactery','gravedust'],name:'Bone Crown',icon:'👑',desc:'Mortimer’s skeletons never expire, +2 of them, and they explode on death'},
   {id:'nightwork',evo:['smokebomb','garrote'],name:'Night Work',icon:'🌑',desc:'Backstabs kill enemies under 50% HP; Sable heals while hidden'},
   {id:'cathedral',evo:['reliquary','tabard'],name:'The Cathedral',icon:'⛪',desc:'Gideon +100 aura range; allies in it heal 1% HP/s'},
   {id:'eternalwinter',evo:['snowglobe','hoarfrost'],name:'Eternal Winter',icon:'❄️',desc:'Blizzard freezes the whole field; frozen enemies take +40% damage'},
@@ -867,7 +867,7 @@ const SKILLS={
     {id:'m_barrier',name:'Arcane Barrier',kind:'active',cd:20,desc:'Every 20s: a 40% max HP shield',max:2},
   ],
   necro:[
-    {id:'n_pact',name:'Grave Pact',kind:'passive',desc:'+1 skeleton',max:2},
+    {id:'n_pact',name:'Grave Pact',kind:'passive',desc:'Mortimer raises +1 skeleton',max:2},
     {id:'n_pallor',name:'Deathly Pallor',kind:'passive',desc:'+15% max HP',max:3},
     {id:'n_bolt',name:'Necrotic Bolt',kind:'passive',desc:'+15% damage',max:3},
     {id:'n_harvest',name:'Soul Harvest',kind:'active',cd:15,desc:'Every 15s: skeletons explode, damaging nearby enemies; 2 rise again',max:2},
@@ -1703,7 +1703,7 @@ function openChest(){
   G.lvOpen=true;G.pickKind='relic';G.pendingPicks=picks;
   $('lvtitle').textContent='A chest!';$('lvsub').textContent=pick(['Nobody else wanted to open it.','Brom says it was his idea.','Pip thinks it might be a mimic. It is not.','Vex is not impressed by treasure.']);
   const box=$('lvcards');box.innerHTML='';
-  for(const r of picks){const b=document.createElement('button');b.className='lvcard';b.innerHTML='<b>'+relicIcon(r.id,'big')+' '+esc(r.name)+'</b><i>'+esc(HW(r.desc))+'</i>';b.onclick=()=>chooseRelic(r.id);box.appendChild(b)}
+  for(const r of picks){const b=document.createElement('button');b.className='lvcard';b.innerHTML='<b>'+(r.who&&CHARS[r.who]?'<span class="who" style="background:'+CHARS[r.who].col+'">'+esc(CHARS[r.who].name)+'</span>':'')+relicIcon(r.id,'big')+' '+esc(r.name)+'</b><i>'+esc(HW(r.desc))+'</i>';b.onclick=()=>chooseRelic(r.id);box.appendChild(b)}
   $('lvl').classList.remove('hide');
 }
 function chooseRelic(id){

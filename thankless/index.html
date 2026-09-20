@@ -166,7 +166,7 @@
       <div class="tree" id="picker"></div>
     </div>
     <div class="panel">
-      <h2>Training <span class="sub">(permanent — spend gold)</span></h2>
+      <h2>Training <span class="sub">(permanent — spend gold; follows whoever is going)</span></h2>
       <div class="tabs" id="tabs"></div>
       <div class="tree" id="tree"></div>
     </div>
@@ -224,7 +224,7 @@
 
 <script>
 'use strict';
-const BUILD='b014-habits';
+const BUILD='b015-drills';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -353,6 +353,70 @@ const TREE=[
   {id:'m_radius',br:'mage',name:'Bigger Booms',desc:'+10% blast radius per rank',max:3,cost:110,req:['m_focus',2]},
   {id:'m_burn',br:'mage',name:'Lingering Flame',desc:'Fireballs leave burning ground; longer per rank',max:2,cost:150,req:['m_radius',1]},
 ];
+// Training for everyone (b015): every recruit gets base nodes, and every party member gets ten specials.
+(function(){
+  const NAMES={tank:'Brom',archer:'Pip',mage:'Vex',necro:'Mortimer',assassin:'Sable',paladin:'Gideon',frost:'Frost',ent:'Bramble',wolf:'Lupa',vampire:'Valerian',gunner:'Dusty',robot:'Unit 7'};
+  const PRE={tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'};
+  const RECRUITS=['necro','assassin','paladin','frost','ent','wolf','vampire','gunner','robot'];
+  const third={frost:['cast','Quick Cast','casts 8% faster per rank'],ent:['reach','Longer Boughs','reaches 8% further per rank']};
+  const N=(k,id,name,desc,max,cost,req)=>{const n={id:PRE[k]+'_'+id,br:k,name,desc,max,cost};if(req)n.req=[PRE[k]+'_'+req[0],req[1]];TREE.push(n)};
+  for(const k of RECRUITS){const nm=NAMES[k];
+    N(k,'hp','Hearty',nm+' +15% HP per rank',5,30);
+    N(k,'dmg','Sharper',nm+' +12% damage per rank',5,40);
+    const t=third[k]||['spd','Quick Feet',nm+' +8% speed per rank'];N(k,t[0],t[1],t[2].startsWith(nm)?t[2]:nm+' '+t[2],3,60,['hp',1]);
+  }
+  const generic=(k,skip)=>{const nm=NAMES[k];
+    if(!skip.includes('armor'))N(k,'armor','Thick Skin',nm+' takes 5% less damage per rank',4,90,['hp',2]);
+    N(k,'xp','Quick Study',nm+' earns 15% more XP per rank',3,80);
+    if(!skip.includes('regen'))N(k,'regen','Second Breakfast',nm+' heals 0.4% of max HP a second, per rank',3,110,['hp',3]);
+    N(k,'cd','Drilled',nm+'’s active skills cool down 10% faster per rank',3,120,['xp',1]);
+    N(k,'start','Old Hand',nm+' begins each run already knowing one extra skill, per rank',2,180,['xp',2]);
+    N(k,'stubborn','Stubborn','Once a run, '+nm+' gets back up unaided twelve seconds after falling',1,260,['xp',3]);
+    N(k,'thanks','Good Manners',nm+' is 3% more likely to say thank you, per rank',3,60);
+    N(k,'hero','Last Stand',nm+' deals 15% more per rank while under 40% HP',2,140,['dmg',2]);
+  };
+  for(const k of ['archer','mage',...RECRUITS])generic(k,[]);
+  generic('tank',['armor','regen']);
+  // specifics
+  N('tank','reach','Long Arms','Brom’s swing reaches 8% further per rank',3,80,['dmg',1]);
+  N('tank','shove','Shoulder','Shield Slam knocks 30% further and slows longer, per rank',2,110,['dmg',2]);
+  N('tank','bellow','Bellow','Warcry reaches 25% further per rank',2,110,['coffee',1]);
+  N('tank','dream','Dreams of Stew','Asleep, Brom regains 2% of his HP a second, per rank',2,150,['light',1]);
+  N('archer','quiver','Deep Quiver','Volley looses two more arrows per rank',2,120,['rate',1]);
+  N('archer','trap2','Sharper Traps','Snare Trap deals 30% more per rank',3,90,['aim',1]);
+  N('archer','snipe','Long Shot','Pip’s arrows fly 15% further per rank',2,100,['dmg',2]);
+  N('mage','nova2','Colder Nova','Frost Nova freezes one second longer per rank',2,130,['focus',1]);
+  N('mage','chain2','Longer Chain','Chain Lightning jumps twice more per rank',2,130,['dmg',2]);
+  N('mage','barrier2','Thicker Barrier','Arcane Barrier absorbs 50% more per rank',2,120,['hp',1]);
+  N('necro','cap','Deeper Graves','One more skeleton at a time, per rank',2,200,['dmg',2]);
+  N('necro','swift','Restless Dead','Skeletons deal 25% more per rank',3,100,['dmg',1]);
+  N('necro','bone','Sturdier Bones','Skeletons have 20% more HP per rank',3,80,['hp',1]);
+  N('necro','jolt','Gentler Jolt','Mortimer’s wake-up shock no longer hurts Brom',1,150,['thanks',1]);
+  N('assassin','focus','Focus','Sable forgets to come back 10% less often, per rank',3,120,['xp',1]);
+  N('assassin','deep','Deeper Cuts','Backstabs hit for one more time her damage, per rank',2,180,['dmg',3]);
+  N('assassin','shadow','Shadow Step','Sable is hidden one second less per rank',2,100,['spd',1]);
+  N('paladin','selfh','Bigger Heals','Gideon’s self-heal is 6% of max HP larger per rank. He will mention it',3,90,['hp',1]);
+  N('paladin','share','Humility','His self-heal also mends the nearest ally for half',1,220,['selfh',2]);
+  N('paladin','aura2','Wider Aura','Gideon’s aura reaches 20 further per rank',3,100,['dmg',1]);
+  N('frost','bliz','Deeper Freeze','The blizzard freezes enemies half a second longer per rank',3,110,['dmg',1]);
+  N('frost','kind','Considerate','The blizzard freezes allies half a second less per rank. Three ranks: not at all',3,130,['hp',1]);
+  N('frost','reach','Far Sight','Frost’s bolts reach 15% further per rank',2,90,['cast',1]);
+  N('ent','quick','Quicker Roots','Bramble roots the ground one second sooner per rank',2,110,['dmg',1]);
+  N('ent','patient','Patient','Bramble resurfaces one second sooner per rank',2,90,['hp',1]);
+  N('ent','hold','Deep Roots','Rooted enemies stay slow one second longer per rank',2,100,['quick',1]);
+  N('wolf','control','Self-Control','Lupa bites friends 3% less often per rank',3,110,['thanks',1]);
+  N('wolf','long','Longer Turn','Wolf form lasts three seconds longer per rank',2,130,['dmg',2]);
+  N('wolf','hunger','Hungry','Lupa turns after five fewer motes, per rank',3,100,['spd',1]);
+  N('vampire','thirst','Thirst','Valerian drinks 10% more of what he deals, per rank',3,120,['dmg',1]);
+  N('vampire','cloak','Heavy Cloak','Radiance burns him 25% less per rank',2,110,['hp',1]);
+  N('vampire','mist2','Longer Mist','Mist Form lasts half a second longer per rank',2,100,['spd',1]);
+  N('gunner','cyl','Seventh Chamber','One more shot before a reload, per rank',2,180,['dmg',2]);
+  N('gunner','fast','Fast Hands','Reloads take one second less per rank',3,120,['spd',1]);
+  N('gunner','aim','Steady Aim','+5% chance per rank of a triple-damage shot',3,110,['dmg',1]);
+  N('robot','cool','Better Fins','Unit 7 sheds two more heat a second, per rank',3,110,['hp',1]);
+  N('robot','heat','Bigger Boiler','Overheats ten heat later, per rank',3,100,['dmg',1]);
+  N('robot','eff','Efficient','Each shot adds one less heat, per rank',2,160,['cool',1]);
+})();
 const RELICS=[
   {id:'chalice',name:'Chalice of Overflow',icon:'🏆',desc:'A fifth of every overheal comes back as mana'},
   {id:'snore',name:'Snoring Charm',icon:'💤',desc:'Enemies near a sleeping Brom move at three-quarter speed'},
@@ -404,6 +468,7 @@ function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&typ
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(META))}catch(e){}}
 let META=load();
 const rank=id=>META.tree[id]||0;
+const mrank=(m,suf)=>rank(({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]||'x')+'_'+suf);
 const nodeCost=n=>Math.round(n.cost*Math.pow(1.7,rank(n.id)));
 const nodeOpen=n=>!n.req||rank(n.req[0])>=n.req[1];
 const nodeName=id=>(TREE.find(n=>n.id===id)||{name:id}).name;
@@ -419,7 +484,8 @@ function renderMenu(){
   const F=FIELDS[META.field]; $('fieldName').textContent=F.name; $('fielddesc').textContent=F.desc+(!fieldOpen(1)?' — beat the Demon King once to open '+FIELDS[1].name+'.':!fieldOpen(2)?' — beat him on Circle 1 to open '+FIELDS[2].name+'.':!fieldOpen(3)?' — beat him on Circle 2 to open '+FIELDS[3].name+'.':'');
   $('fieldPrev').disabled=META.field<=0; $('fieldNext').disabled=META.field>=FIELDS.length-1||!fieldOpen(META.field+1);
   const tabs=$('tabs'); tabs.innerHTML='';
-  for(const k in BRANCH){const b=document.createElement('button');b.textContent=BRANCH[k];if(k===treeTab)b.className='on';b.onclick=()=>{treeTab=k;renderMenu()};tabs.appendChild(b)}
+  const tabKeys=['healer',...(META.party||[]).filter(k=>unlocked(k))]; if(!tabKeys.includes(treeTab))treeTab='healer';
+  for(const k of tabKeys){const b=document.createElement('button');b.textContent=k==='healer'?'Wren':CHARS[k].name;if(k===treeTab)b.className='on';b.onclick=()=>{treeTab=k;renderMenu()};tabs.appendChild(b)}
   const tree=$('tree'); tree.innerHTML='';
   for(const n of TREE){ if(n.br!==treeTab)continue;
     const r=rank(n.id), maxed=r>=n.max, cost=nodeCost(n), open=nodeOpen(n);
@@ -627,7 +693,7 @@ const SKILLS={
 };
 const skl=(m,id)=>m.skills[id]||0;
 const mxpFor=l=>Math.round(10+l*5+l*l*0.4);
-function memberXp(m,v){if(!m.alive)return;m.xp+=v;while(m.xp>=m.xpNext){m.xp-=m.xpNext;m.lvl++;m.xpNext=mxpFor(m.lvl);openMemberLevelUp(m.key)}}
+function memberXp(m,v){if(!m.alive)return;m.xp+=v*(1+0.15*mrank(m,'xp'));while(m.xp>=m.xpNext){m.xp-=m.xpNext;m.lvl++;m.xpNext=mxpFor(m.lvl);openMemberLevelUp(m.key)}}
 function memberLevelPool(m){const pool=SKILLS[m.key].filter(k=>skl(m,k.id)<k.max);const C=CHARS[m.key];
   if(m.lvl>=3&&C.weapons[1]&&m.weapon!==C.weapons[1].id&&!m.swapOffered){const w=C.weapons[1];pool.push({id:'swap_'+m.key,name:'Swap: '+w.name,kind:'weapon',desc:w.desc,max:1})}
   return pool}
@@ -647,19 +713,19 @@ function applySkill(m,id){
 function memberSkills(m,dt){
   for(const id in m.acts){m.acts[id]-=dt;if(m.acts[id]>0)continue;
     const k=SKILLS[m.key].find(x=>x.id===id), r=skl(m,id), base=m.dmg*pdmg()*dmgMul(m); let fired=false;
-    if(id==='t_slam'){let n=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<m.reach+e.r+40&&(e.x-m.x)*m.face>-10){hurtEnemy(e,base*(3+r),m);if(!e.boss){e.x+=(e.x-m.x)/Math.max(d,1)*60;e.y+=(e.y-m.y)/Math.max(d,1)*60;e.slow=1.5;keepIn(e)}n++}}
+    if(id==='t_slam'){let n=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<m.reach+e.r+40&&(e.x-m.x)*m.face>-10){hurtEnemy(e,base*(3+r),m);if(!e.boss){const kb=60*(1+0.3*rank('t_shove'));e.x+=(e.x-m.x)/Math.max(d,1)*kb;e.y+=(e.y-m.y)/Math.max(d,1)*kb;e.slow=1.5+0.5*rank('t_shove');keepIn(e)}n++}}
       if(n){fired=true;m.swing=0.25;G.blasts.push({x:m.x+m.face*30,y:m.y,r:50,life:0.3,col:'rgba(220,230,255,'});G.shake=Math.max(G.shake,0.1);ftext(m.x,m.y-40,'SLAM','#fff',13)}}
-    else if(id==='t_cry'){if(G.enemies.length>=4){fired=true;m.fortT=Math.max(m.fortT,4);for(const e of G.enemies)if(!e.boss&&Math.hypot(e.x-m.x,e.y-m.y)<260){e.target=m;e.tT=4}G.cryT=6+2*r;say(m,pick(['RAAAAAH!','COME AND HAVE A GO!','I AM A DOOR!']),2,true);G.blasts.push({x:m.x,y:m.y,r:260,life:0.5,col:'rgba(255,200,120,'})}}
+    else if(id==='t_cry'){if(G.enemies.length>=4){fired=true;m.fortT=Math.max(m.fortT,4);{const CR=260*(1+0.25*rank('t_bellow'));for(const e of G.enemies)if(!e.boss&&Math.hypot(e.x-m.x,e.y-m.y)<CR){e.target=m;e.tT=4}}G.cryT=6+2*r;say(m,pick(['RAAAAAH!','COME AND HAVE A GO!','I AM A DOOR!']),2,true);G.blasts.push({x:m.x,y:m.y,r:260,life:0.5,col:'rgba(255,200,120,'})}}
     else if(id==='t_quake'){let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<110+e.r)n++;
       if(n>=4){fired=true;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<110+e.r){hurtEnemy(e,base*(4+r),m);e.slow=Math.max(e.slow,0.8)}G.blasts.push({x:m.x,y:m.y,r:110,life:0.45,col:'rgba(180,140,90,'});G.shake=0.35;stain(m.x,m.y,'scorch',60);m.swing=0.25}}
-    else if(id==='a_volley'){const c=nearestEnemy(m,380);if(c){fired=true;const a0=Math.atan2(c.y-m.y,c.x-m.x),n=7+2*(r-1);for(let i=0;i<n;i++){const a=a0+(i-(n-1)/2)*0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*440,vy:Math.sin(a)*440,dmg:base*0.8,life:1,age:0,from:m,pierce:0,hit:[]})}m.shotT=0.3;say(m,'Everybody get some!',1.4)}}
-    else if(id==='a_trap'){if(nearestEnemy(m,300)){fired=true;G.traps.push({x:m.x-m.face*10,y:m.y+6,r:34,dmg:base*(3+r),life:20})}}
+    else if(id==='a_volley'){const c=nearestEnemy(m,380);if(c){fired=true;const a0=Math.atan2(c.y-m.y,c.x-m.x),n=7+2*(r-1)+2*rank('a_quiver');for(let i=0;i<n;i++){const a=a0+(i-(n-1)/2)*0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*440,vy:Math.sin(a)*440,dmg:base*0.8,life:1,age:0,from:m,pierce:0,hit:[]})}m.shotT=0.3;say(m,'Everybody get some!',1.4)}}
+    else if(id==='a_trap'){if(nearestEnemy(m,300)){fired=true;G.traps.push({x:m.x-m.face*10,y:m.y+6,r:34,dmg:base*(3+r)*(1+0.3*rank('a_trap2')),life:20})}}
     else if(id==='a_focus'){let t=null,bh=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<440&&e.hp>bh){bh=e.hp;t=e}}
       if(t){fired=true;const a=Math.atan2(t.y-m.y,t.x-m.x);G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,dmg:base*(4+r),life:1.2,age:0,from:m,pierce:3,hit:[],crit:true});m.shotT=0.3}}
     else if(id==='m_nova'){let n=0;const R=130+20*(r-1);for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R)n++;
-      if(n>=3){fired=true;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R+e.r){hurtEnemy(e,base,m);if(!e.boss)e.frozen=2}G.blasts.push({x:m.x,y:m.y,r:R,life:0.5,col:'rgba(160,230,255,'});puff(m.x,m.y,20,'#bfefff',140,2.5);m.castT=0.4;say(m,'Hold still.',1.4)}}
-    else if(id==='m_chain'){let t=nearestEnemy(m,300);if(t){fired=true;const pts=[{x:m.x,y:m.y-10}],hit=[];let cur=t;for(let i=0;i<4+2*(r-1)&&cur;i++){hurtEnemy(cur,base*1.2,m);hit.push(cur);pts.push({x:cur.x,y:cur.y});let nx=null,nd=140;for(const e of G.enemies){if(hit.includes(e)||e.dead)continue;const d=Math.hypot(e.x-cur.x,e.y-cur.y);if(d<nd){nd=d;nx=e}}cur=nx}G.zaps.push({pts,life:0.25});m.castT=0.3}}
-    else if(id==='m_barrier'){if(m.hp<m.maxhp*0.8||nearestEnemy(m,120)){fired=true;m.shield=Math.max(m.shield,m.maxhp*(0.4+0.15*(r-1)));puff(m.x,m.y,10,'#c07cff',80,2)}}
+      if(n>=3){fired=true;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R+e.r){hurtEnemy(e,base,m);if(!e.boss)e.frozen=2+rank('m_nova2')}G.blasts.push({x:m.x,y:m.y,r:R,life:0.5,col:'rgba(160,230,255,'});puff(m.x,m.y,20,'#bfefff',140,2.5);m.castT=0.4;say(m,'Hold still.',1.4)}}
+    else if(id==='m_chain'){let t=nearestEnemy(m,300);if(t){fired=true;const pts=[{x:m.x,y:m.y-10}],hit=[];let cur=t;for(let i=0;i<4+2*(r-1)+2*rank('m_chain2')&&cur;i++){hurtEnemy(cur,base*1.2,m);hit.push(cur);pts.push({x:cur.x,y:cur.y});let nx=null,nd=140;for(const e of G.enemies){if(hit.includes(e)||e.dead)continue;const d=Math.hypot(e.x-cur.x,e.y-cur.y);if(d<nd){nd=d;nx=e}}cur=nx}G.zaps.push({pts,life:0.25});m.castT=0.3}}
+    else if(id==='m_barrier'){if(m.hp<m.maxhp*0.8||nearestEnemy(m,120)){fired=true;m.shield=Math.max(m.shield,m.maxhp*(0.4+0.15*(r-1))*(1+0.5*rank('m_barrier2')));puff(m.x,m.y,10,'#c07cff',80,2)}}
     else if(id==='n_harvest'){const mine=G.minions.filter(x=>x.owner===m);if(mine.length){fired=true;for(const x of mine){for(const e of G.enemies)if(Math.hypot(e.x-x.x,e.y-x.y)<80+e.r)hurtEnemy(e,base*2,m);G.blasts.push({x:x.x,y:x.y,r:80,life:0.35,col:'rgba(120,255,160,'});x.hp=0}for(let i=0;i<2;i++)raiseMinion(m,m.x+rnd(-30,30),m.y+rnd(-30,30));say(m,'Rest. No. Get up.',1.6)}}
     else if(id==='n_wall'){let n=0;for(const a of allies())if(a!==m&&Math.hypot(a.x-m.x,a.y-m.y)<140){a.shield=Math.max(a.shield,a.maxhp*0.15);n++}if(n){fired=true;G.blasts.push({x:m.x,y:m.y,r:140,life:0.4,col:'rgba(220,220,200,'})}}
     else if(id==='n_hex'){let t=null,bh=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<360&&e.hp>bh){bh=e.hp;t=e}}if(t){fired=true;t.marked=6;ftext(t.x,t.y-t.r-12,'hexed','#c8ffb0',12);m.castT=0.3}}
@@ -680,14 +746,14 @@ function memberSkills(m,dt){
     else if(id==='w_rend'){const t=nearestEnemy(m,m.reach+20);if(t){fired=true;hurtEnemy(t,base,m);t.bleed={dps:base*0.3*r,t:5,by:m};m.swing=0.25}}
     else if(id==='v_bats'){let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<150+e.r){hurtEnemy(e,base*(1+0.5*r),m);n++}if(n){fired=true;m.hp=Math.min(m.maxhp,m.hp+n*base*0.5);for(let i=0;i<10;i++)G.parts.push({x:m.x+rnd(-60,60),y:m.y+rnd(-60,60),vx:rnd(-60,60),vy:rnd(-60,60),life:0.5,col:'#3a2a4a',r:3});say(m,'Feed.',1.2)}}
     else if(id==='v_mesmer'){const near=G.enemies.filter(e=>!e.boss&&Math.hypot(e.x-m.x,e.y-m.y)<220).sort((a,b)=>Math.hypot(a.x-m.x,a.y-m.y)-Math.hypot(b.x-m.x,b.y-m.y)).slice(0,5);if(near.length>=3){fired=true;for(const e of near)e.frozen=Math.max(e.frozen,2);say(m,'Look at me.',1.4)}}
-    else if(id==='v_mist'){if(m.hp<m.maxhp*0.4){fired=true;m.hidden=true;m.hideT=2;m.mist=true;say(m,'Excuse me.',1.2)}}
+    else if(id==='v_mist'){if(m.hp<m.maxhp*0.4){fired=true;m.hidden=true;m.hideT=2+0.5*rank('v_mist2');m.mist=true;say(m,'Excuse me.',1.2)}}
     else if(id==='g_fan'){const t=nearestEnemy(m,380);if(t&&m.cyl>0&&m.reloadT<=0){fired=true;const n=m.cyl;m.cyl=0;for(let i=0;i<n;i++)later(i*0.12,()=>{if(!m.alive||!t||t.dead)return;const a=Math.atan2(t.y-m.y,t.x-m.x)+rnd(-0.05,0.05);G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*700,vy:Math.sin(a)*700,dmg:base*(1+0.2*r),life:0.7,age:0,from:m,pierce:0,hit:[],noff:true,col:'#ffd24a'});m.shotT=0.15});m.reloadT=m.reloadTime;say(m,'Yeehaw. RELOADING.',1.6,true)}}
     else if(id==='g_dyn'){const t=nearestEnemy(m,220);if(t){fired=true;const tx=t.x,ty=t.y;G.shots.push({kind:'meteor',x:tx,y:ty,t:1.2,dmg:base*(4+r),r:90,from:m});say(m,pick(['Fire in the hole!','Stand back. Or don’t.']),1.4)}}
     else if(id==='g_ric'){const t=nearestEnemy(m,380);if(t&&m.cyl>0){fired=true;m.cyl--;let cur=t;const hit=[];const pts=[{x:m.x,y:m.y}];for(let i=0;i<3+r&&cur;i++){hurtEnemy(cur,base*1.5,m);hit.push(cur);pts.push({x:cur.x,y:cur.y});let nx=null,nd=160;for(const e of G.enemies){if(hit.includes(e)||e.dead)continue;const d=Math.hypot(e.x-cur.x,e.y-cur.y);if(d<nd){nd=d;nx=e}}cur=nx}G.zaps.push({pts,life:0.2,col:'rgba(255,220,120,'});m.shotT=0.2}}
     else if(id==='r_missile'){const far=G.enemies.filter(e=>Math.hypot(e.x-m.x,e.y-m.y)<460).sort((a,b)=>Math.hypot(b.x-m.x,b.y-m.y)-Math.hypot(a.x-m.x,a.y-m.y)).slice(0,4+r);if(far.length>=2){fired=true;for(const e of far)G.shots.push({kind:'fire',x:m.x,y:m.y-10,vx:(e.x-m.x)/Math.hypot(e.x-m.x,e.y-m.y)*340,vy:(e.y-m.y)/Math.hypot(e.x-m.x,e.y-m.y)*340,dmg:base*3,r:50,life:Math.hypot(e.x-m.x,e.y-m.y)/340,age:0,from:m});m.heat+=10;m.shotT=0.3}}
     else if(id==='r_vent'){if(m.heat>60){fired=true;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<110+e.r)hurtEnemy(e,base*(2+r)+m.heat*0.5,m);m.heat=0;m.overheated=false;G.blasts.push({x:m.x,y:m.y,r:110,life:0.4,col:'rgba(255,120,60,'});puff(m.x,m.y,20,'#ff9a3a',140,3);say(m,'VENTING.',1.2)}}
     else if(id==='r_shield'){if(m.hp<m.maxhp*0.8||nearestEnemy(m,100)){fired=true;m.shield=Math.max(m.shield,m.maxhp*(0.3+0.1*(r-1)));puff(m.x,m.y,10,'#9adcff',80,2)}}
-    m.acts[id]=fired?k.cd:0.5;
+    m.acts[id]=fired?k.cd*(1-0.1*mrank(m,'cd')):0.5;
   }
   if(skl(m,'t_wind')&&m.hp<m.maxhp*0.3&&(m.windT||0)<=0){m.windT=30-5*(skl(m,'t_wind')-1);heal(m,m.maxhp*0.25,'wind');say(m,'Not. Done. Yet.',1.6,true)}
   if(m.windT>0)m.windT-=dt;
@@ -695,7 +761,7 @@ function memberSkills(m,dt){
 const REVIVE={id:'revive',name:'Revive',icon:'☥',key:'R',cd:40,mana:60,desc:'Raises a fallen ally in range at half HP'};
 const REV=6;   // the revive's slot in h.cd
 const buffDur=()=>10*(1+0.25*upRank('longbuff'))*(1+0.08*rank('h_buff'))+(hasRelic('hymnal')?3:0);
-const dmgMul=m=>m.buffDmgT>0?2.5*(1+0.15*rank('h_bless')):(m.choirT>0?1.75:1);
+const dmgMul=m=>(m.buffDmgT>0?2.5*(1+0.15*rank('h_bless')):(m.choirT>0?1.75:1))*(m.key&&m.key!=='healer'&&m.hp<m.maxhp*0.4?1+0.15*mrank(m,'hero'):1);
 const hasteMul=m=>m.hasteT>0?1.6:(m.choirT>0?1.3:1);
 const spdMul=m=>(m.hasteT>0?1.4:(m.choirT>0?1.2:1))*(m.key==='wolf'&&m.wolfT>0?1.5:1);
 const anyBuff=()=>allies().some(m=>m.buffDmgT>0||m.hasteT>0||m.fortT>0);
@@ -798,8 +864,8 @@ function rangedAI(m,dt,near,far,range){
 function shoot(m,t,opts){const a=Math.atan2(t.y-m.y,t.x-m.x)+(opts.spread||0);const sp=opts.speed||460;G.shots.push(Object.assign({kind:'arrow',x:m.x,y:m.y-6,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,dmg:opts.dmg,life:opts.life||1,age:0,from:m,pierce:opts.pierce||0,hit:[],noff:true},opts));m.face=Math.cos(a)<0?-1:1;m.shotT=0.25}
 function raiseMinion(owner,x,y,kind){
   const cap=owner.minionCap||2; const mine=G.minions.filter(z=>z.owner===owner&&z.alive); if(mine.length>=cap)return null;
-  const sap=kind==='sapling', hp=(sap?90:45)*(1+G.t/200);
-  const z={minion:true,kind:sap?'sapling':'skel',owner,x,y,r:9,hp,maxhp:hp,dmg:(sap?9:6)*(1+G.t/300),spd:sap?60:85,atkCd:1,cdT:rnd(0,1),life:20,alive:true,face:1,anim:0,hitT:0,swing:0,shield:0,col:sap?'#6ab04c':'#c8ffb0'};
+  const sap=kind==='sapling', hp=(sap?90:45)*(1+G.t/200)*(owner.key==='necro'?1+0.2*rank('n_bone'):1);
+  const z={minion:true,kind:sap?'sapling':'skel',owner,x,y,r:9,hp,maxhp:hp,dmg:(sap?9:6)*(1+G.t/300)*(owner.key==='necro'?1+0.25*rank('n_swift'):1),spd:sap?60:85,atkCd:1,cdT:rnd(0,1),life:20,alive:true,face:1,anim:0,hitT:0,swing:0,shield:0,col:sap?'#6ab04c':'#c8ffb0'};
   G.minions.push(z); puff(x,y,8,z.col,80,2.5); return z;
 }
 function updateMinions(dt){
@@ -835,7 +901,7 @@ const CHARS={
     make(){return Object.assign(member('necro','Mortimer','#8fd6a8'),{r:12,maxhp:120,spd:60,dmg:10,atkCd:1.5,minionCap:2,joltT:5})},
     onWeapon(m){if(m.weapon==='grimoire'){m.minionCap=4+(m.minionCap-2);m.boltMul=0.6}else m.boltMul=1},
     update(m,dt){const t=rangedAI(m,dt,170,300,380);if(m.cdT<=0&&t){m.cdT=m.atkCd;shoot(m,t,{dmg:m.dmg*pdmg()*dmgMul(m)*(m.boltMul||1),speed:380,col:'#8fd6a8'});m.castT=0.3}
-      m.joltT-=dt;if(m.joltT<=0){const tk=tankOf();if(tk&&tk.alive&&tk.asleep&&Math.hypot(tk.x-m.x,tk.y-m.y)<170){wakeTank(tk);hurtAlly(tk,tk.maxhp*0.04,null);say(tk,'MY BACK.',1.8,true);say(m,pick(['Up. You are not done.','Rise. No, not like that.','The dead have better posture.']),2,true);m.joltT=8}else m.joltT=1}}},
+      m.joltT-=dt;if(m.joltT<=0){const tk=tankOf();if(tk&&tk.alive&&tk.asleep&&Math.hypot(tk.x-m.x,tk.y-m.y)<170){wakeTank(tk);if(!rank('n_jolt'))hurtAlly(tk,tk.maxhp*0.04,null);say(tk,'MY BACK.',1.8,true);say(m,pick(['Up. You are not done.','Rise. No, not like that.','The dead have better posture.']),2,true);m.joltT=8}else m.joltT=1}}},
   assassin:{name:'Sable',role:'The assassin.',blurb:'Backstabs for a fortune, vanishes, and forgets to come back. Nobody can heal what they cannot see.',col:'#6a5a8a',spr:'assassin',h:44,thanks:0.02,glyph:'🗡',
     unlock:{test:()=>META.wins>=1,text:'Beat the Demon King'},
     weapons:[{id:'daggers',name:'Twin Daggers',desc:'Backstabs for four times'},{id:'needles',name:'Poisoned Needles',desc:'Backstabs for twice, but the poison keeps going'}],
@@ -846,8 +912,8 @@ const CHARS={
       if(m.hidden){m.hideT-=dt;if(m.hideT<=0){m.hidden=false;m.mist=false;m.x=h.x+rnd(-60,60);m.y=h.y+rnd(-60,60);keepIn(m);puff(m.x,m.y,8,'#6a5a8a',70,2);say(m,pick(['Miss me?','I was here the whole time.','Where were we.','Sorry. Got distracted.']),1.8,true)}return}
       m.stalkCd-=dt;
       if(m.stalkCd<=0){let t=null,bh=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<420&&e.hp>bh){bh=e.hp;t=e}}
-        if(t){m.x=t.x-(t.face||1)*(t.r+8);m.y=t.y;keepIn(m);m.face=t.x<m.x?-1:1;const mul=(m.weapon==='needles'?2:4)*(1+0.25*skl(m,'s_serrated'));const dmg=m.dmg*pdmg()*dmgMul(m)*mul;hurtEnemy(t,dmg,m);if(m.weapon==='needles')t.bleed={dps:dmg*0.25,t:5,by:m};m.swing=0.25;puff(m.x,m.y,8,'#fff',60,2);ftext(t.x,t.y-t.r-12,'backstab','#ffb0b0',12);
-          const forget=Math.random()<0.3;m.hidden=true;m.hideT=Math.max(1.5,(forget?10:4)-skl(m,'s_step'));m.stalkCd=m.hideT+2;if(forget)say(m,pick(['Ooh, a butterfly.','Back in a bit.','...what was I doing.']),1.5,true);G.stats.stabs=(G.stats.stabs||0)+1;return}
+        if(t){m.x=t.x-(t.face||1)*(t.r+8);m.y=t.y;keepIn(m);m.face=t.x<m.x?-1:1;const mul=((m.weapon==='needles'?2:4)+rank('s_deep'))*(1+0.25*skl(m,'s_serrated'));const dmg=m.dmg*pdmg()*dmgMul(m)*mul;hurtEnemy(t,dmg,m);if(m.weapon==='needles')t.bleed={dps:dmg*0.25,t:5,by:m};m.swing=0.25;puff(m.x,m.y,8,'#fff',60,2);ftext(t.x,t.y-t.r-12,'backstab','#ffb0b0',12);
+          const forget=Math.random()<0.3-0.1*rank('s_focus');m.hidden=true;m.hideT=Math.max(1.5,(forget?10:4)-skl(m,'s_step')-rank('s_shadow'));m.stalkCd=m.hideT+2;if(forget)say(m,pick(['Ooh, a butterfly.','Back in a bit.','...what was I doing.']),1.5,true);G.stats.stabs=(G.stats.stabs||0)+1;return}
         m.stalkCd=0.5}
       meleeAI(m,dt,{cleave:1})}},
   paladin:{name:'Gideon',role:'The paladin.',blurb:'Heals. Badly, only himself, and he announces it. Competes with you for thank-yous.',col:'#ffd98a',spr:'paladin',h:56,thanks:0,glyph:'✝',
@@ -857,7 +923,7 @@ const CHARS={
     make(){return Object.assign(member('paladin','Gideon','#ffd98a'),{r:15,maxhp:210,spd:80,dmg:10,atkCd:1,reach:42,selfT:10,readT:4})},
     onWeapon(m){},
     update(m,dt){const h=G.healer;m.selfT-=dt;
-      if(m.selfT<=0&&m.hp<m.maxhp*0.9){m.selfT=10;m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.12);ftext(m.x,m.y-m.r-8,'+'+Math.round(m.maxhp*0.12),'#ffe9a8');say(m,pick(['Healed! Myself. You are welcome.','Behold: healing.','See, Wren? Like that.']),2,true);G.stats.selfHeals=(G.stats.selfHeals||0)+1}
+      if(m.selfT<=0&&m.hp<m.maxhp*0.9){m.selfT=10;const sh=0.12+0.06*rank('p_selfh');m.hp=Math.min(m.maxhp,m.hp+m.maxhp*sh);ftext(m.x,m.y-m.r-8,'+'+Math.round(m.maxhp*sh),'#ffe9a8');if(rank('p_share')){let a=null,bd=1e9;for(const o of allies()){if(o===m)continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<bd){bd=d;a=o}}if(a&&bd<160){a.hp=Math.min(a.maxhp,a.hp+m.maxhp*sh*0.5);ftext(a.x,a.y-a.r-8,'+'+Math.round(m.maxhp*sh*0.5),'#ffe9a8')}}say(m,pick(['Healed! Myself. You are welcome.','Behold: healing.','See, Wren? Like that.']),2,true);G.stats.selfHeals=(G.stats.selfHeals||0)+1}
       if(m.weapon==='book'){m.readT-=dt;const dh=Math.hypot(h.x-m.x,h.y-m.y);if(dh>90)moveToward(m,h.x,h.y,m.spd*spdMul(m),dt);
         if(m.readT<=0){m.readT=4;let n=0;for(const a of allies())if(a!==m&&Math.hypot(a.x-m.x,a.y-m.y)<140&&a.hp<a.maxhp){a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.05);n++}if(n){m.castT=0.4;say(m,pick(['Blessings. Mine.','Verse twelve.','Feel that? Me.']),1.6)}}return}
       meleeAI(m,dt,{cleave:2})}},
@@ -869,11 +935,11 @@ const CHARS={
     onWeapon(m){},
     update(m,dt){const h=G.healer;m.cdT-=dt*hasteMul(m);m.blizzT-=dt*hasteMul(m);if(m.blinkCd>0)m.blinkCd-=dt;
       if(m.blinkCd<=0&&Math.hypot(h.x-m.x,h.y-m.y)>330){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*70;m.y=h.y+Math.sin(a)*70;keepIn(m);m.blinkCd=2;puff(m.x,m.y,8,'#bfefff',80,2);say(m,pick(['Slow down.','I do not run.']))}
-      const t=nearestEnemy(m,340);
+      const t=nearestEnemy(m,340*(1+0.15*rank('f_reach')));
       if(m.cdT<=0&&t){m.cdT=m.atkCd;shoot(m,t,{dmg:m.dmg*pdmg()*dmgMul(m),speed:420,col:'#bfefff',freeze:1+0.5*skl(m,'f_deep')});m.castT=0.3}
       if(m.blizzT<=0){const R=m.weapon==='mittens'?100:150;let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R)n++;
-        if(n>=3){m.blizzT=10;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R+e.r){hurtEnemy(e,m.dmg*pdmg()*dmgMul(m)*1.5,m);if(!e.boss)e.frozen=Math.max(e.frozen,1.5+0.5*skl(m,'f_deep'))}
-          if(m.weapon!=='mittens'){for(const a of allies())if(a!==m&&Math.hypot(a.x-m.x,a.y-m.y)<R){a.frozenT=1.5;ftext(a.x,a.y-a.r-14,'frozen','#bfefff',11);G.stats.ff++;META.ff++}}
+        if(n>=3){m.blizzT=10;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R+e.r){hurtEnemy(e,m.dmg*pdmg()*dmgMul(m)*1.5,m);if(!e.boss)e.frozen=Math.max(e.frozen,1.5+0.5*skl(m,'f_deep')+0.5*rank('f_bliz'))}
+          if(m.weapon!=='mittens'){for(const a of allies())if(a!==m&&rank('f_kind')<3&&Math.hypot(a.x-m.x,a.y-m.y)<R){a.frozenT=1.5-0.5*rank('f_kind');ftext(a.x,a.y-a.r-14,'frozen','#bfefff',11);G.stats.ff++;META.ff++}}
           G.blasts.push({x:m.x,y:m.y,r:R,life:0.5,col:'rgba(180,240,255,'});puff(m.x,m.y,24,'#e8fbff',150,2.5);m.castT=0.5;say(m,pick(['Everybody hold still.','Nobody move. Good.','Brisk, isn’t it.']),1.6,true)}
         else m.blizzT=1}}},
   ent:{name:'Bramble',role:'The ancient ent.',blurb:'Enormous, rooted, and will not move a step. Catches fire from Vex constantly.',col:'#6ab04c',spr:'ent',h:72,thanks:0.04,glyph:'🌳',
@@ -885,12 +951,12 @@ const CHARS={
     update(m,dt){const h=G.healer;m.cdT-=dt*hasteMul(m);if(m.swing>0)m.swing-=dt;m.rootT-=dt;
       const dh=Math.hypot(h.x-m.x,h.y-m.y);
       if(m.sinkT>0){m.sinkT-=dt;if(m.sinkT<=0){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*80;m.y=h.y+Math.sin(a)*80;keepIn(m);puff(m.x,m.y,16,'#6ab04c',90,3);say(m,pick(['...fine.','...there.','...you walk too much.']),2,true)}return}
-      if(dh>420){m.sinkT=3;puff(m.x,m.y,12,'#5a4a30',80,3);say(m,'...hrm.',1.5);return}
+      if(dh>420){m.sinkT=Math.max(1,3-rank('e_patient'));puff(m.x,m.y,12,'#5a4a30',80,3);say(m,'...hrm.',1.5);return}
       const e=nearestEnemy(m,m.weapon==='acorns'?320:m.reach+30);
       if(e&&m.cdT<=0){m.cdT=m.atkCd;m.swing=0.25;const dmg=m.dmg*pdmg()*dmgMul(m);
         if(m.weapon==='acorns')shoot(m,e,{dmg:dmg*0.5,speed:380,col:'#8a6a3a'});
         else{let n=0;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+10){hurtEnemy(o,dmg,m);n++;if(n>=8)break}}}
-      if(m.rootT<=0){let n=0;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<180)n++;if(n>=2){m.rootT=6;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<180&&!o.boss)o.slow=Math.max(o.slow,2+skl(m,'e_roots'));G.blasts.push({x:m.x,y:m.y,r:180,life:0.4,col:'rgba(100,170,60,'});say(m,pick(['...stay.','...roots.']),1.4)}else m.rootT=1}}},
+      if(m.rootT<=0){let n=0;for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<180)n++;if(n>=2){m.rootT=6-rank('e_quick');for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<180&&!o.boss)o.slow=Math.max(o.slow,2+skl(m,'e_roots')+rank('e_hold'));G.blasts.push({x:m.x,y:m.y,r:180,life:0.4,col:'rgba(100,170,60,'});say(m,pick(['...stay.','...roots.']),1.4)}else m.rootT=1}}},
   wolf:{name:'Lupa',role:'The werewolf.',blurb:'Fine, mostly. Every forty motes she turns, and then she bites whoever is nearest. Sometimes you.',col:'#b08a6a',spr:'wolf',h:48,thanks:0.06,glyph:'🐺',
     unlock:{test:()=>(META.elites||0)>=25,text:'Kill twenty-five elites, all time'},
     weapons:[{id:'claws',name:'Claws',desc:'Turns when the motes pile up. Hits like a wolf when she does'},{id:'collar',name:'Silver Collar',desc:'Never turns. Hits 30% harder all the time. Less exciting'}],
@@ -898,11 +964,11 @@ const CHARS={
     make(){return Object.assign(member('wolf','Lupa','#b08a6a'),{r:12,maxhp:260,spd:120,dmg:15,atkCd:0.8,reach:36,wolfT:0,moteMark:0})},
     onWeapon(m){},
     update(m,dt){const h=G.healer;const picked=G.stats.motes||0;
-      if(m.weapon!=='collar'&&m.wolfT<=0&&picked-m.moteMark>=40){m.moteMark=picked;m.wolfT=12+3*skl(m,'w_blood');say(m,pick(['...oh no. Here it comes.','Not now. NOT N—','GRRRAAAH']),2,true);puff(m.x,m.y,14,'#b08a6a',100,3);G.stats.turns=(G.stats.turns||0)+1}
-      else if(m.wolfT<=0&&picked-m.moteMark>=40)m.moteMark=picked;
+      if(m.weapon!=='collar'&&m.wolfT<=0&&picked-m.moteMark>=40-5*rank('w_hunger')){m.moteMark=picked;m.wolfT=12+3*skl(m,'w_blood')+3*rank('w_long');say(m,pick(['...oh no. Here it comes.','Not now. NOT N—','GRRRAAAH']),2,true);puff(m.x,m.y,14,'#b08a6a',100,3);G.stats.turns=(G.stats.turns||0)+1}
+      else if(m.wolfT<=0&&picked-m.moteMark>=40-5*rank('w_hunger'))m.moteMark=picked;
       const wolf=m.wolfT>0;if(wolf){m.wolfT-=dt;m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.02*dt);if(m.wolfT<=0)say(m,pick(['Sorry. Sorry. Was that me?','...I had a dream I was biting Brom.','Ow, my teeth.']),2.5,true)}
       const mul=wolf?2.5:(m.weapon==='collar'?1.3:1);
-      meleeAI(m,dt,{mul,cleave:wolf?3:1,onHit:()=>{if(wolf&&Math.random()<0.12){let a=null,bd=1e9;for(const o of allies()){if(o===m)continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<bd){bd=d;a=o}}if(a&&bd<120){hurtAlly(a,m.dmg*pdmg()*1.5,null);ftext(a.x,a.y-a.r-14,'BAD DOG','#ffb0a0',12);G.stats.ff++;META.ff++;G.stats.bites=(G.stats.bites||0)+1}}}});
+      meleeAI(m,dt,{mul,cleave:wolf?3:1,onHit:()=>{if(wolf&&Math.random()<0.12-0.03*rank('w_control')){let a=null,bd=1e9;for(const o of allies()){if(o===m)continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<bd){bd=d;a=o}}if(a&&bd<120){hurtAlly(a,m.dmg*pdmg()*1.5,null);ftext(a.x,a.y-a.r-14,'BAD DOG','#ffb0a0',12);G.stats.ff++;META.ff++;G.stats.bites=(G.stats.bites||0)+1}}}});
       if(wolf)m.spdMulW=1.5}},
   vampire:{name:'Valerian',role:'The vampire.',blurb:'Drinks what he deals, so he never needs healing, and says so. Burns in Radiance.',col:'#8a1a3a',spr:'vampire',h:50,thanks:0,glyph:'🦇',
     unlock:{test:()=>(META.evos||0)>=1,text:'Fuse an evolution'},
@@ -911,17 +977,17 @@ const CHARS={
     make(){return Object.assign(member('vampire','Valerian','#8a1a3a'),{r:12,maxhp:160,spd:110,dmg:15,atkCd:0.9,reach:36,noHeal:true})},
     onWeapon(m){},
     update(m,dt){if(m.hidden){m.hideT-=dt;if(m.hideT<=0){m.hidden=false;m.mist=false}return}
-      const steal=(0.5+0.15*skl(m,'v_hemo'))*(m.weapon==='parasol'?0.7:1);
+      const steal=(0.5+0.15*skl(m,'v_hemo')+0.1*rank('v_thirst'))*(m.weapon==='parasol'?0.7:1);
       meleeAI(m,dt,{mul:m.weapon==='parasol'?0.7:1,cleave:2,onHit:(o,dmg)=>{m.hp=Math.min(m.maxhp,m.hp+dmg*steal)}})}},
   gunner:{name:'Dusty',role:'The gunslinger.',blurb:'The hardest hitter on the field for six shots. Then ten seconds of reloading, announced loudly.',col:'#d8a060',spr:'gunner',h:48,thanks:0.05,glyph:'🔫',
     unlock:{test:()=>(META.goldTotal||0)>=15000,text:'Earn 15,000 gold, all time'},
     weapons:[{id:'revolver',name:'Six-Shooter',desc:'Six shots that hurt, then a long reload'},{id:'shotgun',name:'Coach Gun',desc:'Two shots of spread, then a shorter reload'}],
     lines:{bless:'Now we’re talkin’.',fort:'Hold ’em? I got two barrels, partner.',revive:'Somebody hand me my hat.',thanks:['Much obliged.','’preciate it.'],healed:null,swap:'Now THAT’s a gun.',brag:'He says it was a fair fight.',level:['He learned it the hard way.','Dusty says it was a fair fight.','Nobody asked where he got the bullets.']},
     make(){return Object.assign(member('gunner','Dusty','#d8a060'),{r:11,maxhp:130,spd:100,dmg:38,atkCd:0.5,cyl:6,cylMax:6,reloadT:0,reloadTime:8,shoutT:0})},
-    onWeapon(m){if(m.weapon==='shotgun'){m.cylMax=2;m.cyl=Math.min(m.cyl,2);m.reloadTime=5;m.dmg=17}else{m.cylMax=6;m.reloadTime=8;m.dmg=38}},
+    onWeapon(m){const cb=m.cylBonus||0,rb=m.reloadBonus||0,dt=m.dmgT||1;if(m.weapon==='shotgun'){m.cylMax=2+cb;m.cyl=Math.min(m.cyl,m.cylMax);m.reloadTime=Math.max(2,5-rb);m.dmg=17*dt}else{m.cylMax=6+cb;m.cyl=Math.min(m.cyl,m.cylMax);m.reloadTime=Math.max(2,8-rb);m.dmg=38*dt}},
     update(m,dt){const t=rangedAI(m,dt,150,260,420);
       if(m.reloadT>0){m.reloadT-=dt;m.shoutT-=dt;if(m.shoutT<=0){m.shoutT=2;say(m,pick(['RELOADING!','STILL RELOADING!','ONE SECOND!']),1.5,true)}if(m.reloadT<=0){m.cyl=m.cylMax;say(m,'Alright.',1)}return}
-      if(m.cdT<=0&&t&&m.cyl>0){m.cdT=m.atkCd;m.cyl--;const crit=Math.random()<0.1*skl(m,'g_deadeye');const dmg=m.dmg*pdmg()*dmgMul(m)*(crit?3:1);
+      if(m.cdT<=0&&t&&m.cyl>0){m.cdT=m.atkCd;m.cyl--;const crit=Math.random()<0.1*skl(m,'g_deadeye')+0.05*rank('g_aim');const dmg=m.dmg*pdmg()*dmgMul(m)*(crit?3:1);
         if(m.weapon==='shotgun')for(let i=-1;i<=1;i++)shoot(m,t,{dmg,speed:700,col:'#ffd24a',spread:i*0.2,life:0.5});else shoot(m,t,{dmg,speed:700,col:'#ffd24a',crit});
         if(m.cyl<=0){m.reloadT=m.reloadTime;m.shoutT=0;G.stats.reloads=(G.stats.reloads||0)+1}}}},
   robot:{name:'Unit 7',role:'The robot.',blurb:'Never sleeps, never panics, never misses. Overheats. Mend cools it, so you are a mechanic now.',col:'#9adcff',spr:'robot',h:52,thanks:0,glyph:'🤖',
@@ -934,10 +1000,17 @@ const CHARS={
       if(m.overheated){if(m.heat<30){m.overheated=false;say(m,'RESUMING.',1)}const h=G.healer,dh=Math.hypot(h.x-m.x,h.y-m.y);if(dh>200)moveToward(m,h.x,h.y,m.spd*0.5,dt);if(Math.random()<dt*6)G.parts.push({x:m.x+rnd(-8,8),y:m.y-20,vx:0,vy:-40,life:0.5,col:'#ccc',r:2.5});return}
       const t=rangedAI(m,dt,120,260,m.weapon==='flamer'?110:380);
       if(m.cdT<=0&&t){const dmg=m.dmg*pdmg()*dmgMul(m);
-        if(m.weapon==='flamer'){m.cdT=0.5;let n=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<110&&(e.x-m.x)*m.face>-10){hurtEnemy(e,dmg*3,m);n++}}m.heat+=8;m.shotT=0.3;for(let i=0;i<4;i++)G.parts.push({x:m.x+m.face*rnd(20,90),y:m.y+rnd(-20,20),vx:m.face*60,vy:rnd(-20,20),life:0.3,col:'#ff9a3a',r:3})}
-        else{m.cdT=m.atkCd;shoot(m,t,{dmg,speed:800,col:'#ff4a6a',life:0.6});m.heat+=5}
-        if(m.heat>=100){m.overheated=true;m.heat=100;say(m,'OVERHEAT. COOLING.',2,true);G.stats.overheats=(G.stats.overheats||0)+1}}}},
+        if(m.weapon==='flamer'){m.cdT=0.5;let n=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<110&&(e.x-m.x)*m.face>-10){hurtEnemy(e,dmg*3,m);n++}}m.heat+=8-rank('r_eff');m.shotT=0.3;for(let i=0;i<4;i++)G.parts.push({x:m.x+m.face*rnd(20,90),y:m.y+rnd(-20,20),vx:m.face*60,vy:rnd(-20,20),life:0.3,col:'#ff9a3a',r:3})}
+        else{m.cdT=m.atkCd;shoot(m,t,{dmg,speed:800,col:'#ff4a6a',life:0.6});m.heat+=5-rank('r_eff')}
+        const hcap=100+10*rank('r_heat');if(m.heat>=hcap){m.overheated=true;m.heat=hcap;say(m,'OVERHEAT. COOLING.',2,true);G.stats.overheats=(G.stats.overheats||0)+1}}}},
 };
+function trainMember(m){const k=m.key,P={necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[k];
+  if(P){m.maxhp=Math.round(m.maxhp*(1+0.15*rank(P+'_hp')));m.dmgT=1+0.12*rank(P+'_dmg');m.dmg*=m.dmgT;if(m.spd)m.spd*=1+0.08*rank(P+'_spd')}
+  if(k==='tank')m.reach*=1+0.08*rank('t_reach');
+  if(k==='frost')m.atkCd/=1+0.08*rank('f_cast'); if(k==='ent')m.reach*=1+0.08*rank('e_reach');
+  if(k==='necro')m.minionCap+=rank('n_cap'); if(k==='robot')m.cool+=2*rank('r_cool');
+  if(k==='gunner'){m.cylBonus=rank('g_cyl');m.reloadBonus=rank('g_fast')}
+}
 function newRun(){
   const c=META.circle;
   const hp=r=>1+0.15*rank(r);
@@ -947,7 +1020,7 @@ function newRun(){
   healer.manaMax+=25*rank('h_mana2'); healer.regen*=1+0.2*rank('h_regen2'); healer.healPower*=1+0.15*rank('h_power2'); healer.pickup*=1+0.12*rank('h_mote');
   healer.hp=healer.maxhp; healer.mana=healer.manaMax;
   let keys=(META.party||[]).filter(k=>unlocked(k)).slice(0,3); for(const k of ['tank','archer','mage'])if(keys.length<3&&!keys.includes(k))keys.push(k);
-  const party=keys.map((k,i)=>{const C=CHARS[k],m=C.make();m.weapon=(META.weaponsSeen||{})[k]&&(META.weapon||{})[k]?META.weapon[k]:C.weapons[0].id;if(m.weapon===C.weapons[1].id)m.swapOffered=true;C.onWeapon&&C.onWeapon(m);m.hp=m.maxhp;const a=i*2.094+1;m.x=healer.x+Math.cos(a)*50;m.y=healer.y+Math.sin(a)*45;return m});
+  const party=keys.map((k,i)=>{const C=CHARS[k],m=C.make();m.weapon=(META.weaponsSeen||{})[k]&&(META.weapon||{})[k]?META.weapon[k]:C.weapons[0].id;if(m.weapon===C.weapons[1].id)m.swapOffered=true;trainMember(m);C.onWeapon&&C.onWeapon(m);m.hp=m.maxhp;const a=i*2.094+1;m.x=healer.x+Math.cos(a)*50;m.y=healer.y+Math.sin(a)*45;return m});
   G={t:0,circle:c,healer,party,enemies:[],shots:[],gems:[],parts:[],texts:[],graves:[],blasts:[],
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
      level:1,xp:0,xpNext:8,up:{},lvQ:[],kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
@@ -956,6 +1029,7 @@ function newRun(){
   G.spells=SPELLS.slice(0,rank('h_radiance')?6:5);
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
+  for(const m of G.party)for(let i=0;i<rank({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]+'_start');i++){const pool=SKILLS[m.key].filter(x=>skl(m,x.id)<x.max);if(pool.length)applySkill(m,pick(pool).id)}
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
   { const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo).map(r=>r.id); for(let i=0;i<rank('h_keepsake')&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
   META.runs++; save();
@@ -1090,7 +1164,7 @@ function heal(m,amt,src){
   // gratitude, such as it is
   if(real>10&&m!==G.healer&&!m.npc){
     const C=CHARS[m.key]; const tl=m.key==='tank'?LINES.tankThanks:m.key==='archer'?LINES.archerThanks:(C&&C.lines.thanks);
-    const p=((C&&C.thanks)||(hasRelic('legend')?0.02:0))*(hasRelic('guestbook')?2:1);
+    const p=(((C&&C.thanks)||(hasRelic('legend')?0.02:0))+0.03*mrank(m,'thanks'))*(hasRelic('guestbook')?2:1);
     if(tl&&Math.random()<p){say(m,pick(tl));G.stats.thanks++;META.thanks++;ftext(m.x,m.y-m.r-22,'thanks!','#ffd24a',11);if(hasRelic('medal'))G.healer.healPower*=1.03;if(hasRelic('legend')){G.healer.healPower*=1.05;G.legendDmg+=0.02}}
     else if(C&&C.lines.healed&&Math.random()<0.25)say(m,pick(C.lines.healed));
   }
@@ -1100,10 +1174,10 @@ function hurtAlly(m,dmg,src){
   if(!m.alive||dmg<=0)return;
   if(m.minion){m.hp-=dmg;m.hitT=0.15;return}
   if(m.dr)dmg*=1-m.dr;
-  {const pal=G.party.find(p=>p.key==='paladin'&&p.alive&&p!==m);if(pal&&Math.hypot(pal.x-m.x,pal.y-m.y)<120+30*skl(pal,'p_aura'))dmg*=0.9-0.05*skl(pal,'p_aura')}
+  {const pal=G.party.find(p=>p.key==='paladin'&&p.alive&&p!==m);if(pal&&Math.hypot(pal.x-m.x,pal.y-m.y)<120+30*skl(pal,'p_aura')+20*rank('p_aura2'))dmg*=0.9-0.05*skl(pal,'p_aura')}
   if(m.npc){m.hp-=dmg;m.hitT=0.15;if(m.hp<=0){m.alive=false;puff(m.x,m.y,12,'#ccc',80,3);if(G.event&&G.event.npc===m)eventFail('The pilgrim did not make it.')}return}
   if(m===G.healer&&m.invT>0)return;
-  if(m.key==='tank')dmg*=1-0.06*rank('t_armor');
+  if(m.key==='tank')dmg*=1-0.06*rank('t_armor'); else if(m.key)dmg*=1-0.05*mrank(m,'armor');
   if(m===G.healer&&src&&src.type&&hasRelic('mirror'))hurtEnemy(src,dmg*0.15*3,G.healer);
   if(m===G.healer&&hasRelic('saint')&&m.cd[0]>0)m.cd[0]=Math.max(0,m.cd[0]-dmg/20);
   if(m!==G.healer&&inRange(m)){const share=Math.min(0.5,(hasRelic('saint')?0.3:hasRelic('cord')?0.25:0)+0.15*upRank('martyr'));if(share>0){hurtAlly(G.healer,dmg*share,src);dmg*=1-share;if(!m.alive)return}}
@@ -1113,9 +1187,17 @@ function hurtAlly(m,dmg,src){
   if(m.blessT>0&&src&&src.hp!==undefined&&src.type){hurtEnemy(src,8*upRank('thorns')*(1+G.level*0.05),G.healer);puff(src.x,src.y,3,'#ffe9a8',60,2)}
   if(m.hp<=0){m.hp=0; if(m===G.healer)endRun(false,'healer'); else downMember(m)}
 }
+function selfRevive(m){
+  const gi=G.graves.findIndex(g=>g.m===m);if(gi>=0)G.graves.splice(gi,1);
+  m.alive=true;m.hp=Math.round(m.maxhp*0.4);m.shield=30;m.blessT=2;m.hidden=false;m.mist=false;m.overheated=false;m.frozenT=0;m.sinkT=0;m.panicT=0;
+  if(m.key==='tank'){m.asleep=false;m.sleepT=rnd(18,28)*napMul()}
+  puff(m.x,m.y,20,m.col,120,3);say(m,pick(['Not yet.','I refuse.','...ow. Fine.','Nobody helped. Noted.']),2.5,true);ftext(m.x,m.y-m.r-20,'stubborn','#ffd24a',12);
+  G.stats.selfRevives=(G.stats.selfRevives||0)+1;
+}
 function downMember(m){
   m.alive=false;m.asleep=false;m.panicT=0;m.shield=0;m.hot=0;m.bubble='';
   G.graves.push({x:m.x,y:m.y,m});
+  if(mrank(m,'stubborn')&&!m.stubbornUsed){m.stubbornUsed=true;m.selfRevT=12}
   puff(m.x,m.y,14,'#666',90,3); toast(m.name+' is down!',1.8); ghost(m,m.poseKey,SPR_H[m.key]*(POSE_SCALE[m.poseKey]||1));
   const mage=byKey('mage'); if(mage&&mage.alive&&mage!==m)say(mage,pick(LINES.mageDown));
   if(!G.party.some(p=>p.alive))endRun(false,'wipe');
@@ -1175,7 +1257,7 @@ function cast(i){
     G.stats.forts=(G.stats.forts||0)+1; ok=true;
   }
   else if(s.id==='radiance'){
-    for(const m of allies())if(inRange(m)){if(m.key==='vampire'&&m.weapon!=='parasol'){hurtAlly(m,m.maxhp*0.25,null);say(m,pick(['AGH. Why.','WARN ME.','My eyes. My everything.']),2,true);G.stats.ff++;continue}heal(m,h.healPower*1.5,'radiance')}
+    for(const m of allies())if(inRange(m)){if(m.key==='vampire'&&m.weapon!=='parasol'){hurtAlly(m,m.maxhp*0.25*(1-0.25*rank('v_cloak')),null);say(m,pick(['AGH. Why.','WARN ME.','My eyes. My everything.']),2,true);G.stats.ff++;continue}heal(m,h.healPower*1.5,'radiance')}
     let n=0;for(const e of G.enemies)if(Math.hypot(e.x-h.x,e.y-h.y)<h.range+e.r){hurtEnemy(e,h.healPower*2.5,h);n++}
     G.blasts.push({x:h.x,y:h.y,r:h.range,life:0.5,col:'rgba(255,245,200,'});puff(h.x,h.y,30,'#fff4c0',200,3);G.shake=0.3;ok=true;
   }
@@ -1350,6 +1432,7 @@ function updateTank(m,dt){
     m.napT-=dt;
     if(m.hp<m.maxhp*0.3||m.napT<=0){wakeTank(m);say(m,pick(LINES.tankWake),2)}
     else{if(Math.random()<dt*0.6)say(m,pick(LINES.tankSleep),1.5);
+      if(rank('t_dream'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.02*rank('t_dream')*dt);
       if(rank('t_snore')){const dps=m.dmg*pdmg()*0.35*rank('t_snore');for(const o of G.enemies)if(Math.hypot(o.x-m.x,o.y-m.y)<120+o.r)hurtEnemy(o,dps*dt,m)}
       if(skl(m,'t_sleepwalk')&&m.cdT<=0){const e=nearestEnemy(m,m.reach+20);if(e){m.cdT=m.atkCd*2;m.swing=0.25;m.face=e.x<m.x?-1:1;let n=0;for(const o of G.enemies){if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+10){hurtEnemy(o,m.dmg*pdmg()*dmgMul(m)*0.7,m);n++;if(n>=4)break}}if(Math.random()<0.3)say(m,pick(['*snore* ...have at thee...','zzz... take that...','...mmf... die...']),1.5)}}
       return}
@@ -1395,7 +1478,7 @@ function updateArcher(m,dt){
         let a=Math.atan2(tg.y-m.y,tg.x-m.x); const miss=Math.random()<m.miss*(1-0.3*gl);
         if(miss){a+=rnd(0.25,0.6)*(Math.random()<0.5?-1:1);if(Math.random()<0.3)say(m,pick(LINES.archerMiss),1.2)}
         const crit=Math.random()<0.05*rank('a_crit'); const dmg=m.dmg*pdmg()*dmgMul(m)*(crit?3:1);
-        G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*460,vy:Math.sin(a)*460,dmg,life:1.1,age:0,from:m,pierce:rank('a_pierce'),hit:[],crit});
+        G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a)*460,vy:Math.sin(a)*460,dmg,life:1.1*(1+0.15*rank('a_snipe')),age:0,from:m,pierce:rank('a_pierce'),hit:[],crit});
         const storm=hasRelic('arrowstorm'), pierce=rank('a_pierce')+(storm?1:0)+(m.pierceBonus||0);
         if(storm||Math.random()<0.15*rank('a_multi')+(hasRelic('quiver')?0.2:0)){const a2=a+0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a2)*460,vy:Math.sin(a2)*460,dmg,life:1.1,age:0,from:m,pierce,hit:[],crit})}
         if(storm){const a3=a-0.16;G.shots.push({kind:'arrow',x:m.x,y:m.y,vx:Math.cos(a3)*460,vy:Math.sin(a3)*460,dmg,life:1.1,age:0,from:m,pierce,hit:[],crit})}
@@ -1689,6 +1772,7 @@ function step(dt){
   G.t+=dt;
   updateSpawns(dt); updateHealer(dt); if(G.over)return; updateWeapons(dt); updatePools(dt);
   for(const m of G.party)if(m.alive&&!(m.frozenT>0))CHARS[m.key].update(m,dt);
+  for(const m of G.party){if(!m.alive){if(m.selfRevT>0){m.selfRevT-=dt;if(m.selfRevT<=0)selfRevive(m)}continue}if(m.key!=='tank'&&m.hp<m.maxhp&&mrank(m,'regen'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.004*mrank(m,'regen')*dt)}
   for(const m of G.party)if(m.alive){keepIn(m);if(!m.asleep&&!(m.panicT>0)&&!m.hidden&&!m.overheated&&!(m.frozenT>0)&&!(m.sinkT>0))memberSkills(m,dt)}
   updateMinions(dt);
   for(let i=G.holy.length-1;i>=0;i--){const z=G.holy[i];z.life-=dt;if(z.life<=0){G.holy.splice(i,1);continue}for(const e of G.enemies)if(Math.hypot(e.x-z.x,e.y-z.y)<z.r+e.r)hurtEnemy(e,z.dps*dt,byKey('paladin')||G.healer);for(const a of allies())if(a.hp<a.maxhp&&Math.hypot(a.x-z.x,a.y-z.y)<z.r)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.02*dt)}

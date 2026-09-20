@@ -137,6 +137,10 @@
   #stick i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35)}
   #toast{position:absolute;top:22%;left:50%;transform:translateX(-50%);font:bold 16px Georgia,serif;color:#fff;text-shadow:2px 2px 0 #000;opacity:0;transition:opacity .3s;text-align:center;white-space:normal;max-width:86vw;pointer-events:none}
   @media (max-width:640px){#toast{top:32%;font-size:14px}}
+  #chat{position:absolute;left:10px;bottom:calc(66px + env(safe-area-inset-bottom));width:min(340px,62vw);display:flex;flex-direction:column;gap:3px;pointer-events:none;font-size:11px;line-height:1.25}
+  #chat div{background:rgba(10,7,16,.74);border:1px solid #000;box-shadow:inset 0 0 0 1px #3a2f55;border-radius:3px;padding:3px 6px;color:#e8e0f0;text-shadow:1px 1px 0 #000}
+  #chat div b{color:var(--gold)} #chat div .who{margin-right:4px} #chat div em{font-style:normal;color:var(--muted)}
+  @media (max-width:640px){#chat{font-size:10px;width:min(300px,58vw);bottom:calc(60px + env(safe-area-inset-bottom))}}
   #pause{position:absolute;top:10px;right:8px;pointer-events:auto;display:none}
   #hud.run #pause{display:block}
   #hud:not(.run) #party,#hud:not(.run) #bottom,#hud:not(.run) #spells,#hud:not(.run) #clock,#hud:not(.run) #right,#hud:not(.run) #top{display:none}
@@ -158,6 +162,7 @@
   <div id="spells"></div>
   <div id="stick"><i></i></div>
   <div id="toast"></div>
+  <div id="chat"></div>
   <div id="stamp"></div>
 </div>
 
@@ -260,7 +265,7 @@
 
 <script>
 'use strict';
-const BUILD='b038-whose';
+const BUILD='b039-chat';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -1576,7 +1581,7 @@ function newRun(){
      level:1,xp:0,xpNext:8,up:{},lvQ:[],kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
      relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,wOwner:{},pickGive:{},wEvo:{},roots:[],fronts:[],tornados:[],slashes:[],timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
-  G.spells=SPELLS; G.learned={}; G.autoT=0; G.aegisT=0; for(const id of HL().starts){G.learned[id]=true;const extra=HL().id==='ansel'?rank('ansel_ward'):HL().id==='ivy'?rank('ivy_regrowth'):0;if(extra)G.up['sp_'+id]=Math.min(3,1+extra)}
+  G.spells=SPELLS; G.learned={}; G.chat=[]; renderChat(); G.autoT=0; G.aegisT=0; for(const id of HL().starts){G.learned[id]=true;const extra=HL().id==='ansel'?rank('ansel_ward'):HL().id==='ivy'?rank('ivy_regrowth'):0;if(extra)G.up['sp_'+id]=Math.min(3,1+extra)}
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
   for(const m of G.party)for(let i=0;i<rank({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]+'_start');i++){const pool=SKILLS[m.key].filter(x=>skl(m,x.id)<x.max);if(pool.length)applySkill(m,pick(pool).id)}
@@ -1669,6 +1674,9 @@ function updateEvents(dt){
   else if(ev.id==='moterain'){if(ev.prog>=ev.need&&!ev.won){ev.won=true;if(ev.t<=0||!G.gems.some(g=>g.ev))eventWin()}if(ev.t<=0){if(ev.prog>=ev.need)eventWin();else eventFail()}}
 }
 function toast(t,d){const el=$('toast');el.textContent=t;el.style.opacity=1;G.toastT=d||1.6}
+// b039: the party picks its own level-ups; a small chat box says what they took
+function chatLog(html){if(!G)return;G.chat=G.chat||[];G.chat.push({html,t:10});if(G.chat.length>4)G.chat.shift();renderChat()}
+function renderChat(){const el=$('chat');if(!el)return;el.innerHTML=(G&&G.chat||[]).map(c=>'<div style="opacity:'+Math.min(1,c.t/2).toFixed(2)+'">'+c.html+'</div>').join('')}
 function later(t,fn){G.timers.push({t,fn})}
 function applyRelic(id,quiet){
   {const R=RELIC[id];if(R&&R.who){const m=byKey(R.who);if(m){if(id==='bandolier'||id==='spurs'){CHARS.gunner.onWeapon(m);if(id==='spurs')m.spd*=1.15}if(id==='radiator')m.cool+=3;if(id==='overdrive')m.atkCd*=0.77;if(id==='reactor')m.atkCd*=0.87;if(id==='lens'){m.lens=true;m.dmg*=1.1}if(id==='batwing'){m.spd*=1.2;m.dr=(m.dr||0)+0.15}if(id==='hollowpoint'||id==='silverbullet'||id==='deadeye')CHARS.gunner.onWeapon(m);if(id==='worldtree'){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.5);m.hp=m.maxhp*r;m.scale=(m.scale||1)*1.15}if(id==='acorn'){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.25);m.hp=m.maxhp*r;m.reach*=1.25;m.scale=(m.scale||1)*1.15}say(m,pick(['Is that for me?','Mine. Good.','...oh. Thank you. Don’t.']),2,true)}}}
@@ -2339,6 +2347,16 @@ function showMemberLevelUp(m){
   while(picks.length<3&&(pool.length||qpool.length)){const takeQ=qpool.length&&(!pool.length||WR()<0.45);const src=takeQ?qpool:pool;picks.push(src.splice(Math.floor(WR()*src.length),1)[0])}
   if(!picks.length){m.dmg*=1.1;return false}
   G.pickTiers={};for(const k of picks)if(k.max&&k.kind!=='weapon'){let t=rollTier(0.5*hr('luck'));const left=k.max-skl(m,k.id);if(t<4&&TIERS[t].ranks>left)t=Math.max(0,left-1);G.pickTiers[k.id]=t}
+  if(!G.askParty){ // b039: they choose for themselves — best tier first, quirks over Common, a new weapon only over Common
+    const score=k=>(k.id.startsWith('q_')?0.5:k.kind==='weapon'?0.25:(G.pickTiers[k.id]||0))+WR()*0.9;
+    picks.sort((a,b)=>score(b)-score(a)); const k=picks[0];
+    const isQ=k.id.startsWith('q_'),t=isQ?0:(G.pickTiers[k.id]||0),r=skl(m,k.id),gain=isQ||!k.max?1:(t===4?k.max-r:Math.min(k.max-r,TIERS[t].ranks));
+    applyMemberPick(m,k.id); say(m,pick(CHARS[m.key].lines.level),2,true);
+    const who='<span class="who" style="background:'+m.col+'">'+esc(m.name)+'</span>';
+    chatLog(who+(isQ?'levelled up and picked up a quirk: <b>'+(k.glyph||'✦')+' '+esc(k.name)+'</b>':k.kind==='weapon'?'levelled up and swapped to <b>'+esc(k.name.replace(/^Swap: /,''))+'</b>':'levelled up and chose <b>'+esc(k.name)+'</b> <em>('+TIERS[t].name+(gain>1?', +'+gain+' ranks':'')+(r?', now '+(r+gain):'')+')</em>')+' <em>— '+esc(HW(k.desc))+'</em>');
+    if(t===4)toast(m.name+' rolled a MYTHIC: '+k.name,2.2);
+    return false;
+  }
   G.lvOpen=true; G.pickKind='member'; G.pickWho=m; G.pendingPicks=picks;
   $('lvtitle').textContent=m.name+', level '+m.lvl;
   $('lvsub').textContent=pick(CHARS[m.key].lines.level);
@@ -2369,10 +2387,11 @@ function showLevelUp(){
     b.onclick=()=>chooseUp(u.id); box.appendChild(b)}
   $('lvl').classList.remove('hide'); return true;
 }
+function applyMemberPick(m,id){if(id.startsWith('q_'))applyQuirk(m,id);else{const k=SKILLS[m.key].find(x=>x.id===id);const t=(G.pickTiers&&G.pickTiers[id])||0;const left=k?k.max-skl(m,id):1;const n=id.startsWith('swap_')?1:Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));for(let i=0;i<n;i++)applySkill(m,id);if(t===4){m.hp=m.maxhp;ftext(m.x,m.y-40,'MYTHIC','#ff6a8a',18)}}G.stats.learned=(G.stats.learned||0)+1}
 function chooseUp(id){
   if(!G||!G.lvOpen)return;
   if(G.pickKind==='relic'){chooseRelic(id);return}
-  if(G.pickKind==='member'){const m=G.pickWho;if(id.startsWith('q_'))applyQuirk(m,id);else{const k=SKILLS[m.key].find(x=>x.id===id);const t=(G.pickTiers&&G.pickTiers[id])||0;const left=k?k.max-skl(m,id):1;const n=id.startsWith('swap_')?1:Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));for(let i=0;i<n;i++)applySkill(m,id);if(t===4){m.hp=m.maxhp;ftext(m.x,m.y-40,'MYTHIC','#ff6a8a',18)}}G.stats.learned=(G.stats.learned||0)+1;G.lvOpen=false;G.pickKind='up';$('lvl').classList.add('hide');G.lvQ.shift();showNextLevel();return}
+  if(G.pickKind==='member'){const m=G.pickWho;applyMemberPick(m,id);G.lvOpen=false;G.pickKind='up';$('lvl').classList.add('hide');G.lvQ.shift();showNextLevel();return}
   if(id.startsWith('evo_')){const wid=id.slice(4);G.wEvo[wid]=true;const o=holderOf(wid);G.stats.wevos=(G.stats.wevos||0)+1;if(o){say(o,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(o.x,o.y,30,'#ff8ad8',160,3);G.blasts.push({x:o.x,y:o.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(o.x,o.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16)}G.lvOpen=false;$('lvl').classList.add('hide');G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+40);G.lvQ.shift();showNextLevel();return}
   const h=G.healer; const u=UPS.find(x=>x.id===id); const t=(G.pickTiers&&G.pickTiers[id])||0;
   const left=u?u.max-upRank(id):1; const n=Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));
@@ -2496,6 +2515,7 @@ function updateHud(){
   SPELLS.forEach((sp,i)=>{if(!G.learned[sp.id])return;const b=$('spc-'+sp.id);if(!b)return;const cd=sp.cd*cdMul()*spCdMul(sp.id);const p=h.cd[i]>0?h.cd[i]/cd:0;b.querySelector('.cd').style.setProperty('--p',(p*100).toFixed(1)+'%');b.classList.toggle('nomana',h.mana<spCost(sp))});
   {const b=$('sp-'+REV);if(b){const cost=reviveCost();b.classList.toggle('hide',h.mana<cost);b.querySelector('.mc').textContent=cost;b.classList.toggle('ready',G.graves.length>0);b.classList.toggle('nomana',false)}}
   if(G.toastT>0){G.toastT-=1/60;if(G.toastT<=0)$('toast').style.opacity=0}
+  if(G.chat&&G.chat.length){const n=G.chat.length;for(const c of G.chat)c.t-=1/60;G.chat=G.chat.filter(c=>c.t>0);if(G.chat.length!==n||G.chat.some(c=>c.t<2))renderChat()}
   const ev=G.event||(G.demand?{name:G.demand.m.name+' asks',desc:G.demand.text,done:G.demand.done,failed:G.demand.done&&!G.demand.ok,reward:'a thank-you, gold, a kind card',id:'demand',prog:G.demand.id==='close'?G.demand.prog/G.demand.need:1-G.demand.t/G.demand.dur,t:G.demand.t}:null),eb=$('evbar');eb.classList.toggle('hide',!ev);
   if(ev){$('evname').textContent=ev.name;$('evdesc').textContent=ev.done?(ev.failed?'Failed.':'Done: '+ev.reward):ev.desc;eb.classList.toggle('won',ev.done&&!ev.failed);eb.classList.toggle('lost',!!ev.failed);
     const p=ev.id==='shrine'?ev.prog/ev.need:ev.id==='bounty'||ev.id==='moterain'?ev.prog/ev.need:ev.prog;$('evfill').style.transform='scaleX('+clamp(p,0,1).toFixed(3)+')';

@@ -65,6 +65,12 @@
   .lvcard i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:3px}
   .lvcard .lv{float:right;font-size:11px;color:var(--muted)}
   .lvcard.evo{box-shadow:inset 0 0 0 2px var(--gold),0 0 18px rgba(255,210,74,.35)}
+  .lvcard .tier{display:inline-block;font-size:10px;font-weight:bold;letter-spacing:.08em;padding:1px 6px;border-radius:3px;margin-right:6px;color:#000;background:#b8b0c0;vertical-align:middle}
+  .lvcard.t1{box-shadow:inset 0 0 0 2px #4da3ff}.lvcard.t1 .tier{background:#4da3ff}
+  .lvcard.t2{box-shadow:inset 0 0 0 2px #b46cff,0 0 10px rgba(180,108,255,.35)}.lvcard.t2 .tier{background:#b46cff}
+  .lvcard.t3{box-shadow:inset 0 0 0 2px #ffb24a,0 0 16px rgba(255,178,74,.45)}.lvcard.t3 .tier{background:#ffb24a}
+  .lvcard.t4{box-shadow:inset 0 0 0 2px #ff4a6a,0 0 22px rgba(255,74,106,.6);animation:mythic 1.2s ease-in-out infinite alternate}.lvcard.t4 .tier{background:#ff4a6a;color:#fff}
+  @keyframes mythic{from{box-shadow:inset 0 0 0 2px #ff4a6a,0 0 12px rgba(255,74,106,.4)}to{box-shadow:inset 0 0 0 2px #ffd24a,0 0 26px rgba(255,210,74,.8)}}
   #relics .evo{text-shadow:0 0 6px var(--gold),0 0 12px var(--gold)}
   .ricon{width:22px;height:22px;vertical-align:middle;object-fit:contain}
   .ricon.big{width:30px;height:30px;margin-right:4px}
@@ -188,6 +194,7 @@
         Three of twelve go with you, picked at camp. They stay inside your circle, doing their own thing, so you can do yours; more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
         Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes. See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
         Your own level-ups now offer <b>weapons</b>: a bouncing ember, kitchen knives, a censer chain, orbiting hymnals, holy water and more. Four at most, five ranks each. You are not supposed to attack. Nobody will believe you did.<br>
+        Every card rolls a <b>tier</b>: Common, Rare, Epic, Legendary or Mythic, on level-ups and from chests. Higher tiers grant more ranks at once; a Mythic maxes the card and heals everyone.<br>
         Ghouls burrow and come up under someone. Wisps ignore the party and drink your mana on touch; keep away or let Pip shoot them.<br>
         Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them into something better.<br>
         From two minutes in, elites arrive with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Hexers lob bolts at you from a distance; keep moving.<br>
@@ -225,7 +232,7 @@
 
 <script>
 'use strict';
-const BUILD='b017-cards';
+const BUILD='b018-tiers';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -314,6 +321,7 @@ const TREE=[
   {id:'h_start',br:'healer',name:'Head Start',desc:'Begin each run one level higher',max:3,cost:120},
   {id:'h_keepsake',br:'healer',name:'Keepsake',desc:'Begin each run holding a random relic you have found before, one per rank',max:3,cost:300,req:['h_start',1]},
   {id:'h_revive',br:'healer',name:'Second Wind',desc:'Revive cooldown −15% per rank',max:3,cost:90},
+  {id:'h_luck',br:'healer',name:'Lucky Star',desc:'Level-up and chest cards roll a higher tier more often, per rank',max:3,cost:180,req:['h_start',1]},
   {id:'h_radiance',br:'healer',name:'Radiance',desc:'A fifth spell: heal everyone in range and scorch every enemy in it',max:1,cost:500,req:['h_power2',1]},
   // Brom
   {id:'t_hp',br:'tank',name:'Iron Gut',desc:'Brom +15% HP per rank',max:5,cost:30},
@@ -610,7 +618,12 @@ const UPVAL={power:r=>'+'+20*r+'% heal power',regen:r=>'+'+25*r+'% regen',mana:r
   w_smite:r=>(1+Math.floor(r*0.8))+' strike'+(1+Math.floor(r*0.8)===1?'':'s')+' every '+(4.2-0.3*r).toFixed(1)+'s',w_cross:r=>Math.round(100*(1.4+0.3*(r-1)))+'% dmg every '+(2.6-0.15*r).toFixed(1)+'s',w_water:r=>(46+6*r)+' puddle, '+Math.round(100*(0.7+0.2*(r-1)))+'% dps, '+(3+0.4*r).toFixed(1)+'s',
   aspd:r=>'+'+8*r+'% attack speed',el_fire:r=>'+'+20*r+'% fire',el_frost:r=>'+'+15*r+'% vs frozen',el_bolt:r=>'+'+r+' jump'+(r===1?'':'s'),el_holy:r=>'+'+20*r+'% holy',venom:r=>'+'+30*r+'% dot, +'+r+'s',bramble:r=>10*r+'% reflected',aoe:r=>'+'+15*r+'% area',arc:r=>10*r+'% chance to arc',
   ward:r=>10*r+'% HP shield / 20s',leech:r=>3*r+'% lifesteal',crit:r=>5*r+'% crit',finisher:r=>'+'+50*r+'% under 20%',drill:r=>'skills '+10*r+'% faster',bookish:r=>'+'+15*r+'% XP',tithe:r=>'+'+15*r+'% gold',chill:r=>'−'+8*r+'% enemy speed in the circle',whands:r=>'+'+15*r+'% weapon damage',wquick:r=>'weapons '+Math.round(100-100*Math.pow(0.9,r))+'% faster'};
-const upVal=(u,r)=>{const f=UPVAL[u.id];if(!f)return '';try{return r?'now '+f(r)+' → '+f(r+1):'→ '+f(1)}catch(e){return ''}};
+// b018: every card comes in a tier. The tier is how many ranks the pick grants; Mythic maxes the card and heals everyone.
+const TIERS=[{name:'Common',w:70,ranks:1},{name:'Rare',w:19,ranks:2},{name:'Epic',w:7.5,ranks:3},{name:'Legendary',w:2.8,ranks:4},{name:'Mythic',w:0.7,ranks:99}];
+function rollTier(luck){let r=Math.random()*100,t=0;for(let i=0;i<TIERS.length;i++){r-=TIERS[i].w;if(r<=0){t=i;break}}
+  for(let i=0;i<Math.floor(luck||0);i++)if(t<4&&Math.random()<0.35)t++;
+  if((luck||0)%1>0&&t<4&&Math.random()<0.35*((luck||0)%1))t++; return t}
+const upVal=(u,r,g)=>{const f=UPVAL[u.id];g=g||1;if(!f)return '';try{return r?'now '+f(r)+' → '+f(r+g):'→ '+f(g)}catch(e){return ''}};
 const WEAPON_CAP=4;
 const weaponCount=()=>G?UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).length:0;
 const upRank=id=>G?(G.up[id]||0):0;
@@ -1180,7 +1193,7 @@ function openChest(){
     $('lvl').classList.remove('hide');return;
   }
   const pool=RELICS.filter(r=>!r.evo&&!G.relics.includes(r.id));
-  if(!pool.length){G.gold+=100*G.goldMul;G.healer.mana=G.healer.manaMax;toast('An empty chest. Well, some gold.',1.6);return}
+  if(!pool.length){G.gold+=100*G.goldMul;G.healer.mana=G.healer.manaMax;toast('An empty chest. Well, some gold, and a card.',1.6);G.chestBonus=true;G.lvQ.unshift('healer');showNextLevel();return}
   const picks=[];while(picks.length<3&&pool.length)picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
   G.lvOpen=true;G.pickKind='relic';G.pendingPicks=picks;
   $('lvtitle').textContent='A chest!';$('lvsub').textContent=pick(['Nobody else wanted to open it.','Brom says it was his idea.','Pip thinks it might be a mimic. It is not.','Vex is not impressed by treasure.']);
@@ -1191,6 +1204,7 @@ function openChest(){
 function chooseRelic(id){
   if(!G||!G.lvOpen||G.pickKind!=='relic')return;
   applyRelic(id); G.lvOpen=false; G.pickKind='up'; $('lvl').classList.add('hide');
+  G.chestBonus=true; G.lvQ.unshift('healer');
   showNextLevel();
 }
 function hudRelics(){const el=$('relics');if(el&&G)el.innerHTML=G.relics.map(id=>RELIC[id].evo?'<span class="evo">'+relicIcon(id)+'</span>':relicIcon(id)).join('')}
@@ -1718,11 +1732,13 @@ function showLevelUp(){
   while(picks.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);picks.push(pool.splice(i,1)[0])}
   if(!picks.length){G.healer.mana=G.healer.manaMax;return false}
   G.lvOpen=true; G.pickKind='up'; G.pendingPicks=picks;
-  $('lvtitle').textContent='Level '+G.level;
+  const luck=(G.chestBonus?1.5:0)+0.5*rank('h_luck'); G.pickTiers={};
+  for(const u of picks){let t=rollTier(luck);const left=u.max-upRank(u.id);if(t<4&&TIERS[t].ranks>left)t=Math.max(0,left-1);G.pickTiers[u.id]=t}
+  $('lvtitle').textContent=G.chestBonus?'From the chest':'Level '+G.level; G.chestBonus=false;
   $('lvsub').textContent=pick(['Your party killed things. You get the credit.','Somebody has to grow. It is you.','Nobody said thank you, but you did level up.','Brom slept through most of that.','Vex says it was all her.']);
   const box=$('lvcards'); box.innerHTML='';
-  for(const u of picks){const b=document.createElement('button');b.className='lvcard';const r=upRank(u.id);
-    b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+1):u.who==='weapon'?'new weapon':'new')+'</span><b><span class="who '+u.who+'">'+esc(u.who==='party'?'Party':u.who==='healer'?'Wren':u.who==='weapon'?'Weapon':CHARS[u.who]?CHARS[u.who].name:u.who)+'</span>'+(u.icon?u.icon+' ':'')+esc(u.name)+'</b><i>'+esc(u.desc)+'</i>'+(upVal(u,r)?'<em class="nv">'+esc(upVal(u,r))+'</em>':'');
+  for(const u of picks){const b=document.createElement('button');const t=G.pickTiers[u.id]||0;b.className='lvcard t'+t;const r=upRank(u.id);const gain=t===4?u.max-r:Math.min(u.max-r,TIERS[t].ranks);
+    b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+gain):(u.who==='weapon'?'new weapon':'new')+(gain>1?' · '+gain+' ranks':''))+'</span><span class="tier">'+TIERS[t].name.toUpperCase()+'</span><b><span class="who '+u.who+'">'+esc(u.who==='party'?'Party':u.who==='healer'?'Wren':u.who==='weapon'?'Weapon':CHARS[u.who]?CHARS[u.who].name:u.who)+'</span>'+(u.icon?u.icon+' ':'')+esc(u.name)+'</b><i>'+esc(u.desc)+'</i>'+(upVal(u,r,gain)?'<em class="nv">'+esc(upVal(u,r,gain))+'</em>':'')+(t===4?'<em class="nv">Mythic: maxed out, and everyone healed to full.</em>':'');
     b.onclick=()=>chooseUp(u.id); box.appendChild(b)}
   $('lvl').classList.remove('hide'); return true;
 }
@@ -1730,15 +1746,23 @@ function chooseUp(id){
   if(!G||!G.lvOpen)return;
   if(G.pickKind==='relic'){chooseRelic(id);return}
   if(G.pickKind==='member'){const m=G.pickWho;applySkill(m,id);G.stats.learned=(G.stats.learned||0)+1;G.lvOpen=false;G.pickKind='up';$('lvl').classList.add('hide');G.lvQ.shift();showNextLevel();return}
+  const h=G.healer; const u=UPS.find(x=>x.id===id); const t=(G.pickTiers&&G.pickTiers[id])||0;
+  const left=u?u.max-upRank(id):1; const n=Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));
+  for(let i=0;i<n;i++)applyUp(id);
+  G.stats.tiers=G.stats.tiers||[0,0,0,0,0]; G.stats.tiers[t]++;
+  if(t===4){for(const a of allies()){a.hp=a.maxhp}h.mana=h.manaMax;G.blasts.push({x:h.x,y:h.y,r:160,life:0.6,col:'rgba(255,120,150,'});puff(h.x,h.y,40,'#ffd24a',200,3);say(h,pick(['...that cannot be right.','Nobody tell the party.','Oh. Oh no. Oh good.']),2.5,true);ftext(h.x,h.y-40,'MYTHIC','#ff6a8a',18)}
+  else if(t>=2)ftext(h.x,h.y-36,TIERS[t].name.toUpperCase(),t===3?'#ffb24a':'#b46cff',14);
+  if(id.startsWith('w_')){if(G.up[id]===n){say(h,pick(['I should not have this.','Where did this come from.','Just for emergencies.','Nobody saw that.']),2,true);G.stats.weapons=(G.stats.weapons||0)+1}else say(h,pick(['Getting the hang of it.','Is this allowed?','Sorry. Sorry.']),1.5,true)}
+  G.lvOpen=false; $('lvl').classList.add('hide'); h.mana=Math.min(h.manaMax,h.mana+20);
+  G.lvQ.shift(); showNextLevel();
+}
+function applyUp(id){
   G.up[id]=(G.up[id]||0)+1; const h=G.healer;
   h.healPower*=1.03; for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.04);m.hp=m.maxhp*r}
   if(id==='power')h.healPower*=1.2; else if(id==='regen')h.regen*=1.25; else if(id==='mana'){h.manaMax+=30;h.mana+=30}
   else if(id==='range')h.range*=1.15; else if(id==='boots')h.spd*=1.12; else if(id==='vit'){h.maxhp+=25;h.hp=h.maxhp}
   else if(id==='php')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.2);m.hp=Math.round(m.maxhp*Math.max(r,0.5))}
   else if(id==='glasses'){const ar=byKey('archer');if(ar)ar.miss*=0.75} else if(id==='manners'){const mg=byKey('mage');if(mg)mg.ff*=0.7}
-  else if(id.startsWith('w_')){if(G.up[id]===1){say(h,pick(['I should not have this.','Where did this come from.','Just for emergencies.','Nobody saw that.']),2,true);G.stats.weapons=(G.stats.weapons||0)+1}else say(h,pick(['Getting the hang of it.','Is this allowed?','Sorry. Sorry.']),1.5,true)}
-  G.lvOpen=false; $('lvl').classList.add('hide'); h.mana=Math.min(h.manaMax,h.mana+20);
-  G.lvQ.shift(); showNextLevel();
 }
 
 // ---------- run end ----------
@@ -1779,6 +1803,7 @@ function runStory(won,why){
   if(S.overheats)L.push('Unit 7 overheated '+S.overheats+' times. It has filed a report.');
   if(S.stabs)L.push('Sable backstabbed '+S.stabs+' things and was seen for maybe half of them.');
   if(S.weapons&&h.kills>=25){const best=UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).sort((a,b)=>upRank(b.id)-upRank(a.id))[0];L.push('Wren killed '+h.kills+' things herself, mostly with '+(best?best.name.toLowerCase():'something')+'. That is not the job, and nobody will believe it.')}
+  if(S.tiers&&S.tiers[4])L.push(S.tiers[4]===1?'One Mythic card came up. Wren has not told anyone.':S.tiers[4]+' Mythic cards came up. Somebody is going to ask questions.'); else if(S.tiers&&S.tiers[3])L.push(S.tiers[3]+' Legendary card'+(S.tiers[3]>1?'s':'')+'. Wren assumes a clerical error.');
   if(S.thanks===0)L.push('Thank-yous received: none. As usual.');
   if(won)L.push('The Demon King is dead. The song they will sing about it does not have a verse for the healer.');
   return L.slice(0,7);
@@ -2110,7 +2135,7 @@ requestAnimationFrame(frame);
 requestAnimationFrame(()=>setTimeout(artFetch,60));   // the art arrives after first paint
 
 // debug / test hooks
-window.TL={get G(){return G},get META(){return META},save,UPVAL,upVal,hasteMul,ART,RELICS,EVOS,FIELDS,SKILLS,EVENTS,CHARS,startEvent,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
+window.TL={get G(){return G},get META(){return META},save,UPVAL,upVal,hasteMul,rollTier,TIERS,ART,RELICS,EVOS,FIELDS,SKILLS,EVENTS,CHARS,startEvent,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
 const _inputVec=inputVec; inputVec=function(){return window.TL.inputOverride?window.TL.inputOverride():_inputVec()};
 </script>
 </body>

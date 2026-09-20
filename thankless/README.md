@@ -58,6 +58,13 @@ Demon King comes to you.
   weapons at most, five ranks each; one is guaranteed in the first few
   levels. A weapon build gives Wren roughly a fifth of the kills late in a
   run, and the story notes that nobody will believe it.
+- **Tiers.** Every card offered on a level-up or from a chest rolls a tier:
+  Common (70%), Rare (19%), Epic (7.5%), Legendary (2.8%) or Mythic (0.7%).
+  The tier is how many ranks the pick grants at once — one, two, three,
+  four — and a Mythic maxes the card and heals everyone to full. Chests
+  hand out a card after their relic with better odds (Common drops to
+  about 30%), and Wren's Lucky Star training raises the odds further.
+  The story remembers Legendary and Mythic rolls.
 - **The wider deck.** Beyond the weapons, level-ups draw from 55 cards
   and every card shows what it is worth now and what the next rank gives:
   Quick Hands (attack speed), Kindling / Shatter / Conductor / Sanctified

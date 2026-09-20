@@ -156,7 +156,7 @@ files: 1=face_wren.webp  2=face_brom.webp  3=face_pip.webp  4=face_vex.webp
 
 --- block 17 (title) ---
 files: 1=title.webp
-1. wide painted scene: a small exhausted healer in a white and gold robe stands in a dark field at dusk holding a glowing staff, behind her a huge armoured warrior snores standing up, a tiny archer hides behind him, and a mage in a pointed hat looks at her phone bored, while a horde of red imps and skeletons pours over the hill toward them. chunky chibi fantasy game style, thick dark outlines, flat cel shading, rich dark purple and orange dusk palette, cinematic wide composition, no text, no border
+1. wide painted scene: a small exhausted healer in a white and gold robe stands in a dark field at dusk holding a glowing staff, behind him a huge armoured warrior snores standing up, a tiny archer hides behind the warrior, and a mage in a pointed hat looks at the healer phone bored, while a horde of red imps and skeletons pours over the hill toward them. chunky chibi fantasy game style, thick dark outlines, flat cel shading, rich dark purple and orange dusk palette, cinematic wide composition, no text, no border
 
 
 ================ RELICS — 35 images ================

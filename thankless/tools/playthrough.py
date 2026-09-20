@@ -18,6 +18,7 @@ ap.add_argument('--circle',type=int,default=0)
 ap.add_argument('--tree',action='store_true')
 ap.add_argument('--field',type=int,default=0)
 ap.add_argument('--nobuffs',action='store_true',help='the bot never casts Bless, Haste or Fortify (a control run)')
+ap.add_argument('--pref',default='',help='comma list: level-up preference order for the bot')
 ap.add_argument('--party',default='',help='comma list of 3 member keys; unlocks everything')
 ap.add_argument('--shots',action='store_true')
 ap.add_argument('--every',type=float,default=60,help='log interval in game seconds')
@@ -90,20 +91,21 @@ def main():
             pg.wait_for_function('window.TL && document.getElementById("start") && !document.getElementById("start").disabled')
         pg.click('#start')
         pg.wait_for_function('window.TL.G')
+        if a.pref: pg.evaluate('(p)=>{window.__pref=p.split(",")}',a.pref)
         pg.evaluate(BOT.replace('(() => {','(() => { const NOBUFFS='+('true' if a.nobuffs else 'false')+';',1))
         pg.evaluate(f'()=>window.TL.setFast({a.fast})')
         if a.shots: os.makedirs(OUT,exist_ok=True)
         last_min=-1; t0=time.time()
         while True:
             # auto-pick level-ups
-            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=['pdmg','power','php','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']; let c=p.slice().sort((x,y)=>pref.indexOf(x.id)-pref.indexOf(y.id))[0]; window.TL.chooseUp(c.id);} 
-              const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
+            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['pdmg','power','php','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); let c=p.slice().sort((x,y)=>pref.indexOf(x.id)-pref.indexOf(y.id))[0]; window.TL.chooseUp(c.id);} 
+              const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),hk:h.kills,mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
                 party:G.party.map(m=>m.name+'L'+m.lvl+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
             if st is None: break
             m=int(st['t']//a.every)
             if m!=last_min:
                 last_min=m
-                print(f"[{int(st['t'])//60}:{int(st['t'])%60:02d}] lv{st['level']} kills {st['kills']} foes {st['enemies']} | Wren {st['hp']} mana {st['mana']}/{st['manaMax']} heal {st['healPower']} | "+' '.join(st['party'])+f" | healed {int(st['stats']['healed'])} ff {st['stats']['ff']} naps {st['stats']['naps']} oom {st['stats']['oom']}")
+                print(f"[{int(st['t'])//60}:{int(st['t'])%60:02d}] lv{st['level']} kills {st['kills']} foes {st['enemies']} | Wren {st['hp']} k{st['hk']} mana {st['mana']}/{st['manaMax']} heal {st['healPower']} | "+' '.join(st['party'])+f" | healed {int(st['stats']['healed'])} ff {st['stats']['ff']} naps {st['stats']['naps']} oom {st['stats']['oom']}")
                 if a.shots: pg.screenshot(path=os.path.join(OUT,f'tl-{m:03d}.png'))
             if st['over']:
                 print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'relics', st['relics'] or 'none', 'events', pg.evaluate('()=>(window.TL.G.stats.eventsWon||0)+"/"+(window.TL.G.stats.events||0)'), 'skills', pg.evaluate('()=>window.TL.G.party.map(m=>m.name+":"+Object.entries(m.skills).map(([k,v])=>k+v).join("+")).join(" ")'), 'upgrades', json.dumps(st['up']))

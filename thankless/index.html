@@ -47,7 +47,9 @@
   .node.max{opacity:.7}
   .node.locked{opacity:.55}
   .node.on{box-shadow:inset 0 0 0 2px var(--gold)}
-  .node .pf{width:34px;height:34px;border:1px solid #000;border-radius:3px;object-fit:cover;float:right;margin-left:6px;display:none}
+  .node{position:relative}
+  .node .pf{width:44px;height:44px;border:1px solid #000;border-radius:3px;object-fit:cover;position:absolute;right:8px;top:8px;display:none}
+  .node.has-face b,.node.has-face .d{padding-right:52px}
   .node .pf.on{display:block}
   .node .wbtn{font-size:10px;padding:2px 6px;min-height:22px}
   .node .lock{font-size:11px;color:var(--muted)}
@@ -68,7 +70,7 @@
   #relics .ricon{width:24px;height:24px;margin:0 1px}
   #relics .evo .ricon{filter:drop-shadow(0 0 4px var(--gold))}
   .who{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:#000;margin-right:6px;vertical-align:middle}
-  .who.healer{background:var(--healer)}.who.tank{background:var(--tank)}.who.archer{background:var(--archer)}.who.mage{background:var(--mage)}.who.party{background:#f0b0d0}
+  .who.healer{background:var(--healer)}.who.tank{background:var(--tank)}.who.archer{background:var(--archer)}.who.mage{background:var(--mage)}.who.party{background:#f0b0d0}.who.weapon{background:#ffb24a}
 
   /* HUD */
   #hud{position:absolute;inset:0;pointer-events:none;z-index:10;font-size:12px}
@@ -147,7 +149,7 @@
     <div class="panel" id="titleP" style="text-align:center">
       <h1>THANKLESS</h1>
       <div class="sub" style="margin:6px 0 10px">Survivors of the Worst Party</div>
-      <div class="sub" style="margin-bottom:10px">You are the healer. You cannot attack. Your party can, badly.<br>Keep them alive for ten minutes and the Demon King comes to you.</div>
+      <div class="sub" style="margin-bottom:10px">You are the healer. You are not supposed to attack. Your party can, badly.<br>Keep them alive for ten minutes and the Demon King comes to you.</div>
       <div class="row" style="justify-content:center;margin-bottom:8px">
         <span>Gold: <span class="gold" id="mgold">0</span></span>
         <span>· Circle <b id="mcircle">0</b></span>
@@ -184,6 +186,7 @@
         <b>Mend</b> keeps them standing, but your spells decide whether they win. <b>1</b> Surge heals. <b>2</b> Bless doubles the busiest ally’s damage. <b>3</b> Haste speeds everyone up and keeps Brom awake. <b>4</b> Fortify shields the party and makes Brom the only thing enemies can see. <b>5</b> Rouse wakes, calms and shoves. <b>R</b> Revive when someone falls. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
         Three of twelve go with you, picked at camp; more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
         Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes. See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
+        Your own level-ups now offer <b>weapons</b>: a bouncing ember, kitchen knives, a censer chain, orbiting hymnals, holy water and more. Four at most, five ranks each. You are not supposed to attack. Nobody will believe you did.<br>
         Ghouls burrow and come up under someone. Wisps ignore the party and drink your mana on touch; keep away or let Pip shoot them.<br>
         Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them into something better.<br>
         From two minutes in, elites arrive with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Hexers lob bolts at you from a distance; keep moving.<br>
@@ -221,7 +224,7 @@
 
 <script>
 'use strict';
-const BUILD='b013-roster';
+const BUILD='b014-habits';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -251,7 +254,7 @@ const ART_V='5cef4efe';         // stamped by pack-art.py; 'none' means no art.j
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
-  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_'))hudFaces();if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics()};im.src=A[k].src;ART.img[k]=im}
+  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics()};im.src=A[k].src;ART.img[k]=im}
 }
 function softPatch(im){ // the tile with feathered edges, so it sits on the grass as a patch rather than a square
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(im,0,0,256,256);
@@ -444,12 +447,14 @@ function renderMenu(){
     .map(([k,v])=>'<span>'+k+'</span><span>'+v+'</span>').join('');
 }
 function unlocked(k){const C=CHARS[k];return !!C&&(META.unlockAll||!C.unlock||C.unlock.test())}
+function pickerFaces(){for(const d of document.querySelectorAll('#picker .node')){const k=d.dataset.face,im=d.querySelector('.pf');if(k&&im&&ART.ready[k]&&!im.classList.contains('on')){im.src=ART.img[k].src;im.classList.add('on');d.classList.add('has-face')}}}
 function renderPicker(){
   META.party=(META.party||['tank','archer','mage']).filter(k=>unlocked(k)); META.weapon=META.weapon||{}; META.weaponsSeen=META.weaponsSeen||{};
   const box=$('picker'); box.innerHTML='';
   for(const k in CHARS){const C=CHARS[k], on=META.party.includes(k), open=unlocked(k);
-    const d=document.createElement('div'); d.className='node'+(on?' on':'')+(open?'':' locked');
-    const face=ART.ready['face_'+C.spr]?'<img class="pf on" src="'+ART.img['face_'+C.spr].src+'">':'';
+    const d=document.createElement('div'); d.className='node'+(on?' on':'')+(open?'':' locked')+(ART.ready['face_'+C.spr]?' has-face':'');
+    d.dataset.face='face_'+C.spr;
+    const face=ART.ready['face_'+C.spr]?'<img class="pf on" src="'+ART.img['face_'+C.spr].src+'">':'<img class="pf">';
     d.innerHTML=face+'<b><span class="who" style="background:'+C.col+'">'+esc(C.name)+'</span>'+esc(C.role)+'</b><span class="d">'+esc(C.blurb)+'</span><span class="r"></span>';
     const row=d.querySelector('.r');
     if(!open){const l=document.createElement('span');l.className='lock';l.textContent='🔒 '+C.unlock.text;row.appendChild(l)}
@@ -496,7 +501,20 @@ const UPS=[
   {id:'blesschain',who:'healer',name:'Shared Blessing',desc:'Bless also blesses the next-busiest ally for half as long',max:1},
   {id:'blessburst',who:'healer',name:'Holy Kill',desc:'A blessed ally’s kills have a 20% chance to burst with holy fire',max:3},
   {id:'fortburst',who:'healer',name:'Bellow',desc:'Fortify also shoves enemies off its target',max:1},
+  // Wren's bad habits: weapons, survivors-style. Four at most; they level like anything else.
+  {id:'w_ember',who:'weapon',name:'Stray Ember',desc:'A fireball that bounces off the edges of the field. Wren does not know how she does it',max:5,icon:'🔥'},
+  {id:'w_knife',who:'weapon',name:'Kitchen Knives',desc:'Throws knives the way she is facing. She has a lot of them',max:5,icon:'🔪'},
+  {id:'w_whip',who:'weapon',name:'Censer Chain',desc:'Swings a chain across everything in front of her. Rank 3 adds a backswing',max:5,icon:'⛓'},
+  {id:'w_incense',who:'weapon',name:'Incense',desc:'Everything close to Wren slowly burns. It smells lovely',max:5,icon:'🕯'},
+  {id:'w_hymnal',who:'weapon',name:'Orbiting Hymnals',desc:'Books circle her and hit things on the way round',max:5,icon:'📖'},
+  {id:'w_candle',who:'weapon',name:'Thrown Candlestick',desc:'Lobbed in a high arc. Heavy. Goes through everything it lands on',max:5,icon:'🕯'},
+  {id:'w_wand',who:'weapon',name:'Wand of Slight Offense',desc:'A bolt that seeks the nearest enemy. It is not a big bolt',max:5,icon:'✨'},
+  {id:'w_smite',who:'weapon',name:'Small Smitings',desc:'Lightning falls on enemies near her. Nobody sent it',max:5,icon:'⚡'},
+  {id:'w_cross',who:'weapon',name:'Boomerang Cross',desc:'Thrown at the nearest enemy. Comes back. Usually',max:5,icon:'✝'},
+  {id:'w_water',who:'weapon',name:'Holy Water',desc:'Flasks shatter near enemies and leave burning puddles',max:5,icon:'🧪'},
 ];
+const WEAPON_CAP=4;
+const weaponCount=()=>G?UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).length:0;
 const upRank=id=>G?(G.up[id]||0):0;
 
 // ---------- spells ----------
@@ -934,7 +952,7 @@ function newRun(){
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
      level:1,xp:0,xpNext:8,up:{},lvQ:[],kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
-     relics:[],chests:[],fires:[],timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
+     relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
   G.spells=SPELLS.slice(0,rank('h_radiance')?6:5);
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
@@ -1432,6 +1450,18 @@ function updateShots(dt){
       if(hit)sh.splice(i,1); else if(Math.random()<0.4)G.parts.push({x:s.x,y:s.y,vx:rnd(-10,10),vy:rnd(-10,10),life:0.25,col:'#7fffd4',r:1.8});
       continue;
     }
+    if(s.hw&&s.kind!=='arrow'){
+      if(s.kind==='ember'){if(s.x<8||s.x>ARENA-8){s.vx=-s.vx;s.x=clamp(s.x,8,ARENA-8);puff(s.x,s.y,4,'#ffb040',60,1.5)}if(s.y<8||s.y>ARENA-8){s.vy=-s.vy;s.y=clamp(s.y,8,ARENA-8);puff(s.x,s.y,4,'#ffb040',60,1.5)}
+        for(const e of G.enemies)if(Math.hypot(e.x-s.x,e.y-s.y)<e.r+s.rad&&wcanHit(s,e,0.6))hurtEnemy(e,s.dmg,s.from);
+        if(Math.random()<0.6)G.parts.push({x:s.x,y:s.y,vx:rnd(-15,15),vy:rnd(-15,15),life:0.3,col:Math.random()<0.5?'#ff9a3a':'#ffd24a',r:2.2})}
+      else if(s.kind==='candle'){s.vy+=s.g*dt;s.rot+=dt*9;for(const e of G.enemies)if(Math.hypot(e.x-s.x,e.y-s.y)<e.r+10&&wcanHit(s,e,0.4))hurtEnemy(e,s.dmg,s.from);if(s.y>ARENA+40)s.life=0}
+      else if(s.kind==='cross'){s.vx+=s.ax*dt;s.vy+=s.ay*dt;s.rot+=dt*10;for(const e of G.enemies)if(Math.hypot(e.x-s.x,e.y-s.y)<e.r+11&&wcanHit(s,e,0.5))hurtEnemy(e,s.dmg,s.from);if(s.age>1.3&&Math.hypot(s.x-G.healer.x,s.y-G.healer.y)<20)s.life=0}
+      else if(s.kind==='wand'){const t=nearestEnemy(s,420);if(t){const want=Math.atan2(t.y-s.y,t.x-s.x),cur=Math.atan2(s.vy,s.vx);let d=want-cur;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;const turn=clamp(d,-7*dt,7*dt),sp=Math.hypot(s.vx,s.vy);s.vx=Math.cos(cur+turn)*sp;s.vy=Math.sin(cur+turn)*sp}
+        let hit=false;for(const e of G.enemies)if(Math.hypot(e.x-s.x,e.y-s.y)<e.r+5){hurtEnemy(e,s.dmg,s.from);puff(s.x,s.y,5,'#fff4c0',70,1.5);hit=true;break}if(hit)s.life=0;else if(Math.random()<0.5)G.parts.push({x:s.x,y:s.y,vx:0,vy:0,life:0.2,col:'#ffe9a8',r:1.8})}
+      else if(s.kind==='flask'){s.vy+=s.g*dt;if(s.life<=0){G.pools.push({x:s.x,y:s.y,r:s.pr,dps:s.pdps,life:s.plife});puff(s.x,s.y,10,'#9ad8ff',90,2);G.blasts.push({x:s.x,y:s.y,r:s.pr,life:0.3,col:'rgba(150,210,255,'})}}
+      if(s.life<=0||s.x<-60||s.y<-60||s.x>ARENA+60||s.y>ARENA+60)sh.splice(i,1);
+      continue;
+    }
     if(s.kind==='fire'){
       if(s.life<=0){explode(s.x,s.y,s.r,s.dmg,s.from);sh.splice(i,1);continue}
       if(Math.random()<0.5)G.parts.push({x:s.x,y:s.y,vx:rnd(-20,20),vy:rnd(-20,20),life:0.3,col:'#ff9a3a',r:2});
@@ -1451,6 +1481,34 @@ function updateShots(dt){
 
 // ---------- healer ----------
 const mendCost=()=>G.healer.mendCost*Math.sqrt(G.healer.healPower/30)*(1-0.08*rank('h_frugal'));   // bigger heals cost more — Kale's rule
+// ---------- Wren's weapons ----------
+const wbase=()=>6*(1+0.1*(G.level-1))*(1+G.t/600)*(1+G.legendDmg);
+function wfire(kind,x,y,vx,vy,extra){G.shots.push(Object.assign({kind,hw:true,x,y,vx,vy,life:3,age:0,from:G.healer,hits:[],dmg:wbase()},extra||{}))}
+function wcanHit(s,e,gap){for(const h of s.hits)if(h.e===e){if(G.t-h.t<gap)return false;h.t=G.t;return true}s.hits.push({e,t:G.t});return true}
+function updateWeapons(dt){
+  const h=G.healer,W=G.wcd; if(!h.alive)return;
+  const r=id=>upRank(id); const tick=(id,cd)=>{W[id]=(W[id]||0)-dt;if(W[id]<=0){W[id]=cd;return true}return false};
+  const facing=h.face||1;
+  if(r('w_ember')&&tick('w_ember',3.4-0.2*r('w_ember'))){const n=1+Math.floor(r('w_ember')/2);for(let i=0;i<n;i++){const a=rnd(0,6.283);wfire('ember',h.x,h.y-8,Math.cos(a)*250,Math.sin(a)*250,{life:5,dmg:wbase()*(0.9+0.25*(r('w_ember')-1)),rad:8})}h.castT=0.25}
+  if(r('w_knife')&&tick('w_knife',1.15)){const n=1+r('w_knife');for(let i=0;i<n;i++)G.shots.push({kind:'arrow',hw:true,x:h.x,y:h.y-6+(i-(n-1)/2)*7,vx:facing*620,vy:0,dmg:wbase()*0.9,life:0.75,age:-i*0.06,from:h,pierce:r('w_knife')>=5?2:1,hit:[],noff:true,col:'#e8eef4'});h.castT=0.2}
+  if(r('w_whip')&&tick('w_whip',1.5-0.1*r('w_whip'))){const R=110+10*r('w_whip'),dmg=wbase()*(1.3+0.3*(r('w_whip')-1));const sides=r('w_whip')>=3?[facing,-facing]:[facing];let n=0;
+    for(const d of sides){for(const e of G.enemies){const dx=(e.x-h.x)*d,dy=Math.abs(e.y-h.y);if(dx>-e.r&&dx<R+e.r&&dy<34+e.r*0.5){hurtEnemy(e,dmg,h);if(!e.boss){e.x+=d*14}n++}}G.whips.push({x:h.x,y:h.y,d,R,life:0.22})}
+    if(n)h.castT=0.2}
+  if(r('w_incense')){const R=52+9*r('w_incense'),dps=wbase()*(0.9+0.25*(r('w_incense')-1));for(const e of G.enemies)if(Math.hypot(e.x-h.x,e.y-h.y)<R+e.r*0.5){hurtEnemy(e,dps*dt,h);if(!e.boss&&e.spd>0){const d=Math.hypot(e.x-h.x,e.y-h.y)||1;e.x+=(e.x-h.x)/d*8*dt;e.y+=(e.y-h.y)/d*8*dt}}}
+  if(r('w_hymnal')){G.orbA+=dt*(2.6+0.2*r('w_hymnal'));const n=[0,1,2,3,3,4][r('w_hymnal')],OR=74,dmg=wbase()*(1+0.25*(r('w_hymnal')-1));
+    for(let i=0;i<n;i++){const a=G.orbA+i*6.283/n,bx=h.x+Math.cos(a)*OR,by=h.y+Math.sin(a)*OR;for(const e of G.enemies)if(Math.hypot(e.x-bx,e.y-by)<12+e.r&&G.t-(e.hymT||-9)>0.55){e.hymT=G.t;hurtEnemy(e,dmg,h);puff(bx,by,3,'#ffe9a8',40,1.2)}}}
+  if(r('w_candle')&&tick('w_candle',3.0)){const n=1+Math.floor(r('w_candle')/2);for(let i=0;i<n;i++){const t=nearestEnemy(h,500);const d=t?(t.x<h.x?-1:1):facing;wfire('candle',h.x,h.y-10,d*(150+rnd(0,80)),-(380+rnd(0,60)),{life:2.6,dmg:wbase()*(2.2+0.5*(r('w_candle')-1)),g:520,rot:0})}h.castT=0.25}
+  if(r('w_wand')&&tick('w_wand',1.6-0.1*r('w_wand'))){const n=[0,1,2,2,3,4][r('w_wand')];for(let i=0;i<n;i++){const t=nearestEnemy(h,450);if(!t)break;const a=Math.atan2(t.y-h.y,t.x-h.x)+rnd(-0.6,0.6);wfire('wand',h.x,h.y-8,Math.cos(a)*330,Math.sin(a)*330,{life:2.4,dmg:wbase()*(1.1+0.2*(r('w_wand')-1)),home:true})}h.castT=0.2}
+  if(r('w_smite')&&tick('w_smite',4.2-0.3*r('w_smite'))){const near=G.enemies.filter(e=>Math.hypot(e.x-h.x,e.y-h.y)<380);const n=Math.min(near.length,1+Math.floor(r('w_smite')*0.8));
+    for(let i=0;i<n;i++){const e=near.splice(Math.floor(Math.random()*near.length),1)[0];hurtEnemy(e,wbase()*(2+0.5*(r('w_smite')-1)),h);G.zaps.push({pts:[{x:e.x+rnd(-30,30),y:e.y-420},{x:e.x,y:e.y-e.r}],life:0.25,col:'rgba(255,240,160,'});G.blasts.push({x:e.x,y:e.y,r:26,life:0.3,col:'rgba(255,240,160,'});puff(e.x,e.y,6,'#fff4c0',80,2)}
+    if(n){G.shake=Math.max(G.shake,0.06);h.castT=0.2}}
+  if(r('w_cross')&&tick('w_cross',2.6-0.15*r('w_cross'))){const t=nearestEnemy(h,420);if(t){const a=Math.atan2(t.y-h.y,t.x-h.x),sp=380;wfire('cross',h.x,h.y-8,Math.cos(a)*sp,Math.sin(a)*sp,{life:2.4,dmg:wbase()*(1.4+0.3*(r('w_cross')-1)),ax:-Math.cos(a)*sp*0.95,ay:-Math.sin(a)*sp*0.95,rot:0});h.castT=0.2}}
+  if(r('w_water')&&tick('w_water',3.6-0.2*r('w_water'))){const near=G.enemies.filter(e=>Math.hypot(e.x-h.x,e.y-h.y)<330);if(near.length){const e=near[Math.floor(Math.random()*near.length)];wfire('flask',h.x,h.y-10,(e.x-h.x)/0.7,(e.y-h.y)/0.7-120,{life:0.7,g:340,dmg:0,pr:46+6*r('w_water'),pdps:wbase()*(0.7+0.2*(r('w_water')-1)),plife:3+0.4*r('w_water')});h.castT=0.2}}
+}
+function updatePools(dt){
+  for(let i=G.pools.length-1;i>=0;i--){const z=G.pools[i];z.life-=dt;if(z.life<=0){G.pools.splice(i,1);continue}for(const e of G.enemies)if(Math.hypot(e.x-z.x,e.y-z.y)<z.r+e.r*0.5)hurtEnemy(e,z.dps*dt,G.healer);if(Math.random()<dt*10)G.parts.push({x:z.x+rnd(-z.r,z.r)*0.7,y:z.y+rnd(-z.r,z.r)*0.7,vx:0,vy:-30,life:0.4,col:'#9ad8ff',r:2})}
+  for(let i=G.whips.length-1;i>=0;i--){G.whips[i].life-=dt;if(G.whips[i].life<=0)G.whips.splice(i,1)}
+}
 function updateHealer(dt){
   const h=G.healer; const v=inputVec(); if(h.frozenT>0){h.frozenT-=dt;v.x=0;v.y=0}
   if(v.x||v.y){const sp=h.spd*spdMul(h);h.x+=v.x*sp*dt;h.y+=v.y*sp*dt;h.face=v.x<0?-1:v.x>0?1:h.face;h.anim+=dt*9;h.moveT=0.15}
@@ -1509,15 +1567,17 @@ function showMemberLevelUp(m){
   $('lvl').classList.remove('hide'); return true;
 }
 function showLevelUp(){
-  const pool=UPS.filter(u=>upRank(u.id)<u.max&&(!u.needs||rank(u.needs)>0));
-  const picks=[]; while(picks.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);picks.push(pool.splice(i,1)[0])}
+  const pool=UPS.filter(u=>upRank(u.id)<u.max&&(!u.needs||rank(u.needs)>0)&&(!['tank','archer','mage'].includes(u.who)||byKey(u.who))&&!(u.who==='weapon'&&!upRank(u.id)&&weaponCount()>=WEAPON_CAP));
+  const picks=[];
+  if(weaponCount()===0&&G.level<=4){const ws=pool.filter(u=>u.who==='weapon');if(ws.length){const w=ws[Math.floor(Math.random()*ws.length)];picks.push(w);pool.splice(pool.indexOf(w),1)}}
+  while(picks.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);picks.push(pool.splice(i,1)[0])}
   if(!picks.length){G.healer.mana=G.healer.manaMax;return false}
   G.lvOpen=true; G.pickKind='up'; G.pendingPicks=picks;
   $('lvtitle').textContent='Level '+G.level;
   $('lvsub').textContent=pick(['Your party killed things. You get the credit.','Somebody has to grow. It is you.','Nobody said thank you, but you did level up.','Brom slept through most of that.','Vex says it was all her.']);
   const box=$('lvcards'); box.innerHTML='';
   for(const u of picks){const b=document.createElement('button');b.className='lvcard';const r=upRank(u.id);
-    b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+1):'new')+'</span><b><span class="who '+u.who+'">'+esc(u.who==='party'?'Party':u.who==='healer'?'Wren':u.who==='tank'?'Brom':u.who==='archer'?'Pip':'Vex')+'</span>'+esc(u.name)+'</b><i>'+esc(u.desc)+'</i>';
+    b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+1):u.who==='weapon'?'new weapon':'new')+'</span><b><span class="who '+u.who+'">'+esc(u.who==='party'?'Party':u.who==='healer'?'Wren':u.who==='weapon'?'Weapon':CHARS[u.who]?CHARS[u.who].name:u.who)+'</span>'+(u.icon?u.icon+' ':'')+esc(u.name)+'</b><i>'+esc(u.desc)+'</i>';
     b.onclick=()=>chooseUp(u.id); box.appendChild(b)}
   $('lvl').classList.remove('hide'); return true;
 }
@@ -1531,6 +1591,7 @@ function chooseUp(id){
   else if(id==='range')h.range*=1.15; else if(id==='boots')h.spd*=1.12; else if(id==='vit'){h.maxhp+=25;h.hp=h.maxhp}
   else if(id==='php')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.2);m.hp=Math.round(m.maxhp*Math.max(r,0.5))}
   else if(id==='glasses'){const ar=byKey('archer');if(ar)ar.miss*=0.75} else if(id==='manners'){const mg=byKey('mage');if(mg)mg.ff*=0.7}
+  else if(id.startsWith('w_')){if(G.up[id]===1){say(h,pick(['I should not have this.','Where did this come from.','Just for emergencies.','Nobody saw that.']),2,true);G.stats.weapons=(G.stats.weapons||0)+1}else say(h,pick(['Getting the hang of it.','Is this allowed?','Sorry. Sorry.']),1.5,true)}
   G.lvOpen=false; $('lvl').classList.add('hide'); h.mana=Math.min(h.manaMax,h.mana+20);
   G.lvQ.shift(); showNextLevel();
 }
@@ -1547,7 +1608,7 @@ function endRun(won,why){
   $('ovline').textContent=won?'Your party will tell this story for years. You are not in it.':why==='healer'?'Nobody noticed for a while.':'You stood there with a full mana bar. No. You didn’t. There was never enough mana.';
   const names=G.party.map(m=>m.name).join(' / ');
   $('ovstory').innerHTML=runStory(won,why).map(l=>'<div>'+l+'</div>').join('');
-  $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold],['Healing done',Math.floor(G.stats.healed)],['Kills — '+names,G.party.map(m=>m.kills).join(' / ')],['Kills — Wren',G.healer.kills+(G.healer.kills?' (overflow counts)':' (as intended)')],['Party levels — '+names,G.party.map(m=>m.lvl).join(' / ')],['Events',(G.stats.eventsWon||0)+' of '+(G.stats.events||0)],['Naps / turns / reloads / overheats',G.stats.naps+' / '+(G.stats.turns||0)+' / '+(G.stats.reloads||0)+' / '+(G.stats.overheats||0)],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>relicIcon(id)).join(' '):'none']]
+  $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold],['Healing done',Math.floor(G.stats.healed)],['Kills — '+names,G.party.map(m=>m.kills).join(' / ')],['Kills — Wren',G.healer.kills+(G.stats.weapons?' (she picked up habits)':G.healer.kills?' (overflow counts)':' (as intended)')],['Party levels — '+names,G.party.map(m=>m.lvl).join(' / ')],['Events',(G.stats.eventsWon||0)+' of '+(G.stats.events||0)],['Naps / turns / reloads / overheats',G.stats.naps+' / '+(G.stats.turns||0)+' / '+(G.stats.reloads||0)+' / '+(G.stats.overheats||0)],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>relicIcon(id)).join(' '):'none']]
     .map(([k,v])=>'<span>'+k+'</span><span>'+v+'</span>').join('');
   if(won&&G.circle===META.maxCircle-1)$('ovline').textContent+=' Circle '+(G.circle+1)+' is open.';
   setTimeout(()=>{$('over').classList.remove('hide');$('hud').classList.remove('run')},won?900:600);
@@ -1572,6 +1633,7 @@ function runStory(won,why){
   if(S.reloads)L.push('Dusty reloaded '+S.reloads+' times, at full volume.');
   if(S.overheats)L.push('Unit 7 overheated '+S.overheats+' times. It has filed a report.');
   if(S.stabs)L.push('Sable backstabbed '+S.stabs+' things and was seen for maybe half of them.');
+  if(S.weapons&&h.kills>=25){const best=UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).sort((a,b)=>upRank(b.id)-upRank(a.id))[0];L.push('Wren killed '+h.kills+' things herself, mostly with '+(best?best.name.toLowerCase():'something')+'. That is not the job, and nobody will believe it.')}
   if(S.thanks===0)L.push('Thank-yous received: none. As usual.');
   if(won)L.push('The Demon King is dead. The song they will sing about it does not have a verse for the healer.');
   return L.slice(0,7);
@@ -1625,7 +1687,7 @@ function updateHud(){
 // ---------- sim ----------
 function step(dt){
   G.t+=dt;
-  updateSpawns(dt); updateHealer(dt); if(G.over)return;
+  updateSpawns(dt); updateHealer(dt); if(G.over)return; updateWeapons(dt); updatePools(dt);
   for(const m of G.party)if(m.alive&&!(m.frozenT>0))CHARS[m.key].update(m,dt);
   for(const m of G.party)if(m.alive){keepIn(m);if(!m.asleep&&!(m.panicT>0)&&!m.hidden&&!m.overheated&&!(m.frozenT>0)&&!(m.sinkT>0))memberSkills(m,dt)}
   updateMinions(dt);
@@ -1846,6 +1908,8 @@ function draw(){
   for(const c of G.chests){const bob=Math.sin(c.t*4)*2;ctx.strokeStyle='rgba(255,220,120,'+(0.35+0.25*Math.sin(c.t*5))+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(c.x,c.y,22+Math.sin(c.t*5)*3,0,6.283);ctx.stroke();shadow(c.x,c.y,12);
     ctx.fillStyle='#5a3a1c';ctx.fillRect(c.x-12,c.y-10+bob,24,16);ctx.fillStyle='#7a5230';ctx.fillRect(c.x-12,c.y-14+bob,24,6);ctx.fillStyle='#ffd24a';ctx.fillRect(c.x-12,c.y-9+bob,24,2);ctx.fillRect(c.x-2,c.y-11+bob,4,6);ctx.fillStyle='#000';ctx.fillRect(c.x-1,c.y-6+bob,2,2)}
   for(const g of G.ghosts){const k=g.life/g.t,im=ART.img[g.key];if(!im)continue;ctx.globalAlpha=k*0.9;drawSpr(im,g.x,g.y,g.h,g.face,1+0.35*(1-k),Math.max(0.12,k*k));}ctx.globalAlpha=1;
+  for(const z of G.pools){const k=Math.min(1,z.life);ctx.fillStyle='rgba(120,190,255,'+(0.22*k)+')';ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,6.283);ctx.fill();ctx.strokeStyle='rgba(180,225,255,'+(0.5*k)+')';ctx.lineWidth=2;ctx.stroke()}
+  if(G&&upRank('w_incense')&&G.healer.alive){const R=52+9*upRank('w_incense');ctx.fillStyle='rgba(255,200,120,'+(0.07+0.03*Math.sin(G.t*4))+')';ctx.beginPath();ctx.arc(G.healer.x,G.healer.y,R,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,210,140,.35)';ctx.lineWidth=1.5;ctx.setLineDash([4,8]);ctx.stroke();ctx.setLineDash([])}
   for(const z of G.holy){ctx.fillStyle='rgba(255,240,160,'+(0.1+0.05*Math.sin(G.t*6))+')';ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,230,120,.6)';ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.stroke();ctx.setLineDash([])}
   for(const w of G.walls){ctx.save();ctx.translate(w.x,w.y);ctx.rotate(w.a);ctx.fillStyle='rgba(200,240,255,.8)';ctx.fillRect(-w.len/2,-8,w.len,16);ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(-w.len/2,-8,w.len,4);ctx.restore()}
   const ents=[]; for(const e of G.enemies)ents.push(e); for(const m of G.party)if(m.alive)ents.push(m); for(const z of G.minions)ents.push(z); ents.push(h);
@@ -1856,7 +1920,14 @@ function draw(){
     if(s.kind==='bolt'){ctx.fillStyle='#2a8a70';ctx.beginPath();ctx.arc(s.x,s.y,6,0,6.283);ctx.fill();ctx.fillStyle='#7fffd4';ctx.beginPath();ctx.arc(s.x,s.y,3.5,0,6.283);ctx.fill()}
     else if(s.kind==='arrow'){ctx.strokeStyle=s.col||'#e8d8b0';ctx.lineWidth=2;const l=14/Math.hypot(s.vx,s.vy);ctx.beginPath();ctx.moveTo(s.x-s.vx*l,s.y-s.vy*l);ctx.lineTo(s.x,s.y);ctx.stroke()}
     else if(s.kind==='fire'){ctx.fillStyle='#ffb040';ctx.beginPath();ctx.arc(s.x,s.y,6,0,6.283);ctx.fill();ctx.fillStyle='#fff4c0';ctx.beginPath();ctx.arc(s.x,s.y,3,0,6.283);ctx.fill()}
+    else if(s.kind==='ember'){ctx.fillStyle='rgba(255,120,40,.5)';ctx.beginPath();ctx.arc(s.x,s.y,s.rad+4,0,6.283);ctx.fill();ctx.fillStyle='#ffb040';ctx.beginPath();ctx.arc(s.x,s.y,s.rad,0,6.283);ctx.fill();ctx.fillStyle='#fff4c0';ctx.beginPath();ctx.arc(s.x-2,s.y-2,s.rad*0.45,0,6.283);ctx.fill()}
+    else if(s.kind==='candle'){ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.rot);ctx.fillStyle='#d8b040';ctx.fillRect(-4,-14,8,26);ctx.fillStyle='#f0e0a0';ctx.fillRect(-7,10,14,5);ctx.fillStyle='#ffd24a';ctx.beginPath();ctx.arc(0,-17,4,0,6.283);ctx.fill();ctx.restore()}
+    else if(s.kind==='cross'){ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.rot);ctx.fillStyle='#ffd24a';ctx.fillRect(-3,-13,6,26);ctx.fillRect(-11,-5,22,6);ctx.fillStyle='#fff4c0';ctx.fillRect(-1.5,-13,3,26);ctx.restore()}
+    else if(s.kind==='wand'){ctx.fillStyle='#fff4c0';ctx.beginPath();ctx.arc(s.x,s.y,4,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,220,120,.7)';ctx.lineWidth=2;const l=10/Math.hypot(s.vx,s.vy);ctx.beginPath();ctx.moveTo(s.x-s.vx*l,s.y-s.vy*l);ctx.lineTo(s.x,s.y);ctx.stroke()}
+    else if(s.kind==='flask'){ctx.fillStyle='#7ac8ff';ctx.beginPath();ctx.arc(s.x,s.y,5,0,6.283);ctx.fill();ctx.fillStyle='#d8f0ff';ctx.fillRect(s.x-2,s.y-9,4,5)}
   }
+  for(const w of G.whips){const k=w.life/0.22;ctx.strokeStyle='rgba(255,230,160,'+(k*0.9)+')';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(w.x+w.d*10,w.y-30*k);ctx.quadraticCurveTo(w.x+w.d*w.R*0.6,w.y-12,w.x+w.d*w.R,w.y+18*(1-k));ctx.stroke();ctx.strokeStyle='rgba(255,255,255,'+(k*0.7)+')';ctx.lineWidth=2;ctx.stroke()}
+  if(upRank('w_hymnal')&&h.alive){const n=[0,1,2,3,3,4][upRank('w_hymnal')],OR=74;for(let i=0;i<n;i++){const a=G.orbA+i*6.283/n,bx=h.x+Math.cos(a)*OR,by=h.y+Math.sin(a)*OR;ctx.save();ctx.translate(bx,by);ctx.rotate(a+1.57);ctx.fillStyle='#8a5a30';ctx.fillRect(-7,-9,14,18);ctx.fillStyle='#ffe9a8';ctx.fillRect(-5,-7,10,14);ctx.fillStyle='#c0a060';ctx.fillRect(-1,-7,2,14);ctx.restore()}}
   if(G.beam){ctx.strokeStyle='rgba(140,255,180,'+(G.beam.t/0.2*0.8)+')';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(G.beam.x1,G.beam.y1);ctx.lineTo(G.beam.x2,G.beam.y2);ctx.stroke()}
   for(const b of G.blasts){const k=b.life/0.4;ctx.strokeStyle=b.col+(k*0.9)+')';ctx.lineWidth=4;ctx.beginPath();ctx.arc(b.x,b.y,b.r*(1.15-k*0.3),0,6.283);ctx.stroke()}
   for(const p of G.parts){ctx.globalAlpha=clamp(p.life*2,0,1);ctx.fillStyle=p.col;ctx.fillRect(p.x-p.r/2,p.y-p.r/2,p.r,p.r)}ctx.globalAlpha=1;

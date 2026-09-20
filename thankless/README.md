@@ -48,6 +48,16 @@ Demon King comes to you.
   Brom the only thing enemies can see. **Rouse** wakes, calms and shoves.
   **Revive** (R, its own button when someone is down) raises at half HP. An
   unbuffed party fights at 60%; a busy healer keeps two buffs rolling.
+- **Weapons.** Wren is not supposed to attack, but level-ups offer her
+  survivors-style weapons anyway: Stray Ember (a fireball that bounces off
+  the field's edges), Kitchen Knives (thrown the way she faces), Censer
+  Chain (a whip, both sides at rank 3), Incense (a burning aura), Orbiting
+  Hymnals (books that circle her), Thrown Candlestick (a heavy arc that
+  pierces), Wand of Slight Offense (homing bolts), Small Smitings (lightning
+  on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
+  weapons at most, five ranks each; one is guaranteed in the first few
+  levels. A weapon build gives Wren roughly a fifth of the kills late in a
+  run, and the story notes that nobody will believe it.
 - Kills your party makes earn XP for you. Level-ups offer three cards: heal
   power, mana, range, party damage and HP, and the healer's only offense —
   overhealing that burns enemies, blessed allies that scorch attackers.

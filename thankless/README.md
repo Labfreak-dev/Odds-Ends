@@ -356,8 +356,12 @@ closes in or a boss is near; a banner and the chat box announce it.
   (twenty sticks).
 - Unit 7: Meltdown (a growing ring of fire, then reboot at full) or Orbital
   Strike (a beam from above follows a sweeping laser).
-Art: blocks 62–65 (Ivy's two forms, Vex ascended, Gideon winged, Brom's
-stew, and the healers' six icons).
+Every ultimate is cinematic: a white entrance flash and scale-in, a rotating
+sigil on the ground in the ultimate's element, a pulsing aura, drifting
+motes and a screen-edge vignette in its colour. Every character has a
+transformation sprite (or a set piece: the giant arrow, the glacier, the
+bat cloud, the dynamite wagon, the orbital reticle, the falling hammer,
+the ring of trees, the huge skeletons). Art: blocks 62–72.
 
 ## Holding off heals
 Tap a member's card in the HUD to stop healing them; tap again to resume.

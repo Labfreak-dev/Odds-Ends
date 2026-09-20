@@ -129,7 +129,7 @@ def pack_one(path):
         out = seamless(square(im.convert("RGB"), 256)); q = 80
     elif key.startswith("relic_") or key.startswith("skill_") or key.startswith("spell_"):
         out = fit(trim(key_out(im)), 64); q = 88
-    elif key.startswith("fx_ring_") or key.startswith("fx_pool_") or key.startswith("fx_spray_") or key.startswith("fx_beam_") or key in ("fx_roots", "fx_slash", "fx_front"):
+    elif key.startswith("fx_ring_") or key.startswith("fx_pool_") or key.startswith("fx_spray_") or key.startswith("fx_beam_") or key.startswith("fx_sigil_") or key in ("fx_glacier","fx_batstorm","fx_reticle","fx_ult_hammer") or key in ("fx_roots", "fx_slash", "fx_front"):
         out = fit(trim(key_out(im)), 256); q = 86   # ground effects get scaled up to a weapon's radius: keep them sharp
     elif key.startswith("face_"):
         im = im.convert("RGB"); w, h = im.size; sq = min(w, h)

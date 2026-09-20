@@ -45,11 +45,11 @@ BOT=r"""
     let tx=cx, ty=cy;
     if(target && best<0.6){ tx=(cx+target.x)/2; ty=(cy+target.y)/2; }
     // events: go where the event is
-    const ev=G.event; if(ev&&!ev.done){ if(ev.id==='shrine'){tx=ev.x;ty=ev.y;} else if(ev.id==='pilgrim'&&ev.npc.alive){tx=ev.npc.x;ty=ev.npc.y-30;} else if(ev.id==='moterain'){let bg=null,bd=1e9;for(const g of G.gems){if(!g.ev)continue;const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;bg=g;}}if(bg){tx=bg.x;ty=bg.y;}} else if(ev.id==='vigil'&&(G.party.find(m=>m.key==='tank')||{}).alive&&G.party.find(m=>m.key==='tank').asleep&&h.cd[4]<=0&&h.mana>=20)TL.cast(4); }
+    const ev=G.event; if(ev&&!ev.done){ if(ev.id==='shrine'){tx=ev.x;ty=ev.y;} else if(ev.id==='pilgrim'&&ev.npc.alive){tx=ev.npc.x;ty=ev.npc.y-30;} else if(ev.id==='moterain'){let bg=null,bd=1e9;for(const g of G.gems){if(!g.ev)continue;const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;bg=g;}}if(bg){tx=bg.x;ty=bg.y;}} }
     // chests: always worth the walk
     if(G.chests.length){let bc=null,bd=1e9;for(const c of G.chests){const d=Math.hypot(c.x-h.x,c.y-h.y);if(d<bd){bd=d;bc=c}}if(bd<700){tx=bc.x;ty=bc.y;}}
     // graves: go revive if the spell is ready
-    if(G.graves.length && h.cd[6]<=0){ tx=G.graves[0].x; ty=G.graves[0].y; }
+    if(G.graves.length && h.mana>=window.TL.reviveCost()){ tx=G.graves[0].x; ty=G.graves[0].y; }
     // low mana: nearest mote
     if(h.mana<h.manaMax*0.45 && G.gems.length){ let bg=null,bd=1e9; for(const g of G.gems){const d=Math.hypot(g.x-h.x,g.y-h.y); if(d<bd){bd=d;bg=g;}} if(bg && bd<420){tx=bg.x;ty=bg.y;} }
     let vx=tx-h.x, vy=ty-h.y; const d=Math.hypot(vx,vy);
@@ -61,14 +61,8 @@ BOT=r"""
     // spells: revive first, then keep buffs rolling, then heal
     const near=m=>G.enemies.filter(e=>Math.hypot(e.x-m.x,e.y-m.y)<220).length;
     const busiest=alive.filter(m=>Math.hypot(m.x-h.x,m.y-h.y)<h.range).sort((a,b)=>near(b)-near(a))[0];
-    if(G.graves.length && h.cd[6]<=0 && h.mana>=60){ TL.cast(6); }
-    if(target && best<0.4 && h.cd[0]<=0 && h.mana>=25) TL.cast(0);
+    if(G.graves.length && h.mana>=window.TL.reviveCost()){ TL.cast(window.TL.REV); }
     const tank=G.party.find(m=>m.key==='tank')||{alive:false};
-    if(!NOBUFFS && h.cd[3]<=0 && h.mana>=40 && ((tank.alive && alive.some(m=>m!==tank && m.hp<m.maxhp*0.6 && near(m)>=2)) || G.enemies.length>=14)) TL.cast(3);
-    if(!NOBUFFS && h.cd[1]<=0 && h.mana>=35 && busiest && near(busiest)>=3 && busiest.buffDmgT<=0) TL.cast(1);
-    if(!NOBUFFS && h.cd[2]<=0 && h.mana>=40 && G.enemies.length>=8 && !alive.some(m=>m.hasteT>0)) TL.cast(2);
-    if(tank.alive && tank.asleep && h.cd[4]<=0 && h.mana>=20 && G.enemies.length>4) TL.cast(4);
-    if(G.spells.length>5 && h.cd[5]<=0 && h.mana>=50 && G.enemies.filter(e=>Math.hypot(e.x-h.x,e.y-h.y)<h.range).length>=6) TL.cast(5);
     return {x:vx,y:vy};
   };
 })();
@@ -98,7 +92,7 @@ def main():
         last_min=-1; t0=time.time()
         while True:
             # auto-pick level-ups
-            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['pdmg','power','php','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); const ix=x=>{const i=pref.indexOf(x.id);return i<0?99:i};let c=p.slice().sort((x,y)=>ix(x)-ix(y))[0]; window.TL.chooseUp(c.id);} 
+            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['sp_surge','sp_fortify','pdmg','power','sp_bless','php','sp_mending','sp_haste','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); const ix=x=>{const i=pref.indexOf(x.id);return i<0?99:i};let c=p.slice().sort((x,y)=>ix(x)-ix(y))[0]; window.TL.chooseUp(c.id);} 
               const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),hk:h.kills,mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
                 party:G.party.map(m=>m.name+'L'+m.lvl+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
             if st is None: break

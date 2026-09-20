@@ -114,10 +114,15 @@
   .hb i{position:absolute;inset:0;width:100%;transform-origin:left;background:var(--hp)}
   .hb.m i{background:var(--mana)}
   .hb span{position:absolute;inset:0;text-align:center;font-size:9px;line-height:9px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 #000}
-  #spells{position:absolute;right:calc(8px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;pointer-events:auto}
-  .sp.rev{grid-column:1 / -1;height:40px;flex-direction:row;gap:8px;font-size:18px;background:#4a2a2a}
+  #spells{position:absolute;right:calc(8px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:auto}
+  .sp.rev{height:44px;width:150px;flex-direction:row;gap:8px;font-size:18px;background:#4a2a2a}
+  #chips{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:200px}
+  .spc{width:34px;height:34px;border-radius:6px;border:2px solid #000;background:#2a2140;box-shadow:inset 0 0 0 1px var(--bevel);position:relative;display:flex;align-items:center;justify-content:center;font-size:16px;opacity:.95}
+  .spc.heal{background:#1f3a2a}.spc.defence{background:#22304a}.spc.support{background:#3a2e1c}
+  .spc .cd{position:absolute;inset:0;border-radius:4px;background:conic-gradient(rgba(0,0,0,.72) var(--p,0%),transparent 0);pointer-events:none}
+  .spc.nomana{box-shadow:inset 0 0 0 1px var(--red)}
   .sp.rev.hide{display:none}
-  @media (max-width:420px){.sp{width:56px;height:56px;font-size:19px}.sp small{font-size:8px}}
+  @media (max-width:640px){.pc{width:118px;padding:3px 5px}.pc .face{width:22px;height:22px}.pc .n{font-size:11px}.pc .bar{height:7px}#evbar{top:150px;width:min(300px,84vw)}#hud.run #right{top:150px}#chips{max-width:150px}}
   .sp{width:64px;height:64px;border-radius:8px;border:2px solid #000;background:#2a2140;box-shadow:inset 0 0 0 1px var(--bevel);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:#fff;text-shadow:1px 1px 0 #000;overflow:hidden}
   .sp small{font-size:9px;font-weight:bold;letter-spacing:.5px}
   .sp .cd{position:absolute;inset:0;background:conic-gradient(rgba(0,0,0,.72) var(--p,0%),transparent 0);pointer-events:none}
@@ -127,7 +132,8 @@
   .sp.ready{box-shadow:inset 0 0 0 2px var(--gold)}
   #stick{position:absolute;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);display:none}
   #stick i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35)}
-  #toast{position:absolute;top:22%;left:50%;transform:translateX(-50%);font:bold 16px Georgia,serif;color:#fff;text-shadow:2px 2px 0 #000;opacity:0;transition:opacity .3s;text-align:center;white-space:nowrap}
+  #toast{position:absolute;top:22%;left:50%;transform:translateX(-50%);font:bold 16px Georgia,serif;color:#fff;text-shadow:2px 2px 0 #000;opacity:0;transition:opacity .3s;text-align:center;white-space:normal;max-width:86vw;pointer-events:none}
+  @media (max-width:640px){#toast{top:32%;font-size:14px}}
   #pause{position:absolute;top:10px;right:8px;pointer-events:auto;display:none}
   #hud.run #pause{display:block}
   #hud:not(.run) #party,#hud:not(.run) #bottom,#hud:not(.run) #spells,#hud:not(.run) #clock,#hud:not(.run) #right,#hud:not(.run) #top{display:none}
@@ -194,6 +200,7 @@
         <b>Mend</b> keeps them standing, but your spells decide whether they win. <b>1</b> Surge heals. <b>2</b> Bless doubles the busiest ally’s damage. <b>3</b> Haste speeds everyone up and keeps Brom awake. <b>4</b> Fortify shields the party and makes Brom the only thing enemies can see. <b>5</b> Rouse wakes, calms and shoves. <b>R</b> Revive when someone falls. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
         Three of twelve go with you, picked at camp. They stay inside your circle, doing their own thing, so you can do yours; more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
         Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes. See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
+        Wren’s <b>prayers</b> cast themselves: learn a spell on a level-up (Surge, Mending Prayer, Regrowth, Sanctuary, Fortify, Ward, Wall of Light, Bless, Haste, Rouse, Radiance) and it goes off on its own when the moment is right. The only button is <b>Revive</b>, which appears when the flask is full and costs all of it.<br>
         Your level-ups also turn up <b>weapons</b> — a bouncing ember, kitchen knives, a censer chain, orbiting hymnals, holy water and more — and you hand each one to a party member, who carries it from then on. Four at most, two per person, five ranks each. You still cannot attack.<br>
         Party members also pick <b>quirks</b> as they level: Colossus, Pyromaniac, Twin, Glass Cannon and more. Three per member per run, and no two runs come out the same.<br>
         Every card rolls a <b>tier</b>: Common, Rare, Epic, Legendary or Mythic, on level-ups and from chests. Higher tiers grant more ranks at once; a Mythic maxes the card and heals everyone.<br>
@@ -234,7 +241,7 @@
 
 <script>
 'use strict';
-const BUILD='b019-quirks';
+const BUILD='b020-prayers';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -322,7 +329,7 @@ const TREE=[
   {id:'h_cdr',br:'healer',name:'Rehearsed Rites',desc:'Spell cooldowns −6% per rank',max:4,cost:120,req:['h_surge',1]},
   {id:'h_start',br:'healer',name:'Head Start',desc:'Begin each run one level higher',max:3,cost:120},
   {id:'h_keepsake',br:'healer',name:'Keepsake',desc:'Begin each run holding a random relic you have found before, one per rank',max:3,cost:300,req:['h_start',1]},
-  {id:'h_revive',br:'healer',name:'Second Wind',desc:'Revive cooldown −15% per rank',max:3,cost:90},
+  {id:'h_revive',br:'healer',name:'Second Wind',desc:'Revive costs 10 less mana per rank',max:3,cost:90},
   {id:'h_luck',br:'healer',name:'Lucky Star',desc:'Level-up and chest cards roll a higher tier more often, per rank',max:3,cost:180,req:['h_start',1]},
   {id:'h_radiance',br:'healer',name:'Radiance',desc:'A fifth spell: heal everyone in range and bless them all at once',max:1,cost:500,req:['h_power2',1]},
   // Brom
@@ -590,6 +597,22 @@ const UPS=[
   {id:'w_cross',who:'weapon',name:'Boomerang Cross',desc:'Thrown at the nearest enemy. Comes back. Usually',max:5,icon:'✝'},
   {id:'w_water',who:'weapon',name:'Holy Water',desc:'Flasks shatter near enemies and leave burning puddles',max:5,icon:'🧪'},
   // b017: the wider deck
+  // b020: prayers — spells are learned here and cast themselves
+  {id:'sp_surge',who:'healer',name:'Learn: Surge',desc:'Auto-casts a big heal whenever someone in range drops under half. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'✚',spell:'surge'},
+  {id:'sp_mending',who:'healer',name:'Learn: Mending Prayer',desc:'Auto-casts a heal that bounces through the four most wounded allies. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'⛓',spell:'mending'},
+  {id:'sp_regrowth',who:'healer',name:'Learn: Regrowth',desc:'Auto-casts a heal over time on everyone in range when two are hurt. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'🌿',spell:'regrowth'},
+  {id:'sp_sanctuary',who:'healer',name:'Learn: Sanctuary',desc:'Auto-casts healing ground at Wren’s feet when the wounded gather round her. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'⛪',spell:'sanctuary'},
+  {id:'sp_radiance',who:'healer',name:'Learn: Radiance',desc:'Auto-casts a heal and blessing on everyone in range when two are hurt. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'☀',spell:'radiance',needs:'h_radiance'},
+  {id:'sp_fortify',who:'healer',name:'Learn: Fortify',desc:'Auto-casts shields and a tank’s bellow when the crowd closes in. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'◈',spell:'fortify'},
+  {id:'sp_ward',who:'healer',name:'Learn: Ward',desc:'Auto-casts a 20% shield on everyone in range when enemies press in. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'🛡',spell:'ward'},
+  {id:'sp_wall',who:'healer',name:'Learn: Wall of Light',desc:'Auto-casts a wall between Wren and whatever is about to reach her. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'▮',spell:'wall'},
+  {id:'sp_bless',who:'healer',name:'Learn: Bless',desc:'Auto-casts Bless on whoever is in the thick of it. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'✦',spell:'bless'},
+  {id:'sp_haste',who:'healer',name:'Learn: Haste',desc:'Auto-casts Haste when six or more enemies close in. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'»',spell:'haste'},
+  {id:'sp_rouse',who:'healer',name:'Learn: Rouse',desc:'Auto-casts a wake-up call when Brom naps in a crowd, Pip panics or someone is frozen. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'!!',spell:'rouse'},
+  {id:'aegis',who:'healer',name:'Guardian Angel',desc:'Once every 45 seconds, an ally or Wren who would fall is left at a quarter HP instead. Rank 2: every 30 seconds',max:2},
+  {id:'lifeline',who:'healer',name:'Lifeline',desc:'Every Mend also heals Wren for 15% of its strength',max:2},
+  {id:'sturdy',who:'healer',name:'Sturdy',desc:'Wren takes 8% less damage',max:3},
+  {id:'hearth',who:'healer',name:'Hearth',desc:'Allies within arm’s reach of Wren heal 0.5% of max HP a second',max:3},
   {id:'aspd',who:'party',name:'Quick Hands',desc:'The party attacks 8% faster',max:5},
   {id:'el_fire',who:'party',name:'Kindling',desc:'Fire deals 20% more: Vex’s blasts, burning ground, the Stray Ember, the flame projector',max:4},
   {id:'el_frost',who:'party',name:'Shatter',desc:'Frozen enemies take 15% more damage from everyone',max:4},
@@ -618,6 +641,8 @@ const UPVAL={power:r=>'+'+20*r+'% heal power',regen:r=>'+'+25*r+'% regen',mana:r
   w_ember:r=>(1+Math.floor(r/2))+' ember'+(r>=2?'s':'')+', '+Math.round(100*(0.9+0.25*(r-1)))+'% dmg',w_knife:r=>(1+r)+' knives'+(r>=5?', pierce 2':''),w_whip:r=>Math.round(100*(1.3+0.3*(r-1)))+'% dmg, '+(110+10*r)+' reach'+(r>=3?', both sides':''),w_incense:r=>(52+9*r)+' radius, '+Math.round(100*(0.9+0.25*(r-1)))+'% dps',
   w_hymnal:r=>[0,1,2,3,3,4][r]+' book'+([0,1,2,3,3,4][r]===1?'':'s')+', '+Math.round(100*(1+0.25*(r-1)))+'% dmg',w_candle:r=>(1+Math.floor(r/2))+' stick'+(r>=2?'s':'')+', '+Math.round(100*(2.2+0.5*(r-1)))+'% dmg',w_wand:r=>[0,1,2,2,3,4][r]+' bolt'+([0,1,2,2,3,4][r]===1?'':'s')+', '+Math.round(100*(1.1+0.2*(r-1)))+'% dmg',
   w_smite:r=>(1+Math.floor(r*0.8))+' strike'+(1+Math.floor(r*0.8)===1?'':'s')+' every '+(4.2-0.3*r).toFixed(1)+'s',w_cross:r=>Math.round(100*(1.4+0.3*(r-1)))+'% dmg every '+(2.6-0.15*r).toFixed(1)+'s',w_water:r=>(46+6*r)+' puddle, '+Math.round(100*(0.7+0.2*(r-1)))+'% dps, '+(3+0.4*r).toFixed(1)+'s',
+  sp_surge:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_mending:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_regrowth:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_sanctuary:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_radiance:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_fortify:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_ward:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_wall:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_bless:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_haste:r=>['unknown','learned','−25% cooldown','−25% mana'][r],sp_rouse:r=>['unknown','learned','−25% cooldown','−25% mana'][r],
+  aegis:r=>r?'every '+(r>=2?30:45)+'s':'—',lifeline:r=>15*r+'% of each Mend',sturdy:r=>'−'+8*r+'% damage taken',hearth:r=>(0.5*r)+'% HP/s near Wren',
   aspd:r=>'+'+8*r+'% attack speed',el_fire:r=>'+'+20*r+'% fire',el_frost:r=>'+'+15*r+'% vs frozen',el_bolt:r=>'+'+r+' jump'+(r===1?'':'s'),el_holy:r=>'+'+20*r+'% holy',venom:r=>'+'+30*r+'% dot, +'+r+'s',bramble:r=>10*r+'% reflected',aoe:r=>'+'+15*r+'% area',arc:r=>10*r+'% chance to arc',
   ward:r=>10*r+'% HP shield / 20s',leech:r=>3*r+'% lifesteal',crit:r=>5*r+'% crit',finisher:r=>'+'+50*r+'% under 20%',drill:r=>'skills '+10*r+'% faster',bookish:r=>'+'+15*r+'% XP',tithe:r=>'+'+15*r+'% gold',chill:r=>'−'+8*r+'% enemy speed in the circle',whands:r=>'+'+15*r+'% weapon damage',wquick:r=>'weapons '+Math.round(100-100*Math.pow(0.9,r))+'% faster'};
 // b018: every card comes in a tier. The tier is how many ranks the pick grants; Mythic maxes the card and heals everyone.
@@ -632,13 +657,22 @@ const upRank=id=>G?(G.up[id]||0):0;
 
 // ---------- spells ----------
 const SPELLS=[
-  {id:'surge',name:'Surge',icon:'✚',key:'1',cd:6,mana:25,desc:'A big heal on the most wounded ally in range'},
-  {id:'bless',name:'Bless',icon:'✦',key:'2',cd:10,mana:35,desc:'The ally in the thick of it deals two and a half times damage for 10s, and their kills refund mana'},
-  {id:'haste',name:'Haste',icon:'»',key:'3',cd:14,mana:40,desc:'Everyone in range attacks 60% faster and moves 40% faster for 10s. Brom cannot nap, Pip cannot panic'},
-  {id:'fortify',name:'Fortify',icon:'◈',key:'4',cd:12,mana:40,desc:'Shields everyone in range; Brom bellows and every enemy nearby turns on him for 6s'},
-  {id:'rouse',name:'Rouse',icon:'!!',key:'5',cd:10,mana:20,desc:'Wakes Brom, calms Pip, scares nearby enemies'},
-  {id:'radiance',name:'Radiance',icon:'☀',key:'6',cd:18,mana:50,desc:'Heals every ally in range and blesses them all at once'},
+  {id:'surge',name:'Surge',icon:'✚',kind:'heal',cd:6,mana:25,desc:'A big heal on the most wounded ally in range, whenever someone drops under half'},
+  {id:'mending',name:'Mending Prayer',icon:'⛓',kind:'heal',cd:8,mana:30,desc:'A heal that bounces through the four most wounded allies, fading as it goes'},
+  {id:'regrowth',name:'Regrowth',icon:'🌿',kind:'heal',cd:12,mana:30,desc:'Everyone in range heals 4% a second for five seconds'},
+  {id:'sanctuary',name:'Sanctuary',icon:'⛪',kind:'heal',cd:20,mana:45,desc:'Holy ground at Wren’s feet that mends allies standing on it for eight seconds'},
+  {id:'radiance',name:'Radiance',icon:'☀',kind:'heal',cd:18,mana:50,desc:'Heals every ally in range and blesses them all at once',needs:'h_radiance'},
+  {id:'fortify',name:'Fortify',icon:'◈',kind:'defence',cd:12,mana:40,desc:'Shields everyone in range; the tank bellows and every enemy nearby turns on them for 6s'},
+  {id:'ward',name:'Ward',icon:'🛡',kind:'defence',cd:14,mana:35,desc:'A shield of 20% max HP on everyone in range when the crowd closes in'},
+  {id:'wall',name:'Wall of Light',icon:'▮',kind:'defence',cd:10,mana:25,desc:'A wall of light between Wren and whatever is about to reach her, for four seconds'},
+  {id:'bless',name:'Bless',icon:'✦',kind:'support',cd:10,mana:35,desc:'The ally in the thick of it deals two and a half times damage for 10s, and their kills refund mana'},
+  {id:'haste',name:'Haste',icon:'»',kind:'support',cd:14,mana:40,desc:'Everyone in range attacks 60% faster and moves 40% faster for 10s. Brom cannot nap, Pip cannot panic'},
+  {id:'rouse',name:'Rouse',icon:'!!',kind:'support',cd:10,mana:20,desc:'Wakes Brom, calms Pip, thaws the frozen, scares nearby enemies'},
 ];
+const spRank=id=>upRank('sp_'+id);
+const spCost=sp=>sp.id==='revive'?reviveCost():sp.mana*(spRank(sp.id)>=3?0.75:1);
+const spCdMul=id=>spRank(id)>=2?0.75:1;
+const reviveCost=()=>Math.max(50,100-10*rank('h_revive'));
 // ---------- the party's own skills: each member levels up and picks from their own pool ----------
 const SKILLS={
   tank:[
@@ -851,8 +885,8 @@ function memberSkills(m,dt){
   if(skl(m,'t_wind')&&m.hp<m.maxhp*0.3&&(m.windT||0)<=0){m.windT=30-5*(skl(m,'t_wind')-1);heal(m,m.maxhp*0.25,'wind');say(m,'Not. Done. Yet.',1.6,true)}
   if(m.windT>0)m.windT-=dt;
 }
-const REVIVE={id:'revive',name:'Revive',icon:'☥',key:'R',cd:40,mana:60,desc:'Raises a fallen ally in range at half HP'};
-const REV=6;   // the revive's slot in h.cd
+const REVIVE={id:'revive',name:'Revive',icon:'☥',key:'R',cd:0,mana:100,desc:'Raises a fallen ally in range at half HP. Costs the whole flask'};
+const REV=SPELLS.length;   // the revive's slot in h.cd
 const buffDur=()=>10*(1+0.25*upRank('longbuff'))*(1+0.08*rank('h_buff'))+(hasRelic('hymnal')?3:0);
 const dmgMul=m=>(m.buffDmgT>0?2.5*(1+0.15*rank('h_bless')):(m.choirT>0?1.75:1))*(m.key&&m.key!=='healer'&&m.hp<m.maxhp*0.4?1+0.15*mrank(m,'hero'):1);
 const hasteMul=m=>(m.hasteT>0?1.6:(m.choirT>0?1.3:1))*(m.key&&m.key!=='healer'?1+0.08*upRank('aspd'):1)*(hasQ(m,'q_rage')&&m.hp<m.maxhp*0.5?1.5:1);
@@ -902,7 +936,7 @@ window.addEventListener('keydown',e=>{
   keys[e.key.toLowerCase()]=true; keys[e.code]=true;
   if(!G||G.over)return;
   const k=e.key;
-  if(k>='1'&&k<='6')cast(k.charCodeAt(0)-49); else if(k==='r'||k==='R')cast(REV);
+  if(k==='r'||k==='R')cast(REV);
   else if(k==='p'||k==='P'||k==='Escape')togglePause();
 });
 window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;keys[e.code]=false});
@@ -1112,7 +1146,7 @@ function newRun(){
   const hp=r=>1+0.15*rank(r);
   const healer={key:'healer',name:'Wren',col:'#ffe9a8',x:ARENA/2,y:ARENA/2,r:11,hp:0,maxhp:100+20*rank('h_vit'),alive:true,shield:0,hot:0,hotT:0,blessT:0,bubble:'',bubbleT:0,talkCd:0,hitT:0,
     mana:0,manaMax:100+15*rank('h_mana'),regen:6*(1+0.12*rank('h_regen')),healPower:30*(1+0.1*rank('h_power')),range:170*(1+0.08*rank('h_range')),spd:150*(1+0.06*rank('h_speed')),
-    mendCd:1.0,mendT:0,mendCost:5,pickup:46,cd:[0,0,0,0,0,0,0],face:1,anim:0,kills:0,moveT:0,shotT:0,castT:0,invT:0,buffDmgT:0,hasteT:0,fortT:0,choirT:0};
+    mendCd:1.0,mendT:0,mendCost:5,pickup:46,cd:new Array(SPELLS.length+1).fill(0),face:1,anim:0,kills:0,moveT:0,shotT:0,castT:0,invT:0,buffDmgT:0,hasteT:0,fortT:0,choirT:0};
   healer.manaMax+=25*rank('h_mana2'); healer.regen*=1+0.2*rank('h_regen2'); healer.healPower*=1+0.15*rank('h_power2'); healer.pickup*=1+0.12*rank('h_mote');
   healer.hp=healer.maxhp; healer.mana=healer.manaMax;
   let keys=(META.party||[]).filter(k=>unlocked(k)).slice(0,3); for(const k of ['tank','archer','mage'])if(keys.length<3&&!keys.includes(k))keys.push(k);
@@ -1122,7 +1156,7 @@ function newRun(){
      level:1,xp:0,xpNext:8,up:{},lvQ:[],kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
      relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,wOwner:{},pickGive:{},timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
-  G.spells=SPELLS.slice(0,rank('h_radiance')?6:5);
+  G.spells=SPELLS; G.learned={}; G.autoT=0; G.aegisT=0;
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
   for(const m of G.party)for(let i=0;i<rank({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]+'_start');i++){const pool=SKILLS[m.key].filter(x=>skl(m,x.id)<x.max);if(pool.length)applySkill(m,pick(pool).id)}
@@ -1194,7 +1228,7 @@ function eventWin(){
   if(ev.id==='shrine'){drop()}
   else if(ev.id==='bounty'){G.gold+=80*G.goldMul*(1+G.t/300);for(let i=0;i<25;i++){const a=rnd(0,6.283),r=rnd(30,140);G.gems.push({x:clamp(h.x+Math.cos(a)*r,10,ARENA-10),y:clamp(h.y+Math.sin(a)*r,10,ARENA-10),v:3,life:30})}}
   else if(ev.id==='pilgrim'){drop();G.stats.thanks++;META.thanks++;META.pilgrims=(META.pilgrims||0)+1;if(ev.npc){say(ev.npc,'Thank you! Truly!',3,true);ev.npc.leaving=true}ftext(h.x,h.y-30,'a thank-you!','#ffd24a',13)}
-  else if(ev.id==='vigil'){h.mana=h.manaMax;for(let i=0;i<7;i++)h.cd[i]=0;openLevelUp();const tk=tankOf();if(tk)say(tk,'I was awake the whole time.',2.5,true)}
+  else if(ev.id==='vigil'){h.mana=h.manaMax;for(let i=0;i<=REV;i++)h.cd[i]=0;openLevelUp();const tk=tankOf();if(tk)say(tk,'I was awake the whole time.',2.5,true)}
   else if(ev.id==='ambush'){drop();if(Math.random()<0.5)drop()}
   else if(ev.id==='moterain'){h.mana=h.manaMax;G.xp+=G.xpNext*0.5;if(ev.prog>=40)drop()}
   toast(ev.name+' done: '+ev.reward+'.',3); G.blasts.push({x:h.x,y:h.y,r:120,life:0.6,col:'rgba(255,240,160,'}); puff(h.x,h.y,30,'#ffd24a',160,3);
@@ -1290,6 +1324,7 @@ function hurtAlly(m,dmg,src){
   {const pal=G.party.find(p=>p.key==='paladin'&&p.alive&&p!==m);if(pal&&Math.hypot(pal.x-m.x,pal.y-m.y)<120+30*skl(pal,'p_aura')+20*rank('p_aura2'))dmg*=0.9-0.05*skl(pal,'p_aura')}
   if(m.npc){m.hp-=dmg;m.hitT=0.15;if(m.hp<=0){m.alive=false;puff(m.x,m.y,12,'#ccc',80,3);if(G.event&&G.event.npc===m)eventFail('The pilgrim did not make it.')}return}
   if(m===G.healer&&m.invT>0)return;
+  if(m===G.healer)dmg*=1-0.08*upRank('sturdy');
   if(m.key==='tank')dmg*=1-0.06*rank('t_armor'); else if(m.key)dmg*=1-0.05*mrank(m,'armor');
   if(m===G.healer&&src&&src.type&&hasRelic('mirror'))hurtEnemy(src,dmg*0.15*3,null);
   if(m===G.healer&&hasRelic('saint')&&m.cd[0]>0)m.cd[0]=Math.max(0,m.cd[0]-dmg/20);
@@ -1301,6 +1336,7 @@ function hurtAlly(m,dmg,src){
   m.hp-=dmg; m.hitT=0.15;
   if(m===G.healer&&m.hp>0&&m.hp/m.maxhp<G.stats.closest){G.stats.closest=m.hp/m.maxhp;G.stats.closestAt=G.t}
   if(m.blessT>0&&src&&src.hp!==undefined&&src.type){hurtEnemy(src,8*upRank('thorns')*(1+G.level*0.05),m===G.healer?null:m);puff(src.x,src.y,3,'#ffe9a8',60,2)}
+  if(m.hp<=0&&upRank('aegis')&&G.aegisT<=0){m.hp=Math.max(1,m.maxhp*0.25);G.aegisT=upRank('aegis')>=2?30:45;m.shield=Math.max(m.shield,20);puff(m.x,m.y,24,'#fff4c0',140,3);G.blasts.push({x:m.x,y:m.y,r:60,life:0.5,col:'rgba(255,245,200,'});ftext(m.x,m.y-m.r-20,'GUARDED','#ffe9a8',13);if(m!==G.healer)say(m,pick(['...that should have killed me.','Was that you?','Huh.']),2,true);return}
   if(m.hp<=0){m.hp=0; if(m===G.healer)endRun(false,'healer'); else downMember(m)}
 }
 function selfRevive(m){
@@ -1363,8 +1399,8 @@ function mostWounded(){let b=null,br=1;for(const m of allies().concat(G.npcs.fil
 function cast(i){
   if(!G||G.over||G.paused||G.lvOpen)return;
   const h=G.healer,s=i===REV?REVIVE:G.spells[i];
-  if(!s||h.cd[i]>0)return;
-  if(h.mana<s.mana){G.stats.oom++;toast('Not enough mana',0.9);const mg=byKey('mage');if(mg&&Math.random()<0.3)say(mg,'Pathetic.');return}
+  if(!s||h.cd[i]>0)return; if(i!==REV&&!G.learned[s.id])return;
+  if(h.mana<spCost(s)){if(i===REV){G.stats.oom++;toast('Not enough mana',0.9);const mg=byKey('mage');if(mg&&Math.random()<0.3)say(mg,'Pathetic.')}return}
   let ok=false; const D=buffDur(); const tank=tankOf(),archer=byKey('archer'),mage=byKey('mage');
   if(s.id==='surge'){const m=mostWounded();if(m){const amt=h.healPower*4*(1+0.25*rank('h_surge'));heal(m,amt,'surge');G.blasts.push({x:m.x,y:m.y,r:36,life:0.3,col:'rgba(140,255,180,'});if(upRank('echo'))later(1,()=>{if(m.alive){heal(m,amt*0.5,'surge');G.blasts.push({x:m.x,y:m.y,r:28,life:0.3,col:'rgba(140,255,180,'})}});ok=true}else toast('Nobody needs it',0.8)}
   else if(s.id==='bless'){
@@ -1407,6 +1443,11 @@ function cast(i){
     for(const e of G.enemies){const d=Math.hypot(e.x-h.x,e.y-h.y);if(d<KR&&!e.boss){const k=(KR-d)/KR;e.x+=(e.x-h.x)/Math.max(d,1)*KB*k+rnd(-4,4);e.y+=(e.y-h.y)/Math.max(d,1)*KB*k+rnd(-4,4);e.slow=1.2;e.x=clamp(e.x,10,ARENA-10);e.y=clamp(e.y,10,ARENA-10)}}
     G.blasts.push({x:h.x,y:h.y,r:KR,life:0.35,col:'rgba(255,220,120,'}); ftext(h.x,h.y-30,'WAKE UP!','#fff',15);
   }
+  else if(s.id==='regrowth'){let n=0;for(const m of allies())if(inRange(m)&&!m.noHeal){m.hot=Math.max(m.hot||0,m.maxhp*0.04);m.hotT=Math.max(m.hotT||0,5);puff(m.x,m.y,5,'#9adf8a',60,2);n++}if(!n)return;G.blasts.push({x:h.x,y:h.y,r:h.range,life:0.4,col:'rgba(140,230,120,'});ok=true}
+  else if(s.id==='mending'){const list=allies().filter(m=>inRange(m)&&m.hp<m.maxhp&&!m.noHeal&&!m.hidden).sort((a,b)=>a.hp/a.maxhp-b.hp/b.maxhp).slice(0,4);if(!list.length)return;let amt=h.healPower*2.5,prev=h;for(const m of list){heal(m,amt,'mending');G.zaps.push({pts:[{x:prev.x,y:prev.y-10},{x:m.x,y:m.y-10}],life:0.3,col:'rgba(140,255,180,'});prev=m;amt*=0.7}ok=true}
+  else if(s.id==='sanctuary'){G.holy.push({x:h.x,y:h.y,r:110,dps:0,life:8,heal:0.03,col:'rgba(160,255,200,'});puff(h.x,h.y,20,'#b0ffc8',120,3);ok=true}
+  else if(s.id==='ward'){let n=0;for(const m of allies())if(inRange(m)){m.shield=Math.max(m.shield,m.maxhp*0.2);puff(m.x,m.y,5,'#c8e8ff',50,2);n++}if(!n)return;G.blasts.push({x:h.x,y:h.y,r:h.range*0.8,life:0.35,col:'rgba(180,220,255,'});ok=true}
+  else if(s.id==='wall'){const t=nearestEnemy(h,180);if(!t)return;const a=Math.atan2(t.y-h.y,t.x-h.x),wx=h.x+Math.cos(a)*55,wy=h.y+Math.sin(a)*55;G.walls.push({x:wx,y:wy,a:a+1.571,len:150,life:4,light:true});for(const e of G.enemies){const d=Math.hypot(e.x-h.x,e.y-h.y);if(d<90&&!e.boss){e.x+=(e.x-h.x)/Math.max(d,1)*60;e.y+=(e.y-h.y)/Math.max(d,1)*60;e.slow=1;keepIn(e)}}puff(wx,wy,14,'#fff4c0',80,3);ok=true}
   else if(s.id==='revive'){
     let best=null,bd=h.range;
     for(const g of G.graves){const d=Math.hypot(g.x-h.x,g.y-h.y);if(d<bd){bd=d;best=g}}
@@ -1418,7 +1459,26 @@ function cast(i){
     say(m,CHARS[m.key].lines.revive,3); say(h,pick(LINES.revive));
     G.blasts.push({x:m.x,y:m.y,r:50,life:0.5,col:'rgba(255,240,160,'}); ok=true;
   }
-  if(ok){h.castT=0.45;let mana=s.mana;if(hasRelic('metronome')&&i!==REV&&anyBuff())mana*=0.8;h.mana-=mana;let cd=s.cd*cdMul();if(s.id==='revive')cd*=1-0.15*rank('h_revive');h.cd[i]=cd;if(hasRelic('halo'))h.invT=hasRelic('saint')?2:1;G.stats.casts=(G.stats.casts||0)+1}
+  if(ok){h.castT=0.45;let mana=spCost(s);if(hasRelic('metronome')&&i!==REV&&anyBuff())mana*=0.8;h.mana-=mana;let cd=i===REV?0:s.cd*cdMul()*spCdMul(s.id);h.cd[i]=cd;if(hasRelic('halo'))h.invT=hasRelic('saint')?2:1;G.stats.casts=(G.stats.casts||0)+1}
+}
+function autoCast(dt){
+  const h=G.healer; G.autoT=(G.autoT||0)-dt; if(G.autoT>0||G.lvOpen||G.paused)return; G.autoT=0.2;
+  const L=G.learned, near=R=>{let n=0;for(const e of G.enemies)if(Math.hypot(e.x-h.x,e.y-h.y)<R)n++;return n};
+  const inr=G.party.filter(m=>m.alive&&inRange(m));
+  const can=id=>{const i=SPELLS.findIndex(x=>x.id===id);return L[id]&&h.cd[i]<=0&&h.mana>=spCost(SPELLS[i])?i:-1};
+  const cnt=m=>{let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<220)n++;return n};
+  let i; const w=mostWounded();
+  if((i=can('surge'))>=0&&w&&w.hp<w.maxhp*0.45)cast(i);
+  if((i=can('mending'))>=0&&inr.some(m=>m.hp<m.maxhp*0.6)&&inr.filter(m=>m.hp<m.maxhp*0.85).length>=2)cast(i);
+  if((i=can('regrowth'))>=0&&inr.filter(m=>m.hp<m.maxhp*0.8).length>=2)cast(i);
+  if((i=can('radiance'))>=0&&inr.filter(m=>m.hp<m.maxhp*0.7).length>=2)cast(i);
+  if((i=can('sanctuary'))>=0&&inr.filter(m=>m.hp<m.maxhp*0.7&&Math.hypot(m.x-h.x,m.y-h.y)<110).length>=2)cast(i);
+  if((i=can('fortify'))>=0&&(near(h.range)>=10||inr.some(m=>m.hp<m.maxhp*0.6&&cnt(m)>=2)))cast(i);
+  if((i=can('ward'))>=0&&near(h.range)>=4&&inr.filter(m=>m.shield<=0).length>=2)cast(i);
+  if((i=can('wall'))>=0&&G.enemies.some(e=>!e.boss&&Math.hypot(e.x-h.x,e.y-h.y)<120))cast(i);
+  if((i=can('bless'))>=0&&inr.some(m=>cnt(m)>=3&&m.buffDmgT<=0))cast(i);
+  if((i=can('haste'))>=0&&near(h.range+100)>=6&&!inr.some(m=>m.hasteT>0))cast(i);
+  if((i=can('rouse'))>=0){const tk=tankOf(),ar=byKey('archer');if((tk&&tk.alive&&tk.asleep&&G.enemies.filter(e=>Math.hypot(e.x-tk.x,e.y-tk.y)<200).length>=3)||(ar&&ar.alive&&ar.panicT>0)||G.party.some(m=>m.alive&&m.frozenT>0))cast(i)}
 }
 function wakeTank(m){
   m.asleep=false; m.sleepT=rnd(18,28)*napMul();
@@ -1737,7 +1797,9 @@ function updateHealer(dt){
   if(v.x||v.y){const sp=h.spd*spdMul(h);h.x+=v.x*sp*dt;h.y+=v.y*sp*dt;h.face=v.x<0?-1:v.x>0?1:h.face;h.anim+=dt*9;h.moveT=0.15}
   keepIn(h);
   h.mana=Math.min(h.manaMax,h.mana+h.regen*dt);
-  for(let i=0;i<7;i++)if(h.cd[i]>0)h.cd[i]-=dt;
+  for(let i=0;i<=REV;i++)if(h.cd[i]>0)h.cd[i]-=dt;
+  if(G.aegisT>0)G.aegisT-=dt;
+  autoCast(dt);
   if(h.invT>0)h.invT-=dt;
   for(let i=G.chests.length-1;i>=0;i--){const c=G.chests[i];c.t+=dt;if(Math.hypot(c.x-h.x,c.y-h.y)<h.r+20){G.chests.splice(i,1);puff(c.x,c.y,16,'#ffd24a',120,3);openChest();break}}
   h.mendT-=dt;
@@ -1747,7 +1809,7 @@ function updateHealer(dt){
       const cost=(hasRelic('beads')&&Math.random()<0.2)||(hasRelic('fountain')&&m.hp>m.maxhp*0.5)?0:mendCost();
       if(h.mana>=cost){
         h.mana-=cost; h.mendT=h.mendCd*Math.pow(0.85,upRank('haste'));
-        heal(m,h.healPower,'mend'); h.castT=0.3; G.beam={x1:h.x,y1:h.y,x2:m.x,y2:m.y,t:0.2};
+        heal(m,h.healPower,'mend'); h.castT=0.3; if(upRank('lifeline')&&m!==h&&h.hp<h.maxhp)h.hp=Math.min(h.maxhp,h.hp+h.healPower*0.15*upRank('lifeline')); G.beam={x1:h.x,y1:h.y,x2:m.x,y2:m.y,t:0.2};
         if(upRank('chain')){let b=null,br=0.995;for(const o of allies()){if(o===m||!inRange(o))continue;const r=o.hp/o.maxhp;if(r<br){br=r;b=o}}if(b)heal(b,h.healPower*0.5,'mend')}
       }else{h.mendT=0.25;if(Math.random()<0.15){ftext(h.x,h.y-24,'no mana','#8ab8ff',11);G.stats.oom++}}
     }else h.mendT=0.12;
@@ -1755,7 +1817,7 @@ function updateHealer(dt){
   // gems
   const pr=h.pickup*(1+0.4*upRank('magnet')), gm=G.gems;
   for(let i=gm.length-1;i>=0;i--){const g=gm[i];g.life-=dt;const dx=h.x-g.x,dy=h.y-g.y,d=Math.hypot(dx,dy);
-    if(d<pr){const s=(260+ (pr-d)*4)*dt;if(d<10){gm.splice(i,1);G.stats.motes=(G.stats.motes||0)+1;if(g.ev&&G.event&&G.event.id==='moterain')G.event.prog++;G.xp+=g.v*(hasRelic('jar')?1.5:1)*(1+0.15*upRank('bookish'));h.mana=Math.min(h.manaMax,h.mana+g.v*(2+0.8*upRank('magnet'))*(1+0.3*rank('h_motemana'))*(hasRelic('motestorm')?2:1));continue}g.x+=dx/d*Math.min(s,d);g.y+=dy/d*Math.min(s,d)}
+    if(d<pr){const s=(260+ (pr-d)*4)*dt;if(d<10){gm.splice(i,1);G.stats.motes=(G.stats.motes||0)+1;if(g.ev&&G.event&&G.event.id==='moterain')G.event.prog++;G.xp+=g.v*(hasRelic('jar')?1.5:1)*(1+0.15*upRank('bookish'));h.mana=Math.min(h.manaMax,h.mana+g.v*(0.7+0.3*upRank('magnet'))*(1+0.3*rank('h_motemana'))*(hasRelic('motestorm')?2:1));continue}g.x+=dx/d*Math.min(s,d);g.y+=dy/d*Math.min(s,d)}
     else if(g.life<=0)gm.splice(i,1);
   }
   while(G.xp>=G.xpNext){G.xp-=G.xpNext;G.level++;G.xpNext=xpFor(G.level);openLevelUp()}
@@ -1795,6 +1857,7 @@ function showMemberLevelUp(m){
 function showLevelUp(){
   const pool=UPS.filter(u=>upRank(u.id)<u.max&&(!u.needs||rank(u.needs)>0)&&(!['tank','archer','mage'].includes(u.who)||byKey(u.who))&&!(u.who==='weapon'&&!upRank(u.id)&&(weaponCount()>=WEAPON_CAP||!G.party.some(m=>m.alive&&weaponsHeld(m.key)<2)))&&!(u.needsWeapon&&weaponCount()===0));
   const picks=[];
+  if(!Object.keys(G.learned).length&&G.level<=3){const ss=pool.filter(u=>u.spell);if(ss.length){const w=ss[Math.floor(Math.random()*ss.length)];picks.push(w);pool.splice(pool.indexOf(w),1)}}
   if(weaponCount()===0&&G.level<=4){const ws=pool.filter(u=>u.who==='weapon');if(ws.length){const w=ws[Math.floor(Math.random()*ws.length)];picks.push(w);pool.splice(pool.indexOf(w),1)}}
   while(picks.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);picks.push(pool.splice(i,1)[0])}
   if(!picks.length){G.healer.mana=G.healer.manaMax;return false}
@@ -1820,6 +1883,7 @@ function chooseUp(id){
   G.stats.tiers=G.stats.tiers||[0,0,0,0,0]; G.stats.tiers[t]++;
   if(t===4){for(const a of allies()){a.hp=a.maxhp}h.mana=h.manaMax;G.blasts.push({x:h.x,y:h.y,r:160,life:0.6,col:'rgba(255,120,150,'});puff(h.x,h.y,40,'#ffd24a',200,3);say(h,pick(['...that cannot be right.','Nobody tell the party.','Oh. Oh no. Oh good.']),2.5,true);ftext(h.x,h.y-40,'MYTHIC','#ff6a8a',18)}
   else if(t>=2)ftext(h.x,h.y-36,TIERS[t].name.toUpperCase(),t===3?'#ffb24a':'#b46cff',14);
+  if(u&&u.spell){if(!G.learned[u.spell]){G.learned[u.spell]=true;buildChips();say(h,pick(['I remember this one.','A new prayer.','I think this goes like...']),2,true)}}
   if(id.startsWith('w_')){if(G.up[id]===n){const key=G.pickGive[id]||(G.party.find(m=>m.alive)||{}).key;G.wOwner[id]=key;const o=byKey(key);G.stats.weapons=(G.stats.weapons||0)+1;say(h,pick(['Take this. Please.','I found this. It is yours now.','Hold this and do not ask.']),2,true);if(o)later(0.8,()=>say(o,pick(CHARS[o.key].lines.gift||['...is this mine now?','Fine. I’ll hold it.','What does it do?','Ooh.']),2,true))}else{const o=holderOf(id);if(o)say(o,pick(['Getting the hang of it.','It likes me.','Better.']),1.5,true)}}
   G.lvOpen=false; $('lvl').classList.add('hide'); h.mana=Math.min(h.manaMax,h.mana+20);
   G.lvQ.shift(); showNextLevel();
@@ -1862,7 +1926,7 @@ function runStory(won,why){
   if(S.biggestHeal>0)L.push('Biggest single heal: '+Math.round(S.biggestHeal)+'. '+(S.overheal>S.healed?'More healing was wasted on the healthy ('+Math.round(S.overheal)+') than landed.':'Another '+Math.round(S.overheal)+' was wasted on people who were fine.'));
   const rv=Object.entries(S.revivedWho).sort((a,b)=>b[1]-a[1])[0]; if(rv)L.push(rv[0]+' was raised from the dead '+(rv[1]===1?'once':rv[1]+' times')+'. No card came.');
   if(S.firstRelic)L.push('First relic: '+esc(RELIC[S.firstRelic].name)+' at '+fmt(S.firstRelicAt)+(G.relics.some(id=>RELIC[id].evo)?'. Two of them became something more.':'.'));
-  const casts=(S.blesses||0)+(S.hastes||0)+(S.forts||0); if(G.t>60)L.push(casts===0?'You cast no buffs at all. The party fought at three-quarters and wondered why.':casts<G.t/25?'You cast '+casts+' buffs. A busier healer would have cast twice that.':'You cast '+casts+' buffs. The party was rarely without one. That is the job.');
+  const casts=(S.blesses||0)+(S.hastes||0)+(S.forts||0); if(G.t>60)L.push(casts===0?'No buff went out all run. Learn one next time.':casts<G.t/25?'You cast '+casts+' buffs. A busier healer would have cast twice that.':'You cast '+casts+' buffs. The party was rarely without one. That is the job.');
   if(S.events)L.push((S.eventsWon||0)+' of '+S.events+' events '+((S.eventsWon||0)===S.events?'seen through. Every one.':(S.eventsWon||0)===0?'attempted. None managed.':'managed.'));
   {const lv=[...G.party].sort((a,b)=>b.lvl-a.lvl)[0];if(lv.lvl>=4){const best=Object.entries(lv.skills).sort((a,b)=>b[1]-a[1])[0];const k=best&&SKILLS[lv.key].find(x=>x.id===best[0]);if(k)L.push(lv.name+' reached level '+lv.lvl+' and leaned on '+k.name+'. '+CHARS[lv.key].lines.brag)}}
   if(S.selfHeals)L.push('Gideon healed himself '+S.selfHeals+' times and announced every one.'+(S.stolenHeals?' He healed someone else '+S.stolenHeals+' times and took credit.':''));
@@ -1891,9 +1955,13 @@ function buildHud(){
   hudFaces();
   const s=$('spells'); s.innerHTML='';
   hudRelics();
-  {const b=document.createElement('div');b.className='sp rev hide';b.id='sp-'+REV;b.innerHTML='<span class="k">R</span>'+REVIVE.icon+'<small>'+REVIVE.name.toUpperCase()+'</small><span class="mc">'+REVIVE.mana+'</span><div class="cd"></div>';b.title=REVIVE.desc;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(REV)});s.appendChild(b)}
-  G.spells.forEach((sp,i)=>{const b=document.createElement('div');b.className='sp';b.id='sp-'+i;b.innerHTML='<span class="k">'+sp.key+'</span>'+sp.icon+'<small>'+sp.name.toUpperCase()+'</small><span class="mc">'+sp.mana+'</span><div class="cd"></div>';b.title=sp.desc;
-    b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(i)});s.appendChild(b)});
+  {const c=document.createElement('div');c.id='chips';s.appendChild(c)}
+  {const b=document.createElement('div');b.className='sp rev hide';b.id='sp-'+REV;b.innerHTML='<span class="k">R</span>'+REVIVE.icon+'<small>'+REVIVE.name.toUpperCase()+'</small><span class="mc">'+reviveCost()+'</span><div class="cd"></div>';b.title=REVIVE.desc;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cast(REV)});s.appendChild(b)}
+  buildChips();
+}
+function buildChips(){
+  const c=$('chips'); if(!c||!G)return; c.innerHTML='';
+  SPELLS.forEach((sp,i)=>{if(!G.learned[sp.id])return;const d=document.createElement('div');d.className='spc '+sp.kind;d.id='spc-'+sp.id;d.title=sp.name+' — auto. '+sp.desc;d.innerHTML='<span>'+sp.icon+'</span><div class="cd"></div>';c.appendChild(d)});
 }
 function hudFaces(){
   if(!G)return;
@@ -1915,7 +1983,8 @@ function updateHud(){
     d.querySelector('s').style.transform='scaleX('+Math.min(1,m.shield/m.maxhp).toFixed(3)+')';}
   $('hhp').style.transform='scaleX('+(h.hp/h.maxhp).toFixed(3)+')'; $('hhpt').textContent=Math.ceil(h.hp)+' / '+h.maxhp;
   $('hmana').style.transform='scaleX('+(h.mana/h.manaMax).toFixed(3)+')'; $('hmanat').textContent=Math.floor(h.mana)+' / '+Math.floor(h.manaMax);
-  G.spells.concat([REVIVE]).forEach((sp,j)=>{const i=sp.id==='revive'?REV:j;const b=$('sp-'+i);if(!b)return;let cd=sp.cd*cdMul();if(sp.id==='revive'){cd*=1-0.15*rank('h_revive');b.classList.toggle('hide',G.graves.length===0)}const p=h.cd[i]>0?h.cd[i]/cd:0;b.querySelector('.cd').style.setProperty('--p',(p*100).toFixed(1)+'%');b.classList.toggle('nomana',h.mana<sp.mana);b.classList.toggle('ready',p<=0&&h.mana>=sp.mana)});
+  SPELLS.forEach((sp,i)=>{if(!G.learned[sp.id])return;const b=$('spc-'+sp.id);if(!b)return;const cd=sp.cd*cdMul()*spCdMul(sp.id);const p=h.cd[i]>0?h.cd[i]/cd:0;b.querySelector('.cd').style.setProperty('--p',(p*100).toFixed(1)+'%');b.classList.toggle('nomana',h.mana<spCost(sp))});
+  {const b=$('sp-'+REV);if(b){const cost=reviveCost();b.classList.toggle('hide',h.mana<cost);b.querySelector('.mc').textContent=cost;b.classList.toggle('ready',G.graves.length>0);b.classList.toggle('nomana',false)}}
   if(G.toastT>0){G.toastT-=1/60;if(G.toastT<=0)$('toast').style.opacity=0}
   const ev=G.event,eb=$('evbar');eb.classList.toggle('hide',!ev);
   if(ev){$('evname').textContent=ev.name;$('evdesc').textContent=ev.done?(ev.failed?'Failed.':'Done: '+ev.reward):ev.desc;eb.classList.toggle('won',ev.done&&!ev.failed);eb.classList.toggle('lost',!!ev.failed);
@@ -1931,9 +2000,10 @@ function step(dt){
   if(upRank('ward')){G.wardT=(G.wardT||0)-dt;if(G.wardT<=0){G.wardT=20;for(const a of allies()){a.shield=Math.max(a.shield,a.maxhp*0.1*upRank('ward'));puff(a.x,a.y,4,'#c8e8ff',50,2)}}}
   for(const m of G.party){if(m.arcCd>0)m.arcCd-=dt;if(!m.alive){if(m.selfRevT>0){m.selfRevT-=dt;if(m.selfRevT<=0)selfRevive(m)}continue}if(m.key!=='tank'&&m.hp<m.maxhp&&mrank(m,'regen'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.004*mrank(m,'regen')*dt)}
   for(const m of G.party)if(m.alive)quirkTick(m,dt);
+  if(upRank('hearth'))for(const m of G.party)if(m.alive&&!m.noHeal&&m.hp<m.maxhp&&Math.hypot(m.x-G.healer.x,m.y-G.healer.y)<100)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.005*upRank('hearth')*dt);
   for(const m of G.party)if(m.alive){leash(m,dt);keepIn(m);if(!m.asleep&&!(m.panicT>0)&&!m.hidden&&!m.overheated&&!(m.frozenT>0)&&!(m.sinkT>0))memberSkills(m,dt)}
   updateMinions(dt);
-  for(let i=G.holy.length-1;i>=0;i--){const z=G.holy[i];z.life-=dt;if(z.life<=0){G.holy.splice(i,1);continue}for(const e of G.enemies)if(Math.hypot(e.x-z.x,e.y-z.y)<z.r+e.r)hurtEnemy(e,z.dps*dt,byKey('paladin')||G.healer);for(const a of allies())if(a.hp<a.maxhp&&Math.hypot(a.x-z.x,a.y-z.y)<z.r)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.02*dt)}
+  for(let i=G.holy.length-1;i>=0;i--){const z=G.holy[i];z.life-=dt;if(z.life<=0){G.holy.splice(i,1);continue}if(z.dps)for(const e of G.enemies)if(Math.hypot(e.x-z.x,e.y-z.y)<z.r+e.r)hurtEnemy(e,z.dps*dt,byKey('paladin')||null);for(const a of allies())if(a.hp<a.maxhp&&!a.noHeal&&Math.hypot(a.x-z.x,a.y-z.y)<z.r)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*(z.heal||0.02)*dt)}
   for(let i=G.walls.length-1;i>=0;i--){const w=G.walls[i];w.life-=dt;if(w.life<=0){G.walls.splice(i,1);continue}for(const e of G.enemies){if(e.boss)continue;const dx=e.x-w.x,dy=e.y-w.y;const along=dx*Math.cos(w.a)+dy*Math.sin(w.a),across=-dx*Math.sin(w.a)+dy*Math.cos(w.a);if(Math.abs(along)<w.len/2&&Math.abs(across)<e.r+8){const push=(e.r+8-Math.abs(across))*Math.sign(across||1);e.x+=-Math.sin(w.a)*push;e.y+=Math.cos(w.a)*push;e.slow=Math.max(e.slow,0.3)}}}
   if(G.cryT>0)G.cryT-=dt;
   for(let i=G.traps.length-1;i>=0;i--){const t=G.traps[i];t.life-=dt;if(t.life<=0)G.traps.splice(i,1)}
@@ -2153,8 +2223,8 @@ function draw(){
   for(const g of G.ghosts){const k=g.life/g.t,im=ART.img[g.key];if(!im)continue;ctx.globalAlpha=k*0.9;drawSpr(im,g.x,g.y,g.h,g.face,1+0.35*(1-k),Math.max(0.12,k*k));}ctx.globalAlpha=1;
   for(const z of G.pools){const k=Math.min(1,z.life);ctx.fillStyle='rgba(120,190,255,'+(0.22*k)+')';ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,6.283);ctx.fill();ctx.strokeStyle='rgba(180,225,255,'+(0.5*k)+')';ctx.lineWidth=2;ctx.stroke()}
   if(G&&upRank('w_incense')){const o=holderOf('w_incense');if(holderReady(o)){const R=(52+9*upRank('w_incense'))*aoe();ctx.fillStyle='rgba(255,200,120,'+(0.07+0.03*Math.sin(G.t*4))+')';ctx.beginPath();ctx.arc(o.x,o.y,R,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,210,140,.35)';ctx.lineWidth=1.5;ctx.setLineDash([4,8]);ctx.stroke();ctx.setLineDash([])}}
-  for(const z of G.holy){ctx.fillStyle='rgba(255,240,160,'+(0.1+0.05*Math.sin(G.t*6))+')';ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,230,120,.6)';ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.stroke();ctx.setLineDash([])}
-  for(const w of G.walls){ctx.save();ctx.translate(w.x,w.y);ctx.rotate(w.a);ctx.fillStyle='rgba(200,240,255,.8)';ctx.fillRect(-w.len/2,-8,w.len,16);ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(-w.len/2,-8,w.len,4);ctx.restore()}
+  for(const z of G.holy){ctx.fillStyle=(z.col||'rgba(255,240,160,')+(0.1+0.05*Math.sin(G.t*6))+')';ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,230,120,.6)';ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.stroke();ctx.setLineDash([])}
+  for(const w of G.walls){ctx.save();ctx.translate(w.x,w.y);ctx.rotate(w.a);ctx.fillStyle=w.light?'rgba(255,240,180,.8)':'rgba(200,240,255,.8)';ctx.fillRect(-w.len/2,-8,w.len,16);ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(-w.len/2,-8,w.len,4);ctx.restore()}
   const ents=[]; for(const e of G.enemies)ents.push(e); for(const m of G.party)if(m.alive)ents.push(m); for(const z of G.minions)ents.push(z); ents.push(h);
   ents.sort((a,b)=>a.y-b.y);
   for(const o of ents){if(o.type)drawEnemy(o);else if(o.minion)drawMinion(o);else drawMember(o)}
@@ -2206,7 +2276,7 @@ requestAnimationFrame(frame);
 requestAnimationFrame(()=>setTimeout(artFetch,60));   // the art arrives after first paint
 
 // debug / test hooks
-window.TL={get G(){return G},get META(){return META},save,UPVAL,upVal,hasteMul,rollTier,TIERS,QUIRKS,applyQuirk,memberXp,holderOf,ART,RELICS,EVOS,FIELDS,SKILLS,EVENTS,CHARS,startEvent,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
+window.TL={get G(){return G},get META(){return META},save,UPVAL,upVal,hasteMul,rollTier,TIERS,QUIRKS,applyQuirk,memberXp,holderOf,REV,reviveCost,ART,RELICS,EVOS,FIELDS,SKILLS,EVENTS,CHARS,startEvent,chooseRelic,applyRelic,newRun(){$('menu').classList.add('hide');newRun();$('hud').classList.add('run')},cast,chooseUp,step,SPELLS,UPS,TREE,ETYPES,BUILD,setFast(n){if(G)G.fast=n},inputOverride:null};
 const _inputVec=inputVec; inputVec=function(){return window.TL.inputOverride?window.TL.inputOverride():_inputVec()};
 </script>
 </body>

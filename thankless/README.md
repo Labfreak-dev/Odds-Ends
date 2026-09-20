@@ -69,6 +69,16 @@ Demon King comes to you.
   on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
   weapons at most, five ranks each; one is guaranteed in the first few
   levels. The card names who takes it; the story lists who carried what.
+- **Synergies and grudges.** Some pairs change how the party plays, and the
+  picker's "Together" box shows what the three you chose bring out in each
+  other: Rise and Shine (Brom + Mortimer), Range Day (Pip + Dusty), Cold
+  Shoulder (Vex + Frost), Old Growth (Lupa + Bramble), Nobody Saw That
+  (Sable + Pip), Firmware Update (Unit 7 + Dusty), Two Shields, Guard Dog,
+  Study Group, Winter Garden, Night Shift, Hunting Party, Coolant,
+  Overclock, Study Buddies, Big Target, Manners — and three grudges that
+  cost damage and come with bickering: Uneasy Truce (Gideon + Valerian),
+  Unholy Company (Gideon + Mortimer), Professional Rivalry (Sable + Dusty).
+  Pairs bark at each other during the run and the story names them.
 - **Quirks.** As members level they also draw from 21 run-defining quirks,
   three per member per run: Berserker, Colossus, Quicksilver, Glass
   Cannon, Stoneskin, Fleet, Pyromaniac, Rimefinger, Leech, Volatile (kills

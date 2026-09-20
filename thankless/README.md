@@ -45,15 +45,20 @@ Demon King comes to you.
   spells as level-up cards and each goes off on its own when its moment
   comes: healing (Surge, Mending Prayer, Regrowth, Sanctuary, Radiance),
   defence (Fortify, Ward, Wall of Light) and support (Bless, Haste, Rouse).
-  Rank 2 recharges a spell faster, rank 3 makes it cheaper; a spell card is
-  guaranteed in the first few levels. The only button is **Revive**, which
-  appears when the flask is full and costs all of it (Second Wind training
-  trims that). Motes restore far less mana than they used to, so regen and
-  Bigger Flask matter. Guardian Angel, Lifeline, Sturdy and Hearth are new
-  defensive cards for Wren herself.
+  Ranks 2 and 3 each recharge a spell faster; a spell card is guaranteed in
+  the first few levels. The only button is **Revive**, which appears when
+  the flask is full and costs all of it. Five prayers cost no mana at all
+  and only buff the party: **War Prayer** (+35% damage), **Quickening**
+  (+40% attack speed), **Marching Hymn** (+40% move speed), **Retribution**
+  (a holy blast around whoever just got hit) and **Guardian Angel** (an ally
+  under a quarter is untouchable for a moment). There are no mana upgrades
+  any more, on cards, relics or the training tree: the flask is 100, full
+  stop, and the slots those took now buff the party's damage, attack speed,
+  move speed and damage taken. Lifeline, Sturdy and Hearth are defensive
+  cards for the healer.
 - The spells are what make the party dangerous; Mend only keeps it standing.
   **Surge** heals. **Bless** gives the ally in the thick of it two and a half
-  times damage for ten seconds, kills refunding mana. **Haste** speeds
+  times damage for ten seconds, kills healing them. **Haste** speeds
   everyone up and keeps Brom awake. **Fortify** shields the party and makes
   Brom the only thing enemies can see. **Rouse** wakes, calms and shoves.
   **Revive** (R, its own button when someone is down) raises at half HP. An
@@ -96,7 +101,16 @@ Demon King comes to you.
   level for them, and the next card rolls kindly. Refused: a grumble.
 - **Synergies and grudges.** Some pairs change how the party plays, and the
   picker's "Together" box shows what the three you chose bring out in each
-  other: Rise and Shine (Brom + Mortimer), Range Day (Pip + Dusty), Cold
+  other. The healer counts as one of the party: Wren has Childhood Friends
+  (Brom wakes when she mends him), Big Sister (Pip never panics in her
+  circle), Study Group (Vex +20% inside it), Quiet Ones (Sable's backstabs
+  feed her) and Blood Bank (Valerian's overflow goes to her); Father Ansel
+  has The Old Guard (double shields on Brom, Mends taunt), Two Sermons,
+  Cold Chapel and Fire and Brimstone (Mends cut Dusty's reload), plus two
+  grudges, Unrested (Mortimer) and Sunday Service (Valerian); Ivy has Deep
+  Roots (her seed on Bramble spreads to everyone), Pack Mother, Forest
+  Friends (Pip's arrows poison), Overgrown (Unit 7 runs cool) and the
+  Wildfire grudge (Vex's fires die fast but hurt nobody). Between members: Rise and Shine (Brom + Mortimer), Range Day (Pip + Dusty), Cold
   Shoulder (Vex + Frost), Old Growth (Lupa + Bramble), Nobody Saw That
   (Sable + Pip), Firmware Update (Unit 7 + Dusty), Two Shields, Guard Dog,
   Study Group, Winter Garden, Night Shift, Hunting Party, Coolant,
@@ -163,7 +177,7 @@ Demon King comes to you.
   Cold Feet, Hot Hands and Quick Habits. Every card stacks: each pick
   multiplies the stat again or feeds a rank-times-value formula.
 - Kills your party makes earn XP for you. Level-ups offer three cards: heal
-  power, mana, range, party damage and HP, and the healer's only offense —
+  power, range, party damage, HP, speed and toughness, and the healer's only offense —
   overhealing that burns enemies, blessed allies that scorch attackers.
 - **The party stays in your circle.** Members do their own thing inside the
   heal ring — drifting about, picking fights that come to them — and only
@@ -250,7 +264,7 @@ Demon King comes to you.
   sometimes do, and any kill has a small chance (one chest at a time, 40s
   apart). Each offers one of three **relics**, 26 run-long passives with a
   twist (Pip's misses ricochet, Brom snores enemies to death, overheal
-  refunds mana), several of them tradeoffs. Hold both halves of one of nine
+  quickens the target), several of them tradeoffs. Hold both halves of one of nine
   pairs and the next chest fuses them into an **evolution**; the menu lists
   recipes once found.
 - Gold from a run buys permanent **Training** ranks on the menu — 219 nodes

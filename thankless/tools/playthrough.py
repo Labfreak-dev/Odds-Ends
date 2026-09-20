@@ -98,7 +98,7 @@ def main():
         last_min=-1; t0=time.time()
         while True:
             # auto-pick level-ups
-            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['pdmg','power','php','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); let c=p.slice().sort((x,y)=>pref.indexOf(x.id)-pref.indexOf(y.id))[0]; window.TL.chooseUp(c.id);} 
+            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['pdmg','power','php','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); const ix=x=>{const i=pref.indexOf(x.id);return i<0?99:i};let c=p.slice().sort((x,y)=>ix(x)-ix(y))[0]; window.TL.chooseUp(c.id);} 
               const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),hk:h.kills,mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
                 party:G.party.map(m=>m.name+'L'+m.lvl+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
             if st is None: break

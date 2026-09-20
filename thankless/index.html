@@ -178,9 +178,11 @@
       <div class="sub" id="fielddesc" style="margin-top:4px"></div>
     </div>
     <div class="panel">
+      <h2>Healers <span class="sub">(pick one)</span></h2>
+      <div class="sub" style="margin-bottom:6px"><b>You.</b> Heals, buffs, shouts, revives. Runs away a lot.</div>
+      <div class="tree" id="healerpick" style="margin-bottom:14px"></div>
       <h2>The party <span class="sub">(pick three)</span></h2>
-      <div class="sub" style="margin-bottom:6px"><b>You.</b> Heals, buffs, shouts, revives. Runs away a lot. Pick who does the healing, then three to keep alive. Each has a weapon; a second turns up in play once they have levelled a little.</div>
-      <div class="tree" id="healerpick" style="margin-bottom:10px"></div>
+      <div class="sub" style="margin-bottom:6px">Three to keep alive. Each has a weapon; a second turns up in play once they have levelled a little.</div>
       <div class="tree" id="picker"></div>
       <div id="synbox" class="sub" style="margin-top:8px"></div>
     </div>
@@ -258,7 +260,7 @@
 
 <script>
 'use strict';
-const BUILD='b030-vestry';
+const BUILD='b031-camp';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date

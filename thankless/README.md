@@ -297,6 +297,36 @@ Demon King comes to you.
   (Radiance), and Keepsake starts a run with relics found before. Save
   lives in `localStorage` under `thankless-save-v1`.
 
+## Two circles
+The big dashed ring is the buff circle: prayers, Bless, Haste, Fortify and
+the rest reach anyone inside it. The small green ring is the heal circle:
+Mend, Surge, Mending Prayer, Regrowth and Radiance's healing only land on
+allies inside it, so the healer walks to the wounded. The leash is looser
+to match, and a member under half HP comes to the healer and calls for
+heals until they are back over 85%. Bramble cannot walk; go to him.
+
+## Weapon families and elements
+Every gifted weapon has an element (fire, frost, poison, bolt, holy,
+arcane, or plain steel) and an element belongs to one member at a time:
+once Pip holds fire, nobody else is offered a fire weapon. Beyond the
+original 24 there are three families of 17 more: **sprays** (a cone in
+front of the holder: Acid Spray, Frost Breath, Flame Fan, Arc Spray,
+Radiant Fan, Arcane Spray), **beams** (a tracking line: Acid Lance, Glacier
+Beam, Sunfire Beam, Lightning Rail, Judgement Ray, Arcane Ray) and
+**orbiters** (things that circle the holder: Bone Spikes, Fire Orbs, Ice
+Shards, Screaming Skulls, Holy Stars). Fire and poison keep hurting,
+frost freezes, bolt arcs to a neighbour, holy mends allies it touches,
+arcane and steel shove. Each has an evolution at rank five.
+
+## Ultimates
+A healer's ultimate costs the whole flask and fires from the Q button (or
+tapping it) once mana is full. Ivy's is **The Old Growth**: she roots where
+she stands and becomes something older for fifteen seconds; sunlight pours
+in, saplings and roots rise around her, beasts run out in every direction,
+everyone within reach mends 6% a second, everything hostile is shoved away
+and burned, and nothing can hurt her. The other characters' ultimates are
+still being chosen.
+
 ## Holding off heals
 Tap a member's card in the HUD to stop healing them; tap again to resume.
 The card greys out with a "no heals" mark. Guardian Angel and Revive still

@@ -483,3 +483,11 @@ files: 1=fx_ob_spike.webp  2=fx_ob_fireorb.webp  3=fx_ob_iceshard.webp  4=fx_ob_
 --- block 61 (fx_ob_star) ---
 files: 1=fx_ob_star.webp
 1. a single glowing golden five-pointed star with a soft white halo. small chunky fantasy game effect sprite, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+
+================ IVY'S ULTIMATE — 2 images ================
+
+--- block 62 (ult_ivy, spell_ult_ivy) ---
+files: 1=ult_ivy.webp  2=spell_ult_ivy.webp
+1. a towering serene druid goddess: the young druid Ivy grown huge and ancient, her body half living oak with bark robes and vines, a great crown of antler branches heavy with leaves and small flowers, glowing green eyes, arms spread wide with sprays of leaves and blossoms pouring from her hands, roots spreading from her feet, tall and stationary. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a great oak tree with a crown of antler branches and a small sun rising behind it, leaves and light. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border

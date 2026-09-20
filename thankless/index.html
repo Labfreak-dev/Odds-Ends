@@ -184,7 +184,7 @@
         Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
         <b>Mend</b> casts itself on the most wounded ally in range — if you have the mana. Mana is scarce. Picking up the motes your party drops refills it, so you have to go where the fighting is.<br>
         <b>Mend</b> keeps them standing, but your spells decide whether they win. <b>1</b> Surge heals. <b>2</b> Bless doubles the busiest ally’s damage. <b>3</b> Haste speeds everyone up and keeps Brom awake. <b>4</b> Fortify shields the party and makes Brom the only thing enemies can see. <b>5</b> Rouse wakes, calms and shoves. <b>R</b> Revive when someone falls. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
-        Three of twelve go with you, picked at camp; more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
+        Three of twelve go with you, picked at camp. They stay inside your circle, doing their own thing, so you can do yours; more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
         Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes. See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
         Your own level-ups now offer <b>weapons</b>: a bouncing ember, kitchen knives, a censer chain, orbiting hymnals, holy water and more. Four at most, five ranks each. You are not supposed to attack. Nobody will believe you did.<br>
         Ghouls burrow and come up under someone. Wisps ignore the party and drink your mana on touch; keep away or let Pip shoot them.<br>
@@ -224,7 +224,7 @@
 
 <script>
 'use strict';
-const BUILD='b015-drills';
+const BUILD='b016-leash';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -848,7 +848,7 @@ function meleeAI(m,dt,opts){
     if(d>m.reach+e.r-8)moveToward(m,e.x,e.y,m.spd*spdMul(m),dt); else m.face=e.x<m.x?-1:1;
     if(m.cdT<=0&&d<m.reach+e.r+6){m.cdT=m.atkCd;m.swing=0.25;const dmg=m.dmg*pdmg()*dmgMul(m)*(opts.mul||1);let n=0;
       for(const o of G.enemies){if(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+8&&(o.x-m.x)*m.face>-12){hurtEnemy(o,dmg,m);if(opts.onHit)opts.onHit(o,dmg);n++;if(n>=(opts.cleave||1))break}}return true}}
-  else if(dh>70)moveToward(m,h.x,h.y,m.spd*spdMul(m)*(dh>230?1.6:1),dt);
+  else if(dh>HOME_R)moveToward(m,h.x,h.y,m.spd*spdMul(m)*(dh>230?1.6:1),dt);
   return false;
 }
 function rangedAI(m,dt,near,far,range){
@@ -859,7 +859,7 @@ function rangedAI(m,dt,near,far,range){
     else if(d>far&&dh<200)moveToward(m,e.x,e.y,m.spd*spdMul(m)*0.8,dt);
     if(dh>240)moveToward(m,h.x,h.y,m.spd*spdMul(m)*1.2,dt);
     return d<range?e:null}
-  if(dh>90)moveToward(m,h.x,h.y,m.spd*spdMul(m),dt); return null;
+  if(dh>HOME_R)moveToward(m,h.x,h.y,m.spd*spdMul(m),dt); return null;
 }
 function shoot(m,t,opts){const a=Math.atan2(t.y-m.y,t.x-m.x)+(opts.spread||0);const sp=opts.speed||460;G.shots.push(Object.assign({kind:'arrow',x:m.x,y:m.y-6,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,dmg:opts.dmg,life:opts.life||1,age:0,from:m,pierce:opts.pierce||0,hit:[],noff:true},opts));m.face=Math.cos(a)<0?-1:1;m.shotT=0.25}
 function raiseMinion(owner,x,y,kind){
@@ -911,7 +911,7 @@ const CHARS={
     update(m,dt){const h=G.healer;
       if(m.hidden){m.hideT-=dt;if(m.hideT<=0){m.hidden=false;m.mist=false;m.x=h.x+rnd(-60,60);m.y=h.y+rnd(-60,60);keepIn(m);puff(m.x,m.y,8,'#6a5a8a',70,2);say(m,pick(['Miss me?','I was here the whole time.','Where were we.','Sorry. Got distracted.']),1.8,true)}return}
       m.stalkCd-=dt;
-      if(m.stalkCd<=0){let t=null,bh=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<420&&e.hp>bh){bh=e.hp;t=e}}
+      if(m.stalkCd<=0){let t=null,bh=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<420&&e.hp>bh&&Math.hypot(e.x-h.x,e.y-h.y)<leashR()){bh=e.hp;t=e}}
         if(t){m.x=t.x-(t.face||1)*(t.r+8);m.y=t.y;keepIn(m);m.face=t.x<m.x?-1:1;const mul=((m.weapon==='needles'?2:4)+rank('s_deep'))*(1+0.25*skl(m,'s_serrated'));const dmg=m.dmg*pdmg()*dmgMul(m)*mul;hurtEnemy(t,dmg,m);if(m.weapon==='needles')t.bleed={dps:dmg*0.25,t:5,by:m};m.swing=0.25;puff(m.x,m.y,8,'#fff',60,2);ftext(t.x,t.y-t.r-12,'backstab','#ffb0b0',12);
           const forget=Math.random()<0.3-0.1*rank('s_focus');m.hidden=true;m.hideT=Math.max(1.5,(forget?10:4)-skl(m,'s_step')-rank('s_shadow'));m.stalkCd=m.hideT+2;if(forget)say(m,pick(['Ooh, a butterfly.','Back in a bit.','...what was I doing.']),1.5,true);G.stats.stabs=(G.stats.stabs||0)+1;return}
         m.stalkCd=0.5}
@@ -934,7 +934,7 @@ const CHARS={
     make(){return Object.assign(member('frost','Frost','#bfefff'),{r:12,maxhp:130,spd:0,dmg:17,atkCd:1.3,blizzT:10,blinkCd:0})},
     onWeapon(m){},
     update(m,dt){const h=G.healer;m.cdT-=dt*hasteMul(m);m.blizzT-=dt*hasteMul(m);if(m.blinkCd>0)m.blinkCd-=dt;
-      if(m.blinkCd<=0&&Math.hypot(h.x-m.x,h.y-m.y)>330){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*70;m.y=h.y+Math.sin(a)*70;keepIn(m);m.blinkCd=2;puff(m.x,m.y,8,'#bfefff',80,2);say(m,pick(['Slow down.','I do not run.']))}
+      if(m.blinkCd<=0&&Math.hypot(h.x-m.x,h.y-m.y)>leashR()+40){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*70;m.y=h.y+Math.sin(a)*70;keepIn(m);m.blinkCd=2;puff(m.x,m.y,8,'#bfefff',80,2);say(m,pick(['Slow down.','I do not run.']))}
       const t=nearestEnemy(m,340*(1+0.15*rank('f_reach')));
       if(m.cdT<=0&&t){m.cdT=m.atkCd;shoot(m,t,{dmg:m.dmg*pdmg()*dmgMul(m),speed:420,col:'#bfefff',freeze:1+0.5*skl(m,'f_deep')});m.castT=0.3}
       if(m.blizzT<=0){const R=m.weapon==='mittens'?100:150;let n=0;for(const e of G.enemies)if(Math.hypot(e.x-m.x,e.y-m.y)<R)n++;
@@ -951,7 +951,7 @@ const CHARS={
     update(m,dt){const h=G.healer;m.cdT-=dt*hasteMul(m);if(m.swing>0)m.swing-=dt;m.rootT-=dt;
       const dh=Math.hypot(h.x-m.x,h.y-m.y);
       if(m.sinkT>0){m.sinkT-=dt;if(m.sinkT<=0){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*80;m.y=h.y+Math.sin(a)*80;keepIn(m);puff(m.x,m.y,16,'#6ab04c',90,3);say(m,pick(['...fine.','...there.','...you walk too much.']),2,true)}return}
-      if(dh>420){m.sinkT=Math.max(1,3-rank('e_patient'));puff(m.x,m.y,12,'#5a4a30',80,3);say(m,'...hrm.',1.5);return}
+      if(dh>leashR()+80){m.sinkT=Math.max(1,3-rank('e_patient'));puff(m.x,m.y,12,'#5a4a30',80,3);say(m,'...hrm.',1.5);return}
       const e=nearestEnemy(m,m.weapon==='acorns'?320:m.reach+30);
       if(e&&m.cdT<=0){m.cdT=m.atkCd;m.swing=0.25;const dmg=m.dmg*pdmg()*dmgMul(m);
         if(m.weapon==='acorns')shoot(m,e,{dmg:dmg*0.5,speed:380,col:'#8a6a3a'});
@@ -1041,7 +1041,23 @@ const xpFor=l=>Math.round(8+l*4+l*l*0.35);
 
 // ---------- helpers on entities ----------
 function allies(){const a=G.party.filter(m=>m.alive);a.push(G.healer);return a}
-function nearestEnemy(p,maxd){let b=null,bd=(maxd||1e9);for(const e of G.enemies){const d=Math.hypot(e.x-p.x,e.y-p.y)-e.r;if(d<bd){bd=d;b=e}}return b}
+const LEASH_MELEE={tank:1,assassin:1,paladin:1,wolf:1,vampire:1};
+const leashR=()=>G.healer.range*0.92;
+const HOME_R=120;
+function nearestEnemy(p,maxd){let b=null,bd=(maxd||1e9);const lim=(p&&p.key&&LEASH_MELEE[p.key])?leashR():0,h=G.healer;for(const e of G.enemies){if(lim&&Math.hypot(e.x-h.x,e.y-h.y)-e.r>lim)continue;const d=Math.hypot(e.x-p.x,e.y-p.y)-e.r;if(d<bd){bd=d;b=e}}return b}
+const LEASH_LINES={tank:['...I could have had that one.','Staying. Fine.','It’ll come to me.'],archer:['I can hit it from here! Probably!','Staying close. Staying close.'],mage:['I do not chase.','It can come to me.'],necro:['The dead may wander. I shall not.','Let them come.'],assassin:['I was going to come back.','Fine. Close work, then.'],paladin:['I shall hold this ground. Note who held it.','Here is fine. Here is holy.'],frost:['I do not run.','Brisk enough here.'],ent:['...here.'],wolf:['Grr. Fine.','Not far. Not far.'],vampire:['Very well. I shall stay close.','How clingy.'],gunner:['Ain’t worth the walk.','They’ll come. They always do.'],robot:['PERIMETER MAINTAINED.','HOLDING FORMATION.']};
+function leash(m,dt){
+  const h=G.healer; if(!m.alive||m.sinkT>0||m.hidden||m.spd<=0)return;
+  const LR=leashR()*(m.panicT>0?1.4:1), dx=m.x-h.x, dy=m.y-h.y, d=Math.hypot(dx,dy)||1;
+  if(d>LR){m.x=h.x+dx/d*LR;m.y=h.y+dy/d*LR;m.outT=(m.outT||0)+dt;
+    if(m.outT>3&&!m.asleep&&!(m.panicT>0)){m.outT=-8;if(Math.random()<0.6)say(m,pick(LEASH_LINES[m.key]||['...fine.']),1.6,true)}}
+  else if(m.outT>0)m.outT=Math.max(0,m.outT-dt);
+  // their own thing: drift about inside the circle when nothing is close
+  if(m.asleep||m.panicT>0||m.frozenT>0||m.overheated||m.reloadT>0||m.wolfT>0)return;
+  m.wT=(m.wT||0)-dt; if(m.wT<=0){m.wT=rnd(3,7);const a=rnd(0,6.283),r=rnd(30,90);m.wx=Math.cos(a)*r;m.wy=Math.sin(a)*r}
+  let busy=false;for(const e of G.enemies){if(Math.hypot(e.x-m.x,e.y-m.y)<LR+140){busy=true;break}}
+  if(!busy&&d<HOME_R){const tx=h.x+m.wx,ty=h.y+m.wy;if(Math.hypot(tx-m.x,ty-m.y)>12){moveToward(m,tx,ty,m.spd*0.4,dt);m.anim-=dt*4}}
+}
 function moveToward(m,tx,ty,spd,dt){const dx=tx-m.x,dy=ty-m.y,d=Math.hypot(dx,dy);if(d<1)return;const s=Math.min(spd*dt,d);m.x+=dx/d*s;m.y+=dy/d*s;m.face=dx<0?-1:1;m.anim+=dt*8;m.moveT=0.15}
 function keepIn(m){m.x=clamp(m.x,m.r+8,ARENA-m.r-8);m.y=clamp(m.y,m.r+8,ARENA-m.r-8)}
 function ftext(x,y,txt,col,size){G.texts.push({x,y,txt,col:col||'#fff',life:1,size:size||12,vy:-28})}
@@ -1449,7 +1465,7 @@ function updateTank(m,dt){
       const dmg=m.dmg*pdmg()*dmgMul(m);
       for(const o of G.enemies){const hit=m.weapon==='spear'?((o.x-m.x)*m.face>0&&Math.abs(o.x-m.x)<m.reach+o.r&&Math.abs(o.y-m.y)<26):(Math.hypot(o.x-m.x,o.y-m.y)<m.reach+o.r+10&&(o.x-m.x)*m.face>-12);if(hit){hurtEnemy(o,dmg,m);n++;if(n>=(m.weapon==='spear'?3:6)+rank('t_cleave'))break}}
     }
-  }else{if(dh>70)moveToward(m,h.x,h.y,m.spd*spdMul(m)*(dh>230?1.6:1),dt)}
+  }else{if(dh>HOME_R)moveToward(m,h.x,h.y,m.spd*spdMul(m)*(dh>230?1.6:1),dt)}
 }
 function updateArcher(m,dt){
   const h=G.healer;
@@ -1485,15 +1501,15 @@ function updateArcher(m,dt){
         m.face=Math.cos(a)<0?-1:1; m.anim+=0.5; m.shotT=0.25;
       }
     }
-  }else{const d=Math.hypot(h.x-m.x,h.y-m.y);if(d>90)moveToward(m,h.x,h.y,m.spd,dt)}
+  }else{const d=Math.hypot(h.x-m.x,h.y-m.y);if(d>HOME_R)moveToward(m,h.x,h.y,m.spd,dt)}
 }
 function updateMage(m,dt){
   const h=G.healer;
   m.cdT-=dt*hasteMul(m); m.metT-=dt*hasteMul(m); if(m.blinkCd>0)m.blinkCd-=dt;
   const close=nearestEnemy(m,34);
   if(m.blinkCd<=0){
-    if(close){const ox=m.x,oy=m.y,a=rnd(0,6.283);m.x+=Math.cos(a)*130;m.y+=Math.sin(a)*130;keepIn(m);m.blinkCd=3.5*(1-0.2*rank('m_blink'));puff(m.x,m.y,8,'#c07cff',80,2);say(m,pick(LINES.mageBlink));if(rank('m_blink'))G.fires.push({x:ox,y:oy,r:46,dps:m.dmg*pdmg()*0.6,life:2})}
-    else if(Math.hypot(h.x-m.x,h.y-m.y)>330){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*70;m.y=h.y+Math.sin(a)*70;keepIn(m);m.blinkCd=2;puff(m.x,m.y,8,'#c07cff',80,2);say(m,pick(LINES.mageWalk))}
+    if(close){const ox=m.x,oy=m.y,a=rnd(0,6.283);m.x+=Math.cos(a)*130;m.y+=Math.sin(a)*130;{const ddx=m.x-h.x,ddy=m.y-h.y,dd=Math.hypot(ddx,ddy)||1,LR=leashR();if(dd>LR){m.x=h.x+ddx/dd*LR;m.y=h.y+ddy/dd*LR}}keepIn(m);m.blinkCd=3.5*(1-0.2*rank('m_blink'));puff(m.x,m.y,8,'#c07cff',80,2);say(m,pick(LINES.mageBlink));if(rank('m_blink'))G.fires.push({x:ox,y:oy,r:46,dps:m.dmg*pdmg()*0.6,life:2})}
+    else if(Math.hypot(h.x-m.x,h.y-m.y)>leashR()+40){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*70;m.y=h.y+Math.sin(a)*70;keepIn(m);m.blinkCd=2;puff(m.x,m.y,8,'#c07cff',80,2);say(m,pick(LINES.mageWalk))}
   }
   // find the juiciest cluster within range
   const cluster=(R)=>{let best=null,bn=-1;const en=G.enemies;const step=Math.max(1,Math.floor(en.length/45));for(let i=0;i<en.length;i+=step){const e=en[i];const d=Math.hypot(e.x-m.x,e.y-m.y);if(d>R)continue;let n=0;for(const o of en){if(Math.hypot(o.x-e.x,o.y-e.y)<60)n++;}if(n>bn){bn=n;best=e}}return best};
@@ -1773,7 +1789,7 @@ function step(dt){
   updateSpawns(dt); updateHealer(dt); if(G.over)return; updateWeapons(dt); updatePools(dt);
   for(const m of G.party)if(m.alive&&!(m.frozenT>0))CHARS[m.key].update(m,dt);
   for(const m of G.party){if(!m.alive){if(m.selfRevT>0){m.selfRevT-=dt;if(m.selfRevT<=0)selfRevive(m)}continue}if(m.key!=='tank'&&m.hp<m.maxhp&&mrank(m,'regen'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.004*mrank(m,'regen')*dt)}
-  for(const m of G.party)if(m.alive){keepIn(m);if(!m.asleep&&!(m.panicT>0)&&!m.hidden&&!m.overheated&&!(m.frozenT>0)&&!(m.sinkT>0))memberSkills(m,dt)}
+  for(const m of G.party)if(m.alive){leash(m,dt);keepIn(m);if(!m.asleep&&!(m.panicT>0)&&!m.hidden&&!m.overheated&&!(m.frozenT>0)&&!(m.sinkT>0))memberSkills(m,dt)}
   updateMinions(dt);
   for(let i=G.holy.length-1;i>=0;i--){const z=G.holy[i];z.life-=dt;if(z.life<=0){G.holy.splice(i,1);continue}for(const e of G.enemies)if(Math.hypot(e.x-z.x,e.y-z.y)<z.r+e.r)hurtEnemy(e,z.dps*dt,byKey('paladin')||G.healer);for(const a of allies())if(a.hp<a.maxhp&&Math.hypot(a.x-z.x,a.y-z.y)<z.r)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.02*dt)}
   for(let i=G.walls.length-1;i>=0;i--){const w=G.walls[i];w.life-=dt;if(w.life<=0){G.walls.splice(i,1);continue}for(const e of G.enemies){if(e.boss)continue;const dx=e.x-w.x,dy=e.y-w.y;const along=dx*Math.cos(w.a)+dy*Math.sin(w.a),across=-dx*Math.sin(w.a)+dy*Math.cos(w.a);if(Math.abs(along)<w.len/2&&Math.abs(across)<e.r+8){const push=(e.r+8-Math.abs(across))*Math.sign(across||1);e.x+=-Math.sin(w.a)*push;e.y+=Math.cos(w.a)*push;e.slow=Math.max(e.slow,0.3)}}}

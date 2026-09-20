@@ -61,6 +61,12 @@ Demon King comes to you.
 - Kills your party makes earn XP for you. Level-ups offer three cards: heal
   power, mana, range, party damage and HP, and the healer's only offense —
   overhealing that burns enemies, blessed allies that scorch attackers.
+- **The party stays in your circle.** Members do their own thing inside the
+  heal ring — drifting about, picking fights that come to them — and only
+  chase what is inside it; anyone pushed out slides back to the edge.
+  Pip's panic runs and Sable's backstab jumps are the exceptions, and the
+  immobile ones (Vex, Frost, Bramble) blink or sink back sooner. Bot
+  sampling: members inside the ring 98–99% of a run, up from 60–70%.
 - Enemies that get within reach of a healer forget everything else. Brom
   (awake or asleep) draws them otherwise.
 - Every minute or so an **event** lands with a banner and a timer: hold a

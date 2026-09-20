@@ -289,6 +289,19 @@ Demon King comes to you.
   (Radiance), and Keepsake starts a run with relics found before. Save
   lives in `localStorage` under `thankless-save-v1`.
 
+## Effect art
+Every projectile, aura ring, puddle and burst has a sprite hook (batch b041):
+the game looks up `fx_<name>` in `art.js` and paints it, scaled and rotated
+to the effect's real size, or falls back to the drawn shape when the key is
+missing. Rings and pools are prompted top-down so they scale to any radius;
+the packer keeps those at 256px. Keys: fx_ember, fx_knife, fx_candle,
+fx_cross, fx_wand, fx_flask, fx_orb, fx_crescent, fx_axe, fx_hound, fx_meteor,
+fx_fireball, fx_necrobolt, fx_arrow, fx_icebolt, fx_ring_fire, fx_ring_mend,
+fx_ring_static, fx_ring_well, fx_ring_incense, fx_pool_miasma, fx_pool_water,
+fx_pool_fire, fx_pool_holy, fx_roots, fx_front, fx_tornado, fx_slash, fx_whip,
+fx_blade, fx_book, fx_wall_light, fx_wall_ice, fx_lightning. Prompts are in
+`art-prompts.txt` and paste-sheet blocks 46–55.
+
 ## Art: generating and packing
 ```bash
 pip install pillow

@@ -181,9 +181,14 @@ Demon King comes to you.
   Vampiric Stew, Lucky Hits, Finisher, Drill Sergeant, Bookish, Tithe,
   Cold Feet, Hot Hands and Quick Habits. Every card stacks: each pick
   multiplies the stat again or feeds a rank-times-value formula.
-- Kills your party makes earn XP for you. Level-ups offer three cards: heal
-  power, range, party damage, HP, speed and toughness, and the healer's only offense —
-  overhealing that burns enemies, blessed allies that scorch attackers.
+- Kills your party makes earn XP for you. Healer levels come a third as
+  often as they used to and every pick grants twice the ranks, so each one
+  is a real jump. The three cards are the healer's own: heal power, range,
+  speed, prayers, and the healer's only offense — overhealing that burns
+  enemies, blessed allies that scorch attackers. Party damage, party HP,
+  the elemental cards and every gifted weapon (and its evolution) now live
+  in the party's own pool: the members pick those up themselves on their
+  level-ups and the chat box says who took what.
 - **The party stays in your circle.** Members do their own thing inside the
   heal ring — drifting about, picking fights that come to them — and only
   chase what is inside it; anyone pushed out slides back to the edge.
@@ -192,14 +197,17 @@ Demon King comes to you.
   sampling: members inside the ring 98–99% of a run, up from 60–70%.
 - Enemies that get within reach of a healer forget everything else. Brom
   (awake or asleep) draws them otherwise.
-- Every minute or so an **event** lands with a banner and a timer: hold a
+- Every minute or so an **event** lands with a banner and a timer (twelve of
+  them now: the six below plus A Point of Pride, The Champion, The Cache, The
+  Stranger, Blood Moon and Spilled Purse): hold a
   shrine while enemies pour in, a bounty, escort a pilgrim across the field,
   keep Brom awake for a vigil, survive an ambush with nobody dying, grab a
   rain of motes. Rewards scale with the ask, from gold and motes to chests,
   a level, and every cooldown reset.
 - **The party levels up too.** Each member earns XP from their own kills and
   a share of everyone's, and picks for themselves from their own pool of six
-  MMO-style skills, plus quirks and their second weapon. No card pops up:
+  MMO-style skills, plus quirks, their second weapon, the party-wide cards,
+  gifted weapons and evolutions. No card pops up:
   they take the highest tier on offer (quirks usually beat a Common) and a
   small chat box at the bottom left says what they chose and what it does
   ("Pip levelled up and chose Volley (Rare, +3 ranks)"). Only the healer's
@@ -288,6 +296,12 @@ Demon King comes to you.
   Boiler, Dreams of Stew, Deep Quiver, Colder Nova and so on). Some nodes add level-up cards, one adds a fifth spell
   (Radiance), and Keepsake starts a run with relics found before. Save
   lives in `localStorage` under `thankless-save-v1`.
+
+## Holding off heals
+Tap a member's card in the HUD to stop healing them; tap again to resume.
+The card greys out with a "no heals" mark. Guardian Angel and Revive still
+go through. The Point of Pride event asks for exactly this: someone refuses
+healing for thirty seconds, and any heal that lands fails it.
 
 ## Effect art
 Every projectile, aura ring, puddle and burst has a sprite hook (batch b041):

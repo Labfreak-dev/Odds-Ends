@@ -260,7 +260,7 @@
 
 <script>
 'use strict';
-const BUILD='b036-bonds';
+const BUILD='b037-he';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -699,12 +699,12 @@ const UPS=[
   // Wren's bad habits: weapons, survivors-style. Four at most; they level like anything else.
   {id:'w_ember',who:'weapon',name:'Stray Ember',desc:'A fireball that bounces off the edges of the field. Nobody knows how',max:5,icon:'🔥'},
   {id:'w_knife',who:'weapon',name:'Kitchen Knives',desc:'Throws knives the way she is facing. She has a lot of them',max:5,icon:'🔪'},
-  {id:'w_whip',who:'weapon',name:'Censer Chain',desc:'Swings a chain across everything in front of her. Rank 3 adds a backswing',max:5,icon:'⛓'},
+  {id:'w_whip',who:'weapon',name:'Censer Chain',desc:'Swings a chain across everything in front of the holder. Rank 3 adds a backswing',max:5,icon:'⛓'},
   {id:'w_incense',who:'weapon',name:'Incense',desc:'Everything close to the holder slowly burns. It smells lovely',max:5,icon:'🕯'},
-  {id:'w_hymnal',who:'weapon',name:'Orbiting Hymnals',desc:'Books circle her and hit things on the way round',max:5,icon:'📖'},
+  {id:'w_hymnal',who:'weapon',name:'Orbiting Hymnals',desc:'Books circle the holder and hit things on the way round',max:5,icon:'📖'},
   {id:'w_candle',who:'weapon',name:'Thrown Candlestick',desc:'Lobbed in a high arc. Heavy. Goes through everything it lands on',max:5,icon:'🕯'},
   {id:'w_wand',who:'weapon',name:'Wand of Slight Offense',desc:'A bolt that seeks the nearest enemy. It is not a big bolt',max:5,icon:'✨'},
-  {id:'w_smite',who:'weapon',name:'Small Smitings',desc:'Lightning falls on enemies near her. Nobody sent it',max:5,icon:'⚡'},
+  {id:'w_smite',who:'weapon',name:'Small Smitings',desc:'Lightning falls on enemies near the holder. Nobody sent it',max:5,icon:'⚡'},
   {id:'w_cross',who:'weapon',name:'Boomerang Cross',desc:'Thrown at the nearest enemy. Comes back. Usually',max:5,icon:'✝'},
   {id:'w_water',who:'weapon',name:'Holy Water',desc:'Flasks shatter near enemies and leave burning puddles',max:5,icon:'🧪'},
   // b029: auras — they surround whoever carries them
@@ -1481,7 +1481,7 @@ const ACHIEVEMENTS=[
   {id:'devoted',name:'Devotion',desc:'A member reaches 100 gratitude',title:'the Beloved',test:M=>Object.keys(M.devoted||{}).length>=1},
   {id:'devoted_all',name:'Beloved by All',desc:'Every character devoted at least once',title:'Wren, actually',test:M=>Object.keys(M.devoted||{}).length>=12},
   {id:'mythic',name:'Lucky',desc:'A Mythic card comes up',title:'the Lucky',test:M=>(M.mythics||0)>=1},
-  {id:'contracts10',name:'Word Kept',desc:'Keep ten promises',title:'of Her Word',perk:'Swear three contracts instead of two',test:M=>Object.values(M.contractsDone||{}).reduce((a,b)=>a+b,0)>=10},
+  {id:'contracts10',name:'Word Kept',desc:'Keep ten promises',title:'the Oathkeeper',perk:'Swear three contracts instead of two',test:M=>Object.values(M.contractsDone||{}).reduce((a,b)=>a+b,0)>=10},
   {id:'flawless',name:'Flawless',desc:'Win with nobody falling',title:'the Careful',run:(S,G)=>G.won&&!(S.downs||0)},
   {id:'norevive',name:'Undertaker’s Day Off',desc:'Win without casting Revive',title:'the Sparing',run:(S,G)=>G.won&&!(S.revives||0)},
   {id:'purist',name:'Purist',desc:'Win holding at most one weapon',title:'the Purist',run:(S,G)=>G.won&&UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).length<=1},
@@ -1524,7 +1524,7 @@ function renderAchievements(){
 }
 // ---------- the healers (b026): three ways to be ignored ----------
 const HEALERS={
-  wren:{id:'wren',name:'Wren',spr:'wren',col:'#ffe9a8',role:'The healer.',blurb:'Quick on her feet, steady Mend, no tricks. The story as told.',unlock:null,starts:[],make(h){}},
+  wren:{id:'wren',name:'Wren',spr:'wren',col:'#ffe9a8',role:'The healer.',blurb:'Quick on his feet, steady Mend, no tricks. The story as told.',unlock:null,starts:[],make(h){}},
   ansel:{id:'ansel',name:'Father Ansel',spr:'ansel',col:'#d8c8a0',role:'The old priest.',blurb:'Slow, loud, and every heal is enormous. Whatever he overheals becomes a shield. Revive comes cheaper; he has done it before. Starts knowing Ward.',unlock:{test:()=>META.wins>=1,text:'Beat the Demon King once'},starts:['ward'],
     make(h){const R=h.hrank||(()=>0);h.maxhp+=40;h.spd*=0.8*(1+0.08*R('stride'));h.mendCd=1.7;h.healPower*=1.9*(1+0.15*R('bellow'));h.regen*=0.85;h.range*=0.95}},
   ivy:{id:'ivy',name:'Ivy',spr:'ivy',col:'#a8e0a0',role:'The druid.',blurb:'Her Mend is a seed: a third now, the rest over three seconds, and it spreads to whoever is nearest. Long reach, fast, fragile. Starts knowing Regrowth.',unlock:{test:()=>META.thanks>=30,text:'Thirty thank-yous, all time'},starts:['regrowth'],
@@ -1759,7 +1759,7 @@ function hurtAlly(m,dmg,src){
   if(m!==G.healer&&inRange(m)){const share=Math.min(0.5,(hasRelic('saint')?0.3:hasRelic('cord')?0.25:0)+0.15*upRank('martyr'));if(share>0){hurtAlly(G.healer,dmg*share,src);dmg*=1-share;if(!m.alive)return}}
   if(m.shield>0){const a=Math.min(m.shield,dmg);m.shield-=a;dmg-=a;if(dmg<=0){puff(m.x,m.y,3,'#c8e8ff',60,2);return}}
   if(src&&src.type&&hasQ(m,'q_thorns')&&!src.dead)hurtEnemy(src,dmg*0.5,m);
-  if(m===G.healer&&src&&src.type){const bg=G.party.find(p=>p.alive&&hasQ(p,'q_guard')&&Math.hypot(p.x-m.x,p.y-m.y)<160);if(bg){hurtAlly(bg,dmg*0.3,src);dmg*=0.7;if(RAND()<0.15)say(bg,pick(['I have her.','Mind the healer.','Not on my watch.']),1.5,true)}}
+  if(m===G.healer&&src&&src.type){const bg=G.party.find(p=>p.alive&&hasQ(p,'q_guard')&&Math.hypot(p.x-m.x,p.y-m.y)<160);if(bg){hurtAlly(bg,dmg*0.3,src);dmg*=0.7;if(RAND()<0.15)say(bg,pick(['I have the healer.','Mind the healer.','Not on my watch.']),1.5,true)}}
   if(src&&src.type&&upRank('bramble')&&!src.dead)hurtEnemy(src,dmg*0.1*upRank('bramble'),m===G.healer?null:m);
   m.hp-=dmg; m.hitT=0.15; m.lastHitT=G.t; if(m===G.healer)G.stats.healerHurt=(G.stats.healerHurt||0)+dmg;
   if(m===G.healer&&m.hp>0&&m.hp/m.maxhp<G.stats.closest){G.stats.closest=m.hp/m.maxhp;G.stats.closestAt=G.t}
@@ -2033,7 +2033,7 @@ function updateEnemies(dt){
     if(e.bleed&&e.bleed.t>0){e.bleed.t-=dt;hurtEnemy(e,e.bleed.dps*dt*(1+0.3*upRank('venom')),e.bleed.by);if(e.dead)continue}
     for(const tr of G.traps){if(!tr.sprung&&Math.hypot(e.x-tr.x,e.y-tr.y)<tr.r){tr.sprung=true;tr.life=0.6;for(const o of G.enemies)if(Math.hypot(o.x-tr.x,o.y-tr.y)<tr.r+30){hurtEnemy(o,tr.dmg,G.party[1]);o.slow=Math.max(o.slow,2)}G.blasts.push({x:tr.x,y:tr.y,r:tr.r+30,life:0.3,col:'rgba(200,180,120,'});puff(tr.x,tr.y,8,'#c8a060',80,2)}}
     if(e.dead)continue;
-    if(e.type==='lich'){e.castT2=(e.castT2||8)-dt;if(e.castT2<=0){e.castT2=9;let raised=0;for(const g of G.graves){if(G.enemies.some(o=>o.type==='revenant'&&o.ofKey===g.m.key&&!o.dead))continue;const r=spawnEnemy('revenant',g.x+rnd(-10,10),g.y+rnd(-10,10));if(r){const m=g.m;r.ofKey=m.key;r.ofName=m.name;r.col=m.col;r.hp=r.maxhp=Math.max(r.hp,m.maxhp*0.6);r.dmg=Math.max(r.dmg,m.dmg*pdmg()*0.8);raised++;puff(r.x,r.y,16,'#7a4aa0',110,3);say(e,pick(['Rise. You were never theirs.','Up. She let you fall.','Come. I will not leave you lying there.']),2.5,true)}}
+    if(e.type==='lich'){e.castT2=(e.castT2||8)-dt;if(e.castT2<=0){e.castT2=9;let raised=0;for(const g of G.graves){if(G.enemies.some(o=>o.type==='revenant'&&o.ofKey===g.m.key&&!o.dead))continue;const r=spawnEnemy('revenant',g.x+rnd(-10,10),g.y+rnd(-10,10));if(r){const m=g.m;r.ofKey=m.key;r.ofName=m.name;r.col=m.col;r.hp=r.maxhp=Math.max(r.hp,m.maxhp*0.6);r.dmg=Math.max(r.dmg,m.dmg*pdmg()*0.8);raised++;puff(r.x,r.y,16,'#7a4aa0',110,3);say(e,pick(['Rise. You were never theirs.','Up. The healer let you fall.','Come. I will not leave you lying there.']),2.5,true)}}
         if(!raised){const d=Math.hypot(h.x-e.x,h.y-e.y);if(d<300){const drain=Math.min(h.mana,30);h.mana-=drain;ftext(h.x,h.y-26,'−'+Math.round(drain)+' mana','#b48aff',12);G.zaps.push({pts:[{x:e.x,y:e.y-20},{x:h.x,y:h.y-10}],life:0.3,col:'rgba(180,120,255,'});say(e,pick(['Nothing to raise. Yet.','Keep them alive. I can wait.','Your flask, then.']),2,true)}else e.castT2=2}}}
     if(e.tT<=0){
       e.tT=0.4;

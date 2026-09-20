@@ -63,13 +63,13 @@ Demon King comes to you.
   Brom the only thing enemies can see. **Rouse** wakes, calms and shoves.
   **Revive** (R, its own button when someone is down) raises at half HP. An
   unbuffed party fights at 60%; a busy healer keeps two buffs rolling.
-- **Weapons, for the party.** Wren cannot attack — nothing she does hurts an
-  enemy, and her kill count reads zero, as intended. Level-ups still turn
+- **Weapons, for the party.** Wren cannot attack — nothing he does hurts an
+  enemy, and his kill count reads zero, as intended. Level-ups still turn
   up survivors-style weapons, and each one is handed to a party member who
   carries it from then on (four in play at most, two per person): Stray Ember (a fireball that bounces off
-  the field's edges), Kitchen Knives (thrown the way she faces), Censer
+  the field's edges), Kitchen Knives (thrown the way the holder faces), Censer
   Chain (a whip, both sides at rank 3), Incense (a burning aura), Orbiting
-  Hymnals (books that circle her), Thrown Candlestick (a heavy arc that
+  Hymnals (books that circle the holder), Thrown Candlestick (a heavy arc that
   pierces), Wand of Slight Offense (homing bolts), Small Smitings (lightning
   on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
   weapons at most, five ranks each; one is guaranteed in the first few
@@ -102,9 +102,9 @@ Demon King comes to you.
 - **Synergies and grudges.** Some pairs change how the party plays, and the
   picker's "Together" box shows what the three you chose bring out in each
   other. The healer counts as one of the party: Wren has Childhood Friends
-  (Brom wakes when she mends him), Big Sister (Pip never panics in her
+  (Brom wakes when he mends him), Big Sister (Pip never panics in his
   circle), Study Group (Vex +20% inside it), Quiet Ones (Sable's backstabs
-  feed her) and Blood Bank (Valerian's overflow goes to her); Father Ansel
+  feed him) and Blood Bank (Valerian's overflow goes to him); Father Ansel
   has The Old Guard (double shields on Brom, Mends taunt), Two Sermons,
   Cold Chapel and Fire and Brimstone (Mends cut Dusty's reload), plus two
   grudges, Unrested (Mortimer) and Sunday Service (Valerian); Ivy has Deep

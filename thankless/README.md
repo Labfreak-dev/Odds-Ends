@@ -164,9 +164,14 @@ Demon King comes to you.
   five — and a Mythic maxes the card and heals everyone to full. Levels
   come half as often as they once did and every pick is worth twice as
   much, so a run interrupts you half as much for the same power. Chests
-  hand out a card after their relic with better odds (Common drops to
-  about 30%), and Wren's Lucky Star training raises the odds further.
-  The story remembers Legendary and Mythic rolls.
+  hand out a card after their relic with better odds. **Luck** is a run
+  stat shown in the HUD: every full 100% is a guaranteed tier bump on every
+  roll, yours and the party's, and the remainder is that chance of one more.
+  It comes from Lucky Star training (+15% a rank), the Lucky Streak card
+  (+10% a rank, eight ranks) and the Four-Leaf Clover relic (+25%); a chest
+  card rolls at +50%. Since the party picks for itself now, luck is the
+  lever on how good their picks get. The story remembers Legendary and
+  Mythic rolls, and how lucky the run was.
 - **The wider deck.** Beyond the weapons, level-ups draw from 55 cards
   and every card shows what it is worth now and what the next rank gives:
   Quick Hands (attack speed), Kindling / Shatter / Conductor / Sanctified

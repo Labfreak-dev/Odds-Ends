@@ -26,6 +26,7 @@ RULES THAT MATTER
 
 
 
+
 ================ THE PARTY — 14 images ================
 
 --- block 1 (wren_idle, wren_walk, wren_cast, brom_idle) ---
@@ -55,7 +56,7 @@ files: 1=vex_cast.webp  2=vex_annoyed.webp
 2. a haughty slender mage in a deep purple robe and a tall pointed lavender hat, pale, rolling her eyes with hands on hips, crooked staff with an orange flame tucked under one arm. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
 
-================ ENEMIES — 22 images ================
+================ ENEMIES — 24 images ================
 
 --- block 5 (imp_a, imp_b, bat_a, bat_b) ---
 files: 1=imp_a.webp  2=imp_b.webp  3=bat_a.webp  4=bat_b.webp
@@ -92,10 +93,12 @@ files: 1=king_b.webp  2=king_charge.webp  3=ghoul_a.webp  4=ghoul_b.webp
 3. a hunched grey-green ghoul with long claws, sunken yellow eyes and dirt on its knees, loping forward. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 4. a hunched grey-green ghoul with long claws and sunken yellow eyes, lunging with both claws raised, dirt flying. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
---- block 10 (wisp_a, wisp_b) ---
-files: 1=wisp_a.webp  2=wisp_b.webp
+--- block 10 (wisp_a, wisp_b, lich_a, lich_b) ---
+files: 1=wisp_a.webp  2=wisp_b.webp  3=lich_a.webp  4=lich_b.webp
 1. a small floating pale blue will-o-the-wisp, a glowing orb with two dark eye-holes and a wispy trailing tail. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 2. a small floating pale blue will-o-the-wisp flaring bright, its wispy tail whipping. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a tall gaunt lich in a tattered violet and black robe, a bare skull face with glowing purple eye-sockets, a crown of black iron, holding a crooked staff topped with a purple soul-flame, drifting forward with its feet hidden by the robe. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a tall gaunt lich in a tattered violet and black robe, bare skull face with glowing purple eye-sockets, a crown of black iron, raising a crooked staff with a burst of purple soul-flame and small ghostly hands rising from the ground around it. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
 
 
 ================ THE PILGRIM — 2 images ================

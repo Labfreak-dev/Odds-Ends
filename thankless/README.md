@@ -19,7 +19,7 @@ Demon King comes to you.
   a data URI under `window.TL_ART`. `index.html` fetches it after its first
   paint and swaps each sprite in as it decodes; anything missing keeps its
   vector fallback, so art ships in waves.
-- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 167
+- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 169
   in all (party poses, enemy walk and charge poses, three ground tiles, six
   props, HUD faces, the menu painting, relic and skill icons, and three poses
   plus a face for each of the nine recruits). The name before the dot is the
@@ -150,6 +150,17 @@ Demon King comes to you.
   Pip's Barbed Arrows, Vex's Arcane Mind) and actives they cast on cooldown
   by themselves (Shield Slam, Warcry, Earthquake; Volley, Snare Trap, Focus
   Shot; Frost Nova, Chain Lightning, Arcane Barrier).
+- **The Lich.** At 7:30 a Lich drifts in. Every nine seconds it raises
+  whoever you have left lying as a revenant, a dark copy that fights for
+  it until you Revive that member (which lays the revenant to rest); with
+  nobody dead it drains your flask instead. Killing it ends its dead and
+  drops a chest or two.
+- **The Daily.** A second button at camp runs today's seed: the same
+  field draw, the same spawn order, the same card pools at each level and
+  the same chests for everyone (choices still branch it). Your best time
+  for the day sits on the button and in the Ledger.
+- **The Diary.** The Ledger keeps the last thirty runs' story lines with
+  who went and how it ended.
 - **Three healers.** Wren is the story as told. Father Ansel (after one
   win) is slow and loud with enormous heals, turns overheal into shields
   and revives cheaper; Ivy (after thirty thank-yous) plants her Mend as a

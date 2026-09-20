@@ -41,6 +41,16 @@ Demon King comes to you.
 - **Mend** casts itself on the most wounded ally inside Wren's range, at a
   mana cost. Mana regenerates slowly; the motes enemies drop refill it, so
   the healer has to move toward the fight to keep healing.
+- **Prayers cast themselves.** There are no spell buttons. Wren learns
+  spells as level-up cards and each goes off on its own when its moment
+  comes: healing (Surge, Mending Prayer, Regrowth, Sanctuary, Radiance),
+  defence (Fortify, Ward, Wall of Light) and support (Bless, Haste, Rouse).
+  Rank 2 recharges a spell faster, rank 3 makes it cheaper; a spell card is
+  guaranteed in the first few levels. The only button is **Revive**, which
+  appears when the flask is full and costs all of it (Second Wind training
+  trims that). Motes restore far less mana than they used to, so regen and
+  Bigger Flask matter. Guardian Angel, Lifeline, Sturdy and Hearth are new
+  defensive cards for Wren herself.
 - The spells are what make the party dangerous; Mend only keeps it standing.
   **Surge** heals. **Bless** gives the ally in the thick of it two and a half
   times damage for ten seconds, kills refunding mana. **Haste** speeds

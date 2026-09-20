@@ -58,6 +58,15 @@ Demon King comes to you.
   weapons at most, five ranks each; one is guaranteed in the first few
   levels. A weapon build gives Wren roughly a fifth of the kills late in a
   run, and the story notes that nobody will believe it.
+- **The wider deck.** Beyond the weapons, level-ups draw from 55 cards
+  and every card shows what it is worth now and what the next rank gives:
+  Quick Hands (attack speed), Kindling / Shatter / Conductor / Sanctified
+  (fire, frost, lightning and holy bonuses), Venom, Bramblecoat (thorns
+  for everyone), Bigger Gestures (wider area skills), Arcing Strikes
+  (hits chain to a neighbour), Warding (a shield for everyone every 20s),
+  Vampiric Stew, Lucky Hits, Finisher, Drill Sergeant, Bookish, Tithe,
+  Cold Feet, Hot Hands and Quick Habits. Every card stacks: each pick
+  multiplies the stat again or feeds a rank-times-value formula.
 - Kills your party makes earn XP for you. Level-ups offer three cards: heal
   power, mana, range, party damage and HP, and the healer's only offense —
   overhealing that burns enemies, blessed allies that scorch attackers.

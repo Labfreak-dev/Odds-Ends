@@ -25,6 +25,7 @@ RULES THAT MATTER
 
 
 
+
 ================ THE PARTY — 14 images ================
 
 --- block 1 (wren_idle, wren_walk, wren_cast, brom_idle) ---
@@ -344,4 +345,21 @@ files: 1=spell_bless.webp  2=spell_haste.webp  3=spell_rouse.webp  4=spell_reviv
 2. three curved pale blue speed lines around a pair of winged sandals. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
 3. two loud yellow exclamation marks with a small ringing bell between them. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
 4. a golden ankh glowing with white light, a small feather rising from it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+
+================ THE OTHER HEALERS — 8 images ================
+
+--- block 44 (ansel_idle, ansel_walk, ansel_cast, face_ansel) ---
+files: 1=ansel_idle.webp  2=ansel_walk.webp  3=ansel_cast.webp  4=face_ansel.webp
+1. a stout grumpy old priest in a cream and brown robe with a wide gold stole, a bald head with a white beard, thick eyebrows, holding a heavy wooden crozier with a small gold cross, standing planted, scowling. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a stout grumpy old priest in a cream and brown robe with a wide gold stole, a bald head with a white beard, thick eyebrows, holding a heavy wooden crozier with a small gold cross, stomping forward mid-stride, robe swinging, mouth open shouting. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a stout grumpy old priest in a cream and brown robe with a wide gold stole, a bald head with a white beard, thick eyebrows, holding a heavy wooden crozier with a small gold cross, raising the crozier with a big burst of golden light and shield sparks around him, bellowing. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a stout grumpy old priest with a bald head, white beard, thick eyebrows and a gold stole, deeply unimpressed. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
+
+--- block 45 (ivy_idle, ivy_walk, ivy_cast, face_ivy) ---
+files: 1=ivy_idle.webp  2=ivy_walk.webp  3=ivy_cast.webp  4=face_ivy.webp
+1. a slender young druid in a green leaf-trimmed robe with a crown of ivy and small antlers of twig, freckles, holding a living staff that sprouts leaves, standing calmly with a small bird on her shoulder. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+2. a slender young druid in a green leaf-trimmed robe with a crown of ivy and small antlers of twig, freckles, holding a living staff that sprouts leaves, running lightly mid-stride, leaves trailing behind her. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+3. a slender young druid in a green leaf-trimmed robe with a crown of ivy and small antlers of twig, freckles, holding a living staff that sprouts leaves, holding the staff out with a spray of green seeds and small leaves bursting from it, smiling. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, full body, facing right, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+4. a slender young druid with a crown of ivy and small twig antlers, freckles, a warm calm smile. head-and-shoulders portrait bust in chunky chibi fantasy game style, thick dark outlines, flat cel shading lit from the upper left, on a plain very dark purple background, no text, no border
 

@@ -19,7 +19,7 @@ Demon King comes to you.
   a data URI under `window.TL_ART`. `index.html` fetches it after its first
   paint and swaps each sprite in as it decodes; anything missing keeps its
   vector fallback, so art ships in waves.
-- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 159
+- `art-prompts.txt` — the art sheet: one `filename | prompt` per image, 167
   in all (party poses, enemy walk and charge poses, three ground tiles, six
   props, HUD faces, the menu painting, relic and skill icons, and three poses
   plus a face for each of the nine recruits). The name before the dot is the
@@ -150,6 +150,13 @@ Demon King comes to you.
   Pip's Barbed Arrows, Vex's Arcane Mind) and actives they cast on cooldown
   by themselves (Shield Slam, Warcry, Earthquake; Volley, Snare Trap, Focus
   Shot; Frost Nova, Chain Lightning, Arcane Barrier).
+- **Three healers.** Wren is the story as told. Father Ansel (after one
+  win) is slow and loud with enormous heals, turns overheal into shields
+  and revives cheaper; Ivy (after thirty thank-yous) plants her Mend as a
+  seed — a third now, the rest over three seconds — that spreads to
+  whoever is nearest, with long reach and thin skin. Each starts knowing
+  one prayer. Their art is on the sheet (blocks 44–45); until it lands
+  they use Wren's vector stand-in in their own colour.
 - **Pick three.** The menu's party panel lists twelve characters; a run takes
   three. Brom, Pip and Vex come free. Nine **recruits** unlock from all-time
   stats and each is useless in a new way: Mortimer the necromancer raises

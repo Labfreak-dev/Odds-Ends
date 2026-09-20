@@ -69,6 +69,15 @@ Demon King comes to you.
   on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
   weapons at most, five ranks each; one is guaranteed in the first few
   levels. The card names who takes it; the story lists who carried what.
+- **Gratitude.** Every member has a meter under their health bar. Saving
+  them when they are low fills it, buffs keep it ticking up, leaving them
+  hurt drains it, and falling costs a chunk. At 40 they warm up (+5%
+  damage); at 70 they are grateful and give something back that is theirs
+  alone — Brom shares his stew, Pip stops hitting friends, Vex spares the
+  party, Sable always comes back, Lupa stops biting, Valerian shares a sip
+  with Wren, and so on; at 100 they are devoted (+10% damage, and they
+  say thank you like they mean it). The end screen tallies it and the
+  story says who owes you.
 - **Contracts.** Camp offers three promises each visit and you may swear up
   to two: Nobody Dies, No Revive, Keep Them Standing, Let Him Sleep, Travel
   Light, Thrifty, Errands, Quick Study, Appreciated, Big Game, Untouched,

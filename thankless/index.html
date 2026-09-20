@@ -260,7 +260,7 @@
 
 <script>
 'use strict';
-const BUILD='b033-wacky';
+const BUILD='b034-plain';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -339,71 +339,71 @@ const TREE=[
   {id:'h_mana2',br:'healer',name:'Bottomless Flask',desc:'+25 max mana per rank',max:4,cost:140,req:['h_mana',5]},
   {id:'h_regen',br:'healer',name:'Deep Breaths',desc:'+12% mana regen per rank',max:5,cost:40},
   {id:'h_regen2',br:'healer',name:'Second Lung',desc:'+20% mana regen per rank',max:3,cost:150,req:['h_regen',3]},
-  {id:'h_frugal',br:'healer',name:'Frugal Prayer',desc:'Mend costs 8% less mana per rank',max:4,cost:90,req:['h_regen',2]},
+  {id:'h_frugal',br:'healer',name:'Frugal Prayer',desc:'−8% Mend mana cost per rank',max:4,cost:90,req:['h_regen',2]},
   {id:'h_range',br:'healer',name:'Long Arms',desc:'+8% heal range per rank',max:4,cost:50},
-  {id:'h_rouse',br:'healer',name:'Louder',desc:'Rouse reaches 20% further and shoves harder, per rank',max:2,cost:70,req:['h_range',1]},
+  {id:'h_rouse',br:'healer',name:'Louder',desc:'+20% Rouse range and push per rank',max:2,cost:70,req:['h_range',1]},
   {id:'h_speed',br:'healer',name:'Sandals',desc:'+6% move speed per rank',max:4,cost:45},
-  {id:'h_mote',br:'healer',name:'Mote Magnet',desc:'Motes come from 12% further per rank',max:4,cost:60,req:['h_speed',1]},
-  {id:'h_motemana',br:'healer',name:'Sweet Motes',desc:'Motes restore 30% more mana per rank',max:3,cost:110,req:['h_mote',2]},
+  {id:'h_mote',br:'healer',name:'Mote Magnet',desc:'+12% pickup distance per rank',max:4,cost:60,req:['h_speed',1]},
+  {id:'h_motemana',br:'healer',name:'Sweet Motes',desc:'+30% mana from motes per rank',max:3,cost:110,req:['h_mote',2]},
   {id:'h_vit',br:'healer',name:'Thick Robe',desc:'+20 healer HP per rank',max:4,cost:35},
-  {id:'h_card_martyr',br:'healer',name:'Learn: Martyr',desc:'Adds the Martyr card to level-ups: allies in range pass a share of their pain to you',max:1,cost:200,req:['h_vit',2]},
-  {id:'h_surge',br:'healer',name:'Surge Mastery',desc:'Surge heals 25% more per rank',max:3,cost:80,req:['h_power',2]},
-  {id:'h_card_echo',br:'healer',name:'Learn: Echo',desc:'Adds the Echo card: Surge repeats itself a second later',max:1,cost:220,req:['h_surge',2]},
-  {id:'h_ward',br:'healer',name:'Fortify Mastery',desc:'Fortify’s shield absorbs 25% more per rank',max:3,cost:80,req:['h_mana',2]},
-  {id:'h_buff',br:'healer',name:'Long Breath',desc:'Bless and Haste last 8% longer per rank',max:4,cost:70,req:['h_power',1]},
-  {id:'h_bless',br:'healer',name:'Bless Mastery',desc:'Blessed allies deal 15% more per rank',max:3,cost:110,req:['h_buff',2]},
-  {id:'h_card_sanct',br:'healer',name:'Learn: Sanctuary',desc:'Adds the Sanctuary card: Fortify also heals',max:1,cost:200,req:['h_ward',1]},
-  {id:'h_cdr',br:'healer',name:'Rehearsed Rites',desc:'Spell cooldowns −6% per rank',max:4,cost:120,req:['h_surge',1]},
-  {id:'h_start',br:'healer',name:'Head Start',desc:'Begin each run one level higher',max:3,cost:120},
-  {id:'h_keepsake',br:'healer',name:'Keepsake',desc:'Begin each run holding a random relic you have found before, one per rank',max:3,cost:300,req:['h_start',1]},
-  {id:'h_revive',br:'healer',name:'Second Wind',desc:'Revive costs 10 less mana per rank',max:3,cost:90},
-  {id:'h_luck',br:'healer',name:'Lucky Star',desc:'Level-up and chest cards roll a higher tier more often, per rank',max:3,cost:180,req:['h_start',1]},
-  {id:'h_radiance',br:'healer',name:'Radiance',desc:'A fifth spell: heal everyone in range and bless them all at once',max:1,cost:500,req:['h_power2',1]},
+  {id:'h_card_martyr',br:'healer',name:'Learn: Martyr',desc:'Adds the Martyr card: 15% of damage to allies in range goes to you instead',max:1,cost:200,req:['h_vit',2]},
+  {id:'h_surge',br:'healer',name:'Surge Mastery',desc:'+25% Surge healing per rank',max:3,cost:80,req:['h_power',2]},
+  {id:'h_card_echo',br:'healer',name:'Learn: Echo',desc:'Adds the Echo card: Surge casts again 1s later at 50%',max:1,cost:220,req:['h_surge',2]},
+  {id:'h_ward',br:'healer',name:'Fortify Mastery',desc:'+25% Fortify shield per rank',max:3,cost:80,req:['h_mana',2]},
+  {id:'h_buff',br:'healer',name:'Long Breath',desc:'+8% Bless and Haste duration per rank',max:4,cost:70,req:['h_power',1]},
+  {id:'h_bless',br:'healer',name:'Bless Mastery',desc:'+15% damage for blessed allies per rank',max:3,cost:110,req:['h_buff',2]},
+  {id:'h_card_sanct',br:'healer',name:'Learn: Sanctuary',desc:'Adds the Sanctuary card: Fortify also heals 15% max HP',max:1,cost:200,req:['h_ward',1]},
+  {id:'h_cdr',br:'healer',name:'Rehearsed Rites',desc:'−6% spell cooldowns per rank',max:4,cost:120,req:['h_surge',1]},
+  {id:'h_start',br:'healer',name:'Head Start',desc:'Start each run 1 level higher',max:3,cost:120},
+  {id:'h_keepsake',br:'healer',name:'Keepsake',desc:'Start each run with 1 random relic you have found before, per rank',max:3,cost:300,req:['h_start',1]},
+  {id:'h_revive',br:'healer',name:'Second Wind',desc:'−10 Revive mana cost per rank',max:3,cost:90},
+  {id:'h_luck',br:'healer',name:'Lucky Star',desc:'Higher card tiers more often, per rank',max:3,cost:180,req:['h_start',1]},
+  {id:'h_radiance',br:'healer',name:'Radiance',desc:'A fifth spell: heals and blesses everyone in range at once',max:1,cost:500,req:['h_power2',1]},
   // Brom
   {id:'t_hp',br:'tank',name:'Iron Gut',desc:'Brom +15% HP per rank',max:5,cost:30},
   {id:'t_hp2',br:'tank',name:'Cast Iron Gut',desc:'Brom +20% HP per rank',max:4,cost:150,req:['t_hp',5]},
-  {id:'t_armor',br:'tank',name:'Thick Plate',desc:'Brom takes 6% less damage per rank',max:4,cost:160,req:['t_hp2',1]},
-  {id:'t_taunt',br:'tank',name:'Big Presence',desc:'Enemies notice Brom from 15% further per rank',max:3,cost:70,req:['t_hp',2]},
+  {id:'t_armor',br:'tank',name:'Thick Plate',desc:'Brom −6% damage taken per rank',max:4,cost:160,req:['t_hp2',1]},
+  {id:'t_taunt',br:'tank',name:'Big Presence',desc:'Brom +15% taunt range per rank',max:3,cost:70,req:['t_hp',2]},
   {id:'t_dmg',br:'tank',name:'Heavier Shield',desc:'Brom +12% damage per rank',max:5,cost:40},
   {id:'t_speed',br:'tank',name:'Long Strides',desc:'Brom +8% speed per rank',max:3,cost:60,req:['t_dmg',1]},
-  {id:'t_cleave',br:'tank',name:'Wide Swing',desc:'Brom’s swing hits one more enemy per rank',max:3,cost:100,req:['t_dmg',3]},
-  {id:'t_coffee',br:'tank',name:'Espresso',desc:'Brom naps 15% less often per rank',max:4,cost:60},
-  {id:'t_regen',br:'tank',name:'Stew Belly',desc:'Brom heals 0.5% of his HP a second while awake, per rank',max:3,cost:120,req:['t_coffee',2]},
-  {id:'t_light',br:'tank',name:'Light Sleeper',desc:'Brom’s naps are 20% shorter per rank',max:3,cost:70},
-  {id:'t_snore',br:'tank',name:'Thunderous Snore',desc:'Enemies near a sleeping Brom take damage every second, per rank',max:3,cost:140,req:['t_light',1]},
-  {id:'t_wake',br:'tank',name:'Rude Awakening',desc:'Brom wakes with a swing that hits everything around him for triple',max:1,cost:250,req:['t_light',2]},
+  {id:'t_cleave',br:'tank',name:'Wide Swing',desc:'Brom’s swing hits +1 enemy per rank',max:3,cost:100,req:['t_dmg',3]},
+  {id:'t_coffee',br:'tank',name:'Espresso',desc:'Brom −15% nap chance per rank',max:4,cost:60},
+  {id:'t_regen',br:'tank',name:'Stew Belly',desc:'Brom heals 0.5% HP/s while awake, per rank',max:3,cost:120,req:['t_coffee',2]},
+  {id:'t_light',br:'tank',name:'Light Sleeper',desc:'Brom −20% nap length per rank',max:3,cost:70},
+  {id:'t_snore',br:'tank',name:'Thunderous Snore',desc:'Sleeping Brom damages nearby enemies every second, more per rank',max:3,cost:140,req:['t_light',1]},
+  {id:'t_wake',br:'tank',name:'Rude Awakening',desc:'Brom wakes with a 3× damage swing around him',max:1,cost:250,req:['t_light',2]},
   // Pip
   {id:'a_dmg',br:'archer',name:'Sharper Arrows',desc:'Pip +12% damage per rank',max:5,cost:40},
   {id:'a_dmg2',br:'archer',name:'Bodkins',desc:'Pip +15% damage per rank',max:4,cost:150,req:['a_dmg',5]},
-  {id:'a_crit',br:'archer',name:'Lucky Shot',desc:'5% chance per rank of a triple-damage arrow',max:4,cost:120,req:['a_dmg2',1]},
-  {id:'a_rate',br:'archer',name:'Quick Draw',desc:'Pip shoots 8% faster per rank',max:4,cost:90,req:['a_dmg',2]},
-  {id:'a_multi',br:'archer',name:'Double Nock',desc:'15% chance per rank that Pip looses two arrows',max:3,cost:130,req:['a_rate',2]},
+  {id:'a_crit',br:'archer',name:'Lucky Shot',desc:'+5% chance of a 3× damage arrow per rank',max:4,cost:120,req:['a_dmg2',1]},
+  {id:'a_rate',br:'archer',name:'Quick Draw',desc:'Pip +8% attack speed per rank',max:4,cost:90,req:['a_dmg',2]},
+  {id:'a_multi',br:'archer',name:'Double Nock',desc:'+15% chance Pip fires 2 arrows per rank',max:3,cost:130,req:['a_rate',2]},
   {id:'a_hp',br:'archer',name:'Leather Vest',desc:'Pip +15% HP per rank',max:4,cost:30},
   {id:'a_kite',br:'archer',name:'Nimble',desc:'Pip +8% speed per rank',max:3,cost:60,req:['a_hp',2]},
-  {id:'a_aim',br:'archer',name:'Archery Lessons',desc:'Pip misses 5% less per rank',max:4,cost:60},
-  {id:'a_pierce',br:'archer',name:'Piercing Shots',desc:'Arrows pass through one more enemy per rank',max:2,cost:140,req:['a_aim',3]},
+  {id:'a_aim',br:'archer',name:'Archery Lessons',desc:'Pip −5% miss chance per rank',max:4,cost:60},
+  {id:'a_pierce',br:'archer',name:'Piercing Shots',desc:'Arrows pierce +1 enemy per rank',max:2,cost:140,req:['a_aim',3]},
   {id:'a_sorry',br:'archer',name:'Heartfelt Apology',desc:'Arrows that hit an ally heal them instead',max:1,cost:260,req:['a_aim',4]},
-  {id:'a_brave',br:'archer',name:'Pep Talks',desc:'Pip panics at lower HP per rank',max:3,cost:70},
-  {id:'a_calm',br:'archer',name:'Breathing Exercises',desc:'Pip’s panics end 25% sooner per rank',max:3,cost:80,req:['a_brave',1]},
+  {id:'a_brave',br:'archer',name:'Pep Talks',desc:'Pip panics at 8% lower HP per rank',max:3,cost:70},
+  {id:'a_calm',br:'archer',name:'Breathing Exercises',desc:'Pip −25% panic length per rank',max:3,cost:80,req:['a_brave',1]},
   // Vex
   {id:'m_dmg',br:'mage',name:'Forbidden Tome',desc:'Vex +12% damage per rank',max:5,cost:50},
   {id:'m_dmg2',br:'mage',name:'Forbidden-er Tome',desc:'Vex +15% damage per rank',max:4,cost:160,req:['m_dmg',5]},
-  {id:'m_arrogance',br:'mage',name:'Arrogance',desc:'Vex deals 12% more per rank while above 80% HP',max:2,cost:200,req:['m_dmg2',1]},
-  {id:'m_meteor',br:'mage',name:'Cataclysm',desc:'Meteors come 12% sooner per rank',max:3,cost:130,req:['m_dmg',3]},
+  {id:'m_arrogance',br:'mage',name:'Arrogance',desc:'Vex +12% damage per rank while above 80% HP',max:2,cost:200,req:['m_dmg2',1]},
+  {id:'m_meteor',br:'mage',name:'Cataclysm',desc:'−12% meteor cooldown per rank',max:3,cost:130,req:['m_dmg',3]},
   {id:'m_hp',br:'mage',name:'Padded Hat',desc:'Vex +15% HP per rank',max:4,cost:30},
-  {id:'m_blink',br:'mage',name:'Sulk Step',desc:'Vex blinks 20% sooner per rank and leaves fire where she stood',max:2,cost:120,req:['m_hp',2]},
-  {id:'m_manners',br:'mage',name:'Manners',desc:'Vex’s friendly fire −15% per rank',max:4,cost:60},
-  {id:'m_precise',br:'mage',name:'Precision',desc:'Vex’s fire never touches Wren',max:1,cost:220,req:['m_manners',4]},
-  {id:'m_focus',br:'mage',name:'Focus',desc:'Vex casts 8% faster per rank',max:4,cost:70},
+  {id:'m_blink',br:'mage',name:'Sulk Step',desc:'−20% blink cooldown per rank; blink leaves fire',max:2,cost:120,req:['m_hp',2]},
+  {id:'m_manners',br:'mage',name:'Manners',desc:'Vex −15% friendly fire per rank',max:4,cost:60},
+  {id:'m_precise',br:'mage',name:'Precision',desc:'Vex’s fire never hits the healer',max:1,cost:220,req:['m_manners',4]},
+  {id:'m_focus',br:'mage',name:'Focus',desc:'Vex +8% cast speed per rank',max:4,cost:70},
   {id:'m_radius',br:'mage',name:'Bigger Booms',desc:'+10% blast radius per rank',max:3,cost:110,req:['m_focus',2]},
-  {id:'m_burn',br:'mage',name:'Lingering Flame',desc:'Fireballs leave burning ground; longer per rank',max:2,cost:150,req:['m_radius',1]},
+  {id:'m_burn',br:'mage',name:'Lingering Flame',desc:'Fireballs leave burning ground, longer per rank',max:2,cost:150,req:['m_radius',1]},
 ];
 // Training for everyone (b015): every recruit gets base nodes, and every party member gets ten specials.
 (function(){
   const NAMES={tank:'Brom',archer:'Pip',mage:'Vex',necro:'Mortimer',assassin:'Sable',paladin:'Gideon',frost:'Frost',ent:'Bramble',wolf:'Lupa',vampire:'Valerian',gunner:'Dusty',robot:'Unit 7'};
   const PRE={tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'};
   const RECRUITS=['necro','assassin','paladin','frost','ent','wolf','vampire','gunner','robot'];
-  const third={frost:['cast','Quick Cast','casts 8% faster per rank'],ent:['reach','Longer Boughs','reaches 8% further per rank']};
+  const third={frost:['cast','Quick Cast','+8% cast speed per rank'],ent:['reach','Longer Boughs','+8% reach per rank']};
   const N=(k,id,name,desc,max,cost,req)=>{const n={id:PRE[k]+'_'+id,br:k,name,desc,max,cost};if(req)n.req=[PRE[k]+'_'+req[0],req[1]];TREE.push(n)};
   for(const k of RECRUITS){const nm=NAMES[k];
     N(k,'hp','Hearty',nm+' +15% HP per rank',5,30);
@@ -411,14 +411,14 @@ const TREE=[
     const t=third[k]||['spd','Quick Feet',nm+' +8% speed per rank'];N(k,t[0],t[1],t[2].startsWith(nm)?t[2]:nm+' '+t[2],3,60,['hp',1]);
   }
   const generic=(k,skip)=>{const nm=NAMES[k];
-    if(!skip.includes('armor'))N(k,'armor','Thick Skin',nm+' takes 5% less damage per rank',4,90,['hp',2]);
-    N(k,'xp','Quick Study',nm+' earns 15% more XP per rank',3,80);
-    if(!skip.includes('regen'))N(k,'regen','Second Breakfast',nm+' heals 0.4% of max HP a second, per rank',3,110,['hp',3]);
-    N(k,'cd','Drilled',nm+'’s active skills cool down 10% faster per rank',3,120,['xp',1]);
-    N(k,'start','Old Hand',nm+' begins each run already knowing one extra skill, per rank',2,180,['xp',2]);
-    N(k,'stubborn','Stubborn','Once a run, '+nm+' gets back up unaided twelve seconds after falling',1,260,['xp',3]);
-    N(k,'thanks','Good Manners',nm+' is 3% more likely to say thank you, per rank',3,60);
-    N(k,'hero','Last Stand',nm+' deals 15% more per rank while under 40% HP',2,140,['dmg',2]);
+    if(!skip.includes('armor'))N(k,'armor','Thick Skin',nm+' −5% damage taken per rank',4,90,['hp',2]);
+    N(k,'xp','Quick Study',nm+' +15% XP per rank',3,80);
+    if(!skip.includes('regen'))N(k,'regen','Second Breakfast',nm+' heals 0.4% HP/s per rank',3,110,['hp',3]);
+    N(k,'cd','Drilled',nm+' −10% skill cooldowns per rank',3,120,['xp',1]);
+    N(k,'start','Old Hand',nm+' starts each run with +1 skill per rank',2,180,['xp',2]);
+    N(k,'stubborn','Stubborn',nm+' revives on their own 12s after falling, once per run',1,260,['xp',3]);
+    N(k,'thanks','Good Manners',nm+' +3% thank-you chance per rank',3,60);
+    N(k,'hero','Last Stand',nm+' +15% damage per rank while under 40% HP',2,140,['dmg',2]);
   };
   for(const k of ['archer','mage',...RECRUITS])generic(k,[]);
   generic('tank',['armor','regen']);
@@ -433,154 +433,154 @@ const TREE=[
     H(k,'speed','Sandals',nm+' +6% move speed per rank',4,45);
     H(k,'vit','Thick Robe',nm+' +20 HP per rank',4,35);
     H(k,'frugal','Frugal Prayer','Mend costs 8% less mana per rank',4,90,['regen',2]);
-    H(k,'luck','Lucky Star','Cards roll a higher tier more often, per rank',3,180,['vit',1]);
+    H(k,'luck','Lucky Star','Higher card tiers more often, per rank',3,180,['vit',1]);
     H(k,'revive','Second Wind','Revive costs 10 less mana per rank',3,90);
     H(k,'start','Head Start','Begin each run one level higher',3,120);
   }
-  H('ansel','bellow','Bellow','Ansel’s Mend is 15% bigger per rank. Everyone hears it',4,90,['power',2]);
-  H('ansel','bulwark','Bulwark','Ansel’s overheal shields hold 25% more per rank',3,110,['vit',2]);
-  H('ansel','stride','Long Stride','Ansel is 8% less slow per rank',3,80,['speed',1]);
-  H('ansel','rites','Old Rites','Revive raises the fallen at 25% more health per rank',2,160,['revive',1]);
-  H('ansel','ward','Learned Ward','Ward, which he starts with, is one rank higher per rank',2,200,['power',3]);
-  H('ivy','seed','Deeper Seed','Ivy’s seed heals over three seconds for 20% more per rank',4,90,['power',2]);
-  H('ivy','spread','Wider Spread','The seed spreads to one more ally per rank',2,150,['range',2]);
-  H('ivy','bloom','Bloom','A member at full health when the seed lands gains a shield for 5% per rank',3,120,['vit',1]);
-  H('ivy','roots','Roots','Ivy takes 6% less damage per rank',3,110,['vit',2]);
-  H('ivy','regrowth','Learned Regrowth','Regrowth, which she starts with, is one rank higher per rank',2,200,['power',3]);
-  N('tank','reach','Long Arms','Brom’s swing reaches 8% further per rank',3,80,['dmg',1]);
-  N('tank','shove','Shoulder','Shield Slam knocks 30% further and slows longer, per rank',2,110,['dmg',2]);
-  N('tank','bellow','Bellow','Warcry reaches 25% further per rank',2,110,['coffee',1]);
-  N('tank','dream','Dreams of Stew','Asleep, Brom regains 2% of his HP a second, per rank',2,150,['light',1]);
-  N('archer','quiver','Deep Quiver','Volley looses two more arrows per rank',2,120,['rate',1]);
-  N('archer','trap2','Sharper Traps','Snare Trap deals 30% more per rank',3,90,['aim',1]);
-  N('archer','snipe','Long Shot','Pip’s arrows fly 15% further per rank',2,100,['dmg',2]);
-  N('mage','nova2','Colder Nova','Frost Nova freezes one second longer per rank',2,130,['focus',1]);
-  N('mage','chain2','Longer Chain','Chain Lightning jumps twice more per rank',2,130,['dmg',2]);
-  N('mage','barrier2','Thicker Barrier','Arcane Barrier absorbs 50% more per rank',2,120,['hp',1]);
-  N('necro','cap','Deeper Graves','One more skeleton at a time, per rank',2,200,['dmg',2]);
-  N('necro','swift','Restless Dead','Skeletons deal 25% more per rank',3,100,['dmg',1]);
-  N('necro','bone','Sturdier Bones','Skeletons have 20% more HP per rank',3,80,['hp',1]);
-  N('necro','jolt','Gentler Jolt','Mortimer’s wake-up shock no longer hurts Brom',1,150,['thanks',1]);
-  N('assassin','focus','Focus','Sable forgets to come back 10% less often, per rank',3,120,['xp',1]);
-  N('assassin','deep','Deeper Cuts','Backstabs hit for one more time her damage, per rank',2,180,['dmg',3]);
-  N('assassin','shadow','Shadow Step','Sable is hidden one second less per rank',2,100,['spd',1]);
-  N('paladin','selfh','Bigger Heals','Gideon’s self-heal is 6% of max HP larger per rank. He will mention it',3,90,['hp',1]);
-  N('paladin','share','Humility','His self-heal also mends the nearest ally for half',1,220,['selfh',2]);
-  N('paladin','aura2','Wider Aura','Gideon’s aura reaches 20 further per rank',3,100,['dmg',1]);
-  N('frost','bliz','Deeper Freeze','The blizzard freezes enemies half a second longer per rank',3,110,['dmg',1]);
-  N('frost','kind','Considerate','The blizzard freezes allies half a second less per rank. Three ranks: not at all',3,130,['hp',1]);
-  N('frost','reach','Far Sight','Frost’s bolts reach 15% further per rank',2,90,['cast',1]);
-  N('ent','quick','Quicker Roots','Bramble roots the ground one second sooner per rank',2,110,['dmg',1]);
-  N('ent','patient','Patient','Bramble resurfaces one second sooner per rank',2,90,['hp',1]);
-  N('ent','hold','Deep Roots','Rooted enemies stay slow one second longer per rank',2,100,['quick',1]);
-  N('wolf','control','Self-Control','Lupa bites friends 3% less often per rank',3,110,['thanks',1]);
-  N('wolf','long','Longer Turn','Wolf form lasts three seconds longer per rank',2,130,['dmg',2]);
-  N('wolf','hunger','Hungry','Lupa turns after five fewer motes, per rank',3,100,['spd',1]);
-  N('vampire','thirst','Thirst','Valerian drinks 10% more of what he deals, per rank',3,120,['dmg',1]);
-  N('vampire','cloak','Heavy Cloak','Radiance burns him 25% less per rank',2,110,['hp',1]);
-  N('vampire','mist2','Longer Mist','Mist Form lasts half a second longer per rank',2,100,['spd',1]);
-  N('gunner','cyl','Seventh Chamber','One more shot before a reload, per rank',2,180,['dmg',2]);
-  N('gunner','fast','Fast Hands','Reloads take one second less per rank',3,120,['spd',1]);
-  N('gunner','aim','Steady Aim','+5% chance per rank of a triple-damage shot',3,110,['dmg',1]);
-  N('robot','cool','Better Fins','Unit 7 sheds two more heat a second, per rank',3,110,['hp',1]);
-  N('robot','heat','Bigger Boiler','Overheats ten heat later, per rank',3,100,['dmg',1]);
-  N('robot','eff','Efficient','Each shot adds one less heat, per rank',2,160,['cool',1]);
+  H('ansel','bellow','Bellow','Ansel +15% Mend healing per rank. Everyone hears it',4,90,['power',2]);
+  H('ansel','bulwark','Bulwark','Ansel +25% overheal shield per rank',3,110,['vit',2]);
+  H('ansel','stride','Long Stride','Ansel +8% move speed per rank',3,80,['speed',1]);
+  H('ansel','rites','Old Rites','Revive brings allies back with +25% HP per rank',2,160,['revive',1]);
+  H('ansel','ward','Learned Ward','Ward (his starting spell) +1 rank per rank',2,200,['power',3]);
+  H('ivy','seed','Deeper Seed','Ivy +20% seed healing over 3s per rank',4,90,['power',2]);
+  H('ivy','spread','Wider Spread','Seed spreads to +1 ally per rank',2,150,['range',2]);
+  H('ivy','bloom','Bloom','Seed landing on a full-HP ally gives a 5% shield per rank',3,120,['vit',1]);
+  H('ivy','roots','Roots','Ivy −6% damage taken per rank',3,110,['vit',2]);
+  H('ivy','regrowth','Learned Regrowth','Regrowth (her starting spell) +1 rank per rank',2,200,['power',3]);
+  N('tank','reach','Long Arms','Brom +8% swing reach per rank',3,80,['dmg',1]);
+  N('tank','shove','Shoulder','+30% Shield Slam knockback and slow per rank',2,110,['dmg',2]);
+  N('tank','bellow','Bellow','+25% Warcry range per rank',2,110,['coffee',1]);
+  N('tank','dream','Dreams of Stew','Brom heals 2% HP/s while asleep, per rank',2,150,['light',1]);
+  N('archer','quiver','Deep Quiver','+2 Volley arrows per rank',2,120,['rate',1]);
+  N('archer','trap2','Sharper Traps','+30% Snare Trap damage per rank',3,90,['aim',1]);
+  N('archer','snipe','Long Shot','Pip +15% arrow range per rank',2,100,['dmg',2]);
+  N('mage','nova2','Colder Nova','+1s Frost Nova freeze per rank',2,130,['focus',1]);
+  N('mage','chain2','Longer Chain','+2 Chain Lightning jumps per rank',2,130,['dmg',2]);
+  N('mage','barrier2','Thicker Barrier','+50% Arcane Barrier shield per rank',2,120,['hp',1]);
+  N('necro','cap','Deeper Graves','+1 skeleton per rank',2,200,['dmg',2]);
+  N('necro','swift','Restless Dead','+25% skeleton damage per rank',3,100,['dmg',1]);
+  N('necro','bone','Sturdier Bones','+20% skeleton HP per rank',3,80,['hp',1]);
+  N('necro','jolt','Gentler Jolt','Mortimer’s wake-up shock no longer damages Brom',1,150,['thanks',1]);
+  N('assassin','focus','Focus','Sable −10% chance to forget to come back, per rank',3,120,['xp',1]);
+  N('assassin','deep','Deeper Cuts','+1× backstab damage per rank',2,180,['dmg',3]);
+  N('assassin','shadow','Shadow Step','Sable −1s hide time per rank',2,100,['spd',1]);
+  N('paladin','selfh','Bigger Heals','Gideon +6% max HP self-heal per rank. He will mention it',3,90,['hp',1]);
+  N('paladin','share','Humility','Gideon’s self-heal also heals the nearest ally for 50%',1,220,['selfh',2]);
+  N('paladin','aura2','Wider Aura','Gideon +20 aura range per rank',3,100,['dmg',1]);
+  N('frost','bliz','Deeper Freeze','+0.5s blizzard freeze on enemies per rank',3,110,['dmg',1]);
+  N('frost','kind','Considerate','−0.5s blizzard freeze on allies per rank. Rank 3: allies never freeze',3,130,['hp',1]);
+  N('frost','reach','Far Sight','Frost +15% bolt range per rank',2,90,['cast',1]);
+  N('ent','quick','Quicker Roots','−1s Bramble root cooldown per rank',2,110,['dmg',1]);
+  N('ent','patient','Patient','−1s Bramble resurface time per rank',2,90,['hp',1]);
+  N('ent','hold','Deep Roots','+1s slow on rooted enemies per rank',2,100,['quick',1]);
+  N('wolf','control','Self-Control','Lupa −3% chance to bite allies per rank',3,110,['thanks',1]);
+  N('wolf','long','Longer Turn','+3s wolf form per rank',2,130,['dmg',2]);
+  N('wolf','hunger','Hungry','Lupa turns wolf 5 motes sooner per rank',3,100,['spd',1]);
+  N('vampire','thirst','Thirst','Valerian +10% lifesteal per rank',3,120,['dmg',1]);
+  N('vampire','cloak','Heavy Cloak','−25% Radiance damage to Valerian per rank',2,110,['hp',1]);
+  N('vampire','mist2','Longer Mist','+0.5s Mist Form per rank',2,100,['spd',1]);
+  N('gunner','cyl','Seventh Chamber','+1 shot per reload, per rank',2,180,['dmg',2]);
+  N('gunner','fast','Fast Hands','−1s reload per rank',3,120,['spd',1]);
+  N('gunner','aim','Steady Aim','+5% chance of a 3× damage shot per rank',3,110,['dmg',1]);
+  N('robot','cool','Better Fins','Unit 7 +2 heat/s cooling per rank',3,110,['hp',1]);
+  N('robot','heat','Bigger Boiler','+10 heat before overheating, per rank',3,100,['dmg',1]);
+  N('robot','eff','Efficient','−1 heat per shot, per rank',2,160,['cool',1]);
 })();
 const RELICS=[
-  {id:'chalice',name:'Chalice of Overflow',icon:'🏆',desc:'A fifth of every overheal comes back as mana'},
-  {id:'snore',who:'tank',name:'Snoring Charm',icon:'💤',desc:'Enemies near a sleeping Brom move at three-quarter speed'},
-  {id:'rico',who:'archer',name:'Lucky Fletching',icon:'🪶',desc:'Pip’s misses turn around and try again'},
-  {id:'ego',who:'mage',name:'Vex’s Ego',icon:'👑',desc:'Vex hits 30% harder. So does her friendly fire'},
+  {id:'chalice',name:'Chalice of Overflow',icon:'🏆',desc:'20% of overheal returns as mana'},
+  {id:'snore',who:'tank',name:'Snoring Charm',icon:'💤',desc:'−25% enemy speed near sleeping Brom'},
+  {id:'rico',who:'archer',name:'Lucky Fletching',icon:'🪶',desc:'Pip’s missed arrows turn back for a second try'},
+  {id:'ego',who:'mage',name:'Vex’s Ego',icon:'👑',desc:'Vex +30% damage, friendly fire included'},
   {id:'lantern',name:'Lantern',icon:'🏮',desc:'Heal range +25%'},
-  {id:'beads',name:'Prayer Beads',icon:'📿',desc:'One Mend in five costs nothing'},
-  {id:'cord',name:'Martyr’s Cord',icon:'🪢',desc:'A quarter of the damage allies in range take is yours instead'},
-  {id:'medal',name:'Thankless Medal',icon:'🎖️',desc:'Every thank-you makes you 3% better at this'},
-  {id:'bell',who:'tank',name:'Bell of Waking',icon:'🔔',desc:'Brom naps 30% shorter and wakes swinging'},
-  {id:'whistle',name:'Mote Whistle',icon:'🎐',desc:'Motes come from twice as far'},
-  {id:'bonecharm',name:'Bone Charm',icon:'🦴',desc:'Skeletons drop twice the motes'},
-  {id:'kettle',name:'Iron Kettle',icon:'🫕',desc:'The party has 15% more HP'},
+  {id:'beads',name:'Prayer Beads',icon:'📿',desc:'20% chance Mend costs no mana'},
+  {id:'cord',name:'Martyr’s Cord',icon:'🪢',desc:'25% of damage to allies in range goes to you instead'},
+  {id:'medal',name:'Thankless Medal',icon:'🎖️',desc:'+3% heal power per thank-you'},
+  {id:'bell',who:'tank',name:'Bell of Waking',icon:'🔔',desc:'Brom −30% nap length, wakes swinging'},
+  {id:'whistle',name:'Mote Whistle',icon:'🎐',desc:'Double pickup distance'},
+  {id:'bonecharm',name:'Bone Charm',icon:'🦴',desc:'Skeletons drop 2× motes'},
+  {id:'kettle',name:'Iron Kettle',icon:'🫕',desc:'+15% party HP'},
   {id:'hourglass',name:'Cracked Hourglass',icon:'⏳',desc:'Spell cooldowns −15%'},
-  {id:'halo',name:'Halo',icon:'😇',desc:'Nothing can touch you for a second after you cast a spell'},
-  {id:'quiver',who:'archer',name:'Quiver of Plenty',icon:'🏹',desc:'One shot in five, Pip looses two arrows'},
-  {id:'eyebrows',who:'mage',name:'Singed Eyebrows',icon:'🔥',desc:'Vex’s blasts are 20% wider'},
-  {id:'guestbook',name:'Guest Book',icon:'📖',desc:'Thank-yous come twice as often'},
-  {id:'jar',name:'Glass Jar',icon:'🫙',desc:'Motes are worth half again as much XP'},
-  {id:'boot',name:'Old Boot',icon:'🥾',desc:'Wren runs 15% faster'},
-  {id:'mirror',name:'Cracked Mirror',icon:'🪞',desc:'Whatever hits Wren takes triple that back'},
-  {id:'cushion',who:'tank',name:'Brom’s Cushion',icon:'🛏️',desc:'Brom naps half as often. They last twice as long'},
-  {id:'tonic',who:'archer',name:'Bitter Tonic',icon:'🧪',desc:'Pip never panics. She also aims worse'},
-  {id:'tome',who:'mage',name:'Borrowed Tome',icon:'📕',desc:'Meteors hit 30% harder'},
+  {id:'halo',name:'Halo',icon:'😇',desc:'Untouchable for 1s after casting a spell'},
+  {id:'quiver',who:'archer',name:'Quiver of Plenty',icon:'🏹',desc:'20% chance Pip fires 2 arrows'},
+  {id:'eyebrows',who:'mage',name:'Singed Eyebrows',icon:'🔥',desc:'+20% Vex blast radius'},
+  {id:'guestbook',name:'Guest Book',icon:'📖',desc:'2× thank-you chance'},
+  {id:'jar',name:'Glass Jar',icon:'🫙',desc:'+50% XP from motes'},
+  {id:'boot',name:'Old Boot',icon:'🥾',desc:'+15% healer move speed'},
+  {id:'mirror',name:'Cracked Mirror',icon:'🪞',desc:'Healer reflects 3× damage taken'},
+  {id:'cushion',who:'tank',name:'Brom’s Cushion',icon:'🛏️',desc:'Brom −50% nap chance, 2× nap length'},
+  {id:'tonic',who:'archer',name:'Bitter Tonic',icon:'🧪',desc:'Pip never panics, +10% miss chance'},
+  {id:'tome',who:'mage',name:'Borrowed Tome',icon:'📕',desc:'+30% meteor damage'},
   {id:'coin',name:'Lucky Coin',icon:'🪙',desc:'Gold +25%'},
-  {id:'bandage',name:'Bandage Roll',icon:'🩹',desc:'Mend keeps healing a little for three seconds'},
-  {id:'compass',name:'Bent Compass',icon:'🧭',desc:'Chests drop half again as often'},
-  {id:'metronome',name:'Metronome',icon:'🎼',desc:'Spells cost 20% less while a buff is running'},
-  {id:'hymnal',name:'Hymnal',icon:'📜',desc:'Bless and Haste last 3 seconds longer'},
+  {id:'bandage',name:'Bandage Roll',icon:'🩹',desc:'Mend also heals over 3s'},
+  {id:'compass',name:'Bent Compass',icon:'🧭',desc:'+50% chest drops'},
+  {id:'metronome',name:'Metronome',icon:'🎼',desc:'−20% spell cost while a buff is active'},
+  {id:'hymnal',name:'Hymnal',icon:'📜',desc:'+3s Bless and Haste duration'},
   // b028: the recruits' relics — offered only when they are in the party
-  {id:'phylactery',who:'necro',name:'Phylactery',icon:'⚱️',desc:'Mortimer’s skeletons last twice as long'},
-  {id:'gravedust',who:'necro',name:'Grave Dust',icon:'🪦',desc:'One more skeleton at a time, and they burst when they fall'},
-  {id:'smokebomb',who:'assassin',name:'Smoke Bomb',icon:'💨',desc:'Sable comes back two seconds sooner and never forgets'},
-  {id:'garrote',who:'assassin',name:'Garrote',icon:'🧵',desc:'Backstabs on anything under a third of its health finish it. Not bosses'},
-  {id:'reliquary',who:'paladin',name:'Reliquary',icon:'🕍',desc:'Gideon’s self-heal also mends everyone near him for a third'},
-  {id:'tabard',who:'paladin',name:'Embroidered Tabard',icon:'🎽',desc:'Gideon’s aura reaches 50 further and he takes 10% less'},
-  {id:'snowglobe',who:'frost',name:'Snow Globe',icon:'🔮',desc:'The blizzard is 40% wider'},
-  {id:'hoarfrost',who:'frost',name:'Hoarfrost',icon:'🧊',desc:'Frozen enemies take 25% more from everyone'},
-  {id:'acorn',who:'ent',name:'Golden Acorn',icon:'🌰',desc:'Bramble grows: +25% HP and reach'},
-  {id:'amber',who:'ent',name:'Amber Sap',icon:'🟠',desc:'Bramble mends 1% of his HP a second while standing still'},
-  {id:'moonstone',who:'wolf',name:'Moonstone',icon:'🌙',desc:'Lupa turns after 25 motes instead of 40'},
-  {id:'muzzle',who:'wolf',name:'Leather Muzzle',icon:'🐾',desc:'Lupa never bites friends. Wolf form hits 20% softer'},
-  {id:'goblet',who:'vampire',name:'Silver Goblet',icon:'🍷',desc:'Valerian drinks 25% more of what he deals'},
-  {id:'coffin',who:'vampire',name:'Travel Coffin',icon:'⚰️',desc:'Once a run, Valerian gets back up on his own twenty seconds after falling'},
-  {id:'bandolier',who:'gunner',name:'Bandolier',icon:'🎗️',desc:'Two more shots before Dusty reloads'},
-  {id:'spurs',who:'gunner',name:'Silver Spurs',icon:'🥾',desc:'Dusty reloads two seconds faster and moves 15% faster'},
-  {id:'radiator',who:'robot',name:'Radiator Fins',icon:'♨️',desc:'Unit 7 sheds three more heat a second'},
-  {id:'overdrive',who:'robot',name:'Overdrive',icon:'⚙️',desc:'Unit 7 fires 30% faster. It heats 20% faster too'},
+  {id:'phylactery',who:'necro',name:'Phylactery',icon:'⚱️',desc:'2× skeleton lifetime'},
+  {id:'gravedust',who:'necro',name:'Grave Dust',icon:'🪦',desc:'+1 skeleton; skeletons explode on death'},
+  {id:'smokebomb',who:'assassin',name:'Smoke Bomb',icon:'💨',desc:'Sable −2s hide time and never forgets to come back'},
+  {id:'garrote',who:'assassin',name:'Garrote',icon:'🧵',desc:'Backstabs kill enemies under 33% HP (not bosses)'},
+  {id:'reliquary',who:'paladin',name:'Reliquary',icon:'🕍',desc:'Gideon’s self-heal also heals nearby allies for 33%'},
+  {id:'tabard',who:'paladin',name:'Embroidered Tabard',icon:'🎽',desc:'Gideon +50 aura range, −10% damage taken'},
+  {id:'snowglobe',who:'frost',name:'Snow Globe',icon:'🔮',desc:'+40% blizzard width'},
+  {id:'hoarfrost',who:'frost',name:'Hoarfrost',icon:'🧊',desc:'Frozen enemies take +25% damage'},
+  {id:'acorn',who:'ent',name:'Golden Acorn',icon:'🌰',desc:'Bramble +25% HP and reach'},
+  {id:'amber',who:'ent',name:'Amber Sap',icon:'🟠',desc:'Bramble heals 1% HP/s while standing still'},
+  {id:'moonstone',who:'wolf',name:'Moonstone',icon:'🌙',desc:'Lupa turns wolf at 25 motes instead of 40'},
+  {id:'muzzle',who:'wolf',name:'Leather Muzzle',icon:'🐾',desc:'Lupa never bites allies, −20% wolf damage'},
+  {id:'goblet',who:'vampire',name:'Silver Goblet',icon:'🍷',desc:'Valerian +25% lifesteal'},
+  {id:'coffin',who:'vampire',name:'Travel Coffin',icon:'⚰️',desc:'Valerian revives himself 20s after falling, once per run'},
+  {id:'bandolier',who:'gunner',name:'Bandolier',icon:'🎗️',desc:'Dusty +2 shots per reload'},
+  {id:'spurs',who:'gunner',name:'Silver Spurs',icon:'🥾',desc:'Dusty −2s reload, +15% move speed'},
+  {id:'radiator',who:'robot',name:'Radiator Fins',icon:'♨️',desc:'Unit 7 +3 heat/s cooling'},
+  {id:'overdrive',who:'robot',name:'Overdrive',icon:'⚙️',desc:'Unit 7 +30% fire rate, +20% heat'},
   // b029: two more each
-  {id:'stewpot',who:'tank',name:'Stew Pot',icon:'🍲',desc:'Brom mends 4% of his HP a second while he naps'},
-  {id:'anvil',who:'tank',name:'Anvil Shield',icon:'🔨',desc:'Brom’s swing hits two more and shoves what it hits'},
-  {id:'whetstone',who:'archer',name:'Whetstone',icon:'🪨',desc:'Pip’s arrows pass through one more enemy'},
-  {id:'greencap',who:'archer',name:'Lucky Green Cap',icon:'🧢',desc:'Nothing can see Pip while she panics'},
-  {id:'monocle',who:'mage',name:'Monocle',icon:'🧐',desc:'Vex’s blasts are 25% wider and never touch the healer'},
-  {id:'scorchmark',who:'mage',name:'Scorch Mark',icon:'♨️',desc:'Vex’s burning ground lasts twice as long'},
-  {id:'skullcap',who:'necro',name:'Skullcap',icon:'💀',desc:'Skeletons have 50% more HP'},
-  {id:'blackcandle',who:'necro',name:'Black Candle',icon:'🕯️',desc:'Mortimer’s bolts pass through two enemies'},
-  {id:'darkcloak',who:'assassin',name:'Dark Cloak',icon:'🧥',desc:'Sable heals 4% a second while hidden'},
-  {id:'poisonvial',who:'assassin',name:'Poison Vial',icon:'⚗️',desc:'Every backstab poisons'},
-  {id:'sermon',who:'paladin',name:'Long Sermon',icon:'📜',desc:'Consecrate lasts twice as long'},
-  {id:'gauntlet',who:'paladin',name:'Iron Gauntlet',icon:'🧤',desc:'Smite strikes a second enemy'},
-  {id:'icecrown',who:'frost',name:'Ice Crown',icon:'👑',desc:'Frost’s bolts freeze half a second longer'},
-  {id:'coldsnap',who:'frost',name:'Cold Snap',icon:'🌨️',desc:'The blizzard comes every seven seconds instead of ten'},
-  {id:'birdnest',who:'ent',name:'Bird’s Nest',icon:'🪺',desc:'Bramble resurfaces almost at once'},
-  {id:'oakheart',who:'ent',name:'Oakheart',icon:'🌳',desc:'Bramble’s roots also bite for damage'},
-  {id:'wolfsbane',who:'wolf',name:'Wolfsbane',icon:'🌿',desc:'Wolf form hits 30% harder'},
-  {id:'marrowbone',who:'wolf',name:'Marrowbone',icon:'🦴',desc:'Lupa heals 20% of every bite, friend or foe'},
-  {id:'bloodvial',who:'vampire',name:'Blood Vial',icon:'🩸',desc:'A third of what Valerian drinks goes to the nearest ally'},
-  {id:'batwing',who:'vampire',name:'Bat Wing',icon:'🦇',desc:'Valerian moves 20% faster and takes 15% less'},
-  {id:'hollowpoint',who:'gunner',name:'Hollow Points',icon:'🔫',desc:'Dusty hits 25% harder and crits 10% more'},
-  {id:'silverbullet',who:'gunner',name:'Silver Bullets',icon:'✨',desc:'Dusty’s shots pass through one enemy'},
-  {id:'coolant',who:'robot',name:'Coolant Line',icon:'🧊',desc:'Any heal clears Unit 7’s heat entirely'},
-  {id:'lens',who:'robot',name:'Targeting Lens',icon:'🔭',desc:'Unit 7 shoots 30% further and 10% harder'},
+  {id:'stewpot',who:'tank',name:'Stew Pot',icon:'🍲',desc:'Brom heals 4% HP/s while napping'},
+  {id:'anvil',who:'tank',name:'Anvil Shield',icon:'🔨',desc:'Brom’s swing hits +2 enemies with knockback'},
+  {id:'whetstone',who:'archer',name:'Whetstone',icon:'🪨',desc:'Pip’s arrows pierce +1 enemy'},
+  {id:'greencap',who:'archer',name:'Lucky Green Cap',icon:'🧢',desc:'Pip is invisible while panicking'},
+  {id:'monocle',who:'mage',name:'Monocle',icon:'🧐',desc:'+25% Vex blast radius, never hits the healer'},
+  {id:'scorchmark',who:'mage',name:'Scorch Mark',icon:'♨️',desc:'2× burning ground duration'},
+  {id:'skullcap',who:'necro',name:'Skullcap',icon:'💀',desc:'+50% skeleton HP'},
+  {id:'blackcandle',who:'necro',name:'Black Candle',icon:'🕯️',desc:'Mortimer’s bolts pierce 2 enemies'},
+  {id:'darkcloak',who:'assassin',name:'Dark Cloak',icon:'🧥',desc:'Sable heals 4% HP/s while hidden'},
+  {id:'poisonvial',who:'assassin',name:'Poison Vial',icon:'⚗️',desc:'Backstabs poison'},
+  {id:'sermon',who:'paladin',name:'Long Sermon',icon:'📜',desc:'2× Consecrate duration'},
+  {id:'gauntlet',who:'paladin',name:'Iron Gauntlet',icon:'🧤',desc:'Smite hits +1 enemy'},
+  {id:'icecrown',who:'frost',name:'Ice Crown',icon:'👑',desc:'+0.5s freeze on Frost’s bolts'},
+  {id:'coldsnap',who:'frost',name:'Cold Snap',icon:'🌨️',desc:'Blizzard every 7s instead of 10s'},
+  {id:'birdnest',who:'ent',name:'Bird’s Nest',icon:'🪺',desc:'Bramble resurfaces almost instantly'},
+  {id:'oakheart',who:'ent',name:'Oakheart',icon:'🌳',desc:'Bramble’s roots also deal damage'},
+  {id:'wolfsbane',who:'wolf',name:'Wolfsbane',icon:'🌿',desc:'+30% wolf form damage'},
+  {id:'marrowbone',who:'wolf',name:'Marrowbone',icon:'🦴',desc:'Lupa heals 20% of bite damage, friend or foe'},
+  {id:'bloodvial',who:'vampire',name:'Blood Vial',icon:'🩸',desc:'33% of Valerian’s lifesteal goes to the nearest ally'},
+  {id:'batwing',who:'vampire',name:'Bat Wing',icon:'🦇',desc:'Valerian +20% move speed, −15% damage taken'},
+  {id:'hollowpoint',who:'gunner',name:'Hollow Points',icon:'🔫',desc:'Dusty +25% damage, +10% crit chance'},
+  {id:'silverbullet',who:'gunner',name:'Silver Bullets',icon:'✨',desc:'Dusty’s shots pierce 1 enemy'},
+  {id:'coolant',who:'robot',name:'Coolant Line',icon:'🧊',desc:'Any heal clears all of Unit 7’s heat'},
+  {id:'lens',who:'robot',name:'Targeting Lens',icon:'🔭',desc:'Unit 7 +30% range, +10% damage'},
   // evolutions: hold both halves and the next chest fuses them
-  {id:'fountain',evo:['chalice','beads'],name:'The Fountain',icon:'⛲',desc:'Mend is free on anyone above half health, and overheal refunds 40% as mana'},
-  {id:'lullaby',evo:['snore','bell'],name:'Brom’s Lullaby',icon:'🎵',desc:'Enemies near a sleeping Brom fall asleep too, and his waking swing hits for five times'},
-  {id:'arrowstorm',evo:['rico','quiver'],name:'Arrow Storm',icon:'🌪️',desc:'Pip looses three arrows at once and every one pierces'},
-  {id:'pyromania',evo:['ego','eyebrows'],name:'Pyromania',icon:'☄️',desc:'Every fireball leaves burning ground, meteors come twice as often, and her friendly fire is halved. She is still not sorry'},
-  {id:'beacon',evo:['lantern','hourglass'],name:'The Beacon',icon:'🔆',desc:'Heal range +20%, cooldowns −15%, and allies in range mend 1% a second on their own'},
-  {id:'saint',evo:['cord','halo'],name:'Saint',icon:'🕊️',desc:'You take 30% of allies’ pain, are untouchable for two seconds after a spell, and every hit you take hurries Surge'},
-  {id:'legend',evo:['medal','guestbook'],name:'Legend',icon:'🏅',desc:'Every thank-you: +5% heal power and +2% party damage. Even Vex, sometimes'},
-  {id:'stew',evo:['kettle','bonecharm'],name:'Stew of Bones',icon:'🍲',desc:'The party has 30% more HP and every kill heals them 1%'},
-  {id:'motestorm',evo:['whistle','jar'],name:'Mote Storm',icon:'🌀',desc:'Motes fly to you from anywhere on screen and give twice the mana'},
-  {id:'bonecrown',evo:['phylactery','gravedust'],name:'Bone Crown',icon:'👑',desc:'Skeletons never crumble, two more at a time, and they burst when they fall'},
-  {id:'nightwork',evo:['smokebomb','garrote'],name:'Night Work',icon:'🌑',desc:'Sable finishes anything under half, and heals while hidden'},
-  {id:'cathedral',evo:['reliquary','tabard'],name:'The Cathedral',icon:'⛪',desc:'Gideon’s aura reaches 100 further and mends everyone in it 1% a second'},
-  {id:'eternalwinter',evo:['snowglobe','hoarfrost'],name:'Eternal Winter',icon:'❄️',desc:'The blizzard freezes everything on the field, and frozen enemies take 40% more'},
-  {id:'worldtree',evo:['acorn','amber'],name:'World Tree',icon:'🌲',desc:'Bramble grows again, mends 2% a second, and his roots freeze'},
-  {id:'fullmoon',evo:['moonstone','muzzle'],name:'Full Moon',icon:'🌕',desc:'Lupa is the wolf, all run, and bites nobody she likes'},
-  {id:'nosferatu',evo:['goblet','coffin'],name:'Nosferatu',icon:'🧛',desc:'Valerian drinks everything he deals and always gets back up'},
-  {id:'deadeye',evo:['bandolier','spurs'],name:'Dead Eye',icon:'🎯',desc:'Dusty never reloads. He hits 20% softer to make up for it'},
-  {id:'reactor',evo:['radiator','overdrive'],name:'Reactor Core',icon:'☢️',desc:'Unit 7 never overheats and fires 50% faster'},
-  {id:'pilgrimage',evo:['whistle','compass'],name:'Pilgrimage',icon:'🗺️',desc:'Chests fall twice as often and motes come from anywhere'},
-  {id:'lastrites',evo:['mirror','halo'],name:'Last Rites',icon:'⚰️',desc:'Whatever hits the healer takes five times that back, and every spell buys three seconds of safety'},
-  {id:'choir',evo:['metronome','hymnal'],name:'The Choir',icon:'🎶',desc:'Every Bless and Fortify also lifts everyone else in range: half the damage, half the speed, for as long'},
+  {id:'fountain',evo:['chalice','beads'],name:'The Fountain',icon:'⛲',desc:'Mend costs nothing on allies above 50% HP; 40% of overheal returns as mana'},
+  {id:'lullaby',evo:['snore','bell'],name:'Brom’s Lullaby',icon:'🎵',desc:'Enemies near sleeping Brom fall asleep; his wake-up swing deals 5× damage'},
+  {id:'arrowstorm',evo:['rico','quiver'],name:'Arrow Storm',icon:'🌪️',desc:'Pip fires 3 arrows at once, all piercing'},
+  {id:'pyromania',evo:['ego','eyebrows'],name:'Pyromania',icon:'☄️',desc:'All fireballs leave burning ground, 2× meteor rate, −50% friendly fire. She is still not sorry'},
+  {id:'beacon',evo:['lantern','hourglass'],name:'The Beacon',icon:'🔆',desc:'+20% heal range, −15% cooldowns, allies in range heal 1% HP/s'},
+  {id:'saint',evo:['cord','halo'],name:'Saint',icon:'🕊️',desc:'30% of ally damage goes to you, untouchable for 2s after a spell, hits taken speed up Surge'},
+  {id:'legend',evo:['medal','guestbook'],name:'Legend',icon:'🏅',desc:'+5% heal power and +2% party damage per thank-you'},
+  {id:'stew',evo:['kettle','bonecharm'],name:'Stew of Bones',icon:'🍲',desc:'+30% party HP; every kill heals the party 1%'},
+  {id:'motestorm',evo:['whistle','jar'],name:'Mote Storm',icon:'🌀',desc:'Unlimited pickup distance, 2× mana from motes'},
+  {id:'bonecrown',evo:['phylactery','gravedust'],name:'Bone Crown',icon:'👑',desc:'Skeletons never expire, +2 skeletons, they explode on death'},
+  {id:'nightwork',evo:['smokebomb','garrote'],name:'Night Work',icon:'🌑',desc:'Backstabs kill enemies under 50% HP; Sable heals while hidden'},
+  {id:'cathedral',evo:['reliquary','tabard'],name:'The Cathedral',icon:'⛪',desc:'Gideon +100 aura range; allies in it heal 1% HP/s'},
+  {id:'eternalwinter',evo:['snowglobe','hoarfrost'],name:'Eternal Winter',icon:'❄️',desc:'Blizzard freezes the whole field; frozen enemies take +40% damage'},
+  {id:'worldtree',evo:['acorn','amber'],name:'World Tree',icon:'🌲',desc:'Bramble +25% HP and reach again, heals 2% HP/s, roots also freeze'},
+  {id:'fullmoon',evo:['moonstone','muzzle'],name:'Full Moon',icon:'🌕',desc:'Lupa stays wolf all run and never bites allies'},
+  {id:'nosferatu',evo:['goblet','coffin'],name:'Nosferatu',icon:'🧛',desc:'Valerian 100% lifesteal, always revives himself'},
+  {id:'deadeye',evo:['bandolier','spurs'],name:'Dead Eye',icon:'🎯',desc:'Dusty never reloads, −20% damage'},
+  {id:'reactor',evo:['radiator','overdrive'],name:'Reactor Core',icon:'☢️',desc:'Unit 7 never overheats, +50% fire rate'},
+  {id:'pilgrimage',evo:['whistle','compass'],name:'Pilgrimage',icon:'🗺️',desc:'2× chest drops, unlimited pickup distance'},
+  {id:'lastrites',evo:['mirror','halo'],name:'Last Rites',icon:'⚰️',desc:'Healer reflects 5× damage taken; untouchable for 3s after every spell'},
+  {id:'choir',evo:['metronome','hymnal'],name:'The Choir',icon:'🎶',desc:'Bless and Fortify also give everyone else in range half the effect'},
 ];
 const EVOS=RELICS.filter(r=>r.evo);
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
@@ -673,29 +673,29 @@ const UPS=[
   {id:'power',who:'healer',name:'Warmer Hands',desc:'+20% heal power',max:6},
   {id:'regen',who:'healer',name:'Deep Breaths',desc:'+25% mana regen',max:5},
   {id:'mana',who:'healer',name:'Bigger Flask',desc:'+30 max mana',max:5},
-  {id:'haste',who:'healer',name:'Quick Prayer',desc:'Mend casts 15% faster',max:5},
+  {id:'haste',who:'healer',name:'Quick Prayer',desc:'+15% Mend cast speed',max:5},
   {id:'range',who:'healer',name:'Long Arms',desc:'+15% heal range',max:4},
   {id:'boots',who:'healer',name:'Sandals of Fleeing',desc:'+12% move speed',max:4},
-  {id:'magnet',who:'healer',name:'Sticky Fingers',desc:'+40% pickup radius; motes restore more mana',max:4},
+  {id:'magnet',who:'healer',name:'Sticky Fingers',desc:'+40% pickup distance, +40% mana from motes',max:4},
   {id:'vit',who:'healer',name:'Thick Robe',desc:'+25 healer HP, and heal to full',max:4},
   {id:'cdr',who:'healer',name:'Rehearsed Rites',desc:'Spell cooldowns −12%',max:4},
-  {id:'overheal',who:'healer',name:'Overflowing Cup',desc:'Overhealing becomes a shield',max:3},
-  {id:'holy',who:'healer',name:'Holy Overflow',desc:'Overhealing burns enemies around the target',max:4},
-  {id:'hot',who:'healer',name:'Lingering Warmth',desc:'Mend keeps healing for 3 seconds',max:3},
-  {id:'chain',who:'healer',name:'Both Hands',desc:'Mend also heals a second ally for half',max:1},
-  {id:'thorns',who:'healer',name:'Blessed Skin',desc:'Enemies that strike a freshly healed ally are burned',max:3},
-  {id:'pdmg',who:'party',name:'Pep Talk',desc:'The party deals +15% damage',max:6},
-  {id:'php',who:'party',name:'Hearty Stew',desc:'The party has +20% max HP',max:5},
-  {id:'coffee',who:'tank',name:'Coffee for Brom',desc:'Brom naps 25% less often',max:3},
-  {id:'glasses',who:'archer',name:'Glasses for Pip',desc:'Pip misses less and shoots nearer targets',max:3},
-  {id:'manners',who:'mage',name:'Manners for Vex',desc:'Vex’s friendly fire −30%',max:3},
-  {id:'martyr',who:'healer',name:'Martyr',desc:'Allies in range pass 15% of their pain to you',max:2,needs:'h_card_martyr'},
+  {id:'overheal',who:'healer',name:'Overflowing Cup',desc:'Overheal becomes a shield',max:3},
+  {id:'holy',who:'healer',name:'Holy Overflow',desc:'Overheal burns enemies near the target',max:4},
+  {id:'hot',who:'healer',name:'Lingering Warmth',desc:'Mend also heals over 3s',max:3},
+  {id:'chain',who:'healer',name:'Both Hands',desc:'Mend also heals a second ally for 50%',max:1},
+  {id:'thorns',who:'healer',name:'Blessed Skin',desc:'Enemies that hit a freshly healed ally take damage',max:3},
+  {id:'pdmg',who:'party',name:'Pep Talk',desc:'+15% party damage',max:6},
+  {id:'php',who:'party',name:'Hearty Stew',desc:'+20% party max HP',max:5},
+  {id:'coffee',who:'tank',name:'Coffee for Brom',desc:'Brom −25% nap chance',max:3},
+  {id:'glasses',who:'archer',name:'Glasses for Pip',desc:'Pip −25% miss chance, shoots nearer targets',max:3},
+  {id:'manners',who:'mage',name:'Manners for Vex',desc:'Vex −30% friendly fire',max:3},
+  {id:'martyr',who:'healer',name:'Martyr',desc:'15% of damage to allies in range goes to you instead',max:2,needs:'h_card_martyr'},
   {id:'sanct',who:'healer',name:'Sanctuary',desc:'Fortify also heals 15% of max HP',max:2,needs:'h_card_sanct'},
-  {id:'echo',who:'healer',name:'Echo',desc:'Surge repeats at half strength a second later',max:1,needs:'h_card_echo'},
-  {id:'longbuff',who:'healer',name:'Long Breath',desc:'Bless and Haste last 25% longer',max:4},
-  {id:'blesschain',who:'healer',name:'Shared Blessing',desc:'Bless also blesses the next-busiest ally for half as long',max:1},
-  {id:'blessburst',who:'healer',name:'Holy Kill',desc:'A blessed ally’s kills have a 20% chance to burst with holy fire',max:3},
-  {id:'fortburst',who:'healer',name:'Bellow',desc:'Fortify also shoves enemies off its target',max:1},
+  {id:'echo',who:'healer',name:'Echo',desc:'Surge casts again 1s later at 50%',max:1,needs:'h_card_echo'},
+  {id:'longbuff',who:'healer',name:'Long Breath',desc:'+25% Bless and Haste duration',max:4},
+  {id:'blesschain',who:'healer',name:'Shared Blessing',desc:'Bless also hits the next-busiest ally for half the time',max:1},
+  {id:'blessburst',who:'healer',name:'Holy Kill',desc:'20% chance a blessed ally’s kills explode with holy fire',max:3},
+  {id:'fortburst',who:'healer',name:'Bellow',desc:'Fortify also knocks enemies away from its target',max:1},
   // Wren's bad habits: weapons, survivors-style. Four at most; they level like anything else.
   {id:'w_ember',who:'weapon',name:'Stray Ember',desc:'A fireball that bounces off the edges of the field. Wren does not know how she does it',max:5,icon:'🔥'},
   {id:'w_knife',who:'weapon',name:'Kitchen Knives',desc:'Throws knives the way she is facing. She has a lot of them',max:5,icon:'🔪'},
@@ -725,46 +725,46 @@ const UPS=[
   {id:'w_hounds',who:'weapon',name:'Ghost Hounds',desc:'Spectral hounds tear through the nearest enemies in a line',max:5,icon:'🐕'},
   // b017: the wider deck
   // b020: prayers — spells are learned here and cast themselves
-  {id:'sp_surge',who:'healer',name:'Learn: Surge',desc:'Auto-casts a big heal whenever someone in range drops under half. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'✚',spell:'surge'},
-  {id:'sp_mending',who:'healer',name:'Learn: Mending Prayer',desc:'Auto-casts a heal that bounces through the four most wounded allies. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'⛓',spell:'mending'},
-  {id:'sp_regrowth',who:'healer',name:'Learn: Regrowth',desc:'Auto-casts a heal over time on everyone in range when two are hurt. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'🌿',spell:'regrowth'},
-  {id:'sp_sanctuary',who:'healer',name:'Learn: Sanctuary',desc:'Auto-casts healing ground at Wren’s feet when the wounded gather round her. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'⛪',spell:'sanctuary'},
-  {id:'sp_radiance',who:'healer',name:'Learn: Radiance',desc:'Auto-casts a heal and blessing on everyone in range when two are hurt. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'☀',spell:'radiance',needs:'h_radiance'},
-  {id:'sp_fortify',who:'healer',name:'Learn: Fortify',desc:'Auto-casts shields and a tank’s bellow when the crowd closes in. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'◈',spell:'fortify'},
-  {id:'sp_ward',who:'healer',name:'Learn: Ward',desc:'Auto-casts a 20% shield on everyone in range when enemies press in. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'🛡',spell:'ward'},
-  {id:'sp_wall',who:'healer',name:'Learn: Wall of Light',desc:'Auto-casts a wall between Wren and whatever is about to reach her. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'▮',spell:'wall'},
-  {id:'sp_bless',who:'healer',name:'Learn: Bless',desc:'Auto-casts Bless on whoever is in the thick of it. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'✦',spell:'bless'},
-  {id:'sp_haste',who:'healer',name:'Learn: Haste',desc:'Auto-casts Haste when six or more enemies close in. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'»',spell:'haste'},
-  {id:'sp_rouse',who:'healer',name:'Learn: Rouse',desc:'Auto-casts a wake-up call when Brom naps in a crowd, Pip panics or someone is frozen. Rank 2 recharges faster, rank 3 costs less',max:3,icon:'!!',spell:'rouse'},
-  {id:'aegis',who:'healer',name:'Guardian Angel',desc:'Once every 45 seconds, an ally or Wren who would fall is left at a quarter HP instead. Rank 2: every 30 seconds',max:2},
-  {id:'lifeline',who:'healer',name:'Lifeline',desc:'Every Mend also heals Wren for 15% of its strength',max:2},
-  {id:'sturdy',who:'healer',name:'Sturdy',desc:'Wren takes 8% less damage',max:3},
-  {id:'hearth',who:'healer',name:'Hearth',desc:'Allies within arm’s reach of Wren heal 0.5% of max HP a second',max:3},
-  {id:'aspd',who:'party',name:'Quick Hands',desc:'The party attacks 8% faster',max:5},
-  {id:'el_fire',who:'party',name:'Kindling',desc:'Fire deals 20% more: Vex’s blasts, burning ground, the Stray Ember, the flame projector',max:4},
-  {id:'el_frost',who:'party',name:'Shatter',desc:'Frozen enemies take 15% more damage from everyone',max:4},
-  {id:'el_bolt',who:'party',name:'Conductor',desc:'Chain Lightning, Ricochet and Small Smitings jump or strike one more time',max:3},
-  {id:'el_holy',who:'party',name:'Sanctified',desc:'Holy damage +20%: Holy Overflow, Holy Kill, Consecrate, Smite, Hymnals, Holy Water',max:4},
-  {id:'venom',who:'party',name:'Venom',desc:'Bleeds and poisons deal 30% more and last a second longer',max:3},
-  {id:'bramble',who:'party',name:'Bramblecoat',desc:'Everyone, Wren included, reflects 10% of the damage they take',max:3},
-  {id:'aoe',who:'party',name:'Bigger Gestures',desc:'Area skills and weapons reach 15% wider: Earthquake, Frost Nova, Bat Swarm, Thorns, Consecrate, Howl, Vent, Smoke, the Chain, Incense, Holy Water',max:3},
-  {id:'arc',who:'party',name:'Arcing Strikes',desc:'Party hits have a 10% chance to arc to a nearby enemy for 60%',max:3},
-  {id:'ward',who:'party',name:'Warding',desc:'Every 20 seconds everyone, Wren included, gains a shield of 10% max HP',max:3},
-  {id:'leech',who:'party',name:'Vampiric Stew',desc:'The party heals 3% of the damage it deals',max:3},
-  {id:'crit',who:'party',name:'Lucky Hits',desc:'Party hits have a 5% chance to deal double',max:4},
-  {id:'finisher',who:'party',name:'Finisher',desc:'Enemies under 20% HP take 50% more from the party',max:2},
-  {id:'drill',who:'party',name:'Drill Sergeant',desc:'The party’s active skills cool down 10% faster',max:3},
-  {id:'bookish',who:'healer',name:'Bookish',desc:'Everyone earns 15% more XP',max:3},
-  {id:'tithe',who:'healer',name:'Tithe',desc:'Kills drop 15% more gold',max:3},
-  {id:'chill',who:'healer',name:'Cold Feet',desc:'Enemies inside your circle move 8% slower',max:3},
-  {id:'whands',who:'party',name:'Well Kept',desc:'The party’s gifted weapons deal 15% more',max:5,needsWeapon:true},
-  {id:'wquick',who:'party',name:'Practised',desc:'The party’s gifted weapons fire 10% faster',max:4,needsWeapon:true},
+  {id:'sp_surge',who:'healer',name:'Learn: Surge',desc:'Auto-casts a big heal whenever someone in range drops under half. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'✚',spell:'surge'},
+  {id:'sp_mending',who:'healer',name:'Learn: Mending Prayer',desc:'Auto-casts a heal that bounces through the four most wounded allies. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'⛓',spell:'mending'},
+  {id:'sp_regrowth',who:'healer',name:'Learn: Regrowth',desc:'Auto-casts a heal over time on everyone in range when two are hurt. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'🌿',spell:'regrowth'},
+  {id:'sp_sanctuary',who:'healer',name:'Learn: Sanctuary',desc:'Auto-casts healing ground at Wren’s feet when the wounded gather round her. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'⛪',spell:'sanctuary'},
+  {id:'sp_radiance',who:'healer',name:'Learn: Radiance',desc:'Auto-casts a heal and blessing on everyone in range when two are hurt. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'☀',spell:'radiance',needs:'h_radiance'},
+  {id:'sp_fortify',who:'healer',name:'Learn: Fortify',desc:'Auto-casts shields and a tank’s bellow when the crowd closes in. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'◈',spell:'fortify'},
+  {id:'sp_ward',who:'healer',name:'Learn: Ward',desc:'Auto-casts a 20% shield on everyone in range when enemies press in. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'🛡',spell:'ward'},
+  {id:'sp_wall',who:'healer',name:'Learn: Wall of Light',desc:'Auto-casts a wall between Wren and whatever is about to reach her. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'▮',spell:'wall'},
+  {id:'sp_bless',who:'healer',name:'Learn: Bless',desc:'Auto-casts Bless on whoever is in the thick of it. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'✦',spell:'bless'},
+  {id:'sp_haste',who:'healer',name:'Learn: Haste',desc:'Auto-casts Haste when six or more enemies close in. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'»',spell:'haste'},
+  {id:'sp_rouse',who:'healer',name:'Learn: Rouse',desc:'Auto-casts a wake-up call when Brom naps in a crowd, Pip panics or someone is frozen. Rank 2: −25% cooldown. Rank 3: −25% mana cost',max:3,icon:'!!',spell:'rouse'},
+  {id:'aegis',who:'healer',name:'Guardian Angel',desc:'Every 45s, an ally or the healer who would die survives at 25% HP instead. Rank 2: every 30s',max:2},
+  {id:'lifeline',who:'healer',name:'Lifeline',desc:'Every Mend also heals the healer for 15%',max:2},
+  {id:'sturdy',who:'healer',name:'Sturdy',desc:'Healer −8% damage taken',max:3},
+  {id:'hearth',who:'healer',name:'Hearth',desc:'Allies next to the healer heal 0.5% HP/s',max:3},
+  {id:'aspd',who:'party',name:'Quick Hands',desc:'+8% party attack speed',max:5},
+  {id:'el_fire',who:'party',name:'Kindling',desc:'+20% fire damage (Vex, burning ground, Stray Ember, flame projector)',max:4},
+  {id:'el_frost',who:'party',name:'Shatter',desc:'+15% damage to frozen enemies',max:4},
+  {id:'el_bolt',who:'party',name:'Conductor',desc:'+1 jump for Chain Lightning, Ricochet and Small Smitings',max:3},
+  {id:'el_holy',who:'party',name:'Sanctified',desc:'+20% holy damage (Holy Overflow, Holy Kill, Consecrate, Smite, Hymnals, Holy Water)',max:4},
+  {id:'venom',who:'party',name:'Venom',desc:'+30% bleed and poison damage, +1s duration',max:3},
+  {id:'bramble',who:'party',name:'Bramblecoat',desc:'Everyone reflects 10% of damage taken',max:3},
+  {id:'aoe',who:'party',name:'Bigger Gestures',desc:'+15% area for skills and weapons (Earthquake, Frost Nova, Bat Swarm, Thorns, Consecrate, Howl, Vent, Smoke, Chain, Incense, Holy Water)',max:3},
+  {id:'arc',who:'party',name:'Arcing Strikes',desc:'10% chance party hits arc to a nearby enemy for 60% damage',max:3},
+  {id:'ward',who:'party',name:'Warding',desc:'Every 20s: everyone gains a 10% max HP shield',max:3},
+  {id:'leech',who:'party',name:'Vampiric Stew',desc:'+3% party lifesteal',max:3},
+  {id:'crit',who:'party',name:'Lucky Hits',desc:'+5% party crit chance (2× damage)',max:4},
+  {id:'finisher',who:'party',name:'Finisher',desc:'+50% party damage to enemies under 20% HP',max:2},
+  {id:'drill',who:'party',name:'Drill Sergeant',desc:'−10% party skill cooldowns',max:3},
+  {id:'bookish',who:'healer',name:'Bookish',desc:'+15% XP',max:3},
+  {id:'tithe',who:'healer',name:'Tithe',desc:'+15% gold from kills',max:3},
+  {id:'chill',who:'healer',name:'Cold Feet',desc:'−8% enemy speed inside your circle',max:3},
+  {id:'whands',who:'party',name:'Well Kept',desc:'+15% gifted weapon damage',max:5,needsWeapon:true},
+  {id:'wquick',who:'party',name:'Practised',desc:'+10% gifted weapon fire rate',max:4,needsWeapon:true},
 ];
 // what each card is worth now, for the "now → next" line
 const UPVAL={power:r=>'+'+20*r+'% heal power',regen:r=>'+'+25*r+'% regen',mana:r=>'+'+30*r+' mana',haste:r=>'Mend '+Math.round(100-100*Math.pow(0.85,r))+'% faster',range:r=>'+'+Math.round(100*(Math.pow(1.15,r)-1))+'% range',boots:r=>'+'+Math.round(100*(Math.pow(1.12,r)-1))+'% speed',
-  magnet:r=>'+'+40*r+'% pickup, +'+40*r+'% mote mana',vit:r=>'+'+25*r+' HP',cdr:r=>'cooldowns −'+Math.round(100-100*Math.pow(0.88,r))+'%',overheal:r=>'shield up to '+30*r+'% HP',holy:r=>'burns for '+50*r+'% of overheal',hot:r=>'+'+25*r+'% of the heal over 3s',chain:r=>r?'second ally healed for half':'—',
+  magnet:r=>'+'+40*r+'% pickup, +'+40*r+'% mote mana',vit:r=>'+'+25*r+' HP',cdr:r=>'cooldowns −'+Math.round(100-100*Math.pow(0.88,r))+'%',overheal:r=>'shield up to '+30*r+'% HP',holy:r=>'burn = '+50*r+'% of overheal',hot:r=>'+'+25*r+'% extra healing over 3s',chain:r=>r?'2nd ally healed for 50%':'—',
   thorns:r=>8*r+' damage per hit taken (scales with level)',pdmg:r=>'+'+15*r+'% party damage',php:r=>'+'+Math.round(100*(Math.pow(1.2,r)-1))+'% party HP',coffee:r=>'naps '+Math.round(100-100/(1+0.25*r))+'% less often',glasses:r=>'misses −'+Math.round(100-100*Math.pow(0.75,r))+'%',manners:r=>'friendly fire −'+Math.round(100-100*Math.pow(0.7,r))+'%',
-  martyr:r=>15*r+'% of allies’ pain',sanct:r=>'Fortify heals '+15*r+'%',echo:r=>r?'Surge echoes':'—',longbuff:r=>'buffs +'+25*r+'% longer',blesschain:r=>r?'Bless spreads':'—',blessburst:r=>20*r+'% chance to burst',fortburst:r=>r?'shoves':'—',
+  martyr:r=>15*r+'% of ally damage taken by you',sanct:r=>'Fortify heals '+15*r+'%',echo:r=>r?'Surge echoes':'—',longbuff:r=>'buffs +'+25*r+'% longer',blesschain:r=>r?'Bless spreads':'—',blessburst:r=>20*r+'% chance to burst',fortburst:r=>r?'knockback':'—',
   w_ember:r=>(1+Math.floor(r/2))+' ember'+(r>=2?'s':'')+', '+Math.round(100*(0.9+0.25*(r-1)))+'% dmg',w_knife:r=>(1+r)+' knives'+(r>=5?', pierce 2':''),w_whip:r=>Math.round(100*(1.3+0.3*(r-1)))+'% dmg, '+(110+10*r)+' reach'+(r>=3?', both sides':''),w_incense:r=>(52+9*r)+' radius, '+Math.round(100*(0.9+0.25*(r-1)))+'% dps',
   w_hymnal:r=>[0,1,2,3,3,4][r]+' book'+([0,1,2,3,3,4][r]===1?'':'s')+', '+Math.round(100*(1+0.25*(r-1)))+'% dmg',w_candle:r=>(1+Math.floor(r/2))+' stick'+(r>=2?'s':'')+', '+Math.round(100*(2.2+0.5*(r-1)))+'% dmg',w_wand:r=>[0,1,2,2,3,4][r]+' bolt'+([0,1,2,2,3,4][r]===1?'':'s')+', '+Math.round(100*(1.1+0.2*(r-1)))+'% dmg',
   w_orb:r=>(1+Math.floor(r/2))+' orb'+(r>=2?'s':'')+', '+Math.round(100*(0.7+0.2*(r-1)))+'% zap dps',w_roots:r=>(1+r)+' roots every '+(3.5-0.25*r).toFixed(2)+'s',w_slash:r=>(110+14*r)+' reach, '+Math.round(100*(2+0.5*(r-1)))+'% dmg',w_whirl:r=>(1.2+0.2*r).toFixed(1)+'s storm every '+(6-0.3*r).toFixed(1)+'s',w_blizzard:r=>(120+15*r)+' wide front every '+(7-0.4*r).toFixed(1)+'s',w_meteor:r=>(1+Math.floor(r/2))+' meteor'+(r>=2?'s':'')+' every '+(4-0.25*r).toFixed(2)+'s',w_axe:r=>Math.round(100*(2.5+0.6*(r-1)))+'% dmg every '+(3.2-0.2*r).toFixed(1)+'s',w_hounds:r=>(1+Math.floor((r+1)/2))+' hound'+(r>=1?'s':'')+' every '+(4.5-0.3*r).toFixed(1)+'s',
@@ -785,28 +785,28 @@ const WEAPON_CAP=4;
 const WEVO={
   w_ember:{name:'Inferno',desc:'The embers leave burning trails wherever they bounce'},
   w_knife:{name:'Thousand Cuts',desc:'Knives fly in every direction at once'},
-  w_whip:{name:'Bloody Chain',desc:'The holder heals for a fifth of what the chain deals'},
-  w_incense:{name:'Censer of Wrath',desc:'Half again as wide, and everything inside it crawls'},
-  w_hymnal:{name:'Gospel',desc:'The books also mend any ally they pass'},
-  w_candle:{name:'Chandelier',desc:'Twice as many candlesticks, and they set the ground alight'},
-  w_wand:{name:'Sorcery',desc:'Every bolt that lands splits into two more'},
-  w_smite:{name:'Wrath of Heaven',desc:'Every enemy in reach is struck at once'},
-  w_cross:{name:'Holy Storm',desc:'Three crosses at a time'},
-  w_water:{name:'Deluge',desc:'Puddles twice as wide that last twice as long'},
-  w_ring:{name:'Hellfire',desc:'The ring is twice as thick and sets things burning for longer'},
-  w_miasma:{name:'Plague',desc:'The poison spreads: anything standing in it keeps bleeding after it leaves'},
-  w_blades:{name:'Sawmill',desc:'The blades reach further and drag what they cut inward'},
-  w_circle:{name:'Sanctum',desc:'Everyone inside also holds a shield'},
-  w_static:{name:'Tesla Coil',desc:'Twice as often, and every strike arcs to a neighbour'},
-  w_well:{name:'Black Hole',desc:'Half again as wide, and it crushes what it pulls for triple'},
-  w_orb:{name:'Thunderhead',desc:'Each orb splits into three when it fades'},
-  w_roots:{name:'Strangling Vines',desc:'Roots hold twice as long and drag their victims toward the holder'},
-  w_slash:{name:'Crescent Moon',desc:'Each slash also throws a crescent that flies through everything'},
-  w_whirl:{name:'Tornado',desc:'The storm leaves the holder and wanders the field on its own'},
-  w_blizzard:{name:'Absolute Zero',desc:'The front freezes the whole field, and frozen enemies shatter for triple'},
-  w_meteor:{name:'Armageddon',desc:'Twice the meteors, twice the size, and they leave fire'},
-  w_axe:{name:'Twin Axes',desc:'Two axes, opposite ways'},
-  w_hounds:{name:'The Wild Hunt',desc:'Twice the pack, and every hound comes back around'},
+  w_whip:{name:'Bloody Chain',desc:'Holder heals 20% of chain damage'},
+  w_incense:{name:'Censer of Wrath',desc:'+50% radius; enemies inside are slowed'},
+  w_hymnal:{name:'Gospel',desc:'Books also heal allies they pass'},
+  w_candle:{name:'Chandelier',desc:'2× candlesticks; they set the ground on fire'},
+  w_wand:{name:'Sorcery',desc:'Each bolt that lands splits into 2 more'},
+  w_smite:{name:'Wrath of Heaven',desc:'Strikes every enemy in reach at once'},
+  w_cross:{name:'Holy Storm',desc:'3 crosses at a time'},
+  w_water:{name:'Deluge',desc:'2× puddle size and duration'},
+  w_ring:{name:'Hellfire',desc:'2× ring thickness, longer burns'},
+  w_miasma:{name:'Plague',desc:'Poison keeps bleeding enemies after they leave it'},
+  w_blades:{name:'Sawmill',desc:'+reach; blades pull enemies inward'},
+  w_circle:{name:'Sanctum',desc:'Everyone inside also gets a shield'},
+  w_static:{name:'Tesla Coil',desc:'2× strike rate; every strike arcs to a neighbour'},
+  w_well:{name:'Black Hole',desc:'+50% radius; pulled enemies take 3× damage'},
+  w_orb:{name:'Thunderhead',desc:'Each orb splits into 3 when it fades'},
+  w_roots:{name:'Strangling Vines',desc:'2× root duration; roots drag enemies to the holder'},
+  w_slash:{name:'Crescent Moon',desc:'Each slash also fires a piercing crescent'},
+  w_whirl:{name:'Tornado',desc:'The storm roams the field on its own'},
+  w_blizzard:{name:'Absolute Zero',desc:'Freezes the whole field; frozen enemies shatter for 3× damage'},
+  w_meteor:{name:'Armageddon',desc:'2× meteors, 2× size, and they leave fire'},
+  w_axe:{name:'Twin Axes',desc:'2 axes in opposite directions'},
+  w_hounds:{name:'The Wild Hunt',desc:'2× hounds; every hound returns'},
 };
 const wEvo=id=>!!(G&&G.wEvo&&G.wEvo[id]);
 const weaponCount=()=>G?UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).length:0;
@@ -814,16 +814,16 @@ const upRank=id=>G?(G.up[id]||0):0;
 
 // ---------- spells ----------
 const SPELLS=[
-  {id:'surge',name:'Surge',icon:'✚',kind:'heal',cd:6,mana:25,desc:'A big heal on the most wounded ally in range, whenever someone drops under half'},
-  {id:'mending',name:'Mending Prayer',icon:'⛓',kind:'heal',cd:8,mana:30,desc:'A heal that bounces through the four most wounded allies, fading as it goes'},
-  {id:'regrowth',name:'Regrowth',icon:'🌿',kind:'heal',cd:12,mana:30,desc:'Everyone in range heals 4% a second for five seconds'},
-  {id:'sanctuary',name:'Sanctuary',icon:'⛪',kind:'heal',cd:20,mana:45,desc:'Holy ground at Wren’s feet that mends allies standing on it for eight seconds'},
+  {id:'surge',name:'Surge',icon:'✚',kind:'heal',cd:6,mana:25,desc:'A big heal on the most wounded ally in range whenever someone drops under 50% HP'},
+  {id:'mending',name:'Mending Prayer',icon:'⛓',kind:'heal',cd:8,mana:30,desc:'A heal that bounces through the 4 most wounded allies, weaker each bounce'},
+  {id:'regrowth',name:'Regrowth',icon:'🌿',kind:'heal',cd:12,mana:30,desc:'Everyone in range heals 4% HP/s for 5s'},
+  {id:'sanctuary',name:'Sanctuary',icon:'⛪',kind:'heal',cd:20,mana:45,desc:'Holy ground at the healer’s feet heals allies standing on it for 8s'},
   {id:'radiance',name:'Radiance',icon:'☀',kind:'heal',cd:18,mana:50,desc:'Heals every ally in range and blesses them all at once',needs:'h_radiance'},
-  {id:'fortify',name:'Fortify',icon:'◈',kind:'defence',cd:12,mana:40,desc:'Shields everyone in range; the tank bellows and every enemy nearby turns on them for 6s'},
-  {id:'ward',name:'Ward',icon:'🛡',kind:'defence',cd:14,mana:35,desc:'A shield of 20% max HP on everyone in range when the crowd closes in'},
-  {id:'wall',name:'Wall of Light',icon:'▮',kind:'defence',cd:10,mana:25,desc:'A wall of light between Wren and whatever is about to reach her, for four seconds'},
-  {id:'bless',name:'Bless',icon:'✦',kind:'support',cd:10,mana:35,desc:'The ally in the thick of it deals two and a half times damage for 10s, and their kills refund mana'},
-  {id:'haste',name:'Haste',icon:'»',kind:'support',cd:14,mana:40,desc:'Everyone in range attacks 60% faster and moves 40% faster for 10s. Brom cannot nap, Pip cannot panic'},
+  {id:'fortify',name:'Fortify',icon:'◈',kind:'defence',cd:12,mana:40,desc:'Shields everyone in range; the tank taunts every nearby enemy for 6s'},
+  {id:'ward',name:'Ward',icon:'🛡',kind:'defence',cd:14,mana:35,desc:'A 20% max HP shield on everyone in range'},
+  {id:'wall',name:'Wall of Light',icon:'▮',kind:'defence',cd:10,mana:25,desc:'A wall of light blocks enemies reaching the healer for 4s'},
+  {id:'bless',name:'Bless',icon:'✦',kind:'support',cd:10,mana:35,desc:'The busiest ally deals 2.5× damage for 10s and their kills refund mana'},
+  {id:'haste',name:'Haste',icon:'»',kind:'support',cd:14,mana:40,desc:'Everyone in range +60% attack speed and +40% move speed for 10s. No naps, no panic'},
   {id:'rouse',name:'Rouse',icon:'!!',kind:'support',cd:10,mana:20,desc:'Wakes Brom, calms Pip, thaws the frozen, scares nearby enemies'},
 ];
 const spRank=id=>upRank('sp_'+id);
@@ -834,99 +834,99 @@ const reviveCost=()=>Math.max(40,100-10*(G&&G.healer&&G.healer.hrank?G.healer.hr
 const SKILLS={
   tank:[
     {id:'t_hide',name:'Thick Hide',kind:'passive',desc:'+18% max HP',max:3},
-    {id:'t_wind',name:'Second Wind',kind:'passive',desc:'Below 30% HP, heals a quarter of his health. Once every 30s',max:2},
+    {id:'t_wind',name:'Second Wind',kind:'passive',desc:'Below 30% HP: heals 25% HP. Every 30s',max:2},
     {id:'t_sleepwalk',name:'Sleepwalker',kind:'passive',desc:'Keeps swinging while asleep, slowly. Nobody tell him',max:1},
-    {id:'t_slam',name:'Shield Slam',kind:'active',cd:8,desc:'Every 8s: smashes everything in front of him for triple, knocking it back',max:3},
-    {id:'t_cry',name:'Warcry',kind:'active',cd:20,desc:'Every 20s: bellows, taunting everything near for 4s and +20% party damage for 6s',max:2},
-    {id:'t_quake',name:'Earthquake',kind:'active',cd:15,desc:'Every 15s when four or more are close: stomps for four times damage around him',max:3},
+    {id:'t_slam',name:'Shield Slam',kind:'active',cd:8,desc:'Every 8s: 3× damage to everything in front, with knockback',max:3},
+    {id:'t_cry',name:'Warcry',kind:'active',cd:20,desc:'Every 20s: taunts nearby enemies for 4s, +20% party damage for 6s',max:2},
+    {id:'t_quake',name:'Earthquake',kind:'active',cd:15,desc:'Every 15s with 4+ enemies close: 4× damage stomp around him',max:3},
   ],
   archer:[
-    {id:'a_eye',name:'Eagle Eye',kind:'passive',desc:'Misses 8% less',max:3},
-    {id:'a_barb',name:'Barbed Arrows',kind:'passive',desc:'Arrows bleed for 20% of their damage a second for 3s',max:3},
+    {id:'a_eye',name:'Eagle Eye',kind:'passive',desc:'−8% miss chance',max:3},
+    {id:'a_barb',name:'Barbed Arrows',kind:'passive',desc:'Arrows bleed for 20% damage/s for 3s',max:3},
     {id:'a_steady',name:'Steady Hands',kind:'passive',desc:'Panics at 10% lower HP',max:2},
-    {id:'a_volley',name:'Volley',kind:'active',cd:10,desc:'Every 10s: seven arrows in a fan at the thickest crowd',max:3},
-    {id:'a_trap',name:'Snare Trap',kind:'active',cd:12,desc:'Every 12s: drops a trap that snaps for triple damage and slows',max:3},
-    {id:'a_focus',name:'Focus Shot',kind:'active',cd:9,desc:'Every 9s: one piercing arrow at the biggest thing in range for four times damage',max:3},
+    {id:'a_volley',name:'Volley',kind:'active',cd:10,desc:'Every 10s: 7 arrows in a fan at the biggest crowd',max:3},
+    {id:'a_trap',name:'Snare Trap',kind:'active',cd:12,desc:'Every 12s: a trap dealing 3× damage and slowing',max:3},
+    {id:'a_focus',name:'Focus Shot',kind:'active',cd:9,desc:'Every 9s: a piercing 4× damage arrow at the biggest enemy in range',max:3},
   ],
   mage:[
     {id:'m_mind',name:'Arcane Mind',kind:'passive',desc:'+15% damage',max:3},
     {id:'m_cinder',name:'Cinders',kind:'passive',desc:'Fireballs leave embers that burn',max:2},
-    {id:'m_disdain',name:'Disdain',kind:'passive',desc:'Friendly fire −25%. She is trying',max:2},
-    {id:'m_nova',name:'Frost Nova',kind:'active',cd:12,desc:'Every 12s when crowded: freezes everything within reach for 2s',max:3},
-    {id:'m_chain',name:'Chain Lightning',kind:'active',cd:7,desc:'Every 7s: lightning that leaps to four enemies',max:3},
-    {id:'m_barrier',name:'Arcane Barrier',kind:'active',cd:20,desc:'Every 20s: a shield worth 40% of her health',max:2},
+    {id:'m_disdain',name:'Disdain',kind:'passive',desc:'−25% friendly fire. She is trying',max:2},
+    {id:'m_nova',name:'Frost Nova',kind:'active',cd:12,desc:'Every 12s when crowded: freezes everything in reach for 2s',max:3},
+    {id:'m_chain',name:'Chain Lightning',kind:'active',cd:7,desc:'Every 7s: lightning jumping to 4 enemies',max:3},
+    {id:'m_barrier',name:'Arcane Barrier',kind:'active',cd:20,desc:'Every 20s: a 40% max HP shield',max:2},
   ],
   necro:[
-    {id:'n_pact',name:'Grave Pact',kind:'passive',desc:'One more skeleton at a time',max:2},
+    {id:'n_pact',name:'Grave Pact',kind:'passive',desc:'+1 skeleton',max:2},
     {id:'n_pallor',name:'Deathly Pallor',kind:'passive',desc:'+15% max HP',max:3},
     {id:'n_bolt',name:'Necrotic Bolt',kind:'passive',desc:'+15% damage',max:3},
-    {id:'n_harvest',name:'Soul Harvest',kind:'active',cd:15,desc:'Every 15s: his skeletons burst, hurting everything near them, and two rise again',max:2},
-    {id:'n_wall',name:'Bone Wall',kind:'active',cd:20,desc:'Every 20s: allies near him gain a shield of bone',max:2},
-    {id:'n_hex',name:'Hex',kind:'active',cd:10,desc:'Every 10s: the biggest enemy in range takes 40% more damage for 6s',max:2},
+    {id:'n_harvest',name:'Soul Harvest',kind:'active',cd:15,desc:'Every 15s: skeletons explode, damaging nearby enemies; 2 rise again',max:2},
+    {id:'n_wall',name:'Bone Wall',kind:'active',cd:20,desc:'Every 20s: nearby allies gain a bone shield',max:2},
+    {id:'n_hex',name:'Hex',kind:'active',cd:10,desc:'Every 10s: the biggest enemy in range takes +40% damage for 6s',max:2},
   ],
   assassin:[
-    {id:'s_step',name:'Shadowstep',kind:'passive',desc:'Comes back from hiding a second sooner',max:3},
-    {id:'s_serrated',name:'Serrated',kind:'passive',desc:'Backstabs hit 25% harder',max:3},
+    {id:'s_step',name:'Shadowstep',kind:'passive',desc:'−1s hide time',max:3},
+    {id:'s_serrated',name:'Serrated',kind:'passive',desc:'+25% backstab damage',max:3},
     {id:'s_nimble',name:'Nimble',kind:'passive',desc:'+10% speed',max:2},
-    {id:'s_fan',name:'Fan of Knives',kind:'active',cd:8,desc:'Every 8s: six knives in a ring',max:3},
-    {id:'s_mark',name:'Mark',kind:'active',cd:12,desc:'Every 12s: marks the biggest thing near, +30% damage taken for 6s',max:2},
-    {id:'s_smoke',name:'Smoke Bomb',kind:'active',cd:14,desc:'Every 14s when crowded: enemies around her forget everyone for 3s',max:2},
+    {id:'s_fan',name:'Fan of Knives',kind:'active',cd:8,desc:'Every 8s: 6 knives in a ring',max:3},
+    {id:'s_mark',name:'Mark',kind:'active',cd:12,desc:'Every 12s: marks the biggest nearby enemy, +30% damage taken for 6s',max:2},
+    {id:'s_smoke',name:'Smoke Bomb',kind:'active',cd:14,desc:'Every 14s when crowded: nearby enemies lose all targets for 3s',max:2},
   ],
   paladin:[
     {id:'p_vigor',name:'Holy Vigor',kind:'passive',desc:'+15% max HP',max:3},
     {id:'p_right',name:'Righteous',kind:'passive',desc:'+15% damage',max:3},
-    {id:'p_aura',name:'Wider Aura',kind:'passive',desc:'Allies near him take 5% less damage',max:2},
-    {id:'p_consec',name:'Consecrate',kind:'active',cd:14,desc:'Every 14s: holy ground that burns enemies and mends allies for 5s',max:2},
-    {id:'p_smite',name:'Smite',kind:'active',cd:6,desc:'Every 6s: the nearest enemy takes triple and is thrown back',max:3},
-    {id:'p_lay',name:'Lay on Hands',kind:'active',cd:18,desc:'Every 18s: heals the most wounded ally near him 30%. He will mention it',max:2},
+    {id:'p_aura',name:'Wider Aura',kind:'passive',desc:'Nearby allies −5% damage taken',max:2},
+    {id:'p_consec',name:'Consecrate',kind:'active',cd:14,desc:'Every 14s: holy ground burns enemies and heals allies for 5s',max:2},
+    {id:'p_smite',name:'Smite',kind:'active',cd:6,desc:'Every 6s: 3× damage to the nearest enemy, with knockback',max:3},
+    {id:'p_lay',name:'Lay on Hands',kind:'active',cd:18,desc:'Every 18s: heals the most wounded nearby ally 30%. He will mention it',max:2},
   ],
   frost:[
-    {id:'f_deep',name:'Deep Cold',kind:'passive',desc:'Freezes last half a second longer',max:2},
-    {id:'f_bite',name:'Frostbite',kind:'passive',desc:'Frozen enemies take 20% more',max:3},
+    {id:'f_deep',name:'Deep Cold',kind:'passive',desc:'+0.5s freeze duration',max:2},
+    {id:'f_bite',name:'Frostbite',kind:'passive',desc:'Frozen enemies take +20% damage',max:3},
     {id:'f_heart',name:'Cold Heart',kind:'passive',desc:'+15% damage',max:3},
-    {id:'f_lance',name:'Ice Lance',kind:'active',cd:7,desc:'Every 7s: a piercing lance for triple',max:3},
-    {id:'f_hail',name:'Hailstorm',kind:'active',cd:12,desc:'Every 12s: shards fall on five enemies',max:3},
-    {id:'f_wall',name:'Ice Wall',kind:'active',cd:16,desc:'Every 16s: a wall of ice that stops enemies for 4s',max:2},
+    {id:'f_lance',name:'Ice Lance',kind:'active',cd:7,desc:'Every 7s: a piercing 3× damage lance',max:3},
+    {id:'f_hail',name:'Hailstorm',kind:'active',cd:12,desc:'Every 12s: shards fall on 5 enemies',max:3},
+    {id:'f_wall',name:'Ice Wall',kind:'active',cd:16,desc:'Every 16s: an ice wall blocks enemies for 4s',max:2},
   ],
   ent:[
     {id:'e_heart',name:'Heartwood',kind:'passive',desc:'+20% max HP',max:3},
-    {id:'e_roots',name:'Deep Roots',kind:'passive',desc:'Roots hold a second longer',max:2},
-    {id:'e_bark',name:'Bark Skin',kind:'passive',desc:'Takes 10% less damage',max:3},
-    {id:'e_thorn',name:'Thorn Burst',kind:'active',cd:9,desc:'Every 9s: thorns for everything near',max:3},
-    {id:'e_sap',name:'Sapling',kind:'active',cd:25,desc:'Every 25s: a sapling that fights for 20s',max:2},
-    {id:'e_shade',name:'Shade',kind:'active',cd:20,desc:'Every 20s: allies near him mend 2% a second for 6s',max:2},
+    {id:'e_roots',name:'Deep Roots',kind:'passive',desc:'+1s root duration',max:2},
+    {id:'e_bark',name:'Bark Skin',kind:'passive',desc:'−10% damage taken',max:3},
+    {id:'e_thorn',name:'Thorn Burst',kind:'active',cd:9,desc:'Every 9s: thorns damage everything nearby',max:3},
+    {id:'e_sap',name:'Sapling',kind:'active',cd:25,desc:'Every 25s: a sapling fights for 20s',max:2},
+    {id:'e_shade',name:'Shade',kind:'active',cd:20,desc:'Every 20s: nearby allies heal 2% HP/s for 6s',max:2},
   ],
   wolf:[
     {id:'w_fur',name:'Thick Fur',kind:'passive',desc:'+15% max HP',max:3},
-    {id:'w_blood',name:'Bloodlust',kind:'passive',desc:'Wolf form lasts 3s longer',max:2},
+    {id:'w_blood',name:'Bloodlust',kind:'passive',desc:'+3s wolf form',max:2},
     {id:'w_nose',name:'Keen Nose',kind:'passive',desc:'+10% damage',max:3},
-    {id:'w_howl',name:'Howl',kind:'active',cd:15,desc:'Every 15s: enemies near flee, allies run faster',max:2},
-    {id:'w_pounce',name:'Pounce',kind:'active',cd:8,desc:'Every 8s: leaps at the nearest for triple',max:3},
-    {id:'w_rend',name:'Rend',kind:'active',cd:10,desc:'Every 10s: a bleeding gash on the nearest',max:3},
+    {id:'w_howl',name:'Howl',kind:'active',cd:15,desc:'Every 15s: nearby enemies flee, allies move faster',max:2},
+    {id:'w_pounce',name:'Pounce',kind:'active',cd:8,desc:'Every 8s: leaps at the nearest enemy for 3× damage',max:3},
+    {id:'w_rend',name:'Rend',kind:'active',cd:10,desc:'Every 10s: bleeds the nearest enemy',max:3},
   ],
   vampire:[
-    {id:'v_hemo',name:'Hemomancy',kind:'passive',desc:'Drinks 15% more of what he deals',max:3},
+    {id:'v_hemo',name:'Hemomancy',kind:'passive',desc:'+15% lifesteal',max:3},
     {id:'v_night',name:'Night Stalker',kind:'passive',desc:'+15% damage',max:3},
     {id:'v_undying',name:'Undying',kind:'passive',desc:'+15% max HP',max:3},
-    {id:'v_bats',name:'Bat Swarm',kind:'active',cd:12,desc:'Every 12s: bats bite everything near and feed him',max:3},
-    {id:'v_mesmer',name:'Mesmerize',kind:'active',cd:16,desc:'Every 16s: the five nearest stand still for 2s',max:2},
-    {id:'v_mist',name:'Mist Form',kind:'active',cd:20,desc:'Every 20s when hurt: turns to mist for 2s, untouchable',max:2},
+    {id:'v_bats',name:'Bat Swarm',kind:'active',cd:12,desc:'Every 12s: bats bite everything nearby and heal him',max:3},
+    {id:'v_mesmer',name:'Mesmerize',kind:'active',cd:16,desc:'Every 16s: the 5 nearest enemies stop for 2s',max:2},
+    {id:'v_mist',name:'Mist Form',kind:'active',cd:20,desc:'Every 20s when hurt: untouchable mist for 2s',max:2},
   ],
   gunner:[
-    {id:'g_loader',name:'Speed Loader',kind:'passive',desc:'Reloads two seconds faster',max:3},
+    {id:'g_loader',name:'Speed Loader',kind:'passive',desc:'−2s reload',max:3},
     {id:'g_iron',name:'Big Iron',kind:'passive',desc:'+15% damage',max:3},
-    {id:'g_deadeye',name:'Deadeye',kind:'passive',desc:'10% chance of a triple-damage shot',max:3},
-    {id:'g_fan',name:'Fan the Hammer',kind:'active',cd:10,desc:'Every 10s: empties the cylinder into the nearest in a second',max:3},
-    {id:'g_dyn',name:'Dynamite',kind:'active',cd:14,desc:'Every 14s: throws a stick. Stands too close',max:2},
-    {id:'g_ric',name:'Ricochet',kind:'active',cd:8,desc:'Every 8s: a shot that bounces to three more',max:3},
+    {id:'g_deadeye',name:'Deadeye',kind:'passive',desc:'10% chance of a 3× damage shot',max:3},
+    {id:'g_fan',name:'Fan the Hammer',kind:'active',cd:10,desc:'Every 10s: empties the cylinder into the nearest enemy',max:3},
+    {id:'g_dyn',name:'Dynamite',kind:'active',cd:14,desc:'Every 14s: throws dynamite. Stands too close',max:2},
+    {id:'g_ric',name:'Ricochet',kind:'active',cd:8,desc:'Every 8s: a shot bouncing to 3 more enemies',max:3},
   ],
   robot:[
-    {id:'r_sink',name:'Heat Sink',kind:'passive',desc:'Cools faster',max:3},
+    {id:'r_sink',name:'Heat Sink',kind:'passive',desc:'+2 heat/s cooling',max:3},
     {id:'r_alloy',name:'Alloy',kind:'passive',desc:'+20% max HP',max:3},
     {id:'r_target',name:'Targeting',kind:'passive',desc:'+15% damage',max:3},
-    {id:'r_missile',name:'Missile Barrage',kind:'active',cd:12,desc:'Every 12s: four missiles at the farthest enemies',max:3},
+    {id:'r_missile',name:'Missile Barrage',kind:'active',cd:12,desc:'Every 12s: 4 missiles at the farthest enemies',max:3},
     {id:'r_vent',name:'Emergency Vent',kind:'active',cd:20,desc:'Every 20s when hot: dumps heat as a blast',max:2},
-    {id:'r_shield',name:'Deflector',kind:'active',cd:18,desc:'Every 18s: a shield worth 30% of its hull',max:2},
+    {id:'r_shield',name:'Deflector',kind:'active',cd:18,desc:'Every 18s: a 30% max HP shield',max:2},
   ],
 };
 const skl=(m,id)=>m.skills[id]||0;
@@ -935,26 +935,26 @@ function memberXp(m,v){if(!m.alive)return;m.xp+=v*(1+0.15*mrank(m,'xp'))*(1+0.15
 // ---------- quirks: run-defining traits a member picks up as they level (b019) ----------
 const QUIRKS=[
   {id:'q_berserk',name:'Berserker',desc:'+40% damage, −30% max HP',glyph:'🩸'},
-  {id:'q_colossus',name:'Colossus',desc:'+70% HP, a third larger, a third more reach, 40% slower',glyph:'🗿'},
-  {id:'q_quick',name:'Quicksilver',desc:'Attacks 30% faster',glyph:'💨'},
-  {id:'q_glass',name:'Glass Cannon',desc:'+60% damage, half the HP',glyph:'💎'},
-  {id:'q_stone',name:'Stoneskin',desc:'Takes 30% less damage, deals 20% less',glyph:'🪨'},
+  {id:'q_colossus',name:'Colossus',desc:'+70% HP, +33% size and reach, −40% speed',glyph:'🗿'},
+  {id:'q_quick',name:'Quicksilver',desc:'+30% attack speed',glyph:'💨'},
+  {id:'q_glass',name:'Glass Cannon',desc:'+60% damage, −50% HP',glyph:'💎'},
+  {id:'q_stone',name:'Stoneskin',desc:'−30% damage taken, −20% damage',glyph:'🪨'},
   {id:'q_swift',name:'Fleet',desc:'+50% move speed, −20% max HP',glyph:'👟'},
-  {id:'q_pyro',name:'Pyromaniac',desc:'Every hit sets the target burning for 25% over three seconds',glyph:'🔥'},
-  {id:'q_frost',name:'Rimefinger',desc:'A quarter of hits freeze the target for half a second',glyph:'❄'},
-  {id:'q_vamp',name:'Leech',desc:'Heals 10% of the damage they deal',glyph:'🧛'},
-  {id:'q_boom',name:'Volatile',desc:'Their kills explode for 50% of the blow in a small circle',glyph:'💥'},
-  {id:'q_chain',name:'Conductor',desc:'A third of their hits arc to a nearby enemy for 60%',glyph:'⚡'},
-  {id:'q_thunder',name:'Thunderclap',desc:'Every sixth hit calls lightning for triple damage',glyph:'🌩'},
-  {id:'q_magnet',name:'Lodestone',desc:'Hits drag the target toward them',glyph:'🧲'},
-  {id:'q_thorns',name:'Brambleskin',desc:'Reflects half of every hit they take',glyph:'🌵'},
+  {id:'q_pyro',name:'Pyromaniac',desc:'Hits burn for 25% damage over 3s',glyph:'🔥'},
+  {id:'q_frost',name:'Rimefinger',desc:'25% of hits freeze for 0.5s',glyph:'❄'},
+  {id:'q_vamp',name:'Leech',desc:'10% lifesteal',glyph:'🧛'},
+  {id:'q_boom',name:'Volatile',desc:'Kills explode for 50% damage in a small area',glyph:'💥'},
+  {id:'q_chain',name:'Conductor',desc:'33% of hits arc to a nearby enemy for 60% damage',glyph:'⚡'},
+  {id:'q_thunder',name:'Thunderclap',desc:'Every 6th hit: lightning for 3× damage',glyph:'🌩'},
+  {id:'q_magnet',name:'Lodestone',desc:'Hits pull the target closer',glyph:'🧲'},
+  {id:'q_thorns',name:'Brambleskin',desc:'Reflects 50% of damage taken',glyph:'🌵'},
   {id:'q_giant',name:'Giant Slayer',desc:'+60% damage to elites and bosses',glyph:'🗡'},
   {id:'q_crowd',name:'Crowd Pleaser',desc:'+3% damage per enemy within 150, up to +75%',glyph:'👥'},
-  {id:'q_rage',name:'Bloodrage',desc:'Attacks 50% faster while under half HP',glyph:'😤'},
-  {id:'q_twin',name:'Twin',desc:'A ghostly copy fights beside them at 40% strength, and comes back if it falls',glyph:'👥'},
-  {id:'q_lucky',name:'Lucky',desc:'Their kills are worth 50% more gold and XP',glyph:'🍀'},
-  {id:'q_grateful',name:'Grateful',desc:'Heals received are 50% bigger, and they actually say thank you',glyph:'🙏'},
-  {id:'q_guard',name:'Bodyguard',desc:'Takes 30% of the damage Wren would take while near her',glyph:'🛡'},
+  {id:'q_rage',name:'Bloodrage',desc:'+50% attack speed under 50% HP',glyph:'😤'},
+  {id:'q_twin',name:'Twin',desc:'A ghost copy fights beside them at 40% strength and respawns if it falls',glyph:'👥'},
+  {id:'q_lucky',name:'Lucky',desc:'+50% gold and XP from their kills',glyph:'🍀'},
+  {id:'q_grateful',name:'Grateful',desc:'+50% heals received, and they actually say thank you',glyph:'🙏'},
+  {id:'q_guard',name:'Bodyguard',desc:'Takes 30% of the healer’s damage while near her',glyph:'🛡'},
 ];
 const QUIRK={}; for(const q of QUIRKS)QUIRK[q.id]=q;
 const QUIRK_CAP=3;
@@ -1042,7 +1042,7 @@ function memberSkills(m,dt){
   if(skl(m,'t_wind')&&m.hp<m.maxhp*0.3&&(m.windT||0)<=0){m.windT=30-5*(skl(m,'t_wind')-1);heal(m,m.maxhp*0.25,'wind');say(m,'Not. Done. Yet.',1.6,true)}
   if(m.windT>0)m.windT-=dt;
 }
-const REVIVE={id:'revive',name:'Revive',icon:'☥',key:'R',cd:0,mana:100,desc:'Raises a fallen ally in range at half HP. Costs the whole flask'};
+const REVIVE={id:'revive',name:'Revive',icon:'☥',key:'R',cd:0,mana:100,desc:'Brings a fallen ally in range back at 50% HP'};
 const REV=SPELLS.length;   // the revive's slot in h.cd
 const buffDur=()=>10*(1+0.25*upRank('longbuff'))*(1+0.08*rank('h_buff'))+(hasRelic('hymnal')?3:0);
 const dmgMul=m=>gratMul(m)*(m.buffDmgT>0?2.5*(1+0.15*rank('h_bless')):(m.choirT>0?1.75:1))*(m.key&&m.key!=='healer'&&m.hp<m.maxhp*0.4?1+0.15*mrank(m,'hero'):1);

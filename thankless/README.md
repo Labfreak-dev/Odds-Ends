@@ -112,10 +112,19 @@ Demon King comes to you.
   back), Lucky, Grateful and Bodyguard. Skill cards roll tiers like Wren's
   do. With weapons and quirks landing on different people every run, no
   two parties play the same.
+- **Relics belong to someone.** Brom's, Pip's and Vex's relics are only
+  offered when they are in the party, and every recruit has two of their
+  own (Phylactery and Grave Dust, Smoke Bomb and Garrote, Reliquary and
+  Embroidered Tabard, Snow Globe and Hoarfrost, Golden Acorn and Amber Sap,
+  Moonstone and Leather Muzzle, Silver Goblet and Travel Coffin, Bandolier
+  and Silver Spurs, Radiator Fins and Overdrive). Keepsake only carries
+  relics for people who are going.
 - **Tiers.** Every card offered on a level-up or from a chest rolls a tier:
   Common (70%), Rare (19%), Epic (7.5%), Legendary (2.8%) or Mythic (0.7%).
-  The tier is how many ranks the pick grants at once — one, two, three,
-  four — and a Mythic maxes the card and heals everyone to full. Chests
+  The tier is how many ranks the pick grants at once — two, three, four,
+  five — and a Mythic maxes the card and heals everyone to full. Levels
+  come half as often as they once did and every pick is worth twice as
+  much, so a run interrupts you half as much for the same power. Chests
   hand out a card after their relic with better odds (Common drops to
   about 30%), and Wren's Lucky Star training raises the odds further.
   The story remembers Legendary and Mythic rolls.

@@ -447,3 +447,39 @@ files: 1=fx_wall_light.webp  2=fx_wall_ice.webp  3=fx_lightning.webp  4=fx_icebo
 --- block 56 (sapling_a) ---
 files: 1=sapling_a.webp
 1. a small angry walking sapling, a young tree with a stubby trunk for a body, two root legs, twiggy arms with green leaf hands, a tuft of bright leaves on top and two small dark eyes in the bark, stomping forward. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+
+================ SPRAYS, BEAMS AND ORBITERS — 17 images ================
+(cones: the point is at the LEFT edge and the fan opens to the right; beams: left to right, full width. The game rotates them.)
+
+--- block 57 (fx_spray_fire, fx_spray_frost, fx_spray_acid, fx_spray_bolt) ---
+files: 1=fx_spray_fire.webp  2=fx_spray_frost.webp  3=fx_spray_acid.webp  4=fx_spray_bolt.webp
+1. a spreading fan of orange and yellow fire with flame licks along its edges. drawn as a wide flat cone that starts at a single point at the far left edge and spreads out to fill the right edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a spreading fan of pale blue frost breath with snowflakes and ice mist. drawn as a wide flat cone that starts at a single point at the far left edge and spreads out to fill the right edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a spreading fan of bubbling bright green acid with dripping droplets along its edges. drawn as a wide flat cone that starts at a single point at the far left edge and spreads out to fill the right edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a spreading fan of blue-white crackling electricity with jagged arcs. drawn as a wide flat cone that starts at a single point at the far left edge and spreads out to fill the right edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 58 (fx_spray_holy, fx_spray_arcane, fx_beam_fire, fx_beam_frost) ---
+files: 1=fx_spray_holy.webp  2=fx_spray_arcane.webp  3=fx_beam_fire.webp  4=fx_beam_frost.webp
+1. a spreading fan of golden white holy light with small sparkles. drawn as a wide flat cone that starts at a single point at the far left edge and spreads out to fill the right edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a spreading fan of violet and pink arcane energy with small runes floating in it. drawn as a wide flat cone that starts at a single point at the far left edge and spreads out to fill the right edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a beam of orange and white fire with heat ripples. drawn as one long straight horizontal beam running the full width of the frame from left to right with a bright core and a thin glowing edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a beam of pale blue ice with frost crystals along it. drawn as one long straight horizontal beam running the full width of the frame from left to right with a bright core and a thin glowing edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 59 (fx_beam_acid, fx_beam_bolt, fx_beam_holy, fx_beam_arcane) ---
+files: 1=fx_beam_acid.webp  2=fx_beam_bolt.webp  3=fx_beam_holy.webp  4=fx_beam_arcane.webp
+1. a beam of bright green acid with dripping droplets. drawn as one long straight horizontal beam running the full width of the frame from left to right with a bright core and a thin glowing edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a beam of blue-white lightning with jagged side arcs. drawn as one long straight horizontal beam running the full width of the frame from left to right with a bright core and a thin glowing edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a beam of golden white holy light with small sparkles. drawn as one long straight horizontal beam running the full width of the frame from left to right with a bright core and a thin glowing edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a beam of violet and pink arcane energy with small runes along it. drawn as one long straight horizontal beam running the full width of the frame from left to right with a bright core and a thin glowing edge, seen from directly above, thick dark outlines, flat cel shading, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 60 (fx_ob_spike, fx_ob_fireorb, fx_ob_iceshard, fx_ob_skull) ---
+files: 1=fx_ob_spike.webp  2=fx_ob_fireorb.webp  3=fx_ob_iceshard.webp  4=fx_ob_skull.webp
+1. a single sharp jagged bone spike, pointing up, with a small dark base. small chunky fantasy game effect sprite, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a single round ball of orange fire with a white-hot core and small flame licks. small chunky fantasy game effect sprite, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a single sharp pointed shard of pale blue ice with frost mist, pointing up. small chunky fantasy game effect sprite, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a single small screaming skull with glowing violet eye sockets and a wisp of purple flame. small chunky fantasy game effect sprite, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 61 (fx_ob_star) ---
+files: 1=fx_ob_star.webp
+1. a single glowing golden five-pointed star with a soft white halo. small chunky fantasy game effect sprite, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border

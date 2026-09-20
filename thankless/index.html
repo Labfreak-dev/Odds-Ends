@@ -268,7 +268,7 @@
 
 <script>
 'use strict';
-const BUILD='b044-events';
+const BUILD='b045-arsenal';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -323,6 +323,7 @@ function drawFlames(f,k){const n=Math.max(3,Math.round(f.r/9));for(let i=0;i<n;i
     ctx.fillStyle='rgba(255,120,30,'+(0.85*k)+')';ctx.beginPath();ctx.moveTo(bx-5,by);ctx.quadraticCurveTo(bx-6,by-hgt*0.5,bx+(fl-0.5)*6,by-hgt);ctx.quadraticCurveTo(bx+6,by-hgt*0.5,bx+5,by);ctx.fill();
     ctx.fillStyle='rgba(255,220,90,'+(0.9*k)+')';ctx.beginPath();ctx.moveTo(bx-2.5,by);ctx.quadraticCurveTo(bx-3,by-hgt*0.3,bx+(fl-0.5)*3,by-hgt*0.55);ctx.quadraticCurveTo(bx+3,by-hgt*0.3,bx+2.5,by);ctx.fill()}
   if(G.parts.length<600&&RAND()<0.35)G.parts.push({x:f.x+rnd(-f.r,f.r)*0.7,y:f.y+rnd(-f.r,f.r)*0.4,vx:rnd(-8,8),vy:-45,life:0.5,col:RAND()<0.5?'#ff9a3a':'#ffd24a',r:2})}
+function fxDrawFrom(k,x,y,len,wid,rot,alpha){const im=ART.ready[k]?ART.img[k]:null;if(!im)return false;ctx.save();ctx.translate(x,y);ctx.rotate(rot);if(alpha!==undefined)ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.drawImage(im,0,-wid/2,len,wid);ctx.restore();return true}
 function fxDraw(k,x,y,w,h,rot,alpha,flip){const im=ART.ready[k]?ART.img[k]:null;if(!im)return false;ctx.save();ctx.translate(x,y);if(rot)ctx.rotate(rot);if(flip)ctx.scale(-1,1);if(alpha!==undefined)ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore();return true}
 function drawSpr(im,x,y,h,face,sx,sy){const w=h*im.width/im.height;ctx.save();ctx.translate(x,y);ctx.scale((face<0?-1:1)*(sx||1),sy||1);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
 // a pose swap gets a short squash; a death gets a collapse-and-fade of the last pose
@@ -739,6 +740,24 @@ const UPS=[
   {id:'w_meteor',who:'weapon',name:'Meteor Shower',desc:'Meteors fall around the holder. Nobody knows where from',max:5,icon:'☄️'},
   {id:'w_axe',who:'weapon',name:'Boomerang Axe',desc:'A great axe hurled in a long arc that comes back through everything',max:5,icon:'🪓'},
   {id:'w_hounds',who:'weapon',name:'Ghost Hounds',desc:'Spectral hounds tear through the nearest enemies in a line',max:5,icon:'🐕'},
+  // b045: sprays (a cone in front of the holder), beams (a line), orbiters (things that circle the holder). Each has an element; one element per member.
+  {id:'w_sp_acid',who:'weapon',fam:'spray',el:'poison',name:'Acid Spray',desc:'A cone of acid in front of the holder. Everything it touches keeps melting',max:5,icon:'🧪'},
+  {id:'w_sp_frost',who:'weapon',fam:'spray',el:'frost',name:'Frost Breath',desc:'A cone of cold. Slows and freezes what it crosses',max:5,icon:'🌬️'},
+  {id:'w_sp_fire',who:'weapon',fam:'spray',el:'fire',name:'Flame Fan',desc:'A fan of fire that sets enemies alight',max:5,icon:'🔥'},
+  {id:'w_sp_bolt',who:'weapon',fam:'spray',el:'bolt',name:'Arc Spray',desc:'A crackling cone; every enemy it touches arcs to a neighbour',max:5,icon:'⚡'},
+  {id:'w_sp_holy',who:'weapon',fam:'spray',el:'holy',name:'Radiant Fan',desc:'A cone of light that burns enemies and mends allies standing in it',max:5,icon:'✨'},
+  {id:'w_sp_arcane',who:'weapon',fam:'spray',el:'arcane',name:'Arcane Spray',desc:'A cone of raw magic that shoves everything it touches back',max:5,icon:'🔮'},
+  {id:'w_bm_acid',who:'weapon',fam:'beam',el:'poison',name:'Acid Lance',desc:'A thin line of acid that tracks the nearest enemy and melts everything along it',max:5,icon:'🧫'},
+  {id:'w_bm_frost',who:'weapon',fam:'beam',el:'frost',name:'Glacier Beam',desc:'A beam of cold that freezes everything along it',max:5,icon:'🧊'},
+  {id:'w_bm_fire',who:'weapon',fam:'beam',el:'fire',name:'Sunfire Beam',desc:'A beam of fire that sets everything along it alight',max:5,icon:'☀️'},
+  {id:'w_bm_bolt',who:'weapon',fam:'beam',el:'bolt',name:'Lightning Rail',desc:'A rail of lightning; everything along it arcs to a neighbour',max:5,icon:'🔌'},
+  {id:'w_bm_holy',who:'weapon',fam:'beam',el:'holy',name:'Judgement Ray',desc:'A ray of light that burns enemies and mends allies along it',max:5,icon:'🕊️'},
+  {id:'w_bm_arcane',who:'weapon',fam:'beam',el:'arcane',name:'Arcane Ray',desc:'A ray of raw magic that shoves everything along it back',max:5,icon:'💠'},
+  {id:'w_ob_spikes',who:'weapon',fam:'orbit',el:'phys',name:'Bone Spikes',desc:'Spikes circle the holder and shove whatever they hit',max:5,icon:'🦴'},
+  {id:'w_ob_fire',who:'weapon',fam:'orbit',el:'fire',name:'Fire Orbs',desc:'Balls of fire circle the holder and set what they touch alight',max:5,icon:'🟠'},
+  {id:'w_ob_ice',who:'weapon',fam:'orbit',el:'frost',name:'Ice Shards',desc:'Shards of ice circle the holder and freeze what they cut',max:5,icon:'🔷'},
+  {id:'w_ob_skulls',who:'weapon',fam:'orbit',el:'arcane',name:'Screaming Skulls',desc:'Skulls circle the holder; whatever they bite keeps bleeding',max:5,icon:'💀'},
+  {id:'w_ob_stars',who:'weapon',fam:'orbit',el:'holy',name:'Holy Stars',desc:'Stars circle the holder, burn enemies and mend allies they pass',max:5,icon:'⭐'},
   // b017: the wider deck
   // b020: prayers — spells are learned here and cast themselves
   {id:'sp_surge',who:'healer',name:'Learn: Surge',desc:'Auto-casts a big heal whenever someone in range drops under half. Rank 2 and 3: −25% cooldown each',max:3,icon:'✚',spell:'surge'},
@@ -796,6 +815,16 @@ const UPVAL={power:r=>'+'+20*r+'% heal power',pspd:r=>'+'+10*r+'% party move spe
   aspd:r=>'+'+8*r+'% attack speed',el_fire:r=>'+'+20*r+'% fire',el_frost:r=>'+'+15*r+'% vs frozen',el_bolt:r=>'+'+r+' jump'+(r===1?'':'s'),el_holy:r=>'+'+20*r+'% holy',venom:r=>'+'+30*r+'% dot, +'+r+'s',bramble:r=>10*r+'% reflected',aoe:r=>'+'+15*r+'% area',arc:r=>10*r+'% chance to arc',
   ward:r=>10*r+'% HP shield / 20s',leech:r=>3*r+'% lifesteal',crit:r=>5*r+'% crit',finisher:r=>'+'+50*r+'% under 20%',drill:r=>'skills '+10*r+'% faster',bookish:r=>'+'+15*r+'% XP',tithe:r=>'+'+15*r+'% gold',chill:r=>'−'+8*r+'% enemy speed in the circle',whands:r=>'+'+15*r+'% weapon damage',wquick:r=>'weapons '+Math.round(100-100*Math.pow(0.9,r))+'% faster'};
 // b018: every card comes in a tier. The tier is how many ranks the pick grants; Mythic maxes the card and heals everyone.
+// b045: every weapon has an element, and an element belongs to one member at a time
+const WEL={w_ember:'fire',w_knife:'phys',w_whip:'phys',w_incense:'fire',w_hymnal:'holy',w_candle:'fire',w_wand:'arcane',w_smite:'bolt',w_cross:'holy',w_water:'holy',w_ring:'fire',w_miasma:'poison',w_blades:'phys',w_circle:'holy',w_static:'bolt',w_well:'arcane',w_orb:'bolt',w_roots:'poison',w_slash:'phys',w_whirl:'phys',w_blizzard:'frost',w_meteor:'fire',w_axe:'phys',w_hounds:'arcane'};
+for(const u of UPS)if(u.who==='weapon'&&!u.el)u.el=WEL[u.id]||'phys';
+const WFAM=f=>UPS.filter(u=>u.fam===f).map(u=>u.id);
+const UPS_BY={};for(const u of UPS)UPS_BY[u.id]=u;
+const EL_COL={fire:'#ff8a3a',frost:'#bfefff',poison:'#8ae04a',bolt:'#9ad0ff',holy:'#ffe9a8',arcane:'#d08aff',phys:'#d8dde8'};
+const elMul=el=>el==='fire'?fireMul():el==='holy'?holyMul():1;
+for(const id of WFAM('spray'))UPVAL[id]=r=>(150+15*r)+' reach, '+Math.round(100*(0.9+0.25*(r-1)))+'% dps every '+(3.2-0.2*r).toFixed(1)+'s';
+for(const id of WFAM('beam'))UPVAL[id]=r=>(260+20*r)+' reach, '+Math.round(100*(1.3+0.35*(r-1)))+'% dps every '+(3.6-0.25*r).toFixed(2)+'s';
+for(const id of WFAM('orbit'))UPVAL[id]=r=>[0,2,3,3,4,5][r]+' orbiters, '+Math.round(100*(0.9+0.25*(r-1)))+'% dmg';
 const TIERS=[{name:'Common',w:70,ranks:2},{name:'Rare',w:19,ranks:3},{name:'Epic',w:7.5,ranks:4},{name:'Legendary',w:2.8,ranks:5},{name:'Mythic',w:0.7,ranks:99}];
 function rollTier(luck){let r=WR()*100,t=0;for(let i=0;i<TIERS.length;i++){r-=TIERS[i].w;if(r<=0){t=i;break}}
   // b040: luck is a percent. Each full 100% is a guaranteed bump; the remainder is that chance of one more.
@@ -828,6 +857,23 @@ const WEVO={
   w_blizzard:{name:'Absolute Zero',desc:'Freezes the whole field; frozen enemies shatter for 3× damage'},
   w_meteor:{name:'Armageddon',desc:'2× meteors, 2× size, and they leave fire'},
   w_axe:{name:'Twin Axes',desc:'2 axes in opposite directions'},
+  w_sp_acid:{name:'Corrosion',desc:'Half again as wide and long; the acid melts armour too'},
+  w_sp_frost:{name:'Whiteout',desc:'Half again as wide and long; everything inside freezes solid'},
+  w_sp_fire:{name:'Dragon’s Breath',desc:'Half again as wide and long, and the ground it touches burns'},
+  w_sp_bolt:{name:'Static Storm',desc:'Half again as wide and long; every arc arcs again'},
+  w_sp_holy:{name:'Dawn',desc:'Half again as wide and long; allies in the light are shielded'},
+  w_sp_arcane:{name:'Prism',desc:'Half again as wide and long; it shoves twice as hard'},
+  w_bm_acid:{name:'Dissolver',desc:'A second beam the other way, and both melt faster'},
+  w_bm_frost:{name:'Permafrost',desc:'A second beam the other way; the freeze lasts twice as long'},
+  w_bm_fire:{name:'Solar Flare',desc:'A second beam the other way; both leave fire'},
+  w_bm_bolt:{name:'Railgun',desc:'A second beam the other way; every arc arcs again'},
+  w_bm_holy:{name:'Verdict',desc:'A second beam the other way; allies along it are shielded'},
+  w_bm_arcane:{name:'Disintegrate',desc:'A second beam the other way; both shove twice as hard'},
+  w_ob_spikes:{name:'Iron Maiden',desc:'+2 spikes on a wider ring; they hit half again as hard'},
+  w_ob_fire:{name:'Sun Dogs',desc:'+2 orbs on a wider ring; they hit half again as hard and burn longer'},
+  w_ob_ice:{name:'Halo of Winter',desc:'+2 shards on a wider ring; they hit half again as hard and freeze longer'},
+  w_ob_skulls:{name:'Choir of the Damned',desc:'+2 skulls on a wider ring; they hit half again as hard and bleed longer'},
+  w_ob_stars:{name:'Constellation',desc:'+2 stars on a wider ring; they hit half again as hard and heal more'},
   w_hounds:{name:'The Wild Hunt',desc:'2× hounds; every hound returns'},
 };
 const wEvo=id=>!!(G&&G.wEvo&&G.wEvo[id]);
@@ -1592,7 +1638,7 @@ function newRun(){
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
      level:1,xp:0,xpNext:24,up:{},lvQ:[],kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
-     relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,wOwner:{},pickGive:{},wEvo:{},moonT:0,roots:[],fronts:[],tornados:[],slashes:[],timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
+     relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,wOwner:{},pickGive:{},wEvo:{},moonT:0,sprays:[],beams:[],roots:[],fronts:[],tornados:[],slashes:[],timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
   G.spells=SPELLS; G.learned={}; G.chat=[]; renderChat(); G.autoT=0; G.aegisT=0; for(const id of HL().starts){G.learned[id]=true;const extra=HL().id==='ansel'?rank('ansel_ward'):HL().id==='ivy'?rank('ivy_regrowth'):0;if(extra)G.up['sp_'+id]=Math.min(3,1+extra)}
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
@@ -2296,6 +2342,12 @@ function updateWeapons(dt){
     for(const d of sides){for(const e of G.enemies){const dx=(e.x-o.x)*d,dy=Math.abs(e.y-o.y);if(dx>-e.r&&dx<R+e.r&&dy<34+e.r*0.5){hurtEnemy(e,dmg,o);if(wEvo('w_whip')&&o.hp<o.maxhp)o.hp=Math.min(o.maxhp,o.hp+dmg*0.2);if(!e.boss){e.x+=d*14}n++}}G.whips.push({x:o.x,y:o.y,d,R,life:0.22})}
     if(n)o.swing=0.25}
   if(r('w_incense')&&(o=O('w_incense'))){const R=(52+9*r('w_incense'))*aoe()*(wEvo('w_incense')?1.5:1),dps=wbase()*(0.9+0.25*(r('w_incense')-1));for(const e of G.enemies)if(Math.hypot(e.x-o.x,e.y-o.y)<R+e.r*0.5){hurtEnemy(e,dps*dt,o);if(wEvo('w_incense'))e.slow=Math.max(e.slow,0.3);if(!e.boss&&e.spd>0){const d=Math.hypot(e.x-o.x,e.y-o.y)||1;e.x+=(e.x-o.x)/d*8*dt;e.y+=(e.y-o.y)/d*8*dt}}}
+  for(const id of WFAM('spray'))if(r(id)&&(o=O(id))&&tick(id,3.2-0.2*r(id))){const t=nearestEnemy(o,220+15*r(id));if(t){const ev=wEvo(id),el=UPS_BY[id].el;G.sprays.push({o,el,id,a:Math.atan2(t.y-o.y,t.x-o.x),len:(150+15*r(id))*aoe()*(ev?1.5:1),ang:0.95*(ev?1.5:1),life:0.9,dps:wbase()*(0.9+0.25*(r(id)-1))*elMul(el)*(ev?1.3:1),ev,arcT:0});o.castT=0.35;o.face=t.x<o.x?-1:1}}
+  for(const id of WFAM('beam'))if(r(id)&&(o=O(id))&&tick(id,3.6-0.25*r(id))){const t=nearestEnemy(o,300+20*r(id));if(t){const ev=wEvo(id),el=UPS_BY[id].el;G.beams.push({o,el,id,t,a:Math.atan2(t.y-o.y,t.x-o.x),len:(260+20*r(id))*(ev?1.2:1),life:0.6,dps:wbase()*(1.3+0.35*(r(id)-1))*elMul(el)*(ev?1.3:1),ev,arcT:0});o.castT=0.4;o.face=t.x<o.x?-1:1}}
+  for(const id of WFAM('orbit'))if(r(id)&&(o=O(id))){const ev=wEvo(id),el=UPS_BY[id].el;G.orbB=(G.orbB||0)+dt*(2.4+0.15*r(id))/Math.max(1,WFAM('orbit').filter(x=>r(x)).length);const n=[0,2,3,3,4,5][r(id)]+(ev?2:0),OR=(66+(ev?20:0))*aoe(),dmg=wbase()*(0.9+0.25*(r(id)-1))*elMul(el)*(ev?1.5:1);const off=WFAM('orbit').indexOf(id)*0.7;
+    for(let i=0;i<n;i++){const a=G.orbB+off+i*6.283/n,bx=o.x+Math.cos(a)*OR,by=o.y+Math.sin(a)*OR;
+      for(const e of G.enemies)if(Math.hypot(e.x-bx,e.y-by)<13+e.r){e.obT=e.obT||{};if(G.t-(e.obT[id]||-9)<0.5)continue;e.obT[id]=G.t;hurtEnemy(e,dmg,o);puff(bx,by,3,EL_COL[el],40,1.2);elHit(e,el,o,dmg,ev,bx,by)}
+      if(el==='holy')for(const a2 of allies())if(a2!==o&&a2.hp<a2.maxhp&&!a2.noHeal&&Math.hypot(a2.x-bx,a2.y-by)<14+a2.r&&G.t-(a2.stT||-9)>0.7){a2.stT=G.t;heal(a2,wbase()*(ev?0.9:0.5),'stars')}}}
   if(r('w_hymnal')&&(o=O('w_hymnal'))){G.orbA+=dt*(2.6+0.2*r('w_hymnal'));const n=[0,1,2,3,3,4][r('w_hymnal')],OR=74,dmg=wbase()*(1+0.25*(r('w_hymnal')-1))*holyMul();
     for(let i=0;i<n;i++){const a=G.orbA+i*6.283/n,bx=o.x+Math.cos(a)*OR,by=o.y+Math.sin(a)*OR;for(const e of G.enemies)if(Math.hypot(e.x-bx,e.y-by)<12+e.r&&G.t-(e.hymT||-9)>0.55){e.hymT=G.t;hurtEnemy(e,dmg,o);puff(bx,by,3,'#ffe9a8',40,1.2)}if(wEvo('w_hymnal'))for(const a of allies())if(a!==o&&a.hp<a.maxhp&&!a.noHeal&&Math.hypot(a.x-bx,a.y-by)<14+a.r&&G.t-(a.hymT||-9)>0.6){a.hymT=G.t;heal(a,wbase()*0.6,'gospel')}}}
   if(r('w_candle')&&(o=O('w_candle'))&&tick('w_candle',3.0)){const n=(1+Math.floor(r('w_candle')/2))*(wEvo('w_candle')?2:1);for(let i=0;i<n;i++){const t=nearestEnemy(o,500);const d=t?(t.x<o.x?-1:1):(o.face||1);wfire(o,'candle',o.x,o.y-10,d*(150+rnd(0,80)),-(380+rnd(0,60)),{life:2.6,dmg:wbase()*(2.2+0.5*(r('w_candle')-1)),g:520,rot:0})}o.castT=0.25}
@@ -2322,7 +2374,26 @@ function updateWeapons(dt){
   if(r('w_hounds')&&(o=O('w_hounds'))&&tick('w_hounds',4.5-0.3*r('w_hounds'))){const n=(1+Math.floor((r('w_hounds')+1)/2))*(wEvo('w_hounds')?2:1);const near=G.enemies.filter(e=>Math.hypot(e.x-o.x,e.y-o.y)<420);for(let i=0;i<n&&near.length;i++){const t=near.splice(Math.floor(RAND()*near.length),1)[0];const a=Math.atan2(t.y-o.y,t.x-o.x);G.shots.push({kind:'hound',hw:true,x:o.x,y:o.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,life:1.1,age:0,from:o,hits:[],dmg:wbase()*(1.6+0.4*(r('w_hounds')-1)),back:wEvo('w_hounds'),rot:0})}if(near.length||n)o.castT=0.25}
   if(r('w_water')&&(o=O('w_water'))&&tick('w_water',3.6-0.2*r('w_water'))){const near=G.enemies.filter(e=>Math.hypot(e.x-o.x,e.y-o.y)<330);if(near.length){const e=near[Math.floor(RAND()*near.length)];wfire(o,'flask',o.x,o.y-10,(e.x-o.x)/0.7,(e.y-o.y)/0.7-120,{life:0.7,g:340,dmg:0,pr:(46+6*r('w_water'))*aoe()*(wEvo('w_water')?2:1),pdps:wbase()*(0.7+0.2*(r('w_water')-1))*holyMul(),plife:(3+0.4*r('w_water'))*(wEvo('w_water')?2:1)});o.castT=0.2}}
 }
+// b045: what an element does on touch. Fire and poison keep hurting, frost freezes, bolt arcs, holy mends allies nearby, arcane shoves, spikes shove hard.
+function elHit(e,el,by,dmg,ev,x,y){if(e.dead)return;
+  if(el==='fire'&&(!e.bleed||e.bleed.t<=0))e.bleed={dps:dmg*0.3,t:ev?4:2.5,by};
+  else if(el==='poison'&&(!e.bleed||e.bleed.t<e.bleed.t+1))e.bleed={dps:Math.max(e.bleed?e.bleed.dps:0,dmg*0.35),t:ev?6:4,by};
+  else if(el==='frost'&&!e.boss)e.frozen=Math.max(e.frozen,ev?1.2:0.6);
+  else if(el==='bolt'){let t2=null,bd=110;for(const q of G.enemies){if(q===e||q.dead)continue;const d=Math.hypot(q.x-e.x,q.y-e.y);if(d<bd){bd=d;t2=q}}if(t2){hurtEnemy(t2,dmg*0.6,by);G.zaps.push({pts:[{x:e.x,y:e.y-e.r},{x:t2.x,y:t2.y-t2.r}],life:0.2,col:'rgba(180,220,255,'});if(ev){let t3=null,b3=110;for(const q of G.enemies){if(q===e||q===t2||q.dead)continue;const d=Math.hypot(q.x-t2.x,q.y-t2.y);if(d<b3){b3=d;t3=q}}if(t3){hurtEnemy(t3,dmg*0.4,by);G.zaps.push({pts:[{x:t2.x,y:t2.y-t2.r},{x:t3.x,y:t3.y-t3.r}],life:0.2,col:'rgba(180,220,255,'})}}}}
+  else if(el==='arcane'&&!e.boss){const d=Math.hypot(e.x-x,e.y-y)||1;e.x+=(e.x-x)/d*(ev?60:30);e.y+=(e.y-y)/d*(ev?60:30);e.slow=Math.max(e.slow||0,0.4);keepIn(e)}
+  else if(el==='phys'&&!e.boss){const d=Math.hypot(e.x-x,e.y-y)||1;e.x+=(e.x-x)/d*40;e.y+=(e.y-y)/d*40;keepIn(e)}}
 function updateFields(dt){
+  for(let i=G.sprays.length-1;i>=0;i--){const sp=G.sprays[i];sp.life-=dt;const o=sp.o;if(sp.life<=0||!o.alive){G.sprays.splice(i,1);continue}sp.arcT-=dt;
+    for(const e of G.enemies){const dx=e.x-o.x,dy=e.y-o.y,d=Math.hypot(dx,dy);if(d>sp.len+e.r)continue;let da=Math.atan2(dy,dx)-sp.a;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>sp.ang/2+e.r/Math.max(d,1))continue;
+      hurtEnemy(e,sp.dps*dt,o);if(e.dead)continue;e.spT=e.spT||{};if(G.t-(e.spT[sp.id]||-9)>0.45){e.spT[sp.id]=G.t;elHit(e,sp.el,o,sp.dps*0.6,sp.ev,o.x,o.y)}
+      if(sp.el==='frost'&&!e.boss)e.slow=Math.max(e.slow||0,0.5);if(sp.el==='arcane'&&!e.boss){e.x+=dx/Math.max(d,1)*(sp.ev?120:60)*dt;e.y+=dy/Math.max(d,1)*(sp.ev?120:60)*dt}}
+    if(sp.el==='holy')for(const a of allies()){if(a===o||a.noHeal)continue;const dx=a.x-o.x,dy=a.y-o.y,d=Math.hypot(dx,dy);if(d>sp.len)continue;let da=Math.atan2(dy,dx)-sp.a;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>sp.ang/2)continue;if(a.hp<a.maxhp)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.01*dt);if(sp.ev)a.shield=Math.max(a.shield,a.maxhp*0.08)}
+    if(sp.el==='fire'&&sp.ev&&RAND()<dt*3){const rr=rnd(30,sp.len);G.fires.push({x:o.x+Math.cos(sp.a+rnd(-sp.ang/2,sp.ang/2))*rr,y:o.y+Math.sin(sp.a+rnd(-sp.ang/2,sp.ang/2))*rr,r:22,dps:sp.dps*0.25,life:2,by:o})}}
+  for(let i=G.beams.length-1;i>=0;i--){const bm=G.beams[i];bm.life-=dt;const o=bm.o;if(bm.life<=0||!o.alive){G.beams.splice(i,1);continue}if(bm.t&&!bm.t.dead){const ta=Math.atan2(bm.t.y-o.y,bm.t.x-o.x);let da=Math.atan2(Math.sin(ta-bm.a),Math.cos(ta-bm.a));bm.a+=Math.max(-2.5*dt,Math.min(2.5*dt,da))}
+    const segs=bm.ev?[bm.a,bm.a+3.1416]:[bm.a];
+    for(const a of segs){const ux=Math.cos(a),uy=Math.sin(a);for(const e of G.enemies){const dx=e.x-o.x,dy=e.y-o.y;const along=dx*ux+dy*uy;if(along<0||along>bm.len)continue;const across=Math.abs(dx*uy-dy*ux);if(across>12+e.r)continue;hurtEnemy(e,bm.dps*dt,o);if(e.dead)continue;e.bmT=e.bmT||{};if(G.t-(e.bmT[bm.id]||-9)>0.4){e.bmT[bm.id]=G.t;elHit(e,bm.el,o,bm.dps*0.5,bm.ev,o.x,o.y)}if(bm.el==='arcane'&&!e.boss){e.x+=ux*(bm.ev?160:80)*dt;e.y+=uy*(bm.ev?160:80)*dt}}
+      if(bm.el==='holy')for(const al of allies()){if(al===o||al.noHeal)continue;const dx=al.x-o.x,dy=al.y-o.y;const along=dx*ux+dy*uy;if(along<0||along>bm.len)continue;if(Math.abs(dx*uy-dy*ux)>14+al.r)continue;if(al.hp<al.maxhp)al.hp=Math.min(al.maxhp,al.hp+al.maxhp*0.015*dt);if(bm.ev)al.shield=Math.max(al.shield,al.maxhp*0.08)}
+      if(bm.el==='fire'&&bm.ev&&RAND()<dt*4){const rr=rnd(40,bm.len);G.fires.push({x:o.x+ux*rr,y:o.y+uy*rr,r:20,dps:bm.dps*0.2,life:2,by:o})}}}
   for(let i=G.roots.length-1;i>=0;i--){const z=G.roots[i];z.life-=dt;if(z.life<=0){G.roots.splice(i,1);continue}for(const e of G.enemies){const d=Math.hypot(e.x-z.x,e.y-z.y);if(d<z.r+e.r*0.5){hurtEnemy(e,z.dps*dt,z.by);if(!e.boss){e.slow=Math.max(e.slow,0.3);if(z.drag&&z.by){const o=z.by,dd=Math.hypot(o.x-e.x,o.y-e.y)||1;e.x+=(o.x-e.x)/dd*30*dt;e.y+=(o.y-e.y)/dd*30*dt}}}}}
   for(let i=G.fronts.length-1;i>=0;i--){const f=G.fronts[i];f.life-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;if(f.life<=0){G.fronts.splice(i,1);continue}const nx=-f.vy,ny=f.vx,L=Math.hypot(nx,ny)||1;for(const e of G.enemies){if(f.hit.includes(e))continue;const dx=e.x-f.x,dy=e.y-f.y;const along=(dx*f.vx+dy*f.vy)/(Math.hypot(f.vx,f.vy)||1),across=Math.abs((dx*nx+dy*ny)/L);if(Math.abs(along)<24+e.r&&across<f.w/2+e.r){f.hit.push(e);let d=f.dps;if(e.frozen>0&&wEvo('w_blizzard'))d*=3;hurtEnemy(e,d,f.by);if(!e.boss)e.frozen=Math.max(e.frozen,1.5);puff(e.x,e.y,4,'#e8fbff',60,1.5)}}}
   for(let i=G.tornados.length-1;i>=0;i--){const t=G.tornados[i];t.life-=dt;t.a+=dt*12;t.x+=t.vx*dt;t.y+=t.vy*dt;if(t.x<40||t.x>ARENA-40)t.vx=-t.vx;if(t.y<40||t.y>ARENA-40)t.vy=-t.vy;if(t.life<=0){G.tornados.splice(i,1);continue}for(const e of G.enemies){const d=Math.hypot(e.x-t.x,e.y-t.y);if(d<t.r+e.r){hurtEnemy(e,t.dps*dt,t.by);if(!e.boss){e.x+=(t.x-e.x)/Math.max(d,1)*60*dt+t.vx*dt;e.y+=(t.y-e.y)/Math.max(d,1)*60*dt+t.vy*dt}}}if(RAND()<dt*25)G.parts.push({x:t.x+rnd(-t.r,t.r),y:t.y+rnd(-t.r,t.r)*0.6,vx:rnd(-40,40),vy:-80,life:0.4,col:'#c8d8ee',r:2.5})}
@@ -2385,7 +2456,7 @@ function showMemberLevelUp(m){
   const pool=memberLevelPool(m); const picks=[];
   const qpool=(m.q&&Object.keys(m.q).length>=QUIRK_CAP)?[]:QUIRKS.filter(q=>!hasQ(m,q.id)&&!(q.id==='q_swift'&&!m.spd)&&!(q.id==='q_rage'&&!m.atkCd));
   // b043: the party's own cards and the weapons live here now, plus any evolution this member is holding
-  const upool=UPS.filter(u=>upRank(u.id)<u.max&&(u.who==='party'||u.who===m.key||(u.who==='weapon'&&(upRank(u.id)?G.wOwner[u.id]===m.key:(weaponCount()<WEAPON_CAP&&weaponsHeld(m.key)<2))))).map(u=>({id:u.id,name:u.name,desc:u.desc,max:u.max,kind:u.who==='weapon'?'gift':'card',icon:u.icon,ups:true}));
+  const upool=UPS.filter(u=>upRank(u.id)<u.max&&(u.who==='party'||u.who===m.key||(u.who==='weapon'&&(upRank(u.id)?G.wOwner[u.id]===m.key:(weaponCount()<WEAPON_CAP&&weaponsHeld(m.key)<2&&(u.el==='phys'||!UPS.some(v=>v.who==='weapon'&&v.el===u.el&&upRank(v.id)>0&&G.wOwner[v.id]!==m.key))))))).map(u=>({id:u.id,name:u.name,desc:u.desc,max:u.max,kind:u.who==='weapon'?'gift':'card',icon:u.icon,ups:true}));
   const evos=UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>=u.max&&!wEvo(u.id)&&WEVO[u.id]&&G.wOwner[u.id]===m.key).map(u=>({id:'evo_'+u.id,name:'Evolve: '+WEVO[u.id].name,desc:WEVO[u.id].desc,max:1,kind:'evo',evoOf:u.id,ups:true}));
   if(evos.length)picks.push(evos[Math.floor(WR()*evos.length)]);
   if(weaponCount()===0){const ws=upool.filter(u=>u.kind==='gift');if(ws.length){const w=ws[Math.floor(WR()*ws.length)];upool.splice(upool.indexOf(w),1);picks.push(w)}}
@@ -2843,6 +2914,10 @@ function draw(){
     else if(s.kind==='flask'){ctx.fillStyle='#7ac8ff';ctx.beginPath();ctx.arc(s.x,s.y,5,0,6.283);ctx.fill();ctx.fillStyle='#d8f0ff';ctx.fillRect(s.x-2,s.y-9,4,5)}
   }
   for(const s of G.shots)if(s.kind==='meteor'){const k=Math.max(0,s.t)/1.1;const sz=s.r*1.1+24;if(!fxDraw('fx_meteor',s.x+70*k,s.y-230*k,sz,sz,G.t*4,1)){ctx.fillStyle='#3a3030';ctx.beginPath();ctx.arc(s.x+70*k,s.y-230*k,sz*0.3,0,6.283);ctx.fill()}}
+  for(const sp of G.sprays){const o=sp.o,k=Math.min(1,sp.life/0.3),wid=sp.len*Math.tan(sp.ang/2)*2;if(fxDrawFrom('fx_spray_'+sp.el,o.x,o.y-6,sp.len,wid,sp.a,0.9*k))continue;ctx.save();ctx.translate(o.x,o.y-6);ctx.rotate(sp.a);ctx.fillStyle=EL_COL[sp.el];ctx.globalAlpha=0.35*k;ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,sp.len,-sp.ang/2,sp.ang/2);ctx.closePath();ctx.fill();ctx.restore()}
+  for(const bm of G.beams){const o=bm.o,k=Math.min(1,bm.life/0.2);for(const a of (bm.ev?[bm.a,bm.a+3.1416]:[bm.a])){if(fxDrawFrom('fx_beam_'+bm.el,o.x,o.y-8,bm.len,30,a,0.95*k))continue;ctx.save();ctx.translate(o.x,o.y-8);ctx.rotate(a);ctx.strokeStyle=EL_COL[bm.el];ctx.globalAlpha=0.9*k;ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(bm.len,0);ctx.stroke();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();ctx.restore()}}
+  for(const id of WFAM('orbit'))if(upRank(id)){const o=holderOf(id);if(!holderReady(o))continue;const ev=wEvo(id),el=UPS_BY[id].el,n=[0,2,3,3,4,5][upRank(id)]+(ev?2:0),OR=(66+(ev?20:0))*aoe(),off=WFAM('orbit').indexOf(id)*0.7,key={w_ob_spikes:'fx_ob_spike',w_ob_fire:'fx_ob_fireorb',w_ob_ice:'fx_ob_iceshard',w_ob_skulls:'fx_ob_skull',w_ob_stars:'fx_ob_star'}[id];
+    for(let i=0;i<n;i++){const a=(G.orbB||0)+off+i*6.283/n,bx=o.x+Math.cos(a)*OR,by=o.y+Math.sin(a)*OR;if(fxDraw(key,bx,by,28,28,a+1.57,1))continue;ctx.fillStyle=EL_COL[el];ctx.beginPath();ctx.arc(bx,by,7,0,6.283);ctx.fill()}}
   for(const z of G.roots){const k=Math.min(1,z.life);if(fxDraw('fx_roots',z.x,z.y,z.r*2.3,z.r*2,0,0.95*k))continue;ctx.strokeStyle='rgba(90,140,60,'+(0.8*k)+')';ctx.lineWidth=3;for(let i=0;i<5;i++){const a=i*1.257+z.x*0.01;ctx.beginPath();ctx.moveTo(z.x,z.y+4);ctx.quadraticCurveTo(z.x+Math.cos(a)*z.r*0.6,z.y-10-Math.sin(G.t*6+i)*4,z.x+Math.cos(a)*z.r,z.y+Math.sin(a)*z.r*0.5);ctx.stroke()}ctx.fillStyle='rgba(140,220,80,'+(0.25*k)+')';ctx.beginPath();ctx.ellipse(z.x,z.y+4,z.r,z.r*0.5,0,0,6.283);ctx.fill()}
   for(const f of G.fronts){if(fxDraw('fx_front',f.x,f.y,f.w,52,Math.atan2(f.vy,f.vx)+1.571,0.9)){for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2});continue}ctx.save();ctx.translate(f.x,f.y);ctx.rotate(Math.atan2(f.vy,f.vx));ctx.fillStyle='rgba(220,240,255,.55)';ctx.fillRect(-14,-f.w/2,28,f.w);ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(-4,-f.w/2,8,f.w);ctx.restore();for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2})}
   for(const t of G.tornados){if(fxDraw('fx_tornado',t.x,t.y-t.r*0.5,t.r*2.4,t.r*2.4,0,0.85,Math.sin(G.t*18)>0))continue;ctx.strokeStyle='rgba(200,220,240,.6)';ctx.lineWidth=3;for(let i=0;i<4;i++){const rr=t.r*(0.35+i*0.22);ctx.beginPath();ctx.ellipse(t.x,t.y-i*12,rr,rr*0.4,t.a*0.2,0,6.283);ctx.stroke()}}

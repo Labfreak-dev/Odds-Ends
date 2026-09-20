@@ -69,6 +69,16 @@ Demon King comes to you.
   on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
   weapons at most, five ranks each; one is guaranteed in the first few
   levels. The card names who takes it; the story lists who carried what.
+- **Contracts.** Camp offers three promises each visit and you may swear up
+  to two: Nobody Dies, No Revive, Keep Them Standing, Let Him Sleep, Travel
+  Light, Thrifty, Errands, Quick Study, Appreciated, Big Game, Untouched,
+  Full House, Regicide. A kept promise multiplies the run's gold (×1.3 to
+  ×1.5); a broken one just does not pay, and the HUD marks it the moment
+  it breaks. The end screen and story list them.
+- **Requests.** Every couple of minutes a member asks for something — do
+  not heal me for 45 seconds, let me have the next elite, stay close, keep
+  me above 80% — shown in the quest box. Granted: gold, a thank-you, half a
+  level for them, and the next card rolls kindly. Refused: a grumble.
 - **Synergies and grudges.** Some pairs change how the party plays, and the
   picker's "Together" box shows what the three you chose bring out in each
   other: Rise and Shine (Brom + Mortimer), Range Day (Pip + Dusty), Cold

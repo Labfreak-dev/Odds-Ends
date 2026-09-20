@@ -193,8 +193,12 @@ Demon King comes to you.
   rain of motes. Rewards scale with the ask, from gold and motes to chests,
   a level, and every cooldown reset.
 - **The party levels up too.** Each member earns XP from their own kills and
-  a share of everyone's, and picks from their own pool of six MMO-style
-  skills in their own voice: passives (Brom's Thick Hide and Sleepwalker,
+  a share of everyone's, and picks for themselves from their own pool of six
+  MMO-style skills, plus quirks and their second weapon. No card pops up:
+  they take the highest tier on offer (quirks usually beat a Common) and a
+  small chat box at the bottom left says what they chose and what it does
+  ("Pip levelled up and chose Volley (Rare, +3 ranks)"). Only the healer's
+  own level-ups and chests still ask you. The skills, in their own voice: passives (Brom's Thick Hide and Sleepwalker,
   Pip's Barbed Arrows, Vex's Arcane Mind) and actives they cast on cooldown
   by themselves (Shield Slam, Warcry, Earthquake; Volley, Snare Trap, Focus
   Shot; Frost Nova, Chain Lightning, Arcane Barrier).

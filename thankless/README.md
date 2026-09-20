@@ -117,6 +117,19 @@ Demon King comes to you.
   behind the holder), Spinning Blades, Mending Circle (heals everyone
   near the holder), Static Field (periodic lightning on everything close)
   and Gravity Well (drags enemies in and slows them).
+- **The wacky eight.** Ball Lightning (a slow orb that arcs to everything
+  it passes), Poison Roots (vines that grab and poison), Long Slash (a
+  sword arc the length of the screen), Whirlwind (the holder spins through
+  the crowd), Blizzard (a wall of cold that sweeps across), Meteor Shower
+  (rocks from the sky), Boomerang Axe (a heavy axe that comes back) and
+  Ghost Hounds (spectral dogs that hunt and return).
+- **Evolutions.** Every one of the 24 weapons has a final form. Once a
+  weapon sits at rank five, a red Evolve card can turn up in its holder's
+  level-up: Stray Ember becomes Inferno, Kitchen Knives become A Thousand
+  Cuts, Long Slash becomes Crescent Moon, Whirlwind becomes Tornado,
+  Blizzard becomes Absolute Zero, Meteor Shower becomes Armageddon, Ball
+  Lightning becomes Tesla Coil, Ghost Hounds become The Wild Hunt, and so
+  on. The story names anything that evolved.
 - **Relics belong to someone.** Every character has four of their own now
   (Brom's Stew Pot and Anvil Shield, Pip's Whetstone and Lucky Green Cap,
   Vex's Monocle and Scorch Mark, and two more for each recruit), offered

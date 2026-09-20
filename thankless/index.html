@@ -168,7 +168,7 @@
       <div class="sub" style="margin:6px 0 10px">Survivors of the Worst Party</div>
       <div class="sub" style="margin-bottom:10px">You are the healer. You cannot attack. Your party can, badly.<br>Keep them alive for ten minutes and the Demon King comes to you.</div>
       <div class="row" style="justify-content:center;margin-bottom:8px">
-        <span>Gold: <span class="gold" id="mgold">0</span></span>
+        <span id="mtitle" class="sub"></span> <span>Gold: <span class="gold" id="mgold">0</span></span>
         <span>· Circle <b id="mcircle">0</b></span>
         <button class="sm" id="circDown">−</button><button class="sm" id="circUp">+</button>
       </div>
@@ -196,6 +196,10 @@
     <div class="panel">
       <h2>Relics <span class="sub">(found in runs; Keepsake brings them along)</span></h2>
       <div class="sub" id="relicsKnown" style="line-height:1.5"></div>
+    </div>
+    <div class="panel">
+      <h2>Achievements <span class="sub" id="achcount"></span></h2>
+      <div class="tree" id="achs"></div>
     </div>
     <div class="panel">
       <h2>Ledger</h2>
@@ -251,7 +255,7 @@
 
 <script>
 'use strict';
-const BUILD='b024-gratitude';
+const BUILD='b025-titles';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
@@ -504,7 +508,7 @@ const nodeName=id=>(TREE.find(n=>n.id===id)||{name:id}).name;
 let treeTab='healer';
 
 function renderMenu(){
-  $('mgold').textContent=Math.floor(META.gold);
+  checkAchievements(false); $('mgold').textContent=Math.floor(META.gold); $('mtitle').textContent=META.title?'Wren '+META.title+' ·':'';
   $('mcircle').textContent=META.circle;
   $('circdesc').textContent=META.circle===0?'Circle 0: the story as told. Beat the Demon King to open the next circle.':
     'Circle '+META.circle+': enemies +'+Math.round(META.circle*35)+'% HP, +'+Math.round(META.circle*20)+'% damage, gold ×'+(1+META.circle*0.5).toFixed(1)+'.';
@@ -528,7 +532,7 @@ function renderMenu(){
       row.appendChild(b)}
     tree.appendChild(d);
   }
-  renderPicker(); renderContracts();
+  renderPicker(); renderContracts(); renderAchievements();
   const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo), knownEvo=EVOS.filter(r=>META.relicsSeen[r.id]);
   const hints=EVOS.filter(r=>!META.relicsSeen[r.id]&&META.relicsSeen[r.evo[0]]&&META.relicsSeen[r.evo[1]]);
   $('relicsKnown').innerHTML=(known.length?known.map(r=>'<div><b>'+relicIcon(r.id)+' '+esc(r.name)+'</b> — '+esc(r.desc)+'</div>').join(''):'<div>None yet. Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might.</div>')
@@ -1215,7 +1219,7 @@ function renderContracts(){
     const d=document.createElement('div');d.className='node'+(on?' on':'');
     d.innerHTML='<b>'+esc(contractName(o))+'</b><span class="d">'+esc(contractDesc(o))+' — <b style="color:var(--gold)">gold ×'+c.mult+'</b>'+((META.contractsDone||{})[o.id]?' <span class="sub">(kept '+META.contractsDone[o.id]+'×)</span>':'')+'</span><span class="r"></span>';
     const b=document.createElement('button');b.className='sm';b.textContent=on?'Sworn':'Swear';
-    b.onclick=()=>{if(on)META.contracts=META.contracts.filter(x=>x!==o.id);else if(META.contracts.length<2)META.contracts.push(o.id);else{$('contractnote').textContent='Two promises is plenty for one run.';return}save();renderContracts()};
+    b.onclick=()=>{if(on)META.contracts=META.contracts.filter(x=>x!==o.id);else if(META.contracts.length<(hasAch('contracts10')?3:2))META.contracts.push(o.id);else{$('contractnote').textContent=(hasAch('contracts10')?'Three':'Two')+' promises is plenty for one run.';return}save();renderContracts()};
     d.querySelector('.r').appendChild(b);box.appendChild(d)}
   $('contractnote').textContent=META.contracts.length?'Sworn: '+META.contracts.map(id=>contractName(META.contractOffer.find(o=>o.id===id))).join(', ')+'. Break one and it simply does not pay.':'Swear up to two. They pay in gold at the end, kept or not — no, kept only.';
 }
@@ -1291,6 +1295,56 @@ function gratTick(dt){
     if(gratBoon(m)&&m.key==='tank')for(const a of G.party)if(a!==m&&a.alive&&a.hp<a.maxhp&&Math.hypot(a.x-m.x,a.y-m.y)<120)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.003*dt);
   }
 }
+// ---------- achievements (b025): titles, and three things that change the game ----------
+const ACHIEVEMENTS=[
+  {id:'first_win',name:'Regicide',desc:'Kill the Demon King',title:'Kingslayer',test:M=>M.wins>=1},
+  {id:'wins5',name:'Serial Regicide',desc:'Kill five Demon Kings',title:'the Recurring',perk:'The first card of every run rolls kindly',test:M=>M.wins>=5},
+  {id:'thanks100',name:'Appreciated',desc:'A hundred thank-yous, all time',title:'the Appreciated',test:M=>M.thanks>=100},
+  {id:'thanks_run',name:'Ten in One',desc:'Ten thank-yous in a single run',title:'the Noticed',run:S=>(S.thanks||0)>=10},
+  {id:'pilgrims10',name:'Guide',desc:'Escort ten pilgrims',title:'the Guide',test:M=>(M.pilgrims||0)>=10},
+  {id:'elites100',name:'Big Game Hunter',desc:'A hundred elites, all time',title:'the Hunter',test:M=>(M.elites||0)>=100},
+  {id:'evos5',name:'Alchemist',desc:'Find five evolutions',title:'the Alchemist',test:M=>EVOS.filter(r=>M.relicsSeen[r.id]).length>=5},
+  {id:'relics_all',name:'Collector',desc:'See every base relic',title:'the Collector',perk:'Keepsake carries one more relic',test:M=>RELICS.filter(r=>!r.evo).every(r=>M.relicsSeen[r.id])},
+  {id:'fields_all',name:'Wayfarer',desc:'Win on all four fields',title:'the Wayfarer',test:M=>FIELDS.every(f=>(M.fieldWins||{})[f.id])},
+  {id:'circle3',name:'Deeper',desc:'Reach Circle 3',title:'of the Third Circle',test:M=>M.maxCircle>=3},
+  {id:'roster',name:'Full Roster',desc:'Unlock all nine recruits',title:'the Recruiter',test:M=>['necro','assassin','paladin','frost','ent','wolf','vampire','gunner','robot'].every(k=>unlocked(k))},
+  {id:'devoted',name:'Devotion',desc:'A member reaches 100 gratitude',title:'the Beloved',test:M=>Object.keys(M.devoted||{}).length>=1},
+  {id:'devoted_all',name:'Beloved by All',desc:'Every character devoted at least once',title:'Wren, actually',test:M=>Object.keys(M.devoted||{}).length>=12},
+  {id:'mythic',name:'Lucky',desc:'A Mythic card comes up',title:'the Lucky',test:M=>(M.mythics||0)>=1},
+  {id:'contracts10',name:'Word Kept',desc:'Keep ten promises',title:'of Her Word',perk:'Swear three contracts instead of two',test:M=>Object.values(M.contractsDone||{}).reduce((a,b)=>a+b,0)>=10},
+  {id:'flawless',name:'Flawless',desc:'Win with nobody falling',title:'the Careful',run:(S,G)=>G.won&&!(S.downs||0)},
+  {id:'norevive',name:'Undertaker’s Day Off',desc:'Win without casting Revive',title:'the Sparing',run:(S,G)=>G.won&&!(S.revives||0)},
+  {id:'purist',name:'Purist',desc:'Win holding at most one weapon',title:'the Purist',run:(S,G)=>G.won&&UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).length<=1},
+  {id:'fullhouse',name:'Full House',desc:'Nine quirks in one run',title:'the Peculiar',run:S=>(S.quirks||0)>=9},
+  {id:'armoury',name:'Armoury',desc:'Four weapons in one run',title:'the Quartermaster',run:S=>(S.weapons||0)>=4},
+  {id:'yesman',name:'Yes, Fine',desc:'Grant five requests in one run',title:'the Obliging',run:S=>(S.demandsOk||0)>=5},
+  {id:'lullaby',name:'Lullaby',desc:'Brom naps twenty times in one run',title:'the Patient',run:S=>(S.naps||0)>=20},
+  {id:'ff',name:'Friendly Fire',desc:'The party hits itself 300 times in one run',title:'the Long-Suffering',run:S=>(S.ff||0)>=300},
+  {id:'fountain',name:'Fountain',desc:'Fifty thousand healing in one run',title:'the Fountain',run:S=>(S.healed||0)>=50000},
+  {id:'prodigy',name:'Prodigy',desc:'Level 15 by 5:00',title:'the Prodigy',run:S=>(S.lv5||0)>=15},
+  {id:'runs25',name:'Regular',desc:'Twenty-five runs',title:'the Regular',test:M=>M.runs>=25},
+  {id:'rich',name:'Rich',desc:'Fifty thousand gold, all time',title:'the Well-Paid',test:M=>(M.goldTotal||0)>=50000},
+  {id:'together',name:'Together',desc:'Win with a synergy active',title:'the Matchmaker',run:(S,G)=>G.won&&activeSyn().some(y=>!y.grudge)},
+  {id:'despite',name:'Despite Everything',desc:'Win with a grudge active',title:'the Peacemaker',run:(S,G)=>G.won&&activeSyn().some(y=>y.grudge)},
+  {id:'untouched',name:'Untouched',desc:'Win with Wren never dropping under half',title:'the Untouchable',run:(S,G)=>G.won&&(S.closest===undefined||S.closest>=0.5)},
+];
+const ACH={}; for(const a of ACHIEVEMENTS)ACH[a.id]=a;
+const hasAch=id=>!!(META.ach&&META.ach[id]);
+function checkAchievements(endOfRun){
+  META.ach=META.ach||{}; const fresh=[];
+  for(const a of ACHIEVEMENTS){if(META.ach[a.id])continue;let ok=false;try{ok=a.test?a.test(META):(endOfRun&&G&&a.run?a.run(G.stats,G):false)}catch(e){ok=false}
+    if(ok){META.ach[a.id]=Date.now();fresh.push(a);if(!META.title)META.title=a.title}}
+  if(fresh.length)save(); return fresh;
+}
+function renderAchievements(){
+  const box=$('achs'); if(!box)return; META.ach=META.ach||{}; box.innerHTML='';
+  const n=Object.keys(META.ach).length; $('achcount').textContent=n+' of '+ACHIEVEMENTS.length+(META.title?' · Wren '+META.title:'');
+  for(const a of ACHIEVEMENTS){const got=!!META.ach[a.id];const d=document.createElement('div');d.className='node'+(got?' on':' locked');
+    d.innerHTML='<b>'+(got?'🏅 ':'🔒 ')+esc(a.name)+'</b><span class="d">'+esc(a.desc)+(a.perk?' — <b style="color:var(--gold)">'+esc(a.perk)+'</b>':'')+'</span><span class="r"></span>';
+    if(got){const b=document.createElement('button');b.className='sm';b.textContent=META.title===a.title?'Title worn':'Wear: '+a.title;b.disabled=META.title===a.title;b.onclick=()=>{META.title=a.title;save();renderMenu()};d.querySelector('.r').appendChild(b)}
+    else{const l=document.createElement('span');l.className='lock';l.textContent='title: '+a.title;d.querySelector('.r').appendChild(l)}
+    box.appendChild(d)}
+}
 function trainMember(m){const k=m.key,P={necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[k];
   if(P){m.maxhp=Math.round(m.maxhp*(1+0.15*rank(P+'_hp')));m.dmgT=1+0.12*rank(P+'_dmg');m.dmg*=m.dmgT;if(m.spd)m.spd*=1+0.08*rank(P+'_spd')}
   if(k==='tank')m.reach*=1+0.08*rank('t_reach');
@@ -1323,7 +1377,7 @@ function newRun(){
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
   for(const m of G.party)for(let i=0;i<rank({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]+'_start');i++){const pool=SKILLS[m.key].filter(x=>skl(m,x.id)<x.max);if(pool.length)applySkill(m,pick(pool).id)}
   for(let i=0;i<rank('h_start');i++){G.level++;G.xpNext=xpFor(G.level)}
-  { const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo).map(r=>r.id); for(let i=0;i<rank('h_keepsake')&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
+  { const known=RELICS.filter(r=>META.relicsSeen[r.id]&&!r.evo).map(r=>r.id); for(let i=0;i<rank('h_keepsake')+(hasAch('relics_all')&&rank('h_keepsake')?1:0)&&known.length;i++){const k=known.splice(Math.floor(Math.random()*known.length),1)[0];applyRelic(k,true)} }
   META.runs++; save();
   try{G.stainCv=document.createElement('canvas');G.stainCv.width=G.stainCv.height=ARENA/2;G.stainCtx=G.stainCv.getContext('2d')}catch(e){G.stainCv=null}
   buildHud(); toast('Keep them alive.',2.5);
@@ -2033,7 +2087,7 @@ function showLevelUp(){
   while(picks.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);picks.push(pool.splice(i,1)[0])}
   if(!picks.length){G.healer.mana=G.healer.manaMax;return false}
   G.lvOpen=true; G.pickKind='up'; G.pendingPicks=picks;
-  const luck=(G.chestBonus?1.5:0)+0.5*rank('h_luck'); G.pickTiers={}; G.pickGive={};
+  const luck=(G.chestBonus?1.5:0)+0.5*rank('h_luck')+(hasAch('wins5')&&G.level<=2?1.5:0); G.pickTiers={}; G.pickGive={};
   for(const u of picks)if(u.who==='weapon'&&!upRank(u.id)){const cands=G.party.filter(m=>m.alive&&weaponsHeld(m.key)<2);if(cands.length)G.pickGive[u.id]=pick(cands).key}
   for(const u of picks){let t=rollTier(luck);const left=u.max-upRank(u.id);if(t<4&&TIERS[t].ranks>left)t=Math.max(0,left-1);G.pickTiers[u.id]=t}
   $('lvtitle').textContent=G.chestBonus?'From the chest':'Level '+G.level; G.chestBonus=false;
@@ -2052,7 +2106,7 @@ function chooseUp(id){
   const left=u?u.max-upRank(id):1; const n=Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));
   for(let i=0;i<n;i++)applyUp(id);
   G.stats.tiers=G.stats.tiers||[0,0,0,0,0]; G.stats.tiers[t]++;
-  if(t===4){for(const a of allies()){a.hp=a.maxhp}h.mana=h.manaMax;G.blasts.push({x:h.x,y:h.y,r:160,life:0.6,col:'rgba(255,120,150,'});puff(h.x,h.y,40,'#ffd24a',200,3);say(h,pick(['...that cannot be right.','Nobody tell the party.','Oh. Oh no. Oh good.']),2.5,true);ftext(h.x,h.y-40,'MYTHIC','#ff6a8a',18)}
+  if(t===4){META.mythics=(META.mythics||0)+1;for(const a of allies()){a.hp=a.maxhp}h.mana=h.manaMax;G.blasts.push({x:h.x,y:h.y,r:160,life:0.6,col:'rgba(255,120,150,'});puff(h.x,h.y,40,'#ffd24a',200,3);say(h,pick(['...that cannot be right.','Nobody tell the party.','Oh. Oh no. Oh good.']),2.5,true);ftext(h.x,h.y-40,'MYTHIC','#ff6a8a',18)}
   else if(t>=2)ftext(h.x,h.y-36,TIERS[t].name.toUpperCase(),t===3?'#ffb24a':'#b46cff',14);
   if(u&&u.spell){if(!G.learned[u.spell]){G.learned[u.spell]=true;buildChips();say(h,pick(['I remember this one.','A new prayer.','I think this goes like...']),2,true)}}
   if(id.startsWith('w_')){if(G.up[id]===n&&UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>0).length>1)contractFail('light','A second weapon.');if(G.up[id]===n){const key=G.pickGive[id]||(G.party.find(m=>m.alive)||{}).key;G.wOwner[id]=key;const o=byKey(key);G.stats.weapons=(G.stats.weapons||0)+1;say(h,pick(['Take this. Please.','I found this. It is yours now.','Hold this and do not ask.']),2,true);if(o)later(0.8,()=>say(o,pick(CHARS[o.key].lines.gift||['...is this mine now?','Fine. I’ll hold it.','What does it do?','Ooh.']),2,true))}else{const o=holderOf(id);if(o)say(o,pick(['Getting the hang of it.','It likes me.','Better.']),1.5,true)}}
@@ -2076,12 +2130,13 @@ function endRun(won,why){
   if(won){META.wins++;META.maxCircle=Math.max(META.maxCircle,G.circle+1);META.fieldWins=META.fieldWins||{};META.fieldWins[G.field.id]=1}
   META.goldTotal=(META.goldTotal||0)+gold;
   META.bestTime=Math.max(META.bestTime,G.t); save();
+  G.freshAch=checkAchievements(true);
   if(won&&META.maxCircle===1&&G.circle===0)later(0,()=>{}); // (the field unlock is read from maxCircle on the menu)
   $('ovtitle').textContent=won?'The Demon King is dead':why==='healer'?'The healer died':'Party wiped';
   $('ovline').textContent=won?'Your party will tell this story for years. You are not in it.':why==='healer'?'Nobody noticed for a while.':'You stood there with a full mana bar. No. You didn’t. There was never enough mana.';
   const names=G.party.map(m=>m.name).join(' / ');
   $('ovstory').innerHTML=runStory(won,why).map(l=>'<div>'+l+'</div>').join('');
-  $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold+(G.contractBonus?' (+'+G.contractBonus+' from promises)':'')],...(G.contractLines&&G.contractLines.length?[['Promises',G.contractLines.join(' · ')]]:[]),['Gratitude — '+names,G.party.map(m=>Math.round(m.grat||0)+(m.grat>=100?' ♥':m.grat>=70?' ✓':'')).join(' / ')],['Healing done',Math.floor(G.stats.healed)],['Kills — '+names,G.party.map(m=>m.kills).join(' / ')],['Kills — Wren','0 (as intended)'],['Party levels — '+names,G.party.map(m=>m.lvl).join(' / ')],['Events',(G.stats.eventsWon||0)+' of '+(G.stats.events||0)],['Naps / turns / reloads / overheats',G.stats.naps+' / '+(G.stats.turns||0)+' / '+(G.stats.reloads||0)+' / '+(G.stats.overheats||0)],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>relicIcon(id)).join(' '):'none']]
+  $('ovstats').innerHTML=[['Survived',fmt(G.t)],['Gold earned',gold+(G.contractBonus?' (+'+G.contractBonus+' from promises)':'')],...(G.contractLines&&G.contractLines.length?[['Promises',G.contractLines.join(' · ')]]:[]),...(G.freshAch&&G.freshAch.length?[['Achievements',G.freshAch.map(a=>'🏅 '+a.name+' — “'+a.title+'”').join(' · ')]]:[]),['Gratitude — '+names,G.party.map(m=>Math.round(m.grat||0)+(m.grat>=100?' ♥':m.grat>=70?' ✓':'')).join(' / ')],['Healing done',Math.floor(G.stats.healed)],['Kills — '+names,G.party.map(m=>m.kills).join(' / ')],['Kills — Wren','0 (as intended)'],['Party levels — '+names,G.party.map(m=>m.lvl).join(' / ')],['Events',(G.stats.eventsWon||0)+' of '+(G.stats.events||0)],['Naps / turns / reloads / overheats',G.stats.naps+' / '+(G.stats.turns||0)+' / '+(G.stats.reloads||0)+' / '+(G.stats.overheats||0)],['Friendly fire incidents',G.stats.ff],['Revives',G.stats.revives],['Times out of mana',G.stats.oom],['Thank-yous received',G.stats.thanks],['Relics carried',G.relics.length?G.relics.map(id=>relicIcon(id)).join(' '):'none']]
     .map(([k,v])=>'<span>'+k+'</span><span>'+v+'</span>').join('');
   if(won&&G.circle===META.maxCircle-1)$('ovline').textContent+=' Circle '+(G.circle+1)+' is open.';
   setTimeout(()=>{$('over').classList.remove('hide');$('hud').classList.remove('run')},won?900:600);
@@ -2110,6 +2165,7 @@ function runStory(won,why){
   {const qq=G.party.filter(m=>m.q&&Object.keys(m.q).length);if(qq.length)L.push(qq.map(m=>m.name+' went '+Object.keys(m.q).map(id=>(QUIRK[id]||{name:id}).name).join(' and ')).join('. ')+'.')}
   if(S.tiers&&S.tiers[4])L.push(S.tiers[4]===1?'One Mythic card came up. Wren has not told anyone.':S.tiers[4]+' Mythic cards came up. Somebody is going to ask questions.'); else if(S.tiers&&S.tiers[3])L.push(S.tiers[3]+' Legendary card'+(S.tiers[3]>1?'s':'')+'. Wren assumes a clerical error.');
   {const srt=[...G.party].sort((a,b)=>(b.grat||0)-(a.grat||0));const top=srt[0],low=srt[srt.length-1];if(top&&(top.grat||0)>=70)L.push(top.name+' ended the run grateful ('+Math.round(top.grat)+'). '+(low!==top&&(low.grat||0)<30?low.name+' owes you and will not say so.':'It took ten minutes.'));else if(low)L.push('Nobody got past warm. '+low.name+' owes you the most and knows it.')}
+  if(G.freshAch&&G.freshAch.length)L.push('New: '+G.freshAch.map(a=>a.name).join(', ')+'. Wren may now be called '+G.freshAch[0].title+'. She will not insist.');
   if(G.stats.demands)L.push((G.stats.demandsOk||0)+' of '+G.stats.demands+' requests granted. '+((G.stats.demandsOk||0)===G.stats.demands?'They noticed. Briefly.':'The rest will be mentioned again.'));
   if(G.contractLines&&G.contractLines.length)L.push('Promises: '+G.contractLines.join(', ')+'.'+(G.contractBonus?' The quartermaster paid '+G.contractBonus+' extra.':' Nothing extra was paid.'));
   {const list=activeSyn();if(list.length)L.push('Together: '+list.map(y=>y.name).join(', ')+'. '+(list.some(y=>y.grudge)?'Not all of it was friendly.':'They will not admit it helped.'))}
@@ -2172,7 +2228,7 @@ function updateHud(){
 // ---------- sim ----------
 function step(dt){
   G.t+=dt;
-  updateSpawns(dt); updateHealer(dt); if(G.over)return; updateWeapons(dt); updatePools(dt); synBark(dt); contractsTick(dt); demandTick(dt); gratTick(dt);
+  updateSpawns(dt); updateHealer(dt); if(G.over)return; updateWeapons(dt); updatePools(dt); synBark(dt); contractsTick(dt); demandTick(dt); gratTick(dt); if(G.t>=300&&!G.stats.lv5)G.stats.lv5=G.level;
   for(const m of G.party)if(m.alive&&!(m.frozenT>0))CHARS[m.key].update(m,dt);
   if(upRank('ward')){G.wardT=(G.wardT||0)-dt;if(G.wardT<=0){G.wardT=20;for(const a of allies()){a.shield=Math.max(a.shield,a.maxhp*0.1*upRank('ward'));puff(a.x,a.y,4,'#c8e8ff',50,2)}}}
   for(const m of G.party){if(m.arcCd>0)m.arcCd-=dt;if(!m.alive){if(m.selfRevT>0){m.selfRevT-=dt;if(m.selfRevT<=0)selfRevive(m)}continue}if(m.key!=='tank'&&m.hp<m.maxhp&&mrank(m,'regen'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.004*mrank(m,'regen')*dt)}

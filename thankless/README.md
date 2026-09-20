@@ -319,13 +319,45 @@ frost freezes, bolt arcs to a neighbour, holy mends allies it touches,
 arcane and steel shove. Each has an evolution at rank five.
 
 ## Ultimates
-A healer's ultimate costs the whole flask and fires from the Q button (or
-tapping it) once mana is full. Ivy's is **The Old Growth**: she roots where
-she stands and becomes something older for fifteen seconds; sunlight pours
-in, saplings and roots rise around her, beasts run out in every direction,
-everyone within reach mends 6% a second, everything hostile is shoved away
-and burned, and nothing can hurt her. The other characters' ultimates are
-still being chosen.
+Every character has two ultimates and you pick one at camp, under their
+card. A healer's costs the whole flask and fires from the Q button (or
+tapping it) once mana is full. A member's charges on time and kills (the
+purple bar under their gratitude) and fires on its own when a crowd
+closes in or a boss is near; a banner and the chat box announce it.
+- Wren: Last Rites (raise every fallen ally, party untouchable 8s) or The
+  Boy Who Stayed (triple speed for 12s, trailing healing light).
+- Father Ansel: The Sermon (12s rooted and untouchable, every enemy turns
+  on him and burns, allies shielded) or Excommunication (every enemy on
+  screen loses half its health and stands stunned).
+- Ivy: The Old Growth (rooted druid god, sunlight, saplings, beasts, heals
+  and shoves for 15s) or Bear Shape (a great bear for 12s, twice as fast,
+  untouchable, mauling, healing everyone near).
+- Brom: The Big Nap (snoring shockwaves, wakes with a 5× swing) or Stew
+  Time (heals to full, untouchable, taunts everything).
+- Pip: Arrow Rain (8s of arrows on the whole field) or The Big One (one
+  growing arrow that pierces everything and explodes).
+- Vex: Meteor Swarm (thirty meteors in a spiral) or Ascension (floats,
+  untouchable, fireballs from both hands).
+- Mortimer: Army of the Dead (every kill rises for 12s) or The Lich Reads
+  (his skeletons grow huge and immortal for 10s).
+- Sable: A Thousand Cuts (backstabs everything on screen in 4s) or Shadow
+  Clones (four copies for 12s).
+- Gideon: Crusade (a field where allies take nothing and enemies burn) or
+  Judgement (wings of light, a tenth of the biggest enemy's health a second).
+- Frost: Ice Age (the field freezes and shatters) or Glacier (a wall of ice
+  ploughs across the field).
+- Bramble: The Old Forest (twice his size, roots everything) or
+  Reforestation (twelve saplings and a ring of trees).
+- Lupa: Blood Moon (huge wolf for 20s, kills heal the party) or The Pack
+  (six spectral wolves).
+- Valerian: Bat Storm (a bat cloud that drains the field) or Eternal Night
+  (the field goes dark, every hit a backstab).
+- Dusty: High Noon (time slows, he fans the hammer) or Dynamite Wagon
+  (twenty sticks).
+- Unit 7: Meltdown (a growing ring of fire, then reboot at full) or Orbital
+  Strike (a beam from above follows a sweeping laser).
+Art: blocks 62–65 (Ivy's two forms, Vex ascended, Gideon winged, Brom's
+stew, and the healers' six icons).
 
 ## Holding off heals
 Tap a member's card in the HUD to stop healing them; tap again to resume.

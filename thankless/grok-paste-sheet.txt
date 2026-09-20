@@ -491,3 +491,24 @@ files: 1=fx_ob_star.webp
 files: 1=ult_ivy.webp  2=spell_ult_ivy.webp
 1. a towering serene druid goddess: the young druid Ivy grown huge and ancient, her body half living oak with bark robes and vines, a great crown of antler branches heavy with leaves and small flowers, glowing green eyes, arms spread wide with sprays of leaves and blossoms pouring from her hands, roots spreading from her feet, tall and stationary. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
 2. a great oak tree with a crown of antler branches and a small sun rising behind it, leaves and light. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+
+================ ULTIMATES — 9 images ================
+
+--- block 63 (ult_ivy2, ult_mage, ult_paladin, ult_tank) ---
+files: 1=ult_ivy2.webp  2=ult_mage.webp  3=ult_paladin.webp  4=ult_tank.webp
+1. a great green-furred bear with a crown of ivy and small twig antlers, leaves growing from its shoulders, glowing green eyes, charging forward on all fours with a roar, freckles on its muzzle. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a haughty slender mage in a deep purple robe and tall pointed lavender hat floating a foot off the ground with her robe rippling, both hands raised and wreathed in orange fire, eyes glowing orange, smug. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a broad paladin in gleaming gold and white plate armour hovering with huge wings of golden light spread wide, a warhammer raised overhead, halo of light, stern. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a huge armoured warrior with a big shield laid beside him sitting cross-legged on the ground, helmet off, happily eating from a steaming bowl of stew with a wooden spoon, eyes closed in bliss. chunky chibi fantasy game sprite, big head, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 64 (spell_ult_wren_0, spell_ult_wren_1, spell_ult_ansel_0, spell_ult_ansel_1) ---
+files: 1=spell_ult_wren_0.webp  2=spell_ult_wren_1.webp  3=spell_ult_ansel_0.webp  4=spell_ult_ansel_1.webp
+1. a golden ankh radiating a wide ring of white light with three small rising sparks. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+2. a pair of small running boots leaving a trail of glowing green healing light behind them. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+3. a heavy wooden crozier with a gold cross planted in the ground with rings of shouting sound waves around it. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+4. a huge golden gavel hammer striking down with a burst of white lightning. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border
+
+--- block 65 (spell_ult_ivy_1) ---
+files: 1=spell_ult_ivy_1.webp
+1. a roaring green bear head with a crown of ivy leaves. small chunky fantasy game spell icon, a single bold symbol, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border

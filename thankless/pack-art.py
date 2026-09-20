@@ -11,6 +11,7 @@ What happens to each file, by key prefix:
   relic_  item icon: keyed off magenta, trimmed, fitted into 64x64
   face_   HUD bust: square crop, 96x96, background kept
   title   menu painting: 16:9 crop, 640x360, background kept
+  fx_ring_/fx_pool_/fx_roots/fx_slash/fx_front  ground effect: keyed, trimmed, fitted into 256x256
   (else)  sprite: keyed off magenta, trimmed, fitted into 128x128
 
 Keying (the matte fix): the background colour is the median of the border
@@ -128,6 +129,8 @@ def pack_one(path):
         out = seamless(square(im.convert("RGB"), 256)); q = 80
     elif key.startswith("relic_") or key.startswith("skill_") or key.startswith("spell_"):
         out = fit(trim(key_out(im)), 64); q = 88
+    elif key.startswith("fx_ring_") or key.startswith("fx_pool_") or key in ("fx_roots", "fx_slash", "fx_front"):
+        out = fit(trim(key_out(im)), 256); q = 86   # ground effects get scaled up to a weapon's radius: keep them sharp
     elif key.startswith("face_"):
         im = im.convert("RGB"); w, h = im.size; sq = min(w, h)
         out = im.crop(((w-sq)//2, 0, (w-sq)//2+sq, sq)).resize((96, 96), Image.LANCZOS); q = 85   # a bust keeps its head: crop from the top

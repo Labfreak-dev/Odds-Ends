@@ -112,7 +112,19 @@ Demon King comes to you.
   back), Lucky, Grateful and Bodyguard. Skill cards roll tiers like Wren's
   do. With weapons and quirks landing on different people every run, no
   two parties play the same.
-- **Relics belong to someone.** Brom's, Pip's and Vex's relics are only
+- **Auras.** Six of the gifted weapons surround whoever carries them: Fire
+  Ring (a ring of flame at arm's length), Poison Trail (poisoned ground
+  behind the holder), Spinning Blades, Mending Circle (heals everyone
+  near the holder), Static Field (periodic lightning on everything close)
+  and Gravity Well (drags enemies in and slows them).
+- **Relics belong to someone.** Every character has four of their own now
+  (Brom's Stew Pot and Anvil Shield, Pip's Whetstone and Lucky Green Cap,
+  Vex's Monocle and Scorch Mark, and two more for each recruit), offered
+  only when they are going. 91 relics in all, and 21 evolutions — the
+  recruits' pairs fuse too: Bone Crown, Night Work, The Cathedral, Eternal
+  Winter, World Tree, Full Moon, Nosferatu, Dead Eye, Reactor Core, plus
+  Pilgrimage and Last Rites for Wren.
+- **Relics, the rule.** Brom's, Pip's and Vex's relics are only
   offered when they are in the party, and every recruit has two of their
   own (Phylactery and Grave Dust, Smoke Bomb and Garrote, Reliquary and
   Embroidered Tabard, Snow Globe and Hoarfrost, Golden Acorn and Amber Sap,

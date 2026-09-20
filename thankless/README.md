@@ -413,6 +413,17 @@ draw at 44–62px and fodder at 24–58px, so silhouettes matter more than detai
 4. Commit and push to main. Pages redeploys in a minute or two.
 
 ## Balance notes
+- **b053, harder.** Enemies ramp faster on the clock (HP 1.15+t/130 for three
+  minutes, then 2.53+(t-180)/220; damage 1.15+t/300) and also with the party:
+  every average member level past 4 adds +10% enemy HP and +5% enemy damage,
+  so a party that outgrows the clock still gets a fight. Spawns come every
+  0.95s falling to 0.28s with an extra enemy per 200s, elites at 0.6× the
+  field's cadence and doubled after six minutes, the cap is 400 on screen.
+  Knight 1400, Lich 2200, Demon King 18000 who summons six every ten
+  seconds. On the party's side the healer's level now adds 8% party damage
+  a level (was 20%) and Hearty Stew is +12% a rank (was 20%). Bot results:
+  an untrained trio loses around 6:00; maxed trees win at 10:10–10:20 with
+  the healer under real pressure.
 Tuned with the bot at 8× speed (`--party a,b,c` starts a run with any
 three characters, unlocked or not). An untrained save should wipe somewhere past
 four minutes; a fully trained one should reach the King. Enemy HP scales

@@ -48,16 +48,25 @@ Demon King comes to you.
   Brom the only thing enemies can see. **Rouse** wakes, calms and shoves.
   **Revive** (R, its own button when someone is down) raises at half HP. An
   unbuffed party fights at 60%; a busy healer keeps two buffs rolling.
-- **Weapons.** Wren is not supposed to attack, but level-ups offer her
-  survivors-style weapons anyway: Stray Ember (a fireball that bounces off
+- **Weapons, for the party.** Wren cannot attack — nothing she does hurts an
+  enemy, and her kill count reads zero, as intended. Level-ups still turn
+  up survivors-style weapons, and each one is handed to a party member who
+  carries it from then on (four in play at most, two per person): Stray Ember (a fireball that bounces off
   the field's edges), Kitchen Knives (thrown the way she faces), Censer
   Chain (a whip, both sides at rank 3), Incense (a burning aura), Orbiting
   Hymnals (books that circle her), Thrown Candlestick (a heavy arc that
   pierces), Wand of Slight Offense (homing bolts), Small Smitings (lightning
   on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
   weapons at most, five ranks each; one is guaranteed in the first few
-  levels. A weapon build gives Wren roughly a fifth of the kills late in a
-  run, and the story notes that nobody will believe it.
+  levels. The card names who takes it; the story lists who carried what.
+- **Quirks.** As members level they also draw from 21 run-defining quirks,
+  three per member per run: Berserker, Colossus, Quicksilver, Glass
+  Cannon, Stoneskin, Fleet, Pyromaniac, Rimefinger, Leech, Volatile (kills
+  explode), Conductor (hits arc), Thunderclap, Lodestone, Brambleskin,
+  Giant Slayer, Crowd Pleaser, Bloodrage, Twin (a ghostly copy that comes
+  back), Lucky, Grateful and Bodyguard. Skill cards roll tiers like Wren's
+  do. With weapons and quirks landing on different people every run, no
+  two parties play the same.
 - **Tiers.** Every card offered on a level-up or from a chest rolls a tier:
   Common (70%), Rare (19%), Epic (7.5%), Legendary (2.8%) or Mythic (0.7%).
   The tier is how many ranks the pick grants at once — one, two, three,

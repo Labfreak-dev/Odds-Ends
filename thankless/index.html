@@ -260,7 +260,7 @@
 
 <script>
 'use strict';
-const BUILD='b031-camp';
+const BUILD='b032-noswap';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -941,7 +941,7 @@ function quirkTick(m,dt){
     if(!tw&&m.twinT<=0){m.twinT=20;const z={minion:true,kind:'twin',owner:m,x:m.x+rnd(-20,20),y:m.y+rnd(-20,20),r:m.r*0.9,hp:m.maxhp*0.5,maxhp:m.maxhp*0.5,dmg:m.dmg*0.4,spd:(m.spd||80)*1.1,atkCd:m.atkCd||1,cdT:0,life:1e9,alive:true,face:1,anim:0,hitT:0,swing:0,shield:0,col:m.col};G.minions.push(z);puff(z.x,z.y,10,m.col,80,2.5)}}
 }
 function memberLevelPool(m){const pool=SKILLS[m.key].filter(k=>skl(m,k.id)<k.max);const C=CHARS[m.key];
-  if(m.lvl>=3&&C.weapons[1]&&m.weapon!==C.weapons[1].id&&!m.swapOffered){const w=C.weapons[1];pool.push({id:'swap_'+m.key,name:'Swap: '+w.name,kind:'weapon',desc:w.desc,max:1})}
+  if(m.lvl>=3&&C.weapons[1]&&m.weapon!==C.weapons[1].id&&!m.swapOffered&&!(META.weaponsSeen||{})[m.key]){const w=C.weapons[1];pool.push({id:'swap_'+m.key,name:'Swap: '+w.name,kind:'weapon',desc:w.desc,max:1})}
   return pool}
 function applySkill(m,id){
   if(id.startsWith('swap_')){const C=CHARS[m.key];m.weapon=C.weapons[1].id;m.swapOffered=true;C.onWeapon&&C.onWeapon(m);META.weaponsSeen[m.key]=1;META.weapon[m.key]=m.weapon;save();say(m,C.lines.swap||'New toy.',2,true);return}

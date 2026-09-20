@@ -19,6 +19,7 @@ ap.add_argument('--tree',action='store_true')
 ap.add_argument('--field',type=int,default=0)
 ap.add_argument('--nobuffs',action='store_true',help='the bot never casts Bless, Haste or Fortify (a control run)')
 ap.add_argument('--pref',default='',help='comma list: level-up preference order for the bot')
+ap.add_argument('--healer',default='',help='wren, ansel or ivy')
 ap.add_argument('--party',default='',help='comma list of 3 member keys; unlocks everything')
 ap.add_argument('--shots',action='store_true')
 ap.add_argument('--every',type=float,default=60,help='log interval in game seconds')
@@ -80,6 +81,9 @@ def main():
         if a.tree:
             pg.evaluate("""()=>{const M=window.TL.META; for(const n of window.TL.TREE){M.tree[n.id]=n.max;} M.gold=0; for(const r of window.TL.RELICS)M.relicsSeen[r.id]=1;}""")
         pg.evaluate(f"()=>{{window.TL.META.circle={a.circle}; window.TL.META.maxCircle=Math.max(window.TL.META.maxCircle,{a.circle},{a.field}); window.TL.META.field={a.field};}}")
+        if a.healer:
+            pg.evaluate("(k)=>{const M=window.TL.META; M.unlockAll=true; M.healer=k; window.TL.save(); location.reload();}", a.healer)
+            pg.wait_for_function('window.TL && document.getElementById("start")')
         if a.party:
             pg.evaluate("(p)=>{const M=window.TL.META; M.unlockAll=true; M.party=p.split(','); window.TL.save&&window.TL.save(); location.reload();}", a.party)
             pg.wait_for_function('window.TL && document.getElementById("start") && !document.getElementById("start").disabled')

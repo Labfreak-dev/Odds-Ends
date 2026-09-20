@@ -274,7 +274,7 @@
 
 <script>
 'use strict';
-const BUILD='b052-cineart';
+const BUILD='b053-harder';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -717,7 +717,7 @@ const UPS=[
   {id:'chain',who:'healer',name:'Both Hands',desc:'Mend also heals a second ally for 50%',max:1},
   {id:'thorns',who:'healer',name:'Blessed Skin',desc:'Enemies that hit a freshly healed ally take damage',max:3},
   {id:'pdmg',who:'party',name:'Pep Talk',desc:'+15% party damage',max:6},
-  {id:'php',who:'party',name:'Hearty Stew',desc:'+20% party max HP',max:5},
+  {id:'php',who:'party',name:'Hearty Stew',desc:'+12% party max HP',max:5},
   {id:'coffee',who:'tank',name:'Coffee for Brom',desc:'Brom −25% nap chance',max:3},
   {id:'glasses',who:'archer',name:'Glasses for Pip',desc:'Pip −25% miss chance, shoots nearer targets',max:3},
   {id:'manners',who:'mage',name:'Manners for Vex',desc:'Vex −30% friendly fire',max:3},
@@ -818,7 +818,7 @@ const UPS=[
 // what each card is worth now, for the "now → next" line
 const UPVAL={power:r=>'+'+20*r+'% heal power',pspd:r=>'+'+10*r+'% party move speed',brace:r=>'−'+Math.round(100-100*Math.pow(0.94,r))+'% party damage taken',haste:r=>'Mend '+Math.round(100-100*Math.pow(0.85,r))+'% faster',range:r=>'+'+Math.round(100*(Math.pow(1.15,r)-1))+'% range',boots:r=>'+'+Math.round(100*(Math.pow(1.12,r)-1))+'% speed',
   luck:r=>'+'+10*r+'% luck',magnet:r=>'+'+40*r+'% pickup, motes heal '+r+'%',vit:r=>'+'+25*r+' HP',cdr:r=>'cooldowns −'+Math.round(100-100*Math.pow(0.88,r))+'%',overheal:r=>'shield up to '+30*r+'% HP',holy:r=>'burn = '+50*r+'% of overheal',hot:r=>'+'+25*r+'% extra healing over 3s',chain:r=>r?'2nd ally healed for 50%':'—',
-  thorns:r=>8*r+' damage per hit taken (scales with level)',pdmg:r=>'+'+15*r+'% party damage',php:r=>'+'+Math.round(100*(Math.pow(1.2,r)-1))+'% party HP',coffee:r=>'naps '+Math.round(100-100/(1+0.25*r))+'% less often',glasses:r=>'misses −'+Math.round(100-100*Math.pow(0.75,r))+'%',manners:r=>'friendly fire −'+Math.round(100-100*Math.pow(0.7,r))+'%',
+  thorns:r=>8*r+' damage per hit taken (scales with level)',pdmg:r=>'+'+15*r+'% party damage',php:r=>'+'+Math.round(100*(Math.pow(1.12,r)-1))+'% party HP',coffee:r=>'naps '+Math.round(100-100/(1+0.25*r))+'% less often',glasses:r=>'misses −'+Math.round(100-100*Math.pow(0.75,r))+'%',manners:r=>'friendly fire −'+Math.round(100-100*Math.pow(0.7,r))+'%',
   martyr:r=>15*r+'% of ally damage taken by you',sanct:r=>'Fortify heals '+15*r+'%',echo:r=>r?'Surge echoes':'—',longbuff:r=>'buffs +'+25*r+'% longer',blesschain:r=>r?'Bless spreads':'—',blessburst:r=>20*r+'% chance to burst',fortburst:r=>r?'knockback':'—',
   w_ember:r=>(1+Math.floor(r/2))+' ember'+(r>=2?'s':'')+', '+Math.round(100*(0.9+0.25*(r-1)))+'% dmg',w_knife:r=>(1+r)+' knives'+(r>=5?', pierce 2':''),w_whip:r=>Math.round(100*(1.3+0.3*(r-1)))+'% dmg, '+(110+10*r)+' reach'+(r>=3?', both sides':''),w_incense:r=>(52+9*r)+' radius, '+Math.round(100*(0.9+0.25*(r-1)))+'% dps',
   w_hymnal:r=>[0,1,2,3,3,4][r]+' book'+([0,1,2,3,3,4][r]===1?'':'s')+', '+Math.round(100*(1+0.25*(r-1)))+'% dmg',w_candle:r=>(1+Math.floor(r/2))+' stick'+(r>=2?'s':'')+', '+Math.round(100*(2.2+0.5*(r-1)))+'% dmg',w_wand:r=>[0,1,2,2,3,4][r]+' bolt'+([0,1,2,2,3,4][r]===1?'':'s')+', '+Math.round(100*(1.1+0.2*(r-1)))+'% dmg',
@@ -2225,16 +2225,18 @@ const ETYPES={
   hexer:{hp:55,spd:62,dmg:13,r:12,atk:2.4,xp:5,gold:5,gems:2,col:'#3a8a7a',ranged:true},
   ghoul:{hp:90,spd:70,dmg:18,r:13,atk:1.3,xp:6,gold:6,gems:2,col:'#5a6a4a',burrow:true},
   wisp:{hp:20,spd:110,dmg:0,r:9,atk:1,xp:3,gold:3,gems:1,col:'#9adcff',wisp:true},
-  knight:{hp:900,spd:66,dmg:24,r:26,atk:1.3,xp:12,gold:60,gems:8,col:'#2a2a3a',boss:true},
-  lich:{hp:1400,spd:40,dmg:18,r:24,atk:2.0,xp:16,gold:120,gems:10,col:'#5a2a7a',boss:true,ranged:true},
+  knight:{hp:1400,spd:70,dmg:30,r:26,atk:1.3,xp:12,gold:60,gems:8,col:'#2a2a3a',boss:true},
+  lich:{hp:2200,spd:44,dmg:24,r:24,atk:2.0,xp:16,gold:120,gems:10,col:'#5a2a7a',boss:true,ranged:true},
   revenant:{hp:200,spd:90,dmg:16,r:13,atk:0.9,xp:6,gold:10,gems:3,col:'#3a2a4a'},
-  king:{hp:5000,spd:58,dmg:40,r:36,atk:1.4,xp:20,gold:250,gems:14,col:'#3a0a14',boss:true},
+  king:{hp:18000,spd:68,dmg:60,r:36,atk:1.4,xp:20,gold:250,gems:14,col:'#3a0a14',boss:true},
 };
 function spawnEnemy(type,x,y){
   if(!ETYPES[type])type='brute';
-  if(G.enemies.length>260&&!ETYPES[type].boss)return null;
-  const T=ETYPES[type]; const scale=(G.t<180?1+G.t/150:2.2+(G.t-180)/400)*G.hpMul;
-  const e={type,x,y,r:T.r,frozen:0,bleed:null,burrowT:T.burrow?rnd(4,7):0,under:0,hp:T.hp*scale,maxhp:T.hp*scale,spd:T.spd*rnd(0.9,1.1),dmg:T.dmg*(1+G.t/420)*G.dmgMul,atkCd:T.atk,atkT:rnd(0,T.atk),xp:T.xp,gold:T.gold,gems:T.gems,col:T.col,boss:!!T.boss,target:null,tT:rnd(0,0.4),hitT:0,slow:0,dead:false,wob:rnd(0,6.28),chargeT:rnd(3,6),charging:0,sumT:5};
+  if(G.enemies.length>400&&!ETYPES[type].boss)return null;
+  // b053: harder. The clock ramps them, and so does the party: the stronger your three get, the tougher what comes for them.
+  const avgL=G.party.reduce((a,m)=>a+(m.lvl||1),0)/Math.max(1,G.party.length),threat=1+0.1*Math.max(0,avgL-4);
+  const T=ETYPES[type]; const scale=(G.t<180?1.15+G.t/130:2.53+(G.t-180)/220)*G.hpMul*threat;
+  const e={type,x,y,r:T.r,frozen:0,bleed:null,burrowT:T.burrow?rnd(4,7):0,under:0,hp:T.hp*scale,maxhp:T.hp*scale,spd:T.spd*rnd(0.9,1.1),dmg:T.dmg*(1.15+G.t/300)*G.dmgMul*(1+0.05*Math.max(0,avgL-4)),atkCd:T.atk,atkT:rnd(0,T.atk),xp:T.xp,gold:T.gold,gems:T.gems,col:T.col,boss:!!T.boss,target:null,tT:rnd(0,0.4),hitT:0,slow:0,dead:false,wob:rnd(0,6.28),chargeT:rnd(3,6),charging:0,sumT:5};
   if(G.field.speedMul)e.spd*=G.field.speedMul; if(G.moonT>0&&!T.boss){e.spd*=1.5;e.moon=true}
   G.enemies.push(e); return e;
 }
@@ -2273,14 +2275,14 @@ function pickType(t){
 }
 function updateSpawns(dt){
   const t=G.t;
-  if(G.king&&!G.king.dead){G.spawnT-=dt*0.5}else G.spawnT-=dt;
+  if(G.king&&!G.king.dead){G.spawnT-=dt*0.5;G.kingCall=(G.kingCall||0)-dt;if(G.kingCall<=0){G.kingCall=10;const k=G.king;for(let i=0;i<6;i++){const a=i*1.047;spawnEnemy(pickType(t),clamp(k.x+Math.cos(a)*90,10,ARENA-10),clamp(k.y+Math.sin(a)*90,10,ARENA-10))}G.blasts.push({x:k.x,y:k.y,r:120,life:0.5,col:'rgba(200,40,60,'});ftext(k.x,k.y-k.r-30,'RISE','#ff6a8a',16);G.shake=Math.max(G.shake,0.3)}}else G.spawnT-=dt;
   if(G.spawnT<=0){
-    const iv=clamp(1.15-t/600,0.35,1.15)/(1+G.circle*0.12); G.spawnT=iv;
-    const n=1+Math.floor(t/300);
+    const iv=clamp(0.95-t/600,0.28,0.95)/(1+G.circle*0.12); G.spawnT=iv;
+    const n=1+Math.floor(t/200);
     for(let i=0;i<n;i++)spawnAtEdge(pickType(t));
   }
   G.eliteT-=dt;
-  if(G.eliteT<=0){G.eliteT=G.field.eliteEvery/(1+0.2*G.circle);spawnElite()}
+  if(G.eliteT<=0){G.eliteT=G.field.eliteEvery*0.6/(1+0.2*G.circle);spawnElite();if(G.t>360)spawnElite()}
   G.waveT-=dt;
   if(G.waveT<=0){G.waveT=45; const n=8+Math.floor(t/40); const type=G.field.waveType(t);
     const h=G.healer,R=Math.max(VW,VH)/ZOOM*0.62;
@@ -2440,7 +2442,7 @@ function updateMage(m,dt){
     else m.metT=1;
   }
 }
-const pdmg=()=>0.6*(1+0.15*upRank('pdmg'))*(1+0.03*hr('pdmg')+0.05*rank('h_pdmg2'))*(1+0.2*(G.level-1))*(1+G.legendDmg)*(G.cryT>0?1.2:1)*(G.warT>0?1.35:1);
+const pdmg=()=>0.6*(1+0.15*upRank('pdmg'))*(1+0.03*hr('pdmg')+0.05*rank('h_pdmg2'))*(1+0.08*(G.level-1))*(1+G.legendDmg)*(G.cryT>0?1.2:1)*(G.warT>0?1.35:1);
 const mageMul=m=>m.hp>m.maxhp*0.8?1+0.12*rank('m_arrogance'):1;
 function explode(x,y,r,dmg,from){
   const frost=from.weapon==='frostwand'; if(frost)dmg*=0.5; else dmg*=fireMul();
@@ -2503,7 +2505,7 @@ function updateShots(dt){
 const hr=id=>{const h=G&&G.healer;return h&&h.hrank?h.hrank(id):rank('h_'+id)};
 const mendCost=()=>G.healer.mendCost*Math.sqrt(G.healer.healPower/30);   // bigger heals cost more — Kale's rule
 // ---------- Wren's weapons ----------
-const wbase=()=>6*(1+0.2*(G.level-1))*(1+G.t/600)*(1+G.legendDmg)*(1+0.15*upRank('whands'));
+const wbase=()=>6*(1+0.08*(G.level-1))*(1+G.t/600)*(1+G.legendDmg)*(1+0.15*upRank('whands'));
 function wfire(o,kind,x,y,vx,vy,extra){G.shots.push(Object.assign({kind,hw:true,x,y,vx,vy,life:3,age:0,from:o,hits:[],dmg:wbase()},extra||{}))}
 function wcanHit(s,e,gap){for(const h of s.hits)if(h.e===e){if(G.t-h.t<gap)return false;h.t=G.t;return true}s.hits.push({e,t:G.t});return true}
 const holderOf=id=>G&&G.wOwner[id]?G.party.find(m=>m.key===G.wOwner[id]):null;
@@ -2708,7 +2710,7 @@ function applyUp(id){
   G.up[id]=(G.up[id]||0)+1; const h=G.healer;
   if(id==='power')h.healPower*=1.2;
   else if(id==='range')h.range*=1.15; else if(id==='boots')h.spd*=1.12; else if(id==='vit'){h.maxhp+=25;h.hp=h.maxhp}
-  else if(id==='php')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.2);m.hp=Math.round(m.maxhp*Math.max(r,0.5))}
+  else if(id==='php')for(const m of G.party){const r=m.hp/m.maxhp;m.maxhp=Math.round(m.maxhp*1.12);m.hp=Math.round(m.maxhp*Math.max(r,0.5))}
   else if(id==='glasses'){const ar=byKey('archer');if(ar)ar.miss*=0.75} else if(id==='manners'){const mg=byKey('mage');if(mg)mg.ff*=0.7}
 }
 

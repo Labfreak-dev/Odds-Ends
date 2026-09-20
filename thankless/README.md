@@ -187,8 +187,10 @@ Demon King comes to you.
   and revives cheaper; Ivy (after thirty thank-yous) plants her Mend as a
   seed — a third now, the rest over three seconds — that spreads to
   whoever is nearest, with long reach and thin skin. Each starts knowing
-  one prayer. Their art is on the sheet (blocks 44–45); until it lands
-  they use Wren's vector stand-in in their own colour.
+  one prayer, and each has a Training branch of their own (the base nodes
+  plus Bellow, Bulwark, Long Stride, Old Rites and Learned Ward for Ansel;
+  Deeper Seed, Wider Spread, Bloom, Roots and Learned Regrowth for Ivy)
+  that appears as the first tab when they are chosen.
 - **Pick three.** The menu's party panel lists twelve characters; a run takes
   three. Brom, Pip and Vex come free. Nine **recruits** unlock from all-time
   stats and each is useless in a new way: Mortimer the necromancer raises

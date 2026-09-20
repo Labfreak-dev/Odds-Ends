@@ -298,7 +298,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)||(i===3&&META.maxCircle>=3);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='6660498a';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='0b1cb43f';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -2803,8 +2803,8 @@ function draw(){
   if(upRank('w_circle')){const o=holderOf('w_circle');if(holderReady(o)){const R=(80+10*upRank('w_circle'))*aoe();if(!fxDraw('fx_ring_mend',o.x,o.y+2,R*2.2,R*2.2,-G.t*0.3,0.6+0.1*Math.sin(G.t*3))){ctx.fillStyle='rgba(120,255,160,'+(0.06+0.03*Math.sin(G.t*3))+')';ctx.beginPath();ctx.arc(o.x,o.y,R,0,6.283);ctx.fill();ctx.strokeStyle='rgba(140,255,180,.45)';ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.stroke();ctx.setLineDash([])}}}
   if(upRank('w_blades')){const o=holderOf('w_blades');if(holderReady(o)){const n=[0,2,3,4,5,6][upRank('w_blades')],BR=wEvo('w_blades')?84:58;for(let i=0;i<n;i++){const a=(G.bladeA||0)+i*6.283/n,bx=o.x+Math.cos(a)*BR,by=o.y+Math.sin(a)*BR;if(fxDraw('fx_blade',bx,by,30,30,a+1.57,1))continue;ctx.save();ctx.translate(bx,by);ctx.rotate(a+1.57);ctx.fillStyle='#d8dde8';ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(5,6);ctx.lineTo(-5,6);ctx.closePath();ctx.fill();ctx.fillStyle='#6a5a40';ctx.fillRect(-3,6,6,6);ctx.restore()}}}
   if(upRank('w_hymnal')){const o=holderOf('w_hymnal');if(holderReady(o)){const n=[0,1,2,3,3,4][upRank('w_hymnal')],OR=74;for(let i=0;i<n;i++){const a=G.orbA+i*6.283/n,bx=o.x+Math.cos(a)*OR,by=o.y+Math.sin(a)*OR;if(fxDraw('fx_book',bx,by,28,28,a+1.57,1))continue;ctx.save();ctx.translate(bx,by);ctx.rotate(a+1.57);ctx.fillStyle='#8a5a30';ctx.fillRect(-7,-9,14,18);ctx.fillStyle='#ffe9a8';ctx.fillRect(-5,-7,10,14);ctx.fillStyle='#c0a060';ctx.fillRect(-1,-7,2,14);ctx.restore()}}}
-  if(upRank('w_static')){const o=holderOf('w_static');if(holderReady(o)){const R=(120+15*upRank('w_static'))*aoe();fxDraw('fx_ring_static',o.x,o.y+2,R*2.1,R*2.1,G.t*(Math.sin(G.t*30)>0?1:-1)*0.4,0.3+0.12*Math.sin(G.t*14))}}
-  if(upRank('w_well')){const o=holderOf('w_well');if(holderReady(o)){const R=(160+15*upRank('w_well'))*aoe()*(wEvo('w_well')?1.5:1);fxDraw('fx_ring_well',o.x,o.y+2,R*2.1,R*2.1,-G.t*1.6,0.4+0.1*Math.sin(G.t*5))}}
+  if(upRank('w_static')){const o=holderOf('w_static');if(holderReady(o)){const R=(120+15*upRank('w_static'))*aoe();fxDraw('fx_ring_static',o.x,o.y+2,R*2.05,R*2.05,G.t*(Math.sin(G.t*30)>0?1:-1)*0.4,0.2+0.1*Math.sin(G.t*14))}}
+  if(upRank('w_well')){const o=holderOf('w_well');if(holderReady(o)){const R=(160+15*upRank('w_well'))*aoe()*(wEvo('w_well')?1.5:1);fxDraw('fx_ring_well',o.x,o.y+2,R*2,R*2,-G.t*1.6,0.22+0.06*Math.sin(G.t*5))}}
   if(G.beam2&&G.beam2.t>0){G.beam2.t-=1/60;ctx.strokeStyle='rgba(160,230,140,'+(G.beam2.t/0.2*0.7)+')';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(G.beam2.x1,G.beam2.y1);ctx.lineTo(G.beam2.x2,G.beam2.y2);ctx.stroke();ctx.setLineDash([])}
   if(G.beam){ctx.strokeStyle='rgba(140,255,180,'+(G.beam.t/0.2*0.8)+')';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(G.beam.x1,G.beam.y1);ctx.lineTo(G.beam.x2,G.beam.y2);ctx.stroke()}
   for(const b of G.blasts){const k=b.life/0.4;ctx.strokeStyle=b.col+(k*0.9)+')';ctx.lineWidth=4;ctx.beginPath();ctx.arc(b.x,b.y,b.r*(1.15-k*0.3),0,6.283);ctx.stroke()}

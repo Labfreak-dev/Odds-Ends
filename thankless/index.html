@@ -265,7 +265,7 @@
 
 <script>
 'use strict';
-const BUILD='b041-fx';
+const BUILD='b042-noff';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -497,7 +497,7 @@ const RELICS=[
   {id:'chalice',name:'Chalice of Overflow',icon:'🏆',desc:'Overheal gives the target +40% attack speed for 3s'},
   {id:'snore',who:'tank',name:'Snoring Charm',icon:'💤',desc:'−25% enemy speed near sleeping Brom'},
   {id:'rico',who:'archer',name:'Lucky Fletching',icon:'🪶',desc:'Pip’s missed arrows turn back for a second try'},
-  {id:'ego',who:'mage',name:'Vex’s Ego',icon:'👑',desc:'Vex +30% damage, friendly fire included'},
+  {id:'ego',who:'mage',name:'Vex’s Ego',icon:'👑',desc:'Vex +30% damage. She is not sorry'},
   {id:'lantern',name:'Lantern',icon:'🏮',desc:'Heal range +25%'},
   {id:'beads',name:'Prayer Beads',icon:'📿',desc:'20% chance Mend heals double'},
   {id:'cord',name:'Martyr’s Cord',icon:'🪢',desc:'25% of damage to allies in range goes to you instead'},
@@ -1214,7 +1214,7 @@ const CHARS={
     make(){return Object.assign(member('necro','Mortimer','#8fd6a8'),{r:12,maxhp:120,spd:60,dmg:10,atkCd:1.5,minionCap:2,joltT:5})},
     onWeapon(m){if(m.weapon==='grimoire'){m.minionCap=4+(m.minionCap-2);m.boltMul=0.6}else m.boltMul=1},
     update(m,dt){const t=rangedAI(m,dt,170,300,380);if(m.cdT<=0&&t){m.cdT=m.atkCd;shoot(m,t,{dmg:m.dmg*pdmg()*dmgMul(m)*(m.boltMul||1),speed:380,col:'#8fd6a8',pierce:hasRelic('blackcandle')?2:0});m.castT=0.3}
-      m.joltT-=dt;if(m.joltT<=0){const tk=tankOf();if(tk&&tk.alive&&tk.asleep&&Math.hypot(tk.x-m.x,tk.y-m.y)<170){wakeTank(tk);if(hasSyn('rise')){tk.shield=Math.max(tk.shield,tk.maxhp*0.15);puff(tk.x,tk.y,6,'#c8e8ff',60,2)}else if(!rank('n_jolt'))hurtAlly(tk,tk.maxhp*0.04,null);say(tk,'MY BACK.',1.8,true);say(m,pick(['Up. You are not done.','Rise. No, not like that.','The dead have better posture.']),2,true);m.joltT=8}else m.joltT=1}}},
+      m.joltT-=dt;if(m.joltT<=0){const tk=tankOf();if(tk&&tk.alive&&tk.asleep&&Math.hypot(tk.x-m.x,tk.y-m.y)<170){wakeTank(tk);if(hasSyn('rise')){tk.shield=Math.max(tk.shield,tk.maxhp*0.15);puff(tk.x,tk.y,6,'#c8e8ff',60,2)}else if(!rank('n_jolt'))ffHit(tk);say(tk,'MY BACK.',1.8,true);say(m,pick(['Up. You are not done.','Rise. No, not like that.','The dead have better posture.']),2,true);m.joltT=8}else m.joltT=1}}},
   assassin:{name:'Sable',role:'The assassin.',blurb:'Backstabs for a fortune, vanishes, and forgets to come back. Nobody can heal what they cannot see.',col:'#6a5a8a',spr:'assassin',h:44,thanks:0.02,glyph:'🗡',
     unlock:{test:()=>META.wins>=1,text:'Beat the Demon King'},
     weapons:[{id:'daggers',name:'Twin Daggers',desc:'Backstabs for four times'},{id:'needles',name:'Poisoned Needles',desc:'Backstabs for twice, but the poison keeps going'}],
@@ -1284,7 +1284,7 @@ const CHARS={
       if(hasRelic('fullmoon'))m.wolfT=Math.max(m.wolfT,1);
       const wolf=m.wolfT>0;if(wolf){m.wolfT-=dt;m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.02*dt);if(m.wolfT<=0)say(m,pick(['Sorry. Sorry. Was that me?','...I had a dream I was biting Brom.','Ow, my teeth.']),2.5,true)}
       const mul=(wolf?2.5:(m.weapon==='collar'?1.3:1))*(wolf&&hasRelic('muzzle')?0.8:1)*(wolf&&hasRelic('wolfsbane')?1.3:1);
-      meleeAI(m,dt,{mul,cleave:wolf?3:1,onHit:()=>{if(wolf&&!gratBoon(m)&&!hasRelic('muzzle')&&RAND()<0.12-0.03*rank('w_control')){let a=null,bd=1e9;for(const o of allies()){if(o===m||(hasSyn('packmother')&&o===G.healer))continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<bd){bd=d;a=o}}if(a&&bd<120){hurtAlly(a,m.dmg*pdmg()*1.5,null);if(hasRelic('marrowbone'))m.hp=Math.min(m.maxhp,m.hp+m.dmg*pdmg()*0.3);ftext(a.x,a.y-a.r-14,'BAD DOG','#ffb0a0',12);G.stats.ff++;META.ff++;G.stats.bites=(G.stats.bites||0)+1}}}});
+      meleeAI(m,dt,{mul,cleave:wolf?3:1,onHit:()=>{if(wolf&&!gratBoon(m)&&!hasRelic('muzzle')&&RAND()<0.12-0.03*rank('w_control')){let a=null,bd=1e9;for(const o of allies()){if(o===m||(hasSyn('packmother')&&o===G.healer))continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<bd){bd=d;a=o}}if(a&&bd<120){ffHit(a);if(hasRelic('marrowbone'))m.hp=Math.min(m.maxhp,m.hp+m.dmg*pdmg()*0.3);ftext(a.x,a.y-a.r-14,'BAD DOG','#ffb0a0',12);G.stats.ff++;META.ff++;G.stats.bites=(G.stats.bites||0)+1}}}});
       if(wolf)m.spdMulW=1.5}},
   vampire:{name:'Valerian',role:'The vampire.',blurb:'Drinks what he deals, so he never needs healing, and says so. Burns in Radiance.',col:'#8a1a3a',spr:'vampire',h:50,thanks:0,glyph:'🦇',
     unlock:{test:()=>(META.evos||0)>=1,text:'Fuse an evolution'},
@@ -1757,6 +1757,8 @@ function heal(m,amt,src){
   }
   return real;
 }
+// b042: a friendly hit. Flashes, counts, apologises — no damage.
+function ffHit(m){if(!m||!m.alive)return;m.hitT=0.15;m.lastHitT=G.t;puff(m.x,m.y,3,'#ffb0a0',40,2)}
 function hurtAlly(m,dmg,src){
   if(!m.alive||dmg<=0)return;
   if(m.minion){m.hp-=dmg;m.hitT=0.15;return}
@@ -1887,7 +1889,7 @@ function cast(i){
     G.stats.forts=(G.stats.forts||0)+1; ok=true;
   }
   else if(s.id==='radiance'){
-    for(const m of allies())if(inRange(m)){if(m.key==='vampire'&&m.weapon!=='parasol'){hurtAlly(m,m.maxhp*0.25*(1-0.25*rank('v_cloak')),null);say(m,pick(['AGH. Why.','WARN ME.','My eyes. My everything.']),2,true);G.stats.ff++;continue}heal(m,h.healPower*1.5,'radiance')}
+    for(const m of allies())if(inRange(m)){if(m.key==='vampire'&&m.weapon!=='parasol'){m.frozenT=Math.max(m.frozenT||0,1.5*(1-0.25*rank('v_cloak')));ffHit(m);ftext(m.x,m.y-m.r-14,'dazzled','#fff4c0',11);say(m,pick(['AGH. Why.','WARN ME.','My eyes. My everything.']),2,true);G.stats.ff++;continue}heal(m,h.healPower*1.5,'radiance')}
     for(const m of G.party)if(inRange(m)&&!(m.key==='vampire'&&m.weapon!=='parasol')){m.buffDmgT=Math.max(m.buffDmgT,buffDur()*0.5);m.blessT=Math.max(m.blessT||0,3)}
     G.blasts.push({x:h.x,y:h.y,r:h.range,life:0.5,col:'rgba(255,245,200,'});puff(h.x,h.y,30,'#fff4c0',200,3);G.shake=0.3;ok=true;
   }
@@ -2190,7 +2192,7 @@ function explode(x,y,r,dmg,from){
   if(frost){G.blasts.push({x,y,r,life:0.35,col:'rgba(180,240,255,'});puff(x,y,10,'#bfefff',120,3);return}
   let ffHit=false;
   if(from.key==='mage'&&(rank('m_burn')||hasRelic('pyromania')||skl(from,'m_cinder'))&&r<100)G.fires.push({x,y,r:r*0.7,dps:dmg*0.2,life:(1+rank('m_burn')+(hasRelic('pyromania')?1:0)+skl(from,'m_cinder'))*(hasRelic('scorchmark')?2:1)*(hasSyn('wildfire')?0.5:1)});
-  for(const m of allies()){if(m===from)continue;if(m===G.healer&&(rank('m_precise')||hasRelic('monocle')||hasSyn('tutor')))continue;if(hasSyn('wildfire')&&from.key==='mage')continue;if(hasSyn('manners')&&m.key==='tank')continue;if(hasSyn('overclock')&&m.key==='robot')continue;if(from.key==='mage'&&gratBoon(from))continue;if(Math.hypot(m.x-x,m.y-y)<r+m.r*0.5){const f=dmg*(from.ff||0);if(f>0.5){hurtAlly(m,f,null);if(m.key==='ent'){m.burnT=4;say(m,pick(['...AGAIN.','...why.','...I am WOOD.']),1.8,true)}m.ffTaken=(m.ffTaken||0)+f;G.stats.ff++;G.stats.ffVex+=f;META.ff++;ffHit=true;ftext(m.x,m.y-m.r-14,'ow','#ffb0a0',11)}}}
+  for(const m of allies()){if(m===from)continue;if(m===G.healer&&(rank('m_precise')||hasRelic('monocle')||hasSyn('tutor')))continue;if(hasSyn('wildfire')&&from.key==='mage')continue;if(hasSyn('manners')&&m.key==='tank')continue;if(hasSyn('overclock')&&m.key==='robot')continue;if(from.key==='mage'&&gratBoon(from))continue;if(Math.hypot(m.x-x,m.y-y)<r+m.r*0.5){const f=dmg*(from.ff||0);if(f>0.5){ffHit(m);if(m.key==='ent'){m.burnT=4;say(m,pick(['...AGAIN.','...why.','...I am WOOD.']),1.8,true)}m.ffTaken=(m.ffTaken||0)+f;G.stats.ff++;G.stats.ffVex++;META.ff++;ffHit=true;ftext(m.x,m.y-m.r-14,'ow','#ffb0a0',11)}}}
   if(ffHit&&RAND()<0.6)say(from,pick(LINES.mageFF),1.8);
   G.blasts.push({x,y,r,life:0.35,col:'rgba(255,140,60,'}); puff(x,y,10,'#ff9a3a',120,3); stain(x,y,'scorch',r); G.shake=Math.max(G.shake,r>100?0.35:0.08);
 }
@@ -2202,7 +2204,7 @@ function updateShots(dt){
     s.age+=dt; s.life-=dt; s.x+=s.vx*dt; s.y+=s.vy*dt;
     if(s.kind==='bolt'){
       let hit=s.life<=0;
-      if(!hit)for(const m of allies()){if(Math.hypot(m.x-s.x,m.y-s.y)<m.r+5){hurtAlly(m,s.dmg,s.from);puff(s.x,s.y,5,'#7fffd4',60,2);hit=true;break}}
+      if(!hit)for(const m of allies()){if(Math.hypot(m.x-s.x,m.y-s.y)<m.r+5){ffHit(m);G.stats.ff++;puff(s.x,s.y,5,'#7fffd4',60,2);hit=true;break}}
       if(hit)sh.splice(i,1); else if(RAND()<0.4)G.parts.push({x:s.x,y:s.y,vx:rnd(-10,10),vy:rnd(-10,10),life:0.25,col:'#7fffd4',r:1.8});
       continue;
     }
@@ -2235,7 +2237,7 @@ function updateShots(dt){
     if(!gone)for(const e of G.enemies){if(!s.hit.includes(e)&&Math.hypot(e.x-s.x,e.y-s.y)<e.r+4){hurtEnemy(e,s.dmg,s.from);if(s.freeze&&!e.boss)e.frozen=Math.max(e.frozen,s.freeze);if(s.from&&s.from.key==='archer'&&(skl(s.from,'a_barb')||hasSyn('forest')))e.bleed={dps:s.dmg*0.2*Math.max(1,skl(s.from,'a_barb')+(hasSyn('forest')?1:0)),t:3+upRank('venom'),by:s.from};puff(s.x,s.y,3,s.crit?'#ffd24a':'#fff',50,1.5);if(s.crit)ftext(e.x,e.y-e.r-10,'crit!','#ffd24a',11);if(hasSyn('buddies')&&s.from&&s.from.key==='archer'&&(!e.bleed||e.bleed.t<=0)&&G.fires.some(f=>Math.hypot(f.x-e.x,f.y-e.y)<f.r+e.r))e.bleed={dps:s.dmg*0.3,t:3,by:s.from};s.hit.push(e);if(s.pierce>0)s.pierce--;else{gone=true;break}}}
     if(!gone&&s.age>0.08&&!s.noff)for(const m of allies()){if(m===s.from)continue;if(hasSyn('bigtarget')&&m.key==='tank'&&s.from&&s.from.key==='archer')continue;if(s.from&&s.from.key==='archer'&&gratBoon(s.from))continue;if(Math.hypot(m.x-s.x,m.y-s.y)<m.r+2){
       if(rank('a_sorry')){heal(m,s.dmg*0.6,'sorry');say(s.from,'Sorry! Wait. That helped?',1.8,true)}
-      else{hurtAlly(m,s.dmg*0.6,null);m.ffTaken=(m.ffTaken||0)+s.dmg*0.6;G.stats.ff++;G.stats.ffPip+=s.dmg*0.6;META.ff++;say(s.from,pick(LINES.archerFF),1.8,true);ftext(m.x,m.y-m.r-14,m.key==='mage'?'...':'ow!','#ffb0a0',11)}
+      else{ffHit(m);m.ffTaken=(m.ffTaken||0)+s.dmg*0.6;G.stats.ff++;G.stats.ffPip++;META.ff++;say(s.from,pick(LINES.archerFF),1.8,true);ftext(m.x,m.y-m.r-14,m.key==='mage'?'...':'ow!','#ffb0a0',11)}
       gone=true;break}}
     if(gone)sh.splice(i,1);
   }
@@ -2333,7 +2335,7 @@ function updateAllies(dt){
     if(m.hitT>0)m.hitT-=dt; if(m.blessT>0)m.blessT-=dt; if(m.talkCd>0)m.talkCd-=dt; if(m.moveT>0)m.moveT-=dt; if(m.shotT>0)m.shotT-=dt; if(m.castT>0)m.castT-=dt;
     if(m.buffDmgT>0)m.buffDmgT-=dt; if(m.hasteT>0)m.hasteT-=dt; if(m.fortT>0)m.fortT-=dt; if(m.choirT>0)m.choirT-=dt; if(m.quickT>0)m.quickT-=dt; if(m.marchT>0)m.marchT-=dt; if(m!==G.healer&&m.invT>0)m.invT-=dt;
     if(m.frozenT>0)m.frozenT-=dt;
-    if(m.burnT>0){m.burnT-=dt;hurtAlly(m,m.maxhp*0.03*dt,null);if(RAND()<dt*10)G.parts.push({x:m.x+rnd(-m.r,m.r),y:m.y+rnd(-m.r,0),vx:0,vy:-40,life:0.4,col:'#ff9a3a',r:2.5})}
+    if(m.burnT>0){m.burnT-=dt;if(RAND()<dt*10)G.parts.push({x:m.x+rnd(-m.r,m.r),y:m.y+rnd(-m.r,0),vx:0,vy:-40,life:0.4,col:'#ff9a3a',r:2.5})}
     if(m.bubbleT>0){m.bubbleT-=dt;if(m.bubbleT<=0)m.bubble=''}
     if(m.hotT>0){m.hotT-=dt;const a=m.hot*dt;const real=Math.min(a,m.maxhp-m.hp);m.hp+=real;G.stats.healed+=real}
     if(m.shield>0)m.shield=Math.max(0,m.shield-dt*4);
@@ -2446,7 +2448,7 @@ function runStory(won,why){
   if(S.napLongest>0)L.push('Brom’s longest nap ran '+S.napLongest.toFixed(1)+' seconds at '+fmt(S.napLongestAt)+(S.napLongestFoes>=5?', during which '+S.napLongestFoes+' more enemies arrived.':'.'));
   if(S.lich)L.push('The Lich came at 7:30 and raised what you left lying. It is gone now; so are they, properly this time.');
   if(S.kingAsleep)L.push('He was asleep when the Demon King arrived.'); else if(S.knightAsleep)L.push('He was asleep when the Demon Knight arrived.');
-  if(S.ffPip>0||S.ffVex>0)L.push(S.ffVex>=S.ffPip?'Vex did '+Math.round(S.ffVex)+' damage to her own party. She stands by it.':'Pip put '+Math.round(S.ffPip)+' damage worth of arrows into her friends, and apologised every time.');
+  if(S.ffPip>0||S.ffVex>0)L.push(S.ffVex>=S.ffPip?'Vex hit her own party '+S.ffVex+' times. Nobody was hurt. She stands by it.':'Pip bounced '+S.ffPip+' arrows off her friends, and apologised every time.');
   if(S.closest<0.25)L.push(HN()+'’s closest call: '+Math.max(1,Math.round(S.closest*h.maxhp))+' HP at '+fmt(S.closestAt)+'. Nobody noticed.');
   if(S.biggestHeal>0)L.push('Biggest single heal: '+Math.round(S.biggestHeal)+'. '+(S.overheal>S.healed?'More healing was wasted on the healthy ('+Math.round(S.overheal)+') than landed.':'Another '+Math.round(S.overheal)+' was wasted on people who were fine.'));
   const rv=Object.entries(S.revivedWho).sort((a,b)=>b[1]-a[1])[0]; if(rv)L.push(rv[0]+' was raised from the dead '+(rv[1]===1?'once':rv[1]+' times')+'. No card came.');
@@ -2744,7 +2746,7 @@ function draw(){
   ctx.strokeStyle='rgba(255,233,168,.16)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.arc(h.x,h.y,h.range,0,6.283);ctx.stroke();ctx.setLineDash([]);
   for(const g of G.graves){ctx.fillStyle='#7a7a88';ctx.fillRect(g.x-7,g.y-14,14,18);ctx.fillStyle='#000';ctx.fillRect(g.x-1,g.y-11,2,10);ctx.fillRect(g.x-4,g.y-8,8,2);ctx.font='9px Verdana';ctx.fillStyle='#ccc';ctx.fillText(g.m.name,g.x-ctx.measureText(g.m.name).width/2,g.y+14)}
   for(const g of G.gems){ctx.fillStyle=g.v>=4?'#ffd24a':'#7cc9ff';ctx.beginPath();ctx.moveTo(g.x,g.y-5);ctx.lineTo(g.x+4,g.y);ctx.lineTo(g.x,g.y+5);ctx.lineTo(g.x-4,g.y);ctx.closePath();ctx.fill()}
-  for(const s of G.shots)if(s.kind==='meteor'){ctx.strokeStyle='rgba(255,120,40,'+(0.3+0.5*(1-s.t/1.1))+')';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,120,40,.12)';ctx.fill();{const k=Math.max(0,s.t)/1.1;fxDraw('fx_meteor',s.x+90*k,s.y-340*k,s.r*0.9+14,s.r*0.9+14,G.t*5,1)}}
+  for(const s of G.shots)if(s.kind==='meteor'){ctx.strokeStyle='rgba(255,120,40,'+(0.3+0.5*(1-s.t/1.1))+')';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,120,40,.12)';ctx.fill();{const k=Math.max(0,s.t)/1.1;ctx.fillStyle='rgba(0,0,0,'+(0.3*(1-k))+')';ctx.beginPath();ctx.ellipse(s.x,s.y,s.r*0.35*(1-k)+6,s.r*0.2*(1-k)+3,0,0,6.283);ctx.fill()}}
   for(const f of G.fires){const k=Math.min(1,f.life);if(fxDraw('fx_pool_fire',f.x,f.y,f.r*2.3,f.r*1.7,0,0.9*k))continue;ctx.fillStyle='rgba(255,120,30,'+(0.18*k)+')';ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*0.7,0,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,180,60,'+(0.5*k)+')';ctx.lineWidth=2;ctx.setLineDash([4,5]);ctx.stroke();ctx.setLineDash([])}
   if(G.event&&!G.event.done){const ev=G.event;
     if(ev.id==='shrine'){const k=0.5+0.5*Math.sin(G.t*3);ctx.strokeStyle='rgba(255,220,120,'+(0.4+0.3*k)+')';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(ev.x,ev.y,90,G.t,G.t+6.283);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,220,120,.12)';ctx.beginPath();ctx.arc(ev.x,ev.y,90,0,6.283);ctx.fill();
@@ -2794,6 +2796,7 @@ function draw(){
     else if(s.kind==='flask'&&fxDraw('fx_flask',s.x,s.y,24,24,s.age*8,1)){}
     else if(s.kind==='flask'){ctx.fillStyle='#7ac8ff';ctx.beginPath();ctx.arc(s.x,s.y,5,0,6.283);ctx.fill();ctx.fillStyle='#d8f0ff';ctx.fillRect(s.x-2,s.y-9,4,5)}
   }
+  for(const s of G.shots)if(s.kind==='meteor'){const k=Math.max(0,s.t)/1.1;const sz=s.r*1.1+24;if(!fxDraw('fx_meteor',s.x+70*k,s.y-230*k,sz,sz,G.t*4,1)){ctx.fillStyle='#3a3030';ctx.beginPath();ctx.arc(s.x+70*k,s.y-230*k,sz*0.3,0,6.283);ctx.fill()}}
   for(const z of G.roots){const k=Math.min(1,z.life);if(fxDraw('fx_roots',z.x,z.y,z.r*2.3,z.r*2,0,0.95*k))continue;ctx.strokeStyle='rgba(90,140,60,'+(0.8*k)+')';ctx.lineWidth=3;for(let i=0;i<5;i++){const a=i*1.257+z.x*0.01;ctx.beginPath();ctx.moveTo(z.x,z.y+4);ctx.quadraticCurveTo(z.x+Math.cos(a)*z.r*0.6,z.y-10-Math.sin(G.t*6+i)*4,z.x+Math.cos(a)*z.r,z.y+Math.sin(a)*z.r*0.5);ctx.stroke()}ctx.fillStyle='rgba(140,220,80,'+(0.25*k)+')';ctx.beginPath();ctx.ellipse(z.x,z.y+4,z.r,z.r*0.5,0,0,6.283);ctx.fill()}
   for(const f of G.fronts){if(fxDraw('fx_front',f.x,f.y,f.w,52,Math.atan2(f.vy,f.vx)+1.571,0.9)){for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2});continue}ctx.save();ctx.translate(f.x,f.y);ctx.rotate(Math.atan2(f.vy,f.vx));ctx.fillStyle='rgba(220,240,255,.55)';ctx.fillRect(-14,-f.w/2,28,f.w);ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(-4,-f.w/2,8,f.w);ctx.restore();for(let i=0;i<3;i++)G.parts.length<600&&G.parts.push({x:f.x+rnd(-10,10),y:f.y+rnd(-f.w/2,f.w/2),vx:0,vy:-20,life:0.3,col:'#e8fbff',r:2})}
   for(const t of G.tornados){if(fxDraw('fx_tornado',t.x,t.y-t.r*0.5,t.r*2.4,t.r*2.4,0,0.85,Math.sin(G.t*18)>0))continue;ctx.strokeStyle='rgba(200,220,240,.6)';ctx.lineWidth=3;for(let i=0;i<4;i++){const rr=t.r*(0.35+i*0.22);ctx.beginPath();ctx.ellipse(t.x,t.y-i*12,rr,rr*0.4,t.a*0.2,0,6.283);ctx.stroke()}}

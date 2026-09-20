@@ -123,9 +123,16 @@ Demon King comes to you.
   refunds mana), several of them tradeoffs. Hold both halves of one of nine
   pairs and the next chest fuses them into an **evolution**; the menu lists
   recipes once found.
-- Gold from a run buys permanent **Training** ranks on the menu — 58 nodes
-  in four branches, one per party member, with prerequisites so choices
-  open other choices. Some nodes add level-up cards, one adds a fifth spell
+- Gold from a run buys permanent **Training** ranks on the menu — 219 nodes
+  in thirteen branches, one for Wren and one per character, with
+  prerequisites so choices open other choices. The tabs follow the party:
+  pick who is going and their branches appear. Every recruit has base
+  nodes (HP, damage, speed or the equivalent) and every character has ten
+  or more specials: eight shared ones (Thick Skin, Quick Study, Second
+  Breakfast, Drilled, Old Hand, Stubborn, Good Manners, Last Stand) and
+  two to four of their own (Deeper Graves, Deeper Cuts, Humility,
+  Considerate, Patient, Self-Control, Thirst, Seventh Chamber, Bigger
+  Boiler, Dreams of Stew, Deep Quiver, Colder Nova and so on). Some nodes add level-up cards, one adds a fifth spell
   (Radiance), and Keepsake starts a run with relics found before. Save
   lives in `localStorage` under `thankless-save-v1`.
 

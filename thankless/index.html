@@ -274,7 +274,7 @@
 
 <script>
 'use strict';
-const BUILD='b050-tone';
+const BUILD='b051-steady';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -341,7 +341,7 @@ function fxDrawFrom(k,x,y,len,wid,rot,alpha){const im=ART.ready[k]?ART.img[k]:nu
 function fxDraw(k,x,y,w,h,rot,alpha,flip){const im=ART.ready[k]?ART.img[k]:null;if(!im)return false;ctx.save();ctx.translate(x,y);if(rot)ctx.rotate(rot);if(flip)ctx.scale(-1,1);if(alpha!==undefined)ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore();return true}
 function drawSpr(im,x,y,h,face,sx,sy){const w=h*im.width/im.height;ctx.save();ctx.translate(x,y);ctx.scale((face<0?-1:1)*(sx||1),sy||1);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
 // a pose swap gets a short squash; a death gets a collapse-and-fade of the last pose
-function poseSwap(o,key){if(o.poseKey!==key){o.poseKey=key;o.sqUntil=G.t+0.14}}
+function poseSwap(o,key){if(o.poseKey!==key){const soft=/_(walk|idle)$/.test(key);o.poseKey=key;if(!soft)o.sqUntil=G.t+0.14}}   // b051: walk/idle alternation no longer bounces
 function squash(o){const k=o.sqUntil?clamp((o.sqUntil-G.t)/0.14,0,1):0;return [1+0.14*k,1-0.14*k]}
 function ghost(o,key,h){if(!key||!ART.ready[key])return;G.ghosts.push({key,x:o.x,y:o.y+o.r*0.8,face:o.face||1,h,life:0.38,t:0.38})}
 const SPR_H={lich:70,revenant:44,healer:46,tank:62,archer:44,mage:50,imp:30,bat:24,skel:40,brute:58,cultist:42,hexer:44,knight:80,king:112,ghoul:44,wisp:26,pilgrim:42,necro:48,assassin:44,paladin:56,frost:50,ent:72,wolf:48,vampire:50,gunner:48,robot:52};
@@ -2946,7 +2946,9 @@ function memberPose(m){
 }
 function drawMember(m){
   if(m===G.healer&&m.ultT>0&&ultOf(m.hkey).form){const U=ultOf(m.hkey),k=Math.min(1,(U.dur-m.ultT)/0.6);shadow(m.x,m.y,m.r*3*k);const im=spr(U.form,m.hkey+'_cast',m.hkey+'_idle');if(im){ctx.save();ctx.globalAlpha=Math.min(1,k+0.3);if(k<1)ctx.filter='brightness('+(1+2*(1-k))+')';drawSpr(im,m.x,m.y+8,(spr(U.form)?U.big:U.big*0.7)*(0.4+0.6*k),m.face||1);ctx.restore()}else{ctx.fillStyle='#6ab04c';ctx.beginPath();ctx.arc(m.x,m.y-40*k,40*k,0,6.283);ctx.fill()}return}
-  const bob=Math.sin(m.anim)*2, x=m.x, y=m.y+(m.alive?bob:0), f=m.face;
+  // b051: facing is debounced for drawing so a member between two targets does not flip every frame
+  if(m.face!==m.dfWant){m.dfWant=m.face;m.dfT=G.t}if(m.dface===undefined||G.t-(m.dfT||0)>0.12)m.dface=m.dfWant;
+  const bob=Math.sin(m.anim)*2, x=m.x, y=m.y+(m.alive?bob:0), f=m.dface||m.face;
   const hop=m.panicT>0?Math.abs(Math.sin(G.t*14))*7:0;
   shadow(x,m.y,m.r*(1-hop/24));
   const fk=m.ultT>0&&ultOf(m.key)&&ultOf(m.key).form;const pk=(fk&&ART.ready[fk])?fk:sprKey(memberPose(m)), im=pk?ART.img[pk]:null;

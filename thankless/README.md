@@ -69,6 +69,12 @@ Demon King comes to you.
   on nearby enemies), Boomerang Cross and Holy Water (burning puddles). Four
   weapons at most, five ranks each; one is guaranteed in the first few
   levels. The card names who takes it; the story lists who carried what.
+- **Achievements.** Thirty of them on the menu, each with a title Wren can
+  wear (Kingslayer, the Appreciated, the Long-Suffering, Wren, actually…),
+  and three that change the game: Serial Regicide makes the first card of
+  every run roll kindly, Collector adds a relic to Keepsake, Word Kept lets
+  you swear three contracts. New ones show on the end screen and in the
+  story.
 - **Gratitude.** Every member has a meter under their health bar. Saving
   them when they are low fills it, buffs keep it ticking up, leaving them
   hurt drains it, and falling costs a chunk. At 40 they warm up (+5%

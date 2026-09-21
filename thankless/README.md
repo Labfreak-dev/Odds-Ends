@@ -487,6 +487,16 @@ URL no clips are fetched, so the bot runs stay silent and error-free.
   a deploy shows on the next load, everything else is cache-first and
   refreshed in the background, so the game installs and plays offline.
   Registered only over https.
+  From b079 the worker races the network against a six-second timer for
+  navigations, serves the cached page only when the network is late, and
+  still stores the late response, so a slow connection cannot stay stuck on
+  an old page (b062's four-second abort could). The page probes the live
+  build four seconds after load (`index.html?check=…`, which the worker
+  passes straight through) and, when it differs from `BUILD`, shows a
+  "newer version is ready, tap to reload" callout that clears the caches
+  and unregisters the worker before reloading; Settings has a "Get the
+  latest version" button that does the same by hand. Saves live in
+  localStorage and are untouched by either.
 - **Phones.** The HUD pads for notches on every edge. The game is played
   portrait on a phone (b069): the manifest locks portrait, the cut-in puts
   the character in the top half and centres the name shrunk to fit, and

@@ -534,9 +534,9 @@ The ten-minute boss is the field's own (`FIELDS[].boss`, `BOSSES`):
   births eight bats every six, and every ten screeches: the party is
   thrown away from her, casts are interrupted, Pip panics, the flask
   loses twenty.
-The King's Court rule speeds each boss's summons. Bosses without their own
-art borrow a sprite (`BOSS_SPR`: lich, knight, bat) at a larger size with a
-tint (`BOSS_TINT`); prompts for proper art can come later. The end screen,
+The King's Court rule speeds each boss's summons. All three have their own art
+(b071, paste-sheet blocks 83 and 84); `BOSS_SPR` and `BOSS_TINT` remain as
+the fallback when a boss key is missing from `art.js`. The end screen,
 the story, the share text and the field description name the boss.
 
 ## Codex (b066)

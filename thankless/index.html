@@ -363,7 +363,7 @@ function loadTipTick(){if(LOAD.done)return;$('loadTip').textContent=LOAD_TIPS[Ma
 function loadDone(){if(LOAD.done)return;LOAD.done=true;loadBar(1,'Ready');const el=$('loading');setTimeout(()=>{el.classList.add('gone');setTimeout(()=>el.classList.add('hide'),500)},180)}
 function artFetch(){loadTipTick();setTimeout(loadDone,15000);if(ART_V==='none'){loadDone();return}
   const url='art.js?v='+ART_V;const viaTag=()=>{const t=document.createElement('script');t.src=url;t.async=true;t.onerror=loadDone;document.body.appendChild(t)};
-  if(!window.fetch||!window.ReadableStream){viaTag();return}
+  if(!window.fetch||!window.ReadableStream||location.protocol==='file:'){viaTag();return}
   fetch(url).then(async r=>{if(!r.ok||!r.body)throw 0;const total=+r.headers.get('Content-Length')||3400000;const reader=r.body.getReader();const chunks=[];let got=0;
     while(true){const {done,value}=await reader.read();if(done)break;chunks.push(value);got+=value.length;loadBar(0.6*Math.min(1,got/total),'Fetching the art')}
     loadBar(0.6,'Waking the party');const blob=new Blob(chunks,{type:'text/javascript'});const t=document.createElement('script');t.src=URL.createObjectURL(blob);t.onload=()=>URL.revokeObjectURL(t.src);t.onerror=viaTag;document.body.appendChild(t)}).catch(viaTag)}

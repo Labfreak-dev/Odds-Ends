@@ -503,6 +503,20 @@ to under half, and a theme change crossfades over a second. Settings has
 Music (off, low, full). To audition a theme without playing, render it
 through an `OfflineAudioContext` with `musNote` as the check script does.
 
+## Circles as a ladder (b064)
+Every win opens the next circle, and each circle still scales the numbers
+(+35% enemy HP, +20% damage, gold ×0.5 more per circle, faster spawns and
+elites). From b064 each circle also adds one named rule, and they stack:
+1 Early Elites (elites from the first minute), 2 Dry Sky (no chests at
+3:00 and 7:00), 3 Stubborn Party (the wounded no longer come to you),
+4 Restless Night (events twice as often), 5 Two Knights (two Demon
+Knights, a minute early), 6 Thin Motes (motes fill the flask half as
+fast), 7 Short Hand (level-ups offer two cards), 8 The King's Court (the
+King has half again the health and calls his court faster). Past eight
+only the numbers keep climbing. The title panel lists the rules in play
+and names the one the next win adds; `rule(id)` is the in-run check and
+`G.rules` the set. The share text carries the circle.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

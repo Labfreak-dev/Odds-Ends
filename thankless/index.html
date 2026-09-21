@@ -344,7 +344,7 @@
 
 <script>
 'use strict';
-const BUILD='b063-music';
+const BUILD='b064-circles';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -355,6 +355,18 @@ const RAND=()=>RNG?RNG():Math.random();
 let RNGW=null; const WR=()=>RNGW?RNGW():Math.random(); const wrnd=(a,b)=>a+WR()*(b-a); const wpick=a=>a[Math.floor(WR()*a.length)];
 function wstream(tag,n){if(!G_DAILY){RNGW=null;return}let h=G_DAILY|0;for(let i=0;i<tag.length;i++)h=Math.imul(h^tag.charCodeAt(i),16777619)|0;RNGW=mulberry((h+Math.imul(n|0,104729))|0)}
 const RUN_LEN=600;          // the Demon King arrives at ten minutes
+// b064: each circle past the first adds a named rule on top of the numbers, and they stack
+const CIRCLES=[
+  {id:'earlyElites',name:'Early Elites',desc:'elites from the first minute'},
+  {id:'dryClock',name:'Dry Sky',desc:'no chests fall at 3:00 and 7:00'},
+  {id:'deafParty',name:'Stubborn Party',desc:'the wounded no longer come to you'},
+  {id:'restlessNight',name:'Restless Night',desc:'events come twice as often'},
+  {id:'twoKnights',name:'Two Knights',desc:'two Demon Knights, a minute early'},
+  {id:'thinMotes',name:'Thin Motes',desc:'motes fill the flask half as fast'},
+  {id:'twoCards',name:'Short Hand',desc:'your level-ups offer two cards, not three'},
+  {id:'kingsCourt',name:'The King’s Court',desc:'the King has half again the health and calls his court faster'}];
+const rule=id=>!!(G&&G.rules&&G.rules[id]);
+const circleRules=c=>CIRCLES.slice(0,Math.max(0,c));
 const KNIGHT_AT=300;        // the mini-boss at five (the meadow's default; a field may move it)
 // ---------- fields: where a run happens. Data only, so a field needs no new art ----------
 const FIELDS=[
@@ -819,8 +831,8 @@ function renderMenu(){
   {const D=META.daily,sd=dailySeed();$('daily').textContent='Daily '+sd+(D&&D.seed===sd?' · best '+fmt(D.best)+(D.won?' ✓':''):'')}
   checkAchievements(false); $('mgold').textContent=Math.floor(META.gold); $('mtitle').textContent=META.title?HN()+' '+META.title+' ·':'';
   $('mcircle').textContent=META.circle;
-  $('circdesc').textContent=META.circle===0?'Circle 0: the story as told. Beat the Demon King to open the next circle.':
-    'Circle '+META.circle+': enemies +'+Math.round(META.circle*35)+'% HP, +'+Math.round(META.circle*20)+'% damage, gold ×'+(1+META.circle*0.5).toFixed(1)+'.';
+  {const c=META.circle,rs=circleRules(c),next=CIRCLES[c];$('circdesc').innerHTML=c===0?'Circle 0: the story as told. Beat the Demon King to open the next circle'+(next?', which adds <b>'+next.name+'</b>: '+next.desc+'.':'.'):
+    'Circle '+c+': enemies +'+Math.round(c*35)+'% HP, +'+Math.round(c*20)+'% damage, gold ×'+(1+c*0.5).toFixed(1)+'.'+(rs.length?' Rules: '+rs.map(r=>'<b>'+r.name+'</b> ('+r.desc+')').join(' · ')+'.':'')+(next&&c<META.maxCircle?'':next?' Win here to add <b>'+next.name+'</b>.':'')}
   $('circDown').disabled=META.circle<=0; $('circUp').disabled=META.circle>=META.maxCircle;
   META.field=clamp(META.field||0,0,FIELDS.length-1); if(!fieldOpen(META.field))META.field=0;
   const F=FIELDS[META.field]; $('fieldName').textContent=F.name; $('fielddesc').textContent=F.desc+(!fieldOpen(1)?' — beat the Demon King once to open '+FIELDS[1].name+'.':!fieldOpen(2)?' — beat him on Circle 1 to open '+FIELDS[2].name+'.':!fieldOpen(3)?' — beat him on Circle 2 to open '+FIELDS[3].name+'.':'');
@@ -2033,6 +2045,7 @@ function newRun(){
      relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,wOwner:{},pickGive:{},wEvo:{},moonT:0,iceT:0,slowT:0,nightT:0,sprays:[],sparts:[],beams:[],roots:[],fronts:[],tornados:[],slashes:[],timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
   G.spells=SPELLS; G.learned={}; G.chat=[]; renderChat(); G.autoT=0; G.aegisT=0; for(const id of HL().starts){G.learned[id]=true;const extra=HL().id==='ansel'?rank('ansel_ward'):HL().id==='ivy'?rank('ivy_regrowth'):0;if(extra)G.up['sp_'+id]=Math.min(3,1+extra)}
   G.hpMul*=G.field.hpMul; G.goldMul*=G.field.goldMul; G.eliteT=Math.min(G.eliteT,120); groundTex=null;
+  G.rules={};for(const r of circleRules(c))G.rules[r.id]=true; if(rule('earlyElites'))G.eliteT=60; if(rule('restlessNight'))G.eventT=40;
   if(G.field.speedMul){healer.spd*=G.field.speedMul;for(const m of G.party)m.spd*=G.field.speedMul}
   for(const m of G.party)for(let i=0;i<rank({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]+'_start');i++){const pool=SKILLS[m.key].filter(x=>skl(m,x.id)<x.max);if(pool.length)applySkill(m,pick(pool).id)}
   for(let i=0;i<hr('start');i++){G.level++;G.xpNext=xpFor(G.level)}
@@ -2132,7 +2145,7 @@ function updateEvents(dt){
   const h=G.healer, ev=G.event;
   if(!ev){G.eventT-=dt;if(G.eventT<=0&&!(G.king&&!G.king.dead)&&G.t<RUN_LEN-20)startEvent();return}
   ev.t-=dt;
-  if(ev.done){if(ev.t<=0){G.event=null;G.eventT=65+rnd(0,30);G.npcs=G.npcs.filter(n=>n.alive&&!n.leaving)}return}
+  if(ev.done){if(ev.t<=0){G.event=null;G.eventT=(65+rnd(0,30))*(rule('restlessNight')?0.5:1);G.npcs=G.npcs.filter(n=>n.alive&&!n.leaving)}return}
   if(ev.id==='shrine'){const on=Math.hypot(h.x-ev.x,h.y-ev.y)<110;if(on)ev.prog+=dt;ev.burstT-=dt;if(ev.burstT<=0){ev.burstT=5;const n=2+Math.floor(G.t/90);for(let i=0;i<n;i++){const a=rnd(0,6.283);spawnEnemy(pickType(G.t),clamp(ev.x+Math.cos(a)*320,10,ARENA-10),clamp(ev.y+Math.sin(a)*320,10,ARENA-10))}}if(ev.prog>=ev.need)eventWin();else if(ev.t<=0)eventFail()}
   else if(ev.id==='bounty'){ev.prog=ev.kills;if(ev.prog>=ev.need)eventWin();else if(ev.t<=0)eventFail()}
   else if(ev.id==='pilgrim'){const n=ev.npc;if(n.alive){const dx=ev.x-n.x,dy=ev.y-n.y,d=Math.hypot(dx,dy);ev.prog=1-d/700;if(d<20){eventWin()}else{n.x+=dx/d*n.spd*dt;n.y+=dy/d*n.spd*dt;n.face=dx<0?-1:1;n.anim+=dt*6;if(RAND()<dt*0.25)say(n,pick(['Is it far?','Are those… imps?','I was told this road was safe.','Please hurry.']),1.8)}
@@ -2526,11 +2539,11 @@ function updateSpawns(dt){
     for(let i=0;i<n;i++){const a=i/n*6.283;spawnEnemy(type,clamp(h.x+Math.cos(a)*R,10,ARENA-10),clamp(h.y+Math.sin(a)*R,10,ARENA-10))}
     toast('They come in numbers.',1.4);
   }
-  if(!G.drop1&&t>=180){G.drop1=true;dropChest()}
-  if(!G.drop2&&t>=420){G.drop2=true;dropChest()}
-  if(!G.knight&&t>=G.field.knightAt){G.knight=true;sn('boss',1);sfx('gate',{vol:0.8});const e=spawnAtEdge('knight');if(e)toast('A Demon Knight. Brom, wake up.',3);{const tk=tankOf();if(tk&&tk.asleep)G.stats.knightAsleep=true}}
+  if(!rule('dryClock')){if(!G.drop1&&t>=180){G.drop1=true;dropChest()}
+  if(!G.drop2&&t>=420){G.drop2=true;dropChest()}}
+  if(!G.knight&&t>=G.field.knightAt-(rule('twoKnights')?60:0)){G.knight=true;sn('boss',1);sfx('gate',{vol:0.8});const e=spawnAtEdge('knight');if(rule('twoKnights'))spawnAtEdge('knight');if(e)toast('A Demon Knight. Brom, wake up.',3);{const tk=tankOf();if(tk&&tk.asleep)G.stats.knightAsleep=true}}
   if(!G.lich&&t>=450&&t<RUN_LEN-30){G.lich=spawnAtEdge('lich');sn('boss',1);sfx('gate',{vol:0.8});if(G.lich){G.lich.castT2=6;toast('A Lich. It is looking at your dead.',3.5);G.shake=0.4;const nc=byKey('necro');if(nc&&nc.alive)say(nc,'Oh, HIM. Do not listen to him.',3,true)}}
-  if(!G.king&&t>=RUN_LEN){G.king=spawnAtEdge('king');sn('boss',1);sfx('gate',{vol:1});toast('THE DEMON KING',4);G.shake=0.6;{const tk=tankOf();if(tk&&tk.asleep)G.stats.kingAsleep=true}}
+  if(!G.king&&t>=RUN_LEN){G.king=spawnAtEdge('king');sn('boss',1);sfx('gate',{vol:1});if(rule('kingsCourt')&&G.king){G.king.hp*=1.5;G.king.maxhp=G.king.hp}toast('THE DEMON KING',4);G.shake=0.6;{const tk=tankOf();if(tk&&tk.asleep)G.stats.kingAsleep=true}}
 }
 function updateEnemies(dt){
   const h=G.healer, en=G.enemies, tank=tankOf()||{alive:false,asleep:false,x:-9999,y:-9999};
@@ -2563,7 +2576,7 @@ function updateEnemies(dt){
       e.chargeT-=dt;
       if(e.charging>0){e.charging-=dt}
       else if(e.chargeT<=0){e.chargeT=e.type==='king'?4.5:6;e.charging=0.7;e.cx=(tg.x-e.x);e.cy=(tg.y-e.y);const d=Math.hypot(e.cx,e.cy)||1;e.cx/=d;e.cy/=d;ftext(e.x,e.y-e.r-10,'!!','#ff5a5a',18)}
-      if(e.type==='king'){e.sumT-=dt;if(e.sumT<=0){e.sumT=7;for(let i=0;i<6;i++)spawnEnemy('imp',e.x+rnd(-40,40),e.y+rnd(-40,40));G.blasts.push({x:e.x,y:e.y,r:60,life:0.4,col:'rgba(255,60,80,'})}}
+      if(e.type==='king'){e.sumT-=dt;if(e.sumT<=0){e.sumT=rule('kingsCourt')?4.5:7;for(let i=0;i<6;i++)spawnEnemy('imp',e.x+rnd(-40,40),e.y+rnd(-40,40));G.blasts.push({x:e.x,y:e.y,r:60,life:0.4,col:'rgba(255,60,80,'})}}
     }
     const spd=e.spd*(e.frozen>0?0:1)*(e.slow>0?0.45:1)*(e.charging>0?3.2:1)*(upRank('chill')&&Math.hypot(e.x-G.healer.x,e.y-G.healer.y)<G.healer.range?1-0.08*upRank('chill'):1)*(hasRelic('snore')&&tank.alive&&tank.asleep&&Math.hypot(tank.x-e.x,tank.y-e.y)<320*G.tauntMul?(hasRelic('lullaby')?0.05:0.75):1);
     const dx=tg.x-e.x,dy=tg.y-e.y,d=Math.hypot(dx,dy)||1;
@@ -2848,7 +2861,7 @@ function updateHealer(dt){
   // gems
   const pr=h.pickup*(1+0.4*upRank('magnet')), gm=G.gems;
   for(let i=gm.length-1;i>=0;i--){const g=gm[i];g.life-=dt;const dx=h.x-g.x,dy=h.y-g.y,d=Math.hypot(dx,dy);
-    if(d<pr){const s=(260+ (pr-d)*4)*dt;if(d<10){gm.splice(i,1);if(g.coin){sn('coin',0.06);G.gold+=(5+G.t/60)*G.goldMul;ftext(g.x,g.y-8,'+gold','#ffd24a',10);if(G.event&&G.event.id==='coins'&&!G.event.done)G.event.prog++;continue}G.stats.motes=(G.stats.motes||0)+1;sn('mote',0.05);if(g.ev&&G.event&&G.event.id==='moterain')G.event.prog++;G.xp+=g.v*(hasRelic('jar')?1.5:1)*(1+0.15*upRank('bookish'));h.mana=Math.min(h.manaMax,h.mana+g.v*0.7);{const hm=0.01*upRank('magnet')+0.005*hr('motehp')+(hasRelic('motestorm')?0.02:0);if(hm)for(const m of G.party)if(m.alive)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*hm)}continue}g.x+=dx/d*Math.min(s,d);g.y+=dy/d*Math.min(s,d)}
+    if(d<pr){const s=(260+ (pr-d)*4)*dt;if(d<10){gm.splice(i,1);if(g.coin){sn('coin',0.06);G.gold+=(5+G.t/60)*G.goldMul;ftext(g.x,g.y-8,'+gold','#ffd24a',10);if(G.event&&G.event.id==='coins'&&!G.event.done)G.event.prog++;continue}G.stats.motes=(G.stats.motes||0)+1;sn('mote',0.05);if(g.ev&&G.event&&G.event.id==='moterain')G.event.prog++;G.xp+=g.v*(hasRelic('jar')?1.5:1)*(1+0.15*upRank('bookish'));h.mana=Math.min(h.manaMax,h.mana+g.v*0.7*(rule('thinMotes')?0.5:1));{const hm=0.01*upRank('magnet')+0.005*hr('motehp')+(hasRelic('motestorm')?0.02:0);if(hm)for(const m of G.party)if(m.alive)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*hm)}continue}g.x+=dx/d*Math.min(s,d);g.y+=dy/d*Math.min(s,d)}
     else if(g.life<=0)gm.splice(i,1);
   }
   while(G.xp>=G.xpNext){G.xp-=G.xpNext;G.level++;G.xpNext=xpFor(G.level);openLevelUp()}
@@ -2907,7 +2920,7 @@ function showLevelUp(){
   const pool=UPS.filter(u=>u.who==='healer'&&upRank(u.id)<u.max&&(!u.needs||rank(u.needs)>0)&&!(u.needsWeapon&&weaponCount()===0));   // b043: party cards and weapons are the party's to pick
   const picks=[];
   if(!Object.keys(G.learned).length&&G.level<=3){const ss=pool.filter(u=>u.spell);if(ss.length){const w=ss[Math.floor(WR()*ss.length)];picks.push(w);pool.splice(pool.indexOf(w),1)}}
-  while(picks.length<3&&pool.length){const i=Math.floor(WR()*pool.length);picks.push(pool.splice(i,1)[0])}
+  while(picks.length<(rule('twoCards')?2:3)&&pool.length){const i=Math.floor(WR()*pool.length);picks.push(pool.splice(i,1)[0])}
   if(!picks.length){G.healer.mana=G.healer.manaMax;return false}
   G.lvOpen=true; G.pickKind='up'; G.pendingPicks=picks;
   const luck=runLuck()+(G.chestBonus?50:0)+(hasAch('wins5')&&G.level<=2?50:0); G.pickTiers={}; G.pickGive={};
@@ -3022,7 +3035,7 @@ applySet();
 for(const ev of ['pointerdown','keydown','touchstart'])document.addEventListener(ev,()=>{sndInit();if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume()},{passive:true});
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button'))sn('ui',0.03)});
 function shareText(){const won=G.won,names=G.party.map(m=>m.name).join(' / '),ub=G.stats.ultsBy||{};const grat=G.party.map(m=>m.grat>=100?'♥':m.grat>=70?'✓':'·').join('');
-  return ['Thankless — '+G.field.name+(G_DAILY?' · Daily '+G_DAILY:''),
+  return ['Thankless — '+G.field.name+(G.circle?' · Circle '+G.circle:'')+(G_DAILY?' · Daily '+G_DAILY:''),
     '⏱ '+fmt(G.t)+' · '+(won?'Demon King slain':G.healer.alive?'party wiped':'healer died'),
     HN()+' with '+names,
     '💚 '+Math.floor(G.stats.healed)+' healed · ⚔ '+G.kills+' kills (mine: 0)',
@@ -3097,7 +3110,7 @@ function step(dt){
   for(const m of G.party)if(m.alive)quirkTick(m,dt);
   for(const m of G.party)memberUltTick(m,dt);
   {const h=G.healer,HR=healR();for(const m of G.party){if(!m.alive||m.noHeal||m.hidden||m.sinkT>0||m.frozenT>0)continue;const d=Math.hypot(m.x-h.x,m.y-h.y);
-    if(m.hp<m.maxhp*0.5&&d>HR*0.85){m.seekHeal=true;if(m.spd>0)moveToward(m,h.x,h.y,m.spd*spdMul(m)*0.9,dt);m.callT=(m.callT||0)-dt;if(m.callT<=0){m.callT=3.5;say(m,pick(CHARS[m.key].lines.callHeal||['Heals!','A little help here!','Healer!','Over here!','I’m not fine!','Little help?']),1.5,true);G.stats.calls=(G.stats.calls||0)+1}}
+    if(m.hp<m.maxhp*0.5&&d>HR*0.85){m.seekHeal=true;if(m.spd>0&&!rule('deafParty'))moveToward(m,h.x,h.y,m.spd*spdMul(m)*0.9,dt);m.callT=(m.callT||0)-dt;if(m.callT<=0){m.callT=3.5;say(m,pick(CHARS[m.key].lines.callHeal||['Heals!','A little help here!','Healer!','Over here!','I’m not fine!','Little help?']),1.5,true);G.stats.calls=(G.stats.calls||0)+1}}
     else if(m.seekHeal&&(m.hp>=m.maxhp*0.85||d<=HR*0.85))m.seekHeal=false}}
   if(hasRelic('cathedral')){const pal=byKey('paladin');if(pal&&pal.alive)for(const a of allies())if(a!==pal&&a.hp<a.maxhp&&!a.noHeal&&Math.hypot(a.x-pal.x,a.y-pal.y)<270)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.01*dt)}
   if(upRank('hearth'))for(const m of G.party)if(m.alive&&!m.noHeal&&m.hp<m.maxhp&&Math.hypot(m.x-G.healer.x,m.y-G.healer.y)<100)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.005*upRank('hearth')*dt);

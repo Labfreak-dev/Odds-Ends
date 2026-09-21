@@ -470,6 +470,26 @@ fields and the mire), the night loop under a blood moon, ducked on pause.
 Settings has Sound (off, low, full) and Ambience (off, on). On a `file:`
 URL no clips are fetched, so the bot runs stay silent and error-free.
 
+## Launch polish (b062)
+- **First run.** A new profile gets six callouts, each once: the small
+  ring, the big ring, the full flask (Q and R), the first level-up, the
+  first chest, the first grave. They sit under the clock for six seconds
+  and never return once `META.tutDone` is set (after four have shown, or
+  all six).
+- **Page metadata.** Title, description, Open Graph and Twitter cards with
+  `card.jpg` (1200×630, built from the title art), icons (`icon-192.png`,
+  `icon-512.png`, `icon-180.png` from Wren's face), theme colour.
+- **Share.** "Copy result" on the end screen puts a six-line summary on
+  the clipboard: field and daily seed, time and outcome, healer and
+  party, healing and kills, ultimates and thanks, the link.
+- **Progressive web app.** `manifest.webmanifest` (fullscreen, landscape)
+  and `sw.js`: navigations go network-first with a four-second timeout so
+  a deploy shows on the next load, everything else is cache-first and
+  refreshed in the background, so the game installs and plays offline.
+  Registered only over https.
+- **Phones.** The HUD pads for notches on every edge, and a portrait
+  phone in a run gets a dismissable "turn your phone sideways" card.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

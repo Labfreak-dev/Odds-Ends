@@ -108,6 +108,8 @@
   #fieldpick .node::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(20,14,30,.35),rgba(20,14,30,.92));border-radius:3px}
   #fieldpick .node>*{position:relative}
   #fieldpick .node .boss{font-size:11px;color:var(--gold)}
+  #fieldpick .node .bf{position:absolute;right:8px;top:8px;width:52px;height:52px;object-fit:cover;border:2px solid #000;border-radius:4px;box-shadow:inset 0 0 0 1px var(--bevel)}
+  #fieldpick .node b,#fieldpick .node .d,#fieldpick .node .boss{padding-right:64px;display:block}
   .scr .back{margin-bottom:8px}
   #loading.scene{background:linear-gradient(rgba(14,11,18,.35),rgba(14,11,18,.75))}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -390,7 +392,7 @@
 
 <script>
 'use strict';
-const BUILD='b072-camp';
+const BUILD='b073-campart';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -471,7 +473,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)||(i===3&&META.maxCircle>=3);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='af2f0a73';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='036c7225';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};LOAD.total=Object.keys(A).length;const tick=()=>{LOAD.n++;if(LOAD.n%8===0||LOAD.n>=LOAD.total)loadBar(0.6+0.4*LOAD.n/Math.max(1,LOAD.total));if(LOAD.n>=LOAD.total)loadDone()};
@@ -917,7 +919,7 @@ function renderCamp(){const hk=healerUnlocked(META.healer||'wren')?(META.healer|
   const keys=(META.party||[]).filter(k=>unlocked(k)).slice(0,3);$('pkParty').innerHTML=keys.map(k=>faceSrc(CHARS[k].spr)?'<img alt="" src="'+faceSrc(CHARS[k].spr)+'">':'<img alt="" src="">').join('');$('pkPartyNames').textContent=keys.map(k=>CHARS[k].name).join(' · ');
   const F=FIELDS[META.field||0],fk='field_'+F.id,bg=ART.ready[fk]?ART.img[fk].src:(F.id==='meadow'&&ART.ready.title?ART.img.title.src:null);$('pkField').innerHTML=bg?'<img alt="" src="'+bg+'">':'';$('pkField').style.background=bg?'':F.pal.bg;$('pkBoss').textContent=BOSSES[F.boss||'king'].name;
   const box=$('fieldpick');box.innerHTML='';FIELDS.forEach((f,i)=>{const open=fieldOpen(i),d=document.createElement('div');d.className='node'+(i===(META.field||0)?' on':'')+(open?'':' locked');const im='field_'+f.id;const src=ART.ready[im]?ART.img[im].src:(f.id==='meadow'&&ART.ready.title?ART.img.title.src:null);if(src)d.style.backgroundImage='url('+src+')';else d.style.background=f.pal.bg;
-    d.innerHTML='<b>'+esc(f.name)+'</b><div class="d">'+esc(f.desc.split('.')[0])+'.</div><div class="boss">'+(open?esc(BOSSES[f.boss||'king'].name)+' at ten minutes':'🔒 '+(i===1?'beat the Demon King once':'win on Circle '+(i-1)))+'</div>';
+    const bk='face_'+(f.boss||'king');d.innerHTML=(ART.ready[bk]?'<img class="bf" alt="" src="'+ART.img[bk].src+'">':'')+'<b>'+esc(f.name)+'</b><div class="d">'+esc(f.desc.split('.')[0])+'.</div><div class="boss">'+(open?esc(BOSSES[f.boss||'king'].name)+' at ten minutes':'🔒 '+(i===1?'beat the Demon King once':'win on Circle '+(i-1)))+'</div>';
     if(open)d.onclick=()=>{META.field=i;save();renderMenu();menuGo('camp')};box.appendChild(d)})}
 document.querySelectorAll('#menu .scr.panel').forEach(p=>{const b=document.createElement('button');b.className='sm back';b.textContent='◂ Camp';b.dataset.go='camp';p.prepend(b)});
 document.querySelectorAll('#mnav button,[data-go]').forEach(b=>{if(!b.onclick)b.onclick=()=>menuGo(b.dataset.go)});
@@ -2356,6 +2358,7 @@ function toast(t,d){const el=$('toast');el.textContent=t;el.style.opacity=1;G.to
 const TUT=[
   {id:'heal',at:4,txt:'Stay inside the <b>small green ring</b> to heal. Walk to whoever is hurt.'},
   {id:'ring',at:14,txt:'The <b>big ring</b> is where the party fights. They stay in it. You do not have to.'},
+  {id:'flee',at:40,txt:'Enemies that reach you forget the party. <b>Keep walking.</b> You are faster than most of them.'},
   {id:'flask',when:()=>G.t>=24&&G.healer.mana>=G.healer.manaMax,txt:'Flask full. <b>Q</b> fires your ultimate; <b>R</b> revives the fallen. Each costs the whole flask.'},
   {id:'level',when:()=>G.lvQ&&G.lvQ.length>0||G.level>1,txt:'Level up: pick a card for yourself. The party picks their own and the chat box says what they took.'},
   {id:'chest',when:()=>G.chests.length>0,txt:'A <b>chest</b>. Walk over it and pick a relic for the run.'},
@@ -3172,7 +3175,7 @@ function endRun(won,why){
   if(won){META.wins++;META.maxCircle=Math.max(META.maxCircle,G.circle+1);META.fieldWins=META.fieldWins||{};META.fieldWins[G.field.id]=1}
   META.goldTotal=(META.goldTotal||0)+gold;
   if(G_DAILY){META.daily=META.daily||{};const D=META.daily;if(D.seed!==G_DAILY){D.seed=G_DAILY;D.best=0;D.won=false;D.tries=0}D.tries++;if(G.t>D.best){D.best=G.t;D.bestGold=gold}if(won)D.won=true;G.dailyNote='Daily '+G_DAILY+': try '+D.tries+', best '+fmt(D.best)+(D.won?', beaten':'')}
-  if(G.tut&&Object.keys(G.tut.shown).length>=4)META.tutDone=true; $('tut').classList.remove('on'); META.bestTime=Math.max(META.bestTime,G.t); save(); RNG=null; RNGW=null;
+  if(G.tut&&Object.keys(G.tut.shown).length>=5)META.tutDone=true; $('tut').classList.remove('on'); META.bestTime=Math.max(META.bestTime,G.t); save(); RNG=null; RNGW=null;
   G.freshAch=checkAchievements(true);
   if(won&&META.maxCircle===1&&G.circle===0)later(0,()=>{}); // (the field unlock is read from maxCircle on the menu)
   $('ovtitle').textContent=won?fieldBoss().dead:why==='healer'?'The healer died':'Party wiped';

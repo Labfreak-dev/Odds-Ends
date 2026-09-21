@@ -584,6 +584,26 @@ and runs from `renderMenu()` and when faces or field art finish loading.
 A fire crackle loop (`sfx/amb_fire.mp3`, from the pack's torch loop) plays
 under the menu music.
 
+The scene art is in (b073): `menu_sky`, `menu_mid` and `menu_fore` are
+the parallax layers (the two upper ones keyed off magenta on the top-left
+pixel, not trimmed, then despilled, so they stay aligned and their grass
+and branch edges do not glow pink), `fx_campfire` the fire, `field_*` the
+paintings on the field cards and the camp card (the meadow reuses the
+title painting), and `face_king` the King's portrait on his field card
+(a bust drawn on magenta is keyed and sat on the panel colour). Bosses
+without a `face_` key show none.
+
+## Difficulty check (b073)
+`tools/playthrough.py --novice` plays like a first-timer: random card
+picks, lazy drifting movement round the party, weak fleeing, reviving only
+when already in range, no mote chasing. With no training on Circle 0 the
+expert bot wins about four runs in five and the novice loses every run
+between 3:50 and 5:20, always the healer dying once elites and the horde
+thicken; the b053 build measures the same, so nothing has drifted. A real
+first player sits between the two, which is the intended curve: early
+losses while they learn to keep moving, a win once they do. A seventh
+first-run callout at 0:40 now says so.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

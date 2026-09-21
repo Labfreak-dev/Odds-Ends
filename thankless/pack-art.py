@@ -13,6 +13,8 @@ What happens to each file, by key prefix:
   title   menu painting: 16:9 crop, 640x360, background kept
   fx_ring_/fx_pool_/fx_roots/fx_slash/fx_front  ground effect: keyed, trimmed, fitted into 256x256
   ult_    ultimate form: keyed, trimmed, fitted into 320x320 (the cut-in draws it screen-wide)
+  menu_sky, field_  wide painting, 1024 wide, background kept
+  menu_mid, menu_fore  parallax layer: keyed off magenta, not trimmed, 1024 wide
   (else)  sprite: keyed off magenta, trimmed, fitted into 128x128
 
 Keying (the matte fix): the background colour is the median of the border
@@ -38,11 +40,23 @@ def median_border(px, w, h):
     cols = [c[:3] for c in cols]
     return tuple(sorted(c[i] for c in cols)[len(cols)//2] for i in range(3))
 
-def key_out(im):
-    """Return an RGBA image with the border-connected background removed."""
+def despill(im):
+    """Kill magenta left in the semi-transparent edge of a keyed layer: any pixel still pinker than its green gets
+    its colour pulled to a neutral of its green channel and its alpha cut, so grass and branch edges stop glowing."""
+    px = im.load(); w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a and r > g * 1.2 and b > g * 1.1 and r > 60:
+                px[x, y] = (int(g * 0.85), g, int(g * 0.85), int(a * 0.45))
+    return im
+
+def key_out(im, bg=None):
+    """Return an RGBA image with the border-connected background removed. bg overrides the border median
+    for images whose border is mostly not background (a parallax layer with ground along the bottom)."""
     from PIL import Image
     im = im.convert("RGBA"); w, h = im.size; px = im.load()
-    bg = median_border(px, w, h)
+    bg = bg or median_border(px, w, h)
     def dist(c): return ((c[0]-bg[0])**2 + (c[1]-bg[1])**2 + (c[2]-bg[2])**2) ** 0.5
     d = [[dist(px[x, y]) for x in range(w)] for y in range(h)]
     back = [[False]*w for _ in range(h)]
@@ -132,9 +146,18 @@ def pack_one(path):
         out = fit(trim(key_out(im)), 64); q = 88
     elif key.startswith("fx_ring_") or key.startswith("fx_pool_") or key.startswith("fx_spray_") or key.startswith("fx_beam_") or key.startswith("fx_sigil_") or key in ("fx_glacier","fx_batstorm","fx_reticle","fx_ult_hammer") or key in ("fx_roots", "fx_slash", "fx_front"):
         out = fit(trim(key_out(im)), 256); q = 86   # ground effects get scaled up to a weapon's radius: keep them sharp
+    elif key == "menu_sky" or key.startswith("field_"):
+        im = im.convert("RGB"); w, h = im.size; tw = min(1024, w)
+        out = im.resize((tw, int(h * tw / w)), Image.LANCZOS); q = 82   # b073: wide paintings for the camp and field cards
+    elif key in ("menu_mid", "menu_fore"):
+        w, h = im.size; tw = min(1024, w)
+        out = despill(key_out(im, bg=im.convert("RGB").getpixel((4, 4)))).resize((tw, int(h * tw / w)), Image.LANCZOS); q = 84   # keyed on the top-left pixel, not trimmed, so the layers stay aligned
     elif key.startswith("ult_"):
         out = fit(trim(key_out(im)), 320); q = 84   # b070: ultimate forms fill a phone screen in the cut-in: keep them sharp
     elif key.startswith("face_"):
+        rgb = im.convert("RGB"); w, h = rgb.size; c = rgb.getpixel((4, 4))
+        if c[0] > 180 and c[2] > 90 and c[1] < 80:   # a bust drawn on magenta (the bosses): key it and sit it on the panel colour
+            plate = Image.new("RGBA", (w, h), (28, 22, 38, 255)); plate.alpha_composite(key_out(rgb, bg=c)); im = plate
         im = im.convert("RGB"); w, h = im.size; sq = min(w, h)
         out = im.crop(((w-sq)//2, 0, (w-sq)//2+sq, sq)).resize((96, 96), Image.LANCZOS); q = 85   # a bust keeps its head: crop from the top
     elif key == "title":

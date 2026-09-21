@@ -58,7 +58,7 @@
   /* b060: loading screen and settings */
   #loading{z-index:40;background:#0e0b12;flex-direction:column;gap:14px;transition:opacity .45s}
   #loading.gone{opacity:0;pointer-events:none}
-  #loading h1{font-size:44px}
+  #loading h1{font-size:44px;text-shadow:3px 3px 0 #000,0 0 18px rgba(255,210,74,.4)}
   #loading .bar{width:min(420px,80vw);height:16px;border:2px solid #000;background:#1c1626;box-shadow:inset 0 0 0 1px var(--bevel);border-radius:4px;overflow:hidden}
   #loading .bar i{display:block;height:100%;width:0;background:linear-gradient(#ffd24a,#b8862a);transition:width .15s}
   #loading .tip{max-width:420px;text-align:center;min-height:2.6em}
@@ -72,7 +72,44 @@
   /* overlays */
   .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,4,10,.78);z-index:20;padding:12px;overflow:auto}
   .ov>.box{width:100%;max-width:560px;max-height:100%;overflow:auto}
-  #menu .box{max-width:640px}
+  #menu .box{max-width:640px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  /* b072: the camp. The menu is screens over an animated scene on #menucv. */
+  #menucv{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:19}
+  #menucv.hide{display:none}
+  #menu{background:transparent;padding:0 12px}
+  #menu .scr{display:none;animation:scrIn .28s ease-out}
+  #menu[data-on="camp"] .scr[data-scr="camp"],#menu[data-on="party"] .scr[data-scr="party"],#menu[data-on="field"] .scr[data-scr="field"],#menu[data-on="contracts"] .scr[data-scr="contracts"],#menu[data-on="training"] .scr[data-scr="training"],#menu[data-on="relics"] .scr[data-scr="relics"],#menu[data-on="codex"] .scr[data-scr="codex"],#menu[data-on="awards"] .scr[data-scr="awards"],#menu[data-on="ledger"] .scr[data-scr="ledger"],#menu[data-on="help"] .scr[data-scr="help"]{display:block}
+  #menu .scr.panel{margin-top:12px}
+  @keyframes scrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .scr[data-scr="camp"]{text-align:center;padding-top:calc(8vh + env(safe-area-inset-top))}
+  #wordmark h1{font-size:clamp(40px,11vw,64px);letter-spacing:3px;background:linear-gradient(100deg,#b8862a 0%,#ffd24a 35%,#fff2b0 50%,#ffd24a 65%,#b8862a 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(3px 3px 0 #000) drop-shadow(0 0 14px rgba(255,210,74,.35));animation:shimmer 4.5s linear infinite,wordIn .9s cubic-bezier(.2,1.4,.4,1) both}
+  #wordmark .sub{font-size:13px;letter-spacing:1px;text-shadow:1px 1px 0 #000;color:#e8dcff}
+  @keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+  @keyframes wordIn{from{opacity:0;transform:scale(2.2) translateY(-20px)}to{opacity:1;transform:none}}
+  #pitch{margin:8px auto 10px;max-width:420px;text-shadow:1px 1px 0 #000;color:#d8ccf0}
+  #camptop{justify-content:center;gap:12px;text-shadow:1px 1px 0 #000;margin-bottom:10px}
+  #picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:520px;margin:0 auto 10px}
+  .pick{background:linear-gradient(rgba(37,29,51,.92),rgba(20,14,30,.95));border:2px solid #000;border-radius:6px;box-shadow:inset 0 0 0 1px var(--bevel),0 3px 0 #000;padding:8px 6px;cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:132px}
+  .pick:active{transform:translateY(2px);box-shadow:inset 0 0 0 1px var(--bevel),0 1px 0 #000}
+  .pick i{font-style:normal;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .pick b{font-size:12px;line-height:1.15}
+  .pick small{font-size:10px;color:var(--gold)}
+  .pick .pf{width:56px;height:56px;border:2px solid #000;border-radius:4px;background:#0e0b12 center/cover;box-shadow:inset 0 0 0 1px var(--bevel)}
+  .pick .pf.trio{width:100%;height:56px;display:flex;justify-content:center;gap:2px;background:none;border:0;box-shadow:none}
+  .pick .pf.trio img{width:30%;height:56px;object-fit:cover;border:2px solid #000;border-radius:4px}
+  .pick .pf img{width:100%;height:100%;object-fit:cover;display:block}
+  #circdesc{max-width:480px;margin:0 auto 10px;text-shadow:1px 1px 0 #000}
+  #campgo{justify-content:center;gap:8px}
+  #mnav{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(rgba(14,11,18,0),rgba(14,11,18,.96) 30%);z-index:2}
+  #mnav button{flex:1;min-width:0;padding:4px 2px;min-height:44px;font-size:9px;display:flex;flex-direction:column;align-items:center;gap:1px;background:linear-gradient(#3a2d58,#241a3a)}
+  #mnav button span{font-size:16px;line-height:1}
+  #mnav button.on{background:linear-gradient(#b8862a,#6e4d12)}
+  #fieldpick .node{cursor:pointer;min-height:96px;background-size:cover;background-position:center;position:relative}
+  #fieldpick .node::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(20,14,30,.35),rgba(20,14,30,.92));border-radius:3px}
+  #fieldpick .node>*{position:relative}
+  #fieldpick .node .boss{font-size:11px;color:var(--gold)}
+  .scr .back{margin-bottom:8px}
+  #loading.scene{background:linear-gradient(rgba(14,11,18,.35),rgba(14,11,18,.75))}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .tabs{display:flex;gap:4px;margin-bottom:8px}
   .tabs button{flex:1;padding:6px 4px;min-height:34px;font-size:12px}
@@ -241,23 +278,21 @@
     <div class="row" style="justify-content:center;margin-top:12px"><button class="big" id="setClose">Done</button></div>
   </div></div>
 </div>
-<div id="menu" class="ov">
+<div id="menu" class="ov" data-on="camp">
   <div class="box">
-    <div class="panel" id="titleP" style="text-align:center">
-      <h1>THANKLESS</h1>
-      <div class="sub" style="margin:6px 0 10px">Survivors of the Worst Party</div>
-      <div class="sub" style="margin-bottom:10px">You are the healer. You cannot attack. Your party can, badly.<br>Keep them alive for ten minutes and the Demon King comes to you.</div>
-      <div class="row" style="justify-content:center;margin-bottom:8px">
-        <span id="mtitle" class="sub"></span> <span>Gold: <span class="gold" id="mgold">0</span></span>
-        <span>· Circle <b id="mcircle">0</b></span>
-        <button class="sm" id="circDown">−</button><button class="sm" id="circUp">+</button>
+    <div class="scr" data-scr="camp">
+      <div id="wordmark"><h1>THANKLESS</h1><div class="sub">Survivors of the Worst Party</div></div>
+      <div class="sub" id="pitch">You are the healer. You cannot attack. Your party can, badly.<br>Keep them alive for ten minutes and the Demon King comes to you.</div>
+      <div class="row" id="camptop"><span id="mtitle" class="sub"></span><span>Gold <span class="gold" id="mgold">0</span></span><span>Circle <b id="mcircle">0</b> <button class="sm" id="circDown">−</button><button class="sm" id="circUp">+</button></span></div>
+      <div id="picks">
+        <div class="pick" data-go="party"><i>Healer</i><div class="pf" id="pkHealer"></div><b id="pkHealerName"></b><small id="pkHealerUlt"></small></div>
+        <div class="pick" data-go="party"><i>Party</i><div class="pf trio" id="pkParty"></div><b id="pkPartyNames"></b><small>tap to change</small></div>
+        <div class="pick" data-go="field"><i>Field</i><div class="pf" id="pkField"></div><b id="fieldName"></b><small id="pkBoss"></small></div>
       </div>
-      <button class="big" id="start">Set out</button> <button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button> <button id="setBtn">Settings</button>
-      <div class="sub" id="circdesc" style="margin-top:8px"></div>
-      <div class="row" style="justify-content:center;margin-top:10px"><button class="sm" id="fieldPrev">◂</button><b id="fieldName"></b><button class="sm" id="fieldNext">▸</button></div>
-      <div class="sub" id="fielddesc" style="margin-top:4px"></div>
+      <div class="sub" id="circdesc"></div>
+      <div class="row" id="campgo"><button class="big" id="start">Set out</button><button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button><button id="setBtn">Settings</button></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="party">
       <h2>Healers <span class="sub">(pick one)</span></h2>
       <div class="sub" style="margin-bottom:6px"><b>You.</b> Heals, buffs, shouts, revives. Runs away a lot.</div>
       <div class="tree" id="healerpick" style="margin-bottom:14px"></div>
@@ -266,36 +301,42 @@
       <div class="tree" id="picker"></div>
       <div id="synbox" class="sub" style="margin-top:8px"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="field">
+      <h2>The field <span class="sub">(where you set out)</span></h2>
+      <div class="tree" id="fieldpick"></div>
+      <div class="sub" id="fielddesc" style="margin-top:8px"></div>
+      <span class="hide"><button id="fieldPrev"></button><button id="fieldNext"></button></span>
+    </div>
+    <div class="scr panel" data-scr="contracts">
       <h2>Contracts <span class="sub">(swear up to two; they pay in gold if kept)</span></h2>
       <div class="tree" id="contracts"></div>
       <div id="contractnote" class="sub" style="margin-top:6px"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="training">
       <h2>Training <span class="sub">(permanent — spend gold; follows whoever is going)</span></h2>
       <div class="tabs" id="tabs"></div>
       <div class="tree" id="tree"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="relics">
       <h2>Relics <span class="sub">(found in runs; Keepsake brings them along)</span></h2>
       <div class="sub" id="relicsKnown" style="line-height:1.5"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="codex">
       <h2>Codex <span class="sub" id="codexcount"></span></h2>
       <div class="tabs" id="codextabs"></div>
       <div class="tree" id="codex"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="awards">
       <h2>Achievements <span class="sub" id="achcount"></span></h2>
       <div class="tree" id="achs"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="ledger">
       <h2>Ledger</h2>
       <div class="stat" id="mstats"></div>
       <h2 style="margin-top:12px">Diary <span class="sub">(the last thirty runs, in the party’s words)</span></h2>
       <div id="diary" class="sub" style="line-height:1.5"></div>
     </div>
-    <div class="panel">
+    <div class="scr panel" data-scr="help">
       <h2>How to play</h2>
       <div class="sub" style="line-height:1.5">
         Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
@@ -315,7 +356,11 @@
       </div>
     </div>
   </div>
+  <nav id="mnav">
+    <button data-go="camp"><span>🔥</span>Camp</button><button data-go="contracts"><span>📜</span>Vows</button><button data-go="training"><span>⚔️</span>Train</button><button data-go="relics"><span>💍</span>Relics</button><button data-go="codex"><span>📖</span>Codex</button><button data-go="awards"><span>🏅</span>Awards</button><button data-go="ledger"><span>📊</span>Ledger</button><button data-go="help"><span>❔</span>Help</button>
+  </nav>
 </div>
+<canvas id="menucv"></canvas>
 
 <div id="lvl" class="ov hide">
   <div class="box">
@@ -345,7 +390,7 @@
 
 <script>
 'use strict';
-const BUILD='b071-bossart';
+const BUILD='b072-camp';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -430,7 +475,7 @@ const ART_V='af2f0a73';         // stamped by pack-art.py; 'none' means no art.j
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};LOAD.total=Object.keys(A).length;const tick=()=>{LOAD.n++;if(LOAD.n%8===0||LOAD.n>=LOAD.total)loadBar(0.6+0.4*LOAD.n/Math.max(1,LOAD.total));if(LOAD.n>=LOAD.total)loadDone()};
-  for(const k in A){const im=new Image();im.onerror=tick;im.onload=()=>{tick();ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics();if(k.startsWith('spell_')&&G)buildChips()};im.src=A[k].src;ART.img[k]=im}
+  for(const k in A){const im=new Image();im.onerror=tick;im.onload=()=>{tick();ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces();if(!G)renderCamp()}if(k.startsWith('field_')||k==='fx_campfire'){if(!G)renderCamp()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics();if(k.startsWith('spell_')&&G)buildChips()};im.src=A[k].src;ART.img[k]=im}
 }
 function softPatch(im){ // the tile with feathered edges, so it sits on the grass as a patch rather than a square
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(im,0,0,256,256);
@@ -822,7 +867,7 @@ const VOX={
 };
 function sn(k,gap){if(!SND.ctx||!SET.sound||!VOX[k])return;const now=SND.ctx.currentTime;if(now-(SND.last['~'+k]||-9)<(gap||0.05))return;SND.last['~'+k]=now;VOX[k]()}
 // ambience: one loop per field, the night loop under a blood moon
-function sndAmbFor(){if(!SND.ctx)return;if(!G||G.over){sndAmb(null);return}const k=G.moonT>0?'amb_night':({meadow:'amb_day',bonefields:'amb_night',keep:'amb_cave',mire:'amb_night'}[G.field.id]||'amb_day');sndAmb(k)}
+function sndAmbFor(){if(!SND.ctx)return;if(!G||G.over){sndAmb(G?null:'amb_fire');return}const k=G.moonT>0?'amb_night':({meadow:'amb_day',bonefields:'amb_night',keep:'amb_cave',mire:'amb_night'}[G.field.id]||'amb_day');sndAmb(k)}
 function sndAmb(k){SND.ambWant=k;if(SND.ambKey===k)return;const c=SND.ctx;if(SND.amb){const old=SND.amb,og=SND.ambSrcG;og.gain.setTargetAtTime(0,c.currentTime,0.5);setTimeout(()=>{try{old.stop()}catch(e){}},2500);SND.amb=null;SND.ambKey=null}if(!k){sndApply();return}if(!SND.buf[k]){sndLoad(k);return}const src=c.createBufferSource();src.buffer=SND.buf[k];src.loop=true;const g=c.createGain();g.gain.value=0;g.gain.setTargetAtTime(1,c.currentTime,1.2);src.connect(g);g.connect(SND.ambG);src.start();SND.amb=src;SND.ambSrcG=g;SND.ambKey=k;sndApply()}
 function sprayCue(el,o,beam){if(el==='bolt'){sn('zap',0.1);return}sfx(({fire:'firespray',frost:'icebarrage',poison:'waterspray',holy:beam?'wave':'firebuff',arcane:'wave'})[el]||'firespray',{x:o.x,y:o.y,vol:0.5,gap:0.15})}
 // ===== b063: music. A step sequencer on the audio clock; nothing is loaded. =====
@@ -864,10 +909,53 @@ const nodeOpen=n=>!n.req||rank(n.req[0])>=n.req[1];
 const nodeName=id=>(TREE.find(n=>n.id===id)||{name:id}).name;
 let treeTab='healer';
 
+// ===== b072: the camp =====
+function menuGo(id){const m=$('menu');m.dataset.on=id;document.querySelectorAll('#mnav button').forEach(b=>b.classList.toggle('on',b.dataset.go===id||(id==='party'||id==='field')&&b.dataset.go==='camp'));m.scrollTop=0;const box=m.querySelector('.box');if(box)box.scrollTop=0;sn('ui',0.03)}
+function faceSrc(k){const key='face_'+k;return ART.ready[key]?ART.img[key].src:null}
+function renderCamp(){const hk=healerUnlocked(META.healer||'wren')?(META.healer||'wren'):'wren',H=HEALERS[hk];
+  $('pkHealer').innerHTML=faceSrc(H.spr)?'<img alt="" src="'+faceSrc(H.spr)+'">':'';$('pkHealerName').textContent=H.name;{const L=ULTS[hk];const U=L&&L[Math.min(L.length-1,((META.ult||{})[hk])||0)];$('pkHealerUlt').textContent=U?U.name:''}
+  const keys=(META.party||[]).filter(k=>unlocked(k)).slice(0,3);$('pkParty').innerHTML=keys.map(k=>faceSrc(CHARS[k].spr)?'<img alt="" src="'+faceSrc(CHARS[k].spr)+'">':'<img alt="" src="">').join('');$('pkPartyNames').textContent=keys.map(k=>CHARS[k].name).join(' · ');
+  const F=FIELDS[META.field||0],fk='field_'+F.id,bg=ART.ready[fk]?ART.img[fk].src:(F.id==='meadow'&&ART.ready.title?ART.img.title.src:null);$('pkField').innerHTML=bg?'<img alt="" src="'+bg+'">':'';$('pkField').style.background=bg?'':F.pal.bg;$('pkBoss').textContent=BOSSES[F.boss||'king'].name;
+  const box=$('fieldpick');box.innerHTML='';FIELDS.forEach((f,i)=>{const open=fieldOpen(i),d=document.createElement('div');d.className='node'+(i===(META.field||0)?' on':'')+(open?'':' locked');const im='field_'+f.id;const src=ART.ready[im]?ART.img[im].src:(f.id==='meadow'&&ART.ready.title?ART.img.title.src:null);if(src)d.style.backgroundImage='url('+src+')';else d.style.background=f.pal.bg;
+    d.innerHTML='<b>'+esc(f.name)+'</b><div class="d">'+esc(f.desc.split('.')[0])+'.</div><div class="boss">'+(open?esc(BOSSES[f.boss||'king'].name)+' at ten minutes':'🔒 '+(i===1?'beat the Demon King once':'win on Circle '+(i-1)))+'</div>';
+    if(open)d.onclick=()=>{META.field=i;save();renderMenu();menuGo('camp')};box.appendChild(d)})}
+document.querySelectorAll('#menu .scr.panel').forEach(p=>{const b=document.createElement('button');b.className='sm back';b.textContent='◂ Camp';b.dataset.go='camp';p.prepend(b)});
+document.querySelectorAll('#mnav button,[data-go]').forEach(b=>{if(!b.onclick)b.onclick=()=>menuGo(b.dataset.go)});
+// the scene behind the menu: title art drifting (or three parallax layers when packed), embers, a bat now and then,
+// the chosen party around a fire at the bottom, drawn on its own canvas so the menu DOM stays cheap
+const MSC={t:0,emb:[],bats:[],lastW:0,lastH:0};
+function menuScene(dt){const mc=$('menucv');if(!mc||G){if(mc)mc.classList.add('hide');return}mc.classList.remove('hide');
+  const W=innerWidth,H=innerHeight;if(mc.width!==W*DPR||mc.height!==H*DPR){mc.width=W*DPR;mc.height=H*DPR}const g=mc.getContext('2d');g.setTransform(DPR,0,0,DPR,0,0);MSC.t+=dt;const t=MSC.t;
+  g.fillStyle='#0e0b12';g.fillRect(0,0,W,H);
+  const layers=ART.ready.menu_sky&&ART.ready.menu_mid&&ART.ready.menu_fore;
+  const cover=(im,px,py,zoom)=>{const sc=Math.max(W/im.width,H/im.height)*zoom,w=im.width*sc,h=im.height*sc;g.drawImage(im,(W-w)/2+px,(H-h)/2+py,w,h)};
+  if(layers){cover(ART.img.menu_sky,Math.sin(t*0.05)*10,0,1.08);cover(ART.img.menu_mid,Math.sin(t*0.05)*26,0,1.1);}
+  else if(ART.ready.title){cover(ART.img.title,Math.sin(t*0.06)*22,Math.cos(t*0.045)*10,1.14)}
+  // ground band and fire glow
+  const gy=H*0.8;{const gr=g.createLinearGradient(0,gy-120,0,H);gr.addColorStop(0,'rgba(14,11,18,0)');gr.addColorStop(0.45,'rgba(14,11,18,.85)');gr.addColorStop(1,'rgba(8,6,10,1)');g.fillStyle=gr;g.fillRect(0,gy-120,W,H-gy+120)}
+  const fx=W*0.5,fy=gy+14,fl=0.85+0.15*Math.sin(t*9)+0.08*Math.sin(t*23);
+  {g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(fx,fy-10,4,fx,fy-10,Math.min(W,H)*0.45*fl);gr.addColorStop(0,'rgba(255,170,70,.55)');gr.addColorStop(0.4,'rgba(255,120,40,.18)');gr.addColorStop(1,'rgba(255,90,30,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);g.restore()}
+  // party around the fire
+  const hk=healerUnlocked(META.healer||'wren')?(META.healer||'wren'):'wren';const keys=(META.party||[]).filter(k=>unlocked(k)).slice(0,3);
+  const who=[{spr:HEALERS[hk].spr,h:46,x:-0.14,f:1,key:hk},{spr:CHARS[keys[0]||'tank'].spr,h:SPR_H[keys[0]||'tank']||50,x:-0.34,f:1,key:keys[0]},{spr:CHARS[keys[1]||'archer'].spr,h:SPR_H[keys[1]||'archer']||46,x:0.16,f:-1,key:keys[1]},{spr:CHARS[keys[2]||'mage'].spr,h:SPR_H[keys[2]||'mage']||50,x:0.36,f:-1,key:keys[2]}];
+  const sc=Math.min(1.6,Math.max(1,W/520));
+  for(const p of who){if(!p.key)continue;const im=spr(p.spr+'_idle',p.spr+'_walk');const px=fx+p.x*Math.min(W,560),py=fy+8+Math.sin(t*1.7+p.x*9)*1.5;g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(px,py+2,p.h*sc*0.32,p.h*sc*0.1,0,0,6.283);g.fill();if(im){g.save();g.translate(px,py);g.scale(p.f,1);g.drawImage(im,-p.h*sc*im.width/im.height/2,-p.h*sc,p.h*sc*im.width/im.height,p.h*sc);g.restore()}
+    if(p.key==='tank'){g.font='bold '+Math.round(11*sc)+'px Georgia';g.fillStyle='rgba(230,220,255,'+(0.5+0.5*Math.sin(t*2))+')';g.fillText('z',px+6*sc,py-p.h*sc-4-((t*10)%18));g.fillText('Z',px+14*sc,py-p.h*sc-14-((t*10+9)%18))}}
+  // the fire: sprite when packed, else drawn flames
+  if(ART.ready.fx_campfire){const im=ART.img.fx_campfire,h=54*sc*(0.97+0.03*Math.sin(t*11));g.drawImage(im,fx-h*im.width/im.height/2,fy-h+6,h*im.width/im.height,h)}
+  else{g.save();g.globalCompositeOperation='lighter';for(let i=0;i<7;i++){const a=t*7+i*1.3,hh=(22+10*Math.sin(a))*sc,ww=(7+3*Math.cos(a*1.3))*sc,ox=Math.sin(a*0.7)*5*sc;g.fillStyle=i<3?'rgba(255,220,120,.85)':i<5?'rgba(255,140,50,.75)':'rgba(255,80,30,.6)';g.beginPath();g.moveTo(fx+ox-ww,fy);g.quadraticCurveTo(fx+ox-ww*0.4,fy-hh*0.55,fx+ox,fy-hh);g.quadraticCurveTo(fx+ox+ww*0.4,fy-hh*0.55,fx+ox+ww,fy);g.closePath();g.fill()}g.restore();g.fillStyle='#3a2a1e';for(let i=-1;i<=1;i++){g.save();g.translate(fx,fy+2);g.rotate(i*0.5);g.fillRect(-16*sc,-3*sc,32*sc,6*sc);g.restore()}}
+  // embers
+  if(MSC.emb.length<40&&RAND()<0.5)MSC.emb.push({x:fx+rnd(-8,8),y:fy-10,vx:rnd(-12,12),vy:rnd(-60,-30),life:rnd(1.5,3.5),r:rnd(1,2.5)});
+  g.save();g.globalCompositeOperation='lighter';for(let i=MSC.emb.length-1;i>=0;i--){const e=MSC.emb[i];e.life-=dt;e.x+=(e.vx+Math.sin(t*3+e.y*0.05)*10)*dt;e.y+=e.vy*dt;if(e.life<=0){MSC.emb.splice(i,1);continue}g.fillStyle='rgba(255,'+(140+Math.floor(80*Math.min(1,e.life)))+',60,'+Math.min(1,e.life*0.6)+')';g.fillRect(e.x,e.y,e.r,e.r)}g.restore();
+  // a bat crossing now and then
+  if(MSC.bats.length<2&&RAND()<dt*0.12)MSC.bats.push({x:RAND()<0.5?-40:W+40,y:rnd(H*0.08,H*0.4),d:0,t:0});for(let i=MSC.bats.length-1;i>=0;i--){const b=MSC.bats[i];b.d=b.x<W/2&&b.t===0?1:b.d||-1;b.t+=dt;b.x+=b.d*90*dt;b.y+=Math.sin(b.t*5)*0.8;const im=spr(Math.sin(b.t*18)>0?'bat_a':'bat_b');if(im){g.save();g.translate(b.x,b.y);g.scale(b.d,1);g.globalAlpha=0.8;g.drawImage(im,-12,-10,24,20);g.restore()}if(b.x<-60||b.x>W+60)MSC.bats.splice(i,1)}
+  if(layers)cover(ART.img.menu_fore,Math.sin(t*0.05)*50,0,1.14);
+  // vignette
+  {const gr=g.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.35,W/2,H*0.45,Math.max(W,H)*0.8);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.6)');g.fillStyle=gr;g.fillRect(0,0,W,H)}}
 function renderMenu(){
   {const D=META.daily,sd=dailySeed();$('daily').textContent='Daily '+sd+(D&&D.seed===sd?' · best '+fmt(D.best)+(D.won?' ✓':''):'')}
   checkAchievements(false); $('mgold').textContent=Math.floor(META.gold); $('mtitle').textContent=META.title?HN()+' '+META.title+' ·':'';
-  $('mcircle').textContent=META.circle; renderCodex();
+  $('mcircle').textContent=META.circle; renderCodex(); renderCamp();
   {const c=META.circle,rs=circleRules(c),next=CIRCLES[c];$('circdesc').innerHTML=c===0?'Circle 0: the story as told. Beat the Demon King to open the next circle'+(next?', which adds <b>'+next.name+'</b>: '+next.desc+'.':'.'):
     'Circle '+c+': enemies +'+Math.round(c*35)+'% HP, +'+Math.round(c*20)+'% damage, gold ×'+(1+c*0.5).toFixed(1)+'.'+(rs.length?' Rules: '+rs.map(r=>'<b>'+r.name+'</b> ('+r.desc+')').join(' · ')+'.':'')+(next&&c<META.maxCircle?'':next?' Win here to add <b>'+next.name+'</b>.':'')}
   $('circDown').disabled=META.circle<=0; $('circUp').disabled=META.circle>=META.maxCircle;
@@ -3153,7 +3241,7 @@ function shareText(){const won=G.won,names=G.party.map(m=>m.name).join(' / '),ub
     'labfreak-dev.github.io/Odds-Ends/thankless/'].join('\n')}
 $('shareBtn').onclick=()=>{if(!G)return;const t=shareText(),b=$('shareBtn'),ok=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy result',1800)},fb=()=>{prompt('Copy your result:',t)};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,fb);else fb()};
 if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-$('back').onclick=()=>{$('over').classList.add('hide');G=null;renderMenu();$('menu').classList.remove('hide')};
+$('back').onclick=()=>{$('over').classList.add('hide');G=null;renderMenu();menuGo('camp');$('menu').classList.remove('hide')};
 $('start').onclick=()=>{G_DAILY=null;$('menu').classList.add('hide');newRun();$('hud').classList.add('run')};
 $('daily').onclick=()=>{G_DAILY=dailySeed();$('menu').classList.add('hide');newRun();$('hud').classList.add('run')};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.over&&!G.paused&&!G.lvOpen)togglePause()});
@@ -3180,10 +3268,7 @@ function hudFaces(){
   if(!G)return;
   for(const m of G.party){const el=document.querySelector('#pc-'+m.key+' .face');const k='face_'+CHARS[m.key].spr;if(el&&ART.ready[k]){el.src=ART.img[k].src;el.classList.add('on')}}
 }
-function menuArt(){
-  if(!ART.ready.title)return;
-  $('titleP').style.backgroundImage='linear-gradient(rgba(20,14,30,.3),rgba(20,14,30,.55) 45%,rgba(20,14,30,.9)),url('+ART.img.title.src+')';
-}
+function menuArt(){if(ART.ready.title)$('loading').classList.add('scene');if(!G)renderCamp()}
 function updateHud(){
   const h=G.healer;
   $('clock').firstChild.nodeValue=fmt(G.t); $('lvtxt').textContent='Lv '+G.level;
@@ -3562,7 +3647,8 @@ function frame(now){
     while(acc>=STEP&&n<60*G.fast+2){step(STEP);acc-=STEP;n++;if(G.over||G.lvOpen)break}
     if(n>=60*G.fast+2)acc=0;
   }else acc=0;
-  if(G&&SND.ctx&&!G.over)sndAmbFor();
+  if(G&&SND.ctx&&!G.over)sndAmbFor(); else if(!G&&SND.ctx)sndAmb('amb_fire');
+  if(!G)menuScene(dt);
   if(SND.ctx)musWant();
   draw(); if(G)updateHud();
 }

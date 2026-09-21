@@ -561,6 +561,29 @@ Pip/Vex, Mortimer/Valerian, Gideon/Sable, Lupa/Bramble) every two and a
 half minutes. Nothing fires during a cut-in or with a card open; a dead
 member's beat is skipped. Synergy barks are unchanged.
 
+## The camp (b072)
+The menu is a set of screens over an animated scene instead of one long
+scroll. `#menucv` sits behind the menu and `menuScene()` draws it every
+frame while no run is up: the title painting drifting (or the three
+parallax layers `menu_sky`, `menu_mid`, `menu_fore` once packed), a
+ground band, the chosen healer and party standing round a fire (the
+`fx_campfire` sprite when packed, drawn flames until then) with Brom's
+Zs, embers, a bat now and then, and a vignette. The loading screen goes
+translucent over the scene once the title art is in, so loading and
+title are one continuous thing. The wordmark shimmers and drops in.
+
+The camp screen holds the pitch, gold and circle, three pick cards
+(Healer, Party, Field: face, names, ultimate, boss) that open their
+screens, the circle line, and Set out / Daily / Settings. A bottom nav
+reaches Vows (contracts), Train, Relics, Codex, Awards, Ledger and Help;
+every sub-screen has a "◂ Camp" button. `menuGo(id)` switches screens by
+`data-on` with a short slide-in. The field screen lists the four fields
+as cards with their painting (`field_<id>` when packed) and boss, locked
+ones dimmed with the unlock condition. `renderCamp()` fills the cards
+and runs from `renderMenu()` and when faces or field art finish loading.
+A fire crackle loop (`sfx/amb_fire.mp3`, from the pack's torch loop) plays
+under the menu music.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

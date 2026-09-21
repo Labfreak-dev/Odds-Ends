@@ -321,9 +321,12 @@ arcane and steel shove. Each has an evolution at rank five.
 ## Ultimates
 Every character has two ultimates and you pick one at camp, under their
 card. A healer's costs the whole flask and fires from the Q button (or
-tapping it) once mana is full. A member's charges on time and kills (the
-purple bar under their gratitude) and fires on its own when a crowd
-closes in or a boss is near; a banner and the chat box announce it.
+tapping it) once mana is full. A member's charges on time (170s) and a little on kills (the purple bar
+under their gratitude) and fires on its own when a crowd closes in or a
+boss is near, which works out to three or four a run; the healer's has a
+150s cooldown on top of the full flask. A banner and the chat box
+announce it. Forms animate when their `_b` and `_c` frames are packed
+(blocks 73–82), cycling at six frames a second.
 - Wren: Last Rites (raise every fallen ally, party untouchable 8s) or The
   Boy Who Stayed (triple speed for 12s, trailing healing light).
 - Father Ansel: The Sermon (12s rooted and untouchable, every enemy turns

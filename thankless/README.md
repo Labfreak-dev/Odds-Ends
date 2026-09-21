@@ -517,6 +517,26 @@ only the numbers keep climbing. The title panel lists the rules in play
 and names the one the next win adds; `rule(id)` is the in-run check and
 `G.rules` the set. The share text carries the circle.
 
+## A boss per field (b065)
+The ten-minute boss is the field's own (`FIELDS[].boss`, `BOSSES`):
+- The Long Meadow: **The Demon King**, as before. Charges, calls six imps.
+- The Bone Fields: **The Bone Bishop**. Keeps his distance and shoots,
+  raises four of the buried around the healer every nine seconds, and
+  every thirteen curses the healer's hands: heals land at half for five
+  seconds (`G.curseT`).
+- The Ashen Keep: **The Warden of Ash**. Slams the ground every five and a
+  half seconds, throwing everyone within reach off him for half his
+  damage, and every fourteen walls the healer in with three stone walls
+  for six seconds. Stone walls block allies, not enemies.
+- The Sodden Mire: **The Mother of Bats**. Swoops every three seconds,
+  births eight bats every six, and every ten screeches: the party is
+  thrown away from her, casts are interrupted, Pip panics, the flask
+  loses twenty.
+The King's Court rule speeds each boss's summons. Bosses without their own
+art borrow a sprite (`BOSS_SPR`: lich, knight, bat) at a larger size with a
+tint (`BOSS_TINT`); prompts for proper art can come later. The end screen,
+the story, the share text and the field description name the boss.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

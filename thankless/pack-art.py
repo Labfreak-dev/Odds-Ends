@@ -12,6 +12,7 @@ What happens to each file, by key prefix:
   face_   HUD bust: square crop, 96x96, background kept
   title   menu painting: 16:9 crop, 640x360, background kept
   fx_ring_/fx_pool_/fx_roots/fx_slash/fx_front  ground effect: keyed, trimmed, fitted into 256x256
+  ult_    ultimate form: keyed, trimmed, fitted into 320x320 (the cut-in draws it screen-wide)
   (else)  sprite: keyed off magenta, trimmed, fitted into 128x128
 
 Keying (the matte fix): the background colour is the median of the border
@@ -131,6 +132,8 @@ def pack_one(path):
         out = fit(trim(key_out(im)), 64); q = 88
     elif key.startswith("fx_ring_") or key.startswith("fx_pool_") or key.startswith("fx_spray_") or key.startswith("fx_beam_") or key.startswith("fx_sigil_") or key in ("fx_glacier","fx_batstorm","fx_reticle","fx_ult_hammer") or key in ("fx_roots", "fx_slash", "fx_front"):
         out = fit(trim(key_out(im)), 256); q = 86   # ground effects get scaled up to a weapon's radius: keep them sharp
+    elif key.startswith("ult_"):
+        out = fit(trim(key_out(im)), 320); q = 84   # b070: ultimate forms fill a phone screen in the cut-in: keep them sharp
     elif key.startswith("face_"):
         im = im.convert("RGB"); w, h = im.size; sq = min(w, h)
         out = im.crop(((w-sq)//2, 0, (w-sq)//2+sq, sq)).resize((96, 96), Image.LANCZOS); q = 85   # a bust keeps its head: crop from the top

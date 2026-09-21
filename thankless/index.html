@@ -29,6 +29,19 @@
   button.sm{padding:5px 10px;min-height:30px;font-size:12px}
   .panel{background:var(--panel);border:3px solid var(--line);border-radius:6px;box-shadow:inset 0 0 0 2px var(--bevel),inset 0 0 0 3px #000,0 2px 0 #000;padding:12px;margin-bottom:10px;position:relative}
   .hide{display:none !important}
+  /* b060: loading screen and settings */
+  #loading{z-index:40;background:#0e0b12;flex-direction:column;gap:14px;transition:opacity .45s}
+  #loading.gone{opacity:0;pointer-events:none}
+  #loading h1{font-size:44px}
+  #loading .bar{width:min(420px,80vw);height:16px;border:2px solid #000;background:#1c1626;box-shadow:inset 0 0 0 1px var(--bevel);border-radius:4px;overflow:hidden}
+  #loading .bar i{display:block;height:100%;width:0;background:linear-gradient(#ffd24a,#b8862a);transition:width .15s}
+  #loading .tip{max-width:420px;text-align:center;min-height:2.6em}
+  .setrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #000;flex-wrap:wrap}
+  .setrow>span{font-weight:bold}
+  .seg{display:flex;gap:4px}
+  .seg button{padding:5px 10px;min-height:30px;font-size:12px}
+  .seg button.on{background:linear-gradient(#b8862a,#6e4d12)}
+  #saveTxt{width:100%;height:72px;margin-top:8px;font:11px monospace;color:var(--ink);background:#0e0b12;border:2px solid #000;border-radius:4px;padding:6px;resize:vertical}
 
   /* overlays */
   .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,4,10,.78);z-index:20;padding:12px;overflow:auto}
@@ -175,6 +188,29 @@
   <div id="stamp"></div>
 </div>
 
+<div id="loading" class="ov">
+  <h1>THANKLESS</h1>
+  <div class="sub">Survivors of the Worst Party</div>
+  <div class="bar"><i id="loadFill"></i></div>
+  <div class="sub" id="loadWhat">Setting out…</div>
+  <div class="sub tip" id="loadTip"></div>
+</div>
+<div id="setov" class="ov hide" style="z-index:30">
+  <div class="box"><div class="panel">
+    <h2>Settings</h2>
+    <div class="setrow"><span>Screen shake</span><div class="seg" data-k="shake"><button data-v="0">Off</button><button data-v="0.5">Half</button><button data-v="1">Full</button></div></div>
+    <div class="setrow"><span>Flashes</span><div class="seg" data-k="flash"><button data-v="0">Off</button><button data-v="1">On</button></div></div>
+    <div class="setrow"><span>Particles</span><div class="seg" data-k="particles"><button data-v="low">Fewer</button><button data-v="full">Full</button></div></div>
+    <div class="setrow"><span>Motion</span><div class="seg" data-k="motion"><button data-v="reduced">Reduced</button><button data-v="full">Full</button></div><div class="sub" style="width:100%">Reduced: no slow-motion, zoom or weather on ultimates.</div></div>
+    <div class="setrow"><span>Chat box</span><div class="seg" data-k="chat"><button data-v="0">Hidden</button><button data-v="1">Shown</button></div></div>
+    <div class="row" style="margin-top:10px"><button id="fsBtn">Fullscreen</button></div>
+    <h2 style="margin-top:14px">Save</h2>
+    <div class="row"><button id="expBtn">Export</button><button id="impBtn">Import</button><button id="resetBtn">Reset everything</button></div>
+    <textarea id="saveTxt" spellcheck="false" placeholder="Export puts your save here to copy. Paste a save here and press Import."></textarea>
+    <div class="sub" id="setnote" style="margin-top:6px"></div>
+    <div class="row" style="justify-content:center;margin-top:12px"><button class="big" id="setClose">Done</button></div>
+  </div></div>
+</div>
 <div id="menu" class="ov">
   <div class="box">
     <div class="panel" id="titleP" style="text-align:center">
@@ -186,7 +222,7 @@
         <span>· Circle <b id="mcircle">0</b></span>
         <button class="sm" id="circDown">−</button><button class="sm" id="circUp">+</button>
       </div>
-      <button class="big" id="start">Set out</button> <button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button>
+      <button class="big" id="start">Set out</button> <button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button> <button id="setBtn">Settings</button>
       <div class="sub" id="circdesc" style="margin-top:8px"></div>
       <div class="row" style="justify-content:center;margin-top:10px"><button class="sm" id="fieldPrev">◂</button><b id="fieldName"></b><button class="sm" id="fieldNext">▸</button></div>
       <div class="sub" id="fielddesc" style="margin-top:4px"></div>
@@ -228,8 +264,8 @@
       <h2>How to play</h2>
       <div class="sub" style="line-height:1.5">
         Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
-        <b>Mend</b> casts itself on the most wounded ally in range — if you have the mana. Mana is scarce. Picking up the motes your party drops refills it, so you have to go where the fighting is.<br>
-        <b>Mend</b> keeps them standing, but your spells decide whether they win. <b>1</b> Surge heals. <b>2</b> Bless doubles the busiest ally’s damage. <b>3</b> Haste speeds everyone up and keeps Brom awake. <b>4</b> Fortify shields the party and makes Brom the only thing enemies can see. <b>5</b> Rouse wakes, calms and shoves. <b>R</b> Revive when someone falls. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
+        <b>Mend</b> casts itself on the most wounded ally inside the small green circle, so walk to whoever is hurt. Your flask fills from the motes enemies drop; a full flask pays for a Revive or your ultimate.<br>
+        Mend keeps them standing, but your prayers decide whether they win: Surge heals, Bless doubles the busiest ally’s damage, Haste speeds everyone up and keeps Brom awake, Fortify shields the party and makes Brom the only thing enemies can see, Rouse wakes, calms and shoves. <b>R</b> revives when someone falls and <b>Q</b> fires your ultimate, each for a full flask. <b>P</b> pauses. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
         Three of twelve go with you, picked at camp. They stay inside your big circle, doing their own thing, so you can do yours; the small green circle is where your healing lands, so walk to the wounded (they come to you and shout when they are under half); more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
         Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes, a champion to kill, a chest out in the dark, a stranger to heal, a blood moon, a spilled purse, or a member who refuses healing for thirty seconds (tap their card to hold off). See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
         Wren’s <b>prayers</b> cast themselves: learn a spell on a level-up (Surge, Mending Prayer, Regrowth, Sanctuary, Fortify, Ward, Wall of Light, Bless, Haste, Rouse, Radiance) and it goes off on its own when the moment is right. The only button is <b>Revive</b>, which appears when the flask is full and costs all of it.<br>
@@ -237,7 +273,7 @@
         Each member keeps a <b>gratitude</b> bar under their health: saving them when they are low fills it, leaving them hurt drains it. At 70 they give you something back (Pip stops hitting Brom, Lupa stops biting, Vex spares the party…) and at 100 they say thank you like they mean it.<br>
         Party members also pick <b>quirks</b> as they level: Colossus, Pyromaniac, Twin, Glass Cannon and more. Three per member per run, and no two runs come out the same.<br>
         Every card rolls a <b>tier</b>: Common, Rare, Epic, Legendary or Mythic, on level-ups and from chests. Higher tiers grant more ranks at once; a Mythic maxes the card and heals everyone.<br>
-        Ghouls burrow and come up under someone. Wisps ignore the party and drink your mana on touch; keep away or let Pip shoot them.<br>
+        Ghouls burrow and come up under someone. Wisps ignore the party and drain your flask on touch; keep away or let Pip shoot them.<br>
         Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them into something better.<br>
         From two minutes in, elites arrive with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Hexers lob bolts at you from a distance; keep moving.<br>
         Enemies that get close to a healer forget everything else. Brom snores. Pip panics. Vex casts through you. Nobody says thank you.
@@ -269,12 +305,12 @@
 </div>
 
 <div id="pauseov" class="ov hide">
-  <div class="box"><div class="panel" style="text-align:center"><h2>Paused</h2><div class="sub" style="margin-bottom:10px">The party is holding still for once.</div><div class="row" style="justify-content:center"><button class="big" id="resume">Resume</button><button id="quit">Give up</button></div></div></div>
+  <div class="box"><div class="panel" style="text-align:center"><h2>Paused</h2><div class="sub" style="margin-bottom:10px">The party is holding still for once.</div><div class="row" style="justify-content:center"><button class="big" id="resume">Resume</button><button id="setBtn2">Settings</button><button id="quit">Give up</button></div></div></div>
 </div>
 
 <script>
 'use strict';
-const BUILD='b059-fx';
+const BUILD='b060-launch';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -310,8 +346,8 @@ const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)
 const ART_V='2d663f4c';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
-  const A=window.TL_ART||{};
-  for(const k in A){const im=new Image();im.onload=()=>{ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics();if(k.startsWith('spell_')&&G)buildChips()};im.src=A[k].src;ART.img[k]=im}
+  const A=window.TL_ART||{};LOAD.total=Object.keys(A).length;const tick=()=>{LOAD.n++;if(LOAD.n%8===0||LOAD.n>=LOAD.total)loadBar(0.6+0.4*LOAD.n/Math.max(1,LOAD.total));if(LOAD.n>=LOAD.total)loadDone()};
+  for(const k in A){const im=new Image();im.onerror=tick;im.onload=()=>{tick();ART.ready[k]=true;if(k.startsWith('face_')){hudFaces();pickerFaces()}if(k==='title')menuArt();if(k.startsWith('tile_'))ART.soft[k]=softPatch(im);if(k.startsWith('relic_'))hudRelics();if(k.startsWith('spell_')&&G)buildChips()};im.src=A[k].src;ART.img[k]=im}
 }
 function softPatch(im){ // the tile with feathered edges, so it sits on the grass as a patch rather than a square
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(im,0,0,256,256);
@@ -319,7 +355,18 @@ function softPatch(im){ // the tile with feathered edges, so it sits on the gras
   g.globalCompositeOperation='destination-in';g.fillStyle=gr;g.fillRect(0,0,256,256);return c;
 }
 window.tlArtLoaded=tlArtLoaded;
-function artFetch(){if(ART_V==='none')return;const t=document.createElement('script');t.src='art.js?v='+ART_V;t.async=true;document.body.appendChild(t)}
+// b060: the art is fetched with a progress bar, then decoded; the loading screen leaves when the sprites are ready
+const LOAD={n:0,total:0,done:false,t0:performance.now()};
+const LOAD_TIPS=['Stay inside the small green circle to be healed. Walk to whoever is hurt.','The big circle is where the party fights. They stay in it. Mostly.','A full flask pays for a Revive (R) or your ultimate (Q).','Brom sleeps. Pip shoots the wrong things. Vex casts through you.','Party members pick their own upgrades. The chat box says what they took.','Chests fall at 3:00 and 7:00. Walk over one to pick a relic.','Higher card tiers grant more ranks at once. Luck helps.','Nobody says thank you. Gratitude is a bar, and it fills slowly.','Elites arrive from two minutes in. Each has one trick.','Ultimates charge on time and kills: three or four a run, each.'];
+function loadBar(f,what){const el=$('loadFill');if(el)el.style.width=Math.round(Math.max(0,Math.min(1,f))*100)+'%';if(what)$('loadWhat').textContent=what}
+function loadTipTick(){if(LOAD.done)return;$('loadTip').textContent=LOAD_TIPS[Math.floor(performance.now()/2600)%LOAD_TIPS.length];setTimeout(loadTipTick,400)}
+function loadDone(){if(LOAD.done)return;LOAD.done=true;loadBar(1,'Ready');const el=$('loading');setTimeout(()=>{el.classList.add('gone');setTimeout(()=>el.classList.add('hide'),500)},180)}
+function artFetch(){loadTipTick();setTimeout(loadDone,15000);if(ART_V==='none'){loadDone();return}
+  const url='art.js?v='+ART_V;const viaTag=()=>{const t=document.createElement('script');t.src=url;t.async=true;t.onerror=loadDone;document.body.appendChild(t)};
+  if(!window.fetch||!window.ReadableStream){viaTag();return}
+  fetch(url).then(async r=>{if(!r.ok||!r.body)throw 0;const total=+r.headers.get('Content-Length')||3400000;const reader=r.body.getReader();const chunks=[];let got=0;
+    while(true){const {done,value}=await reader.read();if(done)break;chunks.push(value);got+=value.length;loadBar(0.6*Math.min(1,got/total),'Fetching the art')}
+    loadBar(0.6,'Waking the party');const blob=new Blob(chunks,{type:'text/javascript'});const t=document.createElement('script');t.src=URL.createObjectURL(blob);t.onload=()=>URL.revokeObjectURL(t.src);t.onerror=viaTag;document.body.appendChild(t)}).catch(viaTag)}
 function spr(){for(let i=0;i<arguments.length;i++){const k=arguments[i];if(ART.ready[k])return ART.img[k]}return null}
 function sprKey(list){for(const k of list)if(ART.ready[k])return k;return null}
 // Every take is fitted to the same box, so a pose with a raised weapon shrinks the body. Set by eye per pose.
@@ -342,7 +389,7 @@ function ultProg(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);return U?Mat
 function ultGround(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m),R=Math.min(150,(U.big||80)*1.1+40);
   if(U.sigil)fxDraw(U.sigil,m.x,m.y+6,R*2*k,R*2*k*0.55,G.t*0.5,0.35*k);
   ctx.strokeStyle='rgba('+(U.col||'255,230,140')+','+(0.35+0.25*Math.sin(G.t*6))+')';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(m.x,m.y+6,R*k*(1+0.05*Math.sin(G.t*6)),R*k*0.55,0,0,6.283);ctx.stroke()}
-function ultFlash(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m);if(k<1){const g=ctx.createRadialGradient(m.x,m.y-20,10,m.x,m.y-20,260*k+60);g.addColorStop(0,'rgba(255,255,255,'+(0.9*(1-k))+')');g.addColorStop(1,'rgba('+(U.col||'255,230,140')+',0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(m.x,m.y-20,260*k+60,0,6.283);ctx.fill()}
+function ultFlash(m){if(!SET.flash)return;const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m);if(k<1){const g=ctx.createRadialGradient(m.x,m.y-20,10,m.x,m.y-20,260*k+60);g.addColorStop(0,'rgba(255,255,255,'+(0.9*(1-k))+')');g.addColorStop(1,'rgba('+(U.col||'255,230,140')+',0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(m.x,m.y-20,260*k+60,0,6.283);ctx.fill()}
   if(G.parts.length<600&&RAND()<0.5){const a=rnd(0,6.283),rr=rnd(20,(U.big||80)*0.9);G.parts.push({x:m.x+Math.cos(a)*rr,y:m.y+Math.sin(a)*rr*0.5,vx:0,vy:-40,life:0.8,col:'rgb('+(U.col||'255,230,140')+')',r:2.5})}}
 function ultVignette(){let m=G.healer.ultT>0?G.healer:G.party.find(p=>p.ultT>0);if(!m)return;const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U)return;const a=0.16+0.06*Math.sin(G.t*5);const g=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.3,VW/2,VH/2,Math.max(VW,VH)*0.7);g.addColorStop(0,'rgba('+(U.col||'255,230,140')+',0)');g.addColorStop(1,'rgba('+(U.col||'255,230,140')+','+a+')');ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
 function fxDrawFrom(k,x,y,len,wid,rot,alpha){const im=ART.ready[k]?ART.img[k]:null;if(!im)return false;ctx.save();ctx.translate(x,y);ctx.rotate(rot);if(alpha!==undefined)ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.drawImage(im,0,-wid/2,len,wid);ctx.restore();return true}
@@ -647,6 +694,13 @@ function defaults(){return {gold:0,tree:{},circle:0,maxCircle:0,bestTime:0,wins:
 function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&typeof s==='object'){const m=Object.assign(defaults(),s);const MIG={h_mana:'h_pdmg',h_mana2:'h_pdmg2',h_regen:'h_paspd',h_regen2:'h_pspd',h_frugal:'h_brace',h_motemana:'h_motehp',ansel_mana:'ansel_pdmg',ansel_regen:'ansel_paspd',ansel_frugal:'ansel_brace',ivy_mana:'ivy_pdmg',ivy_regen:'ivy_paspd',ivy_frugal:'ivy_brace'};for(const k in MIG)if(m.tree&&m.tree[k]!==undefined){m.tree[MIG[k]]=Math.max(m.tree[MIG[k]]||0,m.tree[k]);delete m.tree[k]}return m}}catch(e){}return defaults()}
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(META))}catch(e){}}
 let META=load();
+// b060: settings live under their own key so a save reset leaves them alone
+const SET_KEY='thankless-settings-v1';
+const SET=Object.assign({shake:1,flash:1,particles:'full',motion:'full',chat:1},(()=>{try{return JSON.parse(localStorage.getItem(SET_KEY))||{}}catch(e){return {}}})());
+function saveSet(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
+function applySet(){const c=$('chat');if(c)c.classList.toggle('hide',!SET.chat);document.querySelectorAll('#setov .seg').forEach(seg=>{const k=seg.dataset.k;seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(SET[k])===b.dataset.v))});const fs=$('fsBtn');if(fs)fs.classList.toggle('hide',!document.documentElement.requestFullscreen)}
+function openSet(){applySet();$('saveTxt').value='';$('setnote').textContent='';$('setov').classList.remove('hide')}
+function closeSet(){$('setov').classList.add('hide')}
 const rank=id=>META.tree[id]||0;
 const mrank=(m,suf)=>rank(({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]||'x')+'_'+suf);
 const nodeCost=n=>Math.round(n.cost*Math.pow(1.7,rank(n.id)));
@@ -1210,6 +1264,7 @@ window.addEventListener('resize',resize); resize();
 const keys={};
 window.addEventListener('keydown',e=>{
   if(e.repeat)return;
+  if(e.key==='Escape'&&!$('setov').classList.contains('hide')){closeSet();return}
   keys[e.key.toLowerCase()]=true; keys[e.code]=true;
   if(!G||G.over)return;
   const k=e.key;
@@ -2836,6 +2891,13 @@ function runStory(won,why){
 function togglePause(){if(!G||G.over||G.lvOpen)return;G.paused=!G.paused;$('pauseov').classList.toggle('hide',!G.paused)}
 $('pause').onclick=togglePause; $('resume').onclick=togglePause;
 $('quit').onclick=()=>{if(!G)return;G.paused=false;$('pauseov').classList.add('hide');endRun(false,'wipe')};
+$('setBtn').onclick=openSet;$('setBtn2').onclick=openSet;$('setClose').onclick=closeSet;
+document.querySelectorAll('#setov .seg button').forEach(b=>b.onclick=()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;SET[k]=isNaN(+v)?v:+v;saveSet();applySet()});
+$('fsBtn').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>{})};
+$('expBtn').onclick=()=>{const txt=JSON.stringify(META);$('saveTxt').value=txt;$('saveTxt').select();const note=t=>$('setnote').textContent=t;if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>note('Copied to the clipboard. Keep it somewhere safe.'),()=>note('Select the text above and copy it.'));else note('Select the text above and copy it.')};
+$('impBtn').onclick=()=>{const note=t=>$('setnote').textContent=t;let o;try{o=JSON.parse($('saveTxt').value)}catch(e){o=null}if(!o||typeof o!=='object'||typeof o.gold!=='number'){note('That is not a Thankless save.');return}if(!confirm('Replace your current save with this one?'))return;localStorage.setItem(SAVE_KEY,JSON.stringify(o));META=load();save();renderMenu();note('Imported. Gold '+META.gold+', '+(META.runs||0)+' runs on record.')};
+$('resetBtn').onclick=()=>{if(!confirm('Wipe every run, all gold, the training tree and the achievements? This cannot be undone.'))return;if(!confirm('Really? Last chance.'))return;try{localStorage.removeItem(SAVE_KEY)}catch(e){}META=defaults();save();renderMenu();$('setnote').textContent='Everything is gone. Fresh start.'};
+applySet();
 $('back').onclick=()=>{$('over').classList.add('hide');G=null;renderMenu();$('menu').classList.remove('hide')};
 $('start').onclick=()=>{G_DAILY=null;$('menu').classList.add('hide');newRun();$('hud').classList.add('run')};
 $('daily').onclick=()=>{G_DAILY=dailySeed();$('menu').classList.add('hide');newRun();$('hud').classList.add('run')};
@@ -2918,6 +2980,7 @@ function step(dt){
   updateEnemies(dt); if(G.over)return;
   updateAllies(dt);
   for(let i=G.parts.length-1;i>=0;i--){const p=G.parts[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.9;p.vy*=0.9;if(p.life<=0)G.parts.splice(i,1)}
+  if(SET.particles==='low'){if(G.parts.length>220)G.parts.splice(0,G.parts.length-220);if(G.sparts.length>300)G.sparts.splice(0,G.sparts.length-300)}
   for(let i=G.sparts.length-1;i>=0;i--){const p=G.sparts[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;const f=Math.max(0,1-1.4*dt);p.vx*=f;p.vy*=f;if(p.life<=0)G.sparts.splice(i,1)}
   for(let i=G.texts.length-1;i>=0;i--){const p=G.texts[i];p.life-=dt;p.y+=p.vy*dt;if(p.life<=0)G.texts.splice(i,1)}
   for(let i=G.blasts.length-1;i>=0;i--){const b=G.blasts[i];b.life-=dt;if(b.life<=0)G.blasts.splice(i,1)}
@@ -3108,9 +3171,9 @@ function draw(){
   const h=G.healer, vw=VW/ZOOM, vh=VH/ZOOM;
   let cx=clamp(h.x-vw/2,-30,ARENA-vw+30), cy=clamp(h.y-vh/2,-30,ARENA-vh+30);
   if(vw>ARENA+60)cx=(ARENA-vw)/2; if(vh>ARENA+60)cy=(ARENA-vh)/2;
-  if(G.shake>0){cx+=rnd(-1,1)*G.shake*14;cy+=rnd(-1,1)*G.shake*14}
+  if(G.shake>0){cx+=rnd(-1,1)*G.shake*14*SET.shake;cy+=rnd(-1,1)*G.shake*14*SET.shake}
   G.cam.x=cx;G.cam.y=cy;
-  {const zp=G.zoomPunch>0?1+0.12*(G.zoomPunch/0.4):1;ctx.scale(ZOOM*zp,ZOOM*zp);ctx.translate(-cx-(vw*(zp-1)/2),-cy-(vh*(zp-1)/2))}
+  {const zp=G.zoomPunch>0&&SET.motion!=='reduced'?1+0.12*(G.zoomPunch/0.4):1;ctx.scale(ZOOM*zp,ZOOM*zp);ctx.translate(-cx-(vw*(zp-1)/2),-cy-(vh*(zp-1)/2))}
   drawGround(cx,cy);
   if(G.field.tint){ctx.fillStyle=G.field.tint;ctx.fillRect(cx-40,cy-40,vw+80,vh+80)}
   if(G.moonT>0){ctx.fillStyle='rgba(200,30,50,'+(0.10+0.04*Math.sin(G.t*3))+')';ctx.fillRect(cx-40,cy-40,vw+80,vh+80)}
@@ -3147,8 +3210,8 @@ function draw(){
   const ents=[]; for(const e of G.enemies)ents.push(e); for(const m of G.party)if(m.alive)ents.push(m); for(const z of G.minions)ents.push(z); ents.push(h);
   ents.sort((a,b)=>a.y-b.y);
   for(const o of ents){if(o.type)drawEnemy(o);else if(o.minion)drawMinion(o);else drawMember(o)}
-  for(const m of G.party){if(!(m.ultT>0))continue;const U=ultOf(m.key);if(U&&U.draw)U.draw(m);ultFlash(m);ultWeather(m,1/60)}
-  if(h.ultT>0)ultWeather(h,1/60);
+  for(const m of G.party){if(!(m.ultT>0))continue;const U=ultOf(m.key);if(U&&U.draw)U.draw(m);ultFlash(m);if(SET.motion!=='reduced')ultWeather(m,1/60)}
+  if(h.ultT>0&&SET.motion!=='reduced')ultWeather(h,1/60);
   if(h.ultT>0){const U=ultOf(h.hkey);if(U&&U.draw)U.draw(h);ultFlash(h)}
   if(h.ultT>0&&ultOf(h.hkey).rays){const k=Math.min(1,h.ultT/1.5,(ultOf(h.hkey).dur-h.ultT)/0.8);ctx.save();ctx.translate(h.x,h.y-30);ctx.rotate(G.t*0.15);ctx.globalCompositeOperation='lighter';for(let i=0;i<12;i++){ctx.rotate(0.5236);const g=ctx.createLinearGradient(0,0,0,-420);g.addColorStop(0,'rgba(255,235,160,'+(0.18*k)+')');g.addColorStop(1,'rgba(255,235,160,0)');ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-26,-420);ctx.lineTo(26,-420);ctx.closePath();ctx.fill()}ctx.restore()}
   for(const m of G.party)if(m.alive&&m.frozenT>0){ctx.strokeStyle='rgba(180,240,255,.9)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(m.x,m.y,m.r+6,0,6.283);ctx.stroke()}
@@ -3228,7 +3291,7 @@ function draw(){
   const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.42,VW/2,VH/2,Math.max(VW,VH)*0.72);
   vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.5)');ctx.fillStyle=vg;ctx.fillRect(0,0,VW,VH);
   ultVignette();
-  if(G.flash>0){ctx.fillStyle='rgba(255,255,255,'+(0.7*G.flash/0.5)+')';ctx.fillRect(0,0,VW,VH)}
+  if(G.flash>0&&SET.flash){ctx.fillStyle='rgba(255,255,255,'+(0.7*G.flash/0.5)+')';ctx.fillRect(0,0,VW,VH)}
   drawCine();
   if(h.hp<h.maxhp*0.3){const k=(0.5+0.5*Math.sin(G.t*6))*(1-h.hp/(h.maxhp*0.3));const rg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.35,VW/2,VH/2,Math.max(VW,VH)*0.7);rg.addColorStop(0,'rgba(160,0,0,0)');rg.addColorStop(1,'rgba(160,0,0,'+(0.45*k)+')');ctx.fillStyle=rg;ctx.fillRect(0,0,VW,VH)}
 }
@@ -3240,7 +3303,7 @@ function frame(now){
   let dt=Math.min(0.1,(now-last)/1000); last=now;
   if(G&&!G.over&&!G.paused&&!G.lvOpen){
     cineTick(dt);
-    acc+=dt*G.fast*(G.cine?0.12:1); const STEP=1/60; let n=0;
+    acc+=dt*G.fast*(G.cine&&SET.motion!=='reduced'?0.12:1); const STEP=1/60; let n=0;
     while(acc>=STEP&&n<60*G.fast+2){step(STEP);acc-=STEP;n++;if(G.over||G.lvOpen)break}
     if(n>=60*G.fast+2)acc=0;
   }else acc=0;

@@ -428,6 +428,23 @@ for even, low-contrast texture. Faces and the title keep their backgrounds.
 Display sizes are in `SPR_H` in `index.html` (world pixels tall); the party
 draw at 44–62px and fodder at 24–58px, so silhouettes matter more than detail.
 
+## Loading and settings
+The page opens on a loading screen (b060): `art.js` is fetched as a stream so
+the bar tracks real bytes, then the sprites decode and the bar finishes when
+every one is ready. Tips rotate underneath. If the fetch fails the plain
+script tag is used and the screen leaves after fifteen seconds at most, so
+the game is always reachable, with drawn fallbacks if the art never comes.
+
+Settings live behind a button on the title panel and in the pause overlay,
+under their own storage key (`thankless-settings-v1`) so a save reset leaves
+them alone: screen shake (off, half, full), flashes (the white ultimate
+flash and the caster's burst), particles (fewer caps the particle lists at
+a third), motion (reduced drops the slow-motion, zoom punch and weather on
+ultimates; the cut-in stays), the chat box, and a fullscreen button where
+the browser allows it. The Save block exports the profile as JSON to the
+clipboard and a text box, imports one back after a confirm, and resets
+everything after two confirms.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

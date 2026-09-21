@@ -326,7 +326,8 @@ under their gratitude) and fires on its own when a crowd closes in or a
 boss is near, which works out to three or four a run; the healer's has a
 150s cooldown on top of the full flask. A banner and the chat box
 announce it. Forms animate when their `_b` and `_c` frames are packed
-(blocks 73–82), cycling at six frames a second.
+(blocks 73–82): the three frames crossfade at four frames a second, so a
+frame drawn at a slightly different scale reads as a pulse rather than a pop.
 - Wren: Last Rites (raise every fallen ally, party untouchable 8s) or The
   Boy Who Stayed (triple speed for 12s, trailing healing light).
 - Father Ansel: The Sermon (12s rooted and untouchable, every enemy turns

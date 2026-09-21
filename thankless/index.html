@@ -395,7 +395,7 @@
 
 <script>
 'use strict';
-const BUILD='b075-clearview';
+const BUILD='b076-bigparty';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -944,12 +944,13 @@ function menuScene(dt){const mc=$('menucv');if(!mc||G){if(mc)mc.classList.add('h
   {g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(fx,fy-10,4,fx,fy-10,Math.min(W,H)*0.6*fl);gr.addColorStop(0,'rgba(255,170,70,.55)');gr.addColorStop(0.4,'rgba(255,120,40,.18)');gr.addColorStop(1,'rgba(255,90,30,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);g.restore()}
   // party around the fire
   const hk=healerUnlocked(META.healer||'wren')?(META.healer||'wren'):'wren';const keys=(META.party||[]).filter(k=>unlocked(k)).slice(0,3);
-  const who=[{spr:HEALERS[hk].spr,h:46,x:-0.13,f:1,key:hk},{spr:CHARS[keys[0]||'tank'].spr,h:SPR_H[keys[0]||'tank']||50,x:-0.36,f:1,key:keys[0]},{spr:CHARS[keys[1]||'archer'].spr,h:SPR_H[keys[1]||'archer']||46,x:0.15,f:-1,key:keys[1]},{spr:CHARS[keys[2]||'mage'].spr,h:SPR_H[keys[2]||'mage']||50,x:0.37,f:-1,key:keys[2]}];
-  const sc=Math.min(2.4,Math.max(1.7,W/300));
-  for(const p of who){if(!p.key)continue;const im=spr(p.spr+'_idle',p.spr+'_walk');const px=fx+p.x*Math.min(W*0.92,520),py=fy+8+Math.sin(t*1.7+p.x*9)*1.5;g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(px,py+2,p.h*sc*0.32,p.h*sc*0.1,0,0,6.283);g.fill();if(im){g.save();g.translate(px,py);g.scale(p.f,1);g.drawImage(im,-p.h*sc*im.width/im.height/2,-p.h*sc,p.h*sc*im.width/im.height,p.h*sc);g.restore()}
+  const who=[{spr:HEALERS[hk].spr,h:46,x:-0.12,f:1,key:hk},{spr:CHARS[keys[0]||'tank'].spr,h:SPR_H[keys[0]||'tank']||50,x:-0.31,f:1,key:keys[0]},{spr:CHARS[keys[1]||'archer'].spr,h:SPR_H[keys[1]||'archer']||46,x:0.13,f:-1,key:keys[1]},{spr:CHARS[keys[2]||'mage'].spr,h:SPR_H[keys[2]||'mage']||50,x:0.33,f:-1,key:keys[2]}];
+  const sc=Math.min(4.6,Math.max(3.4,W/150));
+  for(const p of who){if(!p.key)continue;const im=spr(p.spr+'_idle',p.spr+'_walk');const px=fx+p.x*Math.min(W*0.96,640),py=fy+8;g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(px,py+2,p.h*sc*0.32,p.h*sc*0.1,0,0,6.283);g.fill();if(im){g.save();g.translate(px,py);g.scale(p.f,1);g.drawImage(im,-p.h*sc*im.width/im.height/2,-p.h*sc,p.h*sc*im.width/im.height,p.h*sc);g.restore()}
     if(p.key==='tank'){g.font='bold '+Math.round(11*sc)+'px Georgia';g.fillStyle='rgba(230,220,255,'+(0.5+0.5*Math.sin(t*2))+')';g.fillText('z',px+6*sc,py-p.h*sc-4-((t*10)%18));g.fillText('Z',px+14*sc,py-p.h*sc-14-((t*10+9)%18))}}
   // the fire: sprite when packed, else drawn flames
-  if(ART.ready.fx_campfire){const im=ART.img.fx_campfire,h=46*sc*(0.97+0.03*Math.sin(t*11));g.drawImage(im,fx-h*im.width/im.height/2,fy-h+6,h*im.width/im.height,h)}
+  if(ART.ready.fx_campfire){const im=ART.img.fx_campfire,h=46*sc*0.5;g.drawImage(im,fx-h*im.width/im.height/2,fy-h+6,h*im.width/im.height,h);
+    g.save();g.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const a=t*9+i*1.9,hh=(h*0.22+h*0.14*Math.sin(a))*(1+0.3*Math.sin(a*2.3)),ww=h*0.06+h*0.03*Math.cos(a*1.3),ox=Math.sin(a*0.8+i)*h*0.09,by=fy-h*0.42;g.fillStyle=i<2?'rgba(255,240,170,.55)':i<4?'rgba(255,170,60,.5)':'rgba(255,90,30,.45)';g.beginPath();g.moveTo(fx+ox-ww,by);g.quadraticCurveTo(fx+ox-ww*0.3,by-hh*0.55,fx+ox,by-hh);g.quadraticCurveTo(fx+ox+ww*0.3,by-hh*0.55,fx+ox+ww,by);g.closePath();g.fill()}g.restore()}
   else{g.save();g.globalCompositeOperation='lighter';for(let i=0;i<7;i++){const a=t*7+i*1.3,hh=(22+10*Math.sin(a))*sc,ww=(7+3*Math.cos(a*1.3))*sc,ox=Math.sin(a*0.7)*5*sc;g.fillStyle=i<3?'rgba(255,220,120,.85)':i<5?'rgba(255,140,50,.75)':'rgba(255,80,30,.6)';g.beginPath();g.moveTo(fx+ox-ww,fy);g.quadraticCurveTo(fx+ox-ww*0.4,fy-hh*0.55,fx+ox,fy-hh);g.quadraticCurveTo(fx+ox+ww*0.4,fy-hh*0.55,fx+ox+ww,fy);g.closePath();g.fill()}g.restore();g.fillStyle='#3a2a1e';for(let i=-1;i<=1;i++){g.save();g.translate(fx,fy+2);g.rotate(i*0.5);g.fillRect(-16*sc,-3*sc,32*sc,6*sc);g.restore()}}
   // embers
   if(MSC.emb.length<40&&RAND()<0.5)MSC.emb.push({x:fx+rnd(-8,8),y:fy-10,vx:rnd(-12,12),vy:rnd(-60,-30),life:rnd(1.5,3.5),r:rnd(1,2.5)});

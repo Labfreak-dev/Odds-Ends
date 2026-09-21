@@ -274,7 +274,7 @@
 
 <script>
 'use strict';
-const BUILD='b057-frames';
+const BUILD='b058-pipframe';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -307,7 +307,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)||(i===3&&META.maxCircle>=3);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='11bdbb50';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='2d663f4c';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -333,7 +333,11 @@ function drawFlames(f,k){const n=Math.max(3,Math.round(f.r/9));for(let i=0;i<n;i
 function animKey(k){if(!k||!ART.ready[k+'_b'])return k;const f=Math.floor(G.t*6)%(ART.ready[k+'_c']?3:2);return f===0?k:f===1?k+'_b':k+'_c'}
 // b057: frames crossfade. [fromKey,toKey,blend] at 4 frames a second; blend is eased so each frame holds a beat.
 function animMix(k){if(!k||!ART.ready[k+'_b'])return [k,null,0];const ks=[k,k+'_b',k+'_c'],n=ART.ready[k+'_c']?3:2,p=(G.t*4)%n,i=Math.floor(p),t=p-i;return [ks[i],ks[(i+1)%n],t*t*(3-2*t)]}
-function drawAnimSpr(k,x,y,h,face,sx,sy){const [a,b,t]=animMix(k),ga=ctx.globalAlpha;if(!b||t<0.02){drawSpr(ART.img[a],x,y,h,face,sx,sy);return}if(t>0.98){drawSpr(ART.img[b],x,y,h,face,sx,sy);return}ctx.globalAlpha=ga*(1-t);drawSpr(ART.img[a],x,y,h,face,sx,sy);ctx.globalAlpha=ga*t;drawSpr(ART.img[b],x,y,h,face,sx,sy);ctx.globalAlpha=ga}
+// b058: a frame drawn without the effect part of frame 1 (Pip's frame 2 has no arrow fan) is fitted to where the
+// character sits in frame 1: [height scale, feet raised (of h), x shift (of h)]
+const FRAME_FIT={ult_archer_b:[0.6,0.4,-0.045]};
+function drawFit(k,x,y,h,face,sx,sy){const f=FRAME_FIT[k];if(f)drawSpr(ART.img[k],x+f[2]*h*(face<0?-1:1),y-f[1]*h,h*f[0],face,sx,sy);else drawSpr(ART.img[k],x,y,h,face,sx,sy)}
+function drawAnimSpr(k,x,y,h,face,sx,sy){const [a,b,t]=animMix(k),ga=ctx.globalAlpha;if(!b||t<0.02){drawFit(a,x,y,h,face,sx,sy);return}if(t>0.98){drawFit(b,x,y,h,face,sx,sy);return}ctx.globalAlpha=ga*(1-t);drawFit(a,x,y,h,face,sx,sy);ctx.globalAlpha=ga*t;drawFit(b,x,y,h,face,sx,sy);ctx.globalAlpha=ga}
 function ultProg(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);return U?Math.min(1,(U.dur-m.ultT)/0.5):1}
 function ultGround(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m),R=Math.min(150,(U.big||80)*1.1+40);
   if(U.sigil)fxDraw(U.sigil,m.x,m.y+6,R*2*k,R*2*k*0.55,G.t*0.5,0.35*k);

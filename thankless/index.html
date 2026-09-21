@@ -353,7 +353,7 @@
 
 <script>
 'use strict';
-const BUILD='b067-banter';
+const BUILD='b068-bossart';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -3399,9 +3399,9 @@ function drawEnemy(e){
   shadow(x,e.y,e.r);
   if(e.type==='revenant'){const C=CHARS[e.ofKey];const pk=C?sprKey([C.spr+'_idle',C.spr+'_walk']):null,im=pk?ART.img[pk]:null;ctx.save();ctx.globalAlpha=0.7;ctx.filter='saturate(0.2) brightness(0.55)'+(e.hitT>0?' brightness(2)':'');if(im)drawSpr(im,x,e.y+e.r*0.8,(SPR_H[e.ofKey]||44),f);else{ctx.fillStyle=e.col;ctx.beginPath();ctx.arc(x,y-6,e.r,0,6.283);ctx.fill()}ctx.restore();ctx.strokeStyle='rgba(160,100,220,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,e.y+2,e.r+4,0,6.283);ctx.stroke();ctx.font='bold 9px Verdana';ctx.fillStyle='#c8a8ff';ctx.fillText(e.ofName||'',x-ctx.measureText(e.ofName||'').width/2,e.y-e.r-18);return}
   if(e.elite){const A=AFFIX[e.elite];ctx.strokeStyle=A.col;ctx.globalAlpha=0.45+0.25*Math.sin(G.t*6+e.wob);ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,e.y+e.r*0.8,e.r*1.3,e.r*0.55,0,0,6.283);ctx.stroke();ctx.globalAlpha=1}
-  const sb=BOSS_SPR[e.type]||e.type;const pk=sprKey(e.boss&&e.charging>0?[sb+'_charge',sb+'_a',sb+'_b']:[Math.sin(G.t*7+e.wob)>0?sb+'_a':sb+'_b',sb+'_a',sb+'_b']), im=pk?ART.img[pk]:null;
+  const own=!!ART.ready[e.type+'_a'],sb=own?e.type:(BOSS_SPR[e.type]||e.type);const pk=sprKey(e.boss&&e.charging>0?[sb+'_charge',sb+'_a',sb+'_b']:[Math.sin(G.t*7+e.wob)>0?sb+'_a':sb+'_b',sb+'_a',sb+'_b']), im=pk?ART.img[pk]:null;
   if(im&&e.under>0){ctx.fillStyle='#4a3a26';ctx.beginPath();ctx.ellipse(x,e.y+4,16,7,0,0,6.283);ctx.fill();ctx.fillStyle='#6a5a40';ctx.beginPath();ctx.ellipse(x,e.y,12,5,0,0,6.283);ctx.fill()}
-  else if(im){poseSwap(e,pk);const [sx,sy]=squash(e);const hover=e.type==='bat'?6+Math.sin(G.t*6+e.wob)*3:e.type==='brood'?18+Math.sin(G.t*5+e.wob)*8:e.type==='wisp'?8+Math.sin(G.t*7+e.wob)*4:0;ctx.save();{const bf=BOSS_TINT[e.type]||'';if(e.hitT>0||bf)ctx.filter=bf+(e.hitT>0?' brightness(2.5)':'')}drawSpr(im,x,y+e.r*0.8-hover,SPR_H[e.type]*(POSE_SCALE[pk]||1)*(e.elite?1.3:1),f,sx*(e.charging>0?1.12:1),sy*(e.charging>0?0.9:1));ctx.restore()}
+  else if(im){poseSwap(e,pk);const [sx,sy]=squash(e);const hover=e.type==='bat'?6+Math.sin(G.t*6+e.wob)*3:e.type==='brood'?18+Math.sin(G.t*5+e.wob)*8:e.type==='wisp'?8+Math.sin(G.t*7+e.wob)*4:0;ctx.save();{const bf=own?'':(BOSS_TINT[e.type]||'');if(e.hitT>0||bf)ctx.filter=bf+(e.hitT>0?' brightness(2.5)':'')}drawSpr(im,x,y+e.r*0.8-hover,SPR_H[e.type]*(POSE_SCALE[pk]||1)*(e.elite?1.3:1),f,sx*(e.charging>0?1.12:1),sy*(e.charging>0?0.9:1));ctx.restore()}
   else{
   ctx.save(); if(e.hitT>0)ctx.filter='brightness(2.5)';
   ctx.fillStyle=e.col;

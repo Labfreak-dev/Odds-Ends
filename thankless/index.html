@@ -275,7 +275,7 @@
     <div class="setrow"><span>Particles</span><div class="seg" data-k="particles"><button data-v="low">Fewer</button><button data-v="full">Full</button></div></div>
     <div class="setrow"><span>Motion</span><div class="seg" data-k="motion"><button data-v="reduced">Reduced</button><button data-v="full">Full</button></div><div class="sub" style="width:100%">Reduced: no slow-motion, zoom or weather on ultimates.</div></div>
     <div class="setrow"><span>Chat box</span><div class="seg" data-k="chat"><button data-v="0">Hidden</button><button data-v="1">Shown</button></div></div>
-    <div class="row" style="margin-top:10px"><button id="fsBtn">Fullscreen</button></div>
+    <div class="row" style="margin-top:10px"><button id="fsBtn">Fullscreen</button><button id="updBtn">Get the latest version</button></div><div class="sub" id="updnote" style="margin-top:4px">Build <b id="updstamp"></b>. If the game looks wrong after an update, this clears the offline copy and reloads. Your save is kept.</div>
     <h2 style="margin-top:14px">Save</h2>
     <div class="row"><button id="expBtn">Export</button><button id="impBtn">Import</button><button id="resetBtn">Reset everything</button></div>
     <textarea id="saveTxt" spellcheck="false" placeholder="Export puts your save here to copy. Paste a save here and press Import."></textarea>
@@ -395,7 +395,7 @@
 
 <script>
 'use strict';
-const BUILD='b078-setout';
+const BUILD='b079-update';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -832,7 +832,7 @@ const SET_KEY='thankless-settings-v1';
 const SET=Object.assign({shake:1,flash:1,particles:'full',motion:'full',chat:1,sound:1,ambience:1,music:1},(()=>{try{return JSON.parse(localStorage.getItem(SET_KEY))||{}}catch(e){return {}}})());
 function saveSet(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
 function applySet(){sndApply();const c=$('chat');if(c)c.classList.toggle('hide',!SET.chat);document.querySelectorAll('#setov .seg').forEach(seg=>{const k=seg.dataset.k;seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(SET[k])===b.dataset.v))});const fs=$('fsBtn');if(fs)fs.classList.toggle('hide',!document.documentElement.requestFullscreen)}
-function openSet(){applySet();$('saveTxt').value='';$('setnote').textContent='';$('setov').classList.remove('hide')}
+function openSet(){applySet();{const st=$('updstamp');if(st)st.textContent=BUILD}$('saveTxt').value='';$('setnote').textContent='';$('setov').classList.remove('hide')}
 function closeSet(){$('setov').classList.add('hide')}
 // ===== b061: sound. Clips from the Free Fantasy SFX Pack by TomMusic (sfx/*.mp3), the rest synthesised here. =====
 const SFX_KEYS=['hit1','hit2','hit3','arrowhit1','arrowhit2','bow1','bow2','swing1','swing2','swing3','block1','block2','parry','fireball1','fireball2','fireball3','firebuff','firespray','icethrow1','icethrow2','icefreeze','icewall','icebarrage','meteor','boom','rockwall','impact1','impact2','impact3','waterspray','wave','chestopen','unlock','gate','chop1','chop2','ignite'];
@@ -3248,7 +3248,13 @@ function shareText(){const won=G.won,names=G.party.map(m=>m.name).join(' / '),ub
     '✨ ults '+G.party.map(m=>ub[m.name]||0).join('/')+' · 🙏 thanks '+(G.stats.thanks||0)+' · '+grat,
     'labfreak-dev.github.io/Odds-Ends/thankless/'].join('\n')}
 $('shareBtn').onclick=()=>{if(!G)return;const t=shareText(),b=$('shareBtn'),ok=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy result',1800)},fb=()=>{prompt('Copy your result:',t)};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,fb);else fb()};
-if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>{r.update().catch(()=>{});r.addEventListener('updatefound',()=>{const w=r.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)updOffer()})})}).catch(()=>{}));
+// b079: after load, ask the server which build is live; if it is not this one, offer a reload that drops the offline copy
+function updFresh(){return (async()=>{try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}catch(e){}location.reload()})()}
+function updOffer(){const el=$('tut');if(!el)return;el.innerHTML='A newer version is ready. <b>Tap to reload.</b>';el.classList.add('on');el.style.pointerEvents='auto';el.onclick=()=>{el.textContent='Reloading…';updFresh()}}
+function updCheck(){if(location.protocol!=='https:')return;fetch('index.html?check='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD)updOffer()}).catch(()=>{})}
+setTimeout(updCheck,4000);
+$('updBtn').onclick=()=>{$('updnote').textContent='Fetching the latest version…';updFresh()};
 $('back').onclick=()=>{$('over').classList.add('hide');G=null;renderMenu();menuGo('camp');$('menu').classList.remove('hide')};
 $('start').onclick=()=>{G_DAILY=null;$('menu').classList.add('hide');newRun();$('hud').classList.add('run')};
 $('daily').onclick=()=>{G_DAILY=dailySeed();$('menu').classList.add('hide');newRun();$('hud').classList.add('run')};

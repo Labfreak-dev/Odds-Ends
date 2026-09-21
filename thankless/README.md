@@ -356,9 +356,18 @@ closes in or a boss is near; a banner and the chat box announce it.
   (twenty sticks).
 - Unit 7: Meltdown (a growing ring of fire, then reboot at full) or Orbital
   Strike (a beam from above follows a sweeping laser).
-Every ultimate is cinematic: a white entrance flash and scale-in, a rotating
-sigil on the ground in the ultimate's element, a pulsing aura, drifting
-motes and a screen-edge vignette in its colour. Every character has a
+Every ultimate is a set piece (b055). On cast, time drops to 12% and a
+fighting-game cut-in plays: a diagonal band in the ultimate's colour slams
+across the screen, the character's form art slides in huge with speed
+lines and a glow, the name punches in and shakes, a white flash, and the
+band wipes off as the world snaps back with a shockwave and a camera
+punch. For the duration the sprite hovers and breathes, anything that
+moves leaves a ghost trail, a shockwave pulses every two seconds, and
+element weather fills the area: rising embers, falling snow, drifting
+leaves, feathers and sparkles, shadow wisps, lightning arcs, blood motes,
+brass casings. It ends with a burst outward and a last flash. There is
+also a rotating sigil on the ground, a pulsing aura and a screen-edge
+vignette in its colour. Every character has a
 transformation sprite (or a set piece: the giant arrow, the glacier, the
 bat cloud, the dynamite wagon, the orbital reticle, the falling hammer,
 the ring of trees, the huge skeletons). Art: blocks 62–72.

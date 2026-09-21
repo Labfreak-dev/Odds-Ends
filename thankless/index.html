@@ -345,7 +345,7 @@
 
 <script>
 'use strict';
-const BUILD='b070-cinepop';
+const BUILD='b071-bossart';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -426,7 +426,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)||(i===3&&META.maxCircle>=3);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='0597e57e';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='af2f0a73';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};LOAD.total=Object.keys(A).length;const tick=()=>{LOAD.n++;if(LOAD.n%8===0||LOAD.n>=LOAD.total)loadBar(0.6+0.4*LOAD.n/Math.max(1,LOAD.total));if(LOAD.n>=LOAD.total)loadDone()};

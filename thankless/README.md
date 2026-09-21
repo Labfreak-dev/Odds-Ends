@@ -395,6 +395,17 @@ fx_pool_fire, fx_pool_holy, fx_roots, fx_front, fx_tornado, fx_slash, fx_whip,
 fx_blade, fx_book, fx_wall_light, fx_wall_ice, fx_lightning. Prompts are in
 `art-prompts.txt` and paste-sheet blocks 46–55.
 
+Directional effects are built in code, not stretched pictures (b059). A
+side-view sprite only reads upright, so anything that lies along a line
+or cone is drawn from parts: walls are rows of upright light pillars or
+ice shards along the wall's line with a glow strip and motes; beams are a
+soft glow, a bright core, the beam art tiled and scrolled toward the
+target, and a flare where it lands; sprays are particle cones emitted
+over the cast; the slash and whip are swept arcs with a fading trail, the
+crescent and censer art riding the leading edge. Projectiles get a
+streak, a launch flash and a hit burst. Everything made of light is drawn
+additively (`lighter`) so it brightens what is under it.
+
 ## Art: generating and packing
 ```bash
 pip install pillow

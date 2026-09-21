@@ -46,6 +46,10 @@
   button.sm{padding:5px 10px;min-height:30px;font-size:12px}
   .panel{background:var(--panel);border:3px solid var(--line);border-radius:6px;box-shadow:inset 0 0 0 2px var(--bevel),inset 0 0 0 3px #000,0 2px 0 #000;padding:12px;margin-bottom:10px;position:relative}
   .hide{display:none !important}
+  .codex-ic{width:42px;height:42px;object-fit:contain;position:absolute;right:8px;top:8px;filter:drop-shadow(1px 1px 0 #000)}
+  .node.unk{opacity:.5}.node.unk b{letter-spacing:2px}
+  .node.has-ic b,.node.has-ic .d,.node.has-ic .kc{padding-right:50px}
+  .node .kc{font-size:11px;color:var(--gold)}
   /* b062: first-run callouts and the rotate hint */
   #tut{position:absolute;top:calc(48px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:min(440px,84vw);background:rgba(10,7,16,.9);border:2px solid var(--gold);border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.35;color:var(--ink);text-shadow:1px 1px 0 #000;box-shadow:0 2px 0 #000;opacity:0;transition:opacity .35s;pointer-events:none;text-align:center}
   #tut.on{opacity:1}
@@ -279,6 +283,11 @@
       <div class="sub" id="relicsKnown" style="line-height:1.5"></div>
     </div>
     <div class="panel">
+      <h2>Codex <span class="sub" id="codexcount"></span></h2>
+      <div class="tabs" id="codextabs"></div>
+      <div class="tree" id="codex"></div>
+    </div>
+    <div class="panel">
       <h2>Achievements <span class="sub" id="achcount"></span></h2>
       <div class="tree" id="achs"></div>
     </div>
@@ -344,7 +353,7 @@
 
 <script>
 'use strict';
-const BUILD='b065-bosses';
+const BUILD='b066-codex';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -376,6 +385,33 @@ const BOSSES={
 const BOSS_SPR={bishop:'lich',warden:'knight',brood:'bat'};
 const BOSS_TINT={bishop:'sepia(0.5) hue-rotate(15deg) brightness(1.1)',warden:'hue-rotate(-35deg) contrast(1.25) brightness(0.9)',brood:'hue-rotate(80deg) saturate(1.5)'};
 const fieldBoss=()=>BOSSES[(G&&G.field.boss)||'king'];
+// b066: the codex. Enemies are met on spawn and counted on death; weapons and evolutions when the party takes them.
+const LORE={
+  imp:{name:'Imp',desc:'Small, fast, and everywhere. The first thing you meet and the last thing you stop noticing.'},
+  bat:{name:'Bat',desc:'Comes in clouds, dies in a hit, bites on the way through.'},
+  skel:{name:'Skeleton',desc:'Slow and sturdy. Walks straight at whoever it saw first.'},
+  brute:{name:'Brute',desc:'Big, thick and slow. Hits hard enough that someone will shout your name.'},
+  cultist:{name:'Cultist',desc:'Hooded and hurried. Keeps to the middle distance and comes for the healer.'},
+  hexer:{name:'Hexer',desc:'Lobs bolts from a distance. Keep moving, or let Pip deal with it.'},
+  ghoul:{name:'Ghoul',desc:'Burrows, then comes up under someone. Usually you.'},
+  wisp:{name:'Wisp',desc:'Ignores the party and drinks your flask on touch.'},
+  revenant:{name:'Revenant',desc:'One of yours, raised by the Lich. It remembers who let it fall.'},
+  knight:{name:'Demon Knight',desc:'Arrives mid-run with a charge and a chest. Brom is usually asleep for it.',boss:true},
+  lich:{name:'Lich',desc:'Comes at 7:30 and raises whoever you left lying. Drinks the flask when there is nobody to raise.',boss:true},
+  king:{name:'The Demon King',desc:'The Long Meadow at ten minutes. Charges and calls six imps at a time.',boss:true},
+  bishop:{name:'The Bone Bishop',desc:'The Bone Fields at ten minutes. Keeps his distance, raises the buried around you, curses your hands.',boss:true},
+  warden:{name:'The Warden of Ash',desc:'The Ashen Keep at ten minutes. Slams the ground and walls you in with stone.',boss:true},
+  brood:{name:'The Mother of Bats',desc:'The Sodden Mire at ten minutes. Swoops, births bats, screeches the party away.',boss:true}};
+function renderCodex(){const box=$('codex'),tabs=$('codextabs');if(!box)return;const S=META.seen||{e:{},k:{},w:{},v:{}};const tab=META.codexTab||'bestiary';
+  const T=[['bestiary','Bestiary'],['weapons','Weapons'],['evos','Evolutions']];tabs.innerHTML='';for(const [id,nm] of T){const b=document.createElement('button');b.textContent=nm;if(id===tab)b.className='on';b.onclick=()=>{META.codexTab=id;save();renderCodex()};tabs.appendChild(b)}
+  const node=(known,name,desc,extra,ic)=>{const d=document.createElement('div');d.className='node'+(known?'':' unk')+(known&&ic?' has-ic':'');d.innerHTML='<b>'+(known?esc(name):'???')+'</b><div class="d">'+(known?esc(desc):'Not met yet.')+'</div>'+(known&&extra?'<div class="kc">'+extra+'</div>':'')+(known&&ic?'<img class="codex-ic" alt="" src="'+ic+'">':'');return d};
+  box.innerHTML='';let n=0,tot=0;
+  if(tab==='bestiary'){for(const k of Object.keys(LORE)){const L=LORE[k],known=!!S.e[k];tot++;if(known)n++;const sb=BOSS_SPR[k]||k,ic=ART.ready[sb+'_a']?ART.img[sb+'_a'].src:null;box.appendChild(node(known,L.name+(L.boss?' (boss)':''),L.desc,S.k[k]?'Slain: '+S.k[k]:'Met, not slain',ic))}
+    for(const a of Object.keys(AFFIX)){const A=AFFIX[a],known=!!S.e['x_'+a];tot++;if(known)n++;box.appendChild(node(known,'Elite: '+A.name,'An elite with an aura that '+A.desc+'.',null,null))}}
+  else if(tab==='weapons'){for(const k of Object.keys(CHARS)){const C=CHARS[k];if(!C.weapons)continue;C.weapons.forEach((w,i)=>{const known=i===0?unlocked(k):!!META.weaponsSeen[k];tot++;if(known)n++;box.appendChild(node(known,w.name,w.desc,C.name+'’s '+(i?'second':'first')+' weapon',null))})}
+    for(const u of UPS){if(u.who!=='weapon')continue;const known=!!S.w[u.id];tot++;if(known)n++;box.appendChild(node(known,(u.icon||'')+' '+u.name.replace(/^Learn: /,''),HW(u.desc),(u.fam?'Family: '+u.fam+(u.el?', '+u.el:''):''),null))}}
+  else{for(const id of Object.keys(WEVO)){const E=WEVO[id],base=UPS.find(u=>u.id===id),known=!!S.v[id];tot++;if(known)n++;box.appendChild(node(known,E.name,E.desc,base?'Evolves '+base.name.replace(/^Learn: /,''):'',null))}}
+  $('codexcount').textContent='('+n+' of '+tot+')'}
 const KNIGHT_AT=300;        // the mini-boss at five (the meadow's default; a field may move it)
 // ---------- fields: where a run happens. Data only, so a field needs no new art ----------
 const FIELDS=[
@@ -745,7 +781,7 @@ const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
 const hasRelic=id=>!!(G&&G.relics&&G.relics.includes(id));
 const relicIcon=(id,cls)=>ART.ready['relic_'+id]?'<img class="ricon '+(cls||'')+'" alt="" src="'+ART.img['relic_'+id].src+'">':RELIC[id].icon;
 const BRANCH={healer:'Wren',tank:'Brom',archer:'Pip',mage:'Vex'};
-function defaults(){return {gold:0,tree:{},circle:0,maxCircle:0,bestTime:0,wins:0,runs:0,totalHeal:0,thanks:0,kills:0,ff:0,relicsSeen:{},party:['tank','archer','mage'],weapon:{},weaponsSeen:{},pilgrims:0,elites:0,evos:0,goldTotal:0,fieldWins:{}}}
+function defaults(){return {gold:0,tree:{},circle:0,maxCircle:0,bestTime:0,wins:0,runs:0,totalHeal:0,thanks:0,kills:0,ff:0,relicsSeen:{},party:['tank','archer','mage'],weapon:{},weaponsSeen:{},pilgrims:0,elites:0,evos:0,goldTotal:0,fieldWins:{},seen:{e:{},k:{},w:{},v:{}}}}
 function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&typeof s==='object'){const m=Object.assign(defaults(),s);const MIG={h_mana:'h_pdmg',h_mana2:'h_pdmg2',h_regen:'h_paspd',h_regen2:'h_pspd',h_frugal:'h_brace',h_motemana:'h_motehp',ansel_mana:'ansel_pdmg',ansel_regen:'ansel_paspd',ansel_frugal:'ansel_brace',ivy_mana:'ivy_pdmg',ivy_regen:'ivy_paspd',ivy_frugal:'ivy_brace'};for(const k in MIG)if(m.tree&&m.tree[k]!==undefined){m.tree[MIG[k]]=Math.max(m.tree[MIG[k]]||0,m.tree[k]);delete m.tree[k]}return m}}catch(e){}return defaults()}
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(META))}catch(e){}}
 let META=load();
@@ -839,7 +875,7 @@ let treeTab='healer';
 function renderMenu(){
   {const D=META.daily,sd=dailySeed();$('daily').textContent='Daily '+sd+(D&&D.seed===sd?' · best '+fmt(D.best)+(D.won?' ✓':''):'')}
   checkAchievements(false); $('mgold').textContent=Math.floor(META.gold); $('mtitle').textContent=META.title?HN()+' '+META.title+' ·':'';
-  $('mcircle').textContent=META.circle;
+  $('mcircle').textContent=META.circle; renderCodex();
   {const c=META.circle,rs=circleRules(c),next=CIRCLES[c];$('circdesc').innerHTML=c===0?'Circle 0: the story as told. Beat the Demon King to open the next circle'+(next?', which adds <b>'+next.name+'</b>: '+next.desc+'.':'.'):
     'Circle '+c+': enemies +'+Math.round(c*35)+'% HP, +'+Math.round(c*20)+'% damage, gold ×'+(1+c*0.5).toFixed(1)+'.'+(rs.length?' Rules: '+rs.map(r=>'<b>'+r.name+'</b> ('+r.desc+')').join(' · ')+'.':'')+(next&&c<META.maxCircle?'':next?' Win here to add <b>'+next.name+'</b>.':'')}
   $('circDown').disabled=META.circle<=0; $('circUp').disabled=META.circle>=META.maxCircle;
@@ -2345,7 +2381,7 @@ function hurtEnemy(e,dmg,by){
   if(e.hp<=0){e.dead=true; if(by&&by.kills!==undefined)by.kills++; if(by&&by.buffDmgT>0&&by.maxhp)by.hp=Math.min(by.maxhp,by.hp+by.maxhp*0.02); if(by&&by.buffDmgT>0&&upRank('blessburst')&&RAND()<0.2*upRank('blessburst')){for(const o of G.enemies)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<60)hurtEnemy(o,G.healer.healPower*1.5*holyMul(),by===G.healer?null:by);G.blasts.push({x:e.x,y:e.y,r:60,life:0.3,col:'rgba(255,240,160,'})} killEnemy(e,by)}
 }
 function killEnemy(e,by){
-  G.kills++; META.kills++; sn('pop',0.06); if(G.event&&!G.event.done)G.event.kills=(G.event.kills||0)+1;
+  G.kills++; META.kills++; sn('pop',0.06); if(META.seen)META.seen.k[e.type]=(META.seen.k[e.type]||0)+1; if(G.event&&!G.event.done)G.event.kills=(G.event.kills||0)+1;
   const lucky=by&&hasQ(by,'q_lucky')?1.5:1;
   if(by&&by.key&&by.key!=='healer'&&!(by.ultT>0))by.ult=Math.min(1,(by.ult||0)+0.0008);
   {const nc=byKey('necro');if(nc&&nc.alive&&nc.ultArmy)raiseMinion(nc,e.x,e.y,'skel')}
@@ -2500,7 +2536,7 @@ function spawnEnemy(type,x,y){
   const T=ETYPES[type]; const scale=(G.t<180?1.15+G.t/130:2.53+(G.t-180)/220)*G.hpMul*threat;
   const e={type,x,y,r:T.r,frozen:0,bleed:null,burrowT:T.burrow?rnd(4,7):0,under:0,hp:T.hp*scale,maxhp:T.hp*scale,spd:T.spd*rnd(0.9,1.1),dmg:T.dmg*(1.15+G.t/300)*G.dmgMul*(1+0.05*Math.max(0,avgL-4)),atkCd:T.atk,atkT:rnd(0,T.atk),xp:T.xp,gold:T.gold,gems:T.gems,col:T.col,boss:!!T.boss,target:null,tT:rnd(0,0.4),hitT:0,slow:0,dead:false,wob:rnd(0,6.28),chargeT:rnd(3,6),charging:0,sumT:5};
   if(G.field.speedMul)e.spd*=G.field.speedMul; if(G.moonT>0&&!T.boss){e.spd*=1.5;e.moon=true}
-  G.enemies.push(e); return e;
+  G.enemies.push(e); if(META.seen&&!META.seen.e[e.type])META.seen.e[e.type]=1; return e;
 }
 const AFFIX={
   swift:{name:'Swift',col:'#4de0ff',glyph:'»',desc:'moves half again as fast'},
@@ -2511,7 +2547,7 @@ const AFFIX={
 };
 function spawnElite(){
   wstream('elite',G.eliteN=(G.eliteN||0)+1); const type=pickType(G.t), affix=wpick(Object.keys(AFFIX)); const e=spawnAtEdge(type); if(!e)return;
-  e.elite=affix; sn('elite',0.5); e.hp*=4.5; e.maxhp=e.hp; e.dmg*=1.5; e.r*=1.25; e.xp*=6; e.gold*=8; e.gems=5; if(affix==='swift')e.spd*=1.5;
+  e.elite=affix; sn('elite',0.5); if(META.seen)META.seen.e['x_'+affix]=1; e.hp*=4.5; e.maxhp=e.hp; e.dmg*=1.5; e.r*=1.25; e.xp*=6; e.gold*=8; e.gems=5; if(affix==='swift')e.spd*=1.5;
   toast('An elite '+type+': '+AFFIX[affix].name+', '+AFFIX[affix].desc,2.4);
 }
 function spawnAtEdge(type){
@@ -2953,17 +2989,17 @@ function showLevelUp(){
   $('lvl').classList.remove('hide'); return true;
 }
 function applyPartyCard(m,k){const t=G.pickTiers[k.id]||0;
-  if(k.kind==='evo'){const wid=k.evoOf;G.wEvo[wid]=true;G.stats.wevos=(G.stats.wevos||0)+1;say(m,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(m.x,m.y,30,'#ff8ad8',160,3);G.blasts.push({x:m.x,y:m.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(m.x,m.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16);return}
+  if(k.kind==='evo'){const wid=k.evoOf;G.wEvo[wid]=true;if(META.seen)META.seen.v[wid]=1;G.stats.wevos=(G.stats.wevos||0)+1;say(m,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(m.x,m.y,30,'#ff8ad8',160,3);G.blasts.push({x:m.x,y:m.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(m.x,m.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16);return}
   const u=UPS.find(x=>x.id===k.id);if(!u)return;const left=u.max-upRank(u.id);const n=Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));const fresh=!upRank(u.id);
   for(let i=0;i<n;i++)applyUp(u.id);
-  if(u.who==='weapon'&&fresh){G.wOwner[u.id]=m.key;G.stats.weapons=(G.stats.weapons||0)+1;if(weaponCount()>1)contractFail('light','A second weapon.');say(m,pick(CHARS[m.key].lines.gift||['...is this mine now?','Fine. I’ll hold it.','What does it do?','Ooh.']),2,true)}
+  if(u.who==='weapon'&&fresh){G.wOwner[u.id]=m.key;if(META.seen)META.seen.w[u.id]=1;G.stats.weapons=(G.stats.weapons||0)+1;if(weaponCount()>1)contractFail('light','A second weapon.');say(m,pick(CHARS[m.key].lines.gift||['...is this mine now?','Fine. I’ll hold it.','What does it do?','Ooh.']),2,true)}
   G.stats.tiers=G.stats.tiers||[0,0,0,0,0];G.stats.tiers[t]++;if(t===4){META.mythics=(META.mythics||0)+1;m.hp=m.maxhp;ftext(m.x,m.y-40,'MYTHIC','#ff6a8a',18)}}
 function applyMemberPick(m,id,k){if(id.startsWith('q_'))applyQuirk(m,id);else if(id.startsWith('evo_')||UPS.some(u=>u.id===id)){applyPartyCard(m,k||G.pendingPicks.find(x=>x.id===id)||{id,kind:id.startsWith('evo_')?'evo':'card',evoOf:id.slice(4)});G.stats.learned=(G.stats.learned||0)+1}else{const k=SKILLS[m.key].find(x=>x.id===id);const t=(G.pickTiers&&G.pickTiers[id])||0;const left=k?k.max-skl(m,id):1;const n=id.startsWith('swap_')?1:Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));for(let i=0;i<n;i++)applySkill(m,id);if(t===4){m.hp=m.maxhp;ftext(m.x,m.y-40,'MYTHIC','#ff6a8a',18)}}G.stats.learned=(G.stats.learned||0)+1}
 function chooseUp(id){
   if(!G||!G.lvOpen)return; sn('pickcard',0.05);
   if(G.pickKind==='relic'){chooseRelic(id);return}
   if(G.pickKind==='member'){const m=G.pickWho;applyMemberPick(m,id);G.lvOpen=false;G.pickKind='up';$('lvl').classList.add('hide');G.lvQ.shift();showNextLevel();return}
-  if(id.startsWith('evo_')){const wid=id.slice(4);G.wEvo[wid]=true;const o=holderOf(wid);G.stats.wevos=(G.stats.wevos||0)+1;if(o){say(o,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(o.x,o.y,30,'#ff8ad8',160,3);G.blasts.push({x:o.x,y:o.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(o.x,o.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16)}G.lvOpen=false;$('lvl').classList.add('hide');G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+40);G.lvQ.shift();showNextLevel();return}
+  if(id.startsWith('evo_')){const wid=id.slice(4);G.wEvo[wid]=true;if(META.seen)META.seen.v[wid]=1;const o=holderOf(wid);G.stats.wevos=(G.stats.wevos||0)+1;if(o){say(o,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(o.x,o.y,30,'#ff8ad8',160,3);G.blasts.push({x:o.x,y:o.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(o.x,o.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16)}G.lvOpen=false;$('lvl').classList.add('hide');G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+40);G.lvQ.shift();showNextLevel();return}
   const h=G.healer; const u=UPS.find(x=>x.id===id); const t=(G.pickTiers&&G.pickTiers[id])||0;
   const left=u?u.max-upRank(id):1; const n=Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks*2));
   for(let i=0;i<n;i++)applyUp(id);

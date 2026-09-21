@@ -537,6 +537,17 @@ art borrow a sprite (`BOSS_SPR`: lich, knight, bat) at a larger size with a
 tint (`BOSS_TINT`); prompts for proper art can come later. The end screen,
 the story, the share text and the field description name the boss.
 
+## Codex (b066)
+A menu panel with three tabs. **Bestiary**: every enemy and boss with a
+line of lore, its sprite, and a kill count; entries are met on spawn
+(`META.seen.e`) and counted on death (`META.seen.k`); the four elite
+affixes are listed too and marked when one has appeared. **Weapons**:
+each member's two weapons (the second once it has turned up) and every
+weapon card the party has taken (`META.seen.w`). **Evolutions**: every
+evolution, marked once taken (`META.seen.v`). Unknown entries show as
+??? with "Not met yet." and the heading counts found of total. Old saves
+get an empty `seen` from `defaults()`.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

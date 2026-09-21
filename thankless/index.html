@@ -274,7 +274,7 @@
 
 <script>
 'use strict';
-const BUILD='b056-anim';
+const BUILD='b057-frames';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -307,7 +307,7 @@ const FIELDS=[
 const fieldOpen=i=>i===0||(i===1&&META.maxCircle>=1)||(i===2&&META.maxCircle>=2)||(i===3&&META.maxCircle>=3);
 
 // ---------- art (optional; the vector sprites below are the fallback) ----------
-const ART_V='a79dc910';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
+const ART_V='11bdbb50';         // stamped by pack-art.py; 'none' means no art.js has been packed yet
 const ART={img:{},ready:{},soft:{}};
 function tlArtLoaded(){
   const A=window.TL_ART||{};
@@ -331,6 +331,9 @@ function drawFlames(f,k){const n=Math.max(3,Math.round(f.r/9));for(let i=0;i<n;i
   if(G.parts.length<600&&RAND()<0.35)G.parts.push({x:f.x+rnd(-f.r,f.r)*0.7,y:f.y+rnd(-f.r,f.r)*0.4,vx:rnd(-8,8),vy:-45,life:0.5,col:RAND()<0.5?'#ff9a3a':'#ffd24a',r:2})}
 // b049: the cinematic layer every ultimate shares. Sigil on the ground, entrance flash, pulsing aura, a vignette in the ultimate's colour.
 function animKey(k){if(!k||!ART.ready[k+'_b'])return k;const f=Math.floor(G.t*6)%(ART.ready[k+'_c']?3:2);return f===0?k:f===1?k+'_b':k+'_c'}
+// b057: frames crossfade. [fromKey,toKey,blend] at 4 frames a second; blend is eased so each frame holds a beat.
+function animMix(k){if(!k||!ART.ready[k+'_b'])return [k,null,0];const ks=[k,k+'_b',k+'_c'],n=ART.ready[k+'_c']?3:2,p=(G.t*4)%n,i=Math.floor(p),t=p-i;return [ks[i],ks[(i+1)%n],t*t*(3-2*t)]}
+function drawAnimSpr(k,x,y,h,face,sx,sy){const [a,b,t]=animMix(k),ga=ctx.globalAlpha;if(!b||t<0.02){drawSpr(ART.img[a],x,y,h,face,sx,sy);return}if(t>0.98){drawSpr(ART.img[b],x,y,h,face,sx,sy);return}ctx.globalAlpha=ga*(1-t);drawSpr(ART.img[a],x,y,h,face,sx,sy);ctx.globalAlpha=ga*t;drawSpr(ART.img[b],x,y,h,face,sx,sy);ctx.globalAlpha=ga}
 function ultProg(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);return U?Math.min(1,(U.dur-m.ultT)/0.5):1}
 function ultGround(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m),R=Math.min(150,(U.big||80)*1.1+40);
   if(U.sigil)fxDraw(U.sigil,m.x,m.y+6,R*2*k,R*2*k*0.55,G.t*0.5,0.35*k);
@@ -1643,7 +1646,7 @@ function drawCine(){const c=G.cine;if(!c)return;const k=c.t/c.dur,W=VW,H=VH;ctx.
   // speed lines
   ctx.strokeStyle='rgba('+c.col+',0.55)';ctx.lineWidth=2;for(let i=0;i<26;i++){const y=H*0.22+((i*53+G.t*900)%(H*0.56)),x0=(i*173+G.t*2400)%W;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0-140-i*9,y);ctx.stroke()}ctx.restore();
   // the character, huge, sliding in
-  const im=ART.ready[c.spr]?ART.img[animKey(c.spr)]:null;if(im&&k<0.86){const sIn=ease(Math.min(1,k/0.25)),h=H*0.78,w=h*im.width/im.height,cx=W*(c.side<0?0.3:0.7)+c.side*(1-sIn)*W*0.6,cy=H*0.52+Math.sin(G.t*6)*4;ctx.save();ctx.translate(cx,cy);ctx.scale(c.side<0?1:-1,1);ctx.globalAlpha=Math.min(1,sIn*1.2);ctx.shadowColor='rgba('+c.col+',0.9)';ctx.shadowBlur=40;ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore()}
+  const im=ART.ready[c.spr]?ART.img[c.spr]:null;if(im&&k<0.86){const sIn=ease(Math.min(1,k/0.25)),h=H*0.78,cx=W*(c.side<0?0.3:0.7)+c.side*(1-sIn)*W*0.6,cy=H*0.52+Math.sin(G.t*6)*4;ctx.save();ctx.translate(cx,cy);ctx.scale(c.side<0?1:-1,1);ctx.globalAlpha=Math.min(1,sIn*1.2);ctx.shadowColor='rgba('+c.col+',0.9)';ctx.shadowBlur=40;drawAnimSpr(c.spr,0,h/2,h,1);ctx.restore()}
   // the name
   if(k>0.2&&k<0.86){const nk=Math.min(1,(k-0.2)/0.12),sc=1+(1-ease(nk))*2.2,shk=nk<1?rnd(-6,6):0;ctx.save();ctx.translate(W*(c.side<0?0.68:0.32)+shk,H*0.5+shk);ctx.scale(sc,sc);ctx.globalAlpha=nk;ctx.font='bold '+Math.round(Math.min(64,W/12))+'px Georgia,serif';ctx.textAlign='center';ctx.lineWidth=8;ctx.strokeStyle='#000';ctx.strokeText(c.U.name.toUpperCase(),0,0);ctx.fillStyle='#fff';ctx.fillText(c.U.name.toUpperCase(),0,0);ctx.font='bold '+Math.round(Math.min(22,W/34))+'px Georgia,serif';ctx.fillStyle='rgb('+c.col+')';ctx.strokeText(c.m.name.toUpperCase(),0,-Math.min(64,W/12)*0.95);ctx.fillText(c.m.name.toUpperCase(),0,-Math.min(64,W/12)*0.95);ctx.restore()}
   // white flash at the start and at the wipe
@@ -2984,18 +2987,18 @@ function memberPose(m){
   return [n+'_idle'];
 }
 function drawMember(m){
-  if(m===G.healer&&m.ultT>0&&ultOf(m.hkey).form){const U=ultOf(m.hkey),k=Math.min(1,(U.dur-m.ultT)/0.6);shadow(m.x,m.y,m.r*3*k);const im=ART.ready[U.form]?ART.img[animKey(U.form)]:spr(m.hkey+'_cast',m.hkey+'_idle');if(im){ctx.save();ctx.globalAlpha=Math.min(1,k+0.3);if(k<1)ctx.filter='brightness('+(1+2*(1-k))+')';drawSpr(im,m.x,m.y+8-Math.abs(Math.sin(G.t*2.5))*6,(spr(U.form)?U.big:U.big*0.7)*(0.4+0.6*k)*(1+0.04*Math.sin(G.t*5)),m.face||1);ctx.restore()}else{ctx.fillStyle='#6ab04c';ctx.beginPath();ctx.arc(m.x,m.y-40*k,40*k,0,6.283);ctx.fill()}return}
+  if(m===G.healer&&m.ultT>0&&ultOf(m.hkey).form){const U=ultOf(m.hkey),k=Math.min(1,(U.dur-m.ultT)/0.6);shadow(m.x,m.y,m.r*3*k);const im=ART.ready[U.form]?ART.img[U.form]:spr(m.hkey+'_cast',m.hkey+'_idle');if(im){ctx.save();ctx.globalAlpha=Math.min(1,k+0.3);if(k<1)ctx.filter='brightness('+(1+2*(1-k))+')';const hy=m.y+8-Math.abs(Math.sin(G.t*2.5))*6,hh=(spr(U.form)?U.big:U.big*0.7)*(0.4+0.6*k)*(1+0.04*Math.sin(G.t*5));if(ART.ready[U.form])drawAnimSpr(U.form,m.x,hy,hh,m.face||1);else drawSpr(im,m.x,hy,hh,m.face||1);ctx.restore()}else{ctx.fillStyle='#6ab04c';ctx.beginPath();ctx.arc(m.x,m.y-40*k,40*k,0,6.283);ctx.fill()}return}
   // b051: facing is debounced for drawing so a member between two targets does not flip every frame
   if(m.face!==m.dfWant){m.dfWant=m.face;m.dfT=G.t}if(m.dface===undefined||G.t-(m.dfT||0)>0.12)m.dface=m.dfWant;
   const bob=Math.sin(m.anim)*2, x=m.x, y=m.y+(m.alive?bob:0), f=m.dface||m.face;
   const hop=m.panicT>0?Math.abs(Math.sin(G.t*14))*7:0;
   shadow(x,m.y,m.r*(1-hop/24));
-  const fk=m.ultT>0&&ultOf(m.key)&&ultOf(m.key).form;const pk=(fk&&ART.ready[fk])?fk:sprKey(memberPose(m)), im=pk?ART.img[fk&&pk===fk?animKey(fk):pk]:null;
+  const fk=m.ultT>0&&ultOf(m.key)&&ultOf(m.key).form;const pk=(fk&&ART.ready[fk])?fk:sprKey(memberPose(m)), im=pk?ART.img[pk]:null;
   if(m.hidden)ctx.globalAlpha=m.mist?0.35:0.22;
   if(m.sinkT>0)ctx.globalAlpha=0.3;
   if(m.key==='wolf'&&m.wolfT>0){ctx.strokeStyle='rgba(255,120,80,.6)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,m.r+9,0,6.283);ctx.stroke()}
   if(m.key==='robot'&&m.heat>40){ctx.fillStyle='rgba(255,'+(200-m.heat*1.5|0)+',60,.8)';ctx.fillRect(x-12,y-m.r-22,24*m.heat/100,3)}
-  if(im){poseSwap(m,pk);const [sx,sy]=squash(m);ctx.save();if(m.hitT>0)ctx.filter='brightness(2)';drawSpr(im,x,m.y+m.r*0.8+(m.alive?bob*0.5:0)-hop-(m.floatY||0),fk&&pk===fk?(ultOf(m.key).big||(SPR_H[m.key]||46))*(0.4+0.6*ultProg(m))*(1+0.04*Math.sin(G.t*5)):(SPR_H[m.key]||46)*(POSE_SCALE[pk]||1)*(m.scale||1),f,sx,sy);ctx.restore()}
+  if(im){poseSwap(m,pk);const [sx,sy]=squash(m);ctx.save();if(m.hitT>0)ctx.filter='brightness(2)';const my=m.y+m.r*0.8+(m.alive?bob*0.5:0)-hop-(m.floatY||0),mh=fk&&pk===fk?(ultOf(m.key).big||(SPR_H[m.key]||46))*(0.4+0.6*ultProg(m))*(1+0.04*Math.sin(G.t*5)):(SPR_H[m.key]||46)*(POSE_SCALE[pk]||1)*(m.scale||1);if(fk&&pk===fk)drawAnimSpr(fk,x,my,mh,f,sx,sy);else drawSpr(im,x,my,mh,f,sx,sy);ctx.restore()}
   else if(!['tank','archer','mage','healer'].includes(m.key)){ctx.save();if(m.hitT>0)ctx.filter='brightness(2)';drawGenericMember(m,x,y,f);ctx.restore()}
   else{
   ctx.save();

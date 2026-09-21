@@ -487,8 +487,10 @@ URL no clips are fetched, so the bot runs stay silent and error-free.
   a deploy shows on the next load, everything else is cache-first and
   refreshed in the background, so the game installs and plays offline.
   Registered only over https.
-- **Phones.** The HUD pads for notches on every edge, and a portrait
-  phone in a run gets a dismissable "turn your phone sideways" card.
+- **Phones.** The HUD pads for notches on every edge. The game is played
+  portrait on a phone (b069): the manifest locks portrait, the cut-in puts
+  the character in the top half and centres the name shrunk to fit, and
+  the chat box is smaller and holds three lines for six seconds.
 
 ## Music (b063)
 The sound pack has no music, so the game plays its own: a step sequencer

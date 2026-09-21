@@ -395,7 +395,7 @@
 
 <script>
 'use strict';
-const BUILD='b079-update';
+const BUILD='b080-chestarrow';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -3645,6 +3645,20 @@ function draw(){
   const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.42,VW/2,VH/2,Math.max(VW,VH)*0.72);
   vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.5)');ctx.fillStyle=vg;ctx.fillRect(0,0,VW,VH);
   ultVignette();
+  // b080: an arrow at the screen edge for every chest out of view, with a little chest and the distance
+  {const zp=G.zoomPunch>0&&SET.motion!=='reduced'?1+0.12*(G.zoomPunch/0.4):1,vw=VW/ZOOM,vh=VH/ZOOM,pad=34;
+    for(const c of G.chests){const sx=(c.x-G.cam.x-(vw*(zp-1)/2))*ZOOM*zp,sy=(c.y-G.cam.y-(vh*(zp-1)/2))*ZOOM*zp;
+      if(sx>pad&&sx<VW-pad&&sy>pad+40&&sy<VH-pad-60)continue;
+      const cx=VW/2,cy=VH/2,dx=sx-cx,dy=sy-cy,a=Math.atan2(dy,dx);
+      // clamp to the padded screen rectangle along the ray from the centre
+      const kx=(dx>0?VW-pad-cx:pad-cx)/(dx||1e-6),ky=(dy>0?VH-pad-70-cy:pad+50-cy)/(dy||1e-6),k=Math.min(Math.abs(kx),Math.abs(ky)),ex=cx+dx*k,ey=cy+dy*k;
+      const d=Math.round(Math.hypot(c.x-h.x,c.y-h.y)),pulse=0.75+0.25*Math.sin(c.t*5);
+      ctx.save();ctx.translate(ex,ey);ctx.globalAlpha=0.95;
+      ctx.rotate(a);ctx.fillStyle='rgba(255,210,74,'+pulse+')';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(30,0);ctx.lineTo(12,-11);ctx.lineTo(12,11);ctx.closePath();ctx.fill();ctx.stroke();ctx.rotate(-a);
+      ctx.fillStyle='#000';ctx.beginPath();ctx.arc(-6,0,15,0,6.283);ctx.fill();ctx.fillStyle='rgba(40,28,52,.95)';ctx.beginPath();ctx.arc(-6,0,13,0,6.283);ctx.fill();
+      ctx.fillStyle='#5a3a1c';ctx.fillRect(-14,-5,16,10);ctx.fillStyle='#7a5230';ctx.fillRect(-14,-7,16,4);ctx.fillStyle='#ffd24a';ctx.fillRect(-14,-3,16,2);ctx.fillRect(-7,-1,2,4);
+      ctx.font='bold 10px Verdana';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(d+'m',-5,25);ctx.fillStyle='#ffe9a8';ctx.fillText(d+'m',-6,24);
+      ctx.restore()}}
   if(G.flash>0&&SET.flash){ctx.fillStyle='rgba(255,255,255,'+(0.7*G.flash/0.5)+')';ctx.fillRect(0,0,VW,VH)}
   drawCine();
   if(h.hp<h.maxhp*0.3){const k=(0.5+0.5*Math.sin(G.t*6))*(1-h.hp/(h.maxhp*0.3));const rg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.35,VW/2,VH/2,Math.max(VW,VH)*0.7);rg.addColorStop(0,'rgba(160,0,0,0)');rg.addColorStop(1,'rgba(160,0,0,'+(0.45*k)+')');ctx.fillStyle=rg;ctx.fillRect(0,0,VW,VH)}

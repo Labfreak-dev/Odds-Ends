@@ -548,6 +548,17 @@ evolution, marked once taken (`META.seen.v`). Unknown entries show as
 ??? with "Not met yet." and the heading counts found of total. Old saves
 get an empty `seen` from `defaults()`.
 
+## Banter arcs (b067)
+Every member has a four-beat exchange with the healer over a run
+(`ARCS`): the member's line is fixed, the healer's reply changes with who
+is healing (Wren earnest, Father Ansel gruff, Ivy dry). Beats go out at
+1:10, 3:20, 5:40 and 8:20, one member at a time twenty-two seconds
+apart, as bubbles and chat-box lines. Six pairs that travel together
+have three-beat arcs of their own (`PAIR_ARCS`: Brom/Pip, Brom/Vex,
+Pip/Vex, Mortimer/Valerian, Gideon/Sable, Lupa/Bramble) every two and a
+half minutes. Nothing fires during a cut-in or with a card open; a dead
+member's beat is skipped. Synergy barks are unchanged.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

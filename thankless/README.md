@@ -445,6 +445,31 @@ the browser allows it. The Save block exports the profile as JSON to the
 clipboard and a text box, imports one back after a confirm, and resets
 everything after two confirms.
 
+## Sound
+Clips live in `sfx/` (b061): thirty-seven short effects and three ambience
+loops, trimmed, peak-normalised and encoded as mono MP3 (1.5MB in all) from
+the Free Fantasy SFX Pack by TomMusic (https://tommusic.itch.io/, free to
+use; the pack's readme carries the contact). Everything the pack does not
+have is synthesised with the Web Audio API in `VOX`: the heal chime, the
+level-up sting, card and UI ticks, mote and coin blips, the revive swell,
+the ultimate riser and boom, the boss horn, the elite growl, a member going
+down, win and lose stings, the healer taking a hit, the friendly-fire bonk,
+the event bell, lightning, the gunner's shot and the enemy pop.
+
+The context is created on the first pointer or key, so the menu is silent
+until the player touches it. `sfx(key,opts)` plays a clip (variant sets like
+`hit`, `bow`, `swing` pick at random), with pitch jitter, a per-key throttle
+and volume that falls off with distance from the healer; `sn(voice,gap)`
+plays a synthesised voice with the same throttle. Hooks sit on enemy hits and
+deaths, shots, fireballs, meteors, sprays, beams, slashes, whips, the tank's
+swing, walls, freezes, holy water, chests, relics, level-ups, card picks,
+heals, every prayer, ultimates, the three bosses, elites, downs, the end of
+the run, healer hits, friendly fire, motes, coins and events. Ambience: one
+loop per field (day for the meadow, cave for the keep, night for the bone
+fields and the mire), the night loop under a blood moon, ducked on pause.
+Settings has Sound (off, low, full) and Ambience (off, on). On a `file:`
+URL no clips are fetched, so the bot runs stay silent and error-free.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

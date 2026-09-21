@@ -18,6 +18,7 @@ ap.add_argument('--circle',type=int,default=0)
 ap.add_argument('--tree',action='store_true')
 ap.add_argument('--field',type=int,default=0)
 ap.add_argument('--nobuffs',action='store_true',help='the bot never casts Bless, Haste or Fortify (a control run)')
+ap.add_argument('--novice',action='store_true',help='plays like a first-timer: random cards, slow lazy movement, weak fleeing, no mote chasing')
 ap.add_argument('--pref',default='',help='comma list: level-up preference order for the bot')
 ap.add_argument('--healer',default='',help='wren, ansel or ivy')
 ap.add_argument('--party',default='',help='comma list of 3 member keys; unlocks everything')
@@ -53,16 +54,17 @@ BOT=r"""
     if(G.graves.length && h.mana>=window.TL.reviveCost()){ tx=G.graves[0].x; ty=G.graves[0].y; }
     // low mana: nearest mote
     if(h.mana<h.manaMax*0.45 && G.gems.length){ let bg=null,bd=1e9; for(const g of G.gems){const d=Math.hypot(g.x-h.x,g.y-h.y); if(d<bd){bd=d;bg=g;}} if(bg && bd<420){tx=bg.x;ty=bg.y;} }
+    if(NOVICE){ tx=cx+Math.sin(G.t*0.7)*60; ty=cy+Math.cos(G.t*0.5)*60; if(G.graves.length && h.mana>=window.TL.reviveCost() && G.t-(window.__nvRev||0)>6){tx=G.graves[0].x;ty=G.graves[0].y;} }
     let vx=tx-h.x, vy=ty-h.y; const d=Math.hypot(vx,vy);
     if(d<40 && !(h.mana<h.manaMax*0.45 && G.gems.length)){vx=0;vy=0;} else if(d>0){vx/=d;vy/=d;}
     // flee enemies
     const holding=ev&&!ev.done&&ev.id==='shrine'&&h.hp>h.maxhp*0.5;
-    for(const e of G.enemies){ const ex=h.x-e.x, ey=h.y-e.y, ed=Math.hypot(ex,ey); const R=e.boss?200:(holding?50:120); if(ed<R){ const k=(R-ed)/R*(e.boss?4:2.6); vx+=ex/ed*k; vy+=ey/ed*k; } }
+    for(const e of G.enemies){ const ex=h.x-e.x, ey=h.y-e.y, ed=Math.hypot(ex,ey); const R=NOVICE?(e.boss?120:70):(e.boss?200:(holding?50:120)); if(ed<R){ const k=(R-ed)/R*(NOVICE?1.2:(e.boss?4:2.6)); vx+=ex/ed*k; vy+=ey/ed*k; } }
     const n=Math.hypot(vx,vy); if(n>1){vx/=n;vy/=n;}
     // spells: revive first, then keep buffs rolling, then heal
     const near=m=>G.enemies.filter(e=>Math.hypot(e.x-m.x,e.y-m.y)<220).length;
     const busiest=alive.filter(m=>Math.hypot(m.x-h.x,m.y-h.y)<h.range).sort((a,b)=>near(b)-near(a))[0];
-    if(G.graves.length && h.mana>=window.TL.reviveCost()){ TL.cast(window.TL.REV); }
+    if(G.graves.length && h.mana>=window.TL.reviveCost()){ if(!NOVICE||Math.hypot(G.graves[0].x-h.x,G.graves[0].y-h.y)<h.range){TL.cast(window.TL.REV); window.__nvRev=G.t;} }
     const tank=G.party.find(m=>m.key==='tank')||{alive:false};
     return {x:vx,y:vy};
   };
@@ -90,13 +92,14 @@ def main():
         pg.click('#start')
         pg.wait_for_function('window.TL.G')
         if a.pref: pg.evaluate('(p)=>{window.__pref=p.split(",")}',a.pref)
-        pg.evaluate(BOT.replace('(() => {','(() => { const NOBUFFS='+('true' if a.nobuffs else 'false')+';',1))
+        if a.novice: pg.evaluate('()=>{window.__novice=true}')
+        pg.evaluate(BOT.replace('(() => {','(() => { const NOBUFFS='+('true' if a.nobuffs else 'false')+'; const NOVICE='+('true' if a.novice else 'false')+';',1))
         pg.evaluate(f'()=>window.TL.setFast({a.fast})')
         if a.shots: os.makedirs(OUT,exist_ok=True)
         last_min=-1; t0=time.time()
         while True:
             # auto-pick level-ups
-            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['sp_surge','sp_fortify','pdmg','power','sp_bless','php','sp_mending','sp_haste','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); const ix=x=>{const i=pref.indexOf(x.id);return i<0?99:i};let c=p.slice().sort((x,y)=>ix(x)-ix(y))[0]; window.TL.chooseUp(c.id);} 
+            st=pg.evaluate("""()=>{const G=window.TL.G; if(!G) return null; if(G.lvOpen){const p=G.pendingPicks; const pref=(window.__pref||['sp_surge','sp_fortify','pdmg','power','sp_bless','php','sp_mending','sp_haste','w_ember','w_knife','w_hymnal','w_smite','w_whip','w_cross','w_wand','w_candle','w_water','w_incense','haste','holy','overheal','coffee','regen','mana','thorns','hot','chain','magnet','manners','glasses','range','cdr','boots','vit']); const ix=x=>{const i=pref.indexOf(x.id);return i<0?99:i};let c=window.__novice?p[Math.floor(Math.random()*p.length)]:p.slice().sort((x,y)=>ix(x)-ix(y))[0]; window.TL.chooseUp(c.id);} 
               const h=G.healer; return {t:G.t,over:G.over,won:G.won,level:G.level,kills:G.kills,enemies:G.enemies.length,hp:Math.round(h.hp),hk:h.kills,mana:Math.round(h.mana),manaMax:Math.round(h.manaMax),gold:Math.round(G.gold),
                 party:G.party.map(m=>m.name+'L'+m.lvl+'g'+Math.round(m.grat||0)+':'+(m.alive?Math.round(m.hp)+'/'+m.maxhp+(m.asleep?'z':'')+(m.panicT>0?'!':''):'DOWN')), stats:G.stats, up:G.up, healPower:Math.round(h.healPower), fast:G.fast, relics:G.relics.join(','), chests:G.chests.length}}""")
             if st is None: break

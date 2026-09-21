@@ -106,6 +106,7 @@ def main():
                 print(f"[{int(st['t'])//60}:{int(st['t'])%60:02d}] lv{st['level']} kills {st['kills']} foes {st['enemies']} | Wren {st['hp']} k{st['hk']} mana {st['mana']}/{st['manaMax']} heal {st['healPower']} | "+' '.join(st['party'])+f" | healed {int(st['stats']['healed'])} ff {st['stats']['ff']} naps {st['stats']['naps']} oom {st['stats']['oom']}")
                 if a.shots: pg.screenshot(path=os.path.join(OUT,f'tl-{m:03d}.png'))
             if st['over']:
+                print('ULTS:', pg.evaluate("()=>JSON.stringify({total:G.stats.ults||0,by:G.stats.ultsBy||{}})"))
                 print('RESULT:', 'WON' if st['won'] else 'LOST', pg.evaluate("()=>document.getElementById('ovtitle').textContent"), 'at', f"{int(st['t'])//60}:{int(st['t'])%60:02d}", 'gold', st['gold'], 'relics', st['relics'] or 'none', 'events', pg.evaluate('()=>(window.TL.G.stats.eventsWon||0)+"/"+(window.TL.G.stats.events||0)'), 'skills', pg.evaluate('()=>window.TL.G.party.map(m=>m.name+":"+Object.entries(m.skills).map(([k,v])=>k+v).join("+")).join(" ")'), 'upgrades', json.dumps(st['up']))
                 break
             if a.stop and st['t']>=a.stop: print('STOPPED at',int(st['t']),'s, art keys ready:',pg.evaluate('()=>Object.keys(window.TL.ART.ready).length')); break

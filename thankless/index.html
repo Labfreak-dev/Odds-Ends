@@ -274,7 +274,7 @@
 
 <script>
 'use strict';
-const BUILD='b055-spectacle';
+const BUILD='b056-anim';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -330,6 +330,7 @@ function drawFlames(f,k){const n=Math.max(3,Math.round(f.r/9));for(let i=0;i<n;i
     ctx.fillStyle='rgba(255,220,90,'+(0.9*k)+')';ctx.beginPath();ctx.moveTo(bx-2.5,by);ctx.quadraticCurveTo(bx-3,by-hgt*0.3,bx+(fl-0.5)*3,by-hgt*0.55);ctx.quadraticCurveTo(bx+3,by-hgt*0.3,bx+2.5,by);ctx.fill()}
   if(G.parts.length<600&&RAND()<0.35)G.parts.push({x:f.x+rnd(-f.r,f.r)*0.7,y:f.y+rnd(-f.r,f.r)*0.4,vx:rnd(-8,8),vy:-45,life:0.5,col:RAND()<0.5?'#ff9a3a':'#ffd24a',r:2})}
 // b049: the cinematic layer every ultimate shares. Sigil on the ground, entrance flash, pulsing aura, a vignette in the ultimate's colour.
+function animKey(k){if(!k||!ART.ready[k+'_b'])return k;const f=Math.floor(G.t*6)%(ART.ready[k+'_c']?3:2);return f===0?k:f===1?k+'_b':k+'_c'}
 function ultProg(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);return U?Math.min(1,(U.dur-m.ultT)/0.5):1}
 function ultGround(m){const U=m===G.healer?ultOf(m.hkey):ultOf(m.key);if(!U||!(m.ultT>0))return;const k=ultProg(m),R=Math.min(150,(U.big||80)*1.1+40);
   if(U.sigil)fxDraw(U.sigil,m.x,m.y+6,R*2*k,R*2*k*0.55,G.t*0.5,0.35*k);
@@ -1642,7 +1643,7 @@ function drawCine(){const c=G.cine;if(!c)return;const k=c.t/c.dur,W=VW,H=VH;ctx.
   // speed lines
   ctx.strokeStyle='rgba('+c.col+',0.55)';ctx.lineWidth=2;for(let i=0;i<26;i++){const y=H*0.22+((i*53+G.t*900)%(H*0.56)),x0=(i*173+G.t*2400)%W;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0-140-i*9,y);ctx.stroke()}ctx.restore();
   // the character, huge, sliding in
-  const im=ART.ready[c.spr]?ART.img[c.spr]:null;if(im&&k<0.86){const sIn=ease(Math.min(1,k/0.25)),h=H*0.78,w=h*im.width/im.height,cx=W*(c.side<0?0.3:0.7)+c.side*(1-sIn)*W*0.6,cy=H*0.52+Math.sin(G.t*6)*4;ctx.save();ctx.translate(cx,cy);ctx.scale(c.side<0?1:-1,1);ctx.globalAlpha=Math.min(1,sIn*1.2);ctx.shadowColor='rgba('+c.col+',0.9)';ctx.shadowBlur=40;ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore()}
+  const im=ART.ready[c.spr]?ART.img[animKey(c.spr)]:null;if(im&&k<0.86){const sIn=ease(Math.min(1,k/0.25)),h=H*0.78,w=h*im.width/im.height,cx=W*(c.side<0?0.3:0.7)+c.side*(1-sIn)*W*0.6,cy=H*0.52+Math.sin(G.t*6)*4;ctx.save();ctx.translate(cx,cy);ctx.scale(c.side<0?1:-1,1);ctx.globalAlpha=Math.min(1,sIn*1.2);ctx.shadowColor='rgba('+c.col+',0.9)';ctx.shadowBlur=40;ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore()}
   // the name
   if(k>0.2&&k<0.86){const nk=Math.min(1,(k-0.2)/0.12),sc=1+(1-ease(nk))*2.2,shk=nk<1?rnd(-6,6):0;ctx.save();ctx.translate(W*(c.side<0?0.68:0.32)+shk,H*0.5+shk);ctx.scale(sc,sc);ctx.globalAlpha=nk;ctx.font='bold '+Math.round(Math.min(64,W/12))+'px Georgia,serif';ctx.textAlign='center';ctx.lineWidth=8;ctx.strokeStyle='#000';ctx.strokeText(c.U.name.toUpperCase(),0,0);ctx.fillStyle='#fff';ctx.fillText(c.U.name.toUpperCase(),0,0);ctx.font='bold '+Math.round(Math.min(22,W/34))+'px Georgia,serif';ctx.fillStyle='rgb('+c.col+')';ctx.strokeText(c.m.name.toUpperCase(),0,-Math.min(64,W/12)*0.95);ctx.fillText(c.m.name.toUpperCase(),0,-Math.min(64,W/12)*0.95);ctx.restore()}
   // white flash at the start and at the wipe
@@ -1788,14 +1789,14 @@ const ULTS={
       draw(m){const o=m.orb;if(!o)return;if(!fxDraw('fx_reticle',o.x,o.y,170,170,G.t*2,0.9)){ctx.strokeStyle='rgba(255,80,80,.8)';ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.beginPath();ctx.arc(o.x,o.y,70,G.t*3,G.t*3+6.283);ctx.stroke();ctx.setLineDash([])}ctx.beginPath();ctx.moveTo(m.x,m.y-20);ctx.lineTo(o.x,o.y);ctx.strokeStyle='rgba(255,80,80,.35)';ctx.stroke()}}],
 };
 const ultOf=k=>{const L=ULTS[k];if(!L)return null;const i=Math.min(L.length-1,((META.ult||{})[k])||0);return L[i]};
-function castUlt(){if(!G||G.over||G.paused||G.lvOpen)return;const h=G.healer,U=ultOf(h.hkey);if(!U||h.ultT>0)return;if(h.mana<h.manaMax-0.5){toast('The flask has to be full.',1);return}
+function castUlt(){if(!G||G.over||G.paused||G.lvOpen)return;const h=G.healer,U=ultOf(h.hkey);if(!U||h.ultT>0)return;if(h.ultCd>0){toast('Not yet. '+Math.ceil(h.ultCd)+'s.',1);return}if(h.mana<h.manaMax-0.5){toast('The flask has to be full.',1);return}h.ultCd=150;
   h.mana=0;h.ultT=U.dur;h.invT=Math.max(h.invT,U.dur);h.castT=0.5;ultBanner(h,U);U.cast(h)}
 function ultTick(dt){const h=G.healer;if(!(h.ultT>0))return;const U=ultOf(h.hkey);h.ultT-=dt;h.invT=Math.max(h.invT,0.2);if(U&&U.tick)U.tick(h,dt);if(h.ultT<=0){h.ultT=0;if(U&&U.end)U.end(h);ultEndBurst(h)}}
 function memberUltTick(m,dt){if(!m.alive)return;const U=ultOf(m.key);if(!U)return;
   if(m.ultT>0){m.ultT-=dt;if(U.tick)U.tick(m,dt);if(m.ultT<=0){m.ultT=0;if(U.end)U.end(m);ultEndBurst(m)}return}
-  m.ult=Math.min(1,(m.ult||0)+dt/75);
+  m.ult=Math.min(1,(m.ult||0)+dt/170);
   if(m.ult>=1&&G.t>45&&!G.lvOpen&&!(m.frozenT>0)&&!m.hidden&&!(m.sinkT>0)&&!(m.panicT>0)){const n=uNear(m.x,m.y,300).length,boss=G.enemies.some(e=>e.boss&&Math.hypot(e.x-m.x,e.y-m.y)<450);if(n>=6||boss||G.t>RUN_LEN-45)fireUlt(m)}}
-function fireUlt(m){const U=ultOf(m.key);if(!U)return;m.ult=0;m.ultT=U.dur;ultBanner(m,U);U.cast(m)}
+function fireUlt(m){const U=ultOf(m.key);if(!U)return;m.ult=0;m.ultT=U.dur;G.stats.ultsBy=G.stats.ultsBy||{};G.stats.ultsBy[m.name]=(G.stats.ultsBy[m.name]||0)+1;ultBanner(m,U);U.cast(m)}
 const HL=()=>HEALERS[(G&&G.healer&&G.healer.hkey)||META.healer]||HEALERS.wren;
 const HN=()=>HL().name;
 const HW=t=>{const n=HN();t=String(t);if(n==='Wren')return t;return t.replace(/\bWren\b/g,n).replace(/\b[Tt]he healer’s/g,n+'’s').replace(/\b[Tt]he healer\b/g,n)};
@@ -2124,7 +2125,7 @@ function hurtEnemy(e,dmg,by){
 function killEnemy(e,by){
   G.kills++; META.kills++; if(G.event&&!G.event.done)G.event.kills=(G.event.kills||0)+1;
   const lucky=by&&hasQ(by,'q_lucky')?1.5:1;
-  if(by&&by.key&&by.key!=='healer'&&!(by.ultT>0))by.ult=Math.min(1,(by.ult||0)+0.012);
+  if(by&&by.key&&by.key!=='healer'&&!(by.ultT>0))by.ult=Math.min(1,(by.ult||0)+0.0008);
   {const nc=byKey('necro');if(nc&&nc.alive&&nc.ultArmy)raiseMinion(nc,e.x,e.y,'skel')}
   if(by&&by.key==='wolf'&&by.ultT>0)for(const a of G.party)if(a.alive&&!a.noHeal)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.03);
   if(hasSyn('study')&&by&&by.key==='mage'&&RAND()<0.34){const nc=byKey('necro');if(nc&&nc.alive)raiseMinion(nc,e.x,e.y,'skel')}
@@ -2628,7 +2629,7 @@ function updateHealer(dt){
   for(let i=0;i<=REV;i++)if(h.cd[i]>0)h.cd[i]-=dt;
   if(G.aegisT>0)G.aegisT-=dt;
   autoCast(dt);
-  if(h.invT>0)h.invT-=dt; if(G.warT>0)G.warT-=dt; ultTick(dt);
+  if(h.invT>0)h.invT-=dt; if(G.warT>0)G.warT-=dt; if(h.ultCd>0)h.ultCd-=dt; ultTick(dt);
   for(let i=G.chests.length-1;i>=0;i--){const c=G.chests[i];c.t+=dt;if(Math.hypot(c.x-h.x,c.y-h.y)<h.r+20){G.chests.splice(i,1);puff(c.x,c.y,16,'#ffd24a',120,3);openChest();break}}
   h.mendT-=dt;
   if(h.mendT<=0){
@@ -2855,7 +2856,7 @@ function updateHud(){
   $('hhp').style.transform='scaleX('+(h.hp/h.maxhp).toFixed(3)+')'; $('hhpt').textContent=Math.ceil(h.hp)+' / '+h.maxhp;
   $('hmana').style.transform='scaleX('+(h.mana/h.manaMax).toFixed(3)+')'; $('hmanat').textContent=Math.floor(h.mana)+' / '+Math.floor(h.manaMax);
   SPELLS.forEach((sp,i)=>{if(!G.learned[sp.id])return;const b=$('spc-'+sp.id);if(!b)return;const cd=sp.cd*cdMul()*spCdMul(sp.id);const p=h.cd[i]>0?h.cd[i]/cd:0;b.querySelector('.cd').style.setProperty('--p',(p*100).toFixed(1)+'%');b.classList.toggle('nomana',h.mana<spCost(sp))});
-  {const b=$('sp-ult');if(b){b.classList.toggle('hide',h.mana<h.manaMax-0.5||h.ultT>0);b.classList.toggle('ready',h.mana>=h.manaMax-0.5&&!(h.ultT>0))}}
+  {const b=$('sp-ult');if(b){b.classList.toggle('hide',h.ultT>0||(h.ultCd>0&&h.mana<h.manaMax-0.5));b.classList.toggle('ready',h.mana>=h.manaMax-0.5&&!(h.ultT>0)&&!(h.ultCd>0));b.querySelector('.mc').textContent=h.ultCd>0?Math.ceil(h.ultCd)+'s':Math.round(h.manaMax);b.querySelector('.cd').style.setProperty('--p',h.ultCd>0?(h.ultCd/150).toFixed(3):0)}}
   {const b=$('sp-'+REV);if(b){const cost=reviveCost();b.classList.toggle('hide',h.mana<cost);b.querySelector('.mc').textContent=cost;b.classList.toggle('ready',G.graves.length>0);b.classList.toggle('nomana',false)}}
   if(G.toastT>0){G.toastT-=1/60;if(G.toastT<=0)$('toast').style.opacity=0}
   if(G.chat&&G.chat.length){const n=G.chat.length;for(const c of G.chat)c.t-=1/60;G.chat=G.chat.filter(c=>c.t>0);if(G.chat.length!==n||G.chat.some(c=>c.t<2))renderChat()}
@@ -2983,13 +2984,13 @@ function memberPose(m){
   return [n+'_idle'];
 }
 function drawMember(m){
-  if(m===G.healer&&m.ultT>0&&ultOf(m.hkey).form){const U=ultOf(m.hkey),k=Math.min(1,(U.dur-m.ultT)/0.6);shadow(m.x,m.y,m.r*3*k);const im=spr(U.form,m.hkey+'_cast',m.hkey+'_idle');if(im){ctx.save();ctx.globalAlpha=Math.min(1,k+0.3);if(k<1)ctx.filter='brightness('+(1+2*(1-k))+')';drawSpr(im,m.x,m.y+8-Math.abs(Math.sin(G.t*2.5))*6,(spr(U.form)?U.big:U.big*0.7)*(0.4+0.6*k)*(1+0.04*Math.sin(G.t*5)),m.face||1);ctx.restore()}else{ctx.fillStyle='#6ab04c';ctx.beginPath();ctx.arc(m.x,m.y-40*k,40*k,0,6.283);ctx.fill()}return}
+  if(m===G.healer&&m.ultT>0&&ultOf(m.hkey).form){const U=ultOf(m.hkey),k=Math.min(1,(U.dur-m.ultT)/0.6);shadow(m.x,m.y,m.r*3*k);const im=ART.ready[U.form]?ART.img[animKey(U.form)]:spr(m.hkey+'_cast',m.hkey+'_idle');if(im){ctx.save();ctx.globalAlpha=Math.min(1,k+0.3);if(k<1)ctx.filter='brightness('+(1+2*(1-k))+')';drawSpr(im,m.x,m.y+8-Math.abs(Math.sin(G.t*2.5))*6,(spr(U.form)?U.big:U.big*0.7)*(0.4+0.6*k)*(1+0.04*Math.sin(G.t*5)),m.face||1);ctx.restore()}else{ctx.fillStyle='#6ab04c';ctx.beginPath();ctx.arc(m.x,m.y-40*k,40*k,0,6.283);ctx.fill()}return}
   // b051: facing is debounced for drawing so a member between two targets does not flip every frame
   if(m.face!==m.dfWant){m.dfWant=m.face;m.dfT=G.t}if(m.dface===undefined||G.t-(m.dfT||0)>0.12)m.dface=m.dfWant;
   const bob=Math.sin(m.anim)*2, x=m.x, y=m.y+(m.alive?bob:0), f=m.dface||m.face;
   const hop=m.panicT>0?Math.abs(Math.sin(G.t*14))*7:0;
   shadow(x,m.y,m.r*(1-hop/24));
-  const fk=m.ultT>0&&ultOf(m.key)&&ultOf(m.key).form;const pk=(fk&&ART.ready[fk])?fk:sprKey(memberPose(m)), im=pk?ART.img[pk]:null;
+  const fk=m.ultT>0&&ultOf(m.key)&&ultOf(m.key).form;const pk=(fk&&ART.ready[fk])?fk:sprKey(memberPose(m)), im=pk?ART.img[fk&&pk===fk?animKey(fk):pk]:null;
   if(m.hidden)ctx.globalAlpha=m.mist?0.35:0.22;
   if(m.sinkT>0)ctx.globalAlpha=0.3;
   if(m.key==='wolf'&&m.wolfT>0){ctx.strokeStyle='rgba(255,120,80,.6)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,m.r+9,0,6.283);ctx.stroke()}

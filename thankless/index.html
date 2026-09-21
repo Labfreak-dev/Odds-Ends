@@ -353,7 +353,7 @@
 
 <script>
 'use strict';
-const BUILD='b066-codex';
+const BUILD='b067-banter';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -1679,6 +1679,70 @@ const hasSyn=id=>!!SYN[id];
 const synName=k=>CHARS[k]?CHARS[k].name:(typeof HEALERS!=='undefined'&&HEALERS[k])?HEALERS[k].name:k;
 function computeSyn(keys){SYN={};for(const y of SYNERGIES)if(keys.includes(y.pair[0])&&keys.includes(y.pair[1]))SYN[y.id]=y;return SYN}
 const activeSyn=()=>Object.values(SYN);
+// b067: banter arcs. Each member has a four-beat exchange with the healer over a run; the member's line is fixed
+// and the healer's reply changes with who the healer is (w: Wren, a: Father Ansel, i: Ivy). Pairs that travel
+// together have their own three-beat arcs. Beats go out one member at a time, through bubbles and the chat box.
+const ARCS={
+  tank:[['So. You the healer.',{w:'I am. Please stay awake.',a:'I am, and you will stand up straight when I talk to you.',i:'I am. Try not to sleep on anything I planted.'}],
+        ['I was awake that whole time. Mostly.',{w:'You were snoring, Brom.',a:'I heard the snoring from the far side of the field.',i:'Your snore has a rhythm. The saplings like it.'}],
+        ['Healer. That thing earlier. That was you?',{w:'It was. You’re welcome.',a:'Who else would it have been, boy?',i:'It grew back. That is what I do.'}],
+        ['If we live through this, I’m buying you a stew.',{w:'I’d like that.',a:'I will hold you to it.',i:'Make it a salad.'}]],
+  archer:[['Sorry about the arrow. Earlier. And the other one.',{w:'It’s fine, Pip. Mostly.',a:'Aim at the ones without faces I know.',i:'The tree you hit has forgiven you. I have not, yet.'}],
+        ['Do you ever get scared? Being in the middle of it?',{w:'All the time. I just keep walking.',a:'Every day for forty years. You get used to the taste.',i:'Fear is a root. It holds you in place. Let it.'}],
+        ['I counted. I’ve hit Brom nine times.',{w:'He hasn’t noticed.',a:'He would not notice a cart.',i:'Nine. Let us not make it ten.'}],
+        ['If I get one really good shot, will you say so?',{w:'I’ll say so.',a:'I will say it once. Make it count.',i:'I will nod. That is a lot, from me.'}]],
+  mage:[['I do not require healing. Do not touch me.',{w:'Then don’t stand in the fire.',a:'You will take what you are given, girl.',i:'The moss will touch you whether you like it or not.'}],
+        ['That last cast went through you. It was intentional.',{w:'I know.',a:'It singed my stole.',i:'It missed the tree. Good.'}],
+        ['...that heal was adequate.',{w:'High praise.',a:'From you, a sermon.',i:'It was a seed. Adequate is what seeds are.'}],
+        ['If I were a healer, I would heal only myself.',{w:'I believe you.',a:'Which is why you are not one.',i:'Then you would be a very well tended weed.'}]],
+  necro:[['Your dead are wasted on you. I could use them.',{w:'They’re not dead. I keep them not dead.',a:'You will leave my flock in the ground, Mortimer.',i:'Everything that falls feeds something. Not you.'}],
+        ['The Lich and I are not friends. We are colleagues.',{w:'That’s worse.',a:'That is a confession.',i:'Colleagues share notes. Do not.'}],
+        ['I notice you do not heal my skeletons.',{w:'I tried. Nothing happened.',a:'Bone does not pray.',i:'They have no sap. I work with sap.'}],
+        ['When you fall, I will raise you. As a courtesy.',{w:'Please don’t.',a:'Try it and I will haunt you.',i:'I will come back as ivy. Everywhere.'}]],
+  assassin:[['You didn’t see me. Good. Keep it that way.',{w:'I saw you. You’re bleeding.',a:'I see everything on this field.',i:'The mushrooms saw you. They tell me things.'}],
+        ['I work alone. This is a temporary arrangement.',{w:'Temporary is fine.',a:'Everything is temporary, child.',i:'So does moss. Look how far it got.'}],
+        ['That stab was for you. The one that hit Brom.',{w:'Thank you?',a:'Then aim it better.',i:'Brom is broad. It happens.'}],
+        ['If I vanish at the end, it was not personal.',{w:'It never is.',a:'Vanish with the gold and it becomes personal.',i:'Come back for the harvest.'}]],
+  paladin:[['Stay behind me. That is not a request.',{w:'Yes, sir.',a:'You will address me as Father.',i:'I stay behind the tree. You stay behind me.'}],
+        ['My oath does not cover you specifically. I am extending it.',{w:'Thank you, Gideon.',a:'Your oath is to the same Light as mine, boy.',i:'Extend it to the saplings and we are square.'}],
+        ['I do not like how much I need you.',{w:'Nobody does.',a:'Need is not a sin. Pride is.',i:'Trees need rain and never thank it.'}],
+        ['Kneel with me when this is done.',{w:'I will.',a:'I have a bad knee. I will stand with you.',i:'I will sit. In the grass. Near you.'}]],
+  frost:[['Do not stand too close. Things freeze.',{w:'Noted.',a:'My beard is used to it.',i:'My roots go deeper than your frost.'}],
+        ['That warmth. Your healing. It is uncomfortable.',{w:'Sorry. It’s the only kind I have.',a:'Endure it.',i:'Then stand in the shade. It is cooler.'}],
+        ['I was warm once. It did not last.',{w:'It could again.',a:'Nothing lasts. That is not the same as nothing matters.',i:'Spring comes every year. Ask the bulbs.'}],
+        ['If I thaw, do not make a thing of it.',{w:'I won’t.',a:'I will make a small thing of it.',i:'I will plant something in it.'}]],
+  ent:[['Gently. Gently with the healing. It tickles the bark.',{w:'Gently. Got it.',a:'I have never been gentle. Hold still.',i:'Hello, old one. I know exactly where to put it.'}],
+        ['Something is growing where the fire was.',{w:'That was me.',a:'That was the Light.',i:'That was me. And you. Mostly me.'}],
+        ['The saplings ask after you.',{w:'Tell them hello.',a:'Tell them to grow straight.',i:'I heard. I answered.'}],
+        ['When I fall, plant me somewhere quiet.',{w:'You won’t fall.',a:'I will say the words over you myself.',i:'Somewhere with morning sun. I promise.'}]],
+  wolf:[['You smell like bandages.',{w:'I get that a lot.',a:'And you smell like a wet dog. We are even.',i:'You smell like the forest floor. I mean it kindly.'}],
+        ['I bit Pip. I said sorry. It counts.',{w:'It counts.',a:'It counts once.',i:'Pip bit back? No? Then it counts.'}],
+        ['When the moon comes I will not know you.',{w:'I’ll stay out of reach.',a:'I will remind you, loudly.',i:'I will smell like the forest. You will know me.'}],
+        ['After. Run with me. Just once.',{w:'I can’t keep up.',a:'My running days are behind me. Walk with me.',i:'Only if we end at the river.'}]],
+  vampire:[['You have interesting veins. I say that as a compliment.',{w:'Please stop.',a:'You will keep your teeth to yourself, Valerian.',i:'Try the sap. It is sweeter.'}],
+        ['I have not fed on the party. I want that noted.',{w:'Noted.',a:'Noted, and watched.',i:'The saplings noticed too. They are relieved.'}],
+        ['Your healing tastes of daylight. I cannot describe it better.',{w:'I’ll take that as thanks.',a:'That is the Light, and it is not for you.',i:'Daylight is what I grow in. You get it second hand.'}],
+        ['Should I outlive you all, I will remember this fondly.',{w:'That’s the nicest thing you’ve said.',a:'You will outlive nothing if you keep talking.',i:'Remember the tree that shaded you.'}]],
+  gunner:[['Ain’t seen a healer keep up with me before.',{w:'I walk fast.',a:'I have kept up with worse than you.',i:'I do not keep up. I am already where you are going.'}],
+        ['Reloading. Talk amongst yourselves.',{w:'Still reloading?',a:'Six shots and a sermon. Then we go.',i:'Take your time. The vines have it.'}],
+        ['That wasn’t a miss. That was a warning shot.',{w:'For Brom?',a:'A warning to whom, exactly?',i:'The bat took it personally.'}],
+        ['When this is over I’m riding out. Come along.',{w:'Where to?',a:'Somewhere with a chapel and a bed.',i:'Somewhere with soil. I will plant the way.'}]],
+  robot:[['DESIGNATION: HEALER. FUNCTION: CONFIRMED.',{w:'Thank you, Unit 7.',a:'Speak like a person or not at all.',i:'Function: growing things. Confirmed.'}],
+        ['THERMAL WARNING. YOUR HEALING IS... COOLING. NOTED.',{w:'Happy to help.',a:'Then stop overheating, machine.',i:'Sap runs cold. You are welcome.'}],
+        ['QUERY: DO YOU ALSO REQUIRE MAINTENANCE?',{w:'Sometimes. Nobody asks.',a:'I have required it for forty years.',i:'I require rain and quiet. Rarely both.'}],
+        ['END OF RUN PROJECTED. PROBABILITY OF THANKS: LOW.',{w:'I know.',a:'Thanks are for the living. We will see.',i:'The moss thanks me. It is enough.'}]]};
+const PAIR_ARCS=[
+  {pair:['tank','archer'],lines:[['Pip. Stop hitting me.','I’m not! I’m hitting NEAR you.'],['You’re small. Get behind me.','I’m behind you! That’s the problem!'],['If I fall, shoot whatever did it.','Twice. Once for you and once for me.']]},
+  {pair:['tank','mage'],lines:[['Vex. That was hot.','It was meant to be.'],['Do you ever aim?','I aim at the future. You are often in it.'],['Stew after?','I do not eat stew. Fine. One bowl.']]},
+  {pair:['archer','mage'],lines:[['Vex, teach me the fire thing.','No. You would set your hood on fire.'],['You cast through the healer AGAIN.','The healer is transparent to me. Spiritually.'],['We’re doing good, right?','We are doing. Good is a strong word.']]},
+  {pair:['necro','vampire'],lines:[['Valerian. Colleague.','Mortimer. Please do not raise my dinner.'],['Your bats are a health hazard.','Your skeletons are a fire hazard.'],['When this is done, drinks.','Not from the party. I keep saying.']]},
+  {pair:['paladin','assassin'],lines:[['I know what you are, Sable.','Then you know to keep your hammer to yourself.'],['You could serve the Light.','I serve the invoice.'],['That was a clean kill.','That was a compliment. Write it down.']]},
+  {pair:['wolf','ent'],lines:[['Bramble. Lift me. I want to see over the horde.','Hold still. Do not shed on the leaves.'],['Your roots are in my way.','Your teeth are in my bark. We are even.'],['Run with me after?','I am a tree, Lupa. I will wave.']]}];
+const BANTER_AT=[70,200,340,500];
+function banterTick(dt){if(!G||G.over||G.lvOpen)return;const B=G.banter=G.banter||{beat:0,i:0,pair:0,nextT:BANTER_AT[0],pairT:150};const h=G.healer,hk=HL().id[0];
+  if(G.t>=B.nextT&&B.beat<4){const m=G.party[B.i%G.party.length],bi=B.beat;B.i++;if(B.i%G.party.length===0){B.beat++;B.nextT=BANTER_AT[B.beat]||1e9}else B.nextT=G.t+22;
+    const arc=ARCS[m.key];const beat=arc&&arc[Math.min(3,bi)];if(m.alive&&beat&&!G.cine){const [ln,rep]=beat;say(m,ln,2.6,true);chatLog('<span class="who" style="background:'+m.col+'">'+esc(m.name)+'</span>'+esc(ln));later(2,()=>{if(h.alive){const r=rep[hk]||rep.w;say(h,r,2.6,true);chatLog('<span class="who" style="background:'+HL().col+';color:#000">'+esc(HN())+'</span>'+esc(r))}})}}
+  if(G.t>=B.pairT){B.pairT=G.t+150;const keys=G.party.map(m=>m.key);const cand=PAIR_ARCS.filter(p=>keys.includes(p.pair[0])&&keys.includes(p.pair[1]));if(cand.length){const p=cand[B.pair%cand.length];const a=byKey(p.pair[0]),b=byKey(p.pair[1]);const li=p.lines[Math.min(p.lines.length-1,Math.floor(B.pair/cand.length))];B.pair++;if(a&&b&&a.alive&&b.alive&&!G.cine){say(a,li[0],2.4,true);chatLog('<span class="who" style="background:'+a.col+'">'+esc(a.name)+'</span>'+esc(li[0]));later(1.9,()=>{if(b.alive){say(b,li[1],2.4,true);chatLog('<span class="who" style="background:'+b.col+'">'+esc(b.name)+'</span>'+esc(li[1]))}})}}}}
 function synBark(dt){
   if(!G||G.over)return; G.synT=(G.synT||rnd(20,40))-dt; if(G.synT>0)return; G.synT=rnd(40,75);
   const list=activeSyn(); if(!list.length)return; const y=pick(list); const who=k=>HEALERS[k]?G.healer:byKey(k); const a=who(y.pair[0]),b=who(y.pair[1]); if(!a||!b||!a.alive||!b.alive)return;
@@ -3157,7 +3221,7 @@ function updateHud(){
 // ---------- sim ----------
 function step(dt){
   G.t+=dt;
-  updateSpawns(dt); updateHealer(dt); if(G.over)return; tutTick(dt); updateWeapons(dt); updatePools(dt); synBark(dt); contractsTick(dt); demandTick(dt); gratTick(dt); if(G.t>=300&&!G.stats.lv5)G.stats.lv5=G.level;
+  updateSpawns(dt); updateHealer(dt); if(G.over)return; tutTick(dt); updateWeapons(dt); updatePools(dt); synBark(dt); banterTick(dt); contractsTick(dt); demandTick(dt); gratTick(dt); if(G.t>=300&&!G.stats.lv5)G.stats.lv5=G.level;
   for(const m of G.party)if(m.alive&&!(m.frozenT>0))CHARS[m.key].update(m,dt);
   if(upRank('ward')){G.wardT=(G.wardT||0)-dt;if(G.wardT<=0){G.wardT=20;for(const a of allies()){a.shield=Math.max(a.shield,a.maxhp*0.1*upRank('ward'));puff(a.x,a.y,4,'#c8e8ff',50,2)}}}
   for(const m of G.party){if(m.arcCd>0)m.arcCd-=dt;if(!m.alive){if(m.selfRevT>0){m.selfRevT-=dt;if(m.selfRevT<=0)selfRevive(m)}continue}if(m.key!=='tank'&&m.hp<m.maxhp&&mrank(m,'regen'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.004*mrank(m,'regen')*dt)}

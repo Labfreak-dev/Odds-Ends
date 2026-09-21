@@ -490,6 +490,19 @@ URL no clips are fetched, so the bot runs stay silent and error-free.
 - **Phones.** The HUD pads for notches on every edge, and a portrait
   phone in a run gets a dismissable "turn your phone sideways" card.
 
+## Music (b063)
+The sound pack has no music, so the game plays its own: a step sequencer
+on the audio clock, nothing loaded. `THEMES` holds one theme per field
+plus the menu: a key, a tempo, a four-chord progression, a bass pattern,
+a four-bar lead motif in scale degrees and a drum pattern. Layers come in
+with the run (bass and drums from the start, an arpeggio from 2:30, the
+lead from 5:30); a boss on the field adds eighteen beats a minute, a
+driving bass and an off-beat hat. The menu is a slow pad with a sine
+motif. The cut-in ducks the music to a fifth, pause and level-up cards
+to under half, and a theme change crossfades over a second. Settings has
+Music (off, low, full). To audition a theme without playing, render it
+through an `OfflineAudioContext` with `musNote` as the check script does.
+
 ## Shipping
 1. Edit `index.html` (and re-pack if art changed).
 2. `node --check` the script block (the playthrough script or a quick

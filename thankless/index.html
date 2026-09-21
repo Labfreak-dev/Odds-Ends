@@ -225,6 +225,7 @@
     <h2>Settings</h2>
     <div class="setrow"><span>Sound</span><div class="seg" data-k="sound"><button data-v="0">Off</button><button data-v="0.35">Low</button><button data-v="1">Full</button></div></div>
     <div class="setrow"><span>Ambience</span><div class="seg" data-k="ambience"><button data-v="0">Off</button><button data-v="1">On</button></div></div>
+    <div class="setrow"><span>Music</span><div class="seg" data-k="music"><button data-v="0">Off</button><button data-v="0.4">Low</button><button data-v="1">Full</button></div></div>
     <div class="setrow"><span>Screen shake</span><div class="seg" data-k="shake"><button data-v="0">Off</button><button data-v="0.5">Half</button><button data-v="1">Full</button></div></div>
     <div class="setrow"><span>Flashes</span><div class="seg" data-k="flash"><button data-v="0">Off</button><button data-v="1">On</button></div></div>
     <div class="setrow"><span>Particles</span><div class="seg" data-k="particles"><button data-v="low">Fewer</button><button data-v="full">Full</button></div></div>
@@ -343,7 +344,7 @@
 
 <script>
 'use strict';
-const BUILD='b062-polish';
+const BUILD='b063-music';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -729,7 +730,7 @@ function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(META))}catch(e)
 let META=load();
 // b060: settings live under their own key so a save reset leaves them alone
 const SET_KEY='thankless-settings-v1';
-const SET=Object.assign({shake:1,flash:1,particles:'full',motion:'full',chat:1,sound:1,ambience:1},(()=>{try{return JSON.parse(localStorage.getItem(SET_KEY))||{}}catch(e){return {}}})());
+const SET=Object.assign({shake:1,flash:1,particles:'full',motion:'full',chat:1,sound:1,ambience:1,music:1},(()=>{try{return JSON.parse(localStorage.getItem(SET_KEY))||{}}catch(e){return {}}})());
 function saveSet(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
 function applySet(){sndApply();const c=$('chat');if(c)c.classList.toggle('hide',!SET.chat);document.querySelectorAll('#setov .seg').forEach(seg=>{const k=seg.dataset.k;seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(SET[k])===b.dataset.v))});const fs=$('fsBtn');if(fs)fs.classList.toggle('hide',!document.documentElement.requestFullscreen)}
 function openSet(){applySet();$('saveTxt').value='';$('setnote').textContent='';$('setov').classList.remove('hide')}
@@ -738,14 +739,15 @@ function closeSet(){$('setov').classList.add('hide')}
 const SFX_KEYS=['hit1','hit2','hit3','arrowhit1','arrowhit2','bow1','bow2','swing1','swing2','swing3','block1','block2','parry','fireball1','fireball2','fireball3','firebuff','firespray','icethrow1','icethrow2','icefreeze','icewall','icebarrage','meteor','boom','rockwall','impact1','impact2','impact3','waterspray','wave','chestopen','unlock','gate','chop1','chop2','ignite'];
 const SFX_VAR={hit:['hit1','hit2','hit3'],arrowhit:['arrowhit1','arrowhit2'],bow:['bow1','bow2'],swing:['swing1','swing2','swing3'],block:['block1','block2'],fireball:['fireball1','fireball2','fireball3'],icethrow:['icethrow1','icethrow2'],impact:['impact1','impact2','impact3'],chop:['chop1','chop2']};
 const SND={ctx:null,buf:{},last:{},loading:{},amb:null,ambKey:null,ambWant:null,noise:null};
-function sndInit(){if(SND.ctx)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;try{SND.ctx=new C()}catch(e){return}const c=SND.ctx;SND.master=c.createGain();SND.master.connect(c.destination);SND.sfxG=c.createGain();SND.sfxG.connect(SND.master);SND.ambG=c.createGain();SND.ambG.gain.value=0;SND.ambG.connect(SND.master);sndApply();if(location.protocol!=='file:')for(const k of SFX_KEYS)sndLoad(k)}
-function sndApply(){if(!SND.ctx)return;SND.master.gain.setTargetAtTime(SET.sound*(G&&G.paused?0.25:1),SND.ctx.currentTime,0.1);SND.ambG.gain.setTargetAtTime(SET.ambience&&SND.amb?0.55:0,SND.ctx.currentTime,0.3)}
+function sndInit(){if(SND.ctx)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;try{SND.ctx=new C()}catch(e){return}const c=SND.ctx;SND.master=c.createGain();SND.master.connect(c.destination);SND.sfxG=c.createGain();SND.sfxG.connect(SND.master);SND.ambG=c.createGain();SND.ambG.gain.value=0;SND.ambG.connect(SND.master);SND.musG=c.createGain();SND.musG.gain.value=0;SND.musG.connect(c.destination);sndApply();if(location.protocol!=='file:')for(const k of SFX_KEYS)sndLoad(k);musStart()}
+function sndApply(){if(!SND.ctx)return;SND.master.gain.setTargetAtTime(SET.sound*(G&&G.paused?0.25:1),SND.ctx.currentTime,0.1);SND.ambG.gain.setTargetAtTime(SET.ambience&&SND.amb?0.55:0,SND.ctx.currentTime,0.3);musApply()}
 function sndLoad(k){if(!SND.ctx||SND.buf[k]||SND.loading[k]||location.protocol==='file:')return;SND.loading[k]=true;fetch('sfx/'+k+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>SND.ctx.decodeAudioData(b,res,rej))).then(buf=>{SND.buf[k]=buf;if(k===SND.ambWant)sndAmb(k)}).catch(()=>{SND.loading[k]=false})}
 // a clip: k may name a variant set. o: vol, rate, jit (pitch jitter), gap (throttle seconds), x/y (quieter with distance from the healer)
 function sfx(k,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,now=c.currentTime;if(now-(SND.last[k]||-9)<(o.gap!==undefined?o.gap:0.05))return;SND.last[k]=now;const key=SFX_VAR[k]?pick(SFX_VAR[k]):k,buf=SND.buf[key];if(!buf)return;let vol=o.vol||1;if(o.x!==undefined&&G&&G.healer){const d=Math.hypot(o.x-G.healer.x,o.y-G.healer.y);vol*=Math.max(0.15,1-d/900)}const src=c.createBufferSource();src.buffer=buf;src.playbackRate.value=(o.rate||1)*(1+(RAND()-0.5)*2*(o.jit!==undefined?o.jit:0.07));const g=c.createGain();g.gain.value=vol;src.connect(g);g.connect(SND.sfxG);src.start()}
 // synthesised voices
 function syn(f,dur,type,vol,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,t=c.currentTime+(o.at||0),osc=c.createOscillator();osc.type=type||'sine';osc.frequency.setValueAtTime(f,t);if(o.to)osc.frequency.exponentialRampToValueAtTime(o.to,t+dur);const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+(o.atk||0.01));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);osc.connect(g);g.connect(SND.sfxG);osc.start(t);osc.stop(t+dur+0.03)}
-function synNoise(dur,vol,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,t=c.currentTime+(o.at||0);if(!SND.noise){const b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;SND.noise=b}const src=c.createBufferSource();src.buffer=SND.noise;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(o.rise?200:(o.f||800),t);if(o.rise)f.frequency.exponentialRampToValueAtTime(o.f||2000,t+dur);const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+(o.rise?dur*0.8:0.01));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);src.connect(f);f.connect(g);g.connect(SND.sfxG);src.start(t);src.stop(t+dur+0.03)}
+function sndNoiseBuf(){const c=SND.ctx,b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;SND.noise=b}
+function synNoise(dur,vol,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,t=c.currentTime+(o.at||0);if(!SND.noise)sndNoiseBuf();const src=c.createBufferSource();src.buffer=SND.noise;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(o.rise?200:(o.f||800),t);if(o.rise)f.frequency.exponentialRampToValueAtTime(o.f||2000,t+dur);const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+(o.rise?dur*0.8:0.01));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);src.connect(f);f.connect(g);g.connect(SND.sfxG);src.start(t);src.stop(t+dur+0.03)}
 const VOX={
   heal(){syn(660,0.18,'sine',0.14);syn(880,0.18,'sine',0.14,{at:0.07});syn(1320,0.3,'sine',0.1,{at:0.14})},
   level(){[523,659,784,1047].forEach((f,i)=>syn(f,0.22,'triangle',0.18,{at:i*0.09}))},
@@ -774,6 +776,37 @@ function sn(k,gap){if(!SND.ctx||!SET.sound||!VOX[k])return;const now=SND.ctx.cur
 function sndAmbFor(){if(!SND.ctx)return;if(!G||G.over){sndAmb(null);return}const k=G.moonT>0?'amb_night':({meadow:'amb_day',bonefields:'amb_night',keep:'amb_cave',mire:'amb_night'}[G.field.id]||'amb_day');sndAmb(k)}
 function sndAmb(k){SND.ambWant=k;if(SND.ambKey===k)return;const c=SND.ctx;if(SND.amb){const old=SND.amb,og=SND.ambSrcG;og.gain.setTargetAtTime(0,c.currentTime,0.5);setTimeout(()=>{try{old.stop()}catch(e){}},2500);SND.amb=null;SND.ambKey=null}if(!k){sndApply();return}if(!SND.buf[k]){sndLoad(k);return}const src=c.createBufferSource();src.buffer=SND.buf[k];src.loop=true;const g=c.createGain();g.gain.value=0;g.gain.setTargetAtTime(1,c.currentTime,1.2);src.connect(g);g.connect(SND.ambG);src.start();SND.amb=src;SND.ambSrcG=g;SND.ambKey=k;sndApply()}
 function sprayCue(el,o,beam){if(el==='bolt'){sn('zap',0.1);return}sfx(({fire:'firespray',frost:'icebarrage',poison:'waterspray',holy:beam?'wave':'firebuff',arcane:'wave'})[el]||'firespray',{x:o.x,y:o.y,vol:0.5,gap:0.15})}
+// ===== b063: music. A step sequencer on the audio clock; nothing is loaded. =====
+// A theme: key (MIDI root), tempo, chord progression (semitones from the key, with a quality), a bass pattern,
+// a lead motif in scale degrees over four bars (-1 rests), and a drum pattern. Layers come in with time.
+const MINOR=[0,2,3,5,7,8,10];
+const THEMES={
+  menu:{root:57,bpm:72,prog:[[0,'m'],[8,'M'],[3,'M'],[10,'M']],bass:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],lead:[0,-1,-1,2,-1,-1,4,-1,-1,-1,-1,-1,-1,-1,-1,-1, 7,-1,-1,-1,-1,-1,4,-1,-1,-1,-1,-1,-1,-1,-1,-1, 5,-1,-1,4,-1,-1,2,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],drums:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],pad:true},
+  meadow:{root:57,bpm:112,prog:[[0,'m'],[8,'M'],[3,'M'],[10,'M']],bass:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0],lead:[7,-1,6,7,9,-1,7,-1,4,-1,-1,-1,2,-1,4,-1, 5,-1,4,5,7,-1,5,-1,4,-1,-1,-1,-1,-1,-1,-1, 7,-1,6,7,9,-1,11,-1,9,-1,-1,-1,7,-1,6,-1, 4,-1,-1,-1,2,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1],drums:[1,0,3,0,2,0,3,0,1,0,3,0,2,0,3,3]},
+  bonefields:{root:50,bpm:100,prog:[[0,'m'],[0,'m'],[1,'M'],[0,'m']],bass:[1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,1],lead:[0,-1,-1,-1,1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,-1,-1,-1,2,-1,1,-1,0,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1,1,-1,0,-1,-1,-1,-1,-1,4,-1,-1,-1, 3,-1,-1,-1,-1,-1,1,-1,0,-1,-1,-1,-1,-1,-1,-1],drums:[1,0,0,0,2,0,0,0,1,0,0,1,2,0,0,0]},
+  keep:{root:52,bpm:124,prog:[[0,'m'],[3,'M'],[10,'M'],[7,'M']],bass:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1],lead:[4,-1,4,-1,5,-1,4,-1,2,-1,-1,-1,0,-1,-1,-1, 5,-1,5,-1,7,-1,5,-1,4,-1,-1,-1,-1,-1,-1,-1, 4,-1,4,-1,5,-1,4,-1,7,-1,-1,-1,9,-1,-1,-1, 7,-1,5,-1,4,-1,2,-1,0,-1,-1,-1,-1,-1,-1,-1],drums:[1,0,3,0,2,0,3,0,1,0,3,0,2,0,3,0]},
+  mire:{root:55,bpm:96,prog:[[0,'m'],[5,'m'],[0,'m'],[10,'M']],bass:[1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0],lead:[0,-1,-1,2,-1,-1,3,-1,-1,-1,2,-1,-1,0,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,-1,-1,5,-1,-1,6,-1,-1,-1,5,-1,-1,3,-1,-1, 2,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1],drums:[1,0,0,3,0,0,1,0,2,0,0,3,0,0,1,3]}};
+const MUS={want:'none',cur:'none',step:0,next:0,timer:null,layer:0,boss:false,duck:1};
+function musApply(){if(!SND.ctx||!SND.musG)return;const on=MUS.cur!=='none'&&SET.sound>0;SND.musG.gain.setTargetAtTime(on?0.32*SET.music*MUS.duck:0,SND.ctx.currentTime,0.4)}
+function musWant(){let w='menu',boss=false,layer=0,duck=1;
+  if(G&&!G.over){w=THEMES[G.field.id]?G.field.id:'meadow';boss=!!((G.king&&!G.king.dead)||(G.lich&&!G.lich.dead)||(G.knight&&G.t<G.field.knightAt+40));layer=G.t<150?0:G.t<330?1:2;if(G.cine)duck=0.2;else if(G.lvOpen||G.paused)duck=0.45}
+  MUS.boss=boss;MUS.layer=layer;if(duck!==MUS.duck){MUS.duck=duck;musApply()}
+  if(w!==MUS.want){MUS.want=w;if(MUS.cur!=='none'){const c=SND.ctx;SND.musG.gain.setTargetAtTime(0,c.currentTime,0.3);MUS.fadeT=c.currentTime+1.0}}}
+function musStart(){if(MUS.timer||!SND.ctx)return;MUS.next=SND.ctx.currentTime+0.1;MUS.timer=setInterval(musSched,40)}
+function musSched(){const c=SND.ctx;if(!c)return;if(MUS.want!==MUS.cur){if(MUS.cur==='none'||c.currentTime>=(MUS.fadeT||0)){MUS.cur=MUS.want;MUS.step=0;MUS.next=c.currentTime+0.05;musApply()}else return}
+  if(MUS.cur==='none'||!SET.sound||!SET.music)return;const T=THEMES[MUS.cur];const bpm=T.bpm+(MUS.boss?18:0),spb=60/bpm/4;
+  while(MUS.next<c.currentTime+0.12){musNote(T,MUS.step,MUS.next,spb);MUS.step=(MUS.step+1)%64;MUS.next+=spb}}
+function mnote(n){return 440*Math.pow(2,(n-69)/12)}
+function musVoice(f,t,dur,type,vol,o){o=o||{};const c=SND.ctx,osc=c.createOscillator();osc.type=type;osc.frequency.setValueAtTime(f,t);if(o.det)osc.detune.value=o.det;let node=osc;if(o.lp){const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(o.lp,t);if(o.lpTo)fl.frequency.exponentialRampToValueAtTime(o.lpTo,t+dur);osc.connect(fl);node=fl}const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+(o.atk||0.01));g.gain.setValueAtTime(vol,t+Math.max(o.atk||0.01,dur*(o.sus||0.5)));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);node.connect(g);g.connect(SND.musG);osc.start(t);osc.stop(t+dur+0.03)}
+function musDrum(kind,t){const c=SND.ctx;if(kind===1||kind===2){const o=c.createOscillator();o.frequency.setValueAtTime(kind===1?150:180,t);o.frequency.exponentialRampToValueAtTime(40,t+0.12);const g=c.createGain();g.gain.setValueAtTime(0.5,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);o.connect(g);g.connect(SND.musG);o.start(t);o.stop(t+0.2)}
+  if(kind===2||kind===3){if(!SND.noise)sndNoiseBuf();const s=c.createBufferSource();s.buffer=SND.noise;const f=c.createBiquadFilter();f.type=kind===2?'bandpass':'highpass';f.frequency.value=kind===2?1800:7000;const g=c.createGain();const d=kind===2?0.12:0.035;g.gain.setValueAtTime(kind===2?0.25:0.12,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);s.connect(f);f.connect(g);g.connect(SND.musG);s.start(t);s.stop(t+d+0.02)}}
+function musNote(T,step,t,spb){const bar=Math.floor(step/16)%T.prog.length,st=step%16,[cr,q]=T.prog[bar],root=T.root+cr,boss=MUS.boss,L=MUS.layer;
+  if(T.bass[st]||(boss&&st%2===0))musVoice(mnote(root-12),t,spb*0.9,'triangle',0.5,{lp:600,lpTo:200,atk:0.005,sus:0.6});
+  const d=T.drums[st];if(d)musDrum(d,t);if(boss&&st%4===2)musDrum(3,t);
+  if(T.pad&&st===0){[0,q==='m'?3:4,7].forEach(iv=>{musVoice(mnote(root+iv),t,spb*16,'sawtooth',0.05,{lp:900,atk:0.6,sus:0.7,det:-6});musVoice(mnote(root+iv),t,spb*16,'sawtooth',0.05,{lp:900,atk:0.6,sus:0.7,det:6})})}
+  if(!T.pad&&(L>=1||boss)&&st%2===0){const tones=[0,q==='m'?3:4,7,12],iv=tones[(st/2)%4|0];musVoice(mnote(root+iv),t,spb*1.6,'square',0.06,{lp:2200,atk:0.005,sus:0.3})}
+  if(!T.pad&&(L>=2||boss)){const deg=T.lead[step%64];if(deg>=0){const n=T.root+12+MINOR[deg%7]+12*Math.floor(deg/7);musVoice(mnote(n),t,spb*1.8,'square',0.09,{lp:3000,atk:0.01,sus:0.4,det:4})}}
+  if(T.pad&&st%8===0){const deg=T.lead[step%64];if(deg>=0)musVoice(mnote(T.root+12+MINOR[deg%7]+12*Math.floor(deg/7)),t,spb*6,'sine',0.12,{atk:0.2,sus:0.5})}}
 function sndSpell(id){if(id==='surge'||id==='mending'||id==='regrowth')sn('heal',0.2);else if(id==='bless'||id==='war')sfx('firebuff',{vol:0.6});else if(id==='fortify')sfx('block',{vol:0.6});else if(id==='ward'||id==='guardian')sfx('parry',{vol:0.6});else if(id==='radiance'||id==='sanctuary')sfx('wave',{vol:0.45});else if(id==='retribution')sfx('impact',{vol:0.6});else if(id==='revive')sn('revive',0.5);else if(id==='wall'){sfx('firebuff',{vol:0.6});sn('buff',0.1)}else sn('buff',0.1)}
 const rank=id=>META.tree[id]||0;
 const mrank=(m,suf)=>rank(({tank:'t',archer:'a',mage:'m',necro:'n',assassin:'s',paladin:'p',frost:'f',ent:'e',wolf:'w',vampire:'v',gunner:'g',robot:'r'}[m.key]||'x')+'_'+suf);
@@ -3408,6 +3441,7 @@ function frame(now){
     if(n>=60*G.fast+2)acc=0;
   }else acc=0;
   if(G&&SND.ctx&&!G.over)sndAmbFor();
+  if(SND.ctx)musWant();
   draw(); if(G)updateHud();
 }
 $('stamp').textContent=BUILD;

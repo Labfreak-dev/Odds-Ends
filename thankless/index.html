@@ -395,7 +395,7 @@
 
 <script>
 'use strict';
-const BUILD='b074-fireside';
+const BUILD='b075-clearview';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -936,8 +936,10 @@ function menuScene(dt){const mc=$('menucv');if(!mc||G){if(mc)mc.classList.add('h
   const cover=(im,px,py,zoom)=>{const sc=Math.max(W/im.width,H/im.height)*zoom,w=im.width*sc,h=im.height*sc;g.drawImage(im,(W-w)/2+px,(H-h)/2+py,w,h)};
   if(layers){cover(ART.img.menu_sky,Math.sin(t*0.05)*10,0,1.08);cover(ART.img.menu_mid,Math.sin(t*0.05)*26,0,1.1);}
   else if(ART.ready.title){cover(ART.img.title,Math.sin(t*0.06)*22,Math.cos(t*0.045)*10,1.14)}
+  // the grass layer sits behind the party: fitted to the width and anchored at the bottom, so on a tall phone it is a strip of ground, not a wall
+  if(layers){const im=ART.img.menu_fore,sc0=Math.max(W/im.width,Math.min(H/im.height,W/im.width*1.15))*1.06,w=im.width*sc0,h=im.height*sc0;g.drawImage(im,(W-w)/2+Math.sin(t*0.05)*40,H-h+h*0.02,w,h)}
   // ground band and fire glow
-  const gy=H*0.86;{const gr=g.createLinearGradient(0,gy-120,0,H);gr.addColorStop(0,'rgba(14,11,18,0)');gr.addColorStop(0.45,'rgba(14,11,18,.85)');gr.addColorStop(1,'rgba(8,6,10,1)');g.fillStyle=gr;g.fillRect(0,gy-120,W,H-gy+120)}
+  const gy=H*0.86;{const gr=g.createLinearGradient(0,gy-120,0,H);gr.addColorStop(0,'rgba(14,11,18,0)');gr.addColorStop(0.5,'rgba(14,11,18,'+(layers?0.35:0.85)+')');gr.addColorStop(1,'rgba(8,6,10,'+(layers?0.55:1)+')');g.fillStyle=gr;g.fillRect(0,gy-120,W,H-gy+120)}
   const fx=W*0.5,fy=gy+6,fl=0.85+0.15*Math.sin(t*9)+0.08*Math.sin(t*23);
   {g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(fx,fy-10,4,fx,fy-10,Math.min(W,H)*0.6*fl);gr.addColorStop(0,'rgba(255,170,70,.55)');gr.addColorStop(0.4,'rgba(255,120,40,.18)');gr.addColorStop(1,'rgba(255,90,30,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);g.restore()}
   // party around the fire
@@ -954,7 +956,6 @@ function menuScene(dt){const mc=$('menucv');if(!mc||G){if(mc)mc.classList.add('h
   g.save();g.globalCompositeOperation='lighter';for(let i=MSC.emb.length-1;i>=0;i--){const e=MSC.emb[i];e.life-=dt;e.x+=(e.vx+Math.sin(t*3+e.y*0.05)*10)*dt;e.y+=e.vy*dt;if(e.life<=0){MSC.emb.splice(i,1);continue}g.fillStyle='rgba(255,'+(140+Math.floor(80*Math.min(1,e.life)))+',60,'+Math.min(1,e.life*0.6)+')';g.fillRect(e.x,e.y,e.r,e.r)}g.restore();
   // a bat crossing now and then
   if(MSC.bats.length<2&&RAND()<dt*0.12)MSC.bats.push({x:RAND()<0.5?-40:W+40,y:rnd(H*0.08,H*0.4),d:0,t:0});for(let i=MSC.bats.length-1;i>=0;i--){const b=MSC.bats[i];b.d=b.x<W/2&&b.t===0?1:b.d||-1;b.t+=dt;b.x+=b.d*90*dt;b.y+=Math.sin(b.t*5)*0.8;const im=spr(Math.sin(b.t*18)>0?'bat_a':'bat_b');if(im){g.save();g.translate(b.x,b.y);g.scale(b.d,1);g.globalAlpha=0.8;g.drawImage(im,-12,-10,24,20);g.restore()}if(b.x<-60||b.x>W+60)MSC.bats.splice(i,1)}
-  if(layers)cover(ART.img.menu_fore,Math.sin(t*0.05)*50,0,1.14);
   // vignette
   {const gr=g.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.35,W/2,H*0.45,Math.max(W,H)*0.8);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.6)');g.fillStyle=gr;g.fillRect(0,0,W,H)}}
 function renderMenu(){

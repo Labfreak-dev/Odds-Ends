@@ -807,3 +807,53 @@ ellipsises on the narrowest phones), and the action row holds Set out
 and **Daily Challenge** on one line, never wrapping. The daily seed is
 no longer shown; the button's tooltip carries today's best and a win
 tick, and a tick also follows the label once today's daily is won.
+
+## Field dressing: props, hazards, storms and nests (b088)
+The fields were open and empty. Now each carries smashable props, one
+hazard of its own, and nests.
+
+**Props** (`PROPS`, 28 per run, placed by `dressField` away from the start
+and off the hazards) are objects in `G.enemies` flagged `prop:true`, so
+every weapon, aura, shot and cleave hits them for free; `nearestEnemy`,
+`meleeTarget`, the party's knot scan and `uNear` skip them, and the enemy
+loop `continue`s past them, so nobody aims at a crate but everything that
+sweeps a crowd breaks one. `hurtEnemy` hands them to `propHurt`, which
+drops by kind: crates and skull piles give gold and coins, barrels and
+urns motes, graves and rotten logs heal allies within 170 by 8%, a
+brazier spills a burning pool and toadstools a spore cloud; 3% drop a
+reroll or ban. Enemy separation treats them as obstacles.
+
+**Hazards** (`G.hazards`, `hazardAt(x,y,pad)`): the Long Meadow gets
+storms (every 40-60 s, 3-6 bolts a second apart, each telegraphed 1.1 s
+with a dashed ring, then a vertical zap, flash, shake and scorch: 42×(1+t/120)
+to enemies in 64 with a 1.5 s daze, 12% max HP to allies); the Bone Fields
+14 bone-spike patches (8% and a slow on entry for allies, 45×(1+t/120) for
+enemies); the Ashen Keep two lava rivers wandering in from the edges and
+bending away from the start (6% max HP/s to allies, 26×(1+t/120)/s to
+enemies); the Sodden Mire ten poison pools (3%/s plus a slow, drawn with
+the miasma art). Bats, the Mother of Bats and wisps fly over all of it.
+Damage runs on a 0.1 s accumulator. The party anchor rerolls patrol
+points that land in a hazard.
+
+**Nests** (`NESTS`, one style per field: Demon Gate spawning imps, Bone
+Pile spawning skeletons, Ghoul Crypt spawning ghouls, Bat Hive spawning
+bats): the first appears at 85 s, then every 70-110 s while fewer than two
+stand, 520-760 from the party, with a toast and the gate sound. HP is
+420×(1+t/110)×field hpMul×(1+0.25×circle). Every 11-18 s a nest bursts
+3+floor(t/100) of its mob (cap 9) in a ring around it, with a pulse and
+ring. It is an enemy flagged `nest:true`: `meleeTarget` treats it like an
+elite so the front-liners pile on, and the party anchor goes for any nest
+within 900 before chests or knots (`goal:'nest'`, with its own bark line).
+Breaking one pays 90×(1+t/300)×goldMul gold, fourteen motes, a chest 45%
+of the time, a reroll or ban 60% of the time, dazes everything near it,
+and the red X marker at the screen edge points to a live nest the way the
+chest arrow does. Props and nests draw as vector stand-ins until block 88
+lands; the sprite keys (`prop_*`, `nest_*`, `hz_spikes`) are wired and
+`pack-art.py` sizes nests and hazard patches at 256.
+
+Verified headless per field: 28 props, the right hazard set, a forced
+nest bursting three mobs, the party reaching it (80 px) and breaking it
+for gold, motes and a chest roll; lava 6%/s on a full healer with Mend off
+and 26/s on a brute; spikes 8 on entry and again on re-entry; poison
+16/s on a brute; the storm's telegraphs and bolts. Expert bot: WON on the
+meadow (10:39) and the keep (10:05), no page errors.

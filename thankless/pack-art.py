@@ -146,6 +146,8 @@ def pack_one(path):
         out = fit(trim(key_out(im)), 64); q = 88
     elif key.startswith("fx_ring_") or key.startswith("fx_pool_") or key.startswith("fx_spray_") or key.startswith("fx_beam_") or key.startswith("fx_sigil_") or key in ("fx_glacier","fx_batstorm","fx_reticle","fx_ult_hammer") or key in ("fx_roots", "fx_slash", "fx_front"):
         out = fit(trim(key_out(im)), 256); q = 86   # ground effects get scaled up to a weapon's radius: keep them sharp
+    elif key.startswith("nest_") or key.startswith("hz_"):
+        out = fit(trim(key_out(im)), 256); q = 86   # b088: nests and hazard patches draw at 80-100px on the field
     elif key == "menu_sky" or key.startswith("field_"):
         im = im.convert("RGB"); w, h = im.size; tw = min(1024, w)
         out = im.resize((tw, int(h * tw / w)), Image.LANCZOS); q = 82   # b073: wide paintings for the camp and field cards

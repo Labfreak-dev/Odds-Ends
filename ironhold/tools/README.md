@@ -11,3 +11,4 @@ Headless test and simulation harness for `ironhold/index.html`. Everything here 
 - `test_step.py` — kill rate and speed by sim step (0.6, adaptive, 1.2) over six hours from a save.
 - `test_relic.py` — relics and chests: the field chest (open, tap, stow, timeout), the reveal, the hold, pity, the Superior floor, the hoard, the drop rate over two hours in two areas.
 - `shots_reveal.py` — freezes the reveal's three phases (closed, cracked, open) for screenshots.
+- `test_diffs.py` — the difficulty buttons: every label fits its painted button and sits centred, at 360, 420 and 600 px.

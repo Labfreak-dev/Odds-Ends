@@ -847,7 +847,8 @@ button{min-width:0}
 .styles{grid-template-columns:repeat(4,minmax(0,1fr))}
 .styles button{font-size:11px;letter-spacing:0;padding:0 2px}
 #cstyles{display:block}
-@media(max-width:600px){.styles{grid-template-columns:repeat(2,minmax(0,1fr))}#diffs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.styles{grid-template-columns:repeat(2,minmax(0,1fr))}#diffs{grid-template-columns:repeat(2,minmax(0,1fr))}}   /* two columns on a phone: three left 46px for NIGHTMARE in a painted button */
+.styles button{white-space:nowrap;text-align:center}
 @media(max-width:520px){button{font-size:12px;letter-spacing:.1px}.secbar button{font-size:10px;padding:0 4px}}
 
 /* ---- fit: collection tiles hold their names; small buttons never squeeze their label under the studs ---- */
@@ -5717,7 +5718,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b212-chestart';window.__ihBoot=true;
+  const BUILD='b213-diffs';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v1.1 \u00b7 '+BUILD;}
   const artDiag=()=>{
     if(!window.__ihArt&&!G.artFail&&window.__art){setTimeout(artDiag,1000);return;}   // still on the road: look again in a second

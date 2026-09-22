@@ -892,3 +892,12 @@ and the spike patch `saturate(0.72) contrast(0.8) brightness(0.96)` at
 alpha 0.9, drawn at 1.9× its radius so the picture covers the damage
 radius it used to fall short of. Browsers without canvas filters get the
 raw sprite.
+
+## How to play, rewritten (b092)
+The help screen was one wall of `<br>`-joined lines from a dozen batches
+that contradicted itself ("the only button is Revive" two lines after R
+and Q) and predated the party leading, nests, hazards, rerolls and the
+endless deck. It is now sixteen short titled paragraphs (`.help`): You
+are the healer, Moving, The party leads, Two circles, Prayers, The
+flask, Level-ups, Reroll and Ban, Weapons, Chests and relics, Events,
+Nests, The field, Enemies, Gratitude, After a run.

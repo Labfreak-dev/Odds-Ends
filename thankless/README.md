@@ -857,3 +857,12 @@ for gold, motes and a chest roll; lava 6%/s on a full healer with Mend off
 and 26/s on a brute; spikes 8 on entry and again on re-entry; poison
 16/s on a brute; the storm's telegraphs and bolts. Expert bot: WON on the
 meadow (10:39) and the keep (10:05), no page errors.
+
+## Block 88 art packed (b089)
+The thirteen field-dressing pieces from block 88 landed: eight props, the
+four nests and the bone-spike patch, all clean on magenta. Sources are in
+`art-src/` under their keys, packed by `pack-art.py` (props at 128, nests
+and the spike patch at 256), and the vector stand-ins are now fallbacks
+only. Nests draw at 3.8× their radius so the gate, crypt, pile and hive
+stand about 100 px tall on the field. Verified in-game on all four
+fields: every key ready, no console errors.

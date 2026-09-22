@@ -68,7 +68,12 @@ until nothing is left.
 and the hub offers "Continue run". Settings → Wipe save resets everything.
 
 ## Art pipeline
-`art-prompts.txt` uses the same conventions as Thankless: sprites face right
+**Look:** gothic horror in the vein of Darkest Dungeon. That means hand-inked
+comic art with thick jagged black ink, heavy slabs of shadow, stark torchlight,
+and a desaturated bone, rust and ash palette with dried-blood crimson and
+sickly green accents. Characters are gaunt and haggard.
+
+`art-prompts.txt` keeps the same file conventions as Thankless (not its look): sprites face right
 and are keyed on a flat magenta (#FF00FF) background; `bg_*` strips tile
 horizontally; `sym_*` are square reel icons. To ship art, key out the
 magenta, trim, and write each image into `art.js` as a data URI under its
@@ -85,3 +90,5 @@ key. Missing keys keep the fallback, so art can arrive in waves.
   types, 8 altar upgrades, 9 machine mods. Headless bot: full runs with no
   console errors on phone and desktop layouts, including a 5-reel,
   5-payline machine.
+- **b002**: art sheet rewritten from chunky pixel art to a Darkest
+  Dungeon-style gothic ink look, with grimmer subject descriptions throughout.

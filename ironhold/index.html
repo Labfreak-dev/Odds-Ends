@@ -1644,6 +1644,7 @@ for(const s of SLOTS)S.equip[s]=null;
 const lv=s=>lvlFor(S.xp[s]);
 function combatLvl(){return Math.floor(0.25*(lv('def')+lv('hp'))+0.325*Math.max(lv('atk')+lv('str'),1.5*lv('rng'),1.5*lv('mag')));}
 function bonuses(){
+  if(G.bonOn&&G.bonC)return G.bonC;   /* one answer per tick: the catch-up asks hundreds of times a tick, and nothing in a tick changes it but a wear, which clears it */
   const b={atk:0,str:0,def:0,hp:0,mh:0,leech:0,xp:0,gold:0,luck:0,spd:0,dr:0};
   for(const s of SLOTS){const it=S.equip[s];if(!it||trialRule('gear')===0)continue;const st=itemStats(it);
     b.atk+=st.atk*(it.arm&&ARMK[it.arm].style!==cstyle()?0.4:1);b.str+=st.str;b.def+=st.def;for(const k in it.aff)b[k]+=it.aff[k];
@@ -1662,6 +1663,7 @@ function bonuses(){
   // because health is the one thing the level cap otherwise freezes.
   const sh=S.asc?S.asc.shards:0;b.xp+=Math.min(sh,150)*2;b.gold+=Math.min(sh,300)*0.5;b.luck+=Math.min(sh,200)*0.5;
   if(S.tuner&&S.tune){for(const k of ['atk','str','def'])if(tuneEff(k))b[k]=Math.round(b[k]*(1+tuneEff(k)/100));for(const k of ['hp','mh','spd','dr','leech','xp','gold','luck'])b[k]+=tuneEff(k);}
+  if(G.bonOn)G.bonC=b;
   return b;
 }
 // Health, regen and food ride the same shard curve as the combat rolls, and a
@@ -3197,16 +3199,17 @@ function introTick(){if(INTRO.done)return;clearTimeout(INTRO.timer);
   const a=window.__art,el=performance.now()-INTRO.t0,fill=$('introFill'),txt=$('introTxt'),go=$('introGo');
   if(!fill||!txt||!go){introEnd();return;}
   let p=0,t='';
-  if(G.artFail){txt.textContent='The art did not arrive \u2014 the hold fights on in outline.';INTRO.timer=setTimeout(introEnd,1500);return;}
+  if(G.artFail&&!G.catch){txt.textContent='The art did not arrive \u2014 the hold fights on in outline.';INTRO.timer=setTimeout(introEnd,1500);return;}
   if(window.__ihArt){if(!INTRO.tArt)INTRO.tArt=el;let n=0,c=0;for(const k in SPR)for(const i of SPR[k]){n++;if(i.complete)c++;}
     p=0.8+0.2*(n?c/n:1);t=`Waking the sprites\u2026 ${c} / ${n}`;
-    if(c>=n||el-INTRO.tArt>6000){fill.style.width='100%';introEnd();return;}}
+    if((c>=n||el-INTRO.tArt>6000)&&!G.catch){fill.style.width='100%';introEnd();return;}}
   else if(!a){p=0.5;t='Fetching the art\u2026';}
   else if(a.waking){p=0.8;t='Waking the sprites\u2026';}
   else{const f=a.total?Math.min(1,a.got/a.total):0;p=0.8*f;
     t=a.cache?'Opening the vault\u2026':a.got?`Fetching the art\u2026 ${(a.got/1048576).toFixed(1)} / ${Math.round(a.total/1048576)} MB`:'Fetching the art\u2026';}
+  if(G.catch){const cf=G.catch.away?G.catch.t/G.catch.away:1;p=Math.min(p,cf);t=`Catching up on ${fmtTime(G.catch.away)} away\u2026 ${Math.round(cf*100)}%`;}
   fill.style.width=Math.round(p*100)+'%';txt.textContent=t;
-  if(el>12000&&go.hidden){go.hidden=false;go.onclick=introEnd;}
+  if(el>12000&&go.hidden&&!G.catch){go.hidden=false;go.onclick=introEnd;}
   INTRO.timer=setTimeout(introTick,100);}
 function sprArtReport(){const b=Object.keys(SPR_BAD);let n=0;for(const k in SPR_BAD)n+=SPR_BAD[k];
   return b.length?`${n} art frame${n>1?'s':''} failed to load (${b.slice(0,4).join(', ')}${b.length>4?'…':''})`:'';}
@@ -4222,11 +4225,12 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   for(let i=0;i<S.food.length;i++)if(S.food[i]<999)S.food[i]=999;for(let i=0;i<S.runes.length;i++)if(S.runes[i]<999)S.runes[i]=999;
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
-function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;if(G.mob&&!G.dead&&!S.paused)for(const c of clBoth())c.t+=dt;
+function tick(dt){const outer=G.bonOn;if(!outer){G.bonC=null;G.bonOn=true;}try{tick0(dt);}finally{if(!outer){G.bonOn=false;G.bonC=null;}}}
+function tick0(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;if(G.mob&&!G.dead&&!S.paused)for(const c of clBoth())c.t+=dt;
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+0.06*((S.asc&&S.asc.realm)||0))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));   /* a seasoned champion mends 6% faster each realm */}
   prayTick(dt);encTick(dt);
-  if(G.dead){G.deadT-=dt;if(G.deadT<=0){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
+  if(G.dead){G.deadT-=dt;if(!(G.deadT>0)){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(S.paused&&(siegeActive()||S.trial))S.paused=false;   // the horde does not wait, and a trial's clock is honest
   if(S.paused)return;                             // paused: no blows either way, no spawns; the champion rests and regens
   if(!G.mob)spawn(false);
@@ -4234,7 +4238,7 @@ function tick(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.f
   if(S.autoEat&&S.hp<maxHp()*S.eatPct/100)eat(false);
   coachTick(dt);preTick(dt);
   draughtTick(dt);
-  G.pT-=dt;G.mT-=dt;if(G.sunderT>0)G.sunderT=Math.max(0,G.sunderT-dt);if(G.hexT>0)G.hexT=Math.max(0,G.hexT-dt);if((G.curseT||0)>0)G.curseT=Math.max(0,G.curseT-dt);
+  G.pT-=dt;G.mT-=dt;if(!(G.pT>-60))G.pT=1;if(!(G.mT>-60))G.mT=2;if(G.sunderT>0)G.sunderT=Math.max(0,G.sunderT-dt);if(G.hexT>0)G.hexT=Math.max(0,G.hexT-dt);if((G.curseT||0)>0)G.curseT=Math.max(0,G.curseT-dt);
   if(G.mob&&!G.dead&&hasPw('set_channeler')){G.rimeT=(G.rimeT||0)+dt;if(G.rimeT>=5){G.rimeT-=5;G.ward=Math.min(Math.round(maxHp()*0.3),(G.ward||0)+Math.round(maxHp()*0.1));}}
   if(G.pT<=0){G.swings=(G.swings||0)+1;if(song()==='corrido'&&G.swings%3===0&&G.mob&&!G.dead)playerHit(true,specialOf());else playerHit(false);G.pT+=attackDelay();}
   if(G.chillT>0)G.chillT=Math.max(0,G.chillT-dt);
@@ -5430,7 +5434,7 @@ function openItem(it,equipped,where){
   if($('mSalv'))$('mSalv').onclick=()=>{S.scrap+=itemScrap(it);S.inv=S.inv.filter(x=>x!==it);bounty('salvage',1);close();};
   if($('mEss'))$('mEss').onclick=()=>{if(renderEssence(it))close();};
 }
-function equip(it){
+function equip(it){G.bonC=null;
   const req=reqFor(it);if(!reqOk(req)||handsBound(it))return;
   S.inv=S.inv.filter(x=>x!==it);
   if(S.equip[it.slot])S.inv.push(S.equip[it.slot]);
@@ -5453,7 +5457,7 @@ function claimFree(wt){
   toast('Training '+WEAPONS[wt].n+(S.equip.weapon===it?' — equipped.':' — in your pack.'));
   renderAll();
 }
-function unequip(slot){if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
+function unequip(slot){G.bonC=null;if(!S.equip[slot]||S.inv.length>=28){toast('Pack is full.');return;}S.inv.push(S.equip[slot]);S.equip[slot]=null;S.hp=Math.min(S.hp,maxHp());}
 // Three kinds of chest. Plain ones fall in the field; the Mimic eats five plain for a Banded chest and five Banded for a Gilded one.
 // Banded chests roll better gear and one in five holds a Vaultkeeper piece; Gilded chests roll the best and one in three holds a Gilded piece.
 const CHEST_KINDS={1:{n:'Chest',k:'chests'},2:{n:'Banded chest',k:'chests2'},3:{n:'Gilded chest',k:'chests3'}};
@@ -5507,21 +5511,39 @@ const OFF_CAP=8*3600;
 // The hold fights on for eight hours without you, and every four realms climbed add eight more: 16 from realm 5, 24 from realm 9, and so on.
 function offCap(){return OFF_CAP*(1+Math.floor(((S.asc&&S.asc.realm)||0)/4));}
 function offCapNext(){const r=(S.asc&&S.asc.realm)||0;return (Math.floor(r/4)+1)*4+1;}   /* the realm (1-based) at which the next eight hours open */
-function offline(quiet){
+function simStep(){let s=attackDelay();if(G.mob&&G.mob.spd>0&&G.mob.spd<s)s=G.mob.spd;return Math.max(0.6,Math.min(2.4,s||0.6));}
+// The catch-up while away runs in slices of forty milliseconds between frames, so the page stays alive and the
+// curtain can show it. Each step is the shorter of the two blade timers: a timer fires at most once a step and
+// carries its remainder, so every hit still lands, in a quarter of the ticks the old 0.6 s step took. S.last
+// walks forward with the slices, so a save mid-way owes only the hours not yet fought. sync runs it in one go
+// (the tools want the report back).
+function offline(quiet,sync){
+  if(G.catch)return null;
   const gone=(Date.now()-S.last)/1000,away=Math.min(gone,offCap())*coachSpeed();
-  if(away<30)return null;const t0=Date.now();
+  if(!(away>=30))return null;const t0=Date.now();
   const KEYS=['atk','str','def','hp','rng','mag'];const lv0={};for(const k of KEYS)lv0[k]=lv(k);
   const xpT=()=>Object.values(S.xp).reduce((a,b)=>a+b,0);
   const Q0=Object.assign({},qmLog());const b={gold:S.gold,kills:S.totalKills,xp:xpT(),chests:S.chests,inv:S.inv.length,scrap:S.scrap,food:S.foodEaten||0,deaths:S.deaths||0,runes:(S.runes||[]).reduce((a,x)=>a+x,0),keys:S.keys||0};
-  if(!S.paused){G.sim=true;const step=0.6;const t00=Date.now()-away*1000;try{for(let t=0;t<away;t+=step){G.simNow=t00+t*1000;tick(step);}}finally{G.sim=false;G.simNow=0;}}
+  const c={quiet,gone,away,t:0,t0,t00:Date.now()-away*1000,now:Date.now(),spd:coachSpeed(),b,lv0,Q0,KEYS,xpT,async:!sync};
+  if(S.paused){c.t=away;return offlineDone(c);}
+  G.catch=c;if(sync){while(G.catch)offlineSlice(1e9);return c.d;}
+  offlineSlice();return null;}
+function offlineSlice(budget){const c=G.catch;if(!c)return;
+  const end=performance.now()+(budget||(document.hidden?250:40));G.sim=true;
+  try{while(c.t<c.away&&performance.now()<end){G.simNow=c.t00+c.t*1000;G.bonC=null;G.bonOn=true;const st=Math.min(simStep(),c.away-c.t);tick(st);c.t+=st;}}   /* the step's own bonuses() call shares the tick's one answer */
+  catch(e){c.t=c.away;log('Catch-up while away failed: '+(e&&e.message),'e');}
+  finally{G.sim=false;G.simNow=0;G.bonOn=false;G.bonC=null;}
+  S.last=c.now-Math.max(0,(c.away-c.t)/c.spd)*1000;
+  if(c.t>=c.away){G.catch=null;offlineDone(c);}else if(c.async)setTimeout(offlineSlice,0);}
+function offlineDone(c){const {quiet,gone,away,t0,b,lv0,Q0,KEYS,xpT}=c;
   S.last=Date.now();
   const d={t:away,capped:gone>offCap()+60,paused:!!S.paused,dl:(S.deathLog||[]).filter(e=>e.t>=t0),gold:S.gold-b.gold,kills:S.totalKills-b.kills,xp:xpT()-b.xp,chests:S.chests-b.chests,inv:S.inv.length-b.inv,scrap:S.scrap-b.scrap,food:(S.foodEaten||0)-b.food,deaths:(S.deaths||0)-b.deaths,runes:(S.runes||[]).reduce((a,x)=>a+x,0)-b.runes,keys:(S.keys||0)-b.keys,
     qw:qmLog().worn-Q0.worn,qs:qmLog().salv-Q0.salv,qd:qmLog().sold-Q0.sold,qg:qmLog().gold-Q0.gold,qsc:qmLog().scrap-Q0.scrap,
     lv:KEYS.filter(k=>lv(k)>lv0[k]).map(k=>({k,n:SK_NAME[k],a:lv0[k],b:lv(k)}))};
   const msg=d.paused?`Back after ${fmtTime(away)}. The fighting was paused, so the blade waited.`:`While you were away ${fmtTime(away)}: ${d.kills} kill${d.kills===1?'':'s'}, ${fmt(d.gold)} gold, ${fmt(d.xp)} xp${d.lv.length?', '+d.lv.map(l=>`${l.n} ${l.a}→${l.b}`).join(', '):''}.`;
   log(msg,'g');
-  if(quiet){if(!d.paused&&d.kills>0)toast(`Away ${fmtTime(away)}: ${d.kills} kills, ${fmt(d.gold)} gold`);}else G.away=d;
-  G.dirty=true;return d;}
+  if(quiet){if(!d.paused&&d.kills>0)toast(`Away ${fmtTime(away)}: ${d.kills} kills, ${fmt(d.gold)} gold`);}else{G.away=d;if(c.async)setTimeout(openAway,0);}
+  G.dirty=true;c.d=d;return d;}
 function openAway(){const d=G.away;if(!d)return;G.away=null;if($('modal').className==='on')return;   // another window (a trial, a creed's debt) already has the floor; the chronicle keeps the line
   G.modalKind='away';
   const row=(n,v)=>v?`<div>${n}</div><b class="gold">${v}</b>`:'';
@@ -5583,17 +5605,20 @@ document.addEventListener('keydown',e=>{
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);if(S.asc&&S.asc.creedDebtOpen&&creedDebt()>0)openCreedDebt(()=>{if(trialOffered())openTrialOffer();});else if(trialOffered())openTrialOffer();
   setTimeout(openAway,350);
-  let last=performance.now(),acc=0,uiT=0,saveT=0;
+  let last=performance.now(),acc=0,uiT=0,saveT=0,frameErrs=0;
   function frame(now){
     const dt=Math.min(0.25,(now-last)/1000);last=now;acc+=dt;
-    while(acc>=0.1){tick(0.1);if(coachSpeed()>1)tick(0.1);acc-=0.1;}
-    drawScene(now/1000,dt);
-    uiT+=dt;if(uiT>0.2){uiT=0;if(G.dirty)renderAll();else renderTop();}
-    saveT+=dt;if(saveT>10){saveT=0;save();}
+    try{
+      if(G.catch)acc=0;else while(acc>=0.1){tick(0.1);if(coachSpeed()>1)tick(0.1);acc-=0.1;}
+      drawScene(now/1000,dt);
+      uiT+=dt;if(uiT>0.2){uiT=0;if(G.dirty)renderAll();else renderTop();}
+      saveT+=dt;if(saveT>10){saveT=0;save();}
+    }catch(e){   // one bad frame must not end the game: say so in the chronicle (three times at most) and carry on
+      frameErrs++;acc=0;if(frameErrs<=3){console.error(e);try{log('A frame failed ('+(e&&e.message)+'); the hold fights on.','e');}catch(_){}}}
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b209-intro';window.__ihBoot=true;
+  const BUILD='b210-catchup';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v1.0 \u00b7 '+BUILD;}
   const artDiag=()=>{
     if(!window.__ihArt&&!G.artFail&&window.__art){setTimeout(artDiag,1000);return;}   // still on the road: look again in a second

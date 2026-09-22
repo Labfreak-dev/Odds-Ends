@@ -31,7 +31,7 @@ async def main():
         ck('paused save: the blade waited, and the window says so',r[0]=='away' and r[1] and 'paused' in r[2],r)
         await pg.click('#mClose'); await pg.evaluate('()=>{window.__D.S.paused=false;}')
         # 3. the cap: 30h away counts eight and says so
-        r=await pg.evaluate('''()=>{const D=window.__D;D.S.last=Date.now()-30*3600e3;const d=D.offline();D.G.away=null;return [Math.round(d.t/3600),d.capped]}''')
+        r=await pg.evaluate('''()=>{const D=window.__D;D.S.last=Date.now()-30*3600e3;const d=D.offline(false,true);D.G.away=null;return [Math.round(d.t/3600),d.capped]}''')
         ck('thirty hours away counts as eight, flagged',r==[8,True],r)
         # 4. the tab coming back: quiet catch-up, a chronicle line, no modal
         r=await pg.evaluate('''async()=>{const D=window.__D;D.S.last=Date.now()-600e3;const k=D.S.totalKills;

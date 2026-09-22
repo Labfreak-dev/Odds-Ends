@@ -16,8 +16,11 @@ turn.
 - `art.js`: the art pack, `window.LD_ART = { key: dataURI }`. It ships
   empty. Any key present replaces its fallback: sprites in the scene and
   `sym_*` on the reels.
-- `art-prompts.txt`: the art sheet, one `filename | prompt` per image. The
-  name before the dot is the key the game looks up.
+- `art-prompts.txt`: the art sheet, 189 `filename | prompt` lines covering every
+  sprite, icon, portrait, screen, UI element and effect. The name before the dot
+  is the key the game looks up. Sections marked `NEW ·` replace emoji or
+  placeholders that the code doesn't read as art yet; they get wired up when the
+  art arrives.
 
 ## The turn
 1. **Coin in.** A spin costs 1 coin. The Hourglass relic makes your first spin
@@ -92,3 +95,6 @@ key. Missing keys keep the fallback, so art can arrive in waves.
   5-payline machine.
 - **b002**: art sheet rewritten from chunky pixel art to a Darkest
   Dungeon-style gothic ink look, with grimmer subject descriptions throughout.
+- **b003**: art sheet expanded to 189 images: portraits, enemy and boss attack
+  poses, all 22 relics, 22 gear bases, Soul Altar and Workbench nodes, intent
+  icons, HUD, merchant and menu icons, screen paintings, UI chrome and effects.

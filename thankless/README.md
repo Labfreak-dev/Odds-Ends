@@ -876,3 +876,19 @@ of its width) two pixels above the base line, mostly hidden behind the
 sprite, and `castShadow` takes a length multiplier (0.55 for props, 0.45
 for nests) so the sheared silhouette is a short wedge anchored at the base
 rather than a slab. Vector fallbacks keep the old contact shadow.
+
+## HUD trim and one look for the ground set (b091)
+Two phone notes from the playtester. The relic row and the learned-spell
+chips ate the screen late in a run: sixteen relics wrapped across the
+full width at 24 px and sixteen chips stacked four wide at 34 px. On
+phones relics are now 15 px in a 150 px wrap (two rows of eight) and
+chips 24 px six wide (three rows), the name row of a party card never
+wraps (name ellipsises, and while a status badge shows, the level hides
+via `:has`). Second, the block-88 props read bolder than the old soft
+decals. `tunedImg(key, filter)` bakes a filtered copy of a sprite once
+into a cached canvas: decals get `contrast(1.24) saturate(1.2)`, props
+`saturate(0.84) contrast(0.9)`, nests `saturate(0.88) contrast(0.92)`,
+and the spike patch `saturate(0.72) contrast(0.8) brightness(0.96)` at
+alpha 0.9, drawn at 1.9× its radius so the picture covers the damage
+radius it used to fall short of. Browsers without canvas filters get the
+raw sprite.

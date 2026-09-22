@@ -12,3 +12,5 @@ Headless test and simulation harness for `ironhold/index.html`. Everything here 
 - `test_relic.py` — relics and chests: the field chest (open, tap, stow, timeout), the reveal, the hold, pity, the Superior floor, the hoard, the drop rate over two hours in two areas.
 - `shots_reveal.py` — freezes the reveal's three phases (closed, cracked, open) for screenshots.
 - `test_diffs.py` — the difficulty buttons: every label fits its painted button and sits centred, at 360, 420 and 600 px.
+- `test_nem.py` — the nemesis built from the champion's rolls, the seven-kill seventh socket (and its boot migration), and the potion belt: slots, every trigger, refills, migration, the windows.
+- `test_nemfight.py [hit sec]` — simulates nemesis fights from two saves with and without food; pass the two `NEM_T` knobs to try a tuning.

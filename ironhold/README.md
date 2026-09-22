@@ -4,8 +4,8 @@ A standalone browser idle RPG served by GitHub Pages at `/Odds-Ends/ironhold/`. 
 
 ## Files
 - `index.html` — the whole game: page, css, code, the item icons. About 2 MB.
-- `art.js` — the art: every sprite frame, the nine area paintings, the laboratory stage. About 13 MB. `index.html` fetches it after its first paint, so the page shows in a second or two and the art fills in behind it; until it arrives monsters, companions and the champion draw in outline. If it never arrives the chronicle says so and the game plays on.
-- `stamp-art.py` — writes the hash of `art.js` into `index.html` (`ART_V`) so a changed art file busts the browser cache. **Run it after any change to `art.js`, before committing.**
+- `art.js` — the art: every sprite frame, the nine area paintings, the laboratory stage. About 13 MB. A small loader at the top of `index.html`'s head starts fetching it before the rest of the page has arrived, and an intro curtain (title, crest, progress bar) covers the boot until every frame has decoded. The loader keeps a copy in the browser's Cache API under the version stamp, so a return visit reads it from disk and never touches the network. On a slow road an Enter button appears after twelve seconds and the art keeps landing behind the game; until it does, monsters, companions and the champion draw in outline. If it never arrives the curtain says so, lifts, and the chronicle records it.
+- `stamp-art.py` — writes the hash and byte size of `art.js` into `index.html` (`ART_V`, `ART_BYTES`) so a changed art file busts both caches and the progress bar knows its total. **Run it after any change to `art.js`, before committing.**
 - `make-code.py` — the redeem-code generator.
 
 ## Shipping

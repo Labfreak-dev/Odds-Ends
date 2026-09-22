@@ -4,6 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Ironhold Idle</title>
+<script>
+// The art loader. It runs first so the 13 MB art file is on its way before the rest of this page has even
+// arrived. A copy is kept in the browser's Cache API under its version stamp, so a return visit reads it from
+// disk and never asks the network (GitHub Pages only lets the ordinary cache keep it ten minutes).
+// The game consumes window.__art: {got,total,cache,p} where p resolves to a Blob of the script's text.
+const ART_V='01652d28';
+const ART_BYTES=13086796;
+window.__art=(function(){
+  const st={got:0,total:ART_BYTES,cache:false,waking:false};
+  if(!window.fetch||!window.Promise)return null;
+  const url='art.js?v='+ART_V;
+  async function go(){
+    let blob=null;
+    try{if(window.caches){const c=await caches.open('ih-art');const r=await c.match(url);if(r){blob=await r.blob();st.cache=true;}}}catch(e){}
+    if(!blob){
+      const r=await fetch(url);if(!r.ok)throw new Error('art '+r.status);
+      if(r.body&&r.body.getReader){
+        const rd=r.body.getReader(),parts=[];
+        for(;;){const {done,value}=await rd.read();if(done)break;parts.push(value);st.got+=value.length;}
+        blob=new Blob(parts,{type:'text/javascript'});
+      }else blob=await r.blob();
+      try{if(window.caches){const c=await caches.open('ih-art');await c.put(url,new Response(blob,{headers:{'Content-Type':'text/javascript'}}));
+        for(const k of await c.keys())if(!k.url.endsWith(url))c.delete(k);}}catch(e){}
+    }
+    st.got=st.total;return blob;}
+  st.p=go();return st;})();
+</script>
 <style>
   :root{
     --bg:#1a140e; --wood:#241910; --panel:#3a2c1d; --panel-2:#2c2116; --ink:#100c08;
@@ -347,6 +374,18 @@
   #toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#000d;border:2px solid var(--gold);box-shadow:inset 0 0 0 1px #000,0 0 0 2px #000;padding:8px 14px;border-radius:3px;display:none;z-index:20;font-size:13px;max-width:90%;text-align:center}
   .kbd{font:11px monospace;color:var(--muted)}
   @media (prefers-reduced-motion:reduce){.fill{transition:none}}
+  /* the intro: a painted curtain over the boot, so nobody watches the art arrive */
+  #intro{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:24px 16px;
+    background:radial-gradient(ellipse at 50% 38%,#3a2c1d,var(--bg) 68%);transition:opacity .45s}
+  #intro.out{opacity:0;pointer-events:none}
+  #intro .ib{width:min(100%,340px);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;
+    border:22px solid transparent;border-image:var(--ui-panel) 48 fill / 22px stretch;padding:6px 4px 10px}
+  #intro .icr{width:96px;height:96px;background:var(--ui-crest) center/contain no-repeat;filter:drop-shadow(0 4px 8px #000)}
+  #intro .ih1{font:bold 26px/1.1 Cinzel,Georgia,serif;color:var(--gold);letter-spacing:1px;text-shadow:0 2px 0 #000}
+  #intro .isub{font:11px Cinzel,Georgia,serif;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+  #intro .track{width:100%;margin-top:6px}
+  #intro .ist{font:12px Verdana;color:var(--tan);min-height:16px}
+  #intro button{margin-top:4px}
 
   /* --- companion equipment window --- */
   #cqModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:30;padding:8px}
@@ -780,6 +819,16 @@ button.sm{padding:0 9px}
 </style>
 </head>
 <body>
+<div id="intro" role="status" aria-live="polite">
+  <div class="ib">
+    <div class="icr"></div>
+    <div class="ih1">Ironhold Idle</div>
+    <div class="isub">The long road</div>
+    <div class="track"><div class="fill spec" id="introFill" style="width:0%"></div></div>
+    <div class="ist" id="introTxt">Opening the vault…</div>
+    <button class="sm" id="introGo" hidden>Enter the hold</button>
+  </div>
+</div>
 <div id="shell">
   <div id="topbar">
     <div id="brand"><span id="crest"></span><h1>Ironhold Idle <span class="sub" id="bstamp" style="font:11px Verdana;color:var(--muted)" title="build stamp">v1.0</span></h1></div>
@@ -3131,8 +3180,34 @@ sprLoad(SPR_SRC);
 // The art lives in art.js, fetched after the first paint so the page shows in a second or two on a phone.
 // Until it lands every monster, companion and champion draws in outline and the areas wear flat colour.
 window.oeArtInstall=function(a){Object.assign(SPR_SRC,a.SPR_SRC||{});sprLoad(a.SPR_SRC||{});if(a.AREA_BG_SRC&&a.AREA_BG_SRC.length&&!AREA_BG.length){AREA_BG_SRC.push(...a.AREA_BG_SRC);bgLoad(a.AREA_BG_SRC);}if(a.LAB_BG_SRC)LAB_BG.src=a.LAB_BG_SRC;window.__ihArt=true;G.dirty=true;};
-const ART_V='01652d28';
-function artFetch(){const t=document.createElement('script');t.src='art.js?v='+ART_V;t.async=true;t.onerror=()=>{log('The art file did not arrive; the hold fights on in outline. Reload to try again.','e');};document.body.appendChild(t);}
+function artFail(){G.artFail=true;log('The art file did not arrive; the hold fights on in outline. Reload to try again.','e');}
+// ART_V lives in the head loader, which started the download before this script arrived. Without a loader
+// (an old browser with no fetch) the art comes in the old way, as a script tag after first paint.
+function artFetch(){const a=window.__art;
+  if(!a){const t=document.createElement('script');t.src='art.js?v='+ART_V;t.async=true;t.onerror=artFail;document.body.appendChild(t);return;}
+  a.p.then(blob=>{a.waking=true;introTick();
+    setTimeout(()=>blob.text().then(src=>{try{const t=document.createElement('script');t.textContent=src;document.body.appendChild(t);t.remove();}catch(e){artFail();}},artFail),40);
+  },artFail);}
+// The intro curtain: bytes fill the first four fifths of the bar, the sprites waking fill the rest. It lifts
+// itself when every frame has decoded (or six seconds after the art installs, whichever comes first); after
+// twelve seconds on a slow road an Enter button appears and the art keeps landing behind the game.
+const INTRO={t0:performance.now(),done:false,tArt:0,timer:0};
+function introEnd(){if(INTRO.done)return;INTRO.done=true;clearTimeout(INTRO.timer);const e=$('intro');if(!e)return;e.classList.add('out');setTimeout(()=>e.remove(),500);}
+function introTick(){if(INTRO.done)return;clearTimeout(INTRO.timer);
+  const a=window.__art,el=performance.now()-INTRO.t0,fill=$('introFill'),txt=$('introTxt'),go=$('introGo');
+  if(!fill||!txt||!go){introEnd();return;}
+  let p=0,t='';
+  if(G.artFail){txt.textContent='The art did not arrive \u2014 the hold fights on in outline.';INTRO.timer=setTimeout(introEnd,1500);return;}
+  if(window.__ihArt){if(!INTRO.tArt)INTRO.tArt=el;let n=0,c=0;for(const k in SPR)for(const i of SPR[k]){n++;if(i.complete)c++;}
+    p=0.8+0.2*(n?c/n:1);t=`Waking the sprites\u2026 ${c} / ${n}`;
+    if(c>=n||el-INTRO.tArt>6000){fill.style.width='100%';introEnd();return;}}
+  else if(!a){p=0.5;t='Fetching the art\u2026';}
+  else if(a.waking){p=0.8;t='Waking the sprites\u2026';}
+  else{const f=a.total?Math.min(1,a.got/a.total):0;p=0.8*f;
+    t=a.cache?'Opening the vault\u2026':a.got?`Fetching the art\u2026 ${(a.got/1048576).toFixed(1)} / ${Math.round(a.total/1048576)} MB`:'Fetching the art\u2026';}
+  fill.style.width=Math.round(p*100)+'%';txt.textContent=t;
+  if(el>12000&&go.hidden){go.hidden=false;go.onclick=introEnd;}
+  INTRO.timer=setTimeout(introTick,100);}
 function sprArtReport(){const b=Object.keys(SPR_BAD);let n=0;for(const k in SPR_BAD)n+=SPR_BAD[k];
   return b.length?`${n} art frame${n>1?'s':''} failed to load (${b.slice(0,4).join(', ')}${b.length>4?'…':''})`:'';}
 const sprOk=i=>!!i&&i.complete&&i.naturalWidth>0;
@@ -5503,7 +5578,7 @@ document.addEventListener('keydown',e=>{
   else{S.equip.weapon=makeItem(0,'weapon',1,1);S.food[0]=10;log('The hold is yours. Bronze scimitar. Pasture first. You coach — the blade works.','g');}
   uiDefaults();applySecs();try{wpnWarm();}catch(e){}
   try{whatsNewBoot();}catch(e){}
-  requestAnimationFrame(()=>setTimeout(artFetch,0));
+  artFetch();introTick();
   G.sess={t:S.played||0,k:S.totalKills||0,g:S.goldEarned||0};renderBak();
   S.hp=Math.min(S.hp,maxHp());if(S.hp<=0)S.hp=maxHp();
   refreshBounties();spawn(false);showTab(S.tab);if(S.asc&&S.asc.creedDebtOpen&&creedDebt()>0)openCreedDebt(()=>{if(trialOffered())openTrialOffer();});else if(trialOffered())openTrialOffer();
@@ -5518,9 +5593,10 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b208-v1';window.__ihBoot=true;
+  const BUILD='b209-intro';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v1.0 \u00b7 '+BUILD;}
-  setTimeout(()=>{
+  const artDiag=()=>{
+    if(!window.__ihArt&&!G.artFail&&window.__art){setTimeout(artDiag,1000);return;}   // still on the road: look again in a second
     let groups=0,frames=0,ready=0;
     for(const k in SPR){groups++;for(const i of SPR[k]){frames++;if(sprOk(i))ready++;}}
     const hk=['hero_idle','hero_atk','hero_hurt','hero_death'];
@@ -5534,7 +5610,7 @@ document.addEventListener('keydown',e=>{
         (bad?bad+'. ':'')+
         'Champion falls back to the old model.','e');
     G.dirty=true;
-  },9000);
+  };setTimeout(artDiag,9000);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();else if(Date.now()-S.last>30e3){try{offline(true);}catch(e){}last=performance.now();acc=0;renderAll();}});
 })();
 </script>

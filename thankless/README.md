@@ -798,3 +798,12 @@ float and a toast. Verified headless: rerolls change the offer and count
 down, a banned card never returned across thirty deals, chest relics
 reroll and ban the same way, 200 elite kills gave 42 charges and 100
 event wins gave 50. Expert bot still wins with no errors.
+
+## Camp row (b087)
+On a tall phone the camp's action row wrapped and Settings dropped onto
+the party by the fire. Settings is now a gear-only button on the top
+row beside Gold and Circle (that row no longer wraps; the title
+ellipsises on the narrowest phones), and the action row holds Set out
+and **Daily Challenge** on one line, never wrapping. The daily seed is
+no longer shown; the button's tooltip carries today's best and a win
+tick, and a tick also follows the label once today's daily is won.

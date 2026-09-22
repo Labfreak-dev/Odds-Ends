@@ -252,6 +252,13 @@
   #hud:not(.run) #party,#hud:not(.run) #bottom,#hud:not(.run) #spells,#hud:not(.run) #clock,#hud:not(.run) #right,#hud:not(.run) #top{display:none}
   #hud.run #right{top:56px}
   #stamp{position:absolute;bottom:2px;left:6px;font-size:9px;color:#5a4a7a}
+  /* b086: rerolls and bans on every pick */
+  #lvfoot{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
+  #lvfoot button{min-height:34px;font-size:12px;padding:4px 12px}
+  #lvfoot button .n{color:var(--gold);margin-left:4px}
+  #lvfoot button.on{background:linear-gradient(#8a1e26,#56101a)}
+  #lvfoot .hint{font-size:11px;color:var(--muted);width:100%;text-align:center}
+  #lvcards.banning .lvcard{outline:2px dashed #ff6a8a;outline-offset:-2px}
   /* b085: every notice (event, toast, callout) lives in one slim column beside the party cards, never over the middle of the field */
   #notices{position:absolute;top:calc(46px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(400px,56vw);display:flex;flex-direction:column;align-items:stretch;gap:4px;pointer-events:none;z-index:3}
   #evbar,#tut,#toast{position:static;transform:none;left:auto;top:auto;width:auto;max-width:none;margin:0}
@@ -407,6 +414,7 @@
       <h2 id="lvtitle">Level up!</h2>
       <div class="sub" id="lvsub" style="margin-bottom:8px"></div>
       <div class="lvcards" id="lvcards"></div>
+      <div id="lvfoot"></div>
     </div>
   </div>
 </div>
@@ -429,7 +437,7 @@
 
 <script>
 'use strict';
-const BUILD='b085-notices';
+const BUILD='b086-rerolls';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -609,6 +617,8 @@ const TREE=[
   {id:'h_paspd',br:'healer',name:'Quick Hands',desc:'+3% party attack speed per rank',max:5,cost:40},
   {id:'h_pspd',br:'healer',name:'Marching Orders',desc:'+5% party move speed per rank',max:3,cost:150,req:['h_paspd',3]},
   {id:'h_brace',br:'healer',name:'Brace',desc:'Party −3% damage taken per rank',max:4,cost:90,req:['h_paspd',2]},
+  {id:'h_reroll',br:'healer',name:'Second Thoughts',desc:'+1 reroll per run per rank: any offer, cards or relics, dealt again',max:3,cost:120,req:['h_power',2]},
+  {id:'h_ban',br:'healer',name:'Firm Hand',desc:'+1 ban per run per rank: strike a card or relic from this run’s offers for good',max:2,cost:160,req:['h_reroll',1]},
   {id:'h_range',br:'healer',name:'Long Arms',desc:'+8% heal range per rank',max:4,cost:50},
   {id:'h_rouse',br:'healer',name:'Louder',desc:'+20% Rouse range and push per rank',max:2,cost:70,req:['h_range',1]},
   {id:'h_speed',br:'healer',name:'Sandals',desc:'+6% move speed per rank',max:4,cost:45},
@@ -2294,7 +2304,7 @@ function newRun(){
   const party=keys.map((k,i)=>{const C=CHARS[k],m=C.make();m.weapon=(META.weaponsSeen||{})[k]&&(META.weapon||{})[k]?META.weapon[k]:C.weapons[0].id;if(m.weapon===C.weapons[1].id)m.swapOffered=true;trainMember(m);C.onWeapon&&C.onWeapon(m);m.hp=m.maxhp;m.baseMaxhp=m.maxhp;const a=i*2.094+1;m.x=healer.x+Math.cos(a)*50;m.y=healer.y+Math.sin(a)*45;return m});
   G={t:0,circle:c,healer,party,synT:8,contracts:(META.contracts||[]).map(id=>{const o=(META.contractOffer||[]).find(x=>x.id===id);return o?{id,who:o.who,failed:false,done:false}:null}).filter(Boolean),enemies:[],shots:[],gems:[],parts:[],texts:[],graves:[],blasts:[],
      spawnT:1.5,waveT:35,eliteT:120,knight:false,king:null,over:false,won:false,paused:false,lvOpen:false,
-     level:1,xp:0,xpNext:24,up:{},lvQ:[],kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
+     level:1,xp:0,xpNext:24,up:{},lvQ:[],rerolls:rank('h_reroll'),bans:rank('h_ban'),banned:{},banMode:false,kills:0,gold:0,stats:{healed:0,thanks:0,ff:0,oom:0,revives:0,naps:0,napLongest:0,napLongestAt:0,napLongestFoes:0,ffPip:0,ffVex:0,closest:1,closestAt:0,biggestHeal:0,overheal:0,firstRelic:null,firstRelicAt:0,knightAsleep:false,kingAsleep:false,revivedWho:{}},
      cam:{x:0,y:0},shake:0,fast:1,stainCv:null,ghosts:[],hpMul:1+0.35*c,dmgMul:1+0.2*c,goldMul:1+0.5*c,toastT:0,field:FIELDS[fieldOpen(META.field||0)?(META.field||0):0],
      relics:[],chests:[],fires:[],pools:[],whips:[],wcd:{},orbA:0,wOwner:{},pickGive:{},wEvo:{},moonT:0,iceT:0,slowT:0,nightT:0,sprays:[],sparts:[],beams:[],roots:[],fronts:[],tornados:[],slashes:[],timers:[],traps:[],zaps:[],cryT:0,event:null,eventT:75,npcs:[],minions:[],holy:[],walls:[],drop1:false,drop2:false,pickKind:'up',tauntMul:1+0.15*rank('t_taunt'),chestCd:0,legendDmg:0};
   G.spells=SPELLS; G.learned={}; G.chat=[]; renderChat(); G.autoT=0; G.aegisT=0; for(const id of HL().starts){G.learned[id]=true;const extra=HL().id==='ansel'?rank('ansel_ward'):HL().id==='ivy'?rank('ivy_regrowth'):0;if(extra)G.up['sp_'+id]=Math.min(3,1+extra)}
@@ -2411,7 +2421,7 @@ function startEvent(){
 }
 function eventFail(why){const ev=G.event;if(!ev||ev.done)return;ev.done=true;ev.failed=true;sn('fail',0.2);ev.t=Math.min(ev.t,2.5);if(ev.id==='bloodmoon')G.moonT=0;if(ev.id==='stranger'&&ev.npc)ev.npc.leaving=true;G.stats.eventsFailed=(G.stats.eventsFailed||0)+1;toast((why||ev.name+' failed.')+' '+pick(['Vex blames you.','Brom did not notice.','Pip says it was her fault. It was not.']),2.6);if(ev.npc){ev.npc.alive=false}}
 function eventWin(){
-  const ev=G.event,h=G.healer;if(!ev||ev.done)return;ev.done=true;ev.t=Math.min(ev.t,2.5);sfx('unlock',{vol:0.7});sn('level',0.2);G.stats.eventsWon=(G.stats.eventsWon||0)+1;
+  const ev=G.event,h=G.healer;if(!ev||ev.done)return;ev.done=true;ev.t=Math.min(ev.t,2.5);sfx('unlock',{vol:0.7});sn('level',0.2);G.stats.eventsWon=(G.stats.eventsWon||0)+1;if(RAND()<0.4)later(0.6,()=>grantPickCharge(h.x,h.y-40,'For the trouble. '));
   const drop=()=>spawnChest(h.x+rnd(-40,40),h.y+rnd(-40,40));
   if(ev.id==='shrine'){drop()}
   else if(ev.id==='bounty'){G.gold+=80*G.goldMul*(1+G.t/300);for(let i=0;i<25;i++){const a=rnd(0,6.283),r=rnd(30,140);G.gems.push({x:clamp(h.x+Math.cos(a)*r,10,ARENA-10),y:clamp(h.y+Math.sin(a)*r,10,ARENA-10),v:3,life:30})}}
@@ -2491,19 +2501,19 @@ function openChest(){sfx('chestopen',{vol:0.8});
     G.lvOpen=true;G.pickKind='relic';G.pendingPicks=[evo];
     $('lvtitle').textContent='Evolution!';$('lvsub').textContent=RELIC[evo.evo[0]].name+' and '+RELIC[evo.evo[1]].name+' fuse in the chest’s light.';
     const box=$('lvcards');box.innerHTML='';const b=document.createElement('button');b.className='lvcard evo';b.innerHTML='<b>'+relicIcon(evo.id,'big')+' '+esc(evo.name)+'</b><i>'+esc(HW(evo.desc))+'</i>';b.onclick=()=>chooseRelic(evo.id);box.appendChild(b);
-    $('lvl').classList.remove('hide');return;
+    renderPickFoot(true,{evo:true});$('lvl').classList.remove('hide');return;
   }
-  const pool=RELICS.filter(r=>!r.evo&&!G.relics.includes(r.id)&&(!r.who||byKey(r.who)));
+  const pool=RELICS.filter(r=>!r.evo&&!G.relics.includes(r.id)&&!G.banned[r.id]&&(!r.who||byKey(r.who)));
   if(!pool.length){G.gold+=100*G.goldMul;G.healer.mana=G.healer.manaMax;toast('An empty chest. Well, some gold, and a card.',1.6);G.chestBonus=true;G.lvQ.unshift('healer');showNextLevel();return}
   const picks=[];while(picks.length<3&&pool.length)picks.push(pool.splice(Math.floor(WR()*pool.length),1)[0]);
   G.lvOpen=true;G.pickKind='relic';G.pendingPicks=picks;
   $('lvtitle').textContent='A chest!';$('lvsub').textContent=pick(['Nobody else wanted to open it.','Brom says it was his idea.','Pip thinks it might be a mimic. It is not.','Vex is not impressed by treasure.']);
   const box=$('lvcards');box.innerHTML='';
   for(const r of picks){const b=document.createElement('button');b.className='lvcard';b.innerHTML='<b>'+(r.who&&CHARS[r.who]?'<span class="who" style="background:'+CHARS[r.who].col+'">'+esc(CHARS[r.who].name)+'</span>':'')+relicIcon(r.id,'big')+' '+esc(r.name)+'</b><i>'+esc(HW(r.desc))+'</i>';b.onclick=()=>chooseRelic(r.id);box.appendChild(b)}
-  $('lvl').classList.remove('hide');
+  renderPickFoot(true);$('lvl').classList.remove('hide');
 }
 function chooseRelic(id){
-  if(!G||!G.lvOpen||G.pickKind!=='relic')return;
+  if(!G||!G.lvOpen||G.pickKind!=='relic')return; if(G.banMode){banPick(id);return}
   applyRelic(id); G.lvOpen=false; G.pickKind='up'; $('lvl').classList.add('hide');
   G.chestBonus=true; G.lvQ.unshift('healer');
   showNextLevel();
@@ -2641,7 +2651,7 @@ function killEnemy(e,by){
   if(!e.boss&&!e.elite&&G.chestCd<=0&&G.chests.length===0&&RAND()<0.006*(hasRelic('pilgrimage')?3:hasRelic('compass')?1.5:1)){spawnChest(e.x,e.y);G.chestCd=40;toast('Something glints on the ground.',1.6)}
   for(const m of G.party)if(m.key==='necro'&&m.alive&&Math.hypot(m.x-e.x,m.y-e.y)<240&&!e.boss)raiseMinion(m,e.x,e.y);
   if(e.type==='lich'){G.stats.lich=true;toast('The Lich is gone. Its dead go with it.',3);for(const o of G.enemies)if(o.type==='revenant'&&!o.dead){o.dead=true;puff(o.x,o.y,12,'#7a4aa0',90,3)}spawnChest(e.x+rnd(-30,30),e.y+rnd(-30,30));if(RAND()<0.5)spawnChest(e.x+rnd(-30,30),e.y+rnd(-30,30))}
-  if(e.elite){META.elites=(META.elites||0)+1;G.stats.elites=(G.stats.elites||0)+1;if(G.demand&&!G.demand.done&&G.demand.id==='kill'){if(by===G.demand.m)demandEnd(true);else demandEnd(false,'Somebody else took it.')}ftext(e.x,e.y-e.r-16,'elite down','#ffd24a',13);if(e.elite==='brood')for(let i=0;i<4;i++)spawnEnemy('imp',e.x+rnd(-30,30),e.y+rnd(-30,30));if(RAND()<0.15)spawnChest(e.x,e.y)}
+  if(e.elite){META.elites=(META.elites||0)+1;G.stats.elites=(G.stats.elites||0)+1;if(G.demand&&!G.demand.done&&G.demand.id==='kill'){if(by===G.demand.m)demandEnd(true);else demandEnd(false,'Somebody else took it.')}ftext(e.x,e.y-e.r-16,'elite down','#ffd24a',13);if(RAND()<0.22)grantPickCharge(e.x,e.y-e.r-32,'');if(e.elite==='brood')for(let i=0;i<4;i++)spawnEnemy('imp',e.x+rnd(-30,30),e.y+rnd(-30,30));if(RAND()<0.15)spawnChest(e.x,e.y)}
   if(ETYPES[e.type]&&ETYPES[e.type].final){endRun(true,'king')} else if(e.type==='knight'){toast('The Demon Knight falls. He dropped something.',3);spawnChest(e.x,e.y)}
 }
 
@@ -3191,7 +3201,7 @@ function showMemberLevelUp(m){
   const pool=memberLevelPool(m); const picks=[];
   const qpool=(m.q&&Object.keys(m.q).length>=QUIRK_CAP)?[]:QUIRKS.filter(q=>!hasQ(m,q.id)&&!(q.id==='q_swift'&&!m.spd)&&!(q.id==='q_rage'&&!m.atkCd));
   // b043: the party's own cards and the weapons live here now, plus any evolution this member is holding
-  const upool=UPS.filter(u=>upRank(u.id)<u.max&&(u.who==='party'||u.who===m.key||(u.who==='weapon'&&(upRank(u.id)?G.wOwner[u.id]===m.key:(weaponCount()<WEAPON_CAP&&weaponsHeld(m.key)<2&&(u.el==='phys'||!UPS.some(v=>v.who==='weapon'&&v.el===u.el&&upRank(v.id)>0&&G.wOwner[v.id]!==m.key))))))).map(u=>({id:u.id,name:u.name,desc:u.desc,max:u.max,kind:u.who==='weapon'?'gift':'card',icon:u.icon,ups:true}));
+  const upool=UPS.filter(u=>!G.banned[u.id]&&upRank(u.id)<u.max&&(u.who==='party'||u.who===m.key||(u.who==='weapon'&&(upRank(u.id)?G.wOwner[u.id]===m.key:(weaponCount()<WEAPON_CAP&&weaponsHeld(m.key)<2&&(u.el==='phys'||!UPS.some(v=>v.who==='weapon'&&v.el===u.el&&upRank(v.id)>0&&G.wOwner[v.id]!==m.key))))))).map(u=>({id:u.id,name:u.name,desc:u.desc,max:u.max,kind:u.who==='weapon'?'gift':'card',icon:u.icon,ups:true}));
   const evos=UPS.filter(u=>u.who==='weapon'&&upRank(u.id)>=u.max&&!wEvo(u.id)&&WEVO[u.id]&&G.wOwner[u.id]===m.key).map(u=>({id:'evo_'+u.id,name:'Evolve: '+WEVO[u.id].name,desc:WEVO[u.id].desc,max:1,kind:'evo',evoOf:u.id,ups:true}));
   if(evos.length)picks.push(evos[Math.floor(WR()*evos.length)]);
   if(weaponCount()===0){const ws=upool.filter(u=>u.kind==='gift');if(ws.length){const w=ws[Math.floor(WR()*ws.length)];upool.splice(upool.indexOf(w),1);picks.push(w)}}
@@ -3216,11 +3226,11 @@ function showMemberLevelUp(m){
   for(const k of picks){const b=document.createElement('button');const isQ=k.id.startsWith('q_');const t=isQ?0:(G.pickTiers[k.id]||0);b.className='lvcard'+(isQ?' quirk':' t'+t);const r=skl(m,k.id);const gain=isQ||!k.max?1:(t===4?k.max-r:Math.min(k.max-r,TIERS[t].ranks));
     b.innerHTML='<span class="lv">'+(isQ?'quirk · '+(Object.keys(m.q||{}).length)+'/'+QUIRK_CAP:(k.kind==='active'?'active · every '+k.cd+'s':k.kind==='weapon'?'weapon':'passive')+(r?' · '+r+' → '+(r+gain):gain>1?' · '+gain+' ranks':''))+'</span>'+(isQ?'<span class="tier q">QUIRK</span>':k.kind==='weapon'?'':'<span class="tier">'+TIERS[t].name.toUpperCase()+'</span>')+'<b><span class="who" style="background:'+m.col+'">'+m.name+'</span>'+(isQ?(k.glyph||'✦')+' ':k.kind==='weapon'?'⇄ ':skillIcon(k.id))+esc(k.name)+'</b><i>'+esc(k.desc)+'</i>';
     b.onclick=()=>chooseUp(k.id); box.appendChild(b)}
-  $('lvl').classList.remove('hide'); return true;
+  renderPickFoot(true);$('lvl').classList.remove('hide'); return true;
 }
 function showLevelUp(){
   wstream('lv',G.level); sn('level',0.5);
-  const pool=UPS.filter(u=>u.who==='healer'&&!u.endless&&upRank(u.id)<u.max&&(!u.needs||rank(u.needs)>0)&&!(u.needsWeapon&&weaponCount()===0));
+  const pool=UPS.filter(u=>u.who==='healer'&&!G.banned[u.id]&&!u.endless&&upRank(u.id)<u.max&&(!u.needs||rank(u.needs)>0)&&!(u.needsWeapon&&weaponCount()===0));
   if(pool.length<3)for(const u of UPS)if(u.endless)pool.push(u);   // b083: the endless tail   // b043: party cards and weapons are the party's to pick
   const picks=[];
   if(!Object.keys(G.learned).length&&G.level<=3){const ss=pool.filter(u=>u.spell);if(ss.length){const w=ss[Math.floor(WR()*ss.length)];picks.push(w);pool.splice(pool.indexOf(w),1)}}
@@ -3236,7 +3246,7 @@ function showLevelUp(){
   for(const u of picks){const b=document.createElement('button');const t=u.evoOf?4:(G.pickTiers[u.id]||0);if(u.evoOf)G.pickTiers[u.id]=4;b.className='lvcard t'+t;const r=upRank(u.id);const wkey=u.evoOf?G.wOwner[u.evoOf]:u.who==='weapon'?(r?G.wOwner[u.id]:G.pickGive[u.id]):null;const gain=t===4?u.max-r:Math.min(u.max-r,TIERS[t].ranks*2);
     b.innerHTML='<span class="lv">'+(r?'Lv '+r+' → '+(r+gain):(u.who==='weapon'?'new weapon':'new')+(gain>1?' · '+gain+' ranks':''))+'</span><span class="tier">'+(u.evoOf?'EVOLUTION':TIERS[t].name.toUpperCase())+'</span><b><span class="who '+u.who+'"'+(u.who==='weapon'&&wkey?' style="background:'+CHARS[wkey].col+'"':'')+'>'+esc(u.who==='party'?'Party':u.who==='healer'?HN():u.who==='weapon'?(wkey?CHARS[wkey].name:'Weapon'):CHARS[u.who]?CHARS[u.who].name:u.who)+'</span>'+(u.spell?spellIcon(u.spell,u.icon+' '):(u.icon?u.icon+' ':''))+esc(u.name)+'</b><i>'+esc((u.evoOf&&wkey?CHARS[wkey].name+'’s '+UPS.find(x=>x.id===u.evoOf).name+' becomes something else. ':u.who==='weapon'&&wkey?(r?CHARS[wkey].name+' keeps it. ':CHARS[wkey].name+' takes it. '):'')+HW(u.desc))+'</i>'+(upVal(u,r,gain)?'<em class="nv">'+esc(HW(upVal(u,r,gain)))+'</em>':'')+(t===4?'<em class="nv">Mythic: maxed out, and everyone healed to full.</em>':'');
     b.onclick=()=>chooseUp(u.id); box.appendChild(b)}
-  $('lvl').classList.remove('hide'); return true;
+  renderPickFoot(true);$('lvl').classList.remove('hide'); return true;
 }
 function applyPartyCard(m,k){const t=G.pickTiers[k.id]||0;
   if(k.kind==='evo'){const wid=k.evoOf;G.wEvo[wid]=true;if(META.seen)META.seen.v[wid]=1;G.stats.wevos=(G.stats.wevos||0)+1;say(m,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(m.x,m.y,30,'#ff8ad8',160,3);G.blasts.push({x:m.x,y:m.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(m.x,m.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16);return}
@@ -3245,8 +3255,19 @@ function applyPartyCard(m,k){const t=G.pickTiers[k.id]||0;
   if(u.who==='weapon'&&fresh){G.wOwner[u.id]=m.key;if(META.seen)META.seen.w[u.id]=1;G.stats.weapons=(G.stats.weapons||0)+1;if(weaponCount()>1)contractFail('light','A second weapon.');say(m,pick(CHARS[m.key].lines.gift||['...is this mine now?','Fine. I’ll hold it.','What does it do?','Ooh.']),2,true)}
   G.stats.tiers=G.stats.tiers||[0,0,0,0,0];G.stats.tiers[t]++;if(t===4){META.mythics=(META.mythics||0)+1;m.hp=m.maxhp;ftext(m.x,m.y-40,'MYTHIC','#ff6a8a',18)}}
 function applyMemberPick(m,id,k){if(id.startsWith('q_'))applyQuirk(m,id);else if(id.startsWith('evo_')||UPS.some(u=>u.id===id)){applyPartyCard(m,k||G.pendingPicks.find(x=>x.id===id)||{id,kind:id.startsWith('evo_')?'evo':'card',evoOf:id.slice(4)});G.stats.learned=(G.stats.learned||0)+1}else{const k=SKILLS[m.key].find(x=>x.id===id);const t=(G.pickTiers&&G.pickTiers[id])||0;const left=k?k.max-skl(m,id):1;const n=id.startsWith('swap_')?1:Math.max(1,t===4?left:Math.min(left,TIERS[t].ranks));for(let i=0;i<n;i++)applySkill(m,id);if(t===4){m.hp=m.maxhp;ftext(m.x,m.y-40,'MYTHIC','#ff6a8a',18)}}G.stats.learned=(G.stats.learned||0)+1}
+// b086: rerolls and bans. Charges come from training (Second Thoughts, Firm Hand), elites and events; a ban strikes a card or relic from this run.
+function renderPickFoot(fresh,opts){const el=$('lvfoot');if(!el||!G)return;opts=opts||{};if(fresh)G.banMode=false;$('lvcards').classList.toggle('banning',!!G.banMode);
+  if(opts.evo){el.innerHTML='';return}
+  const canBan=G.pickKind!=='member'||G.pendingPicks.every(k=>k.ups);
+  el.innerHTML='<button id="rrBtn"'+(G.rerolls>0?'':' disabled')+'>↻ Reroll<span class="n">'+G.rerolls+'</span></button>'+(canBan?'<button id="bnBtn"'+(G.banMode?' class="on"':'')+(G.bans>0?'':' disabled')+'>✕ Ban<span class="n">'+G.bans+'</span></button>':'')+'<div class="hint">'+(G.banMode?'Tap a card to strike it from this run.':(G.rerolls||G.bans)?'Reroll deals the offer again. Ban removes a card from this run for good.':'Rerolls and bans come from training, elites and events.')+'</div>';
+  const rr=$('rrBtn');if(rr)rr.onclick=()=>rerollPick(false);const bn=$('bnBtn');if(bn)bn.onclick=()=>{G.banMode=!G.banMode;renderPickFoot(false)}}
+function rerollPick(free){if(!G||!G.lvOpen)return;if(!free){if(G.rerolls<=0)return;G.rerolls--;G.stats.rerolls=(G.stats.rerolls||0)+1}G.banMode=false;sn('pickcard',0.05);
+  const kind=G.pickKind;G.lvOpen=false;if(kind==='relic')openChest();else showNextLevel();if(!G.lvOpen){$('lvl').classList.add('hide')}}
+function banPick(id){if(!G||!G.lvOpen||G.bans<=0)return;if(G.pickKind==='member'&&!UPS_BY[id]){toast('Only cards and relics can be banned.',1.6);G.banMode=false;renderPickFoot(false);return}
+  G.bans--;G.banned[id]=1;G.stats.bans=(G.stats.bans||0)+1;const nm=(UPS_BY[id]||RELIC[id]||{name:id}).name;toast(nm+' will not be offered again this run.',2);sn('bonk',0.2);rerollPick(true)}
+function grantPickCharge(x,y,why){if(!G)return;const ban=RAND()<0.3;if(ban)G.bans++;else G.rerolls++;ftext(x,y,ban?'+1 ban':'+1 reroll','#9adcff',12);toast((why||'')+(ban?'A firm hand: +1 ban.':'A second thought: +1 reroll.'),1.8)}
 function chooseUp(id){
-  if(!G||!G.lvOpen)return; sn('pickcard',0.05);
+  if(!G||!G.lvOpen)return; if(G.banMode){banPick(id);return} sn('pickcard',0.05);
   if(G.pickKind==='relic'){chooseRelic(id);return}
   if(G.pickKind==='member'){const m=G.pickWho;applyMemberPick(m,id);G.lvOpen=false;G.pickKind='up';$('lvl').classList.add('hide');G.lvQ.shift();showNextLevel();return}
   if(id.startsWith('evo_')){const wid=id.slice(4);G.wEvo[wid]=true;if(META.seen)META.seen.v[wid]=1;const o=holderOf(wid);G.stats.wevos=(G.stats.wevos||0)+1;if(o){say(o,pick(['...oh, that’s NEW.','It changed. It CHANGED.','Is it supposed to do that?','Ha. HA.']),2.5,true);puff(o.x,o.y,30,'#ff8ad8',160,3);G.blasts.push({x:o.x,y:o.y,r:120,life:0.6,col:'rgba(255,138,216,'});ftext(o.x,o.y-40,WEVO[wid].name.toUpperCase(),'#ff8ad8',16)}G.lvOpen=false;$('lvl').classList.add('hide');G.healer.mana=Math.min(G.healer.manaMax,G.healer.mana+40);G.lvQ.shift();showNextLevel();return}

@@ -779,3 +779,22 @@ phone Kills/Gold counter moved under the party cards on the left so the
 column cannot cover it. Measured on a 390×780 phone with all three
 notices live: column 44–152 px, chat 674–720 px, nothing else over the
 field.
+
+## Rerolls and bans (b086)
+Every pick screen (the healer's level-up cards, a chest's relics, and a
+party member's own cards when you are choosing for them) has a footer
+with **Reroll** and **Ban** and their counts. Reroll deals the offer
+again: `rerollPick` closes the overlay and re-enters the same generator
+(`showNextLevel` for cards, `openChest` for relics), so tiers reroll too.
+Ban is a mode: tap it, then tap a card, and `banPick` adds that id to
+`G.banned`, which every pool filter skips for the rest of the run, then
+deals again for free. Weapon evolutions cannot be rerolled or banned, and
+on a party member's screen only cards (not skills or quirks) can be
+banned. Charges are per run: two healer training nodes seed them
+(Second Thoughts, +1 reroll per rank up to 3; Firm Hand, +1 ban per rank
+up to 2, behind Warm Hands 2), an elite kill drops one 22% of the time and
+a won event 40% of the time, 70/30 reroll to ban, each announced with a
+float and a toast. Verified headless: rerolls change the offer and count
+down, a banned card never returned across thirty deals, chest relics
+reroll and ban the same way, 200 elite kills gave 42 charges and 100
+event wins gave 50. Expert bot still wins with no errors.

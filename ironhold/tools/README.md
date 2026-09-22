@@ -14,3 +14,4 @@ Headless test and simulation harness for `ironhold/index.html`. Everything here 
 - `test_diffs.py` — the difficulty buttons: every label fits its painted button and sits centred, at 360, 420 and 600 px.
 - `test_nem.py` — the nemesis built from the champion's rolls, the seven-kill seventh socket (and its boot migration), and the potion belt: slots, every trigger, refills, migration, the windows.
 - `test_nemfight.py [hit sec]` — simulates nemesis fights from two saves with and without food; pass the two `NEM_T` knobs to try a tuning.
+- `scan_buttons.py [width]` — drives every tab, section and window (plus a forced medallion with carve rows) and lists every button whose label, icon included, spills past the button's edge, past its padding by more than 3px, or sits more than 3px off centre. Zero flags is the bar; run at 360 and 420.

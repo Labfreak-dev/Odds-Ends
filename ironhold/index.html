@@ -330,6 +330,7 @@ window.__art=(function(){
   .rune b{color:var(--gold)}
   .rw{padding:6px 0;border-bottom:1px solid rgba(0,0,0,.35);font-size:11px;display:flex;justify-content:space-between;gap:8px;align-items:center}
   .rw:last-child{border-bottom:0}
+  .rw>div{flex:1 1 auto;min-width:0}.rw>button{flex:none}   /* the text gives way; the button keeps its label whole */
   .rw .rn{font:bold 13px Georgia,serif;color:#c9a6ff}
   .rw .ok{color:var(--green)}.rw .no{color:var(--muted)}
   .tower.abyss{box-shadow:inset 0 0 0 1px #6a3a9a}
@@ -441,8 +442,8 @@ window.__art=(function(){
     padding:0;position:relative;overflow:hidden;min-height:0}
   .cqpic img{width:100%;height:100%;object-fit:contain}
   .cqpic.on{box-shadow:inset 0 0 0 2px var(--gold)}
-  .cqpic .tag{position:absolute;left:0;right:0;bottom:0;font-size:8px;color:var(--gold);background:#000a;padding:1px 2px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cqpic .tag{position:absolute;left:0;right:0;bottom:0;font-size:7.5px;line-height:1.1;color:var(--gold);background:#000a;padding:1px 0;
+    white-space:normal;overflow:hidden;text-align:center}
   .cqpic .hire{position:absolute;right:2px;top:2px;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 1px #000}
   .cqmark{font:bold 26px Georgia,serif;display:flex;align-items:center;justify-content:center;height:100%}
   #cqDollWrap{background:#16120c;border:2px solid #000;box-shadow:inset 0 0 0 1px #5a4630,inset 0 0 40px rgba(0,0,0,.45)}
@@ -764,7 +765,7 @@ button.boss{border-image-source:var(--ui-btn-boss-up);color:#ffd9c9}button.boss:
 button.spec,#kAsc,#mimic button[data-feed]{border-image-source:var(--ui-btn-gold-up);color:#2a1a06;text-shadow:0 1px 0 rgba(255,240,200,.5)}
 button.spec:active,#kAsc:active{border-image-source:var(--ui-btn-gold-down)}button.spec:disabled,#kAsc:disabled{border-image-source:var(--ui-btn-gold-off);color:#4a3a20}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:-6px}
-.secbar button{border:10px solid transparent;border-image:var(--ui-tab-up) 24 fill / 10px stretch;background:none;box-shadow:none;color:var(--muted);min-height:34px;padding:0 6px;font-size:11px}
+.secbar button{border:10px solid transparent;border-image:var(--ui-tab-up) 24 fill / 10px stretch;background:none;box-shadow:none;color:var(--muted);min-height:34px;padding:0 6px;font-size:11px;white-space:nowrap;letter-spacing:0;flex:0 1 auto;min-width:max-content}
 .secbar button.on{border-image-source:var(--ui-tab-on);background:none;box-shadow:none;color:var(--gold)}
 .styles button.on{box-shadow:none;border-image-source:var(--ui-btn-gold-up);color:#2a1a06}
 #dock{background:#0d0906 linear-gradient(#1a120b,#0d0906);border-top:3px solid #000;box-shadow:inset 0 2px 0 #4a3a28}
@@ -4284,7 +4285,7 @@ function beltHtml(){const b=belt();if(!b.length)return `<div class="sub">The bel
   return `<div class="sub">Belt ${b.length}/${beltMax()}${beltMax()<3?' · Larder '+(beltMax()===1?2:4)+' for another slot':''}</div>`+b.map(e=>{const d=beltDef(e);if(!d)return '';const on=potOn(d.id);
     return `<div class="offer" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><div><b class="gold">${d.n}</b> · <b>${e.charges}</b>/${d.charges}${on?' · <span class="gold">working</span>':''}<br><span class="sub">${d.d}${d.norefill?'':' Refills 1 per '+DRAUGHT_REFILL+' kills.'}</span></div><span style="display:flex;gap:4px;flex:none"><button class="sm" data-drink="${d.id}" ${e.charges>0&&!G.dead?'':'disabled'}>Drink</button><button class="sm" data-pour="${d.id}" title="Pour it out to free the slot">Pour</button></span></div>`;}).join('');}
 function brewListHtml(){return `<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">`+DRAUGHTS.map(x=>{const why=brewWhy(x);const held=beltEntry(x.id);
-  return `<button class="sm" data-brew="${x.id}" ${why?'disabled':''} title="${x.d}" style="text-align:left;white-space:normal">${held?'Refill':'Brew'} ${x.n} · ${brewCostText(x)}${why?' · '+why:''}</button>`;}).join('')+`</div>`;}
+  return `<button class="sm" data-brew="${x.id}" ${why?'disabled':''} title="${x.d}" style="white-space:normal">${held?'Refill':'Brew'} ${x.n} · ${brewCostText(x)}${why?' · '+why:''}</button>`;}).join('')+`</div>`;}
 function draughtHtml(){return `<div class="sub" style="margin-top:6px"><b>Potions</b></div>`+beltHtml()+brewListHtml();}
 function potWire(root){root.querySelectorAll('[data-brew]').forEach(b=>b.onclick=()=>{if(brew(b.dataset.brew))toast('Brewed');renderAll();if(G.modalKind==='pot')openPot();});
   root.querySelectorAll('[data-drink]').forEach(b=>b.onclick=()=>{const d=DRAUGHTS.find(x=>x.id===b.dataset.drink);if(d&&drink(d))toast('Drunk');renderAll();if(G.modalKind==='pot')openPot();});
@@ -5777,7 +5778,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b215-nemesis';window.__ihBoot=true;
+  const BUILD='b216-buttons';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v1.1 \u00b7 '+BUILD;}
   const artDiag=()=>{
     if(!window.__ihArt&&!G.artFail&&window.__art){setTimeout(artDiag,1000);return;}   // still on the road: look again in a second

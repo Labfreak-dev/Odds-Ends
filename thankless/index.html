@@ -256,6 +256,9 @@
   #hud:not(.run) #party,#hud:not(.run) #bottom,#hud:not(.run) #spells,#hud:not(.run) #clock,#hud:not(.run) #right,#hud:not(.run) #top{display:none}
   #hud.run #right{top:56px}
   #stamp{position:absolute;bottom:2px;left:6px;font-size:9px;color:#5a4a7a}
+  .help{line-height:1.45;text-align:left}
+  .help p{margin:0 0 9px}
+  .help b.h{display:block;color:var(--gold);font-family:Georgia,serif;font-size:13px;margin-bottom:1px}
   /* b086: rerolls and bans on every pick */
   #lvfoot{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap}
   #lvfoot button{min-height:34px;font-size:12px;padding:4px 12px}
@@ -398,21 +401,23 @@
     </div>
     <div class="scr panel" data-scr="help">
       <h2>How to play</h2>
-      <div class="sub" style="line-height:1.5">
-        Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
-        <b>Mend</b> casts itself on the most wounded ally inside the small green circle, so walk to whoever is hurt. Your flask fills from the motes enemies drop; a full flask pays for a Revive or your ultimate.<br>
-        Mend keeps them standing, but your prayers decide whether they win: Surge heals, Bless doubles the busiest ally’s damage, Haste speeds everyone up and keeps Brom awake, Fortify shields the party and makes Brom the only thing enemies can see, Rouse wakes, calms and shoves. <b>R</b> revives when someone falls and <b>Q</b> fires your ultimate, each for a full flask. <b>P</b> pauses. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
-        Three of twelve go with you, picked at camp. They go where the fight is: the thickest mob, a chest, an event, or a wander when it is quiet, and they keep together. The big ring is their ground; you keep up. The small green circle is where your healing lands, so stay on them; they shout when they are under half. More join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
-        Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes, a champion to kill, a chest out in the dark, a stranger to heal, a blood moon, a spilled purse, or a member who refuses healing for thirty seconds (tap their card to hold off). See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
-        Wren’s <b>prayers</b> cast themselves: learn a spell on a level-up (Surge, Mending Prayer, Regrowth, Sanctuary, Fortify, Ward, Wall of Light, Bless, Haste, Rouse, Radiance) and it goes off on its own when the moment is right. The only button is <b>Revive</b>, which appears when the flask is full and costs all of it.<br>
-        Your level-ups also turn up <b>weapons</b> — a bouncing ember, kitchen knives, a censer chain, orbiting hymnals, holy water, a fire ring, a poison trail, spinning blades, a mending circle, a static field, a gravity well, ball lightning, poison roots, a long slash, a whirlwind, a blizzard, a meteor shower, a boomerang axe, ghost hounds and more. Max one out and an <b>Evolve</b> card turns up — and you hand each one to a party member, who carries it from then on. Four at most, two per person, five ranks each. You still cannot attack.<br>
-        Each member keeps a <b>gratitude</b> bar under their health: saving them when they are low fills it, leaving them hurt drains it. At 70 they give you something back (Pip stops hitting Brom, Lupa stops biting, Vex spares the party…) and at 100 they say thank you like they mean it.<br>
-        Party members also pick <b>quirks</b> as they level: Colossus, Pyromaniac, Twin, Glass Cannon and more. Three per member per run, and no two runs come out the same.<br>
-        Every card rolls a <b>tier</b>: Common, Rare, Epic, Legendary or Mythic, on level-ups and from chests. Higher tiers grant more ranks at once; a Mythic maxes the card and heals everyone.<br>
-        Ghouls burrow and come up under someone. Wisps ignore the party and drain your flask on touch; keep away or let Pip shoot them.<br>
-        Chests fall at 3:00 and 7:00, the Demon Knight drops one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them into something better.<br>
-        From two minutes in, elites arrive with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Hexers lob bolts at you from a distance; keep moving.<br>
-        Enemies that get close to a healer forget everything else. Brom snores. Pip panics. Vex casts through you. Nobody says thank you.
+      <div class="sub help">
+        <p><b class="h">You are the healer</b>You cannot attack. Three party members can, badly. Keep them alive for ten minutes and the field’s boss comes to you.</p>
+        <p><b class="h">Moving</b>WASD or the arrow keys, or drag anywhere on the left half of the screen. <b>R</b> revives, <b>Q</b> fires your ultimate, <b>P</b> pauses. You are faster than most things; enemies that reach you forget the party, so keep walking.</p>
+        <p><b class="h">The party leads</b>They go where the fight is: the thickest mob, a nest, a chest, an event, or a wander when it is quiet, and they stay together. The big ring is their ground and it moves with them. Fall too far behind and they stop and complain.</p>
+        <p><b class="h">Two circles</b>The big ring is where your buffs land. The small green circle is where your healing lands, so stand on whoever is hurt. <b>Mend</b> casts itself on the most wounded ally inside it. Members call out when they drop under half; go to them.</p>
+        <p><b class="h">Prayers</b>Learn a spell from a level-up card and it casts itself when the moment is right: Surge, Mending Prayer, Regrowth, Sanctuary, Fortify, Ward, Wall of Light, Bless, Haste, Rouse, War Prayer, Quickening, Marching Hymn, Retribution, Guardian Angel, Radiance. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.</p>
+        <p><b class="h">The flask</b>Motes from kills fill it. A full flask pays for a Revive (stand near the grave and press R) or your ultimate (Q). Wisps ignore the party and drain the flask on touch.</p>
+        <p><b class="h">Level-ups</b>Your cards are for you: heal power, range, mana, prayers, and stranger things like Smiting Palm, Purify or Tempo. Once the deck runs thin, endless cards keep coming. The party level up on their own and pick their own skills and quirks. Every card rolls a tier, Common to Mythic; higher tiers grant more ranks at once, and a Mythic maxes the card and heals everyone.</p>
+        <p><b class="h">Reroll and Ban</b>Every pick screen has both. Reroll deals the offer again. Ban strikes a card or relic from this run for good, then deals again free. Charges come from training, elite kills and won events.</p>
+        <p><b class="h">Weapons</b>Level-ups also turn up weapons: a bouncing ember, kitchen knives, orbiting hymnals, a fire ring, ball lightning, a meteor shower and dozens more. You hand each one to a party member, who carries it from then on: four at most, two per person, five ranks each. Max one out and an Evolve card appears.</p>
+        <p><b class="h">Chests and relics</b>Chests fall at 3:00 and 7:00, the Demon Knight drops one, nests often sit on one, and any kill might. Walk over a chest to pick one of three relics for the run. Hold both halves of a pair and the next chest fuses them.</p>
+        <p><b class="h">Events</b>Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes, a champion, a chest out in the dark, a stranger to heal, a blood moon, a spilled purse, or a member who refuses healing for thirty seconds (tap their card to hold off). See it through for a reward.</p>
+        <p><b class="h">Nests</b>A Demon Gate, Bone Pile, Ghoul Crypt or Bat Hive appears every couple of minutes and spawns its kind until it is broken. The party heads for it; a red marker at the screen edge points the way. Breaking one pays gold, motes, often a chest, and often a reroll or ban.</p>
+        <p><b class="h">The field</b>Crates, barrels, urns, graves and the like smash for gold, motes or a heal; braziers spill fire and toadstools spore. Each field has its own hazard: lightning on the Long Meadow, bone spikes in the Bone Fields, lava rivers in the Ashen Keep, poison pools in the Sodden Mire. They hurt everyone, and the party walks around them.</p>
+        <p><b class="h">Enemies</b>Elites arrive early with an aura and one trick each: swift, armored, healer-hunting, bursting into imps, or singing Brom to sleep. Ghouls burrow and come up under someone. Hexers lob bolts from a distance. Spawns thicken hard in the last three minutes.</p>
+        <p><b class="h">Gratitude</b>Each member keeps a gratitude bar under their health: saving them when they are low fills it, leaving them hurt drains it. At 70 they give something back; at 100 they say thank you like they mean it.</p>
+        <p><b class="h">After a run</b>Gold buys permanent training. Each win opens the next circle, which adds a rule and scales the numbers. Brom snores. Pip panics. Vex casts through you. Nobody says thank you.</p>
       </div>
     </div>
   </div>
@@ -451,7 +456,7 @@
 
 <script>
 'use strict';
-const BUILD='b091-hudtrim';
+const BUILD='b092-helptext';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date

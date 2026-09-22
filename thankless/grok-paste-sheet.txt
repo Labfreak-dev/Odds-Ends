@@ -670,3 +670,29 @@ files: 1=field_bonefields.webp  2=field_keep.webp  3=field_mire.webp  4=face_kin
 2. a wide ruined stone keep courtyard at night: broken pillars, cracked flagstones, iron braziers still burning orange, a shattered portcullis at the back. painted fantasy game background, muted dusk palette of deep purples, rust reds and dark greens, thick dark outlines, flat cel shading, wide 16:9 landscape, no characters, no text, no border
 3. a wide sodden marsh at dusk: black water between reed beds, dead trees hung with moss, green will-o-wisps drifting, a sunken hooded shrine on the far bank. painted fantasy game background, muted dusk palette of deep purples, rust reds and dark greens, thick dark outlines, flat cel shading, wide 16:9 landscape, no characters, no text, no border
 4. a portrait bust of a huge crimson demon king in black spiked plate with a horned iron crown and burning red eyes, glowering, dark smoke behind him. chunky fantasy game portrait, thick dark outlines, flat cel shading lit from the upper left, head and shoulders, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no border
+
+--- block 87 (the menu UI kit: frames, buttons, icons) ---
+files: 1=ui_frame.webp 2=ui_btn.webp 3=ui_btn_on.webp 4=ui_btn_big.webp 5=ui_nav.webp 6=ui_nav_on.webp 7=ui_ribbon.webp 8=ui_divider.webp
+       9=ic_camp.webp 10=ic_party.webp 11=ic_field.webp 12=ic_contracts.webp 13=ic_training.webp 14=ic_relics.webp 15=ic_codex.webp 16=ic_awards.webp 17=ic_ledger.webp 18=ic_help.webp 19=ic_settings.webp 20=ic_save.webp
+Generate one square image for each numbered prompt below, one at a time. Same style for all twenty: hand-painted dark-fantasy game UI for a chunky chibi RPG, thick dark outlines, flat cel shading with soft candle-warm highlights, aged oak and wrought iron with gold-leaf trim, deep plum shadows, gold accents, no text anywhere. Every image is isolated on a solid flat pure magenta (#FF00FF) background so the empty parts can be cut out.
+1. a square ornate panel frame, thick dark oak beams with riveted wrought-iron corner brackets and a thin gold-leaf inner trim line, perfectly symmetrical, straight edges, the whole centre left empty magenta, frame occupies the outer 12% of the image
+2. a wide rounded rectangle button plate, aged brass face with a dark iron rim and small rivets, unlit and matte, empty centre, seen straight on, fills the width
+3. the same wide rounded rectangle button plate, now lit: polished gold rim glowing warmly, brass face brighter, faint candle-glow halo around it, empty centre
+4. a long wide banner-shaped button plate for the main SET OUT button, dark red lacquer face with gold-leaf trim and a small iron buckle at each end, rich and important, empty centre, fills the width
+5. a small square tab plate for a bottom navigation bar, dark riveted iron with a plum-purple tint, unlit, empty centre
+6. the same small square tab plate, lit: a gold rim and a warm glow, empty centre
+7. a horizontal header ribbon banner, worn parchment scroll with curled ends and a gold pin at each end, empty centre for a title, fills the width
+8. a thin horizontal ornamental divider, wrought iron scrollwork with a small glowing ember at the centre, fills the width
+9. a game icon: a small crackling campfire on a ring of stones, warm orange glow
+10. a game icon: three tiny chibi adventurer silhouettes shoulder to shoulder under a small torn banner
+11. a game icon: a wooden signpost with three arrows pointing different ways, a small crow perched on top
+12. a game icon: a rolled parchment contract tied with red string and a red wax seal
+13. a game icon: a crossed sword and war hammer over a small whetstone
+14. a game icon: a glowing gold ring resting on a small velvet cushion
+15. a game icon: an open leather-bound book with a skull sketched on the page
+16. a game icon: a gold medal on a red ribbon with a laurel wreath
+17. a game icon: a small ledger book with a stack of gold coins beside it
+18. a game icon: a hanging brass lantern with a warm question-mark-shaped flame inside
+19. a game icon: a heavy iron cogwheel with a small gold centre
+20. a game icon: a corked glass bottle with a rolled note inside, glowing faintly
+Icons 9–20: chunky, centred, readable at 32 pixels, thick dark outline, warm gold and iron palette, no text.

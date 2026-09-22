@@ -106,6 +106,22 @@
   #mnav{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(rgba(14,11,18,0),rgba(14,11,18,.96) 30%);z-index:2}
   #mnav button{flex:1;min-width:0;padding:4px 2px;min-height:44px;font-size:9px;display:flex;flex-direction:column;align-items:center;gap:1px;background:linear-gradient(#3a2d58,#241a3a)}
   #mnav button span{font-size:16px;line-height:1}
+  /* b084: the UI kit. Nine-slice frames from Grok (ui/*.webp): the slice numbers are the beam widths measured by pack-ui.py */
+  .panel{border:18px solid transparent;border-image:url(ui/ui_frame.webp) 88 70 88 68 / 18px 16px 18px 16px stretch;border-radius:0;box-shadow:none;background:var(--panel);background-clip:padding-box;padding:8px 10px}
+  #menu button,#setov button,#pauseov button,#over button{border:13px solid transparent;border-image:url(ui/ui_btn.webp) 91 64 83 64 / 13px 11px 12px 11px stretch;border-radius:0;box-shadow:none;background:linear-gradient(#7a5a34,#4a3520);background-clip:padding-box;padding:2px 6px;min-height:44px;color:#fff3d6}
+  #menu button:active,#setov button:active,#pauseov button:active,#over button:active,#menu button.on,#setov button.on,.seg button.on{border-image:url(ui/ui_btn_on.webp) 89 70 120 69 / 13px 12px 17px 12px stretch;background:linear-gradient(#c79a3c,#8a6420);background-clip:padding-box;color:#fff8e6}
+  #menu button.big,#setov button.big,#pauseov button.big,#over button.big{border:16px solid transparent;border-width:16px 26px 22px 26px;border-image:url(ui/ui_btn_big.webp) 86 121 123 121 / 16px 26px 22px 26px stretch;background:linear-gradient(#8a1e26,#56101a);background-clip:padding-box;padding:4px 10px;min-height:54px;font-size:18px;color:#ffe9a8}
+  #menu button.sm,#setov button.sm,.seg button{border-width:8px 7px 8px 7px;border-image-width:8px 7px 8px 7px;min-height:32px;padding:1px 6px;font-size:12px}
+  .seg button.on{border-image-width:8px 7px 10px 7px}
+  #mnav button{border:10px solid transparent;border-width:10px 9px 12px 9px;border-image:url(ui/ui_nav.webp) 42 38 57 38 / 10px 9px 12px 9px stretch;border-radius:0;box-shadow:none;background:linear-gradient(#3a2d58,#241a3a);background-clip:padding-box;padding:0 1px 1px;min-height:48px;color:var(--ink)}
+  #mnav button.on,#mnav button:active{border-image:url(ui/ui_nav_on.webp) 40 51 39 50 / 10px 11px 10px 11px stretch;background:linear-gradient(#a07a2a,#5a4012);background-clip:padding-box;color:#fff8e6}
+  #mnav button img{height:22px;width:auto;display:block;filter:drop-shadow(0 1px 0 #000)}
+  .pick{border:12px solid transparent;border-width:11px 10px 13px 10px;border-image:url(ui/ui_nav.webp) 42 38 57 38 / 11px 10px 13px 10px stretch;border-radius:0;box-shadow:none;background:linear-gradient(rgba(37,29,51,.96),rgba(20,14,30,.98));background-clip:padding-box;padding:2px 3px}
+  #menu h2,#setov h2,#pauseov h2,#over h2{border:14px solid transparent;border-width:13px 30px 13px 30px;border-image:url(ui/ui_ribbon.webp) 64 137 59 137 / 13px 30px 13px 30px stretch;background:#c9ad74;background-clip:padding-box;color:#3a2410;text-shadow:0 1px 0 rgba(255,240,200,.6);text-align:center;padding:3px 6px;margin:0 auto 10px;max-width:460px;line-height:1.1}
+  #wordmark::after{content:'';display:block;height:30px;margin:2px auto 0;background:url(ui/ui_divider.webp) center/auto 100% no-repeat}
+  .bic{height:18px;width:auto;vertical-align:-4px;margin-right:5px;filter:drop-shadow(0 1px 0 #000)}
+  #menu h2 .sub,#setov h2 .sub{display:block;color:#5a3a20;font-size:10.5px;font-weight:normal;text-shadow:none;line-height:1.15;margin-top:1px}
+  #menu h2 .bic,#setov h2 .bic{filter:none;height:20px;vertical-align:-4px}
   #mnav button.on{background:linear-gradient(#b8862a,#6e4d12)}
   #fieldpick .node{cursor:pointer;min-height:96px;background-size:cover;background-position:center;position:relative}
   #fieldpick .node::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(20,14,30,.35),rgba(20,14,30,.92));border-radius:3px}
@@ -266,7 +282,7 @@
 </div>
 <div id="setov" class="ov hide" style="z-index:30">
   <div class="box"><div class="panel">
-    <h2>Settings</h2>
+    <h2><img class="bic" src="ui/ic_settings.webp" alt="">Settings</h2>
     <div class="setrow"><span>Sound</span><div class="seg" data-k="sound"><button data-v="0">Off</button><button data-v="0.35">Low</button><button data-v="1">Full</button></div></div>
     <div class="setrow"><span>Ambience</span><div class="seg" data-k="ambience"><button data-v="0">Off</button><button data-v="1">On</button></div></div>
     <div class="setrow"><span>Music</span><div class="seg" data-k="music"><button data-v="0">Off</button><button data-v="0.4">Low</button><button data-v="1">Full</button></div></div>
@@ -277,7 +293,7 @@
     <div class="setrow"><span>Motion</span><div class="seg" data-k="motion"><button data-v="reduced">Reduced</button><button data-v="full">Full</button></div><div class="sub" style="width:100%">Reduced: no slow-motion, zoom or weather on ultimates.</div></div>
     <div class="setrow"><span>Chat box</span><div class="seg" data-k="chat"><button data-v="0">Hidden</button><button data-v="1">Shown</button></div></div>
     <div class="row" style="margin-top:10px"><button id="fsBtn">Fullscreen</button><button id="updBtn">Get the latest version</button></div><div class="sub" id="updnote" style="margin-top:4px">Build <b id="updstamp"></b>. If the game looks wrong after an update, this clears the offline copy and reloads. Your save is kept.</div>
-    <h2 style="margin-top:14px">Save</h2>
+    <h2 style="margin-top:14px"><img class="bic" src="ui/ic_save.webp" alt="">Save</h2>
     <div class="row"><button id="expBtn">Export</button><button id="impBtn">Import</button><button id="resetBtn">Reset everything</button></div>
     <textarea id="saveTxt" spellcheck="false" placeholder="Export puts your save here to copy. Paste a save here and press Import."></textarea>
     <div class="sub" id="setnote" style="margin-top:6px"></div>
@@ -296,7 +312,7 @@
         <div class="pick" data-go="field"><i>Field</i><div class="pf" id="pkField"></div><b id="fieldName"></b><small id="pkBoss"></small></div>
       </div>
       <div class="sub" id="circdesc"></div>
-      <div class="row" id="campgo"><button class="big" id="start">Set out</button><button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button><button id="setBtn">Settings</button></div>
+      <div class="row" id="campgo"><button class="big" id="start">Set out</button><button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button><button id="setBtn"><img class="bic" src="ui/ic_settings.webp" alt="">Settings</button></div>
     </div>
     <div class="scr panel" data-scr="party">
       <h2>Healers <span class="sub">(pick one)</span></h2>
@@ -363,7 +379,7 @@
     </div>
   </div>
   <nav id="mnav">
-    <button data-go="camp"><span>🔥</span>Camp</button><button data-go="contracts"><span>📜</span>Vows</button><button data-go="training"><span>⚔️</span>Train</button><button data-go="relics"><span>💍</span>Relics</button><button data-go="codex"><span>📖</span>Codex</button><button data-go="awards"><span>🏅</span>Awards</button><button data-go="ledger"><span>📊</span>Ledger</button><button data-go="help"><span>❔</span>Help</button>
+    <button data-go="camp"><img src="ui/ic_camp.webp" alt="">Camp</button><button data-go="contracts"><img src="ui/ic_contracts.webp" alt="">Vows</button><button data-go="training"><img src="ui/ic_training.webp" alt="">Train</button><button data-go="relics"><img src="ui/ic_relics.webp" alt="">Relics</button><button data-go="codex"><img src="ui/ic_codex.webp" alt="">Codex</button><button data-go="awards"><img src="ui/ic_awards.webp" alt="">Awards</button><button data-go="ledger"><img src="ui/ic_ledger.webp" alt="">Ledger</button><button data-go="help"><img src="ui/ic_help.webp" alt="">Help</button>
   </nav>
 </div>
 <canvas id="menucv"></canvas>
@@ -396,7 +412,7 @@
 
 <script>
 'use strict';
-const BUILD='b083-sunset';
+const BUILD='b084-uikit';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date

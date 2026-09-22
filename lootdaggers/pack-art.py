@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""Pack lootdaggers/art-src/* into lootdaggers/art.js (window.LD_ART).
+
+    pip install pillow numpy scipy
+    python3 lootdaggers/pack-art.py                 # pack art-src/
+    python3 lootdaggers/pack-art.py --import a.zip  # add raw PNGs to art-src/, then pack
+
+The key is the filename stem (hero_knight_idle.png -> hero_knight_idle).
+Keyed images: the background colour is SAMPLED from each image's border rather
+than assumed to be #FF00FF, because the generator drifts from pure magenta to
+hot pink or a shadowed plum. Pixels near that colour go transparent,
+semi-keyed edges are un-mixed from it, and a pink fringe is pulled out of the
+outline. Pieces that aren't connected to the main subject (the stray torches
+the generator likes to add in a corner) are dropped unless most of the piece
+lies inside the subject's bounding box, then the image is trimmed.
+"""
+import base64, io, json, os, sys, zipfile
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(HERE, 'art-src')
+OUT = os.path.join(HERE, 'art.js')
+
+# kind by key: (keyed?, target height, max width, webp quality)
+def kind(key):
+    if key == 'title':               return ('cover', 720, 1280, 78)
+    if key == 'bg_wall':             return ('wall', 512, 4096, 76)
+    if key == 'bg_floor':            return ('floor', 160, 4096, 76)
+    if key.startswith('screen_'):    return ('cover', 720, 1280, 78)
+    if key.startswith('portrait_'):  return ('plain', 480, 480, 80)
+    if key.startswith('boss'):       return ('key', 440, 440, 82)
+    if key.startswith(('hero_', 'enemy_')): return ('key', 340, 340, 82)
+    if key.startswith('sym_'):       return ('key', 200, 200, 84)
+    if key.startswith(('relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_',
+                       'ui_', 'shop_', 'fx_')):
+        return ('key', 160, 160, 84)
+    return ('key', 280, 280, 82)     # props: chest, door, shrine, trap, torch...
+
+def border_colour(a):
+    h, w, _ = a.shape
+    b = np.concatenate([a[:6].reshape(-1, 3), a[-6:].reshape(-1, 3),
+                        a[:, :6].reshape(-1, 3), a[:, -6:].reshape(-1, 3)])
+    return np.median(b, axis=0)
+
+def key_out(im):
+    a = np.asarray(im.convert('RGB')).astype(np.float32)
+    bg = border_colour(a)
+    d = np.sqrt(((a - bg) ** 2).sum(-1))
+    # the key colour is always in the magenta/pink family: g far below r and b
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    pinkish = (r - g > 60) & (b - g > 25)
+    t0, t1 = 38.0, 105.0
+    alpha = np.clip((d - t0) / (t1 - t0), 0, 1)
+    alpha = np.where(pinkish | (d < t0), alpha, 1.0)
+    # un-mix semi-transparent edge pixels from the background colour
+    am = np.maximum(alpha, 1e-3)[..., None]
+    rgb = np.clip((a - (1 - am) * bg) / am, 0, 255)
+    # pull pink spill out of the outline band
+    solid = alpha > 0.5
+    band = solid & ~ndimage.binary_erosion(solid, iterations=4)
+    R, G, B = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    spill = band & (R - G > 30) & (B - G > 30)
+    rgb[..., 2] = np.where(spill, G + (B - G) * 0.25, B)
+    rgb[..., 0] = np.where(spill, G + (R - G) * 0.6, R)
+    # keep the main subject and anything touching its box; drop stray pieces
+    lab, n = ndimage.label(alpha > 0.35)
+    if n > 1:
+        sizes = ndimage.sum(np.ones_like(alpha), lab, range(1, n + 1))
+        main = int(np.argmax(sizes)) + 1
+        ys, xs = np.where(lab == main)
+        y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
+        keep = np.zeros(n + 1, bool); keep[main] = True
+        for i, sl in enumerate(ndimage.find_objects(lab), start=1):
+            if i == main or sl is None or sizes[i - 1] <= 30: continue
+            sy, sx = sl
+            # the share of this piece's own box that lies inside the subject's box
+            iy = max(0, min(sy.stop, y1 + 1) - max(sy.start, y0))
+            ix = max(0, min(sx.stop, x1 + 1) - max(sx.start, x0))
+            share = iy * ix / ((sy.stop - sy.start) * (sx.stop - sx.start))
+            if share >= 0.6: keep[i] = True
+        mask = keep[lab]
+        # soft edge pixels next to a kept piece stay
+        mask = ndimage.binary_dilation(mask, iterations=2)
+        alpha = np.where(mask, alpha, 0)
+    out = np.dstack([rgb, alpha * 255]).astype(np.uint8)
+    img = Image.fromarray(out, 'RGBA')
+    bb = img.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+    return img.crop(bb) if bb else img
+
+ICONISH = ('sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_')
+
+def fit(img, th, mw):
+    w, h = img.size
+    s = min(th / h, mw / w, 1.0)
+    return img.resize((max(1, round(w * s)), max(1, round(h * s))), Image.LANCZOS)
+
+def cover(img, tw, th):
+    w, h = img.size
+    s = max(tw / w, th / h)
+    img = img.resize((round(w * s), round(h * s)), Image.LANCZOS)
+    x, y = (img.width - tw) // 2, (img.height - th) // 2
+    return img.crop((x, y, x + tw, y + th))
+
+def mirror_tile(img):
+    # side-by-side with its own mirror image: tiles seamlessly left-to-right
+    w, h = img.size
+    t = Image.new(img.mode, (w * 2, h))
+    t.paste(img, (0, 0)); t.paste(img.transpose(Image.FLIP_LEFT_RIGHT), (w, 0))
+    return t
+
+def process(key, im):
+    k, th, mw, q = kind(key)
+    scale = None
+    if k == 'key' and not key.startswith(ICONISH):
+        # world sprites: one fixed scale from the SOURCE canvas, so every pose of a
+        # character comes out at the same size however tightly it trims
+        sc = th / max(im.size)
+        cut = key_out(im)
+        img = cut.resize((max(1, round(cut.width * sc)), max(1, round(cut.height * sc))), Image.LANCZOS)
+        scale = (sc, max(im.size))
+    elif k == 'key':
+        img = fit(key_out(im), th, mw)
+    elif k == 'plain':
+        img = fit(im.convert('RGB'), th, mw)
+    elif k == 'cover':
+        img = cover(im.convert('RGB'), mw, th)
+    elif k == 'wall':
+        img = mirror_tile(fit(im.convert('RGB'), th, 99999))
+    elif k == 'floor':
+        rgb = im.convert('RGB'); w, h = rgb.size
+        band = rgb.crop((0, h // 2 - w // 12, w, h // 2 + w // 12))  # a 6:1 strip
+        img = mirror_tile(fit(band, th, 99999))
+    buf = io.BytesIO()
+    img.save(buf, 'WEBP', quality=q, method=6)
+    return img, buf.getvalue(), scale
+
+def import_zip(path):
+    os.makedirs(SRC, exist_ok=True)
+    with zipfile.ZipFile(path) as z:
+        for n in z.namelist():
+            if not n.lower().endswith(('.png', '.webp', '.jpg', '.jpeg')) or '__MACOSX' in n: continue
+            key = os.path.splitext(os.path.basename(n))[0]
+            im = Image.open(io.BytesIO(z.read(n)))
+            im.convert('RGB').save(os.path.join(SRC, key + '.webp'), 'WEBP', quality=92, method=6)
+            print('imported', key)
+
+def main():
+    args = sys.argv[1:]
+    while '--import' in args:
+        i = args.index('--import'); import_zip(args[i + 1]); del args[i:i + 2]
+    files = sorted(f for f in os.listdir(SRC) if f.lower().endswith(('.png', '.webp', '.jpg')))
+    art, meta, total = {}, {}, 0
+    for f in files:
+        key = os.path.splitext(f)[0]
+        img, data, scale = process(key, Image.open(os.path.join(SRC, f)))
+        if scale: meta[key] = [round(scale[0], 5), scale[1]]
+        art[key] = 'data:image/webp;base64,' + base64.b64encode(data).decode()
+        total += len(data)
+        print(f'{key:26s} {img.width:4d}x{img.height:<4d} {len(data)//1024:4d}KB')
+    with open(OUT, 'w') as fh:
+        fh.write('// GENERATED by pack-art.py from art-src/ — do not edit by hand.\n')
+        fh.write('window.LD_ART = ' + json.dumps(art, separators=(',', ':')).replace('","', '",\n"') + ';\n')
+        # [packed px per source px, source canvas size]: lets the game size a
+        # sprite relative to the whole generated canvas, not its trimmed box
+        fh.write('window.LD_ART_META = ' + json.dumps(meta, separators=(',', ':')) + ';\n')
+    print(f'{len(art)} images, {total/1024/1024:.2f}MB -> art.js')
+
+if __name__ == '__main__':
+    main()

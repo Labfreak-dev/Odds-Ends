@@ -813,6 +813,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:-6px}
 .chk input[type=checkbox]:checked{background-image:var(--ui-chk-on)}
 .area.lock .thumb::before{content:"";position:absolute;inset:0;background:var(--ui-lock) center/26px no-repeat;z-index:2}
 .item.locked::after{content:"";position:absolute;top:3px;right:3px;width:14px;height:14px;background:var(--ui-lock) center/contain no-repeat;z-index:2}
+.item.locked .wr{right:20px}   /* the badge steps left so the painted lock sits beside the requirement, not over it */
 .pk{background:var(--ui-key) center/contain no-repeat;font-size:0;width:14px;height:14px;display:inline-block}
 
 /* ---- kit, batches 6-9: map pins, slots, rarity frames, room and skill icons, chests ---- */
@@ -4826,7 +4827,7 @@ const SK_NAME={atk:'Attack',str:'Strength',def:'Defence',hp:'Hitpoints',rng:'Ran
 const SK_SHORT={atk:'Atk',str:'Str',def:'Def',hp:'HP',rng:'Rng',mag:'Mag',all:'All'};
 // at a glance: can the champion wear this? a green tick, or a lock with the skill and level it wants
 function wearHave(q){return q.s==='all'?Math.min(...['atk','str','def','hp','rng','mag'].map(k=>lv(k))):lv(q.s);}
-function wearBadge(it){const q=reqFor(it);if(handsBound(it))return '<span class="wr no" title="The trial binds your hands">&#128274; trial</span>';return reqOk(q)?'<span class="wr ok" title="You can wear this">&#10003;</span>':`<span class="wr no" title="Needs ${SK_NAME[q.s]} ${q.lv}; you have ${wearHave(q)}">&#128274; ${SK_SHORT[q.s]} ${q.lv}</span>`;}
+function wearBadge(it){const q=reqFor(it);if(handsBound(it))return '<span class="wr no" title="The trial binds your hands">trial</span>';return reqOk(q)?'<span class="wr ok" title="You can wear this">&#10003;</span>':`<span class="wr no" title="Needs ${SK_NAME[q.s]} ${q.lv}; you have ${wearHave(q)}">${SK_SHORT[q.s]} ${q.lv}</span>`;}   /* the painted lock on the tile says locked; the badge says what it takes */
 const CSTYLES=[{k:'melee',n:'Melee'},{k:'ranged',n:'Ranged'},{k:'magic',n:'Magic'}];
 const cstyle=()=>{const w=S.equip.weapon;return (w&&WEAPONS[w.wt].style)||'melee';};
 const cskill=()=>cstyle()==='ranged'?'rng':cstyle()==='magic'?'mag':null;
@@ -5718,7 +5719,7 @@ document.addEventListener('keydown',e=>{
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b213-diffs';window.__ihBoot=true;
+  const BUILD='b214-lock';window.__ihBoot=true;
   {const el=document.getElementById('bstamp');if(el)el.textContent='v1.1 \u00b7 '+BUILD;}
   const artDiag=()=>{
     if(!window.__ihArt&&!G.artFail&&window.__art){setTimeout(artDiag,1000);return;}   // still on the road: look again in a second

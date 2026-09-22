@@ -347,7 +347,7 @@
         Move with WASD / arrows, or drag anywhere on the left of the screen.<br>
         <b>Mend</b> casts itself on the most wounded ally inside the small green circle, so walk to whoever is hurt. Your flask fills from the motes enemies drop; a full flask pays for a Revive or your ultimate.<br>
         Mend keeps them standing, but your prayers decide whether they win: Surge heals, Bless doubles the busiest ally’s damage, Haste speeds everyone up and keeps Brom awake, Fortify shields the party and makes Brom the only thing enemies can see, Rouse wakes, calms and shoves. <b>R</b> revives when someone falls and <b>Q</b> fires your ultimate, each for a full flask. <b>P</b> pauses. Keep two buffs rolling and the party is dangerous; let them lapse and it is not.<br>
-        Three of twelve go with you, picked at camp. They stay inside your big circle, doing their own thing, so you can do yours; the small green circle is where your healing lands, so walk to the wounded (they come to you and shout when they are under half); more join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
+        Three of twelve go with you, picked at camp. They go where the fight is: the thickest mob, a chest, an event, or a wander when it is quiet, and they keep together. The big ring is their ground; you keep up. The small green circle is where your healing lands, so stay on them; they shout when they are under half. More join as you meet the conditions on their cards. Each has a weapon, and a second one turns up as a level-up card once they have learned a little.<br>
         Every minute or so something happens: a shrine to hold, a bounty, a pilgrim to escort, a vigil over Brom, an ambush, a rain of motes, a champion to kill, a chest out in the dark, a stranger to heal, a blood moon, a spilled purse, or a member who refuses healing for thirty seconds (tap their card to hold off). See it through for a reward. The party levels up too, each in their own way, and picks their own skills: passives, and actives they cast on their own.<br>
         Wren’s <b>prayers</b> cast themselves: learn a spell on a level-up (Surge, Mending Prayer, Regrowth, Sanctuary, Fortify, Ward, Wall of Light, Bless, Haste, Rouse, Radiance) and it goes off on its own when the moment is right. The only button is <b>Revive</b>, which appears when the flask is full and costs all of it.<br>
         Your level-ups also turn up <b>weapons</b> — a bouncing ember, kitchen knives, a censer chain, orbiting hymnals, holy water, a fire ring, a poison trail, spinning blades, a mending circle, a static field, a gravity well, ball lightning, poison roots, a long slash, a whirlwind, a blizzard, a meteor shower, a boomerang axe, ghost hounds and more. Max one out and an <b>Evolve</b> card turns up — and you hand each one to a party member, who carries it from then on. Four at most, two per person, five ranks each. You still cannot attack.<br>
@@ -395,7 +395,7 @@
 
 <script>
 'use strict';
-const BUILD='b080-chestarrow';
+const BUILD='b081-partyleads';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -410,7 +410,7 @@ const RUN_LEN=600;          // the Demon King arrives at ten minutes
 const CIRCLES=[
   {id:'earlyElites',name:'Early Elites',desc:'elites from the first minute'},
   {id:'dryClock',name:'Dry Sky',desc:'no chests fall at 3:00 and 7:00'},
-  {id:'deafParty',name:'Stubborn Party',desc:'the wounded no longer come to you'},
+  {id:'restlessParty',name:'Restless Party',desc:'the party moves faster and waits for no one'},
   {id:'restlessNight',name:'Restless Night',desc:'events come twice as often'},
   {id:'twoKnights',name:'Two Knights',desc:'two Demon Knights, a minute early'},
   {id:'thinMotes',name:'Thin Motes',desc:'motes fill the flask half as fast'},
@@ -490,7 +490,7 @@ function softPatch(im){ // the tile with feathered edges, so it sits on the gras
 window.tlArtLoaded=tlArtLoaded;
 // b060: the art is fetched with a progress bar, then decoded; the loading screen leaves when the sprites are ready
 const LOAD={n:0,total:0,done:false,t0:performance.now()};
-const LOAD_TIPS=['Stay inside the small green circle to be healed. Walk to whoever is hurt.','The big circle is where the party fights. They stay in it. Mostly.','A full flask pays for a Revive (R) or your ultimate (Q).','Brom sleeps. Pip shoots the wrong things. Vex casts through you.','Party members pick their own upgrades. The chat box says what they took.','Chests fall at 3:00 and 7:00. Walk over one to pick a relic.','Higher card tiers grant more ranks at once. Luck helps.','Nobody says thank you. Gratitude is a bar, and it fills slowly.','Elites arrive from two minutes in. Each has one trick.','Ultimates charge on time and kills: three or four a run, each.'];
+const LOAD_TIPS=['Stay inside the small green circle to be healed. Walk to whoever is hurt.','The party goes where it likes. Your job is to keep up.','A full flask pays for a Revive (R) or your ultimate (Q).','Brom sleeps. Pip shoots the wrong things. Vex casts through you.','Party members pick their own upgrades. The chat box says what they took.','Chests fall at 3:00 and 7:00. Walk over one to pick a relic.','Higher card tiers grant more ranks at once. Luck helps.','Nobody says thank you. Gratitude is a bar, and it fills slowly.','Elites arrive from two minutes in. Each has one trick.','Ultimates charge on time and kills: three or four a run, each.'];
 function loadBar(f,what){const el=$('loadFill');if(el)el.style.width=Math.round(Math.max(0,Math.min(1,f))*100)+'%';if(what)$('loadWhat').textContent=what}
 function loadTipTick(){if(LOAD.done)return;$('loadTip').textContent=LOAD_TIPS[Math.floor(performance.now()/2600)%LOAD_TIPS.length];setTimeout(loadTipTick,400)}
 function loadDone(){if(LOAD.done)return;LOAD.done=true;loadBar(1,'Ready');const el=$('loading');setTimeout(()=>{el.classList.add('gone');setTimeout(()=>el.classList.add('hide'),500)},180)}
@@ -1556,7 +1556,7 @@ function say(m,txt,t){ if(m.talkCd>0&&t===undefined)return; m.bubble=HW(txt); m.
 
 // ---------- the roster: twelve to pick three from, each with a useless streak, a skill pool and two weapons ----------
 function meleeAI(m,dt,opts){
-  opts=opts||{}; const h=G.healer; m.cdT-=dt*hasteMul(m); if(m.swing>0)m.swing-=dt;
+  opts=opts||{}; const h=anchor(); m.cdT-=dt*hasteMul(m); if(m.swing>0)m.swing-=dt;
   const e=nearestEnemy(m,520), dh=Math.hypot(h.x-m.x,h.y-m.y);
   if(e&&(dh<230||Math.hypot(e.x-h.x,e.y-h.y)<dh)){const d=Math.hypot(e.x-m.x,e.y-m.y);
     if(d>m.reach+e.r-8)moveToward(m,e.x,e.y,m.spd*spdMul(m),dt); else m.face=e.x<m.x?-1:1;
@@ -1566,7 +1566,7 @@ function meleeAI(m,dt,opts){
   return false;
 }
 function rangedAI(m,dt,near,far,range){
-  const h=G.healer; m.cdT-=dt*hasteMul(m);
+  const h=anchor(); m.cdT-=dt*hasteMul(m);
   const e=nearestEnemy(m,600), dh=Math.hypot(h.x-m.x,h.y-m.y);
   if(e){const d=Math.hypot(e.x-m.x,e.y-m.y);
     if(d<near){moveToward(m,m.x-(e.x-m.x),m.y-(e.y-m.y),m.spd*spdMul(m),dt);m.face=e.x<m.x?-1:1}
@@ -1622,7 +1622,7 @@ const CHARS={
     lines:{bless:'Unnecessary. Thanks.',fort:'You want ME to hold them?',revive:'That never happened.',healed:null,thanks:['...thanks.'],swap:'Quiet ones.',brag:'She says you did not see it.',level:['Nobody saw her learn it.','She was already better at it than she let on.','Sable would rather this not be discussed.']},
     make(){return Object.assign(member('assassin','Sable','#6a5a8a'),{r:10,maxhp:110,spd:160,dmg:20,atkCd:0.6,reach:34,hidden:false,hideT:0,stalkCd:3,hideLess:0})},
     onWeapon(m){},
-    update(m,dt){const h=G.healer;
+    update(m,dt){const h=anchor();
       if(m.hidden){m.hideT-=dt;if(hasRelic('darkcloak')||hasRelic('nightwork'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.04*dt);if(m.hideT<=0){m.hidden=false;m.mist=false;m.x=h.x+rnd(-60,60);m.y=h.y+rnd(-60,60);keepIn(m);puff(m.x,m.y,8,'#6a5a8a',70,2);say(m,pick(['Miss me?','I was here the whole time.','Where were we.','Sorry. Got distracted.']),1.8,true)}return}
       m.stalkCd-=dt;
       if(m.stalkCd<=0){let t=null,bh=0;for(const e of G.enemies){const d=Math.hypot(e.x-m.x,e.y-m.y);if(d<420&&e.hp>bh&&Math.hypot(e.x-h.x,e.y-h.y)<leashR()){bh=e.hp;t=e}}
@@ -1636,7 +1636,7 @@ const CHARS={
     lines:{bless:'As is right.',fort:['To me! Obviously to me.','I shall hold. Note who held.'],revive:'I forgive you for letting that happen.',healed:['I had it.','Unnecessary.','I would have managed, Wren.','Was that a heal? Mine are bigger.'],swap:'Ah. Scripture.',brag:'He has told everyone already.',level:['He has told everyone already.','Gideon would like a moment of your time about this.','A blessing, he says. His.']},
     make(){return Object.assign(member('paladin','Gideon','#ffd98a'),{r:15,maxhp:210,spd:80,dmg:10,atkCd:1,reach:42,selfT:10,readT:4})},
     onWeapon(m){},
-    update(m,dt){const h=G.healer;m.selfT-=dt;
+    update(m,dt){const h=anchor();m.selfT-=dt;
       if(m.selfT<=0&&m.hp<m.maxhp*0.9){m.selfT=10;const sh=0.12+0.06*rank('p_selfh');m.hp=Math.min(m.maxhp,m.hp+m.maxhp*sh);ftext(m.x,m.y-m.r-8,'+'+Math.round(m.maxhp*sh),'#ffe9a8');if(hasRelic('reliquary'))for(const o of allies())if(o!==m&&Math.hypot(o.x-m.x,o.y-m.y)<130&&o.hp<o.maxhp)o.hp=Math.min(o.maxhp,o.hp+m.maxhp*sh/3);if(rank('p_share')||gratBoon(m)){let a=null,bd=1e9;for(const o of allies()){if(o===m)continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<bd){bd=d;a=o}}if(a&&bd<160){a.hp=Math.min(a.maxhp,a.hp+m.maxhp*sh*0.5);ftext(a.x,a.y-a.r-8,'+'+Math.round(m.maxhp*sh*0.5),'#ffe9a8')}}say(m,pick(['Healed! Myself. You are welcome.','Behold: healing.','See, Wren? Like that.']),2,true);G.stats.selfHeals=(G.stats.selfHeals||0)+1}
       if(m.weapon==='book'){m.readT-=dt;const dh=Math.hypot(h.x-m.x,h.y-m.y);if(dh>90)moveToward(m,h.x,h.y,m.spd*spdMul(m),dt);
         if(m.readT<=0){m.readT=4;let n=0;for(const a of allies())if(a!==m&&Math.hypot(a.x-m.x,a.y-m.y)<140&&a.hp<a.maxhp){a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.05);n++}if(n){m.castT=0.4;say(m,pick(['Blessings. Mine.','Verse twelve.','Feel that? Me.']),1.6)}}return}
@@ -1647,7 +1647,7 @@ const CHARS={
     lines:{bless:'Cool.',fort:'I would rather not.',revive:'Was I thawed or raised?',healed:['Warm. Ugh.'],swap:'They were a gift.',brag:'He calls it a "technique".',level:['He learned it in a very cold place.','Frost says it is a technique, not a trick.','He would like the room colder.']},
     make(){return Object.assign(member('frost','Frost','#bfefff'),{r:12,maxhp:130,spd:0,dmg:17,atkCd:1.3,blizzT:10,blinkCd:0})},
     onWeapon(m){},
-    update(m,dt){const h=G.healer;m.cdT-=dt*hasteMul(m);m.blizzT-=dt*hasteMul(m);if(m.blinkCd>0)m.blinkCd-=dt;
+    update(m,dt){const h=anchor();m.cdT-=dt*hasteMul(m);m.blizzT-=dt*hasteMul(m);if(m.blinkCd>0)m.blinkCd-=dt;
       if(m.blinkCd<=0&&Math.hypot(h.x-m.x,h.y-m.y)>leashR()+40){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*70;m.y=h.y+Math.sin(a)*70;keepIn(m);m.blinkCd=2;puff(m.x,m.y,8,'#bfefff',80,2);say(m,pick(['Slow down.','I do not run.']))}
       const t=nearestEnemy(m,340*(1+0.15*rank('f_reach')));
       if(m.cdT<=0&&t){m.cdT=m.atkCd;shoot(m,t,{dmg:m.dmg*pdmg()*dmgMul(m),speed:420,col:'#bfefff',freeze:1+0.5*skl(m,'f_deep')+(hasRelic('icecrown')?0.5:0)});m.castT=0.3}
@@ -1663,7 +1663,7 @@ const CHARS={
     lines:{bless:'...hm.',fort:'I am already a wall.',revive:'...slow. Slow is fine.',thanks:['...thank you, small one.'],healed:null,swap:'...ah. Acorns.',brag:'He has done it for eight hundred years.',level:['He has done this for eight hundred years.','A ring was added.','Bramble notes the season.']},
     make(){return Object.assign(member('ent','Bramble','#6ab04c'),{r:22,maxhp:900,spd:0,dmg:26,atkCd:1.1,reach:64,rootT:6,sinkT:0,burnT:0,dr:0.25})},
     onWeapon(m){},
-    update(m,dt){const h=G.healer;m.cdT-=dt*hasteMul(m);if(m.swing>0)m.swing-=dt;m.rootT-=dt;
+    update(m,dt){const h=anchor();m.cdT-=dt*hasteMul(m);if(m.swing>0)m.swing-=dt;m.rootT-=dt;
       const dh=Math.hypot(h.x-m.x,h.y-m.y);
       if(m.sinkT>0){m.sinkT-=dt;if(m.sinkT<=0){const a=rnd(0,6.283);m.x=h.x+Math.cos(a)*80;m.y=h.y+Math.sin(a)*80;keepIn(m);puff(m.x,m.y,16,'#6ab04c',90,3);say(m,pick(['...fine.','...there.','...you walk too much.']),2,true)}return}
       if(dh>leashR()+80){m.sinkT=hasRelic('birdnest')?0.3:Math.max(1,3-rank('e_patient'));puff(m.x,m.y,12,'#5a4a30',80,3);say(m,'...hrm.',1.5);return}
@@ -1679,7 +1679,7 @@ const CHARS={
     lines:{bless:'Grr— thanks.',fort:'Fine. FINE.',revive:'Did I bite anyone?',thanks:['Thanks, Wren!','Good heal. Good.'],healed:null,swap:'It itches.',brag:'She does not remember doing it.',level:['She learned it. Or the wolf did.','Lupa says it was instinct.','Something in her grew.']},
     make(){return Object.assign(member('wolf','Lupa','#b08a6a'),{r:12,maxhp:260,spd:120,dmg:15,atkCd:0.8,reach:36,wolfT:0,moteMark:0})},
     onWeapon(m){},
-    update(m,dt){const h=G.healer;const picked=G.stats.motes||0;
+    update(m,dt){const h=anchor();const picked=G.stats.motes||0;
       if(m.weapon!=='collar'&&m.wolfT<=0&&picked-m.moteMark>=(hasRelic('moonstone')?25:40)-5*rank('w_hunger')){m.moteMark=picked;m.wolfT=12+3*skl(m,'w_blood')+3*rank('w_long')+(hasSyn('packmother')?4:0);say(m,pick(['...oh no. Here it comes.','Not now. NOT N—','GRRRAAAH']),2,true);puff(m.x,m.y,14,'#b08a6a',100,3);G.stats.turns=(G.stats.turns||0)+1}
       else if(m.wolfT<=0&&picked-m.moteMark>=(hasRelic('moonstone')?25:40)-5*rank('w_hunger'))m.moteMark=picked;
       if(hasRelic('fullmoon'))m.wolfT=Math.max(m.wolfT,1);
@@ -2258,17 +2258,37 @@ function allies(){const a=G.party.filter(m=>m.alive);a.push(G.healer);return a}
 const LEASH_MELEE={tank:1,assassin:1,paladin:1,wolf:1,vampire:1};
 const leashR=()=>G.healer.range*1.1;
 const HOME_R=150;
-function nearestEnemy(p,maxd){let b=null,bd=(maxd||1e9);const lim=(p&&p.key&&LEASH_MELEE[p.key])?leashR():0,h=G.healer;for(const e of G.enemies){if(lim&&Math.hypot(e.x-h.x,e.y-h.y)-e.r>lim)continue;const d=Math.hypot(e.x-p.x,e.y-p.y)-e.r;if(d<bd){bd=d;b=e}}return b}
+// b081: the party leads. An anchor picks the party's goal (an event, a chest, the thickest knot of enemies, or a
+// patrol when it is quiet) and walks there at a party's pace; every member homes on the anchor, not the healer.
+// The healer's job is to keep up. The anchor waits when the healer falls too far behind, unless the circle says not to.
+const PARTY_SPD=92;
+function anchor(){return (G&&G.pt)||G.healer}
+const GOAL_LINES={chest:['Chest. Mine.','Ooh, a box.','Loot. Finally.'],shrine:['The shrine. Come on.','Hold the shrine. Try to keep up.'],cache:['Something out there. Moving.'],mobs:['There. Lots of them.','Work to do.','This way. Kill things.'],pilgrim:['Somebody needs walking.'],stranger:['Someone is down. Healer, that is yours.'],champion:['The big one. Go.'],patrol:['Nothing here. Moving on.','This way, I think.','Quiet. Too quiet. Walking.']};
+function partyTick(dt){const h=G.healer;if(!G.pt)G.pt={x:h.x,y:h.y,gx:h.x,gy:h.y,goal:'',think:0,wT:0,px:h.x,py:h.y,dir:0,waitT:0};const P=G.pt;P.think-=dt;
+  if(P.think<=0){P.think=0.5;let gx=null,gy=null,goal='';const ev=G.event;
+    if(ev&&!ev.done){if(ev.id==='shrine'||ev.id==='cache'){gx=ev.x;gy=ev.y;goal=ev.id}else if(ev.id==='pilgrim'&&ev.npc&&ev.npc.alive){gx=ev.npc.x;gy=ev.npc.y;goal='pilgrim'}else if(ev.id==='stranger'&&ev.npc&&ev.npc.alive){gx=ev.npc.x;gy=ev.npc.y;goal='stranger'}else if(ev.id==='champion'&&ev.target&&!ev.target.dead){gx=ev.target.x;gy=ev.target.y;goal='champion'}}
+    if(gx===null){let bc=null,bd=900;for(const c of G.chests){const d=Math.hypot(c.x-P.x,c.y-P.y);if(d<bd){bd=d;bc=c}}if(bc){gx=bc.x;gy=bc.y;goal='chest'}}
+    if(gx===null){const en=G.enemies;let best=null,bn=3;const step=Math.max(1,Math.floor(en.length/40));
+      for(let i=0;i<en.length;i+=step){const e=en[i];if(e.wisp||e.dead)continue;const d=Math.hypot(e.x-P.x,e.y-P.y);if(d>640)continue;let n=0;for(let j=0;j<en.length;j+=step){const o=en[j];if(Math.hypot(o.x-e.x,o.y-e.y)<140)n++}n=n*step+(e.boss?12:e.elite?4:0);if(n>bn){bn=n;best=e}}
+      if(best){gx=best.x;gy=best.y;goal='mobs'}}
+    if(gx===null){P.wT-=0.5;if(P.wT<=0||P.goal!=='patrol'){P.wT=rnd(6,11);const a=rnd(0,6.283),r=rnd(220,420);P.px=clamp(P.x+Math.cos(a)*r+(ARENA/2-P.x)*0.12,160,ARENA-160);P.py=clamp(P.y+Math.sin(a)*r+(ARENA/2-P.y)*0.12,160,ARENA-160)}gx=P.px;gy=P.py;goal='patrol'}
+    if(goal!==P.goal){P.goal=goal;if(RAND()<0.45&&G.t>8){const lead=G.party.find(m=>m.alive&&!m.asleep&&!m.hidden);const L=GOAL_LINES[goal];if(lead&&L)say(lead,pick(L),2,true)}}
+    P.gx=gx;P.gy=gy}
+  const dx=P.gx-P.x,dy=P.gy-P.y,d=Math.hypot(dx,dy),stopAt=P.goal==='chest'||P.goal==='patrol'?28:P.goal==='mobs'?80:P.goal==='stranger'?60:40;
+  const restless=rule('restlessParty'),dh=Math.hypot(h.x-P.x,h.y-P.y);let spd=PARTY_SPD*(restless?1.35:1)*(G.field.speedMul||1);
+  if(!restless&&dh>430&&h.alive){spd=0;P.waitT+=dt;if(P.waitT>4){P.waitT=-12;const m=pick(G.party.filter(m=>m.alive&&!m.asleep));if(m)say(m,pick(['Keep up, healer.','Where is the healer?','...we are waiting.','Healer. Legs. Use them.','Hurry UP.']),2,true)}}else if(P.waitT>0)P.waitT=0;
+  if(d>stopAt&&spd>0){const st=Math.min(spd*dt,d-stopAt);P.x+=dx/d*st;P.y+=dy/d*st;P.dir=Math.atan2(dy,dx)}}
+function nearestEnemy(p,maxd){let b=null,bd=(maxd||1e9);const lim=(p&&p.key&&LEASH_MELEE[p.key])?leashR():0,h=anchor();for(const e of G.enemies){if(lim&&Math.hypot(e.x-h.x,e.y-h.y)-e.r>lim)continue;const d=Math.hypot(e.x-p.x,e.y-p.y)-e.r;if(d<bd){bd=d;b=e}}return b}
 const LEASH_LINES={tank:['...I could have had that one.','Staying. Fine.','It’ll come to me.'],archer:['I can hit it from here! Probably!','Staying close. Staying close.'],mage:['I do not chase.','It can come to me.'],necro:['The dead may wander. I shall not.','Let them come.'],assassin:['I was going to come back.','Fine. Close work, then.'],paladin:['I shall hold this ground. Note who held it.','Here is fine. Here is holy.'],frost:['I do not run.','Brisk enough here.'],ent:['...here.'],wolf:['Grr. Fine.','Not far. Not far.'],vampire:['Very well. I shall stay close.','How clingy.'],gunner:['Ain’t worth the walk.','They’ll come. They always do.'],robot:['PERIMETER MAINTAINED.','HOLDING FORMATION.']};
 function leash(m,dt){
-  const h=G.healer; if(!m.alive||m.sinkT>0||m.hidden||m.spd<=0)return;
+  const h=anchor(); if(!m.alive||m.sinkT>0||m.hidden||m.spd<=0)return;
   const LR=leashR()*(m.panicT>0?1.4:1), dx=m.x-h.x, dy=m.y-h.y, d=Math.hypot(dx,dy)||1;
   if(d>LR){m.x=h.x+dx/d*LR;m.y=h.y+dy/d*LR;m.outT=(m.outT||0)+dt;
     if(m.outT>3&&!m.asleep&&!(m.panicT>0)){m.outT=-8;if(RAND()<0.6)say(m,pick(LEASH_LINES[m.key]||['...fine.']),1.6,true)}}
   else if(m.outT>0)m.outT=Math.max(0,m.outT-dt);
   // their own thing: drift about inside the circle when nothing is close
   if(m.asleep||m.panicT>0||m.frozenT>0||m.overheated||m.reloadT>0||m.wolfT>0)return;
-  m.wT=(m.wT||0)-dt; if(m.wT<=0){m.wT=rnd(3,7);const a=rnd(0,6.283),r=rnd(30,90);m.wx=Math.cos(a)*r;m.wy=Math.sin(a)*r}
+  m.wT=(m.wT||0)-dt; if(m.wT<=0){m.wT=rnd(3,7);const a=rnd(0,6.283),r=rnd(30,90),fwd=(G.pt&&G.pt.dir)||0,lead=(m.key==='tank'||m.key==='paladin'||m.key==='wolf'||m.key==='robot'||m.key==='vampire')?55:-40;m.wx=Math.cos(a)*r+Math.cos(fwd)*lead;m.wy=Math.sin(a)*r+Math.sin(fwd)*lead}
   let busy=false;for(const e of G.enemies){if(Math.hypot(e.x-m.x,e.y-m.y)<LR+140){busy=true;break}}
   if(!busy&&d<HOME_R){const tx=h.x+m.wx,ty=h.y+m.wy;if(Math.hypot(tx-m.x,ty-m.y)>12){moveToward(m,tx,ty,m.spd*0.4,dt);m.anim-=dt*4}}
 }
@@ -2300,7 +2320,7 @@ const EVENTS=[
 ];
 function startEvent(){
   wstream('event',G.eventN=(G.eventN||0)+1);
-  const tk=tankOf(); const h=G.healer, pool=EVENTS.filter(e=>!(e.id==='vigil'&&!(tk&&tk.alive))&&!(e.id==='ambush'&&G.t<200)&&!(e.id==='champion'&&G.t<90)&&!(e.id==='bloodmoon'&&G.t<150)&&!(e.id==='fast'&&!G.party.some(m=>m.alive&&m.key!=='vampire'))&&e.id!==G.lastEvent&&e.id!==G.lastEvent2);
+  const tk=tankOf(); const h=anchor(), pool=EVENTS.filter(e=>!(e.id==='vigil'&&!(tk&&tk.alive))&&!(e.id==='ambush'&&G.t<200)&&!(e.id==='champion'&&G.t<90)&&!(e.id==='bloodmoon'&&G.t<150)&&!(e.id==='fast'&&!G.party.some(m=>m.alive&&m.key!=='vampire'))&&e.id!==G.lastEvent&&e.id!==G.lastEvent2);
   if(!pool.length){G.eventT=30;return}
   const E=wpick(pool), a=wrnd(0,6.283), R=E.id==='shrine'?300:0;
   const ev={id:E.id,name:E.name,desc:E.desc,reward:E.reward,t:E.dur,dur:E.dur,done:false,x:clamp(h.x+Math.cos(a)*R,120,ARENA-120),y:clamp(h.y+Math.sin(a)*R,120,ARENA-120),prog:0,kills:0,need:0};
@@ -2362,7 +2382,7 @@ function toast(t,d){const el=$('toast');el.textContent=t;el.style.opacity=1;G.to
 // b062: a new profile gets a few callouts in its first run, each once, then never again
 const TUT=[
   {id:'heal',at:4,txt:'Stay inside the <b>small green ring</b> to heal. Walk to whoever is hurt.'},
-  {id:'ring',at:14,txt:'The <b>big ring</b> is where the party fights. They stay in it. You do not have to.'},
+  {id:'ring',at:14,txt:'The party goes where it likes: mobs, chests, events. The <b>big ring</b> is their ground. <b>Follow them.</b>'},
   {id:'flee',at:40,txt:'Enemies that reach you forget the party. <b>Keep walking.</b> You are faster than most of them.'},
   {id:'flask',when:()=>G.t>=24&&G.healer.mana>=G.healer.manaMax,txt:'Flask full. <b>Q</b> fires your ultimate; <b>R</b> revives the fallen. Each costs the whole flask.'},
   {id:'level',when:()=>G.lvQ&&G.lvQ.length>0||G.level>1,txt:'Level up: pick a card for yourself. The party picks their own and the chat box says what they took.'},
@@ -2814,7 +2834,7 @@ function updateEnemies(dt){if(G.curseT>0)G.curseT-=dt;
 
 // ---------- party AI ----------
 function updateTank(m,dt){
-  const h=G.healer;
+  const h=anchor();
   m.cdT-=dt*hasteMul(m); if(m.swing>0)m.swing-=dt;
   if(m.asleep){
     m.napT-=dt;
@@ -2841,7 +2861,7 @@ function updateTank(m,dt){
   }else{if(dh>HOME_R)moveToward(m,h.x,h.y,m.spd*spdMul(m)*(dh>230?1.6:1),dt)}
 }
 function updateArcher(m,dt){
-  const h=G.healer;
+  const h=anchor();
   m.cdT-=dt*hasteMul(m); if(m.panicCd>0)m.panicCd-=dt;
   if(m.panicT>0){
     m.panicT-=dt; moveToward(m,m.x+Math.cos(m.panicDir)*50,m.y+Math.sin(m.panicDir)*50,m.spd*1.3,dt);
@@ -2877,7 +2897,7 @@ function updateArcher(m,dt){
   }else{const d=Math.hypot(h.x-m.x,h.y-m.y);if(d>HOME_R)moveToward(m,h.x,h.y,m.spd,dt)}
 }
 function updateMage(m,dt){
-  const h=G.healer;
+  const h=anchor();
   m.cdT-=dt*hasteMul(m); m.metT-=dt*hasteMul(m); if(m.blinkCd>0)m.blinkCd-=dt;
   const close=nearestEnemy(m,34);
   if(m.blinkCd<=0){
@@ -3311,14 +3331,14 @@ function updateHud(){
 // ---------- sim ----------
 function step(dt){
   G.t+=dt;
-  updateSpawns(dt); updateHealer(dt); if(G.over)return; tutTick(dt); updateWeapons(dt); updatePools(dt); synBark(dt); banterTick(dt); contractsTick(dt); demandTick(dt); gratTick(dt); if(G.t>=300&&!G.stats.lv5)G.stats.lv5=G.level;
+  updateSpawns(dt); updateHealer(dt); if(G.over)return; tutTick(dt); partyTick(dt); updateWeapons(dt); updatePools(dt); synBark(dt); banterTick(dt); contractsTick(dt); demandTick(dt); gratTick(dt); if(G.t>=300&&!G.stats.lv5)G.stats.lv5=G.level;
   for(const m of G.party)if(m.alive&&!(m.frozenT>0))CHARS[m.key].update(m,dt);
   if(upRank('ward')){G.wardT=(G.wardT||0)-dt;if(G.wardT<=0){G.wardT=20;for(const a of allies()){a.shield=Math.max(a.shield,a.maxhp*0.1*upRank('ward'));puff(a.x,a.y,4,'#c8e8ff',50,2)}}}
   for(const m of G.party){if(m.arcCd>0)m.arcCd-=dt;if(!m.alive){if(m.selfRevT>0){m.selfRevT-=dt;if(m.selfRevT<=0)selfRevive(m)}continue}if(m.key!=='tank'&&m.hp<m.maxhp&&mrank(m,'regen'))m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.004*mrank(m,'regen')*dt)}
   for(const m of G.party)if(m.alive)quirkTick(m,dt);
   for(const m of G.party)memberUltTick(m,dt);
   {const h=G.healer,HR=healR();for(const m of G.party){if(!m.alive||m.noHeal||m.hidden||m.sinkT>0||m.frozenT>0)continue;const d=Math.hypot(m.x-h.x,m.y-h.y);
-    if(m.hp<m.maxhp*0.5&&d>HR*0.85){m.seekHeal=true;if(m.spd>0&&!rule('deafParty'))moveToward(m,h.x,h.y,m.spd*spdMul(m)*0.9,dt);m.callT=(m.callT||0)-dt;if(m.callT<=0){m.callT=3.5;say(m,pick(CHARS[m.key].lines.callHeal||['Heals!','A little help here!','Healer!','Over here!','I’m not fine!','Little help?']),1.5,true);G.stats.calls=(G.stats.calls||0)+1}}
+    if(m.hp<m.maxhp*0.5&&d>HR*0.85){m.seekHeal=true;m.callT=(m.callT||0)-dt;if(m.callT<=0){m.callT=3.5;say(m,pick(CHARS[m.key].lines.callHeal||['Heals!','A little help here!','Healer!','Over here!','I’m not fine!','Little help?']),1.5,true);G.stats.calls=(G.stats.calls||0)+1}}
     else if(m.seekHeal&&(m.hp>=m.maxhp*0.85||d<=HR*0.85))m.seekHeal=false}}
   if(hasRelic('cathedral')){const pal=byKey('paladin');if(pal&&pal.alive)for(const a of allies())if(a!==pal&&a.hp<a.maxhp&&!a.noHeal&&Math.hypot(a.x-pal.x,a.y-pal.y)<270)a.hp=Math.min(a.maxhp,a.hp+a.maxhp*0.01*dt)}
   if(upRank('hearth'))for(const m of G.party)if(m.alive&&!m.noHeal&&m.hp<m.maxhp&&Math.hypot(m.x-G.healer.x,m.y-G.healer.y)<100)m.hp=Math.min(m.maxhp,m.hp+m.maxhp*0.005*upRank('hearth')*dt);
@@ -3535,7 +3555,7 @@ function draw(){
   if(G.slowT>0){ctx.fillStyle='rgba(200,150,60,.14)';ctx.fillRect(cx-40,cy-40,vw+80,vh+80)}
   if(G.nightT>0){const v=byKey('vampire');ctx.fillStyle='rgba(5,0,15,.55)';ctx.fillRect(cx-40,cy-40,vw+80,vh+80);if(v){const g=ctx.createRadialGradient(v.x,v.y,10,v.x,v.y,160);g.addColorStop(0,'rgba(120,30,60,.35)');g.addColorStop(1,'rgba(120,30,60,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(v.x,v.y,160,0,6.283);ctx.fill()}}
   // range ring
-  ctx.strokeStyle='rgba(255,233,168,.16)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.arc(h.x,h.y,h.range,0,6.283);ctx.stroke();ctx.setLineDash([]);
+  {const A=anchor();ctx.strokeStyle='rgba(255,233,168,.16)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.arc(A.x,A.y,leashR(),0,6.283);ctx.stroke();ctx.setLineDash([]);if(G.pt&&G.pt.goal&&G.pt.goal!=='patrol'&&Math.hypot(G.pt.gx-A.x,G.pt.gy-A.y)>60){ctx.strokeStyle='rgba(255,233,168,.22)';ctx.setLineDash([3,9]);ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(G.pt.gx,G.pt.gy);ctx.stroke();ctx.setLineDash([])}}
   if(h.ultT>0&&ultOf(h.hkey).rays){const k=Math.min(1,h.ultT/1.5,(ultOf(h.hkey).dur-h.ultT)/0.8);const g=ctx.createRadialGradient(h.x,h.y,20,h.x,h.y,340);g.addColorStop(0,'rgba(255,240,170,'+(0.45*k)+')');g.addColorStop(0.6,'rgba(255,220,120,'+(0.2*k)+')');g.addColorStop(1,'rgba(255,220,120,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,340,0,6.283);ctx.fill()}
   ultGround(h);for(const m of G.party)if(m.alive)ultGround(m);
   {const HR=healR();ctx.fillStyle='rgba(140,255,180,'+(0.05+0.02*Math.sin(G.t*3))+')';ctx.beginPath();ctx.arc(h.x,h.y,HR,0,6.283);ctx.fill();ctx.strokeStyle='rgba(140,255,180,.35)';ctx.lineWidth=2;ctx.stroke()}

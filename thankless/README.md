@@ -733,3 +733,31 @@ grant ninety-nine. The empty-pool "mana refund" path can no longer be
 reached. Verified: every new card applied in a headless run with no
 errors; maxing every finite card produced a level-up offering only endless
 cards at Common.
+
+## The UI kit (b084)
+Twenty Grok images from paste-sheet block 87 replace the flat CSS chrome
+of the camp menu: a panel frame, unlit and lit button plates, the Set out
+banner, unlit and lit nav tabs, a header ribbon, a divider, and twelve
+icons. Sources live in `art-src/ui/`; `pack-ui.py` keys them and writes
+`ui/*.webp` (about 800 KB for the set, cached by the service worker on
+first fetch like any other asset). The keying is not the sprite packer's:
+Grok paints glows and plum shadows that are nearly magenta, so a plain
+colour key ate the party banner. The packer flood-fills the magenta from
+the edges (and from the centre for the hollow frames), also keys any
+near-pure magenta pocket (ring holes, lantern glass), and only within a
+16 px band next to that background does it soften alpha by magenta-ness
+and fade the hot-pink glow rims Grok paints over magenta. Fringe colours
+are un-blended against the background colour so gold stays gold.
+
+The pieces are nine-slice `border-image`s; the slice numbers in the CSS
+are the beam widths the packer measures along the middle row and column
+of each frame. `.panel` wears the oak frame, every button inside the
+menu, settings, pause and results overlays wears the brass plate (lit on
+press or `.on`), `button.big` wears the red Set out banner, the bottom
+nav and the pick cards wear the iron tab, and `h2` headers in the menu
+and settings sit on the parchment ribbon with their hint line in dark
+ink beneath. Level-up cards keep their tier borders. Nav emoji became
+`<img>` icons; the Settings button and the Settings and Save headers
+carry the gear and bottle. Verified headless at phone and desktop width:
+camp, party, training, contracts, codex, settings, level-up; no console
+errors and no missing files.

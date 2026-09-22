@@ -252,6 +252,25 @@
   #hud:not(.run) #party,#hud:not(.run) #bottom,#hud:not(.run) #spells,#hud:not(.run) #clock,#hud:not(.run) #right,#hud:not(.run) #top{display:none}
   #hud.run #right{top:56px}
   #stamp{position:absolute;bottom:2px;left:6px;font-size:9px;color:#5a4a7a}
+  /* b085: every notice (event, toast, callout) lives in one slim column beside the party cards, never over the middle of the field */
+  #notices{position:absolute;top:calc(46px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(400px,56vw);display:flex;flex-direction:column;align-items:stretch;gap:4px;pointer-events:none;z-index:3}
+  #evbar,#tut,#toast{position:static;transform:none;left:auto;top:auto;width:auto;max-width:none;margin:0}
+  #evbar{padding:3px 8px 4px;font-size:10px;text-align:left}
+  #evbar .evrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  #evbar b{display:inline;font:bold 12px Georgia,serif}
+  #evbar em{font-size:10px;color:#fff;white-space:nowrap}
+  #evbar span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:9.5px;line-height:1.25;margin:0 0 3px;overflow:hidden}
+  #evbar .bar{height:4px}
+  #tut{font-size:11.5px;line-height:1.3;padding:5px 9px}
+  #toast{font-size:14px;line-height:1.2;white-space:normal}
+  #toast:empty{display:none}
+  @media (max-width:640px){
+    #notices{left:auto;transform:none;right:6px;width:calc(100vw - 138px);top:calc(44px + env(safe-area-inset-top))}
+    #tut{font-size:10.5px;padding:4px 7px}
+    #toast{font-size:12.5px}
+    #chat em{display:none}
+    #hud.run #right{top:calc(154px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));right:auto;text-align:left;font-size:11px}
+  }
 </style>
 </head>
 <body>
@@ -260,15 +279,13 @@
 <div id="hud">
   <div id="top"><div id="xp"></div></div>
   <div id="clock">0:00<small id="lvtxt">Lv 1</small></div>
-  <div id="evbar" class="hide"><b id="evname"></b><span id="evdesc"></span><div class="bar"><i id="evfill"></i></div><em id="evtime"></em></div>
   <div id="party"></div>
   <div id="right"><div id="kills"></div><div id="goldtxt"></div><div id="lucktxt"></div><div id="relics"></div></div>
   <button id="pause" class="sm">❚❚</button>
   <div id="bottom"><div id="hbars"><div class="hb"><i id="hhp"></i><span id="hhpt"></span></div><div class="hb m"><i id="hmana"></i><span id="hmanat"></span></div></div></div>
   <div id="spells"></div>
   <div id="stick"><i></i></div>
-  <div id="toast"></div>
-  <div id="tut"></div>
+  <div id="notices"><div id="evbar" class="hide"><div class="evrow"><b id="evname"></b><em id="evtime"></em></div><span id="evdesc"></span><div class="bar"><i id="evfill"></i></div></div><div id="toast"></div><div id="tut"></div></div>
   <div id="chat"></div>
   <div id="stamp"></div>
 </div>
@@ -412,7 +429,7 @@
 
 <script>
 'use strict';
-const BUILD='b084-uikit';
+const BUILD='b085-notices';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -2446,7 +2463,7 @@ function tutTick(dt){if(META.tutDone||G.over)return;const T=G.tut=G.tut||{shown:
   if(T.cur||T.t>0)return;
   for(const c of TUT){if(T.shown[c.id])continue;if(c.at!==undefined?G.t>=c.at:c.when()){T.shown[c.id]=true;T.cur=c.id;T.t=6;const el=$('tut');el.innerHTML=c.txt;el.classList.add('on');sn('event',0.5);break}}
   if(Object.keys(T.shown).length>=TUT.length){META.tutDone=true;save()}}
-function chatLog(html){if(!G)return;G.chat=G.chat||[];G.chat.push({html,t:6});if(G.chat.length>3)G.chat.shift();renderChat()}
+function chatLog(html){if(!G)return;G.chat=G.chat||[];G.chat.push({html,t:6});if(G.chat.length>(innerWidth<=640?2:3))G.chat.shift();renderChat()}
 function renderChat(){const el=$('chat');if(!el)return;el.innerHTML=(G&&G.chat||[]).map(c=>'<div style="opacity:'+Math.min(1,c.t/2).toFixed(2)+'">'+c.html+'</div>').join('')}
 function later(t,fn){G.timers.push({t,fn})}
 function applyRelic(id,quiet){if(!quiet)sfx('unlock',{vol:0.6});

@@ -301,9 +301,10 @@ Demon King comes to you.
 The big dashed ring is the buff circle: prayers, Bless, Haste, Fortify and
 the rest reach anyone inside it. The small green ring is the heal circle:
 Mend, Surge, Mending Prayer, Regrowth and Radiance's healing only land on
-allies inside it, so the healer walks to the wounded. The leash is looser
-to match, and a member under half HP comes to the healer and calls for
-heals until they are back over 85%. Bramble cannot walk; go to him.
+allies inside it, so the healer walks to the wounded. Since b081 both
+rings are drawn around the party, not the healer: the party leads and the
+healer keeps up (see "The party leads" below). A member under half HP
+calls for heals but stays in the fight; it is on you to reach them.
 
 ## Weapon families and elements
 Every gifted weapon has an element (fire, frost, poison, bolt, holy,
@@ -520,7 +521,7 @@ Every win opens the next circle, and each circle still scales the numbers
 (+35% enemy HP, +20% damage, gold ×0.5 more per circle, faster spawns and
 elites). From b064 each circle also adds one named rule, and they stack:
 1 Early Elites (elites from the first minute), 2 Dry Sky (no chests at
-3:00 and 7:00), 3 Stubborn Party (the wounded no longer come to you),
+3:00 and 7:00), 3 Restless Party (the party moves faster and waits for no one),
 4 Restless Night (events twice as often), 5 Two Knights (two Demon
 Knights, a minute early), 6 Thin Motes (motes fill the flask half as
 fast), 7 Short Hand (level-ups offer two cards), 8 The King's Court (the
@@ -639,3 +640,33 @@ three characters, unlocked or not). An untrained save should wipe somewhere past
 four minutes; a fully trained one should reach the King. Enemy HP scales
 `1 + t/150`, damage `1 + t/360`; the party's damage grows 10% per healer
 level so the run snowballs the way a survivors game should.
+
+## The party leads (b081)
+Until b080 the party trailed the healer: every member's "home" was the
+healer's position, the wounded walked to you, and a lazy healer could
+park the whole run in one corner. From b081 the party has its own mind
+and the healer's job is to follow it. `G.pt` is an invisible anchor the
+three members form up around; `partyTick` re-thinks its goal every half
+second, in priority order: the live event (shrine, cache, pilgrim,
+stranger, champion target), the nearest chest within 900, the thickest
+knot of enemies within 640 (four or more within 140 of each other, a boss
+counting as twelve and an elite as four), else a patrol point 220 to 420
+away, biased toward the arena centre and re-rolled every 6 to 11 seconds.
+It walks at 92 px/s (healers run 150, Ansel 120), stops short of the goal
+(28 for chests and patrols, 80 for a mob knot) and barks a line from
+`GOAL_LINES` when the goal changes. If the healer falls more than 430
+behind, the anchor stops and after four seconds somebody says "Keep up,
+healer." Every per-class AI is untouched: `leash`, the tank, archer and
+mage updates and the five `CHARS[].update` bodies just read `anchor()`
+instead of `G.healer`, with the front-liners' wander offsets biased 55
+forward along the anchor's heading and the rest 40 back, so the party
+reads as a formation on the move. Events spawn around the anchor, the
+buff ring is drawn around it with a dotted line to the current goal, and
+the tutorial, load tips and How to play were rewritten to say follow, not
+lead. Circle rule 3 became Restless Party (1.35× anchor speed, no waiting)
+since the old Stubborn Party rule described behaviour that no longer
+exists. Verified headless: with the healer trailing at 120 the anchor
+covered ~4100 px in four minutes (patrol 61 s, mobs 179 s), members
+averaged 139 from it, nobody waited; with the healer parked 700 away it
+stopped dead, barked, and resumed when the healer returned. The expert
+bot still wins (King dead at 10:06, 11 ults, no page errors).

@@ -761,3 +761,21 @@ ink beneath. Level-up cards keep their tier borders. Nav emoji became
 carry the gear and bottle. Verified headless at phone and desktop width:
 camp, party, training, contracts, codex, settings, level-up; no console
 errors and no missing files.
+
+## Notices in one column (b085)
+The playtester: "some of the event text sits over the majority of the
+screen." On a phone the tutorial callout (top 40 px), the event box
+(150 px, 84vw wide) and the toast (32% down, 86vw wide) stacked through
+the top 290 px of a 780 px screen, right where enemies come from, and
+the chat covered the bottom-left quadrant. Now `#notices` is one flex
+column holding the event bar, the toast and the callout in that order,
+static children, pointer-events none: centred at 56vw on desktop, and on
+phones pinned to the right of the party cards (`calc(100vw - 138px)`
+wide, top 44 px) so the field's middle is never covered. The event bar
+became a strip: name and time on one row, the description clamped to two
+lines, a 4 px bar. Callout 10.5 px on phones, toast 12.5 px. The chat keeps
+two lines on phones and hides the card descriptions (`#chat em`). The
+phone Kills/Gold counter moved under the party cards on the left so the
+column cannot cover it. Measured on a 390×780 phone with all three
+notices live: column 44–152 px, chat 674–720 px, nothing else over the
+field.

@@ -90,7 +90,9 @@
   @keyframes wordIn{from{opacity:0;transform:scale(2.2) translateY(-20px)}to{opacity:1;transform:none}}
   #pitch{margin:6px auto 8px;max-width:420px;text-shadow:1px 1px 0 #000;color:#d8ccf0;font-size:11px}
   @media (max-height:760px){#pitch{display:none}}
-  #camptop{justify-content:center;gap:12px;text-shadow:1px 1px 0 #000;margin-bottom:10px}
+  #camptop{justify-content:center;gap:10px;text-shadow:1px 1px 0 #000;margin-bottom:10px;flex-wrap:nowrap}
+  #camptop>span{white-space:nowrap}
+  #mtitle{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
   #picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:520px;margin:0 auto 10px}
   .pick{background:linear-gradient(rgba(37,29,51,.92),rgba(20,14,30,.95));border:2px solid #000;border-radius:6px;box-shadow:inset 0 0 0 1px var(--bevel),0 3px 0 #000;padding:6px 6px;cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:112px}
   .pick:active{transform:translateY(2px);box-shadow:inset 0 0 0 1px var(--bevel),0 1px 0 #000}
@@ -102,7 +104,9 @@
   .pick .pf.trio img{width:30%;height:56px;object-fit:cover;border:2px solid #000;border-radius:4px}
   .pick .pf img{width:100%;height:100%;object-fit:cover;display:block}
   #circdesc{max-width:480px;margin:0 auto 8px;text-shadow:1px 1px 0 #000;font-size:11px}
-  #campgo{justify-content:center;gap:8px}
+  #campgo{justify-content:center;gap:8px;flex-wrap:nowrap}
+  #campgo button{min-width:0;flex:0 1 auto;white-space:nowrap}
+  #setBtn .bic{margin:0;height:20px;vertical-align:-5px}
   #mnav{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(rgba(14,11,18,0),rgba(14,11,18,.96) 30%);z-index:2}
   #mnav button{flex:1;min-width:0;padding:4px 2px;min-height:44px;font-size:9px;display:flex;flex-direction:column;align-items:center;gap:1px;background:linear-gradient(#3a2d58,#241a3a)}
   #mnav button span{font-size:16px;line-height:1}
@@ -329,14 +333,14 @@
     <div class="scr" data-scr="camp">
       <div id="wordmark"><h1>THANKLESS</h1><div class="sub">Survivors of the Worst Party</div></div>
       <div class="sub" id="pitch">You are the healer. You cannot attack. Your party can, badly.<br>Keep them alive for ten minutes and the Demon King comes to you.</div>
-      <div class="row" id="camptop"><span id="mtitle" class="sub"></span><span>Gold <span class="gold" id="mgold">0</span></span><span>Circle <b id="mcircle">0</b> <button class="sm" id="circDown">−</button><button class="sm" id="circUp">+</button></span></div>
+      <div class="row" id="camptop"><span id="mtitle" class="sub"></span><span>Gold <span class="gold" id="mgold">0</span></span><span>Circle <b id="mcircle">0</b> <button class="sm" id="circDown">−</button><button class="sm" id="circUp">+</button></span><button class="sm" id="setBtn" title="Settings"><img class="bic" src="ui/ic_settings.webp" alt="Settings"></button></div>
       <div id="picks">
         <div class="pick" data-go="party"><i>Healer</i><div class="pf" id="pkHealer"></div><b id="pkHealerName"></b><small id="pkHealerUlt"></small></div>
         <div class="pick" data-go="party"><i>Party</i><div class="pf trio" id="pkParty"></div><b id="pkPartyNames"></b><small>tap to change</small></div>
         <div class="pick" data-go="field"><i>Field</i><div class="pf" id="pkField"></div><b id="fieldName"></b><small id="pkBoss"></small></div>
       </div>
       <div class="sub" id="circdesc"></div>
-      <div class="row" id="campgo"><button class="big" id="start">Set out</button><button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily</button><button id="setBtn"><img class="bic" src="ui/ic_settings.webp" alt="">Settings</button></div>
+      <div class="row" id="campgo"><button class="big" id="start">Set out</button><button id="daily" title="Everyone gets the same field, the same spawns, the same cards today">Daily Challenge</button></div>
     </div>
     <div class="scr panel" data-scr="party">
       <h2>Healers <span class="sub">(pick one)</span></h2>
@@ -437,7 +441,7 @@
 
 <script>
 'use strict';
-const BUILD='b086-rerolls';
+const BUILD='b087-camprow';
 const SAVE_KEY='thankless-save-v1';
 const ARENA=2200;           // world is ARENA x ARENA
 // b027: the daily — one seed for everyone, from the date
@@ -1004,7 +1008,7 @@ function menuScene(dt){const mc=$('menucv');if(!mc||G){if(mc)mc.classList.add('h
   // vignette
   {const gr=g.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.35,W/2,H*0.45,Math.max(W,H)*0.8);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.6)');g.fillStyle=gr;g.fillRect(0,0,W,H)}}
 function renderMenu(){
-  {const D=META.daily,sd=dailySeed();$('daily').textContent='Daily '+sd+(D&&D.seed===sd?' · best '+fmt(D.best)+(D.won?' ✓':''):'')}
+  {const D=META.daily,sd=dailySeed(),today=D&&D.seed===sd;$('daily').textContent='Daily Challenge'+(today&&D.won?' ✓':'');$('daily').title='Everyone gets the same field, the same spawns, the same cards today.'+(today?' Your best today: '+fmt(D.best)+(D.won?', won.':'.'):'')}
   checkAchievements(false); $('mgold').textContent=Math.floor(META.gold); $('mtitle').textContent=META.title?HN()+' '+META.title+' ·':'';
   $('mcircle').textContent=META.circle; renderCodex(); renderCamp();
   {const c=META.circle,rs=circleRules(c),next=CIRCLES[c];$('circdesc').innerHTML=c===0?'Circle 0: the story as told. Beat the Demon King to open the next circle'+(next?', which adds <b>'+next.name+'</b>: '+next.desc+'.':'.'):

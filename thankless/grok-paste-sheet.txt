@@ -696,3 +696,22 @@ Generate one square image for each numbered prompt below, one at a time. Same st
 19. a game icon: a heavy iron cogwheel with a small gold centre
 20. a game icon: a corked glass bottle with a rolled note inside, glowing faintly
 Icons 9–20: chunky, centred, readable at 32 pixels, thick dark outline, warm gold and iron palette, no text.
+
+--- block 88 (field dressing: smashable props, nests, bone spikes) ---
+files: 1=prop_crate.webp 2=prop_barrel.webp 3=prop_grave.webp 4=prop_urn.webp 5=prop_skulls.webp 6=prop_brazier.webp 7=prop_mushroom.webp 8=prop_log.webp
+       9=nest_gate.webp 10=nest_bonepile.webp 11=nest_crypt.webp 12=nest_hive.webp 13=hz_spikes.webp
+Generate one square image for each numbered prompt below, one at a time. Same style for all thirteen: chunky chibi fantasy game prop, thick dark outlines, flat cel shading lit from the upper left, bold readable silhouette, seen from slightly above the way a top-down RPG shows the ground, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text.
+1. a small wooden supply crate with iron corner straps, slightly battered
+2. a squat wooden barrel with two iron bands, a little mossy
+3. a small crooked old gravestone with a cracked cross carved on it, a tuft of grass at its foot
+4. a round clay burial urn with a chipped lid and faded bone-coloured markings
+5. a low heap of five or six yellowed skulls and loose bones
+6. an iron brazier on three legs with a bright fire burning in its bowl
+7. a cluster of three fat red-capped toadstools with pale spots, faintly glowing
+8. a short rotten log lying on its side, hollow at one end, moss and a small mushroom growing on it
+9. a DEMON GATE: a freestanding stone arch of black rock carved with horns, the opening filled with a swirling red-orange portal, small embers drifting out, about as tall as two people
+10. a BONE PILE: a large mound of skulls and ribcages and leg bones stacked chest high, a faint sickly green glow between the bones, one skull on top with lit eye sockets
+11. a GHOUL CRYPT: a small squat stone mausoleum with a peaked roof and an open black doorway, pale green light leaking from inside, a cracked step in front
+12. a BAT HIVE: a large dark purple hanging cocoon-like hive shaped like a teardrop, hanging from a gnarled dead branch stub, small bats clinging to it, dripping
+13. a hazard patch: a cluster of seven or eight jagged bone spikes jutting up from a patch of grey ash at different angles, the tips stained dark, roughly circular footprint
+Items 9 to 12 are the nests: make them big, readable and clearly artificial so they stand out on the field. Item 13 is flat on the ground, the spikes standing up from it.

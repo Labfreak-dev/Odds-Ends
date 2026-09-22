@@ -670,3 +670,19 @@ covered ~4100 px in four minutes (patrol 61 s, mobs 179 s), members
 averaged 139 from it, nobody waited; with the healer parked 700 away it
 stopped dead, barked, and resumed when the healer returned. The expert
 bot still wins (King dead at 10:06, 11 ults, no page errors).
+
+## Melee spread out (b082)
+With the party leading, the three front-liners used to stack on the same
+nearest mob and stand in one pile. `meleeTarget(m,maxd)` replaces
+`nearestEnemy` for `meleeAI` and the tank: each melee member remembers
+its target in `m.tgt`, and when picking it skips any mob another living
+melee member already holds, keeping its current one unless an unclaimed
+mob is more than 70 closer. An elite or boss inside the leash overrides
+all of that: everyone piles on the nearest one. When there are fewer
+mobs than swords they share. `partySpace()` runs each frame before the
+leash and pushes any two overlapping members apart (radius sum plus 8);
+a sleeping or frozen member is a fixed post and the awake one moves.
+Verified headless with tank, paladin and wolf: 183 of 184 samples with
+enough mobs in reach had every melee on a different target, no pair ever
+overlapped (closest 33 px), and a hand-placed elite pulled all three onto
+it within a second.

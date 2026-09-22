@@ -374,6 +374,31 @@ window.__art=(function(){
   #toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#000d;border:2px solid var(--gold);box-shadow:inset 0 0 0 1px #000,0 0 0 2px #000;padding:8px 14px;border-radius:3px;display:none;z-index:20;font-size:13px;max-width:90%;text-align:center}
   .kbd{font:11px monospace;color:var(--muted)}
   @media (prefers-reduced-motion:reduce){.fill{transition:none}}
+  /* the reveal: a relic found, or a chest opening; the lid glows the rarity's colour a beat before the piece shows */
+  #reveal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(6,4,2,.8);padding:16px;cursor:pointer}
+  #reveal.on{display:flex}
+  #reveal .rv{position:relative;width:min(100%,320px);min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+    border:22px solid transparent;border-image:var(--ui-panel) 48 fill / 22px stretch;padding:8px 4px 12px;animation:rvIn .35s ease-out;overflow:hidden}
+  #reveal .beam{position:absolute;left:50%;top:-30%;width:220px;height:160%;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 35%,var(--rvc) 0%,transparent 62%);opacity:0;pointer-events:none}
+  #reveal.glow .beam{animation:rvBeam 1.1s ease-out forwards}
+  #reveal .chest{position:relative;width:128px;height:128px;background:var(--chest-1) center/contain no-repeat;animation:rvShake 1s ease-in-out}
+  #reveal .chest.k2{background-image:var(--chest-2)}#reveal .chest.k3{background-image:var(--chest-3)}
+  #reveal.glow .chest{animation:rvGlow 1.1s ease-in forwards}
+  #reveal .item{display:none;flex-direction:column;align-items:center;gap:5px;position:relative}
+  #reveal.show .chest{display:none}#reveal.show .item{display:flex;animation:rvPop .45s cubic-bezier(.2,1.4,.4,1)}
+  #reveal .rvpic{width:96px;height:96px;filter:drop-shadow(0 0 16px var(--rvc))}
+  #reveal .rvpic img,#reveal .rvpic svg{width:96px;height:96px}
+  #reveal .kind{font:11px Cinzel,Georgia,serif;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+  #reveal .nm{font:bold 20px/1.15 Cinzel,Georgia,serif;color:var(--rvc);text-shadow:0 2px 0 #000}
+  #reveal .fl{font:italic 12px Georgia,serif;color:var(--tan);max-width:260px}
+  #reveal .st{font:11px Verdana;color:var(--muted)}
+  #reveal .src{font:11px Verdana;color:var(--muted);margin-top:4px}
+  #reveal .tap{font:10px Verdana;color:var(--muted);opacity:.7;margin-top:6px}
+  @keyframes rvIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+  @keyframes rvShake{0%,100%{transform:rotate(0)}15%{transform:rotate(-5deg)}30%{transform:rotate(5deg)}45%{transform:rotate(-4deg)}60%{transform:rotate(4deg)}75%{transform:rotate(-2deg)}}
+  @keyframes rvGlow{from{filter:drop-shadow(0 0 0 var(--rvc))}to{filter:drop-shadow(0 0 30px var(--rvc)) brightness(1.7)}}
+  @keyframes rvBeam{from{opacity:0}to{opacity:.85}}
+  @keyframes rvPop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
   /* the intro: a painted curtain over the boot, so nobody watches the art arrive */
   #intro{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:24px 16px;
     background:radial-gradient(ellipse at 50% 38%,#3a2c1d,var(--bg) 68%);transition:opacity .45s}
@@ -829,9 +854,12 @@ button.sm{padding:0 9px}
     <button class="sm" id="introGo" hidden>Enter the hold</button>
   </div>
 </div>
+<div id="reveal" role="dialog" aria-live="polite"><div class="rv"><div class="beam"></div><div class="chest"></div>
+  <div class="item"><div class="rvpic" id="rvPic"></div><div class="kind" id="rvKind"></div><div class="nm" id="rvName"></div><div class="fl" id="rvFl"></div><div class="st" id="rvSt"></div><div class="src" id="rvSrc"></div><div class="tap">tap to close</div></div>
+</div></div>
 <div id="shell">
   <div id="topbar">
-    <div id="brand"><span id="crest"></span><h1>Ironhold Idle <span class="sub" id="bstamp" style="font:11px Verdana;color:var(--muted)" title="build stamp">v1.0</span></h1></div>
+    <div id="brand"><span id="crest"></span><h1>Ironhold Idle <span class="sub" id="bstamp" style="font:11px Verdana;color:var(--muted)" title="build stamp">v1.1</span></h1></div>
     <div id="pills"></div>
     <button class="sm" id="btnLedger" title="Ledger — guide and save" aria-label="Ledger: guide and save">&#9881; <span>Ledger</span></button>
   </div>
@@ -896,8 +924,7 @@ button.sm{padding:0 9px}
             <button class="sm" id="btnSalvJunk">Salvage junk</button>
             <button class="sm" id="btnSellJunk">Sell junk</button>
             <button class="sm" id="btnSellAll" title="Sell everything in the pack; only the Heirloom stays">Sell all</button>
-            <button class="sm" id="btnChest">Open 1 (<span id="chestCnt">0</span>)</button>
-            <button class="sm" id="btnChestAll">Open all</button>
+            <button class="sm" id="btnChest">Open (<span id="chestCnt">0</span>)</button>
             <button class="sm" id="btnChest2" hidden>Open Banded (<span id="chest2Cnt">0</span>)</button>
             <button class="sm" id="btnChest3" hidden>Open Gilded (<span id="chest3Cnt">0</span>)</button>
           </div>
@@ -1533,6 +1560,7 @@ function labTap(x,y){if(G.tower||abyssW())return false;for(const B of LAB_BEAKER
 // ============ WHAT'S NEW ============
 // Newest first. The first entry's build id is the marker for the once-per-build chronicle line.
 const WHATS_NEW=[
+ {b:'v1.1',t:'Relics and chests',w:'Every unique and set piece now arrives as a reveal, from whatever dropped it, and the chronicle keeps where it came from. Chests are scarce and fall on the field: tap one, or let the Coach open it. Each holds at least a Superior piece of the area\'s tier and glows its rarity before it opens, and no chest kind goes long without a relic: the lock remembers. The Mimic swallows an old hoard once and gives back gold, finer chests and one relic.'},
  {b:'v1.0',t:'Ironhold Idle 1.0',w:'The long road: twenty realms, each longer than the last. Monster health compounds a realm at a time, the Elder Wyrm sleeps until a tally of the realm\'s monsters has fallen, and the hold fights on without you for eight hours plus eight more for every four realms climbed. Double time unlocks at realm 10.'},
  {b:'v1.0',t:'The hold and its people',w:'Companions join for nothing once unlocked; their kit and training cost the gold. Buildings cost real gold past level two, the forge is dearer with every plus, and the Quartermaster wears, salvages or sells what drops.'},
  {b:'v1.0',t:'The Mimic and the chests',w:'A boss carries a chest on the first clear and one time in three after. The Mimic (Vault › Storage) eats five chests for a Banded chest and five Banded for a Gilded one; the Vaultkeeper and Gilded sets come only from those. Uniques are rare from every source, and the Sovereign harness, once found, crosses every ascension.'},
@@ -2334,7 +2362,7 @@ const FEATS=[
 function featDone(id){return !!(S.feats&&S.feats.done&&S.feats.done[id]);}
 function featText(rw){return [rw.item&&UNIQUES[rw.item]?UNIQUES[rw.item].n:'',rw.piece&&SETS[rw.piece[0]]?SETS[rw.piece[0]].n+' '+SETS[rw.piece[0]].pieces[rw.piece[1]]:'',rw.gold?fmt(rw.gold)+'g':'',rw.scrap?rw.scrap+' scrap':'',rw.chest?rw.chest+' chest'+(rw.chest>1?'s':''):'',rw.rune?rw.rune+' rune'+(rw.rune>1?'s':''):'',
   rw.shards?rw.shards+' shard'+(rw.shards>1?'s':''):'',rw.ingot?rw.ingot+' Starsteel':'',rw.jewel?'a jewel':''].filter(Boolean).join(' + ');}
-function featGrant(rw){if(rw.item&&UNIQUES[rw.item])rdStow([makeUnique(rw.item)]);if(rw.piece&&SETS[rw.piece[0]])rdStow([makeSetPiece(rw.piece[0],rw.piece[1])]);if(rw.gold)S.gold+=rw.gold;if(rw.scrap)S.scrap+=rw.scrap;if(rw.chest)S.chests+=rw.chest;
+function featGrant(rw){if(rw.item&&UNIQUES[rw.item]){const u=makeUnique(rw.item);rdStow([u]);reveal(u,{src:'a feat, kept by the keeper'});}if(rw.piece&&SETS[rw.piece[0]])rdStow([makeSetPiece(rw.piece[0],rw.piece[1])]);if(rw.gold)S.gold+=rw.gold;if(rw.scrap)S.scrap+=rw.scrap;if(rw.chest)S.chests+=rw.chest;
   if(rw.rune)for(let i=0;i<rw.rune;i++)S.runes[rollRune(true)]++;if(rw.shards)S.asc.shards+=rw.shards;if(rw.ingot)S.ingots=(S.ingots||0)+rw.ingot;if(rw.jewel&&medOwned())jewelDrop('a realm deed');}
 function featTick(){
   S.feats=S.feats||{done:{},title:null};S.feats.done=S.feats.done||{};
@@ -3165,7 +3193,7 @@ function openMed(){goRoom('vault','Medallion');renderMed();}
 
 // ============ DRAWING ============
 const cv=document.getElementById('scene');const ctx=cv.getContext('2d');
-cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();if(!r.width)return;labTap((e.clientX-r.left)*VW/r.width,(e.clientY-r.top)*VH/r.height);});
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();if(!r.width)return;const x=(e.clientX-r.left)*VW/r.width,y=(e.clientY-r.top)*VH/r.height;if(labTap(x,y))return;fieldTap(x,y);});
 const VW=500,VH=230;
 const HX=178,MX=370;   // champion and monster anchors
 const SCALE=Math.min(2,Math.max(1,window.devicePixelRatio||1));   // 1 on a plain desktop, 2 on a phone
@@ -3661,6 +3689,7 @@ function drawScene(t,dt){
       const fi=atk?Math.min(nA-1,Math.floor((1-FX.mLunge)*nA)):0;
       drawSprite(atk?sprFrame(mk+'_atk',fi):run?sprFrame(mk+'_run',Math.floor(t*7)%Math.max(1,SPR[mk+'_run'].length)):sprFrame(mk+'_idle',nI>1?Math.floor(t*8)%nI:0),MX-ml,gy+6+(nI>1?0:Math.sin(t*2.5)*1.5),false,FX.mFlash,mobSprScale(G.mob));}
     else drawMob(MX-ml,gy-90,G.mob,t,-1,FX.mFlash);}
+  drawField(t,gy);
   drawOrbs(t);
   // splats
   ctx.font='bold 16px Verdana';ctx.textAlign='center';
@@ -3781,6 +3810,7 @@ const COACH=[
  {id:'march',n:'March on',d:'After a boss falls, move to the next area if your hit chance there is at least the mark and you have not died in ten minutes.',opts:[['off','Off'],['on','On']],need:()=>!!(S.asc&&S.asc.count>0),lock:'your first ascension'},
  {id:'pray',n:'Prayers',d:'Relight your quick prayers when a quarter of your points are back.',opts:[['off','Off'],['always','Always'],['boss','Bosses and goblins']],need:()=>combatLvl()>=30,lock:'combat level 30'},
  {id:'retreat',n:'Retreat',d:'With no food and under a third of your health, fall back an area before the blow that would kill you.',opts:[['off','Off'],['on','On']],need:()=>(S.deaths||0)>=3,lock:'three deaths, learned the hard way'},
+ {id:'chest',n:'Chests',d:'A chest that falls in the fight: open it on the spot after a moment, leave it for you to tap (it goes to the Vault after twenty-five seconds), or stow it straight away.',opts:[['open','Open on the spot'],['tap','Wait for my tap'],['stow','Stow in the Vault']],need:()=>true,lock:''},
  {id:'speed',n:'Double time',d:'The fight runs at twice the pace, here and while you are away. The numbers do not change; the hours do.',opts:[['1','Off'],['2','Twice']],need:()=>((S.asc&&S.asc.realm)||0)>=9,lock:'realm 10'},
 ];
 function coachDef(k){return COACH.find(x=>x.id===k);}
@@ -4106,7 +4136,13 @@ function killMob(){
   // gear
   const dropCh=(G.isBoss?1:0.10)*luck;
   if(Math.random()<dropCh){const it=G.isBoss?makeItem(clamp(A.tier+1+tierBonus(),0,tierCap()),SLOTS[rnd(0,9)],Math.max(3,rollRarity(0.5))):rollDrop(A.tier,0);gainItem(it);}
-  if(Math.random()<(G.isBoss?(S.cleared[S.area]?0.35:1):0.02)*(1+(luck-1)*0.5)*(1+0.25*keepEff('chest'))*(1+medEff('chest')/100)*creedEff('chestx',1)){S.chests++;log('You found a chest!','g');}
+  {const mods=(1+(luck-1)*0.5)*(1+0.25*keepEff('chest'))*(1+medEff('chest')/100)*creedEff('chestx',1);
+   const kdt=Math.max(0.5,Math.min(600,(S.fightT||0)-(G.lastKillFT||0)));G.lastKillFT=S.fightT||0;
+   /* the hazard rises with the time since the last chest and scales by the time this kill took, so the wait is about
+      CHEST_EVERY of fighting whether kills come every ten seconds or every forty; a boss carries one on the first
+      clear and one time in two after */
+   const p=G.isBoss?(S.cleared[S.area]?0.5:1):Math.min(1,(S.chestT||0)*kdt/(CHEST_T0*CHEST_T0))*mods;
+   if(Math.random()<p){if(!G.isBoss)S.chestT=0;chestFall(1);}}
   if(Math.random()<0.10*(1+0.1*keepEff('yard'))*creedEff('scrapx',1))S.scrap+=(1+keepEff('yard'))*omenEff('scrap',1);
   if(Math.random()<(G.isBoss?(S.cleared[S.area]?0.25:1):0.02)*luck*omenEff('rune',1)*creedEff('runex',1))gainRune(G.isBoss);
   if(!G.isBoss&&diff().n==='Torment')rollSeal(S.area,luck*0.12,false);
@@ -4137,7 +4173,7 @@ function killMob(){
 function gainItem(it){
   const cur=S.equip[it.slot];if(it.from===undefined)it.from=G.tower?'t':S.area;
   if(isSpecial(it)){markFound(it);if(S.inv.length>=28){const j=S.inv.findIndex(x=>!isSpecial(x)&&!x.rw);if(j>=0){const junk=S.inv.splice(j,1)[0];S.scrap+=itemScrap(junk);log('Pack full: salvaged '+itemName(junk)+' to make room.');}}
-    if(S.inv.length<28){S.inv.push(it);sfx('rare');log('Unique drop: '+itemName(it),'g');if(!G.sim)toast('Unique: '+itemName(it));return 'kept';}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));return 'sold';}}
+    if(S.inv.length<28){S.inv.push(it);sfx('rare');log(`Relic: ${itemName(it)}, from ${relicSrc()}.`,'g');reveal(it);return 'kept';}else{S.gold+=itemValue(it);log('Pack full: sold '+itemName(it));return 'sold';}}
   qmPressure();
   if(qm().mode!=='off'&&qmJunk(it))return qmDispose(it,'drop');
   if(qmWear(it))return 'worn';
@@ -4226,13 +4262,15 @@ function richTick(){if(!S.rich||!S.richOn)return;for(const k in RICH_FLOOR)if(!(
   S.pray.pts=prayMax();S.spec=100;if(S.draught&&draught())S.draught.charges=Math.max(S.draught.charges,draught().charges);}
 function richUI(){const b=$('richBox');if(!b)return;b.hidden=!S.rich;$('richOn').checked=!!(S.rich&&S.richOn);}
 function tick(dt){const outer=G.bonOn;if(!outer){G.bonC=null;G.bonOn=true;}try{tick0(dt);}finally{if(!outer){G.bonOn=false;G.bonC=null;}}}
-function tick0(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;if(G.mob&&!G.dead&&!S.paused)for(const c of clBoth())c.t+=dt;
+function tick0(dt){richTick();onbTick(dt);if(!G.sim)S.played=(S.played||0)+dt;S.fightT=(S.fightT||0)+dt;if(G.mob&&!G.dead&&!S.paused){for(const c of clBoth())c.t+=dt;S.chestT=(S.chestT||0)+dt;}
   S.spec=Math.min(100,S.spec+dt*(10/30)*(1+medEff('specR')/100)*(1+tuneEff('specR')/100)*vowMul('specR')*creedEff('specx',1)); // 10% per 30s
   if(!G.dead&&S.hp<maxHp()){S.hp=Math.min(maxHp(),S.hp+dt*((0.5+hpBase()/60+0.3*keepEff('larder'))*hpMult()*(1+medEff('regenPct')/100)+medEff('regen'))*(1+0.06*((S.asc&&S.asc.realm)||0))*(1+tuneEff('regen')/100)*prayRegen()*vowMul('regen')*creedEff('regenx',1));   /* a seasoned champion mends 6% faster each realm */}
   prayTick(dt);encTick(dt);
   if(G.dead){G.deadT-=dt;if(!(G.deadT>0)){G.dead=false;S.hp=maxHp();G.pT=1;G.mT=2;G.dirty=true;}return;}
   if(S.paused&&(siegeActive()||S.trial))S.paused=false;   // the horde does not wait, and a trial's clock is honest
   if(S.paused)return;                             // paused: no blows either way, no spawns; the champion rests and regens
+  if((G.holdT||0)>0){G.holdT-=dt;return;}         // a relic reveal holds the fight a moment
+  if(S.field&&!G.sim){S.field.t=(S.field.t||0)+dt;if(S.field.t>(coach('chest')==='stow'?0:coach('chest')==='open'?2.5:25))fieldTake();}
   if(!G.mob)spawn(false);
   gobTick(dt);
   if(S.autoEat&&S.hp<maxHp()*S.eatPct/100)eat(false);
@@ -4257,7 +4295,7 @@ const $=id=>document.getElementById(id);
 function rc(it){return RARITY[it.rar].c;}
 function fixKits(){const fix=it=>{if(it&&it.arm&&(!ARMK[it.arm]||!ARMK[it.arm].slots.includes(it.slot)))delete it.arm;if(it&&it.set&&SETS[it.set]&&setSlots(it.set).indexOf(it.slot)<0){const T=SETS[it.set];const nb=makeItem(T.tier,'ring',6,undefined,T.arm||null);Object.assign(it,{slot:'ring',base:nb.base,arm:undefined});delete it.arm;}};for(const sl of SLOTS)fix(S.equip[sl]);(S.inv||[]).forEach(fix);(S.store||[]).forEach(fix);}
 function fixOpened(){if(S.opened!==undefined&&(typeof S.opened!=='object'||S.opened===null)){if(typeof S.opened==='number')S.chestsOpened=Math.max(S.chestsOpened||0,S.opened);S.opened={};for(const k in SEC_GATE)if(SEC_GATE[k]())S.opened[k]=1;}}
-function uiDefaults(){for(const f of [fixKits,onbDefault,hallMigrate,fixHall,fixOpened])try{f();}catch(e){console.error('save repair',f.name,e);}if(S.asc&&S.asc.count>0&&!S.pre&&hallList().length)preNew();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
+function uiDefaults(){for(const f of [fixKits,onbDefault,hallMigrate,fixHall,fixOpened,hoardEat])try{f();}catch(e){console.error('save repair',f.name,e);}if(S.asc&&S.asc.count>0&&!S.pre&&hallList().length)preNew();S.tab=({prayer:'skills',codex:'vault'})[S.tab]||S.tab||'hero';if(S.asc&&!S.asc.creeds)S.asc.creeds=S.asc.creed?[S.asc.creed]:[];S.sec=S.sec||{};S.fold=S.fold||{forge:false};
   S.xp.rng=S.xp.rng||0;S.xp.mag=S.xp.mag||0;S.combat=S.combat||'melee';S.diff=Math.min(S.diff||0,DIFFS.length-1);if(!(S.area>=0&&S.area<AREAS.length))S.area=0;S.kills=S.kills||AREAS.map(()=>0);S.cleared=S.cleared||AREAS.map(()=>false);S.compFound=S.compFound||{};S.fltSlot=S.fltSlot||'';S.fltRar=S.fltRar||'';S.fltSort=S.fltSort||'score';
   S.food=S.food||[];while(S.food.length<FOOD.length)S.food.push(0);
   S.keep=S.keep||{};for(const k of ['forge','yard','larder','chest','barracks','vault','peddler'])S.keep[k]=S.keep[k]||0;
@@ -4650,7 +4688,6 @@ function salvageJunk(){
   let n=0,sc=0;S.inv=S.inv.filter(it=>{if(isJunk(it)){n++;sc+=itemScrap(it);S.scrap+=itemScrap(it);return false;}return true;});bounty('salvage',n);if(n){sfx('coin');S.junkActs=(S.junkActs||0)+1;}
   toast(n?`Salvaged ${n} piece${n>1?'s':''} for ${sc} scrap.`:'Nothing in the pack is junk.');renderAll();
 }
-function openAllChests(){let n=0;while(S.chests>0&&S.inv.length<28){openChest(1);n++;}if(!n)toast(S.chests?'Pack is full.':'No chests to open.');else toast(`Opened ${n} chest${n>1?'s':''}.`);renderAll();}
 // ============ STORAGE ============
 // A strongroom off the pack. Gear sent here takes no pack space and is never
 // auto-salvaged; the vault may pick from it; ascension empties it.
@@ -4670,7 +4707,7 @@ function renderBag(){
   $('chestCnt').textContent=S.chests;$('scrapCnt').textContent=S.scrap;$('qmMode').value=qm().mode;$('qmFloor').value=String(qm().floor||0);$('qmBest').checked=qm().best!==false;
   $('kiRar').value=String((S.keepIf&&S.keepIf.rar)||0);$('kiAff').value=(S.keepIf&&S.keepIf.aff)||'';$('kiStyle').checked=!!(S.keepIf&&S.keepIf.style);
   $('fltSlot').value=S.fltSlot;$('fltRar').value=S.fltRar;$('fltSort').value=S.fltSort;
-  $('btnChest').disabled=$('btnChestAll').disabled=S.chests<=0;$('chest2Cnt').textContent=S.chests2||0;$('chest3Cnt').textContent=S.chests3||0;$('btnChest2').hidden=!(S.chests2>0);$('btnChest3').hidden=!(S.chests3>0);
+  $('btnChest').disabled=S.chests<=0;$('btnChest').title=chestPityText(1);$('chest2Cnt').textContent=S.chests2||0;$('chest3Cnt').textContent=S.chests3||0;$('btnChest2').hidden=!(S.chests2>0);$('btnChest3').hidden=!(S.chests3>0);
   $('runes').innerHTML=RUNES.map((r,i)=>`<div class="rune"><div class="g" style="color:${RUNE_COL[i]}">${r[0]}</div>${r}<br><b>×${S.runes[i]}</b></div>`).join('');
   $('runewords').innerHTML=RUNEWORDS.map(rw=>`<div class="rw"><div><span class="rn">${rw.n}</span> <span class="sub">${rw.slots.length===SLOTS.length?'any slot':rw.slots.join(' / ')}</span><br>${rw.d}</div><div class="${canInscribe(rw)?'ok':'no'}">${rw.r.map(i=>RUNES[i]).join(' + ')}</div></div>`).join('');
   let list=S.inv.filter(it=>(!S.fltSlot||it.slot===S.fltSlot)&&(!S.fltRar||it.rar===+S.fltRar));
@@ -4982,7 +5019,7 @@ function renderAreas(){
     const db=d.querySelector('[data-delve]');if(db)db.onclick=()=>{if(delveStart()){showTab('hero');}};
     el.appendChild(d);});
 }
-function goArea(i){if(!unlocked(i))return;if(abyssW())abyssBank();if(S.curse&&S.curse.area!==i)endCurse('abandoned');S.area=i;G.tower=0;G.kstreak=0;spawn(false);G.dirty=true;if(!G.sim)renderAll();}
+function goArea(i){if(!unlocked(i))return;fieldStow();if(abyssW())abyssBank();if(S.curse&&S.curse.area!==i)endCurse('abandoned');S.area=i;G.tower=0;G.kstreak=0;spawn(false);G.dirty=true;if(!G.sim)renderAll();}
 
 // --- keep ---
 function keepCard(k,body,action){
@@ -5265,7 +5302,7 @@ const ONB=[
   {id:'watch',t:'Combat runs on its own. Your health is the left pool, the monster\'s the right. You coach; the blade works.',done:()=>S.totalKills>=3},
   {id:'boss',t:'Enough kills here: the boss of this area is ready. Tap the skull orb at the foot of the scene.',when:()=>!G.tower&&S.kills[S.area]>=AREAS[S.area].need&&!S.cleared[S.area],done:()=>G.isBoss||S.cleared.some(Boolean)},
   {id:'map',t:'The boss is down and the road east is open. The map icon beside the area name shows the realm and every place on it.',tab:'world',gl:'March',when:()=>S.cleared.some(Boolean),done:()=>S.tab==='world'||S.area>0},
-  {id:'chest',t:'A chest fell. Open it from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,snap:()=>S.chestsOpened||0,done:()=>(S.chestsOpened||0)>S.onb.s0},
+  {id:'chest',t:'A chest fell at your feet. Tap it on the field, or open it later from the pack under Worn: gold and a good piece inside.',tab:'hero',gl:'Worn',when:()=>S.chests>0,snap:()=>S.chestsOpened||0,done:()=>(S.chestsOpened||0)>S.onb.s0},
   {id:'pack',t:'Monsters drop gear into your pack. See what fell under Worn, and wear anything better.',tab:'hero',gl:'Worn',when:()=>S.totalKills>=3,done:()=>S.tab==='hero'},
   {id:'eat',t:'Taking hits? The food orb eats a meal. Auto-eat is already on, and lives with the prayers under Train.',when:()=>S.totalKills>=6,done:()=>S.totalKills>=14},
   {id:'skills',t:'Damage trains your skills. Attack unlocks better weapons, Defence better armour, and the stance decides which one grows.',tab:'skills',gl:'Train',when:()=>S.totalKills>=14,done:()=>S.tab==='skills'},
@@ -5463,23 +5500,64 @@ function unequip(slot){G.bonC=null;if(!S.equip[slot]||S.inv.length>=28){toast('P
 const CHEST_KINDS={1:{n:'Chest',k:'chests'},2:{n:'Banded chest',k:'chests2'},3:{n:'Gilded chest',k:'chests3'}};
 const MIMIC_FEED=5;
 function chestCount(kind){return S[CHEST_KINDS[kind||1].k]||0;}
-function chestRoll(kind){const A=AREAS[S.area];const late=S.area>=5||(S.tower.best||0)>=30;const lk=1+bonuses().luck/100;
+function chestRoll(kind){const pity=(S.pity=S.pity||{})[kind]||0,cap=PITY_CAP[kind];const it=pity>=cap-1?(chestRoll0(kind,1e9)):chestRoll0(kind,1+3*pity/cap);S.pity[kind]=isSpecial(it)?0:pity+1;return it;}   /* the lock remembers: every open without a relic raises the next chance, and the cap forces one */
+function chestPityText(kind){const pity=(S.pity||{})[kind]||0;return pity?`The lock remembers: ${pity} open${pity===1?'':'s'} since a relic; a relic by ${PITY_CAP[kind]}.`:'A relic by '+PITY_CAP[kind]+' opens at the latest.';}
+function chestRoll0(kind,boost){const A=AREAS[S.area];const late=S.area>=5||(S.tower.best||0)>=30;const lk=(1+bonuses().luck/100)*boost;
   if(kind===3){if(Math.random()<1/3){const sl=setSlots('gilt');return makeSetPiece('gilt',sl[rnd(0,sl.length-1)]);}return rollUnique({chest:true,late:true},lk*4)||makeItem(tierCap(),SLOTS[rnd(0,9)],Math.min(RARITY.length-1,Math.max(5,rollRarity(3))));}
   if(kind===2){if(Math.random()<1/5){const sl=setSlots('vault');return makeSetPiece('vault',sl[rnd(0,sl.length-1)]);}return rollUnique({chest:true,late:late||S.area>=3},lk*2)||makeItem(clamp(A.tier+1,0,tierCap()),SLOTS[rnd(0,9)],Math.min(RARITY.length-1,Math.max(4,rollRarity(2))));}
-  return rollUnique({chest:true,late},lk)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(2,rollRarity(1)));}
-function openChest(kind){kind=kind||1;const K=CHEST_KINDS[kind];
-  if(chestCount(kind)<=0)return;if(S.inv.length>=28){toast('Pack is full.');return;}
-  S[K.k]--;S.chestsOpened=(S.chestsOpened||0)+1;if(kind>1)S['chestsOpened'+kind]=(S['chestsOpened'+kind]||0)+1;bounty('chests',1);const A=AREAS[S.area];if(kind===1&&!lab().found.chest&&Math.random()<0.001)labFind('chest');
+  return rollUnique({chest:true,late},lk)||makeItem(clamp(A.tier+(Math.random()<0.3?1:0),0,tierCap()),SLOTS[rnd(0,9)],Math.max(3,rollRarity(1)));}   /* never below Superior: a chest is never a shrug */
+function openChest(kind,from){kind=kind||1;const K=CHEST_KINDS[kind];
+  if(from!=='field'&&chestCount(kind)<=0)return;if(S.inv.length>=28){toast('Pack is full.');if(from==='field')fieldStow();return;}
+  if(from==='field')S.field=null;else S[K.k]--;S.chestsOpened=(S.chestsOpened||0)+1;if(kind>1)S['chestsOpened'+kind]=(S['chestsOpened'+kind]||0)+1;bounty('chests',1);const A=AREAS[S.area];if(kind===1&&!lab().found.chest&&Math.random()<0.001)labFind('chest');
   const it=chestRoll(kind);const g=rnd(20,60)*(A.tier+1)*(kind===3?25:kind===2?5:1);S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;S.inv.push(it);markFound(it);
   let extra=null;if(hasPw('vault')&&S.inv.length<28){extra=chestRoll(kind);S.inv.push(extra);markFound(extra);}
   if(kind===3&&Math.random()<1/6)gainRune(true);
-  sfx(kind>1?'rare':'chest');log(`${K.n}: ${itemName(it)}${extra?' and '+itemName(extra):''} and ${fmt(g)} gold.`,'g');toast(`${K.n}: ${itemName(it)}`);renderAll();
+  sfx(kind>1?'rare':'chest');log(`${K.n}: ${itemName(it)}${extra?' and '+itemName(extra):''} and ${fmt(g)} gold.`,'g');reveal(it,{chest:kind});if(extra)reveal(extra,{chest:kind});renderAll();
 }
 function mimicFeed(kind){const from=kind===3?2:1;if(chestCount(from)<MIMIC_FEED)return false;S[CHEST_KINDS[from].k]-=MIMIC_FEED;S[CHEST_KINDS[kind].k]=(S[CHEST_KINDS[kind].k]||0)+1;S.mimicFed=(S.mimicFed||0)+1;sfx('rare');
   log(`The Mimic swallows ${MIMIC_FEED} ${CHEST_KINDS[from].n.toLowerCase()}s and coughs up a ${CHEST_KINDS[kind].n.toLowerCase()}.`,'g');if(!G.sim)toast(`The Mimic gives back a ${CHEST_KINDS[kind].n.toLowerCase()}`);return true;}
 function mimicFeedHtml(){const row=(kind)=>{const from=kind===3?2:1;const have=chestCount(from);return `<div class="offer"><div><b>${CHEST_KINDS[kind].n}</b><br><span class="sub">${MIMIC_FEED} ${CHEST_KINDS[from].n.toLowerCase()}s go in, one comes out. ${kind===2?'Better gear, and one in five holds a Vaultkeeper piece.':'The best gear, one in three holds a Gilded piece, one in six a rune.'} You have ${have}.</span></div><button class="sm" data-feed="${kind}" ${have>=MIMIC_FEED?'':'disabled'}>Feed ${MIMIC_FEED}</button></div>`;};
   return `<div class="offer-list" style="margin-top:6px"><div class="sub"><b>Its appetite.</b> Chests, too, and it gives back a finer one.</div>${row(2)}${row(3)}</div>`;}
 
+// ============ RELICS AND THE FIELD ============
+// A unique or a set piece is a relic: whatever dropped it, the find plays as a reveal, the fight holds two seconds,
+// and the chronicle keeps where it came from. Every chest opens through the same window. Chests are scarce and fall
+// on the field, where a tap (or the Coach) opens them; the old hoard the Mimic swallows once.
+const CHEST_EVERY=720;                        // seconds of fighting per chest, about
+const CHEST_T0=CHEST_EVERY/Math.sqrt(Math.PI/2);   // the hazard t*kdt/T0^2 per kill has that mean
+const PITY_CAP={1:40,2:15,3:6};
+const RV_Q=[];const CHEST_IMG={};const FIELD_X=276;
+function fmt0(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function nth(n){const s=['th','st','nd','rd'],v=n%100;return fmt0(n)+(s[(v-20)%10]||s[v]||s[0]);}
+function relicSrc(){if(G.tower)return `floor ${G.tower} of the tower`;if(G.mob&&G.mob.n)return `${G.isBoss?'':'a '}${G.mob.n}, your ${nth(S.totalKills||0)} kill`;return AREAS[S.area].n;}
+function relicKind(it){return it.uq?'Unique':it.set?(SETS[it.set]?SETS[it.set].n+' set':'Set piece'):it.heir?'Heirloom':((RARITY[it.rar]&&RARITY[it.rar].n)||'Common');}
+function relicFlavor(it){if(it.uq&&UNIQUES[it.uq])return UNIQUES[it.uq].d||'';if(it.set&&SETS[it.set]){const T=SETS[it.set];return `One of the ${Object.keys(T.pieces).length} pieces of ${T.n}.`;}return '';}
+function relicStats(it){let st={atk:0,str:0,def:0};try{st=itemStats(it);}catch(e){}const parts=[];if(st.atk)parts.push('attack '+st.atk);if(st.str)parts.push('strength '+st.str);if(st.def)parts.push('defence '+st.def);for(const k in (it.aff||{}))parts.push(k+' +'+it.aff[k]);return parts.join(' \u00b7 ');}
+function reveal(it,opt){if(G.sim||!it)return;opt=opt||{};RV_Q.push({it,chest:opt.chest||0,src:opt.src||relicSrc()});if(RV_Q.length>6)RV_Q.shift();}
+function revealTick(){if(G.rv||!RV_Q.length)return;if($('intro')||$('modal').className==='on'||$('lgModal').classList.contains('on'))return;
+  const r=RV_Q.shift(),it=r.it,el=$('reveal');if(!el)return;G.rv=r;const col=(RARITY[it.rar]&&RARITY[it.rar].c)||'#ffd24a';const special=isSpecial(it);
+  el.style.setProperty('--rvc',col);el.className='on';const ch=el.querySelector('.chest');ch.className='chest'+(r.chest>1?' k'+r.chest:'');ch.style.display=r.chest?'':'none';
+  $('rvPic').innerHTML=itemPic(it);$('rvKind').textContent=relicKind(it);$('rvName').textContent=itemName(it);$('rvFl').textContent=relicFlavor(it);$('rvSt').textContent=relicStats(it);
+  $('rvSrc').textContent=r.chest?`From a ${CHEST_KINDS[r.chest].n.toLowerCase()}`+(r.src&&r.src!==relicSrc()?', '+r.src:''):'From '+r.src;
+  if(special)G.holdT=Math.max(G.holdT||0,2);
+  r.timers=[setTimeout(()=>el.classList.add('glow'),r.chest?200:0),setTimeout(()=>{el.classList.add('show');if(special)sfx('rare');},r.chest?1300:300),setTimeout(revealEnd,special?(r.chest?5600:4400):(r.chest?3600:2800))];}
+function revealEnd(){const r=G.rv;if(!r)return;for(const t of r.timers||[])clearTimeout(t);G.rv=null;const el=$('reveal');if(el)el.className='';}
+function chestFall(kind){kind=kind||1;if(G.sim||coach('chest')==='stow'){S[CHEST_KINDS[kind].k]=(S[CHEST_KINDS[kind].k]||0)+1;log(G.sim?'You found a chest!':'A chest falls; the Coach stows it in the Vault.','g');return;}
+  if(S.field)fieldStow();S.field={kind,t:0};log('A chest falls at your feet.','g');if(!G.sim)splat(FIELD_X,120,'a chest!','#ffd24a');}
+function fieldStow(){const f=S.field;if(!f)return;S.field=null;S[CHEST_KINDS[f.kind].k]=(S[CHEST_KINDS[f.kind].k]||0)+1;if(!G.sim)log('The chest goes to the Vault.');G.dirty=true;}
+function fieldTake(){const f=S.field;if(!f)return;if(coach('chest')==='open'&&S.inv.length<28)openChest(f.kind,'field');else fieldStow();}
+function fieldTap(x,y){const f=S.field;if(!f||G.sim)return false;if(Math.abs(x-FIELD_X)<=34&&y>=VH*0.72-60&&y<=VH*0.72+14){openChest(f.kind,'field');return true;}return false;}
+function chestImg(kind){if(CHEST_IMG[kind]!==undefined)return CHEST_IMG[kind];let im=null;try{const v=getComputedStyle(document.documentElement).getPropertyValue('--chest-'+kind).trim();const m=/url\(\s*["']?(.*?)["']?\s*\)/.exec(v);if(m){im=new Image();im.src=m[1];}}catch(e){}CHEST_IMG[kind]=im;return im;}
+function drawField(t,gy){const f=S.field;if(!f||G.sim)return;const im=chestImg(f.kind);const bob=Math.sin(t*3)*2;
+  ctx.save();ctx.shadowColor='#ffd24a';ctx.shadowBlur=12+8*Math.sin(t*4);
+  if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,FIELD_X-24,gy-46+bob,48,48);
+  else{ctx.fillStyle='#8a5a2a';ctx.fillRect(FIELD_X-18,gy-30+bob,36,26);ctx.fillStyle='#ffd24a';ctx.fillRect(FIELD_X-3,gy-20+bob,6,8);}
+  ctx.restore();}
+function hoardEat(){if(S.hoardEaten||(S.chests||0)<=60)return;const n=S.chests-30;S.chests=30;const A=AREAS[Math.min(Math.max(0,S.area|0),AREAS.length-1)];
+  const g=n*40*(A.tier+1),b2=Math.min(20,Math.floor(n/25)),b3=Math.min(8,Math.floor(n/250));S.gold+=g;S.goldEarned=(S.goldEarned||0)+g;S.chests2=(S.chests2||0)+b2;S.chests3=(S.chests3||0)+b3;S.hoardEaten=1;
+  const u=rollUnique({chest:true,late:true},1e9);if(u){if(S.inv.length<28)S.inv.push(u);else rdStow([u]);markFound(u);}
+  log(`The Mimic wakes to a hoard of ${fmt0(n)} chests and swallows the lot. It gives back ${fmt(g)} gold, ${b2} banded and ${b3} gilded chest${b3===1?'':'s'}${u?', and, choking, '+itemName(u):''}. Thirty chests stay in the Vault.`,'g');
+  if(u)reveal(u,{src:'the Mimic, choking on your hoard'});}
 
 // ============ SAVE / OFFLINE ============
 const KEY='ironhold_idle_v1';
@@ -5568,8 +5646,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 $('onbGo').onclick=()=>{const st=onbCur();if(st&&st.tab)showTab(st.tab);};$('onbX').onclick=onbOff;$('btnOnb').onclick=()=>{onbReplay();$('lgModal').className='';renderAll();};
 $('btnEat').onclick=()=>eat(true);
 $('btnBoss').onclick=()=>{if(G.tower){leaveTower();renderAll();return;}if(abyssW()){abyssBank();renderAll();return;}if(G.isBoss||G.dead)return;if(S.area===AREAS.length-1&&!wyrmAwake()){toast(`The Elder Wyrm sleeps: ${fmt(wyrmNeed()-realmKills())} more of the realm's monsters must fall.`);return;}spawn(true);sfx('boss');log(`You challenge ${G.mob.n}!`,'e');G.dirty=true;};
-$('btnChest').onclick=()=>openChest(1);$('btnChest2').onclick=()=>openChest(2);$('btnChest3').onclick=()=>openChest(3);
-$('btnChestAll').onclick=openAllChests;
+$('btnChest').onclick=()=>openChest(1);$('reveal').onclick=()=>{const el=$('reveal');if(!G.rv)return;if(!el.classList.contains('show')){el.classList.add('glow','show');if(isSpecial(G.rv.it))sfx('rare');}else revealEnd();};$('btnChest2').onclick=()=>openChest(2);$('btnChest3').onclick=()=>openChest(3);
 $('btnSalvJunk').onclick=salvageJunk;$('btnSellJunk').onclick=sellJunk;$('btnSellAll').onclick=sellAll;
 $('prevArea').onclick=()=>{if(!G.tower)goArea(S.area-1);};
 $('nextArea').onclick=()=>{if(!G.tower)goArea(S.area+1);};
@@ -5612,14 +5689,15 @@ document.addEventListener('keydown',e=>{
       if(G.catch)acc=0;else while(acc>=0.1){tick(0.1);if(coachSpeed()>1)tick(0.1);acc-=0.1;}
       drawScene(now/1000,dt);
       uiT+=dt;if(uiT>0.2){uiT=0;if(G.dirty)renderAll();else renderTop();}
+      revealTick();
       saveT+=dt;if(saveT>10){saveT=0;save();}
     }catch(e){   // one bad frame must not end the game: say so in the chronicle (three times at most) and carry on
       frameErrs++;acc=0;if(frameErrs<=3){console.error(e);try{log('A frame failed ('+(e&&e.message)+'); the hold fights on.','e');}catch(_){}}}
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  const BUILD='b210-catchup';window.__ihBoot=true;
-  {const el=document.getElementById('bstamp');if(el)el.textContent='v1.0 \u00b7 '+BUILD;}
+  const BUILD='b211-relics';window.__ihBoot=true;
+  {const el=document.getElementById('bstamp');if(el)el.textContent='v1.1 \u00b7 '+BUILD;}
   const artDiag=()=>{
     if(!window.__ihArt&&!G.artFail&&window.__art){setTimeout(artDiag,1000);return;}   // still on the road: look again in a second
     let groups=0,frames=0,ready=0;

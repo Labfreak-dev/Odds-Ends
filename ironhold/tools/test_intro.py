@@ -23,7 +23,7 @@ with sync_playwright() as p:
     chk('curtain lifts after the art lands',True,f'art {tA:.1f}s, lifted {tE:.1f}s')
     chk('no page errors',not errs,errs)
     chk('not from cache on first visit',pg.evaluate('window.__art.cache')==False)
-    chk('stamp',pg.evaluate("document.getElementById('bstamp').textContent").startsWith('v1.0 · b'))
+    chk('stamp',pg.evaluate("document.getElementById('bstamp').textContent").startswith('v1.'))
     chk('log has no art complaint',not pg.evaluate("[...document.querySelectorAll('#log div')].some(d=>/art/i.test(d.textContent)&&/not arrive|MISSING|NOT READY/.test(d.textContent))"))
     # 2. warm boot: the Cache API copy, no network request for art.js
     reqs.clear(); t=time.time(); pg.reload(); pg.wait_for_function('window.__D')

@@ -9,3 +9,4 @@ Headless test and simulation harness for `ironhold/index.html`. Everything here 
 - `test_intro.py` — the boot curtain: cold, warm (Cache API), slow road (Enter button), missing art.
 - `test_catch.py` — the sliced catch-up: fidelity against the old fixed step, the 24 h boot, the report, the fight after.
 - `test_step.py` — kill rate and speed by sim step (0.6, adaptive, 1.2) over six hours from a save.
+- `test_relic.py` — relics and chests: the field chest (open, tap, stow, timeout), the reveal, the hold, pity, the Superior floor, the hoard, the drop rate over two hours in two areas.

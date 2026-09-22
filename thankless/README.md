@@ -686,3 +686,50 @@ Verified headless with tank, paladin and wolf: 183 of 184 samples with
 enough mobs in reach had every melee on a different target, no pair ever
 overlapped (closest 33 px), and a hand-placed elite pulled all three onto
 it within a second.
+
+## Sunset, shadows, glow, the late flood, and a bigger healer deck (b083)
+**Lighting.** The sun sits low off the upper-left corner. `skyMix()` walks
+the run from gold (255,196,110) through ember (255,138,84) to a dusk
+magenta (190,80,130) as `G.t/RUN_LEN` climbs, and `drawLight` lays two
+passes over the ground after the field tint: a linear gradient from the
+warm corner to a cool blue-purple far corner, then an additive radial sun
+glow just off screen. Every sprite with art throws a real shadow:
+`silOf(key)` cuts a black silhouette of the sprite once into a cached
+canvas and `castShadow` draws it with a shear transform (x skew −0.62,
+vertical scale −0.34 at the start, lengthening to −0.62 by the King) at
+alpha 0.32, down and to the right, culled to the view. The old contact
+ellipse stays but lighter. Settings has a Lighting Off/On row (`SET.light`)
+for weak phones; off restores the flat b082 look exactly.
+
+**Party glow.** `memberGlow(m)` draws an additive radial pool in the
+member's own colour under their feet plus a thin ring, pulsing gently.
+The healer gets gold. It reads through a crowd of four hundred.
+
+**The late flood.** The spawn interval floor drops from 0.28 s to 0.22 s,
+the per-tick count is `1+floor(t/150)` plus one more after seven minutes
+(was `1+floor(t/200)`), and the 45 s waves tighten to 30 s by ten minutes
+with slightly bigger counts. Roughly double the pressure in the last three
+minutes. Expert bot: WON, King dead at 10:18, 5851 kills (was ~2200–3500).
+Novice bot: LOST at 5:48, back to the b073 verdict after b081 had let it
+win 2 of 3.
+
+**Healer cards.** Fifteen new finite cards for the player's own deck: Deep
+Well (+20 mana), Steady Breath (+20% regen), Second Wind (1% HP/s),
+Warded Robe (15% shield every 25 s), Nimble (8% dodge), Rallying Heal (a
+full-HP ally you heal gets +10% damage for 4 s, so wasted heals stop being
+wasted), Smiting Palm (20/35/50% of landed heals also smite the nearest
+enemy for 2×), Purify (Mend thaws and calms; rank 2 wakes Brom), Kindred
+Spirits (0.5 mana per party kill), Shepherd (+10% ally speed inside the
+heal circle), Grace (party healed 20% when your ult ends), Patience (+40%
+Mend on an ally unhealed for 5 s), Tempo (every 4th/3rd Mend free), Halo
+(every 12 motes, a holy burst), Bottomless Flask (ult cooldown −15%).
+Then six **endless** cards (`endless:true`, max 99): Warmer Still (+8%
+heal power), Another Layer (+15 HP), Deeper Well (+10 mana, +5% regen),
+Rallying Cry (+5% party damage), Quicker Still (Mend 5% faster), Alms (a
+purse of gold scaled by the clock). `showLevelUp` builds the finite pool
+first and only appends the endless tail when fewer than three finite cards
+remain, and endless picks always roll Common (one rank) so a Mythic can't
+grant ninety-nine. The empty-pool "mana refund" path can no longer be
+reached. Verified: every new card applied in a headless run with no
+errors; maxing every finite card produced a level-up offering only endless
+cards at Common.

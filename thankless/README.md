@@ -866,3 +866,13 @@ and the spike patch at 256), and the vector stand-ins are now fallbacks
 only. Nests draw at 3.8× their radius so the gate, crypt, pile and hive
 stand about 100 px tall on the field. Verified in-game on all four
 fields: every key ready, no console errors.
+
+## Grounded (b090)
+The playtester: the crypt's shadow made it look raised. The nest contact
+ellipse was centred below the sprite's base line (1.04× the radius against
+a base at 0.8×), so a blob of shadow showed beneath the building. Props
+and nests now use `groundShadow(x,baseY,w)`: a flat ellipse (height 13%
+of its width) two pixels above the base line, mostly hidden behind the
+sprite, and `castShadow` takes a length multiplier (0.55 for props, 0.45
+for nests) so the sheared silhouette is a short wedge anchored at the base
+rather than a slab. Vector fallbacks keep the old contact shadow.

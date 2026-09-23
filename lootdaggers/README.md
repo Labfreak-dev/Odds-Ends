@@ -97,9 +97,12 @@ kind's whole canvas stands in world pixels; tune sizes there.
 enemy and boss attack poses (for half a second when they act), props, reel
 symbols, the wall and floor, the title painting, and hero portraits (hero
 select, pause, death). The wall and floor strips are mirror-tiled so they
-repeat without a seam. The icon waves in `art-prompts.txt` (relics, gear,
-skill-tree nodes, intents, HUD and merchant icons, screens, UI chrome, effects)
-still show emoji until those images arrive.
+repeat without a seam. Icons go through `icon(key, emoji)`, which returns the
+art as an `<img>` if the pack has it and the emoji otherwise. Wired so far:
+relics, gear (key `gear_<slot>_<base>`, e.g. `gear_charm_die` for a Loaded Die),
+empty gear slots, reel symbols in menus, Soul Altar and Workbench nodes. Still
+emoji until their art arrives: enemy intents, HUD, menu and merchant icons,
+screen paintings, UI chrome and effects.
 
 ## Debugging
 `window.LD` exposes `S` (save), `run`, `M` (machine), `spin()`, `stats()`,
@@ -124,3 +127,8 @@ still show emoji until those images arrive.
   line up across poses. Tiles widened to 64 so neighbours don't overlap. UI
   regraded to the gothic palette (bone, rust, iron, dried blood) with Pirata One
   headings.
+- **b005**: 65 icons in (22 relics, 22 gear bases, 4 empty-slot outlines, 8 Soul
+  Altar nodes, 9 Workbench mods), 123 images in all. A new `icon()` helper swaps
+  them in everywhere those emoji appeared: relic bar and picks, loot cards,
+  gear bar, merchant, pawning, vault, skill trees, and reel-symbol lists in
+  menus.

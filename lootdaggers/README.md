@@ -205,3 +205,4 @@ Nothing in the game is emoji any more once art.js loads.
   floating wall sconce when packed (crypt, 2, 3, 4, boss); prompts added.
 - **b025**: torch bearers packed (5): pillar, catacomb column, skull stack,
   basalt obelisk, hooded statue. 206 images.
+- **b026**: the gear pop-up X is sticky inside the frame, clear of the scrollbar.

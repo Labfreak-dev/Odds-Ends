@@ -130,9 +130,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 #modal.show{display:flex}
 #peek{position:absolute;inset:0;background:rgba(8,5,7,.7);display:none;align-items:center;justify-content:center;z-index:60;padding:14px}
 #peek.show{display:flex}
-#peek .mbox{position:relative;padding-top:38px}
-#peekX{position:absolute;top:6px;right:6px;width:36px;height:36px;border:2px solid #000;border-radius:8px;background:#4a1512;color:#f1e6d2;font-size:20px;font-weight:800;box-shadow:0 2px 0 #000;z-index:3;line-height:1}
-.mbox.art #peekX{top:-14px;right:-14px}
+#peek .mbox{position:relative;padding-top:10px}
+#peek .mbox .mbody{padding-right:0}
+#peekX{position:sticky;top:0;float:right;margin:0 18px 0 0;width:36px;height:36px;border:2px solid #000;border-radius:8px;background:#4a1512;color:#f1e6d2;font-size:20px;font-weight:800;box-shadow:0 2px 0 #000;z-index:3;line-height:1}
+.mbox.art #peekX{margin-right:10px}
 .peekBtn .ico{width:22px;height:22px;vertical-align:-6px;margin-right:2px;filter:drop-shadow(0 0 1px #f0e2c4)}
 .peekBtn{display:block;width:92px;margin:6px 0 0;padding:6px 4px;font-size:12px;text-align:center;border:2px solid #000;border-radius:8px;background:var(--panel2);color:var(--ink);box-shadow:0 2px 0 #000}
 .merchCol{float:right;margin:0 0 6px 12px;width:92px}

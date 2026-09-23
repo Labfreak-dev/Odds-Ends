@@ -1185,7 +1185,7 @@ function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWit
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
 const FEET_SINK=7;
 // sprites whose lowest pixel isn't their feet (a trailing tail, a drip): extra sink in world px
-const SINK_EXTRA={enemy_rat:11,enemy_attack_rat:4,enemy_slime:9,enemy_attack_slime:5};
+const SINK_EXTRA={enemy_rat:11,enemy_attack_rat:4,enemy_slime:9,enemy_attack_slime:5,boss_bandit:9,boss_lich:8,enemy_wraith:6,enemy_attack_wraith:4,trap:9};
 function sprAt(k,x,y,flip){
   const im=artImg(k);if(!im)return null;y+=FEET_SINK+(SINK_EXTRA[k]||0);
   const m=(window.LD_ART_META||{})[k];const f=m?canvasH(k)/(m[0]*m[1]):canvasH(k)/im.naturalHeight;

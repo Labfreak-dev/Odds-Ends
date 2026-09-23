@@ -212,8 +212,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.primary.ooze{position:relative;border:2px solid #5fd35a;border-radius:8px;background:linear-gradient(#1d2a1b,#0b120a);color:#c9ffc0;
   font-family:var(--head);font-weight:400;font-size:26px;letter-spacing:1px;padding:14px 12px 16px;text-shadow:0 0 8px #8cff96,0 2px 0 #000;
   box-shadow:0 0 10px rgba(140,255,150,.55),inset 0 0 14px rgba(140,255,150,.25);animation:oozeGlow 1.8s ease-in-out infinite}
-.btn.primary.ooze.hasArt{border:0;border-radius:0;background:var(--oozeArt) center/100% 100% no-repeat;box-shadow:none;padding:22px 12px 26px;
-  filter:drop-shadow(0 0 6px rgba(140,255,150,.7));animation:oozeGlowArt 1.8s ease-in-out infinite}
+/* nine-slice: the riveted corners and the drips keep their shape at any button width */
+.btn.primary.ooze.hasArt{border-style:solid;border-color:transparent;border-width:28px 24px 32px;border-radius:0;background:none;box-shadow:none;padding:0 6px 2px;
+  border-image:var(--oozeArt) 100 84 110 84 fill / 28px 24px 32px stretch;
+  filter:drop-shadow(0 0 5px rgba(140,255,150,.6));animation:oozeGlowArt 1.8s ease-in-out infinite}
 @keyframes oozeGlow{50%{box-shadow:0 0 18px rgba(140,255,150,.85),inset 0 0 18px rgba(140,255,150,.35)}}
 @keyframes oozeGlowArt{50%{filter:drop-shadow(0 0 12px rgba(140,255,150,.95))}}
 .item{border:2px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:#161014}

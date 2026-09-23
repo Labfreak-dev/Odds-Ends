@@ -98,6 +98,20 @@ def key_out(im):
     bb = img.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
     return img.crop(bb) if bb else img
 
+def green_glow(img):
+    """The ooze button's glow was painted yellow over magenta, so it keys out as a
+    peach halo. Near the transparent edge, turn pink/peach pixels into a soft
+    green glow instead."""
+    a = np.asarray(img).astype(np.float32)
+    rgb, al = a[..., :3], a[..., 3]
+    solid = al > 250
+    far = ndimage.distance_transform_edt(solid)          # distance into the art
+    R, G, B = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    halo = (far < 16) & (R - G > 20) & (B > 55) & (R > 120)
+    rgb[halo] = [120, 255, 110]
+    al[halo] = al[halo] * 0.55
+    return Image.fromarray(np.dstack([rgb, al]).clip(0, 255).astype(np.uint8), 'RGBA')
+
 ICONISH = ('sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
 
 def fit(img, th, mw):
@@ -130,7 +144,9 @@ def process(key, im):
         img = cut.resize((max(1, round(cut.width * sc)), max(1, round(cut.height * sc))), Image.LANCZOS)
         scale = (sc, max(im.size))
     elif k == 'key':
-        img = fit(key_out(im), th, mw)
+        cut = key_out(im)
+        if key == 'ui_ooze_button': cut = green_glow(cut)
+        img = fit(cut, th, mw)
     elif k == 'plain':
         img = fit(im.convert('RGB'), th, mw)
     elif k == 'cover':

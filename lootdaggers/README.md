@@ -293,3 +293,4 @@ Nothing in the game is emoji any more once art.js loads.
   coins beyond the threshold light two bulbs each so the row fills at a
   similar pace.
 - **b038**: soul-coin glow is a soft halo behind the coin instead of a flame on top.
+- **b039**: soul-coin halo: bulb-red core fading to the orange ember.

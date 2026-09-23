@@ -509,7 +509,7 @@ function tone(f,d=.06,type='square',vol=.035,slide=0){
   try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
     const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
     o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
-    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    vol*=(S.sfxVol==null?1:S.sfxVol);if(vol<=0)return;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
     o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.02);}catch(e){}
 }
 const sfx={
@@ -1259,6 +1259,7 @@ let hubView='main';
 // The settings list, shared by the hub view and the in-game pop-up.
 function settingsHTML(){return `
     <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
+    <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔔 Sound volume</span><input type="range" id="sfxVol" min="0" max="100" value="${Math.round((S.sfxVol==null?1:S.sfxVol)*100)}" style="flex:1"></div>
     <button class="btn" data-act="set:music">${S.music!==false?'🎵 Music: on':'🎵 Music: off'}</button>
     <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔉 Music volume</span><input type="range" id="musicVol" min="0" max="100" value="${Math.round((S.musicVol==null?.6:S.musicVol)*100)}" style="flex:1"></div>
     <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
@@ -1276,7 +1277,8 @@ function settingsPopup(){
   render();el.classList.add('show');
   el.onclick=e=>{if(e.target===el||e.target.id==='peekX'){el.classList.remove('show');el.onclick=null;return;}
     const b=e.target.closest('[data-act^="set:"]');if(!b)return;applySetting(b.dataset.act.split(':')[1]);const st=el.querySelector('.mbox').scrollTop;render();el.querySelector('.mbox').scrollTop=st;};
-  el.oninput=e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}};
+  el.oninput=e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}if(e.target.id==='sfxVol'){S.sfxVol=+e.target.value/100;if(S.sfxVol>0)S.mute=false;save();}};
+  el.onchange=e=>{if(e.target.id==='sfxVol'){sfx.coin();}};
 }
 function showHub(v){
   music.play('hub');
@@ -1342,7 +1344,8 @@ function showHub(v){
   h.innerHTML=artify(html);h.scrollTop=0;
   if(v==='main')drawHubArt();
 }
-$('#hub').addEventListener('input',e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}});
+$('#hub').addEventListener('input',e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}if(e.target.id==='sfxVol'){S.sfxVol=+e.target.value/100;if(S.sfxVol>0)S.mute=false;save();}});
+$('#hub').addEventListener('change',e=>{if(e.target.id==='sfxVol')sfx.coin();});
 $('#hub').addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const [a,arg]=el.dataset.act.split(':');

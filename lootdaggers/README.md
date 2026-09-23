@@ -408,3 +408,6 @@ Nothing in the game is emoji any more once art.js loads.
   sprite only appears once he has drunk the concoction, not during his rant.
 - **b070**: Dr. Labfreak, Unleashed drawn ~20% bigger and sunk onto the lab floor
   (his stance has one boot raised, which read as floating).
+- **b071**: poison shows on the hero: a green gas cloud billows out on every tick
+  (and when first poisoned), and a faint haze of rising bubbles lingers while it
+  lasts.

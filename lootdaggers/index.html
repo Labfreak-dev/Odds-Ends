@@ -42,8 +42,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 #sceneWrap{position:relative;width:100%;flex:1 1 auto;min-height:150px;background:#0a0709}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 #jackpotFlash{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none}
-#jackpotFlash.go{animation:jp 1.4s ease-out}
-@keyframes jp{0%{opacity:0}15%{opacity:.85}60%{opacity:.6}100%{opacity:0}}
+#jackpotFlash.go{animation:jp 3.4s ease-out}
+@keyframes jp{0%{opacity:0}8%{opacity:.95}70%{opacity:.8}100%{opacity:0}}
+#jackpotWord{position:absolute;left:0;right:0;top:38%;text-align:center;font-family:var(--head);font-size:min(19vw,96px);line-height:1;letter-spacing:2px;pointer-events:none;opacity:0;
+  color:#a3130f;-webkit-text-stroke:2px #2a0402;
+  text-shadow:0 0 2px #ff2a1a,0 3px 0 #3a0503,0 6px 0 #1a0201,0 0 22px rgba(255,40,20,.85),0 10px 18px #000}
+#jackpotWord.go{animation:jw 3.8s cubic-bezier(.2,1.4,.4,1)}
+#jackpotWord small{display:block;font-size:.34em;letter-spacing:4px;color:#e8d3a4;-webkit-text-stroke:0;text-shadow:0 2px 0 #000,0 0 12px #000;margin-top:6px}
+@keyframes jw{0%{opacity:0;transform:scale(2.6) rotate(-6deg)}10%{opacity:1;transform:scale(1) rotate(-3deg)}14%{transform:scale(1.12) rotate(-3deg)}18%{transform:scale(1) rotate(-3deg)}
+  84%{opacity:1;transform:scale(1.04) rotate(-3deg)}100%{opacity:0;transform:scale(1.2) rotate(-3deg)}}
+#jackpotDrip{position:absolute;left:0;right:0;top:0;height:0;pointer-events:none;opacity:0;background:linear-gradient(#5a0a08,#8a1410 60%,rgba(138,20,16,0))}
+#jackpotDrip.go{animation:jd 3.4s ease-out}
+@keyframes jd{0%{opacity:0;height:0}12%{opacity:.9;height:12%}70%{opacity:.8;height:16%}100%{opacity:0;height:18%}}
 #log{min-height:34px;padding:5px 10px;font-size:12px;color:var(--dim);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#160f13;line-height:1.35}
 #log b{color:var(--ink)}
 
@@ -644,7 +654,7 @@ async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
   const parts=[];
   r.block=hasR('tower')?Math.floor(r.block/2):0;
-  if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=6;jackpotFlash();
+  if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;jackpotFlash(R.triples);await sleep(900);
     if(hasR('bell'))gainCoins(3*R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
@@ -1276,10 +1286,14 @@ function drawRich(txt,x,y,col){
   for(const p of parts){if(typeof p==='string'){cx.fillStyle='#000';cx.fillText(p,cx0+1,y+1);cx.fillStyle=col;cx.fillText(p,cx0,y);}else cx.drawImage(ART[p.k],cx0,y-12,15,15);cx0+=W(p);}
   cx.textAlign='center';
 }
-function jackpotFlash(){
+function jackpotFlash(mult){
   const src=artSrc('screen_jackpot');if(!src)return;
   let el=$('#jackpotFlash');if(!el){el=document.createElement('img');el.id='jackpotFlash';$('#sceneWrap').appendChild(el);}
-  el.src=src;el.classList.remove('go');void el.offsetWidth;el.classList.add('go');
+  let w=$('#jackpotWord');if(!w){w=document.createElement('div');w.id='jackpotWord';$('#sceneWrap').appendChild(w);}
+  let d=$('#jackpotDrip');if(!d){d=document.createElement('div');d.id='jackpotDrip';$('#sceneWrap').appendChild(d);}
+  el.src=src;w.innerHTML=`JACKPOT!<small>${mult>1?'x'+mult+' · ':''}THE HOUSE PAYS</small>`;
+  for(const x of [el,d,w]){x.classList.remove('go');void x.offsetWidth;x.classList.add('go');}
+  sfx.jackpot();setTimeout(sfx.jackpot,500);
 }
 function drawHubArt(){
   const c=$('#hubArt');if(!c)return;const w=c.clientWidth||380,h=w*9/16,d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;

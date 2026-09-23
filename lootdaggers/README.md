@@ -166,3 +166,6 @@ Nothing in the game is emoji any more once art.js loads.
   complete.
 - **b008**: reward and dialog buttons: a dark scrim under the label, brighter
   description text with a drop shadow, so choices read on the wood-plank art.
+- **b009**: jackpot moment: the painting holds ~3.4s, a bloody Pirata One
+  "JACKPOT!" slams in with a blood drip from the top edge, the turn pauses
+  0.9s so it registers, and the jingle plays twice.

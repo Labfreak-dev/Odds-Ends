@@ -51,9 +51,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #jackpotWord small{display:block;font-size:.34em;letter-spacing:4px;color:#e8d3a4;-webkit-text-stroke:0;text-shadow:0 2px 0 #000,0 0 12px #000;margin-top:6px}
 @keyframes jw{0%{opacity:0;transform:scale(2.6) rotate(-6deg)}10%{opacity:1;transform:scale(1) rotate(-3deg)}14%{transform:scale(1.12) rotate(-3deg)}18%{transform:scale(1) rotate(-3deg)}
   84%{opacity:1;transform:scale(1.04) rotate(-3deg)}100%{opacity:0;transform:scale(1.2) rotate(-3deg)}}
-#jackpotDrip{position:absolute;left:0;right:0;top:0;height:0;pointer-events:none;opacity:0;background:linear-gradient(#5a0a08,#8a1410 60%,rgba(138,20,16,0))}
-#jackpotDrip.go{animation:jd 3.4s ease-out}
-@keyframes jd{0%{opacity:0;height:0}12%{opacity:.9;height:12%}70%{opacity:.8;height:16%}100%{opacity:0;height:18%}}
+
 #log{min-height:34px;padding:5px 10px;font-size:12px;color:var(--dim);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#160f13;line-height:1.35}
 #log b{color:var(--ink)}
 
@@ -1329,9 +1327,8 @@ function jackpotFlash(mult){
   const src=artSrc('screen_jackpot');if(!src)return;
   let el=$('#jackpotFlash');if(!el){el=document.createElement('img');el.id='jackpotFlash';$('#sceneWrap').appendChild(el);}
   let w=$('#jackpotWord');if(!w){w=document.createElement('div');w.id='jackpotWord';$('#sceneWrap').appendChild(w);}
-  let d=$('#jackpotDrip');if(!d){d=document.createElement('div');d.id='jackpotDrip';$('#sceneWrap').appendChild(d);}
   el.src=src;w.innerHTML=`JACKPOT!<small>${mult>1?'x'+mult+' · ':''}THE HOUSE PAYS</small>`;
-  for(const x of [el,d,w]){x.classList.remove('go');void x.offsetWidth;x.classList.add('go');}
+  for(const x of [el,w]){x.classList.remove('go');void x.offsetWidth;x.classList.add('go');}
   sfx.jackpot();setTimeout(sfx.jackpot,500);
 }
 function drawHubArt(){

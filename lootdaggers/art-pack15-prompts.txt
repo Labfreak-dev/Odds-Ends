@@ -1,0 +1,12 @@
+DEAD MAN'S PULL — ART PACK 15: 1 NEW BUTTON (the lever pull on Labfreak's grave)
+
+READ THIS FIRST:
+- 1 BRAND-NEW image. Do NOT reuse or re-send earlier packs.
+- Save it as a PNG named EXACTLY ui_ooze_button.png . Put it in a zip: dead_mans_pull_art_pack15.zip
+- Wide button shape like the gold SPIN button, on flat pure magenta #FF00FF (it gets cut out).
+- The FACE MUST BE BLANK and fairly dark: the game writes "Pull it" on top.
+
+Checklist:
+  [ ] ui_ooze_button.png
+
+ui_ooze_button.png | a large wide rectangular pushbutton plate of blackened riveted iron and tarnished copper, the same wide landscape shape as a slot-machine spin button, its flat face dark and completely blank, thick glowing chemical-green ooze dripping over the top edge and running down both sides in slow drips, a faint green glow leaking all around the rim like light from a specimen tank, a few small bubbles in the ooze. hand-inked gothic horror art in the style of a dark grim comic, thick jagged black ink outlines, heavy angular black shadows and crosshatching, desaturated bone, rust, ash grey and tarnished copper palette with glowing chemical green accents, game interface element, lit evenly from the front, centered, isolated on a solid flat pure magenta (#FF00FF) background, completely BLANK face: no letters, no words, no numbers, no symbols on it, nothing magenta or hot pink in the design

@@ -251,3 +251,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b030**: music: four biome-tied tracks with seamless self-loops and
   cross-fades between biomes; music toggle and volume in Settings and the
   pause menu.
+- **b031**: art pack 10 packed (26): the five new foes with attack poses, floor
+  door icons, elite marks, hold/nudge/doom/daily icons, three relics and the
+  Nudge Lever. 232 images.

@@ -233,7 +233,7 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 #hub{position:absolute;inset:0;z-index:40;background:radial-gradient(ellipse at 50% 0%,#2a1c1a,#0c0a0b 70%);background-size:cover;background-position:center top;background-attachment:local;overflow:auto;padding:18px 16px;padding-top:max(18px,env(safe-area-inset-top))}
 #hub h2{font-family:var(--head);font-weight:400;font-size:28px;margin:6px 0 10px}
 #hub h1{margin:6px 0 0;text-align:center;font-family:var(--head);font-weight:400;font-size:44px;letter-spacing:1px;color:var(--gold);text-shadow:0 3px 0 #000,0 0 18px rgba(184,69,60,.35)}
-#hub .tag{text-align:center;color:var(--dim);font-size:12px;margin:4px 0 14px}
+#hub .tag{text-align:center;color:#c9b38a;font-family:var(--head);font-size:19px;letter-spacing:.5px;margin:2px 0 14px;text-shadow:0 2px 0 #000,0 0 10px #000}
 .bank{display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .hubBtns{display:flex;flex-direction:column;gap:9px;max-width:380px;margin:0 auto}
 .hubBtns .btn{font-size:16px}
@@ -1314,12 +1314,12 @@ function showHub(v){
   const back=`<button class="btn center back" data-act="main">◀ Back</button>`;
   let html='';
   if(v==='main'){
-    html=`${artSrc('ui_logo')?`<div id="logoWrap"><img id="logoImg" src="${artSrc('ui_logo')}" alt=""><svg viewBox="0 0 691 480" aria-hidden="true"><defs><path id="bannerArc" d="M122,316 Q345,352 568,316"/></defs><text class="bannerTxt"><textPath href="#bannerArc" startOffset="50%" text-anchor="middle">Dead Man's Pull</textPath></text></svg></div>`:''}<h1 class="${artSrc('ui_logo')?'hasLogo':''}">Dead Man's Pull</h1><div class="tag">coin in · pull · whatever lands is your turn</div>
+    html=`${artSrc('ui_logo')?`<div id="logoWrap"><img id="logoImg" src="${artSrc('ui_logo')}" alt=""><svg viewBox="0 0 691 480" aria-hidden="true"><defs><path id="bannerArc" d="M124,312 Q345,384 566,312"/></defs><text class="bannerTxt"><textPath href="#bannerArc" startOffset="50%" text-anchor="middle">Dead Man's Pull</textPath></text></svg></div>`:''}<h1 class="${artSrc('ui_logo')?'hasLogo':''}">Dead Man's Pull</h1><div class="tag">Every coin a heartbeat. The house always collects.</div>
     ${artSrc('screen_hub_bg')?'<div style="height:8px"></div>':'<canvas id="hubArt"></canvas><div style="height:12px"></div>'}${bank}
     <div class="hubBtns">
-      ${S.run?`<button class="btn primary" data-act="resume">▶ Continue run <small>Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
-      <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'New run <small>abandons the current one</small>':'▶ Descend'}</button>
-      <button class="btn" data-act="daily">${icon('ui_daily','📅')} Daily Descent <small>${todayKey()} · the same dungeon for everyone${(S.daily||{})[todayKey()]?` · your best: floor ${S.daily[todayKey()].best}`:''}</small></button>
+      ${S.run?`<button class="btn primary" data-act="resume">▶ Let It Ride <small>Your stake is still on the table · Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
+      <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'Fold &amp; Deal Again <small>forfeits the hand in play</small>':'▶ Stake Your Soul <small>the house is dealing</small>'}</button>
+      <button class="btn" data-act="daily">${icon('ui_daily','📅')} The Daily Wager <small>${todayKey()} · one table, every gambler, the same cards${(S.daily||{})[todayKey()]?` · your best: floor ${S.daily[todayKey()].best}`:''}</small></button>
       <button class="btn" data-act="altar">💠 Soul Altar <small>Permanent upgrades, paid in souls</small></button>
       <button class="btn" data-act="bench">🎰 Machine Workbench <small>Rewire the slot machine, paid in boss chips</small></button>
       <button class="btn" data-act="vault">🗄️ Heirloom Vault <small>${S.vault.length}/${vaultSlots()} stored</small></button>

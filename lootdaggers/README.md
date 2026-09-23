@@ -308,3 +308,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b043**: renamed **Dead Man's Pull**: the name sits on the logo's banner in
   UnifrakturMaguntia blackletter along the banner's curve; page title, share
   title and run summary updated. URL and save key unchanged.
+- **b044**: deeper banner curve; tagline "Every coin a heartbeat. The house always
+  collects."; hub buttons reworded for the gambling theme: Stake Your Soul, Let
+  It Ride, Fold & Deal Again, The Daily Wager.

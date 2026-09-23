@@ -68,6 +68,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 #marquee{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#cdb68a;margin:0 4px 6px;letter-spacing:1px}
 #marquee .lights{letter-spacing:3px;color:#8a2a22;text-shadow:0 0 6px #b8453c}
 #reels{display:flex;gap:6px;height:min(33vw,168px,21dvh);position:relative;z-index:1}
+#reelCtl{display:flex;gap:6px;margin-top:6px;position:relative;z-index:1}
+#reelCtl .rc{flex:1;display:flex;gap:3px;justify-content:center}
+#reelCtl button{border:2px solid #000;border-radius:6px;background:#221c1d;color:var(--ink);font-size:11px;padding:3px 0;box-shadow:0 2px 0 #000;font-weight:700}
+#reelCtl .nb{width:26px}
+#reelCtl .hb{flex:1;max-width:70px;letter-spacing:1px}
+#reelCtl .hb.on{background:linear-gradient(#cfa75c,#7d5a26);color:#1a1008}
+#reelCtl button:disabled{opacity:.3}
+#nudgeNote{font-size:10px;color:var(--gold);text-align:right;letter-spacing:1px;min-height:12px;margin-top:2px;position:relative;z-index:1}
+.reel.held{box-shadow:0 0 0 3px #cfa75c,0 0 12px #cfa75c}
+.reel .rtag{position:absolute;top:3px;left:0;right:0;text-align:center;font-size:10px;font-weight:800;letter-spacing:2px;color:#1a1008;pointer-events:none;z-index:3;display:none}
+.reel.held .rtag{display:block}.reel.held .rtag::after{content:"HELD";background:#cfa75c;padding:1px 6px;border-radius:4px;border:1px solid #000}
+.reel.jammed{filter:saturate(.4) brightness(.75)}
+.reel.jammed .rtag{display:block}.reel.jammed .rtag::after{content:"JAMMED";background:#5a1f1f;color:#e4d9c6;padding:1px 6px;border-radius:4px;border:1px solid #000}
 #cabinetArt{display:none}
 #cabinet.art{background:none;border:none;box-shadow:none;padding:12% 9% 7%}
 #cabinet.art #cabinetArt{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;pointer-events:none;filter:drop-shadow(0 4px 0 #000)}
@@ -216,6 +229,7 @@ button{font:inherit;color:inherit;cursor:pointer}
       <span class="chip" id="hudBlock">🛡 0</span>
       <span class="chip" id="hudCoins">🪙 20</span>
       <span class="chip" id="hudFloor">F1</span>
+      <span class="chip" id="hudDoom" title="Doom: three skulls summon the Reaper">☠ 0/3</span>
       <button id="menuBtn" aria-label="Menu">☰</button>
     </div>
     <div id="sceneWrap"><canvas id="scene"></canvas><div id="forecast"></div></div>
@@ -225,6 +239,7 @@ button{font:inherit;color:inherit;cursor:pointer}
         <img id="cabinetArt" alt="">
         <div id="marquee"><span class="lights">● ● ●</span><span id="lineInfo">1 PAYLINE</span><span class="lights">● ● ●</span></div>
         <div id="reels"></div>
+        <div id="nudgeNote"></div>
       </div>
       <div id="btnRow">
         <button class="sideBtn" id="reelInfoBtn" aria-label="Reel contents">🎰</button>
@@ -250,6 +265,11 @@ button{font:inherit;color:inherit;cursor:pointer}
    Side-scrolling crawl; every action comes off the slot machine.
    ===================================================================== */
 const $=s=>document.querySelector(s);
+const NATIVE_RANDOM=Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+const strHash=str=>{let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
+const todayKey=()=>new Date().toISOString().slice(0,10);
+function seedRandom(seed){Math.random=seed==null?NATIVE_RANDOM:mulberry32(strHash(seed));}
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -291,7 +311,14 @@ const ENEMIES={
   orc:{n:'Orc Brute',hp:22,pat:[['atk',6],['rest',0],['atk',4]],coins:[3,5],from:4,loot:.35},
   wraith:{n:'Coin Wraith',hp:12,range:2,pat:[['drain',3],['atk',3]],coins:[2,4],from:4},
   mimic:{n:'Mimic',hp:16,pat:[['atk',4],['atk',5]],coins:[4,7],from:99,loot:1},
+  croupier:{n:'Cursed Croupier',hp:14,range:2,pat:[['jam',0],['atk',3],['atk',3]],coins:[3,5],from:3,d:'Jams one of your reels on a Skull until it dies.'},
+  taxman:{n:'Tax Collector',hp:12,range:3,pat:[['tax',1],['atk',2]],coins:[5,8],from:3,d:'Every spin costs +1 coin while it is awake.'},
+  mirror:{n:'Mirror Wight',hp:16,pat:[['atk',3],['atk',4]],coins:[3,5],from:5,d:'Reflects half of every dagger hit back at you.'},
+  ironclad:{n:'Ironclad Husk',hp:20,pat:[['atk',5],['guard',6]],coins:[4,6],from:5,d:'Only bombs, shoves and jackpot turns can hurt it.'},
+  reaper:{n:'The Reaper',hp:40,range:2,pat:[['drain',6],['atk',8],['atk',5]],coins:[8,12],from:99,loot:1,d:'Summoned by Doom. Slaying it pays 25 souls.'},
 };
+const ELITES={fast:{n:'Frenzied',e:'⚡',d:'acts twice a turn'},shield:{n:'Warded',e:'🛡️',d:'regains 5 block every turn'},cursed:{n:'Hexed',e:'💀',d:'its hits add a Skull to your reels'}};
+const FLOOR_KINDS={fight:{e:'⚔️',n:'Fight',d:'The usual crawl.'},treasure:{e:'📦',n:'Treasure',d:'Extra chests and coin piles. One chest bites.'},elite:{e:'👑',n:'Elite',d:'A modified foe guards a guaranteed Rare.'},rest:{e:'🕯️',n:'Rest',d:'A short, quiet floor. Heal 30% and find a shrine.'},boss:{e:'☠️',n:'Boss',d:'Something big waits at the end.'}};
 const BOSSES={
   boneking:{n:'The Bone King',hp:55,pat:[['atk',6],['summon','skel'],['guard',8],['atk',8]],coins:[10,14]},
   bandit:{n:'One-Armed Bandit',hp:70,pat:[['steal',3],['atk',7],['jackpot',3],['guard',10]],coins:[14,18]},
@@ -322,6 +349,9 @@ const RELICS=[
   {id:'rabbit',e:'🐇',n:"Rabbit's Foot",d:'Removes a Skull from your reels.'},
   {id:'pouch',e:'👝',n:'Deep Pouch',d:'Foes drop +1 coin.'},
   {id:'thornmail',e:'🌵',n:'Thorn Bark',d:'Melee attackers take 2 damage.'},
+  {id:'loadeddice',e:'🎲',n:'Loaded Dice',d:'+1 nudge every spin.'},
+  {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Holding a reel costs no coin.'},
+  {id:'scythe',e:'🌙',n:'Reaper\'s Scythe',d:'Doom builds twice as fast; the Reaper pays double souls.'},
 ];
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
 
@@ -345,6 +375,7 @@ const MODS=[
   {id:'reel4',e:'🎰',n:'Fourth Reel',d:'A fourth reel. Four of a kind pays x4.',cost:4},
   {id:'diag',e:'✖️',n:'Diagonal Wiring',d:'Both diagonals pay.',cost:4},
   {id:'reel5',e:'🎰',n:'Fifth Reel',d:'A fifth reel. Five of a kind pays x5.',cost:8,req:'reel4'},
+  {id:'nudge',e:'🕹️',n:'Nudge Lever',d:'Once per spin, bump one reel a notch up or down.',cost:3},
 ];
 
 const RAR=[
@@ -532,44 +563,52 @@ function mkEnemy(type,x,f,boss){
     pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?v+dm:(a==='guard'||a==='grow')?Math.round(v*sc):v])};
 }
 function genFloor(f){
-  const r=run;const boss=f%3===0;const len=12+Math.min(f,10);
-  r.len=len;r.objs=[];r.x=0;r.curse=0;r.floorDone=false;r.freeSpin=hasR('hourglass');
+  const r=run;const boss=f%3===0;const kind=boss?'boss':(r.nextKind||'fight');r.kind=kind;
+  const len=kind==='rest'?8:12+Math.min(f,10);
+  r.len=len;r.objs=[];r.x=0;r.curse=0;r.jam=null;r.floorDone=false;r.freeSpin=hasR('hourglass');
   const free=[];for(let i=3;i<len-(boss?2:1);i++)free.push(i);shuffle(free);
   const put=o=>{r.objs.push(Object.assign({id:uid++,dx:o.x*T},o));};
   put({kind:'door',x:len});
   if(boss){const b=BOSS_ORDER[(f/3-1)%3];put(mkEnemy(b,len-2,f,true));}
   const pool=Object.keys(ENEMIES).filter(k=>ENEMIES[k].from<=f);
-  const ne=boss?Math.min(3,1+Math.floor(f/4)):Math.min(6,2+Math.floor(f/2));
+  let ne=boss?Math.min(3,1+Math.floor(f/4)):Math.min(6,2+Math.floor(f/2));
+  if(kind==='treasure')ne=Math.max(1,ne-1);if(kind==='rest')ne=0;
   for(let i=0;i<ne&&free.length;i++)put(mkEnemy(pick(pool),free.pop(),f));
-  const nc=boss?0:rnd(1,2);
-  for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:f>=2&&Math.random()<.15});
-  if(!boss&&(f===2||Math.random()<.35)&&free.length)put({kind:'shrine',x:free.pop()});
-  for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
-  for(let i=0;i<rnd(1,3)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
+  if(kind==='elite'){const es=r.objs.filter(o=>o.kind==='enemy');const e=es[es.length-1]||null;
+    if(e){e.elite=pick(Object.keys(ELITES));e.n=ELITES[e.elite].n+' '+e.n;e.hp=e.max=Math.round(e.max*1.6);e.loot=1;e.minRar=2;e.coins=[e.coins[0]+3,e.coins[1]+5];}}
+  // Doom: three skulls summon the Reaper at the start of the next floor
+  if(r.doom>=3&&!boss){r.doom=0;const rp=mkEnemy('reaper',Math.min(5,len-3),f);rp.big=true;put(rp);r.reaperDue=true;}
+  let nc=boss?0:rnd(1,2);if(kind==='treasure')nc+=2;if(kind==='rest')nc=0;
+  for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:kind==='treasure'?i===0:(f>=2&&Math.random()<.15)});
+  if((kind==='rest'||(!boss&&(f===2||Math.random()<.35)))&&free.length)put({kind:'shrine',x:free.pop()});
+  if(kind!=='rest')for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
+  for(let i=0;i<rnd(1,3)+(kind==='treasure'?1:0)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
+  if(kind==='rest'){r.hp=Math.min(stats().maxHp,r.hp+Math.round(stats().maxHp*.3));}
   r.objs.sort((a,b)=>a.x-b.x);
   view.hx=T/2;view.cam=T/2-HERO_SX;
-  view.banner=boss?{t:performance.now(),txt:BOSSES[BOSS_ORDER[(f/3-1)%3]].n.toUpperCase()}:null;
+  view.banner=boss?{t:performance.now(),txt:BOSSES[BOSS_ORDER[(f/3-1)%3]].n.toUpperCase()}:r.reaperDue?{t:performance.now(),txt:'THE REAPER COMES'}:null;r.reaperDue=false;
 }
 const blockerAt=x=>run.objs.find(o=>o.x===x&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'));
 const objsAt=x=>run.objs.filter(o=>o.x===x&&!o.gone);
 
 /* ---------------- run lifecycle ---------------- */
-async function startRun(heroId){
-  const h=HEROES[heroId];
+async function startRun(heroId,daily){
+  const h=HEROES[heroId];seedRandom(daily||null);
   run={hero:heroId,floor:1,x:0,hp:0,block:0,coins:h.coins+alt('purse')*3,gear:{weapon:null,armor:null,boots:null,charm:null},
-    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:''};
+    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null};
   for(const id of S.loadout){const it=S.vault.find(v=>v.id===id);if(it&&!run.gear[it.slot])run.gear[it.slot]=JSON.parse(JSON.stringify(it));}
-  run.hp=stats().maxHp;
+  run.daily=daily||null;run.hp=stats().maxHp;
   genFloor(1);
   showGame();
   if(S.mods.relic)await relicPick('Relic Socket','Your machine hums. Pick a relic to start the run.');
   rebuildReels();ui();save();
   if(!S.seenHelp){S.seenHelp=true;save();await modal('How it works',helpShort(),[{label:'Pull the lever',val:1,cls:'primary'}]);}
 }
-function resumeRun(){run=S.run;run.over=false;busy=false;view.hx=run.x*T+T/2;view.cam=view.hx-HERO_SX;showGame();rebuildReels();ui();}
+function resumeRun(){run=S.run;run.over=false;busy=false;seedRandom(run.daily?run.daily+':'+run.spins:null);view.hx=run.x*T+T/2;view.cam=view.hx-HERO_SX;showGame();rebuildReels();ui();}
 
 /* ---------------- slot machine ---------------- */
-const M={reels:[],spinning:false,timers:[],grid:null};
+const M={reels:[],spinning:false,timers:[],grid:null,nudges:0};
+const nudgeMax=()=>(S.mods.nudge?1:0)+(hasR('loadeddice')?1:0);
 function rebuildReels(){
   const n=reelCount(),counts=stripCounts();
   const box=$('#reels');
@@ -580,14 +619,17 @@ function rebuildReels(){
       const cells=[];for(let k=0;k<5;k++){const d=document.createElement('div');d.className='cell';el.appendChild(d);cells.push(d);}
       el.addEventListener('pointerdown',e=>{e.preventDefault();if(M.spinning)stopReel(M.reels[c]);else spin();});
       const rs=(window.LD_ART||{}).ui_reel_strip;if(rs){el.classList.add('art');el.style.backgroundImage=`url(${rs})`;}
+      const tag=document.createElement('div');tag.className='rtag';el.appendChild(tag);
       box.appendChild(el);
-      M.reels.push({el,cells,o:Math.random()*20,strip:[],spinning:false,settle:null,last:[]});
+      M.reels.push({el,cells,o:Math.random()*20,strip:[],spinning:false,settle:null,last:[],held:false,jam:false});
     }
   }
   for(const R of M.reels){
     const arr=[];for(const k in counts)for(let i=0;i<counts[k];i++)arr.push(k);
     R.strip=shuffle(arr);R.o=Math.round(R.o)%R.strip.length;R.last=[];
   }
+  M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
+  buildReelCtl();
   const L=paylines(n);
   $('#lineInfo').textContent=L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
   drawReels(true);
@@ -601,7 +643,7 @@ function drawReels(force){
     const H=R.el.clientHeight/3,len=R.strip.length;if(!len)continue;
     const base=Math.floor(R.o),frac=R.o-base;
     for(let i=0;i<5;i++){
-      const k=i-2,j=base+k;const sym=R.strip[mod(j,len)];const cell=R.cells[i];
+      const k=i-2,j=base+k;const sym=(R.jam&&k===0)?'skull':R.strip[mod(j,len)];const cell=R.cells[i];
       if(force||R.last[i]!==sym){cell.innerHTML=cellSymHTML(sym);R.last[i]=sym;cell.dataset.sym=sym;}
       const S=H*.84,y=(H*3-S)/2+(frac-k)*S; // j above centre when k>0; rows sit inside the strip's shading
       cell.style.height=S+'px';cell.style.transform=`translateY(${y}px)`;
@@ -614,20 +656,28 @@ function setBtn(mode){
   if(mode==='stop')b.textContent='STOP ▸';
   else if(mode==='resolve')b.innerHTML='<span style="font-size:.82em">RESOLVE ▸</span>';
   else if(mode==='busy')b.textContent='…';
-  else b.innerHTML=run&&run.freeSpin?'FREE SPIN ⏳':'SPIN · '+icon('ui_coin','🪙','btnico')+'1';
+  else{const c=spinCost();b.innerHTML=c===0?'FREE SPIN ⏳':'SPIN · '+icon('ui_coin','🪙','btnico')+c;}
+}
+function spinCost(){
+  if(!run)return 1;const held=M.reels.filter(R=>R.held&&!R.jam).length;
+  const tax=run.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.t==='taxman'&&o.x-run.x<=6).length;
+  return (run.freeSpin?0:1)+(hasR('clamp')?0:held)+tax;
 }
 function spin(){
   if(busy||!run||M.spinning||run.over||M.pendingRes)return;
-  if(run.freeSpin)run.freeSpin=false;
-  else{if(run.coins<1)return;run.coins--;}
-  run.spins++;M.spinning=true;
+  const free=M.reels.filter(R=>!R.held&&!R.jam);if(!free.length){logLine('Release a reel first: at least one has to spin.');return;}
+  const cost=spinCost();if(run.coins<cost){logLine(`Not enough coins: this spin costs <b>${cost}</b>.`);return;}
+  run.coins-=cost;if(run.freeSpin)run.freeSpin=false;
+  run.spins++;M.spinning=true;M.nudges=nudgeMax();
+  if(run.daily)seedRandom(run.daily+':'+run.spins);
   document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
   const v=S.mods.slow?7.5:12;
-  M.reels.forEach((R,c)=>{R.spinning=true;R.settle=null;R.v=v*(1+c*.07);R.el.classList.add('live');R.el.classList.remove('stopped');});
+  M.reels.forEach((R,c)=>{if(R.held||R.jam){R.spinning=false;R.settle=null;return;}R.spinning=true;R.settle=null;R.v=v*(1+c*.07);R.el.classList.add('live');R.el.classList.remove('stopped');});
+  buildReelCtl();
   setBtn('stop');ui();sfx.spin();
   M.timers.forEach(clearTimeout);M.timers=[];
   const auto=S.autoStop,first=auto?380:3200,gap=auto?170:300;
-  M.reels.forEach((R,c)=>M.timers.push(setTimeout(()=>stopReel(R),first+c*gap)));
+  M.reels.forEach((R,c)=>{if(R.spinning)M.timers.push(setTimeout(()=>stopReel(R),first+c*gap));});
 }
 function stopNext(){const R=M.reels.find(x=>x.spinning&&!x.settle);if(R)stopReel(R);}
 function stopReel(R){
@@ -646,13 +696,34 @@ function tickReels(now,dt){
     if(R.spinning)all=false;
   }
   drawReels();
-  if(all){M.spinning=false;M.timers.forEach(clearTimeout);M.timers=[];onAllStopped();}
+  if(all){M.spinning=false;M.timers.forEach(clearTimeout);M.timers=[];M.reels.forEach(R=>{R.held=false;R.el.classList.remove('held');});onAllStopped();}
 }
 function readGrid(){
-  return M.reels.map(R=>{const t=Math.round(R.o),len=R.strip.length;return [R.strip[mod(t+1,len)],R.strip[mod(t,len)],R.strip[mod(t-1,len)]];});
+  return M.reels.map(R=>{const t=Math.round(R.o),len=R.strip.length;return [R.strip[mod(t+1,len)],R.jam?'skull':R.strip[mod(t,len)],R.strip[mod(t-1,len)]];});
 }
+// ---- hold and nudge controls under the reels
+function buildReelCtl(){
+  let box=$('#reelCtl');if(!box){box=document.createElement('div');box.id='reelCtl';$('#cabinet').appendChild(box);}
+  const idle=!!run&&!M.spinning&&!busy;const canNudge=idle&&!!M.pendingRes&&M.nudges>0;
+  box.innerHTML=M.reels.map((R,i)=>`<div class="rc">
+    <button class="nb up" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▲</button>
+    <button class="hb ${R.held?'on':''}" data-i="${i}" ${idle&&!R.jam?'':'disabled'}>${R.jam?'JAMMED':R.held?'HELD':'HOLD'}</button>
+    <button class="nb dn" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▼</button></div>`).join('');
+  const nudgeNote=$('#nudgeNote');if(nudgeNote)nudgeNote.textContent=nudgeMax()?`nudges: ${M.nudges}`:'';
+}
+function toggleHold(i){const R=M.reels[i];if(!R||M.spinning||busy||R.jam)return;R.held=!R.held;R.el.classList.toggle('held',R.held);buildReelCtl();setBtn(M.pendingRes?'resolve':'spin');
+  const n=M.reels.filter(x=>x.held).length;if(n)logLine(`Holding ${n} reel${n>1?'s':''}: next spin costs <b>${spinCost()}</b> 🪙.`);}
+function nudge(i,dir){
+  const R=M.reels[i];if(!R||!M.pendingRes||M.spinning||busy||M.nudges<=0||R.jam)return;
+  R.o=Math.round(R.o)+dir;M.nudges--;sfx.stop();drawReels(true);
+  document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
+  const res=evaluate(readGrid());markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();
+  M.pendingRes=res;showForecast(previewTurn(res));buildReelCtl();
+}
+// Pair combos: two symbols sharing a payline add a twist to the turn.
+const COMBOS={charge:{a:'boots',b:'sword',n:'Charge',d:'first dagger hit deals double'},stabbomb:{a:'sword',b:'bomb',n:'Shrapnel',d:'the blast also stabs what is ahead'},mend:{a:'shield',b:'potion',n:'Mend',d:'block also heals half its value'}};
 function evaluate(grid){
-  const n=grid.length,s=stats(),units={},wins=[],pays=[];let triples=0;
+  const n=grid.length,s=stats(),units={},wins=[],pays=[],combos={};let triples=0;
   for(const L of paylines(n)){
     const syms=L.r.map((row,c)=>grid[c][row]);
     L.r.forEach((row,c)=>pays.push([c,row]));
@@ -660,6 +731,7 @@ function evaluate(grid){
     syms.forEach(x=>x==='star'?wild++:cnt[x]=(cnt[x]||0)+1);
     if(wild){let best=null;for(const k of SYM_ORDER){if(k==='skull'||k==='star')continue;if(cnt[k]&&(!best||cnt[k]>cnt[best]))best=k;}
       best=best||'sword';cnt[best]=(cnt[best]||0)+wild;}
+    for(const c in COMBOS)if(cnt[COMBOS[c].a]&&cnt[COMBOS[c].b])combos[c]=true;
     for(const k in cnt){
       const c=cnt[k];let mult=1;
       if(c>=3&&k!=='skull'){mult=c+s.triple;triples++;
@@ -667,7 +739,7 @@ function evaluate(grid){
       units[k]=(units[k]||0)+c*mult;
     }
   }
-  return {units,triples,wins,pays};
+  return {units,triples,wins,pays,combos};
 }
 function markCells(list,cls){
   for(const [c,row] of list){const R=M.reels[c];if(!R)continue;const i=(1-row)+2;R.cells[i]&&R.cells[i].classList.add(cls);}
@@ -678,15 +750,15 @@ async function onAllStopped(){
   markCells(res.pays,'pay');markCells(res.wins,'win');
   if(res.triples)sfx.jackpot();
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
-  showForecast(previewTurn(res));logLine('Reels stopped. <b>Read the forecast, then resolve.</b>');M.pendingRes=res;setBtn('resolve');busy=false;ui();
+  showForecast(previewTurn(res));logLine('Reels stopped. <b>Read the forecast, then resolve.</b>');M.pendingRes=res;setBtn('resolve');busy=false;ui();buildReelCtl();
   if(S.autoResolve){await sleep(1400);if(M.pendingRes===res)await resolveTurn();}
 }
 async function resolveTurn(){
-  const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;showForecast('');
+  const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;showForecast('');buildReelCtl();
   busy=true;setBtn('busy');
   try{await doTurn(res);}catch(e){console.error(e);}
   busy=false;
-  if(run&&!run.over){setBtn('spin');ui();save();}
+  if(run&&!run.over){setBtn('spin');ui();buildReelCtl();save();}
 }
 
 /* ---------------- turn resolution ---------------- */
@@ -697,6 +769,8 @@ function previewTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0,L=[];
   const nm=o=>o.kind==='chest'?(o.mimic?'the chest':'the chest'):o.n;
   if(R.triples)L.push(`<b style="color:var(--gold)">${R.triples>1?'DOUBLE ':''}JACKPOT</b> — matched symbols pay x3${hasR('bell')?', +3 🪙 from the Bell':''}`);
+  for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
+  if(val('skull')&&!hasR('skullring')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer}</b>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
   if(val('coin'))L.push(`🪙 +<b>${val('coin')*s.coinPer}</b> coins`);
@@ -712,7 +786,7 @@ function previewTurn(R){
     if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${val('bow')*s.bowDmg+mom}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
     if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${val('bomb')*s.bombDmg+mom}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
-    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];return (a==='atk'||a==='drain')?`${e.n} ${v}`:a==='jackpot'?`${e.n} 3×${v}`:null;}).filter(Boolean);
+    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
   }
   if(!L.length)L.push('Nothing lands. Foes take their turn.');
@@ -723,16 +797,18 @@ function logLine(h){$('#log').innerHTML=artify(h);}
 
 async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
-  const parts=[];
+  const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
+  for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
   r.block=hasR('tower')?Math.floor(r.block/2):0;
   if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);}
-  if(val('shield')){const b=val('shield')*s.blockPer;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);}
+  if(val('shield')){const b=val('shield')*s.blockPer;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
   if(val('coin')){const c=val('coin')*s.coinPer;gainCoins(c);parts.push(`🪙+${c}`);}
   if(val('skull')){
     if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
-    else{const d=val('skull')*s.skullDmg;r.hp-=d;heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);}
+    else{const d=val('skull')*s.skullDmg;r.hp-=d;heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);
+      r.doom=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);if(r.doom>=3){heroFl('DOOM','#b07cf0');}}
   }
   ui();if(val('shield')||val('potion')||val('coin')||val('skull'))await beat(380);
   for(let i=0;i<val('key');i++){
@@ -753,8 +829,8 @@ async function doTurn(R){
   const mom=hasR('momentum')?moved:0;
   // daggers
   if(val('sword')){
-    const t=blockerAt(r.x+1),dmg=val('sword')*s.swordDmg+mom;
-    if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg);parts.push(`🗡${dmg}`);
+    const t=blockerAt(r.x+1),dmg=(val('sword')*s.swordDmg+mom)*(combo.charge?2:1);
+    if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg,'sword');parts.push(`🗡${dmg}`);
       const ls=val('sword')*(hasR('fang')?1:0)+s.lifesteal;if(ls)heal(ls);
       if(hasR('pickpocket'))gainCoins(1);await beat(160);}
     else{heroFl('whiff','#a8998a');parts.push('🗡whiff');}
@@ -762,14 +838,15 @@ async function doTurn(R){
   if(val('bow')){
     const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>r.x&&o.x-r.x<=4).sort((a,b)=>a.x-b.x);
     const dmg=val('bow')*s.bowDmg+mom;
-    if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.hit();await beat(140);await hit(es[0],dmg);parts.push(`🏹${dmg}`);
-      if(hasR('quiver')&&es[1])await hit(es[1],Math.ceil(dmg/2));await beat(120);}
+    if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.hit();await beat(140);await hit(es[0],dmg,'bow');parts.push(`🏹${dmg}`);
+      if(hasR('quiver')&&es[1])await hit(es[1],Math.ceil(dmg/2),'bow');await beat(120);}
     else{heroFl('no target','#a8998a');}
   }
   if(val('bomb')){
     const dmg=val('bomb')*s.bombDmg+mom;view.boom={t:0,x:(r.x+1.5)*T};sfx.boom();view.shake=8;
     const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>r.x&&o.x-r.x<=2);
-    for(const t of ts)await hit(t,dmg);parts.push(`💣${dmg}`);await beat(180);
+    for(const t of ts)await hit(t,dmg,'bomb');parts.push(`💣${dmg}`);await beat(180);
+    if(combo.stabbomb){const t2=blockerAt(r.x+1);if(t2){view.lunge=1;await hit(t2,s.swordDmg,'sword');parts.push(`🗡${s.swordDmg}`);await beat(160);}}
   }
   logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
@@ -791,16 +868,21 @@ async function hit(o,dmg,how){
     o.hp-=dmg;o.flash=1;fl('-'+dmg,'#f1e6d2',o.x*T+T/2,GY-50);
     if(o.hp<=0)await openChest(o,false);return;
   }
+  if(o.t==='ironclad'&&!(how==='bomb'||how==='shove'||r.turnJackpot)){fl('IMMUNE','#9aa3ad',o.x*T+T/2,GY-96);o.flash=1;return;}
   let d=dmg;if(o.block){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
+  if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.ceil(d/2),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
+  r.bestHit=Math.max(r.bestHit||0,d);
   o.hp-=d;o.flash=1;addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
   if(o.hp<=0)await kill(o);
 }
 async function kill(o){
   const r=run;o.gone=true;r.kills++;S.kills++;
   const c=rnd(o.coins[0],o.coins[1])+(hasR('pouch')?1:0);gainCoins(c);
+  if(r.jam&&r.jam.by===o.id){r.jam=null;rebuildReels();heroFl('reel freed','#9fd6ff');}
+  if(o.t==='reaper'){const bonus=hasR('scythe')?50:25;r.souls+=bonus;fl('+'+bonus+' 💠','#9fd6ff',o.x*T+T/2,GY-140);}
   r.souls+=o.boss?15+r.floor:1+Math.floor(r.floor/2);
   fl('💠','#9fd6ff',o.x*T+T/2,GY-40);addFx('fx_souls',o.x*T+T/2,GY-50,64,1,40);
-  if(Math.random()<o.loot)r.pending.push(mkItem(null,o.boss?Math.max(2,rollRarity(20)):rollRarity(),r.floor));
+  if(Math.random()<o.loot)r.pending.push(mkItem(null,Math.max(o.minRar||0,o.boss?Math.max(2,rollRarity(20)):rollRarity()),r.floor));
   if(o.boss){r.chips++;S.chips++;fl('+1 🎰 CHIP','#d9b56a',o.x*T+T/2,GY-130);r.bossDown=true;}
 }
 async function openChest(o,keyed){
@@ -828,15 +910,16 @@ async function enterTile(x){
 
 /* ---------------- enemies ---------------- */
 function intentOf(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤','']})[a]||['?',''];}
+  return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤',''],jam:['🎰','jam'],tax:['🪙','-'+v]})[a]||['?',''];}
 function intentText(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting'})[a];}
+  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`})[a];}
 async function enemyPhase(){
   const r=run;
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);
   for(const e of es){
+    for(let rep=0;rep<(e.elite==='fast'?2:1);rep++){
     if(r.over||r.hp<=0)return;if(e.gone)continue;
-    e.block=0;
+    e.block=e.elite==='shield'?5:0;
     const [a,v]=e.pat[e.pi%e.pat.length],dist=e.x-r.x;
     const needsRange=a==='atk'||a==='drain'||a==='jackpot';
     if(needsRange&&dist>e.range){
@@ -853,7 +936,10 @@ async function enemyPhase(){
       if(sx<r.len&&!r.objs.some(o=>o.x===sx&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'))){const m=mkEnemy(v,sx,r.floor);m.loot=0;m.coins=[0,1];r.objs.push(Object.assign(m,{id:uid++}));fl('RISE!','#e0605a',e.x*T+T/2,GY-120);}}
     else if(a==='steal'){const c=Math.min(r.coins,v);r.coins-=c;heroFl('-'+c+' 🪙 stolen','#b07cf0');}
     else if(a==='curse'){r.curse=(r.curse||0)+1;heroFl('+💀 on reels','#b07cf0');addFx('fx_curse',heroWX(),GY-60,76,.9,20);rebuildReels();}
+    else if(a==='jam'){if(!r.jam){const free=M.reels.map((R,i)=>i).filter(i=>!M.reels[i].jam);if(free.length){r.jam={reel:pick(free),by:e.id};heroFl('REEL JAMMED','#b07cf0');rebuildReels();}}}
+    else if(a==='tax'){const c=Math.min(r.coins,v);r.coins-=c;heroFl('-'+c+' 🪙 tax','#b07cf0');}
     e.pi++;ui();await beat(150);
+    }
   }
 }
 async function enemyHit(e,dmg){
@@ -861,7 +947,7 @@ async function enemyHit(e,dmg){
   if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');return;}
   let d=dmg;const b=Math.min(r.block,d);r.block-=b;d-=b;
   if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);}
-  if(d>0){r.hp-=d;heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();}else sfx.block();
+  if(d>0){r.hp-=d;heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.elite==='cursed'){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
   if(s.thorns&&e.range<=1&&!e.gone)await hit(e,s.thorns);
   ui();
 }
@@ -911,8 +997,15 @@ async function floorClear(){
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
   S.best=Math.max(S.best,r.floor);
   await shop();
+  r.nextKind='fight';
+  if((r.floor+1)%3!==0){
+    const others=shuffle(['treasure','elite','rest']).slice(0,2);const opts=['fight',...others];
+    const v=await modal('The way down',`<p>Three doors. Coins are time: choose your floor.</p>`,
+      opts.map(k=>({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:k})));
+    r.nextKind=v||'fight';
+  }
   r.floor++;genFloor(r.floor);rebuildReels();ui();save();
-  logLine(`<b>Floor ${r.floor}.</b> ${r.floor%3===0?'Something big waits at the end.':'Keep moving — coins are time.'}`);
+  logLine(`<b>Floor ${r.floor} · ${FLOOR_KINDS[r.kind].n}.</b> ${FLOOR_KINDS[r.kind].d}`);
 }
 function shopOffers(){
   const f=run.floor,o=[{t:'heal',price:3+Math.floor(f/3)}];
@@ -957,13 +1050,17 @@ async function endRun(reason){
   M.timers.forEach(clearTimeout);M.spinning=false;
   const souls=Math.round(r.souls*(1+stats().soulFind/100));
   S.souls+=souls;S.runs++;S.best=Math.max(S.best,r.floor);
+  if(r.daily){const d=(S.daily&&S.daily[r.daily])||{best:0,runs:0,souls:0};d.best=Math.max(d.best,r.floor);d.runs++;d.souls=Math.max(d.souls,souls);S.daily={[r.daily]:d};}
+  seedRandom(null);
+  r.summary=`Loot & Daggers${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
   await modal(reason==='broke'?'Busted':'You fell',
     `${artSrc(reason==='broke'?'screen_busted':'screen_death')?`<img class="splash" src="${artSrc(reason==='broke'?'screen_busted':'screen_death')}" alt="">`:''}${ps?`<img class="port big dead" src="${ps}" alt="">`:''}<p>${reason==='broke'?'Your purse is empty. The dungeon keeps the change — and you.':reason==='quit'?'You walked away from the machine.':'The dungeon claims another gambler.'}</p>
      <p>Reached <b>floor ${r.floor}</b> · ${r.kills} kills · ${r.spins} spins</p>
-     <p style="font-size:16px">Banked <b style="color:#9fd6ff">${icon('ui_souls_big','💠','gi')} ${souls} souls</b>${r.chips?` and <b style="color:var(--gold)">🎰 ${r.chips} chip${r.chips>1?'s':''}</b>`:''}</p>`,
-    [{label:'Continue',val:1,cls:'primary'}]);
+     <p style="font-size:16px">Banked <b style="color:#9fd6ff">${icon('ui_souls_big','💠','gi')} ${souls} souls</b>${r.chips?` and <b style="color:var(--gold)">🎰 ${r.chips} chip${r.chips>1?'s':''}</b>`:''}</p>
+     <p class="sub" style="font-size:12px;color:var(--dim)">Best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · ${r.relics.length} relic${r.relics.length===1?'':'s'}${r.daily?` · <b style="color:var(--gold)">Daily ${r.daily}</b>`:''}</p>`,
+    [{label:'Continue',val:1,cls:'primary'},{label:'📋 Copy run summary',val:'copy'}]).then(async v=>{if(v==='copy'){try{await navigator.clipboard.writeText(r.summary);}catch(e){}}});
   const eq=SLOTS.map(s=>r.gear[s]).filter(Boolean);
   if(eq.length){
     const v=await modal('The Vault',`<p>Carry one piece home as an <b>heirloom</b>. Heirlooms can be worn at the start of any run.</p><p class="sub">Vault: ${S.vault.length}/${vaultSlots()}</p>`+eq.map(it=>itemHTML(it)).join(''),
@@ -1028,6 +1125,7 @@ function ui(){
   $('#hudBlock').innerHTML=artify('🛡 '+r.block);
   $('#hudCoins').innerHTML=artify('🪙 '+r.coins);
   $('#hudFloor').innerHTML=icon('ui_floor','')+'F'+r.floor;
+  const dm=$('#hudDoom');dm.innerHTML=icon('ui_doom','☠')+' '+Math.min(3,r.doom||0)+'/3';dm.style.color=(r.doom||0)>=2?'var(--purple)':'';
   $('#menuBtn').innerHTML=artify('☰');$('#reelInfoBtn').innerHTML=icon('ui_reels','🎰');
   document.querySelectorAll('.gslot').forEach(b=>{const it=r.gear[b.dataset.slot];
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
@@ -1055,6 +1153,7 @@ function showHub(v){
     <div class="hubBtns">
       ${S.run?`<button class="btn primary" data-act="resume">▶ Continue run <small>Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
       <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'New run <small>abandons the current one</small>':'▶ Descend'}</button>
+      <button class="btn" data-act="daily">${icon('ui_daily','📅')} Daily Descent <small>${todayKey()} · the same dungeon for everyone${(S.daily||{})[todayKey()]?` · your best: floor ${S.daily[todayKey()].best}`:''}</small></button>
       <button class="btn" data-act="altar">💠 Soul Altar <small>Permanent upgrades, paid in souls</small></button>
       <button class="btn" data-act="bench">🎰 Machine Workbench <small>Rewire the slot machine, paid in boss chips</small></button>
       <button class="btn" data-act="vault">🗄️ Heirloom Vault <small>${S.vault.length}/${vaultSlots()} stored</small></button>
@@ -1110,6 +1209,7 @@ $('#hub').addEventListener('click',async e=>{
   const [a,arg]=el.dataset.act.split(':');
   if(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings')return showHub(a);
   if(a==='resume')return resumeRun();
+  if(a==='daily'){if(S.run){S.run=null;save();}return startRun('knight',todayKey());}
   if(a==='pick'){if(S.run){S.run=null;save();}return startRun(arg);}
   if(a==='buyhero'){const h=HEROES[arg];if(S.souls>=h.cost){S.souls-=h.cost;S.heroes[arg]=true;save();}return showHub('heroes');}
   if(a==='toggle'){const it=S.vault.find(x=>x.id===arg);if(!it)return;
@@ -1124,6 +1224,7 @@ $('#hub').addEventListener('click',async e=>{
 });
 
 /* ---------------- game buttons ---------------- */
+$('#cabinet').addEventListener('click',e=>{const b=e.target.closest('#reelCtl button');if(!b||b.disabled)return;const i=+b.dataset.i;if(b.classList.contains('hb'))toggleHold(i);else nudge(i,b.classList.contains('up')?1:-1);});
 $('#spinBtn').addEventListener('click',e=>{e.currentTarget.blur();if(M.spinning)stopNext();else if(M.pendingRes)resolveTurn();else spin();});
 $('#autoBtn').addEventListener('click',()=>{S.autoStop=!S.autoStop;save();ui();logLine(S.autoStop?'🤖 Reels stop on their own.':'✋ Tap each reel to stop it. Aim!');});
 $('#reelInfoBtn').addEventListener('click',()=>{if(busy||M.spinning)return;
@@ -1154,7 +1255,7 @@ $('#scene').addEventListener('click',e=>{
   if(!o)return;
   const info={door:['🚪 Exit','Step through to reach the merchant and the next floor.'],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
     shrine:['⛩ Shrine','Step on it to choose a relic.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
-  if(o.kind==='enemy'){const [ic,v]=intentOf(o);modal(o.n,`<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
+  if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
   else if(info)modal(info[0],`${icon('shop_'+(o.kind==='coins'?'coinpile':o.kind),'','hero')}<p>${info[1]}</p>`,[{label:'Close',val:1,cls:'center'}]);
 });
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&run&&!modalOpen){e.preventDefault();if(M.spinning)stopNext();else if(M.pendingRes)resolveTurn();else spin();}});
@@ -1178,7 +1279,7 @@ function loadArt(){
 }
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
-const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,
+const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
   boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74};
 function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
@@ -1264,11 +1365,12 @@ function drawHero(x,t,moving){
   cx.globalAlpha=1;
 }
 function drawEnemy(o,x,t){
-  const flash=o.flash>0;const k=o.boss?'boss_'+o.t:'enemy_'+o.t;const s=o.boss?1.7:1;
+  const flash=o.flash>0;const k=o.boss?'boss_'+o.t:'enemy_'+o.t;const s=o.boss?1.7:o.big?1.4:1;
   const X=x-(o.lunge||0)*10,Y=GY;
   let w=64*s,h=64*s;
   const ak=(o.boss?'boss_attack_':'enemy_attack_')+o.t;
   if(artImg(k))shadow(x,o.boss?34:20);
+  if(o.elite)cx.filter='drop-shadow(0 0 6px #c9302c)';
   if(flash)cx.filter='brightness(2.2)';
   const d=(o.pose>0&&sprAt(ak,X,Y,true))||sprAt(k,X,Y,true);
   if(d)h=Math.min(d.h*.92,VH-40);
@@ -1276,7 +1378,7 @@ function drawEnemy(o,x,t){
     cx.fillStyle='rgba(0,0,0,.35)';cx.beginPath();cx.ellipse(x,GY+2,16*s,4,0,0,7);cx.fill();
     const b=Math.sin(t*5+o.id)*2;
     const P=(dx,dy,w,h,c)=>rect(X+dx*s,Y+(dy-b*(dy<-4?1:0))*s,w*s,h*s,c);
-    switch(o.t){
+    switch(({croupier:'skel',taxman:'skel',mirror:'wraith',ironclad:'orc',reaper:'lich'})[o.t]||o.t){
       case 'rat':P(-16,-14,28,14,'#7d6f66');P(-22,-18,12,12,'#8e8077');P(-20,-15,3,3,'#e0605a');P(10,-6,14,2,'#d99a9a');P(-12,-2,4,2,'#5a4e48');P(4,-2,4,2,'#5a4e48');break;
       case 'skel':case 'boneking':case 'archer':
         P(-6,-22,12,22,'#1a1418');P(-8,-40,16,20,'#e8e2d0');for(let i=0;i<4;i++)P(-7,-38+i*5,14,2,'#9c9484');
@@ -1300,6 +1402,7 @@ function drawEnemy(o,x,t){
   }
   cx.filter='none';
   const top=Y-h-4;hpBar(x,top,o.boss?60:34,o);
+  if(o.elite){const ei=artImg('elite_'+o.elite);if(ei)cx.drawImage(ei,x-(o.boss?30:17)-22,top-4,18,18);else{cx.font='bold 10px ui-monospace,monospace';cx.textAlign='center';cx.fillStyle='#c9763a';cx.fillText(ELITES[o.elite].e,x-(o.boss?30:17)-12,top+4);}}
   const [ic,v]=intentOf(o);const awake=o.x-run.x<=6;
   cx.globalAlpha=awake?1:.45;cx.font='bold 11px ui-monospace,monospace';cx.textAlign='center';
   const iim=artImg('intent_'+o.pat[o.pi%o.pat.length][0]);

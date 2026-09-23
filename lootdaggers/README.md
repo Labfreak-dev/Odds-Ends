@@ -79,6 +79,30 @@ turn.
 Running out of coins isn't an instant loss. You can pawn worn gear for coins
 until nothing is left.
 
+## Decisions on the reels (b029)
+- **Hold**: after a spin, tap HOLD under a reel to keep it for the next spin.
+  Each held reel adds a coin to the spin (Reel Clamp relic makes it free). Holds
+  clear once the next spin lands. At least one reel must spin.
+- **Nudge**: with the Nudge Lever workbench mod (or Loaded Dice relic) you get
+  nudges per spin: ▲/▼ under a reel bumps it a notch and the forecast re-runs.
+- **Combos**: two symbols sharing a payline: boots+dagger = Charge (first
+  dagger hit x2); dagger+bomb = Shrapnel (the blast also stabs ahead);
+  shield+potion = Mend (block also heals half its value).
+- **Doom**: every skull that hurts you adds Doom. At 3 the Reaper spawns at the
+  start of the next floor (40 HP, drains coins); killing it pays 25 souls
+  (Reaper's Scythe relic: doom builds x2, Reaper pays 50).
+- **The way down**: after each merchant (non-boss floors) pick one of three
+  doors: Fight, Treasure (+2 chests, one a mimic, +coins), Elite (one foe gets
+  Frenzied/Warded/Hexed, x1.6 HP, guaranteed Rare+), Rest (short floor, no
+  foes, heal 30%, a shrine).
+- **Reel-meddling foes**: Cursed Croupier (jams a reel on a Skull until it
+  dies), Tax Collector (+1 coin per spin while awake), Mirror Wight (reflects
+  half of dagger hits), Ironclad Husk (only bombs, shoves and jackpot turns
+  hurt it).
+- **Run summary**: the death screen has "Copy run summary". **Daily Descent**
+  on the hub seeds Math.random from the date (per spin) so everyone gets the
+  same dungeon, shops and reel strips; S.daily keeps today's best.
+
 ## Save
 `localStorage['lootdaggers_v1']`. A run in progress is saved after every turn,
 and the hub offers "Continue run". Settings → Wipe save resets everything.
@@ -210,3 +234,6 @@ Nothing in the game is emoji any more once art.js loads.
   drifts across their bases.
 - **b028**: the One-Armed Bandit, the Dice Lich, the wraith and the spike trap
   sink to the floor (their lowest pixel was a chain, hem or lone spike).
+- **b029**: gameplay batch: hold and nudge, pair combos, the floor map with
+  elites, four reel-meddling foes plus the Reaper and a Doom meter, run
+  summary and daily seed. `art-pack10-prompts.txt` orders their art (26).

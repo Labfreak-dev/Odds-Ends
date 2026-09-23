@@ -121,6 +121,20 @@ button{font:inherit;color:inherit;cursor:pointer}
 .reel::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(0,0,0,.35),transparent 25%,transparent 75%,rgba(0,0,0,.35))}
 .reel .cell{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:min(9vw,44px,5.6dvh);line-height:1;will-change:transform}
 .reel .cell img{width:78%;height:78%;object-fit:contain;image-rendering:auto}
+.reel .cell .soul{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.reel .cell .soul img{filter:drop-shadow(0 0 3px #ffb347) drop-shadow(0 0 6px #ff6a1a) brightness(1.15);animation:soulpulse 1.3s ease-in-out infinite}
+.reel .cell .soul i{position:absolute;left:50%;top:14%;width:34%;height:30%;transform:translateX(-50%);border-radius:50% 50% 45% 45%/60% 60% 40% 40%;background:radial-gradient(ellipse at 50% 80%,#fff3b0 0%,#ffb347 35%,rgba(255,80,20,.85) 65%,rgba(255,60,10,0) 100%);filter:blur(1px);animation:flame .5s ease-in-out infinite alternate;pointer-events:none}
+@keyframes soulpulse{0%,100%{filter:drop-shadow(0 0 3px #ffb347) drop-shadow(0 0 6px #ff6a1a) brightness(1.15)}50%{filter:drop-shadow(0 0 5px #ffd36a) drop-shadow(0 0 12px #ff8a2a) brightness(1.3)}}
+@keyframes flame{from{transform:translateX(-50%) scaleY(.85) skewX(-4deg)}to{transform:translateX(-50%) scaleY(1.1) skewX(5deg)}}
+#bulbs{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
+#bulbs i{position:absolute;width:6.5%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;opacity:0;transition:opacity .4s}
+#bulbs i.lit{opacity:1;background:radial-gradient(circle,#fff0c0 0%,#ff5a3a 35%,rgba(255,60,30,.55) 60%,rgba(255,60,30,0) 72%);box-shadow:0 0 10px 4px rgba(255,80,40,.75);animation:bulbpulse 1.6s ease-in-out infinite}
+#bulbs i.new{animation:bulbpop .6s ease-out,bulbpulse 1.6s ease-in-out .6s infinite}
+@keyframes bulbpulse{0%,100%{opacity:.85}50%{opacity:1}}
+@keyframes bulbpop{0%{transform:translate(-50%,-50%) scale(2.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+#bulbsFallback{display:flex;gap:4px;justify-content:center;margin:2px 0 4px;position:relative;z-index:1}
+#bulbsFallback i{width:10px;height:10px;border-radius:50%;background:#3a1a1c;border:1px solid #000}
+#bulbsFallback i.lit{background:#ff5a3a;box-shadow:0 0 6px #ff5a3a}
 .reel .cell.pay{background:rgba(217,181,106,.18)}
 .reel .cell.pay::after{content:"";position:absolute;inset:9% 10%;pointer-events:none;border:2px solid rgba(201,118,58,.85);border-radius:10px;box-shadow:0 0 8px 1px rgba(201,118,58,.55);animation:paypulse 1.6s ease-in-out infinite}
 .reel .cell.pay img{filter:drop-shadow(0 0 3px rgba(255,200,120,.8))}
@@ -246,7 +260,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     <div id="log">Insert a coin and pull. <b>Whatever lands is your turn.</b></div>
     <div id="machine">
       <div id="cabinet">
-        <img id="cabinetArt" alt="">
+        <img id="cabinetArt" alt=""><div id="bulbs"></div>
         <div id="marquee"><span class="lights">● ● ●</span><span id="lineInfo">1 PAYLINE</span><span class="lights">● ● ●</span></div>
         <div id="reels"></div>
         <div id="nudgeNote"></div>
@@ -299,6 +313,7 @@ const SYM={
   bomb:{e:'💣',n:'Bomb',d:'Blast everything within 2 tiles.'},
   key:{e:'🗝️',n:'Key',d:'Open the nearest chest within 3 tiles. No chest: +1 coin.'},
   star:{e:'⭐',n:'Wild',d:'Becomes the best symbol on its payline.'},
+  scoin:{e:'🪙',n:'Soul Coin',d:'A coin with an ember. Three on screen light a bulb; a full row of bulbs is free spins.'},
 };
 const SYM_ORDER=['sword','bow','bomb','boots','shield','potion','coin','key','star','skull'];
 
@@ -363,7 +378,7 @@ const RELICS=[
   {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Holding a reel costs no coin.'},
   {id:'scythe',e:'🌙',n:'Reaper\'s Scythe',d:'Doom builds twice as fast; the Reaper pays double souls.'},
   {id:'thumb',e:'👍',n:'Croupier\'s Thumb',d:'Below half HP the fortune wheel never lands on x1.'},
-  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Coins on two reels trigger the bonus instead of three.'},
+  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Two soul coins light a bulb instead of three.'},
   {id:'longstreak',e:'🔥',n:'Long Streak',d:'The bonus gives 5 free spins instead of 3.'},
 ];
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
@@ -640,7 +655,7 @@ const objsAt=x=>run.objs.filter(o=>o.x===x&&!o.gone);
 async function startRun(heroId,daily){
   const h=HEROES[heroId];seedRandom(daily||null);
   run={hero:heroId,floor:1,x:0,hp:0,block:0,coins:h.coins+alt('purse')*3,gear:{weapon:null,armor:null,boots:null,charm:null},
-    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1};
+    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1,bulbs:0};
   for(const id of S.loadout){const it=S.vault.find(v=>v.id===id);if(it&&!run.gear[it.slot])run.gear[it.slot]=JSON.parse(JSON.stringify(it));}
   run.daily=daily||null;run.hp=stats().maxHp;
   genFloor(1);
@@ -652,7 +667,7 @@ async function startRun(heroId,daily){
 function resumeRun(){run=S.run;run.over=false;busy=false;seedRandom(run.daily?run.daily+':'+run.spins:null);view.hx=run.x*T+T/2;view.cam=view.hx-HERO_SX;showGame();rebuildReels();ui();}
 
 /* ---------------- slot machine ---------------- */
-const M={reels:[],spinning:false,timers:[],grid:null,nudges:0,wheel:1,wheelSpin:null};
+const M={reels:[],spinning:false,timers:[],grid:null,nudges:0,wheel:1,wheelSpin:null,autoBonus:false};
 // The fortune wheel: a dial on the cabinet that lands on x1/x2/x3/x5 each spin and
 // multiplies that turn's damage and block (never coins or healing).
 function wheelFaces(){const f=[1,1,1,2,3,5];if(S.mods.wheel1)f.splice(0,1);if(S.mods.wheel5)f.push(5);return f;}
@@ -671,12 +686,22 @@ function tickWheel(now){
   const ws=M.wheelSpin;if(!ws)return;
   if(now-ws.last>ws.gap){ws.last=now;ws.face=pick(wheelFaces());ws.gap=Math.min(320,ws.gap*1.08);drawWheel();}
 }
-function scatterReels(grid){return grid.filter(col=>col.includes('coin')).length;}
+const BULBS=5,BULB_POS=[[24.1,15.7],[32.7,13.5],[41.3,13.8],[50,11.9],[58.5,13.1],[67.4,13.9],[75.9,15.9]];  // bulb centres on the cabinet art, % of width/height
+function soulCount(grid){return grid.reduce((n,col)=>n+col.filter(x=>x==='scoin').length,0);}
+function bulbsGained(soul){const need=bonusNeed();return soul>=need?1+(soul-need):0;}
+function drawBulbs(gained){
+  const r=run,lit=r?Math.min(BULBS,r.bulbs||0):0;let box=$('#bulbs');
+  if(!box.children.length){const use=BULB_POS.length>=7?[1,2,3,4,5]:[0,1,2,3,4];box.innerHTML=use.map(i=>`<i style="left:${BULB_POS[i][0]}%;top:${BULB_POS[i][1]}%"></i>`).join('');}
+  [...box.children].forEach((el,i)=>{const on=i<lit;const was=el.classList.contains('lit');el.classList.toggle('lit',on);el.classList.toggle('new',on&&!was&&!!gained);});
+  let fb=$('#bulbsFallback');if(!$('#cabinet').classList.contains('art')){if(!fb){fb=document.createElement('div');fb.id='bulbsFallback';$('#marquee').after(fb);}
+    fb.innerHTML=Array.from({length:BULBS},(_,i)=>`<i class="${i<lit?'lit':''}"></i>`).join('');}else if(fb)fb.remove();
+}
 function bonusNeed(){return hasR('silverscatter')?2:3;}
 function finishRes(res){
   res.mult=M.wheel;
-  res.scatter=scatterReels(readGrid());
-  res.bonusTrigger=!run.inBonus&&res.scatter>=bonusNeed();
+  res.soul=soulCount(readGrid());
+  res.gain=run.inBonus?0:bulbsGained(res.soul);
+  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;
   return res;
 }
 const nudgeMax=()=>(S.mods.nudge?1:0)+(hasR('loadeddice')?1:0);
@@ -696,19 +721,20 @@ function rebuildReels(){
     }
   }
   for(const R of M.reels){
-    const arr=[];for(const k in counts)for(let i=0;i<counts[k];i++)arr.push(k);
+    const arr=[];for(const k in counts)for(let i=0;i<counts[k];i++)arr.push(k==='coin'&&i%2===0?'scoin':k);
     R.strip=shuffle(arr);R.o=Math.round(R.o)%R.strip.length;R.last=[];
   }
   M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
   buildReelCtl();
   const L=paylines(n);
   $('#lineInfo').textContent=(run&&run.inBonus&&run.bonus>0)?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
-  $('#marquee').classList.toggle('bonus',!!(run&&run.inBonus&&run.bonus>0));drawWheel();
+  $('#marquee').classList.toggle('bonus',!!(run&&run.inBonus&&run.bonus>0));drawWheel();drawBulbs();
   drawReels(true);
 }
 function cellSymHTML(sym){
-  const img=artImg('sym_'+sym);
-  return img?`<img src="${img.src}" alt="${SYM[sym].n}">`:SYM[sym].e;
+  const soul=sym==='scoin';const img=artImg('sym_'+(soul?'coin':sym));
+  const inner=img?`<img src="${img.src}" alt="${SYM[sym].n}">`:SYM[sym].e;
+  return soul?`<span class="soul">${inner}<i></i></span>`:inner;
 }
 function drawReels(force){
   for(const R of M.reels){
@@ -751,7 +777,7 @@ function spin(){
   buildReelCtl();
   setBtn('stop');ui();sfx.spin();
   M.timers.forEach(clearTimeout);M.timers=[];
-  const auto=S.autoStop,first=auto?380:3200,gap=auto?170:300;
+  const auto=S.autoStop||M.autoBonus,first=auto?380:3200,gap=auto?170:300;
   M.reels.forEach((R,c)=>{if(R.spinning)M.timers.push(setTimeout(()=>stopReel(R),first+c*gap));});
 }
 function stopNext(){const R=M.reels.find(x=>x.spinning&&!x.settle);if(R)stopReel(R);}
@@ -803,7 +829,7 @@ function evaluate(grid){
     const syms=L.r.map((row,c)=>grid[c][row]);
     L.r.forEach((row,c)=>pays.push([c,row]));
     const cnt={};let wild=0;
-    syms.forEach(x=>x==='star'?wild++:cnt[x]=(cnt[x]||0)+1);
+    syms.forEach(x=>{x=x==='scoin'?'coin':x;x==='star'?wild++:cnt[x]=(cnt[x]||0)+1;});
     if(wild){let best=null;for(const k of SYM_ORDER){if(k==='skull'||k==='star')continue;if(cnt[k]&&(!best||cnt[k]>cnt[best]))best=k;}
       best=best||'sword';cnt[best]=(cnt[best]||0)+wild;}
     for(const c in COMBOS)if(cnt[COMBOS[c].a]&&cnt[COMBOS[c].b])combos[c]=true;
@@ -827,14 +853,17 @@ async function onAllStopped(){
   if(res.bonusTrigger){bonusFlash();sfx.jackpot();}
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
   showForecast(previewTurn(res));logLine('Reels stopped. <b>Read the forecast, then resolve.</b>');M.pendingRes=res;setBtn('resolve');busy=false;ui();buildReelCtl();
-  if(S.autoResolve){await sleep(1400);if(M.pendingRes===res)await resolveTurn();}
+  if(S.autoResolve||M.autoBonus){await sleep(M.autoBonus?900:1400);if(M.pendingRes===res)await resolveTurn();}
 }
 async function resolveTurn(){
   const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;showForecast('');buildReelCtl();
   busy=true;setBtn('busy');
   try{await doTurn(res);}catch(e){console.error(e);}
   busy=false;
-  if(run&&!run.over){setBtn('spin');ui();buildReelCtl();save();}
+  if(run&&!run.over){setBtn('spin');ui();buildReelCtl();save();
+    // free spins run themselves: spin again while the bonus lasts
+    if(run.inBonus&&run.bonus>0&&!S.bonusManual){M.autoBonus=true;await sleep(700);if(run&&!run.over&&!modalOpen&&!M.spinning&&!M.pendingRes)spin();else M.autoBonus=false;}
+    else M.autoBonus=false;}
 }
 
 /* ---------------- turn resolution ---------------- */
@@ -848,7 +877,8 @@ function previewTurn(R){
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
   if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
   if(r.wheelJam)L.push(`<span style="color:var(--purple)">the Bandit has jammed the wheel at ×1 — a jackpot frees it</span>`);
-  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">★ SCATTER</b> — Coins on ${R.scatter} reels: <b>${hasR('longstreak')?5:3} free spins</b> from the next pull`);
+  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})</span>`);
+  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">✦ ALL BULBS LIT</b> — <b>${hasR('longstreak')?5:3} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
   if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
   if(val('skull')&&!hasR('skullring')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   const mu=R.mult||1;
@@ -881,7 +911,8 @@ async function doTurn(R){
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
   const mu=R.mult||1;r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
-  if(R.bonusTrigger){r.bonus=hasR('longstreak')?5:3;r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
+  if(R.gain){r.bulbs=(r.bulbs||0)+R.gain;drawBulbs(true);sfx.coin();heroFl('+'+R.gain+' bulb'+(R.gain>1?'s':''),'#ff8a4a');}
+  if(R.bonusTrigger){r.bulbs=0;drawBulbs();r.bonus=hasR('longstreak')?5:3;r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
     if(S.mods.bonusbell)await relicPick('Bonus Bell','The bell rings: a relic falls with the free spins.');}
   else if(r.inBonus&&r.bonus<=0){r.inBonus=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
@@ -1233,7 +1264,8 @@ function settingsHTML(){return `
     <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
     <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
     <button class="btn" data-act="set:jackpotScreen">${S.jackpotScreen!==false?'🎰 Jackpot screen: on':'🎰 Jackpot screen: off'}</button>
-    <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>`;}
+    <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>
+    <button class="btn" data-act="set:bonusManual">${S.bonusManual?'🎰 Free spins: tap each spin':'🎰 Free spins: play themselves'}</button>`;}
 function applySetting(arg){S[arg]=!S[arg];save();if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
 // In-game settings: a pop-up over the pause menu that stays open while you toggle.
 function settingsPopup(){
@@ -1300,7 +1332,7 @@ function showHub(v){
     <p>Resolution order: block, heal, coins, skulls, keys, <b>move</b>, then daggers, bows and bombs — so boots can carry you into stabbing range.</p>
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
-    <h3>Free spins</h3><p>Land a Coin on <b>three different reels</b> (anywhere, not just the payline) and the next 3 spins are free: no coin, free holds, an extra nudge, and the wheel never shows x1. Foes still take their turns.</p>
+    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the red bulbs on the cabinet (each extra coin lights another). When all five bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
     <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
@@ -1373,6 +1405,7 @@ function artSrc(k){return (window.LD_ART||{})[k]||'';}
 function applyChrome(){
   const A=window.LD_ART||{};
   if(A.ui_cabinet){$('#cabinetArt').src=A.ui_cabinet;$('#cabinet').classList.add('art');}
+  if(run)drawBulbs();
   if(A.ui_spin_button){$('#spinBtn').classList.add('art');}
   document.querySelectorAll('.gslot').forEach(b=>{if(A.ui_slot_frame){b.classList.add('art');b.style.backgroundImage=`url(${A.ui_slot_frame})`;}});
   document.querySelectorAll('.reel').forEach(r=>{if(A.ui_reel_strip){r.classList.add('art');r.style.backgroundImage=`url(${A.ui_reel_strip})`;}});

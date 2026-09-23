@@ -411,3 +411,10 @@ Nothing in the game is emoji any more once art.js loads.
 - **b071**: poison shows on the hero: a green gas cloud billows out on every tick
   (and when first poisoned), and a faint haze of rising bubbles lingers while it
   lasts.
+- **b072**: content drop. 50 new relics that bend the rules (Gold Tooth, Blood Pact,
+  Death Card, Gambler's Ruin, Reaper's Bargain, Roulette Ball, House Edge...), 80 new
+  gear bases (20 a slot) each with a built-in bonus, and 20 gambling-and-death
+  Uniques with special effects (The Last Pull, Croupier's Rake, Coffin Plate, Dead
+  Man's Hand, Coin of Charon...) found 3% from chests, 8% from elites, 20% from
+  bosses. New relics and uniques share an effect-hook table (FX) instead of more
+  hasR() checks in the turn code. Emoji icons until art-pack17 (150 icons) lands.

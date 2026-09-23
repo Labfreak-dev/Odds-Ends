@@ -164,3 +164,5 @@ Nothing in the game is emoji any more once art.js loads.
   reel strips, spin/stop buttons, 9-sliced panels and buttons, slot frames, the
   logo crest, hero hurt poses, app icon and share card. The art sheet is
   complete.
+- **b008**: reward and dialog buttons: a dark scrim under the label, brighter
+  description text with a drop shadow, so choices read on the wood-plank art.

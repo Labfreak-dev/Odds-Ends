@@ -273,3 +273,6 @@ Nothing in the game is emoji any more once art.js loads.
   `altar:vit` as a request to open the Altar view before checking for a buy).
 - **b034**: one shared settings list for the hub and the pause menu; in-game it
   opens as a pop-up that stays open while you toggle.
+- **b035**: pack 11 packed: fortune wheel dial, two wheel mods, Bonus Bell,
+  three relics (239 images). Spare takes kept as `*_alt` in art-src; the
+  packer skips them.

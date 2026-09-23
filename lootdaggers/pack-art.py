@@ -172,7 +172,7 @@ def main():
     art, meta, total = {}, {}, 0
     for f in files:
         key = os.path.splitext(f)[0]
-        if kind(key)[0] == 'skip': continue
+        if kind(key)[0] == 'skip' or key.endswith('_alt'): continue   # _alt: spare takes kept in art-src only
         img, data, scale = process(key, Image.open(os.path.join(SRC, f)))
         if scale: meta[key] = [round(scale[0], 5), scale[1]]
         art[key] = 'data:image/webp;base64,' + base64.b64encode(data).decode()

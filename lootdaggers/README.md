@@ -199,3 +199,5 @@ Nothing in the game is emoji any more once art.js loads.
   keep the blood-red ring); the jackpot tag reads DEATH FAVOURS YOU.
 - **b022**: sprites and their shadows sink 7px into the floor lip so nothing
   looks like it is floating (FEET_SINK in sprAt).
+- **b023**: rats and slimes sink further (their lowest pixel is a tail or drip,
+  not feet) via a SINK_EXTRA table.

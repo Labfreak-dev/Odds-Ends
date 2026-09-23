@@ -300,3 +300,6 @@ Nothing in the game is emoji any more once art.js loads.
   the next bonus once this one ends); the last free spin keeps its marquee
   label. Fixes "two soul coins with Silver Scatter did nothing" on the final
   free spin.
+- **b042**: death screen: bloody "The Dead Can't Pay Their Debts!", "Death by X"
+  (enemy, trap, skull, mirror or empty purse), and a collapsible log of the
+  last three turns (reels, your actions, every hit taken with HP left).

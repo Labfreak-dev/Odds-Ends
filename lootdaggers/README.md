@@ -403,3 +403,6 @@ Nothing in the game is emoji any more once art.js loads.
   stacked; a Potion cures it; the life bar turns green). His loot only drops when
   phase two dies. Art for the transformed form, dialogue portraits and the
   transformation splash is requested in art-pack16-prompts.txt.
+- **b069**: art pack 16 packed (275 images): the transformed Dr. Labfreak (idle and
+  attack), both dialogue portraits and the transformation splash. The mutated
+  sprite only appears once he has drunk the concoction, not during his rant.

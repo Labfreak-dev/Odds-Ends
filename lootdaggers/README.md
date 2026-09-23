@@ -269,3 +269,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b032**: fortune wheel (x1/x2/x3/x5 on damage and block) and a three-Coins
   scatter bonus of free spins, with two wheel mods, Bonus Bell, three relics,
   and the Bandit jamming the wheel. Art: `ui_wheel` + six icons ordered.
+- **b033**: fix: Soul Altar purchases did nothing (the hub click handler treated
+  `altar:vit` as a request to open the Altar view before checking for a buy).

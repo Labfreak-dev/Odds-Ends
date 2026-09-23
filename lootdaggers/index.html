@@ -700,8 +700,8 @@ function bonusNeed(){return hasR('silverscatter')?2:3;}
 function finishRes(res){
   res.mult=M.wheel;
   res.soul=soulCount(readGrid());
-  res.gain=run.inBonus?0:bulbsGained(res.soul);
-  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;
+  res.gain=bulbsGained(res.soul);   // bulbs collect during free spins too
+  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;   // a full row waits for the current bonus to end
   return res;
 }
 const nudgeMax=()=>(S.mods.nudge?1:0)+(hasR('loadeddice')?1:0);
@@ -727,8 +727,8 @@ function rebuildReels(){
   M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
   buildReelCtl();
   const L=paylines(n);
-  $('#lineInfo').textContent=(run&&run.inBonus&&run.bonus>0)?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
-  $('#marquee').classList.toggle('bonus',!!(run&&run.inBonus&&run.bonus>0));drawWheel();drawBulbs();
+  $('#lineInfo').textContent=(run&&run.inBonus)?(run.bonus>0?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
+  $('#marquee').classList.toggle('bonus',!!(run&&run.inBonus));drawWheel();drawBulbs();
   drawReels(true);
 }
 function cellSymHTML(sym){
@@ -877,7 +877,7 @@ function previewTurn(R){
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
   if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
   if(r.wheelJam)L.push(`<span style="color:var(--purple)">the Bandit has jammed the wheel at ×1 — a jackpot frees it</span>`);
-  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})</span>`);
+  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — another bonus once this one ends':''}</span>`);
   if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">✦ ALL BULBS LIT</b> — <b>${hasR('longstreak')?5:3} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
   if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
   if(val('skull')&&!hasR('skullring')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
@@ -1249,7 +1249,7 @@ function ui(){
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
   $('#relics').innerHTML=r.relics.map(id=>`<button class="relic" data-relic="${id}" title="${RELIC[id].n}">${relicIcon(RELIC[id])}</button>`).join('');
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
-  {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=(r.inBonus&&r.bonus>0)?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:L+' PAYLINE'+(L>1?'S':'')+' · '+n+' REELS';$('#marquee').classList.toggle('bonus',!!(r.inBonus&&r.bonus>0));}
+  {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=r.inBonus?(r.bonus>0?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):L+' PAYLINE'+(L>1?'S':'')+' · '+n+' REELS';$('#marquee').classList.toggle('bonus',!!r.inBonus);}
   if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
 }
 function showGame(){if(run)music.play(musicForFloor(run.floor));$('#hub').classList.add('hidden');$('#game').classList.remove('hidden');requestAnimationFrame(()=>{resizeCanvas();rebuildReels();});}
@@ -1334,7 +1334,7 @@ function showHub(v){
     <p>Resolution order: block, heal, coins, skulls, keys, <b>move</b>, then daggers, bows and bombs — so boots can carry you into stabbing range.</p>
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
-    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights another). When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
+    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
     <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;

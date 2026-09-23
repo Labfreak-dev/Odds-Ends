@@ -296,3 +296,7 @@ Nothing in the game is emoji any more once art.js loads.
 - **b039**: soul-coin halo: bulb-red core fading to the orange ember.
 - **b040**: a sound-effects volume slider next to the music one (S.sfxVol),
   in both settings panels; plays a coin blip on release so you can hear it.
+- **b041**: bulbs collect during free spins too (a row filled mid-bonus starts
+  the next bonus once this one ends); the last free spin keeps its marquee
+  label. Fixes "two soul coins with Silver Scatter did nothing" on the final
+  free spin.

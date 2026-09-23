@@ -362,3 +362,8 @@ Nothing in the game is emoji any more once art.js loads.
   Captain/Dapper) so the letters can be bigger, deeper carving contrast. Mirror
   Wight now reflects chip damage: 1 per dagger hit (2 from floor 8, 3 from 16),
   not half the hit.
+- **b059**: 50 stand-alone obituaries dealt from a shuffled deck saved with the
+  game (no repeats until all 50 are read); two in three obituaries come off the
+  deck, the rest from each person's own lines. New strongman lines for Madness
+  and sombrero/mullet lines for PapaModelo; art-pack13-prompts.txt asks for their
+  new headshots.

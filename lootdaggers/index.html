@@ -80,7 +80,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 #reelCtl{display:flex;gap:6px;margin-top:6px;position:relative;z-index:1}
 #reelCtl .rc{flex:1;display:flex;gap:3px;justify-content:center}
 #reelCtl button{border:2px solid #000;border-radius:6px;background:#221c1d;color:var(--ink);font-size:11px;padding:3px 0;box-shadow:0 2px 0 #000;font-weight:700}
-#reelCtl .nb{width:26px}
+#reelCtl .nb{width:34px;font-size:15px}
+#reelCtl .nb:disabled{visibility:hidden}
+#reelCtl .nb:not(:disabled){background:linear-gradient(#e2bd6c,#8a6326);color:#1a1008;animation:nbPulse 1s ease-in-out infinite}
+@keyframes nbPulse{50%{box-shadow:0 2px 0 #000,0 0 10px #e2bd6c}}
 #reelCtl .hb{flex:1;max-width:78px;letter-spacing:1px}
 #reelCtl .hb .ico{width:16px;height:16px;vertical-align:-3px;margin-right:2px}
 #nudgeNote .ico{width:14px;height:14px;vertical-align:-3px}
@@ -755,7 +758,19 @@ function rebuildReels(){
   }
   for(const R of M.reels){
     const arr=[];for(const k in counts)for(let i=0;i<counts[k];i++)arr.push(k==='coin'&&i%2===0?'scoin':k);
-    R.strip=shuffle(arr);R.o=Math.round(R.o)%R.strip.length;R.last=[];
+    // Whatever is in the window stays put: only the unseen part of the strip is
+    // reshuffled, so a hex, relic or new floor never swaps symbols in front of you
+    // (they showed symbols that had not landed, and did not count).
+    const t=Math.round(R.o),old=R.strip,seen=old.length?[-2,-1,0,1,2].map(k=>old[mod(t+k,old.length)]):null;
+    const strip=shuffle(arr),len=strip.length,o=mod(t,len);
+    if(seen&&len>=5){
+      const win=new Set([-2,-1,0,1,2].map(k=>mod(o+k,len))),lock=new Set();
+      seen.forEach((sym,idx)=>{const at=mod(o+idx-2,len);lock.add(at);if(strip[at]===sym)return;
+        let j=strip.findIndex((x,q)=>x===sym&&!win.has(q));              // take it from the unseen part
+        if(j<0)j=strip.findIndex((x,q)=>x===sym&&!lock.has(q));           // or from a window slot not yet filled
+        if(j>=0)[strip[at],strip[j]]=[strip[j],strip[at]];});
+    }
+    R.strip=strip;R.o=o;R.last=[];
   }
   M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
   buildReelCtl();
@@ -847,7 +862,7 @@ function buildReelCtl(){
     <button class="nb up" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▲</button>
     <button class="hb ${R.held?'on':''}" data-i="${i}" ${idle&&!R.jam?'':'disabled'}>${icon('ui_hold','')}${R.jam?'JAMMED':R.held?'HELD':'HOLD'}</button>
     <button class="nb dn" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▼</button></div>`).join('');
-  const nudgeNote=$('#nudgeNote');if(nudgeNote)nudgeNote.innerHTML=nudgeMax()?`${icon('ui_nudge','')} nudges: ${M.nudges}`:'';
+  const nudgeNote=$('#nudgeNote');if(nudgeNote)nudgeNote.innerHTML=canNudge?`${icon('ui_nudge','')} nudge ▲▼ · ${M.nudges} left`:'';
 }
 function toggleHold(i){const R=M.reels[i];if(!R||M.spinning||busy||R.jam)return;R.held=!R.held;R.el.classList.toggle('held',R.held);buildReelCtl();setBtn(M.pendingRes?'resolve':'spin');
   const n=M.reels.filter(x=>x.held).length;if(n)logLine(`Holding ${n} reel${n>1?'s':''}: next spin costs <b>${spinCost()}</b> 🪙.`);}
@@ -857,6 +872,7 @@ function nudge(i,dir){
   document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
   const res=finishRes(evaluate(readGrid()));markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();
   M.pendingRes=res;showForecast(previewTurn(res));buildReelCtl();
+  if(S.autoResolve||M.autoBonus)autoResolveLater();
 }
 // Pair combos: two symbols sharing a payline add a twist to the turn.
 const COMBOS={charge:{a:'boots',b:'sword',n:'Charge',d:'first dagger hit deals double'},stabbomb:{a:'sword',b:'bomb',n:'Shrapnel',d:'the blast also stabs what is ahead'},mend:{a:'shield',b:'potion',n:'Mend',d:'block also heals half its value'}};
@@ -890,8 +906,12 @@ async function onAllStopped(){
   if(res.bonusTrigger){bonusFlash();sfx.jackpot();}
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
   showForecast(previewTurn(res));logLine('Reels stopped. <b>Read the forecast, then resolve.</b>');M.pendingRes=res;setBtn('resolve');busy=false;ui();buildReelCtl();
-  if(S.autoResolve||M.autoBonus){await sleep(M.autoBonus?900:1400);if(M.pendingRes===res)await resolveTurn();}
+  if(S.autoResolve||M.autoBonus)autoResolveLater();
 }
+// Auto-resolve after a beat; with nudges left the beat is long enough to use them,
+// and every nudge starts it again.
+async function autoResolveLater(){const my=M.arTok=(M.arTok||0)+1;await (M.nudges>0&&!M.autoBonus?new Promise(r=>setTimeout(r,4000)):sleep(M.autoBonus?900:1400));   // decision time is real time, fast mode or not
+  if(my===M.arTok&&M.pendingRes&&!M.spinning&&!busy)await resolveTurn();}
 async function resolveTurn(){
   const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;showForecast('');buildReelCtl();
   busy=true;setBtn('busy');
@@ -938,7 +958,7 @@ function previewTurn(R){
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
   }
   if(!L.length)L.push('Nothing lands. Foes take their turn.');
-  return `${L.map(l=>`<div>${l}</div>`).join('')}<div class="hint">${S.autoResolve?'resolving…':'tap <b>RESOLVE</b>'}</div>`;
+  return `${L.map(l=>`<div>${l}</div>`).join('')}<div class="hint">${M.nudges>0?'nudge a reel ▲▼ or ':''}${S.autoResolve||M.autoBonus?'resolving…':'tap <b>RESOLVE</b>'}</div>`;
 }
 function showForecast(h){const f=$('#forecast');f.innerHTML=artify(h);f.classList.toggle('show',!!h);}
 function logLine(h){$('#log').innerHTML=artify(h);}

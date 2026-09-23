@@ -320,3 +320,5 @@ Nothing in the game is emoji any more once art.js loads.
   cabinet is gone (the marquee only speaks during free spins).
 - **b048**: the little red marquee dots above the reels are gone; the wheel
   badge stays pinned right and the free-spin banner centres in the space left.
+- **b049**: on phones the life bar gets its own full-width row under the chips
+  (taller, bigger numbers); the chips share the row above evenly.

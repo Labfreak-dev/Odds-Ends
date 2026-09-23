@@ -42,7 +42,7 @@ def kind(key):
     if key.startswith(('hero_', 'enemy_')): return ('key', 340, 340, 82)
     if key.startswith('sym_'):       return ('key', 200, 200, 84)
     if key.startswith(('relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_',
-                       'ui_', 'shop_', 'fx_')):
+                       'ui_', 'shop_', 'fx_', 'map_', 'elite_')):
         return ('key', 160, 160, 84)
     if key.startswith('torch_'):     return ('key', 420, 420, 80)   # floor-standing torch bearers
     return ('key', 280, 280, 82)     # props: chest, door, shrine, trap, torch...
@@ -98,7 +98,7 @@ def key_out(im):
     bb = img.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
     return img.crop(bb) if bb else img
 
-ICONISH = ('sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_')
+ICONISH = ('sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
 
 def fit(img, th, mw):
     w, h = img.size

@@ -195,3 +195,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b020**: the FLOOR N banner is gone (the HUD shows the floor); only a boss
   name flashes on boss floors, timed in view state so it cannot stick after a
   reload.
+- **b021**: every symbol on a paying line gets a soft pulsing ember ring (matches
+  keep the blood-red ring); the jackpot tag reads DEATH FAVOURS YOU.

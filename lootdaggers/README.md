@@ -181,3 +181,5 @@ Nothing in the game is emoji any more once art.js loads.
   the turn in plain words (block, heal, coins, steps, who gets stabbed for how
   much, which foes strike back) and the big button reads RESOLVE. Settings and
   the pause menu offer auto-resolve. Short beats between phases so combos read.
+- **b015**: the turn forecast is an overlay card at the top of the scene instead
+  of growing the log, so the world no longer shrinks while you read it.

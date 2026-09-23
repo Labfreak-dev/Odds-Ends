@@ -7,6 +7,8 @@
 <meta name="description" content="A side-scrolling dungeon crawler where every step and every stab is decided by a slot machine. Coin in, pull, whatever lands is your turn.">
 <meta name="theme-color" content="#120d10">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="512x512" href="app-icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="app-icon.png">
 <meta property="og:type" content="website">
@@ -1307,6 +1309,7 @@ function settingsHTML(){
   const t=(key,e,title,sub)=>`<button class="btn" data-act="set:${key}">${e} ${title}<small>${sub}</small></button>`;
   const v=(id,e,title,val)=>`<div class="btn setVol"><span>${e} ${title}</span><input type="range" id="${id}" min="0" max="100" value="${val}"></div>`;
   return [
+    fsCan()?t('fullscreen','📱','Full screen',S.fullscreen?'on':'off · hides the browser bars'):`<div class="btn">📱 Full screen<small>on iphone: share, then add to home screen</small></div>`,
     t('mute',S.mute?'🔇':'🔊','Sound',S.mute?'off':'on'),
     v('sfxVol','🔔','Sound volume',Math.round((S.sfxVol==null?1:S.sfxVol)*100)),
     t('music','🎵','Music',S.music!==false?'on':'off'),
@@ -1317,7 +1320,18 @@ function settingsHTML(){
     t('fast',S.fast?'⏩':'▶','Fast animations',S.fast?'on':'off'),
     t('bonusManual','🎰','Free spins',S.bonusManual?'tap each spin':'play themselves'),
   ].join('\n');}
-function applySetting(arg){S[arg]=!S[arg];save();if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
+// Full screen: the browser's fullscreen API (Android Chrome hides the address bar
+// and the phone's buttons). Browsers drop it on every reload, so with the setting on
+// the first tap after loading asks for it again. Leaving it with the phone's back
+// gesture turns the setting off, so it never fights the player.
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+const fsCan=()=>!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
+function fsEnter(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(!f||fsEl())return;try{const p=f.call(d,{navigationUI:'hide'});if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+function fsExit(){const f=document.exitFullscreen||document.webkitExitFullscreen;if(f&&fsEl()){try{const p=f.call(document);if(p&&p.catch)p.catch(()=>{});}catch(e){}}}
+function fsRefresh(){document.querySelectorAll('[data-act="set:fullscreen"] small').forEach(el=>el.textContent=S.fullscreen?'on':'off · hides the browser bars');}
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(!fsEl()&&S.fullscreen){S.fullscreen=false;save();}fsRefresh();setTimeout(()=>window.dispatchEvent(new Event('resize')),60);}));
+document.addEventListener('pointerup',()=>{if(S.fullscreen&&!fsEl())fsEnter();},true);
+function applySetting(arg){S[arg]=!S[arg];save();if(arg==='fullscreen'){if(S.fullscreen)fsEnter();else fsExit();}if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
 // In-game settings: a pop-up over the pause menu that stays open while you toggle.
 function settingsPopup(){
   let el=$('#peek');if(!el){el=document.createElement('div');el.id='peek';$('#app').appendChild(el);el.addEventListener('click',e=>{if(e.target===el||e.target.id==='peekX')el.classList.remove('show');});}

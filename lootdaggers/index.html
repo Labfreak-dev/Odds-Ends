@@ -122,10 +122,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .reel .cell{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:min(9vw,44px,5.6dvh);line-height:1;will-change:transform}
 .reel .cell img{width:78%;height:78%;object-fit:contain;image-rendering:auto}
 .reel .cell .soul{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.reel .cell .soul img{filter:drop-shadow(0 0 3px #ffb347) drop-shadow(0 0 6px #ff6a1a) brightness(1.15);animation:soulpulse 1.3s ease-in-out infinite}
-.reel .cell .soul i{position:absolute;left:50%;top:14%;width:34%;height:30%;transform:translateX(-50%);border-radius:50% 50% 45% 45%/60% 60% 40% 40%;background:radial-gradient(ellipse at 50% 80%,#fff3b0 0%,#ffb347 35%,rgba(255,80,20,.85) 65%,rgba(255,60,10,0) 100%);filter:blur(1px);animation:flame .5s ease-in-out infinite alternate;pointer-events:none}
+.reel .cell .soul img{position:relative;z-index:1;filter:drop-shadow(0 0 2px #ffb347) brightness(1.1)}
+.reel .cell .soul i{position:absolute;left:50%;top:50%;width:92%;height:92%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,200,90,.75) 0%,rgba(255,120,40,.5) 40%,rgba(255,80,20,0) 70%);filter:blur(3px);animation:emberglow 1.3s ease-in-out infinite;pointer-events:none;z-index:0}
 @keyframes soulpulse{0%,100%{filter:drop-shadow(0 0 3px #ffb347) drop-shadow(0 0 6px #ff6a1a) brightness(1.15)}50%{filter:drop-shadow(0 0 5px #ffd36a) drop-shadow(0 0 12px #ff8a2a) brightness(1.3)}}
-@keyframes flame{from{transform:translateX(-50%) scaleY(.85) skewX(-4deg)}to{transform:translateX(-50%) scaleY(1.1) skewX(5deg)}}
+@keyframes emberglow{0%,100%{opacity:.7;transform:translate(-50%,-50%) scale(.95)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
 #bulbs{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
 #bulbs i{position:absolute;width:6.5%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;opacity:0;transition:opacity .4s}
 #bulbs i.lit{opacity:1;background:radial-gradient(circle,#fff0c0 0%,#ff5a3a 35%,rgba(255,60,30,.55) 60%,rgba(255,60,30,0) 72%);box-shadow:0 0 10px 4px rgba(255,80,40,.75);animation:bulbpulse 1.6s ease-in-out infinite}

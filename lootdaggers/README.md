@@ -103,6 +103,18 @@ until nothing is left.
   on the hub seeds Math.random from the date (per spin) so everyone gets the
   same dungeon, shops and reel strips; S.daily keeps today's best.
 
+## Fortune wheel and free spins (b032)
+Both live OFF the reel strip so symbol odds are untouched. The **fortune
+wheel** (`#wheel` in the marquee) rolls each spin from faces [1,1,1,2,3,5]
+(Weighted Wheel mod removes a 1, Golden Wheel adds a 5) and multiplies that
+turn's damage and block only (`res.mult`); coins and healing never multiply.
+Croupier's Thumb relic drops the 1s below half HP; the Bandit's `jamwheel`
+action pins it at x1 until a jackpot turn. **Free spins**: a Coin on three
+different reels anywhere on the screen (`scatterReels`; Silver Scatter relic:
+two) starts 3 free spins (Long Streak: 5): spins cost 0, an extra nudge, the
+wheel never lands on 1, no retrigger while in the bonus; the Bonus Bell mod
+adds a relic pick on trigger. Foes still act.
+
 ## Music (b030)
 Four tracks in `music/` (mp3, served as files, not packed). `music` in
 `index.html` runs two `<audio>` elements: a biome change cross-fades from one
@@ -254,3 +266,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b031**: art pack 10 packed (26): the five new foes with attack poses, floor
   door icons, elite marks, hold/nudge/doom/daily icons, three relics and the
   Nudge Lever. 232 images.
+- **b032**: fortune wheel (x1/x2/x3/x5 on damage and block) and a three-Coins
+  scatter bonus of free spins, with two wheel mods, Bonus Bell, three relics,
+  and the Bandit jamming the wheel. Art: `ui_wheel` + six icons ordered.

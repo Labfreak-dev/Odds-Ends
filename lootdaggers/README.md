@@ -171,3 +171,5 @@ Nothing in the game is emoji any more once art.js loads.
   0.9s so it registers, and the jingle plays twice.
 - **b010**: icons on wooden buttons get a pale rim (stacked drop-shadows) and
   the inline reel-symbol icons are larger, so they no longer blend into the planks.
+- **b011**: wooden buttons lay out as icon | text | price, all centred on the
+  midline; the price is a pinned badge instead of a float that pushed text up.

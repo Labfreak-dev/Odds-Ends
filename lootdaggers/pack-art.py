@@ -149,6 +149,11 @@ def process(key, im):
     elif k == 'floor':
         rgb = im.convert('RGB'); w, h = rgb.size
         band = rgb.crop((0, h // 2 - w // 12, w, h // 2 + w // 12))  # a 6:1 strip
+        # drop any black border rows the generator left above or below the floor, or the
+        # sprites (feet at the strip's top edge) look like they hover over a black ledge
+        lum = np.asarray(band.convert('L')).mean(1)
+        rows = np.where(lum > 12)[0]
+        if len(rows): band = band.crop((0, int(rows[0]), band.width, int(rows[-1]) + 1))
         img = mirror_tile(fit(band, th, 99999))
     buf = io.BytesIO()
     img.save(buf, 'WEBP', quality=q, method=6)

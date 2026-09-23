@@ -22,6 +22,11 @@ turn.
 - `pack-art.py`: key, trim, scale and pack. `python3 lootdaggers/pack-art.py
   --import pack.zip` adds a zip of PNGs to `art-src/` and repacks. Needs
   pillow, numpy and scipy.
+- `art-pack08-prompts.txt`: the self-contained order for the last 32 images
+  (screen paintings, three more dungeon biomes plus a boss arena, the far and fog
+  layers, interface pieces, hero hurt poses, app icon and share card). It opens
+  with instructions telling the generator these are NEW images, because a bare
+  prompt list got the old packs sent back.
 - `art-prompts.txt`: the art sheet, 189 `filename | prompt` lines covering every
   sprite, icon, portrait, screen, UI element and effect. The name before the dot
   is the key the game looks up. Sections marked `NEW ·` replace emoji or

@@ -1181,14 +1181,16 @@ const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slim
   boss:168,chest:84,chest_open:84,door:176,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74};
 function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
+// FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
+const FEET_SINK=7;
 function sprAt(k,x,y,flip){
-  const im=artImg(k);if(!im)return null;
+  const im=artImg(k);if(!im)return null;y+=FEET_SINK;
   const m=(window.LD_ART_META||{})[k];const f=m?canvasH(k)/(m[0]*m[1]):canvasH(k)/im.naturalHeight;
   const w=im.naturalWidth*f,h=im.naturalHeight*f;
   cx.save();cx.translate(x,y);if(flip)cx.scale(-1,1);cx.drawImage(im,-w/2,-h,w,h);cx.restore();
   return {w,h};
 }
-function shadow(x,rw){cx.fillStyle='rgba(0,0,0,.45)';cx.beginPath();cx.ellipse(x,GY+2,rw,5,0,0,7);cx.fill();}
+function shadow(x,rw){cx.fillStyle='rgba(0,0,0,.45)';cx.beginPath();cx.ellipse(x,GY+2+FEET_SINK,rw,5,0,0,7);cx.fill();}
 
 /* ---------------- scene rendering ---------------- */
 const cv=$('#scene'),cx=cv.getContext('2d');

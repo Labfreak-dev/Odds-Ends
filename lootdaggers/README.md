@@ -197,3 +197,5 @@ Nothing in the game is emoji any more once art.js loads.
   reload.
 - **b021**: every symbol on a paying line gets a soft pulsing ember ring (matches
   keep the blood-red ring); the jackpot tag reads DEATH FAVOURS YOU.
+- **b022**: sprites and their shadows sink 7px into the floor lip so nothing
+  looks like it is floating (FEET_SINK in sprAt).

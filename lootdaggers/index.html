@@ -1221,6 +1221,11 @@ function drawBG(cam,t){
       for(let x=-mod(off+sh,bw)-bw;x<VWd;x+=bw){const n=((Math.floor((x+off+sh)/bw)*7+row*13)>>>0)%5;
         rect(x+1,row*bh+1,bw-2,bh-2,['#2a1e24','#2e2128','#271c21','#31232a','#2b1f25'][n]);}}
   }
+  // floor
+  if(artImg('bg_fog')){const im=ART.bg_fog,fh=30,w=fh*im.naturalWidth/im.naturalHeight,o=mod(cam*.8+t*6,w);cx.globalAlpha=.55;for(let x=-o;x<VWd;x+=w)cx.drawImage(im,x,GY-fh+10,w,fh);cx.globalAlpha=1;}
+  if(artImg(bio.floor)){const im=ART[bio.floor],w=(VH-GY)*im.naturalWidth/im.naturalHeight,o=mod(cam,w);for(let x=-o;x<VWd;x+=w)cx.drawImage(im,x,GY,w,VH-GY);const fg=cx.createLinearGradient(0,GY,0,VH);fg.addColorStop(0,'rgba(0,0,0,.15)');fg.addColorStop(1,'rgba(0,0,0,.55)');cx.fillStyle=fg;cx.fillRect(0,GY,VWd,VH-GY);}
+  else{rect(0,GY,VWd,VH-GY,'#2b2226');rect(0,GY,VWd,3,'#4a3a40');
+    for(let i=Math.floor(cam/T)-1;i<=Math.floor((cam+VWd)/T)+1;i++){const x=i*T-cam;rect(x,GY+3,2,VH-GY,'#1d1619');rect(x+6,GY+18,T-14,2,'#332830');}}
   // torches
   for(let i=Math.floor((cam-40)/(T*5))-1;i<=Math.floor((cam+VWd+40)/(T*5));i++){
     const x=i*T*5+T*2.5-cam;
@@ -1233,11 +1238,6 @@ function drawBG(cam,t){
     if(!sprAt('torch',x,104-FEET_SINK)){rect(x-3,78,6,18,'#4a3322');rect(x-5,76,10,4,'#6a4a2a');
       cx.fillStyle='#ffb347';cx.beginPath();cx.ellipse(x,70-fl*.5,5,9+fl*.4,0,0,7);cx.fill();cx.fillStyle='#fff3b0';cx.beginPath();cx.ellipse(x,73,2.5,5,0,0,7);cx.fill();}
   }
-  // floor
-  if(artImg('bg_fog')){const im=ART.bg_fog,fh=30,w=fh*im.naturalWidth/im.naturalHeight,o=mod(cam*.8+t*6,w);cx.globalAlpha=.55;for(let x=-o;x<VWd;x+=w)cx.drawImage(im,x,GY-fh+10,w,fh);cx.globalAlpha=1;}
-  if(artImg(bio.floor)){const im=ART[bio.floor],w=(VH-GY)*im.naturalWidth/im.naturalHeight,o=mod(cam,w);for(let x=-o;x<VWd;x+=w)cx.drawImage(im,x,GY,w,VH-GY);const fg=cx.createLinearGradient(0,GY,0,VH);fg.addColorStop(0,'rgba(0,0,0,.15)');fg.addColorStop(1,'rgba(0,0,0,.55)');cx.fillStyle=fg;cx.fillRect(0,GY,VWd,VH-GY);}
-  else{rect(0,GY,VWd,VH-GY,'#2b2226');rect(0,GY,VWd,3,'#4a3a40');
-    for(let i=Math.floor(cam/T)-1;i<=Math.floor((cam+VWd)/T)+1;i++){const x=i*T-cam;rect(x,GY+3,2,VH-GY,'#1d1619');rect(x+6,GY+18,T-14,2,'#332830');}}
 }
 function hpBar(x,y,w,o){rect(x-w/2-1,y-1,w+2,6,'#000');rect(x-w/2,y,w,4,'#3a1a1c');rect(x-w/2,y,w*clamp(o.hp/o.max,0,1),4,o.boss?'#ff8c3a':'#e0605a');
   if(o.block)rect(x-w/2,y-4,w*clamp(o.block/o.max,0,1),3,'#5aa9e6');}

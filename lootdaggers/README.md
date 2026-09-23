@@ -206,3 +206,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b025**: torch bearers packed (5): pillar, catacomb column, skull stack,
   basalt obelisk, hooded statue. 206 images.
 - **b026**: the gear pop-up X is sticky inside the frame, clear of the scrollbar.
+- **b027**: torch bearers draw after the floor and mist, so the fog no longer
+  drifts across their bases.

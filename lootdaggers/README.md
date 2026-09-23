@@ -175,3 +175,5 @@ Nothing in the game is emoji any more once art.js loads.
   midline; the price is a pinned badge instead of a float that pushed text up.
 - **b012**: a "My gear" button under the merchant portrait opens a pop-up
   (X to close) listing worn gear and relics without leaving the shop.
+- **b013**: the blood drip along the top of the jackpot flash is gone; the
+  painting and the JACKPOT! word stay.

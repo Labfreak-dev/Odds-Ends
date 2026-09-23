@@ -406,7 +406,7 @@ const RELICS=[
   {id:'pouch',e:'👝',n:'Deep Pouch',d:'Foes drop +1 coin.'},
   {id:'thornmail',e:'🌵',n:'Thorn Bark',d:'Melee attackers take 2 damage.'},
   {id:'loadeddice',e:'🎲',n:'Loaded Dice',d:'+1 nudge every spin.'},
-  {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Holding a reel costs no coin.'},
+  {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Two held reels cost nothing; a third and fourth cost only the difference.'},
   {id:'scythe',e:'🌙',n:'Reaper\'s Scythe',d:'Doom builds twice as fast; the Reaper pays double souls.'},
   {id:'thumb',e:'👍',n:'Croupier\'s Thumb',d:'Below half HP the fortune wheel never lands on x1.'},
   {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Two soul coins light a bulb instead of three.'},
@@ -789,11 +789,13 @@ function setBtn(mode){
 }
 // Extra coins for holding reels: 1 reel, 2, 3, 4 (five reels max, one must spin).
 const HOLD_COST=[0,1,11,32,144];
+// Reel Clamp pays for two holds; a third and fourth cost the difference.
+function holdCost(held){const c=HOLD_COST[Math.min(held,4)];return hasR('clamp')?Math.max(0,c-HOLD_COST[2]):c;}
 function spinCost(){
   if(!run)return 1;const held=M.reels.filter(R=>R.held&&!R.jam).length;
   const tax=run.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.t==='taxman'&&o.x-run.x<=6).length;
   if(run.bonus>0)return 0;
-  return (run.freeSpin?0:1)+(hasR('clamp')?0:HOLD_COST[Math.min(held,4)])+tax;
+  return (run.freeSpin?0:1)+holdCost(held)+tax;
 }
 function spin(){
   if(busy||!run||M.spinning||run.over||M.pendingRes)return;

@@ -434,13 +434,42 @@ const AFF={
 
 /* ---------------- save ---------------- */
 const SAVE_KEY='lootdaggers_v1';
-function defSave(){return {souls:0,chips:0,altar:{},mods:{},heroes:{knight:true},vault:[],loadout:[],best:0,runs:0,kills:0,run:null,autoStop:false,mute:false,fast:false,seenHelp:false,firstBoss:false,autoResolve:false,jackpotScreen:true};}
+function defSave(){return {souls:0,chips:0,altar:{},mods:{},heroes:{knight:true},vault:[],loadout:[],best:0,runs:0,kills:0,run:null,autoStop:false,mute:false,fast:false,seenHelp:false,firstBoss:false,autoResolve:false,jackpotScreen:true,music:true,musicVol:0.6};}
 let S=defSave();
 try{const raw=localStorage.getItem(SAVE_KEY);if(raw)S=Object.assign(defSave(),JSON.parse(raw));}catch(e){}
 function save(){try{S.run=run&&!run.over?run:null;localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
 const alt=id=>S.altar[id]||0;
 const altCost=(a,l)=>Math.round(a.base*Math.pow(l+1,1.6));
 const vaultSlots=()=>1+alt('vault');
+
+/* ---------------- music ---------------- */
+// Biome-tied tracks, cross-faded. Two <audio> elements alternate so a track can
+// overlap its own ending and loop without a gap. Starts on the first tap.
+const TRACKS={hub:'darkforest',crypt:'catacombs',2:'coldwind',3:'tombs',4:'darkforest',boss:'tombs'};
+const music={a:null,b:null,cur:null,key:null,fade:2.2,started:false,timer:null,
+  el(){const e=new Audio();e.preload='auto';e.volume=0;return e;},
+  vol(){return S.music===false?0:(S.musicVol==null?.6:S.musicVol);},
+  ramp(e,to,secs,stop){if(!e)return;const from=e.volume,t0=performance.now();const step=()=>{const p=Math.min(1,(performance.now()-t0)/(secs*1000));e.volume=Math.max(0,Math.min(1,from+(to-from)*p));if(p<1)requestAnimationFrame(step);else if(stop){e.pause();}};step();},
+  play(key){
+    if(!key||key===this.key){this.key=key;this.apply();return;}
+    this.key=key;if(!this.started)return;
+    const next=this.cur===this.a?this.b:this.a;const old=this.cur;
+    next.src='music/'+TRACKS[key]+'.mp3';next.currentTime=0;next.volume=0;
+    next.play().catch(()=>{});this.cur=next;
+    this.ramp(next,this.vol(),this.fade);if(old)this.ramp(old,0,this.fade,true);
+  },
+  tick(){ // near the end of the current track, start it again on the other element and cross-fade
+    const c=this.cur;if(!c||!this.started||!c.duration||c.paused)return;
+    if(c.duration-c.currentTime<this.fade+.1&&!c.dataset.looping){c.dataset.looping='1';
+      const next=c===this.a?this.b:this.a;next.src=c.src;next.currentTime=0;next.volume=0;next.play().catch(()=>{});
+      this.cur=next;delete next.dataset.looping;this.ramp(next,this.vol(),this.fade);this.ramp(c,0,this.fade,true);}
+  },
+  start(){if(this.started)return;this.started=true;this.a=this.el();this.b=this.el();
+    const k=this.key||'hub';this.key=null;this.play(k);this.timer=setInterval(()=>this.tick(),250);},
+  apply(){if(this.cur)this.cur.volume=this.vol();if(this.cur&&S.music===false)this.cur.pause();else if(this.cur&&this.cur.paused&&this.started)this.cur.play().catch(()=>{});},
+};
+document.addEventListener('pointerdown',()=>music.start(),{once:true,capture:true});
+function musicForFloor(f){if(f%3===0)return 'boss';const i=Math.floor((f-1)/3)%4;return i===0?'crypt':String(i+1);}
 
 /* ---------------- audio ---------------- */
 let AC=null;
@@ -1004,7 +1033,7 @@ async function floorClear(){
       opts.map(k=>({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:k})));
     r.nextKind=v||'fight';
   }
-  r.floor++;genFloor(r.floor);rebuildReels();ui();save();
+  r.floor++;genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
   logLine(`<b>Floor ${r.floor} · ${FLOOR_KINDS[r.kind].n}.</b> ${FLOOR_KINDS[r.kind].d}`);
 }
 function shopOffers(){
@@ -1133,11 +1162,12 @@ function ui(){
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
   if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
 }
-function showGame(){$('#hub').classList.add('hidden');$('#game').classList.remove('hidden');requestAnimationFrame(()=>{resizeCanvas();rebuildReels();});}
+function showGame(){if(run)music.play(musicForFloor(run.floor));$('#hub').classList.add('hidden');$('#game').classList.remove('hidden');requestAnimationFrame(()=>{resizeCanvas();rebuildReels();});}
 
 /* ---------------- hub ---------------- */
 let hubView='main';
 function showHub(v){
+  music.play('hub');
   hubView=v;
   $('#game').classList.add('hidden');const h=$('#hub');h.classList.remove('hidden');
   const bgKey={main:'screen_hub_bg',heroes:'screen_hub_bg',altar:'screen_altar_bg',bench:'screen_bench_bg',vault:'screen_vault_bg'}[v];
@@ -1196,6 +1226,8 @@ function showHub(v){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">
     <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
     <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
+    <button class="btn" data-act="set:music">${S.music!==false?'🎵 Music: on':'🎵 Music: off'}</button>
+    <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔉 Music volume</span><input type="range" id="musicVol" min="0" max="100" value="${Math.round((S.musicVol==null?.6:S.musicVol)*100)}" style="flex:1"></div>
     <button class="btn" data-act="set:jackpotScreen">${S.jackpotScreen!==false?'🎰 Jackpot screen: on':'🎰 Jackpot screen: off'}</button>
     <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
     <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>
@@ -1204,6 +1236,7 @@ function showHub(v){
   h.innerHTML=artify(html);h.scrollTop=0;
   if(v==='main')drawHubArt();
 }
+$('#hub').addEventListener('input',e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}});
 $('#hub').addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const [a,arg]=el.dataset.act.split(':');
@@ -1219,7 +1252,7 @@ $('#hub').addEventListener('click',async e=>{
   if(a==='altar'){const A=ALTAR.find(x=>x.id===arg),l=alt(arg),c=altCost(A,l);if(l<A.max&&S.souls>=c){S.souls-=c;S.altar[arg]=l+1;save();}return showHub('altar');}
   if(a==='mod'){const m=MODS.find(x=>x.id===arg);if(!S.mods[arg]&&S.chips>=m.cost&&(!m.req||S.mods[m.req])){S.chips-=m.cost;S.mods[arg]=true;save();}return showHub('bench');}
   if(a==='drop'){S.vault=S.vault.filter(x=>x.id!==arg);S.loadout=S.loadout.filter(x=>x!==arg);S.souls+=5;save();return showHub('vault');}
-  if(a==='set'){S[arg]=!S[arg];save();return showHub('settings');}
+  if(a==='set'){S[arg]=!S[arg];save();if(arg==='music')music.apply();return showHub('settings');}
   if(a==='wipe'){if(confirm('Wipe all progress?')){localStorage.removeItem(SAVE_KEY);S=defSave();save();}return showHub('main');}
 });
 
@@ -1239,11 +1272,12 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(!run||busy||M.spinning)return;
   const ps=artSrc('portrait_'+run.hero);
   const v=await modal('Paused',`${ps?`<img class="port big" src="${ps}" alt="">`:''}<p>${HEROES[run.hero].n} · Floor ${run.floor} · 💠 ${run.souls} souls this run · ${run.kills} kills</p>`,[
-    {label:'Resume',val:'r',cls:'primary'},{label:'How to play',val:'h'},{label:S.mute?'🔇 Sound off':'🔊 Sound on',val:'m'},{label:S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off',val:'ar'},
+    {label:'Resume',val:'r',cls:'primary'},{label:'How to play',val:'h'},{label:S.mute?'🔇 Sound off':'🔊 Sound on',val:'m'},{label:S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off',val:'ar'},{label:S.music!==false?'🎵 Music on':'🎵 Music off',val:'mu'},
     {label:'Save & quit to hub',val:'q'},{label:'Abandon run <small>bank your souls now</small>',val:'x',cls:'danger'}]);
   if(v==='h')modal('How it works',helpShort(),[{label:'Got it',val:1,cls:'primary'}]);
   if(v==='m'){S.mute=!S.mute;save();}
   if(v==='ar'){S.autoResolve=!S.autoResolve;save();}
+  if(v==='mu'){S.music=S.music===false;save();music.apply();}
   if(v==='q'){save();run=null;showHub('main');}
   if(v==='x')endRun('quit');
 });

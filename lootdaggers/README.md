@@ -396,3 +396,10 @@ Nothing in the game is emoji any more once art.js loads.
 - **b067**: ui_ooze_button packed (270 images): the Pull it button is the oozing
   iron frame, drawn nine-slice so the corners and drips keep their shape. The
   packer turns the peach halo (yellow glow painted over magenta) back into green.
+- **b068**: Dr. Labfreak has a second phase. At 0 HP the first time he rants in a
+  themed dialogue box (portrait, typed line, ooze button), drinks a concoction and
+  returns as Dr. Labfreak, Unleashed at 80% HP: still acting twice, his hits now
+  poison (1 damage a turn for 3 turns, 2 from floor 10, 3 from 20; refreshed, not
+  stacked; a Potion cures it; the life bar turns green). His loot only drops when
+  phase two dies. Art for the transformed form, dialogue portraits and the
+  transformation splash is requested in art-pack16-prompts.txt.

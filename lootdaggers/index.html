@@ -1318,7 +1318,7 @@ function showHub(v){
     ${artSrc('screen_hub_bg')?'<div style="height:8px"></div>':'<canvas id="hubArt"></canvas><div style="height:12px"></div>'}${bank}
     <div class="hubBtns">
       ${S.run?`<button class="btn primary" data-act="resume">▶ Let It Ride <small>Your stake is still on the table · Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
-      <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'Fold &amp; Deal Again <small>forfeits the hand in play</small>':'▶ Stake Your Soul <small>the house is dealing</small>'}</button>
+      <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'Fold &amp; Deal Again <small>forfeits the hand in play</small>':'▶ Stake Your Soul <small>your debts come due below</small>'}</button>
       <button class="btn" data-act="daily">${icon('ui_daily','📅')} The Daily Wager <small>${todayKey()} · one table, every gambler, the same cards${(S.daily||{})[todayKey()]?` · your best: floor ${S.daily[todayKey()].best}`:''}</small></button>
       <button class="btn" data-act="altar">💠 Soul Altar <small>Permanent upgrades, paid in souls</small></button>
       <button class="btn" data-act="bench">🎰 Machine Workbench <small>Rewire the slot machine, paid in boss chips</small></button>

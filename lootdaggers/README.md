@@ -173,3 +173,5 @@ Nothing in the game is emoji any more once art.js loads.
   the inline reel-symbol icons are larger, so they no longer blend into the planks.
 - **b011**: wooden buttons lay out as icon | text | price, all centred on the
   midline; the price is a pinned badge instead of a float that pushed text up.
+- **b012**: a "My gear" button under the merchant portrait opens a pop-up
+  (X to close) listing worn gear and relics without leaving the shop.

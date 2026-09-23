@@ -116,6 +116,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ---------- modal ---------- */
 #modal{position:absolute;inset:0;background:rgba(8,5,7,.78);display:none;align-items:center;justify-content:center;z-index:50;padding:14px}
 #modal.show{display:flex}
+#peek{position:absolute;inset:0;background:rgba(8,5,7,.7);display:none;align-items:center;justify-content:center;z-index:60;padding:14px}
+#peek.show{display:flex}
+#peek .mbox{position:relative;padding-top:38px}
+#peekX{position:absolute;top:6px;right:6px;width:36px;height:36px;border:2px solid #000;border-radius:8px;background:#4a1512;color:#f1e6d2;font-size:20px;font-weight:800;box-shadow:0 2px 0 #000;z-index:3;line-height:1}
+.mbox.art #peekX{top:-14px;right:-14px}
+.peekBtn{display:block;width:92px;margin:6px 0 0;padding:6px 4px;font-size:12px;text-align:center;border:2px solid #000;border-radius:8px;background:var(--panel2);color:var(--ink);box-shadow:0 2px 0 #000}
+.merchCol{float:right;margin:0 0 6px 12px;width:92px}
+.merchCol .port{float:none;margin:0;width:92px;height:136px}
+.peekRelics{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.peekRelics .relic{width:40px;height:40px}
+.peekRelics .relic .ico{width:34px;height:34px}
+.peekRow{display:flex;gap:8px;align-items:center;margin:4px 0}
 .mbox{width:100%;max-width:440px;max-height:92dvh;overflow:auto;background:var(--panel);border:3px solid #000;border-radius:14px;padding:14px;box-shadow:0 6px 0 #000}
 .mbox h2{margin:0 0 8px;font-family:var(--head);font-weight:400;font-size:26px;color:var(--gold);letter-spacing:.5px}
 .mbody{font-size:13px;line-height:1.45;color:var(--ink)}
@@ -872,7 +884,7 @@ async function shop(){
       remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
     btns.push({label:'Descend ▶',val:'go',cls:'primary'});
-    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,portImg('portrait_merchant','big merch')+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns);
+    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">🎒 My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns);
     if(v==='go')return;
     const o=offers[v];if(!o||o.sold||r.coins<o.price)continue;
     if(o.t==='remove'){
@@ -933,6 +945,18 @@ function modal(title,html,buttons){
       el.onclick=()=>{m.classList.remove('show');modalOpen=false;res(b.val);};bb.appendChild(el);});
     m.classList.add('show');m.querySelector('.mbox').scrollTop=0;
   });
+}
+// A pop-up over the current modal showing worn gear and relics, closed by its X.
+function peekInventory(){
+  if(!run)return;const r=run;let el=$('#peek');
+  if(!el){el=document.createElement('div');el.id='peek';$('#app').appendChild(el);el.addEventListener('click',e=>{if(e.target===el||e.target.id==='peekX')el.classList.remove('show');});}
+  const A=window.LD_ART||{};
+  const relics=r.relics.length?`<div class="peekRelics">${r.relics.map(id=>`<span class="relic" title="${RELIC[id].n}">${relicIcon(RELIC[id])}</span>`).join('')}</div>`
+    +r.relics.map(id=>`<div class="peekRow"><b>${RELIC[id].n}</b><span style="color:var(--dim);font-size:12px">${RELIC[id].d}</span></div>`).join(''):'<p style="color:var(--dim)">No relics yet.</p>';
+  const gear=SLOTS.map(sl=>itemHTML(r.gear[sl],sl.toUpperCase())).join('');
+  el.innerHTML=`<div class="mbox ${A.ui_panel?'art':''}" ${A.ui_panel?`style="border-image-source:url(${A.ui_panel})"`:''}><button id="peekX" aria-label="Close">✕</button>
+    <h2>Your gear</h2><div class="mbody">${artify(gear)}<h2 style="font-size:22px;margin-top:10px">Relics</h2>${artify(relics)}</div></div>`;
+  el.classList.add('show');el.querySelector('.mbox').scrollTop=0;
 }
 function reelTable(){
   const c=stripCounts(),s=stats(),tot=Object.values(c).reduce((a,b)=>a+b,0);

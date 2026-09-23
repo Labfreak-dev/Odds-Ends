@@ -1,4 +1,6 @@
-# Loot & Daggers
+# Dead Man's Pull
+
+(Formerly *Loot & Daggers*; the folder and URL stay `lootdaggers/` so links and saves keep working.)
 
 A standalone browser game served by GitHub Pages at `/Odds-Ends/lootdaggers/`.
 Like `thankless/` and `ironhold/`, it shares nothing with the card game at the
@@ -303,3 +305,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b042**: death screen: bloody "The Dead Can't Pay Their Debts!", "Death by X"
   (enemy, trap, skull, mirror or empty purse), and a collapsible log of the
   last three turns (reels, your actions, every hit taken with HP left).
+- **b043**: renamed **Dead Man's Pull**: the name sits on the logo's banner in
+  UnifrakturMaguntia blackletter along the banner's curve; page title, share
+  title and run summary updated. URL and save key unchanged.

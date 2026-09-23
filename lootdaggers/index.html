@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Loot &amp; Daggers</title>
+<title>Dead Man's Pull</title>
 <meta name="description" content="A side-scrolling dungeon crawler where every step and every stab is decided by a slot machine. Coin in, pull, whatever lands is your turn.">
 <meta name="theme-color" content="#120d10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" type="image/png" sizes="512x512" href="app-icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="app-icon.png">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Loot &amp; Daggers">
+<meta property="og:title" content="Dead Man's Pull">
 <meta property="og:description" content="Coin in, pull, whatever lands is your turn. A side-scrolling dungeon crawl decided by a slot machine.">
 <meta property="og:image" content="https://labfreak-dev.github.io/Odds-Ends/lootdaggers/share-card.jpg">
 <meta property="og:url" content="https://labfreak-dev.github.io/Odds-Ends/lootdaggers/">
@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://labfreak-dev.github.io/Odds-Ends/lootdaggers/share-card.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0c0a0b;--panel:#181415;--panel2:#221c1d;--ink:#e4d9c6;--dim:#948978;--gold:#cfa75c;--red:#b8453c;--blue:#7d9bb0;--green:#8aa35a;--line:#352c2c;--purple:#8e6fae;--orange:#c9763a;--head:'Pirata One',Georgia,serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -242,7 +242,10 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 #hub.painted h2,#hub.painted h3{text-shadow:0 2px 0 #000,0 0 12px #000}
 #hub.painted p{text-shadow:0 1px 2px #000}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
-#logoImg{display:block;width:min(88%,360px);margin:0 auto -6px}
+#logoImg{display:block;width:100%}
+#logoWrap{position:relative;width:min(92%,380px);margin:0 auto -6px}
+#logoWrap svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.bannerTxt{font-family:'UnifrakturMaguntia','Pirata One',serif;font-size:52px;fill:#2a0806;stroke:#6e0f0a;stroke-width:1.2px;paint-order:stroke;filter:drop-shadow(0 1px 0 rgba(255,235,190,.45)) drop-shadow(0 0 3px rgba(120,10,6,.55));letter-spacing:1px}
 #hub h1.hasLogo{position:absolute;left:-9999px}
 .back{margin-bottom:10px}
 .upg{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -1183,7 +1186,7 @@ async function endRun(reason){
   S.souls+=souls;S.runs++;S.best=Math.max(S.best,r.floor);
   if(r.daily){const d=(S.daily&&S.daily[r.daily])||{best:0,runs:0,souls:0};d.best=Math.max(d.best,r.floor);d.runs++;d.souls=Math.max(d.souls,souls);S.daily={[r.daily]:d};}
   seedRandom(null);
-  r.summary=`Loot & Daggers${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
+  r.summary=`Dead Man's Pull${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
   const hist=(r.hist||[]).map(t=>`<div class="histTurn"><span class="tn">Spin ${t.n}</span>${t.l.map(x=>`<div>${x}</div>`).join('')}</div>`).join('')||'<div class="histTurn">No turns recorded.</div>';
@@ -1311,7 +1314,7 @@ function showHub(v){
   const back=`<button class="btn center back" data-act="main">◀ Back</button>`;
   let html='';
   if(v==='main'){
-    html=`${artSrc('ui_logo')?`<img id="logoImg" src="${artSrc('ui_logo')}" alt="Loot &amp; Daggers">`:''}<h1 class="${artSrc('ui_logo')?'hasLogo':''}">Loot &amp; Daggers</h1><div class="tag">coin in · pull · whatever lands is your turn</div>
+    html=`${artSrc('ui_logo')?`<div id="logoWrap"><img id="logoImg" src="${artSrc('ui_logo')}" alt=""><svg viewBox="0 0 691 480" aria-hidden="true"><defs><path id="bannerArc" d="M122,316 Q345,352 568,316"/></defs><text class="bannerTxt"><textPath href="#bannerArc" startOffset="50%" text-anchor="middle">Dead Man's Pull</textPath></text></svg></div>`:''}<h1 class="${artSrc('ui_logo')?'hasLogo':''}">Dead Man's Pull</h1><div class="tag">coin in · pull · whatever lands is your turn</div>
     ${artSrc('screen_hub_bg')?'<div style="height:8px"></div>':'<canvas id="hubArt"></canvas><div style="height:12px"></div>'}${bank}
     <div class="hubBtns">
       ${S.run?`<button class="btn primary" data-act="resume">▶ Continue run <small>Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}

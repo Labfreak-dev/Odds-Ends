@@ -78,13 +78,16 @@ button{font:inherit;color:inherit;cursor:pointer}
 #marquee{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#cdb68a;margin:0 4px 6px;letter-spacing:1px}
 #reels{display:flex;gap:6px;height:min(33vw,168px,21dvh);position:relative;z-index:1}
 #reelCtl{display:flex;gap:6px;margin-top:6px;position:relative;z-index:1}
-#reelCtl .rc{flex:1;display:flex;gap:3px;justify-content:center}
+#reelCtl .rc{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;align-items:center}
 #reelCtl button{border:2px solid #000;border-radius:6px;background:#221c1d;color:var(--ink);font-size:11px;padding:3px 0;box-shadow:0 2px 0 #000;font-weight:700}
-#reelCtl .nb{width:34px;font-size:15px}
+#reelCtl .nbs{flex:0 0 16px;display:flex;flex-direction:column;gap:2px}
+#reelCtl .nb{width:16px;height:14px;padding:0;font-size:8px;line-height:1;border-width:1px;border-radius:3px;box-shadow:0 1px 0 #000}
+#reelCtl.many .hb .ico{display:none}
+#reelCtl.many .hb{letter-spacing:0;font-size:10px}
 #reelCtl .nb:disabled{visibility:hidden}
 #reelCtl .nb:not(:disabled){background:linear-gradient(#e2bd6c,#8a6326);color:#1a1008;animation:nbPulse 1s ease-in-out infinite}
 @keyframes nbPulse{50%{box-shadow:0 2px 0 #000,0 0 10px #e2bd6c}}
-#reelCtl .hb{flex:1;max-width:78px;letter-spacing:1px}
+#reelCtl .hb{flex:0 1 78px;min-width:0;letter-spacing:1px}
 #reelCtl .hb .ico{width:16px;height:16px;vertical-align:-3px;margin-right:2px}
 #nudgeNote .ico{width:14px;height:14px;vertical-align:-3px}
 #reelCtl .hb.on{background:linear-gradient(#cfa75c,#7d5a26);color:#1a1008}
@@ -985,9 +988,9 @@ function buildReelCtl(){
   let box=$('#reelCtl');if(!box){box=document.createElement('div');box.id='reelCtl';$('#cabinet').appendChild(box);}
   const idle=!!run&&!M.spinning&&!busy;const canNudge=idle&&!!M.pendingRes&&M.nudges>0;
   box.innerHTML=M.reels.map((R,i)=>`<div class="rc">
-    <button class="nb up" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▲</button>
     <button class="hb ${R.held?'on':''}" data-i="${i}" ${idle&&!R.jam?'':'disabled'}>${icon('ui_hold','')}${R.jam?'JAMMED':R.held?'HELD':'HOLD'}</button>
-    <button class="nb dn" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▼</button></div>`).join('');
+    <span class="nbs"><button class="nb up" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▲</button><button class="nb dn" data-i="${i}" ${canNudge&&!R.jam?'':'disabled'}>▼</button></span></div>`).join('');
+  box.classList.toggle('many',M.reels.length>3);
   const nudgeNote=$('#nudgeNote');if(nudgeNote)nudgeNote.innerHTML=canNudge?`${icon('ui_nudge','')} nudge ▲▼ · ${M.nudges} left`:'';
 }
 function toggleHold(i){const R=M.reels[i];if(!R||M.spinning||busy||R.jam)return;R.held=!R.held;R.el.classList.toggle('held',R.held);buildReelCtl();setBtn(M.pendingRes?'resolve':'spin');

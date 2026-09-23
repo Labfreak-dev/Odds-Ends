@@ -1,0 +1,29 @@
+LOOT & DAGGERS — ART PACK 11: 7 NEW ICONS (fortune wheel, free spins)
+
+READ THIS FIRST:
+- 7 BRAND-NEW icons. None exist yet. Do NOT reuse or re-send earlier packs.
+- One image per line, saved as EXACTLY the name before the | . All in ONE zip: loot_daggers_art_pack11.zip
+- Square icons on flat magenta #FF00FF. No text.
+
+Checklist:
+  [ ] ui_wheel.png
+  [ ] mod_wheel1.png
+  [ ] mod_wheel5.png
+  [ ] mod_bonusbell.png
+  [ ] relic_thumb.png
+  [ ] relic_silverscatter.png
+  [ ] relic_longstreak.png
+
+ui_wheel.png | a small brass fortune wheel, a spoked dial with a bone pointer at the top and a skull hub, tarnished and cracked. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+mod_wheel1.png | a brass fortune wheel with one segment chiselled out and a lead weight bolted opposite it. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+mod_wheel5.png | a fortune wheel of bright gold with a blazing star segment, sparks flying from the pointer. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+mod_bonusbell.png | a tarnished brass bell hung from a slot-machine lever, ringing, three tiny coins falling from its mouth. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_thumb.png | a severed grey thumb with a gold ring, pressed down on the rim of a small brass wheel. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_silverscatter.png | two tarnished silver coins tossed in the air, one spinning on edge. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_longstreak.png | a string of five tarnished gold coins strung on a burning fuse. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame

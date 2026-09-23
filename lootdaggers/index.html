@@ -48,6 +48,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   color:#a3130f;-webkit-text-stroke:2px #2a0402;
   text-shadow:0 0 2px #ff2a1a,0 3px 0 #3a0503,0 6px 0 #1a0201,0 0 22px rgba(255,40,20,.85),0 10px 18px #000}
 #jackpotWord.go{animation:jw 3.8s cubic-bezier(.2,1.4,.4,1)}
+#jackpotWord.gold{color:#d9b56a;-webkit-text-stroke:2px #3a2a08;text-shadow:0 0 2px #ffe08a,0 3px 0 #5a4010,0 6px 0 #2a1c06,0 0 22px rgba(255,210,90,.85),0 10px 18px #000}
 #jackpotWord small{display:block;font-size:.34em;letter-spacing:4px;color:#e8d3a4;-webkit-text-stroke:0;text-shadow:0 2px 0 #000,0 0 12px #000;margin-top:6px}
 @keyframes jw{0%{opacity:0;transform:scale(2.6) rotate(-6deg)}10%{opacity:1;transform:scale(1) rotate(-3deg)}14%{transform:scale(1.12) rotate(-3deg)}18%{transform:scale(1) rotate(-3deg)}
   84%{opacity:1;transform:scale(1.04) rotate(-3deg)}100%{opacity:0;transform:scale(1.2) rotate(-3deg)}}
@@ -87,6 +88,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 #cabinet.art{background:none;border:none;box-shadow:none;padding:12% 9% 7%}
 #cabinet.art #cabinetArt{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;pointer-events:none;filter:drop-shadow(0 4px 0 #000)}
 #cabinet.art #marquee{position:relative;z-index:1;margin:0 0 4px}
+#wheel{display:inline-flex;align-items:center;gap:3px;min-width:44px;justify-content:center;padding:1px 8px;border:2px solid #000;border-radius:999px;background:radial-gradient(#3a302b,#1b1513);color:#cdb68a;font-size:12px;box-shadow:0 2px 0 #000,inset 0 1px 0 #5d4c3f}
+#wheel .ico{width:16px;height:16px}
+#wheel.spin{color:#e4d9c6}
+#wheel.up{color:#d9b56a;border-color:#7d5a26;box-shadow:0 0 8px rgba(217,181,106,.7),0 2px 0 #000}
+#wheel.big{color:#fff0c0;background:radial-gradient(#7d5a26,#3a2a10);box-shadow:0 0 14px 3px rgba(255,210,90,.9),0 2px 0 #000;animation:winpulse .8s ease-in-out infinite}
+#wheel.jam{color:#8e6fae;border-color:#5a1f1f;filter:saturate(.5)}
+#marquee.bonus #lineInfo{color:#d9b56a;font-weight:800;animation:winpulse 1s ease-in-out infinite}
 .reel.art{background:#e2d9c5;background-size:100% 100%;border-color:#1a1412}
 #spinBtn.art,#spinBtn.art.stop{background-color:transparent;background-size:100% 100%;background-position:center;border:none;box-shadow:none;text-shadow:0 2px 0 rgba(0,0,0,.35);padding:14px 8px}
 #spinBtn.art.stop{color:#f1e6d2;text-shadow:0 2px 0 #000}
@@ -323,7 +331,7 @@ const ELITES={fast:{n:'Frenzied',e:'⚡',d:'acts twice a turn'},shield:{n:'Warde
 const FLOOR_KINDS={fight:{e:'⚔️',n:'Fight',d:'The usual crawl.'},treasure:{e:'📦',n:'Treasure',d:'Extra chests and coin piles. One chest bites.'},elite:{e:'👑',n:'Elite',d:'A modified foe guards a guaranteed Rare.'},rest:{e:'🕯️',n:'Rest',d:'A short, quiet floor. Heal 30% and find a shrine.'},boss:{e:'☠️',n:'Boss',d:'Something big waits at the end.'}};
 const BOSSES={
   boneking:{n:'The Bone King',hp:55,pat:[['atk',6],['summon','skel'],['guard',8],['atk',8]],coins:[10,14]},
-  bandit:{n:'One-Armed Bandit',hp:70,pat:[['steal',3],['atk',7],['jackpot',3],['guard',10]],coins:[14,18]},
+  bandit:{n:'One-Armed Bandit',hp:70,pat:[['steal',3],['atk',7],['jackpot',3],['jamwheel',0]],coins:[14,18]},
   lich:{n:'The Dice Lich',hp:90,range:3,pat:[['atk',6],['curse',1],['drain',5],['atk',9]],coins:[16,22]},
 };
 const BOSS_ORDER=['boneking','bandit','lich'];
@@ -354,6 +362,9 @@ const RELICS=[
   {id:'loadeddice',e:'🎲',n:'Loaded Dice',d:'+1 nudge every spin.'},
   {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Holding a reel costs no coin.'},
   {id:'scythe',e:'🌙',n:'Reaper\'s Scythe',d:'Doom builds twice as fast; the Reaper pays double souls.'},
+  {id:'thumb',e:'👍',n:'Croupier\'s Thumb',d:'Below half HP the fortune wheel never lands on x1.'},
+  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Coins on two reels trigger the bonus instead of three.'},
+  {id:'longstreak',e:'🔥',n:'Long Streak',d:'The bonus gives 5 free spins instead of 3.'},
 ];
 const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
 
@@ -378,6 +389,9 @@ const MODS=[
   {id:'diag',e:'✖️',n:'Diagonal Wiring',d:'Both diagonals pay.',cost:4},
   {id:'reel5',e:'🎰',n:'Fifth Reel',d:'A fifth reel. Five of a kind pays x5.',cost:8,req:'reel4'},
   {id:'nudge',e:'🕹️',n:'Nudge Lever',d:'Once per spin, bump one reel a notch up or down.',cost:3},
+  {id:'wheel1',e:'⚖️',n:'Weighted Wheel',d:'Removes one x1 face from the fortune wheel.',cost:3},
+  {id:'wheel5',e:'🌟',n:'Golden Wheel',d:'Adds a second x5 face to the fortune wheel.',cost:5,req:'wheel1'},
+  {id:'bonusbell',e:'🔔',n:'Bonus Bell',d:'Triggering free spins also offers a relic.',cost:4},
 ];
 
 const RAR=[
@@ -626,7 +640,7 @@ const objsAt=x=>run.objs.filter(o=>o.x===x&&!o.gone);
 async function startRun(heroId,daily){
   const h=HEROES[heroId];seedRandom(daily||null);
   run={hero:heroId,floor:1,x:0,hp:0,block:0,coins:h.coins+alt('purse')*3,gear:{weapon:null,armor:null,boots:null,charm:null},
-    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null};
+    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1};
   for(const id of S.loadout){const it=S.vault.find(v=>v.id===id);if(it&&!run.gear[it.slot])run.gear[it.slot]=JSON.parse(JSON.stringify(it));}
   run.daily=daily||null;run.hp=stats().maxHp;
   genFloor(1);
@@ -638,7 +652,33 @@ async function startRun(heroId,daily){
 function resumeRun(){run=S.run;run.over=false;busy=false;seedRandom(run.daily?run.daily+':'+run.spins:null);view.hx=run.x*T+T/2;view.cam=view.hx-HERO_SX;showGame();rebuildReels();ui();}
 
 /* ---------------- slot machine ---------------- */
-const M={reels:[],spinning:false,timers:[],grid:null,nudges:0};
+const M={reels:[],spinning:false,timers:[],grid:null,nudges:0,wheel:1,wheelSpin:null};
+// The fortune wheel: a dial on the cabinet that lands on x1/x2/x3/x5 each spin and
+// multiplies that turn's damage and block (never coins or healing).
+function wheelFaces(){const f=[1,1,1,2,3,5];if(S.mods.wheel1)f.splice(0,1);if(S.mods.wheel5)f.push(5);return f;}
+function rollWheel(){
+  const r=run;if(r.wheelJam)return 1;
+  let f=wheelFaces();const noOne=(r.inBonus)||(hasR('thumb')&&r.hp<stats().maxHp/2);
+  if(noOne)f=f.filter(x=>x!==1);
+  return pick(f);
+}
+function drawWheel(){
+  let w=$('#wheel');if(!w){w=document.createElement('div');w.id='wheel';$('#marquee').appendChild(w);}
+  const v=M.wheelSpin?M.wheelSpin.face:M.wheel;
+  w.innerHTML=`${icon('ui_wheel','')}<b>×${v}</b>`;w.className=(M.wheelSpin?'spin':'')+(run&&run.wheelJam?' jam':v>=5?' big':v>1?' up':'');
+}
+function tickWheel(now){
+  const ws=M.wheelSpin;if(!ws)return;
+  if(now-ws.last>ws.gap){ws.last=now;ws.face=pick(wheelFaces());ws.gap=Math.min(320,ws.gap*1.08);drawWheel();}
+}
+function scatterReels(grid){return grid.filter(col=>col.includes('coin')).length;}
+function bonusNeed(){return hasR('silverscatter')?2:3;}
+function finishRes(res){
+  res.mult=M.wheel;
+  res.scatter=scatterReels(readGrid());
+  res.bonusTrigger=!run.inBonus&&res.scatter>=bonusNeed();
+  return res;
+}
 const nudgeMax=()=>(S.mods.nudge?1:0)+(hasR('loadeddice')?1:0);
 function rebuildReels(){
   const n=reelCount(),counts=stripCounts();
@@ -662,7 +702,8 @@ function rebuildReels(){
   M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
   buildReelCtl();
   const L=paylines(n);
-  $('#lineInfo').textContent=L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
+  $('#lineInfo').textContent=(run&&run.inBonus&&run.bonus>0)?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
+  $('#marquee').classList.toggle('bonus',!!(run&&run.inBonus&&run.bonus>0));drawWheel();
   drawReels(true);
 }
 function cellSymHTML(sym){
@@ -692,6 +733,7 @@ function setBtn(mode){
 function spinCost(){
   if(!run)return 1;const held=M.reels.filter(R=>R.held&&!R.jam).length;
   const tax=run.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.t==='taxman'&&o.x-run.x<=6).length;
+  if(run.bonus>0)return 0;
   return (run.freeSpin?0:1)+(hasR('clamp')?0:held)+tax;
 }
 function spin(){
@@ -699,7 +741,9 @@ function spin(){
   const free=M.reels.filter(R=>!R.held&&!R.jam);if(!free.length){logLine('Release a reel first: at least one has to spin.');return;}
   const cost=spinCost();if(run.coins<cost){logLine(`Not enough coins: this spin costs <b>${cost}</b>.`);return;}
   run.coins-=cost;if(run.freeSpin)run.freeSpin=false;
-  run.spins++;M.spinning=true;M.nudges=nudgeMax();
+  if(run.bonus>0){run.bonus--;}
+  run.spins++;M.spinning=true;M.nudges=nudgeMax()+(run.inBonus?1:0);
+  M.wheel=rollWheel();M.wheelSpin={face:1,last:0,gap:70};drawWheel();
   if(run.daily)seedRandom(run.daily+':'+run.spins);
   document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
   const v=S.mods.slow?7.5:12;
@@ -716,7 +760,7 @@ function stopReel(R){
   R.settle={from:R.o,to:Math.floor(R.o)+2,t0:performance.now(),dur:230};sfx.stop();
 }
 function tickReels(now,dt){
-  if(!M.spinning)return;
+  if(!M.spinning)return;tickWheel(now);
   let all=true;
   for(const R of M.reels){
     if(R.settle){const p=clamp((now-R.settle.t0)/R.settle.dur,0,1);
@@ -727,7 +771,7 @@ function tickReels(now,dt){
     if(R.spinning)all=false;
   }
   drawReels();
-  if(all){M.spinning=false;M.timers.forEach(clearTimeout);M.timers=[];M.reels.forEach(R=>{R.held=false;R.el.classList.remove('held');});onAllStopped();}
+  if(all){M.spinning=false;M.timers.forEach(clearTimeout);M.timers=[];M.reels.forEach(R=>{R.held=false;R.el.classList.remove('held');});M.wheelSpin=null;drawWheel();if(M.wheel>1)sfx.coin();onAllStopped();}
 }
 function readGrid(){
   return M.reels.map(R=>{const t=Math.round(R.o),len=R.strip.length;return [R.strip[mod(t+1,len)],R.jam?'skull':R.strip[mod(t,len)],R.strip[mod(t-1,len)]];});
@@ -748,7 +792,7 @@ function nudge(i,dir){
   const R=M.reels[i];if(!R||!M.pendingRes||M.spinning||busy||M.nudges<=0||R.jam)return;
   R.o=Math.round(R.o)+dir;M.nudges--;sfx.stop();drawReels(true);
   document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
-  const res=evaluate(readGrid());markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();
+  const res=finishRes(evaluate(readGrid()));markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();
   M.pendingRes=res;showForecast(previewTurn(res));buildReelCtl();
 }
 // Pair combos: two symbols sharing a payline add a twist to the turn.
@@ -777,9 +821,10 @@ function markCells(list,cls){
 }
 async function onAllStopped(){
   busy=true;setBtn('busy');
-  const grid=readGrid();const res=evaluate(grid);
+  const grid=readGrid();const res=finishRes(evaluate(grid));
   markCells(res.pays,'pay');markCells(res.wins,'win');
   if(res.triples)sfx.jackpot();
+  if(res.bonusTrigger){bonusFlash();sfx.jackpot();}
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
   showForecast(previewTurn(res));logLine('Reels stopped. <b>Read the forecast, then resolve.</b>');M.pendingRes=res;setBtn('resolve');busy=false;ui();buildReelCtl();
   if(S.autoResolve){await sleep(1400);if(M.pendingRes===res)await resolveTurn();}
@@ -801,8 +846,13 @@ function previewTurn(R){
   const nm=o=>o.kind==='chest'?(o.mimic?'the chest':'the chest'):o.n;
   if(R.triples)L.push(`<b style="color:var(--gold)">${R.triples>1?'DOUBLE ':''}JACKPOT</b> — matched symbols pay x3${hasR('bell')?', +3 🪙 from the Bell':''}`);
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
+  if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
+  if(r.wheelJam)L.push(`<span style="color:var(--purple)">the Bandit has jammed the wheel at ×1 — a jackpot frees it</span>`);
+  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">★ SCATTER</b> — Coins on ${R.scatter} reels: <b>${hasR('longstreak')?5:3} free spins</b> from the next pull`);
+  if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
   if(val('skull')&&!hasR('skullring')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
-  if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer}</b>`);
+  const mu=R.mult||1;
+  if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer*mu}</b>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
   if(val('coin'))L.push(`🪙 +<b>${val('coin')*s.coinPer}</b> coins`);
   if(val('skull'))L.push(hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
@@ -813,9 +863,9 @@ function previewTurn(R){
   if(steps){const bits=[];if(moved)bits.push(`step <b>${moved}</b>`);if(shoves)bits.push(`shove ${nm(shoveT)} <b>${shoves}×${s.shove}</b>`);if(door)bits.push('<b>reach the exit</b>');L.push('🥾 '+bits.join(', '));}
   const mom=hasR('momentum')?moved:0;
   if(!door){
-    if(val('sword')){const t=blockerAt(x+1);L.push(t?`🗡 stab ${nm(t)} for <b>${val('sword')*s.swordDmg+mom}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
-    if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${val('bow')*s.bowDmg+mom}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
-    if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${val('bomb')*s.bombDmg+mom}</b>`);}
+    if(val('sword')){const t=blockerAt(x+1);L.push(t?`🗡 stab ${nm(t)} for <b>${(val('sword')*s.swordDmg+mom)*mu*((R.combos||{}).charge?2:1)}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
+    if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${(val('bow')*s.bowDmg+mom)*mu}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
+    if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${(val('bomb')*s.bombDmg+mom)*mu}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
     if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
@@ -829,11 +879,16 @@ function logLine(h){$('#log').innerHTML=artify(h);}
 async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
+  const mu=R.mult||1;r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
+  if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
+  if(R.bonusTrigger){r.bonus=hasR('longstreak')?5:3;r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
+    if(S.mods.bonusbell)await relicPick('Bonus Bell','The bell rings: a relic falls with the free spins.');}
+  else if(r.inBonus&&r.bonus<=0){r.inBonus=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
   r.block=hasR('tower')?Math.floor(r.block/2):0;
   if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);}
-  if(val('shield')){const b=val('shield')*s.blockPer;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
+  if(val('shield')){const b=val('shield')*s.blockPer*mu;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
   if(val('coin')){const c=val('coin')*s.coinPer;gainCoins(c);parts.push(`🪙+${c}`);}
   if(val('skull')){
@@ -851,7 +906,7 @@ async function doTurn(R){
   let moved=0;const steps=val('boots')*s.move+(val('boots')?s.moveBonus:0);
   for(let i=0;i<steps;i++){
     const b=blockerAt(r.x+1);
-    if(b){view.lunge=1;await hit(b,s.shove,'shove');await beat(110);continue;}
+    if(b){view.lunge=1;await hit(b,s.shove*mu,'shove');await beat(110);continue;}
     r.x++;moved++;sfx.step();await beat(120);
     await enterTile(r.x);
     if(r.floorDone||r.over)return;
@@ -860,7 +915,7 @@ async function doTurn(R){
   const mom=hasR('momentum')?moved:0;
   // daggers
   if(val('sword')){
-    const t=blockerAt(r.x+1),dmg=(val('sword')*s.swordDmg+mom)*(combo.charge?2:1);
+    const t=blockerAt(r.x+1),dmg=(val('sword')*s.swordDmg+mom)*(combo.charge?2:1)*mu;
     if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg,'sword');parts.push(`🗡${dmg}`);
       const ls=val('sword')*(hasR('fang')?1:0)+s.lifesteal;if(ls)heal(ls);
       if(hasR('pickpocket'))gainCoins(1);await beat(160);}
@@ -868,13 +923,13 @@ async function doTurn(R){
   }
   if(val('bow')){
     const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>r.x&&o.x-r.x<=4).sort((a,b)=>a.x-b.x);
-    const dmg=val('bow')*s.bowDmg+mom;
+    const dmg=(val('bow')*s.bowDmg+mom)*mu;
     if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.hit();await beat(140);await hit(es[0],dmg,'bow');parts.push(`🏹${dmg}`);
       if(hasR('quiver')&&es[1])await hit(es[1],Math.ceil(dmg/2),'bow');await beat(120);}
     else{heroFl('no target','#a8998a');}
   }
   if(val('bomb')){
-    const dmg=val('bomb')*s.bombDmg+mom;view.boom={t:0,x:(r.x+1.5)*T};sfx.boom();view.shake=8;
+    const dmg=(val('bomb')*s.bombDmg+mom)*mu;view.boom={t:0,x:(r.x+1.5)*T};sfx.boom();view.shake=8;
     const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>r.x&&o.x-r.x<=2);
     for(const t of ts)await hit(t,dmg,'bomb');parts.push(`💣${dmg}`);await beat(180);
     if(combo.stabbomb){const t2=blockerAt(r.x+1);if(t2){view.lunge=1;await hit(t2,s.swordDmg,'sword');parts.push(`🗡${s.swordDmg}`);await beat(160);}}
@@ -941,9 +996,9 @@ async function enterTile(x){
 
 /* ---------------- enemies ---------------- */
 function intentOf(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤',''],jam:['🎰','jam'],tax:['🪙','-'+v]})[a]||['?',''];}
+  return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],jamwheel:['⚙️','×1'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤',''],jam:['🎰','jam'],tax:['🪙','-'+v]})[a]||['?',''];}
 function intentText(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`})[a];}
+  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`,jamwheel:'Jam your fortune wheel at x1 until you land a jackpot'})[a];}
 async function enemyPhase(){
   const r=run;
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);
@@ -969,6 +1024,7 @@ async function enemyPhase(){
     else if(a==='curse'){r.curse=(r.curse||0)+1;heroFl('+💀 on reels','#b07cf0');addFx('fx_curse',heroWX(),GY-60,76,.9,20);rebuildReels();}
     else if(a==='jam'){if(!r.jam){const free=M.reels.map((R,i)=>i).filter(i=>!M.reels[i].jam);if(free.length){r.jam={reel:pick(free),by:e.id};heroFl('REEL JAMMED','#b07cf0');rebuildReels();}}}
     else if(a==='tax'){const c=Math.min(r.coins,v);r.coins-=c;heroFl('-'+c+' 🪙 tax','#b07cf0');}
+    else if(a==='jamwheel'){r.wheelJam=true;heroFl('WHEEL JAMMED ×1','#b07cf0');drawWheel();}
     e.pi++;ui();await beat(150);
     }
   }
@@ -1083,7 +1139,7 @@ async function endRun(reason){
   S.souls+=souls;S.runs++;S.best=Math.max(S.best,r.floor);
   if(r.daily){const d=(S.daily&&S.daily[r.daily])||{best:0,runs:0,souls:0};d.best=Math.max(d.best,r.floor);d.runs++;d.souls=Math.max(d.souls,souls);S.daily={[r.daily]:d};}
   seedRandom(null);
-  r.summary=`Loot & Daggers${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
+  r.summary=`Loot & Daggers${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
   await modal(reason==='broke'?'Busted':'You fell',
@@ -1162,6 +1218,7 @@ function ui(){
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
   $('#relics').innerHTML=r.relics.map(id=>`<button class="relic" data-relic="${id}" title="${RELIC[id].n}">${relicIcon(RELIC[id])}</button>`).join('');
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
+  {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=(r.inBonus&&r.bonus>0)?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:L+' PAYLINE'+(L>1?'S':'')+' · '+n+' REELS';$('#marquee').classList.toggle('bonus',!!(r.inBonus&&r.bonus>0));}
   if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
 }
 function showGame(){if(run)music.play(musicForFloor(run.floor));$('#hub').classList.add('hidden');$('#game').classList.remove('hidden');requestAnimationFrame(()=>{resizeCanvas();rebuildReels();});}
@@ -1221,6 +1278,8 @@ function showHub(v){
     <h3>Symbols</h3><div class="symtab">${SYM_ORDER.map(k=>`<span class="e">${symIcon(k,'st')}</span><b>${SYM[k].n}</b><span>${SYM[k].d}</span>`).join('')}</div>
     <p>Resolution order: block, heal, coins, skulls, keys, <b>move</b>, then daggers, bows and bombs — so boots can carry you into stabbing range.</p>
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
+    <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
+    <h3>Free spins</h3><p>Land a Coin on <b>three different reels</b> (anywhere, not just the payline) and the next 3 spins are free: no coin, free holds, an extra nudge, and the wheel never shows x1. Foes still take their turns.</p>
     <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
@@ -1521,6 +1580,11 @@ function drawRich(txt,x,y,col){
   cx.textAlign='left';
   for(const p of parts){if(typeof p==='string'){cx.fillStyle='#000';cx.fillText(p,cx0+1,y+1);cx.fillStyle=col;cx.fillText(p,cx0,y);}else cx.drawImage(ART[p.k],cx0,y-12,15,15);cx0+=W(p);}
   cx.textAlign='center';
+}
+function bonusFlash(){
+  let w=$('#jackpotWord');if(!w){w=document.createElement('div');w.id='jackpotWord';$('#sceneWrap').appendChild(w);}
+  w.innerHTML=`FREE SPINS<small>THE REELS RUN ON THEIR OWN COIN</small>`;w.classList.add('gold');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');
+  setTimeout(()=>w.classList.remove('gold'),3900);
 }
 function jackpotFlash(mult){
   const src=artSrc('screen_jackpot');if(!src)return;

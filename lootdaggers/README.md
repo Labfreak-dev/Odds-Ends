@@ -331,3 +331,9 @@ Nothing in the game is emoji any more once art.js loads.
   tap after a reload, switched off if the player backs out of it. iPhones get a
   hint instead. Added manifest.webmanifest (display: fullscreen) so a home-screen
   shortcut opens full screen too.
+- **b053**: reel rebuilds (hex skulls, jams, relics, gear, floors, resume) keep the
+  symbols in the window where they are and only reshuffle the unseen strip, so the
+  reels never show symbols that did not land. Nudges: the count and the ▲▼ arrows
+  only appear while a nudge can be used (reels stopped, before resolve), the
+  arrows are bigger and pulse gold, and auto-resolve waits 4 real seconds while
+  nudges are left (each nudge restarts the wait).

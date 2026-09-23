@@ -418,3 +418,8 @@ Nothing in the game is emoji any more once art.js loads.
   Man's Hand, Coin of Charon...) found 3% from chests, 8% from elites, 20% from
   bosses. New relics and uniques share an effect-hook table (FX) instead of more
   hasR() checks in the turn code. Emoji icons until art-pack17 (150 icons) lands.
+- **b073**: art pack 17 packed (425 images): icons for all 50 new relics, 80 gear
+  bases and 20 uniques. pack-art.py now handles a thin magenta frame around a
+  darker hot-pink field (the sampled border blended the two and left pink boxes):
+  it keys out every saturated pink region touching the edge. No older art takes
+  that path.

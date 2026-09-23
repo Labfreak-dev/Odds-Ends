@@ -266,6 +266,19 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 #hub.painted .chip{background:rgba(24,20,21,.9)}
 #hub.painted h2,#hub.painted h3{text-shadow:0 2px 0 #000,0 0 12px #000}
 #hub.painted p{text-shadow:0 1px 2px #000}
+/* obituary: a yellowed newspaper clipping */
+.obit{background:radial-gradient(ellipse at 30% 20%,#efe3c6,#d9c7a0 70%,#c9b288);color:#2a1d12;padding:14px 16px 16px;border-radius:3px;box-shadow:inset 0 0 30px rgba(90,60,20,.45),0 4px 14px rgba(0,0,0,.6);font-family:Georgia,'Times New Roman',serif;text-align:left;user-select:text;-webkit-user-select:text}
+.obit .mast{font-family:'UnifrakturMaguntia',var(--head),serif;font-size:27px;text-align:center;line-height:1.1;border-bottom:3px double #2a1d12;padding-bottom:4px}
+.obit .sect{text-align:center;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin:4px 0 10px;border-bottom:1px solid rgba(42,29,18,.5);padding-bottom:4px}
+.obit .obitPic{display:block;margin:0 auto 8px;width:132px;height:160px;object-fit:cover;border-radius:50%;border:4px solid #3a2a1a;box-shadow:0 0 0 2px #c9b288,0 0 0 4px #3a2a1a;filter:sepia(.5) contrast(1.05)}
+.obit .obitPic.none{display:flex;align-items:center;justify-content:center;font-size:60px;background:#b9a57e}
+.obit .onm{font-family:var(--head),serif;font-size:30px;text-align:center;line-height:1}
+.obit .odates{text-align:center;font-size:11px;font-style:italic;margin:3px 0 10px;opacity:.85}
+.obit p{font-size:14px;line-height:1.45;margin:0 0 8px;text-align:justify;hyphens:auto}
+.obit p:first-of-type::first-letter{font-family:'UnifrakturMaguntia',var(--head),serif;font-size:2.4em;float:left;line-height:.9;margin:2px 4px 0 0}
+.obit .olast{font-style:italic;text-align:center;border-top:1px solid rgba(42,29,18,.5);padding-top:6px;margin:4px 0 0}
+body.labFlash #app{animation:labFlash .7s ease-out}
+@keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
 #logoImg{display:block;width:100%}
 #logoWrap{position:relative;width:min(92%,380px);margin:0 auto -6px}
@@ -376,18 +389,129 @@ const ENEMIES={
   taxman:{n:'Tax Collector',hp:12,range:3,pat:[['tax',1],['atk',2]],coins:[5,8],from:3,d:'Every spin costs +1 coin while it is awake.'},
   mirror:{n:'Mirror Wight',hp:16,pat:[['atk',3],['atk',4]],coins:[3,5],from:5,d:'Reflects half of every dagger hit back at you.'},
   ironclad:{n:'Ironclad Husk',hp:20,pat:[['atk',5],['guard',6]],coins:[4,6],from:5,d:'Only bombs, shoves and jackpot turns can hurt it.'},
+  abom:{n:'Stitched Abomination',hp:26,pat:[['atk',6],['grow',5],['atk',7]],coins:[4,7],from:99,loot:.4,d:'Stitches itself back together.'},
+  homunculus:{n:'Jar Homunculus',hp:9,pat:[['drain',2],['atk',3]],coins:[2,4],from:99,d:'Needle fingers: it drains coins.'},
+  brainjar:{n:'Brain in a Jar',hp:14,range:3,pat:[['curse',1],['atk',4]],coins:[3,5],from:99,d:'Zaps from range and curses your reels.'},
   reaper:{n:'The Reaper',hp:40,range:2,pat:[['drain',6],['atk',8],['atk',5]],coins:[8,12],from:99,loot:1,d:'Summoned by Doom. Slaying it pays 25 souls.'},
 };
 const ELITES={fast:{n:'Frenzied',e:'⚡',d:'acts twice a turn'},shield:{n:'Warded',e:'🛡️',d:'regains 5 block every turn'},cursed:{n:'Hexed',e:'💀',d:'its hits add a Skull to your reels'}};
-const FLOOR_KINDS={fight:{e:'⚔️',n:'Fight',d:'The usual crawl.'},treasure:{e:'📦',n:'Treasure',d:'Extra chests and coin piles. One chest bites.'},elite:{e:'👑',n:'Elite',d:'A modified foe guards a guaranteed Rare.'},rest:{e:'🕯️',n:'Rest',d:'A short, quiet floor. Heal 30% and find a shrine.'},boss:{e:'☠️',n:'Boss',d:'Something big waits at the end.'}};
+const FLOOR_KINDS={fight:{e:'⚔️',n:'Fight',d:'The usual crawl.'},treasure:{e:'📦',n:'Treasure',d:'Extra chests and coin piles. One chest bites.'},elite:{e:'👑',n:'Elite',d:'A modified foe guards a guaranteed Rare.'},rest:{e:'🕯️',n:'Rest',d:'A short, quiet floor. Heal 30% and find a shrine.'},boss:{e:'☠️',n:'Boss',d:'Something big waits at the end.'},lab:{e:'⚗️',n:'Laboratory',d:'Dr. Labfreak\'s secret lab.'}};
 const BOSSES={
   boneking:{n:'The Bone King',hp:55,pat:[['atk',6],['summon','skel'],['guard',8],['atk',8]],coins:[10,14]},
   bandit:{n:'One-Armed Bandit',hp:70,pat:[['steal',3],['atk',7],['jackpot',3],['jamwheel',0]],coins:[14,18]},
   lich:{n:'The Dice Lich',hp:90,range:3,pat:[['atk',6],['curse',1],['drain',5],['atk',9]],coins:[16,22]},
+  labfreak:{n:'Dr. Labfreak',hp:110,range:3,pat:[['atk',7],['summon','homunculus'],['curse',1],['drain',6],['atk',10]],coins:[25,35]},
 };
 const BOSS_ORDER=['boneking','bandit','lich'];
 
+/* ---------------- gravestones (easter egg) ----------------
+   Six named graves turn up now and then on ordinary floors. Tap one for its
+   obituary (a fresh random one every time). Labfreak's only appears once the
+   other five have been read; his has a lever that leads to his laboratory.
+   Nothing spawns until the grave art is packed (art pack 12). */
+const GRAVES=[
+  {id:'madness',n:'Madness',
+    tag:['professional laugher at inappropriate moments','self-appointed jester of the lower crypts','the only man ever to argue with a slot machine and lose on appeal'],
+    cause:['after challenging his own reflection to a duel and losing on points','after insisting the spike trap was "just a friendly little floor"','laughing so hard at a cursed joke that his skeleton left without him'],
+    life:['He spent his youth teaching rats to juggle and his adulthood apologising to the rats.','He once pulled the lever four hundred times in a row because "the machine looked lonely."','He held the dungeon record for most conversations with a wall, and claimed the wall started it.'],
+    quirk:['He named every coin he ever lost. There were a great many names.','Friends describe him as "unpredictable", "unhinged" and "owes me nine coins."'],
+    left:['He is survived by three rats, a jester\'s rattle and the voices, who have asked for privacy at this time','He leaves behind 212 odd socks, none of them matching and all of them his'],
+    last:['Watch this!','The skulls are winking at me. I think they like me.','One more spin. Just one.']},
+  {id:'midblade',n:'Midblade',
+    tag:['a swordsman of perfectly average renown','the most consistently fine duellist the dungeon has ever known','holder of the record for most second-to-third places'],
+    cause:['mid-swing, mid-sentence and, fittingly, mid-dungeon','when his sword got stuck halfway out of its scabbard at a very important moment','after a skeleton archer hit him squarely in the middle of everything'],
+    life:['He never won a tournament and never lost one either; he simply finished exactly in the middle, every time.','Critics called his swordplay "fine". He had the word engraved on his blade.','He was knighted, briefly, then un-knighted, then re-knighted, and settled comfortably in between.'],
+    quirk:['He ordered the medium meal at every tavern, rated every inn three stars and slept in the exact centre of the bed.','He could cut a coin perfectly in half, and often did, to split the bill.'],
+    left:['He is survived by a half-eaten sandwich and a sword that is, by all accounts, pretty good','He leaves behind a middle child, a middle name and a middling fortune of seven coins'],
+    last:['Eh. Could be worse.','I\'ll meet you halfway.','It was... fine. It was fine.']},
+  {id:'papamodelo',n:'PapaModelo',
+    tag:['father figure, fashion icon and owner of the dungeon\'s most photographed jawline','a gentleman who never met a mirror he didn\'t linger at','beloved papa to everyone who ever needed a hug and a hair tip'],
+    cause:['when he stopped to strike a pose in front of a Mirror Wight and it struck back','after refusing to run from an orc because running "creases the trousers"','while holding a smouldering stare so long that a slime mistook him for a statue and sat on him'],
+    life:['He walked every corridor like a runway, and every skeleton applauded, though that may have been their bones rattling.','He raised eleven children, forty adventurers and one extremely confident rat, all of whom call him Papa.'],
+    quirk:['He carried a comb, a spare comb and an emergency comb, and was buried with all three.','He moisturised twice daily, even in the flooded catacombs, which he called "basically a spa."'],
+    left:['He is survived by his many children, his many mirrors and a moustache that is somehow still looking at you','He leaves behind a closet the size of a crypt and strict instructions that nobody touch it'],
+    last:['Get my good side.','Tell the children Papa looked fabulous.','Is this candlelight? Perfect.']},
+  {id:'zero',n:'Zero Override',
+    tag:['engineer, tinkerer and the only man who ever read the slot machine\'s manual','a genius who could fix anything except his sleep schedule','the dungeon\'s foremost expert on pulling levers he was told not to pull'],
+    cause:['after overriding a safety lock that, in hindsight, was holding the ceiling up','when he rewired a mimic "to see what happens" and found out','after counting down from ten to zero and the machine, for once, agreed with him'],
+    life:['He rebuilt his first slot machine at six and his first set of teeth at seven.','He believed every problem could be solved by turning it off and on again, including, at the very end, himself.'],
+    quirk:['His toolbox held 400 screws, none of which fit anything, and he loved every one of them.','He named his coffee mug "Critical Systems" and never once let anyone wash it.'],
+    left:['He is survived by a workbench, a half-finished robot and a warning label he wrote himself that just says DO NOT','He leaves behind 38 unfinished inventions, one of which is still ticking, and we would like someone to look at that'],
+    last:['Hold my wrench.','Override... accepted?','Trust me, it\'s all zeroes and ones.']},
+  {id:'dapper',n:'CaptainDapper',
+    tag:['the best-dressed captain ever to lose a ship in a puddle','a gentleman sailor of impeccable manners and questionable navigation','captain, raconteur and the only man to wear a cravat to a sword fight'],
+    cause:['after bowing politely to a Bone King who did not bow back','when he insisted on changing into his evening coat mid-battle, it being after six','after going down with his ship, which in fairness was a very small ship in a very small sea'],
+    life:['He sailed the flooded catacombs for thirty years without once reaching the other side, and said it was about the journey.','He once charmed a Tax Collector into paying HIM, a feat never since repeated.'],
+    quirk:['His monocle fell out 1,400 times a day and he caught it every single time.','He took his tea at four o\'clock sharp, even while being digested by a slime.'],
+    left:['He is survived by a crew of two rats and a parrot who only knows the word "Dapper"','He leaves behind 60 top hats, 9 monocles and one very soggy logbook'],
+    last:['Frightfully sorry, old chap.','Is my tie straight?','Abandon ship... but stylishly.']},
+  {id:'labfreak',n:'Labfreak',
+    tag:['mad scientist, madder gambler and owner of the maddest hairdo in the known dungeon','an inventor whose experiments were 70% science and 30% screaming','the man who built the machine you are playing, some say'],
+    cause:['mid-experiment, when a beaker labelled DO NOT DRINK was, in his defence, the only thing to drink','after wiring his own slot machine to a lightning rod "for the jackpot"','after shouting IT\'S ALIVE at something that very much agreed'],
+    life:['He never won a single spin, so he built a machine to find out why. The machine is still looking for him.','His laboratory held 3,000 beakers, 400 specimen jars and zero fire exits.'],
+    quirk:['His hair stood straight up after his first experiment and never came down again.','He tested every potion on himself first, which explains the extra finger.'],
+    left:['He is survived by several of his creations, who would very much like to know where he is','He leaves behind a laboratory nobody has been brave enough to open, somewhere under your feet'],
+    last:['Hand me the green one.','It\'s not a bug, it\'s a mutation.','Pull the lever. PULL IT!']},
+];
+const GRAVE_BORN=['the year the machine was built','a leap Tuesday','during a thunderstorm, naturally','1847, allegedly','in a coin purse, somehow','under a bad moon'];
+const GRAVE_SERVICE=['In lieu of flowers, the family asks that you feed the machine.','A service will be held on the next floor down. Bring coins, not tears.','Visitation is between spins. Please do not stand on the grave; it bites.','The funeral will be closed casket, as the casket is also a mimic.','Mourners are asked to pull the lever once, for luck, and then once more, for him.'];
+const graveArtReady=()=>!!artImg('grave_madness')||!!window.LD_GRAVE_TEST;
+const graveRead=id=>(S.graves||[]).includes(id);
+const graveDef=id=>GRAVES.find(g=>g.id===id);
+function graveKey(o){return 'grave_'+o.who+(o.who==='labfreak'&&o.lever?'_lever':'');}
+// which grave (if any) to put on this floor
+function graveFor(f){
+  if(!graveArtReady())return null;
+  const five=GRAVES.slice(0,5).filter(g=>!graveRead(g.id)).map(g=>g.id);
+  if(five.length)return Math.random()<.4?pick(five):null;
+  if(!graveRead('labfreak'))return Math.random()<.5?'labfreak':null;
+  return Math.random()<.15?pick(GRAVES).id:null;
+}
+function obituaryHTML(g){
+  const died=`Floor ${rnd(1,40)}, spin ${rnd(12,999)}`;
+  return `<div class="obit"><div class="mast">The Dungeon Gazette</div><div class="sect">Obituaries</div>
+    ${portImg('portrait_'+g.id,'obitPic')||'<div class="obitPic none">🪦</div>'}
+    <div class="onm">${esc(g.n)}</div><div class="odates">Born ${pick(GRAVE_BORN)} · Died ${died}</div>
+    <p><b>${esc(g.n)}</b>, ${pick(g.tag)}, died ${pick(g.cause)}.</p>
+    <p>${pick(g.life)} ${pick(g.quirk)}</p>
+    <p>${pick(g.left)}. ${pick(GRAVE_SERVICE)}</p>
+    <p class="olast">Last words: “${pick(g.last)}”</p></div>`;
+}
+async function readGrave(o){
+  const g=graveDef(o.who);if(!g)return;
+  if(!S.graves)S.graves=[];
+  const first=!graveRead(g.id);if(first){S.graves.push(g.id);save();}
+  await modal('Here lies '+g.n,obituaryHTML(g),[{label:'Rest in peace',val:1,cls:'center'}]);
+  if(g.id!=='labfreak')return;
+  o.lever=true;
+  const v=await modal('A cold iron handle',`${artSrc('screen_lab_pull')?`<img class="splash" src="${artSrc('screen_lab_pull')}" alt="">`:''}<p>There is an iron handle sticking out of Labfreak's headstone. Would you like to pull it?</p>`,
+    [{label:'Pull it',val:'pull',cls:'primary'},{label:'Leave it be',val:null}]);
+  if(v==='pull')await enterLab();
+}
+// The laboratory: a one-floor detour on the same floor number. Clearing it goes on
+// to the next floor as usual.
+const LAB_FOES=['abom','homunculus','brainjar'];
+async function enterLab(){
+  const r=run;busy=true;sfx.jackpot();view.shake=12;
+  document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
+  const f=r.floor,len=18;
+  Object.assign(r,{lab:true,labRuns:(r.labRuns||0)+1,len,objs:[],x:0,curse:0,jam:null,floorDone:false,kind:'lab'});
+  S.labRuns=(S.labRuns||0)+1;
+  const free=[];for(let i=3;i<len-3;i++)free.push(i);shuffle(free);
+  const put=o=>{r.objs.push(Object.assign({id:uid++,dx:o.x*T},o));};
+  put({kind:'door',x:len});
+  put(mkEnemy('labfreak',len-2,f+2,true));
+  for(let i=0;i<5&&free.length;i++)put(mkEnemy(pick(LAB_FOES),free.pop(),f+1));
+  for(let i=0;i<3&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(2,4)+Math.floor(f/3)});
+  if(free.length)put({kind:'chest',x:free.pop(),hp:4,mimic:false});
+  r.objs.sort((a,b)=>a.x-b.x);
+  view.hx=T/2;view.cam=T/2-HERO_SX;view.banner={t:performance.now(),txt:"DR. LABFREAK'S LABORATORY"};
+  busy=false;rebuildReels();ui();save();music.play('boss');
+  logLine('<b>The ground gives way.</b> Something in the dark is cackling. Dr. Labfreak waits at the far end.');
+}
+
 const RELICS=[
+  {id:'beaker',e:'⚗️',n:"Labfreak's Beaker",d:'Skulls no longer hurt you or add Doom: each one splashes the nearest foe for 4.',lab:true},
   {id:'luckycoin',e:'🍀',n:'Lucky Coin',d:'Coin symbols pay +1 more.'},
   {id:'fang',e:'🦷',n:'Vampire Fang',d:'Each dagger that lands a hit heals 1.'},
   {id:'ironboots',e:'🦿',n:'Iron Toecaps',d:'Blocked boots shove for +3.'},
@@ -536,7 +660,7 @@ const music={a:null,b:null,cur:null,key:null,fade:2.2,started:false,timer:null,
   apply(){if(this.cur)this.cur.volume=this.vol();if(this.cur&&S.music===false)this.cur.pause();else if(this.cur&&this.cur.paused&&this.started)this.cur.play().catch(()=>{});},
 };
 document.addEventListener('pointerdown',()=>music.start(),{once:true,capture:true});
-function musicForFloor(f){if(f%3===0)return 'boss';const i=Math.floor((f-1)/3)%4;return i===0?'crypt':String(i+1);}
+function musicForFloor(f){if(f%3===0||(run&&run.lab))return 'boss';const i=Math.floor((f-1)/3)%4;return i===0?'crypt':String(i+1);}
 
 /* ---------------- audio ---------------- */
 let AC=null;
@@ -567,7 +691,7 @@ const T=64, VW=480, VH=220, GY=182, HERO_SX=92;
 // Biome by depth: the crypt, the flooded catacombs, the bone pit, the abyss vault (then it cycles).
 // Boss floors use the arena wall. A missing key falls back to the base crypt art.
 const BIOMES=[['bg_wall','bg_floor'],['bg_wall_2','bg_floor_2'],['bg_wall_3','bg_floor_3'],['bg_wall_4','bg_floor_4']];
-function biomeOf(f){const b=BIOMES[Math.floor((f-1)/3)%BIOMES.length];const boss=f%3===0;
+function biomeOf(f){if(run&&run.lab&&artImg('bg_wall_lab'))return {wall:'bg_wall_lab',floor:artImg('bg_floor_lab')?'bg_floor_lab':'bg_floor'};const b=BIOMES[Math.floor((f-1)/3)%BIOMES.length];const boss=f%3===0;
   const wall=boss&&artImg('bg_wall_boss')?'bg_wall_boss':(artImg(b[0])?b[0]:'bg_wall');return {wall,floor:artImg(b[1])?b[1]:'bg_floor'};}
 let uid=1;
 const hasR=id=>!!run&&run.relics.includes(id);
@@ -661,7 +785,7 @@ function mkEnemy(type,x,f,boss){
 function genFloor(f){
   const r=run;const boss=f%3===0;const kind=boss?'boss':(r.nextKind||'fight');r.kind=kind;
   const len=kind==='rest'?8:12+Math.min(f,10);
-  r.len=len;r.objs=[];r.x=0;r.curse=0;r.jam=null;r.floorDone=false;r.freeSpin=hasR('hourglass');
+  r.len=len;r.objs=[];r.x=0;r.curse=0;r.jam=null;r.floorDone=false;r.freeSpin=hasR('hourglass');r.lab=false;
   const free=[];for(let i=3;i<len-(boss?2:1);i++)free.push(i);shuffle(free);
   const put=o=>{r.objs.push(Object.assign({id:uid++,dx:o.x*T},o));};
   put({kind:'door',x:len});
@@ -680,6 +804,7 @@ function genFloor(f){
   if(kind!=='rest')for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
   for(let i=0;i<rnd(1,3)+(kind==='treasure'?1:0)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
   if(kind==='rest'){r.hp=Math.min(stats().maxHp,r.hp+Math.round(stats().maxHp*.3));}
+  if(!boss&&free.length){const who=graveFor(f);if(who)put({kind:'grave',x:free.pop(),who});}
   r.objs.sort((a,b)=>a.x-b.x);
   view.hx=T/2;view.cam=T/2-HERO_SX;
   view.banner=boss?{t:performance.now(),txt:BOSSES[BOSS_ORDER[(f/3-1)%3]].n.toUpperCase()}:r.reaperDue?{t:performance.now(),txt:'THE REAPER COMES'}:null;r.reaperDue=false;
@@ -937,12 +1062,12 @@ function previewTurn(R){
   if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — another bonus once this one ends':''}</span>`);
   if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">✦ ALL BULBS LIT</b> — <b>${hasR('longstreak')?5:3} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
   if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
-  if(val('skull')&&!hasR('skullring')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
+  if(val('skull')&&!hasR('skullring')&&!hasR('beaker')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   const mu=R.mult||1;
   if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer*mu}</b>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
   if(val('coin'))L.push(`🪙 +<b>${val('coin')*s.coinPer}</b> coins`);
-  if(val('skull'))L.push(hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
+  if(val('skull'))L.push(hasR('beaker')?`⚗ Beaker: skulls splash the nearest foe for <b>${val('skull')*4}</b>`:hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
   if(val('key')){const ch=r.objs.find(o=>o.kind==='chest'&&!o.gone&&o.x>r.x&&o.x-r.x<=3);L.push(ch?`🗝 open the chest ${ch.x-r.x} tile${ch.x-r.x>1?'s':''} ahead`:`🗝 no chest in reach: +1 🪙`);}
   // walk the boots forward on a copy of the map
   let x=r.x,steps=val('boots')*s.move+(val('boots')?s.moveBonus:0),moved=0,shoves=0,shoveT=null,door=false;
@@ -985,7 +1110,8 @@ async function doTurn(R){
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
   if(val('coin')){const c=val('coin')*s.coinPer;gainCoins(c);parts.push(`🪙+${c}`);}
   if(val('skull')){
-    if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
+    if(hasR('beaker')){const t=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x).sort((a,b)=>a.x-b.x)[0];if(t){await hit(t,val('skull')*4,'bomb');parts.push(`⚗${val('skull')*4}`);}else parts.push('⚗ fizzles');}
+    else if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
     else{const d=val('skull')*s.skullDmg;r.hp-=d;hurtBy('a Skull on the reels',d);heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);
       r.doom=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);if(r.doom>=3){heroFl('DOOM','#b07cf0');}}
   }
@@ -1162,7 +1288,7 @@ async function drainLoot(){
     ui();
   }
 }
-function relicChoices(n){return shuffle(RELICS.filter(x=>!run.relics.includes(x.id))).slice(0,n);}
+function relicChoices(n){return shuffle(RELICS.filter(x=>!x.lab&&!run.relics.includes(x.id))).slice(0,n);}
 async function relicPick(title,text,pk){
   const ch=relicChoices(3);if(!ch.length)return;
   const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
@@ -1172,6 +1298,9 @@ async function floorClear(){
   const r=run;r.floorDone=true;
   r.souls+=5;gainCoins(2);
   if(alt('mend'))heal(alt('mend')*3);
+  if(r.bossDown&&r.lab){r.bossDown=false;await drainLoot();r.souls+=50;
+    if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);run.relics.push('beaker');rebuildReels();ui();}
+    else await relicPick("Labfreak's Hoard",'The lab\'s shelves hold one more curiosity. +50 souls.','portrait_labfreak');}
   if(r.bossDown){r.bossDown=false;await drainLoot();await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard');}
   await drainLoot();
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
@@ -1478,6 +1607,7 @@ $('#scene').addEventListener('click',e=>{
   const wx=Math.floor((lx+view.cam)/T);
   const o=run.objs.find(o=>!o.gone&&o.x===wx&&o.kind!=='openchest'&&o.kind!=='shrine_used');
   if(!o)return;
+  if(o.kind==='grave'){readGrave(o);return;}
   const info={door:['🚪 Exit','Step through to reach the merchant and the next floor.'],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
     shrine:['⛩ Shrine','Step on it to choose a relic.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
   if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
@@ -1507,7 +1637,9 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
-  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:104,grave_midblade:112,grave_papamodelo:104,grave_zero:104,grave_dapper:104,grave_labfreak:116,grave_labfreak_lever:116};
+// where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
+const GRAVE_TXT={};
 function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
@@ -1560,7 +1692,7 @@ function drawBG(cam,t){
     const fl=Math.sin(t*9+i)*2+Math.sin(t*23+i*3);
     const tb='torch_'+bio.wall.replace('bg_wall_','').replace('bg_wall','crypt');const bearer=artImg(tb);
     const fy=bearer?GY-canvasH(tb)*.78:70;   // flame height: near the top of the bearer, else the sconce
-    const rg=cx.createRadialGradient(x,fy,2,x,fy,70+fl*3);rg.addColorStop(0,'rgba(255,170,70,.35)');rg.addColorStop(1,'rgba(255,170,70,0)');
+    const tc=run.lab?'150,200,255':'255,170,70';const rg=cx.createRadialGradient(x,fy,2,x,fy,70+fl*3);rg.addColorStop(0,`rgba(${tc},.35)`);rg.addColorStop(1,`rgba(${tc},0)`);
     cx.fillStyle=rg;cx.fillRect(x-80,top,160,GY-top);
     if(bearer){sprAt(tb,x,GY);continue;}
     if(!sprAt('torch',x,104-FEET_SINK)){rect(x-3,78,6,18,'#4a3322');rect(x-5,76,10,4,'#6a4a2a');
@@ -1651,6 +1783,13 @@ function drawProp(o,x,t){
       const p=.6+Math.sin(t*4)*.4;cx.fillStyle=`rgba(176,124,240,${p})`;cx.beginPath();cx.arc(x,Y-68,7,0,7);cx.fill();}break;
     case 'shrine_used':if(!sprAt('shrine_used',x,Y)){rect(x-12,Y-56,24,56,'#3a3540');rect(x-16,Y-60,32,6,'#4a4550');}break;
     case 'trap':if(!sprAt('trap',x,Y+2)){cx.fillStyle='#9aa3ad';for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(x-18+i*10,Y);cx.lineTo(x-13+i*10,Y-14);cx.lineTo(x-8+i*10,Y);cx.fill();}}break;
+    case 'grave':{const k=graveKey(o);let d=sprAt(k,x,Y)||sprAt('grave_'+o.who,x,Y);
+      if(!d){cx.fillStyle='#4a4450';cx.beginPath();cx.moveTo(x-20,Y);cx.lineTo(x-20,Y-52);cx.arc(x,Y-52,20,Math.PI,0);cx.lineTo(x+20,Y);cx.fill();cx.fillStyle='#2e2a33';cx.fillRect(x-24,Y-4,48,6);d={w:40,h:72};}
+      const g=graveDef(o.who),ty=Y-d.h*(GRAVE_TXT[o.who]||.5);let fs=11;cx.font=`${fs}px 'Pirata One',serif`;
+      while(fs>6&&cx.measureText(g.n).width>d.w*.58){fs-=.5;cx.font=`${fs}px 'Pirata One',serif`;}
+      cx.textAlign='center';cx.fillStyle='rgba(255,240,210,.18)';cx.fillText(g.n,x,ty+1);cx.fillStyle='#17120f';cx.fillText(g.n,x,ty);
+      if(!graveRead(o.who)||(o.who==='labfreak')){const p=.45+Math.sin(t*3+o.x)*.35;const gg=cx.createRadialGradient(x,Y-d.h-6,1,x,Y-d.h-6,14);gg.addColorStop(0,`rgba(140,255,150,${p})`);gg.addColorStop(1,'rgba(140,255,150,0)');cx.fillStyle=gg;cx.fillRect(x-16,Y-d.h-22,32,32);}
+      break;}
     case 'coins':if(!sprAt('coinpile',x,Y+2)){for(let i=0;i<Math.min(5,o.v+1);i++){cx.fillStyle='#b8862a';cx.beginPath();cx.ellipse(x-10+i*5,Y-4-(i%2)*5,6,4,0,0,7);cx.fill();cx.fillStyle='#d9b56a';cx.beginPath();cx.ellipse(x-10+i*5,Y-5-(i%2)*5,5,3,0,0,7);cx.fill();}}break;
   }
 }

@@ -337,3 +337,11 @@ Nothing in the game is emoji any more once art.js loads.
   only appear while a nudge can be used (reels stopped, before resolve), the
   arrows are bigger and pulse gold, and auto-resolve waits 4 real seconds while
   nudges are left (each nudge restarts the wait).
+- **b054**: gravestone easter egg (waits for art pack 12). Six named graves
+  (Madness, Midblade, PapaModelo, Zero Override, CaptainDapper, then Labfreak once
+  the other five are read) turn up on ordinary floors; tap one for a freshly
+  generated obituary with a sepia headshot. Labfreak's grave has an iron handle:
+  pulling it drops you into his laboratory (stitched abominations, jar homunculi,
+  brains in jars, Dr. Labfreak himself). Beating him pays 50 souls and Labfreak's
+  Beaker (skulls splash the nearest foe instead of you). Nothing spawns until the
+  grave art exists. art-pack12-prompts.txt also reshapes the shield symbol.

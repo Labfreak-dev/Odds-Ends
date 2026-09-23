@@ -63,6 +63,21 @@ def key_out(im):
     t0, t1 = 38.0, 105.0
     alpha = np.clip((d - t0) / (t1 - t0), 0, 1)
     alpha = np.where(pinkish | (d < t0), alpha, 1.0)
+    # Some generators paint a thin pure-magenta frame around a darker hot-pink field,
+    # so the sampled border colour is a blend of the two and the field survives. If
+    # the edges are still mostly opaque, key out every saturated pink pixel that is
+    # connected to the edge instead (pink inside the subject is left alone).
+    edge = np.concatenate([alpha[:4].ravel(), alpha[-4:].ravel(), alpha[:, :4].ravel(), alpha[:, -4:].ravel()])
+    if edge.mean() > 0.08:
+        hot = (r - g > 90) & (b - g > 45) & (g < 110)
+        lab, _ = ndimage.label(hot)
+        ids = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+        field = np.isin(lab, ids[ids > 0])
+        field = ndimage.binary_dilation(field, iterations=1) & (hot | field)
+        bg = np.median(a[field], axis=0) if field.any() else bg
+        d = np.sqrt(((a - bg) ** 2).sum(-1))
+        alpha = np.where(field, 0.0, np.clip((d - t0) / (t1 - t0), 0, 1))
+        alpha = np.where(pinkish | field, alpha, 1.0)
     # un-mix semi-transparent edge pixels from the background colour
     am = np.maximum(alpha, 1e-3)[..., None]
     rgb = np.clip((a - (1 - am) * bg) / am, 0, 255)

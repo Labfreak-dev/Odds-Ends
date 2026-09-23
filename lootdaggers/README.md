@@ -357,3 +357,8 @@ Nothing in the game is emoji any more once art.js loads.
   darkens the stone, a shadowed upper-left wall, a lit lower-right edge and a
   little wear, rendered once per name to a cached canvas. Lettering kept inside
   each stone face.
+- **b058**: gravestone names centred on each stone face (x/y/width measured from
+  the art), long names split over two lines (Papa/Modelo, Zero/Override,
+  Captain/Dapper) so the letters can be bigger, deeper carving contrast. Mirror
+  Wight now reflects chip damage: 1 per dagger hit (2 from floor 8, 3 from 16),
+  not half the hit.

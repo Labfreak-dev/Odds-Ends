@@ -390,3 +390,6 @@ Nothing in the game is emoji any more once art.js loads.
   Chemically Burned Boots, with fixed themed stats scaled by floor and a flavour
   line. Emoji icons until art-pack14 (gear_unique_*) arrives.
 - **b065**: art pack 14 packed (269 images): icons for the four Unique lab pieces.
+- **b066**: "Pull it" on Labfreak's grave is now a green lab button: a dark plate with a
+  pulsing green glow, switching to the oozing iron plate from art-pack15
+  (ui_ooze_button, sized like the other big buttons in pack-art.py) once packed.

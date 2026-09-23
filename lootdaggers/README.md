@@ -188,3 +188,4 @@ Nothing in the game is emoji any more once art.js loads.
 - **b017**: turn pacing slowed ~2.8x: a beat between every action (block,
   each step, each stab, each foe), slower walks, longer lunges and floaters.
   Fast animations in Settings collapses it back.
+- **b018**: ui_bag icon in; the My gear button uses it (201 images).

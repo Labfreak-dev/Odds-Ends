@@ -726,7 +726,7 @@ async function doTurn(R){
     if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
     else{const d=val('skull')*s.skullDmg;r.hp-=d;heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);}
   }
-  ui();if(val('shield')||val('potion')||val('coin')||val('skull'))await sleep(380);
+  ui();if(val('shield')||val('potion')||val('coin')||val('skull'))await beat(380);
   for(let i=0;i<val('key');i++){
     const ch=r.objs.find(o=>o.kind==='chest'&&!o.gone&&o.x>r.x&&o.x-r.x<=3);
     if(ch){await openChest(ch,true);parts.push('🗝️open');}else{gainCoins(1);}
@@ -736,38 +736,38 @@ async function doTurn(R){
   let moved=0;const steps=val('boots')*s.move+(val('boots')?s.moveBonus:0);
   for(let i=0;i<steps;i++){
     const b=blockerAt(r.x+1);
-    if(b){view.lunge=1;await hit(b,s.shove,'shove');await sleep(110);continue;}
-    r.x++;moved++;sfx.step();await sleep(120);
+    if(b){view.lunge=1;await hit(b,s.shove,'shove');await beat(110);continue;}
+    r.x++;moved++;sfx.step();await beat(120);
     await enterTile(r.x);
     if(r.floorDone||r.over)return;
   }
-  if(moved)parts.push(`🥾${moved}`);if(steps)await sleep(220);
+  if(moved)parts.push(`🥾${moved}`);if(steps)await beat(220);
   const mom=hasR('momentum')?moved:0;
   // daggers
   if(val('sword')){
     const t=blockerAt(r.x+1),dmg=val('sword')*s.swordDmg+mom;
     if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg);parts.push(`🗡${dmg}`);
       const ls=val('sword')*(hasR('fang')?1:0)+s.lifesteal;if(ls)heal(ls);
-      if(hasR('pickpocket'))gainCoins(1);await sleep(160);}
+      if(hasR('pickpocket'))gainCoins(1);await beat(160);}
     else{heroFl('whiff','#a8998a');parts.push('🗡whiff');}
   }
   if(val('bow')){
     const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>r.x&&o.x-r.x<=4).sort((a,b)=>a.x-b.x);
     const dmg=val('bow')*s.bowDmg+mom;
-    if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.hit();await sleep(140);await hit(es[0],dmg);parts.push(`🏹${dmg}`);
-      if(hasR('quiver')&&es[1])await hit(es[1],Math.ceil(dmg/2));await sleep(120);}
+    if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.hit();await beat(140);await hit(es[0],dmg);parts.push(`🏹${dmg}`);
+      if(hasR('quiver')&&es[1])await hit(es[1],Math.ceil(dmg/2));await beat(120);}
     else{heroFl('no target','#a8998a');}
   }
   if(val('bomb')){
     const dmg=val('bomb')*s.bombDmg+mom;view.boom={t:0,x:(r.x+1.5)*T};sfx.boom();view.shake=8;
     const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>r.x&&o.x-r.x<=2);
-    for(const t of ts)await hit(t,dmg);parts.push(`💣${dmg}`);await sleep(180);
+    for(const t of ts)await hit(t,dmg);parts.push(`💣${dmg}`);await beat(180);
   }
   logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
   await drainLoot();
   if(r.over)return;
-  await sleep(120);
+  await beat(260);
   await enemyPhase();
   if(r.over)return;
   if(r.hp<=0&&await tryDie())return;
@@ -832,20 +832,20 @@ async function enemyPhase(){
     const [a,v]=e.pat[e.pi%e.pat.length],dist=e.x-r.x;
     const needsRange=a==='atk'||a==='drain'||a==='jackpot';
     if(needsRange&&dist>e.range){
-      if(!blockerAt(e.x-1)&&e.x-1>r.x){e.x--;await sleep(70);}
+      if(!blockerAt(e.x-1)&&e.x-1>r.x){e.x--;await beat(70);}
       continue;
     }
     e.lunge=1;if(a!=='guard'&&a!=='grow'&&a!=='rest')e.pose=.5;
     if(a==='atk')await enemyHit(e,v);
     else if(a==='drain'){await enemyHit(e,v);if(r.coins>0){r.coins--;heroFl('-1 🪙','#b07cf0');}}
-    else if(a==='jackpot'){for(let i=0;i<3&&r.hp>0;i++){await enemyHit(e,v);await sleep(120);}}
+    else if(a==='jackpot'){for(let i=0;i<3&&r.hp>0;i++){await enemyHit(e,v);await beat(120);}}
     else if(a==='guard'){e.block=v;fl('🛡'+v,'#5aa9e6',e.x*T+T/2,GY-100);}
     else if(a==='grow'){e.hp+=v;e.max+=v;fl('+'+v,'#6cc070',e.x*T+T/2,GY-90);}
     else if(a==='summon'){let sx=e.x+1;while(r.objs.some(o=>o.x===sx&&!o.gone&&o.kind!=='door'&&o.kind!=='openchest')&&sx<r.len-1)sx++;
       if(sx<r.len&&!r.objs.some(o=>o.x===sx&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'))){const m=mkEnemy(v,sx,r.floor);m.loot=0;m.coins=[0,1];r.objs.push(Object.assign(m,{id:uid++}));fl('RISE!','#e0605a',e.x*T+T/2,GY-120);}}
     else if(a==='steal'){const c=Math.min(r.coins,v);r.coins-=c;heroFl('-'+c+' 🪙 stolen','#b07cf0');}
     else if(a==='curse'){r.curse=(r.curse||0)+1;heroFl('+💀 on reels','#b07cf0');addFx('fx_curse',heroWX(),GY-60,76,.9,20);rebuildReels();}
-    e.pi++;ui();await sleep(150);
+    e.pi++;ui();await beat(150);
   }
 }
 async function enemyHit(e,dmg){
@@ -1316,10 +1316,10 @@ function frame(now){
   if(run&&!$('#game').classList.contains('hidden')&&cv.width){
     const r=run;
     const target=r.x*T+T/2;const moving=Math.abs(view.hx-target)>1;
-    view.hx+=(target-view.hx)*Math.min(1,dt*12);
+    view.hx+=(target-view.hx)*Math.min(1,dt*(S.fast?12:5));
     view.cam+=(view.hx-HERO_SX-view.cam)*Math.min(1,dt*6);
-    for(const o of r.objs){o.dx+=(o.x*T-o.dx)*Math.min(1,dt*12);if(o.flash)o.flash=Math.max(0,o.flash-dt*5);if(o.lunge)o.lunge=Math.max(0,o.lunge-dt*5);if(o.pose)o.pose=Math.max(0,o.pose-dt);}
-    view.lunge=Math.max(0,view.lunge-dt*5);view.hurt=Math.max(0,view.hurt-dt*2.5);view.shake=Math.max(0,view.shake-dt*30);
+    for(const o of r.objs){o.dx+=(o.x*T-o.dx)*Math.min(1,dt*(S.fast?12:5));if(o.flash)o.flash=Math.max(0,o.flash-dt*5);if(o.lunge)o.lunge=Math.max(0,o.lunge-dt*(S.fast?5:2.5));if(o.pose)o.pose=Math.max(0,o.pose-dt*(S.fast?1:.6));}
+    view.lunge=Math.max(0,view.lunge-dt*(S.fast?5:2.5));view.hurt=Math.max(0,view.hurt-dt*2.5);view.shake=Math.max(0,view.shake-dt*30);
     cx.setTransform(scaleK,0,0,scaleK,0,0);cx.translate(0,VHd-VH);
     const sx=view.shake?(Math.random()-.5)*view.shake:0,sy=view.shake?(Math.random()-.5)*view.shake:0;
     cx.translate(sx,sy);
@@ -1344,7 +1344,7 @@ function frame(now){
     if(view.boom){view.boom.t+=dt*3;const p=view.boom.t;cx.fillStyle=`rgba(255,${160-p*100},60,${1-p})`;cx.beginPath();cx.arc(view.boom.x-cam,GY-24,20+p*70,0,7);cx.fill();if(p>=1)view.boom=null;}
     // floaters
     cx.textAlign='center';
-    for(const f of view.fl){f.t+=dt;const a=1-f.t/1.3;cx.globalAlpha=Math.max(0,a);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,f.x-cam,f.y-f.t*30,f.col);}
+    for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const a=1-f.t/1.3;cx.globalAlpha=Math.max(0,a);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,f.x-cam,f.y-f.t*30,f.col);}
     cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
     // screen-space overlays
     cx.setTransform(scaleK,0,0,scaleK,0,0);
@@ -1385,6 +1385,9 @@ function drawHubArt(){
   g.font='bold 14px ui-monospace,monospace';g.fillStyle='#d9b56a';g.fillText('7  ·  7  ·  7',240,150);
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,S.fast?ms*.45:ms));
+// Turn-phase pacing: every action in a turn waits a beat so it reads like a
+// turn-based game. Fast mode collapses it.
+const PACE=2.8;const beat=ms=>sleep(ms*PACE);
 
 /* ---------------- boot ---------------- */
 showHub('main');

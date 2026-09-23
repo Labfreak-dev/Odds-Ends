@@ -185,3 +185,6 @@ Nothing in the game is emoji any more once art.js loads.
   of growing the log, so the world no longer shrinks while you read it.
 - **b016**: the turn waits for the jackpot screen to finish before resolving;
   Settings can turn the jackpot screen off.
+- **b017**: turn pacing slowed ~2.8x: a beat between every action (block,
+  each step, each stab, each foe), slower walks, longer lunges and floaters.
+  Fast animations in Settings collapses it back.

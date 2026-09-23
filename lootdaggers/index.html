@@ -1818,7 +1818,7 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
-  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,boss_labfreak2:196,boss_attack_labfreak2:196,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,boss_labfreak2:236,boss_attack_labfreak2:236,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
 // where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
 // measured on the art: x = face centre across the sprite, y = face centre up from the ground, w = usable face width
 // (all shares of the drawn sprite), L = the name split over two lines, r = tilt, dark = a black stone
@@ -1828,7 +1828,7 @@ function canvasH(k){if(CANVAS_H[k])return CANVAS_H[k];if(k.startsWith('hero_'))r
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
 const FEET_SINK=7;
 // sprites whose lowest pixel isn't their feet (a trailing tail, a drip): extra sink in world px
-const SINK_EXTRA={enemy_rat:11,enemy_attack_rat:4,enemy_slime:9,enemy_attack_slime:5,boss_bandit:9,boss_lich:8,enemy_wraith:6,enemy_attack_wraith:4,trap:9};
+const SINK_EXTRA={boss_labfreak2:12,boss_attack_labfreak2:12,enemy_rat:11,enemy_attack_rat:4,enemy_slime:9,enemy_attack_slime:5,boss_bandit:9,boss_lich:8,enemy_wraith:6,enemy_attack_wraith:4,trap:9};
 function sprAt(k,x,y,flip){
   const im=artImg(k);if(!im)return null;y+=FEET_SINK+(SINK_EXTRA[k]||0);
   const m=(window.LD_ART_META||{})[k];const f=m?canvasH(k)/(m[0]*m[1]):canvasH(k)/im.naturalHeight;

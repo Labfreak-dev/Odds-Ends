@@ -189,3 +189,6 @@ Nothing in the game is emoji any more once art.js loads.
   each step, each stab, each foe), slower walks, longer lunges and floaters.
   Fast animations in Settings collapses it back.
 - **b018**: ui_bag icon in; the My gear button uses it (201 images).
+- **b019**: matched symbols pulse inside a blood-red ring with a gold rim and
+  glow; active payline cells are tinted; reel rows pulled 16% toward the middle
+  so the top and bottom symbols sit inside the strip.

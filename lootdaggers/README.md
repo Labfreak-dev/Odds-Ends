@@ -389,3 +389,4 @@ Nothing in the game is emoji any more once art.js loads.
   rolled): Dr. Labfreak's Lab Coat, Cracked Goggles, Unidentified Liquid and
   Chemically Burned Boots, with fixed themed stats scaled by floor and a flavour
   line. Emoji icons until art-pack14 (gear_unique_*) arrives.
+- **b065**: art pack 14 packed (269 images): icons for the four Unique lab pieces.

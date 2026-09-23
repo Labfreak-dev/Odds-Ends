@@ -271,6 +271,7 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .obit .mast{font-family:'UnifrakturMaguntia',var(--head),serif;font-size:27px;text-align:center;line-height:1.1;border-bottom:3px double #2a1d12;padding-bottom:4px}
 .obit .sect{text-align:center;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin:4px 0 10px;border-bottom:1px solid rgba(42,29,18,.5);padding-bottom:4px}
 .obit .obitPic{display:block;margin:0 auto 8px;width:132px;height:160px;object-fit:cover;border-radius:50%;border:4px solid #3a2a1a;box-shadow:0 0 0 2px #c9b288,0 0 0 4px #3a2a1a;filter:sepia(.5) contrast(1.05)}
+.obit img.port.obitPic{float:none;display:block;margin:0 auto 8px;width:150px;height:184px;max-width:none}
 .obit .obitPic.none{display:flex;align-items:center;justify-content:center;font-size:60px;background:#b9a57e}
 .obit .onm{font-family:var(--head),serif;font-size:30px;text-align:center;line-height:1}
 .obit .odates{text-align:center;font-size:11px;font-style:italic;margin:3px 0 10px;opacity:.85}
@@ -1637,9 +1638,10 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
-  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:104,grave_midblade:112,grave_papamodelo:104,grave_zero:104,grave_dapper:104,grave_labfreak:116,grave_labfreak_lever:116};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
 // where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
-const GRAVE_TXT={};
+// y: share of drawn height up from the ground, w: usable face width as a share of the sprite, dark: pale letters on a dark stone
+const GRAVE_TXT={madness:{y:.75,w:.42,r:-.1},midblade:{y:.47,w:.38},papamodelo:{y:.49,w:.5},zero:{y:.52,w:.46},dapper:{y:.53,w:.5},labfreak:{y:.47,w:.5,dark:1}};
 function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
@@ -1785,9 +1787,10 @@ function drawProp(o,x,t){
     case 'trap':if(!sprAt('trap',x,Y+2)){cx.fillStyle='#9aa3ad';for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(x-18+i*10,Y);cx.lineTo(x-13+i*10,Y-14);cx.lineTo(x-8+i*10,Y);cx.fill();}}break;
     case 'grave':{const k=graveKey(o);let d=sprAt(k,x,Y)||sprAt('grave_'+o.who,x,Y);
       if(!d){cx.fillStyle='#4a4450';cx.beginPath();cx.moveTo(x-20,Y);cx.lineTo(x-20,Y-52);cx.arc(x,Y-52,20,Math.PI,0);cx.lineTo(x+20,Y);cx.fill();cx.fillStyle='#2e2a33';cx.fillRect(x-24,Y-4,48,6);d={w:40,h:72};}
-      const g=graveDef(o.who),ty=Y-d.h*(GRAVE_TXT[o.who]||.5);let fs=11;cx.font=`${fs}px 'Pirata One',serif`;
-      while(fs>6&&cx.measureText(g.n).width>d.w*.58){fs-=.5;cx.font=`${fs}px 'Pirata One',serif`;}
-      cx.textAlign='center';cx.fillStyle='rgba(255,240,210,.18)';cx.fillText(g.n,x,ty+1);cx.fillStyle='#17120f';cx.fillText(g.n,x,ty);
+      const g=graveDef(o.who),gt=GRAVE_TXT[o.who]||{y:.5,w:.5},ty=Y+FEET_SINK-d.h*gt.y;let fs=11;cx.font=`${fs}px 'Pirata One',serif`;
+      while(fs>4&&cx.measureText(g.n).width>d.w*gt.w){fs-=.25;cx.font=`${fs}px 'Pirata One',serif`;}
+      cx.save();cx.translate(x,ty);if(gt.r)cx.rotate(gt.r);cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillStyle=gt.dark?'rgba(0,0,0,.7)':'rgba(255,240,210,.25)';cx.fillText(g.n,0,gt.dark?-.6:.6);cx.fillStyle=gt.dark?'#c4bdae':'#140e0a';cx.fillText(g.n,0,0);cx.strokeStyle=cx.fillStyle;cx.lineWidth=.3;cx.strokeText(g.n,0,0);cx.restore();
       if(!graveRead(o.who)||(o.who==='labfreak')){const p=.45+Math.sin(t*3+o.x)*.35;const gg=cx.createRadialGradient(x,Y-d.h-6,1,x,Y-d.h-6,14);gg.addColorStop(0,`rgba(140,255,150,${p})`);gg.addColorStop(1,'rgba(140,255,150,0)');cx.fillStyle=gg;cx.fillRect(x-16,Y-d.h-22,32,32);}
       break;}
     case 'coins':if(!sprAt('coinpile',x,Y+2)){for(let i=0;i<Math.min(5,o.v+1);i++){cx.fillStyle='#b8862a';cx.beginPath();cx.ellipse(x-10+i*5,Y-4-(i%2)*5,6,4,0,0,7);cx.fill();cx.fillStyle='#d9b56a';cx.beginPath();cx.ellipse(x-10+i*5,Y-5-(i%2)*5,5,3,0,0,7);cx.fill();}}break;

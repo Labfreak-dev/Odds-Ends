@@ -686,12 +686,12 @@ function tickWheel(now){
   const ws=M.wheelSpin;if(!ws)return;
   if(now-ws.last>ws.gap){ws.last=now;ws.face=pick(wheelFaces());ws.gap=Math.min(320,ws.gap*1.08);drawWheel();}
 }
-const BULBS=5,BULB_POS=[[24.1,15.7],[32.7,13.5],[41.3,13.8],[50,11.9],[58.5,13.1],[67.4,13.9],[75.9,15.9]];  // bulb centres on the cabinet art, % of width/height
+const BULBS=7,BULB_POS=[[24.1,15.7],[32.7,13.5],[41.3,13.8],[50,11.9],[58.5,13.1],[67.4,13.9],[75.9,15.9]];  // bulb centres on the cabinet art, % of width/height
 function soulCount(grid){return grid.reduce((n,col)=>n+col.filter(x=>x==='scoin').length,0);}
-function bulbsGained(soul){const need=bonusNeed();return soul>=need?1+(soul-need):0;}
+function bulbsGained(soul){const need=bonusNeed();return soul>=need?1+(soul-need)*2:0;}
 function drawBulbs(gained){
   const r=run,lit=r?Math.min(BULBS,r.bulbs||0):0;let box=$('#bulbs');
-  if(!box.children.length){const use=BULB_POS.length>=7?[1,2,3,4,5]:[0,1,2,3,4];box.innerHTML=use.map(i=>`<i style="left:${BULB_POS[i][0]}%;top:${BULB_POS[i][1]}%"></i>`).join('');}
+  if(!box.children.length){const use=[0,1,2,3,4,5,6];box.innerHTML=use.map(i=>`<i style="left:${BULB_POS[i][0]}%;top:${BULB_POS[i][1]}%"></i>`).join('');}
   [...box.children].forEach((el,i)=>{const on=i<lit;const was=el.classList.contains('lit');el.classList.toggle('lit',on);el.classList.toggle('new',on&&!was&&!!gained);});
   let fb=$('#bulbsFallback');if(!$('#cabinet').classList.contains('art')){if(!fb){fb=document.createElement('div');fb.id='bulbsFallback';$('#marquee').after(fb);}
     fb.innerHTML=Array.from({length:BULBS},(_,i)=>`<i class="${i<lit?'lit':''}"></i>`).join('');}else if(fb)fb.remove();
@@ -1332,7 +1332,7 @@ function showHub(v){
     <p>Resolution order: block, heal, coins, skulls, keys, <b>move</b>, then daggers, bows and bombs — so boots can carry you into stabbing range.</p>
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
-    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the red bulbs on the cabinet (each extra coin lights another). When all five bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
+    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights another). When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
     <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;

@@ -103,6 +103,17 @@ until nothing is left.
   on the hub seeds Math.random from the date (per spin) so everyone gets the
   same dungeon, shops and reel strips; S.daily keeps today's best.
 
+## Music (b030)
+Four tracks in `music/` (mp3, served as files, not packed). `music` in
+`index.html` runs two `<audio>` elements: a biome change cross-fades from one
+to the other over 2.2s, and 2.3s before a track ends the other element starts
+the same track from 0 and cross-fades, so a track loops without a gap.
+Tracks: hub Dark Forest; floors 1-3 Catacombs; 4-6 Cold Wind; 7-9 Tombs;
+10-12 Dark Forest; boss floors Tombs (`TRACKS` map). Browsers block audio
+until a tap, so playback starts on the first pointerdown. Settings: music
+toggle and a volume slider (`S.music`, `S.musicVol`); the pause menu has the
+toggle too.
+
 ## Save
 `localStorage['lootdaggers_v1']`. A run in progress is saved after every turn,
 and the hub offers "Continue run". Settings → Wipe save resets everything.
@@ -237,3 +248,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b029**: gameplay batch: hold and nudge, pair combos, the floor map with
   elites, four reel-meddling foes plus the Reaper and a Doom meter, run
   summary and daily seed. `art-pack10-prompts.txt` orders their art (26).
+- **b030**: music: four biome-tied tracks with seamless self-loops and
+  cross-fades between biomes; music toggle and volume in Settings and the
+  pause menu.

@@ -406,3 +406,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b069**: art pack 16 packed (275 images): the transformed Dr. Labfreak (idle and
   attack), both dialogue portraits and the transformation splash. The mutated
   sprite only appears once he has drunk the concoction, not during his rant.
+- **b070**: Dr. Labfreak, Unleashed drawn ~20% bigger and sunk onto the lab floor
+  (his stance has one boot raised, which read as floating).

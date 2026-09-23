@@ -298,6 +298,13 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .relic[data-relic="beaker"]{box-shadow:0 0 0 1px #3f7a3a,0 0 10px #8cff96;animation:beakerGlow 1.6s ease-in-out infinite}
 @keyframes beakerGlow{50%{box-shadow:0 0 0 1px #8cff96,0 0 16px #8cff96}}
 .item .flav{font-style:italic;color:#8cff96;opacity:.85;font-size:12px;margin-top:4px}
+#hpwrap.poison #hpbar{background:linear-gradient(#7fd35a,#2f6a1f)}
+#hpwrap.poison{box-shadow:0 0 8px rgba(140,255,150,.6)}
+.dlg{display:flex;gap:12px;align-items:flex-start}
+.dlg .port.dlgPort{float:none;flex:0 0 96px;width:96px;height:96px;margin:0;object-fit:cover;object-position:center;border:2px solid #5fd35a;border-radius:6px;box-shadow:0 0 10px rgba(140,255,150,.45)}
+.dlgTxt{margin:0;flex:1;font-size:15px;line-height:1.45;color:#e9f7dc;min-height:96px}
+.dlgCur{color:#8cff96;animation:dlgBlink .6s steps(1) infinite}
+@keyframes dlgBlink{50%{opacity:0}}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -601,6 +608,33 @@ async function readGrave(o){
   const v=await modal('A cold iron handle',`${artSrc('screen_lab_pull')?`<img class="splash" src="${artSrc('screen_lab_pull')}" alt="">`:''}<p>There is an iron handle sticking out of Labfreak's headstone. Would you like to pull it?</p>`,
     [{label:'Pull it',val:'pull',cls:'primary ooze'},{label:'Leave it be',val:null}]);
   if(v==='pull')await enterLab();
+}
+// A dialogue box in the game's own frame: the speaker's portrait, a green name
+// plate and the line typed out. An optional splash sits above.
+async function labDialog(port,name,text,splash,btn){
+  const pic=portImg(port,'dlgPort')||portImg('portrait_labfreak','dlgPort');
+  const pr=modal(name,`${splash&&artSrc(splash)?`<img class="splash" src="${artSrc(splash)}" alt="">`:''}<div class="dlg">${pic}<p class="dlgTxt"></p></div>`,[{label:btn,val:1,cls:'primary ooze'}]);
+  const el=$('#modal .dlgTxt');let i=0;
+  const step=()=>{if(!el.isConnected)return;i=Math.min(text.length,i+2);el.textContent=text.slice(0,i);
+    if(i<text.length){el.insertAdjacentHTML('beforeend','<span class="dlgCur">▌</span>');setTimeout(step,S.fast?8:22);}};
+  step();await pr;
+}
+// Dr. Labfreak's second phase: at 0 HP the first time he rants, drinks, and comes
+// back as a mutated mass whose hits poison (a small tick each turn).
+async function labfreakPhase2(o){
+  const r=run;o.phase2=true;o.hp=0;o.flash=1;view.shake=6;await sleep(350);
+  await labDialog('portrait_drlabfreak','Dr. Labfreak',"No... no, NO! Nobody walks away from my table! The house ALWAYS collects! Just... one... more... PULL!",null,'Watch in horror');
+  sfx.jackpot();view.shake=16;document.body.classList.add('labFlash');addFx('fx_curse',o.x*T+T/2,GY-80,150,1.2,20);
+  const dm=Math.max(0,((o.pat.find(p=>p[0]==='atk')||['atk',7])[1])-7),mx=Math.round(o.max*.8);
+  Object.assign(o,{n:'Dr. Labfreak, Unleashed',max:mx,hp:mx,block:0,pi:0,pose:1,pat:[['atk',7+dm],['grow',Math.round(mx*.08)],['atk',9+dm],['atk',5+dm]]});
+  await sleep(700);document.body.classList.remove('labFlash');
+  view.banner={t:performance.now(),txt:'DR. LABFREAK, UNLEASHED'};ui();
+  await labDialog('portrait_labfreak2','Dr. Labfreak, Unleashed',"IT'S ALIVE... AND IT'S ME! Every hit you take will rot a little more. Let's see how long your luck holds out!",'screen_lab_transform','Face him');
+  noteTurn(`<span style="color:#8cff96">Dr. Labfreak drank the concoction: <b>his hits now poison you</b> (a Potion cures it)</span>`);
+}
+function poisonHero(){
+  // small and flat: 1 a turn (2 from floor 10, 3 from 20); a new hit just refreshes it to 3 turns
+  const r=run;r.poison={dmg:Math.min(3,1+Math.floor(r.floor/10)),turns:3};heroFl('☣ poisoned','#8cff96');
 }
 // The laboratory: a one-floor detour on the same floor number. Clearing it goes on
 // to the next floor as usual.
@@ -918,7 +952,7 @@ function mkEnemy(type,x,f,boss){
 function genFloor(f){
   const r=run;const boss=f%3===0;const kind=boss?'boss':(r.nextKind||'fight');r.kind=kind;
   const len=kind==='rest'?8:12+Math.min(f,10);
-  r.len=len;r.objs=[];r.x=0;r.curse=0;r.jam=null;r.floorDone=false;r.freeSpin=hasR('hourglass');r.lab=false;
+  r.len=len;r.objs=[];r.x=0;r.curse=0;r.jam=null;r.floorDone=false;r.freeSpin=hasR('hourglass');r.lab=false;r.poison=null;
   const free=[];for(let i=3;i<len-(boss?2:1);i++)free.push(i);shuffle(free);
   const put=o=>{r.objs.push(Object.assign({id:uid++,dx:o.x*T},o));};
   put({kind:'door',x:len});
@@ -1198,6 +1232,7 @@ function previewTurn(R){
   if(val('skull')&&!hasR('skullring')&&!hasR('beaker')){const d=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   const mu=R.mult||1;
   if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer*mu}</b>`);
+  if(r.poison&&r.poison.turns>0)L.push(`<span style="color:#8cff96">☣ poisoned: ${r.poison.dmg} a turn for ${r.poison.turns} more turn${r.poison.turns>1?'s':''}${val('potion')?' · the potion cures it':' · a Potion cures it'}</span>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
   if(val('coin'))L.push(`🪙 +<b>${val('coin')*s.coinPer}</b> coins`);
   if(val('skull'))L.push(hasR('beaker')?`⚗ Beaker: acid on the nearest foe for <b>${val('skull')*5}</b>, arcing to the next for <b>${val('skull')*3}</b>`:hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
@@ -1240,7 +1275,7 @@ async function doTurn(R){
   if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer*mu;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
-  if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
+  if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);if(r.poison){r.poison=null;heroFl('poison cured','#8cff96');}}
   if(val('coin')){const c=val('coin')*s.coinPer;gainCoins(c);parts.push(`🪙+${c}`);}
   if(val('skull')){
     if(hasR('beaker')){const ts=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x).sort((a,b)=>a.x-b.x);
@@ -1296,6 +1331,8 @@ async function doTurn(R){
   await beat(260);
   await enemyPhase();
   if(r.over)return;
+  if(r.poison&&r.poison.turns>0&&r.hp>0){const d=r.poison.dmg;r.hp-=d;r.poison.turns--;hurtBy("Dr. Labfreak's poison",d);heroFl('-'+d+' ☣','#8cff96');view.hurt=.6;
+    if(!r.poison.turns){r.poison=null;heroFl('poison wears off','#8cff96');}ui();await beat(260);}
   if(r.hp<=0&&await tryDie())return;
   if(r.coins<1&&!r.freeSpin)await broke();
 }
@@ -1314,7 +1351,7 @@ async function hit(o,dmg,how){
   if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.min(d,1+Math.floor(r.floor/8)),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
   r.bestHit=Math.max(r.bestHit||0,d);
   o.hp-=d;o.flash=1;addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
-  if(o.hp<=0)await kill(o);
+  if(o.hp<=0){if(o.t==='labfreak'&&!o.phase2){await labfreakPhase2(o);return;}await kill(o);}
 }
 async function kill(o){
   const r=run;o.gone=true;r.kills++;S.kills++;
@@ -1391,7 +1428,7 @@ async function enemyHit(e,dmg){
   if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');return;}
   let d=dmg;const b=Math.min(r.block,d);r.block-=b;d-=b;
   if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);if(d<=0)noteTurn(`${esc(e.n)} hit for ${dmg}, all blocked`);}
-  if(d>0){r.hp-=d;hurtBy(e.n,d);heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.elite==='cursed'){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
+  if(d>0){r.hp-=d;hurtBy(e.n,d);heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.phase2)poisonHero();if(e.elite==='cursed'){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
   if(s.thorns&&e.range<=1&&!e.gone)await hit(e,s.thorns);
   ui();
 }
@@ -1577,7 +1614,7 @@ function helpShort(){
 /* ---------------- UI ---------------- */
 function ui(){
   if(!run)return;const r=run,s=stats();const mx=s.maxHp;
-  $('#hpbar').style.width=clamp(r.hp/mx*100,0,100)+'%';
+  $('#hpbar').style.width=clamp(r.hp/mx*100,0,100)+'%';$('#hpwrap').classList.toggle('poison',!!(r.poison&&r.poison.turns>0));
   $('#hptxt').innerHTML=artify(`❤ ${Math.max(0,r.hp)}/${mx}`);
   $('#hudBlock').innerHTML=artify('🛡 '+r.block);
   $('#hudCoins').innerHTML=artify('🪙 '+r.coins);
@@ -1781,12 +1818,12 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
-  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,boss_labfreak2:196,boss_attack_labfreak2:196,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
 // where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
 // measured on the art: x = face centre across the sprite, y = face centre up from the ground, w = usable face width
 // (all shares of the drawn sprite), L = the name split over two lines, r = tilt, dark = a black stone
 const GRAVE_TXT={madness:{x:.53,y:.83,w:.34,r:-.1},midblade:{x:.515,y:.45,w:.42},papamodelo:{x:.51,y:.48,w:.36,L:['Papa','Modelo']},zero:{x:.505,y:.53,w:.4,L:['Zero','Override']},dapper:{x:.5,y:.51,w:.34,L:['Captain','Dapper']},labfreak:{x:.49,y:.48,w:.46,dark:1}};
-function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
+function canvasH(k){if(CANVAS_H[k])return CANVAS_H[k];if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
 const FEET_SINK=7;
@@ -1870,12 +1907,14 @@ function drawHero(x,t,moving){
   cx.globalAlpha=1;
 }
 function drawEnemy(o,x,t){
-  const flash=o.flash>0;const k=o.boss?'boss_'+o.t:'enemy_'+o.t;const s=o.boss?1.7:o.big?1.4:1;
+  const ph=o.phase2&&artImg('boss_'+o.t+'2')?'2':'';
+  const flash=o.flash>0;const k=o.boss?'boss_'+o.t+ph:'enemy_'+o.t;const s=o.boss?1.7:o.big?1.4:1;
   const X=x-(o.lunge||0)*10,Y=GY;
   let w=64*s,h=64*s;
-  const ak=(o.boss?'boss_attack_':'enemy_attack_')+o.t;
+  const ak=(o.boss?'boss_attack_':'enemy_attack_')+o.t+ph;
   if(artImg(k))shadow(x,o.boss?34:20);
   if(o.elite)cx.filter='drop-shadow(0 0 6px #c9302c)';
+  if(o.phase2)cx.filter='drop-shadow(0 0 7px #8cff96)';
   if(flash)cx.filter='brightness(2.2)';
   const d=(o.pose>0&&sprAt(ak,X,Y,true))||sprAt(k,X,Y,true);
   if(d)h=Math.min(d.h*.92,VH-40);

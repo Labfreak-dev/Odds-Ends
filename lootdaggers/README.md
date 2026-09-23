@@ -345,3 +345,8 @@ Nothing in the game is emoji any more once art.js loads.
   brains in jars, Dr. Labfreak himself). Beating him pays 50 souls and Labfreak's
   Beaker (skulls splash the nearest foe instead of you). Nothing spawns until the
   grave art exists. art-pack12-prompts.txt also reshapes the shield symbol.
+- **b055**: art pack 12 packed (27 images, 265 total): heater-shaped shield
+  symbol, the six gravestones plus the lever version, sepia headshots, and the
+  whole laboratory. The gravestone easter egg is now live. Names are engraved per
+  stone (position, width and tilt tuned to each carving; pale letters on
+  Labfreak's black stone); the obituary headshot sits centred above the name.

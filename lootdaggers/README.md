@@ -367,3 +367,7 @@ Nothing in the game is emoji any more once art.js loads.
   deck, the rest from each person's own lines. New strongman lines for Madness
   and sombrero/mullet lines for PapaModelo; art-pack13-prompts.txt asks for their
   new headshots.
+- **b060**: art pack 13: new headshots for PapaModelo (sombrero, flowing
+  mullet) and Madness (circus strongman). Each now has four written obituaries of
+  his own, dealt in rotation for half of his obituaries (the rest from the shared
+  deck of 50), replacing his mixed-and-matched lines.

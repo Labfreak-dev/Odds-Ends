@@ -787,11 +787,13 @@ function setBtn(mode){
   else if(mode==='busy')b.textContent='…';
   else{const c=spinCost();b.innerHTML=c===0?'FREE SPIN ⏳':'SPIN · '+icon('ui_coin','🪙','btnico')+c;}
 }
+// Extra coins for holding reels: 1 reel, 2, 3, 4 (five reels max, one must spin).
+const HOLD_COST=[0,1,11,32,144];
 function spinCost(){
   if(!run)return 1;const held=M.reels.filter(R=>R.held&&!R.jam).length;
   const tax=run.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.t==='taxman'&&o.x-run.x<=6).length;
   if(run.bonus>0)return 0;
-  return (run.freeSpin?0:1)+(hasR('clamp')?0:held)+tax;
+  return (run.freeSpin?0:1)+(hasR('clamp')?0:HOLD_COST[Math.min(held,4)])+tax;
 }
 function spin(){
   if(busy||!run||M.spinning||run.over||M.pendingRes)return;

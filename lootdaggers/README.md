@@ -322,3 +322,5 @@ Nothing in the game is emoji any more once art.js loads.
   badge stays pinned right and the free-spin banner centres in the space left.
 - **b049**: on phones the life bar gets its own full-width row under the chips
   (taller, bigger numbers); the chips share the row above evenly.
+- **b050**: holding reels is steeply priced: 1 / 11 / 32 / 144 extra coins for
+  1 / 2 / 3 / 4 held reels (Reel Clamp still makes holds free).

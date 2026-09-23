@@ -169,3 +169,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b009**: jackpot moment: the painting holds ~3.4s, a bloody Pirata One
   "JACKPOT!" slams in with a blood drip from the top edge, the turn pauses
   0.9s so it registers, and the jingle plays twice.
+- **b010**: icons on wooden buttons get a pale rim (stacked drop-shadows) and
+  the inline reel-symbol icons are larger, so they no longer blend into the planks.

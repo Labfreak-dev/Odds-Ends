@@ -78,7 +78,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.art::before{content:"";position:absolute;inset:0;background:rgba(8,6,6,.5);pointer-events:none}
 .btn.art .lbl{position:relative;z-index:1;text-shadow:0 1px 0 #000,0 0 6px #000}
 .btn.art small{color:#dccfb6;font-size:12px}
-.btn.art .ico.lead{filter:drop-shadow(0 2px 3px #000) brightness(1.15)}
+.btn.art .ico,.btn.art .lbl .ico{filter:drop-shadow(0 0 1px #f0e2c4) drop-shadow(0 0 1px #f0e2c4) drop-shadow(0 2px 3px #000) brightness(1.12)}
+.btn.art .ico.lead{width:44px;height:44px}
+.btn.art .lbl .ico:not(.lead){width:1.7em;height:1.7em;vertical-align:-.45em;margin:0 2px}
 .reel{flex:1;position:relative;overflow:hidden;background:linear-gradient(#8f8470,#d8ceb8 28%,#e2d9c5 50%,#d8ceb8 72%,#8f8470);border:3px solid #000;border-radius:8px;cursor:pointer}
 .reel::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(0,0,0,.35),transparent 25%,transparent 75%,rgba(0,0,0,.35))}
 .reel .cell{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:min(9vw,44px,5.6dvh);line-height:1;will-change:transform}

@@ -238,14 +238,17 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .hubBtns{display:flex;flex-direction:column;gap:9px;max-width:380px;margin:0 auto}
 .hubBtns .btn{font-size:16px}
 /* gothic casino hub buttons: wood-and-iron plaques, the main bet on a gilded plate */
-#hub .hubBtns .btn:not(.primary):not(.danger){border:16px solid transparent;border-image:var(--btnArt) 80 fill / 16px stretch;background:#1d1718;box-shadow:0 4px 10px rgba(0,0,0,.6);padding:6px 10px;border-radius:0;color:#f3e9d6;text-shadow:0 1px 0 #000,0 0 6px #000}
-#hub .hubBtns .btn:not(.primary):not(.danger){font-family:var(--head);font-weight:400;font-size:25px;letter-spacing:.5px;line-height:1.15;color:#ecdcbc;text-shadow:0 2px 0 #000,0 0 8px #000;padding:8px 12px 10px}
-#hub .hubBtns .btn:not(.primary):not(.danger) small{font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#b7a47f;margin-top:3px;text-shadow:0 1px 0 rgba(255,235,190,.12),0 -1px 0 #000}
-#hub .hubBtns .btn:not(.primary):not(.danger) .ico{width:32px;height:32px;vertical-align:-7px;margin-right:6px;filter:drop-shadow(0 0 1px #f0e2c4) drop-shadow(0 2px 3px #000)}
+#hub .hubBtns .btn:not(.primary):not(.danger),#setList .btn{border:16px solid transparent;border-image:var(--btnArt) 80 fill / 16px stretch;background:#1d1718;box-shadow:0 4px 10px rgba(0,0,0,.6);padding:6px 10px;border-radius:0;color:#f3e9d6;text-shadow:0 1px 0 #000,0 0 6px #000}
+#hub .hubBtns .btn:not(.primary):not(.danger),#setList .btn{font-family:var(--head);font-weight:400;font-size:25px;letter-spacing:.5px;line-height:1.15;color:#ecdcbc;text-shadow:0 2px 0 #000,0 0 8px #000;padding:8px 12px 10px}
+#hub .hubBtns .btn:not(.primary):not(.danger) small,#setList .btn small{font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#b7a47f;margin-top:3px;text-shadow:0 1px 0 rgba(255,235,190,.12),0 -1px 0 #000}
+#hub .hubBtns .btn:not(.primary):not(.danger) .ico,#setList .btn .ico{width:32px;height:32px;vertical-align:-7px;margin-right:6px;filter:drop-shadow(0 0 1px #f0e2c4) drop-shadow(0 2px 3px #000)}
 #hub .hubBtns .btn.primary small{text-shadow:0 1px 0 rgba(255,230,170,.45),0 -1px 0 rgba(60,25,5,.6)}
 #hub .hubBtns .btn.primary{border:0;border-radius:6px;background:var(--goldArt,linear-gradient(#cfa75c,#7d5a26)) center/100% 100% no-repeat;padding:20px 28px 24px;font-family:var(--head);font-weight:400;font-size:30px;letter-spacing:1px;color:#2a1206;text-shadow:0 1px 0 rgba(255,230,170,.55);box-shadow:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}
 #hub .hubBtns .btn.primary small{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#4a2408;letter-spacing:1px;text-transform:uppercase;margin-top:0}
 #hub .hubBtns .btn.primary .suit{color:#7a0f0a;font-size:.7em;margin:0 12px;vertical-align:.12em;text-shadow:0 1px 0 rgba(255,220,160,.5)}
+.setVol{display:flex;align-items:center;gap:10px}
+.setVol span{white-space:nowrap}
+.setVol input{flex:1;min-width:0;accent-color:#b8453c}
 #hub .hubBtns .btn.primary:active{transform:translateY(2px) scale(.99)}
 #hub.painted .btn,#hub.painted .item{background-color:rgba(24,20,21,.9)}
 #hub.painted .chip{background:rgba(24,20,21,.9)}
@@ -282,7 +285,7 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
     <div id="machine">
       <div id="cabinet">
         <img id="cabinetArt" alt=""><div id="bulbs"></div>
-        <div id="marquee"><span class="lights">● ● ●</span><span id="lineInfo">1 PAYLINE</span><span class="lights">● ● ●</span></div>
+        <div id="marquee"><span class="lights">● ● ●</span><span id="lineInfo"></span><span class="lights">● ● ●</span></div>
         <div id="reels"></div>
         <div id="nudgeNote"></div>
       </div>
@@ -748,7 +751,7 @@ function rebuildReels(){
   M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
   buildReelCtl();
   const L=paylines(n);
-  $('#lineInfo').textContent=(run&&run.inBonus)?(run.bonus>0?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):L.length+' PAYLINE'+(L.length>1?'S':'')+' · '+n+' REELS';
+  $('#lineInfo').textContent=(run&&run.inBonus)?(run.bonus>0?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):'';
   $('#marquee').classList.toggle('bonus',!!(run&&run.inBonus));drawWheel();drawBulbs();
   drawReels(true);
 }
@@ -1281,7 +1284,7 @@ function ui(){
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
   $('#relics').innerHTML=r.relics.map(id=>`<button class="relic" data-relic="${id}" title="${RELIC[id].n}">${relicIcon(RELIC[id])}</button>`).join('');
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
-  {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=r.inBonus?(r.bonus>0?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):L+' PAYLINE'+(L>1?'S':'')+' · '+n+' REELS';$('#marquee').classList.toggle('bonus',!!r.inBonus);}
+  {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=r.inBonus?(r.bonus>0?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):'';$('#marquee').classList.toggle('bonus',!!r.inBonus);}
   if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
 }
 function showGame(){if(run)music.play(musicForFloor(run.floor));$('#hub').classList.add('hidden');$('#game').classList.remove('hidden');requestAnimationFrame(()=>{resizeCanvas();rebuildReels();});}
@@ -1289,16 +1292,20 @@ function showGame(){if(run)music.play(musicForFloor(run.floor));$('#hub').classL
 /* ---------------- hub ---------------- */
 let hubView='main';
 // The settings list, shared by the hub view and the in-game pop-up.
-function settingsHTML(){return `
-    <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
-    <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔔 Sound volume</span><input type="range" id="sfxVol" min="0" max="100" value="${Math.round((S.sfxVol==null?1:S.sfxVol)*100)}" style="flex:1"></div>
-    <button class="btn" data-act="set:music">${S.music!==false?'🎵 Music: on':'🎵 Music: off'}</button>
-    <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔉 Music volume</span><input type="range" id="musicVol" min="0" max="100" value="${Math.round((S.musicVol==null?.6:S.musicVol)*100)}" style="flex:1"></div>
-    <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
-    <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
-    <button class="btn" data-act="set:jackpotScreen">${S.jackpotScreen!==false?'🎰 Jackpot screen: on':'🎰 Jackpot screen: off'}</button>
-    <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>
-    <button class="btn" data-act="set:bonusManual">${S.bonusManual?'🎰 Free spins: tap each spin':'🎰 Free spins: play themselves'}</button>`;}
+function settingsHTML(){
+  const t=(key,e,title,sub)=>`<button class="btn" data-act="set:${key}">${e} ${title}<small>${sub}</small></button>`;
+  const v=(id,e,title,val)=>`<div class="btn setVol"><span>${e} ${title}</span><input type="range" id="${id}" min="0" max="100" value="${val}"></div>`;
+  return [
+    t('mute',S.mute?'🔇':'🔊','Sound',S.mute?'off':'on'),
+    v('sfxVol','🔔','Sound volume',Math.round((S.sfxVol==null?1:S.sfxVol)*100)),
+    t('music','🎵','Music',S.music!==false?'on':'off'),
+    v('musicVol','🔉','Music volume',Math.round((S.musicVol==null?.6:S.musicVol)*100)),
+    t('autoStop',S.autoStop?'🤖':'✋','Auto-stop reels',S.autoStop?'on':'off · tap each reel to stop it'),
+    t('autoResolve',S.autoResolve?'⏭':'⏸','Auto-resolve turns',S.autoResolve?'on':'off · read, then tap resolve'),
+    t('jackpotScreen','🎰','Jackpot screen',S.jackpotScreen!==false?'on':'off'),
+    t('fast',S.fast?'⏩':'▶','Fast animations',S.fast?'on':'off'),
+    t('bonusManual','🎰','Free spins',S.bonusManual?'tap each spin':'play themselves'),
+  ].join('\n');}
 function applySetting(arg){S[arg]=!S[arg];save();if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
 // In-game settings: a pop-up over the pause menu that stays open while you toggle.
 function settingsPopup(){

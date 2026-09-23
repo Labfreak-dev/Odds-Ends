@@ -371,3 +371,6 @@ Nothing in the game is emoji any more once art.js loads.
   mullet) and Madness (circus strongman). Each now has four written obituaries of
   his own, dealt in rotation for half of his obituaries (the rest from the shared
   deck of 50), replacing his mixed-and-matched lines.
+- **b061**: new Madness headshot with the whole barbell in frame; obituary headshots
+  now show the full square picture (their own oval vignette) instead of cropping
+  into a tall oval.

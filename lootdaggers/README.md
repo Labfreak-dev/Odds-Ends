@@ -19,6 +19,8 @@ turn.
   present replaces its fallback.
 - `art-src/`: the raw generated images, one WebP per key (backgrounds still on).
   Committed, because the packer rebuilds `art.js` from here.
+- `app-icon.png`, `share-card.jpg`: the home-screen icon and link preview,
+  cropped from `art-src/app_icon` and `art-src/share_card`.
 - `pack-art.py`: key, trim, scale and pack. `python3 lootdaggers/pack-art.py
   --import pack.zip` adds a zip of PNGs to `art-src/` and repacks. Needs
   pillow, numpy and scipy.
@@ -109,8 +111,21 @@ empty gear slots, reel symbols in menus, Soul Altar and Workbench nodes, enemy
 intents (canvas), HUD, menu and merchant icons, the merchant and shrine
 portraits, and the fx_* effects. `artify(html)` swaps any emoji that has art at
 every sink (modals, hub, log, HUD), and `drawRich()` does the same inside
-canvas floaters. Still missing: the 8 screen_* paintings, 9 ui_* chrome pieces,
-bg_far and bg_fog.
+canvas floaters.
+
+**Pack 08 (everything else).** `biomeOf(floor)` picks the wall/floor pair by
+depth (crypt → flooded catacombs → bone pit → abyss vault, then cycling), with
+`bg_wall_boss` on boss floors; `bg_far` scrolls at quarter speed behind the
+wall and `bg_fog` (keyed, greyscaled, bottom mist band only) drifts at the
+hero's feet. `screen_*` paintings sit behind the hub views and splash the
+death, busted, boss-hoard and jackpot moments. UI chrome: `ui_cabinet` frames
+the reels, `ui_reel_strip` backs each reel, `ui_spin_button`/`ui_stop_button`
+swap on the big button, `ui_slot_frame` on the gear bar, and `ui_panel` and
+`ui_button` are 9-sliced with CSS `border-image` so dialogs of any height
+keep their ironwork. `hero_*_hurt` flashes when a hero takes a hit.
+`app-icon.png` and `share-card.jpg` are written by hand from `art-src/`
+(the packer skips those two keys) and referenced from the page head.
+Nothing in the game is emoji any more once art.js loads.
 
 ## Debugging
 `window.LD` exposes `S` (save), `run`, `M` (machine), `spin()`, `stats()`,
@@ -144,3 +159,8 @@ bg_far and bg_fog.
   HUD, menu and merchant icons, merchant and shrine portraits, and effects
   (hit, heal, block, coins, souls, curse, slash, arrow, explosion) on a new fx
   layer. `artify()` replaces emoji with art everywhere text reaches the screen.
+- **b007**: pack 08 in, 200 images, 6.2MB: four dungeon biomes plus a boss
+  arena, far and fog parallax layers, eight screen paintings, the slot cabinet,
+  reel strips, spin/stop buttons, 9-sliced panels and buttons, slot frames, the
+  logo crest, hero hurt poses, app icon and share card. The art sheet is
+  complete.

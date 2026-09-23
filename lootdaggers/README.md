@@ -208,3 +208,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b026**: the gear pop-up X is sticky inside the frame, clear of the scrollbar.
 - **b027**: torch bearers draw after the floor and mist, so the fog no longer
   drifts across their bases.
+- **b028**: the One-Armed Bandit, the Dice Lich, the wraith and the spike trap
+  sink to the floor (their lowest pixel was a chain, hem or lone spike).

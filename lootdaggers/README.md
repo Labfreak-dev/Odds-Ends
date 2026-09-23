@@ -100,9 +100,12 @@ select, pause, death). The wall and floor strips are mirror-tiled so they
 repeat without a seam. Icons go through `icon(key, emoji)`, which returns the
 art as an `<img>` if the pack has it and the emoji otherwise. Wired so far:
 relics, gear (key `gear_<slot>_<base>`, e.g. `gear_charm_die` for a Loaded Die),
-empty gear slots, reel symbols in menus, Soul Altar and Workbench nodes. Still
-emoji until their art arrives: enemy intents, HUD, menu and merchant icons,
-screen paintings, UI chrome and effects.
+empty gear slots, reel symbols in menus, Soul Altar and Workbench nodes, enemy
+intents (canvas), HUD, menu and merchant icons, the merchant and shrine
+portraits, and the fx_* effects. `artify(html)` swaps any emoji that has art at
+every sink (modals, hub, log, HUD), and `drawRich()` does the same inside
+canvas floaters. Still missing: the 8 screen_* paintings, 9 ui_* chrome pieces,
+bg_far and bg_fog.
 
 ## Debugging
 `window.LD` exposes `S` (save), `run`, `M` (machine), `spin()`, `stats()`,
@@ -132,3 +135,7 @@ screen paintings, UI chrome and effects.
   them in everywhere those emoji appeared: relic bar and picks, loot cards,
   gear bar, merchant, pawning, vault, skill trees, and reel-symbol lists in
   menus.
+- **b006**: art packs 05–07 in (47 images, 170 in all): enemy intent icons,
+  HUD, menu and merchant icons, merchant and shrine portraits, and effects
+  (hit, heal, block, coins, souls, curse, slash, arrow, explosion) on a new fx
+  layer. `artify()` replaces emoji with art everywhere text reaches the screen.

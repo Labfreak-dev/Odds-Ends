@@ -1301,7 +1301,7 @@ $('#hub').addEventListener('input',e=>{if(e.target.id==='musicVol'){S.musicVol=+
 $('#hub').addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const [a,arg]=el.dataset.act.split(':');
-  if(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings')return showHub(a);
+  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'))return showHub(a);
   if(a==='resume')return resumeRun();
   if(a==='daily'){if(S.run){S.run=null;save();}return startRun('knight',todayKey());}
   if(a==='pick'){if(S.run){S.run=null;save();}return startRun(arg);}

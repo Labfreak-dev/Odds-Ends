@@ -393,3 +393,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b066**: "Pull it" on Labfreak's grave is now a green lab button: a dark plate with a
   pulsing green glow, switching to the oozing iron plate from art-pack15
   (ui_ooze_button, sized like the other big buttons in pack-art.py) once packed.
+- **b067**: ui_ooze_button packed (270 images): the Pull it button is the oozing
+  iron frame, drawn nine-slice so the corners and drips keep their shape. The
+  packer turns the peach halo (yellow glow painted over magenta) back into green.

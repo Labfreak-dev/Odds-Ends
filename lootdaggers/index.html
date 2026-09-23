@@ -415,10 +415,10 @@ const BOSS_ORDER=['boneking','bandit','lich'];
    Nothing spawns until the grave art is packed (art pack 12). */
 const GRAVES=[
   {id:'madness',n:'Madness',
-    tag:['professional laugher at inappropriate moments','self-appointed jester of the lower crypts','the only man ever to argue with a slot machine and lose on appeal'],
+    tag:['the strongest man in the lower crypts and the living personification of manly vibes','professional laugher at inappropriate moments','self-appointed jester of the lower crypts','the only man ever to argue with a slot machine and lose on appeal'],
     cause:['after challenging his own reflection to a duel and losing on points','after insisting the spike trap was "just a friendly little floor"','laughing so hard at a cursed joke that his skeleton left without him'],
-    life:['He spent his youth teaching rats to juggle and his adulthood apologising to the rats.','He once pulled the lever four hundred times in a row because "the machine looked lonely."','He held the dungeon record for most conversations with a wall, and claimed the wall started it.'],
-    quirk:['He named every coin he ever lost. There were a great many names.','Friends describe him as "unpredictable", "unhinged" and "owes me nine coins."'],
+    life:['He bench-pressed an orc every morning "to warm up" and flexed at his own reflection until it flexed back.','He spent his youth teaching rats to juggle and his adulthood apologising to the rats.','He once pulled the lever four hundred times in a row because "the machine looked lonely."','He held the dungeon record for most conversations with a wall, and claimed the wall started it.'],
+    quirk:['He could bend iron bars, horseshoes and, when it suited him, the rules.','His moustache alone could lift forty pounds.','He named every coin he ever lost. There were a great many names.','Friends describe him as "unpredictable", "unhinged" and "owes me nine coins."'],
     left:['He is survived by three rats, a jester\'s rattle and the voices, who have asked for privacy at this time','He leaves behind 212 odd socks, none of them matching and all of them his'],
     last:['Watch this!','The skulls are winking at me. I think they like me.','One more spin. Just one.']},
   {id:'midblade',n:'Midblade',
@@ -431,8 +431,8 @@ const GRAVES=[
   {id:'papamodelo',n:'PapaModelo',
     tag:['father figure, fashion icon and owner of the dungeon\'s most photographed jawline','a gentleman who never met a mirror he didn\'t linger at','beloved papa to everyone who ever needed a hug and a hair tip'],
     cause:['when he stopped to strike a pose in front of a Mirror Wight and it struck back','after refusing to run from an orc because running "creases the trousers"','while holding a smouldering stare so long that a slime mistook him for a statue and sat on him'],
-    life:['He walked every corridor like a runway, and every skeleton applauded, though that may have been their bones rattling.','He raised eleven children, forty adventurers and one extremely confident rat, all of whom call him Papa.'],
-    quirk:['He carried a comb, a spare comb and an emergency comb, and was buried with all three.','He moisturised twice daily, even in the flooded catacombs, which he called "basically a spa."'],
+    life:['He rode into every fight under a sombrero wide enough to shade the whole party, his glorious mullet streaming behind him like a battle flag.','He walked every corridor like a runway, and every skeleton applauded, though that may have been their bones rattling.','He raised eleven children, forty adventurers and one extremely confident rat, all of whom call him Papa.'],
+    quirk:['His mullet was business at the front, fiesta at the back, and fully insured.','He carried a comb, a spare comb and an emergency comb, and was buried with all three.','He moisturised twice daily, even in the flooded catacombs, which he called "basically a spa."'],
     left:['He is survived by his many children, his many mirrors and a moustache that is somehow still looking at you','He leaves behind a closet the size of a crypt and strict instructions that nobody touch it'],
     last:['Get my good side.','Tell the children Papa looked fabulous.','Is this candlelight? Perfect.']},
   {id:'zero',n:'Zero Override',
@@ -459,6 +459,60 @@ const GRAVES=[
 ];
 const GRAVE_BORN=['the year the machine was built','a leap Tuesday','during a thunderstorm, naturally','1847, allegedly','in a coin purse, somehow','under a bad moon'];
 const GRAVE_SERVICE=['In lieu of flowers, the family asks that you feed the machine.','A service will be held on the next floor down. Bring coins, not tears.','Visitation is between spins. Please do not stand on the grave; it bites.','The funeral will be closed casket, as the casket is also a mimic.','Mourners are asked to pull the lever once, for luck, and then once more, for him.'];
+// 50 stand-alone obituaries that work for any grave ({n} = the name). They are dealt
+// from a shuffled deck saved with the game, so none repeats until all 50 have been read.
+const OBITS=[
+  ["{n}, who once described himself as \"basically immortal,\" has proven that description inaccurate. He died on his 900th consecutive spin, still certain the next one was due.", "He is remembered for his optimism, his unpaid tab at every tavern above ground, and a lucky rabbit's foot that, in hindsight, was not lucky for the rabbit either.", "Next one's the big one."],
+  ["{n} passed away peacefully in his sleep, which he was taking in the middle of a boss fight. Witnesses say he looked very relaxed right up until the end.", "He believed firmly in work-life balance and napped every forty minutes, dungeon or no dungeon. He is survived by his pillow, which the Bone King has since claimed as a trophy.", "Five more minutes."],
+  ["{n} died doing what he loved: opening a chest that was clearly a mimic. The chest had teeth. The chest had a tongue. The chest was breathing. He opened it anyway.", "Friends say he always saw the best in everything, including things actively trying to eat him. The mimic is doing well and has asked for privacy.", "It's probably fine."],
+  ["{n}, three-time runner-up in the Crypt Arm-Wrestling Invitational, has died after losing a staring contest with a Gel Slime. Slimes do not blink. He did not know this.", "He leaves behind an empty trophy cabinet, a bag of marbles and a very long list of rematches he fully intended to demand.", "Best two out of three."],
+  ["{n} was killed by a spike trap he had personally set, labelled, and warned everyone about for three floors.", "He was a careful man, a planner and a keeper of detailed maps, one of which he was reading at the time. In lieu of flowers, please watch where you step.", "Mind the spik—"],
+  ["{n} has died after attempting to pay the Tax Collector in pocket lint. The Tax Collector did not accept pocket lint. The Tax Collector accepted {n}.", "He was known across the catacombs for his thrift, his creativity and his belief that rules were more like suggestions. The Tax Collector is sending an invoice for the funeral.", "It's legal tender somewhere!"],
+  ["{n} died heroically, or at least loudly, while charging a skeleton horde armed only with a spoon and enormous self-belief.", "He had lost his sword two floors earlier in a bet about whether skeletons are ticklish. They are not. The spoon has been bronzed and will hang in the tavern forever.", "CHAAARGE!"],
+  ["{n}, a man who never read the instructions, has died after pressing the big red button marked DO NOT PRESS. He pressed it twice, to be sure.", "He lived by one rule: if it has a lever, pull it. That rule served him well for forty-one years and very poorly for about three seconds.", "What does this do?"],
+  ["{n} passed away after eating a mushroom he found growing out of a skeleton's ear. It was, by his own review, \"a bit chewy.\"", "A self-taught chef, he cooked over torch flame and seasoned everything with grave dust. His famous rat stew is banned in four crypts and one kingdom.", "Needs salt."],
+  ["{n} died of embarrassment after tripping over nothing in front of the Coin-Op Merchant's entire queue, then tripping over the merchant while getting up.", "He had a proud, graceful stride on flat ground and absolutely nowhere else. The merchant is offering 5% off to mourners who mention the incident.", "I meant to do that."],
+  ["{n} lost everything at the slots: his coin, his boots, his sword, his dignity and finally his soul, which he put on red. It came up black.", "He never gave up hope, only everything else. A single coin was found in his fist; the family asks that you spin it once in his honour.", "Double or nothing."],
+  ["{n} was flattened when he tried to catch a falling portcullis \"to look cool.\" It looked extremely cool for about half a second.", "He spent his life lifting heavy things for no reason, including his horse, twice. He is survived by the horse, who is relieved.", "Watch this."],
+  ["{n} died after insulting a Dice Lich's mother. Liches do not have mothers, which made the insult confusing and the Lich furious.", "He was famous for his razor wit, which he aimed exclusively at things that could kill him. The Lich still does not get the joke and has asked for it in writing.", "Your mum's a d6."],
+  ["{n}, a man of great faith in luck, has died after walking under a ladder, breaking a mirror and petting a black cat on the same floor, just to prove a point.", "The point has been proven, though not the one he intended. The cat is fine. The cat is always fine.", "Superstition is for cowards."],
+  ["{n} passed after challenging the Reaper to a game of cards, winning, and then insisting on a rematch.", "He never knew when to walk away from a table, which is how he met the Reaper in the first place. The Reaper sends his regards, and also the winnings.", "Deal again."],
+  ["{n} was eaten by a bookshelf. The coroner is still working on the details.", "He was a scholar, a collector of rare tomes and a firm believer that libraries are safe places. The dungeon library is a mimic. It has always been a mimic. It is now a very well-read mimic.", "Ooh, a first edition."],
+  ["{n} drowned in the Flooded Catacombs, in water that witnesses agree was ankle-deep.", "He could not swim, hated baths, and often said he was \"allergic to wet.\" In hindsight, he was right. Please keep all eulogies dry.", "It's only a puddle."],
+  ["{n} has died after entering a hugging contest with a Stitched Abomination. He won the contest. He did not win the aftermath.", "A warm and affectionate soul, he never met a monster he didn't try to befriend. He is survived by several monsters who are, frankly, a little confused.", "Bring it in, big guy."],
+  ["{n} died of old age at thirty-two, after spending forty years in the Hourglass Room.", "Time moves strangely down there, and so did he. He is survived by a younger brother who is now, somehow, his grandfather. The family tree has been referred to a wizard.", "What year is it?"],
+  ["{n} was killed by his own echo, which he had been arguing with for nine hours.", "Those who knew him say he always had to have the last word. The echo insists that it did. The matter remains unresolved.", "No, YOU shut up."],
+  ["{n} perished settling a bet over whether he could fit a whole loaf of bread in his mouth while fighting an orc. He could. He could not also breathe.", "He was a man of many talents, most of them listed on a tavern chalkboard under DO NOT SERVE. The orc has taken up baking in his memory.", "Mmmf mmf MMMF."],
+  ["{n}, an adventurer with no sense of direction, has died after climbing the stairs UP for nineteen floors while shouting \"I'm almost at the bottom.\"", "He never used a map, never asked for directions and never, ever admitted he was lost. He was found on the tavern roof, very confused and quite dead.", "It's definitely left."],
+  ["{n} passed after trying to keep a Coin Wraith as a pet. He named it Pennies. Pennies ate his savings, then his lunch, then him.", "He adored animals, and things that were not animals, and one or two things nobody could identify. Pennies is still at large and still answers to its name.", "Who's a good wraith?"],
+  ["{n} died when his lucky helmet, a gift from his grandmother, turned out to be a cursed cooking pot.", "He wore it proudly for twelve years and never once asked why it smelled of onions. His grandmother has declined to comment.", "It's a family heirloom."],
+  ["{n} was struck by lightning indoors, underground, in a dungeon with no windows. Nobody knows how. He probably knew how.", "He was unbelievably unlucky: he once lost a coin toss to the coin. The lightning is being studied by a team of very nervous scholars.", "At least it can't get worse."],
+  ["{n} died mid-sneeze. The sneeze hit a pressure plate and set off every trap on floor nine at once.", "He was allergic to dust, mould, cats, bones and adventure, which in hindsight made this an odd career choice. Floor nine has been declared a historic site.", "Ah... ah... AH—"],
+  ["{n} has died after mistaking a Gel Slime for a very large pudding.", "He had a sweet tooth no dungeon could satisfy and no dentist could save. The slime reports that he was \"surprisingly crunchy\" and has asked for seconds.", "Is there custard?"],
+  ["{n}, the dungeon's worst bard, has died after a skeleton audience finally reached its limit.", "He knew one song, played it on a two-string lute and sang it at every fight until something died, usually the mood. Mourners are asked not to hum.", "This next one's a banger."],
+  ["{n} was crushed by the treasure he spent his whole life collecting, after stacking it \"just one coin higher.\"", "He hoarded gold, gems, spoons and interesting pebbles. His will leaves everything to whoever can dig it off him.", "One more coin."],
+  ["{n} passed away trying to sneak past a sleeping ogre in a suit of armour made entirely of bells.", "He believed in bold fashion choices and never once considered stealth. The ogre slept through all of it. The ogre's wife did not.", "Shhhh."],
+  ["{n} died building a machine to make slot machines pay out. It worked perfectly. It paid out every coin in the dungeon, all at once, onto him.", "He was a dreamer who never asked \"what if it works too well?\" He is survived by roughly forty thousand coins.", "It's working!"],
+  ["{n} won Most Improved Adventurer, then fell into a pit while walking up to collect the prize.", "He started his career terribly and improved every single day, right up until that one. The prize has been awarded to the pit.", "I'd like to thank—"],
+  ["{n}, a man who believed every door hid treasure, has died after opening door number four hundred and twelve.", "The first four hundred and eleven held rats, mops and one very startled nun. He never lost faith. Door four hundred and twelve held the Bone King.", "This one feels lucky."],
+  ["{n} passed after challenging a wall to a headbutting contest. The wall is undefeated and has been since it was built.", "He was stubborn in a way scholars now use as a unit of measurement: one {n} is roughly six mules.", "It's getting weaker!"],
+  ["{n} was bitten by a vampire, a werewolf and a ghost on the same evening, and died of sheer confusion over what he was supposed to turn into.", "He was always indecisive and ordered \"whatever's good\" at every tavern. He now haunts three places at once and does a bad job at all of them.", "Do I howl or hover?"],
+  ["{n} died after telling the Mirror Wight it had \"a face for radio.\" The Mirror Wight, which has no face, took it very personally.", "He had a sharp tongue and slow legs, a combination that rarely ends well. Mirrors across the dungeon cracked in his memory, or possibly at it.", "Too soon?"],
+  ["{n} passed away after arriving at the Soul Altar with exact change and being told there was a service fee.", "He argued about hidden charges for six hours. The altar did not budge. He was eventually accepted as payment. The altar has since posted its prices.", "I want to speak to your manager."],
+  ["{n} was killed when a bag of holding he had overfilled \"just a bit\" collapsed into a small black hole.", "He carried forty-nine swords, three anvils, a rowboat and a live goat, and still wanted room for snacks. The goat escaped. The goat always escapes.", "It'll fit."],
+  ["{n} died after following a trail of gold coins for eleven floors, coins that turned out to be falling through a hole in his own pocket.", "He had great enthusiasm and very little self-awareness. He finally caught up with himself on floor twelve and was, briefly, very rich.", "Someone's rich down here!"],
+  ["{n} passed after using a Scroll of Resurrection to bring back a sandwich.", "It was, to be fair, a very good sandwich. It has now outlived two owners and shows no signs of stopping.", "Worth it."],
+  ["{n} died during a heated debate with a skeleton about whether skeletons count as dead. The skeleton won on a technicality.", "He loved an argument more than life itself, and in the end he proved it. The transcript hangs in the Library of Dubious Arguments.", "Define \"alive.\""],
+  ["{n}, the dungeon's fastest adventurer, has died on floor one after skipping the tutorial.", "He finished forty dungeons in record time, mostly because he died in the first room of every one.", "I know what I'm doing."],
+  ["{n} was frightened to death by a rat wearing a tiny hat.", "He had faced dragons, demons and his mother-in-law without flinching. Nobody knows what it was about the hat. The rat refuses to remove it.", "WHY DOES IT HAVE A HAT"],
+  ["{n} passed away trying to teach a Bone Archer to use a crossbow. The archer was a fast learner.", "He was a patient teacher, a devoted mentor and, for about three seconds at the end, a very good target.", "Now aim for the—"],
+  ["{n} died after polishing his armour so brightly that a passing Dice Lich was blinded, panicked and cast every spell it knew at once.", "He was known for his hygiene, his manners and his rare gift for being in the wrong place. The Lich has since bought sunglasses.", "Look at that shine."],
+  ["{n} passed after stopping to read a sign that said DO NOT STOP HERE.", "He read every sign, plaque, label and warning in the dungeon, usually out loud and usually too late.", "Do not... stop... here... huh."],
+  ["{n} died laughing at his own joke about the Dice Lich's hat, which was so funny he had to sit down, on what turned out to be a trap.", "He was his own biggest fan and, most nights, his only fan. The joke is engraved on his tomb, where it is still not funny.", "Wait, it gets better."],
+  ["{n} was killed by a door that opened inward. He had spent twenty minutes pushing it.", "He was strong, loyal and brave, but doors were never his thing. The door has been retired with honours.", "It's stuck!"],
+  ["{n} passed after challenging the Coin-Op Merchant to a haggling duel and agreeing, in the heat of the moment, to pay \"everything he had.\"", "He once haggled a wizard down to half a wish. The merchant has framed the receipt.", "Final offer!"],
+  ["{n}, a born leader, has died after leading his party into a pit trap one at a time and then jumping in \"to show solidarity.\"", "He never left a man behind and, as it turned out, never left the pit. His party has written him a very strongly worded letter.", "Follow me!"]
+];
 const graveArtReady=()=>!!artImg('grave_madness')||!!window.LD_GRAVE_TEST;
 const graveRead=id=>(S.graves||[]).includes(id);
 const graveDef=id=>GRAVES.find(g=>g.id===id);
@@ -471,15 +525,27 @@ function graveFor(f){
   if(!graveRead('labfreak'))return Math.random()<.5?'labfreak':null;
   return Math.random()<.15?pick(GRAVES).id:null;
 }
+// Two in three obituaries come off the shared deck of 50; the rest are built from
+// the person's own lines, so each grave still sounds like its owner.
+function nextObit(){
+  if(!Array.isArray(S.obitDeck)||!S.obitDeck.length)S.obitDeck=shuffle(OBITS.map((_,i)=>i));
+  const i=S.obitDeck.pop();save();return OBITS[i]||OBITS[0];
+}
+function obitBody(g){
+  const nm=`<b>${esc(g.n)}</b>`;
+  if(Math.random()<2/3){const [a,b,last]=nextObit();const fill=t=>esc(t).replace(/\{n\}/g,(m,off)=>off===0?nm:esc(g.n));
+    return `<p>${fill(a)}</p><p>${fill(b)} ${pick(GRAVE_SERVICE)}</p><p class="olast">Last words: “${esc(last)}”</p>`;}
+  return `<p>${nm}, ${pick(g.tag)}, died ${pick(g.cause)}.</p>
+    <p>${pick(g.life)} ${pick(g.quirk)}</p>
+    <p>${pick(g.left)}. ${pick(GRAVE_SERVICE)}</p>
+    <p class="olast">Last words: “${pick(g.last)}”</p>`;
+}
 function obituaryHTML(g){
   const died=`Floor ${rnd(1,40)}, spin ${rnd(12,999)}`;
   return `<div class="obit"><div class="mast">The Dungeon Gazette</div><div class="sect">Obituaries</div>
     ${portImg('portrait_'+g.id,'obitPic')||'<div class="obitPic none">🪦</div>'}
     <div class="onm">${esc(g.n)}</div><div class="odates">Born ${pick(GRAVE_BORN)} · Died ${died}</div>
-    <p><b>${esc(g.n)}</b>, ${pick(g.tag)}, died ${pick(g.cause)}.</p>
-    <p>${pick(g.life)} ${pick(g.quirk)}</p>
-    <p>${pick(g.left)}. ${pick(GRAVE_SERVICE)}</p>
-    <p class="olast">Last words: “${pick(g.last)}”</p></div>`;
+    ${obitBody(g)}</div>`;
 }
 async function readGrave(o){
   const g=graveDef(o.who);if(!g)return;

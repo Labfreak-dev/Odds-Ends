@@ -281,6 +281,11 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .obit p{font-size:14px;line-height:1.45;margin:0 0 8px;text-align:justify;hyphens:auto}
 .obit p:first-of-type::first-letter{font-family:'UnifrakturMaguntia',var(--head),serif;font-size:2.4em;float:left;line-height:.9;margin:2px 4px 0 0}
 .obit .olast{font-style:italic;text-align:center;border-top:1px solid rgba(42,29,18,.5);padding-top:6px;margin:4px 0 0}
+#obitLayer{position:absolute;inset:0;background:rgba(8,5,7,.72);display:none;align-items:center;justify-content:center;z-index:70;padding:14px}
+#obitLayer.show{display:flex}
+#obitLayer .mbox{max-height:100%;overflow:auto}
+.relic[data-relic="beaker"]{box-shadow:0 0 0 1px #3f7a3a,0 0 10px #8cff96;animation:beakerGlow 1.6s ease-in-out infinite}
+@keyframes beakerGlow{50%{box-shadow:0 0 0 1px #8cff96,0 0 16px #8cff96}}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -556,13 +561,31 @@ function obituaryHTML(g){
     <div class="onm">${esc(g.n)}</div><div class="odates">Born ${pick(GRAVE_BORN)} · Died ${died}</div>
     ${obitBody(g)}</div>`;
 }
+// Obituaries open in their own layer, so a grave can be read at any moment, even
+// while the hero is walking or the reels are turning. A grave only counts as
+// found once its obituary is closed with Rest in peace.
+let obitOpen=false;
+function obitLayer(title,html){
+  return new Promise(res=>{
+    let el=$('#obitLayer');if(!el){el=document.createElement('div');el.id='obitLayer';$('#app').appendChild(el);}
+    const A=window.LD_ART||{};
+    el.innerHTML=`<div class="mbox ${A.ui_panel?'art':''}" ${A.ui_panel?`style="border-image-source:url(${A.ui_panel})"`:''}><h2>${artify(title)}</h2><div class="mbody">${html}</div><div class="mbtns"><button class="btn center ${A.ui_button?'art':''}" ${A.ui_button?`style="border-image-source:url(${A.ui_button})"`:''}>${A.ui_button?'<span class="lbl"><span class="txt">Rest in peace</span></span>':'Rest in peace'}</button></div></div>`;
+    el.classList.add('show');el.querySelector('.mbox').scrollTop=0;obitOpen=true;
+    el.querySelector('.mbtns button').onclick=()=>{el.classList.remove('show');obitOpen=false;res(1);};
+  });
+}
 async function readGrave(o){
-  const g=graveDef(o.who);if(!g)return;
+  const g=graveDef(o.who);if(!g||obitOpen)return;
+  await obitLayer('Here lies '+g.n,obituaryHTML(g));
   if(!S.graves)S.graves=[];
-  const first=!graveRead(g.id);if(first){S.graves.push(g.id);save();}
-  await modal('Here lies '+g.n,obituaryHTML(g),[{label:'Rest in peace',val:1,cls:'center'}]);
+  if(!graveRead(g.id)){S.graves.push(g.id);save();
+    const n=GRAVES.slice(0,5).filter(x=>graveRead(x.id)).length;
+    if(g.id!=='labfreak'&&run&&!run.over)heroFl(n<5?`🪦 ${n}/5 laid to rest`:'🪦 all five at rest...','#8cff96');}
   if(g.id!=='labfreak')return;
   o.lever=true;
+  // the lever is a real choice, so it waits for the turn in progress to finish
+  while(run&&!run.over&&(busy||M.spinning||modalOpen))await new Promise(r=>setTimeout(r,150));
+  if(!run||run.over||!run.objs.includes(o))return;
   const v=await modal('A cold iron handle',`${artSrc('screen_lab_pull')?`<img class="splash" src="${artSrc('screen_lab_pull')}" alt="">`:''}<p>There is an iron handle sticking out of Labfreak's headstone. Would you like to pull it?</p>`,
     [{label:'Pull it',val:'pull',cls:'primary'},{label:'Leave it be',val:null}]);
   if(v==='pull')await enterLab();
@@ -590,7 +613,7 @@ async function enterLab(){
 }
 
 const RELICS=[
-  {id:'beaker',e:'⚗️',n:"Labfreak's Beaker",d:'Skulls no longer hurt you or add Doom: each one splashes the nearest foe for 4.',lab:true},
+  {id:'beaker',e:'⚗️',n:"Labfreak's Beaker",d:'Skulls never hurt you or add Doom: each one hurls acid at the nearest foe for 5, arcing to the next for 3. And once per run, IT\'S ALIVE: when you would die, you get back up at half HP.',lab:true},
   {id:'luckycoin',e:'🍀',n:'Lucky Coin',d:'Coin symbols pay +1 more.'},
   {id:'fang',e:'🦷',n:'Vampire Fang',d:'Each dagger that lands a hit heals 1.'},
   {id:'ironboots',e:'🦿',n:'Iron Toecaps',d:'Blocked boots shove for +3.'},
@@ -1146,7 +1169,7 @@ function previewTurn(R){
   if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer*mu}</b>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
   if(val('coin'))L.push(`🪙 +<b>${val('coin')*s.coinPer}</b> coins`);
-  if(val('skull'))L.push(hasR('beaker')?`⚗ Beaker: skulls splash the nearest foe for <b>${val('skull')*4}</b>`:hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
+  if(val('skull'))L.push(hasR('beaker')?`⚗ Beaker: acid on the nearest foe for <b>${val('skull')*5}</b>, arcing to the next for <b>${val('skull')*3}</b>`:hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
   if(val('key')){const ch=r.objs.find(o=>o.kind==='chest'&&!o.gone&&o.x>r.x&&o.x-r.x<=3);L.push(ch?`🗝 open the chest ${ch.x-r.x} tile${ch.x-r.x>1?'s':''} ahead`:`🗝 no chest in reach: +1 🪙`);}
   // walk the boots forward on a copy of the map
   let x=r.x,steps=val('boots')*s.move+(val('boots')?s.moveBonus:0),moved=0,shoves=0,shoveT=null,door=false;
@@ -1158,7 +1181,7 @@ function previewTurn(R){
     if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${(val('bow')*s.bowDmg+mom)*mu}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
     if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${(val('bomb')*s.bombDmg+mom)*mu}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
-    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
+    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'||e.t==='labfreak'?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
   }
   if(!L.length)L.push('Nothing lands. Foes take their turn.');
@@ -1189,7 +1212,10 @@ async function doTurn(R){
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
   if(val('coin')){const c=val('coin')*s.coinPer;gainCoins(c);parts.push(`🪙+${c}`);}
   if(val('skull')){
-    if(hasR('beaker')){const t=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x).sort((a,b)=>a.x-b.x)[0];if(t){await hit(t,val('skull')*4,'bomb');parts.push(`⚗${val('skull')*4}`);}else parts.push('⚗ fizzles');}
+    if(hasR('beaker')){const ts=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x).sort((a,b)=>a.x-b.x);
+      if(ts.length){const d1=val('skull')*5,d2=val('skull')*3;addFx('fx_curse',ts[0].x*T+T/2,GY-50,80,.7,10);await hit(ts[0],d1,'bomb');parts.push(`⚗${d1}`);
+        const t2=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x&&o!==ts[0]).sort((a,b)=>a.x-b.x)[0];if(t2){addFx('fx_curse',t2.x*T+T/2,GY-50,60,.6,10);await hit(t2,d2,'bomb');parts.push(`⚡${d2}`);}}
+      else parts.push('⚗ fizzles');}
     else if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
     else{const d=val('skull')*s.skullDmg;r.hp-=d;hurtBy('a Skull on the reels',d);heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);
       r.doom=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);if(r.doom>=3){heroFl('DOOM','#b07cf0');}}
@@ -1301,7 +1327,7 @@ async function enemyPhase(){
   const r=run;
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);
   for(const e of es){
-    for(let rep=0;rep<(e.elite==='fast'?2:1);rep++){
+    for(let rep=0;rep<(e.elite==='fast'||e.t==='labfreak'?2:1);rep++){
     if(r.over||r.hp<=0)return;if(e.gone)continue;
     e.block=e.elite==='shield'?5:0;
     const [a,v]=e.pat[e.pi%e.pat.length],dist=e.x-r.x;
@@ -1317,7 +1343,8 @@ async function enemyPhase(){
     else if(a==='guard'){e.block=v;fl('🛡'+v,'#5aa9e6',e.x*T+T/2,GY-100);}
     else if(a==='grow'){e.hp+=v;e.max+=v;fl('+'+v,'#6cc070',e.x*T+T/2,GY-90);}
     else if(a==='summon'){let sx=e.x+1;while(r.objs.some(o=>o.x===sx&&!o.gone&&o.kind!=='door'&&o.kind!=='openchest')&&sx<r.len-1)sx++;
-      if(sx<r.len&&!r.objs.some(o=>o.x===sx&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'))){const m=mkEnemy(v,sx,r.floor);m.loot=0;m.coins=[0,1];r.objs.push(Object.assign(m,{id:uid++}));fl('RISE!','#e0605a',e.x*T+T/2,GY-120);}}
+      if(sx<r.len&&!r.objs.some(o=>o.x===sx&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'))){const m=mkEnemy(v,sx,r.floor);m.loot=0;m.coins=[0,1];r.objs.push(Object.assign(m,{id:uid++}));fl('RISE!','#e0605a',e.x*T+T/2,GY-120);
+        if(e.t==='labfreak'){const ox=e.x;e.x=sx;m.x=ox;m.dx=sx*T;fl('back, my pet!','#8cff96',ox*T+T/2,GY-140);}}}
     else if(a==='steal'){const c=Math.min(r.coins,v);r.coins-=c;heroFl('-'+c+' 🪙 stolen','#b07cf0');}
     else if(a==='curse'){r.curse=(r.curse||0)+1;heroFl('+💀 on reels','#b07cf0');addFx('fx_curse',heroWX(),GY-60,76,.9,20);rebuildReels();}
     else if(a==='jam'){if(!r.jam){const free=M.reels.map((R,i)=>i).filter(i=>!M.reels[i].jam);if(free.length){r.jam={reel:pick(free),by:e.id};heroFl('REEL JAMMED','#b07cf0');rebuildReels();}}}
@@ -1339,6 +1366,10 @@ async function enemyHit(e,dmg){
 async function tryDie(){
   const r=run;if(r.hp>0)return false;
   if(hasR('secondwind')&&!r.usedWind){r.usedWind=true;r.hp=1;heroFl('SECOND WIND','#9fd6ff');ui();return false;}
+  if(hasR('beaker')&&!r.beakerRevived){r.beakerRevived=true;r.hp=Math.ceil(stats().maxHp/2);sfx.jackpot();view.shake=10;
+    document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
+    view.banner={t:performance.now(),txt:"IT'S ALIVE!"};heroFl('+'+r.hp+' HP','#8cff96');addFx('fx_heal',heroWX(),GY-50,90,1,30);
+    noteTurn(`<span style="color:#8cff96">Labfreak's Beaker: <b>IT'S ALIVE!</b> back up at ${r.hp} HP</span>`);ui();return false;}
   await endRun('slain');return true;
 }
 async function broke(){
@@ -1681,12 +1712,14 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(v==='x')endRun('quit');
 });
 $('#scene').addEventListener('click',e=>{
-  if(!run||busy||M.spinning||modalOpen)return;
+  if(!run||modalOpen||obitOpen)return;
   const rc=e.target.getBoundingClientRect();const lx=(e.clientX-rc.left)/rc.width*VWd;
   const wx=Math.floor((lx+view.cam)/T);
+  const gv=run.objs.find(o=>!o.gone&&o.kind==='grave'&&Math.abs(o.dx+T/2-(lx+view.cam))<T*.6);
+  if(gv){readGrave(gv);return;}
+  if(busy||M.spinning)return;
   const o=run.objs.find(o=>!o.gone&&o.x===wx&&o.kind!=='openchest'&&o.kind!=='shrine_used');
   if(!o)return;
-  if(o.kind==='grave'){readGrave(o);return;}
   const info={door:['🚪 Exit','Step through to reach the merchant and the next floor.'],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
     shrine:['⛩ Shrine','Step on it to choose a relic.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
   if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}

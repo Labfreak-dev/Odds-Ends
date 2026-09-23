@@ -378,3 +378,10 @@ Nothing in the game is emoji any more once art.js loads.
   everyone (most visibly Dr. Labfreak) seemed to hover over a black ledge.
   pack-art.py now trims near-black rows off floor strips; the lab floor was
   repacked, the other floors are unchanged.
+- **b063**: graves can be tapped any time (walking, spinning, mid-turn); the
+  obituary opens in its own layer and a grave only counts once closed with Rest in
+  peace (a "n/5 laid to rest" floater tracks it). Labfreak's lever waits for the
+  turn to finish. Dr. Labfreak acts twice a turn and swaps places with whatever he
+  summons. Labfreak's Beaker: skulls hurl acid at the nearest foe for 5 that arcs
+  to the next for 3, and once per run IT'S ALIVE revives you at half HP; it glows
+  in the relic row.

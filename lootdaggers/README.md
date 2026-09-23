@@ -326,3 +326,8 @@ Nothing in the game is emoji any more once art.js loads.
   1 / 2 / 3 / 4 held reels (Reel Clamp still makes holds free).
 - **b051**: Reel Clamp now covers two holds only: 1-2 held reels are free, 3 and
   4 cost the difference (21 / 133 extra coins).
+- **b052**: Full screen setting (top of Settings): uses the browser fullscreen
+  API, so Android hides the address bar and phone buttons; re-asked on the first
+  tap after a reload, switched off if the player backs out of it. iPhones get a
+  hint instead. Added manifest.webmanifest (display: fullscreen) so a home-screen
+  shortcut opens full screen too.

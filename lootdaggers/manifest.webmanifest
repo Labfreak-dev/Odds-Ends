@@ -1,0 +1,11 @@
+{
+  "name": "Dead Man's Pull",
+  "short_name": "Dead Man's Pull",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0c0a0b",
+  "theme_color": "#120d10",
+  "icons": [{"src": "app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]
+}

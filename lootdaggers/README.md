@@ -192,3 +192,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b019**: matched symbols pulse inside a blood-red ring with a gold rim and
   glow; active payline cells are tinted; reel rows pulled 16% toward the middle
   so the top and bottom symbols sit inside the strip.
+- **b020**: the FLOOR N banner is gone (the HUD shows the floor); only a boss
+  name flashes on boss floors, timed in view state so it cannot stick after a
+  reload.

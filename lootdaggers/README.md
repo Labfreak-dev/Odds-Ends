@@ -315,3 +315,6 @@ Nothing in the game is emoji any more once art.js loads.
   spade ornaments (no play arrow), the rest on the wood-and-iron plaques.
 - **b046**: every hub button uses the Stake Your Soul lettering: heading-font
   titles with imprinted small-caps subtitles.
+- **b047**: settings (hub page and in-game pop-up) use the plaque lettering with the
+  state as an imprinted subtitle; the "N PAYLINES · N REELS" caption on the
+  cabinet is gone (the marquee only speaks during free spins).

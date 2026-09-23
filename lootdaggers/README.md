@@ -374,3 +374,7 @@ Nothing in the game is emoji any more once art.js loads.
 - **b061**: new Madness headshot with the whole barbell in frame; obituary headshots
   now show the full square picture (their own oval vignette) instead of cropping
   into a tall oval.
+- **b062**: the lab floor strip had ~22 rows of black border at its top, so
+  everyone (most visibly Dr. Labfreak) seemed to hover over a black ledge.
+  pack-art.py now trims near-black rows off floor strips; the lab floor was
+  repacked, the other floors are unchanged.

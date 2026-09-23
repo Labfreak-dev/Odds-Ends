@@ -318,3 +318,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b047**: settings (hub page and in-game pop-up) use the plaque lettering with the
   state as an imprinted subtitle; the "N PAYLINES · N REELS" caption on the
   cabinet is gone (the marquee only speaks during free spins).
+- **b048**: the little red marquee dots above the reels are gone; the wheel
+  badge stays pinned right and the free-spin banner centres in the space left.

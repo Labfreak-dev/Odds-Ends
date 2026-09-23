@@ -626,7 +626,7 @@ async function labfreakPhase2(o){
   await labDialog('portrait_drlabfreak','Dr. Labfreak',"No... no, NO! Nobody walks away from my table! The house ALWAYS collects! Just... one... more... PULL!",null,'Watch in horror');
   sfx.jackpot();view.shake=16;document.body.classList.add('labFlash');addFx('fx_curse',o.x*T+T/2,GY-80,150,1.2,20);
   const dm=Math.max(0,((o.pat.find(p=>p[0]==='atk')||['atk',7])[1])-7),mx=Math.round(o.max*.8);
-  Object.assign(o,{n:'Dr. Labfreak, Unleashed',max:mx,hp:mx,block:0,pi:0,pose:1,pat:[['atk',7+dm],['grow',Math.round(mx*.08)],['atk',9+dm],['atk',5+dm]]});
+  Object.assign(o,{mutated:true,n:'Dr. Labfreak, Unleashed',max:mx,hp:mx,block:0,pi:0,pose:1,pat:[['atk',7+dm],['grow',Math.round(mx*.08)],['atk',9+dm],['atk',5+dm]]});
   await sleep(700);document.body.classList.remove('labFlash');
   view.banner={t:performance.now(),txt:'DR. LABFREAK, UNLEASHED'};ui();
   await labDialog('portrait_labfreak2','Dr. Labfreak, Unleashed',"IT'S ALIVE... AND IT'S ME! Every hit you take will rot a little more. Let's see how long your luck holds out!",'screen_lab_transform','Face him');
@@ -1907,14 +1907,14 @@ function drawHero(x,t,moving){
   cx.globalAlpha=1;
 }
 function drawEnemy(o,x,t){
-  const ph=o.phase2&&artImg('boss_'+o.t+'2')?'2':'';
+  const ph=o.mutated&&artImg('boss_'+o.t+'2')?'2':'';
   const flash=o.flash>0;const k=o.boss?'boss_'+o.t+ph:'enemy_'+o.t;const s=o.boss?1.7:o.big?1.4:1;
   const X=x-(o.lunge||0)*10,Y=GY;
   let w=64*s,h=64*s;
   const ak=(o.boss?'boss_attack_':'enemy_attack_')+o.t+ph;
   if(artImg(k))shadow(x,o.boss?34:20);
   if(o.elite)cx.filter='drop-shadow(0 0 6px #c9302c)';
-  if(o.phase2)cx.filter='drop-shadow(0 0 7px #8cff96)';
+  if(o.mutated)cx.filter='drop-shadow(0 0 7px #8cff96)';
   if(flash)cx.filter='brightness(2.2)';
   const d=(o.pose>0&&sprAt(ak,X,Y,true))||sprAt(k,X,Y,true);
   if(d)h=Math.min(d.h*.92,VH-40);

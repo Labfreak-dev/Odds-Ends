@@ -98,7 +98,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .reel::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(0,0,0,.35),transparent 25%,transparent 75%,rgba(0,0,0,.35))}
 .reel .cell{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:min(9vw,44px,5.6dvh);line-height:1;will-change:transform}
 .reel .cell img{width:78%;height:78%;object-fit:contain;image-rendering:auto}
-.reel .cell.pay{background:rgba(217,181,106,.22);box-shadow:inset 0 0 0 2px rgba(217,181,106,.35)}
+.reel .cell.pay{background:rgba(217,181,106,.18)}
+.reel .cell.pay::after{content:"";position:absolute;inset:9% 10%;pointer-events:none;border:2px solid rgba(201,118,58,.85);border-radius:10px;box-shadow:0 0 8px 1px rgba(201,118,58,.55);animation:paypulse 1.6s ease-in-out infinite}
+.reel .cell.pay img{filter:drop-shadow(0 0 3px rgba(255,200,120,.8))}
+@keyframes paypulse{0%,100%{opacity:.55}50%{opacity:1}}
 .reel .cell.win{background-image:radial-gradient(circle,rgba(240,200,90,.95),rgba(240,200,90,0) 72%)!important;animation:winpulse 1.1s ease-in-out infinite}
 .reel .cell.win::after{content:"";position:absolute;inset:5% 7%;pointer-events:none;border:3px solid #8a1410;border-radius:10px;box-shadow:0 0 0 2px #e8c96a,0 0 12px 3px rgba(255,210,90,.9),inset 0 0 10px rgba(138,20,16,.6);animation:winring 1.1s ease-in-out infinite}
 .reel .cell.win img{transform:scale(1.18);filter:drop-shadow(0 0 4px #ffe6a8) drop-shadow(0 0 3px #ff9a3a)}
@@ -1376,7 +1379,7 @@ function jackpotFlash(mult){
   const src=artSrc('screen_jackpot');if(!src)return;
   let el=$('#jackpotFlash');if(!el){el=document.createElement('img');el.id='jackpotFlash';$('#sceneWrap').appendChild(el);}
   let w=$('#jackpotWord');if(!w){w=document.createElement('div');w.id='jackpotWord';$('#sceneWrap').appendChild(w);}
-  el.src=src;w.innerHTML=`JACKPOT!<small>${mult>1?'x'+mult+' · ':''}THE HOUSE PAYS</small>`;
+  el.src=src;w.innerHTML=`JACKPOT!<small>${mult>1?'x'+mult+' · ':''}DEATH FAVOURS YOU</small>`;
   for(const x of [el,w]){x.classList.remove('go');void x.offsetWidth;x.classList.add('go');}
   sfx.jackpot();setTimeout(sfx.jackpot,500);
 }

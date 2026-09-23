@@ -118,10 +118,10 @@ adds a relic pick on trigger. Foes still act.
 ## Soul coins and bulbs (b036)
 Half the coins on each reel strip are `scoin` (soul coins: same as a coin on
 the payline, drawn with a flame). Three soul coins anywhere on the screen
-(`soulCount`; Silver Scatter relic: two) light one bulb, plus one per extra
-coin (`bulbsGained`). `run.bulbs` fills five bulbs drawn as glow overlays on
+(`soulCount`; Silver Scatter relic: two) light one bulb, plus two per extra
+coin (`bulbsGained`). `run.bulbs` fills seven bulbs drawn as glow overlays on
 the cabinet art (`BULB_POS`, measured from `ui_cabinet`; a dot row fallback
-when there is no cabinet art). Five lit = free spins (3, Long Streak 5), bulbs
+when there is no cabinet art). Seven lit = free spins (3, Long Streak 5), bulbs
 reset. During the bonus the reels stop and resolve on their own and the next
 spin fires automatically (`M.autoBonus`) unless Settings → "Free spins: tap
 each spin" (`S.bonusManual`).
@@ -289,3 +289,6 @@ Nothing in the game is emoji any more once art.js loads.
   packer skips them.
 - **b036**: soul coins (flaming coins) light the cabinet's red bulbs; five
   bulbs = free spins, which now play themselves (Settings toggle to tap each).
+- **b037**: all seven cabinet bulbs are used (the row is 7, not 5); extra soul
+  coins beyond the threshold light two bulbs each so the row fills at a
+  similar pace.

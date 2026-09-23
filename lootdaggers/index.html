@@ -121,6 +121,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #peek .mbox{position:relative;padding-top:38px}
 #peekX{position:absolute;top:6px;right:6px;width:36px;height:36px;border:2px solid #000;border-radius:8px;background:#4a1512;color:#f1e6d2;font-size:20px;font-weight:800;box-shadow:0 2px 0 #000;z-index:3;line-height:1}
 .mbox.art #peekX{top:-14px;right:-14px}
+.peekBtn .ico{width:22px;height:22px;vertical-align:-6px;margin-right:2px;filter:drop-shadow(0 0 1px #f0e2c4)}
 .peekBtn{display:block;width:92px;margin:6px 0 0;padding:6px 4px;font-size:12px;text-align:center;border:2px solid #000;border-radius:8px;background:var(--panel2);color:var(--ink);box-shadow:0 2px 0 #000}
 .merchCol{float:right;margin:0 0 6px 12px;width:92px}
 .merchCol .port{float:none;margin:0;width:92px;height:136px}
@@ -884,7 +885,7 @@ async function shop(){
       remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
     btns.push({label:'Descend ▶',val:'go',cls:'primary'});
-    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">🎒 My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns);
+    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns);
     if(v==='go')return;
     const o=offers[v];if(!o||o.sold||r.coins<o.price)continue;
     if(o.t==='remove'){

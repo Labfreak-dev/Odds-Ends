@@ -353,3 +353,7 @@ Nothing in the game is emoji any more once art.js loads.
 - **b056**: nudge arrows shrunk and stacked (▲ over ▼) beside each HOLD, so the
   control row never pushes the cabinet off a phone screen; with 4-5 reels the HOLD
   buttons drop their icon to fit.
+- **b057**: gravestone names are chiselled, not printed: a recessed body that
+  darkens the stone, a shadowed upper-left wall, a lit lower-right edge and a
+  little wear, rendered once per name to a cached canvas. Lettering kept inside
+  each stone face.

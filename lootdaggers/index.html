@@ -56,7 +56,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 #log b{color:var(--ink)}
 #log .preview div{padding:1px 0}
 #log .preview .hint{color:var(--gold);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
-#log{max-height:26dvh;overflow:auto}
+#log{height:40px;overflow:hidden}
+#forecast{position:absolute;left:8px;right:8px;top:8px;background:rgba(10,7,8,.82);border:2px solid #000;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.4;color:var(--ink);box-shadow:0 3px 0 #000;display:none;max-height:72%;overflow:auto}
+#forecast.show{display:block}
+#forecast div{padding:1px 0}
+#forecast .hint{color:var(--gold);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
 
 /* ---------- slot machine ---------- */
 #machine{flex:none;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:10px 12px;min-height:0}
@@ -206,7 +210,7 @@ button{font:inherit;color:inherit;cursor:pointer}
       <span class="chip" id="hudFloor">F1</span>
       <button id="menuBtn" aria-label="Menu">☰</button>
     </div>
-    <div id="sceneWrap"><canvas id="scene"></canvas></div>
+    <div id="sceneWrap"><canvas id="scene"></canvas><div id="forecast"></div></div>
     <div id="log">Insert a coin and pull. <b>Whatever lands is your turn.</b></div>
     <div id="machine">
       <div id="cabinet">
@@ -666,11 +670,11 @@ async function onAllStopped(){
   markCells(res.pays,'pay');markCells(res.wins,'win');
   if(res.triples)sfx.jackpot();
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
-  logLine(previewTurn(res));M.pendingRes=res;setBtn('resolve');busy=false;ui();
+  showForecast(previewTurn(res));logLine('Reels stopped. <b>Read the forecast, then resolve.</b>');M.pendingRes=res;setBtn('resolve');busy=false;ui();
   if(S.autoResolve){await sleep(1400);if(M.pendingRes===res)await resolveTurn();}
 }
 async function resolveTurn(){
-  const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;
+  const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;showForecast('');
   busy=true;setBtn('busy');
   try{await doTurn(res);}catch(e){console.error(e);}
   busy=false;
@@ -704,8 +708,9 @@ function previewTurn(R){
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
   }
   if(!L.length)L.push('Nothing lands. Foes take their turn.');
-  return `<div class="preview">${L.map(l=>`<div>${l}</div>`).join('')}<div class="hint">${S.autoResolve?'resolving…':'tap <b>RESOLVE TURN</b>'}</div></div>`;
+  return `${L.map(l=>`<div>${l}</div>`).join('')}<div class="hint">${S.autoResolve?'resolving…':'tap <b>RESOLVE</b>'}</div>`;
 }
+function showForecast(h){const f=$('#forecast');f.innerHTML=artify(h);f.classList.toggle('show',!!h);}
 function logLine(h){$('#log').innerHTML=artify(h);}
 
 async function doTurn(R){

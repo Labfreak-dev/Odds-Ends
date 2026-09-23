@@ -391,7 +391,7 @@ const ENEMIES={
   mimic:{n:'Mimic',hp:16,pat:[['atk',4],['atk',5]],coins:[4,7],from:99,loot:1},
   croupier:{n:'Cursed Croupier',hp:14,range:2,pat:[['jam',0],['atk',3],['atk',3]],coins:[3,5],from:3,d:'Jams one of your reels on a Skull until it dies.'},
   taxman:{n:'Tax Collector',hp:12,range:3,pat:[['tax',1],['atk',2]],coins:[5,8],from:3,d:'Every spin costs +1 coin while it is awake.'},
-  mirror:{n:'Mirror Wight',hp:16,pat:[['atk',3],['atk',4]],coins:[3,5],from:5,d:'Reflects half of every dagger hit back at you.'},
+  mirror:{n:'Mirror Wight',hp:16,pat:[['atk',3],['atk',4]],coins:[3,5],from:5,d:'Every dagger hit sends a small shard back at you (1 damage, more on deeper floors). Block stops it.'},
   ironclad:{n:'Ironclad Husk',hp:20,pat:[['atk',5],['guard',6]],coins:[4,6],from:5,d:'Only bombs, shoves and jackpot turns can hurt it.'},
   abom:{n:'Stitched Abomination',hp:26,pat:[['atk',6],['grow',5],['atk',7]],coins:[4,7],from:99,loot:.4,d:'Stitches itself back together.'},
   homunculus:{n:'Jar Homunculus',hp:9,pat:[['drain',2],['atk',3]],coins:[2,4],from:99,d:'Needle fingers: it drains coins.'},
@@ -1179,7 +1179,7 @@ async function hit(o,dmg,how){
   }
   if(o.t==='ironclad'&&!(how==='bomb'||how==='shove'||r.turnJackpot)){fl('IMMUNE','#9aa3ad',o.x*T+T/2,GY-96);o.flash=1;return;}
   let d=dmg;if(o.block){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
-  if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.ceil(d/2),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
+  if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.min(d,1+Math.floor(r.floor/8)),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
   r.bestHit=Math.max(r.bestHit||0,d);
   o.hp-=d;o.flash=1;addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
   if(o.hp<=0)await kill(o);
@@ -1643,8 +1643,9 @@ function loadArt(){
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
   boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
 // where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
-// y: share of drawn height up from the ground, w: usable face width as a share of the sprite, dark: pale letters on a dark stone
-const GRAVE_TXT={madness:{y:.75,w:.46,r:-.1},midblade:{y:.47,w:.42},papamodelo:{y:.49,w:.44},zero:{y:.52,w:.46},dapper:{y:.53,w:.48},labfreak:{y:.47,w:.58,dark:1}};
+// measured on the art: x = face centre across the sprite, y = face centre up from the ground, w = usable face width
+// (all shares of the drawn sprite), L = the name split over two lines, r = tilt, dark = a black stone
+const GRAVE_TXT={madness:{x:.53,y:.83,w:.34,r:-.1},midblade:{x:.515,y:.45,w:.42},papamodelo:{x:.51,y:.48,w:.36,L:['Papa','Modelo']},zero:{x:.505,y:.53,w:.4,L:['Zero','Override']},dapper:{x:.5,y:.51,w:.34,L:['Captain','Dapper']},labfreak:{x:.49,y:.48,w:.46,dark:1}};
 function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
@@ -1780,24 +1781,24 @@ function drawEnemy(o,x,t){
 // through), a shadow on the upper-left inner walls, a light catch on the
 // lower-right walls where the torchlight hits, and a few chips of wear.
 const ENGRAVE={};
-function engraving(txt,fs,dark){
-  const k=Math.max(2,Math.round(scaleK*(window.devicePixelRatio>1?1:1)*2)/2),key=txt+'|'+fs+'|'+k+'|'+dark;
+function engraving(lines,fs,dark){
+  const txt=lines.join(' '),lh=fs*.92,k=Math.max(2,Math.round(scaleK*2)/2),key=lines.join('/')+'|'+fs+'|'+k+'|'+dark;
   if(ENGRAVE[key])return ENGRAVE[key];
-  const font=`${fs}px 'Pirata One',serif`;cx.save();cx.font=font;const tw=cx.measureText(txt).width;cx.restore();
-  const w=tw+fs*1.2,h=fs*1.8,W=Math.ceil(w*k),H=Math.ceil(h*k);
+  const font=`${fs}px 'Pirata One',serif`;cx.save();cx.font=font;const tw=Math.max(...lines.map(l=>cx.measureText(l).width));cx.restore();
+  const w=tw+fs*1.2,h=fs*.9+lh*lines.length,W=Math.ceil(w*k),H=Math.ceil(h*k);
   const mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.scale(k,k);g.font=font;g.textAlign='center';g.textBaseline='middle';return [c,g];};
-  const [m,mg]=mk();mg.fillStyle='#fff';mg.fillText(txt,w/2,h/2);
+  const [m,mg]=mk();mg.fillStyle='#fff';lines.forEach((l,i)=>mg.fillText(l,w/2,h/2+(i-(lines.length-1)/2)*lh));
   // letters with the text shifted by (dx,dy) cut away: a band along one side of every stroke
   const band=(dx,dy,col)=>{const [c,g]=mk();g.setTransform(1,0,0,1,0,0);g.drawImage(m,0,0);g.globalCompositeOperation='destination-out';g.drawImage(m,dx*k,dy*k);
     g.globalCompositeOperation='source-in';g.fillStyle=col;g.fillRect(0,0,W,H);return c;};
   const [out,og]=mk();og.setTransform(1,0,0,1,0,0);
-  og.drawImage(m,0,0);og.globalCompositeOperation='source-in';og.fillStyle=dark?'rgba(0,0,0,.9)':'rgba(30,20,14,.82)';og.fillRect(0,0,W,H);
+  og.drawImage(m,0,0);og.globalCompositeOperation='source-in';og.fillStyle=dark?'rgba(0,0,0,.92)':'rgba(24,15,10,.9)';og.fillRect(0,0,W,H);
   og.globalCompositeOperation='source-over';
   og.drawImage(band(.55,.7,dark?'rgba(0,0,0,1)':'rgba(6,4,2,.95)'),0,0);            // shadowed upper-left walls
-  og.drawImage(band(-.5,-.6,dark?'rgba(215,210,196,.8)':'rgba(255,248,232,.9)'),0,0); // lit lower-right walls
+  og.drawImage(band(-.45,-.55,dark?'rgba(225,220,205,.85)':'rgba(255,250,238,.95)'),0,0); // lit lower-right walls
   // weathering: a few chips knocked out of the letters, the same every time for a name
   og.globalCompositeOperation='destination-out';let sd=0;for(const ch of txt)sd=(sd*31+ch.charCodeAt(0))>>>0;
-  for(let i=0;i<Math.round(tw/8);i++){sd=(sd*1103515245+12345)>>>0;const px=(sd%1000)/1000*W;sd=(sd*1103515245+12345)>>>0;const py=(sd%1000)/1000*H;
+  for(let i=0;i<Math.round(tw*lines.length/10);i++){sd=(sd*1103515245+12345)>>>0;const px=(sd%1000)/1000*W;sd=(sd*1103515245+12345)>>>0;const py=(sd%1000)/1000*H;
     og.fillStyle=`rgba(0,0,0,${.25+(sd%7)/14})`;og.beginPath();og.arc(px,py,k*(.15+(sd%5)*.05),0,7);og.fill();}
   return ENGRAVE[key]={c:out,w,h};
 }
@@ -1816,9 +1817,10 @@ function drawProp(o,x,t){
     case 'trap':if(!sprAt('trap',x,Y+2)){cx.fillStyle='#9aa3ad';for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(x-18+i*10,Y);cx.lineTo(x-13+i*10,Y-14);cx.lineTo(x-8+i*10,Y);cx.fill();}}break;
     case 'grave':{const k=graveKey(o);let d=sprAt(k,x,Y)||sprAt('grave_'+o.who,x,Y);
       if(!d){cx.fillStyle='#4a4450';cx.beginPath();cx.moveTo(x-20,Y);cx.lineTo(x-20,Y-52);cx.arc(x,Y-52,20,Math.PI,0);cx.lineTo(x+20,Y);cx.fill();cx.fillStyle='#2e2a33';cx.fillRect(x-24,Y-4,48,6);d={w:40,h:72};}
-      const g=graveDef(o.who),gt=GRAVE_TXT[o.who]||{y:.5,w:.5},ty=Y+FEET_SINK-d.h*gt.y;let fs=13;cx.font=`${fs}px 'Pirata One',serif`;
-      while(fs>4&&cx.measureText(g.n).width>d.w*gt.w){fs-=.25;cx.font=`${fs}px 'Pirata One',serif`;}
-      const eg=engraving(g.n,fs,!!gt.dark);cx.save();cx.translate(x,ty);if(gt.r)cx.rotate(gt.r);cx.drawImage(eg.c,-eg.w/2,-eg.h/2,eg.w,eg.h);cx.restore();
+      const g=graveDef(o.who),gt=GRAVE_TXT[o.who]||{x:.5,y:.5,w:.5},ty=Y+FEET_SINK-d.h*gt.y,tx=x+d.w*((gt.x||.5)-.5),lines=gt.L||[g.n];
+      let fs=15;const widest=()=>{cx.font=`${fs}px 'Pirata One',serif`;return Math.max(...lines.map(l=>cx.measureText(l).width));};
+      while(fs>4&&widest()>d.w*gt.w)fs-=.25;
+      const eg=engraving(lines,fs,!!gt.dark);cx.save();cx.translate(tx,ty);if(gt.r)cx.rotate(gt.r);cx.drawImage(eg.c,-eg.w/2,-eg.h/2,eg.w,eg.h);cx.restore();
       if(!graveRead(o.who)||(o.who==='labfreak')){const p=.45+Math.sin(t*3+o.x)*.35;const gg=cx.createRadialGradient(x,Y-d.h-6,1,x,Y-d.h-6,14);gg.addColorStop(0,`rgba(140,255,150,${p})`);gg.addColorStop(1,'rgba(140,255,150,0)');cx.fillStyle=gg;cx.fillRect(x-16,Y-d.h-22,32,32);}
       break;}
     case 'coins':if(!sprAt('coinpile',x,Y+2)){for(let i=0;i<Math.min(5,o.v+1);i++){cx.fillStyle='#b8862a';cx.beginPath();cx.ellipse(x-10+i*5,Y-4-(i%2)*5,6,4,0,0,7);cx.fill();cx.fillStyle='#d9b56a';cx.beginPath();cx.ellipse(x-10+i*5,Y-5-(i%2)*5,5,3,0,0,7);cx.fill();}}break;

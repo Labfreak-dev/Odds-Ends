@@ -237,6 +237,13 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .bank{display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .hubBtns{display:flex;flex-direction:column;gap:9px;max-width:380px;margin:0 auto}
 .hubBtns .btn{font-size:16px}
+/* gothic casino hub buttons: wood-and-iron plaques, the main bet on a gilded plate */
+#hub .hubBtns .btn:not(.primary):not(.danger){border:16px solid transparent;border-image:var(--btnArt) 80 fill / 16px stretch;background:#1d1718;box-shadow:0 4px 10px rgba(0,0,0,.6);padding:6px 10px;border-radius:0;color:#f3e9d6;text-shadow:0 1px 0 #000,0 0 6px #000}
+#hub .hubBtns .btn:not(.primary):not(.danger) small{color:#dccfb6}
+#hub .hubBtns .btn.primary{border:0;border-radius:6px;background:var(--goldArt,linear-gradient(#cfa75c,#7d5a26)) center/100% 100% no-repeat;padding:20px 28px 24px;font-family:var(--head);font-weight:400;font-size:30px;letter-spacing:1px;color:#2a1206;text-shadow:0 1px 0 rgba(255,230,170,.55);box-shadow:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}
+#hub .hubBtns .btn.primary small{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#4a2408;letter-spacing:1px;text-transform:uppercase;margin-top:0}
+#hub .hubBtns .btn.primary .suit{color:#7a0f0a;font-size:.7em;margin:0 12px;vertical-align:.12em;text-shadow:0 1px 0 rgba(255,220,160,.5)}
+#hub .hubBtns .btn.primary:active{transform:translateY(2px) scale(.99)}
 #hub.painted .btn,#hub.painted .item{background-color:rgba(24,20,21,.9)}
 #hub.painted .chip{background:rgba(24,20,21,.9)}
 #hub.painted h2,#hub.painted h3{text-shadow:0 2px 0 #000,0 0 12px #000}
@@ -1317,8 +1324,8 @@ function showHub(v){
     html=`${artSrc('ui_logo')?`<div id="logoWrap"><img id="logoImg" src="${artSrc('ui_logo')}" alt=""><svg viewBox="0 0 691 480" aria-hidden="true"><defs><path id="bannerArc" d="M124,312 Q345,384 566,312"/></defs><text class="bannerTxt"><textPath href="#bannerArc" startOffset="50%" text-anchor="middle">Dead Man's Pull</textPath></text></svg></div>`:''}<h1 class="${artSrc('ui_logo')?'hasLogo':''}">Dead Man's Pull</h1><div class="tag">Every coin a heartbeat. The house always collects.</div>
     ${artSrc('screen_hub_bg')?'<div style="height:8px"></div>':'<canvas id="hubArt"></canvas><div style="height:12px"></div>'}${bank}
     <div class="hubBtns">
-      ${S.run?`<button class="btn primary" data-act="resume">▶ Let It Ride <small>Your stake is still on the table · Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
-      <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'Fold &amp; Deal Again <small>forfeits the hand in play</small>':'▶ Stake Your Soul <small>your debts come due below</small>'}</button>
+      ${S.run?`<button class="btn primary" data-act="resume"><span class="suit">♠</span>Let It Ride<span class="suit">♠</span><small>Your stake is still on the table · Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
+      <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'Fold &amp; Deal Again <small>forfeits the hand in play</small>':'<span class="suit">♠</span>Stake Your Soul<span class="suit">♠</span><small>your debts come due below</small>'}</button>
       <button class="btn" data-act="daily">${icon('ui_daily','📅')} The Daily Wager <small>${todayKey()} · one table, every gambler, the same cards${(S.daily||{})[todayKey()]?` · your best: floor ${S.daily[todayKey()].best}`:''}</small></button>
       <button class="btn" data-act="altar">💠 Soul Altar <small>Permanent upgrades, paid in souls</small></button>
       <button class="btn" data-act="bench">🎰 Machine Workbench <small>Rewire the slot machine, paid in boss chips</small></button>
@@ -1429,6 +1436,7 @@ function artImg(k){return ART[k]&&ART[k].complete&&ART[k].naturalWidth?ART[k]:nu
 function artSrc(k){return (window.LD_ART||{})[k]||'';}
 function applyChrome(){
   const A=window.LD_ART||{};
+  const R=document.documentElement.style;if(A.ui_button)R.setProperty('--btnArt',`url(${A.ui_button})`);if(A.ui_spin_button)R.setProperty('--goldArt',`url(${A.ui_spin_button})`);
   if(A.ui_cabinet){$('#cabinetArt').src=A.ui_cabinet;$('#cabinet').classList.add('art');}
   if(run)drawBulbs();
   if(A.ui_spin_button){$('#spinBtn').classList.add('art');}

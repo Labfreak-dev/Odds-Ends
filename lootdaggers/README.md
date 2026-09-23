@@ -311,3 +311,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b044**: deeper banner curve; tagline "Every coin a heartbeat. The house always
   collects."; hub buttons reworded for the gambling theme: Stake Your Soul, Let
   It Ride, Fold & Deal Again, The Daily Wager.
+- **b045**: gothic casino hub buttons: the main bet on the gilded iron plate with
+  spade ornaments (no play arrow), the rest on the wood-and-iron plaques.

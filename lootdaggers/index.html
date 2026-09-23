@@ -1178,7 +1178,7 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,
-  boss:168,chest:84,chest_open:84,door:176,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74};
 function canvasH(k){if(k.startsWith('hero_'))return CANVAS_H.hero;if(k.startsWith('boss'))return CANVAS_H.boss;return CANVAS_H[k.replace('enemy_attack_','enemy_')]||100;}
 // draw sprite k with its feet at (x,y); returns its drawn size, or null if not loaded
 // FEET_SINK: the floor strip has a lip at GY, so sprites' feet sit a little below it.
@@ -1224,8 +1224,11 @@ function drawBG(cam,t){
   for(let i=Math.floor((cam-40)/(T*5))-1;i<=Math.floor((cam+VWd+40)/(T*5));i++){
     const x=i*T*5+T*2.5-cam;
     const fl=Math.sin(t*9+i)*2+Math.sin(t*23+i*3);
-    const rg=cx.createRadialGradient(x,70,2,x,70,70+fl*3);rg.addColorStop(0,'rgba(255,170,70,.35)');rg.addColorStop(1,'rgba(255,170,70,0)');
+    const tb='torch_'+bio.wall.replace('bg_wall_','').replace('bg_wall','crypt');const bearer=artImg(tb);
+    const fy=bearer?GY-canvasH(tb)*.78:70;   // flame height: near the top of the bearer, else the sconce
+    const rg=cx.createRadialGradient(x,fy,2,x,fy,70+fl*3);rg.addColorStop(0,'rgba(255,170,70,.35)');rg.addColorStop(1,'rgba(255,170,70,0)');
     cx.fillStyle=rg;cx.fillRect(x-80,top,160,GY-top);
+    if(bearer){sprAt(tb,x,GY);continue;}
     if(!sprAt('torch',x,104-FEET_SINK)){rect(x-3,78,6,18,'#4a3322');rect(x-5,76,10,4,'#6a4a2a');
       cx.fillStyle='#ffb347';cx.beginPath();cx.ellipse(x,70-fl*.5,5,9+fl*.4,0,0,7);cx.fill();cx.fillStyle='#fff3b0';cx.beginPath();cx.ellipse(x,73,2.5,5,0,0,7);cx.fill();}
   }

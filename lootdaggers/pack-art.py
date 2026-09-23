@@ -44,6 +44,7 @@ def kind(key):
     if key.startswith(('relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_',
                        'ui_', 'shop_', 'fx_')):
         return ('key', 160, 160, 84)
+    if key.startswith('torch_'):     return ('key', 420, 420, 80)   # floor-standing torch bearers
     return ('key', 280, 280, 82)     # props: chest, door, shrine, trap, torch...
 
 def border_colour(a):

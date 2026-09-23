@@ -201,3 +201,5 @@ Nothing in the game is emoji any more once art.js loads.
   looks like it is floating (FEET_SINK in sprAt).
 - **b023**: rats and slimes sink further (their lowest pixel is a tail or drip,
   not feet) via a SINK_EXTRA table.
+- **b024**: torch bearers: floor-standing torch_<biome> props replace the
+  floating wall sconce when packed (crypt, 2, 3, 4, boss); prompts added.

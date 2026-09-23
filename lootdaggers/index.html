@@ -414,7 +414,7 @@ const BOSS_ORDER=['boneking','bandit','lich'];
    other five have been read; his has a lever that leads to his laboratory.
    Nothing spawns until the grave art is packed (art pack 12). */
 const GRAVES=[
-  {id:'madness',n:'Madness',
+  {id:'madness',special:[["{n}, the strongest man in the lower crypts and the living personification of manly vibes, has died attempting to deadlift the dungeon. He got it about two inches off the ground.", "Witnesses say the whole floor shook, three skeletons applauded and the Bone King quietly asked for an autograph. The dungeon has since been put back down, slightly crooked.", "Is that all you've got?"],["{n} died flexing. He flexed at the orc. He flexed at the Lich. He flexed, finally, at the Reaper, who had never seen biceps like that and panicked.", "He bench-pressed a Stitched Abomination every morning to warm up, drank raw eggs by the barrel and wrestled bears for fun, usually winning, once marrying. His moustache has been donated to science, which is struggling to lift it.", "Feel this."],["{n} has passed away after challenging a portcullis to an arm-wrestle. The portcullis was two tonnes of iron. He held it for nine days.", "He never skipped leg day, arm day, chest day, or the second chest day he invented. Mourners are asked to bring a barbell instead of flowers and lift it at least once before leaving.", "Spot me."],["{n}, the manliest man ever to wear a leopard-print singlet, died when his muscles grew so large they wedged him in a corridor two tiles from the exit.", "He was carried out by forty adventurers, two ogres and a very determined horse. He would have wanted it done in one lift. It took six.", "Don't forget to stretch."]],n:'Madness',
     tag:['the strongest man in the lower crypts and the living personification of manly vibes','professional laugher at inappropriate moments','self-appointed jester of the lower crypts','the only man ever to argue with a slot machine and lose on appeal'],
     cause:['after challenging his own reflection to a duel and losing on points','after insisting the spike trap was "just a friendly little floor"','laughing so hard at a cursed joke that his skeleton left without him'],
     life:['He bench-pressed an orc every morning "to warm up" and flexed at his own reflection until it flexed back.','He spent his youth teaching rats to juggle and his adulthood apologising to the rats.','He once pulled the lever four hundred times in a row because "the machine looked lonely."','He held the dungeon record for most conversations with a wall, and claimed the wall started it.'],
@@ -428,7 +428,7 @@ const GRAVES=[
     quirk:['He ordered the medium meal at every tavern, rated every inn three stars and slept in the exact centre of the bed.','He could cut a coin perfectly in half, and often did, to split the bill.'],
     left:['He is survived by a half-eaten sandwich and a sword that is, by all accounts, pretty good','He leaves behind a middle child, a middle name and a middling fortune of seven coins'],
     last:['Eh. Could be worse.','I\'ll meet you halfway.','It was... fine. It was fine.']},
-  {id:'papamodelo',n:'PapaModelo',
+  {id:'papamodelo',special:[["{n}, the most handsome man ever to walk the dungeon, has died after his sombrero caught a gust in the cold-wind catacombs and carried him gracefully off a ledge.", "He fell eleven floors, and witnesses agree his mullet looked incredible the entire way down. The hat landed safely and has already been offered three modelling contracts.", "Catch my hat, mijo."],["{n} passed away after refusing to take off his sombrero to fit through a low crypt door. He tried the door sideways. He tried it diagonally. He was still trying when the skeletons arrived.", "A true papa to every adventurer he met, he fed them, hugged them and told each one they had \"good bone structure,\" including the skeletons. The hat is being buried separately; it needed its own plot.", "The hat stays on."],["{n} died doing what he did best: striking a pose. He held it through an orc attack, a cave-in and a small flood, and only moved when the Reaper asked him to \"look a bit more natural.\"", "His mullet was business at the front, fiesta at the back, and fully insured. His children, all thirty-one of them, will each inherit one glorious lock of it.", "Is this my good side?"],["{n} has died after a Mirror Wight stopped to admire itself in his hair and refused to leave. He could not bring himself to ask it to go; he understood completely.", "He brushed his mullet two hundred times a night and his moustache three hundred. He is survived by a sombrero, a guitar, a hand mirror and a dungeon full of broken hearts.", "Tell my hair I loved it."]],n:'PapaModelo',
     tag:['father figure, fashion icon and owner of the dungeon\'s most photographed jawline','a gentleman who never met a mirror he didn\'t linger at','beloved papa to everyone who ever needed a hug and a hair tip'],
     cause:['when he stopped to strike a pose in front of a Mirror Wight and it struck back','after refusing to run from an orc because running "creases the trousers"','while holding a smouldering stare so long that a slime mistook him for a statue and sat on him'],
     life:['He rode into every fight under a sombrero wide enough to shade the whole party, his glorious mullet streaming behind him like a battle flag.','He walked every corridor like a runway, and every skeleton applauded, though that may have been their bones rattling.','He raised eleven children, forty adventurers and one extremely confident rat, all of whom call him Papa.'],
@@ -526,15 +526,24 @@ function graveFor(f){
   return Math.random()<.15?pick(GRAVES).id:null;
 }
 // Two in three obituaries come off the shared deck of 50; the rest are built from
-// the person's own lines, so each grave still sounds like its owner.
+// the person's own lines (or their own written ones), so each grave sounds like its owner.
 function nextObit(){
   if(!Array.isArray(S.obitDeck)||!S.obitDeck.length)S.obitDeck=shuffle(OBITS.map((_,i)=>i));
   const i=S.obitDeck.pop();save();return OBITS[i]||OBITS[0];
 }
+// A grave with its own written obituaries (Madness, PapaModelo) deals half of its
+// obituaries from its own deck, in rotation, instead of the mixed-and-matched lines.
+function nextSpecial(g){
+  if(!S.obitDecks||typeof S.obitDecks!=='object')S.obitDecks={};
+  let d=S.obitDecks[g.id];if(!Array.isArray(d)||!d.length)d=S.obitDecks[g.id]=shuffle(g.special.map((_,i)=>i));
+  const i=d.pop();save();return g.special[i]||g.special[0];
+}
 function obitBody(g){
   const nm=`<b>${esc(g.n)}</b>`;
-  if(Math.random()<2/3){const [a,b,last]=nextObit();const fill=t=>esc(t).replace(/\{n\}/g,(m,off)=>off===0?nm:esc(g.n));
-    return `<p>${fill(a)}</p><p>${fill(b)} ${pick(GRAVE_SERVICE)}</p><p class="olast">Last words: “${esc(last)}”</p>`;}
+  const card=([a,b,last])=>{const fill=t=>esc(t).replace(/\{n\}/g,(m,off)=>off===0?nm:esc(g.n));
+    return `<p>${fill(a)}</p><p>${fill(b)} ${pick(GRAVE_SERVICE)}</p><p class="olast">Last words: “${esc(last)}”</p>`;};
+  if(g.special)return card(Math.random()<.5?nextSpecial(g):nextObit());
+  if(Math.random()<2/3)return card(nextObit());
   return `<p>${nm}, ${pick(g.tag)}, died ${pick(g.cause)}.</p>
     <p>${pick(g.life)} ${pick(g.quirk)}</p>
     <p>${pick(g.left)}. ${pick(GRAVE_SERVICE)}</p>

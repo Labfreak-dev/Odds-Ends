@@ -122,8 +122,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .reel .cell{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:min(9vw,44px,5.6dvh);line-height:1;will-change:transform}
 .reel .cell img{width:78%;height:78%;object-fit:contain;image-rendering:auto}
 .reel .cell .soul{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.reel .cell .soul img{position:relative;z-index:1;filter:drop-shadow(0 0 2px #ffb347) brightness(1.1)}
-.reel .cell .soul i{position:absolute;left:50%;top:50%;width:92%;height:92%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,200,90,.75) 0%,rgba(255,120,40,.5) 40%,rgba(255,80,20,0) 70%);filter:blur(3px);animation:emberglow 1.3s ease-in-out infinite;pointer-events:none;z-index:0}
+.reel .cell .soul img{position:relative;z-index:1;filter:drop-shadow(0 0 3px #ff4a3a) drop-shadow(0 0 1px #ff6a4a) brightness(1.1)}
+.reel .cell .soul i{position:absolute;left:50%;top:50%;width:92%;height:92%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,60,40,.95) 0%,rgba(255,70,45,.85) 30%,rgba(255,130,40,.6) 48%,rgba(255,110,30,.35) 60%,rgba(255,90,20,0) 72%);filter:blur(2.5px);animation:emberglow 1.3s ease-in-out infinite;pointer-events:none;z-index:0}
 @keyframes soulpulse{0%,100%{filter:drop-shadow(0 0 3px #ffb347) drop-shadow(0 0 6px #ff6a1a) brightness(1.15)}50%{filter:drop-shadow(0 0 5px #ffd36a) drop-shadow(0 0 12px #ff8a2a) brightness(1.3)}}
 @keyframes emberglow{0%,100%{opacity:.7;transform:translate(-50%,-50%) scale(.95)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
 #bulbs{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}

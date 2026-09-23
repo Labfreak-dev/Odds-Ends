@@ -29,6 +29,14 @@ def kind(key):
     if key == 'bg_wall':             return ('wall', 512, 4096, 76)
     if key == 'bg_floor':            return ('floor', 160, 4096, 76)
     if key.startswith('screen_'):    return ('cover', 720, 1280, 78)
+    if key.startswith('bg_wall'):    return ('wall', 512, 4096, 76)
+    if key.startswith('bg_floor'):   return ('floor', 160, 4096, 76)
+    if key == 'bg_far':              return ('wall', 420, 4096, 72)
+    if key == 'bg_fog':              return ('fogkey', 300, 4096, 74)
+    if key in ('ui_cabinet', 'ui_panel', 'ui_button', 'ui_spin_button', 'ui_stop_button', 'ui_logo', 'ui_slot_frame'):
+        return ('key', 480, 1100, 80)
+    if key in ('ui_reel_strip', 'ui_lever'): return ('key', 640, 640, 80)
+    if key in ('app_icon', 'share_card'): return ('skip', 0, 0, 0)   # served as files, not packed
     if key.startswith('portrait_'):  return ('plain', 480, 480, 80)
     if key.startswith('boss'):       return ('key', 440, 440, 82)
     if key.startswith(('hero_', 'enemy_')): return ('key', 340, 340, 82)
@@ -128,6 +136,15 @@ def process(key, im):
         img = cover(im.convert('RGB'), mw, th)
     elif k == 'wall':
         img = mirror_tile(fit(im.convert('RGB'), th, 99999))
+    elif k == 'fogkey':
+        # the low mist only: bottom band of the canvas, keyed, then greyscale so no
+        # pink survives in the semi-transparent wisps; alpha from luminance too
+        rgb = im.convert('RGB'); w, h = rgb.size
+        cut = key_out(rgb.crop((0, int(h * .80), w, h)))
+        g = cut.convert('L'); a = cut.getchannel('A')
+        a = Image.eval(a, lambda v: int(v * .85))
+        img = Image.merge('RGBA', (g, g, g, a))
+        img = mirror_tile(fit(img, th, 99999))
     elif k == 'floor':
         rgb = im.convert('RGB'); w, h = rgb.size
         band = rgb.crop((0, h // 2 - w // 12, w, h // 2 + w // 12))  # a 6:1 strip
@@ -154,6 +171,7 @@ def main():
     art, meta, total = {}, {}, 0
     for f in files:
         key = os.path.splitext(f)[0]
+        if kind(key)[0] == 'skip': continue
         img, data, scale = process(key, Image.open(os.path.join(SRC, f)))
         if scale: meta[key] = [round(scale[0], 5), scale[1]]
         art[key] = 'data:image/webp;base64,' + base64.b64encode(data).decode()

@@ -395,7 +395,7 @@ const AFF={
 
 /* ---------------- save ---------------- */
 const SAVE_KEY='lootdaggers_v1';
-function defSave(){return {souls:0,chips:0,altar:{},mods:{},heroes:{knight:true},vault:[],loadout:[],best:0,runs:0,kills:0,run:null,autoStop:false,mute:false,fast:false,seenHelp:false,firstBoss:false,autoResolve:false};}
+function defSave(){return {souls:0,chips:0,altar:{},mods:{},heroes:{knight:true},vault:[],loadout:[],best:0,runs:0,kills:0,run:null,autoStop:false,mute:false,fast:false,seenHelp:false,firstBoss:false,autoResolve:false,jackpotScreen:true};}
 let S=defSave();
 try{const raw=localStorage.getItem(SAVE_KEY);if(raw)S=Object.assign(defSave(),JSON.parse(raw));}catch(e){}
 function save(){try{S.run=run&&!run.over?run:null;localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
@@ -717,7 +717,7 @@ async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
   const parts=[];
   r.block=hasR('tower')?Math.floor(r.block/2):0;
-  if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;jackpotFlash(R.triples);await sleep(900);
+  if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);}
@@ -1089,6 +1089,7 @@ function showHub(v){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">
     <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
     <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
+    <button class="btn" data-act="set:jackpotScreen">${S.jackpotScreen!==false?'🎰 Jackpot screen: on':'🎰 Jackpot screen: off'}</button>
     <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
     <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>
     <button class="btn danger" data-act="wipe">Wipe save</button></div>`;

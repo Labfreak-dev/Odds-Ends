@@ -183,3 +183,5 @@ Nothing in the game is emoji any more once art.js loads.
   the pause menu offer auto-resolve. Short beats between phases so combos read.
 - **b015**: the turn forecast is an overlay card at the top of the scene instead
   of growing the log, so the world no longer shrinks while you read it.
+- **b016**: the turn waits for the jackpot screen to finish before resolving;
+  Settings can turn the jackpot screen off.

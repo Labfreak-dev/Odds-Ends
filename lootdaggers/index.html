@@ -1225,6 +1225,27 @@ function showGame(){if(run)music.play(musicForFloor(run.floor));$('#hub').classL
 
 /* ---------------- hub ---------------- */
 let hubView='main';
+// The settings list, shared by the hub view and the in-game pop-up.
+function settingsHTML(){return `
+    <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
+    <button class="btn" data-act="set:music">${S.music!==false?'🎵 Music: on':'🎵 Music: off'}</button>
+    <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔉 Music volume</span><input type="range" id="musicVol" min="0" max="100" value="${Math.round((S.musicVol==null?.6:S.musicVol)*100)}" style="flex:1"></div>
+    <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
+    <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
+    <button class="btn" data-act="set:jackpotScreen">${S.jackpotScreen!==false?'🎰 Jackpot screen: on':'🎰 Jackpot screen: off'}</button>
+    <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>`;}
+function applySetting(arg){S[arg]=!S[arg];save();if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
+// In-game settings: a pop-up over the pause menu that stays open while you toggle.
+function settingsPopup(){
+  let el=$('#peek');if(!el){el=document.createElement('div');el.id='peek';$('#app').appendChild(el);el.addEventListener('click',e=>{if(e.target===el||e.target.id==='peekX')el.classList.remove('show');});}
+  const A=window.LD_ART||{};
+  const render=()=>{el.innerHTML=`<div class="mbox ${A.ui_panel?'art':''}" ${A.ui_panel?`style="border-image-source:url(${A.ui_panel})"`:''}><button id="peekX" aria-label="Close">✕</button>
+    <h2>Settings</h2><div class="mbody"><div class="hubBtns" id="setList">${artify(settingsHTML())}</div></div></div>`;};
+  render();el.classList.add('show');
+  el.onclick=e=>{if(e.target===el||e.target.id==='peekX'){el.classList.remove('show');el.onclick=null;return;}
+    const b=e.target.closest('[data-act^="set:"]');if(!b)return;applySetting(b.dataset.act.split(':')[1]);const st=el.querySelector('.mbox').scrollTop;render();el.querySelector('.mbox').scrollTop=st;};
+  el.oninput=e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}};
+}
 function showHub(v){
   music.play('hub');
   hubView=v;
@@ -1284,15 +1305,7 @@ function showHub(v){
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
   }else if(v==='settings'){
-    html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">
-    <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
-    <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
-    <button class="btn" data-act="set:music">${S.music!==false?'🎵 Music: on':'🎵 Music: off'}</button>
-    <div class="btn" style="display:flex;align-items:center;gap:10px"><span>🔉 Music volume</span><input type="range" id="musicVol" min="0" max="100" value="${Math.round((S.musicVol==null?.6:S.musicVol)*100)}" style="flex:1"></div>
-    <button class="btn" data-act="set:jackpotScreen">${S.jackpotScreen!==false?'🎰 Jackpot screen: on':'🎰 Jackpot screen: off'}</button>
-    <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
-    <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>
-    <button class="btn danger" data-act="wipe">Wipe save</button></div>`;
+    html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">${settingsHTML()}<button class="btn danger" data-act="wipe">Wipe save</button></div>`;
   }
   h.innerHTML=artify(html);h.scrollTop=0;
   if(v==='main')drawHubArt();
@@ -1313,7 +1326,7 @@ $('#hub').addEventListener('click',async e=>{
   if(a==='altar'){const A=ALTAR.find(x=>x.id===arg),l=alt(arg),c=altCost(A,l);if(l<A.max&&S.souls>=c){S.souls-=c;S.altar[arg]=l+1;save();}return showHub('altar');}
   if(a==='mod'){const m=MODS.find(x=>x.id===arg);if(!S.mods[arg]&&S.chips>=m.cost&&(!m.req||S.mods[m.req])){S.chips-=m.cost;S.mods[arg]=true;save();}return showHub('bench');}
   if(a==='drop'){S.vault=S.vault.filter(x=>x.id!==arg);S.loadout=S.loadout.filter(x=>x!==arg);S.souls+=5;save();return showHub('vault');}
-  if(a==='set'){S[arg]=!S[arg];save();if(arg==='music')music.apply();return showHub('settings');}
+  if(a==='set'){applySetting(arg);return showHub('settings');}
   if(a==='wipe'){if(confirm('Wipe all progress?')){localStorage.removeItem(SAVE_KEY);S=defSave();save();}return showHub('main');}
 });
 
@@ -1333,12 +1346,10 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(!run||busy||M.spinning)return;
   const ps=artSrc('portrait_'+run.hero);
   const v=await modal('Paused',`${ps?`<img class="port big" src="${ps}" alt="">`:''}<p>${HEROES[run.hero].n} · Floor ${run.floor} · 💠 ${run.souls} souls this run · ${run.kills} kills</p>`,[
-    {label:'Resume',val:'r',cls:'primary'},{label:'How to play',val:'h'},{label:S.mute?'🔇 Sound off':'🔊 Sound on',val:'m'},{label:S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off',val:'ar'},{label:S.music!==false?'🎵 Music on':'🎵 Music off',val:'mu'},
+    {label:'Resume',val:'r',cls:'primary'},{label:'⚙️ Settings',val:'s'},{label:'How to play',val:'h'},
     {label:'Save & quit to hub',val:'q'},{label:'Abandon run <small>bank your souls now</small>',val:'x',cls:'danger'}]);
   if(v==='h')modal('How it works',helpShort(),[{label:'Got it',val:1,cls:'primary'}]);
-  if(v==='m'){S.mute=!S.mute;save();}
-  if(v==='ar'){S.autoResolve=!S.autoResolve;save();}
-  if(v==='mu'){S.music=S.music===false;save();music.apply();}
+  if(v==='s'){settingsPopup();}
   if(v==='q'){save();run=null;showHub('main');}
   if(v==='x')endRun('quit');
 });

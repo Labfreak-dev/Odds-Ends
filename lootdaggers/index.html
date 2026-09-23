@@ -64,6 +64,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .mbox.art{background:#171213;border:28px solid transparent;border-image-slice:120 fill;border-image-width:28px;border-image-repeat:stretch;box-shadow:none;padding:2px 4px;border-radius:0}
 .btn.art{background:#221c1d;border:14px solid transparent;border-image-slice:80 fill;border-image-width:14px;border-image-repeat:stretch;box-shadow:none;padding:4px 8px;border-radius:0;text-shadow:0 1px 0 #000}
 .btn.art:disabled{opacity:.5}
+.btn.art{position:relative;color:#f3e9d6}
+.btn.art::before{content:"";position:absolute;inset:0;background:rgba(8,6,6,.5);pointer-events:none}
+.btn.art .lbl{position:relative;z-index:1;text-shadow:0 1px 0 #000,0 0 6px #000}
+.btn.art small{color:#dccfb6;font-size:12px}
+.btn.art .ico.lead{filter:drop-shadow(0 2px 3px #000) brightness(1.15)}
 .reel{flex:1;position:relative;overflow:hidden;background:linear-gradient(#8f8470,#d8ceb8 28%,#e2d9c5 50%,#d8ceb8 72%,#8f8470);border:3px solid #000;border-radius:8px;cursor:pointer}
 .reel::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(0,0,0,.35),transparent 25%,transparent 75%,rgba(0,0,0,.35))}
 .reel .cell{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;font-size:min(9vw,44px,5.6dvh);line-height:1;will-change:transform}
@@ -900,7 +905,7 @@ function modal(title,html,buttons){
     m.innerHTML=`<div class="mbox ${A.ui_panel?'art':''}" ${A.ui_panel?`style="border-image-source:url(${A.ui_panel})"`:''}><h2>${artify(title)}</h2><div class="mbody">${artify(html)}</div><div class="mbtns"></div></div>`;
     const bb=m.querySelector('.mbtns');
     buttons.forEach(b=>{const el=document.createElement('button');el.className='btn '+(b.cls||'');el.innerHTML=artify(b.label);el.disabled=!!b.disabled;
-      if(A.ui_button&&!(b.cls||'').includes('primary')){el.classList.add('art');el.style.borderImageSource=`url(${A.ui_button})`;}
+      if(A.ui_button&&!(b.cls||'').includes('primary')){el.classList.add('art');el.style.borderImageSource=`url(${A.ui_button})`;el.innerHTML=`<span class="lbl">${el.innerHTML}</span>`;}
       el.onclick=()=>{m.classList.remove('show');modalOpen=false;res(b.val);};bb.appendChild(el);});
     m.classList.add('show');m.querySelector('.mbox').scrollTop=0;
   });

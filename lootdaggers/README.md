@@ -385,3 +385,7 @@ Nothing in the game is emoji any more once art.js loads.
   summons. Labfreak's Beaker: skulls hurl acid at the nearest foe for 5 that arcs
   to the next for 3, and once per run IT'S ALIVE revives you at half HP; it glows
   in the relic row.
+- **b064**: Dr. Labfreak drops four Unique pieces (a new green rarity that is never
+  rolled): Dr. Labfreak's Lab Coat, Cracked Goggles, Unidentified Liquid and
+  Chemically Burned Boots, with fixed themed stats scaled by floor and a flavour
+  line. Emoji icons until art-pack14 (gear_unique_*) arrives.

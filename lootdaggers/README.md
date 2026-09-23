@@ -177,3 +177,7 @@ Nothing in the game is emoji any more once art.js loads.
   (X to close) listing worn gear and relics without leaving the shop.
 - **b013**: the blood drip along the top of the jackpot flash is gone; the
   painting and the JACKPOT! word stay.
+- **b014**: turns resolve in two steps. After the reels stop, the log forecasts
+  the turn in plain words (block, heal, coins, steps, who gets stabbed for how
+  much, which foes strike back) and the big button reads RESOLVE. Settings and
+  the pause menu offer auto-resolve. Short beats between phases so combos read.

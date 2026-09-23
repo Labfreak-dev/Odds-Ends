@@ -214,6 +214,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .ico.btnico{width:24px;height:24px;vertical-align:-4px}
 .btn .ico{vertical-align:-.35em}
 .port.merch{float:right;margin:0 0 6px 12px}
+.deathTitle{font-family:var(--head);font-size:min(9.5vw,40px);line-height:1;text-align:center;letter-spacing:1px;margin:6px 0 4px;color:#a3130f;-webkit-text-stroke:1.5px #2a0402;text-shadow:0 0 2px #ff2a1a,0 3px 0 #3a0503,0 5px 0 #1a0201,0 0 18px rgba(255,40,20,.8),0 8px 14px #000;transform:rotate(-2deg)}
+.deathBy{text-align:center;font-family:var(--head);font-size:22px;color:var(--ink);text-shadow:0 2px 0 #000;margin:2px 0 10px;clear:both}
+.deathBy b{color:#ff5a3a}
+details.hist{clear:both;margin:8px 0 2px;font-size:12px}
+details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6px 0}
+.histTurn{border-left:3px solid #5a1f1f;padding:4px 8px;margin:6px 0;background:rgba(0,0,0,.35);border-radius:0 6px 6px 0;line-height:1.45}
+.histTurn .tn{display:block;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:2px}
+.histTurn .ico{width:16px;height:16px;vertical-align:-3px}
 .mbody::after{content:"";display:block;clear:both}
 .port{float:left;width:58px;height:86px;object-fit:cover;object-position:top;border:2px solid #000;border-radius:6px;margin:-2px 10px 0 -2px;background:#000}
 .port.big{width:92px;height:136px;margin:0 12px 6px 0}
@@ -655,7 +663,7 @@ const objsAt=x=>run.objs.filter(o=>o.x===x&&!o.gone);
 async function startRun(heroId,daily){
   const h=HEROES[heroId];seedRandom(daily||null);
   run={hero:heroId,floor:1,x:0,hp:0,block:0,coins:h.coins+alt('purse')*3,gear:{weapon:null,armor:null,boots:null,charm:null},
-    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1,bulbs:0};
+    relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1,bulbs:0,hist:[],killer:null};
   for(const id of S.loadout){const it=S.vault.find(v=>v.id===id);if(it&&!run.gear[it.slot])run.gear[it.slot]=JSON.parse(JSON.stringify(it));}
   run.daily=daily||null;run.hp=stats().maxHp;
   genFloor(1);
@@ -906,8 +914,13 @@ function previewTurn(R){
 function showForecast(h){const f=$('#forecast');f.innerHTML=artify(h);f.classList.toggle('show',!!h);}
 function logLine(h){$('#log').innerHTML=artify(h);}
 
+// The last three turns, for the death screen: what the reels dealt, what you did, what hit you.
+function noteTurn(txt){const r=run;if(!r)return;r.hist=r.hist||[];if(!r.hist.length||r.hist[r.hist.length-1].n!==r.spins)r.hist.push({n:r.spins,l:[]});
+  r.hist[r.hist.length-1].l.push(txt);if(r.hist.length>3)r.hist.shift();}
+function hurtBy(who,amt){const r=run;r.killer=who;noteTurn(`<span style="color:var(--red)">${esc(who)} hit you for <b>${amt}</b> (${Math.max(0,r.hp)} HP left)</span>`);}
 async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
+  noteTurn(`Reels: ${Object.entries(u).map(([k,n])=>`${SYM[k]?SYM[k].e:k}×${n}`).join(' ')}${R.mult>1?` · wheel ×${R.mult}`:''}${R.triples?' · JACKPOT':''}`);
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
   const mu=R.mult||1;r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
@@ -924,7 +937,7 @@ async function doTurn(R){
   if(val('coin')){const c=val('coin')*s.coinPer;gainCoins(c);parts.push(`🪙+${c}`);}
   if(val('skull')){
     if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
-    else{const d=val('skull')*s.skullDmg;r.hp-=d;heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);
+    else{const d=val('skull')*s.skullDmg;r.hp-=d;hurtBy('a Skull on the reels',d);heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);
       r.doom=(r.doom||0)+val('skull')*(hasR('scythe')?2:1);if(r.doom>=3){heroFl('DOOM','#b07cf0');}}
   }
   ui();if(val('shield')||val('potion')||val('coin')||val('skull'))await beat(380);
@@ -965,7 +978,7 @@ async function doTurn(R){
     for(const t of ts)await hit(t,dmg,'bomb');parts.push(`💣${dmg}`);await beat(180);
     if(combo.stabbomb){const t2=blockerAt(r.x+1);if(t2){view.lunge=1;await hit(t2,s.swordDmg,'sword');parts.push(`🗡${s.swordDmg}`);await beat(160);}}
   }
-  logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
+  noteTurn('You: '+(parts.length?parts.join(' · '):'nothing landed'));logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
   await drainLoot();
   if(r.over)return;
@@ -987,7 +1000,7 @@ async function hit(o,dmg,how){
   }
   if(o.t==='ironclad'&&!(how==='bomb'||how==='shove'||r.turnJackpot)){fl('IMMUNE','#9aa3ad',o.x*T+T/2,GY-96);o.flash=1;return;}
   let d=dmg;if(o.block){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
-  if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.ceil(d/2),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
+  if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.ceil(d/2),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
   r.bestHit=Math.max(r.bestHit||0,d);
   o.hp-=d;o.flash=1;addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
   if(o.hp<=0)await kill(o);
@@ -1017,7 +1030,7 @@ async function enterTile(x){
     if(o.kind==='coins'){o.gone=true;gainCoins(o.v);}
     else if(o.kind==='trap'){o.gone=true;const s=stats();
       if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');continue;}
-      let d=o.dmg;const b=Math.min(r.block,d);r.block-=b;d-=b;r.hp-=d;heroFl('-'+d+' spikes','#e0605a');view.hurt=1;sfx.hurt();ui();
+      let d=o.dmg;const b=Math.min(r.block,d);r.block-=b;d-=b;r.hp-=d;hurtBy('a spike trap',d);heroFl('-'+d+' spikes','#e0605a');view.hurt=1;sfx.hurt();ui();
       if(r.hp<=0&&await tryDie())return;}
     else if(o.kind==='shrine'){o.gone=true;o.used=true;r.objs.push({id:uid++,kind:'shrine_used',x:o.x,dx:o.x*T});
       await relicPick('Shrine of Odds','A cracked idol offers a gift. Choose one.','portrait_shrine');}
@@ -1064,8 +1077,8 @@ async function enemyHit(e,dmg){
   const r=run,s=stats();
   if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');return;}
   let d=dmg;const b=Math.min(r.block,d);r.block-=b;d-=b;
-  if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);}
-  if(d>0){r.hp-=d;heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.elite==='cursed'){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
+  if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);if(d<=0)noteTurn(`${esc(e.n)} hit for ${dmg}, all blocked`);}
+  if(d>0){r.hp-=d;hurtBy(e.n,d);heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.elite==='cursed'){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
   if(s.thorns&&e.range<=1&&!e.gone)await hit(e,s.thorns);
   ui();
 }
@@ -1081,7 +1094,7 @@ async function broke(){
     const btns=items.map(it=>({label:`Pawn ${gearIcon(it)} ${esc(it.name)} <small>+${salvageVal(it)} 🪙</small>`,val:it.slot}));
     btns.push({label:'Walk away (end run)',val:'end',cls:'danger'});
     const v=await modal('Out of coins','<p>The machine won\'t take IOUs. Pawn a piece of gear to keep spinning, or let the dungeon have you.</p>',btns);
-    if(v==='end'){await endRun('broke');return;}
+    if(v==='end'){r.killer='an empty purse';await endRun('broke');return;}
     const it=r.gear[v];r.gear[v]=null;r.coins+=salvageVal(it);r.hp=Math.min(r.hp,stats().maxHp);rebuildReels();ui();
   }
 }
@@ -1173,8 +1186,14 @@ async function endRun(reason){
   r.summary=`Loot & Daggers${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
-  await modal(reason==='broke'?'Busted':'You fell',
-    `${artSrc(reason==='broke'?'screen_busted':'screen_death')?`<img class="splash" src="${artSrc(reason==='broke'?'screen_busted':'screen_death')}" alt="">`:''}${ps?`<img class="port big dead" src="${ps}" alt="">`:''}<p>${reason==='broke'?'Your purse is empty. The dungeon keeps the change — and you.':reason==='quit'?'You walked away from the machine.':'The dungeon claims another gambler.'}</p>
+  const hist=(r.hist||[]).map(t=>`<div class="histTurn"><span class="tn">Spin ${t.n}</span>${t.l.map(x=>`<div>${x}</div>`).join('')}</div>`).join('')||'<div class="histTurn">No turns recorded.</div>';
+  const killer=reason==='broke'?'an empty purse':reason==='quit'?'your own cowardice':(r.killer||'the dungeon');
+  await modal('',
+    `${artSrc(reason==='broke'?'screen_busted':'screen_death')?`<img class="splash" src="${artSrc(reason==='broke'?'screen_busted':'screen_death')}" alt="">`:''}
+     <div class="deathTitle">${reason==='quit'?'The House Remembers':'The Dead Can\'t Pay Their Debts!'}</div>
+     <div class="deathBy">Death by <b>${esc(killer)}</b></div>
+     ${ps?`<img class="port big dead" src="${ps}" alt="">`:''}<p>${reason==='broke'?'Your purse is empty. The dungeon keeps the change — and you.':reason==='quit'?'You walked away from the machine.':'The dungeon claims another gambler.'}</p>
+     <details class="hist"><summary>What happened: the last ${(r.hist||[]).length||3} turns</summary>${hist}</details>
      <p>Reached <b>floor ${r.floor}</b> · ${r.kills} kills · ${r.spins} spins</p>
      <p style="font-size:16px">Banked <b style="color:#9fd6ff">${icon('ui_souls_big','💠','gi')} ${souls} souls</b>${r.chips?` and <b style="color:var(--gold)">🎰 ${r.chips} chip${r.chips>1?'s':''}</b>`:''}</p>
      <p class="sub" style="font-size:12px;color:var(--dim)">Best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · ${r.relics.length} relic${r.relics.length===1?'':'s'}${r.daily?` · <b style="color:var(--gold)">Daily ${r.daily}</b>`:''}</p>`,

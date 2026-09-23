@@ -79,7 +79,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.art .lbl{position:relative;z-index:1;text-shadow:0 1px 0 #000,0 0 6px #000}
 .btn.art small{color:#dccfb6;font-size:12px}
 .btn.art .ico,.btn.art .lbl .ico{filter:drop-shadow(0 0 1px #f0e2c4) drop-shadow(0 0 1px #f0e2c4) drop-shadow(0 2px 3px #000) brightness(1.12)}
-.btn.art .ico.lead{width:44px;height:44px}
+.btn.art .ico.lead{width:44px;height:44px;float:none;margin:0;flex:none}
+.btn.art .lbl{display:flex;align-items:center;gap:10px;min-height:46px}
+.btn.art .lbl .txt{flex:1;min-width:0}
+.btn.art .lbl small{margin-top:3px}
+.btn{position:relative}
+.price{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--gold);font-weight:800;white-space:nowrap}
+.btn.art .price{right:16px;z-index:2;text-shadow:0 1px 0 #000,0 0 6px #000}
+.btn .price .ico{width:26px;height:26px;vertical-align:-7px}
+.hasPrice .txt,.hasPrice{padding-right:64px}
 .btn.art .lbl .ico:not(.lead){width:1.7em;height:1.7em;vertical-align:-.45em;margin:0 2px}
 .reel{flex:1;position:relative;overflow:hidden;background:linear-gradient(#8f8470,#d8ceb8 28%,#e2d9c5 50%,#d8ceb8 72%,#8f8470);border:3px solid #000;border-radius:8px;cursor:pointer}
 .reel::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(0,0,0,.35),transparent 25%,transparent 75%,rgba(0,0,0,.35))}
@@ -862,7 +870,7 @@ async function shop(){
       relic:`${o.relic?relicIcon(o.relic,'lead'):''}<b>${o.relic?o.relic.n:''}</b><small>${o.relic?o.relic.d:''}</small>`,
       add:`${icon('shop_weld','➕','lead')}Weld a ${SYM[o.sym]?symIcon(o.sym):''} ${SYM[o.sym]?SYM[o.sym].n:''} onto the reels`,
       remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`})[o.t];
-    const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)} <b style="float:right;color:var(--gold)">🪙${o.price}</b>`,val:i,disabled:o.sold||r.coins<o.price}));
+    const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
     btns.push({label:'Descend ▶',val:'go',cls:'primary'});
     const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,portImg('portrait_merchant','big merch')+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns);
     if(v==='go')return;
@@ -917,7 +925,11 @@ function modal(title,html,buttons){
     m.innerHTML=`<div class="mbox ${A.ui_panel?'art':''}" ${A.ui_panel?`style="border-image-source:url(${A.ui_panel})"`:''}><h2>${artify(title)}</h2><div class="mbody">${artify(html)}</div><div class="mbtns"></div></div>`;
     const bb=m.querySelector('.mbtns');
     buttons.forEach(b=>{const el=document.createElement('button');el.className='btn '+(b.cls||'');el.innerHTML=artify(b.label);el.disabled=!!b.disabled;
-      if(A.ui_button&&!(b.cls||'').includes('primary')){el.classList.add('art');el.style.borderImageSource=`url(${A.ui_button})`;el.innerHTML=`<span class="lbl">${el.innerHTML}</span>`;}
+      if(A.ui_button&&!(b.cls||'').includes('primary')){el.classList.add('art');el.style.borderImageSource=`url(${A.ui_button})`;el.innerHTML=`<span class="lbl">${el.innerHTML}</span>`;
+        const lbl=el.firstElementChild,price=lbl.querySelector('.price');if(price)el.appendChild(price),el.classList.add('hasPrice');
+        const lead=lbl.querySelector('.ico.lead');const txt=document.createElement('span');txt.className='txt';
+        while(lbl.firstChild){const n=lbl.firstChild;if(n===lead){lbl.removeChild(n);continue;}txt.appendChild(n);}
+        if(lead)lbl.appendChild(lead);lbl.appendChild(txt);}
       el.onclick=()=>{m.classList.remove('show');modalOpen=false;res(b.val);};bb.appendChild(el);});
     m.classList.add('show');m.querySelector('.mbox').scrollTop=0;
   });
@@ -981,7 +993,7 @@ function showHub(v){
       const own=S.heroes[id];
       const ps=artSrc(own?'portrait_'+id:'portrait_locked');
       return `<button class="btn heroBtn" style="width:100%;margin-bottom:8px" data-act="${own?'pick:'+id:'buyhero:'+id}" ${!own&&S.souls<hh.cost?'disabled':''}>
-      ${ps?`<img class="port" src="${ps}" alt="">`:''}${ps?'':hh.e} <b>${hh.n}</b> ${own?'':`<span style="float:right;color:#9fd6ff">💠${hh.cost}</span>`}
+      ${ps?`<img class="port" src="${ps}" alt="">`:''}${ps?'':hh.e} <b>${hh.n}</b> ${own?'':`<span class="price" style="color:#9fd6ff">💠${hh.cost}</span>`}
       <small>❤${hh.hp} · 🪙${hh.coins} · ${hh.d}</small><small>${Object.entries(hh.strip).map(([k,n])=>SYM[k].e+n).join(' ')}</small></button>`;}).join('')
       +(S.vault.length?`<h3 style="color:var(--gold);font-size:14px">Heirlooms to wear</h3><div class="sub" style="font-size:11px;color:var(--dim)">One per slot. Tap to toggle.</div>`+S.vault.map(it=>{
         const on=S.loadout.includes(it.id);return `<div data-act="toggle:${it.id}" style="cursor:pointer;opacity:${on?1:.5}">${itemHTML(it,on?'✔ WEARING':'stored')}</div>`;}).join(''):'');

@@ -54,6 +54,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 #log{min-height:34px;padding:5px 10px;font-size:12px;color:var(--dim);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#160f13;line-height:1.35}
 #log b{color:var(--ink)}
+#log .preview div{padding:1px 0}
+#log .preview .hint{color:var(--gold);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+#log{max-height:26dvh;overflow:auto}
 
 /* ---------- slot machine ---------- */
 #machine{flex:none;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:10px 12px;min-height:0}
@@ -388,7 +391,7 @@ const AFF={
 
 /* ---------------- save ---------------- */
 const SAVE_KEY='lootdaggers_v1';
-function defSave(){return {souls:0,chips:0,altar:{},mods:{},heroes:{knight:true},vault:[],loadout:[],best:0,runs:0,kills:0,run:null,autoStop:false,mute:false,fast:false,seenHelp:false,firstBoss:false};}
+function defSave(){return {souls:0,chips:0,altar:{},mods:{},heroes:{knight:true},vault:[],loadout:[],best:0,runs:0,kills:0,run:null,autoStop:false,mute:false,fast:false,seenHelp:false,firstBoss:false,autoResolve:false};}
 let S=defSave();
 try{const raw=localStorage.getItem(SAVE_KEY);if(raw)S=Object.assign(defSave(),JSON.parse(raw));}catch(e){}
 function save(){try{S.run=run&&!run.over?run:null;localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
@@ -597,11 +600,12 @@ function setBtn(mode){
   const b=$('#spinBtn');b.classList.toggle('stop',mode==='stop');b.disabled=mode==='busy';
   const A=window.LD_ART||{};if(b.classList.contains('art'))b.style.backgroundImage=`url(${mode==='stop'&&A.ui_stop_button?A.ui_stop_button:A.ui_spin_button})`;
   if(mode==='stop')b.textContent='STOP ▸';
+  else if(mode==='resolve')b.innerHTML='<span style="font-size:.82em">RESOLVE ▸</span>';
   else if(mode==='busy')b.textContent='…';
   else b.innerHTML=run&&run.freeSpin?'FREE SPIN ⏳':'SPIN · '+icon('ui_coin','🪙','btnico')+'1';
 }
 function spin(){
-  if(busy||!run||M.spinning||run.over)return;
+  if(busy||!run||M.spinning||run.over||M.pendingRes)return;
   if(run.freeSpin)run.freeSpin=false;
   else{if(run.coins<1)return;run.coins--;}
   run.spins++;M.spinning=true;
@@ -661,6 +665,13 @@ async function onAllStopped(){
   const grid=readGrid();const res=evaluate(grid);
   markCells(res.pays,'pay');markCells(res.wins,'win');
   if(res.triples)sfx.jackpot();
+  // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
+  logLine(previewTurn(res));M.pendingRes=res;setBtn('resolve');busy=false;ui();
+  if(S.autoResolve){await sleep(1400);if(M.pendingRes===res)await resolveTurn();}
+}
+async function resolveTurn(){
+  const res=M.pendingRes;if(!res||busy||!run||run.over)return;M.pendingRes=null;
+  busy=true;setBtn('busy');
   try{await doTurn(res);}catch(e){console.error(e);}
   busy=false;
   if(run&&!run.over){setBtn('spin');ui();save();}
@@ -669,6 +680,32 @@ async function onAllStopped(){
 /* ---------------- turn resolution ---------------- */
 function fl(txt,col,wx,wy){view.fl.push({txt,col,x:wx,y:wy||GY-70,t:0});}
 const heroFl=(t,c)=>fl(t,c,run.x*T+T/2,GY-78-view.fl.filter(f=>f.t<.3).length*14);
+// A plain-words forecast of the turn the reels just dealt, in resolution order.
+function previewTurn(R){
+  const r=run,s=stats(),u=R.units,val=k=>u[k]||0,L=[];
+  const nm=o=>o.kind==='chest'?(o.mimic?'the chest':'the chest'):o.n;
+  if(R.triples)L.push(`<b style="color:var(--gold)">${R.triples>1?'DOUBLE ':''}JACKPOT</b> — matched symbols pay x3${hasR('bell')?', +3 🪙 from the Bell':''}`);
+  if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer}</b>`);
+  if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
+  if(val('coin'))L.push(`🪙 +<b>${val('coin')*s.coinPer}</b> coins`);
+  if(val('skull'))L.push(hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${val('skull')*s.skullDmg}</b> (ignores block)`);
+  if(val('key')){const ch=r.objs.find(o=>o.kind==='chest'&&!o.gone&&o.x>r.x&&o.x-r.x<=3);L.push(ch?`🗝 open the chest ${ch.x-r.x} tile${ch.x-r.x>1?'s':''} ahead`:`🗝 no chest in reach: +1 🪙`);}
+  // walk the boots forward on a copy of the map
+  let x=r.x,steps=val('boots')*s.move+(val('boots')?s.moveBonus:0),moved=0,shoves=0,shoveT=null,door=false;
+  for(let i=0;i<steps;i++){const b=blockerAt(x+1);if(b){shoves++;shoveT=b;continue;}x++;moved++;if(r.objs.some(o=>o.kind==='door'&&o.x===x)){door=true;break;}}
+  if(steps){const bits=[];if(moved)bits.push(`step <b>${moved}</b>`);if(shoves)bits.push(`shove ${nm(shoveT)} <b>${shoves}×${s.shove}</b>`);if(door)bits.push('<b>reach the exit</b>');L.push('🥾 '+bits.join(', '));}
+  const mom=hasR('momentum')?moved:0;
+  if(!door){
+    if(val('sword')){const t=blockerAt(x+1);L.push(t?`🗡 stab ${nm(t)} for <b>${val('sword')*s.swordDmg+mom}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
+    if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${val('bow')*s.bowDmg+mom}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
+    if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${val('bomb')*s.bombDmg+mom}</b>`);}
+    const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
+    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];return (a==='atk'||a==='drain')?`${e.n} ${v}`:a==='jackpot'?`${e.n} 3×${v}`:null;}).filter(Boolean);
+      L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
+  }
+  if(!L.length)L.push('Nothing lands. Foes take their turn.');
+  return `<div class="preview">${L.map(l=>`<div>${l}</div>`).join('')}<div class="hint">${S.autoResolve?'resolving…':'tap <b>RESOLVE TURN</b>'}</div></div>`;
+}
 function logLine(h){$('#log').innerHTML=artify(h);}
 
 async function doTurn(R){
@@ -684,7 +721,7 @@ async function doTurn(R){
     if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
     else{const d=val('skull')*s.skullDmg;r.hp-=d;heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);}
   }
-  ui();
+  ui();if(val('shield')||val('potion')||val('coin')||val('skull'))await sleep(380);
   for(let i=0;i<val('key');i++){
     const ch=r.objs.find(o=>o.kind==='chest'&&!o.gone&&o.x>r.x&&o.x-r.x<=3);
     if(ch){await openChest(ch,true);parts.push('🗝️open');}else{gainCoins(1);}
@@ -699,7 +736,7 @@ async function doTurn(R){
     await enterTile(r.x);
     if(r.floorDone||r.over)return;
   }
-  if(moved)parts.push(`🥾${moved}`);
+  if(moved)parts.push(`🥾${moved}`);if(steps)await sleep(220);
   const mom=hasR('momentum')?moved:0;
   // daggers
   if(val('sword')){
@@ -983,7 +1020,7 @@ function ui(){
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
   $('#relics').innerHTML=r.relics.map(id=>`<button class="relic" data-relic="${id}" title="${RELIC[id].n}">${relicIcon(RELIC[id])}</button>`).join('');
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
-  if(!M.spinning&&!busy)setBtn('spin');
+  if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
 }
 function showGame(){$('#hub').classList.add('hidden');$('#game').classList.remove('hidden');requestAnimationFrame(()=>{resizeCanvas();rebuildReels();});}
 
@@ -1047,6 +1084,7 @@ function showHub(v){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">
     <button class="btn" data-act="set:mute">${S.mute?'🔇 Sound off':'🔊 Sound on'}</button>
     <button class="btn" data-act="set:autoStop">${S.autoStop?'🤖 Auto-stop reels: on':'✋ Auto-stop reels: off (tap to stop)'}</button>
+    <button class="btn" data-act="set:autoResolve">${S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off (read, then tap RESOLVE)'}</button>
     <button class="btn" data-act="set:fast">${S.fast?'⏩ Fast animations: on':'▶ Fast animations: off'}</button>
     <button class="btn danger" data-act="wipe">Wipe save</button></div>`;
   }
@@ -1072,7 +1110,7 @@ $('#hub').addEventListener('click',async e=>{
 });
 
 /* ---------------- game buttons ---------------- */
-$('#spinBtn').addEventListener('click',e=>{e.currentTarget.blur();if(M.spinning)stopNext();else spin();});
+$('#spinBtn').addEventListener('click',e=>{e.currentTarget.blur();if(M.spinning)stopNext();else if(M.pendingRes)resolveTurn();else spin();});
 $('#autoBtn').addEventListener('click',()=>{S.autoStop=!S.autoStop;save();ui();logLine(S.autoStop?'🤖 Reels stop on their own.':'✋ Tap each reel to stop it. Aim!');});
 $('#reelInfoBtn').addEventListener('click',()=>{if(busy||M.spinning)return;
   modal('Your reels',`<p>Each reel carries these symbols. ${paylines(reelCount()).length} payline(s), ${reelCount()} reels.</p>`+reelTable(),[{label:'Close',val:1,cls:'center'}]);});
@@ -1086,10 +1124,11 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(!run||busy||M.spinning)return;
   const ps=artSrc('portrait_'+run.hero);
   const v=await modal('Paused',`${ps?`<img class="port big" src="${ps}" alt="">`:''}<p>${HEROES[run.hero].n} · Floor ${run.floor} · 💠 ${run.souls} souls this run · ${run.kills} kills</p>`,[
-    {label:'Resume',val:'r',cls:'primary'},{label:'How to play',val:'h'},{label:S.mute?'🔇 Sound off':'🔊 Sound on',val:'m'},
+    {label:'Resume',val:'r',cls:'primary'},{label:'How to play',val:'h'},{label:S.mute?'🔇 Sound off':'🔊 Sound on',val:'m'},{label:S.autoResolve?'⏭ Auto-resolve turns: on':'⏸ Auto-resolve turns: off',val:'ar'},
     {label:'Save & quit to hub',val:'q'},{label:'Abandon run <small>bank your souls now</small>',val:'x',cls:'danger'}]);
   if(v==='h')modal('How it works',helpShort(),[{label:'Got it',val:1,cls:'primary'}]);
   if(v==='m'){S.mute=!S.mute;save();}
+  if(v==='ar'){S.autoResolve=!S.autoResolve;save();}
   if(v==='q'){save();run=null;showHub('main');}
   if(v==='x')endRun('quit');
 });
@@ -1104,7 +1143,7 @@ $('#scene').addEventListener('click',e=>{
   if(o.kind==='enemy'){const [ic,v]=intentOf(o);modal(o.n,`<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
   else if(info)modal(info[0],`${icon('shop_'+(o.kind==='coins'?'coinpile':o.kind),'','hero')}<p>${info[1]}</p>`,[{label:'Close',val:1,cls:'center'}]);
 });
-document.addEventListener('keydown',e=>{if(e.code==='Space'&&run&&!modalOpen){e.preventDefault();if(M.spinning)stopNext();else spin();}});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&run&&!modalOpen){e.preventDefault();if(M.spinning)stopNext();else if(M.pendingRes)resolveTurn();else spin();}});
 
 /* ---------------- art ---------------- */
 const ART={};

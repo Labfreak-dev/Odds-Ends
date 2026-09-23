@@ -324,3 +324,5 @@ Nothing in the game is emoji any more once art.js loads.
   (taller, bigger numbers); the chips share the row above evenly.
 - **b050**: holding reels is steeply priced: 1 / 11 / 32 / 144 extra coins for
   1 / 2 / 3 / 4 held reels (Reel Clamp still makes holds free).
+- **b051**: Reel Clamp now covers two holds only: 1-2 held reels are free, 3 and
+  4 cost the difference (21 / 133 extra coins).

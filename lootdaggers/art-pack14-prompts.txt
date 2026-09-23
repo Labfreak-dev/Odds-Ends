@@ -1,0 +1,21 @@
+DEAD MAN'S PULL — ART PACK 14: 4 UNIQUE GEAR ICONS (Dr. Labfreak's drops)
+
+READ THIS FIRST:
+- 4 BRAND-NEW icons. None exist yet. Do NOT reuse or re-send earlier packs.
+- Save each as a PNG named EXACTLY the name before the | . Put all 4 in ONE zip: dead_mans_pull_art_pack14.zip
+- Square icons on flat pure magenta #FF00FF (it gets cut out). NO TEXT anywhere, including the flask label.
+- The four are one set: the same lab greens and violets as the laboratory art.
+
+Checklist:
+  [ ] gear_unique_labcoat.png
+  [ ] gear_unique_goggles.png
+  [ ] gear_unique_liquid.png
+  [ ] gear_unique_boots.png
+
+gear_unique_labcoat.png | Dr. Labfreak's lab coat laid out flat: a long, tattered, blood-spattered white lab coat with rolled sleeves, scorch marks, a pocket stuffed with test tubes and a pen, and a glowing green chemical stain that seems to be moving. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished copper palette with glowing chemical green and electric violet accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+gear_unique_goggles.png | a pair of cracked brass-rimmed lab goggles with thick round lenses, one lens glowing chemical green and the other electric violet, a frayed leather strap and a spiderweb crack across one lens. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished copper palette with glowing chemical green and electric violet accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+gear_unique_liquid.png | a corked glass flask of unidentified liquid: bubbling, glowing chemical green with violet swirls, a peeling paper label that is blank and scorched, and a thin wisp of smoke escaping around the cork. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished copper palette with glowing chemical green and electric violet accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+gear_unique_boots.png | a pair of chemically burned leather boots, the toes eaten through by acid, smoking holes in the soles, green chemical splashes glowing on the leather and dripping off the laces. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished copper palette with glowing chemical green and electric violet accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame

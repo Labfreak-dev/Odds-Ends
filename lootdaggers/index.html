@@ -286,6 +286,7 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 #obitLayer .mbox{max-height:100%;overflow:auto}
 .relic[data-relic="beaker"]{box-shadow:0 0 0 1px #3f7a3a,0 0 10px #8cff96;animation:beakerGlow 1.6s ease-in-out infinite}
 @keyframes beakerGlow{50%{box-shadow:0 0 0 1px #8cff96,0 0 16px #8cff96}}
+.item .flav{font-style:italic;color:#8cff96;opacity:.85;font-size:12px;margin-top:4px}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -677,14 +678,15 @@ const RAR=[
   {n:'Rare',c:'#d9b56a',aff:2,salv:4},
   {n:'Epic',c:'#b07cf0',aff:3,salv:7},
   {n:'Legendary',c:'#ff8c3a',aff:4,salv:12},
+  {n:'Unique',c:'#8cff96',aff:0,salv:20},   // hand-made pieces (Dr. Labfreak's drops); never rolled
 ];
 const SLOTS=['weapon','armor','boots','charm'];
 const SLOT_E={weapon:'🗡️',armor:'🥋',boots:'👢',charm:'📿'};
 // An <img> for art key k if the art pack has it, else the emoji fallback.
 function icon(k,fb,cls){const src=(window.LD_ART||{})[k];return src?`<img class="ico ${cls||''}" src="${src}" alt="">`:(fb||'');}
 const symIcon=(k,cls)=>icon('sym_'+k,SYM[k].e,cls);
-const gearKey=it=>'gear_'+it.slot+'_'+it.base.toLowerCase().replace('loaded ','');
-const gearIcon=(it,cls)=>icon(gearKey(it),SLOT_E[it.slot],cls);
+const gearKey=it=>it.art||'gear_'+it.slot+'_'+it.base.toLowerCase().replace('loaded ','');
+const gearIcon=(it,cls)=>icon(gearKey(it),it.e||SLOT_E[it.slot],cls);
 const relicIcon=(r,cls)=>icon('relic_'+r.id,r.e,cls);
 // Emoji that have art: every string headed for the screen passes through artify().
 // Order matters: the variation-selector forms (🛡️ = Shield symbol) come before the
@@ -872,9 +874,27 @@ function itemHTML(it,label){
   if(!it)return `<div class="item"><div class="sub">${label||''}</div><div class="nm" style="color:var(--dim)">— empty —</div></div>`;
   const R=RAR[it.rar];
   return `<div class="item" style="border-color:${R.c}"><div class="sub">${label?label+' · ':''}${R.n} ${it.slot} · ilvl ${it.lvl}</div>
-  <div class="nm" style="color:${R.c}">${gearIcon(it,'gi')} ${esc(it.name)}</div><ul>${it.affs.map(a=>`<li>${affText(a)}</li>`).join('')}</ul></div>`;
+  <div class="nm" style="color:${R.c}">${gearIcon(it,'gi')} ${esc(it.name)}</div><ul>${it.affs.map(a=>`<li>${affText(a)}</li>`).join('')}</ul>${it.fl?`<div class="flav">${esc(it.fl)}</div>`:''}</div>`;
 }
 const salvageVal=it=>RAR[it.rar].salv+Math.floor(it.lvl/3);
+// Dr. Labfreak's four unique pieces: fixed, themed stats that scale with the floor.
+function labUniques(lvl){
+  const mk=(slot,name,base,art,e,affs,fl)=>({id:uid++ +'_'+Date.now().toString(36)+slot,slot,rar:5,lvl,base,name,art,e,affs,fl,unique:true});
+  return [
+    mk('armor',"Dr. Labfreak's Lab Coat",'Lab Coat','gear_unique_labcoat','🥼',
+      [{k:'maxHp',v:10+lvl},{k:'thorns',v:3+Math.floor(lvl/3)},{k:'healPer',v:2},{k:'add',sym:'potion',v:1}],
+      'Stained with something that is still moving.'),
+    mk('charm','Cracked Goggles','Goggles','gear_unique_goggles','🥽',
+      [{k:'luck',v:25},{k:'triple',v:1},{k:'dodge',v:8},{k:'add',sym:'star',v:1}],
+      'One lens sees the reels. The other sees the future, badly.'),
+    mk('weapon','Unidentified Liquid','Flask','gear_unique_liquid','⚗️',
+      [{k:'bombDmg',v:4+Math.floor(lvl/2)},{k:'swordDmg',v:2+Math.floor(lvl/3)},{k:'add',sym:'bomb',v:2}],
+      'Label: DO NOT DRINK. Label underneath: SERIOUSLY.'),
+    mk('boots','Chemically Burned Boots','Boots','gear_unique_boots','👢',
+      [{k:'dodge',v:15},{k:'moveBonus',v:1},{k:'shove',v:4+Math.floor(lvl/3)},{k:'maxHp',v:5}],
+      'The soles dissolved months ago. The feet did not.'),
+  ];
+}
 
 /* ---------------- floors ---------------- */
 function mkEnemy(type,x,f,boss){
@@ -1293,7 +1313,8 @@ async function kill(o){
   r.souls+=o.boss?15+r.floor:1+Math.floor(r.floor/2);
   fl('💠','#9fd6ff',o.x*T+T/2,GY-40);addFx('fx_souls',o.x*T+T/2,GY-50,64,1,40);
   if(Math.random()<o.loot)r.pending.push(mkItem(null,Math.max(o.minRar||0,o.boss?Math.max(2,rollRarity(20)):rollRarity()),r.floor));
-  if(o.boss){r.chips++;S.chips++;fl('+1 🎰 CHIP','#d9b56a',o.x*T+T/2,GY-130);r.bossDown=true;}
+  if(o.boss){r.chips++;S.chips++;fl('+1 🎰 CHIP','#d9b56a',o.x*T+T/2,GY-130);r.bossDown=true;
+    if(o.t==='labfreak'){r.pending.push(...labUniques(r.floor+2));fl('4 UNIQUE DROPS','#8cff96',o.x*T+T/2,GY-150);}}
 }
 async function openChest(o,keyed){
   const r=run;

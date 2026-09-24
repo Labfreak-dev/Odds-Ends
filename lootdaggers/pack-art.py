@@ -49,6 +49,8 @@ def kind(key):
         return ('key', 160, 160, 84)
     if key.startswith('torch_'):     return ('key', 420, 420, 80)   # floor-standing torch bearers
     if key.startswith('shell_dealer'): return ('key', 560, 560, 80)   # shell game: the dealer's poses
+    if key.startswith('bj_dealer'):  return ('key', 560, 560, 80)   # blackjack: Rattles' poses
+    if key == 'bj_card_back':        return ('plain', 220, 220, 84)
     if key.startswith('shell_'):     return ('key', 360, 360, 84)   # shell game parts: hands, cup, eye
     return ('key', 280, 280, 82)     # props: chest, door, shrine, trap, torch...
 

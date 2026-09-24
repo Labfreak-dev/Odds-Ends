@@ -378,6 +378,12 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .bjc .mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px}
 .bjc.back{background:#2a0f10;display:flex;align-items:center;justify-content:center;color:#cfa75c;font-size:28px;overflow:hidden}.bjc.back img{width:100%;height:100%;object-fit:cover}
 @keyframes bjIn{from{transform:translateY(-40px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+.recH{color:var(--gold);font-size:15px;margin:14px 0 6px;border-bottom:1px solid rgba(207,167,92,.3);padding-bottom:3px}
+.recRow{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.recRow span{color:var(--dim)}.recRow b{text-align:right}
+.recRun{display:flex;gap:8px;align-items:center;padding:6px;margin:4px 0;border:1px solid #2c2626;border-radius:6px;background:rgba(0,0,0,.35);font-size:13px}
+.recRun.free{border-color:#9fd6ff}.recRun small{display:block;color:var(--dim);font-size:11px}
+.recRun img.recPort{width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid #000}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -742,7 +748,7 @@ async function offerContract(){
   const r=run;if(r.floor<2||r.kind==='boss'||r.kind==='rest'||r.lab||r.death||Math.random()>.45)return;
   const id=pick(Object.keys(CONTRACTS)),n=Math.max(4,Math.ceil(r.len/2.4)),c=CONTRACTS[id],txt=c.d.replace('{n}',n);
   const stakes=[5,15,40].filter(x=>x<=r.coins);if(!stakes.length)return;
-  const v=await modal('The Bookie',`<div class="flipCoin">📜</div><p>A hooded bookie slides a contract across a coffin lid:</p><p><b>${c.n}</b> · ${txt}</p><p class="sub">Pays <b>3×</b> your stake when you reach the exit.</p>`,
+  const v=await modal('The Bookie',`${portImg('portrait_bookie','big merch')||'<div class="flipCoin">📜</div>'}<p>A hooded bookie slides a contract across a coffin lid:</p><p><b>${c.n}</b> · ${txt}</p><p class="sub">Pays <b>3×</b> your stake when you reach the exit.</p>`,
     stakes.map(x=>({label:`Stake ${x} 🪙 <small>win ${x*3}</small>`,val:x})).concat([{label:'No bet',val:null}]));
   if(!v)return;r.coins-=v;r.contract={id,stake:v,n,spins0:r.spins,fail:false};ui();
   logLine(`<b>Contract: ${c.n}.</b> ${txt} Stake ${v} 🪙.`);
@@ -1954,7 +1960,7 @@ async function doTurn(R){
   else if(r.inBonus&&r.bonus<=0&&!R.retrigger){r.inBonus=false;r.lock5=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
   r.block=fxFold('keepBlock',false)?r.block:hasR('tower')?Math.floor(r.block/2):0;
-  if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
+  if(R.triples){stat('jackpots');statMax('bestJackpot',R.triples);statMax('bestMult',mu);heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);await fxEachA('jackpot',R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer*mu;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);if(r.poison){r.poison=null;heroFl('poison cured','#8cff96');}}
@@ -2027,7 +2033,7 @@ async function doTurn(R){
   if(r.coins<1&&!r.freeSpin)await broke();
 }
 function heal(n){const r=run,mx=stats().maxHp;const h=Math.max(0,Math.min(n,mx-r.hp));r.hp+=h;if(h){heroFl('+'+h+' HP','#6cc070');sfx.heal();addFx('fx_heal',heroWX(),GY-50,70,.8,26);}return h;}
-function gainCoins(n){if(n<=0)return;n=Math.max(1,Math.round(fxFold('gold',n)));run.coins+=n;heroFl('+'+n+' 🪙','#d9b56a');sfx.coin();addFx('fx_coins',heroWX(),GY-70,56,.6,18);}
+function gainCoins(n){if(n<=0)return;n=Math.max(1,Math.round(fxFold('gold',n)));run.coins+=n;stat('coinsWon',n);heroFl('+'+n+' 🪙','#d9b56a');sfx.coin();addFx('fx_coins',heroWX(),GY-70,56,.6,18);}
 async function hit(o,dmg,how){
   const r=run;if(o.gone)return;
   if(o.kind==='chest'){
@@ -2263,6 +2269,10 @@ async function endRun(reason){
   if(r.daily){const d=(S.daily&&S.daily[r.daily])||{best:0,runs:0,souls:0};d.best=Math.max(d.best,r.floor);d.runs++;d.souls=Math.max(d.souls,souls);S.daily={[r.daily]:d};}
   seedRandom(null);
   r.summary=`Dead Man's Pull${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
+  stat('runs');stat('kills',r.kills);statMax('deepest',r.floor);statMax('bestHit',r.bestHit||0);statMax('mostCoins',r.coins);
+  S.runLog=[{d:todayKey(),hero:r.hero,floor:r.floor,why:reason,killer:reason==='free'?'':reason==='broke'?'an empty purse':reason==='quit'?'walked away':(r.killer||'the dungeon'),souls,kills:r.kills,daily:!!r.daily}].concat(S.runLog||[]).slice(0,10);
+  if(r.daily){const L=S.dailyLog||{},e=L[r.daily]||{best:0,runs:0,souls:0};e.best=Math.max(e.best,r.floor);e.runs++;e.souls=Math.max(e.souls,souls);L[r.daily]=e;
+    const keys=Object.keys(L).sort().reverse().slice(0,14);S.dailyLog=Object.fromEntries(keys.map(k=>[k,L[k]]));}
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
   const hist=(r.hist||[]).map(t=>`<div class="histTurn"><span class="tn">Spin ${t.n}</span>${t.l.map(x=>`<div>${x}</div>`).join('')}</div>`).join('')||'<div class="histTurn">No turns recorded.</div>';
@@ -2418,6 +2428,7 @@ function showHub(v){
       <button class="btn" data-act="altar">💠 Soul Altar <small>Permanent upgrades, paid in souls</small></button>
       <button class="btn" data-act="bench">🎰 Machine Workbench <small>Rewire the slot machine, paid in boss chips</small></button>
       <button class="btn" data-act="vault">🗄️ Heirloom Vault <small>${S.vault.length}/${vaultSlots()} stored</small></button>
+      <button class="btn" data-act="records">📊 Records <small>your stats, last runs and daily history</small></button>
       <button class="btn" data-act="help">📜 How to play</button>
       <button class="btn" data-act="settings">⚙️ Settings</button>
     </div>`;
@@ -2444,6 +2455,16 @@ function showHub(v){
   }else if(v==='vault'){
     html=back+`<h2 style="color:var(--gold)">🗄️ Heirloom Vault · ${S.vault.length}/${vaultSlots()}</h2>`+ledgerHTML()+`<p style="font-size:12px;color:var(--dim)">When a run ends you may carry one worn piece home. Choose which to wear on the hero screen. Upgrade slots at the Soul Altar.</p>`
       +(S.vault.length?S.vault.map(it=>itemHTML(it,S.loadout.includes(it.id)?'✔ WEARING':'')+`<button class="btn danger center" style="width:100%;margin-bottom:8px" data-act="drop:${it.id}">Melt down</button>`).join(''):'<p style="color:var(--dim)">Empty. Die with something good on.</p>');
+  }else if(v==='records'){
+    const st=S.stats||{},g=k=>st[k]||0,net=k=>{const n=g(k);return `<b style="color:${n>=0?'var(--gold)':'var(--red)'}">${n>=0?'+':''}${n}</b>`;};
+    const row=(a,b)=>`<div class="recRow"><span>${a}</span><b>${b}</b></div>`;
+    html=back+`<h2 style="color:var(--gold)">📊 Records</h2>
+      <h3 class="recH">The run</h3>${row('Runs played',g('runs')||S.runs||0)}${row('Deepest floor',Math.max(g('deepest'),S.best||0))}${row('Foes slain',g('kills')||S.kills||0)}${row('Biggest single hit',g('bestHit'))}${row('Most coins held at the end',g('mostCoins'))}${row('Death defied',g('deathWins')||S.deathDefeated||0)}
+      <h3 class="recH">The machine</h3>${row('Jackpots',g('jackpots'))}${row('Best jackpot',g('bestJackpot')?'x3 on '+g('bestJackpot')+' line'+(g('bestJackpot')>1?'s':''):'none')}${row('Best fortune wheel','×'+(g('bestMult')||1))}${row('Coins ever won',g('coinsWon'))}${row('Poker hands',g('pokerHands'))}${row('Free-spin retriggers',g('retriggers'))}${row('Cursed jackpots taken',g('cursedTaken'))}
+      <h3 class="recH">Side bets</h3>${row('Double or Nothing',g('donWon')+' won · '+g('donLost')+' lost · '+net('donNet'))}${row("Gristle's shell game",g('shellWon')+' won · '+g('shellLost')+' lost · '+net('shellNet'))}${row("Gristle's purse taken",g('shellPurse'))}${row("Rattles' blackjack",g('bjWon')+' won · '+g('bjLost')+' lost · '+g('bjPush')+' push · '+net('bjNet'))}${row('Bookie contracts',g('contractsWon')+' paid · '+g('contractsLost')+' void')}${row('Scratch cards',g('scratched')+' scratched · '+g('scratchWins')+' won')}${row('Merchant coin flips',g('flipWon')+' won · '+g('flipLost')+' lost')}${row('Taxman loans',g('loans')+' taken · '+g('loansRepaid')+' repaid')}
+      <h3 class="recH">The graveyard</h3>${row('Graves laid to rest',(S.graves||[]).length+' / 6')}
+      <h3 class="recH">Last ${(S.runLog||[]).length} runs</h3>`+((S.runLog||[]).length?(S.runLog||[]).map(x=>`<div class="recRun ${x.why==='free'?'free':''}">${icon('portrait_'+x.hero,'','recPort')}<div><b>${HEROES[x.hero]?HEROES[x.hero].n:x.hero}${x.daily?' · Daily':''}</b> · floor ${x.floor}<small>${x.why==='free'?'<span style="color:#9fd6ff">walked out a free soul</span>':'by '+esc(x.killer)} · ${x.kills} kills · ${x.souls} souls · ${x.d}</small></div></div>`).join(''):'<p style="color:var(--dim)">No runs yet.</p>')
+      +`<h3 class="recH">📅 Daily Wager history</h3>`+(Object.keys(S.dailyLog||{}).length?Object.entries(S.dailyLog).map(([d,e])=>row(d+(d===todayKey()?' (today)':''),`floor ${e.best} · ${e.souls} souls · ${e.runs} run${e.runs>1?'s':''}`)).join(''):'<p style="color:var(--dim)">Play The Daily Wager to start a history.</p>');
   }else if(v==='help'){
     html=back+`<div class="help"><h2 style="color:var(--gold)">How to play</h2>
     <h3>The turn</h3><p>Each spin costs <b>1 coin</b>. Tap a reel (or STOP) to stop it — aim if you can. Every symbol on a <b>payline</b> fires: that is your whole turn. Then every awake foe acts on the intent shown over its head.</p>
@@ -2454,6 +2475,7 @@ function showHub(v){
     <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
     <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
+    <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: after a turn that pays 3+ coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). The <b>merchant</b> sells scratch cards, a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
   }else if(v==='settings'){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">${settingsHTML()}<button class="btn danger" data-act="wipe">Wipe save</button></div>`;
@@ -2467,7 +2489,7 @@ $('#hub').addEventListener('change',e=>{if(e.target.id==='sfxVol')sfx.coin();});
 $('#hub').addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const [a,arg]=el.dataset.act.split(':');
-  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'))return showHub(a);
+  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'||a==='records'))return showHub(a);
   if(a==='resume')return resumeRun();
   if(a==='daily'){if(S.run){S.run=null;save();}return startRun('knight',todayKey());}
   if(a==='pick'){if(S.run){S.run=null;save();}return startRun(arg);}

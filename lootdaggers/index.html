@@ -785,8 +785,8 @@ async function labfreakPhase2(o){
   const r=run;o.phase2=true;o.hp=0;o.flash=1;view.shake=6;await sleep(350);
   await labDialog('portrait_drlabfreak','Dr. Labfreak',"No... no, NO! Nobody walks away from my table! The house ALWAYS collects! Just... one... more... PULL!",null,'Watch in horror');
   sfx.jackpot();view.shake=16;document.body.classList.add('labFlash');addFx('fx_curse',o.x*T+T/2,GY-80,150,1.2,20);
-  const dm=Math.max(0,((o.pat.find(p=>p[0]==='atk')||['atk',7])[1])-7),mx=Math.round(o.max*.8);
-  Object.assign(o,{mutated:true,n:'Dr. Labfreak, Unleashed',max:mx,hp:mx,block:0,pi:0,pose:1,pat:[['atk',7+dm],['grow',Math.round(mx*.08)],['atk',9+dm],['atk',5+dm]]});
+  const dm=Math.max(0,Math.round(((o.pat.find(p=>p[0]==='atk')||['atk',7])[1])/LAB_DMG)-7),mx=Math.round(o.max*.8);
+  Object.assign(o,{mutated:true,n:'Dr. Labfreak, Unleashed',max:mx,hp:mx,block:0,pi:0,pose:1,pat:[['atk',Math.round((7+dm)*LAB_DMG)],['grow',Math.round(mx*.08)],['atk',Math.round((9+dm)*LAB_DMG)],['atk',Math.round((5+dm)*LAB_DMG)]]});
   await sleep(700);document.body.classList.remove('labFlash');
   view.banner={t:performance.now(),txt:'DR. LABFREAK, UNLEASHED'};ui();
   await labDialog('portrait_labfreak2','Dr. Labfreak, Unleashed',"IT'S ALIVE... AND IT'S ME! Every hit you take will rot a little more. Let's see how long your luck holds out!",'screen_lab_transform','Face him');
@@ -1234,6 +1234,7 @@ async function shellGame(o){
 // The laboratory: a one-floor detour on the same floor number. Clearing it goes on
 // to the next floor as usual.
 const LAB_FOES=['abom','homunculus','brainjar'];
+const LAB_HP=10,LAB_DMG=1.5;
 async function enterLab(){
   const r=run;busy=true;sfx.jackpot();view.shake=12;
   document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
@@ -1243,7 +1244,8 @@ async function enterLab(){
   const free=[];for(let i=3;i<len-3;i++)free.push(i);shuffle(free);
   const put=o=>{r.objs.push(Object.assign({id:uid++,dx:o.x*T},o));};
   put({kind:'door',x:len});
-  put(mkEnemy('labfreak',len-2,f+2,true));
+  // Dr. Labfreak is a secret boss and fights like one: ten times the life, half again the bite
+  {const b=mkEnemy('labfreak',len-2,f+2,true);b.hp=b.max=b.max*LAB_HP;b.pat=b.pat.map(([a,v])=>[a,(a==='atk'||a==='drain')?Math.round(v*LAB_DMG):v]);put(b);}
   for(let i=0;i<5&&free.length;i++)put(mkEnemy(pick(LAB_FOES),free.pop(),f+1));
   for(let i=0;i<3&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(2,4)+Math.floor(f/3)});
   if(free.length)put({kind:'chest',x:free.pop(),hp:4,mimic:false});

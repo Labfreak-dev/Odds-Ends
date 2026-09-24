@@ -345,6 +345,45 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .lp small{display:block;font-size:10px;color:#6f9a6a;margin-top:2px}
 .lp .ico{width:14px;height:14px;vertical-align:-2px}
 .lp.on{border-color:#8cff96;color:#e9ffe6;background:#1d2b1c;box-shadow:0 0 6px rgba(140,255,150,.4)}
+.flipCoin{font-size:64px;text-align:center;line-height:1.1;margin:4px 0 8px;filter:drop-shadow(0 4px 6px #000)}
+.flipCoin.spin{animation:coinFlip 1s cubic-bezier(.2,.8,.3,1)}
+.flipCoin.tails{filter:drop-shadow(0 4px 6px #000) grayscale(.8) brightness(.7)}
+@keyframes coinFlip{0%{transform:rotateY(0) translateY(0)}40%{transform:rotateY(900deg) translateY(-30px)}100%{transform:rotateY(1800deg) translateY(0)}}
+#scratchLayer{position:absolute;inset:0;z-index:68;background:rgba(6,4,6,.82);display:none;align-items:center;justify-content:center;padding:14px}
+#scratchLayer.show{display:flex}
+.scCard{width:100%;max-width:340px;background:linear-gradient(#2b1b16,#150d0b);border:3px solid #000;border-radius:12px;padding:12px;box-shadow:0 0 0 2px #7a5a2a,0 8px 30px #000}
+.scHead{font-family:var(--head);font-size:28px;color:var(--gold);text-align:center;margin-bottom:8px}
+.scHead small{display:block;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+.scGrid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#e9dcc2;border-radius:8px;padding:8px;touch-action:none}
+.scCell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:40px;background:#f6ecd6;border:2px solid #c9b48a;border-radius:6px}
+.scCell .ico{width:70%;height:70%}
+.scGrid canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:8px;cursor:grab;touch-action:none}
+.scMsg{text-align:center;margin:10px 0;color:#e9dcc6;min-height:22px}
+.scBtns .btn{width:100%}
+/* Death's blackjack */
+#bjLayer{position:absolute;inset:0;z-index:66;background:radial-gradient(ellipse at 50% 40%,#10150f,#000 75%);display:none;flex-direction:column;justify-content:center;align-items:center;padding:12px}
+#bjLayer.show{display:flex;animation:shIn .6s ease-out}
+.bjStage{position:relative;width:100%;max-width:560px;aspect-ratio:4/3;overflow:hidden;border:3px solid #000;border-radius:10px;background:#0c0a0b;box-shadow:0 0 40px #000;animation:shZoom 1.6s ease-out}
+.bjStage .bjBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.bjStage .bjFelt{position:absolute;left:-10%;right:-10%;top:38%;bottom:-30%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,#1f4a2c,#0f2416 70%);box-shadow:inset 0 10px 30px #000}
+.bjDealer{position:absolute;left:50%;top:0;height:46%;transform:translateX(-50%);display:flex;justify-content:center;align-items:flex-end}
+.bjDealer img{height:100%;width:auto}.bjDealer span{font-size:64px}
+.bjRow{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:8px;z-index:5}
+.bjRow.d{top:40%}.bjRow.p{top:68%}
+.bjRow b{font-family:var(--head);font-weight:400;font-size:26px;color:#f3e9d6;text-shadow:0 2px 0 #000,0 0 8px #000;min-width:30px}
+.bjDealerHand,.bjPlayerHand{display:flex}
+.bjc{position:relative;width:52px;height:74px;margin-left:-14px;border-radius:6px;background:linear-gradient(#f7efdf,#e2d4b6);border:1px solid #3a2a1a;box-shadow:0 3px 6px rgba(0,0,0,.6);color:#1a1210;font-family:Georgia,serif;font-weight:700;animation:bjIn .3s ease-out}
+.bjc:first-child{margin-left:0}.bjc.red{color:#9b1b14}
+.bjc .tl,.bjc .br{position:absolute;font-size:12px;line-height:1;text-align:center}.bjc .tl{left:4px;top:4px}.bjc .br{right:4px;bottom:4px;transform:rotate(180deg)}
+.bjc .mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px}
+.bjc.back{background:#2a0f10;display:flex;align-items:center;justify-content:center;color:#cfa75c;font-size:28px;overflow:hidden}.bjc.back img{width:100%;height:100%;object-fit:cover}
+@keyframes bjIn{from{transform:translateY(-40px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+.recH{color:var(--gold);font-size:15px;margin:14px 0 6px;border-bottom:1px solid rgba(207,167,92,.3);padding-bottom:3px}
+.recRow{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.recRow span{color:var(--dim)}.recRow b{text-align:right}
+.recRun{display:flex;gap:8px;align-items:center;padding:6px;margin:4px 0;border:1px solid #2c2626;border-radius:6px;background:rgba(0,0,0,.35);font-size:13px}
+.recRun.free{border-color:#9fd6ff}.recRun small{display:block;color:var(--dim);font-size:11px}
+.recRun img.recPort{width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid #000}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -431,6 +470,9 @@ const SYM={
   bomb:{e:'💣',n:'Bomb',d:'Blast everything within 2 tiles.'},
   key:{e:'🗝️',n:'Key',d:'Open the nearest chest within 3 tiles. No chest: +1 coin.'},
   star:{e:'⭐',n:'Wild',d:'Becomes the best symbol on its payline.'},
+  ace:{e:'🂡',n:'Ace',d:'A playing card. Two or three cards on a payline make a poker hand.'},
+  king:{e:'🂮',n:'King',d:'A playing card. King and Queen together: Royal Couple.'},
+  queen:{e:'🂭',n:'Queen',d:'A playing card. Ace, King and Queen: Royal Straight.'},
   scoin:{e:'🪙',n:'Soul Coin',d:'A coin with an ember. Three on screen light a bulb; a full row of bulbs is free spins.'},
 };
 const SYM_ORDER=['sword','bow','bomb','boots','shield','potion','coin','key','star','skull'];
@@ -680,6 +722,175 @@ function poisonHero(){
 }
 
 
+/* ---------------- side bets: Double or Nothing, cursed jackpots, contracts ---------------- */
+function stat(k,n){if(!S.stats||typeof S.stats!=='object')S.stats={};S.stats[k]=(S.stats[k]||0)+(n==null?1:n);}
+function statMax(k,v){if(!S.stats||typeof S.stats!=='object')S.stats={};S.stats[k]=Math.max(S.stats[k]||0,v);}
+// after a turn that paid coins, one flip to double them or lose them
+async function doubleOrNothing(c){
+  const r=run;
+  const v=await modal('Double or Nothing?',`<div class="flipCoin">🪙</div><p>That turn paid <b>${c} 🪙</b>. Flip for it: heads doubles it, tails takes it back.</p>`,
+    [{label:`Flip for ${c} 🪙`,val:1,cls:'primary'},{label:'Keep it',val:null}]);
+  if(!v)return;
+  const win=Math.random()<.5;
+  await modal(win?'Heads!':'Tails...',`<div class="flipCoin spin ${win?'heads':'tails'}">🪙</div><p>${win?`Doubled: <b style="color:var(--gold)">+${c} 🪙</b>`:`The house takes it back: <b style="color:var(--red)">-${Math.min(c,r.coins)} 🪙</b>`}</p>`,[{label:'Back to the table',val:1,cls:'center'}]);
+  if(win){gainCoins(c);stat('donWon');stat('donNet',c);}else{const l=Math.min(c,r.coins);r.coins-=l;heroFl('-'+l+' 🪙 tails','#e0605a');stat('donLost');stat('donNet',-l);}
+  noteTurn(`Double or Nothing on ${c} coins: <b style="color:${win?'var(--gold)':'var(--red)'}">${win?'doubled':'lost'}</b>`);ui();
+}
+// Bookie contracts: bet on your own floor
+const CONTRACTS={
+  noshield:{n:'No Shields',d:'Clear this floor without a single Shield landing.'},
+  untouched:{n:'Untouchable',d:'Clear this floor without a foe hurting you.'},
+  slayer:{n:'Leave None Standing',d:'Kill every foe on this floor before you take the exit.'},
+  quick:{n:'In a Hurry',d:'Reach the exit within {n} spins.'},
+  frugal:{n:'No Holding',d:"Don't hold a single reel this floor."},
+};
+async function offerContract(){
+  const r=run;if(r.floor<2||r.kind==='boss'||r.kind==='rest'||r.lab||r.death||Math.random()>.45)return;
+  const id=pick(Object.keys(CONTRACTS)),n=Math.max(4,Math.ceil(r.len/2.4)),c=CONTRACTS[id],txt=c.d.replace('{n}',n);
+  const stakes=[5,15,40].filter(x=>x<=r.coins);if(!stakes.length)return;
+  const v=await modal('The Bookie',`${portImg('portrait_bookie','big merch')||'<div class="flipCoin">📜</div>'}<p>A hooded bookie slides a contract across a coffin lid:</p><p><b>${c.n}</b> · ${txt}</p><p class="sub">Pays <b>3×</b> your stake when you reach the exit.</p>`,
+    stakes.map(x=>({label:`Stake ${x} 🪙 <small>win ${x*3}</small>`,val:x})).concat([{label:'No bet',val:null}]));
+  if(!v)return;r.coins-=v;r.contract={id,stake:v,n,spins0:r.spins,fail:false};ui();
+  logLine(`<b>Contract: ${c.n}.</b> ${txt} Stake ${v} 🪙.`);
+}
+function contractFail(why){const k=run.contract;if(!k||k.fail)return;k.fail=true;heroFl('contract void','#e0605a');noteTurn(`<span style="color:var(--red)">Contract lost: ${why}</span>`);stat('contractsLost');}
+function settleContract(){
+  const r=run,k=r.contract;if(!k)return;r.contract=null;
+  if(k.id==='slayer'&&r.objs.some(o=>o.kind==='enemy'&&!o.gone))k.fail=true;
+  if(k.id==='quick'&&r.spins-k.spins0>k.n)k.fail=true;
+  if(k.fail){logLine(`The bookie pockets your ${k.stake} 🪙.`);return;}
+  gainCoins(k.stake*3);heroFl('CONTRACT PAID','#d9b56a');stat('contractsWon');logLine(`<b style="color:var(--gold)">Contract paid: +${k.stake*3} 🪙.</b>`);
+}
+// playing cards on the reels (Workbench: Card Reel): poker hands on a payline
+const POKER={royal:{n:'Royal Straight',d:'+15 🪙 and 6 block'},trips:{n:'Three of a Kind',d:'+10 🪙'},couple:{n:'Royal Couple',d:'+6 🪙'},pair:{n:'Pair',d:'+4 🪙'}};
+function pokerHands(grid){
+  const out=[];
+  for(const L of paylines(grid.length)){
+    const cs=L.r.map((row,c)=>grid[c][row]).filter(x=>x==='ace'||x==='king'||x==='queen');if(cs.length<2)continue;
+    const cnt={};cs.forEach(x=>cnt[x]=(cnt[x]||0)+1);const top=Math.max(...Object.values(cnt));
+    if(cnt.ace&&cnt.king&&cnt.queen)out.push('royal');else if(top>=3)out.push('trips');else if(cnt.king&&cnt.queen)out.push('couple');else if(top>=2)out.push('pair');
+  }
+  return out;
+}
+
+/* ---------------- the merchant's side business: loans, specials, flips, scratch cards ---------------- */
+const loanAmt=f=>20+f*2;
+// the house special: one Unique a week, the same for every player that week
+function weeklyUnique(){const w=Math.floor(Date.now()/(7*864e5));return UNIQUES[(w*2654435761>>>0)%UNIQUES.length];}
+function loanCheck(f){
+  const r=run,L=r.loan;if(!L||f<=L.due)return;
+  r.doom=(r.doom||0)+1;const col=mkEnemy('taxman',Math.min(4,r.len-3),f+2);
+  Object.assign(col,{id:uid++,n:'The Debt Collector',elite:'fast',hp:col.hp*3,max:col.max*3,coins:[0,0],loot:0});col.pat=col.pat.map(([a,v])=>a==='atk'?[a,v+3]:[a,v]);
+  r.objs.push(col);r.objs.sort((a,b)=>a.x-b.x);
+  view.banner={t:performance.now(),txt:'THE DEBT COLLECTOR'};
+  setTimeout(()=>logLine(`<b style="color:var(--red)">You owe the Taxman ${L.owe} 🪙.</b> His collector is here, and your Doom rises every floor until you repay.`),50);
+}
+// scratch cards: the prize is decided first, then drawn onto the card
+const SCRATCH=[{p:.45},{p:.25,coins:5,e:'🪙'},{p:.15,coins:15,e:'💰'},{p:.08,heal:1,e:'🧪'},{p:.05,coins:50,e:'💎'},{p:.02,relic:1,e:'🏺'}];
+async function scratchCard(){
+  const r=run;let t=Math.random(),prize=SCRATCH[0];for(const x of SCRATCH){if(t<x.p){prize=x;break;}t-=x.p;}
+  const pool=SCRATCH.slice(1).map(x=>x.e),cells=[];
+  if(prize.e){for(let i=0;i<3;i++)cells.push(prize.e);}
+  while(cells.length<9){const e=pick(pool);if(cells.filter(x=>x===e).length<2)cells.push(e);}
+  shuffle(cells);
+  let L=$('#scratchLayer');if(!L){L=document.createElement('div');L.id='scratchLayer';$('#app').appendChild(L);}
+  L.innerHTML=`<div class="scCard"><div class="scHead">🎟️ Grave Gains <small>three alike wins</small></div><div class="scGrid">${cells.map(e=>`<div class="scCell">${artify(e)}</div>`).join('')}<canvas></canvas></div>
+    <div class="scMsg">Scratch with your finger</div><div class="scBtns"><button class="btn center" data-a="all">Reveal all</button></div></div>`;
+  L.classList.add('show');modalOpen=true;
+  const cv2=L.querySelector('canvas'),g=cv2.getContext('2d'),box=L.querySelector('.scGrid');
+  await new Promise(r2=>requestAnimationFrame(r2));
+  const W=cv2.width=box.clientWidth,H=cv2.height=box.clientHeight;
+  const gr=g.createLinearGradient(0,0,W,H);gr.addColorStop(0,'#8d8a86');gr.addColorStop(.5,'#c9c4bb');gr.addColorStop(1,'#7a766f');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(40,30,25,.55)';g.font="bold 22px 'Pirata One',serif";g.textAlign='center';for(let y=40;y<H;y+=58)for(let x=50;x<W+40;x+=110)g.fillText('☠ SCRATCH ☠',x+(y/58%2)*40,y);
+  g.globalCompositeOperation='destination-out';
+  let down=false,done=false,n=0;
+  return new Promise(res=>{
+    const finish=()=>{if(done)return;done=true;cv2.style.transition='opacity .4s';cv2.style.opacity=0;
+      let msg='No match. Better luck in the next grave.';
+      if(prize.coins){gainCoins(prize.coins);msg=`Three ${prize.e}! <b style="color:var(--gold)">+${prize.coins} 🪙</b>`;}
+      if(prize.heal){heal(Math.round(stats().maxHp*.5));msg=`Three ${prize.e}! <b style="color:#6cc070">Healed half your life</b>`;}
+      if(prize.relic){msg=`Three ${prize.e}! <b style="color:#8cff96">A relic!</b>`;}
+      stat('scratched');if(prize.e)stat('scratchWins');
+      L.querySelector('.scMsg').innerHTML=artify(msg);if(prize.e)sfx.jackpot();
+      L.querySelector('.scBtns').innerHTML='<button class="btn primary center" data-a="close">Collect</button>';};
+    const at=e=>{const b=cv2.getBoundingClientRect();return [(e.clientX-b.left)*W/b.width,(e.clientY-b.top)*H/b.height];};
+    let last=null;g.lineWidth=46;g.lineCap='round';g.lineJoin='round';
+    const scratch=e=>{if(!down||done)return;const [x,y]=at(e);g.beginPath();if(last){g.moveTo(last[0],last[1]);g.lineTo(x,y);g.stroke();}else{g.arc(x,y,23,0,7);g.fill();}last=[x,y];
+      if(++n%6===0){const d=g.getImageData(0,0,W,H).data;let c=0;for(let i=3;i<d.length;i+=64)if(d[i]<20)c++;if(c/(d.length/64)>.5)finish();}};
+    cv2.onpointerdown=e=>{down=true;last=null;cv2.setPointerCapture(e.pointerId);scratch(e);};cv2.onpointermove=scratch;cv2.onpointerup=()=>{down=false;last=null;};
+    L.onclick=async e=>{const a=e.target.closest('[data-a]');if(!a)return;
+      if(a.dataset.a==='all')finish();
+      if(a.dataset.a==='close'){L.classList.remove('show');modalOpen=false;if(prize.relic)await relicPick('Grave Gains','The card crumbles to reveal a relic.');ui();res();}};
+  });
+}
+
+/* ---------------- Death's Blackjack (random event) ----------------
+   Rattles, a skeletal croupier, deals blackjack at a table on some deeper floors.
+   Standard rules: dealer stands on 17, blackjack pays 3:2, double on the first two
+   cards. Three hands a table. Cards are drawn by the game; the art is the table,
+   the dealer's poses and the card back. */
+const BJ_LINES={
+  intro:["Sit. The cards are cold, but so am I.","Twenty-one, or twenty-one feet under. Your choice.","Place your bet. The house is patient. The house is dead."],
+  win:["Hm. The deck favours you. For now.","Take it. You'll give it back.","A rare thing, a winning gambler. Rarer still, a living one."],
+  lose:["Bust. They always bust.","The house thanks you.","Another soul for the pile."],
+  push:["A push. Nobody wins. Nobody ever does.","Tied. How dull."],
+  bj:["Blackjack. Even the dead are impressed."],
+  done:["The table is closed. Come back when you've more to lose."],
+};
+const BJ_BETS=[{coins:10},{coins:25},{coins:60},{hp:10,prize:30}];
+const BJ={};
+function bjCard(){const r=['A','2','3','4','5','6','7','8','9','10','J','Q','K'][rnd(0,12)],s=pick(['♠','♥','♦','♣']);return {r,s};}
+function bjTotal(h){let t=0,a=0;for(const c of h){if(c.r==='A'){a++;t+=11;}else t+=/[JQK]/.test(c.r)?10:+c.r;}while(t>21&&a){t-=10;a--;}return t;}
+function bjCardHTML(c,hidden){
+  if(hidden){const b=artSrc('bj_card_back');return `<div class="bjc back">${b?`<img src="${b}" alt="">`:'☠'}</div>`;}
+  const red=c.s==='♥'||c.s==='♦';return `<div class="bjc ${red?'red':''}"><span class="tl">${c.r}<br>${c.s}</span><span class="mid">${c.s}</span><span class="br">${c.r}<br>${c.s}</span></div>`;}
+function bjDraw(hideHole){
+  BJ.L.querySelector('.bjDealerHand').innerHTML=BJ.dh.map((c,i)=>bjCardHTML(c,hideHole&&i===1)).join('');
+  BJ.L.querySelector('.bjPlayerHand').innerHTML=BJ.ph.map(c=>bjCardHTML(c)).join('');
+  BJ.L.querySelector('.bjDT').textContent=hideHole?'?':bjTotal(BJ.dh);BJ.L.querySelector('.bjPT').textContent=BJ.ph.length?bjTotal(BJ.ph):'';
+}
+function bjPose(p){const im=BJ.L.querySelector('.bjDealer img'),src=artSrc('bj_dealer_'+p);if(im&&src)im.src=src;}
+function bjSay(t){BJ.L.querySelector('.bjTalk p').textContent=t;}
+function bjAsk(opts){const A=window.LD_ART||{};const box=BJ.L.querySelector('.bjBtns');
+  return new Promise(res=>{box.innerHTML='';for(const o of opts){const b=document.createElement('button');b.className='btn '+(A.ui_button?'art':'');if(A.ui_button)b.style.borderImageSource=`url(${A.ui_button})`;
+    b.innerHTML=A.ui_button?`<span class="lbl"><span class="txt">${artify(o.label)}</span></span>`:artify(o.label);b.disabled=!!o.disabled;b.onclick=()=>{box.innerHTML='';res(o.val);};box.appendChild(b);}});}
+async function bjDeal(to){to.push(bjCard());bjDraw(BJ.hide);try{sfx.stop();}catch(e){}await shWait(S.fast?200:380);}
+async function blackjack(o){
+  const r=run;modalOpen=true;const A=window.LD_ART||{};
+  let L=$('#bjLayer');if(!L){L=document.createElement('div');L.id='bjLayer';$('#app').appendChild(L);}
+  L.innerHTML=`<div class="bjStage">${A.screen_bj_table?`<img class="bjBg" src="${A.screen_bj_table}" alt="">`:'<div class="bjFelt"></div>'}
+    <div class="bjDealer">${A.bj_dealer_idle?`<img src="${A.bj_dealer_idle}" alt="">`:'<span>💀</span>'}</div>
+    <div class="bjRow d"><div class="bjDealerHand"></div><b class="bjDT"></b></div><div class="bjRow p"><div class="bjPlayerHand"></div><b class="bjPT"></b></div><div class="shVig"></div><div class="shBanner"></div></div>
+    <div class="shPanel"><div class="bjTalk shTalk">${portImg('portrait_rattles','shPort')||'<span class="shPortE">💀</span>'}<div><b>Rattles the Croupier</b><p></p></div></div><div class="bjBtns shBtns"></div></div>`;
+  BJ.L=L;BJ.dh=[];BJ.ph=[];BJ.hide=true;L.classList.add('show');bjDraw(true);bjSay(pick(BJ_LINES.intro));
+  const banner=(t,col)=>{const b=L.querySelector('.shBanner');b.textContent=t;b.style.color=col;b.classList.remove('go');void b.offsetWidth;b.classList.add('go');};
+  let hands=0;
+  while(hands<3&&!r.over){
+    const v=await bjAsk(BJ_BETS.map((b,i)=>({val:i,disabled:b.hp?r.hp<=b.hp:r.coins<b.coins,label:b.hp?`Bet ${b.hp} ❤ <small>win ${b.prize} 🪙</small>`:`Bet ${b.coins} 🪙 <small>blackjack pays ${Math.floor(b.coins*2.5)}</small>`})).concat([{val:null,label:'Leave the table'}]));
+    if(v==null)break;const bet=BJ_BETS[v];let stake=bet.coins||0;if(stake){r.coins-=stake;ui();}
+    BJ.dh=[];BJ.ph=[];BJ.hide=true;bjDraw(true);bjPose('deal');
+    await bjDeal(BJ.ph);await bjDeal(BJ.dh);await bjDeal(BJ.ph);await bjDeal(BJ.dh);bjPose('idle');
+    let res=null;const pBJ=bjTotal(BJ.ph)===21,dBJ=bjTotal([BJ.dh[0],BJ.dh[1]])===21;
+    if(pBJ||dBJ){BJ.hide=false;bjDraw(false);res=pBJ&&dBJ?'push':pBJ?'bj':'lose';}
+    else{let first=true;
+      while(bjTotal(BJ.ph)<21){bjSay(`You have ${bjTotal(BJ.ph)}. The dealer shows ${bjTotal([BJ.dh[0]])}.`);
+        const a=await bjAsk([{val:'h',label:'Hit'},{val:'s',label:'Stand'},...(first&&stake&&r.coins>=stake?[{val:'d',label:`Double <small>+${stake} 🪙, one card</small>`}]:[])]);
+        first=false;if(a==='s')break;if(a==='d'){r.coins-=stake;stake*=2;ui();await bjDeal(BJ.ph);break;}await bjDeal(BJ.ph);}
+      const pt=bjTotal(BJ.ph);BJ.hide=false;bjDraw(false);await shWait(400);
+      if(pt>21)res='lose';
+      else{bjPose('deal');while(bjTotal(BJ.dh)<17)await bjDeal(BJ.dh);bjPose('idle');const dt=bjTotal(BJ.dh);res=dt>21||pt>dt?'win':pt===dt?'push':'lose';}}
+    // payout
+    if(res==='bj'){if(bet.hp)gainCoins(bet.prize);else gainCoins(Math.floor(stake*2.5));banner('BLACKJACK','#d9b56a');bjSay(pick(BJ_LINES.bj));bjPose('sulk');sfx.jackpot();stat('bjWon');stat('bjNet',bet.hp?bet.prize:Math.floor(stake*1.5));}
+    else if(res==='win'){if(bet.hp)gainCoins(bet.prize);else gainCoins(stake*2);banner('YOU WIN','#d9b56a');bjSay(pick(BJ_LINES.win));bjPose('sulk');sfx.coin();stat('bjWon');stat('bjNet',bet.hp?bet.prize:stake);}
+    else if(res==='push'){if(stake)r.coins+=stake;banner('PUSH','#cdb68a');bjSay(pick(BJ_LINES.push));stat('bjPush');}
+    else{if(bet.hp){r.hp-=bet.hp;hurtBy('the croupier\'s wager',bet.hp);view.hurt=1;sfx.hurt();}banner(bjTotal(BJ.ph)>21?'BUST':'THE HOUSE WINS','#e0605a');bjSay(pick(BJ_LINES.lose));bjPose('grin');stat('bjLost');stat('bjNet',-(stake||0));}
+    noteTurn(`Blackjack: ${bjTotal(BJ.ph)} vs ${bjTotal(BJ.dh)}, <b>${res==='bj'?'blackjack':res}</b>`);ui();hands++;await shWait(1100);bjPose('idle');
+    if(r.hp<=0)break;
+  }
+  if(hands>=3){bjSay(pick(BJ_LINES.done));await bjAsk([{val:1,label:'Leave the table'}]);}
+  await shTween(350,e=>L.style.opacity=1-e);L.classList.remove('show');L.style.opacity='';modalOpen=false;o.gone=true;heroFl('the table sinks into the floor','#b07cf0');ui();save();
+}
+
 /* ---------------- the final boss: Death ----------------
    From floor 66 with 666 coins, "Pay your Debt, and Defy Death" appears above the
    machine. Paying it starts a three-phase duel on Death's throne, seen from behind
@@ -700,15 +911,16 @@ const DEATH_LINES={
   win:["...Impossible. Go, then. Walk out into the light. The house... lost.","Take your soul. I'll be here. I'm always here."],
 };
 const deathReady=()=>!!run&&!run.over&&!run.death&&!run.lab&&run.floor>=DEATH_FLOOR&&run.coins>=DEATH_COST;
-function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2);
-  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?v+dm:(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
+function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2),k=run&&run.deathDouble?1.3:1;
+  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?Math.round((v+dm)*k):(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
 async function defyDeath(){
   const r=run;if(!deathReady()||busy||modalOpen)return;
+  const again=S.deathDefeated>0;
   const v=await modal('Pay your Debt, and Defy Death',`${portImg('portrait_death1','big merch')}<p>Pay <b>${DEATH_COST} 🪙</b> to buy a seat at Death's own table. Beat him, and you walk out of the dungeon a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
-    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary'},{label:'Not yet',val:null}]);
-  if(!v||!deathReady())return;
+    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
+  if(!v||!deathReady())return;r.deathDouble=v===2;
   busy=true;r.coins-=DEATH_COST;sfx.jackpot();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
-  const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});
+  const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
   busy=false;rebuildReels();ui();save();
@@ -732,7 +944,8 @@ async function deathCheck(o){
 async function defeatDeath(){
   const r=run;r.pendingFree=false;view.shake=18;sfx.jackpot();
   await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light');
-  const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;r.souls+=666;
+  const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;r.souls+=666;stat('deathWins');
+  if(r.deathDouble&&S.ledger){const up=S.ledger.lvl<LEDGER_MAX;if(up)S.ledger.lvl++;save();await modal('Double or Nothing: won',`${icon('gear_unique_ledger','📓','hero')}<p>${up?`The Grim's Ledger rises to <b style="color:#8cff96">+${S.ledger.lvl}</b>, free of charge.`:'The Ledger is already complete. Death pays you in souls instead: <b>+666</b>.'}</p>`,[{label:'Take it',val:1,cls:'primary'}]);if(!up)r.souls+=666;}
   if(first){S.ledger={lvl:1,picks:['swordDmg','maxHp']};S.ledgerOn=true;save();
     await modal("The Grim's Ledger",`${icon('gear_unique_ledger','📓','hero')}<p>Death's own ledger, every debt in the dungeon written in it. Yours is crossed out.</p><p><b style="color:#8cff96">Unlocked:</b> a permanent extra vault space holding <b>The Grim's Ledger</b>, a charm you customise yourself and upgrade with souls and boss chips. Find it in the Heirloom Vault.</p>`,[{label:'Take it',val:1,cls:'primary'}]);}
   await endRun('free');
@@ -828,7 +1041,7 @@ const SHELL_BETS=[
   {id:'h',coins:40,swaps:12,speed:1.65},
   {id:'b',hp:8,prize:25,swaps:10,speed:1.45},
 ];
-const SH_X=[28,50,72],SH_Y=79,SH_CW=17;
+let SH_X=[28,50,72],SH_CW=17;const SH_Y=79;
 const SH={};
 const shWait=ms=>new Promise(r=>setTimeout(r,ms));
 function shTween(ms,fn){return new Promise(res=>{const t0=performance.now();const f=now=>{const t=Math.min(1,(now-t0)/ms);fn(t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,t);if(t<1)requestAnimationFrame(f);else res();};requestAnimationFrame(f);});}
@@ -840,7 +1053,7 @@ function shBuild(){
   const A=window.LD_ART||{};
   L.innerHTML=`<div class="shStage">${A.screen_shell_table?`<img class="shBg" src="${A.screen_shell_table}" alt="">`:'<div class="shFelt"></div>'}
     ${shPart('shell_dealer_idle','👺','shDealer')}${shPart('shell_eye','👁️','shEye')}
-    ${[0,1,2].map(i=>shPart('shell_cup','💀','shCup')).join('')}
+    ${SH_X.map(i=>shPart('shell_cup','💀','shCup')).join('')}
     ${shPart('shell_hand_open','','shHand')}${shPart('shell_hand_open','','shHand')}<div class="shVig"></div><div class="shBanner"></div></div>
     <div class="shPanel"><div class="shTalk">${portImg('portrait_shellman','shPort')||'<span class="shPortE">👺</span>'}<div><b>Gristle the Shell-Man</b><p></p></div></div><div class="shBtns"></div></div>`;
   SH.L=L;SH.stage=L.querySelector('.shStage');SH.dealer=L.querySelector('.shDealer');SH.eyeEl=L.querySelector('.shEye');SH.p=L.querySelector('.shTalk p');SH.btns=L.querySelector('.shBtns');
@@ -887,7 +1100,7 @@ async function shRound(bet){
   shPose('shuffle');if(SH.handsOn){const l=cs[0],r=cs[2];shHands(l,r,false);await shTween(300,e=>SH.hands.forEach(h=>h.style.opacity=e));}
   await shWait(250);
   for(let i=0;i<bet.swaps;i++){
-    const q=Math.random(),pr=q<.42?[0,1]:q<.84?[1,2]:[0,2];if(Math.random()<.5)pr.reverse();
+    const n=SH_X.length,a0=rnd(0,n-1);let b0=rnd(0,n-2);if(b0>=a0)b0++;const pr=[a0,b0];
     const ms=Math.round(560/bet.speed*(1-.38*i/Math.max(1,bet.swaps-1)));
     await shSwap(pr[0],pr[1],ms);await shWait(40+Math.random()*80);
   }
@@ -902,9 +1115,9 @@ async function shRound(bet){
   return won;
 }
 async function shellGame(o){
-  const r=run;modalOpen=true;shBuild();SH.L.classList.add('show');shPose('idle');
+  const r=run;const four=r.floor>=20;SH_X=four?[20,40,60,80]:[28,50,72];SH_CW=four?14.5:17;modalOpen=true;shBuild();SH.L.classList.add('show');shPose('idle');
   SH.eye=null;SH.eyeShow=false;requestAnimationFrame(shDraw);shDraw();
-  shSay(pick(SHELL_LINES.intro));
+  shSay(four?"Four skulls tonight, friend. You've got sharp eyes... let's see how sharp.":pick(SHELL_LINES.intro));
   let plays=0;
   while(plays<3&&!r.over){
     const opts=SHELL_BETS.map(b=>({val:b.id,disabled:b.hp?r.hp<=b.hp:r.coins<b.coins,
@@ -913,7 +1126,9 @@ async function shellGame(o){
     const v=await shAsk(opts);if(!v)break;
     const bet=SHELL_BETS.find(b=>b.id===v);if(bet.coins){r.coins-=bet.coins;ui();}
     const won=await shRound(bet);
-    if(won){if(bet.hp)gainCoins(bet.prize);else gainCoins(bet.coins*2);shPose('sulk');shSay(pick(SHELL_LINES.win));shBanner('YOU FOUND IT','#d9b56a');sfx.jackpot();r.shellWins=(r.shellWins||0)+1;}
+    stat(won?'shellWon':'shellLost');stat('shellNet',won?(bet.hp?bet.prize:bet.coins):-(bet.coins||0));
+    if(won){if(bet.hp)gainCoins(bet.prize);else gainCoins(bet.coins*2);shPose('sulk');shSay(pick(SHELL_LINES.win));shBanner('YOU FOUND IT','#d9b56a');sfx.jackpot();r.shellWins=(r.shellWins||0)+1;
+      if(r.shellWins===3&&!r.shellPurse){r.shellPurse=true;await shWait(900);shPose('sulk');shSay("THREE times?! Fine. FINE! Take the whole purse and get out of my sight!");shBanner('GRISTLE\'S PURSE +100','#d9b56a');gainCoins(100);stat('shellPurse');await shWait(1600);}}
     else{if(bet.hp){r.hp-=bet.hp;hurtBy('the Shell-Man\'s wager',bet.hp);view.hurt=1;sfx.hurt();}shPose('grin');shSay(pick(SHELL_LINES.lose));shBanner('THE HOUSE WINS','#e0605a');}
     noteTurn(`Shell game: bet ${bet.hp?bet.hp+' HP':bet.coins+' coins'}, ${won?'<b style="color:var(--gold)">won</b>':'lost'}`);
     ui();plays++;await shWait(900);
@@ -1131,6 +1346,7 @@ const MODS=[
   {id:'wheel1',e:'⚖️',n:'Weighted Wheel',d:'Removes one x1 face from the fortune wheel.',cost:3},
   {id:'wheel5',e:'🌟',n:'Golden Wheel',d:'Adds a second x5 face to the fortune wheel.',cost:5,req:'wheel1'},
   {id:'bonusbell',e:'🔔',n:'Bonus Bell',d:'Triggering free spins also offers a relic.',cost:4},
+  {id:'cards',e:'🃏',n:'Card Reel',d:'Adds an Ace, King and Queen to every reel. Cards on a payline make poker hands that pay coins.',cost:3},
 ];
 
 const RAR=[
@@ -1291,6 +1507,7 @@ function stripCounts(){
   const s=stats(),c=Object.assign({},HEROES[run.hero].strip);
   const add=(k,v)=>c[k]=(c[k]||0)+v;
   if(S.mods.wild)add('star',1);
+  if(S.mods.cards){add('ace',1);add('king',1);add('queen',1);}
   for(const k in s.add)add(k,s.add[k]);
   for(const k in run.stripAdd)add(k,run.stripAdd[k]);
   add('skull',(run.curse||0)-s.unskull-(S.mods.filter?1:0));
@@ -1424,11 +1641,12 @@ function genFloor(f){
   for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:kind==='treasure'?i===0:(f>=2&&Math.random()<.15)});
   if((kind==='rest'||(!boss&&(f===2||Math.random()<.35)))&&free.length)put({kind:'shrine',x:free.pop()});
   if(!boss&&kind!=='rest'&&f>=2&&free.length&&Math.random()<.2)put({kind:'shell',x:free.pop()});
+  else if(!boss&&kind!=='rest'&&f>=4&&free.length&&Math.random()<.12)put({kind:'bj',x:free.pop()});
   if(kind!=='rest')for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
   for(let i=0;i<rnd(1,3)+(kind==='treasure'?1:0)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
   if(kind==='rest'){r.hp=Math.min(stats().maxHp,r.hp+Math.round(stats().maxHp*.3));}
   if(!boss&&free.length){const who=graveFor(f);if(who)put({kind:'grave',x:free.pop(),who});}
-  r.objs.sort((a,b)=>a.x-b.x);fxEach('floorStart');
+  r.objs.sort((a,b)=>a.x-b.x);if(!boss&&!r.death)loanCheck(f);fxEach('floorStart');
   view.hx=T/2;view.cam=T/2-HERO_SX;
   view.banner=boss?{t:performance.now(),txt:BOSSES[BOSS_ORDER[(f/3-1)%3]].n.toUpperCase()}:r.reaperDue?{t:performance.now(),txt:'THE REAPER COMES'}:null;r.reaperDue=false;
 }
@@ -1457,7 +1675,7 @@ const M={reels:[],spinning:false,timers:[],grid:null,nudges:0,wheel:1,wheelSpin:
 // multiplies that turn's damage and block (never coins or healing).
 function wheelFaces(){const f=[1,1,1,2,3,5];if(S.mods.wheel1)f.splice(0,1);if(S.mods.wheel5)f.push(5);return f;}
 function rollWheel(){
-  const r=run;if(r.wheelJam)return 1;
+  const r=run;if(r.wheelJam)return 1;if(r.inBonus&&r.lock5)return 5;
   let f=fxFold('faces',wheelFaces());const noOne=(r.inBonus)||(hasR('thumb')&&r.hp<stats().maxHp/2)||fxFold('noOne',false);
   if(noOne)f=f.filter(x=>x!==1);
   return pick(f);
@@ -1486,7 +1704,10 @@ function finishRes(res){
   res.mult=M.wheel;
   res.soul=soulCount(readGrid());
   res.gain=bulbsGained(res.soul);   // bulbs collect during free spins too
-  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;   // a full row waits for the current bonus to end
+  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;
+  res.retrigger=run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;   // a full row during free spins retriggers them
+  // a held reel whose middle symbol matches the others pays a little
+  {const g=readGrid(),mid=g.map(c=>c[1]);let hp=0;for(const i of (M.heldIdx||[])){const k=mid[i],o=mid.filter((x,j)=>j!==i);const m=o.filter(x=>x===k||x==='star'||k==='star').length;hp+=m===o.length?3:m?1:0;}res.holdPay=hp;}
   return res;
 }
 const nudgeMax=()=>(S.mods.nudge?1:0)+(hasR('loadeddice')?1:0);
@@ -1569,6 +1790,7 @@ function spin(){
   const cost=spinCost();if(run.coins<cost){logLine(`Not enough coins: this spin costs <b>${cost}</b>.`);return;}
   run.coins-=cost;if(run.freeSpin)run.freeSpin=false;
   if(run.bonus>0){run.bonus--;}
+  M.heldIdx=M.reels.map((R,i)=>R.held&&!R.jam?i:-1).filter(i=>i>=0);if(M.heldIdx.length&&run.contract&&run.contract.id==='frugal')contractFail('you held a reel');
   run.spins++;M.spinning=true;M.nudges=nudgeMax()+(run.inBonus?1:0);fxEach('spin');
   M.wheel=rollWheel();M.wheelSpin={face:1,last:0,gap:70};drawWheel();
   if(run.daily)seedRandom(run.daily+':'+run.spins);
@@ -1642,7 +1864,8 @@ function evaluate(grid){
       units[k]=(units[k]||0)+c*mult;
     }
   }
-  return {units,triples,wins,pays,combos};
+  for(const k of ['ace','king','queen'])delete units[k];
+  return {units,triples,wins,pays,combos,poker:pokerHands(grid)};
 }
 function markCells(list,cls){
   for(const [c,row] of list){const R=M.reels[c];if(!R)continue;const i=(1-row)+2;R.cells[i]&&R.cells[i].classList.add(cls);}
@@ -1683,11 +1906,14 @@ function previewTurn(R){
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
   if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
   if(r.wheelJam)L.push(`<span style="color:var(--purple)">the Bandit has jammed the wheel at ×1 — a jackpot frees it</span>`);
-  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — another bonus once this one ends':''}</span>`);
+  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — <b>RETRIGGER: +3 free spins, wheel locked at ×5</b>':''}</span>`);
   if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">✦ ALL BULBS LIT</b> — <b>${hasR('longstreak')?5:3} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
   if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
   if(val('skull')&&!hasR('skullring')&&!hasR('beaker')){const d=(r.doom||0)+fxFold('skullDoom',val('skull')*(hasR('scythe')?2:1));if(d>(r.doom||0))L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   const mu=R.mult||1;
+  if(R.holdPay)L.push(`🔒 held reel matched: +<b>${R.holdPay}</b> 🪙`);
+  for(const h of (R.poker||[]))L.push(`<b style="color:#e9dcc6">🃏 ${POKER[h].n}</b> — ${POKER[h].d}`);
+  if(r.contract)L.push(`<span style="color:${r.contract.fail?'var(--red)':'var(--gold)'}">📜 contract: ${CONTRACTS[r.contract.id].n}${r.contract.fail?' (void)':''}</span>`);
   if(val('shield'))L.push(`🛡 block <b>${val('shield')*s.blockPer*mu}</b>`);
   if(r.poison&&r.poison.turns>0)L.push(`<span style="color:#8cff96">☣ poisoned: ${r.poison.dmg} a turn for ${r.poison.turns} more turn${r.poison.turns>1?'s':''}${val('potion')?' · the potion cures it':' · a Potion cures it'}</span>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
@@ -1721,20 +1947,27 @@ async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
   noteTurn(`Reels: ${Object.entries(u).map(([k,n])=>`${SYM[k]?SYM[k].e:k}×${n}`).join(' ')}${R.mult>1?` · wheel ×${R.mult}`:''}${R.triples?' · JACKPOT':''}`);
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
-  const mu=R.mult||1;r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
+  let mu=R.mult||1;r.turnCoins=0;
+  if(R.triples&&!M.autoBonus&&!r.death&&Math.random()<.35){const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary'},{label:'Refuse',val:null}]);
+    if(v){mu*=2;r.curse=(r.curse||0)+1;heroFl('CURSED ×'+mu,'#b07cf0');stat('cursedTaken');}}
+  r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
   if(R.gain){r.bulbs=(r.bulbs||0)+R.gain;drawBulbs(true);sfx.coin();heroFl('+'+R.gain+' bulb'+(R.gain>1?'s':''),'#ff8a4a');}
   if(R.soul)fxEach('soul',R.soul);if(r.inBonus)fxEach('bonusSpin');
+  if(R.retrigger){r.bulbs=0;drawBulbs();r.bonus+=3;r.lock5=true;heroFl('RETRIGGER! +3 · ×5 LOCKED','#d9b56a');sfx.jackpot();stat('retriggers');}
   if(R.bonusTrigger){r.bulbs=0;drawBulbs();r.bonus=hasR('longstreak')?5:3;r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
     if(S.mods.bonusbell)await relicPick('Bonus Bell','The bell rings: a relic falls with the free spins.');}
-  else if(r.inBonus&&r.bonus<=0){r.inBonus=false;}
+  else if(r.inBonus&&r.bonus<=0&&!R.retrigger){r.inBonus=false;r.lock5=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
   r.block=fxFold('keepBlock',false)?r.block:hasR('tower')?Math.floor(r.block/2):0;
-  if(R.triples){heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
+  if(R.triples){stat('jackpots');statMax('bestJackpot',R.triples);statMax('bestMult',mu);heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);await fxEachA('jackpot',R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer*mu;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);if(r.poison){r.poison=null;heroFl('poison cured','#8cff96');}}
-  if(val('coin')){const c=fxFold('coinSym',val('coin')*s.coinPer);gainCoins(c);parts.push(`🪙+${c}`);}
+  if(val('coin')){const c=fxFold('coinSym',val('coin')*s.coinPer);gainCoins(c);r.turnCoins+=c;parts.push(`🪙+${c}`);}
+  if(R.holdPay){gainCoins(R.holdPay);r.turnCoins+=R.holdPay;parts.push(`🔒+${R.holdPay}`);}
+  for(const h of (R.poker||[])){const c={royal:15,trips:10,couple:6,pair:4}[h];gainCoins(c);r.turnCoins+=c;if(h==='royal'){r.block+=6;}heroFl('🃏 '+POKER[h].n,'#e9dcc6');parts.push(`🃏${POKER[h].n}`);stat('pokerHands');}
+  if(val('shield')&&r.contract&&r.contract.id==='noshield')contractFail('a Shield landed');
   if(val('skull')){
     if(hasR('beaker')){const ts=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x).sort((a,b)=>a.x-b.x);
       if(ts.length){const d1=val('skull')*5,d2=val('skull')*3;addFx('fx_curse',ts[0].x*T+T/2,GY-50,80,.7,10);await hit(ts[0],d1,'bomb');parts.push(`⚗${d1}`);
@@ -1788,6 +2021,7 @@ async function doTurn(R){
   noteTurn('You: '+(parts.length?parts.join(' · '):'nothing landed'));logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
   if(r.pendingFree){await defeatDeath();return;}
+  if(r.turnCoins>=3&&S.don!==false&&!M.autoBonus&&!r.over&&!r.death)await doubleOrNothing(r.turnCoins);
   await drainLoot();
   if(r.over)return;
   await beat(260);
@@ -1799,7 +2033,7 @@ async function doTurn(R){
   if(r.coins<1&&!r.freeSpin)await broke();
 }
 function heal(n){const r=run,mx=stats().maxHp;const h=Math.max(0,Math.min(n,mx-r.hp));r.hp+=h;if(h){heroFl('+'+h+' HP','#6cc070');sfx.heal();addFx('fx_heal',heroWX(),GY-50,70,.8,26);}return h;}
-function gainCoins(n){if(n<=0)return;n=Math.max(1,Math.round(fxFold('gold',n)));run.coins+=n;heroFl('+'+n+' 🪙','#d9b56a');sfx.coin();addFx('fx_coins',heroWX(),GY-70,56,.6,18);}
+function gainCoins(n){if(n<=0)return;n=Math.max(1,Math.round(fxFold('gold',n)));run.coins+=n;stat('coinsWon',n);heroFl('+'+n+' 🪙','#d9b56a');sfx.coin();addFx('fx_coins',heroWX(),GY-70,56,.6,18);}
 async function hit(o,dmg,how){
   const r=run;if(o.gone)return;
   if(o.kind==='chest'){
@@ -1853,6 +2087,7 @@ async function enterTile(x){
     else if(o.kind==='shrine'){o.gone=true;o.used=true;r.objs.push({id:uid++,kind:'shrine_used',x:o.x,dx:o.x*T});
       await relicPick('Shrine of Odds','A cracked idol offers a gift. Choose one.','portrait_shrine');}
     else if(o.kind==='shell'){await shellGame(o);if(r.hp<=0&&await tryDie())return;}
+    else if(o.kind==='bj'){await blackjack(o);if(r.hp<=0&&await tryDie())return;}
     else if(o.kind==='door'){await floorClear();return;}
   }
 }
@@ -1899,6 +2134,7 @@ async function enemyHit(e,dmg){
   if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');fxEach('dodged');return;}
   let d=Math.round(fxFold('hurt',dmg,e));const b=Math.min(r.block,d);r.block-=b;d-=b;
   if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);if(d<=0)noteTurn(`${esc(e.n)} hit for ${dmg}, all blocked`);}
+  if(d>0&&r.contract&&r.contract.id==='untouched')contractFail(e.n+' hurt you');
   if(d>0){r.hp-=d;hurtBy(e.n,d);heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.phase2)poisonHero();if(e.elite==='cursed'&&!fxFold('curseImmune',false)){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
   if(d>0)await fxEachA('hurtAfter',e,d);
   if(s.thorns&&e.range<=1&&!e.gone)await hit(e,s.thorns,'thorns');
@@ -1949,7 +2185,7 @@ async function relicPick(title,text,pk){
 }
 async function floorClear(){
   const r=run;r.floorDone=true;
-  r.souls+=5;gainCoins(2);fxEach('floorClear');
+  r.souls+=5;gainCoins(2);fxEach('floorClear');settleContract();
   if(alt('mend'))heal(alt('mend')*3);
   if(r.bossDown&&r.lab){r.bossDown=false;await drainLoot();r.souls+=50;
     if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);run.relics.push('beaker');rebuildReels();ui();}
@@ -1967,6 +2203,7 @@ async function floorClear(){
     r.nextKind=v||'fight';
   }
   r.floor++;genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
+  await offerContract();
   logLine(`<b>Floor ${r.floor} · ${FLOOR_KINDS[r.kind].n}.</b> ${FLOOR_KINDS[r.kind].d}`);
 }
 function shopOffers(){
@@ -1976,7 +2213,11 @@ function shopOffers(){
   const addable=['sword','boots','shield','coin','potion','bow','bomb','key'];
   shuffle(addable);o.push({t:'add',sym:addable[0],price:4},{t:'add',sym:addable[1],price:4});
   o.push({t:'remove',price:5},{t:'maxhp',price:8+f});
+  {const u=weeklyUnique(),worn=SLOTS.some(sl=>run.gear[sl]&&run.gear[sl].uid===u.id);if(!worn)o.unshift({t:'special',item:mkUnique(u,f+2),price:60+f*3});}
+  o.push({t:'scratch',price:5},{t:'flip',price:5});
   for(const x of o)x.price=Math.max(1,Math.round(fxFold('price',x.price)));
+  // the Taxman's terms are his own: no discounts, no fees
+  if(run.loan)o.push({t:'repay',price:run.loan.owe});else o.push({t:'loan',price:0});
   return o;
 }
 async function shop(){
@@ -1986,7 +2227,12 @@ async function shop(){
       gear:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:${o.item?RAR[o.item.rar].c:''}">${o.item?esc(o.item.name):''}</b><small>${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
       relic:`${o.relic?relicIcon(o.relic,'lead'):''}<b>${o.relic?o.relic.n:''}</b><small>${o.relic?o.relic.d:''}</small>`,
       add:`${icon('shop_weld','➕','lead')}Weld a ${SYM[o.sym]?symIcon(o.sym):''} ${SYM[o.sym]?SYM[o.sym].n:''} onto the reels`,
-      remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`})[o.t];
+      remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`,
+      special:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:#8cff96">★ House Special: ${o.item?esc(o.item.name):''}</b><small>this week only · ${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
+      scratch:`🎟️ Scratch card <small>three alike wins coins, a heal or a relic</small>`,
+      flip:`🪙 Flip the merchant <small>win: everything left is half price · lose: he keeps the coins</small>`,
+      loan:`📜 Borrow ${loanAmt(r.floor)} 🪙 from the Taxman <small>repay ${Math.ceil(loanAmt(r.floor)*1.5)} by floor ${r.floor+3}, or his collector comes</small>`,
+      repay:`📜 Repay the Taxman <small>clears your debt${r.loan?` (due floor ${r.loan.due})`:''}</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
     btns.push({label:'Descend ▶',val:'go',cls:'primary'});
     const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns,shopScroll);shopScroll=modalScroll;
@@ -1997,7 +2243,14 @@ async function shop(){
       const s=await modal('Pry a symbol off',reelTable(),keys.map(k=>({label:`${symIcon(k,'lead')}${SYM[k].n} <small>${c[k]} on each reel</small>`,val:k})).concat([{label:'Never mind',val:null}]));
       if(!s)continue;run.stripAdd[s]=(run.stripAdd[s]||0)-1;
     }
-    r.coins-=o.price;o.sold=true;
+    r.coins-=o.price;o.sold=o.t!=='scratch';
+    if(o.t==='scratch'){await scratchCard();continue;}
+    if(o.t==='flip'){const w=Math.random()<.5;stat(w?'flipWon':'flipLost');
+      await modal(w?'Heads!':'Tails...',`<div class="flipCoin spin ${w?'heads':'tails'}">🪙</div><p>${w?'The merchant scowls. <b>Everything left is half price.</b>':'The merchant grins and pockets your coins.'}</p>`,[{label:'Fine',val:1,cls:'center'}]);
+      if(w)for(const x of offers)if(!x.sold&&x.t!=='repay'&&x.t!=='loan')x.price=Math.max(1,Math.ceil(x.price/2));continue;}
+    if(o.t==='loan'){const a=loanAmt(r.floor);r.loan={owe:Math.ceil(a*1.5),due:r.floor+3};gainCoins(a);stat('loans');continue;}
+    if(o.t==='repay'){r.loan=null;heroFl('debt paid','#6cc070');stat('loansRepaid');continue;}
+    if(o.t==='special'){r.pending.push(o.item);await drainLoot();}
     if(o.t==='heal')heal(fxFold('meal',Math.round(stats().maxHp*.4)));
     if(o.t==='gear'){r.pending.push(o.item);await drainLoot();}
     if(o.t==='relic')r.relics.push(o.relic.id);
@@ -2016,6 +2269,10 @@ async function endRun(reason){
   if(r.daily){const d=(S.daily&&S.daily[r.daily])||{best:0,runs:0,souls:0};d.best=Math.max(d.best,r.floor);d.runs++;d.souls=Math.max(d.souls,souls);S.daily={[r.daily]:d};}
   seedRandom(null);
   r.summary=`Dead Man's Pull${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
+  stat('runs');stat('kills',r.kills);statMax('deepest',r.floor);statMax('bestHit',r.bestHit||0);statMax('mostCoins',r.coins);
+  S.runLog=[{d:todayKey(),hero:r.hero,floor:r.floor,why:reason,killer:reason==='free'?'':reason==='broke'?'an empty purse':reason==='quit'?'walked away':(r.killer||'the dungeon'),souls,kills:r.kills,daily:!!r.daily}].concat(S.runLog||[]).slice(0,10);
+  if(r.daily){const L=S.dailyLog||{},e=L[r.daily]||{best:0,runs:0,souls:0};e.best=Math.max(e.best,r.floor);e.runs++;e.souls=Math.max(e.souls,souls);L[r.daily]=e;
+    const keys=Object.keys(L).sort().reverse().slice(0,14);S.dailyLog=Object.fromEntries(keys.map(k=>[k,L[k]]));}
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
   const hist=(r.hist||[]).map(t=>`<div class="histTurn"><span class="tn">Spin ${t.n}</span>${t.l.map(x=>`<div>${x}</div>`).join('')}</div>`).join('')||'<div class="histTurn">No turns recorded.</div>';
@@ -2124,6 +2381,7 @@ function settingsHTML(){
     t('jackpotScreen','🎰','Jackpot screen',S.jackpotScreen!==false?'on':'off'),
     t('fast',S.fast?'⏩':'▶','Fast animations',S.fast?'on':'off'),
     t('bonusManual','🎰','Free spins',S.bonusManual?'tap each spin':'play themselves'),
+    t('don','🪙','Double or Nothing offers',S.don!==false?'on':'off'),
   ].join('\n');}
 // Full screen: the browser's fullscreen API (Android Chrome hides the address bar
 // and the phone's buttons). Browsers drop it on every reload, so with the setting on
@@ -2136,7 +2394,7 @@ function fsExit(){const f=document.exitFullscreen||document.webkitExitFullscreen
 function fsRefresh(){document.querySelectorAll('[data-act="set:fullscreen"] small').forEach(el=>el.textContent=S.fullscreen?'on':'off · hides the browser bars');}
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(!fsEl()&&S.fullscreen){S.fullscreen=false;save();}fsRefresh();setTimeout(()=>window.dispatchEvent(new Event('resize')),60);}));
 document.addEventListener('pointerup',()=>{if(S.fullscreen&&!fsEl())fsEnter();},true);
-function applySetting(arg){S[arg]=!S[arg];save();if(arg==='fullscreen'){if(S.fullscreen)fsEnter();else fsExit();}if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
+function applySetting(arg){if(arg==='don'){S.don=S.don===false;save();return;}S[arg]=!S[arg];save();if(arg==='fullscreen'){if(S.fullscreen)fsEnter();else fsExit();}if(arg==='music')music.apply();if(arg==='autoStop'&&run)ui();}
 // In-game settings: a pop-up over the pause menu that stays open while you toggle.
 function settingsPopup(){
   let el=$('#peek');if(!el){el=document.createElement('div');el.id='peek';$('#app').appendChild(el);el.addEventListener('click',e=>{if(e.target===el||e.target.id==='peekX')el.classList.remove('show');});}
@@ -2170,6 +2428,7 @@ function showHub(v){
       <button class="btn" data-act="altar">💠 Soul Altar <small>Permanent upgrades, paid in souls</small></button>
       <button class="btn" data-act="bench">🎰 Machine Workbench <small>Rewire the slot machine, paid in boss chips</small></button>
       <button class="btn" data-act="vault">🗄️ Heirloom Vault <small>${S.vault.length}/${vaultSlots()} stored</small></button>
+      <button class="btn" data-act="records">📊 Records <small>your stats, last runs and daily history</small></button>
       <button class="btn" data-act="help">📜 How to play</button>
       <button class="btn" data-act="settings">⚙️ Settings</button>
     </div>`;
@@ -2196,6 +2455,16 @@ function showHub(v){
   }else if(v==='vault'){
     html=back+`<h2 style="color:var(--gold)">🗄️ Heirloom Vault · ${S.vault.length}/${vaultSlots()}</h2>`+ledgerHTML()+`<p style="font-size:12px;color:var(--dim)">When a run ends you may carry one worn piece home. Choose which to wear on the hero screen. Upgrade slots at the Soul Altar.</p>`
       +(S.vault.length?S.vault.map(it=>itemHTML(it,S.loadout.includes(it.id)?'✔ WEARING':'')+`<button class="btn danger center" style="width:100%;margin-bottom:8px" data-act="drop:${it.id}">Melt down</button>`).join(''):'<p style="color:var(--dim)">Empty. Die with something good on.</p>');
+  }else if(v==='records'){
+    const st=S.stats||{},g=k=>st[k]||0,net=k=>{const n=g(k);return `<b style="color:${n>=0?'var(--gold)':'var(--red)'}">${n>=0?'+':''}${n}</b>`;};
+    const row=(a,b)=>`<div class="recRow"><span>${a}</span><b>${b}</b></div>`;
+    html=back+`<h2 style="color:var(--gold)">📊 Records</h2>
+      <h3 class="recH">The run</h3>${row('Runs played',g('runs')||S.runs||0)}${row('Deepest floor',Math.max(g('deepest'),S.best||0))}${row('Foes slain',g('kills')||S.kills||0)}${row('Biggest single hit',g('bestHit'))}${row('Most coins held at the end',g('mostCoins'))}${row('Death defied',g('deathWins')||S.deathDefeated||0)}
+      <h3 class="recH">The machine</h3>${row('Jackpots',g('jackpots'))}${row('Best jackpot',g('bestJackpot')?'x3 on '+g('bestJackpot')+' line'+(g('bestJackpot')>1?'s':''):'none')}${row('Best fortune wheel','×'+(g('bestMult')||1))}${row('Coins ever won',g('coinsWon'))}${row('Poker hands',g('pokerHands'))}${row('Free-spin retriggers',g('retriggers'))}${row('Cursed jackpots taken',g('cursedTaken'))}
+      <h3 class="recH">Side bets</h3>${row('Double or Nothing',g('donWon')+' won · '+g('donLost')+' lost · '+net('donNet'))}${row("Gristle's shell game",g('shellWon')+' won · '+g('shellLost')+' lost · '+net('shellNet'))}${row("Gristle's purse taken",g('shellPurse'))}${row("Rattles' blackjack",g('bjWon')+' won · '+g('bjLost')+' lost · '+g('bjPush')+' push · '+net('bjNet'))}${row('Bookie contracts',g('contractsWon')+' paid · '+g('contractsLost')+' void')}${row('Scratch cards',g('scratched')+' scratched · '+g('scratchWins')+' won')}${row('Merchant coin flips',g('flipWon')+' won · '+g('flipLost')+' lost')}${row('Taxman loans',g('loans')+' taken · '+g('loansRepaid')+' repaid')}
+      <h3 class="recH">The graveyard</h3>${row('Graves laid to rest',(S.graves||[]).length+' / 6')}
+      <h3 class="recH">Last ${(S.runLog||[]).length} runs</h3>`+((S.runLog||[]).length?(S.runLog||[]).map(x=>`<div class="recRun ${x.why==='free'?'free':''}">${icon('portrait_'+x.hero,'','recPort')}<div><b>${HEROES[x.hero]?HEROES[x.hero].n:x.hero}${x.daily?' · Daily':''}</b> · floor ${x.floor}<small>${x.why==='free'?'<span style="color:#9fd6ff">walked out a free soul</span>':'by '+esc(x.killer)} · ${x.kills} kills · ${x.souls} souls · ${x.d}</small></div></div>`).join(''):'<p style="color:var(--dim)">No runs yet.</p>')
+      +`<h3 class="recH">📅 Daily Wager history</h3>`+(Object.keys(S.dailyLog||{}).length?Object.entries(S.dailyLog).map(([d,e])=>row(d+(d===todayKey()?' (today)':''),`floor ${e.best} · ${e.souls} souls · ${e.runs} run${e.runs>1?'s':''}`)).join(''):'<p style="color:var(--dim)">Play The Daily Wager to start a history.</p>');
   }else if(v==='help'){
     html=back+`<div class="help"><h2 style="color:var(--gold)">How to play</h2>
     <h3>The turn</h3><p>Each spin costs <b>1 coin</b>. Tap a reel (or STOP) to stop it — aim if you can. Every symbol on a <b>payline</b> fires: that is your whole turn. Then every awake foe acts on the intent shown over its head.</p>
@@ -2206,6 +2475,7 @@ function showHub(v){
     <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
     <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
+    <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: after a turn that pays 3+ coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). The <b>merchant</b> sells scratch cards, a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
   }else if(v==='settings'){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">${settingsHTML()}<button class="btn danger" data-act="wipe">Wipe save</button></div>`;
@@ -2219,7 +2489,7 @@ $('#hub').addEventListener('change',e=>{if(e.target.id==='sfxVol')sfx.coin();});
 $('#hub').addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const [a,arg]=el.dataset.act.split(':');
-  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'))return showHub(a);
+  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'||a==='records'))return showHub(a);
   if(a==='resume')return resumeRun();
   if(a==='daily'){if(S.run){S.run=null;save();}return startRun('knight',todayKey());}
   if(a==='pick'){if(S.run){S.run=null;save();}return startRun(arg);}
@@ -2272,7 +2542,7 @@ $('#scene').addEventListener('click',e=>{
   const o=run.objs.find(o=>!o.gone&&o.x===wx&&o.kind!=='openchest'&&o.kind!=='shrine_used');
   if(!o)return;
   const info={door:['🚪 Exit','Step through to reach the merchant and the next floor.'],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
-    shrine:['⛩ Shrine','Step on it to choose a relic.'],shell:['👁️ The Shell Game','Gristle the Shell-Man runs a table here. Step up to bet on following the eye under the skulls.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
+    shrine:['⛩ Shrine','Step on it to choose a relic.'],bj:['🃏 Death\'s Blackjack','Rattles the croupier deals blackjack here. Step up to play: beat the dealer to 21.'],shell:['👁️ The Shell Game','Gristle the Shell-Man runs a table here. Step up to bet on following the eye under the skulls.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
   if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
   else if(info)modal(info[0],`${icon('shop_'+(o.kind==='coins'?'coinpile':o.kind),'','hero')}<p>${info[1]}</p>`,[{label:'Close',val:1,cls:'center'}]);
 });
@@ -2300,7 +2570,7 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
-  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,shellstall:150,boss_labfreak2:236,boss_attack_labfreak2:236,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,shellstall:150,bjstall:150,boss_labfreak2:236,boss_attack_labfreak2:236,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
 // where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
 // measured on the art: x = face centre across the sprite, y = face centre up from the ground, w = usable face width
 // (all shares of the drawn sprite), L = the name split over two lines, r = tilt, dark = a black stone
@@ -2503,6 +2773,8 @@ function drawProp(o,x,t){
       const eg=engraving(lines,fs,!!gt.dark);cx.save();cx.translate(tx,ty);if(gt.r)cx.rotate(gt.r);cx.drawImage(eg.c,-eg.w/2,-eg.h/2,eg.w,eg.h);cx.restore();
       if(!graveRead(o.who)||(o.who==='labfreak')){const p=.45+Math.sin(t*3+o.x)*.35;const gg=cx.createRadialGradient(x,Y-d.h-6,1,x,Y-d.h-6,14);gg.addColorStop(0,`rgba(140,255,150,${p})`);gg.addColorStop(1,'rgba(140,255,150,0)');cx.fillStyle=gg;cx.fillRect(x-16,Y-d.h-22,32,32);}
       break;}
+    case 'bj':if(!sprAt('bjstall',x,Y)){rect(x-24,Y-26,48,5,'#1d3a24');rect(x-21,Y-21,4,21,'#2a1d15');rect(x+17,Y-21,4,21,'#2a1d15');
+      cx.font='12px serif';cx.textAlign='center';cx.fillText('🂡🂮',x,Y-28);cx.font='26px serif';cx.fillText('💀',x+2,Y-44);}break;
     case 'shell':if(!sprAt('shellstall',x,Y)){rect(x-22,Y-26,44,5,'#3a2a20');rect(x-19,Y-21,4,21,'#2a1d15');rect(x+15,Y-21,4,21,'#2a1d15');
       cx.font='12px serif';cx.textAlign='center';cx.fillText('💀💀💀',x,Y-28);cx.font='26px serif';cx.fillText('👺',x+2,Y-44);}break;
     case 'coins':if(!sprAt('coinpile',x,Y+2)){for(let i=0;i<Math.min(5,o.v+1);i++){cx.fillStyle='#b8862a';cx.beginPath();cx.ellipse(x-10+i*5,Y-4-(i%2)*5,6,4,0,0,7);cx.fill();cx.fillStyle='#d9b56a';cx.beginPath();cx.ellipse(x-10+i*5,Y-5-(i%2)*5,5,3,0,0,7);cx.fill();}}break;

@@ -455,3 +455,24 @@ Nothing in the game is emoji any more once art.js loads.
 - **b079**: menus keep their scroll after a purchase or toggle. Hub pages redrawn in
   place (Soul Altar, Workbench, Vault, Ledger, Settings) keep their position and
   only a new page starts at the top; the merchant reopens where the player was.
+- **b080**: the gambling update.
+  - Side bets on the machine: Double or Nothing after any turn paying 3+ coins
+    (Settings toggle); cursed jackpots (35%: double multiplier for a Skull this
+    floor); held reels that match the others pay 1-3 coins; the Card Reel
+    Workbench mod adds Ace/King/Queen for poker hands on paylines (Pair, Royal
+    Couple, Three of a Kind, Royal Straight); a full row of bulbs during free
+    spins retriggers +3 and locks the wheel at x5.
+  - The Bookie offers a contract on some floors (No Shields, Untouchable, Leave
+    None Standing, In a Hurry, No Holding), paying 3x the stake.
+  - The merchant: a weekly House Special Unique, a coin flip for half prices,
+    scratch cards (drawn with a finger, prize decided first), and the Taxman's
+    loans (repay 150% within 3 floors or a Debt Collector hunts you and Doom
+    rises every floor).
+  - Death's Blackjack: Rattles deals at a table on some floors from floor 4
+    (standard rules, blackjack pays 3:2, double down, 3 hands).
+  - Gristle uses four cups from floor 20 and pays his whole purse (+100) on a
+    third win in one run. Death offers a Double or Nothing rematch after the first
+    win: 1.5x life, 1.3x hits, and a free Ledger level.
+  - Records page: lifetime stats, every side bet's net, the last 10 runs and the
+    Daily Wager history. art-pack20-prompts.txt covers the blackjack table,
+    Rattles, the card back, the Bookie and the three card symbols.

@@ -246,7 +246,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .cmpLabel{font-size:11px;color:var(--dim);margin-top:8px}
 .lootSec{margin:4px 0 10px}
 .mbtns .btn.door1{margin-top:34px;position:relative;overflow:visible}
-.mbtns .btn.door1::before{content:'Descend through a door';position:absolute;left:-16px;right:-16px;top:-46px;text-align:center;font-family:var(--head);font-size:21px;color:#e8c77a;text-shadow:0 2px 0 #000;border-top:1px solid rgba(207,167,92,.35);padding-top:6px}
+.mbtns .btn.door1::before{content:'Choose your road: next 5 floors';position:absolute;left:-16px;right:-16px;top:-46px;text-align:center;font-family:var(--head);font-size:21px;color:#e8c77a;text-shadow:0 2px 0 #000;border-top:1px solid rgba(207,167,92,.35);padding-top:6px}
 .lootPick{display:flex;align-items:flex-start;gap:8px;margin:-2px 0 10px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.35);font-family:var(--head);font-size:19px;color:#ecdcbc;cursor:pointer}
 .lootPick input{width:20px;height:20px;margin-top:3px;accent-color:#cfa75c;flex:none}
 .lootPick small{display:block;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);line-height:1.35}
@@ -557,6 +557,24 @@ const ENEMIES={
   reaper:{n:'The Reaper',hp:40,range:2,pat:[['drain',6],['atk',8],['atk',5]],coins:[8,12],from:99,loot:1,d:'Summoned by Doom. Slaying it pays 25 souls.'},
 };
 const ELITES={fast:{n:'Frenzied',e:'⚡',d:'acts twice a turn'},shield:{n:'Warded',e:'🛡️',d:'regains 5 block every turn'},cursed:{n:'Hexed',e:'💀',d:'its hits add a Skull to your reels'}};
+// Roads: every five floors the player picks one, and it sets the next five floors'
+// foes, loot and floor mix. Hard is meant to hurt, and to pay for it.
+const ROUTES={
+  easy:{n:'Easy road',e:'🕯️',hp:.65,dmg:.7,loot:.5,rar:-10,coins:.75,souls:.75,kinds:{fight:5,treasure:1,rest:2,elite:0},
+    d:'Foes -35% life, -30% damage. Loot and coins cut hard. More rest floors.'},
+  medium:{n:'Medium road',e:'⚔️',hp:1,dmg:1,loot:1,rar:0,coins:1,souls:1,kinds:{fight:6,treasure:1,rest:1,elite:1},
+    d:'The usual crawl.'},
+  hard:{n:'Hard road',e:'☠️',hp:1.8,dmg:1.5,loot:2.2,rar:30,coins:1.7,souls:1.8,kinds:{fight:4,treasure:1,rest:0,elite:3},
+    d:'Foes +80% life, +50% damage, elites everywhere. Loot ×2.2, far rarer gear, coins and souls ×1.7.'},
+};
+const routeOf=()=>ROUTES[(run&&run.route)||'medium']||ROUTES.medium;
+function routeKind(){const k=routeOf().kinds;let t=Math.random()*Object.values(k).reduce((a,b)=>a+b,0);for(const [n,w] of Object.entries(k)){t-=w;if(t<0)return n;}return 'fight';}
+const routeBtns=()=>Object.entries(ROUTES).map(([k,R])=>({label:`<b>${R.e} ${R.n}</b><small>${R.d}</small>`,val:'road:'+k,cls:'roadbtn road_'+k}));
+async function chooseRoute(first){
+  const v=await modal('Choose your road',`<p>${first?'Five floors lie ahead.':'The next five floors.'} Pick how hard the dungeon fights you, and how well it pays.</p>`,routeBtns());
+  setRoute(v);
+}
+function setRoute(v){const k=String(v||'').replace('road:','');run.route=ROUTES[k]?k:'medium';run.routeFrom=run.floor+1;logLine(`<b>${ROUTES[run.route].e} ${ROUTES[run.route].n}</b> for the next five floors.`);}
 const FLOOR_KINDS={fight:{e:'⚔️',n:'Fight',d:'The usual crawl.'},treasure:{e:'📦',n:'Treasure',d:'Extra chests and coin piles. One chest bites.'},elite:{e:'👑',n:'Elite',d:'A modified foe guards a guaranteed Rare.'},rest:{e:'🕯️',n:'Rest',d:'A short, quiet floor. Heal 30% and find a shrine.'},boss:{e:'☠️',n:'Boss',d:'Something big waits at the end.'},lab:{e:'⚗️',n:'Laboratory',d:'Dr. Labfreak\'s secret lab.'}};
 const BOSSES={
   boneking:{n:'The Bone King',hp:55,pat:[['atk',6],['summon','skel'],['guard',8],['atk',8]],coins:[10,14]},
@@ -983,7 +1001,17 @@ const DEATH_LINES={
   win:["...Impossible. Go, then. Walk out into the light. The house... lost.","Take your soul. I'll be here. I'm always here."],
 };
 const deathReady=()=>!!run&&!run.over&&!run.death&&!run.lab&&run.floor>=DEATH_FLOOR&&run.coins>=DEATH_COST;
-function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2),k=run&&run.deathDouble?1.3:1;
+// Death sizes himself to the gambler at his table: his life to what a solid turn of
+// theirs deals (about twenty of them to win), his swings to their life bar and block.
+function deathScale(){
+  const s=stats(),hit=Math.max(s.swordDmg,s.bowDmg,s.bombDmg);
+  const turn=(2.2*hit+s.bombDmg)*1.6;
+  const led=(S.ledger&&S.ledgerOn&&S.ledger.lvl)||0;
+  const hp=Math.round(turn*20*(1+.04*run.relics.length+.05*led));
+  const top=14+Math.floor((run.floor-1)/2);   // his biggest unscaled phase-three swing
+  return {hp,atk:Math.max(1,Math.min(s.maxHp*.55,s.maxHp*.25+s.blockPer*1.2)/top)};   // a big swing, never a one-shot
+}
+function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2),k=(run&&run.deathDouble?1.3:1)*((run&&run.deathAtk)||1);
   return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?Math.round((v+dm)*k):(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
 async function defyDeath(){
   const r=run;if(!deathReady()||busy||modalOpen)return;
@@ -992,7 +1020,7 @@ async function defyDeath(){
     [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary soulbtn'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
   if(!v||!deathReady())return;r.deathDouble=v===2;
   busy=true;r.coins-=DEATH_COST;sfx.jackpot();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
-  const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
+  const f=r.floor,d=mkEnemy('death',r.x+1,f,true),ds=deathScale();r.deathAtk=ds.atk;d.hp=d.max=Math.max(d.max,ds.hp);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
   busy=false;rebuildReels();ui();save();
@@ -1604,7 +1632,7 @@ function paylines(n){
 
 /* ---------------- gear ---------------- */
 function rollRarity(bonus=0){
-  const luck=(run?stats().luck:0)+bonus;
+  const luck=(run?stats().luck+routeOf().rar:0)+bonus;
   const w=[60,26,10,3.4,.6].map((x,i)=>i===0?Math.max(8,x-luck*.9):x*(1+luck/40*i));
   let t=Math.random()*w.reduce((a,b)=>a+b,0);
   for(let i=0;i<w.length;i++){t-=w[i];if(t<=0)return i;}return 0;
@@ -1689,13 +1717,14 @@ function labUniques(lvl){
 /* ---------------- floors ---------------- */
 function mkEnemy(type,x,f,boss){
   const d=(boss?BOSSES:ENEMIES)[type];const sc=1+.22*(f-1);const dm=Math.floor((f-1)/2);
-  const hp=Math.round(d.hp*sc);
+  const R=type==='death'?ROUTES.medium:routeOf();
+  const hp=Math.round(d.hp*sc*R.hp);
   return {kind:'enemy',t:type,n:d.n,x,dx:x*T,hp,max:hp,block:0,pi:0,range:d.range||1,boss:!!boss,
-    coins:d.coins,loot:boss?1:(d.loot||.1),flash:0,
-    pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?v+dm:(a==='guard'||a==='grow')?Math.round(v*sc):v])};
+    coins:d.coins.map(c=>Math.round(c*R.coins)),loot:boss?1:Math.min(1,(d.loot||.1)*R.loot),flash:0,
+    pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?Math.max(1,Math.round((v+dm)*R.dmg)):(a==='guard'||a==='grow')?Math.round(v*sc*R.hp):v])};
 }
 function genFloor(f){
-  const r=run;const boss=f%3===0;const kind=boss?'boss':(r.nextKind||'fight');r.kind=kind;
+  const r=run;const boss=f%3===0;const kind=boss?'boss':routeKind();r.kind=kind;
   const len=kind==='rest'?8:12+Math.min(f,10);
   r.len=len;r.objs=[];r.x=0;r.curse=0;r.jam=null;r.floorDone=false;r.freeSpin=hasR('hourglass');r.lab=false;r.poison=null;
   const free=[];for(let i=3;i<len-(boss?2:1);i++)free.push(i);shuffle(free);
@@ -1717,7 +1746,7 @@ function genFloor(f){
   // popup budget: two screens a floor at most. Every floor ends on one (doors, loot or the merchant);
   // a boss floor spends both on its hoard and the doors. The spare one goes to at most one extra:
   // a shrine or a table here, or else the bookie, a cursed jackpot or double-or-nothing.
-  r.popBudget=boss?0:1;
+  r.popBudget=boss&&f%5===0?0:1;   // a boss floor ends on its hoard; on a merchant floor too, that's both
   const station=k=>{if(r.popBudget>0&&free.length){put({kind:k,x:free.pop()});r.popBudget--;}};
   if(kind==='rest')station('shrine');
   else if(!boss){
@@ -1743,9 +1772,10 @@ async function startRun(heroId,daily){
     relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1,bulbs:0,hist:[],killer:null};
   if(S.ledger&&S.ledgerOn)run.gear.charm=ledgerItem();
   for(const id of S.loadout){const it=S.vault.find(v=>v.id===id);if(it&&!run.gear[it.slot])run.gear[it.slot]=JSON.parse(JSON.stringify(it));}
-  run.daily=daily||null;run.hp=stats().maxHp;
+  run.daily=daily||null;run.hp=stats().maxHp;run.route='medium';
   genFloor(1);
   showGame();
+  await chooseRoute(true);run.graveSeen=[];genFloor(1);rebuildReels();
   if(S.mods.relic)await relicPick('Relic Socket','Your machine hums. Pick a relic to start the run.');
   rebuildReels();ui();save();
   if(!S.seenHelp){S.seenHelp=true;save();await modal('How it works',helpShort(),[{label:'Pull the lever',val:1,cls:'primary'}]);}
@@ -2156,7 +2186,7 @@ async function openChest(o,keyed){
   gainCoins(rnd(2,5)+Math.floor(r.floor/2));
   let rar=rollRarity(keyed?15:5);if(hasR('map'))rar=Math.max(2,rar);
   // gear from half of chests (keyed and treasure-floor chests always): the rest pay extra coins
-  if(keyed||r.kind==='treasure'||Math.random()<.5)r.pending.push(mkItem(null,rar,r.floor+1));else gainCoins(rnd(2,4)+Math.floor(r.floor/3));
+  if(keyed||r.kind==='treasure'||Math.random()<Math.min(1,.5*routeOf().loot))r.pending.push(mkItem(null,rar,r.floor+1));else gainCoins(rnd(2,4)+Math.floor(r.floor/3));
   if(Math.random()<.03){const u=rollUnique();if(u){r.pending.push(u);heroFl('UNIQUE!','#8cff96');}}
   r.objs.push({id:uid++,kind:'openchest',x:o.x,dx:o.x*T});
 }
@@ -2288,10 +2318,22 @@ async function drainLoot(){
   }
 }
 function relicChoices(n){return shuffle(RELICS.filter(x=>!x.lab&&!run.relics.includes(x.id))).slice(0,n);}
+// ten relics at most: a new one past that has to replace one you carry (or be left behind)
+const RELIC_MAX=10;
+async function addRelic(id){
+  const r=run,N=RELIC[id];if(!N)return false;
+  if(r.relics.length<RELIC_MAX){r.relics.push(id);return true;}
+  const v=await modal(`Relics full · ${RELIC_MAX}`,`<p>You can carry ${RELIC_MAX} relics. To take <b>${N.n}</b> <small>(${N.d})</small>, give one up:</p>`,
+    r.relics.map(x=>({label:`${relicIcon(RELIC[x],'lead')}<b>Drop ${RELIC[x].n}</b><small>${RELIC[x].d}</small>`,val:'drop:'+x}))
+      .concat([{label:`Leave ${N.n} behind`,val:null,cls:'center'}]));
+  if(!v)return false;
+  const i=r.relics.indexOf(v.slice(5));if(i<0)return false;
+  r.relics.splice(i,1,id);heroFl(`${RELIC[v.slice(5)].n} → ${N.n}`,'#b07cf0');return true;
+}
 async function relicPick(title,text,pk,loot){
   const ch=relicChoices(3);if(!ch.length){if(loot&&loot.length)await lootScreen(loot);return;}
   const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>${lootSection(loot||[])}`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
-  run.relics.push(v);if(loot)applyLoot(loot);rebuildReels();ui();
+  if(loot)applyLoot(loot);await addRelic(v);rebuildReels();ui();
 }
 // the floor's upgrades on their own screen (only when nothing else is shown at the floor's end)
 async function lootScreen(items){
@@ -2300,26 +2342,20 @@ async function lootScreen(items){
 }
 async function floorClear(){
   const r=run;r.floorDone=true;
-  r.souls+=5;gainCoins(2);fxEach('floorClear');settleContract();
+  r.souls+=Math.round(5*routeOf().souls);gainCoins(2);fxEach('floorClear');settleContract();
   if(alt('mend'))heal(alt('mend')*3);
   if(r.bossDown&&r.lab){r.bossDown=false;await drainLoot();r.souls+=50;
-    if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);run.relics.push('beaker');rebuildReels();ui();}
+    if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);await addRelic('beaker');rebuildReels();ui();}
     else await relicPick("Labfreak's Hoard",'The lab\'s shelves hold one more curiosity. +50 souls.','portrait_labfreak');}
-  // one floor-end screen: the floor's upgrades ride along with the boss relic or the door choice
+  // one floor-end screen: the floor's upgrades ride along with the boss relic or the merchant
   let loot=sortLoot();
   if(r.bossDown){r.bossDown=false;await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard',loot);loot=[];}
-  const doors=(r.floor+1)%3!==0,merch=r.floor%5===0;
-  if(loot.length&&!merch&&!doors){await lootScreen(loot);loot=[];}
+  const merch=r.floor%5===0;
+  if(loot.length&&!merch){await lootScreen(loot);loot=[];}
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
   S.best=Math.max(S.best,r.floor);
-  r.nextKind='fight';
-  const opts=doors?['fight',...shuffle(['treasure','elite','rest']).slice(0,2)]:null;
-  if(merch){const k=await shop(loot,opts);loot=[];if(opts)r.nextKind=k||'fight';}   // the merchant only sets up shop every fifth floor
-  else if(doors){
-    const v=await modal(loot.length?'Floor cleared':'The way down',`${lootSection(loot)}<p>Three doors. Coins are time: choose your floor.</p>`,
-      opts.map(k=>({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:k})));
-    r.nextKind=v||'fight';
-  }
+  // every fifth floor the merchant sets up shop, and his exit is where you pick the next road
+  if(merch){const k=await shop(loot,true);loot=[];setRoute(k);}
   applyLoot(loot);
   r.floor++;genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
   await offerContract();
@@ -2345,7 +2381,7 @@ async function shop(loot,doors){
   while(true){
     const desc=o=>({heal:`${icon('shop_meal','🍖','lead')}Hot meal <small>Heal ${Math.round(stats().maxHp*.4)} HP</small>`,
       gear:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:${o.item?RAR[o.item.rar].c:''}">${o.item?esc(o.item.name):''}</b><small>${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
-      relic:`${o.relic?relicIcon(o.relic,'lead'):''}<b>${o.relic?o.relic.n:''}</b><small>${o.relic?o.relic.d:''}</small>`,
+      relic:`${o.relic?relicIcon(o.relic,'lead'):''}<b>${o.relic?o.relic.n:''}</b><small>${o.relic?o.relic.d:''}${run.relics.length>=RELIC_MAX?' · swaps out one you carry':''}</small>`,
       add:`${icon('shop_weld','➕','lead')}Weld a ${SYM[o.sym]?symIcon(o.sym):''} ${SYM[o.sym]?SYM[o.sym].n:''} onto the reels`,
       remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`,
       special:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:#8cff96">★ House Special: ${o.item?esc(o.item.name):''}</b><small>this week only · ${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
@@ -2354,12 +2390,12 @@ async function shop(loot,doors){
       loan:`📜 Borrow ${loanAmt(r.floor)} 🪙 from the Taxman <small>repay ${Math.ceil(loanAmt(r.floor)*1.5)} at my next stop (floor ${r.floor+5}), or his collector comes</small>`,
       repay:`📜 Repay the Taxman <small>clears your debt${r.loan?` (due floor ${r.loan.due})`:''}</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
-    // on a door floor the merchant's exit IS the door choice: one screen, not two
-    if(doors)doors.forEach((k,i)=>btns.push({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:'door:'+k,cls:'doorbtn'+(i?'':' door1')}));
+    // the merchant's exit IS the road choice: one screen, not two
+    if(doors)routeBtns().forEach((b,i)=>btns.push(Object.assign(b,{cls:b.cls+(i?'':' door1')})));
     else btns.push({label:'Descend ▶',val:'go',cls:'primary'});
-    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>'+lootSection(loot)+(doors?'<p class="sub">When you\'re done, pick your door below.</p>':''),btns,shopScroll);shopScroll=modalScroll;
+    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>'+lootSection(loot)+(doors?'<p class="sub">When you\'re done, pick your road for the next five floors below.</p>':''),btns,shopScroll);shopScroll=modalScroll;
     if(loot.length){applyLoot(loot);loot=[];}   // the floor's upgrades settle on the first tap
-    if(typeof v==='string'&&v.startsWith('door:'))return v.slice(5);
+    if(typeof v==='string'&&v.startsWith('road:'))return v;
     if(v==='go')return;
     const o=offers[v];if(!o||o.sold||r.coins<o.price)continue;
     if(o.t==='remove'){
@@ -2377,7 +2413,7 @@ async function shop(loot,doors){
     if(o.t==='special'){r.pending.push(o.item);await drainLoot();}
     if(o.t==='heal')heal(fxFold('meal',Math.round(stats().maxHp*.4)));
     if(o.t==='gear'){r.pending.push(o.item);await drainLoot();}
-    if(o.t==='relic')r.relics.push(o.relic.id);
+    if(o.t==='relic'&&!await addRelic(o.relic.id)){r.coins+=o.price;o.sold=false;}   // left it on the counter: money back
     if(o.t==='add')run.stripAdd[o.sym]=(run.stripAdd[o.sym]||0)+1;
     if(o.t==='maxhp'){r.bonusHp=(r.bonusHp||0)+5;r.hp+=5;}
     rebuildReels();ui();
@@ -2482,7 +2518,7 @@ function ui(){
   document.querySelectorAll('.gslot').forEach(b=>{const it=r.gear[b.dataset.slot];
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
   // one Relics button instead of a strip of tiny icons; tap it for the full list
-  $('#relics').innerHTML=r.relics.length?`<button class="btn plaque relicBtn" aria-label="Relics"><span class="rbIcos">${r.relics.slice(-3).map(id=>`<span class="relic" data-relic="${id}">${relicIcon(RELIC[id])}</span>`).join('')}</span><span class="rbLbl">Relics <b>${r.relics.length}</b></span></button>`:'';
+  $('#relics').innerHTML=r.relics.length?`<button class="btn plaque relicBtn" aria-label="Relics"><span class="rbIcos">${r.relics.slice(-3).map(id=>`<span class="relic" data-relic="${id}">${relicIcon(RELIC[id])}</span>`).join('')}</span><span class="rbLbl">Relics <b>${r.relics.length}/${RELIC_MAX}</b></span></button>`:'';
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
   {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=r.inBonus?(r.bonus>0?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):'';$('#marquee').classList.toggle('bonus',!!r.inBonus);}
   if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
@@ -2598,7 +2634,7 @@ function showHub(v){
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
     <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
-    <h3>Coins are time</h3><p>Drag the dungeon sideways to look along the whole floor. Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
+    <h3>Coins are time</h3><p>Drag the dungeon sideways to look along the whole floor. Every five floors you pick a road: easy, medium or hard. Harder roads hit much harder and pay much better. You carry up to 10 relics; past that, a new one replaces one you choose. Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
@@ -2643,7 +2679,7 @@ function showRelics(){
   const rows=run.relics.map(id=>{const R=RELIC[id];if(!R)return '';
     const now=id==='gauntlet'?` <i>(now +${Math.min(4,Math.floor(run.coins/10))} per dagger)</i>`:'';
     return `<div class="relRow" data-relic="${id}">${relicIcon(R,'lead')}<div><b>${R.n}</b><small>${R.d}${now}</small></div></div>`;}).join('');
-  modal(`Your relics · ${run.relics.length}`,`<div class="relList">${rows}</div>`,[{label:'Close',val:1,cls:'center'}]);
+  modal(`Your relics · ${run.relics.length}/${RELIC_MAX}`,`<div class="relList">${rows}</div>`,[{label:'Close',val:1,cls:'center'}]);
 }
 $('#gearBar').addEventListener('click',e=>{
   if(!run||busy||M.spinning)return;

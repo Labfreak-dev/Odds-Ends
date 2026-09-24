@@ -46,6 +46,9 @@ def kind(key):
         return ('key', 160, 160, 84)
     if key.startswith('torch_'):     return ('key', 420, 420, 80)   # floor-standing torch bearers
     if key.startswith('shell_dealer'): return ('key', 560, 560, 80)   # shell game: the dealer's poses
+    if key.startswith('death_'):     return ('key', 720, 720, 80)   # Death on his throne (final boss)
+    if key.startswith('hero_back_'): return ('key', 560, 560, 82)   # heroes seen from behind (final boss)
+    if key == 'ui_defy_button':      return ('key', 480, 1100, 80)
     if key.startswith('shell_'):     return ('key', 360, 360, 84)   # shell game parts: hands, cup, eye
     return ('key', 280, 280, 82)     # props: chest, door, shrine, trap, torch...
 
@@ -129,7 +132,7 @@ def green_glow(img):
     al[halo] = al[halo] * 0.55
     return Image.fromarray(np.dstack([rgb, al]).clip(0, 255).astype(np.uint8), 'RGBA')
 
-ICONISH = ('shell_', 'sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
+ICONISH = ('shell_', 'death_', 'hero_back_', 'sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
 
 def fit(img, th, mw):
     w, h = img.size

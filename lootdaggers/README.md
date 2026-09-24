@@ -433,3 +433,12 @@ Nothing in the game is emoji any more once art.js loads.
   both hands, the skull cup, the eye, his corridor stall and portrait. Scene layout
   tuned to the art (cups on the felt, dealer behind the table, grip hand on the
   cup top).
+- **b076**: the final boss. From floor 66 with 666 coins, "Pay your Debt, and Defy
+  Death" appears above the machine. Paying 666 starts a duel with Death seen from
+  behind the hero, looking up at his throne; the reels still decide every turn.
+  Three phases (bored at full life, interested below 2/3, furious and acting twice
+  below 1/3) with his own dialogue; an overkill never skips a phase. Soul cards,
+  dice and orbs fly at the hero. Beating him ends the run as A Free Soul (+666
+  souls) and, the first time, unlocks The Grim's Ledger: a permanent extra vault
+  space holding a charm whose bonuses you choose (2-5 of 14) and upgrade to +10
+  with souls and boss chips. Emoji stand-ins until art-pack19.

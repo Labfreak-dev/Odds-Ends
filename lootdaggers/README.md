@@ -429,3 +429,7 @@ Nothing in the game is emoji any more once art.js loads.
   under a skull, follow 5-12 swaps that speed up, pick a cup. The game animates the
   parts itself (cups arc front/back, hands grip the moving cups, dealer poses), so
   every swap is real. Three rounds a table. Emoji stand-ins until art-pack18.
+- **b075**: art pack 18 packed (436 images): the shell table, Gristle's four poses,
+  both hands, the skull cup, the eye, his corridor stall and portrait. Scene layout
+  tuned to the art (cups on the felt, dealer behind the table, grip hand on the
+  cup top).

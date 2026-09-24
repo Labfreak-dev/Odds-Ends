@@ -245,6 +245,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .item .sub{font-size:11px;color:var(--dim)}
 .cmpLabel{font-size:11px;color:var(--dim);margin-top:8px}
 .lootSec{margin:4px 0 10px}
+.mbtns .btn.door1{margin-top:34px;position:relative;overflow:visible}
+.mbtns .btn.door1::before{content:'Descend through a door';position:absolute;left:-16px;right:-16px;top:-46px;text-align:center;font-family:var(--head);font-size:21px;color:#e8c77a;text-shadow:0 2px 0 #000;border-top:1px solid rgba(207,167,92,.35);padding-top:6px}
 .lootPick{display:flex;align-items:flex-start;gap:8px;margin:-2px 0 10px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.35);font-family:var(--head);font-size:19px;color:#ecdcbc;cursor:pointer}
 .lootPick input{width:20px;height:20px;margin-top:3px;accent-color:#cfa75c;flex:none}
 .lootPick small{display:block;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);line-height:1.35}
@@ -813,8 +815,8 @@ const CONTRACTS={
   frugal:{n:'No Holding',d:"Don't hold a single reel this floor."},
 };
 async function offerContract(){
-  const r=run;if(r.floor<2||r.kind==='boss'||r.kind==='rest'||r.lab||r.death||r.floor-(r.lastBookie||-9)<3||Math.random()>.2)return;
-  r.lastBookie=r.floor;
+  const r=run;if(r.floor<2||r.kind==='boss'||r.kind==='rest'||r.lab||r.death||!(r.popBudget>0)||r.floor-(r.lastBookie||-9)<3||Math.random()>.2)return;
+  r.lastBookie=r.floor;r.popBudget--;
   const id=pick(Object.keys(CONTRACTS)),n=Math.max(4,Math.ceil(r.len/2.4)),c=CONTRACTS[id],txt=c.d.replace('{n}',n);
   const stakes=[5,15,40].filter(x=>x<=r.coins);if(!stakes.length)return;
   const v=await modal('The Bookie',`${portImg('portrait_bookie','big merch')||'<div class="flipCoin">📜</div>'}<p>A hooded bookie slides a contract across a coffin lid:</p><p><b>${c.n}</b> · ${txt}</p><p class="sub">Pays <b>3×</b> your stake when you reach the exit.</p>`,
@@ -1712,10 +1714,18 @@ function genFloor(f){
   if(r.doom>=3&&!boss){r.doom=0;if(!fxFold('doomFull',false)){const rp=mkEnemy('reaper',Math.min(5,len-3),f);rp.big=true;put(rp);r.reaperDue=true;}}
   let nc=boss?0:rnd(1,2);if(kind==='treasure')nc+=2;if(kind==='rest')nc=0;
   for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:kind==='treasure'?i===0:(f>=2&&Math.random()<.15)});
-  if((kind==='rest'||(!boss&&(f===2||Math.random()<.35)))&&free.length)put({kind:'shrine',x:free.pop()});
-  if(!boss&&kind!=='rest'&&f>=2&&free.length&&Math.random()<.12)put({kind:'shell',x:free.pop()});
-  else if(!boss&&kind!=='rest'&&f>=4&&free.length&&Math.random()<.08)put({kind:'bj',x:free.pop()});
-  if(!boss&&f>=2&&free.length&&Math.random()<.06)put({kind:'ticket',x:free.pop()});   // rare: a lost scratch card
+  // popup budget: two screens a floor at most. Every floor ends on one (doors, loot or the merchant);
+  // a boss floor spends both on its hoard and the doors. The spare one goes to at most one extra:
+  // a shrine or a table here, or else the bookie, a cursed jackpot or double-or-nothing.
+  r.popBudget=boss?0:1;
+  const station=k=>{if(r.popBudget>0&&free.length){put({kind:k,x:free.pop()});r.popBudget--;}};
+  if(kind==='rest')station('shrine');
+  else if(!boss){
+    if(f===2||Math.random()<.35)station('shrine');
+    else if(f>=2&&Math.random()<.12)station('shell');
+    else if(f>=4&&Math.random()<.08)station('bj');
+    else if(f>=2&&Math.random()<.06)station('ticket');   // rare: a lost scratch card
+  }
   if(kind!=='rest')for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
   for(let i=0;i<rnd(1,3)+(kind==='treasure'?1:0)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
   if(kind==='rest'){r.hp=Math.min(stats().maxHp,r.hp+Math.round(stats().maxHp*.3));}
@@ -2021,7 +2031,7 @@ async function doTurn(R){
   noteTurn(`Reels: ${Object.entries(u).map(([k,n])=>`${SYM[k]?SYM[k].e:k}×${n}`).join(' ')}${R.mult>1?` · wheel ×${R.mult}`:''}${R.triples?' · JACKPOT':''}`);
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
   let mu=R.mult||1;r.turnCoins=0;
-  if(R.triples&&!M.autoBonus&&!r.death&&Math.random()<.12){const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary goldbtn'},{label:'Refuse',val:null}]);
+  if(R.triples&&!M.autoBonus&&!r.death&&r.popBudget>0&&Math.random()<.12){r.popBudget--;const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary goldbtn'},{label:'Refuse',val:null}]);
     if(v){mu*=2;r.curse=(r.curse||0)+1;heroFl('CURSED ×'+mu,'#b07cf0');stat('cursedTaken');}}
   r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
@@ -2094,7 +2104,7 @@ async function doTurn(R){
   noteTurn('You: '+(parts.length?parts.join(' · '):'nothing landed'));logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
   if(r.pendingFree){await defeatDeath();return;}
-  if(r.turnCoins>50&&S.don!==false&&!M.autoBonus&&!r.over&&!r.death&&Math.random()<.25)await doubleOrNothing(r.turnCoins);   // big turns only, 1 in 4
+  if(r.turnCoins>50&&S.don!==false&&!M.autoBonus&&!r.over&&!r.death&&r.popBudget>0&&Math.random()<.25){r.popBudget--;await doubleOrNothing(r.turnCoins);}   // big turns only, 1 in 4
   // loot is no longer shown mid-floor: it waits in the bag for the floor-end screen
   if(r.pending.length>(r.bagSeen||0)){heroFl('+'+(r.pending.length-(r.bagSeen||0))+' loot in the bag','#d9b56a');r.bagSeen=r.pending.length;}
   if(r.over)return;
@@ -2299,13 +2309,13 @@ async function floorClear(){
   let loot=sortLoot();
   if(r.bossDown){r.bossDown=false;await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard',loot);loot=[];}
   const doors=(r.floor+1)%3!==0,merch=r.floor%5===0;
-  if(loot.length&&(merch||!doors)){await lootScreen(loot);loot=[];}   // the merchant wants your coins first
+  if(loot.length&&!merch&&!doors){await lootScreen(loot);loot=[];}
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
   S.best=Math.max(S.best,r.floor);
-  if(merch)await shop();   // the merchant only sets up shop every fifth floor
   r.nextKind='fight';
-  if(doors){
-    const others=shuffle(['treasure','elite','rest']).slice(0,2);const opts=['fight',...others];
+  const opts=doors?['fight',...shuffle(['treasure','elite','rest']).slice(0,2)]:null;
+  if(merch){const k=await shop(loot,opts);loot=[];if(opts)r.nextKind=k||'fight';}   // the merchant only sets up shop every fifth floor
+  else if(doors){
     const v=await modal(loot.length?'Floor cleared':'The way down',`${lootSection(loot)}<p>Three doors. Coins are time: choose your floor.</p>`,
       opts.map(k=>({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:k})));
     r.nextKind=v||'fight';
@@ -2329,7 +2339,8 @@ function shopOffers(){
   if(run.loan)o.push({t:'repay',price:run.loan.owe});else o.push({t:'loan',price:0});
   return o;
 }
-async function shop(){
+async function shop(loot,doors){
+  loot=loot||[];
   const r=run,offers=shopOffers();let shopScroll=0;   // reopen where the player was after each purchase
   while(true){
     const desc=o=>({heal:`${icon('shop_meal','🍖','lead')}Hot meal <small>Heal ${Math.round(stats().maxHp*.4)} HP</small>`,
@@ -2343,8 +2354,12 @@ async function shop(){
       loan:`📜 Borrow ${loanAmt(r.floor)} 🪙 from the Taxman <small>repay ${Math.ceil(loanAmt(r.floor)*1.5)} at my next stop (floor ${r.floor+5}), or his collector comes</small>`,
       repay:`📜 Repay the Taxman <small>clears your debt${r.loan?` (due floor ${r.loan.due})`:''}</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
-    btns.push({label:'Descend ▶',val:'go',cls:'primary'});
-    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns,shopScroll);shopScroll=modalScroll;
+    // on a door floor the merchant's exit IS the door choice: one screen, not two
+    if(doors)doors.forEach((k,i)=>btns.push({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:'door:'+k,cls:'doorbtn'+(i?'':' door1')}));
+    else btns.push({label:'Descend ▶',val:'go',cls:'primary'});
+    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>'+lootSection(loot)+(doors?'<p class="sub">When you\'re done, pick your door below.</p>':''),btns,shopScroll);shopScroll=modalScroll;
+    if(loot.length){applyLoot(loot);loot=[];}   // the floor's upgrades settle on the first tap
+    if(typeof v==='string'&&v.startsWith('door:'))return v.slice(5);
     if(v==='go')return;
     const o=offers[v];if(!o||o.sold||r.coins<o.price)continue;
     if(o.t==='remove'){

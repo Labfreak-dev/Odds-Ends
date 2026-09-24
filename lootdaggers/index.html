@@ -232,6 +232,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .item ul{margin:4px 0 0;padding-left:18px;font-size:12px}
 .item .sub{font-size:11px;color:var(--dim)}
 .cmpLabel{font-size:11px;color:var(--dim);margin-top:8px}
+.lootSec{margin:4px 0 10px}
+.lootPick{display:flex;align-items:flex-start;gap:8px;margin:-2px 0 10px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.35);font-family:var(--head);font-size:19px;color:#ecdcbc;cursor:pointer}
+.lootPick input{width:20px;height:20px;margin-top:3px;accent-color:#cfa75c;flex:none}
+.lootPick small{display:block;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);line-height:1.35}
 .symtab{display:grid;grid-template-columns:auto auto 1fr;gap:4px 8px;align-items:center;font-size:12px}
 .symtab .e{font-size:20px}
 .row{display:flex;gap:8px;align-items:center}
@@ -2062,7 +2066,8 @@ async function doTurn(R){
   ui();
   if(r.pendingFree){await defeatDeath();return;}
   if(r.turnCoins>50&&S.don!==false&&!M.autoBonus&&!r.over&&!r.death&&Math.random()<.25)await doubleOrNothing(r.turnCoins);   // big turns only, 1 in 4
-  await drainLoot();
+  // loot is no longer shown mid-floor: it waits in the bag for the floor-end screen
+  if(r.pending.length>(r.bagSeen||0)){heroFl('+'+(r.pending.length-(r.bagSeen||0))+' loot in the bag','#d9b56a');r.bagSeen=r.pending.length;}
   if(r.over)return;
   await beat(260);
   await enemyPhase();
@@ -2206,6 +2211,30 @@ async function broke(){
 }
 
 /* ---------------- loot / relics / shop ---------------- */
+// is this piece worth a look next to what's worn (or a better one already in the pile)?
+const mainV=it=>it&&it.affs&&it.affs[0]?it.affs[0].v||0:0;
+const lootBetter=(a,b)=>!b||a.rar>b.rar||(a.rar===b.rar&&(mainV(a)>mainV(b)||(mainV(a)===mainV(b)&&a.lvl>b.lvl)));
+// sort the bag: keep the best upgrade per slot, salvage everything else on the spot
+function sortLoot(){
+  const r=run,keep={};let sv=0,n=0;
+  for(const it of r.pending.splice(0)){const cur=r.gear[it.slot];
+    if(lootBetter(it,cur)&&lootBetter(it,keep[it.slot])){if(keep[it.slot]){sv+=salvageVal(keep[it.slot]);n++;}keep[it.slot]=it;}
+    else{sv+=salvageVal(it);n++;}}
+  r.bagSeen=0;
+  if(n){gainCoins(sv);heroFl(`${n} worse piece${n>1?'s':''} salvaged +${sv} 🪙`,'#d9b56a');logLine(`Salvaged ${n} piece${n>1?'s':''} you'd never wear: +${sv} 🪙.`);}
+  const items=Object.values(keep);window.LOOTSEL=items.map(()=>true);return items;
+}
+function lootSection(items){
+  if(!items.length)return '';
+  return `<div class="lootSec"><div class="cmpLabel">Upgrades found on this floor</div>`+items.map((it,i)=>{const cur=run.gear[it.slot];
+    return `${itemHTML(it,'NEW')}<label class="lootPick"><input type="checkbox" checked onchange="LOOTSEL[${i}]=this.checked"><span>Equip<small>${cur?`replaces ${esc(cur.name||cur.base)} (+${salvageVal(cur)} 🪙)`:'empty slot'} · untick to salvage for +${salvageVal(it)} 🪙</small></span></label>`;}).join('')+`</div>`;
+}
+function applyLoot(items){
+  const r=run;items.forEach((it,i)=>{const cur=r.gear[it.slot];
+    if((window.LOOTSEL||[])[i]!==false){const before=stats().maxHp;if(cur)r.coins+=salvageVal(cur);r.gear[it.slot]=it;const after=stats().maxHp;if(after>before)r.hp+=after-before;r.hp=Math.min(r.hp,after);}
+    else gainCoins(salvageVal(it));});
+  if(items.length){rebuildReels();ui();}
+}
 async function drainLoot(){
   const r=run;
   while(r.pending.length&&!r.over){
@@ -2220,10 +2249,15 @@ async function drainLoot(){
   }
 }
 function relicChoices(n){return shuffle(RELICS.filter(x=>!x.lab&&!run.relics.includes(x.id))).slice(0,n);}
-async function relicPick(title,text,pk){
-  const ch=relicChoices(3);if(!ch.length)return;
-  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
-  run.relics.push(v);rebuildReels();ui();
+async function relicPick(title,text,pk,loot){
+  const ch=relicChoices(3);if(!ch.length){if(loot&&loot.length)await lootScreen(loot);return;}
+  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>${lootSection(loot||[])}`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
+  run.relics.push(v);if(loot)applyLoot(loot);rebuildReels();ui();
+}
+// the floor's upgrades on their own screen (only when nothing else is shown at the floor's end)
+async function lootScreen(items){
+  if(!items.length)return;
+  await modal('Loot!',lootSection(items),[{label:'Done',val:1,cls:'primary goldbtn'}]);applyLoot(items);
 }
 async function floorClear(){
   const r=run;r.floorDone=true;
@@ -2232,18 +2266,22 @@ async function floorClear(){
   if(r.bossDown&&r.lab){r.bossDown=false;await drainLoot();r.souls+=50;
     if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);run.relics.push('beaker');rebuildReels();ui();}
     else await relicPick("Labfreak's Hoard",'The lab\'s shelves hold one more curiosity. +50 souls.','portrait_labfreak');}
-  if(r.bossDown){r.bossDown=false;await drainLoot();await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard');}
-  await drainLoot();
+  // one floor-end screen: the floor's upgrades ride along with the boss relic or the door choice
+  let loot=sortLoot();
+  if(r.bossDown){r.bossDown=false;await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard',loot);loot=[];}
+  const doors=(r.floor+1)%3!==0,merch=r.floor%5===0;
+  if(loot.length&&(merch||!doors)){await lootScreen(loot);loot=[];}   // the merchant wants your coins first
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
   S.best=Math.max(S.best,r.floor);
-  if(r.floor%5===0)await shop();   // the merchant only sets up shop every fifth floor
+  if(merch)await shop();   // the merchant only sets up shop every fifth floor
   r.nextKind='fight';
-  if((r.floor+1)%3!==0){
+  if(doors){
     const others=shuffle(['treasure','elite','rest']).slice(0,2);const opts=['fight',...others];
-    const v=await modal('The way down',`<p>Three doors. Coins are time: choose your floor.</p>`,
+    const v=await modal(loot.length?'Floor cleared':'The way down',`${lootSection(loot)}<p>Three doors. Coins are time: choose your floor.</p>`,
       opts.map(k=>({label:`${icon('map_'+k,FLOOR_KINDS[k].e,'lead')}<b>${FLOOR_KINDS[k].n}</b><small>${FLOOR_KINDS[k].d}</small>`,val:k})));
     r.nextKind=v||'fight';
   }
+  applyLoot(loot);
   r.floor++;genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
   await offerContract();
   logLine(`<b>Floor ${r.floor} · ${FLOOR_KINDS[r.kind].n}.</b> ${FLOOR_KINDS[r.kind].d}`);

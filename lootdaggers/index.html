@@ -241,12 +241,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .item ul{margin:4px 0 0;padding-left:18px;font-size:12px}
 .item .sub{font-size:11px;color:var(--dim)}
 .cmpLabel{font-size:11px;color:var(--dim);margin-top:8px}
-.lootSec{margin:4px 0 10px;clear:both}   /* start below the merchant's portrait column, never beside it */
 .mbtns .btn.door1{margin-top:34px;position:relative;overflow:visible}
 .mbtns .btn.door1::before{content:'Choose your road: next 5 floors';position:absolute;left:-16px;right:-16px;top:-46px;text-align:center;font-family:var(--head);font-size:21px;color:#e8c77a;text-shadow:0 2px 0 #000;border-top:1px solid rgba(207,167,92,.35);padding-top:6px}
-.lootPick{display:flex;align-items:flex-start;gap:8px;margin:-2px 0 10px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.35);font-family:var(--head);font-size:19px;color:#ecdcbc;cursor:pointer}
-.lootPick input{width:20px;height:20px;margin-top:3px;accent-color:#cfa75c;flex:none}
-.lootPick small{display:block;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);line-height:1.35}
 .symtab{display:grid;grid-template-columns:auto auto 1fr;gap:4px 8px;align-items:center;font-size:12px}
 .symtab .e{font-size:20px}
 .row{display:flex;gap:8px;align-items:center}
@@ -2288,18 +2284,7 @@ function sortLoot(){
     else{sv+=salvageVal(it);n++;}}
   r.bagSeen=0;
   if(n){gainCoins(sv);heroFl(`${n} worse piece${n>1?'s':''} salvaged +${sv} 🪙`,'#d9b56a');logLine(`Salvaged ${n} piece${n>1?'s':''} you'd never wear: +${sv} 🪙.`);}
-  const items=Object.values(keep);window.LOOTSEL=items.map(()=>true);return items;
-}
-function lootSection(items){
-  if(!items.length)return '';
-  return `<div class="lootSec"><div class="cmpLabel">Upgrades found on this floor</div>`+items.map((it,i)=>{const cur=run.gear[it.slot];
-    return `${itemHTML(it,'NEW')}<label class="lootPick"><input type="checkbox" checked onchange="LOOTSEL[${i}]=this.checked"><span>Equip<small>${cur?`replaces ${esc(cur.name||cur.base)} (+${salvageVal(cur)} 🪙)`:'empty slot'} · untick to salvage for +${salvageVal(it)} 🪙</small></span></label>`;}).join('')+`</div>`;
-}
-function applyLoot(items){
-  const r=run;items.forEach((it,i)=>{const cur=r.gear[it.slot];
-    if((window.LOOTSEL||[])[i]!==false){const before=stats().maxHp;if(cur)r.coins+=salvageVal(cur);r.gear[it.slot]=it;const after=stats().maxHp;if(after>before)r.hp+=after-before;r.hp=Math.min(r.hp,after);}
-    else gainCoins(salvageVal(it));});
-  if(items.length){rebuildReels();ui();}
+  return Object.values(keep);
 }
 async function drainLoot(){
   const r=run;
@@ -2327,15 +2312,10 @@ async function addRelic(id){
   const i=r.relics.indexOf(v.slice(5));if(i<0)return false;
   r.relics.splice(i,1,id);heroFl(`${RELIC[v.slice(5)].n} → ${N.n}`,'#b07cf0');return true;
 }
-async function relicPick(title,text,pk,loot){
-  const ch=relicChoices(3);if(!ch.length){if(loot&&loot.length)await lootScreen(loot);return;}
-  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>${lootSection(loot||[])}`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
-  if(loot)applyLoot(loot);await addRelic(v);rebuildReels();ui();
-}
-// the floor's upgrades on their own screen (only when nothing else is shown at the floor's end)
-async function lootScreen(items){
-  if(!items.length)return;
-  await modal('Loot!',lootSection(items),[{label:'Done',val:1,cls:'primary goldbtn'}]);applyLoot(items);
+async function relicPick(title,text,pk){
+  const ch=relicChoices(3);if(!ch.length)return;
+  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
+  await addRelic(v);rebuildReels();ui();
 }
 async function floorClear(){
   const r=run;r.floorDone=true;
@@ -2344,16 +2324,14 @@ async function floorClear(){
   if(r.bossDown&&r.lab){r.bossDown=false;await drainLoot();r.souls+=50;
     if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);await addRelic('beaker');rebuildReels();ui();}
     else await relicPick("Labfreak's Hoard",'The lab\'s shelves hold one more curiosity. +50 souls.','portrait_labfreak');}
-  // one floor-end screen: the floor's upgrades ride along with the boss relic or the merchant
-  let loot=sortLoot();
-  if(r.bossDown){r.bossDown=false;await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard',loot);loot=[];}
+  // the floor's loot: worse pieces are salvaged on the spot, each upgrade gets the compare screen
+  r.pending.push(...sortLoot());await drainLoot();
+  if(r.bossDown){r.bossDown=false;await relicPick('Boss Hoard','The boss\'s hoard holds a relic.','screen_boss_hoard');}
   const merch=r.floor%5===0;
-  if(loot.length&&!merch){await lootScreen(loot);loot=[];}
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
   S.best=Math.max(S.best,r.floor);
   // every fifth floor the merchant sets up shop, and his exit is where you pick the next road
-  if(merch){const k=await shop(loot,true);loot=[];setRoute(k);}
-  applyLoot(loot);
+  if(merch){const k=await shop(true);setRoute(k);}
   r.floor++;genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
   await offerContract();
   logLine(`<b>Floor ${r.floor} · ${FLOOR_KINDS[r.kind].n}.</b> ${FLOOR_KINDS[r.kind].d}`);
@@ -2372,8 +2350,7 @@ function shopOffers(){
   if(run.loan)o.push({t:'repay',price:run.loan.owe});else o.push({t:'loan',price:0});
   return o;
 }
-async function shop(loot,doors){
-  loot=loot||[];
+async function shop(doors){
   const r=run,offers=shopOffers();let shopScroll=0;   // reopen where the player was after each purchase
   while(true){
     const desc=o=>({heal:`${icon('shop_meal','🍖','lead')}Hot meal <small>Heal ${Math.round(stats().maxHp*.4)} HP</small>`,
@@ -2390,8 +2367,7 @@ async function shop(loot,doors){
     // the merchant's exit IS the road choice: one screen, not two
     if(doors)routeBtns().forEach((b,i)=>btns.push(Object.assign(b,{cls:b.cls+(i?'':' door1')})));
     else btns.push({label:'Descend ▶',val:'go',cls:'primary'});
-    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>'+lootSection(loot)+(doors?'<p class="sub">When you\'re done, pick your road for the next five floors below.</p>':''),btns,shopScroll);shopScroll=modalScroll;
-    if(loot.length){applyLoot(loot);loot=[];}   // the floor's upgrades settle on the first tap
+    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>'+(doors?'<p class="sub">When you\'re done, pick your road for the next five floors below.</p>':''),btns,shopScroll);shopScroll=modalScroll;
     if(typeof v==='string'&&v.startsWith('road:'))return v;
     if(v==='go')return;
     const o=offers[v];if(!o||o.sold||r.coins<o.price)continue;

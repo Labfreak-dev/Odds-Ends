@@ -529,3 +529,4 @@ Nothing in the game is emoji any more once art.js loads.
   value; his swings scale to their life and block, capped at 55% of max HP.
 - **b097**: the merchant's loot section starts below his portrait column instead of beside it (it overlapped the item card on phones).
 - **b098**: the Relics button is just its centered label ("Relics 8/10"); the three small relic icons are gone.
+- **b099**: back to the classic Loot compare screen (new piece vs equipped, Equip / Salvage) for each upgrade, shown at the floor's end before the hoard or merchant; the Equip checkboxes are gone. Worse pieces still auto-salvage.

@@ -49,7 +49,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ---------- scene ---------- */
 #sceneWrap{position:relative;width:100%;flex:1 1 auto;min-height:150px;background:#0a0709}
-#scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab}
+#scene:active{cursor:grabbing}
 #jackpotFlash{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none}
 #jackpotFlash.go{animation:jp 3.4s ease-out}
 @keyframes jp{0%{opacity:0}8%{opacity:.95}70%{opacity:.8}100%{opacity:0}}
@@ -661,9 +662,9 @@ function graveKey(o){return 'grave_'+o.who+(o.who==='labfreak'&&o.lever?'_lever'
 function graveFor(f){
   if(!graveArtReady())return null;
   const five=GRAVES.slice(0,5).filter(g=>!graveRead(g.id)).map(g=>g.id);
-  if(five.length)return Math.random()<.4?pick(five):null;
-  if(!graveRead('labfreak'))return Math.random()<.5?'labfreak':null;
-  return Math.random()<.15?pick(GRAVES).id:null;
+  if(five.length)return Math.random()<.7?pick(five):null;
+  if(!graveRead('labfreak'))return Math.random()<.8?'labfreak':null;
+  return Math.random()<.3?pick(GRAVES).id:null;
 }
 // Two in three obituaries come off the shared deck of 50; the rest are built from
 // the person's own lines (or their own written ones), so each grave sounds like its owner.
@@ -1192,7 +1193,7 @@ async function enterLab(){
   for(let i=0;i<3&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(2,4)+Math.floor(f/3)});
   if(free.length)put({kind:'chest',x:free.pop(),hp:4,mimic:false});
   r.objs.sort((a,b)=>a.x-b.x);
-  view.hx=T/2;view.cam=T/2-HERO_SX;view.banner={t:performance.now(),txt:"DR. LABFREAK'S LABORATORY"};
+  view.hx=T/2;view.cam=T/2-HERO_SX;view.pan=0;view.banner={t:performance.now(),txt:"DR. LABFREAK'S LABORATORY"};
   busy=false;rebuildReels();ui();save();music.play('boss');
   logLine('<b>The ground gives way.</b> Something in the dark is cackling. Dr. Labfreak waits at the far end.');
 }
@@ -1686,7 +1687,7 @@ function genFloor(f){
   if(kind==='rest'){r.hp=Math.min(stats().maxHp,r.hp+Math.round(stats().maxHp*.3));}
   if(!boss&&free.length){const who=graveFor(f);if(who)put({kind:'grave',x:free.pop(),who});}
   r.objs.sort((a,b)=>a.x-b.x);if(!boss&&!r.death)loanCheck(f);fxEach('floorStart');
-  view.hx=T/2;view.cam=T/2-HERO_SX;
+  view.hx=T/2;view.cam=T/2-HERO_SX;view.pan=0;
   view.banner=boss?{t:performance.now(),txt:BOSSES[BOSS_ORDER[(f/3-1)%3]].n.toUpperCase()}:r.reaperDue?{t:performance.now(),txt:'THE REAPER COMES'}:null;r.reaperDue=false;
 }
 const blockerAt=x=>run.objs.find(o=>o.x===x&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'));
@@ -1706,7 +1707,7 @@ async function startRun(heroId,daily){
   rebuildReels();ui();save();
   if(!S.seenHelp){S.seenHelp=true;save();await modal('How it works',helpShort(),[{label:'Pull the lever',val:1,cls:'primary'}]);}
 }
-function resumeRun(){run=S.run;run.over=false;busy=false;seedRandom(run.daily?run.daily+':'+run.spins:null);view.hx=run.x*T+T/2;view.cam=view.hx-HERO_SX;showGame();rebuildReels();ui();}
+function resumeRun(){run=S.run;run.over=false;busy=false;seedRandom(run.daily?run.daily+':'+run.spins:null);view.hx=run.x*T+T/2;view.cam=view.hx-HERO_SX;view.pan=0;showGame();rebuildReels();ui();}
 
 /* ---------------- slot machine ---------------- */
 const M={reels:[],spinning:false,timers:[],grid:null,nudges:0,wheel:1,wheelSpin:null,autoBonus:false};
@@ -2514,7 +2515,7 @@ function showHub(v){
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
     <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
-    <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
+    <h3>Coins are time</h3><p>Drag the dungeon sideways to look along the whole floor. Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
@@ -2573,8 +2574,19 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(v==='x')endRun('quit');
 });
 $('#defyBtn').addEventListener('click',()=>defyDeath());
+// drag (or scroll sideways) across the scene to look along the whole floor
+{const sc=$('#scene');
+  sc.addEventListener('pointerdown',e=>{if(!run||run.death||e.button>0)return;view.drag={x:e.clientX,pan:view.pan,moved:false,w:sc.getBoundingClientRect().width||1,id:e.pointerId};});
+  sc.addEventListener('pointermove',e=>{const d=view.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.x;
+    if(!d.moved&&Math.abs(dx)>8){d.moved=true;try{sc.setPointerCapture(e.pointerId);}catch(_){}}
+    if(d.moved){view.pan=d.pan-dx/d.w*VWd;view.panT=performance.now();}});
+  const end=e=>{const d=view.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)view.dragEnd=performance.now();view.drag=null;view.panT=performance.now();};
+  sc.addEventListener('pointerup',end);sc.addEventListener('pointercancel',end);
+  sc.addEventListener('wheel',e=>{if(!run||run.death)return;const d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:(e.shiftKey?e.deltaY:0);if(!d)return;
+    e.preventDefault();const w=sc.getBoundingClientRect().width||1;view.pan+=d/w*VWd;view.panT=performance.now();},{passive:false});}
 $('#scene').addEventListener('click',e=>{
   if(!run||modalOpen||obitOpen||run.death)return;
+  if(performance.now()-(view.dragEnd||0)<300)return;   // that was a drag, not a tap
   const rc=e.target.getBoundingClientRect();const lx=(e.clientX-rc.left)/rc.width*VWd;
   const wx=Math.floor((lx+view.cam)/T);
   const gv=run.objs.find(o=>!o.gone&&o.kind==='grave'&&Math.abs(o.dx+T/2-(lx+view.cam))<T*.6);
@@ -2633,7 +2645,7 @@ function shadow(x,rw){cx.fillStyle='rgba(0,0,0,.45)';cx.beginPath();cx.ellipse(x
 
 /* ---------------- scene rendering ---------------- */
 const cv=$('#scene'),cx=cv.getContext('2d');
-const view={cam:-120,hx:0,fl:[],fx:[],shake:0,hurt:0,lunge:0,slash:null,arrow:null,boom:null};
+const view={cam:-120,pan:0,panT:0,hx:0,fl:[],fx:[],shake:0,hurt:0,lunge:0,slash:null,arrow:null,boom:null};
 // one-shot effect sprites (fx_*): x,y in world px, size in world px, dur in seconds
 function addFx(k,x,y,size,dur,rise){if(!artImg(k)||view.fx.length>24)return;view.fx.push({k,x,y,size,dur:dur||.5,rise:rise||0,t:0});}
 const heroWX=()=>view.hx||(run.x*T+T/2);
@@ -2831,7 +2843,12 @@ function frame(now){
     const r=run;
     const target=r.x*T+T/2;const moving=Math.abs(view.hx-target)>1;
     view.hx+=(target-view.hx)*Math.min(1,dt*(S.fast?12:5));
-    view.cam+=(view.hx-HERO_SX-view.cam)*Math.min(1,dt*6);
+    // the player can drag the view along the floor; it drifts back to the hero after a few idle seconds
+    const base=view.hx-HERO_SX;
+    if(view.pan&&!view.drag&&now-view.panT>4000){view.pan*=Math.max(0,1-dt*4);if(Math.abs(view.pan)<1)view.pan=0;}
+    if(r.death)view.pan=0;
+    const want=Math.max(Math.min(base,T/2-HERO_SX),Math.min(Math.max(base,(r.len+1)*T+24-VWd),base+view.pan));view.pan=want-base;
+    view.cam+=(want-view.cam)*Math.min(1,dt*(view.drag?20:6));
     for(const o of r.objs){o.dx+=(o.x*T-o.dx)*Math.min(1,dt*(S.fast?12:5));if(o.flash)o.flash=Math.max(0,o.flash-dt*5);if(o.lunge)o.lunge=Math.max(0,o.lunge-dt*(S.fast?5:2.5));if(o.pose)o.pose=Math.max(0,o.pose-dt*(S.fast?1:.6));}
     view.lunge=Math.max(0,view.lunge-dt*(S.fast?5:2.5));view.hurt=Math.max(0,view.hurt-dt*2.5);view.shake=Math.max(0,view.shake-dt*30);
     cx.setTransform(scaleK,0,0,scaleK,0,0);cx.translate(0,VHd-VH);

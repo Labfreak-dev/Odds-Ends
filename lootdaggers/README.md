@@ -502,3 +502,7 @@ Nothing in the game is emoji any more once art.js loads.
   otherwise (keyed and treasure-floor chests always give gear). Bookie contracts 45%→20%
   and never within 3 floors of the last; cursed jackpot 35%→12%; shell table 20→12%,
   blackjack 12→8%.
+- **b089**: drag the scene (or scroll sideways) to look along the whole floor, from
+  the entrance to the exit door; the view drifts back to the hero after 4 idle
+  seconds and a drag never counts as a tap. Graves spawn more: the five 40%→70% of
+  floors, Labfreak's 50%→80%, then any grave 15%→30%.

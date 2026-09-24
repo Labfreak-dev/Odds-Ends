@@ -44,6 +44,7 @@ def kind(key):
     if key.startswith('boss'):       return ('key', 440, 440, 82)
     if key.startswith(('hero_', 'enemy_')): return ('key', 340, 340, 82)
     if key.startswith('sym_'):       return ('key', 200, 200, 84)
+    if key.startswith(('scratch_', 'coin_')): return ('key', 200, 200, 84)
     if key.startswith(('relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_',
                        'ui_', 'shop_', 'fx_', 'map_', 'elite_')):
         return ('key', 160, 160, 84)
@@ -134,7 +135,7 @@ def green_glow(img):
     al[halo] = al[halo] * 0.55
     return Image.fromarray(np.dstack([rgb, al]).clip(0, 255).astype(np.uint8), 'RGBA')
 
-ICONISH = ('shell_', 'death_', 'hero_back_', 'sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
+ICONISH = ('shell_', 'death_', 'hero_back_', 'scratch_', 'coin_', 'sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
 
 def fit(img, th, mw):
     w, h = img.size

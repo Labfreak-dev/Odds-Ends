@@ -1,0 +1,31 @@
+DEAD MAN'S PULL — ART PACK 22: 7 NEW IMAGES (coin tails side, scratch card symbols, lost ticket)
+
+READ THIS FIRST:
+- 7 BRAND-NEW images. Do NOT reuse or re-send earlier packs. Loose images are fine: just say which name each one is.
+- Save each as a PNG named EXACTLY the name before the | .
+- coin_tails must match the existing skull coin (ui_coin) exactly in shape, rim and gold colour: it is the other side of the same coin.
+- The five scratch_ symbols are one set: same style, same size, readable at a glance.
+- Everything on flat pure magenta #FF00FF. NO TEXT anywhere.
+
+Checklist:
+  [ ] coin_tails.png
+  [ ] scratch_coins.png
+  [ ] scratch_purse.png
+  [ ] scratch_potion.png
+  [ ] scratch_gem.png
+  [ ] scratch_urn.png
+  [ ] scratchticket.png
+
+coin_tails.png | the REVERSE side of the game's tarnished gold skull coin, seen perfectly face-on as a flat round coin: the same worn gold rim and beaded border as the skull side, but its face shows a hooded reaper's scythe crossed over an hourglass, engraved in relief. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+scratch_coins.png | a small stack of three tarnished gold skull coins, one leaning on the stack. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+scratch_purse.png | a fat leather coin purse tied with a cord, gold coins spilling out of its mouth. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+scratch_potion.png | a round glass healing flask of glowing crimson liquid with a cork and a wax seal shaped like a heart. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+scratch_gem.png | a large cut blood-red gemstone set in a tarnished gold claw mount, catching the light. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+scratch_urn.png | a small ornate funerary urn of black ceramic with gold bands, a faint green glow escaping under its lid. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+scratchticket.png | a lost lottery-style scratch ticket lying on a dungeon floor, seen from the side at a slight angle: a small torn yellowed paper card with a grey scratch-off panel, a skull printed in one corner, a coin-scratched edge, faint gold glow around it. hand-inked gothic horror game prop art, thick jagged black ink outlines, desaturated bone, rust and tarnished gold palette, centered, isolated on a solid flat pure magenta (#FF00FF) background, no ground shadow, no text, no letters, no numbers, nothing magenta or hot pink in the design

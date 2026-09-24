@@ -484,3 +484,9 @@ Nothing in the game is emoji any more once art.js loads.
   blue portrait frame, instead of Labfreak's green ooze.
 - **b083**: art pack 21 packed (473 images): Death's bone-and-soul button frame on his
   dialogue and the Defy Death confirm.
+- **b084**: Double or Nothing only after a turn paying over 50 coins, and then 1 in 4.
+  The flip is a two-faced 3D coin (skull heads, coin_tails art for tails) and its
+  buttons, the merchant flip and the cursed jackpot use the gold plate. Scratch
+  cards are no longer sold: a lost ticket turns up on about 1 floor in 25 from floor
+  2 (free, kinder odds: 10/25/75 coins, a heal or a relic). art-pack22 covers the
+  coin's tails side, the five scratch symbols and the ticket.

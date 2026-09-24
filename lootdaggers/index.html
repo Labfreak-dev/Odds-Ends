@@ -175,7 +175,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 .gslot{width:44px;height:44px;flex:none;border-radius:8px;border:2px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;padding:0}
 .gslot .lv{position:absolute;right:2px;bottom:0;font-size:9px;color:var(--dim)}
 .gslot.empty{opacity:.35}
-#relics{flex:1;display:flex;flex-wrap:wrap;gap:3px;min-width:0;max-height:60px;overflow:hidden}
+#relics{flex:1;display:flex;min-width:0;align-items:stretch}
+#relics .relicBtn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:2px 6px 4px;font-size:19px;line-height:1}
+#relics .rbIcos{display:flex;gap:2px}
+#relics .rbIcos .relic{width:24px;height:24px;background:none;border:0}
+#relics .rbIcos .relic .ico{width:22px;height:22px}
+#relics .rbLbl{white-space:nowrap}
+#relics .rbLbl b{font-weight:400;color:#e8c77a}
+.relList{display:flex;flex-direction:column;gap:6px;text-align:left}
+.relRow{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line)}
+.relRow .ico.lead,.relRow .lead{width:40px;height:40px;flex:none}
+.relRow b{display:block;font-family:var(--head);font-weight:400;font-size:19px;color:#ecdcbc}
+.relRow small{display:block;font-size:12px;color:var(--dim);line-height:1.35}
+.relRow[data-relic="beaker"]{box-shadow:0 0 0 1px #3f7a3a,0 0 10px #8cff96}
 .relic{width:28px;height:28px;font-size:15px;display:flex;align-items:center;justify-content:center;background:var(--panel2);border-radius:5px;border:1px solid var(--line);padding:0}
 
 /* ---------- modal ---------- */
@@ -777,6 +789,8 @@ function poisonHero(){
 // a two-faced coin: heads is the skull coin, tails is its own art (art pack 22)
 function coinHTML(res){const h=icon('ui_coin','🪙','cf'),t=icon('coin_tails','☠️','cf');
   return `<div class="coin3d ${res?'flip '+res:''}"><div class="cface h">${h}</div><div class="cface t">${t}</div></div>`;}
+// the Greedy Gauntlet's share of a stab, after every multiplier, never adds more than 50
+const gauntletCap=(dmg,g)=>g>50?dmg-g+50:dmg;
 function stat(k,n){if(!S.stats||typeof S.stats!=='object')S.stats={};S.stats[k]=(S.stats[k]||0)+(n==null?1:n);}
 function statMax(k,v){if(!S.stats||typeof S.stats!=='object')S.stats={};S.stats[k]=Math.max(S.stats[k]||0,v);}
 // after a turn that paid coins, one flip to double them or lose them
@@ -1228,7 +1242,7 @@ const RELICS=[
   {id:'bombbelt',e:'🧨',n:'Bomb Belt',d:'Adds a Bomb to your reels. Bombs +2.'},
   {id:'tower',e:'🏰',n:'Tower Shield',d:'Half your block carries over between spins.'},
   {id:'map',e:'🗺️',n:'Treasure Map',d:'Chests always drop Rare or better.'},
-  {id:'gauntlet',e:'🧤',n:'Greedy Gauntlet',d:'+1 dagger damage per 10 coins held (max +4).'},
+  {id:'gauntlet',e:'🧤',n:'Greedy Gauntlet',d:'+1 dagger damage per 10 coins held (max +4, and never more than +50 damage in a turn).'},
   {id:'secondwind',e:'🪽',n:'Second Wind',d:'Once per run, survive a killing blow at 1 HP.'},
   {id:'lever',e:'🕹️',n:'Crooked Lever',d:'The top row pays too.'},
   {id:'mirror',e:'🪞',n:'Diagonal Mirror',d:'Both diagonals pay.'},
@@ -1555,7 +1569,7 @@ function stats(){
   if(hasR('thornmail'))s.thorns+=2;
   if(hasR('souljar'))s.soulFind+=50;
   if(hasR('ironboots'))s.shove+=3;
-  if(hasR('gauntlet'))s.swordDmg+=Math.min(4,Math.floor(r.coins/10));
+  if(hasR('gauntlet')){s.gauntlet=Math.min(4,Math.floor(r.coins/10));s.swordDmg+=s.gauntlet;}
   fxEach('stats',s);
   s.dodge=Math.min(40,s.dodge);
   return s;
@@ -1985,7 +1999,7 @@ function previewTurn(R){
   if(steps){const bits=[];if(moved)bits.push(`step <b>${moved}</b>`);if(shoves)bits.push(`shove ${nm(shoveT)} <b>${shoves}×${s.shove}</b>`);if(door)bits.push('<b>reach the exit</b>');L.push('🥾 '+bits.join(', '));}
   const mom=hasR('momentum')?moved:0;
   if(!door){
-    if(val('sword')){const t=blockerAt(x+1);L.push(t?`🗡 stab ${nm(t)} for <b>${(val('sword')*s.swordDmg+mom)*mu*((R.combos||{}).charge?2:1)}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
+    if(val('sword')){const t=blockerAt(x+1);L.push(t?`🗡 stab ${nm(t)} for <b>${gauntletCap((val('sword')*s.swordDmg+mom)*mu*((R.combos||{}).charge?2:1),val('sword')*(s.gauntlet||0)*mu*((R.combos||{}).charge?2:1))}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
     if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${(val('bow')*s.bowDmg+mom)*mu}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
     if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${(val('bomb')*s.bombDmg+mom)*mu}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
@@ -2056,7 +2070,7 @@ async function doTurn(R){
   const mom=hasR('momentum')?moved:0;
   // daggers
   if(val('sword')){
-    const t=blockerAt(r.x+1),dmg=(val('sword')*s.swordDmg+mom)*(combo.charge?2:1)*mu;
+    const t=blockerAt(r.x+1),dmg=gauntletCap((val('sword')*s.swordDmg+mom)*(combo.charge?2:1)*mu,val('sword')*(s.gauntlet||0)*(combo.charge?2:1)*mu);
     if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg,'sword');parts.push(`🗡${dmg}`);
       const ls=val('sword')*(hasR('fang')?1:0)+s.lifesteal;if(ls)heal(ls);
       if(hasR('pickpocket'))gainCoins(1);await beat(160);}
@@ -2452,7 +2466,8 @@ function ui(){
   $('#menuBtn').innerHTML=artify('☰');$('#reelInfoBtn').innerHTML=icon('ui_reels','🎰');
   document.querySelectorAll('.gslot').forEach(b=>{const it=r.gear[b.dataset.slot];
     b.classList.toggle('empty',!it);b.style.borderColor=it?RAR[it.rar].c:'';b.innerHTML=(it?gearIcon(it,'slotimg'):icon('slot_'+b.dataset.slot,SLOT_E[b.dataset.slot],'slotimg'))+(it?`<span class="lv">${it.lvl}</span>`:'');});
-  $('#relics').innerHTML=r.relics.map(id=>`<button class="relic" data-relic="${id}" title="${RELIC[id].n}">${relicIcon(RELIC[id])}</button>`).join('');
+  // one Relics button instead of a strip of tiny icons; tap it for the full list
+  $('#relics').innerHTML=r.relics.length?`<button class="btn plaque relicBtn" aria-label="Relics"><span class="rbIcos">${r.relics.slice(-3).map(id=>`<span class="relic" data-relic="${id}">${relicIcon(RELIC[id])}</span>`).join('')}</span><span class="rbLbl">Relics <b>${r.relics.length}</b></span></button>`:'';
   $('#autoBtn').innerHTML=artify(S.autoStop?'🤖':'✋');
   {const L=paylines(reelCount()).length,n=reelCount();$('#lineInfo').textContent=r.inBonus?(r.bonus>0?`★ BONUS · ${r.bonus} FREE SPIN${r.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):'';$('#marquee').classList.toggle('bonus',!!r.inBonus);}
   if(!M.spinning&&!busy)setBtn(M.pendingRes?'resolve':'spin');
@@ -2609,11 +2624,17 @@ $('#spinBtn').addEventListener('click',e=>{e.currentTarget.blur();if(M.spinning)
 $('#autoBtn').addEventListener('click',()=>{S.autoStop=!S.autoStop;save();ui();logLine(S.autoStop?'🤖 Reels stop on their own.':'✋ Tap each reel to stop it. Aim!');});
 $('#reelInfoBtn').addEventListener('click',()=>{if(busy||M.spinning)return;
   modal('Your reels',`<p>Each reel carries these symbols. ${paylines(reelCount()).length} payline(s), ${reelCount()} reels.</p>`+reelTable(),[{label:'Close',val:1,cls:'center'}]);});
+function showRelics(){
+  const rows=run.relics.map(id=>{const R=RELIC[id];if(!R)return '';
+    const now=id==='gauntlet'?` <i>(now +${Math.min(4,Math.floor(run.coins/10))} per dagger)</i>`:'';
+    return `<div class="relRow" data-relic="${id}">${relicIcon(R,'lead')}<div><b>${R.n}</b><small>${R.d}${now}</small></div></div>`;}).join('');
+  modal(`Your relics · ${run.relics.length}`,`<div class="relList">${rows}</div>`,[{label:'Close',val:1,cls:'center'}]);
+}
 $('#gearBar').addEventListener('click',e=>{
   if(!run||busy||M.spinning)return;
-  const g=e.target.closest('.gslot'),rl=e.target.closest('.relic');
+  const g=e.target.closest('.gslot'),rl=e.target.closest('.relicBtn');
   if(g)modal('Equipped',itemHTML(run.gear[g.dataset.slot],g.dataset.slot.toUpperCase()),[{label:'Close',val:1,cls:'center'}]);
-  if(rl){const R=RELIC[rl.dataset.relic];modal(R.n,`${icon('relic_'+R.id,'','hero')}<p>${R.d}</p>`,[{label:'Close',val:1,cls:'center'}]);}
+  if(rl)showRelics();
 });
 $('#menuBtn').addEventListener('click',async()=>{
   if(!run||busy||M.spinning)return;

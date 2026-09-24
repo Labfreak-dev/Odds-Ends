@@ -476,3 +476,6 @@ Nothing in the game is emoji any more once art.js loads.
   - Records page: lifetime stats, every side bet's net, the last 10 runs and the
     Daily Wager history. art-pack20-prompts.txt covers the blackjack table,
     Rattles, the card back, the Bookie and the three card symbols.
+- **b081**: art pack 20 packed (472 images): the blackjack table, Rattles' four poses,
+  the card back, his stall and portrait, the Bookie's portrait and the Ace, King and
+  Queen reel symbols. Blackjack layout tuned: Rattles larger, both hands on the felt.

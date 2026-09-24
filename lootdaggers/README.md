@@ -490,3 +490,5 @@ Nothing in the game is emoji any more once art.js loads.
   cards are no longer sold: a lost ticket turns up on about 1 floor in 25 from floor
   2 (free, kinder odds: 10/25/75 coins, a heal or a relic). art-pack22 covers the
   coin's tails side, the five scratch symbols and the ticket.
+- **b085**: art pack 22 packed (480 images): the coin's tails side, the five scratch
+  symbols and the lost ticket; the scratch card's Collect button uses the gold plate.

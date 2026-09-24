@@ -343,6 +343,11 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .shPortE{font-size:44px;flex:0 0 64px;text-align:center}
 .shBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .shBtns .btn{text-align:center}
+/* table buttons (shell game and blackjack): the hub plaque lettering */
+.shBtns .btn{font-family:var(--head);font-weight:400;font-size:23px;letter-spacing:.5px;color:#ecdcbc;text-shadow:0 2px 0 #000,0 0 8px #000;line-height:1.1}
+.shBtns .btn.art .lbl{text-shadow:0 2px 0 #000,0 0 8px #000}
+.shBtns .btn small{display:block;font-family:ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#b7a47f;margin-top:3px;text-shadow:0 1px 0 rgba(255,235,190,.12),0 -1px 0 #000}
+.shBtns .btn .ico{width:22px;height:22px;vertical-align:-4px}
 .shBtns .btn:last-child:nth-child(odd){grid-column:1/-1}
 #defyBtn{display:block;margin:4px 10px 0;padding:12px 10px 14px;border:2px solid #9fd6ff;border-radius:8px;background:linear-gradient(#141827,#07080d);color:#dff2ff;font-family:var(--head);font-size:22px;letter-spacing:1px;text-shadow:0 0 10px #9fd6ff,0 2px 0 #000;box-shadow:0 0 14px rgba(159,214,255,.5),inset 0 0 14px rgba(159,214,255,.2);animation:defyGlow 2s ease-in-out infinite}
 #defyBtn.hasArt{border:0;border-radius:0;background:var(--defyArt) center/100% 100% no-repeat;box-shadow:none;filter:drop-shadow(0 0 6px rgba(159,214,255,.7))}
@@ -1067,10 +1072,11 @@ const SHELL_LINES={
   done:["Enough, enough. The eye is tired. So am I.","That's all for tonight. Come back when you're richer."],
 };
 const SHELL_BETS=[
-  {id:'s',coins:5,swaps:5,speed:1},
-  {id:'m',coins:15,swaps:8,speed:1.3},
-  {id:'h',coins:40,swaps:12,speed:1.65},
-  {id:'b',hp:8,prize:25,swaps:10,speed:1.45},
+  // the bigger the bet, the faster and longer the shuffle: the top stakes are meant to be brutal
+  {id:'s',coins:5,swaps:6,speed:1.15,pace:'steady'},
+  {id:'m',coins:15,swaps:11,speed:2.1,pace:'fast'},
+  {id:'h',coins:40,swaps:18,speed:3.6,pace:'blinding'},
+  {id:'b',hp:8,prize:25,swaps:15,speed:2.9,pace:'vicious'},
 ];
 let SH_X=[28,50,72],SH_CW=17;const SH_Y=79;
 const SH={};
@@ -1132,8 +1138,8 @@ async function shRound(bet){
   await shWait(250);
   for(let i=0;i<bet.swaps;i++){
     const n=SH_X.length,a0=rnd(0,n-1);let b0=rnd(0,n-2);if(b0>=a0)b0++;const pr=[a0,b0];
-    const ms=Math.round(560/bet.speed*(1-.38*i/Math.max(1,bet.swaps-1)));
-    await shSwap(pr[0],pr[1],ms);await shWait(40+Math.random()*80);
+    const ms=Math.max(70,Math.round(560/bet.speed*(1-.45*i/Math.max(1,bet.swaps-1))));
+    await shSwap(pr[0],pr[1],ms);await shWait((20+Math.random()*80)/bet.speed);
   }
   if(SH.handsOn)await shTween(300,e=>SH.hands.forEach(h=>h.style.opacity=1-e));
   shPose('idle');shSay(pick(SHELL_LINES.where));
@@ -1152,7 +1158,7 @@ async function shellGame(o){
   let plays=0;
   while(plays<3&&!r.over){
     const opts=SHELL_BETS.map(b=>({val:b.id,disabled:b.hp?r.hp<=b.hp:r.coins<b.coins,
-      label:b.hp?`Bet ${b.hp} ❤ <small>win 25 🪙 · ${b.swaps} swaps</small>`:`Bet ${b.coins} 🪙 <small>win ${b.coins*2} · ${b.swaps} swaps</small>`}));
+      label:b.hp?`Bet ${b.hp} ❤ <small>win 25 🪙 · ${b.swaps} swaps · ${b.pace}</small>`:`Bet ${b.coins} 🪙 <small>win ${b.coins*2} · ${b.swaps} swaps · ${b.pace}</small>`}));
     opts.push({val:null,label:'Walk away'});
     const v=await shAsk(opts);if(!v)break;
     const bet=SHELL_BETS.find(b=>b.id===v);if(bet.coins){r.coins-=bet.coins;ui();}

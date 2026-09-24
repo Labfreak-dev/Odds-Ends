@@ -1980,7 +1980,7 @@ function shopOffers(){
   return o;
 }
 async function shop(){
-  const r=run,offers=shopOffers();
+  const r=run,offers=shopOffers();let shopScroll=0;   // reopen where the player was after each purchase
   while(true){
     const desc=o=>({heal:`${icon('shop_meal','🍖','lead')}Hot meal <small>Heal ${Math.round(stats().maxHp*.4)} HP</small>`,
       gear:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:${o.item?RAR[o.item.rar].c:''}">${o.item?esc(o.item.name):''}</b><small>${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
@@ -1989,7 +1989,7 @@ async function shop(){
       remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
     btns.push({label:'Descend ▶',val:'go',cls:'primary'});
-    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns);
+    const v=await modal(`The Coin-Op Merchant · 🪙 ${r.coins}`,`<div class="merchCol">${portImg('portrait_merchant','big')}<button class="peekBtn" onclick="peekInventory()">${icon('ui_bag','🎒')} My gear</button></div>`+'<p>Every coin you spend here is a spin you won\'t get. Choose carefully.</p>',btns,shopScroll);shopScroll=modalScroll;
     if(v==='go')return;
     const o=offers[v];if(!o||o.sold||r.coins<o.price)continue;
     if(o.t==='remove'){
@@ -2045,7 +2045,8 @@ async function endRun(reason){
 
 /* ---------------- modal ---------------- */
 let modalOpen=false;
-function modal(title,html,buttons){
+let modalScroll=0;   // where the last modal was scrolled to when a button was pressed
+function modal(title,html,buttons,scrollTo){
   return new Promise(res=>{
     const m=$('#modal');modalOpen=true;
     const A=window.LD_ART||{};
@@ -2057,8 +2058,8 @@ function modal(title,html,buttons){
         const lead=lbl.querySelector('.ico.lead');const txt=document.createElement('span');txt.className='txt';
         while(lbl.firstChild){const n=lbl.firstChild;if(n===lead){lbl.removeChild(n);continue;}txt.appendChild(n);}
         if(lead)lbl.appendChild(lead);lbl.appendChild(txt);}
-      el.onclick=()=>{m.classList.remove('show');modalOpen=false;res(b.val);};bb.appendChild(el);});
-    m.classList.add('show');m.querySelector('.mbox').scrollTop=0;
+      el.onclick=()=>{modalScroll=m.querySelector('.mbox').scrollTop;m.classList.remove('show');modalOpen=false;res(b.val);};bb.appendChild(el);});
+    m.classList.add('show');m.querySelector('.mbox').scrollTop=scrollTo||0;
   });
 }
 // A pop-up over the current modal showing worn gear and relics, closed by its X.
@@ -2209,7 +2210,8 @@ function showHub(v){
   }else if(v==='settings'){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">${settingsHTML()}<button class="btn danger" data-act="wipe">Wipe save</button></div>`;
   }
-  h.innerHTML=artify(html);h.scrollTop=0;
+  // redrawing the same page (a purchase, a toggle) keeps the scroll; a new page starts at the top
+  const keep=h.dataset.view===v?h.scrollTop:0;h.dataset.view=v;h.innerHTML=artify(html);h.scrollTop=keep;
   if(v==='main')drawHubArt();
 }
 $('#hub').addEventListener('input',e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}if(e.target.id==='sfxVol'){S.sfxVol=+e.target.value/100;if(S.sfxVol>0)S.mute=false;save();}});

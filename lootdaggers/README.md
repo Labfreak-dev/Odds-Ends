@@ -452,3 +452,6 @@ Nothing in the game is emoji any more once art.js loads.
   Death portraits, the free-soul splash, the Defy Death plate and the Ledger icon.
   pack-art.py's size rules for death_/hero_back_/ui_defy_button moved ahead of the
   generic hero_ rule, which had been shrinking the back views.
+- **b079**: menus keep their scroll after a purchase or toggle. Hub pages redrawn in
+  place (Soul Altar, Workbench, Vault, Ledger, Settings) keep their position and
+  only a new page starts at the top; the merchant reopens where the player was.

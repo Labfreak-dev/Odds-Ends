@@ -841,7 +841,7 @@ async function scratchCard(){
       if(prize.relic){msg=`Three alike! <b style="color:#8cff96">A relic!</b>`;}
       stat('scratched');if(prize.e)stat('scratchWins');
       L.querySelector('.scMsg').innerHTML=artify(msg);if(prize.e)sfx.jackpot();
-      L.querySelector('.scBtns').innerHTML='<button class="btn primary center" data-a="close">Collect</button>';};
+      L.querySelector('.scBtns').innerHTML='<button class="btn primary goldbtn center" data-a="close">Collect</button>';};
     const at=e=>{const b=cv2.getBoundingClientRect();return [(e.clientX-b.left)*W/b.width,(e.clientY-b.top)*H/b.height];};
     let last=null;g.lineWidth=46;g.lineCap='round';g.lineJoin='round';
     const scratch=e=>{if(!down||done)return;const [x,y]=at(e);g.beginPath();if(last){g.moveTo(last[0],last[1]);g.lineTo(x,y);g.stroke();}else{g.arc(x,y,23,0,7);g.fill();}last=[x,y];

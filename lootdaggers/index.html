@@ -663,11 +663,22 @@ const graveRead=id=>(S.graves||[]).includes(id);
 const graveDef=id=>GRAVES.find(g=>g.id===id);
 function graveKey(o){return 'grave_'+o.who+(o.who==='labfreak'&&o.lever?'_lever':'');}
 // which grave (if any) to put on this floor
+// Every run cycles through the whole graveyard before floor 20: the five, plus Labfreak's
+// once those five have been read. Unread graves come first; if the floors left before 20
+// run short, a grave is forced onto every remaining floor.
 function graveFor(f){
   if(!graveArtReady())return null;
-  const five=GRAVES.slice(0,5).filter(g=>!graveRead(g.id)).map(g=>g.id);
-  if(five.length)return Math.random()<.7?pick(five):null;
-  if(!graveRead('labfreak'))return Math.random()<.8?'labfreak':null;
+  const r=run;if(!Array.isArray(r.graveSeen))r.graveSeen=[];
+  const five=GRAVES.slice(0,5).map(g=>g.id);
+  const cycle=five.every(graveRead)?five.concat(['labfreak']):five;
+  const left=cycle.filter(id=>!r.graveSeen.includes(id));
+  if(left.length&&f<20){
+    let slots=0;for(let k=f;k<20;k++)if(k%3!==0)slots++;   // non-boss floors from here through 19
+    if(left.length<slots&&Math.random()>=.7)return null;
+    const unread=left.filter(id=>!graveRead(id)),id=pick(unread.length?unread:left);r.graveSeen.push(id);return id;
+  }
+  const unread=cycle.filter(id=>!graveRead(id));
+  if(unread.length)return Math.random()<.6?pick(unread):null;
   return Math.random()<.3?pick(GRAVES).id:null;
 }
 // Two in three obituaries come off the shared deck of 50; the rest are built from

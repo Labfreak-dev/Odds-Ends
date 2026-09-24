@@ -506,3 +506,24 @@ Nothing in the game is emoji any more once art.js loads.
   the entrance to the exit door; the view drifts back to the hero after 4 idle
   seconds and a drag never counts as a tap. Graves spawn more: the five 40%→70% of
   floors, Labfreak's 50%→80%, then any grave 15%→30%.
+- **b090**: loot waits for the floor's end. Worse pieces auto-salvage (with a floating
+  "+N salvaged"); the best upgrade per slot shows with an Equip toggle on the one
+  floor-end screen: the Boss Hoard, the merchant, or a Loot screen.
+- **b091**: every run cycles through all the graves before floor 20 (forced onto the
+  remaining floors if needed); Labfreak's grave is guaranteed on the floor right after
+  the five are read, boss floor or not. Graves claim their tile first.
+- **b092**: a Relics button (last three icons + count) replaces the strip of tiny icons;
+  it opens a list of every relic with what it does. The Greedy Gauntlet's share of a
+  stab is capped at +50 damage per turn, after every multiplier.
+- **b093**: two-popup budget per floor. Each floor ends on one screen; the spare slot
+  goes to at most one of a shrine, a table, a lost ticket, the bookie, a cursed jackpot
+  or double-or-nothing. Boss floors that are also merchant floors get none.
+- **b094**: roads. No more per-floor doors: at the start and at every merchant (every
+  five floors) pick Easy / Medium / Hard. Easy: foes 0.65× life, 0.7× damage, loot 0.5×,
+  worse gear, coins/souls 0.75×, more rest floors. Hard: foes 1.8× life, 1.5× damage,
+  elites everywhere, loot 2.2×, much rarer gear, coins 1.7×, souls 1.8×.
+- **b095**: at most 10 relics; a new one past that swaps out one you pick (or is left
+  behind; a merchant relic left behind is refunded).
+- **b096**: Death sizes himself to the player: his life is about twenty solid turns of
+  their best damage (plus 4% per relic, 5% per Ledger level), never below the old
+  value; his swings scale to their life and block, capped at 55% of max HP.

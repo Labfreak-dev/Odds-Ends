@@ -528,3 +528,4 @@ Nothing in the game is emoji any more once art.js loads.
   their best damage (plus 4% per relic, 5% per Ledger level), never below the old
   value; his swings scale to their life and block, capped at 55% of max HP.
 - **b097**: the merchant's loot section starts below his portrait column instead of beside it (it overlapped the item card on phones).
+- **b098**: the Relics button is just its centered label ("Relics 8/10"); the three small relic icons are gone.

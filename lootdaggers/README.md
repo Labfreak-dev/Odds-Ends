@@ -532,3 +532,28 @@ Nothing in the game is emoji any more once art.js loads.
 - **b099**: back to the classic Loot compare screen (new piece vs equipped, Equip / Salvage) for each upgrade, shown at the floor's end before the hoard or merchant; the Equip checkboxes are gone. Worse pieces still auto-salvage.
 - **b100**: Dr. Labfreak is 10× harder: ten times the life in both phases (floor 4: 231 → 2310, then 1848 unleashed) and 1.5× damage on every hit (he still acts twice a turn). Tunables: LAB_HP, LAB_DMG.
 - **b101**: Dr. Labfreak scales to the player like Death, tuned long: each phase holds about 25 solid turns of their best damage (+3% per relic; unleashed phase 80% of that), never below his base; his hits scale to their life and block, each capped at 30% of max HP since he swings twice a turn. Replaces b100's flat 10x. Tunable: LAB_TURNS.
+- **b102**: build families. Relics and uniques belong to one of six families (Blades,
+  Hunter, Powder, Bulwark, Greed, Hex; the machine's own tricks belong to none). Hold 3
+  of a family for a rule change, 5 for a bigger one; worn uniques count and each hero
+  leans one way (+1: Knight Bulwark, Ranger Hunter, Gambler Greed, Brute Powder).
+  Blades 3: a stab also cuts the foe behind for half; 5: every stab lands twice.
+  Hunter 3: arrows +2 reach, pierce a second foe; 5: pierce everything in range.
+  Powder 3: bombs blast every foe in view; 5: bombs +50%.
+  Bulwark 3: block still up when your turn starts is hurled at the nearest foe; 5: block
+  never fades, thorns double. Greed 3: each Coin symbol hits the nearest foe for 1 per 20
+  coins held (up to 20 each); 5: 5% interest per spin (up to 10). Hex 3: Skulls hit the
+  nearest foe (4 + floor/2 + 2x skull damage each) instead of you, Doom still builds;
+  5: +10% damage per Skull on your reels. The Relics popup shows every family's progress;
+  relic offers show their family; bonuses announce when they switch on.
+- **b103**: the dungeon keeps up. Ordinary foes grow with the player's build when it
+  outpaces its floor (up to 3x life, 2x damage, +1.5% life per relic). Foe traits from
+  floor 10 (7 on the hard road; 5/15/30% of foes on easy/medium/hard): Warded (ignores the
+  first hit each turn), Fireproof (half bomb damage), Thieving (steals 3 coins per hit),
+  Hexproof (immune to Skulls; hexed Skulls bounce back at half), Jamming (opens by jamming a
+  reel). Badges draw next to the health bar; the tap-info names the trait.
+- **b104**: nine new relics. Family fillers: Broadheads, Fletcher's Kit (Hunter), Short
+  Fuse, Nitro Flask (Powder). Rule-breakers: Sawn Longbow (bows reach 1 tile, hit triple),
+  Hollow Point (daggers triple, a whiff costs 3 HP), All In (coins pay nothing, each hits
+  for 10% of your purse up to 60), Crooked Dealer (wheel always x2), Blood Money (spins
+  free, each costs 2 HP). Art prompts for these, the road icons, family emblems and trait
+  badges are in art-pack23-prompts.txt (23 images); emoji stand in until then.

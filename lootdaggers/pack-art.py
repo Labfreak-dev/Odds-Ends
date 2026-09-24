@@ -135,7 +135,7 @@ def green_glow(img):
     al[halo] = al[halo] * 0.55
     return Image.fromarray(np.dstack([rgb, al]).clip(0, 255).astype(np.uint8), 'RGBA')
 
-ICONISH = ('shell_', 'death_', 'hero_back_', 'scratch_', 'coin_', 'sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_')
+ICONISH = ('shell_', 'death_', 'hero_back_', 'scratch_', 'coin_', 'sym_', 'relic_', 'gear_', 'slot_', 'altar_', 'mod_', 'intent_', 'ui_', 'shop_', 'fx_', 'map_', 'elite_', 'road_', 'fam_', 'trait_')
 
 def fit(img, th, mw):
     w, h = img.size

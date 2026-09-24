@@ -1,0 +1,87 @@
+DEAD MAN'S PULL — ART PACK 23: 23 NEW IMAGES (road icons, build family emblems, foe trait badges, new relics)
+
+READ THIS FIRST:
+- 23 BRAND-NEW images. Do NOT reuse or re-send earlier packs. Loose images are fine: just say which name each one is.
+- Save each as a PNG named EXACTLY the name before the | .
+- The six fam_ emblems are ONE SET: same round medallion, same size and framing; only the centre picture and glow colour change.
+- The five trait_ badges are drawn tiny above monsters: keep them to one bold shape each.
+- Everything on flat pure magenta #FF00FF. NO TEXT anywhere.
+
+Checklist:
+  [ ] road_easy.png
+  [ ] road_medium.png
+  [ ] road_hard.png
+  [ ] fam_blades.png
+  [ ] fam_hunter.png
+  [ ] fam_powder.png
+  [ ] fam_bulwark.png
+  [ ] fam_greed.png
+  [ ] fam_hex.png
+  [ ] trait_warded.png
+  [ ] trait_fireproof.png
+  [ ] trait_thief.png
+  [ ] trait_hexproof.png
+  [ ] trait_jammer.png
+  [ ] relic_broadheads.png
+  [ ] relic_fletching.png
+  [ ] relic_shortfuse.png
+  [ ] relic_nitro.png
+  [ ] relic_sawnoff.png
+  [ ] relic_hollowpoint.png
+  [ ] relic_allin.png
+  [ ] relic_crookedwheel.png
+  [ ] relic_bloodmoney.png
+
+== ROADS (replace the emoji on the Easy / Medium / Hard road buttons) ==
+
+road_easy.png | a narrow worn stone path lit by a single guttering candle in an iron lantern, calm and quiet, soft warm light. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+road_medium.png | a dungeon crossroads signpost of rotten wood with a rusty dagger nailed through it, torchlit. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+road_hard.png | a jagged crumbling stone path over a pit of bones, a horned skull on a spike marking the way, red glow from below. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+== BUILD FAMILY EMBLEMS (one set: same medallion shape and size, each with its own glowing inlay colour) ==
+
+fam_blades.png | a round heraldic emblem medallion of tarnished iron with a beaded rim, two crossed notched daggers in its centre, cold steel-white glow. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+fam_hunter.png | a round heraldic emblem medallion of tarnished iron with a beaded rim, a drawn longbow with a nocked arrow in its centre, mossy green glow. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+fam_powder.png | a round heraldic emblem medallion of tarnished iron with a beaded rim, a round black powder bomb with a sparking fuse in its centre, ember orange glow. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+fam_bulwark.png | a round heraldic emblem medallion of tarnished iron with a beaded rim, a riveted kite shield in its centre, cold steel-blue glow. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+fam_greed.png | a round heraldic emblem medallion of tarnished iron with a beaded rim, a stack of skull coins in its centre, rich gold glow. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+fam_hex.png | a round heraldic emblem medallion of tarnished iron with a beaded rim, a grinning cracked skull wreathed in smoke in its centre, sickly violet glow. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+== FOE TRAIT BADGES (tiny badges drawn above a monster's head: must read at 18 pixels) ==
+
+trait_warded.png | a small glowing pale-blue rune ward, a hexagonal sigil of light with a crack in it. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+trait_fireproof.png | a small scorched iron plate with a flame snuffed out under it, smoke curling up. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+trait_thief.png | a grasping skeletal hand clutching a single gold coin. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+trait_hexproof.png | an evil-eye amulet: a blue glass eye bead in a tarnished silver setting. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+trait_jammer.png | a rusty cog wheel with a bent iron spike jammed between its teeth. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+== NEW RELICS (same style as every other relic_ icon) ==
+
+relic_broadheads.png | three wide barbed hunting arrowheads of dark iron tied together with twine. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_fletching.png | a fletcher's leather roll holding arrows, feathers and a small knife. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_shortfuse.png | a stubby black bomb with a very short fuse already burning, sparks flying. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_nitro.png | a corked glass flask of volatile glowing orange liquid, bubbling, with a warning skull scratched on it. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_sawnoff.png | a longbow sawn in half and bound back together with iron bands, short and brutal. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_hollowpoint.png | a dagger with a hollowed, grooved blade and a blood-red gem in the pommel. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_allin.png | a tall teetering stack of gold coins pushed forward by a skeletal hand. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_crookedwheel.png | a small bent roulette wheel with only one marked slot, a crooked nail through its hub. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame
+
+relic_bloodmoney.png | a gold coin dripping with blood, pressed into a wound-red wax seal. square game icon, a single object, hand-inked gothic horror style with thick jagged black ink outlines and heavy angular black shadows, desaturated bone, rust, ash grey and tarnished gold palette with dried-blood crimson and sickly green accents, grim and oppressive mood, a faint worn engraved look like an old tarot card, bold readable silhouette at small sizes, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no border, no frame

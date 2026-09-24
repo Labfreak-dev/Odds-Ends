@@ -496,3 +496,9 @@ Nothing in the game is emoji any more once art.js loads.
 - **b087**: the shell game and blackjack buttons use the plaque lettering. The shell
   shuffle now scales hard with the bet: 5 🪙 steady (6 swaps), 15 fast (11), 40
   blinding (18 swaps at 3.6× speed, down to 70ms each), 8 HP vicious (15).
+- **b088**: fewer popups. The merchant sets up only after every fifth floor (loans
+  now come due at his next stop, floor+5). Gear drops roughly halved: foes 20%→10%
+  (orc 35→20, abom 40→25), and ordinary chests give gear half the time, extra coins
+  otherwise (keyed and treasure-floor chests always give gear). Bookie contracts 45%→20%
+  and never within 3 floors of the last; cursed jackpot 35%→12%; shell table 20→12%,
+  blackjack 12→8%.

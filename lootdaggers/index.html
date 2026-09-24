@@ -180,6 +180,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 #relics .rbLbl{white-space:nowrap;display:block;width:100%;text-align:center}
 #relics .rbLbl b{font-weight:400;color:#e8c77a}
 .relList{display:flex;flex-direction:column;gap:6px;text-align:left}
+.famTag{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.famTag .famIco,.famTag .ico{width:14px;height:14px;vertical-align:-2px}
+.famPanel{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 10px;text-align:left}
+.famRow{padding:6px 7px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line);opacity:.8}
+.famRow.on{border-color:var(--fc);box-shadow:0 0 8px color-mix(in srgb,var(--fc) 45%,transparent);opacity:1}
+.famHead{display:flex;align-items:center;gap:5px}
+.famHead .famBig,.famHead .ico{width:24px;height:24px}
+.famHead b{font-family:var(--head);font-weight:400;font-size:17px;color:var(--fc)}
+.famN{margin-left:auto;font-size:11px;color:var(--dim)}
+.famT{font-size:10.5px;line-height:1.3;color:#7d7266;margin-top:3px}
+.famT i{font-style:normal;display:inline-block;min-width:13px;text-align:center;border-radius:3px;background:#2a2224;color:#948978;margin-right:2px}
+.famT.act{color:#e9dcc6}.famT.act i{background:var(--fc);color:#150f10}
 .relRow{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line)}
 .relRow .ico.lead,.relRow .lead{width:40px;height:40px;flex:none}
 .relRow b{display:block;font-family:var(--head);font-weight:400;font-size:19px;color:#ecdcbc}
@@ -562,7 +574,7 @@ const ROUTES={
 };
 const routeOf=()=>ROUTES[(run&&run.route)||'medium']||ROUTES.medium;
 function routeKind(){const k=routeOf().kinds;let t=Math.random()*Object.values(k).reduce((a,b)=>a+b,0);for(const [n,w] of Object.entries(k)){t-=w;if(t<0)return n;}return 'fight';}
-const routeBtns=()=>Object.entries(ROUTES).map(([k,R])=>({label:`<b>${R.e} ${R.n}</b><small>${R.d}</small>`,val:'road:'+k,cls:'roadbtn road_'+k}));
+const routeBtns=()=>Object.entries(ROUTES).map(([k,R])=>({label:`${icon('road_'+k,R.e,'lead')}<b>${R.n}</b><small>${R.d}</small>`,val:'road:'+k,cls:'roadbtn road_'+k}));
 async function chooseRoute(first){
   const v=await modal('Choose your road',`<p>${first?'Five floors lie ahead.':'The next five floors.'} Pick how hard the dungeon fights you, and how well it pays.</p>`,routeBtns());
   setRoute(v);
@@ -1275,6 +1287,15 @@ const RELICS=[
   {id:'wildcard',e:'🃏',n:'Wild Card',d:'Adds a Wild to your reels.'},
   {id:'quiver',e:'🎯',n:'Split Quiver',d:'Bows also hit the next foe for half.'},
   {id:'bombbelt',e:'🧨',n:'Bomb Belt',d:'Adds a Bomb to your reels. Bombs +2.'},
+  {id:'broadheads',e:'🎯',n:'Broadheads',d:'Bows +3 damage.'},
+  {id:'fletching',e:'🪶',n:"Fletcher's Kit",d:'Adds a Bow to your reels. Bows +1.'},
+  {id:'shortfuse',e:'🧯',n:'Short Fuse',d:'Bombs +2 damage and reach 1 tile further.'},
+  {id:'nitro',e:'🧪',n:'Nitro Flask',d:'Bombs deal +25%.'},
+  {id:'sawnoff',e:'🏹',n:'Sawn Longbow',d:'Bows only reach the next tile, but hit for triple.'},
+  {id:'hollowpoint',e:'🔪',n:'Hollow Point',d:'Daggers deal triple, but a whiff costs you 3 HP.'},
+  {id:'allin',e:'🎲',n:'All In',d:'Coin symbols pay nothing. Each one hits the nearest foe for 10% of your purse instead (up to 60).'},
+  {id:'crookedwheel',e:'🎡',n:'Crooked Dealer',d:'The fortune wheel always lands on ×2: never ×1, never higher.'},
+  {id:'bloodmoney',e:'🩸',n:'Blood Money',d:'Spins are free, but every spin costs 2 HP.'},
   {id:'tower',e:'🏰',n:'Tower Shield',d:'Half your block carries over between spins.'},
   {id:'map',e:'🗺️',n:'Treasure Map',d:'Chests always drop Rare or better.'},
   {id:'gauntlet',e:'🧤',n:'Greedy Gauntlet',d:'+1 dagger damage per 10 coins held (max +4, and never more than +50 damage in a turn).'},
@@ -1354,6 +1375,12 @@ const RELIC=Object.fromEntries(RELICS.map(r=>[r.id,r]));
    the relic or wear a unique whose fx names it; owning both counts once. */
 const nearestFoe=(from,max)=>run.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>=from).sort((a,b)=>a.x-b.x).find(o=>o.x-from<=(max||6));
 const FX={
+  shortfuse:{bombRange(v){return v+1;}},
+  nitro:{dmgOut(d,o,how){return how==='bomb'?Math.ceil(d*1.25):d;}},
+  sawnoff:{bowRange(){return 1;},dmgOut(d,o,how){return how==='bow'?d*3:d;}},
+  hollowpoint:{dmgOut(d,o,how){return how==='sword'?d*3:d;}},
+  allin:{coinSym(){return 0;}},
+  bloodmoney:{cost(){return 0;},spin(){run.hp=Math.max(1,run.hp-2);heroFl('-2 blood money','#e0605a');}},
   goldtooth:{stats(s){s.coinPer+=2;s.healPer=Math.max(1,s.healPer-1);}},
   bloodpact:{stats(s){s.swordDmg+=4;},spin(){if(run.hp>1){run.hp--;heroFl('-1 blood pact','#e0605a');}}},
   deathcard:{dmgOut(d){return run.hp<=stats().maxHp*.25?d*2:d;}},
@@ -1417,10 +1444,65 @@ const FX={
   shame:{moved(n){if(n)gainCoins(n);}},
   skulldie:{skullDmg(){return 0;},skullDoom(){return 0;},skull(n){gainCoins(2*n);}},
 };
+/* ---------------- build families: 3 of a family changes a rule, 5 changes it harder ----------------
+   Relics and uniques each belong to one family (or none: the machine's own tricks).
+   A worn unique counts, and each hero leans one way (+1 to their family). */
+const FAMILIES={
+  blades:{n:'Blades',e:'🗡️',c:'#d9d2c4',
+    t3:'A stab also cuts the foe behind for half.',t5:'Every stab lands twice.'},
+  hunter:{n:'Hunter',e:'🏹',c:'#8fc46a',
+    t3:'Arrows fly 2 tiles further and pierce a second foe.',t5:'Arrows pierce every foe in range.'},
+  powder:{n:'Powder',e:'💣',c:'#e0823c',
+    t3:'Bombs blast every foe in view.',t5:'Bombs deal +50%.'},
+  bulwark:{n:'Bulwark',e:'🛡️',c:'#7fa6c9',
+    t3:'Block still standing when your turn begins is hurled at the nearest foe.',t5:'Block never fades, and thorns double.'},
+  greed:{n:'Greed',e:'🪙',c:'#e8c77a',
+    t3:'Each Coin symbol also hits the nearest foe for 1 per 20 coins you hold.',t5:'Every spin pays 5% interest on your purse (up to 10).'},
+  hex:{n:'Hex',e:'💀',c:'#b07cf0',
+    t3:'Skulls hurt the nearest foe instead of you.',t5:'Each Skull on your reels adds +10% to all your damage.'},
+};
+const FAM_OF={
+  fang:'blades',whetstone:'blades',pickpocket:'blades',gauntlet:'blades',vampirecape:'blades',bloodpact:'blades',scalpel:'blades',loadedreel:'blades',momentum:'blades',deathcard:'blades',hollowpoint:'blades',rake:'blades',
+  quiver:'hunter',eagleeye:'hunter',broadheads:'hunter',fletching:'hunter',sawnoff:'hunter',deck:'hunter',
+  bombbelt:'powder',powderkeg:'powder',acesandeights:'powder',lastrites:'powder',shortfuse:'powder',nitro:'powder',deadhand:'powder',lastpull:'powder',
+  tower:'bulwark',thornmail:'bulwark',ironlung:'bulwark',spite:'bulwark',tapshoes:'bulwark',ironboots:'bulwark',oldbones:'bulwark',drumroll:'bulwark',veil:'bulwark',coffinplate:'bulwark',snakeeyes:'bulwark',shroud:'bulwark',
+  luckycoin:'greed',goldtooth:'greed',greed:'greed',piggybank:'greed',chipstack:'greed',highroller:'greed',bell:'greed',pouch:'greed',counterfeit:'greed',bounty:'greed',luckyseven:'greed',penny:'greed',vippass:'greed',gamblersruin:'greed',bonusround:'greed',allin:'greed',spade:'greed',waistcoat:'greed',dancers:'greed',shame:'greed',housewins:'greed',
+  skullring:'hex',coffinnail:'hex',noose:'hex',deathsdoor:'hex',scythe:'hex',reaperdeal:'hex',hexbag:'hex',wither:'hex',blackcat:'hex',souljar:'hex',soulhook:'hex',insurance:'hex',pallbearer:'hex',epitaph:'hex',gravedirt:'hex',beaker:'hex',bloodmoney:'hex',unpaid:'hex',funeral:'hex',greaves:'hex',charon:'hex',skulldie:'hex',marker:'hex',
+};
+const HERO_FAM={knight:'bulwark',ranger:'hunter',gambler:'greed',brute:'powder'};
+function famCounts(){
+  const c={};if(!run)return c;const add=f=>{if(f)c[f]=(c[f]||0)+1;};
+  run.relics.forEach(id=>add(FAM_OF[id]));
+  for(const sl of SLOTS){const it=run.gear[sl];if(it&&it.uid)add(FAM_OF[it.uid]);}
+  add(HERO_FAM[run.hero]);return c;
+}
+const famIcon=(f,cls)=>icon('fam_'+f,FAMILIES[f].e,cls);
+const famTag=id=>{const f=FAM_OF[id];return f?`<span class="famTag" style="color:${FAMILIES[f].c}">${famIcon(f,'famIco')} ${FAMILIES[f].n}</span> `:'';};
+function famPanel(){
+  const c=famCounts();
+  return `<div class="famPanel">`+Object.entries(FAMILIES).map(([k,F])=>{const n=c[k]||0;
+    return `<div class="famRow${n>=3?' on':''}" style="--fc:${F.c}"><div class="famHead">${famIcon(k,'famBig')}<b>${F.n}</b><span class="famN">${n}/5</span></div>
+      <div class="famT${n>=3?' act':''}"><i>3</i> ${F.t3}</div><div class="famT${n>=5?' act':''}"><i>5</i> ${F.t5}</div></div>`;}).join('')+`</div>`;
+}
+const famTier=f=>{const n=famCounts()[f]||0;return n>=5?5:n>=3?3:0;};
+const SET_FX={
+  blades3:{},blades5:{},   // handled in the stab itself
+  hunter3:{bowRange(v){return v+2;},bowTargets(v){return Math.max(v,2);}},
+  hunter5:{bowTargets(){return 99;}},
+  powder3:{bombRange(v){return Math.max(v,7);}},   // about a screen's width
+  powder5:{dmgOut(d,o,how){return how==='bomb'?Math.ceil(d*1.5):d;}},
+  bulwark3:{},
+  bulwark5:{keepBlock(){return true;},stats(s){s.thorns*=2;}},
+  greed3:{},
+  greed5:{spin(){const c=Math.min(10,Math.floor(run.coins*.05));if(c>0){run.coins+=c;heroFl('+'+c+' 🪙 interest','#e8c77a');}}},
+  hex3:{},
+  hex5:{dmgOut(d){const k=(stripCounts().skull||0)+(run.curse||0);return k>0?Math.ceil(d*(1+.1*k)):d;}},
+};
 function fxList(){
   if(!run)return [];const L=new Set();
   for(const id of run.relics)if(FX[id])L.add(FX[id]);
   for(const sl of SLOTS){const it=run.gear[sl];if(it&&it.fx&&FX[it.fx])L.add(FX[it.fx]);}
+  const fc=famCounts();for(const f in fc){if(fc[f]>=3)L.add(SET_FX[f+'3']);if(fc[f]>=5)L.add(SET_FX[f+'5']);}
   return [...L];
 }
 function fxEach(h,...a){for(const f of fxList())if(f[h])f[h](...a);}
@@ -1600,6 +1682,9 @@ function stats(){
   if(hasR('whetstone'))s.swordDmg+=2;
   if(hasR('bombbelt')){s.bombDmg+=2;s.add.bomb=(s.add.bomb||0)+1;}
   if(hasR('wildcard'))s.add.star=(s.add.star||0)+1;
+  if(hasR('broadheads'))s.bowDmg+=3;
+  if(hasR('fletching')){s.bowDmg+=1;s.add.bow=(s.add.bow||0)+1;}
+  if(hasR('shortfuse'))s.bombDmg+=2;
   if(hasR('rabbit'))s.unskull+=1;
   if(hasR('thornmail'))s.thorns+=2;
   if(hasR('souljar'))s.soulFind+=50;
@@ -1720,13 +1805,29 @@ function labUniques(lvl){
 }
 
 /* ---------------- floors ---------------- */
+// The dungeon keeps up: ordinary foes grow with the player's build, gently. A build that
+// outpaces its floor meets thicker, harder-hitting foes (up to 3x life, 2x damage).
+function foePush(f){
+  if(!run||!run.gear)return {hp:1,dmg:1};
+  const s=stats(),turn=(2.2*Math.max(s.swordDmg,s.bowDmg,s.bombDmg)+s.bombDmg)*1.6,exp=17*(1+.12*(f-1)),q=turn/exp;
+  return {hp:Math.min(3,Math.max(1,1+.5*(q-1)))*(1+.015*run.relics.length),dmg:Math.min(2,Math.max(1,1+.25*(q-1)))};
+}
+// Foe traits, from floor 10 (7 on the hard road): each one leans on a different build
+const TRAITS={
+  warded:{n:'Warded',e:'🔰',d:'Shrugs off the first hit you land on it each turn.'},
+  fireproof:{n:'Fireproof',e:'🔥',d:'Takes half damage from bombs.'},
+  thief:{n:'Thieving',e:'🫳',d:'Steals 3 coins every time it hurts you.'},
+  hexproof:{n:'Hexproof',e:'🧿',d:'Immune to Skull damage; hexed Skulls aimed at it bounce back at you.'},
+  jammer:{n:'Jamming',e:'⚙️',d:'Opens by jamming one of your reels until it dies.'},
+};
+function giveTrait(e,t){e.trait=t;e.n=TRAITS[t].n+' '+e.n;if(t==='jammer')e.pat=[['jam',0],...e.pat];}
 function mkEnemy(type,x,f,boss){
   const d=(boss?BOSSES:ENEMIES)[type];const sc=1+.22*(f-1);const dm=Math.floor((f-1)/2);
-  const R=type==='death'?ROUTES.medium:routeOf();
-  const hp=Math.round(d.hp*sc*R.hp);
+  const R=type==='death'?ROUTES.medium:routeOf(),P=boss||type==='reaper'?{hp:1,dmg:1}:foePush(f);
+  const hp=Math.round(d.hp*sc*R.hp*P.hp);
   return {kind:'enemy',t:type,n:d.n,x,dx:x*T,hp,max:hp,block:0,pi:0,range:d.range||1,boss:!!boss,
     coins:d.coins.map(c=>Math.round(c*R.coins)),loot:boss?1:Math.min(1,(d.loot||.1)*R.loot),flash:0,
-    pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?Math.max(1,Math.round((v+dm)*R.dmg)):(a==='guard'||a==='grow')?Math.round(v*sc*R.hp):v])};
+    pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?Math.max(1,Math.round((v+dm)*R.dmg*P.dmg)):(a==='guard'||a==='grow')?Math.round(v*sc*R.hp):v])};
 }
 function genFloor(f){
   const r=run;const boss=f%3===0;const kind=boss?'boss':routeKind();r.kind=kind;
@@ -1742,6 +1843,8 @@ function genFloor(f){
   let ne=boss?Math.min(3,1+Math.floor(f/4)):Math.min(6,2+Math.floor(f/2));
   if(kind==='treasure')ne=Math.max(1,ne-1);if(kind==='rest')ne=0;
   for(let i=0;i<ne&&free.length;i++)put(mkEnemy(pick(pool),free.pop(),f));
+  {const from=r.route==='hard'?7:10,ch={easy:.05,medium:.15,hard:.3}[r.route||'medium']||.15;
+    if(f>=from)for(const e of r.objs)if(e.kind==='enemy'&&!e.boss&&Math.random()<ch)giveTrait(e,pick(Object.keys(TRAITS)));}
   if(kind==='elite'){const es=r.objs.filter(o=>o.kind==='enemy');const e=es[es.length-1]||null;
     if(e){e.elite=pick(Object.keys(ELITES));e.n=ELITES[e.elite].n+' '+e.n;e.hp=e.max=Math.round(e.max*1.6);e.loot=1;e.minRar=2;e.coins=[e.coins[0]+3,e.coins[1]+5];}}
   // Doom: three skulls summon the Reaper at the start of the next floor
@@ -1793,7 +1896,7 @@ const M={reels:[],spinning:false,timers:[],grid:null,nudges:0,wheel:1,wheelSpin:
 // multiplies that turn's damage and block (never coins or healing).
 function wheelFaces(){const f=[1,1,1,2,3,5];if(S.mods.wheel1)f.splice(0,1);if(S.mods.wheel5)f.push(5);return f;}
 function rollWheel(){
-  const r=run;if(r.wheelJam)return 1;if(r.inBonus&&r.lock5)return 5;
+  const r=run;if(r.wheelJam)return 1;if(r.inBonus&&r.lock5)return 5;if(hasR('crookedwheel'))return 2;
   let f=fxFold('faces',wheelFaces());const noOne=(r.inBonus)||(hasR('thumb')&&r.hp<stats().maxHp/2)||fxFold('noOne',false);
   if(noOne)f=f.filter(x=>x!==1);
   return pick(f);
@@ -2065,7 +2168,7 @@ async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
   noteTurn(`Reels: ${Object.entries(u).map(([k,n])=>`${SYM[k]?SYM[k].e:k}×${n}`).join(' ')}${R.mult>1?` · wheel ×${R.mult}`:''}${R.triples?' · JACKPOT':''}`);
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
-  let mu=R.mult||1;r.turnCoins=0;
+  let mu=R.mult||1;r.turnCoins=0;for(const o of r.objs)if(o.trait==='warded')o.wardSpent=false;
   if(R.triples&&!M.autoBonus&&!r.death&&r.popBudget>0&&Math.random()<.12){r.popBudget--;const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary goldbtn'},{label:'Refuse',val:null}]);
     if(v){mu*=2;r.curse=(r.curse||0)+1;heroFl('CURSED ×'+mu,'#b07cf0');stat('cursedTaken');}}
   r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
@@ -2077,12 +2180,15 @@ async function doTurn(R){
     if(S.mods.bonusbell)await relicPick('Bonus Bell','The bell rings: a relic falls with the free spins.');}
   else if(r.inBonus&&r.bonus<=0&&!R.retrigger){r.inBonus=false;r.lock5=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
+  if(r.block>0&&famTier('bulwark')>=3){const t=nearestFoe(run.x+1,9);if(t&&t.x-r.x<=6){fl('🛡→'+r.block,'#7fa6c9',t.x*T+T/2,GY-120);await hit(t,r.block,'bulwark');parts.push(`🛡⚔${r.block}`);}}
   r.block=fxFold('keepBlock',false)?r.block:hasR('tower')?Math.floor(r.block/2):0;
   if(R.triples){stat('jackpots');statMax('bestJackpot',R.triples);statMax('bestMult',mu);heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);await fxEachA('jackpot',R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer*mu;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);if(r.poison){r.poison=null;heroFl('poison cured','#8cff96');}}
-  if(val('coin')){const c=fxFold('coinSym',val('coin')*s.coinPer);gainCoins(c);r.turnCoins+=c;parts.push(`🪙+${c}`);}
+  if(val('coin')){const c=fxFold('coinSym',val('coin')*s.coinPer);if(c>0){gainCoins(c);r.turnCoins+=c;parts.push(`🪙+${c}`);}
+    let cd=0;if(famTier('greed')>=3)cd+=val('coin')*Math.min(20,1+Math.floor(r.coins/20));if(hasR('allin'))cd+=val('coin')*Math.min(60,Math.ceil(r.coins*.1));
+    if(cd>0){const t=nearestFoe(run.x+1,9);if(t){fl('🪙'+cd*mu,'#e8c77a',t.x*T+T/2,GY-120);await hit(t,cd*mu,'coin');parts.push(`🪙⚔${cd*mu}`);}}}
   if(R.holdPay){gainCoins(R.holdPay);r.turnCoins+=R.holdPay;parts.push(`🔒+${R.holdPay}`);}
   for(const h of (R.poker||[])){const c={royal:15,trips:10,couple:6,pair:4}[h];gainCoins(c);r.turnCoins+=c;if(h==='royal'){r.block+=6;}heroFl('🃏 '+POKER[h].n,'#e9dcc6');parts.push(`🃏${POKER[h].n}`);stat('pokerHands');}
   if(val('shield')&&r.contract&&r.contract.id==='noshield')contractFail('a Shield landed');
@@ -2092,6 +2198,10 @@ async function doTurn(R){
         const t2=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x&&o!==ts[0]).sort((a,b)=>a.x-b.x)[0];if(t2){addFx('fx_curse',t2.x*T+T/2,GY-50,60,.6,10);await hit(t2,d2,'bomb');parts.push(`⚡${d2}`);}}
       else parts.push('⚗ fizzles');}
     else if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
+    else if(famTier('hex')>=3){const d=val('skull')*(4+Math.floor(r.floor/2)+2*s.skullDmg)*mu,t=nearestFoe(run.x+1,9);   // grows with the floor, so Hex keeps up
+      r.doom=(r.doom||0)+fxFold('skullDoom',val('skull')*(hasR('scythe')?2:1));
+      if(t&&t.trait==='hexproof'){const bd=Math.ceil(d/2);r.hp-=bd;hurtBy('a hexproof foe',bd);heroFl('-'+bd+' 💀 bounced','#b07cf0');view.hurt=1;parts.push(`💀↩${bd}`);}
+      else if(t){addFx('fx_curse',t.x*T+T/2,GY-50,80,.7,10);await hit(t,d,'hex');parts.push(`💀⚔${d}`);}else parts.push('💀 no target');}
     else{const d=fxFold('skullDmg',val('skull')*s.skullDmg),dm=fxFold('skullDoom',val('skull')*(hasR('scythe')?2:1));fxEach('skull',val('skull'));
       if(d>0){r.hp-=d;hurtBy('a Skull on the reels',d);heroFl('-'+d+' 💀','#b07cf0');addFx('fx_curse',heroWX(),GY-60,70,.8,20);view.hurt=1;sfx.hurt();parts.push(`💀-${d}`);}else parts.push('💀 0');
       r.doom=(r.doom||0)+dm;if(r.doom>=3){heroFl('DOOM','#b07cf0');}}
@@ -2117,9 +2227,12 @@ async function doTurn(R){
   if(val('sword')){
     const t=blockerAt(r.x+1),dmg=gauntletCap((val('sword')*s.swordDmg+mom)*(combo.charge?2:1)*mu,val('sword')*(s.gauntlet||0)*(combo.charge?2:1)*mu);
     if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg,'sword');parts.push(`🗡${dmg}`);
+      const bt=famTier('blades');
+      if(bt>=5){const t2=t.gone?blockerAt(r.x+1):t;if(t2){await beat(120);view.slash={t:0,x:(r.x+1)*T};await hit(t2,dmg,'sword');parts.push(`🗡🗡${dmg}`);}}
+      if(bt>=3){const bh=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x+1).sort((a,b)=>a.x-b.x)[0];if(bh&&bh.x-r.x<=3){await hit(bh,Math.ceil(dmg/2),'sword');parts.push(`🗡↘${Math.ceil(dmg/2)}`);}}
       const ls=val('sword')*(hasR('fang')?1:0)+s.lifesteal;if(ls)heal(ls);
       if(hasR('pickpocket'))gainCoins(1);await beat(160);}
-    else{heroFl('whiff','#a8998a');parts.push('🗡whiff');}
+    else{heroFl('whiff','#a8998a');parts.push('🗡whiff');if(hasR('hollowpoint')){r.hp-=3;hurtBy('a hollow-point whiff',3);heroFl('-3 whiff','#e0605a');}}
   }
   if(val('bow')){
     const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>r.x&&o.x-r.x<=fxFold('bowRange',4)).sort((a,b)=>a.x-b.x);
@@ -2161,6 +2274,9 @@ async function hit(o,dmg,how){
     o.hp-=dmg;o.flash=1;fl('-'+dmg,'#f1e6d2',o.x*T+T/2,GY-50);
     if(o.hp<=0)await openChest(o,false);return;
   }
+  if(o.trait==='warded'&&!o.wardSpent&&how!=='thorns'){o.wardSpent=true;fl('WARDED','#9fd6ff',o.x*T+T/2,GY-96);o.flash=1;return;}
+  if(o.trait==='fireproof'&&how==='bomb')dmg=Math.ceil(dmg/2);
+  if(o.trait==='hexproof'&&how==='hex'){fl('HEXPROOF','#b07cf0',o.x*T+T/2,GY-96);return;}
   if(o.t==='ironclad'&&!(how==='bomb'||how==='shove'||r.turnJackpot)){fl('IMMUNE','#9aa3ad',o.x*T+T/2,GY-96);o.flash=1;return;}
   let d=Math.round(fxFold('dmgOut',dmg,o,how));if(o.block&&!fxFold('pierce',false,how)){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
   if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.min(d,1+Math.floor(r.floor/8)),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
@@ -2257,6 +2373,7 @@ async function enemyHit(e,dmg){
   if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);if(d<=0)noteTurn(`${esc(e.n)} hit for ${dmg}, all blocked`);}
   if(d>0&&r.contract&&r.contract.id==='untouched')contractFail(e.n+' hurt you');
   if(d>0){r.hp-=d;hurtBy(e.n,d);heroFl('-'+d,'#e0605a');view.hurt=1;view.shake=4;sfx.hurt();if(e.phase2)poisonHero();if(e.elite==='cursed'&&!fxFold('curseImmune',false)){r.curse=(r.curse||0)+1;heroFl('+💀 hexed','#b07cf0');rebuildReels();}}else sfx.block();
+  if(d>0&&e.trait==='thief'&&r.coins>0){const st=Math.min(3,r.coins);r.coins-=st;heroFl('-'+st+' 🪙 stolen','#e0605a');}
   if(d>0)await fxEachA('hurtAfter',e,d);
   if(s.thorns&&e.range<=1&&!e.gone)await hit(e,s.thorns,'thorns');
   ui();
@@ -2305,7 +2422,7 @@ async function drainLoot(){
     const v=await modal('Loot!',itemHTML(it,'NEW')+'<div class="cmpLabel">Currently equipped</div>'+itemHTML(cur,'EQUIPPED'),[
       {label:`Equip${cur?` <small>old piece salvaged for +${salvageVal(cur)} 🪙</small>`:''}`,val:'eq',cls:'primary'},
       {label:`Salvage <small>+${salvageVal(it)} 🪙</small>`,val:'sv'}]);
-    if(v==='eq'){const before=stats().maxHp;if(cur)r.coins+=salvageVal(cur);r.gear[it.slot]=it;const after=stats().maxHp;
+    if(v==='eq'){const fb=famCounts();setTimeout(()=>famAnnounce(fb),0);const before=stats().maxHp;if(cur)r.coins+=salvageVal(cur);r.gear[it.slot]=it;const after=stats().maxHp;
       if(after>before)r.hp+=after-before;r.hp=Math.min(r.hp,after);rebuildReels();}
     else gainCoins(salvageVal(it));
     ui();
@@ -2314,11 +2431,19 @@ async function drainLoot(){
 function relicChoices(n){return shuffle(RELICS.filter(x=>!x.lab&&!run.relics.includes(x.id))).slice(0,n);}
 // ten relics at most: a new one past that has to replace one you carry (or be left behind)
 const RELIC_MAX=10;
+function famAnnounce(before){
+  const after=famCounts();
+  for(const f in FAMILIES){const a=before[f]||0,b=after[f]||0;
+    for(const t of [3,5])if(a<t&&b>=t){heroFl(`${FAMILIES[f].n.toUpperCase()} ${t}: ${FAMILIES[f]['t'+t]}`,FAMILIES[f].c);logLine(`<b style="color:${FAMILIES[f].c}">${FAMILIES[f].e} ${FAMILIES[f].n} ${t}:</b> ${FAMILIES[f]['t'+t]}`);sfx.jackpot();}}
+}
 async function addRelic(id){
+  const before=famCounts(),ok=await addRelicRaw(id);if(ok)famAnnounce(before);return ok;
+}
+async function addRelicRaw(id){
   const r=run,N=RELIC[id];if(!N)return false;
   if(r.relics.length<RELIC_MAX){r.relics.push(id);return true;}
   const v=await modal(`Relics full · ${RELIC_MAX}`,`<p>You can carry ${RELIC_MAX} relics. To take <b>${N.n}</b> <small>(${N.d})</small>, give one up:</p>`,
-    r.relics.map(x=>({label:`${relicIcon(RELIC[x],'lead')}<b>Drop ${RELIC[x].n}</b><small>${RELIC[x].d}</small>`,val:'drop:'+x}))
+    r.relics.map(x=>({label:`${relicIcon(RELIC[x],'lead')}<b>Drop ${RELIC[x].n}</b><small>${famTag(x)}${RELIC[x].d}</small>`,val:'drop:'+x}))
       .concat([{label:`Leave ${N.n} behind`,val:null,cls:'center'}]));
   if(!v)return false;
   const i=r.relics.indexOf(v.slice(5));if(i<0)return false;
@@ -2326,7 +2451,7 @@ async function addRelic(id){
 }
 async function relicPick(title,text,pk){
   const ch=relicChoices(3);if(!ch.length)return;
-  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${x.d}</small>`,val:x.id})));
+  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${famTag(x.id)}${x.d}</small>`,val:x.id})));
   await addRelic(v);rebuildReels();ui();
 }
 async function floorClear(){
@@ -2367,7 +2492,7 @@ async function shop(doors){
   while(true){
     const desc=o=>({heal:`${icon('shop_meal','🍖','lead')}Hot meal <small>Heal ${Math.round(stats().maxHp*.4)} HP</small>`,
       gear:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:${o.item?RAR[o.item.rar].c:''}">${o.item?esc(o.item.name):''}</b><small>${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
-      relic:`${o.relic?relicIcon(o.relic,'lead'):''}<b>${o.relic?o.relic.n:''}</b><small>${o.relic?o.relic.d:''}${run.relics.length>=RELIC_MAX?' · swaps out one you carry':''}</small>`,
+      relic:`${o.relic?relicIcon(o.relic,'lead'):''}<b>${o.relic?o.relic.n:''}</b><small>${o.relic?famTag(o.relic.id)+o.relic.d:''}${run.relics.length>=RELIC_MAX?' · swaps out one you carry':''}</small>`,
       add:`${icon('shop_weld','➕','lead')}Weld a ${SYM[o.sym]?symIcon(o.sym):''} ${SYM[o.sym]?SYM[o.sym].n:''} onto the reels`,
       remove:`${icon('shop_pry','➖','lead')}Pry one symbol off the reels`,maxhp:`${icon('shop_tonic','❤️','lead')}Tonic <small>+5 max HP</small>`,
       special:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:#8cff96">★ House Special: ${o.item?esc(o.item.name):''}</b><small>this week only · ${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
@@ -2584,7 +2709,7 @@ function showHub(v){
       const ps=artSrc(own?'portrait_'+id:'portrait_locked');
       return `<button class="btn heroBtn" style="width:100%;margin-bottom:8px" data-act="${own?'pick:'+id:'buyhero:'+id}" ${!own&&S.souls<hh.cost?'disabled':''}>
       ${ps?`<img class="port" src="${ps}" alt="">`:''}${ps?'':hh.e} <b>${hh.n}</b> ${own?'':`<span class="price" style="color:#9fd6ff">💠${hh.cost}</span>`}
-      <small>❤${hh.hp} · 🪙${hh.coins} · ${hh.d}</small><small>${Object.entries(hh.strip).map(([k,n])=>SYM[k].e+n).join(' ')}</small></button>`;}).join('')
+      <small>❤${hh.hp} · 🪙${hh.coins} · ${hh.d}</small>${HERO_FAM[id]?`<small>Leans ${famIcon(HERO_FAM[id],'famIco')} <b style="color:${FAMILIES[HERO_FAM[id]].c}">${FAMILIES[HERO_FAM[id]].n}</b></small>`:''}<small>${Object.entries(hh.strip).map(([k,n])=>SYM[k].e+n).join(' ')}</small></button>`;}).join('')
       +(S.vault.length?`<h3 style="color:var(--gold);font-size:14px">Heirlooms to wear</h3><div class="sub" style="font-size:11px;color:var(--dim)">One per slot. Tap to toggle.</div>`+S.vault.map(it=>{
         const on=S.loadout.includes(it.id);return `<div data-act="toggle:${it.id}" style="cursor:pointer;opacity:${on?1:.5}">${itemHTML(it,on?'✔ WEARING':'stored')}</div>`;}).join(''):'');
   }else if(v==='altar'){
@@ -2663,8 +2788,8 @@ $('#reelInfoBtn').addEventListener('click',()=>{if(busy||M.spinning)return;
 function showRelics(){
   const rows=run.relics.map(id=>{const R=RELIC[id];if(!R)return '';
     const now=id==='gauntlet'?` <i>(now +${Math.min(4,Math.floor(run.coins/10))} per dagger)</i>`:'';
-    return `<div class="relRow" data-relic="${id}">${relicIcon(R,'lead')}<div><b>${R.n}</b><small>${R.d}${now}</small></div></div>`;}).join('');
-  modal(`Your relics · ${run.relics.length}/${RELIC_MAX}`,`<div class="relList">${rows}</div>`,[{label:'Close',val:1,cls:'center'}]);
+    return `<div class="relRow" data-relic="${id}">${relicIcon(R,'lead')}<div><b>${R.n}</b><small>${famTag(id)}${R.d}${now}</small></div></div>`;}).join('');
+  modal(`Your relics · ${run.relics.length}/${RELIC_MAX}`,`<div class="cmpLabel">Build families · hold 3 of one family for its first bonus, 5 for its second (worn uniques and your hero count)</div>${famPanel()}<div class="cmpLabel">Relics</div><div class="relList">${rows}</div>`,[{label:'Close',val:1,cls:'center'}]);
 }
 $('#gearBar').addEventListener('click',e=>{
   if(!run||busy||M.spinning)return;
@@ -2706,7 +2831,7 @@ $('#scene').addEventListener('click',e=>{
   if(!o)return;
   const info={door:['🚪 Exit',run.floor%5===0?'Step through to reach the merchant and the next floor.':`Step through to the next floor. The merchant waits past floor ${Math.ceil(run.floor/5)*5}.`],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
     shrine:['⛩ Shrine','Step on it to choose a relic.'],ticket:['🎟️ A lost scratch card','Someone dropped a Grave Gains ticket. Step on it to scratch it.'],bj:['🃏 Death\'s Blackjack','Rattles the croupier deals blackjack here. Step up to play: beat the dealer to 21.'],shell:['👁️ The Shell Game','Gristle the Shell-Man runs a table here. Step up to bet on following the eye under the skulls.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
-  if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
+  if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${o.trait?`<p style="color:#9fd6ff">${icon('trait_'+o.trait,TRAITS[o.trait].e)} ${TRAITS[o.trait].n}: ${TRAITS[o.trait].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
   else if(info)modal(info[0],`${icon('shop_'+(o.kind==='coins'?'coinpile':o.kind),'','hero')}<p>${info[1]}</p>`,[{label:'Close',val:1,cls:'center'}]);
 });
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&run&&!modalOpen){e.preventDefault();if(M.spinning)stopNext();else if(M.pendingRes)resolveTurn();else spin();}});
@@ -2880,6 +3005,7 @@ function drawEnemy(o,x,t){
   }
   cx.filter='none';
   const top=Y-h-4;hpBar(x,top,o.boss?60:34,o);
+  if(o.trait){const ti=artImg('trait_'+o.trait),tx=x+(o.boss?30:17)+4;if(ti)cx.drawImage(ti,tx,top-4,18,18);else{cx.font='bold 11px ui-monospace,monospace';cx.textAlign='center';cx.fillText(TRAITS[o.trait].e,tx+9,top+9);}}
   if(o.elite){const ei=artImg('elite_'+o.elite);if(ei)cx.drawImage(ei,x-(o.boss?30:17)-22,top-4,18,18);else{cx.font='bold 10px ui-monospace,monospace';cx.textAlign='center';cx.fillStyle='#c9763a';cx.fillText(ELITES[o.elite].e,x-(o.boss?30:17)-12,top+4);}}
   const [ic,v]=intentOf(o);const awake=o.x-run.x<=6;
   cx.globalAlpha=awake?1:.45;cx.font='bold 11px ui-monospace,monospace';cx.textAlign='center';

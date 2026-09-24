@@ -531,3 +531,4 @@ Nothing in the game is emoji any more once art.js loads.
 - **b098**: the Relics button is just its centered label ("Relics 8/10"); the three small relic icons are gone.
 - **b099**: back to the classic Loot compare screen (new piece vs equipped, Equip / Salvage) for each upgrade, shown at the floor's end before the hoard or merchant; the Equip checkboxes are gone. Worse pieces still auto-salvage.
 - **b100**: Dr. Labfreak is 10× harder: ten times the life in both phases (floor 4: 231 → 2310, then 1848 unleashed) and 1.5× damage on every hit (he still acts twice a turn). Tunables: LAB_HP, LAB_DMG.
+- **b101**: Dr. Labfreak scales to the player like Death, tuned long: each phase holds about 25 solid turns of their best damage (+3% per relic; unleashed phase 80% of that), never below his base; his hits scale to their life and block, each capped at 30% of max HP since he swings twice a turn. Replaces b100's flat 10x. Tunable: LAB_TURNS.

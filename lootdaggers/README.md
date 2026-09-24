@@ -423,3 +423,9 @@ Nothing in the game is emoji any more once art.js loads.
   darker hot-pink field (the sampled border blended the two and left pink boxes):
   it keys out every saturated pink region touching the edge. No older art takes
   that path.
+- **b074**: the Shell Game, a random event (20% of non-boss floors from floor 2).
+  Gristle the Shell-Man's table stands on a tile; step on it for a full-screen
+  scene: bet 5/15/40 coins (pays double) or 8 HP (pays 25 coins), watch the eye go
+  under a skull, follow 5-12 swaps that speed up, pick a cup. The game animates the
+  parts itself (cups arc front/back, hands grip the moving cups, dealer poses), so
+  every swap is real. Three rounds a table. Emoji stand-ins until art-pack18.

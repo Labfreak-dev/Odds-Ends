@@ -360,6 +360,24 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .scGrid canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:8px;cursor:grab;touch-action:none}
 .scMsg{text-align:center;margin:10px 0;color:#e9dcc6;min-height:22px}
 .scBtns .btn{width:100%}
+/* Death's blackjack */
+#bjLayer{position:absolute;inset:0;z-index:66;background:radial-gradient(ellipse at 50% 40%,#10150f,#000 75%);display:none;flex-direction:column;justify-content:center;align-items:center;padding:12px}
+#bjLayer.show{display:flex;animation:shIn .6s ease-out}
+.bjStage{position:relative;width:100%;max-width:560px;aspect-ratio:4/3;overflow:hidden;border:3px solid #000;border-radius:10px;background:#0c0a0b;box-shadow:0 0 40px #000;animation:shZoom 1.6s ease-out}
+.bjStage .bjBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.bjStage .bjFelt{position:absolute;left:-10%;right:-10%;top:38%;bottom:-30%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,#1f4a2c,#0f2416 70%);box-shadow:inset 0 10px 30px #000}
+.bjDealer{position:absolute;left:50%;top:0;height:46%;transform:translateX(-50%);display:flex;justify-content:center;align-items:flex-end}
+.bjDealer img{height:100%;width:auto}.bjDealer span{font-size:64px}
+.bjRow{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:8px;z-index:5}
+.bjRow.d{top:40%}.bjRow.p{top:68%}
+.bjRow b{font-family:var(--head);font-weight:400;font-size:26px;color:#f3e9d6;text-shadow:0 2px 0 #000,0 0 8px #000;min-width:30px}
+.bjDealerHand,.bjPlayerHand{display:flex}
+.bjc{position:relative;width:52px;height:74px;margin-left:-14px;border-radius:6px;background:linear-gradient(#f7efdf,#e2d4b6);border:1px solid #3a2a1a;box-shadow:0 3px 6px rgba(0,0,0,.6);color:#1a1210;font-family:Georgia,serif;font-weight:700;animation:bjIn .3s ease-out}
+.bjc:first-child{margin-left:0}.bjc.red{color:#9b1b14}
+.bjc .tl,.bjc .br{position:absolute;font-size:12px;line-height:1;text-align:center}.bjc .tl{left:4px;top:4px}.bjc .br{right:4px;bottom:4px;transform:rotate(180deg)}
+.bjc .mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px}
+.bjc.back{background:#2a0f10;display:flex;align-items:center;justify-content:center;color:#cfa75c;font-size:28px;overflow:hidden}.bjc.back img{width:100%;height:100%;object-fit:cover}
+@keyframes bjIn{from{transform:translateY(-40px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -800,6 +818,73 @@ async function scratchCard(){
   });
 }
 
+/* ---------------- Death's Blackjack (random event) ----------------
+   Rattles, a skeletal croupier, deals blackjack at a table on some deeper floors.
+   Standard rules: dealer stands on 17, blackjack pays 3:2, double on the first two
+   cards. Three hands a table. Cards are drawn by the game; the art is the table,
+   the dealer's poses and the card back. */
+const BJ_LINES={
+  intro:["Sit. The cards are cold, but so am I.","Twenty-one, or twenty-one feet under. Your choice.","Place your bet. The house is patient. The house is dead."],
+  win:["Hm. The deck favours you. For now.","Take it. You'll give it back.","A rare thing, a winning gambler. Rarer still, a living one."],
+  lose:["Bust. They always bust.","The house thanks you.","Another soul for the pile."],
+  push:["A push. Nobody wins. Nobody ever does.","Tied. How dull."],
+  bj:["Blackjack. Even the dead are impressed."],
+  done:["The table is closed. Come back when you've more to lose."],
+};
+const BJ_BETS=[{coins:10},{coins:25},{coins:60},{hp:10,prize:30}];
+const BJ={};
+function bjCard(){const r=['A','2','3','4','5','6','7','8','9','10','J','Q','K'][rnd(0,12)],s=pick(['♠','♥','♦','♣']);return {r,s};}
+function bjTotal(h){let t=0,a=0;for(const c of h){if(c.r==='A'){a++;t+=11;}else t+=/[JQK]/.test(c.r)?10:+c.r;}while(t>21&&a){t-=10;a--;}return t;}
+function bjCardHTML(c,hidden){
+  if(hidden){const b=artSrc('bj_card_back');return `<div class="bjc back">${b?`<img src="${b}" alt="">`:'☠'}</div>`;}
+  const red=c.s==='♥'||c.s==='♦';return `<div class="bjc ${red?'red':''}"><span class="tl">${c.r}<br>${c.s}</span><span class="mid">${c.s}</span><span class="br">${c.r}<br>${c.s}</span></div>`;}
+function bjDraw(hideHole){
+  BJ.L.querySelector('.bjDealerHand').innerHTML=BJ.dh.map((c,i)=>bjCardHTML(c,hideHole&&i===1)).join('');
+  BJ.L.querySelector('.bjPlayerHand').innerHTML=BJ.ph.map(c=>bjCardHTML(c)).join('');
+  BJ.L.querySelector('.bjDT').textContent=hideHole?'?':bjTotal(BJ.dh);BJ.L.querySelector('.bjPT').textContent=BJ.ph.length?bjTotal(BJ.ph):'';
+}
+function bjPose(p){const im=BJ.L.querySelector('.bjDealer img'),src=artSrc('bj_dealer_'+p);if(im&&src)im.src=src;}
+function bjSay(t){BJ.L.querySelector('.bjTalk p').textContent=t;}
+function bjAsk(opts){const A=window.LD_ART||{};const box=BJ.L.querySelector('.bjBtns');
+  return new Promise(res=>{box.innerHTML='';for(const o of opts){const b=document.createElement('button');b.className='btn '+(A.ui_button?'art':'');if(A.ui_button)b.style.borderImageSource=`url(${A.ui_button})`;
+    b.innerHTML=A.ui_button?`<span class="lbl"><span class="txt">${artify(o.label)}</span></span>`:artify(o.label);b.disabled=!!o.disabled;b.onclick=()=>{box.innerHTML='';res(o.val);};box.appendChild(b);}});}
+async function bjDeal(to){to.push(bjCard());bjDraw(BJ.hide);try{sfx.stop();}catch(e){}await shWait(S.fast?200:380);}
+async function blackjack(o){
+  const r=run;modalOpen=true;const A=window.LD_ART||{};
+  let L=$('#bjLayer');if(!L){L=document.createElement('div');L.id='bjLayer';$('#app').appendChild(L);}
+  L.innerHTML=`<div class="bjStage">${A.screen_bj_table?`<img class="bjBg" src="${A.screen_bj_table}" alt="">`:'<div class="bjFelt"></div>'}
+    <div class="bjDealer">${A.bj_dealer_idle?`<img src="${A.bj_dealer_idle}" alt="">`:'<span>💀</span>'}</div>
+    <div class="bjRow d"><div class="bjDealerHand"></div><b class="bjDT"></b></div><div class="bjRow p"><div class="bjPlayerHand"></div><b class="bjPT"></b></div><div class="shVig"></div><div class="shBanner"></div></div>
+    <div class="shPanel"><div class="bjTalk shTalk">${portImg('portrait_rattles','shPort')||'<span class="shPortE">💀</span>'}<div><b>Rattles the Croupier</b><p></p></div></div><div class="bjBtns shBtns"></div></div>`;
+  BJ.L=L;BJ.dh=[];BJ.ph=[];BJ.hide=true;L.classList.add('show');bjDraw(true);bjSay(pick(BJ_LINES.intro));
+  const banner=(t,col)=>{const b=L.querySelector('.shBanner');b.textContent=t;b.style.color=col;b.classList.remove('go');void b.offsetWidth;b.classList.add('go');};
+  let hands=0;
+  while(hands<3&&!r.over){
+    const v=await bjAsk(BJ_BETS.map((b,i)=>({val:i,disabled:b.hp?r.hp<=b.hp:r.coins<b.coins,label:b.hp?`Bet ${b.hp} ❤ <small>win ${b.prize} 🪙</small>`:`Bet ${b.coins} 🪙 <small>blackjack pays ${Math.floor(b.coins*2.5)}</small>`})).concat([{val:null,label:'Leave the table'}]));
+    if(v==null)break;const bet=BJ_BETS[v];let stake=bet.coins||0;if(stake){r.coins-=stake;ui();}
+    BJ.dh=[];BJ.ph=[];BJ.hide=true;bjDraw(true);bjPose('deal');
+    await bjDeal(BJ.ph);await bjDeal(BJ.dh);await bjDeal(BJ.ph);await bjDeal(BJ.dh);bjPose('idle');
+    let res=null;const pBJ=bjTotal(BJ.ph)===21,dBJ=bjTotal([BJ.dh[0],BJ.dh[1]])===21;
+    if(pBJ||dBJ){BJ.hide=false;bjDraw(false);res=pBJ&&dBJ?'push':pBJ?'bj':'lose';}
+    else{let first=true;
+      while(bjTotal(BJ.ph)<21){bjSay(`You have ${bjTotal(BJ.ph)}. The dealer shows ${bjTotal([BJ.dh[0]])}.`);
+        const a=await bjAsk([{val:'h',label:'Hit'},{val:'s',label:'Stand'},...(first&&stake&&r.coins>=stake?[{val:'d',label:`Double <small>+${stake} 🪙, one card</small>`}]:[])]);
+        first=false;if(a==='s')break;if(a==='d'){r.coins-=stake;stake*=2;ui();await bjDeal(BJ.ph);break;}await bjDeal(BJ.ph);}
+      const pt=bjTotal(BJ.ph);BJ.hide=false;bjDraw(false);await shWait(400);
+      if(pt>21)res='lose';
+      else{bjPose('deal');while(bjTotal(BJ.dh)<17)await bjDeal(BJ.dh);bjPose('idle');const dt=bjTotal(BJ.dh);res=dt>21||pt>dt?'win':pt===dt?'push':'lose';}}
+    // payout
+    if(res==='bj'){if(bet.hp)gainCoins(bet.prize);else gainCoins(Math.floor(stake*2.5));banner('BLACKJACK','#d9b56a');bjSay(pick(BJ_LINES.bj));bjPose('sulk');sfx.jackpot();stat('bjWon');stat('bjNet',bet.hp?bet.prize:Math.floor(stake*1.5));}
+    else if(res==='win'){if(bet.hp)gainCoins(bet.prize);else gainCoins(stake*2);banner('YOU WIN','#d9b56a');bjSay(pick(BJ_LINES.win));bjPose('sulk');sfx.coin();stat('bjWon');stat('bjNet',bet.hp?bet.prize:stake);}
+    else if(res==='push'){if(stake)r.coins+=stake;banner('PUSH','#cdb68a');bjSay(pick(BJ_LINES.push));stat('bjPush');}
+    else{if(bet.hp){r.hp-=bet.hp;hurtBy('the croupier\'s wager',bet.hp);view.hurt=1;sfx.hurt();}banner(bjTotal(BJ.ph)>21?'BUST':'THE HOUSE WINS','#e0605a');bjSay(pick(BJ_LINES.lose));bjPose('grin');stat('bjLost');stat('bjNet',-(stake||0));}
+    noteTurn(`Blackjack: ${bjTotal(BJ.ph)} vs ${bjTotal(BJ.dh)}, <b>${res==='bj'?'blackjack':res}</b>`);ui();hands++;await shWait(1100);bjPose('idle');
+    if(r.hp<=0)break;
+  }
+  if(hands>=3){bjSay(pick(BJ_LINES.done));await bjAsk([{val:1,label:'Leave the table'}]);}
+  await shTween(350,e=>L.style.opacity=1-e);L.classList.remove('show');L.style.opacity='';modalOpen=false;o.gone=true;heroFl('the table sinks into the floor','#b07cf0');ui();save();
+}
+
 /* ---------------- the final boss: Death ----------------
    From floor 66 with 666 coins, "Pay your Debt, and Defy Death" appears above the
    machine. Paying it starts a three-phase duel on Death's throne, seen from behind
@@ -820,15 +905,16 @@ const DEATH_LINES={
   win:["...Impossible. Go, then. Walk out into the light. The house... lost.","Take your soul. I'll be here. I'm always here."],
 };
 const deathReady=()=>!!run&&!run.over&&!run.death&&!run.lab&&run.floor>=DEATH_FLOOR&&run.coins>=DEATH_COST;
-function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2);
-  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?v+dm:(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
+function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2),k=run&&run.deathDouble?1.3:1;
+  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?Math.round((v+dm)*k):(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
 async function defyDeath(){
   const r=run;if(!deathReady()||busy||modalOpen)return;
+  const again=S.deathDefeated>0;
   const v=await modal('Pay your Debt, and Defy Death',`${portImg('portrait_death1','big merch')}<p>Pay <b>${DEATH_COST} 🪙</b> to buy a seat at Death's own table. Beat him, and you walk out of the dungeon a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
-    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary'},{label:'Not yet',val:null}]);
-  if(!v||!deathReady())return;
+    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
+  if(!v||!deathReady())return;r.deathDouble=v===2;
   busy=true;r.coins-=DEATH_COST;sfx.jackpot();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
-  const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});
+  const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
   busy=false;rebuildReels();ui();save();
@@ -852,7 +938,8 @@ async function deathCheck(o){
 async function defeatDeath(){
   const r=run;r.pendingFree=false;view.shake=18;sfx.jackpot();
   await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light');
-  const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;r.souls+=666;
+  const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;r.souls+=666;stat('deathWins');
+  if(r.deathDouble&&S.ledger){const up=S.ledger.lvl<LEDGER_MAX;if(up)S.ledger.lvl++;save();await modal('Double or Nothing: won',`${icon('gear_unique_ledger','📓','hero')}<p>${up?`The Grim's Ledger rises to <b style="color:#8cff96">+${S.ledger.lvl}</b>, free of charge.`:'The Ledger is already complete. Death pays you in souls instead: <b>+666</b>.'}</p>`,[{label:'Take it',val:1,cls:'primary'}]);if(!up)r.souls+=666;}
   if(first){S.ledger={lvl:1,picks:['swordDmg','maxHp']};S.ledgerOn=true;save();
     await modal("The Grim's Ledger",`${icon('gear_unique_ledger','📓','hero')}<p>Death's own ledger, every debt in the dungeon written in it. Yours is crossed out.</p><p><b style="color:#8cff96">Unlocked:</b> a permanent extra vault space holding <b>The Grim's Ledger</b>, a charm you customise yourself and upgrade with souls and boss chips. Find it in the Heirloom Vault.</p>`,[{label:'Take it',val:1,cls:'primary'}]);}
   await endRun('free');
@@ -948,7 +1035,7 @@ const SHELL_BETS=[
   {id:'h',coins:40,swaps:12,speed:1.65},
   {id:'b',hp:8,prize:25,swaps:10,speed:1.45},
 ];
-const SH_X=[28,50,72],SH_Y=79,SH_CW=17;
+let SH_X=[28,50,72],SH_CW=17;const SH_Y=79;
 const SH={};
 const shWait=ms=>new Promise(r=>setTimeout(r,ms));
 function shTween(ms,fn){return new Promise(res=>{const t0=performance.now();const f=now=>{const t=Math.min(1,(now-t0)/ms);fn(t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,t);if(t<1)requestAnimationFrame(f);else res();};requestAnimationFrame(f);});}
@@ -960,7 +1047,7 @@ function shBuild(){
   const A=window.LD_ART||{};
   L.innerHTML=`<div class="shStage">${A.screen_shell_table?`<img class="shBg" src="${A.screen_shell_table}" alt="">`:'<div class="shFelt"></div>'}
     ${shPart('shell_dealer_idle','👺','shDealer')}${shPart('shell_eye','👁️','shEye')}
-    ${[0,1,2].map(i=>shPart('shell_cup','💀','shCup')).join('')}
+    ${SH_X.map(i=>shPart('shell_cup','💀','shCup')).join('')}
     ${shPart('shell_hand_open','','shHand')}${shPart('shell_hand_open','','shHand')}<div class="shVig"></div><div class="shBanner"></div></div>
     <div class="shPanel"><div class="shTalk">${portImg('portrait_shellman','shPort')||'<span class="shPortE">👺</span>'}<div><b>Gristle the Shell-Man</b><p></p></div></div><div class="shBtns"></div></div>`;
   SH.L=L;SH.stage=L.querySelector('.shStage');SH.dealer=L.querySelector('.shDealer');SH.eyeEl=L.querySelector('.shEye');SH.p=L.querySelector('.shTalk p');SH.btns=L.querySelector('.shBtns');
@@ -1007,7 +1094,7 @@ async function shRound(bet){
   shPose('shuffle');if(SH.handsOn){const l=cs[0],r=cs[2];shHands(l,r,false);await shTween(300,e=>SH.hands.forEach(h=>h.style.opacity=e));}
   await shWait(250);
   for(let i=0;i<bet.swaps;i++){
-    const q=Math.random(),pr=q<.42?[0,1]:q<.84?[1,2]:[0,2];if(Math.random()<.5)pr.reverse();
+    const n=SH_X.length,a0=rnd(0,n-1);let b0=rnd(0,n-2);if(b0>=a0)b0++;const pr=[a0,b0];
     const ms=Math.round(560/bet.speed*(1-.38*i/Math.max(1,bet.swaps-1)));
     await shSwap(pr[0],pr[1],ms);await shWait(40+Math.random()*80);
   }
@@ -1022,9 +1109,9 @@ async function shRound(bet){
   return won;
 }
 async function shellGame(o){
-  const r=run;modalOpen=true;shBuild();SH.L.classList.add('show');shPose('idle');
+  const r=run;const four=r.floor>=20;SH_X=four?[20,40,60,80]:[28,50,72];SH_CW=four?14.5:17;modalOpen=true;shBuild();SH.L.classList.add('show');shPose('idle');
   SH.eye=null;SH.eyeShow=false;requestAnimationFrame(shDraw);shDraw();
-  shSay(pick(SHELL_LINES.intro));
+  shSay(four?"Four skulls tonight, friend. You've got sharp eyes... let's see how sharp.":pick(SHELL_LINES.intro));
   let plays=0;
   while(plays<3&&!r.over){
     const opts=SHELL_BETS.map(b=>({val:b.id,disabled:b.hp?r.hp<=b.hp:r.coins<b.coins,
@@ -1033,7 +1120,9 @@ async function shellGame(o){
     const v=await shAsk(opts);if(!v)break;
     const bet=SHELL_BETS.find(b=>b.id===v);if(bet.coins){r.coins-=bet.coins;ui();}
     const won=await shRound(bet);
-    if(won){if(bet.hp)gainCoins(bet.prize);else gainCoins(bet.coins*2);shPose('sulk');shSay(pick(SHELL_LINES.win));shBanner('YOU FOUND IT','#d9b56a');sfx.jackpot();r.shellWins=(r.shellWins||0)+1;}
+    stat(won?'shellWon':'shellLost');stat('shellNet',won?(bet.hp?bet.prize:bet.coins):-(bet.coins||0));
+    if(won){if(bet.hp)gainCoins(bet.prize);else gainCoins(bet.coins*2);shPose('sulk');shSay(pick(SHELL_LINES.win));shBanner('YOU FOUND IT','#d9b56a');sfx.jackpot();r.shellWins=(r.shellWins||0)+1;
+      if(r.shellWins===3&&!r.shellPurse){r.shellPurse=true;await shWait(900);shPose('sulk');shSay("THREE times?! Fine. FINE! Take the whole purse and get out of my sight!");shBanner('GRISTLE\'S PURSE +100','#d9b56a');gainCoins(100);stat('shellPurse');await shWait(1600);}}
     else{if(bet.hp){r.hp-=bet.hp;hurtBy('the Shell-Man\'s wager',bet.hp);view.hurt=1;sfx.hurt();}shPose('grin');shSay(pick(SHELL_LINES.lose));shBanner('THE HOUSE WINS','#e0605a');}
     noteTurn(`Shell game: bet ${bet.hp?bet.hp+' HP':bet.coins+' coins'}, ${won?'<b style="color:var(--gold)">won</b>':'lost'}`);
     ui();plays++;await shWait(900);
@@ -1546,6 +1635,7 @@ function genFloor(f){
   for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:kind==='treasure'?i===0:(f>=2&&Math.random()<.15)});
   if((kind==='rest'||(!boss&&(f===2||Math.random()<.35)))&&free.length)put({kind:'shrine',x:free.pop()});
   if(!boss&&kind!=='rest'&&f>=2&&free.length&&Math.random()<.2)put({kind:'shell',x:free.pop()});
+  else if(!boss&&kind!=='rest'&&f>=4&&free.length&&Math.random()<.12)put({kind:'bj',x:free.pop()});
   if(kind!=='rest')for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
   for(let i=0;i<rnd(1,3)+(kind==='treasure'?1:0)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
   if(kind==='rest'){r.hp=Math.min(stats().maxHp,r.hp+Math.round(stats().maxHp*.3));}
@@ -1991,6 +2081,7 @@ async function enterTile(x){
     else if(o.kind==='shrine'){o.gone=true;o.used=true;r.objs.push({id:uid++,kind:'shrine_used',x:o.x,dx:o.x*T});
       await relicPick('Shrine of Odds','A cracked idol offers a gift. Choose one.','portrait_shrine');}
     else if(o.kind==='shell'){await shellGame(o);if(r.hp<=0&&await tryDie())return;}
+    else if(o.kind==='bj'){await blackjack(o);if(r.hp<=0&&await tryDie())return;}
     else if(o.kind==='door'){await floorClear();return;}
   }
 }
@@ -2429,7 +2520,7 @@ $('#scene').addEventListener('click',e=>{
   const o=run.objs.find(o=>!o.gone&&o.x===wx&&o.kind!=='openchest'&&o.kind!=='shrine_used');
   if(!o)return;
   const info={door:['🚪 Exit','Step through to reach the merchant and the next floor.'],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
-    shrine:['⛩ Shrine','Step on it to choose a relic.'],shell:['👁️ The Shell Game','Gristle the Shell-Man runs a table here. Step up to bet on following the eye under the skulls.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
+    shrine:['⛩ Shrine','Step on it to choose a relic.'],bj:['🃏 Death\'s Blackjack','Rattles the croupier deals blackjack here. Step up to play: beat the dealer to 21.'],shell:['👁️ The Shell Game','Gristle the Shell-Man runs a table here. Step up to bet on following the eye under the skulls.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
   if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
   else if(info)modal(info[0],`${icon('shop_'+(o.kind==='coins'?'coinpile':o.kind),'','hero')}<p>${info[1]}</p>`,[{label:'Close',val:1,cls:'center'}]);
 });
@@ -2457,7 +2548,7 @@ function loadArt(){
 // World height of each sprite's WHOLE generated canvas: the packer keeps every
 // pose at one scale relative to that canvas, so poses line up however they trim.
 const CANVAS_H={hero:118,enemy_rat:92,enemy_skel:112,enemy_archer:112,enemy_slime:104,enemy_orc:128,enemy_wraith:118,enemy_mimic:100,enemy_croupier:116,enemy_taxman:112,enemy_mirror:118,enemy_ironclad:128,enemy_reaper:150,
-  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,shellstall:150,boss_labfreak2:236,boss_attack_labfreak2:236,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
+  boss:168,chest:84,chest_open:84,door:176,torch_crypt:200,torch_2:200,torch_3:200,torch_4:200,torch_boss:200,shrine:136,shrine_used:136,trap:78,coinpile:62,torch:74,torch_lab:200,shellstall:150,bjstall:150,boss_labfreak2:236,boss_attack_labfreak2:236,enemy_abom:130,enemy_homunculus:84,enemy_brainjar:100,grave_madness:124,grave_midblade:134,grave_papamodelo:124,grave_zero:124,grave_dapper:124,grave_labfreak:132,grave_labfreak_lever:132};
 // where the name sits on each headstone, as a share of the drawn height from the ground (tuned to the art)
 // measured on the art: x = face centre across the sprite, y = face centre up from the ground, w = usable face width
 // (all shares of the drawn sprite), L = the name split over two lines, r = tilt, dark = a black stone
@@ -2660,6 +2751,8 @@ function drawProp(o,x,t){
       const eg=engraving(lines,fs,!!gt.dark);cx.save();cx.translate(tx,ty);if(gt.r)cx.rotate(gt.r);cx.drawImage(eg.c,-eg.w/2,-eg.h/2,eg.w,eg.h);cx.restore();
       if(!graveRead(o.who)||(o.who==='labfreak')){const p=.45+Math.sin(t*3+o.x)*.35;const gg=cx.createRadialGradient(x,Y-d.h-6,1,x,Y-d.h-6,14);gg.addColorStop(0,`rgba(140,255,150,${p})`);gg.addColorStop(1,'rgba(140,255,150,0)');cx.fillStyle=gg;cx.fillRect(x-16,Y-d.h-22,32,32);}
       break;}
+    case 'bj':if(!sprAt('bjstall',x,Y)){rect(x-24,Y-26,48,5,'#1d3a24');rect(x-21,Y-21,4,21,'#2a1d15');rect(x+17,Y-21,4,21,'#2a1d15');
+      cx.font='12px serif';cx.textAlign='center';cx.fillText('🂡🂮',x,Y-28);cx.font='26px serif';cx.fillText('💀',x+2,Y-44);}break;
     case 'shell':if(!sprAt('shellstall',x,Y)){rect(x-22,Y-26,44,5,'#3a2a20');rect(x-19,Y-21,4,21,'#2a1d15');rect(x+15,Y-21,4,21,'#2a1d15');
       cx.font='12px serif';cx.textAlign='center';cx.fillText('💀💀💀',x,Y-28);cx.font='26px serif';cx.fillText('👺',x+2,Y-44);}break;
     case 'coins':if(!sprAt('coinpile',x,Y+2)){for(let i=0;i<Math.min(5,o.v+1);i++){cx.fillStyle='#b8862a';cx.beginPath();cx.ellipse(x-10+i*5,Y-4-(i%2)*5,6,4,0,0,7);cx.fill();cx.fillStyle='#d9b56a';cx.beginPath();cx.ellipse(x-10+i*5,Y-5-(i%2)*5,5,3,0,0,7);cx.fill();}}break;

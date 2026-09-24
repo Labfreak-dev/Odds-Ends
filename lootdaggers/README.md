@@ -492,3 +492,4 @@ Nothing in the game is emoji any more once art.js loads.
   coin's tails side, the five scratch symbols and the ticket.
 - **b085**: art pack 22 packed (480 images): the coin's tails side, the five scratch
   symbols and the lost ticket; the scratch card's Collect button uses the gold plate.
+- **b086**: the scratch card's Reveal all button uses the wood-and-iron plaque.

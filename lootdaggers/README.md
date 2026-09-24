@@ -447,3 +447,8 @@ Nothing in the game is emoji any more once art.js loads.
   Dagger, Bow, Bomb, Shield, Potion, Boots, Key, Coin). Every value climbs with the
   Ledger's level (ilvl = 3x level); counted bonuses (symbols, coins, multiplier,
   skull removal, steps) go 1 to 3. Each option previews its next-level value.
+- **b078**: art pack 19 packed (460 images): Death in three phases with casting
+  poses, the throne hall, all four heroes from behind, soul card/die/orb, three
+  Death portraits, the free-soul splash, the Defy Death plate and the Ledger icon.
+  pack-art.py's size rules for death_/hero_back_/ui_defy_button moved ahead of the
+  generic hero_ rule, which had been shrinking the back views.

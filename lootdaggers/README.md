@@ -527,3 +527,4 @@ Nothing in the game is emoji any more once art.js loads.
 - **b096**: Death sizes himself to the player: his life is about twenty solid turns of
   their best damage (plus 4% per relic, 5% per Ledger level), never below the old
   value; his swings scale to their life and block, capped at 55% of max HP.
+- **b097**: the merchant's loot section starts below his portrait column instead of beside it (it overlapped the item card on phones).

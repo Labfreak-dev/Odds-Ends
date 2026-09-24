@@ -482,3 +482,5 @@ Nothing in the game is emoji any more once art.js loads.
 - **b082**: Death's dialogue and the Defy Death confirm use his own button (cold blue
   soul-glow plate, switching to ui_death_button from art-pack21 once packed) and a
   blue portrait frame, instead of Labfreak's green ooze.
+- **b083**: art pack 21 packed (473 images): Death's bone-and-soul button frame on his
+  dialogue and the Defy Death confirm.

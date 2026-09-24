@@ -685,7 +685,7 @@ const SHELL_BETS=[
   {id:'h',coins:40,swaps:12,speed:1.65},
   {id:'b',hp:8,prize:25,swaps:10,speed:1.45},
 ];
-const SH_X=[24,50,76],SH_Y=86,SH_CW=22;
+const SH_X=[28,50,72],SH_Y=79,SH_CW=17;
 const SH={};
 const shWait=ms=>new Promise(r=>setTimeout(r,ms));
 function shTween(ms,fn){return new Promise(res=>{const t0=performance.now();const f=now=>{const t=Math.min(1,(now-t0)/ms);fn(t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,t);if(t<1)requestAnimationFrame(f);else res();};requestAnimationFrame(f);});}
@@ -710,13 +710,13 @@ function shPose(p){const src=artSrc('shell_dealer_'+p);const im=SH.dealer.queryS
 function shSay(t){SH.p.textContent=t;}
 function shDraw(){
   for(const c of SH.cups)shPut(c.el,c.x,c.y-c.lift*20,SH_CW,c.s,c.z);
-  const ec=SH.eye;SH.eyeEl.style.display=SH.eyeShow?'':'none';if(ec)shPut(SH.eyeEl,ec.x,SH_Y-1,9,1,3);
-  shPut(SH.dealer,50,artSrc('shell_dealer_idle')?52:46,artSrc('shell_dealer_idle')?64:26,1,1);
+  const ec=SH.eye;SH.eyeEl.style.display=SH.eyeShow?'':'none';if(ec)shPut(SH.eyeEl,ec.x,SH_Y-1,8,1,3);
+  shPut(SH.dealer,50,artSrc('shell_dealer_idle')?58:46,artSrc('shell_dealer_idle')?31:26,1,1);
 }
 function shHands(l,r,grip){
   if(!SH.handsOn)return;const src=artSrc(grip?'shell_hand_grip':'shell_hand_open')||artSrc('shell_hand_open');
   [[l,true],[r,false]].forEach(([c,flip],i)=>{const h=SH.hands[i];const im=h.querySelector('img');if(im&&im.src!==src)im.src=src;
-    shPut(h,c.x+(flip?-2:2),c.y-c.lift*20-17*c.s,17,c.s,9,flip);});
+    shPut(h,c.x+(flip?-1:1),c.y-c.lift*20-(grip?9:13)*c.s,grip?9.5:12,c.s,9,flip);});
 }
 function shAsk(opts){
   const A=window.LD_ART||{};

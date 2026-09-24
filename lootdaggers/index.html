@@ -370,6 +370,8 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .scGrid canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:8px;cursor:grab;touch-action:none}
 .scMsg{text-align:center;margin:10px 0;color:#e9dcc6;min-height:22px}
 .scBtns .btn{width:100%}
+/* the wood-and-iron plaque from the hub buttons, for buttons built outside modal() */
+.btn.plaque{border:16px solid transparent;border-image:var(--btnArt) 80 fill / 16px stretch;background:#1d1718;box-shadow:0 4px 10px rgba(0,0,0,.6);border-radius:0;padding:4px 10px 6px;font-family:var(--head);font-weight:400;font-size:22px;letter-spacing:.5px;color:#ecdcbc;text-shadow:0 2px 0 #000,0 0 8px #000}
 /* Death's blackjack */
 #bjLayer{position:absolute;inset:0;z-index:66;background:radial-gradient(ellipse at 50% 40%,#10150f,#000 75%);display:none;flex-direction:column;justify-content:center;align-items:center;padding:12px}
 #bjLayer.show{display:flex;animation:shIn .6s ease-out}
@@ -824,7 +826,7 @@ async function scratchCard(){
   shuffle(cells);
   let L=$('#scratchLayer');if(!L){L=document.createElement('div');L.id='scratchLayer';$('#app').appendChild(L);}
   L.innerHTML=`<div class="scCard"><div class="scHead">${icon('scratchticket','🎟️','scHeadIco')} Grave Gains <small>a lost ticket · three alike wins</small></div><div class="scGrid">${cells.map(e=>`<div class="scCell">${icon(e.k,e.e,'scIco')}</div>`).join('')}<canvas></canvas></div>
-    <div class="scMsg">Scratch with your finger</div><div class="scBtns"><button class="btn center" data-a="all">Reveal all</button></div></div>`;
+    <div class="scMsg">Scratch with your finger</div><div class="scBtns"><button class="btn plaque center" data-a="all">Reveal all</button></div></div>`;
   L.classList.add('show');modalOpen=true;
   const cv2=L.querySelector('canvas'),g=cv2.getContext('2d'),box=L.querySelector('.scGrid');
   await new Promise(r2=>requestAnimationFrame(r2));

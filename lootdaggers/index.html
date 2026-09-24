@@ -334,6 +334,15 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .shBtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .shBtns .btn{text-align:center}
 .shBtns .btn:last-child:nth-child(odd){grid-column:1/-1}
+#defyBtn{display:block;margin:4px 10px 0;padding:12px 10px 14px;border:2px solid #9fd6ff;border-radius:8px;background:linear-gradient(#141827,#07080d);color:#dff2ff;font-family:var(--head);font-size:22px;letter-spacing:1px;text-shadow:0 0 10px #9fd6ff,0 2px 0 #000;box-shadow:0 0 14px rgba(159,214,255,.5),inset 0 0 14px rgba(159,214,255,.2);animation:defyGlow 2s ease-in-out infinite}
+#defyBtn.hasArt{border:0;border-radius:0;background:var(--defyArt) center/100% 100% no-repeat;box-shadow:none;filter:drop-shadow(0 0 6px rgba(159,214,255,.7))}
+@keyframes defyGlow{50%{box-shadow:0 0 24px rgba(159,214,255,.85),inset 0 0 18px rgba(159,214,255,.3)}}
+.ledger{border:1px solid #3f7a3a;border-radius:10px;padding:10px;margin:8px 0 14px;background:rgba(20,30,20,.5)}
+.ledger h3{color:#8cff96;font-size:14px;margin:10px 0 6px}
+.ledger .btn{width:100%;margin:6px 0}
+.lpicks{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.lp{border:1px solid #2c2626;border-radius:6px;background:#1a1616;color:var(--dim);font-size:11px;padding:6px 4px;text-align:center}
+.lp.on{border-color:#8cff96;color:#e9ffe6;background:#1d2b1c;box-shadow:0 0 6px rgba(140,255,150,.4)}
 body.labFlash #app{animation:labFlash .7s ease-out}
 @keyframes labFlash{0%{filter:brightness(3) hue-rotate(60deg)}40%{filter:brightness(2) saturate(3)}100%{filter:none}}
 .splash{display:block;width:calc(100% + 28px);margin:-14px -14px 10px;aspect-ratio:16/9;object-fit:cover;border-bottom:3px solid #000;border-radius:11px 11px 0 0}
@@ -364,6 +373,7 @@ body.labFlash #app{animation:labFlash .7s ease-out}
     </div>
     <div id="sceneWrap"><canvas id="scene"></canvas><div id="forecast"></div></div>
     <div id="log">Insert a coin and pull. <b>Whatever lands is your turn.</b></div>
+    <button id="defyBtn" class="hidden">Pay your Debt, and Defy Death</button>
     <div id="machine">
       <div id="cabinet">
         <img id="cabinetArt" alt=""><div id="bulbs"></div>
@@ -457,6 +467,7 @@ const BOSSES={
   boneking:{n:'The Bone King',hp:55,pat:[['atk',6],['summon','skel'],['guard',8],['atk',8]],coins:[10,14]},
   bandit:{n:'One-Armed Bandit',hp:70,pat:[['steal',3],['atk',7],['jackpot',3],['jamwheel',0]],coins:[14,18]},
   lich:{n:'The Dice Lich',hp:90,range:3,pat:[['atk',6],['curse',1],['drain',5],['atk',9]],coins:[16,22]},
+  death:{n:'Death',hp:110,range:9,pat:[['atk',4]],coins:[0,0]},
   labfreak:{n:'Dr. Labfreak',hp:110,range:3,pat:[['atk',7],['summon','homunculus'],['curse',1],['drain',6],['atk',10]],coins:[25,35]},
 };
 const BOSS_ORDER=['boneking','bandit','lich'];
@@ -665,6 +676,128 @@ function poisonHero(){
   // small and flat: 1 a turn (2 from floor 10, 3 from 20); a new hit just refreshes it to 3 turns
   const r=run;if(fxFold('poisonImmune',false)){heroFl('immune to poison','#8cff96');return;}r.poison={dmg:Math.min(3,1+Math.floor(r.floor/10)),turns:3};heroFl('☣ poisoned','#8cff96');view.puff={t:0};
 }
+
+
+/* ---------------- the final boss: Death ----------------
+   From floor 66 with 666 coins, "Pay your Debt, and Defy Death" appears above the
+   machine. Paying it starts a three-phase duel on Death's throne, seen from behind
+   the hero. The reels still decide every turn. Phases change at 2/3 and 1/3 of his
+   life and can't be skipped: a killing blow in phase one or two only pushes him to
+   the next phase. Beating him frees the soul (the run ends in victory) and, the
+   first time, grants The Grim's Ledger. */
+const DEATH_COST=666,DEATH_FLOOR=66;
+const DEATH_PH={
+  1:[['atk',4],['rest',0],['curse',1],['atk',6],['rest',0]],
+  2:[['atk',8],['drain',6],['jam',0],['atk',10],['grow',4]],
+  3:[['atk',12],['drain',8],['curse',1],['atk',14],['jamwheel',0],['grow',6]],
+};
+const DEATH_LINES={
+  1:["Another one. How... tedious. Pull your little lever, gambler.","You've paid. Fine. Entertain me, if you can."],
+  2:["Oh? You're still here. Interesting. Let's raise the stakes.","Nobody gets this far. Sit down. Let's play properly."],
+  3:["NO. No one leaves. NO ONE LEAVES THE TABLE!","The loop is ETERNAL! You don't get to CASH OUT!"],
+  win:["...Impossible. Go, then. Walk out into the light. The house... lost.","Take your soul. I'll be here. I'm always here."],
+};
+const deathReady=()=>!!run&&!run.over&&!run.death&&!run.lab&&run.floor>=DEATH_FLOOR&&run.coins>=DEATH_COST;
+function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2);
+  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?v+dm:(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
+async function defyDeath(){
+  const r=run;if(!deathReady()||busy||modalOpen)return;
+  const v=await modal('Pay your Debt, and Defy Death',`${portImg('portrait_death1','big merch')}<p>Pay <b>${DEATH_COST} 🪙</b> to buy a seat at Death's own table. Beat him, and you walk out of the dungeon a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
+    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary'},{label:'Not yet',val:null}]);
+  if(!v||!deathReady())return;
+  busy=true;r.coins-=DEATH_COST;sfx.jackpot();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
+  const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});
+  Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
+  view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
+  busy=false;rebuildReels();ui();save();
+  await labDialog('portrait_death1','Death',pick(DEATH_LINES[1]),null,'Pull the lever');
+  logLine('<b>The final table.</b> Death watches you, bored. His phases turn at ⅔ and ⅓ of his life.');
+}
+async function deathPhase(o,ph){
+  o.phase=ph;o.pat=deathPat(ph,run.floor);o.pi=0;o.flash=1;view.shake=14;sfx.jackpot();
+  document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
+  view.banner={t:performance.now(),txt:ph===2?'DEATH TAKES INTEREST':'DEATH IS AFRAID'};
+  await labDialog('portrait_death'+ph,'Death',pick(DEATH_LINES[ph]),null,ph===2?'Keep pulling':'Finish it');
+  noteTurn(`<span style="color:#9fd6ff">Death enters phase ${ph}${ph===3?': <b>he now acts twice a turn</b>':''}</span>`);
+}
+// called from hit(): keeps Death inside his phase until the phase change has played
+async function deathCheck(o){
+  const t2=Math.floor(o.max*2/3),t3=Math.floor(o.max/3);
+  // an overkill doesn't skip a phase: it starts the next one at full phase health
+  if(o.phase===1&&o.hp<=t2){if(o.hp<=t3)o.hp=t2;await deathPhase(o,2);}
+  if(o.phase===2&&o.hp<=t3){if(o.hp<=0)o.hp=t3;await deathPhase(o,3);}
+}
+async function defeatDeath(){
+  const r=run;r.pendingFree=false;view.shake=18;sfx.jackpot();
+  await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light');
+  const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;r.souls+=666;
+  if(first){S.ledger={lvl:1,picks:['swordDmg','maxHp']};S.ledgerOn=true;save();
+    await modal("The Grim's Ledger",`${icon('gear_unique_ledger','📓','hero')}<p>Death's own ledger, every debt in the dungeon written in it. Yours is crossed out.</p><p><b style="color:#8cff96">Unlocked:</b> a permanent extra vault space holding <b>The Grim's Ledger</b>, a charm you customise yourself and upgrade with souls and boss chips. Find it in the Heirloom Vault.</p>`,[{label:'Take it',val:1,cls:'primary'}]);}
+  await endRun('free');
+}
+// the arena: the camera stands behind the hero, looking up at the throne
+function drawDeathArena(t,dt){
+  const r=run,top=VH-VHd,W=VWd,H=VHd,o=r.objs.find(x=>x.t==='death');
+  const bg=artImg('screen_death_throne');
+  if(bg){const s=Math.max(W/bg.naturalWidth,H/bg.naturalHeight),w=bg.naturalWidth*s,h=bg.naturalHeight*s;cx.drawImage(bg,(W-w)/2,top+(H-h)/2,w,h);}
+  else{const g=cx.createLinearGradient(0,top,0,VH);g.addColorStop(0,'#05070c');g.addColorStop(1,'#141016');cx.fillStyle=g;cx.fillRect(0,top,W,H);
+    for(let i=0;i<8;i++){rect(W/2-120+i*10,top+H*.55+i*8,240-i*20,6,'#1d1a22');}}
+  // drifting souls
+  cx.save();cx.globalCompositeOperation='lighter';
+  for(let i=0;i<16;i++){const ph=(t*.08+i/16)%1,x=W/2+Math.sin(i*2.1+t*.7)*W*.36,y=top+H*(.7-ph*.7),a=.25*Math.sin(Math.PI*ph);
+    const g=cx.createRadialGradient(x,y,0,x,y,7);g.addColorStop(0,`rgba(150,210,255,${a})`);g.addColorStop(1,'rgba(90,150,255,0)');cx.fillStyle=g;cx.fillRect(x-7,y-7,14,14);}
+  cx.restore();
+  // Death on his throne
+  const DX=W/2,DB=top+H*.66,DH=H*.62;
+  if(o){const ph=o.phase||1,k='death_p'+ph+(o.pose>0?'_cast':''),im=artImg(k)||artImg('death_p'+ph)||artImg('death_p1');
+    const br=1+Math.sin(t*(ph===3?3:1.2))*.012*(ph===3?2:1),sh=ph===3?(Math.random()-.5)*2:0;
+    if(o.flash)cx.filter='brightness(2)';
+    if(im){const h=DH*br,w=h*im.naturalWidth/im.naturalHeight;cx.drawImage(im,DX-w/2+sh,DB-h,w,h);}
+    else{cx.font=`${DH*.5}px serif`;cx.textAlign='center';cx.fillText('💀',DX+sh,DB-DH*.25);cx.font=`${DH*.2}px serif`;cx.fillText('🦴🦴🦴',DX,DB);}
+    cx.filter='none';
+    if(o.flash&&artImg('fx_hit'))cx.drawImage(ART.fx_hit,DX-30,DB-DH*.6,60,60);
+  }
+  // the hero, from behind, over the shoulder
+  const HX=W*.36+(view.lunge*W*.05),HB=VH+H*.04,HH=H*.56;
+  const hk='hero_back_'+r.hero+(view.lunge>.3?'_attack':''),him=artImg(hk)||artImg('hero_back_'+r.hero);
+  if(view.hurt>0&&Math.floor(t*30)%2)cx.globalAlpha=.55;
+  if(him){const w=HH*him.naturalWidth/him.naturalHeight;cx.drawImage(him,HX-w/2,HB-HH,w,HH);}
+  else{const fb=artImg('hero_'+r.hero+'_idle');if(fb){const h=HH*.9,w=h*fb.naturalWidth/fb.naturalHeight;cx.drawImage(fb,HX-w/2,HB-h,w,h);}}
+  cx.globalAlpha=1;
+  // Death's soul shots
+  view.dshots=(view.dshots||[]).filter(s=>s.t<1);
+  for(const s of view.dshots){s.t+=dt*1.8;const p=Math.min(1,s.t),x=DX+(HX-DX)*p+Math.sin(p*9+s.w)*12,y=DB-DH*.45+(HB-HH*.6-(DB-DH*.45))*p,sz=18+p*26,im=artImg(s.k);
+    cx.save();cx.translate(x,y);cx.rotate(p*6+s.w);cx.globalAlpha=p<.85?1:(1-p)/.15;
+    if(im)cx.drawImage(im,-sz/2,-sz/2,sz,sz*im.naturalHeight/im.naturalWidth);else{const g=cx.createRadialGradient(0,0,0,0,0,sz/2);g.addColorStop(0,'rgba(200,235,255,.95)');g.addColorStop(1,'rgba(90,150,255,0)');cx.fillStyle=g;cx.beginPath();cx.arc(0,0,sz/2,0,7);cx.fill();}
+    cx.restore();}
+  // floaters: hero-side ones at the hero, the rest at Death
+  cx.textAlign='center';
+  for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const hero=f.x<=r.x*T+T*.75,ax=hero?HX:DX,ay=hero?HB-HH*.8:DB-DH*.75;
+    cx.globalAlpha=Math.max(0,1-f.t/1.3);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,ax+(f.x%7-3)*3,ay-f.t*30+(f.y-GY+70)*.3,f.col);}
+  cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
+  // Death's life bar with phase notches
+  if(o){const bw=W*.7,bx=(W-bw)/2,by=top+10;rect(bx-2,by-2,bw+4,12,'#000');rect(bx,by,bw,8,'#1b1a24');
+    rect(bx,by,bw*clamp(o.hp/o.max,0,1),8,o.phase===3?'#e0605a':o.phase===2?'#c9a0ff':'#9fd6ff');
+    rect(bx+bw/3,by-2,2,12,'#000');rect(bx+bw*2/3,by-2,2,12,'#000');
+    cx.font="13px 'Pirata One',serif";cx.fillStyle='#e9dcc6';cx.textAlign='center';cx.fillText(`DEATH · ${o.hp}/${o.max}`,W/2,by+24);}
+}
+/* ---------------- The Grim's Ledger ---------------- */
+const LEDGER_OPTS=['swordDmg','bowDmg','bombDmg','blockPer','healPer','maxHp','dodge','luck','soulFind','thorns','shove','coinPer','lifesteal','triple'];
+const LEDGER_MAX=10;
+const ledgerSlots=l=>Math.min(5,2+Math.floor(l/3));
+const ledgerCost=l=>({souls:150*l,chips:l});
+function ledgerVal(k,l){if(['coinPer','lifesteal','triple'].includes(k))return 1+Math.floor(l/5);if(k==='dodge')return Math.min(30,6+2*l);if(k==='luck'||k==='soulFind')return 10+5*l;return Math.max(1,Math.round(AFF[k].v(l*3)*1.3));}
+function ledgerHTML(){
+  const L=S.ledger;if(!L)return '';const n=ledgerSlots(L.lvl),c=ledgerCost(L.lvl),maxed=L.lvl>=LEDGER_MAX;
+  const can=!maxed&&S.souls>=c.souls&&S.chips>=c.chips;
+  return `<div class="ledger">${itemHTML(ledgerItem(),S.ledgerOn?'✔ WEARING · extra vault space':'extra vault space')}
+    <button class="btn center" data-act="lwear:x">${S.ledgerOn?'Take it off':'Wear it every run (charm slot)'}</button>
+    <h3>Write your bonuses · ${Math.min(L.picks.length,n)}/${n}</h3><div class="lpicks">${LEDGER_OPTS.map(k=>`<button class="lp ${L.picks.includes(k)?'on':''}" data-act="lpick:${k}">${AFF[k].t(ledgerVal(k,L.lvl))}</button>`).join('')}</div>
+    <button class="btn ${can?'primary':''} center" data-act="lup:x" ${can?'':'disabled'}>${maxed?'The Ledger is complete (+10)':`Upgrade to +${L.lvl+1} · 💠 ${c.souls} souls · 🎰 ${c.chips} chip${c.chips>1?'s':''}`}</button>
+    <p class="sub" style="font-size:11px;color:var(--dim)">Upgrades raise every bonus and add a bonus slot at +3, +6 and +9.</p></div>`;
+}
+function ledgerItem(){const L=S.ledger;return {id:'grims_ledger',slot:'charm',rar:5,lvl:L.lvl*3,base:"The Grim's Ledger",name:`The Grim's Ledger +${L.lvl}`,art:'gear_unique_ledger',e:'📓',unique:true,ledger:true,
+  affs:L.picks.slice(0,ledgerSlots(L.lvl)).map(k=>({k,v:ledgerVal(k,L.lvl)})),fl:'Every debt in the dungeon, and yours crossed out.'};}
 
 /* ---------------- the Shell Game (random event) ----------------
    Gristle the Shell-Man sets up a table on some floors. Step onto it to play:
@@ -1297,6 +1430,7 @@ async function startRun(heroId,daily){
   const h=HEROES[heroId];seedRandom(daily||null);
   run={hero:heroId,floor:1,x:0,hp:0,block:0,coins:h.coins+alt('purse')*3,gear:{weapon:null,armor:null,boots:null,charm:null},
     relics:[],stripAdd:{},objs:[],len:12,souls:0,chips:0,kills:0,spins:0,curse:0,usedWind:false,over:false,pending:[],log:'',doom:0,jam:null,nextKind:'fight',kind:'fight',maxTriples:0,bestHit:0,daily:null,bonus:0,inBonus:false,wheelJam:false,bonuses:0,bestMult:1,bulbs:0,hist:[],killer:null};
+  if(S.ledger&&S.ledgerOn)run.gear.charm=ledgerItem();
   for(const id of S.loadout){const it=S.vault.find(v=>v.id===id);if(it&&!run.gear[it.slot])run.gear[it.slot]=JSON.parse(JSON.stringify(it));}
   run.daily=daily||null;run.hp=stats().maxHp;
   genFloor(1);
@@ -1560,7 +1694,7 @@ function previewTurn(R){
     if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${(val('bow')*s.bowDmg+mom)*mu}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
     if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${(val('bomb')*s.bombDmg+mom)*mu}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
-    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'||e.t==='labfreak'?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
+    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'||e.t==='labfreak'||(e.t==='death'&&e.phase>=3)?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
   }
   if(!L.length)L.push('Nothing lands. Foes take their turn.');
@@ -1643,6 +1777,7 @@ async function doTurn(R){
   await fxEachA('turnEnd');
   noteTurn('You: '+(parts.length?parts.join(' · '):'nothing landed'));logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
+  if(r.pendingFree){await defeatDeath();return;}
   await drainLoot();
   if(r.over)return;
   await beat(260);
@@ -1669,6 +1804,7 @@ async function hit(o,dmg,how){
   r.bestHit=Math.max(r.bestHit||0,d);
   o.hp-=d;o.flash=1;addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
   fxEach('dealt',o,d,how);
+  if(o.t==='death'&&o.phase<3){await deathCheck(o);if(o.hp<=0)o.hp=1;}
   if(o.hp<=0){if(o.t==='labfreak'&&!o.phase2){await labfreakPhase2(o);return;}await kill(o);}
 }
 async function kill(o){
@@ -1679,6 +1815,7 @@ async function kill(o){
   r.souls+=o.boss?15+r.floor:1+Math.floor(r.floor/2);
   fl('💠','#9fd6ff',o.x*T+T/2,GY-40);addFx('fx_souls',o.x*T+T/2,GY-50,64,1,40);
   if(Math.random()<o.loot)r.pending.push(mkItem(null,Math.max(o.minRar||0,o.boss?Math.max(2,rollRarity(20)):rollRarity()),r.floor));
+  if(o.t==='death')r.pendingFree=true;
   if(o.boss){r.chips++;S.chips++;fl('+1 🎰 CHIP','#d9b56a',o.x*T+T/2,GY-130);r.bossDown=true;
     if(o.t==='labfreak'){r.pending.push(...labUniques(r.floor+2));fl('4 UNIQUE DROPS','#8cff96',o.x*T+T/2,GY-150);}}
   if((o.boss&&o.t!=='labfreak'&&Math.random()<.2)||(o.elite&&Math.random()<.08)){const u=rollUnique();if(u){r.pending.push(u);fl('UNIQUE!','#8cff96',o.x*T+T/2,GY-160);}}
@@ -1719,7 +1856,7 @@ async function enemyPhase(){
   const r=run;
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);
   for(const e of es){
-    for(let rep=0;rep<(e.elite==='fast'||e.t==='labfreak'?2:1);rep++){
+    for(let rep=0;rep<(e.elite==='fast'||e.t==='labfreak'||(e.t==='death'&&e.phase>=3)?2:1);rep++){
     if(r.over||r.hp<=0)return;if(e.gone)continue;
     e.block=e.elite==='shield'?5:0;
     const [a,v]=e.pat[e.pi%e.pat.length],dist=e.x-r.x;
@@ -1733,7 +1870,7 @@ async function enemyPhase(){
     else if(a==='drain'){await enemyHit(e,v);if(r.coins>0){r.coins--;heroFl('-1 🪙','#b07cf0');}}
     else if(a==='jackpot'){for(let i=0;i<3&&r.hp>0;i++){await enemyHit(e,v);await beat(120);}}
     else if(a==='guard'){e.block=v;fl('🛡'+v,'#5aa9e6',e.x*T+T/2,GY-100);}
-    else if(a==='grow'){e.hp+=v;e.max+=v;fl('+'+v,'#6cc070',e.x*T+T/2,GY-90);}
+    else if(a==='grow'){if(e.t==='death'){const h=Math.min(v,e.max-e.hp);e.hp+=h;fl('+'+h+' the loop turns','#9fd6ff',e.x*T+T/2,GY-90);}else{e.hp+=v;e.max+=v;fl('+'+v,'#6cc070',e.x*T+T/2,GY-90);}}
     else if(a==='summon'){let sx=e.x+1;while(r.objs.some(o=>o.x===sx&&!o.gone&&o.kind!=='door'&&o.kind!=='openchest')&&sx<r.len-1)sx++;
       if(sx<r.len&&!r.objs.some(o=>o.x===sx&&!o.gone&&(o.kind==='enemy'||o.kind==='chest'))){const m=mkEnemy(v,sx,r.floor);m.loot=0;m.coins=[0,1];r.objs.push(Object.assign(m,{id:uid++}));fl('RISE!','#e0605a',e.x*T+T/2,GY-120);
         if(e.t==='labfreak'){const ox=e.x;e.x=sx;m.x=ox;m.dx=sx*T;fl('back, my pet!','#8cff96',ox*T+T/2,GY-140);}}}
@@ -1748,6 +1885,7 @@ async function enemyPhase(){
 }
 async function enemyHit(e,dmg){
   const r=run,s=stats();
+  if(e.t==='death'){(view.dshots=view.dshots||[]).push({t:0,w:Math.random()*6,k:pick(['fx_soulcard','fx_souldie','fx_soulorb'])});e.pose=1;}
   if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');fxEach('dodged');return;}
   let d=Math.round(fxFold('hurt',dmg,e));const b=Math.min(r.block,d);r.block-=b;d-=b;
   if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);if(d<=0)noteTurn(`${esc(e.n)} hit for ${dmg}, all blocked`);}
@@ -1871,18 +2009,18 @@ async function endRun(reason){
   S.run=null;save();
   const ps=artSrc('portrait_'+r.hero);
   const hist=(r.hist||[]).map(t=>`<div class="histTurn"><span class="tn">Spin ${t.n}</span>${t.l.map(x=>`<div>${x}</div>`).join('')}</div>`).join('')||'<div class="histTurn">No turns recorded.</div>';
-  const killer=reason==='broke'?'an empty purse':reason==='quit'?'your own cowardice':(r.killer||'the dungeon');
+  const killer=reason==='broke'?'an empty purse':reason==='quit'?'your own cowardice':(r.killer||'the dungeon');const free=reason==='free';
   await modal('',
-    `${artSrc(reason==='broke'?'screen_busted':'screen_death')?`<img class="splash" src="${artSrc(reason==='broke'?'screen_busted':'screen_death')}" alt="">`:''}
-     <div class="deathTitle">${reason==='quit'?'The House Remembers':'The Dead Can\'t Pay Their Debts!'}</div>
-     <div class="deathBy">Death by <b>${esc(killer)}</b></div>
-     ${ps?`<img class="port big dead" src="${ps}" alt="">`:''}<p>${reason==='broke'?'Your purse is empty. The dungeon keeps the change — and you.':reason==='quit'?'You walked away from the machine.':'The dungeon claims another gambler.'}</p>
+    `${(()=>{const k=free?'screen_death_free':reason==='broke'?'screen_busted':'screen_death';return artSrc(k)?`<img class="splash" src="${artSrc(k)}" alt="">`:''})()}
+     <div class="deathTitle">${free?'A Free Soul':reason==='quit'?'The House Remembers':'The Dead Can\'t Pay Their Debts!'}</div>
+     <div class="deathBy">${free?'You beat <b>Death</b> at his own table':`Death by <b>${esc(killer)}</b>`}</div>
+     ${ps?`<img class="port big dead" src="${ps}" alt="">`:''}<p>${reason==='broke'?'Your purse is empty. The dungeon keeps the change — and you.':reason==='quit'?'You walked away from the machine.':free?'The debt is paid in full. For the first time in a long time, you see daylight.':'The dungeon claims another gambler.'}</p>
      <details class="hist"><summary>What happened: the last ${(r.hist||[]).length||3} turns</summary>${hist}</details>
      <p>Reached <b>floor ${r.floor}</b> · ${r.kills} kills · ${r.spins} spins</p>
      <p style="font-size:16px">Banked <b style="color:#9fd6ff">${icon('ui_souls_big','💠','gi')} ${souls} souls</b>${r.chips?` and <b style="color:var(--gold)">🎰 ${r.chips} chip${r.chips>1?'s':''}</b>`:''}</p>
      <p class="sub" style="font-size:12px;color:var(--dim)">Best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · ${r.relics.length} relic${r.relics.length===1?'':'s'}${r.daily?` · <b style="color:var(--gold)">Daily ${r.daily}</b>`:''}</p>`,
     [{label:'Continue',val:1,cls:'primary'},{label:'📋 Copy run summary',val:'copy'}]).then(async v=>{if(v==='copy'){try{await navigator.clipboard.writeText(r.summary);}catch(e){}}});
-  const eq=SLOTS.map(s=>r.gear[s]).filter(Boolean);
+  const eq=SLOTS.map(s=>r.gear[s]).filter(x=>x&&!x.ledger);
   if(eq.length){
     const v=await modal('The Vault',`<p>Carry one piece home as an <b>heirloom</b>. Heirlooms can be worn at the start of any run.</p><p class="sub">Vault: ${S.vault.length}/${vaultSlots()}</p>`+eq.map(it=>itemHTML(it)).join(''),
       eq.map(it=>({label:`Keep ${gearIcon(it)} ${esc(it.name)}`,val:it.id})).concat([{label:'Keep nothing',val:null}]));
@@ -1940,6 +2078,7 @@ function helpShort(){
 
 /* ---------------- UI ---------------- */
 function ui(){
+  {const b=$('#defyBtn');if(b)b.classList.toggle('hidden',!deathReady());}
   if(!run)return;const r=run,s=stats();const mx=s.maxHp;
   $('#hpbar').style.width=clamp(r.hp/mx*100,0,100)+'%';$('#hpwrap').classList.toggle('poison',!!(r.poison&&r.poison.turns>0));
   $('#hptxt').innerHTML=artify(`❤ ${Math.max(0,r.hp)}/${mx}`);
@@ -2044,7 +2183,7 @@ function showHub(v){
       return `<button class="btn" style="width:100%;margin-bottom:7px" data-act="mod:${m.id}" ${own||lock||S.chips<m.cost?'disabled':''}>
       <div class="upg"><span>${icon('mod_'+m.id,m.e,'node')} <b>${m.n}</b></span><span style="color:var(--gold)">${own?'INSTALLED':lock?'needs '+MODS.find(x=>x.id===m.req).n:'🎰'+m.cost}</span></div><small>${m.d}</small></button>`;}).join('');
   }else if(v==='vault'){
-    html=back+`<h2 style="color:var(--gold)">🗄️ Heirloom Vault · ${S.vault.length}/${vaultSlots()}</h2><p style="font-size:12px;color:var(--dim)">When a run ends you may carry one worn piece home. Choose which to wear on the hero screen. Upgrade slots at the Soul Altar.</p>`
+    html=back+`<h2 style="color:var(--gold)">🗄️ Heirloom Vault · ${S.vault.length}/${vaultSlots()}</h2>`+ledgerHTML()+`<p style="font-size:12px;color:var(--dim)">When a run ends you may carry one worn piece home. Choose which to wear on the hero screen. Upgrade slots at the Soul Altar.</p>`
       +(S.vault.length?S.vault.map(it=>itemHTML(it,S.loadout.includes(it.id)?'✔ WEARING':'')+`<button class="btn danger center" style="width:100%;margin-bottom:8px" data-act="drop:${it.id}">Melt down</button>`).join(''):'<p style="color:var(--dim)">Empty. Die with something good on.</p>');
   }else if(v==='help'){
     html=back+`<div class="help"><h2 style="color:var(--gold)">How to play</h2>
@@ -2079,6 +2218,9 @@ $('#hub').addEventListener('click',async e=>{
     save();return showHub('heroes');}
   if(a==='altar'){const A=ALTAR.find(x=>x.id===arg),l=alt(arg),c=altCost(A,l);if(l<A.max&&S.souls>=c){S.souls-=c;S.altar[arg]=l+1;save();}return showHub('altar');}
   if(a==='mod'){const m=MODS.find(x=>x.id===arg);if(!S.mods[arg]&&S.chips>=m.cost&&(!m.req||S.mods[m.req])){S.chips-=m.cost;S.mods[arg]=true;save();}return showHub('bench');}
+  if(a==='lwear'){S.ledgerOn=!S.ledgerOn;save();return showHub('vault');}
+  if(a==='lpick'&&S.ledger){const L=S.ledger,n=ledgerSlots(L.lvl);if(L.picks.includes(arg))L.picks=L.picks.filter(k=>k!==arg);else{L.picks.push(arg);while(L.picks.length>n)L.picks.shift();}save();return showHub('vault');}
+  if(a==='lup'&&S.ledger){const L=S.ledger,c=ledgerCost(L.lvl);if(L.lvl<LEDGER_MAX&&S.souls>=c.souls&&S.chips>=c.chips){S.souls-=c.souls;S.chips-=c.chips;L.lvl++;sfx.jackpot();save();}return showHub('vault');}
   if(a==='drop'){S.vault=S.vault.filter(x=>x.id!==arg);S.loadout=S.loadout.filter(x=>x!==arg);S.souls+=5;save();return showHub('vault');}
   if(a==='set'){applySetting(arg);return showHub('settings');}
   if(a==='wipe'){if(confirm('Wipe all progress?')){localStorage.removeItem(SAVE_KEY);S=defSave();save();}return showHub('main');}
@@ -2107,8 +2249,9 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(v==='q'){save();run=null;showHub('main');}
   if(v==='x')endRun('quit');
 });
+$('#defyBtn').addEventListener('click',()=>defyDeath());
 $('#scene').addEventListener('click',e=>{
-  if(!run||modalOpen||obitOpen)return;
+  if(!run||modalOpen||obitOpen||run.death)return;
   const rc=e.target.getBoundingClientRect();const lx=(e.clientX-rc.left)/rc.width*VWd;
   const wx=Math.floor((lx+view.cam)/T);
   const gv=run.objs.find(o=>!o.gone&&o.kind==='grave'&&Math.abs(o.dx+T/2-(lx+view.cam))<T*.6);
@@ -2129,7 +2272,7 @@ function artImg(k){return ART[k]&&ART[k].complete&&ART[k].naturalWidth?ART[k]:nu
 function artSrc(k){return (window.LD_ART||{})[k]||'';}
 function applyChrome(){
   const A=window.LD_ART||{};
-  const R=document.documentElement.style;if(A.ui_button)R.setProperty('--btnArt',`url(${A.ui_button})`);if(A.ui_spin_button)R.setProperty('--goldArt',`url(${A.ui_spin_button})`);if(A.ui_ooze_button)R.setProperty('--oozeArt',`url(${A.ui_ooze_button})`);
+  const R=document.documentElement.style;if(A.ui_button)R.setProperty('--btnArt',`url(${A.ui_button})`);if(A.ui_spin_button)R.setProperty('--goldArt',`url(${A.ui_spin_button})`);if(A.ui_ooze_button)R.setProperty('--oozeArt',`url(${A.ui_ooze_button})`);if(A.ui_defy_button){R.setProperty('--defyArt',`url(${A.ui_defy_button})`);$('#defyBtn').classList.add('hasArt');}
   if(A.ui_cabinet){$('#cabinetArt').src=A.ui_cabinet;$('#cabinet').classList.add('art');}
   if(run)drawBulbs();
   if(A.ui_spin_button){$('#spinBtn').classList.add('art');}
@@ -2368,6 +2511,7 @@ function frame(now){
     const sx=view.shake?(Math.random()-.5)*view.shake:0,sy=view.shake?(Math.random()-.5)*view.shake:0;
     cx.translate(sx,sy);
     const cam=view.cam;
+    if(r.death){view.fx=[];view.slash=null;view.arrow=null;view.boom=null;drawDeathArena(t,dt);}else{
     drawBG(cam,t);
     const vis=o=>!o.gone||o.kind==='openchest'||o.kind==='shrine_used';
     for(const o of r.objs)if(vis(o)&&o.kind!=='enemy'&&!o.gone){const x=o.dx+T/2-cam;if(x>-80&&x<VWd+80)drawProp(o,x,t);}
@@ -2391,6 +2535,7 @@ function frame(now){
     cx.textAlign='center';
     for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const a=1-f.t/1.3;cx.globalAlpha=Math.max(0,a);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,f.x-cam,f.y-f.t*30,f.col);}
     cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
+    }
     // screen-space overlays
     cx.setTransform(scaleK,0,0,scaleK,0,0);
     const dg=cx.createLinearGradient(VWd*.62,0,VWd,0);dg.addColorStop(0,'rgba(0,0,0,0)');dg.addColorStop(1,'rgba(0,0,0,.55)');cx.fillStyle=dg;cx.fillRect(0,0,VWd,VHd);

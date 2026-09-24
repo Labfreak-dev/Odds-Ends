@@ -525,14 +525,14 @@ const ENEMIES={
   skel:{n:'Skeleton',hp:10,pat:[['atk',3],['atk',3],['guard',4]],coins:[1,3],from:1},
   archer:{n:'Bone Archer',hp:8,range:4,pat:[['atk',2],['atk',3]],coins:[2,3],from:2},
   slime:{n:'Gel Slime',hp:14,pat:[['atk',2],['grow',4]],coins:[1,3],from:2},
-  orc:{n:'Orc Brute',hp:22,pat:[['atk',6],['rest',0],['atk',4]],coins:[3,5],from:4,loot:.35},
+  orc:{n:'Orc Brute',hp:22,pat:[['atk',6],['rest',0],['atk',4]],coins:[3,5],from:4,loot:.2},
   wraith:{n:'Coin Wraith',hp:12,range:2,pat:[['drain',3],['atk',3]],coins:[2,4],from:4},
   mimic:{n:'Mimic',hp:16,pat:[['atk',4],['atk',5]],coins:[4,7],from:99,loot:1},
   croupier:{n:'Cursed Croupier',hp:14,range:2,pat:[['jam',0],['atk',3],['atk',3]],coins:[3,5],from:3,d:'Jams one of your reels on a Skull until it dies.'},
   taxman:{n:'Tax Collector',hp:12,range:3,pat:[['tax',1],['atk',2]],coins:[5,8],from:3,d:'Every spin costs +1 coin while it is awake.'},
   mirror:{n:'Mirror Wight',hp:16,pat:[['atk',3],['atk',4]],coins:[3,5],from:5,d:'Every dagger hit sends a small shard back at you (1 damage, more on deeper floors). Block stops it.'},
   ironclad:{n:'Ironclad Husk',hp:20,pat:[['atk',5],['guard',6]],coins:[4,6],from:5,d:'Only bombs, shoves and jackpot turns can hurt it.'},
-  abom:{n:'Stitched Abomination',hp:26,pat:[['atk',6],['grow',5],['atk',7]],coins:[4,7],from:99,loot:.4,d:'Stitches itself back together.'},
+  abom:{n:'Stitched Abomination',hp:26,pat:[['atk',6],['grow',5],['atk',7]],coins:[4,7],from:99,loot:.25,d:'Stitches itself back together.'},
   homunculus:{n:'Jar Homunculus',hp:9,pat:[['drain',2],['atk',3]],coins:[2,4],from:99,d:'Needle fingers: it drains coins.'},
   brainjar:{n:'Brain in a Jar',hp:14,range:3,pat:[['curse',1],['atk',4]],coins:[3,5],from:99,d:'Zaps from range and curses your reels.'},
   reaper:{n:'The Reaper',hp:40,range:2,pat:[['drain',6],['atk',8],['atk',5]],coins:[8,12],from:99,loot:1,d:'Summoned by Doom. Slaying it pays 25 souls.'},
@@ -780,7 +780,8 @@ const CONTRACTS={
   frugal:{n:'No Holding',d:"Don't hold a single reel this floor."},
 };
 async function offerContract(){
-  const r=run;if(r.floor<2||r.kind==='boss'||r.kind==='rest'||r.lab||r.death||Math.random()>.45)return;
+  const r=run;if(r.floor<2||r.kind==='boss'||r.kind==='rest'||r.lab||r.death||r.floor-(r.lastBookie||-9)<3||Math.random()>.2)return;
+  r.lastBookie=r.floor;
   const id=pick(Object.keys(CONTRACTS)),n=Math.max(4,Math.ceil(r.len/2.4)),c=CONTRACTS[id],txt=c.d.replace('{n}',n);
   const stakes=[5,15,40].filter(x=>x<=r.coins);if(!stakes.length)return;
   const v=await modal('The Bookie',`${portImg('portrait_bookie','big merch')||'<div class="flipCoin">📜</div>'}<p>A hooded bookie slides a contract across a coffin lid:</p><p><b>${c.n}</b> · ${txt}</p><p class="sub">Pays <b>3×</b> your stake when you reach the exit.</p>`,
@@ -1655,7 +1656,7 @@ function mkEnemy(type,x,f,boss){
   const d=(boss?BOSSES:ENEMIES)[type];const sc=1+.22*(f-1);const dm=Math.floor((f-1)/2);
   const hp=Math.round(d.hp*sc);
   return {kind:'enemy',t:type,n:d.n,x,dx:x*T,hp,max:hp,block:0,pi:0,range:d.range||1,boss:!!boss,
-    coins:d.coins,loot:boss?1:(d.loot||.2),flash:0,
+    coins:d.coins,loot:boss?1:(d.loot||.1),flash:0,
     pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?v+dm:(a==='guard'||a==='grow')?Math.round(v*sc):v])};
 }
 function genFloor(f){
@@ -1677,8 +1678,8 @@ function genFloor(f){
   let nc=boss?0:rnd(1,2);if(kind==='treasure')nc+=2;if(kind==='rest')nc=0;
   for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:kind==='treasure'?i===0:(f>=2&&Math.random()<.15)});
   if((kind==='rest'||(!boss&&(f===2||Math.random()<.35)))&&free.length)put({kind:'shrine',x:free.pop()});
-  if(!boss&&kind!=='rest'&&f>=2&&free.length&&Math.random()<.2)put({kind:'shell',x:free.pop()});
-  else if(!boss&&kind!=='rest'&&f>=4&&free.length&&Math.random()<.12)put({kind:'bj',x:free.pop()});
+  if(!boss&&kind!=='rest'&&f>=2&&free.length&&Math.random()<.12)put({kind:'shell',x:free.pop()});
+  else if(!boss&&kind!=='rest'&&f>=4&&free.length&&Math.random()<.08)put({kind:'bj',x:free.pop()});
   if(!boss&&f>=2&&free.length&&Math.random()<.06)put({kind:'ticket',x:free.pop()});   // rare: a lost scratch card
   if(kind!=='rest')for(let i=0;i<rnd(0,2)&&free.length;i++)put({kind:'trap',x:free.pop(),dmg:3+Math.floor(f/2)});
   for(let i=0;i<rnd(1,3)+(kind==='treasure'?1:0)&&free.length;i++)put({kind:'coins',x:free.pop(),v:rnd(1,3)+Math.floor(f/3)});
@@ -1986,7 +1987,7 @@ async function doTurn(R){
   noteTurn(`Reels: ${Object.entries(u).map(([k,n])=>`${SYM[k]?SYM[k].e:k}×${n}`).join(' ')}${R.mult>1?` · wheel ×${R.mult}`:''}${R.triples?' · JACKPOT':''}`);
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
   let mu=R.mult||1;r.turnCoins=0;
-  if(R.triples&&!M.autoBonus&&!r.death&&Math.random()<.35){const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary goldbtn'},{label:'Refuse',val:null}]);
+  if(R.triples&&!M.autoBonus&&!r.death&&Math.random()<.12){const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary goldbtn'},{label:'Refuse',val:null}]);
     if(v){mu*=2;r.curse=(r.curse||0)+1;heroFl('CURSED ×'+mu,'#b07cf0');stat('cursedTaken');}}
   r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
@@ -2109,7 +2110,8 @@ async function openChest(o,keyed){
   o.gone=true;o.open=true;sfx.jackpot();
   gainCoins(rnd(2,5)+Math.floor(r.floor/2));
   let rar=rollRarity(keyed?15:5);if(hasR('map'))rar=Math.max(2,rar);
-  r.pending.push(mkItem(null,rar,r.floor+1));
+  // gear from half of chests (keyed and treasure-floor chests always): the rest pay extra coins
+  if(keyed||r.kind==='treasure'||Math.random()<.5)r.pending.push(mkItem(null,rar,r.floor+1));else gainCoins(rnd(2,4)+Math.floor(r.floor/3));
   if(Math.random()<.03){const u=rollUnique();if(u){r.pending.push(u);heroFl('UNIQUE!','#8cff96');}}
   r.objs.push({id:uid++,kind:'openchest',x:o.x,dx:o.x*T});
 }
@@ -2233,7 +2235,7 @@ async function floorClear(){
   await drainLoot();
   if(r.floor+1>S.best&&(r.floor+1)%5===0){r.chips++;S.chips++;}
   S.best=Math.max(S.best,r.floor);
-  await shop();
+  if(r.floor%5===0)await shop();   // the merchant only sets up shop every fifth floor
   r.nextKind='fight';
   if((r.floor+1)%3!==0){
     const others=shuffle(['treasure','elite','rest']).slice(0,2);const opts=['fight',...others];
@@ -2270,7 +2272,7 @@ async function shop(){
       special:`${o.item?gearIcon(o.item,'lead'):''}<b style="color:#8cff96">★ House Special: ${o.item?esc(o.item.name):''}</b><small>this week only · ${o.item?o.item.affs.map(affText).join(' · '):''}</small>`,
       scratch:`🎟️ Scratch card <small>three alike wins coins, a heal or a relic</small>`,
       flip:`🪙 Flip the merchant <small>win: everything left is half price · lose: he keeps the coins</small>`,
-      loan:`📜 Borrow ${loanAmt(r.floor)} 🪙 from the Taxman <small>repay ${Math.ceil(loanAmt(r.floor)*1.5)} by floor ${r.floor+3}, or his collector comes</small>`,
+      loan:`📜 Borrow ${loanAmt(r.floor)} 🪙 from the Taxman <small>repay ${Math.ceil(loanAmt(r.floor)*1.5)} at my next stop (floor ${r.floor+5}), or his collector comes</small>`,
       repay:`📜 Repay the Taxman <small>clears your debt${r.loan?` (due floor ${r.loan.due})`:''}</small>`})[o.t];
     const btns=offers.map((o,i)=>({label:o.sold?`<s>${desc(o)}</s>`:`${desc(o)}<span class="price">🪙${o.price}</span>`,val:i,disabled:o.sold||r.coins<o.price}));
     btns.push({label:'Descend ▶',val:'go',cls:'primary'});
@@ -2287,7 +2289,7 @@ async function shop(){
     if(o.t==='flip'){const w=Math.random()<.5;stat(w?'flipWon':'flipLost');
       await modal(w?'Heads!':'Tails...',`${coinHTML(w?'heads':'tails')}<p>${w?'The merchant scowls. <b>Everything left is half price.</b>':'The merchant grins and pockets your coins.'}</p>`,[{label:'Fine',val:1,cls:'primary goldbtn'}]);
       if(w)for(const x of offers)if(!x.sold&&x.t!=='repay'&&x.t!=='loan')x.price=Math.max(1,Math.ceil(x.price/2));continue;}
-    if(o.t==='loan'){const a=loanAmt(r.floor);r.loan={owe:Math.ceil(a*1.5),due:r.floor+3};gainCoins(a);stat('loans');continue;}
+    if(o.t==='loan'){const a=loanAmt(r.floor);r.loan={owe:Math.ceil(a*1.5),due:r.floor+5};gainCoins(a);stat('loans');continue;}
     if(o.t==='repay'){r.loan=null;heroFl('debt paid','#6cc070');stat('loansRepaid');continue;}
     if(o.t==='special'){r.pending.push(o.item);await drainLoot();}
     if(o.t==='heal')heal(fxFold('meal',Math.round(stats().maxHp*.4)));
@@ -2512,7 +2514,7 @@ function showHub(v){
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
     <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
-    <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
+    <h3>Coins are time</h3><p>Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
@@ -2580,7 +2582,7 @@ $('#scene').addEventListener('click',e=>{
   if(busy||M.spinning)return;
   const o=run.objs.find(o=>!o.gone&&o.x===wx&&o.kind!=='openchest'&&o.kind!=='shrine_used');
   if(!o)return;
-  const info={door:['🚪 Exit','Step through to reach the merchant and the next floor.'],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
+  const info={door:['🚪 Exit',run.floor%5===0?'Step through to reach the merchant and the next floor.':`Step through to the next floor. The merchant waits past floor ${Math.ceil(run.floor/5)*5}.`],chest:['📦 Chest',`Stab it open (${o.hp} HP) or use a Key. ${run.floor>=2?'Some chests bite.':''}`],
     shrine:['⛩ Shrine','Step on it to choose a relic.'],ticket:['🎟️ A lost scratch card','Someone dropped a Grave Gains ticket. Step on it to scratch it.'],bj:['🃏 Death\'s Blackjack','Rattles the croupier deals blackjack here. Step up to play: beat the dealer to 21.'],shell:['👁️ The Shell Game','Gristle the Shell-Man runs a table here. Step up to bet on following the eye under the skulls.'],trap:['🔺 Spikes',`${o.dmg} damage when you step here. Block helps.`],coins:['🪙 Coin pile',`+${o.v} coins.`]}[o.kind];
   if(o.kind==='enemy'){const [ic,v]=intentOf(o);const pd=(ENEMIES[o.t]||{}).d;modal(o.n,`${o.elite?`<p style="color:var(--orange)">${ELITES[o.elite].e} ${ELITES[o.elite].n}: ${ELITES[o.elite].d}</p>`:''}${pd?`<p style="color:var(--dim)">${pd}</p>`:''}<p>❤ ${o.hp}/${o.max}${o.block?` · 🛡 ${o.block}`:''} · range ${o.range}</p><p>Next: ${icon('intent_'+o.pat[o.pi%o.pat.length][0],ic,'gi')} <b>${intentText(o)}</b></p>`,[{label:'Close',val:1,cls:'center'}]);}
   else if(info)modal(info[0],`${icon('shop_'+(o.kind==='coins'?'coinpile':o.kind),'','hero')}<p>${info[1]}</p>`,[{label:'Close',val:1,cls:'center'}]);

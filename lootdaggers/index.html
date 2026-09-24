@@ -216,6 +216,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.primary.ooze.hasArt{border-style:solid;border-color:transparent;border-width:28px 24px 32px;border-radius:0;background:none;box-shadow:none;padding:0 6px 2px;
   border-image:var(--oozeArt) 100 84 110 84 fill / 28px 24px 32px stretch;
   filter:drop-shadow(0 0 5px rgba(140,255,150,.6));animation:oozeGlowArt 1.8s ease-in-out infinite}
+/* Death's own button: bone and soul-fire (art pack 21), or a dark plate with a cold blue glow */
+.btn.primary.soulbtn{position:relative;border:2px solid #9fd6ff;border-radius:8px;background:linear-gradient(#141827,#07080d);color:#dff2ff;font-family:var(--head);font-weight:400;font-size:24px;letter-spacing:1px;padding:14px 12px 16px;
+  text-shadow:0 0 10px #9fd6ff,0 2px 0 #000;box-shadow:0 0 12px rgba(159,214,255,.5),inset 0 0 14px rgba(159,214,255,.2);animation:soulGlow 2.2s ease-in-out infinite}
+.btn.primary.soulbtn small{color:#9fb6c9}
+.btn.primary.soulbtn.hasArt{border-style:solid;border-color:transparent;border-width:26px 26px 30px;border-radius:0;background:none;box-shadow:none;padding:0 6px 2px;
+  border-image:var(--soulArt) 100 110 110 110 fill / 26px 26px 30px stretch;filter:drop-shadow(0 0 5px rgba(159,214,255,.6));animation:soulGlowArt 2.2s ease-in-out infinite}
+@keyframes soulGlow{50%{box-shadow:0 0 22px rgba(159,214,255,.85),inset 0 0 18px rgba(159,214,255,.3)}}
+@keyframes soulGlowArt{50%{filter:drop-shadow(0 0 12px rgba(159,214,255,.95))}}
 @keyframes oozeGlow{50%{box-shadow:0 0 18px rgba(140,255,150,.85),inset 0 0 18px rgba(140,255,150,.35)}}
 @keyframes oozeGlowArt{50%{filter:drop-shadow(0 0 12px rgba(140,255,150,.95))}}
 .item{border:2px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:#161014}
@@ -303,6 +311,8 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .dlg{display:flex;gap:12px;align-items:flex-start}
 .dlg .port.dlgPort{float:none;flex:0 0 96px;width:96px;height:96px;margin:0;object-fit:cover;object-position:center;border:2px solid #5fd35a;border-radius:6px;box-shadow:0 0 10px rgba(140,255,150,.45)}
 .dlgTxt{margin:0;flex:1;font-size:15px;line-height:1.45;color:#e9f7dc;min-height:96px}
+.dlg.soul .port.dlgPort{border-color:#9fd6ff;box-shadow:0 0 10px rgba(159,214,255,.5)}
+.dlg.soul .dlgTxt{color:#e3f2ff}.dlg.soul .dlgCur{color:#9fd6ff}
 .dlgCur{color:#8cff96;animation:dlgBlink .6s steps(1) infinite}
 @keyframes dlgBlink{50%{opacity:0}}
 /* the shell game */
@@ -695,9 +705,9 @@ async function readGrave(o){
 }
 // A dialogue box in the game's own frame: the speaker's portrait, a green name
 // plate and the line typed out. An optional splash sits above.
-async function labDialog(port,name,text,splash,btn){
+async function labDialog(port,name,text,splash,btn,style){
   const pic=portImg(port,'dlgPort')||portImg('portrait_labfreak','dlgPort');
-  const pr=modal(name,`${splash&&artSrc(splash)?`<img class="splash" src="${artSrc(splash)}" alt="">`:''}<div class="dlg">${pic}<p class="dlgTxt"></p></div>`,[{label:btn,val:1,cls:'primary ooze'}]);
+  const pr=modal(name,`${splash&&artSrc(splash)?`<img class="splash" src="${artSrc(splash)}" alt="">`:''}<div class="dlg ${style==='soulbtn'?'soul':''}">${pic}<p class="dlgTxt"></p></div>`,[{label:btn,val:1,cls:'primary '+(style||'ooze')}]);
   const el=$('#modal .dlgTxt');let i=0;
   const step=()=>{if(!el.isConnected)return;i=Math.min(text.length,i+2);el.textContent=text.slice(0,i);
     if(i<text.length){el.insertAdjacentHTML('beforeend','<span class="dlgCur">▌</span>');setTimeout(step,S.fast?8:22);}};
@@ -917,21 +927,21 @@ async function defyDeath(){
   const r=run;if(!deathReady()||busy||modalOpen)return;
   const again=S.deathDefeated>0;
   const v=await modal('Pay your Debt, and Defy Death',`${portImg('portrait_death1','big merch')}<p>Pay <b>${DEATH_COST} 🪙</b> to buy a seat at Death's own table. Beat him, and you walk out of the dungeon a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
-    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
+    [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary soulbtn'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
   if(!v||!deathReady())return;r.deathDouble=v===2;
   busy=true;r.coins-=DEATH_COST;sfx.jackpot();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
   const f=r.floor,d=mkEnemy('death',r.x+1,f,true);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
   busy=false;rebuildReels();ui();save();
-  await labDialog('portrait_death1','Death',pick(DEATH_LINES[1]),null,'Pull the lever');
+  await labDialog('portrait_death1','Death',pick(DEATH_LINES[1]),null,'Pull the lever','soulbtn');
   logLine('<b>The final table.</b> Death watches you, bored. His phases turn at ⅔ and ⅓ of his life.');
 }
 async function deathPhase(o,ph){
   o.phase=ph;o.pat=deathPat(ph,run.floor);o.pi=0;o.flash=1;view.shake=14;sfx.jackpot();
   document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
   view.banner={t:performance.now(),txt:ph===2?'DEATH TAKES INTEREST':'DEATH IS AFRAID'};
-  await labDialog('portrait_death'+ph,'Death',pick(DEATH_LINES[ph]),null,ph===2?'Keep pulling':'Finish it');
+  await labDialog('portrait_death'+ph,'Death',pick(DEATH_LINES[ph]),null,ph===2?'Keep pulling':'Finish it','soulbtn');
   noteTurn(`<span style="color:#9fd6ff">Death enters phase ${ph}${ph===3?': <b>he now acts twice a turn</b>':''}</span>`);
 }
 // called from hit(): keeps Death inside his phase until the phase change has played
@@ -943,7 +953,7 @@ async function deathCheck(o){
 }
 async function defeatDeath(){
   const r=run;r.pendingFree=false;view.shake=18;sfx.jackpot();
-  await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light');
+  await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light','soulbtn');
   const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;r.souls+=666;stat('deathWins');
   if(r.deathDouble&&S.ledger){const up=S.ledger.lvl<LEDGER_MAX;if(up)S.ledger.lvl++;save();await modal('Double or Nothing: won',`${icon('gear_unique_ledger','📓','hero')}<p>${up?`The Grim's Ledger rises to <b style="color:#8cff96">+${S.ledger.lvl}</b>, free of charge.`:'The Ledger is already complete. Death pays you in souls instead: <b>+666</b>.'}</p>`,[{label:'Take it',val:1,cls:'primary'}]);if(!up)r.souls+=666;}
   if(first){S.ledger={lvl:1,picks:['swordDmg','maxHp']};S.ledgerOn=true;save();
@@ -2309,7 +2319,7 @@ function modal(title,html,buttons,scrollTo){
     const A=window.LD_ART||{};
     m.innerHTML=`<div class="mbox ${A.ui_panel?'art':''}" ${A.ui_panel?`style="border-image-source:url(${A.ui_panel})"`:''}><h2>${artify(title)}</h2><div class="mbody">${artify(html)}</div><div class="mbtns"></div></div>`;
     const bb=m.querySelector('.mbtns');
-    buttons.forEach(b=>{const el=document.createElement('button');el.className='btn '+(b.cls||'');if((b.cls||'').includes('ooze')&&A.ui_ooze_button)el.classList.add('hasArt');el.innerHTML=artify(b.label);el.disabled=!!b.disabled;
+    buttons.forEach(b=>{const el=document.createElement('button');el.className='btn '+(b.cls||'');if((b.cls||'').includes('ooze')&&A.ui_ooze_button)el.classList.add('hasArt');if((b.cls||'').includes('soulbtn')&&A.ui_death_button)el.classList.add('hasArt');el.innerHTML=artify(b.label);el.disabled=!!b.disabled;
       if(A.ui_button&&!(b.cls||'').includes('primary')){el.classList.add('art');el.style.borderImageSource=`url(${A.ui_button})`;el.innerHTML=`<span class="lbl">${el.innerHTML}</span>`;
         const lbl=el.firstElementChild,price=lbl.querySelector('.price');if(price)el.appendChild(price),el.classList.add('hasPrice');
         const lead=lbl.querySelector('.ico.lead');const txt=document.createElement('span');txt.className='txt';
@@ -2554,7 +2564,7 @@ function artImg(k){return ART[k]&&ART[k].complete&&ART[k].naturalWidth?ART[k]:nu
 function artSrc(k){return (window.LD_ART||{})[k]||'';}
 function applyChrome(){
   const A=window.LD_ART||{};
-  const R=document.documentElement.style;if(A.ui_button)R.setProperty('--btnArt',`url(${A.ui_button})`);if(A.ui_spin_button)R.setProperty('--goldArt',`url(${A.ui_spin_button})`);if(A.ui_ooze_button)R.setProperty('--oozeArt',`url(${A.ui_ooze_button})`);if(A.ui_defy_button){R.setProperty('--defyArt',`url(${A.ui_defy_button})`);$('#defyBtn').classList.add('hasArt');}
+  const R=document.documentElement.style;if(A.ui_button)R.setProperty('--btnArt',`url(${A.ui_button})`);if(A.ui_spin_button)R.setProperty('--goldArt',`url(${A.ui_spin_button})`);if(A.ui_ooze_button)R.setProperty('--oozeArt',`url(${A.ui_ooze_button})`);if(A.ui_death_button)R.setProperty('--soulArt',`url(${A.ui_death_button})`);if(A.ui_defy_button){R.setProperty('--defyArt',`url(${A.ui_defy_button})`);$('#defyBtn').classList.add('hasArt');}
   if(A.ui_cabinet){$('#cabinetArt').src=A.ui_cabinet;$('#cabinet').classList.add('art');}
   if(run)drawBulbs();
   if(A.ui_spin_button){$('#spinBtn').classList.add('art');}

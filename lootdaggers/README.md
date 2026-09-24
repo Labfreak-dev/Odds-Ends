@@ -442,3 +442,8 @@ Nothing in the game is emoji any more once art.js loads.
   souls) and, the first time, unlocks The Grim's Ledger: a permanent extra vault
   space holding a charm whose bonuses you choose (2-5 of 14) and upgrade to +10
   with souls and boss chips. Emoji stand-ins until art-pack19.
+- **b077**: the Grim's Ledger offers every bonus: all 16 gear affixes (now also skull
+  removal and extra steps) plus adding any of 9 symbols to the reels (Wild,
+  Dagger, Bow, Bomb, Shield, Potion, Boots, Key, Coin). Every value climbs with the
+  Ledger's level (ilvl = 3x level); counted bonuses (symbols, coins, multiplier,
+  skull removal, steps) go 1 to 3. Each option previews its next-level value.

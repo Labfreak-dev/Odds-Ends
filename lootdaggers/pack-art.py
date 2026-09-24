@@ -25,6 +25,9 @@ OUT = os.path.join(HERE, 'art.js')
 
 # kind by key: (keyed?, target height, max width, webp quality)
 def kind(key):
+    if key.startswith('death_'):     return ('key', 720, 720, 80)   # Death on his throne (final boss)
+    if key.startswith('hero_back_'): return ('key', 560, 560, 82)   # heroes seen from behind (final boss)
+    if key == 'ui_defy_button':      return ('key', 480, 1100, 80)
     if key == 'title':               return ('cover', 720, 1280, 78)
     if key == 'bg_wall':             return ('wall', 512, 4096, 76)
     if key == 'bg_floor':            return ('floor', 160, 4096, 76)
@@ -46,9 +49,6 @@ def kind(key):
         return ('key', 160, 160, 84)
     if key.startswith('torch_'):     return ('key', 420, 420, 80)   # floor-standing torch bearers
     if key.startswith('shell_dealer'): return ('key', 560, 560, 80)   # shell game: the dealer's poses
-    if key.startswith('death_'):     return ('key', 720, 720, 80)   # Death on his throne (final boss)
-    if key.startswith('hero_back_'): return ('key', 560, 560, 82)   # heroes seen from behind (final boss)
-    if key == 'ui_defy_button':      return ('key', 480, 1100, 80)
     if key.startswith('shell_'):     return ('key', 360, 360, 84)   # shell game parts: hands, cup, eye
     return ('key', 280, 280, 82)     # props: chest, door, shrine, trap, torch...
 

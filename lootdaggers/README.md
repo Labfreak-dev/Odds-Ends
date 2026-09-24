@@ -479,3 +479,6 @@ Nothing in the game is emoji any more once art.js loads.
 - **b081**: art pack 20 packed (472 images): the blackjack table, Rattles' four poses,
   the card back, his stall and portrait, the Bookie's portrait and the Ace, King and
   Queen reel symbols. Blackjack layout tuned: Rattles larger, both hands on the felt.
+- **b082**: Death's dialogue and the Defy Death confirm use his own button (cold blue
+  soul-glow plate, switching to ui_death_button from art-pack21 once packed) and a
+  blue portrait frame, instead of Labfreak's green ooze.

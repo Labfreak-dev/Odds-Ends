@@ -1,0 +1,13 @@
+DEAD MAN'S PULL — ART PACK 21: 1 NEW BUTTON (Death's fight)
+
+READ THIS FIRST:
+- 1 BRAND-NEW image. Do NOT reuse or re-send earlier packs.
+- Save it as a PNG named EXACTLY ui_death_button.png (a loose image is fine too, just say its name).
+- Wide button shape like the gold SPIN button, on flat pure magenta #FF00FF (it gets cut out).
+- The FACE MUST BE BLANK and dark: the game writes "Pull the lever", "Finish it" and so on on top.
+- Keep the decoration to the frame; the middle stretches to fit each label.
+
+Checklist:
+  [ ] ui_death_button.png
+
+ui_death_button.png | a large wide rectangular button plate for Death's own table: a frame of interlocking yellowed bones and small skulls, a skull with glowing blue eye sockets at the centre of the top edge, tarnished gold rivets at the four corners, thin wisps of pale blue souls curling out from the gaps between the bones and around the rim, the flat inner face dark black-blue and completely BLANK, the same wide landscape shape as a slot-machine spin button. hand-inked gothic horror art in the style of a dark grim comic, thick jagged black ink outlines, heavy angular black shadows and crosshatching, desaturated bone, ash grey and tarnished gold palette with glowing pale spectral-blue soul light as the main accent, game interface element, lit evenly from the front, centered, isolated on a solid flat pure magenta (#FF00FF) background, completely BLANK face: no letters, no words, no numbers, no symbols on it, nothing magenta or hot pink in the design

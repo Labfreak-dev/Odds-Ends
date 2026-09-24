@@ -36,7 +36,7 @@ def kind(key):
     if key.startswith('bg_floor'):   return ('floor', 160, 4096, 76)
     if key == 'bg_far':              return ('wall', 420, 4096, 72)
     if key == 'bg_fog':              return ('fogkey', 300, 4096, 74)
-    if key in ('ui_cabinet', 'ui_panel', 'ui_button', 'ui_spin_button', 'ui_stop_button', 'ui_logo', 'ui_slot_frame', 'ui_ooze_button'):
+    if key in ('ui_cabinet', 'ui_panel', 'ui_button', 'ui_spin_button', 'ui_stop_button', 'ui_logo', 'ui_slot_frame', 'ui_ooze_button', 'ui_death_button'):
         return ('key', 480, 1100, 80)
     if key in ('ui_reel_strip', 'ui_lever'): return ('key', 640, 640, 80)
     if key in ('app_icon', 'share_card'): return ('skip', 0, 0, 0)   # served as files, not packed

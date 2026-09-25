@@ -578,3 +578,4 @@ Nothing in the game is emoji any more once art.js loads.
   particles, Mythic flashing glow + particles), 10 hero auras, 8 hero dyes, 10 titles
   (some auras/dyes/titles are bounty-only). Wardrobe to wear them; skins tint the current
   cabinet until their art arrives. Art prompts: art-pack24-prompts.txt (40 images).
+- **b108**: art pack 24 packed (543 images): the 20 machine skins, the Soul Shredder scene, five menu icons, and the Duelist and Hex Priest (sprites, back views, portraits), replacing their stand-ins. No older art changed.

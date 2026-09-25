@@ -2451,7 +2451,8 @@ async function addRelicRaw(id){
 }
 async function relicPick(title,text,pk){
   const ch=relicChoices(3);if(!ch.length)return;
-  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${famTag(x.id)}${x.d}</small>`,val:x.id})));
+  const v=await modal(title,`${pk&&pk.startsWith('screen_')?(artSrc(pk)?`<img class="splash" src="${artSrc(pk)}" alt="">`:''):pk?portImg(pk,'big merch'):''}<p>${text}</p>`,ch.map(x=>({label:`${relicIcon(x,'lead')}<b>${x.n}</b><small>${famTag(x.id)}${x.d}</small>`,val:x.id})).concat([{label:'Skip the relic',val:null,cls:'center'}]));
+  if(!v){logLine('You leave the relic where it lies.');return;}
   await addRelic(v);rebuildReels();ui();
 }
 async function floorClear(){
@@ -2459,7 +2460,7 @@ async function floorClear(){
   r.souls+=Math.round(5*routeOf().souls);gainCoins(2);fxEach('floorClear');settleContract();
   if(alt('mend'))heal(alt('mend')*3);
   if(r.bossDown&&r.lab){r.bossDown=false;await drainLoot();r.souls+=50;
-    if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker');await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1}]);await addRelic('beaker');rebuildReels();ui();}
+    if(!hasR('beaker')){const b=RELICS.find(x=>x.id==='beaker'),v=await modal("Labfreak's Hoard",`${portImg('portrait_labfreak','big merch')}<p>Among the smashed glass, one beaker is still bubbling. It is warm. It is <i>humming</i>. +50 souls.</p>`,[{label:`${relicIcon(b,'lead')}<b>${b.n}</b><small>${b.d}</small>`,val:1},{label:'Leave the beaker',val:null,cls:'center'}]);if(v)await addRelic('beaker');rebuildReels();ui();}
     else await relicPick("Labfreak's Hoard",'The lab\'s shelves hold one more curiosity. +50 souls.','portrait_labfreak');}
   // the floor's loot: worse pieces are salvaged on the spot, each upgrade gets the compare screen
   r.pending.push(...sortLoot());await drainLoot();

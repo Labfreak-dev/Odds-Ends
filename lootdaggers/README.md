@@ -579,3 +579,4 @@ Nothing in the game is emoji any more once art.js loads.
   (some auras/dyes/titles are bounty-only). Wardrobe to wear them; skins tint the current
   cabinet until their art arrives. Art prompts: art-pack24-prompts.txt (40 images).
 - **b108**: art pack 24 packed (543 images): the 20 machine skins, the Soul Shredder scene, five menu icons, and the Duelist and Hex Priest (sprites, back views, portraits), replacing their stand-ins. No older art changed.
+- **b109**: with a machine skin worn, the reels sit inside that skin's painted window: the cabinet takes the art's own proportions, and the reels, line info and hold buttons are placed from each skin's measured window (SKIN_WIN); the free-spin bulbs line up along the top of the window. Reels are smaller under a skin (about 200x114 vs 300x129 on a phone); no skin, no change.

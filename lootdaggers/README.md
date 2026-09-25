@@ -560,7 +560,7 @@ Nothing in the game is emoji any more once art.js loads.
 - **b105**: art pack 23 packed (503 images): road icons, the six family emblems, five foe trait badges and nine new relic icons. pack-art.py now also keys out a hot-pink field that survives inside a thin pure-magenta frame (it only checked the outer edge before); trait badges draw left of the health bar like the elite badge.
 - **b106**: every relic reward (boss hoard, shrine, scratch card, Bonus Bell, Relic Socket, Labfreak's hoard and his Beaker) has a Skip button.
 - **b107**: the long game.
-  Bounty Board: 45 feats (floors, roads, bosses, Labfreak, Death, jackpots, big hits,
+  Bounty Board: 43 feats (floors, roads, bosses, Labfreak, Death, jackpots, big hits,
   side bets, families, heroes, Debt, contracts, the Shredder) paid the moment they happen;
   ten relics (Roulette, Greased Wheel, Glass Cannon, House Edge, Crooked Dealer, Sawn
   Longbow, All In, Blood Money, Gambler's Ruin, Hollow Point) stay out of the pool until

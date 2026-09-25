@@ -140,6 +140,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wdInfo b{display:block;font-family:var(--head);font-weight:400;font-size:20px}.wdInfo small{font-size:11px;color:var(--dim)}
 .wdWear{font-size:17px!important;padding:2px 14px 4px!important;white-space:nowrap}.wdLock{font-size:11px;color:var(--dim);white-space:nowrap}
 .wdIt.pick{outline:2px dashed var(--tc);outline-offset:1px}
+.wdGrp{grid-column:1/-1;font-family:var(--head);font-size:17px;color:#cdb68a;margin:6px 0 0}
 .shrShow{margin:6px 0}.shrShowRow{display:grid;grid-template-columns:1fr 1fr .8fr;gap:6px;align-items:center}
 .shrPrev{max-width:240px;margin:4px auto 2px}.shrPrev .pvHero{max-width:150px}
 /* ---- the Soul Shredder ---- */
@@ -2677,13 +2678,39 @@ const TITLES=[
   {id:'mad',n:'the Mad',t:3,ex:1},{id:'deathless',n:'the Deathless',t:5,ex:1},{id:'broke',n:'the Broke',t:2,ex:1},{id:'mourner',n:'the Mourner',t:2,ex:1},
   {id:'grinder',n:'the Soul Grinder',t:3,ex:1},{id:'debtor',n:'the Debtor',t:4,ex:1},
 ];
-const COS_KINDS={skin:{n:'Machine skins',L:SKINS},aura:{n:'Hero auras',L:AURAS},dye:{n:'Hero dyes',L:DYES},title:{n:'Titles',L:TITLES}};
+// hero skins: eight per hero, one worn per hero. Their art is four poses (idle, walk, attack,
+// hurt) keyed hero_<hero>_<skin>_<pose>; until it lands the skin tints the hero's own art.
+const HSKIN_DEF={
+  knight:[['squire','Rusted Squire',1,'sepia(.6) saturate(1.3) hue-rotate(-15deg)'],['templar','Templar',1,'grayscale(.3) brightness(1.25)'],['black','Black Knight',1,'brightness(.5) contrast(1.4)'],
+    ['bonecrusader','Crusader of Bone',2,'grayscale(.8) sepia(.4) brightness(1.3)'],['frostguard','Frostguard',2,'hue-rotate(180deg) brightness(1.15) saturate(1.2)'],['hellforged','Hellforged',3,'sepia(.7) hue-rotate(-30deg) saturate(2.4) brightness(.9)'],
+    ['gravepaladin','Grave Paladin',4,'hue-rotate(120deg) saturate(1.5) brightness(1.05)'],['eternal','Knight of the Eternal Jackpot',5,'sepia(1) saturate(3) brightness(1.2)']],
+  ranger:[['poacher','Poacher',1,'sepia(.7) brightness(.95)'],['mossstalker','Moss Stalker',1,'hue-rotate(40deg) saturate(1.5)'],['crow','Crow Hunter',1,'brightness(.55) contrast(1.3)'],
+    ['wolfpelt','Wolfpelt',2,'grayscale(.7) brightness(1.2)'],['bonearcher','Bone Archer',2,'grayscale(.9) sepia(.35) brightness(1.35)'],['witchhunter','Swamp Witch-Hunter',3,'hue-rotate(70deg) saturate(1.8) brightness(.9)'],
+    ['spectral','Spectral Huntsman',4,'hue-rotate(160deg) saturate(1.6) brightness(1.3)'],['reaperarrow',"The Reaper's Arrow",5,'grayscale(.5) hue-rotate(170deg) saturate(2) brightness(1.1)']],
+  gambler:[['cardsharp','Cardsharp',1,'hue-rotate(-20deg) saturate(1.3)'],['riverboat','Riverboat Dealer',1,'grayscale(.4) brightness(1.2)'],['pitboss','Pit Boss',1,'brightness(.6) contrast(1.3)'],
+    ['carnival','Masked Carnivalist',2,'hue-rotate(280deg) saturate(1.8)'],['goldengrin','Golden Grin',2,'sepia(1) saturate(2.4) brightness(1.1)'],['voodoo','Voodoo Croupier',3,'hue-rotate(90deg) saturate(2)'],
+    ['devil','High-Stakes Devil',4,'hue-rotate(-40deg) saturate(2.6) brightness(.95)'],['house','The House Itself',5,'sepia(1) hue-rotate(-10deg) saturate(3.2) brightness(1.2)']],
+  brute:[['butcher','Butcher',1,'hue-rotate(-30deg) saturate(1.4)'],['pitfighter','Pit Fighter',1,'sepia(.5) brightness(1.1)'],['gravedigger','Gravedigger',1,'grayscale(.6) brightness(.85)'],
+    ['ogre','Ogre Mask',2,'hue-rotate(60deg) saturate(1.4)'],['ironjaw','Iron Jaw',2,'grayscale(1) brightness(1.2) contrast(1.2)'],['demolition','Demolition Monk',3,'sepia(.8) hue-rotate(-20deg) saturate(2)'],
+    ['magma','Magma Titan',4,'sepia(.7) hue-rotate(-35deg) saturate(3) brightness(.95)'],['siege','The Walking Siege',5,'sepia(1) saturate(2.5) brightness(1.15) contrast(1.2)']],
+  duelist:[['fencer','Fencing Master',1,'grayscale(.5) brightness(1.3)'],['highwayman','Highwayman',1,'sepia(.6) brightness(.9)'],['plague','Plague Musketeer',1,'hue-rotate(50deg) saturate(1.2) brightness(.9)'],
+    ['crimson','Crimson Rake',2,'hue-rotate(-20deg) saturate(2)'],['silvermask','Silver Masquerade',2,'grayscale(1) brightness(1.4)'],['vampire','Vampire Count',3,'hue-rotate(-40deg) saturate(2.2) brightness(.8)'],
+    ['ghostblade','Ghost Blade',4,'grayscale(.6) hue-rotate(160deg) saturate(1.8) brightness(1.35)'],['champion',"Death's Champion",5,'grayscale(.3) hue-rotate(170deg) saturate(2.4) brightness(1.1) contrast(1.2)']],
+  hexpriest:[['acolyte','Grave Acolyte',1,'grayscale(.5) brightness(.9)'],['candlemonk','Candle Monk',1,'sepia(.8) brightness(1.1)'],['oracle','Bone Oracle',1,'grayscale(.9) sepia(.3) brightness(1.3)'],
+    ['rotbishop','Rot Bishop',2,'hue-rotate(60deg) saturate(1.6)'],['frosthexer','Frost Hexer',2,'hue-rotate(190deg) brightness(1.2)'],['witchdoctor','Swamp Witchdoctor',3,'hue-rotate(90deg) saturate(2) brightness(.9)'],
+    ['voidcardinal','Void Cardinal',4,'hue-rotate(240deg) saturate(2) brightness(.8)'],['hollowpope','The Hollow Pope',5,'sepia(1) hue-rotate(-10deg) saturate(2.8) brightness(1.2)']],
+};
+const HSKINS=Object.entries(HSKIN_DEF).flatMap(([h,L])=>L.map(([sid,n,t,tint])=>({id:h+'_'+sid,hero:h,sid,n,t,tint})));
+const COS_KINDS={skin:{n:'Machine skins',L:SKINS},hskin:{n:'Hero skins',L:HSKINS},aura:{n:'Hero auras',L:AURAS},dye:{n:'Hero dyes',L:DYES},title:{n:'Titles',L:TITLES}};
+const eqKey=(k,x)=>k==='hskin'?'hskin:'+x.hero:k;   // hero skins are worn one per hero
+function hskinFor(hero){const id=cosState().eq['hskin:'+hero];return id&&cosOwned('hskin',id)?HSKINS.find(x=>x.id===id):null;}
+const hskinArt=x=>!!(x&&artImg('hero_'+x.id+'_idle'));
 const TIER=[null,{n:'Common',c:'#c9c2b6'},{n:'Rare',c:'#5aa9e6'},{n:'Epic',c:'#b07cf0'},{n:'Legendary',c:'#ff8c3a'},{n:'Mythic',c:'#ff4a6a'}];
 function cosState(){if(!S.cos||typeof S.cos!=='object')S.cos={own:{},eq:{}};S.cos.own=S.cos.own||{};S.cos.eq=S.cos.eq||{};return S.cos;}
 const cosOwned=(k,id)=>!!cosState().own[k+':'+id];
 function cosGive(k,id){const c=cosState();if(c.own[k+':'+id])return false;c.own[k+':'+id]=1;save();return true;}
 const cosEq=k=>{const id=cosState().eq[k];return id&&cosOwned(k,id)?COS_KINDS[k].L.find(x=>x.id===id):null;};
-const cosName=(k,x)=>k==='title'?`“${x.n}”`:x.n;
+const cosName=(k,x)=>k==='title'?`“${x.n}”`:k==='hskin'?`${x.n} · ${HEROES[x.hero].n}`:x.n;
 function heroTitle(){const t=cosEq('title');return t?' '+t.n:'';}
 
 // ---- the machine skin on the cabinet ----
@@ -2718,9 +2745,10 @@ function drawAura(X,Y,t,c2,a2,sc){
   G.globalAlpha=.8;G.fillStyle=col;for(let i=0;i<(a.t>=3?7:4);i++){const k=(t*.6+i/7)%1,px=X+Math.sin(i*2.3+t)*18,py=Y-8-k*70;G.globalAlpha=.7*(1-k);G.fillRect(px,py,2+(a.t>=4?1:0),2+(a.t>=4?1:0));}
   G.restore();if(sc!==1)G.restore();
 }
-const heroFilter=()=>{const d=cosEq('dye');return d?d.f:'none';};
+const heroFilter=()=>{const d=cosEq('dye'),x=run&&hskinFor(run.hero),f=[];if(x&&!hskinArt(x))f.push(x.tint);if(d)f.push(d.f);return f.join(' ')||'none';};
 const HERO_ART_FALLBACK={duelist:'knight',hexpriest:'gambler'};
 const heroKey=id=>artImg('hero_'+id+'_idle')?id:(HERO_ART_FALLBACK[id]||id);
+const heroSkinKey=id=>{const x=hskinFor(id);return hskinArt(x)?x.id:heroKey(id);};
 
 // ---- cosmetic previews: a mini machine for skins, a hero on a little stage for the rest ----
 const artHeroes=()=>Object.keys(HEROES).filter(h=>artImg('hero_'+h+'_idle'));
@@ -2729,12 +2757,13 @@ function pvSkin(x,big){
   const parts=x.t>=4?Array.from({length:x.t>=5?16:10},()=>`<i class="sp sp-${x.fx||'embers'}" style="left:${(4+Math.random()*92).toFixed(1)}%;animation-delay:${(-Math.random()*6).toFixed(2)}s;animation-duration:${(3+Math.random()*4).toFixed(2)}s"></i>`).join(''):'';
   return `<div class="pvCab skin-t${x.t}${big?' big':''}" style="--skinGlow:${x.glow};--skinTint:${own?'brightness(1)':x.tint}"><img src="${src}" alt=""><div class="pvFx">${parts}</div></div>`;
 }
-function pvHero(o){   // o: {hero,aura,dye,title}
-  return `<div class="pvStage"><canvas class="pvHero" width="200" height="230" data-hero="${o.hero}" data-aura="${o.aura||''}" data-dye="${o.dye||''}"></canvas>${o.title?`<div class="pvTitle">${HEROES[o.hero].n} <b>${o.title}</b></div>`:''}</div>`;
+function pvHero(o){   // o: {hero,skin,aura,dye,title}
+  return `<div class="pvStage"><canvas class="pvHero" width="200" height="230" data-hero="${o.hero}" data-skin="${o.skin||''}" data-aura="${o.aura||''}" data-dye="${o.dye||''}"></canvas>${o.title?`<div class="pvTitle">${HEROES[o.hero].n} <b>${o.title}</b></div>`:''}</div>`;
 }
 function pvFor(k,x,hero){
   hero=hero||pick(artHeroes().length?artHeroes():['knight']);
   if(k==='skin')return pvSkin(x,true);
+  if(k==='hskin')return pvHero({hero:x.hero,skin:x.id});
   return pvHero({hero,aura:k==='aura'?x.id:'',dye:k==='dye'?x.id:'',title:k==='title'?x.n:''});
 }
 let pvRaf=0;
@@ -2743,9 +2772,10 @@ function pvTick(now){
   const t=now/1000;
   cs.forEach(cv=>{const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.clearRect(0,0,W,H);
     const g=c.createRadialGradient(W/2,H-18,4,W/2,H-18,W*.45);g.addColorStop(0,'rgba(255,220,160,.18)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,W,H);
-    const a=AURAS.find(x=>x.id===cv.dataset.aura)||null,d=DYES.find(x=>x.id===cv.dataset.dye)||null,im=artImg('hero_'+cv.dataset.hero+'_idle');
+    const a=AURAS.find(x=>x.id===cv.dataset.aura)||null,d=DYES.find(x=>x.id===cv.dataset.dye)||null,hs=HSKINS.find(x=>x.id===cv.dataset.skin)||null,im=(hs&&artImg('hero_'+hs.id+'_idle'))||artImg('hero_'+cv.dataset.hero+'_idle');
+    const flt=[hs&&!hskinArt(hs)?hs.tint:'',d?d.f:''].filter(Boolean).join(' ')||'none';
     const X=W/2,Y=H-16,h=H*.82;if(a)pvAura(c,X,Y-h*.48,h*.6,t,a);
-    if(im){const w=h*im.naturalWidth/im.naturalHeight;c.filter=d?d.f:'none';c.drawImage(im,X-w/2,Y-h+Math.sin(t*2)*1.5,w,h);c.filter='none';}
+    if(im){const w=h*im.naturalWidth/im.naturalHeight;c.filter=flt;c.drawImage(im,X-w/2,Y-h+Math.sin(t*2)*1.5,w,h);c.filter='none';}
     c.fillStyle='rgba(0,0,0,.45)';c.beginPath();c.ellipse(X,Y+2,40,6,0,0,7);c.fill();});
   pvRaf=requestAnimationFrame(pvTick);
 }
@@ -2901,7 +2931,7 @@ async function shredFeed(){
   const bt=L.querySelector('.shrBtns');
   await new Promise(res=>{bt.innerHTML=`${got?`<button class="btn plaque" data-s="wear">Wear it</button>`:''}${S.souls>=SHRED_COST?`<button class="btn plaque" data-s="again">Feed again · 💠${SHRED_COST}</button>`:''}<button class="btn plaque" data-s="done">Done</button>`;
     bt.onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;const a=b.dataset.s;L.classList.remove('show');modalOpen=false;
-      if(a==='wear'){cosState().eq[got.k]=got.x.id;save();applySkin();}
+      if(a==='wear'){cosState().eq[eqKey(got.k,got.x)]=got.x.id;save();applySkin();}
       res(a);if(a==='again')shredFeed().then(()=>showHub('shredder'));};});
 }
 
@@ -3130,17 +3160,18 @@ function showHub(v){
     const c=cosState(),hs=artHeroes(),hero=hs.includes(S.wardHero)?S.wardHero:(hs[0]||'knight');
     const [sk,sid]=(S.wardSel||'').split(':'),selX=sk&&COS_KINDS[sk]?COS_KINDS[sk].L.find(x=>x.id===sid):null;
     const tryOn=k=>sk===k&&selX?selX:cosEq(k);   // the selected piece over whatever you wear
-    const sx=tryOn('skin'),au=tryOn('aura'),dy=tryOn('dye'),ti=tryOn('title');
+    const sx=tryOn('skin'),au=tryOn('aura'),dy=tryOn('dye'),ti=tryOn('title'),hsk=sk==='hskin'&&selX&&selX.hero===hero?selX:hskinFor(hero);
     const plain={id:'none',t:1,glow:'#000',tint:'brightness(1)'};
     let info='<div class="wdInfo"><span class="sub">Tap anything below to try it on.</span></div>';
-    if(selX){const T=TIER[selX.t],o=cosOwned(sk,selX.id),on=c.eq[sk]===selX.id;
+    if(selX){const T=TIER[selX.t],o=cosOwned(sk,selX.id),on=c.eq[eqKey(sk,selX)]===selX.id;
       info=`<div class="wdInfo"><div><b style="color:${T.c}">${cosName(sk,selX)}</b><small>${T.n} ${COS_KINDS[sk].n.replace(/s$/,'').toLowerCase()}</small></div>${o?`<button class="btn plaque wdWear" data-act="wear:${sk}:${selX.id}">${on?'Take it off':'Wear it'}</button>`:`<span class="wdLock">🔒 ${selX.ex?'from a bounty':'from the Soul Shredder'}</span>`}</div>`;}
     html=back+`<h2 style="color:var(--gold)">${icon('ui_wardrobe','🎭')} Wardrobe</h2>
-      <div class="wdPrev">${pvHero({hero,aura:au&&au.id,dye:dy&&dy.id,title:ti&&ti.n})}<div class="wdCabBox">${pvSkin(sx||plain)}<small>${sx?sx.n:'Standard machine'}</small></div></div>
+      <div class="wdPrev">${pvHero({hero,skin:hsk&&hsk.id,aura:au&&au.id,dye:dy&&dy.id,title:ti&&ti.n})}<div class="wdCabBox">${pvSkin(sx||plain)}<small>${sx?sx.n:'Standard machine'}</small></div></div>
       <div class="wdBar"><button class="btn plaque wdHeroBtn" data-act="whero">⟳ Try on ${HEROES[hs[(hs.indexOf(hero)+1)%hs.length]]?HEROES[hs[(hs.indexOf(hero)+1)%hs.length]].n:'another hero'}</button></div>${info}`+
-      Object.entries(COS_KINDS).map(([k,K])=>`<h3 class="recH">${K.n}</h3><div class="wdGrid">`+K.L.map(x=>{const o=cosOwned(k,x.id),on=c.eq[k]===x.id,T=TIER[x.t],pk=sk===k&&sid===x.id;
-        const sw=k==='skin'?`<span class="wdSw" style="background:${x.glow}"></span>`:k==='aura'?`<span class="wdSw" style="background:${x.c==='rainbow'?'linear-gradient(90deg,red,orange,yellow,green,cyan,blue,violet)':x.c}"></span>`:k==='dye'?`<span class="wdSw" style="background:#c9a;filter:${x.f}"></span>`:'';
-        return `<button class="wdIt${o?'':' locked'}${on?' on':''}${pk?' pick':''}" style="--tc:${T.c}" data-act="wsel:${k}:${x.id}">${sw}<b>${cosName(k,x)}</b><small style="color:${T.c}">${T.n}${o?'':x.ex?' · 🏆 bounty':' · Shredder'}</small>${on?'<i>worn</i>':''}</button>`;}).join('')+`</div>`).join('');
+      Object.entries(COS_KINDS).map(([k,K])=>`<h3 class="recH">${K.n}</h3><div class="wdGrid">`+K.L.map((x,xi)=>{const o=cosOwned(k,x.id),on=c.eq[eqKey(k,x)]===x.id,T=TIER[x.t],pk=sk===k&&sid===x.id;
+        const grp=k==='hskin'&&(xi===0||K.L[xi-1].hero!==x.hero)?`<div class="wdGrp">${HEROES[x.hero].n}</div>`:'';
+        const sw=k==='hskin'?`<span class="wdSw" style="background:#b9a88a;filter:${x.tint}"></span>`:k==='skin'?`<span class="wdSw" style="background:${x.glow}"></span>`:k==='aura'?`<span class="wdSw" style="background:${x.c==='rainbow'?'linear-gradient(90deg,red,orange,yellow,green,cyan,blue,violet)':x.c}"></span>`:k==='dye'?`<span class="wdSw" style="background:#c9a;filter:${x.f}"></span>`:'';
+        return grp+`<button class="wdIt${o?'':' locked'}${on?' on':''}${pk?' pick':''}" style="--tc:${T.c}" data-act="wsel:${k}:${x.id}">${sw}<b>${cosName(k,x)}</b><small style="color:${T.c}">${T.n}${o?'':x.ex?' · 🏆 bounty':' · Shredder'}</small>${on?'<i>worn</i>':''}</button>`;}).join('')+`</div>`).join('');
     setTimeout(pvStart,0);
   }else if(v==='records'){
     const st=S.stats||{},g=k=>st[k]||0,net=k=>{const n=g(k);return `<b style="color:${n>=0?'var(--gold)':'var(--red)'}">${n>=0?'+':''}${n}</b>`;};
@@ -3181,8 +3212,8 @@ $('#hub').addEventListener('click',async e=>{
   const [a,arg]=el.dataset.act.split(':');
   if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'||a==='records'||a==='contracts'||a==='bounties'||a==='shredder'||a==='wardrobe')){if(a==='wardrobe')S.wardSel=null;return showHub(a);}
   if(a==='shred'){await shredFeed();return showHub('shredder');}
-  if(a==='wear'){const [,k,id]=el.dataset.act.split(':');const c=cosState();c.eq[k]=c.eq[k]===id?null:id;save();applySkin();return showHub('wardrobe');}
-  if(a==='wsel'){const [,k,id]=el.dataset.act.split(':');S.wardSel=k+':'+id;return showHub('wardrobe');}
+  if(a==='wear'){const [,k,id]=el.dataset.act.split(':');const c=cosState(),x=COS_KINDS[k].L.find(y=>y.id===id),ek=eqKey(k,x);c.eq[ek]=c.eq[ek]===id?null:id;save();applySkin();return showHub('wardrobe');}
+  if(a==='wsel'){const [,k,id]=el.dataset.act.split(':');S.wardSel=k+':'+id;if(k==='hskin'){const x=HSKINS.find(y=>y.id===id);if(x)S.wardHero=x.hero;}return showHub('wardrobe');}
   if(a==='whero'){const hs=artHeroes(),cur=hs.includes(S.wardHero)?S.wardHero:hs[0];S.wardHero=hs[(hs.indexOf(cur)+1)%hs.length];return showHub('wardrobe');}
   if(a==='debt'){S.debtSel=Math.min(+arg||0,debtMax());save();return showHub('heroes');}
   if(a==='resume')return resumeRun();
@@ -3353,7 +3384,7 @@ function drawHero(x,t,moving){
   const h=HEROES[run.hero];const bob=moving?Math.abs(Math.sin(t*16))*3:Math.sin(t*3)*1;const lx=view.lunge*10;
   const X=x+lx,Y=GY-bob;
   if(view.hurt>0&&Math.floor(t*30)%2)cx.globalAlpha=.5;
-  const hk=heroKey(run.hero);
+  const hk=heroSkinKey(run.hero);
   const pose=view.hurt>.55&&artImg('hero_'+hk+'_hurt')?'_hurt':view.lunge>.3?'_attack':moving?(Math.floor(t*7)%2?'_walk':'_idle'):'_idle';
   if(artImg('hero_'+hk+'_idle'))shadow(x,22);
   drawAura(X,Y,t);

@@ -104,6 +104,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 #cabinet.art #cabinetArt{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;pointer-events:none;filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000)}
 #cabinet.art #marquee{position:relative;z-index:1;margin:0 0 4px}
 /* ---- machine skins: the tiers add motion on top of the art ---- */
+#cabinet.skinned{aspect-ratio:var(--ar);padding:0!important;height:auto}
+#cabinet.skinned #reels{position:absolute;left:calc(var(--wx0)*1%);right:calc((100 - var(--wx1))*1%);top:calc(var(--wy0)*1%);bottom:calc((100 - var(--wy1))*1%);height:auto;gap:3px}
+#cabinet.skinned #marquee{position:absolute;left:calc(var(--wx0)*1%);right:calc((100 - var(--wx1))*1%);top:calc(var(--wy0)*1% - 22px);margin:0;z-index:2}
+#cabinet.skinned #reelCtl{position:absolute;left:calc(var(--wx0)*1%);right:calc((100 - var(--wx1))*1%);top:calc(var(--wy1)*1% + 5px);margin:0;gap:3px}
+#cabinet.skinned .reel{border-width:2px;border-radius:6px}
 #skinFx{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;border-radius:14px}
 #cabinet.skin-t2 #cabinetArt,#cabinet.skin-t3 #cabinetArt{animation:skinPulse 2.6s ease-in-out infinite}
 #cabinet.skin-t4 #cabinetArt{animation:skinPulse 1.8s ease-in-out infinite}
@@ -1974,7 +1979,7 @@ function soulCount(grid){return grid.reduce((n,col)=>n+col.filter(x=>x==='scoin'
 function bulbsGained(soul){const need=bonusNeed();return soul>=need?1+(soul-need)*2:0;}
 function drawBulbs(gained){
   const r=run,lit=r?Math.min(BULBS,r.bulbs||0):0;let box=$('#bulbs');
-  if(!box.children.length){const use=[0,1,2,3,4,5,6];box.innerHTML=use.map(i=>`<i style="left:${BULB_POS[i][0]}%;top:${BULB_POS[i][1]}%"></i>`).join('');}
+  if(!box.children.length){const use=[0,1,2,3,4,5,6],P=skinBulbPos()||BULB_POS;box.innerHTML=use.map(i=>`<i style="left:${P[i][0]}%;top:${P[i][1]}%"></i>`).join('');}
   [...box.children].forEach((el,i)=>{const on=i<lit;const was=el.classList.contains('lit');el.classList.toggle('lit',on);el.classList.toggle('new',on&&!was&&!!gained);});
   let fb=$('#bulbsFallback');if(!$('#cabinet').classList.contains('art')){if(!fb){fb=document.createElement('div');fb.id='bulbsFallback';$('#marquee').after(fb);}
     fb.innerHTML=Array.from({length:BULBS},(_,i)=>`<i class="${i<lit?'lit':''}"></i>`).join('');}else if(fb)fb.remove();
@@ -2650,13 +2655,23 @@ const cosName=(k,x)=>k==='title'?`“${x.n}”`:x.n;
 function heroTitle(){const t=cosEq('title');return t?' '+t.n:'';}
 
 // ---- the machine skin on the cabinet ----
+// where each skin's painted reel window sits, as fractions of its art (measured from the art pack)
+const SKIN_WIN={abyss:[0.226,0.317,0.774,0.694],bog:[0.246,0.356,0.756,0.71],bone:[0.243,0.258,0.753,0.765],brass:[0.218,0.348,0.782,0.707],candle:[0.249,0.419,0.748,0.679],carnival:[0.243,0.31,0.754,0.733],cathedral:[0.232,0.394,0.765,0.754],copper:[0.21,0.369,0.791,0.748],eternal:[0.22,0.35,0.765,0.72],frost:[0.216,0.383,0.784,0.812],gilded:[0.24,0.344,0.758,0.746],hide:[0.228,0.398,0.77,0.765],inferno:[0.243,0.329,0.755,0.75],moss:[0.262,0.315,0.74,0.765],oak:[0.2,0.279,0.784,0.725],plague:[0.215,0.34,0.785,0.73],reaper:[0.269,0.35,0.729,0.76],rose:[0.239,0.306,0.759,0.758],rusted:[0.253,0.365,0.738,0.727],slate:[0.223,0.338,0.769,0.698]};
+function skinBulbPos(){const c=$('#cabinet');if(!c||!c.classList.contains('skinned'))return null;const w=c._win;const y=Math.max(4,w[1]*100-8);
+  return Array.from({length:7},(_,i)=>[w[0]*100+(w[2]-w[0])*100*(i+.5)/7,y]);}
 function applySkin(){
   const cab=$('#cabinet');if(!cab)return;const sk=cosEq('skin'),A=window.LD_ART||{};
-  cab.classList.remove('skin-t1','skin-t2','skin-t3','skin-t4','skin-t5');
+  cab.classList.remove('skin-t1','skin-t2','skin-t3','skin-t4','skin-t5','skinned');cab._win=null;
+  const bz=$('#bulbs');if(bz){bz.innerHTML='';setTimeout(()=>{if(run)drawBulbs();},0);}
   let fxEl=$('#skinFx');if(!fxEl){fxEl=document.createElement('div');fxEl.id='skinFx';cab.insertBefore(fxEl,cab.firstChild.nextSibling);}
   fxEl.innerHTML='';const img=$('#cabinetArt');
   if(!sk){if(A.ui_cabinet)img.src=A.ui_cabinet;img.style.filter='';cab.style.removeProperty('--skinGlow');cab.style.removeProperty('--skinTint');return;}
   const own=A['ui_cabinet_'+sk.id];if(own)img.src=own;else if(A.ui_cabinet)img.src=A.ui_cabinet;
+  // with its own art, the reels sit inside that art's window, at the art's own proportions
+  const wi=SKIN_WIN[sk.id],ai=artImg('ui_cabinet_'+sk.id);
+  if(own&&wi&&ai&&ai.naturalWidth){const m=.012;cab._win=wi;cab.classList.add('skinned');cab.style.setProperty('--ar',(ai.naturalWidth/ai.naturalHeight).toFixed(4));
+    [['--wx0',wi[0]+m],['--wy0',wi[1]+m],['--wx1',wi[2]-m],['--wy1',wi[3]-m]].forEach(([k,v])=>cab.style.setProperty(k,(v*100).toFixed(2)));}
+  else if(own&&wi&&ART['ui_cabinet_'+sk.id]&&!ai)ART['ui_cabinet_'+sk.id].addEventListener('load',()=>applySkin(),{once:true});   // art still decoding
   img.style.filter='';cab.style.setProperty('--skinTint',own?'brightness(1)':sk.tint);   // a tinted stand-in until the skin's own art arrives
   cab.style.setProperty('--skinGlow',sk.glow);cab.classList.add('skin-t'+sk.t);
   if(sk.t>=4){const n=sk.t>=5?22:14;for(let i=0;i<n;i++){const p=document.createElement('i');p.className='sp sp-'+(sk.fx||'embers');

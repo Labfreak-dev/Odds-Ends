@@ -597,3 +597,4 @@ Nothing in the game is emoji any more once art.js loads.
   longer pulse (animating the blurred glow stuttered on phones) and the light sweep is
   gone: a steady glow by tier, particles from Legendary up. Prompts for sym_free and the
   seven shr_ symbols: art-pack25-prompts.txt.
+- **b112**: art pack 25 packed (551 images): the Free Games symbol (sym_free) and the Soul Shredder's seven reel symbols (shr_skull, shr_eye, shr_candle, shr_urn, shr_bone, shr_heart, shr_jackpot), replacing their stand-ins. No older art changed.

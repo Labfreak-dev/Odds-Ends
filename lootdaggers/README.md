@@ -608,3 +608,4 @@ Nothing in the game is emoji any more once art.js loads.
   never slow the first load; art.js stays where it was. The Bone Archer idle came with a
   tarot-card border drawn around it; it was painted out in art-src (canvas size kept, so
   the pose keeps its scale).
+- **b115**: art pack 26 complete: Gambler, Brute, Duelist and Hex Priest skins packed (128 sprites). All 48 hero skins now have their own art; art-skins.js holds all 192 sprites (6.2MB, fetched after the main art); art.js unchanged at ~22.4MB.

@@ -1,12 +1,35 @@
-DEAD MAN'S PULL — ART PACK 25: 1 NEW IMAGE (the Free Games reel symbol)
+DEAD MAN'S PULL — ART PACK 25: 8 NEW IMAGES (the Free Games reel symbol and the Soul Shredder's reel symbols)
 
 READ THIS FIRST:
-- 1 BRAND-NEW image. Save it as a PNG named EXACTLY the name before the | .
-- It sits on the reels next to the dagger, shield, coin and the rest: same style, same size, readable at a glance on a small phone.
-- It must look special (it starts the bonus) but not like a coin, so it never gets confused with the red soul coin.
+- 8 BRAND-NEW images. Loose images are fine: just say which name each one is. Save each as a PNG named EXACTLY the name before the | .
+- sym_free sits on the game reels next to the dagger, shield, coin and the rest: same style, same size, readable at a glance on a small phone.
+- sym_free must look special (it starts the bonus) but not like a coin, so it never gets confused with the red soul coin.
 - Flat pure magenta #FF00FF background. NO TEXT anywhere: no "FREE", no letters.
 
 Checklist:
   [ ] sym_free.png
+  [ ] shr_skull.png
+  [ ] shr_eye.png
+  [ ] shr_candle.png
+  [ ] shr_urn.png
+  [ ] shr_bone.png
+  [ ] shr_heart.png
+  [ ] shr_jackpot.png
 
 sym_free.png | a small ornate iron treasure chest bursting open, bright golden light and three tiny spinning slot-machine reels spilling out of it, a grinning skull lock on the front, glowing gold and crimson gems. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+== THE SOUL SHREDDER'S REELS (seven symbols on its three little reels: six spooky ones that spin past, and the jackpot symbol that lines up when it pays out). One matching set, same style as the game's reel symbols. ==
+
+shr_skull.png | a grinning cracked skull with glowing cyan soul-light leaking from its eye sockets. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+shr_eye.png | a single bloodshot staring eyeball held in a rusted iron claw setting. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+shr_candle.png | a black candle with a violet flame, thick wax dripping down like blood. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+shr_urn.png | a small funerary urn of black ceramic with a faint green glow seeping from under the lid. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+shr_bone.png | two crossed old bones tied with a scrap of red ribbon. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+shr_heart.png | a withered anatomical heart pierced by an iron nail, still faintly glowing red. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame
+
+shr_jackpot.png | THE JACKPOT SYMBOL: a radiant gold-and-crimson soul gem in a skull-shaped setting, blazing with light and small sparks, clearly the most valuable symbol of the set. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame

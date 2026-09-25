@@ -588,3 +588,12 @@ Nothing in the game is emoji any more once art.js loads.
   spins). Silver Scatter now adds a Free Games symbol to every reel, Long Streak adds 2
   free spins, and the Scythe of the Unpaid's kills earn a free spin every 6th kill.
   Art prompt: art-pack25-prompts.txt (sym_free); the 🎁 stands in until then.
+- **b111**: premium Shredder and Wardrobe. The Shredder's reels are parchment reels with
+  symbol art (its own spooky set once pack 25 lands; the game's symbols until then) and
+  a jackpot reveal that shows the prize: a skin on a mini machine with its effects, an
+  aura or dye on a random hero, a title on a hero's nameplate. The Shredder page shows
+  top prizes. The Wardrobe has a try-on panel: tap anything (owned or locked) to see it
+  on a hero and machine before wearing it, and cycle which hero tries it on. Skins no
+  longer pulse (animating the blurred glow stuttered on phones) and the light sweep is
+  gone: a steady glow by tier, particles from Legendary up. Prompts for sym_free and the
+  seven shr_ symbols: art-pack25-prompts.txt.

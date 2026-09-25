@@ -76,11 +76,15 @@ def key_out(im):
     # the edges are still mostly opaque, key out every saturated pink pixel that is
     # connected to the edge instead (pink inside the subject is left alone).
     edge = np.concatenate([alpha[:4].ravel(), alpha[-4:].ravel(), alpha[:, :4].ravel(), alpha[:, -4:].ravel()])
-    if edge.mean() > 0.08:
-        hot = (r - g > 90) & (b - g > 45) & (g < 110)
-        lab, _ = ndimage.label(hot)
-        ids = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
-        field = np.isin(lab, ids[ids > 0])
+    hot = (r - g > 90) & (b - g > 45) & (g < 110)
+    lab, _ = ndimage.label(hot)
+    ids = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+    field = np.isin(lab, ids[ids > 0])
+    # a thin pure frame can key cleanly at the very edge while a big hot-pink field
+    # inside it survives (art pack 23): also fall back when that edge-connected pink
+    # field is still largely opaque
+    survived = field.any() and (alpha[field] > 0.2).mean() > 0.2
+    if edge.mean() > 0.08 or survived:
         field = ndimage.binary_dilation(field, iterations=1) & (hot | field)
         bg = np.median(a[field], axis=0) if field.any() else bg
         d = np.sqrt(((a - bg) ** 2).sum(-1))

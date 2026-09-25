@@ -557,3 +557,4 @@ Nothing in the game is emoji any more once art.js loads.
   for 10% of your purse up to 60), Crooked Dealer (wheel always x2), Blood Money (spins
   free, each costs 2 HP). Art prompts for these, the road icons, family emblems and trait
   badges are in art-pack23-prompts.txt (23 images); emoji stand in until then.
+- **b105**: art pack 23 packed (503 images): road icons, the six family emblems, five foe trait badges and nine new relic icons. pack-art.py now also keys out a hot-pink field that survives inside a thin pure-magenta frame (it only checked the outer edge before); trait badges draw left of the health bar like the elite badge.

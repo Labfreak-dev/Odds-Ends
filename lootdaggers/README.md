@@ -559,3 +559,22 @@ Nothing in the game is emoji any more once art.js loads.
   badges are in art-pack23-prompts.txt (23 images); emoji stand in until then.
 - **b105**: art pack 23 packed (503 images): road icons, the six family emblems, five foe trait badges and nine new relic icons. pack-art.py now also keys out a hot-pink field that survives inside a thin pure-magenta frame (it only checked the outer edge before); trait badges draw left of the health bar like the elite badge.
 - **b106**: every relic reward (boss hoard, shrine, scratch card, Bonus Bell, Relic Socket, Labfreak's hoard and his Beaker) has a Skip button.
+- **b107**: the long game.
+  Bounty Board: 45 feats (floors, roads, bosses, Labfreak, Death, jackpots, big hits,
+  side bets, families, heroes, Debt, contracts, the Shredder) paid the moment they happen;
+  ten relics (Roulette, Greased Wheel, Glass Cannon, House Edge, Crooked Dealer, Sawn
+  Longbow, All In, Blood Money, Gambler's Ruin, Hollow Point) stay out of the pool until
+  their bounty is claimed. Debt 1-10: opens after the first win over Death, the next level
+  opens by reaching floor 20 at your highest; handicaps stack (foe block, merchant +50%,
+  a jammed reel until the first kill, an extra elite, healing -25%, a welded Skull, foes
+  +25% damage, 1 Doom per floor, bosses +50% life, spins +1) for +15% souls per level;
+  best Debt per hero in Records. Daily Contracts: three jobs a day seeded by the date,
+  30 souls each and 60 for all three. Two heroes: Duelist (Blades; 800 souls; stabs in a
+  row stack +1) and Hex Priest (Hex; 1200 souls; skulls strike foes from the first spin);
+  their art stands in from the Knight/Gambler until pack 24 lands.
+  Soul Shredder: 40 souls a feed, ~35% jackpot, a sure hit after 4 misses, only rolls
+  what you don't own (Common 50 / Rare 28 / Epic 14 / Legendary 6 / Mythic 2 weights).
+  Prizes: 20 machine skins that animate by tier (Rare pulse, Epic light sweep, Legendary
+  particles, Mythic flashing glow + particles), 10 hero auras, 8 hero dyes, 10 titles
+  (some auras/dyes/titles are bounty-only). Wardrobe to wear them; skins tint the current
+  cabinet until their art arrives. Art prompts: art-pack24-prompts.txt (40 images).

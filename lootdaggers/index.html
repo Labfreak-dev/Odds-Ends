@@ -3306,9 +3306,19 @@ function applyChrome(){
   document.querySelectorAll('.reel').forEach(r=>{if(A.ui_reel_strip){r.classList.add('art');r.style.backgroundImage=`url(${A.ui_reel_strip})`;}});
   setBtn(M.spinning?'stop':busy?'busy':'spin');
 }
+// hero skin sprites live in their own file, fetched once the main art is up
+let skinArtAsked=false;
+function loadSkinArt(){
+  if(skinArtAsked)return;skinArtAsked=true;
+  const sc=document.createElement('script');sc.src='art-skins.js';
+  sc.onload=()=>{const src=window.LD_ART_SKINS||{};Object.assign(window.LD_ART=window.LD_ART||{},src);let left=Object.keys(src).length;
+    const done=()=>{if(--left>0)return;if(!$('#hub').classList.contains('hidden')&&(hubView==='wardrobe'||hubView==='shredder'))showHub(hubView);};
+    for(const k in src){const im=new Image();im.onload=im.onerror=done;im.src=src[k];ART[k]=im;}};
+  document.head.appendChild(sc);
+}
 function loadArt(){
   const src=window.LD_ART||{};let left=Object.keys(src).length;
-  const done=()=>{if(--left>0)return;applyChrome();if(run){drawReels(true);ui();}if(!$('#hub').classList.contains('hidden'))showHub(hubView);};
+  const done=()=>{if(--left>0)return;applyChrome();if(run){drawReels(true);ui();}if(!$('#hub').classList.contains('hidden'))showHub(hubView);loadSkinArt();};
   for(const k in src){const im=new Image();im.onload=im.onerror=done;im.src=src[k];ART[k]=im;}
 }
 // World height of each sprite's WHOLE generated canvas: the packer keeps every

@@ -585,7 +585,8 @@ const SYM={
   ace:{e:'🂡',n:'Ace',d:'A playing card. Two or three cards on a payline make a poker hand.'},
   king:{e:'🂮',n:'King',d:'A playing card. King and Queen together: Royal Couple.'},
   queen:{e:'🂭',n:'Queen',d:'A playing card. Ace, King and Queen: Royal Straight.'},
-  scoin:{e:'🪙',n:'Soul Coin',d:'A coin with an ember. Three on screen light a bulb; a full row of bulbs is free spins.'},
+  scoin:{e:'🪙',n:'Soul Coin',d:'A coin with an ember: pays double (two coins) on a payline.'},
+  free:{e:'🎁',n:'Free Games',d:'Scatter: three anywhere on screen start free spins (four for 5, five for 8). During free spins, three more retrigger them.'},
 };
 const SYM_ORDER=['sword','bow','bomb','boots','shield','potion','coin','key','star','skull'];
 
@@ -1374,8 +1375,8 @@ const RELICS=[
   {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Two held reels cost nothing; a third and fourth cost only the difference.'},
   {id:'scythe',e:'🌙',n:'Reaper\'s Scythe',d:'Doom builds twice as fast; the Reaper pays double souls.'},
   {id:'thumb',e:'👍',n:'Croupier\'s Thumb',d:'Below half HP the fortune wheel never lands on x1.'},
-  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Two soul coins light a bulb instead of three.'},
-  {id:'longstreak',e:'🔥',n:'Long Streak',d:'The bonus gives 5 free spins instead of 3.'},
+  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Adds a Free Games symbol to every reel.'},
+  {id:'longstreak',e:'🔥',n:'Long Streak',d:'Free spins last 2 spins longer.'},
   // the fifty mechanic relics (their effects live in FX)
   {id:"goldtooth",e:"😁",n:"Gold Tooth",d:"Coins pay +2, but Potions heal 1 less."},
   {id:"bloodpact",e:"🩸",n:"Blood Pact",d:"Daggers +4 damage, but every spin costs 1 HP."},
@@ -1494,7 +1495,7 @@ const FX={
   // uniques only
   lastpull:{async jackpot(n){const t=nearestFoe(run.x+1);if(t)await hit(t,10*n,'jackpot');}},
   rake:{dealt(o,d,how){if(how==='sword')gainCoins(2);}},
-  unpaid:{kill(){run.bulbs=Math.min(BULBS-1,(run.bulbs||0)+1);drawBulbs(true);}},
+  unpaid:{kill(){run.unpaid=(run.unpaid||0)+1;if(run.unpaid%6===0){run.freeSpin=true;heroFl('a free spin','#d9b56a');}}},
   deck:{bowTargets(n){return Math.max(n,3);}},
   graverob:{kill(){gainCoins(3);}},
   coffinplate:{keepBlock(){return true;}},
@@ -1825,7 +1826,7 @@ const salvageVal=it=>RAR[it.rar].salv+Math.floor(it.lvl/3);
 const UNIQUES=[
   {id:"lastpull",slot:"weapon",n:"The Last Pull",e:"🕹️",affs:l=>[{k:'swordDmg',v:3+Math.floor(l/3)},{k:'luck',v:15}],fx:"lastpull",fl:"Pried off the machine that took everything.",d:"Jackpots also deal 10 to the nearest foe."},
   {id:"rake",slot:"weapon",n:"Croupier's Rake",e:"🧹",affs:l=>[{k:'swordDmg',v:2+Math.floor(l/3)},{k:'coinPer',v:1}],fx:"rake",fl:"The house takes its cut.",d:"Dagger hits steal 2 coins."},
-  {id:"unpaid",slot:"weapon",n:"Scythe of the Unpaid",e:"🌙",affs:l=>[{k:'swordDmg',v:4+Math.floor(l/2)},{k:'soulFind',v:25}],fx:"unpaid",fl:"Every debt is collected eventually.",d:"Kills light a bonus bulb."},
+  {id:"unpaid",slot:"weapon",n:"Scythe of the Unpaid",e:"🌙",affs:l=>[{k:'swordDmg',v:4+Math.floor(l/2)},{k:'soulFind',v:25}],fx:"unpaid",fl:"Every debt is collected eventually.",d:"Every 6th kill makes your next spin free."},
   {id:"deck",slot:"weapon",n:"Dealer's Deck",e:"🃏",affs:l=>[{k:'bowDmg',v:2+Math.floor(l/3)},{k:'add',sym:'bow',v:1}],fx:"deck",fl:"Fifty-two cards, all of them sharp.",d:"Bows hit up to three foes."},
   {id:"spade",slot:"weapon",n:"Grave Robber's Spade",e:"⛏️",affs:l=>[{k:'shove',v:4+Math.floor(l/3)},{k:'swordDmg',v:2}],fx:"graverob",fl:"Dig deep. The dead don't need it.",d:"Kills pay 3 more coins."},
   {id:"shroud",slot:"armor",n:"Shroud of the House",e:"👻",affs:l=>[{k:'maxHp',v:8+l},{k:'luck',v:10}],fx:"hexbag",fl:"Woven from unpaid IOUs.",d:"The first hit each floor misses."},
@@ -1977,20 +1978,25 @@ function tickWheel(now){
 const BULBS=7,BULB_POS=[[24.1,15.7],[32.7,13.5],[41.3,13.8],[50,11.9],[58.5,13.1],[67.4,13.9],[75.9,15.9]];  // bulb centres on the cabinet art, % of width/height
 function soulCount(grid){return grid.reduce((n,col)=>n+col.filter(x=>x==='scoin').length,0);}
 function bulbsGained(soul){const need=bonusNeed();return soul>=need?1+(soul-need)*2:0;}
-function drawBulbs(gained){
+function drawBulbs(gained){const bx=$('#bulbs');if(bx)bx.innerHTML='';const f=$('#bulbsFallback');if(f)f.remove();return;   // retired: Free Games symbols start the bonus now
+}
+function drawBulbsOld(gained){
   const r=run,lit=r?Math.min(BULBS,r.bulbs||0):0;let box=$('#bulbs');
   if(!box.children.length){const use=[0,1,2,3,4,5,6],P=skinBulbPos()||BULB_POS;box.innerHTML=use.map(i=>`<i style="left:${P[i][0]}%;top:${P[i][1]}%"></i>`).join('');}
   [...box.children].forEach((el,i)=>{const on=i<lit;const was=el.classList.contains('lit');el.classList.toggle('lit',on);el.classList.toggle('new',on&&!was&&!!gained);});
   let fb=$('#bulbsFallback');if(!$('#cabinet').classList.contains('art')){if(!fb){fb=document.createElement('div');fb.id='bulbsFallback';$('#marquee').after(fb);}
     fb.innerHTML=Array.from({length:BULBS},(_,i)=>`<i class="${i<lit?'lit':''}"></i>`).join('');}else if(fb)fb.remove();
 }
-function bonusNeed(){return hasR('silverscatter')?2:3;}
+function bonusNeed(){return 3;}
+const freeSpinsFor=n=>(n>=5?8:n>=4?5:3)+(hasR('longstreak')?2:0);
 function finishRes(res){
   res.mult=M.wheel;
   res.soul=soulCount(readGrid());
-  res.gain=bulbsGained(res.soul);   // bulbs collect during free spins too
-  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;
-  res.retrigger=run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;   // a full row during free spins retriggers them
+  // Free Games: a scatter, three or more anywhere on screen
+  res.free=readGrid().filter(col=>col.includes('free')).length;   // a scatter counts once per reel
+  res.gain=0;
+  res.bonusTrigger=!run.inBonus&&res.free>=3;
+  res.retrigger=run.inBonus&&res.free>=3;
   // a held reel whose middle symbol matches the others pays a little
   {const g=readGrid(),mid=g.map(c=>c[1]);let hp=0;for(const i of (M.heldIdx||[])){const k=mid[i],o=mid.filter((x,j)=>j!==i);const m=o.filter(x=>x===k||x==='star'||k==='star').length;hp+=m===o.length?3:m?1:0;}res.holdPay=hp;}
   return res;
@@ -2013,6 +2019,8 @@ function rebuildReels(){
   }
   for(const R of M.reels){
     const arr=[];for(const k in counts)for(let i=0;i<counts[k];i++)arr.push(k==='coin'&&i%2===0?'scoin':k);
+    // Free Games per reel, tuned so the bonus lands about once in 35-40 spins on 3 and 4 reels
+    {const c=M.reels.indexOf(R),n=M.reels.length,f=(n<=3?2:n===4?(c===0?2:1):1)+(hasR('silverscatter')?1:0);for(let i=0;i<f;i++)arr.push('free');}
     // Whatever is in the window stays put: only the unseen part of the strip is
     // reshuffled, so a hex, relic or new floor never swaps symbols in front of you
     // (they showed symbols that had not landed, and did not count).
@@ -2126,7 +2134,7 @@ function nudge(i,dir){
   const R=M.reels[i];if(!R||!M.pendingRes||M.spinning||busy||M.nudges<=0||R.jam)return;
   R.o=Math.round(R.o)+dir;M.nudges--;sfx.stop();drawReels(true);
   document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
-  const res=finishRes(evaluate(readGrid()));markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();
+  const res=finishRes(evaluate(readGrid()));markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();if(res.bonusTrigger||res.retrigger){const g=readGrid(),fc=[];g.forEach((col,c)=>col.forEach((x,row)=>{if(x==='free')fc.push([c,row]);}));markCells(fc,'win');}
   M.pendingRes=res;showForecast(previewTurn(res));buildReelCtl();
   if(S.autoResolve||M.autoBonus)autoResolveLater();
 }
@@ -2138,7 +2146,7 @@ function evaluate(grid){
     const syms=L.r.map((row,c)=>grid[c][row]);
     L.r.forEach((row,c)=>pays.push([c,row]));
     const cnt={};let wild=0;
-    syms.forEach(x=>{x=x==='scoin'?'coin':x;x==='star'?wild++:cnt[x]=(cnt[x]||0)+1;});
+    let soulOn=0;syms.forEach(x=>{if(x==='free')return;if(x==='scoin')soulOn++;x=x==='scoin'?'coin':x;x==='star'?wild++:cnt[x]=(cnt[x]||0)+1;});
     if(wild){let best=null;for(const k of SYM_ORDER){if(k==='skull'||k==='star')continue;if(cnt[k]&&(!best||cnt[k]>cnt[best]))best=k;}
       best=best||'sword';cnt[best]=(cnt[best]||0)+wild;}
     for(const c in COMBOS)if(cnt[COMBOS[c].a]&&cnt[COMBOS[c].b])combos[c]=true;
@@ -2146,10 +2154,10 @@ function evaluate(grid){
       const c=cnt[k];let mult=1;
       if(c>=3&&k!=='skull'){mult=c+s.triple;triples++;
         L.r.forEach((row,ci)=>{const sy=grid[ci][row];if(sy===k||sy==='star')wins.push([ci,row]);});}
-      units[k]=(units[k]||0)+c*mult;
+      units[k]=(units[k]||0)+c*mult+(k==='coin'?soulOn*mult:0);   // a soul coin pays as two
     }
   }
-  for(const k of ['ace','king','queen'])delete units[k];
+  for(const k of ['ace','king','queen','free'])delete units[k];
   return {units,triples,wins,pays,combos,poker:pokerHands(grid)};
 }
 function markCells(list,cls){
@@ -2159,6 +2167,7 @@ async function onAllStopped(){
   busy=true;setBtn('busy');
   const grid=readGrid();const res=finishRes(evaluate(grid));
   markCells(res.pays,'pay');markCells(res.wins,'win');
+  if(res.bonusTrigger||res.retrigger){const g=readGrid(),fc=[];g.forEach((col,c)=>col.forEach((x,row)=>{if(x==='free')fc.push([c,row]);}));markCells(fc,'win');sfx.jackpot();}
   if(res.triples)sfx.jackpot();
   if(res.bonusTrigger){bonusFlash();sfx.jackpot();}
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
@@ -2191,8 +2200,9 @@ function previewTurn(R){
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
   if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
   if(r.wheelJam)L.push(`<span style="color:var(--purple)">the Bandit has jammed the wheel at ×1 — a jackpot frees it</span>`);
-  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — <b>RETRIGGER: +3 free spins, wheel locked at ×5</b>':''}</span>`);
-  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">✦ ALL BULBS LIT</b> — <b>${hasR('longstreak')?5:3} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
+  if(R.free&&R.free<3&&!r.inBonus)L.push(`<span style="color:var(--orange)">🎁 ${R.free} Free Games — three start free spins</span>`);
+  if(false)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — <b>RETRIGGER: +3 free spins, wheel locked at ×5</b>':''}</span>`);
+  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">🎁 ${R.free} FREE GAMES</b> — <b>${freeSpinsFor(R.free)} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
   if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
   if(val('skull')&&!hasR('skullring')&&!hasR('beaker')){const d=(r.doom||0)+fxFold('skullDoom',val('skull')*(hasR('scythe')?2:1));if(d>(r.doom||0))L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   const mu=R.mult||1;
@@ -2238,10 +2248,9 @@ async function doTurn(R){
   if(R.triples)metaEv('jackpot');if(mu>1)metaEv('wheel',1,mu);
   r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
-  if(R.gain){r.bulbs=(r.bulbs||0)+R.gain;drawBulbs(true);sfx.coin();heroFl('+'+R.gain+' bulb'+(R.gain>1?'s':''),'#ff8a4a');}
   if(R.soul)fxEach('soul',R.soul);if(r.inBonus)fxEach('bonusSpin');
-  if(R.retrigger){r.bulbs=0;drawBulbs();r.bonus+=3;r.lock5=true;heroFl('RETRIGGER! +3 · ×5 LOCKED','#d9b56a');sfx.jackpot();stat('retriggers');}
-  if(R.bonusTrigger){r.bulbs=0;drawBulbs();r.bonus=hasR('longstreak')?5:3;r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
+  if(R.retrigger){r.bonus+=3;r.lock5=true;heroFl('RETRIGGER! +3 · ×5 LOCKED','#d9b56a');sfx.jackpot();stat('retriggers');}
+  if(R.bonusTrigger){r.bonus=freeSpinsFor(R.free);r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
     if(S.mods.bonusbell)await relicPick('Bonus Bell','The bell rings: a relic falls with the free spins.');}
   else if(r.inBonus&&r.bonus<=0&&!R.retrigger){r.inBonus=false;r.lock5=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
@@ -3077,7 +3086,7 @@ function showHub(v){
     <p>Resolution order: block, heal, coins, skulls, keys, <b>move</b>, then daggers, bows and bombs — so boots can carry you into stabbing range.</p>
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
-    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
+    <h3>Soul coins and free spins</h3><p>Some coins burn red with an ember: a <b>soul coin pays double</b>, two coins on a payline. The <b>🎁 Free Games</b> symbol is a scatter: <b>three anywhere on the screen</b> start free spins (four give 5, five give 8), with the wheel locked at ×5 on a retrigger when three more land during the bonus.</p>
     <h3>Coins are time</h3><p>Drag the dungeon sideways to look along the whole floor. Every five floors you pick a road: easy, medium or hard. Harder roads hit much harder and pay much better. You carry up to 10 relics; past that, a new one replaces one you choose. Outside a run: three Daily Contracts pay souls every day, the Bounty Board's feats unlock relics and cosmetics, the Soul Shredder turns souls into machine skins, auras, dyes and titles (wear them in the Wardrobe), and after your first win over Death, Debt levels raise the stakes for more souls. Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>

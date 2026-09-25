@@ -1,0 +1,12 @@
+DEAD MAN'S PULL — ART PACK 25: 1 NEW IMAGE (the Free Games reel symbol)
+
+READ THIS FIRST:
+- 1 BRAND-NEW image. Save it as a PNG named EXACTLY the name before the | .
+- It sits on the reels next to the dagger, shield, coin and the rest: same style, same size, readable at a glance on a small phone.
+- It must look special (it starts the bonus) but not like a coin, so it never gets confused with the red soul coin.
+- Flat pure magenta #FF00FF background. NO TEXT anywhere: no "FREE", no letters.
+
+Checklist:
+  [ ] sym_free.png
+
+sym_free.png | a small ornate iron treasure chest bursting open, bright golden light and three tiny spinning slot-machine reels spilling out of it, a grinning skull lock on the front, glowing gold and crimson gems. slot machine reel symbol drawn as a gothic horror icon, hand-inked with thick jagged black ink outlines and heavy black shadows, desaturated bone, rust and tarnished gold palette with one small crimson accent, a faint worn engraved look like an old tarot card, bold readable shape, centered, fills most of the frame, isolated on a solid flat pure magenta (#FF00FF) background, no text, no letters, no border, no card frame

@@ -110,13 +110,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 #cabinet.skinned #reelCtl{position:absolute;left:calc(var(--wx0)*1%);right:calc((100 - var(--wx1))*1%);top:calc(var(--wy1)*1% + 5px);margin:0;gap:3px}
 #cabinet.skinned .reel{border-width:2px;border-radius:6px}
 #skinFx{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;border-radius:14px}
-#cabinet.skin-t2 #cabinetArt,#cabinet.skin-t3 #cabinetArt{animation:skinPulse 2.6s ease-in-out infinite}
-#cabinet.skin-t4 #cabinetArt{animation:skinPulse 1.8s ease-in-out infinite}
-#cabinet.skin-t5 #cabinetArt{animation:skinPulse5 1.4s ease-in-out infinite}
-@keyframes skinPulse{0%,100%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 2px var(--skinGlow))}50%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 12px var(--skinGlow))}}
-@keyframes skinPulse5{0%,100%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 6px var(--skinGlow))}45%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 20px var(--skinGlow)) brightness(1.08)}47%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 26px var(--skinGlow)) brightness(1.6)}49%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 20px var(--skinGlow)) brightness(1.08)}51%{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 26px var(--skinGlow)) brightness(1.45)}}
-#skinFx .sweep{position:absolute;top:-20%;bottom:-20%;width:28%;left:-40%;background:linear-gradient(100deg,transparent,color-mix(in srgb,var(--skinGlow) 30%,transparent),rgba(255,255,255,.18),transparent);transform:skewX(-18deg);animation:skinSweep 5s ease-in-out infinite;mix-blend-mode:screen}
-@keyframes skinSweep{0%,55%{left:-40%}100%{left:130%}}
+/* a steady glow, stronger by tier: animating a blurred shadow on a big image stuttered on phones */
+#cabinet.skin-t2 #cabinetArt,.pvCab.skin-t2 img{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 5px var(--skinGlow))}
+#cabinet.skin-t3 #cabinetArt,.pvCab.skin-t3 img{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 8px var(--skinGlow))}
+#cabinet.skin-t4 #cabinetArt,.pvCab.skin-t4 img{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 11px var(--skinGlow))}
+#cabinet.skin-t5 #cabinetArt,.pvCab.skin-t5 img{filter:var(--skinTint,brightness(1)) drop-shadow(0 4px 0 #000) drop-shadow(0 0 14px var(--skinGlow))}
 #skinFx .sp{position:absolute;bottom:-6px;width:4px;height:4px;border-radius:50%;background:var(--skinGlow);box-shadow:0 0 6px var(--skinGlow);opacity:0;animation:spRise 5s linear infinite}
 #skinFx .sp-bubbles{width:6px;height:6px;background:transparent;border:1px solid var(--skinGlow)}
 #skinFx .sp-souls{width:5px;height:9px;border-radius:50% 50% 45% 45%;filter:blur(.5px)}
@@ -124,6 +122,26 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes spRise{0%{transform:translate(0,0);opacity:0}10%{opacity:.9}100%{transform:translate(12px,-420px);opacity:0}}
 @keyframes spFall{0%{transform:translate(0,0) rotate(0);opacity:0}10%{opacity:.95}100%{transform:translate(-10px,440px) rotate(540deg);opacity:0}}
 #cabinet.skin-t5 #bulbs i,#cabinet.skin-t5 .bulb{filter:hue-rotate(0) drop-shadow(0 0 4px var(--skinGlow))}
+/* ---- cosmetic previews ---- */
+.pvCab{position:relative;aspect-ratio:1.28;width:100%;border-radius:10px;overflow:visible}
+.pvCab img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:var(--skinTint,brightness(1)) drop-shadow(0 3px 0 #000)}
+.pvFx{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:10px}
+.pvFx .sp{position:absolute;bottom:-6px;width:4px;height:4px;border-radius:50%;background:var(--skinGlow);box-shadow:0 0 6px var(--skinGlow);opacity:0;animation:spRise 5s linear infinite}
+.pvFx .sp-bubbles{width:6px;height:6px;background:transparent;border:1px solid var(--skinGlow)}
+.pvFx .sp-souls{width:5px;height:9px;border-radius:50% 50% 45% 45%}
+.pvFx .sp-coins{top:-8px;bottom:auto;width:6px;height:6px;background:#ffd76a;box-shadow:0 0 5px #ffb000;animation-name:spFall}
+.pvStage{position:relative;display:flex;flex-direction:column;align-items:center;background:radial-gradient(ellipse at 50% 85%,rgba(80,60,50,.35),rgba(0,0,0,0) 70%);border-radius:10px}
+.pvHero{width:100%;max-width:170px;height:auto;aspect-ratio:200/230}
+.pvTitle{font-family:var(--head);font-size:18px;color:#ecdcbc;text-shadow:0 2px 0 #000;margin-top:-4px}.pvTitle b{font-weight:400;color:#ffd76a}
+.wdPrev{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;align-items:center;padding:8px;border-radius:12px;background:linear-gradient(#150f10,#0b0809);border:1px solid #3a2a2a;box-shadow:inset 0 0 30px #000}
+.wdCabBox{text-align:center}.wdCabBox small{display:block;font-size:11px;color:var(--dim);margin-top:4px}
+.wdBar{display:flex;justify-content:center;margin:8px 0 4px}.wdHeroBtn{font-size:16px!important;padding:2px 12px 4px!important}
+.wdInfo{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:6px 8px;margin:4px 0 8px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line)}
+.wdInfo b{display:block;font-family:var(--head);font-weight:400;font-size:20px}.wdInfo small{font-size:11px;color:var(--dim)}
+.wdWear{font-size:17px!important;padding:2px 14px 4px!important;white-space:nowrap}.wdLock{font-size:11px;color:var(--dim);white-space:nowrap}
+.wdIt.pick{outline:2px dashed var(--tc);outline-offset:1px}
+.shrShow{margin:6px 0}.shrShowRow{display:grid;grid-template-columns:1fr 1fr .8fr;gap:6px;align-items:center}
+.shrPrev{max-width:240px;margin:4px auto 2px}.shrPrev .pvHero{max-width:150px}
 /* ---- the Soul Shredder ---- */
 #shredLayer{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(6,3,5,.86);padding:14px}
 #shredLayer.show{display:flex}
@@ -133,7 +151,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .shrArt{width:100%;border-radius:8px;margin-bottom:8px}
 .shrMsg{font-family:var(--head);font-size:20px;color:#ecdcbc}
 .shrReels{display:flex;justify-content:center;gap:8px;margin:10px 0}
-.shrReel{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(#0c0809,#241a1b,#0c0809);border:2px solid #4a3a2a;border-radius:8px}
+.shrReel{width:70px;height:78px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(#8f8470,#d8ceb8 28%,#e2d9c5 50%,#d8ceb8 72%,#8f8470);border:3px solid #000;border-radius:8px;box-shadow:inset 0 0 12px rgba(0,0,0,.6),0 0 0 2px #4a3a2a}
+.shrReel img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 2px 1px rgba(0,0,0,.5))}
+.shrReel.spin img{filter:blur(1.4px) drop-shadow(0 2px 1px rgba(0,0,0,.5));transform:translateY(3px)}
+.shrReel.land{animation:shrLand .25s ease-out}
+.shrReel.hit{box-shadow:inset 0 0 12px rgba(0,0,0,.4),0 0 0 2px var(--tc,#ffd76a),0 0 18px var(--tc,#ffd76a)}
+@keyframes shrLand{0%{transform:translateY(-6px)}100%{transform:none}}
 .shrWin{font-family:var(--head);font-size:34px;letter-spacing:2px;text-shadow:0 0 12px currentColor}
 .shrItem{color:#e9dcc6;margin:6px 0}.shrName{font-family:var(--head);font-size:24px;color:#fff}
 .shrPity,.shrOdds{font-size:11px;color:var(--dim);margin-top:4px}
@@ -585,7 +608,8 @@ const SYM={
   ace:{e:'🂡',n:'Ace',d:'A playing card. Two or three cards on a payline make a poker hand.'},
   king:{e:'🂮',n:'King',d:'A playing card. King and Queen together: Royal Couple.'},
   queen:{e:'🂭',n:'Queen',d:'A playing card. Ace, King and Queen: Royal Straight.'},
-  scoin:{e:'🪙',n:'Soul Coin',d:'A coin with an ember. Three on screen light a bulb; a full row of bulbs is free spins.'},
+  scoin:{e:'🪙',n:'Soul Coin',d:'A coin with an ember: pays double (two coins) on a payline.'},
+  free:{e:'🎁',n:'Free Games',d:'Scatter: three anywhere on screen start free spins (four for 5, five for 8). During free spins, three more retrigger them.'},
 };
 const SYM_ORDER=['sword','bow','bomb','boots','shield','potion','coin','key','star','skull'];
 
@@ -1374,8 +1398,8 @@ const RELICS=[
   {id:'clamp',e:'🗜️',n:'Reel Clamp',d:'Two held reels cost nothing; a third and fourth cost only the difference.'},
   {id:'scythe',e:'🌙',n:'Reaper\'s Scythe',d:'Doom builds twice as fast; the Reaper pays double souls.'},
   {id:'thumb',e:'👍',n:'Croupier\'s Thumb',d:'Below half HP the fortune wheel never lands on x1.'},
-  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Two soul coins light a bulb instead of three.'},
-  {id:'longstreak',e:'🔥',n:'Long Streak',d:'The bonus gives 5 free spins instead of 3.'},
+  {id:'silverscatter',e:'🥈',n:'Silver Scatter',d:'Adds a Free Games symbol to every reel.'},
+  {id:'longstreak',e:'🔥',n:'Long Streak',d:'Free spins last 2 spins longer.'},
   // the fifty mechanic relics (their effects live in FX)
   {id:"goldtooth",e:"😁",n:"Gold Tooth",d:"Coins pay +2, but Potions heal 1 less."},
   {id:"bloodpact",e:"🩸",n:"Blood Pact",d:"Daggers +4 damage, but every spin costs 1 HP."},
@@ -1494,7 +1518,7 @@ const FX={
   // uniques only
   lastpull:{async jackpot(n){const t=nearestFoe(run.x+1);if(t)await hit(t,10*n,'jackpot');}},
   rake:{dealt(o,d,how){if(how==='sword')gainCoins(2);}},
-  unpaid:{kill(){run.bulbs=Math.min(BULBS-1,(run.bulbs||0)+1);drawBulbs(true);}},
+  unpaid:{kill(){run.unpaid=(run.unpaid||0)+1;if(run.unpaid%6===0){run.freeSpin=true;heroFl('a free spin','#d9b56a');}}},
   deck:{bowTargets(n){return Math.max(n,3);}},
   graverob:{kill(){gainCoins(3);}},
   coffinplate:{keepBlock(){return true;}},
@@ -1825,7 +1849,7 @@ const salvageVal=it=>RAR[it.rar].salv+Math.floor(it.lvl/3);
 const UNIQUES=[
   {id:"lastpull",slot:"weapon",n:"The Last Pull",e:"🕹️",affs:l=>[{k:'swordDmg',v:3+Math.floor(l/3)},{k:'luck',v:15}],fx:"lastpull",fl:"Pried off the machine that took everything.",d:"Jackpots also deal 10 to the nearest foe."},
   {id:"rake",slot:"weapon",n:"Croupier's Rake",e:"🧹",affs:l=>[{k:'swordDmg',v:2+Math.floor(l/3)},{k:'coinPer',v:1}],fx:"rake",fl:"The house takes its cut.",d:"Dagger hits steal 2 coins."},
-  {id:"unpaid",slot:"weapon",n:"Scythe of the Unpaid",e:"🌙",affs:l=>[{k:'swordDmg',v:4+Math.floor(l/2)},{k:'soulFind',v:25}],fx:"unpaid",fl:"Every debt is collected eventually.",d:"Kills light a bonus bulb."},
+  {id:"unpaid",slot:"weapon",n:"Scythe of the Unpaid",e:"🌙",affs:l=>[{k:'swordDmg',v:4+Math.floor(l/2)},{k:'soulFind',v:25}],fx:"unpaid",fl:"Every debt is collected eventually.",d:"Every 6th kill makes your next spin free."},
   {id:"deck",slot:"weapon",n:"Dealer's Deck",e:"🃏",affs:l=>[{k:'bowDmg',v:2+Math.floor(l/3)},{k:'add',sym:'bow',v:1}],fx:"deck",fl:"Fifty-two cards, all of them sharp.",d:"Bows hit up to three foes."},
   {id:"spade",slot:"weapon",n:"Grave Robber's Spade",e:"⛏️",affs:l=>[{k:'shove',v:4+Math.floor(l/3)},{k:'swordDmg',v:2}],fx:"graverob",fl:"Dig deep. The dead don't need it.",d:"Kills pay 3 more coins."},
   {id:"shroud",slot:"armor",n:"Shroud of the House",e:"👻",affs:l=>[{k:'maxHp',v:8+l},{k:'luck',v:10}],fx:"hexbag",fl:"Woven from unpaid IOUs.",d:"The first hit each floor misses."},
@@ -1977,20 +2001,25 @@ function tickWheel(now){
 const BULBS=7,BULB_POS=[[24.1,15.7],[32.7,13.5],[41.3,13.8],[50,11.9],[58.5,13.1],[67.4,13.9],[75.9,15.9]];  // bulb centres on the cabinet art, % of width/height
 function soulCount(grid){return grid.reduce((n,col)=>n+col.filter(x=>x==='scoin').length,0);}
 function bulbsGained(soul){const need=bonusNeed();return soul>=need?1+(soul-need)*2:0;}
-function drawBulbs(gained){
+function drawBulbs(gained){const bx=$('#bulbs');if(bx)bx.innerHTML='';const f=$('#bulbsFallback');if(f)f.remove();return;   // retired: Free Games symbols start the bonus now
+}
+function drawBulbsOld(gained){
   const r=run,lit=r?Math.min(BULBS,r.bulbs||0):0;let box=$('#bulbs');
   if(!box.children.length){const use=[0,1,2,3,4,5,6],P=skinBulbPos()||BULB_POS;box.innerHTML=use.map(i=>`<i style="left:${P[i][0]}%;top:${P[i][1]}%"></i>`).join('');}
   [...box.children].forEach((el,i)=>{const on=i<lit;const was=el.classList.contains('lit');el.classList.toggle('lit',on);el.classList.toggle('new',on&&!was&&!!gained);});
   let fb=$('#bulbsFallback');if(!$('#cabinet').classList.contains('art')){if(!fb){fb=document.createElement('div');fb.id='bulbsFallback';$('#marquee').after(fb);}
     fb.innerHTML=Array.from({length:BULBS},(_,i)=>`<i class="${i<lit?'lit':''}"></i>`).join('');}else if(fb)fb.remove();
 }
-function bonusNeed(){return hasR('silverscatter')?2:3;}
+function bonusNeed(){return 3;}
+const freeSpinsFor=n=>(n>=5?8:n>=4?5:3)+(hasR('longstreak')?2:0);
 function finishRes(res){
   res.mult=M.wheel;
   res.soul=soulCount(readGrid());
-  res.gain=bulbsGained(res.soul);   // bulbs collect during free spins too
-  res.bonusTrigger=!run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;
-  res.retrigger=run.inBonus&&(run.bulbs||0)+res.gain>=BULBS;   // a full row during free spins retriggers them
+  // Free Games: a scatter, three or more anywhere on screen
+  res.free=readGrid().filter(col=>col.includes('free')).length;   // a scatter counts once per reel
+  res.gain=0;
+  res.bonusTrigger=!run.inBonus&&res.free>=3;
+  res.retrigger=run.inBonus&&res.free>=3;
   // a held reel whose middle symbol matches the others pays a little
   {const g=readGrid(),mid=g.map(c=>c[1]);let hp=0;for(const i of (M.heldIdx||[])){const k=mid[i],o=mid.filter((x,j)=>j!==i);const m=o.filter(x=>x===k||x==='star'||k==='star').length;hp+=m===o.length?3:m?1:0;}res.holdPay=hp;}
   return res;
@@ -2013,6 +2042,8 @@ function rebuildReels(){
   }
   for(const R of M.reels){
     const arr=[];for(const k in counts)for(let i=0;i<counts[k];i++)arr.push(k==='coin'&&i%2===0?'scoin':k);
+    // Free Games per reel, tuned so the bonus lands about once in 35-40 spins on 3 and 4 reels
+    {const c=M.reels.indexOf(R),n=M.reels.length,f=(n<=3?2:n===4?(c===0?2:1):1)+(hasR('silverscatter')?1:0);for(let i=0;i<f;i++)arr.push('free');}
     // Whatever is in the window stays put: only the unseen part of the strip is
     // reshuffled, so a hex, relic or new floor never swaps symbols in front of you
     // (they showed symbols that had not landed, and did not count).
@@ -2126,7 +2157,7 @@ function nudge(i,dir){
   const R=M.reels[i];if(!R||!M.pendingRes||M.spinning||busy||M.nudges<=0||R.jam)return;
   R.o=Math.round(R.o)+dir;M.nudges--;sfx.stop();drawReels(true);
   document.querySelectorAll('.cell.win,.cell.pay').forEach(c=>c.classList.remove('win','pay'));
-  const res=finishRes(evaluate(readGrid()));markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();
+  const res=finishRes(evaluate(readGrid()));markCells(res.pays,'pay');markCells(res.wins,'win');if(res.triples)sfx.jackpot();if(res.bonusTrigger||res.retrigger){const g=readGrid(),fc=[];g.forEach((col,c)=>col.forEach((x,row)=>{if(x==='free')fc.push([c,row]);}));markCells(fc,'win');}
   M.pendingRes=res;showForecast(previewTurn(res));buildReelCtl();
   if(S.autoResolve||M.autoBonus)autoResolveLater();
 }
@@ -2138,7 +2169,7 @@ function evaluate(grid){
     const syms=L.r.map((row,c)=>grid[c][row]);
     L.r.forEach((row,c)=>pays.push([c,row]));
     const cnt={};let wild=0;
-    syms.forEach(x=>{x=x==='scoin'?'coin':x;x==='star'?wild++:cnt[x]=(cnt[x]||0)+1;});
+    let soulOn=0;syms.forEach(x=>{if(x==='free')return;if(x==='scoin')soulOn++;x=x==='scoin'?'coin':x;x==='star'?wild++:cnt[x]=(cnt[x]||0)+1;});
     if(wild){let best=null;for(const k of SYM_ORDER){if(k==='skull'||k==='star')continue;if(cnt[k]&&(!best||cnt[k]>cnt[best]))best=k;}
       best=best||'sword';cnt[best]=(cnt[best]||0)+wild;}
     for(const c in COMBOS)if(cnt[COMBOS[c].a]&&cnt[COMBOS[c].b])combos[c]=true;
@@ -2146,10 +2177,10 @@ function evaluate(grid){
       const c=cnt[k];let mult=1;
       if(c>=3&&k!=='skull'){mult=c+s.triple;triples++;
         L.r.forEach((row,ci)=>{const sy=grid[ci][row];if(sy===k||sy==='star')wins.push([ci,row]);});}
-      units[k]=(units[k]||0)+c*mult;
+      units[k]=(units[k]||0)+c*mult+(k==='coin'?soulOn*mult:0);   // a soul coin pays as two
     }
   }
-  for(const k of ['ace','king','queen'])delete units[k];
+  for(const k of ['ace','king','queen','free'])delete units[k];
   return {units,triples,wins,pays,combos,poker:pokerHands(grid)};
 }
 function markCells(list,cls){
@@ -2159,6 +2190,7 @@ async function onAllStopped(){
   busy=true;setBtn('busy');
   const grid=readGrid();const res=finishRes(evaluate(grid));
   markCells(res.pays,'pay');markCells(res.wins,'win');
+  if(res.bonusTrigger||res.retrigger){const g=readGrid(),fc=[];g.forEach((col,c)=>col.forEach((x,row)=>{if(x==='free')fc.push([c,row]);}));markCells(fc,'win');sfx.jackpot();}
   if(res.triples)sfx.jackpot();
   if(res.bonusTrigger){bonusFlash();sfx.jackpot();}
   // show what the reels will do, then wait for RESOLVE (or auto-resolve after a beat)
@@ -2191,8 +2223,9 @@ function previewTurn(R){
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
   if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
   if(r.wheelJam)L.push(`<span style="color:var(--purple)">the Bandit has jammed the wheel at ×1 — a jackpot frees it</span>`);
-  if(R.gain&&!R.bonusTrigger)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — <b>RETRIGGER: +3 free spins, wheel locked at ×5</b>':''}</span>`);
-  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">✦ ALL BULBS LIT</b> — <b>${hasR('longstreak')?5:3} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
+  if(R.free&&R.free<3&&!r.inBonus)L.push(`<span style="color:var(--orange)">🎁 ${R.free} Free Games — three start free spins</span>`);
+  if(false)L.push(`<span style="color:var(--orange)">✦ ${R.soul} soul coin${R.soul>1?'s':''} — <b>${R.gain} bulb${R.gain>1?'s':''} light${R.gain>1?'':'s'}</b> (${Math.min(BULBS,(r.bulbs||0)+R.gain)}/${BULBS})${r.inBonus&&(r.bulbs||0)+R.gain>=BULBS?' — <b>RETRIGGER: +3 free spins, wheel locked at ×5</b>':''}</span>`);
+  if(R.bonusTrigger)L.push(`<b style="color:var(--gold)">🎁 ${R.free} FREE GAMES</b> — <b>${freeSpinsFor(R.free)} free spins</b>${S.bonusManual?' from the next pull':', the reels run themselves'}`);
   if(r.inBonus&&!R.bonusTrigger)L.push(`<span style="color:var(--gold)">★ bonus: ${r.bonus} free spin${r.bonus===1?'':'s'} left after this</span>`);
   if(val('skull')&&!hasR('skullring')&&!hasR('beaker')){const d=(r.doom||0)+fxFold('skullDoom',val('skull')*(hasR('scythe')?2:1));if(d>(r.doom||0))L.push(d>=3?`<span style="color:var(--purple)">☠ Doom ${Math.min(d,3)}/3 — <b>the Reaper comes next floor</b></span>`:`<span style="color:var(--purple)">☠ Doom ${d}/3</span>`);}
   const mu=R.mult||1;
@@ -2238,10 +2271,9 @@ async function doTurn(R){
   if(R.triples)metaEv('jackpot');if(mu>1)metaEv('wheel',1,mu);
   r.bestMult=Math.max(r.bestMult||1,mu);if(mu>1){heroFl('FORTUNE ×'+mu,'#d9b56a');parts.push(`×${mu}`);}
   if(r.wheelJam&&R.triples){r.wheelJam=false;heroFl('wheel freed','#9fd6ff');drawWheel();}
-  if(R.gain){r.bulbs=(r.bulbs||0)+R.gain;drawBulbs(true);sfx.coin();heroFl('+'+R.gain+' bulb'+(R.gain>1?'s':''),'#ff8a4a');}
   if(R.soul)fxEach('soul',R.soul);if(r.inBonus)fxEach('bonusSpin');
-  if(R.retrigger){r.bulbs=0;drawBulbs();r.bonus+=3;r.lock5=true;heroFl('RETRIGGER! +3 · ×5 LOCKED','#d9b56a');sfx.jackpot();stat('retriggers');}
-  if(R.bonusTrigger){r.bulbs=0;drawBulbs();r.bonus=hasR('longstreak')?5:3;r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
+  if(R.retrigger){r.bonus+=3;r.lock5=true;heroFl('RETRIGGER! +3 · ×5 LOCKED','#d9b56a');sfx.jackpot();stat('retriggers');}
+  if(R.bonusTrigger){r.bonus=freeSpinsFor(R.free);r.inBonus=true;r.bonuses=(r.bonuses||0)+1;heroFl('FREE SPINS ×'+r.bonus,'#d9b56a');
     if(S.mods.bonusbell)await relicPick('Bonus Bell','The bell rings: a relic falls with the free spins.');}
   else if(r.inBonus&&r.bonus<=0&&!R.retrigger){r.inBonus=false;r.lock5=false;}
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
@@ -2603,8 +2635,8 @@ async function shop(doors){
 
 /* ================ the long game: bounties, debt, daily contracts, the Soul Shredder ================ */
 // ---- cosmetics: machine skins (art + animation tiers), hero auras, hero dyes, titles ----
-// tier 1 is art only; 2 adds a pulsing glow; 3 a light sweep across the cabinet; 4 particles;
-// 5 all of it plus crackling edge light and recoloured bulbs.
+// tier 1 is art only; each tier above adds a stronger steady glow; 4 adds drifting particles;
+// 5 the strongest glow, with more particles.
 const SKINS=[
   {id:'rusted',n:'Rusted Iron',t:1,glow:'#a0522d',tint:'sepia(.5) saturate(1.4) hue-rotate(-12deg)'},
   {id:'oak',n:'Coffin Oak',t:1,glow:'#8b5a2b',tint:'sepia(.6) brightness(.95)'},
@@ -2676,20 +2708,61 @@ function applySkin(){
   cab.style.setProperty('--skinGlow',sk.glow);cab.classList.add('skin-t'+sk.t);
   if(sk.t>=4){const n=sk.t>=5?22:14;for(let i=0;i<n;i++){const p=document.createElement('i');p.className='sp sp-'+(sk.fx||'embers');
     p.style.left=(4+Math.random()*92)+'%';p.style.animationDelay=(-Math.random()*6).toFixed(2)+'s';p.style.animationDuration=(3+Math.random()*4).toFixed(2)+'s';fxEl.appendChild(p);}}
-  if(sk.t>=3){const sw=document.createElement('b');sw.className='sweep';fxEl.appendChild(sw);}
 }
 // ---- hero aura + dye, drawn around the hero sprite ----
-function drawAura(X,Y,t){
-  const a=cosEq('aura');if(!a)return;
+function drawAura(X,Y,t,c2,a2,sc){
+  const G=c2||cx,a=a2===undefined?cosEq('aura'):a2;if(!a)return;sc=sc||1;if(sc!==1){G.save();G.translate(X,Y);G.scale(sc,sc);G.translate(-X,-Y);}
   const col=a.c==='rainbow'?`hsl(${(t*90)%360},90%,60%)`:a.c,r=34+Math.sin(t*3)*4;
-  const g=cx.createRadialGradient(X,Y-34,4,X,Y-34,r+18);g.addColorStop(0,col+'');g.addColorStop(1,'rgba(0,0,0,0)');
-  cx.save();cx.globalAlpha=.28+.08*Math.sin(t*4);cx.fillStyle=g;cx.beginPath();cx.ellipse(X,Y-34,r,r+16,0,0,7);cx.fill();
-  cx.globalAlpha=.8;cx.fillStyle=col;for(let i=0;i<(a.t>=3?7:4);i++){const k=(t*.6+i/7)%1,px=X+Math.sin(i*2.3+t)*18,py=Y-8-k*70;cx.globalAlpha=.7*(1-k);cx.fillRect(px,py,2+(a.t>=4?1:0),2+(a.t>=4?1:0));}
-  cx.restore();
+  const g=G.createRadialGradient(X,Y-34,4,X,Y-34,r+18);g.addColorStop(0,col+'');g.addColorStop(1,'rgba(0,0,0,0)');
+  G.save();G.globalAlpha=.28+.08*Math.sin(t*4);G.fillStyle=g;G.beginPath();G.ellipse(X,Y-34,r,r+16,0,0,7);G.fill();
+  G.globalAlpha=.8;G.fillStyle=col;for(let i=0;i<(a.t>=3?7:4);i++){const k=(t*.6+i/7)%1,px=X+Math.sin(i*2.3+t)*18,py=Y-8-k*70;G.globalAlpha=.7*(1-k);G.fillRect(px,py,2+(a.t>=4?1:0),2+(a.t>=4?1:0));}
+  G.restore();if(sc!==1)G.restore();
 }
 const heroFilter=()=>{const d=cosEq('dye');return d?d.f:'none';};
 const HERO_ART_FALLBACK={duelist:'knight',hexpriest:'gambler'};
 const heroKey=id=>artImg('hero_'+id+'_idle')?id:(HERO_ART_FALLBACK[id]||id);
+
+// ---- cosmetic previews: a mini machine for skins, a hero on a little stage for the rest ----
+const artHeroes=()=>Object.keys(HEROES).filter(h=>artImg('hero_'+h+'_idle'));
+function pvSkin(x,big){
+  const own=artSrc('ui_cabinet_'+x.id),src=own||artSrc('ui_cabinet');
+  const parts=x.t>=4?Array.from({length:x.t>=5?16:10},()=>`<i class="sp sp-${x.fx||'embers'}" style="left:${(4+Math.random()*92).toFixed(1)}%;animation-delay:${(-Math.random()*6).toFixed(2)}s;animation-duration:${(3+Math.random()*4).toFixed(2)}s"></i>`).join(''):'';
+  return `<div class="pvCab skin-t${x.t}${big?' big':''}" style="--skinGlow:${x.glow};--skinTint:${own?'brightness(1)':x.tint}"><img src="${src}" alt=""><div class="pvFx">${parts}</div></div>`;
+}
+function pvHero(o){   // o: {hero,aura,dye,title}
+  return `<div class="pvStage"><canvas class="pvHero" width="200" height="230" data-hero="${o.hero}" data-aura="${o.aura||''}" data-dye="${o.dye||''}"></canvas>${o.title?`<div class="pvTitle">${HEROES[o.hero].n} <b>${o.title}</b></div>`:''}</div>`;
+}
+function pvFor(k,x,hero){
+  hero=hero||pick(artHeroes().length?artHeroes():['knight']);
+  if(k==='skin')return pvSkin(x,true);
+  return pvHero({hero,aura:k==='aura'?x.id:'',dye:k==='dye'?x.id:'',title:k==='title'?x.n:''});
+}
+let pvRaf=0;
+function pvTick(now){
+  const cs=document.querySelectorAll('canvas.pvHero');if(!cs.length){pvRaf=0;return;}
+  const t=now/1000;
+  cs.forEach(cv=>{const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.clearRect(0,0,W,H);
+    const g=c.createRadialGradient(W/2,H-18,4,W/2,H-18,W*.45);g.addColorStop(0,'rgba(255,220,160,.18)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,W,H);
+    const a=AURAS.find(x=>x.id===cv.dataset.aura)||null,d=DYES.find(x=>x.id===cv.dataset.dye)||null,im=artImg('hero_'+cv.dataset.hero+'_idle');
+    const X=W/2,Y=H-16,h=H*.82;if(a)pvAura(c,X,Y-h*.48,h*.6,t,a);
+    if(im){const w=h*im.naturalWidth/im.naturalHeight;c.filter=d?d.f:'none';c.drawImage(im,X-w/2,Y-h+Math.sin(t*2)*1.5,w,h);c.filter='none';}
+    c.fillStyle='rgba(0,0,0,.45)';c.beginPath();c.ellipse(X,Y+2,40,6,0,0,7);c.fill();});
+  pvRaf=requestAnimationFrame(pvTick);
+}
+// a showcase aura: a glow around the whole body and sparks orbiting it, stronger than in play
+function pvAura(c,X,Ym,R,t,a){
+  const col=k=>a.c==='rainbow'?`hsl(${(t*90+k*50)%360},95%,62%)`:a.c;
+  c.save();const g=c.createRadialGradient(X,Ym,R*.15,X,Ym,R);g.addColorStop(0,col(0));g.addColorStop(1,'rgba(0,0,0,0)');
+  c.globalAlpha=.42+.12*Math.sin(t*3);c.fillStyle=g;c.beginPath();c.ellipse(X,Ym,R*.7,R,0,0,7);c.fill();
+  const n=6+a.t*3;for(let i=0;i<n;i++){const ang=t*(1.2+a.t*.15)+i*Math.PI*2/n,rx=R*.62,ry=R*.9,px=X+Math.cos(ang)*rx,py=Ym+Math.sin(ang*1.3)*ry*.8;
+    const front=Math.sin(ang)>0;c.globalAlpha=front?.95:.45;c.fillStyle=col(i);c.shadowColor=col(i);c.shadowBlur=8;const sz=2+a.t*.6;c.fillRect(px-sz/2,py-sz/2,sz,sz);}
+  c.restore();
+}
+function pvStart(){if(!pvRaf)pvRaf=requestAnimationFrame(pvTick);}
+// the Shredder's reel faces: new spooky art when it lands, the game's own symbols until then
+const SHR_FACES=[['shr_skull','sym_skull','💀'],['shr_eye','sym_bomb','👁️'],['shr_candle','sym_potion','🕯️'],['shr_urn','sym_key','⚱️'],['shr_bone','sym_sword','🦴'],['shr_heart','sym_coin','❤️']];
+const shrFace=f=>{const src=artSrc(f[0])||artSrc(f[1]);return src?`<img src="${src}" alt="">`:f[2];};
+const shrJack=()=>{const src=artSrc('shr_jackpot')||artSrc('sym_free')||artSrc('sym_star');return src?`<img src="${src}" alt="">`:'✦';};
 
 // ---- the event feed: gameplay calls metaEv at key moments ----
 function metaEv(ev,n,x){
@@ -2813,16 +2886,16 @@ async function shredFeed(){
   save();featCheckHub('shred');
   // the machine eats them and spins
   const L=$('#shredLayer')||(()=>{const d=document.createElement('div');d.id='shredLayer';$('#app').appendChild(d);return d;})();
-  const faces=['💀','🪙','👁️','🕯️','⚱️','🦴'],fin=got?Array(3).fill(TIER[got.x.t]?'✦':'💀'):(()=>{const a=[...faces].sort(()=>Math.random()-.5);return a.slice(0,3);})();
+  const faces=SHR_FACES.map(shrFace),fin=got?Array(3).fill(shrJack()):(()=>{const a=[...faces].sort(()=>Math.random()-.5);return a.slice(0,3);})();
   L.innerHTML=`<div class="shrBox">${artSrc('screen_shredder')?`<img class="shrArt" src="${artSrc('screen_shredder')}" alt="">`:''}
-    <div class="shrMsg">The Shredder swallows ${SHRED_COST} souls…</div><div class="shrReels">${[0,1,2].map(i=>`<div class="shrReel" id="shr${i}">💀</div>`).join('')}</div>
+    <div class="shrMsg">The Shredder swallows ${SHRED_COST} souls…</div><div class="shrReels">${[0,1,2].map(i=>`<div class="shrReel spin" id="shr${i}">${faces[i]}</div>`).join('')}</div>
     <div class="shrOut"></div><div class="shrBtns"></div></div>`;
   L.classList.add('show');modalOpen=true;sfx.spin();
-  await new Promise(res=>{let n=0;const iv=setInterval(()=>{n++;for(let i=0;i<3;i++){const el=$('#shr'+i);if(n<12+i*6)el.textContent=faces[(n+i*2)%faces.length];else el.textContent=fin[i];}
+  await new Promise(res=>{let n=0;const iv=setInterval(()=>{n++;for(let i=0;i<3;i++){const el=$('#shr'+i);if(n<12+i*6)el.innerHTML=faces[(n+i*2)%faces.length];else if(el.classList.contains('spin')){el.innerHTML=fin[i];el.classList.remove('spin');el.classList.add('land');if(got)el.classList.add('hit');}}
     if(n>=24){clearInterval(iv);res();}},80);});
   const out=L.querySelector('.shrOut');
   if(got){const T=TIER[got.x.t];sfx.jackpot();L.querySelector('.shrBox').classList.add('won');L.querySelector('.shrBox').style.setProperty('--tc',T.c);
-    out.innerHTML=`<div class="shrWin" style="color:${T.c}">JACKPOT</div><div class="shrItem"><b style="color:${T.c}">${T.n}</b> ${COS_KINDS[got.k].n.replace(/s$/,'').toLowerCase()}<div class="shrName">${cosName(got.k,got.x)}</div></div>`;}
+    out.innerHTML=`<div class="shrWin" style="color:${T.c}">JACKPOT</div><div class="shrPrev">${pvFor(got.k,got.x)}</div><div class="shrItem"><b style="color:${T.c}">${T.n}</b> ${COS_KINDS[got.k].n.replace(/s$/,'').toLowerCase()}<div class="shrName">${cosName(got.k,got.x)}</div></div>`;pvStart();}
   else if(hit)out.innerHTML=`<div class="shrItem">You own everything it can give. Your ${SHRED_COST} souls come back.</div>`;
   else out.innerHTML=`<div class="shrItem">Consumed. Nothing comes out.<div class="shrPity">${SHRED_PITY-(S.shredMiss||0)>0?`A sure jackpot in ${SHRED_PITY+1-(S.shredMiss||0)} feed${SHRED_PITY+1-(S.shredMiss||0)>1?'s':''}`:'The next feed is a sure jackpot'}</div></div>`;
   const bt=L.querySelector('.shrBtns');
@@ -3048,15 +3121,27 @@ function showHub(v){
     html=back+`<h2 style="color:var(--gold)">${icon('ui_shredder','⚙️')} The Soul Shredder</h2>
       ${artSrc('screen_shredder')?`<img class="splash" src="${artSrc('screen_shredder')}" alt="">`:''}
       <p>Feed it <b style="color:#9fd6ff">${SHRED_COST} souls</b>. It chews them up and spins. About one feed in three hits a jackpot and spits out a cosmetic you don't own yet, and after ${SHRED_PITY} misses in a row the next feed is a sure thing.</p>
+      <div class="shrShow"><div class="recH" style="margin:4px 0">Inside the machine</div><div class="shrShowRow">${pvSkin(SKINS.find(x=>x.id==='eternal'))}${pvSkin(SKINS.find(x=>x.id==='reaper'))}${pvHero({hero:pick(artHeroes().length?artHeroes():['knight']),aura:'prism'})}</div></div>
       <div class="shrOdds">${[1,2,3,4,5].map(t=>`<span style="color:${TIER[t].c}">${TIER[t].n} ${Math.round(SHRED_W[t]/SHRED_W.reduce((a,b)=>a+b,0)*100)}%</span>`).join(' · ')}</div>
       <p class="sub">${left} of ${all} cosmetics still inside · you own ${own} · misses in a row: ${miss}/${SHRED_PITY}</p>
       <button class="btn primary goldbtn" data-act="shred" ${S.souls<SHRED_COST||!left?'disabled':''}>Feed the Shredder · 💠${SHRED_COST}<small>you have ${S.souls}</small></button>`;
+    setTimeout(pvStart,0);
   }else if(v==='wardrobe'){
-    const c=cosState();
-    html=back+`<h2 style="color:var(--gold)">${icon('ui_wardrobe','🎭')} Wardrobe</h2><p class="sub">Tap something you own to wear it; tap again to take it off. Locked pieces come from the Soul Shredder, or from the Bounty Board (🏆).</p>`+
-      Object.entries(COS_KINDS).map(([k,K])=>`<h3 class="recH">${K.n}</h3><div class="wdGrid">`+K.L.map(x=>{const o=cosOwned(k,x.id),on=c.eq[k]===x.id,T=TIER[x.t];
+    const c=cosState(),hs=artHeroes(),hero=hs.includes(S.wardHero)?S.wardHero:(hs[0]||'knight');
+    const [sk,sid]=(S.wardSel||'').split(':'),selX=sk&&COS_KINDS[sk]?COS_KINDS[sk].L.find(x=>x.id===sid):null;
+    const tryOn=k=>sk===k&&selX?selX:cosEq(k);   // the selected piece over whatever you wear
+    const sx=tryOn('skin'),au=tryOn('aura'),dy=tryOn('dye'),ti=tryOn('title');
+    const plain={id:'none',t:1,glow:'#000',tint:'brightness(1)'};
+    let info='<div class="wdInfo"><span class="sub">Tap anything below to try it on.</span></div>';
+    if(selX){const T=TIER[selX.t],o=cosOwned(sk,selX.id),on=c.eq[sk]===selX.id;
+      info=`<div class="wdInfo"><div><b style="color:${T.c}">${cosName(sk,selX)}</b><small>${T.n} ${COS_KINDS[sk].n.replace(/s$/,'').toLowerCase()}</small></div>${o?`<button class="btn plaque wdWear" data-act="wear:${sk}:${selX.id}">${on?'Take it off':'Wear it'}</button>`:`<span class="wdLock">🔒 ${selX.ex?'from a bounty':'from the Soul Shredder'}</span>`}</div>`;}
+    html=back+`<h2 style="color:var(--gold)">${icon('ui_wardrobe','🎭')} Wardrobe</h2>
+      <div class="wdPrev">${pvHero({hero,aura:au&&au.id,dye:dy&&dy.id,title:ti&&ti.n})}<div class="wdCabBox">${pvSkin(sx||plain)}<small>${sx?sx.n:'Standard machine'}</small></div></div>
+      <div class="wdBar"><button class="btn plaque wdHeroBtn" data-act="whero">⟳ Try on ${HEROES[hs[(hs.indexOf(hero)+1)%hs.length]]?HEROES[hs[(hs.indexOf(hero)+1)%hs.length]].n:'another hero'}</button></div>${info}`+
+      Object.entries(COS_KINDS).map(([k,K])=>`<h3 class="recH">${K.n}</h3><div class="wdGrid">`+K.L.map(x=>{const o=cosOwned(k,x.id),on=c.eq[k]===x.id,T=TIER[x.t],pk=sk===k&&sid===x.id;
         const sw=k==='skin'?`<span class="wdSw" style="background:${x.glow}"></span>`:k==='aura'?`<span class="wdSw" style="background:${x.c==='rainbow'?'linear-gradient(90deg,red,orange,yellow,green,cyan,blue,violet)':x.c}"></span>`:k==='dye'?`<span class="wdSw" style="background:#c9a;filter:${x.f}"></span>`:'';
-        return `<button class="wdIt${o?'':' locked'}${on?' on':''}" style="--tc:${T.c}" ${o?`data-act="wear:${k}:${x.id}"`:'disabled'}>${sw}<b>${cosName(k,x)}</b><small style="color:${T.c}">${T.n}${o?'':x.ex?' · 🏆 bounty':' · Shredder'}</small>${on?'<i>worn</i>':''}</button>`;}).join('')+`</div>`).join('');
+        return `<button class="wdIt${o?'':' locked'}${on?' on':''}${pk?' pick':''}" style="--tc:${T.c}" data-act="wsel:${k}:${x.id}">${sw}<b>${cosName(k,x)}</b><small style="color:${T.c}">${T.n}${o?'':x.ex?' · 🏆 bounty':' · Shredder'}</small>${on?'<i>worn</i>':''}</button>`;}).join('')+`</div>`).join('');
+    setTimeout(pvStart,0);
   }else if(v==='records'){
     const st=S.stats||{},g=k=>st[k]||0,net=k=>{const n=g(k);return `<b style="color:${n>=0?'var(--gold)':'var(--red)'}">${n>=0?'+':''}${n}</b>`;};
     const row=(a,b)=>`<div class="recRow"><span>${a}</span><b>${b}</b></div>`;
@@ -3077,7 +3162,7 @@ function showHub(v){
     <p>Resolution order: block, heal, coins, skulls, keys, <b>move</b>, then daggers, bows and bombs — so boots can carry you into stabbing range.</p>
     <h3>Matches</h3><p>Three of a kind on one line multiplies that symbol by <b>x3</b> (four x4, five x5). Wilds join the best symbol on their line. Skulls never multiply.</p>
     <h3>The fortune wheel</h3><p>The dial on the cabinet lands on x1, x2, x3 or x5 every spin and multiplies that turn's <b>damage and block</b>. Coins and healing are never multiplied. The Workbench can weight it.</p>
-    <h3>Soul coins and free spins</h3><p>Some coins burn with an ember. <b>Three soul coins anywhere on the screen</b> light one of the seven red bulbs on the cabinet (each extra coin lights two more), during free spins as well. When all seven bulbs glow you get 3 free spins: no coin, free holds, an extra nudge, the wheel never shows x1, and the reels run themselves unless you turn that off in Settings. Foes still take their turns.</p>
+    <h3>Soul coins and free spins</h3><p>Some coins burn red with an ember: a <b>soul coin pays double</b>, two coins on a payline. The <b>🎁 Free Games</b> symbol is a scatter: <b>three anywhere on the screen</b> start free spins (four give 5, five give 8), with the wheel locked at ×5 on a retrigger when three more land during the bonus.</p>
     <h3>Coins are time</h3><p>Drag the dungeon sideways to look along the whole floor. Every five floors you pick a road: easy, medium or hard. Harder roads hit much harder and pay much better. You carry up to 10 relics; past that, a new one replaces one you choose. Outside a run: three Daily Contracts pay souls every day, the Bounty Board's feats unlock relics and cosmetics, the Soul Shredder turns souls into machine skins, auras, dyes and titles (wear them in the Wardrobe), and after your first win over Death, Debt levels raise the stakes for more souls. Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
     <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
@@ -3094,9 +3179,11 @@ $('#hub').addEventListener('change',e=>{if(e.target.id==='sfxVol')sfx.coin();});
 $('#hub').addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const [a,arg]=el.dataset.act.split(':');
-  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'||a==='records'||a==='contracts'||a==='bounties'||a==='shredder'||a==='wardrobe'))return showHub(a);
+  if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'||a==='records'||a==='contracts'||a==='bounties'||a==='shredder'||a==='wardrobe')){if(a==='wardrobe')S.wardSel=null;return showHub(a);}
   if(a==='shred'){await shredFeed();return showHub('shredder');}
   if(a==='wear'){const [,k,id]=el.dataset.act.split(':');const c=cosState();c.eq[k]=c.eq[k]===id?null:id;save();applySkin();return showHub('wardrobe');}
+  if(a==='wsel'){const [,k,id]=el.dataset.act.split(':');S.wardSel=k+':'+id;return showHub('wardrobe');}
+  if(a==='whero'){const hs=artHeroes(),cur=hs.includes(S.wardHero)?S.wardHero:hs[0];S.wardHero=hs[(hs.indexOf(cur)+1)%hs.length];return showHub('wardrobe');}
   if(a==='debt'){S.debtSel=Math.min(+arg||0,debtMax());save();return showHub('heroes');}
   if(a==='resume')return resumeRun();
   if(a==='daily'){if(S.run){S.run=null;save();}return startRun('knight',todayKey());}

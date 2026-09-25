@@ -580,3 +580,20 @@ Nothing in the game is emoji any more once art.js loads.
   cabinet until their art arrives. Art prompts: art-pack24-prompts.txt (40 images).
 - **b108**: art pack 24 packed (543 images): the 20 machine skins, the Soul Shredder scene, five menu icons, and the Duelist and Hex Priest (sprites, back views, portraits), replacing their stand-ins. No older art changed.
 - **b109**: with a machine skin worn, the reels sit inside that skin's painted window: the cabinet takes the art's own proportions, and the reels, line info and hold buttons are placed from each skin's measured window (SKIN_WIN); the free-spin bulbs line up along the top of the window. Reels are smaller under a skin (about 200x114 vs 300x129 on a phone); no skin, no change.
+- **b110**: the bulbs are gone. Soul coins keep their red ember look and pay double
+  (two coins) on a payline. A new Free Games scatter symbol starts the bonus: three
+  reels showing it anywhere = 3 free spins, four = 5, five = 8 (a scatter counts once
+  per reel); three more during free spins retrigger (+3, wheel locked at x5). Free Games
+  per reel: 2 on a 3-reel machine, 2-1-1-1 on 4, 1 each on 5 (about one bonus in 30-50
+  spins). Silver Scatter now adds a Free Games symbol to every reel, Long Streak adds 2
+  free spins, and the Scythe of the Unpaid's kills earn a free spin every 6th kill.
+  Art prompt: art-pack25-prompts.txt (sym_free); the 🎁 stands in until then.
+- **b111**: premium Shredder and Wardrobe. The Shredder's reels are parchment reels with
+  symbol art (its own spooky set once pack 25 lands; the game's symbols until then) and
+  a jackpot reveal that shows the prize: a skin on a mini machine with its effects, an
+  aura or dye on a random hero, a title on a hero's nameplate. The Shredder page shows
+  top prizes. The Wardrobe has a try-on panel: tap anything (owned or locked) to see it
+  on a hero and machine before wearing it, and cycle which hero tries it on. Skins no
+  longer pulse (animating the blurred glow stuttered on phones) and the light sweep is
+  gone: a steady glow by tier, particles from Legendary up. Prompts for sym_free and the
+  seven shr_ symbols: art-pack25-prompts.txt.

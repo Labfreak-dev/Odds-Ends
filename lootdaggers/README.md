@@ -603,3 +603,8 @@ Nothing in the game is emoji any more once art.js loads.
   go on top). Art is four poses per skin, hero_<hero>_<skin>_{idle,walk,attack,hurt};
   until it lands a skin tints the hero's own art. The Death-fight back view and the
   portrait keep the hero's own art. Prompts: art-pack26-prompts.txt (192 images).
+- **b114**: art pack 26, Knight and Ranger skins (64 sprites). Hero skin sprites now pack
+  into their own file, art-skins.js (2.2MB), fetched after the main art is up, so skins
+  never slow the first load; art.js stays where it was. The Bone Archer idle came with a
+  tarot-card border drawn around it; it was painted out in art-src (canvas size kept, so
+  the pose keeps its scale).

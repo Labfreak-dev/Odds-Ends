@@ -598,3 +598,8 @@ Nothing in the game is emoji any more once art.js loads.
   gone: a steady glow by tier, particles from Legendary up. Prompts for sym_free and the
   seven shr_ symbols: art-pack25-prompts.txt.
 - **b112**: art pack 25 packed (551 images): the Free Games symbol (sym_free) and the Soul Shredder's seven reel symbols (shr_skull, shr_eye, shr_candle, shr_urn, shr_bone, shr_heart, shr_jackpot), replacing their stand-ins. No older art changed.
+- **b113**: hero skins: 8 per hero (48; per hero 3 Common, 2 Rare, 1 Epic, 1 Legendary,
+  1 Mythic), won from the Soul Shredder and worn one per hero in the Wardrobe (a dye can
+  go on top). Art is four poses per skin, hero_<hero>_<skin>_{idle,walk,attack,hurt};
+  until it lands a skin tints the hero's own art. The Death-fight back view and the
+  portrait keep the hero's own art. Prompts: art-pack26-prompts.txt (192 images).

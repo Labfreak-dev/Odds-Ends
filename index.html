@@ -4435,7 +4435,7 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 <header>
   <h1>
     <span class="avatar-badge" id="avatarBadge">🧦</span>
-    Odds &amp; Ends <span class="tag">Prototype v0.1 · 6caf96</span>
+    Odds &amp; Ends <span class="tag">Prototype v0.1 · c38bf9</span>
     <span class="level-badge clickable" id="levelBadge" role="button" tabindex="0" title="View level rewards"
       onclick="openLevelModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLevelModal();}">Lv 1 · Novice Collector</span>
     <span class="player-name-badge" id="playerNameBadge" style="display:none;"></span>
@@ -5425,10 +5425,12 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
     </div>
 
     <div class="panel" id="soundPanel">
-      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🎵 Music</div>
-      <div style="color:var(--muted); font-size:12px; margin:-6px 0 12px;">Sound effects were retired in batch 126. The fishing water's piano and the water itself are all that plays.</div>
+      <div style="font-weight:800; font-size:16px; margin-bottom:14px;">🔊 Sound</div>
+      <div style="color:var(--muted); font-size:12px; margin:-6px 0 12px;">Effects are on by default. They're soft on purpose — felt, wood and low bells. Music is the fishing water's piano and the water itself.</div>
       <div class="snd-grid">
-        <label class="toggle-row"><input type="checkbox" id="musicOnToggle" onchange="updateSoundSettings()"> 🎵 Music</label>
+        <label class="toggle-row"><input type="checkbox" id="sfxOnToggle" onchange="updateSoundSettings(event)"> 🔊 Sound effects</label>
+        <label class="snd-slider"><span>Effects volume</span><input type="range" id="sfxVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
+        <label class="toggle-row"><input type="checkbox" id="musicOnToggle" onchange="updateSoundSettings(event)"> 🎵 Music</label>
         <label class="snd-slider"><span>Music volume</span><input type="range" id="musicVolRange" min="0" max="100" oninput="updateSoundSettings()"></label>
       </div>
       <div style="color:var(--muted); font-size:12px; margin-top:10px;">
@@ -5534,22 +5536,24 @@ html.sg-noscroll, html.sg-noscroll body{ overflow:hidden; }
 
 <footer>Odds &amp; Ends — collection-only prototype. Progress saves locally in this browser.</footer>
 
-<script>window.OE_LAZY_FILES={"fishing": ["oe-02-fishing-assets.js?v=b5eb98fa8b", "oe-03-fishing-spot-bgs.js?v=bf0210bfe5", "oe-04-fishing-sfx.js?v=dddb642dcf", "oe-17-fishing2.js?v=2018a0fe43"], "cine-ironjaw": ["oe-05-fishing-cine-ironjaw.js?v=9ffb0e5fbb"], "cine-marshking": ["oe-06-fishing-cine-marshking.js?v=d7cefe5d1f"], "cine-palehunter": ["oe-07-fishing-cine-palehunter.js?v=76c2161100"], "cine-roosterking": ["oe-08-fishing-cine-roosterking.js?v=c3052b5e8f"], "cine-blackphantom": ["oe-09-fishing-cine-blackphantom.js?v=b1949e0ff8"], "cine-drownedking": ["oe-10-fishing-cine-drownedking.js?v=962824a32c"]};</script>
+<script>window.OE_LAZY_FILES={"fishing": ["oe-04-fishing-assets.js?v=b5eb98fa8b", "oe-05-fishing-spot-bgs.js?v=bf0210bfe5", "oe-06-fishing-sfx.js?v=b07c028aa7", "oe-19-fishing2.js?v=9b1913b798"], "cine-ironjaw": ["oe-07-fishing-cine-ironjaw.js?v=9ffb0e5fbb"], "cine-marshking": ["oe-08-fishing-cine-marshking.js?v=d7cefe5d1f"], "cine-palehunter": ["oe-09-fishing-cine-palehunter.js?v=76c2161100"], "cine-roosterking": ["oe-10-fishing-cine-roosterking.js?v=c3052b5e8f"], "cine-blackphantom": ["oe-11-fishing-cine-blackphantom.js?v=b1949e0ff8"], "cine-drownedking": ["oe-12-fishing-cine-drownedking.js?v=962824a32c"]};</script>
 <script src="oe-00-boot0.js?v=0510a96c2d"></script>
-<script src="oe-01-core.js?v=cb432fbcd4"></script>
-<script src="oe-11-provenance-catalogue.js?v=ae0deffc21"></script>
-<script src="oe-12-provenance.js?v=5f726dd3e1"></script>
-<script src="oe-13-press.js?v=4f1a3937cf"></script>
-<script src="oe-14-connections.js?v=dc99049015"></script>
-<script src="oe-15-case.js?v=fcc2ad9a3d"></script>
-<script src="oe-16-oddone.js?v=d5c686594c"></script>
-<script src="oe-18-mining2.js?v=c87d36ebb3"></script>
-<script src="oe-19-ripship.js?v=ec61710d89"></script>
-<script src="oe-20-ledger.js?v=3af358f465"></script>
-<script src="oe-21-grading.js?v=1d53abce28"></script>
-<script src="oe-22-market2.js?v=07e39c2e23"></script>
-<script src="oe-23-casino2.js?v=e7e85470f8"></script>
-<script src="oe-24-tail.js?v=a4abedb8af"></script>
+<script src="oe-01-core.js?v=ce97e2ebfc"></script>
+<script src="oe-02-sfx.js?v=50fc906240"></script>
+<script src="oe-03-sfx-pack.js?v=b8e7bc2b08"></script>
+<script src="oe-13-provenance-catalogue.js?v=ae0deffc21"></script>
+<script src="oe-14-provenance.js?v=04d0cf0623"></script>
+<script src="oe-15-press.js?v=7a8251cdb0"></script>
+<script src="oe-16-connections.js?v=6362042bfe"></script>
+<script src="oe-17-case.js?v=9ac147caad"></script>
+<script src="oe-18-oddone.js?v=1ef9be13ee"></script>
+<script src="oe-20-mining2.js?v=e09604f6aa"></script>
+<script src="oe-21-ripship.js?v=9d8645fe8c"></script>
+<script src="oe-22-ledger.js?v=3e6d96e932"></script>
+<script src="oe-23-grading.js?v=2282e6dbd8"></script>
+<script src="oe-24-market2.js?v=bdad5eedc4"></script>
+<script src="oe-25-casino2.js?v=93e261cf05"></script>
+<script src="oe-26-tail.js?v=913bf12b04"></script>
 
 </body>
 </html>

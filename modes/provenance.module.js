@@ -285,6 +285,7 @@ async function pvFillQueue(){
 }
 
 async function pvStartRun(){
+  try{ fbSfxSafe && fbSfxSafe("mg_start", 0.35); }catch(e){}
   pvRun = { round:0, lives:PV_LIVES, streak:0, correct:0, credits:0, xp:0,
             asked:new Set(), identified:[], q:null, locked:false, hinted:false, deadline:0 };
   pvQueue = [];
@@ -310,6 +311,7 @@ async function pvNextQuestion(){
   }
   pvRun.round++;
   pvRun.q = q;
+  try{ fbSfxSafe && fbSfxSafe("mg_provenance_record", 0.3); }catch(e){}
   pvRun.asked.add(q.answer.key);
   pvRun.deadline = Date.now() + PV_TIME_MS;
   pvPaint();
@@ -324,7 +326,11 @@ function pvStartTimer(){
     const left = pvRun.deadline - Date.now();
     const fill = document.getElementById("pvTimeFill");
     if(fill) fill.style.width = Math.max(0, Math.min(100, (left / PV_TIME_MS) * 100)) + "%";
-    if(left <= 0) pvStopTimer();   // time out costs the speed bonus, nothing else
+    if(left > 0 && left < 5000){
+      const sec = Math.ceil(left/1000);
+      if(pvRun._tick !== sec){ pvRun._tick = sec; try{ fbSfxSafe && fbSfxSafe("mg_timer_tick", 0.2); }catch(e){} }
+    }
+    if(left <= 0){ try{ fbSfxSafe && fbSfxSafe("mg_time_up", 0.32); }catch(e){} pvStopTimer(); }   // time out costs the speed bonus, nothing else
   }, 100);
 }
 function pvStopTimer(){ if(pvTimer){ clearInterval(pvTimer); pvTimer = null; } }
@@ -341,6 +347,7 @@ function pvAnswer(idx){
   const speed = msLeft / PV_TIME_MS;
 
   if(right){
+    try{ fbSfxSafe && fbSfxSafe("mg_provenance_identified", 0.4); }catch(e){}
     const streakMult = 1 + Math.min(pvRun.streak, 10) * 0.12;
     const roundMult  = 1 + pvRun.round * 0.10;
     let credits = PV_BASE_CREDITS * roundMult * streakMult * (1 + speed * 0.5);
@@ -351,12 +358,14 @@ function pvAnswer(idx){
     if(pvRun.hinted) xp = Math.round(xp * 0.5);
 
     pvRun.streak++;
+    if(pvRun.streak > 1){ try{ fbSfxSafe && fbSfxSafe("mg_streak", 0.3, {rate: Math.min(1.4, 1+0.04*pvRun.streak), gap:0.05}); }catch(e){} }
     pvRun.correct++;
     pvRun.credits += credits;
     pvRun.xp += xp;
     pvRun.identified.push(q.answer);
     pvRun.lastGain = { credits, xp };
   } else {
+    try{ fbSfxSafe && fbSfxSafe("mg_provenance_misfiled", 0.35); }catch(e){}
     pvRun.streak = 0;
     pvRun.lives--;
     pvRun.lastGain = null;
@@ -388,6 +397,7 @@ function pvContinue(){
 /* ---------- end of run ----------------------------------------------- */
 function pvEndRun(note){
   if(!pvRun) return;
+  if(pvRun.lives <= 0){ try{ fbSfxSafe && fbSfxSafe("mg_fail", 0.35); }catch(e){} }
   pvStopTimer();
   const run = pvRun;
   const st = pvStats();

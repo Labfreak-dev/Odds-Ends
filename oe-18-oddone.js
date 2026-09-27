@@ -127,6 +127,7 @@ let oo = null;
 let ooTimer = null;
 
 function ooStart(){
+  try{ fbSfxSafe && fbSfxSafe("mg_start", 0.35); }catch(e){}
   oo = { round:0, lives:OO_LIVES, streak:0, right:0, credits:0,
          seen:[], q:null, locked:false, deadline:0, lastGain:null };
   ooNext();
@@ -152,6 +153,10 @@ function ooClock(){
     const left = oo.deadline - Date.now();
     const el = document.getElementById("ooClock");
     if(el) el.style.width = Math.max(0, (left / oo.q.ms) * 100) + "%";
+    if(left > 0 && left < 3000){
+      const sec = Math.ceil(left/1000);
+      if(oo._tick !== sec){ oo._tick = sec; try{ fbSfxSafe && fbSfxSafe("mg_timer_tick", 0.2); }catch(e){} }
+    }
     if(left <= 0){ ooStopClock(); ooCall(-1); }
   }, 80);
 }
@@ -165,13 +170,17 @@ function ooCall(idx){
   const right = idx === q.correct;
   const speed = Math.max(0, (oo.deadline - Date.now()) / q.ms);
 
+  if(idx === -1){ try{ fbSfxSafe && fbSfxSafe("mg_time_up", 0.32); }catch(e){} }
   if(right){
+    try{ fbSfxSafe && fbSfxSafe("mg_oddone_correct", 0.35, {rate: Math.min(1.4, 1+0.03*Math.min(oo.streak, 10))}); }catch(e){}
     const mult = 1 + Math.min(oo.streak, 15) * 0.09;
     const credits = Math.round(OO_BASE * mult * (1 + speed * 0.7));
     oo.streak++; oo.right++; oo.credits += credits;
+    if(oo.streak > 1){ try{ fbSfxSafe && fbSfxSafe("mg_streak", 0.3, {rate: Math.min(1.4, 1+0.04*oo.streak)}); }catch(e){} }
     oo.seen.push(q.cards[q.correct]);
     oo.lastGain = { credits, timedOut:false };
   } else {
+    if(idx !== -1){ try{ fbSfxSafe && fbSfxSafe("mg_oddone_wrong", 0.32); }catch(e){} }
     oo.streak = 0; oo.lives--;
     oo.lastGain = { credits:0, timedOut: idx === -1 };
   }
@@ -186,6 +195,7 @@ function ooCall(idx){
 
 function ooEnd(note){
   if(!oo) return;
+  if(oo.lives <= 0){ try{ fbSfxSafe && fbSfxSafe("mg_fail", 0.35); }catch(e){} }
   ooStopClock();
   const run = oo;
   const st = ooStats();

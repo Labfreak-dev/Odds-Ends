@@ -305,6 +305,8 @@ function cxStart(){
          over:false, banked:false, note:"", shake:false };
   cxStats().played++;
   saveState();
+  try{ fbSfxSafe && fbSfxSafe("mg_start", 0.35); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("mg_connections_shuffle", 0.3); }catch(e){}
   cxPaint();
 }
 
@@ -313,6 +315,7 @@ function cxToggle(id){
   const i = cx.picked.indexOf(id);
   if(i >= 0) cx.picked.splice(i, 1);
   else if(cx.picked.length < 4) cx.picked.push(id);
+  try{ fbSfxSafe && fbSfxSafe("ui_select", 0.22); }catch(e){}
   cx.note = "";
   cxPaint();
 }
@@ -331,7 +334,8 @@ function cxSubmit(){
     cx.picked = [];
     cx.note = "";
     cxStats().groups++;
-    if(cx.found.length === 4){ cx.over = true; cxFinish(true); return; }
+    if(cx.found.length === 4){ try{ fbSfxSafe && fbSfxSafe("mg_connections_group", 0.4); }catch(e){} cx.over = true; cxFinish(true); return; }
+    try{ fbSfxSafe && fbSfxSafe("mg_connections_group", 0.4); }catch(e){}
     cxPaint();
     return;
   }
@@ -346,6 +350,7 @@ function cxSubmit(){
   });
 
   cx.mistakes++;
+  try{ fbSfxSafe && fbSfxSafe(best === 3 ? "mg_connections_one_away" : "mg_connections_wrong", best === 3 ? 0.32 : 0.3); }catch(e){}
   cx.shake = true;
   cx.note = best === 3 ? "One away." : best === 2 ? "Two of those belong together." : "Nothing there.";
   if(cx.mistakes >= CX_MISTAKES){ cx.over = true; cxFinish(false); return; }
@@ -355,6 +360,7 @@ function cxSubmit(){
 
 function cxShuffleBoard(){
   if(!cx || cx.over) return;
+  try{ fbSfxSafe && fbSfxSafe("mg_connections_shuffle", 0.3); }catch(e){}
   cxShuffle(cx.board);
   cxPaint();
 }
@@ -374,6 +380,7 @@ function cxFinish(won){
   state.credits += credits;
   if(xp) grantBonusXP(xp);
 
+  try{ fbSfxSafe && fbSfxSafe(won ? "mg_success" : "mg_fail", won ? 0.42 : 0.35); }catch(e){}
   if(won){
     st.solved++;
     st.streak++;

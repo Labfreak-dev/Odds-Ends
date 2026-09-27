@@ -43,7 +43,7 @@ function ffCheckDone(){
     c.ffLuck = true;
     state.upgrades.luck = (state.upgrades.luck||0) + 1;
     showToast("🍀 FORTUNE & FOLLY COMPLETE — Lady Luck herself deals you in. Permanent luck raised.");
-    try{ fbSfxSafe && fbSfxSafe("perfect", 0.6); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("collect_set_milestone", 0.4); }catch(e){}
   }
 }
 /* pity: every 5th Risk pack guarantees a new F&F card */
@@ -125,15 +125,17 @@ function c2Render(){
     try{ saveState(); renderHeader(); }catch(e){} c2Render(); };
   host.querySelectorAll("[data-flip]").forEach(b=>b.onclick=()=>{
     const n = +b.dataset.flip; if(state.scrap < n) return;
-    if(Math.random() < 0.5){ state.scrap += n; showToast(`♻️ HEADS — the pile doubles (+${n})`); try{ fbSfxSafe&&fbSfxSafe("reward_good",0.4);}catch(e){} }
-    else { state.scrap -= n; showToast(`♻️ TAILS — ${n} scrap sweeps away`); try{ fbSfxSafe&&fbSfxSafe("splash_small",0.4);}catch(e){} }
+    try{ fbSfxSafe && fbSfxSafe("mg_casino_coin_flip", 0.35); }catch(e){}
+    if(Math.random() < 0.5){ state.scrap += n; showToast(`♻️ HEADS — the pile doubles (+${n})`); try{ fbSfxSafe&&fbSfxSafe("mg_casino_win",0.4);}catch(e){} }
+    else { state.scrap -= n; showToast(`♻️ TAILS — ${n} scrap sweeps away`); try{ fbSfxSafe&&fbSfxSafe("mg_casino_lose",0.3);}catch(e){} }
     try{ saveState(); renderHeader(); }catch(e){} c2Render();
   });
   host.querySelectorAll("[data-duel]").forEach(b=>b.onclick=()=>{
     const t = +b.dataset.duel; const M = state.mining;
     if(((M.ore&&M.ore[t])||0) < 3) return;
-    if(Math.random() < 0.55){ M.ore[t] += 3; showToast(`⛏️ Your draw stands — +3 Tier-${t} ore`); }
-    else { M.ore[t] -= 3; showToast(`⛏️ The pit draws higher — 3 Tier-${t} ore to the house`); }
+    try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
+    if(Math.random() < 0.55){ M.ore[t] += 3; showToast(`⛏️ Your draw stands — +3 Tier-${t} ore`); try{ fbSfxSafe && fbSfxSafe("mg_casino_win", 0.4); }catch(e){} }
+    else { M.ore[t] -= 3; showToast(`⛏️ The pit draws higher — 3 Tier-${t} ore to the house`); try{ fbSfxSafe && fbSfxSafe("mg_casino_lose", 0.3); }catch(e){} }
     try{ saveState(); }catch(e){} c2Render();
   });
   const stk = host.querySelector("#c2Stake");
@@ -156,7 +158,8 @@ function c2StakeSheet(){
       : `<div class="c2-dim">nothing in the binder worth the felt</div>`}
     <button class="c2-btn" id="c2ShX">walk away</button></div>`;
   document.body.appendChild(m);
-  document.getElementById("c2ShX").onclick = ()=> m.remove();
+  try{ fbSfxSafe && fbSfxSafe("ui_open", 0.3); }catch(e){}
+  document.getElementById("c2ShX").onclick = ()=>{ try{ fbSfxSafe && fbSfxSafe("ui_close", 0.25); }catch(e){} m.remove(); };
   m.querySelectorAll("[data-stake]").forEach(b=>b.onclick=()=>{
     const id = b.dataset.stake; const c = cards[id];
     if(!(state.owned[id]>0)) { m.remove(); return; }
@@ -171,14 +174,14 @@ function c2StakeSheet(){
       state.owned[win.id] = (state.owned[win.id]||0)+1;
       state.miningBonus = computeMiningBonusFromOwned(state.owned);
       showToast(`🎴 THE HOUSE PAYS — ${win.name} (${RARITIES[win.rarity].name}) joins the binder`);
-      try{ fbSfxSafe&&fbSfxSafe("treasure",0.5); }catch(e){}
+      try{ fbSfxSafe&&fbSfxSafe("mg_casino_jackpot",0.45); }catch(e){}
       try{ logWin(0); }catch(e){}
     } else {
       state.owned[id] -= 1;
       state.miningBonus = computeMiningBonusFromOwned(state.owned);
       if(state.grading && state.grading.graded && !(state.owned[id]>0)) delete state.grading.graded[id];
       showToast(`🔥 The dealer turns it over — ${c.name} burns.`);
-      try{ fbSfxSafe&&fbSfxSafe("splash_small",0.5); }catch(e){}
+      try{ fbSfxSafe&&fbSfxSafe("mg_market_scam",0.3); }catch(e){}
     }
     try{ saveState(); }catch(e){} c2Render();
   });

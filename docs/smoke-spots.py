@@ -197,11 +197,31 @@ async def main():
             "JSON.stringify(fsh.sightBias)==='[4,5]'"))
         check("the spooked shadow bolts with a ring", await pg.evaluate(
             "feShadows.length===0 || feShadows[0].hit>0 || Math.abs(feShadows[0].vx)>0"))
-        # sound: effects are retired (batch 126); the beds decode, feSound is inert
+        # sound: effects are on by default and the Settings toggle can silence them
         dec=await pg.evaluate("(async()=>{ feAudioUnlock(); const b=await feBuffer('music'); return !!(b && b.duration>0.01); })()")
         check("the piano decodes into a real audio buffer", dec)
-        check("feSound is inert - no effect ever plays", await pg.evaluate(
-            "(()=>{ feAudioUnlock(); feSound('plunk',{gap:0}); feSound('treasure',{gap:0}); return feVoices===0 && !document.getElementById('feSfxChip'); })()"))
+        snd=await pg.evaluate("""(async()=>{
+          feAudioUnlock();
+          state.settings.sfxOff = false;
+          const buf = await feBuffer('mg_fishing_plunk');
+          feLastPlay.plunk = -9; feLastPlay.mg_fishing_plunk = -9;
+          const before = feVoices;
+          feSound('plunk', {vol:0.45, gap:0});
+          await new Promise(r=>setTimeout(r, 60));
+          const played = feVoices > before;
+          state.settings.sfxOff = true;
+          const held = feVoices;
+          feSound('treasure', {vol:0.9, gap:0});
+          await new Promise(r=>setTimeout(r, 60));
+          const silenced = feVoices === held;
+          state.settings.sfxOff = false;
+          const toggle = document.getElementById('sfxOnToggle');
+          return { buf: !!(buf && buf.duration>0.01), played, silenced,
+                   toggle: !!toggle, on: !!(toggle && toggle.checked),
+                   chip: !document.getElementById('feSfxChip') };
+        })()""")
+        check("an effect plays while the settings switch is on", snd["buf"] and snd["played"], snd)
+        check("the settings switch silences effects", snd["silenced"] and snd["toggle"] and snd["on"] and snd["chip"], snd)
         await pg.evaluate("fsh.phase='idle'; fshRenderControls();"); await pg.wait_for_timeout(300)
         # ambience: with the context awake, the music pad and water bed loop
         amb=await pg.evaluate("""(async()=>{
@@ -211,7 +231,7 @@ async def main():
                    keys: Object.keys(FE_SFX).length };
         })()""")
         check("the piano and water bed loop when awake", amb["music"] and amb["water"], amb)
-        check("the pack carries the three beds and nothing else", amb["keys"]==3, amb["keys"])
+        check("the pack carries the 90 sounds, their aliases and the three beds", amb["keys"]>=90+34+3, amb["keys"])
         night=await pg.evaluate("""(async()=>{
           feEnv.hour=23.5;
           await new Promise(r=>setTimeout(r, 600));

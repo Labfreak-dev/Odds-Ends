@@ -189,6 +189,7 @@ function csStart(){
          selected:null, hinted:false, done:false, banked:false };
   csStats().played++;
   saveState();
+  try{ fbSfxSafe && fbSfxSafe("mg_start", 0.35); }catch(e){}
   csPaint();
 }
 
@@ -213,6 +214,7 @@ function csSlotOk(i){
 function csPick(id){
   if(!cs || cs.done) return;
   cs.selected = cs.selected === id ? null : id;
+  try{ fbSfxSafe && fbSfxSafe("ui_select", 0.22); }catch(e){}
   csPaint();
 }
 
@@ -228,6 +230,8 @@ function csPlace(slot){
   if(already >= 0) cs.placed[already] = null;
   cs.placed[slot] = cs.selected;
   cs.selected = null;
+  try{ fbSfxSafe && fbSfxSafe("mg_case_place", 0.3); }catch(e){}
+  try{ if(csSlotOk(slot) === true) fbSfxSafe && fbSfxSafe("mg_case_slot_ok", 0.3); }catch(e){}
   csCheck();
 }
 
@@ -273,6 +277,7 @@ function csFinish(won){
   if(cs.hinted){ credits = Math.round(credits * (1 - CS_HINT_COST)); xp = Math.round(xp * (1 - CS_HINT_COST)); }
 
   state.credits += credits;
+  try{ fbSfxSafe && fbSfxSafe(won ? "mg_success" : "mg_fail", won ? 0.42 : 0.35); }catch(e){}
   if(xp > 0) grantBonusXP(xp);
 
   st.slots += filled;

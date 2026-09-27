@@ -6,6 +6,7 @@
    for buyers who nibble, stall, or bail.
    ============================================================ */
 (function(){
+let m2SoundOffer = null;
 const M2_PERSONAS = [
   { key:"uncle",  w:18, icon:"🧓", name:"Clueless Uncle",  mult:[0.35,0.7],
     lines:["found in the attic, no idea","grandkids lost interest","is this worth anything lol","garage cleanout, priced to move"] },
@@ -117,6 +118,13 @@ renderMarketOffers = function(){
     return;
   }
   const o = of[i];
+  try{
+    const tab = document.getElementById("tab-market");
+    if(tab && tab.style.display !== "none" && m2SoundOffer !== o){
+      m2SoundOffer = o;
+      fbSfxSafe && fbSfxSafe("mg_market_visitor", 0.25);
+    }
+  }catch(e){}
   let who, art, name, band = "", pitch = o.line;
   if(o.kind === "pack"){
     const pk = PACKS.find(p=>p.key===o.packKey) || {};
@@ -162,7 +170,7 @@ renderMarketOffers = function(){
     if(H.bump){ o.price = Math.round(o.price * (1 + H.bump)); o.reply = H.no; }
     else if(Math.random() < Math.min(0.95, H.odds + bonus)){ o.hagglePrice = Math.round(o.price * (1 - H.cut)); o.reply = H.yes; }
     else { o.reply = H.no; if(((state.upgrades && state.upgrades.silverTongue)||0) >= 2 && !o.haggled2){ o.haggled2 = true; o.haggled = false; o.reply += " …though you sense one more push might land."; } }
-    try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_market_haggle", 0.3); }catch(e){}
     try{ saveState(); }catch(e){}
     renderMarketOffers();
   };
@@ -172,7 +180,7 @@ function m2Buy(i){
   const o = state.market.offers[i];
   if(!o || o.sold) return;
   const pay = o.hagglePrice || o.price;
-  if(state.dollars < pay){ showToast("Not enough dollars for that deal"); return; }
+  if(state.dollars < pay){ showToast("Not enough dollars for that deal"); try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){} return; }
   state.dollars -= pay;
   o.sold = true;
   if(o.kind === "pack"){
@@ -189,13 +197,13 @@ function m2Buy(i){
   } else if(o.fake){
     state.scrap = (state.scrap||0) + 3;
     showToast("🕶️ It never ships. The listing vanishes. (+3 ♻️ — the sleeve was real)");
-    try{ fbSfxSafe && fbSfxSafe("splash_small", 0.4); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_market_scam", 0.3); }catch(e){}
   } else {
     const c = cards[o.cardId];
     state.owned[c.id] = (state.owned[c.id]||0) + 1;
     state.miningBonus = computeMiningBonusFromOwned(state.owned);
     showToast(`🤝 ${c.name} is yours — check the binder`);
-    try{ fbSfxSafe && fbSfxSafe("reward_good", 0.4); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("econ_buy_pack", 0.35); }catch(e){}
   }
   try{ saveState(); renderHeader(); }catch(e){}
   renderMarketOffers();
@@ -220,6 +228,7 @@ function m2InjectSellUI(){
   grid.parentElement.insertBefore(bar, grid);
   document.getElementById("m2SellToggle").onclick = ()=>{
     m2SellMode = !m2SellMode;
+    try{ fbSfxSafe && fbSfxSafe("ui_toggle", 0.22); }catch(e){}
     document.getElementById("m2SellToggle").innerHTML = `💰 Sell mode: <b>${m2SellMode?"ON":"off"}</b>`;
     grid.classList.toggle("m2-armed", m2SellMode);
   };
@@ -246,7 +255,8 @@ function m2SellSheet(id){
       <b>${t.label}</b> — $${Math.round(tv*t.mult).toLocaleString()} <i>${t.note}</i></button>`).join("")}
     <button class="m2-sh-x" id="m2SheetX">never mind</button></div>`;
   document.body.appendChild(m);
-  document.getElementById("m2SheetX").onclick = ()=> m.remove();
+  try{ fbSfxSafe && fbSfxSafe("ui_open", 0.3); }catch(e){}
+  document.getElementById("m2SheetX").onclick = ()=>{ try{ fbSfxSafe && fbSfxSafe("ui_close", 0.25); }catch(e){} m.remove(); };
   m.querySelectorAll("[data-m2list]").forEach(b => b.onclick = ()=>{
     const t = M2_TIERS.find(x=>x.key===b.dataset.m2list);
     if((state.owned[id]||0) <= 0) { m.remove(); return; }
@@ -281,7 +291,7 @@ function m2Resolve(){
       const net = Math.round(L.price * (((state.upgrades && state.upgrades.storeSign)||0) ? 0.93 : 0.9));
       state.dollars += net;
       showToast(`🤝 SOLD — ${c?c.name:"card"} for $${L.price.toLocaleString()} (you keep ${net.toLocaleString()})`);
-      try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
+      try{ fbSfxSafe && fbSfxSafe("econ_coins_big", 0.4); }catch(e){}
     } else {
       state.owned[L.id] = (state.owned[L.id]||0) + 1;
       state.miningBonus = computeMiningBonusFromOwned(state.owned);

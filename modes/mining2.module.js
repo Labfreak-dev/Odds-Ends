@@ -220,7 +220,7 @@ function mgStrike(player){
       mgFloat(cx-40+Math.random()*80, cy-70, "+$"+gain.toLocaleString());
       try{ window.feLedgerBump && feLedgerBump("tap"); }catch(e){}
       mgHeaderRefresh();
-      try{ fbSfxSafe && fbSfxSafe("equip", 0.18); }catch(e){}
+      try{ fbSfxSafe && fbSfxSafe("mg_mining_pick_tap", 0.15); }catch(e){}
     }
     if(mg.hp <= 0){
       const tier = mgTier();
@@ -242,7 +242,7 @@ function mgStrike(player){
       mg.maxHp = mgRockHp(); mg.hp = mg.maxHp; mg.seed = (mg.seed*48271)%2147483647 || 7;
       mgHeaderRefresh();
       try{ saveState(); }catch(e){}
-      try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
+      try{ fbSfxSafe && fbSfxSafe("mg_mining_vein_break", 0.4); }catch(e){}
     }
   }, 200);
 }
@@ -325,7 +325,7 @@ function mgWorksRender(){
     if((M.ore[t]||0) < MG_SMELT_ORE || (M.jobs||[]).length >= slots2) return;
     M.ore[t] -= MG_SMELT_ORE;
     M.jobs.push({ t, done: Date.now() + mgSmeltSecs(t)*1000 });
-    try{ fbSfxSafe && fbSfxSafe("bait", 0.35); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_mining_smelt_start", 0.3); }catch(e){}
     try{ saveState(); }catch(e){}
     mgWorksRender();
   });
@@ -336,7 +336,7 @@ function mgWorksRender(){
     try{ window.feLedgerBump && feLedgerBump("smelt"); }catch(e){}
     mgFloat(W/2, H-200, "🔥 Tier-"+jb.t+" ingot, cooled and true", true);
     M.jobs.splice(+col.dataset.collect, 1);
-    try{ fbSfxSafe && fbSfxSafe("reward_good", 0.4); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_mining_ingot_collect", 0.35); }catch(e){}
     try{ saveState(); }catch(e){}
     mgWorksRender();
   });
@@ -350,7 +350,7 @@ function mgWorksRender(){
     M.forge = nx - 1;
     mgFloat(W/2, H-220, "⚒️ THE TIER "+nx+" PICK — +6% mine rate", true);
     mgSparks(W/2, H-200, 40, true);
-    try{ fbSfxSafe && fbSfxSafe("perfect", 0.5); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_mining_forge_pick", 0.45); }catch(e){}
     try{ saveState(); renderMiningStats && renderMiningStats(); }catch(e){}
     mgWorksRender(); mgCaption();
   };

@@ -3860,6 +3860,22 @@ fshInv().collapse and survive tab re-entry without double-decorating
 (dataset guard). The keys/strongbox shelf lives inside Equipment and
 folds with it. Browser-proven end to end.
 
+## Audio — Ironhold, Thankless, Dead Man's Pull
+Music and SFX files for the three standalone games, wired beside the
+existing synth so a missing file still speaks. Ironhold: `music/theme.mp3`
+(the player already looped it) and 18 `sfx/*.mp3` through `sfx()`, falling
+back to `SFX_LIB`. Thankless: the 37 clips replaced in place, 21 `vox_*`
+files in front of `sn()`, `music/menu.mp3` on the title and camp and
+`music/meadow.mp3` for every field (the sequencer stays the fallback),
+ambience loops left as they were, service-worker cache `thankless-v3`.
+Dead Man's Pull: the four biome tracks replaced and set to native
+`loop=true`; `tick()` no longer restarts a track 2.3s early. Ten synth
+cues play the new files first, and arrow, kill, reaper, door and chest
+are wired at the bow, `kill()`, Death, the next floor, and chest/mimic
+opens. Thankless pitch jitter only lowers `playbackRate` (never above the
+base rate). `workshop/` and `modes/fishing2.module.js` were not touched.
+The attack-effect sheets from #345 are unchanged.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

@@ -920,15 +920,15 @@ function saveSet(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e
 function applySet(){sndApply();const c=$('chat');if(c)c.classList.toggle('hide',!SET.chat);document.querySelectorAll('#setov .seg').forEach(seg=>{const k=seg.dataset.k;seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(SET[k])===b.dataset.v))});const fs=$('fsBtn');if(fs)fs.classList.toggle('hide',!document.documentElement.requestFullscreen)}
 function openSet(){applySet();{const st=$('updstamp');if(st)st.textContent=BUILD}$('saveTxt').value='';$('setnote').textContent='';$('setov').classList.remove('hide')}
 function closeSet(){$('setov').classList.add('hide')}
-// ===== b061: sound. Clips from the Free Fantasy SFX Pack by TomMusic (sfx/*.mp3), the rest synthesised here. =====
-const SFX_KEYS=['hit1','hit2','hit3','arrowhit1','arrowhit2','bow1','bow2','swing1','swing2','swing3','block1','block2','parry','fireball1','fireball2','fireball3','firebuff','firespray','icethrow1','icethrow2','icefreeze','icewall','icebarrage','meteor','boom','rockwall','impact1','impact2','impact3','waterspray','wave','chestopen','unlock','gate','chop1','chop2','ignite'];
+// ===== b061: sound. Clips in sfx/*.mp3. vox_* are file versions of the synth voices, which stay as the fallback. =====
+const SFX_KEYS=['hit1','hit2','hit3','arrowhit1','arrowhit2','bow1','bow2','swing1','swing2','swing3','block1','block2','parry','fireball1','fireball2','fireball3','firebuff','firespray','icethrow1','icethrow2','icefreeze','icewall','icebarrage','meteor','boom','rockwall','impact1','impact2','impact3','waterspray','wave','chestopen','unlock','gate','chop1','chop2','ignite','vox_heal','vox_level','vox_pickcard','vox_ui','vox_mote','vox_coin','vox_revive','vox_ult','vox_boss','vox_elite','vox_down','vox_win','vox_lose','vox_fail','vox_hurt','vox_bonk','vox_event','vox_zap','vox_buff','vox_shot','vox_pop'];
 const SFX_VAR={hit:['hit1','hit2','hit3'],arrowhit:['arrowhit1','arrowhit2'],bow:['bow1','bow2'],swing:['swing1','swing2','swing3'],block:['block1','block2'],fireball:['fireball1','fireball2','fireball3'],icethrow:['icethrow1','icethrow2'],impact:['impact1','impact2','impact3'],chop:['chop1','chop2']};
 const SND={ctx:null,buf:{},last:{},loading:{},amb:null,ambKey:null,ambWant:null,noise:null};
-function sndInit(){if(SND.ctx)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;try{SND.ctx=new C()}catch(e){return}const c=SND.ctx;SND.master=c.createGain();SND.master.connect(c.destination);SND.sfxG=c.createGain();SND.sfxG.connect(SND.master);SND.ambG=c.createGain();SND.ambG.gain.value=0;SND.ambG.connect(SND.master);SND.musG=c.createGain();SND.musG.gain.value=0;SND.musG.connect(c.destination);sndApply();if(location.protocol!=='file:')for(const k of SFX_KEYS)sndLoad(k);musStart()}
+function sndInit(){if(SND.ctx)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;try{SND.ctx=new C()}catch(e){return}const c=SND.ctx;SND.master=c.createGain();SND.master.connect(c.destination);SND.sfxG=c.createGain();SND.sfxG.connect(SND.master);SND.ambG=c.createGain();SND.ambG.gain.value=0;SND.ambG.connect(SND.master);SND.musG=c.createGain();SND.musG.gain.value=0;SND.musG.connect(c.destination);sndApply();if(location.protocol!=='file:')for(const k of SFX_KEYS)sndLoad(k);musStart();musLoadFiles()}
 function sndApply(){if(!SND.ctx)return;SND.master.gain.setTargetAtTime(SET.sound*(G&&G.paused?0.25:1),SND.ctx.currentTime,0.1);SND.ambG.gain.setTargetAtTime(SET.ambience&&SND.amb?0.55:0,SND.ctx.currentTime,0.3);musApply()}
 function sndLoad(k){if(!SND.ctx||SND.buf[k]||SND.loading[k]||location.protocol==='file:')return;SND.loading[k]=true;fetch('sfx/'+k+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>SND.ctx.decodeAudioData(b,res,rej))).then(buf=>{SND.buf[k]=buf;if(k===SND.ambWant)sndAmb(k)}).catch(()=>{SND.loading[k]=false})}
 // a clip: k may name a variant set. o: vol, rate, jit (pitch jitter), gap (throttle seconds), x/y (quieter with distance from the healer)
-function sfx(k,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,now=c.currentTime;if(now-(SND.last[k]||-9)<(o.gap!==undefined?o.gap:0.05))return;SND.last[k]=now;const key=SFX_VAR[k]?pick(SFX_VAR[k]):k,buf=SND.buf[key];if(!buf)return;let vol=o.vol||1;if(o.x!==undefined&&G&&G.healer){const d=Math.hypot(o.x-G.healer.x,o.y-G.healer.y);vol*=Math.max(0.15,1-d/900)}const src=c.createBufferSource();src.buffer=buf;src.playbackRate.value=(o.rate||1)*(1+(RAND()-0.5)*2*(o.jit!==undefined?o.jit:0.07));const g=c.createGain();g.gain.value=vol;src.connect(g);g.connect(SND.sfxG);src.start()}
+function sfx(k,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,now=c.currentTime;if(now-(SND.last[k]||-9)<(o.gap!==undefined?o.gap:0.05))return;SND.last[k]=now;const key=SFX_VAR[k]?pick(SFX_VAR[k]):k,buf=SND.buf[key];if(!buf)return;let vol=o.vol||1;if(o.x!==undefined&&G&&G.healer){const d=Math.hypot(o.x-G.healer.x,o.y-G.healer.y);vol*=Math.max(0.15,1-d/900)}const src=c.createBufferSource();src.buffer=buf;src.playbackRate.value=(o.rate||1)*(1-RAND()*(o.jit!==undefined?o.jit:0.07));const g=c.createGain();g.gain.value=vol;src.connect(g);g.connect(SND.sfxG);src.start()}
 // synthesised voices
 function syn(f,dur,type,vol,o){if(!SND.ctx||!SET.sound)return;o=o||{};const c=SND.ctx,t=c.currentTime+(o.at||0),osc=c.createOscillator();osc.type=type||'sine';osc.frequency.setValueAtTime(f,t);if(o.to)osc.frequency.exponentialRampToValueAtTime(o.to,t+dur);const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+(o.atk||0.01));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);osc.connect(g);g.connect(SND.sfxG);osc.start(t);osc.stop(t+dur+0.03)}
 function sndNoiseBuf(){const c=SND.ctx,b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;SND.noise=b}
@@ -956,12 +956,14 @@ const VOX={
   shot(){synNoise(0.09,0.3,{f:1800});syn(140,0.1,'sine',0.25,{to:60})},
   pop(){synNoise(0.08,0.14,{f:900});syn(300,0.08,'sine',0.1,{to:80})}
 };
-function sn(k,gap){if(!SND.ctx||!SET.sound||!VOX[k])return;const now=SND.ctx.currentTime;if(now-(SND.last['~'+k]||-9)<(gap||0.05))return;SND.last['~'+k]=now;VOX[k]()}
+const VOX_VOL={heal:0.35,level:0.5,pickcard:0.4,ui:0.25,mote:0.2,coin:0.3,revive:0.5,ult:0.6,boss:0.7,elite:0.45,down:0.5,win:0.55,lose:0.5,fail:0.4,hurt:0.4,bonk:0.45,event:0.4,zap:0.45,buff:0.35,shot:0.4,pop:0.25};
+function sn(k,gap){if(!SND.ctx||!SET.sound||!VOX[k])return;const now=SND.ctx.currentTime;if(now-(SND.last['~'+k]||-9)<(gap||0.05))return;SND.last['~'+k]=now;
+  if(SND.buf['vox_'+k]){sfx('vox_'+k,{vol:VOX_VOL[k]||0.4,gap:0,jit:0.03});return}VOX[k]()}
 // ambience: one loop per field, the night loop under a blood moon
 function sndAmbFor(){if(!SND.ctx)return;if(!G||G.over){sndAmb(G?null:'amb_fire');return}const k=G.moonT>0?'amb_night':({meadow:'amb_day',bonefields:'amb_night',keep:'amb_cave',mire:'amb_night'}[G.field.id]||'amb_day');sndAmb(k)}
 function sndAmb(k){SND.ambWant=k;if(SND.ambKey===k)return;const c=SND.ctx;if(SND.amb){const old=SND.amb,og=SND.ambSrcG;og.gain.setTargetAtTime(0,c.currentTime,0.5);setTimeout(()=>{try{old.stop()}catch(e){}},2500);SND.amb=null;SND.ambKey=null}if(!k){sndApply();return}if(!SND.buf[k]){sndLoad(k);return}const src=c.createBufferSource();src.buffer=SND.buf[k];src.loop=true;const g=c.createGain();g.gain.value=0;g.gain.setTargetAtTime(1,c.currentTime,1.2);src.connect(g);g.connect(SND.ambG);src.start();SND.amb=src;SND.ambSrcG=g;SND.ambKey=k;sndApply()}
 function sprayCue(el,o,beam){if(el==='bolt'){sn('zap',0.1);return}sfx(({fire:'firespray',frost:'icebarrage',poison:'waterspray',holy:beam?'wave':'firebuff',arcane:'wave'})[el]||'firespray',{x:o.x,y:o.y,vol:0.5,gap:0.15})}
-// ===== b063: music. A step sequencer on the audio clock; nothing is loaded. =====
+// ===== b063: music. menu.mp3 on the title and camp, meadow.mp3 in every field; the step sequencer is the fallback. =====
 // A theme: key (MIDI root), tempo, chord progression (semitones from the key, with a quality), a bass pattern,
 // a lead motif in scale degrees over four bars (-1 rests), and a drum pattern. Layers come in with time.
 const MINOR=[0,2,3,5,7,8,10];
@@ -972,6 +974,13 @@ const THEMES={
   keep:{root:52,bpm:124,prog:[[0,'m'],[3,'M'],[10,'M'],[7,'M']],bass:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1],lead:[4,-1,4,-1,5,-1,4,-1,2,-1,-1,-1,0,-1,-1,-1, 5,-1,5,-1,7,-1,5,-1,4,-1,-1,-1,-1,-1,-1,-1, 4,-1,4,-1,5,-1,4,-1,7,-1,-1,-1,9,-1,-1,-1, 7,-1,5,-1,4,-1,2,-1,0,-1,-1,-1,-1,-1,-1,-1],drums:[1,0,3,0,2,0,3,0,1,0,3,0,2,0,3,0]},
   mire:{root:55,bpm:96,prog:[[0,'m'],[5,'m'],[0,'m'],[10,'M']],bass:[1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0],lead:[0,-1,-1,2,-1,-1,3,-1,-1,-1,2,-1,-1,0,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,-1,-1,5,-1,-1,6,-1,-1,-1,5,-1,-1,3,-1,-1, 2,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1],drums:[1,0,0,3,0,0,1,0,2,0,0,3,0,0,1,3]}};
 const MUS={want:'none',cur:'none',step:0,next:0,timer:null,layer:0,boss:false,duck:1};
+const MUS_FILE={menu:'menu',meadow:'meadow'};   // add bonefields/keep/mire here when those loops exist
+MUS.fbuf={};MUS.src=null;MUS.srcKey=null;
+function musFileKey(w){return w==='none'?null:(MUS_FILE[w]||(w==='menu'?null:'meadow'))}
+function musLoadFiles(){if(location.protocol==='file:'||!SND.ctx)return;for(const k of new Set(Object.values(MUS_FILE)))
+  fetch('music/'+k+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>SND.ctx.decodeAudioData(b,res,rej))).then(buf=>{MUS.fbuf[k]=buf}).catch(()=>{})}
+function musFilePlay(k){const c=SND.ctx;if(MUS.srcKey===k)return;if(MUS.src){try{MUS.src.stop(c.currentTime+0.05)}catch(e){}MUS.src=null;MUS.srcKey=null}
+  if(!k)return;const s=c.createBufferSource();s.buffer=MUS.fbuf[k];s.loop=true;s.connect(SND.musG);s.start(c.currentTime+0.05);MUS.src=s;MUS.srcKey=k}
 function musApply(){if(!SND.ctx||!SND.musG)return;const on=MUS.cur!=='none'&&SET.sound>0;SND.musG.gain.setTargetAtTime(on?0.32*SET.music*MUS.duck:0,SND.ctx.currentTime,0.4)}
 function musWant(){let w='menu',boss=false,layer=0,duck=1;
   if(G&&!G.over){w=THEMES[G.field.id]?G.field.id:'meadow';boss=!!((G.king&&!G.king.dead)||(G.lich&&!G.lich.dead)||(G.knight&&G.t<G.field.knightAt+40));layer=G.t<150?0:G.t<330?1:2;if(G.cine)duck=0.2;else if(G.lvOpen||G.paused)duck=0.45}
@@ -979,6 +988,7 @@ function musWant(){let w='menu',boss=false,layer=0,duck=1;
   if(w!==MUS.want){MUS.want=w;if(MUS.cur!=='none'){const c=SND.ctx;SND.musG.gain.setTargetAtTime(0,c.currentTime,0.3);MUS.fadeT=c.currentTime+1.0}}}
 function musStart(){if(MUS.timer||!SND.ctx)return;MUS.next=SND.ctx.currentTime+0.1;MUS.timer=setInterval(musSched,40)}
 function musSched(){const c=SND.ctx;if(!c)return;if(MUS.want!==MUS.cur){if(MUS.cur==='none'||c.currentTime>=(MUS.fadeT||0)){MUS.cur=MUS.want;MUS.step=0;MUS.next=c.currentTime+0.05;musApply()}else return}
+  const fk=musFileKey(MUS.cur);if(fk&&MUS.fbuf[fk]){musFilePlay(fk);return}else if(MUS.src)musFilePlay(null);
   if(MUS.cur==='none'||!SET.sound||!SET.music)return;const T=THEMES[MUS.cur];const bpm=T.bpm+(MUS.boss?18:0),spb=60/bpm/4;
   while(MUS.next<c.currentTime+0.12){musNote(T,MUS.step,MUS.next,spb);MUS.step=(MUS.step+1)%64;MUS.next+=spb}}
 function mnote(n){return 440*Math.pow(2,(n-69)/12)}

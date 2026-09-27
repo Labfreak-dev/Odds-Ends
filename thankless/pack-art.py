@@ -15,6 +15,8 @@ What happens to each file, by key prefix:
   ult_    ultimate form: keyed, trimmed, fitted into 320x320 (the cut-in draws it screen-wide)
   menu_sky, field_  wide painting, 1024 wide, background kept
   menu_mid, menu_fore  parallax layer: keyed off magenta, not trimmed, 1024 wide
+  fxa_    attack strip: already fitted to its hit radius. Not keyed, trimmed, or scaled.
+          A webp is copied through byte for byte; a png is encoded once at q78, alpha 55.
   (else)  sprite: keyed off magenta, trimmed, fitted into 128x128
 
 Keying (the matte fix): the background colour is the median of the border
@@ -156,6 +158,12 @@ def pack_one(path):
         out = despill(key_out(im, bg=im.convert("RGB").getpixel((4, 4)))).resize((tw, int(h * tw / w)), Image.LANCZOS); q = 84   # keyed on the top-left pixel, not trimmed, so the layers stay aligned
     elif key.startswith("ult_"):
         out = fit(trim(key_out(im)), 320); q = 84   # b070: ultimate forms fill a phone screen in the cut-in: keep them sharp
+    elif key.startswith("fxa_"):
+        # v1 attack strips are pre-fitted (the game draws them at hit-radius * rs).
+        # Keying or fitting them to 128 would crop the frames and move the anchor.
+        if path.suffix.lower() == ".webp":
+            return key, im.size, path.read_bytes()
+        out = im.convert("RGBA"); q = 78
     elif key.startswith("face_"):
         rgb = im.convert("RGB"); w, h = rgb.size; c = rgb.getpixel((4, 4))
         if c[0] > 180 and c[2] > 90 and c[1] < 80:   # a bust drawn on magenta (the bosses): key it and sit it on the panel colour
@@ -168,7 +176,10 @@ def pack_one(path):
         out = im.convert("RGB").crop(((w-tw)//2, (h-th)//2, (w-tw)//2+tw, (h-th)//2+th)).resize((640, 360), Image.LANCZOS); q = 82
     else:
         out = fit(trim(key_out(im)), 128); q = 88
-    buf = io.BytesIO(); out.save(buf, "WEBP", quality=q, method=6)
+    buf = io.BytesIO()
+    kw = {"quality": q, "method": 6}
+    if key.startswith("fxa_"): kw["alpha_quality"] = 55   # lossy alpha; lossless was most of the strip's weight
+    out.save(buf, "WEBP", **kw)
     return key, out.size, buf.getvalue()
 
 def main():

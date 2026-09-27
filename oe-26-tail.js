@@ -107,8 +107,9 @@ function uiSetNavActive(tab){
   const gear = document.getElementById("hdrGear");
   if(gear) gear.classList.toggle("active", tab === "account");
 }
-function uiSwitchTab(tab){
+function uiSwitchTab(tab, opt){
   uiSetNavActive(tab);
+  if(!(opt && opt.silent)){ try{ fbSfxSafe && fbSfxSafe("ui_tab", 0.22); }catch(e){} }
   const bb = document.getElementById("playBack");
   if(bb) bb.style.display = "none";
   uiShowSection(tab);
@@ -127,7 +128,7 @@ function uiOpenGame(id){
   uiEnterSection(id);
   try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){ window.scrollTo(0,0); }
 }
-function uiBackToPlay(){ uiSwitchTab("play"); }
+function uiBackToPlay(){ try{ fbSfxSafe && fbSfxSafe("ui_close", 0.25); }catch(e){} uiSwitchTab("play", {silent:true}); }
 /* The browser can end this page without warning - an iOS tab reaped for
    memory, a swipe out of the app switcher, a closed laptop. 'pagehide' is the
    only event that reliably fires in all of those on Safari; 'beforeunload' is
@@ -404,6 +405,7 @@ setInterval(mineTick, 1000);
     if(done) return; done = true;
     host.classList.add("out");
     try{ if(typeof feAudioUnlock === "function") feAudioUnlock(); }catch(e){}
+    try{ if(typeof feSound === "function") feSound("ui_start", {vol:0.35, gap:0}); }catch(e){}
     setTimeout(()=>{ try{ host.remove(); }catch(e){} }, 520);
   }
   /* Dismiss on CLICK, not pointerdown: the first tap once took the overlay
@@ -460,12 +462,14 @@ setInterval(mineTick, 1000);
   }
   function setChallenge(ch, secs){
     pkSmash.challenge = ch; pkSmash.challengeT = secs;
+    try{ fbSfxSafe && fbSfxSafe("mg_poker_challenge", 0.32); }catch(e){}
     ensureHud();
     const bar = document.getElementById("pkChallenge");
     if(bar) bar.classList.add("show");
     barText();
   }
   function endChallenge(won){
+    try{ fbSfxSafe && fbSfxSafe(won ? "mg_poker_challenge_win" : "mg_time_up", won ? 0.4 : 0.32); }catch(e){}
     if(won && pkSmash.challenge && pk){
       const bonus = 180 + (pkSmash.challenge.n || 3) * 40;
       pk.score += bonus;

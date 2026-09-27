@@ -16,6 +16,8 @@ global.FSH_WEIGHT_SLOPE=[0,1,2,3,4,5.4,2.6];
 const ASSETS=fs.readFileSync(path.join(__dirname,"..","modes","fishing-assets.module.js"),"utf8");
 const SFX=fs.readFileSync(path.join(__dirname,"..","modes","fishing-sfx.module.js"),"utf8");
 const SRC=fs.readFileSync(path.join(__dirname,"..","modes","fishing2.module.js"),"utf8");
+const PLAYER=fs.readFileSync(path.join(__dirname,"..","modes","sfx.module.js"),"utf8");
+const PACK=fs.readFileSync(path.join(__dirname,"..","modes","sfx-pack.module.js"),"utf8");
 global.Image=class{ constructor(){ this.complete=false; this.naturalWidth=0; } set src(v){} };
 
 /* ---- stubs for the host surface the module touches ---- */
@@ -59,13 +61,14 @@ global.cards=[];
   cards.push({id:id++, name:"Not Fishing — Decoy", category:"Kitchen", emoji:"🥄", rarity:2});
 }
 global.performance={now:()=>Date.now()};
-eval(ASSETS+";"+SFX+";"+SRC+`;global.__fe={fePalette,feBasePalette,feWeatherMod,fePickWeather,feEnvInit,feEnvTick,
+eval(PLAYER+";"+PACK+";"+ASSETS+";"+SFX+";"+SRC+`;global.__fe={fePalette,feBasePalette,feWeatherMod,fePickWeather,feEnvInit,feEnvTick,
   feSunPos,feMoonPos,feFightNew,feFightStep,feFightStats,FE_ARCH,FE_WEATHER_NEXT,
   FE_SPOTS,feSpots,feSpot,feNight,feTTInit,feTTOwned,feAwardTT,fePickFrom,
   FE_IMG,FE_ROD_AXIS,FE_ROD_REEL,FE_RIDGE,FE_SPECIES_ART:typeof FE_SPECIES_ART!=="undefined"?FE_SPECIES_ART:{},FE_CLASS_BY_EMOJI,FE_ASSET_TIER,feCatchSprite,
   FE_PROPS,feProps,feAwardProp,feNextProp,fePropSchedule,FE_PROP_ORDER,stats:fshStats,
   feConds,feCondOk,feCondHint,FE_COND_ICONIC,feJournalRecord,feJournalCount,feSpeciesTotal,
-  feShadowSpawn,FE_SFX_KEYS:Object.keys(FE_SFX),
+  feShadowSpawn,FE_SFX_KEYS:Object.keys(FE_SFX), get feBuf(){return feBuf;},
+  aliasOk: FE_SFX.treasure===FE_SFX.collect_pack_tear && FE_SFX.equip===FE_SFX.ui_select && FE_SFX.cast===FE_SFX.mg_fishing_cast,
   FE_BOSSES,feBossDef,feBossState,feBossAvailable,feBossRecord,feCineRingStep,feSigNew,
   feKeys,feKeyRoll,feBestKeyFor,FE_ARCH,
   feInitAmbient, get stars(){return feStars;},
@@ -544,9 +547,27 @@ console.log("\n=== conditions & the journal ===");
   global.fsh=null;
   for(let i=0;i<3000;i++){ const c=FE.rollCatch(0.4,false); if(c.def.tier===4||c.def.tier===5) base++; }
   check(`aiming at a big shadow more than doubles its band (${base}→${hi})`, hi > base*1.7, `${base} vs ${hi}`);
-  // sound: effects are retired (batch 126) - the pack carries the three beds and nothing else
+  // sound: 90 one-shots, 34 legacy aliases, and the three beds. Effects play unless sfxOff.
   const beds=["music","music_night","amb_water"];
-  check("the pack carries exactly the three beds", FE.FE_SFX_KEYS.length===3 && beds.every(k=>FE.FE_SFX_KEYS.includes(k)), FE.FE_SFX_KEYS.join(","));
+  const shots=["ui_click","ui_start","collect_pack_tear","collect_mythic","econ_buy_pack","mg_mining_pick_tap","mg_fishing_cast","mg_casino_wheel_spin","mg_grading_gem","mg_press_merge"];
+  check("the three beds are still in the pack", beds.every(k=>FE.FE_SFX_KEYS.includes(k)));
+  check("the one-shot pack is registered", shots.every(k=>FE.FE_SFX_KEYS.includes(k)) && FE.FE_SFX_KEYS.length>=90+34+3, String(FE.FE_SFX_KEYS.length));
+  check("legacy names alias onto the new pack", FE.aliasOk===true);
+  state.settings = { sfxOff:false, sfxVol:0.5 };
+  global.window = { AudioContext: class {
+    constructor(){ this.state="running"; this.currentTime=0; this.destination={}; }
+    resume(){ return Promise.resolve(); }
+    createGain(){ return { gain:{ value:1, setValueAtTime(){}, linearRampToValueAtTime(){}, cancelScheduledValues(){} }, connect(){} }; }
+    createBiquadFilter(){ return { type:"", frequency:{value:0}, Q:{value:0}, connect(){} }; }
+    createDynamicsCompressor(){ return { threshold:{value:0}, knee:{value:0}, ratio:{value:0}, attack:{value:0}, release:{value:0}, connect(){} }; }
+    decodeAudioData(buf, ok){ const b={duration:0.2}; if(ok) ok(b); return Promise.resolve(b); }
+    createBufferSource(){ return { buffer:null, playbackRate:{value:1}, connect(){}, start(){}, onended:null, stop(){} }; }
+  }};
+  feSound("mg_mining_pick_tap", {vol:0.15, gap:0});
+  const armed = !!FE.feBuf.mg_mining_pick_tap && FE.feBuf.mg_mining_pick_tap !== "pending";
+  state.settings.sfxOff = true;
+  feSound("ui_click", {vol:1, gap:0});
+  check("effects decode when the settings switch is on, and stay silent when it is off", armed && !FE.feBuf.ui_click);
 }
 
 console.log("\n=== sprites & the ridge line ===");

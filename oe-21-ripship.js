@@ -191,7 +191,7 @@ function rzShipNow(i){
   RZ.shipped += pay; RZ.sold[i] = true;
   rzBk().shipN += 1;
   rzCheckBacks();
-  try{ fbSfxSafe && fbSfxSafe("reward_good", 0.35); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("econ_sell_card", 0.35); }catch(e){}
   try{ saveState(); renderHeader(); }catch(e){}
   return true;
 }
@@ -205,7 +205,7 @@ function rzUnship(i){
   state.dollars -= pay;
   RZ.shipped -= pay; RZ.sold[i] = false;
   rzBk().shipN = Math.max(0, rzBk().shipN - 1);
-  try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("econ_keep_card", 0.25); }catch(e){}
   try{ saveState(); renderHeader(); }catch(e){}
   return true;
 }
@@ -738,7 +738,7 @@ function rzRender(){
     document.getElementById("rzShip").onclick = ()=>{ if(!RZ) return; if(!sold) rzShipNow(i); back(); };
     document.getElementById("rzKeep").onclick = ()=>{
       if(!RZ) return;
-      if(sold) rzUnship(i); else { try{ fbSfxSafe && fbSfxSafe("equip", 0.25); }catch(e){} }
+      if(sold) rzUnship(i); else { try{ fbSfxSafe && fbSfxSafe("econ_keep_card", 0.25); }catch(e){} }
       back();
     };
     document.getElementById("rzFaceBack").onclick = back;
@@ -792,7 +792,7 @@ function rzRipDone(){
       rzPoof(cx, cy, "#ffd35c");
       rzBurst(cx, cy, ["#ffd35c","#ff9a5c","#e8e2d6","#8fd0ff"], { n:34, sp:330, s:8, life:1.1 });
     }catch(e){}
-    try{ fbSfxSafe && fbSfxSafe("treasure", 0.4); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("collect_pack_tear", 0.45); }catch(e){}
     setTimeout(()=>{ if(!RZ) return; RZ.ripping = false; RZ.stage = "spread"; rzRender(); }, 620);
   } else {
     RZ.ripping = false; RZ.stage = "spread"; rzRender();
@@ -830,7 +830,7 @@ function rzBurstOn(el, c){
   }catch(e){}
 }
 function rzRevealSfx(c){
-  try{ fbSfxSafe && fbSfxSafe(c.rarity >= 14 ? "reward_legend" : c.rarity >= 9 ? "reward_rare" : "reward_common", c.rarity >= 14 ? 0.5 : 0.3); }catch(e){}
+  try{ if(typeof oeRevealSfx === "function") oeRevealSfx(c); }catch(e){}
   if(c.rarity >= 15 && typeof triggerMythicFireworksEvent === "function"){
     try{ if(!state.settings || state.settings.flashingEnabled !== false) triggerMythicFireworksEvent(); }catch(e){}
   }
@@ -839,6 +839,7 @@ function rzRevealSfx(c){
 function rzReveal(i, el){
   if(!RZ || !RZ.down[i] || RZ.flipping) return;
   RZ.flipping = true;
+  try{ fbSfxSafe && fbSfxSafe("collect_card_flip", 0.35); }catch(e){}
   const c = RZ.pulls[i];
   const card = el && el.querySelector(".rz-spcard");
   if(card) card.classList.add("rz-spflip");
@@ -859,6 +860,7 @@ function rzRevealAll(){
   const idx = [];
   RZ.down.forEach((d,i)=>{ if(d){ RZ.down[i] = false; idx.push(i); } });
   if(!idx.length) return;
+  try{ fbSfxSafe && fbSfxSafe("collect_reveal_all", 0.35); }catch(e){}
   rzCheckBacks();
   rzRender();
   let top = null;

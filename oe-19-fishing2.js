@@ -33,190 +33,9 @@
    ===================================================================== */
 
 /* --------------------- 0 · SOUND ------------------------------------
-   WebAudio over the uploaded SFX pack (FE_SFX data URIs). Buffers decode
-   lazily, the context unlocks on the first pointer down, loops are
-   declarative (the reel crank runs exactly while you hold), and every
-   sound respects the mute chip. */
-let feAC = null, feBuf = {}, feLoops = {}, feLastPlay = {};
-function feAudioCtx(){
-  if(!feAC){ try{ feAC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
-  return feAC;
-}
-function feAudioUnlock(){ const c = feAudioCtx(); if(c && c.state === "suspended") c.resume().catch(()=>{}); }
-/* ---- SOUND SETTINGS (batch 117). The game's only audio path is this
-   module, so the fishing chips used to mute the whole game. Now: the
-   Settings menu owns master on/off and volume for effects and music
-   (state.settings.sfxOff/musicOff/sfxVol/musicVol); the fishing chips and
-   mixer are QUIET-ON-THE-WATER controls that apply only while the fishing
-   tab is up. Effects run through a bus (lowpass + gentle compressor), the
-   loud and bright samples carry trims, the bright ones an extra lowpass,
-   and the pack/market keys a rate limit, so nothing barks or stacks. */
-function feGlobalSfxOff(){ try{ return !!(state.settings && state.settings.sfxOff); }catch(e){ return false; } }
-function feGlobalMusicOff(){ try{ return !!(state.settings && state.settings.musicOff); }catch(e){ return false; } }
-function feGlobalVol(k, d){ try{ const v = state.settings && state.settings[k]; return v === undefined ? d : v; }catch(e){ return d; } }
-function feInFishing(){ const t = document.getElementById("tab-fishing"); return !!t && t.style.display !== "none"; }
-function feMuted(){ if(feGlobalSfxOff()) return true; try{ return feInFishing() && !!fshInv().sfxMute; }catch(e){ return false; } }
-function feMusicMuted(){ if(feGlobalMusicOff()) return true; try{ return !!fshInv().musicMute; }catch(e){ return false; } }
-const FE_SFX_TRIM = { treasure:.5, tension_hi:.5, bait:.4, breach:.5, backlash:.5, junk:.5, jump:.6, creak:.5, reward_good:.6,
-  train:.5, hookset:.6, splash_big:.6, flop:.5, reel_loop:.6, tension_max:.7, reward_legend:.7, plunk:.7, snag:.7 };
-const FE_SFX_GAP  = { treasure:.25, reward_good:.3, equip:.3, box_open:.3, perfect:.3, snag:.3, splash_small:.25, bait:.4, reward_common:.3, reward_rare:.3 };
-const FE_SFX_SOFT = new Set(["bait","breach","backlash","junk","jump","creak","reward_good","tension_max","train","hookset","splash_big","land","reward_common","run"]);
-let feBus = null;
-let feVoices = 0;               /* one-shots sounding right now */
-const FE_MAX_VOICES = 4;
-function feSfxBus(){
-  const c = feAudioCtx(); if(!c) return null;
-  if(feBus) return feBus;
-  try{
-    /* batch 120: the bus is the last word on harshness. Everything not
-       music runs through a rumble cut, a much darker lowpass than before
-       (4.2kHz - the fizz that made every sample "jarring" lives above it),
-       a gentle compressor to even out levels, then a fast limiter so no
-       transient ever spikes, and a final trim. */
-    const g = c.createGain(); g.gain.value = 1;
-    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 110; hp.Q.value = 0.5;
-    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4200; lp.Q.value = 0.5;
-    const comp = c.createDynamicsCompressor();
-    comp.threshold.value = -18; comp.knee.value = 14; comp.ratio.value = 3; comp.attack.value = 0.006; comp.release.value = 0.2;
-    const lim = c.createDynamicsCompressor();
-    lim.threshold.value = -6; lim.knee.value = 2; lim.ratio.value = 12; lim.attack.value = 0.001; lim.release.value = 0.09;
-    /* Web Audio compressors add automatic make-up gain: the first cut of
-       this bus came out LOUDER than the old one. Measured offline against
-       the batch-117 chain, this trim lands peaks at ~37% (about -9dB) with
-       a quarter to a third less energy above 4kHz. */
-    const out = c.createGain(); out.gain.value = 0.5;
-    g.connect(hp); hp.connect(lp); lp.connect(comp); comp.connect(lim); lim.connect(out); out.connect(c.destination);
-    feBus = g;
-  }catch(e){ feBus = null; }
-  return feBus;
-}
-/* the Settings menu calls this after any change: volumes re-apply live,
-   and a mute stops what is already playing */
-function feSoundSettingsChanged(){
-  try{
-    feApplyVols();
-    if(feMuted()) for(const k in feLoops){ if(!feLoops[k].isMus) feLoopStop(k); }
-    if(feMusicMuted()) for(const k in feLoops){ if(feLoops[k].isMus) feLoopStop(k); }
-  }catch(e){}
-}
-try{ window.oeSoundSettingsChanged = feSoundSettingsChanged; }catch(e){}   /* the node harness has no window */
-function feBuffer(key){
-  if(feBuf[key]) return Promise.resolve(feBuf[key] === "pending" ? null : feBuf[key]);
-  const c = feAudioCtx();
-  if(!c || typeof FE_SFX === "undefined" || !FE_SFX[key]) return Promise.resolve(null);
-  feBuf[key] = "pending";
-  /* base64 → bytes directly: no fetch(), so no origin/file:// dependency,
-     and decodeAudioData gets both promise and old callback forms for
-     maximum browser reach */
-  let bytes;
-  try{
-    const b64 = FE_SFX[key].split(",")[1];
-    const bin = atob(b64);
-    bytes = new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-  }catch(e){ delete feBuf[key]; return Promise.resolve(null); }
-  return new Promise(res=>{
-    const done = buf => { feBuf[key] = buf; res(buf); };
-    const fail = () => { delete feBuf[key]; res(null); };
-    try{
-      const p = c.decodeAudioData(bytes.buffer, done, fail);
-      if(p && p.then) p.then(done).catch(fail);
-    }catch(e){ fail(); }
-  });
-}
-function feSfxVol(){
-  const g = feGlobalVol("sfxVol", 0.7);
-  try{ const v = fshInv().sfxVol; return g * (feInFishing() && v !== undefined ? v : 1); }catch(e){ return g; }
-}
-function feMusVol(){
-  const g = feGlobalVol("musicVol", 0.8);
-  try{ const v = fshInv().musicVol; return g * (v === undefined ? 1 : v); }catch(e){ return g; }
-}
-/* batch 126: sound EFFECTS are retired at the playtester's word ("if you
-   can't make them good, remove them"). Every call site stays so the game
-   reads the same; nothing plays. The beds - the two piano loops and the
-   water - remain, on the music switch. */
-const FE_BEDS = new Set(["music", "music_night", "amb_water"]);
-function feSound(key, opt){
-  return;
-  opt = opt || {};
-  if(feMuted()) return;
-  /* rate limit on the wall clock - fshT only ticks while the water is up,
-     and a fishing-clock gap froze every repeat outside the tab */
-  const gap = opt.gap !== undefined ? opt.gap : (FE_SFX_GAP[key] !== undefined ? FE_SFX_GAP[key] : 0.12);
-  if(gap){ const now = performance.now()/1000, last = feLastPlay[key]||-9; if(now - last < gap) return; feLastPlay[key] = now; }
-  if(feVoices >= FE_MAX_VOICES) return;      /* a pile-up is noise, not information */
-  const c = feAudioCtx(); if(!c) return;
-  feBuffer(key).then(buf=>{
-    if(!buf || feMuted() || feVoices >= FE_MAX_VOICES) return;
-    const src = c.createBufferSource(); src.buffer = buf;
-    /* a touch of pitch drift so a repeated sample never machine-guns */
-    const rate = (opt.rate || 1) * (0.95 + Math.random()*0.1);
-    src.playbackRate.value = rate;
-    const peak = (opt.vol !== undefined ? opt.vol : 0.8) * (FE_SFX_TRIM[key] || 1) * feSfxVol();
-    /* every one-shot wears an envelope: a 12ms fade-in kills the click at
-       the front of a hard-cut sample, and a 90ms fade-out the one at the
-       end - those clicks were most of what read as "jarring" (batch 120) */
-    const g = c.createGain();
-    const t0 = c.currentTime, dur = buf.duration / rate;
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
-    const fadeAt = Math.max(t0 + 0.02, t0 + dur - 0.09);
-    g.gain.setValueAtTime(peak, fadeAt);
-    g.gain.linearRampToValueAtTime(0, t0 + dur + 0.005);
-    let tail = g;
-    if(FE_SFX_SOFT.has(key)){ const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3000; g.connect(lp); tail = lp; }
-    src.connect(g); tail.connect(feSfxBus() || c.destination);
-    feVoices++;
-    src.onended = ()=>{ feVoices = Math.max(0, feVoices - 1); };
-    src.start();
-  }).catch(()=>{});
-}
-function feLoopStart(key, vol){
-  if(!FE_BEDS.has(key)) return;            /* the reel loop and every other effect are retired */
-  const isMus = true;                       /* every bed answers to the music switch */
-  const muted = feMusicMuted();
-  if(muted || feLoops[key]) return;
-  const c = feAudioCtx(); if(!c) return;
-  feLoops[key] = { pending:true };
-  feBuffer(key).then(buf=>{
-    if(!buf || !feLoops[key] || feLoops[key].src){ return; }
-    const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
-    const base = (vol !== undefined ? vol : 0.5) * (isMus ? 1 : 0.8);
-    const g = c.createGain();
-    /* loops swell in over a third of a second - a reel or a tension drone
-       that snaps on at full level is a jolt every single cast (batch 120) */
-    const target = base * (isMus ? feMusVol() : feSfxVol());
-    g.gain.setValueAtTime(0, c.currentTime);
-    g.gain.linearRampToValueAtTime(target, c.currentTime + 0.35);
-    src.connect(g); g.connect(isMus ? c.destination : (feSfxBus() || c.destination)); src.start();
-    feLoops[key] = { src, g, base, isMus };
-  }).catch(()=>{ delete feLoops[key]; });
-}
-function feLoopStop(key){
-  const l = feLoops[key]; if(!l) return;
-  delete feLoops[key];
-  if(l.src){
-    try{
-      const c = feAudioCtx();
-      if(c && l.g){
-        l.g.gain.cancelScheduledValues(c.currentTime);
-        l.g.gain.setValueAtTime(l.g.gain.value, c.currentTime);
-        l.g.gain.linearRampToValueAtTime(0, c.currentTime + 0.25);
-        l.src.stop(c.currentTime + 0.27);
-      } else l.src.stop();
-    }catch(e){ try{ l.src.stop(); }catch(e2){} }
-  }
-}
-function feAllLoopsStop(){ for(const k in feLoops) feLoopStop(k); }
-function feApplyVols(){
-  for(const k in feLoops){
-    const l = feLoops[k];
-    if(l && l.g) try{ const c = feAudioCtx(); const v = (l.base||0.5) * (l.isMus ? feMusVol() : feSfxVol());
-      if(c){ l.g.gain.cancelScheduledValues(c.currentTime); l.g.gain.setValueAtTime(l.g.gain.value, c.currentTime); l.g.gain.linearRampToValueAtTime(v, c.currentTime + 0.15); }
-      else l.g.gain.value = v; }catch(e){}
-  }
-}
+   The player, the bus and feSound live in sfx.module.js, which loads with
+   the page. This bundle only calls them. The three beds join FE_SFX when
+   fishing-sfx.module.js loads. */
 
 /* ------------------------- 1 · THE CLOCK ---------------------------- */
 const FE_DAY_SECONDS = 480;              // one full day in eight minutes
@@ -1023,7 +842,7 @@ function fshHookSet(){
     fsh.fight = feFightNew(fdef, feFightStats()); }
   fsh.progress = 0; fsh.tension = 0; fsh.fightTime = 0; fsh.taps = 0;
   fsh.shake = 0; fsh.banner = null; fsh.bannerT = 0;
-  feSound("hookset", { vol: 0.5 });
+  feSound("mg_fishing_hookset", { vol: 0.45 });
   fshFlash("Hooked it!", "#3ddc84");
   fshRenderControls();
 }
@@ -1064,12 +883,12 @@ function fshTick(dt){
   if(fsh._sfxPhase !== fsh.phase){
     const from = fsh._sfxPhase, to = fsh.phase;
     fsh._sfxPhase = to;
-    if(to === "bite") feSound("bite", { vol: 0.55 });
-    if(from === "bite" && to !== "reeling") feSound("miss", { vol: 0.4 });
+    if(to === "bite") feSound("mg_fishing_bite", { vol: 0.4 });
+    if(from === "bite" && to !== "reeling") feSound("mg_fishing_escape", { vol: 0.4 });
     if(to === "waiting") fsh.nibbled = false;
   }
   if(fsh.phase === "waiting" && fsh.shadow > 0 && !fsh.nibbled){
-    fsh.nibbled = true; feSound("nibble", { vol: 0.35 });
+    fsh.nibbled = true; feSound("mg_fishing_bite", { vol: 0.28 });
   }
   /* the reel crank runs exactly while you hold in a fight */
   if(fsh.phase === "reeling" && fsh.holding) feLoopStart("reel_loop", 0.28);
@@ -1133,8 +952,8 @@ function fshTick(dt){
         tired:["It's spent — REEL NOW!","#3ddc84"],
       }[f.event];
       if(B){ fsh.banner = B[0]; fsh.bannerColor = B[1]; fsh.bannerT = 1.6; }
-      const EV_SFX = { run:["run",0.6], airborne:["jump",0.8], splashdown:["splash_big",0.7],
-                       dive:["dive",0.6], snag:["snag",0.6] };
+      const EV_SFX = { run:["mg_fishing_tension",0.3], airborne:["mg_fishing_splash",0.4], splashdown:["mg_fishing_splash",0.4],
+                       dive:["mg_fishing_splash",0.4], snag:["mg_fishing_tension",0.3] };
       if(EV_SFX[f.event]) feSound(EV_SFX[f.event][0], { vol: EV_SFX[f.event][1] });
       if(f.event === "run" || f.event === "airborne") fsh.shake = 1;
       if(f.event === "airborne"){
@@ -1160,8 +979,8 @@ function fshTick(dt){
 
     const stx = feFightStats();
     const tratio = f.tension / stx.maxTension;
-    if(tratio > 0.85) feSound("tension_max", { vol: 0.38, gap: 2.2 });
-    else if(tratio > 0.6) feSound("tension_hi", { vol: 0.28, gap: 2.8 });
+    if(tratio > 0.85) feSound("mg_fishing_tension", { vol: 0.3, gap: 1.1, rate: 0.92 });
+    else if(tratio > 0.6) feSound("mg_fishing_tension", { vol: 0.3, gap: 2.8 });
     if(tratio > 0.7) feSound("creak", { vol: 0.32, gap: 3.4 });
     if(f.over === "snap"){ fshSnap(); return; }
     if(f.over === "overpowered"){ feOverpowered(); return; }
@@ -1300,7 +1119,7 @@ function fshRelease(){
   const tgt = fshBobberTarget(fsh.castT);
   fsh.targetX = tgt.x; fsh.targetY = tgt.y;
   fsh.phase = "casting"; fsh.castAnim = 0;
-  feSound(fsh.sweet ? "cast_sweet" : fsh.backlash ? "backlash" : "cast", { vol: 0.7 });
+  feSound(fsh.sweet ? "mg_fishing_cast" : fsh.backlash ? "ui_deny" : "mg_fishing_cast", { vol: fsh.backlash ? 0.3 : 0.5 });
   if(!state.fishing) state.fishing = defaultFishing();
   state.fishing.casts = (state.fishing.casts||0) + 1;
   fshConsumeOnCast();
@@ -1315,7 +1134,7 @@ function feOverpowered(){
   state.fishing.lost = (state.fishing.lost||0) + 1;
   saveState();
   const pct = Math.round(Math.min(100, fsh.progress/c.def.need*100));
-  feAllLoopsStop(); feSound("overpowered", { vol: 0.7 });
+  feAllLoopsStop(); feSound("mg_fishing_escape", { vol: 0.4 });
   fshEnterResult({ failed:true, title:"It was too strong.", kind:"lost",
     tag:c.def.label, tagColor:c.def.color,
     sub:`That ${c.def.label} ${c.name} outclassed your tackle — ${pct}% in was the best you could do.`,
@@ -1588,7 +1407,7 @@ function fshSnap(){
   if(!state.fishing) state.fishing = defaultFishing();
   state.fishing.snapped = (state.fishing.snapped||0) + 1;
   saveState(); renderHeader();
-  feAllLoopsStop(); feSound("snap", { vol: 0.65 });
+  feAllLoopsStop(); feSound("mg_fishing_snap", { vol: 0.45 });
   fshEnterResult({ failed:true, title:"The line snapped!", kind:"snap",
     tag:c.def.label, tagColor:c.def.color,
     sub:`That ${c.name} was too much for your ${(fshEquippedItem("line")||{name:"bare line"}).name}.`,
@@ -1603,7 +1422,7 @@ function fshLost(){
   state.fishing.lost = (state.fishing.lost||0) + 1;
   saveState();
   const pct = Math.round(Math.min(100, fsh.progress/c.def.need*100));
-  feAllLoopsStop(); feSound("slip", { vol: 0.7 });
+  feAllLoopsStop(); feSound("mg_fishing_escape", { vol: 0.4 });
   fshEnterResult({ failed:true, title:"It shook the hook.", kind:"lost",
     tag:c.def.label, tagColor:c.def.color,
     sub:`The ${c.name} slipped away with ${pct}% of the line in.`,
@@ -1816,7 +1635,7 @@ function fshLandCast(){
       break;
     }
   }
-  feSound("plunk", { vol: 0.55 });
+  feSound("mg_fishing_plunk", { vol: 0.45 });
   fsh.ripples.push({ x:fsh.bobX, y:fsh.bobY, t:0 });
   fsh.splash.push(...Array.from({length:9},(_,i)=>({
     x:fsh.bobX, y:fsh.bobY, vx:(Math.random()-0.5)*90, vy:-40-Math.random()*70, t:0
@@ -2138,7 +1957,7 @@ function fshLand(){
   }
 
   state.credits += credits;
-  if(firstCatch) setTimeout(()=>feSound("perfect", { vol: 0.5 }), 650);
+  if(firstCatch) setTimeout(()=>feSound("mg_fishing_first_catch", { vol: 0.4 }), 650);
   if(d.tier >= 5 || wasBest) setTimeout(()=>feSound("finish", { vol: 0.5 }), 950);
   if(firstCatch){
     const bonus = Math.round(d.cr[1] * 1.2);
@@ -2177,10 +1996,11 @@ function fshLand(){
   /* the landing stinger — a little theater, scaled to the moment:
      thunk → (big fish: heavy slam) → tier fanfare → (first catch: the
      perfect sting) → (legendary/treasure/new best: the full finish) */
-  feSound("land", { vol: 0.55 });
-  if(d.tier >= 3) setTimeout(()=>feSound("heavy", { vol: 0.5 }), 160);
-  const FANFARE = ["junk","reward_common","reward_common","reward_good","reward_rare","reward_legend","treasure"];
-  setTimeout(()=>feSound(FANFARE[d.tier]||"reward_common", { vol: 0.6 }), 340);
+  feSound("mg_fishing_land", { vol: 0.45 });
+  if(d.tier >= 3) setTimeout(()=>feSound("mg_fishing_splash", { vol: 0.4 }), 160);
+  const FANFARE = ["mg_casino_lose","mg_fishing_catch","mg_fishing_catch","collect_rare","collect_rare","collect_legendary","collect_pack_tear"];
+  const FANFARE_VOL = [0.3, 0.4, 0.4, 0.38, 0.38, 0.45, 0.45];
+  setTimeout(()=>feSound(FANFARE[d.tier]||"mg_fishing_catch", { vol: FANFARE_VOL[d.tier]||0.4 }), 340);
   const f = state.fishing;
   f.catches = (f.catches||0) + 1;
   const prop = feAwardProp(f.catches);
@@ -4033,7 +3853,6 @@ function feCineStart(bossName){
     }
   }, 420);
 }
-function fbSfxSafe(k,v){ try{ if(typeof FE_SFX!=="undefined" && FE_SFX[k]) feSound(k,{vol:v}); }catch(e){} }
 /* the fight has three stages by fury left; each one is faster than the last
    (the tempo shortens every timer and speeds every ring) */
 function feCineStage(C){ const f = C.hp / (C.hpMax || 100); return f > 2/3 ? 0 : f > 1/3 ? 1 : 2; }

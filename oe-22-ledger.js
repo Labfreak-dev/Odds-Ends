@@ -47,7 +47,7 @@ window.feLedgerBump = function(kind, n){
     }
     if(hit){
       showToast("📜 Contract fulfilled — the foreman pays in the Play lobby");
-      try{ fbSfxSafe && fbSfxSafe("reward_good", 0.35); }catch(e){}
+      try{ fbSfxSafe && fbSfxSafe("mg_ledger_contract_done", 0.32); }catch(e){}
     }
     lgBadge(); lgRender();
   }catch(e){}
@@ -97,7 +97,7 @@ function lgRender(){
     try{ renderHeader ? renderHeader() : null; }catch(e){}
     try{ document.getElementById("creditCount").textContent = Math.floor(state.credits).toLocaleString(); }catch(e){}
     showToast(`📜 Contract paid — 🪙${it.cr.toLocaleString()}`);
-    try{ fbSfxSafe && fbSfxSafe("finish", 0.4); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("econ_coins_big", 0.4); }catch(e){}
     try{ saveState(); }catch(e){}
     lgBadge(); lgRender();
   });
@@ -112,6 +112,7 @@ function lgRender(){
       for(let q=0;q<nPk;q++) arr.push(openOnePack(pk.key, new Set()));
       startReveal(pk, arr, 0);
       showToast(`🎁 The Prospector's Pack — a ${pk.name} on the house`);
+      try{ fbSfxSafe && fbSfxSafe("econ_coins_big", 0.4); }catch(e){}
     }catch(e){ state.credits += 10000; showToast("🎁 The foreman pays 🪙10,000 instead"); }
     try{ saveState(); }catch(e){}
     lgBadge(); lgRender();

@@ -337,8 +337,9 @@ function grantLevelUpRewards(oldLevel, newLevel){
   state.dollars += creditsGained;
   state.scrap += scrapGained;
   const gained = newLevel - oldLevel;
-  showToast(`🎉 Level Up! Reached Level ${newLevel}${gained>1?` (+${gained})`:""} — ${titleForLevel(newLevel)}. ` +
+    showToast(`🎉 Level Up! Reached Level ${newLevel}${gained>1?` (+${gained})`:""} — ${titleForLevel(newLevel)}. ` +
     `+$${creditsGained.toLocaleString()} +${scrapGained.toLocaleString()} ♻️`);
+  try{ fbSfxSafe && fbSfxSafe("collect_level_up", 0.45); }catch(e){}
 }
 
 /* Recompute XP from the current collection. Level only ever goes up — selling cards
@@ -965,6 +966,7 @@ function checkSetMilestones(force){
       try{ renderHeader(); }catch(e){}
       try{ renderPackShelf(); }catch(e){}
       try{ saveState(); }catch(e){}
+      try{ fbSfxSafe && fbSfxSafe("collect_set_milestone", 0.4); }catch(e){}
     }
   }catch(e){}
   oeMilestoneBusy = false;
@@ -1122,9 +1124,10 @@ function buyUpgrade(key){
   const level = state.upgrades[key]||0;
   if(level >= (def.hardMax ? def.maxLevel : effectiveMaxLevel(def.maxLevel))) return;
   const cost = upgradeCost(def, level);
-  if(state.scrap < cost) return;
+  if(state.scrap < cost){ try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){} return; }
   state.scrap -= cost;
   state.upgrades[key] = level+1;
+  try{ fbSfxSafe && fbSfxSafe("econ_upgrade_buy", 0.38); }catch(e){}
   saveState();
   renderHeader();
   renderUpgrades();
@@ -1423,6 +1426,7 @@ function sellCard(cardId, sellAll){
     if(!confirm(`Sell your last copy of "${c.name}"? It will be removed from your collection.`)) return;
   }
   state.dollars += MARKET_SELL_PRICE_BY_TIER[c.rarity] * qty;
+  try{ fbSfxSafe && fbSfxSafe("econ_sell_card", 0.35); }catch(e){}
   state.owned[cardId] = owned - qty;
   if(state.owned[cardId] <= 0){
     state.miningBonus = Math.max(0, (state.miningBonus||0) - MINE_BONUS_BY_TIER[c.rarity]);
@@ -1582,7 +1586,7 @@ function buyPacks(packKey, n){
     const discountLevel = (state.upgrades && state.upgrades.discount) || 0;
     const discount = Math.min(0.5, discountLevel * DISCOUNT_PCT_PER_LEVEL);
     const price = Math.round(rawPrice * (1 - discount));
-    if(state.dollars < price){ alert("Not enough dollars."); return; }
+    if(state.dollars < price){ try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){} alert("Not enough dollars."); return; }
     state.dollars -= price;
     spentCredits = price;
   }
@@ -1595,6 +1599,7 @@ function buyPacks(packKey, n){
     packsArr.push(pulls);
     allPulls = allPulls.concat(pulls);
   }
+  try{ fbSfxSafe && fbSfxSafe("econ_buy_pack", 0.35); }catch(e){}
   startReveal(pack, packsArr, spentCredits);
 }
 
@@ -1654,9 +1659,11 @@ function applyPulls(pulls){
     xp: (state.player && state.player.totalXP) || 0,
     level: (state.player && state.player.level) || 1,
   };
+  let oeDupes = 0;
   pulls.forEach(card=>{
     const owned = state.owned[card.id] || 0;
     if(owned>0){
+      oeDupes++;
       state.scrap += Math.round(SCRAP_VALUE[card.rarity] * scrapMult);
     } else {
       state.miningBonus = (state.miningBonus||0) + MINE_BONUS_BY_TIER[card.rarity];
@@ -1664,6 +1671,7 @@ function applyPulls(pulls){
     state.owned[card.id] = owned+1;
     card._wasNew = owned===0;
   });
+  if(oeDupes){ try{ fbSfxSafe && fbSfxSafe("collect_duplicate_scrap", 0.25); }catch(e){} }
   recomputePlayerXP();
   return {
     scrapGained: Math.round(state.scrap - before.scrap),
@@ -1856,6 +1864,7 @@ function ripCurrentPack(){
     if(!revealActive()) return;
     ripEl.classList.remove("shaking");
     ripEl.classList.add("tearing");
+    try{ fbSfxSafe && fbSfxSafe("collect_pack_tear", 0.45); }catch(e){}
     const flash = document.getElementById("ripFlash");
     if(!state.settings || state.settings.flashingEnabled!==false) flash.classList.add("flashing");
     setTimeout(()=>{
@@ -1981,6 +1990,7 @@ function triggerRevealBurst(tier, color){
 function flipCard(){
   if(!revealActive() || revealState.flipped || revealState.flipping) return;
   revealState.flipping = true;
+  try{ fbSfxSafe && fbSfxSafe("collect_card_flip", 0.35); }catch(e){}
   const el = document.getElementById("flipCard");
   const card = revealState.packs[revealState.packIdx][revealState.cardIdx];
   const r = RARITIES[card.rarity];
@@ -2004,6 +2014,7 @@ function flipCard(){
     el.style.transform = "";
     setTimeout(()=>{ if(el) el.classList.remove("revealing"); }, 560);
     triggerRevealBurst(card.rarity, r.color);
+    try{ if(typeof oeRevealSfx === "function") oeRevealSfx(card); }catch(e){}
     revealState.flipped = true;
     revealState.flipping = false;
     document.getElementById("flipHint").textContent = "Tap to continue";
@@ -2034,6 +2045,7 @@ function updateSettings(){
   state.settings.stopOnRarity = document.getElementById("stopOnRarityToggle").checked;
   state.settings.rarityThreshold = Number(document.getElementById("rarityThresholdSelect").value);
   saveState();
+  try{ fbSfxSafe && fbSfxSafe("ui_toggle", 0.22); }catch(e){}
   paintAutoOpenStatus();
   updateAutoPauseButton();
   // if auto was just turned on mid-reveal, kick the chain from wherever we currently are
@@ -2822,16 +2834,24 @@ function onAccountFieldChange(field, value){
   if(field==="empireName") renderEmpire();
 }
 
-function updateSoundSettings(){
+function updateSoundSettings(ev){
   const on = id => document.getElementById(id);
+  const checkbox = ev && ev.target && ev.target.type === "checkbox";
+  if(on("sfxOnToggle")) state.settings.sfxOff = !on("sfxOnToggle").checked;
+  if(on("sfxVolRange")) state.settings.sfxVol = Number(on("sfxVolRange").value)/100;
   state.settings.musicOff = !on("musicOnToggle").checked;
   state.settings.musicVol = Number(on("musicVolRange").value)/100;
   saveState();
   try{ if(typeof window.oeSoundSettingsChanged === "function") window.oeSoundSettingsChanged(); }catch(e){}
+  /* the click that turns effects off is already past the gate; every other
+     checkbox still gets the switch tick while effects are on */
+  if(checkbox && !state.settings.sfxOff){ try{ fbSfxSafe && fbSfxSafe("ui_toggle", 0.22); }catch(e){} }
 }
 function populateSoundSettings(){
   const on = id => document.getElementById(id);
   if(!on("musicOnToggle")) return;
+  if(on("sfxOnToggle")) on("sfxOnToggle").checked = !state.settings.sfxOff;
+  if(on("sfxVolRange")) on("sfxVolRange").value = Math.round((state.settings.sfxVol === undefined ? 0.5 : state.settings.sfxVol)*100);
   on("musicOnToggle").checked = !state.settings.musicOff;
   on("musicVolRange").value = Math.round((state.settings.musicVol === undefined ? 0.8 : state.settings.musicVol)*100);
 }
@@ -3042,6 +3062,8 @@ function bjDeal(){
 
   state.credits -= stake;
   logWager(stake);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_card_deal", 0.3, {gap:0.05}); }catch(e){}
   bjState = { stake, player:[bjDrawCard(), bjDrawCard()], dealer:[bjDrawCard(), bjDrawCard()], done:false };
 
   document.getElementById("bjStakeBox").style.display = "none";
@@ -3064,6 +3086,7 @@ function bjDeal(){
 function bjHit(){
   if(!bjState || bjState.done) return;
   bjState.player.push(bjDrawCard());
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_card_deal", 0.3, {gap:0.05}); }catch(e){}
   document.getElementById("bjDoubleBtn").style.display = "none";
   bjRender();
   if(bjTotal(bjState.player) > 21){
@@ -3117,6 +3140,7 @@ function bjSettle(outcome, message){
   else { payout = 0; color = "var(--bad)"; }
 
   if(payout > 0){ state.credits += payout; logWin(payout); }
+  try{ fbSfxSafe && fbSfxSafe(outcome === "lose" || outcome === "bust" ? "mg_casino_lose" : (outcome === "push" ? "ui_toggle" : "mg_casino_win"), outcome === "lose" || outcome === "bust" ? 0.3 : 0.4); }catch(e){}
   const net = payout - bjState.stake;
   const tail = net > 0 ? ` +${net.toLocaleString()}` : (net < 0 ? ` ${net.toLocaleString()}` : "");
   out.innerHTML = `<span style="color:${color}">${message}${tail}</span>`;
@@ -3208,6 +3232,8 @@ function hlStart(){
 
   state.credits -= stake;
   logWager(stake);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_card_deal", 0.3); }catch(e){}
   hlState = { stake, pot:stake, mult:1, streak:0, card:hlDraw() };
 
   document.getElementById("hlStakeBox").style.display = "none";
@@ -3230,6 +3256,7 @@ function hlGuess(dir){
   let next = hlDraw();
   let pushes = 0;
   while(next.rarity === from.rarity && pushes < 200){ next = hlDraw(); pushes++; }
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_card_deal", 0.3); }catch(e){}
 
   document.getElementById("hlNext").classList.remove("mystery");
   document.getElementById("hlNext").innerHTML = hlCardHTML(next);
@@ -3245,6 +3272,7 @@ function hlGuess(dir){
     if(hlState.streak > casinoStats().bestStreak) casinoStats().bestStreak = hlState.streak;
     hlState.card = next;
     out.innerHTML = `<span style="color:var(--good)">${r.name} — right call. Pot is ${Math.floor(hlState.pot).toLocaleString()}.</span>`;
+    try{ fbSfxSafe && fbSfxSafe("mg_casino_win", 0.4); }catch(e){}
     setTimeout(()=>{
       if(!hlState) return;
       document.getElementById("hlNext").classList.add("mystery");
@@ -3254,6 +3282,7 @@ function hlGuess(dir){
     hlRender();
   } else {
     out.innerHTML = `<span style="color:var(--bad)">${r.name} — wrong call. ${Math.floor(hlState.pot).toLocaleString()} credits gone.</span>`;
+    try{ fbSfxSafe && fbSfxSafe("mg_casino_lose", 0.3); }catch(e){}
     hlEnd();
   }
   saveState(); renderCasinoLedger();
@@ -3264,6 +3293,7 @@ function hlCashOut(){
   const amount = Math.floor(hlState.pot);
   state.credits += amount;
   logWin(amount);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_win", 0.4); }catch(e){}
   document.getElementById("hlResult").innerHTML =
     `<span style="color:var(--good)">Cashed out ${amount.toLocaleString()} after ${hlState.streak} call${hlState.streak===1?"":"s"}.</span>`;
   hlEnd();
@@ -3353,9 +3383,10 @@ function plinkoBuild(){
 function plinkoDrop(){
   if(plinkoDropping) return;
   const stake = readStake("plStake","plinkoResult");
-  if(stake === null){ stopCasinoAuto("plinko"); return; }
+  if(stake === null){ try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){} stopCasinoAuto("plinko"); return; }
 
   state.credits -= stake;
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
   logWager(stake);
   plinkoDropping = true;
   document.getElementById("plDropBtn").disabled = true;
@@ -3393,6 +3424,7 @@ function plinkoDrop(){
       const pegRow = stage.querySelectorAll(`.peg[data-row="${r}"]`);
       const nearest = pegRow[Math.min(pegRow.length-1, rights)];
       if(nearest) nearest.classList.add("lit");
+      try{ fbSfxSafe && fbSfxSafe("mg_casino_plinko_peg", 0.15, {gap:0.06, rate:0.9+Math.random()*0.3}); }catch(e){}
     }, step*(r+1));
   });
 
@@ -3411,6 +3443,7 @@ function plinkoSettle(slot, stake){
 
   if(payout > 0){ state.credits += payout; logWin(payout); }
   const net = payout - stake;
+  try{ fbSfxSafe && fbSfxSafe(net > 0 ? "mg_casino_win" : "mg_casino_lose", net > 0 ? 0.4 : 0.3); }catch(e){}
   if(net > 0) out.innerHTML = `<span style="color:var(--good)">${mult}× — ${payout.toLocaleString()} credits. +${net.toLocaleString()}</span>`;
   else if(net === 0) out.innerHTML = `<span style="color:var(--muted)">${mult}× — stake returned.</span>`;
   else out.innerHTML = `<span style="color:var(--bad)">${mult}× — ${payout.toLocaleString()} back. ${net.toLocaleString()}</span>`;
@@ -3469,6 +3502,7 @@ function mineStart(){
 
   state.credits -= stake;
   logWager(stake);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
 
   const mines = new Set();
   while(mines.size < mineCount) mines.add(Math.floor(Math.random()*MINE_TILES));
@@ -3512,6 +3546,7 @@ function minePick(i){
     });
     document.getElementById("mineResult").innerHTML =
       `<span style="color:var(--bad)">Rigged crate. ${mineState.stake.toLocaleString()} credits gone after ${mineState.picked.size} safe pick${mineState.picked.size===1?"":"s"}.</span>`;
+    try{ fbSfxSafe && fbSfxSafe("mg_casino_mine_boom", 0.45); }catch(e){}
     mineEnd();
     saveState(); renderCasinoLedger();
     return;
@@ -3521,6 +3556,7 @@ function minePick(i){
   mineState.mult = mineMult(mineState.picked.size, mineCount);
   tile.classList.add("safe","done");
   tile.textContent = "🪙";
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_mine_safe", 0.3, {rate: Math.min(1.4, 1+0.04*mineState.picked.size)}); }catch(e){}
   mineRenderMeta();
 
   const safeTotal = MINE_TILES - mineCount;
@@ -3536,6 +3572,7 @@ function minePick(i){
 }
 
 function mineCashOut(){
+  try{ if(mineState) fbSfxSafe && fbSfxSafe("mg_casino_win", 0.4); }catch(e){}
   if(!mineState) return;
   const amount = Math.floor(mineState.stake * mineState.mult);
   const picks = mineState.picked.size;
@@ -3768,6 +3805,7 @@ function spinWheel(){
   const bet = wheelBet();
   if(!canAfford(bet)){
     out.innerHTML = `<span style="color:var(--bad)">Not enough credits — this spin costs ${bet.toLocaleString()}.</span>`;
+    try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){}
     stopCasinoAuto("wheel");
     return;
   }
@@ -3776,6 +3814,7 @@ function spinWheel(){
   logWager(bet);
   casinoStats().spins++;
   wheelSpinning = true;
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_wheel_spin", 0.3); }catch(e){}
   document.getElementById("spinBtn").disabled = true;
   out.textContent = "";
 
@@ -3861,6 +3900,11 @@ function settleWheel(idx, bet){
   }
 
   out.innerHTML = msg;
+  try{
+    if(seg.kind === "none") fbSfxSafe && fbSfxSafe("mg_casino_lose", 0.3);
+    else if(seg.kind === "riskpack" || (seg.kind === "credits" && seg.amount >= 6000)) fbSfxSafe && fbSfxSafe("mg_casino_jackpot", 0.45);
+    else fbSfxSafe && fbSfxSafe("mg_casino_win", 0.4);
+  }catch(e){}
   wheelSpinning = false;
   document.getElementById("spinBtn").disabled = false;
   saveState(); renderHeader(); renderCasinoLedger();
@@ -3922,6 +3966,7 @@ function pullSlots(){
       reel.classList.remove("rolling");
       reel.innerHTML = `<span>${result[i].s}</span>`;
       if(i===2) settleSlots(result);
+      try{ fbSfxSafe && fbSfxSafe("mg_casino_reel_stop", 0.3, {gap:0.05}); }catch(e){}
     }, stagger*(i+1));
   }
 
@@ -3961,6 +4006,7 @@ function settleSlots(result){
 
   if(payout>0){ state.credits += payout; logWin(payout); }
   out.innerHTML = msg;
+  try{ fbSfxSafe && fbSfxSafe(a===b && b===c && result[0].three >= 50 ? "mg_casino_jackpot" : (payout>0 ? "mg_casino_win" : "mg_casino_lose"), payout>0 ? 0.4 : 0.3); }catch(e){}
   slotRolling = false;
   document.getElementById("slotBtn").disabled = false;
   saveState(); renderHeader(); renderCasinoLedger();
@@ -3983,6 +4029,8 @@ function startFlip(){
 
   state.credits -= stake;
   logWager(stake);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_coin_flip", 0.35); }catch(e){}
   flipState = { pot: stake, streak: 0 };
 
   document.getElementById("stakeBox").style.display = "none";
@@ -4265,6 +4313,8 @@ function rocketLaunch(){
 
   state.credits -= stake;
   logWager(stake);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_ascent_launch", 0.35); }catch(e){}
   rocketState = { stake, crash: rocketCrashPoint(), startTs: performance.now(), mult: 1, auto, cashed: false, raf: null };
 
   document.getElementById("rkStakeBox").style.display = "none";
@@ -4322,6 +4372,7 @@ function rocketBail(fromAuto){
   const payout = Math.floor(rocketState.stake * m);
   state.credits += payout;
   logWin(payout);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_win", 0.4); }catch(e){}
   const ratio = payout / rocketState.stake;
   const net = payout - rocketState.stake;
   const streakPicks = Math.floor(m);
@@ -4338,6 +4389,7 @@ function rocketBail(fromAuto){
 }
 
 function rocketExplode(){
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_mine_boom", 0.45); }catch(e){}
   if(!rocketState) return;
   cancelAnimationFrame(rocketState.raf);
   const crash = rocketState.crash;
@@ -4498,6 +4550,7 @@ function kenoPlay(){
 
   state.credits -= stake;
   logWager(stake);
+  try{ fbSfxSafe && fbSfxSafe("mg_casino_chip", 0.3); }catch(e){}
   kenoRolling = true;
   document.getElementById("kenoPlayBtn").disabled = true;
   document.querySelectorAll("#kenoBoard .keno-cell").forEach(c=>c.classList.remove("drawn","hit","miss-draw"));
@@ -4513,6 +4566,7 @@ function kenoPlay(){
     setTimeout(()=>{
       const cell = document.querySelector(`#kenoBoard .keno-cell[data-n="${num}"]`);
       if(cell){ cell.classList.add(kenoPicks.has(num) ? "hit" : "miss-draw"); cell.classList.add("drawn"); }
+      try{ fbSfxSafe && fbSfxSafe("mg_casino_keno_ball", 0.25, {gap:0.05}); }catch(e){}
     }, step*(i+1));
   });
 
@@ -4660,7 +4714,7 @@ function resolveLotteryDraws(){
   if(drawsRun>0){
     saveState();
     if(anyTicketDraw){
-      if(jackpot) showToast(`🎉 JACKPOT! Your lottery ticket matched all 7 — ${totalWon.toLocaleString()} 🪙 paid out!`);
+      if(jackpot){ showToast(`🎉 JACKPOT! Your lottery ticket matched all 7 — ${totalWon.toLocaleString()} 🪙 paid out!`); try{ fbSfxSafe && fbSfxSafe("mg_casino_jackpot", 0.45); }catch(e){} }
       else if(totalWon>0) showToast(`🎟️ The daily lottery drew — your tickets won ${totalWon.toLocaleString()} 🪙.`);
       else showToast(`🎟️ The lottery drew — no matches this time. The jackpot rolls over.`);
     }
@@ -12293,6 +12347,7 @@ function pkNewGame(){
     time: 0
   };
   pkSyncHud();
+  try{ fbSfxSafe && fbSfxSafe("mg_start", 0.35); }catch(e){}
 }
 function pkRiseSpeed(){
   let v = 0.11 * Math.pow(1.16, pk.level - 1);
@@ -12441,6 +12496,7 @@ function pkSpawnJoker(){
 }
 function pkApplyMatches(sets){
   if(!sets.length) return false;
+  try{ fbSfxSafe && fbSfxSafe("mg_poker_hand", 0.35, {rate: Math.min(1.4, 1+0.05*sets.length)}); }catch(e){}
   const seen = new Set(); const uniq = [];
   sets.forEach(st => st.cells.forEach(c => {
     const k = c.x + "," + c.y;
@@ -12647,6 +12703,7 @@ function pkGameOver(){
   P.runs++;
   const isBest = pk.score > (P.best || 0);
   if(isBest) P.best = pk.score;
+  try{ fbSfxSafe && fbSfxSafe(isBest ? "mg_poker_new_best" : "mg_fail", isBest ? 0.42 : 0.35); }catch(e){}
   grantBonusXP(Math.min(60, pk.score / 1500));
   recomputePlayerXP();
   saveState(); renderHeader();

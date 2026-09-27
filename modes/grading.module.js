@@ -82,13 +82,13 @@ function grRender(){
     const id = b.dataset.send;
     const c = cards[id]; if(!c) return;
     const si = state.grading.slots.findIndex(s => !s);
-    if(si < 0){ showToast("The desk is full — crack a slab first"); return; }
+    if(si < 0){ showToast("The desk is full — crack a slab first"); try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){} return; }
     const fee = grFee(c.rarity);
-    if(state.dollars < fee){ showToast(`The professional wants $${fee.toLocaleString()}`); return; }
+    if(state.dollars < fee){ showToast(`The professional wants $${fee.toLocaleString()}`); try{ fbSfxSafe && fbSfxSafe("ui_deny", 0.3); }catch(e){} return; }
     state.dollars -= fee;
     state.grading.slots[si] = { id, done: Date.now() + grSecs(c.rarity)*1000 };
     showToast(`🔎 ${c.name} is with the professional`);
-    try{ fbSfxSafe && fbSfxSafe("bait", 0.35); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_grading_send", 0.3); }catch(e){}
     try{ saveState(); }catch(e){}
     grRender();
   });
@@ -97,6 +97,7 @@ function grRender(){
     const s = state.grading.slots[i];
     if(!s || Date.now() < s.done) return;
     const grade = grRoll();
+    try{ fbSfxSafe && fbSfxSafe("mg_grading_crack", 0.45); }catch(e){}
     state.grading.graded[s.id] = grade;
     state.grading.slots[i] = null;
     const c = cards[s.id];
@@ -135,16 +136,17 @@ function grCeremony(c, grade){
     const el = document.getElementById("grNum");
     if(!el){ clearInterval(iv); return; }
     el.textContent = n;
-    try{ fbSfxSafe && fbSfxSafe("equip", 0.12); }catch(e){}
+    try{ fbSfxSafe && fbSfxSafe("mg_grading_tick", 0.18, {rate: Math.min(1.4, 1+0.04*n), gap:0.2}); }catch(e){}
     if(n >= grade){
       clearInterval(iv);
       document.getElementById("grLbl").textContent = GR_LABEL[grade];
       if(grade >= 9){ m.querySelector(".gr-slabbig").classList.add("shine");
-        try{ fbSfxSafe && fbSfxSafe("perfect", 0.5); }catch(e){} }
-      else try{ fbSfxSafe && fbSfxSafe("finish", 0.35); }catch(e){}
+        try{ fbSfxSafe && fbSfxSafe("mg_grading_gem", 0.42); }catch(e){} }
+      else try{ fbSfxSafe && fbSfxSafe("mg_grading_result", 0.35); }catch(e){}
     }
   }, 260);
-  document.getElementById("grClose").onclick = ()=> m.remove();
+  document.getElementById("grClose").onclick = ()=>{ try{ fbSfxSafe && fbSfxSafe("ui_close", 0.25); }catch(e){} m.remove(); };
+  try{ fbSfxSafe && fbSfxSafe("ui_open", 0.3); }catch(e){}
 }
 /* graded cards pull extra weight in the mine: +grade/10 of their bonus */
 if(typeof computeMiningBonusFromOwned === "function" && !window.__grMineWrap){

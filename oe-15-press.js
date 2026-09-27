@@ -145,6 +145,7 @@ function prStart(){
     over: false, banked: false, lastGain: 0
   };
   prSpawn(); prSpawn();
+  try{ fbSfxSafe && fbSfxSafe("mg_press_start", 0.4); }catch(e){}
   pr.best = pr.floor;
   prNewHopper();
   prPaint();
@@ -206,13 +207,17 @@ function prMove(dir){
   }
   const after = pr.grid.map(t => t ? t.id + ":" + t.tier : "-").join(",");
   if(before === after) return;   // nothing shifted; not a move
+  try{
+    if(merges > 0) fbSfxSafe && fbSfxSafe("mg_press_merge", 0.4, {rate: Math.min(1.4, 1+0.02*(pr.best||1))});
+    else fbSfxSafe && fbSfxSafe("mg_press_slide", 0.2);
+  }catch(e){}
 
   pr.score += gained;
   pr.lastGain = gained;
   pr.moves++;
   pr.grid.forEach(t => { if(t && t.tier > pr.best) pr.best = t.tier; });
   prSpawn();
-  if(!prHasMoves()) pr.over = true;
+  if(!prHasMoves()){ pr.over = true; try{ fbSfxSafe && fbSfxSafe("mg_press_jam", 0.35); }catch(e){} }
   prPaint();
 }
 
@@ -285,6 +290,7 @@ function prBank(){
   const xp = climbed > 0 ? Math.round(climbed * PR_XP_PER_TIER * (1 + pr.best * 0.15)) : 0;
 
   state.credits += credits;
+  try{ fbSfxSafe && fbSfxSafe("mg_success", 0.42); }catch(e){}
   if(xp > 0) grantBonusXP(xp);
   if(minted.length) recomputePlayerXP();
 
@@ -451,6 +457,7 @@ function prPaintHopper(){
 }
 
 function prAdjust(tier, delta){
+  try{ fbSfxSafe && fbSfxSafe("ui_select", 0.22); }catch(e){}
   const spares = prSpares()[tier];
   let left = delta;
   if(delta > 0){

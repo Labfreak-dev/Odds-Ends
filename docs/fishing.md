@@ -501,6 +501,33 @@ scrolling hunt for an equip button. Tests updated to encode the gate (a
 commons-only journal cannot enter; a fresh rare trio clears rings 1-4);
 smoke rewritten for tab-hopping picks, shelf sections, and stack counts.
 
+## Batch 138 — the soft sound pack, on a switch
+
+The one-shots are back. Ninety effects (felt, wood, low bells — built quiet
+on purpose after batches 117, 120 and 126) register in FE_SFX at startup,
+with the 34 old names aliased onto them so the calls that were left in
+place play again. The player moved out of the lazy fishing bundle into
+`sfx.module.js`: a pack tear, a pick swing and a wheel spin can sound
+before the water has loaded. The three beds still join the map when the
+fishing bundle arrives.
+
+THE SWITCH. feSound still returns first thing. That return is now
+`if(feGlobalSfxOff()) return`, reading `state.settings.sfxOff`, which
+already defaults to false and already rides the save. Settings → Sound
+has the effects checkbox and volume slider back beside Music. Default is
+ON. The old samples were pulled because they were jarring; these are
+mastered soft, and the 4.2 kHz bus stays. `mg_mining_pick_tap` is the
+quiet one, vol 0.15, and it will not repeat inside a quarter-second.
+
+Call sites that had no sound — pack buy, rarity chimes, the wheel, the
+mine, the puzzles, the desk — now call feSound at the volumes in the pack
+notes. Context-dependent legacy keys (the pick tap, the vein break, the
+pack tear, a scam) use the specific new name instead of the shared alias.
+
+Suites: test-fishing expects the 90 sounds, the aliases and the beds, and
+that the switch gates decoding. smoke-spots expects an effect to play and
+the Settings toggle to silence the next one.
+
 ## Batch 137 — the Hunt is retired
 Playtester: "Remove the hunt. It just doesn't fit well." Unwired the way
 the Keep was: hunt.module.js and hunt.css stay in workshop/, out of the

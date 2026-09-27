@@ -52,7 +52,8 @@ anchor = '<section id="tab-collection" style="display:none;">'
 src = once(src, anchor, sections + "  " + anchor, "sections")
 
 # ---- 3. modules ------------------------------------------------------
-MODULE_FILES = ["fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishing-sfx.module.js",
+MODULE_FILES = ["sfx.module.js", "sfx-pack.module.js",
+    "fishing-assets.module.js", "fishing-spot-bgs.module.js", "fishing-sfx.module.js",
     "fishing-cine-ironjaw.module.js", "fishing-cine-marshking.module.js", "fishing-cine-palehunter.module.js",
     "fishing-cine-roosterking.module.js", "fishing-cine-blackphantom.module.js", "fishing-cine-drownedking.module.js",
     "provenance.catalogue.js", "provenance.module.js",

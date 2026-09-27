@@ -2,7 +2,7 @@
 // Navigations race the network against a timer: a fresh page wins when it arrives in time, the cached copy
 // serves when it does not, and the network response still updates the cache when it lands later, so a slow
 // connection never gets stuck on an old page. Everything else is cache-first, refreshed in the background.
-const CACHE='thankless-v2';
+const CACHE='thankless-v3';
 const PRECACHE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

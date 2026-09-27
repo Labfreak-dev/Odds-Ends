@@ -1109,7 +1109,7 @@ async function defyDeath(){
   const v=await modal('Pay your Debt, and Defy Death',`${portImg('portrait_death1','big merch')}<p>Pay <b>${DEATH_COST} 🪙</b> to buy a seat at Death's own table. Beat him, and you walk out of the dungeon a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
     [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary soulbtn'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
   if(!v||!deathReady())return;r.deathDouble=v===2;
-  busy=true;r.coins-=DEATH_COST;sfx.jackpot();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
+  busy=true;r.coins-=DEATH_COST;sfx.reaper();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
   const f=r.floor,d=mkEnemy('death',r.x+1,f,true),ds=deathScale();r.deathAtk=ds.atk;d.hp=d.max=Math.max(d.max,ds.hp);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
@@ -1118,7 +1118,7 @@ async function defyDeath(){
   logLine('<b>The final table.</b> Death watches you, bored. His phases turn at ⅔ and ⅓ of his life.');
 }
 async function deathPhase(o,ph){
-  o.phase=ph;o.pat=deathPat(ph,run.floor);o.pi=0;o.flash=1;view.shake=14;sfx.jackpot();
+  o.phase=ph;o.pat=deathPat(ph,run.floor);o.pi=0;o.flash=1;view.shake=14;sfx.reaper();
   document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
   view.banner={t:performance.now(),txt:ph===2?'DEATH TAKES INTEREST':'DEATH IS AFRAID'};
   await labDialog('portrait_death'+ph,'Death',pick(DEATH_LINES[ph]),null,ph===2?'Keep pulling':'Finish it','soulbtn');
@@ -1132,7 +1132,7 @@ async function deathCheck(o){
   if(o.phase===2&&o.hp<=t3){if(o.hp<=0)o.hp=t3;await deathPhase(o,3);}
 }
 async function defeatDeath(){
-  const r=run;r.pendingFree=false;view.shake=18;sfx.jackpot();
+  const r=run;r.pendingFree=false;view.shake=18;sfx.reaper();
   await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light','soulbtn');
   const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;metaEv('deathkill');r.souls+=666;stat('deathWins');
   if(r.deathDouble&&S.ledger){const up=S.ledger.lvl<LEDGER_MAX;if(up)S.ledger.lvl++;save();await modal('Double or Nothing: won',`${icon('gear_unique_ledger','📓','hero')}<p>${up?`The Grim's Ledger rises to <b style="color:#8cff96">+${S.ledger.lvl}</b>, free of charge.`:'The Ledger is already complete. Death pays you in souls instead: <b>+666</b>.'}</p>`,[{label:'Take it',val:1,cls:'primary'}]);if(!up)r.souls+=666;}
@@ -1696,8 +1696,9 @@ const altCost=(a,l)=>Math.round(a.base*Math.pow(l+1,1.6));
 const vaultSlots=()=>1+alt('vault');
 
 /* ---------------- music ---------------- */
-// Biome-tied tracks, cross-faded. Two <audio> elements alternate so a track can
-// overlap its own ending and loop without a gap. Starts on the first tap.
+// Biome-tied tracks. Two <audio> elements cross-fade when the biome changes.
+// Each file loops on its own element (loop=true). tick() does not restart the
+// track early: that 2.3s overlap threw a seamless loop off the beat. Starts on the first tap.
 const TRACKS={hub:'darkforest',crypt:'catacombs',2:'coldwind',3:'tombs',4:'darkforest',boss:'tombs'};
 const music={a:null,b:null,cur:null,key:null,fade:2.2,started:false,timer:null,
   el(){const e=new Audio();e.preload='auto';e.volume=0;return e;},
@@ -1707,16 +1708,11 @@ const music={a:null,b:null,cur:null,key:null,fade:2.2,started:false,timer:null,
     if(!key||key===this.key){this.key=key;this.apply();return;}
     this.key=key;if(!this.started)return;
     const next=this.cur===this.a?this.b:this.a;const old=this.cur;
-    next.src='music/'+TRACKS[key]+'.mp3';next.currentTime=0;next.volume=0;
+    next.src='music/'+TRACKS[key]+'.mp3';next.loop=true;next.currentTime=0;next.volume=0;
     next.play().catch(()=>{});this.cur=next;
     this.ramp(next,this.vol(),this.fade);if(old)this.ramp(old,0,this.fade,true);
   },
-  tick(){ // near the end of the current track, start it again on the other element and cross-fade
-    const c=this.cur;if(!c||!this.started||!c.duration||c.paused)return;
-    if(c.duration-c.currentTime<this.fade+.1&&!c.dataset.looping){c.dataset.looping='1';
-      const next=c===this.a?this.b:this.a;next.src=c.src;next.currentTime=0;next.volume=0;next.play().catch(()=>{});
-      this.cur=next;delete next.dataset.looping;this.ramp(next,this.vol(),this.fade);this.ramp(c,0,this.fade,true);}
-  },
+  tick(){return;}, // seamless mp3s loop natively (loop=true). The old 2.3s-early crossfade restart threw the seam off the beat.
   start(){if(this.started)return;this.started=true;this.a=this.el();this.b=this.el();
     const k=this.key||'hub';this.key=null;this.play(k);this.timer=setInterval(()=>this.tick(),250);},
   apply(){if(this.cur)this.cur.volume=this.vol();if(this.cur&&S.music===false)this.cur.pause();else if(this.cur&&this.cur.paused&&this.started)this.cur.play().catch(()=>{});},
@@ -1746,6 +1742,15 @@ const sfx={
   boom:()=>tone(70,.3,'sawtooth',.07,-40),
   block:()=>tone(400,.05,'triangle',.05),
 };
+const SFXF={buf:{},vol:{coin:0.45,spin:0.55,stop:0.5,hit:0.6,hurt:0.65,step:0.35,jackpot:0.7,heal:0.5,boom:0.75,block:0.55,arrow:0.55,kill:0.55,reaper:0.75,door:0.55,chest:0.55}};
+function sfxFile(k){if(S.mute||!AC)return false;const b=SFXF.buf[k];if(!b)return false;const v=(SFXF.vol[k]||.5)*(S.sfxVol==null?1:S.sfxVol);if(v<=0)return true;
+  const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=v;s.connect(g).connect(AC.destination);s.start();return true;}
+function sfxLoad(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();}catch(e){return}if(AC.state==='suspended')AC.resume();if(location.protocol==='file:')return;
+  for(const k in SFXF.vol)fetch('sfx/'+k+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a,res,rej))).then(b=>{SFXF.buf[k]=b}).catch(()=>{});}
+document.addEventListener('pointerdown',sfxLoad,{once:true,capture:true});
+for(const k of Object.keys(sfx)){const old=sfx[k];sfx[k]=()=>{if(!sfxFile(k))old();};}
+sfx.arrow=()=>{if(!sfxFile('arrow'))sfx.hit();};  sfx.kill=()=>sfxFile('kill');   sfx.reaper=()=>{if(!sfxFile('reaper'))sfx.jackpot();};
+sfx.door=()=>sfxFile('door');  sfx.chest=()=>sfxFile('chest');
 
 /* ---------------- run state ---------------- */
 let run=null, busy=false;
@@ -1936,7 +1941,7 @@ function genFloor(f){
   if(kind==='elite'){const es=r.objs.filter(o=>o.kind==='enemy');const e=es[es.length-1]||null;
     if(e){e.elite=pick(Object.keys(ELITES));e.n=ELITES[e.elite].n+' '+e.n;e.hp=e.max=Math.round(e.max*1.6);e.loot=1;e.minRar=2;e.coins=[e.coins[0]+3,e.coins[1]+5];}}
   // Doom: three skulls summon the Reaper at the start of the next floor
-  if(r.doom>=3&&!boss){r.doom=0;if(!fxFold('doomFull',false)){const rp=mkEnemy('reaper',Math.min(5,len-3),f);rp.big=true;put(rp);r.reaperDue=true;}}
+  if(r.doom>=3&&!boss){r.doom=0;if(!fxFold('doomFull',false)){const rp=mkEnemy('reaper',Math.min(5,len-3),f);rp.big=true;put(rp);r.reaperDue=true;sfx.reaper();}}
   let nc=boss?0:rnd(1,2);if(kind==='treasure')nc+=2;if(kind==='rest')nc=0;
   for(let i=0;i<nc&&free.length;i++)put({kind:'chest',x:free.pop(),hp:4,mimic:kind==='treasure'?i===0:(f>=2&&Math.random()<.15)});
   // popup budget: two screens a floor at most. Every floor ends on one (doors, loot or the merchant);
@@ -2336,7 +2341,7 @@ async function doTurn(R){
   if(val('bow')){
     const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>r.x&&o.x-r.x<=fxFold('bowRange',4)).sort((a,b)=>a.x-b.x);
     const dmg=(val('bow')*s.bowDmg+mom)*mu;
-    if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.hit();await beat(140);await hit(es[0],dmg,'bow');parts.push(`🏹${dmg}`);
+    if(es[0]){view.arrow={t:0,x0:r.x*T+T/2,x1:es[0].x*T+T/2};sfx.arrow();await beat(140);await hit(es[0],dmg,'bow');parts.push(`🏹${dmg}`);
       const nt=fxFold('bowTargets',1);for(let i=1;i<nt&&es[i];i++)await hit(es[i],dmg,'bow');
       if(hasR('quiver')&&es[nt])await hit(es[nt],Math.ceil(dmg/2),'bow');await beat(120);}
     else{heroFl('no target','#a8998a');}
@@ -2369,7 +2374,7 @@ async function hit(o,dmg,how){
   const r=run;if(o.gone)return;
   if(o.kind==='chest'){
     if(o.mimic){o.gone=true;const m=mkEnemy('mimic',o.x,r.floor);m.hp=Math.max(1,m.hp-dmg);r.objs.push(Object.assign(m,{id:uid++}));
-      fl('MIMIC!','#e0605a',o.x*T+T/2);view.shake=5;return;}
+      fl('MIMIC!','#e0605a',o.x*T+T/2);view.shake=5;sfx.chest();return;}
     o.hp-=dmg;o.flash=1;fl('-'+dmg,'#f1e6d2',o.x*T+T/2,GY-50);
     if(o.hp<=0)await openChest(o,false);return;
   }
@@ -2386,7 +2391,7 @@ async function hit(o,dmg,how){
   if(o.hp<=0){if(o.t==='labfreak'&&!o.phase2){await labfreakPhase2(o);return;}await kill(o);}
 }
 async function kill(o){
-  const r=run;o.gone=true;r.kills++;S.kills++;metaEv('kill');if(o.boss)metaEv('boss');if(o.elite)metaEv('elite');if(o.t==='labfreak'&&o.mutated)metaEv('labkill');
+  const r=run;sfx.kill();o.gone=true;r.kills++;S.kills++;metaEv('kill');if(o.boss)metaEv('boss');if(o.elite)metaEv('elite');if(o.t==='labfreak'&&o.mutated)metaEv('labkill');
   if(r.jam&&r.jam.by==='debt'){r.jam=null;rebuildReels();heroFl('reel freed','#9fd6ff');}
   const c=rnd(o.coins[0],o.coins[1])+(hasR('pouch')?1:0);gainCoins(c);
   if(r.jam&&r.jam.by===o.id){r.jam=null;rebuildReels();heroFl('reel freed','#9fd6ff');}
@@ -2403,7 +2408,7 @@ async function kill(o){
 async function openChest(o,keyed){
   const r=run;if(!o.mimic||keyed)metaEv('chest');
   if(o.mimic&&!keyed){return hit(o,0);}
-  o.gone=true;o.open=true;sfx.jackpot();
+  o.gone=true;o.open=true;sfx.chest();
   gainCoins(rnd(2,5)+Math.floor(r.floor/2));
   let rar=rollRarity(keyed?15:5);if(hasR('map'))rar=Math.max(2,rar);
   // gear from half of chests (keyed and treasure-floor chests always): the rest pay extra coins
@@ -2570,7 +2575,7 @@ async function floorClear(){
   S.best=Math.max(S.best,r.floor);
   // every fifth floor the merchant sets up shop, and his exit is where you pick the next road
   if(merch){const k=await shop(true);setRoute(k);}
-  r.floor++;genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
+  r.floor++;sfx.door();genFloor(r.floor);rebuildReels();ui();save();music.play(musicForFloor(r.floor));
   metaEv('floor',r.floor);
   if(r.floor>=20&&!r.daily){const d=r.debt||0;S.debtBest=S.debtBest||{};S.debtBest[r.hero]=Math.max(S.debtBest[r.hero]||0,d);
     if(d>=1&&d===debtMax()&&d<10&&!r.debtUp){r.debtUp=1;S.debtMax=d+1;logLine(`<b style="color:#e0605a">Debt ${d+1} is open to you.</b>`);}save();}

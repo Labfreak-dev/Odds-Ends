@@ -54,20 +54,44 @@ button{font:inherit;color:inherit;cursor:pointer}
 #sceneWrap{position:relative;width:100%;flex:1 1 auto;min-height:150px;background:#0a0709}
 #scene3d{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;visibility:hidden;z-index:0}
 #sceneWrap.death3d #scene3d{visibility:visible}
-/* A wide short window leaves the arena a thin strip, and no camera can
-   show Death and the hero in it. While the fight is up, the arena takes
-   about half the column and the cabinet gives that height back. The
-   class comes off with the fight, so the crawl layout returns. */
-@media (min-width:1100px) and (max-height:1200px){
-  #game.death3d #sceneWrap{flex:1 1 50dvh;height:50dvh;min-height:45dvh;max-height:55dvh}
-  #game.death3d #machine{flex:1 1 auto;min-height:0;gap:6px;padding:4px 10px 4px}
-  #game.death3d #cabinet.skinned{aspect-ratio:auto;height:min(22dvh,200px);max-height:min(22dvh,200px)}
-  #game.death3d #cabinet.art{padding:7% 8% 4%}
-  #game.death3d #reels{height:min(12dvh,96px)}
-  #game.death3d #log{height:34px;min-height:0}
-  #game.death3d #gearBar{padding-top:2px;padding-bottom:6px}
-  #game.death3d #spinBtn{padding:6px 8px;font-size:22px}
-}
+/* Cinematic Death fight. The 3D view fills the viewport and the reels pack
+   into a bottom strip. Every rule is under #game.death3d, so taking the
+   class off restores the crawl. A normal run never has the class. */
+html:has(#game.death3d),html:has(#game.death3d) body{overflow:hidden}
+#game.death3d{justify-content:flex-end;overflow:hidden;background:transparent;min-height:0}
+#app:has(#game.death3d){background:transparent}
+#game.death3d #sceneWrap{flex:0 0 0;height:0;min-height:0;overflow:visible;background:transparent}
+#game.death3d #scene3d{position:fixed;inset:0;width:100%;height:100%;z-index:1;visibility:visible;pointer-events:none}
+#game.death3d #scene{position:fixed;inset:0;width:100%;height:100%;z-index:2;background:transparent;pointer-events:auto}
+#game.death3d #hud,#game.death3d #deathHp,#game.death3d #log,#game.death3d #machine,#game.death3d #gearBar{position:relative;z-index:6}
+#game.death3d #hud{flex-wrap:nowrap;gap:4px;padding:4px 8px 2px;padding-top:max(4px,env(safe-area-inset-top));font-size:11px;background:rgba(8,6,8,.86)}
+#game.death3d #hpwrap{order:0;flex:1 1 auto;height:16px;min-width:64px}
+#game.death3d #hud .chip,#game.death3d #menuBtn{flex:0 0 auto;padding:1px 5px;font-size:11px}
+#deathHp{display:none}
+#game.death3d #deathHp{display:block;height:16px;margin:0 8px 2px;border:2px solid #000;border-radius:4px;background:#1b1a24;overflow:hidden}
+#deathHpFill{display:block;height:100%;width:100%;background:#9fd6ff}
+#deathHpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:13px;font-weight:400;color:#e9dcc6;text-shadow:0 1px 0 #000;pointer-events:none}
+#game.death3d #deathHp{position:relative}
+#deathHp s{position:absolute;top:-1px;bottom:-1px;width:2px;background:#000;text-decoration:none}
+#game.death3d #log{height:26px;min-height:0;padding:2px 8px;font-size:11px;line-height:1.3;overflow:hidden;background:rgba(8,6,8,.9);border-color:transparent}
+#game.death3d #defyBtn,#game.death3d #purseDeathBtn{display:none!important}
+#game.death3d #machine{flex:0 1 auto;min-height:0;gap:3px;padding:2px 8px 2px}
+#game.death3d #cabinet{padding:4px 6px 4px}
+#game.death3d #cabinet.skinned{aspect-ratio:auto!important;height:84px;max-height:84px}
+#game.death3d #cabinet.art{padding:4px 6px 2px}
+#game.death3d #reels{height:56px}
+#game.death3d .reel .cell{font-size:22px}
+#game.death3d #marquee{margin:0 2px 2px;font-size:10px}
+#game.death3d #nudgeNote{min-height:0;margin-top:0}
+#game.death3d #reelCtl{margin-top:2px}
+#game.death3d #reelCtl button{padding:1px 0;font-size:10px}
+#game.death3d #btnRow{gap:4px}
+#game.death3d #spinBtn{padding:3px 8px 4px;font-size:18px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 #000}
+#game.death3d .sideBtn{padding:0 8px;font-size:15px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 #000}
+#game.death3d #gearBar{gap:4px;padding:2px 8px 4px;padding-bottom:max(4px,env(safe-area-inset-bottom));background:rgba(8,6,8,.92)}
+#game.death3d .gslot{width:32px;height:32px;font-size:16px}
+#game.death3d #forecast{position:fixed;left:50%;right:auto;top:auto;bottom:calc(var(--death-strip, 230px) + 6px);transform:translateX(-50%);width:min(440px, calc(100% - 16px));max-height:64px;overflow:auto;padding:4px 8px;font-size:11px;line-height:1.3;z-index:7}
+#game.death3d #forecast .hint{margin-top:2px}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;z-index:1}
 #scene:active{cursor:grabbing}
 #jackpotFlash{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;z-index:3}
@@ -573,6 +597,7 @@ body.labFlash #app{animation:labFlash .7s ease-out}
       <span class="chip" id="hudDoom" title="Doom: three skulls summon the Reaper">☠ 0/3</span>
       <button id="menuBtn" aria-label="Menu">☰</button>
     </div>
+    <div id="deathHp" aria-hidden="true"><i id="deathHpFill"></i><b id="deathHpTxt">DEATH</b><s style="left:33.3%"></s><s style="left:66.6%"></s></div>
     <div id="sceneWrap"><canvas id="scene3d" aria-hidden="true"></canvas><canvas id="scene"></canvas><div id="forecast"></div></div>
     <div id="log">Insert a coin and pull. <b>Whatever lands is your turn.</b></div>
     <button id="defyBtn" class="hidden">Pay your Debt, and Defy Death</button>
@@ -1263,11 +1288,27 @@ function drawDeathArena(t,dt){
   for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const hero=f.x<=r.x*T+T*.75,ax=hero?HX:DX,ay=hero?HB-HH*.8:DB-DH*.75;
     cx.globalAlpha=Math.max(0,1-f.t/1.3);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,ax+(f.x%7-3)*3,ay-f.t*30+(f.y-GY+70)*.3,f.col);}
   cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
-  // Death's life bar with phase notches
-  if(o){const bw=W*.7,bx=(W-bw)/2,by=top+(live3d?4:10);rect(bx-2,by-2,bw+4,12,'#000');rect(bx,by,bw,8,'#1b1a24');
+  // Death's life bar. The 3D fight keeps it in the reel strip; the painted
+  // fallback still draws it on the arena.
+  if(o&&live3d)syncDeathHp(o);
+  else if(o){const bw=W*.7,bx=(W-bw)/2,by=top+10;rect(bx-2,by-2,bw+4,12,'#000');rect(bx,by,bw,8,'#1b1a24');
     rect(bx,by,bw*clamp(o.hp/o.max,0,1),8,o.phase===3?'#e0605a':o.phase===2?'#c9a0ff':'#9fd6ff');
     rect(bx+bw/3,by-2,2,12,'#000');rect(bx+bw*2/3,by-2,2,12,'#000');
     cx.font="13px 'Pirata One',serif";cx.fillStyle='#e9dcc6';cx.textAlign='center';cx.fillText(`DEATH · ${o.hp}/${o.max}`,W/2,by+24);}
+}
+function syncDeathHp(o){
+  const t=$('#deathHpTxt'),f=$('#deathHpFill');if(!t||!f||!o)return;
+  const pct=Math.round(100*clamp(o.hp/o.max,0,1));
+  if(f._p!==pct){f._p=pct;f.style.width=pct+'%';}
+  const label='DEATH  '+Math.max(0,Math.ceil(o.hp))+'/'+o.max;
+  if(t.textContent!==label)t.textContent=label;
+  const col=o.phase===3?'#e0605a':o.phase===2?'#c9a0ff':'#9fd6ff';
+  if(f._c!==col){f._c=col;f.style.background=col;}
+}
+function syncDeathStrip(){
+  const game=$('#game');if(!game||!game.classList.contains('death3d'))return;
+  let h=0;for(const el of game.children){if(el.id==='sceneWrap')continue;const r=el.getBoundingClientRect();if(r.height>0)h+=r.height;}
+  game.style.setProperty('--death-strip',Math.ceil(h+6)+'px');
 }
 /* ---------------- The Grim's Ledger ---------------- */
 // every bonus gear can carry, plus welding any symbol onto the reels ('add-<symbol>')
@@ -3501,6 +3542,7 @@ const heroWX=()=>view.hx||(run.x*T+T/2);
 let scaleK=1,VWd=VW,VHd=VH;
 function resizeCanvas(){const w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;const d=window.devicePixelRatio||1;cv.width=Math.round(w*d);cv.height=Math.round(h*d);
   scaleK=Math.min(cv.width/380,cv.height/236);VWd=cv.width/scaleK;VHd=cv.height/scaleK;
+  if($('#game').classList.contains('death3d'))syncDeathStrip();
   if(window.LDDeath3D&&LDDeath3D.resize)LDDeath3D.resize();}
 window.addEventListener('resize',()=>{resizeCanvas();drawReels(true);});
 if(window.ResizeObserver)new ResizeObserver(()=>resizeCanvas()).observe($('#sceneWrap'));
@@ -3770,11 +3812,13 @@ function frame(now){
       cx.globalAlpha=Math.max(0,a);cx.font=(num?'19px':'15px')+" 'Pirata One',Georgia,serif";cx.save();cx.translate(f.x-cam,fy);cx.scale(pop,pop);drawRich(f.txt,0,0,f.col);cx.restore();}
     cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
     }
-    // screen-space overlays
+    // screen-space overlays. The cinematic fight keeps the 3D view clear:
+    // the life bars live in the strip, so the vignette and floor progress stay off it.
     cx.setTransform(scaleK,0,0,scaleK,0,0);
-    const dg=cx.createLinearGradient(VWd*.62,0,VWd,0);dg.addColorStop(0,'rgba(0,0,0,0)');dg.addColorStop(1,'rgba(0,0,0,.55)');cx.fillStyle=dg;cx.fillRect(0,0,VWd,VHd);
-    if(view.hurt>0){cx.fillStyle=`rgba(200,30,30,${view.hurt*.25})`;cx.fillRect(0,0,VWd,VHd);}
-    rect(8,8,VWd-16,4,'rgba(0,0,0,.5)');rect(8,8,(VWd-16)*clamp(r.x/r.len,0,1),4,'#d9b56a');
+    const live3d=r.death&&window.LDDeath3D&&LDDeath3D.live;
+    if(!live3d){const dg=cx.createLinearGradient(VWd*.62,0,VWd,0);dg.addColorStop(0,'rgba(0,0,0,0)');dg.addColorStop(1,'rgba(0,0,0,.55)');cx.fillStyle=dg;cx.fillRect(0,0,VWd,VHd);}
+    if(view.hurt>0&&!(live3d&&(S.reduceFlash||S.reduceFlashing||S.flashing===false))){cx.fillStyle=`rgba(200,30,30,${view.hurt*(live3d?0.12:0.25)})`;cx.fillRect(0,0,VWd,VHd);}
+    if(!live3d){rect(8,8,VWd-16,4,'rgba(0,0,0,.5)');rect(8,8,(VWd-16)*clamp(r.x/r.len,0,1),4,'#d9b56a');}
     if(view.banner){const bt=(now-view.banner.t)/1000;if(bt<2.2){const a=Math.min(1,bt*3,(2.2-bt)*2);cx.globalAlpha=a;cx.fillStyle='rgba(0,0,0,.6)';cx.fillRect(0,VHd/2-40,VWd,32);
       cx.font='bold 16px ui-monospace,monospace';cx.fillStyle='#d9b56a';cx.fillText(view.banner.txt,VWd/2,VHd/2-19);cx.globalAlpha=1;}else view.banner=null;}
     cx.setTransform(1,0,0,1,0,0);

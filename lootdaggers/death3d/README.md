@@ -51,14 +51,31 @@ at their file size. Phones cap the pixel ratio at 1.5 and skip antialias,
 brazier point lights, and most of the drifting motes. Desktop stays at 2.
 
 Death is scaled a little larger than the throne (`pack.deathScale`) and
-shifted so his hips stay in the seat. The cold rim is a faint edge, and two
-small sprites on `Socket_Eyes` keep the sockets green. The camera is solved
-from the loaded hero's head, shoulders and upper back, so each hero lands in
-the bottom third, left of centre, with Death's skull under the life bar.
-On a wide short window the arena grows to about half the column for the
-fight and the cabinet shrinks to keep the reels and the spin button on
-screen. That layout leaves with the fight. A hero attack steps toward the
-throne and steps back.
+shifted so his hips stay in the seat. While the fight is up, `#scene3d` is
+`position: fixed` and fills the viewport. The reels, spin, both life bars
+and the log pack into a bottom strip (`#game.death3d`). The forecast sits
+in a small chip just above that strip. The class comes off when the fight
+ends, so a normal run is unchanged.
+
+The resting camera is over the hero's shoulder, looking up at Death. An
+intro rises from the dais into that shot. A resolve plays a short sequence
+(hero push-in, cut to Death's flinch, or a wide low angle when a soul blast
+or beam hits the hero) and then returns. Win and loss have their own
+finishers. A tap on the 3D view skips the sequence. `prefers-reduced-motion`
+and a reduce-flashing save flag (`S.reduceFlash`, `S.reduceFlashing`, or
+`S.flashing === false`) crossfade those cuts instead of snapping them.
+
+Lighting is real. A warm spot at the near `Socket_Flame_Brazier` casts
+PCFSoft shadows (2048, or 1024 on a phone) onto the floor and the throne.
+A green rim sits behind Death, his eyes are emissive, and a hemisphere
+fills the room. Tone mapping stays ACESFilmic with an sRGB target, and the
+hall has fog. Desktop adds UnrealBloomPass. Phones skip that pass and use a
+soft additive halo instead. A RoomEnvironment PMREM is the env map, and
+roughness/metalness are pulled off the clay defaults. The scythe mesh is
+detached and re-parented so the hand sits about 40% up the shaft with the
+blade over the shoulder. It swings on attack cues. A future `scythe.glb`
+(origin at the grip, +Y toward the blade) drops in through `manifest.js`
+`assets.scythe.url`.
 
 ## What the fight asks the scene to play
 
@@ -78,9 +95,9 @@ arrives a fraction of a second later, the way the old soul shots did.
 | win | Death slumps, then dissolves into souls; the hero plays victory |
 | hero hp at 0 | Camera tilts down, hero plays death. Recovering hp stands him back up |
 
-`prefers-reduced-motion: reduce` cuts shake to 15% and skips the camera
-push. Fast mode (`S.fast`) shortens the effects. Pixel ratio is capped at 2.
-There are no shadow maps.
+`prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
+and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
+ratio is capped at 2. Shadows are PCFSoft from the torch key light.
 
 ## Files
 

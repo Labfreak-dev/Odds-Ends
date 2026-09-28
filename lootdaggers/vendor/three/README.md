@@ -14,6 +14,12 @@ during a normal run.
 | `addons/libs/meshopt_decoder.module.js` | meshopt (`EXT_meshopt_compression` / `KHR_meshopt_compression`). |
 | `addons/utils/BufferGeometryUtils.js` | Required by GLTFLoader. |
 | `addons/utils/SkeletonUtils.js` | Required by GLTFLoader (`clone`). |
+| `addons/postprocessing/EffectComposer.js` | Bloom chain. With Pass, RenderPass, ShaderPass, MaskPass, OutputPass. |
+| `addons/postprocessing/UnrealBloomPass.js` | Desktop bloom for the Death fight. |
+| `addons/shaders/CopyShader.js` | Required by EffectComposer. |
+| `addons/shaders/LuminosityHighPassShader.js` | Required by UnrealBloomPass. |
+| `addons/shaders/OutputShader.js` | Required by OutputPass (tone mapping, sRGB). |
+| `addons/environments/RoomEnvironment.js` | PMREM room used as the fight's env map. |
 
 Not included: the Draco encoder, the standalone glTF JS decoder
 (`draco/gltf/draco_decoder.js`), examples, editor, or docs. `DRACOLoader`

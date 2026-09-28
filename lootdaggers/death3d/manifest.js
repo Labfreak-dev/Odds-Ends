@@ -60,6 +60,12 @@ export const DEATH3D_MANIFEST = {
     hero_brute: heroSlot('models/hero_brute.glb', false),
     hero_duelist: heroSlot('models/hero_duelist.glb', false),
     hero_hexpriest: heroSlot('models/hero_hexpriest.glb', false),
+    /* Optional replacement for the scythe packed inside death.glb.
+       Leave url empty to keep the re-parented mesh. When Asset Artist
+       delivers scythe.glb, set url to 'models/scythe.glb'. That file's
+       origin is the grip (about 40% up the shaft) and +Y points at the
+       blade. scale > 0 overrides the fit; 0 sizes 1 local unit as 1 metre. */
+    scythe: { url: '', scale: 0 },
     vfx: {
       soul: 'textures/vfx/soul_orb.webp',
       orbLoop: 'textures/vfx/soul_orb_loop_4x4.webp',

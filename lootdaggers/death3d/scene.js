@@ -3,6 +3,11 @@
    in the page; this file only watches run/view and draws. If WebGL or an asset
    fails, boot() reports live:false and the painted arena keeps drawing. */
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { DEATH3D_MANIFEST } from './manifest.js';
 import { makeTextures, buildDeath, buildHeroes, buildThrone, buildRoom } from './placeholders.js';
 
@@ -12,14 +17,23 @@ const _w = new THREE.Vector3();
 /* One clock for robe wind, flame sheets, and the dissolve. */
 const SHARED_TIME = { value: 0 };
 const NO_DISSOLVE = { value: 0 };
+/* Phones and software GL skip the custom rim shader. Materials stay
+   MeshStandard so the packed normal, roughness and metal maps still show. */
+let D3D_FAST = false;
 
-/* The fight class sits on the column as well as the canvas, so a wide
-   window can give the arena a taller strip. Removing it restores the crawl. */
+/* The fight class puts the 3D view full-screen and packs the reels into a
+   bottom strip. Removing it restores the crawl exactly. */
 function markDeathLayout(canvas, on) {
   const wrap = canvas && canvas.parentElement;
   if (wrap) wrap.classList.toggle('death3d', !!on);
   const game = typeof document !== 'undefined' && document.getElementById('game');
-  if (game) game.classList.toggle('death3d', !!on);
+  if (game) {
+    game.classList.toggle('death3d', !!on);
+    if (!on) game.style.removeProperty('--death-strip');
+  }
+  if (on && typeof window !== 'undefined') {
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
 }
 
 export async function boot(canvas) {
@@ -88,7 +102,17 @@ class Arena {
     const canvas = this.canvas;
     this.low = lowEnd();
     let gl = null;
-    const aa = !this.low && (window.devicePixelRatio || 1) < 1.5;
+    let softwareGuess = false;
+    try {
+      const probe = document.createElement('canvas');
+      const pgl = probe.getContext('webgl2', { antialias: false, failIfMajorPerformanceCaveat: false });
+      if (pgl) {
+        softwareGuess = glIsSoftware(pgl);
+        const lose = pgl.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+      }
+    } catch (e) { /* ignore */ }
+    const aa = !this.low && !softwareGuess && (window.devicePixelRatio || 1) < 1.5;
     try {
       gl = canvas.getContext('webgl2', {
         alpha: false,
@@ -103,13 +127,26 @@ class Arena {
     }
     const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: false, antialias: aa });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
-    renderer.setClearColor(0x07060b, 1);
+    renderer.toneMapping = THREE.AgXToneMapping;
+    /* +0.3 EV (1.23) is the mock's start. 1.5 lifts the midtones to that
+       frame once three.js is shading without volumetric scatter. */
+    renderer.toneMappingExposure = 1.5;
+    const bootBg = new THREE.Color();
+    bootBg.setRGB(0.006, 0.008, 0.007);
+    renderer.setClearColor(bootBg, 1);
+    /* SwiftShader (and a phone) cannot afford a shadow map or a bloom pass.
+       A real GPU keeps one small spotlight shadow and a tight bloom. */
+    this.gpuName = glRendererName(gl);
+    this.software = glIsSoftware(gl);
+    this.budget = this.low || this.software;
+    renderer.shadowMap.enabled = !this.budget;
+    /* r186 removed PCFSoftShadowMap (it warns and falls back). Softness is
+       the spotlight's shadow.radius on PCFShadowMap. */
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x07060b);
-    this.scene.fog = new THREE.FogExp2(0x100e12, 0.028);
+    this.scene.background = bootBg;
+    this.scene.fog = new THREE.FogExp2(0x374838, 0.034);
     const cam = this.manifest.layout.camera;
     this.camera = new THREE.PerspectiveCamera(cam.fov, 1, 0.08, 40);
     this.baseCam = new THREE.Vector3().fromArray(cam.pos);
@@ -118,6 +155,7 @@ class Arena {
     this.pushLook = new THREE.Vector3(0, 3.1, 6.75);
     this.camPos = this.baseCam.clone();
     this.lookPos = this.baseLook.clone();
+    this.director = new CameraDirector(this);
 
     this.tex = makeTextures();
     this._buildLights();
@@ -155,6 +193,11 @@ class Arena {
 
     this._buildVfx();
     this._placeLights();
+    if (!this.budget) this._setupEnv();
+    flagShadows(this.room.group);
+    flagShadows(this.throne.group);
+    flagShadows(this.deathBuilt.group);
+    for (const id of Object.keys(this.heroes)) flagShadows(this.heroes[id].group);
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
       this.api.live = false;
@@ -178,6 +221,15 @@ class Arena {
       this.api.failed = true;
       return;
     }
+    this._ensureComposer();
+    this.director.start('intro');
+    this.director.apply(0, motionScale(), null);
+    this._skipEvt = (e) => {
+      if (!this.api.shown || !this.director) return;
+      const id = e.target && e.target.id;
+      if (id === 'scene' || id === 'scene3d') this.director.skip();
+    };
+    window.addEventListener('pointerdown', this._skipEvt);
     this._render();
     markDeathLayout(this.canvas, true);
     this.api.shown = true;
@@ -191,17 +243,29 @@ class Arena {
     api.stop = () => self.stop();
     api.resize = () => self.resize();
     api.status = () => self.status();
+    /* One frame from the dais, so a test can see whether the feet are sunk. */
+    api.peekFeet = () => self.peekFeet();
   }
 
   resize() {
     const c = this.canvas;
     const w = c.clientWidth, h = c.clientHeight;
     if (!w || !h || !this.renderer) return;
-    const pr = Math.min(pixelCap(), window.devicePixelRatio || 1);
+    let pr = Math.min(pixelCap(), window.devicePixelRatio || 1);
+    /* SwiftShader's fill rate is the frame. A slightly smaller buffer is
+       what gets a phone near the old 24 fps and a desktop near 14. */
+    /* MeshStandard with the packed maps costs more than the old Lambert hall.
+       A slightly smaller buffer keeps software GL near the old frame rate. */
+    if (this.software) pr = Math.min(pr, this.low ? 0.45 : 0.42);
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
+    if (this.composer) {
+      this.composer.setPixelRatio(pr);
+      this.composer.setSize(w, h);
+    }
     this.camera.aspect = w / h;
     const aspect = w / h;
+    this._canvasAspect = aspect;
     let framed = this.pack ? framePack(aspect) : frameShot(aspect, this.manifest.layout.hero);
     if (this.pack) {
       const fit = this._solveFit(aspect);
@@ -244,7 +308,14 @@ class Arena {
   }
 
   tick(dt) {
-    dt = Math.min(0.05, dt || 0);
+    /* Wall-clock delta. The page caps the value it passes at 0.05s, which
+       stretches a 2.6s intro past ten seconds when the frame rate is low.
+       0.5s still refuses to skip a whole shot on a hitch. */
+    const nowMs = performance.now();
+    let clockDt = this._clockMs ? (nowMs - this._clockMs) / 1000 : (dt || 0);
+    this._clockMs = nowMs;
+    if (!(clockDt > 0)) clockDt = 0;
+    dt = clockDt > 0.5 ? 0.5 : clockDt;
     if (!this.api.live || !window.LD || !window.LD.run || !window.LD.run.death) return;
     this.show();
     const run = window.LD.run;
@@ -279,29 +350,36 @@ class Arena {
     if (lungeRose) {
       this.attackT = 0;
       this.heroActors[this.activeHero].play('attack');
+      this.director.start('hero');
     }
     if (flashRose) {
       this.flinchT = motion.reduced ? 0.12 : 0.32;
       this.deathActor.play('hit');
       this.vfx.sparks(this._anchorWorld(this.deathActor, 'chest'), flash);
       this.hitLight.color.set(0xffe2b0);
-      this.hitLight.intensity = motion.reduced ? 4 : 16;
+      const calm = motion.reduced || reduceFlashing();
+      this.hitLight.intensity = calm ? 2.2 : 8;
       this.hitLight.position.copy(this._anchorWorld(this.deathActor, 'chest'));
+      if (this.director.mode !== 'hero') this.director.start('flinch');
     }
     if (hurtRose) {
       this.heroActors[this.activeHero].play('hit');
       this.hitLight.color.set(0xff3030);
-      this.hitLight.intensity = Math.max(this.hitLight.intensity, motion.reduced ? 3 : 10);
+      const calm = motion.reduced || reduceFlashing();
+      this.hitLight.intensity = Math.max(this.hitLight.intensity, calm ? 1.6 : 6);
       this.hitLight.position.copy(this.heroAnchor.position).y += 1.1;
+      this.director.start('blast');
     }
     if (run.hp <= 0 && !this.downed && !this.won) {
       this.downed = true;
       this.fallT = 0;
       this.heroActors[this.activeHero].play('death');
+      this.director.start('loss');
     } else if (run.hp > 0 && this.downed) {
       this.downed = false;
       this.fallT = 0;
       this.heroActors[this.activeHero].play('idle');
+      if (this.director.mode === 'loss') this.director.start('rest');
     }
     if (death.gone && !this.won) this._win();
 
@@ -314,6 +392,7 @@ class Arena {
 
     this.deathActor.update(dt);
     this.heroActors[this.activeHero].update(dt);
+    this._posed = true;
     if (this.tex.fire && this.tex.fire.userData._sheet) advanceSheet(this.tex.fire, dt);
     if (this.flameSprites) {
       for (const sp of this.flameSprites) {
@@ -341,11 +420,13 @@ class Arena {
     this.attackT = -1;
     this.flinchT = 0;
     this.dodgeT = 0;
-    this.prevHurt = 0;
-    this.prevLunge = 0;
-    this.prevFlash = 0;
+    const viewNow = (window.LD && window.LD.view) || {};
+    this.prevHurt = viewNow.hurt || 0;
+    this.prevLunge = viewNow.lunge || 0;
+    this.prevFlash = death.flash || 0;
     this.deathActor.play('idle');
     this.heroActors[this.activeHero].play('idle');
+    if (this.director) this.director.start('intro');
     this.vfx.clear();
     for (const m of this.deathActor.mats || []) {
       if (m.userData._op0 != null) m.opacity = m.userData._op0;
@@ -357,6 +438,7 @@ class Arena {
     this.lastCue = c.kind || '';
     const big = (c.phase || this.phase) >= 3 || (c.v || 0) >= 10;
     if (c.kind === 'atk') {
+      this.director.start('blast');
       const fire = () => {
         if (big) this.vfx.playBeam(this, !hurtRose, motion);
         else this.vfx.playBlast(this, !hurtRose, motion);
@@ -397,6 +479,7 @@ class Arena {
     this.phase = ph;
     this.cineOn = true;
     this.cineT = 0;
+    if (this.director) this.director.start('phase');
     if (ph >= 2) this.deathActor.play('cast');
   }
 
@@ -406,6 +489,7 @@ class Arena {
     this.crumbleT = 0;
     this.deathActor.play('defeat');
     this.heroActors[this.activeHero].play('victory');
+    if (this.director) this.director.start('win');
   }
 
   _pose(dt, t, death, lunge, hurt, motion) {
@@ -444,8 +528,8 @@ class Arena {
     if (this.won) {
       this.crumbleT += dt;
       const k = Math.min(1, this.crumbleT / 2.4);
-      /* A real mesh dissolves. The placeholder has no shader, so it fades. */
-      if (!d.dissolve) {
+      /* A real mesh dissolves. Fast materials have no dissolve shader, so they fade. */
+      if (!d.dissolve || D3D_FAST) {
         const mats = d.model ? collectMats(d.model) : (d.mats || []);
         for (const m of mats) {
           if (m.userData._op0 == null) { m.userData._op0 = m.opacity == null ? 1 : m.opacity; m.userData._tr0 = !!m.transparent; }
@@ -457,26 +541,35 @@ class Arena {
       if (Math.random() < 0.55) this.vfx.puff(this._anchorWorld(d, 'chest'), 'soul', 2);
     }
     if (this.downed) this.fallT = Math.min(1, this.fallT + dt * 0.65);
-    /* Attack_Sweep and Defeat_Slump sink the robe into the dais. Lift him clear. */
-    if (this.pack && d.model) {
-      const logical = d.clipLogical;
-      const home = d.seatY || 0;
-      const lift = home + ((logical === 'attack' || logical === 'defeat') ? 0.13 : 0);
-      d.model.position.y += (lift - d.model.position.y) * Math.min(1, dt * 8);
-    }
     if (d.dissolve) d.dissolve.value = this.won ? Math.min(1, this.crumbleT / 2.2) : 0;
   }
 
   _lights(t, motion) {
-    const flick = motion.reduced ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35);
-    this.brazierL[0].intensity = 18 + flick * 5;
-    this.brazierL[1].intensity = 16 + Math.cos(t * 11.0) * 4;
+    const calm = motion.reduced || reduceFlashing();
+    const flick = calm ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35 + Math.sin(t * 47.0) * 0.15);
+    const torch = 1 + flick * 0.14;
+    if (this.flameLights) {
+      for (let i = 0; i < this.flameLights.length; i++) {
+        const L = this.flameLights[i];
+        const base = L.userData.base || 1;
+        const wobble = calm ? 0 : Math.sin(t * (L.userData.brazier ? 11 : 8) + i * 1.7) * (L.userData.brazier ? 0.12 : 0.08);
+        L.intensity = base * (1 + wobble);
+      }
+    } else if (this.brazierL) {
+      this.brazierL[0].intensity = 3.2 * torch;
+      this.brazierL[1].intensity = 2.6 * (1 + (calm ? 0 : Math.cos(t * 11.0) * 0.12));
+    }
     const ph = this.phase;
-    this.rim.intensity = (6.5 + (ph - 1) * 1.4) * (this.won ? 0.45 : 1);
+    if (this.rim) this.rim.intensity = (this.rimBase || this.rim.intensity) * (this.won ? 0.45 : 1);
+    if (this.daisLight) {
+      const breathe = 0.92 + (calm ? 0 : 0.08 * Math.sin(t * 2.4));
+      this.daisLight.intensity = (this.daisLight.userData.base || 17.5) * breathe * (this.won ? 0.55 : 1);
+    }
     const eyePos = this._anchorWorld(this.deathActor, 'eyes');
-    this.soulLight.position.copy(eyePos);
-    this.soulLight.position.z -= 0.55;
-    this.soulLight.intensity = (ph === 1 ? 0.9 : ph === 2 ? 2.4 : 4.5) * (0.85 + 0.15 * Math.sin(t * 3));
+    if (this.cheapSprite) {
+      this.cheapSprite.position.copy(eyePos);
+      this.cheapSprite.material.opacity = 0.28 + (ph - 1) * 0.08;
+    }
     if (this.throne.crackMat) this.throne.crackMat.emissiveIntensity = 0.15 + (ph - 1) * 1.35;
     for (const c of this.throne.cracks) {
       const want = ph >= c.userData.phase ? 1 : 0.001;
@@ -488,6 +581,12 @@ class Arena {
       if (on) {
         const s = 0.85 + Math.sin(t * 14 + f.position.x) * 0.2;
         f.scale.setScalar(s * (0.7 + ph * 0.25));
+      }
+    }
+    if (this.soulSprites) {
+      for (const s of this.soulSprites) {
+        const base = s.userData.base || 0.5;
+        s.scale.setScalar(base * (0.92 + Math.sin(t * 2.2 + s.position.y) * 0.08));
       }
     }
     if (this.hitLight.intensity > 0.05) this.hitLight.intensity *= motion.reduced ? 0.7 : 0.82;
@@ -505,22 +604,7 @@ class Arena {
       this.cineT += dt / dur;
       if (this.cineT >= 1) { this.cineT = 1; this.cineOn = false; }
     }
-    const bump = motion.reduced ? 0 : Math.sin(Math.min(1, this.cineT) * Math.PI);
-    this.camPos.copy(this.baseCam).lerp(this.pushCam, bump * 0.9);
-    this.lookPos.copy(this.baseLook).lerp(this.pushLook, bump);
-    if (!motion.reduced) this.camPos.y += Math.sin(performance.now() / 1000 * 0.8) * 0.012;
-    if (this.downed) {
-      const f = this.fallT * this.fallT;
-      this.camPos.y -= f * 0.7;
-      this.lookPos.y -= f * 1.35;
-    }
-    const sh = Math.min(view.shake || 0, 16) * 0.0032 * motion.shake;
-    if (sh) {
-      this.camPos.x += (Math.random() - 0.5) * sh;
-      this.camPos.y += (Math.random() - 0.5) * sh;
-    }
-    this.camera.position.copy(this.camPos);
-    this.camera.lookAt(this.lookPos);
+    if (this.director) this.director.apply(dt, motion, view);
   }
 
   _anchorWorld(actor, name) {
@@ -534,39 +618,86 @@ class Arena {
   }
 
   _render() {
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   _buildLights() {
     const scene = this.scene;
-    scene.add(new THREE.HemisphereLight(0x4a5c6c, 0x1a100c, 1.35));
-    const fill = new THREE.DirectionalLight(0xffe2c4, 2.6);
-    fill.position.set(-0.8, 3.2, -3.5);
-    scene.add(fill);
-    /* Cold rim from behind Death, aimed at his chest so the hood reads. */
-    this.rim = new THREE.DirectionalLight(0x9af6ea, 6.5);
-    this.rim.position.set(0.3, 6.2, 12.5);
-    this.rim.target.position.set(0, 3.1, 6.6);
-    scene.add(this.rim);
-    scene.add(this.rim.target);
-    const side = new THREE.DirectionalLight(0x7ee0ff, 2.2);
-    side.position.set(-4.5, 4.2, 8.5);
-    side.target.position.set(0, 3.0, 6.5);
-    scene.add(side);
-    scene.add(side.target);
-    this.soulLight = new THREE.PointLight(0x62ffd8, 6, 5.5, 2);
-    scene.add(this.soulLight);
-    this.brazierL = [new THREE.PointLight(0xff7a3a, 18, 7.5, 2), new THREE.PointLight(0xff6828, 16, 7.5, 2)];
+    /* A trace of sky/ground so the placeholder room is not black. The pack
+       replaces this with the mock's sun, braziers and green spots. */
+    const hemi = new THREE.HemisphereLight(0x243028, 0x14110e, 0.15);
+    scene.add(hemi);
+    this.hemi = hemi;
+    this.rim = null;
+    this.key = null;
+    this.soulLight = null;
+    /* Placeholder flames, removed once the hall GLB's sockets take over. */
+    this.brazierL = [new THREE.PointLight(0xff5c24, 2.2, 6, 2), new THREE.PointLight(0xff5c24, 1.8, 6, 2)];
     this.brazierL.forEach(l => scene.add(l));
-    this.heroRim = new THREE.DirectionalLight(0x9af6ea, 0.85);
-    this.heroRim.position.set(1.4, 2.6, -2.4);
-    this.heroRim.target.position.set(-0.1, 1.15, 0.4);
-    scene.add(this.heroRim);
-    scene.add(this.heroRim.target);
-    this.hitLight = new THREE.PointLight(0xffe2b0, 0, 5, 2);
+    this.hitLight = new THREE.PointLight(0xffe2b0, 0, 4.5, 2);
     scene.add(this.hitLight);
-    this.candleL = new THREE.PointLight(0xffc48a, 6, 4.5, 2);
+    this.candleL = new THREE.PointLight(0xffb067, 0.6, 2.4, 2);
     scene.add(this.candleL);
+  }
+
+  /* Phones skip the bloom pass. A soft additive halo stands in for it. */
+  _cheapGlow() {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: this.tex.soul,
+      color: 0xb8ffe4,
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.32,
+      toneMapped: false,
+    }));
+    s.scale.setScalar(0.42);
+    s.material.opacity = 0.28;
+    this.scene.add(s);
+    this.cheapSprite = s;
+  }
+
+  _setupEnv() {
+    try {
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const room = new RoomEnvironment();
+      const tex = pmrem.fromScene(room, 0.04).texture;
+      this.scene.environment = tex;
+      this.envMap = tex;
+      room.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach(m => m.dispose && m.dispose());
+        }
+      });
+      pmrem.dispose();
+    } catch (err) {
+      console.warn('Death 3D environment map failed; lights still shade the room.', err);
+    }
+  }
+
+  _ensureComposer() {
+    if (this.budget || this.low || this.composer || this._composerFailed || !this.renderer) return;
+    try {
+      const composer = new EffectComposer(this.renderer);
+      composer.addPass(new RenderPass(this.scene, this.camera));
+      const size = new THREE.Vector2(this.canvas.clientWidth || 256, this.canvas.clientHeight || 256);
+      /* Threshold sits above lit bone. Only flames, eyes and soul sprites,
+         which are drawn un-tone-mapped, cross it. */
+      /* Artist mock: strength 0.6, radius 0.8, threshold 0.7, before OutputPass. */
+      const bloom = new UnrealBloomPass(size, 0.6, 0.8, 0.7);
+      composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+      this.composer = composer;
+      this.bloom = bloom;
+      this.resize();
+    } catch (err) {
+      console.warn('Death 3D bloom unavailable; lighting stays.', err);
+      this._composerFailed = true;
+      this.composer = null;
+    }
   }
 
   _placeLights() {
@@ -599,12 +730,6 @@ class Arena {
       s.visible = false;
       return s;
     });
-    const shadow = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: this.tex.shadow, transparent: true, depthWrite: false, opacity: 0.8,
-    }));
-    shadow.position.y = 0.02;
-    shadow.scale.set(1.1, 0.55, 1);
-    this.heroAnchor.add(shadow);
   }
 
   _buildVfx() {
@@ -642,6 +767,11 @@ class Arena {
       this._fetchGltf(man.assets.death),
       ...texJobs,
     ]);
+    if (want1k()) {
+      if (envG) downscaleMaps(envG.scene, 1024);
+      if (throneG) downscaleMaps(throneG.scene, 1024);
+      if (deathG) downscaleMaps(deathG.scene, 1024);
+    }
     if (envG && throneG && deathG) this._engagePack(envG, throneG, deathG);
     else console.warn('Death 3D kept the placeholder room; a GLB failed to load.');
     await this._loadOneHero(this.activeHero);
@@ -662,6 +792,7 @@ class Arena {
 
   _engagePack(envG, throneG, deathG) {
     this.pack = true;
+    D3D_FAST = !!this.budget;
     this.packRoot = new THREE.Group();
     this.scene.add(this.packRoot);
     const env = envG.scene;
@@ -675,25 +806,43 @@ class Arena {
     const throne = throneG.scene;
     prepMeshes(throne, { rim: 0.04 });
     seat.add(throne);
-    if (want1k()) downscaleMaps(deathG.scene, 1024);
-    /* Baked albedo. Film tone-mapping would crush it a second time. */
-    this.renderer.toneMapping = THREE.NoToneMapping;
-    this.renderer.toneMappingExposure = 1;
+    this.renderer.toneMapping = THREE.AgXToneMapping;
+    /* Tuned up from the mock's +0.3 EV so the throne reads at the PNG's level. */
+    this.renderer.toneMappingExposure = 1.5;
     this.room.group.visible = false;
     this.throne.group.visible = false;
     this.packThrone = throne;
+    flagShadows(env, !this.budget);
+    flagShadows(throne, !this.budget);
     this.deathActor.bindGltf(deathG, this.manifest.assets.death, seat);
+    if (this.deathActor.model) flagShadows(this.deathActor.model, !this.budget);
     this._eyeGlow(this.deathActor.model);
     this._seatDeath(this.deathActor);
+    this._bindScythe(this.deathActor);
     const marker = env.getObjectByName('Marker_Hero');
     const p = new THREE.Vector3(0, 0, 6.5);
     if (marker) marker.getWorldPosition(p);
     this.stand = { hero: [p.x, p.y, p.z], lungeSign: -1 };
     this.heroAnchor.position.set(p.x, p.y, p.z);
     this.heroAnchor.rotation.y = Math.PI;
-    this.scene.fog = new THREE.FogExp2(0x141c18, 0.012);
-    this.scene.background = new THREE.Color(0x070a09);
+    this.scene.fog = new THREE.FogExp2(0x374838, 0.034);
+    const bg = new THREE.Color();
+    bg.setRGB(0.006, 0.008, 0.007);
+    this.scene.background = bg;
+    this.renderer.setClearColor(bg, 1);
+    if (this.hemi) this.hemi.intensity = 0.05;
+    /* Only a phone hides the near braziers. Software still draws them so the
+       screenshot can match the mock; it just skips their shadows. */
+    hideFarDressing(env, this.low);
     this._flames(env);
+    this._mockLights();
+    this._soulGlow(this.deathActor.model);
+    /* Placeholder lights would still occupy shader slots at intensity 0. */
+    dropLight(this.brazierL && this.brazierL[0]);
+    dropLight(this.brazierL && this.brazierL[1]);
+    dropLight(this.candleL);
+    this.brazierL = null;
+    this.candleL = null;
     this.resize();
   }
 
@@ -719,6 +868,7 @@ class Arena {
     if (!gltf) return;
     if (want1k()) downscaleMaps(gltf.scene, 1024);
     this.heroActors[id].bindGltf(gltf, slot, this.heroAnchor);
+    if (this.heroActors[id].model) flagShadows(this.heroActors[id].model, !this.budget);
     if (id === this.activeHero) this.heroes[id].group.visible = false;
     else if (this.heroActors[id].model) this.heroActors[id].model.visible = false;
   }
@@ -782,54 +932,258 @@ class Arena {
     const socket = model && model.getObjectByName('Socket_Eyes');
     if (!socket) return;
     const map = this.tex.soul;
+    const big = !!this.low;
     [-1, 1].forEach(s => {
       const halo = new THREE.Sprite(new THREE.SpriteMaterial({
         map, color: 0x7dffc4, blending: THREE.AdditiveBlending, transparent: true,
-        depthWrite: false, toneMapped: false, opacity: 0.7,
+        depthWrite: false, toneMapped: false, opacity: big ? 0.9 : 0.75,
       }));
-      halo.scale.set(0.2, 0.11, 1);
+      halo.scale.set(big ? 0.16 : 0.12, big ? 0.09 : 0.07, 1);
       halo.position.set(s * 0.058, 0.02, 0.07);
       const core = new THREE.Sprite(new THREE.SpriteMaterial({
         map, color: 0xf3fff8, blending: THREE.AdditiveBlending, transparent: true,
         depthWrite: false, toneMapped: false, opacity: 1,
       }));
-      core.scale.set(0.055, 0.04, 1);
+      core.scale.set(big ? 0.09 : 0.06, big ? 0.06 : 0.045, 1);
       core.position.set(s * 0.058, 0.02, 0.09);
-      socket.add(halo, core);
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshStandardMaterial({
+        color: 0x06281c,
+        emissive: 0x9dffc8,
+        emissiveIntensity: big ? 2.4 : 2.8,
+        roughness: 0.2,
+        metalness: 0,
+        toneMapped: false,
+      }));
+      ball.position.set(s * 0.055, 0.02, 0.08);
+      socket.add(halo, core, ball);
     });
+  }
+
+  /* Visible green energy around Death. Bloom picks it up on desktop; on a
+     phone the additive sprites are the glow. */
+  _soulGlow(model) {
+    const socket = (model && model.getObjectByName('Socket_Chest')) || (model && model.getObjectByName('Socket_Eyes'));
+    if (!socket || !this.tex.soul) return;
+    const make = (scale, opacity, y, z) => {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: this.tex.soul, color: 0xb8ffe4, blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, toneMapped: false, opacity,
+      }));
+      s.scale.setScalar(scale);
+      s.position.set(0, y, z);
+      s.userData.base = scale;
+      socket.add(s);
+      return s;
+    };
+    /* Low on the ribs. A sprite at the face was covering the skull. */
+    this.soulSprites = [
+      make(0.26, 0.32, -0.12, 0.1),
+      make(0.14, 0.22, 0.02, 0.16),
+    ];
+  }
+
+  /* The file parents mesh Scythe to bone Scythe_Grip at identity. Clips
+     move that bone, including the drop in Defeat_Slump. Do not offset it. */
+  _bindScythe(actor) {
+    const model = actor && actor.model;
+    if (!model) return;
+    const grip = model.getObjectByName('Scythe_Grip');
+    const mesh = model.getObjectByName('Scythe');
+    this.scythe = { embedded: !!(grip && mesh), external: false };
+    const slot = this.manifest.assets && this.manifest.assets.scythe;
+    if (grip && slot && slot.url) this._loadExternalScythe(slot, grip, mesh);
+  }
+
+  async _loadExternalScythe(slot, grip, mesh) {
+    const gltf = await this._fetchGltf(slot);
+    if (!gltf || !grip.parent) return;
+    const root = gltf.scene;
+    prepMeshes(root, { rim: 0, dissolve: (this.deathActor && this.deathActor.dissolve) || NO_DISSOLVE });
+    flagShadows(root, !this.budget);
+    root.position.set(0, 0, 0);
+    root.rotation.set(0, 0, 0);
+    root.quaternion.identity();
+    root.scale.set(1, 1, 1);
+    grip.add(root);
+    if (mesh) mesh.visible = false;
+    this.scythe = { embedded: false, external: true };
+  }
+
+  /* Phone fakes the green column with a sprite. A real GPU gets the spot. */
+  _greenShaft() {
+    const map = this.tex.soul;
+    if (!map) return;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map, color: 0x8dffc0, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, toneMapped: false, opacity: 0.16,
+    }));
+    s.position.set(0, 5.6, -0.35);
+    s.scale.set(2.2, 6.2, 1);
+    this.scene.add(s);
+    this.shaftSprite = s;
+  }
+
+  /* Mock lighting. Intensities are watts/4π. A phone, and software GL, keep
+     the two throne-side braziers, the dais and a sun. Sprites stand in for
+     the candles, the near braziers and the green column. A real GPU adds the
+     spot rig from the mock. */
+  _mockLights() {
+    const scene = this.scene;
+    const phone = !!this.low;
+    const software = !!this.software;
+    const shadows = !this.budget;
+    const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b);
+    const sun = new THREE.DirectionalLight(lin(0.6, 0.7, 0.8), 0.35);
+    sun.position.set(-3, 10, 8);
+    scene.add(sun);
+    const daisI = 17.5;
+    const dais = new THREE.PointLight(lin(0.45, 1.0, 0.7), daisI, 0, 2);
+    dais.position.set(0, 1.3, 2.2);
+    dais.userData.base = daisI;
+    scene.add(dais);
+    this.daisLight = dais;
+    if (phone || software) {
+      const wash = new THREE.DirectionalLight(lin(0.5, 0.95, 0.72), phone ? 0.55 : 0.95);
+      wash.position.set(0, 11, 4);
+      scene.add(wash);
+      this._greenShaft();
+    }
+    /* From the camera side, so the hero's back and cape are not a silhouette.
+       A directional does not spend a point-light slot. */
+    const cape = new THREE.DirectionalLight(lin(1.0, 0.72, 0.42), (phone || software) ? 1.25 : 0.55);
+    cape.position.set(0.2, 2.8, 12);
+    scene.add(cape);
+    this.capeFill = cape;
+    /* Grazing light from the hall side. A phone or software GL skips it:
+       one more directional in the fragment shader costs more than the edge. */
+    if (!phone && !software) {
+      const edge = new THREE.DirectionalLight(lin(0.65, 0.9, 0.75), 0.22);
+      edge.position.set(-3.5, 3.2, 4);
+      scene.add(edge);
+      this.capeEdge = edge;
+    }
+    /* Real GPU only. Phone and software stay at the brazier points plus the dais. */
+    if (!phone && !software) {
+      const fillI = phone ? 10 : 12.7;
+      const fill = new THREE.PointLight(lin(0.8, 0.9, 1.0), fillI, 0, 2);
+      fill.position.set(0, 3.4, 1.6);
+      fill.userData.base = fillI;
+      scene.add(fill);
+      this.fillLight = fill;
+    }
+    if (phone || software) return;
+    const top = new THREE.SpotLight(lin(0.55, 0.9, 0.75), 199, 0, 25 * Math.PI / 180, 0.15, 2);
+    top.position.set(0, 11, 4);
+    top.target.position.set(0, 2, 0);
+    top.castShadow = shadows;
+    if (shadows) {
+      top.shadow.mapSize.set(512, 512);
+      top.shadow.bias = -0.00045;
+      top.shadow.normalBias = 0.06;
+      top.shadow.camera.near = 1;
+      top.shadow.camera.far = 28;
+    }
+    scene.add(top);
+    scene.add(top.target);
+    const back = new THREE.SpotLight(lin(0.35, 0.9, 0.6), 143, 0, 0.9, 0.55, 2);
+    back.position.set(0, 4.2, -2.6);
+    back.target.position.set(0, 2, 1);
+    scene.add(back);
+    scene.add(back.target);
+    this.keyBase = 557;
+    const key = new THREE.SpotLight(lin(0.75, 0.85, 1.0), this.keyBase, 0, 8 * Math.PI / 180, 0.15, 2);
+    key.position.set(1.5, 6.5, 6.5);
+    key.target.position.set(0, 2.04, 0.45);
+    scene.add(key);
+    scene.add(key.target);
+    this.key = key;
+    this.rimBase = 38;
+    const rim = new THREE.SpotLight(lin(1.0, 0.7, 0.5), this.rimBase, 0, 0.5, 0.45, 2);
+    rim.position.set(2.2, 3.2, 9.5);
+    rim.target.position.set(0, 1.2, 6.5);
+    scene.add(rim);
+    scene.add(rim.target);
+    this.rim = rim;
   }
 
   _flames(env) {
     const fire = this.tex.fire;
     if (fire) prepSheet(fire, 4, 4, 20);
     this.flameSprites = [];
+    this.flameLights = [];
+    const sockets = [];
     env.traverse(obj => {
       if (!obj.name) return;
       const brazier = obj.name.indexOf('Socket_Flame_Brazier') === 0;
       const candle = obj.name.indexOf('Socket_Candles') === 0;
       if (!brazier && !candle) return;
+      let hidden = false;
+      let p = obj;
+      while (p) { if (p.visible === false) { hidden = true; break; } p = p.parent; }
+      if (hidden) return;
       obj.updateWorldMatrix(true, false);
       const at = new THREE.Vector3();
       obj.getWorldPosition(at);
-      const nearCam = at.z > 7.5;
-      if (fire) {
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-          map: fire, blending: THREE.AdditiveBlending, transparent: true,
-          depthWrite: false, toneMapped: false, color: 0xffb060,
-        }));
-        const base = brazier ? (nearCam ? 0.26 : 0.58) : 0.2;
-        sp.scale.setScalar(base);
-        sp.userData.base = base;
-        sp.position.y = brazier ? 0.08 : 0.02;
-        obj.add(sp);
-        this.flameSprites.push(sp);
-      }
-      if (brazier && !nearCam && !this.low) {
-        const light = new THREE.PointLight(0xff8a3a, 4.5, 5.5, 2);
-        light.position.y = 0.05;
-        obj.add(light);
-      }
+      sockets.push({ obj, brazier, at, name: obj.name });
     });
+    const lit = new Set();
+    const braziers = sockets.filter(s => s.brazier).sort((a, b) => a.at.z - b.at.z);
+    /* Phone: the two throne-side braziers only. Candles stay sprites.
+       Desktop lights every brazier. 260 W → 20.7 cd. */
+    /* Phone and software: two throne-side braziers. A real GPU lights all four. */
+    const cap = (this.low || this.software) ? 2 : braziers.length;
+    for (const s of braziers) {
+      if (lit.size >= cap) break;
+      lit.add(s);
+    }
+    for (const s of sockets) {
+      if (!fire) continue;
+      if (s.at.z > 10.2) continue;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: fire, blending: THREE.AdditiveBlending, transparent: true,
+        depthWrite: false, toneMapped: false, color: s.brazier ? 0xffc080 : 0xffd7a4,
+      }));
+      const base = s.brazier ? 0.68 : 0.28;
+      sp.scale.setScalar(base);
+      sp.userData.base = base;
+      sp.position.y = s.brazier ? 0.3 : 0.15;
+      s.obj.add(sp);
+      this.flameSprites.push(sp);
+    }
+    const warm = new THREE.Color().setRGB(1, 0.45, 0.15);
+    for (const s of lit) {
+      const intensity = 20.7;
+      const light = new THREE.PointLight(warm, intensity, 0, 2);
+      light.position.y = 0.35;
+      light.castShadow = false;
+      light.userData.base = intensity;
+      light.userData.brazier = true;
+      s.obj.add(light);
+      this.flameLights.push(light);
+    }
+  }
+
+  /* Low three-quarter on the dais. The next tick puts the director camera back. */
+  peekFeet() {
+    const cam = this.camera;
+    cam.clearViewOffset();
+    cam.aspect = this._canvasAspect || cam.aspect;
+    cam.position.set(2.35, 0.42, 2.55);
+    cam.lookAt(0.15, 0.45, 0.4);
+    cam.fov = 30;
+    cam.updateProjectionMatrix();
+    this._render();
+    const model = this.deathActor && this.deathActor.model;
+    const names = ['LeftFoot', 'RightFoot', 'LeftToeBase', 'RightToeBase'];
+    const feet = names.map(n => {
+      const o = model && model.getObjectByName(n);
+      if (!o) return null;
+      const p = new THREE.Vector3();
+      o.updateWorldMatrix(true, false);
+      o.getWorldPosition(p);
+      return { n, x: Math.round(p.x * 1000) / 1000, y: Math.round(p.y * 1000) / 1000, z: Math.round(p.z * 1000) / 1000 };
+    }).filter(Boolean);
+    return { feet };
   }
 
   status() {
@@ -857,6 +1211,21 @@ class Arena {
       dpr: this.renderer ? this.renderer.getPixelRatio() : 0,
       low: !!this.low,
       fit: this._fitDebug || null,
+      cam: this.director ? this.director.mode : '',
+      bloom: !!this.composer,
+      shadows: !!(this.renderer && this.renderer.shadowMap && this.renderer.shadowMap.enabled),
+      budget: !!this.budget,
+      software: !!this.software,
+      gpu: this.gpuName || '',
+      points: countLights(this.scene, 'isPointLight'),
+      spots: countLights(this.scene, 'isSpotLight'),
+      scythe: this.scythe ? (this.scythe.external ? 'file' : (this.scythe.embedded ? 'bone' : '')) : '',
+      tone: this.renderer ? this.renderer.toneMapping : 0,
+      exposure: this.renderer ? Math.round(this.renderer.toneMappingExposure * 100) / 100 : 0,
+      camFov: this.director ? Math.round(this.director.fov * 10) / 10 : (this.camera ? Math.round(this.camera.fov * 10) / 10 : 0),
+      camPos: this.camera ? [this.camera.position.x, this.camera.position.y, this.camera.position.z].map(v => Math.round(v * 100) / 100) : null,
+      rest: this._restDebug || null,
+      restSolves: this._restSolves || 0,
     };
   }
 }
@@ -1057,7 +1426,7 @@ class VFX {
     scene.add(this.sigil.group);
     this.rings = [];
     this.flashes = [];
-    this.ringGeo = new THREE.RingGeometry(0.18, 0.28, 32);
+    this.softDisc = softDiscTexture();
   }
 
   setMap(key, tex) {
@@ -1102,9 +1471,9 @@ class VFX {
       prepSheet(coreMap, 4, 4, 16);
       sheet = coreMap;
     }
-    const haloMap = this.tex.orb || this.tex.flare || coreMap;
+    const haloMap = this.softDisc || this.tex.flare || coreMap;
     const group = new THREE.Group();
-    const halo = this._sprite(haloMap, 1.7, 0x4ee0c4, 0.5);
+    const halo = this._sprite(haloMap, 1.15, 0x8cffd8, 0.4);
     const core = this._sprite(coreMap, 0.95, 0xffffff, 0.95);
     const wisps = [0, 1, 2].map(i => {
       const wm = sheetCell(this.tex.wisp, 2, 2, i) || haloMap;
@@ -1384,23 +1753,19 @@ class VFX {
   }
 
   _impact(pos, whiff, camPos) {
-    const ring = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({
-      color: whiff ? 0x88aacc : 0xb8fff0, transparent: true, opacity: 0.85, side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
-    }));
-    ring.position.copy(pos);
-    if (camPos) ring.lookAt(camPos);
-    ring.userData.t = 0;
-    ring.userData.dur = 0.42;
-    this.scene.add(ring);
-    this.rings.push(ring);
+    const puff = this._sprite(this.softDisc || this.tex.orb || this.tex.soul, whiff ? 0.8 : 1.05, 0xdfffee, 0.5);
+    puff.position.copy(pos);
+    puff.userData.t = 0;
+    puff.userData.dur = 0.34;
+    this.scene.add(puff);
+    this.flashes.push(puff);
     if (this.tex.impact) {
       const map = this.tex.impact.clone();
       map.colorSpace = THREE.SRGBColorSpace;
       map.needsUpdate = true;
       prepSheet(map, 4, 4, 24);
       map.userData._sheet.loop = false;
-      const burst = this._sprite(map, whiff ? 1.15 : 1.7, 0xffffff, 1);
+      const burst = this._sprite(map, whiff ? 0.72 : 0.95, 0xffffff, 0.8);
       burst.position.copy(pos);
       burst.userData.t = 0;
       burst.userData.sheet = map;
@@ -1691,31 +2056,24 @@ function prepMeshes(root, opts) {
   return dissolve;
 }
 
-function toUnlit(mat) {
-  if (!mat || mat.isMeshBasicMaterial || mat.isSpriteMaterial || mat.isShaderMaterial) return mat;
-  const map = mat.map || mat.emissiveMap || null;
-  if (map) {
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.needsUpdate = true;
-  }
-  const basic = new THREE.MeshBasicMaterial({
-    map,
-    color: mat.map && mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
-    transparent: !!mat.transparent,
-    opacity: mat.opacity == null ? 1 : mat.opacity,
-    alphaTest: mat.alphaTest || 0,
-    side: mat.side,
-  });
-  basic.name = mat.name || '';
-  return basic;
-}
-
 function styleMaterial(mat, opts) {
-  const basic = toUnlit(mat);
+  const lit = asLit(mat);
+  if (lit.userData._d3dLit) return lit;
+  lit.userData._d3dLit = true;
+  tunePbr(lit);
   const rim = opts.rim || 0;
   const wind = opts.wind ? 1 : 0;
   const dissolve = opts.dissolve || NO_DISSOLVE;
-  basic.onBeforeCompile = (shader) => {
+  /* Stock shader for the hall, and for every mesh on a phone or software GL.
+     The rim/wind/dissolve patch is a heavier fragment program. */
+  if (D3D_FAST || (rim <= 0 && !wind && dissolve === NO_DISSOLVE)) return lit;
+  const prev = lit.onBeforeCompile;
+  const prevKey = lit.customProgramCacheKey ? lit.customProgramCacheKey.bind(lit) : null;
+  lit.onBeforeCompile = (shader, renderer) => {
+    if (prev) prev.call(lit, shader, renderer);
+    const vertOk = shader.vertexShader.includes('#include <project_vertex>') && shader.vertexShader.includes('#include <common>');
+    const fragOk = shader.fragmentShader.includes('#include <opaque_fragment>') && shader.fragmentShader.includes('#include <common>') && shader.fragmentShader.includes('outgoingLight');
+    if (!vertOk || !fragOk) return;
     shader.uniforms.uTime = SHARED_TIME;
     shader.uniforms.uDissolve = dissolve;
     shader.uniforms.uRim = { value: rim };
@@ -1755,15 +2113,99 @@ varying vec3 vD3Nrm;`)
   float d3ink = smoothstep(0.16, 0.0, d3ndv);
   outgoingLight *= mix(1.0, 0.82, d3ink);
   float d3rim = pow(1.0 - d3ndv, 3.5);
-  outgoingLight += vec3(0.55, 0.86, 0.8) * d3rim * uRim;
+  outgoingLight += vec3(0.45, 0.95, 0.72) * d3rim * uRim;
   float d3hash = fract(sin(dot(vD3Pos.xz, vec2(127.1, 311.7))) * 43758.5453);
   if (uDissolve > 0.001 && d3hash < uDissolve) discard;
   if (uDissolve > 0.001 && d3hash < uDissolve + 0.08) outgoingLight = vec3(0.55, 1.0, 0.86);
 }
 #include <opaque_fragment>`);
   };
-  basic.customProgramCacheKey = () => 'oe-d3d-ink2';
-  return basic;
+  lit.customProgramCacheKey = () => 'oe-d3d-lit3' + (prevKey ? '|' + prevKey() : '');
+  return lit;
+}
+
+function asLit(mat) {
+  if (!mat) return mat;
+  /* Sheen stays on MeshPhysical. Copying onto Standard keeps the normal,
+     roughness, metal and emissive maps, including the eye strength of 4. */
+  if (mat.isMeshPhysicalMaterial) {
+    const std = new THREE.MeshStandardMaterial();
+    std.copy(mat);
+    std.name = mat.name || '';
+    return std;
+  }
+  if (mat.isMeshStandardMaterial) return mat;
+  if (mat.isSpriteMaterial || mat.isShaderMaterial || mat.isPointsMaterial) return mat;
+  const map = mat.map || mat.emissiveMap || null;
+  if (map) {
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.needsUpdate = true;
+  }
+  return new THREE.MeshStandardMaterial({
+    map,
+    color: mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
+    roughness: 0.58,
+    metalness: 0.08,
+    transparent: !!mat.transparent,
+    opacity: mat.opacity == null ? 1 : mat.opacity,
+    alphaTest: mat.alphaTest || 0,
+    side: mat.side,
+    name: mat.name || '',
+  });
+}
+
+/* The packed files are roughness 0.85–0.92 and metalness 0, which reads as clay
+   once a real light hits them. Pull that into a soft sheen unless a map already
+   paints the answer, and leave an emissive backdrop alone. */
+function tunePbr(m) {
+  if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) return;
+  const emissive = m.emissive ? m.emissive.r + m.emissive.g + m.emissive.b : 0;
+  const color = m.color ? m.color.r + m.color.g + m.color.b : 1;
+  if (emissive > 1.2 && color < 0.2) {
+    /* The hall backdrop is a full-white emissive. Left alone it is a teal
+       ceiling and it blooms. Keep a dim trace of the painting. */
+    m.emissive.setRGB(0.10, 0.16, 0.12);
+    m.emissiveIntensity = 0.7;
+    m.envMapIntensity = 0.04;
+    return;
+  }
+  const name = (m.name || '').toLowerCase();
+  const metalName = /metal|iron|gold|blade|scythe|armor|plate|brazier|coin/.test(name);
+  if (!m.roughnessMap && m.roughness >= 0.8) m.roughness = metalName ? 0.38 : 0.82;
+  if (!m.metalnessMap && m.metalness < 0.04) m.metalness = metalName ? 0.55 : 0.04;
+  m.envMapIntensity = metalName ? 0.45 : 0.22;
+}
+
+function flagShadows(root, cast) {
+  if (!root) return;
+  const on = cast !== false;
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const name = (o.name || '') + ' ' + ((o.parent && o.parent.name) || '');
+    const backdrop = /backdrop/i.test(name);
+    o.castShadow = on && !backdrop;
+    o.receiveShadow = on;
+    o.frustumCulled = o.isSkinnedMesh ? false : o.frustumCulled;
+  });
+}
+
+function dropLight(light) {
+  if (light && light.parent) light.parent.remove(light);
+}
+
+/* Pillars and candle clusters behind the rest camera, and on a budget the
+   two braziers that sit beside the camera rather than the throne. */
+function hideFarDressing(env, budget) {
+  const hide = new Set(['Pillar_R3', 'Pillar_L3', 'Candles_5', 'Candles_6']);
+  if (budget) {
+    hide.add('Brazier_2');
+    hide.add('Brazier_3');
+    hide.add('Candles_4');
+    hide.add('Candles_7');
+  }
+  env.traverse(obj => {
+    if (obj.name && hide.has(obj.name)) obj.visible = false;
+  });
 }
 
 function prepSheet(tex, cols, rows, fps) {
@@ -1824,6 +2266,50 @@ function phoneLike() {
   return false;
 }
 
+function countLights(root, key) {
+  let n = 0;
+  if (!root) return 0;
+  root.traverse(o => {
+    if (!o[key] || o.intensity <= 0.02) return;
+    let p = o;
+    while (p) {
+      if (p.visible === false) return;
+      p = p.parent;
+    }
+    n++;
+  });
+  return n;
+}
+
+function softDiscTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grd.addColorStop(0.28, 'rgba(255,255,255,0.45)');
+  grd.addColorStop(0.62, 'rgba(255,255,255,0.12)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function glRendererName(gl) {
+  try {
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : '';
+  } catch (e) { return ''; }
+}
+
+function glIsSoftware(gl) {
+  return /swiftshader|llvmpipe|softpipe|software|subzero/i.test(glRendererName(gl));
+}
+
 function lowEnd() {
   try {
     if (navigator.deviceMemory && navigator.deviceMemory <= 4) return true;
@@ -1848,7 +2334,7 @@ function downscaleMaps(root, max) {
   root.traverse(o => {
     const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
     for (const m of mats) {
-      for (const key of ['map', 'emissiveMap']) {
+      for (const key of ['map', 'emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap']) {
         const tex = m[key];
         if (!tex || !tex.image || seen.has(tex)) continue;
         seen.add(tex);
@@ -2052,6 +2538,590 @@ function frameShot(aspect, hero) {
     pos: new THREE.Vector3(hx + side, camY, hz - back),
     look: new THREE.Vector3(0, lookY, 6.75),
   };
+}
+
+const _shotPos = new THREE.Vector3();
+const _shotLook = new THREE.Vector3();
+const _mixPos = new THREE.Vector3();
+const _mixLook = new THREE.Vector3();
+
+function smooth01(u) {
+  const x = Math.max(0, Math.min(1, u));
+  return x * x * (3 - 2 * x);
+}
+
+function anchorShot(arena, who, name, fallback) {
+  const actor = who === 'death' ? arena.deathActor : arena.heroActors[arena.activeHero];
+  if (!actor) return fallback.clone();
+  try { return arena._anchorWorld(actor, name); }
+  catch (e) { return fallback.clone(); }
+}
+
+const _restCam = new THREE.PerspectiveCamera(52, 1, 0.08, 90);
+const _restNdc = new THREE.Vector3();
+const _restLocal = new THREE.Vector3();
+let _restCache = null;
+
+function screenOf(cam, p) {
+  _restNdc.copy(p).project(cam);
+  return { x: (_restNdc.x + 1) * 0.5, y: (1 - _restNdc.y) * 0.5, z: _restNdc.z };
+}
+
+/* `lift` drops the top of a taller frustum so the look target sits in the
+   open area above the reel strip. subFov is the vertical field of that
+   window. The cropped frustum keeps the canvas aspect. */
+function applyViewLift(cam, lift, subFov, canvasAspect) {
+  const shown = Math.max(0.55, 1 - (lift || 0));
+  if (!lift || lift < 0.01) {
+    cam.clearViewOffset();
+    cam.aspect = canvasAspect;
+    cam.fov = subFov;
+    cam.updateProjectionMatrix();
+    return;
+  }
+  const tanSub = Math.tan(subFov * Math.PI / 360);
+  cam.fov = Math.atan(tanSub / shown) * 2 * 180 / Math.PI;
+  const W = 1000 * canvasAspect;
+  const H = 1000;
+  const fullH = H / shown;
+  cam.setViewOffset(W, fullH, 0, fullH - H, W, H);
+}
+
+function nodePos(obj) {
+  if (!obj) return null;
+  obj.updateWorldMatrix(true, false);
+  return obj.getWorldPosition(new THREE.Vector3());
+}
+
+/* Fractions of the viewport, top to bottom. The reel strip covers the bottom.
+   The forecast chip, when it is open, covers a little of the top. */
+function visibleCover() {
+  const H = (typeof window !== 'undefined' && window.innerHeight) || 1;
+  let bot = H;
+  for (const id of ['hud', 'deathHp', 'log', 'machine', 'gearBar']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.height < 4) continue;
+    if (r.top < bot) bot = r.top;
+  }
+  let top = 0;
+  const f = document.getElementById('forecast');
+  if (f) {
+    const r = f.getBoundingClientRect();
+    if (r.height > 8 && r.top < H * 0.35) top = r.bottom;
+  }
+  return {
+    top: Math.max(0, Math.min(0.22, top / H)),
+    bot: Math.max(0.5, Math.min(0.9, bot / H)),
+  };
+}
+
+function forecastStamp() {
+  const f = document.getElementById('forecast');
+  if (!f) return '0';
+  return (f.className || '') + ':' + ((f.textContent && f.textContent.length) || 0);
+}
+
+/* Layout is read until two passes agree, then frozen. A forecast open
+   changes the stamp and the cover is measured again, once. */
+function coverFor(arena) {
+  const stamp = forecastStamp();
+  const prev = arena._cover;
+  if (prev && arena._coverStable && arena._coverStamp === stamp) return prev;
+  const next = visibleCover();
+  const same = prev && arena._coverStamp === stamp
+    && Math.abs(prev.top - next.top) < 0.012
+    && Math.abs(prev.bot - next.bot) < 0.012;
+  arena._cover = next;
+  arena._coverStamp = stamp;
+  arena._coverStable = !!same;
+  return next;
+}
+
+function shotRest(arena) {
+  const aspect = Math.max(0.35, arena._canvasAspect || (arena.camera && arena.camera.aspect) || 1);
+  const heroId = arena.activeHero || 'knight';
+  const cover = coverFor(arena);
+  const qtop = Math.round(cover.top * 20) / 20;
+  const qbot = Math.round(cover.bot * 20) / 20;
+  const key = heroId + '@' + aspect.toFixed(2) + '@' + qtop + '@' + qbot;
+  const heroActor = arena.heroActors && arena.heroActors[heroId];
+  const ready = !!(arena.deathActor && arena.deathActor.model && heroActor && heroActor.model);
+  if (_restCache && _restCache.key === key && _restCache.ready) return _restCache.shot;
+  if (!ready || !arena._coverStable) return _restCache ? _restCache.shot : restFallback(aspect < 0.85);
+  const shot = solveRest(arena, aspect, { top: qtop, bot: qbot });
+  _restCache = { key, shot, ready: true };
+  return shot;
+}
+
+function restFallback(phone) {
+  const hz = 6.5;
+  const z = hz + (phone ? 2.75 : 2.6);
+  return {
+    pos: new THREE.Vector3(phone ? 1.05 : 0.7, phone ? 1.15 : 1.55, z),
+    look: new THREE.Vector3(0, phone ? 2.1 : 2.05, 0.35),
+    fov: phone ? 50 : 46,
+    lift: phone ? 0.06 : 0.12,
+  };
+}
+
+/* Pose the idle clip at its first frame, read world points, then put the
+   mixer back. The rest camera is solved from this once per hero, so the
+   combat sway cannot walk the body across Death. */
+function poseMixer(actor, time) {
+  const mixer = actor && actor.mixer;
+  if (!mixer) return null;
+  const saved = mixer.time;
+  mixer.setTime(time);
+  if (actor.lockXZ && actor.hips && actor.hipHome) {
+    actor.hips.position.x = actor.hipHome.x;
+    actor.hips.position.z = actor.hipHome.z;
+  }
+  if (actor.model) actor.model.updateWorldMatrix(true, true);
+  return saved;
+}
+
+function restoreMixer(actor, saved) {
+  if (saved == null || !actor || !actor.mixer) return;
+  actor.mixer.setTime(saved > 0.001 ? saved : 0.001);
+  if (actor.lockXZ && actor.hips && actor.hipHome) {
+    actor.hips.position.x = actor.hipHome.x;
+    actor.hips.position.z = actor.hipHome.z;
+  }
+  if (actor.model) actor.model.updateWorldMatrix(true, true);
+}
+
+function boneWorld(model, name) {
+  const n = model && model.getObjectByName(name);
+  return n ? nodePos(n) : null;
+}
+
+function throneTopPoint(arena) {
+  if (arena._throneTop) return arena._throneTop;
+  const throne = arena.packThrone;
+  let p = new THREE.Vector3(0, 4.15, 0.16);
+  if (throne) {
+    const box = new THREE.Box3().setFromObject(throne);
+    if (box.max.y > 1.5 && box.max.y < 8) {
+      p = new THREE.Vector3((box.min.x + box.max.x) * 0.5, box.max.y, (box.min.z + box.max.z) * 0.5);
+    }
+  }
+  arena._throneTop = p;
+  return p;
+}
+
+function idleMarks(arena) {
+  const id = arena.activeHero || 'knight';
+  if (arena._idleMarks && arena._idleMarks.id === id) return arena._idleMarks;
+  const death = arena.deathActor;
+  const hero = arena.heroActors && arena.heroActors[id];
+  if (!death || !death.model || !hero || !hero.model) return null;
+  const marks = { id };
+  const savedD = poseMixer(death, 0);
+  let head = boneWorld(death.model, 'head_end') || boneWorld(death.model, 'Head');
+  const eyes = nodePos(death.anchors && death.anchors.eyes);
+  if (!head) head = eyes ? eyes.clone() : new THREE.Vector3(0, 2.2, -0.2);
+  else head = head.clone();
+  if (eyes && eyes.y > head.y) head.y = eyes.y;
+  let feet = null;
+  for (const n of ['LeftFoot', 'RightFoot']) {
+    const p = boneWorld(death.model, n);
+    if (p && (!feet || p.y < feet.y)) feet = p;
+  }
+  if (!feet) feet = new THREE.Vector3(0.05, 0.72, 0.7);
+  const dSL = boneWorld(death.model, 'LeftShoulder') || head.clone();
+  const dSR = boneWorld(death.model, 'RightShoulder') || head.clone();
+  const dChest = nodePos(death.anchors && death.anchors.chest) || head.clone();
+  restoreMixer(death, savedD);
+  marks.deathHead = head;
+  marks.deathFeet = feet.clone();
+  marks.deathL = dSL.clone();
+  marks.deathR = dSR.clone();
+  marks.deathChest = dChest.clone();
+  const savedH = poseMixer(hero, 0);
+  let hHead = nodePos(hero.anchors && hero.anchors.head) || boneWorld(hero.model, 'Head') || boneWorld(hero.model, 'head_end');
+  if (!hHead) hHead = new THREE.Vector3(0, 1.7, 6.5);
+  const crown = boneWorld(hero.model, 'head_end');
+  if (crown && crown.y > hHead.y) hHead = hHead.clone(), hHead.y = crown.y;
+  else hHead = hHead.clone();
+  const hSL = boneWorld(hero.model, 'LeftShoulder') || hHead.clone();
+  const hSR = boneWorld(hero.model, 'RightShoulder') || hHead.clone();
+  restoreMixer(hero, savedH);
+  /* Torso plus a cape/robe pad. Hands and weapons stay out of the
+     silhouette, or the head is pushed off the left of the phone frame. */
+  const midX = (hSL.x + hSR.x) * 0.5;
+  const half = Math.max(Math.abs(hSL.x - midX), Math.abs(hSR.x - midX));
+  const bulk = half + 0.24;
+  const chestY = Math.min(hSL.y, hSR.y);
+  const capeZ = hHead.z + 0.14;
+  marks.heroHead = hHead;
+  marks.heroSL = hSL.clone();
+  marks.heroSR = hSR.clone();
+  marks.sideL = new THREE.Vector3(midX - bulk, chestY, capeZ);
+  marks.sideR = new THREE.Vector3(midX + bulk, chestY, capeZ);
+  marks.heroZ = hHead.z;
+  marks.throne = throneTopPoint(arena).clone();
+  arena._idleMarks = marks;
+  return marks;
+}
+
+function bandMiss(v, lo, hi) {
+  if (v < lo) return lo - v;
+  if (v > hi) return v - hi;
+  return 0;
+}
+
+/* Phone: 50° lens, 2.5–3 m behind the idle hero, low and looking up.
+   His head sits near the left quarter and his silhouette stays clear of
+   Death. Desktop: throne top inside the open area, Death about 40% of it. */
+function solveRest(arena, aspect, cover) {
+  const phone = aspect < 0.85;
+  const fov = phone ? 50 : 46;
+  arena._restSolves = (arena._restSolves || 0) + 1;
+  const marks = idleMarks(arena);
+  const round = v => Math.round(v * 1000) / 1000;
+  if (!marks) {
+    arena._restDebug = { fallback: true, fov, visTop: round(cover.top), visBot: round(cover.bot) };
+    return restFallback(phone);
+  }
+  const visH = Math.max(0.22, cover.bot - cover.top);
+  const cam = _restCam;
+  cam.near = 0.08;
+  cam.far = 90;
+  const hz = marks.heroZ;
+  const dists = phone ? [2.5, 2.7, 2.9] : [2.05, 2.4, 2.8, 3.3, 3.8];
+  const ys = phone ? [1.05, 1.25, 1.45] : [1.3, 1.6, 1.9];
+  const lys = phone ? [1.9, 2.25, 2.6] : [1.9, 2.25, 2.65];
+  const lzs = phone ? [0.35, 0.9, 1.4] : [0.15, 0.55];
+  const lifts = phone ? [0, 0.08, 0.14] : [0, 0.08, 0.16];
+  const xs = [];
+  if (phone) { for (let x = 0.2; x <= 1.15; x += 0.15) xs.push(Math.round(x * 100) / 100); }
+  else { for (let x = 0.3; x <= 1.2; x += 0.3) xs.push(Math.round(x * 100) / 100); }
+  const pts = [marks.deathHead, marks.deathFeet, marks.deathL, marks.deathR, marks.deathChest,
+    marks.heroHead, marks.heroSL, marks.heroSR, marks.sideL, marks.sideR, marks.throne];
+  let best = null;
+  function inFront(p) {
+    _restLocal.copy(p).applyMatrix4(cam.matrixWorldInverse);
+    return _restLocal.z < -0.35;
+  }
+  for (const dist of dists) for (const y of ys) for (const ly of lys) for (const lz of lzs)
+    for (const lift of lifts) for (const x of xs) {
+      if (ly < y + (phone ? 0.55 : 0.15)) continue;
+      const z = hz + dist;
+      cam.position.set(x, y, z);
+      cam.lookAt(0, ly, lz);
+      cam.updateMatrixWorld(true);
+      applyViewLift(cam, lift, fov, aspect);
+      if (!inFront(marks.deathHead) || !inFront(marks.heroHead) || !inFront(marks.throne)) continue;
+      const dh = screenOf(cam, marks.deathHead);
+      const df = screenOf(cam, marks.deathFeet);
+      const dl = screenOf(cam, marks.deathL);
+      const dr = screenOf(cam, marks.deathR);
+      const hh = screenOf(cam, marks.heroHead);
+      const sl = screenOf(cam, marks.heroSL);
+      const sr = screenOf(cam, marks.heroSR);
+      const sL = screenOf(cam, marks.sideL);
+      const sR = screenOf(cam, marks.sideR);
+      const th = screenOf(cam, marks.throne);
+      const span = df.y - dh.y;
+      if (span < 0.08) continue;
+      const shoulderY = Math.max(sl.y, sr.y);
+      const heroSpan = shoulderY - hh.y;
+      const heroRight = Math.max(hh.x, sl.x, sr.x, sL.x, sR.x);
+      const deathLeft = Math.min(dh.x, dl.x, dr.x);
+      const gap = deathLeft - heroRight;
+      const ofVis = span / visH;
+      let hard = 0;
+      if (phone) {
+        hard += bandMiss(hh.x, 0.25, 0.30) * 36;
+        if (hh.x < 0.12 || hh.x > 0.40) hard += 16;
+        if (gap < 0.04) hard += 28 + (0.04 - gap) * 40;
+        if (heroSpan > 0.30) hard += 30 + (heroSpan - 0.30) * 50;
+        if (th.y < cover.top + 0.01) hard += 36 + (cover.top + 0.01 - th.y) * 45;
+        hard += bandMiss(th.y, 0.06, 0.18) * 10;
+        if (dh.y < cover.top + 0.02) hard += 12;
+        if (df.y > cover.bot - 0.02) hard += 14 + (df.y - (cover.bot - 0.02)) * 18;
+        if (shoulderY > cover.bot - 0.01) hard += 14;
+        if (hh.y < 0.36) hard += (0.36 - hh.y) * 8;
+        if (hh.y > cover.bot - 0.12) hard += 6;
+        hard += Math.abs(dh.x - 0.50) * 4;
+      } else {
+        hard += Math.abs(ofVis - 0.40) * 26;
+        if (ofVis < 0.36 || ofVis > 0.46) hard += 8;
+        if (th.y < cover.top + 0.008) hard += 40 + (cover.top + 0.008 - th.y) * 55;
+        if (th.y > 0.15) hard += (th.y - 0.15) * 12;
+        if (dh.y < cover.top) hard += 10;
+        if (df.y > cover.bot - 0.02) hard += 12 + (df.y - (cover.bot - 0.02)) * 18;
+        if (shoulderY > cover.bot - 0.01) hard += 12;
+        if (hh.y > cover.bot - 0.04) hard += 8;
+        if (gap < 0.04) hard += 20 + (0.04 - gap) * 40;
+        hard += bandMiss(hh.x, 0.22, 0.42) * 3;
+        hard += Math.abs(dh.x - 0.50) * 2;
+      }
+      if (!best || hard < best.hard) {
+        best = {
+          hard, x, y, z, ly, lz, lift, span, ofVis, dh, df, hh, shoulderY, heroSpan,
+          throneY: th.y, heroRight, deathLeft, gap, dist,
+        };
+      }
+    }
+  if (!best) {
+    arena._restDebug = { fallback: true, fov, visTop: round(cover.top), visBot: round(cover.bot) };
+    return restFallback(phone);
+  }
+  arena._restDebug = {
+    fov,
+    lift: best.lift,
+    span: round(best.span),
+    ofVis: round(best.ofVis),
+    visTop: round(cover.top),
+    visBot: round(cover.bot),
+    headY: round(best.dh.y),
+    feetY: round(best.df.y),
+    heroY: round(best.hh.y),
+    heroX: round(best.hh.x),
+    heroSpan: round(best.heroSpan),
+    shoulderY: round(best.shoulderY),
+    throneY: round(best.throneY),
+    heroRight: round(best.heroRight),
+    deathLeft: round(best.deathLeft),
+    gap: round(best.gap),
+    dist: round(best.dist),
+    hard: round(best.hard),
+    cam: [round(best.x), round(best.y), round(best.z)],
+    look: [0, best.ly, best.lz],
+  };
+  return {
+    pos: new THREE.Vector3(best.x, best.y, best.z),
+    look: new THREE.Vector3(0, best.ly, best.lz),
+    fov,
+    lift: best.lift,
+  };
+}
+
+function shotIntro(arena) {
+  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.4, 1));
+  const pos = eyes.clone();
+  pos.y = Math.min(eyes.y - 1.15, 0.85);
+  pos.z += 3.6;
+  pos.x -= 0.35;
+  const look = eyes.clone();
+  look.y -= 0.15;
+  return { pos, look, fov: 40 };
+}
+
+function shotHero(arena) {
+  /* From behind the hero, looking up the hall. A face-on reverse looks out
+     the open end into empty fog. */
+  const hero = anchorShot(arena, 'hero', 'chest', new THREE.Vector3(0, 1.35, 6.5));
+  const death = anchorShot(arena, 'death', 'chest', new THREE.Vector3(0, 1.45, 0.4));
+  const pos = hero.clone();
+  pos.z += 1.35;
+  pos.y = Math.max(1.35, hero.y + 0.15);
+  pos.x += 0.4;
+  const look = death.clone();
+  return { pos, look, fov: 40 };
+}
+
+function shotFlinch(arena) {
+  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.4, 1));
+  const pos = eyes.clone();
+  pos.z += 1.45;
+  pos.y += 0.02;
+  pos.x += 0.32;
+  const look = eyes.clone();
+  return { pos, look, fov: 24 };
+}
+
+function shotBlast(arena) {
+  /* Side of the hero, looking across him toward the throne, so the hall
+     stays in frame instead of the open end of the room. */
+  const hero = anchorShot(arena, 'hero', 'chest', new THREE.Vector3(0, 1.4, 6.5));
+  const throne = anchorShot(arena, 'death', 'chest', new THREE.Vector3(0, 1.45, 0.4));
+  const pos = hero.clone();
+  pos.x += 2.35;
+  pos.y = 1.42;
+  pos.z += 0.85;
+  const look = throne.clone();
+  look.y += 0.05;
+  return { pos, look, fov: 46 };
+}
+
+function shotCast(arena) {
+  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.4, 1));
+  const hand = anchorShot(arena, 'death', 'cast', eyes);
+  const pos = hand.clone();
+  pos.z += 2.1;
+  pos.y += 0.15;
+  pos.x += 0.8;
+  return { pos, look: eyes.clone(), fov: 36 };
+}
+
+function shotPhase(arena) {
+  const rest = shotRest(arena);
+  const eyes = anchorShot(arena, 'death', 'eyes', rest.look);
+  const pos = rest.pos.clone().lerp(eyes, 0.28);
+  pos.y += 0.2;
+  return { pos, look: eyes, fov: Math.max(24, rest.fov - 6) };
+}
+
+function shotWin(arena) {
+  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.2, 1));
+  const pos = eyes.clone();
+  pos.z += 2.15;
+  pos.y += 0.45;
+  pos.x += 0.2;
+  const look = eyes.clone();
+  look.y -= 0.2;
+  return { pos, look, fov: 28 };
+}
+
+function shotLoss(arena) {
+  const hero = anchorShot(arena, 'hero', 'chest', new THREE.Vector3(0, 1.2, 6.5));
+  const throne = anchorShot(arena, 'death', 'chest', new THREE.Vector3(0, 1.4, 0.4));
+  const pos = hero.clone();
+  pos.z += 1.55;
+  pos.y += 0.85;
+  pos.x += 0.7;
+  const look = hero.clone().lerp(throne, 0.35);
+  look.y -= 0.15;
+  return { pos, look, fov: 40 };
+}
+
+const SHOTS = {
+  rest: shotRest, intro: shotIntro, hero: shotHero, flinch: shotFlinch,
+  blast: shotBlast, cast: shotCast, phase: shotPhase, win: shotWin, loss: shotLoss,
+};
+
+function mixShots(a, b, k) {
+  _mixPos.copy(a.pos).lerp(b.pos, k);
+  _mixLook.copy(a.look).lerp(b.look, k);
+  const la = a.lift || 0;
+  const lb = b.lift || 0;
+  return { pos: _mixPos, look: _mixLook, fov: a.fov + (b.fov - a.fov) * k, lift: la + (lb - la) * k };
+}
+
+/* Resting over-the-shoulder shot, plus short sequences on resolve, intro, and the finishers. */
+class CameraDirector {
+  constructor(arena) {
+    this.arena = arena;
+    this.mode = 'rest';
+    this.t = 0;
+    this.dur = 0;
+    this.pos = new THREE.Vector3(0, 2, 8);
+    this.look = new THREE.Vector3(0, 2, 0);
+    this.fov = 36;
+    this.lift = 0;
+    this._ready = false;
+  }
+
+  start(name) {
+    const motion = motionScale();
+    if (name === 'phase' && motion.reduced) return;
+    const rank = { rest: 0, phase: 1, intro: 2, hero: 3, flinch: 3, blast: 4, loss: 5, win: 6 };
+    const dur = { intro: 2.6, hero: 2.3, flinch: 1.8, blast: 2.5, phase: 1.6, win: 2.8, loss: 2.6, rest: 0 };
+    if (this.mode === name && name !== 'rest') return;
+    const next = rank[name] == null ? 0 : rank[name];
+    const cur = rank[this.mode] == null ? 0 : rank[this.mode];
+    if (name !== 'rest' && next < cur && this.t < this.dur) return;
+    this.mode = name;
+    this.t = 0;
+    this.dur = dur[name] || 0;
+  }
+
+  skip() {
+    if (this.mode === 'rest') return;
+    this.mode = 'rest';
+    this.t = 0;
+    this.dur = 0;
+    const s = shotRest(this.arena);
+    this.pos.copy(s.pos);
+    this.look.copy(s.look);
+    this.fov = s.fov;
+    this.lift = s.lift || 0;
+    this._ready = true;
+  }
+
+  apply(dt, motion, view) {
+    const soft = !!(motion && (motion.reduced || reduceFlashing()));
+    const fast = !!(motion && motion.fast);
+    if (this.mode !== 'rest') this.t += dt * (fast ? (1 / Math.max(0.45, motion.k || 1)) : 1);
+    const hold = this.mode === 'win' || this.mode === 'loss';
+    if (!hold && this.mode !== 'rest' && this.t >= this.dur) {
+      this.mode = 'rest';
+      this.t = 0;
+    }
+    if (hold && this.t > this.dur) this.t = this.dur;
+    const frame = this._frame(soft);
+    const cut = frame.cut && !soft;
+    const alpha = cut ? 1 : (1 - Math.exp(-dt * (frame.cut ? 10 : 6)));
+    if (!this._ready || cut) {
+      this.pos.copy(frame.pos);
+      this.look.copy(frame.look);
+      this.fov = frame.fov;
+      this.lift = frame.lift || 0;
+      this._ready = true;
+    } else {
+      this.pos.lerp(frame.pos, Math.min(1, alpha));
+      this.look.lerp(frame.look, Math.min(1, alpha));
+      this.fov += (frame.fov - this.fov) * Math.min(1, alpha);
+      const nextLift = frame.lift || 0;
+      this.lift += (nextLift - this.lift) * Math.min(1, alpha);
+    }
+    if (this.mode === 'rest' && !soft) this.pos.y += Math.sin(performance.now() / 1000 * 0.8) * 0.012;
+    const cam = this.arena.camera;
+    cam.position.copy(this.pos);
+    if (!soft && view && view.shake) {
+      const sh = Math.min(view.shake, 12) * 0.002 * (motion.shake || 1);
+      cam.position.x += (Math.random() - 0.5) * sh;
+      cam.position.y += (Math.random() - 0.5) * sh;
+    }
+    cam.lookAt(this.look);
+    const aspect = this.arena._canvasAspect || cam.aspect;
+    applyViewLift(cam, this.lift, this.fov, aspect);
+  }
+
+  _frame(soft) {
+    const t = this.t;
+    const dur = this.dur || 1;
+    const arena = this.arena;
+    const rest = () => SHOTS.rest(arena);
+    let shot;
+    let cut = false;
+    if (this.mode === 'intro') {
+      shot = mixShots(SHOTS.intro(arena), rest(), smooth01(t / dur));
+    } else if (this.mode === 'hero') {
+      if (t < 0.72) { shot = SHOTS.hero(arena); cut = t < 0.06; }
+      else if (t < 1.6) { shot = SHOTS.flinch(arena); cut = t < 0.8; }
+      else shot = mixShots(SHOTS.flinch(arena), rest(), smooth01((t - 1.6) / (dur - 1.6)));
+    } else if (this.mode === 'flinch') {
+      if (t < 1.05) { shot = SHOTS.flinch(arena); cut = t < 0.06; }
+      else shot = mixShots(SHOTS.flinch(arena), rest(), smooth01((t - 1.05) / (dur - 1.05)));
+    } else if (this.mode === 'blast') {
+      if (t < 0.32) { shot = SHOTS.cast(arena); cut = t < 0.06; }
+      else if (t < 1.7) { shot = SHOTS.blast(arena); cut = t < 0.4; }
+      else shot = mixShots(SHOTS.blast(arena), rest(), smooth01((t - 1.7) / (dur - 1.7)));
+    } else if (this.mode === 'phase') {
+      const k = Math.sin(Math.min(1, t / dur) * Math.PI);
+      shot = mixShots(rest(), SHOTS.phase(arena), k);
+    } else if (this.mode === 'win') {
+      shot = mixShots(rest(), SHOTS.win(arena), smooth01(Math.min(1, t / 1.2)));
+    } else if (this.mode === 'loss') {
+      shot = mixShots(rest(), SHOTS.loss(arena), smooth01(Math.min(1, t / 1.1)));
+    } else shot = rest();
+    _shotPos.copy(shot.pos);
+    _shotLook.copy(shot.look);
+    return { pos: _shotPos, look: _shotLook, fov: shot.fov, lift: shot.lift || 0, cut: cut && !soft };
+  }
+}
+
+function reduceFlashing() {
+  try {
+    const S = window.LD && window.LD.S;
+    if (S && (S.reduceFlash || S.reduceFlashing || S.noFlash || S.flashing === false)) return true;
+  } catch (e) { /* ignore */ }
+  return false;
 }
 
 function motionScale() {

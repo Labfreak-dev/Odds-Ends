@@ -20,14 +20,15 @@ export const DEATH3D_MANIFEST = {
   pack: {
     hero: [0, 0, 6.5],
     lungeSign: -1,
-    /* The throne uses `scale`. Death is larger than that, then shifted so
-       his hips stay in the seat. */
-    scale: 1.28,
-    deathScale: 1.18,
+    /* Authored sizes from the asset package. Death, the throne and the hall
+       keep that relationship; neither is scaled against the others. */
+    scale: 1,
+    deathScale: 1,
+    /* 24 mm on a 36 mm sensor: 45.75° vertical at 16:9. Marker_Camera. */
     camera: {
-      fov: 36,
-      pos: [0.9, 1.85, 9.6],
-      look: [0, 3.0, 0.4],
+      fov: 45.75,
+      pos: [0.7, 2.45, 11.2],
+      look: [-0.1, 2.75, 0.5],
     },
   },
   assets: {
@@ -39,7 +40,7 @@ export const DEATH3D_MANIFEST = {
       wind: true,
       rim: 0.2,
       sockets: { eyes: 'Socket_Eyes', cast: 'Socket_RightHand', chest: 'Socket_Chest', off: 'Socket_LeftHand' },
-      clips: { idle: 'Seated_Idle', cast: 'Cast_Windup', attack: 'Attack_Sweep', hit: 'Hit_Flinch', defeat: 'Defeat_Slump' },
+      clips: { idle: 'Seated_Idle', cast: 'Cast_Windup', attack: 'Attack_Scythe', hit: 'Hit_Flinch', defeat: 'Defeat_Slump' },
     },
     throne: {
       url: 'models/throne.glb',
@@ -60,6 +61,9 @@ export const DEATH3D_MANIFEST = {
     hero_brute: heroSlot('models/hero_brute.glb', false),
     hero_duelist: heroSlot('models/hero_duelist.glb', false),
     hero_hexpriest: heroSlot('models/hero_hexpriest.glb', false),
+    /* The fight uses the scythe already parented to bone Scythe_Grip.
+       url stays empty. */
+    scythe: { url: '', scale: 0 },
     vfx: {
       soul: 'textures/vfx/soul_orb.webp',
       orbLoop: 'textures/vfx/soul_orb_loop_4x4.webp',

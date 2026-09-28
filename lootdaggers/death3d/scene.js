@@ -9,6 +9,9 @@ import { makeTextures, buildDeath, buildHeroes, buildThrone, buildRoom } from '.
 const UP = new THREE.Vector3(0, 1, 0);
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
+/* One clock for robe wind, flame sheets, and the dissolve. */
+const SHARED_TIME = { value: 0 };
+const NO_DISSOLVE = { value: 0 };
 
 export async function boot(canvas) {
   const api = {
@@ -66,7 +69,11 @@ class Arena {
     this.dodgeT = 0;
     this.lastCue = '';
     this.glb = 0;
+    this.pack = false;
+    this.stand = null;
+    this.heroPending = {};
     this.activeHero = 'knight';
+    this.uTime = SHARED_TIME;
   }
 
   init() {
@@ -185,12 +192,18 @@ class Arena {
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
-    const framed = frameShot(w / h, this.manifest.layout.hero);
+    const framed = this.pack ? framePack(w / h) : frameShot(w / h, this.manifest.layout.hero);
     this.camera.fov = framed.fov;
+    this.camera.far = this.pack ? 90 : 40;
     this.baseCam.copy(framed.pos);
     this.baseLook.copy(framed.look);
-    this.pushCam.copy(framed.pos).add(new THREE.Vector3(0.06, 0.4, 0.95));
-    this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.85, 0));
+    if (this.pack) {
+      this.pushCam.copy(framed.pos).add(new THREE.Vector3(0, 0.2, -1.05));
+      this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.35, -0.35));
+    } else {
+      this.pushCam.copy(framed.pos).add(new THREE.Vector3(0.06, 0.4, 0.95));
+      this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.85, 0));
+    }
     this.camera.updateProjectionMatrix();
     const pts = this.vfx && this.vfx.pool && this.vfx.pool.mat.uniforms;
     if (pts && pts.uDpr) {
@@ -223,13 +236,12 @@ class Arena {
     if (!death) return;
     if (death.id !== this.fightId) this._newFight(death);
     const heroId = this.heroes[run.hero] ? run.hero : 'knight';
-    if (heroId !== this.activeHero) {
-      this.heroes[this.activeHero].group.visible = false;
-      this.activeHero = heroId;
-      if (!this.heroActors[heroId].model) this.heroes[heroId].group.visible = true;
+    if (heroId !== this.activeHero || (this.pack && !this.heroActors[heroId].model && !this.heroPending[heroId])) {
+      this._showHero(heroId);
     }
     const motion = motionScale();
     const t = performance.now() / 1000;
+    this.uTime.value = t;
     const hurt = view.hurt || 0;
     const lunge = view.lunge || 0;
     const flash = death.flash || 0;
@@ -285,6 +297,13 @@ class Arena {
 
     this.deathActor.update(dt);
     this.heroActors[this.activeHero].update(dt);
+    if (this.tex.fire && this.tex.fire.userData._sheet) advanceSheet(this.tex.fire, dt);
+    if (this.flameSprites) {
+      for (const sp of this.flameSprites) {
+        const base = sp.userData.base || 0.4;
+        sp.scale.setScalar(base * (0.92 + Math.sin(t * 13 + sp.position.x * 4) * 0.08));
+      }
+    }
     this._pose(dt, t, death, lunge, hurt, motion);
     this._lights(t, motion);
     this._camera(dt, view, motion);
@@ -320,9 +339,20 @@ class Arena {
     this.lastCue = c.kind || '';
     const big = (c.phase || this.phase) >= 3 || (c.v || 0) >= 10;
     if (c.kind === 'atk') {
-      this.deathActor.play(big ? 'attack' : 'cast');
-      if (big) this.vfx.playBeam(this, !hurtRose, motion);
-      else this.vfx.playBlast(this, !hurtRose, motion);
+      const fire = () => {
+        if (big) this.vfx.playBeam(this, !hurtRose, motion);
+        else this.vfx.playBlast(this, !hurtRose, motion);
+      };
+      if (this.deathActor.mixer) {
+        /* Windup, then the right-hand sweep that releases the shot. */
+        this.deathActor.play('cast', {
+          timeScale: 3,
+          then: { name: 'attack', timeScale: 1.7, fire },
+        });
+      } else {
+        this.deathActor.play(big ? 'attack' : 'cast');
+        fire();
+      }
     } else if (c.kind === 'drain') {
       this.deathActor.play('cast');
       this.vfx.drain(this, motion);
@@ -363,11 +393,12 @@ class Arena {
   _pose(dt, t, death, lunge, hurt, motion) {
     const amp = motion.reduced ? 0.35 : 1;
     const hero = this.heroActors[this.activeHero];
-    const base = this.manifest.layout.hero;
+    const base = this.stand ? this.stand.hero : this.manifest.layout.hero;
+    const sign = this.stand ? this.stand.lungeSign : 1;
     /* Front-loaded: full reach while lunge is still high, then it snaps back. */
     const snap = Math.min(1, lunge * 1.6);
-    const reach = hero.driving === 'clip' ? 0.85 : 2.8;
-    const lungeZ = reach * Math.pow(snap, 0.38);
+    const reach = hero.driving === 'clip' ? 1.15 : 2.6;
+    const lungeZ = sign * reach * Math.pow(snap, 0.38);
     this.heroAnchor.position.set(base[0] + Math.sin(this.dodgeT * 9) * this.dodgeT * 0.55, base[1] - this.fallT * 0.55, base[2] + lungeZ);
     if (hero.group.visible) poseHero(hero, t, {
       attack: this.attackT < 0 ? 0 : this.attackT,
@@ -386,16 +417,26 @@ class Arena {
     if (this.won) {
       this.crumbleT += dt;
       const k = Math.min(1, this.crumbleT / 2.4);
-      const mats = d.model ? collectMats(d.model) : (d.mats || []);
-      for (const m of mats) {
-        if (m.userData._op0 == null) { m.userData._op0 = m.opacity == null ? 1 : m.opacity; m.userData._tr0 = !!m.transparent; }
-        m.transparent = true;
-        m.opacity = (1 - k) * m.userData._op0;
+      /* A real mesh dissolves. The placeholder has no shader, so it fades. */
+      if (!d.dissolve) {
+        const mats = d.model ? collectMats(d.model) : (d.mats || []);
+        for (const m of mats) {
+          if (m.userData._op0 == null) { m.userData._op0 = m.opacity == null ? 1 : m.opacity; m.userData._tr0 = !!m.transparent; }
+          m.transparent = true;
+          m.opacity = (1 - k) * m.userData._op0;
+        }
       }
       if (d.group.visible && d.bones.head) d.bones.head.position.y += 0.004 * k;
       if (Math.random() < 0.55) this.vfx.puff(this._anchorWorld(d, 'chest'), 'soul', 2);
     }
     if (this.downed) this.fallT = Math.min(1, this.fallT + dt * 0.65);
+    /* Attack_Sweep and Defeat_Slump sink the robe into the dais. Lift him clear. */
+    if (this.pack && d.model) {
+      const logical = d.clipLogical;
+      const lift = (logical === 'attack' || logical === 'defeat') ? 0.13 : 0;
+      d.model.position.y += (lift - d.model.position.y) * Math.min(1, dt * 8);
+    }
+    if (d.dissolve) d.dissolve.value = this.won ? Math.min(1, this.crumbleT / 2.2) : 0;
   }
 
   _lights(t, motion) {
@@ -544,59 +585,155 @@ class Arena {
 
   async _loadAssets() {
     const man = this.manifest;
-    const jobs = [];
+    const runHero = window.LD && window.LD.run && window.LD.run.hero;
+    if (runHero && this.heroes[runHero]) this.activeHero = runHero;
     const wantGltf = Object.entries(man.assets).some(([k, slot]) => k !== 'vfx' && slot && slot.url);
     if (wantGltf) {
       const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
       const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
       const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');
+      if (MeshoptDecoder.ready) await MeshoptDecoder.ready;
       this.gltfLoader = new GLTFLoader();
       this.draco = new DRACOLoader();
+      this.draco.setDecoderPath('vendor/three/addons/libs/draco/gltf/');
       this.gltfLoader.setDRACOLoader(this.draco);
       this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
     }
-    const loadGltf = async (slot, onLoad) => {
-      if (!slot || !slot.url || !this.gltfLoader) return;
-      try {
-        const gltf = await this.gltfLoader.loadAsync(resolveUrl(slot.url));
-        onLoad(gltf, slot);
-        this.glb++;
-      } catch (err) {
-        console.warn('Death 3D asset failed, keeping the placeholder:', slot.url, err);
-      }
-    };
-    jobs.push(loadGltf(man.assets.throne, (gltf, slot) => {
-      const model = gltf.scene;
-      fitModel(model, slot);
-      this.throneAnchor.add(model);
-      this.throne.group.visible = false;
-    }));
-    jobs.push(loadGltf(man.assets.death, (gltf, slot) => {
-      this.deathActor.bindGltf(gltf, slot, this.deathAnchor);
-    }));
-    jobs.push(loadGltf(man.assets.environment, (gltf, slot) => {
-      const model = gltf.scene;
-      fitModel(model, slot);
-      this.scene.add(model);
-      if ((slot.hide || []).includes('room')) this.room.group.visible = false;
-      if ((slot.hide || []).includes('throne')) this.throne.group.visible = false;
-    }));
-    for (const id of Object.keys(this.heroes)) {
-      jobs.push(loadGltf(man.assets['hero_' + id], (gltf, slot) => {
-        this.heroActors[id].bindGltf(gltf, slot, this.heroAnchor);
-        if (id === this.activeHero) this.heroes[id].group.visible = false;
-      }));
-    }
     const vfx = man.assets.vfx || {};
-    for (const key of Object.keys(vfx)) {
-      if (!vfx[key]) continue;
-      jobs.push(new THREE.TextureLoader().loadAsync(resolveUrl(vfx[key])).then(tex => {
+    const texJobs = Object.keys(vfx).map(key => {
+      if (!vfx[key]) return null;
+      return new THREE.TextureLoader().loadAsync(resolveUrl(vfx[key])).then(tex => {
         tex.colorSpace = THREE.SRGBColorSpace;
         this.tex[key] = tex;
         this.vfx.setMap(key, tex);
-      }).catch(err => console.warn('Death 3D texture failed, keeping procedural:', vfx[key], err)));
+      }).catch(err => console.warn('Death 3D texture failed, keeping procedural:', vfx[key], err));
+    });
+    const [envG, throneG, deathG] = await Promise.all([
+      this._fetchGltf(man.assets.environment),
+      this._fetchGltf(man.assets.throne),
+      this._fetchGltf(man.assets.death),
+      ...texJobs,
+    ]);
+    if (envG && throneG && deathG) this._engagePack(envG, throneG, deathG);
+    else console.warn('Death 3D kept the placeholder room; a GLB failed to load.');
+    await this._loadOneHero(this.activeHero);
+    this._showHero(this.activeHero);
+  }
+
+  async _fetchGltf(slot) {
+    if (!slot || !slot.url || !this.gltfLoader) return null;
+    try {
+      const gltf = await this.gltfLoader.loadAsync(resolveUrl(slot.url));
+      this.glb++;
+      return gltf;
+    } catch (err) {
+      console.warn('Death 3D asset failed, keeping the placeholder:', slot.url, err);
+      return null;
     }
-    await Promise.all(jobs);
+  }
+
+  _engagePack(envG, throneG, deathG) {
+    this.pack = true;
+    this.packRoot = new THREE.Group();
+    this.scene.add(this.packRoot);
+    const env = envG.scene;
+    prepMeshes(env, { rim: 0.12 });
+    this.packRoot.add(env);
+    const throne = throneG.scene;
+    prepMeshes(throne, { rim: 0.28 });
+    this.packRoot.add(throne);
+    if (want1k()) downscaleMaps(deathG.scene, 1024);
+    /* Baked albedo. Film tone-mapping would crush it a second time. */
+    this.renderer.toneMapping = THREE.NoToneMapping;
+    this.renderer.toneMappingExposure = 1;
+    this.room.group.visible = false;
+    this.throne.group.visible = false;
+    this.deathActor.bindGltf(deathG, this.manifest.assets.death, this.packRoot);
+    this._eyeGlow(this.deathActor.model);
+    const marker = env.getObjectByName('Marker_Hero');
+    const p = new THREE.Vector3(0, 0, 6.5);
+    if (marker) marker.getWorldPosition(p);
+    this.stand = { hero: [p.x, p.y, p.z], lungeSign: -1 };
+    this.heroAnchor.position.set(p.x, p.y, p.z);
+    this.heroAnchor.rotation.y = Math.PI;
+    this.scene.fog = new THREE.FogExp2(0x141c18, 0.012);
+    this.scene.background = new THREE.Color(0x070a09);
+    this._flames(env);
+    this.resize();
+  }
+
+  _showHero(id) {
+    if (!this.heroes[id]) id = 'knight';
+    this.activeHero = id;
+    for (const k of Object.keys(this.heroes)) {
+      const actor = this.heroActors[k];
+      const on = k === id;
+      if (actor.model) actor.model.visible = on;
+      this.heroes[k].group.visible = on && !actor.model;
+    }
+    if (this.pack && !this.heroActors[id].model && !this.heroPending[id]) this._loadOneHero(id);
+  }
+
+  async _loadOneHero(id) {
+    if (!this.heroes[id] || this.heroActors[id].model || this.heroPending[id]) return;
+    const slot = this.manifest.assets['hero_' + id];
+    if (!slot || !slot.url) return;
+    this.heroPending[id] = true;
+    const gltf = await this._fetchGltf(slot);
+    this.heroPending[id] = false;
+    if (!gltf) return;
+    if (want1k()) downscaleMaps(gltf.scene, 1024);
+    this.heroActors[id].bindGltf(gltf, slot, this.heroAnchor);
+    if (id === this.activeHero) this.heroes[id].group.visible = false;
+    else if (this.heroActors[id].model) this.heroActors[id].model.visible = false;
+  }
+
+  _eyeGlow(model) {
+    const socket = model && model.getObjectByName('Socket_Eyes');
+    if (!socket) return;
+    const map = this.tex.soul;
+    [-1, 1].forEach(s => {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map, color: 0x8effd8, blending: THREE.AdditiveBlending, transparent: true,
+        depthWrite: false, toneMapped: false, opacity: 0.9,
+      }));
+      sp.scale.set(0.16, 0.1, 1);
+      sp.position.set(s * 0.055, 0.02, 0.05);
+      socket.add(sp);
+    });
+  }
+
+  _flames(env) {
+    const fire = this.tex.fire;
+    if (fire) prepSheet(fire, 4, 4, 20);
+    this.flameSprites = [];
+    env.traverse(obj => {
+      if (!obj.name) return;
+      const brazier = obj.name.indexOf('Socket_Flame_Brazier') === 0;
+      const candle = obj.name.indexOf('Socket_Candles') === 0;
+      if (!brazier && !candle) return;
+      obj.updateWorldMatrix(true, false);
+      const at = new THREE.Vector3();
+      obj.getWorldPosition(at);
+      const nearCam = at.z > 7.5;
+      if (fire) {
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: fire, blending: THREE.AdditiveBlending, transparent: true,
+          depthWrite: false, toneMapped: false, color: 0xffb060,
+        }));
+        const base = brazier ? (nearCam ? 0.26 : 0.58) : 0.2;
+        sp.scale.setScalar(base);
+        sp.userData.base = base;
+        sp.position.y = brazier ? 0.08 : 0.02;
+        obj.add(sp);
+        this.flameSprites.push(sp);
+      }
+      if (brazier && !nearCam) {
+        const light = new THREE.PointLight(0xff8a3a, 4.5, 5.5, 2);
+        light.position.y = 0.05;
+        obj.add(light);
+      }
+    });
   }
 
   status() {
@@ -614,6 +751,13 @@ class Arena {
       lastCue: this.lastCue,
       mode: this.glb ? 'glb' : 'placeholder',
       shown: !!this.api.shown,
+      pack: !!this.pack,
+      deathGlb: !!this.deathActor.model,
+      heroGlb: !!(this.heroActors[this.activeHero] && this.heroActors[this.activeHero].model),
+      deathClip: this.deathActor.clipLogical || '',
+      heroClip: (this.heroActors[this.activeHero] && this.heroActors[this.activeHero].clipLogical) || '',
+      deathDrive: this.deathActor.driving,
+      heroDrive: this.heroActors[this.activeHero] ? this.heroActors[this.activeHero].driving : '',
     };
   }
 }
@@ -640,19 +784,62 @@ class Actor {
 
   bindGltf(gltf, cfg, anchor) {
     const model = gltf.scene;
-    fitModel(model, cfg);
+    cfg = cfg || {};
+    if (cfg.fit === false) {
+      model.position.set(0, 0, 0);
+      model.rotation.set(0, 0, 0);
+      model.scale.set(1, 1, 1);
+      if (cfg.facing) model.rotation.y = cfg.facing;
+    } else fitModel(model, cfg);
+    const dissolve = { value: 0 };
+    prepMeshes(model, { wind: !!cfg.wind, rim: cfg.rim || 0, dissolve });
+    this.dissolve = dissolve;
     anchor.add(model);
     this.model = model;
     this.group.visible = false;
+    const sockets = cfg.sockets || {};
+    const names = {
+      eyes: sockets.eyes || 'Socket_Eyes',
+      cast: sockets.cast || 'Socket_RightHand',
+      chest: sockets.chest || 'Socket_Chest',
+      back: sockets.back || 'Socket_Chest',
+      head: sockets.head || 'Socket_Head',
+      off: sockets.off || 'Socket_LeftHand',
+    };
+    this.anchors = Object.assign({}, this.anchors);
+    for (const key of Object.keys(names)) {
+      const node = model.getObjectByName(names[key]);
+      if (node) this.anchors[key] = node;
+    }
     this.mixer = new THREE.AnimationMixer(model);
     this.clips = gltf.animations || [];
     this.clipMap = cfg.clips || {};
+    this.queue = null;
+    this.lockXZ = false;
+    this.hips = null;
+    this.hipHome = null;
     this.mixer.addEventListener('finished', (e) => {
       if (e.action !== this.action) return;
+      if (this.queue) {
+        const q = this.queue;
+        this.queue = null;
+        this.play(q.name, q);
+        if (q.fire) q.fire();
+        return;
+      }
       if (this.clipLogical === 'idle' || this.clipLogical === 'defeat' || this.clipLogical === 'death') return;
       this.play('idle');
     });
     this.play('idle');
+    if (cfg.lockRoot) {
+      this.mixer.update(0);
+      const hips = model.getObjectByName('Hips') || model.getObjectByName('mixamorigHips');
+      if (hips) {
+        this.hips = hips;
+        this.hipHome = { x: hips.position.x, z: hips.position.z };
+        this.lockXZ = true;
+      }
+    }
   }
 
   findClip(name) {
@@ -669,20 +856,36 @@ class Actor {
       || null;
   }
 
-  play(name) {
+  play(name, opts) {
+    opts = opts || {};
     this.proc = name;
     this.procT = 0;
+    this.queue = opts.then || null;
     if (!this.mixer) { this.driving = 'proc'; return false; }
     const clip = this.findClip(name);
-    if (!clip) { this.driving = 'proc'; return false; }
+    if (!clip) {
+      this.driving = 'proc';
+      const q = this.queue;
+      this.queue = null;
+      if (q && q.fire) q.fire();
+      else if (opts.fire) opts.fire();
+      return false;
+    }
     const next = this.mixer.clipAction(clip);
-    if (this.action && this.action !== next) this.action.fadeOut(0.12);
-    next.reset().setEffectiveWeight(1).fadeIn(0.1);
+    if (this.action && this.action !== next) this.action.fadeOut(0.08);
+    next.reset().setEffectiveWeight(1).fadeIn(0.06);
     if (name === 'idle') next.setLoop(THREE.LoopRepeat, Infinity);
     else {
       next.setLoop(THREE.LoopOnce, 1);
       next.clampWhenFinished = true;
     }
+    let scale = opts.timeScale;
+    if (scale == null) {
+      if (name === 'attack' || name === 'heavy') scale = Math.min(8, Math.max(1, clip.duration / 0.85));
+      else if (name === 'hit' || name === 'dodge') scale = Math.min(4, Math.max(1, clip.duration / 0.5));
+      else scale = 1;
+    }
+    next.setEffectiveTimeScale(scale);
     next.play();
     this.action = next;
     this.clipLogical = name;
@@ -693,6 +896,10 @@ class Actor {
   update(dt) {
     this.procT += dt;
     if (this.mixer) this.mixer.update(dt);
+    if (this.lockXZ && this.hips && this.hipHome) {
+      this.hips.position.x = this.hipHome.x;
+      this.hips.position.z = this.hipHome.z;
+    }
   }
 }
 
@@ -755,7 +962,14 @@ class VFX {
   }
 
   setMap(key, tex) {
+    if (!tex) return;
     if (key === 'soul') this.pool.mat.uniforms.uMap.value = tex;
+    if (key === 'beam' && this.beam) {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      this.beam.mat.uniforms.uMap.value = tex;
+    }
     this.tex[key] = tex;
   }
 
@@ -766,6 +980,8 @@ class VFX {
     this.sigil.group.visible = false;
     for (const r of this.rings) r.visible = false;
     for (const f of this.flashes) f.visible = false;
+    for (const g of this.riders || []) g.visible = false;
+    this.riders = [];
   }
 
   _sprite(map, scale, color, opacity) {
@@ -778,15 +994,27 @@ class VFX {
   }
 
   playBlast(arena, whiff, motion) {
-    const map = this.tex.orb || this.tex.soul;
+    let coreMap = this.tex.orb || this.tex.soul;
+    let sheet = null;
+    if (this.tex.orbLoop) {
+      coreMap = this.tex.orbLoop.clone();
+      coreMap.colorSpace = THREE.SRGBColorSpace;
+      coreMap.needsUpdate = true;
+      prepSheet(coreMap, 4, 4, 16);
+      sheet = coreMap;
+    }
+    const haloMap = this.tex.orb || this.tex.flare || coreMap;
     const group = new THREE.Group();
-    const halo = this._sprite(map, 1.55, 0x4ee0c4, 0.7);
-    const core = this._sprite(map, 0.62, 0x8ef6d4, 0.95);
-    const wisps = [0, 1, 2].map(i => this._sprite(this.tex.wisp || map, 0.55 - i * 0.1, 0x7dffe0, 0.62 - i * 0.1));
+    const halo = this._sprite(haloMap, 1.7, 0x4ee0c4, 0.5);
+    const core = this._sprite(coreMap, 0.95, 0xffffff, 0.95);
+    const wisps = [0, 1, 2].map(i => {
+      const wm = sheetCell(this.tex.wisp, 2, 2, i) || haloMap;
+      return this._sprite(wm, 0.52 - i * 0.08, 0xffffff, 0.62 - i * 0.12);
+    });
     group.add(halo, core, ...wisps);
     this.scene.add(group);
     this.blasts.push({
-      group, halo, core, wisps, prev: null,
+      group, halo, core, wisps, sheet, prev: null,
       t: 0, charge: 0.1 * motion.k, fly: 0.44 * motion.k, whiff, kind: 'blast',
     });
   }
@@ -801,10 +1029,30 @@ class VFX {
 
   drain(arena, motion) {
     this._stream(arena, 'drain', 0.95 * motion.k);
+    this._riders('ghost', motion);
   }
 
   heal(arena, motion) {
     this._stream(arena, 'heal', 1.05 * motion.k);
+    this._riders('wisp', motion);
+  }
+
+  _riders(kind, motion) {
+    const src = kind === 'ghost' ? this.tex.ghost : this.tex.wisp;
+    if (!src) return;
+    this.riders = this.riders || [];
+    for (let i = 0; i < 4; i++) {
+      const map = sheetCell(src, 2, 2, i);
+      if (!map) continue;
+      const sp = this._sprite(map, kind === 'ghost' ? 0.42 : 0.36, 0xffffff, 0.85);
+      sp.userData.kind = kind;
+      sp.userData.i = i;
+      sp.userData.t = -i * 0.07;
+      sp.userData.dur = (kind === 'ghost' ? 0.95 : 1.05) * motion.k;
+      sp.visible = false;
+      this.scene.add(sp);
+      this.riders.push(sp);
+    }
   }
 
   playSigil(kind, arena, motion) {
@@ -881,6 +1129,7 @@ class VFX {
     }
     for (const b of this.blasts) {
       b.t += dt;
+      if (b.sheet) advanceSheet(b.sheet, dt);
       const charge = b.charge, fly = b.fly;
       const target = hero.clone();
       if (b.whiff) target.x += 0.38;
@@ -916,6 +1165,7 @@ class VFX {
       } else {
         this._impact(target, b.whiff, arena.camera.position);
         b.group.traverse(o => { if (o.material) o.material.dispose(); });
+        if (b.sheet) b.sheet.dispose();
         this.scene.remove(b.group);
         b.dead = true;
       }
@@ -930,7 +1180,9 @@ class VFX {
       if (this.beam.whiff) to.x += 0.32;
       aimY(this.beam.group, from, to);
       this.beam.mat.uniforms.uTime.value = t;
+      this.beam.mat.uniforms.uScroll.value = -t * 1.8;
       this.beam.mat.uniforms.uHot.value = p < 0.75 ? 1 : Math.max(0, 1 - (p - 0.75) / 0.25);
+      if (this.beam.coreMat) this.beam.coreMat.opacity = 0.42 * this.beam.mat.uniforms.uHot.value;
       if (p < 0.85 && Math.random() < 0.18) this.puff(from.clone().lerp(to, Math.random()), 'soul', 1);
       if (p >= 1) {
         this.beam.group.visible = false;
@@ -974,6 +1226,30 @@ class VFX {
     }
     this.streams = (this.streams || []).filter(s => s.t < s.dur);
 
+    const chest = arena._anchorWorld(arena.deathActor, 'chest');
+    for (const g of this.riders || []) {
+      g.userData.t += dt;
+      if (g.userData.t < 0) continue;
+      const p = g.userData.t / g.userData.dur;
+      if (p >= 1) {
+        g.visible = false;
+        g.userData.dead = true;
+        if (g.material && g.material.map) g.material.map.dispose();
+        if (g.material) g.material.dispose();
+        this.scene.remove(g);
+        continue;
+      }
+      g.visible = true;
+      const from = g.userData.kind === 'heal' ? chest : hero;
+      const to = g.userData.kind === 'heal' ? hero : chest;
+      g.position.lerpVectors(from, to, p);
+      const spin = g.userData.kind === 'heal' ? (1 - p) * 0.7 : 0.22;
+      g.position.x += Math.sin(p * 7 + g.userData.i) * spin;
+      g.position.y += Math.sin(p * Math.PI) * 0.32 + (g.userData.kind === 'heal' ? Math.cos(p * 8 + g.userData.i) * spin : 0);
+      g.material.opacity = p < 0.75 ? 0.85 : (1 - p) / 0.25 * 0.85;
+    }
+    this.riders = (this.riders || []).filter(g => !g.userData.dead);
+
     for (const r of this.rings) {
       if (!r.visible) continue;
       r.userData.t += dt;
@@ -985,6 +1261,18 @@ class VFX {
     for (const f of this.flashes) {
       if (!f.visible) continue;
       f.userData.t += dt;
+      if (f.userData.sheet) {
+        const frame = advanceSheet(f.userData.sheet, dt);
+        const sh = f.userData.sheet.userData._sheet;
+        const done = sh && frame >= sh.count - 1 && f.userData.t >= (sh.count / sh.fps) - 0.02;
+        if (done) {
+          f.visible = false;
+          if (f.material.map) f.material.map.dispose();
+          f.material.dispose();
+          this.scene.remove(f);
+        }
+        continue;
+      }
       const p = f.userData.t / f.userData.dur;
       f.scale.setScalar(0.4 + p * 1.3);
       f.material.opacity = (1 - p) * 0.9;
@@ -1007,12 +1295,26 @@ class VFX {
     ring.userData.dur = 0.42;
     this.scene.add(ring);
     this.rings.push(ring);
-    const flash = this._sprite(this.tex.orb || this.tex.soul, 0.45, 0xe8fff8, 0.95);
-    flash.position.copy(pos);
-    flash.userData.t = 0;
-    flash.userData.dur = 0.26;
-    this.scene.add(flash);
-    this.flashes.push(flash);
+    if (this.tex.impact) {
+      const map = this.tex.impact.clone();
+      map.colorSpace = THREE.SRGBColorSpace;
+      map.needsUpdate = true;
+      prepSheet(map, 4, 4, 24);
+      map.userData._sheet.loop = false;
+      const burst = this._sprite(map, whiff ? 1.15 : 1.7, 0xffffff, 1);
+      burst.position.copy(pos);
+      burst.userData.t = 0;
+      burst.userData.sheet = map;
+      this.scene.add(burst);
+      this.flashes.push(burst);
+    } else {
+      const flash = this._sprite(this.tex.orb || this.tex.soul, 0.45, 0xe8fff8, 0.95);
+      flash.position.copy(pos);
+      flash.userData.t = 0;
+      flash.userData.dur = 0.26;
+      this.scene.add(flash);
+      this.flashes.push(flash);
+    }
     for (let i = 0; i < 18; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 1.4 + Math.random() * 2.2;
@@ -1151,13 +1453,18 @@ function makePool(n, tex) {
 }
 
 function makeBeam() {
+  const data = new Uint8Array([255, 255, 255, 255]);
+  const blank = new THREE.DataTexture(data, 1, 1);
+  blank.needsUpdate = true;
+  blank.wrapS = THREE.RepeatWrapping;
+  blank.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     toneMapped: false,
     side: THREE.DoubleSide,
-    uniforms: { uTime: { value: 0 }, uHot: { value: 1 } },
+    uniforms: { uTime: { value: 0 }, uHot: { value: 1 }, uScroll: { value: 0 }, uMap: { value: blank } },
     vertexShader: `
       varying vec2 vUv;
       void main() {
@@ -1168,23 +1475,31 @@ function makeBeam() {
     fragmentShader: `
       uniform float uTime;
       uniform float uHot;
+      uniform float uScroll;
+      uniform sampler2D uMap;
       varying vec2 vUv;
       void main() {
-        float core = pow(smoothstep(0.5, 0.0, abs(vUv.x - 0.5)), 1.7);
-        float scroll = 0.55 + 0.45 * sin(uTime * 22.0 - vUv.y * 36.0);
-        float ends = smoothstep(0.0, 0.05, vUv.y) * smoothstep(1.0, 0.9, vUv.y);
-        vec3 col = mix(vec3(0.15, 0.55, 0.48), vec3(0.75, 1.0, 0.92), core);
-        gl_FragColor = vec4(col * (0.4 + 0.6 * core), core * scroll * ends * uHot * 0.48);
+        vec4 tex = texture2D(uMap, vec2(vUv.y * 4.0 + uScroll, vUv.x));
+        float core = pow(smoothstep(0.5, 0.0, abs(vUv.x - 0.5)), 1.35);
+        float pulse = 0.75 + 0.25 * sin(uTime * 18.0 - vUv.y * 28.0);
+        float ends = smoothstep(0.0, 0.04, vUv.y) * smoothstep(1.0, 0.93, vUv.y);
+        vec3 col = tex.rgb * vec3(0.7, 1.0, 0.92) * (0.4 + 0.9 * core) * pulse;
+        float a = max(tex.a, 0.25) * (0.35 + 0.65 * core) * ends * uHot * 0.8;
+        gl_FragColor = vec4(col, a);
       }
     `,
   });
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0xc8fff4, transparent: true, opacity: 0.4, side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+  });
   const group = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.06, 1, 8, 1, true), mat);
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1), mat);
-  const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1), mat);
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, 1, 8, 1, true), coreMat);
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 1), mat);
+  const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 1), mat);
   plane2.rotation.y = Math.PI / 2;
   group.add(core, plane, plane2);
-  return { group, mat, plane, t: 0, dur: 1, whiff: false };
+  return { group, mat, coreMat, plane, t: 0, dur: 1, whiff: false };
 }
 
 function makeSigil(tex) {
@@ -1257,6 +1572,188 @@ function nudge(root, cfg) {
   root.position.z += o[2] || 0;
 }
 
+function prepMeshes(root, opts) {
+  opts = opts || {};
+  const dissolve = opts.dissolve || NO_DISSOLVE;
+  root.traverse(o => {
+    if (o.isSkinnedMesh) o.frustumCulled = false;
+    if (!o.isMesh || !o.material) return;
+    const wind = !!(opts.wind && o.isSkinnedMesh);
+    const list = Array.isArray(o.material) ? o.material : [o.material];
+    const styled = list.map(m => {
+      const basic = styleMaterial(m, { wind, rim: opts.rim || 0, dissolve });
+      if (/backdrop/i.test(o.name || '') || /backdrop/i.test(m.name || '') || /backdrop/i.test((o.parent && o.parent.name) || '')) {
+        basic.side = THREE.DoubleSide;
+      }
+      return basic;
+    });
+    o.material = Array.isArray(o.material) ? styled : styled[0];
+  });
+  return dissolve;
+}
+
+function toUnlit(mat) {
+  if (!mat || mat.isMeshBasicMaterial || mat.isSpriteMaterial || mat.isShaderMaterial) return mat;
+  const map = mat.map || mat.emissiveMap || null;
+  if (map) {
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.needsUpdate = true;
+  }
+  const basic = new THREE.MeshBasicMaterial({
+    map,
+    color: mat.map && mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
+    transparent: !!mat.transparent,
+    opacity: mat.opacity == null ? 1 : mat.opacity,
+    alphaTest: mat.alphaTest || 0,
+    side: mat.side,
+  });
+  basic.name = mat.name || '';
+  return basic;
+}
+
+function styleMaterial(mat, opts) {
+  const basic = toUnlit(mat);
+  const rim = opts.rim || 0;
+  const wind = opts.wind ? 1 : 0;
+  const dissolve = opts.dissolve || NO_DISSOLVE;
+  basic.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = SHARED_TIME;
+    shader.uniforms.uDissolve = dissolve;
+    shader.uniforms.uRim = { value: rim };
+    shader.uniforms.uWind = { value: wind };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+uniform float uTime;
+uniform float uWind;
+varying vec3 vD3Pos;
+varying vec3 vD3Nrm;`)
+      .replace('#include <project_vertex>', `
+{
+  float hem = smoothstep(1.15, 0.25, transformed.y);
+  if (uWind > 0.5) {
+    transformed.x += sin(uTime * 1.6 + transformed.y * 4.0 + transformed.z * 2.0) * 0.04 * hem;
+    transformed.z += cos(uTime * 1.2 + transformed.x * 3.0) * 0.028 * hem;
+  }
+  vD3Pos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+  #ifdef USE_SKINNING
+    vec3 d3n = objectNormal;
+  #else
+    vec3 d3n = normal;
+  #endif
+  vD3Nrm = normalize(mat3(modelMatrix) * d3n);
+}
+#include <project_vertex>`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform float uRim;
+uniform float uDissolve;
+varying vec3 vD3Pos;
+varying vec3 vD3Nrm;`)
+      .replace('#include <opaque_fragment>', `
+{
+  vec3 d3view = normalize(cameraPosition - vD3Pos);
+  float d3ndv = clamp(dot(normalize(vD3Nrm), d3view), 0.0, 1.0);
+  float d3ink = smoothstep(0.45, 0.06, d3ndv);
+  outgoingLight *= mix(1.0, 0.42, d3ink * 0.72);
+  float d3rim = pow(1.0 - d3ndv, 2.2);
+  outgoingLight += vec3(0.42, 1.0, 0.9) * d3rim * uRim;
+  float d3hash = fract(sin(dot(vD3Pos.xz, vec2(127.1, 311.7))) * 43758.5453);
+  if (uDissolve > 0.001 && d3hash < uDissolve) discard;
+  if (uDissolve > 0.001 && d3hash < uDissolve + 0.08) outgoingLight = vec3(0.55, 1.0, 0.86);
+}
+#include <opaque_fragment>`);
+  };
+  basic.customProgramCacheKey = () => 'oe-d3d-ink1';
+  return basic;
+}
+
+function prepSheet(tex, cols, rows, fps) {
+  if (!tex) return tex;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.userData._sheet = { cols, rows, fps: fps || 0, frame: 0, acc: 0, loop: true, count: cols * rows };
+  setFrame(tex, 0);
+  return tex;
+}
+
+function setFrame(tex, index) {
+  const s = tex && tex.userData && tex.userData._sheet;
+  if (!s) return;
+  const count = s.count || (s.cols * s.rows);
+  let i = index;
+  if (s.loop) i = ((i % count) + count) % count;
+  else i = Math.min(count - 1, Math.max(0, i));
+  const col = i % s.cols;
+  const row = Math.floor(i / s.cols);
+  tex.repeat.set(1 / s.cols, 1 / s.rows);
+  tex.offset.set(col / s.cols, 1 - (row + 1) / s.rows);
+  s.frame = i;
+}
+
+function advanceSheet(tex, dt) {
+  const s = tex && tex.userData && tex.userData._sheet;
+  if (!s || !s.fps) return s ? s.frame : 0;
+  s.acc += dt;
+  const step = 1 / s.fps;
+  let guard = 0;
+  while (s.acc >= step && guard < 8) {
+    guard++;
+    s.acc -= step;
+    const count = s.count || s.cols * s.rows;
+    if (!s.loop && s.frame >= count - 1) { s.acc = 0; break; }
+    setFrame(tex, s.frame + 1);
+  }
+  return s.frame;
+}
+
+function sheetCell(tex, cols, rows, index) {
+  if (!tex) return null;
+  const map = tex.clone();
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.needsUpdate = true;
+  prepSheet(map, cols, rows, 0);
+  setFrame(map, index);
+  return map;
+}
+
+function want1k() {
+  try {
+    const mem = navigator.deviceMemory;
+    if (mem && mem <= 4) return true;
+  } catch (e) { /* ignore */ }
+  return (window.innerWidth || 1200) <= 900;
+}
+
+function downscaleMaps(root, max) {
+  const seen = new Set();
+  root.traverse(o => {
+    const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+    for (const m of mats) {
+      for (const key of ['map', 'emissiveMap']) {
+        const tex = m[key];
+        if (!tex || !tex.image || seen.has(tex)) continue;
+        seen.add(tex);
+        const img = tex.image;
+        const w = img.width || 0;
+        const h = img.height || 0;
+        if (!w || !h || (w <= max && h <= max)) continue;
+        const scale = max / Math.max(w, h);
+        const cw = Math.max(1, Math.round(w * scale));
+        const ch = Math.max(1, Math.round(h * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = cw;
+        canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        try {
+          ctx.drawImage(img, 0, 0, cw, ch);
+          tex.image = canvas;
+          tex.needsUpdate = true;
+        } catch (err) { /* keep the original */ }
+      }
+    }
+  });
+}
+
 function resolveUrl(url) {
   if (!url) return url;
   if (/^(https?:|\/|\.\/|\.\.\/)/.test(url)) return url;
@@ -1267,6 +1764,20 @@ function collectMats(root) {
   const out = [];
   root.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => out.push(m)); });
   return out;
+}
+
+/* Pack shot. The arena strip is short, so this is tighter than the
+   portrait mock: Death large in the upper frame, hero in the lower third. */
+function framePack(aspect) {
+  let fov, side, camY, camZ, lookY, lookZ;
+  if (aspect < 1.45) { fov = 40; side = 0.95; camY = 2.55; camZ = 11.35; lookY = 1.85; lookZ = 0.55; }
+  else if (aspect < 2.1) { fov = 38; side = 1.15; camY = 2.45; camZ = 11.5; lookY = 1.8; lookZ = 0.6; }
+  else { fov = 36; side = 1.4; camY = 2.35; camZ = 11.7; lookY = 1.75; lookZ = 0.65; }
+  return {
+    fov,
+    pos: new THREE.Vector3(side, camY, camZ),
+    look: new THREE.Vector3(-0.15, lookY, lookZ),
+  };
 }
 
 /* Over-the-shoulder framing. Vertical FOV is three.js's fov. The hero's

@@ -11,61 +11,43 @@ frame throws, the WebGL canvas is hidden and `drawDeathArena()` paints the
 old arena again. The life bar and floating numbers always stay on the 2D
 canvas, on top of the 3D view.
 
-## Dropping in real GLBs
+## Real assets
 
-Edit `manifest.js` only. A slot with `url: null` uses the procedural
-placeholder. Set `url` to a filename and that file is loaded from
-`death3d/assets/` (a path starting with `http`, `/`, `./`, or `../` is
-used as written). A missing or broken file logs a warning and keeps the
-placeholder for that slot. GLTFLoader, DRACOLoader, and the meshopt
-decoder are fetched only when at least one slot has a url, so the
-placeholder fight does not download them.
+The fight loads `assets/models/` and `assets/textures/` through
+`manifest.js`. Characters are meshopt, the throne and the room are Draco,
+and the textures are WebP. GLTFLoader, DRACOLoader, and the meshopt decoder
+are fetched with the fight, only when a slot has a url. Only the hero who
+is actually fighting is downloaded. A missing or broken GLB logs a warning
+and keeps the procedural placeholder for that piece. If the room, the
+throne, or Death fails, the whole placeholder room stays.
 
-```js
-death: {
-  url: 'death.glb',          // death3d/assets/death.glb
-  targetHeight: 3.45,        // bbox height in meters after fit; null skips
-  anchor: 'seat',            // 'seat' | 'feet' | 'none'
-  seatFrac: 0.36,            // fraction of height planted on the seat
-  scale: 1,                  // applied before the height fit
-  facing: Math.PI,           // yaw in radians, after the up-axis fix
-  up: 'y',                   // 'z' rotates X by -90° first (Z-up files)
-  offset: [0, 0, 0],         // meters, after the fit
-  clips: { idle: 'idle', cast: 'cast', attack: 'attack', hit: 'hit', defeat: 'defeat' },
-}
-```
+World: meters, +Y up, characters face +Z, floor at y = 0. `death.glb` and
+`throne.glb` share an origin, so they both sit at identity and Death is
+already in the seat. The hero is placed on `Marker_Hero` (0, 0, 6.5) and
+the anchor is yawed 180° so his back is toward the camera. Do not yaw the
+hero file as well. The env file also carries flame sockets and the camera
+marker. File names, clip names, and sockets are listed in `assets/README.md`.
 
-World: +Y up, 1 unit = 1 meter. The hero stands near the origin facing +Z.
-The throne sits down +Z (`layout.throne`). Death is parented to the throne
-at `layout.deathSeat`, which is the cushion. The camera sits behind the
-hero, a little above, looking up. Export characters facing +Z (glTF
-default). Death's `facing: Math.PI` turns him toward the hero. Do not
-also rotate the file 180°, or he faces the wrong way.
+| Fight name | Clip in the file |
+|---|---|
+| Death idle / cast / attack / hit / defeat | `Seated_Idle`, `Cast_Windup`, `Attack_Sweep`, `Hit_Flinch`, `Defeat_Slump` |
+| Hero idle / attack / hit / dodge / victory / death | `Combat_Idle`, `Attack`, `Hit_React`, `Dodge`, `Victory`, `Death` |
 
-| Slot | Suggested file | Clips the fight asks for |
-|---|---|---|
-| `death` | `death.glb` | idle, cast, attack, hit, defeat |
-| `throne` | `throne.glb` | — |
-| `hero_knight` `hero_ranger` `hero_gambler` `hero_brute` `hero_duelist` `hero_hexpriest` | `hero_<id>.glb` | idle, attack, hit, dodge, victory, death |
-| `environment` | `environment.glb` | — |
-| `vfx` | `vfx_soul.png` `vfx_spark.png` `vfx_beam.png` `vfx_sigil.png` `vfx_wisp.png` | — |
+A missing clip does not throw. `idle` loops. `defeat` and `death` hold
+their last frame. Other clips play once and return to idle. Death's attack
+plays the windup, then the sweep, and the blast or beam leaves
+`Socket_RightHand` (the beam from `Socket_Eyes`) when the sweep starts.
+Drain and heal use `Socket_Chest`. Hero clips that walk off their mark have
+their hip x/z pinned back to the idle pose.
 
-`clips` maps the name the fight uses to the clip name in the file. Lookup
-is exact, then case-insensitive, then substring. A missing clip does not
-throw: the model stays on its rest pose (procedural wind-up, sway, and
-lunge only drive the placeholder meshes). `idle` loops. `defeat` and
-`death` hold their last frame. Other clips play once and return to idle.
-
-`anchor: 'feet'` puts the bottom of the bbox on the anchor. `anchor: 'seat'`
-(Death) puts `seatFrac` of the height on the cushion so the legs hang.
-`fit: false` skips the bbox fit; the environment slot uses that and should
-already be in meters. `environment.hide` lists procedural pieces to hide
-once the file loads: `'room'` and, if the file includes a throne, `'throne'`.
-
-Draco (`KHR_draco_mesh_compression`) and meshopt
-(`EXT_meshopt_compression` / `KHR_meshopt_compression`) are wired. The
-decoder files live under `vendor/three/` and are not loaded until a
-compressed mesh is parsed.
+`fit: false` on these slots skips the bbox fit. The older `targetHeight` /
+`anchor: 'seat'` path is still there for a file that is not already in
+meters. `Attack_Sweep` and `Defeat_Slump` sink the robe a little; the scene
+lifts Death 13 cm for those two clips. The win is a dissolve plus soul
+particles, because the defeat clip is a slump. Robe and cape wind is a
+vertex shader. On a phone or a machine with 4 GB or less, character
+textures are drawn down to 1K before upload. The throne and the room stay
+at their file size.
 
 ## What the fight asks the scene to play
 
@@ -82,7 +64,7 @@ arrives a fraction of a second later, the way the old soul shots did.
 | `grow` | Souls spiraling into Death |
 | `curse`, `jam`, `jamwheel` | A sigil and chains at the hero's feet |
 | phase change | Camera push, throne cracks, green fire, stronger rim light |
-| win | Death fades into souls, hero plays victory |
+| win | Death slumps, then dissolves into souls; the hero plays victory |
 | hero hp at 0 | Camera tilts down, hero plays death. Recovering hp stands him back up |
 
 `prefers-reduced-motion: reduce` cuts shake to 15% and skips the camera
@@ -94,7 +76,7 @@ There are no shadow maps.
 - `manifest.js` — slots, clip names, camera and seat.
 - `placeholders.js` — the procedural Death, heroes, throne, and room.
 - `scene.js` — renderer, lighting, animation, effects.
-- `assets/` — where the real files go. Empty apart from its note until then.
+- `assets/` — the real models and VFX sheets. See `assets/README.md`.
 
 three.js itself is `../vendor/three/` (r0.186.1, ES modules). It is not in
 `art-src/` and `pack-art.py` does not read it.

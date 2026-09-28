@@ -1,16 +1,16 @@
-Drop real GLB files and VFX textures in this folder, then point
-`death3d/manifest.js` at them (`url: 'death.glb'` and so on).
+Real Death-fight models and VFX. Loaded by `death3d/manifest.js`.
+Not scanned by `pack-art.py`.
 
-Until a slot's `url` is set, the fight uses the procedural placeholder.
-A missing or failed file logs a warning and stays on that placeholder.
+```
+models/death.glb            meshopt, shares the throne's origin
+models/throne.glb           Draco
+models/throne_room_env.glb  Draco, markers and flame sockets
+models/hero_<id>.glb        meshopt, one hero per fight
+models/prop_*.glb           spare props; the env file already includes them
+textures/vfx/*.webp         soul orb, loop, impact, beam, fire, wisps
+textures/env/*.webp         also embedded in the env GLB
+```
 
-Expected names (any name works if the manifest matches):
-
-- `death.glb` — rigged Death. Clips: idle, cast, attack, hit, defeat.
-- `throne.glb`
-- `hero_knight.glb`, `hero_ranger.glb`, `hero_gambler.glb`, `hero_brute.glb`, `hero_duelist.glb`, `hero_hexpriest.glb`
-  Clips: idle, attack, hit, dodge, victory, death.
-- `environment.glb` — the throne room, without the characters.
-- `vfx_soul.png`, `vfx_spark.png`, `vfx_beam.png`, `vfx_sigil.png`, `vfx_wisp.png`
-
-See `death3d/README.md` for scale, facing, and up-axis.
+Meters, +Y up, characters face +Z, floor at y = 0. Clip names and sockets
+are in `../README.md`. The game asks for the WebP sheets. PNGs and the
+frame JSON sit beside them for the same frames.

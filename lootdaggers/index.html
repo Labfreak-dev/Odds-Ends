@@ -135,7 +135,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pvTitle{font-family:var(--head);font-size:18px;color:#ecdcbc;text-shadow:0 2px 0 #000;margin-top:-4px}.pvTitle b{font-weight:400;color:#ffd76a}
 .wdPrev{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;align-items:center;padding:8px;border-radius:12px;background:linear-gradient(#150f10,#0b0809);border:1px solid #3a2a2a;box-shadow:inset 0 0 30px #000}
 .wdCabBox{text-align:center}.wdCabBox small{display:block;font-size:11px;color:var(--dim);margin-top:4px}
-.wdBar{display:flex;justify-content:center;margin:8px 0 4px}.wdHeroBtn{font-size:16px!important;padding:2px 12px 4px!important}
+.wdBar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0 4px}.wdHeroBtn{font-size:16px!important;padding:2px 12px 4px!important}
 .wdInfo{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:6px 8px;margin:4px 0 8px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line)}
 .wdInfo b{display:block;font-family:var(--head);font-weight:400;font-size:20px}.wdInfo small{font-size:11px;color:var(--dim)}
 .wdWear{font-size:17px!important;padding:2px 14px 4px!important;white-space:nowrap}.wdLock{font-size:11px;color:var(--dim);white-space:nowrap}
@@ -3208,17 +3208,21 @@ function showHub(v){
   }else if(v==='wardrobe'){
     const c=cosState(),hs=artHeroes(),hero=hs.includes(S.wardHero)?S.wardHero:(hs[0]||'knight');
     const [sk,sid]=(S.wardSel||'').split(':'),selX=sk&&COS_KINDS[sk]?COS_KINDS[sk].L.find(x=>x.id===sid):null;
-    const tryOn=k=>sk===k&&selX?selX:cosEq(k);   // the selected piece over whatever you wear
-    const sx=tryOn('skin'),au=tryOn('aura'),dy=tryOn('dye'),ti=tryOn('title'),hsk=sk==='hskin'&&selX&&selX.hero===hero?selX:hskinFor(hero);
+    const isDef=sid==='__def';   // the "Default" tile: try on nothing at all
+    const tryOn=k=>sk===k&&isDef?null:sk===k&&selX?selX:cosEq(k);   // the selected piece over whatever you wear
+    const sx=tryOn('skin'),au=tryOn('aura'),dy=tryOn('dye'),ti=tryOn('title'),hsk=sk==='hskin'&&isDef?null:sk==='hskin'&&selX&&selX.hero===hero?selX:hskinFor(hero);
     const plain={id:'none',t:1,glow:'#000',tint:'brightness(1)'};
+    const defTile=(k,h)=>{const on=!c.eq[h?'hskin:'+h:k],pk=isDef&&sk===k&&(!h||h===hero);
+      return `<button class="wdIt wdDef${on?' on':''}${pk?' pick':''}" style="--tc:#b9a88a" data-act="wdef:${k}${h?':'+h:''}"><span class="wdSw" style="background:transparent;border:1px dashed #b9a88a"></span><b>Default</b><small>the normal look</small>${on?'<i>worn</i>':''}</button>`;};
     let info='<div class="wdInfo"><span class="sub">Tap anything below to try it on.</span></div>';
+    if(isDef&&COS_KINDS[sk])info=`<div class="wdInfo"><div><b>Default ${sk==='hskin'?HEROES[hero].n+' look':COS_KINDS[sk].n.replace(/s$/,'').toLowerCase()}</b><small>back to the normal look — worn</small></div></div>`;
     if(selX){const T=TIER[selX.t],o=cosOwned(sk,selX.id),on=c.eq[eqKey(sk,selX)]===selX.id;
       info=`<div class="wdInfo"><div><b style="color:${T.c}">${cosName(sk,selX)}</b><small>${T.n} ${COS_KINDS[sk].n.replace(/s$/,'').toLowerCase()}</small></div>${o?`<button class="btn plaque wdWear" data-act="wear:${sk}:${selX.id}">${on?'Take it off':'Wear it'}</button>`:`<span class="wdLock">🔒 ${selX.ex?'from a bounty':'from the Soul Shredder'}</span>`}</div>`;}
     html=back+`<h2 style="color:var(--gold)">${icon('ui_wardrobe','🎭')} Wardrobe</h2>
       <div class="wdPrev">${pvHero({hero,skin:hsk&&hsk.id,aura:au&&au.id,dye:dy&&dy.id,title:ti&&ti.n})}<div class="wdCabBox">${pvSkin(sx||plain)}<small>${sx?sx.n:'Standard machine'}</small></div></div>
-      <div class="wdBar"><button class="btn plaque wdHeroBtn" data-act="whero">⟳ Try on ${HEROES[hs[(hs.indexOf(hero)+1)%hs.length]]?HEROES[hs[(hs.indexOf(hero)+1)%hs.length]].n:'another hero'}</button></div>${info}`+
-      Object.entries(COS_KINDS).map(([k,K])=>`<h3 class="recH">${K.n}</h3><div class="wdGrid">`+K.L.map((x,xi)=>{const o=cosOwned(k,x.id),on=c.eq[eqKey(k,x)]===x.id,T=TIER[x.t],pk=sk===k&&sid===x.id;
-        const grp=k==='hskin'&&(xi===0||K.L[xi-1].hero!==x.hero)?`<div class="wdGrp">${HEROES[x.hero].n}</div>`:'';
+      <div class="wdBar"><button class="btn plaque wdHeroBtn" data-act="whero">⟳ Try on ${HEROES[hs[(hs.indexOf(hero)+1)%hs.length]]?HEROES[hs[(hs.indexOf(hero)+1)%hs.length]].n:'another hero'}</button><button class="btn plaque wdHeroBtn" data-act="wdefall">↺ Reset all to default</button></div>${info}`+
+      Object.entries(COS_KINDS).map(([k,K])=>`<h3 class="recH">${K.n}</h3><div class="wdGrid">`+(k==='hskin'?'':defTile(k,null))+K.L.map((x,xi)=>{const o=cosOwned(k,x.id),on=c.eq[eqKey(k,x)]===x.id,T=TIER[x.t],pk=sk===k&&sid===x.id;
+        const grp=k==='hskin'&&(xi===0||K.L[xi-1].hero!==x.hero)?`<div class="wdGrp">${HEROES[x.hero].n}</div>`+defTile(k,x.hero):'';
         const sw=k==='hskin'?`<span class="wdSw" style="background:#b9a88a;filter:${x.tint}"></span>`:k==='skin'?`<span class="wdSw" style="background:${x.glow}"></span>`:k==='aura'?`<span class="wdSw" style="background:${x.c==='rainbow'?'linear-gradient(90deg,red,orange,yellow,green,cyan,blue,violet)':x.c}"></span>`:k==='dye'?`<span class="wdSw" style="background:#c9a;filter:${x.f}"></span>`:'';
         return grp+`<button class="wdIt${o?'':' locked'}${on?' on':''}${pk?' pick':''}" style="--tc:${T.c}" data-act="wsel:${k}:${x.id}">${sw}<b>${cosName(k,x)}</b><small style="color:${T.c}">${T.n}${o?'':x.ex?' · 🏆 bounty':' · Shredder'}</small>${on?'<i>worn</i>':''}</button>`;}).join('')+`</div>`).join('');
     setTimeout(pvStart,0);
@@ -3262,6 +3266,8 @@ $('#hub').addEventListener('click',async e=>{
   if(!arg&&(a==='main'||a==='heroes'||a==='altar'||a==='bench'||a==='vault'||a==='help'||a==='settings'||a==='records'||a==='contracts'||a==='bounties'||a==='shredder'||a==='wardrobe')){if(a==='wardrobe')S.wardSel=null;return showHub(a);}
   if(a==='shred'){await shredFeed();return showHub('shredder');}
   if(a==='wear'){const [,k,id]=el.dataset.act.split(':');const c=cosState(),x=COS_KINDS[k].L.find(y=>y.id===id),ek=eqKey(k,x);c.eq[ek]=c.eq[ek]===id?null:id;save();applySkin();return showHub('wardrobe');}
+  if(a==='wdef'){const [,k,h]=el.dataset.act.split(':');cosState().eq[k==='hskin'?'hskin:'+h:k]=null;S.wardSel=k+':__def';if(h)S.wardHero=h;save();applySkin();return showHub('wardrobe');}
+  if(a==='wdefall'){const e=cosState().eq;Object.keys(e).forEach(q=>e[q]=null);S.wardSel=null;save();applySkin();return showHub('wardrobe');}
   if(a==='wsel'){const [,k,id]=el.dataset.act.split(':');S.wardSel=k+':'+id;if(k==='hskin'){const x=HSKINS.find(y=>y.id===id);if(x)S.wardHero=x.hero;}return showHub('wardrobe');}
   if(a==='whero'){const hs=artHeroes(),cur=hs.includes(S.wardHero)?S.wardHero:hs[0];S.wardHero=hs[(hs.indexOf(cur)+1)%hs.length];return showHub('wardrobe');}
   if(a==='debt'){S.debtSel=Math.min(+arg||0,debtMax());save();return showHub('heroes');}

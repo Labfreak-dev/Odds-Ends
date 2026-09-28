@@ -118,7 +118,9 @@ class Arena {
     renderer.toneMappingExposure = 1.05;
     renderer.setClearColor(0x0c1012, 1);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    /* r186 removed PCFSoftShadowMap (it warns and falls back). Softness is
+       the spotlight's shadow.radius on PCFShadowMap. */
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0c1012);
@@ -967,7 +969,7 @@ class Arena {
     holder.scale.setScalar(slot.scale > 0 ? slot.scale : auto);
     holder.add(root);
     if (gripped.mesh) gripped.mesh.visible = false;
-    gripped.swing.add(holder);
+    (gripped.roll || gripped.swing).add(holder);
     gripped.external = true;
   }
 
@@ -983,8 +985,9 @@ class Arena {
       const u = action ? Math.min(1, action.time / dur) : 0;
       target = u < 0.32 ? -0.65 * (u / 0.32) : -0.65 + 1.45 * Math.min(1, (u - 0.32) / 0.68);
     } else if (logical === 'hit') target = 0.4;
-    else if (logical === 'defeat') target = 0.72;
+    else if (logical === 'defeat') target = 0.42;
     s.swing.rotation.x += (target - s.swing.rotation.x) * 0.22;
+    aimScythe(this.deathActor && this.deathActor.model, s);
   }
 
   _flames(env) {
@@ -2356,14 +2359,17 @@ function gripScythe(model) {
   const socket = model.getObjectByName('Socket_LeftHand');
   if (socket && socket.parent === hand) pivot.position.copy(socket.position);
   else pivot.position.set(0, 6, 1.5);
+  const roll = new THREE.Group();
+  roll.name = 'ScytheRoll';
   hand.add(pivot);
   pivot.add(swing);
+  swing.add(roll);
   if (mesh.parent) mesh.parent.remove(mesh);
   mesh.position.set(0, 0, 0);
   mesh.rotation.set(0, 0, 0);
   mesh.quaternion.identity();
   mesh.scale.copy(savedScale);
-  swing.add(mesh);
+  roll.add(mesh);
   const shaft = new THREE.Vector3();
   shaft.setComponent(axis, blade > butt ? 1 : -1);
   const align = new THREE.Quaternion().setFromUnitVectors(shaft, new THREE.Vector3(0, 1, 0));
@@ -2379,40 +2385,91 @@ function gripScythe(model) {
     m.roughness = Math.min(m.roughness == null ? 0.4 : m.roughness, 0.4);
     m.envMapIntensity = Math.max(m.envMapIntensity || 0, 0.9);
   }
-  orientScythe(model, hand, pivot);
+  mesh.updateMatrix();
+  const horn = new THREE.Vector3(1, 0, 0);
+  let hornBest = 0;
+  const sample = new THREE.Vector3();
+  const stepH = Math.max(1, Math.floor(pos.count / 500));
+  for (let i = 0; i < pos.count; i += stepH) {
+    sample.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrix);
+    const radial = Math.hypot(sample.x, sample.z);
+    if (radial > hornBest) { hornBest = radial; horn.set(sample.x, 0, sample.z); }
+  }
+  if (hornBest > 1e-4) horn.normalize();
+  mesh.userData.hornSwing = horn;
   mesh.userData.gripAlong = 0.4;
-  return { pivot, swing, mesh, external: false };
+  const gripped = { pivot, swing, roll, mesh, external: false };
+  aimScythe(model, gripped);
+  return gripped;
 }
 
-/* Blade up over the shoulder, leaned out so the butt clears the seat. */
-function orientScythe(model, hand, pivot) {
-  model.updateWorldMatrix(true, true);
-  const handPos = new THREE.Vector3();
-  const hipPos = new THREE.Vector3();
-  hand.getWorldPosition(handPos);
-  const hips = model.getObjectByName('Hips');
-  if (hips) hips.getWorldPosition(hipPos);
-  else hipPos.set(handPos.x, handPos.y, handPos.z);
-  const outward = handPos.clone().sub(hipPos);
-  outward.y = 0;
-  if (outward.lengthSq() < 1e-6) outward.set(1, 0, 0);
-  outward.normalize();
-  const blade = new THREE.Vector3();
-  blade.copy(outward).multiplyScalar(0.72);
-  blade.y = 0.78;
-  blade.z = 0.22;
-  blade.normalize();
-  const side = new THREE.Vector3().crossVectors(blade, new THREE.Vector3(0, 0, 1));
-  if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
-  side.normalize();
-  if (side.dot(outward) < 0) side.negate();
-  const forward = new THREE.Vector3().crossVectors(side, blade).normalize();
-  const basis = new THREE.Matrix4().makeBasis(side, blade, forward);
-  const worldQ = new THREE.Quaternion().setFromRotationMatrix(basis);
-  const handQ = new THREE.Quaternion();
-  hand.getWorldQuaternion(handQ);
-  pivot.quaternion.copy(handQ.invert()).multiply(worldQ);
-  pivot.updateWorldMatrix(true, true);
+const _syHand = new THREE.Vector3();
+const _syHip = new THREE.Vector3();
+const _syOut = new THREE.Vector3();
+const _syHoriz = new THREE.Vector3();
+const _syBlade = new THREE.Vector3();
+const _sySide = new THREE.Vector3();
+const _syFwd = new THREE.Vector3();
+const _syHandQ = new THREE.Quaternion();
+const _syWorldQ = new THREE.Quaternion();
+const _syShaft = new THREE.Vector3();
+const _syHorn = new THREE.Vector3();
+const _syWant = new THREE.Vector3();
+const _syA = new THREE.Vector3();
+const _syCross = new THREE.Vector3();
+const _syZ = new THREE.Vector3(0, 0, 1);
+const _syBasis = new THREE.Matrix4();
+
+/* Point the shaft up over the shoulder, leaned out and toward the hero so
+   the butt stays off the throne. Roll the blade flat toward the camera.
+   Called every frame: the hand clips move, and a baked offset would drift. */
+function aimScythe(model, gripped) {
+  if (!model || !gripped || !gripped.pivot || !gripped.pivot.parent) return;
+  const hand = gripped.pivot.parent;
+  hand.updateWorldMatrix(true, false);
+  hand.getWorldPosition(_syHand);
+  const hips = model.getObjectByName('Hips') || model.getObjectByName('Spine');
+  if (hips) hips.getWorldPosition(_syHip);
+  else _syHip.copy(_syHand);
+  _syOut.copy(_syHand).sub(_syHip);
+  _syOut.y = 0;
+  if (_syOut.lengthSq() < 1e-6) _syOut.set(1, 0, 0);
+  else _syOut.normalize();
+  /* ~59° off vertical. Most of the lean is outward; a little faces the hero. */
+  const up = 0.52;
+  const horiz = Math.sqrt(1 - up * up);
+  _syHoriz.set(_syOut.x * 0.9, 0, _syOut.z * 0.9 + 0.44);
+  if (_syHoriz.lengthSq() < 1e-6) _syHoriz.set(1, 0, 0);
+  else _syHoriz.normalize();
+  _syBlade.copy(_syHoriz).multiplyScalar(horiz);
+  _syBlade.y = up;
+  _sySide.crossVectors(_syBlade, _syZ);
+  if (_sySide.lengthSq() < 1e-6) _sySide.set(1, 0, 0);
+  _sySide.normalize();
+  if (_sySide.dot(_syOut) < 0) _sySide.negate();
+  _syFwd.crossVectors(_sySide, _syBlade).normalize();
+  _syBasis.makeBasis(_sySide, _syBlade, _syFwd);
+  _syWorldQ.setFromRotationMatrix(_syBasis);
+  hand.getWorldQuaternion(_syHandQ);
+  gripped.pivot.quaternion.copy(_syHandQ.invert()).multiply(_syWorldQ);
+  const roll = gripped.roll;
+  const horn = gripped.mesh && gripped.mesh.userData.hornSwing;
+  if (!roll || !horn || gripped.external) {
+    if (roll && gripped.external) roll.rotation.y = 0;
+    return;
+  }
+  roll.rotation.y = 0;
+  roll.updateWorldMatrix(true, true);
+  _syShaft.set(0, 1, 0).transformDirection(roll.matrixWorld);
+  _syHorn.copy(horn).transformDirection(roll.matrixWorld);
+  _syWant.set(0, 0.22, 1);
+  _syWant.addScaledVector(_syShaft, -_syWant.dot(_syShaft));
+  if (_syWant.lengthSq() < 1e-6) return;
+  _syWant.normalize();
+  _syA.copy(_syHorn).addScaledVector(_syShaft, -_syHorn.dot(_syShaft));
+  if (_syA.lengthSq() < 1e-6) return;
+  _syCross.crossVectors(_syA, _syWant);
+  roll.rotation.y = Math.atan2(_syCross.dot(_syShaft), _syA.dot(_syWant));
 }
 
 const _shotPos = new THREE.Vector3();
@@ -2433,16 +2490,18 @@ function anchorShot(arena, who, name, fallback) {
 }
 
 function shotRest(arena) {
-  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.4, 1));
+  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.8, -0.4));
   const chest = anchorShot(arena, 'hero', 'chest', new THREE.Vector3(0, 1.4, 6.5));
-  const pos = chest.clone();
-  pos.x += 0.42;
-  pos.y += 0.08;
-  pos.z += 1.05;
-  const look = eyes.clone();
-  look.y -= 0.08;
   const aspect = arena.camera.aspect || 1;
-  const fov = aspect < 0.75 ? 42 : aspect < 1.25 ? 34 : 30;
+  const pos = chest.clone();
+  /* On the shoulder, not a metre behind it, so the hero frames the corner
+     and Death fills the hall. A narrower fov keeps that at seven metres. */
+  pos.x += aspect < 0.75 ? 0.34 : 0.62;
+  pos.y += 0.16;
+  pos.z += aspect < 0.75 ? 0.22 : 0.08;
+  const look = eyes.clone();
+  look.y += 0.38;
+  const fov = aspect < 0.75 ? 30 : aspect < 1.25 ? 24 : 20;
   return { pos, look, fov };
 }
 

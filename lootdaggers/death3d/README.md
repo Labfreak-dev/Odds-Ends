@@ -97,7 +97,12 @@ arrives a fraction of a second later, the way the old soul shots did.
 
 `prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
 and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
-ratio is capped at 2. Shadows are PCFSoft from the torch key light.
+ratio is capped at 2. Shadows are soft PCF from the torch key light
+(r186 dropped `PCFSoftShadowMap`; the spot uses `shadow.radius`). The resting
+shot sits on the hero's shoulder with a tighter field of view so Death
+fills the hall. The scythe is aimed every frame: the hand stays about 40%
+up the shaft, the blade leans out over the shoulder toward the camera, and
+the flat of the blade faces the lens.
 
 ## Files
 

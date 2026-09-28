@@ -455,6 +455,8 @@ details.hist summary{cursor:pointer;color:var(--gold);font-weight:800;padding:6p
 .shBtns .btn:last-child:nth-child(odd){grid-column:1/-1}
 #defyBtn{display:block;margin:4px 10px 0;padding:12px 10px 14px;border:2px solid #9fd6ff;border-radius:8px;background:linear-gradient(#141827,#07080d);color:#dff2ff;font-family:var(--head);font-size:22px;letter-spacing:1px;text-shadow:0 0 10px #9fd6ff,0 2px 0 #000;box-shadow:0 0 14px rgba(159,214,255,.5),inset 0 0 14px rgba(159,214,255,.2);animation:defyGlow 2s ease-in-out infinite}
 #defyBtn.hasArt{border:0;border-radius:0;background:var(--defyArt) center/100% 100% no-repeat;box-shadow:none;filter:drop-shadow(0 0 6px rgba(159,214,255,.7))}
+#purseDeathBtn{display:block;margin:4px 10px 0;padding:8px 10px 10px;border:2px solid #e7c56a;border-radius:8px;background:linear-gradient(#2a2210,#120e08);color:#ffe7a8;font-family:var(--head);font-size:20px;letter-spacing:.5px;line-height:1.05;text-shadow:0 0 8px #e7c56a,0 2px 0 #000;box-shadow:0 0 12px rgba(231,197,106,.35),inset 0 0 12px rgba(231,197,106,.12)}
+#purseDeathBtn small{display:block;margin-top:3px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.4px;font-weight:700;color:#e7c56a;text-shadow:none}
 @keyframes defyGlow{50%{box-shadow:0 0 24px rgba(159,214,255,.85),inset 0 0 18px rgba(159,214,255,.3)}}
 .ledger{border:1px solid #3f7a3a;border-radius:10px;padding:10px;margin:8px 0 14px;background:rgba(20,30,20,.5)}
 .ledger h3{color:#8cff96;font-size:14px;margin:10px 0 6px}
@@ -551,6 +553,7 @@ body.labFlash #app{animation:labFlash .7s ease-out}
     <div id="sceneWrap"><canvas id="scene"></canvas><div id="forecast"></div></div>
     <div id="log">Insert a coin and pull. <b>Whatever lands is your turn.</b></div>
     <button id="defyBtn" class="hidden">Pay your Debt, and Defy Death</button>
+    <button id="purseDeathBtn" class="hidden" type="button">Challenge Death<small>any floor · stake 777 🪙</small></button>
     <div id="machine">
       <div id="cabinet">
         <img id="cabinetArt" alt=""><div id="bulbs"></div>
@@ -1078,7 +1081,7 @@ async function blackjack(o){
    life and can't be skipped: a killing blow in phase one or two only pushes him to
    the next phase. Beating him frees the soul (the run ends in victory) and, the
    first time, grants The Grim's Ledger. */
-const DEATH_COST=666,DEATH_FLOOR=66;
+const DEATH_COST=666,DEATH_FLOOR=66,DEATH_PURSE=777;
 const DEATH_PH={
   1:[['atk',4],['rest',0],['curse',1],['atk',6],['rest',0]],
   2:[['atk',8],['drain',6],['jam',0],['atk',10],['grow',4]],
@@ -1090,7 +1093,11 @@ const DEATH_LINES={
   3:["NO. No one leaves. NO ONE LEAVES THE TABLE!","The loop is ETERNAL! You don't get to CASH OUT!"],
   win:["...Impossible. Go, then. Walk out into the light. The house... lost.","Take your soul. I'll be here. I'm always here."],
 };
-const deathReady=()=>!!run&&!run.over&&!run.death&&!run.lab&&run.floor>=DEATH_FLOOR&&run.coins>=DEATH_COST;
+const deathReady=()=>!!run&&!run.over&&!run.death&&!run.deathLock&&!run.lab&&run.floor>=DEATH_FLOOR&&run.coins>=DEATH_COST;
+// A fat purse is a second way in: 777 or more on any floor, offered, never forced.
+// deathLock closes the door the moment a stake is paid, so a second click can't open another table.
+// Once the duel starts the run ends in a win or a loss, so it cannot chain.
+const purseDeathReady=()=>!!run&&!run.over&&!run.death&&!run.deathLock&&!run.lab&&run.coins>=DEATH_PURSE;
 // Death sizes himself to the gambler at his table: his life to what a solid turn of
 // theirs deals (about twenty of them to win), his swings to their life bar and block.
 function deathScale(){
@@ -1108,8 +1115,21 @@ async function defyDeath(){
   const again=S.deathDefeated>0;
   const v=await modal('Pay your Debt, and Defy Death',`${portImg('portrait_death1','big merch')}<p>Pay <b>${DEATH_COST} 🪙</b> to buy a seat at Death's own table. Beat him, and you walk out of the dungeon a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
     [{label:`Pay ${DEATH_COST} 🪙 and Defy Death`,val:1,cls:'primary soulbtn'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
-  if(!v||!deathReady())return;r.deathDouble=v===2;
-  busy=true;r.coins-=DEATH_COST;sfx.reaper();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
+  if(!v||!deathReady())return;
+  await startDeathFight(DEATH_COST,v===2);
+}
+// Same table as the floor-66 debt, opened by a purse of 777 or more on any floor.
+async function challengeDeathPurse(){
+  const r=run;if(!purseDeathReady()||busy||modalOpen)return;
+  const again=S.deathDefeated>0;
+  const v=await modal('Challenge Death',`${portImg('portrait_death1','big merch')}<p>Your purse holds <b>${r.coins} 🪙</b>. Anywhere in the dungeon, <b>${DEATH_PURSE} 🪙</b> or more buys a seat at Death's table. This is a choice — the floor will wait if you decline.</p><p>Stake <b>${DEATH_PURSE} 🪙</b>. Beat him, and you walk out a free soul.</p><p style="color:var(--red)">Lose, and the house keeps you forever.</p>`,
+    [{label:`Stake ${DEATH_PURSE} 🪙 and Challenge Death`,val:1,cls:'primary soulbtn'},...(again?[{label:`Double or Nothing <small>Death at 1.5× strength · win: the Grim's Ledger gains a free level</small>`,val:2}]:[]),{label:'Not yet',val:null}]);
+  if(!v||!purseDeathReady())return;
+  await startDeathFight(DEATH_PURSE,v===2);
+}
+async function startDeathFight(cost,doubleIt){
+  const r=run;if(r.death||r.deathLock||r.coins<cost)return;
+  r.deathLock=true;busy=true;r.deathDouble=!!doubleIt;r.coins-=cost;ui();sfx.reaper();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
   const f=r.floor,d=mkEnemy('death',r.x+1,f,true),ds=deathScale();r.deathAtk=ds.atk;d.hp=d.max=Math.max(d.max,ds.hp);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
@@ -1229,7 +1249,7 @@ const SHELL_BETS=[
   // the bigger the bet, the faster and longer the shuffle: the top stakes are meant to be brutal
   {id:'s',coins:5,swaps:6,speed:1.15,pace:'steady'},
   {id:'m',coins:15,swaps:11,speed:2.1,pace:'fast'},
-  {id:'h',coins:40,swaps:18,speed:3.6,pace:'blinding'},
+  {id:'h',coins:40,swaps:18,speed:2.75,pace:'blinding'},
   {id:'b',hp:8,prize:25,swaps:15,speed:2.9,pace:'vicious'},
 ];
 let SH_X=[28,50,72],SH_CW=17;const SH_Y=79;
@@ -1895,6 +1915,17 @@ function labUniques(lvl){
 }
 
 /* ---------------- floors ---------------- */
+// A spin should maul a foe, not clear the floor. Ordinary life is a bit thicker (FOE_LIFE).
+// One hit, however lucky, can't erase a healthy foe (woundCap): trash keeps ~38%, elites
+// ~45%, floor bosses ~64%. Death and Dr. Labfreak are sized to the player already, so they
+// are not capped. Boots, even a jackpot, can't sprint the whole corridor (STEP_CAP).
+const FOE_LIFE=1.30,STEP_CAP=6,DUEL_CAP=6;
+const WOUND_FRAC={foe:.62,elite:.55,boss:.36};
+function woundCap(o,d){
+  if(!o||o.kind!=='enemy'||d<=0||o.t==='death'||o.t==='labfreak')return d;
+  const frac=o.boss?WOUND_FRAC.boss:o.elite?WOUND_FRAC.elite:WOUND_FRAC.foe;
+  return Math.min(d,Math.max(1,Math.round((o.max||d)*frac)));
+}
 // The dungeon keeps up: ordinary foes grow with the player's build, gently. A build that
 // outpaces its floor meets thicker, harder-hitting foes (up to 3x life, 2x damage).
 function foePush(f){
@@ -1915,7 +1946,7 @@ function mkEnemy(type,x,f,boss){
   const d=(boss?BOSSES:ENEMIES)[type];const sc=1+.22*(f-1);const dm=Math.floor((f-1)/2);
   const R=type==='death'?ROUTES.medium:routeOf(),P=boss||type==='reaper'?{hp:1,dmg:1}:foePush(f);
   if(dbt(7))P.dmg*=1.25;if(dbt(9)&&boss)P.hp*=1.5;
-  const hp=Math.round(d.hp*sc*R.hp*P.hp);
+  const hp=Math.round(d.hp*sc*R.hp*P.hp*(boss||type==='reaper'||type==='death'?1:FOE_LIFE));
   return {kind:'enemy',t:type,n:d.n,x,dx:x*T,hp,max:hp,block:dbt(1)&&type!=='death'?3+Math.floor(f/2):0,pi:0,range:d.range||1,boss:!!boss,
     coins:d.coins.map(c=>Math.round(c*R.coins)),loot:boss?1:Math.min(1,(d.loot||.1)*R.loot),flash:0,
     pat:d.pat.map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='jackpot')?Math.max(1,Math.round((v+dm)*R.dmg*P.dmg)):(a==='guard'||a==='grow')?Math.round(v*sc*R.hp):v])};
@@ -2242,17 +2273,20 @@ function previewTurn(R){
   if(r.poison&&r.poison.turns>0)L.push(`<span style="color:#8cff96">☣ poisoned: ${r.poison.dmg} a turn for ${r.poison.turns} more turn${r.poison.turns>1?'s':''}${val('potion')?' · the potion cures it':' · a Potion cures it'}</span>`);
   if(val('potion'))L.push(`🧪 heal <b>${val('potion')*s.healPer}</b>`);
   if(val('coin'))L.push(`🪙 +<b>${fxFold('coinSym',val('coin')*s.coinPer)}</b> coins`);
-  if(val('skull'))L.push(hasR('beaker')?`⚗ Beaker: acid on the nearest foe for <b>${val('skull')*5}</b>, arcing to the next for <b>${val('skull')*3}</b>`:hasR('skullring')?`💀 Skull Ring: +<b>${val('skull')}</b> coins`:`💀 take <b>${fxFold('skullDmg',val('skull')*s.skullDmg)}</b> (ignores block)`);
+  if(val('skull')){if(hasR('beaker'))L.push(`⚗ Beaker: acid on the nearest foe for <b>${val('skull')*5}</b>, arcing to the next for <b>${val('skull')*3}</b>`);
+    else if(hasR('skullring'))L.push(`💀 Skull Ring: +<b>${val('skull')}</b> coins`);
+    else if(famTier('hex')>=3||r.hero==='hexpriest'){const t=nearestFoe(r.x+1,9),raw=val('skull')*(3+Math.floor(r.floor/3)+s.skullDmg)*(R.mult||1);L.push(t?`💀 hex ${t.n} for <b>${woundCap(t,raw)}</b>`:'💀 hex finds no foe');}
+    else L.push(`💀 take <b>${fxFold('skullDmg',val('skull')*s.skullDmg)}</b> (ignores block)`);}
   if(val('key')){const ch=r.objs.find(o=>o.kind==='chest'&&!o.gone&&o.x>r.x&&o.x-r.x<=3);L.push(ch?`🗝 open the chest ${ch.x-r.x} tile${ch.x-r.x>1?'s':''} ahead`:`🗝 no chest in reach: +1 🪙`);}
   // walk the boots forward on a copy of the map
-  let x=r.x,steps=val('boots')*s.move+(val('boots')?s.moveBonus:0),moved=0,shoves=0,shoveT=null,door=false;
+  let x=r.x,steps=Math.min(STEP_CAP,val('boots')*s.move+(val('boots')?s.moveBonus:0)),moved=0,shoves=0,shoveT=null,door=false;
   for(let i=0;i<steps;i++){const b=blockerAt(x+1);if(b){shoves++;shoveT=b;continue;}x++;moved++;if(r.objs.some(o=>o.kind==='door'&&o.x===x)){door=true;break;}}
   if(steps){const bits=[];if(moved)bits.push(`step <b>${moved}</b>`);if(shoves)bits.push(`shove ${nm(shoveT)} <b>${shoves}×${s.shove}</b>`);if(door)bits.push('<b>reach the exit</b>');L.push('🥾 '+bits.join(', '));}
   const mom=hasR('momentum')?moved:0;
   if(!door){
-    if(val('sword')){const t=blockerAt(x+1);L.push(t?`🗡 stab ${nm(t)} for <b>${gauntletCap((val('sword')*s.swordDmg+mom)*mu*((R.combos||{}).charge?2:1),val('sword')*(s.gauntlet||0)*mu*((R.combos||{}).charge?2:1))}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
-    if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${(val('bow')*s.bowDmg+mom)*mu}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
-    if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${(val('bomb')*s.bombDmg+mom)*mu}</b>`);}
+    if(val('sword')){const t=blockerAt(x+1);const raw=gauntletCap((val('sword')*s.swordDmg+mom)*mu*((R.combos||{}).charge?2:1),val('sword')*(s.gauntlet||0)*mu*((R.combos||{}).charge?2:1));L.push(t?`🗡 stab ${nm(t)} for <b>${woundCap(t,raw)}</b>`:`🗡 nothing in reach: <b>whiff</b>`);}
+    if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${woundCap(es[0],(val('bow')*s.bowDmg+mom)*mu)}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
+    if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);const raw=(val('bomb')*s.bombDmg+mom)*mu;const shown=ts.find(o=>o.kind==='enemy');L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${shown?woundCap(shown,raw):raw}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
     if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'||e.t==='labfreak'||(e.t==='death'&&e.phase>=3)?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
@@ -2301,7 +2335,7 @@ async function doTurn(R){
         const t2=r.objs.filter(o=>!o.gone&&o.kind==='enemy'&&o.x>r.x&&o!==ts[0]).sort((a,b)=>a.x-b.x)[0];if(t2){addFx('fx_curse',t2.x*T+T/2,GY-50,60,.6,10);await hit(t2,d2,'bomb');parts.push(`⚡${d2}`);}}
       else parts.push('⚗ fizzles');}
     else if(hasR('skullring')){gainCoins(val('skull'));parts.push(`💍+${val('skull')}`);}
-    else if(famTier('hex')>=3||r.hero==='hexpriest'){const d=val('skull')*(4+Math.floor(r.floor/2)+2*s.skullDmg)*mu,t=nearestFoe(run.x+1,9);   // grows with the floor, so Hex keeps up
+    else if(famTier('hex')>=3||r.hero==='hexpriest'){const d=val('skull')*(3+Math.floor(r.floor/3)+s.skullDmg)*mu,t=nearestFoe(run.x+1,9);   // ranged, and it keeps up, but a pile of skulls is a wound not a delete
       r.doom=(r.doom||0)+fxFold('skullDoom',val('skull')*(hasR('scythe')?2:1));
       if(t&&t.trait==='hexproof'){const bd=Math.ceil(d/2);r.hp-=bd;hurtBy('a hexproof foe',bd);heroFl('-'+bd+' 💀 bounced','#b07cf0');view.hurt=1;parts.push(`💀↩${bd}`);}
       else if(t){addFx('fx_curse',t.x*T+T/2,GY-50,80,.7,10);await hit(t,d,'hex');parts.push(`💀⚔${d}`);}else parts.push('💀 no target');}
@@ -2316,7 +2350,7 @@ async function doTurn(R){
   }
   if(r.hp<=0&&await tryDie())return;
   // movement
-  let moved=0;const steps=val('boots')*s.move+(val('boots')?s.moveBonus:0);if(val('boots'))fxEach('bootsSym',val('boots'));
+  let moved=0;const steps=Math.min(STEP_CAP,val('boots')*s.move+(val('boots')?s.moveBonus:0));if(val('boots'))fxEach('bootsSym',val('boots'));
   for(let i=0;i<steps;i++){
     const b=blockerAt(r.x+1);
     if(b){view.lunge=1;await hit(b,s.shove*mu,'shove');await beat(110);continue;}
@@ -2328,7 +2362,7 @@ async function doTurn(R){
   const mom=hasR('momentum')?moved:0;
   // daggers
   if(val('sword')){
-    const streak=r.hero==='duelist'?(r.duel||0):0;if(r.hero==='duelist')r.duel=streak+1;
+    const streak=r.hero==='duelist'?Math.min(DUEL_CAP,r.duel||0):0;if(r.hero==='duelist')r.duel=Math.min(DUEL_CAP,streak+1);
     const t=blockerAt(r.x+1),dmg=streak*mu+gauntletCap((val('sword')*s.swordDmg+mom)*(combo.charge?2:1)*mu,val('sword')*(s.gauntlet||0)*(combo.charge?2:1)*mu);
     if(t){view.lunge=1;view.slash={t:0,x:(r.x+1)*T};sfx.hit();await hit(t,dmg,'sword');parts.push(`🗡${dmg}`);
       const bt=famTier('blades');
@@ -2382,7 +2416,8 @@ async function hit(o,dmg,how){
   if(o.trait==='fireproof'&&how==='bomb')dmg=Math.ceil(dmg/2);
   if(o.trait==='hexproof'&&how==='hex'){fl('HEXPROOF','#b07cf0',o.x*T+T/2,GY-96);return;}
   if(o.t==='ironclad'&&!(how==='bomb'||how==='shove'||r.turnJackpot)){fl('IMMUNE','#9aa3ad',o.x*T+T/2,GY-96);o.flash=1;return;}
-  let d=Math.round(fxFold('dmgOut',dmg,o,how));if(d>0)metaEv('hit',d,d);if(o.block&&!fxFold('pierce',false,how)){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
+  let d=Math.round(fxFold('dmgOut',dmg,o,how));if(o.block&&!fxFold('pierce',false,how)){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
+  d=woundCap(o,d);if(d>0)metaEv('hit',d,d);
   if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.min(d,1+Math.floor(r.floor/8)),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
   r.bestHit=Math.max(r.bestHit||0,d);
   o.hp-=d;o.flash=1;if(d>0)HITT.set(o,performance.now());addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
@@ -3020,13 +3055,17 @@ function reelTable(){
 function helpShort(){
   return `<p>🪙 <b>Coin in, pull the lever.</b> Tap each reel (or STOP) to stop it. Every symbol on a payline is your action this turn.</p>
   <p>🥾 moves you right · 🗡️ stabs what's ahead · 🛡️ blocks · 🧪 heals · 🪙 pays coins back · 💀 hurts you.</p>
-  <p><b>Three of a kind multiplies x3.</b> Then every foe in range takes its turn — read their intent icons.</p>
+  <p><b>Three of a kind multiplies x3.</b> A heavy blow wounds a foe badly; a healthy one survives it, and a boss soaks more. Then every foe in range takes its turn — read their intent icons.</p>
+  <p>From floor 66 with 666 🪙 you can pay your debt and defy Death. Hold 777 🪙 on any floor and a second button offers the same table.</p>
   <p>Coins are your clock. Run dry and it's over — so kill things, grab piles and take the loot.</p>`;
 }
 
 /* ---------------- UI ---------------- */
 function ui(){
-  {const b=$('#defyBtn');if(b)b.classList.toggle('hidden',!deathReady());}
+  {const b=$('#defyBtn');if(b)b.classList.toggle('hidden',!deathReady());
+    const p=$('#purseDeathBtn');if(p){const on=purseDeathReady();p.classList.toggle('hidden',!on);
+      if(on)p.innerHTML=`Challenge Death<small>any floor · you hold ${run.coins} 🪙 · stake ${DEATH_PURSE}</small>`;
+      if(on&&!run.deathPurseNoted){run.deathPurseNoted=true;heroFl('Death will take your challenge','#e7c56a');}}}
   if(!run)return;const r=run,s=stats();const mx=s.maxHp;
   $('#hpbar').style.width=clamp(r.hp/mx*100,0,100)+'%';$('#hpwrap').classList.toggle('poison',!!(r.poison&&r.poison.turns>0));
   $('#hptxt').innerHTML=artify(`❤ ${Math.max(0,r.hp)}/${mx}`);
@@ -3201,7 +3240,7 @@ function showHub(v){
     <h3>Soul coins and free spins</h3><p>Some coins burn red with an ember: a <b>soul coin pays double</b>, two coins on a payline. The <b>🎁 Free Games</b> symbol is a scatter: <b>three anywhere on the screen</b> start free spins (four give 5, five give 8), with the wheel locked at ×5 on a retrigger when three more land during the bonus.</p>
     <h3>Coins are time</h3><p>Drag the dungeon sideways to look along the whole floor. Every five floors you pick a road: easy, medium or hard. Harder roads hit much harder and pay much better. You carry up to 10 relics; past that, a new one replaces one you choose. Outside a run: three Daily Contracts pay souls every day, the Bounty Board's feats unlock relics and cosmetics, the Soul Shredder turns souls into machine skins, auras, dyes and titles (wear them in the Wardrobe), and after your first win over Death, Debt levels raise the stakes for more souls. Coins pay for spins <i>and</i> merchant goods; the merchant sets up shop after every fifth floor. Foes, chests, coin piles and 🪙 symbols refill the purse. Hit zero and you must pawn gear or bust.</p>
     <h3>Loot</h3><p>Foes and chests drop gear in five rarities. Gear raises your numbers and can <b>weld new symbols onto your reels</b>. Relics from shrines, bosses and the merchant bend the rules.</p>
-    <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li></ul>
+    <h3>Side bets</h3><ul><li><b>Double or Nothing</b>: sometimes, after a turn that pays over 50 coins, flip for double (turn it off in Settings).</li><li><b>Cursed jackpots</b>: some jackpots offer double the multiplier for a Skull on your reels this floor.</li><li><b>Held reels</b> that match the others pay a few coins. The <b>Card Reel</b> (Workbench) adds Ace, King and Queen: cards on a payline make poker hands.</li><li>A full row of bulbs <b>during</b> free spins retriggers +3 and locks the wheel at ×5.</li><li><b>The Bookie</b> offers contracts at the start of some floors (pays 3×). Rarely you'll find a lost <b>scratch card</b> on the floor. The <b>merchant</b> sells a weekly Unique, a coin flip for half prices, and the <b>Taxman's loans</b> (repay 150% in 3 floors or his collector comes).</li><li><b>Gristle's shell game</b> and <b>Rattles' blackjack</b> turn up on some floors.</li><li><b>Death</b>: from floor 66 with 666 coins, pay your debt above the machine. Hold 777 coins on any floor and <b>Challenge Death</b> offers the same table. Decline, and the floor waits.</li></ul>
     <h3>Between runs</h3><ul><li><b>Souls</b> (every run) → Soul Altar stats, new heroes, vault slots.</li><li><b>Boss chips</b> → Machine Workbench: more paylines, more reels, slower reels.</li><li><b>Heirlooms</b>: keep one worn piece per run in the vault.</li></ul></div>`;
   }else if(v==='settings'){
     html=back+`<h2 style="color:var(--gold)">Settings</h2><div class="hubBtns">${settingsHTML()}<button class="btn danger" data-act="wipe">Wipe save</button></div>`;
@@ -3269,6 +3308,7 @@ $('#menuBtn').addEventListener('click',async()=>{
   if(v==='x')endRun('quit');
 });
 $('#defyBtn').addEventListener('click',()=>defyDeath());
+$('#purseDeathBtn').addEventListener('click',()=>challengeDeathPurse());
 // drag (or scroll sideways) across the scene to look along the whole floor
 {const sc=$('#scene');
   sc.addEventListener('pointerdown',e=>{if(!run||run.death||e.button>0)return;view.drag={x:e.clientX,pan:view.pan,moved:false,w:sc.getBoundingClientRect().width||1,id:e.pointerId};});

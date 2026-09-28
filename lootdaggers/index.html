@@ -142,7 +142,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wdIt.pick{outline:2px dashed var(--tc);outline-offset:1px}
 .wdGrp{grid-column:1/-1;font-family:var(--head);font-size:17px;color:#cdb68a;margin:6px 0 0}
 .shrShow{margin:6px 0}.shrShowRow{display:grid;grid-template-columns:1fr 1fr .8fr;gap:6px;align-items:center}
-.shrPrev{max-width:240px;margin:4px auto 2px}.shrPrev .pvHero{max-width:150px}
+.shrPrev{max-width:240px;margin:4px auto 2px}
+.shrFeed{width:100%;white-space:normal;line-height:1.1}.shrFeed small{white-space:nowrap}.shrPrev .pvHero{max-width:150px}
 /* ---- the Soul Shredder ---- */
 #shredLayer{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(6,3,5,.86);padding:14px}
 #shredLayer.show{display:flex}
@@ -3198,7 +3199,7 @@ function showHub(v){
       <div class="shrShow"><div class="recH" style="margin:4px 0">Inside the machine</div><div class="shrShowRow">${pvSkin(SKINS.find(x=>x.id==='eternal'))}${pvSkin(SKINS.find(x=>x.id==='reaper'))}${pvHero({hero:pick(artHeroes().length?artHeroes():['knight']),aura:'prism'})}</div></div>
       <div class="shrOdds">${[1,2,3,4,5].map(t=>`<span style="color:${TIER[t].c}">${TIER[t].n} ${Math.round(SHRED_W[t]/SHRED_W.reduce((a,b)=>a+b,0)*100)}%</span>`).join(' · ')}</div>
       <p class="sub">${left} of ${all} cosmetics still inside · you own ${own} · misses in a row: ${miss}/${SHRED_PITY}</p>
-      <button class="btn primary goldbtn" data-act="shred" ${S.souls<SHRED_COST||!left?'disabled':''}>Feed the Shredder · 💠${SHRED_COST}<small>you have ${S.souls}</small></button>`;
+      <button class="btn primary goldbtn shrFeed" data-act="shred" ${S.souls<SHRED_COST||!left?'disabled':''}>Feed the Shredder<small>💠${SHRED_COST} a feed · you have ${S.souls}</small></button>`;
     setTimeout(pvStart,0);
   }else if(v==='wardrobe'){
     const c=cosState(),hs=artHeroes(),hero=hs.includes(S.wardHero)?S.wardHero:(hs[0]||'knight');

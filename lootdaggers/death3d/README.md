@@ -47,36 +47,42 @@ lifts Death 13 cm for those two clips. The win is a dissolve plus soul
 particles, because the defeat clip is a slump. Robe and cape wind is a
 vertex shader. On a phone or a machine with 4 GB or less, character
 textures are drawn down to 1K before upload. The throne and the room stay
-at their file size. Phones cap the pixel ratio at 1.5 and skip antialias,
-brazier point lights, and most of the drifting motes. Desktop stays at 2.
+at their file size. Phones cap the pixel ratio at 1.5 and skip antialias. Phones and software
+GL also skip the shadow map, the bloom pass, and all but four point lights.
+Desktop stays at a pixel cap of 2.
 
-Death is scaled a little larger than the throne (`pack.deathScale`) and
-shifted so his hips stay in the seat. While the fight is up, `#scene3d` is
-`position: fixed` and fills the viewport. The reels, spin, both life bars
-and the log pack into a bottom strip (`#game.death3d`). The forecast sits
-in a small chip just above that strip. The class comes off when the fight
-ends, so a normal run is unchanged.
+Death, the throne and the hall keep the asset package's scale. While the
+fight is up, `#scene3d` is `position: fixed` and fills the viewport. The reels,
+spin, both life bars and the log pack into a bottom strip (`#game.death3d`).
+The forecast is a chip at the top of the screen, off the hero and the throne
+base. The class comes off when the fight ends, so a normal run is unchanged.
 
-The resting camera is the hall's `Marker_Camera`: behind the hero's shoulder,
-throne centred, pillars at the sides. An intro rises into that shot. A resolve
-plays a short sequence (hero push-in, cut to Death's flinch, or a wide low
-angle when a soul blast or beam hits the hero) and then returns. Win and loss
-have their own finishers. A tap on the 3D view skips the sequence.
+The resting camera sits at shoulder height behind the hero so his back stays
+in frame, with the throne centred and the pillars at the sides. An intro rises
+into that shot. A resolve plays a short sequence (a push from behind the hero,
+a cut to Death's flinch, or a side angle on a soul blast that still looks up
+the hall) and then returns. Win and loss have their own finishers, and the
+result dialog waits about 1.8s so the finisher is on screen first. A tap on
+the 3D view skips the sequence. Shot timing follows the wall clock, so a slow
+frame does not stretch the intro.
+
 `prefers-reduced-motion` and a reduce-flashing save flag (`S.reduceFlash`,
 `S.reduceFlashing`, or `S.flashing === false`) crossfade those cuts instead of
 snapping them.
 
-Lighting follows the artist's render. Warm orange point lights sit on every
-`Socket_Flame_*` brazier and candle. A green soul light and additive wisps
-light Death and the throne. Ambient stays dark and cool so the stone texture
-reads. The near brazier also casts a soft shadow (2048, or 1024 on a phone).
-Tone mapping is AgX with an sRGB target, and the hall uses green `FogExp2`.
-Desktop blooms the flames, eyes and soul sprites. Phones skip that pass and
-use larger additive sprites. A RoomEnvironment PMREM is the env map, kept dim
-so it does not wash the stone. Death, the throne and the hall keep the asset
-package's scale. The scythe mesh is detached and re-parented so the hand sits
-about 40% up the shaft with the blade over the shoulder. It swings on attack
-cues. A future `scythe.glb` (origin at the grip, +Y toward the blade) drops in
+Lighting follows the artist's render. The hall is dark: thin near-black
+`FogExp2`, a low hemisphere, and a dimmed backdrop so the ceiling is not a
+teal band. Warm orange point lights sit on the throne-side braziers (candles
+are sprites only). A small green soul light and a tight wisp sit on Death's
+chest, not over his skull. A real GPU casts one 512 shadow from the near
+brazier and blooms only pixels above a high threshold, so flames, eyes and
+soul sprites halo and the bone throne does not. Phones and software GL skip
+the shadow map, the bloom pass and the env map, light the characters with
+Lambert and the hall with the texture only, and keep at most four
+shadow-free point lights. Software GL also draws into a slightly smaller
+buffer so the frame rate stays near the unlit fight. Tone mapping is AgX. The scythe is held nearly
+upright, the curved blade's face toward the camera, the shaft through the
+hand. A future `scythe.glb` (origin at the grip, +Y toward the blade) drops in
 through `manifest.js` `assets.scythe.url`.
 
 ## What the fight asks the scene to play
@@ -99,13 +105,12 @@ arrives a fraction of a second later, the way the old soul shots did.
 
 `prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
 and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
-ratio is capped at 2. The resting shot uses the hall's `Marker_Camera`,
-behind the hero's shoulder, with the throne centred and the pillars at the
-edges. Lighting follows the artist's render: warm orange point lights on
-every `Socket_Flame_*`, a green soul glow on Death and the throne, dark
-green-grey ambient, and murky green `FogExp2`. Tone mapping is AgX. Desktop
-blooms the flames, eyes and soul sprites; phones use larger additive sprites.
-Death, the throne and the hall keep the asset package's scale.
+ratio is capped at 2. The resting shot is shoulder height behind the hero,
+throne centred, pillars at the edges. Lighting is a dark hall, warm braziers,
+and green only as a soul accent on Death. Tone mapping is AgX. A real GPU
+blooms flames, eyes and soul sprites above a high threshold; phones and
+software GL use small additive sprites and no shadow map. Death, the throne
+and the hall keep the asset package's scale.
 
 ## Files
 

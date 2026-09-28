@@ -114,17 +114,17 @@ class Arena {
     }
     const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: false, antialias: aa });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.setClearColor(0x0c1012, 1);
+    renderer.toneMapping = THREE.AgXToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    renderer.setClearColor(0x1c3c34, 1);
     renderer.shadowMap.enabled = true;
     /* r186 removed PCFSoftShadowMap (it warns and falls back). Softness is
        the spotlight's shadow.radius on PCFShadowMap. */
     renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0c1012);
-    this.scene.fog = new THREE.FogExp2(0x100e12, 0.03);
+    this.scene.background = new THREE.Color(0x1c3c34);
+    this.scene.fog = new THREE.FogExp2(0x2f5c50, 0.052);
     const cam = this.manifest.layout.camera;
     this.camera = new THREE.PerspectiveCamera(cam.fov, 1, 0.08, 40);
     this.baseCam = new THREE.Vector3().fromArray(cam.pos);
@@ -517,16 +517,28 @@ class Arena {
   _lights(t, motion) {
     const calm = motion.reduced || reduceFlashing();
     const flick = calm ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35 + Math.sin(t * 47.0) * 0.15);
-    const torch = 1 + flick * 0.16;
-    if (this.key) this.key.intensity = (this.keyBase || 36) * torch;
-    this.brazierL[0].intensity = 3.2 * torch;
-    this.brazierL[1].intensity = 2.6 * (1 + (calm ? 0 : Math.cos(t * 11.0) * 0.12));
+    const torch = 1 + flick * 0.14;
+    if (this.key) this.key.intensity = (this.keyBase || 16) * torch;
+    if (this.flameLights) {
+      for (let i = 0; i < this.flameLights.length; i++) {
+        const L = this.flameLights[i];
+        const base = L.userData.base || 1;
+        const wobble = calm ? 0 : Math.sin(t * (L.userData.brazier ? 11 : 8) + i * 1.7) * (L.userData.brazier ? 0.12 : 0.08);
+        L.intensity = base * (1 + wobble);
+      }
+    } else if (this.brazierL) {
+      this.brazierL[0].intensity = 3.2 * torch;
+      this.brazierL[1].intensity = 2.6 * (1 + (calm ? 0 : Math.cos(t * 11.0) * 0.12));
+    }
     const ph = this.phase;
-    this.rim.intensity = (2.4 + (ph - 1) * 0.55) * (this.won ? 0.45 : 1);
+    this.rim.intensity = (0.35 + (ph - 1) * 0.25) * (this.won ? 0.45 : 1);
     const eyePos = this._anchorWorld(this.deathActor, 'eyes');
-    this.soulLight.position.copy(eyePos);
-    this.soulLight.position.z -= 0.35;
-    this.soulLight.intensity = (ph === 1 ? 1.1 : ph === 2 ? 1.8 : 2.6) * (0.9 + 0.1 * Math.sin(t * 3));
+    const chestPos = this._anchorWorld(this.deathActor, 'chest');
+    this.soulLight.position.copy(chestPos);
+    this.soulLight.position.y += 0.15;
+    this.soulLight.position.z += 0.35;
+    const soulBase = this.low ? 7 : 11;
+    this.soulLight.intensity = (soulBase + (ph - 1) * 1.4) * (0.92 + (calm ? 0 : 0.08 * Math.sin(t * 2.4)));
     if (this.key) this.key.target.position.copy(this._anchorWorld(this.deathActor, 'chest'));
     if (this.cheapSprite) {
       this.cheapSprite.position.copy(eyePos);
@@ -543,6 +555,12 @@ class Arena {
       if (on) {
         const s = 0.85 + Math.sin(t * 14 + f.position.x) * 0.2;
         f.scale.setScalar(s * (0.7 + ph * 0.25));
+      }
+    }
+    if (this.soulSprites) {
+      for (const s of this.soulSprites) {
+        const base = s.userData.base || 0.5;
+        s.scale.setScalar(base * (0.92 + Math.sin(t * 2.2 + s.position.y) * 0.08));
       }
     }
     if (this.hitLight.intensity > 0.05) this.hitLight.intensity *= motion.reduced ? 0.7 : 0.82;
@@ -580,43 +598,45 @@ class Arena {
 
   _buildLights() {
     const scene = this.scene;
-    const hemi = new THREE.HemisphereLight(0x8a7560, 0x1a100c, 0.55);
+    /* Dark and cool. The braziers and the soul glow do the real lighting. */
+    const hemi = new THREE.HemisphereLight(0x3d5c54, 0x14110e, 0.62);
     scene.add(hemi);
-    const fill = new THREE.DirectionalLight(0xffe2c4, 0.42);
-    fill.position.set(-1.2, 4.2, 6.5);
+    const fill = new THREE.DirectionalLight(0x8aa89c, 0.28);
+    fill.position.set(0.4, 6.5, 4.2);
     scene.add(fill);
-    /* Green rim from behind Death so the hood separates from the dark hall. */
-    this.rim = new THREE.DirectionalLight(0x3ee6a8, 2.4);
-    this.rim.position.set(0.2, 5.4, -4.5);
-    this.rim.target.position.set(0, 2.2, 0.6);
+    /* A faint green edge behind the hood. The throne glow is the point light. */
+    this.rim = new THREE.DirectionalLight(0x1f8a68, 0.35);
+    this.rim.position.set(0.2, 4.2, -3.2);
+    this.rim.target.position.set(0, 1.6, 0.4);
     scene.add(this.rim);
     scene.add(this.rim.target);
     const map = this.low ? 1024 : 2048;
-    this.keyBase = this.low ? 28 : 42;
-    this.key = new THREE.SpotLight(0xffb56a, this.keyBase, 24, Math.PI * 0.46, 0.42, 1.15);
-    this.key.position.set(2.8, 2.15, 8.4);
-    this.key.target.position.set(0, 1.7, 1.2);
+    this.keyBase = this.low ? 16 : 26;
+    /* Shadow-casting torch. Colour comes from the flame point lights. */
+    this.key = new THREE.SpotLight(0xff6a30, this.keyBase, 14, 0.85, 0.62, 2);
+    this.key.position.set(3.4, 1.6, 9);
+    this.key.target.position.set(0, 0.6, 2.2);
     this.key.castShadow = true;
     this.key.shadow.mapSize.set(map, map);
     this.key.shadow.bias = -0.00022;
     this.key.shadow.normalBias = 0.04;
     this.key.shadow.camera.near = 0.4;
-    this.key.shadow.camera.far = 26;
-    this.key.shadow.radius = 2;
+    this.key.shadow.camera.far = 22;
+    this.key.shadow.radius = 2.5;
     scene.add(this.key);
     scene.add(this.key.target);
-    this.soulLight = new THREE.PointLight(0x62ffd8, 1.4, 6.5, 2);
+    this.soulLight = new THREE.PointLight(0x3dffc0, this.low ? 7 : 11, 8.5, 2);
     scene.add(this.soulLight);
-    this.brazierL = [new THREE.PointLight(0xff7a3a, 3.2, 8, 2), new THREE.PointLight(0xff6828, 2.6, 8, 2)];
+    this.brazierL = [new THREE.PointLight(0xff5c24, 3.2, 7, 2), new THREE.PointLight(0xff5c24, 2.6, 7, 2)];
     this.brazierL.forEach(l => scene.add(l));
-    this.heroRim = new THREE.DirectionalLight(0x9af6ea, 0.35);
-    this.heroRim.position.set(1.4, 2.6, 9.2);
-    this.heroRim.target.position.set(0, 1.4, 6.2);
+    this.heroRim = new THREE.DirectionalLight(0x7dffe0, 0.08);
+    this.heroRim.position.set(0, 2.2, 1.2);
+    this.heroRim.target.position.set(0, 1.3, 6.2);
     scene.add(this.heroRim);
     scene.add(this.heroRim.target);
     this.hitLight = new THREE.PointLight(0xffe2b0, 0, 6, 2);
     scene.add(this.hitLight);
-    this.candleL = new THREE.PointLight(0xffc48a, 1.4, 5, 2);
+    this.candleL = new THREE.PointLight(0xffb067, 1.2, 3, 2);
     scene.add(this.candleL);
     if (this.low) this._cheapGlow();
   }
@@ -663,7 +683,8 @@ class Arena {
       const composer = new EffectComposer(this.renderer);
       composer.addPass(new RenderPass(this.scene, this.camera));
       const size = new THREE.Vector2(this.canvas.clientWidth || 256, this.canvas.clientHeight || 256);
-      const bloom = new UnrealBloomPass(size, 0.42, 0.38, 0.96);
+      /* Soft halo on flames, eyes and the soul glow. Stone stays under the threshold. */
+      const bloom = new UnrealBloomPass(size, 0.62, 0.78, 0.68);
       composer.addPass(bloom);
       composer.addPass(new OutputPass());
       this.composer = composer;
@@ -783,8 +804,8 @@ class Arena {
     prepMeshes(throne, { rim: 0.04 });
     seat.add(throne);
     if (want1k()) downscaleMaps(deathG.scene, 1024);
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMapping = THREE.AgXToneMapping;
+    this.renderer.toneMappingExposure = 1.12;
     this.room.group.visible = false;
     this.throne.group.visible = false;
     this.packThrone = throne;
@@ -801,10 +822,13 @@ class Arena {
     this.stand = { hero: [p.x, p.y, p.z], lungeSign: -1 };
     this.heroAnchor.position.set(p.x, p.y, p.z);
     this.heroAnchor.rotation.y = Math.PI;
-    this.scene.fog = new THREE.FogExp2(0x101614, 0.02);
-    this.scene.background = new THREE.Color(0x0c1012);
-    this._flames(env);
+    this.scene.fog = new THREE.FogExp2(0x2f5c50, 0.052);
+    this.scene.background = new THREE.Color(0x1c3c34);
     this._placeKey(env);
+    this._flames(env);
+    this._soulGlow(this.deathActor.model);
+    if (this.brazierL) this.brazierL.forEach(l => { l.intensity = 0; });
+    if (this.candleL) this.candleL.intensity = 0;
     this.resize();
   }
 
@@ -921,21 +945,47 @@ class Arena {
     });
   }
 
-  /* Warm key from the brazier nearest the camera, aimed across the hall. */
+  /* Shadow torch at the brazier nearest the camera, aimed across the floor. */
   _placeKey(env) {
     if (!this.key) return;
     let best = null;
+    let bestName = '';
     let bestZ = -1e9;
     env.traverse(obj => {
       if (!obj.name || obj.name.indexOf('Socket_Flame_Brazier') !== 0) return;
       const at = new THREE.Vector3();
       obj.updateWorldMatrix(true, false);
       obj.getWorldPosition(at);
-      if (at.z > bestZ) { bestZ = at.z; best = at.clone(); }
+      if (at.z > bestZ) { bestZ = at.z; best = at.clone(); bestName = obj.name; }
     });
-    if (!best) best = new THREE.Vector3(2.8, 1.8, 8.4);
-    best.y += 0.18;
+    if (!best) best = new THREE.Vector3(3.4, 1.55, 9);
+    best.y += 0.12;
     this.key.position.copy(best);
+    this.key.target.position.set(0, 0.55, 2.4);
+    this._keySocket = bestName;
+  }
+
+  /* Visible green energy around Death. Bloom picks it up on desktop; on a
+     phone the additive sprites are the glow. */
+  _soulGlow(model) {
+    const socket = (model && model.getObjectByName('Socket_Chest')) || (model && model.getObjectByName('Socket_Eyes'));
+    if (!socket || !this.tex.soul) return;
+    const make = (scale, opacity, y, z) => {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: this.tex.soul, color: 0xb8ffe4, blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, toneMapped: false, opacity,
+      }));
+      s.scale.setScalar(scale);
+      s.position.set(0, y, z);
+      s.userData.base = scale;
+      socket.add(s);
+      return s;
+    };
+    const big = !!this.low;
+    this.soulSprites = [
+      make(big ? 1.45 : 1.15, 0.62, 0.08, 0.16),
+      make(big ? 0.85 : 0.62, 0.72, 0.42, 0.28),
+    ];
   }
 
   _gripScythe(actor) {
@@ -1006,20 +1056,26 @@ class Arena {
       if (fire) {
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({
           map: fire, blending: THREE.AdditiveBlending, transparent: true,
-          depthWrite: false, toneMapped: false, color: 0xffb060,
+          depthWrite: false, toneMapped: false, color: brazier ? 0xffc080 : 0xffd7a4,
         }));
-        const base = brazier ? (nearCam ? 0.26 : 0.58) : 0.2;
-        sp.scale.setScalar(base);
-        sp.userData.base = base;
+        const base = brazier ? (nearCam ? 0.34 : 0.55) : 0.18;
+        const spr = this.low ? base * 1.28 : base;
+        sp.scale.setScalar(spr);
+        sp.userData.base = spr;
         sp.position.y = brazier ? 0.08 : 0.02;
         obj.add(sp);
         this.flameSprites.push(sp);
       }
-      if (brazier && !nearCam && !this.low) {
-        const light = new THREE.PointLight(0xff8a3a, 2.1, 5.5, 2);
-        light.position.y = 0.05;
-        obj.add(light);
-      }
+      /* The shadow torch already lights the nearest brazier. */
+      if (obj.name === this._keySocket) return;
+      const intensity = brazier ? (this.low ? 12 : 18) : (this.low ? 2.4 : 3.6);
+      const light = new THREE.PointLight(brazier ? 0xff5c24 : 0xffb067, intensity, brazier ? 9 : 3.4, 2);
+      light.position.y = brazier ? 0.1 : 0.03;
+      light.userData.base = intensity;
+      light.userData.brazier = !!brazier;
+      obj.add(light);
+      if (!this.flameLights) this.flameLights = [];
+      this.flameLights.push(light);
     });
   }
 
@@ -2007,9 +2063,9 @@ function tunePbr(m) {
   }
   const name = (m.name || '').toLowerCase();
   const metalName = /metal|iron|gold|blade|scythe|armor|plate|brazier|coin/.test(name);
-  if (!m.roughnessMap && m.roughness >= 0.8) m.roughness = metalName ? 0.34 : 0.56;
-  if (!m.metalnessMap && m.metalness < 0.04) m.metalness = metalName ? 0.62 : 0.08;
-  if (m.envMapIntensity == null || m.envMapIntensity === 1) m.envMapIntensity = metalName ? 1.05 : 0.7;
+  if (!m.roughnessMap && m.roughness >= 0.8) m.roughness = metalName ? 0.38 : 0.82;
+  if (!m.metalnessMap && m.metalness < 0.04) m.metalness = metalName ? 0.55 : 0.04;
+  m.envMapIntensity = metalName ? 0.45 : 0.22;
 }
 
 function flagShadows(root) {
@@ -2490,19 +2546,16 @@ function anchorShot(arena, who, name, fallback) {
 }
 
 function shotRest(arena) {
-  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 2.8, -0.4));
-  const chest = anchorShot(arena, 'hero', 'chest', new THREE.Vector3(0, 1.4, 6.5));
-  const aspect = arena.camera.aspect || 1;
-  const pos = chest.clone();
-  /* On the shoulder, not a metre behind it, so the hero frames the corner
-     and Death fills the hall. A narrower fov keeps that at seven metres. */
-  pos.x += aspect < 0.75 ? 0.34 : 0.62;
-  pos.y += 0.16;
-  pos.z += aspect < 0.75 ? 0.22 : 0.08;
-  const look = eyes.clone();
-  look.y += 0.38;
-  const fov = aspect < 0.75 ? 30 : aspect < 1.25 ? 24 : 20;
-  return { pos, look, fov };
+  const pos = new THREE.Vector3(0.7, 2.45, 11.2);
+  const marker = arena.packRoot && arena.packRoot.getObjectByName('Marker_Camera');
+  if (marker) marker.getWorldPosition(pos);
+  const eyes = anchorShot(arena, 'death', 'eyes', new THREE.Vector3(0, 1.9, 0.2));
+  /* Throne centred. The marker sits just off the hero's shoulder. */
+  const look = new THREE.Vector3(0, Math.max(1.15, eyes.y * 0.72), 0.25);
+  const aspect = Math.max(0.35, arena.camera.aspect || 1);
+  const hDeg = aspect < 0.75 ? 70 : 82;
+  const fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(hDeg) * 0.5) / aspect));
+  return { pos, look, fov: Math.min(90, Math.max(38, fov)) };
 }
 
 function shotIntro(arena) {

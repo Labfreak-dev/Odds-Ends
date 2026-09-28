@@ -57,25 +57,27 @@ and the log pack into a bottom strip (`#game.death3d`). The forecast sits
 in a small chip just above that strip. The class comes off when the fight
 ends, so a normal run is unchanged.
 
-The resting camera is over the hero's shoulder, looking up at Death. An
-intro rises from the dais into that shot. A resolve plays a short sequence
-(hero push-in, cut to Death's flinch, or a wide low angle when a soul blast
-or beam hits the hero) and then returns. Win and loss have their own
-finishers. A tap on the 3D view skips the sequence. `prefers-reduced-motion`
-and a reduce-flashing save flag (`S.reduceFlash`, `S.reduceFlashing`, or
-`S.flashing === false`) crossfade those cuts instead of snapping them.
+The resting camera is the hall's `Marker_Camera`: behind the hero's shoulder,
+throne centred, pillars at the sides. An intro rises into that shot. A resolve
+plays a short sequence (hero push-in, cut to Death's flinch, or a wide low
+angle when a soul blast or beam hits the hero) and then returns. Win and loss
+have their own finishers. A tap on the 3D view skips the sequence.
+`prefers-reduced-motion` and a reduce-flashing save flag (`S.reduceFlash`,
+`S.reduceFlashing`, or `S.flashing === false`) crossfade those cuts instead of
+snapping them.
 
-Lighting is real. A warm spot at the near `Socket_Flame_Brazier` casts
-PCFSoft shadows (2048, or 1024 on a phone) onto the floor and the throne.
-A green rim sits behind Death, his eyes are emissive, and a hemisphere
-fills the room. Tone mapping stays ACESFilmic with an sRGB target, and the
-hall has fog. Desktop adds UnrealBloomPass. Phones skip that pass and use a
-soft additive halo instead. A RoomEnvironment PMREM is the env map, and
-roughness/metalness are pulled off the clay defaults. The scythe mesh is
-detached and re-parented so the hand sits about 40% up the shaft with the
-blade over the shoulder. It swings on attack cues. A future `scythe.glb`
-(origin at the grip, +Y toward the blade) drops in through `manifest.js`
-`assets.scythe.url`.
+Lighting follows the artist's render. Warm orange point lights sit on every
+`Socket_Flame_*` brazier and candle. A green soul light and additive wisps
+light Death and the throne. Ambient stays dark and cool so the stone texture
+reads. The near brazier also casts a soft shadow (2048, or 1024 on a phone).
+Tone mapping is AgX with an sRGB target, and the hall uses green `FogExp2`.
+Desktop blooms the flames, eyes and soul sprites. Phones skip that pass and
+use larger additive sprites. A RoomEnvironment PMREM is the env map, kept dim
+so it does not wash the stone. Death, the throne and the hall keep the asset
+package's scale. The scythe mesh is detached and re-parented so the hand sits
+about 40% up the shaft with the blade over the shoulder. It swings on attack
+cues. A future `scythe.glb` (origin at the grip, +Y toward the blade) drops in
+through `manifest.js` `assets.scythe.url`.
 
 ## What the fight asks the scene to play
 
@@ -97,12 +99,13 @@ arrives a fraction of a second later, the way the old soul shots did.
 
 `prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
 and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
-ratio is capped at 2. Shadows are soft PCF from the torch key light
-(r186 dropped `PCFSoftShadowMap`; the spot uses `shadow.radius`). The resting
-shot sits on the hero's shoulder with a tighter field of view so Death
-fills the hall. The scythe is aimed every frame: the hand stays about 40%
-up the shaft, the blade leans out over the shoulder toward the camera, and
-the flat of the blade faces the lens.
+ratio is capped at 2. The resting shot uses the hall's `Marker_Camera`,
+behind the hero's shoulder, with the throne centred and the pillars at the
+edges. Lighting follows the artist's render: warm orange point lights on
+every `Socket_Flame_*`, a green soul glow on Death and the throne, dark
+green-grey ambient, and murky green `FogExp2`. Tone mapping is AgX. Desktop
+blooms the flames, eyes and soul sprites; phones use larger additive sprites.
+Death, the throne and the hall keep the asset package's scale.
 
 ## Files
 

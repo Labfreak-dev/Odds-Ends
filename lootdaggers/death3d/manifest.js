@@ -9,14 +9,17 @@ export const DEATH3D_MANIFEST = {
      Death's throne is down +Z. The camera sits behind the hero (negative Z)
      and a little above him, looking up the stairs. */
   layout: {
-    hero: [-0.48, 0, 0.05],
+    hero: [-0.16, 0, 0.22],
     throne: [0, 0, 6.85],
-    /* Death's seat, in throne-local meters. His pelvis sits on the cushion. */
+    /* Death's seat, in throne-local meters. His pelvis sits on the cushion.
+       The backrest is on +Z; the hero and camera are on -Z. */
     deathSeat: [0, 1.78, 0.08],
+    /* Over-the-shoulder default for a ~430x366 scene. resize() refits this
+       to the canvas aspect. */
     camera: {
-      fov: 42,
-      pos: [0.46, 1.7, -1.48],
-      look: [-0.05, 3.15, 6.2],
+      fov: 52,
+      pos: [-0.38, 1.86, -1.06],
+      look: [0, 2.25, 6.75],
     },
   },
   assets: {

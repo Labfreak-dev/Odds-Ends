@@ -87,18 +87,18 @@ class Arena {
     const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: false, antialias: (window.devicePixelRatio || 1) < 1.5 });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1.12;
     renderer.setClearColor(0x07060b, 1);
     this.renderer = renderer;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x07060b);
-    this.scene.fog = new THREE.FogExp2(0x0a090d, 0.052);
+    this.scene.fog = new THREE.FogExp2(0x100e12, 0.028);
     const cam = this.manifest.layout.camera;
     this.camera = new THREE.PerspectiveCamera(cam.fov, 1, 0.08, 40);
     this.baseCam = new THREE.Vector3().fromArray(cam.pos);
     this.baseLook = new THREE.Vector3().fromArray(cam.look);
-    this.pushCam = new THREE.Vector3(0.1, 2.05, 2.85);
-    this.pushLook = new THREE.Vector3(0, 3.55, 6.7);
+    this.pushCam = new THREE.Vector3(-0.3, 2.2, -0.1);
+    this.pushLook = new THREE.Vector3(0, 3.1, 6.75);
     this.camPos = this.baseCam.clone();
     this.lookPos = this.baseLook.clone();
 
@@ -185,9 +185,18 @@ class Arena {
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
-    const base = this.manifest.layout.camera.fov;
-    this.camera.fov = h > w * 1.2 ? Math.min(58, base + 8) : base;
+    const framed = frameShot(w / h, this.manifest.layout.hero);
+    this.camera.fov = framed.fov;
+    this.baseCam.copy(framed.pos);
+    this.baseLook.copy(framed.look);
+    this.pushCam.copy(framed.pos).add(new THREE.Vector3(0.06, 0.4, 0.95));
+    this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.85, 0));
     this.camera.updateProjectionMatrix();
+    const pts = this.vfx && this.vfx.pool && this.vfx.pool.mat.uniforms;
+    if (pts && pts.uDpr) {
+      pts.uDpr.value = pr;
+      pts.uMax.value = 56 * pr;
+    }
   }
 
   stop() {
@@ -355,7 +364,7 @@ class Arena {
     const amp = motion.reduced ? 0.35 : 1;
     const hero = this.heroActors[this.activeHero];
     const base = this.manifest.layout.hero;
-    const lungeZ = (hero.driving === 'clip' ? 0.28 : 0.7) * lunge;
+    const lungeZ = (hero.driving === 'clip' ? 0.55 : 1.6) * lunge;
     this.heroAnchor.position.set(base[0] + Math.sin(this.dodgeT * 9) * this.dodgeT * 0.55, base[1] - this.fallT * 0.55, base[2] + lungeZ);
     if (hero.group.visible) poseHero(hero, t, {
       attack: this.attackT < 0 ? 0 : this.attackT,
@@ -388,11 +397,11 @@ class Arena {
 
   _lights(t, motion) {
     const flick = motion.reduced ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35);
-    this.brazierL[0].intensity = 46 + flick * 10;
-    this.brazierL[1].intensity = 40 + Math.cos(t * 11.0) * 8;
+    this.brazierL[0].intensity = 70 + flick * 14;
+    this.brazierL[1].intensity = 62 + Math.cos(t * 11.0) * 10;
     const ph = this.phase;
-    this.rim.intensity = (1.7 + (ph - 1) * 0.85) * (this.won ? 0.4 : 1);
-    this.soulLight.intensity = (ph === 1 ? 2.2 : ph === 2 ? 8 : 16) * (0.85 + 0.15 * Math.sin(t * 3));
+    this.rim.intensity = (6.5 + (ph - 1) * 1.4) * (this.won ? 0.45 : 1);
+    this.soulLight.intensity = (ph === 1 ? 6 : ph === 2 ? 10 : 14) * (0.85 + 0.15 * Math.sin(t * 3));
     this.soulLight.position.copy(this._anchorWorld(this.deathActor, 'eyes'));
     if (this.throne.crackMat) this.throne.crackMat.emissiveIntensity = 0.15 + (ph - 1) * 1.35;
     for (const c of this.throne.cracks) {
@@ -456,16 +465,24 @@ class Arena {
 
   _buildLights() {
     const scene = this.scene;
-    scene.add(new THREE.HemisphereLight(0x243044, 0x120c0e, 0.62));
-    const fill = new THREE.DirectionalLight(0xd9c3a2, 0.42);
-    fill.position.set(-1.4, 3.4, -5);
+    scene.add(new THREE.HemisphereLight(0x4a5c6c, 0x1a100c, 1.35));
+    const fill = new THREE.DirectionalLight(0xffe2c4, 2.6);
+    fill.position.set(-0.8, 3.2, -3.5);
     scene.add(fill);
-    this.rim = new THREE.DirectionalLight(0x8ef6dc, 1.9);
-    this.rim.position.set(-1.2, 8.2, 13);
+    /* Cold rim from behind Death, aimed at his chest so the hood reads. */
+    this.rim = new THREE.DirectionalLight(0x9af6ea, 6.5);
+    this.rim.position.set(0.3, 6.2, 12.5);
+    this.rim.target.position.set(0, 3.1, 6.6);
     scene.add(this.rim);
-    this.soulLight = new THREE.PointLight(0x62ffd8, 2.4, 9, 2);
+    scene.add(this.rim.target);
+    const side = new THREE.DirectionalLight(0x7ee0ff, 2.2);
+    side.position.set(-4.5, 4.2, 8.5);
+    side.target.position.set(0, 3.0, 6.5);
+    scene.add(side);
+    scene.add(side.target);
+    this.soulLight = new THREE.PointLight(0x62ffd8, 6, 5.5, 2);
     scene.add(this.soulLight);
-    this.brazierL = [new THREE.PointLight(0xff7a3a, 46, 12, 2), new THREE.PointLight(0xff6828, 40, 12, 2)];
+    this.brazierL = [new THREE.PointLight(0xff7a3a, 70, 14, 2), new THREE.PointLight(0xff6828, 62, 14, 2)];
     this.brazierL.forEach(l => scene.add(l));
     this.hitLight = new THREE.PointLight(0xffe2b0, 0, 5, 2);
     scene.add(this.hitLight);
@@ -488,12 +505,13 @@ class Arena {
       parent.add(s);
       return s;
     };
-    for (const br of this.room.braziers) flame(br, br.userData.flameY, 0.7, this.tex.fire, 0xffaa66);
+    for (const br of this.room.braziers) flame(br, br.userData.flameY, 0.45, this.tex.fire, 0xffaa66);
     for (const c of this.room.candles) c.userData.sprite = flame(c, c.userData.flameY, 0.18, this.tex.fire, 0xffd9a0);
     const eye = this.deathActor.anchors.eyes;
     [-1, 1].forEach(s => {
       const h = flame(eye, 0, 0.22, this.tex.soul, 0xd8fff4);
-      h.position.set(s * 0.09, 0, 0.08);
+      h.position.set(s * 0.09, 0, 0.06);
+      h.scale.setScalar(0.14);
     });
     this.fires = this.throne.fires.map(a => {
       const s = flame(a, 0.15, 0.55, this.tex.soul, 0x9dffdf);
@@ -739,13 +757,13 @@ class VFX {
 
   playBlast(arena, whiff, motion) {
     const group = new THREE.Group();
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), new THREE.MeshBasicMaterial({
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({
       color: 0xd8fff6, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
     }));
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({
       map: this.tex.soul, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, toneMapped: false, color: 0xc8fff0,
     }));
-    halo.scale.setScalar(0.9);
+    halo.scale.setScalar(0.42);
     group.add(mesh, halo);
     this.scene.add(group);
     this.blasts.push({ group, t: 0, charge: 0.16 * motion.k, fly: 0.34 * motion.k, whiff, kind: 'blast' });
@@ -787,7 +805,7 @@ class VFX {
         vy: Math.random() * 2.2,
         vz: (Math.random() - 0.5) * 2.4,
         life: 0.25 + Math.random() * 0.25,
-        size: 8 + Math.random() * 14,
+        size: 16 + Math.random() * 10,
         color: [1, 0.85 + Math.random() * 0.15, 0.55],
       });
     }
@@ -800,7 +818,7 @@ class VFX {
         vy: 0.8 + Math.random() * 1.4,
         vz: (Math.random() - 0.5) * 0.6,
         life: 0.8 + Math.random() * 0.6,
-        size: 10 + Math.random() * 16,
+        size: 14 + Math.random() * 8,
         color: kind === 'soul' ? [0.7, 1, 0.9] : [1, 0.7, 0.4],
       });
     }
@@ -814,7 +832,7 @@ class VFX {
         vy: (Math.random() - 0.4) * 0.8,
         vz: -1.2 - Math.random(),
         life: 0.7,
-        size: 12 + Math.random() * 10,
+        size: 14 + Math.random() * 8,
         color: [0.6, 0.9, 1],
       });
     }
@@ -828,15 +846,15 @@ class VFX {
   update(dt, t, arena) {
     const hand = arena._anchorWorld(arena.deathActor, 'cast');
     const eyes = arena._anchorWorld(arena.deathActor, 'eyes');
-    const hero = arena.heroAnchor.position.clone();
-    hero.y += 1.05;
+    const heroActor = arena.heroActors[arena.activeHero];
+    const hero = arena._anchorWorld(heroActor, 'chest');
     for (const b of this.blasts) {
       b.t += dt;
       const charge = b.charge, fly = b.fly;
       if (b.t < charge) {
         const k = b.t / charge;
         b.group.position.copy(hand);
-        b.group.scale.setScalar(0.2 + k * 1.1);
+        b.group.scale.setScalar(0.4 + k * 0.75);
       } else if (b.t < charge + fly) {
         const p = (b.t - charge) / fly;
         const ease = p * p * (3 - 2 * p);
@@ -844,8 +862,8 @@ class VFX {
         if (b.whiff) target.x += 1.3;
         b.group.position.lerpVectors(hand, target, ease);
         b.group.position.y += Math.sin(p * Math.PI) * 0.45;
-        b.group.scale.setScalar(1.15 + p * 0.8);
-        if (Math.random() < 0.7) this.puff(b.group.position, 'soul', 1);
+        b.group.scale.setScalar(1.05 + p * 0.4);
+        if (Math.random() < 0.22) this.puff(b.group.position, 'soul', 1);
       } else {
         this._impact(b.whiff ? hero.clone().add(new THREE.Vector3(1.3, 0, 0)) : hero, b.whiff);
         this.scene.remove(b.group);
@@ -863,7 +881,7 @@ class VFX {
       aimY(this.beam.group, from, to);
       this.beam.mat.uniforms.uTime.value = t;
       this.beam.mat.uniforms.uHot.value = p < 0.75 ? 1 : Math.max(0, 1 - (p - 0.75) / 0.25);
-      if (p < 0.85 && Math.random() < 0.5) this.puff(from.clone().lerp(to, Math.random()), 'soul', 1);
+      if (p < 0.85 && Math.random() < 0.18) this.puff(from.clone().lerp(to, Math.random()), 'soul', 1);
       if (p >= 1) {
         this.beam.group.visible = false;
         if (!this.beam.whiff) this._impact(hero, false);
@@ -884,7 +902,7 @@ class VFX {
       s.t += dt;
       const from = s.kind === 'heal' ? hero : (s.kind === 'drain' ? hero : eyes);
       const to = s.kind === 'heal' || s.kind === 'drain' ? arena._anchorWorld(arena.deathActor, 'chest') : hero;
-      if (s.t < s.dur && Math.random() < 0.8) {
+      if (s.t < s.dur && Math.random() < 0.35) {
         const p = Math.random();
         const pos = from.clone().lerp(to, p);
         if (s.kind === 'heal') {
@@ -907,12 +925,13 @@ class VFX {
     for (const r of this.rings) {
       r.userData.t += dt;
       const p = r.userData.t / r.userData.dur;
-      r.scale.setScalar(1 + p * 7);
-      r.material.opacity = (1 - p) * 0.8;
+      r.scale.setScalar(1 + p * 3.2);
+      r.material.opacity = (1 - p) * 0.55;
       if (p >= 1) r.visible = false;
     }
 
     this._motes(t);
+    this.pool.cam = arena.camera.position;
     this.pool.update(dt);
   }
 
@@ -928,20 +947,20 @@ class VFX {
     ring.userData.dur = 0.45;
     this.scene.add(ring);
     this.rings.push(ring);
-    this.puff(pos, 'soul', whiff ? 4 : 12);
+    this.puff(pos, 'soul', whiff ? 3 : 6);
   }
 
   _motes(t) {
     if (this._moteInit) return;
     this._moteInit = true;
-    for (let i = 0; i < 18; i++) {
-      this.pool.spawn(new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, 2 + Math.random() * 8), {
-        vx: (Math.random() - 0.5) * 0.15,
-        vy: 0.12 + Math.random() * 0.2,
-        vz: (Math.random() - 0.5) * 0.08,
+    for (let i = 0; i < 10; i++) {
+      this.pool.spawn(new THREE.Vector3((Math.random() - 0.5) * 3.2, 0.8 + Math.random() * 2.4, 3.2 + Math.random() * 4.5), {
+        vx: (Math.random() - 0.5) * 0.12,
+        vy: 0.08 + Math.random() * 0.12,
+        vz: (Math.random() - 0.5) * 0.06,
         life: 6 + Math.random() * 4,
-        size: 7 + Math.random() * 8,
-        color: [0.55, 0.8, 0.75],
+        size: 12 + Math.random() * 8,
+        color: [0.45, 0.7, 0.62],
         mote: true,
       });
     }
@@ -963,18 +982,23 @@ function makePool(n, tex) {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     toneMapped: false,
-    uniforms: { uMap: { value: tex } },
+    uniforms: { uMap: { value: tex }, uMax: { value: 56 }, uDpr: { value: 1 } },
     vertexShader: `
       attribute float aLife;
       attribute float aSize;
       attribute vec3 aColor;
+      uniform float uMax;
+      uniform float uDpr;
       varying float vLife;
       varying vec3 vColor;
       void main() {
         vLife = aLife;
         vColor = aColor;
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aSize * (260.0 / max(1.0, -mv.z));
+        float dist = -mv.z;
+        float px = aSize * (3.4 / max(dist, 0.35)) * uDpr;
+        if (dist < 1.2) px = 0.0;
+        gl_PointSize = clamp(px, 0.0, uMax);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -985,7 +1009,9 @@ function makePool(n, tex) {
       void main() {
         if (vLife <= 0.0) discard;
         vec4 t = texture2D(uMap, gl_PointCoord);
-        gl_FragColor = vec4(vColor * t.rgb, t.a * vLife);
+        float a = t.a * vLife * 0.55;
+        if (a < 0.02) discard;
+        gl_FragColor = vec4(vColor * t.rgb, a);
       }
     `,
   });
@@ -1019,14 +1045,21 @@ function makePool(n, tex) {
         pos[i3] += s.vx * dt;
         pos[i3 + 1] += s.vy * dt;
         pos[i3 + 2] += s.vz * dt;
-        if (s.mote && pos[i3 + 1] > 5.5) pos[i3 + 1] = 0.2;
+        if (s.mote && this.cam) {
+          const dx = pos[i3] - this.cam.x, dy = pos[i3 + 1] - this.cam.y, dz = pos[i3 + 2] - this.cam.z;
+          if (dx * dx + dy * dy + dz * dz < 4.8 || pos[i3 + 2] < 2.6 || pos[i3 + 1] > 4.2) {
+            pos[i3] = (Math.random() - 0.5) * 3;
+            pos[i3 + 1] = 0.9 + Math.random() * 2.2;
+            pos[i3 + 2] = 3.4 + Math.random() * 4;
+          }
+        }
         if (s.life <= 0) {
           life[s.i] = 0;
           if (s.mote) {
             s.life = s.max;
-            pos[i3] = (Math.random() - 0.5) * 6;
-            pos[i3 + 1] = 0.2;
-            pos[i3 + 2] = 2 + Math.random() * 8;
+            pos[i3] = (Math.random() - 0.5) * 3;
+            pos[i3 + 1] = 0.9 + Math.random() * 2.2;
+            pos[i3 + 2] = 3.4 + Math.random() * 4;
           }
         } else life[s.i] = Math.max(0, s.life / s.max);
       }
@@ -1064,14 +1097,14 @@ function makeBeam() {
         float scroll = 0.55 + 0.45 * sin(uTime * 22.0 - vUv.y * 36.0);
         float ends = smoothstep(0.0, 0.05, vUv.y) * smoothstep(1.0, 0.9, vUv.y);
         vec3 col = mix(vec3(0.15, 0.55, 0.48), vec3(0.75, 1.0, 0.92), core);
-        gl_FragColor = vec4(col * (0.55 + 0.45 * core), core * scroll * ends * uHot * 0.62);
+        gl_FragColor = vec4(col * (0.4 + 0.6 * core), core * scroll * ends * uHot * 0.48);
       }
     `,
   });
   const group = new THREE.Group();
   const core = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.06, 1, 8, 1, true), mat);
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 1), mat);
-  const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 1), mat);
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1), mat);
+  const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1), mat);
   plane2.rotation.y = Math.PI / 2;
   group.add(core, plane, plane2);
   return { group, mat, plane, t: 0, dur: 1, whiff: false };
@@ -1157,6 +1190,23 @@ function collectMats(root) {
   const out = [];
   root.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => out.push(m)); });
   return out;
+}
+
+/* Over-the-shoulder framing. Vertical FOV is three.js's fov. The hero's
+   head lands in the lower third and Death's head in the upper middle.
+   `hero` is the layout feet position. */
+function frameShot(aspect, hero) {
+  const hx = hero[0], hz = hero[2];
+  let fov, back, camY, side, lookY;
+  if (aspect < 0.7) { fov = 64; back = 1.7; camY = 1.95; side = -0.15; lookY = 2.35; }
+  else if (aspect < 1.45) { fov = 52; back = 1.28; camY = 1.86; side = -0.22; lookY = 2.25; }
+  else if (aspect < 2.1) { fov = 46; back = 1.35; camY = 1.95; side = -0.2; lookY = 2.05; }
+  else { fov = 42; back = 1.2; camY = 1.88; side = -0.22; lookY = 2.0; }
+  return {
+    fov,
+    pos: new THREE.Vector3(hx + side, camY, hz - back),
+    look: new THREE.Vector3(0, lookY, 6.75),
+  };
 }
 
 function motionScale() {

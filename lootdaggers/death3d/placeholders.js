@@ -13,8 +13,8 @@ const PAL = {
   iron: 0x3a363c,
   ironDark: 0x1c191c,
   gold: 0x8d7040,
-  stone: 0x4a453f,
-  stoneDark: 0x2a2628,
+  stone: 0x6a635c,
+  stoneDark: 0x3e3836,
   cushion: 0x4a1218,
   soul: 0x14382e,
   soulE: 0x8dffe4,
@@ -344,19 +344,19 @@ export function buildDeath() {
 
   const left = arm(1);
   const right = arm(-1);
-  /* Seated, facing +Z (the slot turns him toward the hero). Right arm
-     (-X) rests with the scythe; left arm is the one that lifts to cast. */
-  right.upper.rotation.x = 0.55;
-  right.upper.rotation.z = 0.35;
-  right.fore.rotation.x = 0.9;
-  left.upper.rotation.x = 0.7;
-  left.upper.rotation.z = -0.25;
-  left.fore.rotation.x = 0.55;
+  /* Seated, facing +Z. Negative X rotation swings a limb toward +Z, which
+     is toward the hero after the group is yawed 180°. The left hand casts. */
+  right.upper.rotation.x = -0.4;
+  right.upper.rotation.z = 0.25;
+  right.fore.rotation.x = -0.75;
+  left.upper.rotation.x = -0.7;
+  left.upper.rotation.z = 0.3;
+  left.fore.rotation.x = -0.45;
   rest(right.upper); rest(right.fore); rest(left.upper); rest(left.fore);
 
   const weapon = scythe(metal, edge);
-  weapon.rotation.z = 0.55;
-  weapon.rotation.x = 0.2;
+  weapon.rotation.z = 0.45;
+  weapon.rotation.x = -0.35;
   weapon.position.set(-0.05, 0.05, 0.02);
   right.hand.add(weapon);
 
@@ -364,13 +364,13 @@ export function buildDeath() {
     const hip = new THREE.Group();
     hip.position.set(side * 0.16, -0.05, 0.02);
     const thigh = cyl(bone, 0.07, 0.06, 0.62);
-    thigh.position.set(0, -0.18, 0.28);
-    thigh.rotation.x = 1.15;
+    thigh.position.set(0, -0.18, 0.22);
+    thigh.rotation.x = -1.05;
     const shinP = new THREE.Group();
-    shinP.position.set(0, -0.34, 0.5);
+    shinP.position.set(0, -0.28, 0.42);
     const shin = cyl(bone, 0.05, 0.045, 0.7);
     shin.position.y = -0.34;
-    shin.rotation.x = -1.05;
+    shin.rotation.x = 0.95;
     const foot = box(boneD, 0.1, 0.06, 0.22);
     foot.position.set(0, -0.72, 0.06);
     shinP.add(shin, foot);
@@ -592,9 +592,10 @@ export function buildThrone() {
   const dais = box(stoneD, 3.4, 0.45, 2.4);
   dais.position.y = 0.22;
   group.add(dais);
+  /* Steps climb away from the hero (negative Z is toward the camera). */
   for (let i = 0; i < 5; i++) {
-    const step = box(i % 2 ? stone : stoneD, 3.6 - i * 0.28, 0.22, 0.7);
-    step.position.set(0, 0.12 + i * 0.28, 1.15 - i * 0.42);
+    const step = box(i % 2 ? stone : stoneD, 3.5 - i * 0.22, 0.22, 0.48);
+    step.position.set(0, 0.11 + i * 0.26, -1.72 + i * 0.32);
     group.add(step);
   }
   const seat = box(stone, 1.5, 0.28, 1.15);
@@ -603,37 +604,38 @@ export function buildThrone() {
   cushion.position.set(0, 1.74, 0.08);
   group.add(seat, cushion);
 
+  /* Backrest on the far side of the seat, so Death sits in front of it. */
   const back = box(stoneD, 1.7, 3.6, 0.28);
-  back.position.set(0, 3.45, -0.55);
+  back.position.set(0, 3.45, 0.78);
   group.add(back);
   const cap = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1.15, 4), stone);
-  cap.position.set(0, 5.55, -0.55);
+  cap.position.set(0, 5.55, 0.78);
   cap.rotation.y = Math.PI / 4;
   group.add(cap);
   const arch = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.08, 8, 20, Math.PI), gold);
-  arch.position.set(0, 4.55, -0.38);
+  arch.position.set(0, 4.55, 0.52);
   group.add(arch);
 
   [-1, 1].forEach(s => {
     const post = cyl(stone, 0.16, 0.2, 3.3);
-    post.position.set(s * 0.95, 3.15, -0.15);
+    post.position.set(s * 0.95, 3.15, 0.42);
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.035, 6, 12), gold);
     band.rotation.x = Math.PI / 2;
-    band.position.set(s * 0.95, 4.4, -0.15);
+    band.position.set(s * 0.95, 4.4, 0.42);
     const finial = sph(gold, 0.14, 0.18, 0.14);
-    finial.position.set(s * 1.15, 1.95, 0.55);
+    finial.position.set(s * 1.05, 1.95, -0.35);
     const arm = box(stone, 0.16, 0.16, 1.15);
-    arm.position.set(s * 0.85, 1.85, 0.15);
+    arm.position.set(s * 0.85, 1.85, 0.05);
     const skull = sph(std(PAL.bone, { roughness: 0.6 }), 0.12, 0.14, 0.11);
-    skull.position.set(s * 0.55, 5.15, -0.32);
+    skull.position.set(s * 0.55, 5.15, 0.52);
     group.add(post, band, finial, arm, skull);
   });
   const crest = sph(std(PAL.bone, { roughness: 0.55 }), 0.22, 0.26, 0.2);
-  crest.position.set(0, 5.35, -0.28);
+  crest.position.set(0, 5.35, 0.5);
   group.add(crest);
 
   const cracks = [];
-  const crackSpecs = [[0.1, 2.2, -0.4, 0.9, 2], [-0.35, 3.1, -0.4, 1.3, 3], [0.4, 3.6, -0.38, 1.6, 3], [0, 1.2, 0.7, 1.1, 2]];
+  const crackSpecs = [[0.1, 2.2, 0.62, 0.9, 2], [-0.35, 3.1, 0.62, 1.3, 3], [0.4, 3.6, 0.62, 1.6, 3], [0, 1.2, -0.55, 1.1, 2]];
   for (const [x, y, z, h, ph] of crackSpecs) {
     const m = box(crackMat, 0.035, h, 0.02);
     m.position.set(x, y, z);
@@ -646,7 +648,7 @@ export function buildThrone() {
   }
 
   const fires = [];
-  [[-0.7, 0.5, 0.9], [0.7, 0.5, 0.9], [0, 0.55, 1.35]].forEach(([x, y, z], i) => {
+  [[-0.7, 0.5, -0.85], [0.7, 0.5, -0.85], [0, 0.42, -1.15]].forEach(([x, y, z], i) => {
     const a = new THREE.Group();
     a.position.set(x, y, z);
     a.userData.phase = i === 2 ? 3 : 2;

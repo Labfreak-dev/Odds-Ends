@@ -6,9 +6,7 @@ models/death.glb            meshopt, shares the throne's origin
 models/throne.glb           Draco
 models/throne_room_env.glb  Draco, markers and flame sockets
 models/hero_<id>.glb        meshopt, one hero per fight
-models/prop_*.glb           spare props; the env file already includes them
 textures/vfx/*.webp         soul orb, loop, impact, beam, fire, wisps
-textures/env/*.webp         also embedded in the env GLB
 ```
 
 Meters, +Y up, characters face +Z, floor at y = 0. Clip names and sockets

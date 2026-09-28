@@ -78,11 +78,13 @@ class Arena {
 
   init() {
     const canvas = this.canvas;
+    this.low = lowEnd();
     let gl = null;
+    const aa = !this.low && (window.devicePixelRatio || 1) < 1.5;
     try {
       gl = canvas.getContext('webgl2', {
         alpha: false,
-        antialias: (window.devicePixelRatio || 1) < 1.5,
+        antialias: aa,
         powerPreference: 'high-performance',
         failIfMajorPerformanceCaveat: false,
       });
@@ -91,7 +93,7 @@ class Arena {
       this.api.reason = 'no-webgl';
       return false;
     }
-    const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: false, antialias: (window.devicePixelRatio || 1) < 1.5 });
+    const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: false, antialias: aa });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
@@ -188,7 +190,7 @@ class Arena {
     const c = this.canvas;
     const w = c.clientWidth, h = c.clientHeight;
     if (!w || !h || !this.renderer) return;
-    const pr = Math.min(2, window.devicePixelRatio || 1);
+    const pr = Math.min(pixelCap(), window.devicePixelRatio || 1);
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
@@ -289,7 +291,7 @@ class Arena {
     if (death.gone && !this.won) this._win();
 
     if (this.attackT >= 0) {
-      this.attackT += dt / (0.3 * motion.k);
+      this.attackT += dt / (0.78 * motion.k);
       if (this.attackT > 1) this.attackT = -1;
     }
     if (this.flinchT > 0) this.flinchT = Math.max(0, this.flinchT - dt);
@@ -395,10 +397,19 @@ class Arena {
     const hero = this.heroActors[this.activeHero];
     const base = this.stand ? this.stand.hero : this.manifest.layout.hero;
     const sign = this.stand ? this.stand.lungeSign : 1;
-    /* Front-loaded: full reach while lunge is still high, then it snaps back. */
-    const snap = Math.min(1, lunge * 1.6);
-    const reach = hero.driving === 'clip' ? 1.15 : 2.6;
-    const lungeZ = sign * reach * Math.pow(snap, 0.38);
+    /* Step in, hold through the strike, then come back. view.lunge still
+       drives the placeholder, which has no clip timing of its own. */
+    let lungeZ;
+    if (this.pack && this.attackT >= 0) {
+      const u = this.attackT;
+      let k = u < 0.28 ? u / 0.28 : (u < 0.62 ? 1 : Math.max(0, 1 - (u - 0.62) / 0.38));
+      k = k * k * (3 - 2 * k);
+      lungeZ = sign * 2.05 * k;
+    } else {
+      const snap = Math.min(1, lunge * 1.6);
+      const reach = hero.driving === 'clip' ? 1.15 : 2.6;
+      lungeZ = sign * reach * Math.pow(snap, 0.38);
+    }
     this.heroAnchor.position.set(base[0] + Math.sin(this.dodgeT * 9) * this.dodgeT * 0.55, base[1] - this.fallT * 0.55, base[2] + lungeZ);
     if (hero.group.visible) poseHero(hero, t, {
       attack: this.attackT < 0 ? 0 : this.attackT,
@@ -637,18 +648,23 @@ class Arena {
     this.packRoot = new THREE.Group();
     this.scene.add(this.packRoot);
     const env = envG.scene;
-    prepMeshes(env, { rim: 0.12 });
+    prepMeshes(env, { rim: 0 });
     this.packRoot.add(env);
+    const seat = new THREE.Group();
+    const seatScale = (this.manifest.pack && this.manifest.pack.scale) || 1;
+    seat.scale.setScalar(seatScale);
+    this.packRoot.add(seat);
+    this.seat = seat;
     const throne = throneG.scene;
-    prepMeshes(throne, { rim: 0.28 });
-    this.packRoot.add(throne);
+    prepMeshes(throne, { rim: 0.04 });
+    seat.add(throne);
     if (want1k()) downscaleMaps(deathG.scene, 1024);
     /* Baked albedo. Film tone-mapping would crush it a second time. */
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.room.group.visible = false;
     this.throne.group.visible = false;
-    this.deathActor.bindGltf(deathG, this.manifest.assets.death, this.packRoot);
+    this.deathActor.bindGltf(deathG, this.manifest.assets.death, seat);
     this._eyeGlow(this.deathActor.model);
     const marker = env.getObjectByName('Marker_Hero');
     const p = new THREE.Vector3(0, 0, 6.5);
@@ -693,13 +709,19 @@ class Arena {
     if (!socket) return;
     const map = this.tex.soul;
     [-1, 1].forEach(s => {
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-        map, color: 0x8effd8, blending: THREE.AdditiveBlending, transparent: true,
-        depthWrite: false, toneMapped: false, opacity: 0.9,
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+        map, color: 0x7dffc4, blending: THREE.AdditiveBlending, transparent: true,
+        depthWrite: false, toneMapped: false, opacity: 0.7,
       }));
-      sp.scale.set(0.16, 0.1, 1);
-      sp.position.set(s * 0.055, 0.02, 0.05);
-      socket.add(sp);
+      halo.scale.set(0.2, 0.11, 1);
+      halo.position.set(s * 0.058, 0.02, 0.07);
+      const core = new THREE.Sprite(new THREE.SpriteMaterial({
+        map, color: 0xf3fff8, blending: THREE.AdditiveBlending, transparent: true,
+        depthWrite: false, toneMapped: false, opacity: 1,
+      }));
+      core.scale.set(0.055, 0.04, 1);
+      core.position.set(s * 0.058, 0.02, 0.09);
+      socket.add(halo, core);
     });
   }
 
@@ -728,7 +750,7 @@ class Arena {
         obj.add(sp);
         this.flameSprites.push(sp);
       }
-      if (brazier && !nearCam) {
+      if (brazier && !nearCam && !this.low) {
         const light = new THREE.PointLight(0xff8a3a, 4.5, 5.5, 2);
         light.position.y = 0.05;
         obj.add(light);
@@ -758,6 +780,8 @@ class Arena {
       heroClip: (this.heroActors[this.activeHero] && this.heroActors[this.activeHero].clipLogical) || '',
       deathDrive: this.deathActor.driving,
       heroDrive: this.heroActors[this.activeHero] ? this.heroActors[this.activeHero].driving : '',
+      dpr: this.renderer ? this.renderer.getPixelRatio() : 0,
+      low: !!this.low,
     };
   }
 }
@@ -1279,7 +1303,7 @@ class VFX {
       if (p >= 1) f.visible = false;
     }
 
-    this._motes(t);
+    this._motes(t, arena.low);
     this.pool.cam = arena.camera.position;
     this.pool.update(dt);
   }
@@ -1329,10 +1353,10 @@ class VFX {
     }
   }
 
-  _motes(t) {
+  _motes(t, low) {
     if (this._moteInit) return;
     this._moteInit = true;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < (low ? 4 : 10); i++) {
       this.pool.spawn(new THREE.Vector3((Math.random() - 0.5) * 3.2, 0.8 + Math.random() * 2.4, 3.2 + Math.random() * 4.5), {
         vx: (Math.random() - 0.5) * 0.12,
         vy: 0.08 + Math.random() * 0.12,
@@ -1653,17 +1677,17 @@ varying vec3 vD3Nrm;`)
 {
   vec3 d3view = normalize(cameraPosition - vD3Pos);
   float d3ndv = clamp(dot(normalize(vD3Nrm), d3view), 0.0, 1.0);
-  float d3ink = smoothstep(0.45, 0.06, d3ndv);
-  outgoingLight *= mix(1.0, 0.42, d3ink * 0.72);
-  float d3rim = pow(1.0 - d3ndv, 2.2);
-  outgoingLight += vec3(0.42, 1.0, 0.9) * d3rim * uRim;
+  float d3ink = smoothstep(0.16, 0.0, d3ndv);
+  outgoingLight *= mix(1.0, 0.82, d3ink);
+  float d3rim = pow(1.0 - d3ndv, 3.5);
+  outgoingLight += vec3(0.55, 0.86, 0.8) * d3rim * uRim;
   float d3hash = fract(sin(dot(vD3Pos.xz, vec2(127.1, 311.7))) * 43758.5453);
   if (uDissolve > 0.001 && d3hash < uDissolve) discard;
   if (uDissolve > 0.001 && d3hash < uDissolve + 0.08) outgoingLight = vec3(0.55, 1.0, 0.86);
 }
 #include <opaque_fragment>`);
   };
-  basic.customProgramCacheKey = () => 'oe-d3d-ink1';
+  basic.customProgramCacheKey = () => 'oe-d3d-ink2';
   return basic;
 }
 
@@ -1716,12 +1740,32 @@ function sheetCell(tex, cols, rows, index) {
   return map;
 }
 
-function want1k() {
+function phoneLike() {
+  const w = window.innerWidth || 1200;
+  if (w <= 900) return true;
   try {
-    const mem = navigator.deviceMemory;
-    if (mem && mem <= 4) return true;
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches && w <= 1100) return true;
   } catch (e) { /* ignore */ }
-  return (window.innerWidth || 1200) <= 900;
+  return false;
+}
+
+function lowEnd() {
+  try {
+    if (navigator.deviceMemory && navigator.deviceMemory <= 4) return true;
+  } catch (e) { /* ignore */ }
+  return phoneLike();
+}
+
+function want1k() {
+  return lowEnd();
+}
+
+function pixelCap() {
+  if (phoneLike()) return 1.5;
+  try {
+    if (navigator.deviceMemory && navigator.deviceMemory <= 4) return 1.25;
+  } catch (e) { /* ignore */ }
+  return 2;
 }
 
 function downscaleMaps(root, max) {
@@ -1766,17 +1810,22 @@ function collectMats(root) {
   return out;
 }
 
-/* Pack shot. The arena strip is short, so this is tighter than the
-   portrait mock: Death large in the upper frame, hero in the lower third. */
+/* Pack shot. Vertical fov is three.js's fov, so a wide short strip opens
+   a huge horizontal view unless the lens tightens. Look at the skull.
+   Numbers assume pack.scale 1.28 (Death and the throne grow together). */
 function framePack(aspect) {
-  let fov, side, camY, camZ, lookY, lookZ;
-  if (aspect < 1.45) { fov = 40; side = 0.95; camY = 2.55; camZ = 11.35; lookY = 1.85; lookZ = 0.55; }
-  else if (aspect < 2.1) { fov = 38; side = 1.15; camY = 2.45; camZ = 11.5; lookY = 1.8; lookZ = 0.6; }
-  else { fov = 36; side = 1.4; camY = 2.35; camZ = 11.7; lookY = 1.75; lookZ = 0.65; }
+  const t = Math.min(1, Math.max(0, (aspect - 1.15) / (2.6 - 1.15)));
+  const fov = 40 + (32 - 40) * t;
+  const side = 0.72 + (1.2 - 0.72) * t;
+  const camY = 2.0 + (1.7 - 2.0) * t;
+  const camZ = 9.55 + (10.0 - 9.55) * t;
+  /* Wide strips: look higher so the scythe clears the life-bar label.
+     A short canvas spends a bigger share of its height on that label. */
+  const lookY = 2.95 + (3.72 - 2.95) * t;
   return {
     fov,
     pos: new THREE.Vector3(side, camY, camZ),
-    look: new THREE.Vector3(-0.15, lookY, lookZ),
+    look: new THREE.Vector3(-0.04, lookY, 0.4),
   };
 }
 

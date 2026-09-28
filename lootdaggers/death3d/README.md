@@ -47,7 +47,15 @@ lifts Death 13 cm for those two clips. The win is a dissolve plus soul
 particles, because the defeat clip is a slump. Robe and cape wind is a
 vertex shader. On a phone or a machine with 4 GB or less, character
 textures are drawn down to 1K before upload. The throne and the room stay
-at their file size.
+at their file size. Phones cap the pixel ratio at 1.5 and skip antialias,
+brazier point lights, and most of the drifting motes. Desktop stays at 2.
+
+Death and the throne share one scale (`pack.scale`, 1.28) so he still sits
+in the seat and reads large. The cold rim is a faint edge, not a teal wash,
+and two small sprites on `Socket_Eyes` keep the sockets green. A wide short
+arena (the desktop strip) looks higher and uses a tighter vertical lens so
+the scythe sits under the life-bar label and the hero's head and shoulders
+stay in frame. A hero attack steps toward the throne and steps back.
 
 ## What the fight asks the scene to play
 

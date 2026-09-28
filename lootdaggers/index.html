@@ -1250,7 +1250,7 @@ function drawDeathArena(t,dt){
     cx.globalAlpha=Math.max(0,1-f.t/1.3);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,ax+(f.x%7-3)*3,ay-f.t*30+(f.y-GY+70)*.3,f.col);}
   cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
   // Death's life bar with phase notches
-  if(o){const bw=W*.7,bx=(W-bw)/2,by=top+10;rect(bx-2,by-2,bw+4,12,'#000');rect(bx,by,bw,8,'#1b1a24');
+  if(o){const bw=W*.7,bx=(W-bw)/2,by=top+(live3d?4:10);rect(bx-2,by-2,bw+4,12,'#000');rect(bx,by,bw,8,'#1b1a24');
     rect(bx,by,bw*clamp(o.hp/o.max,0,1),8,o.phase===3?'#e0605a':o.phase===2?'#c9a0ff':'#9fd6ff');
     rect(bx+bw/3,by-2,2,12,'#000');rect(bx+bw*2/3,by-2,2,12,'#000');
     cx.font="13px 'Pirata One',serif";cx.fillStyle='#e9dcc6';cx.textAlign='center';cx.fillText(`DEATH · ${o.hp}/${o.max}`,W/2,by+24);}

@@ -20,10 +20,12 @@ export const DEATH3D_MANIFEST = {
   pack: {
     hero: [0, 0, 6.5],
     lungeSign: -1,
+    /* Death and the throne share this scale so he still sits in the seat. */
+    scale: 1.28,
     camera: {
-      fov: 40,
-      pos: [0.95, 2.7, 11.6],
-      look: [-0.15, 1.9, 0.7],
+      fov: 36,
+      pos: [0.9, 1.85, 9.6],
+      look: [0, 3.0, 0.4],
     },
   },
   assets: {
@@ -33,7 +35,7 @@ export const DEATH3D_MANIFEST = {
       facing: 0,
       anchor: 'none',
       wind: true,
-      rim: 1.35,
+      rim: 0.2,
       sockets: { eyes: 'Socket_Eyes', cast: 'Socket_RightHand', chest: 'Socket_Chest', off: 'Socket_LeftHand' },
       clips: { idle: 'Seated_Idle', cast: 'Cast_Windup', attack: 'Attack_Sweep', hit: 'Hit_Flinch', defeat: 'Defeat_Slump' },
     },
@@ -78,7 +80,7 @@ function heroSlot(url, wind) {
     facing: 0,
     anchor: 'none',
     wind: !!wind,
-    rim: 0.45,
+    rim: 0.08,
     lockRoot: true,
     sockets: { cast: 'Socket_RightHand', chest: 'Socket_Chest', back: 'Socket_Chest', head: 'Socket_Head', off: 'Socket_LeftHand' },
     clips: {

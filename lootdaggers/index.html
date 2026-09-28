@@ -21,6 +21,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
 <style>
 :root{--bg:#0c0a0b;--panel:#181415;--panel2:#221c1d;--ink:#e4d9c6;--dim:#948978;--gold:#cfa75c;--red:#b8453c;--blue:#7d9bb0;--green:#8aa35a;--line:#352c2c;--purple:#8e6fae;--orange:#c9763a;--head:'Pirata One',Georgia,serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -49,12 +52,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ---------- scene ---------- */
 #sceneWrap{position:relative;width:100%;flex:1 1 auto;min-height:150px;background:#0a0709}
-#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab}
+#scene3d{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;visibility:hidden;z-index:0}
+#sceneWrap.death3d #scene3d{visibility:visible}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;z-index:1}
 #scene:active{cursor:grabbing}
-#jackpotFlash{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none}
+#jackpotFlash{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;z-index:3}
 #jackpotFlash.go{animation:jp 3.4s ease-out}
 @keyframes jp{0%{opacity:0}8%{opacity:.95}70%{opacity:.8}100%{opacity:0}}
-#jackpotWord{position:absolute;left:0;right:0;top:38%;text-align:center;font-family:var(--head);font-size:min(19vw,96px);line-height:1;letter-spacing:2px;pointer-events:none;opacity:0;
+#jackpotWord{position:absolute;left:0;right:0;top:38%;text-align:center;font-family:var(--head);font-size:min(19vw,96px);line-height:1;letter-spacing:2px;pointer-events:none;opacity:0;z-index:4;
   color:#a3130f;-webkit-text-stroke:2px #2a0402;
   text-shadow:0 0 2px #ff2a1a,0 3px 0 #3a0503,0 6px 0 #1a0201,0 0 22px rgba(255,40,20,.85),0 10px 18px #000}
 #jackpotWord.go{animation:jw 3.8s cubic-bezier(.2,1.4,.4,1)}
@@ -68,7 +73,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #log .preview div{padding:1px 0}
 #log .preview .hint{color:var(--gold);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
 #log{height:40px;overflow:hidden}
-#forecast{position:absolute;left:8px;right:8px;top:8px;background:rgba(10,7,8,.82);border:2px solid #000;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.4;color:var(--ink);box-shadow:0 3px 0 #000;display:none;max-height:72%;overflow:auto}
+#forecast{position:absolute;left:8px;right:8px;top:8px;background:rgba(10,7,8,.82);border:2px solid #000;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.4;color:var(--ink);box-shadow:0 3px 0 #000;display:none;max-height:72%;overflow:auto;z-index:2}
 #forecast.show{display:block}
 #forecast div{padding:1px 0}
 #forecast .hint{color:var(--gold);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
@@ -554,7 +559,7 @@ body.labFlash #app{animation:labFlash .7s ease-out}
       <span class="chip" id="hudDoom" title="Doom: three skulls summon the Reaper">☠ 0/3</span>
       <button id="menuBtn" aria-label="Menu">☰</button>
     </div>
-    <div id="sceneWrap"><canvas id="scene"></canvas><div id="forecast"></div></div>
+    <div id="sceneWrap"><canvas id="scene3d" aria-hidden="true"></canvas><canvas id="scene"></canvas><div id="forecast"></div></div>
     <div id="log">Insert a coin and pull. <b>Whatever lands is your turn.</b></div>
     <button id="defyBtn" class="hidden">Pay your Debt, and Defy Death</button>
     <button id="purseDeathBtn" class="hidden" type="button">Challenge Death<small>any floor · stake 777 🪙</small></button>
@@ -1133,6 +1138,7 @@ async function challengeDeathPurse(){
 }
 async function startDeathFight(cost,doubleIt){
   const r=run;if(r.death||r.deathLock||r.coins<cost)return;
+  kickDeath3D();
   r.deathLock=true;busy=true;r.deathDouble=!!doubleIt;r.coins-=cost;ui();sfx.reaper();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
   const f=r.floor,d=mkEnemy('death',r.x+1,f,true),ds=deathScale();r.deathAtk=ds.atk;d.hp=d.max=Math.max(d.max,ds.hp);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
   Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
@@ -1143,6 +1149,7 @@ async function startDeathFight(cost,doubleIt){
 }
 async function deathPhase(o,ph){
   o.phase=ph;o.pat=deathPat(ph,run.floor);o.pi=0;o.flash=1;view.shake=14;sfx.reaper();
+  deathCue('phase',{phase:ph});
   document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
   view.banner={t:performance.now(),txt:ph===2?'DEATH TAKES INTEREST':'DEATH IS AFRAID'};
   await labDialog('portrait_death'+ph,'Death',pick(DEATH_LINES[ph]),null,ph===2?'Keep pulling':'Finish it','soulbtn');
@@ -1157,6 +1164,7 @@ async function deathCheck(o){
 }
 async function defeatDeath(){
   const r=run;r.pendingFree=false;view.shake=18;sfx.reaper();
+  deathCue('win',{phase:3});
   await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light','soulbtn');
   const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;metaEv('deathkill');r.souls+=666;stat('deathWins');
   if(r.deathDouble&&S.ledger){const up=S.ledger.lvl<LEDGER_MAX;if(up)S.ledger.lvl++;save();await modal('Double or Nothing: won',`${icon('gear_unique_ledger','📓','hero')}<p>${up?`The Grim's Ledger rises to <b style="color:#8cff96">+${S.ledger.lvl}</b>, free of charge.`:'The Ledger is already complete. Death pays you in souls instead: <b>+666</b>.'}</p>`,[{label:'Take it',val:1,cls:'primary'}]);if(!up)r.souls+=666;}
@@ -1164,9 +1172,47 @@ async function defeatDeath(){
     await modal("The Grim's Ledger",`${icon('gear_unique_ledger','📓','hero')}<p>Death's own ledger, every debt in the dungeon written in it. Yours is crossed out.</p><p><b style="color:#8cff96">Unlocked:</b> a permanent extra vault space holding <b>The Grim's Ledger</b>, a charm you customise yourself and upgrade with souls and boss chips. Find it in the Heirloom Vault.</p>`,[{label:'Take it',val:1,cls:'primary'}]);}
   await endRun('free');
 }
-// the arena: the camera stands behind the hero, looking up at the throne
+// A rendering cue for the 3D throne room. The 2D arena ignores it. Capped so a
+// missed load can't grow the list. `now` is performance.now() milliseconds.
+function deathCue(kind,extra){
+  const q=view.dcues||(view.dcues=[]);
+  q.push(Object.assign({kind,phase:1,v:0,now:performance.now()},extra||{}));
+  if(q.length>12)q.splice(0,q.length-12);
+}
+// three.js stays unloaded until a Death fight actually starts.
+let death3dP=null;
+function death3dWebGL(){
+  try{
+    const c=document.createElement('canvas');
+    const gl=c.getContext('webgl2')||c.getContext('webgl');
+    if(!gl)return false;
+    const lose=gl.getExtension('WEBGL_lose_context');if(lose)lose.loseContext();
+    return true;
+  }catch(e){return false;}
+}
+function kickDeath3D(){
+  if(death3dP||(window.LDDeath3D&&window.LDDeath3D.failed))return death3dP;
+  const el=$('#scene3d');if(!el)return null;
+  if(!death3dWebGL()){
+    window.LDDeath3D={live:false,failed:true,shown:false,reason:'no-webgl',tick(){},stop(){},resize(){},status(){return {live:false,failed:true,reason:'no-webgl'};}};
+    return null;
+  }
+  death3dP=import('./death3d/scene.js').then(m=>m.boot(el)).catch(err=>{
+    console.warn('Death 3D failed to load; painted arena stays.',err);
+    window.LDDeath3D={live:false,failed:true,shown:false,tick(){},stop(){},resize(){},status(){return {live:false,failed:true,reason:'load'};}};
+    $('#sceneWrap').classList.remove('death3d');
+  });
+  return death3dP;
+}
+// the arena: the camera stands behind the hero, looking up at the throne.
+// When the 3D room is up, this only keeps the life bar and the floating numbers.
 function drawDeathArena(t,dt){
   const r=run,top=VH-VHd,W=VWd,H=VHd,o=r.objs.find(x=>x.t==='death');
+  const DX=W/2,DB=top+H*.66,DH=H*.62;
+  const HX=W*.36+(view.lunge*W*.05),HB=VH+H*.04,HH=H*.56;
+  const live3d=window.LDDeath3D&&LDDeath3D.live;
+  if(live3d){cx.clearRect(-80,top-80,W+160,H+160);}
+  else{
   const bg=artImg('screen_death_throne');
   if(bg){const s=Math.max(W/bg.naturalWidth,H/bg.naturalHeight),w=bg.naturalWidth*s,h=bg.naturalHeight*s;cx.drawImage(bg,(W-w)/2,top+(H-h)/2,w,h);}
   else{const g=cx.createLinearGradient(0,top,0,VH);g.addColorStop(0,'#05070c');g.addColorStop(1,'#141016');cx.fillStyle=g;cx.fillRect(0,top,W,H);
@@ -1177,7 +1223,6 @@ function drawDeathArena(t,dt){
     const g=cx.createRadialGradient(x,y,0,x,y,7);g.addColorStop(0,`rgba(150,210,255,${a})`);g.addColorStop(1,'rgba(90,150,255,0)');cx.fillStyle=g;cx.fillRect(x-7,y-7,14,14);}
   cx.restore();
   // Death on his throne
-  const DX=W/2,DB=top+H*.66,DH=H*.62;
   if(o){const ph=o.phase||1,k='death_p'+ph+(o.pose>0?'_cast':''),im=artImg(k)||artImg('death_p'+ph)||artImg('death_p1');
     const br=1+Math.sin(t*(ph===3?3:1.2))*.012*(ph===3?2:1),sh=ph===3?(Math.random()-.5)*2:0;
     if(o.flash)cx.filter='brightness(2)';
@@ -1187,7 +1232,6 @@ function drawDeathArena(t,dt){
     if(o.flash&&artImg('fx_hit'))cx.drawImage(ART.fx_hit,DX-30,DB-DH*.6,60,60);
   }
   // the hero, from behind, over the shoulder
-  const HX=W*.36+(view.lunge*W*.05),HB=VH+H*.04,HH=H*.56;
   const hk='hero_back_'+heroKey(r.hero)+(view.lunge>.3?'_attack':''),him=artImg(hk)||artImg('hero_back_'+heroKey(r.hero));
   if(view.hurt>0&&Math.floor(t*30)%2)cx.globalAlpha=.55;
   if(him){const w=HH*him.naturalWidth/him.naturalHeight;cx.drawImage(him,HX-w/2,HB-HH,w,HH);}
@@ -1199,6 +1243,7 @@ function drawDeathArena(t,dt){
     cx.save();cx.translate(x,y);cx.rotate(p*6+s.w);cx.globalAlpha=p<.85?1:(1-p)/.15;
     if(im)cx.drawImage(im,-sz/2,-sz/2,sz,sz*im.naturalHeight/im.naturalWidth);else{const g=cx.createRadialGradient(0,0,0,0,0,sz/2);g.addColorStop(0,'rgba(200,235,255,.95)');g.addColorStop(1,'rgba(90,150,255,0)');cx.fillStyle=g;cx.beginPath();cx.arc(0,0,sz/2,0,7);cx.fill();}
     cx.restore();}
+  }
   // floaters: hero-side ones at the hero, the rest at Death
   cx.textAlign='center';
   for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const hero=f.x<=r.x*T+T*.75,ax=hero?HX:DX,ay=hero?HB-HH*.8:DB-DH*.75;
@@ -2491,6 +2536,7 @@ async function enemyPhase(){
       if(!blockerAt(e.x-1)&&e.x-1>r.x){e.x--;await beat(70);}
       continue;
     }
+    if(e.t==='death')deathCue(a,{v:v,phase:e.phase||1});
     e.lunge=1;if(a!=='guard'&&a!=='grow'&&a!=='rest')e.pose=.5;
     if(a==='atk')await enemyHit(e,v);
     else if(a==='drain'){await enemyHit(e,v);if(r.coins>0){r.coins--;heroFl('-1 🪙','#b07cf0');}}
@@ -3440,7 +3486,8 @@ function addFx(k,x,y,size,dur,rise){const a=FXA_MAP[k];if(a&&artImg(a)){if(view.
 const heroWX=()=>view.hx||(run.x*T+T/2);
 let scaleK=1,VWd=VW,VHd=VH;
 function resizeCanvas(){const w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;const d=window.devicePixelRatio||1;cv.width=Math.round(w*d);cv.height=Math.round(h*d);
-  scaleK=Math.min(cv.width/380,cv.height/236);VWd=cv.width/scaleK;VHd=cv.height/scaleK;}
+  scaleK=Math.min(cv.width/380,cv.height/236);VWd=cv.width/scaleK;VHd=cv.height/scaleK;
+  if(window.LDDeath3D&&LDDeath3D.resize)LDDeath3D.resize();}
 window.addEventListener('resize',()=>{resizeCanvas();drawReels(true);});
 if(window.ResizeObserver)new ResizeObserver(()=>resizeCanvas()).observe($('#sceneWrap'));
 
@@ -3671,7 +3718,12 @@ function frame(now){
     const sx=view.shake?(Math.random()-.5)*view.shake:0,sy=view.shake?(Math.random()-.5)*view.shake:0;
     cx.translate(sx,sy);
     const cam=view.cam;
-    if(r.death){view.fx=[];view.slash=null;view.arrow=null;view.boom=null;drawDeathArena(t,dt);}else{
+    if(r.death){view.fx=[];view.slash=null;view.arrow=null;view.boom=null;
+      if(!window.LDDeath3D)kickDeath3D();
+      if(window.LDDeath3D&&LDDeath3D.live){try{LDDeath3D.tick(dt);}catch(err){console.warn('Death 3D stopped; painted arena stays.',err);LDDeath3D.live=false;LDDeath3D.failed=true;LDDeath3D.shown=false;$('#sceneWrap').classList.remove('death3d');}}
+      else if(window.LDDeath3D&&LDDeath3D.failed&&view.dcues)view.dcues.length=0;
+      drawDeathArena(t,dt);}else{
+      if(window.LDDeath3D&&LDDeath3D.shown)LDDeath3D.stop();
     drawBG(cam,t);
     const vis=o=>!o.gone||o.kind==='openchest'||o.kind==='shrine_used';
     for(const o of r.objs)if(vis(o)&&o.kind!=='enemy'&&!o.gone){const x=o.dx+T/2-cam;if(x>-80&&x<VWd+80)drawProp(o,x,t);}
@@ -3712,7 +3764,7 @@ function frame(now){
     if(view.banner){const bt=(now-view.banner.t)/1000;if(bt<2.2){const a=Math.min(1,bt*3,(2.2-bt)*2);cx.globalAlpha=a;cx.fillStyle='rgba(0,0,0,.6)';cx.fillRect(0,VHd/2-40,VWd,32);
       cx.font='bold 16px ui-monospace,monospace';cx.fillStyle='#d9b56a';cx.fillText(view.banner.txt,VWd/2,VHd/2-19);cx.globalAlpha=1;}else view.banner=null;}
     cx.setTransform(1,0,0,1,0,0);
-  }
+  }else if(window.LDDeath3D&&LDDeath3D.shown)LDDeath3D.stop();
   requestAnimationFrame(frame);
 }
 // canvas text with the art icons swapped in for their emoji, centred on x
@@ -3756,7 +3808,7 @@ const PACE=2.8;const beat=ms=>sleep(ms*PACE);
 showHub('main');
 requestAnimationFrame(()=>{const sc=document.createElement('script');sc.src='art.js';sc.onload=loadArt;document.head.appendChild(sc);});
 requestAnimationFrame(frame);
-window.LD={get S(){return S;},get run(){return run;},M,spin,stopNext,startRun,stats,stripCounts,evaluate,paylines};
+window.LD={get S(){return S;},get run(){return run;},get view(){return view;},M,spin,stopNext,startRun,stats,stripCounts,evaluate,paylines};
 </script>
 </body>
 </html>

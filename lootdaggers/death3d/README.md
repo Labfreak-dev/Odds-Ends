@@ -61,10 +61,13 @@ spin, both life bars and the log pack into a bottom strip (`#game.death3d`).
 The forecast is a chip at the top of the screen, off the hero and the throne
 base. The class comes off when the fight ends, so a normal run is unchanged.
 
-The resting shot is framed into the area above the reel strip. Death's
-skull-to-feet span is about 40% of that open height. A phone uses a 50° lens,
-closer and lower, looking up, so the empty ceiling leaves the frame. On a
-wide window the look target sits in the open area, and the hero's head,
+The resting shot is framed on the idle pose, sampled once per hero, so the
+combat sway does not move the camera. A phone uses a 50° lens about 2.5–3 m
+behind the hero, low and looking up: his head sits about a quarter of the way
+in from the left and his head and shoulders stay under about 30% of the frame
+height, with Death clear in the centre and the throne top in frame. On a wide
+window the throne top stays inside the open area above the reel strip, and
+Death's skull-to-feet span is about 40% of that height. The hero's head,
 shoulders and cape stay above the strip. An intro rises into that shot. A
 resolve plays a short sequence (a push from behind the hero, a cut to Death's
 flinch, or a side angle on a soul blast that still looks up the hall) and
@@ -116,8 +119,9 @@ arrives a fraction of a second later, the way the old soul shots did.
 
 `prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
 and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
-ratio is capped at 2. The resting shot frames Death into the open area
-above the reel strip, not the artist's full-frame camera. Lighting matches the v2 mock:
+ratio is capped at 2. The resting shot is solved once from the idle pose:
+on a phone the hero stands in the left quarter, and on a wide window Death
+fills about 40% of the open area with the throne top in frame. Lighting matches the v2 mock:
 warm braziers, green fog and a green column, AgX at about 1.23. A real GPU
 blooms with strength 0.6 / radius 0.8 / threshold 0.7; phones and software
 GL use additive sprites and no shadow map. Death, the throne and the hall

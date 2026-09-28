@@ -1054,11 +1054,14 @@ class Arena {
     cape.position.set(0.2, 2.8, 12);
     scene.add(cape);
     this.capeFill = cape;
-    /* Grazing light from the hall side, so the cape edge is not a flat silhouette. */
-    const edge = new THREE.DirectionalLight(lin(0.65, 0.9, 0.75), (phone || software) ? 0.45 : 0.22);
-    edge.position.set(-3.5, 3.2, 4);
-    scene.add(edge);
-    this.capeEdge = edge;
+    /* Grazing light from the hall side. A phone or software GL skips it:
+       one more directional in the fragment shader costs more than the edge. */
+    if (!phone && !software) {
+      const edge = new THREE.DirectionalLight(lin(0.65, 0.9, 0.75), 0.22);
+      edge.position.set(-3.5, 3.2, 4);
+      scene.add(edge);
+      this.capeEdge = edge;
+    }
     /* Real GPU only. Phone and software stay at the brazier points plus the dais. */
     if (!phone && !software) {
       const fillI = phone ? 10 : 12.7;
@@ -1222,6 +1225,7 @@ class Arena {
       camFov: this.director ? Math.round(this.director.fov * 10) / 10 : (this.camera ? Math.round(this.camera.fov * 10) / 10 : 0),
       camPos: this.camera ? [this.camera.position.x, this.camera.position.y, this.camera.position.z].map(v => Math.round(v * 100) / 100) : null,
       rest: this._restDebug || null,
+      restSolves: this._restSolves || 0,
     };
   }
 }
@@ -2613,121 +2617,258 @@ function visibleCover() {
   };
 }
 
+function forecastStamp() {
+  const f = document.getElementById('forecast');
+  if (!f) return '0';
+  return (f.className || '') + ':' + ((f.textContent && f.textContent.length) || 0);
+}
+
+/* Layout is read until two passes agree, then frozen. A forecast open
+   changes the stamp and the cover is measured again, once. */
+function coverFor(arena) {
+  const stamp = forecastStamp();
+  const prev = arena._cover;
+  if (prev && arena._coverStable && arena._coverStamp === stamp) return prev;
+  const next = visibleCover();
+  const same = prev && arena._coverStamp === stamp
+    && Math.abs(prev.top - next.top) < 0.012
+    && Math.abs(prev.bot - next.bot) < 0.012;
+  arena._cover = next;
+  arena._coverStamp = stamp;
+  arena._coverStable = !!same;
+  return next;
+}
+
 function shotRest(arena) {
   const aspect = Math.max(0.35, arena._canvasAspect || (arena.camera && arena.camera.aspect) || 1);
-  const cover = visibleCover();
-  const qtop = Math.round(cover.top * 40) / 40;
-  const qbot = Math.round(cover.bot * 40) / 40;
-  const key = aspect.toFixed(2) + '@' + qtop + '@' + qbot;
-  const ready = !!(arena._posed && arena.deathActor && arena.deathActor.model
-    && arena.heroActors && arena.heroActors[arena.activeHero] && arena.heroActors[arena.activeHero].model);
+  const heroId = arena.activeHero || 'knight';
+  const cover = coverFor(arena);
+  const qtop = Math.round(cover.top * 20) / 20;
+  const qbot = Math.round(cover.bot * 20) / 20;
+  const key = heroId + '@' + aspect.toFixed(2) + '@' + qtop + '@' + qbot;
+  const heroActor = arena.heroActors && arena.heroActors[heroId];
+  const ready = !!(arena.deathActor && arena.deathActor.model && heroActor && heroActor.model);
   if (_restCache && _restCache.key === key && _restCache.ready) return _restCache.shot;
+  if (!ready || !arena._coverStable) return _restCache ? _restCache.shot : restFallback(aspect < 0.85);
   const shot = solveRest(arena, aspect, { top: qtop, bot: qbot });
-  if (ready) _restCache = { key, shot, ready: true };
+  _restCache = { key, shot, ready: true };
   return shot;
 }
 
-/* Death's skull-to-feet span is about 40% of the open area above the reel
-   strip. The hero's head, shoulders and cape stay in that area. A phone
-   uses a 50° lens, closer and lower, looking up, and the empty ceiling is
-   lifted out of the frame. */
+function restFallback(phone) {
+  const hz = 6.5;
+  const z = hz + (phone ? 2.75 : 2.6);
+  return {
+    pos: new THREE.Vector3(phone ? 1.05 : 0.7, phone ? 1.15 : 1.55, z),
+    look: new THREE.Vector3(0, phone ? 2.1 : 2.05, 0.35),
+    fov: phone ? 50 : 46,
+    lift: phone ? 0.06 : 0.12,
+  };
+}
+
+/* Pose the idle clip at its first frame, read world points, then put the
+   mixer back. The rest camera is solved from this once per hero, so the
+   combat sway cannot walk the body across Death. */
+function poseMixer(actor, time) {
+  const mixer = actor && actor.mixer;
+  if (!mixer) return null;
+  const saved = mixer.time;
+  mixer.setTime(time);
+  if (actor.lockXZ && actor.hips && actor.hipHome) {
+    actor.hips.position.x = actor.hipHome.x;
+    actor.hips.position.z = actor.hipHome.z;
+  }
+  if (actor.model) actor.model.updateWorldMatrix(true, true);
+  return saved;
+}
+
+function restoreMixer(actor, saved) {
+  if (saved == null || !actor || !actor.mixer) return;
+  actor.mixer.setTime(saved > 0.001 ? saved : 0.001);
+  if (actor.lockXZ && actor.hips && actor.hipHome) {
+    actor.hips.position.x = actor.hipHome.x;
+    actor.hips.position.z = actor.hipHome.z;
+  }
+  if (actor.model) actor.model.updateWorldMatrix(true, true);
+}
+
+function boneWorld(model, name) {
+  const n = model && model.getObjectByName(name);
+  return n ? nodePos(n) : null;
+}
+
+function throneTopPoint(arena) {
+  if (arena._throneTop) return arena._throneTop;
+  const throne = arena.packThrone;
+  let p = new THREE.Vector3(0, 4.15, 0.16);
+  if (throne) {
+    const box = new THREE.Box3().setFromObject(throne);
+    if (box.max.y > 1.5 && box.max.y < 8) {
+      p = new THREE.Vector3((box.min.x + box.max.x) * 0.5, box.max.y, (box.min.z + box.max.z) * 0.5);
+    }
+  }
+  arena._throneTop = p;
+  return p;
+}
+
+function idleMarks(arena) {
+  const id = arena.activeHero || 'knight';
+  if (arena._idleMarks && arena._idleMarks.id === id) return arena._idleMarks;
+  const death = arena.deathActor;
+  const hero = arena.heroActors && arena.heroActors[id];
+  if (!death || !death.model || !hero || !hero.model) return null;
+  const marks = { id };
+  const savedD = poseMixer(death, 0);
+  let head = boneWorld(death.model, 'head_end') || boneWorld(death.model, 'Head');
+  const eyes = nodePos(death.anchors && death.anchors.eyes);
+  if (!head) head = eyes ? eyes.clone() : new THREE.Vector3(0, 2.2, -0.2);
+  else head = head.clone();
+  if (eyes && eyes.y > head.y) head.y = eyes.y;
+  let feet = null;
+  for (const n of ['LeftFoot', 'RightFoot']) {
+    const p = boneWorld(death.model, n);
+    if (p && (!feet || p.y < feet.y)) feet = p;
+  }
+  if (!feet) feet = new THREE.Vector3(0.05, 0.72, 0.7);
+  const dSL = boneWorld(death.model, 'LeftShoulder') || head.clone();
+  const dSR = boneWorld(death.model, 'RightShoulder') || head.clone();
+  const dChest = nodePos(death.anchors && death.anchors.chest) || head.clone();
+  restoreMixer(death, savedD);
+  marks.deathHead = head;
+  marks.deathFeet = feet.clone();
+  marks.deathL = dSL.clone();
+  marks.deathR = dSR.clone();
+  marks.deathChest = dChest.clone();
+  const savedH = poseMixer(hero, 0);
+  let hHead = nodePos(hero.anchors && hero.anchors.head) || boneWorld(hero.model, 'Head') || boneWorld(hero.model, 'head_end');
+  if (!hHead) hHead = new THREE.Vector3(0, 1.7, 6.5);
+  const crown = boneWorld(hero.model, 'head_end');
+  if (crown && crown.y > hHead.y) hHead = hHead.clone(), hHead.y = crown.y;
+  else hHead = hHead.clone();
+  const hSL = boneWorld(hero.model, 'LeftShoulder') || hHead.clone();
+  const hSR = boneWorld(hero.model, 'RightShoulder') || hHead.clone();
+  restoreMixer(hero, savedH);
+  /* Torso plus a cape/robe pad. Hands and weapons stay out of the
+     silhouette, or the head is pushed off the left of the phone frame. */
+  const midX = (hSL.x + hSR.x) * 0.5;
+  const half = Math.max(Math.abs(hSL.x - midX), Math.abs(hSR.x - midX));
+  const bulk = half + 0.24;
+  const chestY = Math.min(hSL.y, hSR.y);
+  const capeZ = hHead.z + 0.14;
+  marks.heroHead = hHead;
+  marks.heroSL = hSL.clone();
+  marks.heroSR = hSR.clone();
+  marks.sideL = new THREE.Vector3(midX - bulk, chestY, capeZ);
+  marks.sideR = new THREE.Vector3(midX + bulk, chestY, capeZ);
+  marks.heroZ = hHead.z;
+  marks.throne = throneTopPoint(arena).clone();
+  arena._idleMarks = marks;
+  return marks;
+}
+
+function bandMiss(v, lo, hi) {
+  if (v < lo) return lo - v;
+  if (v > hi) return v - hi;
+  return 0;
+}
+
+/* Phone: 50° lens, 2.5–3 m behind the idle hero, low and looking up.
+   His head sits near the left quarter and his silhouette stays clear of
+   Death. Desktop: throne top inside the open area, Death about 40% of it. */
 function solveRest(arena, aspect, cover) {
   const phone = aspect < 0.85;
   const fov = phone ? 50 : 46;
-  const deathActor = arena.deathActor;
-  const heroActor = arena.heroActors && arena.heroActors[arena.activeHero];
-  const deathM = deathActor && deathActor.model;
-  const heroM = heroActor && heroActor.model;
-  const named = (model, name) => nodePos(model && model.getObjectByName(name));
-  let head = named(deathM, 'head_end');
-  const eyes = nodePos(deathActor && deathActor.anchors && deathActor.anchors.eyes);
-  if (!head) head = eyes ? eyes.clone() : named(deathM, 'Head');
-  if (head && eyes && eyes.y > head.y) head = eyes.clone();
-  if (!head) head = new THREE.Vector3(0, 2.55, 0.35);
-  /* Hood and crown sit above the skull bone. Size the shot to that top. */
-  head = head.clone();
-  head.y += 0.16;
-  let feet = null;
-  for (const n of ['LeftFoot', 'RightFoot']) {
-    const p = named(deathM, n);
-    if (p && (!feet || p.y < feet.y)) feet = p;
+  arena._restSolves = (arena._restSolves || 0) + 1;
+  const marks = idleMarks(arena);
+  const round = v => Math.round(v * 1000) / 1000;
+  if (!marks) {
+    arena._restDebug = { fallback: true, fov, visTop: round(cover.top), visBot: round(cover.bot) };
+    return restFallback(phone);
   }
-  if (!feet) feet = new THREE.Vector3(0.1, 0.72, 0.7);
-  let hHead = nodePos(heroActor && heroActor.anchors && heroActor.anchors.head) || named(heroM, 'Head');
-  if (!hHead) hHead = new THREE.Vector3(0, 1.68, 6.5);
-  const hSL = named(heroM, 'LeftShoulder') || hHead.clone();
-  const hSR = named(heroM, 'RightShoulder') || hHead.clone();
-  const hChest = nodePos(heroActor && heroActor.anchors && heroActor.anchors.chest) || hHead.clone();
-  /* Upper back, where the cape leaves the shoulders. The hem sits lower
-     and is allowed to meet the reel strip. */
-  const hBack = hChest.clone();
-  hBack.y -= 0.1;
-  hBack.z += 0.12;
-  const ceil = new THREE.Vector3(0, 6.2, -1.2);
   const visH = Math.max(0.22, cover.bot - cover.top);
   const cam = _restCam;
   cam.near = 0.08;
   cam.far = 90;
-  const hz = hHead.z;
-  const zs = (phone ? [0.9, 1.15, 1.45, 1.8, 2.3] : [1.6, 2.1, 2.6, 3.2, 4.0]).map(d => hz + d);
-  const ys = phone ? [1.1, 1.35, 1.6] : [1.45, 1.75, 2.05, 2.35];
-  const xs = phone ? [0.15, 0.4, 0.75] : [0.3, 0.7, 1.05];
-  const lys = phone ? [1.8, 2.2, 2.55] : [1.15, 1.5, 1.9, 2.3];
-  const lzs = phone ? [0.2, 0.8] : [0.2, 0.9];
-  const lifts = phone ? [0.26, 0.32, 0.38] : [0.1, 0.16, 0.22, 0.28];
+  const hz = marks.heroZ;
+  const dists = phone ? [2.5, 2.7, 2.9] : [2.05, 2.4, 2.8, 3.3, 3.8];
+  const ys = phone ? [1.05, 1.25, 1.45] : [1.3, 1.6, 1.9];
+  const lys = phone ? [1.9, 2.25, 2.6] : [1.9, 2.25, 2.65];
+  const lzs = phone ? [0.35, 0.9, 1.4] : [0.15, 0.55];
+  const lifts = phone ? [0, 0.08, 0.14] : [0, 0.08, 0.16];
+  const xs = [];
+  if (phone) { for (let x = 0.2; x <= 1.15; x += 0.15) xs.push(Math.round(x * 100) / 100); }
+  else { for (let x = 0.3; x <= 1.2; x += 0.3) xs.push(Math.round(x * 100) / 100); }
+  const pts = [marks.deathHead, marks.deathFeet, marks.deathL, marks.deathR, marks.deathChest,
+    marks.heroHead, marks.heroSL, marks.heroSR, marks.sideL, marks.sideR, marks.throne];
   let best = null;
-  function sees(p) {
+  function inFront(p) {
     _restLocal.copy(p).applyMatrix4(cam.matrixWorldInverse);
     return _restLocal.z < -0.35;
   }
-  for (const lift of lifts) for (const z of zs) for (const y of ys) for (const x of xs)
-    for (const ly of lys) for (const lz of lzs) {
-      if (phone && ly < y + 0.25) continue;
+  for (const dist of dists) for (const y of ys) for (const ly of lys) for (const lz of lzs)
+    for (const lift of lifts) for (const x of xs) {
+      if (ly < y + (phone ? 0.55 : 0.15)) continue;
+      const z = hz + dist;
       cam.position.set(x, y, z);
-      cam.lookAt(0.05, ly, lz);
+      cam.lookAt(0, ly, lz);
       cam.updateMatrixWorld(true);
       applyViewLift(cam, lift, fov, aspect);
-      if (!sees(head) || !sees(feet) || !sees(hHead) || !sees(hBack)) continue;
-      const dh = screenOf(cam, head);
-      const df = screenOf(cam, feet);
-      const hh = screenOf(cam, hHead);
-      const sl = screenOf(cam, hSL);
-      const sr = screenOf(cam, hSR);
-      const bk = screenOf(cam, hBack);
-      const cy = sees(ceil) ? screenOf(cam, ceil) : { x: 0.5, y: -1 };
+      if (!inFront(marks.deathHead) || !inFront(marks.heroHead) || !inFront(marks.throne)) continue;
+      const dh = screenOf(cam, marks.deathHead);
+      const df = screenOf(cam, marks.deathFeet);
+      const dl = screenOf(cam, marks.deathL);
+      const dr = screenOf(cam, marks.deathR);
+      const hh = screenOf(cam, marks.heroHead);
+      const sl = screenOf(cam, marks.heroSL);
+      const sr = screenOf(cam, marks.heroSR);
+      const sL = screenOf(cam, marks.sideL);
+      const sR = screenOf(cam, marks.sideR);
+      const th = screenOf(cam, marks.throne);
       const span = df.y - dh.y;
-      if (span < 0.05) continue;
+      if (span < 0.08) continue;
       const shoulderY = Math.max(sl.y, sr.y);
+      const heroSpan = shoulderY - hh.y;
+      const heroRight = Math.max(hh.x, sl.x, sr.x, sL.x, sR.x);
+      const deathLeft = Math.min(dh.x, dl.x, dr.x);
+      const gap = deathLeft - heroRight;
       const ofVis = span / visH;
-      const chestY = (dh.y + df.y) * 0.5;
-      let hard = Math.abs(ofVis - 0.40) * 14;
-      if (ofVis < 0.35 || ofVis > 0.45) hard += Math.abs(ofVis - 0.40) * 10;
-      if (dh.y < cover.top) hard += (cover.top - dh.y) * 16;
-      if (dh.y > cover.top + 0.12) hard += (dh.y - cover.top - 0.12) * 6;
-      if (df.y > cover.bot - 0.06) hard += (df.y - (cover.bot - 0.06)) * 10;
-      if (hh.y > cover.bot - 0.04) hard += (hh.y - (cover.bot - 0.04)) * 14;
-      if (shoulderY > cover.bot - 0.015) hard += (shoulderY - (cover.bot - 0.015)) * 12;
-      if (bk.y > cover.bot) hard += (bk.y - cover.bot) * 14;
-      if (hh.y < cover.top) hard += (cover.top - hh.y) * 10;
-      if (hh.y < chestY - 0.02) hard += (chestY - 0.02 - hh.y) * 2;
-      if (hh.x < 0.08 || hh.x > 0.78) hard += 2.5;
-      if (dh.x < 0.30 || dh.x > 0.70) hard += 2;
-      if (Math.abs(hh.x - dh.x) < 0.06) hard += (0.06 - Math.abs(hh.x - dh.x)) * 6;
-      if (cy.y > 0.02) hard += 5 + cy.y * 8;
+      let hard = 0;
+      if (phone) {
+        hard += bandMiss(hh.x, 0.25, 0.30) * 36;
+        if (hh.x < 0.12 || hh.x > 0.40) hard += 16;
+        if (gap < 0.04) hard += 28 + (0.04 - gap) * 40;
+        if (heroSpan > 0.30) hard += 30 + (heroSpan - 0.30) * 50;
+        if (th.y < cover.top + 0.01) hard += 36 + (cover.top + 0.01 - th.y) * 45;
+        hard += bandMiss(th.y, 0.06, 0.18) * 10;
+        if (dh.y < cover.top + 0.02) hard += 12;
+        if (df.y > cover.bot - 0.02) hard += 14 + (df.y - (cover.bot - 0.02)) * 18;
+        if (shoulderY > cover.bot - 0.01) hard += 14;
+        if (hh.y < 0.36) hard += (0.36 - hh.y) * 8;
+        if (hh.y > cover.bot - 0.12) hard += 6;
+        hard += Math.abs(dh.x - 0.50) * 4;
+      } else {
+        hard += Math.abs(ofVis - 0.40) * 26;
+        if (ofVis < 0.36 || ofVis > 0.46) hard += 8;
+        if (th.y < cover.top + 0.008) hard += 40 + (cover.top + 0.008 - th.y) * 55;
+        if (th.y > 0.15) hard += (th.y - 0.15) * 12;
+        if (dh.y < cover.top) hard += 10;
+        if (df.y > cover.bot - 0.02) hard += 12 + (df.y - (cover.bot - 0.02)) * 18;
+        if (shoulderY > cover.bot - 0.01) hard += 12;
+        if (hh.y > cover.bot - 0.04) hard += 8;
+        if (gap < 0.04) hard += 20 + (0.04 - gap) * 40;
+        hard += bandMiss(hh.x, 0.22, 0.42) * 3;
+        hard += Math.abs(dh.x - 0.50) * 2;
+      }
       if (!best || hard < best.hard) {
-        best = { hard, x, y, z, ly, lz, lift, span, ofVis, dh, df, hh, shoulderY, backY: bk.y, cy };
+        best = {
+          hard, x, y, z, ly, lz, lift, span, ofVis, dh, df, hh, shoulderY, heroSpan,
+          throneY: th.y, heroRight, deathLeft, gap, dist,
+        };
       }
     }
-  const round = v => Math.round(v * 1000) / 1000;
   if (!best) {
-    const z = hz + (phone ? 2.6 : 4.6);
     arena._restDebug = { fallback: true, fov, visTop: round(cover.top), visBot: round(cover.bot) };
-    return {
-      pos: new THREE.Vector3(phone ? 0.45 : 0.7, phone ? 1.45 : 1.9, z),
-      look: new THREE.Vector3(0.05, phone ? 2.0 : 1.6, 0.4),
-      fov,
-      lift: phone ? 0.22 : 0.2,
-    };
+    return restFallback(phone);
   }
   arena._restDebug = {
     fov,
@@ -2740,22 +2881,20 @@ function solveRest(arena, aspect, cover) {
     feetY: round(best.df.y),
     heroY: round(best.hh.y),
     heroX: round(best.hh.x),
+    heroSpan: round(best.heroSpan),
     shoulderY: round(best.shoulderY),
-    backY: round(best.backY),
-    ceilY: round(best.cy.y),
+    throneY: round(best.throneY),
+    heroRight: round(best.heroRight),
+    deathLeft: round(best.deathLeft),
+    gap: round(best.gap),
+    dist: round(best.dist),
     hard: round(best.hard),
     cam: [round(best.x), round(best.y), round(best.z)],
-    look: [0.05, best.ly, best.lz],
-    bones: {
-      head: [round(head.x), round(head.y), round(head.z)],
-      feet: [round(feet.x), round(feet.y), round(feet.z)],
-      hero: [round(hHead.x), round(hHead.y), round(hHead.z)],
-      back: [round(hBack.x), round(hBack.y), round(hBack.z)],
-    },
+    look: [0, best.ly, best.lz],
   };
   return {
     pos: new THREE.Vector3(best.x, best.y, best.z),
-    look: new THREE.Vector3(0.05, best.ly, best.lz),
+    look: new THREE.Vector3(0, best.ly, best.lz),
     fov,
     lift: best.lift,
   };

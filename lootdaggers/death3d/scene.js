@@ -243,6 +243,8 @@ class Arena {
     api.stop = () => self.stop();
     api.resize = () => self.resize();
     api.status = () => self.status();
+    /* One frame from the dais, so a test can see whether the feet are sunk. */
+    api.peekFeet = () => self.peekFeet();
   }
 
   resize() {
@@ -263,6 +265,7 @@ class Arena {
     }
     this.camera.aspect = w / h;
     const aspect = w / h;
+    this._canvasAspect = aspect;
     let framed = this.pack ? framePack(aspect) : frameShot(aspect, this.manifest.layout.hero);
     if (this.pack) {
       const fit = this._solveFit(aspect);
@@ -389,6 +392,7 @@ class Arena {
 
     this.deathActor.update(dt);
     this.heroActors[this.activeHero].update(dt);
+    this._posed = true;
     if (this.tex.fire && this.tex.fire.userData._sheet) advanceSheet(this.tex.fire, dt);
     if (this.flameSprites) {
       for (const sp of this.flameSprites) {
@@ -1044,6 +1048,17 @@ class Arena {
       scene.add(wash);
       this._greenShaft();
     }
+    /* From the camera side, so the hero's back and cape are not a silhouette.
+       A directional does not spend a point-light slot. */
+    const cape = new THREE.DirectionalLight(lin(1.0, 0.72, 0.42), (phone || software) ? 1.25 : 0.55);
+    cape.position.set(0.2, 2.8, 12);
+    scene.add(cape);
+    this.capeFill = cape;
+    /* Grazing light from the hall side, so the cape edge is not a flat silhouette. */
+    const edge = new THREE.DirectionalLight(lin(0.65, 0.9, 0.75), (phone || software) ? 0.45 : 0.22);
+    edge.position.set(-3.5, 3.2, 4);
+    scene.add(edge);
+    this.capeEdge = edge;
     /* Real GPU only. Phone and software stay at the brazier points plus the dais. */
     if (!phone && !software) {
       const fillI = phone ? 10 : 12.7;
@@ -1145,6 +1160,29 @@ class Arena {
     }
   }
 
+  /* Low three-quarter on the dais. The next tick puts the director camera back. */
+  peekFeet() {
+    const cam = this.camera;
+    cam.clearViewOffset();
+    cam.aspect = this._canvasAspect || cam.aspect;
+    cam.position.set(2.35, 0.42, 2.55);
+    cam.lookAt(0.15, 0.45, 0.4);
+    cam.fov = 30;
+    cam.updateProjectionMatrix();
+    this._render();
+    const model = this.deathActor && this.deathActor.model;
+    const names = ['LeftFoot', 'RightFoot', 'LeftToeBase', 'RightToeBase'];
+    const feet = names.map(n => {
+      const o = model && model.getObjectByName(n);
+      if (!o) return null;
+      const p = new THREE.Vector3();
+      o.updateWorldMatrix(true, false);
+      o.getWorldPosition(p);
+      return { n, x: Math.round(p.x * 1000) / 1000, y: Math.round(p.y * 1000) / 1000, z: Math.round(p.z * 1000) / 1000 };
+    }).filter(Boolean);
+    return { feet };
+  }
+
   status() {
     const info = this.renderer ? this.renderer.info.render : { triangles: 0, calls: 0 };
     return {
@@ -1181,8 +1219,9 @@ class Arena {
       scythe: this.scythe ? (this.scythe.external ? 'file' : (this.scythe.embedded ? 'bone' : '')) : '',
       tone: this.renderer ? this.renderer.toneMapping : 0,
       exposure: this.renderer ? Math.round(this.renderer.toneMappingExposure * 100) / 100 : 0,
-      camFov: this.camera ? Math.round(this.camera.fov * 10) / 10 : 0,
+      camFov: this.director ? Math.round(this.director.fov * 10) / 10 : (this.camera ? Math.round(this.camera.fov * 10) / 10 : 0),
       camPos: this.camera ? [this.camera.position.x, this.camera.position.y, this.camera.position.z].map(v => Math.round(v * 100) / 100) : null,
+      rest: this._restDebug || null,
     };
   }
 }
@@ -2514,21 +2553,212 @@ function anchorShot(arena, who, name, fallback) {
   catch (e) { return fallback.clone(); }
 }
 
-function shotRest(arena) {
-  /* Artist camera: (0.7, 2.45, 11.2) looking at (−0.1, 2.75, 0.5).
-     24 mm on a 36 mm sensor is 45.75° vertical at 16:9. A narrower frame
-     keeps that horizontal field, capped so a phone is not a fisheye. */
-  const pos = new THREE.Vector3(0.7, 2.45, 11.2);
-  const look = new THREE.Vector3(-0.1, 2.75, 0.5);
-  const aspect = Math.max(0.35, arena.camera.aspect || 1);
-  const wide = 16 / 9;
-  let fov = 45.75;
-  if (aspect < wide - 0.02) {
-    const h = 2 * Math.atan(Math.tan(45.75 * Math.PI / 360) * wide);
-    fov = 2 * Math.atan(Math.tan(h / 2) / aspect) * 180 / Math.PI;
-    fov = Math.min(78, fov);
+const _restCam = new THREE.PerspectiveCamera(52, 1, 0.08, 90);
+const _restNdc = new THREE.Vector3();
+const _restLocal = new THREE.Vector3();
+let _restCache = null;
+
+function screenOf(cam, p) {
+  _restNdc.copy(p).project(cam);
+  return { x: (_restNdc.x + 1) * 0.5, y: (1 - _restNdc.y) * 0.5, z: _restNdc.z };
+}
+
+/* `lift` drops the top of a taller frustum so the look target sits in the
+   open area above the reel strip. subFov is the vertical field of that
+   window. The cropped frustum keeps the canvas aspect. */
+function applyViewLift(cam, lift, subFov, canvasAspect) {
+  const shown = Math.max(0.55, 1 - (lift || 0));
+  if (!lift || lift < 0.01) {
+    cam.clearViewOffset();
+    cam.aspect = canvasAspect;
+    cam.fov = subFov;
+    cam.updateProjectionMatrix();
+    return;
   }
-  return { pos, look, fov };
+  const tanSub = Math.tan(subFov * Math.PI / 360);
+  cam.fov = Math.atan(tanSub / shown) * 2 * 180 / Math.PI;
+  const W = 1000 * canvasAspect;
+  const H = 1000;
+  const fullH = H / shown;
+  cam.setViewOffset(W, fullH, 0, fullH - H, W, H);
+}
+
+function nodePos(obj) {
+  if (!obj) return null;
+  obj.updateWorldMatrix(true, false);
+  return obj.getWorldPosition(new THREE.Vector3());
+}
+
+/* Fractions of the viewport, top to bottom. The reel strip covers the bottom.
+   The forecast chip, when it is open, covers a little of the top. */
+function visibleCover() {
+  const H = (typeof window !== 'undefined' && window.innerHeight) || 1;
+  let bot = H;
+  for (const id of ['hud', 'deathHp', 'log', 'machine', 'gearBar']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.height < 4) continue;
+    if (r.top < bot) bot = r.top;
+  }
+  let top = 0;
+  const f = document.getElementById('forecast');
+  if (f) {
+    const r = f.getBoundingClientRect();
+    if (r.height > 8 && r.top < H * 0.35) top = r.bottom;
+  }
+  return {
+    top: Math.max(0, Math.min(0.22, top / H)),
+    bot: Math.max(0.5, Math.min(0.9, bot / H)),
+  };
+}
+
+function shotRest(arena) {
+  const aspect = Math.max(0.35, arena._canvasAspect || (arena.camera && arena.camera.aspect) || 1);
+  const cover = visibleCover();
+  const qtop = Math.round(cover.top * 40) / 40;
+  const qbot = Math.round(cover.bot * 40) / 40;
+  const key = aspect.toFixed(2) + '@' + qtop + '@' + qbot;
+  const ready = !!(arena._posed && arena.deathActor && arena.deathActor.model
+    && arena.heroActors && arena.heroActors[arena.activeHero] && arena.heroActors[arena.activeHero].model);
+  if (_restCache && _restCache.key === key && _restCache.ready) return _restCache.shot;
+  const shot = solveRest(arena, aspect, { top: qtop, bot: qbot });
+  if (ready) _restCache = { key, shot, ready: true };
+  return shot;
+}
+
+/* Death's skull-to-feet span is about 40% of the open area above the reel
+   strip. The hero's head, shoulders and cape stay in that area. A phone
+   uses a 50° lens, closer and lower, looking up, and the empty ceiling is
+   lifted out of the frame. */
+function solveRest(arena, aspect, cover) {
+  const phone = aspect < 0.85;
+  const fov = phone ? 50 : 46;
+  const deathActor = arena.deathActor;
+  const heroActor = arena.heroActors && arena.heroActors[arena.activeHero];
+  const deathM = deathActor && deathActor.model;
+  const heroM = heroActor && heroActor.model;
+  const named = (model, name) => nodePos(model && model.getObjectByName(name));
+  let head = named(deathM, 'head_end');
+  const eyes = nodePos(deathActor && deathActor.anchors && deathActor.anchors.eyes);
+  if (!head) head = eyes ? eyes.clone() : named(deathM, 'Head');
+  if (head && eyes && eyes.y > head.y) head = eyes.clone();
+  if (!head) head = new THREE.Vector3(0, 2.55, 0.35);
+  /* Hood and crown sit above the skull bone. Size the shot to that top. */
+  head = head.clone();
+  head.y += 0.16;
+  let feet = null;
+  for (const n of ['LeftFoot', 'RightFoot']) {
+    const p = named(deathM, n);
+    if (p && (!feet || p.y < feet.y)) feet = p;
+  }
+  if (!feet) feet = new THREE.Vector3(0.1, 0.72, 0.7);
+  let hHead = nodePos(heroActor && heroActor.anchors && heroActor.anchors.head) || named(heroM, 'Head');
+  if (!hHead) hHead = new THREE.Vector3(0, 1.68, 6.5);
+  const hSL = named(heroM, 'LeftShoulder') || hHead.clone();
+  const hSR = named(heroM, 'RightShoulder') || hHead.clone();
+  const hChest = nodePos(heroActor && heroActor.anchors && heroActor.anchors.chest) || hHead.clone();
+  /* Upper back, where the cape leaves the shoulders. The hem sits lower
+     and is allowed to meet the reel strip. */
+  const hBack = hChest.clone();
+  hBack.y -= 0.1;
+  hBack.z += 0.12;
+  const ceil = new THREE.Vector3(0, 6.2, -1.2);
+  const visH = Math.max(0.22, cover.bot - cover.top);
+  const cam = _restCam;
+  cam.near = 0.08;
+  cam.far = 90;
+  const hz = hHead.z;
+  const zs = (phone ? [0.9, 1.15, 1.45, 1.8, 2.3] : [1.6, 2.1, 2.6, 3.2, 4.0]).map(d => hz + d);
+  const ys = phone ? [1.1, 1.35, 1.6] : [1.45, 1.75, 2.05, 2.35];
+  const xs = phone ? [0.15, 0.4, 0.75] : [0.3, 0.7, 1.05];
+  const lys = phone ? [1.8, 2.2, 2.55] : [1.15, 1.5, 1.9, 2.3];
+  const lzs = phone ? [0.2, 0.8] : [0.2, 0.9];
+  const lifts = phone ? [0.26, 0.32, 0.38] : [0.1, 0.16, 0.22, 0.28];
+  let best = null;
+  function sees(p) {
+    _restLocal.copy(p).applyMatrix4(cam.matrixWorldInverse);
+    return _restLocal.z < -0.35;
+  }
+  for (const lift of lifts) for (const z of zs) for (const y of ys) for (const x of xs)
+    for (const ly of lys) for (const lz of lzs) {
+      if (phone && ly < y + 0.25) continue;
+      cam.position.set(x, y, z);
+      cam.lookAt(0.05, ly, lz);
+      cam.updateMatrixWorld(true);
+      applyViewLift(cam, lift, fov, aspect);
+      if (!sees(head) || !sees(feet) || !sees(hHead) || !sees(hBack)) continue;
+      const dh = screenOf(cam, head);
+      const df = screenOf(cam, feet);
+      const hh = screenOf(cam, hHead);
+      const sl = screenOf(cam, hSL);
+      const sr = screenOf(cam, hSR);
+      const bk = screenOf(cam, hBack);
+      const cy = sees(ceil) ? screenOf(cam, ceil) : { x: 0.5, y: -1 };
+      const span = df.y - dh.y;
+      if (span < 0.05) continue;
+      const shoulderY = Math.max(sl.y, sr.y);
+      const ofVis = span / visH;
+      const chestY = (dh.y + df.y) * 0.5;
+      let hard = Math.abs(ofVis - 0.40) * 14;
+      if (ofVis < 0.35 || ofVis > 0.45) hard += Math.abs(ofVis - 0.40) * 10;
+      if (dh.y < cover.top) hard += (cover.top - dh.y) * 16;
+      if (dh.y > cover.top + 0.12) hard += (dh.y - cover.top - 0.12) * 6;
+      if (df.y > cover.bot - 0.06) hard += (df.y - (cover.bot - 0.06)) * 10;
+      if (hh.y > cover.bot - 0.04) hard += (hh.y - (cover.bot - 0.04)) * 14;
+      if (shoulderY > cover.bot - 0.015) hard += (shoulderY - (cover.bot - 0.015)) * 12;
+      if (bk.y > cover.bot) hard += (bk.y - cover.bot) * 14;
+      if (hh.y < cover.top) hard += (cover.top - hh.y) * 10;
+      if (hh.y < chestY - 0.02) hard += (chestY - 0.02 - hh.y) * 2;
+      if (hh.x < 0.08 || hh.x > 0.78) hard += 2.5;
+      if (dh.x < 0.30 || dh.x > 0.70) hard += 2;
+      if (Math.abs(hh.x - dh.x) < 0.06) hard += (0.06 - Math.abs(hh.x - dh.x)) * 6;
+      if (cy.y > 0.02) hard += 5 + cy.y * 8;
+      if (!best || hard < best.hard) {
+        best = { hard, x, y, z, ly, lz, lift, span, ofVis, dh, df, hh, shoulderY, backY: bk.y, cy };
+      }
+    }
+  const round = v => Math.round(v * 1000) / 1000;
+  if (!best) {
+    const z = hz + (phone ? 2.6 : 4.6);
+    arena._restDebug = { fallback: true, fov, visTop: round(cover.top), visBot: round(cover.bot) };
+    return {
+      pos: new THREE.Vector3(phone ? 0.45 : 0.7, phone ? 1.45 : 1.9, z),
+      look: new THREE.Vector3(0.05, phone ? 2.0 : 1.6, 0.4),
+      fov,
+      lift: phone ? 0.22 : 0.2,
+    };
+  }
+  arena._restDebug = {
+    fov,
+    lift: best.lift,
+    span: round(best.span),
+    ofVis: round(best.ofVis),
+    visTop: round(cover.top),
+    visBot: round(cover.bot),
+    headY: round(best.dh.y),
+    feetY: round(best.df.y),
+    heroY: round(best.hh.y),
+    heroX: round(best.hh.x),
+    shoulderY: round(best.shoulderY),
+    backY: round(best.backY),
+    ceilY: round(best.cy.y),
+    hard: round(best.hard),
+    cam: [round(best.x), round(best.y), round(best.z)],
+    look: [0.05, best.ly, best.lz],
+    bones: {
+      head: [round(head.x), round(head.y), round(head.z)],
+      feet: [round(feet.x), round(feet.y), round(feet.z)],
+      hero: [round(hHead.x), round(hHead.y), round(hHead.z)],
+      back: [round(hBack.x), round(hBack.y), round(hBack.z)],
+    },
+  };
+  return {
+    pos: new THREE.Vector3(best.x, best.y, best.z),
+    look: new THREE.Vector3(0.05, best.ly, best.lz),
+    fov,
+    lift: best.lift,
+  };
 }
 
 function shotIntro(arena) {
@@ -2628,7 +2858,9 @@ const SHOTS = {
 function mixShots(a, b, k) {
   _mixPos.copy(a.pos).lerp(b.pos, k);
   _mixLook.copy(a.look).lerp(b.look, k);
-  return { pos: _mixPos, look: _mixLook, fov: a.fov + (b.fov - a.fov) * k };
+  const la = a.lift || 0;
+  const lb = b.lift || 0;
+  return { pos: _mixPos, look: _mixLook, fov: a.fov + (b.fov - a.fov) * k, lift: la + (lb - la) * k };
 }
 
 /* Resting over-the-shoulder shot, plus short sequences on resolve, intro, and the finishers. */
@@ -2641,6 +2873,7 @@ class CameraDirector {
     this.pos = new THREE.Vector3(0, 2, 8);
     this.look = new THREE.Vector3(0, 2, 0);
     this.fov = 36;
+    this.lift = 0;
     this._ready = false;
   }
 
@@ -2667,6 +2900,7 @@ class CameraDirector {
     this.pos.copy(s.pos);
     this.look.copy(s.look);
     this.fov = s.fov;
+    this.lift = s.lift || 0;
     this._ready = true;
   }
 
@@ -2687,11 +2921,14 @@ class CameraDirector {
       this.pos.copy(frame.pos);
       this.look.copy(frame.look);
       this.fov = frame.fov;
+      this.lift = frame.lift || 0;
       this._ready = true;
     } else {
       this.pos.lerp(frame.pos, Math.min(1, alpha));
       this.look.lerp(frame.look, Math.min(1, alpha));
       this.fov += (frame.fov - this.fov) * Math.min(1, alpha);
+      const nextLift = frame.lift || 0;
+      this.lift += (nextLift - this.lift) * Math.min(1, alpha);
     }
     if (this.mode === 'rest' && !soft) this.pos.y += Math.sin(performance.now() / 1000 * 0.8) * 0.012;
     const cam = this.arena.camera;
@@ -2702,8 +2939,8 @@ class CameraDirector {
       cam.position.y += (Math.random() - 0.5) * sh;
     }
     cam.lookAt(this.look);
-    cam.fov = this.fov;
-    cam.updateProjectionMatrix();
+    const aspect = this.arena._canvasAspect || cam.aspect;
+    applyViewLift(cam, this.lift, this.fov, aspect);
   }
 
   _frame(soft) {
@@ -2736,7 +2973,7 @@ class CameraDirector {
     } else shot = rest();
     _shotPos.copy(shot.pos);
     _shotLook.copy(shot.look);
-    return { pos: _shotPos, look: _shotLook, fov: shot.fov, cut: cut && !soft };
+    return { pos: _shotPos, look: _shotLook, fov: shot.fov, lift: shot.lift || 0, cut: cut && !soft };
   }
 }
 

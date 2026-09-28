@@ -6,8 +6,6 @@ models/death.glb            meshopt, scythe on bone Scythe_Grip, Attack_Scythe
 models/throne.glb           Draco
 models/throne_room_env.glb  Draco, markers and flame sockets
 models/hero_<id>.glb        meshopt, one hero per fight
-models/scythe.glb           Draco, standalone; the fight uses the embedded mesh
-models/prop_{pillar,brazier,candles}.glb   Draco, the pieces inside the env
 textures/vfx/*.webp         soul orb, loop, impact, beam, fire, wisps
 ```
 

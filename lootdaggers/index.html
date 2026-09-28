@@ -1204,7 +1204,7 @@ async function deathCheck(o){
 async function defeatDeath(){
   const r=run;r.pendingFree=false;view.shake=18;sfx.reaper();
   deathCue('win',{phase:3});
-  await new Promise(res=>setTimeout(res,1800));
+  await new Promise(res=>setTimeout(res,2300));
   await labDialog('portrait_death3','Death',pick(DEATH_LINES.win),'screen_death_free','Walk into the light','soulbtn');
   const first=!S.deathDefeated;S.deathDefeated=(S.deathDefeated||0)+1;metaEv('deathkill');r.souls+=666;stat('deathWins');
   if(r.deathDouble&&S.ledger){const up=S.ledger.lvl<LEDGER_MAX;if(up)S.ledger.lvl++;save();await modal('Double or Nothing: won',`${icon('gear_unique_ledger','📓','hero')}<p>${up?`The Grim's Ledger rises to <b style="color:#8cff96">+${S.ledger.lvl}</b>, free of charge.`:'The Ledger is already complete. Death pays you in souls instead: <b>+666</b>.'}</p>`,[{label:'Take it',val:1,cls:'primary'}]);if(!up)r.souls+=666;}
@@ -2632,7 +2632,7 @@ async function tryDie(){
     document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
     view.banner={t:performance.now(),txt:"IT'S ALIVE!"};heroFl('+'+r.hp+' HP','#8cff96');addFx('fx_heal',heroWX(),GY-50,90,1,30);
     noteTurn(`<span style="color:#8cff96">Labfreak's Beaker: <b>IT'S ALIVE!</b> back up at ${r.hp} HP</span>`);ui();return false;}
-  if(r.death) await new Promise(res=>setTimeout(res,1800));
+  if(r.death) await new Promise(res=>setTimeout(res,2300));
   await endRun('slain');return true;
 }
 async function broke(){

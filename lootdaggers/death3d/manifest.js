@@ -61,10 +61,8 @@ export const DEATH3D_MANIFEST = {
     hero_brute: heroSlot('models/hero_brute.glb', false),
     hero_duelist: heroSlot('models/hero_duelist.glb', false),
     hero_hexpriest: heroSlot('models/hero_hexpriest.glb', false),
-    /* The scythe is already a child of bone Scythe_Grip (under LeftHand)
-       at identity. Leave url empty to keep that mesh. Set url to
-       'models/scythe.glb' to parent the standalone file to the same bone,
-       also at identity, and hide the embedded Scythe. */
+    /* The fight uses the scythe already parented to bone Scythe_Grip.
+       url stays empty. */
     scythe: { url: '', scale: 0 },
     vfx: {
       soul: 'textures/vfx/soul_orb.webp',

@@ -61,13 +61,15 @@ spin, both life bars and the log pack into a bottom strip (`#game.death3d`).
 The forecast is a chip at the top of the screen, off the hero and the throne
 base. The class comes off when the fight ends, so a normal run is unchanged.
 
-The resting camera is the artist's shot: (0.7, 2.45, 11.2) looking at
-(−0.1, 2.75, 0.5), 45.75° vertical at 16:9. A narrower window widens the
-lens (capped at 78°) so the pillars and the hero still fit. An intro rises
-into that shot. A resolve plays a short sequence (a push from behind the hero,
-a cut to Death's flinch, or a side angle on a soul blast that still looks up
-the hall) and then returns. Win and loss have their own finishers, and the
-result dialog waits about 1.8s so the finisher is on screen first. A tap on
+The resting shot is framed into the area above the reel strip. Death's
+skull-to-feet span is about 40% of that open height. A phone uses a 50° lens,
+closer and lower, looking up, so the empty ceiling leaves the frame. On a
+wide window the look target sits in the open area, and the hero's head,
+shoulders and cape stay above the strip. An intro rises into that shot. A
+resolve plays a short sequence (a push from behind the hero, a cut to Death's
+flinch, or a side angle on a soul blast that still looks up the hall) and
+then returns. Win and loss have their own finishers, and the result dialog
+waits about 2.3s so the dissolve can finish. A tap on
 the 3D view skips the sequence. Shot timing follows the wall clock, so a slow
 frame does not stretch the intro.
 
@@ -90,8 +92,9 @@ the env map. A phone uses the two throne-side brazier lights, the dais light
 and the sun, and fakes the rest with sprites. Software GL uses that same
 small set plus one green directional, and draws into a smaller buffer. A real
 GPU uses the full spot rig. The scythe stays on
-bone `Scythe_Grip` (a child of `LeftHand`) at identity. `models/scythe.glb`
-is standalone; set `assets.scythe.url` only to swap it in at the same identity.
+bone `Scythe_Grip` (a child of `LeftHand`) at identity. A warm directional
+from the camera side lights the hero's back. The standalone scythe and prop
+GLBs are not in the pack; the env already contains the hall pieces.
 
 ## What the fight asks the scene to play
 
@@ -113,8 +116,8 @@ arrives a fraction of a second later, the way the old soul shots did.
 
 `prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
 and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
-ratio is capped at 2. The resting shot is the artist's camera behind the
-hero, throne centred, pillars at the edges. Lighting matches the v2 mock:
+ratio is capped at 2. The resting shot frames Death into the open area
+above the reel strip, not the artist's full-frame camera. Lighting matches the v2 mock:
 warm braziers, green fog and a green column, AgX at about 1.23. A real GPU
 blooms with strength 0.6 / radius 0.8 / threshold 0.7; phones and software
 GL use additive sprites and no shadow map. Death, the throne and the hall

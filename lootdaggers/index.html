@@ -145,7 +145,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .shrPrev{max-width:240px;margin:4px auto 2px}
 .shrFeed{width:100%;white-space:normal;line-height:1.1}.shrFeed small{white-space:nowrap}.shrPrev .pvHero{max-width:150px}
 /* ---- the Soul Shredder ---- */
-#shredLayer{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(6,3,5,.86);padding:14px}
+#shredLayer{position:absolute;inset:0;z-index:60;display:none;align-items:flex-start;justify-content:center;background:rgba(6,3,5,.86);padding:14px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.shrBox{position:relative;margin:auto 0}
+.shrX{position:fixed;right:14px;top:14px;z-index:61;width:34px;height:34px;border-radius:50%;border:2px solid #4a3a2a;background:rgba(10,6,8,.85);color:#ecdcbc;font-size:18px;line-height:1;cursor:pointer}
+.shrBox.done .shrArt{max-height:90px;object-fit:cover}
 #shredLayer.show{display:flex}
 .shrBox{width:100%;max-width:380px;text-align:center;background:#150f10;border:2px solid #3a2a2a;border-radius:12px;padding:12px;box-shadow:0 0 30px #000}
 .shrBox.won{border-color:var(--tc);box-shadow:0 0 34px color-mix(in srgb,var(--tc) 60%,transparent);animation:shrWon .6s ease-out}
@@ -2958,22 +2961,23 @@ async function shredFeed(){
   // the machine eats them and spins
   const L=$('#shredLayer')||(()=>{const d=document.createElement('div');d.id='shredLayer';$('#app').appendChild(d);return d;})();
   const faces=SHR_FACES.map(shrFace),fin=got?Array(3).fill(shrJack()):(()=>{const a=[...faces].sort(()=>Math.random()-.5);return a.slice(0,3);})();
-  L.innerHTML=`<div class="shrBox">${artSrc('screen_shredder')?`<img class="shrArt" src="${artSrc('screen_shredder')}" alt="">`:''}
+  L.innerHTML=`<div class="shrBox"><button class="shrX" data-s="done" aria-label="Close">✕</button>${artSrc('screen_shredder')?`<img class="shrArt" src="${artSrc('screen_shredder')}" alt="">`:''}
     <div class="shrMsg">The Shredder swallows ${SHRED_COST} souls…</div><div class="shrReels">${[0,1,2].map(i=>`<div class="shrReel spin" id="shr${i}">${faces[i]}</div>`).join('')}</div>
     <div class="shrOut"></div><div class="shrBtns"></div></div>`;
   L.classList.add('show');modalOpen=true;sfx.spin();
   await new Promise(res=>{let n=0;const iv=setInterval(()=>{n++;for(let i=0;i<3;i++){const el=$('#shr'+i);if(n<12+i*6)el.innerHTML=faces[(n+i*2)%faces.length];else if(el.classList.contains('spin')){el.innerHTML=fin[i];el.classList.remove('spin');el.classList.add('land');if(got)el.classList.add('hit');}}
     if(n>=24){clearInterval(iv);res();}},80);});
-  const out=L.querySelector('.shrOut');
+  const out=L.querySelector('.shrOut');L.querySelector('.shrBox').classList.add('done');
   if(got){const T=TIER[got.x.t];sfx.jackpot();L.querySelector('.shrBox').classList.add('won');L.querySelector('.shrBox').style.setProperty('--tc',T.c);
     out.innerHTML=`<div class="shrWin" style="color:${T.c}">JACKPOT</div><div class="shrPrev">${pvFor(got.k,got.x)}</div><div class="shrItem"><b style="color:${T.c}">${T.n}</b> ${COS_KINDS[got.k].n.replace(/s$/,'').toLowerCase()}<div class="shrName">${cosName(got.k,got.x)}</div></div>`;pvStart();}
   else if(hit)out.innerHTML=`<div class="shrItem">You own everything it can give. Your ${SHRED_COST} souls come back.</div>`;
   else out.innerHTML=`<div class="shrItem">Consumed. Nothing comes out.<div class="shrPity">${SHRED_PITY-(S.shredMiss||0)>0?`A sure jackpot in ${SHRED_PITY+1-(S.shredMiss||0)} feed${SHRED_PITY+1-(S.shredMiss||0)>1?'s':''}`:'The next feed is a sure jackpot'}</div></div>`;
   const bt=L.querySelector('.shrBtns');
-  await new Promise(res=>{bt.innerHTML=`${got?`<button class="btn plaque" data-s="wear">Wear it</button>`:''}${S.souls>=SHRED_COST?`<button class="btn plaque" data-s="again">Feed again · 💠${SHRED_COST}</button>`:''}<button class="btn plaque" data-s="done">Done</button>`;
-    bt.onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;const a=b.dataset.s;L.classList.remove('show');modalOpen=false;
+  await new Promise(res=>{bt.innerHTML=`${got?`<button class="btn plaque" data-s="wear">Wear it</button>`:''}${S.souls>=SHRED_COST?`<button class="btn plaque" data-s="again">Feed again · 💠${SHRED_COST}</button>`:''}<button class="btn plaque" data-s="done">Close</button>`;
+    setTimeout(()=>bt.scrollIntoView({behavior:'smooth',block:'end'}),350);   // on a short phone screen, bring the buttons into view
+    L.onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;const a=b.dataset.s;L.classList.remove('show');modalOpen=false;
       if(a==='wear'){cosState().eq[eqKey(got.k,got.x)]=got.x.id;save();applySkin();}
-      res(a);if(a==='again')shredFeed().then(()=>showHub('shredder'));};});
+      L.onclick=null;res(a);if(a==='again')shredFeed().then(()=>showHub('shredder'));};});
 }
 
 /* ---------------- end of run ---------------- */

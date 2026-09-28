@@ -24,10 +24,11 @@ export const DEATH3D_MANIFEST = {
        keep that relationship; neither is scaled against the others. */
     scale: 1,
     deathScale: 1,
+    /* 24 mm on a 36 mm sensor: 45.75° vertical at 16:9. Marker_Camera. */
     camera: {
-      fov: 36,
-      pos: [0.9, 1.85, 9.6],
-      look: [0, 3.0, 0.4],
+      fov: 45.75,
+      pos: [0.7, 2.45, 11.2],
+      look: [-0.1, 2.75, 0.5],
     },
   },
   assets: {
@@ -39,7 +40,7 @@ export const DEATH3D_MANIFEST = {
       wind: true,
       rim: 0.2,
       sockets: { eyes: 'Socket_Eyes', cast: 'Socket_RightHand', chest: 'Socket_Chest', off: 'Socket_LeftHand' },
-      clips: { idle: 'Seated_Idle', cast: 'Cast_Windup', attack: 'Attack_Sweep', hit: 'Hit_Flinch', defeat: 'Defeat_Slump' },
+      clips: { idle: 'Seated_Idle', cast: 'Cast_Windup', attack: 'Attack_Scythe', hit: 'Hit_Flinch', defeat: 'Defeat_Slump' },
     },
     throne: {
       url: 'models/throne.glb',
@@ -60,11 +61,10 @@ export const DEATH3D_MANIFEST = {
     hero_brute: heroSlot('models/hero_brute.glb', false),
     hero_duelist: heroSlot('models/hero_duelist.glb', false),
     hero_hexpriest: heroSlot('models/hero_hexpriest.glb', false),
-    /* Optional replacement for the scythe packed inside death.glb.
-       Leave url empty to keep the re-parented mesh. When Asset Artist
-       delivers scythe.glb, set url to 'models/scythe.glb'. That file's
-       origin is the grip (about 40% up the shaft) and +Y points at the
-       blade. scale > 0 overrides the fit; 0 sizes 1 local unit as 1 metre. */
+    /* The scythe is already a child of bone Scythe_Grip (under LeftHand)
+       at identity. Leave url empty to keep that mesh. Set url to
+       'models/scythe.glb' to parent the standalone file to the same bone,
+       also at identity, and hide the embedded Scythe. */
     scythe: { url: '', scale: 0 },
     vfx: {
       soul: 'textures/vfx/soul_orb.webp',

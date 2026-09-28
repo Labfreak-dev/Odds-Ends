@@ -17,7 +17,8 @@ const _w = new THREE.Vector3();
 /* One clock for robe wind, flame sheets, and the dissolve. */
 const SHARED_TIME = { value: 0 };
 const NO_DISSOLVE = { value: 0 };
-/* Phones and software GL use Lambert and skip the custom rim shader. */
+/* Phones and software GL skip the custom rim shader. Materials stay
+   MeshStandard so the packed normal, roughness and metal maps still show. */
 let D3D_FAST = false;
 
 /* The fight class puts the 3D view full-screen and packs the reels into a
@@ -127,8 +128,12 @@ class Arena {
     const renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: false, antialias: aa });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.AgXToneMapping;
-    renderer.toneMappingExposure = 0.9;
-    renderer.setClearColor(0x060807, 1);
+    /* +0.3 EV (1.23) is the mock's start. 1.5 lifts the midtones to that
+       frame once three.js is shading without volumetric scatter. */
+    renderer.toneMappingExposure = 1.5;
+    const bootBg = new THREE.Color();
+    bootBg.setRGB(0.006, 0.008, 0.007);
+    renderer.setClearColor(bootBg, 1);
     /* SwiftShader (and a phone) cannot afford a shadow map or a bloom pass.
        A real GPU keeps one small spotlight shadow and a tight bloom. */
     this.gpuName = glRendererName(gl);
@@ -140,8 +145,8 @@ class Arena {
     renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x060807);
-    this.scene.fog = new THREE.FogExp2(0x070b0a, 0.013);
+    this.scene.background = bootBg;
+    this.scene.fog = new THREE.FogExp2(0x374838, 0.034);
     const cam = this.manifest.layout.camera;
     this.camera = new THREE.PerspectiveCamera(cam.fov, 1, 0.08, 40);
     this.baseCam = new THREE.Vector3().fromArray(cam.pos);
@@ -247,7 +252,9 @@ class Arena {
     let pr = Math.min(pixelCap(), window.devicePixelRatio || 1);
     /* SwiftShader's fill rate is the frame. A slightly smaller buffer is
        what gets a phone near the old 24 fps and a desktop near 14. */
-    if (this.software) pr = Math.min(pr, this.low ? 0.45 : 0.48);
+    /* MeshStandard with the packed maps costs more than the old Lambert hall.
+       A slightly smaller buffer keeps software GL near the old frame rate. */
+    if (this.software) pr = Math.min(pr, this.low ? 0.45 : 0.42);
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
     if (this.composer) {
@@ -390,7 +397,6 @@ class Arena {
       }
     }
     this._pose(dt, t, death, lunge, hurt, motion);
-    this._swingScythe(t);
     this._maybeFit();
     this._lights(t, motion);
     this._camera(dt, view, motion);
@@ -531,13 +537,6 @@ class Arena {
       if (Math.random() < 0.55) this.vfx.puff(this._anchorWorld(d, 'chest'), 'soul', 2);
     }
     if (this.downed) this.fallT = Math.min(1, this.fallT + dt * 0.65);
-    /* Attack_Sweep and Defeat_Slump sink the robe into the dais. Lift him clear. */
-    if (this.pack && d.model) {
-      const logical = d.clipLogical;
-      const home = d.seatY || 0;
-      const lift = home + ((logical === 'attack' || logical === 'defeat') ? 0.13 : 0);
-      d.model.position.y += (lift - d.model.position.y) * Math.min(1, dt * 8);
-    }
     if (d.dissolve) d.dissolve.value = this.won ? Math.min(1, this.crumbleT / 2.2) : 0;
   }
 
@@ -545,7 +544,6 @@ class Arena {
     const calm = motion.reduced || reduceFlashing();
     const flick = calm ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35 + Math.sin(t * 47.0) * 0.15);
     const torch = 1 + flick * 0.14;
-    if (this.key) this.key.intensity = (this.keyBase || 16) * torch;
     if (this.flameLights) {
       for (let i = 0; i < this.flameLights.length; i++) {
         const L = this.flameLights[i];
@@ -558,15 +556,12 @@ class Arena {
       this.brazierL[1].intensity = 2.6 * (1 + (calm ? 0 : Math.cos(t * 11.0) * 0.12));
     }
     const ph = this.phase;
-    if (this.rim) this.rim.intensity = (0.06 + (ph - 1) * 0.03) * (this.won ? 0.45 : 1);
+    if (this.rim) this.rim.intensity = (this.rimBase || this.rim.intensity) * (this.won ? 0.45 : 1);
+    if (this.daisLight) {
+      const breathe = 0.92 + (calm ? 0 : 0.08 * Math.sin(t * 2.4));
+      this.daisLight.intensity = (this.daisLight.userData.base || 17.5) * breathe * (this.won ? 0.55 : 1);
+    }
     const eyePos = this._anchorWorld(this.deathActor, 'eyes');
-    const chestPos = this._anchorWorld(this.deathActor, 'chest');
-    this.soulLight.position.copy(chestPos);
-    this.soulLight.position.y -= 0.08;
-    this.soulLight.position.z += 0.1;
-    const soulBase = this.budget ? 1.6 : 2.2;
-    this.soulLight.intensity = (soulBase + (ph - 1) * 0.28) * (0.92 + (calm ? 0 : 0.08 * Math.sin(t * 2.4)));
-    if (this.key) this.key.target.position.copy(this._anchorWorld(this.deathActor, 'chest'));
     if (this.cheapSprite) {
       this.cheapSprite.position.copy(eyePos);
       this.cheapSprite.material.opacity = 0.28 + (ph - 1) * 0.08;
@@ -625,38 +620,14 @@ class Arena {
 
   _buildLights() {
     const scene = this.scene;
-    /* Near-black ambient. Warm braziers and a small soul light do the work.
-       A green hemisphere was painting the ceiling teal. */
-    const hemi = new THREE.HemisphereLight(0x121614, 0x0c0a09, this.budget ? 0.12 : 0.18);
+    /* A trace of sky/ground so the placeholder room is not black. The pack
+       replaces this with the mock's sun, braziers and green spots. */
+    const hemi = new THREE.HemisphereLight(0x243028, 0x14110e, 0.15);
     scene.add(hemi);
-    /* Warm, from behind the camera, so the hero's back reads. Not a green fill. */
-    const fill = new THREE.DirectionalLight(0xffd8b0, this.budget ? 0.22 : 0.32);
-    fill.position.set(-0.6, 3.2, 10);
-    scene.add(fill);
+    this.hemi = hemi;
     this.rim = null;
     this.key = null;
-    if (!this.budget) {
-      this.rim = new THREE.DirectionalLight(0x123028, 0.06);
-      this.rim.position.set(0.2, 3.4, -2.2);
-      this.rim.target.position.set(0, 1.5, 0.4);
-      scene.add(this.rim);
-      scene.add(this.rim.target);
-      this.keyBase = 5.5;
-      this.key = new THREE.SpotLight(0xff6a30, this.keyBase, 10, 0.7, 0.75, 2);
-      this.key.position.set(3.4, 1.6, 9);
-      this.key.target.position.set(0, 0.55, 2.2);
-      this.key.castShadow = true;
-      this.key.shadow.mapSize.set(512, 512);
-      this.key.shadow.bias = -0.0004;
-      this.key.shadow.normalBias = 0.04;
-      this.key.shadow.camera.near = 0.4;
-      this.key.shadow.camera.far = 16;
-      this.key.shadow.radius = 2;
-      scene.add(this.key);
-      scene.add(this.key.target);
-    }
-    this.soulLight = new THREE.PointLight(0x3dffc0, this.budget ? 1.6 : 2.2, 4.2, 2);
-    scene.add(this.soulLight);
+    this.soulLight = null;
     /* Placeholder flames, removed once the hall GLB's sockets take over. */
     this.brazierL = [new THREE.PointLight(0xff5c24, 2.2, 6, 2), new THREE.PointLight(0xff5c24, 1.8, 6, 2)];
     this.brazierL.forEach(l => scene.add(l));
@@ -664,7 +635,6 @@ class Arena {
     scene.add(this.hitLight);
     this.candleL = new THREE.PointLight(0xffb067, 0.6, 2.4, 2);
     scene.add(this.candleL);
-    if (this.budget) this._cheapGlow();
   }
 
   /* Phones skip the bloom pass. A soft additive halo stands in for it. */
@@ -712,7 +682,8 @@ class Arena {
       const size = new THREE.Vector2(this.canvas.clientWidth || 256, this.canvas.clientHeight || 256);
       /* Threshold sits above lit bone. Only flames, eyes and soul sprites,
          which are drawn un-tone-mapped, cross it. */
-      const bloom = new UnrealBloomPass(size, 0.18, 0.35, 1.45);
+      /* Artist mock: strength 0.6, radius 0.8, threshold 0.7, before OutputPass. */
+      const bloom = new UnrealBloomPass(size, 0.6, 0.8, 0.7);
       composer.addPass(bloom);
       composer.addPass(new OutputPass());
       this.composer = composer;
@@ -792,6 +763,11 @@ class Arena {
       this._fetchGltf(man.assets.death),
       ...texJobs,
     ]);
+    if (want1k()) {
+      if (envG) downscaleMaps(envG.scene, 1024);
+      if (throneG) downscaleMaps(throneG.scene, 1024);
+      if (deathG) downscaleMaps(deathG.scene, 1024);
+    }
     if (envG && throneG && deathG) this._engagePack(envG, throneG, deathG);
     else console.warn('Death 3D kept the placeholder room; a GLB failed to load.');
     await this._loadOneHero(this.activeHero);
@@ -826,9 +802,9 @@ class Arena {
     const throne = throneG.scene;
     prepMeshes(throne, { rim: 0.04 });
     seat.add(throne);
-    if (want1k()) downscaleMaps(deathG.scene, 1024);
     this.renderer.toneMapping = THREE.AgXToneMapping;
-    this.renderer.toneMappingExposure = 0.9;
+    /* Tuned up from the mock's +0.3 EV so the throne reads at the PNG's level. */
+    this.renderer.toneMappingExposure = 1.5;
     this.room.group.visible = false;
     this.throne.group.visible = false;
     this.packThrone = throne;
@@ -838,18 +814,24 @@ class Arena {
     if (this.deathActor.model) flagShadows(this.deathActor.model, !this.budget);
     this._eyeGlow(this.deathActor.model);
     this._seatDeath(this.deathActor);
-    this._gripScythe(this.deathActor);
+    this._bindScythe(this.deathActor);
     const marker = env.getObjectByName('Marker_Hero');
     const p = new THREE.Vector3(0, 0, 6.5);
     if (marker) marker.getWorldPosition(p);
     this.stand = { hero: [p.x, p.y, p.z], lungeSign: -1 };
     this.heroAnchor.position.set(p.x, p.y, p.z);
     this.heroAnchor.rotation.y = Math.PI;
-    this.scene.fog = new THREE.FogExp2(0x070b0a, 0.013);
-    this.scene.background = new THREE.Color(0x060807);
-    hideFarDressing(env, this.budget);
-    this._placeKey(env);
+    this.scene.fog = new THREE.FogExp2(0x374838, 0.034);
+    const bg = new THREE.Color();
+    bg.setRGB(0.006, 0.008, 0.007);
+    this.scene.background = bg;
+    this.renderer.setClearColor(bg, 1);
+    if (this.hemi) this.hemi.intensity = 0.05;
+    /* Only a phone hides the near braziers. Software still draws them so the
+       screenshot can match the mock; it just skips their shadows. */
+    hideFarDressing(env, this.low);
     this._flames(env);
+    this._mockLights();
     this._soulGlow(this.deathActor.model);
     /* Placeholder lights would still occupy shader slots at intensity 0. */
     dropLight(this.brazierL && this.brazierL[0]);
@@ -973,26 +955,6 @@ class Arena {
     });
   }
 
-  /* Shadow torch at the brazier nearest the camera, aimed across the floor. */
-  _placeKey(env) {
-    if (!this.key) return;
-    let best = null;
-    let bestName = '';
-    let bestZ = -1e9;
-    env.traverse(obj => {
-      if (!obj.name || obj.name.indexOf('Socket_Flame_Brazier') !== 0) return;
-      const at = new THREE.Vector3();
-      obj.updateWorldMatrix(true, false);
-      obj.getWorldPosition(at);
-      if (at.z > bestZ) { bestZ = at.z; best = at.clone(); bestName = obj.name; }
-    });
-    if (!best) best = new THREE.Vector3(3.4, 1.55, 9);
-    best.y += 0.12;
-    this.key.position.copy(best);
-    this.key.target.position.set(0, 0.55, 2.4);
-    this._keySocket = bestName;
-  }
-
   /* Visible green energy around Death. Bloom picks it up on desktop; on a
      phone the additive sprites are the glow. */
   _soulGlow(model) {
@@ -1016,56 +978,114 @@ class Arena {
     ];
   }
 
-  _gripScythe(actor) {
+  /* The file parents mesh Scythe to bone Scythe_Grip at identity. Clips
+     move that bone, including the drop in Defeat_Slump. Do not offset it. */
+  _bindScythe(actor) {
     const model = actor && actor.model;
     if (!model) return;
-    try {
-      const gripped = gripScythe(model);
-      if (!gripped) return;
-      this.scythe = gripped;
-      const slot = this.manifest.assets && this.manifest.assets.scythe;
-      if (slot && slot.url) this._loadExternalScythe(slot, gripped);
-    } catch (err) {
-      console.warn('Death 3D kept the scythe where the file parented it.', err);
-    }
+    const grip = model.getObjectByName('Scythe_Grip');
+    const mesh = model.getObjectByName('Scythe');
+    this.scythe = { embedded: !!(grip && mesh), external: false };
+    const slot = this.manifest.assets && this.manifest.assets.scythe;
+    if (grip && slot && slot.url) this._loadExternalScythe(slot, grip, mesh);
   }
 
-  async _loadExternalScythe(slot, gripped) {
+  async _loadExternalScythe(slot, grip, mesh) {
     const gltf = await this._fetchGltf(slot);
-    if (!gltf || this.scythe !== gripped) return;
+    if (!gltf || !grip.parent) return;
     const root = gltf.scene;
-    prepMeshes(root, { rim: 0.12, dissolve: this.deathActor.dissolve || NO_DISSOLVE });
-    flagShadows(root);
+    prepMeshes(root, { rim: 0, dissolve: (this.deathActor && this.deathActor.dissolve) || NO_DISSOLVE });
+    flagShadows(root, !this.budget);
     root.position.set(0, 0, 0);
     root.rotation.set(0, 0, 0);
+    root.quaternion.identity();
     root.scale.set(1, 1, 1);
-    const holder = new THREE.Group();
-    holder.name = 'ScytheFile';
-    const ws = new THREE.Vector3();
-    gripped.pivot.getWorldScale(ws);
-    const auto = 1 / (ws.x || 0.01);
-    holder.scale.setScalar(slot.scale > 0 ? slot.scale : auto);
-    holder.add(root);
-    if (gripped.mesh) gripped.mesh.visible = false;
-    (gripped.roll || gripped.swing).add(holder);
-    gripped.external = true;
+    grip.add(root);
+    if (mesh) mesh.visible = false;
+    this.scythe = { embedded: false, external: true };
   }
 
-  _swingScythe(t) {
-    const s = this.scythe;
-    if (!s || !s.swing) return;
-    const logical = this.deathActor.clipLogical || '';
-    let target = Math.sin(t * 1.15) * 0.045;
-    if (logical === 'cast' || logical === 'attack') {
-      const action = this.deathActor.action;
-      const clip = action && action.getClip ? action.getClip() : null;
-      const dur = clip && clip.duration ? clip.duration : 1;
-      const u = action ? Math.min(1, action.time / dur) : 0;
-      target = u < 0.32 ? -0.65 * (u / 0.32) : -0.65 + 1.45 * Math.min(1, (u - 0.32) / 0.68);
-    } else if (logical === 'hit') target = 0.4;
-    else if (logical === 'defeat') target = 0.42;
-    s.swing.rotation.x += (target - s.swing.rotation.x) * 0.22;
-    aimScythe(this.deathActor && this.deathActor.model, s);
+  /* Phone fakes the green column with a sprite. A real GPU gets the spot. */
+  _greenShaft() {
+    const map = this.tex.soul;
+    if (!map) return;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map, color: 0x8dffc0, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, toneMapped: false, opacity: 0.16,
+    }));
+    s.position.set(0, 5.6, -0.35);
+    s.scale.set(2.2, 6.2, 1);
+    this.scene.add(s);
+    this.shaftSprite = s;
+  }
+
+  /* Mock lighting. Intensities are watts/4π. A phone, and software GL, keep
+     the two throne-side braziers, the dais and a sun. Sprites stand in for
+     the candles, the near braziers and the green column. A real GPU adds the
+     spot rig from the mock. */
+  _mockLights() {
+    const scene = this.scene;
+    const phone = !!this.low;
+    const software = !!this.software;
+    const shadows = !this.budget;
+    const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b);
+    const sun = new THREE.DirectionalLight(lin(0.6, 0.7, 0.8), 0.35);
+    sun.position.set(-3, 10, 8);
+    scene.add(sun);
+    const daisI = 17.5;
+    const dais = new THREE.PointLight(lin(0.45, 1.0, 0.7), daisI, 0, 2);
+    dais.position.set(0, 1.3, 2.2);
+    dais.userData.base = daisI;
+    scene.add(dais);
+    this.daisLight = dais;
+    if (phone || software) {
+      const wash = new THREE.DirectionalLight(lin(0.5, 0.95, 0.72), phone ? 0.55 : 0.95);
+      wash.position.set(0, 11, 4);
+      scene.add(wash);
+      this._greenShaft();
+    }
+    /* Real GPU only. Phone and software stay at the brazier points plus the dais. */
+    if (!phone && !software) {
+      const fillI = phone ? 10 : 12.7;
+      const fill = new THREE.PointLight(lin(0.8, 0.9, 1.0), fillI, 0, 2);
+      fill.position.set(0, 3.4, 1.6);
+      fill.userData.base = fillI;
+      scene.add(fill);
+      this.fillLight = fill;
+    }
+    if (phone || software) return;
+    const top = new THREE.SpotLight(lin(0.55, 0.9, 0.75), 199, 0, 25 * Math.PI / 180, 0.15, 2);
+    top.position.set(0, 11, 4);
+    top.target.position.set(0, 2, 0);
+    top.castShadow = shadows;
+    if (shadows) {
+      top.shadow.mapSize.set(512, 512);
+      top.shadow.bias = -0.00045;
+      top.shadow.normalBias = 0.06;
+      top.shadow.camera.near = 1;
+      top.shadow.camera.far = 28;
+    }
+    scene.add(top);
+    scene.add(top.target);
+    const back = new THREE.SpotLight(lin(0.35, 0.9, 0.6), 143, 0, 0.9, 0.55, 2);
+    back.position.set(0, 4.2, -2.6);
+    back.target.position.set(0, 2, 1);
+    scene.add(back);
+    scene.add(back.target);
+    this.keyBase = 557;
+    const key = new THREE.SpotLight(lin(0.75, 0.85, 1.0), this.keyBase, 0, 8 * Math.PI / 180, 0.15, 2);
+    key.position.set(1.5, 6.5, 6.5);
+    key.target.position.set(0, 2.04, 0.45);
+    scene.add(key);
+    scene.add(key.target);
+    this.key = key;
+    this.rimBase = 38;
+    const rim = new THREE.SpotLight(lin(1.0, 0.7, 0.5), this.rimBase, 0, 0.5, 0.45, 2);
+    rim.position.set(2.2, 3.2, 9.5);
+    rim.target.position.set(0, 1.2, 6.5);
+    scene.add(rim);
+    scene.add(rim.target);
+    this.rim = rim;
   }
 
   _flames(env) {
@@ -1090,12 +1110,12 @@ class Arena {
     });
     const lit = new Set();
     const braziers = sockets.filter(s => s.brazier).sort((a, b) => a.at.z - b.at.z);
-    /* Phone and software: two throne-side braziers, no candle lights, no shadow.
-       Desktop: the other braziers. The shadow key covers the nearest one. */
-    const cap = this.budget ? 2 : 3;
+    /* Phone: the two throne-side braziers only. Candles stay sprites.
+       Desktop lights every brazier. 260 W → 20.7 cd. */
+    /* Phone and software: two throne-side braziers. A real GPU lights all four. */
+    const cap = (this.low || this.software) ? 2 : braziers.length;
     for (const s of braziers) {
       if (lit.size >= cap) break;
-      if (!this.budget && s.name === this._keySocket) continue;
       lit.add(s);
     }
     for (const s of sockets) {
@@ -1105,18 +1125,18 @@ class Arena {
         map: fire, blending: THREE.AdditiveBlending, transparent: true,
         depthWrite: false, toneMapped: false, color: s.brazier ? 0xffc080 : 0xffd7a4,
       }));
-      const nearCam = s.at.z > 7.5;
-      const base = s.brazier ? (nearCam ? 0.32 : 0.48) : 0.16;
+      const base = s.brazier ? 0.68 : 0.28;
       sp.scale.setScalar(base);
       sp.userData.base = base;
-      sp.position.y = s.brazier ? 0.08 : 0.02;
+      sp.position.y = s.brazier ? 0.3 : 0.15;
       s.obj.add(sp);
       this.flameSprites.push(sp);
     }
+    const warm = new THREE.Color().setRGB(1, 0.45, 0.15);
     for (const s of lit) {
-      const intensity = this.budget ? 3.4 : 4.2;
-      const light = new THREE.PointLight(0xff6a2a, intensity, 6.2, 2);
-      light.position.y = 0.1;
+      const intensity = 20.7;
+      const light = new THREE.PointLight(warm, intensity, 0, 2);
+      light.position.y = 0.35;
       light.castShadow = false;
       light.userData.base = intensity;
       light.userData.brazier = true;
@@ -1158,8 +1178,11 @@ class Arena {
       gpu: this.gpuName || '',
       points: countLights(this.scene, 'isPointLight'),
       spots: countLights(this.scene, 'isSpotLight'),
-      scythe: this.scythe ? (this.scythe.external ? 'file' : 'grip') : '',
+      scythe: this.scythe ? (this.scythe.external ? 'file' : (this.scythe.embedded ? 'bone' : '')) : '',
       tone: this.renderer ? this.renderer.toneMapping : 0,
+      exposure: this.renderer ? Math.round(this.renderer.toneMappingExposure * 100) / 100 : 0,
+      camFov: this.camera ? Math.round(this.camera.fov * 10) / 10 : 0,
+      camPos: this.camera ? [this.camera.position.x, this.camera.position.y, this.camera.position.z].map(v => Math.round(v * 100) / 100) : null,
     };
   }
 }
@@ -1990,28 +2013,8 @@ function prepMeshes(root, opts) {
   return dissolve;
 }
 
-function toUnlit(mat) {
-  if (!mat || mat.isMeshBasicMaterial || mat.isSpriteMaterial || mat.isShaderMaterial) return mat;
-  const map = mat.map || mat.emissiveMap || null;
-  if (map) {
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.needsUpdate = true;
-  }
-  const basic = new THREE.MeshBasicMaterial({
-    map,
-    color: mat.map && mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
-    transparent: !!mat.transparent,
-    opacity: mat.opacity == null ? 1 : mat.opacity,
-    alphaTest: mat.alphaTest || 0,
-    side: mat.side,
-  });
-  basic.name = mat.name || '';
-  return basic;
-}
-
 function styleMaterial(mat, opts) {
-  const plainEnv = D3D_FAST && !opts.wind && !(opts.rim > 0) && (!opts.dissolve || opts.dissolve === NO_DISSOLVE);
-  const lit = asLit(mat, plainEnv ? 'basic' : '');
+  const lit = asLit(mat);
   if (lit.userData._d3dLit) return lit;
   lit.userData._d3dLit = true;
   tunePbr(lit);
@@ -2078,62 +2081,10 @@ varying vec3 vD3Nrm;`)
   return lit;
 }
 
-/* Keep a PBR material so lights, shadows and the room env map actually shade it. */
-function toBasic(mat) {
-  const emissive = mat.emissive ? mat.emissive.r + mat.emissive.g + mat.emissive.b : 0;
-  const colorSum = mat.color ? mat.color.r + mat.color.g + mat.color.b : 1;
-  const backdrop = emissive > 1.2 && colorSum < 0.2;
-  return new THREE.MeshBasicMaterial({
-    name: mat.name || '',
-    map: backdrop ? null : (mat.map || null),
-    color: backdrop ? new THREE.Color(0x070908) : (mat.color ? mat.color.clone() : new THREE.Color(0xffffff)),
-    transparent: !!mat.transparent,
-    opacity: mat.opacity == null ? 1 : mat.opacity,
-    alphaTest: mat.alphaTest || 0,
-    side: mat.side == null ? THREE.FrontSide : mat.side,
-  });
-}
-
-function toLambert(mat) {
-  darkenBackdrop(mat);
-  const lam = new THREE.MeshLambertMaterial({
-    name: mat.name || '',
-    color: mat.color ? mat.color.clone() : new THREE.Color(0xffffff),
-    map: mat.map || null,
-    emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000),
-    emissiveMap: mat.emissiveMap || null,
-    emissiveIntensity: mat.emissiveIntensity == null ? 1 : mat.emissiveIntensity,
-    transparent: !!mat.transparent,
-    opacity: mat.opacity == null ? 1 : mat.opacity,
-    alphaTest: mat.alphaTest || 0,
-    side: mat.side == null ? THREE.FrontSide : mat.side,
-  });
-  return lam;
-}
-
-function darkenBackdrop(m) {
-  if (!m || !m.emissive) return;
-  const emissive = m.emissive.r + m.emissive.g + m.emissive.b;
-  const color = m.color ? m.color.r + m.color.g + m.color.b : 1;
-  if (emissive > 1.2 && color < 0.2) {
-    m.emissive.setRGB(0.14, 0.16, 0.15);
-    m.emissiveIntensity = 0.45;
-  }
-}
-
-function asLit(mat, mode) {
+function asLit(mat) {
   if (!mat) return mat;
-  if (mode === 'basic') {
-    if (mat.isSpriteMaterial || mat.isShaderMaterial || mat.isPointsMaterial) return mat;
-    return toBasic(mat);
-  }
-  if (D3D_FAST) {
-    if (mat.isMeshLambertMaterial) { darkenBackdrop(mat); return mat; }
-    if (mat.isSpriteMaterial || mat.isShaderMaterial || mat.isPointsMaterial) return mat;
-    return toLambert(mat);
-  }
-  /* MeshPhysical (clearcoat, sheen, specular) is several times the fragment
-     cost of Standard on SwiftShader, and these files don't use the extras. */
+  /* Sheen stays on MeshPhysical. Copying onto Standard keeps the normal,
+     roughness, metal and emissive maps, including the eye strength of 4. */
   if (mat.isMeshPhysicalMaterial) {
     const std = new THREE.MeshStandardMaterial();
     std.copy(mat);
@@ -2170,8 +2121,8 @@ function tunePbr(m) {
   if (emissive > 1.2 && color < 0.2) {
     /* The hall backdrop is a full-white emissive. Left alone it is a teal
        ceiling and it blooms. Keep a dim trace of the painting. */
-    m.emissive.setRGB(0.14, 0.16, 0.15);
-    m.emissiveIntensity = 0.45;
+    m.emissive.setRGB(0.10, 0.16, 0.12);
+    m.emissiveIntensity = 0.7;
     m.envMapIntensity = 0.04;
     return;
   }
@@ -2340,7 +2291,7 @@ function downscaleMaps(root, max) {
   root.traverse(o => {
     const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
     for (const m of mats) {
-      for (const key of ['map', 'emissiveMap']) {
+      for (const key of ['map', 'emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap']) {
         const tex = m[key];
         if (!tex || !tex.image || seen.has(tex)) continue;
         seen.add(tex);
@@ -2546,171 +2497,6 @@ function frameShot(aspect, hero) {
   };
 }
 
-/* Detach the file's Scythe and hold it so the hand sits about 40% up the
-   shaft, blade over the shoulder. A later scythe.glb (origin at the grip,
-   +Y toward the blade) replaces the mesh and keeps this pivot. */
-function gripScythe(model) {
-  const mesh = model.getObjectByName('Scythe');
-  const hand = model.getObjectByName('LeftHand');
-  if (!mesh || !mesh.isMesh || !hand) return null;
-  const geo = mesh.geometry;
-  if (!geo) return null;
-  if (!geo.boundingBox) geo.computeBoundingBox();
-  const bb = geo.boundingBox;
-  const size = new THREE.Vector3();
-  bb.getSize(size);
-  let axis = 1;
-  if (size.x >= size.y && size.x >= size.z) axis = 0;
-  else if (size.z >= size.x && size.z >= size.y) axis = 2;
-  const min = bb.min.getComponent(axis);
-  const max = bb.max.getComponent(axis);
-  const mid = (min + max) * 0.5;
-  const pos = geo.attributes.position;
-  let spreadLo = 0;
-  let spreadHi = 0;
-  const step = Math.max(1, Math.floor(pos.count / 800));
-  for (let i = 0; i < pos.count; i += step) {
-    const a = axis === 0 ? pos.getX(i) : axis === 1 ? pos.getY(i) : pos.getZ(i);
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-    const along = axis === 0 ? x : axis === 1 ? y : z;
-    const perp = (x * x + y * y + z * z) - along * along;
-    if (along < mid) spreadLo += perp;
-    else spreadHi += perp;
-  }
-  const bladeAtMax = spreadHi >= spreadLo;
-  const butt = bladeAtMax ? min : max;
-  const blade = bladeAtMax ? max : min;
-  const grip = butt + (blade - butt) * 0.4;
-  const gripLocal = bb.getCenter(new THREE.Vector3());
-  gripLocal.setComponent(axis, grip);
-  const savedScale = mesh.scale.clone();
-  const pivot = new THREE.Group();
-  pivot.name = 'ScytheGrip';
-  const swing = new THREE.Group();
-  swing.name = 'ScytheSwing';
-  const socket = model.getObjectByName('Socket_LeftHand');
-  if (socket && socket.parent === hand) pivot.position.copy(socket.position);
-  else pivot.position.set(0, 6, 1.5);
-  const roll = new THREE.Group();
-  roll.name = 'ScytheRoll';
-  hand.add(pivot);
-  pivot.add(swing);
-  swing.add(roll);
-  if (mesh.parent) mesh.parent.remove(mesh);
-  mesh.position.set(0, 0, 0);
-  mesh.rotation.set(0, 0, 0);
-  mesh.quaternion.identity();
-  mesh.scale.copy(savedScale);
-  roll.add(mesh);
-  const shaft = new THREE.Vector3();
-  shaft.setComponent(axis, blade > butt ? 1 : -1);
-  const align = new THREE.Quaternion().setFromUnitVectors(shaft, new THREE.Vector3(0, 1, 0));
-  mesh.quaternion.copy(align);
-  const scaled = gripLocal.clone().multiply(savedScale).applyQuaternion(align);
-  mesh.position.copy(scaled).negate();
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-  for (const m of mats) {
-    if (!m || !m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial) continue;
-    m.metalness = Math.max(m.metalness || 0, 0.42);
-    m.roughness = Math.min(m.roughness == null ? 0.4 : m.roughness, 0.4);
-    m.envMapIntensity = Math.max(m.envMapIntensity || 0, 0.9);
-  }
-  mesh.updateMatrix();
-  const horn = new THREE.Vector3(1, 0, 0);
-  let hornBest = 0;
-  const sample = new THREE.Vector3();
-  const stepH = Math.max(1, Math.floor(pos.count / 500));
-  for (let i = 0; i < pos.count; i += stepH) {
-    sample.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrix);
-    const radial = Math.hypot(sample.x, sample.z);
-    if (radial > hornBest) { hornBest = radial; horn.set(sample.x, 0, sample.z); }
-  }
-  if (hornBest > 1e-4) horn.normalize();
-  mesh.userData.hornSwing = horn;
-  mesh.userData.gripAlong = 0.4;
-  const gripped = { pivot, swing, roll, mesh, external: false };
-  aimScythe(model, gripped);
-  return gripped;
-}
-
-const _syHand = new THREE.Vector3();
-const _syHip = new THREE.Vector3();
-const _syOut = new THREE.Vector3();
-const _syHoriz = new THREE.Vector3();
-const _syBlade = new THREE.Vector3();
-const _sySide = new THREE.Vector3();
-const _syFwd = new THREE.Vector3();
-const _syHandQ = new THREE.Quaternion();
-const _syWorldQ = new THREE.Quaternion();
-const _syShaft = new THREE.Vector3();
-const _syHorn = new THREE.Vector3();
-const _syWant = new THREE.Vector3();
-const _syA = new THREE.Vector3();
-const _syCross = new THREE.Vector3();
-const _syZ = new THREE.Vector3(0, 0, 1);
-const _syBasis = new THREE.Matrix4();
-
-/* Hold the shaft nearly upright, the curved blade's face toward the camera
-   and the butt clear of the throne. Called every frame: the hand clips move,
-   and a baked offset would drift. */
-function aimScythe(model, gripped) {
-  if (!model || !gripped || !gripped.pivot || !gripped.pivot.parent) return;
-  const hand = gripped.pivot.parent;
-  hand.updateWorldMatrix(true, false);
-  hand.getWorldPosition(_syHand);
-  const hips = model.getObjectByName('Hips') || model.getObjectByName('Spine');
-  if (hips) hips.getWorldPosition(_syHip);
-  else _syHip.copy(_syHand);
-  _syOut.copy(_syHand).sub(_syHip);
-  _syOut.y = 0;
-  if (_syOut.lengthSq() < 1e-6) _syOut.set(1, 0, 0);
-  else _syOut.normalize();
-  /* Nearly upright, leaned a little out and toward the camera so the
-     crescent clears the throne and the shaft still passes through the hand. */
-  const up = 0.96;
-  const horiz = Math.sqrt(1 - up * up);
-  _syHoriz.set(_syOut.x * 0.75, 0, Math.abs(_syOut.z) * 0.25 + 0.7);
-  if (_syHoriz.lengthSq() < 1e-6) _syHoriz.set(1, 0, 0);
-  else _syHoriz.normalize();
-  _syBlade.copy(_syHoriz).multiplyScalar(horiz);
-  _syBlade.y = up;
-  _sySide.crossVectors(_syBlade, _syZ);
-  if (_sySide.lengthSq() < 1e-6) _sySide.set(1, 0, 0);
-  _sySide.normalize();
-  if (_sySide.dot(_syOut) < 0) _sySide.negate();
-  _syFwd.crossVectors(_sySide, _syBlade).normalize();
-  _syBasis.makeBasis(_sySide, _syBlade, _syFwd);
-  _syWorldQ.setFromRotationMatrix(_syBasis);
-  hand.getWorldQuaternion(_syHandQ);
-  gripped.pivot.quaternion.copy(_syHandQ.invert()).multiply(_syWorldQ);
-  const roll = gripped.roll;
-  const horn = gripped.mesh && gripped.mesh.userData.hornSwing;
-  if (!roll || !horn || gripped.external) {
-    if (roll && gripped.external) roll.rotation.y = 0;
-    return;
-  }
-  roll.rotation.y = 0;
-  roll.updateWorldMatrix(true, true);
-  _syShaft.set(0, 1, 0).transformDirection(roll.matrixWorld);
-  _syHorn.copy(horn).transformDirection(roll.matrixWorld);
-  /* Face the crescent at the camera. The horn is the wide axis; pointing it
-     at the lens showed the edge (a knob on a lance). Across the lens, the
-     blade's face is what you see. */
-  _syWant.crossVectors(_syShaft, _syZ);
-  if (_syWant.dot(_syOut) < 0) _syWant.negate();
-  _syWant.addScaledVector(_syShaft, -_syWant.dot(_syShaft));
-  if (_syWant.lengthSq() < 1e-6) return;
-  _syWant.normalize();
-  _syA.copy(_syHorn).addScaledVector(_syShaft, -_syHorn.dot(_syShaft));
-  if (_syA.lengthSq() < 1e-6) return;
-  _syCross.crossVectors(_syA, _syWant);
-  roll.rotation.y = Math.atan2(_syCross.dot(_syShaft), _syA.dot(_syWant));
-}
-
 const _shotPos = new THREE.Vector3();
 const _shotLook = new THREE.Vector3();
 const _mixPos = new THREE.Vector3();
@@ -2729,21 +2515,19 @@ function anchorShot(arena, who, name, fallback) {
 }
 
 function shotRest(arena) {
-  /* Marker_Camera is above the hero, so his back falls out of the frame and
-     under the reel strip. Drop to shoulder height and look at the throne. */
-  const pos = new THREE.Vector3(0.42, 1.58, 9.55);
-  const marker = arena.packRoot && arena.packRoot.getObjectByName('Marker_Camera');
-  if (marker) {
-    marker.getWorldPosition(pos);
-    pos.x = 0.42;
-    pos.y = 1.58;
-    pos.z = Math.min(pos.z, 9.55);
-  }
-  const look = new THREE.Vector3(0, 1.32, 0.35);
+  /* Artist camera: (0.7, 2.45, 11.2) looking at (−0.1, 2.75, 0.5).
+     24 mm on a 36 mm sensor is 45.75° vertical at 16:9. A narrower frame
+     keeps that horizontal field, capped so a phone is not a fisheye. */
+  const pos = new THREE.Vector3(0.7, 2.45, 11.2);
+  const look = new THREE.Vector3(-0.1, 2.75, 0.5);
   const aspect = Math.max(0.35, arena.camera.aspect || 1);
-  let fov = 44;
-  if (aspect < 0.62) fov = 56;
-  else if (aspect < 1.05) fov = 48;
+  const wide = 16 / 9;
+  let fov = 45.75;
+  if (aspect < wide - 0.02) {
+    const h = 2 * Math.atan(Math.tan(45.75 * Math.PI / 360) * wide);
+    fov = 2 * Math.atan(Math.tan(h / 2) / aspect) * 180 / Math.PI;
+    fov = Math.min(78, fov);
+  }
   return { pos, look, fov };
 }
 

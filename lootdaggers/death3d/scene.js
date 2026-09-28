@@ -277,7 +277,7 @@ class Arena {
     if (death.gone && !this.won) this._win();
 
     if (this.attackT >= 0) {
-      this.attackT += dt / (0.48 * motion.k);
+      this.attackT += dt / (0.3 * motion.k);
       if (this.attackT > 1) this.attackT = -1;
     }
     if (this.flinchT > 0) this.flinchT = Math.max(0, this.flinchT - dt);
@@ -364,7 +364,10 @@ class Arena {
     const amp = motion.reduced ? 0.35 : 1;
     const hero = this.heroActors[this.activeHero];
     const base = this.manifest.layout.hero;
-    const lungeZ = (hero.driving === 'clip' ? 0.55 : 1.6) * lunge;
+    /* Front-loaded: full reach while lunge is still high, then it snaps back. */
+    const snap = Math.min(1, lunge * 1.6);
+    const reach = hero.driving === 'clip' ? 0.85 : 2.8;
+    const lungeZ = reach * Math.pow(snap, 0.38);
     this.heroAnchor.position.set(base[0] + Math.sin(this.dodgeT * 9) * this.dodgeT * 0.55, base[1] - this.fallT * 0.55, base[2] + lungeZ);
     if (hero.group.visible) poseHero(hero, t, {
       attack: this.attackT < 0 ? 0 : this.attackT,
@@ -397,12 +400,14 @@ class Arena {
 
   _lights(t, motion) {
     const flick = motion.reduced ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35);
-    this.brazierL[0].intensity = 70 + flick * 14;
-    this.brazierL[1].intensity = 62 + Math.cos(t * 11.0) * 10;
+    this.brazierL[0].intensity = 18 + flick * 5;
+    this.brazierL[1].intensity = 16 + Math.cos(t * 11.0) * 4;
     const ph = this.phase;
     this.rim.intensity = (6.5 + (ph - 1) * 1.4) * (this.won ? 0.45 : 1);
-    this.soulLight.intensity = (ph === 1 ? 6 : ph === 2 ? 10 : 14) * (0.85 + 0.15 * Math.sin(t * 3));
-    this.soulLight.position.copy(this._anchorWorld(this.deathActor, 'eyes'));
+    const eyePos = this._anchorWorld(this.deathActor, 'eyes');
+    this.soulLight.position.copy(eyePos);
+    this.soulLight.position.z -= 0.55;
+    this.soulLight.intensity = (ph === 1 ? 0.9 : ph === 2 ? 2.4 : 4.5) * (0.85 + 0.15 * Math.sin(t * 3));
     if (this.throne.crackMat) this.throne.crackMat.emissiveIntensity = 0.15 + (ph - 1) * 1.35;
     for (const c of this.throne.cracks) {
       const want = ph >= c.userData.phase ? 1 : 0.001;
@@ -482,8 +487,13 @@ class Arena {
     scene.add(side.target);
     this.soulLight = new THREE.PointLight(0x62ffd8, 6, 5.5, 2);
     scene.add(this.soulLight);
-    this.brazierL = [new THREE.PointLight(0xff7a3a, 70, 14, 2), new THREE.PointLight(0xff6828, 62, 14, 2)];
+    this.brazierL = [new THREE.PointLight(0xff7a3a, 18, 7.5, 2), new THREE.PointLight(0xff6828, 16, 7.5, 2)];
     this.brazierL.forEach(l => scene.add(l));
+    this.heroRim = new THREE.DirectionalLight(0x9af6ea, 0.85);
+    this.heroRim.position.set(1.4, 2.6, -2.4);
+    this.heroRim.target.position.set(-0.1, 1.15, 0.4);
+    scene.add(this.heroRim);
+    scene.add(this.heroRim.target);
     this.hitLight = new THREE.PointLight(0xffe2b0, 0, 5, 2);
     scene.add(this.hitLight);
     this.candleL = new THREE.PointLight(0xffc48a, 6, 4.5, 2);
@@ -505,13 +515,14 @@ class Arena {
       parent.add(s);
       return s;
     };
-    for (const br of this.room.braziers) flame(br, br.userData.flameY, 0.45, this.tex.fire, 0xffaa66);
+    for (const br of this.room.braziers) flame(br, br.userData.flameY, 0.28, this.tex.fire, 0xffaa66);
     for (const c of this.room.candles) c.userData.sprite = flame(c, c.userData.flameY, 0.18, this.tex.fire, 0xffd9a0);
     const eye = this.deathActor.anchors.eyes;
     [-1, 1].forEach(s => {
-      const h = flame(eye, 0, 0.22, this.tex.soul, 0xd8fff4);
-      h.position.set(s * 0.09, 0, 0.06);
-      h.scale.setScalar(0.14);
+      const h = flame(eye, 0, 0.22, this.tex.soul, 0x0c4a3c);
+      h.position.set(s * 0.078, 0, 0.01);
+      h.scale.setScalar(0.1);
+      h.material.opacity = 0.85;
     });
     this.fires = this.throne.fires.map(a => {
       const s = flame(a, 0.15, 0.55, this.tex.soul, 0x9dffdf);
@@ -711,8 +722,8 @@ function poseHero(actor, t, s) {
   let ax = 0, az = 0;
   const atk = s.attack || 0;
   if (atk > 0) {
-    const wind = atk < 0.3 ? atk / 0.3 : Math.max(0, 1 - (atk - 0.3) / 0.35);
-    const strike = atk < 0.3 ? 0 : Math.min(1, (atk - 0.3) / 0.25);
+    const wind = atk < 0.16 ? atk / 0.16 : Math.max(0, 1 - (atk - 0.16) / 0.26);
+    const strike = atk < 0.16 ? 0 : Math.min(1, (atk - 0.16) / 0.14);
     tx += -0.4 * wind + 0.35 * strike;
     ax = -1.2 * wind + 0.9 * strike;
   }
@@ -739,7 +750,8 @@ class VFX {
     this.sigil.group.visible = false;
     scene.add(this.sigil.group);
     this.rings = [];
-    this.ringGeo = new THREE.RingGeometry(0.12, 0.22, 28);
+    this.flashes = [];
+    this.ringGeo = new THREE.RingGeometry(0.18, 0.28, 32);
   }
 
   setMap(key, tex) {
@@ -753,20 +765,30 @@ class VFX {
     this.beam.group.visible = false;
     this.sigil.group.visible = false;
     for (const r of this.rings) r.visible = false;
+    for (const f of this.flashes) f.visible = false;
+  }
+
+  _sprite(map, scale, color, opacity) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map, color, opacity: opacity == null ? 1 : opacity,
+      blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, toneMapped: false,
+    }));
+    s.scale.setScalar(scale);
+    return s;
   }
 
   playBlast(arena, whiff, motion) {
+    const map = this.tex.orb || this.tex.soul;
     const group = new THREE.Group();
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({
-      color: 0xd8fff6, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
-    }));
-    const halo = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: this.tex.soul, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, toneMapped: false, color: 0xc8fff0,
-    }));
-    halo.scale.setScalar(0.42);
-    group.add(mesh, halo);
+    const halo = this._sprite(map, 1.55, 0x4ee0c4, 0.7);
+    const core = this._sprite(map, 0.62, 0x8ef6d4, 0.95);
+    const wisps = [0, 1, 2].map(i => this._sprite(this.tex.wisp || map, 0.55 - i * 0.1, 0x7dffe0, 0.62 - i * 0.1));
+    group.add(halo, core, ...wisps);
     this.scene.add(group);
-    this.blasts.push({ group, t: 0, charge: 0.16 * motion.k, fly: 0.34 * motion.k, whiff, kind: 'blast' });
+    this.blasts.push({
+      group, halo, core, wisps, prev: null,
+      t: 0, charge: 0.1 * motion.k, fly: 0.44 * motion.k, whiff, kind: 'blast',
+    });
   }
 
   playBeam(arena, whiff, motion) {
@@ -847,25 +869,53 @@ class VFX {
     const hand = arena._anchorWorld(arena.deathActor, 'cast');
     const eyes = arena._anchorWorld(arena.deathActor, 'eyes');
     const heroActor = arena.heroActors[arena.activeHero];
-    const hero = arena._anchorWorld(heroActor, 'chest');
+    /* Live upper-back (or chest) each frame. A GLB with no anchor uses a point on the body, not the feet. */
+    let hero;
+    if (heroActor.anchors && heroActor.anchors.back) hero = arena._anchorWorld(heroActor, 'back');
+    else if (heroActor.anchors && heroActor.anchors.chest) hero = arena._anchorWorld(heroActor, 'chest');
+    else {
+      const root = heroActor.model || heroActor.anchor;
+      root.updateWorldMatrix(true, false);
+      hero = root.getWorldPosition(_w).clone();
+      hero.y += 1.15;
+    }
     for (const b of this.blasts) {
       b.t += dt;
       const charge = b.charge, fly = b.fly;
+      const target = hero.clone();
+      if (b.whiff) target.x += 0.38;
       if (b.t < charge) {
         const k = b.t / charge;
         b.group.position.copy(hand);
-        b.group.scale.setScalar(0.4 + k * 0.75);
+        b.group.scale.setScalar(0.45 + k * 0.55);
       } else if (b.t < charge + fly) {
         const p = (b.t - charge) / fly;
         const ease = p * p * (3 - 2 * p);
-        const target = hero.clone();
-        if (b.whiff) target.x += 1.3;
+        const prev = b.prev ? b.prev.clone() : hand.clone();
         b.group.position.lerpVectors(hand, target, ease);
-        b.group.position.y += Math.sin(p * Math.PI) * 0.45;
-        b.group.scale.setScalar(1.05 + p * 0.4);
-        if (Math.random() < 0.22) this.puff(b.group.position, 'soul', 1);
+        b.group.position.y += Math.sin(p * Math.PI) * 0.28;
+        b.group.scale.setScalar(0.95 + Math.sin(p * Math.PI) * 0.12);
+        const dir = b.group.position.clone().sub(prev);
+        if (dir.lengthSq() < 1e-6) dir.set(0, 0.05, -1);
+        dir.normalize();
+        b.wisps.forEach((w, i) => {
+          const back = 0.4 + i * 0.38;
+          w.position.set(-dir.x * back, -dir.y * back + Math.sin(t * 11 + i * 2) * 0.05, -dir.z * back);
+          w.material.opacity = 0.45 - i * 0.08;
+        });
+        b.core.material.opacity = 0.9 + Math.sin(t * 18) * 0.08;
+        b.prev = b.group.position.clone();
+        for (let n = 0; n < 2; n++) this.pool.spawn(b.group.position, {
+          vx: -dir.x * (0.5 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.4,
+          vy: -dir.y * 0.4 + (Math.random() - 0.45) * 0.45,
+          vz: -dir.z * (0.5 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.4,
+          life: 0.32 + Math.random() * 0.22,
+          size: 18 + Math.random() * 14,
+          color: [0.5 + Math.random() * 0.25, 1, 0.78 + Math.random() * 0.15],
+        });
       } else {
-        this._impact(b.whiff ? hero.clone().add(new THREE.Vector3(1.3, 0, 0)) : hero, b.whiff);
+        this._impact(target, b.whiff, arena.camera.position);
+        b.group.traverse(o => { if (o.material) o.material.dispose(); });
         this.scene.remove(b.group);
         b.dead = true;
       }
@@ -877,14 +927,16 @@ class VFX {
       const p = this.beam.t / this.beam.dur;
       const from = eyes;
       const to = hero.clone();
-      if (this.beam.whiff) to.x += 1.1;
+      if (this.beam.whiff) to.x += 0.32;
       aimY(this.beam.group, from, to);
       this.beam.mat.uniforms.uTime.value = t;
       this.beam.mat.uniforms.uHot.value = p < 0.75 ? 1 : Math.max(0, 1 - (p - 0.75) / 0.25);
       if (p < 0.85 && Math.random() < 0.18) this.puff(from.clone().lerp(to, Math.random()), 'soul', 1);
       if (p >= 1) {
         this.beam.group.visible = false;
-        if (!this.beam.whiff) this._impact(hero, false);
+        const hit = hero.clone();
+        if (this.beam.whiff) hit.x += 0.32;
+        this._impact(hit, this.beam.whiff, arena.camera.position);
       }
     }
 
@@ -923,11 +975,20 @@ class VFX {
     this.streams = (this.streams || []).filter(s => s.t < s.dur);
 
     for (const r of this.rings) {
+      if (!r.visible) continue;
       r.userData.t += dt;
       const p = r.userData.t / r.userData.dur;
-      r.scale.setScalar(1 + p * 3.2);
-      r.material.opacity = (1 - p) * 0.55;
+      r.scale.setScalar(0.7 + p * 2.6);
+      r.material.opacity = (1 - p) * 0.7;
       if (p >= 1) r.visible = false;
+    }
+    for (const f of this.flashes) {
+      if (!f.visible) continue;
+      f.userData.t += dt;
+      const p = f.userData.t / f.userData.dur;
+      f.scale.setScalar(0.4 + p * 1.3);
+      f.material.opacity = (1 - p) * 0.9;
+      if (p >= 1) f.visible = false;
     }
 
     this._motes(t);
@@ -935,19 +996,35 @@ class VFX {
     this.pool.update(dt);
   }
 
-  _impact(pos, whiff) {
+  _impact(pos, whiff, camPos) {
     const ring = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({
-      color: whiff ? 0x88aacc : 0xc8fff2, transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+      color: whiff ? 0x88aacc : 0xb8fff0, transparent: true, opacity: 0.85, side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
     }));
-    ring.rotation.x = -Math.PI / 2;
     ring.position.copy(pos);
-    ring.position.y = 0.06;
+    if (camPos) ring.lookAt(camPos);
     ring.userData.t = 0;
-    ring.userData.dur = 0.45;
+    ring.userData.dur = 0.42;
     this.scene.add(ring);
     this.rings.push(ring);
-    this.puff(pos, 'soul', whiff ? 3 : 6);
+    const flash = this._sprite(this.tex.orb || this.tex.soul, 0.45, 0xe8fff8, 0.95);
+    flash.position.copy(pos);
+    flash.userData.t = 0;
+    flash.userData.dur = 0.26;
+    this.scene.add(flash);
+    this.flashes.push(flash);
+    for (let i = 0; i < 18; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1.4 + Math.random() * 2.2;
+      this.pool.spawn(pos, {
+        vx: Math.cos(a) * sp,
+        vy: (Math.random() - 0.35) * sp,
+        vz: Math.sin(a) * sp,
+        life: 0.22 + Math.random() * 0.28,
+        size: 14 + Math.random() * 14,
+        color: [0.6, 1, 0.86],
+      });
+    }
   }
 
   _motes(t) {
@@ -1198,10 +1275,12 @@ function collectMats(root) {
 function frameShot(aspect, hero) {
   const hx = hero[0], hz = hero[2];
   let fov, back, camY, side, lookY;
-  if (aspect < 0.7) { fov = 64; back = 1.7; camY = 1.95; side = -0.15; lookY = 2.35; }
-  else if (aspect < 1.45) { fov = 52; back = 1.28; camY = 1.86; side = -0.22; lookY = 2.25; }
-  else if (aspect < 2.1) { fov = 46; back = 1.35; camY = 1.95; side = -0.2; lookY = 2.05; }
-  else { fov = 42; back = 1.2; camY = 1.88; side = -0.22; lookY = 2.0; }
+  /* Pulled back so the hero is the lower third, with the throne cap under
+     the 2D life bar. Wider aspects offset the camera more so he stays left. */
+  if (aspect < 0.7) { fov = 60; back = 4.5; camY = 2.35; side = -0.55; lookY = 2.35; }
+  else if (aspect < 1.45) { fov = 58; back = 4.3; camY = 2.32; side = -0.72; lookY = 2.25; }
+  else if (aspect < 2.1) { fov = 54; back = 4.35; camY = 2.28; side = -0.7; lookY = 2.35; }
+  else { fov = 52; back = 5.4; camY = 1.9; side = -1.2; lookY = 3.1; }
   return {
     fov,
     pos: new THREE.Vector3(hx + side, camY, hz - back),

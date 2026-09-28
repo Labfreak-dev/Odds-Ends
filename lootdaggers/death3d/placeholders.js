@@ -6,8 +6,8 @@ import * as THREE from 'three';
 const HERO_IDS = ['knight', 'ranger', 'gambler', 'brute', 'duelist', 'hexpriest'];
 
 const PAL = {
-  bone: 0xcbb89a,
-  boneDark: 0x8a7b66,
+  bone: 0x3c362f,
+  boneDark: 0x241f1c,
   cloak: 0x100c10,
   cloakEdge: 0x231820,
   iron: 0x3a363c,
@@ -145,7 +145,8 @@ function sigilTex() {
 export function makeTextures() {
   return {
     stone: stoneTex(),
-    soul: glowTex('rgba(230,255,245,1)', 'rgba(90,230,190,0.7)', 'rgba(40,140,120,0)'),
+    soul: glowTex('rgba(210,255,242,1)', 'rgba(70,210,175,0.5)', 'rgba(16,70,60,0)'),
+    orb: glowTex('rgba(236,255,250,1)', 'rgba(64,200,170,0.38)', 'rgba(8,48,42,0)'),
     spark: glowTex('rgba(255,250,240,1)', 'rgba(255,190,120,0.75)', 'rgba(255,80,20,0)'),
     beam: glowTex('rgba(210,255,245,1)', 'rgba(70,220,190,0.55)', 'rgba(20,80,70,0)'),
     wisp: glowTex('rgba(200,240,255,0.95)', 'rgba(120,180,255,0.35)', 'rgba(40,60,120,0)'),
@@ -227,7 +228,7 @@ export function buildDeath() {
   const metal = std(PAL.iron, { roughness: 0.38, metalness: 0.72 });
   const gold = std(PAL.gold, { roughness: 0.32, metalness: 0.8 });
   const edge = std(0x9fd6ff, { roughness: 0.22, metalness: 0.85, emissive: 0x2a6a62, emissiveIntensity: 0.4 });
-  const eyeMat = std(PAL.soul, { emissive: PAL.soulE, emissiveIntensity: 2.4, roughness: 0.25, metalness: 0.1 });
+  const eyeMat = std(0x071410, { emissive: 0x2dffb0, emissiveIntensity: 0.55, roughness: 0.5, metalness: 0 });
   const mats = [bone, boneD, cloak, metal, gold, edge, eyeMat];
 
   const group = new THREE.Group();
@@ -267,40 +268,41 @@ export function buildDeath() {
   const head = new THREE.Group();
   head.position.y = 0.2;
   neck.add(head);
-  const cranium = sph(bone, 0.26, 0.3, 0.24);
-  cranium.position.y = 0.08;
+  const cranium = sph(boneD, 0.24, 0.27, 0.22);
+  cranium.position.y = 0.06;
   head.add(cranium);
-  const jaw = box(bone, 0.2, 0.08, 0.16);
-  jaw.position.set(0, -0.12, 0.04);
+  const jaw = box(boneD, 0.18, 0.07, 0.14);
+  jaw.position.set(0, -0.14, 0.02);
   head.add(jaw);
-  for (let i = 0; i < 6; i++) {
-    const tooth = box(bone, 0.025, 0.045, 0.02);
-    tooth.position.set(-0.07 + i * 0.028, -0.16, 0.1);
-    head.add(tooth);
-  }
-  const socketMat = std(0x070605, { roughness: 1, metalness: 0 });
+  const socketMat = std(0x050403, { roughness: 1, metalness: 0 });
   mats.push(socketMat);
+  const mouth = box(socketMat, 0.14, 0.055, 0.05);
+  mouth.position.set(0, -0.16, 0.08);
+  head.add(mouth);
   const sockets = new THREE.Group();
-  sockets.position.set(0, 0.04, 0.16);
+  sockets.position.set(0, 0.02, 0.1);
   head.add(sockets);
   [-1, 1].forEach(s => {
-    const sock = sph(socketMat, 0.07, 0.085, 0.05);
-    sock.position.set(s * 0.09, 0, 0);
-    const eye = sph(eyeMat, 0.035, 0.045, 0.03);
-    eye.position.set(s * 0.09, 0, 0.02);
+    const sock = sph(socketMat, 0.085, 0.105, 0.07);
+    sock.position.set(s * 0.078, 0, 0.02);
+    const eye = sph(eyeMat, 0.02, 0.026, 0.016);
+    eye.position.set(s * 0.078, 0, -0.015);
     sockets.add(sock, eye);
   });
-  const nose = box(socketMat, 0.04, 0.08, 0.04);
-  nose.position.set(0, -0.06, 0.18);
+  const nose = box(socketMat, 0.045, 0.09, 0.05);
+  nose.position.set(0, -0.07, 0.12);
   head.add(nose);
+  const browShade = box(cloak, 0.36, 0.1, 0.14);
+  browShade.position.set(0, 0.1, 0.12);
+  head.add(browShade);
 
   const hood = cloakMesh(cloak);
-  hood.scale.set(0.72, 0.55, 0.72);
-  hood.position.y = 0.15;
+  hood.scale.set(0.98, 0.82, 0.92);
+  hood.position.set(0, 0.04, 0.04);
   head.add(hood);
-  const hoodCowl = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 8, 18, Math.PI * 1.3), cloak);
-  hoodCowl.rotation.x = Math.PI / 2.3;
-  hoodCowl.position.set(0, 0.02, 0.12);
+  const hoodCowl = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.09, 8, 18, Math.PI * 1.45), cloak);
+  hoodCowl.rotation.x = Math.PI / 2.15;
+  hoodCowl.position.set(0, -0.04, 0.16);
   head.add(hoodCowl);
 
   function arm(side) {
@@ -408,7 +410,7 @@ export function buildDeath() {
 }
 
 const HERO_LOOK = {
-  knight: { body: 0x8e9aab, trim: 0xc4a25a, cloth: 0x2a2428, metal: 0.72, bulk: 1.08, helm: 1 },
+  knight: { body: 0x2c333c, trim: 0x5a5146, cloth: 0x141216, metal: 0.12, bulk: 0.94, helm: 1, cloak: 1 },
   ranger: { body: 0x3d6a48, trim: 0x6a4228, cloth: 0x1c2418, metal: 0.25, bulk: 0.92, hood: 1, bow: 1 },
   gambler: { body: 0x2a2030, trim: 0xc4a25a, cloth: 0x3a1848, metal: 0.2, bulk: 0.9, coat: 1, hat: 1 },
   brute: { body: 0x6a3030, trim: 0x4a3028, cloth: 0x241816, metal: 0.35, bulk: 1.38, bare: 1 },
@@ -419,9 +421,9 @@ const HERO_LOOK = {
 export function buildHero(id) {
   const look = HERO_LOOK[id] || HERO_LOOK.knight;
   const b = look.bulk;
-  const plate = std(look.body, { roughness: 0.45, metalness: look.metal });
-  const trim = std(look.trim, { roughness: 0.35, metalness: 0.65 });
-  const cloth = std(look.cloth, { roughness: 0.9, metalness: 0.04 });
+  const plate = std(look.body, { roughness: 0.86, metalness: Math.min(0.16, look.metal), emissive: 0x0c1218, emissiveIntensity: 0.28 });
+  const trim = std(look.trim, { roughness: 0.78, metalness: 0.12 });
+  const cloth = std(look.cloth, { roughness: 0.94, metalness: 0.02 });
   const skin = std(0xc4b29a, { roughness: 0.7, metalness: 0.02 });
   const mats = [plate, trim, cloth, skin];
   const group = new THREE.Group();
@@ -433,11 +435,19 @@ export function buildHero(id) {
   const chest = box(plate, 0.46 * b, 0.5, 0.26 * Math.min(b, 1.15));
   chest.position.y = 0.28;
   torso.add(chest);
-  const pauldronL = sph(trim, 0.13 * b, 0.1, 0.12);
-  pauldronL.position.set(-0.26 * b, 0.48, 0);
-  const pauldronR = pauldronL.clone();
-  pauldronR.position.x *= -1;
-  torso.add(pauldronL, pauldronR);
+  const pauldronL = box(plate, 0.2 * b, 0.07, 0.16);
+  pauldronL.position.set(-0.24 * b, 0.5, -0.02);
+  pauldronL.rotation.z = 0.35;
+  const pauldronR = box(plate, 0.2 * b, 0.07, 0.16);
+  pauldronR.position.set(0.24 * b, 0.5, -0.02);
+  pauldronR.rotation.z = -0.35;
+  const rimL = box(trim, 0.2 * b, 0.018, 0.16);
+  rimL.position.set(-0.24 * b, 0.54, -0.02);
+  rimL.rotation.z = 0.35;
+  const rimR = box(trim, 0.2 * b, 0.018, 0.16);
+  rimR.position.set(0.24 * b, 0.54, -0.02);
+  rimR.rotation.z = -0.35;
+  torso.add(pauldronL, pauldronR, rimL, rimR);
 
   const head = new THREE.Group();
   head.position.y = 0.68;
@@ -451,12 +461,19 @@ export function buildHero(id) {
     cowl.position.set(0, -0.02, 0.06);
     head.add(cowl);
   } else if (look.helm) {
-    const helm = sph(plate, 0.16, 0.18, 0.17);
-    helm.position.y = 0.02;
-    head.add(helm);
-    const crest = box(trim, 0.04, 0.16, 0.22);
-    crest.position.set(0, 0.1, -0.02);
-    head.add(crest);
+    const cap = cyl(plate, 0.105, 0.12, 0.14);
+    cap.position.y = 0.04;
+    const dome = sph(plate, 0.095, 0.055, 0.1);
+    dome.position.y = 0.11;
+    const nape = box(plate, 0.16, 0.09, 0.05);
+    nape.position.set(0, -0.02, -0.09);
+    const crest = box(trim, 0.022, 0.1, 0.18);
+    crest.position.set(0, 0.14, -0.01);
+    const cheekL = box(plate, 0.035, 0.1, 0.08);
+    cheekL.position.set(-0.09, -0.02, 0.02);
+    const cheekR = cheekL.clone();
+    cheekR.position.x *= -1;
+    head.add(cap, dome, nape, crest, cheekL, cheekR);
   } else if (look.hat) {
     const skull = sph(skin, 0.13, 0.15, 0.14);
     head.add(skull);
@@ -527,12 +544,28 @@ export function buildHero(id) {
     shield.position.set(0.02, -0.05, 0.08);
     armL.fore.add(shield);
   }
-  if (look.coat || look.robe) {
+  if (look.cloak || look.coat || look.robe) {
     const tail = cloakMesh(cloth);
-    tail.scale.set(0.42, 0.38, 0.4);
-    tail.position.y = 0.15;
+    tail.scale.set(look.cloak ? 0.4 : 0.42, look.cloak ? 0.46 : 0.38, look.cloak ? 0.38 : 0.4);
+    tail.position.set(0, 0.22, -0.02);
     torso.add(tail);
     group.userData.tail = tail;
+    if (look.cloak) {
+      const tabard = box(cloth, 0.2, 0.62, 0.035);
+      tabard.position.set(0, 0.02, -0.16);
+      torso.add(tabard);
+      const sheathed = new THREE.Group();
+      const blade = box(trim, 0.028, 0.7, 0.016);
+      blade.position.y = 0.28;
+      const grip = box(cloth, 0.032, 0.14, 0.028);
+      grip.position.y = -0.1;
+      const cross = box(trim, 0.12, 0.02, 0.028);
+      cross.position.y = -0.02;
+      sheathed.add(blade, grip, cross);
+      sheathed.position.set(0.1, 0.42, -0.18);
+      sheathed.rotation.z = -0.42;
+      torso.add(sheathed);
+    }
   }
   if (id === 'brute') {
     const bomb = sph(std(0x2a2420, { roughness: 0.5, metalness: 0.4 }), 0.12);
@@ -563,13 +596,19 @@ export function buildHero(id) {
     hips.add(leg);
   });
 
+  /* Upper back, toward the camera (-Z). Shots sample this every frame. */
+  const aim = new THREE.Group();
+  aim.position.set(0, 0.46, -0.16);
+  torso.add(aim);
+
   group.add(hips);
+  group.scale.setScalar(0.82);
   rest(hips); rest(torso); rest(head);
   return {
     group, mats, procedural: true,
     sway: group.userData.tail ? [group.userData.tail] : [],
     bones: { hips, torso, head, armL: armL.arm, foreL: armL.fore, armR: armR.arm, foreR: armR.fore, weapon },
-    anchors: { chest: torso, cast: armR.fore },
+    anchors: { chest: aim, back: aim, cast: armR.fore },
     applyRest,
   };
 }
@@ -707,13 +746,13 @@ export function buildRoom(textures) {
   }
 
   const braziers = [];
-  [[-2.35, 1.15], [2.35, 1.15]].forEach(([x, z]) => {
+  [[-1.85, 4.45], [1.85, 4.45]].forEach(([x, z]) => {
     const b = new THREE.Group();
     const pole = cyl(iron, 0.07, 0.09, 1.25);
     pole.position.y = 0.62;
     const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.18, 0.24, 10), iron);
     bowl.position.y = 1.32;
-    const coal = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), std(0xff5a18, { emissive: 0xff4a10, emissiveIntensity: 1.6, roughness: 1 }));
+    const coal = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), std(0xff5a18, { emissive: 0xff4a10, emissiveIntensity: 0.7, roughness: 1 }));
     coal.scale.y = 0.45;
     coal.position.y = 1.4;
     mats.push(coal.material);

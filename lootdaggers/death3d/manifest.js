@@ -17,8 +17,8 @@ export const DEATH3D_MANIFEST = {
     /* Over-the-shoulder default for a ~430x366 scene. resize() refits this
        to the canvas aspect. */
     camera: {
-      fov: 52,
-      pos: [-0.38, 1.86, -1.06],
+      fov: 58,
+      pos: [-0.88, 2.32, -4.08],
       look: [0, 2.25, 6.75],
     },
   },

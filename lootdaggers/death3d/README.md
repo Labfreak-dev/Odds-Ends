@@ -61,8 +61,10 @@ spin, both life bars and the log pack into a bottom strip (`#game.death3d`).
 The forecast is a chip at the top of the screen, off the hero and the throne
 base. The class comes off when the fight ends, so a normal run is unchanged.
 
-The resting shot is framed on the idle pose, sampled once per hero, so the
-combat sway does not move the camera. A phone uses a 50° lens about 2.5–3 m
+The resting shot is framed on the settled idle pose (about half a second
+into the clip), sampled once per hero and confirmed once more after the
+idle is on screen, so the combat sway does not move the camera and the
+opening frame is not the bind pose. A phone uses a 50° lens about 3 m
 behind the hero, low and looking up: his head sits about a quarter of the way
 in from the left and his head and shoulders stay under about 30% of the frame
 height, with Death clear in the centre and the throne top in frame. On a wide

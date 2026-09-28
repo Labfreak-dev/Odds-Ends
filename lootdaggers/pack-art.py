@@ -6,6 +6,7 @@
     python3 lootdaggers/pack-art.py --import re, a.zip  # add raw PNGs to art-src/, then pack
 
 The key is the filename stem (hero_knight_idle.png -> hero_knight_idle).
+Only art-src/ is packed. vendor/ (three.js) and death3d/ are not art and are never scanned.
 Keyed images: the background colour is SAMPLED from each image's border rather
 than assumed to be #FF00FF, because the generator drifts from pure magenta to
 hot pink or a shadowed plum. Pixels near that colour go transparent,

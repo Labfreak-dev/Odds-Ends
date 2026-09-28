@@ -1,0 +1,48 @@
+{
+ "image": "soul_sparks_2x2.png",
+ "imageSize": [
+  256,
+  256
+ ],
+ "frameSize": [
+  128,
+  128
+ ],
+ "cols": 2,
+ "rows": 2,
+ "note": "4 variants, not an animation; pick one per particle",
+ "frames": [
+  {
+   "index": 0,
+   "name": "star",
+   "x": 0,
+   "y": 0,
+   "w": 128,
+   "h": 128
+  },
+  {
+   "index": 1,
+   "name": "streak",
+   "x": 128,
+   "y": 0,
+   "w": 128,
+   "h": 128
+  },
+  {
+   "index": 2,
+   "name": "dot",
+   "x": 0,
+   "y": 128,
+   "w": 128,
+   "h": 128
+  },
+  {
+   "index": 3,
+   "name": "burst",
+   "x": 128,
+   "y": 128,
+   "w": 128,
+   "h": 128
+  }
+ ]
+}

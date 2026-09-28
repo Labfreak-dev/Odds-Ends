@@ -1,0 +1,44 @@
+{
+ "image": "soul_wisps_2x2.png",
+ "imageSize": [
+  512,
+  512
+ ],
+ "frameSize": [
+  256,
+  256
+ ],
+ "cols": 2,
+ "rows": 2,
+ "note": "4 wisp variants, head at top, tail fades toward bottom; rotate so tail trails motion",
+ "frames": [
+  {
+   "index": 0,
+   "x": 0,
+   "y": 0,
+   "w": 256,
+   "h": 256
+  },
+  {
+   "index": 1,
+   "x": 256,
+   "y": 0,
+   "w": 256,
+   "h": 256
+  },
+  {
+   "index": 2,
+   "x": 0,
+   "y": 256,
+   "w": 256,
+   "h": 256
+  },
+  {
+   "index": 3,
+   "x": 256,
+   "y": 256,
+   "w": 256,
+   "h": 256
+  }
+ ]
+}

@@ -13,6 +13,15 @@ const _w = new THREE.Vector3();
 const SHARED_TIME = { value: 0 };
 const NO_DISSOLVE = { value: 0 };
 
+/* The fight class sits on the column as well as the canvas, so a wide
+   window can give the arena a taller strip. Removing it restores the crawl. */
+function markDeathLayout(canvas, on) {
+  const wrap = canvas && canvas.parentElement;
+  if (wrap) wrap.classList.toggle('death3d', !!on);
+  const game = typeof document !== 'undefined' && document.getElementById('game');
+  if (game) game.classList.toggle('death3d', !!on);
+}
+
 export async function boot(canvas) {
   const api = {
     live: false,
@@ -41,8 +50,7 @@ export async function boot(canvas) {
     api.failed = true;
     api.live = false;
     api.reason = 'exception';
-    const wrap = canvas && canvas.parentElement;
-    if (wrap) wrap.classList.remove('death3d');
+    markDeathLayout(canvas, false);
     window.LDDeath3D = api;
     return api;
   }
@@ -153,8 +161,7 @@ class Arena {
       this.api.failed = true;
       this.api.reason = 'context-lost';
       this.api.shown = false;
-      const wrap = canvas.parentElement;
-      if (wrap) wrap.classList.remove('death3d');
+      markDeathLayout(canvas, false);
       console.warn('Death 3D lost the WebGL context; painted arena stays.');
     }, { once: true });
     return true;
@@ -163,6 +170,7 @@ class Arena {
   async start() {
     this._mountApi();
     await this._loadAssets();
+    markDeathLayout(this.canvas, true);
     await new Promise(r => requestAnimationFrame(r));
     this.resize();
     if (!this.canvas.clientWidth || !this.canvas.clientHeight) {
@@ -171,8 +179,7 @@ class Arena {
       return;
     }
     this._render();
-    const wrap = this.canvas.parentElement;
-    if (wrap) wrap.classList.add('death3d');
+    markDeathLayout(this.canvas, true);
     this.api.shown = true;
     this.api.live = true;
   }
@@ -194,14 +201,24 @@ class Arena {
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
-    const framed = this.pack ? framePack(w / h) : frameShot(w / h, this.manifest.layout.hero);
+    const aspect = w / h;
+    let framed = this.pack ? framePack(aspect) : frameShot(aspect, this.manifest.layout.hero);
+    if (this.pack) {
+      const fit = this._solveFit(aspect);
+      if (fit) {
+        framed = fit;
+        this._fitKey = this.activeHero + '@' + aspect.toFixed(3);
+      } else this._fitKey = '';
+    }
     this.camera.fov = framed.fov;
     this.camera.far = this.pack ? 90 : 40;
     this.baseCam.copy(framed.pos);
     this.baseLook.copy(framed.look);
     if (this.pack) {
-      this.pushCam.copy(framed.pos).add(new THREE.Vector3(0, 0.2, -1.05));
-      this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.35, -0.35));
+      /* A short push. The fitted shot already fills the frame, so a long
+         dolly would crop the hero the moment a phase starts. */
+      this.pushCam.copy(framed.pos).add(new THREE.Vector3(0.04, 0.1, -0.4));
+      this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.12, -0.08));
     } else {
       this.pushCam.copy(framed.pos).add(new THREE.Vector3(0.06, 0.4, 0.95));
       this.pushLook.copy(framed.look).add(new THREE.Vector3(0, 0.85, 0));
@@ -216,14 +233,12 @@ class Arena {
 
   stop() {
     this.api.shown = false;
-    const wrap = this.canvas.parentElement;
-    if (wrap) wrap.classList.remove('death3d');
+    markDeathLayout(this.canvas, false);
   }
 
   show() {
     if (this.api.shown) return;
-    const wrap = this.canvas.parentElement;
-    if (wrap) wrap.classList.add('death3d');
+    markDeathLayout(this.canvas, true);
     this.api.shown = true;
     this.resize();
   }
@@ -307,6 +322,7 @@ class Arena {
       }
     }
     this._pose(dt, t, death, lunge, hurt, motion);
+    this._maybeFit();
     this._lights(t, motion);
     this._camera(dt, view, motion);
     this.vfx.update(dt, t, this);
@@ -444,7 +460,8 @@ class Arena {
     /* Attack_Sweep and Defeat_Slump sink the robe into the dais. Lift him clear. */
     if (this.pack && d.model) {
       const logical = d.clipLogical;
-      const lift = (logical === 'attack' || logical === 'defeat') ? 0.13 : 0;
+      const home = d.seatY || 0;
+      const lift = home + ((logical === 'attack' || logical === 'defeat') ? 0.13 : 0);
       d.model.position.y += (lift - d.model.position.y) * Math.min(1, dt * 8);
     }
     if (d.dissolve) d.dissolve.value = this.won ? Math.min(1, this.crumbleT / 2.2) : 0;
@@ -664,8 +681,10 @@ class Arena {
     this.renderer.toneMappingExposure = 1;
     this.room.group.visible = false;
     this.throne.group.visible = false;
+    this.packThrone = throne;
     this.deathActor.bindGltf(deathG, this.manifest.assets.death, seat);
     this._eyeGlow(this.deathActor.model);
+    this._seatDeath(this.deathActor);
     const marker = env.getObjectByName('Marker_Hero');
     const p = new THREE.Vector3(0, 0, 6.5);
     if (marker) marker.getWorldPosition(p);
@@ -702,6 +721,61 @@ class Arena {
     this.heroActors[id].bindGltf(gltf, slot, this.heroAnchor);
     if (id === this.activeHero) this.heroes[id].group.visible = false;
     else if (this.heroActors[id].model) this.heroActors[id].model.visible = false;
+  }
+
+  /* Grow Death relative to the throne, then put his hips back in the seat. */
+  _seatDeath(actor) {
+    const rel = (this.manifest.pack && this.manifest.pack.deathScale) || 1;
+    const model = actor && actor.model;
+    if (!model || !rel || rel === 1) return;
+    if (actor.mixer) actor.mixer.update(0);
+    model.updateWorldMatrix(true, true);
+    const hips = model.getObjectByName('Hips') || model.getObjectByName('mixamorigHips');
+    const ref = hips || actor.anchors.chest || actor.anchors.eyes;
+    const before = new THREE.Vector3();
+    if (ref) ref.getWorldPosition(before);
+    model.scale.setScalar(rel);
+    model.updateWorldMatrix(true, true);
+    if (ref) {
+      const after = new THREE.Vector3();
+      ref.getWorldPosition(after);
+      const parentScale = new THREE.Vector3(1, 1, 1);
+      if (model.parent) model.parent.getWorldScale(parentScale);
+      const s = parentScale.x || 1;
+      model.position.x += (before.x - after.x) / s;
+      model.position.y += (before.y - after.y) / s;
+      model.position.z += (before.z - after.z) / s;
+    }
+    actor.seatY = model.position.y;
+    model.updateWorldMatrix(true, true);
+  }
+
+  _maybeFit() {
+    if (!this.pack) return;
+    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
+    if (!w || !h) return;
+    const aspect = w / h;
+    const key = this.activeHero + '@' + aspect.toFixed(3);
+    if (key === this._fitKey && this._fitDebug) return;
+    const fit = this._solveFit(aspect);
+    if (!fit) return;
+    this._fitKey = key;
+    this.camera.fov = fit.fov;
+    this.camera.updateProjectionMatrix();
+    this.baseCam.copy(fit.pos);
+    this.baseLook.copy(fit.look);
+    this.pushCam.copy(fit.pos).add(new THREE.Vector3(0.04, 0.1, -0.4));
+    this.pushLook.copy(fit.look).add(new THREE.Vector3(0, 0.12, -0.08));
+  }
+
+  _solveFit(aspect) {
+    const hero = this.heroActors[this.activeHero];
+    if (!hero || !hero.model || !this.deathActor.model || !this.packThrone) return null;
+    const markers = measurePack(hero, this.deathActor, this.packThrone);
+    if (!markers) return null;
+    const fit = solvePackFrame(aspect, markers);
+    if (fit) this._fitDebug = fit.debug;
+    return fit;
   }
 
   _eyeGlow(model) {
@@ -782,6 +856,7 @@ class Arena {
       heroDrive: this.heroActors[this.activeHero] ? this.heroActors[this.activeHero].driving : '',
       dpr: this.renderer ? this.renderer.getPixelRatio() : 0,
       low: !!this.low,
+      fit: this._fitDebug || null,
     };
   }
 }
@@ -1810,9 +1885,140 @@ function collectMats(root) {
   return out;
 }
 
-/* Pack shot. Vertical fov is three.js's fov, so a wide short strip opens
-   a huge horizontal view unless the lens tightens. Look at the skull.
-   Numbers assume pack.scale 1.28 (Death and the throne grow together). */
+function findBone(root, re) {
+  let hit = null;
+  root.traverse(o => { if (!hit && o.isBone && re.test(o.name)) hit = o; });
+  return hit;
+}
+
+function worldOf(obj, into) {
+  obj.updateWorldMatrix(true, false);
+  obj.getWorldPosition(into);
+  return into;
+}
+
+/* Head, shoulders, upper back, Death's skull and chest, and the front
+   lip of the throne. The camera is solved from these, per hero. */
+function measurePack(hero, death, throne) {
+  const headN = hero.anchors.head;
+  const chestN = hero.anchors.chest || hero.anchors.back;
+  if (!headN || !chestN || !death.model) return null;
+  hero.model.updateWorldMatrix(true, true);
+  death.model.updateWorldMatrix(true, true);
+  const heroHead = worldOf(headN, new THREE.Vector3());
+  const heroChest = worldOf(chestN, new THREE.Vector3());
+  const box = new THREE.Box3();
+  const v = new THREE.Vector3();
+  hero.model.traverse(o => { if (o.isBone) { o.getWorldPosition(v); box.expandByPoint(v); } });
+  const heroTop = heroHead.clone();
+  const above = box.max.y - heroHead.y;
+  heroTop.y = heroHead.y + (above > 0.04 && above < 0.55 ? above + 0.04 : 0.26);
+  const shL = findBone(hero.model, /left.?shoulder|shoulder.?l|leftarm/i);
+  const shR = findBone(hero.model, /right.?shoulder|shoulder.?r|rightarm/i);
+  const shoulderL = shL ? worldOf(shL, new THREE.Vector3()) : heroChest.clone();
+  const shoulderR = shR ? worldOf(shR, new THREE.Vector3()) : heroChest.clone();
+  if (!shL) shoulderL.x -= 0.28;
+  if (!shR) shoulderR.x += 0.28;
+  /* The hero faces -Z, so his back is toward +Z, the camera side. */
+  const heroBack = heroChest.clone();
+  heroBack.y -= 0.34;
+  heroBack.z += 0.16;
+  const eyeN = death.anchors.eyes;
+  const dChestN = death.anchors.chest;
+  if (!eyeN || !dChestN) return null;
+  const deathEyes = worldOf(eyeN, new THREE.Vector3());
+  const deathChest = worldOf(dChestN, new THREE.Vector3());
+  const deathTop = deathEyes.clone();
+  deathTop.y += 0.34;
+  const tb = new THREE.Box3().setFromObject(throne);
+  const throneBase = new THREE.Vector3((tb.min.x + tb.max.x) * 0.5, tb.min.y + 0.08, tb.max.z - 0.05);
+  return { heroTop, heroChest, heroBack, shoulderL, shoulderR, deathTop, deathChest, throneBase };
+}
+
+function miss(v, lo, hi) {
+  if (v >= lo && v <= hi) return 0;
+  const d = v < lo ? lo - v : v - hi;
+  return 40 + d * 80;
+}
+
+/* Search a camera that puts this hero's upper body in the bottom third,
+   left of centre, with Death's skull under the life bar and his torso large.
+   A shot that misses those bands always loses to one that hits them. */
+function solvePackFrame(aspect, M) {
+  const cam = new THREE.PerspectiveCamera(40, aspect, 0.08, 90);
+  const ndc = new THREE.Vector3();
+  const look = new THREE.Vector3();
+  const keys = ['heroTop', 'heroChest', 'heroBack', 'shoulderL', 'shoulderR', 'deathTop', 'deathChest', 'throneBase'];
+  function project(p) {
+    ndc.copy(p).project(cam);
+    return { x: (ndc.x + 1) * 0.5, y: (1 - ndc.y) * 0.5, z: ndc.z };
+  }
+  let best = null;
+  const fovs = [36, 42, 48, 54, 60];
+  const backs = [3.2, 4.6, 6.2, 8.0, 10.0, 12.0];
+  const camYs = [1.5, 2.1, 2.7, 3.3, 4.0];
+  const lookYs = [1.4, 2.0, 2.6, 3.2, 3.8];
+  const sides = [0.55, 1.05, 1.6, 2.2];
+  for (const fov of fovs) {
+    cam.fov = fov;
+    cam.aspect = aspect;
+    for (const back of backs) {
+      for (const camY of camYs) {
+        for (const lookY of lookYs) {
+          for (const side of sides) {
+            cam.position.set(M.heroChest.x + side, camY, M.heroChest.z + back);
+            look.set(M.deathChest.x, lookY, M.deathChest.z + 0.2);
+            cam.lookAt(look);
+            cam.updateProjectionMatrix();
+            const pts = {};
+            for (const k of keys) pts[k] = project(M[k]);
+            let hard = 0;
+            for (const k of ['heroTop', 'heroChest', 'heroBack', 'deathTop', 'deathChest']) {
+              const p = pts[k];
+              if (p.z < 0 || p.z > 1) hard += 50;
+            }
+            hard += miss(pts.heroTop.y, 0.64, 0.76);
+            hard += miss(pts.heroTop.x, 0.26, 0.46);
+            hard += miss(pts.heroChest.y, 0.76, 0.92);
+            hard += miss(pts.heroBack.y, 0.86, 0.97);
+            hard += miss(pts.shoulderL.y, 0.72, 0.97);
+            hard += miss(pts.shoulderR.y, 0.72, 0.97);
+            hard += miss(Math.min(pts.shoulderL.x, pts.shoulderR.x), 0.06, 0.42);
+            hard += miss(pts.deathTop.y, 0.18, 0.34);
+            hard += miss(pts.deathTop.x, 0.36, 0.66);
+            hard += miss(pts.deathChest.y, 0.36, 0.58);
+            if (pts.heroBack.y <= pts.heroChest.y) hard += 40;
+            if (pts.throneBase.y > 1.0 || pts.throneBase.y < 0.35 || pts.throneBase.z < 0 || pts.throneBase.z > 1) hard += 40;
+            const span = pts.deathChest.y - pts.deathTop.y;
+            const cost = hard > 0 ? hard + Math.max(0, 0.12 - span) * 20 : -span;
+            if (!best || cost < best.cost) {
+              const rounded = {};
+              for (const k of keys) rounded[k] = { x: Math.round(pts[k].x * 100) / 100, y: Math.round(pts[k].y * 100) / 100 };
+              best = {
+                cost,
+                fov,
+                pos: cam.position.clone(),
+                look: look.clone(),
+                debug: {
+                  cost: Math.round(cost * 100) / 100,
+                  span: Math.round(span * 100) / 100,
+                  fov,
+                  back: Math.round((cam.position.z - M.heroChest.z) * 10) / 10,
+                  pts: rounded,
+                },
+              };
+            }
+          }
+        }
+      }
+    }
+  }
+  return best;
+}
+
+/* Fallback pack shot, used until the loaded hero's bounds are known.
+   Vertical fov is three.js's fov, so a wide short strip opens a huge
+   horizontal view unless the lens tightens. */
 function framePack(aspect) {
   const t = Math.min(1, Math.max(0, (aspect - 1.15) / (2.6 - 1.15)));
   const fov = 40 + (32 - 40) * t;

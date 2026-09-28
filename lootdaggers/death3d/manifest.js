@@ -20,8 +20,10 @@ export const DEATH3D_MANIFEST = {
   pack: {
     hero: [0, 0, 6.5],
     lungeSign: -1,
-    /* Death and the throne share this scale so he still sits in the seat. */
+    /* The throne uses `scale`. Death is larger than that, then shifted so
+       his hips stay in the seat. */
     scale: 1.28,
+    deathScale: 1.18,
     camera: {
       fov: 36,
       pos: [0.9, 1.85, 9.6],

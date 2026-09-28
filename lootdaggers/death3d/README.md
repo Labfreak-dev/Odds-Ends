@@ -50,12 +50,15 @@ textures are drawn down to 1K before upload. The throne and the room stay
 at their file size. Phones cap the pixel ratio at 1.5 and skip antialias,
 brazier point lights, and most of the drifting motes. Desktop stays at 2.
 
-Death and the throne share one scale (`pack.scale`, 1.28) so he still sits
-in the seat and reads large. The cold rim is a faint edge, not a teal wash,
-and two small sprites on `Socket_Eyes` keep the sockets green. A wide short
-arena (the desktop strip) looks higher and uses a tighter vertical lens so
-the scythe sits under the life-bar label and the hero's head and shoulders
-stay in frame. A hero attack steps toward the throne and steps back.
+Death is scaled a little larger than the throne (`pack.deathScale`) and
+shifted so his hips stay in the seat. The cold rim is a faint edge, and two
+small sprites on `Socket_Eyes` keep the sockets green. The camera is solved
+from the loaded hero's head, shoulders and upper back, so each hero lands in
+the bottom third, left of centre, with Death's skull under the life bar.
+On a wide short window the arena grows to about half the column for the
+fight and the cabinet shrinks to keep the reels and the spin button on
+screen. That layout leaves with the fight. A hero attack steps toward the
+throne and steps back.
 
 ## What the fight asks the scene to play
 

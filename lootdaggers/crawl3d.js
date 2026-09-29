@@ -118,20 +118,23 @@ class Crawl extends Stage {
     h.blob.position.set(x, 0.5, -30);
     // a new blow: the arrow, the bomb, or a blade swing picks the clip
     const lungeRose = v.lunge > this.prev.lunge + 0.25;
+    const slashNew = v.slash && v.slash !== this.prev.slash;
     const arrowNew = v.arrow && v.arrow !== this.prev.arrow;
     const boomNew = v.boom && v.boom !== this.prev.boom;
     const hurtRose = v.hurt > this.prev.hurt + 0.2;
-    this.prev.lunge = v.lunge; this.prev.hurt = v.hurt; this.prev.arrow = v.arrow; this.prev.boom = v.boom;
+    this.prev.lunge = v.lunge; this.prev.hurt = v.hurt; this.prev.arrow = v.arrow; this.prev.boom = v.boom; this.prev.slash = v.slash;
+    // a one-shot clip plays only its strike, then hands back; walking cuts it short
+    const now = this.clock;
+    const once = (name, speed, from, len) => { this._play(h, name, { once: true, speed, from, fade: 0.08 }); h.until = now + len; };
     if (r.hp <= 0) { if (h.curName !== 'Dead') this._play(h, 'Dead', { once: true }); }
-    else if (boomNew) this._play(h, 'Charged_Ground_Slam', { once: true, speed: 1.6, from: 0.5, fade: 0.08 });
-    else if (arrowNew) this._play(h, r.hero === 'ranger' ? 'Archery_Shot' : 'Charged_Spell_Cast', { once: true, speed: 1.6, from: 0.3, fade: 0.08 });
-    else if (lungeRose) {
-      this.swing = (this.swing + 1) % 3;
-      this._play(h, ['Double_Combo_Attack', 'Left_Slash', 'Triple_Combo_Attack'][this.swing], { once: true, speed: 1.5, from: 0.15, fade: 0.08 });
-    } else if (hurtRose) this._play(h, 'Hit_Reaction', { once: true, speed: 1.5, fade: 0.05 });
+    else if (boomNew) once('Charged_Ground_Slam', 1.6, 0.5, 0.9);
+    else if (arrowNew) once(r.hero === 'ranger' ? 'Archery_Shot' : 'Charged_Spell_Cast', 1.6, 0.3, 0.8);
+    else if (slashNew || (lungeRose && v.slash)) once('Attack', 1.35, 0.2, 0.7);         // one clean sword strike
+    else if (lungeRose) once('Standard_Forward_Charge', 1.8, 0.1, 0.4);                   // a boots shove: shoulder in, no swing
+    else if (hurtRose) once('Hit_Reaction', 1.5, 0, 0.5);
     else {
-      const busy = h.cur && h.cur.loop === THREE.LoopOnce && h.cur.isRunning();
-      if (!busy) this._play(h, f.moving ? 'Walking' : 'Combat_Stance', { fade: 0.2, speed: f.moving ? 1.3 : 1 });
+      const busy = h.cur && h.cur.loop === THREE.LoopOnce && h.cur.isRunning() && now < (h.until || 0) && !(f.moving && h.curName !== 'Hit_Reaction');
+      if (!busy) this._play(h, f.moving ? 'Walk_Fight_Forward' : 'Combat_Stance', { fade: 0.2, speed: f.moving ? 1.25 : 1 });
     }
     if (h.mixer) h.mixer.update(f.dt);
     this._tint(h, 0, v.hurt > 0.6 ? 0.5 : 0);

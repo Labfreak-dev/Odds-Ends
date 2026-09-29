@@ -218,8 +218,17 @@ export class Stage {
     this.scene.add(blob);
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
-    const height = Math.max(0.3, box.max.y - Math.min(0, box.min.y));
     const hips = root.getObjectByName('Hips');
+    // Unrigged image-to-3D models are pivoted at their middle: stand them on the
+    // floor (lowest point at y 0) and centre them on their spot.
+    if (!hips) {
+      root.position.y -= box.min.y;
+      root.position.x -= (box.min.x + box.max.x) / 2;
+      root.position.z -= (box.min.z + box.max.z) / 2;
+      root.updateMatrixWorld(true);
+      box.setFromObject(root);
+    }
+    const height = Math.max(0.3, box.max.y - Math.min(0, box.min.y));
     const a = {
       holder, root, blob, mats, height, hips, hipY: hips ? hips.position.y : 0,
       hipX: hips ? hips.position.x : 0, hipZ: hips ? hips.position.z : 0,
@@ -401,8 +410,8 @@ export class Stage {
     if (!c) {
       this.lastCur = null;
       if (st.hurtT > 0.25 && h.curName !== 'Hit_Reaction') this._play(h, 'Hit_Reaction', { once: true, speed: 1.4, fade: 0.05 });
-      else if (st.mode === 'walk') this._play(h, 'Walking', { speed: 1.2 });
-      else if (st.hurtT <= 0 && (!h.cur || h.cur.loop === THREE.LoopOnce && !h.cur.isRunning() || h.curName === 'Walking')) this._play(h, 'Combat_Stance', { fade: 0.25 });
+      else if (st.mode === 'walk') this._play(h, 'Walk_Fight_Forward', { speed: 1.2 });
+      else if (st.hurtT <= 0 && (!h.cur || h.cur.loop === THREE.LoopOnce && !h.cur.isRunning() || h.curName === 'Walk_Fight_Forward')) this._play(h, 'Combat_Stance', { fade: 0.25 });
     }
   }
 

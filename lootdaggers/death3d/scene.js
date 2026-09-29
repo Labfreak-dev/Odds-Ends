@@ -1299,6 +1299,9 @@ class Actor {
       this.play('idle');
     });
     this.play('idle');
+    /* Start in the settled idle, not the bind pose or the clip's first
+       keys. Those stick the sword and cape across Death on the opening frame. */
+    if (this.mixer) this.mixer.setTime(idleSampleTime(this));
     if (cfg.lockRoot) {
       this.mixer.update(0);
       const hips = model.getObjectByName('Hips') || model.getObjectByName('mixamorigHips');
@@ -2639,6 +2642,17 @@ function coverFor(arena) {
   return next;
 }
 
+/* A point in the idle loop after the blend-in and the clip's opening keys. */
+function idleSampleTime(actor) {
+  let dur = 1;
+  try {
+    const clip = actor && actor.findClip && actor.findClip('idle');
+    if (clip && clip.duration > 0.05) dur = clip.duration;
+  } catch (e) { /* keep the default */ }
+  if (dur <= 0.55) return dur * 0.5;
+  return 0.5;
+}
+
 function shotRest(arena) {
   const aspect = Math.max(0.35, arena._canvasAspect || (arena.camera && arena.camera.aspect) || 1);
   const heroId = arena.activeHero || 'knight';
@@ -2648,8 +2662,17 @@ function shotRest(arena) {
   const key = heroId + '@' + aspect.toFixed(2) + '@' + qtop + '@' + qbot;
   const heroActor = arena.heroActors && arena.heroActors[heroId];
   const ready = !!(arena.deathActor && arena.deathActor.model && heroActor && heroActor.model);
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+  if (ready && !arena._restArmed) arena._restArmed = now;
+  /* One resample after the idle has been on screen, then the cache sticks.
+     The sample itself is already the settled clip time, so this confirms it. */
+  if (arena._restArmed && !arena._restConfirmed && now - arena._restArmed >= 500) {
+    arena._restConfirmed = true;
+    arena._idleMarks = null;
+    _restCache = null;
+  }
   if (_restCache && _restCache.key === key && _restCache.ready) return _restCache.shot;
-  if (!ready || !arena._coverStable) return _restCache ? _restCache.shot : restFallback(aspect < 0.85);
+  if (!ready) return _restCache ? _restCache.shot : restFallback(aspect < 0.85);
   const shot = solveRest(arena, aspect, { top: qtop, bot: qbot });
   _restCache = { key, shot, ready: true };
   return shot;
@@ -2666,7 +2689,7 @@ function restFallback(phone) {
   };
 }
 
-/* Pose the idle clip at its first frame, read world points, then put the
+/* Pose the idle clip at its settled time, read world points, then put the
    mixer back. The rest camera is solved from this once per hero, so the
    combat sway cannot walk the body across Death. */
 function poseMixer(actor, time) {
@@ -2718,7 +2741,7 @@ function idleMarks(arena) {
   const hero = arena.heroActors && arena.heroActors[id];
   if (!death || !death.model || !hero || !hero.model) return null;
   const marks = { id };
-  const savedD = poseMixer(death, 0);
+  const savedD = poseMixer(death, idleSampleTime(death));
   let head = boneWorld(death.model, 'head_end') || boneWorld(death.model, 'Head');
   const eyes = nodePos(death.anchors && death.anchors.eyes);
   if (!head) head = eyes ? eyes.clone() : new THREE.Vector3(0, 2.2, -0.2);
@@ -2739,7 +2762,7 @@ function idleMarks(arena) {
   marks.deathL = dSL.clone();
   marks.deathR = dSR.clone();
   marks.deathChest = dChest.clone();
-  const savedH = poseMixer(hero, 0);
+  const savedH = poseMixer(hero, idleSampleTime(hero));
   let hHead = nodePos(hero.anchors && hero.anchors.head) || boneWorld(hero.model, 'Head') || boneWorld(hero.model, 'head_end');
   if (!hHead) hHead = new THREE.Vector3(0, 1.7, 6.5);
   const crown = boneWorld(hero.model, 'head_end');
@@ -2752,7 +2775,7 @@ function idleMarks(arena) {
      silhouette, or the head is pushed off the left of the phone frame. */
   const midX = (hSL.x + hSR.x) * 0.5;
   const half = Math.max(Math.abs(hSL.x - midX), Math.abs(hSR.x - midX));
-  const bulk = half + 0.24;
+  const bulk = half + 0.26;
   const chestY = Math.min(hSL.y, hSR.y);
   const capeZ = hHead.z + 0.14;
   marks.heroHead = hHead;
@@ -2790,7 +2813,7 @@ function solveRest(arena, aspect, cover) {
   cam.near = 0.08;
   cam.far = 90;
   const hz = marks.heroZ;
-  const dists = phone ? [2.5, 2.7, 2.9] : [2.05, 2.4, 2.8, 3.3, 3.8];
+  const dists = phone ? [2.85, 3.05, 3.25] : [2.05, 2.4, 2.8, 3.3, 3.8];
   const ys = phone ? [1.05, 1.25, 1.45] : [1.3, 1.6, 1.9];
   const lys = phone ? [1.9, 2.25, 2.6] : [1.9, 2.25, 2.65];
   const lzs = phone ? [0.35, 0.9, 1.4] : [0.15, 0.55];
@@ -2836,7 +2859,8 @@ function solveRest(arena, aspect, cover) {
       if (phone) {
         hard += bandMiss(hh.x, 0.25, 0.30) * 36;
         if (hh.x < 0.12 || hh.x > 0.40) hard += 16;
-        if (gap < 0.04) hard += 28 + (0.04 - gap) * 40;
+        if (gap < 0.05) hard += 28 + (0.05 - gap) * 40;
+        if (heroSpan > 0.22) hard += (heroSpan - 0.22) * 14;
         if (heroSpan > 0.30) hard += 30 + (heroSpan - 0.30) * 50;
         if (th.y < cover.top + 0.01) hard += 36 + (cover.top + 0.01 - th.y) * 45;
         hard += bandMiss(th.y, 0.06, 0.18) * 10;

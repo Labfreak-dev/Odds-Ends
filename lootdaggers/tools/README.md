@@ -18,6 +18,11 @@ Setup: `cd lootdaggers/tools && npm i` (gltf-transform + meshoptimizer), and
 | `optimize.mjs` | Meshy GLB to game GLB: WebP textures (base 1K, others 512), quantized, meshopt. About 7-14 MB down to 0.6-0.9 MB. |
 | `part.mjs`, `maps.mjs` | Helpers for the skin batch (one hero part as a static GLB; pull the maps out of a result). |
 
+## Where the models are used
+- `slayer3d.js`: Reel Slayer's full 3D world, and the shared `Stage` engine (models, clips, skins, tints, effects).
+- `crawl3d.js`: the main crawl's character layer, a `Stage` in overlay mode with an orthographic camera locked to the 2D view.
+- `death3d/scene.js`: the Death fight (its own engine, same skins).
+
 ## Why one animation library works for everyone
 Meshy's auto-rig gives every humanoid the same 24-bone skeleton (Hips, Spine,
 Spine01, Spine02, neck, Head, the arms and legs). The six hero models were

@@ -14,7 +14,7 @@ const U = 0.0155;                       // meters per slayer.js world unit
 const ROOT = new URL('./', import.meta.url).href;
 
 /* Which library clip plays each hero move, and where in the clip the blow lands. */
-const MOVE_CLIPS = {
+export const MOVE_CLIPS = {
   sword:  { clip: 'Double_Combo_Attack', hit: 0.3, frenzy: 'Triple_Combo_Attack' },
   boots:  { clip: 'Roll_Dodge', hit: 0.5 },
   shield: { clip: 'Sword_Parry', hit: 0.25 },
@@ -29,7 +29,7 @@ const MOVE_CLIPS = {
 const MOVE_HIT = { sword: 0.3, boots: 0.5, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5 };
 
 /* Foes: model file, rigged or code-animated, clip choices, height (m). */
-const FOE3D = {
+export const FOE3D = {
   skel:     { attack: 'Attack', hitAt: 0.45, walk: 'Walk_Fight_Forward' },
   archer:   { attack: 'Archery_Shot', hitAt: 0.55 },
   orc:      { attack: 'Heavy_Hammer_Swing', hitAt: 0.5, walk: 'Slow_Orc_Walk' },
@@ -60,19 +60,24 @@ export async function boot(canvas) {
   return stage;
 }
 
-class Stage {
-  constructor(canvas) {
+/* Shared by Reel Slayer (a full world) and the main crawl (opts.overlay: a
+   transparent layer of characters over the 2D painted scene; see crawl3d.js). */
+export class Stage {
+  constructor(canvas, opts = {}) {
     this.canvas = canvas;
+    this.overlay = !!opts.overlay;
     this.phone = phoneLike();
-    const r = new THREE.WebGLRenderer({ canvas, antialias: !this.phone, alpha: false, powerPreference: 'high-performance' });
+    const r = new THREE.WebGLRenderer({ canvas, antialias: !this.phone, alpha: this.overlay, powerPreference: 'high-performance' });
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.phone ? 1.25 : 2));
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.AgXToneMapping;
     r.toneMappingExposure = 1.4;
     this.renderer = r;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x07080a);
-    this.scene.fog = new THREE.Fog(0x07080a, 16, 40);
+    if (!this.overlay) {
+      this.scene.background = new THREE.Color(0x07080a);
+      this.scene.fog = new THREE.Fog(0x07080a, 16, 40);
+    }
     // metal and roughness maps need something to reflect, or the models read flat grey
     const pm = new THREE.PMREMGenerator(r);
     this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -90,7 +95,8 @@ class Stage {
     this.hero = null;
     this.heroId = null;
     this.skinId = null;
-    this._buildWorld();
+    this._buildLights();
+    if (!this.overlay) this._buildWorld();
   }
 
   async load() {
@@ -109,7 +115,7 @@ class Stage {
   }
 
   /* ---------- world ---------- */
-  _buildWorld() {
+  _buildLights() {
     const S = this.scene;
     S.add(new THREE.HemisphereLight(0x9fb4c4, 0x2a1d18, 1.3));
     const key = new THREE.DirectionalLight(0xffe6c8, 2.2);
@@ -119,6 +125,20 @@ class Stage {
     rim.position.set(4, 3, -5);
     S.add(rim);
     this.keyLight = key;
+    this.rimLight = rim;
+    // soft blob shadow texture
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    this.blobTex = new THREE.CanvasTexture(c);
+    this.glowTex = this._radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)');
+    this.flash = new THREE.PointLight(0xffd9a0, 0, 7, 1.5);
+    S.add(this.flash);
+  }
+
+  _buildWorld() {
+    const S = this.scene;
     const art = window.LD_ART || {};
     // tile a painting along a plane of the given size without stretching it
     const texFrom = (k, planeW, planeH) => {
@@ -167,15 +187,6 @@ class Stage {
       S.add(L);
       this.torchLights.push(L);
     }
-    // soft blob shadow texture
-    const c = document.createElement('canvas'); c.width = c.height = 64;
-    const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-    this.blobTex = new THREE.CanvasTexture(c);
-    this.glowTex = this._radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)');
-    this.flash = new THREE.PointLight(0xffd9a0, 0, 7, 1.5);
-    S.add(this.flash);
   }
 
   _radial(a, b) {

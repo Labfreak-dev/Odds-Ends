@@ -12,7 +12,7 @@
 // t: seconds the move takes. Damage is scaled by level and Frenzy at use.
 const MOVES = {
   sword:  { n: 'Slash',   t: 0.65, pose: 'attack' },
-  boots:  { n: 'Dash',    t: 0.45, pose: 'walk' },
+  boots:  { n: 'Leap',    t: 0.95, pose: 'attack' },
   shield: { n: 'Parry',   t: 0.6,  pose: 'idle' },
   bow:    { n: 'Shot',    t: 0.6,  pose: 'attack' },
   bomb:   { n: 'Blast',   t: 0.85, pose: 'attack' },
@@ -24,10 +24,14 @@ const MOVES = {
 const MOVE_KEYS = Object.keys(MOVES);
 /* Three of a kind: the whole combo becomes that symbol's signature move (double damage, wider reach). */
 const ULTS = {
-  sword: 'BLADE STORM', bomb: 'METEOR FALL', bow: 'ARROW RAIN', skull: 'SOUL REAP', boots: 'SHADOW STEP',
+  sword: 'BLADE STORM', bomb: 'METEOR FALL', bow: 'ARROW RAIN', skull: 'SOUL REAP', boots: 'SKYFALL',
   shield: 'IRON WALL', potion: 'BLOOD MOON', coin: 'JACKPOT', key: 'PHANTOM STEP',
 };
 const CRIT = 0.12;
+// The hero walks up to the nearest foe on his own and stops at ENGAGE to plan; he walks
+// again after a combo only if every foe ended up past ENGAGE + SLACK (knocked back, backstep).
+const ENGAGE = 95, SLACK = 70, ADVANCE_SPD = 150;
+const LEAP_HIT = 0.45;          // the boots leap lands (and hits) this far into the move
 
 /* ---------- foes ---------- */
 // range in world units; wind: seconds of telegraph; cd: rest after a strike
@@ -82,12 +86,15 @@ function newRun(hero) {
     reels: [], order: [], combo: [], queue: [], cur: null, frenzy: false,
     hurtT: 0, invT: 0, parryT: 0, parryPerfect: 0, flash: 0, shake: 0, over: false,
     edge: alt('edge') || 0, banner: null, walkT: 0, spun: 0,
-    ev: [], stopT: 0, slowT: 0, hits: 0, hitsT: 0, ult: null,
+    ev: [], stopT: 0, slowT: 0, hits: 0, hitsT: 0, ult: null, hy: 0,
   };
   const n = reelCountFor();
   for (let i = 0; i < n; i++) st.reels.push({ strip: heroStrip(hero), pos: rnd(0, 20), v: 0, stop: null, done: true, res: null });
   nextWave();
+  st.mode = 'advance';
 }
+/* Distance to the nearest live foe (Infinity when none). */
+function gap() { const nf = nearest(); return nf ? Math.abs(nf.x - st.x) : Infinity; }
 
 function nextWave() {
   st.wave++;
@@ -200,7 +207,12 @@ function nextMove() {
   const nf = nearest();
   if (nf && m !== 'key') st.face = nf.x >= st.x ? 1 : -1;
   st.cur = { m, t: 0, dur: MOVES[m].t, hit: false, from: st.x };
-  if (m === 'boots') st.invT = MOVES.boots.t + 0.05;
+  if (m === 'boots') {
+    // leap onto the nearest foe (or a short hop forward), landing just in front of it
+    st.invT = MOVES.boots.t + 0.05;
+    st.cur.to = nf ? nf.x - st.face * 55 : st.x + st.face * 80;
+    if (Math.abs(st.cur.to - st.x) < 20) st.cur.to = st.x;
+  }
   if (m === 'key') st.invT = 0.25;
   if (m === 'shield') { st.parryT = MOVES.shield.t; st.parryPerfect = 0.3; }
 }
@@ -227,14 +239,23 @@ function doMove(dt) {
       try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
     }
   } else if (m === 'boots') {
-    const d = (st.ult === 'boots' ? 260 : 170) * dt / c.dur;
-    const before = st.x;
-    st.x += st.face * d;
-    for (const f of liveFoes()) {
-      if (!f._dashed && ((before - f.x) * (st.x - f.x) <= 0)) { f._dashed = true; hitFoe(f, power(st.ult === 'boots' ? 6 : 3), 'dash'); }
+    // an arc up and onto the foe, a slam on landing, then the hero holds there
+    const k = Math.min(1, p / LEAP_HIT);
+    st.x = c.from + (c.to - c.from) * (1 - Math.pow(1 - k, 2));
+    st.hy = p < LEAP_HIT ? Math.sin(Math.PI * k) * 90 : 0;
+    if (!c.hit && p >= LEAP_HIT) {
+      c.hit = true;
+      const reach = st.ult === 'boots' ? 170 : 80;
+      const nf = nearest();
+      for (const f of liveFoes()) {
+        if (Math.abs(f.x - st.x) > reach + 40) continue;
+        hitFoe(f, power(f === nf || st.ult === 'boots' ? (st.ult === 'boots' ? 7 : 5) : 2), 'leap');
+      }
+      st.ev.push({ k: 'land', x: st.x + st.face * 30, big: st.ult === 'boots' });
+      addFx('boom', st.x + st.face * 30, 0.35);
+      st.shake = Math.max(st.shake, 12);
+      try { sfx.boom(); } catch (e) { /* ignore */ }
     }
-    if (p >= 1) for (const f of st.foes) f._dashed = false;
-    if (Math.random() < dt * 30) addFx('after', st.x, 0.25);
   } else if (m === 'key') {
     st.x -= st.face * 120 * dt / c.dur;
   } else if (m === 'bow' && !c.hit && p >= 0.4) {
@@ -270,9 +291,9 @@ function doMove(dt) {
 function hitFoe(f, dmg, how) {
   if (f.dead) return;
   if (f.t === 'ironclad' && how === 'sword' && !st.frenzy) dmg = Math.ceil(dmg / 3);
-  const crit = (how === 'sword' || how === 'bow' || how === 'dash') && Math.random() < CRIT;
+  const crit = (how === 'sword' || how === 'bow' || how === 'leap') && Math.random() < CRIT;
   if (crit) dmg = Math.round(dmg * 1.5);
-  const heavy = crit || st.frenzy || how === 'bomb' || how === 'skull' || how === 'parry';
+  const heavy = crit || st.frenzy || how === 'bomb' || how === 'skull' || how === 'parry' || how === 'leap';
   // knockback away from the hero; heavy blows launch
   const dir = Math.sign(f.x - st.x) || st.face;
   f.kv = dir * (f.boss ? 90 : heavy ? 300 : 140);
@@ -319,10 +340,10 @@ function strikeHero(f, dmg) {
 }
 function endAct() {
   st.mode = 'plan';
-  st.parryT = 0; st.invT = 0; st.ult = null;
-  for (const f of st.foes) f._dashed = false;
+  st.parryT = 0; st.invT = 0; st.ult = null; st.hy = 0;
   if (!liveFoes().length && !st.over) { st.mode = 'walk'; st.walkT = 1.1; st.coins += 3; floater('WAVE CLEAR +3 🪙', '#e8c77a', st.x, 200); }
   else if (st.coins < 1 && !st.over) endRun('broke');
+  else if (!st.over && gap() > ENGAGE + SLACK) st.mode = 'advance';
 }
 
 /* ---------- foes (only move while the combo plays) ---------- */
@@ -476,9 +497,11 @@ function draw() {
   }
   // hero
   const c = st.cur;
-  const pose = st.hurtT > 0 ? 'hurt' : c ? MOVES[c.m].pose : (st.mode === 'walk' ? 'walk' : 'idle');
+  const pose = st.hurtT > 0 ? 'hurt' : c ? MOVES[c.m].pose : (st.mode === 'walk' || st.mode === 'advance' ? 'walk' : 'idle');
   const tint = c && c.m === 'skull' ? 'hue-rotate(250deg) saturate(1.6)' : (st.invT > 0 ? 'brightness(1.4) saturate(.6)' : null);
+  cx.save(); cx.translate(0, -(st.hy || 0) * L.k);
   sprite(heroKey(pose), 'hero_' + st.hero + '_idle', st.x, L, st.face < 0, st.invT > 0 ? 0.7 : 1, tint);
+  cx.restore();
   const hx = (st.x - st.cam) * L.k;
   if (st.parryT > 0) {
     cx.strokeStyle = st.parryPerfect > 0 ? 'rgba(160,230,255,.95)' : 'rgba(120,170,220,.6)'; cx.lineWidth = 4;
@@ -678,7 +701,7 @@ function tick(now) {
   else if (st.slowT > 0) { st.slowT = Math.max(0, st.slowT - rdt); dt = rdt * 0.35; }
   frameDt = dt; st.rdt = rdt;
   if (st.hitsT > 0) { st.hitsT -= rdt; if (st.hitsT <= 0) st.hits = 0; }
-  const running = st.mode === 'act' || st.mode === 'walk';
+  const running = st.mode === 'act' || st.mode === 'walk' || st.mode === 'advance';
   if (st.mode === 'act') {
     st.invT = Math.max(0, st.invT - dt);
     st.parryT = Math.max(0, st.parryT - dt);
@@ -687,7 +710,17 @@ function tick(now) {
     updateFoes(dt);
   } else if (st.mode === 'walk') {
     st.walkT -= dt; st.face = 1; st.x += 110 * dt;
-    if (st.walkT <= 0) { st.mode = 'plan'; nextWave(); }
+    if (st.walkT <= 0) { nextWave(); st.mode = 'advance'; }
+  } else if (st.mode === 'advance') {
+    // walk up to the nearest foe, then stop and wait for a pull
+    const nf = nearest();
+    if (!nf) st.mode = 'plan';
+    else {
+      st.face = nf.x >= st.x ? 1 : -1;
+      const d = Math.abs(nf.x - st.x) - ENGAGE;
+      if (d <= 0) st.mode = 'plan';
+      else st.x += st.face * Math.min(d, ADVANCE_SPD * dt);
+    }
   }
   if (running || st.over) {
     st.hurtT = Math.max(0, st.hurtT - dt);
@@ -730,8 +763,8 @@ function hidePanel() { const p = root.querySelector('.slPanel'); if (p) p.style.
 function pickHero() {
   const owned = Object.keys(HEROES).filter(h => S.heroes && S.heroes[h]);
   panel(`<h2>Reel Slayer <small>prototype</small></h2>
-    <p class="slSub">No buttons. Tap the reels to pull, then tap each reel to stop it: the order you stop them is the order your hero moves and strikes. The world waits while you plan; every foe shows how many seconds until it strikes.</p>
-    <p class="slSub">🗡 Slash · 🥾 Dash (dodges) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: Frenzy, double damage.</p>
+    <p class="slSub">No buttons. Tap the reels to pull, then tap each reel to stop it: the order you stop them is the order your hero strikes. Your hero walks up to the next foe on his own, and the world waits while you plan; every foe shows how many seconds until it strikes.</p>
+    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: an ultimate, double damage.</p>
     ${S.slayer && S.slayer.best ? `<p class="slSub">Best: wave ${S.slayer.best}</p>` : ''}
     ${owned.map(h => `<button data-sl="hero:${h}">${HEROES[h].e} ${HEROES[h].n} <small>❤${HEROES[h].hp + (alt('vit') || 0) * 5} · 🪙${HEROES[h].coins}</small></button>`).join('')}
     <button data-sl="exit">Back</button>`);
@@ -801,6 +834,6 @@ function close() {
   try { showHub('main'); } catch (e) { /* ignore */ }
 }
 window.Slayer = { open, close, get state() { return st; }, get stage() { return S3; }, _stop: stopReel, _spin: spin,
-  _wave(n) { if (!st) return; st.wave = n - 1; st.foes = []; nextWave(); },
+  _wave(n) { if (!st) return; st.wave = n - 1; st.foes = []; nextWave(); st.mode = 'advance'; },
   _force(syms) { if (!st || st.mode !== 'plan') return; st.order = syms.map((x, i) => i); st.reels.forEach((R, i) => { R.res = syms[i] || syms[0]; R.done = true; }); st.mode = 'spin'; buildCombo(); } };
 })();

@@ -163,3 +163,5 @@
 {"t": 1790651653.9164696, "tag": "hexpriest_hollowpope:body", "kind": "v1/retexture", "id": "01a0eb27-dc26-756a-93df-4eb19d79cadc"}
 {"t": 1790651676.8483334, "tag": "hexpriest_hollowpope:staff", "kind": "v1/retexture", "id": "01a0eb28-368e-729b-808a-31119dadd3a0"}
 {"t": 1790651809.3071465, "tag": "croupier:rig2", "kind": "v1/rigging", "id": "01a0eb2a-24da-7137-89c8-340ce348c518"}
+{"t": 1790709883.0385787, "tag": "sym_volley", "kind": "v1/image-to-image", "id": "01a0eea0-5d2f-774e-8daa-a8fdbf961eaf"}
+{"t": 1790709884.293853, "tag": "sym_missile", "kind": "v1/image-to-image", "id": "01a0eea0-6227-75fd-ab9a-40e4bed81d85"}

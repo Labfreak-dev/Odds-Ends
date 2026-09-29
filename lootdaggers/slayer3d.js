@@ -26,9 +26,29 @@ export const MOVE_CLIPS = {
   key:    { clip: 'Step_Back', hit: 0.5 },
   volley: { clip: 'Archery_Shot', hit: 0.55 },
   missile:{ clip: 'Charged_Spell_Cast', hit: 0.55 },
+  // three-of-a-kind combo moves
+  rush:     { clip: 'Triple_Combo_Attack', hit: 0.3 },
+  launch:   { clip: 'Heavy_Hammer_Swing', hit: 0.5 },
+  vault:    { clip: 'Sword_Judgment', hit: 0.31, start: 0.04 },
+  cluster:  { clip: 'Side_Shot', hit: 0.5 },
+  pierce:   { clip: 'Archery_Shot', hit: 0.55, alt: 'Charged_Spell_Cast' },
+  drain:    { clip: 'mage_soell_cast', hit: 0.5 },
+  bash:     { clip: 'Standard_Forward_Charge', hit: 0.6 },
+  quake:    { clip: 'Charged_Ground_Slam', hit: 0.67 },
+  bloodlet: { clip: 'mage_soell_cast', hit: 0.5 },
+  bloodmoon:{ clip: 'Charged_Spell_Cast', hit: 0.55 },
+  toss:     { clip: 'Side_Shot', hit: 0.5 },
+  jackpot:  { clip: 'Victory_Cheer', hit: 0.4 },
+  blink:    { clip: 'Left_Slash', hit: 0.35 },
+  phantom:  { clip: 'Standard_Forward_Charge', hit: 0.3 },
+  nova:     { clip: 'Charged_Spell_Cast', hit: 0.55 },
 };
+const MELEE = new Set(['sword', 'skull', 'bomb', 'rush', 'launch', 'bash', 'blink', 'phantom', 'quake', 'vault', 'boots']);
+const DASHES = new Set(['boots', 'key', 'rush', 'blink', 'phantom', 'vault']);
 /* move timing in slayer.js: the fraction of the move where its effect fires */
-const MOVE_HIT = { sword: 0.3, boots: 0.45, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5, volley: 0.35, missile: 0.25 };
+const MOVE_HIT = { sword: 0.3, boots: 0.45, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5, volley: 0.35, missile: 0.25,
+  rush: 0.45, launch: 0.35, vault: 0.5, cluster: 0.35, pierce: 0.45, drain: 0.45, bash: 0.35, quake: 0.5,
+  bloodlet: 0.45, bloodmoon: 0.5, toss: 0.45, jackpot: 0.5, blink: 0.4, phantom: 0.3, nova: 0.3 };
 
 /* Foes: model file, rigged or code-animated, clip choices, height (m). */
 export const FOE3D = {
@@ -333,21 +353,49 @@ export class Stage {
     act.reset().play(); act.time = act.getClip().duration * 0.3;
     a.mixer.update(0);
     a.holder.updateMatrixWorld(true);
+    const v = new THREE.Vector3(), pts = [];
     let lo = Infinity;
-    const v = new THREE.Vector3();
     a.root.traverse(o => {
       if (!o.isSkinnedMesh) return;
       const P = o.geometry.attributes.position;
-      for (let i = 0; i < P.count; i += 4) {
+      for (let i = 0; i < P.count; i += 2) {
         o.getVertexPosition(i, v);
         v.applyMatrix4(o.matrixWorld);
         a.holder.worldToLocal(v);
+        pts.push([o, i, v.y]);
         if (v.y < lo) lo = v.y;
       }
     });
     act.stop();
-    if (isFinite(lo) && Math.abs(lo) > 0.01) { a.root.position.y -= lo; a.groundY = -lo; }
+    if (!isFinite(lo)) return;
+    if (Math.abs(lo) > 0.01) { a.root.position.y -= lo; a.groundY = -lo; }
+    // the ground contact: an even sample of the vertices near the floor in this pose
+    // (feet, a robe's hem, a slime's belly); _footLock keeps the lowest of them at y 0
+    const near = pts.filter(p => p[2] < lo + 0.18);
+    const step = Math.max(1, Math.floor(near.length / 160));
+    a.contact = near.filter((p, k) => k % step === 0).map(p => [p[0], p[1]]);
   }
+  _contactY(a) {
+    let y = Infinity;
+    const v = new THREE.Vector3();
+    for (const [o, i] of a.contact) {
+      o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld); a.holder.worldToLocal(v);
+      if (v.y < y) y = v.y;
+    }
+    return y;
+  }
+  /* Keep a foe standing on the floor. The shared clips move the hips for a different
+     rig, so walks and swings lift some models and sink others; each frame this puts the
+     lowest ground-contact point back at y 0 (the game's own launches move the holder,
+     so they still fly). */
+  _footLock(a, dt) {
+    if (!a.contact || !a.contact.length) return;
+    a.root.updateMatrixWorld(true);
+    const base = a.groundY || 0;
+    const y = a.root.position.y - this._contactY(a) * Math.min(1, dt * 20 || 1);
+    a.root.position.y = Math.max(base - 0.25, Math.min(base + 0.25, y));   // a wild pose can't sink it through the floor
+  }
+
 
   /* A library clip, fitted to this actor: root x/z motion removed (the game
      moves the actor) and hip height scaled to this actor's legs. */
@@ -480,6 +528,10 @@ export class Stage {
       const s = want / a.height;
       a.root.scale.setScalar(s);
       a.height *= s; a.width *= s;
+      // the floor pivot was set at file size: scaling moved the feet, so set them down again
+      a.holder.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(a.root);
+      a.root.position.y -= box.min.y - a.holder.position.y;
     }
     a.blob.scale.set(a.width * 1.2, a.width * 0.6, 1);
     if (a.mixer) this._play(a, 'Combat_Stance', { from: Math.random() });
@@ -520,9 +572,8 @@ export class Stage {
       this.lastCur = c;
       const spec = MOVE_CLIPS[c.m] || MOVE_CLIPS.sword;
       let name = spec.clip;
-      if (c.m === 'sword' && st.frenzy && this.clips[spec.frenzy]) name = spec.frenzy;
-      if (c.m === 'sword' && st.ult === 'sword' && this.clips.Double_Blade_Spin) name = 'Double_Blade_Spin';
-      if (c.m === 'bow' && st.hero !== 'ranger' && spec.alt) name = spec.alt;
+      if (c.m === 'sword' && c.fin && this.clips.Double_Blade_Spin) name = 'Double_Blade_Spin';   // BLADE STORM
+      if ((c.m === 'bow' || c.m === 'pierce') && st.hero !== 'ranger' && spec.alt) name = spec.alt;
       const clip = this.clips[name];
       if (clip) {
         // land the clip's blow on the move's blow; skip a long wind-up rather than rush it
@@ -588,6 +639,7 @@ export class Stage {
           if (a.curName !== want) this._play(a, want, { fade: 0.2 });
         }
         a.mixer.update(adt);
+        if (!f.dead) this._footLock(a, adt || 0.016);
       } else {
         // code-animated: bob, squash on the wind-up, lunge on the strike, topple on death
         a.t = (a.t || Math.random() * 6) + adt;
@@ -671,6 +723,13 @@ export class Stage {
     this.scene.add(sp);
     this.fx.push({ obj: sp, t: 0, dur, grow: grow || 1, base: scale, kind: 'sprite' });
   }
+  /* a straight streak between two x positions (piercing shots, drains) */
+  _beam(x0, x1, y, color, dur, w) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+    m.position.set((x0 + x1) / 2, y, 0.3); m.scale.set(Math.max(0.05, Math.abs(x1 - x0)), w, 1);
+    this.scene.add(m);
+    this.fx.push({ obj: m, t: 0, dur, w, kind: 'beam' });
+  }
   _ringFx(color, pos, r0, r1, dur, flat) {
     const m = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 48), new THREE.MeshBasicMaterial({ color, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
     if (flat) m.rotation.x = -Math.PI / 2;
@@ -708,6 +767,10 @@ export class Stage {
     else if (m === 'skull') later(() => { this._ringFx(0xb07cf0, new THREE.Vector3(x, 0.05, 0), 0.5, 4.4, 0.7, true); this._spriteFx(0x9a50ff, new THREE.Vector3(x, 1, 0.2), 1.6, 0.6, 2.2); this._burst(0xc890ff, new THREE.Vector3(x, 0.8, 0.2), 50, 3.4, 0.9); this._flash(0x9a50ff, 14, x); });
     else if (m === 'potion') later(() => this._burst(0x8cff96, new THREE.Vector3(x, 0.4, 0.2), 30, 1.2, 1.1));
     else if (m === 'coin') later(() => this._burst(0xffd060, new THREE.Vector3(x, 1.3, 0.2), 24, 1.6, 0.9));
+    else if (m === 'rush' || m === 'launch' || m === 'blink') later(() => { this._arcFx(st, m === 'launch' ? 0xffc080 : 0xfff0d0, 1.0, m === 'launch' ? -8 : 8); this._burstAtFoes(st, 0xffe6b0, 110); });
+    else if (m === 'bash') later(() => { this._ringFx(0x9fe0ff, new THREE.Vector3(x + st.face * 0.5, 1.1, 0.3), 0.4, 1.4, 0.35); this._flash(0x9fd6ff, 10, x); });
+    else if (m === 'phantom') { this._spriteFx(0x7a5cff, new THREE.Vector3(x, 1, 0.3), 1.1, 0.35, 0.4); }
+    else if (m === 'bloodmoon' || m === 'jackpot') this._spriteFx(m === 'bloodmoon' ? 0xff2030 : 0xffd040, new THREE.Vector3(x, 2.6, -0.5), 1.4, 1.0, 2.2);
     else if (m === 'volley') { this._spriteFx(0x9fe890, new THREE.Vector3(x + st.face * 0.4, 1.5, 0.3), 0.5, 0.3, 2); }
     else if (m === 'missile') { this._spriteFx(0xb070ff, new THREE.Vector3(x + st.face * 0.4, 1.4, 0.3), 0.6, 0.45, 2.4); this._burst(0xc890ff, new THREE.Vector3(x + st.face * 0.4, 1.4, 0.3), 20, 1.6, 0.5); }
     else if (m === 'bow') later(() => this._spriteFx(0xffe0a0, new THREE.Vector3(x + st.face * 0.5, 1.3, 0.3), 0.4, 0.2, 2));
@@ -743,6 +806,7 @@ export class Stage {
       if (e.kind === 'sprite') { o.scale.setScalar(e.base * (1 + (e.grow - 1) * p)); o.material.opacity = 1 - p; }
       else if (e.kind === 'ring') { const r = e.r0 + (e.r1 - e.r0) * p; o.scale.set(r, r, r); o.material.opacity = 1 - p; }
       else if (e.kind === 'arc') { o.rotation.z += e.spin * dt; o.material.opacity = 1 - p; }
+      else if (e.kind === 'beam') { o.scale.y = e.w * (1 - p * 0.7); o.material.opacity = 1 - p; }
       else if (e.kind === 'slashX') { o.scale.set(0.4 + p * 1.2, 1 - p * 0.5, 1); o.material.opacity = 1 - p; }
       else if (e.kind === 'fall') { o.position.lerpVectors(e.from, e.to, p * p); if (p >= 1 && e.done) { later.push(e.done); e.done = null; } }
       else if (e.kind === 'burst') {
@@ -887,7 +951,7 @@ Object.assign(Stage.prototype, {
     this._flashInit();
     this._events(st);
     // weapon trail: sample while a blade move (or an ultimate) is swinging
-    const c = st.cur, swinging = !!(c && (c.m === 'sword' || c.m === 'skull' || c.m === 'bomb' || (st.ult && !['shield', 'volley', 'missile'].includes(st.ult))));
+    const c = st.cur, swinging = !!(c && MELEE.has(c.m));
     const T = this.trail;
     if (swinging && this.hero.weapons.length) {
       const w = this.hero.weapons[0];
@@ -911,9 +975,9 @@ Object.assign(Stage.prototype, {
     // faint, spaced out, and only where the hero has actually moved, so they trail him
     // instead of stacking on top of him into a white glow
     this.ghostClock -= rdt;
-    const dashing = c && (c.m === 'boots' || c.m === 'key');
+    const dashing = c && DASHES.has(c.m);
     const hp = this.hero.holder.position;
-    if ((dashing || st.ult === 'boots' || st.ult === 'key') && st.mode === 'act' && this.ghostClock <= 0
+    if (dashing && st.mode === 'act' && this.ghostClock <= 0
       && (!this.ghostAt || this.ghostAt.distanceTo(hp) > 0.25)) {
       this.ghostClock = 0.09;
       this.ghostAt = (this.ghostAt || new THREE.Vector3()).copy(hp);
@@ -959,7 +1023,30 @@ Object.assign(Stage.prototype, {
         this._flash(0x9fd6ff, 12, p.x); this._punch(0.12);
       } else if (e.k === 'drop') {
         this._arrowDrop(e.x * U, 0x9fe890);
-        if (st.ult === 'volley') for (let i = 0; i < 3; i++) setTimeout(() => this._arrowDrop(e.x * U + (Math.random() - 0.5) * 1.6, 0x9fe890), i * 40);
+        if (st.cur && st.cur.fin) for (let i = 0; i < 3; i++) setTimeout(() => this._arrowDrop(e.x * U + (Math.random() - 0.5) * 1.6, 0x9fe890), i * 40);
+      } else if (e.k === 'blast') {
+        const x = e.x * U;
+        this._spriteFx(0xffb060, new THREE.Vector3(x, 0.6, 0.3), 0.9, 0.45, 2.6);
+        this._burst(0xffc070, new THREE.Vector3(x, 0.5, 0.2), 24, 2.6, 0.6); this._flash(0xffb070, 10, x); this._punch(0.06);
+      } else if (e.k === 'pierce') {
+        const col = e.green ? 0x9fe890 : 0xffe0a0;
+        this._beam(e.x * U, e.to * U, 1.25, col, 0.35, 0.12);
+        this._beam(e.x * U, e.to * U, 1.25, 0xffffff, 0.2, 0.04);
+        this._punch(0.08);
+      } else if (e.k === 'drain') {
+        const col = e.col === 'blood' ? 0xff3040 : 0xb070ff, hx = st.x * U;
+        this._beam(e.x * U, hx, 1.1, col, 0.5, 0.18);
+        this._burst(col, new THREE.Vector3(e.x * U, 1.1, 0.3), 22, 1.8, 0.6);
+        this._spriteFx(col, new THREE.Vector3(hx, 1.1, 0.3), 0.8, 0.5, 1.8);
+      } else if (e.k === 'coins') {
+        this._burst(0xffd040, new THREE.Vector3(e.x * U, 1.4, 0.3), e.big ? 40 : 18, e.big ? 3.4 : 2, 0.7);
+        this._flash(0xffd060, e.big ? 12 : 6, e.x * U);
+      } else if (e.k === 'blink') {
+        for (const x of [e.x, e.to]) { this._spriteFx(0x7a5cff, new THREE.Vector3(x * U, 1, 0.3), 1.2, 0.35, 0.3); this._burst(0x9a80ff, new THREE.Vector3(x * U, 1, 0.3), 20, 2.2, 0.4); }
+        this._punch(0.1);
+      } else if (e.k === 'nova') {
+        this._ringFx(0xb070ff, new THREE.Vector3(e.x * U, 1.2, 0.3), 0.3, 3.2, 0.5);
+        this._flash(0x9a50ff, 12, e.x * U);
       } else if (e.k === 'land') {
         // the boots leap slamming down: shockwave, dust and a hard camera punch
         const x = e.x * U, col = e.big ? 0x9a6cff : 0x9fc8ff;
@@ -1038,24 +1125,24 @@ Object.assign(Stage.prototype, {
 
   /* ultimate versions of a move's effect; returns true when it replaced the normal one */
   _ultMoveFx(st, c) {
-    if (!st.ult) return false;
+    if (!c.fin) return false;
     const x = st.x * U, delay = (MOVE_HIT[c.m] || 0.4) * c.dur * 1000;
-    if (c.m === 'bomb' && st.ult === 'bomb') {      // METEOR FALL
+    if (c.m === 'bomb' && c.fin) {      // METEOR FALL
       for (let i = 0; i < 7; i++) setTimeout(() => this._meteor(x + (Math.random() - 0.5) * 7), i * 70);
       return true;
     }
-    if (c.m === 'bow' && st.ult === 'bow') {        // ARROW RAIN
+    if (c.m === 'bow' && c.fin) {        // ARROW RAIN
       for (let i = 0; i < 26; i++) setTimeout(() => this._arrowDrop(x + st.face * (0.5 + Math.random() * 6)), i * 22);
       return true;
     }
-    if (c.m === 'skull' && st.ult === 'skull') {    // SOUL REAP: a giant scything arc
+    if (c.m === 'skull' && c.fin) {    // SOUL REAP: a giant scything arc
       setTimeout(() => {
         this._arcFx(st, 0xb06cff, 3.2, 7); this._ringFx(0xb06cff, new THREE.Vector3(x, 0.05, 0), 0.5, 8, 0.8, true);
         this._burst(0xd0a0ff, new THREE.Vector3(x, 1.2, 0.3), 70, 4.5, 1.2); this._flash(0x9a50ff, 20, x);
       }, delay);
       return true;
     }
-    if (c.m === 'sword' && st.ult === 'sword') {    // BLADE STORM: the arcs come round twice
+    if (c.m === 'sword' && c.fin) {    // BLADE STORM: the arcs come round twice
       setTimeout(() => { this._arcFx(st, 0xffb24a, 1.6, 9); this._arcFx(st, 0xfff0c8, 1.2, -9); }, delay * 0.6);
       return false;
     }

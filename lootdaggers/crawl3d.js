@@ -183,7 +183,7 @@ class Crawl extends Stage {
         y = (spec.hover || 0) * PXM + Math.abs(Math.sin(a.t * (moving ? 9 : 2.5))) * (moving ? 5 : 2) + (spec.hover ? Math.sin(a.t * 1.7) * 5 : 0);
         sx = 1 + (o.pose > 0 ? 0.1 : 0) + (o.flash || 0) * 0.08; sy = 1 - (o.pose > 0 ? 0.08 : 0);
       }
-      if (a.mixer && visible) a.mixer.update(f.dt);
+      if (a.mixer && visible) { a.mixer.update(f.dt); if (!o.gone) this._footLock(a, f.dt || 0.016); }
       a.holder.position.set(x, y, 0);
       if (!a.mixer) a.holder.scale.set(a.k * sx, a.k * sy, a.k * sx);
       a.blob.position.set(x, 0.5, -30);

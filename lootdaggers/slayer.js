@@ -22,7 +22,51 @@ const MOVES = {
   key:    { n: 'Backstep',t: 0.45, pose: 'walk' },
   volley: { n: 'Volley',  t: 0.8,  pose: 'attack' },
   missile:{ n: 'Missiles',t: 0.8,  pose: 'attack' },
+  // combo-only moves (three of a kind): never on the reels
+  rush:     { n: 'Dash Slash',   t: 0.7,  pose: 'attack' },
+  launch:   { n: 'Launcher',     t: 0.7,  pose: 'attack' },
+  vault:    { n: 'Sky Vault',    t: 1.0,  pose: 'attack' },
+  cluster:  { n: 'Cluster Bombs',t: 0.9,  pose: 'attack' },
+  pierce:   { n: 'Piercing Shot',t: 0.7,  pose: 'attack' },
+  drain:    { n: 'Soul Drain',   t: 0.8,  pose: 'attack' },
+  bash:     { n: 'Shield Bash',  t: 0.6,  pose: 'attack' },
+  quake:    { n: 'Iron Quake',   t: 0.9,  pose: 'attack' },
+  bloodlet: { n: 'Bloodlet',     t: 0.7,  pose: 'attack' },
+  bloodmoon:{ n: 'Blood Moon',   t: 1.0,  pose: 'attack' },
+  toss:     { n: 'Coin Toss',    t: 0.6,  pose: 'attack' },
+  jackpot:  { n: 'Jackpot',      t: 1.0,  pose: 'attack' },
+  blink:    { n: 'Blink Strike', t: 0.7,  pose: 'walk' },
+  phantom:  { n: 'Phantom Rush', t: 1.0,  pose: 'walk' },
+  nova:     { n: 'Arcane Nova',  t: 0.8,  pose: 'attack' },
 };
+/* Three of a kind: an opener, a linker and the named finisher, not one move three times.
+   With four or five reels the opener and linker alternate before the finisher. */
+const COMBOS = {
+  sword: ['rush', 'launch', 'sword'],   boots: ['boots', 'vault', 'boots'],   bomb: ['bomb', 'cluster', 'bomb'],
+  bow: ['bow', 'pierce', 'bow'],        skull: ['skull', 'drain', 'skull'],   shield: ['bash', 'shield', 'quake'],
+  potion: ['potion', 'bloodlet', 'bloodmoon'], coin: ['coin', 'toss', 'jackpot'], key: ['key', 'blink', 'phantom'],
+  volley: ['volley', 'pierce', 'volley'], missile: ['missile', 'nova', 'missile'],
+};
+/* How near a foe must be for a move to have anything to hit (null: always plays).
+   Checked as each move starts; with nothing in reach the move is skipped. */
+function reachOf(m, fin) {
+  switch (m) {
+    case 'sword': return fin ? 320 : 210;
+    case 'boots': return fin ? 420 : 330;
+    case 'bomb': return fin ? 260 : 115;
+    case 'bow': return fin ? 420 : 700;
+    case 'skull': return fin ? 280 : 145;
+    case 'volley': return fin ? 460 : 380;
+    case 'missile': case 'nova': return 650;
+    case 'rush': return 300;   case 'launch': return 210;  case 'vault': return 360;
+    case 'cluster': return 240; case 'pierce': return 520; case 'drain': return 220;
+    case 'bash': return 260;   case 'quake': return 220;   case 'bloodlet': return 200;
+    case 'bloodmoon': return 320; case 'toss': return 300; case 'jackpot': return 340;
+    case 'blink': return 360;  case 'phantom': return 360;
+    case 'shield': case 'key': return Infinity;             // defensive: only needs a foe left alive
+    default: return null;                                   // potion, coin: always useful
+  }
+}
 // ranged heroes don't leap: their boots are a ranged attack on the Reel Slayer reels
 const SWAP = { ranger: { boots: 'volley' }, hexpriest: { boots: 'missile' } };
 const MOVE_KEYS = Object.keys(MOVES);
@@ -186,7 +230,11 @@ function buildCombo() {
   st.ult = st.frenzy ? (MOVES[first] ? first : 'sword') : null;
   st.hits = 0;
   st.combo = combo;
-  st.queue = combo.slice();
+  st.queue = combo.map(m => ({ m }));
+  if (st.frenzy && COMBOS[st.ult]) {
+    const [a, b, fin] = COMBOS[st.ult], n = combo.length;
+    st.queue = combo.map((m, i) => i === n - 1 ? { m: fin, fin: true } : { m: i % 2 ? b : a });
+  }
   st.mode = 'act';
   st.actT = 0;
   if (st.frenzy) {
@@ -207,20 +255,45 @@ function nearest() {
   for (const f of liveFoes()) if (!best || Math.abs(f.x - st.x) < Math.abs(best.x - st.x)) best = f;
   return best;
 }
+function fin(m) { return !!(st.cur && st.cur.fin && st.cur.m === m); }
 function nextMove() {
-  const m = st.queue.shift();
-  if (!m) { st.cur = null; endAct(); return; }
-  const nf = nearest();
+  let q, nf;
+  for (;;) {
+    q = st.queue.shift();
+    if (!q) { st.cur = null; endAct(); return; }
+    nf = nearest();
+    const reach = reachOf(q.m, q.fin);
+    if (reach == null || (nf && Math.abs(nf.x - st.x) <= reach)) break;
+    floater(MOVES[q.m].n + ': no target', '#948978', st.x, 190);   // nothing to hit: skip it
+  }
+  const m = q.m;
   if (nf && m !== 'key') st.face = nf.x >= st.x ? 1 : -1;
-  st.cur = { m, t: 0, dur: MOVES[m].t, hit: false, from: st.x };
+  st.cur = { m, t: 0, dur: MOVES[m].t, hit: false, from: st.x, fin: !!q.fin };
   if (m === 'boots') {
     // leap onto the nearest foe (or a short hop forward), landing just in front of it
     st.invT = MOVES.boots.t + 0.05;
     st.cur.to = nf ? nf.x - st.face * 55 : st.x + st.face * 80;
     if (Math.abs(st.cur.to - st.x) < 20) st.cur.to = st.x;
   }
+  if (m === 'vault') { st.invT = MOVES.vault.t + 0.05; st.cur.to = nf ? nf.x - st.face * 45 : st.x; }
+  if (m === 'rush' && nf) st.cur.to = st.x + st.face * Math.max(0, Math.min(240, Math.abs(nf.x - st.x) - 55));
+  if (m === 'blink' || m === 'phantom') st.invT = MOVES[m].t;
   if (m === 'key') st.invT = 0.25;
   if (m === 'shield') { st.parryT = MOVES.shield.t; st.parryPerfect = 0.3; }
+}
+/* sword-style: close the gap to the nearest foe before the blow lands */
+function lungeIn(c, dt, at) {
+  const nf = nearest();
+  if (!c.hit && nf && c.t / c.dur < at) {
+    const gap = Math.abs(nf.x - st.x) - 60;
+    if (gap > 0 && gap < 150) st.x += Math.sign(nf.x - st.x) * Math.min(gap, 520 * dt);
+  }
+}
+function meleeHit(lo, hi, base, how) {
+  let n = 0;
+  for (const f of liveFoes()) { const dx = (f.x - st.x) * st.face; if (dx > lo && dx < hi) { hitFoe(f, power(base), how); n++; } }
+  try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
+  return n;
 }
 function doMove(dt) {
   const c = st.cur;
@@ -239,7 +312,7 @@ function doMove(dt) {
       let n = 0;
       for (const f of liveFoes()) {
         const dx = (f.x - st.x) * st.face;
-        if (dx > (st.ult === 'sword' ? -150 : -10) && dx < (st.ult === 'sword' ? 170 : 85)) { hitFoe(f, power(5), 'sword'); n++; }
+        if (dx > (fin('sword') ? -150 : -10) && dx < (fin('sword') ? 170 : 85)) { hitFoe(f, power(5), 'sword'); n++; }
       }
       addFx('slash', st.x + st.face * 45, 0.25);
       try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
@@ -251,13 +324,13 @@ function doMove(dt) {
     st.hy = p < LEAP_HIT ? Math.sin(Math.PI * k) * 90 : 0;
     if (!c.hit && p >= LEAP_HIT) {
       c.hit = true;
-      const reach = st.ult === 'boots' ? 170 : 80;
+      const reach = fin('boots') ? 170 : 80;
       const nf = nearest();
       for (const f of liveFoes()) {
         if (Math.abs(f.x - st.x) > reach + 40) continue;
-        hitFoe(f, power(f === nf || st.ult === 'boots' ? (st.ult === 'boots' ? 7 : 5) : 2), 'leap');
+        hitFoe(f, power(f === nf || fin('boots') ? (fin('boots') ? 7 : 5) : 2), 'leap');
       }
-      st.ev.push({ k: 'land', x: st.x + st.face * 30, big: st.ult === 'boots' });
+      st.ev.push({ k: 'land', x: st.x + st.face * 30, big: fin('boots') });
       addFx('boom', st.x + st.face * 30, 0.35);
       st.shake = Math.max(st.shake, 12);
       try { sfx.boom(); } catch (e) { /* ignore */ }
@@ -265,7 +338,7 @@ function doMove(dt) {
   } else if (m === 'volley') {
     // three arrows (two on every foe in sight under HAIL OF ARROWS) drop on the nearest foes
     if (!c.plan) {
-      const ult = st.ult === 'volley';
+      const ult = fin('volley');
       const foes = liveFoes().filter(f => Math.abs(f.x - st.x) < (ult ? 460 : 380)).sort((a, b) => Math.abs(a.x - st.x) - Math.abs(b.x - st.x));
       const tg = ult ? foes.flatMap(f => [f, f]) : [0, 1, 2].map(i => foes[i % Math.max(1, foes.length)]).filter(Boolean);
       c.plan = tg.map((f, i) => ({ f, at: 0.35 + i * (0.4 / Math.max(1, tg.length - 1)), shot: false }));
@@ -280,13 +353,13 @@ function doMove(dt) {
     }
     for (const q of c.pend) if (q.t > 0 && (q.t -= dt) <= 0) {
       const f = q.f.dead ? nearest() : q.f;
-      if (f && Math.abs(f.x - st.x) < 480) hitFoe(f, power(st.ult === 'volley' ? 3 : 2), 'volley');
+      if (f && Math.abs(f.x - st.x) < 480) hitFoe(f, power(fin('volley') ? 3 : 2), 'volley');
     }
     if (p >= 1) c.pend.forEach(q => { if (q.t > 0) { q.t = 0; const f = q.f.dead ? nearest() : q.f; if (f) hitFoe(f, power(2), 'volley'); } });
   } else if (m === 'missile') {
     // homing bolts: three, or two for every foe in sight under ARCANE BARRAGE
     if (!c.plan) {
-      const ult = st.ult === 'missile';
+      const ult = fin('missile');
       const n = ult ? Math.min(8, Math.max(2, liveFoes().length * 2)) : 3;
       c.plan = Array.from({ length: n }, (_, i) => ({ at: 0.25 + i * (0.45 / Math.max(1, n - 1)), shot: false }));
     }
@@ -296,27 +369,139 @@ function doMove(dt) {
       if (!a.shot && p >= a.at && foes.length) {
         a.shot = true;
         const tgt = foes[i % foes.length];
-        st.shots.push({ x: st.x + st.face * 25, y: 95, v: st.face * 420, dmg: power(st.ult === 'missile' ? 3 : 2), mine: true, kind: 'missile', tgt, life: 2.2, ph: Math.random() * 6 });
+        st.shots.push({ x: st.x + st.face * 25, y: 95, v: st.face * 420, dmg: power(fin('missile') ? 3 : 2), mine: true, kind: 'missile', tgt, life: 2.2, ph: Math.random() * 6 });
         try { sfx.arrow(); } catch (e) { /* ignore */ }
       }
       i++;
+    }
+  } else if (m === 'rush') {
+    // dash in and cut
+    if (c.to != null && p < 0.4) st.x = c.from + (c.to - c.from) * Math.min(1, p / 0.4);
+    if (!c.hit && p >= 0.45) { c.hit = true; meleeHit(-10, 95, 5, 'rush'); addFx('slash', st.x + st.face * 45, 0.25); }
+  } else if (m === 'launch') {
+    lungeIn(c, dt, 0.35);
+    if (!c.hit && p >= 0.35) { c.hit = true; meleeHit(-10, 95, 6, 'launch'); addFx('slash', st.x + st.face * 45, 0.3); }
+  } else if (m === 'vault') {
+    // a higher leap than the opener, landing with a stunning slam
+    const k = Math.min(1, p / 0.5);
+    st.x = c.from + (c.to - c.from) * (1 - Math.pow(1 - k, 2));
+    st.hy = p < 0.5 ? Math.sin(Math.PI * k) * 150 : 0;
+    if (!c.hit && p >= 0.5) {
+      c.hit = true;
+      for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 130) { hitFoe(f, power(6), 'leap'); f.stun = Math.max(f.stun, 0.8); }
+      st.ev.push({ k: 'land', x: st.x + st.face * 30, big: false });
+      st.shake = Math.max(st.shake, 14);
+      try { sfx.boom(); } catch (e) { /* ignore */ }
+    }
+  } else if (m === 'cluster') {
+    // three blasts stepping out in front
+    c.n = c.n || 0;
+    while (c.n < 3 && p >= 0.35 + c.n * 0.15) {
+      const x = st.x + st.face * (55 + c.n * 70);
+      for (const f of liveFoes()) if (Math.abs(f.x - x) < 70) hitFoe(f, power(4), 'bomb');
+      addFx('boom', x, 0.4); st.ev.push({ k: 'blast', x });
+      st.shake = Math.max(st.shake, 8); c.n++;
+      try { sfx.boom(); } catch (e) { /* ignore */ }
+    }
+  } else if (m === 'pierce') {
+    // one shot through every foe in the line
+    if (!c.hit && p >= 0.45) {
+      c.hit = true;
+      for (const f of liveFoes()) { const dx = (f.x - st.x) * st.face; if (dx > 0 && dx < 520) hitFoe(f, power(5), 'pierce'); }
+      st.ev.push({ k: 'pierce', x: st.x + st.face * 20, to: st.x + st.face * 520, green: st.hero === 'ranger' });
+      try { sfx.arrow(); } catch (e) { /* ignore */ }
+    }
+  } else if (m === 'drain') {
+    if (!c.hit && p >= 0.45) {
+      c.hit = true;
+      const f = nearest();
+      if (f && Math.abs(f.x - st.x) < 230) {
+        const d = power(8); hitFoe(f, d, 'skull');
+        const h = Math.min(st.maxHp - st.hp, Math.round(d / 2)); if (h > 0) { st.hp += h; floater('+' + h, '#8cff96', st.x, 150); }
+        st.ev.push({ k: 'drain', x: f.x, col: 'soul' });
+      }
+    }
+  } else if (m === 'bash') {
+    lungeIn(c, dt, 0.35);
+    if (!c.hit && p >= 0.35) {
+      c.hit = true;
+      const f = nearest();
+      if (f && (f.x - st.x) * st.face > -10 && (f.x - st.x) * st.face < 105) hitFoe(f, power(4), 'bash');
+      addFx('parry', st.x + st.face * 30, 0.3);
+    }
+  } else if (m === 'quake') {
+    if (!c.hit && p >= 0.5) {
+      c.hit = true;
+      for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 220) hitFoe(f, power(6), 'quake');
+      st.ev.push({ k: 'land', x: st.x, big: true });
+      st.shake = Math.max(st.shake, 16);
+      try { sfx.boom(); } catch (e) { /* ignore */ }
+    }
+  } else if (m === 'bloodlet' || m === 'bloodmoon') {
+    if (!c.hit && p >= (m === 'bloodmoon' ? 0.5 : 0.45)) {
+      c.hit = true;
+      let dealt = 0;
+      const foes = m === 'bloodmoon' ? liveFoes().filter(f => Math.abs(f.x - st.x) < 320) : [nearest()].filter(f => f && Math.abs(f.x - st.x) < 210);
+      for (const f of foes) { const d = power(5); dealt += d; hitFoe(f, d, 'blood'); st.ev.push({ k: 'drain', x: f.x, col: 'blood' }); }
+      const h = Math.min(st.maxHp - st.hp, m === 'bloodmoon' ? Math.round(dealt / 2) : 3);
+      if (h > 0) { st.hp += h; floater('+' + h, '#8cff96', st.x, 150); }
+      if (m === 'bloodmoon') st.shake = Math.max(st.shake, 10);
+      try { sfx.heal(); } catch (e) { /* ignore */ }
+    }
+  } else if (m === 'toss' || m === 'jackpot') {
+    if (!c.hit && p >= (m === 'jackpot' ? 0.5 : 0.45)) {
+      c.hit = true;
+      const foes = m === 'jackpot' ? liveFoes().filter(f => Math.abs(f.x - st.x) < 340) : [nearest()].filter(f => f && Math.abs(f.x - st.x) < 310);
+      for (const f of foes) { hitFoe(f, power(m === 'jackpot' ? 6 : 4), 'coin'); st.ev.push({ k: 'coins', x: f.x, big: m === 'jackpot' }); }
+      const g = m === 'jackpot' ? 5 : 1;
+      st.coins += g; floater('+' + g + ' 🪙', '#e8c77a', st.x, 170);
+      try { sfx.coin(); } catch (e) { /* ignore */ }
+    }
+  } else if (m === 'blink') {
+    // vanish, reappear behind the nearest foe, and stab it in the back
+    if (!c.moved && p >= 0.2) {
+      c.moved = true;
+      const f = nearest();
+      if (f) { c.tgt = f; const from = st.x; st.x = f.x + st.face * 50; st.face = -st.face; st.ev.push({ k: 'blink', x: from, to: st.x }); }
+    }
+    if (!c.hit && p >= 0.4) {
+      c.hit = true;
+      if (c.tgt && !c.tgt.dead) hitFoe(c.tgt, power(6), 'blink');
+      addFx('slash', st.x + st.face * 40, 0.25);
+    }
+  } else if (m === 'phantom') {
+    // tear straight through every foe ahead, cutting each one
+    if (c.end == null) {
+      const ahead = liveFoes().filter(f => (f.x - st.x) * st.face > -20 && Math.abs(f.x - st.x) < 360);
+      c.end = ahead.length ? Math.max(...ahead.map(f => (f.x - st.x) * st.face)) + 60 : 120;
+      c.cut = new Set();
+    }
+    const k = Math.max(0, Math.min(1, (p - 0.15) / 0.45));
+    st.x = c.from + st.face * c.end * k;
+    for (const f of liveFoes()) if (!c.cut.has(f) && (f.x - st.x) * st.face <= 0 && (f.x - c.from) * st.face > -20) { c.cut.add(f); hitFoe(f, power(5), 'phantom'); }
+  } else if (m === 'nova') {
+    if (!c.hit && p >= 0.3) {
+      c.hit = true;
+      for (const f of liveFoes().slice(0, 6)) st.shots.push({ x: st.x + st.face * 25, y: 95, v: Math.sign(f.x - st.x || st.face) * 420, dmg: power(4), mine: true, kind: 'missile', tgt: f, life: 2.2, ph: Math.random() * 6 });
+      st.ev.push({ k: 'nova', x: st.x });
+      try { sfx.arrow(); } catch (e) { /* ignore */ }
     }
   } else if (m === 'key') {
     st.x -= st.face * 120 * dt / c.dur;
   } else if (m === 'bow' && !c.hit && p >= 0.4) {
     c.hit = true;
-    if (st.ult === 'bow') { for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 420) hitFoe(f, power(4), 'bow'); }   // ARROW RAIN: every foe in sight
+    if (fin('bow')) { for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 420) hitFoe(f, power(4), 'bow'); }   // ARROW RAIN: every foe in sight
     else st.shots.push({ x: st.x + st.face * 30, y: 70, v: st.face * 620, dmg: power(4), mine: true, life: 1.2 });
     try { sfx.arrow(); } catch (e) { /* ignore */ }
   } else if (m === 'bomb' && !c.hit && p >= 0.45) {
     c.hit = true;
-    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < (st.ult === 'bomb' ? 260 : 110)) hitFoe(f, power(7), 'bomb');
+    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < (fin('bomb') ? 260 : 110)) hitFoe(f, power(7), 'bomb');
     addFx('boom', st.x + st.face * 20, 0.5);
     st.shake = 10;
     try { sfx.boom(); } catch (e) { /* ignore */ }
   } else if (m === 'skull' && !c.hit && p >= 0.4) {
     c.hit = true;
-    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < (st.ult === 'skull' ? 280 : 140)) hitFoe(f, power(10), 'skull');
+    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < (fin('skull') ? 280 : 140)) hitFoe(f, power(10), 'skull');
     hurtHero(3, true);
     addFx('curse', st.x, 0.6);
     st.shake = 12;
@@ -336,13 +521,14 @@ function doMove(dt) {
 function hitFoe(f, dmg, how) {
   if (f.dead) return;
   if (f.t === 'ironclad' && how === 'sword' && !st.frenzy) dmg = Math.ceil(dmg / 3);
-  const crit = (how === 'sword' || how === 'bow' || how === 'leap' || how === 'volley' || how === 'missile') && Math.random() < CRIT;
+  const crit = ['sword', 'bow', 'leap', 'volley', 'missile', 'rush', 'launch', 'pierce', 'phantom'].includes(how) && Math.random() < CRIT || how === 'blink' && Math.random() < 0.5;
   if (crit) dmg = Math.round(dmg * 1.5);
-  const heavy = crit || st.frenzy || how === 'bomb' || how === 'skull' || how === 'parry' || how === 'leap';
+  const heavy = crit || st.frenzy || ['bomb', 'skull', 'parry', 'leap', 'launch', 'bash', 'quake', 'blink'].includes(how);
   // knockback away from the hero; heavy blows launch
   const dir = Math.sign(f.x - st.x) || st.face;
   f.kv = dir * (f.boss ? 90 : heavy ? 300 : 140);
-  if (heavy && !f.boss) f.air = Math.max(f.air || 0, 0.55);
+  if (heavy && !f.boss) f.air = Math.max(f.air || 0, how === 'launch' ? 0.9 : 0.55);
+  if (how === 'bash') { f.kv = dir * (f.boss ? 120 : 420); f.stun = Math.max(f.stun, 1.2); }
   st.stopT = Math.max(st.stopT, heavy ? 0.1 : 0.055);      // hit-stop: the world holds on the impact
   st.shake = Math.max(st.shake, heavy ? 10 : 5);
   st.hits++; st.hitsT = 1.4;
@@ -743,7 +929,7 @@ function drawReels(L) {
   cx.font = '12px ui-monospace,monospace'; cx.textAlign = 'center'; cx.fillStyle = '#cdb68a';
   const tip = st.over ? '' : st.mode === 'plan' ? (st.coins > 0 ? 'Tap the reels to pull · 🪙1' : 'Out of coins') :
     st.mode === 'spin' ? 'Tap each reel to stop it. Stop order = move order' :
-    st.mode === 'act' ? (st.frenzy ? 'FRENZY: double damage' : st.combo.map(m => MOVES[m].n).join(' → ')) : '';
+    st.mode === 'act' ? (st.frenzy ? (ULTS[st.ult] || 'FRENZY') + ': double damage' : st.combo.map(m => MOVES[m].n).join(' → ')) : '';
   cx.fillText(tip, L.W / 2, Math.min(L.H - 10, last.y + last.h + 20));
 }
 
@@ -823,7 +1009,7 @@ function pickHero() {
   const owned = Object.keys(HEROES);            // every hero plays Reel Slayer, unlocked in the crawl or not
   panel(`<h2>Reel Slayer <small>prototype</small></h2>
     <p class="slSub">No buttons. Tap the reels to pull, then tap each reel to stop it: the order you stop them is the order your hero strikes. Your hero walks up to the next foe on his own, and the world waits while you plan; every foe shows how many seconds until it strikes.</p>
-    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges; the Ranger fires a Volley and the Hex Priest Magic Missiles instead) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: an ultimate, double damage.</p>
+    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges; the Ranger fires a Volley and the Hex Priest Magic Missiles instead) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: a three-move combo (opener, linker, then the ultimate), double damage. An attack with no foe in reach is skipped.</p>
     ${S.slayer && S.slayer.best ? `<p class="slSub">Best: wave ${S.slayer.best}</p>` : ''}
     ${owned.map(h => `<button data-sl="hero:${h}">${HEROES[h].e} ${HEROES[h].n} <small>❤${HEROES[h].hp + (alt('vit') || 0) * 5} · 🪙${HEROES[h].coins}</small></button>`).join('')}
     <button data-sl="exit">Back</button>`);

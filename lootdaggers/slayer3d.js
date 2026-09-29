@@ -16,7 +16,7 @@ const ROOT = new URL('./', import.meta.url).href;
 /* Which library clip plays each hero move, and where in the clip the blow lands. */
 export const MOVE_CLIPS = {
   sword:  { clip: 'Double_Combo_Attack', hit: 0.3, frenzy: 'Triple_Combo_Attack' },
-  boots:  { clip: 'Roll_Dodge', hit: 0.5 },
+  boots:  { clip: 'Sword_Judgment', hit: 0.31, start: 0.04 },
   shield: { clip: 'Sword_Parry', hit: 0.25 },
   bow:    { clip: 'Archery_Shot', hit: 0.55, alt: 'Charged_Spell_Cast' },
   bomb:   { clip: 'Charged_Ground_Slam', hit: 0.55 },
@@ -26,7 +26,7 @@ export const MOVE_CLIPS = {
   key:    { clip: 'Step_Back', hit: 0.5 },
 };
 /* move timing in slayer.js: the fraction of the move where its effect fires */
-const MOVE_HIT = { sword: 0.3, boots: 0.5, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5 };
+const MOVE_HIT = { sword: 0.3, boots: 0.45, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5 };
 
 /* Foes: model file, rigged or code-animated, clip choices, height (m). */
 export const FOE3D = {
@@ -448,7 +448,7 @@ export class Stage {
   /* ---------- per frame ---------- */
   render(st, dt, box) {
     if (!st) return;
-    const running = st.mode === 'act' || st.mode === 'walk';
+    const running = st.mode === 'act' || st.mode === 'walk' || st.mode === 'advance';
     const adt = running ? dt : 0;          // the world is frozen while you plan
     this.clock += dt;
     this._resize(box);
@@ -457,7 +457,7 @@ export class Stage {
       this._applySkin(st);
       this._heroAnim(st);
       const h = this.hero;
-      h.holder.position.set(st.x * U, 0, 0);
+      h.holder.position.set(st.x * U, (st.hy || 0) * U * 0.5, 0);
       const want = st.face > 0 ? Math.PI / 2 : -Math.PI / 2;
       h.holder.rotation.y += (want - h.holder.rotation.y) * Math.min(1, dt * 14);
       h.blob.position.set(st.x * U, 0.01, 0);
@@ -488,7 +488,8 @@ export class Stage {
         const hitT = (MOVE_HIT[c.m] || 0.4) * c.dur;
         const clipHit = spec.hit * clip.duration;
         let speed = 1.25, from = Math.max(0, clipHit - hitT * speed);
-        if (from < 0.01) speed = Math.min(2.2, Math.max(0.8, clipHit / Math.max(0.05, hitT)));
+        if (spec.start != null) { from = spec.start * clip.duration; speed = (clipHit - from) / Math.max(0.05, hitT); }   // play the whole wind-up (the leap)
+        else if (from < 0.01) speed = Math.min(2.2, Math.max(0.8, clipHit / Math.max(0.05, hitT)));
         this._play(h, name, { once: true, speed, from, fade: 0.08 });
       }
       if (!this._ultMoveFx(st, c)) this._moveFx(st, c);
@@ -497,7 +498,7 @@ export class Stage {
     if (!c) {
       this.lastCur = null;
       if (st.hurtT > 0.25 && h.curName !== 'Hit_Reaction') this._play(h, 'Hit_Reaction', { once: true, speed: 1.4, fade: 0.05 });
-      else if (st.mode === 'walk') this._play(h, 'Walk_Fight_Forward', { speed: 1.2 });
+      else if (st.mode === 'walk' || st.mode === 'advance') this._play(h, 'Walk_Fight_Forward', { speed: 1.2 });
       else if (st.hurtT <= 0 && (!h.cur || h.cur.loop === THREE.LoopOnce && !h.cur.isRunning() || h.curName === 'Walk_Fight_Forward')) this._play(h, 'Combat_Stance', { fade: 0.25 });
     }
   }
@@ -652,7 +653,7 @@ export class Stage {
     const delay = (MOVE_HIT[m] || 0.4) * c.dur * 1000;
     const later = fn => setTimeout(fn, delay);
     if (m === 'sword') later(() => { this._arcFx(st, st.frenzy ? 0xff9a50 : 0xfff0d0, 0.9); this._burstAtFoes(st, 0xffe6b0, 110); });
-    else if (m === 'boots') { for (let i = 0; i < 5; i++) setTimeout(() => this._spriteFx(0x9fc8ff, new THREE.Vector3(st.x * U, 1, 0), 0.9, 0.3, 1.4), i * 60); }
+    else if (m === 'boots') { this._burst(0xcfc2a8, new THREE.Vector3(x, 0.1, 0.2), 18, 1.6, 0.5); this._ringFx(0x9fc8ff, new THREE.Vector3(x, 0.05, 0), 0.3, 1.6, 0.35, true); }   // take-off dust; the landing is a 'land' event
     else if (m === 'shield') { this._ringFx(0x9fe0ff, new THREE.Vector3(x + st.face * 0.4, 1.1, 0.3), 0.5, 0.9, 0.5); }
     else if (m === 'bomb') later(() => { this._spriteFx(0xffb060, new THREE.Vector3(x + st.face * 0.3, 0.6, 0.3), 1.2, 0.55, 3.2); this._ringFx(0xffa040, new THREE.Vector3(x, 0.05, 0), 0.4, 3.4, 0.5, true); this._burst(0xffc070, new THREE.Vector3(x, 0.5, 0.2), 40, 3, 0.8); this._flash(0xffb070, 18, x); });
     else if (m === 'skull') later(() => { this._ringFx(0xb07cf0, new THREE.Vector3(x, 0.05, 0), 0.5, 4.4, 0.7, true); this._spriteFx(0x9a50ff, new THREE.Vector3(x, 1, 0.2), 1.6, 0.6, 2.2); this._burst(0xc890ff, new THREE.Vector3(x, 0.8, 0.2), 50, 3.4, 0.9); this._flash(0x9a50ff, 14, x); });
@@ -899,6 +900,15 @@ Object.assign(Stage.prototype, {
         this._ringFx(0xbfe8ff, p, 0.3, 1.8, 0.35);
         this._burst(0xbfe8ff, p, 24, 3, 0.4);
         this._flash(0x9fd6ff, 12, p.x); this._punch(0.12);
+      } else if (e.k === 'land') {
+        // the boots leap slamming down: shockwave, dust and a hard camera punch
+        const x = e.x * U, col = e.big ? 0x9a6cff : 0x9fc8ff;
+        this._ringFx(col, new THREE.Vector3(x, 0.05, 0), 0.4, e.big ? 6 : 3.6, 0.55, true);
+        this._burst(0xd8ccb0, new THREE.Vector3(x, 0.15, 0.2), e.big ? 60 : 36, 3.2, 0.7);
+        this._spriteFx(col, new THREE.Vector3(x, 0.5, 0.3), 1.1, 0.4, e.big ? 3.4 : 2.4);
+        this._flash(col, e.big ? 18 : 12, x);
+        this._punch(e.big ? 0.22 : 0.15);
+        this.shakeK = Math.max(this.shakeK, e.big ? 0.2 : 0.14);
       } else if (e.k === 'ult') this._ultStart(e.sym, st);
     }
     ev.length = 0;

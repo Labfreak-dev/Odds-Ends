@@ -110,15 +110,15 @@ arrives a fraction of a second later, the way the old soul shots did.
 |---|---|
 | `atk` below 10, phase 1–2 | Soul blast: an orb gathers in the raised hand, then flies at the hero |
 | `atk` of 10+ or phase 3 | Soul beam from the eyes, with wisps |
-| `drain` | Souls pulled from the hero into Death |
+| `drain` | Souls pulled from the hero into Death (also Life Siphon and Wither) |
 | `grow` | Souls spiraling into Death |
-| `curse`, `jam`, `jamwheel` | A sigil and chains at the hero's feet |
+| `curse`, `jam`, `jamwheel` | A sigil and chains at the hero's feet (also Soul Chains) |
 | phase change | Throne cracks, green fire, stronger rim light (no camera move) |
 | win | Death slumps, then dissolves into souls; the hero plays victory |
 | hero hp at 0 | Camera tilts down, hero plays death. Recovering hp stands him back up |
 
 `prefers-reduced-motion: reduce` cuts shake to 15%, stops the sky reels'
-float, and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
+float, and softens shot changes. Fast mode (`S.fast`) is ignored in this fight (b128). Pixel
 ratio is capped at 2. The resting shot is solved once from the idle pose:
 a wide shot with the hero small in the lower left and the throne under the
 sky reels. Lighting matches the v2 mock:

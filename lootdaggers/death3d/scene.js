@@ -3164,6 +3164,7 @@ function reduceFlashing() {
 function motionScale() {
   let reduced = false;
   try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { reduced = false; }
-  const fast = !!(window.LD && window.LD.S && window.LD.S.fast);
+  /* Fast animations never apply at Death's table (b128). */
+  const fast = false;
   return { reduced, fast, k: fast ? 0.55 : 1, shake: reduced ? 0.15 : 1 };
 }

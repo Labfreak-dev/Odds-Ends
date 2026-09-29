@@ -11,15 +11,15 @@
 /* ---------- moves ---------- */
 // t: seconds the move takes. Damage is scaled by level and Frenzy at use.
 const MOVES = {
-  sword:  { n: 'Slash',   t: 0.5,  pose: 'attack' },
-  boots:  { n: 'Dash',    t: 0.35, pose: 'walk' },
+  sword:  { n: 'Slash',   t: 0.65, pose: 'attack' },
+  boots:  { n: 'Dash',    t: 0.45, pose: 'walk' },
   shield: { n: 'Parry',   t: 0.6,  pose: 'idle' },
-  bow:    { n: 'Shot',    t: 0.45, pose: 'attack' },
-  bomb:   { n: 'Blast',   t: 0.7,  pose: 'attack' },
-  potion: { n: 'Heal',    t: 0.6,  pose: 'idle' },
-  coin:   { n: 'Coins',   t: 0.3,  pose: 'idle' },
-  skull:  { n: 'Cursed',  t: 0.6,  pose: 'attack' },
-  key:    { n: 'Backstep',t: 0.35, pose: 'walk' },
+  bow:    { n: 'Shot',    t: 0.6,  pose: 'attack' },
+  bomb:   { n: 'Blast',   t: 0.85, pose: 'attack' },
+  potion: { n: 'Heal',    t: 0.7,  pose: 'idle' },
+  coin:   { n: 'Coins',   t: 0.45, pose: 'idle' },
+  skull:  { n: 'Cursed',  t: 0.8,  pose: 'attack' },
+  key:    { n: 'Backstep',t: 0.45, pose: 'walk' },
 };
 const MOVE_KEYS = Object.keys(MOVES);
 
@@ -51,6 +51,8 @@ function wavePool(w) {
 
 /* ---------- state ---------- */
 let st = null, cv = null, cx = null, root = null, raf = 0, last = 0;
+let cv3 = null, S3 = null, s3tried = false, frameDt = 0.016;
+const U3 = 0.0155;   // slayer3d.js meters per world unit
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -387,6 +389,13 @@ function draw() {
   if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr); }
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const sh = st.shake > 0 ? (Math.random() - 0.5) * st.shake : 0;
+  if (S3) {
+    if (S3.ready()) cx.clearRect(0, 0, L.W, L.H);
+    cv3.style.transform = sh ? 'translateX(' + sh.toFixed(1) + 'px)' : '';
+    try { S3.follow(st.x); S3.render(st, frameDt, { w: L.W, h: L.reelTop, dt: frameDt }); }
+    catch (e) { console.warn('Reel Slayer 3D stopped; 2D stays.', e); S3 = null; cv3.style.display = 'none'; }
+  }
+  if (S3 && S3.ready()) { draw3dOverlay(L); drawAfter(L); return; }
   cx.fillStyle = '#0a0709'; cx.fillRect(0, 0, L.W, L.H);
   cx.save(); cx.translate(sh, 0);
   // backdrop
@@ -467,6 +476,10 @@ function draw() {
   }
   cx.globalAlpha = 1;
   cx.restore();
+  drawAfter(L);
+}
+function drawAfter(L) {
+  const planning = st.mode === 'plan' || st.mode === 'spin';
   if (st.flash > 0) { cx.fillStyle = 'rgba(200,40,30,' + (st.flash * 0.35) + ')'; cx.fillRect(0, 0, L.W, L.H); }
   if (planning) { cx.fillStyle = 'rgba(20,30,40,.18)'; cx.fillRect(0, 0, L.W, L.reelTop); }
   drawHud(L);
@@ -479,6 +492,39 @@ function draw() {
     cx.fillStyle = '#e8c77a'; cx.fillText(st.banner.txt, L.W / 2, L.H * 0.3);
     cx.globalAlpha = 1;
   }
+}
+/* 3D mode: the world is drawn by slayer3d.js; this adds bars, strike timers
+   and floating numbers at the characters' projected screen positions. */
+function draw3dOverlay(L) {
+  const planning = st.mode === 'plan' || st.mode === 'spin';
+  cx.textAlign = 'center';
+  for (const f of st.foes) {
+    if (f.dead) continue;
+    const top = S3.project(f.x, S3.heightOf(f) + 0.12);
+    const sx = top.x, t0 = top.y;
+    const bw = f.boss ? 90 : 46;
+    cx.fillStyle = '#000'; cx.fillRect(sx - bw / 2 - 1, t0 - 9, bw + 2, 6);
+    cx.fillStyle = f.boss ? '#e0605a' : '#c9a0ff'; cx.fillRect(sx - bw / 2, t0 - 8, bw * clamp(f.hp / f.max, 0, 1), 4);
+    const tIn = strikeIn(f);
+    if (f.state === 'wind' || (planning && tIn != null && tIn < 3)) {
+      const frac = f.state === 'wind' ? 1 - f.wT / f.wind : 0;
+      const r = 15, cyy = t0 - 26;
+      cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.6)'; cx.beginPath(); cx.arc(sx, cyy, r, 0, 7); cx.stroke();
+      cx.strokeStyle = f.state === 'wind' ? '#ff5a4a' : '#e8c77a';
+      cx.beginPath(); cx.arc(sx, cyy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); cx.stroke();
+      cx.fillStyle = '#fff'; cx.font = 'bold 13px ui-monospace,monospace'; cx.textBaseline = 'middle';
+      cx.fillText(planning ? tIn.toFixed(1) : '!', sx, cyy + 1);
+      cx.textBaseline = 'alphabetic';
+    }
+  }
+  for (const f of st.fl) {
+    const p = S3.project(f.x, f.y * U3);
+    cx.globalAlpha = Math.max(0, 1 - f.t / 1.1);
+    cx.font = 'bold 16px ui-monospace,monospace';
+    cx.fillStyle = '#000'; cx.fillText(f.txt, p.x + 1, p.y - f.t * 40 + 1);
+    cx.fillStyle = f.col; cx.fillText(f.txt, p.x, p.y - f.t * 40);
+  }
+  cx.globalAlpha = 1;
 }
 function drawHud(L) {
   const top = 14;
@@ -553,7 +599,7 @@ function drawReels(L) {
 function tick(now) {
   raf = requestAnimationFrame(tick);
   const dt = Math.min(0.05, (now - (last || now)) / 1000);
-  last = now;
+  last = now; frameDt = dt;
   if (!st) return;
   updateReels(dt);
   const running = st.mode === 'act' || st.mode === 'walk';
@@ -641,15 +687,17 @@ function open() {
   if (!root) {
     root = document.createElement('div');
     root.id = 'slayer';
-    root.innerHTML = '<canvas></canvas><button class="slX" aria-label="Leave">✕</button>';
+    root.innerHTML = '<canvas class="sl3"></canvas><canvas class="sl2"></canvas><button class="slX" aria-label="Leave">✕</button>';
     document.body.appendChild(root);
-    cv = root.querySelector('canvas'); cx = cv.getContext('2d');
+    cv3 = root.querySelector('.sl3');
+    cv = root.querySelector('.sl2'); cx = cv.getContext('2d');
     cv.addEventListener('pointerdown', onTap);
     root.addEventListener('click', onPanel);
     root.querySelector('.slX').addEventListener('click', () => { if (!st || st.over || confirm('Leave this run? Souls are only banked when a run ends.')) close(); });
   }
   root.style.display = 'block';
   document.documentElement.classList.add('slOpen');
+  boot3d();
   st = null;
   newRun(Object.keys(HEROES).find(h => S.heroes && S.heroes[h]) || 'knight');
   st.mode = 'menu';
@@ -659,6 +707,15 @@ function open() {
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(tick);
 }
+/* The 3D stage is optional: no WebGL, a failed load or ?flat in the URL keeps the 2D sprites. */
+function boot3d() {
+  if (s3tried) return;
+  s3tried = true;
+  if (/[?&]flat\b/.test(location.search)) return;
+  try { const t = document.createElement('canvas'); if (!(t.getContext('webgl2') || t.getContext('webgl'))) return; } catch (e) { return; }
+  import('./slayer3d.js').then(m => m.boot(cv3)).then(stage => { S3 = stage; cv3.style.display = 'block'; })
+    .catch(e => { console.warn('Reel Slayer 3D unavailable; 2D sprites stay.', e); S3 = null; });
+}
 function close() {
   cancelAnimationFrame(raf);
   if (root) root.style.display = 'none';
@@ -667,5 +724,6 @@ function close() {
   st = null;
   try { showHub('main'); } catch (e) { /* ignore */ }
 }
-window.Slayer = { open, close, get state() { return st; }, _stop: stopReel, _spin: spin };
+window.Slayer = { open, close, get state() { return st; }, get stage() { return S3; }, _stop: stopReel, _spin: spin,
+  _wave(n) { if (!st) return; st.wave = n - 1; st.foes = []; nextWave(); } };
 })();

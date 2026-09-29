@@ -94,6 +94,8 @@ class Arena {
     this.pack = false;
     this.stand = null;
     this.heroPending = {};
+    this.heroSkin = {};
+    this.skinIndex = fetch(resolveUrl('./models3d/skins.json')).then(r => r.ok ? r.json() : {}).catch(() => ({}));
     this.activeHero = 'knight';
     this.uTime = SHARED_TIME;
   }
@@ -337,6 +339,7 @@ class Arena {
     if (heroId !== this.activeHero || (this.pack && !this.heroActors[heroId].model && !this.heroPending[heroId])) {
       this._showHero(heroId);
     }
+    this._syncSkin(heroId);
     const motion = motionScale();
     const t = performance.now() / 1000;
     this.uTime.value = t;
@@ -876,6 +879,58 @@ class Arena {
     if (this.heroActors[id].model) flagShadows(this.heroActors[id].model, !this.budget);
     if (id === this.activeHero) this.heroes[id].group.visible = false;
     else if (this.heroActors[id].model) this.heroActors[id].model.visible = false;
+  }
+
+  /* The worn Wardrobe skin repaints the hero's parts (body and weapons) with
+     its Meshy retexture maps, listed in models3d/skins.json. No skin, no maps
+     or a failed load keeps the base look. */
+  _syncSkin(id) {
+    const actor = this.heroActors[id];
+    if (!actor || !actor.model) return;
+    let want = null;
+    try { const k = window.hskinFor && window.hskinFor(id); want = k ? k.id : null; } catch (e) { want = null; }
+    if (this.heroSkin[id] === want) return;
+    this.heroSkin[id] = want;
+    this.skinIndex.then(ix => this._applySkin(id, want, ix || {}));
+  }
+
+  async _applySkin(id, skinId, ix) {
+    const actor = this.heroActors[id];
+    const parts = skinId && ix[skinId];
+    const loader = new THREE.TextureLoader();
+    const load = (url, srgb) => loader.loadAsync(resolveUrl(url)).then(tex => {
+      tex.flipY = false;
+      tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      tex.anisotropy = this.renderer ? Math.min(4, this.renderer.capabilities.getMaxAnisotropy()) : 1;
+      return tex;
+    });
+    const mats = [];
+    actor.model.traverse(o => {
+      const list = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+      for (const m of list) if (m && !mats.includes(m)) mats.push(m);
+    });
+    for (const m of mats) {
+      if (!m.userData._skinOrig) m.userData._skinOrig = { map: m.map, normalMap: m.normalMap || null, roughnessMap: m.roughnessMap || null, metalnessMap: m.metalnessMap || null };
+      const o = m.userData._skinOrig;
+      const part = (m.name || '').split('__')[1];
+      const key = part === id ? 'body' : part;
+      if (!parts || !parts.includes(key)) {
+        for (const k of Object.keys(o)) if (k in m) m[k] = o[k];
+        m.needsUpdate = true;
+        continue;
+      }
+      const pre = './death3d/assets/textures/skins/' + skinId + '_' + key + '_';
+      try {
+        const [base, normal, mr] = await Promise.all([load(pre + 'base.webp', true), load(pre + 'normal.webp', false), load(pre + 'mr.webp', false)]);
+        if (this.heroSkin[id] !== skinId) return;
+        m.map = base;
+        if ('normalMap' in m) m.normalMap = normal;
+        if ('roughnessMap' in m) m.roughnessMap = mr;
+        if ('metalnessMap' in m) m.metalnessMap = mr;
+        m.needsUpdate = true;
+      } catch (err) { console.warn('Death 3D: skin ' + skinId + ' ' + key + ' failed; base look stays.', err); }
+    }
+    if (want1k()) downscaleMaps(actor.model, 1024);
   }
 
   /* Grow Death relative to the throne, then put his hips back in the seat. */

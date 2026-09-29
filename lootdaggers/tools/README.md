@@ -16,6 +16,7 @@ Setup: `cd lootdaggers/tools && npm i` (gltf-transform + meshoptimizer), and
 | `batch_skins.py` | Hero skins: each hero part (body and weapon, the Knight's shield and sword separately) retextured with its own UVs kept, styled by the skin's 2D idle art and its art-pack-26 description. Writes `death3d/assets/textures/skins/<hero>_<skin>_<part>_{base,normal,mr}.webp`. |
 | `animlib.mjs` | Merges Meshy animation outputs into one clip-only file (`models3d/anims.glb`). |
 | `optimize.mjs` | Meshy GLB to game GLB: WebP textures (base 1K, others 512), quantized, meshopt. About 7-14 MB down to 0.6-0.9 MB. |
+| `regrip.mjs` | Re-seats a hero weapon prop so the hand holds its handle (`node regrip.mjs in.glb out.glb Cleaver 0.08`). |
 | `part.mjs`, `maps.mjs` | Helpers for the skin batch (one hero part as a static GLB; pull the maps out of a result). |
 
 ## Where the models are used

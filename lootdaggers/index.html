@@ -107,6 +107,17 @@ html:has(#game.death3d),html:has(#game.death3d) body{overflow:hidden}
 #game.death3d .sideBtn{padding:0 8px;font-size:15px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 #000}
 #game.death3d #forecast{position:fixed;left:50%;right:auto;top:auto;bottom:calc(var(--death-strip,190px) + 4px);transform:translateX(-50%);width:min(440px, calc(100% - 16px));max-height:64px;overflow:auto;padding:4px 8px;font-size:11px;line-height:1.3;z-index:7;background:rgba(10,7,8,.72)}
 #game.death3d #forecast .hint{margin-top:2px}
+/* Reel Slayer (slayer.js) */
+html.slOpen,html.slOpen body{overflow:hidden}
+#slayer{position:fixed;inset:0;z-index:60;display:none;background:#0a0709;touch-action:none;-webkit-user-select:none;user-select:none}
+#slayer canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#slayer .slX{position:absolute;left:8px;top:max(8px,env(safe-area-inset-top));z-index:2;width:38px;height:30px;border:2px solid #000;border-radius:8px;background:rgba(34,28,29,.9);color:var(--ink);font-size:15px}
+#slayer .slPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;width:min(440px,calc(100% - 24px));max-height:calc(100% - 40px);overflow:auto;padding:14px 16px;background:rgba(14,10,12,.95);border:2px solid #000;border-radius:14px;box-shadow:0 0 0 1px #3a2e2a,0 10px 30px #000;text-align:center}
+#slayer .slPanel h2{margin:4px 0 8px;font-family:var(--head);font-weight:400;color:var(--gold);font-size:30px}
+#slayer .slPanel h2 small{font-size:13px;color:var(--dim);font-family:inherit}
+#slayer .slSub{font-size:12px;line-height:1.45;color:var(--dim);margin:6px 0}
+#slayer .slPanel button{display:block;width:100%;margin:8px 0 0;padding:10px;border:2px solid #000;border-radius:10px;background:var(--panel2);color:var(--ink);font:inherit;font-size:15px;font-weight:700;box-shadow:0 3px 0 #000}
+#slayer .slPanel button small{display:block;font-weight:400;font-size:11px;color:var(--dim)}
 #dTally{position:fixed;z-index:8;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;display:flex;align-items:center;gap:6px;font-family:var(--head);font-size:44px;line-height:1;color:#fff4d6;text-shadow:0 0 10px rgba(255,190,90,.9),0 2px 0 #000,0 0 3px #000;transition:transform .18s ease-out,opacity .18s}
 #dTally i{font-style:normal;font-size:30px}
 #dTally.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
@@ -3339,6 +3350,13 @@ function settingsPopup(){
   el.oninput=e=>{if(e.target.id==='musicVol'){S.musicVol=+e.target.value/100;if(S.musicVol>0)S.music=true;save();music.apply();}if(e.target.id==='sfxVol'){S.sfxVol=+e.target.value/100;if(S.sfxVol>0)S.mute=false;save();}};
   el.onchange=e=>{if(e.target.id==='sfxVol'){sfx.coin();}};
 }
+// Reel Slayer lives in slayer.js and is fetched the first time it is opened.
+let slayerP=null;
+function openSlayer(){
+  if(window.Slayer)return window.Slayer.open();
+  slayerP=slayerP||new Promise((res,rej)=>{const s=document.createElement('script');s.src='slayer.js?v=1';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+  slayerP.then(()=>window.Slayer&&window.Slayer.open()).catch(()=>{slayerP=null;alert('Reel Slayer failed to load. Check your connection and try again.');});
+}
 function showHub(v){
   music.play('hub');
   hubView=v;
@@ -3357,6 +3375,7 @@ function showHub(v){
       ${S.run?`<button class="btn primary" data-act="resume"><span class="suit">♠</span>Let It Ride<span class="suit">♠</span><small>Your stake is still on the table · Floor ${S.run.floor} · ${HEROES[S.run.hero].n}</small></button>`:''}
       <button class="btn ${S.run?'':'primary'}" data-act="heroes">${S.run?'Fold &amp; Deal Again <small>forfeits the hand in play</small>':'<span class="suit">♠</span>Stake Your Soul<span class="suit">♠</span><small>your debts come due below</small>'}</button>
       <button class="btn" data-act="daily">${icon('ui_daily','📅')} The Daily Wager <small>${todayKey()} · one table, every gambler, the same cards${(S.daily||{})[todayKey()]?` · your best: floor ${S.daily[todayKey()].best}`:''}</small></button>
+      <button class="btn" data-act="slayer">🗡️ Reel Slayer <small>prototype · a side-scroller where the reels move and fight for you${S.slayer&&S.slayer.best?` · best wave ${S.slayer.best}`:''}</small></button>
       <button class="btn" data-act="contracts">${icon('ui_contracts','📜')} Daily Contracts <small>${contracts().list.filter(c=>c.done).length}/3 done today · ${CONTRACT_PAY} souls each, +${CONTRACT_BONUS} for all three</small></button>
       <button class="btn" data-act="bounties">${icon('ui_bounty','🏆')} Bounty Board <small>${Object.keys(S.feats||{}).length}/${FEATS.length} claimed · feats unlock relics and cosmetics</small></button>
       <button class="btn" data-act="shredder">${icon('ui_shredder','⚙️')} Soul Shredder <small>feed it souls; sometimes it pays out a cosmetic</small></button>
@@ -3479,6 +3498,7 @@ $('#hub').addEventListener('click',async e=>{
   if(a==='whero'){const hs=artHeroes(),cur=hs.includes(S.wardHero)?S.wardHero:hs[0];S.wardHero=hs[(hs.indexOf(cur)+1)%hs.length];return showHub('wardrobe');}
   if(a==='debt'){S.debtSel=Math.min(+arg||0,debtMax());save();return showHub('heroes');}
   if(a==='resume')return resumeRun();
+  if(a==='slayer')return openSlayer();
   if(a==='daily'){if(S.run){S.run=null;save();}return startRun('knight',todayKey());}
   if(a==='pick'){if(S.run){S.run=null;save();}return startRun(arg);}
   if(a==='buyhero'){const h=HEROES[arg];if(S.souls>=h.cost){S.souls-=h.cost;S.heroes[arg]=true;save();}return showHub('heroes');}

@@ -140,6 +140,8 @@ class Arena {
        A real GPU keeps one small spotlight shadow and a tight bloom. */
     this.gpuName = glRendererName(gl);
     this.software = glIsSoftware(gl);
+    /* ?d3full forces the desktop tier (bloom, spots, env map) for testing on software GL. */
+    if (/[?&]d3full\b/.test(location.search)) { this.low = false; this.software = false; }
     this.budget = this.low || this.software;
     renderer.shadowMap.enabled = !this.budget;
     /* r186 removed PCFSoftShadowMap (it warns and falls back). Softness is
@@ -553,6 +555,18 @@ class Arena {
   }
 
   _lights(t, motion) {
+    /* Desktop tier: the full spot rig plus bloom over-lit the throne; take every
+       light (and the per-frame bases) down once the pack is lit (b137). */
+    if (!this.budget && !this._dimmed && this.packRoot) {
+      this._dimmed = true;
+      const k = 0.6;
+      this.scene.traverse(o => {
+        if (!o.isLight || o === this.hitLight) return;
+        if (o.isSpotLight || o.isPointLight) { o.intensity *= k; if (o.userData.base) o.userData.base *= k; }
+        else if (o.isHemisphereLight) o.intensity *= 0.8;
+      });
+      if (this.rimBase) this.rimBase *= k;
+    }
     const calm = motion.reduced || reduceFlashing();
     const flick = calm ? 0 : (Math.sin(t * 9.0) * 0.5 + Math.sin(t * 23.0) * 0.35 + Math.sin(t * 47.0) * 0.15);
     const torch = 1 + flick * 0.14;
@@ -695,7 +709,7 @@ class Arena {
       /* Threshold sits above lit bone. Only flames, eyes and soul sprites,
          which are drawn un-tone-mapped, cross it. */
       /* Artist mock: strength 0.6, radius 0.8, threshold 0.7, before OutputPass. */
-      const bloom = new UnrealBloomPass(size, 0.6, 0.8, 0.7);
+      const bloom = new UnrealBloomPass(size, 0.3, 0.5, 0.92);
       composer.addPass(bloom);
       composer.addPass(new OutputPass());
       this.composer = composer;
@@ -834,6 +848,13 @@ class Arena {
     this.heroAnchor.position.set(p.x, p.y, p.z);
     this.heroAnchor.rotation.y = Math.PI;
     this.scene.fog = new THREE.FogExp2(0x374838, 0.034);
+    /* Desktop GPUs add bloom, the full spot rig and the env map on top of this;
+       at phone exposure the hall washed out to white on a PC (b137). */
+    if (!this.budget) {
+      this.renderer.toneMappingExposure = 0.95;
+      this.scene.fog = new THREE.FogExp2(0x16201a, 0.03);
+      this.scene.environmentIntensity = 0.3;
+    }
     const bg = new THREE.Color();
     bg.setRGB(0.006, 0.008, 0.007);
     this.scene.background = bg;

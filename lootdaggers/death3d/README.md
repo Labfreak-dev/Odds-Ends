@@ -99,6 +99,13 @@ bone `Scythe_Grip` (a child of `LeftHand`) at identity. A warm directional
 from the camera side lights the hero's back. The standalone scythe and prop
 GLBs are not in the pack; the env already contains the hall pieces.
 
+## Skins
+The worn Wardrobe skin (`hskinFor(hero)`) repaints the fighting hero. Its maps
+are `textures/skins/<hero>_<skin>_<part>_{base,normal,mr}.webp` (parts: `body`
+plus the hero's weapon names, e.g. the Knight's `shield` and `sword`), listed in
+`../models3d/skins.json`. A material named `Material_N__<part>` takes that
+part's maps; a missing map keeps the base look.
+
 ## What the fight asks the scene to play
 
 Cues come from the existing enemy turn (`deathCue` in `enemyPhase`) plus

@@ -88,12 +88,20 @@ const HERO_OWN = {
   Sword_Parry: 'Block', Victory_Cheer: 'Victory',
 };
 const GRIP_BONES = ['LeftHand', 'RightHand'];
-/* Weapons whose file seat misses the fist, re-seated at load: `handle` is the handle's
-   centre as a fraction of the weapon's length from the end nearest the hand. The handle
-   goes to the centre of the fist and the blade is turned square to the hand, so it
-   can't swing back through the forearm; `flip` runs the blade out the other side of
-   the fist (point up, not a knife-grip). Returns the hand bones it re-seated. */
-const SEAT = { Sword: { handle: 0.145, flip: true } };
+/* Hero weapons, re-seated at load so the hand holds the handle: `at` is the handle's
+   centre as a fraction of the weapon's length from its lower end (bounding box min along
+   the long axis), measured from each model's cross-section profile. The handle goes to the
+   middle of the hand and the weapon is turned square to the hand, so it can't swing back
+   through the forearm; `flip` runs it out the other side of the hand (point up, not a
+   knife grip). Returns the hand bones it re-seated. */
+const SEAT = {
+  Sword:   { at: 0.855, flip: true },   // Knight: tip at the low end, handle and pommel at the top
+  Dagger:  { at: 0.14, flip: true },                 // Gambler
+  Cleaver: { at: 0.18, flip: true },                 // Brute
+  Rapier:  { at: 0.9, flip: true },                  // Duelist: the grip inside the basket guard
+  Staff:   { at: 0.6 },                  // Hex Priest: held below the head
+  Bow:     { at: 0.4 },                  // Ranger (left hand): the narrow grip below the riser
+};
 
 function seatWeapons(root) {
   const seated = new Set();
@@ -102,9 +110,9 @@ function seatWeapons(root) {
   const props = [];
   root.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && SEAT[o.name] && o.parent && o.parent.isBone) props.push(o); });
   for (const w of props) {
-    const bone = w.parent, bi = skin.skeleton.bones.indexOf(bone);
+    const cfg = SEAT[w.name], bone = w.parent, bi = skin.skeleton.bones.indexOf(bone);
     if (bi < 0) continue;
-    // the fist: skin vertices mostly bound to this hand, in the hand's own space
+    // the hand: skin vertices mostly bound to this hand bone, in the bone's own space
     const pos = skin.geometry.attributes.position, si = skin.geometry.attributes.skinIndex, sw = skin.geometry.attributes.skinWeight;
     const inv = skin.skeleton.boneInverses[bi], v = new THREE.Vector3(), fist = new THREE.Vector3();
     let n = 0;
@@ -116,28 +124,33 @@ function seatWeapons(root) {
     }
     if (n < 20) continue;
     fist.divideScalar(n);
-    // the weapon's long axis, its two ends in hand space, and the handle point
-    w.geometry.computeBoundingBox();
-    const b = w.geometry.boundingBox, ext = b.getSize(new THREE.Vector3()).toArray();
-    const ax = ext.indexOf(Math.max(...ext));
-    const e1 = b.getCenter(new THREE.Vector3()), e2 = e1.clone();
-    e1.setComponent(ax, b.min.getComponent(ax)); e2.setComponent(ax, b.max.getComponent(ax));
+    // the weapon's long axis and its handle point: the centre of the vertices in a thin
+    // slice at `at` (a cleaver's handle is not on its blade's centre line)
+    const g = w.geometry; g.computeBoundingBox();
+    const b = g.boundingBox, ext = b.getSize(new THREE.Vector3()).toArray();
+    const ax = ext.indexOf(Math.max(...ext)), lo = b.min.getComponent(ax), len = ext[ax];
+    const P = g.attributes.position, handleL = new THREE.Vector3();
+    let m = 0;
+    for (let i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i);
+      if (Math.abs((v.getComponent(ax) - lo) / len - cfg.at) < 0.03) { handleL.add(v); m++; }
+    }
+    if (!m) continue;
+    handleL.divideScalar(m);
+    // the far end from the handle is the business end (blade tip, staff head, bow limb)
+    const tipL = b.getCenter(new THREE.Vector3());
+    tipL.setComponent(ax, cfg.at < 0.5 ? b.max.getComponent(ax) : lo);
     w.updateMatrix();
-    const E1 = e1.clone().applyMatrix4(w.matrix), E2 = e2.clone().applyMatrix4(w.matrix);
-    const nearFirst = E1.distanceTo(fist) < E2.distanceTo(fist);
-    const near = nearFirst ? e1 : e2, far = nearFirst ? e2 : e1;
-    const handleL = near.clone().lerp(far, SEAT[w.name].handle);
-    const dir = (nearFirst ? E2.clone().sub(E1) : E1.clone().sub(E2)).normalize();
-    // square the blade to the hand's long axis (bone space +y runs wrist to fingers)
+    const H = handleL.clone().applyMatrix4(w.matrix), T = tipL.clone().applyMatrix4(w.matrix);
+    const dir = T.clone().sub(H).normalize();
+    // square it to the hand's long axis (bone space +y runs wrist to fingers)
     const flat = dir.clone().setY(0);
     if (flat.lengthSq() < 1e-4) continue;
     flat.normalize();
-    if (SEAT[w.name].flip) flat.negate();
-    const turn = new THREE.Quaternion().setFromUnitVectors(dir, flat);
-    w.quaternion.premultiply(turn);
+    if (cfg.flip) flat.negate();
+    w.quaternion.premultiply(new THREE.Quaternion().setFromUnitVectors(dir, flat));
     w.updateMatrix();
-    const at = handleL.clone().applyMatrix4(w.matrix);
-    w.position.add(fist.clone().sub(at));
+    w.position.add(fist.clone().sub(handleL.clone().applyMatrix4(w.matrix)));
     w.updateMatrix();
     seated.add(bone.name);
   }

@@ -462,7 +462,7 @@ export class Stage {
       h.holder.rotation.y += (want - h.holder.rotation.y) * Math.min(1, dt * 14);
       h.blob.position.set(st.x * U, 0.01, 0);
       if (h.mixer) h.mixer.update(adt);
-      this._tint(h, st.cur && st.cur.m === 'skull' ? 0x5a1a7a : st.invT > 0 ? 0x223344 : st.frenzy && st.mode === 'act' ? 0x4a2200 : 0, st.hurtT > 0 ? 0.6 : 0);
+      this._tint(h, st.cur && st.cur.m === 'skull' ? 0x5a1a7a : st.invT > 0 && !(st.cur && st.cur.m === 'boots') ? 0x223344 : st.frenzy && st.mode === 'act' ? 0x4a2200 : 0, st.hurtT > 0 ? 0.6 : 0);
     }
     this._foes(st, adt, dt);
     this._shots(st);
@@ -856,16 +856,22 @@ Object.assign(Stage.prototype, {
       }
     }
     pa.needsUpdate = true; ca.needsUpdate = true;
-    // afterimages on dashes and backsteps (and all combo long under SHADOW STEP / PHANTOM STEP)
+    // afterimages on leaps and backsteps (and all combo long under SKYFALL / PHANTOM STEP):
+    // faint, spaced out, and only where the hero has actually moved, so they trail him
+    // instead of stacking on top of him into a white glow
     this.ghostClock -= rdt;
     const dashing = c && (c.m === 'boots' || c.m === 'key');
-    if ((dashing || st.ult === 'boots' || st.ult === 'key') && st.mode === 'act' && this.ghostClock <= 0) {
-      this.ghostClock = 0.05;
-      this._ghost(st.ult === 'boots' ? 0x9a6cff : 0x7fb8ff);
+    const hp = this.hero.holder.position;
+    if ((dashing || st.ult === 'boots' || st.ult === 'key') && st.mode === 'act' && this.ghostClock <= 0
+      && (!this.ghostAt || this.ghostAt.distanceTo(hp) > 0.25)) {
+      this.ghostClock = 0.09;
+      this.ghostAt = (this.ghostAt || new THREE.Vector3()).copy(hp);
+      this._ghost(st.ult === 'boots' ? 0x6a4cb0 : 0x4a7aa8);
     }
+    if (!dashing) this.ghostAt = null;
     for (const G of this.ghosts) {
       if (G.t >= 1) continue;
-      G.t += rdt / 0.4; G.mat.opacity = 0.5 * Math.max(0, 1 - G.t);
+      G.t += rdt / 0.35; G.mat.opacity = 0.22 * Math.max(0, 1 - G.t);
       if (G.t >= 1) G.holder.visible = false;
     }
     // ultimate aura and props

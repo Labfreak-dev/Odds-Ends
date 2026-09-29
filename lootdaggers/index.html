@@ -73,24 +73,39 @@ html:has(#game.death3d),html:has(#game.death3d) body{overflow:hidden}
 #deathHpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:13px;font-weight:400;color:#e9dcc6;text-shadow:0 1px 0 #000;pointer-events:none}
 #game.death3d #deathHp{position:relative}
 #deathHp s{position:absolute;top:-1px;bottom:-1px;width:2px;background:#000;text-decoration:none}
-#game.death3d #log{height:26px;min-height:0;padding:2px 8px;font-size:11px;line-height:1.3;overflow:hidden;background:rgba(8,6,8,.9);border-color:transparent}
+#game.death3d #log{height:26px;min-height:0;padding:2px 8px;font-size:11px;line-height:1.3;overflow:hidden;background:transparent;border-color:transparent;text-shadow:0 1px 2px #000,0 0 6px #000}
 #game.death3d #defyBtn,#game.death3d #purseDeathBtn{display:none!important}
-#game.death3d #machine{flex:0 1 auto;min-height:0;gap:3px;padding:2px 8px 2px}
-#game.death3d #cabinet{padding:4px 6px 4px}
-#game.death3d #cabinet.skinned{aspect-ratio:auto!important;height:84px;max-height:84px}
-#game.death3d #cabinet.art{padding:4px 6px 2px}
-#game.death3d #reels{height:56px}
-#game.death3d .reel .cell{font-size:22px}
-#game.death3d #marquee{margin:0 2px 2px;font-size:10px}
-#game.death3d #nudgeNote{min-height:0;margin-top:0}
-#game.death3d #reelCtl{margin-top:2px}
-#game.death3d #reelCtl button{padding:1px 0;font-size:10px}
+/* The bottom strip is only the life bars and the spin row, on a scrim, so
+   the throne room runs to the bottom edge of the screen. */
+#game.death3d::before{content:"";position:fixed;left:0;right:0;bottom:0;height:calc(var(--death-strip,190px) + 40px);background:linear-gradient(rgba(6,5,8,0),rgba(6,5,8,.72) 38%,rgba(6,5,8,.9));z-index:5;pointer-events:none}
+#game.death3d #hud{background:transparent}
+#game.death3d #machine{flex:0 1 auto;min-height:0;gap:3px;padding:2px 8px 2px;padding-bottom:max(6px,env(safe-area-inset-bottom))}
+#game.death3d #gearBar{display:none}
+/* Spectral reels: the player's own machine, drawn as a ghost hanging in the
+   green column above Death's throne. The cabinet art is dropped; the reels,
+   holds and nudges are the same elements and stay tappable. */
+#game.death3d #cabinet,#game.death3d #cabinet.art,#game.death3d #cabinet.skinned{position:fixed;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);width:min(560px,calc(100% - 28px));height:auto;max-height:none;aspect-ratio:auto!important;padding:4px 6px 6px!important;background:radial-gradient(ellipse at 50% 55%,rgba(120,255,190,.10),rgba(120,255,190,0) 70%);border:none;box-shadow:none;z-index:6;animation:ldSpecFloat 6s ease-in-out infinite}
+#game.death3d #cabinetArt,#game.death3d #bulbs{display:none!important}
+#game.death3d #cabinet.skinned #reels,#game.death3d #reels{position:relative;left:auto;right:auto;top:auto;bottom:auto;height:min(21vh,170px,36vw);gap:8px;transform:perspective(700px) rotateX(10deg);transform-origin:50% 100%}
+#game.death3d .reel{background:linear-gradient(rgba(150,255,205,.02),rgba(150,255,205,.13) 50%,rgba(150,255,205,.02));border:1px solid rgba(170,255,215,.45);border-radius:10px;box-shadow:0 0 16px rgba(110,255,180,.28),inset 0 0 18px rgba(110,255,180,.18)}
+#game.death3d #cabinet.skinned .reel{border-width:1px;border-radius:10px}
+#game.death3d .reel,#game.death3d .reel.art{background-image:linear-gradient(rgba(150,255,205,.02),rgba(150,255,205,.13) 50%,rgba(150,255,205,.02))!important;background-color:transparent!important;background-size:auto!important}
+#game.death3d .reel::after{background:linear-gradient(rgba(6,20,14,.35),transparent 30%,transparent 70%,rgba(6,20,14,.35))}
+#game.death3d .reel .cell{font-size:min(8vw,34px)}
+#game.death3d .reel .cell img{opacity:.88;filter:drop-shadow(0 0 4px rgba(140,255,200,.9)) drop-shadow(0 0 10px rgba(90,220,170,.55)) saturate(.75) brightness(1.15)}
+#game.death3d .reel .cell .soul img{filter:drop-shadow(0 0 3px #ff4a3a) drop-shadow(0 0 1px #ff6a4a) brightness(1.1)}
+#game.death3d .reel.held{box-shadow:0 0 0 2px rgba(207,167,92,.9),0 0 16px rgba(207,167,92,.7)}
+#game.death3d #cabinet.skinned #marquee,#game.death3d #marquee{position:relative;left:auto;right:auto;top:auto;margin:0 2px 4px;font-size:10px;color:#bff5d8;text-shadow:0 0 6px rgba(90,255,170,.8),0 1px 1px #000}
+#game.death3d #nudgeNote{min-height:0;margin-top:0;text-shadow:0 1px 2px #000}
+#game.death3d #cabinet.skinned #reelCtl,#game.death3d #reelCtl{position:relative;left:auto;right:auto;top:auto;margin-top:6px;gap:8px}
+#game.death3d #reelCtl button{padding:1px 0;font-size:10px;background:rgba(10,24,18,.55);color:#cff7e2;border:1px solid rgba(170,255,215,.5);box-shadow:0 0 8px rgba(110,255,180,.25)}
+#game.death3d #reelCtl .hb.on{background:linear-gradient(#cfa75c,#7d5a26);color:#1a1008;border-color:#000}
+@keyframes ldSpecFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){#game.death3d #cabinet{animation:none}}
 #game.death3d #btnRow{gap:4px}
 #game.death3d #spinBtn{padding:3px 8px 4px;font-size:18px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 #000}
 #game.death3d .sideBtn{padding:0 8px;font-size:15px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 #000}
-#game.death3d #gearBar{gap:4px;padding:2px 8px 4px;padding-bottom:max(4px,env(safe-area-inset-bottom));background:rgba(8,6,8,.92)}
-#game.death3d .gslot{width:32px;height:32px;font-size:16px}
-#game.death3d #forecast{position:fixed;left:50%;right:auto;top:8px;bottom:auto;transform:translateX(-50%);width:min(440px, calc(100% - 16px));max-height:52px;overflow:auto;padding:4px 8px;font-size:11px;line-height:1.3;z-index:7}
+#game.death3d #forecast{position:fixed;left:50%;right:auto;top:auto;bottom:calc(var(--death-strip,190px) + 4px);transform:translateX(-50%);width:min(440px, calc(100% - 16px));max-height:64px;overflow:auto;padding:4px 8px;font-size:11px;line-height:1.3;z-index:7;background:rgba(10,7,8,.72)}
 #game.death3d #forecast .hint{margin-top:2px}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;z-index:1}
 #scene:active{cursor:grabbing}
@@ -1286,7 +1301,9 @@ function drawDeathArena(t,dt){
   }
   // floaters: hero-side ones at the hero, the rest at Death
   cx.textAlign='center';
-  for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const hero=f.x<=r.x*T+T*.75,ax=hero?HX:DX,ay=hero?HB-HH*.8:DB-DH*.75;
+  const mk=live3d&&LDDeath3D.marks?LDDeath3D.marks():null;
+  for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const hero=f.x<=r.x*T+T*.75;
+    const ax=mk?W*(hero?mk.hx:mk.dx):hero?HX:DX,ay=mk?top+H*(hero?mk.hy:mk.dy):hero?HB-HH*.8:DB-DH*.75;
     cx.globalAlpha=Math.max(0,1-f.t/1.3);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,ax+(f.x%7-3)*3,ay-f.t*30+(f.y-GY+70)*.3,f.col);}
   cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
   // Death's life bar. The 3D fight keeps it in the reel strip; the painted

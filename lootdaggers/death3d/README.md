@@ -56,27 +56,25 @@ dais and the two throne-side braziers; candles, the near braziers and the
 green column are sprites. Desktop stays at a pixel cap of 2.
 
 Death, the throne and the hall keep the asset package's scale. While the
-fight is up, `#scene3d` is `position: fixed` and fills the viewport. The reels,
-spin, both life bars and the log pack into a bottom strip (`#game.death3d`).
-The forecast is a chip at the top of the screen, off the hero and the throne
-base. The class comes off when the fight ends, so a normal run is unchanged.
+fight is up, `#scene3d` is `position: fixed` and fills the viewport. The
+player's reels hang in the sky above the throne as spectral reels: the same
+`#cabinet` (reels, holds, nudges, the fortune wheel chip) pinned to the top of
+the screen with the cabinet art dropped and a translucent green glow. The
+bottom strip is only the life bars, the log line and the spin row on a dark
+scrim; the gear bar is hidden. The forecast sits just above that strip. The
+class (`#game.death3d`) comes off when the fight ends, so a normal run is
+unchanged.
 
-The resting shot is framed on the settled idle pose (about half a second
-into the clip), sampled once per hero and confirmed once more after the
-idle is on screen, so the combat sway does not move the camera and the
-opening frame is not the bind pose. A phone uses a 50° lens about 3 m
-behind the hero, low and looking up: his head sits about a quarter of the way
-in from the left and his head and shoulders stay under about 30% of the frame
-height, with Death clear in the centre and the throne top in frame. On a wide
-window the throne top stays inside the open area above the reel strip, and
-Death's skull-to-feet span is about 40% of that height. The hero's head,
-shoulders and cape stay above the strip. An intro rises into that shot. A
-resolve plays a short sequence (a push from behind the hero, a cut to Death's
-flinch, or a side angle on a soul blast that still looks up the hall) and
-then returns. Win and loss have their own finishers, and the result dialog
-waits about 2.3s so the dissolve can finish. A tap on
-the 3D view skips the sequence. Shot timing follows the wall clock, so a slow
-frame does not stretch the intro.
+The camera is one wide, fixed shot (b127). It is solved once per hero from
+the settled idle pose (about half a second into the clip) and the measured
+screen layout: the throne top sits just under the sky reels, Death's dais
+stays above the strip, and the hero stands small in the lower left, whole
+body in frame, his head below Death's and clear of him. Attacks, hits,
+soul blasts and phase changes do NOT move the camera; only the intro rise
+and the win and loss finishers do. Shake is a small tremor, and the idle
+sway is applied to the camera only so it cannot drift. Win and loss dialogs
+wait about 2.3s so the dissolve can finish. `LDDeath3D.marks()` gives Death's
+and the hero's screen positions so the 2D damage numbers float off them.
 
 `prefers-reduced-motion` and a reduce-flashing save flag (`S.reduceFlash`,
 `S.reduceFlashing`, or `S.flashing === false`) crossfade those cuts instead of
@@ -115,15 +113,15 @@ arrives a fraction of a second later, the way the old soul shots did.
 | `drain` | Souls pulled from the hero into Death |
 | `grow` | Souls spiraling into Death |
 | `curse`, `jam`, `jamwheel` | A sigil and chains at the hero's feet |
-| phase change | Camera push, throne cracks, green fire, stronger rim light |
+| phase change | Throne cracks, green fire, stronger rim light (no camera move) |
 | win | Death slumps, then dissolves into souls; the hero plays victory |
 | hero hp at 0 | Camera tilts down, hero plays death. Recovering hp stands him back up |
 
-`prefers-reduced-motion: reduce` cuts shake to 15%, skips the phase push,
-and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
+`prefers-reduced-motion: reduce` cuts shake to 15%, stops the sky reels'
+float, and softens shot changes. Fast mode (`S.fast`) shortens the effects. Pixel
 ratio is capped at 2. The resting shot is solved once from the idle pose:
-on a phone the hero stands in the left quarter, and on a wide window Death
-fills about 40% of the open area with the throne top in frame. Lighting matches the v2 mock:
+a wide shot with the hero small in the lower left and the throne under the
+sky reels. Lighting matches the v2 mock:
 warm braziers, green fog and a green column, AgX at about 1.23. A real GPU
 blooms with strength 0.6 / radius 0.8 / threshold 0.7; phones and software
 GL use additive sprites and no shadow map. Death, the throne and the hall

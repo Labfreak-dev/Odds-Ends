@@ -243,6 +243,16 @@ class Arena {
     api.stop = () => self.stop();
     api.resize = () => self.resize();
     api.status = () => self.status();
+    /* Where Death and the hero stand on screen in the fixed shot, as
+       viewport fractions, so the 2D damage numbers float off them. */
+    api.marks = () => {
+      const r = self._restDebug;
+      if (!r || r.fallback || r.headX == null) return null;
+      return {
+        dx: r.headX, dy: r.headY + (r.feetY - r.headY) * 0.3,
+        hx: r.heroX, hy: r.heroY + (r.heroFeetY - r.heroY) * 0.15,
+      };
+    };
     /* One frame from the dais, so a test can see whether the feet are sunk. */
     api.peekFeet = () => self.peekFeet();
   }
@@ -350,7 +360,6 @@ class Arena {
     if (lungeRose) {
       this.attackT = 0;
       this.heroActors[this.activeHero].play('attack');
-      this.director.start('hero');
     }
     if (flashRose) {
       this.flinchT = motion.reduced ? 0.12 : 0.32;
@@ -360,7 +369,6 @@ class Arena {
       const calm = motion.reduced || reduceFlashing();
       this.hitLight.intensity = calm ? 2.2 : 8;
       this.hitLight.position.copy(this._anchorWorld(this.deathActor, 'chest'));
-      if (this.director.mode !== 'hero') this.director.start('flinch');
     }
     if (hurtRose) {
       this.heroActors[this.activeHero].play('hit');
@@ -368,7 +376,6 @@ class Arena {
       const calm = motion.reduced || reduceFlashing();
       this.hitLight.intensity = Math.max(this.hitLight.intensity, calm ? 1.6 : 6);
       this.hitLight.position.copy(this.heroAnchor.position).y += 1.1;
-      this.director.start('blast');
     }
     if (run.hp <= 0 && !this.downed && !this.won) {
       this.downed = true;
@@ -438,7 +445,6 @@ class Arena {
     this.lastCue = c.kind || '';
     const big = (c.phase || this.phase) >= 3 || (c.v || 0) >= 10;
     if (c.kind === 'atk') {
-      this.director.start('blast');
       const fire = () => {
         if (big) this.vfx.playBeam(this, !hurtRose, motion);
         else this.vfx.playBlast(this, !hurtRose, motion);
@@ -479,7 +485,6 @@ class Arena {
     this.phase = ph;
     this.cineOn = true;
     this.cineT = 0;
-    if (this.director) this.director.start('phase');
     if (ph >= 2) this.deathActor.play('cast');
   }
 
@@ -2574,8 +2579,11 @@ function screenOf(cam, p) {
    open area above the reel strip. subFov is the vertical field of that
    window. The cropped frustum keeps the canvas aspect. */
 function applyViewLift(cam, lift, subFov, canvasAspect) {
-  const shown = Math.max(0.55, 1 - (lift || 0));
-  if (!lift || lift < 0.01) {
+  /* A negative lift shows the top of the taller frustum instead, so the
+     look target sits lower, under the spectral reels. */
+  const drop = lift < -0.01;
+  const shown = Math.max(0.55, 1 - Math.abs(lift || 0));
+  if (!lift || Math.abs(lift) < 0.01) {
     cam.clearViewOffset();
     cam.aspect = canvasAspect;
     cam.fov = subFov;
@@ -2587,7 +2595,7 @@ function applyViewLift(cam, lift, subFov, canvasAspect) {
   const W = 1000 * canvasAspect;
   const H = 1000;
   const fullH = H / shown;
-  cam.setViewOffset(W, fullH, 0, fullH - H, W, H);
+  cam.setViewOffset(W, fullH, 0, drop ? 0 : fullH - H, W, H);
 }
 
 function nodePos(obj) {
@@ -2609,21 +2617,23 @@ function visibleCover() {
     if (r.top < bot) bot = r.top;
   }
   let top = 0;
-  const f = document.getElementById('forecast');
-  if (f) {
-    const r = f.getBoundingClientRect();
-    if (r.height > 8 && r.top < H * 0.35) top = r.bottom;
+  /* The spectral reels hang in the sky at the top of the screen. The
+     throne is framed below them. */
+  const cab = document.getElementById('cabinet');
+  if (cab) {
+    const r = cab.getBoundingClientRect();
+    if (r.height > 8 && r.top < H * 0.25 && r.bottom < H * 0.6) top = r.bottom;
   }
   return {
-    top: Math.max(0, Math.min(0.22, top / H)),
+    top: Math.max(0, Math.min(0.5, top / H)),
     bot: Math.max(0.5, Math.min(0.9, bot / H)),
   };
 }
 
 function forecastStamp() {
-  const f = document.getElementById('forecast');
-  if (!f) return '0';
-  return (f.className || '') + ':' + ((f.textContent && f.textContent.length) || 0);
+  const c = document.getElementById('cabinet');
+  if (!c) return '0';
+  return String(Math.round(c.getBoundingClientRect().bottom / 24));
 }
 
 /* Layout is read until two passes agree, then frozen. A forecast open
@@ -2778,6 +2788,13 @@ function idleMarks(arena) {
   const bulk = half + 0.26;
   const chestY = Math.min(hSL.y, hSR.y);
   const capeZ = hHead.z + 0.14;
+  let hFeet = null;
+  for (const n of ['LeftFoot', 'RightFoot', 'LeftToeBase', 'RightToeBase']) {
+    const p = boneWorld(hero.model, n);
+    if (p && (!hFeet || p.y < hFeet.y)) hFeet = p;
+  }
+  if (!hFeet) hFeet = new THREE.Vector3(hHead.x, 0.05, hHead.z);
+  marks.heroFeet = new THREE.Vector3((hSL.x + hSR.x) * 0.5, Math.min(hFeet.y, 0.1), hHead.z);
   marks.heroHead = hHead;
   marks.heroSL = hSL.clone();
   marks.heroSR = hSR.clone();
@@ -2795,12 +2812,15 @@ function bandMiss(v, lo, hi) {
   return 0;
 }
 
-/* Phone: 50° lens, 2.5–3 m behind the idle hero, low and looking up.
-   His head sits near the left quarter and his silhouette stays clear of
-   Death. Desktop: throne top inside the open area, Death about 40% of it. */
+/* Wide, fixed shot. The spectral reels hang at the top of the screen, so
+   the throne top sits just under them and Death's dais sits above the
+   bottom strip. The hero stands small in the lower left, whole body in
+   frame, his head below Death's so he never fills the view. The camera
+   does not follow attacks; only the intro and the finishers move it. */
 function solveRest(arena, aspect, cover) {
   const phone = aspect < 0.85;
-  const fov = phone ? 50 : 46;
+  const fovs = phone ? [36, 42, 48] : [32, 38, 44];
+  let fov = fovs[fovs.length - 1];
   arena._restSolves = (arena._restSolves || 0) + 1;
   const marks = idleMarks(arena);
   const round = v => Math.round(v * 1000) / 1000;
@@ -2813,79 +2833,65 @@ function solveRest(arena, aspect, cover) {
   cam.near = 0.08;
   cam.far = 90;
   const hz = marks.heroZ;
-  const dists = phone ? [2.85, 3.05, 3.25] : [2.05, 2.4, 2.8, 3.3, 3.8];
-  const ys = phone ? [1.05, 1.25, 1.45] : [1.3, 1.6, 1.9];
-  const lys = phone ? [1.9, 2.25, 2.6] : [1.9, 2.25, 2.65];
-  const lzs = phone ? [0.35, 0.9, 1.4] : [0.15, 0.55];
-  const lifts = phone ? [0, 0.08, 0.14] : [0, 0.08, 0.16];
+  const dists = [4.6, 5.5, 6.5, 7.6, 8.8, 10];
+  const ys = [1.2, 1.5, 1.8, 2.1];
+  const lys = [1.6, 1.95, 2.3, 2.7];
+  const lzs = [0.2, 0.9];
+  const lifts = [-0.25, -0.12, 0, 0.1];
   const xs = [];
-  if (phone) { for (let x = 0.2; x <= 1.15; x += 0.15) xs.push(Math.round(x * 100) / 100); }
-  else { for (let x = 0.3; x <= 1.2; x += 0.3) xs.push(Math.round(x * 100) / 100); }
-  const pts = [marks.deathHead, marks.deathFeet, marks.deathL, marks.deathR, marks.deathChest,
-    marks.heroHead, marks.heroSL, marks.heroSR, marks.sideL, marks.sideR, marks.throne];
+  for (let x = 0.4; x <= 2.6; x += 0.2) xs.push(Math.round(x * 100) / 100);
   let best = null;
   function inFront(p) {
     _restLocal.copy(p).applyMatrix4(cam.matrixWorldInverse);
     return _restLocal.z < -0.35;
   }
-  for (const dist of dists) for (const y of ys) for (const ly of lys) for (const lz of lzs)
+  const heroX = phone ? [0.17, 0.27] : [0.28, 0.38];
+  for (const f of fovs) for (const dist of dists) for (const y of ys) for (const ly of lys) for (const lz of lzs)
     for (const lift of lifts) for (const x of xs) {
-      if (ly < y + (phone ? 0.55 : 0.15)) continue;
       const z = hz + dist;
       cam.position.set(x, y, z);
       cam.lookAt(0, ly, lz);
       cam.updateMatrixWorld(true);
-      applyViewLift(cam, lift, fov, aspect);
+      applyViewLift(cam, lift, f, aspect);
       if (!inFront(marks.deathHead) || !inFront(marks.heroHead) || !inFront(marks.throne)) continue;
       const dh = screenOf(cam, marks.deathHead);
       const df = screenOf(cam, marks.deathFeet);
       const dl = screenOf(cam, marks.deathL);
       const dr = screenOf(cam, marks.deathR);
       const hh = screenOf(cam, marks.heroHead);
+      const hf = screenOf(cam, marks.heroFeet);
       const sl = screenOf(cam, marks.heroSL);
       const sr = screenOf(cam, marks.heroSR);
       const sL = screenOf(cam, marks.sideL);
       const sR = screenOf(cam, marks.sideR);
       const th = screenOf(cam, marks.throne);
       const span = df.y - dh.y;
-      if (span < 0.08) continue;
+      if (span < 0.05) continue;
       const shoulderY = Math.max(sl.y, sr.y);
       const heroSpan = shoulderY - hh.y;
+      const heroH = hf.y - hh.y;
       const heroRight = Math.max(hh.x, sl.x, sr.x, sL.x, sR.x);
       const deathLeft = Math.min(dh.x, dl.x, dr.x);
       const gap = deathLeft - heroRight;
       const ofVis = span / visH;
       let hard = 0;
-      if (phone) {
-        hard += bandMiss(hh.x, 0.25, 0.30) * 36;
-        if (hh.x < 0.12 || hh.x > 0.40) hard += 16;
-        if (gap < 0.05) hard += 28 + (0.05 - gap) * 40;
-        if (heroSpan > 0.22) hard += (heroSpan - 0.22) * 14;
-        if (heroSpan > 0.30) hard += 30 + (heroSpan - 0.30) * 50;
-        if (th.y < cover.top + 0.01) hard += 36 + (cover.top + 0.01 - th.y) * 45;
-        hard += bandMiss(th.y, 0.06, 0.18) * 10;
-        if (dh.y < cover.top + 0.02) hard += 12;
-        if (df.y > cover.bot - 0.02) hard += 14 + (df.y - (cover.bot - 0.02)) * 18;
-        if (shoulderY > cover.bot - 0.01) hard += 14;
-        if (hh.y < 0.36) hard += (0.36 - hh.y) * 8;
-        if (hh.y > cover.bot - 0.12) hard += 6;
-        hard += Math.abs(dh.x - 0.50) * 4;
-      } else {
-        hard += Math.abs(ofVis - 0.40) * 26;
-        if (ofVis < 0.36 || ofVis > 0.46) hard += 8;
-        if (th.y < cover.top + 0.008) hard += 40 + (cover.top + 0.008 - th.y) * 55;
-        if (th.y > 0.15) hard += (th.y - 0.15) * 12;
-        if (dh.y < cover.top) hard += 10;
-        if (df.y > cover.bot - 0.02) hard += 12 + (df.y - (cover.bot - 0.02)) * 18;
-        if (shoulderY > cover.bot - 0.01) hard += 12;
-        if (hh.y > cover.bot - 0.04) hard += 8;
-        if (gap < 0.04) hard += 20 + (0.04 - gap) * 40;
-        hard += bandMiss(hh.x, 0.22, 0.42) * 3;
-        hard += Math.abs(dh.x - 0.50) * 2;
-      }
+      /* throne top tucked just under the reels */
+      hard += bandMiss(th.y, cover.top + 0.005, cover.top + 0.05) * 60;
+      /* Death's feet and the dais clear of the bottom strip */
+      if (df.y > cover.bot - 0.09) hard += 10 + (df.y - (cover.bot - 0.09)) * 40;
+      /* the hero's feet near the strip, never floating high */
+      hard += bandMiss(hf.y, cover.bot - 0.04, cover.bot + 0.05) * 30;
+      /* hero small: his head below Death's head, his height a fraction of the view */
+      if (hh.y < dh.y + 0.02) hard += 20 + (dh.y + 0.02 - hh.y) * 60;
+      hard += bandMiss(heroH / visH, 0.24, 0.34) * 25;
+      hard += bandMiss(hh.x, heroX[0], heroX[1]) * 25;
+      if (gap < 0.07) hard += 20 + (0.07 - gap) * 80;
+      /* Death as large as the band allows, centred */
+      hard += (1 - Math.min(1, ofVis / 0.5)) * 10;
+      hard += Math.abs(dh.x - 0.52) * 4;
       if (!best || hard < best.hard) {
         best = {
-          hard, x, y, z, ly, lz, lift, span, ofVis, dh, df, hh, shoulderY, heroSpan,
+          hard, f, x, y, z, ly, lz, lift, span, ofVis, dh, df, hh, hf, heroH, shoulderY, heroSpan,
           throneY: th.y, heroRight, deathLeft, gap, dist,
         };
       }
@@ -2894,6 +2900,7 @@ function solveRest(arena, aspect, cover) {
     arena._restDebug = { fallback: true, fov, visTop: round(cover.top), visBot: round(cover.bot) };
     return restFallback(phone);
   }
+  fov = best.f;
   arena._restDebug = {
     fov,
     lift: best.lift,
@@ -2901,10 +2908,13 @@ function solveRest(arena, aspect, cover) {
     ofVis: round(best.ofVis),
     visTop: round(cover.top),
     visBot: round(cover.bot),
+    headX: round(best.dh.x),
     headY: round(best.dh.y),
     feetY: round(best.df.y),
     heroY: round(best.hh.y),
     heroX: round(best.hh.x),
+    heroFeetY: round(best.hf.y),
+    heroH: round(best.heroH),
     heroSpan: round(best.heroSpan),
     shoulderY: round(best.shoulderY),
     throneY: round(best.throneY),
@@ -3093,11 +3103,14 @@ class CameraDirector {
       const nextLift = frame.lift || 0;
       this.lift += (nextLift - this.lift) * Math.min(1, alpha);
     }
-    if (this.mode === 'rest' && !soft) this.pos.y += Math.sin(performance.now() / 1000 * 0.8) * 0.012;
     const cam = this.arena.camera;
     cam.position.copy(this.pos);
+    /* A breath of sway on the camera only; adding it to this.pos let it
+       build up frame over frame into a visible drift. */
+    if (this.mode === 'rest' && !soft) cam.position.y += Math.sin(performance.now() / 1000 * 0.8) * 0.01;
     if (!soft && view && view.shake) {
-      const sh = Math.min(view.shake, 12) * 0.002 * (motion.shake || 1);
+      /* A tremor, not a camera move: the shot stays put through the fight. */
+      const sh = Math.min(view.shake, 12) * 0.0007 * (motion.shake || 1);
       cam.position.x += (Math.random() - 0.5) * sh;
       cam.position.y += (Math.random() - 0.5) * sh;
     }

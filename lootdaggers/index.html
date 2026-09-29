@@ -2637,10 +2637,10 @@ function intentOf(e){const [a,v]=e.pat[e.pi%e.pat.length];
 function intentText(e){const [a,v]=e.pat[e.pi%e.pat.length];
   return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`,jamwheel:'Jam your fortune wheel at x1 until you land a jackpot',siphon:`Life Siphon: take ${v} past your block, and heal twice that`,wither:`Wither: your max life drops by ${v} for this fight, and you owe ${v*SOUL_DEBT} 💠 if you lose`,bind:`Soul Chains: chain ${v} reel${v>1?'s':''} shut for two spins`})[a];}
 const HOW_ICON={sword:'🗡',bow:'🏹',bomb:'💣',shove:'🥾',hex:'💀',coin:'🪙',thorns:'🌵',bulwark:'🛡'};
-// Phase three: Death studies the turn you just played and halves whatever hurt him most, next turn.
+// Phases two and three: Death studies the turn you just played and halves whatever hurt him most, next turn.
 function deathRead(){
   const r=run,o=r.objs.find(x=>x.t==='death'&&!x.gone);const th=r.turnHow||{};r.turnHow={};
-  if(!o||(o.phase||1)<3)return;
+  if(!o||(o.phase||1)<2)return;
   let best=null;for(const k in th)if(!best||th[k]>th[best])best=k;
   if(best&&best!==o.read){o.read=best;fl('I SEE YOUR '+(HOW_ICON[best]||'⚔'),'#b07cf0',o.x*T+T/2,GY-150);
     logLine(`<b style="color:var(--purple)">Death reads your hand.</b> Your ${HOW_ICON[best]||''} ${best} hits him for half until you change it up.`);noteTurn(`<span style="color:var(--purple)">Death reads your ${best}: half damage</span>`);}

@@ -329,6 +329,20 @@ function meleeHit(lo, hi, base, how) {
   try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
   return n;
 }
+/* sword-style: close the gap to the nearest foe before the blow lands */
+function lungeIn(c, dt, at) {
+  const nf = nearest();
+  if (!c.hit && nf && c.t / c.dur < at) {
+    const gap = Math.abs(nf.x - st.x) - 60;
+    if (gap > 0 && gap < 150) st.x += Math.sign(nf.x - st.x) * Math.min(gap, 520 * dt);
+  }
+}
+function meleeHit(lo, hi, base, how) {
+  let n = 0;
+  for (const f of liveFoes()) { const dx = (f.x - st.x) * st.face; if (dx > lo && dx < hi) { hitFoe(f, power(base), how); n++; } }
+  try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
+  return n;
+}
 function doMove(dt) {
   const c = st.cur;
   if (!c) return;

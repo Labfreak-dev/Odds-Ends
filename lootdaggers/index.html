@@ -1212,7 +1212,7 @@ async function startDeathFight(cost,doubleIt){
 }
 // Once per fight, at a tenth of his life in phase three, Death forces one last
 // pull on reels he has loaded with Skulls. As many Skulls as you have reels,
-// anywhere on the screen, and he heals his whole last phase back; fewer, and
+// anywhere on the screen, and he heals back to half his life; fewer, and
 // that turn's damage and block are tripled. The pull is free and holds clear.
 async function startFinalDeal(){
   const r=run,o=r.objs.find(x=>x.t==='death'&&!x.gone);if(!o){r.finalDeal='done';return;}
@@ -1220,7 +1220,7 @@ async function startFinalDeal(){
   view.shake=12;sfx.reaper();deathCue('curse',{phase:3});view.banner={t:performance.now(),txt:'THE FINAL DEAL'};
   document.body.classList.add('labFlash');setTimeout(()=>document.body.classList.remove('labFlash'),700);
   await labDialog('portrait_death3','Death',pick(DEATH_LINES.deal),null,'Take the deal','soulbtn');
-  logLine(`<b style="color:var(--purple)">The Final Deal.</b> One free pull on loaded reels. <b>${reelCount()}+ Skulls</b> anywhere: Death heals his last phase. Fewer: your turn hits <b>×3</b>.`);
+  logLine(`<b style="color:var(--purple)">The Final Deal.</b> One free pull on loaded reels. <b>${reelCount()}+ Skulls</b> anywhere: Death heals to half his life. Fewer: your turn hits <b>×3</b>.`);
   ui();
 }
 async function deathPhase(o,ph){
@@ -2407,7 +2407,7 @@ function previewTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0,L=[];
   const nm=o=>o.kind==='chest'?(o.mimic?'the chest':'the chest'):o.n;
   {const dth=r.death&&r.objs.find(o=>o.t==='death'&&!o.gone);if(dth&&dth.read)L.push(`<span style="color:var(--purple)">👁 Death has read your ${HOW_ICON[dth.read]||''} ${dth.read}: it hits him for half</span>`);}
-  if(R.deal)L.push(R.deal.lost?`<b style="color:var(--purple)">☠ THE FINAL DEAL: ${R.deal.skulls} Skulls (${R.deal.need} needed) — Death heals his whole last phase</b>`:`<b style="color:var(--gold)">THE FINAL DEAL: only ${R.deal.skulls} Skull${R.deal.skulls===1?'':'s'} (${R.deal.need} needed) — the house pays: damage ×3</b>`);
+  if(R.deal)L.push(R.deal.lost?`<b style="color:var(--purple)">☠ THE FINAL DEAL: ${R.deal.skulls} Skulls (${R.deal.need} needed) — Death heals to half his life</b>`:`<b style="color:var(--gold)">THE FINAL DEAL: only ${R.deal.skulls} Skull${R.deal.skulls===1?'':'s'} (${R.deal.need} needed) — the house pays: damage ×3</b>`);
   if(R.triples)L.push(`<b style="color:var(--gold)">${R.triples>1?'DOUBLE ':''}JACKPOT</b> — matched symbols pay x3${hasR('bell')?', +3 🪙 from the Bell':''}`);
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
   if(R.mult>1)L.push(`<b style="color:var(--gold)">FORTUNE ×${R.mult}</b> — damage and block ×${R.mult}`);
@@ -2461,8 +2461,8 @@ async function doTurn(R){
   if(R.triples&&!M.autoBonus&&!r.death&&r.popBudget>0&&Math.random()<.12){r.popBudget--;const v=await modal('Cursed Jackpot',`<div class="flipCoin">💀</div><p>The machine whispers: <i>take a curse, and I'll double it.</i></p><p>Accept: this turn's multiplier is doubled (×${mu*2}), but a <b>Skull</b> joins your reels for the rest of the floor.</p>`,[{label:`Take the curse (×${mu*2})`,val:1,cls:'primary goldbtn'},{label:'Refuse',val:null}]);
     if(v){mu*=2;r.curse=(r.curse||0)+1;heroFl('CURSED ×'+mu,'#b07cf0');stat('cursedTaken');}}
   if(R.deal&&r.finalDeal==='armed'){r.finalDeal='resolved';const dth=r.objs.find(o=>o.t==='death'&&!o.gone);
-    if(R.deal.lost){if(dth){const to=Math.max(dth.hp,Math.floor(dth.max/3)),h=to-dth.hp;dth.hp=to;deathCue('grow',{phase:3});fl('+'+h+' THE HOUSE WINS','#b07cf0',dth.x*T+T/2,GY-110);}
-      view.banner={t:performance.now(),txt:'THE HOUSE WINS'};sfx.reaper();noteTurn(`<span style="color:var(--purple)">The Final Deal: ${R.deal.skulls} Skulls. Death heals back to ${dth?dth.hp:0}.</span>`);logLine(`<b style="color:var(--purple)">The house wins.</b> ${R.deal.skulls} Skulls: Death takes his last phase back.`);}
+    if(R.deal.lost){if(dth){const to=Math.max(dth.hp,Math.floor(dth.max/2)),h=to-dth.hp;dth.hp=to;deathCue('grow',{phase:3});fl('+'+h+' THE HOUSE WINS','#b07cf0',dth.x*T+T/2,GY-110);}
+      view.banner={t:performance.now(),txt:'THE HOUSE WINS'};sfx.reaper();noteTurn(`<span style="color:var(--purple)">The Final Deal: ${R.deal.skulls} Skulls. Death heals back to ${dth?dth.hp:0}.</span>`);logLine(`<b style="color:var(--purple)">The house wins.</b> ${R.deal.skulls} Skulls: Death heals back to half his life.`);}
     else{mu*=3;view.banner={t:performance.now(),txt:'THE HOUSE PAYS ×3'};sfx.jackpot();heroFl('FINAL DEAL ×3','#d9b56a');noteTurn(`<span style="color:var(--gold)">The Final Deal: only ${R.deal.skulls} Skulls. Your turn hits ×3.</span>`);}
     await beat(500);}
   if(R.triples)metaEv('jackpot');if(mu>1)metaEv('wheel',1,mu);

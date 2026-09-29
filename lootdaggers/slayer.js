@@ -498,9 +498,10 @@ function draw() {
   // hero
   const c = st.cur;
   const pose = st.hurtT > 0 ? 'hurt' : c ? MOVES[c.m].pose : (st.mode === 'walk' || st.mode === 'advance' ? 'walk' : 'idle');
-  const tint = c && c.m === 'skull' ? 'hue-rotate(250deg) saturate(1.6)' : (st.invT > 0 ? 'brightness(1.4) saturate(.6)' : null);
+  const dodgeLook = st.invT > 0 && !(c && c.m === 'boots');     // the leap stays solid
+  const tint = c && c.m === 'skull' ? 'hue-rotate(250deg) saturate(1.6)' : (dodgeLook ? 'brightness(1.4) saturate(.6)' : null);
   cx.save(); cx.translate(0, -(st.hy || 0) * L.k);
-  sprite(heroKey(pose), 'hero_' + st.hero + '_idle', st.x, L, st.face < 0, st.invT > 0 ? 0.7 : 1, tint);
+  sprite(heroKey(pose), 'hero_' + st.hero + '_idle', st.x, L, st.face < 0, dodgeLook ? 0.7 : 1, tint);
   cx.restore();
   const hx = (st.x - st.cam) * L.k;
   if (st.parryT > 0) {

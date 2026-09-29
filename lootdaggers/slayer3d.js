@@ -42,13 +42,14 @@ export const MOVE_CLIPS = {
   blink:    { clip: 'Left_Slash', hit: 0.35 },
   phantom:  { clip: 'Standard_Forward_Charge', hit: 0.3 },
   nova:     { clip: 'Charged_Spell_Cast', hit: 0.55 },
+  riposte:  { clip: 'Left_Slash', hit: 0.35 },
 };
-const MELEE = new Set(['sword', 'skull', 'bomb', 'rush', 'launch', 'bash', 'blink', 'phantom', 'quake', 'vault', 'boots']);
+const MELEE = new Set(['sword', 'skull', 'bomb', 'rush', 'launch', 'bash', 'blink', 'phantom', 'quake', 'vault', 'boots', 'riposte']);
 const DASHES = new Set(['boots', 'key', 'rush', 'blink', 'phantom', 'vault']);
 /* move timing in slayer.js: the fraction of the move where its effect fires */
 const MOVE_HIT = { sword: 0.3, boots: 0.45, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5, volley: 0.35, missile: 0.25,
   rush: 0.45, launch: 0.35, vault: 0.5, cluster: 0.35, pierce: 0.45, drain: 0.45, bash: 0.35, quake: 0.5,
-  bloodlet: 0.45, bloodmoon: 0.5, toss: 0.45, jackpot: 0.5, blink: 0.4, phantom: 0.3, nova: 0.3 };
+  bloodlet: 0.45, bloodmoon: 0.5, toss: 0.45, jackpot: 0.5, blink: 0.4, phantom: 0.3, nova: 0.3, riposte: 0.3 };
 
 /* Foes: model file, rigged or code-animated, clip choices, height (m). */
 export const FOE3D = {
@@ -555,7 +556,7 @@ export class Stage {
       h.holder.rotation.y += (want - h.holder.rotation.y) * Math.min(1, dt * 14);
       h.blob.position.set(st.x * U, 0.01, 0);
       if (h.mixer) h.mixer.update(adt);
-      this._tint(h, st.cur && st.cur.m === 'skull' ? 0x5a1a7a : st.invT > 0 && !(st.cur && st.cur.m === 'boots') ? 0x223344 : st.frenzy && st.mode === 'act' ? 0x4a2200 : 0, st.hurtT > 0 ? 0.6 : 0);
+      this._tint(h, st.cur && st.cur.m === 'skull' ? 0x5a1a7a : st.invT > 0 && !(st.cur && st.cur.m === 'boots') ? 0x223344 : st.guardT > 0 ? 0x10243a : st.frenzy && st.mode === 'act' ? 0x4a2200 : 0, st.hurtT > 0 ? 0.6 : 0);
     }
     this._foes(st, adt, dt);
     this._shots(st);
@@ -1024,6 +1025,12 @@ Object.assign(Stage.prototype, {
       } else if (e.k === 'drop') {
         this._arrowDrop(e.x * U, 0x9fe890);
         if (st.cur && st.cur.fin) for (let i = 0; i < 3; i++) setTimeout(() => this._arrowDrop(e.x * U + (Math.random() - 0.5) * 1.6, 0x9fe890), i * 40);
+      } else if (e.k === 'link') {
+        this._flash(0xffd27a, 8, st.x * U); this._punch(0.08);
+        this._ringFx(0xffd27a, new THREE.Vector3(st.x * U, 1.1, 0.3), 0.3, 1.6, 0.35);
+      } else if (e.k === 'bash') {
+        if (this.hero) this._play(this.hero, 'Standard_Forward_Charge', { once: true, speed: 1.4, fade: 0.08 });
+        this._ringFx(0x9fe0ff, new THREE.Vector3(st.x * U + st.face * 0.5, 1.1, 0.3), 0.4, 1.4, 0.35); this._flash(0x9fd6ff, 10, st.x * U); this._punch(0.08);
       } else if (e.k === 'blast') {
         const x = e.x * U;
         this._spriteFx(0xffb060, new THREE.Vector3(x, 0.6, 0.3), 0.9, 0.45, 2.6);

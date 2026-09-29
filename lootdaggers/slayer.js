@@ -13,7 +13,7 @@
 const MOVES = {
   sword:  { n: 'Slash',   t: 0.65, pose: 'attack' },
   boots:  { n: 'Leap',    t: 0.95, pose: 'attack' },
-  shield: { n: 'Parry',   t: 0.6,  pose: 'idle' },
+  shield: { n: 'Parry',   t: 0.8,  pose: 'idle' },
   bow:    { n: 'Shot',    t: 0.6,  pose: 'attack' },
   bomb:   { n: 'Blast',   t: 0.85, pose: 'attack' },
   potion: { n: 'Heal',    t: 0.7,  pose: 'idle' },
@@ -38,6 +38,7 @@ const MOVES = {
   blink:    { n: 'Blink Strike', t: 0.7,  pose: 'walk' },
   phantom:  { n: 'Phantom Rush', t: 1.0,  pose: 'walk' },
   nova:     { n: 'Arcane Nova',  t: 0.8,  pose: 'attack' },
+  riposte:  { n: 'Riposte',      t: 0.6,  pose: 'attack' },
 };
 /* Three of a kind: an opener, a linker and the named finisher, not one move three times.
    With four or five reels the opener and linker alternate before the finisher. */
@@ -46,6 +47,21 @@ const COMBOS = {
   bow: ['bow', 'pierce', 'bow'],        skull: ['skull', 'drain', 'skull'],   shield: ['bash', 'shield', 'quake'],
   potion: ['potion', 'bloodlet', 'bloodmoon'], coin: ['coin', 'toss', 'jackpot'], key: ['key', 'blink', 'phantom'],
   volley: ['volley', 'pierce', 'volley'], missile: ['missile', 'nova', 'missile'],
+};
+/* Two symbols in a row (in stop order) link: the second move becomes a stronger follow-up.
+   Links chain (boots, sword, boots = Diving Slash into a Rising Vault); three of a kind uses
+   COMBOS instead. Keys are symbols after the hero's swaps (volley, missile). */
+const LINKS = {
+  'boots>sword': ['rush', 'DIVING SLASH'],     'sword>boots': ['vault', 'RISING VAULT'],
+  'shield>sword': ['riposte', 'RIPOSTE'],       'sword>sword': ['launch', 'DOUBLE CUT'],
+  'bomb>boots': ['vault', 'BLAST JUMP'],        'boots>bomb': ['cluster', 'CARPET BOMB'],
+  'bomb>bomb': ['cluster', 'CHAIN BLAST'],      'skull>skull': ['drain', 'SOUL SIPHON'],
+  'skull>sword': ['drain', 'CURSED EDGE'],      'potion>sword': ['bloodlet', 'BLOOD EDGE'],
+  'bow>bow': ['pierce', 'DOUBLE SHOT'],         'boots>bow': ['pierce', 'LEAPING SHOT'],
+  'volley>volley': ['pierce', 'PINNING SHOT'],  'missile>missile': ['nova', 'ARCANE CHAIN'],
+  'coin>coin': ['toss', 'MAKE IT RAIN'],        'key>sword': ['blink', 'BACKSTAB'],
+  'shield>shield': ['quake', 'SHIELD SLAM'],    'sword>shield': ['bash', 'SHIELD BASH'],
+  'key>boots': ['phantom', 'PHANTOM RUSH'],     'coin>sword': ['toss', 'GILDED STRIKE'],
 };
 /* How near a foe must be for a move to have anything to hit (null: always plays).
    Checked as each move starts; with nothing in reach the move is skipped. */
@@ -62,7 +78,7 @@ function reachOf(m, fin) {
     case 'cluster': return 240; case 'pierce': return 520; case 'drain': return 220;
     case 'bash': return 260;   case 'quake': return 220;   case 'bloodlet': return 200;
     case 'bloodmoon': return 320; case 'toss': return 300; case 'jackpot': return 340;
-    case 'blink': return 360;  case 'phantom': return 360;
+    case 'blink': return 360;  case 'phantom': return 360; case 'riposte': return 210;
     case 'shield': case 'key': return Infinity;             // defensive: only needs a foe left alive
     default: return null;                                   // potion, coin: always useful
   }
@@ -231,10 +247,15 @@ function buildCombo() {
   st.hits = 0;
   st.combo = combo;
   st.queue = combo.map(m => ({ m }));
+  if (!st.frenzy) for (let i = 1; i < combo.length; i++) {
+    const L = LINKS[combo[i - 1] + '>' + combo[i]];
+    if (L) st.queue[i] = { m: L[0], link: L[1] };
+  }
   if (st.frenzy && COMBOS[st.ult]) {
     const [a, b, fin] = COMBOS[st.ult], n = combo.length;
     st.queue = combo.map((m, i) => i === n - 1 ? { m: fin, fin: true } : { m: i % 2 ? b : a });
   }
+  st.names = st.queue.map(q => q.link ? q.link.charAt(0) + q.link.slice(1).toLowerCase() : MOVES[q.m].n);
   st.mode = 'act';
   st.actT = 0;
   if (st.frenzy) {
@@ -255,31 +276,58 @@ function nearest() {
   for (const f of liveFoes()) if (!best || Math.abs(f.x - st.x) < Math.abs(best.x - st.x)) best = f;
   return best;
 }
+/* the nearest live foe ahead (the way the hero travels, +x) */
+function aheadFoe() {
+  let best = null;
+  for (const f of liveFoes()) if (f.x > st.x - 10 && (!best || f.x < best.x)) best = f;
+  return best;
+}
 function fin(m) { return !!(st.cur && st.cur.fin && st.cur.m === m); }
 function nextMove() {
+  if (st.cur && (st.cur.m === 'shield' || st.cur.m === 'bash' || st.cur.m === 'quake')) st.guardT = 2;   // a raised shield keeps half the damage off for a while
   let q, nf;
   for (;;) {
     q = st.queue.shift();
     if (!q) { st.cur = null; endAct(); return; }
     nf = nearest();
     const reach = reachOf(q.m, q.fin);
-    if (reach == null || (nf && Math.abs(nf.x - st.x) <= reach)) break;
+    const fa = aheadFoe();
+    const leap = q.m === 'boots' || q.m === 'vault';        // leaps only go forward: a foe ahead, or one close enough to slam
+    if (leap ? (fa && fa.x - st.x <= reach) || (nf && Math.abs(nf.x - st.x) < 110) : reach == null || (nf && Math.abs(nf.x - st.x) <= reach)) break;
     floater(MOVES[q.m].n + ': no target', '#948978', st.x, 190);   // nothing to hit: skip it
   }
   const m = q.m;
   if (nf && m !== 'key') st.face = nf.x >= st.x ? 1 : -1;
+  if (q.link) { st.banner = { t: 0, txt: q.link, link: true }; st.ev.push({ k: 'link' }); }
   st.cur = { m, t: 0, dur: MOVES[m].t, hit: false, from: st.x, fin: !!q.fin };
   if (m === 'boots') {
-    // leap onto the nearest foe (or a short hop forward), landing just in front of it
+    // leap forward onto the nearest foe ahead, landing just in front of it; the boots
+    // never carry the hero backwards (with every foe behind, he slams where he stands)
     st.invT = MOVES.boots.t + 0.05;
-    st.cur.to = nf ? nf.x - st.face * 55 : st.x + st.face * 80;
+    const fa = aheadFoe();
+    st.face = fa ? 1 : st.face;
+    st.cur.to = fa ? Math.max(st.x, fa.x - 55) : st.x;
     if (Math.abs(st.cur.to - st.x) < 20) st.cur.to = st.x;
   }
-  if (m === 'vault') { st.invT = MOVES.vault.t + 0.05; st.cur.to = nf ? nf.x - st.face * 45 : st.x; }
+  if (m === 'vault') { st.invT = MOVES.vault.t + 0.05; const fa = aheadFoe(); if (fa) st.face = 1; st.cur.to = fa ? Math.max(st.x, fa.x - 45) : st.x; }
   if (m === 'rush' && nf) st.cur.to = st.x + st.face * Math.max(0, Math.min(240, Math.abs(nf.x - st.x) - 55));
   if (m === 'blink' || m === 'phantom') st.invT = MOVES[m].t;
   if (m === 'key') st.invT = 0.25;
-  if (m === 'shield') { st.parryT = MOVES.shield.t; st.parryPerfect = 0.3; }
+  if (m === 'shield') { st.parryT = 0.5; st.parryPerfect = 0.3; }   // then a bash if nothing was blocked
+}
+/* sword-style: close the gap to the nearest foe before the blow lands */
+function lungeIn(c, dt, at) {
+  const nf = nearest();
+  if (!c.hit && nf && c.t / c.dur < at) {
+    const gap = Math.abs(nf.x - st.x) - 60;
+    if (gap > 0 && gap < 150) st.x += Math.sign(nf.x - st.x) * Math.min(gap, 520 * dt);
+  }
+}
+function meleeHit(lo, hi, base, how) {
+  let n = 0;
+  for (const f of liveFoes()) { const dx = (f.x - st.x) * st.face; if (dx > lo && dx < hi) { hitFoe(f, power(base), how); n++; } }
+  try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
+  return n;
 }
 /* sword-style: close the gap to the nearest foe before the blow lands */
 function lungeIn(c, dt, at) {
@@ -378,6 +426,21 @@ function doMove(dt) {
     // dash in and cut
     if (c.to != null && p < 0.4) st.x = c.from + (c.to - c.from) * Math.min(1, p / 0.4);
     if (!c.hit && p >= 0.45) { c.hit = true; meleeHit(-10, 95, 5, 'rush'); addFx('slash', st.x + st.face * 45, 0.25); }
+  } else if (m === 'shield') {
+    // hold the guard for half a second; if nothing struck it, step in and bash
+    if (!c.blocked && p >= 0.6) {
+      if (!c.hit) lungeIn(c, dt, 1);
+      if (!c.hit && p >= 0.7) {
+        c.hit = true;
+        const f = nearest();
+        if (f && (f.x - st.x) * st.face > -10 && (f.x - st.x) * st.face < 110) { hitFoe(f, power(4), 'bash'); floater('SHIELD BASH', '#9fd6ff', st.x, 200); }
+        addFx('parry', st.x + st.face * 30, 0.3);
+        st.ev.push({ k: 'bash' });
+      }
+    }
+  } else if (m === 'riposte') {
+    lungeIn(c, dt, 0.3);
+    if (!c.hit && p >= 0.3) { c.hit = true; meleeHit(-10, 100, 6, 'riposte'); addFx('slash', st.x + st.face * 45, 0.3); }
   } else if (m === 'launch') {
     lungeIn(c, dt, 0.35);
     if (!c.hit && p >= 0.35) { c.hit = true; meleeHit(-10, 95, 6, 'launch'); addFx('slash', st.x + st.face * 45, 0.3); }
@@ -521,9 +584,9 @@ function doMove(dt) {
 function hitFoe(f, dmg, how) {
   if (f.dead) return;
   if (f.t === 'ironclad' && how === 'sword' && !st.frenzy) dmg = Math.ceil(dmg / 3);
-  const crit = ['sword', 'bow', 'leap', 'volley', 'missile', 'rush', 'launch', 'pierce', 'phantom'].includes(how) && Math.random() < CRIT || how === 'blink' && Math.random() < 0.5;
+  const crit = how === 'riposte' || ['sword', 'bow', 'leap', 'volley', 'missile', 'rush', 'launch', 'pierce', 'phantom'].includes(how) && Math.random() < CRIT || how === 'blink' && Math.random() < 0.5;
   if (crit) dmg = Math.round(dmg * 1.5);
-  const heavy = crit || st.frenzy || ['bomb', 'skull', 'parry', 'leap', 'launch', 'bash', 'quake', 'blink'].includes(how);
+  const heavy = crit || st.frenzy || ['bomb', 'skull', 'parry', 'leap', 'launch', 'bash', 'quake', 'blink', 'riposte'].includes(how);
   // knockback away from the hero; heavy blows launch
   const dir = Math.sign(f.x - st.x) || st.face;
   f.kv = dir * (f.boss ? 90 : heavy ? 300 : 140);
@@ -560,6 +623,7 @@ function strikeHero(f, dmg) {
   if (st.invT > 0) { floater('dodged', '#9fd6ff', st.x, 170); return; }
   if (st.parryT > 0) {
     const perfect = st.parryPerfect > 0;
+    if (st.cur) st.cur.blocked = true;
     floater(perfect ? 'PERFECT PARRY' : 'blocked', '#9fd6ff', st.x, 180);
     addFx('parry', st.x + st.face * 20, 0.3);
     try { sfx.block(); } catch (e) { /* ignore */ }
@@ -567,6 +631,7 @@ function strikeHero(f, dmg) {
     else if (!perfect) hurtHero(Math.floor(dmg / 3), false);
     return;
   }
+  if (st.guardT > 0) { dmg = Math.max(1, Math.ceil(dmg / 2)); floater('guarded', '#9fd6ff', st.x, 185); }
   hurtHero(dmg, false);
 }
 function endAct() {
@@ -741,6 +806,10 @@ function draw() {
   sprite(heroKey(pose), 'hero_' + st.hero + '_idle', st.x, L, st.face < 0, dodgeLook ? 0.7 : 1, tint);
   cx.restore();
   const hx = (st.x - st.cam) * L.k;
+  if (st.guardT > 0 && st.parryT <= 0) {
+    cx.strokeStyle = 'rgba(120,170,220,.35)'; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(hx + st.face * 18 * L.k, L.ground - 60 * L.k, 46 * L.k, -1.1, 1.1); cx.stroke();
+  }
   if (st.parryT > 0) {
     cx.strokeStyle = st.parryPerfect > 0 ? 'rgba(160,230,255,.95)' : 'rgba(120,170,220,.6)'; cx.lineWidth = 4;
     cx.beginPath(); cx.arc(hx + st.face * 18 * L.k, L.ground - 60 * L.k, 46 * L.k, -1.1, 1.1); cx.stroke();
@@ -804,6 +873,14 @@ function drawAfter(L) {
     cx.lineWidth = 6; cx.strokeStyle = '#1a0500'; cx.strokeText(st.banner.txt, 0, 0);
     cx.fillStyle = g; cx.fillText(st.banner.txt, 0, 0);
     cx.restore();
+  } else if (st.banner && st.banner.link) {
+    // a link's name: smaller, quicker, lower than an ultimate's
+    const p = Math.min(1, st.banner.t / 0.9), y = L.H * 0.36;
+    cx.globalAlpha = p < 0.12 ? p / 0.12 : Math.max(0, 1 - (p - 0.6) / 0.4);
+    cx.font = Math.round(24 + 6 * L.k) + "px 'Pirata One',Georgia,serif"; cx.textAlign = 'center';
+    cx.fillStyle = 'rgba(10,4,2,.6)'; const w = cx.measureText(st.banner.txt).width + 30; cx.fillRect(L.W / 2 - w / 2, y - 26 * (1 + L.k * 0.2), w, 34 * (1 + L.k * 0.2));
+    cx.fillStyle = '#ffd27a'; cx.fillText(st.banner.txt, L.W / 2, y);
+    cx.globalAlpha = 1;
   } else if (st.banner) {
     const p = st.banner.t / 1.6;
     cx.globalAlpha = p < 0.15 ? p / 0.15 : Math.max(0, 1 - (p - 0.6) / 0.4);
@@ -929,7 +1006,7 @@ function drawReels(L) {
   cx.font = '12px ui-monospace,monospace'; cx.textAlign = 'center'; cx.fillStyle = '#cdb68a';
   const tip = st.over ? '' : st.mode === 'plan' ? (st.coins > 0 ? 'Tap the reels to pull · 🪙1' : 'Out of coins') :
     st.mode === 'spin' ? 'Tap each reel to stop it. Stop order = move order' :
-    st.mode === 'act' ? (st.frenzy ? (ULTS[st.ult] || 'FRENZY') + ': double damage' : st.combo.map(m => MOVES[m].n).join(' → ')) : '';
+    st.mode === 'act' ? (st.frenzy ? (ULTS[st.ult] || 'FRENZY') + ': double damage' : (st.names || st.combo.map(m => MOVES[m].n)).join(' → ')) : '';
   cx.fillText(tip, L.W / 2, Math.min(L.H - 10, last.y + last.h + 20));
 }
 
@@ -950,6 +1027,7 @@ function tick(now) {
   if (st.mode === 'act') {
     st.invT = Math.max(0, st.invT - dt);
     st.parryT = Math.max(0, st.parryT - dt);
+    st.guardT = Math.max(0, (st.guardT || 0) - dt);
     st.parryPerfect = Math.max(0, st.parryPerfect - dt);
     doMove(dt);
     updateFoes(dt);
@@ -1009,7 +1087,7 @@ function pickHero() {
   const owned = Object.keys(HEROES);            // every hero plays Reel Slayer, unlocked in the crawl or not
   panel(`<h2>Reel Slayer <small>prototype</small></h2>
     <p class="slSub">No buttons. Tap the reels to pull, then tap each reel to stop it: the order you stop them is the order your hero strikes. Your hero walks up to the next foe on his own, and the world waits while you plan; every foe shows how many seconds until it strikes.</p>
-    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges; the Ranger fires a Volley and the Hex Priest Magic Missiles instead) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: a three-move combo (opener, linker, then the ultimate), double damage. An attack with no foe in reach is skipped.</p>
+    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges; the Ranger fires a Volley and the Hex Priest Magic Missiles instead) · 🛡 Parry (on time = counter; blocks nothing = shield bash; then guard halves damage for 2s) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Two symbols in a row can link into a stronger move (🥾→🗡 Diving Slash, 🛡→🗡 Riposte, 💣💣 Chain Blast…). Three of a kind: a three-move combo (opener, linker, then the ultimate), double damage. An attack with no foe in reach is skipped.</p>
     ${S.slayer && S.slayer.best ? `<p class="slSub">Best: wave ${S.slayer.best}</p>` : ''}
     ${owned.map(h => `<button data-sl="hero:${h}">${HEROES[h].e} ${HEROES[h].n} <small>❤${HEROES[h].hp + (alt('vit') || 0) * 5} · 🪙${HEROES[h].coins}</small></button>`).join('')}
     <button data-sl="exit">Back</button>`);

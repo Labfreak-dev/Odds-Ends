@@ -65,6 +65,58 @@ const HERO_OWN = {
   Sword_Parry: 'Block', Victory_Cheer: 'Victory',
 };
 const GRIP_BONES = ['LeftHand', 'RightHand'];
+/* Weapons whose file seat misses the fist, re-seated at load: `handle` is the handle's
+   centre as a fraction of the weapon's length from the end nearest the hand. The handle
+   goes to the centre of the fist and the blade is turned square to the hand, so it
+   can't swing back through the forearm. Returns the hand bones it re-seated. */
+const SEAT = { Sword: { handle: 0.145 } };
+
+function seatWeapons(root) {
+  const seated = new Set();
+  let skin = null; root.traverse(o => { if (o.isSkinnedMesh && !skin) skin = o; });
+  if (!skin) return seated;
+  const props = [];
+  root.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && SEAT[o.name] && o.parent && o.parent.isBone) props.push(o); });
+  for (const w of props) {
+    const bone = w.parent, bi = skin.skeleton.bones.indexOf(bone);
+    if (bi < 0) continue;
+    // the fist: skin vertices mostly bound to this hand, in the hand's own space
+    const pos = skin.geometry.attributes.position, si = skin.geometry.attributes.skinIndex, sw = skin.geometry.attributes.skinWeight;
+    const inv = skin.skeleton.boneInverses[bi], v = new THREE.Vector3(), fist = new THREE.Vector3();
+    let n = 0;
+    for (let i = 0; i < pos.count; i++) {
+      let best = -1, bw = 0;
+      for (let k = 0; k < 4; k++) { const wt = sw.getComponent(i, k); if (wt > bw) { bw = wt; best = si.getComponent(i, k); } }
+      if (best !== bi || bw < 0.6) continue;
+      fist.add(v.fromBufferAttribute(pos, i).applyMatrix4(skin.bindMatrix).applyMatrix4(inv)); n++;
+    }
+    if (n < 20) continue;
+    fist.divideScalar(n);
+    // the weapon's long axis, its two ends in hand space, and the handle point
+    w.geometry.computeBoundingBox();
+    const b = w.geometry.boundingBox, ext = b.getSize(new THREE.Vector3()).toArray();
+    const ax = ext.indexOf(Math.max(...ext));
+    const e1 = b.getCenter(new THREE.Vector3()), e2 = e1.clone();
+    e1.setComponent(ax, b.min.getComponent(ax)); e2.setComponent(ax, b.max.getComponent(ax));
+    w.updateMatrix();
+    const E1 = e1.clone().applyMatrix4(w.matrix), E2 = e2.clone().applyMatrix4(w.matrix);
+    const nearFirst = E1.distanceTo(fist) < E2.distanceTo(fist);
+    const near = nearFirst ? e1 : e2, far = nearFirst ? e2 : e1;
+    const handleL = near.clone().lerp(far, SEAT[w.name].handle);
+    const dir = (nearFirst ? E2.clone().sub(E1) : E1.clone().sub(E2)).normalize();
+    // square the blade to the hand's long axis (bone space +y runs wrist to fingers)
+    const flat = dir.clone().setY(0);
+    if (flat.lengthSq() < 1e-4) continue;
+    const turn = new THREE.Quaternion().setFromUnitVectors(dir, flat.normalize());
+    w.quaternion.premultiply(turn);
+    w.updateMatrix();
+    const at = handleL.clone().applyMatrix4(w.matrix);
+    w.position.add(fist.clone().sub(at));
+    w.updateMatrix();
+    seated.add(bone.name);
+  }
+  return seated;
+}
 
 export async function boot(canvas) {
   const stage = new Stage(canvas);
@@ -221,6 +273,7 @@ export class Stage {
         o.material = Array.isArray(o.material) ? cl : cl[0];
       }
     });
+    const seated = opts && opts.hero ? seatWeapons(root) : new Set();
     const holder = new THREE.Group();
     holder.add(root);
     this.scene.add(holder);
@@ -246,7 +299,7 @@ export class Stage {
       hipX: hips ? hips.position.x : 0, hipZ: hips ? hips.position.z : 0,
       mixer: hips ? new THREE.AnimationMixer(root) : null, actions: {}, cur: null, opts: opts || {},
       own: opts && opts.hero ? Object.fromEntries((gltf.animations || []).map(c => [c.name, c])) : null,
-      width: Math.max(0.5, box.max.x - box.min.x),
+      width: Math.max(0.5, box.max.x - box.min.x), seated,
     };
     blob.scale.set(a.width * 1.2, a.width * 0.6, 1);
     return a;
@@ -268,6 +321,7 @@ export class Stage {
       // a borrowed move: keep the hero's own wrist grip so the weapon stays seated in the hand
       const idle = a.own.Combat_Idle;
       for (const bone of GRIP_BONES) {
+        if (a.seated.has(bone)) continue;       // a re-seated weapon sits in the fist: the move's own wrist is right
         const key = bone + '.quaternion';
         const from = idle && idle.tracks.find(t => t.name === key);
         const i = c.tracks.findIndex(t => t.name === key);

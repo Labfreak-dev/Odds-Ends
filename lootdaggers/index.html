@@ -1152,6 +1152,7 @@ const DEATH_COST=666,DEATH_FLOOR=66,DEATH_PURSE=777;
 // No rests: every turn at the table costs you something. siphon steals life and
 // heals him double, wither takes max life for the rest of the fight, bind chains
 // reels shut for two turns (v reels), jam holds one on a Skull until he falls.
+const SOUL_DEBT=10;   // souls owed per point of max life Death withers, paid only if you lose to him
 const DEATH_PH={
   1:[['atk',5],['siphon',3],['atk',6],['bind',1],['curse',1],['atk',7]],
   2:[['atk',9],['drain',6],['siphon',5],['jam',0],['atk',11],['wither',3],['bind',1],['grow',5]],
@@ -2405,6 +2406,7 @@ const heroFl=(t,c)=>fl(t,c,run.x*T+T/2,GY-78-view.fl.filter(f=>f.t<.3).length*14
 function previewTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0,L=[];
   const nm=o=>o.kind==='chest'?(o.mimic?'the chest':'the chest'):o.n;
+  {const dth=r.death&&r.objs.find(o=>o.t==='death'&&!o.gone);if(dth&&dth.read)L.push(`<span style="color:var(--purple)">👁 Death has read your ${HOW_ICON[dth.read]||''} ${dth.read}: it hits him for half</span>`);}
   if(R.deal)L.push(R.deal.lost?`<b style="color:var(--purple)">☠ THE FINAL DEAL: ${R.deal.skulls} Skulls (${R.deal.need} needed) — Death heals his whole last phase</b>`:`<b style="color:var(--gold)">THE FINAL DEAL: only ${R.deal.skulls} Skull${R.deal.skulls===1?'':'s'} (${R.deal.need} needed) — the house pays: damage ×3</b>`);
   if(R.triples)L.push(`<b style="color:var(--gold)">${R.triples>1?'DOUBLE ':''}JACKPOT</b> — matched symbols pay x3${hasR('bell')?', +3 🪙 from the Bell':''}`);
   for(const c in (R.combos||{}))L.push(`<b style="color:var(--orange)">COMBO · ${COMBOS[c].n}</b> — ${COMBOS[c].d}`);
@@ -2574,6 +2576,8 @@ async function hit(o,dmg,how){
   let d=Math.round(fxFold('dmgOut',dmg,o,how));if(o.block&&!fxFold('pierce',false,how)){const b=Math.min(o.block,d);o.block-=b;d-=b;if(b)fl('🛡'+b,'#5aa9e6',o.x*T+T/2,GY-96);}
   d=woundCap(o,d);if(d>0)metaEv('hit',d,d);
   if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.min(d,1+Math.floor(r.floor/8)),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
+  if(o.t==='death'&&d>0&&o.read&&how===o.read){d=Math.ceil(d/2);fl('READ ½','#b07cf0',o.x*T+T/2,GY-150);}
+  if(o.t==='death'&&d>0){const th=r.turnHow||(r.turnHow={});th[how]=(th[how]||0)+d;}
   r.bestHit=Math.max(r.bestHit||0,d);
   if(o.t==='death'&&d>0)await deathTally(d,how);
   o.hp-=d;o.flash=1;if(d>0)HITT.set(o,performance.now());addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);if(o.t!=='death')fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
@@ -2631,9 +2635,20 @@ async function enterTile(x){
 function intentOf(e){const [a,v]=e.pat[e.pi%e.pat.length];
   return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],jamwheel:['⚙️','×1'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤',''],jam:['🎰','jam'],tax:['🪙','-'+v],siphon:['👻',v],wither:['🥀','-'+v],bind:['⛓️',v]})[a]||['?',''];}
 function intentText(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`,jamwheel:'Jam your fortune wheel at x1 until you land a jackpot',siphon:`Life Siphon: take ${v} past your block, and heal twice that`,wither:`Wither: your max life drops by ${v} for this fight`,bind:`Soul Chains: chain ${v} reel${v>1?'s':''} shut for two spins`})[a];}
+  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`,jamwheel:'Jam your fortune wheel at x1 until you land a jackpot',siphon:`Life Siphon: take ${v} past your block, and heal twice that`,wither:`Wither: your max life drops by ${v} for this fight, and you owe ${v*SOUL_DEBT} 💠 if you lose`,bind:`Soul Chains: chain ${v} reel${v>1?'s':''} shut for two spins`})[a];}
+const HOW_ICON={sword:'🗡',bow:'🏹',bomb:'💣',shove:'🥾',hex:'💀',coin:'🪙',thorns:'🌵',bulwark:'🛡'};
+// Phase three: Death studies the turn you just played and halves whatever hurt him most, next turn.
+function deathRead(){
+  const r=run,o=r.objs.find(x=>x.t==='death'&&!x.gone);const th=r.turnHow||{};r.turnHow={};
+  if(!o||(o.phase||1)<3)return;
+  let best=null;for(const k in th)if(!best||th[k]>th[best])best=k;
+  if(best&&best!==o.read){o.read=best;fl('I SEE YOUR '+(HOW_ICON[best]||'⚔'),'#b07cf0',o.x*T+T/2,GY-150);
+    logLine(`<b style="color:var(--purple)">Death reads your hand.</b> Your ${HOW_ICON[best]||''} ${best} hits him for half until you change it up.`);noteTurn(`<span style="color:var(--purple)">Death reads your ${best}: half damage</span>`);}
+  else if(!best&&o.read){o.read=null;fl('he loses the read','#9fd6ff',o.x*T+T/2,GY-150);}
+}
 async function enemyPhase(){
   const r=run;
+  if(r.death)deathRead();
   if(r.djam&&r.djam.length){r.djam.forEach(j=>j.turns--);const n=r.djam.length;r.djam=r.djam.filter(j=>j.turns>0);if(r.djam.length<n){heroFl('chains fall away','#9fd6ff');rebuildReels();}}
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);
   for(const e of es){
@@ -2663,7 +2678,8 @@ async function enemyPhase(){
     else if(a==='jamwheel'){r.wheelJam=true;heroFl('WHEEL JAMMED ×1','#b07cf0');drawWheel();}
     else if(a==='siphon')await deathSiphon(e,v);
     else if(a==='wither'){const s0=stats().maxHp,cut=Math.min(v,Math.max(0,s0-Math.ceil((s0+(r.wither||0))*.6)));
-      if(cut>0){r.wither=(r.wither||0)+cut;r.hp=Math.min(r.hp,stats().maxHp);heroFl('-'+cut+' MAX LIFE','#b07cf0');addFx('fx_curse',heroWX(),GY-60,76,.9,20);noteTurn(`<span style="color:var(--purple)">Death withers your life: max HP −${cut}</span>`);}
+      if(cut>0){r.wither=(r.wither||0)+cut;r.soulDebt=(r.soulDebt||0)+cut*SOUL_DEBT;r.hp=Math.min(r.hp,stats().maxHp);heroFl('-'+cut+' MAX LIFE','#b07cf0');heroFl('💠 debt '+r.soulDebt,'#9fd6ff');addFx('fx_curse',heroWX(),GY-60,76,.9,20);
+        noteTurn(`<span style="color:var(--purple)">Death withers your life: max HP −${cut}. Soul debt: <b>${r.soulDebt} 💠</b> if you lose</span>`);logLine(`<b style="color:var(--purple)">Wither.</b> Max life −${cut}. Lose this fight and Death collects <b>${r.soulDebt} 💠</b>, from your savings if the run's haul won't cover it.`);}
       else heroFl('your life holds','#9fd6ff');}
     else if(a==='bind'){r.djam=r.djam||[];let n=v;
       while(n-->0){const free=M.reels.map((R,i)=>i).filter(i=>!M.reels[i].jam);if(free.length<2)break;const i=pick(free);r.djam.push({reel:i,turns:2});M.reels[i].jam=true;}
@@ -3174,7 +3190,9 @@ async function endRun(reason){
   const r=run;if(r.over)return;metaEv('runend',1,reason);r.over=true;busy=false;
   M.timers.forEach(clearTimeout);M.spinning=false;
   const souls=Math.round(fxFold('deathSouls',r.souls*(1+stats().soulFind/100),reason)*(1+.15*(r.debt||0)));
-  S.souls+=souls;S.runs++;S.best=Math.max(S.best,r.floor);
+  let paid=0;
+  if(r.death&&r.soulDebt&&reason!=='free'){paid=Math.min(r.soulDebt,souls+S.souls);r.debtPaid=paid;}   // Death collects: the run's haul first, then savings
+  S.souls=Math.max(0,S.souls+souls-paid);S.runs++;S.best=Math.max(S.best,r.floor);
   if(r.daily){const d=(S.daily&&S.daily[r.daily])||{best:0,runs:0,souls:0};d.best=Math.max(d.best,r.floor);d.runs++;d.souls=Math.max(d.souls,souls);S.daily={[r.daily]:d};}
   seedRandom(null);
   r.summary=`Dead Man's Pull${r.daily?' · Daily '+r.daily:''}\n${HEROES[r.hero].n} ${reason==='broke'?'went bust':'fell'} on floor ${r.floor}\n${r.kills} kills · ${r.spins} spins · best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · best fortune x${r.bestMult||1} · ${r.bonuses||0} bonus round${(r.bonuses||0)===1?'':'s'}\nRelics: ${r.relics.map(id=>RELIC[id].n).join(', ')||'none'}\nSouls banked: ${souls}\nhttps://labfreak-dev.github.io/Odds-Ends/lootdaggers/`;
@@ -3193,7 +3211,7 @@ async function endRun(reason){
      ${ps?`<img class="port big dead" src="${ps}" alt="">`:''}<p>${reason==='broke'?'Your purse is empty. The dungeon keeps the change — and you.':reason==='quit'?'You walked away from the machine.':free?'The debt is paid in full. For the first time in a long time, you see daylight.':'The dungeon claims another gambler.'}</p>
      <details class="hist"><summary>What happened: the last ${(r.hist||[]).length||3} turns</summary>${hist}</details>
      <p>Reached <b>floor ${r.floor}</b> · ${r.kills} kills · ${r.spins} spins</p>
-     <p style="font-size:16px">Banked <b style="color:#9fd6ff">${icon('ui_souls_big','💠','gi')} ${souls} souls</b>${r.chips?` and <b style="color:var(--gold)">🎰 ${r.chips} chip${r.chips>1?'s':''}</b>`:''}</p>
+     <p style="font-size:16px">Banked <b style="color:#9fd6ff">${icon('ui_souls_big','💠','gi')} ${souls} souls</b>${r.chips?` and <b style="color:var(--gold)">🎰 ${r.chips} chip${r.chips>1?'s':''}</b>`:''}</p>${paid?`<p style="color:var(--purple)">Death collects his soul debt: <b>−${paid} 💠</b>${paid>souls?` (${paid-souls} from your savings)`:''}</p>`:''}
      <p class="sub" style="font-size:12px;color:var(--dim)">Best jackpot ${r.maxTriples?'x3'+(r.maxTriples>1?' on '+r.maxTriples+' lines':''):'none'} · biggest hit ${r.bestHit||0} · ${r.relics.length} relic${r.relics.length===1?'':'s'}${r.daily?` · <b style="color:var(--gold)">Daily ${r.daily}</b>`:''}</p>`,
     [{label:'Continue',val:1,cls:'primary'},{label:'📋 Copy run summary',val:'copy'}]).then(async v=>{if(v==='copy'){try{await navigator.clipboard.writeText(r.summary);}catch(e){}}});
   const eq=SLOTS.map(s=>r.gear[s]).filter(x=>x&&!x.ledger);

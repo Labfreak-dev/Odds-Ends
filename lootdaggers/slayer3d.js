@@ -409,7 +409,8 @@ export class Stage {
     }
     this._foes(st, adt, dt);
     this._shots(st);
-    this._effects(st, dt);
+    this._flashFrame(st, box.dt || dt);
+    this._effects(st, box.dt || dt);
     this._world(st, dt);
     this.renderer.render(this.scene, this.camera);
   }
@@ -422,6 +423,7 @@ export class Stage {
       const spec = MOVE_CLIPS[c.m] || MOVE_CLIPS.sword;
       let name = spec.clip;
       if (c.m === 'sword' && st.frenzy && this.clips[spec.frenzy]) name = spec.frenzy;
+      if (c.m === 'sword' && st.ult === 'sword' && this.clips.Double_Blade_Spin) name = 'Double_Blade_Spin';
       if (c.m === 'bow' && st.hero !== 'ranger' && spec.alt) name = spec.alt;
       const clip = this.clips[name];
       if (clip) {
@@ -432,7 +434,7 @@ export class Stage {
         if (from < 0.01) speed = Math.min(2.2, Math.max(0.8, clipHit / Math.max(0.05, hitT)));
         this._play(h, name, { once: true, speed, from, fade: 0.08 });
       }
-      this._moveFx(st, c);
+      if (!this._ultMoveFx(st, c)) this._moveFx(st, c);
       return;
     }
     if (!c) {
@@ -495,6 +497,15 @@ export class Stage {
         sx = 1 + w * 0.12 + (f.flash || 0) * 0.08; sy = 1 - w * 0.1;
         if (f.dead) { a.dead = (a.dead || 0) + dt; a.root.rotation.z = Math.min(1.4, a.dead * 3) * (st.x > f.x ? 1 : -1); }
       }
+      // launched by a heavy blow or a killing one: an arc up and back
+      const air = f.air || 0, airT = f.dead ? 0.7 : 0.55;
+      if (air > (a.prevAir || 0) + 0.1 && a.mixer && !f.dead && this.clips.BeHit_FlyUp) this._play(a, 'BeHit_FlyUp', { once: true, speed: 1.5, fade: 0.05 });
+      a.prevAir = air;
+      if (air > 0) {
+        const k = Math.min(1, 1 - air / airT);
+        y += Math.sin(Math.PI * k) * (f.dead ? 1.2 : 0.75);
+        if (!a.mixer && !f.dead) a.root.rotation.z = Math.sin(Math.PI * k) * 0.6 * Math.sign(f.x - st.x);
+      } else if (!a.mixer && !f.dead) a.root.rotation.z *= 0.8;
       const lunge = (f.lunge || 0) * 0.35 * Math.sign(st.x - f.x);
       a.holder.position.set(f.x * U + lunge, y, 0);
       a.holder.scale.set(sx, sy, sx);
@@ -615,6 +626,7 @@ export class Stage {
       if (/PARRY/.test(fl.txt)) { this._ringFx(0xbfe8ff, new THREE.Vector3(st.x * U + st.face * 0.4, 1.2, 0.35), 0.3, 1.4, 0.35); this._flash(0x9fd6ff, 10, st.x * U); }
       if (/FRENZY/.test(fl.txt)) this._flash(0xff9040, 12, st.x * U);
     }
+    const later = [];   // effects spawned by finished ones run after the sweep, or the sweep would drop them
     this.fx = this.fx.filter(e => {
       e.t += dt;
       const p = Math.min(1, e.t / e.dur);
@@ -622,6 +634,8 @@ export class Stage {
       if (e.kind === 'sprite') { o.scale.setScalar(e.base * (1 + (e.grow - 1) * p)); o.material.opacity = 1 - p; }
       else if (e.kind === 'ring') { const r = e.r0 + (e.r1 - e.r0) * p; o.scale.set(r, r, r); o.material.opacity = 1 - p; }
       else if (e.kind === 'arc') { o.rotation.z += e.spin * dt; o.material.opacity = 1 - p; }
+      else if (e.kind === 'slashX') { o.scale.set(0.4 + p * 1.2, 1 - p * 0.5, 1); o.material.opacity = 1 - p; }
+      else if (e.kind === 'fall') { o.position.lerpVectors(e.from, e.to, p * p); if (p >= 1 && e.done) { later.push(e.done); e.done = null; } }
       else if (e.kind === 'burst') {
         const a = o.geometry.attributes.position;
         for (let i = 0; i < e.v.length; i++) { e.v[i].y -= 4 * dt; a.array[i * 3] += e.v[i].x * dt; a.array[i * 3 + 1] += e.v[i].y * dt; a.array[i * 3 + 2] += e.v[i].z * dt; }
@@ -630,6 +644,7 @@ export class Stage {
       if (p >= 1) { this.scene.remove(o); o.geometry && o.geometry.dispose(); o.material.dispose(); return false; }
       return true;
     });
+    for (const fn of later) fn();
   }
 
   _world(st, dt) {
@@ -663,14 +678,15 @@ export class Stage {
     const tanV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
     const aspect = this.camera.aspect;
     const halfWWant = aspect < 1 ? 2.9 : Math.min(6.5, 3.1 * aspect);
-    const dist = Math.min(26, Math.max(9, halfWWant / (tanV * aspect)));
+    const dist = Math.min(26, Math.max(9, halfWWant / (tanV * aspect))) / (this.zoom || 1);
     const halfW = tanV * dist * aspect, halfV = tanV * dist;
     const want = (this._heroX || 0) + halfW * 0.4;
     if (!this._camSet) { this.camX = want; this._camSet = true; }
     this.camX += (want - this.camX) * Math.min(1, (box.dt || 0.016) * 4);
     const lookY = Math.max(1.1, halfV * 0.62);
-    this.camera.position.set(this.camX, lookY + 0.35, dist);
-    this.camera.lookAt(this.camX, lookY, 0);
+    const sh = this.shakeK || 0, jx = (Math.random() - 0.5) * sh, jy = (Math.random() - 0.5) * sh;
+    this.camera.position.set(this.camX + jx, lookY + 0.35 + jy, dist);
+    this.camera.lookAt(this.camX + jx * 0.5, lookY + jy * 0.5, 0);
     this.camera.updateMatrixWorld();
   }
   follow(xUnits) { this._heroX = xUnits * U; }
@@ -686,3 +702,252 @@ export class Stage {
   ready() { return !!this.hero; }
 }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+/* ======================================================================
+   Flash: the action-game layer on top of the Stage (Reel Slayer only).
+   slayer.js pushes events into st.ev (hit, kill, parry, ult) and runs
+   hit-stop / slow motion itself; this turns them into weapon trails,
+   afterimages, impact slashes, launches, camera punches and ultimates.
+   ====================================================================== */
+const TRAIL_N = 16;
+const ULT_COLOR = { sword: 0xffb24a, bomb: 0xff6a2a, bow: 0xffe08a, skull: 0xb06cff, boots: 0x6fb8ff, shield: 0xffd76a, potion: 0xff3a3a, coin: 0xffd040, key: 0x9fe0ff };
+
+Object.assign(Stage.prototype, {
+  _flashInit() {
+    if (this._flashReady || !this.hero) return;
+    this._flashReady = true;
+    this.zoom = 1; this.punchK = 0; this.zoomUlt = 1; this.shakeK = 0;
+    // weapon props: plain meshes on the hand bones; the trail runs from 35% of the blade to its tip
+    const h = this.hero; h.weapons = [];
+    h.root.updateMatrixWorld(true);
+    h.root.traverse(o => {
+      if (!o.isMesh || o.isSkinnedMesh || !o.geometry) return;
+      o.geometry.computeBoundingBox();
+      const b = o.geometry.boundingBox, ext = [b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z];
+      const ax = ext.indexOf(Math.max(...ext)), sorted = ext.slice().sort((p, q) => q - p);
+      if (sorted[0] < sorted[1] * 1.8) return;               // a shield, not a blade
+      const c = b.getCenter(new THREE.Vector3()), e1 = c.clone(), e2 = c.clone();
+      e1.setComponent(ax, b.min.getComponent(ax)); e2.setComponent(ax, b.max.getComponent(ax));
+      o.updateMatrix();
+      const hand = new THREE.Vector3().applyMatrix4(o.matrix.clone().invert());
+      const tip = e1.distanceTo(hand) > e2.distanceTo(hand) ? e1 : e2, grip = tip === e1 ? e2 : e1;
+      h.weapons.push({ o, tip, mid: grip.clone().lerp(tip, 0.35) });
+    });
+    // ribbon trail
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 2 * 3), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 2 * 4), 4));
+    const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    geo.setIndex(idx);
+    this.trail = { pts: [], mesh: new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })) };
+    this.trail.mesh.frustumCulled = false;
+    this.scene.add(this.trail.mesh);
+    // afterimages: posed copies of the hero in a flat additive colour
+    this.ghosts = [];
+    const K = this.phone ? 2 : 4;
+    const src = []; h.root.traverse(o => src.push(o));
+    for (let i = 0; i < K; i++) {
+      const g = SkeletonUtils.clone(h.root);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x7fb8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      g.traverse(o => { if (o.isMesh) { o.material = mat; o.frustumCulled = false; } });
+      const holder = new THREE.Group(); holder.add(g); holder.visible = false; this.scene.add(holder);
+      const dst = []; g.traverse(o => dst.push(o));
+      this.ghosts.push({ holder, mat, src, dst, t: 1 });
+    }
+    this.ghostI = 0; this.ghostClock = 0;
+    this.ultLight = new THREE.PointLight(0xffb24a, 0, 6, 1.4);
+    this.scene.add(this.ultLight);
+    this.ultObjs = [];
+  },
+
+  _ghost(color) {
+    if (!this.ghosts || !this.ghosts.length) return;
+    const G = this.ghosts[this.ghostI++ % this.ghosts.length];
+    for (let i = 0; i < G.dst.length && i < G.src.length; i++) {
+      G.dst[i].position.copy(G.src[i].position); G.dst[i].quaternion.copy(G.src[i].quaternion); G.dst[i].scale.copy(G.src[i].scale);
+    }
+    G.holder.position.copy(this.hero.holder.position); G.holder.rotation.copy(this.hero.holder.rotation);
+    G.mat.color.setHex(color); G.t = 0; G.holder.visible = true;
+  },
+
+  _punch(k) { this.punchK = Math.max(this.punchK, k); },
+
+  /* called from render() once per frame; rdt is real time (hit-stop and slow motion don't apply) */
+  _flashFrame(st, rdt) {
+    if (!this.hero) return;
+    this._flashInit();
+    this._events(st);
+    // weapon trail: sample while a blade move (or an ultimate) is swinging
+    const c = st.cur, swinging = !!(c && (c.m === 'sword' || c.m === 'skull' || c.m === 'bomb' || (st.ult && st.ult !== 'shield')));
+    const T = this.trail;
+    if (swinging && this.hero.weapons.length) {
+      const w = this.hero.weapons[0];
+      w.o.updateMatrixWorld(true);
+      T.pts.unshift([w.tip.clone().applyMatrix4(w.o.matrixWorld), w.mid.clone().applyMatrix4(w.o.matrixWorld)]);
+      if (T.pts.length > TRAIL_N) T.pts.length = TRAIL_N;
+    } else if (T.pts.length) T.pts.length = Math.max(0, T.pts.length - 2);
+    const col = new THREE.Color(st.ult ? ULT_COLOR[st.ult] || 0xffb24a : c && c.m === 'skull' ? 0xb06cff : 0xfff0c8);
+    const pa = T.mesh.geometry.attributes.position, ca = T.mesh.geometry.attributes.color;
+    for (let i = 0; i < TRAIL_N; i++) {
+      const p = T.pts[Math.min(i, Math.max(0, T.pts.length - 1))];
+      const a = T.pts.length > 1 && i < T.pts.length ? (1 - i / T.pts.length) * 0.85 : 0;
+      for (let j = 0; j < 2; j++) {
+        const v = p ? p[j] : new THREE.Vector3();
+        pa.setXYZ(i * 2 + j, v.x, v.y, v.z);
+        ca.setXYZW(i * 2 + j, col.r, col.g, col.b, a * (j ? 0.25 : 1));
+      }
+    }
+    pa.needsUpdate = true; ca.needsUpdate = true;
+    // afterimages on dashes and backsteps (and all combo long under SHADOW STEP / PHANTOM STEP)
+    this.ghostClock -= rdt;
+    const dashing = c && (c.m === 'boots' || c.m === 'key');
+    if ((dashing || st.ult === 'boots' || st.ult === 'key') && st.mode === 'act' && this.ghostClock <= 0) {
+      this.ghostClock = 0.05;
+      this._ghost(st.ult === 'boots' ? 0x9a6cff : 0x7fb8ff);
+    }
+    for (const G of this.ghosts) {
+      if (G.t >= 1) continue;
+      G.t += rdt / 0.4; G.mat.opacity = 0.5 * Math.max(0, 1 - G.t);
+      if (G.t >= 1) G.holder.visible = false;
+    }
+    // ultimate aura and props
+    this._ultFrame(st, rdt);
+    // camera punch decays fast; an ultimate holds a closer frame
+    this.punchK = Math.max(0, this.punchK - rdt * 0.9);
+    this.shakeK = Math.max(0, this.shakeK - rdt * 0.6);
+    const want = Math.max(st.ult && st.mode === 'act' ? 1.2 : 1, 1 + this.punchK);
+    this.zoom += (want - this.zoom) * Math.min(1, rdt * (want > this.zoom ? 14 : 3));
+  },
+
+  _events(st) {
+    const ev = st.ev; if (!ev || !ev.length) return;
+    for (const e of ev) {
+      if (e.k === 'hit') {
+        const a = this.actors.get(e.f), h = a ? a.height * 0.55 : 1;
+        const pos = new THREE.Vector3(e.x * U, h, 0.35);
+        this._burst(e.crit ? 0xffd27a : 0xffe6c0, pos, e.heavy ? 28 : 14, e.heavy ? 3.4 : 2.2, 0.45);
+        this._impactX(pos, e.crit ? 0xffd27a : st.ult ? ULT_COLOR[st.ult] : 0xfff4dc, e.heavy ? 1.1 : 0.75);
+        this._flash(e.crit ? 0xffc060 : 0xffe0b0, e.heavy ? 10 : 5, pos.x);
+        this._punch(e.crit ? 0.16 : e.heavy ? 0.1 : 0.05);
+        this.shakeK = Math.max(this.shakeK, e.heavy ? 0.12 : 0.05);
+      } else if (e.k === 'kill') {
+        const pos = new THREE.Vector3(e.x * U, 1.1, 0.3);
+        this._burst(0xcfa8ff, pos, e.boss ? 80 : 40, 3.2, 1.1);
+        this._burst(0xffffff, pos, 18, 4.5, 0.5);
+        this._ringFx(0xd8b8ff, new THREE.Vector3(pos.x, 0.05, 0), 0.4, e.boss ? 6 : 3.2, 0.6, true);
+        this._flash(0xc8a0ff, e.boss ? 18 : 10, pos.x);
+        this._punch(e.boss ? 0.25 : 0.14);
+      } else if (e.k === 'parry') {
+        const p = new THREE.Vector3(this.hero.holder.position.x, 1.2, 0.4);
+        this._ringFx(0xbfe8ff, p, 0.3, 1.8, 0.35);
+        this._burst(0xbfe8ff, p, 24, 3, 0.4);
+        this._flash(0x9fd6ff, 12, p.x); this._punch(0.12);
+      } else if (e.k === 'ult') this._ultStart(e.sym, st);
+    }
+    ev.length = 0;
+  },
+
+  /* two crossed slash strokes at the point of impact */
+  _impactX(pos, color, size) {
+    for (const r of [0.7, -0.7]) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(size * 1.6, size * 0.12), new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, map: this.glowTex }));
+      m.position.copy(pos); m.rotation.z = r;
+      this.scene.add(m);
+      this.fx.push({ obj: m, t: 0, dur: 0.22, kind: 'slashX', base: size });
+    }
+  },
+
+  _ultStart(sym, st) {
+    this._ultEnd();
+    this.ult = { sym, t: 0 };
+    const col = ULT_COLOR[sym] || 0xffb24a;
+    this.ultLight.color.setHex(col);
+    const x = this.hero.holder.position.x;
+    this._ringFx(col, new THREE.Vector3(x, 0.05, 0), 0.5, 5, 0.8, true);
+    this._burst(col, new THREE.Vector3(x, 1, 0.3), 50, 3.5, 1);
+    this._flash(col, 16, x); this._punch(0.2);
+    if (sym === 'sword') {                         // BLADE STORM: blades orbit the hero
+      for (let i = 0; i < 3; i++) {
+        const m = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.3, 32, 1, 0, Math.PI * 0.55), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+        m.userData.spin = 7 + i * 2; m.userData.tilt = i * 0.9; m.rotation.x = Math.PI / 2 - 0.3;
+        this.scene.add(m); this.ultObjs.push(m);
+      }
+    } else if (sym === 'shield') {                 // IRON WALL: a golden dome
+      const m = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, wireframe: true }));
+      this.scene.add(m); this.ultObjs.push(m);
+    } else if (sym === 'potion') {                 // BLOOD MOON: a red moon over the fight
+      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: 0xff3a2a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+      m.scale.set(3, 3, 1); m.userData.moon = true; this.scene.add(m); this.ultObjs.push(m);
+    }
+  },
+
+  _ultEnd() {
+    for (const o of this.ultObjs || []) { this.scene.remove(o); o.geometry && o.geometry.dispose(); o.material && o.material.dispose(); }
+    this.ultObjs = []; this.ult = null;
+    if (this.ultLight) this.ultLight.intensity = 0;
+  },
+
+  _ultFrame(st, rdt) {
+    if (!this.ult) return;
+    if (!st.ult || st.mode !== 'act') { this._ultEnd(); return; }
+    const u = this.ult; u.t += rdt;
+    const hp = this.hero.holder.position;
+    this.ultLight.position.set(hp.x, 1.3, 0.8);
+    this.ultLight.intensity = 5 + Math.sin(u.t * 12) * 1.5;
+    for (const o of this.ultObjs) {
+      if (o.userData.spin) { o.position.set(hp.x, 1.0 + Math.sin(u.t * 3 + o.userData.tilt) * 0.25, 0); o.rotation.z += o.userData.spin * rdt; }
+      else if (o.userData.moon) o.position.set(hp.x + 1.5, 4.2, -2.6);
+      else { o.position.set(hp.x, 0, 0); o.material.opacity = 0.2 + Math.sin(u.t * 8) * 0.08; o.rotation.y += rdt; }
+    }
+    // a steady rain of the ultimate's colour
+    this._ultRain = (this._ultRain || 0) - rdt;
+    if (this._ultRain <= 0) {
+      this._ultRain = 0.07;
+      const s = u.sym;
+      if (s === 'coin') this._burst(0xffd040, new THREE.Vector3(hp.x + (Math.random() - 0.5) * 3, 3.5, 0.3), 6, 1.2, 1.1);
+      else if (s === 'potion') this._burst(0xff4040, new THREE.Vector3(hp.x + (Math.random() - 0.5) * 2, 0.2, 0.3), 5, 1, 1.2);
+    }
+  },
+
+  /* ultimate versions of a move's effect; returns true when it replaced the normal one */
+  _ultMoveFx(st, c) {
+    if (!st.ult) return false;
+    const x = st.x * U, delay = (MOVE_HIT[c.m] || 0.4) * c.dur * 1000;
+    if (c.m === 'bomb' && st.ult === 'bomb') {      // METEOR FALL
+      for (let i = 0; i < 7; i++) setTimeout(() => this._meteor(x + (Math.random() - 0.5) * 7), i * 70);
+      return true;
+    }
+    if (c.m === 'bow' && st.ult === 'bow') {        // ARROW RAIN
+      for (let i = 0; i < 26; i++) setTimeout(() => this._arrowDrop(x + st.face * (0.5 + Math.random() * 6)), i * 22);
+      return true;
+    }
+    if (c.m === 'skull' && st.ult === 'skull') {    // SOUL REAP: a giant scything arc
+      setTimeout(() => {
+        this._arcFx(st, 0xb06cff, 3.2, 7); this._ringFx(0xb06cff, new THREE.Vector3(x, 0.05, 0), 0.5, 8, 0.8, true);
+        this._burst(0xd0a0ff, new THREE.Vector3(x, 1.2, 0.3), 70, 4.5, 1.2); this._flash(0x9a50ff, 20, x);
+      }, delay);
+      return true;
+    }
+    if (c.m === 'sword' && st.ult === 'sword') {    // BLADE STORM: the arcs come round twice
+      setTimeout(() => { this._arcFx(st, 0xffb24a, 1.6, 9); this._arcFx(st, 0xfff0c8, 1.2, -9); }, delay * 0.6);
+      return false;
+    }
+    return false;
+  },
+
+  _meteor(tx) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: 0xff8a3a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    sp.scale.set(0.9, 0.9, 1); sp.position.set(tx - 2.5, 7, 0.2); this.scene.add(sp);
+    this.fx.push({ obj: sp, t: 0, dur: 0.4, kind: 'fall', from: sp.position.clone(), to: new THREE.Vector3(tx, 0.2, 0.2), done: () => {
+      const p = new THREE.Vector3(tx, 0.5, 0.3);
+      this._spriteFx(0xffa050, p, 1.4, 0.5, 3); this._ringFx(0xff7a30, new THREE.Vector3(tx, 0.05, 0), 0.3, 2.6, 0.5, true);
+      this._burst(0xffc070, p, 24, 3, 0.8); this._flash(0xffa060, 10, tx); this._punch(0.06);
+    } });
+  },
+
+  _arrowDrop(tx) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8, 5), new THREE.MeshBasicMaterial({ color: 0xffe0a0 }));
+    m.position.set(tx - 1, 6, 0.2); m.rotation.z = 0.2; this.scene.add(m);
+    this.fx.push({ obj: m, t: 0, dur: 0.32, kind: 'fall', from: m.position.clone(), to: new THREE.Vector3(tx, 0.3, 0.2), done: () => this._burst(0xffe0a0, new THREE.Vector3(tx, 0.3, 0.3), 5, 1.2, 0.3) });
+  },
+});

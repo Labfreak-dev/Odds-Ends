@@ -22,6 +22,12 @@ const MOVES = {
   key:    { n: 'Backstep',t: 0.45, pose: 'walk' },
 };
 const MOVE_KEYS = Object.keys(MOVES);
+/* Three of a kind: the whole combo becomes that symbol's signature move (double damage, wider reach). */
+const ULTS = {
+  sword: 'BLADE STORM', bomb: 'METEOR FALL', bow: 'ARROW RAIN', skull: 'SOUL REAP', boots: 'SHADOW STEP',
+  shield: 'IRON WALL', potion: 'BLOOD MOON', coin: 'JACKPOT', key: 'PHANTOM STEP',
+};
+const CRIT = 0.12;
 
 /* ---------- foes ---------- */
 // range in world units; wind: seconds of telegraph; cd: rest after a strike
@@ -76,6 +82,7 @@ function newRun(hero) {
     reels: [], order: [], combo: [], queue: [], cur: null, frenzy: false,
     hurtT: 0, invT: 0, parryT: 0, parryPerfect: 0, flash: 0, shake: 0, over: false,
     edge: alt('edge') || 0, banner: null, walkT: 0, spun: 0,
+    ev: [], stopT: 0, slowT: 0, hits: 0, hitsT: 0, ult: null,
   };
   const n = reelCountFor();
   for (let i = 0; i < n; i++) st.reels.push({ strip: heroStrip(hero), pos: rnd(0, 20), v: 0, stop: null, done: true, res: null });
@@ -162,12 +169,20 @@ function buildCombo() {
   }
   const res = st.reels.map(R => R.res);
   const first = res.find(s => s !== 'star');
-  st.frenzy = !!first && first !== 'skull' && res.every(s => s === first || s === 'star');
+  st.frenzy = !!first && res.every(s => s === first || s === 'star');
+  st.ult = st.frenzy ? (MOVES[first] ? first : 'sword') : null;
+  st.hits = 0;
   st.combo = combo;
   st.queue = combo.slice();
   st.mode = 'act';
   st.actT = 0;
-  if (st.frenzy) { st.banner = { t: 0, txt: 'FRENZY ×2' }; try { sfx.jackpot(); } catch (e) { /* ignore */ } }
+  if (st.frenzy) {
+    st.banner = { t: 0, txt: ULTS[st.ult] || 'FRENZY ×2', ult: true };
+    st.ev.push({ k: 'ult', sym: st.ult, name: ULTS[st.ult] });
+    st.slowT = 0.45;                       // the world drops into slow motion as the ultimate starts
+    if (st.ult === 'shield') st.invT = 9;  // IRON WALL: nothing gets through this combo
+    try { sfx.jackpot(); } catch (e) { /* ignore */ }
+  }
   nextMove();
 }
 
@@ -206,17 +221,17 @@ function doMove(dt) {
       let n = 0;
       for (const f of liveFoes()) {
         const dx = (f.x - st.x) * st.face;
-        if (dx > -10 && dx < 85) { hitFoe(f, power(5), 'sword'); n++; }
+        if (dx > (st.ult === 'sword' ? -150 : -10) && dx < (st.ult === 'sword' ? 170 : 85)) { hitFoe(f, power(5), 'sword'); n++; }
       }
       addFx('slash', st.x + st.face * 45, 0.25);
       try { n ? sfx.hit() : sfx.step(); } catch (e) { /* ignore */ }
     }
   } else if (m === 'boots') {
-    const d = 170 * dt / c.dur;
+    const d = (st.ult === 'boots' ? 260 : 170) * dt / c.dur;
     const before = st.x;
     st.x += st.face * d;
     for (const f of liveFoes()) {
-      if (!f._dashed && ((before - f.x) * (st.x - f.x) <= 0)) { f._dashed = true; hitFoe(f, power(3), 'dash'); }
+      if (!f._dashed && ((before - f.x) * (st.x - f.x) <= 0)) { f._dashed = true; hitFoe(f, power(st.ult === 'boots' ? 6 : 3), 'dash'); }
     }
     if (p >= 1) for (const f of st.foes) f._dashed = false;
     if (Math.random() < dt * 30) addFx('after', st.x, 0.25);
@@ -224,17 +239,18 @@ function doMove(dt) {
     st.x -= st.face * 120 * dt / c.dur;
   } else if (m === 'bow' && !c.hit && p >= 0.4) {
     c.hit = true;
-    st.shots.push({ x: st.x + st.face * 30, y: 70, v: st.face * 620, dmg: power(4), mine: true, life: 1.2 });
+    if (st.ult === 'bow') { for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 420) hitFoe(f, power(4), 'bow'); }   // ARROW RAIN: every foe in sight
+    else st.shots.push({ x: st.x + st.face * 30, y: 70, v: st.face * 620, dmg: power(4), mine: true, life: 1.2 });
     try { sfx.arrow(); } catch (e) { /* ignore */ }
   } else if (m === 'bomb' && !c.hit && p >= 0.45) {
     c.hit = true;
-    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 110) hitFoe(f, power(7), 'bomb');
+    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < (st.ult === 'bomb' ? 260 : 110)) hitFoe(f, power(7), 'bomb');
     addFx('boom', st.x + st.face * 20, 0.5);
     st.shake = 10;
     try { sfx.boom(); } catch (e) { /* ignore */ }
   } else if (m === 'skull' && !c.hit && p >= 0.4) {
     c.hit = true;
-    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < 140) hitFoe(f, power(10), 'skull');
+    for (const f of liveFoes()) if (Math.abs(f.x - st.x) < (st.ult === 'skull' ? 280 : 140)) hitFoe(f, power(10), 'skull');
     hurtHero(3, true);
     addFx('curse', st.x, 0.6);
     st.shake = 12;
@@ -254,11 +270,27 @@ function doMove(dt) {
 function hitFoe(f, dmg, how) {
   if (f.dead) return;
   if (f.t === 'ironclad' && how === 'sword' && !st.frenzy) dmg = Math.ceil(dmg / 3);
+  const crit = (how === 'sword' || how === 'bow' || how === 'dash') && Math.random() < CRIT;
+  if (crit) dmg = Math.round(dmg * 1.5);
+  const heavy = crit || st.frenzy || how === 'bomb' || how === 'skull' || how === 'parry';
+  // knockback away from the hero; heavy blows launch
+  const dir = Math.sign(f.x - st.x) || st.face;
+  f.kv = dir * (f.boss ? 90 : heavy ? 300 : 140);
+  if (heavy && !f.boss) f.air = Math.max(f.air || 0, 0.55);
+  st.stopT = Math.max(st.stopT, heavy ? 0.1 : 0.055);      // hit-stop: the world holds on the impact
+  st.shake = Math.max(st.shake, heavy ? 10 : 5);
+  st.hits++; st.hitsT = 1.4;
+  st.ev.push({ k: 'hit', f, dmg, how, crit, heavy, x: f.x });
+  if (crit) floater('CRIT!', '#ffd27a', f.x, 205);
   f.hp -= dmg; f.flash = 1; f.stun = Math.max(f.stun, how === 'bomb' || how === 'skull' ? 0.5 : 0.2);
   if (f.state === 'wind' && (how === 'bomb' || how === 'skull' || how === 'parry')) { f.state = 'walk'; f.cdT = f.cd; floater('INTERRUPT', '#9fd6ff', f.x, 175); }
-  floater('-' + dmg, how === 'parry' ? '#9fd6ff' : '#fff', f.x, 150);
+  floater((crit ? '' : '-') + dmg + (crit ? '!' : ''), crit ? '#ffd27a' : how === 'parry' ? '#9fd6ff' : '#fff', f.x, 150);
   if (f.hp <= 0) {
     f.dead = true; f.deadT = 0; st.kills++;
+    f.air = Math.max(f.air || 0, 0.7); f.kv = dir * (f.boss ? 160 : 380);
+    st.ev.push({ k: 'kill', f, boss: !!f.boss, x: f.x });
+    if (f.boss || !liveFoes().length) st.slowT = Math.max(st.slowT, 0.9);   // last foe or a boss: slow-motion finish
+    st.stopT = Math.max(st.stopT, 0.12);
     const g = f.boss ? 8 : (Math.random() < 0.6 ? 1 : 0);
     if (g) {
     st.coins += g; floater('+' + g + ' 🪙', '#e8c77a', f.x, 190); }
@@ -279,7 +311,7 @@ function strikeHero(f, dmg) {
     floater(perfect ? 'PERFECT PARRY' : 'blocked', '#9fd6ff', st.x, 180);
     addFx('parry', st.x + st.face * 20, 0.3);
     try { sfx.block(); } catch (e) { /* ignore */ }
-    if (f && perfect) hitFoe(f, power(6), 'parry');
+    if (f && perfect) { st.ev.push({ k: 'parry' }); hitFoe(f, power(6), 'parry'); }
     else if (!perfect) hurtHero(Math.floor(dmg / 3), false);
     return;
   }
@@ -287,7 +319,7 @@ function strikeHero(f, dmg) {
 }
 function endAct() {
   st.mode = 'plan';
-  st.parryT = 0; st.invT = 0;
+  st.parryT = 0; st.invT = 0; st.ult = null;
   for (const f of st.foes) f._dashed = false;
   if (!liveFoes().length && !st.over) { st.mode = 'walk'; st.walkT = 1.1; st.coins += 3; floater('WAVE CLEAR +3 🪙', '#e8c77a', st.x, 200); }
   else if (st.coins < 1 && !st.over) endRun('broke');
@@ -296,8 +328,10 @@ function endAct() {
 /* ---------- foes (only move while the combo plays) ---------- */
 function updateFoes(dt) {
   for (const f of st.foes) {
-    if (f.dead) { f.deadT += dt; continue; }
+    if (f.dead) { f.deadT += dt; if (f.kv) { f.x += f.kv * dt; f.kv *= Math.pow(0.01, dt); } if (f.air) f.air = Math.max(0, f.air - dt); continue; }
     f.flash = Math.max(0, f.flash - dt * 4);
+    if (f.kv) { f.x += f.kv * dt; f.kv *= Math.pow(0.004, dt); if (Math.abs(f.kv) < 4) f.kv = 0; }
+    if (f.air) f.air = Math.max(0, f.air - dt);
     f.lunge = Math.max(0, f.lunge - dt * 3);
     if (f.stun > 0) { f.stun -= dt; continue; }
     const d = st.x - f.x, dist = Math.abs(d);
@@ -392,10 +426,11 @@ function draw() {
   if (S3) {
     if (S3.ready()) cx.clearRect(0, 0, L.W, L.H);
     cv3.style.transform = sh ? 'translateX(' + sh.toFixed(1) + 'px)' : '';
-    try { S3.follow(st.x); S3.render(st, frameDt, { w: L.W, h: L.reelTop, dt: frameDt }); }
+    try { S3.follow(st.x); S3.render(st, frameDt, { w: L.W, h: L.reelTop, dt: st.rdt || frameDt }); }
     catch (e) { console.warn('Reel Slayer 3D stopped; 2D stays.', e); S3 = null; cv3.style.display = 'none'; }
   }
   if (S3 && S3.ready()) { draw3dOverlay(L); drawAfter(L); return; }
+  if (st.ev.length) st.ev.length = 0;        // 2D: the events are only for the 3D stage
   cx.fillStyle = '#0a0709'; cx.fillRect(0, 0, L.W, L.H);
   cx.save(); cx.translate(sh, 0);
   // backdrop
@@ -483,8 +518,25 @@ function drawAfter(L) {
   if (st.flash > 0) { cx.fillStyle = 'rgba(200,40,30,' + (st.flash * 0.35) + ')'; cx.fillRect(0, 0, L.W, L.H); }
   if (planning) { cx.fillStyle = 'rgba(20,30,40,.18)'; cx.fillRect(0, 0, L.W, L.reelTop); }
   drawHud(L);
+  drawHits(L);
   drawReels(L);
-  if (st.banner) {
+  if (st.banner && st.banner.ult) {
+    // an ultimate's name slams in over a dark band
+    const p = st.banner.t / 1.6, y = L.H * 0.28;
+    const a = p < 0.08 ? p / 0.08 : Math.max(0, 1 - (p - 0.7) / 0.3);
+    const sc = p < 0.12 ? 2.2 - (p / 0.12) * 1.2 : 1;
+    cx.save(); cx.globalAlpha = a;
+    const band = cx.createLinearGradient(0, 0, L.W, 0);
+    band.addColorStop(0, 'rgba(0,0,0,0)'); band.addColorStop(0.2, 'rgba(10,2,2,.78)'); band.addColorStop(0.8, 'rgba(10,2,2,.78)'); band.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = band; cx.fillRect(0, y - 42, L.W, 60);
+    cx.translate(L.W / 2, y); cx.scale(sc, sc);
+    cx.font = Math.round(40 + 10 * L.k) + "px 'Pirata One',Georgia,serif"; cx.textAlign = 'center';
+    cx.shadowColor = '#ff5a1a'; cx.shadowBlur = 24;
+    const g = cx.createLinearGradient(0, -40, 0, 4); g.addColorStop(0, '#fff3c8'); g.addColorStop(0.5, '#ffb24a'); g.addColorStop(1, '#c2361a');
+    cx.lineWidth = 6; cx.strokeStyle = '#1a0500'; cx.strokeText(st.banner.txt, 0, 0);
+    cx.fillStyle = g; cx.fillText(st.banner.txt, 0, 0);
+    cx.restore();
+  } else if (st.banner) {
     const p = st.banner.t / 1.6;
     cx.globalAlpha = p < 0.15 ? p / 0.15 : Math.max(0, 1 - (p - 0.6) / 0.4);
     cx.font = Math.round(34 + 8 * L.k) + "px 'Pirata One',Georgia,serif"; cx.textAlign = 'center';
@@ -525,6 +577,24 @@ function draw3dOverlay(L) {
     cx.fillStyle = f.col; cx.fillText(f.txt, p.x, p.y - f.t * 40);
   }
   cx.globalAlpha = 1;
+}
+/* The combo counter: climbs with every blow that lands this combo. */
+function drawHits(L) {
+  if (st.hits < 2) return;
+  const pop = Math.max(0, st.hitsT - 1.15) * 4, a = Math.min(1, st.hitsT / 0.4);
+  cx.save();
+  cx.globalAlpha = a;
+  cx.translate(L.W - 18, 70);
+  cx.scale(1 + pop * 0.5, 1 + pop * 0.5);
+  cx.textAlign = 'right';
+  cx.font = "46px 'Pirata One',Georgia,serif";
+  cx.lineWidth = 5; cx.strokeStyle = '#000';
+  cx.strokeText(String(st.hits), 0, 0);
+  const g = cx.createLinearGradient(0, -40, 0, 0); g.addColorStop(0, '#fff1c4'); g.addColorStop(1, st.ult ? '#ff7a3a' : '#e8b04a');
+  cx.fillStyle = g; cx.fillText(String(st.hits), 0, 0);
+  cx.font = "16px 'Pirata One',Georgia,serif"; cx.lineWidth = 3;
+  cx.strokeText('HITS', 0, 18); cx.fillStyle = '#e8c77a'; cx.fillText('HITS', 0, 18);
+  cx.restore();
 }
 function drawHud(L) {
   const top = 14;
@@ -598,10 +668,16 @@ function drawReels(L) {
 /* ---------- loop ---------- */
 function tick(now) {
   raf = requestAnimationFrame(tick);
-  const dt = Math.min(0.05, (now - (last || now)) / 1000);
-  last = now; frameDt = dt;
+  const rdt = Math.min(0.05, (now - (last || now)) / 1000);
+  last = now;
   if (!st) return;
-  updateReels(dt);
+  updateReels(rdt);
+  // hit-stop freezes the fight for a few frames; slow motion runs it at a third
+  let dt = rdt;
+  if (st.stopT > 0) { st.stopT = Math.max(0, st.stopT - rdt); dt = 0; }
+  else if (st.slowT > 0) { st.slowT = Math.max(0, st.slowT - rdt); dt = rdt * 0.35; }
+  frameDt = dt; st.rdt = rdt;
+  if (st.hitsT > 0) { st.hitsT -= rdt; if (st.hitsT <= 0) st.hits = 0; }
   const running = st.mode === 'act' || st.mode === 'walk';
   if (st.mode === 'act') {
     st.invT = Math.max(0, st.invT - dt);
@@ -618,11 +694,11 @@ function tick(now) {
     for (const e of st.fx) e.t += dt;
     st.fx = st.fx.filter(e => e.t < e.dur);
   }
-  st.flash = Math.max(0, st.flash - dt * 2);
-  st.shake = Math.max(0, st.shake - dt * 30);
-  for (const f of st.fl) f.t += dt;
+  st.flash = Math.max(0, st.flash - rdt * 2);
+  st.shake = Math.max(0, st.shake - rdt * 30);
+  for (const f of st.fl) f.t += rdt;
   st.fl = st.fl.filter(f => f.t < 1.1);
-  if (st.banner) { st.banner.t += dt; if (st.banner.t > 1.6) st.banner = null; }
+  if (st.banner) { st.banner.t += rdt; if (st.banner.t > 1.6) st.banner = null; }
   const L = layout();
   const want = st.x - L.viewW * 0.3;
   st.cam += (want - st.cam) * Math.min(1, dt * 4);
@@ -725,5 +801,6 @@ function close() {
   try { showHub('main'); } catch (e) { /* ignore */ }
 }
 window.Slayer = { open, close, get state() { return st; }, get stage() { return S3; }, _stop: stopReel, _spin: spin,
-  _wave(n) { if (!st) return; st.wave = n - 1; st.foes = []; nextWave(); } };
+  _wave(n) { if (!st) return; st.wave = n - 1; st.foes = []; nextWave(); },
+  _force(syms) { if (!st || st.mode !== 'plan') return; st.order = syms.map((x, i) => i); st.reels.forEach((R, i) => { R.res = syms[i] || syms[0]; R.done = true; }); st.mode = 'spin'; buildCombo(); } };
 })();

@@ -49,10 +49,22 @@ export const FOE3D = {
   mimic: { static: true, hover: 0 }, brainjar: { static: true, hover: 0 }, bandit: { static: true, hover: 0 },
 };
 
+/* A phone is a touch device with a small screen, not just a short laptop screen
+   (that misread turned anti-aliasing off on PCs and made the models look jaggy). */
 function phoneLike() {
+  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '')) return true;
   const w = Math.min(screen.width || 0, screen.height || 0) || window.innerWidth;
-  return w < 820 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '');
+  return (navigator.maxTouchPoints || 0) > 1 && w < 820;
 }
+
+/* Heroes carry their weapons as props on the hand bones, gripped for their own
+   clips. These library moves map to the hero's own clip when it has one. */
+const HERO_OWN = {
+  Combat_Stance: 'Combat_Idle', Attack: 'Attack', Double_Combo_Attack: 'Attack', Left_Slash: 'Attack',
+  Triple_Combo_Attack: 'Attack_Heavy', Hit_Reaction: 'Hit_React', Dead: 'Death', Roll_Dodge: 'Dodge',
+  Sword_Parry: 'Block', Victory_Cheer: 'Victory',
+};
+const GRIP_BONES = ['LeftHand', 'RightHand'];
 
 export async function boot(canvas) {
   const stage = new Stage(canvas);
@@ -67,8 +79,8 @@ export class Stage {
     this.canvas = canvas;
     this.overlay = !!opts.overlay;
     this.phone = phoneLike();
-    const r = new THREE.WebGLRenderer({ canvas, antialias: !this.phone, alpha: this.overlay, powerPreference: 'high-performance' });
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.phone ? 1.25 : 2));
+    const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: this.overlay, powerPreference: 'high-performance' });
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.phone ? 1.75 : 2));
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.AgXToneMapping;
     r.toneMappingExposure = 1.4;
@@ -233,6 +245,7 @@ export class Stage {
       holder, root, blob, mats, height, hips, hipY: hips ? hips.position.y : 0,
       hipX: hips ? hips.position.x : 0, hipZ: hips ? hips.position.z : 0,
       mixer: hips ? new THREE.AnimationMixer(root) : null, actions: {}, cur: null, opts: opts || {},
+      own: opts && opts.hero ? Object.fromEntries((gltf.animations || []).map(c => [c.name, c])) : null,
       width: Math.max(0.5, box.max.x - box.min.x),
     };
     blob.scale.set(a.width * 1.2, a.width * 0.6, 1);
@@ -243,11 +256,26 @@ export class Stage {
      moves the actor) and hip height scaled to this actor's legs. */
   _clip(a, name) {
     if (a.actions[name]) return a.actions[name];
-    const src = this.clips[name];
-    if (!src || !a.mixer) return null;
+    if (!a.mixer) return null;
+    const ownName = a.own && HERO_OWN[name];
+    const own = ownName && a.own[ownName];
+    const src = own || this.clips[name];
+    if (!src) return null;
     const c = src.clone();
     const srcHip = this._srcHip || (this._srcHip = this._sourceHipY());
-    const k = srcHip > 0 && a.hipY > 0 ? a.hipY / srcHip : 1;
+    const k = own ? 1 : (srcHip > 0 && a.hipY > 0 ? a.hipY / srcHip : 1);
+    if (a.own && !own) {
+      // a borrowed move: keep the hero's own wrist grip so the weapon stays seated in the hand
+      const idle = a.own.Combat_Idle;
+      for (const bone of GRIP_BONES) {
+        const key = bone + '.quaternion';
+        const from = idle && idle.tracks.find(t => t.name === key);
+        const i = c.tracks.findIndex(t => t.name === key);
+        if (i < 0) continue;
+        if (from) c.tracks[i] = new THREE.QuaternionKeyframeTrack(key, [0], Array.from(from.values.slice(0, 4)));
+        else c.tracks.splice(i, 1);
+      }
+    }
     for (const t of c.tracks) {
       if (t.name.endsWith('.position') && t.name.startsWith('Hips')) {
         // keep this actor's own hip x/z (the game moves it); scale the height to its legs

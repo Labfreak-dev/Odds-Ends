@@ -68,8 +68,9 @@ const GRIP_BONES = ['LeftHand', 'RightHand'];
 /* Weapons whose file seat misses the fist, re-seated at load: `handle` is the handle's
    centre as a fraction of the weapon's length from the end nearest the hand. The handle
    goes to the centre of the fist and the blade is turned square to the hand, so it
-   can't swing back through the forearm. Returns the hand bones it re-seated. */
-const SEAT = { Sword: { handle: 0.145 } };
+   can't swing back through the forearm; `flip` runs the blade out the other side of
+   the fist (point up, not a knife-grip). Returns the hand bones it re-seated. */
+const SEAT = { Sword: { handle: 0.145, flip: true } };
 
 function seatWeapons(root) {
   const seated = new Set();
@@ -107,7 +108,9 @@ function seatWeapons(root) {
     // square the blade to the hand's long axis (bone space +y runs wrist to fingers)
     const flat = dir.clone().setY(0);
     if (flat.lengthSq() < 1e-4) continue;
-    const turn = new THREE.Quaternion().setFromUnitVectors(dir, flat.normalize());
+    flat.normalize();
+    if (SEAT[w.name].flip) flat.negate();
+    const turn = new THREE.Quaternion().setFromUnitVectors(dir, flat);
     w.quaternion.premultiply(turn);
     w.updateMatrix();
     const at = handleL.clone().applyMatrix4(w.matrix);

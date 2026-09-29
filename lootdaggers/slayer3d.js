@@ -408,6 +408,11 @@ export class Stage {
     const src = own || this.clips[name];
     if (!src) return null;
     const c = src.clone();
+    // A shared library clip was recorded on another skeleton: its bone positions and scales
+    // are that rig's bone lengths, and on a differently built body (the Hex Priest's long
+    // limbs, a robe's bones) they stretch and squash the mesh. Keep only the rotations and
+    // the hip height, so every body keeps its own proportions.
+    if (!own) c.tracks = c.tracks.filter(t => t.name.endsWith('.quaternion') || t.name === 'Hips.position');
     const srcHip = this._srcHip || (this._srcHip = this._sourceHipY());
     const k = own ? 1 : (srcHip > 0 && a.hipY > 0 ? a.hipY / srcHip : 1);
     if (a.own && !own) {
@@ -1000,8 +1005,15 @@ Object.assign(Stage.prototype, {
   },
 
   _events(st) {
-    const ev = st.ev; if (!ev || !ev.length) return;
+    if (!st.ev || !st.ev.length) return;
+    // take the events first: a bad one must not stay queued and fail every frame after
+    const ev = st.ev.splice(0);
     for (const e of ev) {
+      try { this._event(st, e); } catch (err) { console.warn('Reel Slayer 3D: effect failed', e.k, err); }
+    }
+  },
+  _event(st, e) {
+    {
       if (e.k === 'hit') {
         const a = this.actors.get(e.f), h = a ? a.height * 0.55 : 1;
         const pos = new THREE.Vector3(e.x * U, h, 0.35);
@@ -1065,7 +1077,6 @@ Object.assign(Stage.prototype, {
         this.shakeK = Math.max(this.shakeK, e.big ? 0.2 : 0.14);
       } else if (e.k === 'ult') this._ultStart(e.sym, st);
     }
-    ev.length = 0;
   },
 
   /* two crossed slash strokes at the point of impact */

@@ -125,7 +125,17 @@ function wavePool(w) {
 
 /* ---------- state ---------- */
 let st = null, cv = null, cx = null, root = null, raf = 0, last = 0;
-let cv3 = null, S3 = null, s3tried = false, frameDt = 0.016;
+let cv3 = null, S3 = null, s3tried = false, frameDt = 0.016, s3err = 0;
+/* If the 3D view ever gives up, say why on screen (a screenshot of this is a bug report). */
+function showErr3d(msg) {
+  try {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:absolute;left:8px;right:8px;top:64px;z-index:5;padding:6px 8px;background:rgba(40,8,8,.85);color:#ffb0a0;font:11px ui-monospace,monospace;border:1px solid #803030;border-radius:6px;pointer-events:none';
+    d.textContent = '3D view stopped (2D from here): ' + msg.slice(0, 220);
+    root.appendChild(d);
+    setTimeout(() => d.remove(), 12000);
+  } catch (e) { /* ignore */ }
+}
 const U3 = 0.0155;   // slayer3d.js meters per world unit
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -749,8 +759,19 @@ function draw() {
   if (S3) {
     if (S3.ready()) cx.clearRect(0, 0, L.W, L.H);
     cv3.style.transform = sh ? 'translateX(' + sh.toFixed(1) + 'px)' : '';
-    try { S3.follow(st.x); S3.render(st, frameDt, { w: L.W, h: L.reelTop, dt: st.rdt || frameDt }); }
-    catch (e) { console.warn('Reel Slayer 3D stopped; 2D stays.', e); S3 = null; cv3.style.display = 'none'; }
+    // one bad frame must not end the 3D view: only a run of 30 failing frames in a row
+    // falls back to 2D, and then the error is shown so it can be reported
+    try { S3.follow(st.x); S3.render(st, frameDt, { w: L.W, h: L.reelTop, dt: st.rdt || frameDt }); s3err = 0; }
+    catch (e) {
+      console.warn('Reel Slayer 3D frame failed', e);
+      if (++s3err >= 30) {
+        S3 = null; cv3.style.display = 'none';
+        const msg = String(e && (e.stack || e.message) || e).split('\n').slice(0, 2).join(' · ');
+        try { localStorage.setItem('ld_slayer3d_err', msg); } catch (x) { /* ignore */ }
+        floater('3D view stopped: ' + msg.slice(0, 90), '#ff9a7a', st.x, 230);
+        showErr3d(msg);
+      }
+    }
   }
   if (S3 && S3.ready()) { draw3dOverlay(L); drawAfter(L); return; }
   if (st.ev.length) st.ev.length = 0;        // 2D: the events are only for the 3D stage
@@ -1145,7 +1166,9 @@ function boot3d() {
   s3tried = true;
   if (/[?&]flat\b/.test(location.search)) return;
   try { const t = document.createElement('canvas'); if (!(t.getContext('webgl2') || t.getContext('webgl'))) return; } catch (e) { return; }
-  import('./slayer3d.js').then(m => m.boot(cv3)).then(stage => { S3 = stage; cv3.style.display = 'block'; })
+  // phones drop the GL context under memory pressure; three.js rebuilds it when the browser restores it
+  cv3.addEventListener('webglcontextlost', () => console.warn('Reel Slayer 3D: GL context lost; waiting for the browser to restore it'));
+  import('./slayer3d.js').then(m => m.boot(cv3)).then(stage => { S3 = stage; s3err = 0; cv3.style.display = 'block'; })
     .catch(e => { console.warn('Reel Slayer 3D unavailable; 2D sprites stay.', e); S3 = null; });
 }
 function close() {

@@ -24,9 +24,11 @@ export const MOVE_CLIPS = {
   coin:   { clip: 'Chest_Pound_Taunt', hit: 0.4 },
   skull:  { clip: 'Reaping_Swing', hit: 0.45 },
   key:    { clip: 'Step_Back', hit: 0.5 },
+  volley: { clip: 'Archery_Shot', hit: 0.55 },
+  missile:{ clip: 'Charged_Spell_Cast', hit: 0.55 },
 };
 /* move timing in slayer.js: the fraction of the move where its effect fires */
-const MOVE_HIT = { sword: 0.3, boots: 0.45, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5 };
+const MOVE_HIT = { sword: 0.3, boots: 0.45, shield: 0.2, bow: 0.4, bomb: 0.45, potion: 0.5, coin: 0.5, skull: 0.4, key: 0.5, volley: 0.35, missile: 0.25 };
 
 /* Foes: model file, rigged or code-animated, clip choices, height (m). */
 export const FOE3D = {
@@ -40,7 +42,7 @@ export const FOE3D = {
   abom:     { attack: 'Heavy_Hammer_Swing', hitAt: 0.5, walk: 'Mummy_Stagger' },
   reaper:   { attack: 'Reaping_Swing', hitAt: 0.45 },
   homunculus: { attack: 'Attack', hitAt: 0.45 },
-  boneking: { attack: 'Sword_Judgment', hitAt: 0.5 },
+  boneking: { attack: 'Triple_Combo_Attack', hitAt: 0.4 },   // not Sword_Judgment: it leaps, and the world freezes mid-wind-up while you plan
   lich:     { attack: 'Charged_Spell_Cast', hitAt: 0.55 },
   labfreak: { attack: 'mage_soell_cast', hitAt: 0.5 },
   labfreak2:{ attack: 'Charged_Ground_Slam', hitAt: 0.55, walk: 'Mummy_Stagger' },
@@ -137,8 +139,10 @@ export class Stage {
     const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: this.overlay, powerPreference: 'high-performance' });
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.phone ? 1.75 : 2));
     r.outputColorSpace = THREE.SRGBColorSpace;
-    r.toneMapping = THREE.AgXToneMapping;
-    r.toneMappingExposure = 1.4;
+    // AgX flattens colour toward grey; Reel Slayer's own world wants bold colour, so it
+    // uses ACES (more contrast and saturation). The crawl overlay keeps AgX.
+    r.toneMapping = this.overlay ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
+    r.toneMappingExposure = this.overlay ? 1.4 : 1.15;
     this.renderer = r;
     this.scene = new THREE.Scene();
     if (!this.overlay) {
@@ -163,7 +167,7 @@ export class Stage {
     this.heroId = null;
     this.skinId = null;
     this._buildLights();
-    if (!this.overlay) this._buildWorld();
+    if (!this.overlay) { this._worldLook(); this._buildWorld(); }
   }
 
   async load() {
@@ -182,6 +186,16 @@ export class Stage {
   }
 
   /* ---------- world ---------- */
+  /* Reel Slayer's lighting: less flat grey fill, a warm key, a saturated teal rim and
+     hotter torches, so the scene reads in colour (the crawl sets its own after this). */
+  _worldLook() {
+    this.scene.traverse(o => { if (o.isHemisphereLight) { o.intensity = 0.7; o.color.setHex(0x8090a8); o.groundColor.setHex(0x3a2010); } });
+    this.keyLight.intensity = 2.8; this.keyLight.color.setHex(0xffcf9a);
+    this.rimLight.intensity = 1.5; this.rimLight.color.setHex(0x40e0b0);
+    this.scene.environmentIntensity = 0.45;
+    this.torchHot = 1.6;
+  }
+
   _buildLights() {
     const S = this.scene;
     S.add(new THREE.HemisphereLight(0x9fb4c4, 0x2a1d18, 1.3));
@@ -222,7 +236,7 @@ export class Stage {
     const floorTex = texFrom('bg_floor', 200, 7);
     if (floorTex) floorTex.wrapT = THREE.RepeatWrapping;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 28),
-      new THREE.MeshStandardMaterial({ color: floorTex ? 0xffffff : 0x2a2224, map: floorTex, roughness: 0.95 }));
+      new THREE.MeshStandardMaterial({ color: floorTex ? 0xf2dcc4 : 0x2a2224, map: floorTex, roughness: 0.95 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.set(60, 0, 10.8);
     if (floorTex) floorTex.repeat.y = 4;
@@ -230,7 +244,7 @@ export class Stage {
     // back wall: the dungeon painting, set back so the characters stand in front of it
     const wallTex = texFrom('bg_wall', 200, 11);
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(200, 11),
-      new THREE.MeshStandardMaterial({ color: wallTex ? 0xbfbfbf : 0x1d1a1e, map: wallTex, roughness: 1 }));
+      new THREE.MeshStandardMaterial({ color: wallTex ? 0xd0bca6 : 0x1d1a1e, map: wallTex, roughness: 1 }));
     wall.position.set(60, 5.3, -3.2);
     S.add(wall);
     this.wall = wall;
@@ -305,7 +319,34 @@ export class Stage {
       width: Math.max(0.5, box.max.x - box.min.x), seated,
     };
     blob.scale.set(a.width * 1.2, a.width * 0.6, 1);
+    if (a.mixer) this._ground(a);
     return a;
+  }
+
+  /* Stand a rigged actor on the floor. The library clips set hip height from a rig
+     scaled to this actor's legs, which leaves some models floating (robes, piles,
+     heavy armour) and some sunk; so pose it in its fighting stance once, find the
+     lowest skinned vertex and shift the model so that point is at y 0. */
+  _ground(a) {
+    const act = this._clip(a, 'Combat_Stance');
+    if (!act) return;
+    act.reset().play(); act.time = act.getClip().duration * 0.3;
+    a.mixer.update(0);
+    a.holder.updateMatrixWorld(true);
+    let lo = Infinity;
+    const v = new THREE.Vector3();
+    a.root.traverse(o => {
+      if (!o.isSkinnedMesh) return;
+      const P = o.geometry.attributes.position;
+      for (let i = 0; i < P.count; i += 4) {
+        o.getVertexPosition(i, v);
+        v.applyMatrix4(o.matrixWorld);
+        a.holder.worldToLocal(v);
+        if (v.y < lo) lo = v.y;
+      }
+    });
+    act.stop();
+    if (isFinite(lo) && Math.abs(lo) > 0.01) { a.root.position.y -= lo; a.groundY = -lo; }
   }
 
   /* A library clip, fitted to this actor: root x/z motion removed (the game
@@ -600,7 +641,13 @@ export class Stage {
     for (const s of st.shots) {
       let m = this.shotMeshes.get(s);
       if (!m) {
-        if (s.mine) {
+        if (s.kind === 'missile') {
+          // a violet bolt: a hot core in a wide glow
+          m = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: 0xb070ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+          m.scale.set(0.7, 0.7, 1);
+          const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+          core.scale.set(0.35, 0.35, 1); m.add(core);
+        } else if (s.mine) {
           m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.7, 5), new THREE.MeshBasicMaterial({ color: 0xf0e0b0 }));
           m.rotation.z = Math.PI / 2;
           const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: 0xffd98a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
@@ -612,6 +659,8 @@ export class Stage {
         this.scene.add(m); this.shotMeshes.set(s, m);
       }
       m.position.set(s.x * U, s.y * U + 0.3, 0.1);
+      if (s.kind === 'missile' && Math.random() < 0.5) this._spriteFx(0x9a50ff, m.position.clone(), 0.3, 0.25, 0.4);   // sparks behind it
+      if (s.mine && s.kind !== 'missile') m.rotation.z = s.v < 0 ? -Math.PI / 2 : Math.PI / 2;
     }
     for (const [s, m] of this.shotMeshes) if (!live.has(s)) { this.scene.remove(m); this.shotMeshes.delete(s); }
   }
@@ -659,6 +708,8 @@ export class Stage {
     else if (m === 'skull') later(() => { this._ringFx(0xb07cf0, new THREE.Vector3(x, 0.05, 0), 0.5, 4.4, 0.7, true); this._spriteFx(0x9a50ff, new THREE.Vector3(x, 1, 0.2), 1.6, 0.6, 2.2); this._burst(0xc890ff, new THREE.Vector3(x, 0.8, 0.2), 50, 3.4, 0.9); this._flash(0x9a50ff, 14, x); });
     else if (m === 'potion') later(() => this._burst(0x8cff96, new THREE.Vector3(x, 0.4, 0.2), 30, 1.2, 1.1));
     else if (m === 'coin') later(() => this._burst(0xffd060, new THREE.Vector3(x, 1.3, 0.2), 24, 1.6, 0.9));
+    else if (m === 'volley') { this._spriteFx(0x9fe890, new THREE.Vector3(x + st.face * 0.4, 1.5, 0.3), 0.5, 0.3, 2); }
+    else if (m === 'missile') { this._spriteFx(0xb070ff, new THREE.Vector3(x + st.face * 0.4, 1.4, 0.3), 0.6, 0.45, 2.4); this._burst(0xc890ff, new THREE.Vector3(x + st.face * 0.4, 1.4, 0.3), 20, 1.6, 0.5); }
     else if (m === 'bow') later(() => this._spriteFx(0xffe0a0, new THREE.Vector3(x + st.face * 0.5, 1.3, 0.3), 0.4, 0.2, 2));
   }
   _burstAtFoes(st, color, reach) {
@@ -718,7 +769,7 @@ export class Stage {
     this.torchLights.forEach((L, i) => {
       const p = near[i]; if (!p) return;
       L.position.set(p.x, p.y, -2.4);
-      L.intensity = 5 + Math.sin(t * 13 + i * 2) * 0.8 + Math.sin(t * 7.3 + i) * 0.6;
+      L.intensity = (5 + Math.sin(t * 13 + i * 2) * 0.8 + Math.sin(t * 7.3 + i) * 0.6) * (this.torchHot || 1);
     });
   }
 
@@ -768,7 +819,7 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
    afterimages, impact slashes, launches, camera punches and ultimates.
    ====================================================================== */
 const TRAIL_N = 16;
-const ULT_COLOR = { sword: 0xffb24a, bomb: 0xff6a2a, bow: 0xffe08a, skull: 0xb06cff, boots: 0x6fb8ff, shield: 0xffd76a, potion: 0xff3a3a, coin: 0xffd040, key: 0x9fe0ff };
+const ULT_COLOR = { sword: 0xffb24a, bomb: 0xff6a2a, bow: 0xffe08a, skull: 0xb06cff, boots: 0x6fb8ff, shield: 0xffd76a, potion: 0xff3a3a, coin: 0xffd040, key: 0x9fe0ff, volley: 0x9fe890, missile: 0xb070ff };
 
 Object.assign(Stage.prototype, {
   _flashInit() {
@@ -836,7 +887,7 @@ Object.assign(Stage.prototype, {
     this._flashInit();
     this._events(st);
     // weapon trail: sample while a blade move (or an ultimate) is swinging
-    const c = st.cur, swinging = !!(c && (c.m === 'sword' || c.m === 'skull' || c.m === 'bomb' || (st.ult && st.ult !== 'shield')));
+    const c = st.cur, swinging = !!(c && (c.m === 'sword' || c.m === 'skull' || c.m === 'bomb' || (st.ult && !['shield', 'volley', 'missile'].includes(st.ult))));
     const T = this.trail;
     if (swinging && this.hero.weapons.length) {
       const w = this.hero.weapons[0];
@@ -906,6 +957,9 @@ Object.assign(Stage.prototype, {
         this._ringFx(0xbfe8ff, p, 0.3, 1.8, 0.35);
         this._burst(0xbfe8ff, p, 24, 3, 0.4);
         this._flash(0x9fd6ff, 12, p.x); this._punch(0.12);
+      } else if (e.k === 'drop') {
+        this._arrowDrop(e.x * U, 0x9fe890);
+        if (st.ult === 'volley') for (let i = 0; i < 3; i++) setTimeout(() => this._arrowDrop(e.x * U + (Math.random() - 0.5) * 1.6, 0x9fe890), i * 40);
       } else if (e.k === 'land') {
         // the boots leap slamming down: shockwave, dust and a hard camera punch
         const x = e.x * U, col = e.big ? 0x9a6cff : 0x9fc8ff;
@@ -1018,9 +1072,11 @@ Object.assign(Stage.prototype, {
     } });
   },
 
-  _arrowDrop(tx) {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8, 5), new THREE.MeshBasicMaterial({ color: 0xffe0a0 }));
+  _arrowDrop(tx, color = 0xffe0a0) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8, 5), new THREE.MeshBasicMaterial({ color }));
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    glow.scale.set(0.18, 0.7, 1); m.add(glow);
     m.position.set(tx - 1, 6, 0.2); m.rotation.z = 0.2; this.scene.add(m);
-    this.fx.push({ obj: m, t: 0, dur: 0.32, kind: 'fall', from: m.position.clone(), to: new THREE.Vector3(tx, 0.3, 0.2), done: () => this._burst(0xffe0a0, new THREE.Vector3(tx, 0.3, 0.3), 5, 1.2, 0.3) });
+    this.fx.push({ obj: m, t: 0, dur: 0.32, kind: 'fall', from: m.position.clone(), to: new THREE.Vector3(tx, 0.3, 0.2), done: () => this._burst(color, new THREE.Vector3(tx, 0.3, 0.3), 6, 1.2, 0.3) });
   },
 });

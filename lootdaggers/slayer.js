@@ -20,11 +20,15 @@ const MOVES = {
   coin:   { n: 'Coins',   t: 0.45, pose: 'idle' },
   skull:  { n: 'Cursed',  t: 0.8,  pose: 'attack' },
   key:    { n: 'Backstep',t: 0.45, pose: 'walk' },
+  volley: { n: 'Volley',  t: 0.8,  pose: 'attack' },
+  missile:{ n: 'Missiles',t: 0.8,  pose: 'attack' },
 };
+// ranged heroes don't leap: their boots are a ranged attack on the Reel Slayer reels
+const SWAP = { ranger: { boots: 'volley' }, hexpriest: { boots: 'missile' } };
 const MOVE_KEYS = Object.keys(MOVES);
 /* Three of a kind: the whole combo becomes that symbol's signature move (double damage, wider reach). */
 const ULTS = {
-  sword: 'BLADE STORM', bomb: 'METEOR FALL', bow: 'ARROW RAIN', skull: 'SOUL REAP', boots: 'SKYFALL',
+  sword: 'BLADE STORM', bomb: 'METEOR FALL', bow: 'ARROW RAIN', skull: 'SOUL REAP', boots: 'SKYFALL', volley: 'HAIL OF ARROWS', missile: 'ARCANE BARRAGE',
   shield: 'IRON WALL', potion: 'BLOOD MOON', coin: 'JACKPOT', key: 'PHANTOM STEP',
 };
 const CRIT = 0.12;
@@ -68,7 +72,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function heroStrip(h) {
-  const c = Object.assign({}, HEROES[h].strip);
+  const c = {};
+  for (const [k, n] of Object.entries(HEROES[h].strip)) { const k2 = (SWAP[h] && SWAP[h][k]) || k; c[k2] = (c[k2] || 0) + n; }
   if (S.mods && S.mods.wild) c.star = (c.star || 0) + 1;
   const out = [];
   for (const k in c) for (let i = 0; i < c[k]; i++) out.push(k);
@@ -171,10 +176,11 @@ function buildCombo() {
   for (let i = 0; i < syms.length; i++) {
     let s = syms[i];
     if (s === 'star') s = combo.length ? combo[combo.length - 1] : (syms.find(x => x !== 'star' && MOVES[x]) || 'sword');
+    s = (SWAP[st.hero] && SWAP[st.hero][s]) || s;
     if (!MOVES[s]) s = 'sword';
     combo.push(s);
   }
-  const res = st.reels.map(R => R.res);
+  const res = st.reels.map(R => (SWAP[st.hero] && SWAP[st.hero][R.res]) || R.res);
   const first = res.find(s => s !== 'star');
   st.frenzy = !!first && res.every(s => s === first || s === 'star');
   st.ult = st.frenzy ? (MOVES[first] ? first : 'sword') : null;
@@ -256,6 +262,45 @@ function doMove(dt) {
       st.shake = Math.max(st.shake, 12);
       try { sfx.boom(); } catch (e) { /* ignore */ }
     }
+  } else if (m === 'volley') {
+    // three arrows (two on every foe in sight under HAIL OF ARROWS) drop on the nearest foes
+    if (!c.plan) {
+      const ult = st.ult === 'volley';
+      const foes = liveFoes().filter(f => Math.abs(f.x - st.x) < (ult ? 460 : 380)).sort((a, b) => Math.abs(a.x - st.x) - Math.abs(b.x - st.x));
+      const tg = ult ? foes.flatMap(f => [f, f]) : [0, 1, 2].map(i => foes[i % Math.max(1, foes.length)]).filter(Boolean);
+      c.plan = tg.map((f, i) => ({ f, at: 0.35 + i * (0.4 / Math.max(1, tg.length - 1)), shot: false }));
+      c.pend = [];
+    }
+    for (const a of c.plan) if (!a.shot && p >= a.at) {
+      a.shot = true;
+      st.ev.push({ k: 'drop', x: a.f.x });
+      addFx('drop', a.f.x, 0.3);
+      c.pend.push({ f: a.f, t: 0.28 });
+      try { sfx.arrow(); } catch (e) { /* ignore */ }
+    }
+    for (const q of c.pend) if (q.t > 0 && (q.t -= dt) <= 0) {
+      const f = q.f.dead ? nearest() : q.f;
+      if (f && Math.abs(f.x - st.x) < 480) hitFoe(f, power(st.ult === 'volley' ? 3 : 2), 'volley');
+    }
+    if (p >= 1) c.pend.forEach(q => { if (q.t > 0) { q.t = 0; const f = q.f.dead ? nearest() : q.f; if (f) hitFoe(f, power(2), 'volley'); } });
+  } else if (m === 'missile') {
+    // homing bolts: three, or two for every foe in sight under ARCANE BARRAGE
+    if (!c.plan) {
+      const ult = st.ult === 'missile';
+      const n = ult ? Math.min(8, Math.max(2, liveFoes().length * 2)) : 3;
+      c.plan = Array.from({ length: n }, (_, i) => ({ at: 0.25 + i * (0.45 / Math.max(1, n - 1)), shot: false }));
+    }
+    let i = 0;
+    const foes = liveFoes().sort((a, b) => Math.abs(a.x - st.x) - Math.abs(b.x - st.x));
+    for (const a of c.plan) {
+      if (!a.shot && p >= a.at && foes.length) {
+        a.shot = true;
+        const tgt = foes[i % foes.length];
+        st.shots.push({ x: st.x + st.face * 25, y: 95, v: st.face * 420, dmg: power(st.ult === 'missile' ? 3 : 2), mine: true, kind: 'missile', tgt, life: 2.2, ph: Math.random() * 6 });
+        try { sfx.arrow(); } catch (e) { /* ignore */ }
+      }
+      i++;
+    }
   } else if (m === 'key') {
     st.x -= st.face * 120 * dt / c.dur;
   } else if (m === 'bow' && !c.hit && p >= 0.4) {
@@ -291,7 +336,7 @@ function doMove(dt) {
 function hitFoe(f, dmg, how) {
   if (f.dead) return;
   if (f.t === 'ironclad' && how === 'sword' && !st.frenzy) dmg = Math.ceil(dmg / 3);
-  const crit = (how === 'sword' || how === 'bow' || how === 'leap') && Math.random() < CRIT;
+  const crit = (how === 'sword' || how === 'bow' || how === 'leap' || how === 'volley' || how === 'missile') && Math.random() < CRIT;
   if (crit) dmg = Math.round(dmg * 1.5);
   const heavy = crit || st.frenzy || how === 'bomb' || how === 'skull' || how === 'parry' || how === 'leap';
   // knockback away from the hero; heavy blows launch
@@ -376,9 +421,15 @@ function updateFoes(dt) {
   }
   st.foes = st.foes.filter(f => !f.dead || f.deadT < 0.8);
   for (const s of st.shots) {
+    if (s.kind === 'missile') {
+      // home on its target (or the nearest foe once that one is dead), weaving as it flies
+      if (!s.tgt || s.tgt.dead) s.tgt = nearest();
+      if (s.tgt) s.v += (Math.sign(s.tgt.x - s.x) * 520 - s.v) * Math.min(1, dt * 6);
+      s.ph += dt * 9; s.y = 95 + Math.sin(s.ph) * 22;
+    }
     s.x += s.v * dt; s.life -= dt;
     if (s.mine) {
-      for (const f of liveFoes()) if (Math.abs(f.x - s.x) < 22) { hitFoe(f, s.dmg, 'bow'); s.life = 0; break; }
+      for (const f of liveFoes()) if (Math.abs(f.x - s.x) < 22) { hitFoe(f, s.dmg, s.kind === 'missile' ? 'missile' : 'bow'); s.life = 0; break; }
     } else if (Math.abs(s.x - st.x) < 18) { strikeHero(s.from && !s.from.dead ? s.from : null, s.dmg); s.life = 0; }
   }
   st.shots = st.shots.filter(s => s.life > 0);
@@ -511,6 +562,7 @@ function draw() {
   // shots
   for (const s of st.shots) {
     const x = (s.x - st.cam) * L.k, y = L.ground - s.y * L.k;
+    if (s.kind === 'missile') { cx.fillStyle = '#c98cff'; cx.beginPath(); cx.arc(x, y, 6 * L.k + 2, 0, 7); cx.fill(); continue; }
     cx.strokeStyle = s.mine ? '#e8d7a8' : '#b07cf0'; cx.lineWidth = 3;
     cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - Math.sign(s.v) * 26, y); cx.stroke();
   }
@@ -521,6 +573,7 @@ function draw() {
     if (e.k === 'slash') { cx.strokeStyle = '#fff4d6'; cx.lineWidth = 5; cx.beginPath(); cx.arc(x, y, 50 * L.k, e.face > 0 ? -1.3 + p : Math.PI - 0.3 - p, e.face > 0 ? 0.6 + p : Math.PI + 1.6 - p); cx.stroke(); }
     else if (e.k === 'boom') { const r = (30 + 100 * p) * L.k; const gr = cx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,220,120,.95)'); gr.addColorStop(1, 'rgba(255,90,30,0)'); cx.fillStyle = gr; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill(); }
     else if (e.k === 'curse') { const r = (40 + 120 * p) * L.k; cx.strokeStyle = '#b07cf0'; cx.lineWidth = 6; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.stroke(); }
+    else if (e.k === 'drop') { const ay = L.ground - (220 * (1 - p) + 40) * L.k; cx.strokeStyle = '#bfe8b0'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x - 8 * L.k, ay - 30 * L.k); cx.lineTo(x, ay); cx.stroke(); }
     else if (e.k === 'parry') { cx.fillStyle = '#bfe8ff'; cx.beginPath(); cx.arc(x, y, (14 + 30 * p) * L.k, 0, 7); cx.fill(); }
     else if (e.k === 'after') { sprite(heroKey('walk'), 'hero_' + st.hero + '_idle', e.x, L, e.face < 0, 0.3 * (1 - p), 'brightness(2) saturate(0)'); }
     cx.restore();
@@ -554,7 +607,12 @@ function drawAfter(L) {
     band.addColorStop(0, 'rgba(0,0,0,0)'); band.addColorStop(0.2, 'rgba(10,2,2,.78)'); band.addColorStop(0.8, 'rgba(10,2,2,.78)'); band.addColorStop(1, 'rgba(0,0,0,0)');
     cx.fillStyle = band; cx.fillRect(0, y - 42, L.W, 60);
     cx.translate(L.W / 2, y); cx.scale(sc, sc);
-    cx.font = Math.round(40 + 10 * L.k) + "px 'Pirata One',Georgia,serif"; cx.textAlign = 'center';
+    // shrink long names (ARCANE BARRAGE, HAIL OF ARROWS) to fit a phone's width
+    let fs = Math.round(40 + 10 * L.k);
+    cx.font = fs + "px 'Pirata One',Georgia,serif";
+    const tw = cx.measureText(st.banner.txt).width;
+    if (tw > L.W * 0.9) { fs = Math.floor(fs * L.W * 0.9 / tw); cx.font = fs + "px 'Pirata One',Georgia,serif"; }
+    cx.textAlign = 'center';
     cx.shadowColor = '#ff5a1a'; cx.shadowBlur = 24;
     const g = cx.createLinearGradient(0, -40, 0, 4); g.addColorStop(0, '#fff3c8'); g.addColorStop(0.5, '#ffb24a'); g.addColorStop(1, '#c2361a');
     cx.lineWidth = 6; cx.strokeStyle = '#1a0500'; cx.strokeText(st.banner.txt, 0, 0);
@@ -762,10 +820,10 @@ function panel(html) {
 }
 function hidePanel() { const p = root.querySelector('.slPanel'); if (p) p.style.display = 'none'; }
 function pickHero() {
-  const owned = Object.keys(HEROES).filter(h => S.heroes && S.heroes[h]);
+  const owned = Object.keys(HEROES);            // every hero plays Reel Slayer, unlocked in the crawl or not
   panel(`<h2>Reel Slayer <small>prototype</small></h2>
     <p class="slSub">No buttons. Tap the reels to pull, then tap each reel to stop it: the order you stop them is the order your hero strikes. Your hero walks up to the next foe on his own, and the world waits while you plan; every foe shows how many seconds until it strikes.</p>
-    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: an ultimate, double damage.</p>
+    <p class="slSub">🗡 Slash · 🥾 Leap (jump attack, dodges; the Ranger fires a Volley and the Hex Priest Magic Missiles instead) · 🛡 Parry (on time = counter) · 🏹 Shot · 💣 Blast · 🧪 Heal · 🪙 Coins · 💀 Cursed strike (hurts you too) · 🗝 Backstep · ⭐ copies the move before it. Three of a kind: an ultimate, double damage.</p>
     ${S.slayer && S.slayer.best ? `<p class="slSub">Best: wave ${S.slayer.best}</p>` : ''}
     ${owned.map(h => `<button data-sl="hero:${h}">${HEROES[h].e} ${HEROES[h].n} <small>❤${HEROES[h].hp + (alt('vit') || 0) * 5} · 🪙${HEROES[h].coins}</small></button>`).join('')}
     <button data-sl="exit">Back</button>`);

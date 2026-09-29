@@ -107,6 +107,10 @@ html:has(#game.death3d),html:has(#game.death3d) body{overflow:hidden}
 #game.death3d .sideBtn{padding:0 8px;font-size:15px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 #000}
 #game.death3d #forecast{position:fixed;left:50%;right:auto;top:auto;bottom:calc(var(--death-strip,190px) + 4px);transform:translateX(-50%);width:min(440px, calc(100% - 16px));max-height:64px;overflow:auto;padding:4px 8px;font-size:11px;line-height:1.3;z-index:7;background:rgba(10,7,8,.72)}
 #game.death3d #forecast .hint{margin-top:2px}
+#dTally{position:fixed;z-index:8;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;display:flex;align-items:center;gap:6px;font-family:var(--head);font-size:44px;line-height:1;color:#fff4d6;text-shadow:0 0 10px rgba(255,190,90,.9),0 2px 0 #000,0 0 3px #000;transition:transform .18s ease-out,opacity .18s}
+#dTally i{font-style:normal;font-size:30px}
+#dTally.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#dTally.slam{transform:translate(-50%,-50%) scale(1.45);color:#ffd27a;text-shadow:0 0 18px rgba(255,120,60,1),0 2px 0 #000}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;z-index:1}
 #scene:active{cursor:grabbing}
 #jackpotFlash{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;z-index:3}
@@ -939,7 +943,7 @@ async function labDialog(port,name,text,splash,btn,style){
   const pr=modal(name,`${splash&&artSrc(splash)?`<img class="splash" src="${artSrc(splash)}" alt="">`:''}<div class="dlg ${style==='soulbtn'?'soul':''}">${pic}<p class="dlgTxt"></p></div>`,[{label:btn,val:1,cls:'primary '+(style||'ooze')}]);
   const el=$('#modal .dlgTxt');let i=0;
   const step=()=>{if(!el.isConnected)return;i=Math.min(text.length,i+2);el.textContent=text.slice(0,i);
-    if(i<text.length){el.insertAdjacentHTML('beforeend','<span class="dlgCur">▌</span>');setTimeout(step,S.fast?8:22);}};
+    if(i<text.length){el.insertAdjacentHTML('beforeend','<span class="dlgCur">▌</span>');setTimeout(step,fastOn()?8:22);}};
   step();await pr;
 }
 // Dr. Labfreak's second phase: at 0 HP the first time he rants, drinks, and comes
@@ -1100,7 +1104,7 @@ function bjSay(t){BJ.L.querySelector('.bjTalk p').textContent=t;}
 function bjAsk(opts){const A=window.LD_ART||{};const box=BJ.L.querySelector('.bjBtns');
   return new Promise(res=>{box.innerHTML='';for(const o of opts){const b=document.createElement('button');b.className='btn '+(A.ui_button?'art':'');if(A.ui_button)b.style.borderImageSource=`url(${A.ui_button})`;
     b.innerHTML=A.ui_button?`<span class="lbl"><span class="txt">${artify(o.label)}</span></span>`:artify(o.label);b.disabled=!!o.disabled;b.onclick=()=>{box.innerHTML='';res(o.val);};box.appendChild(b);}});}
-async function bjDeal(to){to.push(bjCard());bjDraw(BJ.hide);try{sfx.stop();}catch(e){}await shWait(S.fast?200:380);}
+async function bjDeal(to){to.push(bjCard());bjDraw(BJ.hide);try{sfx.stop();}catch(e){}await shWait(fastOn()?200:380);}
 async function blackjack(o){
   const r=run;modalOpen=true;const A=window.LD_ART||{};
   let L=$('#bjLayer');if(!L){L=document.createElement('div');L.id='bjLayer';$('#app').appendChild(L);}
@@ -1145,10 +1149,13 @@ async function blackjack(o){
    the next phase. Beating him frees the soul (the run ends in victory) and, the
    first time, grants The Grim's Ledger. */
 const DEATH_COST=666,DEATH_FLOOR=66,DEATH_PURSE=777;
+// No rests: every turn at the table costs you something. siphon steals life and
+// heals him double, wither takes max life for the rest of the fight, bind chains
+// reels shut for two turns (v reels), jam holds one on a Skull until he falls.
 const DEATH_PH={
-  1:[['atk',4],['rest',0],['curse',1],['atk',6],['rest',0]],
-  2:[['atk',8],['drain',6],['jam',0],['atk',10],['grow',4]],
-  3:[['atk',12],['drain',8],['curse',1],['atk',14],['jamwheel',0],['grow',6]],
+  1:[['atk',5],['siphon',3],['atk',6],['bind',1],['curse',1],['atk',7]],
+  2:[['atk',9],['drain',6],['siphon',5],['jam',0],['atk',11],['wither',3],['bind',1],['grow',5]],
+  3:[['atk',13],['siphon',7],['bind',2],['atk',15],['wither',4],['jamwheel',0],['drain',9],['grow',7]],
 };
 const DEATH_LINES={
   1:["Another one. How... tedious. Pull your little lever, gambler.","You've paid. Fine. Entertain me, if you can."],
@@ -1167,12 +1174,12 @@ function deathScale(){
   const s=stats(),hit=Math.max(s.swordDmg,s.bowDmg,s.bombDmg);
   const turn=(2.2*hit+s.bombDmg)*1.6;
   const led=(S.ledger&&S.ledgerOn&&S.ledger.lvl)||0;
-  const hp=Math.round(turn*20*(1+.04*run.relics.length+.05*led));
-  const top=14+Math.floor((run.floor-1)/2);   // his biggest unscaled phase-three swing
-  return {hp,atk:Math.max(1,Math.min(s.maxHp*.55,s.maxHp*.25+s.blockPer*1.2)/top)};   // a big swing, never a one-shot
+  const hp=Math.round(turn*29*(1+.04*run.relics.length+.05*led));   // about 29 solid turns (was 20)
+  const top=15+Math.floor((run.floor-1)/2);   // his biggest unscaled phase-three swing
+  return {hp,atk:1.25*Math.max(1,Math.min(s.maxHp*.55,s.maxHp*.25+s.blockPer*1.2)/top)};   // a quarter harder than a big swing; block still matters
 }
 function deathPat(ph,f){const sc=1+.22*(f-1),dm=Math.floor((f-1)/2),k=(run&&run.deathDouble?1.3:1)*((run&&run.deathAtk)||1);
-  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain')?Math.round((v+dm)*k):(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
+  return DEATH_PH[ph].map(([a,v])=>[a,(a==='atk'||a==='drain'||a==='siphon')?Math.round((v+dm)*k):(a==='guard'||a==='grow')?Math.round(v*sc):v]);}
 async function defyDeath(){
   const r=run;if(!deathReady()||busy||modalOpen)return;
   const again=S.deathDefeated>0;
@@ -1195,7 +1202,7 @@ async function startDeathFight(cost,doubleIt){
   kickDeath3D();
   r.deathLock=true;busy=true;r.deathDouble=!!doubleIt;r.coins-=cost;ui();sfx.reaper();document.body.classList.add('labFlash');await sleep(700);document.body.classList.remove('labFlash');
   const f=r.floor,d=mkEnemy('death',r.x+1,f,true),ds=deathScale();r.deathAtk=ds.atk;d.hp=d.max=Math.max(d.max,ds.hp);Object.assign(d,{id:uid++,phase:1,pat:deathPat(1,f),pi:0});if(r.deathDouble){d.hp=d.max=Math.round(d.max*1.5);d.n='Death, Double or Nothing';}
-  Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,curse:0,poison:null});
+  Object.assign(r,{death:true,objs:[d],len:r.x+2,jam:null,djam:[],wither:0,curse:0,poison:null});
   view.dshots=[];view.banner={t:performance.now(),txt:'DEATH'};music.play('boss');
   busy=false;rebuildReels();ui();save();
   await labDialog('portrait_death1','Death',pick(DEATH_LINES[1]),null,'Pull the lever','soulbtn');
@@ -1302,7 +1309,7 @@ function drawDeathArena(t,dt){
   // floaters: hero-side ones at the hero, the rest at Death
   cx.textAlign='center';
   const mk=live3d&&LDDeath3D.marks?LDDeath3D.marks():null;
-  for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const hero=f.x<=r.x*T+T*.75;
+  for(const f of view.fl){f.t+=dt*(fastOn()?1:.7);const hero=f.x<=r.x*T+T*.75;
     const ax=mk?W*(hero?mk.hx:mk.dx):hero?HX:DX,ay=mk?top+H*(hero?mk.hy:mk.dy):hero?HB-HH*.8:DB-DH*.75;
     cx.globalAlpha=Math.max(0,1-f.t/1.3);cx.font='bold 13px ui-monospace,monospace';drawRich(f.txt,ax+(f.x%7-3)*3,ay-f.t*30+(f.y-GY+70)*.3,f.col);}
   cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
@@ -1924,6 +1931,7 @@ function stats(){
   if(hasR('gauntlet')){s.gauntlet=Math.min(4,Math.floor(r.coins/10));s.swordDmg+=s.gauntlet;}
   fxEach('stats',s);
   s.dodge=Math.min(40,s.dodge);
+  if(r.wither)s.maxHp=Math.max(5,s.maxHp-r.wither);   // Death's Wither, this fight only
   return s;
 }
 function stripCounts(){
@@ -2217,7 +2225,7 @@ function rebuildReels(){
     }
     R.strip=strip;R.o=o;R.last=[];
   }
-  M.reels.forEach((R,i)=>{R.jam=!!(run&&run.jam&&run.jam.reel===i);R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
+  M.reels.forEach((R,i)=>{R.jam=!!(run&&((run.jam&&run.jam.reel===i)||(run.djam&&run.djam.some(j=>j.reel===i))));R.el.classList.toggle('jammed',R.jam);if(R.jam)R.held=false;R.el.classList.toggle('held',R.held);});
   buildReelCtl();
   const L=paylines(n);
   $('#lineInfo').textContent=(run&&run.inBonus)?(run.bonus>0?`★ BONUS · ${run.bonus} FREE SPIN${run.bonus===1?'':'S'} ★`:'★ LAST FREE SPIN ★'):'';
@@ -2410,7 +2418,7 @@ function previewTurn(R){
     if(val('bow')){const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x>x&&o.x-x<=4).sort((a,b)=>a.x-b.x);L.push(es[0]?`🏹 shoot ${es[0].n} for <b>${woundCap(es[0],(val('bow')*s.bowDmg+mom)*mu)}</b>${hasR('quiver')&&es[1]?`, ${es[1].n} for half`:''}`:'🏹 no target in 4 tiles');}
     if(val('bomb')){const ts=r.objs.filter(o=>!o.gone&&(o.kind==='enemy'||o.kind==='chest')&&o.x>x&&o.x-x<=2);const raw=(val('bomb')*s.bombDmg+mom)*mu;const shown=ts.find(o=>o.kind==='enemy');L.push(`💣 blast ${ts.length?ts.map(nm).join(', '):'nothing'} for <b>${shown?woundCap(shown,raw):raw}</b>`);}
     const foes=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-x<=6);
-    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'||e.t==='labfreak'||(e.t==='death'&&e.phase>=3)?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:null;}).filter(Boolean);
+    if(foes.length){const inRange=foes.filter(e=>e.x-x<=e.range);const th=inRange.map(e=>{const [a,v]=e.pat[e.pi%e.pat.length];const m=e.elite==='fast'||e.t==='labfreak'||(e.t==='death'&&e.phase>=3)?' ×2':'';return (a==='atk'||a==='drain')?`${e.n} ${v}${m}`:a==='jackpot'?`${e.n} 3×${v}`:a==='jam'?`${e.n} jams a reel`:a==='tax'?`${e.n} taxes 1 🪙`:a==='siphon'?`${e.n} siphons ${v}${m} past block`:a==='wither'?`${e.n} withers ${v} max life${m}`:a==='bind'?`${e.n} chains ${v} reel${v>1?'s':''}`:null;}).filter(Boolean);
       L.push(th.length?`<span style="color:var(--red)">then foes strike: ${th.join(', ')}</span>`:`<span style="color:var(--dim)">then ${foes.length} foe${foes.length>1?'s':''} close in</span>`);}
   }
   if(!L.length)L.push('Nothing lands. Foes take their turn.');
@@ -2441,7 +2449,7 @@ async function doTurn(R){
   for(const c in combo){heroFl('COMBO: '+COMBOS[c].n,'#c9763a');}
   if(r.block>0&&famTier('bulwark')>=3){const t=nearestFoe(run.x+1,9);if(t&&t.x-r.x<=6){fl('🛡→'+r.block,'#7fa6c9',t.x*T+T/2,GY-120);await hit(t,r.block,'bulwark');parts.push(`🛡⚔${r.block}`);}}
   r.block=fxFold('keepBlock',false)?r.block:hasR('tower')?Math.floor(r.block/2):0;
-  if(R.triples){stat('jackpots');statMax('bestJackpot',R.triples);statMax('bestMult',mu);heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(S.fast?1800:3300);}else await sleep(500);
+  if(R.triples){stat('jackpots');statMax('bestJackpot',R.triples);statMax('bestMult',mu);heroFl(R.triples>1?`JACKPOT x${R.triples}!`:'JACKPOT!','#d9b56a');view.shake=10;if(S.jackpotScreen!==false){jackpotFlash(R.triples);await sleep(fastOn()?1800:3300);}else await sleep(500);
     if(hasR('bell'))gainCoins(3*R.triples);await fxEachA('jackpot',R.triples);}
   if(val('shield')){const b=val('shield')*s.blockPer*mu;r.block+=b;parts.push(`🛡+${b}`);heroFl('+'+b+' block','#5aa9e6');sfx.block();addFx('fx_block',heroWX()+14,GY-48,64,.5);if(combo.mend)heal(Math.floor(b/2));}
   if(val('potion')){const h=heal(val('potion')*s.healPer);parts.push(`🧪+${h}`);if(r.poison){r.poison=null;heroFl('poison cured','#8cff96');}}
@@ -2542,7 +2550,8 @@ async function hit(o,dmg,how){
   d=woundCap(o,d);if(d>0)metaEv('hit',d,d);
   if(o.t==='mirror'&&how==='sword'&&d>0){const back=Math.min(d,1+Math.floor(r.floor/8)),bb=Math.min(r.block,back);r.block-=bb;const hd=back-bb;if(hd>0){r.hp-=hd;hurtBy('the Mirror Wight\'s reflection',hd);heroFl('-'+hd+' mirrored','#b07cf0');view.hurt=1;}}
   r.bestHit=Math.max(r.bestHit||0,d);
-  o.hp-=d;o.flash=1;if(d>0)HITT.set(o,performance.now());addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
+  if(o.t==='death'&&d>0)await deathTally(d,how);
+  o.hp-=d;o.flash=1;if(d>0)HITT.set(o,performance.now());addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);if(o.t!=='death')fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
   fxEach('dealt',o,d,how);
   if(o.t==='death'&&o.phase<3){await deathCheck(o);if(o.hp<=0)o.hp=1;}
   if(o.hp<=0){if(o.t==='labfreak'&&!o.phase2){await labfreakPhase2(o);return;}await kill(o);}
@@ -2552,6 +2561,7 @@ async function kill(o){
   if(r.jam&&r.jam.by==='debt'){r.jam=null;rebuildReels();heroFl('reel freed','#9fd6ff');}
   const c=rnd(o.coins[0],o.coins[1])+(hasR('pouch')?1:0);gainCoins(c);
   if(r.jam&&r.jam.by===o.id){r.jam=null;rebuildReels();heroFl('reel freed','#9fd6ff');}
+  if(o.t==='death'&&r.djam&&r.djam.length){r.djam=[];rebuildReels();}
   if(o.t==='reaper'){const bonus=hasR('scythe')?50:25;r.souls+=bonus;fl('+'+bonus+' 💠','#9fd6ff',o.x*T+T/2,GY-140);}
   r.souls+=o.boss?15+r.floor:1+Math.floor(r.floor/2);
   fl('💠','#9fd6ff',o.x*T+T/2,GY-40);if(artImg('fxa_dissolve'))addFx('fx_souls',o.x*T+T/2,GY-(o.boss?170:118),40,1,26);else addFx('fx_souls',o.x*T+T/2,GY-50,64,1,40);
@@ -2593,23 +2603,24 @@ async function enterTile(x){
 
 /* ---------------- enemies ---------------- */
 function intentOf(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],jamwheel:['⚙️','×1'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤',''],jam:['🎰','jam'],tax:['🪙','-'+v]})[a]||['?',''];}
+  return ({atk:['⚔️',v],drain:['🩸',v],jackpot:['🎰',v+'x3'],jamwheel:['⚙️','×1'],guard:['🛡️',v],grow:['➕',v],summon:['☠️',''],steal:['🫳',v+'🪙'],curse:['💀','+1'],rest:['💤',''],jam:['🎰','jam'],tax:['🪙','-'+v],siphon:['👻',v],wither:['🥀','-'+v],bind:['⛓️',v]})[a]||['?',''];}
 function intentText(e){const [a,v]=e.pat[e.pi%e.pat.length];
-  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`,jamwheel:'Jam your fortune wheel at x1 until you land a jackpot'})[a];}
+  return ({atk:`Attack for ${v}`,drain:`Drain: hit for ${v} and steal a coin`,jackpot:`Jackpot: three hits of ${v}`,guard:`Guard ${v}`,grow:`Grow +${v} HP`,summon:'Summon a skeleton',steal:`Steal ${v} coins`,curse:'Curse: add a Skull to your reels this floor',rest:'Resting',jam:'Jam one of your reels on a Skull',tax:`Tax: take ${v} coin`,jamwheel:'Jam your fortune wheel at x1 until you land a jackpot',siphon:`Life Siphon: take ${v} past your block, and heal twice that`,wither:`Wither: your max life drops by ${v} for this fight`,bind:`Soul Chains: chain ${v} reel${v>1?'s':''} shut for two spins`})[a];}
 async function enemyPhase(){
   const r=run;
+  if(r.djam&&r.djam.length){r.djam.forEach(j=>j.turns--);const n=r.djam.length;r.djam=r.djam.filter(j=>j.turns>0);if(r.djam.length<n){heroFl('chains fall away','#9fd6ff');rebuildReels();}}
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);
   for(const e of es){
     for(let rep=0;rep<(e.elite==='fast'||e.t==='labfreak'||(e.t==='death'&&e.phase>=3)?2:1);rep++){
     if(r.over||r.hp<=0)return;if(e.gone)continue;
     e.block=e.elite==='shield'?5:0;
     const [a,v]=e.pat[e.pi%e.pat.length],dist=e.x-r.x;
-    const needsRange=a==='atk'||a==='drain'||a==='jackpot';
+    const needsRange=a==='atk'||a==='drain'||a==='jackpot'||a==='siphon';
     if(needsRange&&dist>e.range){
       if(!blockerAt(e.x-1)&&e.x-1>r.x){e.x--;await beat(70);}
       continue;
     }
-    if(e.t==='death')deathCue(a,{v:v,phase:e.phase||1});
+    if(e.t==='death')deathCue(({siphon:'drain',wither:'drain',bind:'jam'})[a]||a,{v:v,phase:e.phase||1});
     e.lunge=1;if(a!=='guard'&&a!=='grow'&&a!=='rest')e.pose=.5;
     if(a==='atk')await enemyHit(e,v);
     else if(a==='drain'){await enemyHit(e,v);if(r.coins>0){r.coins--;heroFl('-1 🪙','#b07cf0');}}
@@ -2624,14 +2635,46 @@ async function enemyPhase(){
     else if(a==='jam'){if(!r.jam){const free=M.reels.map((R,i)=>i).filter(i=>!M.reels[i].jam);if(free.length){r.jam={reel:pick(free),by:e.id};heroFl('REEL JAMMED','#b07cf0');rebuildReels();}}}
     else if(a==='tax'){const c=Math.min(r.coins,v);r.coins-=c;heroFl('-'+c+' 🪙 tax','#b07cf0');}
     else if(a==='jamwheel'){r.wheelJam=true;heroFl('WHEEL JAMMED ×1','#b07cf0');drawWheel();}
+    else if(a==='siphon')await deathSiphon(e,v);
+    else if(a==='wither'){const s0=stats().maxHp,cut=Math.min(v,Math.max(0,s0-Math.ceil((s0+(r.wither||0))*.6)));
+      if(cut>0){r.wither=(r.wither||0)+cut;r.hp=Math.min(r.hp,stats().maxHp);heroFl('-'+cut+' MAX LIFE','#b07cf0');addFx('fx_curse',heroWX(),GY-60,76,.9,20);noteTurn(`<span style="color:var(--purple)">Death withers your life: max HP −${cut}</span>`);}
+      else heroFl('your life holds','#9fd6ff');}
+    else if(a==='bind'){r.djam=r.djam||[];let n=v;
+      while(n-->0){const free=M.reels.map((R,i)=>i).filter(i=>!M.reels[i].jam);if(free.length<2)break;const i=pick(free);r.djam.push({reel:i,turns:2});M.reels[i].jam=true;}
+      heroFl(v>1?'SOUL CHAINS ×'+v:'SOUL CHAINS','#b07cf0');rebuildReels();}
     e.pi++;ui();await beat(150);
     }
   }
+}
+// Life Siphon: dodge still works, block does not. Death heals twice what he takes.
+async function deathSiphon(e,v){
+  const r=run,s=stats();(view.dshots=view.dshots||[]).push({t:0,w:Math.random()*6,k:'fx_soulorb'});e.pose=1;
+  if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');fxEach('dodged');return;}
+  const d=Math.max(1,Math.min(Math.ceil(s.maxHp*.3),Math.round(fxFold('hurt',v,e))));r.hp-=d;hurtBy('Death\'s Life Siphon',d);heroFl('-'+d+' siphoned','#b07cf0');view.hurt=1;view.shake=4;sfx.hurt();
+  const h=Math.min(d*2,e.max-e.hp);if(h>0){e.hp+=h;fl('+'+h+' your life','#9fd6ff',e.x*T+T/2,GY-90);}
+  ui();
+}
+// Every hit on Death counts up on screen before it comes off his life.
+function deathTally(d,how){
+  return new Promise(res=>{
+    let el=$('#dTally');if(!el){el=document.createElement('div');el.id='dTally';document.body.appendChild(el);}
+    const ic={sword:'🗡',bow:'🏹',bomb:'💣',shove:'🥾',hex:'💀',coin:'🪙',thorns:'🌵',bulwark:'🛡'}[how]||'⚔';
+    const mk=window.LDDeath3D&&LDDeath3D.live&&LDDeath3D.marks?LDDeath3D.marks():null;
+    el.style.left=((mk?mk.dx:.5)*100)+'%';el.style.top=((mk?mk.dy:.42)*100)+'%';
+    el.className='on';el.innerHTML=`<i>${ic}</i><b>0</b>`;const b=el.querySelector('b');
+    const dur=700+Math.min(1300,d*14),t0=performance.now();let last=0;
+    const step=now=>{const k=Math.min(1,(now-t0)/dur),v=Math.round(d*(1-(1-k)**3));
+      if(v!==last){last=v;b.textContent=v;if(v%Math.max(1,Math.ceil(d/10))===0)tone(500+v/d*600,.03,'square',.02);}
+      if(k<1)requestAnimationFrame(step);
+      else{el.className='on slam';sfx.hit();setTimeout(()=>{res();setTimeout(()=>{if(el.className==='on slam')el.className='';},700);},320);}};
+    requestAnimationFrame(step);
+  });
 }
 async function enemyHit(e,dmg){
   const r=run,s=stats();
   if(e.t==='death'){(view.dshots=view.dshots||[]).push({t:0,w:Math.random()*6,k:pick(['fx_soulcard','fx_souldie','fx_soulorb'])});e.pose=1;}
   if(Math.random()*100<s.dodge){heroFl('dodged!','#9fd6ff');fxEach('dodged');return;}
+  if(e.t==='death')dmg=Math.min(dmg,Math.ceil(s.maxHp*.45));   // two phase-three swings never kill from full
   let d=Math.round(fxFold('hurt',dmg,e));const b=Math.min(r.block,d);r.block-=b;d-=b;
   if(b){heroFl('🛡'+b,'#5aa9e6');addFx('fx_block',heroWX()+14,GY-48,58,.4);if(d<=0)noteTurn(`${esc(e.n)} hit for ${dmg}, all blocked`);}
   if(d>0&&r.contract&&r.contract.id==='untouched')contractFail(e.n+' hurt you');
@@ -3224,7 +3267,7 @@ function settingsHTML(){
     t('autoStop',S.autoStop?'🤖':'✋','Auto-stop reels',S.autoStop?'on':'off · tap each reel to stop it'),
     t('autoResolve',S.autoResolve?'⏭':'⏸','Auto-resolve turns',S.autoResolve?'on':'off · read, then tap resolve'),
     t('jackpotScreen','🎰','Jackpot screen',S.jackpotScreen!==false?'on':'off'),
-    t('fast',S.fast?'⏩':'▶','Fast animations',S.fast?'on':'off'),
+    t('fast',S.fast?'⏩':'▶','Fast animations',fastOn()?'on':'off'),
     t('bonusManual','🎰','Free spins',S.bonusManual?'tap each spin':'play themselves'),
     t('don','🪙','Double or Nothing offers',S.don!==false?'on':'off'),
   ].join('\n');}
@@ -3531,7 +3574,7 @@ const view={cam:-120,pan:0,panT:0,hx:0,fl:[],fx:[],dying:[],shake:0,hurt:0,lunge
 const FXA={"fxa_arrow":{"cw":192,"ch":64,"d":[40,40,40,40],"bw":60,"bh":20},"fxa_ash":{"cw":128,"ch":192,"d":[60,55,55,60,60,65,65,70,75,80]},"fxa_block":{"cw":128,"ch":128,"d":[35,40,50,60,65,70,80]},"fxa_bomb":{"cw":256,"ch":256,"d":[40,45,55,60,65,70,75,80,85,90]},"fxa_coins":{"cw":96,"ch":96,"d":[40,45,50,55,60,65,70,80],"dy":-70,"bw":40,"bh":40},"fxa_curse":{"cw":128,"ch":128,"d":[45,45,50,55,60,65,70,75,80,85],"k":0.86,"dy":-24},"fxa_dissolve":{"cw":96,"ch":128,"d":[60,55,55,60,60,65,65,70,75,80]},"fxa_dissolve_edge":{"cw":96,"ch":128,"d":[60,55,55,60,60,65,65,70,75,80]},"fxa_heal":{"cw":128,"ch":160,"d":[55,60,65,70,70,75,75,80,85,90],"bw":80,"bh":100},"fxa_hit":{"cw":128,"ch":128,"d":[30,35,40,45,50,55,60]},"fxa_slash":{"cw":192,"ch":192,"d":[30,35,45,50,55,60,65,70]},"fxa_souls":{"cw":96,"ch":144,"d":[55,60,65,70,75,75,80,85,90,95],"k":0.8},"cha_boss_bandit_idle":{"cw":275,"ch":384,"d":[260,260,260,260,260,260],"ax":153.0,"ay":425,"pw":278,"ph":415,"uw":306,"uh":427},"cha_boss_bandit_walk":{"cw":275,"ch":384,"d":[105,105,105,105,105,105,105,105],"ax":153.0,"ay":425,"pw":278,"ph":415,"uw":306,"uh":427},"cha_boss_boneking_idle":{"cw":265,"ch":392,"d":[280,280,280,280,280,280],"ax":147.0,"ay":433,"pw":266,"ph":423,"uw":294,"uh":435},"cha_boss_boneking_walk":{"cw":265,"ch":392,"d":[110,110,110,110,110,110,110,110],"ax":147.0,"ay":433,"pw":266,"ph":423,"uw":294,"uh":435},"cha_boss_labfreak2_idle":{"cw":216,"ch":359,"d":[260,260,260,260,260,260],"ax":120.0,"ay":397,"pw":212,"ph":387,"uw":240,"uh":399},"cha_boss_labfreak2_walk":{"cw":216,"ch":359,"d":[95,95,95,95,95,95,95,95],"ax":120.0,"ay":397,"pw":212,"ph":387,"uw":240,"uh":399},"cha_boss_labfreak_idle":{"cw":199,"ch":381,"d":[260,260,260,260,260,260],"ax":110.5,"ay":421,"pw":193,"ph":411,"uw":221,"uh":423},"cha_boss_labfreak_walk":{"cw":199,"ch":381,"d":[95,95,95,95,95,95,95,95],"ax":110.5,"ay":421,"pw":193,"ph":411,"uw":221,"uh":423},"cha_boss_lich_idle":{"cw":249,"ch":392,"d":[280,280,280,280,280,280],"ax":138.5,"ay":434,"pw":249,"ph":424,"uw":277,"uh":436},"cha_boss_lich_walk":{"cw":249,"ch":392,"d":[110,110,110,110,110,110,110,110],"ax":138.5,"ay":434,"pw":249,"ph":424,"uw":277,"uh":436},"cha_enemy_abom_idle":{"cw":172,"ch":291,"d":[260,260,260,260,260,260],"ax":95.5,"ay":321,"pw":163,"ph":311,"uw":191,"uh":323},"cha_enemy_abom_walk":{"cw":172,"ch":291,"d":[95,95,95,95,95,95,95,95],"ax":95.5,"ay":321,"pw":163,"ph":311,"uw":191,"uh":323},"cha_enemy_archer_idle":{"cw":217,"ch":291,"d":[260,260,260,260,260,260],"ax":120.5,"ay":321,"pw":213,"ph":311,"uw":241,"uh":323},"cha_enemy_archer_walk":{"cw":217,"ch":291,"d":[95,95,95,95,95,95,95,95],"ax":120.5,"ay":321,"pw":213,"ph":311,"uw":241,"uh":323},"cha_enemy_brainjar_idle":{"cw":212,"ch":243,"d":[240,240,240,240,240,240],"ax":117.5,"ay":268,"pw":207,"ph":258,"uw":235,"uh":270},"cha_enemy_brainjar_walk":{"cw":212,"ch":243,"d":[85,85,85,85,85,85,85,85],"ax":117.5,"ay":268,"pw":207,"ph":258,"uw":235,"uh":270},"cha_enemy_croupier_idle":{"cw":173,"ch":292,"d":[260,260,260,260,260,260],"ax":96.0,"ay":323,"pw":164,"ph":313,"uw":192,"uh":325},"cha_enemy_croupier_walk":{"cw":173,"ch":292,"d":[95,95,95,95,95,95,95,95],"ax":96.0,"ay":323,"pw":164,"ph":313,"uw":192,"uh":325},"cha_enemy_homunculus_idle":{"cw":173,"ch":211,"d":[260,260,260,260,260,260],"ax":96.0,"ay":232,"pw":164,"ph":222,"uw":192,"uh":234},"cha_enemy_homunculus_walk":{"cw":173,"ch":211,"d":[85,85,85,85,85,85,85,85],"ax":96.0,"ay":232,"pw":164,"ph":222,"uw":192,"uh":234},"cha_enemy_ironclad_idle":{"cw":199,"ch":285,"d":[260,260,260,260,260,260],"ax":110.5,"ay":315,"pw":193,"ph":305,"uw":221,"uh":317},"cha_enemy_ironclad_walk":{"cw":199,"ch":285,"d":[95,95,95,95,95,95,95,95],"ax":110.5,"ay":315,"pw":193,"ph":305,"uw":221,"uh":317},"cha_enemy_mimic_idle":{"cw":208,"ch":170,"d":[250,250,250,250,250,250],"ax":115.5,"ay":187,"pw":203,"ph":167,"uw":231,"uh":189},"cha_enemy_mimic_walk":{"cw":208,"ch":170,"d":[85,85,85,85,85,85,85,85],"ax":115.5,"ay":187,"pw":203,"ph":167,"uw":231,"uh":189},"cha_enemy_mirror_idle":{"cw":132,"ch":302,"d":[260,260,260,260,260,260],"ax":73.5,"ay":334,"pw":119,"ph":324,"uw":147,"uh":336},"cha_enemy_mirror_walk":{"cw":132,"ch":302,"d":[95,95,95,95,95,95,95,95],"ax":73.5,"ay":334,"pw":119,"ph":324,"uw":147,"uh":336},"cha_enemy_orc_idle":{"cw":202,"ch":290,"d":[260,260,260,260,260,260],"ax":112.0,"ay":320,"pw":196,"ph":310,"uw":224,"uh":322},"cha_enemy_orc_walk":{"cw":202,"ch":290,"d":[95,95,95,95,95,95,95,95],"ax":112.0,"ay":320,"pw":196,"ph":310,"uw":224,"uh":322},"cha_enemy_rat_idle":{"cw":220,"ch":195,"d":[220,220,220,220,220,220],"ax":122.0,"ay":215,"pw":216,"ph":205,"uw":244,"uh":217},"cha_enemy_rat_walk":{"cw":220,"ch":195,"d":[75,75,75,75,75,75,75,75],"ax":122.0,"ay":215,"pw":216,"ph":205,"uw":244,"uh":217},"cha_enemy_reaper_idle":{"cw":217,"ch":297,"d":[260,260,260,260,260,260],"ax":120.5,"ay":328,"pw":213,"ph":318,"uw":241,"uh":330},"cha_enemy_reaper_walk":{"cw":217,"ch":297,"d":[105,105,105,105,105,105,105,105],"ax":120.5,"ay":328,"pw":213,"ph":318,"uw":241,"uh":330},"cha_enemy_skel_idle":{"cw":213,"ch":284,"d":[260,260,260,260,260,260],"ax":118.5,"ay":314,"pw":209,"ph":304,"uw":237,"uh":316},"cha_enemy_skel_walk":{"cw":213,"ch":284,"d":[95,95,95,95,95,95,95,95],"ax":118.5,"ay":314,"pw":209,"ph":304,"uw":237,"uh":316},"cha_enemy_slime_idle":{"cw":175,"ch":289,"d":[240,240,240,240,240,240],"ax":97.0,"ay":319,"pw":166,"ph":305,"uw":194,"uh":321},"cha_enemy_slime_walk":{"cw":175,"ch":289,"d":[105,105,105,105,105,105,105,105],"ax":97.0,"ay":319,"pw":166,"ph":305,"uw":194,"uh":321},"cha_enemy_taxman_idle":{"cw":157,"ch":310,"d":[260,260,260,260,260,260],"ax":87.0,"ay":342,"pw":146,"ph":332,"uw":174,"uh":344},"cha_enemy_taxman_walk":{"cw":157,"ch":310,"d":[95,95,95,95,95,95,95,95],"ax":87.0,"ay":342,"pw":146,"ph":332,"uw":174,"uh":344},"cha_enemy_wraith_idle":{"cw":183,"ch":298,"d":[260,260,260,260,260,260],"ax":101.5,"ay":325,"pw":171,"ph":311,"uw":203,"uh":331},"cha_enemy_wraith_walk":{"cw":183,"ch":298,"d":[110,110,110,110,110,110,110,110],"ax":101.5,"ay":325,"pw":171,"ph":311,"uw":203,"uh":331},"cha_hero_brute_idle_idle":{"cw":208,"ch":291,"d":[260,260,260,260,260,260],"ax":115.5,"ay":321,"pw":203,"ph":311,"uw":231,"uh":323},"cha_hero_brute_idle_walk":{"cw":208,"ch":291,"d":[95,95,95,95,95,95,95,95],"ax":115.5,"ay":321,"pw":203,"ph":311,"uw":231,"uh":323},"cha_hero_duelist_idle_idle":{"cw":223,"ch":275,"d":[260,260,260,260,260,260],"ax":124.0,"ay":304,"pw":220,"ph":294,"uw":248,"uh":306},"cha_hero_duelist_idle_walk":{"cw":223,"ch":275,"d":[95,95,95,95,95,95,95,95],"ax":124.0,"ay":304,"pw":220,"ph":294,"uw":248,"uh":306},"cha_hero_gambler_idle_idle":{"cw":165,"ch":297,"d":[260,260,260,260,260,260],"ax":91.5,"ay":328,"pw":155,"ph":318,"uw":183,"uh":330},"cha_hero_gambler_idle_walk":{"cw":165,"ch":297,"d":[95,95,95,95,95,95,95,95],"ax":91.5,"ay":328,"pw":155,"ph":318,"uw":183,"uh":330},"cha_hero_hexpriest_idle_idle":{"cw":192,"ch":302,"d":[260,260,260,260,260,260],"ax":106.5,"ay":333,"pw":185,"ph":323,"uw":213,"uh":335},"cha_hero_hexpriest_idle_walk":{"cw":192,"ch":302,"d":[95,95,95,95,95,95,95,95],"ax":106.5,"ay":333,"pw":185,"ph":323,"uw":213,"uh":335},"cha_hero_knight_idle_idle":{"cw":171,"ch":301,"d":[260,260,260,260,260,260],"ax":95.0,"ay":332,"pw":162,"ph":322,"uw":190,"uh":334},"cha_hero_knight_idle_walk":{"cw":171,"ch":301,"d":[95,95,95,95,95,95,95,95],"ax":95.0,"ay":332,"pw":162,"ph":322,"uw":190,"uh":334},"cha_hero_ranger_idle_idle":{"cw":187,"ch":288,"d":[260,260,260,260,260,260],"ax":104.0,"ay":318,"pw":180,"ph":308,"uw":208,"uh":320},"cha_hero_ranger_idle_walk":{"cw":187,"ch":288,"d":[95,95,95,95,95,95,95,95],"ax":104.0,"ay":318,"pw":180,"ph":308,"uw":208,"uh":320}};
 function fxaIdx(k,ms){const m=FXA[k];if(!m)return -1;for(let i=0;i<m.d.length;i++){ms-=m.d[i];if(ms<0)return i;}return -1;}
 function fxaBlit(c,k,i,x,y,w,h){const im=artImg(k),m=FXA[k];if(!im||!m||i<0)return false;c.drawImage(im,i*m.cw,0,m.cw,m.ch,x,y,w,h);return true;}
-const fxaSpd=()=>S.fast?1.7:1;
+const fxaSpd=()=>fastOn()?1.7:1;
 // a slain foe burns away: its sprite is masked by fxa_dissolve, rimmed by fxa_dissolve_edge, and sheds fxa_ash
 const dieCv=document.createElement('canvas'),dieCx=dieCv.getContext('2d');
 function drawDying(d,cam,dt){
@@ -3600,7 +3643,7 @@ function drawBG(cam,t){
 }
 // hit reactions (kept off the saved run): a quick shove away from the attacker that eases back
 const HITT=new WeakMap();let heroHurtPrev=0,heroHurtT=-1e9;
-function kbEnv(t0){const k=(performance.now()-t0)/(S.fast?170:280);return k<0||k>=1?0:k<.15?k/.15:((1-k)/.85)**2;}
+function kbEnv(t0){const k=(performance.now()-t0)/(fastOn()?170:280);return k<0||k>=1?0:k<.15?k/.15:((1-k)/.85)**2;}
 // idle/walk cycles (cha_*, art-anim.js): drawn exactly like sprAt(base), anchored at the feet
 // sheets are stored at a fraction r of pack-art scale (uw x uh = the cell in packed px); a missing walk falls back to the idle cycle
 function chaAt(base,anim,x,y,flip,t){let k='cha_'+base+'_'+anim;if(!FXA[k]||!artImg(k))k='cha_'+base+'_idle';const m=FXA[k],im=artImg(k),mt=(window.LD_ART_META||{})[base];if(!m||!im||!mt)return null;
@@ -3655,7 +3698,7 @@ function drawPoison(x,t,dt){
       const g=cx.createRadialGradient(bx,by,0,bx,by,rr*2);g.addColorStop(0,`rgba(150,255,120,${.35*(1-ph)})`);g.addColorStop(1,'rgba(90,200,70,0)');cx.fillStyle=g;cx.fillRect(bx-rr*2,by-rr*2,rr*4,rr*4);}
     cx.restore();}
   const p=view.puff;if(!p)return;
-  p.t+=dt/(S.fast?.6:1.1);const k=Math.min(1,p.t),a=k<.2?k/.2:1-(k-.2)/.8;
+  p.t+=dt/(fastOn()?.6:1.1);const k=Math.min(1,p.t),a=k<.2?k/.2:1-(k-.2)/.8;
   cx.save();
   // lumpy billows of uneven size, a darker rim on each so they read as gas, not a disc
   for(let i=0;i<14;i++){const ang=i*2.39996,ring=i<5?.35:1,dist=(8+k*30)*ring,px=x+Math.cos(ang)*dist*1.15,py=GY-44+Math.sin(ang)*dist*.7-k*14-(i%4)*3,rr=(9+((i*7)%5)*3)*(.7+k*.6);
@@ -3780,15 +3823,15 @@ function frame(now){
   if(run&&!$('#game').classList.contains('hidden')&&cv.width){
     const r=run;
     const target=r.x*T+T/2;const moving=Math.abs(view.hx-target)>1;
-    view.hx+=(target-view.hx)*Math.min(1,dt*(S.fast?12:5));
+    view.hx+=(target-view.hx)*Math.min(1,dt*(fastOn()?12:5));
     // the player can drag the view along the floor; it drifts back to the hero after a few idle seconds
     const base=view.hx-HERO_SX;
     if(view.pan&&!view.drag&&now-view.panT>4000){view.pan*=Math.max(0,1-dt*4);if(Math.abs(view.pan)<1)view.pan=0;}
     if(r.death)view.pan=0;
     const want=Math.max(Math.min(base,T/2-HERO_SX),Math.min(Math.max(base,(r.len+1)*T+24-VWd),base+view.pan));view.pan=want-base;
     view.cam+=(want-view.cam)*Math.min(1,dt*(view.drag?20:6));
-    for(const o of r.objs){o.dx+=(o.x*T-o.dx)*Math.min(1,dt*(S.fast?12:5));if(o.flash)o.flash=Math.max(0,o.flash-dt*5);if(o.lunge)o.lunge=Math.max(0,o.lunge-dt*(S.fast?5:2.5));if(o.pose)o.pose=Math.max(0,o.pose-dt*(S.fast?1:.6));}
-    view.lunge=Math.max(0,view.lunge-dt*(S.fast?5:2.5));view.hurt=Math.max(0,view.hurt-dt*2.5);view.shake=Math.max(0,view.shake-dt*30);
+    for(const o of r.objs){o.dx+=(o.x*T-o.dx)*Math.min(1,dt*(fastOn()?12:5));if(o.flash)o.flash=Math.max(0,o.flash-dt*5);if(o.lunge)o.lunge=Math.max(0,o.lunge-dt*(fastOn()?5:2.5));if(o.pose)o.pose=Math.max(0,o.pose-dt*(fastOn()?1:.6));}
+    view.lunge=Math.max(0,view.lunge-dt*(fastOn()?5:2.5));view.hurt=Math.max(0,view.hurt-dt*2.5);view.shake=Math.max(0,view.shake-dt*30);
     cx.setTransform(scaleK,0,0,scaleK,0,0);cx.translate(0,VHd-VH);
     const sx=view.shake?(Math.random()-.5)*view.shake:0,sy=view.shake?(Math.random()-.5)*view.shake:0;
     cx.translate(sx,sy);
@@ -3827,7 +3870,7 @@ function frame(now){
     else if(view.boom){view.boom.t+=dt*3;const p=view.boom.t;cx.fillStyle=`rgba(255,${160-p*100},60,${1-p})`;cx.beginPath();cx.arc(view.boom.x-cam,GY-24,20+p*70,0,7);cx.fill();if(p>=1)view.boom=null;}
     // floaters
     cx.textAlign='center';
-    for(const f of view.fl){f.t+=dt*(S.fast?1:.7);const a=f.t<.9?1:1-(f.t-.9)/.4,num=/^[-+]\d/.test(f.txt),pop=f.t<.14?1+(1-f.t/.14)*.5:1,fy=f.y-(1-(1-Math.min(1,f.t/1.3))**2)*34;
+    for(const f of view.fl){f.t+=dt*(fastOn()?1:.7);const a=f.t<.9?1:1-(f.t-.9)/.4,num=/^[-+]\d/.test(f.txt),pop=f.t<.14?1+(1-f.t/.14)*.5:1,fy=f.y-(1-(1-Math.min(1,f.t/1.3))**2)*34;
       cx.globalAlpha=Math.max(0,a);cx.font=(num?'19px':'15px')+" 'Pirata One',Georgia,serif";cx.save();cx.translate(f.x-cam,fy);cx.scale(pop,pop);drawRich(f.txt,0,0,f.col);cx.restore();}
     cx.globalAlpha=1;view.fl=view.fl.filter(f=>f.t<1.3);
     }
@@ -3876,10 +3919,12 @@ function drawHubArt(){
   g.font='64px serif';g.textAlign='center';g.fillText('🎰',150,110);g.fillText('🗡️',250,105);g.fillText('💀',340,110);
   g.font='bold 14px ui-monospace,monospace';g.fillStyle='#d9b56a';g.fillText('7  ·  7  ·  7',240,150);
 }
-const sleep=ms=>new Promise(r=>setTimeout(r,S.fast?ms*.45:ms));
+// Fast animations never apply at Death's table: that fight is meant to be watched.
+const fastOn=()=>!!S.fast&&!(run&&run.death);
+const sleep=ms=>new Promise(r=>setTimeout(r,fastOn()?ms*.45:ms));
 // Turn-phase pacing: every action in a turn waits a beat so it reads like a
 // turn-based game. Fast mode collapses it.
-const PACE=2.8;const beat=ms=>sleep(ms*PACE);
+const PACE=2.8;const beat=ms=>sleep(ms*PACE*(run&&run.death?1.6:1));   // Death's table plays slower
 
 /* ---------------- boot ---------------- */
 showHub('main');

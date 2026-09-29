@@ -2472,6 +2472,7 @@ function noteTurn(txt){const r=run;if(!r)return;r.hist=r.hist||[];if(!r.hist.len
 function hurtBy(who,amt){const r=run;r.killer=who;noteTurn(`<span style="color:var(--red)">${esc(who)} hit you for <b>${amt}</b> (${Math.max(0,r.hp)} HP left)</span>`);}
 async function doTurn(R){
   const r=run,s=stats(),u=R.units,val=k=>u[k]||0;
+  if(r.death)r.dBatch={sum:0,o:null};   // every blow on Death this turn lands as one total
   noteTurn(`Reels: ${Object.entries(u).map(([k,n])=>`${SYM[k]?SYM[k].e:k}×${n}`).join(' ')}${R.mult>1?` · wheel ×${R.mult}`:''}${R.triples?' · JACKPOT':''}`);
   const parts=[];const combo=R.combos||{};r.turnJackpot=R.triples>0;r.maxTriples=Math.max(r.maxTriples||0,R.triples);
   let mu=R.mult||1;r.turnCoins=0;if(!val('sword'))r.duel=0;for(const o of r.objs)if(o.trait==='warded')o.wardSpent=false;
@@ -2560,6 +2561,7 @@ async function doTurn(R){
     for(const t of ts)await hit(t,dmg,'bomb');parts.push(`💣${dmg}`);await beat(180);
     if(combo.stabbomb){const t2=blockerAt(r.x+1);if(t2){view.lunge=1;await hit(t2,s.swordDmg,'sword');parts.push(`🗡${s.swordDmg}`);await beat(160);}}
   }
+  await flushDeathBatch();
   await fxEachA('turnEnd');
   noteTurn('You: '+(parts.length?parts.join(' · '):'nothing landed'));logLine(parts.length?parts.join(' · '):'Nothing useful landed.');
   ui();
@@ -2596,12 +2598,27 @@ async function hit(o,dmg,how){
   if(o.t==='death'&&d>0&&o.read&&how===o.read){d=Math.ceil(d/2);fl('READ ½','#b07cf0',o.x*T+T/2,GY-150);}
   if(o.t==='death'&&d>0){const th=r.turnHow||(r.turnHow={});th[how]=(th[how]||0)+d;}
   r.bestHit=Math.max(r.bestHit||0,d);
+  if(o.t==='death'&&r.dBatch){
+    if(d>0){r.dBatch.sum+=d;r.dBatch.o=o;o.flash=1;HITT.set(o,performance.now());addFx('fx_hit',o.x*T+T/2,GY-80,64,.35);fxEach('dealt',o,d,how);}
+    return;}
   if(o.t==='death'&&d>0)await deathTally(d,how);
   o.hp-=d;o.flash=1;if(d>0)HITT.set(o,performance.now());addFx('fx_hit',o.x*T+T/2,GY-(o.boss?80:50),o.boss?64:46,.35);if(o.t!=='death')fl('-'+d,how==='shove'?'#d9b48a':'#fff',o.x*T+T/2,GY-(o.boss?120:80));
   fxEach('dealt',o,d,how);
   if(o.t==='death'&&o.phase<3){await deathCheck(o);if(o.hp<=0)o.hp=1;}
   if(o.t==='death'&&o.phase>=3&&!r.finalDeal&&o.hp>0&&o.hp<=Math.ceil(o.max*.1))r.finalDeal='pending';
   if(o.hp<=0){if(o.t==='labfreak'&&!o.phase2){await labfreakPhase2(o);return;}await kill(o);}
+}
+// The turn's summed damage on Death: one count-up, one splat, then his phases and the Final Deal.
+async function flushDeathBatch(){
+  const r=run,b=r&&r.dBatch;if(!b)return;r.dBatch=null;
+  const o=b.o;if(!o||o.gone||b.sum<=0)return;
+  const d=b.sum;r.bestHit=Math.max(r.bestHit||0,d);
+  await deathTally(d,'total');
+  o.hp-=d;o.flash=1;HITT.set(o,performance.now());
+  if(o.phase<3){await deathCheck(o);if(o.hp<=0)o.hp=1;}
+  if(o.phase>=3&&!r.finalDeal&&o.hp>0&&o.hp<=Math.ceil(o.max*.1))r.finalDeal='pending';
+  if(o.hp<=0)await kill(o);
+  ui();
 }
 async function kill(o){
   const r=run;sfx.kill();o.gone=true;if(o.kind==='enemy'&&artImg('fxa_dissolve')&&view.dying.length<8)view.dying.push({o,ms:0});r.kills++;S.kills++;metaEv('kill');if(o.boss)metaEv('boss');if(o.elite)metaEv('elite');if(o.t==='labfreak'&&o.mutated)metaEv('labkill');
@@ -2665,6 +2682,7 @@ function deathRead(){
 }
 async function enemyPhase(){
   const r=run;
+  if(r.dBatch)await flushDeathBatch();
   if(r.death)deathRead();
   if(r.djam&&r.djam.length){r.djam.forEach(j=>j.turns--);const n=r.djam.length;r.djam=r.djam.filter(j=>j.turns>0);if(r.djam.length<n){heroFl('chains fall away','#9fd6ff');rebuildReels();}}
   const es=r.objs.filter(o=>o.kind==='enemy'&&!o.gone&&o.x-r.x<=6).sort((a,b)=>a.x-b.x);

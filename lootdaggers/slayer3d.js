@@ -9,6 +9,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const U = 0.0155;                       // meters per slayer.js world unit
 const ROOT = new URL('./', import.meta.url).href;
@@ -111,9 +116,9 @@ const SEAT = {
   // (curlFingers). Measured on his hand mesh: knuckle row y 10.5, fingers across K -7..2
   // (the thumb sits past K 5), palm face at N +2. Blade out of the thumb side, 15° up.
   Dagger:  { at: 0.14, fist: { k: -2.5, y: 10, n: 3.25, tilt: 0.26, y0: 10.5, n0: -0.5, kMax: 3 } },                 // Gambler
-  Cleaver: { at: 0.18, q: [-0.2299, 0.8881, 0.3981, 0], off: [0.5, 0, 0] },                 // Brute
-  Rapier:  { at: 0.9, q: [0.2956, 0.2994, -0.8381, 0.3472], off: [1.94, 0, 1.57] },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
-  Staff:   { at: 0.6, q: [-0.8536, 0.1464, -0.3536, -0.3536], off: [0.71, -3, -0.71] },                  // Hex Priest: held below the head
+  Cleaver: { at: 0.18, fist: { auto: true, tilt: 0.52 } },                 // Brute
+  Rapier:  { at: 0.9, fist: { auto: true } },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
+  Staff:   { at: 0.6, fist: { auto: true } },                  // Hex Priest: held below the head
   // Ranger (left hand): a bow needs its whole orientation, not just a length axis: measured
   // at his draw (own Attack at 55%), `up` is world up and `face` the target, in the hand's space
   Bow:     { at: 0.4, frame: { up: [0.108, -0.113, -0.988], face: [-0.485, 0.862, -0.151] } },                  // Ranger (left hand): the narrow grip below the riser
@@ -152,6 +157,30 @@ function handFrame(pts) {
   return { Y, N, K, L };
 }
 
+/* Fist numbers measured from the hand mesh and the weapon: the knuckle row sits where the
+   fingers begin (53% of the hand's length), the fingers span K across the top quarter of
+   the hand (the thumb is outside that, on +K in every Meshy rig), the handle rests on the
+   palm face plus the handle's own radius. */
+function autoFist(fr, pts, w, P, ax, lo, len, cfg) {
+  const { Y, N, K, L } = fr;
+  let kMin = 1e9, kMax = -1e9, nSum = 0, nN = 0, palm = -1e9;
+  for (const p of pts) {
+    const y = p.dot(Y), k = p.dot(K), n = p.dot(N);
+    if (y > 0.78 * L) { kMin = Math.min(kMin, k); kMax = Math.max(kMax, k); }
+    if (Math.abs(y - 0.53 * L) < 0.08 * L) { nSum += n; nN++; }
+    if (y > 0.3 * L && y < 0.55 * L) palm = Math.max(palm, n);
+  }
+  // handle radius: the weapon's cross-section at the handle, in hand units
+  const v = new THREE.Vector3(), c = new THREE.Vector3(); let m = 0, r = 0;
+  const sl = [];
+  for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i); if (Math.abs((v.getComponent(ax) - lo) / len - cfg.at) < 0.03) { sl.push(v.clone()); c.add(v); m++; } }
+  c.divideScalar(Math.max(1, m));
+  for (const q of sl) { q.setComponent(ax, c.getComponent(ax)); r = Math.max(r, q.distanceTo(c)); }
+  r = Math.min(r * w.scale.x, 0.12 * L);
+  const kMid = (kMin + kMax) / 2;
+  return { k: kMid, y: 0.5 * L, n: palm + r * 0.9, tilt: cfg.fist.tilt || 0.26, y0: 0.53 * L, n0: nN ? nSum / nN : 0, kMax: kMax + 0.5, kMin: kMin - 0.5 };
+}
+
 /* Close a hand without finger bones: every finger vertex (bound to the hand, past the knuckle
    row F.y0, inside the finger span k < F.kMax, so the thumb stays out) is laid along an arc
    around the handle centre H in the hand's (Y, N) plane: its distance past the knuckles becomes
@@ -175,7 +204,7 @@ function curlFingers(skin, bi, fr, H, F) {
     if (best !== bi || bw < 0.5) continue;
     v.fromBufferAttribute(pos, i).applyMatrix4(M);
     const y = v.dot(Y), nn = v.dot(N), kk = v.dot(K);
-    if (y <= F.y0 || kk > F.kMax) continue;
+    if (y <= F.y0 || kk > F.kMax || (F.kMin != null && kk < F.kMin)) continue;
     const ramp = Math.min(1, (y - F.y0) / 1.5);                 // ease in over the first knuckle so the skin doesn't tear
     const s = (y - F.y0), tn = nn - F.n0;
     const phi = phi0 + ramp * s / R0 - (1 - ramp) * 0;
@@ -238,7 +267,8 @@ function seatWeapons(root) {
     const axL = new THREE.Vector3().setComponent(ax, cfg.at < 0.5 ? 1 : -1);
     if (cfg.fist) {
       // a closed fist: the weapon placed by hand geometry, then the fingers bent around it
-      const F = cfg.fist, fr = handFrame(handPts);
+      const fr = handFrame(handPts);
+      const F = cfg.fist.auto ? autoFist(fr, handPts, w, P, ax, lo, len, cfg) : cfg.fist;
       const tip = fr.K.clone().multiplyScalar(Math.cos(F.tilt)).addScaledVector(fr.Y, Math.sin(F.tilt)).normalize();
       const edge = fr.N.clone().addScaledVector(tip, -fr.N.dot(tip)).normalize();
       const ext3 = b.getSize(new THREE.Vector3()).toArray();
@@ -328,6 +358,9 @@ export class Stage {
     this.camera = new THREE.PerspectiveCamera(24, 1, 0.1, 80);
     this.loader = new GLTFLoader();
     this.loader.setMeshoptDecoder(MeshoptDecoder);
+    const draco = new DRACOLoader();                 // the throne room's props are Draco-compressed
+    draco.setDecoderPath(ROOT + 'vendor/three/addons/libs/draco/gltf/');
+    this.loader.setDRACOLoader(draco);
     this.gltfs = {};          // url -> Promise<gltf>
     this.actors = new Map();  // game object -> actor
     this.fx = [];
@@ -354,6 +387,7 @@ export class Stage {
     this.boneNames = names;
     this.srcRig = rigInfo(anims.scene, names);
     this.skins = skins || {};
+    if (!this.overlay) this._dress().catch(e => console.warn('Reel Slayer: hall dressing failed; the plain hall stays', e));
   }
 
   _gltf(path) {
@@ -423,7 +457,7 @@ export class Stage {
       new THREE.MeshStandardMaterial({ color: wallTex ? 0xd0bca6 : 0x1d1a1e, map: wallTex, roughness: 1 }));
     wall.position.set(60, 5.3, -3.2);
     S.add(wall);
-    this.wall = wall;
+    this.wall = wall; this.floor = floor;
     // torches along the wall: a warm light every few meters, flickering flame sprites
     this.torches = [];
     const flameTex = new THREE.TextureLoader().load(ROOT + 'death3d/assets/textures/vfx/fire_flame_4x4.webp');
@@ -439,7 +473,7 @@ export class Stage {
       this.torches.push(sp);
     }
     this.torchLights = [];
-    for (let i = 0; i < (this.phone ? 2 : 4); i++) {
+    for (let i = 0; i < (this.phone ? 3 : 6); i++) {
       const L = new THREE.PointLight(0xff9a4a, 6, 9, 1.6);
       S.add(L);
       this.torchLights.push(L);
@@ -765,7 +799,7 @@ export class Stage {
     this._flashFrame(st, box.dt || dt);
     this._effects(st, box.dt || dt);
     this._world(st, dt);
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
   }
 
   _heroAnim(st) {
@@ -1027,17 +1061,23 @@ export class Stage {
   _world(st, dt) {
     // torches flicker; the nearest few carry real lights
     const t = this.clock;
+    // the hall never ends: torches (every 5.5 m) are laid out afresh around the camera
+    const tb = Math.floor((this.camX + 6) / 5.5) - Math.floor(this.torches.length / 2);
+    this.torches.forEach((sp, i) => { sp.position.x = -6 + (tb + i) * 5.5; });
+    if (this.hall) this._hallFrame(dt);
     for (const sp of this.torches) {
       const i = Math.floor(t * 12 + sp.position.x) % 16;
       sp.material.map.offset.set((i % 4) * 0.25, 0.75 - Math.floor(i / 4) * 0.25);
       sp.scale.set(0.45 + Math.sin(t * 11 + sp.position.x) * 0.03, 0.7, 1);
     }
     const cx = this.camX;
-    const near = this.torches.map(s => s.position).sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx));
+    const src = this.torches.map(s => ({ p: s.position, z: -2.4, k: 1 }));
+    if (this.hall) for (const b of this.hall.fires) src.push({ p: b.fire.position, z: b.fire.position.z + 0.5, k: 1.5, y: 0.6 });
+    const near = src.sort((a, b) => Math.abs(a.p.x - cx) - Math.abs(b.p.x - cx));
     this.torchLights.forEach((L, i) => {
-      const p = near[i]; if (!p) return;
-      L.position.set(p.x, p.y, -2.4);
-      L.intensity = (5 + Math.sin(t * 13 + i * 2) * 0.8 + Math.sin(t * 7.3 + i) * 0.6) * (this.torchHot || 1);
+      const s = near[i]; if (!s) return;
+      L.position.set(s.p.x, s.p.y + (s.y || 0), s.z);
+      L.intensity = (5 + Math.sin(t * 13 + i * 2) * 0.8 + Math.sin(t * 7.3 + i) * 0.6) * (this.torchHot || 1) * s.k;
     });
   }
 
@@ -1062,6 +1102,9 @@ export class Stage {
     this.camX += (want - this.camX) * Math.min(1, (box.dt || 0.016) * 4);
     const lookY = Math.max(1.1, halfV * 0.62);
     const sh = this.shakeK || 0, jx = (Math.random() - 0.5) * sh, jy = (Math.random() - 0.5) * sh;
+    if (this.hall && this.scene.fog) { this.scene.fog.near = dist + 1.5; this.scene.fog.far = dist + 17; }   // fighters clear, the hall's depths dark
+    if (this.composer && (this._cw !== w || this._ch !== h)) { this._cw = w; this._ch = h; this.composer.setSize(w, h); }
+    if (this.vignette) { const vh = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * 0.5; this.vignette.scale.set(vh * this.camera.aspect * 1.02, vh * 1.02, 1); }
     this.camera.position.set(this.camX + jx, lookY + 0.35 + jy, dist);
     this.camera.lookAt(this.camX + jx * 0.5, lookY + jy * 0.5, 0);
     this.camera.updateMatrixWorld();
@@ -1390,5 +1433,230 @@ Object.assign(Stage.prototype, {
     glow.scale.set(0.18, 0.7, 1); m.add(glow);
     m.position.set(tx - 1, 6, 0.2); m.rotation.z = 0.2; this.scene.add(m);
     this.fx.push({ obj: m, t: 0, dur: 0.32, kind: 'fall', from: m.position.clone(), to: new THREE.Vector3(tx, 0.3, 0.2), done: () => this._burst(color, new THREE.Vector3(tx, 0.3, 0.3), 6, 1.2, 0.3) });
+  },
+});
+
+/* ======================================================================
+   The hall: Reel Slayer's dungeon dressed in 3D. The throne room's stone
+   pillars, braziers and candles line the wall in bays that are laid out
+   afresh around the camera (so the hall never ends), the floor gets the
+   throne room's flagstones with relief and a wet sheen, and the air gets
+   embers, dust, light shafts and low fog. Desktop adds bloom.
+   ====================================================================== */
+const SEG = 11;                 // one bay: two torches, two pillars, a brazier, candles
+const hash = n => { let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b) >>> 0; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35) >>> 0; x ^= x >>> 16; return (x >>> 0) / 4294967296; };
+
+/* A normal map (and a wetness-driven roughness map) from an image's brightness. */
+function reliefMaps(img, strength, size) {
+  const W = Math.min(size, img.width), H = Math.round(W * img.height / img.width);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0, W, H);
+  const src = g.getImageData(0, 0, W, H).data, L = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) L[i] = (src[i * 4] * 0.3 + src[i * 4 + 1] * 0.59 + src[i * 4 + 2] * 0.11) / 255;
+  const nC = document.createElement('canvas'); nC.width = W; nC.height = H;
+  const rC = document.createElement('canvas'); rC.width = W; rC.height = H;
+  const nD = nC.getContext('2d').createImageData(W, H), rD = rC.getContext('2d').createImageData(W, H);
+  const at = (x, y) => L[((y + H) % H) * W + ((x + W) % W)];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const dx = (at(x + 1, y) - at(x - 1, y)) * strength, dy = (at(x, y + 1) - at(x, y - 1)) * strength;
+    const l = Math.hypot(dx, dy, 1), i = (y * W + x) * 4;
+    nD.data[i] = (-dx / l * 0.5 + 0.5) * 255; nD.data[i + 1] = (dy / l * 0.5 + 0.5) * 255; nD.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; nD.data[i + 3] = 255;
+    const r = 0.28 + 0.7 * Math.min(1, L[y * W + x] * 1.8);       // dark cracks and hollows hold water: glossy
+    rD.data[i] = rD.data[i + 1] = rD.data[i + 2] = r * 255; rD.data[i + 3] = 255;
+  }
+  nC.getContext('2d').putImageData(nD, 0, 0); rC.getContext('2d').putImageData(rD, 0, 0);
+  return { normal: new THREE.CanvasTexture(nC), rough: new THREE.CanvasTexture(rC) };
+}
+
+Object.assign(Stage.prototype, {
+  async _dress() {
+    const S = this.scene;
+    this.hall = { bays: [], fires: [], shafts: [], t: 0 };
+    this.scene.fog.color.setHex(0x0b0806);
+    this.scene.background.setHex(0x0b0806);
+    this._atmos();
+    this._wallRelief();
+    const g = await this._gltf('death3d/assets/models/throne_room_env.glb');
+    const find = pre => { let m = null; g.scene.traverse(o => { if (!m && o.isMesh && o.name.startsWith(pre)) m = o; }); return m; };
+    const pillar = find('Pillar'), brazier = find('Brazier'), candles = find('Candles'), floorSrc = find('Floor');
+    // floor: flagstones, with relief and wet cracks from the stone's own shading
+    if (floorSrc && floorSrc.material.map && this.floor) {
+      const map = floorSrc.material.map.clone(); map.needsUpdate = true;
+      map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(200 / 3, 28 / 3);
+      const fm = this.floor.material;
+      fm.map = map; fm.color.setHex(0xb8a898); fm.roughness = 1; fm.metalness = 0; fm.envMapIntensity = 1.4;
+      try {
+        const rel = reliefMaps(map.image, 6, 1024);
+        for (const t of [rel.normal, rel.rough]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.copy(map.repeat); }
+        fm.normalMap = rel.normal; fm.normalScale.set(1.6, 1.6); fm.roughnessMap = rel.rough;
+      } catch (e) { /* a tainted or odd image: flat flagstones */ }
+      fm.needsUpdate = true;
+      this.hall.floorTile = 3;
+    }
+    // bays: two pillars, a brazier with fire, a candle cluster by the wall, one out front now and then
+    const flame = this.torches[0] && this.torches[0].material.map;
+    const NB = 5;
+    for (let i = 0; i < NB; i++) {
+      const bay = { group: new THREE.Group(), k: null };
+      const add = (src, s) => { if (!src) return null; const m = new THREE.Mesh(src.geometry, src.material); m.scale.setScalar(s); bay.group.add(m); return m; };
+      bay.p1 = add(pillar, 0.62); bay.p2 = add(pillar, 0.62);
+      bay.br = add(brazier, 1.05);
+      bay.c1 = add(candles, 1.1); bay.c2 = add(candles, 0.9);
+      if (flame) {
+        const fire = new THREE.Sprite(new THREE.SpriteMaterial({ map: flame.clone(), color: 0xffb060, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+        fire.material.map.repeat.set(0.25, 0.25); fire.scale.set(1.0, 1.5, 1);
+        bay.group.add(fire); bay.fire = fire;
+        this.hall.fires.push(bay);
+      }
+      const glowM = () => new THREE.SpriteMaterial({ map: this.glowTex, color: 0xff9a40, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 });
+      bay.halo = new THREE.Sprite(glowM()); bay.halo.scale.set(3.2, 2.4, 1); bay.group.add(bay.halo);
+      bay.cg1 = new THREE.Sprite(glowM()); bay.cg1.scale.set(1.0, 0.7, 1); bay.group.add(bay.cg1);
+      bay.cg2 = new THREE.Sprite(glowM()); bay.cg2.scale.set(0.8, 0.6, 1); bay.group.add(bay.cg2);
+      S.add(bay.group);
+      this.hall.bays.push(bay);
+    }
+    if (!this.phone) this._bloom();
+  },
+
+  /* the wall painting: relief under the moving firelight, and a darker top */
+  _wallRelief() {
+    const w = this.wall; if (!w) return;
+    const geo = new THREE.PlaneGeometry(200, 11, 1, 12), col = [];
+    const P = geo.attributes.position;
+    for (let i = 0; i < P.count; i++) { const k = 1 - Math.max(0, (P.getY(i) + 5.5 - 2) / 9) * 0.8; col.push(k, k * 0.95, k * 0.9); }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    w.geometry.dispose(); w.geometry = geo;
+    w.material.vertexColors = true;
+    const map = w.material.map;
+    const apply = () => {
+      try {
+        const rel = reliefMaps(map.image, 4, 2048);
+        rel.normal.wrapS = THREE.RepeatWrapping; rel.normal.repeat.copy(map.repeat);
+        w.material.normalMap = rel.normal; w.material.normalScale.set(1.3, 1.3); w.material.needsUpdate = true;
+      } catch (e) { /* keep it flat */ }
+    };
+    if (map && map.image && map.image.width) apply();
+    else if (map) { const t = setInterval(() => { if (map.image && map.image.width) { clearInterval(t); apply(); } }, 200); setTimeout(() => clearInterval(t), 15000); }
+    w.material.needsUpdate = true;
+  },
+
+  /* embers, dust, light shafts, low fog and a vignette */
+  _atmos() {
+    const S = this.scene, H = this.hall;
+    const pts = (n, color, size, opacity) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+      const m = new THREE.Points(geo, new THREE.PointsMaterial({ color, size, map: this.glowTex, blending: THREE.AdditiveBlending, transparent: true, opacity, depthWrite: false }));
+      m.frustumCulled = false; S.add(m);
+      return { m, n, seed: Array.from({ length: n }, () => [Math.random(), Math.random(), Math.random(), Math.random()]) };
+    };
+    H.embers = pts(this.phone ? 60 : 120, 0xff8a30, 0.16, 0.95);
+    H.dust = pts(this.phone ? 40 : 80, 0xd8c8a8, 0.05, 0.45);
+    // light shafts: a soft vertical beam, bright at the top
+    const c = document.createElement('canvas'); c.width = 64; c.height = 256;
+    const g = c.getContext('2d');
+    const gy = g.createLinearGradient(0, 0, 0, 256); gy.addColorStop(0, 'rgba(255,255,255,1)'); gy.addColorStop(0.7, 'rgba(255,255,255,.35)'); gy.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gy; g.fillRect(0, 0, 64, 256);
+    g.globalCompositeOperation = 'destination-in';
+    const gx = g.createLinearGradient(0, 0, 64, 0); gx.addColorStop(0, 'rgba(0,0,0,0)'); gx.addColorStop(0.5, 'rgba(0,0,0,1)'); gx.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gx; g.fillRect(0, 0, 64, 256);
+    const shaftTex = new THREE.CanvasTexture(c);
+    for (let i = 0; i < 5; i++) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 10), new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xffd8a0, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.08, depthWrite: false, fog: false }));
+      m.rotation.z = 0.32; S.add(m); H.shafts.push(m);
+    }
+    // low fog: two drifting bands of noise, one behind the fighters, one in front
+    const fc = document.createElement('canvas'); fc.width = 256; fc.height = 64;
+    const fg = fc.getContext('2d');
+    for (let i = 0; i < 90; i++) {
+      const x = Math.random() * 256, y = 20 + Math.random() * 40, r = 10 + Math.random() * 26;
+      const rg = fg.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, 'rgba(255,255,255,.22)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      fg.fillStyle = rg; for (const dx of [-256, 0, 256]) { fg.save(); fg.translate(dx, 0); fg.fillRect(x - r, y - r, r * 2, r * 2); fg.restore(); }
+    }
+    fg.globalCompositeOperation = 'destination-in';
+    const fy = fg.createLinearGradient(0, 0, 0, 64); fy.addColorStop(0, 'rgba(0,0,0,0)'); fy.addColorStop(0.55, 'rgba(0,0,0,1)'); fy.addColorStop(1, 'rgba(0,0,0,.6)');
+    fg.fillStyle = fy; fg.fillRect(0, 0, 256, 64);
+    H.fogs = [];
+    for (const [z, h, op] of [[-1.9, 1.6, 0.55], [1.2, 1.0, 0.35]]) {
+      const tex = new THREE.CanvasTexture(fc); tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(3, 1);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(40, h), new THREE.MeshBasicMaterial({ map: tex, color: 0x9a8f88, transparent: true, opacity: op, depthWrite: false }));
+      m.position.set(0, h / 2 - 0.05, z); m.renderOrder = 2; S.add(m); H.fogs.push(m);
+    }
+    // vignette: a dark rim on the lens
+    const vc = document.createElement('canvas'); vc.width = vc.height = 256;
+    const vg = vc.getContext('2d'), rg = vg.createRadialGradient(128, 128, 60, 128, 128, 182);
+    rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(1, 'rgba(0,0,0,.78)');
+    vg.fillStyle = rg; vg.fillRect(0, 0, 256, 256);
+    this.vignette = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(vc), transparent: true, depthTest: false, depthWrite: false, fog: false }));
+    this.vignette.position.z = -0.5; this.vignette.renderOrder = 1000;
+    this.camera.add(this.vignette); S.add(this.camera);
+    this._w = 0;              // re-run the resize so the vignette gets its size
+  },
+
+  _bloom() {
+    const r = this.renderer, size = r.getSize(new THREE.Vector2());
+    const c = new EffectComposer(r);
+    c.addPass(new RenderPass(this.scene, this.camera));
+    c.addPass(new UnrealBloomPass(size, 0.45, 0.55, 0.82));
+    c.addPass(new OutputPass());
+    c.setPixelRatio(r.getPixelRatio());
+    c.setSize(size.x, size.y);
+    this.composer = c; this._cw = size.x; this._ch = size.y;
+  },
+
+  _hallFrame(dt) {
+    const H = this.hall, cx = this.camX, t = this.clock;
+    // floor and wall follow the camera in whole tiles, so their pattern never jumps
+    if (this.floor && H.floorTile) this.floor.position.x = Math.round(cx / H.floorTile) * H.floorTile;
+    if (this.wall && this.wall.material.map && this.wall.material.map.repeat.x > 0) { const tw = 200 / this.wall.material.map.repeat.x; this.wall.position.x = Math.round(cx / tw) * tw; }
+    // bays
+    const b0 = Math.floor((cx + 6) / SEG) - 2;
+    H.bays.forEach((bay, i) => {
+      const k = b0 + ((i - b0) % H.bays.length + H.bays.length) % H.bays.length;
+      if (bay.k === k) return;
+      bay.k = k;
+      const xb = -6 + k * SEG, r = j => hash(k * 7 + j);
+      if (bay.p1) { bay.p1.position.set(xb + 2.75, 0, -2.55); bay.p1.rotation.y = r(1) * 6.28; }
+      if (bay.p2) { bay.p2.position.set(xb + 8.25, 0, -2.55); bay.p2.rotation.y = r(2) * 6.28; }
+      const bx = xb + (r(3) < 0.5 ? 2.75 : 8.25);
+      if (bay.br) { bay.br.position.set(bx, 0, -1.05); bay.br.rotation.y = r(4) * 6.28; }
+      if (bay.fire) bay.fire.position.set(bx, 1.95, -1.0);
+      bay.halo.position.set(bx, 1.8, -1.2);
+      const cxw = xb + (r(3) < 0.5 ? 8.25 : 2.75) + (r(5) - 0.5) * 1.2;
+      if (bay.c1) { bay.c1.position.set(cxw, 0, -1.6); bay.c1.rotation.y = r(6) * 6.28; }
+      bay.cg1.position.set(cxw, 0.62, -1.5);
+      const front = r(8) < 0.55;                       // a cluster out front now and then
+      if (bay.c2) { bay.c2.visible = front; bay.c2.position.set(xb + 5.5 + (r(9) - 0.5) * 4, 0, 1.7); bay.c2.rotation.y = r(10) * 6.28; }
+      bay.cg2.visible = front; if (bay.c2) bay.cg2.position.set(bay.c2.position.x, 0.5, 1.8);
+    });
+    for (const bay of H.fires) {
+      const f = bay.fire, i = Math.floor(t * 14 + bay.k * 3) % 16;
+      f.material.map.offset.set((i % 4) * 0.25, 0.75 - Math.floor(i / 4) * 0.25);
+      f.scale.set(1.0 + Math.sin(t * 9 + bay.k) * 0.08, 1.5 + Math.sin(t * 13 + bay.k) * 0.12, 1);
+      bay.halo.material.opacity = 0.45 + Math.sin(t * 11 + bay.k * 2) * 0.08;
+    }
+    // light shafts drift in brightness, one per bay
+    H.shafts.forEach((m, i) => {
+      const k = Math.floor((cx + 6) / SEG) - 2 + i;
+      m.position.set(-6 + k * SEG + 5.5 + (hash(k * 13) - 0.5) * 2, 4.6, -2.0);
+      m.material.opacity = 0.05 + 0.04 * (0.5 + 0.5 * Math.sin(t * 0.7 + k * 1.9)) * (hash(k * 5) < 0.75 ? 1 : 0);
+    });
+    // fog bands follow the camera and drift
+    H.fogs.forEach((m, i) => { m.position.x = cx; m.material.map.offset.x = (t * (i ? 0.012 : -0.008) + cx / 40 * (i ? 1.15 : 1)) % 1; });
+    // embers rise from the fires; dust hangs in the air
+    const e = H.embers, ep = e.m.geometry.attributes.position;
+    for (let i = 0; i < e.n; i++) {
+      const s = e.seed[i], life = 3 + s[2] * 3, ph = ((t + s[3] * 10) / life) % 1;
+      const x0 = cx + (s[0] - 0.5) * 18, rise = ph * (4 + s[1] * 3);
+      ep.setXYZ(i, x0 + Math.sin(t * 1.3 + i) * 0.35 + ph * 0.8, rise, -1.4 + s[1] * 2.6);
+    }
+    ep.needsUpdate = true;
+    e.m.material.opacity = 0.85;
+    const d = H.dust, dp = d.m.geometry.attributes.position;
+    for (let i = 0; i < d.n; i++) {
+      const s = d.seed[i];
+      dp.setXYZ(i, cx + (s[0] - 0.5) * 16 + Math.sin(t * 0.2 + i) * 0.6, 0.5 + s[1] * 6 + Math.sin(t * 0.3 + i * 1.7) * 0.3, -1.8 + s[2] * 3);
+    }
+    dp.needsUpdate = true;
   },
 });

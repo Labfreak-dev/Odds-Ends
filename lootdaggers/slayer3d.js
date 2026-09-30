@@ -97,14 +97,18 @@ const GRIP_BONES = ['LeftHand', 'RightHand'];
    the long axis), measured from each model's cross-section profile. The handle goes to the
    middle of the hand and the weapon is turned square to the hand, so it can't swing back
    through the forearm; `flip` runs it out the other side of the hand (point up, not a
-   knife grip); `tilt` leans it that many radians toward the line of the fingers. Returns the hand bones it re-seated. */
+   knife grip); `tilt` leans it that many radians toward the line of the fingers; `roll`
+   turns it about its own length; `frame` sets the whole orientation instead (the length
+   axis's top end to `up`, the side the handle bulges toward to `face`). Returns the hand bones it re-seated. */
 const SEAT = {
   Sword:   { at: 0.855, flip: true },   // Knight: tip at the low end, handle and pommel at the top
   Dagger:  { at: 0.14, flip: true },                 // Gambler
   Cleaver: { at: 0.18, flip: true },                 // Brute
   Rapier:  { at: 0.9, flip: true, tilt: 0.8 },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
   Staff:   { at: 0.6 },                  // Hex Priest: held below the head
-  Bow:     { at: 0.4 },                  // Ranger (left hand): the narrow grip below the riser
+  // Ranger (left hand): a bow needs its whole orientation, not just a length axis: measured
+  // at his draw (own Attack at 55%), `up` is world up and `face` the target, in the hand's space
+  Bow:     { at: 0.4, frame: { up: [0.108, -0.113, -0.988], face: [-0.485, 0.862, -0.151] } },                  // Ranger (left hand): the narrow grip below the riser
 };
 
 /* A skeleton's rest pose, relative to its own root: each named bone's world rotation (and
@@ -158,12 +162,24 @@ function seatWeapons(root) {
     }
     if (!m) continue;
     handleL.divideScalar(m);
-    // the far end from the handle is the business end (blade tip, staff head, bow limb)
-    const tipL = b.getCenter(new THREE.Vector3());
-    tipL.setComponent(ax, cfg.at < 0.5 ? b.max.getComponent(ax) : lo);
     w.updateMatrix();
-    const H = handleL.clone().applyMatrix4(w.matrix), T = tipL.clone().applyMatrix4(w.matrix);
-    const dir = T.clone().sub(H).normalize();
+    // the true length axis, pointing to the business end (a bow's grip sits off that line,
+    // at the curve's peak, so handle-to-tip would be slanted)
+    const axL = new THREE.Vector3().setComponent(ax, cfg.at < 0.5 ? 1 : -1);
+    if (cfg.frame) {
+      // local basis: length (to the far end), bulge (handle off the centre line), their cross
+      const a = axL.clone(), o = handleL.clone().sub(b.getCenter(new THREE.Vector3())).setComponent(ax, 0).normalize();
+      const u = new THREE.Vector3().fromArray(cfg.frame.up).normalize(), f = new THREE.Vector3().fromArray(cfg.frame.face);
+      f.addScaledVector(u, -f.dot(u)).normalize();
+      const Ml = new THREE.Matrix4().makeBasis(a, o, a.clone().cross(o)), Mt = new THREE.Matrix4().makeBasis(u, f, u.clone().cross(f));
+      w.quaternion.setFromRotationMatrix(Mt.multiply(Ml.transpose()));
+      w.updateMatrix();
+      w.position.add(fist.clone().sub(handleL.clone().applyMatrix4(w.matrix)));
+      w.updateMatrix();
+      seated.add(bone.name);
+      continue;
+    }
+    const dir = axL.clone().applyQuaternion(w.quaternion).normalize();
     // square it to the hand's long axis (bone space +y runs wrist to fingers)
     const flat = dir.clone().setY(0);
     if (flat.lengthSq() < 1e-4) continue;
@@ -171,6 +187,7 @@ function seatWeapons(root) {
     if (cfg.flip) flat.negate();
     if (cfg.tilt) flat.multiplyScalar(Math.cos(cfg.tilt)).add(new THREE.Vector3(0, Math.sin(cfg.tilt), 0)).normalize();   // lean it toward the fingers' line
     w.quaternion.premultiply(new THREE.Quaternion().setFromUnitVectors(dir, flat));
+    if (cfg.roll) w.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(flat, cfg.roll));   // turn it about its own length
     w.updateMatrix();
     w.position.add(fist.clone().sub(handleL.clone().applyMatrix4(w.matrix)));
     w.updateMatrix();

@@ -90,7 +90,12 @@ const HERO_OWN = {
 /* Per hero: library moves that hero plays with one of his own clips instead. The
    Ranger's own Attack draws the bow at the foe; the library's Archery_Shot holds it
    up and out to the side. */
-const HERO_OWN_BY = { ranger: { Archery_Shot: 'Attack', Side_Shot: 'Attack' } };
+const HERO_OWN_BY = {
+  ranger: { Archery_Shot: 'Attack', Side_Shot: 'Attack' },
+  // the library casts pitch his upper body up and out over planted legs; his own Attack
+  // raises the staff overhead standing upright
+  hexpriest: { Charged_Spell_Cast: 'Attack', mage_soell_cast: 'Attack' },
+};
 const GRIP_BONES = ['LeftHand', 'RightHand'];
 /* Hero weapons, re-seated at load so the hand holds the handle: `at` is the handle's
    centre as a fraction of the weapon's length from its lower end (bounding box min along
@@ -102,10 +107,10 @@ const GRIP_BONES = ['LeftHand', 'RightHand'];
    axis's top end to `up`, the side the handle bulges toward to `face`). Returns the hand bones it re-seated. */
 const SEAT = {
   Sword:   { at: 0.855, flip: true },   // Knight: tip at the low end, handle and pommel at the top
-  Dagger:  { at: 0.14, flip: true },                 // Gambler
-  Cleaver: { at: 0.18, flip: true },                 // Brute
-  Rapier:  { at: 0.9, flip: true, tilt: 0.8 },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
-  Staff:   { at: 0.6 },                  // Hex Priest: held below the head
+  Dagger:  { at: 0.14, q: [-0.2025, -0.1334, 0.9702, 0], off: [3.65, -3, 1.63] },                 // Gambler
+  Cleaver: { at: 0.18, q: [-0.2299, 0.8881, 0.3981, 0], off: [0.5, 0, 0] },                 // Brute
+  Rapier:  { at: 0.9, q: [0.2956, 0.2994, -0.8381, 0.3472], off: [1.94, 0, 1.57] },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
+  Staff:   { at: 0.6, q: [-0.8536, 0.1464, -0.3536, -0.3536], off: [0.71, -3, -0.71] },                  // Hex Priest: held below the head
   // Ranger (left hand): a bow needs its whole orientation, not just a length axis: measured
   // at his draw (own Attack at 55%), `up` is world up and `face` the target, in the hand's space
   Bow:     { at: 0.4, frame: { up: [0.108, -0.113, -0.988], face: [-0.485, 0.862, -0.151] } },                  // Ranger (left hand): the narrow grip below the riser
@@ -166,6 +171,16 @@ function seatWeapons(root) {
     // the true length axis, pointing to the business end (a bow's grip sits off that line,
     // at the curve's peak, so handle-to-tip would be slanted)
     const axL = new THREE.Vector3().setComponent(ax, cfg.at < 0.5 ? 1 : -1);
+    if (cfg.q) {
+      // a measured orientation (tools/seatopt.js): the handle goes to the middle of the hand
+      w.quaternion.fromArray(cfg.q);
+      w.updateMatrix();
+      const at = fist.clone(); if (cfg.off) at.add(new THREE.Vector3().fromArray(cfg.off));   // onto the palm, not through it
+      w.position.add(at.sub(handleL.clone().applyMatrix4(w.matrix)));
+      w.updateMatrix();
+      seated.add(bone.name);
+      continue;
+    }
     if (cfg.frame) {
       // local basis: length (to the far end), bulge (handle off the centre line), their cross
       const a = axL.clone(), o = handleL.clone().sub(b.getCenter(new THREE.Vector3())).setComponent(ax, 0).normalize();
@@ -679,7 +694,8 @@ export class Stage {
       let name = spec.clip;
       if (c.m === 'sword' && c.fin && this.clips.Double_Blade_Spin) name = 'Double_Blade_Spin';   // BLADE STORM
       if ((c.m === 'bow' || c.m === 'pierce') && st.hero !== 'ranger' && spec.alt) name = spec.alt;
-      const clip = this.clips[name];
+      const act0 = this.clips[name] && this._clip(h, name);
+      const clip = act0 && act0.getClip();        // the clip that really plays (a hero's own, if mapped)
       if (clip) {
         // land the clip's blow on the move's blow; skip a long wind-up rather than rush it
         const hitT = (MOVE_HIT[c.m] || 0.4) * c.dur;

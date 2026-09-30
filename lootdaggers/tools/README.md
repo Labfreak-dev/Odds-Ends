@@ -35,3 +35,14 @@ hip x/z and scales the hip height to its legs.
 - 30 library animations on the Skeleton's rig, plus its 5 test clips and the free walk/run: 37 clips.
 - 19 foes and bosses: 13 rigged humanoids, 6 code-animated creatures (rat, slime, wraith, mimic, brain in a jar, One-Armed Bandit).
 - 48 hero skins, 104 part retextures.
+
+## seatopt.js / seatopt_run.py: measured weapon seats
+`python3 lootdaggers/tools/seatopt_run.py <hero> '{"at":0.18,"grip":0.17}' 10` (with a server on :8765 at the repo root)
+poses the hero in every clip Reel Slayer plays (20 clips × 3 moments = 60 poses) and measures the
+weapon against the skinned mesh in the hand bone's space: weapon points inside the body (within 2.5),
+blade points through the hand, handle points inside the hand (within 0.8) and handle points touching
+it (within 2.2). It searches grips that run across the palm's knuckle line (tilted up to 45° toward the
+fingers, ±15° out of the palm, 12 rolls), with the handle slid onto the palm face (palm side only: the
+Meshy hand bones share axes, palm toward +(0.85, 0, 0.52)), and prints the before/after counts and the
+`q`/`off` that `SEAT` in slayer3d.js takes. `at` is the handle centre and `grip` its half-length, both
+as fractions of the weapon's length from the profile.

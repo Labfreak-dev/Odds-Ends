@@ -87,21 +87,42 @@ const HERO_OWN = {
   Triple_Combo_Attack: 'Attack_Heavy', Hit_Reaction: 'Hit_React', Dead: 'Death', Roll_Dodge: 'Dodge',
   Sword_Parry: 'Block', Victory_Cheer: 'Victory',
 };
+/* Per hero: library moves that hero plays with one of his own clips instead. The
+   Ranger's own Attack draws the bow at the foe; the library's Archery_Shot holds it
+   up and out to the side. */
+const HERO_OWN_BY = { ranger: { Archery_Shot: 'Attack', Side_Shot: 'Attack' } };
 const GRIP_BONES = ['LeftHand', 'RightHand'];
 /* Hero weapons, re-seated at load so the hand holds the handle: `at` is the handle's
    centre as a fraction of the weapon's length from its lower end (bounding box min along
    the long axis), measured from each model's cross-section profile. The handle goes to the
    middle of the hand and the weapon is turned square to the hand, so it can't swing back
    through the forearm; `flip` runs it out the other side of the hand (point up, not a
-   knife grip). Returns the hand bones it re-seated. */
+   knife grip); `tilt` leans it that many radians toward the line of the fingers. Returns the hand bones it re-seated. */
 const SEAT = {
   Sword:   { at: 0.855, flip: true },   // Knight: tip at the low end, handle and pommel at the top
   Dagger:  { at: 0.14, flip: true },                 // Gambler
   Cleaver: { at: 0.18, flip: true },                 // Brute
-  Rapier:  { at: 0.9, flip: true },                  // Duelist: the grip inside the basket guard
+  Rapier:  { at: 0.9, flip: true, tilt: 0.8 },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
   Staff:   { at: 0.6 },                  // Hex Priest: held below the head
   Bow:     { at: 0.4 },                  // Ranger (left hand): the narrow grip below the riser
 };
+
+/* A skeleton's rest pose, relative to its own root: each named bone's world rotation (and
+   inverse), local rotation, bone parent, and for top bones the rotation above them. */
+function rigInfo(root, names) {
+  root.updateMatrixWorld(true);
+  const rq = root.getWorldQuaternion(new THREE.Quaternion()).invert();
+  const I = { order: [], W: {}, Winv: {}, L: {}, parent: {}, top: {} };
+  root.traverse(o => {
+    if (!names.has(o.name) || I.W[o.name]) return;
+    const w = rq.clone().multiply(o.getWorldQuaternion(new THREE.Quaternion()));
+    I.order.push(o.name); I.W[o.name] = w; I.Winv[o.name] = w.clone().invert(); I.L[o.name] = o.quaternion.clone();
+    const par = o.parent;
+    if (par && names.has(par.name) && I.W[par.name]) I.parent[o.name] = par.name;
+    else { I.parent[o.name] = null; I.top[o.name] = par ? rq.clone().multiply(par.getWorldQuaternion(new THREE.Quaternion())) : new THREE.Quaternion(); }
+  });
+  return I;
+}
 
 function seatWeapons(root) {
   const seated = new Set();
@@ -148,6 +169,7 @@ function seatWeapons(root) {
     if (flat.lengthSq() < 1e-4) continue;
     flat.normalize();
     if (cfg.flip) flat.negate();
+    if (cfg.tilt) flat.multiplyScalar(Math.cos(cfg.tilt)).add(new THREE.Vector3(0, Math.sin(cfg.tilt), 0)).normalize();   // lean it toward the fingers' line
     w.quaternion.premultiply(new THREE.Quaternion().setFromUnitVectors(dir, flat));
     w.updateMatrix();
     w.position.add(fist.clone().sub(handleL.clone().applyMatrix4(w.matrix)));
@@ -211,6 +233,11 @@ export class Stage {
     ]);
     this.clips = {};
     for (const c of anims.animations) this.clips[c.name] = c;
+    // the library's own skeleton at rest: what its clips' rotations are relative to
+    const names = new Set();
+    for (const c of anims.animations) for (const t of c.tracks) names.add(t.name.split('.')[0]);
+    this.boneNames = names;
+    this.srcRig = rigInfo(anims.scene, names);
     this.skins = skins || {};
   }
 
@@ -335,6 +362,7 @@ export class Stage {
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
     const hips = root.getObjectByName('Hips');
+    const rig = hips && this.boneNames ? rigInfo(root, this.boneNames) : null;   // rest pose, before any clip plays
     // Unrigged image-to-3D models are pivoted at their middle: stand them on the
     // floor (lowest point at y 0) and centre them on their spot.
     if (!hips) {
@@ -350,7 +378,7 @@ export class Stage {
       hipX: hips ? hips.position.x : 0, hipZ: hips ? hips.position.z : 0,
       mixer: hips ? new THREE.AnimationMixer(root) : null, actions: {}, cur: null, opts: opts || {},
       own: opts && opts.hero ? Object.fromEntries((gltf.animations || []).map(c => [c.name, c])) : null,
-      width: Math.max(0.5, box.max.x - box.min.x), seated,
+      width: Math.max(0.5, box.max.x - box.min.x), seated, rig,
     };
     blob.scale.set(a.width * 1.2, a.width * 0.6, 1);
     if (a.mixer) this._ground(a);
@@ -416,16 +444,11 @@ export class Stage {
   _clip(a, name) {
     if (a.actions[name]) return a.actions[name];
     if (!a.mixer) return null;
-    const ownName = a.own && HERO_OWN[name];
+    const ownName = a.own && ((a.ownBy && a.ownBy[name]) || HERO_OWN[name]);
     const own = ownName && a.own[ownName];
     const src = own || this.clips[name];
     if (!src) return null;
-    const c = src.clone();
-    // A shared library clip was recorded on another skeleton: its bone positions and scales
-    // are that rig's bone lengths, and on a differently built body (the Hex Priest's long
-    // limbs, a robe's bones) they stretch and squash the mesh. Keep only the rotations and
-    // the hip height, so every body keeps its own proportions.
-    if (!own) c.tracks = c.tracks.filter(t => t.name.endsWith('.quaternion') || t.name === 'Hips.position');
+    const c = own ? src.clone() : this._retarget(a, src);
     const srcHip = this._srcHip || (this._srcHip = this._sourceHipY());
     const k = own ? 1 : (srcHip > 0 && a.hipY > 0 ? a.hipY / srcHip : 1);
     if (a.own && !own) {
@@ -452,6 +475,48 @@ export class Stage {
     a.actions[name] = act;
     return act;
   }
+  /* A library clip, retargeted onto this actor. The library was recorded on one skeleton;
+     the Meshy rigs share its bone names but not its rest pose (a bone can rest 30-150
+     degrees off: the Hex Priest's arms, the Brute's and the Orc's hips), so copying local
+     rotations bends limbs the wrong way. Instead each bone takes the world-space turn it
+     makes away from the library's rest pose and applies it to this actor's own rest pose.
+     Bone lengths stay the actor's own (no position or scale tracks, bar the hip height). */
+  _retarget(a, clip) {
+    const S = this.srcRig, T = a.rig;
+    if (!S || !T) return clip.clone();
+    const interp = {};
+    let hipPos = null;
+    for (const tr of clip.tracks) {
+      const [bn, prop] = tr.name.split('.');
+      if (prop === 'quaternion') interp[bn] = tr.createInterpolant();
+      else if (tr.name === 'Hips.position') hipPos = tr.clone();
+    }
+    const n = Math.max(2, Math.ceil(clip.duration * 30) + 1);
+    const times = new Float32Array(n);
+    const bones = T.order.filter(b => S.W[b]);
+    const out = {}; for (const b of bones) out[b] = new Float32Array(n * 4);
+    const gs = {}, gt = {}, q = new THREE.Quaternion(), pinv = new THREE.Quaternion();
+    for (let i = 0; i < n; i++) {
+      const t = clip.duration * i / (n - 1);
+      times[i] = t;
+      for (const b of S.order) {
+        const loc = interp[b] ? q.fromArray(interp[b].evaluate(t)) : S.L[b];
+        gs[b] = (S.parent[b] ? gs[S.parent[b]] : S.top[b]).clone().multiply(loc);
+      }
+      for (const b of T.order) {
+        const pw = T.parent[b] ? gt[T.parent[b]] : T.top[b];
+        let g;
+        if (gs[b] && S.W[b]) g = gs[b].clone().multiply(S.Winv[b]).multiply(T.W[b]);   // same world turn, own rest
+        else g = pw.clone().multiply(T.L[b]);
+        gt[b] = g;
+        if (out[b]) { pinv.copy(pw).invert().multiply(g); pinv.toArray(out[b], i * 4); }
+      }
+    }
+    const tracks = bones.map(b => new THREE.QuaternionKeyframeTrack(b + '.quaternion', times, out[b]));
+    if (hipPos) tracks.push(hipPos);
+    return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+  }
+
   _sourceHipY() {
     const c = this.clips.Combat_Stance;
     const t = c && c.tracks.find(x => x.name === 'Hips.position');
@@ -482,6 +547,7 @@ export class Stage {
       const g = await this._gltf('death3d/assets/models/hero_' + st.hero + '.glb');
       if (this.hero) { this.scene.remove(this.hero.holder); this.scene.remove(this.hero.blob); }
       this.hero = this._makeActor(g, { hero: true });
+      this.hero.ownBy = HERO_OWN_BY[st.hero] || null;
       this.heroId = st.hero;
       this.skinId = undefined;
       this._play(this.hero, 'Combat_Stance');
@@ -574,6 +640,9 @@ export class Stage {
       h.holder.rotation.y += (want - h.holder.rotation.y) * Math.min(1, dt * 14);
       h.blob.position.set(st.x * U, 0.01, 0);
       if (h.mixer) h.mixer.update(adt);
+      // keep his feet on the floor too, except while a leap carries him or he lies dead
+      const air = st.cur && (st.cur.m === 'boots' || st.cur.m === 'vault');
+      if (h.mixer && !air && !(st.over && st.hp <= 0)) this._footLock(h, adt || 0.016);
       this._tint(h, st.cur && st.cur.m === 'skull' ? 0x5a1a7a : st.invT > 0 && !(st.cur && st.cur.m === 'boots') ? 0x223344 : st.guardT > 0 ? 0x10243a : st.frenzy && st.mode === 'act' ? 0x4a2200 : 0, st.hurtT > 0 ? 0.6 : 0);
     }
     this._foes(st, adt, dt);

@@ -64,7 +64,9 @@ with sync_playwright() as p:
     chk('no page errors',not errs,errs[:3])
     ctx.close()
     # 9. the rate: two hours of fighting in two very different areas
+    import os
     for name,label in [(None,'fresh, Goblin Village'),('asc_1_9.txt','realm 9, Giant Hills')]:
+        if name and not os.path.exists(SP+'/'+name): print('skip',label,'(no sim save in the scratchpad; the playthrough bot writes one)'); continue
         ctx=b.new_context(); pg=ctx.new_page(); e2=[]; pg.on('pageerror',lambda e:e2.append(str(e)))
         if name: pg.add_init_script("localStorage.setItem('ironhold_idle_v1',%s)"%json.dumps(prep(name)))
         pg.goto(URL,wait_until='commit'); pg.wait_for_function('window.__D',timeout=120000)

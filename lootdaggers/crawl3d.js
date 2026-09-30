@@ -136,7 +136,7 @@ class Crawl extends Stage {
       const busy = h.cur && h.cur.loop === THREE.LoopOnce && h.cur.isRunning() && now < (h.until || 0) && !(f.moving && h.curName !== 'Hit_Reaction');
       if (!busy) this._play(h, f.moving ? 'Walk_Fight_Forward' : 'Combat_Stance', { fade: 0.2, speed: f.moving ? 1.25 : 1 });
     }
-    if (h.mixer) h.mixer.update(f.dt);
+    if (h.mixer) { h.mixer.update(f.dt); this._footLock(h, f.dt || 0.016); }
     this._tint(h, 0, v.hurt > 0.6 ? 0.5 : 0);
   }
 

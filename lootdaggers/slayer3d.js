@@ -107,7 +107,10 @@ const GRIP_BONES = ['LeftHand', 'RightHand'];
    axis's top end to `up`, the side the handle bulges toward to `face`). Returns the hand bones it re-seated. */
 const SEAT = {
   Sword:   { at: 0.855, flip: true },   // Knight: tip at the low end, handle and pommel at the top
-  Dagger:  { at: 0.14, q: [-0.2025, -0.1334, 0.9702, 0], off: [3.65, -3, 1.63] },                 // Gambler
+  // Gambler: his hand is modelled open, so the fingers are bent shut around the handle
+  // (curlFingers). Measured on his hand mesh: knuckle row y 10.5, fingers across K -7..2
+  // (the thumb sits past K 5), palm face at N +2. Blade out of the thumb side, 15° up.
+  Dagger:  { at: 0.14, fist: { k: -2.5, y: 10, n: 3.25, tilt: 0.26, y0: 10.5, n0: -0.5, kMax: 3 } },                 // Gambler
   Cleaver: { at: 0.18, q: [-0.2299, 0.8881, 0.3981, 0], off: [0.5, 0, 0] },                 // Brute
   Rapier:  { at: 0.9, q: [0.2956, 0.2994, -0.8381, 0.3472], off: [1.94, 0, 1.57] },      // Duelist: the grip inside the basket; a fencer's blade runs on along the forearm
   Staff:   { at: 0.6, q: [-0.8536, 0.1464, -0.3536, -0.3536], off: [0.71, -3, -0.71] },                  // Hex Priest: held below the head
@@ -133,6 +136,67 @@ function rigInfo(root, names) {
   return I;
 }
 
+/* A hand's frame in its bone's space: Y wrist to fingertips, N out of the palm (the hand's
+   thinnest axis; the Meshy rigs share the hand bone's axes, palm toward +(0.85, 0, 0.52)),
+   K across the knuckles. */
+function handFrame(pts) {
+  let L = 0; for (const p of pts) L = Math.max(L, p.y);
+  let thin = null;
+  for (let a = 0; a < 180; a += 3) {
+    const d = new THREE.Vector3(Math.cos(a * Math.PI / 180), 0, Math.sin(a * Math.PI / 180)); let mn = 1e9, mx = -1e9;
+    for (const p of pts) if (p.y > 0.25 * L && p.y < 0.55 * L) { const t = p.dot(d); mn = Math.min(mn, t); mx = Math.max(mx, t); }
+    if (!thin || mx - mn < thin.w) thin = { d, w: mx - mn };
+  }
+  const N = thin.d; if (N.dot(new THREE.Vector3(0.85, 0, 0.52)) < 0) N.negate();
+  const Y = new THREE.Vector3(0, 1, 0), K = new THREE.Vector3().crossVectors(Y, N).normalize();
+  return { Y, N, K, L };
+}
+
+/* Close a hand without finger bones: every finger vertex (bound to the hand, past the knuckle
+   row F.y0, inside the finger span k < F.kMax, so the thumb stays out) is laid along an arc
+   around the handle centre H in the hand's (Y, N) plane: its distance past the knuckles becomes
+   arc length, its thickness stays, and its normal turns with it. Done once per geometry
+   (clones and afterimages share it). */
+function curlFingers(skin, bi, fr, H, F) {
+  const g = skin.geometry;
+  g.userData.curled = g.userData.curled || {};
+  if (g.userData.curled[bi]) return;
+  g.userData.curled[bi] = true;
+  const pos = g.attributes.position, nor = g.attributes.normal, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+  const M = skin.skeleton.boneInverses[bi].clone().multiply(skin.bindMatrix), Mi = M.clone().invert();
+  const Mn = new THREE.Matrix3().getNormalMatrix(M), Mni = new THREE.Matrix3().getNormalMatrix(Mi);
+  const { Y, N, K } = fr;
+  const cy = H.dot(Y), cn = H.dot(N);
+  const R0 = Math.hypot(F.y0 - cy, F.n0 - cn), phi0 = Math.atan2(F.n0 - cn, F.y0 - cy);
+  const v = new THREE.Vector3(), nv = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    let best = -1, bw = 0;
+    for (let k = 0; k < 4; k++) { const wt = sw.getComponent(i, k); if (wt > bw) { bw = wt; best = si.getComponent(i, k); } }
+    if (best !== bi || bw < 0.5) continue;
+    v.fromBufferAttribute(pos, i).applyMatrix4(M);
+    const y = v.dot(Y), nn = v.dot(N), kk = v.dot(K);
+    if (y <= F.y0 || kk > F.kMax) continue;
+    const ramp = Math.min(1, (y - F.y0) / 1.5);                 // ease in over the first knuckle so the skin doesn't tear
+    const s = (y - F.y0), tn = nn - F.n0;
+    const phi = phi0 + ramp * s / R0 - (1 - ramp) * 0;
+    const r = R0 - tn;
+    const yy = ramp < 1 ? y * (1 - ramp) + (cy + r * Math.cos(phi)) * ramp : cy + r * Math.cos(phi);
+    const nnn = ramp < 1 ? nn * (1 - ramp) + (cn + r * Math.sin(phi)) * ramp : cn + r * Math.sin(phi);
+    v.copy(K).multiplyScalar(kk).addScaledVector(Y, yy).addScaledVector(N, nnn).applyMatrix4(Mi);
+    pos.setXYZ(i, v.x, v.y, v.z);
+    if (nor) {
+      // turn the normal by the arc's angle, in the (Y, N) plane
+      nv.fromBufferAttribute(nor, i).applyMatrix3(Mn).normalize();
+      const d = (phi - phi0) * ramp, c = Math.cos(d), sn = Math.sin(d);
+      const ny = nv.dot(Y), nN = nv.dot(N), nk = nv.dot(K);
+      nv.copy(K).multiplyScalar(nk).addScaledVector(Y, ny * c - nN * sn).addScaledVector(N, ny * sn + nN * c).applyMatrix3(Mni).normalize();
+      nor.setXYZ(i, nv.x, nv.y, nv.z);
+    }
+  }
+  pos.needsUpdate = true; if (nor) nor.needsUpdate = true;
+  g.computeBoundingSphere();
+}
+
 function seatWeapons(root) {
   const seated = new Set();
   let skin = null; root.traverse(o => { if (o.isSkinnedMesh && !skin) skin = o; });
@@ -144,13 +208,14 @@ function seatWeapons(root) {
     if (bi < 0) continue;
     // the hand: skin vertices mostly bound to this hand bone, in the bone's own space
     const pos = skin.geometry.attributes.position, si = skin.geometry.attributes.skinIndex, sw = skin.geometry.attributes.skinWeight;
-    const inv = skin.skeleton.boneInverses[bi], v = new THREE.Vector3(), fist = new THREE.Vector3();
+    const inv = skin.skeleton.boneInverses[bi], v = new THREE.Vector3(), fist = new THREE.Vector3(), handPts = [];
     let n = 0;
     for (let i = 0; i < pos.count; i++) {
       let best = -1, bw = 0;
       for (let k = 0; k < 4; k++) { const wt = sw.getComponent(i, k); if (wt > bw) { bw = wt; best = si.getComponent(i, k); } }
       if (best !== bi || bw < 0.6) continue;
       fist.add(v.fromBufferAttribute(pos, i).applyMatrix4(skin.bindMatrix).applyMatrix4(inv)); n++;
+      handPts.push(v.clone());
     }
     if (n < 20) continue;
     fist.divideScalar(n);
@@ -171,6 +236,24 @@ function seatWeapons(root) {
     // the true length axis, pointing to the business end (a bow's grip sits off that line,
     // at the curve's peak, so handle-to-tip would be slanted)
     const axL = new THREE.Vector3().setComponent(ax, cfg.at < 0.5 ? 1 : -1);
+    if (cfg.fist) {
+      // a closed fist: the weapon placed by hand geometry, then the fingers bent around it
+      const F = cfg.fist, fr = handFrame(handPts);
+      const tip = fr.K.clone().multiplyScalar(Math.cos(F.tilt)).addScaledVector(fr.Y, Math.sin(F.tilt)).normalize();
+      const edge = fr.N.clone().addScaledVector(tip, -fr.N.dot(tip)).normalize();
+      const ext3 = b.getSize(new THREE.Vector3()).toArray();
+      const wAx = [0, 1, 2].filter(k => k !== ax).sort((p, q) => ext3[q] - ext3[p])[0];   // the guard's (widest) cross axis
+      const a = axL.clone(), wl = new THREE.Vector3().setComponent(wAx, 1);
+      const Ml = new THREE.Matrix4().makeBasis(a, wl, a.clone().cross(wl)), Mt = new THREE.Matrix4().makeBasis(tip, edge, tip.clone().cross(edge));
+      w.quaternion.setFromRotationMatrix(Mt.multiply(Ml.transpose()));
+      w.updateMatrix();
+      const H = fr.K.clone().multiplyScalar(F.k).addScaledVector(fr.Y, F.y).addScaledVector(fr.N, F.n);
+      w.position.add(H.clone().sub(handleL.clone().applyMatrix4(w.matrix)));
+      w.updateMatrix();
+      curlFingers(skin, bi, fr, H, F);
+      seated.add(bone.name);
+      continue;
+    }
     if (cfg.q) {
       // a measured orientation (tools/seatopt.js): the handle goes to the middle of the hand
       w.quaternion.fromArray(cfg.q);

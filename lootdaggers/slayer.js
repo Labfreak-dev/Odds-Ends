@@ -94,7 +94,9 @@ const ULTS = {
 const CRIT = 0.12;
 // The hero walks up to the nearest foe on his own and stops at ENGAGE to plan; he walks
 // again after a combo only if every foe ended up past ENGAGE + SLACK (knocked back, backstep).
-const ENGAGE = 95, SLACK = 70, ADVANCE_SPD = 150;
+const ENGAGE = 95, SLACK = 70, ADVANCE_SPD = 280;
+// combos quicken as they go: each move runs TEMPO_STEP faster than the one before it
+const TEMPO0 = 0.82, TEMPO_STEP = 0.9, TEMPO_MIN = 0.5, AUTO_STOP = 2.2;
 const LEAP_HIT = 0.45;          // the boots leap lands (and hits) this far into the move
 
 /* ---------- foes ---------- */
@@ -217,27 +219,56 @@ function spin() {
   if (st.coins < 1) { endRun('broke'); return; }
   st.coins--; st.spun++;
   st.order = []; st.combo = []; st.frenzy = false;
-  for (const R of st.reels) { R.v = rnd(14, 19); R.stop = null; R.done = false; R.res = null; }
-  st.mode = 'spin';
+  for (const R of st.reels) { R.v = rnd(14, 19); R.stop = null; R.done = false; R.res = null; R.bounce = 0; R.flashT = 0; }
+  st.mode = 'spin'; st.spinT = 0; st.flies = [];
   try { sfx.spin(); } catch (e) { /* audio is optional */ }
 }
 function stopReel(i) {
   const R = st.reels[i];
   if (!R || R.done || R.stop != null) return;
   R.stop = Math.ceil(R.pos) + 2;           // decelerate onto a whole symbol
+  st.spinT = 0;                            // a tap restarts the auto-stop clock
   st.order.push(i);
   try { sfx.stop(); } catch (e) { /* ignore */ }
+}
+/* A reel lands: it bounces, its payline flashes, sparks fly and the symbol flies up to the combo bar. */
+function landReel(R) {
+  R.bounce = 0.32; R.flashT = 0.4;
+  st.shake = Math.max(st.shake, 4);
+  const i = st.reels.indexOf(R), L = layout(), r = reelRects(L)[i];
+  if (!r) return;
+  st.rp = st.rp || [];
+  for (let k = 0; k < 16; k++) { const a = rnd(-Math.PI, 0), v = rnd(120, 320); st.rp.push({ x: r.x + r.w / 2 + rnd(-r.w / 3, r.w / 3), y: r.y + r.h / 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rnd(0.35, 0.7) }); }
+  st.flies = st.flies || [];
+  st.flies.push({ k: R.res, slot: st.order.indexOf(i), x: r.x + r.w / 2, y: r.y + r.h / 2, t: 0 });
+}
+/* During a spin: the symbol every stopped reel agrees on (null if they don't), for the tease. */
+function teaseSym() {
+  const got = st.reels.filter(R => R.done).map(R => (SWAP[st.hero] && SWAP[st.hero][R.res]) || R.res);
+  if (got.length < 2 || got.length === st.reels.length) return null;
+  const real = got.filter(k => k !== 'star');
+  if (!real.length) return 'star';
+  return real.every(k => k === real[0]) ? real[0] : null;
 }
 function reelSym(R, off) { const n = R.strip.length; return R.strip[((Math.round(R.pos) + off) % n + n) % n]; }
 function updateReels(dt) {
   for (const R of st.reels) {
     if (R.done) continue;
-    if (R.stop == null) { R.pos += R.v * dt; continue; }
+    if (R.stop == null) { R.pos += R.v * (st.tease ? 0.55 : 1) * dt; continue; }
     const left = R.stop - R.pos;
     const v = Math.max(2.2, Math.min(R.v, left * 6));
     R.pos += v * dt;
-    if (R.pos >= R.stop) { R.pos = R.stop; R.done = true; R.res = reelSym(R, 0); }
+    if (R.pos >= R.stop) { R.pos = R.stop; R.done = true; R.res = reelSym(R, 0); landReel(R); }
   }
+  for (const R of st.reels) { R.bounce = Math.max(0, (R.bounce || 0) - dt); R.flashT = Math.max(0, (R.flashT || 0) - dt); }
+  // hesitate and the reels stop themselves, one by one, so the fight keeps its pace
+  if (st.mode === 'spin') {
+    st.spinT = (st.spinT || 0) + dt;
+    if (st.spinT > AUTO_STOP) { const i = st.reels.findIndex(R => !R.done && R.stop == null); if (i >= 0) { stopReel(i); st.spinT = AUTO_STOP - 0.5; } }
+  }
+  if (st.rp) { for (const q of st.rp) { q.t += dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 900 * dt; } st.rp = st.rp.filter(q => q.t < q.life); }
+  if (st.flies) for (const f of st.flies) f.t = Math.min(1, f.t + dt / 0.32);
+  st.tease = st.mode === 'spin' ? teaseSym() : null;
   if (st.mode === 'spin' && st.reels.every(R => R.done)) buildCombo();
 }
 function buildCombo() {
@@ -254,7 +285,7 @@ function buildCombo() {
   const first = res.find(s => s !== 'star');
   st.frenzy = !!first && res.every(s => s === first || s === 'star');
   st.ult = st.frenzy ? (MOVES[first] ? first : 'sword') : null;
-  st.hits = 0;
+  st.hits = 0; st.moveIdx = 0; st.comboDmg = 0; st.dmgPop = null;
   st.combo = combo;
   st.queue = combo.map(m => ({ m }));
   if (!st.frenzy) for (let i = 1; i < combo.length; i++) {
@@ -309,19 +340,20 @@ function nextMove() {
   const m = q.m;
   if (nf && m !== 'key') st.face = nf.x >= st.x ? 1 : -1;
   if (q.link) { st.banner = { t: 0, txt: q.link, link: true }; st.ev.push({ k: 'link' }); }
-  st.cur = { m, t: 0, dur: MOVES[m].t, hit: false, from: st.x, fin: !!q.fin };
+  const tempo = Math.max(TEMPO_MIN, TEMPO0 * Math.pow(TEMPO_STEP, st.moveIdx || 0)); st.moveIdx = (st.moveIdx || 0) + 1;
+  st.cur = { m, t: 0, dur: MOVES[m].t * tempo, hit: false, from: st.x, fin: !!q.fin };
   if (m === 'boots') {
     // leap forward onto the nearest foe ahead, landing just in front of it; the boots
     // never carry the hero backwards (with every foe behind, he slams where he stands)
-    st.invT = MOVES.boots.t + 0.05;
+    st.invT = st.cur.dur + 0.05;
     const fa = aheadFoe();
     st.face = fa ? 1 : st.face;
     st.cur.to = fa ? Math.max(st.x, fa.x - 55) : st.x;
     if (Math.abs(st.cur.to - st.x) < 20) st.cur.to = st.x;
   }
-  if (m === 'vault') { st.invT = MOVES.vault.t + 0.05; const fa = aheadFoe(); if (fa) st.face = 1; st.cur.to = fa ? Math.max(st.x, fa.x - 45) : st.x; }
+  if (m === 'vault') { st.invT = st.cur.dur + 0.05; const fa = aheadFoe(); if (fa) st.face = 1; st.cur.to = fa ? Math.max(st.x, fa.x - 45) : st.x; }
   if (m === 'rush' && nf) st.cur.to = st.x + st.face * Math.max(0, Math.min(240, Math.abs(nf.x - st.x) - 55));
-  if (m === 'blink' || m === 'phantom') st.invT = MOVES[m].t;
+  if (m === 'blink' || m === 'phantom') st.invT = st.cur.dur;
   if (m === 'key') st.invT = 0.25;
   if (m === 'shield') { st.parryT = 0.5; st.parryPerfect = 0.3; }   // then a bash if nothing was blocked
 }
@@ -607,9 +639,10 @@ function hitFoe(f, dmg, how) {
   st.hits++; st.hitsT = 1.4;
   st.ev.push({ k: 'hit', f, dmg, how, crit, heavy, x: f.x });
   if (crit) floater('CRIT!', '#ffd27a', f.x, 205);
+  st.comboDmg = (st.comboDmg || 0) + dmg; if (crit) st.critT = 0.12;
   f.hp -= dmg; f.flash = 1; f.stun = Math.max(f.stun, how === 'bomb' || how === 'skull' ? 0.5 : 0.2);
   if (f.state === 'wind' && (how === 'bomb' || how === 'skull' || how === 'parry')) { f.state = 'walk'; f.cdT = f.cd; floater('INTERRUPT', '#9fd6ff', f.x, 175); }
-  floater((crit ? '' : '-') + dmg + (crit ? '!' : ''), crit ? '#ffd27a' : how === 'parry' ? '#9fd6ff' : '#fff', f.x, 150);
+  floater((crit ? '' : '-') + dmg + (crit ? '!' : ''), crit ? '#ffd27a' : how === 'parry' ? '#9fd6ff' : '#fff', f.x + rnd(-14, 14), 150 + rnd(0, 24), crit ? 2 : heavy ? 1 : 0);
   if (f.hp <= 0) {
     f.dead = true; f.deadT = 0; st.kills++;
     f.air = Math.max(f.air || 0, 0.7); f.kv = dir * (f.boss ? 160 : 380);
@@ -645,9 +678,10 @@ function strikeHero(f, dmg) {
   hurtHero(dmg, false);
 }
 function endAct() {
+  if ((st.comboDmg || 0) > 0 && st.hits >= 2) st.dmgPop = { v: st.comboDmg, t: 0 };
   st.mode = 'plan';
   st.parryT = 0; st.invT = 0; st.ult = null; st.hy = 0;
-  if (!liveFoes().length && !st.over) { st.mode = 'walk'; st.walkT = 1.1; st.coins += 3; floater('WAVE CLEAR +3 🪙', '#e8c77a', st.x, 200); }
+  if (!liveFoes().length && !st.over) { st.mode = 'walk'; st.walkT = 0.6; st.coins += 3; floater('WAVE CLEAR +3 🪙', '#e8c77a', st.x, 200); }
   else if (st.coins < 1 && !st.over) endRun('broke');
   else if (!st.over && gap() > ENGAGE + SLACK) st.mode = 'advance';
 }
@@ -706,7 +740,7 @@ function strikeIn(f) {
 
 /* ---------- fx ---------- */
 function addFx(k, x, dur) { st.fx.push({ k, x, t: 0, dur, face: st.face }); }
-function floater(txt, col, x, y) { st.fl.push({ txt, col, x, y, t: 0 }); }
+function floater(txt, col, x, y, big) { st.fl.push({ txt, col, x, y, t: 0, big: big || 0 }); }
 
 /* ---------- drawing ---------- */
 function img(k) { try { return artImg(k); } catch (e) { return null; } }
@@ -935,17 +969,58 @@ function draw3dOverlay(L) {
       cx.textBaseline = 'alphabetic';
     }
   }
+  drawSpeedLines(L);
   for (const f of st.fl) {
     const p = S3.project(f.x, f.y * U3);
-    cx.globalAlpha = Math.max(0, 1 - f.t / 1.1);
-    cx.font = 'bold 16px ui-monospace,monospace';
-    cx.fillStyle = '#000'; cx.fillText(f.txt, p.x + 1, p.y - f.t * 40 + 1);
-    cx.fillStyle = f.col; cx.fillText(f.txt, p.x, p.y - f.t * 40);
+    const num = /^[-+]?\d/.test(f.txt);
+    const size = num ? (f.big === 2 ? 34 : f.big ? 26 : 21) : 15;
+    const pop = f.t < 0.12 ? 1.7 - f.t / 0.12 * 0.7 : 1;          // numbers slam in, then settle
+    const rise = (1 - Math.pow(1 - Math.min(1, f.t / 0.9), 2)) * (num ? 46 : 36);
+    cx.save();
+    cx.globalAlpha = Math.max(0, 1 - Math.max(0, f.t - 0.6) / 0.5);
+    cx.translate(p.x, p.y - rise); cx.scale(pop, pop);
+    cx.font = (num ? '' : 'bold ') + size + "px " + (num ? "'Pirata One',Georgia,serif" : 'ui-monospace,monospace');
+    cx.lineWidth = num ? 5 : 3; cx.strokeStyle = '#000'; cx.lineJoin = 'round';
+    cx.strokeText(f.txt, 0, 0);
+    if (f.big === 2) { cx.shadowColor = '#ffb02a'; cx.shadowBlur = 16; }
+    cx.fillStyle = f.col; cx.fillText(f.txt, 0, 0);
+    cx.restore();
   }
   cx.globalAlpha = 1;
+  if (st.critT > 0) { cx.fillStyle = 'rgba(255,245,220,' + (st.critT / 0.12 * 0.35) + ')'; cx.fillRect(0, 0, L.W, L.reelTop); }
+}
+/* Anime speed lines streaking past on dashes, leaps and ultimates. */
+const SPEED_MOVES = new Set(['boots', 'vault', 'rush', 'blink', 'phantom', 'key']);
+function drawSpeedLines(L) {
+  const c = st.cur;
+  if (!c || !(SPEED_MOVES.has(c.m) || c.fin)) return;
+  const T = st.clk || 0, n = 22, H = L.reelTop;
+  cx.save();
+  for (let i = 0; i < n; i++) {
+    const seed = Math.sin(i * 91.7) * 43758.5453, u = seed - Math.floor(seed);
+    const y = u * H, len = 60 + u * 160, sp = 1400 + u * 900;
+    const x = ((i * 137 + T * sp) % (L.W + len)) - len;
+    const xx = st.face > 0 ? L.W - x : x;
+    const a = 0.08 + 0.18 * u;
+    cx.strokeStyle = c.fin ? 'rgba(255,190,110,' + a + ')' : 'rgba(255,255,255,' + a + ')';
+    cx.lineWidth = 1 + u * 2;
+    cx.beginPath(); cx.moveTo(xx, y); cx.lineTo(xx + (st.face > 0 ? len : -len), y); cx.stroke();
+  }
+  cx.restore();
 }
 /* The combo counter: climbs with every blow that lands this combo. */
 function drawHits(L) {
+  if (st.dmgPop) {
+    const d = st.dmgPop, p = d.t, sc = p < 0.15 ? 2 - p / 0.15 : 1, a = Math.max(0, 1 - Math.max(0, p - 1.2) / 0.6);
+    cx.save(); cx.globalAlpha = a; cx.translate(L.W / 2, L.reelTop * 0.42); cx.scale(sc, sc); cx.textAlign = 'center';
+    cx.font = "20px 'Pirata One',Georgia,serif"; cx.lineWidth = 4; cx.strokeStyle = '#000';
+    cx.strokeText('COMBO DAMAGE', 0, -34); cx.fillStyle = '#e8c77a'; cx.fillText('COMBO DAMAGE', 0, -34);
+    cx.font = "54px 'Pirata One',Georgia,serif"; cx.lineWidth = 7;
+    cx.strokeText(String(d.v), 0, 14);
+    const g = cx.createLinearGradient(0, -30, 0, 14); g.addColorStop(0, '#fff3c8'); g.addColorStop(0.5, '#ffb24a'); g.addColorStop(1, '#c2361a');
+    cx.shadowColor = '#ff6a1a'; cx.shadowBlur = 20; cx.fillStyle = g; cx.fillText(String(d.v), 0, 14);
+    cx.restore();
+  }
   if (st.hits < 2) return;
   const pop = Math.max(0, st.hitsT - 1.15) * 4, a = Math.min(1, st.hitsT / 0.4);
   cx.save();
@@ -982,40 +1057,91 @@ function drawSym(k, x, y, s, alpha) {
   cx.globalAlpha = 1;
 }
 function drawReels(L) {
+  const T = st.clk || 0;
+  // the cabinet: dark lacquer, a gilt rail and a row of chasing bulbs
   const g = cx.createLinearGradient(0, L.reelTop, 0, L.H);
-  g.addColorStop(0, '#1b1315'); g.addColorStop(1, '#0c0a0b');
+  g.addColorStop(0, '#2a1012'); g.addColorStop(0.35, '#170a0c'); g.addColorStop(1, '#080506');
   cx.fillStyle = g; cx.fillRect(0, L.reelTop, L.W, L.H - L.reelTop);
-  cx.fillStyle = '#000'; cx.fillRect(0, L.reelTop, L.W, 3);
-  // combo bar: the moves in the order you stopped the reels
+  const rail = cx.createLinearGradient(0, L.reelTop, 0, L.reelTop + 6);
+  rail.addColorStop(0, '#f6d58a'); rail.addColorStop(0.5, '#a8742c'); rail.addColorStop(1, '#3a2410');
+  cx.fillStyle = rail; cx.fillRect(0, L.reelTop, L.W, 6);
+  const rects = reelRects(L), first = rects[0], last = rects[rects.length - 1];
+  const fx = first.x - 14, fy = first.y - 14, fw = last.x + last.w - first.x + 28, fh = first.h + 28;
+  // the reel window's frame
+  const fr = cx.createLinearGradient(fx, fy, fx, fy + fh);
+  fr.addColorStop(0, '#6a4418'); fr.addColorStop(0.5, '#2c1a0c'); fr.addColorStop(1, '#6a4418');
+  cx.fillStyle = fr; roundRect(fx, fy, fw, fh, 12); cx.fill();
+  cx.strokeStyle = '#e8c77a'; cx.lineWidth = 2; roundRect(fx + 2, fy + 2, fw - 4, fh - 4, 10); cx.stroke();
+  // chasing bulbs round the frame (they race while spinning, crawl while planning)
+  const per = 2 * (fw + fh), nb = Math.max(12, Math.floor(per / 18)), speed = st.mode === 'spin' ? 14 : st.mode === 'act' && st.frenzy ? 22 : 3;
+  for (let i = 0; i < nb; i++) {
+    let d = i / nb * per, bx, by;
+    if (d < fw) { bx = fx + d; by = fy; } else if ((d -= fw) < fh) { bx = fx + fw; by = fy + d; } else if ((d -= fh) < fw) { bx = fx + fw - d; by = fy + fh; } else { d -= fw; bx = fx; by = fy + fh - d; }
+    const on = ((i + Math.floor(T * speed)) % 3) === 0;
+    cx.fillStyle = on ? (st.frenzy && st.mode === 'act' ? '#ff9a3a' : '#ffe9a8') : '#4a2c12';
+    if (on) { cx.shadowColor = cx.fillStyle; cx.shadowBlur = 8; }
+    cx.beginPath(); cx.arc(bx, by, on ? 3.2 : 2.4, 0, 7); cx.fill(); cx.shadowBlur = 0;
+  }
+  // combo bar: the moves in the order you stopped the reels (symbols fly up into it)
   const slots = st.reels.length, bs = 26;
-  const bx0 = L.W / 2 - (slots * (bs + 6)) / 2;
+  const bx0 = L.W / 2 - (slots * (bs + 6)) / 2, byy = L.reelTop + 9;
   const shown = st.mode === 'act' ? st.combo : st.order.map(i => st.reels[i].done ? st.reels[i].res : null);
   const played = st.mode === 'act' ? st.combo.length - st.queue.length - (st.cur ? 1 : 0) : 0;
+  const flying = new Set((st.flies || []).filter(f => f.t < 1).map(f => f.slot));
   for (let i = 0; i < slots; i++) {
-    const x = bx0 + i * (bs + 6), y = L.reelTop + 6;
-    cx.fillStyle = st.mode === 'act' && i === played ? 'rgba(232,199,122,.35)' : 'rgba(255,255,255,.06)';
-    cx.fillRect(x, y, bs, bs);
-    cx.strokeStyle = 'rgba(232,199,122,.4)'; cx.lineWidth = 1; cx.strokeRect(x + 0.5, y + 0.5, bs - 1, bs - 1);
+    const x = bx0 + i * (bs + 6);
+    const cur = st.mode === 'act' && i === played;
+    cx.fillStyle = cur ? 'rgba(255,200,90,.45)' : 'rgba(255,255,255,.06)';
+    cx.fillRect(x, byy, bs, bs);
+    cx.strokeStyle = cur ? '#ffd27a' : 'rgba(232,199,122,.4)'; cx.lineWidth = cur ? 2 : 1; cx.strokeRect(x + 0.5, byy + 0.5, bs - 1, bs - 1);
     const k = shown[i];
-    if (k) drawSym(k, x + bs / 2, y + bs / 2, bs - 4, st.mode === 'act' && i < played ? 0.35 : 1);
+    if (k && !flying.has(i)) drawSym(k, x + bs / 2, byy + bs / 2, bs - 4, st.mode === 'act' && i < played ? 0.35 : 1);
   }
-  const rects = reelRects(L);
+  // reels
+  const tease = st.tease;
   st.reels.forEach((R, i) => {
     const r = rects[i];
-    cx.fillStyle = '#e2d9c5'; cx.fillRect(r.x, r.y, r.w, r.h);
+    const spinning = !R.done, fast = spinning && R.stop == null;
+    // window: parchment under glass
+    const pg = cx.createLinearGradient(0, r.y, 0, r.y + r.h);
+    pg.addColorStop(0, '#b9a57c'); pg.addColorStop(0.5, '#f1e6c8'); pg.addColorStop(1, '#b9a57c');
+    cx.fillStyle = pg; cx.fillRect(r.x, r.y, r.w, r.h);
     cx.save(); cx.beginPath(); cx.rect(r.x, r.y, r.w, r.h); cx.clip();
     const cell = r.h / 3, frac = R.pos - Math.floor(R.pos);
+    const bob = R.bounce > 0 ? Math.sin((0.32 - R.bounce) / 0.32 * Math.PI * 2.5) * (R.bounce / 0.32) * cell * 0.16 : 0;
     for (let j = -2; j <= 2; j++) {
       const n = R.strip.length, idx = ((Math.floor(R.pos) + j) % n + n) % n;
-      const y = r.y + r.h / 2 + (j - frac) * cell * -1;
-      drawSym(R.strip[idx], r.x + r.w / 2, y, cell * 0.78);
+      const y = r.y + r.h / 2 + (j - frac) * cell * -1 + bob;
+      const pay = !spinning && j === 0;
+      const pop = pay && R.flashT > 0 ? 1 + 0.28 * (R.flashT / 0.4) : 1;
+      if (fast) {
+        // motion blur: the symbol smeared along the strip
+        for (let b = 2; b >= 0; b--) drawSym(R.strip[idx], r.x + r.w / 2, y - b * cell * 0.12, cell * 0.78, b ? 0.22 : 0.75);
+      } else drawSym(R.strip[idx], r.x + r.w / 2, y, cell * 0.78 * pop);
     }
+    // glass: shade top and bottom, a highlight stripe
     const sh = cx.createLinearGradient(0, r.y, 0, r.y + r.h);
-    sh.addColorStop(0, 'rgba(0,0,0,.45)'); sh.addColorStop(0.3, 'rgba(0,0,0,0)'); sh.addColorStop(0.7, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.45)');
+    sh.addColorStop(0, 'rgba(10,4,0,.6)'); sh.addColorStop(0.28, 'rgba(0,0,0,0)'); sh.addColorStop(0.72, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(10,4,0,.6)');
     cx.fillStyle = sh; cx.fillRect(r.x, r.y, r.w, r.h);
+    cx.fillStyle = 'rgba(255,255,255,.12)'; cx.fillRect(r.x + r.w * 0.12, r.y, r.w * 0.1, r.h);
+    // payline flash on landing
+    if (R.flashT > 0) { cx.fillStyle = 'rgba(255,240,200,' + (R.flashT / 0.4 * 0.55) + ')'; cx.fillRect(r.x, r.y + cell, r.w, cell); }
     cx.restore();
     cx.strokeStyle = '#000'; cx.lineWidth = 3; cx.strokeRect(r.x, r.y, r.w, r.h);
-    cx.strokeStyle = 'rgba(201,118,58,.85)'; cx.lineWidth = 2; cx.strokeRect(r.x + 3, r.y + r.h / 3, r.w - 6, r.h / 3);
+    // the tease: two stopped reels agree, so the ones still spinning glow and slow down
+    const hot = tease && spinning;
+    const winLine = st.mode === 'act' && st.frenzy;
+    if (hot || winLine) {
+      const pulse = 0.5 + 0.5 * Math.sin(T * (hot ? 12 : 8));
+      cx.save(); cx.shadowColor = winLine ? '#ff8a2a' : '#ffd060'; cx.shadowBlur = 14 + pulse * 14;
+      cx.strokeStyle = 'rgba(255,' + (winLine ? 150 : 210) + ',80,' + (0.6 + 0.4 * pulse) + ')'; cx.lineWidth = 4;
+      cx.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4); cx.restore();
+      if (hot) {
+        cx.font = "bold " + Math.round(22 + pulse * 6) + "px 'Pirata One',Georgia,serif"; cx.textAlign = 'center';
+        cx.lineWidth = 4; cx.strokeStyle = '#000'; cx.strokeText('!!', r.x + r.w / 2, r.y - 4); cx.fillStyle = '#ffd060'; cx.fillText('!!', r.x + r.w / 2, r.y - 4);
+      }
+    }
+    cx.strokeStyle = winLine ? '#ffb24a' : 'rgba(201,118,58,.85)'; cx.lineWidth = winLine ? 3 : 2; cx.strokeRect(r.x + 3, r.y + r.h / 3, r.w - 6, r.h / 3);
     const ord = st.order.indexOf(i);
     if (ord >= 0) {
       cx.fillStyle = '#cfa75c'; cx.beginPath(); cx.arc(r.x + r.w - 12, r.y + 12, 10, 0, 7); cx.fill();
@@ -1023,13 +1149,29 @@ function drawReels(L) {
       cx.fillText(String(ord + 1), r.x + r.w - 12, r.y + 13); cx.textBaseline = 'alphabetic';
     }
   });
-  const last = rects[rects.length - 1];
+  // "PULL" breathes on the reels while you plan
+  if (st.mode === 'plan' && !st.over && st.coins > 0) {
+    const a = 0.6 + 0.3 * Math.sin(T * 3.5);
+    cx.save(); cx.globalAlpha = a; cx.font = "bold 34px 'Pirata One',Georgia,serif"; cx.textAlign = 'center';
+    cx.lineWidth = 5; cx.strokeStyle = '#000'; const py = first.y + first.h / 2 + 12;
+    cx.strokeText('PULL', L.W / 2, py); cx.fillStyle = '#ffe2a0'; cx.fillText('PULL', L.W / 2, py); cx.restore();
+  }
+  // sparks
+  if (st.rp) for (const q of st.rp) { cx.fillStyle = 'rgba(255,' + (200 + 55 * (1 - q.t / q.life) | 0) + ',120,' + (1 - q.t / q.life) + ')'; cx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3); }
+  // symbols flying up into the combo bar
+  if (st.flies) for (const f of st.flies) {
+    if (f.t >= 1) continue;
+    const e = 1 - Math.pow(1 - f.t, 3), tx = bx0 + f.slot * (bs + 6) + bs / 2, ty = byy + bs / 2;
+    const x = f.x + (tx - f.x) * e, y = f.y + (ty - f.y) * e - Math.sin(Math.PI * f.t) * 40;
+    drawSym(f.k, x, y, (bs - 4) * (1.8 - 0.8 * e));
+  }
   cx.font = '12px ui-monospace,monospace'; cx.textAlign = 'center'; cx.fillStyle = '#cdb68a';
   const tip = st.over ? '' : st.mode === 'plan' ? (st.coins > 0 ? 'Tap the reels to pull · 🪙1' : 'Out of coins') :
-    st.mode === 'spin' ? 'Tap each reel to stop it. Stop order = move order' :
+    st.mode === 'spin' ? (tease ? 'Match it for a combo!' : 'Tap each reel to stop it. Stop order = move order') :
     st.mode === 'act' ? (st.frenzy ? (ULTS[st.ult] || 'FRENZY') + ': double damage' : (st.names || st.combo.map(m => MOVES[m].n)).join(' → ')) : '';
-  cx.fillText(tip, L.W / 2, Math.min(L.H - 10, last.y + last.h + 20));
+  cx.fillText(tip, L.W / 2, Math.min(L.H - 10, last.y + last.h + 24));
 }
+function roundRect(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
 
 /* ---------- loop ---------- */
 function tick(now) {
@@ -1037,6 +1179,9 @@ function tick(now) {
   const rdt = Math.min(0.05, (now - (last || now)) / 1000);
   last = now;
   if (!st) return;
+  st.clk = (st.clk || 0) + rdt;
+  st.critT = Math.max(0, (st.critT || 0) - rdt);
+  if (st.dmgPop) { st.dmgPop.t += rdt; if (st.dmgPop.t > 1.8) st.dmgPop = null; }
   updateReels(rdt);
   // hit-stop freezes the fight for a few frames; slow motion runs it at a third
   let dt = rdt;

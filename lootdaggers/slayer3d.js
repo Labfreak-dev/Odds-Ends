@@ -226,6 +226,20 @@ function curlFingers(skin, bi, fr, H, F) {
   g.computeBoundingSphere();
 }
 
+/* A cinematic rim: a glow along each character's silhouette (where the surface turns away
+   from the camera), so figures stand out from the busy hall. Heroes warm, foes a cold edge. */
+const RIM_HERO = { color: new THREE.Color(0xffc890), k: 0.55 };
+const RIM_FOE = { color: new THREE.Color(0xa8c8ff), k: 0.4 };
+function addRim(m, rim) {
+  if (!m.isMeshStandardMaterial) return;
+  m.onBeforeCompile = sh => {
+    sh.uniforms.rimColor = { value: rim.color }; sh.uniforms.rimK = { value: rim.k };
+    sh.fragmentShader = 'uniform vec3 rimColor;\nuniform float rimK;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n  { float rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0); totalEmissiveRadiance += rimColor * rimF * rimK; }');
+  };
+  m.customProgramCacheKey = () => 'rim' + rim.k;
+}
+
 function seatWeapons(root) {
   const seated = new Set();
   let skin = null; root.traverse(o => { if (o.isSkinnedMesh && !skin) skin = o; });
@@ -496,7 +510,7 @@ export class Stage {
       if (o.isMesh) {
         o.frustumCulled = false;
         const list = Array.isArray(o.material) ? o.material : [o.material];
-        const cl = list.map(m => { const n = m.clone(); n.userData.base = { emissive: n.emissive ? n.emissive.clone() : null }; mats.push(n); return n; });
+        const cl = list.map(m => { const n = m.clone(); n.userData.base = { emissive: n.emissive ? n.emissive.clone() : null }; if (!this.overlay) addRim(n, opts && opts.hero ? RIM_HERO : RIM_FOE); mats.push(n); return n; });
         o.material = Array.isArray(o.material) ? cl : cl[0];
       }
     });
@@ -1577,7 +1591,7 @@ Object.assign(Stage.prototype, {
     const fy = fg.createLinearGradient(0, 0, 0, 64); fy.addColorStop(0, 'rgba(0,0,0,0)'); fy.addColorStop(0.55, 'rgba(0,0,0,1)'); fy.addColorStop(1, 'rgba(0,0,0,.6)');
     fg.fillStyle = fy; fg.fillRect(0, 0, 256, 64);
     H.fogs = [];
-    for (const [z, h, op] of [[-1.9, 1.6, 0.55], [1.2, 1.0, 0.35]]) {
+    for (const [z, h, op] of [[-1.9, 1.6, 0.5], [1.2, 0.8, 0.16]]) {
       const tex = new THREE.CanvasTexture(fc); tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(3, 1);
       const m = new THREE.Mesh(new THREE.PlaneGeometry(40, h), new THREE.MeshBasicMaterial({ map: tex, color: 0x9a8f88, transparent: true, opacity: op, depthWrite: false }));
       m.position.set(0, h / 2 - 0.05, z); m.renderOrder = 2; S.add(m); H.fogs.push(m);

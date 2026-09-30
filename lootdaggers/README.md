@@ -685,3 +685,14 @@ Nothing in the game is emoji any more once art.js loads.
     - **Lights:** up to 6 on desktop and 3 on phones, shared between the nearest torches and braziers.
     - **Bloom:** desktop only.
     - The throne room glb is Draco-compressed, so Reel Slayer's loader now has the Draco decoder.
+- **b156**: Reel Slayer gets a slot cabinet, faster and flashier combat, and monsters that take light.
+  - **Monsters were self-lit.** Meshy's rigging output wires the base colour as a full-white emissive map with a doubled specular, and drops the normal and metal/roughness maps. So 13 of the 19 monster models ignored the scene's lights and read flat. `tools/graftpbr.mjs` copies the maps back in from the same task's unrigged model (same UVs: base colours match to 0.2/255), turns the emissive off and resets the specular. That covers every rigged foe except the Croupier, which was regenerated with different UVs and gets the emissive fix only. The Skeleton's unrigged model was fetched from its task before the link expired. About 450K more per model.
+  - **Rim light** (`addRim`): a warm edge glow on heroes and a cold one on foes, so figures stand out from the hall. The front fog band is thinner so it no longer greys the fighters' legs.
+  - **The reels** (`drawReels`):
+    - The cabinet: a lacquered cabinet with a gilt rail, a gilded window, and chasing marquee bulbs that race while spinning.
+    - Spinning: motion-blurred symbols and a glass highlight.
+    - Landing (`landReel`): each stop bounces, flashes the payline, throws sparks, shakes the screen, and sends its symbol flying up into the combo bar.
+    - The tease: when the stopped reels agree, the rest glow gold, pulse "!!" and slow down ("Match it for a combo!"), and a triple lights the whole payline. "PULL" breathes while planning.
+    - Hesitate and the reels auto-stop, 2.2 s after the pull or your last tap, then one every 0.5 s.
+  - **Pace:** moves start at 82% of their old length and each one in a combo runs 10% faster (floor 50%). The walk to the next foe is 1.9× faster, and wave transitions are 0.6 s.
+  - **Flash:** anime speed lines on dashes, leaps and finishers; a white flash on crits; damage numbers that slam in bigger (crits huge and gold), jittered so they don't stack; and a COMBO DAMAGE total that slams in when the combo ends.

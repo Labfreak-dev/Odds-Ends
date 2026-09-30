@@ -906,9 +906,32 @@ const ULT_COLOR = { sword: 0xffb24a, bomb: 0xff6a2a, bow: 0xffe08a, skull: 0xb06
 
 Object.assign(Stage.prototype, {
   _flashInit() {
-    if (this._flashReady || !this.hero) return;
-    this._flashReady = true;
-    this.zoom = 1; this.punchK = 0; this.zoomUlt = 1; this.shakeK = 0;
+    if (!this.hero) return;
+    if (!this._flashReady) {
+      this._flashReady = true;
+      this.zoom = 1; this.punchK = 0; this.zoomUlt = 1; this.shakeK = 0;
+      // ribbon trail
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 2 * 3), 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 2 * 4), 4));
+      const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+      geo.setIndex(idx);
+      this.trail = { pts: [], mesh: new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })) };
+      this.trail.mesh.frustumCulled = false;
+      this.scene.add(this.trail.mesh);
+      this.ghosts = [];
+      this.ghostI = 0; this.ghostClock = 0;
+      this.ultLight = new THREE.PointLight(0xffb24a, 0, 6, 1.4);
+      this.scene.add(this.ultLight);
+      this.ultObjs = [];
+    }
+    // per hero: the stage outlives a run, so a new hero (another pick, or Pull again)
+    // gets its own weapon list and afterimages; the old hero's are dropped
+    if (this._flashHero === this.hero) return;
+    this._flashHero = this.hero;
+    for (const G of this.ghosts) this.scene.remove(G.holder);
+    this.ghosts = [];
+    this.trail.pts.length = 0;
     // weapon props: plain meshes on the hand bones; the trail runs from 35% of the blade to its tip
     const h = this.hero; h.weapons = [];
     h.root.updateMatrixWorld(true);
@@ -925,17 +948,7 @@ Object.assign(Stage.prototype, {
       const tip = e1.distanceTo(hand) > e2.distanceTo(hand) ? e1 : e2, grip = tip === e1 ? e2 : e1;
       h.weapons.push({ o, tip, mid: grip.clone().lerp(tip, 0.35) });
     });
-    // ribbon trail
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 2 * 3), 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 2 * 4), 4));
-    const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-    geo.setIndex(idx);
-    this.trail = { pts: [], mesh: new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })) };
-    this.trail.mesh.frustumCulled = false;
-    this.scene.add(this.trail.mesh);
     // afterimages: posed copies of the hero in a flat additive colour
-    this.ghosts = [];
     const K = this.phone ? 2 : 4;
     const src = []; h.root.traverse(o => src.push(o));
     for (let i = 0; i < K; i++) {
@@ -946,10 +959,6 @@ Object.assign(Stage.prototype, {
       const dst = []; g.traverse(o => dst.push(o));
       this.ghosts.push({ holder, mat, src, dst, t: 1 });
     }
-    this.ghostI = 0; this.ghostClock = 0;
-    this.ultLight = new THREE.PointLight(0xffb24a, 0, 6, 1.4);
-    this.scene.add(this.ultLight);
-    this.ultObjs = [];
   },
 
   _ghost(color) {
@@ -972,7 +981,7 @@ Object.assign(Stage.prototype, {
     // weapon trail: sample while a blade move (or an ultimate) is swinging
     const c = st.cur, swinging = !!(c && MELEE.has(c.m));
     const T = this.trail;
-    if (swinging && this.hero.weapons.length) {
+    if (swinging && this.hero.weapons && this.hero.weapons.length) {
       const w = this.hero.weapons[0];
       w.o.updateMatrixWorld(true);
       T.pts.unshift([w.tip.clone().applyMatrix4(w.o.matrixWorld), w.mid.clone().applyMatrix4(w.o.matrixWorld)]);

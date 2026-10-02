@@ -28,11 +28,12 @@ CREATURE = ('Glossy stylized 3D render of a collectible monster for a premium cr
             'soft studio lighting with a warm key light and cool rim light, subtle subsurface scattering, '
             'crisp clean detail. Whole body in frame with margin around it, three-quarter view facing to '
             'the RIGHT, {pose}. ' + KEYBG + '. The creature has no pink or magenta anywhere.')
-EVOLVE = ('Use the reference image ONLY as a guide for colour palette and render style. Design its {stage}, '
-          'a new creature: {d}. It should be {size} and more powerful, with a different body shape, posture '
-          'and silhouette, glossy stylized 3D render, chunky stylized shapes, rich vibrant saturated colours, '
-          'whole body in frame with margin around it, three-quarter view facing to the RIGHT, {pose}. '
-          + KEYBG + '. No pink or magenta anywhere on the creature.')
+EVOLVE = ('Use the reference image ONLY as a guide for colour palette and render style. Design its {stage}: '
+          '{d}. It must look like a brand new, far more advanced and powerful creature, not the same animal '
+          'with small changes: a new body shape and silhouette, {size}, more elaborate features such as armour, '
+          'horns, crests, crowns or glowing markings, and a strong dramatic presence. Glossy stylized 3D render, '
+          'chunky stylized shapes, rich vibrant saturated colours, dramatic rim lighting, whole body in frame with '
+          'margin around it, three-quarter view facing to the RIGHT, {pose}. ' + KEYBG + '. No pink or magenta anywhere on the creature.')
 BOSS = ('Glossy stylized 3D render of a huge boss monster for a premium creature-taming game: {d}. '
         'Imposing but charming, chunky stylized shapes, rich vibrant saturated colours, dramatic studio '
         'lighting with strong rim light, crisp detail. Whole body in frame with margin, three-quarter view '
@@ -45,10 +46,30 @@ BG = ('Wide stylized 3D render of a game environment that fills the entire frame
       'a broad clear flat ground area across the lower half where creatures will stand, no creatures, '
       'no characters, no animals, no people, no text, no UI.')
 
+# evolved forms re-rolled in g4 for more dramatic evolutions (they override LINES below)
+EVO_OVERRIDE = {'cind2': 'a chunky armoured fire axolotl drake on four legs, black obsidian spikes along its back, a blazing flame tail, glowing lava veins and ember eyes',
+ 'cind3': 'a tall horned fire dragon with small flame wings, a long body and tail, a jagged flame frill running down its back, glowing lava veins across dark red scales, fierce narrowed eyes',
+ 'pyrp2': 'a lithe adolescent fire fox standing tall on long legs, three blazing tails, ember-tipped ears, flame markings on its legs and glowing amber eyes',
+ 'pyrp3': 'a majestic sun goddess fox, tall and regal, nine radiant tails of white-gold fire fanned behind her like a sunburst, a floating crown of flame above her head and ornate golden markings',
+ 'bubb2': 'a sleek streamlined river otter warrior standing upright, long blade-like fins on its forearms and tail, a flowing mane of water and swirling bubbles around it',
+ 'bubb3': 'a mighty sea otter titan riding a huge cresting tidal wave, a crown of coral horns, glowing aqua runes across its body and a cape of rushing water',
+ 'shel3': 'a colossal leviathan turtle titan with a huge horned head, a glowing coral fortress city of spires on its back, barnacle armour plates and bioluminescent markings',
+ 'sprt2': 'an agile adolescent leaf hare in a fighting stance, long leaf-blade ears, thorny vine bracers wrapped around its legs and bright green fur',
+ 'sprt3': 'a towering ancient forest guardian hare spirit with branching antlers covered in blossoms, a thick mossy mane, a mantle of leaves and petals and glowing green eyes',
+ 'sprk3': 'a hulking storm beast hedgehog standing on two legs, a towering crown of jagged glowing yellow crystal quills crackling with lightning, a storm cloud swirling around its shoulders and glowing eyes',
+ 'buzz2': 'a sleek fierce hornet with four glowing crystal wings, a long sparking stinger at the tip of its abdomen, natural yellow and deep blue chitin plates and glowing eyes, holding nothing',
+ 'buzz3': 'a colossal thunder queen bee empress hovering with six huge crystal wings, a crown of crackling blue plasma, golden ornate armour and a storm of tiny lightning bees circling her',
+ 'pebb3': 'a colossal mountain titan golem, its shoulders are snowy mountain peaks, glowing amber magma core in its chest, enormous boulder fists and crystals and moss growing over its body',
+ 'crys3': 'a massive crystal behemoth dinosaur with a long spiked tail, rows of huge glowing prismatic teal, gold and sapphire crystal spines, a crystal-armoured head with three horns',
+ 'wisp2': 'a sleek shadow lynx with tufted ears, long smoky tail, glowing cyan eyes and glowing cyan rune markings along its indigo body',
+ 'wisp3': 'a huge void panther spirit, its body made of a starry night sky full of stars and nebulae, a flowing cosmic smoke mane, three glowing cyan eyes and wisps of shadow trailing from its paws',
+ 'dusk2': 'a wiry adolescent night bat with wide navy wings patterned with glowing silver crescent moons, big pointed ears and sharp silver claws',
+ 'dusk3': 'a gigantic eclipse dragon bat with vast midnight wings full of stars, a glowing golden eclipse corona ring behind its head, crescent-moon horns and armoured silver claws'}
+
 # key -> (template, description, extra)
 A = {}
 def cr(key, d, pose='standing alert and playful'): A[key] = ('creature', d, pose)
-def ev(key, ref, d, pose='in a dynamic battle-ready stance'): A[key] = ('evolve', d, pose, ref)
+def ev(key, ref, d, pose='in a dynamic battle-ready stance'): A[key] = ('evolve', d, pose, ref, int(key[-1]))
 
 # ---- creature lines: three stages each ------------------------------------
 LINES = [
@@ -91,8 +112,10 @@ LINES = [
 ]
 for k, s1, s2, s3 in LINES:
     cr(f'cr_{k}1', s1)
+    s2, s3 = EVO_OVERRIDE.get(k + '2', s2), EVO_OVERRIDE.get(k + '3', s3)
+    # re-rolled forms take stage 1 as the palette guide, so both read as the same line
     ev(f'cr_{k}2', f'cr_{k}1', s2)
-    ev(f'cr_{k}3', f'cr_{k}2', s3)
+    ev(f'cr_{k}3', f'cr_{k}1' if k + '3' in EVO_OVERRIDE else f'cr_{k}2', s3)
 
 # ---- bosses ----------------------------------------------------------------
 for k, d in [
@@ -195,15 +218,17 @@ def prompt(spec):
     if t == 'evolve':
         st = spec[3][-1]
         return EVOLVE.format(d=spec[1], pose=spec[2],
-            stage='next evolution, a teenage form' if st == '1' else 'final evolution, a full-grown adult form',
-            size='about twice the size' if st == '1' else 'much larger, majestic and imposing')
+            stage='second evolution, a bold adolescent form' if spec[0] == 'evolve' and spec[4] == 2 else 'final evolution, an awe-inspiring apex form',
+            size='about twice the size with a more athletic build' if spec[4] == 2 else 'about three times the size, majestic, towering and imposing')
     if t == 'boss': return BOSS.format(d=spec[1])
     if t == 'icon': return ICON.format(d=spec[1])
     if t == 'bg': return BG.format(d=spec[1])
 
-def make(key):
+CAND = 0
+def make(key, cand=None):
     spec = A[key]
-    out = os.path.join(SRC, key + '.webp')
+    out = os.path.join(SRC, key + '.webp') if cand is None else os.path.join(SRC, '_cand', f'{key}_{cand}.webp')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     if os.path.exists(out): return key, 'have'
     p = prompt(spec)
     if spec[0] == 'evolve':
@@ -214,7 +239,7 @@ def make(key):
     else:
         kind = 'v1/text-to-image'
         body = {'ai_model': 'nano-banana', 'prompt': p, 'aspect_ratio': '16:9' if spec[0] == 'bg' else '1:1'}
-    r = meshy.wait(kind, meshy.create(kind, body, key), every=4)
+    r = meshy.wait(kind, meshy.create(kind, body, key if cand is None else f'{key}#{cand}'), every=4)
     if r.get('status') != 'SUCCEEDED': return key, 'FAILED ' + json.dumps(r.get('task_error'))
     tmp = out + '.png'
     meshy.fetch(r['image_urls'][0], tmp)
@@ -227,16 +252,23 @@ def run(keys):
     tiers = [[k for k in keys if A[k][0] != 'evolve'],
              [k for k in keys if A[k][0] == 'evolve' and k.endswith('2')],
              [k for k in keys if A[k][0] == 'evolve' and k.endswith('3')]]
+    if CAND:
+        tiers = [[(k, i) for k in keys for i in range(CAND)]]
+    else:
+        tiers = [[(k, None) for k in t] for t in tiers]
     for tier in tiers:
         with cf.ThreadPoolExecutor(8) as ex:
-            for f in cf.as_completed([ex.submit(make, k) for k in tier]):
+            for f in cf.as_completed([ex.submit(make, k, c) for k, c in tier]):
                 try: print(*f.result(), flush=True)
                 except Exception as e: print('ERR', e, flush=True)
     print('balance', meshy.balance(), flush=True)
 
 if __name__ == '__main__':
     os.makedirs(SRC, exist_ok=True)
-    keys = sys.argv[1:] or list(A)
+    args = sys.argv[1:]
+    if args and args[0] == '--cand':
+        CAND = int(args[1]); args = args[2:]
+    keys = args or list(A)
     bad = [k for k in keys if k not in A]
     if bad: sys.exit('unknown keys: ' + ' '.join(bad))
     run(keys)

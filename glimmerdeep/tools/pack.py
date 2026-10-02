@@ -97,6 +97,33 @@ def key_out(im):
     return img.crop(bb) if bb else img
 
 
+def strip_floor(img):
+    """Some renders stand on a pinkish floor glow the keyer leaves behind. Clear pink pixels
+    in the bottom fifth of the sprite that connect to the transparent background."""
+    a = np.asarray(img).astype(np.int32)
+    r, g, b, al = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    h = a.shape[0]
+    pink = (r - g > 30) & (b - g > 15) & (al > 0)
+    pink[: int(h * 0.8)] = False
+    clear = ndimage.binary_dilation(al < 16, iterations=2)
+    lab, n = ndimage.label(pink)
+    if n:
+        touch = np.unique(lab[clear & pink])
+        kill = np.isin(lab, touch[touch > 0])
+        kill = ndimage.binary_dilation(kill, iterations=1) & (al > 0) & ((r - g > 10) | (al < 200))
+        a[..., 3] = np.where(kill, 0, al)
+    # and drop leftover specks near the bottom (tiny pieces not attached to the creature)
+    lab, n = ndimage.label(a[..., 3] > 40)
+    if n > 1:
+        sizes = ndimage.sum(np.ones(lab.shape), lab, range(1, n + 1))
+        big = sizes.max()
+        for i, sl in enumerate(ndimage.find_objects(lab), start=1):
+            if sizes[i - 1] < big * 0.01 and sl[0].start > h * 0.7:
+                a[..., 3][sl][lab[sl] == i] = 0
+    out = Image.fromarray(a.astype(np.uint8), 'RGBA')
+    bb = out.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+    return out.crop(bb) if bb else out
+
 def fit(img, th, mw):
     w, h = img.size
     s = min(th / h, mw / w, 1.0)
@@ -112,7 +139,11 @@ def cover(img, tw, th):
 def process(key):
     k, th, mw, q = kind(key)
     im = Image.open(os.path.join(SRC, key + '.webp'))
-    img = cover(im.convert('RGB'), mw, th) if k == 'cover' else fit(key_out(im), th, mw)
+    if k == 'cover': img = cover(im.convert('RGB'), mw, th)
+    else:
+        cut = key_out(im)
+        if key.startswith('cr_'): cut = strip_floor(cut)
+        img = fit(cut, th, mw)
     img.save(os.path.join(OUT, key + '.webp'), 'WEBP', quality=q, method=6)
     return img.size
 

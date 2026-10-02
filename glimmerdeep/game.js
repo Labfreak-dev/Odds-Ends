@@ -206,7 +206,8 @@ function renderGame() {
   save();
 }
 function renderShop() {
-  const owned = new Set(run.units.map(u => u.sp));
+  // OWNED marks a card that would merge with something: a ★3 is final, so only lower forms count
+  const owned = new Set(run.units.filter(u => u.star < 3).map(u => u.sp));
   const n = R.shopSize(run);
   $('#shop').style.setProperty('--n', n);
   $('#shop').innerHTML = run.shop.slice(0, n).map((sp, i) => {

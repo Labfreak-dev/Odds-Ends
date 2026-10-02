@@ -154,4 +154,4 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - `pack.py` gained `strip_floor`: some renders stood on a pink floor glow the keyer left behind; pink pixels in the bottom fifth that connect to the background are cleared, along with tiny specks there.
   - **The evolution sequence** is a full-screen moment: the old form glows into a white silhouette that flickers faster and faster between old and new shapes while element-coloured light rays spin and sparks rush in, then a white flash and a shockwave ring reveal the new form with its name, stars, stat jump and any new ultimate. Tap to skip.
   - On the board, evolved creatures stand bigger (70/94/120% of a cell): ★2 gets a silver aura and ★3 a pulsing gold aura with sparkles.
-
+- **g5**: the shop's OWNED tag only marks a card that would merge with something: a creature you only have as a ★3 (final form) no longer shows it, so a whole team of one species is easy to read. It comes back as soon as you hold a ★1 or ★2 of it.

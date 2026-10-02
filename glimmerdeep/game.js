@@ -147,7 +147,7 @@ function unitHtml(key, o) {
 function topHtml() {
   const kind = R.roundKind(run.round);
   const bi = G.BIOMES[run.biome];
-  const boss = kind === 'boss' ? ' · ' + G.BOSSES[bi.boss].name : '';
+  const boss = kind === 'boss' ? ' · ' + G.BOSSES[R.bossOf(run)].name : '';
   return `<button class="iconbtn" data-top="menu">☰</button>
     <div class="grow"><div class="title">Round ${run.round}/${G.ROUNDS} · <span style="color:${kind === 'boss' ? '#ff7b8f' : kind === 'elite' ? '#ffd65a' : 'inherit'}">${KIND_N[kind]}${boss}</span></div><div class="small muted">${bi.name}${run.depth ? ' · Depth ' + run.depth : ''}${run.streak > 1 ? ' · win streak ' + run.streak : run.streak < -1 ? ' · loss streak ' + -run.streak : ''}</div></div>
     <span class="pill hp-pill">♥ ${run.hp}</span><span class="pill"><img src="${IMG('ui_gold')}" alt="">${run.gold}</span>
@@ -443,7 +443,7 @@ async function enemyInfo(i) {
   const p = R.enemyBoard(run)[i]; if (!p) return;
   const inst = p.inst;
   await ask(`${inst.boss ? '♛' : starsTxt(inst.star)} ${esc(C.name(inst))}${inst.elite ? ' · ' + inst.elite : ''}`, `<div class="detail"><div class="big el-${C.elOf(inst)}"><img src="${IMG(C.art(inst))}" alt=""></div><div>
-    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}`, btn('ok', 'Close', 'green sm'));
+    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}${inst.boss && G.BOSSES[inst.boss].pd ? `<div class="small" style="margin-top:6px;color:var(--gold)">♛ ${G.BOSSES[inst.boss].pd} Enrages below half HP.</div>` : ''}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}`, btn('ok', 'Close', 'green sm'));
 }
 
 // ---- the fight ---------------------------------------------------------------------------------
@@ -634,7 +634,7 @@ function handle(ev) {
 async function endFight() {
   if (!FS) return;
   const st = FS.st;
-  const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[G.BIOMES[run.biome].boss].name : '';
+  const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[R.bossOf(run)].name : '';
   const res = R.endRound(run, st);
   stopFight();
   phase = 'busy';
@@ -656,7 +656,7 @@ async function endFight() {
       const k = await ask('Tamer perk', `<p class="muted" style="text-align:center">Pick a permanent perk for this run.</p><div class="cards">${p.opts.map(k => `<div class="card" data-v="${k}"><h3>${G.PERKS[k].n}</h3><p>${G.PERKS[k].d}</p></div>`).join('')}</div>`);
       R.takePerk(run, k);
     } else if (p.k === 'biome') {
-      const b = p.opts.length === 1 ? p.opts[0] : await ask('Choose the next stage', `<div class="cards">${p.opts.map(k => { const bi = G.BIOMES[k]; return `<div class="card" data-v="${k}"><div class="art" style="height:110px"><img src="${IMG(bi.bg)}" alt="" style="border-radius:12px;max-height:110px"></div><h3>${bi.name}</h3><p><b style="color:var(--gold)">${bi.hazName}</b>: ${bi.hazDesc}</p><p>Counter: ${bi.counter}</p><p>Foes: ${Array.from(new Set(bi.els)).map(e => G.EL[e].name).join(', ')} · Boss: ${G.BOSSES[bi.boss].name}</p></div>`; }).join('')}</div>`);
+      const b = p.opts.length === 1 ? p.opts[0] : await ask('Choose the next stage', `<div class="cards">${p.opts.map(k => { const bi = G.BIOMES[k]; return `<div class="card" data-v="${k}"><div class="art" style="height:110px"><img src="${IMG(bi.bg)}" alt="" style="border-radius:12px;max-height:110px"></div><h3>${bi.name}</h3><p><b style="color:var(--gold)">${bi.hazName}</b>: ${bi.hazDesc}</p><p>Counter: ${bi.counter}</p><p>Foes: ${Array.from(new Set(bi.els)).map(e => G.EL[e].name).join(', ')} · Boss: ${G.BOSSES[R.bossOf(run, k)].name}</p></div>`; }).join('')}</div>`);
       R.setBiome(run, b);
       toast('Stage ' + (R.stageOf(run.round) + 1) + ': ' + G.BIOMES[b].name);
     }

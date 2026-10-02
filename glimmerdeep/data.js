@@ -116,8 +116,60 @@ const SK = {
   crystal_scale:{ n: 'Crystal Scales', el: 'stone', t: 'self', cd: 4, fx: { shield: 0.12 }, d: '' },
   cataclysm:   { n: 'Cataclysm', el: 'flux', pow: 135, t: 'foes', cd: 4, fx: { stun: 0.2 }, d: '' },
   wyrm_bite:   { n: 'Prism Fang', el: 'flux', pow: 100, t: 'foe', d: '' },
+  // g7 bosses
+  queen_gore:   { n: 'Royal Gore', el: 'bloom', pow: 75, t: 'foe', fx: { root: 0.3 }, d: '' },
+  thorn_volley: { n: 'Thorn Volley', el: 'bloom', pow: 40, t: 'foe5', fx: { poison: 1 }, d: '' },
+  beetle_call:  { n: 'Call the Swarm', el: 'bloom', t: 'self', fx: { summon: 'blbe' }, d: '' },
+  roc_talon:    { n: 'Storm Talon', el: 'gale', pow: 70, t: 'foe', rng: 1, fx: { blind: 0.2 }, d: '' },
+  hurricane:    { n: 'Hurricane Wing', el: 'gale', pow: 55, t: 'foes', fx: { blind: 0.5 }, d: '' },
+  gale_call:    { n: 'Call the Flock', el: 'gale', t: 'self', fx: { summon: 'gahu' }, d: '' },
+  anvil_smash:  { n: 'Anvil Smash', el: 'metal', pow: 90, t: 'foe', fx: { shred: 0.5 }, d: '' },
+  slag_wave:    { n: 'Slag Wave', el: 'ember', pow: 55, t: 'foes', fx: { burn: 0.5, shred: 0.5 }, d: '' },
+  furnace_guard:{ n: 'Furnace Guard', el: 'metal', t: 'self', fx: { shield: 0.2, defUp: 0.3 }, d: '' },
+  hydra_bite:   { n: 'Hydra Bite', el: 'ember', pow: 70, t: 'foe', rng: 1, fx: { burn: 0.3 }, d: '' },
+  triple_breath:{ n: 'Triple Breath', el: 'ember', pow: 60, t: 'foe3', fx: { burn: 0.6 }, d: '' },
+  regrow_heads: { n: 'Regrow Heads', el: 'ember', t: 'self', fx: { heal: 0.15 }, d: '' },
+  maw_crunch:   { n: 'Abyss Maw', el: 'tide', pow: 110, t: 'lowfoe', rng: 1, ls: 0.3, d: '' },
+  lure_glow:    { n: 'Lantern Lure', el: 'tide', pow: 30, t: 'foes', fx: { blind: 0.7, soak: 1 }, d: '' },
+  abyss_call:   { n: 'Call of the Deep', el: 'tide', t: 'self', fx: { summon: 'tijl' }, d: '' },
+  frost_fang:   { n: 'Rime Fang', el: 'frost', pow: 75, t: 'foe', rng: 1, fx: { chill: 0.5 }, d: '' },
+  glacier_breath:{ n: 'Glacier Breath', el: 'frost', pow: 60, t: 'foes', fx: { chill: 1, soak: 0.5 }, d: '' },
+  ice_armor:    { n: 'Ice Armour', el: 'frost', t: 'self', fx: { shield: 0.2 }, d: '' },
+  riddle_beam:  { n: 'Riddle Beam', el: 'mystic', pow: 90, t: 'foe', rng: 1, fx: { hex: 1 }, d: '' },
+  mirror_storm: { n: 'Mirror Storm', el: 'mystic', pow: 45, t: 'foe5', fx: { hex: 0.4 }, d: '' },
+  arcane_ward:  { n: 'Arcane Ward', el: 'mystic', t: 'self', fx: { shield: 0.2, defUp: 0.3 }, d: '' },
+  piston_claw:  { n: 'Piston Claw', el: 'metal', pow: 85, t: 'foe', fx: { shred: 0.4 }, d: '' },
+  rivet_storm:  { n: 'Rivet Storm', el: 'metal', pow: 35, t: 'foe6', d: '' },
+  ant_call:     { n: 'Deploy the Hive', el: 'metal', t: 'self', fx: { summon: 'mean' }, d: '' },
+  chimera_maul: { n: 'Chimera Maul', el: 'shade', pow: 85, t: 'foe', fx: { curse: 0.4 }, d: '' },
+  three_maws:   { n: 'Three Maws', el: 'shade', pow: 60, t: 'foe3', fx: { curse: 0.5, blind: 0.3 }, d: '' },
+  dread_roar:   { n: 'Dread Roar', el: 'shade', pow: 40, t: 'foes', fx: { curse: 1 }, d: '' },
+  grave_slam:   { n: 'Grave Slam', el: 'stone', pow: 70, t: 'foes', fx: { stun: 0.25 }, d: '' },
+  soul_lanterns:{ n: 'Soul Lanterns', el: 'shade', pow: 40, t: 'foe5', fx: { curse: 0.3 }, d: '' },
+  wisp_call:    { n: 'Lantern Call', el: 'shade', t: 'self', fx: { summon: 'wisp' }, d: '' },
+  star_crush:   { n: 'Star Crush', el: 'flux', pow: 100, t: 'foe', rng: 1, fx: { hex: 0.5 }, d: '' },
+  nebula_nova:  { n: 'Nebula Nova', el: 'flux', pow: 80, t: 'foes', fx: { hex: 1 }, d: '' },
+  cosmic_call:  { n: 'Call the Stars', el: 'mystic', t: 'self', fx: { summon: 'mydf' }, d: '' },
+  void_fist:    { n: 'Void Fist', el: 'flux', pow: 110, t: 'foe', d: '' },
+  singularity:  { n: 'Singularity', el: 'flux', pow: 90, t: 'foes', fx: { stun: 0.25, shred: 0.5 }, d: '' },
+  void_armor:   { n: 'Void Armour', el: 'shade', t: 'self', fx: { shield: 0.2 }, d: '' },
 };
 for (const k in SK) SK[k].id = k;
+// skills without a written description (the bosses') get one built from their data
+const T_TXT = { foe: 'Hits one foe', lowfoe: 'Hits the weakest foe', foes: 'Hits a wide area', foe3: '3 hits on random foes', foe5: '5 hits on random foes', foe6: '6 hits on random foes', self: 'Self', ally: 'The weakest ally', allies: 'All allies' };
+const FX_TXT = { burn: 'Burn', soak: 'Soak', poison: 'Poison', stun: 'Stun', root: 'Root', curse: 'Curse', blind: 'Blind', chill: 'Chill', shred: 'Shred', hex: 'Hex' };
+for (const k in SK) {
+  const sk = SK[k];
+  if (sk.d) continue;
+  const fx = sk.fx || {}, bits = [];
+  for (const f in FX_TXT) if (fx[f] != null) bits.push(f === 'poison' ? `+${fx[f]} Poison` : fx[f] >= 1 ? FX_TXT[f] + 's' : Math.round(fx[f] * 100) + '% ' + FX_TXT[f]);
+  if (fx.summon) bits.push('summons an ally');
+  if (fx.heal) bits.push(`heals ${Math.round(fx.heal * 100)}%`);
+  if (fx.shield) bits.push(`shield ${Math.round(fx.shield * 100)}%`);
+  if (fx.defUp) bits.push(`+${Math.round(fx.defUp * 100)}% DEF`);
+  if (sk.ls) bits.push(`drains ${Math.round(sk.ls * 100)}% of the damage`);
+  sk.d = (T_TXT[sk.t] || '') + (sk.pow ? ` (power ${sk.pow})` : '') + (bits.length ? ': ' + bits.join(', ') : '') + '.';
+}
 
 // ---- species ------------------------------------------------------------------
 const SP = {
@@ -138,27 +190,39 @@ const SP = {
 const SKILL_LV = [1, 1, 4];
 
 const BOSSES = {
-  bramble: { name: 'Mother Bramble', el: 'bloom', art: 'boss_bramble', hp: 4.6, atk: 1.1, def: 1.2, spd: 0.8, sk: ['thorn_whip', 'spore_storm', 'sprout_call', 'heart_bloom'] },
-  cinder:  { name: 'Cinderking', el: 'ember', art: 'boss_cinder', hp: 6.5, atk: 1.25, def: 1.3, spd: 0.75, sk: ['magma_fist', 'eruption', 'molten_armor'] },
-  eel:     { name: 'Abyssqueen', el: 'tide', art: 'boss_eel', hp: 7, atk: 1.2, def: 1.1, spd: 1.1, sk: ['thunder_fang', 'tidal_coil', 'static_field'] },
-  prism:   { name: 'Prism Sentinel', el: 'stone', art: 'boss_prism', hp: 8, atk: 1.2, def: 1.5, spd: 0.8, sk: ['shard_volley', 'crystal_beam', 'prism_guard'] },
-  grim:    { name: 'Grimhoot', el: 'shade', art: 'boss_grim', hp: 7, atk: 1.25, def: 1.1, spd: 1.05, sk: ['night_terror', 'hex_gaze', 'soul_drain', 'bat_call'] },
-  wyrm:    { name: 'The Glimmerwyrm', el: 'ember', flux: 1, art: 'boss_wyrm', hp: 9.5, atk: 1.35, def: 1.35, spd: 1, sk: ['wyrm_bite', 'flux_breath', 'cataclysm', 'crystal_scale'] },
+  bramble: { name: 'Mother Bramble', el: 'bloom', art: 'boss_bramble', hp: 3.74, atk: 1.1, def: 1.2, spd: 0.8, sk: ['thorn_whip', 'spore_storm', 'sprout_call', 'heart_bloom'], pd: 'Calls sprouts to her side and heals herself.' },
+  cinder:  { name: 'Cinderking', el: 'ember', art: 'boss_cinder', hp: 5.45, atk: 1.25, def: 1.3, spd: 0.75, sk: ['magma_fist', 'eruption', 'molten_armor'], pd: 'Molten armour: shields himself and sets the field alight.' },
+  eel:     { name: 'Abyssqueen', el: 'tide', art: 'boss_eel', hp: 6.91, atk: 1.2, def: 1.1, spd: 1.1, sk: ['thunder_fang', 'tidal_coil', 'static_field'], pd: 'Soaks your team, then electrocutes it.' },
+  prism:   { name: 'Prism Sentinel', el: 'stone', art: 'boss_prism', hp: 12.36, atk: 1.2, def: 1.5, spd: 0.8, sk: ['shard_volley', 'crystal_beam', 'prism_guard'], passive: { dr: 0.1 }, pd: 'Crystal body: takes 10% less damage.' },
+  grim:    { name: 'Grimhoot', el: 'shade', art: 'boss_grim', hp: 4.01, atk: 1.25, def: 1.1, spd: 1.05, sk: ['night_terror', 'hex_gaze', 'soul_drain', 'bat_call'], pd: 'Curses your team and calls bats.' },
+  thornqueen: { name: 'Thornback Queen', el: 'bloom', art: 'boss_thornqueen', hp: 2.48, atk: 1.15, def: 1.3, spd: 0.8, sk: ['queen_gore', 'thorn_volley', 'beetle_call'], passive: { thorns: 0.2 }, pd: 'Thorned carapace: reflects 20% of the damage she takes.' },
+  tempestroc: { name: 'Tempest Roc', el: 'gale', art: 'boss_tempestroc', hp: 1.93, atk: 1.25, def: 1, spd: 1.15, sk: ['roc_talon', 'hurricane', 'gale_call'], passive: { dodge: 0.2 }, pd: 'Rides the storm: dodges 20% of attacks.' },
+  forgeheart: { name: 'Forgeheart Colossus', el: 'metal', art: 'boss_forgeheart', hp: 3.82, atk: 1.2, def: 1.6, spd: 0.7, sk: ['anvil_smash', 'slag_wave', 'furnace_guard'], passive: { dr: 0.2 }, pd: 'Iron hide: takes 20% less damage.' },
+  ashhydra: { name: 'Ashen Hydra', el: 'ember', art: 'boss_ashhydra', hp: 3.99, atk: 1.3, def: 1.1, spd: 0.9, sk: ['hydra_bite', 'triple_breath', 'regrow_heads'], passive: { regen: 0.012 }, pd: 'Regrows its heads: heals 1.2% every second.' },
+  deepmaw: { name: 'Deepmaw Matriarch', el: 'tide', art: 'boss_deepmaw', hp: 4.42, atk: 1.3, def: 1, spd: 0.85, sk: ['maw_crunch', 'lure_glow', 'abyss_call'], passive: { ls: 0.15 }, pd: 'Endless hunger: heals 15% of the damage she deals.' },
+  rimeleviathan: { name: 'Rime Leviathan', el: 'frost', art: 'boss_rimeleviathan', hp: 3.44, atk: 1.2, def: 1.2, spd: 0.95, sk: ['frost_fang', 'glacier_breath', 'ice_armor'], passive: { frostAura: 6 }, pd: 'Frozen sea: Chills your whole team for 6 seconds at the start.' },
+  mirrorsphinx: { name: 'Mirror Sphinx', el: 'mystic', art: 'boss_mirrorsphinx', hp: 3.11, atk: 1.15, def: 1.4, spd: 0.85, sk: ['riddle_beam', 'mirror_storm', 'arcane_ward'], passive: { reflect: 0.2 }, pd: 'Mirrored wings: reflects 20% of single hits back at the attacker.' },
+  geartyrant: { name: 'Gear Tyrant', el: 'metal', art: 'boss_geartyrant', hp: 3.17, atk: 1.2, def: 1.5, spd: 0.8, sk: ['piston_claw', 'rivet_storm', 'ant_call'], passive: { dr: 0.15 }, pd: 'Riveted plates: takes 15% less damage.' },
+  eclipsechimera: { name: 'Eclipse Chimera', el: 'shade', art: 'boss_eclipsechimera', hp: 3.8, atk: 1.3, def: 1.1, spd: 1.05, sk: ['chimera_maul', 'three_maws', 'dread_roar'], passive: { ls: 0.15 }, pd: 'Three hungry heads: heals 15% of the damage it deals.' },
+  hollowcolossus: { name: 'Hollow Colossus', el: 'shade', art: 'boss_hollowcolossus', hp: 3.09, atk: 1.2, def: 1.4, spd: 0.75, sk: ['grave_slam', 'soul_lanterns', 'wisp_call'], passive: { thorns: 0.15 }, pd: 'Haunted stone: reflects 15% of the damage it takes.' },
+  astralbehemoth: { name: 'Astral Behemoth', el: 'mystic', flux: 1, art: 'boss_astralbehemoth', hp: 5.32, atk: 1.3, def: 1.3, spd: 0.9, sk: ['star_crush', 'nebula_nova', 'cosmic_call'], passive: { regen: 0.008 }, pd: 'Shifts element every 4 seconds; regenerates 0.8% a second.' },
+  voidtitan: { name: 'Void Titan', el: 'shade', flux: 1, art: 'boss_voidtitan', hp: 7.11, atk: 1.4, def: 1.3, spd: 0.85, sk: ['void_fist', 'singularity', 'void_armor'], passive: { dr: 0.15 }, pd: 'Shifts element every 4 seconds; takes 15% less damage.' },
+  wyrm:    { name: 'The Glimmerwyrm', el: 'ember', flux: 1, art: 'boss_wyrm', hp: 8.09, atk: 1.35, def: 1.35, spd: 1, sk: ['wyrm_bite', 'flux_breath', 'cataclysm', 'crystal_scale'], pd: 'Shifts element every 4 seconds.' },
 };
 
 // ---- biomes and hazards ---------------------------------------------------------
 const BIOMES = {
-  verdant: { name: 'Verdant Hollow', bg: 'bg_verdant', els: ['bloom', 'volt', 'tide', 'ember', 'gale', 'bloom'], boss: 'bramble', haz: 'spores',
+  verdant: { name: 'Verdant Hollow', bg: 'bg_verdant', els: ['bloom', 'volt', 'tide', 'ember', 'gale', 'bloom'], boss: 'bramble', bosses: ['bramble', 'thornqueen', 'tempestroc'], haz: 'spores',
     hazName: 'Spore Haze', hazDesc: 'Every 3 seconds your non-Bloom creatures gain 1 Poison.', counter: 'Bloom creatures, Purifying Incense, cleanses' },
-  magma:   { name: 'Magma Forge', bg: 'bg_magma', els: ['ember', 'stone', 'ember', 'volt', 'metal', 'metal'], boss: 'cinder', haz: 'heat',
+  magma:   { name: 'Magma Forge', bg: 'bg_magma', els: ['ember', 'stone', 'ember', 'volt', 'metal', 'metal'], boss: 'cinder', bosses: ['cinder', 'forgeheart', 'ashhydra'], haz: 'heat',
     hazName: 'Scorching Heat', hazDesc: 'Your creatures that are not Ember or Stone lose 1.2% HP every second (Tide: half).', counter: 'Tide creatures (2× vs Ember), Frostcore, healers' },
-  grotto:  { name: 'Sunken Grotto', bg: 'bg_grotto', els: ['tide', 'volt', 'tide', 'bloom', 'frost', 'gale'], boss: 'eel', haz: 'flood',
+  grotto:  { name: 'Sunken Grotto', bg: 'bg_grotto', els: ['tide', 'volt', 'tide', 'bloom', 'frost', 'gale'], boss: 'eel', bosses: ['eel', 'deepmaw', 'rimeleviathan'], haz: 'flood',
     hazName: 'Rising Flood', hazDesc: 'Everyone is permanently Soaked: Volt hits Electrocute, Ember deals 40% less.', counter: 'Volt and Bloom creatures, Gill Pearl' },
-  spire:   { name: 'Crystal Spire', bg: 'bg_spire', els: ['stone', 'volt', 'stone', 'frost', 'metal', 'mystic'], boss: 'prism', haz: 'reflect',
+  spire:   { name: 'Crystal Spire', bg: 'bg_spire', els: ['stone', 'volt', 'stone', 'frost', 'metal', 'mystic'], boss: 'prism', bosses: ['prism', 'mirrorsphinx', 'geartyrant'], haz: 'reflect',
     hazName: 'Prismatic Echo', hazDesc: 'Foes reflect 20% of single-target damage back at the attacker.', counter: 'Hit-all skills, Prism Lens, lifesteal' },
-  crypt:   { name: 'Shadow Crypt', bg: 'bg_crypt', els: ['shade', 'ember', 'shade', 'mystic', 'frost', 'gale'], boss: 'grim', haz: 'dark',
+  crypt:   { name: 'Shadow Crypt', bg: 'bg_crypt', els: ['shade', 'ember', 'shade', 'mystic', 'frost', 'gale'], boss: 'grim', bosses: ['grim', 'eclipsechimera', 'hollowcolossus'], haz: 'dark',
     hazName: 'Pitch Darkness', hazDesc: 'Your non-Shade creatures miss 25% of attacks. An Ember hit lights the room for 2 seconds.', counter: 'Shade and Ember creatures, Lumen Moth' },
-  core:    { name: 'The Glimmer Core', bg: 'bg_core', els: ['ember', 'tide', 'bloom', 'volt', 'stone', 'shade', 'frost', 'gale', 'metal', 'mystic'], boss: 'wyrm', haz: 'flux',
+  core:    { name: 'The Glimmer Core', bg: 'bg_core', els: ['ember', 'tide', 'bloom', 'volt', 'stone', 'shade', 'frost', 'gale', 'metal', 'mystic'], boss: 'wyrm', bosses: ['wyrm', 'astralbehemoth', 'voidtitan'], haz: 'flux',
     hazName: 'Elemental Flux', hazDesc: 'Foes change element every 4 seconds. A mixed team copes best.', counter: 'A mixed team, Kinship Knot' },
 };
 const ACTS = [['verdant'], ['magma', 'grotto'], ['spire', 'crypt'], ['core']];
@@ -381,7 +445,8 @@ const EVENTS = {
 const TIER = { cind: 1, bubb: 1, sprt: 1, pebb: 1, pyrp: 2, shel: 2, sprk: 2, dusk: 2, moss: 3, buzz: 3, crys: 3, wisp: 3 };
 const RANGE = { cind: 1, pyrp: 3, bubb: 3, shel: 1, sprt: 2, moss: 2, sprk: 1, buzz: 3, pebb: 1, crys: 1, wisp: 1, dusk: 3 };
 const ROLE_AS = { striker: 0.9, caster: 0.7, tank: 0.6, support: 0.7 };
-const BOSS_RANGE = { bramble: 2, cinder: 1, eel: 3, prism: 2, grim: 3, wyrm: 2 };
+const BOSS_RANGE = { bramble: 2, cinder: 1, eel: 3, prism: 2, grim: 3, wyrm: 2, thornqueen: 1, tempestroc: 3, forgeheart: 1, ashhydra: 2, deepmaw: 2,
+  rimeleviathan: 3, mirrorsphinx: 3, geartyrant: 2, eclipsechimera: 1, hollowcolossus: 1, astralbehemoth: 3, voidtitan: 2 };
 const POOL = [0, 22, 18, 14, 10, 8];               // copies of each species in the shared pool, by tier
 // shop odds (tier 1/2/3) by Tamer level 1-9
 const ODDS = [null, [100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [75, 25, 0, 0, 0], [55, 30, 15, 0, 0], [45, 33, 20, 2, 0],

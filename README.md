@@ -6,3 +6,4 @@ Browser games served by GitHub Pages.
 - **Ironhold Idle** — a standalone idle RPG: https://labfreak-dev.github.io/Odds-Ends/ironhold/
 - **Thankless** — Vampire Survivors with the worst party; you are only the healer: https://labfreak-dev.github.io/Odds-Ends/thankless/
 - **Dead Man's Pull** — Loot Dungeon x Slots & Daggers: a side-scrolling dungeon crawl where the slot machine decides every step and stab: https://labfreak-dev.github.io/Odds-Ends/lootdaggers/
+- **Glimmerdeep** — a creature-taming roguelite auto-battler: recruit, evolve and combo relics through four acts of branching dungeon: https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/

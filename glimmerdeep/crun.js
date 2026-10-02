@@ -4,7 +4,8 @@
 'use strict';
 const G = root.GD, C = root.GC;
 const SPS = Object.keys(G.SP);
-const BENCH = 9, PW = 4;       // bench slots; the player's board is columns 0..3
+const BENCH = 9, PW = 4;
+const KIN_CHANCE = 0.25;   // chance a shop slot offers a species you own below 3 stars       // bench slots; the player's board is columns 0..3
 
 function R(run) { return run.rnd || (run.rnd = C.mkRng((run.seed + run.step * 7919) >>> 0)); }
 function rint(run, n) { return Math.floor(R(run)() * n); }
@@ -92,7 +93,7 @@ function shopSize(run) { return run.perks.collector ? 6 : 5; }
 function rollTier(run) {
   const o = G.ODDS[Math.min(9, run.tlv)];
   let t = R(run)() * 100;
-  for (let i = 0; i < 3; i++) { t -= o[i]; if (t < 0) return i + 1; }
+  for (let i = 0; i < 5; i++) { t -= o[i] || 0; if (t < 0) return i + 1; }
   return 1;
 }
 function rollShop(run, free) {
@@ -100,11 +101,17 @@ function rollShop(run, free) {
   // give the old offers back to the pool
   for (const sp of run.shop) if (sp) run.pool[sp]++;
   const owned = Array.from(new Set(run.units.map(u => u.sp)));
+  const kin = Array.from(new Set(run.units.filter(u => u.star < 3).map(u => u.sp)));
+  const o = G.ODDS[Math.min(9, run.tlv)], maxTier = o.reduce((m, v, i) => v > 0 ? i + 1 : m, 1);
   const out = [];
   for (let i = 0; i < shopSize(run); i++) {
     let sp = null;
     if (run.mods.lure && owned.length) {
       const opts = owned.filter(k => run.pool[k] > 0); if (opts.length) sp = pick(run, opts);
+    }
+    // kin attraction: with 72 species, a slot sometimes offers a species you are still merging
+    if (!sp && kin.length && R(run)() < KIN_CHANCE) {
+      const opts = kin.filter(k => run.pool[k] > 0 && G.TIER[k] <= maxTier); if (opts.length) sp = pick(run, opts);
     }
     for (let tries = 0; !sp && tries < 20; tries++) {
       const t = rollTier(run);
@@ -228,14 +235,14 @@ function enemyBoard(run) {
   const pool = SPS.filter(k => els.includes(G.SP[k].el));
   const scale = (0.9 + 0.016 * round) * (1 + 0.08 * run.depth);
   const lv = Math.min(9, 1 + Math.floor(round * 0.36));
-  const tierPick = () => { const o = G.ODDS[lv]; let t = rr() * 100; for (let i = 0; i < 3; i++) { t -= o[i]; if (t < 0) return i + 1; } return 1; };
+  const tierPick = () => { const o = G.ODDS[lv]; let t = rr() * 100; for (let i = 0; i < 5; i++) { t -= o[i] || 0; if (t < 0) return i + 1; } return 1; };
   const species = t => { const a = pool.filter(k => G.TIER[k] === t); const b = a.length ? a : SPS.filter(k => G.TIER[k] === t); return b[Math.floor(rr() * b.length)]; };
-  const p2 = Math.max(0, Math.min(0.75, (round - 4) / 16)), p3 = Math.max(0, Math.min(0.35, (round - 15) / 18));
+  const p2 = Math.max(0, Math.min(0.65, (round - 4) / 20)), p3 = Math.max(0, Math.min(0.25, (round - 16) / 28));
   const out = [];
   const add = inst => out.push(inst);
   if (kind === 'boss') {
     const bk = G.BIOMES[run.biome].boss;
-    add({ uid: -1, boss: bk, star: 3, muts: [], scale: [1.8, 2.7, 3.5, 4.4][stage] * (1 + 0.08 * run.depth) });
+    add({ uid: -1, boss: bk, star: 3, muts: [], scale: [1.8, 2.5, 3.4, 4.3][stage] * (1 + 0.08 * run.depth) });
     const minions = [1, 2, 3, 4][stage];
     for (let i = 0; i < minions; i++) add({ uid: -2 - i, sp: species(tierPick()), star: rr() < p3 ? 3 : rr() < p2 ? 2 : 1, muts: [], scale });
   } else {

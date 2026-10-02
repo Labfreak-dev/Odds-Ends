@@ -117,6 +117,14 @@ for k, s1, s2, s3 in LINES:
     ev(f'cr_{k}2', f'cr_{k}1', s2)
     ev(f'cr_{k}3', f'cr_{k}1' if k + '3' in EVO_OVERRIDE else f'cr_{k}2', s3)
 
+# ---- the 60 species added in g6 (tools/species2.py) ----
+sys.path.insert(0, HERE)
+from species2 import SPECIES2
+for k, el, role, tier, rng, names, (s1, s2, s3) in SPECIES2:
+    cr(f'cr_{k}1', s1)
+    ev(f'cr_{k}2', f'cr_{k}1', s2)
+    ev(f'cr_{k}3', f'cr_{k}1', s3)
+
 # ---- bosses ----------------------------------------------------------------
 for k, d in [
  ('boss_bramble', 'Mother Bramble, a huge ancient tree beast of twisted bark with thorned vine arms and a glowing golden flower heart in its chest'),
@@ -155,6 +163,10 @@ for k, d in [
  ('el_volt', 'a round glossy yellow badge with a stylized lightning bolt'),
  ('el_stone', 'a round glossy brown badge with a stylized boulder'),
  ('el_shade', 'a round glossy deep indigo badge with a stylized crescent moon'),
+ ('el_frost', 'a round glossy icy-blue badge with a stylized snowflake'),
+ ('el_gale', 'a round glossy mint-green badge with a stylized swirl of wind'),
+ ('el_metal', 'a round glossy silver steel badge with a stylized gear'),
+ ('el_mystic', 'a round glossy teal and gold badge with a stylized four-pointed star'),
  ('ui_gold', 'a shiny stack of three gold coins'),
  ('ui_shard', 'a glowing iridescent crystal shard'),
 ]: A[k] = ('icon', d)
@@ -185,6 +197,8 @@ RELICS = {
  'moon_pearl': 'a silver pearl glowing with moonlight', 'frostcore': 'a glowing icy blue crystal core with frost',
  'lumen_moth': 'a glowing golden moth', 'gill_pearl': 'a teal pearl with little gill frills', 'incense': 'a small brass incense burner with fragrant white smoke',
  'prism_lens': 'a round crystal lens in a gold ring',
+ 'frost_shard': 'a glowing blue ice crystal shard with frost', 'wind_bell': 'a small jade wind bell with swirling air',
+ 'iron_core': 'a glowing blue core inside a riveted steel sphere', 'moon_charm': 'a golden crescent moon charm with a teal gem',
  # legendary fusions
  'supernova': 'an exploding miniature star of orange and white fire', 'tempest_engine': 'a brass engine core with a storm swirling inside',
  'leviathan_pearl': 'a giant deep blue pearl wrapped by a small sea serpent', 'world_seed': 'a radiant golden seed with a tiny tree growing from it',
@@ -199,7 +213,8 @@ CHARMS = {
  'berry': 'a juicy half-eaten red berry', 'lens': 'a small focusing glass lens', 'burr': 'a spiky green burr seed pod',
  'grit': 'a small sturdy pebble with a smiling crack', 'scope': 'a blue crystal monocle scope', 'coal': 'a glowing lump of coal',
  'seaglass': 'a smooth piece of blue sea glass', 'wildseed': 'a big green seed with leaf pattern', 'magnet': 'a red and silver horseshoe magnet',
- 'geode': 'a split geode showing teal crystals', 'spelltag': 'a paper talisman tag with a glowing indigo rune',
+ 'geode': 'a split geode showing teal crystals', 'icecube': 'a never-melting glowing ice cube',
+ 'galeleaf': 'a mint-green leaf swirling with wind', 'ingot': 'a polished silver-grey steel ingot bar with bright white highlights, cool grey and blue tones only', 'moonstone': 'a glowing teal and gold moonstone', 'spelltag': 'a paper talisman tag with a glowing indigo rune',
 }
 for k, d in CHARMS.items(): A['ch_' + k] = ('icon', d)
 

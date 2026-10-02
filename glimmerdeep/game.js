@@ -134,7 +134,7 @@ const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
 const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
-const SIZE = [0, 70, 94, 120];
+const SIZE = [0, 70, 94, 114];
 function unitHtml(key, o) {
   const pos = o.bench ? '' : `left:${o.x * 12.5}%;top:${o.y * 20}%;`;
   const sz = o.boss ? 175 : SIZE[o.star || 1];
@@ -256,7 +256,7 @@ async function afterChange() {
   }
 }
 // the evolution sequence: glow, flickering silhouettes, light rays, a white flash, the reveal
-const EVO_EL = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#8d7bff' };
+const EVO_EL = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#8d7bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
 async function evoCinematic(u) {
   const S = G.SP[u.sp], c = EVO_EL[S.el] || '#fff';
   const oldArt = IMG('cr_' + u.sp + (u.star - 1)), newArt = IMG(C.art(u));
@@ -504,7 +504,7 @@ function resyncAll() {
     E.el.classList.toggle('dead', !u.alive);
   }
 }
-const ST_LABEL = { burn: 'BRN', poison: 'PSN', soak: 'WET', stun: 'STUN', root: 'ROOT', curse: 'CRS', blind: 'BLD', atkUp: 'ATK', defUp: 'DEF', spdUp: 'SPD', critUp: 'CRT', dodge: 'EVA', regen: 'RGN', taunt: 'TNT' };
+const ST_LABEL = { burn: 'BRN', poison: 'PSN', soak: 'WET', stun: 'STUN', root: 'ROOT', curse: 'CRS', blind: 'BLD', chill: 'CHL', shred: 'SHR', hex: 'HEX', atkUp: 'ATK', defUp: 'DEF', spdUp: 'SPD', critUp: 'CRT', dodge: 'EVA', regen: 'RGN', taunt: 'TNT' };
 function syncBars(u) {
   const E = uEl(u.id); if (!E) return;
   E.hp.style.width = (100 * u.hp / u.maxHp) + '%';
@@ -552,7 +552,7 @@ function face(u, toX) {
   const left = toX < u.x;
   E.el.classList.toggle('faceL', left); E.el.classList.toggle('faceR', !left);
 }
-const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff' };
+const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
 function rig(id, frames, ms, fill) {
   const E = uEl(id); if (!E) return;
   E.rig.animate(frames, { duration: ms / FS.speed, easing: 'ease-in-out', fill: fill || 'none' });
@@ -783,13 +783,13 @@ async function showDex() {
 async function showHow() {
   await ask('How to play', `<div class="how">
   <p><b>The run</b> is 24 rounds across 4 stages. Rounds 3 of each stage are elite fights that pay a relic; every 6th round is a boss. After a boss you choose the next stage's biome. You have 100 HP: losing a round costs HP (more for every foe left standing). Beat the Glimmerwyrm in round 24 to win.</p>
-  <p><b>Planning.</b> Buy creatures from the shop (cost = tier: 1-3 gold), drag them from the bench onto your half of the board, and drag them back or onto the shop to sell. Your <b>Tamer level</b> is how many creatures fit on the board: you gain 2 XP a round, and Buy XP gives 4 for 4 gold. Higher levels also roll rarer creatures. <b>Lock</b> keeps a shop for next round.</p>
+  <p><b>Planning.</b> Buy creatures from the shop (cost = tier: 1-5 gold; tier 4 and 5 creatures appear at higher Tamer levels), drag them from the bench onto your half of the board, and drag them back or onto the shop to sell. Your <b>Tamer level</b> is how many creatures fit on the board: you gain 2 XP a round, and Buy XP gives 4 for 4 gold. Higher levels also roll rarer creatures. <b>Lock</b> keeps a shop for next round.</p>
   <p><b>Merging.</b> Three copies of the same creature at the same star merge and evolve it: ★2 is its second form, ★3 its final form. Each merge offers a <b>mutation</b>.</p>
   <p><b>Gold.</b> 5 a round, +1 for a win, +1 interest per 10 gold you hold (up to 5), and a bonus for win or loss streaks.</p>
   <p><b>Fights</b> play themselves. Creatures walk to the nearest foe, attack at their own range and speed, and fill their blue <b>mana</b> bar by attacking and getting hit. When it is full they cast their <b>power</b>: tap a creature to choose which of its skills that is. ★2 creatures unlock an ultimate. The next enemy board is shown while you plan, so place your team to counter it: melee in front, ranged behind, protect your casters.</p>
-  <p><b>Elements.</b> Ember > Bloom, Shade · Tide > Ember, Stone · Bloom > Tide, Stone · Volt > Tide, Shade · Stone > Ember, Volt · Shade > Volt, Bloom. Super-effective hits deal 1.5×.</p>
-  <p><b>Reactions</b>: Volt on Soaked = <b>Electrocute</b>. Tide on Burning = <b>Steam</b>. Ember on Poisoned = <b>Blight Burst</b> (the poison explodes onto every foe). Stone on Rooted = <b>Shatter</b>. Shade on a Cursed foe under 25% = <b>Doom</b>. Ember on Soaked = Fizzle (weak!).</p>
-  <p><b>Synergies</b> (top of the board): 2 different species of one element, or 2-4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
+  <p><b>Elements.</b> Ember > Bloom, Shade, Frost · Tide > Ember, Stone, Metal · Bloom > Tide, Stone · Volt > Tide, Shade, Gale · Stone > Ember, Volt · Shade > Volt, Bloom, Mystic · Frost > Gale, Bloom · Gale > Shade, Mystic · Metal > Frost, Stone · Mystic > Volt, Metal. Super-effective hits deal 1.5×. Tap a creature to see its matchups.</p>
+  <p><b>Reactions</b>: Volt on Soaked = <b>Electrocute</b>. Tide on Burning = <b>Steam</b>. Ember on Poisoned = <b>Blight Burst</b> (the poison explodes onto every foe). Stone on Rooted = <b>Shatter</b>. Shade on a Cursed foe under 25% = <b>Doom</b>. Frost on Soaked = <b>Freeze</b> (stun). Gale on Burning = <b>Firestorm</b> (the burn spreads). Ember on Soaked = Fizzle (weak!).</p>
+  <p><b>Synergies</b> (top of the board): 2 or 4 different species of one element, or 2 or 4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p></div>`, btn('ok', 'Got it', 'green'));
 }

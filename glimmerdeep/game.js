@@ -9,7 +9,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
 
 // ---- save ---------------------------------------------------------------------------
-let meta = { shards: 0, up: {}, caught: {}, dex: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true };
+let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true };
 let run = null;
 function load() {
   try {
@@ -17,6 +17,8 @@ function load() {
     if (s && s.meta) Object.assign(meta, s.meta);
     if (s && s.run && s.run.v === 2) run = s.run;
   } catch (e) { /* private mode or bad save: start fresh */ }
+  meta.unlocked = meta.unlocked || {};
+  for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
 }
 function save() {
   if (run) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
@@ -83,9 +85,9 @@ const btn = (v, label, cls) => `<button class="btn ${cls || ''}" data-v="${esc(v
 function renderTitle() {
   stopFight();
   const m = $('#titleMenu');
-  m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('camp', 'Camp & Upgrades', 'blue') +
+  m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="row">${btn('dex', 'Glimdex', 'ghost sm')}${btn('how', 'How to Play', 'ghost sm')}${btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost sm')}</div>` +
-    `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins</div>`;
+    `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
 }
 $('#titleMenu').addEventListener('click', async e => {
@@ -98,6 +100,7 @@ $('#titleMenu').addEventListener('click', async e => {
     newRunFlow();
   }
   else if (v === 'camp') renderCamp();
+  else if (v === 'wilds') window.WILDS.open();
   else if (v === 'dex') showDex();
   else if (v === 'how') showHow();
   else if (v === 'snd') { meta.sound = !meta.sound; save(); renderTitle(); }
@@ -485,6 +488,42 @@ function startFight() {
   handle(st.ev.splice(0));
   FS.raf = requestAnimationFrame(loop);
 }
+// ---- a live fight outside a run (The Wilds): same board and playback, no shop or bench ----------
+// board/enemies: [{inst, x, y}]; resolves with the finished fight state
+function wildBattle(board, enemies, biome, title) {
+  return new Promise(res => {
+    stopFight();
+    phase = 'fight';
+    const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+    const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: R.campBonus(meta.up), noHaz: true, mods: {} });
+    FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
+    VFX.speed = FS.speed; VFX.clear();
+    show('game');
+    $('#game').classList.add('fighting', 'wild');
+    boardEl.classList.remove('ult');
+    $('#gBg').style.backgroundImage = `url(${IMG(G.BIOMES[biome].bg)})`;
+    $('#gTop').innerHTML = `<div class="grow"><div class="title">${title}</div><div class="small muted">The Wilds · ${G.BIOMES[biome].name}</div></div>`;
+    const c = C.traitCounts(board.map(p => p.inst));
+    $('#gTraits').innerHTML = G.ELS.filter(e => c.el[e]).map(e => `<span class="trait el-${e} ${c.el[e] >= G.EL_AT[0] ? 'on' : ''}">${elBadge(e)}${G.EL[e].name} ${c.el[e]}</span>`).join('');
+    if (!$('#cells').children.length) renderCells();
+    fxEl.innerHTML = '';
+    unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
+    for (const u of st.units) cacheEl(u);
+    renderFightBar();
+    boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
+    SFX.ult();
+    handle(st.ev.splice(0));
+    FS.raf = requestAnimationFrame(loop);
+  });
+}
+function wildEnd() {
+  if (!FS || !FS.wild) return;
+  const st = FS.st, res = FS.wild;
+  stopFight();
+  phase = 'busy';
+  $('#game').classList.remove('fighting', 'wild');
+  res(st);
+}
 function cacheEl(u) {
   const el = unitsEl.querySelector(`[data-k="u${u.id}"]`); if (!el) return;
   const bars = el.querySelectorAll('.bar i');
@@ -509,7 +548,7 @@ function loop(ts) {
   FS.acc += dt;
   while (FS.acc >= C.DT && !st.over) { FS.acc -= C.DT; const ev = C.tick(st); st.ev.length = 0; handle(ev); }
   for (const u of st.units) syncBars(u);
-  if (st.over && !FS.ending) { FS.ending = true; setTimeout(endFight, FS.skip ? 200 : 900 / Math.min(2, FS.speed)); }
+  if (st.over && !FS.ending) { FS.ending = true; setTimeout(FS.wild ? wildEnd : endFight, FS.skip ? 200 : 900 / Math.min(2, FS.speed)); }
   FS.raf = requestAnimationFrame(loop);
 }
 function resyncAll() {
@@ -820,7 +859,7 @@ $('#campBody').addEventListener('click', e => {
 async function showDex() {
   const cells = Object.keys(G.SP).map(sp => [1, 2, 3].map(stg => {
     const seen = (meta.dex[sp] || 0) >= stg || (run && (run.seen[sp] || 0) >= stg);
-    return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 && meta.caught[sp] ? '<span class="tag">caught</span>' : ''}</div>`;
+    return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 ? (meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>') : ''}</div>`;
   }).join('')).join('');
   const n = Object.keys(G.SP).reduce((s, sp) => s + Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0), 0);
   await ask(`Glimdex · ${n}/36`, `<div class="dex">${cells}</div>`, btn('ok', 'Close', 'green sm'));
@@ -836,12 +875,14 @@ async function showHow() {
   <p><b>Reactions</b>: Volt on Soaked = <b>Electrocute</b>. Tide on Burning = <b>Steam</b>. Ember on Poisoned = <b>Blight Burst</b> (the poison explodes onto every foe). Stone on Rooted = <b>Shatter</b>. Shade on a Cursed foe under 25% = <b>Doom</b>. Frost on Soaked = <b>Freeze</b> (stun). Gale on Burning = <b>Firestorm</b> (the burn spreads). Ember on Soaked = Fizzle (weak!).</p>
   <p><b>Synergies</b> (top of the board): 2 or 4 different species of one element, or 2 or 4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
-  <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p></div>`, btn('ok', 'Got it', 'green'));
+  <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
+  <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper.</p></div>`, btn('ok', 'Got it', 'green'));
 }
 
 // ---- boot --------------------------------------------------------------------------------------
 load();
 renderTitle();
 ['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
-window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame };
+window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,
+  wildBattle, ask, toast, show, save, SFX, tone, btn, esc, elBadge, IMG, ROLE_N };
 })();

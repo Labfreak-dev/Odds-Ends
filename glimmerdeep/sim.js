@@ -8,6 +8,8 @@ const TGT = [0.8, 0.62, 0.52, 0.44, 0.36, 0.25];   // boss win-rate targets by s
 const N = +process.argv[2] || 200, DEPTH = +process.argv[3] || 0;
 // UP=max plays with every camp upgrade bought, UP=old with only the pre-g10 ones; UPX=key leaves one out
 const UP = {};
+// BASE=1 plays with only the twelve free species unlocked (a brand-new save)
+const BASE = process.env.BASE ? Object.fromEntries(G.BASE_SPECIES.map(k => [k, 1])) : null;
 const OLD = { gold: 3, hide: 2, relic: 1, evo: 1, shiny: 1, starter: 2, choices: 1, heal: 1 };
 if (process.env.UP) for (const k in G.META) {
   if (k === process.env.UPX) continue;
@@ -51,8 +53,8 @@ function shop(run) {
 
 for (let n = 0; n < N; n++) {
   const seed = 5000 + n * 11;
-  const run = R.newRun({ up: UP }, seed, DEPTH);
-  R.giveStarter(run, R.starterChoices({}, seed)[0]);
+  const run = R.newRun({ up: UP, unlocked: BASE }, seed, DEPTH);
+  R.giveStarter(run, R.starterChoices({ unlocked: BASE }, seed)[0]);
   try {
     while (!run.over) {
       shop(run);

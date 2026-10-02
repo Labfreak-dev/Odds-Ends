@@ -619,6 +619,8 @@ function perkText(sp, star) {
   const P = SP[sp] && SP[sp].perk; if (!P) return '';
   return star >= 3 ? PERK_KINDS[P.kind].d(2) + ' Aura: ' + P.aura.d + '.' : PERK_KINDS[P.kind].d(1);
 }
+// the original twelve are free; every other species is unlocked by beating it in The Wilds
+const BASE_SPECIES = ['cind', 'pyrp', 'bubb', 'shel', 'sprt', 'moss', 'sprk', 'buzz', 'pebb', 'crys', 'wisp', 'dusk'];
 const ROUNDS = 30, STAGE_LEN = 5, STAGES = 6;
 // relic text and numbers that mean something different in real-time fights
 const CHESS_RELIC = {
@@ -657,5 +659,5 @@ SETS.greed.b = { goldRound: 2 }; SETS.greed.d = '+2 gold every round.';
 
 root.GD = { EL, ELS, STRONG, eff, ROLE, STAGE_MUL, EVO_LV, SK, SP, SKILL_LV, BOSSES, BIOMES, ACTS, ACT_LV,
   TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS,
-  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText };
+  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES };
 })(typeof window !== 'undefined' ? window : globalThis);

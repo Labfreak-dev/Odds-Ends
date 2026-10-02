@@ -7,6 +7,8 @@ modals, checking for console errors.
     python3 glimmerdeep/tools/smoke.py [--shots DIR] [--rounds N] [--mobile] [--deep]
 
 --deep gives the run extra gold each round so it reaches merges, bosses and later stages.
+Every mode ends with The Wilds: pick a squad, walk the rooms with the arrow keys, battle a wild
+creature and check the unlock (--wilds-only skips the auto-chess part).
 """
 import argparse, functools, http.server, os, sys, threading, time
 from playwright.sync_api import sync_playwright
@@ -18,6 +20,7 @@ ap.add_argument('--shots', default=None)
 ap.add_argument('--rounds', type=int, default=4)
 ap.add_argument('--mobile', action='store_true')
 ap.add_argument('--deep', action='store_true')
+ap.add_argument('--wilds-only', action='store_true')
 a = ap.parse_args()
 
 class Q(http.server.SimpleHTTPRequestHandler):
@@ -65,6 +68,72 @@ def clear_modals(page, limit=20):
                 box.locator(sel).first.click(); break
         page.wait_for_timeout(1300 if box.locator('.evo-stage').count() else 200)
 
+def steer(page, tx, ty, ms=150):
+    p = page.evaluate("[WILDS.view.px, WILDS.view.py]")
+    keys = [k for k, c in (('ArrowRight', tx - p[0] > 0.25), ('ArrowLeft', tx - p[0] < -0.25), ('ArrowDown', ty - p[1] > 0.25), ('ArrowUp', ty - p[1] < -0.25)) if c]
+    for k in keys: page.keyboard.down(k)
+    page.wait_for_timeout(ms)
+    for k in keys: page.keyboard.up(k)
+
+def wilds(page):
+    import random
+    page.evaluate("GLIM.renderTitle()")
+    page.click('#titleMenu [data-v=wilds]'); page.wait_for_selector('#wilds.on')
+    if page.locator('#modal.on').count(): page.click('#modalBox [data-v=new]'); page.wait_for_timeout(200)
+    check(page.locator('.wcard').count() >= 12, 'Wilds: the twelve free species can be picked')
+    for i in range(3): page.locator('.wcard').nth(i).click()
+    page.click('.wprepbar [data-v=go]'); page.wait_for_timeout(700)
+    check(page.locator('#wilds.exploring').count() == 1 and page.locator('.wmem').count() == 3, 'Wilds: expedition starts with the squad')
+    shot(page, '10-wilds')
+    before = page.evaluate("Object.keys(GLIM.meta.unlocked).length")
+    rooms0 = page.evaluate("Object.values(WILDS.state.rooms).filter(a => a.visited).length")
+    fought = False
+    for _ in range(40):
+        if page.locator('#game.on').count(): fought = True; break
+        info = page.evaluate("({ cur: WILDS.state.cur, mon: WILDS.view.mons.length ? [WILDS.view.mons[0].x, WILDS.view.mons[0].y] : null, doors: WILDS.doors() })")
+        if info['mon']:
+            for _ in range(80):
+                if page.locator('#game.on').count(): break
+                m = page.evaluate("WILDS.view.mons.length ? [WILDS.view.mons[0].x, WILDS.view.mons[0].y] : null")
+                if not m: break
+                steer(page, m[0], m[1])
+            continue
+        # head for the nearest room that still has a creature, through open doors only
+        step1 = page.evaluate("""() => { const W = WILDS.state, R = W.rooms, D = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+          const open = (a, b) => b && !(b.type === 'locked' && !b.unlocked) && !(a.type === 'locked' && !a.unlocked) && !(b.type === 'secret' && !b.found) && !(a.type === 'secret' && !a.found);
+          const q = [[W.cur, null]], seen = { [W.cur]: 1 };
+          while (q.length) { const [k, first] = q.shift(), a = R[k];
+            if (first && a.mon && !a.mon.beaten) return first;
+            for (const d in D) { const k2 = (a.x + D[d][0]) + ',' + (a.y + D[d][1]), b = R[k2]; if (!seen[k2] && open(a, b)) { seen[k2] = 1; q.push([k2, first || d]); } } }
+          return null; }""")
+        opens = [d for d in info['doors'] if d[1] == 'open']
+        d = next((x for x in opens if x[0] == step1), None) or random.choice(opens)
+        for _ in range(40):
+            if page.evaluate("WILDS.state.cur") != info['cur']: break
+            p = page.evaluate("[WILDS.view.px, WILDS.view.py]")
+            if d[0] in 'ns' and abs(p[0] - 8) > 0.3: steer(page, 8, p[1])
+            elif d[0] in 'ew' and abs(p[1] - 4.5) > 0.3: steer(page, p[0], 4.5)
+            else: steer(page, {'w': 0, 'e': 16}.get(d[0], p[0]), {'n': 0, 's': 9}.get(d[0], p[1]))
+        page.wait_for_timeout(450)
+    check(page.evaluate("Object.values(WILDS.state.rooms).filter(a => a.visited).length") > rooms0 or fought, 'Wilds: walking through a door enters the next room')
+    check(fought, 'Wilds: touching a wild creature starts a battle')
+    if not fought: return
+    page.wait_for_timeout(1200); shot(page, '11-wilds-fight')
+    page.click('#fightBar [data-v=skip]')
+    page.wait_for_selector('#modal.on', timeout=60000)
+    title = page.locator('#modalBox h2').inner_text()
+    shot(page, '12-wilds-result')
+    won = title in ('Creature unlocked!', 'Victory!')
+    after = page.evaluate("Object.keys(GLIM.meta.unlocked).length")
+    check(after >= before + (1 if title == 'Creature unlocked!' else 0), f'Wilds: battle resolved ({title}), unlocks {before} -> {after}')
+    page.locator('#modalBox [data-v]').first.click(); page.wait_for_timeout(400)
+    check(page.locator('#wilds.on').count() == 1 or page.locator('#title.on').count() == 1, 'Wilds: back to exploring after the battle')
+    if won and after > before:
+        page.evaluate("GLIM.renderTitle()")
+        sp = page.evaluate("Object.keys(GLIM.meta.unlocked).find(k => !GD.BASE_SPECIES.includes(k))")
+        n = page.evaluate(f"GR.newRun(GLIM.meta, 5, 0).pool['{sp}']")
+        check(n > 0, f'Wilds: unlocked {sp} is in the auto-chess shop pool')
+
 with sync_playwright() as p:
     b = p.chromium.launch()
     vp = {'width': 412, 'height': 860} if a.mobile else {'width': 1280, 'height': 800}
@@ -74,6 +143,12 @@ with sync_playwright() as p:
     page.on('console', lambda m: m.type == 'error' and 'ERR_CERT' not in m.text and errs.append(m.text))  # sandbox proxy blocks Google Fonts
     page.goto(URL)
     page.wait_for_selector('#title.on')
+    if a.wilds_only:
+        wilds(page)
+        check(not errs, 'no console errors' + ('' if not errs else ': ' + ' | '.join(errs[:5])))
+        print(f'{checks - len(fails)}/{checks} checks passed')
+        if not fails: print('GLIMMERDEEP SMOKE: ALL PASS')
+        sys.exit(1 if fails else 0)
     shot(page, '01-title')
     page.click('#titleMenu [data-v=new]')
     page.wait_for_selector('#modal.on .card')
@@ -160,6 +235,7 @@ with sync_playwright() as p:
         check(page.locator('#toast.on').count() == 1, 'synergy chip explains itself')
         print('state:', page.evaluate("GLIM.run ? `round ${GLIM.run.round} hp ${GLIM.run.hp} lv ${GLIM.run.tlv} units ${GLIM.run.units.map(u => u.sp + u.star).join(',')}` : 'run over'"))
         shot(page, '08-later')
+    wilds(page)
     check(not errs, 'no console errors' + ('' if not errs else ': ' + ' | '.join(errs[:5])))
     b.close()
 srv.shutdown()

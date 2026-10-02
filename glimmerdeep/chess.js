@@ -160,13 +160,14 @@ function makeUnit(st, inst, side, x, y) {
     if (P.reflect) u.reflect = P.reflect;
     if (P.frostAura) u.frostAura = P.frostAura;
   }
+  if (inst.hpFrac != null) u.hp = Math.max(1, Math.round(u.maxHp * inst.hpFrac));   // The Wilds carries HP between fights
   // Depth is already in each enemy's inst.scale (crun.js); scaling here too squared it
   return u;
 }
 // o: {board:[{inst,x,y}], enemies:[{inst,x,y}], relics, perks, biome, seed, depth, mods:{bomb, elixir}}
 function create(o) {
   const st = {
-    units: [], t: 0, biome: o.biome || 'verdant', haz: G.BIOMES[o.biome || 'verdant'].haz, over: 0, ev: [],
+    units: [], t: 0, biome: o.biome || 'verdant', haz: o.noHaz ? null : G.BIOMES[o.biome || 'verdant'].haz, over: 0, ev: [],
     rnd: mkRng(o.seed || (Math.random() * 1e9)), depth: o.depth || 0, litUntil: 0,
     bonus: [teamBonus(o.relics, o.perks, o.camp), {}], phoenix: [false, false], nextSec: 1, goldBonus: 0,
   };

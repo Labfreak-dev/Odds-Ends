@@ -34,15 +34,18 @@ function newRun(meta, seed, depth) {
     meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, kin: 0.08 * (up.kindred || 0), hoard: 0.1 * (up.hoard || 0) },
     campB: campBonus(up),
   };
-  for (const k of SPS) run.pool[k] = G.POOL[G.TIER[k]];
+  // only unlocked species are in the shop pool (no unlock list = everything, for the sim)
+  for (const k of SPS) run.pool[k] = !meta.unlocked || meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
   if (up.evo) run.items.evo = 1;
   for (let i = 0; i < (up.relic || 0); i++) run.relics.push(pick(run, Object.keys(G.RELICS).filter(k => G.RELICS[k].r === 1 && !G.RELICS[k].tags.includes('hazard') && !run.relics.includes(k))));
   return run;
 }
 function starterChoices(meta, seed) {
   const tmp = { seed, step: 1 };
-  const owned = SPS.filter(k => G.TIER[k] === 1 || (meta.caught || {})[k] && G.TIER[k] <= 2);
-  return shuffle(tmp, owned).slice(0, 3);
+  const unl = k => !meta.unlocked || meta.unlocked[k];
+  const owned = SPS.filter(k => unl(k) && (G.TIER[k] === 1 || (meta.caught || {})[k] && G.TIER[k] <= 2));
+  const more = shuffle(tmp, SPS.filter(k => unl(k) && G.TIER[k] <= 2 && !owned.includes(k)));
+  return shuffle(tmp, owned).concat(more).slice(0, 3);
 }
 function mkInst(run, sp, star, o) {
   o = o || {};
@@ -123,8 +126,9 @@ function rollShop(run, free) {
       const opts = kin.filter(k => run.pool[k] > 0 && G.TIER[k] <= maxTier); if (opts.length) sp = pick(run, opts);
     }
     for (let tries = 0; !sp && tries < 20; tries++) {
-      const t = rollTier(run);
-      const opts = SPS.filter(k => G.TIER[k] === t && run.pool[k] > 0);
+      // a tier with nothing unlocked falls back to the best tier below it that has stock
+      let t = rollTier(run), opts = [];
+      for (; t >= 1 && !opts.length; t--) opts = SPS.filter(k => G.TIER[k] === t && run.pool[k] > 0);
       if (opts.length) sp = pick(run, opts);
     }
     if (sp) run.pool[sp]--;
@@ -420,7 +424,7 @@ function shardsFor(run, won) {
   return Math.round((run.round * 1.5 + run.stats.bosses * 8 + (won ? 25 : 0) + run.stats.merges + run.depth * 5 * (won ? 1 : 0)) * (1 + 0.1 * run.depth + (run.meta.hoard || 0)));
 }
 
-root.GR = { BENCH, PW, newRun, starterChoices, giveStarter, mkInst, onBoard, onBench, unitAt, benchAt, freeBench, cap, placeBoard, placeBench,
+root.GR = { campBonus, BENCH, PW, newRun, starterChoices, giveStarter, mkInst, onBoard, onBench, unitAt, benchAt, freeBench, cap, placeBoard, placeBench,
   autoPlace, rollShop, rerollCost, reroll, canBuy, buy, sellValue, sell, merges, mutOptions, applyMut, addXp, buyXp, stageOf, roundIn,
   roundKind, enemyBoard, fightOpts, endRound, relicChoices, perkChoices, takePerk, addRelic, fusionsAvailable, fuse, setBiome,
   equipCharm, useItem, shardsFor, bonus, bossOf, nextBiomes, shopSize, copiesNeeded, pick };

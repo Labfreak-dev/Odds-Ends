@@ -8,7 +8,10 @@ const $ = s => document.querySelector(s);
 const IMG = k => 'img/' + k + '.webp';
 const SAVE = 'glimmerdeep.wilds.v1';
 const { FLOORS, SQUAD_START, SQUAD_MAX, XP_STAR, rng, pick, key, placeSide } = window.GW;
-const genFloor = (f, b, seed) => window.GW.genFloor(f, b, seed, unlocked);
+// shinies: 1 in 20 wild creatures, 3 in 20 with the camp's Shiny Charm
+const genFloor = (f, b, seed) => window.GW.genFloor(f, b, seed, unlocked, { shiny: (meta().up.shiny ? 3 : 1) / 20 });
+const { TC, TR, tileXY, tileAt, solid } = window.GW;
+const SHINY = 'hue-rotate(150deg) saturate(1.3)';
 const RW = 16, RH = 9;                     // room size in world units (the room art is 16:9)
 const IN = { x0: 1.35, x1: 14.65, y0: 1.3, y1: 7.7 };   // walkable floor inside the walls
 const DOOR = { n: [8, 0.72, 0], s: [8, 8.28, Math.PI], w: [0.72, 4.5, -Math.PI / 2], e: [15.28, 4.5, Math.PI / 2] };
@@ -68,7 +71,8 @@ async function endExpedition(why) {
   const m = meta();
   const bonus = why === 'done' ? 50 : 0;
   m.shards += bonus;
-  const found = W.found.map(sp => `<div class="wfound"><img src="${IMG('cr_' + sp + '1')}" alt=""><div>${G.SP[sp].names[0]}</div></div>`).join('');
+  const found = W.found.map(sp => `<div class="wfound"><img src="${IMG('cr_' + sp + '1')}" alt=""><div>${G.SP[sp].names[0]}</div></div>`).join('')
+    + (W.shinies || []).map(sp => `<div class="wfound"><img class="shiny" src="${IMG('cr_' + sp + '1')}" alt=""><div>✦ ${G.SP[sp].names[0]}</div></div>`).join('');
   const title = why === 'done' ? 'Expedition complete!' : why === 'left' ? 'Back to camp' : 'Your squad fainted';
   clearSave(); W = null; stopView(); U.save();
   await U.ask(title, `<p style="text-align:center">${found ? 'Unlocked this expedition:' : 'No new creatures this time.'}</p><div class="wfounds">${found}</div>
@@ -154,11 +158,18 @@ function placeRoom(from) {
   if (from) { const p = DOOR[from]; V.px = p[0] + (from === 'w' ? 1.3 : from === 'e' ? -1.3 : 0); V.py = p[1] + (from === 'n' ? 1.3 : from === 's' ? -1.3 : 0); }
   else { V.px = 8; V.py = 5.6; }
   V.mons = [];
+  V.grid = a.tiles ? a.tiles.split('|') : null;
+  V.flow = null; V.flowAt = '';
   if (a.mon && !a.mon.beaten) {
     const lair = a.type === 'lair';
-    let mx = lair ? 8 : 4 + Math.random() * 8, my = lair ? 4 : 2.6 + Math.random() * 3.8;
-    if (!lair && Math.hypot(mx - V.px, my - V.py) < 4.5) { mx = 16 - V.px; my = 9 - V.py; mx = Math.min(IN.x1 - 1, Math.max(IN.x0 + 1, mx)); my = Math.min(IN.y1 - .5, Math.max(IN.y0 + .5, my)); }
-    V.mons.push({ x: mx, y: my, tx: mx, ty: my, t: 0, sz: lair ? 1.8 : 1.3, lair, bob: Math.random() * 6 });
+    let mx = 8, my = 4;
+    if (!lair) {
+      // a free tile well away from the door you came in by
+      const free = [];
+      for (let y = 1; y <= 5; y++) for (let c = 1; c < TC - 1; c++) { const [x, yy] = tileXY(c, y); if (tile(c, y) !== '.' ) continue; if (Math.hypot(x - V.px, yy - V.py) > 4.5) free.push([x, yy]); }
+      [mx, my] = free.length ? free[Math.floor(Math.random() * free.length)] : [16 - V.px, 9 - V.py];
+    }
+    V.mons.push({ x: mx, y: my, tx: mx, ty: my, t: 0, sz: lair ? 1.8 : 1.3, lair, bob: Math.random() * 6, shiny: !!a.mon.shiny });
   }
   V.inv = 1.0;
   markSeen();
@@ -167,11 +178,11 @@ function placeRoom(from) {
 function hud() {
   const a = room(), host = $('#wilds');
   host.querySelector('.wtop').innerHTML = `<button class="iconbtn" data-w="leave">◀</button><div class="grow"><div class="title">Floor ${W.floor}/${FLOORS} · ${G.BIOMES[W.biome].name}</div>
-    <div class="small muted">${a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
+    <div class="small muted">${a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
     <span class="pill">🔑 ${W.keys}</span><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta().shards}</span>`;
   host.querySelector('.wsquad').innerHTML = W.squad.map(m => {
     const S = G.SP[m.sp], next = XP_STAR[m.star];
-    return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}"><img src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
+    return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}"><img class="${m.shiny ? 'shiny' : ''}" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
       <div class="bar"><i class="${m.hp < 0.3 ? 'low' : m.hp < 0.6 ? 'mid' : ''}" style="width:${Math.max(0, m.hp) * 100}%"></i></div>${next ? `<div class="bar xp"><i style="width:${Math.min(100, 100 * m.xp / next)}%"></i></div>` : ''}<div class="nm">${S.names[m.star - 1]}</div></div>`;
   }).join('');
   minimap();
@@ -221,11 +232,60 @@ function inputVec() {
 }
 
 // ---- simulation -------------------------------------------------------------------------------
+// obstacle tiles (and the loose boulders of saves made before g12)
+function tile(c, y) { return V.grid && y >= 0 && y < TR && c >= 0 && c < TC ? V.grid[y][c] : '.'; }
 function collideRocks(o, rad) {
-  for (const [rx, ry, rr] of room().rocks) {
+  for (const [rx, ry, rr] of room().rocks || []) {
     const dx = o.x - rx, dy = o.y - ry, d = Math.hypot(dx, dy), m = rr + rad;
     if (d < m && d > 0.001) { o.x = rx + dx / d * m; o.y = ry + dy / d * m; }
   }
+  if (!V.grid) return;
+  const [c0, y0] = tileAt(o.x, o.y);
+  for (let y = y0 - 1; y <= y0 + 1; y++) for (let c = c0 - 1; c <= c0 + 1; c++) {
+    const ch = tile(c, y); if (!solid(ch)) continue;
+    const [tx, ty] = tileXY(c, y), h = ch === 'R' ? 0.44 : 0.4;
+    const qx = Math.max(tx - h, Math.min(tx + h, o.x)), qy = Math.max(ty - h, Math.min(ty + h, o.y));
+    let dx = o.x - qx, dy = o.y - qy, d = Math.hypot(dx, dy);
+    if (d >= rad) continue;
+    if (d < 0.001) {   // centre inside the tile: shove out along the shallower axis
+      const px = o.x - tx, py = o.y - ty;
+      if (Math.abs(px) > Math.abs(py)) o.x = tx + (Math.sign(px) || 1) * (h + rad); else o.y = ty + (Math.sign(py) || 1) * (h + rad);
+      continue;
+    }
+    o.x += dx / d * (rad - d); o.y += dy / d * (rad - d);
+  }
+}
+// distance field from the tamer's tile, so creatures path around pits and rocks
+function flowField() {
+  const [pc, py] = tileAt(V.px, V.py), k = pc + ',' + py;
+  if (V.flow && V.flowAt === k) return V.flow;
+  const f = {}, q = [[pc, py]]; f[k] = 0;
+  while (q.length) {
+    const [c, y] = q.shift(), d = f[c + ',' + y];
+    for (const [dc, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const c2 = c + dc, y2 = y + dy, k2 = c2 + ',' + y2;
+      if (c2 < 0 || y2 < 0 || c2 >= TC || y2 >= TR || f[k2] != null || solid(tile(c2, y2))) continue;
+      f[k2] = d + 1; q.push([c2, y2]);
+    }
+  }
+  V.flow = f; V.flowAt = k;
+  return f;
+}
+function chaseStep(m) {
+  const [mc, my] = tileAt(m.x, m.y), f = flowField(), here = f[mc + ',' + my];
+  if (!V.grid || here == null || here <= 1) return [V.px, V.py];
+  let best = null, bd = here;
+  for (const [dc, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const d = f[(mc + dc) + ',' + (my + dy)]; if (d != null && d < bd) { bd = d; best = [mc + dc, my + dy]; } }
+  return best ? tileXY(best[0], best[1]) : [V.px, V.py];
+}
+function hurt() {
+  // spikes: chip the squad, never below 10%, with a moment of safety after
+  V.hurtT = 1.1;
+  for (const s of W.squad) if (s.hp > 0) s.hp = Math.max(0.1, s.hp - 0.06);
+  U.SFX.hit(); burst(V.px, V.py, '#ff5a6e');
+  if (!W.spikeTip) { W.spikeTip = 1; U.toast('Spikes! Each one chips 6% HP off your squad.'); }
+  V.shake = 0.25;
+  hud();
 }
 function msg(t) { if (V.msgT > 0) return; V.msgT = 1.6; U.toast(t); }
 function frame(ts) {
@@ -263,6 +323,8 @@ function step(dt) {
   if (o.x > IN.x1) { if (gapY && de === 'open') { if (o.x > RW - 0.35) return go('e'); o.y = Math.max(3.75, Math.min(5.25, o.y)); } else { if (gapY && de) tryDoor('e', de); o.x = IN.x1; } }
   collideRocks(o, 0.38);
   V.px = o.x; V.py = o.y;
+  V.hurtT = (V.hurtT || 0) - dt; V.shake = Math.max(0, (V.shake || 0) - dt);
+  { const [c, y] = tileAt(V.px, V.py), [tx, ty] = tileXY(c, y); if (tile(c, y) === 'S' && Math.abs(V.px - tx) < 0.42 && Math.abs(V.py - ty) < 0.42 && V.hurtT <= 0 && !V.slide) hurt(); }
   // pickups
   const near = (x, y, r) => Math.hypot(V.px - x, V.py - y) < r;
   if (a.item && !a.used && near(8, 4.5, 0.9) && !(a.mon && !a.mon.beaten)) pickup(a);
@@ -271,8 +333,13 @@ function step(dt) {
   for (const m of V.mons) {
     m.t -= dt; m.bob += dt * 4;
     const d = Math.hypot(V.px - m.x, V.py - m.y);
-    if (!m.lair && d < 3.6) { m.tx = V.px; m.ty = V.py; m.t = 0.3; }
-    else if (m.t <= 0) { m.tx = m.lair ? 8 + (Math.random() - 0.5) * 2 : IN.x0 + 1 + Math.random() * (IN.x1 - IN.x0 - 2); m.ty = m.lair ? 4 + (Math.random() - 0.5) * 1.4 : IN.y0 + 0.6 + Math.random() * (IN.y1 - IN.y0 - 1.2); m.t = 1.5 + Math.random() * 2; }
+    if (!m.lair && d < 3.6) { [m.tx, m.ty] = chaseStep(m); m.t = 0.3; }
+    else if (m.t <= 0) {
+      if (m.lair) { m.tx = 8 + (Math.random() - 0.5) * 2; m.ty = 4 + (Math.random() - 0.5) * 1.4; }
+      else { const c = 1 + Math.floor(Math.random() * (TC - 2)), y = 1 + Math.floor(Math.random() * 5); if (!solid(tile(c, y))) [m.tx, m.ty] = tileXY(c, y); }
+      m.t = 1.5 + Math.random() * 2;
+    }
+    if (m.shiny && Math.random() < dt * 5) V.parts.push({ x: m.x + (Math.random() - 0.5) * 0.9, y: m.y - 0.3 - Math.random() * 0.9, vx: 0, vy: -0.6, t: 0, life: 0.7, c: Math.random() < 0.5 ? '#fff6b0' : '#ffffff', star: 1 });
     const dx = m.tx - m.x, dy = m.ty - m.y, l = Math.hypot(dx, dy), v = (d < 3.6 && !m.lair ? 2.3 : 1.2) * dt;
     if (l > 0.05) { const q = { x: m.x + dx / l * Math.min(v, l), y: m.y + dy / l * Math.min(v, l) }; collideRocks(q, 0.45); m.x = q.x; m.y = q.y; m.fx = dx > 0 ? 1 : -1; }
     if (d < (m.lair ? 1.25 : 0.95) && V.inv <= 0) return battle(a, m);
@@ -303,14 +370,14 @@ async function battle(a, mv) {
   V.pause = true;
   const mon = a.mon, fit = W.squad.filter(m => m.hp > 0);
   const insts = fit.map(squadInst);
-  const foes = [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale, shiny: false }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
+  const foes = [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale, shiny: !!mon.shiny }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
   for (const f of foes) { f.skill = C.defaultSkill(f); meta().dex[f.sp] = Math.max(meta().dex[f.sp] || 0, f.star); }
   const S = G.SP[mon.sp], nm = S.names[mon.star - 1];
   U.tone(200, 0.25, 'sawtooth', 0.05, 2.5);
   $('#wilds').classList.add('flash');
   await new Promise(r => setTimeout(r, 380));
   $('#wilds').classList.remove('flash');
-  const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`);
+  const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : mon.shiny ? '✦ Shiny ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`);
   // carry HP back to the squad
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   const win = st.over === 1;
@@ -337,6 +404,10 @@ async function victory(a, mon, fit) {
   const fresh = !m.unlocked[sp];
   m.unlocked[sp] = 1; m.caught[sp] = 1;
   if (fresh) W.found.push(sp);
+  // a shiny you beat is caught for good: shinier shops in Auto Chess, and a shiny recruit
+  m.shinies = m.shinies || {};
+  const shinyNew = !!mon.shiny && !m.shinies[sp];
+  if (mon.shiny) { m.shinies[sp] = 1; if (!W.shinies) W.shinies = []; if (shinyNew) W.shinies.push(sp); }
   // squad XP, and evolutions mid-expedition
   const evos = [];
   for (const s of fit) {
@@ -344,14 +415,15 @@ async function victory(a, mon, fit) {
     while (s.star < 3 && s.xp >= XP_STAR[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); evos.push(s); }
   }
   U.SFX.lvl();
-  const join = W.squad.length < SQUAD_MAX && !W.squad.some(s => s.sp === sp);
-  const body = `<div class="evo-stage" style="height:170px"><div class="glow"></div><img src="${IMG('cr_' + sp + mon.star)}" style="max-height:160px" alt=""></div>
+  const join = W.squad.length < SQUAD_MAX && !W.squad.some(s => s.sp === sp && (s.shiny || !mon.shiny));
+  const body = `<div class="evo-stage" style="height:170px"><div class="glow"></div><img class="${mon.shiny ? 'shiny' : ''}" src="${IMG('cr_' + sp + mon.star)}" style="max-height:160px" alt=""></div>
+    ${mon.shiny ? `<p style="text-align:center" class="wshinyline">✦ <b>Shiny ${S.names[0]} caught!</b> ${shinyNew ? 'In Auto Chess its shop offers are now 4× as likely to be shiny.' : 'You already had this shiny.'}</p>` : ''}
     <p style="text-align:center">${fresh ? `<b style="color:var(--gold)">NEW!</b> <b>${S.names[0]}</b> is unlocked for good. It now appears in the Auto Chess shop and as a starter.` : `You beat ${S.names[mon.star - 1]} again.`}</p>
     <p class="small" style="text-align:center">+${g} Glimmer Shards${lair ? ' · the way down is open' : ''}</p>
     ${evos.map(s => `<p style="text-align:center;color:#7dff9b">${G.SP[s.sp].names[s.star - 2]} evolved into <b>${G.SP[s.sp].names[s.star - 1]}</b>! ${'★'.repeat(s.star)}</p>`).join('')}
     ${join ? `<p class="muted small" style="text-align:center">It can join your squad for the rest of this expedition (${W.squad.length}/${SQUAD_MAX}).</p>` : ''}`;
-  const v = await U.ask(fresh ? 'Creature unlocked!' : 'Victory!', body, (join ? U.btn('join', `Add ${S.names[0]} to the squad`, 'green') + U.btn('no', 'Not now', 'ghost sm') : U.btn('ok', 'Continue', 'green')));
-  if (v === 'join') { W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: false }); U.toast(S.names[0] + ' joined your squad!'); }
+  const v = await U.ask(mon.shiny && shinyNew ? 'Shiny caught!' : fresh ? 'Creature unlocked!' : 'Victory!', body, (join ? U.btn('join', `Add ${S.names[0]} to the squad`, 'green') + U.btn('no', 'Not now', 'ghost sm') : U.btn('ok', 'Continue', 'green')));
+  if (v === 'join') { W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: !!mon.shiny }); U.toast((mon.shiny ? 'Shiny ' : '') + S.names[0] + ' joined your squad!'); }
 }
 async function descend() {
   V.pause = true;
@@ -374,7 +446,8 @@ function draw() {
   // fit the room; on a tall phone screen zoom in to fill the height and follow the tamer
   const ctx = V.ctx, fit = Math.min(cv.width / RW, cv.height / RH), S = Math.max(fit, Math.min(cv.width / 6.5, cv.height / RH));
   const cam = (v, view, size) => view >= size * S ? (view - size * S) / 2 : Math.min(0, Math.max(view - size * S, view / 2 - v * S));
-  const ox = cam(V.px, cv.width, RW), oy = cam(V.py, cv.height, RH);
+  const sh = V.shake > 0 ? (Math.random() - 0.5) * S * 0.15 : 0;
+  const ox = cam(V.px, cv.width, RW) + sh, oy = cam(V.py, cv.height, RH) + sh;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#07051a'; ctx.fillRect(0, 0, cv.width, cv.height);
   if (V.slide) {
@@ -386,10 +459,18 @@ function draw() {
   }
   drawRoom(room(), ox, oy, S, true);
   // creatures and the tamer, back to front
-  const ents = V.mons.map(m => ({ y: m.y, f: () => sprite(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair) }));
+  const ents = V.mons.map(m => ({ y: m.y, f: () => sprite(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
+  for (const [x, y, rr] of rockList(room())) ents.push({ y, f: () => drawRock(ctx, ox, oy, S, x, y, rr) });
   ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; sprite(ctx, img('wd_tamer'), ox + V.px * S, oy + V.py * S, 1.15 * S, V.fx, Math.abs(Math.sin(V.walk)) * 0.07, false); ctx.globalAlpha = 1; } });
   ents.sort((p, q) => p.y - q.y).forEach(e => e.f());
-  for (const p of V.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(ox + p.x * S, oy + p.y * S, S * 0.07, 0, 6.3); ctx.fill(); }
+  for (const p of V.parts) {
+    ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
+    const x = ox + p.x * S, y = oy + p.y * S, r = S * (p.star ? 0.11 : 0.07);
+    ctx.beginPath();
+    if (p.star) for (let i = 0; i < 8; i++) { const rr = i % 2 ? r * 0.25 : r, an = i * Math.PI / 4; ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr); }
+    else ctx.arc(x, y, r, 0, 6.3);
+    ctx.fill();
+  }
   ctx.globalAlpha = 1;
   if (V.joy) {
     ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3 * dpr; ctx.beginPath(); ctx.arc(V.joy.x0 * dpr, V.joy.y0 * dpr, 46 * dpr, 0, 6.3); ctx.stroke();
@@ -413,7 +494,14 @@ function drawRoom(a, ox, oy, S, live) {
     ctx.drawImage(im, -w / 2, -w * 0.62, w, w);
     ctx.restore();
   }
-  for (const [rx, ry, rr] of a.rocks) { const im = img('wd_rock'); if (ready(im)) { shadow(ctx, ox + rx * S, oy + (ry + rr * 0.55) * S, rr * S); ctx.drawImage(im, ox + (rx - rr * 1.3) * S, oy + (ry - rr * 1.6) * S, rr * 2.6 * S, rr * 2.6 * S); } }
+  const grid = a.tiles ? a.tiles.split('|') : null;
+  if (grid) for (let y = 0; y < TR; y++) for (let c = 0; c < TC; c++) {
+    const ch = grid[y][c]; if (ch !== 'P' && ch !== 'S') continue;
+    const [tx, ty] = tileXY(c, y), im = img(ch === 'P' ? 'wd_pit' : 'wd_spikes'), w = (ch === 'P' ? 1.12 : 0.98) * S;
+    if (ready(im)) ctx.drawImage(im, ox + tx * S - w / 2, oy + ty * S - w / 2, w, w);
+    else { ctx.fillStyle = ch === 'P' ? '#05030c' : '#8a8fa0'; ctx.fillRect(ox + (tx - 0.45) * S, oy + (ty - 0.45) * S, 0.9 * S, 0.9 * S); }
+  }
+  if (!live) for (const [x, y, rr] of rockList(a)) drawRock(ctx, ox, oy, S, x, y, rr);
   const cx = ox + 8 * S, cy = oy + 4.5 * S;
   if (a.item && !a.used && !(a.mon && !a.mon.beaten)) {
     const k = { key: 'wd_key', berry: 'wd_berry', chest: 'node_treasure', shrine: 'wd_shrine' }[a.item], im = img(k), sz = (a.item === 'shrine' ? 1.6 : a.item === 'chest' ? 1.3 : 0.9) * S;
@@ -423,6 +511,16 @@ function drawRoom(a, ox, oy, S, live) {
   if (a.type === 'lair' && a.mon && a.mon.beaten) { const im = img('wd_stairs'); if (ready(im)) { glow(ctx, cx, cy, 1.3 * S, '120,200,255'); ctx.drawImage(im, cx - 0.9 * S, cy - 0.9 * S, 1.8 * S, 1.8 * S); } }
   if (!live) return;
 }
+function rockList(a) {
+  const out = (a.rocks || []).slice();
+  if (a.tiles) a.tiles.split('|').forEach((row, y) => { for (let c = 0; c < TC; c++) if (row[c] === 'R') { const [x, yy] = tileXY(c, y); out.push([x, yy, 0.5]); } });
+  return out;
+}
+function drawRock(ctx, ox, oy, S, x, y, rr) {
+  const im = img('wd_rock'); if (!ready(im)) return;
+  shadow(ctx, ox + x * S, oy + (y + rr * 0.55) * S, rr * S);
+  ctx.drawImage(im, ox + (x - rr * 1.3) * S, oy + (y - rr * 1.6) * S, rr * 2.6 * S, rr * 2.6 * S);
+}
 function shadow(ctx, x, y, r) { ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.38, 0, 0, 6.3); ctx.fill(); }
 function glow(ctx, x, y, r, rgb) {
   const t = performance.now() / 1000, g = ctx.createRadialGradient(x, y, 0, x, y, r * (1 + Math.sin(t * 3) * 0.06));
@@ -430,11 +528,14 @@ function glow(ctx, x, y, r, rgb) {
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 1.1, 0, 6.3); ctx.fill();
 }
 // a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it
-function sprite(ctx, im, x, y, sz, fx, bob, boss) {
+function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {
   shadow(ctx, x, y, sz * 0.32);
   if (boss) glow(ctx, x, y - sz * 0.4, sz * 0.7, '255,90,110');
+  if (shiny) glow(ctx, x, y - sz * 0.45, sz * 0.62, '255,246,176');
   if (!ready(im)) return;
-  ctx.save(); ctx.translate(x, y); ctx.scale(fx < 0 ? -1 : 1, 1 + bob); ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz); ctx.restore();
+  ctx.save(); ctx.translate(x, y); ctx.scale(fx < 0 ? -1 : 1, 1 + bob);
+  if (shiny) ctx.filter = SHINY;
+  ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz); ctx.restore();
 }
 
 window.WILDS = { open, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };

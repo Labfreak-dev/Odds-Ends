@@ -130,6 +130,21 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   - a **shrine** that heals everyone and revives the fainted.
 - A **secret room** sits in a gap touching two rooms: push into its cracked wall.
 - Glimberries heal the squad.
+- **Obstacles** (g12): each room gets an Isaac-style layout on a 13x7 tile grid (`layout()` in
+  `wgen.js`): boulders, pits and spike traps from templates (pillars, scatter, pit corners, pit
+  lines, a pit moat with bridges, spike fields, a spike ring, a gauntlet, mixed), mirrored
+  left-right.
+  - Early floors are mostly boulders; pits and traps grow with depth.
+  - The middle and the four door lanes stay clear, and a connectivity check removes blocking
+    tiles until every door can reach the middle.
+  - Boulders and pits block the tamer and the creatures. Creatures follow a distance field
+    around them.
+  - Spikes chip 6% HP off the whole squad, never below 10%, with a second of safety after.
+- **Shinies** (g12): 1 wild creature in 20 is shiny (3 in 20 with the Shiny Charm). It shows
+  recoloured, glowing and sparkling.
+  - Beat it to **catch it shiny**: `meta.shinies`, a ✦ tag in the Glimdex, and it joins the
+    squad as a shiny (+10% stats).
+  - In Auto Chess that species' shop offers are then 4× as likely to be shiny (`shinyOdds` in `crun.js`).
 - Deeper floors roll higher tiers: Tier 5 shows up from floor 4 (and in floor 3 vaults).
 - `wsim.js` fits the difficulty:
   - a first expedition reaches floor 3 about 75-90% of the time, floor 5 about 20%, and unlocks about 11-13;
@@ -297,3 +312,8 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
     - Now: about 13 expeditions to collect all 72, with 10-15 new species in each early expedition.
   - With only the twelve free species, the Auto Chess bot wins more (30% against 23%). The smaller pool merges faster, which eases a new save in.
   - Phones: the room canvas zooms in and the camera follows the tamer.
+- **g12**: **Wilds obstacles and shiny catches** (see The Wilds above).
+  - Room layouts are a `tiles` string per room. Saves from before g12 keep their loose `rocks`, which still draw and collide.
+  - Boulders are depth-sorted with the creatures and the tamer.
+  - Meshy: `wd_pit` and `wd_spikes`, two candidates each.
+  - `wsim.js` assumes one spike hit in half the trap rooms. Pacing is unchanged: about 11-13 expeditions to collect all 72.

@@ -285,6 +285,8 @@ for k, d in [
  ('wd_key', 'an ornate golden key with a teal gem in its bow'),
  ('wd_berry', 'a cluster of three glossy round blue berries with a green leaf'),
  ('wd_rock', 'a mossy grey boulder'),
+ ('wd_pit', 'a deep round pit hole in the ground seen from directly above, a ring of crumbling dark stone around the rim, the inside falls away into pitch-black darkness'),
+ ('wd_spikes', 'a square stone floor trap plate seen from directly above, a grid of sharp silver metal spikes poking up, rusty bolts at the corners'),
 ]: A[k] = ('icon', d)
 
 def prompt(spec):

@@ -104,7 +104,7 @@ img { display: block; -webkit-user-drag: none; }
 .trait.haz { --c: #ffc93c; background: rgba(255,201,60,.18); color: #ffe7a3; box-shadow: inset 0 0 0 1px #ffc93c88; }
 .boardwrap { flex: 0 0 auto; display: flex; justify-content: center; padding-top: 22px; }
 .traits { position: relative; z-index: 50; }
-.board { position: relative; width: min(100%, 880px, calc((100vh - 300px) * 1.6)); aspect-ratio: 8 / 5; border-radius: 14px; overflow: visible;
+.board { position: relative; width: min(100%, 880px, calc((100vh - 340px) * 1.6)); aspect-ratio: 8 / 5; border-radius: 14px; overflow: visible;
   background: rgba(0,0,0,.25); box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.12); }
 .board .cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(5, 1fr); border-radius: 14px; overflow: hidden; }
 .cell { box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
@@ -205,6 +205,17 @@ img { display: block; -webkit-user-drag: none; }
 @keyframes banner { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.9); } }
 .toggle.on { background: linear-gradient(180deg, #84f08f, #2fbf55); color: #06300f; }
 @keyframes pop2 { from { transform: scale(1.8); } }
+
+/* shiny shop cards: shifted colours, a sweeping shine and sparkles */
+.scard.shinycard { box-shadow: inset 0 0 0 2px #fff6c0, 0 0 16px #ffe27a; }
+.scard.shinycard::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; border-radius: 12px;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.55) 45%, rgba(255,240,170,.35) 52%, transparent 65%); background-size: 260% 100%; animation: shinesweep 2.2s linear infinite; }
+.scard.shinycard img.m { animation: shinypulse 1.6s ease-in-out infinite; }
+.scard .shinytag { position: absolute; left: 50%; transform: translateX(-50%); top: 3px; z-index: 3; font: 800 9px/1 Nunito, sans-serif; color: #3a2a00; background: linear-gradient(90deg, #fff3a8, #ffd65a, #fff3a8); padding: 2px 6px; border-radius: 99px; box-shadow: 0 0 8px #ffe27a; letter-spacing: .5px; }
+.scard.shinycard .nm::after { content: ' ✦'; color: #ffe27a; }
+@keyframes shinesweep { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+@keyframes shinypulse { 50% { filter: hue-rotate(150deg) saturate(1.3) drop-shadow(0 0 10px #fff) brightness(1.15); } }
+.unit .spr.shiny { filter: hue-rotate(150deg) saturate(1.3) drop-shadow(0 0 6px #fff8) !important; }
 
 /* evolved units: bigger, with an aura */
 .unit.s2 .shadow { background: radial-gradient(closest-side, rgba(220,235,255,.55), rgba(140,170,255,.25) 60%, transparent); }

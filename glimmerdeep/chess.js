@@ -188,6 +188,7 @@ function create(o) {
   for (const side of [0, 1]) if (st.bonus[side].startSoak) for (const e of alive(st, 1 - side)) applyStatus(st, null, e, 'soak', ev, 5);
   for (const u of st.units) if (u.frostAura) for (const e of alive(st, 1 - u.side)) applyStatus(st, null, e, 'chill', ev, u.frostAura);
   for (const side of [0, 1]) if (st.bonus[side].startChill) for (const e of alive(st, 1 - side)) applyStatus(st, null, e, 'chill', ev, st.bonus[side].startChill);
+  if (st.haz === 'bog' && !st.bonus[0].immune_bog) for (const u of alive(st, 0)) { u.st.root = { t: 2 }; ev.push({ k: 'status', t: u.id, s: 'root', haz: 1 }); }
   if (st.haz === 'flood') for (const u of st.units) if (!(u.side === 0 && st.bonus[0].immune_flood)) u.st.wet = { t: 1e9 };
   if (o.mods && o.mods.bomb) for (const e of alive(st, 1)) e.hp = Math.round(e.hp * 0.8);
   if (o.mods && o.mods.elixir) for (const u of alive(st, 0)) u.mana = Math.min(99, u.mana + 60);
@@ -225,7 +226,8 @@ function effAS(st, u) {
 }
 function manaNeed(st, u) {
   const b = st.bonus[u.side];
-  return manaCost(u.skill) * Math.max(0.5, 1 - (b.manaDisc || 0) - u.b.manaDisc) * (u.st.hex ? 1.25 : 1);
+  const mag = st.haz === 'magnetic' && u.side === 0 && u.el !== 'metal' && !b.immune_magnetic ? 1.25 : 1;
+  return manaCost(u.skill) * Math.max(0.5, 1 - (b.manaDisc || 0) - u.b.manaDisc) * (u.st.hex ? 1.25 : 1) * mag;
 }
 function gainMana(st, u, v) {
   if (!u.alive) return;
@@ -341,10 +343,10 @@ function applyStatus(st, src, t, key, ev, secs, n) {
     t.st.stunImm = { t: (t.boss ? 0.75 : 1.5) + 2 };
   } else if (key === 'blind') {
     if (t.side === 0 && tb.immune_dark) return;
-    t.st.blind = { t: 3 + extra };
+    t.st.blind = { t: (secs || 3) + extra };
   } else if (key === 'soak') t.st.soak = { t: (secs || 4) + extra };
   else if (key === 'root') t.st.root = { t: 2.5 + extra };
-  else if (key === 'chill') t.st.chill = { t: (secs || 3) + extra };
+  else if (key === 'chill') { if (t.side === 0 && tb.immune_blizzard) return; t.st.chill = { t: (secs || 3) + extra }; }
   else if (key === 'shred') t.st.shred = { t: 4 + extra };
   else if (key === 'hex') t.st.hex = { t: 5 + extra };
   else if (key === 'curse') t.st.curse = { t: 5 + extra };
@@ -604,6 +606,10 @@ function everySecond(st, ev) {
     const opts = G.ELS.filter(e => e !== u.el); u.el = opts[Math.floor(st.rnd() * opts.length)]; ev.push({ k: 'flux', t: u.id, el: u.el });
   }
   if (st.t >= 40) { if (sec === 40) ev.push({ k: 'text', v: 'The cave rumbles! Everyone takes growing damage.' }); }
+  if (st.haz === 'starfall' && sec % 6 === 0 && !st.bonus[0].immune_starfall) {
+    const mine = alive(st, 0);
+    if (mine.length) { const v = mine[Math.floor(st.rnd() * mine.length)]; ev.push({ k: 'star', t: v.id }); damage(st, null, v, Math.max(1, Math.round(v.maxHp * 0.08)), ev, { dot: 'star' }); }
+  }
   for (const u of st.units.slice()) {
     if (!u.alive) continue;
     const b = st.bonus[u.side];
@@ -620,6 +626,11 @@ function everySecond(st, ev) {
         ev.push({ k: 'status', t: u.id, s: 'poison', haz: 1 });
       }
       if (b.immune_spores && sec % 5 === 0) cleanse(u, ev);
+      if (st.haz === 'blizzard' && sec % 4 === 0 && u.el !== 'frost' && u.el2 !== 'frost' && !b.immune_blizzard) applyStatus(st, null, u, 'chill', ev, 2);
+      if (st.haz === 'sandstorm' && sec % 5 === 0 && u.el !== 'stone' && u.el2 !== 'stone' && !b.immune_sandstorm) applyStatus(st, null, u, 'blind', ev, 2);
+      if (st.haz === 'gusts' && sec % 5 === 0 && !b.immune_gusts && !['gale', 'metal', 'stone'].includes(u.el) && st.rnd() < 0.4 && u.x > 0 && !occupied(st, u.x - 1, u.y)) {
+        moveTo(u, u.x - 1, u.y, ev); ev.push({ k: 'pushed', t: u.id });
+      }
     }
     if (!u.alive) continue;
     const rg = (u.st.regen ? u.st.regen.v : 0) + (b.regen || 0) + u.b.regen;
@@ -648,7 +659,7 @@ function tick(st) {
       if (u.atkCd <= 0) { basicAttack(st, u, t, ev); u.atkCd += 1 / effAS(st, u); if (u.atkCd < 0) u.atkCd = 0; }
     } else if (!u.st.root) {
       u.moveCd -= DT;
-      if (u.moveCd <= 0) { step(st, u, t, ev); u.moveCd = 0.45; u.atkCd = Math.max(u.atkCd, 0.15); }
+      if (u.moveCd <= 0) { step(st, u, t, ev); u.moveCd = st.haz === 'bog' && u.side === 0 && !st.bonus[0].immune_bog ? 0.9 : 0.45; u.atkCd = Math.max(u.atkCd, 0.15); }
     }
     checkOver(st, ev);
   }

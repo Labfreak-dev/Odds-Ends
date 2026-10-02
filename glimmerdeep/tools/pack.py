@@ -144,7 +144,7 @@ def clean_halo(img):
     r, g, b, al = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
     solid = al > 250
     band = ~ndimage.binary_erosion(solid, iterations=10) & (al > 0)
-    pink = band & (r - g > 18) & (b - g > 8)
+    pink = band & (r - g > 18) & (b - g > 8) & (r > 0.75 * b)   # magenta-leaning only: purples stay
     m = np.maximum(np.maximum(r, g), b)
     for c in range(3): a[..., c] = np.where(pink, m * 0.92, a[..., c])
     a[..., 3] = np.where(pink & ~solid, al * 0.35, al)
@@ -168,7 +168,8 @@ def process(key):
     if k == 'cover': img = cover(im.convert('RGB'), mw, th)
     else:
         cut = key_out(im)
-        if key.startswith(('cr_', 'boss_')): cut = strip_floor(key_holes(cut))
+        if key.startswith('cr_'): cut = strip_floor(key_holes(cut))
+        elif key.startswith('boss_'): cut = clean_halo(strip_floor(key_holes(cut)))
         else: cut = clean_halo(cut)
         img = fit(cut, th, mw)
     img.save(os.path.join(OUT, key + '.webp'), 'WEBP', quality=q, method=6)

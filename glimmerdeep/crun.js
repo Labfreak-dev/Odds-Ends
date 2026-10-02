@@ -4,8 +4,10 @@
 'use strict';
 const G = root.GD, C = root.GC;
 const SPS = Object.keys(G.SP);
-const BENCH = 9, PW = 4;
-const KIN_CHANCE = 0.25;   // chance a shop slot offers a species you own below 3 stars       // bench slots; the player's board is columns 0..3
+const BENCH = 9, PW = 4;                  // bench slots; the player's board is columns 0..3
+const KIN_CHANCE = 0.25;                  // chance a shop slot offers a species you own below 3 stars
+// boss power by stage; each boss' own HP is calibrated on top (fitted from sim.js fight logs)
+const BOSS_SCALE = [1.33, 2.06, 3.04, 3.85, 6.6, 6.5];
 
 function R(run) { return run.rnd || (run.rnd = C.mkRng((run.seed + run.step * 7919) >>> 0)); }
 function rint(run, n) { return Math.floor(R(run)() * n); }
@@ -22,7 +24,7 @@ function newRun(meta, seed, depth) {
     hp: 100 + 10 * (up.hide || 0), maxHp: 100 + 10 * (up.hide || 0), gold: 3 + 2 * (up.gold || 0),
     tlv: 1 + (up.starter || 0), txp: 0, units: [], shop: [], locked: false, pool: {},
     relics: [], charms: [], items: {}, perks: {}, streak: 0, depth: depth || 0, over: 0, mods: {},
-    stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {},
+    stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {}, visited: ['verdant'], shopShiny: [],
     meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1 },
   };
   for (const k of SPS) run.pool[k] = G.POOL[G.TIER[k]];
@@ -38,7 +40,7 @@ function starterChoices(meta, seed) {
 function mkInst(run, sp, star, o) {
   o = o || {};
   const inst = { uid: run.nextUid++, sp, star: star || 1, muts: [], charm: null, el2: null, skill: null,
-    shiny: !o.noShiny && R(run)() < run.meta.shiny / 64, at: null, x: 0, y: 0, slot: 0 };
+    shiny: o.shiny != null ? !!o.shiny : !o.noShiny && R(run)() < run.meta.shiny / 64, at: null, x: 0, y: 0, slot: 0 };
   inst.skill = C.defaultSkill(inst);
   run.seen[sp] = Math.max(run.seen[sp] || 0, inst.star);
   return inst;
@@ -103,7 +105,7 @@ function rollShop(run, free) {
   const owned = Array.from(new Set(run.units.map(u => u.sp)));
   const kin = Array.from(new Set(run.units.filter(u => u.star < 3).map(u => u.sp)));
   const o = G.ODDS[Math.min(9, run.tlv)], maxTier = o.reduce((m, v, i) => v > 0 ? i + 1 : m, 1);
-  const out = [];
+  const out = [], shiny = [];
   for (let i = 0; i < shopSize(run); i++) {
     let sp = null;
     if (run.mods.lure && owned.length) {
@@ -120,7 +122,9 @@ function rollShop(run, free) {
     }
     if (sp) run.pool[sp]--;
     out.push(sp);
+    shiny.push(!!sp && R(run)() < run.meta.shiny / 64);
   }
+  run.shopShiny = shiny;
   run.mods.lure = false;
   run.shop = out;
   return out;
@@ -145,7 +149,8 @@ function buy(run, i) {
   const sp = run.shop[i];
   run.gold -= G.TIER[sp];
   run.shop[i] = null;
-  const u = mkInst(run, sp, 1);
+  const u = mkInst(run, sp, 1, { shiny: (run.shopShiny || [])[i] });
+  if (run.shopShiny) run.shopShiny[i] = false;
   const slot = freeBench(run);
   if (slot >= 0) { u.at = 'n'; u.slot = slot; } else { u.at = 'n'; u.slot = -1; }
   run.units.push(u);
@@ -233,7 +238,7 @@ function enemyBoard(run) {
   const rr = C.mkRng((run.seed ^ (round * 7919 + 13)) >>> 0);
   const els = G.BIOMES[run.biome].els;
   const pool = SPS.filter(k => els.includes(G.SP[k].el));
-  const scale = (0.9 + 0.016 * round) * (1 + 0.08 * run.depth);
+  const scale = (0.9 + 0.013 * Math.min(round, 24) + 0.005 * Math.max(0, round - 24)) * (1 + 0.08 * run.depth);
   const lv = Math.min(9, 1 + Math.floor(round * 0.36));
   const tierPick = () => { const o = G.ODDS[lv]; let t = rr() * 100; for (let i = 0; i < 5; i++) { t -= o[i] || 0; if (t < 0) return i + 1; } return 1; };
   const species = t => { const a = pool.filter(k => G.TIER[k] === t); const b = a.length ? a : SPS.filter(k => G.TIER[k] === t); return b[Math.floor(rr() * b.length)]; };
@@ -242,8 +247,8 @@ function enemyBoard(run) {
   const add = inst => out.push(inst);
   if (kind === 'boss') {
     const bk = bossOf(run);
-    add({ uid: -1, boss: bk, star: 3, muts: [], scale: [1.8, 2.5, 3.4, 4.3][stage] * (1 + 0.08 * run.depth) });
-    const minions = [1, 2, 3, 4][stage];
+    add({ uid: -1, boss: bk, star: 3, muts: [], scale: BOSS_SCALE[stage] * (1 + 0.08 * run.depth) });
+    const minions = [1, 2, 2, 3, 3, 4][stage];
     for (let i = 0; i < minions; i++) add({ uid: -2 - i, sp: species(tierPick()), star: rr() < p3 ? 3 : rr() < p2 ? 2 : 1, muts: [], scale });
   } else {
     let n = round === 1 ? 1 : round === 2 ? 2 : Math.min(9, 2 + Math.floor(round * 0.26));
@@ -275,7 +280,11 @@ function enemyBoard(run) {
 function bossOf(run, biome) {
   const bi = biome || run.biome, pool = G.BIOMES[bi].bosses || [G.BIOMES[bi].boss];
   run.bossPick = run.bossPick || {};
-  if (!run.bossPick[bi]) { const rr = C.mkRng((run.seed ^ (bi.length * 7177 + bi.charCodeAt(0) * 131)) >>> 0); run.bossPick[bi] = pool[Math.floor(rr() * pool.length)]; }
+  if (!run.bossPick[bi]) {
+    const used = Object.values(run.bossPick), free = pool.filter(b => !used.includes(b)), opts = free.length ? free : pool;
+    const rr = C.mkRng((run.seed ^ (bi.length * 7177 + bi.charCodeAt(0) * 131)) >>> 0);
+    run.bossPick[bi] = opts[Math.floor(rr() * opts.length)];
+  }
   return run.bossPick[bi];
 }
 function rangeOf(inst) { return inst.boss ? G.BOSS_RANGE[inst.boss] : G.RANGE[inst.sp]; }
@@ -285,7 +294,7 @@ function fightOpts(run, seed) {
 }
 function hpLoss(run, st) {
   const surv = C.alive(st, 1);
-  let v = 2 + 2 * stageOf(run.round) + surv.reduce((s, u) => s + (u.boss ? 8 : (G.TIER[u.inst.sp] || 1) + u.star - 1), 0);
+  let v = Math.round(0.75 * (2 + Math.round(1.6 * stageOf(run.round)) + surv.reduce((s, u) => s + (u.boss ? 8 : (G.TIER[u.inst.sp] || 1) + u.star - 1), 0)));
   if (run.perks.medic) v = Math.round(v * 0.7);
   return v;
 }
@@ -315,7 +324,7 @@ function endRound(run, st) {
       // the final boss must be beaten: try again next round
       out.retry = true;
     }
-    if (run.round < G.ROUNDS) { const next = G.ACTS[stageOf(run.round) + 1]; if (next) run.pending.push({ k: 'biome', opts: next }); }
+    if (run.round < G.ROUNDS) { const next = nextBiomes(run); if (next.length) run.pending.push({ k: 'biome', opts: next }); }
   }
   if (win && kind === 'wild' && R(run)() < 0.35) {
     if (R(run)() < 0.5) { const c = pick(run, Object.keys(G.CHARMS)); run.charms.push(c); out.drops.push({ k: 'charm', id: c }); }
@@ -336,11 +345,23 @@ function endRound(run, st) {
   if (!run.locked) rollShop(run); else run.locked = false;
   return out;
 }
+// after each boss: two biomes you have not visited yet (the last stage is always the Glimmer Core)
+function nextBiomes(run) {
+  const stage = stageOf(run.round) + 1;
+  if (stage >= G.STAGES) return [];
+  if (stage === G.STAGES - 1) return ['core'];
+  const left = G.MID_BIOMES.filter(b => !(run.visited || []).includes(b));
+  const rr = C.mkRng((run.seed ^ (stage * 4099 + 77)) >>> 0);
+  const a = left.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, 2);
+}
 function relicChoices(run, n, rare) {
   n += (bonus(run).relicChoice || 0) + run.meta.choices;
-  const map = { heat: 'frostcore', dark: 'lumen_moth', flood: 'gill_pearl', spores: 'incense', reflect: 'prism_lens' };
+  const map = { heat: 'frostcore', dark: 'lumen_moth', flood: 'gill_pearl', spores: 'incense', reflect: 'prism_lens', blizzard: 'hearthstone',
+    gusts: 'anchor_stone', sandstorm: 'desert_veil', bog: 'marsh_charm', magnetic: 'grounding_rod', starfall: 'star_ward' };
   const want = [map[G.BIOMES[run.biome].haz]];
-  for (const bi of (G.ACTS[stageOf(run.round) + 1] || [])) want.push(map[G.BIOMES[bi].haz]);
+  for (const bi of nextBiomes(run)) want.push(map[G.BIOMES[bi].haz]);
   const pool = Object.keys(G.RELICS).filter(k => !G.RELICS[k].leg && !run.relics.includes(k));
   const c = C.relicTagCounts(run.relics);
   const w = k => {
@@ -363,7 +384,7 @@ function takePerk(run, k) { run.perks[k] = 1; if (k === 'pockets') run.gold += 1
 function addRelic(run, id) { if (id && !run.relics.includes(id)) run.relics.push(id); }
 function fusionsAvailable(run) { return G.FUSIONS.filter(([a, b, c]) => run.relics.includes(a) && run.relics.includes(b) && !run.relics.includes(c)); }
 function fuse(run, f) { run.relics = run.relics.filter(k => k !== f[0] && k !== f[1]); run.relics.push(f[2]); }
-function setBiome(run, bi) { run.biome = bi; run.enemy = null; }
+function setBiome(run, bi) { run.biome = bi; run.enemy = null; (run.visited = run.visited || []).push(bi); }
 function equipCharm(run, uid, charm) {
   const u = run.units.find(x => x.uid === uid); if (!u) return;
   if (u.charm) run.charms.push(u.charm);
@@ -395,5 +416,5 @@ function shardsFor(run, won) {
 root.GR = { BENCH, PW, newRun, starterChoices, giveStarter, mkInst, onBoard, onBench, unitAt, benchAt, freeBench, cap, placeBoard, placeBench,
   autoPlace, rollShop, rerollCost, reroll, canBuy, buy, sellValue, sell, merges, mutOptions, applyMut, addXp, buyXp, stageOf, roundIn,
   roundKind, enemyBoard, fightOpts, endRound, relicChoices, perkChoices, takePerk, addRelic, fusionsAvailable, fuse, setBiome,
-  equipCharm, useItem, shardsFor, bonus, bossOf, shopSize, copiesNeeded, pick };
+  equipCharm, useItem, shardsFor, bonus, bossOf, nextBiomes, shopSize, copiesNeeded, pick };
 })(typeof window !== 'undefined' ? window : globalThis);

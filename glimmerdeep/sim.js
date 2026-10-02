@@ -3,9 +3,11 @@
 require('./species2.js'); require('./data.js'); require('./chess.js'); require('./crun.js');
 const G = globalThis.GD, C = globalThis.GC, R = globalThis.GR;
 
+const bossLog = [];
+const TGT = [0.8, 0.62, 0.52, 0.44, 0.36, 0.25];   // boss win-rate targets by stage
 const N = +process.argv[2] || 200, DEPTH = +process.argv[3] || 0;
 let wins = 0, errors = 0;
-const deathRound = [], byRound = {}, fightLen = [], bossWins = [0, 0, 0, 0], bossTries = [0, 0, 0, 0], byBoss = {};
+const deathRound = [], byRound = {}, fightLen = [], bossWins = [0, 0, 0, 0, 0, 0], bossTries = [0, 0, 0, 0, 0, 0], byBoss = {};
 const power = u => G.TIER[u.sp] * Math.pow(3, u.star - 1);
 
 function shop(run) {
@@ -52,7 +54,8 @@ for (let n = 0; n < N; n++) {
       for (const u of st.units) if (u.hp > u.maxHp || u.hp < 0 || Number.isNaN(u.hp)) throw new Error('bad hp ' + u.name + ' ' + u.hp);
       fightLen.push(st.t);
       const kind = R.roundKind(run.round), stage = R.stageOf(run.round), round = run.round;
-      if (kind === 'boss') { bossTries[stage]++; if (st.over === 1) bossWins[stage]++; const bk = R.bossOf(run), b = byBoss[bk] = byBoss[bk] || [0, 0]; b[1]++; if (st.over === 1) b[0]++; }
+      if (kind === 'boss') { bossTries[stage]++; if (st.over === 1) bossWins[stage]++; if (process.env.BOSSLOG) bossLog.push([R.bossOf(run), stage, st.over === 1 ? 1 : 0]);
+        const bk = R.bossOf(run), b = byBoss[bk] = byBoss[bk] || [0, 0, 0]; b[1]++; b[2] += TGT[stage]; if (st.over === 1) b[0]++; }
       const res = R.endRound(run, st);
       const rec = byRound[round] = byRound[round] || { n: 0, win: 0, hp: 0, lv: 0, units: 0, stars: 0 };
       rec.n++; rec.win += res.win ? 1 : 0; rec.hp += run.hp; rec.lv += run.tlv; rec.units += R.onBoard(run).length;
@@ -72,7 +75,7 @@ for (let n = 0; n < N; n++) {
 const avg = a => a.length ? (a.reduce((s, x) => s + x, 0) / a.length).toFixed(1) : '-';
 console.log(`runs ${N}  depth ${DEPTH}  wins ${wins} (${(100 * wins / N).toFixed(0)}%)  errors ${errors}  avg death round ${avg(deathRound)}`);
 console.log('boss win rate by stage', bossTries.map((t, i) => t ? (100 * bossWins[i] / t).toFixed(0) + '%' : '-').join(' / '));
-console.log('by boss', Object.keys(byBoss).map(k => `${k} ${Math.round(100 * byBoss[k][0] / byBoss[k][1])}% (${byBoss[k][1]})`).join(', '));
+console.log('by boss', Object.keys(byBoss).map(k => `${k} ${Math.round(100 * byBoss[k][0] / byBoss[k][1])}% (${byBoss[k][1]}) t${Math.round(100 * byBoss[k][2] / byBoss[k][1])}`).join(', '));
 console.log('fight length avg', avg(fightLen) + 's', 'max', Math.max(...fightLen).toFixed(1) + 's');
 console.log('round  win%   hp  lv  units  stars');
 for (const r of Object.keys(byRound).map(Number).sort((a, b) => a - b)) {
@@ -80,4 +83,5 @@ for (const r of Object.keys(byRound).map(Number).sort((a, b) => a - b)) {
   console.log(String(r).padStart(5), String(Math.round(100 * x.win / x.n)).padStart(5), String(Math.round(x.hp / x.n)).padStart(5),
     (x.lv / x.n).toFixed(1).padStart(4), (x.units / x.n).toFixed(1).padStart(6), (x.stars / x.n).toFixed(2).padStart(6), ' n=' + x.n);
 }
+if (process.env.BOSSLOG) require('fs').writeFileSync(process.env.BOSSLOG, JSON.stringify(bossLog));
 process.exit(errors ? 1 : 0);

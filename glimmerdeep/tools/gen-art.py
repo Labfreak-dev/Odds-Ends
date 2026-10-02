@@ -145,6 +145,12 @@ for k, d in [
  ('boss_hollowcolossus', 'the Hollow Colossus, a colossal haunted golem of mossy grave stones with glowing blue ghost lanterns inside its open ribcage and spectral flames for eyes'),
  ('boss_astralbehemoth', 'the Astral Behemoth, a colossal cosmic whale beast floating in space with galaxies swirling inside its body, star-tipped horns and glowing constellations'),
  ('boss_voidtitan', 'the Void Titan, a colossal hunched titan beast of black crystal and swirling void energy with a cracked glowing starry core and crystal horns'),
+ ('boss_yeti', 'the Yeti Monarch, a giant shaggy white yeti beast with a crown of jagged ice crystals, frost-blue eyes, huge clawed hands and icicles in its fur'),
+ ('boss_nimbus', 'Stormheart Nimbus, a colossal living thundercloud beast with glowing lightning eyes, swirling wind arms and lightning crackling inside its cloud body'),
+ ('boss_sandworm', 'the Sandworm Tyrant, a colossal armoured desert sandworm bursting from the sand with a huge round toothy maw, sandstone plates and glowing amber runes'),
+ ('boss_mirecroc', 'the Mirecroc Matriarch, a colossal swamp crocodile with a mossy back covered in glowing green fungi, lily pads and roots, and glowing yellow eyes'),
+ ('boss_juggernaut', 'the Ironshell Juggernaut, a colossal steam-powered iron tortoise with smokestacks on its shell, glowing furnace vents and riveted brass armour plates'),
+ ('boss_astralmoth', 'the Astral Moth Empress, a gigantic cosmic moth with vast wings full of galaxies and stars, feathery golden antennae and a glowing teal body'),
 ]: A[k] = ('boss', d)
 
 # ---- battle backgrounds and screens -----------------------------------------
@@ -155,6 +161,12 @@ for k, d in [
  ('bg_spire', 'a crystal spire cavern full of giant teal and gold crystals refracting rainbow light'),
  ('bg_crypt', 'a moonlit shadow crypt of deep indigo and teal, ruined mossy stone arches, glowing cyan ghost lanterns, blue magical fire braziers and luminous crystals, rich saturated night colours'),
  ('bg_core', 'the glowing heart of the world, a cosmic cavern with a huge iridescent crystal core, floating rocks and swirling multicoloured elemental light'),
+ ('bg_tundra', 'a frozen tundra ice field under a green and violet aurora, blue glaciers, frosted pine trees and sparkling snow'),
+ ('bg_skyisles', 'floating sky islands high above the clouds with waterfalls pouring off their edges, wind-swept grass, bright sunlight and distant floating rocks'),
+ ('bg_dunes', 'sunscorched golden desert dunes with ancient carved sandstone ruins, swirling sand, a blazing sun and long shadows'),
+ ('bg_mire', 'a misty swamp mire with twisted mangrove roots, glowing green fungi, lily pads on dark water and fireflies'),
+ ('bg_foundry', 'a vast iron foundry cavern with giant turning brass gears, glowing molten metal channels, steam vents and chains'),
+ ('bg_observatory', 'a cosmic observatory on a mountain peak at night with a giant brass telescope, floating star charts and a sky full of galaxies and falling stars'),
  ('bg_title', 'the entrance to a magical glowing cave in a hillside at golden hour, crystals glinting inside, a winding path leading in, lush meadow'),
  ('bg_camp', 'a cozy explorer camp at the mouth of a glowing cave at dusk, a crackling campfire, a tent, lanterns and crates'),
 ]: A[k] = ('bg', d)
@@ -209,6 +221,9 @@ RELICS = {
  'moon_pearl': 'a silver pearl glowing with moonlight', 'frostcore': 'a glowing icy blue crystal core with frost',
  'lumen_moth': 'a glowing golden moth', 'gill_pearl': 'a teal pearl with little gill frills', 'incense': 'a small brass incense burner with fragrant white smoke',
  'prism_lens': 'a round crystal lens in a gold ring',
+ 'hearthstone': 'a warm glowing orange hearth stone with a tiny flame inside', 'anchor_stone': 'a heavy carved stone anchor with blue runes',
+ 'desert_veil': 'a folded sand-coloured silk veil with gold trim', 'marsh_charm': 'a woven reed charm with a glowing green bead',
+ 'grounding_rod': 'a short copper rod with a glowing blue tip and coiled wire', 'star_ward': 'a small golden shield-shaped ward with a glowing star',
  'frost_shard': 'a glowing blue ice crystal shard with frost', 'wind_bell': 'a small jade wind bell with swirling air',
  'iron_core': 'a glowing blue core inside a riveted steel sphere', 'moon_charm': 'a golden crescent moon charm with a teal gem',
  # legendary fusions

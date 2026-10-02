@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Headless smoke test for Glimmerdeep: boots the page, starts a run, plays
-battles on Auto, walks through the reward modals and checks for console errors.
+"""Headless smoke test for Glimmerdeep (auto chess): boots the page, starts a run, buys,
+drags a creature onto the board, picks a power, plays live fights and walks the reward
+modals, checking for console errors.
 
     pip install playwright==1.56.0
-    python3 glimmerdeep/tools/smoke.py [--shots DIR] [--nodes N]
+    python3 glimmerdeep/tools/smoke.py [--shots DIR] [--rounds N] [--mobile] [--deep]
+
+--deep gives the run extra gold each round so it reaches merges, bosses and later stages.
 """
 import argparse, functools, http.server, os, sys, threading, time
 from playwright.sync_api import sync_playwright
@@ -12,9 +15,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
 ap = argparse.ArgumentParser()
 ap.add_argument('--shots', default=None)
-ap.add_argument('--nodes', type=int, default=6)
+ap.add_argument('--rounds', type=int, default=4)
 ap.add_argument('--mobile', action='store_true')
-ap.add_argument('--deep', action='store_true', help='boost the party and wander every node type')
+ap.add_argument('--deep', action='store_true')
 a = ap.parse_args()
 
 class Q(http.server.SimpleHTTPRequestHandler):
@@ -35,6 +38,25 @@ def shot(page, name):
         os.makedirs(a.shots, exist_ok=True)
         page.screenshot(path=os.path.join(a.shots, name + '.png'))
 
+def center(page, sel):
+    b = page.locator(sel).first.bounding_box()
+    return b['x'] + b['width'] / 2, b['y'] + b['height'] / 2
+
+def drag(page, src, dst):
+    x0, y0 = center(page, src); x1, y1 = center(page, dst)
+    page.mouse.move(x0, y0); page.mouse.down()
+    page.mouse.move(x0 + 10, y0 + 10, steps=3); page.mouse.move(x1, y1, steps=8); page.mouse.up()
+    page.wait_for_timeout(150)
+
+def clear_modals(page, limit=20):
+    for _ in range(limit):
+        if page.locator('#modal.on').count() == 0: return
+        box = page.locator('#modalBox')
+        for sel in ['[data-v=ok]', '.card[data-v]', '.li.click[data-v]', '[data-v=x]', '[data-v=skip]', '[data-v]']:
+            if box.locator(sel).count():
+                box.locator(sel).first.click(); break
+        page.wait_for_timeout(1300 if box.locator('.evo-stage').count() else 200)
+
 with sync_playwright() as p:
     b = p.chromium.launch()
     vp = {'width': 412, 'height': 860} if a.mobile else {'width': 1280, 'height': 800}
@@ -44,104 +66,83 @@ with sync_playwright() as p:
     page.on('console', lambda m: m.type == 'error' and 'ERR_CERT' not in m.text and errs.append(m.text))  # sandbox proxy blocks Google Fonts
     page.goto(URL)
     page.wait_for_selector('#title.on')
-    check(page.locator('#titleMenu [data-v=new]').count() == 1, 'title menu renders')
     shot(page, '01-title')
     page.click('#titleMenu [data-v=new]')
-    page.wait_for_selector('#pick.on .card')
-    check(page.locator('#pickCards .card').count() == 3, 'three starters offered')
-    shot(page, '02-pick')
-    page.locator('#pickCards .card').first.click()
-    page.wait_for_selector('#map.on .node.can')
-    check(page.locator('.node').count() > 10, 'map has nodes')
+    page.wait_for_selector('#modal.on .card')
+    check(page.locator('#modalBox .card').count() == 3, 'three starters offered')
+    shot(page, '02-starter')
+    page.locator('#modalBox .card').first.click()
+    page.wait_for_selector('#game.on .unit.mine')
     page.evaluate("document.getElementById('toast').classList.remove('on')")
-    shot(page, '03-map')
-    # team and bag screens open
-    if True:
-        page.click('[data-top=team]'); page.wait_for_selector('#modal.on')
-        shot(page, '07-team')
-        page.locator('#modalBox .li.click').first.click(); page.wait_for_timeout(200)
-        shot(page, '08-detail')
-        check(page.locator('#modalBox .stats').count() == 1, 'creature detail shows stats')
-        page.click('#modalBox [data-v=back]'); page.wait_for_timeout(150)
-        page.click('#modalBox [data-v=close]'); page.wait_for_timeout(150)
-        page.click('[data-top=bag]'); page.wait_for_selector('#modal.on')
-        shot(page, '09-bag')
-        page.click('#modalBox [data-v=ok]')
-        # the camp, the dex and the help open from the title too
-        page.click('[data-top=menu]'); page.wait_for_selector('#modal.on')
-        page.click('#modalBox [data-v=how]'); page.wait_for_timeout(150)
-        check(page.locator('#modalBox .how').count() == 1, 'how-to-play opens')
-        page.click('#modalBox [data-v=ok]'); page.wait_for_timeout(150)
-    if a.deep:
-        # a stronger party so the run reaches evolutions, later acts and the shop/event flows
-        page.evaluate("""() => { const r = GLIM.run; r.gold = 400; r.items = {berry: 3, revive: 2, candy: 2, evo: 1, bomb: 2, elixir: 1, lure: 1};
-          r.charms = ['fang', 'lens']; for (const p of r.party) { p.lvl = 6; p.xp = 0; } GLIM.renderMap(); }""")
-    import random
-    rnd = random.Random(7)
-    seen_types = set()
-    battles = 0
-    for step in range(a.nodes):
-        if page.locator('#map.on').count() == 0 and page.locator('#title.on, #camp.on').count():
-            break
-        # prefer fights so the smoke exercises battle + rewards
-        nodes = page.locator('.node.can')
-        n = nodes.count()
-        if not n:
-            break
-        pick_i = 0
-        for i in range(n):
-            t = nodes.nth(i).get_attribute('title')
-            if t in ('Wild battle', 'Elite battle', 'Boss'): pick_i = i; break
-        if a.deep: pick_i = rnd.randrange(n)
-        title = nodes.nth(pick_i).get_attribute('title')
-        seen_types.add(title)
-        nodes.nth(pick_i).click(force=True)
+    check(page.locator('#units .unit.mine').count() == 1, 'starter is on the board')
+    check(page.locator('#units .unit.preview').count() >= 1, 'next enemy board is shown')
+    check(page.locator('#shop .scard[data-buy]').count() >= 4, 'shop rolled')
+    # buy the cheapest card
+    page.evaluate("GLIM.run.gold = Math.max(GLIM.run.gold, 3); GLIM.renderGame()")
+    page.locator('#shop .scard[data-buy]:not(.poor)').first.click()
+    page.wait_for_timeout(300)
+    clear_modals(page)
+    check(page.locator('#bench .unit.mine').count() >= 1 or page.evaluate("GLIM.run.units.length") >= 2, 'bought a creature')
+    # Tamer level 1 allows one creature: buy XP, then drag the bench unit onto the board
+    page.evaluate("GLIM.run.gold += 4; GLIM.renderGame()")
+    page.click('#shopBtns [data-v=xp]'); page.wait_for_timeout(200)
+    check(page.evaluate("GLIM.run.tlv") >= 2, 'buying XP raises the Tamer level')
+    if page.locator('#bench .unit.mine').count():
+        drag(page, '#bench .unit.mine', '.cell[data-x="3"][data-y="1"]')
+        check(page.evaluate("GR.onBoard(GLIM.run).length") == 2, 'drag from bench to board')
+    shot(page, '03-plan')
+    # detail + loadout
+    page.locator('#units .unit.mine').first.click()
+    page.wait_for_selector('#modal.on .skl')
+    shot(page, '04-detail')
+    opts = page.locator('#modalBox .skl[data-v]')
+    check(opts.count() >= 2, 'power choices listed')
+    opts.nth(1).click(); page.wait_for_timeout(150)
+    check('● ' in page.locator('#modalBox .skl[data-v]').nth(1).inner_text(), 'power choice sticks')
+    page.click('#modalBox [data-v=close]'); page.wait_for_timeout(150)
+    rounds = 0
+    for r in range(a.rounds):
+        if page.locator('#game.on').count() == 0: break
+        if a.deep:
+            page.evaluate("GLIM.run.gold += 12; GLIM.renderGame()")
+        # spend: buy owned copies first, then anything, then fill the board
+        page.evaluate("""() => { const r = GLIM.run;
+          for (let k = 0; k < 6; k++) { const own = new Set(r.units.map(u => u.sp));
+            let i = r.shop.findIndex((sp, j) => sp && own.has(sp) && GR.canBuy(r, j)); if (i < 0) i = r.shop.findIndex((sp, j) => sp && GR.canBuy(r, j));
+            if (i < 0 || r.gold < 3 && !own.has(r.shop[i])) break; GR.buy(r, i); }
+          if (r.gold >= 8 && r.tlv < 8) GR.buyXp(r); }""")
+        page.evaluate("GLIM.renderGame()")
+        # merges (and their mutation modals) happen through the real UI path
+        page.evaluate("document.querySelector('#shop .scard[data-buy]:not(.poor)') || null")
+        if page.locator('#shop .scard[data-buy]:not(.poor)').count() and page.evaluate("GLIM.run.gold") >= 1:
+            page.locator('#shop .scard[data-buy]:not(.poor)').first.click(); page.wait_for_timeout(250)
+        clear_modals(page)
+        page.evaluate("GR.autoPlace(GLIM.run); GLIM.renderGame()")
         t0 = time.time()
-        if title in ('Wild battle', 'Elite battle', 'Boss'):
-            page.wait_for_selector('#battle.on .chip')
-            if battles == 0:
-                shot(page, '04-battle-plan')
-                # pick the second skill for the first creature, then fight one round by hand
-                chips = page.locator('#cmdRows .crow').first.locator('.chip:not(.cd)')
-                if chips.count() > 1: chips.nth(1).click()
-                check(page.locator('#cmdRows .chip.sel').count() >= 1, 'skill chips selectable')
-                page.locator('.mon.side1').first.click()
-                check(page.locator('.mon.focus').count() == 1, 'focus marker on tapped foe')
-                page.click('#cmdFoot [data-c=fight]')
-                page.wait_for_timeout(700)
-                shot(page, '05-battle-anim')
-            page.click('#cmdFoot [data-c=speed]'); page.click('#cmdFoot [data-c=speed]')
-            if 'toggle on' not in (page.locator('#cmdFoot [data-c=auto]').get_attribute('class') or ''):
-                page.click('#cmdFoot [data-c=auto]')
-            page.wait_for_selector('#modal.on', timeout=240000)
-            battles += 1
-            check(True, f'battle {battles} resolved ({title}) in {time.time() - t0:.0f}s')
-            if battles == 1: shot(page, '06-rewards')
-        # click through whatever modals appear
-        for _ in range(30):
-            if page.locator('#modal.on').count() == 0:
-                # a mystery can start a fight
-                if page.locator('#battle.on').count():
-                    if 'toggle on' not in (page.locator('#cmdFoot [data-c=auto]').get_attribute('class') or ''):
-                        page.click('#cmdFoot [data-c=auto]')
-                    page.wait_for_selector('#modal.on, #map.on', timeout=240000)
-                    if page.locator('#modal.on').count() == 0: break
-                    continue
-                break
-            box = page.locator('#modalBox')
-            if box.locator('.shopitem').count() and a.deep and 'Shop' not in seen_types:
-                seen_types.add('Shop')
-                box.locator('.shopitem:not(.sold):not(.poor)').first.click(); page.wait_for_timeout(200)
-                check(True, 'bought something in the shop')
-            for sel in ['[data-v=ok]', '[data-v=go]', '[data-v=leave]', '.card[data-v]', '[data-v=heal]', '[data-v=skip]', '.li.click[data-v]', '[data-v="0"]', '[data-v]']:
-                if box.locator(sel).count():
-                    box.locator(sel).first.click(); break
-            page.wait_for_timeout(1700 if box.locator('.evo-stage').count() else 250)
+        page.click('#shopBtns [data-v=fight]')
+        page.wait_for_selector('#game.fighting')
+        if r == 0:
+            page.wait_for_timeout(1800); shot(page, '05-fight')
+            check(page.locator('#units .unit').count() >= 2, 'fight units rendered')
+        if r >= 2:
+            page.click('#fightBar [data-v=skip]')
+        page.wait_for_selector('#modal.on', timeout=120000)
+        rounds += 1
+        title = page.locator('#modalBox h2').inner_text()
+        check(True, f'round {rounds} resolved: {title} ({time.time() - t0:.0f}s)')
+        if r == 0: shot(page, '06-result')
+        clear_modals(page)
         page.wait_for_timeout(200)
-    check(battles >= 1, f'{battles} battles played')
-    if a.deep:
-        lv = page.evaluate("GLIM.run ? GLIM.run.party.map(p => p.sp + p.stage + ' L' + p.lvl).join(', ') : 'run over'")
-        print('node types visited:', sorted(t for t in seen_types if t), '| party:', lv, '| act', page.evaluate("GLIM.run ? GLIM.run.act + 1 : '-'"))
+        if page.locator('#camp.on').count(): break
+    check(rounds >= 1, f'{rounds} rounds played')
+    if page.locator('#game.on').count():
+        page.click('[data-top=bag]'); page.wait_for_selector('#modal.on')
+        shot(page, '07-bag')
+        page.click('#modalBox [data-v=ok]'); page.wait_for_timeout(200)
+        page.locator('#gTraits .trait').first.click(); page.wait_for_timeout(100)
+        check(page.locator('#toast.on').count() == 1, 'synergy chip explains itself')
+        print('state:', page.evaluate("GLIM.run ? `round ${GLIM.run.round} hp ${GLIM.run.hp} lv ${GLIM.run.tlv} units ${GLIM.run.units.map(u => u.sp + u.star).join(',')}` : 'run over'"))
+        shot(page, '08-later')
     check(not errs, 'no console errors' + ('' if not errs else ': ' + ' | '.join(errs[:5])))
     b.close()
 srv.shutdown()

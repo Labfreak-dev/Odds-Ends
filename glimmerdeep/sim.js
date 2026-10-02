@@ -1,84 +1,82 @@
-// Headless balance sim: plays whole runs with simple choices.
+// Headless balance sim for the auto-chess run: a simple bot shops, merges, levels and fights.
 //   node glimmerdeep/sim.js [runs=200] [depth=0]
-// Prints where runs die, party levels at each boss, and a few engine invariants.
-require('./data.js'); require('./battle.js'); require('./run.js');
-const G = globalThis.GD, B = globalThis.GB, R = globalThis.GR;
+require('./data.js'); require('./chess.js'); require('./crun.js');
+const G = globalThis.GD, C = globalThis.GC, R = globalThis.GR;
 
 const N = +process.argv[2] || 200, DEPTH = +process.argv[3] || 0;
-const deaths = {}, lvAtBoss = [[], [], [], []], rounds = [];
 let wins = 0, errors = 0;
+const deathRound = [], byRound = {}, fightLen = [], bossWins = [0, 0, 0, 0], bossTries = [0, 0, 0, 0];
+const power = u => G.TIER[u.sp] * Math.pow(3, u.star - 1);
 
-function fight(run, node, seed) {
-  const enemies = R.encounter(run, node).map(e => Object.assign({}, e));
-  const st = B.create(R.battleOpts(run, enemies, seed));
-  let n = 0;
-  while (!st.over && n < 60) {
-    const ev = B.round(st, {});
-    for (const e of ev) if (e.k === 'dmg' && !(e.v >= 0)) throw new Error('bad dmg ' + JSON.stringify(e));
-    for (const f of st.f) if (f.hp > f.maxHp || f.hp < 0) throw new Error('hp out of range ' + f.name);
-    n++;
-    // drink a berry when someone is low
-    if (!st.over && run.items.berry) {
-      const low = B.alive(st, 0).find(f => f.hp / f.maxHp < 0.3);
-      if (low) { B.useItem(st, 'berry', low.id); run.items.berry--; }
-    }
+function shop(run) {
+  const owned = new Set(run.units.map(u => u.sp));
+  // 1: copies of what we own
+  for (let i = 0; i < run.shop.length; i++) if (run.shop[i] && owned.has(run.shop[i]) && R.canBuy(run, i)) { R.buy(run, i); R.merges(run); }
+  // 2: fill the board
+  while (R.onBoard(run).length + R.onBench(run).length < R.cap(run) + 1) {
+    let best = -1;
+    for (let i = 0; i < run.shop.length; i++) if (run.shop[i] && R.canBuy(run, i) && (best < 0 || G.TIER[run.shop[i]] > G.TIER[run.shop[best]])) best = i;
+    if (best < 0) break;
+    R.buy(run, best); R.merges(run);
   }
-  rounds.push(n);
-  return st;
+  // 3: level up while keeping 10 for interest
+  while (run.gold >= 14 && run.tlv < 8) R.buyXp(run);
+  // 4: late rerolls for copies
+  let rolls = 0;
+  while (run.round >= 8 && run.gold >= 22 && rolls++ < 6) {
+    R.reroll(run);
+    const own = new Set(run.units.map(u => u.sp));
+    for (let i = 0; i < run.shop.length; i++) if (run.shop[i] && own.has(run.shop[i]) && R.canBuy(run, i)) { R.buy(run, i); R.merges(run); }
+  }
+  // bench full: sell the weakest bench units
+  while (R.freeBench(run) < 0) { const w = R.onBench(run).sort((a, b) => power(a) - power(b))[0]; R.sell(run, w.uid); }
+  // swap stronger bench units onto the board
+  for (const b of R.onBench(run).sort((a, c) => power(c) - power(a))) {
+    const weakest = R.onBoard(run).sort((a, c) => power(a) - power(c))[0];
+    if (weakest && power(b) > power(weakest)) { const x = weakest.x, y = weakest.y; R.placeBench(run, weakest.uid, b.slot); R.placeBoard(run, b.uid, x, y); }
+  }
+  R.autoPlace(run);
+  for (const u of run.units) if (!u.charm && run.charms.length) R.equipCharm(run, u.uid, run.charms[0]);
 }
 
-for (let i = 0; i < N; i++) {
-  const seed = 1000 + i * 7;
-  const starter = ['cind', 'bubb', 'sprt'][i % 3];
-  const run = R.newRun({ up: {} }, starter, seed, DEPTH);
-  let alive = true;
+for (let n = 0; n < N; n++) {
+  const seed = 5000 + n * 11;
+  const run = R.newRun({ up: {} }, seed, DEPTH);
+  R.giveStarter(run, R.starterChoices({}, seed)[0]);
   try {
-    outer: while (true) {
-      while (true) {
-        const opts = R.reachable(run);
-        if (!opts.length) break;
-        // prefer battles/elites early, rest when hurt
-        const hurt = run.party.reduce((s, p) => s + p.hpPct, 0) / run.party.length < 0.55;
-        const nodes = opts.map(id => R.nodeById(run, id));
-        let node = nodes.find(n => hurt && n.type === 'rest') || nodes.find(n => n.type === 'boss') || R.pick(run, nodes);
-        R.enterNode(run, node.id);
-        if (node.type === 'battle' || node.type === 'elite' || node.type === 'boss') {
-          if (node.type === 'boss') lvAtBoss[run.act].push(R.active(run).reduce((s, p) => s + p.lvl, 0) / Math.max(1, R.active(run).length));
-          const st = fight(run, node, seed + run.step);
-          R.afterBattle(run, st);
-          if (st.over !== 1) { const k = run.act + ':' + node.type; deaths[k] = (deaths[k] || 0) + 1; alive = false; break outer; }
-          const rw = R.rewards(run, st, node);
-          run.gold += rw.gold;
-          R.grantXp(run, rw.xp, st.f.filter(f => f.side === 0).map(f => f.inst.uid));
-          for (const p of run.party) while (R.canEvolve(run, p)) R.evolve(run, p, R.mutOptions(run, p)[0]);
-          if (rw.recruit.length && run.party.length < R.partyCap(run)) R.recruit(run, rw.recruit[0]);
-          if (rw.relics.length) R.addRelic(run, rw.relics[0]);
-          for (const f of R.fusionsAvailable(run)) R.fuse(run, f);
-          if (node.type === 'boss') {
-            R.takePerk(run, rw.perk[0]);
-            R.bossCleared(run);
-            if (run.act === 3) { wins++; break outer; }
-            R.nextAct(run, R.pick(run, G.ACTS[run.act + 1]));
-            continue;
-          }
-        } else if (node.type === 'rest') R.restHeal(run);
-        else if (node.type === 'treasure') R.addRelic(run, R.relicChoices(run, 3)[0]);
-        else if (node.type === 'den') { if (run.party.length < R.partyCap(run)) R.recruit(run, R.denChoices(run, node)[0]); }
-        else if (node.type === 'shop') {
-          const s = R.shopStock(run);
-          for (const it of s.items) if (it.kind === 'relic' || it.kind === 'item') R.buy(run, it);
-        }
-        // equip spare charms
-        for (const p of run.party) if (!p.charm && run.charms.length) R.equipCharm(run, p.uid, run.charms[0]);
-        // order party: strongest first
-        run.party.sort((a, b) => (b.hpPct > 0) - (a.hpPct > 0) || b.lvl - a.lvl);
+    while (!run.over) {
+      shop(run);
+      for (const f of R.fusionsAvailable(run)) R.fuse(run, f);
+      const st = C.create(R.fightOpts(run, seed + run.round * 101));
+      C.resolve(st);
+      for (const u of st.units) if (u.hp > u.maxHp || u.hp < 0 || Number.isNaN(u.hp)) throw new Error('bad hp ' + u.name + ' ' + u.hp);
+      fightLen.push(st.t);
+      const kind = R.roundKind(run.round), stage = R.stageOf(run.round), round = run.round;
+      if (kind === 'boss') { bossTries[stage]++; if (st.over === 1) bossWins[stage]++; }
+      const res = R.endRound(run, st);
+      const rec = byRound[round] = byRound[round] || { n: 0, win: 0, hp: 0, lv: 0, units: 0, stars: 0 };
+      rec.n++; rec.win += res.win ? 1 : 0; rec.hp += run.hp; rec.lv += run.tlv; rec.units += R.onBoard(run).length;
+      rec.stars += R.onBoard(run).reduce((s, u) => s + u.star, 0) / Math.max(1, R.onBoard(run).length);
+      for (const p of run.pending || []) {
+        if (p.k === 'relic') R.addRelic(run, p.opts[0]);
+        if (p.k === 'perk') R.takePerk(run, p.opts[0]);
+        if (p.k === 'biome') R.setBiome(run, R.pick(run, p.opts));
       }
+      run.pending = [];
+      for (const u of R.merges(run)) R.applyMut(run, u, R.mutOptions(run, u)[0]);
+      if (run.round > 40) throw new Error('runaway run');
     }
+    if (run.over === 1) wins++; else deathRound.push(run.round);
   } catch (e) { errors++; if (errors < 4) console.error(e.stack); }
 }
 const avg = a => a.length ? (a.reduce((s, x) => s + x, 0) / a.length).toFixed(1) : '-';
-console.log(`runs ${N}  depth ${DEPTH}  wins ${wins} (${(100 * wins / N).toFixed(0)}%)  errors ${errors}`);
-console.log('deaths', JSON.stringify(deaths));
-console.log('avg active level at boss per act', lvAtBoss.map(avg).join(' / '));
-console.log('avg rounds per battle', avg(rounds), ' max', Math.max(...rounds));
+console.log(`runs ${N}  depth ${DEPTH}  wins ${wins} (${(100 * wins / N).toFixed(0)}%)  errors ${errors}  avg death round ${avg(deathRound)}`);
+console.log('boss win rate by stage', bossTries.map((t, i) => t ? (100 * bossWins[i] / t).toFixed(0) + '%' : '-').join(' / '));
+console.log('fight length avg', avg(fightLen) + 's', 'max', Math.max(...fightLen).toFixed(1) + 's');
+console.log('round  win%   hp  lv  units  stars');
+for (const r of Object.keys(byRound).map(Number).sort((a, b) => a - b)) {
+  const x = byRound[r];
+  console.log(String(r).padStart(5), String(Math.round(100 * x.win / x.n)).padStart(5), String(Math.round(x.hp / x.n)).padStart(5),
+    (x.lv / x.n).toFixed(1).padStart(4), (x.units / x.n).toFixed(1).padStart(6), (x.stars / x.n).toFixed(2).padStart(6), ' n=' + x.n);
+}
 process.exit(errors ? 1 : 0);

@@ -1,7 +1,7 @@
-// Glimmerdeep UI: screens, map, battle playback, reward flows, shop, team, camp.
+// Glimmerdeep UI: title, auto-chess planning (shop, bench, board, drag and drop), live fight playback, rewards, camp.
 (function () {
 'use strict';
-const G = window.GD, B = window.GB, R = window.GR;
+const G = window.GD, C = window.GC, R = window.GR;
 const $ = (s, r) => (r || document).querySelector(s);
 const IMG = k => 'img/' + k + '.webp';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -15,7 +15,7 @@ function load() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE) || 'null');
     if (s && s.meta) Object.assign(meta, s.meta);
-    if (s && s.run && s.run.v === 1) run = s.run;
+    if (s && s.run && s.run.v === 2) run = s.run;
   } catch (e) { /* private mode or bad save: start fresh */ }
 }
 function save() {
@@ -53,10 +53,9 @@ const SFX = {
 function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); }
 const elBadge = (el, cls) => `<img class="${cls || 'badge'}" src="${IMG('el_' + el)}" alt="${G.EL[el] ? G.EL[el].name : ''}">`;
-function monImg(inst, cls) { return `<img class="${cls || ''}${inst.shiny ? ' shiny' : ''}" src="${IMG(B.instArt(inst))}" alt="">`; }
+function monImg(inst, cls) { return `<img class="${cls || ''}${inst.shiny ? ' shiny' : ''}" src="${IMG(C.art(inst))}" alt="">`; }
 function hpClass(p) { return p < 0.3 ? 'low' : p < 0.6 ? 'mid' : ''; }
 function bar(p, cls) { p = Math.max(0, Math.min(1, p)); return `<div class="bar ${cls || ''}"><i class="${cls ? '' : hpClass(p)}" style="width:${(p * 100).toFixed(1)}%"></i></div>`; }
-const ROLE_N = { striker: 'Striker', caster: 'Caster', tank: 'Tank', support: 'Support' };
 function skillTag(sk) {
   const t = { foe: 'Single', lowfoe: 'Weakest', foes: 'All foes', foe3: '3 hits', foe5: '5 hits', foe6: '6 hits', ally: 'Heal ally', allies: 'Team', self: 'Self' }[sk.t];
   return (sk.ult ? 'ULT · ' : '') + t + (sk.pow ? ' · ' + sk.pow : '') + (sk.cd ? ' · CD ' + sk.cd : '') + (sk.rng ? ' · Ranged' : '');
@@ -80,8 +79,9 @@ function closeModal() { M.classList.remove('on'); modalHandler = null; MB.innerH
 async function ask(title, body, acts) { const v = await modal(title, body, acts); closeModal(); return v; }
 const btn = (v, label, cls) => `<button class="btn ${cls || ''}" data-v="${esc(v)}">${label}</button>`;
 
-// ---- title / pick ---------------------------------------------------------------------------
+// ---- title / new run -------------------------------------------------------------------------
 function renderTitle() {
+  stopFight();
   const m = $('#titleMenu');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="row">${btn('dex', 'Glimdex', 'ghost sm')}${btn('how', 'How to Play', 'ghost sm')}${btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost sm')}</div>` +
@@ -92,10 +92,10 @@ $('#titleMenu').addEventListener('click', async e => {
   const t = e.target.closest('[data-v]'); if (!t) return;
   SFX.click();
   const v = t.dataset.v;
-  if (v === 'cont') { if (run.pendingBattle != null) { renderMap(); startBattle(R.nodeById(run, run.pendingBattle)); } else renderMap(); }
+  if (v === 'cont') renderGame();
   else if (v === 'new') {
     if (run && await ask('Abandon run?', '<p style="text-align:center">Your current run will be lost.</p>', btn('y', 'Abandon', 'ghost') + btn('n', 'Keep it', 'green')) !== 'y') return;
-    renderPick();
+    newRunFlow();
   }
   else if (v === 'camp') renderCamp();
   else if (v === 'dex') showDex();
@@ -104,770 +104,574 @@ $('#titleMenu').addEventListener('click', async e => {
 });
 document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g && !M.contains(g)) { SFX.click(); if (g.dataset.go === 'title') renderTitle(); } });
 
-let pickDepth = 0;
-function renderPick() {
+async function newRunFlow() {
+  let depth = 0;
+  if (meta.depthMax) {
+    let d = '';
+    for (let i = 0; i <= meta.depthMax; i++) d += btn('d' + i, i ? 'Depth ' + i : 'Normal', i ? 'ghost sm' : 'green sm');
+    const v = await ask('Difficulty', '<p class="muted" style="text-align:center">Each Depth makes enemies 8% stronger and pays more shards.</p>', d);
+    depth = +v.slice(1) || 0;
+  }
   const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
   const opts = R.starterChoices(meta, seed);
-  pickDepth = Math.min(pickDepth, meta.depthMax);
-  $('#pickCards').innerHTML = opts.map(sp => {
-    const S = G.SP[sp];
-    const sks = S.sk.slice(0, 3).map(id => G.SK[id].n).join(' · ');
-    return `<div class="card el-${S.el}" data-sp="${sp}"><div class="art"><img src="${IMG('cr_' + sp + '1')}" alt=""></div>
-      <h3>${S.names[0]}</h3><div class="row center" style="margin-top:4px">${elBadge(S.el)}<span class="tag">${ROLE_N[S.role]}</span></div>
-      <p>${sks}</p><p>Evolves into ${S.names[1]} (L${G.EVO_LV[1]}) and ${S.names[2]} (L${G.EVO_LV[2]})</p></div>`;
-  }).join('');
-  let d = '';
-  for (let i = 0; i <= meta.depthMax; i++) d += `<button class="btn sm ${i === pickDepth ? 'green' : 'ghost'}" data-depth="${i}">${i ? 'Depth ' + i : 'Normal'}</button>`;
-  $('#pickDepth').innerHTML = meta.depthMax ? `<span class="muted small">Difficulty:</span>${d}` : '';
-  $('#pickCards').dataset.seed = seed;
-  show('pick');
-}
-$('#pickDepth').addEventListener('click', e => { const t = e.target.closest('[data-depth]'); if (t) { pickDepth = +t.dataset.depth; renderPick(); } });
-$('#pickCards').addEventListener('click', e => {
-  const c = e.target.closest('[data-sp]'); if (!c) return;
-  SFX.lvl();
-  run = R.newRun(meta, c.dataset.sp, +$('#pickCards').dataset.seed, pickDepth);
+  run = R.newRun(meta, seed, depth);
   meta.runs++;
-  for (const p of run.party) meta.caught[p.sp] = 1;
-  save();
-  renderMap();
-  toast('Welcome to the ' + G.BIOMES[run.biome].name + '!');
-});
+  show('game'); renderGame();
+  const v = await ask('Choose your first creature', `<p class="muted" style="text-align:center">Buy more from the shop each round. Three copies of a creature merge and evolve it.</p><div class="cards">${opts.map(sp => {
+    const S = G.SP[sp], sk = G.SK[S.sk[1]];
+    return `<div class="card el-${S.el}" data-v="${sp}"><div class="art"><img src="${IMG('cr_' + sp + '1')}" alt=""></div><h3>${S.names[0]}</h3>
+      <div class="row center" style="margin-top:4px">${elBadge(S.el)}<span class="tag">${ROLE_N[S.role]}</span><span class="tag">Range ${G.RANGE[sp]}</span></div><p><b>${sk.n}</b>: ${sk.d}</p></div>`;
+  }).join('')}</div>`);
+  R.giveStarter(run, v);
+  meta.caught[v] = 1;
+  SFX.lvl(); save(); renderGame();
+  toast('Drag creatures onto your half of the board, then press FIGHT!');
+}
 
-// ---- map ------------------------------------------------------------------------------------
-const NODE_ICON = { battle: 'node_battle', elite: 'node_elite', den: 'node_den', shop: 'node_shop', rest: 'node_rest', event: 'node_event', treasure: 'node_treasure', boss: 'node_boss' };
-const NODE_N = { battle: 'Wild battle', elite: 'Elite battle', den: 'Creature den', shop: 'Shop', rest: 'Campfire', event: 'Mystery', treasure: 'Treasure', boss: 'Boss' };
-function topbar(where) {
+// ---- the game screen -------------------------------------------------------------------------
+const ROLE_N = { striker: 'Striker', caster: 'Caster', tank: 'Guardian', support: 'Support', boss: 'Boss' };
+const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
+const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
+let phase = 'plan';
+function starsTxt(n) { return '★'.repeat(n); }
+const SIZE = [0, 74, 90, 106];
+function unitHtml(key, o) {
+  const pos = o.bench ? '' : `left:${o.x * 12.5}%;top:${o.y * 20}%;`;
+  const sz = o.boss ? 175 : SIZE[o.star || 1];
+  const face = o.side === 1 ? 'faceL' : 'faceR';
+  return `<div class="unit side${o.side} ${face} ${o.mine ? 'mine' : ''} ${o.boss ? 'boss' : ''} ${o.elite ? 'elite' : ''} ${o.preview ? 'preview' : ''}" data-k="${key}" ${o.uid != null ? `data-uid="${o.uid}"` : ''} style="${pos}--sz:${sz}%">
+    <div class="uhud">${o.bench ? '' : `<div class="bar hp"><i style="width:${100 * (o.hp == null ? 1 : o.hp / o.maxHp)}%"></i><i class="sh" style="width:0%"></i></div><div class="bar mp"><i style="width:${o.mana || 0}%"></i></div>`}
+      <div class="stars">${o.boss ? '♛' : starsTxt(o.star || 1)}</div><div class="sts"></div></div>
+    <div class="rig"><img class="spr${o.shiny ? ' shiny' : ''}" src="${IMG(o.art)}" alt=""></div><div class="shadow"></div></div>`;
+}
+function topHtml() {
+  const kind = R.roundKind(run.round);
   const bi = G.BIOMES[run.biome];
-  return `<button class="iconbtn" data-top="menu">☰</button><div class="grow"><div class="title">${bi.name}</div><div class="small muted">Act ${run.act + 1} of 4${run.depth ? ' · Depth ' + run.depth : ''}</div></div>
-    <span class="pill"><img src="${IMG('ui_gold')}" alt="">${run.gold}</span>
-    <button class="iconbtn" data-top="bag" title="Relics, charms and items"><img src="${IMG('node_treasure')}" alt=""></button>
-    <button class="iconbtn" data-top="team" title="Team"><img src="${IMG(B.instArt(run.party[0]))}" alt=""></button>`;
+  const boss = kind === 'boss' ? ' · ' + G.BOSSES[bi.boss].name : '';
+  return `<button class="iconbtn" data-top="menu">☰</button>
+    <div class="grow"><div class="title">Round ${run.round}/${G.ROUNDS} · <span style="color:${kind === 'boss' ? '#ff7b8f' : kind === 'elite' ? '#ffd65a' : 'inherit'}">${KIND_N[kind]}${boss}</span></div><div class="small muted">${bi.name}${run.depth ? ' · Depth ' + run.depth : ''}${run.streak > 1 ? ' · win streak ' + run.streak : run.streak < -1 ? ' · loss streak ' + -run.streak : ''}</div></div>
+    <span class="pill hp-pill">♥ ${run.hp}</span><span class="pill"><img src="${IMG('ui_gold')}" alt="">${run.gold}</span>
+    <button class="iconbtn" data-top="bag" title="Relics, charms and items"><img src="${IMG('node_treasure')}" alt=""></button>`;
 }
-function renderMap() {
+function traitsHtml(insts) {
+  const c = C.traitCounts(insts.filter(i => !i.boss));
+  const bi = G.BIOMES[run.biome];
+  let h = `<span class="trait haz" data-tr="haz">⚠ ${bi.hazName}</span>`;
+  const items = [];
+  for (const e of G.ELS) if (c.el[e]) items.push({ k: 'el:' + e, on: c.el[e] >= G.EL_AT[0], html: `<span class="trait el-${e} ${c.el[e] >= G.EL_AT[0] ? 'on' : ''}" data-tr="el:${e}">${elBadge(e)}${G.EL[e].name} ${c.el[e]}/${c.el[e] >= G.EL_AT[0] ? G.EL_AT[1] : G.EL_AT[0]}</span>` });
+  for (const r in G.ROLE_TRAITS) if (c.role[r]) {
+    const T = G.ROLE_TRAITS[r], n = c.role[r], next = T.at.find(a => a > n) || T.at[T.at.length - 1];
+    items.push({ k: 'role:' + r, on: n >= T.at[0], html: `<span class="trait role ${n >= T.at[0] ? 'on' : ''}" data-tr="role:${r}">${T.n} ${n}/${next}</span>` });
+  }
+  items.sort((a, b) => b.on - a.on);
+  return h + items.map(i => i.html).join('');
+}
+$('#gTraits').addEventListener('click', e => {
+  const t = e.target.closest('[data-tr]'); if (!t) return;
+  const k = t.dataset.tr;
+  if (k === 'haz') { const bi = G.BIOMES[run.biome]; return toast(`${bi.hazName}: ${bi.hazDesc} Counter: ${bi.counter}.`); }
+  const [kind, id] = k.split(':');
+  if (kind === 'el') toast(`${G.EL[id].name} (${G.EL_AT.join('/')} different species): ${G.TRAITS[id].join(' · ')}`);
+  else { const T = G.ROLE_TRAITS[id]; toast(`${T.n} (${T.at.join('/')}): ${T.d.join(' · ')}`); }
+});
+function renderCells() {
+  let h = '';
+  for (let y = 0; y < C.H; y++) for (let x = 0; x < C.W; x++) h += `<div class="cell ${x < R.PW ? 'a' : 'f'} ${(x + y) % 2 ? 'alt' : ''}" data-x="${x}" data-y="${y}"></div>`;
+  $('#cells').innerHTML = h;
+}
+function renderGame() {
   if (!run) return renderTitle();
-  const m = run.map, bi = G.BIOMES[run.biome];
-  $('#mapBg').style.backgroundImage = `url(${IMG(bi.bg)})`;
-  $('#mapTop').innerHTML = topbar();
-  $('#mapHaz').innerHTML = `<div class="grow"><div class="hz">Hazard: ${bi.hazName}</div><div class="small">${bi.hazDesc}</div><div class="small muted">Counter: ${bi.counter}</div></div>`;
-  const rowH = 92, H = (m.rows + 1) * rowH + 70;
-  const can = new Set(R.reachable(run));
-  const pos = n => ({ x: n.type === 'boss' ? 50 : (n.c + 0.5) * 25, y: H - 50 - n.r * rowH });
-  let svg = `<svg viewBox="0 0 100 ${H}" preserveAspectRatio="none">`;
-  for (const n of m.nodes) for (const id of n.next) {
-    const a = pos(n), b = pos(R.nodeById(run, id));
-    const lit = m.done.includes(n.id) && (m.done.includes(id) || can.has(id));
-    svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${lit ? '#ffd65a' : 'rgba(255,255,255,.35)'}" stroke-width="${lit ? 0.9 : 0.6}" stroke-dasharray="${lit ? '' : '1.4 1.4'}" vector-effect="non-scaling-stroke" style="stroke-width:${lit ? 4 : 3}px"/>`;
+  stopFight();
+  phase = 'plan';
+  $('#game').classList.remove('fighting');
+  boardEl.classList.remove('ult');
+  show('game');
+  $('#gBg').style.backgroundImage = `url(${IMG(G.BIOMES[run.biome].bg)})`;
+  $('#gTop').innerHTML = topHtml();
+  const board = R.onBoard(run);
+  $('#gTraits').innerHTML = traitsHtml(board);
+  if (!$('#cells').children.length) renderCells();
+  // my board + the next enemy board
+  let h = board.map(u => unitHtml('p' + u.uid, { uid: u.uid, x: u.x, y: u.y, star: u.star, side: 0, mine: true, art: C.art(u), shiny: u.shiny })).join('');
+  R.enemyBoard(run).forEach((p, i) => { h += unitHtml('e' + i, { x: p.x, y: p.y, star: p.inst.star, side: 1, boss: p.inst.boss, elite: p.inst.elite, art: C.art(p.inst), preview: true }); });
+  unitsEl.innerHTML = h;
+  fxEl.innerHTML = '';
+  let b = '';
+  for (let i = 0; i < R.BENCH; i++) {
+    const u = R.benchAt(run, i);
+    b += `<div class="bslot" data-slot="${i}">${u ? unitHtml('p' + u.uid, { uid: u.uid, bench: true, star: u.star, side: 0, mine: true, art: C.art(u), shiny: u.shiny }) : ''}</div>`;
   }
-  svg += '</svg>';
-  let html = svg;
-  for (const n of m.nodes) {
-    const p = pos(n);
-    const cls = ['node', n.type === 'boss' ? 'boss' : '', m.done.includes(n.id) ? 'done' : '', m.cur === n.id ? 'cur' : '', can.has(n.id) ? 'can' : ''].join(' ');
-    let pv = '';
-    if ((run.perks.scout || n.r === 0 || can.has(n.id)) && n.preview) pv = `<div class="pv">${n.preview.map(sp => elBadge(G.SP[sp].el)).join('')}</div>`;
-    html += `<div class="${cls}" data-node="${n.id}" style="left:${p.x}%;top:${p.y}px" title="${NODE_N[n.type]}"><img src="${IMG(NODE_ICON[n.type])}" alt="${NODE_N[n.type]}">${pv}</div>`;
+  benchEl.innerHTML = b;
+  renderShop();
+  save();
+}
+function renderShop() {
+  const owned = new Set(run.units.map(u => u.sp));
+  const n = R.shopSize(run);
+  $('#shop').style.setProperty('--n', n);
+  $('#shop').innerHTML = run.shop.slice(0, n).map((sp, i) => {
+    if (!sp) return '<div class="scard empty"></div>';
+    const S = G.SP[sp], t = G.TIER[sp];
+    return `<div class="scard t${t} ${run.gold < t ? 'poor' : ''} ${owned.has(sp) ? 'have' : ''}" data-buy="${i}" title="${esc(G.SK[S.sk[1]].n + ': ' + G.SK[S.sk[1]].d)}">
+      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span><img class="m" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
+  }).join('');
+  const nb = R.onBoard(run).length, cap = R.cap(run);
+  const need = run.tlv < 9 ? G.TXP[run.tlv] : 1;
+  $('#shopBtns').innerHTML = `${btn('reroll', `Reroll ${R.rerollCost(run)}g`, 'blue sm')}
+    <button class="btn sm ghost" data-v="xp" ${run.tlv >= 9 ? 'disabled' : ''}>Buy XP 4g</button>
+    <div class="lv"><span>Tamer Lv ${run.tlv}</span>${bar(run.tlv >= 9 ? 1 : run.txp / need, 'xp')}<span class="small muted">${run.tlv >= 9 ? 'MAX' : run.txp + '/' + need + ' XP'}</span></div>
+    <button class="btn sm ${run.locked ? 'green' : 'ghost'}" data-v="lock" title="Keep this shop for next round">${run.locked ? 'Locked' : 'Lock'}</button>
+    <span class="cap ${nb === cap ? 'full' : nb > cap ? 'over' : ''}">Board ${nb}/${cap}</span><span class="grow"></span>
+    ${btn('fight', 'FIGHT!', 'green')}`;
+}
+$('#shop').addEventListener('click', async e => {
+  const c = e.target.closest('[data-buy]'); if (!c || phase !== 'plan') return;
+  const i = +c.dataset.buy;
+  if (!R.canBuy(run, i)) { toast(run.gold < G.TIER[run.shop[i]] ? 'Not enough gold.' : 'Your bench is full.'); return; }
+  const u = R.buy(run, i);
+  SFX.coin();
+  meta.caught[u.sp] = 1;
+  await afterChange();
+});
+$('#shopBtns').addEventListener('click', async e => {
+  const b = e.target.closest('[data-v]'); if (!b || phase !== 'plan') return;
+  SFX.click();
+  const v = b.dataset.v;
+  if (v === 'reroll') { if (!R.reroll(run)) toast('Not enough gold.'); renderGame(); }
+  else if (v === 'xp') { const lv = run.tlv; if (!R.buyXp(run)) toast('Not enough gold.'); else if (run.tlv > lv) { SFX.lvl(); toast(`Tamer level ${run.tlv}: room for ${run.tlv} creatures on the board.`); } renderGame(); }
+  else if (v === 'lock') { run.locked = !run.locked; renderShop(); save(); }
+  else if (v === 'fight') startFight();
+});
+// merges after anything that adds copies, with a mutation pick for each
+async function afterChange() {
+  const ups = R.merges(run);
+  renderGame();
+  for (const u of ups) {
+    SFX.lvl();
+    await evolveFlow(u);
+    const more = R.merges(run);
+    ups.push(...more);
+    renderGame();
   }
-  const inner = $('#mapInner');
-  inner.style.height = H + 'px';
-  inner.innerHTML = html;
-  renderPartyBar();
-  show('map');
-  // keep the current position in view
-  const cur = m.cur != null ? pos(R.nodeById(run, m.cur)).y : H;
-  const w = $('#mapWrap');
-  requestAnimationFrame(() => { w.scrollTop = Math.max(0, cur - w.clientHeight * 0.6); });
 }
-function renderPartyBar() {
-  $('#mapParty').innerHTML = run.party.map((p, i) => `<div class="pm ${i >= 4 ? 'bench' : ''} ${p.hpPct <= 0 ? 'ko' : ''}" data-uid="${p.uid}">
-    ${R.canEvolve(run, p) ? '<span class="evo">EVO</span>' : ''}${monImg(p)}<div class="lv">${esc(B.instName(p))} L${p.lvl}</div>${bar(p.hpPct)}</div>`).join('');
-}
-$('#mapParty').addEventListener('click', e => { const t = e.target.closest('[data-uid]'); if (t) { SFX.click(); teamDetail(+t.dataset.uid); } });
-document.addEventListener('click', e => {
-  const t = e.target.closest('[data-top]'); if (!t) return;
-  SFX.click();
-  const v = t.dataset.top;
-  if (v === 'bag') bagScreen(); else if (v === 'team') teamScreen(); else if (v === 'menu') menuScreen();
-});
-$('#mapInner').addEventListener('click', e => {
-  const t = e.target.closest('.node.can'); if (!t || busyMap) return;
-  SFX.click();
-  enter(+t.dataset.node);
-});
-let busyMap = false;
-async function enter(id) {
-  busyMap = true;
-  try {
-    const node = R.enterNode(run, id);
-    save();
-    if (node.type === 'battle' || node.type === 'elite' || node.type === 'boss') { busyMap = false; return startBattle(node); }
-    if (node.type === 'treasure') await treasure();
-    else if (node.type === 'rest') await rest();
-    else if (node.type === 'shop') await shop();
-    else if (node.type === 'event') { if (await eventNode(node) === 'battle') return; }
-    else if (node.type === 'den') await den(node);
-    save();
-    renderMap();
-  } finally { busyMap = false; }
+async function evolveFlow(u) {
+  const S = G.SP[u.sp];
+  modal(`${S.names[u.star - 2]} is evolving!`, `<div class="evo-stage"><div class="glow"></div><img src="${IMG('cr_' + u.sp + (u.star - 1))}" class="${u.shiny ? 'shiny' : ''}" style="filter:brightness(5)"></div>`);
+  SFX.ult(); await sleep(650);
+  const img = MB.querySelector('.evo-stage img');
+  if (img) { img.src = IMG(C.art(u)); await sleep(450); img.style.filter = ''; }
+  const opts = R.mutOptions(run, u);
+  const ult = u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its stats nearly double again.</p>';
+  const m = await ask(`${starsTxt(u.star)} ${S.names[u.star - 1]}!`, `<div class="evo-stage" style="height:190px"><img src="${IMG(C.art(u))}" class="${u.shiny ? 'shiny' : ''}" style="max-height:180px"></div>${ult}<p class="muted" style="text-align:center">Choose a mutation:</p><div class="cards">${opts.map(k => `<div class="card" data-v="${k}"><h3>${G.MUTS[k].n}</h3><p>${G.MUTS[k].d}</p></div>`).join('')}</div>`);
+  R.applyMut(run, u, m);
+  if (u.el2) toast(`${C.name(u)} also counts as ${G.EL[u.el2].name} now!`);
+  meta.dex[u.sp] = Math.max(meta.dex[u.sp] || 0, u.star);
+  save();
 }
 
-// ---- battle ---------------------------------------------------------------------------------
-let BS = null;
-const arena = $('#arena');
-function slotPos(f, st) {
-  const bossFight = st.f.some(x => x.side === 1 && x.boss);
-  if (f.boss) return { x: 80, b: 14, w: 33, z: 8 };
-  const P = [[31, 34], [35, 6], [12, 38], [15, 9]];
-  let [x, b] = P[f.slot];
-  if (f.side === 1) {
-    x = 100 - x;
-    if (bossFight) [x, b] = [[61, 34], [64, 5], [49, 36], [51, 6]][f.slot];
+// ---- drag and drop -------------------------------------------------------------------------
+let drag = null;
+function dropTarget(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  if (el.closest('#sellZone')) return { sell: true, el: $('#sellZone') };
+  const slot = el.closest('.bslot');
+  if (slot) return { slot: +slot.dataset.slot, el: slot };
+  const cell = el.closest('.cell');
+  if (cell && +cell.dataset.x < R.PW) return { x: +cell.dataset.x, y: +cell.dataset.y, el: cell };
+  const u = el.closest('.unit.mine[data-uid]');
+  if (u && u.parentElement === unitsEl) { const iu = run.units.find(z => z.uid === +u.dataset.uid); if (iu) return { x: iu.x, y: iu.y, el: $(`.cell[data-x="${iu.x}"][data-y="${iu.y}"]`) }; }
+  if (u && u.parentElement.classList.contains('bslot')) return { slot: +u.parentElement.dataset.slot, el: u.parentElement };
+  // on the board but over the enemy half or a gap: snap to the nearest cell of my half
+  const br = boardEl.getBoundingClientRect();
+  if (x >= br.left && x <= br.right && y >= br.top && y <= br.bottom) {
+    const cx = Math.min(R.PW - 1, Math.floor((x - br.left) / br.width * C.W)), cy = Math.min(C.H - 1, Math.floor((y - br.top) / br.height * C.H));
+    return { x: cx, y: cy, el: $(`.cell[data-x="${cx}"][data-y="${cy}"]`) };
   }
-  const far = b > 20;
-  const w = (f.stage === 3 ? 18.5 : f.stage === 2 ? 16 : 13.5) * (far ? 0.9 : 1);
-  return { x, b, w, z: far ? 9 : 11 };
+  return null;
 }
-function monHtml(f, st) {
-  const p = slotPos(f, st);
-  return `<div class="mon side${f.side} ${f.alive ? '' : 'dead'} ${f.elite ? 'elite' : ''} ${f.boss ? 'boss' : ''}" data-id="${f.id}" style="left:${p.x}%;bottom:${p.b}%;--w:${p.w}%;z-index:${p.z}">
-    <div class="hud"><div class="nm">${elBadge(f.el)}<span>${esc(f.name)} ${f.boss ? '' : 'L' + f.lvl}</span></div>
-      <div class="bar hp"><i class="${hpClass(f.hp / f.maxHp)}" style="width:${100 * f.hp / f.maxHp}%"></i><i class="sh" style="width:${Math.min(100, 100 * f.shield / f.maxHp)}%"></i></div>
-      ${f.side === 0 || f.boss ? `<div class="bar od"><i style="width:${f.od}%"></i></div>` : ''}<div class="sts"></div></div>
-    <div class="rig"><img class="spr${f.shiny ? ' shiny' : ''}" src="${IMG(f.art)}" alt=""></div><div class="shadow"></div></div>`;
+document.addEventListener('pointerdown', e => {
+  if (phase !== 'plan' || M.classList.contains('on')) return;
+  const u = e.target.closest('.unit.mine[data-uid]');
+  if (u) { drag = { uid: +u.dataset.uid, sx: e.clientX, sy: e.clientY, el: u, moved: false, tgt: null }; e.preventDefault(); return; }
+  const p = e.target.closest('.unit.preview');
+  if (p) enemyInfo(+p.dataset.k.slice(1));
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6) {
+    drag.moved = true;
+    drag.el.classList.add('dragging');
+    const iu = run.units.find(z => z.uid === drag.uid);
+    drag.ghost = document.createElement('div');
+    drag.ghost.className = 'dragghost';
+    drag.ghost.innerHTML = `<img src="${IMG(C.art(iu))}" class="${iu.shiny ? 'shiny' : ''}">`;
+    document.body.appendChild(drag.ghost);
+    const sz = $('#sellZone'); sz.textContent = `Sell for ${R.sellValue(iu)} gold`; sz.classList.add('on');
+  }
+  if (!drag.moved) return;
+  drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+  const t = dropTarget(e.clientX, e.clientY);
+  if (drag.tgt && drag.tgt.el) drag.tgt.el.classList.remove('hot');
+  drag.tgt = t;
+  if (t && t.el) t.el.classList.add('hot');
+});
+document.addEventListener('pointerup', async e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.ghost) d.ghost.remove();
+  $('#sellZone').classList.remove('on', 'hot');
+  document.querySelectorAll('.hot').forEach(x => x.classList.remove('hot'));
+  if (!d.moved) { unitDetail(d.uid); return; }
+  const t = dropTarget(e.clientX, e.clientY);
+  if (!t) return renderGame();
+  if (t.sell) { const iu = run.units.find(z => z.uid === d.uid); const v = R.sell(run, d.uid); SFX.coin(); toast(`Sold ${C.name(iu)} for ${v} gold.`); }
+  else if (t.slot != null) R.placeBench(run, d.uid, t.slot);
+  else if (!R.placeBoard(run, d.uid, t.x, t.y)) toast(`Board full: Tamer level ${run.tlv} allows ${R.cap(run)} creatures. Buy XP to raise it.`);
+  else SFX.click();
+  renderGame();
+});
+document.addEventListener('pointercancel', () => { if (drag) { if (drag.ghost) drag.ghost.remove(); drag = null; $('#sellZone').classList.remove('on'); renderGame(); } });
+
+// ---- creature detail and loadout ---------------------------------------------------------------
+function statBlock(inst) {
+  const s = C.stats(inst, R.bonus(run));
+  return `<div class="stats"><div>HP<b>${s.hp}</b></div><div>ATK<b>${Math.round(s.atk)}</b></div><div>DEF<b>${Math.round(s.def)}</b></div><div>Speed<b>${s.as.toFixed(2)}</b></div></div>
+    <div class="small">Range ${s.range} · ${inst.boss ? '' : `Strong vs ${G.STRONG[C.elOf(inst)].map(e => G.EL[e].name).join(', ')} · Weak to ${G.ELS.filter(e => G.STRONG[e].includes(C.elOf(inst))).map(e => G.EL[e].name).join(', ')}`}</div>`;
 }
-function monEl(id) { return arena.querySelector(`.mon[data-id="${id}"]`); }
-const ST_LABEL = { burn: 'BRN', poison: 'PSN', soak: 'WET', wet: 'WET', stun: 'STUN', root: 'ROOT', curse: 'CURSE', blind: 'BLIND', atkUp: 'ATK▲', defUp: 'DEF▲', spdUp: 'SPD▲', critUp: 'CRIT▲', dodge: 'EVA▲', regen: 'REGEN', taunt: 'TAUNT' };
-function stsHtml(f) {
+function skillRows(inst, pickable) {
+  const basic = G.SK[C.basicOf(inst)];
+  let h = `<div class="skl el-${basic.el === 'flux' ? 'shade' : basic.el}"><span class="t">${basic.n}</span> <span class="small muted">basic attack</span><div class="small">${basic.d || 'Its regular attack.'}</div></div>`;
+  const cs = C.castables(inst);
+  const all = inst.boss ? cs : G.SP[inst.sp].sk.slice(1);
+  for (const id of all) {
+    const sk = G.SK[id], has = cs.includes(id), sel = inst.skill === id;
+    h += `<div class="skl el-${sk.el === 'flux' ? 'shade' : sk.el} ${has ? '' : 'locked'}" ${pickable && has ? `data-v="sk:${id}" style="cursor:pointer;${sel ? 'box-shadow:inset 3px 0 0 var(--c),0 0 0 2px #fff' : ''}"` : sel ? 'style="box-shadow:inset 3px 0 0 var(--c),0 0 0 2px #fff"' : ''}>
+      <span class="t">${sel ? '● ' : pickable && has ? '○ ' : ''}${sk.n}</span> <span class="small muted">${sk.ult ? 'ULTIMATE · ' : ''}${C.manaCost(id)} mana</span><div class="small">${sk.d}${has ? '' : ' <i>(unlocks at ★2)</i>'}</div></div>`;
+  }
+  return h;
+}
+async function unitDetail(uid) {
+  for (;;) {
+    const u = run.units.find(z => z.uid === uid); if (!u) return;
+    const S = G.SP[u.sp];
+    const body = `<div class="detail"><div class="big el-${S.el}">${monImg(u)}</div><div>
+      <div class="row wrap">${elBadge(S.el)}${u.el2 ? elBadge(u.el2) + '<span class="small muted">Dual</span>' : ''}<span class="tag">${ROLE_N[S.role]}</span><span class="tag" style="color:#ffd65a">${starsTxt(u.star)}</span><span class="tag">Tier ${G.TIER[u.sp]}</span>${u.shiny ? '<span class="tag" style="background:#6a5bff">Shiny +10%</span>' : ''}</div>
+      ${statBlock(u)}
+      <div class="small muted" style="margin-top:4px">${u.star < 3 ? `${R.copiesNeeded(run, u.star)} copies of ★${u.star} merge into ${S.names[u.star]} ★${u.star + 1}.` : 'Final form.'}</div>
+      ${u.muts.length ? `<div class="small" style="margin-top:4px">Mutations: ${u.muts.map(m => `<b>${G.MUTS[m].n}</b> (${G.MUTS[m].d})`).join(', ')}</div>` : ''}
+      <div class="li" style="margin-top:8px">${u.charm ? `<img class="ic" src="${IMG('ch_' + u.charm)}" alt=""><div class="grow"><div class="t">${G.CHARMS[u.charm].n}</div><div class="small">${G.CHARMS[u.charm].d}</div></div>` : '<div class="grow muted">No charm held</div>'}<button class="btn sm ghost" data-v="charm">Change</button></div>
+      </div></div><h3 style="margin:10px 0 4px">Power <span class="small muted">(tap one: it casts automatically when its mana fills)</span></h3>${skillRows(u, true)}`;
+    const acts = (u.at === 'b' ? btn('bench', 'To bench', 'ghost sm') : btn('board', 'To board', 'ghost sm')) + btn('sell', `Sell ${R.sellValue(u)}g`, 'ghost sm') + btn('close', 'Done', 'green sm');
+    const v = await modal(`${starsTxt(u.star)} ${esc(C.name(u))}`, body, acts);
+    closeModal();
+    if (v === 'close') break;
+    if (v.startsWith('sk:')) { u.skill = v.slice(3); save(); continue; }
+    if (v === 'sell') { const g = R.sell(run, u.uid); SFX.coin(); toast(`Sold for ${g} gold.`); break; }
+    if (v === 'bench') { const f = R.freeBench(run); if (f < 0) toast('Your bench is full.'); else R.placeBench(run, u.uid, f); break; }
+    if (v === 'board') {
+      let done = false;
+      for (let x = R.PW - 1; x >= 0 && !done; x--) for (let y = 0; y < C.H && !done; y++) if (!R.unitAt(run, x, y)) done = R.placeBoard(run, u.uid, x, y);
+      if (!done) toast(`Board full: Tamer level ${run.tlv} allows ${R.cap(run)} creatures.`);
+      break;
+    }
+    if (v === 'charm') {
+      const c = await ask('Give a charm', `<div class="list">${Array.from(new Set(run.charms)).map(k => `<div class="li click" data-v="${k}"><img class="ic" src="${IMG('ch_' + k)}" alt=""><div class="grow"><div class="t">${G.CHARMS[k].n} ×${run.charms.filter(x => x === k).length}</div><div class="small">${G.CHARMS[k].d}</div></div></div>`).join('') || '<p class="muted" style="text-align:center">No spare charms. Wild rounds sometimes drop them.</p>'}</div>`, (u.charm ? btn('none', 'Take it off', 'ghost sm') : '') + btn('x', 'Cancel', 'sm'));
+      if (c === 'none') R.equipCharm(run, u.uid, null); else if (c !== 'x') R.equipCharm(run, u.uid, c);
+      save();
+    }
+  }
+  renderGame();
+}
+async function enemyInfo(i) {
+  const p = R.enemyBoard(run)[i]; if (!p) return;
+  const inst = p.inst;
+  await ask(`${inst.boss ? '♛' : starsTxt(inst.star)} ${esc(C.name(inst))}${inst.elite ? ' · ' + inst.elite : ''}`, `<div class="detail"><div class="big el-${C.elOf(inst)}"><img src="${IMG(C.art(inst))}" alt=""></div><div>
+    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}`, btn('ok', 'Close', 'green sm'));
+}
+
+// ---- the fight ---------------------------------------------------------------------------------
+let FS = null;
+function stopFight() { if (FS && FS.raf) cancelAnimationFrame(FS.raf); FS = null; }
+function uEl(id) { return FS && FS.els[id]; }
+function startFight() {
+  if (phase !== 'plan') return;
+  if (!R.onBoard(run).length) { toast('Put at least one creature on the board first.'); return; }
+  if (R.onBoard(run).length < R.cap(run) && R.onBench(run).length) toast(`You have room for ${R.cap(run) - R.onBoard(run).length} more on the board.`);
+  phase = 'fight';
+  const seed = (run.seed * 31 + run.round * 977 + Date.now() % 100000) >>> 0;
+  const st = C.create(R.fightOpts(run, seed));
+  FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0 };
+  $('#game').classList.add('fighting');
+  unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
+  for (const u of st.units) cacheEl(u);
+  renderFightBar();
+  $('#gTraits').innerHTML = traitsHtml(R.onBoard(run));
+  boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
+  const kind = R.roundKind(run.round);
+  if (kind === 'boss') banner(st.units.find(u => u.boss).name, G.BOSSES[st.units.find(u => u.boss).boss].el);
+  SFX.ult();
+  handle(st.ev.splice(0));
+  FS.raf = requestAnimationFrame(loop);
+}
+function cacheEl(u) {
+  const el = unitsEl.querySelector(`[data-k="u${u.id}"]`); if (!el) return;
+  const bars = el.querySelectorAll('.bar i');
+  FS.els[u.id] = { el, hp: bars[0], sh: bars[1], mp: el.querySelector('.bar.mp i'), sts: el.querySelector('.sts'), rig: el.querySelector('.rig'), lastSt: '' };
+}
+function renderFightBar() {
+  $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
+}
+$('#fightBar').addEventListener('click', e => {
+  const b = e.target.closest('[data-v]'); if (!b || !FS) return;
+  SFX.click();
+  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  else if (b.dataset.v === 'skip') { FS.skip = true; }
+});
+function loop(ts) {
+  if (!FS) return;
+  const st = FS.st;
+  const dt = Math.min(0.1, (ts - FS.last) / 1000) * FS.speed;
+  FS.last = ts;
+  if (FS.skip && !st.over) { C.resolve(st); st.ev.length = 0; resyncAll(); }
+  FS.acc += dt;
+  while (FS.acc >= C.DT && !st.over) { FS.acc -= C.DT; const ev = C.tick(st); st.ev.length = 0; handle(ev); }
+  for (const u of st.units) syncBars(u);
+  if (st.over && !FS.ending) { FS.ending = true; setTimeout(endFight, FS.skip ? 200 : 900 / Math.min(2, FS.speed)); }
+  FS.raf = requestAnimationFrame(loop);
+}
+function resyncAll() {
+  for (const u of FS.st.units) {
+    let E = uEl(u.id);
+    if (!E) { unitsEl.insertAdjacentHTML('beforeend', unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, art: u.art })); cacheEl(u); E = uEl(u.id); }
+    E.el.style.left = u.x * 12.5 + '%'; E.el.style.top = u.y * 20 + '%';
+    E.el.classList.toggle('dead', !u.alive);
+  }
+}
+const ST_LABEL = { burn: 'BRN', poison: 'PSN', soak: 'WET', stun: 'STUN', root: 'ROOT', curse: 'CRS', blind: 'BLD', atkUp: 'ATK', defUp: 'DEF', spdUp: 'SPD', critUp: 'CRT', dodge: 'EVA', regen: 'RGN', taunt: 'TNT' };
+function syncBars(u) {
+  const E = uEl(u.id); if (!E) return;
+  E.hp.style.width = (100 * u.hp / u.maxHp) + '%';
+  E.hp.className = hpClass(u.hp / u.maxHp);
+  if (E.sh) E.sh.style.width = Math.min(100, 100 * u.shield / u.maxHp) + '%';
+  if (E.mp) E.mp.style.width = Math.min(100, 100 * u.mana / C.manaNeed(FS.st, u)) + '%';
   let s = '';
-  for (const k in f.st) {
-    if (!ST_LABEL[k]) continue;
-    const cls = ['atkUp', 'defUp', 'spdUp', 'critUp', 'dodge', 'regen'].includes(k) ? 'buff' : k;
-    s += `<span class="st ${cls}">${ST_LABEL[k]}${k === 'poison' ? '×' + f.st[k].n : ''}</span>`;
-  }
-  if (f.elite) s += `<span class="st taunt">${f.elite.toUpperCase()}</span>`;
-  return s;
+  for (const k in u.st) if (ST_LABEL[k]) s += `<span class="st ${['atkUp', 'defUp', 'spdUp', 'critUp', 'dodge', 'regen'].includes(k) ? 'buff' : k}">${ST_LABEL[k]}${k === 'poison' ? u.st[k].n : ''}</span>`;
+  if (s !== E.lastSt) { E.sts.innerHTML = s; E.lastSt = s; }
 }
-function syncMon(f) {
-  const el = monEl(f.id); if (!el) return;
-  el.classList.toggle('dead', !f.alive);
-  setHud(f, f.hp, f.shield);
-  const od = el.querySelector('.bar.od i'); if (od) od.style.width = f.od + '%';
-  el.querySelector('.sts').innerHTML = stsHtml(f);
-  el.querySelector('.nm img').src = IMG('el_' + f.el);
-  el.classList.toggle('focus', BS && BS.st.focus === f.id);
-}
-function renderArena() {
-  const st = BS.st;
-  const bi = G.BIOMES[st.biome];
-  arena.style.backgroundImage = `url(${IMG(bi.bg)})`;
-  const T = st.traits[0];
-  let traits = '';
-  for (const e of G.ELS) if (T[e] >= 0) traits += `<span class="trait el-${e}" title="${G.TRAITS[e][T[e]]}">${G.EL[e].name} ×${T._c[e]}</span>`;
-  arena.innerHTML = `<div class="dim"></div><div class="info"><span class="pill" title="${esc(bi.hazDesc)}">⚠ ${bi.hazName}</span>${traits}</div>
-    <div class="turn pill" id="turnPill">Turn ${st.turn + 1}</div>` + st.f.map(f => monHtml(f, st)).join('');
-  st.f.forEach(syncMon);
-}
-function pop(id, text, cls, dy) {
-  const el = monEl(id); if (!el) return;
-  const a = arena.getBoundingClientRect(), r = el.getBoundingClientRect();
+// positions in board percent
+function cpos(u) { return { x: (u.x + 0.5) * 12.5, y: (u.y + 0.45) * 20 }; }
+function popAt(u, text, cls) {
+  if (!u || FS.popN > 26) return;
   const p = document.createElement('div');
+  const c = cpos(u);
   p.className = 'pop ' + (cls || '');
   p.textContent = text;
-  p.style.left = ((r.left + r.width / 2 - a.left) / a.width * 100) + '%';
-  p.style.top = ((r.top + r.height * 0.35 - a.top) / a.height * 100 + (dy || 0)) + '%';
-  arena.appendChild(p);
-  setTimeout(() => p.remove(), 1300);
+  p.style.left = (c.x + (Math.random() * 4 - 2)) + '%'; p.style.top = (c.y - 6) + '%';
+  fxEl.appendChild(p); FS.popN++;
+  setTimeout(() => { p.remove(); if (FS) FS.popN--; }, 1000);
 }
-function center(id) {
-  const el = monEl(id); if (!el) return null;
-  const a = arena.getBoundingClientRect(), r = el.getBoundingClientRect();
-  return { x: (r.left + r.width / 2 - a.left) / a.width * 100, y: (r.top + r.height * 0.55 - a.top) / a.height * 100, px: r.left + r.width / 2, py: r.top + r.height / 2 };
+function orb(a, b, el, ms) {
+  const A = cpos(a), Bp = cpos(b);
+  const o = document.createElement('div');
+  o.className = 'orb el-' + el;
+  fxEl.appendChild(o);
+  o.animate([{ left: A.x + '%', top: A.y + '%' }, { left: Bp.x + '%', top: Bp.y + '%' }], { duration: ms, easing: 'ease-in', fill: 'forwards' }).finished.then(() => { o.remove(); burst(b, el); }, () => o.remove());
 }
-function fxBurst(id, el) {
-  const c = center(id); if (!c) return;
+function burst(u, el, big) {
+  const c = cpos(u);
   const b = document.createElement('div');
   b.className = 'burst el-' + el;
   b.style.left = c.x + '%'; b.style.top = c.y + '%';
-  arena.appendChild(b); setTimeout(() => b.remove(), 500);
-}
-function fxOrb(from, to, el, ms) {
-  const a = center(from), b = center(to); if (!a || !b) return Promise.resolve();
-  const o = document.createElement('div');
-  o.className = 'orb el-' + el;
-  o.style.left = a.x + '%'; o.style.top = a.y + '%';
-  arena.appendChild(o);
-  const an = o.animate([{ left: a.x + '%', top: a.y + '%' }, { left: b.x + '%', top: b.y + '%' }], { duration: ms, easing: 'ease-in' });
-  return an.finished.then(() => o.remove(), () => o.remove());
-}
-function lunge(from, to, ms) {
-  const el = monEl(from), a = center(from), b = center(to); if (!el || !a || !b) return Promise.resolve();
-  const dx = (b.px - a.px) * 0.55, dy = (b.py - a.py) * 0.4;
-  el.classList.add('actor');
-  // body travel: hang back during the wind-up, dash in, hop back
-  const an = el.animate([{ transform: 'translate(-50%,0)' }, { transform: `translate(calc(-50% + ${-dx * 0.08}px), 0)`, offset: 0.25 },
-    { transform: `translate(calc(-50% + ${dx}px), ${dy}px)`, offset: 0.5 }, { transform: `translate(calc(-50% + ${dx * 0.9}px), ${dy * 0.9}px)`, offset: 0.62 },
-    { transform: 'translate(-50%,0)' }], { duration: ms, easing: 'ease-in-out' });
-  return an.finished.then(() => el.classList.remove('actor'), () => {});
-}
-// ---- creature rig animations (the inner .rig layer, so the idle bob keeps running) ----------
-function rigOf(id) { const el = monEl(id); return el && el.querySelector('.rig'); }
-function faceOf(id) { const f = BS && B.byId(BS.st, id); return f && f.side === 1 ? -1 : 1; }
-const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff' };
-function animRig(id, frames, ms, easing, fill) {
-  const r = rigOf(id); if (!r) return Promise.resolve();
-  return r.animate(frames, { duration: ms, easing: easing || 'ease-out', fill: fill || 'none' }).finished.catch(() => {});
-}
-// kind: melee | ranged | buff | ult
-function animAttack(id, kind, el, ms) {
-  const d = faceOf(id), c = ELC[el] || '#fff', glow = `drop-shadow(0 0 14px ${c}) drop-shadow(0 0 4px #fff)`, none = 'drop-shadow(0 0 0 transparent)';
-  if (kind === 'melee') return animRig(id, [
-    { transform: 'none' },
-    { transform: `translateX(${-6 * d}%) rotate(${-8 * d}deg) scale(1.08, .86)`, offset: 0.25 },          // crouch and coil
-    { transform: `translateX(${6 * d}%) translateY(-10%) rotate(${10 * d}deg) scale(.92, 1.12)`, offset: 0.45 }, // leap
-    { transform: `translateX(${10 * d}%) rotate(${14 * d}deg) scale(1.16, .9)`, offset: 0.55 },             // strike
-    { transform: `rotate(${-3 * d}deg) scale(.97, 1.03)`, offset: 0.8 },
-    { transform: 'none' }], ms, 'ease-in-out');
-  if (kind === 'ranged') return animRig(id, [
-    { transform: 'none', filter: none },
-    { transform: `translateX(${-7 * d}%) rotate(${-10 * d}deg) scale(.95, 1.08)`, filter: glow, offset: 0.4 },   // rear back, charge
-    { transform: `translateX(${7 * d}%) rotate(${6 * d}deg) scale(1.1, .94)`, filter: glow, offset: 0.55 },      // fire
-    { transform: `translateX(${-3 * d}%) scale(.98, 1.02)`, filter: none, offset: 0.78 },                          // recoil
-    { transform: 'none', filter: none }], ms, 'ease-in-out');
-  if (kind === 'ult') return animRig(id, [
-    { transform: 'none', filter: none },
-    { transform: 'translateY(4%) scale(1.15, .8)', filter: glow, offset: 0.2 },
-    { transform: `translateY(-16%) rotate(${-6 * d}deg) scale(1.2)`, filter: glow, offset: 0.5 },
-    { transform: `translateY(-12%) rotate(${6 * d}deg) scale(1.25)`, filter: glow, offset: 0.7 },
-    { transform: 'translateY(2%) scale(1.1, .9)', filter: none, offset: 0.88 },
-    { transform: 'none', filter: none }], ms, 'ease-in-out');
-  return animRig(id, [                                                                             // buff / heal / shield
-    { transform: 'none', filter: none },
-    { transform: 'translateY(3%) scale(1.12, .85)', offset: 0.2 },
-    { transform: 'translateY(-14%) scale(.94, 1.1)', filter: glow, offset: 0.5 },
-    { transform: 'translateY(2%) scale(1.1, .9)', filter: glow, offset: 0.75 },
-    { transform: 'none', filter: none }], ms, 'ease-in-out');
-}
-// knocked away from the attacker; crits hit harder and shake the arena
-function animHit(id, attackerId, crit, dot) {
-  const d = attackerId != null ? (faceOf(attackerId) || 1) : -faceOf(id);
-  const k = crit ? 16 : 8;
-  const flash = dot === 'burn' ? 'brightness(1.6) sepia(1) saturate(5) hue-rotate(-25deg)' : dot === 'poison' ? 'brightness(1.3) sepia(1) saturate(4) hue-rotate(230deg)'
-    : dot ? 'brightness(1.8)' : 'brightness(3) saturate(0)';
-  if (crit) arena.animate([{ transform: 'none' }, { transform: 'translate(-7px,4px)' }, { transform: 'translate(6px,-4px)' }, { transform: 'translate(-3px,2px)' }, { transform: 'none' }], { duration: 300 });
-  if (dot) return animRig(id, [{ transform: 'none', filter: 'none' }, { transform: 'scale(1.05, .93)', filter: flash, offset: 0.3 }, { transform: 'scale(.98, 1.02)', filter: 'none', offset: 0.7 }, { transform: 'none', filter: 'none' }], 320);
-  return animRig(id, [
-    { transform: 'none', filter: 'none' },
-    { transform: `translateX(${k * d}%) rotate(${(crit ? 16 : 9) * d}deg) scale(.9, 1.06)`, filter: flash, offset: 0.12 },
-    { transform: `translateX(${k * 0.9 * d}%) rotate(${6 * d}deg) scale(1.06, .92)`, filter: 'none', offset: 0.35 },
-    { transform: `translateX(${-2 * d}%) rotate(${-3 * d}deg)`, offset: 0.7 },
-    { transform: 'none', filter: 'none' }], crit ? 520 : 400);
-}
-function animDodge(id, attackerId) {
-  const d = attackerId != null ? faceOf(attackerId) : -faceOf(id);
-  return animRig(id, [{ transform: 'none', opacity: 1 }, { transform: `translateX(${14 * d}%) translateY(-8%) rotate(${-8 * d}deg)`, opacity: 0.6, offset: 0.35 }, { transform: 'none', opacity: 1 }], 380, 'ease-in-out');
-}
-function animKO(id) {
-  const d = -faceOf(id);   // topples backwards
-  return animRig(id, [{ transform: 'none', filter: 'none' }, { transform: `translateY(-6%) rotate(${-10 * d}deg)`, filter: 'brightness(2)', offset: 0.2 },
-    { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], 520, 'ease-in', 'forwards');
-}
-function animHeal(id) {
-  return animRig(id, [{ transform: 'none', filter: 'none' }, { transform: 'translateY(-6%) scale(1.04)', filter: 'drop-shadow(0 0 12px #6bff8f) brightness(1.25)', offset: 0.4 }, { transform: 'none', filter: 'none' }], 420);
+  if (big) b.style.width = '30%';
+  fxEl.appendChild(b); setTimeout(() => b.remove(), 500);
 }
 function banner(text, el) {
   const b = document.createElement('div');
   b.className = 'banner' + (el ? ' el-' + el : '');
-  b.textContent = text; arena.appendChild(b); setTimeout(() => b.remove(), 1150);
+  b.textContent = text; fxEl.appendChild(b); setTimeout(() => b.remove(), 1150);
 }
-
-async function play(ev) {
-  const st = BS.st, sp = () => 1 / BS.speed;
-  const F = id => B.byId(st, id);
-  const disp = BS.disp;
+function face(u, toX) {
+  const E = uEl(u.id); if (!E || toX === u.x) return;
+  const left = toX < u.x;
+  E.el.classList.toggle('faceL', left); E.el.classList.toggle('faceR', !left);
+}
+const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff' };
+function rig(id, frames, ms, fill) {
+  const E = uEl(id); if (!E) return;
+  E.rig.animate(frames, { duration: ms / FS.speed, easing: 'ease-in-out', fill: fill || 'none' });
+}
+function animStrike(a, t, el) {
+  const dx = Math.sign(t.x - a.x), dy = Math.sign(t.y - a.y);
+  rig(a.id, [{ transform: 'none' }, { transform: `translate(${-8 * dx}%, ${-4 * dy}%) scale(1.08,.88)`, offset: 0.3 },
+    { transform: `translate(${34 * dx}%, ${22 * dy - 8}%) rotate(${12 * dx}deg) scale(1.12,.92)`, offset: 0.55 }, { transform: 'none' }], 380);
+}
+function animShoot(a, t, el) {
+  const dx = Math.sign(t.x - a.x) || 1, glow = `drop-shadow(0 0 10px ${ELC[el] || '#fff'})`;
+  rig(a.id, [{ transform: 'none', filter: 'none' }, { transform: `translateX(${-8 * dx}%) rotate(${-8 * dx}deg) scale(.96,1.06)`, filter: glow, offset: 0.4 },
+    { transform: `translateX(${8 * dx}%) scale(1.08,.94)`, filter: glow, offset: 0.6 }, { transform: 'none', filter: 'none' }], 360);
+}
+function animCast(u, el, ult) {
+  const glow = `drop-shadow(0 0 ${ult ? 18 : 12}px ${ELC[el] || '#fff'}) drop-shadow(0 0 4px #fff)`;
+  rig(u.id, [{ transform: 'none', filter: 'none' }, { transform: 'translateY(4%) scale(1.12,.84)', offset: 0.2 },
+    { transform: `translateY(-22%) scale(${ult ? 1.3 : 1.12})`, filter: glow, offset: 0.55 }, { transform: 'translateY(2%) scale(1.08,.92)', filter: glow, offset: 0.8 },
+    { transform: 'none', filter: 'none' }], ult ? 700 : 520);
+}
+function animHit(t, a, crit, dot) {
+  const d = a ? Math.sign(t.x - a.x) || (t.side ? 1 : -1) : 0;
+  const flash = dot === 'burn' ? 'brightness(1.5) sepia(1) saturate(5) hue-rotate(-25deg)' : dot === 'poison' ? 'brightness(1.3) sepia(1) saturate(4) hue-rotate(230deg)'
+    : dot ? 'brightness(1.6)' : 'brightness(3) saturate(0)';
+  if (crit) boardEl.animate([{ transform: 'none' }, { transform: 'translate(-5px,3px)' }, { transform: 'translate(4px,-3px)' }, { transform: 'none' }], { duration: 260 });
+  if (dot) return rig(t.id, [{ filter: 'none' }, { filter: flash, transform: 'scale(1.05,.94)', offset: 0.3 }, { filter: 'none' }], 300);
+  const k = crit ? 22 : 12;
+  rig(t.id, [{ transform: 'none', filter: 'none' }, { transform: `translateX(${k * d}%) rotate(${(crit ? 14 : 8) * d}deg) scale(.9,1.06)`, filter: flash, offset: 0.15 },
+    { transform: `translateX(${k * 0.5 * d}%) scale(1.05,.94)`, filter: 'none', offset: 0.45 }, { transform: 'none', filter: 'none' }], crit ? 460 : 340);
+}
+function handle(ev) {
+  const st = FS.st, F = id => C.byId(st, id);
   for (const e of ev) {
-    if (e.k === 'turn') { const t = $('#turnPill'); if (t) t.textContent = 'Turn ' + e.n; }
-    else if (e.k === 'act') {
+    if (e.k === 'move') { const u = F(e.u), E = uEl(e.u); if (E) { face(u, e.x); E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; } }
+    else if (e.k === 'blink') { const E = uEl(e.u); if (E) { E.el.style.transition = 'none'; E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; void E.el.offsetWidth; E.el.style.transition = ''; burst(F(e.u), 'shade', true); } }
+    else if (e.k === 'atk') {
+      const a = F(e.a), t = F(e.t); if (!a || !t) continue;
+      face(a, t.x);
+      if (e.rng) { animShoot(a, t, e.el); orb(a, t, e.el, 220 / FS.speed); } else { animStrike(a, t, e.el); }
+    }
+    else if (e.k === 'cast') {
       const a = F(e.a); if (!a) continue;
-      const sk = G.SK[e.sk];
-      if (e.ult) {
-        arena.classList.add('ult'); SFX.ult();
-        const el = monEl(e.a); if (el) el.classList.add('actor');
-        banner(e.n, e.el);
-        await animAttack(e.a, 'ult', e.el, 950 * sp());
-        arena.classList.remove('ult'); if (el) el.classList.remove('actor');
-      } else pop(e.a, e.n, 'small', -14);
-      const foeT = e.tg.filter(id => F(id) && F(id).side !== a.side);
-      if (foeT.length && sk.pow) {
-        if (!sk.rng && !e.aoe && sk.t === 'foe') {
-          // melee: the body dashes in while the rig coils and strikes
-          await Promise.all([lunge(e.a, foeT[0], 520 * sp()), e.ult ? null : animAttack(e.a, 'melee', e.el, 520 * sp())]);
-        } else {
-          // ranged / area: rear back, then the shots leave at the release
-          const cast = e.ult ? Promise.resolve() : animAttack(e.a, 'ranged', e.el, 480 * sp());
-          await sleep(220 * sp());
-          await Promise.all([cast, ...foeT.map(t => fxOrb(e.a, t, e.el, 260 * sp()))]);
-        }
-        foeT.forEach(t => fxBurst(t, e.el));
-      } else if (e.tg.length) {
-        if (!e.ult) animAttack(e.a, 'buff', e.el, 460 * sp());
-        await sleep(200 * sp());
-        e.tg.forEach(t => fxBurst(t, e.el)); await sleep(260 * sp());
-      }
-      else await sleep(200 * sp());
+      animCast(a, e.el, e.ult);
+      if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.ult(); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); }
+      else { popAt(a, e.n, 'cast'); SFX.react(); }
+      for (const id of e.tg) { const t = F(id); if (t && t.side !== a.side) orb(a, t, e.el, 260 / FS.speed); else if (t) burst(t, e.el); }
+      if (e.aoe && e.tg.length > 1) { const t = F(e.tg[0]); if (t && t.side !== a.side) setTimeout(() => FS && burst(t, e.el, true), 260 / FS.speed); }
     }
-    else if (e.k === 'aim') { const el = F(e.a) ? F(e.a).el : 'shade'; animAttack(e.a, 'ranged', el, 300 * sp()); await sleep(110 * sp()); await fxOrb(e.a, e.t, el, 180 * sp()); fxBurst(e.t, el); }
+    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed); } }
+    else if (e.k === 'zap') { const a = F(e.a), t = F(e.t); if (a && t) orb(a, t, 'volt', 150 / FS.speed); }
     else if (e.k === 'dmg') {
-      const f = F(e.t); if (!f) continue;
-      animHit(e.t, e.dot ? null : e.a, e.crit, e.dot);
-      const cls = e.dot ? 'small' : e.crit ? 'crit' : '';
-      pop(e.t, (e.crit ? 'CRIT ' : '') + e.v, cls);
-      if (!e.dot && !e.thorn && e.eff > 1) pop(e.t, 'Super effective!', 'eff', 9);
-      if (!e.dot && !e.thorn && e.eff < 1) pop(e.t, 'Resisted', 'eff', 9);
-      if (e.crit) SFX.crit(); else SFX.hit();
-      setHud(f, e.hp, e.sh);
-      await sleep((e.dot ? 120 : 200) * sp());
+      const t = F(e.t); if (!t) continue;
+      const a = e.a != null ? F(e.a) : null;
+      animHit(t, a, e.crit, e.dot);
+      if (!e.basic || e.crit || e.v >= t.maxHp * 0.08) popAt(t, (e.crit ? e.v + '!' : e.v), e.crit ? 'crit' : e.dot ? 'dot' : e.basic ? 'small' : '');
+      if (!e.dot) { if (e.crit) SFX.crit(); else if (!e.basic || Math.random() < 0.35) SFX.hit(); }
     }
-    else if (e.k === 'miss') { pop(e.t, e.dodge ? 'Dodged' : 'Miss', 'miss'); animDodge(e.t, e.a); SFX.miss(); await sleep(200 * sp()); }
-    else if (e.k === 'heal') { const f = F(e.t); if (f) { pop(e.t, '+' + e.v, 'heal'); if (e.v > 0) animHeal(e.t); setHud(f, e.hp, e.sh); SFX.heal(); await sleep(130 * sp()); } }
-    else if (e.k === 'shield') { const f = F(e.t); if (f) { pop(e.t, '+' + e.v + ' shield', 'shield'); setHud(f, null, e.sh); await sleep(110 * sp()); } }
-    else if (e.k === 'status') { const f = F(e.t); if (f) { const el = monEl(e.t); if (el) el.querySelector('.sts').innerHTML = stsHtml(f); if (!e.haz && ST_LABEL[e.s]) pop(e.t, ST_LABEL[e.s], 'small', 6); await sleep(70 * sp()); } }
-    else if (e.k === 'react') { pop(e.t, e.name, 'react', -6); SFX.react(); await sleep(380 * sp()); }
-    else if (e.k === 'ko') { SFX.ko(); await animKO(e.t); const el = monEl(e.t); if (el) el.classList.add('dead'); await sleep(120 * sp()); }
-    else if (e.k === 'revive') { const el = monEl(e.t); const f = F(e.t); if (el) { el.classList.remove('dead'); const r = el.querySelector('.rig'); if (r) r.getAnimations().forEach(a => a.cancel()); animHeal(e.t); } if (f) setHud(f, e.hp, 0); pop(e.t, e.name, 'react'); SFX.heal(); await sleep(400 * sp()); }
+    else if (e.k === 'miss') { popAt(F(e.t), e.dodge ? 'Dodge' : 'Miss', 'miss'); }
+    else if (e.k === 'heal') { if (!e.quiet && e.v > 0) { popAt(F(e.t), '+' + e.v, 'heal'); SFX.heal(); } }
+    else if (e.k === 'shield') { popAt(F(e.t), '+' + e.v, 'shield'); }
+    else if (e.k === 'react') { popAt(F(e.t), e.name, 'react'); SFX.react(); }
+    else if (e.k === 'ko') {
+      const u = F(e.t), E = uEl(e.t); if (!E) continue;
+      SFX.ko();
+      const d = u.side ? 1 : -1;
+      E.rig.animate([{ transform: 'none', filter: 'none' }, { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], { duration: 450, fill: 'forwards' });
+      setTimeout(() => { if (!u.alive) E.el.classList.add('dead'); }, 380);
+    }
+    else if (e.k === 'revive') { const E = uEl(e.t); if (E) { E.el.classList.remove('dead'); E.rig.getAnimations().forEach(a => a.cancel()); popAt(F(e.t), e.name, 'react'); } }
     else if (e.k === 'summon') {
-      const f = F(e.f.id); if (!f) continue;
-      arena.querySelectorAll(`.mon.side${f.side}.dead`).forEach(m => { const o = F(+m.dataset.id); if (!o || o.slot === f.slot) m.remove(); });
-      arena.insertAdjacentHTML('beforeend', monHtml(f, st)); syncMon(f);
-      pop(f.id, 'Joins the fight!', 'small'); await sleep(320 * sp());
+      const u = F(e.u); if (!u) continue;
+      unitsEl.insertAdjacentHTML('beforeend', unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, art: u.art, hp: u.hp, maxHp: u.maxHp }));
+      cacheEl(u); burst(u, u.el, true); popAt(u, 'Summoned!', 'small');
     }
-    else if (e.k === 'skip') { pop(e.a, e.why, 'miss'); await sleep(260 * sp()); }
-    else if (e.k === 'od') { const el = monEl(e.t); const od = el && el.querySelector('.bar.od i'); if (od) od.style.width = e.v + '%'; }
-    else if (e.k === 'flux') { const el = monEl(e.t); if (el) el.querySelector('.nm img').src = IMG('el_' + e.el); pop(e.t, '→ ' + G.EL[e.el].name, 'small', -8); }
-    else if (e.k === 'text') { $('#cmdHint').textContent = e.v; }
-    else if (e.k === 'cleanse') { pop(e.t, 'Cleansed', 'heal'); const f = F(e.t); const el = monEl(e.t); if (f && el) el.querySelector('.sts').innerHTML = stsHtml(f); }
+    else if (e.k === 'flux') { const E = uEl(e.t); if (E) popAt(F(e.t), '→ ' + G.EL[e.el].name, 'small'); }
+    else if (e.k === 'text') toast(e.v);
   }
-  void disp;
 }
-function setHud(f, hp, sh) {
-  const el = monEl(f.id); if (!el) return;
-  const bars = el.querySelectorAll('.bar.hp i');
-  if (hp != null) { bars[0].style.width = (100 * hp / f.maxHp) + '%'; bars[0].className = hpClass(hp / f.maxHp); }
-  if (sh != null) bars[1].style.width = Math.min(100, 100 * sh / f.maxHp) + '%';
-}
-
-function startBattle(node, enemiesOverride, onWin) {
-  run.pendingBattle = enemiesOverride ? null : node.id;
+async function endFight() {
+  if (!FS) return;
+  const st = FS.st;
+  const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[G.BIOMES[run.biome].boss].name : '';
+  const res = R.endRound(run, st);
+  stopFight();
+  phase = 'busy';
   save();
-  const enemies = (enemiesOverride || R.encounter(run, node)).map(e => JSON.parse(JSON.stringify(e)));
-  const seed = (run.seed * 31 + run.step * 977 + Date.now() % 100000) >>> 0;
-  const st = B.create(R.battleOpts(run, enemies, seed));
-  BS = { st, node, plans: {}, auto: meta.auto, speed: meta.speed || 1, busy: false, disp: {}, onWin };
-  show('battle');
-  renderArena();
-  replan();
-  renderCmd();
-  const bi = G.BIOMES[st.biome];
-  if (node.type === 'boss') banner(st.f.find(f => f.boss).name, G.BOSSES[st.f.find(f => f.boss).boss].el);
-  else if (node.type === 'elite') banner('Elite battle!', 'ember');
-  $('#cmdHint').textContent = `${bi.hazName}: ${bi.hazDesc}`;
-  play(st.startEv).then(() => { if (BS && BS.auto) setTimeout(fight, 600); });
-}
-function replan() {
-  const st = BS.st;
-  for (const f of B.alive(st, 0)) {
-    const p = BS.plans[f.id];
-    if (!p || !B.skillReady(f, p.sk) || !f.sk.includes(p.sk) || BS.auto) BS.plans[f.id] = B.autoPlan(st, f);
-  }
-}
-function renderCmd() {
-  const st = BS.st;
-  const allies = st.f.filter(f => f.side === 0).sort((a, b) => a.slot - b.slot);
-  $('#cmdRows').innerHTML = allies.map(f => {
-    const chips = f.sk.map(id => {
-      const sk = G.SK[id], ready = B.skillReady(f, id), sel = BS.plans[f.id] && BS.plans[f.id].sk === id;
-      const el = sk.el === 'flux' ? f.el : sk.el;
-      const cd = !sk.ult && f.cds[id] > 0 ? `<span class="cdn">${f.cds[id]}</span>` : '';
-      const sub = sk.ult ? (ready ? 'READY!' : Math.floor(f.od) + '%') : skillTag(sk).replace('ULT · ', '');
-      return `<button class="chip el-${el} ${sk.ult ? 'ult' : ''} ${ready ? '' : 'cd'} ${sel ? 'sel' : ''}" data-f="${f.id}" data-sk="${id}">${esc(sk.n)}<small>${sub}</small>${cd}</button>`;
-    }).join('');
-    return `<div class="crow ${f.alive ? '' : 'dead'}"><div class="who"><img class="${f.shiny ? 'shiny' : ''}" src="${IMG(f.art)}" alt=""><span>${esc(f.name)}</span></div><div class="chips">${chips}</div></div>`;
-  }).join('');
-  const battleItems = Object.keys(run.items).filter(k => G.ITEMS[k] && G.ITEMS[k].battle && run.items[k] > 0);
-  $('#cmdFoot').innerHTML = `<button class="btn ghost sm" data-c="items" ${battleItems.length && !st.itemUsed ? '' : 'disabled'}>Items</button>
-    <button class="btn sm ghost toggle ${BS.auto ? 'on' : ''}" data-c="auto">Auto</button>
-    <button class="btn sm ghost" data-c="speed">${BS.speed}×</button><div class="grow"></div>
-    <button class="btn green" data-c="fight" ${BS.busy ? 'disabled' : ''}>${BS.busy ? '...' : 'FIGHT!'}</button>`;
-}
-$('#cmdRows').addEventListener('click', e => {
-  const c = e.target.closest('.chip'); if (!c || !BS || BS.busy) return;
-  SFX.click();
-  const f = B.byId(BS.st, +c.dataset.f), sk = G.SK[c.dataset.sk];
-  BS.plans[f.id] = { sk: sk.id };
-  $('#cmdHint').textContent = `${f.name}: ${sk.n} — ${sk.d}`;
-  renderCmd();
-});
-$('#cmdFoot').addEventListener('click', async e => {
-  const c = e.target.closest('[data-c]'); if (!c || !BS) return;
-  SFX.click();
-  const v = c.dataset.c;
-  if (v === 'fight') fight();
-  else if (v === 'auto') { BS.auto = !BS.auto; meta.auto = BS.auto; save(); renderCmd(); if (BS.auto && !BS.busy) fight(); }
-  else if (v === 'speed') { BS.speed = BS.speed >= 3 ? 1 : BS.speed + 1; meta.speed = BS.speed; save(); renderCmd(); }
-  else if (v === 'items' && !BS.busy) battleItem();
-});
-arena.addEventListener('click', e => {
-  const m = e.target.closest('.mon.side1'); if (!m || !BS) return;
-  const id = +m.dataset.id;
-  BS.st.focus = BS.st.focus === id ? null : id;
-  BS.st.f.forEach(syncMon);
-  const f = B.byId(BS.st, id);
-  $('#cmdHint').textContent = BS.st.focus ? `Focus: single-target attacks aim at ${f.name} when they can reach it.` : 'Focus cleared: your creatures pick their own targets.';
-});
-async function battleItem() {
-  const st = BS.st;
-  const ks = Object.keys(run.items).filter(k => G.ITEMS[k] && G.ITEMS[k].battle && run.items[k] > 0);
-  const v = await ask('Use an item', `<div class="list">${ks.map(k => `<div class="li click" data-v="${k}"><img class="ic" src="${IMG('it_' + k)}" alt=""><div class="grow"><div class="t">${G.ITEMS[k].n} ×${run.items[k]}</div><div class="small muted">${G.ITEMS[k].d}</div></div></div>`).join('')}</div>`, btn('x', 'Cancel', 'ghost sm'));
-  if (v === 'x' || !G.ITEMS[v]) return;
-  let tgt = null;
-  if (v === 'berry' || v === 'revive') {
-    const cand = st.f.filter(f => f.side === 0 && (v === 'revive' ? !f.alive : f.alive && f.hp < f.maxHp));
-    if (!cand.length) { toast(v === 'revive' ? 'Nobody needs reviving.' : 'Everyone is healthy.'); return; }
-    const t = await ask('On whom?', `<div class="list">${cand.map(f => `<div class="li click" data-v="${f.id}"><img class="ic" src="${IMG(f.art)}" alt=""><div class="grow"><div class="t">${esc(f.name)}</div>${bar(f.hp / f.maxHp)}</div></div>`).join('')}</div>`, btn('x', 'Cancel', 'ghost sm'));
-    if (t === 'x') return;
-    tgt = +t;
-  }
-  if (v === 'smoke' && st.f.some(f => f.boss)) { toast('You cannot flee from a boss!'); return; }
-  const ev = B.useItem(st, v, tgt);
-  if (!ev) return;
-  run.items[v]--; if (!run.items[v]) delete run.items[v];
-  BS.busy = true; renderCmd();
-  await play(ev);
-  BS.busy = false;
-  if (st.over) return finishBattle();
-  st.f.forEach(syncMon); renderCmd();
-}
-async function fight() {
-  if (!BS || BS.busy || BS.st.over) return;
-  BS.busy = true; renderCmd();
-  const st = BS.st;
-  if (BS.auto) replan();
-  const ev = B.round(st, Object.assign({}, BS.plans));
-  await play(ev);
-  st.f.forEach(syncMon);
-  BS.busy = false;
-  if (st.over) return finishBattle();
-  replan();
-  renderCmd();
-  if (BS.auto) setTimeout(() => { if (BS && BS.auto && !BS.busy) fight(); }, 350 / BS.speed);
-}
-async function finishBattle() {
-  const st = BS.st, node = BS.node, onWin = BS.onWin;
-  run.pendingBattle = null;
-  await sleep(500);
-  if (st.over === 3) { B.writeBack(st); BS = null; save(); renderMap(); toast('You slipped away in the smoke.'); return; }
-  R.afterBattle(run, st);
-  if (st.over === 2 || R.partyWiped(run)) { BS = null; return gameOver(false); }
-  BS = null;
-  if (onWin) {
-    const rw = R.rewards(run, st, { type: 'battle' });
-    run.gold += rw.gold;
-    R.grantXp(run, rw.xp, st.f.filter(f => f.side === 0).map(f => f.inst.uid));
-    show('map'); renderMap();
-    toast(`+${rw.gold} gold · +${rw.xp} XP`);
-    await evolutions();
-    await onWin(st); save(); return renderMap();
-  }
-  await victoryFlow(st, node);
-}
-async function victoryFlow(st, node) {
-  const rw = R.rewards(run, st, node);
-  run.gold += rw.gold;
-  const fought = st.f.filter(f => f.side === 0).map(f => f.inst.uid);
-  const before = run.party.map(p => ({ uid: p.uid, lvl: p.lvl, xp: p.xp }));
-  const res = R.grantXp(run, rw.xp, fought);
-  SFX.coin();
-  const rows = run.party.map(p => {
-    const r = res.find(x => x.uid === p.uid), b = before.find(x => x.uid === p.uid);
-    const up = r && r.to > r.from;
-    return `<div class="xprow">${monImg(p)}<div class="grow"><div class="row"><b class="fred">${esc(B.instName(p))}</b><span class="muted small">L${b.lvl}${up ? ' → ' : ''}</span>${up ? `<span class="lvup">L${p.lvl}!</span>` : ''}<span class="grow"></span><span class="small muted">+${r ? r.xp : 0} XP</span></div>${bar(p.xp / R.xpNeed(p.lvl), 'xp')}${bar(p.hpPct)}</div></div>`;
-  }).join('');
-  if (res.some(r => r.to > r.from)) setTimeout(SFX.lvl, 250);
-  show('map'); renderMap();
-  await ask(node.type === 'boss' ? 'Boss defeated!' : 'Victory!', `<div class="row center" style="gap:16px;margin-bottom:8px"><span class="pill"><img src="${IMG('ui_gold')}" alt="">+${rw.gold}</span><span class="pill">+${rw.xp} XP</span></div>${rows}`, btn('ok', 'Continue', 'green'));
-  await evolutions();
-  if (rw.recruit.length) await recruitFlow(rw.recruit, 'A wild creature wants to join!');
-  if (rw.relics.length) await relicPick(rw.relics, node.type === 'boss' ? 'Boss treasure' : 'Elite treasure');
-  if (node.type === 'boss') {
-    R.bossCleared(run);
-    if (rw.perk && rw.perk.length) {
-      const k = await ask('Tamer perk', `<p class="muted" style="text-align:center">Your own skills grow. Pick one.</p><div class="cards">${rw.perk.map(k => `<div class="card" data-v="${k}"><h3>${G.PERKS[k].n}</h3><p>${G.PERKS[k].d}</p></div>`).join('')}</div>`);
+  if (res.win) SFX.lvl(); else SFX.ko();
+  const lines = [];
+  if (res.loss) lines.push(`<p style="text-align:center;color:var(--bad);font-size:18px">−${res.loss} HP <span class="small muted">(${C.alive(st, 1).length} foes left standing)</span></p>`);
+  else if (!res.win) lines.push('<p style="text-align:center">The smoke hid your retreat. No HP lost.</p>');
+  if (run.over === 2) return gameOver(false);
+  if (run.over === 1) return gameOver(true);
+  lines.push(`<div class="row center wrap" style="gap:8px"><span class="pill"><img src="${IMG('ui_gold')}" alt="">+${res.gold} <span class="small muted">(5 base${res.interest ? ' + ' + res.interest + ' interest' : ''}${res.streak ? ' + streak' : ''}${res.win ? ' + 1 win' : ''})</span></span><span class="pill">+${res.xp} Tamer XP${res.lvUp ? ' · Level ' + run.tlv + '!' : ''}</span></div>`);
+  for (const d of res.drops) lines.push(`<div class="li" style="margin-top:8px"><img class="ic" src="${IMG((d.k === 'charm' ? 'ch_' : 'it_') + d.id)}" alt=""><div class="grow"><div class="t">Found: ${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].n}</div><div class="small">${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].d}</div></div></div>`);
+  if (res.retry) lines.push('<p style="text-align:center;color:var(--gold)">The Glimmerwyrm still stands. Strengthen your team and try again!</p>');
+  await ask(res.win ? (kind === 'boss' ? bossName + ' defeated!' : 'Victory!') : 'Defeat', lines.join(''), btn('ok', 'Continue', 'green'));
+  // rewards
+  for (const p of run.pending || []) {
+    if (p.k === 'relic' && p.opts.length) await relicPick(p.opts, kind === 'boss' ? 'Boss treasure' : 'Elite treasure');
+    else if (p.k === 'perk' && p.opts.length) {
+      const k = await ask('Tamer perk', `<p class="muted" style="text-align:center">Pick a permanent perk for this run.</p><div class="cards">${p.opts.map(k => `<div class="card" data-v="${k}"><h3>${G.PERKS[k].n}</h3><p>${G.PERKS[k].d}</p></div>`).join('')}</div>`);
       R.takePerk(run, k);
+    } else if (p.k === 'biome') {
+      const b = p.opts.length === 1 ? p.opts[0] : await ask('Choose the next stage', `<div class="cards">${p.opts.map(k => { const bi = G.BIOMES[k]; return `<div class="card" data-v="${k}"><div class="art" style="height:110px"><img src="${IMG(bi.bg)}" alt="" style="border-radius:12px;max-height:110px"></div><h3>${bi.name}</h3><p><b style="color:var(--gold)">${bi.hazName}</b>: ${bi.hazDesc}</p><p>Counter: ${bi.counter}</p><p>Foes: ${Array.from(new Set(bi.els)).map(e => G.EL[e].name).join(', ')} · Boss: ${G.BOSSES[bi.boss].name}</p></div>`; }).join('')}</div>`);
+      R.setBiome(run, b);
+      toast('Stage ' + (R.stageOf(run.round) + 1) + ': ' + G.BIOMES[b].name);
     }
-    if (run.act === 3) return gameOver(true);
-    const opts = G.ACTS[run.act + 1];
-    const b = opts.length === 1 ? opts[0] : await ask('Choose your path', `<div class="cards">${opts.map(k => { const bi = G.BIOMES[k]; return `<div class="card" data-v="${k}"><div class="art" style="height:110px"><img src="${IMG(bi.bg)}" alt="" style="border-radius:12px;max-height:110px"></div><h3>${bi.name}</h3><p><b style="color:var(--gold)">${bi.hazName}</b>: ${bi.hazDesc}</p><p>Counter: ${bi.counter}</p><p>Foes: ${Array.from(new Set(bi.els)).map(e => G.EL[e].name).join(', ')}</p></div>`; }).join('')}</div>`);
-    R.nextAct(run, b);
-    save(); renderMap();
-    toast('Act ' + (run.act + 1) + ': ' + G.BIOMES[run.biome].name);
-    return;
   }
-  save(); renderMap();
-}
-async function evolutions() {
-  for (const p of run.party) {
-    while (R.canEvolve(run, p)) { const did = await evolveFlow(p); if (!did) break; }
-  }
-}
-async function evolveFlow(p) {
-  const S = G.SP[p.sp];
-  const go = await ask(`${S.names[p.stage - 1]} is evolving!`, `<div class="evo-stage"><div class="glow"></div>${monImg(p)}</div>`, btn('later', 'Not yet', 'ghost') + btn('go', 'Evolve!', 'green'));
-  if (go !== 'go') return false;
-  const opts = R.mutOptions(run, p);
-  // flash to the new form
-  modal('...', `<div class="evo-stage"><div class="glow"></div><img src="${IMG(B.instArt(p))}" class="${p.shiny ? 'shiny' : ''}" style="filter:brightness(5)"></div>`);
-  SFX.ult(); await sleep(700);
-  const nextArt = 'cr_' + p.sp + (p.stage + 1);
-  MB.querySelector('.evo-stage img').src = IMG(nextArt);
-  await sleep(500);
-  MB.querySelector('.evo-stage img').style.filter = '';
-  SFX.lvl(); await sleep(500);
-  const ult = p.stage === 1 ? `<p style="text-align:center">New ultimate: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Every skill hits 12% harder.</p>';
-  const m = await ask(`It became ${S.names[p.stage]}!`, `<div class="evo-stage" style="height:200px"><img src="${IMG(nextArt)}" class="${p.shiny ? 'shiny' : ''}" style="max-height:190px"></div>${ult}<p class="muted" style="text-align:center">Choose a mutation:</p><div class="cards">${opts.map(k => `<div class="card" data-v="${k}"><h3>${G.MUTS[k].n}</h3><p>${G.MUTS[k].d}</p></div>`).join('')}</div>`);
-  R.evolve(run, p, m);
-  meta.dex[p.sp] = Math.max(meta.dex[p.sp] || 0, p.stage);
-  if (p.el2) toast(`${B.instName(p)} also counts as ${G.EL[p.el2].name} now!`);
+  run.pending = [];
+  if (R.fusionsAvailable(run).length) await forgeFlow();
   save();
-  return true;
-}
-function monCard(inst, v, extra) {
-  const S = G.SP[inst.sp];
-  return `<div class="card el-${S.el}" data-v="${v}"><div class="art">${monImg(inst)}</div><h3>${esc(B.instName(inst))}${inst.shiny ? ' ✦' : ''}</h3>
-    <div class="row center" style="margin-top:4px">${elBadge(S.el)}<span class="tag">${ROLE_N[S.role]}</span><span class="tag">L${inst.lvl}</span></div>
-    <p>${B.knownSkills(inst).map(id => G.SK[id].n).join(' · ')}</p>${extra || ''}</div>`;
-}
-async function recruitFlow(list, title) {
-  const v = await ask(title, `<div class="cards">${list.map((p, i) => monCard(p, i)).join('')}</div>`, btn('skip', 'No thanks', 'ghost'));
-  if (v === 'skip') return;
-  const inst = list[+v];
-  if (run.party.length >= R.partyCap(run)) {
-    const r = await ask('Your party is full', `<p style="text-align:center">Release someone to make room?</p><div class="list">${run.party.map(p => `<div class="li click" data-v="${p.uid}">${monImg(p, 'ic')}<div class="grow"><div class="t">${esc(B.instName(p))} L${p.lvl}</div></div></div>`).join('')}</div>`, btn('x', 'Keep my party', 'ghost'));
-    if (r === 'x') return;
-    R.release(run, +r);
-  }
-  R.recruit(run, inst);
-  meta.caught[inst.sp] = 1;
-  SFX.lvl();
-  toast(B.instName(inst) + ' joined your party!');
-  save();
+  renderGame();
+  void round;
 }
 function relicLi(id, v) {
   const r = G.RELICS[id];
   return `<div class="li click ${r.leg ? 'leg' : ''}" data-v="${v == null ? id : v}"><img class="ic" src="${IMG('rl_' + id)}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div><div class="row wrap" style="gap:4px;margin-top:3px">${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div></div></div>`;
 }
 async function relicPick(list, title) {
-  const c = B.relicTagCounts(run.relics);
+  const c = C.relicTagCounts(run.relics);
   const hint = list.map(id => G.RELICS[id].tags.filter(t => c[t] === 2 && G.SETS[t]).map(t => `Taking ${G.RELICS[id].n} completes the <b>${G.SETS[t].n}</b> set: ${G.SETS[t].d}`)).flat();
-  const fuse = list.map(id => G.FUSIONS.filter(f => (f[0] === id && run.relics.includes(f[1])) || (f[1] === id && run.relics.includes(f[0]))).map(f => `${G.RELICS[id].n} can fuse into <b>${G.RELICS[f[2]].n}</b> at a campfire or forge.`)).flat();
+  const fuse = list.map(id => G.FUSIONS.filter(f => (f[0] === id && run.relics.includes(f[1])) || (f[1] === id && run.relics.includes(f[0]))).map(f => `${G.RELICS[id].n} can fuse into <b>${G.RELICS[f[2]].n}</b>.`)).flat();
   const v = await ask(title || 'Choose a relic', `<div class="list">${list.map(id => relicLi(id)).join('')}</div>${hint.concat(fuse).map(h => `<p class="small" style="color:var(--gold);margin:8px 4px 0">${h}</p>`).join('')}`, btn('skip', 'Skip', 'ghost sm'));
   if (v !== 'skip' && G.RELICS[v]) { R.addRelic(run, v); SFX.coin(); toast('Got ' + G.RELICS[v].n); }
-}
-
-// ---- nodes -------------------------------------------------------------------------------
-async function treasure() {
-  SFX.coin();
-  await relicPick(R.relicChoices(run, 3), 'Treasure!');
 }
 async function forgeFlow() {
   const fs = R.fusionsAvailable(run);
   if (!fs.length) return false;
-  const v = await ask('Forge', `<p class="muted" style="text-align:center">Two relics become one legendary.</p><div class="list">${fs.map((f, i) => `<div class="li click leg" data-v="${i}"><img class="ic" src="${IMG('rl_' + f[2])}" alt=""><div class="grow"><div class="t">${G.RELICS[f[2]].n}</div><div class="small">${G.RELICS[f[2]].d}</div><div class="small muted">Uses ${G.RELICS[f[0]].n} + ${G.RELICS[f[1]].n}</div></div></div>`).join('')}</div>`, btn('x', 'Not now', 'ghost sm'));
+  const v = await ask('Forge a legendary?', `<p class="muted" style="text-align:center">Two of your relics can become one legendary.</p><div class="list">${fs.map((f, i) => `<div class="li click leg" data-v="${i}"><img class="ic" src="${IMG('rl_' + f[2])}" alt=""><div class="grow"><div class="t">${G.RELICS[f[2]].n}</div><div class="small">${G.RELICS[f[2]].d}</div><div class="small muted">Uses ${G.RELICS[f[0]].n} + ${G.RELICS[f[1]].n}</div></div></div>`).join('')}</div>`, btn('x', 'Not now', 'ghost sm'));
   if (v === 'x') return false;
   R.fuse(run, fs[+v]); SFX.ult(); toast('Forged ' + G.RELICS[fs[+v][2]].n + '!');
   return true;
 }
-async function rest() {
-  const canForge = R.fusionsAvailable(run).length > 0;
-  const v = await ask('Campfire', `<div class="cards"><div class="card el-ember" data-v="heal"><div class="art"><img class="icon" src="${IMG('node_rest')}"></div><h3>Rest</h3><p>Heal everyone 50% and revive the fallen at 50%.</p></div>
-    <div class="card el-volt" data-v="train"><div class="art"><img class="icon" src="${IMG('it_candy')}"></div><h3>Train</h3><p>One creature gains 2 levels.</p></div>
-    ${canForge ? `<div class="card el-stone" data-v="forge"><div class="art"><img class="icon" src="${IMG('rl_philosopher')}"></div><h3>Forge</h3><p>Fuse two relics into a legendary.</p></div>` : ''}</div>`);
-  if (v === 'heal') { R.restHeal(run); SFX.heal(); toast('Your party feels refreshed.'); }
-  else if (v === 'train') {
-    const u = await chooseCreature('Who trains?', p => p.lvl < R.LV_CAP);
-    if (u != null) { const p = run.party.find(x => x.uid === u); R.levelUp(run, p, 2); SFX.lvl(); toast(B.instName(p) + ' reached L' + p.lvl + '!'); await evolutions(); }
-  } else if (v === 'forge') { if (!await forgeFlow()) return rest(); }
-}
-async function chooseCreature(title, filter) {
-  const ps = run.party.filter(filter || (() => true));
-  if (!ps.length) { toast('Nobody can do that.'); return null; }
-  const v = await ask(title, `<div class="list">${ps.map(p => `<div class="li click" data-v="${p.uid}">${monImg(p, 'ic')}<div class="grow"><div class="t">${esc(B.instName(p))} L${p.lvl}</div>${bar(p.hpPct)}</div></div>`).join('')}</div>`, btn('x', 'Cancel', 'ghost sm'));
-  return v === 'x' ? null : +v;
-}
-async function shop(disc, small) {
-  const s = R.shopStock(run, disc);
-  if (small) s.items = s.items.filter((_, i) => i % 2 === 0);
-  const render = () => {
-    const items = s.items.map((it, i) => {
-      let img, n, d;
-      if (it.kind === 'relic') { img = IMG('rl_' + it.id); n = G.RELICS[it.id].n; d = G.RELICS[it.id].d; }
-      else if (it.kind === 'charm') { img = IMG('ch_' + it.id); n = G.CHARMS[it.id].n; d = 'Charm: ' + G.CHARMS[it.id].d; }
-      else if (it.kind === 'item') { img = IMG('it_' + it.id); n = G.ITEMS[it.id].n; d = G.ITEMS[it.id].d; }
-      else { img = IMG(B.instArt(it.inst)); n = B.instName(it.inst) + ' L' + it.inst.lvl; d = 'A creature for your party.'; }
-      return `<div class="shopitem ${it.sold ? 'sold' : ''} ${run.gold < it.price ? 'poor' : ''}" data-v="${i}"><img class="${it.kind === 'egg' ? 'mon' : ''}${it.kind === 'egg' && it.inst.shiny ? ' shiny' : ''}" src="${img}" alt=""><div class="fred">${esc(n)}</div><div class="small muted">${esc(d)}</div><div class="pr">${it.sold ? 'SOLD' : it.price + 'g'}</div></div>`;
-    }).join('');
-    return `<div class="row center" style="margin-bottom:8px"><span class="pill"><img src="${IMG('ui_gold')}" alt="">${run.gold}</span></div><div class="grid">${items}</div>`;
-  };
-  const acts = () => btn('heal', `Heal team (${s.heal}g)`, 'blue sm') + (small ? '' : btn('reroll', `Reroll (${s.reroll}g)`, 'ghost sm')) + btn('leave', 'Leave', 'green sm');
-  let v;
-  while ((v = await modal(small ? 'Caravan' : 'Shop', render(), acts())) !== 'leave') {
-    if (v === 'heal') { if (run.gold >= s.heal) { run.gold -= s.heal; for (const p of run.party) p.hpPct = Math.max(p.hpPct, 1); SFX.heal(); toast('Team fully healed.'); } }
-    else if (v === 'reroll') { if (run.gold >= s.reroll) { run.gold -= s.reroll; s.reroll += 10; const n = R.shopStock(run, disc); s.items = n.items; } }
-    else {
-      const it = s.items[+v];
-      if (it && it.kind === 'egg' && run.party.length >= R.partyCap(run)) toast('Your party is full.');
-      else if (it && R.buy(run, it)) { SFX.coin(); if (it.kind === 'egg') meta.caught[it.inst.sp] = 1; }
-      else if (it && !it.sold) toast('Not enough gold.');
-    }
-  }
-  closeModal();
-}
-async function den(node) {
-  await recruitFlow(R.denChoices(run, node), 'A creature den! Pick one to join you');
-}
-async function eventNode(node) {
-  const k = R.eventFor(run, node), E = G.EVENTS[k];
-  const v = await ask(E.n, `<p style="text-align:center;font-size:16px">${E.t}</p>`, E.opts.map((o, i) => `<button class="btn ${i ? 'ghost' : ''}" data-v="${i}">${o[0]}${o[1] ? `<br><small style="font:600 12px Nunito">${o[1]}</small>` : ''}</button>`).join(''));
-  const o = +v;
-  const say = t => ask(E.n, `<p style="text-align:center;font-size:16px">${t}</p>`, btn('ok', 'Continue', 'green'));
-  const randRelic = () => { const c = R.relicChoices(run, 1); if (c.length) { R.addRelic(run, c[0]); return c[0]; } return null; };
-  if (k === 'shrine' && o === 0) {
-    for (const p of run.party) if (p.hpPct > 0) p.hpPct = Math.max(0.01, p.hpPct - 0.2);
-    const r = randRelic(); if (r) await ask(E.n, `<p style="text-align:center">The shrine glows. You receive:</p><div class="list">${relicLi(r, 'ok')}</div>`, btn('ok', 'Continue', 'green'));
-  } else if (k === 'egg' && o === 0) {
-    const lv = Math.max(2, R.floorLevel(run, node) - 1);
-    await recruitFlow([R.mkInst(run, R.pick(run, Object.keys(G.SP)), lv)], 'The egg hatches!');
-  } else if (k === 'well') {
-    if (o === 0) {
-      if (run.gold < 30) return say('You do not have 30 gold.');
-      run.gold -= 30;
-      if (Math.random() < 0.6) { const r = randRelic(); if (r) await ask(E.n, `<p style="text-align:center">Something floats up!</p><div class="list">${relicLi(r, 'ok')}</div>`, btn('ok', 'Continue', 'green')); }
-      else await say('The coins sink without a sound.');
-    } else { run.gold += 15; SFX.coin(); await say('You fish out 15 gold.'); }
-  } else if (k === 'dojo') {
-    if (o === 0) {
-      const u = await chooseCreature('Who trains?', p => p.hpPct > 0 && p.lvl < R.LV_CAP);
-      if (u != null) { const p = run.party.find(x => x.uid === u); R.levelUp(run, p, 2); p.hpPct = Math.max(0.05, p.hpPct - 0.3); SFX.lvl(); await say(`${B.instName(p)} is battered but reached L${p.lvl}!`); await evolutions(); }
-    } else { for (const p of run.party) R.addXp(run, p, 25); SFX.lvl(); await say('Everyone learned something. +25 XP each.'); await evolutions(); }
-  } else if (k === 'pool') {
-    if (o === 0) {
-      const u = await chooseCreature('Who drinks?', p => p.muts.length < 4);
-      if (u != null) {
-        const p = run.party.find(x => x.uid === u);
-        const m = R.pick(run, Object.keys(G.MUTS).filter(x => !p.muts.includes(x)));
-        p.muts.push(m);
-        if (m === 'dual') { const opts = G.ELS.filter(e => e !== G.SP[p.sp].el); p.el2 = R.pick(run, opts); }
-        SFX.ult(); await say(`${B.instName(p)} gained <b>${G.MUTS[m].n}</b>: ${G.MUTS[m].d}${p.el2 && m === 'dual' ? ' (' + G.EL[p.el2].name + ')' : ''}`);
-      }
-    } else { for (const p of run.party) if (p.hpPct > 0) p.hpPct = Math.min(1, p.hpPct + 0.3); SFX.heal(); await say('Everyone feels better.'); }
-  } else if (k === 'caravan' && o === 0) await shop(0.25, true);
-  else if (k === 'trapped' && o === 0) {
-    const lv = R.floorLevel(run, node) + 2;
-    const sp = R.pick(run, Object.keys(G.SP));
-    const foe = R.mkInst(run, sp, lv, { wild: 1 });
-    foe.elite = 'enraged'; foe.scale = 0.9;
-    await say(`The ${B.instName(foe)} lashes out!`);
-    startBattle(node, [foe], async () => {
-      const inst = R.mkInst(run, sp, lv - 1);
-      inst.shiny = foe.shiny || Math.random() < 0.1;
-      await recruitFlow([inst], 'It calms down and wants to join!');
-    });
-    return 'battle';
-  } else if (k === 'imp' && o === 0) {
-    const half = Math.floor(run.gold / 2);
-    if (Math.random() < 0.5) { run.gold += half; SFX.coin(); await say(`Heads! You win ${half} gold.`); }
-    else { run.gold -= half; SFX.ko(); await say(`Tails. The imp cackles and takes ${half} gold.`); }
-  } else if (k === 'library') {
-    if (o === 0) {
-      if (!run.relics.includes('tome')) { R.addRelic(run, 'tome'); await ask(E.n, `<div class="list">${relicLi('tome', 'ok')}</div>`, btn('ok', 'Continue', 'green')); }
-      else { run.gold += 60; SFX.coin(); await say('You find 60 gold tucked between pages.'); }
-    } else { for (const p of run.party) if (p.hpPct > 0) p.hpPct = Math.min(1, p.hpPct + 0.2); await say('A good nap. Everyone heals 20%.'); }
-  } else if (k === 'forge' && o === 0) {
-    if (!await forgeFlow()) {
-      if (!run.relics.length) return;
-      const g = await ask('Trade a relic', `<p class="muted" style="text-align:center">No recipe fits. Give up a relic to pick from three new ones.</p><div class="list">${run.relics.map(id => relicLi(id)).join('')}</div>`, btn('x', 'Leave', 'ghost sm'));
-      if (g !== 'x') { run.relics = run.relics.filter(x => x !== g); await relicPick(R.relicChoices(run, 3, 1), 'The forge offers'); }
-    }
-  }
-}
 
-// ---- team -----------------------------------------------------------------------------------
-async function teamScreen() {
-  let v;
-  const body = () => `<p class="muted small" style="text-align:center;margin:0 0 8px">The first 4 healthy creatures fight: slots 1-2 are the front row (melee hits them first), 3-4 the back row. Tap a creature to manage it.</p>
-    <div class="list">${run.party.map((p, i) => `<div class="li click" data-v="${p.uid}">${monImg(p, 'ic')}<div class="grow"><div class="row"><span class="t">${esc(B.instName(p))}</span>${elBadge(G.SP[p.sp].el)}${p.el2 ? elBadge(p.el2) : ''}<span class="tag">L${p.lvl}</span>${i < 4 ? `<span class="tag" style="background:#2fbf5555">${i < 2 ? 'Front' : 'Back'}</span>` : '<span class="tag">Bench</span>'}${R.canEvolve(run, p) ? '<span class="tag" style="background:#ffc93c;color:#3a1d00">EVOLVE</span>' : ''}</div>${bar(p.hpPct)}</div>${p.charm ? `<img class="ic" style="width:32px;height:32px" src="${IMG('ch_' + p.charm)}" alt="">` : ''}</div>`).join('')}</div>
-    <p class="small muted" style="text-align:center">Party ${run.party.length}/${R.partyCap(run)}</p>`;
-  while ((v = await modal('Your team', body(), btn('close', 'Close', 'green sm'))) !== 'close') { closeModal(); await teamDetail(+v, true); }
-  closeModal();
-  if (run && $('#map').classList.contains('on')) renderMap();
-}
-async function teamDetail(uid, fromList) {
-  let p;
-  while ((p = run.party.find(x => x.uid === uid))) {
-    const S = G.SP[p.sp], s = B.instStats(p, R.bonus(run)), known = B.knownSkills(p);
-    const idx = run.party.indexOf(p);
-    const skl = S.sk.map((id, i) => {
-      const sk = G.SK[id], has = known.includes(id);
-      const req = i === 3 ? 'Unlocks when it evolves' : i === 2 ? 'Learned at L' + G.SKILL_LV[2] : '';
-      return `<div class="skl el-${sk.el} ${has ? '' : 'locked'}"><span class="t">${sk.n}</span> <span class="small muted">${skillTag(sk)}</span><div class="small">${sk.d}${has ? '' : ' <i>(' + req + ')</i>'}</div></div>`;
-    }).join('');
-    const nextEvo = p.stage < 3 ? `Evolves into ${S.names[p.stage]} at L${B.evoLevel(p.stage, R.bonus(run))}` : 'Final form';
-    const body = `<div class="detail"><div class="big el-${S.el}">${monImg(p)}</div><div>
-      <div class="row wrap">${elBadge(S.el)}${p.el2 ? elBadge(p.el2) + '<span class="small muted">Dual</span>' : ''}<span class="tag">${ROLE_N[S.role]}</span><span class="tag">L${p.lvl}</span>${p.shiny ? '<span class="tag" style="background:#6a5bff">Shiny +10%</span>' : ''}<span class="small muted">${nextEvo}</span></div>
-      <div style="margin-top:6px">${bar(p.hpPct)}<div class="small muted" style="margin-top:3px">HP ${Math.round(s.hp * p.hpPct)}/${s.hp} · XP ${p.xp}/${R.xpNeed(p.lvl)}</div>${bar(p.xp / R.xpNeed(p.lvl), 'xp')}</div>
-      <div class="stats"><div>HP<b>${s.hp}</b></div><div>ATK<b>${Math.round(s.atk)}</b></div><div>DEF<b>${Math.round(s.def)}</b></div><div>SPD<b>${Math.round(s.spd)}</b></div></div>
-      <div class="small">Strong vs ${G.STRONG[S.el].map(e => G.EL[e].name).join(', ')} · Weak to ${G.ELS.filter(e => G.STRONG[e].includes(S.el)).map(e => G.EL[e].name).join(', ')}</div>
-      ${p.muts.length ? `<div class="small" style="margin-top:4px">Mutations: ${p.muts.map(m => `<b>${G.MUTS[m].n}</b> (${G.MUTS[m].d})`).join(', ')}</div>` : ''}
-      <div class="li" style="margin-top:8px">${p.charm ? `<img class="ic" src="${IMG('ch_' + p.charm)}" alt=""><div class="grow"><div class="t">${G.CHARMS[p.charm].n}</div><div class="small">${G.CHARMS[p.charm].d}</div></div>` : '<div class="grow muted">No charm held</div>'}<button class="btn sm ghost" data-v="charm">Change</button></div>
-      </div></div><div style="margin-top:10px">${skl}</div>`;
-    const acts = (R.canEvolve(run, p) ? btn('evo', 'Evolve!', 'green sm') : '') + (idx > 0 ? btn('up', '▲ Move up', 'ghost sm') : '') + (idx < run.party.length - 1 ? btn('down', '▼ Move down', 'ghost sm') : '') +
-      btn('item', 'Use item', 'blue sm') + (run.party.length > 1 ? btn('rel', 'Release', 'ghost sm') : '') + btn('back', fromList ? 'Back' : 'Close', 'sm');
-    const v = await modal(esc(B.instName(p)), body, acts);
-    closeModal();
-    if (v === 'back') break;
-    if (v === 'up' || v === 'down') { const j = idx + (v === 'up' ? -1 : 1); [run.party[idx], run.party[j]] = [run.party[j], run.party[idx]]; }
-    else if (v === 'evo') await evolveFlow(p);
-    else if (v === 'rel') { if (await ask('Release ' + esc(B.instName(p)) + '?', '<p style="text-align:center">It returns to the wild. Its charm goes back to your bag.</p>', btn('n', 'Keep', 'green') + btn('y', 'Release', 'ghost')) === 'y') { R.release(run, p.uid); break; } }
-    else if (v === 'charm') {
-      const c = await ask('Give a charm', `<div class="list">${Array.from(new Set(run.charms)).map(k => `<div class="li click" data-v="${k}"><img class="ic" src="${IMG('ch_' + k)}" alt=""><div class="grow"><div class="t">${G.CHARMS[k].n} ×${run.charms.filter(x => x === k).length}</div><div class="small">${G.CHARMS[k].d}</div></div></div>`).join('') || '<p class="muted" style="text-align:center">No spare charms. Shops sell them.</p>'}</div>`, (p.charm ? btn('none', 'Take it off', 'ghost sm') : '') + btn('x', 'Cancel', 'sm'));
-      if (c === 'none') R.equipCharm(run, p.uid, null); else if (c !== 'x') R.equipCharm(run, p.uid, c);
-    } else if (v === 'item') {
-      const ks = Object.keys(run.items).filter(k => ['berry', 'revive', 'candy', 'evo'].includes(k));
-      const it = await ask('Use an item on ' + esc(B.instName(p)), `<div class="list">${ks.map(k => `<div class="li click" data-v="${k}"><img class="ic" src="${IMG('it_' + k)}" alt=""><div class="grow"><div class="t">${G.ITEMS[k].n} ×${run.items[k]}</div><div class="small">${G.ITEMS[k].d}</div></div></div>`).join('') || '<p class="muted" style="text-align:center">No usable items.</p>'}</div>`, btn('x', 'Cancel', 'sm'));
-      if (it !== 'x') {
-        const r = R.useItemOutside(run, it, p.uid);
-        if (!r) toast('That has no effect right now.');
-        else { SFX.lvl(); if (r.evo || r.to) await evolutions(); }
-      }
-    }
-    save();
-  }
-  save();
-  if (!fromList && $('#map').classList.contains('on')) renderMap();
-}
-
-// ---- bag ------------------------------------------------------------------------------------
+// ---- bag and menu -----------------------------------------------------------------------------
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-top]'); if (!t || phase === 'fight') return;
+  SFX.click();
+  if (t.dataset.top === 'bag') bagScreen(); else if (t.dataset.top === 'menu') menuScreen();
+});
 async function bagScreen() {
-  const c = B.relicTagCounts(run.relics);
-  const sets = Object.keys(G.SETS).filter(t => c[t]).map(t => `<div class="li"><div class="grow"><span class="t">${G.SETS[t].n}</span> <span class="tag">${t}</span> <b style="color:${c[t] >= 3 ? 'var(--good)' : 'var(--dim)'}">${Math.min(c[t], 3)}/3</b><div class="small ${c[t] >= 3 ? '' : 'muted'}">${G.SETS[t].d}</div></div></div>`).join('');
-  const recipes = G.FUSIONS.filter(f => run.relics.includes(f[0]) || run.relics.includes(f[1])).map(f => `<div class="li leg"><img class="ic" src="${IMG('rl_' + f[2])}" alt=""><div class="grow"><div class="t">${G.RELICS[f[2]].n}</div><div class="small">${G.RELICS[f[0]].n} ${run.relics.includes(f[0]) ? '✔' : '✘'} + ${G.RELICS[f[1]].n} ${run.relics.includes(f[1]) ? '✔' : '✘'}</div><div class="small muted">${G.RELICS[f[2]].d}</div></div></div>`).join('');
-  const items = Object.keys(run.items).map(k => `<div class="li"><img class="ic" src="${IMG('it_' + k)}" alt=""><div class="grow"><div class="t">${G.ITEMS[k].n} ×${run.items[k]}</div><div class="small">${G.ITEMS[k].d}</div></div></div>`).join('');
-  const charms = Array.from(new Set(run.charms)).map(k => `<div class="li"><img class="ic" src="${IMG('ch_' + k)}" alt=""><div class="grow"><div class="t">${G.CHARMS[k].n} ×${run.charms.filter(x => x === k).length}</div><div class="small">${G.CHARMS[k].d} Give it to a creature from the team screen.</div></div></div>`).join('');
-  const perks = Object.keys(run.perks).map(k => `<span class="tag" title="${esc(G.PERKS[k].d)}">${G.PERKS[k].n}</span>`).join(' ');
-  await ask('Bag', `<h3>Relics (${run.relics.length})</h3><div class="list" style="margin:6px 0 12px">${run.relics.map(id => relicLi(id, 'r')).join('') || '<p class="muted">None yet. Elites, bosses, treasure and shops give relics.</p>'}</div>
-    ${sets ? `<h3>Set bonuses</h3><p class="small muted" style="margin:2px 0 6px">Three relics with the same tag light up a set.</p><div class="list" style="margin-bottom:12px">${sets}</div>` : ''}
-    ${recipes ? `<h3>Fusion recipes</h3><div class="list" style="margin:6px 0 12px">${recipes}</div>` : ''}
-    <h3>Items</h3><div class="list" style="margin:6px 0 12px">${items || '<p class="muted">Empty.</p>'}</div>
-    <h3>Charms</h3><div class="list" style="margin:6px 0 12px">${charms || '<p class="muted">No spare charms.</p>'}</div>
-    ${perks ? `<h3>Tamer perks</h3><div class="row wrap" style="margin-top:6px">${perks}</div>` : ''}`, btn('ok', 'Close', 'green sm'));
+  for (;;) {
+    const c = C.relicTagCounts(run.relics);
+    const sets = Object.keys(G.SETS).filter(t => c[t]).map(t => `<div class="li"><div class="grow"><span class="t">${G.SETS[t].n}</span> <span class="tag">${t}</span> <b style="color:${c[t] >= 3 ? 'var(--good)' : 'var(--dim)'}">${Math.min(c[t], 3)}/3</b><div class="small ${c[t] >= 3 ? '' : 'muted'}">${G.SETS[t].d}</div></div></div>`).join('');
+    const recipes = G.FUSIONS.filter(f => run.relics.includes(f[0]) || run.relics.includes(f[1])).map(f => `<div class="li leg"><img class="ic" src="${IMG('rl_' + f[2])}" alt=""><div class="grow"><div class="t">${G.RELICS[f[2]].n}</div><div class="small">${G.RELICS[f[0]].n} ${run.relics.includes(f[0]) ? '✔' : '✘'} + ${G.RELICS[f[1]].n} ${run.relics.includes(f[1]) ? '✔' : '✘'}</div><div class="small muted">${G.RELICS[f[2]].d}</div></div></div>`).join('');
+    const items = Object.keys(run.items).map(k => `<div class="li"><img class="ic" src="${IMG('it_' + k)}" alt=""><div class="grow"><div class="t">${G.ITEMS[k].n} ×${run.items[k]}</div><div class="small">${G.ITEMS[k].d}</div></div><button class="btn sm" data-v="use:${k}">Use</button></div>`).join('');
+    const charms = Array.from(new Set(run.charms)).map(k => `<div class="li"><img class="ic" src="${IMG('ch_' + k)}" alt=""><div class="grow"><div class="t">${G.CHARMS[k].n} ×${run.charms.filter(x => x === k).length}</div><div class="small">${G.CHARMS[k].d} Tap a creature to give it a charm.</div></div></div>`).join('');
+    const perks = Object.keys(run.perks).map(k => `<span class="tag" title="${esc(G.PERKS[k].d)}">${G.PERKS[k].n}</span>`).join(' ');
+    const mods = ['bomb', 'elixir', 'smoke'].filter(k => run.mods[k]).map(k => G.ITEMS[k].n).join(', ');
+    const v = await modal('Bag', `<h3>Relics (${run.relics.length})</h3><div class="list" style="margin:6px 0 12px">${run.relics.map(id => relicLi(id, 'r')).join('') || '<p class="muted">None yet. Elite and boss rounds give relics.</p>'}</div>
+      ${sets ? `<h3>Set bonuses</h3><p class="small muted" style="margin:2px 0 6px">Three relics with the same tag light up a set.</p><div class="list" style="margin-bottom:12px">${sets}</div>` : ''}
+      ${recipes ? `<h3>Fusion recipes</h3><div class="list" style="margin:6px 0 12px">${recipes}</div>` : ''}
+      <h3>Items</h3>${mods ? `<p class="small" style="color:var(--gold)">Ready for the next fight: ${mods}</p>` : ''}<div class="list" style="margin:6px 0 12px">${items || '<p class="muted">Empty. Wild rounds sometimes drop items.</p>'}</div>
+      <h3>Charms</h3><div class="list" style="margin:6px 0 12px">${charms || '<p class="muted">No spare charms.</p>'}</div>
+      ${perks ? `<h3>Tamer perks</h3><div class="row wrap" style="margin-top:6px">${perks}</div>` : ''}`, (R.fusionsAvailable(run).length ? btn('forge', 'Forge', 'blue sm') : '') + btn('ok', 'Close', 'green sm'));
+    closeModal();
+    if (v === 'ok') break;
+    if (v === 'forge') { await forgeFlow(); continue; }
+    if (v.startsWith('use:')) {
+      const k = v.slice(4);
+      let uid = null;
+      if (k === 'evo') {
+        const ones = run.units.filter(u => u.star === 1);
+        if (!ones.length) { toast('No ★1 creature to evolve.'); continue; }
+        const p = await ask('Evolve which creature?', `<div class="list">${ones.map(u => `<div class="li click" data-v="${u.uid}">${monImg(u, 'ic')}<div class="grow"><div class="t">${esc(C.name(u))}</div></div></div>`).join('')}</div>`, btn('x', 'Cancel', 'sm'));
+        if (p === 'x') continue;
+        uid = +p;
+      }
+      const r = R.useItem(run, k, uid);
+      if (!r) toast('That has no effect right now.');
+      else { SFX.lvl(); if (r.merged) for (const u of r.merged) await evolveFlow(u); await afterChange(); }
+      save();
+    }
+  }
+  renderGame();
 }
 async function menuScreen() {
   const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'));
@@ -879,17 +683,15 @@ async function menuScreen() {
 
 // ---- end of run, camp, dex, help ----------------------------------------------------------------
 async function gameOver(won) {
+  stopFight();
   const shards = R.shardsFor(run, won);
   meta.shards += shards;
   for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
   if (won) { meta.wins++; meta.depthMax = Math.max(meta.depthMax, Math.min(10, run.depth + 1)); }
-  const st = run.stats;
-  const team = run.party.map(p => `<div style="text-align:center">${monImg(p)}<div class="small">${esc(B.instName(p))} L${p.lvl}</div></div>`).join('');
-  run.over = 1;
-  const r = run; run = null; save();
-  show('map');
-  await ask(won ? 'The Glimmer Core is yours!' : 'Your party fell...', `<div class="row center wrap" style="gap:6px">${team.replace(/<img /g, '<img style="height:80px" ')}</div>
-    <p style="text-align:center">Act ${r.act + 1} · ${st.battles} battles · ${st.kills} foes beaten · ${st.caught} recruited</p>
+  const team = R.onBoard(run).map(u => `<div style="text-align:center"><img style="height:80px" class="${u.shiny ? 'shiny' : ''}" src="${IMG(C.art(u))}" alt=""><div class="small" style="color:#ffd65a">${starsTxt(u.star)}</div></div>`).join('');
+  const r = run; r.over = r.over || 2; run = null; save();
+  await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
+    <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
   renderCamp();
 }
@@ -912,7 +714,7 @@ $('#campBody').addEventListener('click', e => {
     return;
   }
   const c = e.target.closest('[data-camp]');
-  if (c) { SFX.click(); if (c.dataset.camp === 'dex') showDex(); else renderPick(); }
+  if (c) { SFX.click(); if (c.dataset.camp === 'dex') showDex(); else newRunFlow(); }
 });
 async function showDex() {
   const cells = Object.keys(G.SP).map(sp => [1, 2, 3].map(stg => {
@@ -924,22 +726,21 @@ async function showDex() {
 }
 async function showHow() {
   await ask('How to play', `<div class="how">
-  <p><b>The run.</b> Pick a partner, then delve through 4 acts. Each act is a branching map: choose your path between wild battles, elites, dens, shops, campfires, mysteries and treasure, then beat the boss. After a boss, choose which biome to enter next.</p>
-  <p><b>Battles</b> are turn-based auto-battles. Each turn, every creature already has a smart move picked; tap a different skill chip to change it, tap a foe to focus it, then press <b>FIGHT!</b> Turn on <b>Auto</b> to let the round run by itself.</p>
-  <p><b>Elements.</b> Ember > Bloom, Shade · Tide > Ember, Stone · Bloom > Tide, Stone · Volt > Tide, Shade · Stone > Ember, Volt · Shade > Volt, Bloom. Super-effective hits deal 1.5×; same-element skills deal 1.2×.</p>
-  <p><b>Reactions</b> trigger when an element hits the right status: Volt on Soaked = <b>Electrocute</b> (big hit, may stun). Tide on Burning = <b>Steam</b> (blinds). Ember on Poisoned = <b>Blight Burst</b> (the poison explodes onto every foe). Stone on Rooted = <b>Shatter</b> (sure crit). Shade on a Cursed foe under 25% = <b>Doom</b>. Ember on Soaked = Fizzle (weak!).</p>
-  <p><b>Team traits.</b> Two or three creatures of one element on the field unlock a trait (shown at the top of the battle).</p>
-  <p><b>Front and back row.</b> Your first two creatures stand in front; melee attacks must hit the front row first. Ranged skills reach anyone.</p>
-  <p><b>Overdrive.</b> Acting and taking hits fills the blue bar. Evolved creatures fire their <b>ultimate</b> when it is full.</p>
-  <p><b>Growth.</b> Creatures level up from XP, learn a third skill at L4 and evolve at L7 and L14, picking a <b>mutation</b> each time. Give each one a <b>charm</b> for stats.</p>
-  <p><b>Relics</b> power up your whole team. Three relics with a shared tag light up a <b>set bonus</b>; certain pairs <b>fuse</b> into legendaries at a campfire or forge. Each biome has a <b>hazard</b>; some relics counter it.</p>
-  <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp, and every creature you catch joins your starter pool. Win to unlock harder Depths.</p></div>`, btn('ok', 'Got it', 'green'));
+  <p><b>The run</b> is 24 rounds across 4 stages. Rounds 3 of each stage are elite fights that pay a relic; every 6th round is a boss. After a boss you choose the next stage's biome. You have 100 HP: losing a round costs HP (more for every foe left standing). Beat the Glimmerwyrm in round 24 to win.</p>
+  <p><b>Planning.</b> Buy creatures from the shop (cost = tier: 1-3 gold), drag them from the bench onto your half of the board, and drag them back or onto the shop to sell. Your <b>Tamer level</b> is how many creatures fit on the board: you gain 2 XP a round, and Buy XP gives 4 for 4 gold. Higher levels also roll rarer creatures. <b>Lock</b> keeps a shop for next round.</p>
+  <p><b>Merging.</b> Three copies of the same creature at the same star merge and evolve it: ★2 is its second form, ★3 its final form. Each merge offers a <b>mutation</b>.</p>
+  <p><b>Gold.</b> 5 a round, +1 for a win, +1 interest per 10 gold you hold (up to 5), and a bonus for win or loss streaks.</p>
+  <p><b>Fights</b> play themselves. Creatures walk to the nearest foe, attack at their own range and speed, and fill their blue <b>mana</b> bar by attacking and getting hit. When it is full they cast their <b>power</b>: tap a creature to choose which of its skills that is. ★2 creatures unlock an ultimate. The next enemy board is shown while you plan, so place your team to counter it: melee in front, ranged behind, protect your casters.</p>
+  <p><b>Elements.</b> Ember > Bloom, Shade · Tide > Ember, Stone · Bloom > Tide, Stone · Volt > Tide, Shade · Stone > Ember, Volt · Shade > Volt, Bloom. Super-effective hits deal 1.5×.</p>
+  <p><b>Reactions</b>: Volt on Soaked = <b>Electrocute</b>. Tide on Burning = <b>Steam</b>. Ember on Poisoned = <b>Blight Burst</b> (the poison explodes onto every foe). Stone on Rooted = <b>Shatter</b>. Shade on a Cursed foe under 25% = <b>Doom</b>. Ember on Soaked = Fizzle (weak!).</p>
+  <p><b>Synergies</b> (top of the board): 2 different species of one element, or 2-4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
+  <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
+  <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p></div>`, btn('ok', 'Got it', 'green'));
 }
 
 // ---- boot --------------------------------------------------------------------------------------
 load();
 renderTitle();
-// warm the art cache for the first screens
-['bg_verdant', 'node_battle', 'node_elite', 'node_den', 'node_shop', 'node_rest', 'node_event', 'node_treasure', 'node_boss'].forEach(k => { const i = new Image(); i.src = IMG(k); });
-window.GLIM = { get run() { return run; }, get meta() { return meta; }, get BS() { return BS; }, startBattle, renderMap };
+['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
+window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame };
 })();

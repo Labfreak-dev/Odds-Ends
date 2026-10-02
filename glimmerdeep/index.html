@@ -128,13 +128,15 @@ img { display: block; -webkit-user-drag: none; }
 .mon { position: absolute; width: var(--w, 16%); transform: translate(-50%, 0); z-index: 10; cursor: pointer; }
 .mon .spr { width: 100%; height: auto; transform-origin: 50% 100%; animation: idle 2.4s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(0,0,0,.55)); }
 .mon.side1 .spr { transform: scaleX(-1); animation-name: idleF; }
+/* boss renders already face left: never mirror them */
+.mon.side1.boss .spr { transform: none; animation-name: idle; }
+.mon .rig { transform-origin: 50% 100%; will-change: transform; }
 .mon .shadow { position: absolute; left: 15%; right: 15%; bottom: -4%; height: 10%; background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent); z-index: -1; }
 @keyframes idle { 50% { transform: scale(1.02, .98) translateY(1%); } }
 @keyframes idleF { 0%, 100% { transform: scaleX(-1); } 50% { transform: scaleX(-1) scale(1.02, .98) translateY(1%); } }
 .mon.dead { opacity: 0; transform: translate(-50%, 10%) scale(.8); transition: opacity .6s, transform .6s; pointer-events: none; }
 .mon.focus .shadow { left: 0; right: 0; bottom: -7%; height: 20%; background: radial-gradient(closest-side, transparent 58%, #ff4d6d 62%, #ffd0d8 70%, #ff4d6d 76%, transparent 80%); animation: ring 1s ease-in-out infinite; }
 @keyframes ring { 50% { transform: scale(1.12); opacity: .8; } }
-.mon.flash .spr { filter: brightness(2.6) drop-shadow(0 0 8px #fff); }
 .mon.elite .spr { filter: drop-shadow(0 0 10px #ffcb3c) drop-shadow(0 6px 6px rgba(0,0,0,.55)); }
 .mon.actor { z-index: 40; }
 .hud { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); width: max(92px, 100%); pointer-events: none; z-index: 20; }

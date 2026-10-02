@@ -233,7 +233,7 @@ function monHtml(f, st) {
     <div class="hud"><div class="nm">${elBadge(f.el)}<span>${esc(f.name)} ${f.boss ? '' : 'L' + f.lvl}</span></div>
       <div class="bar hp"><i class="${hpClass(f.hp / f.maxHp)}" style="width:${100 * f.hp / f.maxHp}%"></i><i class="sh" style="width:${Math.min(100, 100 * f.shield / f.maxHp)}%"></i></div>
       ${f.side === 0 || f.boss ? `<div class="bar od"><i style="width:${f.od}%"></i></div>` : ''}<div class="sts"></div></div>
-    <img class="spr${f.shiny ? ' shiny' : ''}" src="${IMG(f.art)}" alt=""><div class="shadow"></div></div>`;
+    <div class="rig"><img class="spr${f.shiny ? ' shiny' : ''}" src="${IMG(f.art)}" alt=""></div><div class="shadow"></div></div>`;
 }
 function monEl(id) { return arena.querySelector(`.mon[data-id="${id}"]`); }
 const ST_LABEL = { burn: 'BRN', poison: 'PSN', soak: 'WET', wet: 'WET', stun: 'STUN', root: 'ROOT', curse: 'CURSE', blind: 'BLIND', atkUp: 'ATK▲', defUp: 'DEF▲', spdUp: 'SPD▲', critUp: 'CRIT▲', dodge: 'EVA▲', regen: 'REGEN', taunt: 'TAUNT' };
@@ -303,13 +303,76 @@ function lunge(from, to, ms) {
   const el = monEl(from), a = center(from), b = center(to); if (!el || !a || !b) return Promise.resolve();
   const dx = (b.px - a.px) * 0.55, dy = (b.py - a.py) * 0.4;
   el.classList.add('actor');
-  const an = el.animate([{ transform: 'translate(-50%,0)' }, { transform: `translate(calc(-50% + ${dx}px), ${dy}px)`, offset: 0.45 }, { transform: 'translate(-50%,0)' }], { duration: ms, easing: 'ease-in-out' });
+  // body travel: hang back during the wind-up, dash in, hop back
+  const an = el.animate([{ transform: 'translate(-50%,0)' }, { transform: `translate(calc(-50% + ${-dx * 0.08}px), 0)`, offset: 0.25 },
+    { transform: `translate(calc(-50% + ${dx}px), ${dy}px)`, offset: 0.5 }, { transform: `translate(calc(-50% + ${dx * 0.9}px), ${dy * 0.9}px)`, offset: 0.62 },
+    { transform: 'translate(-50%,0)' }], { duration: ms, easing: 'ease-in-out' });
   return an.finished.then(() => el.classList.remove('actor'), () => {});
 }
-function shake(id) {
-  const el = monEl(id); if (!el) return;
-  el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 110);
-  el.animate([{ marginLeft: '0' }, { marginLeft: '-6px' }, { marginLeft: '6px' }, { marginLeft: '0' }], { duration: 220 });
+// ---- creature rig animations (the inner .rig layer, so the idle bob keeps running) ----------
+function rigOf(id) { const el = monEl(id); return el && el.querySelector('.rig'); }
+function faceOf(id) { const f = BS && B.byId(BS.st, id); return f && f.side === 1 ? -1 : 1; }
+const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff' };
+function animRig(id, frames, ms, easing, fill) {
+  const r = rigOf(id); if (!r) return Promise.resolve();
+  return r.animate(frames, { duration: ms, easing: easing || 'ease-out', fill: fill || 'none' }).finished.catch(() => {});
+}
+// kind: melee | ranged | buff | ult
+function animAttack(id, kind, el, ms) {
+  const d = faceOf(id), c = ELC[el] || '#fff', glow = `drop-shadow(0 0 14px ${c}) drop-shadow(0 0 4px #fff)`, none = 'drop-shadow(0 0 0 transparent)';
+  if (kind === 'melee') return animRig(id, [
+    { transform: 'none' },
+    { transform: `translateX(${-6 * d}%) rotate(${-8 * d}deg) scale(1.08, .86)`, offset: 0.25 },          // crouch and coil
+    { transform: `translateX(${6 * d}%) translateY(-10%) rotate(${10 * d}deg) scale(.92, 1.12)`, offset: 0.45 }, // leap
+    { transform: `translateX(${10 * d}%) rotate(${14 * d}deg) scale(1.16, .9)`, offset: 0.55 },             // strike
+    { transform: `rotate(${-3 * d}deg) scale(.97, 1.03)`, offset: 0.8 },
+    { transform: 'none' }], ms, 'ease-in-out');
+  if (kind === 'ranged') return animRig(id, [
+    { transform: 'none', filter: none },
+    { transform: `translateX(${-7 * d}%) rotate(${-10 * d}deg) scale(.95, 1.08)`, filter: glow, offset: 0.4 },   // rear back, charge
+    { transform: `translateX(${7 * d}%) rotate(${6 * d}deg) scale(1.1, .94)`, filter: glow, offset: 0.55 },      // fire
+    { transform: `translateX(${-3 * d}%) scale(.98, 1.02)`, filter: none, offset: 0.78 },                          // recoil
+    { transform: 'none', filter: none }], ms, 'ease-in-out');
+  if (kind === 'ult') return animRig(id, [
+    { transform: 'none', filter: none },
+    { transform: 'translateY(4%) scale(1.15, .8)', filter: glow, offset: 0.2 },
+    { transform: `translateY(-16%) rotate(${-6 * d}deg) scale(1.2)`, filter: glow, offset: 0.5 },
+    { transform: `translateY(-12%) rotate(${6 * d}deg) scale(1.25)`, filter: glow, offset: 0.7 },
+    { transform: 'translateY(2%) scale(1.1, .9)', filter: none, offset: 0.88 },
+    { transform: 'none', filter: none }], ms, 'ease-in-out');
+  return animRig(id, [                                                                             // buff / heal / shield
+    { transform: 'none', filter: none },
+    { transform: 'translateY(3%) scale(1.12, .85)', offset: 0.2 },
+    { transform: 'translateY(-14%) scale(.94, 1.1)', filter: glow, offset: 0.5 },
+    { transform: 'translateY(2%) scale(1.1, .9)', filter: glow, offset: 0.75 },
+    { transform: 'none', filter: none }], ms, 'ease-in-out');
+}
+// knocked away from the attacker; crits hit harder and shake the arena
+function animHit(id, attackerId, crit, dot) {
+  const d = attackerId != null ? (faceOf(attackerId) || 1) : -faceOf(id);
+  const k = crit ? 16 : 8;
+  const flash = dot === 'burn' ? 'brightness(1.6) sepia(1) saturate(5) hue-rotate(-25deg)' : dot === 'poison' ? 'brightness(1.3) sepia(1) saturate(4) hue-rotate(230deg)'
+    : dot ? 'brightness(1.8)' : 'brightness(3) saturate(0)';
+  if (crit) arena.animate([{ transform: 'none' }, { transform: 'translate(-7px,4px)' }, { transform: 'translate(6px,-4px)' }, { transform: 'translate(-3px,2px)' }, { transform: 'none' }], { duration: 300 });
+  if (dot) return animRig(id, [{ transform: 'none', filter: 'none' }, { transform: 'scale(1.05, .93)', filter: flash, offset: 0.3 }, { transform: 'scale(.98, 1.02)', filter: 'none', offset: 0.7 }, { transform: 'none', filter: 'none' }], 320);
+  return animRig(id, [
+    { transform: 'none', filter: 'none' },
+    { transform: `translateX(${k * d}%) rotate(${(crit ? 16 : 9) * d}deg) scale(.9, 1.06)`, filter: flash, offset: 0.12 },
+    { transform: `translateX(${k * 0.9 * d}%) rotate(${6 * d}deg) scale(1.06, .92)`, filter: 'none', offset: 0.35 },
+    { transform: `translateX(${-2 * d}%) rotate(${-3 * d}deg)`, offset: 0.7 },
+    { transform: 'none', filter: 'none' }], crit ? 520 : 400);
+}
+function animDodge(id, attackerId) {
+  const d = attackerId != null ? faceOf(attackerId) : -faceOf(id);
+  return animRig(id, [{ transform: 'none', opacity: 1 }, { transform: `translateX(${14 * d}%) translateY(-8%) rotate(${-8 * d}deg)`, opacity: 0.6, offset: 0.35 }, { transform: 'none', opacity: 1 }], 380, 'ease-in-out');
+}
+function animKO(id) {
+  const d = -faceOf(id);   // topples backwards
+  return animRig(id, [{ transform: 'none', filter: 'none' }, { transform: `translateY(-6%) rotate(${-10 * d}deg)`, filter: 'brightness(2)', offset: 0.2 },
+    { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], 520, 'ease-in', 'forwards');
+}
+function animHeal(id) {
+  return animRig(id, [{ transform: 'none', filter: 'none' }, { transform: 'translateY(-6%) scale(1.04)', filter: 'drop-shadow(0 0 12px #6bff8f) brightness(1.25)', offset: 0.4 }, { transform: 'none', filter: 'none' }], 420);
 }
 function banner(text, el) {
   const b = document.createElement('div');
@@ -328,23 +391,34 @@ async function play(ev) {
       const sk = G.SK[e.sk];
       if (e.ult) {
         arena.classList.add('ult'); SFX.ult();
-        const el = monEl(e.a); if (el) { el.classList.add('actor'); el.animate([{ transform: 'translate(-50%,0) scale(1)' }, { transform: 'translate(-50%,-6%) scale(1.25)' }, { transform: 'translate(-50%,0) scale(1)' }], { duration: 900 * sp() }); }
+        const el = monEl(e.a); if (el) el.classList.add('actor');
         banner(e.n, e.el);
-        await sleep(950 * sp());
+        await animAttack(e.a, 'ult', e.el, 950 * sp());
         arena.classList.remove('ult'); if (el) el.classList.remove('actor');
       } else pop(e.a, e.n, 'small', -14);
       const foeT = e.tg.filter(id => F(id) && F(id).side !== a.side);
       if (foeT.length && sk.pow) {
-        if (!sk.rng && !e.aoe && sk.t === 'foe') await lunge(e.a, foeT[0], 380 * sp());
-        else await Promise.all(foeT.map(t => fxOrb(e.a, t, e.el, 300 * sp())));
+        if (!sk.rng && !e.aoe && sk.t === 'foe') {
+          // melee: the body dashes in while the rig coils and strikes
+          await Promise.all([lunge(e.a, foeT[0], 520 * sp()), e.ult ? null : animAttack(e.a, 'melee', e.el, 520 * sp())]);
+        } else {
+          // ranged / area: rear back, then the shots leave at the release
+          const cast = e.ult ? Promise.resolve() : animAttack(e.a, 'ranged', e.el, 480 * sp());
+          await sleep(220 * sp());
+          await Promise.all([cast, ...foeT.map(t => fxOrb(e.a, t, e.el, 260 * sp()))]);
+        }
         foeT.forEach(t => fxBurst(t, e.el));
-      } else if (e.tg.length) { e.tg.forEach(t => fxBurst(t, e.el)); await sleep(260 * sp()); }
+      } else if (e.tg.length) {
+        if (!e.ult) animAttack(e.a, 'buff', e.el, 460 * sp());
+        await sleep(200 * sp());
+        e.tg.forEach(t => fxBurst(t, e.el)); await sleep(260 * sp());
+      }
       else await sleep(200 * sp());
     }
-    else if (e.k === 'aim') { await fxOrb(e.a, e.t, F(e.a) ? F(e.a).el : 'shade', 200 * sp()); fxBurst(e.t, F(e.a) ? F(e.a).el : 'shade'); }
+    else if (e.k === 'aim') { const el = F(e.a) ? F(e.a).el : 'shade'; animAttack(e.a, 'ranged', el, 300 * sp()); await sleep(110 * sp()); await fxOrb(e.a, e.t, el, 180 * sp()); fxBurst(e.t, el); }
     else if (e.k === 'dmg') {
       const f = F(e.t); if (!f) continue;
-      shake(e.t);
+      animHit(e.t, e.dot ? null : e.a, e.crit, e.dot);
       const cls = e.dot ? 'small' : e.crit ? 'crit' : '';
       pop(e.t, (e.crit ? 'CRIT ' : '') + e.v, cls);
       if (!e.dot && !e.thorn && e.eff > 1) pop(e.t, 'Super effective!', 'eff', 9);
@@ -353,13 +427,13 @@ async function play(ev) {
       setHud(f, e.hp, e.sh);
       await sleep((e.dot ? 120 : 200) * sp());
     }
-    else if (e.k === 'miss') { pop(e.t, e.dodge ? 'Dodged' : 'Miss', 'miss'); SFX.miss(); await sleep(160 * sp()); }
-    else if (e.k === 'heal') { const f = F(e.t); if (f) { pop(e.t, '+' + e.v, 'heal'); setHud(f, e.hp, e.sh); SFX.heal(); await sleep(130 * sp()); } }
+    else if (e.k === 'miss') { pop(e.t, e.dodge ? 'Dodged' : 'Miss', 'miss'); animDodge(e.t, e.a); SFX.miss(); await sleep(200 * sp()); }
+    else if (e.k === 'heal') { const f = F(e.t); if (f) { pop(e.t, '+' + e.v, 'heal'); if (e.v > 0) animHeal(e.t); setHud(f, e.hp, e.sh); SFX.heal(); await sleep(130 * sp()); } }
     else if (e.k === 'shield') { const f = F(e.t); if (f) { pop(e.t, '+' + e.v + ' shield', 'shield'); setHud(f, null, e.sh); await sleep(110 * sp()); } }
     else if (e.k === 'status') { const f = F(e.t); if (f) { const el = monEl(e.t); if (el) el.querySelector('.sts').innerHTML = stsHtml(f); if (!e.haz && ST_LABEL[e.s]) pop(e.t, ST_LABEL[e.s], 'small', 6); await sleep(70 * sp()); } }
     else if (e.k === 'react') { pop(e.t, e.name, 'react', -6); SFX.react(); await sleep(380 * sp()); }
-    else if (e.k === 'ko') { const el = monEl(e.t); if (el) el.classList.add('dead'); SFX.ko(); await sleep(260 * sp()); }
-    else if (e.k === 'revive') { const el = monEl(e.t); const f = F(e.t); if (el) el.classList.remove('dead'); if (f) setHud(f, e.hp, 0); pop(e.t, e.name, 'react'); SFX.heal(); await sleep(400 * sp()); }
+    else if (e.k === 'ko') { SFX.ko(); await animKO(e.t); const el = monEl(e.t); if (el) el.classList.add('dead'); await sleep(120 * sp()); }
+    else if (e.k === 'revive') { const el = monEl(e.t); const f = F(e.t); if (el) { el.classList.remove('dead'); const r = el.querySelector('.rig'); if (r) r.getAnimations().forEach(a => a.cancel()); animHeal(e.t); } if (f) setHud(f, e.hp, 0); pop(e.t, e.name, 'react'); SFX.heal(); await sleep(400 * sp()); }
     else if (e.k === 'summon') {
       const f = F(e.f.id); if (!f) continue;
       arena.querySelectorAll(`.mon.side${f.side}.dead`).forEach(m => { const o = F(+m.dataset.id); if (!o || o.slot === f.slot) m.remove(); });

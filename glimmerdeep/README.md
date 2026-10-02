@@ -175,3 +175,11 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - Two earlier designs were redone for originality: the fire salamander came back too
     close to a famous fire lizard (now an axolotl), and the yellow electric rodent
     became a crystal-quilled hedgehog.
+- **g2**: attack and hit animations, and bosses face the right way.
+  - Each creature sprite sits in an inner `.rig` layer, so these animations run on top of the idle bob.
+  - Melee attacks crouch, leap and strike while the body dashes in. Ranged and area skills rear back with an element glow, then fire and recoil; multi-hit skills cast once per shot.
+  - Buffs, heals and shields play a power-up hop, and ultimates a big charged leap.
+  - Hits flash white and knock the target away from the attacker; crits knock harder and shake the arena. Burn and poison ticks give a tinted shudder.
+  - A dodge is a sidestep, a heal gives a green glow, and a knockout topples backwards before fading.
+  - Bosses: the game mirrors every foe sprite to face the player, but the six boss renders were already drawn facing left, so they were turned around. Bosses are no longer mirrored.
+

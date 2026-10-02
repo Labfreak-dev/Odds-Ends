@@ -124,6 +124,19 @@ def strip_floor(img):
     bb = out.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
     return out.crop(bb) if bb else out
 
+def clean_halo(img):
+    """Icons are lit with a bright rim glow, which mixes with the magenta key into a pink
+    halo. In the soft edge band, pink-tinted pixels lose their tint and most of their alpha."""
+    a = np.asarray(img).astype(np.float32)
+    r, g, b, al = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    solid = al > 250
+    band = ~ndimage.binary_erosion(solid, iterations=10) & (al > 0)
+    pink = band & (r - g > 18) & (b - g > 8)
+    m = np.maximum(np.maximum(r, g), b)
+    for c in range(3): a[..., c] = np.where(pink, m * 0.92, a[..., c])
+    a[..., 3] = np.where(pink & ~solid, al * 0.35, al)
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8), 'RGBA')
+
 def fit(img, th, mw):
     w, h = img.size
     s = min(th / h, mw / w, 1.0)
@@ -143,6 +156,7 @@ def process(key):
     else:
         cut = key_out(im)
         if key.startswith('cr_'): cut = strip_floor(cut)
+        elif not key.startswith('boss_'): cut = clean_halo(cut)
         img = fit(cut, th, mw)
     img.save(os.path.join(OUT, key + '.webp'), 'WEBP', quality=q, method=6)
     return img.size

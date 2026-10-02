@@ -163,3 +163,19 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - **The evolution sequence** is a full-screen moment: the old form glows into a white silhouette that flickers faster and faster between old and new shapes while element-coloured light rays spin and sparks rush in, then a white flash and a shockwave ring reveal the new form with its name, stars, stat jump and any new ultimate. Tap to skip.
   - On the board, evolved creatures stand bigger (70/94/120% of a cell): ★2 gets a silver aura and ★3 a pulsing gold aura with sparkles.
 - **g5**: the shop's OWNED tag only marks a card that would merge with something: a creature you only have as a ★3 (final form) no longer shows it, so a whole team of one species is easy to read. It comes back as soon as you hold a ★1 or ★2 of it.
+- **g6**: **60 new species, 4 new elements, tiers 4 and 5** (72 species, 216 forms).
+  - The species table lives in `tools/species2.py`, which writes `species2.js` and feeds `gen-art.py`.
+  - New elements: Frost, Gale, Metal and Mystic. They slot into the chart without breaking any old matchup (each new element has 2 strengths and 2 weaknesses; four old elements gained a third strength).
+  - New statuses: Chill, Shred and Hex. New reactions: Freeze and Firestorm. Each new element has a trait. Element and role traits now trigger at 2 and 4 different species.
+  - Tiers 4 and 5 (cost 4 and 5; tier-5 cards are gold) open up from Tamer level 5 and 7.
+  - Skills for the new species come from four role kits flavoured by element status, with names drawn from per-element word banks.
+  - New element relics (Frost Shard, Wind Bell, Iron Core, Moon Charm) and charms (Ever-Ice, Gale Leaf, Steel Ingot, Moonstone).
+  - Balance: with 72 species, the bot's average star level fell from 2.0 to 1.2 and it won 0% of runs. Two fixes:
+    - **kin attraction**: each shop slot has a 25% chance to offer a species you own below ★3;
+    - a gentler enemy star curve.
+    The bot is back to 24% wins.
+  - Art: 180 creature renders plus 12 icons, about 700 Meshy credits including re-rolls.
+    - Re-rolled with two candidates each: 19 forms that changed too little or came out humanoid (the dandelion spirit and the oracle).
+    - The red dragon hatchling was redone without a flame-tipped tail, which read too close to a famous fire lizard.
+  - `pack.py` gained `clean_halo`: the icons' bright rim light mixed with the magenta key into pink halos; pink in the soft edge band now loses its tint and most of its alpha.
+

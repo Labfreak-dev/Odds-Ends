@@ -102,7 +102,8 @@ img { display: block; -webkit-user-drag: none; }
 .trait.on { background: color-mix(in srgb, var(--c, #8d7bff) 50%, #000a); box-shadow: inset 0 0 0 1px var(--c, #fff); color: #fff; }
 .trait.role { --c: #c7bde8; }
 .trait.haz { --c: #ffc93c; background: rgba(255,201,60,.18); color: #ffe7a3; box-shadow: inset 0 0 0 1px #ffc93c88; }
-.boardwrap { flex: 0 0 auto; display: flex; justify-content: center; }
+.boardwrap { flex: 0 0 auto; display: flex; justify-content: center; padding-top: 22px; }
+.traits { position: relative; z-index: 50; }
 .board { position: relative; width: min(100%, 880px, calc((100vh - 300px) * 1.6)); aspect-ratio: 8 / 5; border-radius: 14px; overflow: visible;
   background: rgba(0,0,0,.25); box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.12); }
 .board .cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(5, 1fr); border-radius: 14px; overflow: hidden; }

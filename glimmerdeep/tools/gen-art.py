@@ -214,7 +214,7 @@ CHARMS = {
  'grit': 'a small sturdy pebble with a smiling crack', 'scope': 'a blue crystal monocle scope', 'coal': 'a glowing lump of coal',
  'seaglass': 'a smooth piece of blue sea glass', 'wildseed': 'a big green seed with leaf pattern', 'magnet': 'a red and silver horseshoe magnet',
  'geode': 'a split geode showing teal crystals', 'icecube': 'a never-melting glowing ice cube',
- 'galeleaf': 'a mint-green leaf swirling with wind', 'ingot': 'a polished shiny steel ingot', 'moonstone': 'a glowing teal and gold moonstone', 'spelltag': 'a paper talisman tag with a glowing indigo rune',
+ 'galeleaf': 'a mint-green leaf swirling with wind', 'ingot': 'a polished silver-grey steel ingot bar with bright white highlights, cool grey and blue tones only', 'moonstone': 'a glowing teal and gold moonstone', 'spelltag': 'a paper talisman tag with a glowing indigo rune',
 }
 for k, d in CHARMS.items(): A['ch_' + k] = ('icon', d)
 

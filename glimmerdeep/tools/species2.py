@@ -28,7 +28,7 @@ SPECIES2 = [
   'a graceful young firebird with long blazing tail feathers and wings edged in golden flame',
   'a radiant phoenix with vast wings of white-gold fire, a long flowing tail of flame ribbons and a crown of blazing plumes')),
  ('emdr', 'ember', 'striker', 5, 1, ('Wyrmling', 'Flamewyvern', 'Solarwyrm'), (
-  'a small stubby red dragon hatchling with a little flame on its tail and tiny wings',
+  'a small round crimson dragon hatchling with stubby curled horns, little bat wings, a puff of smoke from its nose and a thick spiked tail with no flame on it',
   'a fierce crimson wyvern with large leathery wings, a horned head and fire glowing in its throat',
   'an enormous solar dragon with four great wings of fire, golden armoured scales, a sun halo behind its horns and a blazing tail')),
  # ---- tide ----
@@ -97,8 +97,8 @@ SPECIES2 = [
  # ---- stone ----
  ('stmo', 'stone', 'tank', 1, 1, ('Pebmole', 'Rockdigger', 'Quakemole'), (
   'a round little brown mole with pebble-covered back and big stone claws',
-  'a sturdy mole with huge rocky digging claws and a back of jagged stones',
-  'a gigantic earthquake mole with boulder armour, colossal crystal-tipped claws and cracks in the ground around it')),
+  'a big burly digging mole beast with huge drill-like stone claws, a back of jagged amber crystals and a cracked rocky head crest, an animal creature, not humanoid, wearing no clothing or armour',
+  'a colossal earthquake mole titan bursting up from cracked ground, enormous crystal-tipped drill claws, a mountain of boulders on its back and glowing amber cracks, an animal creature, not humanoid, wearing no clothing or armour')),
  ('stgo', 'stone', 'striker', 2, 1, ('Kidrock', 'Craggoat', 'Summitram'), (
   'a small fluffy goat kid with little stone horns and pebble hooves',
   'a strong mountain goat with large curled granite horns and a rocky mane',
@@ -113,8 +113,8 @@ SPECIES2 = [
   'a colossal mountain bear with a forested mountain ridge on its back, granite armour and glowing amber veins')),
  ('stli', 'stone', 'striker', 5, 1, ('Guardcub', 'Stonelion', 'Templelion'), (
   'a small stone lion cub statue come to life with a curly carved mane',
-  'a proud stone guardian lion with a carved granite mane and glowing gold runes',
-  'a majestic temple guardian lion with an ornate carved mane, gold-inlaid stone armour, glowing rune eyes and a floating stone halo')),
+  'a lean adult stone guardian lion, much larger than the cub, with a carved granite mane, glowing gold runes and a long stone tail, an animal creature, not humanoid, wearing no clothing or armour',
+  'a towering temple guardian lion statue come alive, a massive ornate carved mane with gold inlay, a floating stone halo, glowing rune eyes and broken temple pillars at its paws, an animal creature, not humanoid, wearing no clothing or armour')),
  # ---- shade ----
  ('shra', 'shade', 'striker', 1, 1, ('Smudgling', 'Duskraven', 'Nightmonarch'), (
   'a small round fluffy raven chick made of soft shadow with glowing cyan eyes',
@@ -192,8 +192,8 @@ SPECIES2 = [
   'a majestic storm griffin with vast wings of wind and lightning feathers, golden talons and a crest of cloud')),
  ('gadl', 'gale', 'support', 3, 3, ('Fluffseed', 'Dandelwisp', 'Galeflower'), (
   'a small round dandelion puff creature with tiny leaf feet',
-  'a floating dandelion spirit with a glowing seed crown and drifting seeds',
-  'a tall elegant wind flower spirit with a huge glowing dandelion crown, petals swirling around it and floating seed lanterns')),
+  'a floating dandelion puff spirit with a glowing seed crown, small leaf wings and drifting seeds around its round body, an animal creature, not humanoid, wearing no clothing or armour',
+  'a large floating wind blossom spirit with a giant glowing dandelion crown, leafy wings, swirling petals and seed lanterns orbiting its round body, an animal creature, not humanoid, wearing no clothing or armour')),
  ('gaki', 'gale', 'caster', 4, 3, ('Gustkit', 'Zephyrfox', 'Stormkitsune'), (
   'a small mint and white fox kit with a fluffy tail of swirling cloud',
   'a graceful wind fox with three cloud tails and teal swirl markings',
@@ -217,29 +217,29 @@ SPECIES2 = [
   'a majestic golden scarab with radiant metallic wings, an ornate engraved shell and a floating sun disk above it')),
  ('mepa', 'metal', 'tank', 2, 1, ('Platelin', 'Chromgolin', 'Bastiongolin'), (
   'a small pangolin covered in shiny steel scales',
-  'a sturdy pangolin with overlapping chrome plates and a heavy steel tail',
-  'a colossal fortress pangolin with layered titanium plates, spiked steel tail and glowing blue seams')),
+  'a pangolin beast with flared chrome plates like a spiked crown, a massive steel club tail and glowing blue seams, an animal creature, not humanoid, wearing no clothing or armour',
+  'a colossal fortress pangolin rearing on its hind legs, towering layered titanium plates like a spiked citadel and glowing blue energy seams, an animal creature, not humanoid, wearing no clothing or armour')),
  ('mewf', 'metal', 'striker', 3, 1, ('Chromepup', 'Steelwolf', 'Argentwolf'), (
   'a small silver wolf pup with metallic sheen fur',
-  'a sleek steel wolf with blade-like silver fur and glowing blue eyes',
-  'a huge silver alpha wolf with a mane of gleaming steel blades, mirror-polished armour plates and glowing blue eyes')),
+  'a lean steel wolf standing tall with blade-like silver fur, a mane of metal spikes and glowing blue eyes, much bigger than the pup, an animal creature, not humanoid, wearing no clothing or armour',
+  'a huge silver dire wolf with a towering mane of gleaming steel blades, a mirror-polished plated body, glowing blue runes and twin metal horns, an animal creature, not humanoid, wearing no clothing or armour')),
  ('mest', 'metal', 'tank', 4, 1, ('Tinstag', 'Ironstag', 'Titanstag'), (
   'a small stag beetle with shiny tin mandibles',
-  'a big iron stag beetle with huge serrated steel mandibles',
-  'a colossal titanium stag beetle with enormous gleaming mandibles, plated wings and glowing blue engravings')),
+  'an iron stag beetle standing tall with enormous serrated mandibles twice its body length and glowing blue wing cases spread open, an animal creature, not humanoid, wearing no clothing or armour',
+  'a towering titan stag beetle in flight with four huge translucent steel wings, colossal glowing mandibles like a crown and blue circuit engravings, an animal creature, not humanoid, wearing no clothing or armour')),
  ('mebu', 'metal', 'striker', 5, 1, ('Ironcalf', 'Steelbull', 'Adamantor'), (
   'a stubby little calf with shiny iron skin and tiny horns',
-  'a powerful steel bull with polished chrome horns and riveted plates',
-  'a colossal adamant bull with huge gleaming horns, a body of mirror-polished metal plates and glowing blue energy in its chest')),
+  'a charging muscular steel bull with huge polished chrome horns, glowing blue nostrils and riveted shoulder plates, an animal creature, not humanoid, wearing no clothing or armour',
+  'a titanic adamant bull beast on four legs, enormous swept horns of gold-steel, a body of mirror-polished plates and a blazing blue energy core in its chest, an animal creature, not humanoid, wearing no clothing or armour')),
  # ---- mystic ----
  ('myun', 'mystic', 'support', 1, 2, ('Starfoal', 'Astrocorn', 'Celesticorn'), (
   'a small white foal with a tiny glowing gold horn and a teal starry mane',
-  'a graceful unicorn with a starry teal mane, a golden horn and glowing constellations on its coat',
+  'a young winged unicorn with small starlight wings, a longer golden spiral horn and a flowing galaxy mane, an animal creature, not humanoid, wearing no clothing or armour',
   'a majestic celestial unicorn with a flowing mane of galaxies, a radiant golden spiral horn and wings of starlight')),
  ('myor', 'mystic', 'caster', 1, 3, ('Orblet', 'Seerorb', 'Oracleye'), (
   'a small floating crystal ball creature with one big friendly eye and tiny gold fins',
   'a floating crystal orb seer with a large glowing eye, golden rings orbiting it and tiny star sparkles',
-  'a majestic oracle of many floating golden rings around a huge glowing crystal eye, orbiting runes and starlight')),
+  'a colossal floating oracle: a giant glowing crystal eye surrounded by many rotating golden rings and floating rune tablets, no body, no limbs, not humanoid')),
  ('mydf', 'mystic', 'support', 2, 3, ('Twinklefly', 'Starfly', 'Aurorafly'), (
   'a small teal dragonfly with glowing gold-tipped wings',
   'a dragonfly with four large glowing star-patterned wings and a golden body',
@@ -251,11 +251,11 @@ SPECIES2 = [
  ('mybe', 'mystic', 'tank', 3, 1, ('Lunacub', 'Moonbear', 'Lunarsa'), (
   'a round fluffy dark blue bear cub with a glowing crescent moon on its chest',
   'a big moon bear with a glowing crescent moon mark and starry fur',
-  'a colossal lunar bear spirit with a huge glowing full moon on its chest, fur full of stars and a crown of crescent moons')),
+  'a towering lunar bear spirit rearing on its hind legs, a translucent body full of galaxies, a huge glowing full moon behind its head and crescent-moon horns, an animal creature, not humanoid, wearing no clothing or armour')),
  ('mysh', 'mystic', 'support', 4, 3, ('Stellin', 'Nebulin', 'Cosmarine'), (
   'a small teal and gold seahorse floating in the air with star sparkles',
-  'a seahorse with a nebula-patterned body, golden fins and a crown of stars',
-  'a majestic cosmic seahorse with a body like a swirling galaxy, golden crystal fins and a halo of orbiting stars')),
+  'a long elegant star seahorse dragon with flowing golden fins like wings, a nebula-patterned body and a crown of stars, an animal creature, not humanoid, wearing no clothing or armour',
+  'a colossal cosmic sea-dragon seahorse coiling through space, vast golden crystal fins, a body like a swirling galaxy and a halo of orbiting planets, an animal creature, not humanoid, wearing no clothing or armour')),
  ('mydr', 'mystic', 'caster', 5, 3, ('Lumenling', 'Aurorawyrm', 'Astralon'), (
   'a small round dragon hatchling of teal and gold light with star-shaped spots',
   'a graceful dragon with wings of shimmering aurora light and golden horns',

@@ -134,7 +134,7 @@ const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
 const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
-const SIZE = [0, 70, 94, 120];
+const SIZE = [0, 70, 94, 114];
 function unitHtml(key, o) {
   const pos = o.bench ? '' : `left:${o.x * 12.5}%;top:${o.y * 20}%;`;
   const sz = o.boss ? 175 : SIZE[o.star || 1];

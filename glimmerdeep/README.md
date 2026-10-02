@@ -130,7 +130,7 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
 ## Build log
 - **g1**: first playable. 12 creature lines × 3 stages, 6 bosses, 6 biomes with hazards,
   69 skills, 59 relics (51 + 8 legendary fusions) with 15 set bonuses, 17 charms,
-  8 items, 10 mutations, 9 perks, 8 camp upgrades, 10 events. 148 Meshy images (about
+  8 items, 10 mutations, 9 perks, 8 camp upgrades (18 since g10), 10 events. 148 Meshy images (about
   460 credits, including re-rolls). Balance from `sim.js`:
   - The first sim died in act-1 wild fights: wild foes matched the player 1:1, hits
     took 30% of a bar, and HP carried over with no recovery. Wild foes now scale by
@@ -224,3 +224,22 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - Crits and ults hit-stop the fight for a beat.
   - **Merge perks** (see Planning): `PERK_KINDS`/`ROLE_PERKS` in `data.js` and the hooks in `chess.js`. Every species gets one of four or five role perks, picked from its id and named with its element's adjective. ★3 adds an element or role aura. Enemies at ★2+ get perks too.
   - Balance: BOSS_SCALE and per-boss HP were refitted after the perks. The bot wins 21%, and boss win rates by stage are 79/63/52/45/36/23%.
+- **g10**: **Depth fix and a deeper camp.**
+  - Fixed a bug that made Depth far harder than stated. Depth was applied twice: once in each enemy's `inst.scale` (`crun.js`) and again in `chess.js` `makeUnit`, which multiplied enemy HP and ATK by the same factor a second time.
+    - Depth 4 enemies came out at about 1.74× HP and ATK instead of 1.32×.
+    - With every old upgrade, the bot won 0% at Depth 4. After the fix it wins 4%.
+  - **Ten new camp upgrades, and more ranks on old ones.** About 7,500 shards of new ranks; the late ranks are steep on purpose.
+    - Training Drills: +2% HP/ATK per rank, ×5.
+    - Hardened Scales: +3% DEF, ×3.
+    - Focus Crystal: +5 starting mana, ×3.
+    - Killer Instinct: +2% crit, ×3.
+    - Savings Jar: interest cap +1, ×2.
+    - Field Notes: +1 Tamer XP a round.
+    - Kindred Call: +8% kin offers, ×2.
+    - Lucky Coin: rerolls −1 gold.
+    - Glimmer Hoard: +10% shards, ×3.
+    - Nest Egg and Thick Hide now go to rank 5. Heirloom goes to rank 2 (two starting relics).
+  - How the bonuses apply: a `META` entry's `cb` is its per-rank fight bonus. `crun.js` sums the bought ranks into `run.campB`, which feeds `teamBonus` and `fightOpts`.
+  - Shards now pay +10% per Depth, win or lose.
+  - `sim.js` options: `UP=max` (every upgrade), `UP=old` (only the pre-g10 set), `UPX=key` (leave one out).
+  - Bot win rates with everything maxed: 43% at Depth 4, 17% at Depth 7, 7% at Depth 10. Depth 0 with no upgrades is unchanged at 20%.

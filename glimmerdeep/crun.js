@@ -13,7 +13,13 @@ function R(run) { return run.rnd || (run.rnd = C.mkRng((run.seed + run.step * 79
 function rint(run, n) { return Math.floor(R(run)() * n); }
 function pick(run, arr) { return arr[rint(run, arr.length)]; }
 function shuffle(run, arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rint(run, i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-const bonus = run => C.teamBonus(run.relics, run.perks);
+// camp upgrades with a fight bonus stack per rank
+function campBonus(up) {
+  const b = {};
+  for (const k in up || {}) { const m = G.META[k]; if (m && m.cb) for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * up[k]; }
+  return b;
+}
+const bonus = run => C.teamBonus(run.relics, run.perks, run.campB);
 
 // ---- run setup --------------------------------------------------------------------------
 function newRun(meta, seed, depth) {
@@ -25,11 +31,12 @@ function newRun(meta, seed, depth) {
     tlv: 1 + (up.starter || 0), txp: 0, units: [], shop: [], locked: false, pool: {},
     relics: [], charms: [], items: {}, perks: {}, streak: 0, depth: depth || 0, over: 0, mods: {},
     stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {}, visited: ['verdant'], shopShiny: [],
-    meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1 },
+    meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, kin: 0.08 * (up.kindred || 0), hoard: 0.1 * (up.hoard || 0) },
+    campB: campBonus(up),
   };
   for (const k of SPS) run.pool[k] = G.POOL[G.TIER[k]];
   if (up.evo) run.items.evo = 1;
-  if (up.relic) run.relics.push(pick(run, Object.keys(G.RELICS).filter(k => G.RELICS[k].r === 1 && !G.RELICS[k].tags.includes('hazard'))));
+  for (let i = 0; i < (up.relic || 0); i++) run.relics.push(pick(run, Object.keys(G.RELICS).filter(k => G.RELICS[k].r === 1 && !G.RELICS[k].tags.includes('hazard') && !run.relics.includes(k))));
   return run;
 }
 function starterChoices(meta, seed) {
@@ -112,7 +119,7 @@ function rollShop(run, free) {
       const opts = owned.filter(k => run.pool[k] > 0); if (opts.length) sp = pick(run, opts);
     }
     // kin attraction: with 72 species, a slot sometimes offers a species you are still merging
-    if (!sp && kin.length && R(run)() < KIN_CHANCE) {
+    if (!sp && kin.length && R(run)() < KIN_CHANCE + (run.meta.kin || 0)) {
       const opts = kin.filter(k => run.pool[k] > 0 && G.TIER[k] <= maxTier); if (opts.length) sp = pick(run, opts);
     }
     for (let tries = 0; !sp && tries < 20; tries++) {
@@ -290,7 +297,7 @@ function bossOf(run, biome) {
 function rangeOf(inst) { return inst.boss ? G.BOSS_RANGE[inst.boss] : G.RANGE[inst.sp]; }
 function fightOpts(run, seed) {
   return { board: onBoard(run).map(u => ({ inst: u, x: u.x, y: u.y })), enemies: enemyBoard(run), relics: run.relics, perks: run.perks,
-    biome: run.biome, seed, depth: run.depth, mods: { bomb: run.mods.bomb, elixir: run.mods.elixir } };
+    biome: run.biome, seed, depth: run.depth, camp: run.campB, mods: { bomb: run.mods.bomb, elixir: run.mods.elixir } };
 }
 function hpLoss(run, st) {
   const surv = C.alive(st, 1);
@@ -410,7 +417,7 @@ function useItem(run, item, uid) {
   return r;
 }
 function shardsFor(run, won) {
-  return Math.round(run.round * 1.5 + run.stats.bosses * 8 + (won ? 25 : 0) + run.stats.merges + run.depth * 5 * (won ? 1 : 0));
+  return Math.round((run.round * 1.5 + run.stats.bosses * 8 + (won ? 25 : 0) + run.stats.merges + run.depth * 5 * (won ? 1 : 0)) * (1 + 0.1 * run.depth + (run.meta.hoard || 0)));
 }
 
 root.GR = { BENCH, PW, newRun, starterChoices, giveStarter, mkInst, onBoard, onBench, unitAt, benchAt, freeBench, cap, placeBoard, placeBench,

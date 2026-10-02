@@ -7,13 +7,18 @@ const EL = {
   ember: { name: 'Ember', col: '#ff7a2a' }, tide: { name: 'Tide', col: '#2fa6ff' },
   bloom: { name: 'Bloom', col: '#4fd35a' }, volt: { name: 'Volt', col: '#ffd21f' },
   stone: { name: 'Stone', col: '#c79459' }, shade: { name: 'Shade', col: '#7d6bff' },
+  frost: { name: 'Frost', col: '#8fe3ff' }, gale: { name: 'Gale', col: '#7dffc2' },
+  metal: { name: 'Metal', col: '#c8d3df' }, mystic: { name: 'Mystic', col: '#d9a6ff' },
 };
 const ELS = Object.keys(EL);
 // attacker -> defenders it hits for x1.5 (each element beats two, loses to two)
 const STRONG = {
   ember: ['bloom', 'shade'], tide: ['ember', 'stone'], bloom: ['tide', 'stone'],
   volt: ['tide', 'shade'], stone: ['ember', 'volt'], shade: ['volt', 'bloom'],
+  frost: ['gale', 'bloom'], gale: ['shade', 'mystic'], metal: ['frost', 'stone'], mystic: ['volt', 'metal'],
 };
+// g6: the four new elements also fit into the old ones' charts
+STRONG.ember.push('frost'); STRONG.tide.push('metal'); STRONG.volt.push('gale'); STRONG.shade.push('mystic');
 function eff(a, d) {
   if (!a || !d) return 1;
   if (STRONG[a].includes(d)) return 1.5;
@@ -143,17 +148,17 @@ const BOSSES = {
 
 // ---- biomes and hazards ---------------------------------------------------------
 const BIOMES = {
-  verdant: { name: 'Verdant Hollow', bg: 'bg_verdant', els: ['bloom', 'volt', 'tide', 'ember'], boss: 'bramble', haz: 'spores',
+  verdant: { name: 'Verdant Hollow', bg: 'bg_verdant', els: ['bloom', 'volt', 'tide', 'ember', 'gale', 'bloom'], boss: 'bramble', haz: 'spores',
     hazName: 'Spore Haze', hazDesc: 'Every 3 seconds your non-Bloom creatures gain 1 Poison.', counter: 'Bloom creatures, Purifying Incense, cleanses' },
-  magma:   { name: 'Magma Forge', bg: 'bg_magma', els: ['ember', 'stone', 'ember', 'volt'], boss: 'cinder', haz: 'heat',
+  magma:   { name: 'Magma Forge', bg: 'bg_magma', els: ['ember', 'stone', 'ember', 'volt', 'metal', 'metal'], boss: 'cinder', haz: 'heat',
     hazName: 'Scorching Heat', hazDesc: 'Your creatures that are not Ember or Stone lose 1.2% HP every second (Tide: half).', counter: 'Tide creatures (2× vs Ember), Frostcore, healers' },
-  grotto:  { name: 'Sunken Grotto', bg: 'bg_grotto', els: ['tide', 'volt', 'tide', 'bloom'], boss: 'eel', haz: 'flood',
+  grotto:  { name: 'Sunken Grotto', bg: 'bg_grotto', els: ['tide', 'volt', 'tide', 'bloom', 'frost', 'gale'], boss: 'eel', haz: 'flood',
     hazName: 'Rising Flood', hazDesc: 'Everyone is permanently Soaked: Volt hits Electrocute, Ember deals 40% less.', counter: 'Volt and Bloom creatures, Gill Pearl' },
-  spire:   { name: 'Crystal Spire', bg: 'bg_spire', els: ['stone', 'volt', 'stone', 'tide'], boss: 'prism', haz: 'reflect',
+  spire:   { name: 'Crystal Spire', bg: 'bg_spire', els: ['stone', 'volt', 'stone', 'frost', 'metal', 'mystic'], boss: 'prism', haz: 'reflect',
     hazName: 'Prismatic Echo', hazDesc: 'Foes reflect 20% of single-target damage back at the attacker.', counter: 'Hit-all skills, Prism Lens, lifesteal' },
-  crypt:   { name: 'Shadow Crypt', bg: 'bg_crypt', els: ['shade', 'ember', 'shade', 'bloom'], boss: 'grim', haz: 'dark',
+  crypt:   { name: 'Shadow Crypt', bg: 'bg_crypt', els: ['shade', 'ember', 'shade', 'mystic', 'frost', 'gale'], boss: 'grim', haz: 'dark',
     hazName: 'Pitch Darkness', hazDesc: 'Your non-Shade creatures miss 25% of attacks. An Ember hit lights the room for 2 seconds.', counter: 'Shade and Ember creatures, Lumen Moth' },
-  core:    { name: 'The Glimmer Core', bg: 'bg_core', els: ['ember', 'tide', 'bloom', 'volt', 'stone', 'shade'], boss: 'wyrm', haz: 'flux',
+  core:    { name: 'The Glimmer Core', bg: 'bg_core', els: ['ember', 'tide', 'bloom', 'volt', 'stone', 'shade', 'frost', 'gale', 'metal', 'mystic'], boss: 'wyrm', haz: 'flux',
     hazName: 'Elemental Flux', hazDesc: 'Foes change element every 4 seconds. A mixed team copes best.', counter: 'A mixed team, Kinship Knot' },
 };
 const ACTS = [['verdant'], ['magma', 'grotto'], ['spire', 'crypt'], ['core']];
@@ -167,6 +172,10 @@ const TRAITS = {
   volt:  ['+12% attack speed for all allies', '+25% attack speed, Volt hits +10% Stun'],
   stone: ['Front column +25% DEF', 'All allies +30% DEF; front column starts with a 15% shield'],
   shade: ['+10% crit, crits Curse', '+20% crit, crits Curse, +20% crit damage'],
+  frost: ['Foes start Chilled for 4 seconds', 'Foes start Chilled for 8 seconds; +15% damage to Chilled foes'],
+  gale:  ['Allies dodge 12% of attacks', 'Allies dodge 22% of attacks and attack 15% faster'],
+  metal: ['Allies take 10% less damage', 'Allies take 20% less damage and reflect 10% of it'],
+  mystic: ['Allies gain 30% more mana', 'Allies gain 60% more mana and start with 30'],
 };
 
 // ---- relics -----------------------------------------------------------------------
@@ -222,6 +231,10 @@ const RELICS = {
   lumen_moth: { n: 'Lumen Moth', tags: ['hazard'], r: 1, b: { immune_dark: 1 }, d: 'Ignore Pitch Darkness; allies cannot be Blinded.' },
   gill_pearl: { n: 'Gill Pearl', tags: ['hazard'], r: 1, b: { immune_flood: 1 }, d: 'Your team is never Soaked by the Rising Flood.' },
   incense: { n: 'Purifying Incense', tags: ['hazard'], r: 1, b: { immune_spores: 1 }, d: 'Ignore Spore Haze; cleanse allies every 3rd turn.' },
+  frost_shard: { n: 'Frost Shard', tags: ['status'], r: 1, b: { el_frost: 0.2 }, d: 'Frost attacks +20% damage.' },
+  wind_bell: { n: 'Wind Bell', tags: ['swift'], r: 1, b: { el_gale: 0.2 }, d: 'Gale attacks +20% damage.' },
+  iron_core: { n: 'Iron Core', tags: ['shield'], r: 1, b: { el_metal: 0.2 }, d: 'Metal attacks +20% damage.' },
+  moon_charm: { n: 'Moon Charm', tags: ['overdrive'], r: 1, b: { el_mystic: 0.2 }, d: 'Mystic attacks +20% damage.' },
   prism_lens: { n: 'Prism Lens', tags: ['hazard'], r: 1, b: { immune_reflect: 1, crit: 0.1 }, d: 'Ignore Prismatic Echo; +10% crit.' },
   // legendary fusions (never offered directly; made at a Forge)
   supernova: { n: 'Supernova', tags: ['inferno', 'overdrive'], r: 3, leg: 1, b: { el_ember: 0.25, ultAmp: 0.3, ultBurn: 1 }, d: 'Ember +25%, ultimates +30% and always Burn every foe.' },
@@ -278,6 +291,10 @@ const CHARMS = {
   magnet: { n: 'Lodestar Magnet', b: { el: 'volt' }, d: 'Volt attacks +25%.' },
   geode: { n: 'Split Geode', b: { el: 'stone' }, d: 'Stone attacks +25%.' },
   spelltag: { n: 'Spell Tag', b: { el: 'shade' }, d: 'Shade attacks +25%.' },
+  icecube: { n: 'Ever-Ice', b: { el: 'frost' }, d: 'Frost attacks +25%.' },
+  galeleaf: { n: 'Gale Leaf', b: { el: 'gale' }, d: 'Gale attacks +25%.' },
+  ingot: { n: 'Steel Ingot', b: { el: 'metal' }, d: 'Metal attacks +25%.' },
+  moonstone: { n: 'Moonstone', b: { el: 'mystic' }, d: 'Mystic attacks +25%.' },
 };
 for (const k in CHARMS) CHARMS[k].id = k;
 
@@ -365,17 +382,76 @@ const TIER = { cind: 1, bubb: 1, sprt: 1, pebb: 1, pyrp: 2, shel: 2, sprk: 2, du
 const RANGE = { cind: 1, pyrp: 3, bubb: 3, shel: 1, sprt: 2, moss: 2, sprk: 1, buzz: 3, pebb: 1, crys: 1, wisp: 1, dusk: 3 };
 const ROLE_AS = { striker: 0.9, caster: 0.7, tank: 0.6, support: 0.7 };
 const BOSS_RANGE = { bramble: 2, cinder: 1, eel: 3, prism: 2, grim: 3, wyrm: 2 };
-const POOL = [0, 18, 14, 10];                       // copies of each species in the shared pool, by tier
+const POOL = [0, 22, 18, 14, 10, 8];               // copies of each species in the shared pool, by tier
 // shop odds (tier 1/2/3) by Tamer level 1-9
-const ODDS = [null, [100, 0, 0], [100, 0, 0], [75, 25, 0], [55, 35, 10], [45, 35, 20], [30, 40, 30], [20, 40, 40], [15, 35, 50], [10, 30, 60]];
+const ODDS = [null, [100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [75, 25, 0, 0, 0], [55, 30, 15, 0, 0], [45, 33, 20, 2, 0],
+  [30, 40, 25, 5, 0], [19, 30, 35, 15, 1], [15, 20, 35, 25, 5], [10, 15, 30, 30, 15]];
 const TXP = [0, 2, 2, 6, 10, 20, 36, 56, 80];       // XP to go from level n to n+1
 const ROLE_TRAITS = {
   striker: { n: 'Striker', at: [2, 4], d: ['+15% attack speed', '+40% attack speed'] },
-  caster: { n: 'Caster', at: [2, 3], d: ['Skills deal 20% more', 'Skills deal 45% more and cost 15% less mana'] },
-  tank: { n: 'Guardian', at: [2, 3], d: ['Guardians start with a 20% max-HP shield', 'Guardians start with a 40% shield; all allies +20% DEF'] },
-  support: { n: 'Support', at: [2], d: ['Healing and shields 30% stronger; allies start with 20 mana'] },
+  caster: { n: 'Caster', at: [2, 4], d: ['Skills deal 20% more', 'Skills deal 45% more and cost 15% less mana'] },
+  tank: { n: 'Guardian', at: [2, 4], d: ['Guardians start with a 20% max-HP shield', 'Guardians start with a 40% shield; all allies +20% DEF'] },
+  support: { n: 'Support', at: [2, 4], d: ['Healing and shields 30% stronger; allies start with 20 mana', 'Healing and shields 60% stronger; allies start with 40 mana'] },
 };
-const EL_AT = [2, 3];   // element traits count different species (a Dual Nature creature counts twice)
+const EL_AT = [2, 4];   // element traits count different species (a Dual Nature creature counts twice)
+
+// ---- g6: 60 more species (species2.js, generated by tools/species2.py) ----------------
+// Each gets four skills from its role's kit; the element sets the status it inflicts and the
+// names come from that element's word banks, cycled so neighbours differ.
+const ELST = { ember: 'burn', tide: 'soak', bloom: 'poison', volt: 'stun', stone: null, shade: 'curse', frost: 'chill', gale: 'blind', metal: 'shred', mystic: 'hex' };
+const ST_WORD = { burn: 'Burn', soak: 'Soak', poison: 'Poison', stun: 'Stun', curse: 'Curse', chill: 'Chill', blind: 'Blind', shred: 'Shred', hex: 'Hex' };
+function kitFx(el, ch) {
+  const st = ELST[el];
+  if (!st) return {};
+  if (st === 'poison') return { poison: ch >= 1 ? 2 : 1 };
+  return { [st]: st === 'stun' ? Math.round(ch * 40) / 100 : ch };
+}
+function kitText(el, ch) {
+  const st = ELST[el];
+  if (!st) return ' +15% crit.';
+  if (st === 'poison') return ` +${ch >= 1 ? 2 : 1} Poison.`;
+  const c = st === 'stun' ? Math.round(ch * 40) : Math.round(ch * 100);
+  return c >= 100 ? ` Always ${ST_WORD[st]}s.` : ` ${c}% ${ST_WORD[st]}.`;
+}
+function buildKit(sp, i) {
+  const { k, el, role } = sp, N = (root.GD_NAMES2 || {})[el] || {};
+  const nm = (bank, j) => { const b = N[bank] || ['Strike']; return b[(i + (j || 0)) % b.length]; };
+  const crit = ELST[el] ? 0 : 0.15;
+  const mk = (id, o) => { SK[id] = Object.assign({ id, el }, o); if (crit && o.pow) SK[id].crit = (SK[id].crit || 0) + crit; return id; };
+  const R = sp.range > 1 ? 1 : 0;
+  if (role === 'striker') return [
+    mk(k + '_b', { n: nm('basic'), pow: 60, t: 'foe', rng: R, fx: kitFx(el, 0.2), d: 'Basic attack.' + kitText(el, 0.2) }),
+    mk(k + '_a', { n: nm('single'), pow: 95, t: 'foe', rng: R, cd: 2, fx: kitFx(el, 0.6), d: 'Heavy hit.' + kitText(el, 0.6) }),
+    mk(k + '_c', { n: nm('buff'), t: 'self', cd: 3, fx: { atkUp: 0.3, spdUp: 0.2 }, d: 'Self: +30% ATK and +20% speed.' }),
+    mk(k + '_u', { n: nm('ult'), pow: 210, t: (el === 'gale' || el === 'shade') ? 'lowfoe' : 'foe', rng: 1, ult: 1, exec: el === 'shade' ? 0.25 : 0, fx: kitFx(el, 1), d: 'ULT: a huge hit' + ((el === 'gale' || el === 'shade') ? ' on the weakest foe.' : '.') + kitText(el, 1) }),
+  ];
+  if (role === 'caster') return [
+    mk(k + '_b', { n: nm('basic'), pow: 55, t: 'foe', rng: 1, fx: kitFx(el, 0.15), d: 'Ranged.' + kitText(el, 0.15) }),
+    mk(k + '_a', { n: nm('splash'), pow: 50, t: 'foes', cd: 2, fx: kitFx(el, 0.4), d: 'Hits the target and foes near it.' + kitText(el, 0.4) }),
+    mk(k + '_c', { n: nm('volley'), pow: 42, t: 'foe3', cd: 3, fx: kitFx(el, 0.3), d: '3 hits on random foes.' + kitText(el, 0.3) }),
+    mk(k + '_u', { n: nm('ult'), pow: 115, t: 'foes', ult: 1, fx: kitFx(el, 1), d: 'ULT: blast a wide area.' + kitText(el, 1) }),
+  ];
+  if (role === 'tank') return [
+    mk(k + '_b', { n: nm('basic'), pow: 55, t: 'foe', fx: kitFx(el, 0.25), d: 'Basic attack.' + kitText(el, 0.25) }),
+    mk(k + '_a', { n: nm('taunt'), t: 'self', cd: 3, fx: { taunt: 2, defUp: 0.4 }, d: 'Taunt nearby foes, +40% DEF.' }),
+    mk(k + '_c', { n: nm('splash'), pow: 55, t: 'foes', cd: 2, fx: kitFx(el, 0.5), d: 'Hits the target and foes near it.' + kitText(el, 0.5) }),
+    mk(k + '_u', { n: nm('ult'), pow: 90, t: 'foes', ult: 1, fx: Object.assign({ selfShield: 0.3 }, ELST[el] === 'stun' ? { stun: 0.5 } : Object.assign({ stun: 0.25 }, kitFx(el, 1))), d: 'ULT: slam a wide area, 25% Stun, shield self 30%.' + (ELST[el] && ELST[el] !== 'stun' ? kitText(el, 1) : '') }),
+  ];
+  return [   // support
+    mk(k + '_b', { n: nm('basic'), pow: 50, t: 'foe', rng: 1, fx: kitFx(el, 0.3), d: 'Ranged.' + kitText(el, 0.3) }),
+    mk(k + '_a', { n: nm('heal'), t: 'ally', cd: 2, fx: el === 'mystic' ? { heal: 0.25, od: 25 } : { heal: 0.3, cleanse: 1 }, d: el === 'mystic' ? 'Heal the weakest ally 25% and give it 25 mana.' : 'Heal the weakest ally 30% and cleanse it.' }),
+    mk(k + '_c', { n: nm('shield'), t: 'allies', cd: 3, fx: { shield: 0.14 }, d: 'Shield all allies for 14% max HP.' }),
+    mk(k + '_u', { n: nm('ult'), pow: 80, t: 'foes', ult: 1, fx: Object.assign({ allyHeal: 0.2 }, kitFx(el, 1)), d: 'ULT: hit a wide area and heal all allies 20%.' + kitText(el, 1) }),
+  ];
+}
+const SP2 = root.GD_SPECIES2 || [];
+const perEl = {};
+const ROLE_MOD = { striker: { atk: 1.04 }, caster: {}, tank: { hp: 1.04 }, support: {} };
+for (const sp of SP2) {
+  const i = perEl[sp.el] = (perEl[sp.el] || 0) + 1;
+  SP[sp.k] = { el: sp.el, role: sp.role, names: sp.names, sk: buildKit(sp, i - 1), mod: Object.assign({}, ROLE_MOD[sp.role]) };
+  TIER[sp.k] = sp.tier; RANGE[sp.k] = sp.range;
+}
 const ROUNDS = 24, STAGE_LEN = 6;
 // relic text and numbers that mean something different in real-time fights
 const CHESS_RELIC = {

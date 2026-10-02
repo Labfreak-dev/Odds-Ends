@@ -1,6 +1,6 @@
 // Headless balance sim for the auto-chess run: a simple bot shops, merges, levels and fights.
 //   node glimmerdeep/sim.js [runs=200] [depth=0]
-require('./data.js'); require('./chess.js'); require('./crun.js');
+require('./species2.js'); require('./data.js'); require('./chess.js'); require('./crun.js');
 const G = globalThis.GD, C = globalThis.GC, R = globalThis.GR;
 
 const N = +process.argv[2] || 200, DEPTH = +process.argv[3] || 0;

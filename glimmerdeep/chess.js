@@ -42,7 +42,7 @@ function instMods(inst) {
   return m;
 }
 const STAR_HP = [0, 1, 1.8, 3.2], STAR_DEF = [0, 1, 1.25, 1.5];
-const TIER_MUL = [1, 1, 1.12, 1.25];
+const TIER_MUL = [1, 1, 1.12, 1.25, 1.42, 1.62];
 function stats(inst, bonus) {
   bonus = bonus || {};
   const m = instMods(inst);
@@ -111,6 +111,10 @@ function applyTraits(b, T) {
   if (E.tide >= 1) b.regen = (b.regen || 0) + 0.01;
   if (E.ember >= 0) { b.burnTurns = (b.burnTurns || 0) + (E.ember ? 2 : 1); b.burnAmp = (b.burnAmp || 0) + (E.ember ? 0.6 : 0.25); }
   if (E.stone >= 0) { b.frontDef = E.stone ? 0 : 0.25; if (E.stone) { b.defMul2 = 0.3; b.frontShield = 0.15; } }
+  if (E.frost >= 0) { b.startChill = E.frost ? 8 : 4; if (E.frost) b.chillAmp = 0.15; }
+  if (E.gale >= 0) { b.dodge = (b.dodge || 0) + (E.gale ? 0.22 : 0.12); if (E.gale) b.asMul = (b.asMul || 0) + 0.15; }
+  if (E.metal >= 0) { b.dr = (b.dr || 0) + (E.metal ? 0.2 : 0.1); if (E.metal) b.reflectAll = 0.1; }
+  if (E.mystic >= 0) { b.odRate = (b.odRate || 0) + (E.mystic ? 0.6 : 0.3); if (E.mystic) b.startOd = (b.startOd || 0) + 30; }
   if (Ro.striker >= 0) b.asMul = (b.asMul || 0) + (Ro.striker ? 0.4 : 0.15);
   if (Ro.caster >= 0) { b.skillAmp = (b.skillAmp || 0) + (Ro.caster ? 0.45 : 0.2); if (Ro.caster) b.manaDisc = (b.manaDisc || 0) + 0.15; }
   if (Ro.tank >= 0) { b.tankShield = Ro.tank ? 0.4 : 0.2; if (Ro.tank) b.defMul2 = (b.defMul2 || 0) + 0.2; }
@@ -171,6 +175,7 @@ function create(o) {
     if (b.tankShield && u.role === 'tank') giveShield(st, u, u, b.tankShield, ev, true);
   }
   for (const side of [0, 1]) if (st.bonus[side].startSoak) for (const e of alive(st, 1 - side)) applyStatus(st, null, e, 'soak', ev, 5);
+  for (const side of [0, 1]) if (st.bonus[side].startChill) for (const e of alive(st, 1 - side)) applyStatus(st, null, e, 'chill', ev, st.bonus[side].startChill);
   if (st.haz === 'flood') for (const u of st.units) if (!(u.side === 0 && st.bonus[0].immune_flood)) u.st.wet = { t: 1e9 };
   if (o.mods && o.mods.bomb) for (const e of alive(st, 1)) e.hp = Math.round(e.hp * 0.8);
   if (o.mods && o.mods.elixir) for (const u of alive(st, 0)) u.mana = Math.min(99, u.mana + 60);
@@ -197,16 +202,18 @@ function effDef(st, u) {
   let d = u.b.def * (1 + buffV(u, 'defUp') + (b.kin || 0) + (b.defMul2 || 0));
   if (u.front && b.frontDef) d *= 1 + b.frontDef;
   if (b.voltDef && u.el === 'volt') d *= 1 + b.voltDef;
+  if (u.st.shred) d *= 0.75;
   return d;
 }
 function effAS(st, u) {
   const b = st.bonus[u.side];
   let s = u.b.as * (1 + buffV(u, 'spdUp') + (b.asMul || 0) + (b.kin || 0) + (st.tempoUntil > st.t && u.side === 0 ? 0.3 : 0) + (u.enraged ? 0.5 : 0));
+  if (u.st.chill) s *= 0.7;
   return Math.min(3, s);
 }
 function manaNeed(st, u) {
   const b = st.bonus[u.side];
-  return manaCost(u.skill) * Math.max(0.5, 1 - (b.manaDisc || 0) - u.b.manaDisc);
+  return manaCost(u.skill) * Math.max(0.5, 1 - (b.manaDisc || 0) - u.b.manaDisc) * (u.st.hex ? 1.25 : 1);
 }
 function gainMana(st, u, v) {
   if (!u.alive) return;
@@ -295,7 +302,7 @@ function heal(st, src, t, frac, ev, flat, quiet) {
   if (got > 0 || !quiet) ev.push({ k: 'heal', t: t.id, v: got, hp: t.hp, sh: t.shield, quiet: !!quiet });
   return got;
 }
-const DEBUFFS = ['burn', 'poison', 'soak', 'stun', 'root', 'curse', 'blind'];
+const DEBUFFS = ['burn', 'poison', 'soak', 'stun', 'root', 'curse', 'blind', 'chill', 'shred', 'hex'];
 function cleanse(t, ev) {
   let any = false;
   for (const k of DEBUFFS) if (t.st[k]) { delete t.st[k]; any = true; }
@@ -325,11 +332,14 @@ function applyStatus(st, src, t, key, ev, secs, n) {
     t.st.blind = { t: 3 + extra };
   } else if (key === 'soak') t.st.soak = { t: (secs || 4) + extra };
   else if (key === 'root') t.st.root = { t: 2.5 + extra };
+  else if (key === 'chill') t.st.chill = { t: (secs || 3) + extra };
+  else if (key === 'shred') t.st.shred = { t: 4 + extra };
+  else if (key === 'hex') t.st.hex = { t: 5 + extra };
   else if (key === 'curse') t.st.curse = { t: 5 + extra };
   else return;
   ev.push({ k: 'status', t: t.id, s: key });
 }
-const STATUS_KEYS = ['burn', 'poison', 'soak', 'stun', 'root', 'curse', 'blind'];
+const STATUS_KEYS = ['burn', 'poison', 'soak', 'stun', 'root', 'curse', 'blind', 'chill', 'shred', 'hex'];
 
 // ---- damage ---------------------------------------------------------------------------------------
 // o: {basic, single, powMul, el, noReact, noMiss, exec, chained}
@@ -355,6 +365,8 @@ function hit(st, a, d, sk, ev, o) {
   if (el === a.el || el === a.el2) dmg *= 1.2;
   dmg *= 1 + (ab['el_' + el] || 0) + (a.charmEl === el ? 0.25 : 0) + (ab.dmgMul || 0) + (ab.monoOn || 0) + (sk.ult ? (ab.ultAmp || 0) : 0);
   if (d.st.curse) dmg *= 1.15 + (ab.curseAmp || 0);
+  if (d.st.chill && ab.chillAmp) dmg *= 1 + ab.chillAmp;
+  if (db.dr) dmg *= 1 - db.dr;
   const soaked = d.st.soak || d.st.wet;
   if (soaked && ab.soakAmp) dmg *= 1 + ab.soakAmp;
   if (el === 'ember' && st.haz === 'flood' && a.st.wet) dmg *= 0.6;
@@ -371,6 +383,13 @@ function hit(st, a, d, sk, ev, o) {
       react = 'Blight Burst'; blight = d.st.poison.n; delete d.st.poison;
     } else if (el === 'stone' && d.st.root) {
       react = 'Shatter'; forceCrit = true; dmg *= 1.3 * (1 + (ab.shatterAmp || 0)); delete d.st.root;
+    } else if (el === 'frost' && soaked) {
+      react = 'Freeze'; dmg *= 1.3; if (d.st.soak) delete d.st.soak;
+      applyStatus(st, a, d, 'stun', ev); applyStatus(st, a, d, 'chill', ev, 4);
+    } else if (el === 'gale' && d.st.burn) {
+      react = 'Firestorm'; dmg *= 1.3;
+      const burn = d.st.burn;
+      for (const e of alive(st, d.side)) if (e !== d && dist(e, d) <= 1) { e.st.burn = { t: burn.t, v: Math.max(burn.v, e.st.burn ? e.st.burn.v : 0) }; ev.push({ k: 'status', t: e.id, s: 'burn' }); }
     } else if (el === 'ember' && d.st.soak && !d.st.wet) {
       react = 'Fizzle'; dmg *= 0.7; delete d.st.soak;
     } else if (el === 'shade' && d.st.curse && pct(d) < 0.25 && !d.boss) {
@@ -401,6 +420,7 @@ function hit(st, a, d, sk, ev, o) {
     if (w) heal(st, a, w, 0, ev, dealt * ab.tideHeal, true);
   }
   if (d.b.thorns > 0 && dealt > 0 && a.alive) damage(st, d, a, Math.max(1, Math.round(dealt * d.b.thorns)), ev, { thorn: 1 });
+  if (db.reflectAll && dealt > 0 && a.alive) damage(st, d, a, Math.max(1, Math.round(dealt * db.reflectAll)), ev, { thorn: 1 });
   if (o.single && st.haz === 'reflect' && d.side === 1 && a.side === 0 && !ab.immune_reflect && dealt > 0 && a.alive)
     damage(st, d, a, Math.max(1, Math.round(dealt * 0.2)), ev, { thorn: 1, reflect: 1 });
   if (blight) {

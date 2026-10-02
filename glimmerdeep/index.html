@@ -14,7 +14,7 @@
 :root {
   --bg: #120d2a; --panel: #231a4a; --panel2: #2e2360; --line: #4d3f8f; --ink: #fff8ec; --dim: #c7bde8;
   --gold: #ffc93c; --good: #4fe07a; --bad: #ff5468; --od: #3fe0ff; --shield: #a9d6ff;
-  --ember: #ff7a2a; --tide: #2fa6ff; --bloom: #4fd35a; --volt: #ffd21f; --stone: #c79459; --shade: #8d7bff;
+  --ember: #ff7a2a; --tide: #2fa6ff; --bloom: #4fd35a; --volt: #ffd21f; --stone: #c79459; --shade: #8d7bff; --frost: #8fe3ff; --gale: #7dffc2; --metal: #c8d3df; --mystic: #d9a6ff;
   --r: 16px;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -52,6 +52,7 @@ img { display: block; -webkit-user-drag: none; }
 .tag { font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 99px; background: rgba(255,255,255,.12); text-transform: uppercase; letter-spacing: .4px; }
 .el-ember { --c: var(--ember); } .el-tide { --c: var(--tide); } .el-bloom { --c: var(--bloom); }
 .el-volt { --c: var(--volt); } .el-stone { --c: var(--stone); } .el-shade { --c: var(--shade); }
+.el-frost { --c: var(--frost); } .el-gale { --c: var(--gale); } .el-metal { --c: var(--metal); } .el-mystic { --c: var(--mystic); }
 
 /* top bar */
 .topbar { display: flex; align-items: center; gap: 8px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; background: linear-gradient(180deg, rgba(10,6,28,.85), rgba(10,6,28,.4)); z-index: 5; position: relative; }
@@ -145,7 +146,9 @@ img { display: block; -webkit-user-drag: none; }
 .scard { position: relative; border-radius: 12px; padding: 4px 4px 6px; text-align: center; cursor: pointer; min-height: 84px; overflow: hidden;
   background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 35%, #241c4c), #1a1338); box-shadow: inset 0 0 0 2px var(--tc); transition: transform .1s; }
 .scard:hover { transform: translateY(-3px); }
-.scard.t1 { --tc: #8fa3c8; } .scard.t2 { --tc: #4fd35a; } .scard.t3 { --tc: #b56bff; }
+.scard.t1 { --tc: #8fa3c8; } .scard.t2 { --tc: #4fd35a; } .scard.t3 { --tc: #3fa9ff; } .scard.t4 { --tc: #b56bff; } .scard.t5 { --tc: #ffb02e; }
+.scard.t5 { background: linear-gradient(160deg, #6b3d00, #2a1450 60%, #1a1338); box-shadow: inset 0 0 0 2px #ffd65a, 0 0 14px #ffb02e88; }
+.scard.t5 .nm { color: #ffe27a; }
 .scard img.m { height: 58px; max-width: 100%; margin: 0 auto; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); }
 .scard .nm { font: 700 12px/1.05 Fredoka, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scard .cost { position: absolute; right: 4px; top: 4px; font: 700 13px/1 Fredoka, sans-serif; color: #ffd65a; background: #000a; border-radius: 8px; padding: 3px 6px; }
@@ -181,6 +184,7 @@ img { display: block; -webkit-user-drag: none; }
 @keyframes idle { 50% { transform: scale(1.02, .98) translateY(1%); } }
 @keyframes idleF { 0%, 100% { transform: scaleX(-1); } 50% { transform: scaleX(-1) scale(1.02, .98) translateY(1%); } }
 .st.burn { background: #e2531b; } .st.poison { background: #7b3fbf; } .st.soak, .st.wet { background: #1f7fd6; } .st.stun { background: #d6b600; color: #2a2300; text-shadow: none; }
+.st.chill { background: #3fa9e0; } .st.shred { background: #6f7b8c; } .st.hex { background: #9a55d6; }
 .st.root { background: #2f9a3a; } .st.curse { background: #4b2a8a; } .st.blind { background: #555; } .st.buff { background: #1d8f6f; } .st.taunt { background: #b5651d; }
 .pop { position: absolute; z-index: 50; transform: translate(-50%, -50%); font: 700 22px/1 Fredoka, Nunito, system-ui, sans-serif; color: #fff; pointer-events: none; white-space: nowrap;
   text-shadow: 0 2px 0 #000, 0 0 6px #000; animation: pop 0.9s ease-out forwards; }
@@ -347,6 +351,7 @@ img { display: block; -webkit-user-drag: none; }
   <div class="modal" id="modal"><div class="panel box" id="modalBox"></div></div>
   <div class="toast" id="toast"></div>
 </div>
+<script src="species2.js"></script>
 <script src="data.js"></script>
 <script src="chess.js"></script>
 <script src="crun.js"></script>

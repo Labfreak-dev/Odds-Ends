@@ -21,6 +21,9 @@ OUT = os.path.join(HERE, '..', 'img')
 
 def kind(key):
     if key.startswith('bg_'): return ('cover', 720, 1280, 76)
+    if key.startswith('rm_'): return ('cover', 720, 1280, 78)
+    if key == 'wd_tamer': return ('key', 256, 256, 84)
+    if key.startswith('wd_'): return ('key', 192, 192, 84)
     if key.startswith('boss_'): return ('key', 560, 560, 82)
     if key.startswith('cr_'): return ('key', 400, 400, 82)
     if key.startswith('el_'): return ('key', 96, 96, 86)
@@ -162,10 +165,22 @@ def cover(img, tw, th):
     x, y = (img.width - tw) // 2, (img.height - th) // 2
     return img.crop((x, y, x + tw, y + th))
 
+def trim(img):
+    # a room render sometimes floats on a plain backdrop: crop to where it differs from the corners
+    a = np.asarray(img).astype(int)
+    bg = np.median(np.concatenate([a[:4, :4].reshape(-1, 3), a[:4, -4:].reshape(-1, 3), a[-4:, :4].reshape(-1, 3), a[-4:, -4:].reshape(-1, 3)]), axis=0)
+    m = np.abs(a - bg).sum(axis=2) > 60
+    rows, cols = np.where(m.mean(axis=1) > 0.3)[0], np.where(m.mean(axis=0) > 0.3)[0]
+    if len(rows) < 10 or len(cols) < 10: return img
+    x0, y0, x1, y1 = int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1
+    ix, iy = (x1 - x0) // 70, (y1 - y0) // 70   # shave the anti-aliased rim
+    return img.crop((x0 + ix, y0 + iy, x1 - ix, y1 - iy))
+
 def process(key):
     k, th, mw, q = kind(key)
     im = Image.open(os.path.join(SRC, key + '.webp'))
-    if k == 'cover': img = cover(im.convert('RGB'), mw, th)
+    if k == 'cover' and key.startswith('rm_'): img = cover(trim(im.convert('RGB')), mw, th)
+    elif k == 'cover': img = cover(im.convert('RGB'), mw, th)
     else:
         cut = key_out(im)
         if key.startswith('cr_'): cut = strip_floor(key_holes(cut))

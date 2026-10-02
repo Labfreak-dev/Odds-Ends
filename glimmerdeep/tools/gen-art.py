@@ -254,6 +254,39 @@ ITEMS = {
 for k, d in ITEMS.items(): A['it_' + k] = ('icon', d)
 
 
+# ---- The Wilds (g11): top-down rooms and exploration props ------------------------
+ROOM = ('A flat top-down orthographic game texture of one dungeon room floor seen from directly overhead, like a room in The Binding of Isaac: {d}. '
+        'The image IS the room: it is a wide landscape rectangle that fills the entire frame edge to edge with no background, no margin and no '
+        'vignette outside it. A raised wall band runs along all four borders of the image, about one eighth of the image height deep, and the '
+        'open floor fills everything inside it with only small details near the walls so creatures can walk anywhere. Even bright lighting, '
+        'rich vibrant saturated colours, no perspective, no doors, no creatures, no characters, no people, no text, no UI.')
+for k, d in [
+ ('verdant', 'a mossy forest cave room, a floor of soft green moss and packed earth with tiny glowing mushrooms, walls of tangled roots and mossy stone'),
+ ('magma', 'a volcanic forge room, a floor of dark basalt tiles with thin glowing lava cracks, walls of obsidian rock with ember light'),
+ ('grotto', 'a sunken grotto room, a floor of wet turquoise stone with shallow glowing tide pools and shells at the edges, walls of coral and rock'),
+ ('spire', 'a crystal cavern room, a floor of polished teal and gold crystal tiles, walls bristling with big glowing crystals'),
+ ('crypt', 'a moonlit crypt room, a floor of cracked indigo flagstones with faint cyan runes, walls of ruined carved stone with blue ghost lanterns'),
+ ('tundra', 'a frozen ice cave room, a floor of packed snow and pale blue ice, walls of glacier ice and frosted rock'),
+ ('skyisles', 'a sky island room, a floor of sunny wind-swept grass with small wildflowers, walls of white cloud banks and floating rocks'),
+ ('dunes', 'a desert ruin room, a floor of golden sand over sandstone tiles, walls of carved sandstone blocks'),
+ ('mire', 'a swamp room, a floor of dark mud and moss with lily pads in small puddles, walls of twisted mangrove roots and glowing fungi'),
+ ('foundry', 'an iron foundry room, a floor of riveted iron plates and grates with a warm molten glow, walls of brass pipes and gears'),
+ ('observatory', 'a star observatory room, a floor of deep blue tiles inlaid with golden constellation lines, walls of dark marble and brass'),
+ ('core', 'the glimmer core room, a floor of iridescent crystal veined with multicoloured light, walls of floating rock and crystal'),
+]: A['rm_' + k] = ('room', d)
+for k, d in [
+ ('wd_tamer', 'a cheerful chibi creature tamer kid explorer with a big round head, a teal adventurer jacket, a small backpack, goggles on a cap and boots, full body, walking pose, three-quarter view facing right'),
+ ('wd_door', 'an open carved stone archway doorway seen straight from the front, mossy stones and a keystone, the opening inside is deep dark blue-black shadow, no door leaves'),
+ ('wd_shut', 'a closed heavy wooden double door inside a carved stone archway, seen straight from the front, iron studs and hinges'),
+ ('wd_lock', 'a closed heavy wooden door in a stone archway seen straight from the front, with a big golden padlock and chains across it'),
+ ('wd_crack', 'a section of rough grey stone wall with a big glowing crack splitting it, seen straight from the front'),
+ ('wd_stairs', 'a square hole in a stone floor with spiral stone steps going down into glowing blue light, seen from above'),
+ ('wd_shrine', 'a small glowing healing shrine, a carved stone pedestal holding a floating green crystal with sparkles'),
+ ('wd_key', 'an ornate golden key with a teal gem in its bow'),
+ ('wd_berry', 'a cluster of three glossy round blue berries with a green leaf'),
+ ('wd_rock', 'a mossy grey boulder'),
+]: A[k] = ('icon', d)
+
 def prompt(spec):
     t = spec[0]
     if t == 'creature': return CREATURE.format(d=spec[1], pose=spec[2])
@@ -265,6 +298,7 @@ def prompt(spec):
     if t == 'boss': return BOSS.format(d=spec[1])
     if t == 'icon': return ICON.format(d=spec[1])
     if t == 'bg': return BG.format(d=spec[1])
+    if t == 'room': return ROOM.format(d=spec[1])
 
 CAND = 0
 def make(key, cand=None):
@@ -280,7 +314,7 @@ def make(key, cand=None):
         body = {'ai_model': 'nano-banana', 'reference_image_urls': [meshy.data_uri(ref)], 'prompt': p, 'aspect_ratio': '1:1'}
     else:
         kind = 'v1/text-to-image'
-        body = {'ai_model': 'nano-banana', 'prompt': p, 'aspect_ratio': '16:9' if spec[0] == 'bg' else '1:1'}
+        body = {'ai_model': 'nano-banana', 'prompt': p, 'aspect_ratio': '16:9' if spec[0] in ('bg', 'room') else '1:1'}
     r = meshy.wait(kind, meshy.create(kind, body, key if cand is None else f'{key}#{cand}'), every=4)
     if r.get('status') != 'SUCCEEDED': return key, 'FAILED ' + json.dumps(r.get('task_error'))
     tmp = out + '.png'

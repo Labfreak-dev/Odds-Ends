@@ -18,7 +18,11 @@ No build step. `index.html` loads four classic scripts in order:
 | `fx.js` | Battle VFX: one canvas over the board drawing additive particles (slashes, comets, lightning, rune circles, shockwaves, beams, heals, shields, knockouts), themed per element. `game.js` calls `VFX.*` from its fight-event handler. |
 | `game.js` | The UI: title, planning (shop, drag and drop, the creature panel and its power pick), live fight playback and animations, round results and rewards, bag, camp, Glimdex, save. |
 
-Because `chess.js` and `crun.js` never touch the page, `sim.js` plays whole runs headless.
+| `wgen.js` | The Wilds, DOM-free: floor layouts (rooms, doors, lair, vault, secret room, items), the creatures in each room and the difficulty knobs (`TUNE`), fight placement. |
+| `wilds.js` | The Wilds on the page: squad pick, the room canvas (walking, doors, pickups, the follow camera on phones), minimap, battles through `GLIM.wildBattle`, unlocks. |
+| `wsim.js` | Headless expeditions with the real generator and engine: how deep a squad gets, unlocks per expedition, expeditions to collect all 72. |
+
+Because `chess.js`, `crun.js` and `wgen.js` never touch the page, `sim.js` and `wsim.js` play headless.
 
 ## Verify before shipping
 ```bash
@@ -27,7 +31,11 @@ node glimmerdeep/sim.js 300            # bot plays 300 runs: win rate, boss win 
 python3 glimmerdeep/tools/smoke.py     # real page in headless chromium (pip install playwright==1.56.0)
 python3 glimmerdeep/tools/smoke.py --mobile --rounds 5
 python3 glimmerdeep/tools/smoke.py --deep --rounds 24   # extra gold: merges, bosses, stage changes
+node glimmerdeep/wsim.js 200           # The Wilds: floors reached and unlocks for a first expedition
+CAREER=1 node glimmerdeep/wsim.js 10   # The Wilds: expeditions to unlock every species
 ```
+Every smoke run ends with a Wilds pass (`--wilds-only` runs just that): pick a squad, walk
+rooms with the arrow keys, battle a wild creature, check the unlock reaches the shop pool.
 The sim bot is simple (buys copies of what it owns, levels at 14+ gold, rerolls late,
 melee in front): about 25% wins at Depth 0 is the target, with bosses getting harder
 by stage (about 83 / 50 / 42 / 23%).
@@ -98,6 +106,34 @@ After 40 s the cave quakes so a fight always ends; a double knockout is a loss.
   25% more mana, Mystic). Gale attacks Blind.
 - **Hazards**: Spore Haze, Scorching Heat, Rising Flood, Prismatic Echo, Pitch Darkness,
   Elemental Flux, each with counters (and counter relics weighted up in relic offers).
+
+### The Wilds (collecting)
+Only the original twelve species (`BASE_SPECIES`) start unlocked. The Auto Chess shop, the
+starters and Kin offers only use unlocked species. Everything else is found in **The Wilds**:
+- An expedition is 5 floors. Each floor is a grid of connected rooms, built like Binding of
+  Isaac (no loops, every room hangs off one parent), and uses one biome. Floor 1 is an early
+  biome and floor 5 is the Glimmer Core.
+- You walk a tamer around each room (WASD/arrows, or drag anywhere on a phone). Doors on the
+  walls lead to neighbouring rooms, and a minimap shows what you have found.
+- Wild rooms hold a roaming creature from the biome's elements, sometimes with escorts. Locked
+  species are 3× as likely as ones you have. Walk into it to battle it on the auto-chess board
+  with your squad.
+- **Beat it and it is unlocked for good** (shards too). It can join the squad for the rest of
+  the expedition (up to 6).
+- The squad gains XP per win: ★2 at 4 and ★3 at 12, with the evolved art.
+- Squad HP carries between fights. A creature that faints sits out until the next floor or a shrine.
+  The expedition ends when everyone is down, or when you leave; unlocks and shards are always kept.
+- The farthest dead end is the **lair**: a ★2-★3 creature with escorts. Beat it for the stairs.
+- Other dead ends hold:
+  - a **vault**, locked until you pick up the floor's key; it holds a rare higher-tier creature or a chest;
+  - a **treasure** chest;
+  - a **shrine** that heals everyone and revives the fainted.
+- A **secret room** sits in a gap touching two rooms: push into its cracked wall.
+- Glimberries heal the squad.
+- Deeper floors roll higher tiers: Tier 5 shows up from floor 4 (and in floor 3 vaults).
+- `wsim.js` fits the difficulty:
+  - a first expedition reaches floor 3 about 75-90% of the time, floor 5 about 20%, and unlocks about 11-13;
+  - collecting all 72 takes about 13 expeditions.
 
 ### Relics, perks, meta
 59 relics (51 + 8 legendary fusions) with tags; three sharing a tag light up one of 15
@@ -243,3 +279,21 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - Shards now pay +10% per Depth, win or lose.
   - `sim.js` options: `UP=max` (every upgrade), `UP=old` (only the pre-g10 set), `UPX=key` (leave one out).
   - Bot win rates with everything maxed: 43% at Depth 4, 17% at Depth 7, 7% at Depth 10. Depth 0 with no upgrades is unchanged at 20%.
+- **g11**: **The Wilds, a creature-collecting mode.** See "The Wilds" above.
+  - Only the original twelve species start unlocked. Every other species is unlocked by beating it in The Wilds.
+  - The Auto Chess shop pool (`newRun`), starters and Glimdex follow `meta.unlocked`.
+  - A shop tier with nothing unlocked falls back to the best lower tier that has stock.
+  - New files:
+    - `wgen.js`: generator and tuning, DOM-free.
+    - `wilds.js`: the page.
+    - `wsim.js`: headless expeditions.
+  - `game.js` gains `wildBattle()`: the same live board and playback as a run, with the shop and bench hidden and no biome hazard (`noHaz`). It resolves with the fight state.
+  - `chess.js` honours `inst.hpFrac`, so squad HP carries over between fights.
+  - Art: 24 Meshy images (about 72 credits).
+    - 12 top-down room floors (`rm_<biome>`, the `room` prompt in `gen-art.py`). The first prompt left margins and odd shapes; the second says "the image IS the room". `pack.py` trims any leftover backdrop and rim.
+    - The tamer, open/shut/locked doors, a cracked wall, stairs, a shrine, a key, berries and a boulder (`wd_*`).
+  - Balance, with `wsim.js`: squad XP is slowed to ★2 at 4 and ★3 at 12, and wild stats scale per floor (`TUNE`).
+    - First version: 96% of expeditions cleared all five floors and unlocked about 28 species.
+    - Now: about 13 expeditions to collect all 72, with 10-15 new species in each early expedition.
+  - With only the twelve free species, the Auto Chess bot wins more (30% against 23%). The smaller pool merges faster, which eases a new save in.
+  - Phones: the room canvas zooms in and the camera follows the tamer.

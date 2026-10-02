@@ -6,6 +6,14 @@ const G = globalThis.GD, C = globalThis.GC, R = globalThis.GR;
 const bossLog = [];
 const TGT = [0.8, 0.62, 0.52, 0.44, 0.36, 0.25];   // boss win-rate targets by stage
 const N = +process.argv[2] || 200, DEPTH = +process.argv[3] || 0;
+// UP=max plays with every camp upgrade bought, UP=old with only the pre-g10 ones; UPX=key leaves one out
+const UP = {};
+const OLD = { gold: 3, hide: 2, relic: 1, evo: 1, shiny: 1, starter: 2, choices: 1, heal: 1 };
+if (process.env.UP) for (const k in G.META) {
+  if (k === process.env.UPX) continue;
+  const r = process.env.UP === 'max' ? G.META[k].max : OLD[k] || 0;
+  if (r) UP[k] = r;
+}
 let wins = 0, errors = 0;
 const deathRound = [], byRound = {}, fightLen = [], bossWins = [0, 0, 0, 0, 0, 0], bossTries = [0, 0, 0, 0, 0, 0], byBoss = {};
 const power = u => G.TIER[u.sp] * Math.pow(3, u.star - 1);
@@ -43,7 +51,7 @@ function shop(run) {
 
 for (let n = 0; n < N; n++) {
   const seed = 5000 + n * 11;
-  const run = R.newRun({ up: {} }, seed, DEPTH);
+  const run = R.newRun({ up: UP }, seed, DEPTH);
   R.giveStarter(run, R.starterChoices({}, seed)[0]);
   try {
     while (!run.over) {

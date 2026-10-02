@@ -109,7 +109,7 @@ async function newRunFlow() {
   if (meta.depthMax) {
     let d = '';
     for (let i = 0; i <= meta.depthMax; i++) d += btn('d' + i, i ? 'Depth ' + i : 'Normal', i ? 'ghost sm' : 'green sm');
-    const v = await ask('Difficulty', '<p class="muted" style="text-align:center">Each Depth makes enemies 8% stronger and pays more shards.</p>', d);
+    const v = await ask('Difficulty', '<p class="muted" style="text-align:center">Each Depth makes enemies 8% stronger and pays 10% more shards.</p>', d);
     depth = +v.slice(1) || 0;
   }
   const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;

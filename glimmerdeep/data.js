@@ -449,10 +449,21 @@ const PERKS = {
 };
 
 // ---- meta upgrades (Camp, bought with Glimmer Shards between runs) --------------------
+// Ranks past the first few get steep on purpose: they are the long-term chase for Depth runs.
+// cb: the per-rank bonus fed into every fight (chess.js teamBonus keys)
 const META = {
-  gold: { n: 'Nest Egg', d: '+2 starting gold per rank.', max: 3, cost: [20, 40, 70] },
-  hide: { n: 'Thick Hide', d: '+10 max HP per rank.', max: 2, cost: [40, 90] },
-  relic: { n: 'Heirloom', d: 'Start each run with a random common relic.', max: 1, cost: [50] },
+  gold: { n: 'Nest Egg', d: '+2 starting gold per rank.', max: 5, cost: [20, 40, 70, 160, 280] },
+  hide: { n: 'Thick Hide', d: '+10 max HP per rank.', max: 5, cost: [40, 90, 180, 300, 450] },
+  relic: { n: 'Heirloom', d: 'Start each run with a random common relic (rank 2: two).', max: 2, cost: [50, 320] },
+  drill: { n: 'Training Drills', d: 'Your creatures get +2% HP and ATK per rank.', max: 5, cost: [90, 160, 260, 400, 600], cb: { hpMul: 0.02, atkMul: 0.02 } },
+  scales: { n: 'Hardened Scales', d: 'Your creatures get +3% DEF per rank.', max: 3, cost: [80, 170, 300], cb: { defMul: 0.03 } },
+  focus: { n: 'Focus Crystal', d: 'Your creatures start each fight with +5 mana per rank.', max: 3, cost: [100, 200, 340], cb: { startOd: 5 } },
+  instinct: { n: 'Killer Instinct', d: '+2% crit chance per rank.', max: 3, cost: [90, 190, 320], cb: { crit: 0.02 } },
+  jar: { n: 'Savings Jar', d: 'Interest cap +1 per rank (you can earn up to 7 interest).', max: 2, cost: [150, 300], cb: { interestCap: 1 } },
+  study: { n: 'Field Notes', d: '+1 Tamer XP every round.', max: 1, cost: [350], cb: { xpRound: 1 } },
+  kindred: { n: 'Kindred Call', d: 'Shop slots offer a species you own 8% more often per rank.', max: 2, cost: [140, 280] },
+  lucky: { n: 'Lucky Coin', d: 'Rerolls cost 1 gold less.', max: 1, cost: [500], cb: { rerollDisc: 1 } },
+  hoard: { n: 'Glimmer Hoard', d: '+10% Glimmer Shards from runs per rank.', max: 3, cost: [120, 240, 400] },
   evo: { n: 'Seed Pouch', d: 'Start each run with an Evo Crystal.', max: 1, cost: [35] },
   shiny: { n: 'Shiny Charm', d: 'Shiny creatures turn up 3× as often.', max: 1, cost: [30] },
   starter: { n: 'Head Start', d: 'Begin at Tamer level 2, then 3.', max: 2, cost: [30, 70] },

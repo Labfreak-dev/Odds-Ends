@@ -209,30 +209,30 @@ const SP = {
 const SKILL_LV = [1, 1, 4];
 
 const BOSSES = {
-  bramble: { name: 'Mother Bramble', el: 'bloom', art: 'boss_bramble', hp: 4.79, atk: 1.1, def: 1.2, spd: 0.8, sk: ['thorn_whip', 'spore_storm', 'sprout_call', 'heart_bloom'], pd: 'Calls sprouts to her side and heals herself.' },
-  cinder:  { name: 'Cinderking', el: 'ember', art: 'boss_cinder', hp: 5.28, atk: 1.25, def: 1.3, spd: 0.75, sk: ['magma_fist', 'eruption', 'molten_armor'], pd: 'Molten armour: shields himself and sets the field alight.' },
-  eel:     { name: 'Abyssqueen', el: 'tide', art: 'boss_eel', hp: 6.51, atk: 1.2, def: 1.1, spd: 1.1, sk: ['thunder_fang', 'tidal_coil', 'static_field'], pd: 'Soaks your team, then electrocutes it.' },
-  prism:   { name: 'Prism Sentinel', el: 'stone', art: 'boss_prism', hp: 15.87, atk: 1.2, def: 1.5, spd: 0.8, sk: ['shard_volley', 'crystal_beam', 'prism_guard'], passive: { dr: 0.1 }, pd: 'Crystal body: takes 10% less damage.' },
-  grim:    { name: 'Grimhoot', el: 'shade', art: 'boss_grim', hp: 4.61, atk: 1.25, def: 1.1, spd: 1.05, sk: ['night_terror', 'hex_gaze', 'soul_drain', 'bat_call'], pd: 'Curses your team and calls bats.' },
-  thornqueen: { name: 'Thornback Queen', el: 'bloom', art: 'boss_thornqueen', hp: 3.35, atk: 1.15, def: 1.3, spd: 0.8, sk: ['queen_gore', 'thorn_volley', 'beetle_call'], passive: { thorns: 0.2 }, pd: 'Thorned carapace: reflects 20% of the damage she takes.' },
-  tempestroc: { name: 'Tempest Roc', el: 'gale', art: 'boss_tempestroc', hp: 2.59, atk: 1.25, def: 1, spd: 1.15, sk: ['roc_talon', 'hurricane', 'gale_call'], passive: { dodge: 0.2 }, pd: 'Rides the storm: dodges 20% of attacks.' },
-  forgeheart: { name: 'Forgeheart Colossus', el: 'metal', art: 'boss_forgeheart', hp: 3.88, atk: 1.2, def: 1.6, spd: 0.7, sk: ['anvil_smash', 'slag_wave', 'furnace_guard'], passive: { dr: 0.2 }, pd: 'Iron hide: takes 20% less damage.' },
-  ashhydra: { name: 'Ashen Hydra', el: 'ember', art: 'boss_ashhydra', hp: 3.63, atk: 1.3, def: 1.1, spd: 0.9, sk: ['hydra_bite', 'triple_breath', 'regrow_heads'], passive: { regen: 0.012 }, pd: 'Regrows its heads: heals 1.2% every second.' },
-  deepmaw: { name: 'Deepmaw Matriarch', el: 'tide', art: 'boss_deepmaw', hp: 3.67, atk: 1.3, def: 1, spd: 0.85, sk: ['maw_crunch', 'lure_glow', 'abyss_call'], passive: { ls: 0.15 }, pd: 'Endless hunger: heals 15% of the damage she deals.' },
-  rimeleviathan: { name: 'Rime Leviathan', el: 'frost', art: 'boss_rimeleviathan', hp: 3.77, atk: 1.2, def: 1.2, spd: 0.95, sk: ['frost_fang', 'glacier_breath', 'ice_armor'], passive: { frostAura: 6 }, pd: 'Frozen sea: Chills your whole team for 6 seconds at the start.' },
-  mirrorsphinx: { name: 'Mirror Sphinx', el: 'mystic', art: 'boss_mirrorsphinx', hp: 4.10, atk: 1.15, def: 1.4, spd: 0.85, sk: ['riddle_beam', 'mirror_storm', 'arcane_ward'], passive: { reflect: 0.2 }, pd: 'Mirrored wings: reflects 20% of single hits back at the attacker.' },
-  geartyrant: { name: 'Gear Tyrant', el: 'metal', art: 'boss_geartyrant', hp: 3.85, atk: 1.2, def: 1.5, spd: 0.8, sk: ['piston_claw', 'rivet_storm', 'ant_call'], passive: { dr: 0.15 }, pd: 'Riveted plates: takes 15% less damage.' },
-  eclipsechimera: { name: 'Eclipse Chimera', el: 'shade', art: 'boss_eclipsechimera', hp: 4.92, atk: 1.3, def: 1.1, spd: 1.05, sk: ['chimera_maul', 'three_maws', 'dread_roar'], passive: { ls: 0.15 }, pd: 'Three hungry heads: heals 15% of the damage it deals.' },
-  hollowcolossus: { name: 'Hollow Colossus', el: 'shade', art: 'boss_hollowcolossus', hp: 3.66, atk: 1.2, def: 1.4, spd: 0.75, sk: ['grave_slam', 'soul_lanterns', 'wisp_call'], passive: { thorns: 0.15 }, pd: 'Haunted stone: reflects 15% of the damage it takes.' },
-  astralbehemoth: { name: 'Astral Behemoth', el: 'mystic', flux: 1, art: 'boss_astralbehemoth', hp: 3.09, atk: 1.3, def: 1.3, spd: 0.9, sk: ['star_crush', 'nebula_nova', 'cosmic_call'], passive: { regen: 0.008 }, pd: 'Shifts element every 4 seconds; regenerates 0.8% a second.' },
-  voidtitan: { name: 'Void Titan', el: 'shade', flux: 1, art: 'boss_voidtitan', hp: 4.27, atk: 1.4, def: 1.3, spd: 0.85, sk: ['void_fist', 'singularity', 'void_armor'], passive: { dr: 0.15 }, pd: 'Shifts element every 4 seconds; takes 15% less damage.' },
-  yeti: { name: 'Yeti Monarch', el: 'frost', art: 'boss_yeti', hp: 3.83, atk: 1.25, def: 1.3, spd: 0.85, sk: ['yeti_slam', 'avalanche', 'yeti_call'], passive: { dr: 0.1 }, pd: 'Thick fur: takes 10% less damage; calls ice stoats.' },
-  nimbus: { name: 'Stormheart Nimbus', el: 'gale', art: 'boss_nimbus', hp: 3.80, atk: 1.25, def: 1.1, spd: 1.1, sk: ['thunderhead', 'cyclone', 'squall_call'], passive: { dodge: 0.2 }, pd: 'Body of cloud: dodges 20% of attacks.' },
-  sandworm: { name: 'Sandworm Tyrant', el: 'stone', art: 'boss_sandworm', hp: 3.98, atk: 1.3, def: 1.3, spd: 0.85, sk: ['burrow_strike', 'dune_quake', 'sand_call'], passive: { thorns: 0.15 }, pd: 'Grinding plates: reflects 15% of the damage it takes.' },
-  mirecroc: { name: 'Mirecroc Matriarch', el: 'bloom', art: 'boss_mirecroc', hp: 3.75, atk: 1.3, def: 1.2, spd: 0.85, sk: ['death_roll', 'rot_spores', 'croc_call'], passive: { regen: 0.01 }, pd: 'Swamp-fed: regenerates 1% HP a second.' },
-  juggernaut: { name: 'Ironshell Juggernaut', el: 'metal', art: 'boss_juggernaut', hp: 3.42, atk: 1.2, def: 1.6, spd: 0.75, sk: ['steam_ram', 'boiler_burst', 'plate_up'], passive: { dr: 0.2 }, pd: 'Iron shell: takes 20% less damage.' },
-  astralmoth: { name: 'Astral Moth Empress', el: 'mystic', art: 'boss_astralmoth', hp: 3.42, atk: 1.25, def: 1.1, spd: 1, sk: ['moonbeam', 'galaxy_dust', 'moth_call'], passive: { ls: 0.12 }, pd: 'Drinks starlight: heals 12% of the damage she deals.' },
-  wyrm:    { name: 'The Glimmerwyrm', el: 'ember', flux: 1, art: 'boss_wyrm', hp: 4.44, atk: 1.35, def: 1.35, spd: 1, sk: ['wyrm_bite', 'flux_breath', 'cataclysm', 'crystal_scale'], pd: 'Shifts element every 4 seconds.' },
+  bramble: { name: 'Mother Bramble', el: 'bloom', art: 'boss_bramble', hp: 5.15, atk: 1.1, def: 1.2, spd: 0.8, sk: ['thorn_whip', 'spore_storm', 'sprout_call', 'heart_bloom'], pd: 'Calls sprouts to her side and heals herself.' },
+  cinder:  { name: 'Cinderking', el: 'ember', art: 'boss_cinder', hp: 5.31, atk: 1.25, def: 1.3, spd: 0.75, sk: ['magma_fist', 'eruption', 'molten_armor'], pd: 'Molten armour: shields himself and sets the field alight.' },
+  eel:     { name: 'Abyssqueen', el: 'tide', art: 'boss_eel', hp: 7.19, atk: 1.2, def: 1.1, spd: 1.1, sk: ['thunder_fang', 'tidal_coil', 'static_field'], pd: 'Soaks your team, then electrocutes it.' },
+  prism:   { name: 'Prism Sentinel', el: 'stone', art: 'boss_prism', hp: 17.34, atk: 1.2, def: 1.5, spd: 0.8, sk: ['shard_volley', 'crystal_beam', 'prism_guard'], passive: { dr: 0.1 }, pd: 'Crystal body: takes 10% less damage.' },
+  grim:    { name: 'Grimhoot', el: 'shade', art: 'boss_grim', hp: 4.53, atk: 1.25, def: 1.1, spd: 1.05, sk: ['night_terror', 'hex_gaze', 'soul_drain', 'bat_call'], pd: 'Curses your team and calls bats.' },
+  thornqueen: { name: 'Thornback Queen', el: 'bloom', art: 'boss_thornqueen', hp: 3.80, atk: 1.15, def: 1.3, spd: 0.8, sk: ['queen_gore', 'thorn_volley', 'beetle_call'], passive: { thorns: 0.2 }, pd: 'Thorned carapace: reflects 20% of the damage she takes.' },
+  tempestroc: { name: 'Tempest Roc', el: 'gale', art: 'boss_tempestroc', hp: 3.11, atk: 1.25, def: 1, spd: 1.15, sk: ['roc_talon', 'hurricane', 'gale_call'], passive: { dodge: 0.2 }, pd: 'Rides the storm: dodges 20% of attacks.' },
+  forgeheart: { name: 'Forgeheart Colossus', el: 'metal', art: 'boss_forgeheart', hp: 3.74, atk: 1.2, def: 1.6, spd: 0.7, sk: ['anvil_smash', 'slag_wave', 'furnace_guard'], passive: { dr: 0.2 }, pd: 'Iron hide: takes 20% less damage.' },
+  ashhydra: { name: 'Ashen Hydra', el: 'ember', art: 'boss_ashhydra', hp: 3.60, atk: 1.3, def: 1.1, spd: 0.9, sk: ['hydra_bite', 'triple_breath', 'regrow_heads'], passive: { regen: 0.012 }, pd: 'Regrows its heads: heals 1.2% every second.' },
+  deepmaw: { name: 'Deepmaw Matriarch', el: 'tide', art: 'boss_deepmaw', hp: 3.69, atk: 1.3, def: 1, spd: 0.85, sk: ['maw_crunch', 'lure_glow', 'abyss_call'], passive: { ls: 0.15 }, pd: 'Endless hunger: heals 15% of the damage she deals.' },
+  rimeleviathan: { name: 'Rime Leviathan', el: 'frost', art: 'boss_rimeleviathan', hp: 4.05, atk: 1.2, def: 1.2, spd: 0.95, sk: ['frost_fang', 'glacier_breath', 'ice_armor'], passive: { frostAura: 6 }, pd: 'Frozen sea: Chills your whole team for 6 seconds at the start.' },
+  mirrorsphinx: { name: 'Mirror Sphinx', el: 'mystic', art: 'boss_mirrorsphinx', hp: 4.11, atk: 1.15, def: 1.4, spd: 0.85, sk: ['riddle_beam', 'mirror_storm', 'arcane_ward'], passive: { reflect: 0.2 }, pd: 'Mirrored wings: reflects 20% of single hits back at the attacker.' },
+  geartyrant: { name: 'Gear Tyrant', el: 'metal', art: 'boss_geartyrant', hp: 3.97, atk: 1.2, def: 1.5, spd: 0.8, sk: ['piston_claw', 'rivet_storm', 'ant_call'], passive: { dr: 0.15 }, pd: 'Riveted plates: takes 15% less damage.' },
+  eclipsechimera: { name: 'Eclipse Chimera', el: 'shade', art: 'boss_eclipsechimera', hp: 5.09, atk: 1.3, def: 1.1, spd: 1.05, sk: ['chimera_maul', 'three_maws', 'dread_roar'], passive: { ls: 0.15 }, pd: 'Three hungry heads: heals 15% of the damage it deals.' },
+  hollowcolossus: { name: 'Hollow Colossus', el: 'shade', art: 'boss_hollowcolossus', hp: 3.63, atk: 1.2, def: 1.4, spd: 0.75, sk: ['grave_slam', 'soul_lanterns', 'wisp_call'], passive: { thorns: 0.15 }, pd: 'Haunted stone: reflects 15% of the damage it takes.' },
+  astralbehemoth: { name: 'Astral Behemoth', el: 'mystic', flux: 1, art: 'boss_astralbehemoth', hp: 2.83, atk: 1.3, def: 1.3, spd: 0.9, sk: ['star_crush', 'nebula_nova', 'cosmic_call'], passive: { regen: 0.008 }, pd: 'Shifts element every 4 seconds; regenerates 0.8% a second.' },
+  voidtitan: { name: 'Void Titan', el: 'shade', flux: 1, art: 'boss_voidtitan', hp: 3.33, atk: 1.4, def: 1.3, spd: 0.85, sk: ['void_fist', 'singularity', 'void_armor'], passive: { dr: 0.15 }, pd: 'Shifts element every 4 seconds; takes 15% less damage.' },
+  yeti: { name: 'Yeti Monarch', el: 'frost', art: 'boss_yeti', hp: 3.86, atk: 1.25, def: 1.3, spd: 0.85, sk: ['yeti_slam', 'avalanche', 'yeti_call'], passive: { dr: 0.1 }, pd: 'Thick fur: takes 10% less damage; calls ice stoats.' },
+  nimbus: { name: 'Stormheart Nimbus', el: 'gale', art: 'boss_nimbus', hp: 4.14, atk: 1.25, def: 1.1, spd: 1.1, sk: ['thunderhead', 'cyclone', 'squall_call'], passive: { dodge: 0.2 }, pd: 'Body of cloud: dodges 20% of attacks.' },
+  sandworm: { name: 'Sandworm Tyrant', el: 'stone', art: 'boss_sandworm', hp: 3.90, atk: 1.3, def: 1.3, spd: 0.85, sk: ['burrow_strike', 'dune_quake', 'sand_call'], passive: { thorns: 0.15 }, pd: 'Grinding plates: reflects 15% of the damage it takes.' },
+  mirecroc: { name: 'Mirecroc Matriarch', el: 'bloom', art: 'boss_mirecroc', hp: 3.82, atk: 1.3, def: 1.2, spd: 0.85, sk: ['death_roll', 'rot_spores', 'croc_call'], passive: { regen: 0.01 }, pd: 'Swamp-fed: regenerates 1% HP a second.' },
+  juggernaut: { name: 'Ironshell Juggernaut', el: 'metal', art: 'boss_juggernaut', hp: 3.04, atk: 1.2, def: 1.6, spd: 0.75, sk: ['steam_ram', 'boiler_burst', 'plate_up'], passive: { dr: 0.2 }, pd: 'Iron shell: takes 20% less damage.' },
+  astralmoth: { name: 'Astral Moth Empress', el: 'mystic', art: 'boss_astralmoth', hp: 3.03, atk: 1.25, def: 1.1, spd: 1, sk: ['moonbeam', 'galaxy_dust', 'moth_call'], passive: { ls: 0.12 }, pd: 'Drinks starlight: heals 12% of the damage she deals.' },
+  wyrm:    { name: 'The Glimmerwyrm', el: 'ember', flux: 1, art: 'boss_wyrm', hp: 3.73, atk: 1.35, def: 1.35, spd: 1, sk: ['wyrm_bite', 'flux_breath', 'cataclysm', 'crystal_scale'], pd: 'Shifts element every 4 seconds.' },
 };
 
 // ---- biomes and hazards ---------------------------------------------------------
@@ -564,6 +564,50 @@ for (const sp of SP2) {
   SP[sp.k] = { el: sp.el, role: sp.role, names: sp.names, sk: buildKit(sp, i - 1), mod: Object.assign({}, ROLE_MOD[sp.role]) };
   TIER[sp.k] = sp.tier; RANGE[sp.k] = sp.range;
 }
+
+// ---- g9: merge perks -------------------------------------------------------------------
+// Every species has a signature perk that switches on at ★2 and upgrades at ★3, where it
+// also starts an aura for allies that share its element or its role.
+const PERK_KINDS = {
+  flurry: { n: 'Frenzy', d: l => `Every 3rd attack strikes twice${l > 1 ? ', and the second hit always crits' : ''}.` },
+  cleave: { n: 'Sweeping Blows', d: l => `Attacks also hit foes next to the target for ${l > 1 ? 60 : 35}%.` },
+  hunter: { n: 'Bloodlust', d: l => `Each knockout gives +${l > 1 ? 15 : 8}% ATK for the rest of the fight (up to 5 stacks).` },
+  executioner: { n: 'Finisher', d: l => `Deals ${l > 1 ? 50 : 30}% more damage to foes under 40% HP.` },
+  pierce: { n: 'Piercing Strikes', d: l => `Attacks also hit the foe behind the target for ${l > 1 ? 70 : 40}%.` },
+  echo: { n: 'Resonance', d: l => `After casting, allies within 2 cells gain ${l > 1 ? 30 : 15} mana.` },
+  surge: { n: 'Spell Surge', d: l => `After casting, attacks ${l > 1 ? 40 : 20}% faster for 4 seconds.` },
+  venom: { n: 'Lingering Hex', d: l => `Statuses it applies last ${l > 1 ? 'twice as long' : '50% longer'}.` },
+  reaper: { n: 'Soul Harvest', d: l => `A knockout refills ${l > 1 ? 60 : 30} mana.` },
+  bulwark: { n: 'Last Stand', d: l => `Once per fight, dropping under half HP grants a ${l > 1 ? 40 : 25}% max-HP shield.` },
+  guardian: { n: 'Protector', d: l => `Adjacent allies take ${l > 1 ? 20 : 10}% less damage.` },
+  vanguard: { n: 'Shield Wall', d: l => `Allies in its row start the fight with +${l > 1 ? 25 : 12}% DEF.` },
+  thornskin: { n: 'Spiked Hide', d: l => `Reflects ${l > 1 ? 30 : 15}% of the damage it takes.` },
+  aegis: { n: 'Warding Light', d: l => `After casting, shields the weakest ally for ${l > 1 ? 20 : 10}% of its max HP.` },
+  inspire: { n: 'Battle Hymn', d: l => `Allies in its column start the fight with +${l > 1 ? 25 : 12}% ATK.` },
+  quick: { n: 'Quick Start', d: l => `Starts every fight with ${l > 1 ? 70 : 40} mana.` },
+  mend: { n: 'Steady Mending', d: l => `Every 4 seconds heals the weakest ally for ${l > 1 ? 8 : 4}% of its max HP.` },
+};
+const ROLE_PERKS = { striker: ['flurry', 'cleave', 'hunter', 'executioner', 'pierce'], caster: ['echo', 'surge', 'venom', 'reaper', 'pierce'],
+  tank: ['bulwark', 'guardian', 'vanguard', 'thornskin'], support: ['aegis', 'inspire', 'echo', 'quick', 'mend'] };
+const EL_ADJ = { ember: 'Blazing', tide: 'Tidal', bloom: 'Verdant', volt: 'Static', stone: 'Granite', shade: 'Shadow', frost: 'Glacial', gale: 'Gusting', metal: 'Ironclad', mystic: 'Astral' };
+// ★3 auras: allies sharing its element (or its role) gain this
+const AURA_EL = { ember: ['atk', 0.12, '+12% ATK'], tide: ['regen', 0.006, '+0.6% HP regen a second'], bloom: ['regen', 0.008, '+0.8% HP regen a second'],
+  volt: ['as', 0.12, '+12% attack speed'], stone: ['def', 0.15, '+15% DEF'], shade: ['crit', 0.1, '+10% crit'], frost: ['def', 0.12, '+12% DEF'],
+  gale: ['dodge', 0.1, '+10% dodge'], metal: ['dr', 0.08, '8% less damage taken'], mystic: ['od', 0.25, '+25% mana gain'] };
+const AURA_ROLE = { striker: ['atk', 0.1, '+10% ATK'], caster: ['od', 0.25, '+25% mana gain'], tank: ['def', 0.15, '+15% DEF'], support: ['regen', 0.006, '+0.6% HP regen a second'] };
+const ROLE_PL = { striker: 'Strikers', caster: 'Casters', tank: 'Guardians', support: 'Supports' };
+function strHash(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+for (const k in SP) {
+  const S = SP[k], pool = ROLE_PERKS[S.role], h = strHash(k);
+  const kind = pool[h % pool.length], byEl = (h >>> 8) % 2 === 0;
+  const a = byEl ? AURA_EL[S.el] : AURA_ROLE[S.role];
+  S.perk = { kind, name: EL_ADJ[S.el] + ' ' + PERK_KINDS[kind].n,
+    aura: { by: byEl ? 'el' : 'role', key: byEl ? S.el : S.role, stat: a[0], v: a[1], d: `${byEl ? EL[S.el].name + ' allies' : ROLE_PL[S.role]} gain ${a[2]}` } };
+}
+function perkText(sp, star) {
+  const P = SP[sp] && SP[sp].perk; if (!P) return '';
+  return star >= 3 ? PERK_KINDS[P.kind].d(2) + ' Aura: ' + P.aura.d + '.' : PERK_KINDS[P.kind].d(1);
+}
 const ROUNDS = 30, STAGE_LEN = 5, STAGES = 6;
 // relic text and numbers that mean something different in real-time fights
 const CHESS_RELIC = {
@@ -602,5 +646,5 @@ SETS.greed.b = { goldRound: 2 }; SETS.greed.d = '+2 gold every round.';
 
 root.GD = { EL, ELS, STRONG, eff, ROLE, STAGE_MUL, EVO_LV, SK, SP, SKILL_LV, BOSSES, BIOMES, ACTS, ACT_LV,
   TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS,
-  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES };
+  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText };
 })(typeof window !== 'undefined' ? window : globalThis);

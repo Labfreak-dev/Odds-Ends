@@ -141,6 +141,13 @@ function makeUnit(st, inst, side, x, y) {
     if (u.elite === 'hasty') u.b.as *= 1.4;
     if (u.elite === 'shielded') u.shield = Math.round(u.maxHp * 0.4);
   }
+  // merge perk: on at ★2, upgraded at ★3
+  if (!inst.boss && !inst.summoned && (inst.star || 1) >= 2 && G.SP[inst.sp].perk) {
+    u.perk = { kind: G.SP[inst.sp].perk.kind, l: inst.star >= 3 ? 2 : 1 };
+    if (u.perk.kind === 'quick') u.mana = Math.min(99, u.mana + (u.perk.l > 1 ? 70 : 40));
+    if (u.perk.kind === 'thornskin') u.b.thorns += u.perk.l > 1 ? 0.3 : 0.15;
+  }
+  u.atkN = 0; u.kills = 0;
   // boss passives
   const P = inst.boss && G.BOSSES[inst.boss].passive;
   if (P) {
@@ -179,6 +186,23 @@ function create(o) {
     for (const u of mine) { u.front = u.x === fx; u.back = u.x === bx && fx !== bx; }
   }
   const ev = st.ev;
+  for (const u of st.units) {
+    if (!u.perk) continue;
+    const mates = st.units.filter(m => m.side === u.side && m !== u);
+    if (u.perk.kind === 'vanguard') for (const m of mates.concat([u])) if (m.y === u.y) m.b.def *= u.perk.l > 1 ? 1.25 : 1.12;
+    if (u.perk.kind === 'inspire') for (const m of mates.concat([u])) if (m.x === u.x) m.b.atk *= u.perk.l > 1 ? 1.25 : 1.12;
+    if (u.perk.l > 1) {
+      const A = G.SP[u.inst.sp].perk.aura;
+      for (const m of mates.concat([u])) {
+        if (m.boss || !G.SP[m.inst.sp]) continue;
+        if (A.by === 'el' ? !(m.el === A.key || m.el2 === A.key) : G.SP[m.inst.sp].role !== A.key) continue;
+        if (A.stat === 'atk') m.b.atk *= 1 + A.v; else if (A.stat === 'def') m.b.def *= 1 + A.v;
+        else if (A.stat === 'as') m.b.as *= 1 + A.v; else if (A.stat === 'crit') m.b.crit += A.v;
+        else if (A.stat === 'regen') m.b.regen += A.v; else if (A.stat === 'od') m.b.od += A.v;
+        else if (A.stat === 'dodge') m.auraDodge = (m.auraDodge || 0) + A.v; else if (A.stat === 'dr') m.auraDR = (m.auraDR || 0) + A.v;
+      }
+    }
+  }
   for (const u of st.units) {
     const b = st.bonus[u.side];
     if (b.startShield) giveShield(st, u, u, b.startShield, ev, true);
@@ -351,6 +375,7 @@ function applyStatus(st, src, t, key, ev, secs, n) {
   else if (key === 'hex') t.st.hex = { t: 5 + extra };
   else if (key === 'curse') t.st.curse = { t: 5 + extra };
   else return;
+  if (src && src.perk && src.perk.kind === 'venom' && t.st[key] && t.st[key].t != null && t.st[key].t < 1e8) t.st[key].t *= src.perk.l > 1 ? 2 : 1.5;
   ev.push({ k: 'status', t: t.id, s: key });
 }
 const STATUS_KEYS = ['burn', 'poison', 'soak', 'stun', 'root', 'curse', 'blind', 'chill', 'shred', 'hex'];
@@ -365,14 +390,14 @@ function hit(st, a, d, sk, ev, o) {
   let miss = 0;
   if (a.st.blind) miss += 0.35;
   if (st.haz === 'dark' && a.side === 0 && a.el !== 'shade' && !ab.immune_dark && st.litUntil < st.t) miss += 0.25;
-  const dodge = buffV(d, 'dodge') + (db.dodge || 0) + (d.el === 'shade' ? (db.shadeDodge || 0) : 0);
+  const dodge = buffV(d, 'dodge') + (db.dodge || 0) + (d.auraDodge || 0) + (d.el === 'shade' ? (db.shadeDodge || 0) : 0);
   if (!o.noMiss && st.rnd() < miss + dodge * (1 - miss)) {
     ev.push({ k: 'miss', t: d.id, a: a.id, dodge: dodge > miss });
     return 0;
   }
   if (el === 'ember' && st.haz === 'dark') st.litUntil = st.t + 2;
   const A = effAtk(st, a), D = effDef(st, d);
-  const pow = o.basic ? 1 : (sk.pow || 0) / 100 * 1.6 * (o.powMul || 1) * (1 + (ab.skillAmp || 0));
+  const pow = o.basic ? (o.powMul || 1) : (sk.pow || 0) / 100 * 1.6 * (o.powMul || 1) * (1 + (ab.skillAmp || 0));
   let dmg = A * pow * (A / (A + 0.65 * D));
   const ef = G.eff(el, d.el);
   dmg *= ef;
@@ -382,6 +407,10 @@ function hit(st, a, d, sk, ev, o) {
   if (d.st.chill && ab.chillAmp) dmg *= 1 + ab.chillAmp;
   if (db.dr) dmg *= 1 - db.dr;
   if (d.bossDR) dmg *= 1 - d.bossDR;
+  if (d.auraDR) dmg *= 1 - d.auraDR;
+  if (a.perk && a.perk.kind === 'executioner' && pct(d) < 0.4) dmg *= a.perk.l > 1 ? 1.5 : 1.3;
+  if (a.perk && a.perk.kind === 'hunter' && a.kills) dmg *= 1 + Math.min(5, a.kills) * (a.perk.l > 1 ? 0.15 : 0.08);
+  { let g = 0; for (const m of st.units) if (m.alive && m !== d && m.side === d.side && m.perk && m.perk.kind === 'guardian' && dist(m, d) <= 1) g = Math.max(g, m.perk.l > 1 ? 0.2 : 0.1); if (g) dmg *= 1 - g; }
   const soaked = d.st.soak || d.st.wet;
   if (soaked && ab.soakAmp) dmg *= 1 + ab.soakAmp;
   if (el === 'ember' && st.haz === 'flood' && a.st.wet) dmg *= 0.6;
@@ -413,7 +442,7 @@ function hit(st, a, d, sk, ev, o) {
     if (react) ev.push({ k: 'react', t: d.id, name: react });
   }
   const cc = a.b.crit + (sk.crit || 0) + (ab.crit || 0) + buffV(a, 'critUp');
-  const crit = forceCrit || (ab.firstCrit && a.firstAtk) || st.rnd() < cc;
+  const crit = forceCrit || o.crit || (ab.firstCrit && a.firstAtk) || st.rnd() < cc;
   a.firstAtk = false;
   if (crit) dmg *= 1 + a.b.critDmg + (ab.critDmg || 0);
   dmg *= 0.92 + st.rnd() * 0.16;
@@ -462,6 +491,9 @@ function damage(st, a, d, v, ev, info) {
   ev.push({ k: 'dmg', t: d.id, a: a ? a.id : null, v, crit: !!info.crit, eff: info.eff || 1, hp: Math.max(0, d.hp), sh: d.shield,
     dot: info.dot || null, thorn: !!info.thorn, basic: !!info.basic });
   if (a && a !== d && !info.dot && !info.thorn) gainMana(st, d, Math.min(15, 3 + 15 * v / d.maxHp));
+  if (d.perk && d.perk.kind === 'bulwark' && !d.bulwarkUsed && d.hp > 0 && d.hp < d.maxHp / 2) {
+    d.bulwarkUsed = true; giveShield(st, d, d, d.perk.l > 1 ? 0.4 : 0.25, ev); ev.push({ k: 'perk', a: d.id, t: d.id, n: 'Last Stand', el: d.el });
+  }
   if (d.boss && !d.enraged && d.hp > 0 && d.hp < d.maxHp / 2) {
     d.enraged = true; d.st.atkUp = { v: 0.15, t: 1e9 };
     ev.push({ k: 'react', t: d.id, name: 'ENRAGED' }, { k: 'text', v: d.name + ' is enraged: much faster attacks!' });
@@ -480,6 +512,9 @@ function ko(st, a, d, ev) {
   }
   if (a && a.alive && a.side !== d.side) {
     gainMana(st, a, 10);
+    a.kills = (a.kills || 0) + 1;
+    if (a.perk && a.perk.kind === 'reaper') { gainMana(st, a, a.perk.l > 1 ? 60 : 30); ev.push({ k: 'perk', a: a.id, t: a.id, n: 'Soul Harvest', el: a.el }); }
+    if (a.perk && a.perk.kind === 'hunter' && a.kills <= 5) ev.push({ k: 'perk', a: a.id, t: a.id, n: 'Bloodlust', el: a.el });
     const ab = st.bonus[a.side];
     if (ab.killHeal) heal(st, a, a, ab.killHeal, ev);
   }
@@ -503,6 +538,21 @@ function basicAttack(st, u, t, ev) {
   }
   if (sk.ls && dealt > 0) heal(st, u, u, 0, ev, dealt * sk.ls, true);
   gainMana(st, u, 10);
+  if (u.perk && u.alive) {
+    const P = u.perk, el = sk.el === 'flux' ? u.el : sk.el;
+    u.atkN++;
+    if (P.kind === 'flurry' && u.atkN % 3 === 0 && t.alive) { ev.push({ k: 'perk', a: u.id, t: t.id, n: 'Frenzy', el }); hit(st, u, t, sk, ev, { basic: true, single: true, crit: P.l > 1 }); }
+    if (P.kind === 'cleave') {
+      const near = alive(st, 1 - u.side).filter(e => e !== t && dist(e, t) <= 1);
+      if (near.length) ev.push({ k: 'perk', a: u.id, t: t.id, n: 'Cleave', el, aoe: 1 });
+      for (const e of near) hit(st, u, e, sk, ev, { basic: true, powMul: P.l > 1 ? 0.6 : 0.35, noReact: true, noMiss: true });
+    }
+    if (P.kind === 'pierce') {
+      const dx = Math.sign(t.x - u.x) || (u.side ? -1 : 1), dy = Math.sign(t.y - u.y);
+      const b = alive(st, 1 - u.side).find(e => e.x === t.x + dx && e.y === t.y + (dx ? 0 : dy));
+      if (b) { ev.push({ k: 'perk', a: t.id, t: b.id, n: 'Pierce', el }); hit(st, u, b, sk, ev, { basic: true, powMul: P.l > 1 ? 0.7 : 0.4, noReact: true, noMiss: true }); }
+    }
+  }
 }
 const TSEC = { atkUp: 6, defUp: 6, spdUp: 6, critUp: 6 };
 function cast(st, u, ev) {
@@ -575,6 +625,12 @@ function cast(st, u, ev) {
   }
   if (fx.summon) summon(st, u, fx.summon, ev);
   u.mana = 0;
+  if (u.perk && u.alive) {
+    const P = u.perk;
+    if (P.kind === 'echo') { ev.push({ k: 'perk', a: u.id, t: u.id, n: 'Echo', el: u.el, ring: 1 }); for (const f of alive(st, u.side)) if (f !== u && dist(f, u) <= 2) { gainMana(st, f, P.l > 1 ? 30 : 15); ev.push({ k: 'mana', t: f.id, v: f.mana }); } }
+    if (P.kind === 'surge') { u.st.spdUp = { v: P.l > 1 ? 0.4 : 0.2, t: 4 }; ev.push({ k: 'status', t: u.id, s: 'spdUp' }, { k: 'perk', a: u.id, t: u.id, n: 'Surge', el: u.el }); }
+    if (P.kind === 'aegis') { const w = alive(st, u.side).sort((x, y) => pct(x) - pct(y))[0]; if (w) { ev.push({ k: 'perk', a: u.id, t: w.id, n: 'Aegis', el: u.el, heal: 1 }); giveShield(st, u, w, P.l > 1 ? 0.2 : 0.1, ev); } }
+  }
   if (u.boss) { const c = castables(u.inst); u.skill = c[(c.indexOf(u.skill) + 1) % c.length]; }
   if (sk.ult && ab.echo) for (const f of alive(st, u.side)) if (f !== u) { gainMana(st, f, ab.echo); ev.push({ k: 'mana', t: f.id, v: f.mana }); }
   ev.push({ k: 'mana', t: u.id, v: 0 });
@@ -606,6 +662,10 @@ function everySecond(st, ev) {
     const opts = G.ELS.filter(e => e !== u.el); u.el = opts[Math.floor(st.rnd() * opts.length)]; ev.push({ k: 'flux', t: u.id, el: u.el });
   }
   if (st.t >= 40) { if (sec === 40) ev.push({ k: 'text', v: 'The cave rumbles! Everyone takes growing damage.' }); }
+  if (sec % 4 === 0) for (const u of st.units) if (u.alive && u.perk && u.perk.kind === 'mend') {
+    const w = alive(st, u.side).sort((x, y) => pct(x) - pct(y))[0];
+    if (w && w.hp < w.maxHp) { ev.push({ k: 'perk', a: u.id, t: w.id, n: 'Mend', el: u.el, heal: 1 }); heal(st, u, w, u.perk.l > 1 ? 0.08 : 0.04, ev); }
+  }
   if (st.haz === 'starfall' && sec % 6 === 0 && !st.bonus[0].immune_starfall) {
     const mine = alive(st, 0);
     if (mine.length) { const v = mine[Math.floor(st.rnd() * mine.length)]; ev.push({ k: 'star', t: v.id }); damage(st, null, v, Math.max(1, Math.round(v.maxHp * 0.08)), ev, { dot: 'star' }); }

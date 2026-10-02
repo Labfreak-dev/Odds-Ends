@@ -859,7 +859,7 @@ $('#campBody').addEventListener('click', e => {
 async function showDex() {
   const cells = Object.keys(G.SP).map(sp => [1, 2, 3].map(stg => {
     const seen = (meta.dex[sp] || 0) >= stg || (run && (run.seen[sp] || 0) >= stg);
-    return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 ? (meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>') : ''}</div>`;
+    return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 ? (meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>') : ''}${stg === 1 && (meta.shinies || {})[sp] ? '<span class="tag wshiny">✦ shiny</span>' : ''}</div>`;
   }).join('')).join('');
   const n = Object.keys(G.SP).reduce((s, sp) => s + Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0), 0);
   await ask(`Glimdex · ${n}/36`, `<div class="dex">${cells}</div>`, btn('ok', 'Close', 'green sm'));
@@ -876,7 +876,7 @@ async function showHow() {
   <p><b>Synergies</b> (top of the board): 2 or 4 different species of one element, or 2 or 4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
-  <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper.</p></div>`, btn('ok', 'Got it', 'green'));
+  <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop.</p></div>`, btn('ok', 'Got it', 'green'));
 }
 
 // ---- boot --------------------------------------------------------------------------------------

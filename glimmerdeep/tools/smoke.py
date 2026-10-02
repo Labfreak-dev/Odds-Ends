@@ -85,6 +85,8 @@ def wilds(page):
     page.click('.wprepbar [data-v=go]'); page.wait_for_timeout(700)
     check(page.locator('#wilds.exploring').count() == 1 and page.locator('.wmem').count() == 3, 'Wilds: expedition starts with the squad')
     shot(page, '10-wilds')
+    check(page.evaluate("Object.values(WILDS.state.rooms).some(a => a.tiles && /[RPS]/.test(a.tiles))"), 'Wilds: rooms have obstacle layouts')
+    check(page.evaluate("Object.values(WILDS.state.rooms).every(a => !a.tiles || a.tiles.split('|')[3][6] === '.')"), 'Wilds: every room keeps its middle clear')
     before = page.evaluate("Object.keys(GLIM.meta.unlocked).length")
     rooms0 = page.evaluate("Object.values(WILDS.state.rooms).filter(a => a.visited).length")
     fought = False
@@ -123,7 +125,7 @@ def wilds(page):
     page.wait_for_selector('#modal.on', timeout=60000)
     title = page.locator('#modalBox h2').inner_text()
     shot(page, '12-wilds-result')
-    won = title in ('Creature unlocked!', 'Victory!')
+    won = title in ('Creature unlocked!', 'Victory!', 'Shiny caught!')
     after = page.evaluate("Object.keys(GLIM.meta.unlocked).length")
     check(after >= before + (1 if title == 'Creature unlocked!' else 0), f'Wilds: battle resolved ({title}), unlocks {before} -> {after}')
     page.locator('#modalBox [data-v]').first.click(); page.wait_for_timeout(400)
@@ -133,6 +135,8 @@ def wilds(page):
         sp = page.evaluate("Object.keys(GLIM.meta.unlocked).find(k => !GD.BASE_SPECIES.includes(k))")
         n = page.evaluate(f"GR.newRun(GLIM.meta, 5, 0).pool['{sp}']")
         check(n > 0, f'Wilds: unlocked {sp} is in the auto-chess shop pool')
+    odds = page.evaluate("(() => { const m = Object.assign({}, GLIM.meta, { shinies: { cind: 1 } }); const r = GR.newRun(m, 5, 0); return [r.meta.shinySp.cind || 0, r.meta.shiny] })()")
+    check(odds[0] == 1, 'Wilds: a caught shiny boosts that species in the auto-chess shop')
 
 with sync_playwright() as p:
     b = p.chromium.launch()

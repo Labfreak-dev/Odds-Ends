@@ -465,7 +465,7 @@ const META = {
   lucky: { n: 'Lucky Coin', d: 'Rerolls cost 1 gold less.', max: 1, cost: [500], cb: { rerollDisc: 1 } },
   hoard: { n: 'Glimmer Hoard', d: '+10% Glimmer Shards from runs per rank.', max: 3, cost: [120, 240, 400] },
   evo: { n: 'Seed Pouch', d: 'Start each run with an Evo Crystal.', max: 1, cost: [35] },
-  shiny: { n: 'Shiny Charm', d: 'Shiny creatures turn up 3× as often.', max: 1, cost: [30] },
+  shiny: { n: 'Shiny Charm', d: 'Shiny creatures turn up 3× as often, in the shop and in the Wilds.', max: 1, cost: [30] },
   starter: { n: 'Head Start', d: 'Begin at Tamer level 2, then 3.', max: 2, cost: [30, 70] },
   choices: { n: 'Keen Eye', d: 'Relic rewards offer 1 more choice.', max: 1, cost: [60] },
   heal: { n: 'Second Wind', d: 'Heal 15 HP after each boss you beat.', max: 1, cost: [45] },

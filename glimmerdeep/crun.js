@@ -31,7 +31,7 @@ function newRun(meta, seed, depth) {
     tlv: 1 + (up.starter || 0), txp: 0, units: [], shop: [], locked: false, pool: {},
     relics: [], charms: [], items: {}, perks: {}, streak: 0, depth: depth || 0, over: 0, mods: {},
     stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {}, visited: ['verdant'], shopShiny: [],
-    meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, kin: 0.08 * (up.kindred || 0), hoard: 0.1 * (up.hoard || 0) },
+    meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, shinySp: Object.assign({}, meta.shinies || {}), kin: 0.08 * (up.kindred || 0), hoard: 0.1 * (up.hoard || 0) },
     campB: campBonus(up),
   };
   // only unlocked species are in the shop pool (no unlock list = everything, for the sim)
@@ -47,10 +47,12 @@ function starterChoices(meta, seed) {
   const more = shuffle(tmp, SPS.filter(k => unl(k) && G.TIER[k] <= 2 && !owned.includes(k)));
   return shuffle(tmp, owned).concat(more).slice(0, 3);
 }
+// a species you caught shiny in The Wilds turns up shiny 4x as often
+function shinyOdds(run, sp) { return run.meta.shiny * ((run.meta.shinySp || {})[sp] ? 4 : 1) / 64; }
 function mkInst(run, sp, star, o) {
   o = o || {};
   const inst = { uid: run.nextUid++, sp, star: star || 1, muts: [], charm: null, el2: null, skill: null,
-    shiny: o.shiny != null ? !!o.shiny : !o.noShiny && R(run)() < run.meta.shiny / 64, at: null, x: 0, y: 0, slot: 0 };
+    shiny: o.shiny != null ? !!o.shiny : !o.noShiny && R(run)() < shinyOdds(run, sp), at: null, x: 0, y: 0, slot: 0 };
   inst.skill = C.defaultSkill(inst);
   run.seen[sp] = Math.max(run.seen[sp] || 0, inst.star);
   return inst;
@@ -133,7 +135,7 @@ function rollShop(run, free) {
     }
     if (sp) run.pool[sp]--;
     out.push(sp);
-    shiny.push(!!sp && R(run)() < run.meta.shiny / 64);
+    shiny.push(!!sp && R(run)() < shinyOdds(run, sp));
   }
   run.shopShiny = shiny;
   run.mods.lure = false;

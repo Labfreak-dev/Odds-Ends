@@ -30,6 +30,8 @@ function expedition(n, unl) {
     let berries = rooms.filter(a => a.item === 'berry').length;
     for (const a of fightRooms.concat(lair ? [lair] : [])) {
       if (a === lair && shrine) for (const s of squad) s.hp = s.hp > 0 ? 1 : 0.5;
+      // spike traps: assume a careless step in half the rooms that have them
+      if (a.tiles && a.tiles.includes('S') && r() < 0.5) for (const s of squad) if (s.hp > 0) s.hp = Math.max(0.1, s.hp - 0.06);
       while (true) {
         const fit = squad.filter(s => s.hp > 0);
         if (!fit.length) { alive = false; break; }

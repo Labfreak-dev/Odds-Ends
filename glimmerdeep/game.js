@@ -134,12 +134,12 @@ const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
 const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
-const SIZE = [0, 74, 90, 106];
+const SIZE = [0, 70, 94, 120];
 function unitHtml(key, o) {
   const pos = o.bench ? '' : `left:${o.x * 12.5}%;top:${o.y * 20}%;`;
   const sz = o.boss ? 175 : SIZE[o.star || 1];
   const face = o.side === 1 ? 'faceL' : 'faceR';
-  return `<div class="unit side${o.side} ${face} ${o.mine ? 'mine' : ''} ${o.boss ? 'boss' : ''} ${o.elite ? 'elite' : ''} ${o.preview ? 'preview' : ''}" data-k="${key}" ${o.uid != null ? `data-uid="${o.uid}"` : ''} style="${pos}--sz:${sz}%">
+  return `<div class="unit side${o.side} ${face} s${o.boss ? 0 : o.star || 1} ${o.mine ? 'mine' : ''} ${o.boss ? 'boss' : ''} ${o.elite ? 'elite' : ''} ${o.preview ? 'preview' : ''}" data-k="${key}" ${o.uid != null ? `data-uid="${o.uid}"` : ''} style="${pos}--sz:${sz}%">
     <div class="uhud">${o.bench ? '' : `<div class="bar hp"><i style="width:${100 * (o.hp == null ? 1 : o.hp / o.maxHp)}%"></i><i class="sh" style="width:0%"></i></div><div class="bar mp"><i style="width:${o.mana || 0}%"></i></div>`}
       <div class="stars">${o.boss ? '♛' : starsTxt(o.star || 1)}</div><div class="sts"></div></div>
     <div class="rig"><img class="spr${o.shiny ? ' shiny' : ''}" src="${IMG(o.art)}" alt=""></div><div class="shadow"></div></div>`;
@@ -254,15 +254,70 @@ async function afterChange() {
     renderGame();
   }
 }
+// the evolution sequence: glow, flickering silhouettes, light rays, a white flash, the reveal
+const EVO_EL = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#8d7bff' };
+async function evoCinematic(u) {
+  const S = G.SP[u.sp], c = EVO_EL[S.el] || '#fff';
+  const oldArt = IMG('cr_' + u.sp + (u.star - 1)), newArt = IMG(C.art(u));
+  const before = C.stats(Object.assign({}, u, { star: u.star - 1 }), R.bonus(run)), after = C.stats(u, R.bonus(run));
+  // make sure the new form is decoded before the reveal
+  await new Promise(res => { const i = new Image(); i.onload = i.onerror = res; i.src = newArt; setTimeout(res, 1500); });
+  const ov = document.createElement('div');
+  ov.className = 'evo';
+  ov.style.setProperty('--c', c);
+  ov.innerHTML = `<div class="evo-bg"></div><div class="evo-rays"></div><div class="evo-halo"></div>
+    <div class="evo-mon"><img class="evo-old${u.shiny ? ' shiny' : ''}" src="${oldArt}" alt=""><img class="evo-new${u.shiny ? ' shiny' : ''}" src="${newArt}" alt=""></div>
+    <div class="evo-sparks"></div><div class="evo-ring"></div><div class="evo-flash"></div>
+    <div class="evo-text"><div class="evo-top">What? ${S.names[u.star - 2]} is evolving!</div><div class="evo-name"></div><div class="evo-stats"></div><div class="evo-tap">tap to continue</div></div>`;
+  $('#app').appendChild(ov);
+  let skip = false;
+  ov.addEventListener('pointerdown', () => { skip = true; });
+  const wait = ms => skip ? Promise.resolve() : sleep(ms);
+  const old = ov.querySelector('.evo-old'), nw = ov.querySelector('.evo-new'), mon = ov.querySelector('.evo-mon');
+  requestAnimationFrame(() => ov.classList.add('on'));
+  SFX.ult();
+  await wait(700);
+  // sparks rush in while the creature glows and grows
+  const sp = ov.querySelector('.evo-sparks');
+  for (let i = 0; i < 28; i++) {
+    const d = document.createElement('i'), ang = Math.random() * Math.PI * 2, r = 38 + Math.random() * 18;
+    d.style.setProperty('--x', Math.cos(ang) * r + 'vmin'); d.style.setProperty('--y', Math.sin(ang) * r + 'vmin');
+    d.style.animationDelay = (Math.random() * 1.4) + 's';
+    sp.appendChild(d);
+  }
+  ov.classList.add('charge');
+  // flicker between the two silhouettes, faster and faster
+  let gap = 300;
+  for (let i = 0; i < 12 && !skip; i++) {
+    const showNew = i % 2 === 1;
+    old.style.opacity = showNew ? 0 : 1; nw.style.opacity = showNew ? 1 : 0;
+    mon.style.transform = `scale(${1 + i * 0.035})`;
+    tone(300 + i * 60, 0.12, 'triangle', 0.05);
+    await wait(gap); gap = Math.max(70, gap * 0.8);
+  }
+  // flash and reveal
+  ov.classList.add('flash');
+  tone(880, 0.6, 'sawtooth', 0.06, 0.5); tone(1320, 0.5, 'triangle', 0.05);
+  await wait(260);
+  old.style.opacity = 0; nw.style.opacity = 1; mon.style.transform = '';
+  ov.classList.remove('charge'); ov.classList.add('reveal');
+  ov.querySelector('.evo-name').innerHTML = `${S.names[u.star - 2]} evolved into <b>${S.names[u.star - 1]}</b>! <span class="evo-stars">${starsTxt(u.star)}</span>`;
+  ov.querySelector('.evo-stats').innerHTML = [['HP', before.hp, after.hp], ['ATK', Math.round(before.atk), Math.round(after.atk)], ['DEF', Math.round(before.def), Math.round(after.def)]]
+    .map(([k, a, b]) => `<span>${k} ${a} → <b>${b}</b></span>`).join('') + (u.star === 2 ? `<span class="evo-new-skill">New ultimate: <b>${G.SK[S.sk[3]].n}</b></span>` : '');
+  SFX.lvl();
+  await sleep(500);
+  skip = false;
+  await new Promise(res => { ov.addEventListener('pointerdown', res, { once: true }); setTimeout(res, 6000); });
+  ov.classList.add('out');
+  await sleep(300);
+  ov.remove();
+}
 async function evolveFlow(u) {
   const S = G.SP[u.sp];
-  modal(`${S.names[u.star - 2]} is evolving!`, `<div class="evo-stage"><div class="glow"></div><img src="${IMG('cr_' + u.sp + (u.star - 1))}" class="${u.shiny ? 'shiny' : ''}" style="filter:brightness(5)"></div>`);
-  SFX.ult(); await sleep(650);
-  const img = MB.querySelector('.evo-stage img');
-  if (img) { img.src = IMG(C.art(u)); await sleep(450); img.style.filter = ''; }
+  await evoCinematic(u);
   const opts = R.mutOptions(run, u);
-  const ult = u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its stats nearly double again.</p>';
-  const m = await ask(`${starsTxt(u.star)} ${S.names[u.star - 1]}!`, `<div class="evo-stage" style="height:190px"><img src="${IMG(C.art(u))}" class="${u.shiny ? 'shiny' : ''}" style="max-height:180px"></div>${ult}<p class="muted" style="text-align:center">Choose a mutation:</p><div class="cards">${opts.map(k => `<div class="card" data-v="${k}"><h3>${G.MUTS[k].n}</h3><p>${G.MUTS[k].d}</p></div>`).join('')}</div>`);
+  const ult = u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its final form. Its stats nearly double again.</p>';
+  const m = await ask(`${starsTxt(u.star)} ${S.names[u.star - 1]}`, `<div class="evo-stage" style="height:190px"><div class="glow"></div><img src="${IMG(C.art(u))}" class="${u.shiny ? 'shiny' : ''}" style="max-height:180px"></div>${ult}<p class="muted" style="text-align:center">Choose a mutation:</p><div class="cards">${opts.map(k => `<div class="card" data-v="${k}"><h3>${G.MUTS[k].n}</h3><p>${G.MUTS[k].d}</p></div>`).join('')}</div>`);
   R.applyMut(run, u, m);
   if (u.el2) toast(`${C.name(u)} also counts as ${G.EL[u.el2].name} now!`);
   meta.dex[u.sp] = Math.max(meta.dex[u.sp] || 0, u.star);

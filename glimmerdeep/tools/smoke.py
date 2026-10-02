@@ -27,6 +27,7 @@ threading.Thread(target=srv.serve_forever, daemon=True).start()
 URL = f'http://127.0.0.1:{srv.server_address[1]}/index.html'
 
 fails, checks = [], 0
+evo_seen = False
 def check(ok, what):
     global checks
     checks += 1
@@ -50,6 +51,13 @@ def drag(page, src, dst):
 
 def clear_modals(page, limit=20):
     for _ in range(limit):
+        # the evolution sequence sits above everything: tap through it
+        for _ in range(20):
+            if page.locator('.evo').count() == 0: break
+            global evo_seen
+            evo_seen = True
+            page.mouse.click(200, 300); page.wait_for_timeout(350)
+            if page.locator('.evo').count() == 0: page.wait_for_timeout(600)   # the mutation pick opens next
         if page.locator('#modal.on').count() == 0: return
         box = page.locator('#modalBox')
         for sel in ['[data-v=ok]', '.card[data-v]', '.li.click[data-v]', '[data-v=x]', '[data-v=skip]', '[data-v]']:
@@ -135,6 +143,15 @@ with sync_playwright() as p:
         page.wait_for_timeout(200)
         if page.locator('#camp.on').count(): break
     check(rounds >= 1, f'{rounds} rounds played')
+    # an Evo Crystal plays the evolution sequence
+    if page.locator('#game.on').count():
+        page.evaluate("() => { const r = GLIM.run; if (!r.units.some(u => u.star === 1)) { const u = GR.mkInst(r, 'sprt', 1); u.at = 'n'; u.slot = GR.freeBench(r); r.units.push(u); } r.items.evo = 1; GLIM.renderGame(); }")
+        page.click('[data-top=bag]'); page.wait_for_selector('#modalBox [data-v="use:evo"]'); page.click('#modalBox [data-v="use:evo"]')
+        page.wait_for_selector('#modalBox .li.click'); page.click('#modalBox .li.click')
+        page.wait_for_selector('.evo', timeout=5000)
+        page.wait_for_timeout(1400); shot(page, '09-evolving')
+        clear_modals(page)
+        check(evo_seen and page.locator('.evo').count() == 0, 'evolution sequence plays and closes')
     if page.locator('#game.on').count():
         page.click('[data-top=bag]'); page.wait_for_selector('#modal.on')
         shot(page, '07-bag')

@@ -145,4 +145,13 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - Fights that ran to the time limit were already over: a burn or quake wipe was only
     checked after a creature acted, so the end check now also runs after the per-second
     effects, and a double knockout counts as a loss.
+- **g4**: **dramatic evolutions.**
+  - 17 evolved forms were re-rendered so each stage reads as a new, more advanced creature, not a recolour: new silhouettes, larger builds, crowns, crests, auras. The forms re-rolled are ★2 Blazelotl, Flarefox, Rippler, Thornhare, Amperbee, Duskwing and Gloomcat, and ★3 Magmalotl, Solvixen, Tsunotter, Leviashell, Verdalop, Stormquill, Tempestqueen, Titanite, Prismadon, Umbrapanther and Eclipsar.
+  - Each was rendered as two candidates (`gen-art.py --cand 2`, the reference image used only as a palette guide), and the stronger one was kept.
+  - The first hornet came out holding a spear and was re-rolled without it: no held weapons, by design.
+  - The two new fire forms read better swapped (chunky armoured drake as ★2, tall horned dragon as ★3), so the manifest describes them that way.
+  - `EVO_OVERRIDE` in gen-art.py holds the new descriptions.
+  - `pack.py` gained `strip_floor`: some renders stood on a pink floor glow the keyer left behind; pink pixels in the bottom fifth that connect to the background are cleared, along with tiny specks there.
+  - **The evolution sequence** is a full-screen moment: the old form glows into a white silhouette that flickers faster and faster between old and new shapes while element-coloured light rays spin and sparks rush in, then a white flash and a shockwave ring reveal the new form with its name, stars, stat jump and any new ultimate. Tap to skip.
+  - On the board, evolved creatures stand bigger (70/94/120% of a cell): ★2 gets a silver aura and ★3 a pulsing gold aura with sparkles.
 

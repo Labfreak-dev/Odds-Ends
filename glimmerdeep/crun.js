@@ -241,7 +241,7 @@ function enemyBoard(run) {
   const out = [];
   const add = inst => out.push(inst);
   if (kind === 'boss') {
-    const bk = G.BIOMES[run.biome].boss;
+    const bk = bossOf(run);
     add({ uid: -1, boss: bk, star: 3, muts: [], scale: [1.8, 2.5, 3.4, 4.3][stage] * (1 + 0.08 * run.depth) });
     const minions = [1, 2, 3, 4][stage];
     for (let i = 0; i < minions; i++) add({ uid: -2 - i, sp: species(tierPick()), star: rr() < p3 ? 3 : rr() < p2 ? 2 : 1, muts: [], scale });
@@ -270,6 +270,13 @@ function enemyBoard(run) {
   }
   run.enemy = { round, units: placed };
   return placed;
+}
+// each stage's boss is drawn from its biome's pool of three, fixed per run
+function bossOf(run, biome) {
+  const bi = biome || run.biome, pool = G.BIOMES[bi].bosses || [G.BIOMES[bi].boss];
+  run.bossPick = run.bossPick || {};
+  if (!run.bossPick[bi]) { const rr = C.mkRng((run.seed ^ (bi.length * 7177 + bi.charCodeAt(0) * 131)) >>> 0); run.bossPick[bi] = pool[Math.floor(rr() * pool.length)]; }
+  return run.bossPick[bi];
 }
 function rangeOf(inst) { return inst.boss ? G.BOSS_RANGE[inst.boss] : G.RANGE[inst.sp]; }
 function fightOpts(run, seed) {
@@ -388,5 +395,5 @@ function shardsFor(run, won) {
 root.GR = { BENCH, PW, newRun, starterChoices, giveStarter, mkInst, onBoard, onBench, unitAt, benchAt, freeBench, cap, placeBoard, placeBench,
   autoPlace, rollShop, rerollCost, reroll, canBuy, buy, sellValue, sell, merges, mutOptions, applyMut, addXp, buyXp, stageOf, roundIn,
   roundKind, enemyBoard, fightOpts, endRound, relicChoices, perkChoices, takePerk, addRelic, fusionsAvailable, fuse, setBiome,
-  equipCharm, useItem, shardsFor, bonus, shopSize, copiesNeeded, pick };
+  equipCharm, useItem, shardsFor, bonus, bossOf, shopSize, copiesNeeded, pick };
 })(typeof window !== 'undefined' ? window : globalThis);

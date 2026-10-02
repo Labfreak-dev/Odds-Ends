@@ -36,7 +36,7 @@ by stage (about 83 / 50 / 42 / 23%).
 ### A run
 24 rounds in 4 stages of 6: the Verdant Hollow, then Magma Forge or Sunken Grotto,
 then Crystal Spire or Shadow Crypt, then the Glimmer Core. Round 3 of each stage is an
-**elite** fight that pays a relic; round 6 is the stage **boss**, which pays a relic and a
+**elite** fight that pays a relic; round 6 is the stage **boss** (one of three per biome, drawn per run), which pays a relic and a
 Tamer perk, and then you choose the next biome. You have 100 HP: a lost round costs
 2 + 2×stage + the value of every foe left standing. The final boss must be beaten; lose
 and you fight it again next round.
@@ -178,4 +178,11 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
     - Re-rolled with two candidates each: 19 forms that changed too little or came out humanoid (the dandelion spirit and the oracle).
     - The red dragon hatchling was redone without a flame-tipped tail, which read too close to a famous fire lizard.
   - `pack.py` gained `clean_halo`: the icons' bright rim light mixed with the magenta key into pink halos; pink in the soft edge band now loses its tint and most of its alpha.
+- **g7**: **18 bosses.** Each biome draws its boss from a pool of three, fixed for the run and shown on the biome card when you choose a path.
+  - 12 new bosses: Thornback Queen, Tempest Roc, Forgeheart Colossus, Ashen Hydra, Deepmaw Matriarch, Rime Leviathan, Mirror Sphinx, Gear Tyrant, Eclipse Chimera, Hollow Colossus, Astral Behemoth and Void Titan.
+  - Each has a signature passive (`passive` in data.js): reflected damage, dodge, damage reduction, regeneration, lifesteal, single-hit mirroring, or a frost aura that Chills your team at the start. Most also summon.
+  - Bosses now rotate through all their skills instead of repeating one.
+  - That made every boss harder, so boss HP was calibrated per boss with an automatic loop: simulate 700 runs, scale HP by the odds gap to the stage target (80/50/45/25%), repeat four times. Per-boss win rates are now printed by `sim.js`.
+  - Art: 12 Meshy renders from two candidates each, all facing left.
+  - `pack.py` gained `key_holes`, which clears background trapped inside closed shapes (the hydra's coil); creatures and bosses also go through `strip_floor`.
 

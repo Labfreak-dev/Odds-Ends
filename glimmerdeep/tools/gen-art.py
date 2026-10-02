@@ -133,6 +133,18 @@ for k, d in [
  ('boss_prism', 'the Prism Sentinel, a towering crystal guardian beast made of faceted teal and gold crystal with floating crystal shards orbiting it'),
  ('boss_grim', 'Grimhoot, a giant spectral owl of deep indigo smoke with two huge glowing lantern-yellow eyes and tattered ghostly wings'),
  ('boss_wyrm', 'the Glimmerwyrm, a cosmic iridescent dragon made of shifting crystal and light, its body glowing with fire, water, leaf, lightning, stone and shadow colours'),
+ ('boss_thornqueen', 'the Thornback Queen, a gigantic bramble rhino-beetle queen with a mossy carapace, a crown of flowering thorns and a huge horn of living wood'),
+ ('boss_tempestroc', 'the Tempest Roc, a colossal storm roc bird with vast wings made of thunderclouds and wind, glowing teal eyes and lightning in its feathers'),
+ ('boss_forgeheart', 'the Forgeheart Colossus, a towering golem of black iron plates and flowing lava with a blazing furnace in its chest and huge anvil-shaped fists'),
+ ('boss_ashhydra', 'the Ashen Hydra, a three-headed volcanic hydra serpent with lava frills, glowing ember eyes and ash smoking from its scales'),
+ ('boss_deepmaw', 'the Deepmaw Matriarch, a colossal bioluminescent deep-sea anglerfish with a glowing lantern lure, an enormous toothy jaw and glowing aqua spots'),
+ ('boss_rimeleviathan', 'the Rime Leviathan, a gigantic ice sea serpent coiled in a spiral with glacier spines along its back, frost breath and glowing pale blue eyes'),
+ ('boss_mirrorsphinx', 'the Mirror Sphinx, a towering crystal sphinx with a lion body of polished teal crystal, great mirrored wings and a golden crown, glowing gold eyes'),
+ ('boss_geartyrant', 'the Gear Tyrant, a colossal brass and steel clockwork dragon with spinning gears visible in its chest, riveted plates and glowing blue eyes'),
+ ('boss_eclipsechimera', 'the Eclipse Chimera, a huge three-headed shadow chimera with a lion head, a raven head and a serpent tail, dark indigo fur and glowing cyan eyes'),
+ ('boss_hollowcolossus', 'the Hollow Colossus, a colossal haunted golem of mossy grave stones with glowing blue ghost lanterns inside its open ribcage and spectral flames for eyes'),
+ ('boss_astralbehemoth', 'the Astral Behemoth, a colossal cosmic whale beast floating in space with galaxies swirling inside its body, star-tipped horns and glowing constellations'),
+ ('boss_voidtitan', 'the Void Titan, a colossal hunched titan beast of black crystal and swirling void energy with a cracked glowing starry core and crystal horns'),
 ]: A[k] = ('boss', d)
 
 # ---- battle backgrounds and screens -----------------------------------------

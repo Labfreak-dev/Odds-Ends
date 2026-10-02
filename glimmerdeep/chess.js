@@ -141,6 +141,17 @@ function makeUnit(st, inst, side, x, y) {
     if (u.elite === 'hasty') u.b.as *= 1.4;
     if (u.elite === 'shielded') u.shield = Math.round(u.maxHp * 0.4);
   }
+  // boss passives
+  const P = inst.boss && G.BOSSES[inst.boss].passive;
+  if (P) {
+    if (P.thorns) u.b.thorns += P.thorns;
+    if (P.dodge) u.st.dodge = { v: P.dodge, t: 1e9 };
+    if (P.dr) u.bossDR = P.dr;
+    if (P.regen) u.b.regen += P.regen;
+    if (P.ls) u.b.ls += P.ls;
+    if (P.reflect) u.reflect = P.reflect;
+    if (P.frostAura) u.frostAura = P.frostAura;
+  }
   if (side === 1 && st.depth) { const d = 1 + 0.08 * st.depth; u.maxHp = Math.round(u.maxHp * d); u.hp = u.maxHp; u.b.atk *= d; }
   return u;
 }
@@ -175,6 +186,7 @@ function create(o) {
     if (b.tankShield && u.role === 'tank') giveShield(st, u, u, b.tankShield, ev, true);
   }
   for (const side of [0, 1]) if (st.bonus[side].startSoak) for (const e of alive(st, 1 - side)) applyStatus(st, null, e, 'soak', ev, 5);
+  for (const u of st.units) if (u.frostAura) for (const e of alive(st, 1 - u.side)) applyStatus(st, null, e, 'chill', ev, u.frostAura);
   for (const side of [0, 1]) if (st.bonus[side].startChill) for (const e of alive(st, 1 - side)) applyStatus(st, null, e, 'chill', ev, st.bonus[side].startChill);
   if (st.haz === 'flood') for (const u of st.units) if (!(u.side === 0 && st.bonus[0].immune_flood)) u.st.wet = { t: 1e9 };
   if (o.mods && o.mods.bomb) for (const e of alive(st, 1)) e.hp = Math.round(e.hp * 0.8);
@@ -367,6 +379,7 @@ function hit(st, a, d, sk, ev, o) {
   if (d.st.curse) dmg *= 1.15 + (ab.curseAmp || 0);
   if (d.st.chill && ab.chillAmp) dmg *= 1 + ab.chillAmp;
   if (db.dr) dmg *= 1 - db.dr;
+  if (d.bossDR) dmg *= 1 - d.bossDR;
   const soaked = d.st.soak || d.st.wet;
   if (soaked && ab.soakAmp) dmg *= 1 + ab.soakAmp;
   if (el === 'ember' && st.haz === 'flood' && a.st.wet) dmg *= 0.6;
@@ -420,6 +433,7 @@ function hit(st, a, d, sk, ev, o) {
     if (w) heal(st, a, w, 0, ev, dealt * ab.tideHeal, true);
   }
   if (d.b.thorns > 0 && dealt > 0 && a.alive) damage(st, d, a, Math.max(1, Math.round(dealt * d.b.thorns)), ev, { thorn: 1 });
+  if (d.reflect && o.single && dealt > 0 && a.alive) damage(st, d, a, Math.max(1, Math.round(dealt * d.reflect)), ev, { thorn: 1, reflect: 1 });
   if (db.reflectAll && dealt > 0 && a.alive) damage(st, d, a, Math.max(1, Math.round(dealt * db.reflectAll)), ev, { thorn: 1 });
   if (o.single && st.haz === 'reflect' && d.side === 1 && a.side === 0 && !ab.immune_reflect && dealt > 0 && a.alive)
     damage(st, d, a, Math.max(1, Math.round(dealt * 0.2)), ev, { thorn: 1, reflect: 1 });
@@ -559,6 +573,7 @@ function cast(st, u, ev) {
   }
   if (fx.summon) summon(st, u, fx.summon, ev);
   u.mana = 0;
+  if (u.boss) { const c = castables(u.inst); u.skill = c[(c.indexOf(u.skill) + 1) % c.length]; }
   if (sk.ult && ab.echo) for (const f of alive(st, u.side)) if (f !== u) { gainMana(st, f, ab.echo); ev.push({ k: 'mana', t: f.id, v: f.mana }); }
   ev.push({ k: 'mana', t: u.id, v: 0 });
 }

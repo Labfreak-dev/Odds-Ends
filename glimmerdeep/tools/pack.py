@@ -124,6 +124,19 @@ def strip_floor(img):
     bb = out.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
     return out.crop(bb) if bb else out
 
+def key_holes(img):
+    """Background caught inside a closed shape (a coiled tail, a gap between legs) is not
+    connected to the border, so key_out keeps it. Clear enclosed blobs of strong magenta."""
+    a = np.asarray(img).astype(np.int32)
+    r, g, b, al = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    hot = (r - g > 70) & (b - g > 35) & (g < 120) & (al > 0)
+    lab, n = ndimage.label(hot)
+    if n:
+        sizes = ndimage.sum(np.ones(lab.shape), lab, range(1, n + 1))
+        big = np.isin(lab, [i + 1 for i in range(n) if sizes[i] > 60])
+        a[..., 3] = np.where(ndimage.binary_dilation(big, iterations=1), 0, al)
+    return Image.fromarray(a.astype(np.uint8), 'RGBA')
+
 def clean_halo(img):
     """Icons are lit with a bright rim glow, which mixes with the magenta key into a pink
     halo. In the soft edge band, pink-tinted pixels lose their tint and most of their alpha."""
@@ -155,8 +168,8 @@ def process(key):
     if k == 'cover': img = cover(im.convert('RGB'), mw, th)
     else:
         cut = key_out(im)
-        if key.startswith('cr_'): cut = strip_floor(cut)
-        elif not key.startswith('boss_'): cut = clean_halo(cut)
+        if key.startswith(('cr_', 'boss_')): cut = strip_floor(key_holes(cut))
+        else: cut = clean_halo(cut)
         img = fit(cut, th, mw)
     img.save(os.path.join(OUT, key + '.webp'), 'WEBP', quality=q, method=6)
     return img.size

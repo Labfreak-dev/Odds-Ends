@@ -7,7 +7,7 @@ const SPS = Object.keys(G.SP);
 const BENCH = 9, PW = 4;                  // bench slots; the player's board is columns 0..3
 const KIN_CHANCE = 0.25;                  // chance a shop slot offers a species you own below 3 stars
 // boss power by stage; each boss' own HP is calibrated on top (fitted from sim.js fight logs)
-const BOSS_SCALE = [1.33, 2.06, 3.04, 3.85, 6.6, 6.5];
+const BOSS_SCALE = [1.36, 2.22, 3.36, 4.39, 8.10, 8.64];
 
 function R(run) { return run.rnd || (run.rnd = C.mkRng((run.seed + run.step * 7919) >>> 0)); }
 function rint(run, n) { return Math.floor(R(run)() * n); }

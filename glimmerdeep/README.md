@@ -15,6 +15,7 @@ No build step. `index.html` loads four classic scripts in order:
 | `data.js` | Every number and name: elements, species (with shop tier and attack range), skills, bosses, biomes, element and role traits, relics, sets, fusions, charms, items, mutations, perks, camp upgrades, shop odds, Tamer XP curve. |
 | `chess.js` | The fight engine. Pure logic, no DOM. `create()` sets a board up; `tick()` advances 0.1 s and returns events (move, attack, cast, damage, status, knockout...). |
 | `crun.js` | The run: shop and shared pool, bench and board, buying, selling, merges, income and interest, Tamer XP, the enemy board for each round, rewards. No DOM. |
+| `fx.js` | Battle VFX: one canvas over the board drawing additive particles (slashes, comets, lightning, rune circles, shockwaves, beams, heals, shields, knockouts), themed per element. `game.js` calls `VFX.*` from its fight-event handler. |
 | `game.js` | The UI: title, planning (shop, drag and drop, the creature panel and its power pick), live fight playback and animations, round results and rewards, bag, camp, Glimdex, save. |
 
 Because `chess.js` and `crun.js` never touch the page, `sim.js` plays whole runs headless.
@@ -56,6 +57,14 @@ foe left standing). The final boss must be beaten; lose and you fight it again n
 - **Merging**: 3 copies of a creature at the same star merge and evolve it: ★2 uses the
   second-form art, ★3 the final form (Sunstone: 2 copies for ★2). Every merge offers a
   **mutation**.
+- **Merge perks**: every species has its own perk, built from its role and named after its
+  element (Blazing Frenzy, Tidal Bulwark...). ★2 unlocks it. ★3 empowers it and adds an
+  **aura** that buffs allies of the same element or the same role. The perk shows in the
+  creature panel and on evolution, and its name pops in fights when it procs.
+  - Strikers: Frenzy (every 3rd attack strikes twice), Cleave (splash), Hunter (kills stack ATK), Executioner (bonus vs low HP), Pierce (hits the foe behind).
+  - Casters: Echo (casts give nearby allies mana), Surge (casts grant attack speed), Venom (longer statuses), Reaper (kills refill mana), Pierce.
+  - Guardians: Bulwark (one-time shield at low HP), Guardian (adjacent allies take less damage), Vanguard (row DEF at the start), Thornskin.
+  - Supports: Aegis (casts shield the weakest ally), Inspire (column ATK), Echo, Quick (start with mana), Mend (heal the weakest every 4 s).
 - **Power (the loadout)**: tap a creature and pick which of its skills it casts when its
   mana fills. ★1 has two choices, ★2 and ★3 add the ultimate.
 - **Charms** (one per creature, stat-only) and **items** (heal HP, Tamer XP, instant ★2,
@@ -203,4 +212,15 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
     - Over 30 rounds the late wild boards and HP losses added up, so wild scaling flattens after round 24 and lost-round damage is 25% lower.
     - The bot wins 21%.
   - `pack.py`'s `clean_halo` now only touches magenta-leaning pinks, so purples survive, and it runs on bosses too.
-
+- **g9**: **flashy attacks and merge perks.**
+  - `fx.js` adds a canvas VFX layer over the board, with additive blending and element palettes:
+    - melee attacks sweep crescent slashes across the target;
+    - ranged attacks fly comets with element trails (embers, leaves, frost stars, a tumbling rock, a wind ring), and Volt shoots jagged lightning;
+    - each impact flashes, rings and throws element debris: sparks, droplets, leaves, rock chunks, ice shards, smoke, swirls, stars.
+  - Casts draw a rotating rune circle under the caster, with motes gathering in.
+    - Area spells land as a ground shockwave.
+    - Ults flash the board and fire beams.
+    - Heals rise as green crosses, shields pop a hex bubble, and knockouts release wisps.
+  - Crits and ults hit-stop the fight for a beat.
+  - **Merge perks** (see Planning): `PERK_KINDS`/`ROLE_PERKS` in `data.js` and the hooks in `chess.js`. Every species gets one of four or five role perks, picked from its id and named with its element's adjective. ★3 adds an element or role aura. Enemies at ★2+ get perks too.
+  - Balance: BOSS_SCALE and per-boss HP were refitted after the perks. The bot wins 21%, and boss win rates by stage are 79/63/52/45/36/23%.

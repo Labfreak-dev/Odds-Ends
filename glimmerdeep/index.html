@@ -173,6 +173,11 @@ img { display: block; -webkit-user-drag: none; }
 #game.fighting .shop, #game.fighting .shopbtns { display: none; }
 #game.fighting .bench { opacity: .45; pointer-events: none; }
 .fx { position: absolute; inset: 0; pointer-events: none; z-index: 40; overflow: visible; }
+.skl.perkrow { background: linear-gradient(90deg, #ffd65a22, #6a3cd622); box-shadow: inset 3px 0 0 #ffd65a; }
+.evo-perk { color: #ffe9a8; }
+.fxc { position: absolute; left: -10%; top: -30%; width: 120%; height: 140%; pointer-events: none; z-index: 39; }
+.pop.perk { font-size: 13px; color: #ffe9a8; padding: 2px 7px; border-radius: 8px; background: linear-gradient(90deg, #b8741acc, #6a3cd6cc); box-shadow: 0 0 10px #ffd65a88; text-shadow: 0 1px 0 #000; animation: react 1s ease-out forwards; }
+.fx .pop.perk { font-size: 11px; padding: 1px 5px; }
 .dimmer { position: absolute; inset: 0; background: rgba(5,2,20,.55); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 35; border-radius: 14px; }
 .board.ult .dimmer { opacity: 1; }
 .cap { font: 700 12px Fredoka, sans-serif; color: var(--dim); }
@@ -367,6 +372,7 @@ img { display: block; -webkit-user-drag: none; }
 <script src="data.js"></script>
 <script src="chess.js"></script>
 <script src="crun.js"></script>
+<script src="fx.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

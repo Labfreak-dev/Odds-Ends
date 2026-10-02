@@ -132,6 +132,7 @@ async function newRunFlow() {
 const ROLE_N = { striker: 'Striker', caster: 'Caster', tank: 'Guardian', support: 'Support', boss: 'Boss' };
 const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
 const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
+VFX.init(boardEl);
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
 const SIZE = [0, 70, 94, 114];
@@ -196,6 +197,7 @@ function renderGame() {
   R.enemyBoard(run).forEach((p, i) => { h += unitHtml('e' + i, { x: p.x, y: p.y, star: p.inst.star, side: 1, boss: p.inst.boss, elite: p.inst.elite, art: C.art(p.inst), preview: true }); });
   unitsEl.innerHTML = h;
   fxEl.innerHTML = '';
+  VFX.clear();
   let b = '';
   for (let i = 0; i < R.BENCH; i++) {
     const u = R.benchAt(run, i);
@@ -305,7 +307,8 @@ async function evoCinematic(u) {
   ov.classList.remove('charge'); ov.classList.add('reveal');
   ov.querySelector('.evo-name').innerHTML = `${S.names[u.star - 2]} evolved into <b>${S.names[u.star - 1]}</b>! <span class="evo-stars">${starsTxt(u.star)}</span>`;
   ov.querySelector('.evo-stats').innerHTML = [['HP', before.hp, after.hp], ['ATK', Math.round(before.atk), Math.round(after.atk)], ['DEF', Math.round(before.def), Math.round(after.def)]]
-    .map(([k, a, b]) => `<span>${k} ${a} → <b>${b}</b></span>`).join('') + (u.star === 2 ? `<span class="evo-new-skill">New ultimate: <b>${G.SK[S.sk[3]].n}</b></span>` : '');
+    .map(([k, a, b]) => `<span>${k} ${a} → <b>${b}</b></span>`).join('') + (u.star === 2 ? `<span class="evo-new-skill">New ultimate: <b>${G.SK[S.sk[3]].n}</b></span>` : '')
+    + (S.perk ? `<span class="evo-new-skill evo-perk">${u.star === 2 ? 'Merge perk unlocked' : 'Perk empowered + aura'}: <b>✦ ${S.perk.name}</b></span>` : '');
   SFX.lvl();
   await sleep(500);
   skip = false;
@@ -318,7 +321,8 @@ async function evolveFlow(u) {
   const S = G.SP[u.sp];
   await evoCinematic(u);
   const opts = R.mutOptions(run, u);
-  const ult = u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its final form. Its stats nearly double again.</p>';
+  const perk = S.perk ? `<p style="text-align:center;color:#ffe9a8">✦ <b>${S.perk.name}</b>: ${G.perkText(u.sp, u.star)}</p>` : '';
+  const ult = (u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its final form. Its stats nearly double again.</p>') + perk;
   const m = await ask(`${starsTxt(u.star)} ${S.names[u.star - 1]}`, `<div class="evo-stage" style="height:190px"><div class="glow"></div><img src="${IMG(C.art(u))}" class="${u.shiny ? 'shiny' : ''}" style="max-height:180px"></div>${ult}<p class="muted" style="text-align:center">Choose a mutation:</p><div class="cards">${opts.map(k => `<div class="card" data-v="${k}"><h3>${G.MUTS[k].n}</h3><p>${G.MUTS[k].d}</p></div>`).join('')}</div>`);
   R.applyMut(run, u, m);
   if (u.el2) toast(`${C.name(u)} also counts as ${G.EL[u.el2].name} now!`);
@@ -408,6 +412,15 @@ function skillRows(inst, pickable) {
   }
   return h;
 }
+// the merge perk: ★2 unlocks it, ★3 upgrades it and adds an aura for same-element or same-role allies
+function perkRow(inst) {
+  const S = G.SP[inst.sp], P = S && S.perk; if (!P || inst.boss) return '';
+  const K = G.PERK_KINDS[P.kind], st = inst.star || 1;
+  return `<h3 style="margin:10px 0 4px">Merge perk <span class="small muted">(★2 unlocks · ★3 empowers)</span></h3>
+    <div class="skl perkrow el-${S.el} ${st < 2 ? 'locked' : ''}"><span class="t">✦ ${P.name}</span> <span class="small muted">${st >= 3 ? 'EMPOWERED' : st >= 2 ? 'active' : 'locked'}</span>
+      <div class="small">${K.d(st >= 3 ? 2 : 1)}${st < 2 ? ' <i>(unlocks at ★2)</i>' : ''}</div>
+      <div class="small ${st < 3 ? 'muted' : ''}" style="margin-top:3px">★3: ${st < 3 ? K.d(2) + ' ' : ''}<b>Aura</b> — ${P.aura.d}.</div></div>`;
+}
 async function unitDetail(uid) {
   for (;;) {
     const u = run.units.find(z => z.uid === uid); if (!u) return;
@@ -418,7 +431,7 @@ async function unitDetail(uid) {
       <div class="small muted" style="margin-top:4px">${u.star < 3 ? `${R.copiesNeeded(run, u.star)} copies of ★${u.star} merge into ${S.names[u.star]} ★${u.star + 1}.` : 'Final form.'}</div>
       ${u.muts.length ? `<div class="small" style="margin-top:4px">Mutations: ${u.muts.map(m => `<b>${G.MUTS[m].n}</b> (${G.MUTS[m].d})`).join(', ')}</div>` : ''}
       <div class="li" style="margin-top:8px">${u.charm ? `<img class="ic" src="${IMG('ch_' + u.charm)}" alt=""><div class="grow"><div class="t">${G.CHARMS[u.charm].n}</div><div class="small">${G.CHARMS[u.charm].d}</div></div>` : '<div class="grow muted">No charm held</div>'}<button class="btn sm ghost" data-v="charm">Change</button></div>
-      </div></div><h3 style="margin:10px 0 4px">Power <span class="small muted">(tap one: it casts automatically when its mana fills)</span></h3>${skillRows(u, true)}`;
+      </div></div><h3 style="margin:10px 0 4px">Power <span class="small muted">(tap one: it casts automatically when its mana fills)</span></h3>${skillRows(u, true)}${perkRow(u)}`;
     const acts = (u.at === 'b' ? btn('bench', 'To bench', 'ghost sm') : btn('board', 'To board', 'ghost sm')) + btn('sell', `Sell ${R.sellValue(u)}g`, 'ghost sm') + btn('close', 'Done', 'green sm');
     const v = await modal(`${starsTxt(u.star)} ${esc(C.name(u))}`, body, acts);
     closeModal();
@@ -444,7 +457,7 @@ async function enemyInfo(i) {
   const p = R.enemyBoard(run)[i]; if (!p) return;
   const inst = p.inst;
   await ask(`${inst.boss ? '♛' : starsTxt(inst.star)} ${esc(C.name(inst))}${inst.elite ? ' · ' + inst.elite : ''}`, `<div class="detail"><div class="big el-${C.elOf(inst)}"><img src="${IMG(C.art(inst))}" alt=""></div><div>
-    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}${inst.boss && G.BOSSES[inst.boss].pd ? `<div class="small" style="margin-top:6px;color:var(--gold)">♛ ${G.BOSSES[inst.boss].pd} Enrages below half HP.</div>` : ''}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}`, btn('ok', 'Close', 'green sm'));
+    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}${inst.boss && G.BOSSES[inst.boss].pd ? `<div class="small" style="margin-top:6px;color:var(--gold)">♛ ${G.BOSSES[inst.boss].pd} Enrages below half HP.</div>` : ''}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}${perkRow(inst)}`, btn('ok', 'Close', 'green sm'));
 }
 
 // ---- the fight ---------------------------------------------------------------------------------
@@ -458,7 +471,8 @@ function startFight() {
   phase = 'fight';
   const seed = (run.seed * 31 + run.round * 977 + Date.now() % 100000) >>> 0;
   const st = C.create(R.fightOpts(run, seed));
-  FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0 };
+  FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
+  VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
   unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
   for (const u of st.units) cacheEl(u);
@@ -482,13 +496,14 @@ function renderFightBar() {
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
   SFX.click();
-  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
   else if (b.dataset.v === 'skip') { FS.skip = true; }
 });
 function loop(ts) {
   if (!FS) return;
   const st = FS.st;
-  const dt = Math.min(0.1, (ts - FS.last) / 1000) * FS.speed;
+  let dt = Math.min(0.1, (ts - FS.last) / 1000) * FS.speed;
+  if (FS.hold > 0) { FS.hold -= (ts - FS.last) / 1000; dt = 0; }
   FS.last = ts;
   if (FS.skip && !st.over) { C.resolve(st); st.ev.length = 0; resyncAll(); }
   FS.acc += dt;
@@ -528,21 +543,12 @@ function popAt(u, text, cls) {
   fxEl.appendChild(p); FS.popN++;
   setTimeout(() => { p.remove(); if (FS) FS.popN--; }, 1000);
 }
-function orb(a, b, el, ms) {
-  const A = cpos(a), Bp = cpos(b);
-  const o = document.createElement('div');
-  o.className = 'orb el-' + el;
-  fxEl.appendChild(o);
-  o.animate([{ left: A.x + '%', top: A.y + '%' }, { left: Bp.x + '%', top: Bp.y + '%' }], { duration: ms, easing: 'ease-in', fill: 'forwards' }).finished.then(() => { o.remove(); burst(b, el); }, () => o.remove());
-}
-function burst(u, el, big) {
-  const c = cpos(u);
-  const b = document.createElement('div');
-  b.className = 'burst el-' + el;
-  b.style.left = c.x + '%'; b.style.top = c.y + '%';
-  if (big) b.style.width = '30%';
-  fxEl.appendChild(b); setTimeout(() => b.remove(), 500);
-}
+// projectiles, slashes and impacts are drawn by the canvas layer in fx.js
+function orb(a, b, el, ms, o) { if (a && b) VFX.shoot(cpos(a), cpos(b), el, ms, null, o); }
+function burst(u, el, big) { if (!u) return; if (big) VFX.shockwave(cpos(u), el); else VFX.impact(cpos(u), el); }
+function later(ms, f) { setTimeout(() => { if (FS) f(); }, ms / FS.speed); }
+// a crit freezes the fight for a beat so the blow lands
+function hitStop(s) { if (FS && !FS.skip) FS.hold = Math.max(FS.hold || 0, s); }
 function banner(text, el) {
   const b = document.createElement('div');
   b.className = 'banner' + (el ? ' el-' + el : '');
@@ -592,32 +598,49 @@ function handle(ev) {
     else if (e.k === 'atk') {
       const a = F(e.a), t = F(e.t); if (!a || !t) continue;
       face(a, t.x);
-      if (e.rng) { animShoot(a, t, e.el); orb(a, t, e.el, 220 / FS.speed); } else { animStrike(a, t, e.el); }
+      if (e.rng) { animShoot(a, t, e.el); later(70, () => orb(a, t, e.el, 230 / FS.speed)); }
+      else { animStrike(a, t, e.el); const A = cpos(a), T = cpos(t); later(170, () => VFX.slash(A, T, e.el)); }
     }
     else if (e.k === 'cast') {
       const a = F(e.a); if (!a) continue;
       animCast(a, e.el, e.ult);
-      if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.ult(); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); }
+      VFX.cast(cpos(a), e.el, e.ult);
+      if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.ult(); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); hitStop(0.12); }
       else { popAt(a, e.n, 'cast'); SFX.react(); }
-      for (const id of e.tg) { const t = F(id); if (t && t.side !== a.side) orb(a, t, e.el, 260 / FS.speed); else if (t) burst(t, e.el); }
-      if (e.aoe && e.tg.length > 1) { const t = F(e.tg[0]); if (t && t.side !== a.side) setTimeout(() => FS && burst(t, e.el, true), 260 / FS.speed); }
+      const tgs = e.tg.map(F).filter(Boolean), foes = tgs.filter(t => t.side !== a.side);
+      // allies get a link beam; foes get bolts (ult: beams), area spells finish on a ground shockwave
+      for (const t of tgs) if (t.side === a.side && t !== a) { const A = cpos(a), T = cpos(t); later(220, () => { VFX.beam(A, T, e.el, 0.1, 0.28); VFX.impact(T, e.el, 0.6); }); }
+      if (e.aoe && foes.length > 1) {
+        const c = { x: foes.reduce((s, t) => s + cpos(t).x, 0) / foes.length, y: foes.reduce((s, t) => s + cpos(t).y, 0) / foes.length };
+        later(240, () => orb(a, { x: (c.x / 12.5) - 0.5, y: c.y / 20 - 0.45 }, e.el, 220 / FS.speed, { big: 1, power: 1.4 }));
+        later(240 + 220, () => { VFX.shockwave(c, e.el, e.ult ? 1.5 : 1); for (const t of foes) VFX.impact(cpos(t), e.el, 0.8); });
+      } else for (const t of foes) {
+        const A = cpos(a), T = cpos(t);
+        if (e.ult) later(260, () => { VFX.beam(A, T, e.el, 0.3, 0.42); VFX.impact(T, e.el, 2, true); });
+        else later(200, () => orb(a, t, e.el, 240 / FS.speed, { big: 1, power: 1.5 }));
+      }
     }
-    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed); } }
+    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed, { big: 1 }); } }
     else if (e.k === 'zap') { const a = F(e.a), t = F(e.t); if (a && t) orb(a, t, 'volt', 150 / FS.speed); }
+    else if (e.k === 'perk') perkFx(e, F(e.a), F(e.t));
     else if (e.k === 'dmg') {
       const t = F(e.t); if (!t) continue;
       const a = e.a != null ? F(e.a) : null;
       animHit(t, a, e.crit, e.dot);
+      if (e.crit) { hitStop(0.07); if (!e.basic) VFX.impact(cpos(t), (a && a.el) || 'gold', 1.2, true); }
+      else if (e.dot) VFX.impact(cpos(t), e.dot === 'burn' ? 'ember' : e.dot === 'poison' ? 'shade' : e.dot === 'bleed' ? 'blood' : 'frost', 0.35);
+      else if (e.thorn) VFX.impact(cpos(t), 'bloom', 0.5);
       if (!e.basic || e.crit || e.v >= t.maxHp * 0.08) popAt(t, (e.crit ? e.v + '!' : e.v), e.crit ? 'crit' : e.dot ? 'dot' : e.basic ? 'small' : '');
       if (!e.dot) { if (e.crit) SFX.crit(); else if (!e.basic || Math.random() < 0.35) SFX.hit(); }
     }
     else if (e.k === 'miss') { popAt(F(e.t), e.dodge ? 'Dodge' : 'Miss', 'miss'); }
-    else if (e.k === 'heal') { if (!e.quiet && e.v > 0) { popAt(F(e.t), '+' + e.v, 'heal'); SFX.heal(); } }
-    else if (e.k === 'shield') { popAt(F(e.t), '+' + e.v, 'shield'); }
+    else if (e.k === 'heal') { if (!e.quiet && e.v > 0) { popAt(F(e.t), '+' + e.v, 'heal'); SFX.heal(); const t = F(e.t); if (t) VFX.heal(cpos(t)); } }
+    else if (e.k === 'shield') { popAt(F(e.t), '+' + e.v, 'shield'); const t = F(e.t); if (t) VFX.shield(cpos(t)); }
     else if (e.k === 'react') { popAt(F(e.t), e.name, 'react'); SFX.react(); }
     else if (e.k === 'ko') {
       const u = F(e.t), E = uEl(e.t); if (!E) continue;
       SFX.ko();
+      VFX.ko(cpos(u), u.el);
       const d = u.side ? 1 : -1;
       E.rig.animate([{ transform: 'none', filter: 'none' }, { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], { duration: 450, fill: 'forwards' });
       setTimeout(() => { if (!u.alive) E.el.classList.add('dead'); }, 380);
@@ -632,6 +655,25 @@ function handle(ev) {
     else if (e.k === 'text') toast(e.v);
     else if (e.k === 'pushed') popAt(F(e.t), 'Gust!', 'small');
     else if (e.k === 'star') { const t = F(e.t); if (t) { burst(t, 'mystic', true); popAt(t, 'Starfall!', 'small'); } }
+  }
+}
+// merge-perk procs: each one gets its own look so a build's identity reads at a glance
+function perkFx(e, a, t) {
+  if (!a) return;
+  const A = cpos(a), T = t ? cpos(t) : A, el = e.el || a.el;
+  popAt(t && e.n !== 'Pierce' ? (e.heal ? t : a) : a, e.n, 'perk');
+  switch (e.n) {
+    case 'Frenzy': later(120, () => VFX.slash(A, T, el, { n: 3, crit: true })); break;
+    case 'Cleave': later(180, () => VFX.slash(A, T, el, { wide: true, big: 1.7, power: 1.4 })); break;
+    case 'Pierce': VFX.beam(A, T, el, 0.14, 0.3); VFX.impact(T, el, 0.9); break;
+    case 'Last Stand': VFX.shield(A, true); VFX.aura(A, 'gold'); hitStop(0.06); break;
+    case 'Soul Harvest': VFX.aura(A, 'shade'); VFX.speedLines(A, 'mystic'); break;
+    case 'Bloodlust': VFX.aura(A, 'blood'); break;
+    case 'Mend': VFX.beam(A, T, 'bloom', 0.07, 0.3); break;
+    case 'Aegis': VFX.beam(A, T, 'shield', 0.08, 0.3); break;
+    case 'Echo': VFX.shockwave(A, el, 1.1); break;
+    case 'Surge': VFX.speedLines(A, el); VFX.aura(A, el); break;
+    default: VFX.aura(A, el);
   }
 }
 async function endFight() {

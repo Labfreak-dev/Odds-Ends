@@ -149,7 +149,7 @@ function topHtml() {
   const bi = G.BIOMES[run.biome];
   const boss = kind === 'boss' ? ' · ' + G.BOSSES[R.bossOf(run)].name : '';
   return `<button class="iconbtn" data-top="menu">☰</button>
-    <div class="grow"><div class="title">Round ${run.round}/${G.ROUNDS} · <span style="color:${kind === 'boss' ? '#ff7b8f' : kind === 'elite' ? '#ffd65a' : 'inherit'}">${KIND_N[kind]}${boss}</span></div><div class="small muted">${bi.name}${run.depth ? ' · Depth ' + run.depth : ''}${run.streak > 1 ? ' · win streak ' + run.streak : run.streak < -1 ? ' · loss streak ' + -run.streak : ''}</div></div>
+    <div class="grow"><div class="title">Round ${run.round}/${G.ROUNDS} · <span style="color:${kind === 'boss' ? '#ff7b8f' : kind === 'elite' ? '#ffd65a' : 'inherit'}">${KIND_N[kind]}${boss}</span></div><div class="small muted">Stage ${R.stageOf(run.round) + 1}/${G.STAGES} · ${bi.name}${run.depth ? ' · Depth ' + run.depth : ''}${run.streak > 1 ? ' · win streak ' + run.streak : run.streak < -1 ? ' · loss streak ' + -run.streak : ''}</div></div>
     <span class="pill hp-pill">♥ ${run.hp}</span><span class="pill"><img src="${IMG('ui_gold')}" alt="">${run.gold}</span>
     <button class="iconbtn" data-top="bag" title="Relics, charms and items"><img src="${IMG('node_treasure')}" alt=""></button>`;
 }
@@ -213,8 +213,9 @@ function renderShop() {
   $('#shop').innerHTML = run.shop.slice(0, n).map((sp, i) => {
     if (!sp) return '<div class="scard empty"></div>';
     const S = G.SP[sp], t = G.TIER[sp];
-    return `<div class="scard t${t} ${run.gold < t ? 'poor' : ''} ${owned.has(sp) ? 'have' : ''}" data-buy="${i}" title="${esc(G.SK[S.sk[1]].n + ': ' + G.SK[S.sk[1]].d)}">
-      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span><img class="m" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
+    const shiny = (run.shopShiny || [])[i];
+    return `<div class="scard t${t} ${run.gold < t ? 'poor' : ''} ${owned.has(sp) ? 'have' : ''} ${shiny ? 'shinycard' : ''}" data-buy="${i}" title="${esc((shiny ? 'SHINY! +10% stats. ' : '') + G.SK[S.sk[1]].n + ': ' + G.SK[S.sk[1]].d)}">
+      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span>${shiny ? '<span class="shinytag">✦ SHINY</span>' : ''}<img class="m${shiny ? ' shiny' : ''}" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
   }).join('');
   const nb = R.onBoard(run).length, cap = R.cap(run);
   const need = run.tlv < 9 ? G.TXP[run.tlv] : 1;
@@ -629,6 +630,8 @@ function handle(ev) {
     }
     else if (e.k === 'flux') { const E = uEl(e.t); if (E) popAt(F(e.t), '→ ' + G.EL[e.el].name, 'small'); }
     else if (e.k === 'text') toast(e.v);
+    else if (e.k === 'pushed') popAt(F(e.t), 'Gust!', 'small');
+    else if (e.k === 'star') { const t = F(e.t); if (t) { burst(t, 'mystic', true); popAt(t, 'Starfall!', 'small'); } }
   }
 }
 async function endFight() {
@@ -782,7 +785,7 @@ async function showDex() {
 }
 async function showHow() {
   await ask('How to play', `<div class="how">
-  <p><b>The run</b> is 24 rounds across 4 stages. Rounds 3 of each stage are elite fights that pay a relic; every 6th round is a boss. After a boss you choose the next stage's biome. You have 100 HP: losing a round costs HP (more for every foe left standing). Beat the Glimmerwyrm in round 24 to win.</p>
+  <p><b>The run</b> is 30 rounds across 6 stages of 5. Round 3 of each stage is an elite fight that pays a relic; round 5 is the stage boss (one of three for that biome). After a boss you pick the next biome from two you have not visited (12 biomes, each with its own hazard); the last stage is always the Glimmer Core. You have 100 HP: losing a round costs HP (more for every foe left standing). Beat the Glimmer Core's boss in round 30 to win.</p>
   <p><b>Planning.</b> Buy creatures from the shop (cost = tier: 1-5 gold; tier 4 and 5 creatures appear at higher Tamer levels), drag them from the bench onto your half of the board, and drag them back or onto the shop to sell. Your <b>Tamer level</b> is how many creatures fit on the board: you gain 2 XP a round, and Buy XP gives 4 for 4 gold. Higher levels also roll rarer creatures. <b>Lock</b> keeps a shop for next round.</p>
   <p><b>Merging.</b> Three copies of the same creature at the same star merge and evolve it: ★2 is its second form, ★3 its final form. Each merge offers a <b>mutation</b>.</p>
   <p><b>Gold.</b> 5 a round, +1 for a win, +1 interest per 10 gold you hold (up to 5), and a bonus for win or loss streaks.</p>

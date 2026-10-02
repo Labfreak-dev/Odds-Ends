@@ -2,8 +2,8 @@
 
 **Tame. Merge. Evolve.** A creature auto-chess roguelite. Buy creatures from a shop,
 place them on your half of the board, and watch them fight on their own. Three copies
-merge and evolve. Stack relics and synergies across 24 rounds and four biomes to beat
-the Glimmerwyrm.
+merge and evolve. Stack relics and synergies across 30 rounds and six of twelve biomes
+to conquer the Glimmer Core.
 
 Play: https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/
 
@@ -34,12 +34,14 @@ by stage (about 83 / 50 / 42 / 23%).
 ## How it plays
 
 ### A run
-24 rounds in 4 stages of 6: the Verdant Hollow, then Magma Forge or Sunken Grotto,
-then Crystal Spire or Shadow Crypt, then the Glimmer Core. Round 3 of each stage is an
-**elite** fight that pays a relic; round 6 is the stage **boss** (one of three per biome, drawn per run), which pays a relic and a
-Tamer perk, and then you choose the next biome. You have 100 HP: a lost round costs
-2 + 2×stage + the value of every foe left standing. The final boss must be beaten; lose
-and you fight it again next round.
+30 rounds in 6 stages of 5. Stage 1 is the Verdant Hollow, stage 6 the Glimmer Core;
+after each boss you choose the next biome from two you have not visited yet, out of
+Magma Forge, Sunken Grotto, Crystal Spire, Shadow Crypt, Frozen Tundra, Sky Isles,
+Sunscorched Dunes, Gloomwater Mire, Iron Foundry and Starfall Observatory. Round 3 of each
+stage is an **elite** fight that pays a relic; round 5 is the stage **boss** (drawn from
+that biome's pool, never the same boss twice in a run), which pays a relic and a Tamer
+perk. You have 100 HP: a lost round costs about 0.75 × (2 + 1.6×stage + the value of every
+foe left standing). The final boss must be beaten; lose and you fight it again next round.
 
 ### Planning
 - **Shop**: 5 creatures a round (6 with Collector). Cost = tier: 1 to 5 gold; tiers 4 and 5 open up from Tamer level 5 and 7. Reroll for
@@ -185,4 +187,20 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - That made every boss harder, so boss HP was calibrated per boss with an automatic loop: simulate 700 runs, scale HP by the odds gap to the stage target (80/50/45/25%), repeat four times. Per-boss win rates are now printed by `sim.js`.
   - Art: 12 Meshy renders from two candidates each, all facing left.
   - `pack.py` gained `key_holes`, which clears background trapped inside closed shapes (the hydra's coil); creatures and bosses also go through `strip_floor`.
+- **g8**: **12 biomes, 6 stages, shinies in the shop.**
+  - A run is 30 rounds in 6 stages of 5 (elite on round 3, boss on round 5). Stage 1 is the Verdant Hollow and stage 6 the Glimmer Core; after each boss you pick one of two biomes you have not visited (`nextBiomes` in crun.js), so a run sees 6 of the 12 biomes.
+  - Six new biomes, each with a hazard and a counter relic:
+    - Frozen Tundra: Blizzard Chills your non-Frost creatures (Hearthstone);
+    - Sky Isles: Howling Gusts blow creatures back a cell (Anchor Stone);
+    - Sunscorched Dunes: Sandstorm Blinds non-Stone creatures (Desert Veil);
+    - Gloomwater Mire: Sucking Bog halves movement and Roots at the start (Marsh Charm);
+    - Iron Foundry: Magnetic Field makes skills cost 25% more (Grounding Rod);
+    - Starfall Observatory: falling stars hit for 8% (Star Ward).
+  - Six new bosses: Yeti Monarch, Stormheart Nimbus, Sandworm Tyrant, Mirecroc Matriarch, Ironshell Juggernaut and Astral Moth Empress. Boss pools may share bosses across biomes, and a run never meets the same boss twice.
+  - **Shinies** are now rolled with the shop slot (`run.shopShiny`). A shiny card shows the recoloured art, a shine sweep, sparkles and a SHINY tag.
+  - Balance:
+    - Bosses can now appear at any middle stage, so per-boss HP and the per-stage `BOSS_SCALE` are fitted separately: `sim.js` logs every boss fight (`BOSSLOG=file`), and a fixed-effects logistic fit (stage + boss) sets each boss's HP so all are equally hard, and each stage's scale to its target (80/62/52/44/36/25%).
+    - Over 30 rounds the late wild boards and HP losses added up, so wild scaling flattens after round 24 and lost-round damage is 25% lower.
+    - The bot wins 21%.
+  - `pack.py`'s `clean_halo` now only touches magenta-leaning pinks, so purples survive, and it runs on bosses too.
 

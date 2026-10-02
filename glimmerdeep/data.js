@@ -144,17 +144,17 @@ const BOSSES = {
 // ---- biomes and hazards ---------------------------------------------------------
 const BIOMES = {
   verdant: { name: 'Verdant Hollow', bg: 'bg_verdant', els: ['bloom', 'volt', 'tide', 'ember'], boss: 'bramble', haz: 'spores',
-    hazName: 'Spore Haze', hazDesc: 'Each turn your non-Bloom creatures gain 1 Poison.', counter: 'Bloom creatures, Purifying Incense, cleanses' },
+    hazName: 'Spore Haze', hazDesc: 'Every 3 seconds your non-Bloom creatures gain 1 Poison.', counter: 'Bloom creatures, Purifying Incense, cleanses' },
   magma:   { name: 'Magma Forge', bg: 'bg_magma', els: ['ember', 'stone', 'ember', 'volt'], boss: 'cinder', haz: 'heat',
-    hazName: 'Scorching Heat', hazDesc: 'Each turn your creatures that are not Ember or Stone lose 5% HP (Tide: 2%).', counter: 'Tide creatures (2× vs Ember), Frostcore, healers' },
+    hazName: 'Scorching Heat', hazDesc: 'Your creatures that are not Ember or Stone lose 1.2% HP every second (Tide: half).', counter: 'Tide creatures (2× vs Ember), Frostcore, healers' },
   grotto:  { name: 'Sunken Grotto', bg: 'bg_grotto', els: ['tide', 'volt', 'tide', 'bloom'], boss: 'eel', haz: 'flood',
     hazName: 'Rising Flood', hazDesc: 'Everyone is permanently Soaked: Volt hits Electrocute, Ember deals 40% less.', counter: 'Volt and Bloom creatures, Gill Pearl' },
   spire:   { name: 'Crystal Spire', bg: 'bg_spire', els: ['stone', 'volt', 'stone', 'tide'], boss: 'prism', haz: 'reflect',
     hazName: 'Prismatic Echo', hazDesc: 'Foes reflect 20% of single-target damage back at the attacker.', counter: 'Hit-all skills, Prism Lens, lifesteal' },
   crypt:   { name: 'Shadow Crypt', bg: 'bg_crypt', els: ['shade', 'ember', 'shade', 'bloom'], boss: 'grim', haz: 'dark',
-    hazName: 'Pitch Darkness', hazDesc: 'Your non-Shade creatures miss 25% of attacks. An Ember hit lights the room for the turn.', counter: 'Shade and Ember creatures, Lumen Moth' },
+    hazName: 'Pitch Darkness', hazDesc: 'Your non-Shade creatures miss 25% of attacks. An Ember hit lights the room for 2 seconds.', counter: 'Shade and Ember creatures, Lumen Moth' },
   core:    { name: 'The Glimmer Core', bg: 'bg_core', els: ['ember', 'tide', 'bloom', 'volt', 'stone', 'shade'], boss: 'wyrm', haz: 'flux',
-    hazName: 'Elemental Flux', hazDesc: 'Foes change element every turn. Read the badges and adapt.', counter: 'A mixed team, Kinship Knot' },
+    hazName: 'Elemental Flux', hazDesc: 'Foes change element every 4 seconds. A mixed team copes best.', counter: 'A mixed team, Kinship Knot' },
 };
 const ACTS = [['verdant'], ['magma', 'grotto'], ['spire', 'crypt'], ['core']];
 const ACT_LV = [[2, 5, 7], [8, 12, 14], [14, 18, 20], [20, 22, 25]];   // floor-1 level, last-floor level, boss level
@@ -162,10 +162,10 @@ const ACT_LV = [[2, 5, 7], [8, 12, 14], [14, 18, 20], [20, 22, 25]];   // floor-
 // ---- element team traits (count on the field at battle start) -----------------------
 const TRAITS = {
   ember: ['Burns last 1 more turn, +25% burn damage', 'Burns last 2 more turns, +60% burn damage'],
-  tide:  ['Soak all foes at battle start', 'Soak all foes at start; allies heal 4% each turn'],
-  bloom: ['Allies Regen 3% each turn', 'Allies Regen 6% each turn, +20% healing'],
-  volt:  ['+12% SPD for all allies', '+25% SPD, Volt hits +10% Stun'],
-  stone: ['Front row +25% DEF', 'All allies +30% DEF, front row +15% shield at start'],
+  tide:  ['Soak every foe at the start', 'Soak every foe at the start; allies heal 1% a second'],
+  bloom: ['Allies regenerate 1% HP a second', 'Allies regenerate 2% a second, healing +20%'],
+  volt:  ['+12% attack speed for all allies', '+25% attack speed, Volt hits +10% Stun'],
+  stone: ['Front column +25% DEF', 'All allies +30% DEF; front column starts with a 15% shield'],
   shade: ['+10% crit, crits Curse', '+20% crit, crits Curse, +20% crit damage'],
 };
 
@@ -283,14 +283,14 @@ for (const k in CHARMS) CHARMS[k].id = k;
 
 // ---- consumables --------------------------------------------------------------------
 const ITEMS = {
-  berry: { n: 'Heal Berry', price: 25, d: 'Heal a creature 50%. Usable in battle.', battle: 1 },
-  revive: { n: 'Revive Seed', price: 45, d: 'Revive a fallen creature at 50%. Usable in battle.', battle: 1 },
-  candy: { n: 'Glimmer Candy', price: 50, d: 'A creature gains 1 level.' },
-  evo: { n: 'Evo Crystal', price: 90, d: 'Evolve a creature now if it is within 3 levels of evolving.' },
-  bomb: { n: 'Fizz Bomb', price: 30, d: 'Battle: deal 18% max HP to every foe.', battle: 1 },
-  elixir: { n: 'Clear Elixir', price: 30, d: 'Battle: cleanse your team and give +40 Overdrive.', battle: 1 },
-  lure: { n: 'Lure Orb', price: 40, d: 'Battle: the next win guarantees a recruit offer (bosses excluded).', battle: 1 },
-  smoke: { n: 'Smoke Puff', price: 35, d: 'Battle: flee a non-boss fight (no rewards).', battle: 1 },
+  berry: { n: 'Heal Berry', price: 3, d: 'Heal 10 HP.' },
+  revive: { n: 'Revive Seed', price: 6, d: 'Heal 25 HP.' },
+  candy: { n: 'Glimmer Candy', price: 4, d: '+4 Tamer XP.' },
+  evo: { n: 'Evo Crystal', price: 8, d: 'Upgrade a ★1 creature to ★2 on the spot.' },
+  bomb: { n: 'Fizz Bomb', price: 3, d: 'Next fight: every foe starts at 80% HP.' },
+  elixir: { n: 'Clear Elixir', price: 3, d: 'Next fight: your creatures start with 60 mana.' },
+  lure: { n: 'Lure Orb', price: 3, d: 'Your next shop shows only species you already own.' },
+  smoke: { n: 'Smoke Puff', price: 4, d: 'Next fight: if you lose, you lose no HP.' },
 };
 for (const k in ITEMS) ITEMS[k].id = k;
 
@@ -310,27 +310,27 @@ const MUTS = {
 
 // ---- tamer perks (picked after each boss) --------------------------------------------
 const PERKS = {
-  medic: { n: 'Field Medic', d: 'Heal your whole party 12% after every battle.' },
-  coach: { n: 'Coach', d: '+25% XP.' },
-  haggler: { n: 'Haggler', d: 'Shops are 15% cheaper.' },
-  tactician: { n: 'Tactician', d: 'Start every battle with 25 Overdrive.' },
-  collector: { n: 'Collector', d: 'Recruit offers are 50% more likely and show 1 more creature.' },
+  medic: { n: 'Field Medic', d: 'Lose 30% less HP from lost fights.' },
+  coach: { n: 'Coach', d: '+2 Tamer XP every round.' },
+  haggler: { n: 'Haggler', d: 'Rerolls cost 1 gold less.' },
+  tactician: { n: 'Tactician', d: 'Your creatures start every fight with 25 mana.' },
+  collector: { n: 'Collector', d: 'Your shop shows 6 creatures.' },
   rally: { n: 'Rallying Cry', d: '+10% ATK for all creatures.' },
   bulwark: { n: 'Bulwark', d: '+10% DEF and max HP for all creatures.' },
-  pockets: { n: 'Deep Pockets', d: '+1 bench slot and 60 gold now.' },
-  scout: { n: 'Scout', d: 'See every fight’s foes on the map; elites give +50% gold.' },
+  pockets: { n: 'Deep Pockets', d: '+2 gold every round and 10 gold now.' },
+  scout: { n: 'Streaker', d: 'Win and loss streaks pay 1 extra gold.' },
 };
 
 // ---- meta upgrades (Camp, bought with Glimmer Shards between runs) --------------------
 const META = {
-  gold: { n: 'Nest Egg', d: '+40 starting gold per rank.', max: 3, cost: [20, 40, 70] },
-  bench: { n: 'Bigger Backpack', d: '+1 bench slot per rank.', max: 2, cost: [40, 90] },
+  gold: { n: 'Nest Egg', d: '+2 starting gold per rank.', max: 3, cost: [20, 40, 70] },
+  hide: { n: 'Thick Hide', d: '+10 max HP per rank.', max: 2, cost: [40, 90] },
   relic: { n: 'Heirloom', d: 'Start each run with a random common relic.', max: 1, cost: [50] },
-  revive: { n: 'Seed Pouch', d: 'Start with 1 Revive Seed per rank.', max: 2, cost: [25, 50] },
-  recruit: { n: 'Friendly Scent', d: '+10% recruit chance per rank.', max: 3, cost: [20, 35, 60] },
-  starter: { n: 'Head Start', d: 'Starters begin 1 level higher per rank.', max: 2, cost: [30, 70] },
+  evo: { n: 'Seed Pouch', d: 'Start each run with an Evo Crystal.', max: 1, cost: [35] },
+  shiny: { n: 'Shiny Charm', d: 'Shiny creatures turn up 3× as often.', max: 1, cost: [30] },
+  starter: { n: 'Head Start', d: 'Begin at Tamer level 2, then 3.', max: 2, cost: [30, 70] },
   choices: { n: 'Keen Eye', d: 'Relic rewards offer 1 more choice.', max: 1, cost: [60] },
-  heal: { n: 'Second Wind', d: 'Fully heal your party after each boss.', max: 1, cost: [45] },
+  heal: { n: 'Second Wind', d: 'Heal 15 HP after each boss you beat.', max: 1, cost: [45] },
 };
 
 // ---- events ---------------------------------------------------------------------------
@@ -358,6 +358,61 @@ const EVENTS = {
     opts: [['Use the forge', 'Fuse a known recipe, or trade a relic for a new one'], ['Leave', '']] },
 };
 
+
+// ---- auto chess --------------------------------------------------------------------
+// shop tier (= gold cost), attack range in cells, attack speed by role
+const TIER = { cind: 1, bubb: 1, sprt: 1, pebb: 1, pyrp: 2, shel: 2, sprk: 2, dusk: 2, moss: 3, buzz: 3, crys: 3, wisp: 3 };
+const RANGE = { cind: 1, pyrp: 3, bubb: 3, shel: 1, sprt: 2, moss: 2, sprk: 1, buzz: 3, pebb: 1, crys: 1, wisp: 1, dusk: 3 };
+const ROLE_AS = { striker: 0.9, caster: 0.7, tank: 0.6, support: 0.7 };
+const BOSS_RANGE = { bramble: 2, cinder: 1, eel: 3, prism: 2, grim: 3, wyrm: 2 };
+const POOL = [0, 18, 14, 10];                       // copies of each species in the shared pool, by tier
+// shop odds (tier 1/2/3) by Tamer level 1-9
+const ODDS = [null, [100, 0, 0], [100, 0, 0], [75, 25, 0], [55, 35, 10], [45, 35, 20], [30, 40, 30], [20, 40, 40], [15, 35, 50], [10, 30, 60]];
+const TXP = [0, 2, 2, 6, 10, 20, 36, 56, 80];       // XP to go from level n to n+1
+const ROLE_TRAITS = {
+  striker: { n: 'Striker', at: [2, 4], d: ['+15% attack speed', '+40% attack speed'] },
+  caster: { n: 'Caster', at: [2, 3], d: ['Skills deal 20% more', 'Skills deal 45% more and cost 15% less mana'] },
+  tank: { n: 'Guardian', at: [2, 3], d: ['Guardians start with a 20% max-HP shield', 'Guardians start with a 40% shield; all allies +20% DEF'] },
+  support: { n: 'Support', at: [2], d: ['Healing and shields 30% stronger; allies start with 20 mana'] },
+};
+const EL_AT = [2, 3];   // element traits count different species (a Dual Nature creature counts twice)
+const ROUNDS = 24, STAGE_LEN = 6;
+// relic text and numbers that mean something different in real-time fights
+const CHESS_RELIC = {
+  quickglass: { b: { manaDisc: 0.2 }, d: 'Skills cost 20% less mana.' },
+  tempo_drum: { d: 'Every 6 seconds allies gain +30% attack speed for 2 seconds and 15 mana.' },
+  tome: { b: { xpRound: 1 }, d: '+1 Tamer XP every round.' },
+  sunstone: { b: { merge2: 1 }, d: 'Two copies are enough to merge into ★2.' },
+  golden_egg: { b: { goldRound: 1 }, d: '+1 gold every round.' },
+  purse: { b: { goldRound: 1, interestCap: 2 }, d: '+1 gold every round; interest cap +2.' },
+  bell: { b: { rerollDisc: 1 }, d: 'Rerolls cost 1 gold less.' },
+  treasure_map: { d: 'Relic rewards offer 1 more choice.' },
+  star_shard: { d: 'Mana charges 30% faster.' },
+  echo_chime: { d: 'After any ultimate, all other allies gain 25 mana.' },
+  rally_horn: { d: 'Your front column +15% ATK.' },
+  guardian_totem: { d: 'Your back column takes 20% less damage.' },
+  pure_prism: { d: 'If 4 or more of your creatures share an element: +30% damage.' },
+  loaded_die: { d: "Each creature's first attack in a fight always crits." },
+  phoenix_plume: { d: 'The first ally to fall each fight revives at 30%.' },
+  morning_dew: { b: { regen: 0.01 }, d: 'Allies regenerate 1% HP every second.' },
+  frostcore: { d: 'Ignore Scorching Heat; burns on your creatures fade fast.' },
+  incense: { d: 'Ignore Spore Haze; cleanse your creatures every 5 seconds.' },
+  world_seed: { b: { regen: 0.02, overheal: 1, healAmp: 0.2 }, d: '2% regen per second, healing +20%, overheal becomes shield.' },
+  philosopher: { b: { xpRound: 2, merge2: 1, mutChoice: 1 }, d: '+2 Tamer XP a round, two copies merge into ★2, 1 more mutation choice.' },
+  jackpot: { b: { crit: 0.12, critGold: 1, goldRound: 1 }, d: '+12% crit; crits pay 1 gold (up to 5 a fight); +1 gold a round.' },
+};
+for (const k in CHESS_RELIC) {
+  if (CHESS_RELIC[k].b) RELICS[k].b = CHESS_RELIC[k].b;
+  RELICS[k].d = CHESS_RELIC[k].d;
+}
+SETS.verdant.b = { regen: 0.01, healAmp: 0.15 }; SETS.verdant.d = '+1% regen per second, healing +15%.';
+SETS.swift.b = { startOd: 30 }; SETS.swift.d = 'Start fights with 30 mana.';
+SETS.overdrive.b = { startOd: 40 }; SETS.overdrive.d = 'Start fights with 40 mana.';
+SETS.status.d = 'Statuses you apply last longer.';
+SETS.growth.b = { xpRound: 2 }; SETS.growth.d = '+2 Tamer XP every round.';
+SETS.greed.b = { goldRound: 2 }; SETS.greed.d = '+2 gold every round.';
+
 root.GD = { EL, ELS, STRONG, eff, ROLE, STAGE_MUL, EVO_LV, SK, SP, SKILL_LV, BOSSES, BIOMES, ACTS, ACT_LV,
-  TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS };
+  TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS,
+  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN };
 })(typeof window !== 'undefined' ? window : globalThis);

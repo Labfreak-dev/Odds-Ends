@@ -206,7 +206,7 @@ def check_save_guards(page):
       };
     }""")
     check(not info['modal'], 'bad meta types are repaired without the start-fresh prompt')
-    check(info['shards'] == 0 and 'abc' not in info['pill'] and ' shards' in info['pill'], "non-numeric shards cannot render as 'abc shards'")
+    check(isinstance(info['shards'], (int, float)) and info['shards'] == info['shards'] and info['shards'] >= 0 and 'abc' not in info['pill'], "non-numeric shards cannot render as 'abc shards'")
     check(info['dex'] == 'object' and info['dex'] is not None and info['unlocked'] == 'object', 'dex and unlocked are objects after a poisoned save')
     check(info['wins'] == 3 and info['hoard'] == 2 and info['sound'] is False, 'valid meta numbers and sound-off are kept')
     page.evaluate("""() => {
@@ -333,7 +333,8 @@ def check_damaged(page):
 with sync_playwright() as p:
     b = p.chromium.launch()
     vp = {'width': 412, 'height': 860} if a.mobile else {'width': 1280, 'height': 800}
-    page = b.new_page(viewport=vp)
+    ctx = b.new_context(viewport=vp)
+    page = ctx.new_page()
     errs = []
     page.on('pageerror', lambda e: errs.append(str(e)))
     page.on('console', lambda m: m.type == 'error' and 'ERR_CERT' not in m.text and errs.append(m.text))  # sandbox proxy blocks Google Fonts

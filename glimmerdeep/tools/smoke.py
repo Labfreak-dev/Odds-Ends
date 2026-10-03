@@ -52,6 +52,16 @@ def drag(page, src, dst):
     page.mouse.move(x0 + 10, y0 + 10, steps=3); page.mouse.move(x1, y1, steps=8); page.mouse.up()
     page.wait_for_timeout(150)
 
+def drag_sell(page, src):
+    """Pointer-drag onto the sell overlay. It is display:none until the drag has moved."""
+    x0, y0 = center(page, src)
+    page.mouse.move(x0, y0); page.mouse.down()
+    page.mouse.move(x0 + 18, y0 + 20, steps=5)
+    page.wait_for_selector('#sellZone.on', timeout=2000)
+    x1, y1 = center(page, '#sellZone.on')
+    page.mouse.move(x1, y1, steps=12); page.mouse.up()
+    page.wait_for_timeout(250)
+
 def clear_modals(page, limit=20):
     for _ in range(limit):
         # the evolution sequence sits above everything: tap through it
@@ -175,6 +185,43 @@ def wilds(page):
     odds = page.evaluate("(() => { const m = Object.assign({}, GLIM.meta, { shinies: { cind: 1 } }); const r = GR.newRun(m, 5, 0); return [r.meta.shinySp.cind || 0, r.meta.shiny] })()")
     check(odds[0] == 1, 'Wilds: a caught shiny boosts that species in the auto-chess shop')
 
+def check_damaged(page):
+    """A broken save must not throw, and must not leave Continue on a dead screen."""
+    page.evaluate("""() => {
+      const r = GR.newRun(GLIM.meta, 3, 0);
+      GR.giveStarter(r, 'cind');
+      localStorage.setItem('glimmerdeep.v1', JSON.stringify({ meta: GLIM.meta, run: r }));
+      localStorage.removeItem('glimmerdeep.wilds.v1');
+    }""")
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_selector('#titleMenu [data-v=cont]', timeout=15000)
+    page.click('#titleMenu [data-v=cont]')
+    page.wait_for_selector('#game.on .unit.mine', timeout=10000)
+    check(page.evaluate("!!(GLIM.run && GLIM.run.units.length === 1 && GLIM.run.biome === 'verdant')"), 'a healthy save still Continues')
+    page.evaluate("""() => {
+      localStorage.setItem('glimmerdeep.v1', JSON.stringify({
+        meta: { vol: 'loud', shards: 4, wins: 1 },
+        run: { v: 2, biome: 'nope' }
+      }));
+      localStorage.setItem('glimmerdeep.wilds.v1', JSON.stringify({
+        v: 1, biome: 'atlantis', cur: '0,0', rooms: {}, squad: [{ sp: 'notasp', star: 1 }]
+      }));
+    }""")
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_selector('#title.on', timeout=15000)
+    check(page.locator('#titleMenu [data-v=cont]').count() == 0, 'damaged save drops the run and returns to the title')
+    vol = page.evaluate("GLIM.meta.vol")
+    check(isinstance(vol, (int, float)) and vol == vol and 0 <= vol <= 100, 'bad volume is coerced to a finite setting')
+    page.evaluate("localStorage.setItem('glimmerdeep.v1', '{')")
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_selector('#title.on', timeout=15000)
+    check(page.evaluate("!GLIM.run"), 'garbage JSON loads as a fresh save')
+    page.click('#titleMenu [data-v=wilds]')
+    page.wait_for_timeout(400)
+    check(page.locator('#modal.on').count() == 0 and page.locator('#wilds.on .wcard').count() >= 12, 'damaged Wilds save opens squad select without throwing')
+    page.click('#wilds [data-w=home]')
+    page.wait_for_selector('#title.on')
+
 with sync_playwright() as p:
     b = p.chromium.launch()
     vp = {'width': 412, 'height': 860} if a.mobile else {'width': 1280, 'height': 800}
@@ -186,6 +233,7 @@ with sync_playwright() as p:
     page.wait_for_selector('#title.on')
     if a.wilds_only:
         wilds(page)
+        check_damaged(page)
         check(not errs, 'no console errors' + ('' if not errs else ': ' + ' | '.join(errs[:5])))
         print(f'{checks - len(fails)}/{checks} checks passed')
         if not fails: print('GLIMMERDEEP SMOKE: ALL PASS')
@@ -214,6 +262,31 @@ with sync_playwright() as p:
     if page.locator('#bench .unit.mine').count():
         drag(page, '#bench .unit.mine', '.cell[data-x="3"][data-y="1"]')
         check(page.evaluate("GR.onBoard(GLIM.run).length") == 2, 'drag from bench to board')
+    # four creatures, then a real pointer drop on the sell overlay
+    page.evaluate("""() => {
+      const r = GLIM.run;
+      r.tlv = Math.max(r.tlv, 4);
+      r.gold = 8;
+      const keep = r.units.filter(u => u.at === 'b').slice(0, 1);
+      r.units = keep;
+      ['bubb', 'sprt', 'pebb'].forEach((sp, i) => {
+        const u = GR.mkInst(r, sp, 1, { noShiny: true });
+        u.at = 'b'; u.x = i + 1; u.y = 2;
+        r.units.push(u);
+      });
+      GLIM.renderGame();
+    }""")
+    check(page.evaluate("GLIM.run.units.length") == 4, 'four creatures before the sell drag')
+    gold0 = page.evaluate("GLIM.run.gold")
+    drag_sell(page, '#units .unit.mine')
+    check(page.evaluate("GLIM.run.units.length") == 3, 'drag onto the sell zone sells a creature (4 -> 3)')
+    check(page.evaluate("GLIM.run.gold") > gold0, 'selling pays gold')
+    drag(page, '#units .unit.mine', '.cell[data-x="0"][data-y="4"]')
+    check(page.evaluate("GLIM.run.units.some(u => u.at==='b' && u.x===0 && u.y===4)"), 'drag between board cells')
+    drag(page, '#units .unit.mine', '#bench .bslot')
+    check(page.evaluate("GR.onBench(GLIM.run).length") >= 1, 'drag from the board to the bench')
+    drag(page, '#bench .unit.mine', '.cell[data-x="2"][data-y="1"]')
+    check(page.evaluate("GR.onBench(GLIM.run).length === 0 && GR.onBoard(GLIM.run).length === 3"), 'drag from the bench back onto the board')
     shot(page, '03-plan')
     # detail + loadout
     page.locator('#units .unit.mine').first.click()
@@ -277,6 +350,7 @@ with sync_playwright() as p:
         print('state:', page.evaluate("GLIM.run ? `round ${GLIM.run.round} hp ${GLIM.run.hp} lv ${GLIM.run.tlv} units ${GLIM.run.units.map(u => u.sp + u.star).join(',')}` : 'run over'"))
         shot(page, '08-later')
     wilds(page)
+    check_damaged(page)
     check(not errs, 'no console errors' + ('' if not errs else ': ' + ' | '.join(errs[:5])))
     b.close()
 srv.shutdown()

@@ -12,12 +12,30 @@ const GLIM_VER = 'v' + '2026-10-03b';
 // ---- save ---------------------------------------------------------------------------
 let meta = { shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
 let run = null;
+// meta.vol is the 0–100 settings percent. Playback gains derived from it stay in [0,1].
+function clampPct(v, d) {
+  const n = +v;
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : d;
+}
+function runOk(r) {
+  if (!r || typeof r !== 'object' || r.v !== 2) return false;
+  if (!Array.isArray(r.units) || !Array.isArray(r.shop) || !Array.isArray(r.charms)) return false;
+  if (!r.pool || typeof r.pool !== 'object' || Array.isArray(r.pool)) return false;
+  if (!r.perks || typeof r.perks !== 'object' || Array.isArray(r.perks)) return false;
+  if (!r.biome || !G.BIOMES[r.biome]) return false;
+  for (const u of r.units) if (!u || typeof u !== 'object' || !G.SP[u.sp]) return false;
+  for (const sp of r.shop) if (sp != null && !G.SP[sp]) return false;
+  return true;
+}
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE) || 'null');
-    if (s && s.meta) Object.assign(meta, s.meta);
-    if (s && s.run && s.run.v === 2) run = s.run;
-  } catch (e) { /* private mode or bad save: start fresh */ }
+    if (s && s.meta && typeof s.meta === 'object') Object.assign(meta, s.meta);
+    // a stub or a run with a missing board, an unknown biome, or a bad species cannot Continue
+    if (s && runOk(s.run)) run = s.run;
+    else run = null;
+  } catch (e) { run = null; /* private mode or bad save: start fresh */ }
+  meta.vol = clampPct(meta.vol, 70);
   if (meta.anim == null) meta.anim = 1;          // optional; saves without it stay on the rich fight animation
   meta.unlocked = meta.unlocked || {};
   meta.apex = meta.apex || {};
@@ -27,7 +45,7 @@ function load() {
   if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
 }
 function save() {
-  if (run) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
+  if (run && run.seen) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
   try { localStorage.setItem(SAVE, JSON.stringify({ meta, run: run && !run.over ? run : null }, (k, v) => k === 'rnd' ? undefined : v)); } catch (e) { /* storage blocked */ }
 }
 
@@ -83,7 +101,14 @@ SFX.shield = () => window.GAUDIO ? GAUDIO.shield() : SYNTH.shield();
 
 // ---- small renderers ---------------------------------------------------------------------
 function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); }
+function toast(msg, cls) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.remove('on', 'low');
+  if (cls) t.classList.add(cls);
+  void t.offsetWidth;
+  t.classList.add('on');
+}
 const elBadge = (el, cls) => `<img class="${cls || 'badge'}" src="${IMG('el_' + el)}" alt="${G.EL[el] ? G.EL[el].name : ''}">`;
 function monImg(inst, cls) { return `<img class="${cls || ''}${inst.shiny ? ' shiny' : ''}" src="${IMG(C.art(inst))}" alt="">`; }
 function hpClass(p) { return p < 0.3 ? 'low' : p < 0.6 ? 'mid' : ''; }
@@ -120,6 +145,7 @@ const btn = (v, label, cls) => `<button class="btn ${cls || ''}" data-v="${esc(v
 const ICO = {
   dex: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5.2A2.2 2.2 0 0 1 6.2 3H19v15H6.2A2.2 2.2 0 0 0 4 20.2V5.2zM6.2 16H17V5H6.2c-.7 0-1.2.5-1.2 1.2V16c.4-.6 1-.9 1.2-1z"/><path fill="currentColor" d="M8 7h7v2H8zm0 3h7v2H8z"/></svg>',
   how: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="currentColor" d="M11.2 16.8h1.6v-1.6h-1.6v1.6zM12 6.2a3.4 3.4 0 0 0-3.4 3.4h1.7a1.7 1.7 0 1 1 2.1 1.6c-.9.4-1.4 1-1.4 2.1v.6h1.6v-.5c0-.4.2-.6.7-.8A3.4 3.4 0 0 0 12 6.2z"/></svg>',
+  about: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="1.25" fill="currentColor"/><path fill="currentColor" d="M11 10.6h2V17h-2z"/></svg>',
   gear: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13.5a7.7 7.7 0 0 0 .1-1.5 7.7 7.7 0 0 0-.1-1.5l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5l-.4-2.6h-4l-.4 2.6a7.4 7.4 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6zM12 15.2A3.2 3.2 0 1 1 12 8.8a3.2 3.2 0 0 1 0 6.4z"/></svg>',
 };
 M.addEventListener('input', e => {
@@ -142,7 +168,7 @@ function renderTitle() {
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="title-sub">${btn('dex', ICO.dex + 'Glimdex', 'mid blue')}${btn('how', ICO.how + 'How to Play', 'mid')}</div>` +
     `<div class="title-sub">${btn('ach', '🏆 Goals', 'mid wild')}${btn('wardrobe', '👕 Wardrobe', 'mid')}</div>` +
-    `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}${btn('about', ICO.how + 'About', 'mid')}</div>` +
+    `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}${btn('about', ICO.about + 'About', 'mid')}</div>` +
     `<div class="pill" style="margin-top:6px">${titleBit}<img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
@@ -152,7 +178,7 @@ $('#titleMenu').addEventListener('click', async e => {
   const t = e.target.closest('[data-v]'); if (!t) return;
   SFX.click();
   const v = t.dataset.v;
-  if (v === 'cont') renderGame();
+  if (v === 'cont') { try { renderGame(); } catch (err) { run = null; save(); renderTitle(); } }
   else if (v === 'new') {
     if (run && await ask('Abandon run?', '<p style="text-align:center">Your current run will be lost.</p>', btn('y', 'Abandon', 'ghost') + btn('n', 'Keep it', 'green')) !== 'y') return;
     newRunFlow();
@@ -189,7 +215,7 @@ async function newRunFlow() {
   R.giveStarter(run, v);
   meta.caught[v] = 1;
   SFX.lvl(); save(); renderGame();
-  toast('Drag creatures onto your half of the board, then press FIGHT!');
+  toast('Drag creatures onto your half of the board, then press FIGHT!', 'low');
 }
 
 // ---- the game screen -------------------------------------------------------------------------
@@ -494,11 +520,12 @@ document.addEventListener('pointermove', e => {
 document.addEventListener('pointerup', async e => {
   if (!drag) return;
   const d = drag; drag = null;
+  // hit-test while the sell overlay is still shown; hiding it first makes the drop miss
+  const t = d.moved ? dropTarget(e.clientX, e.clientY) : null;
   if (d.ghost) d.ghost.remove();
   $('#sellZone').classList.remove('on', 'hot');
   document.querySelectorAll('.hot').forEach(x => x.classList.remove('hot'));
   if (!d.moved) { unitDetail(d.uid); return; }
-  const t = dropTarget(e.clientX, e.clientY);
   if (!t) return renderGame();
   if (t.sell) { const iu = run.units.find(z => z.uid === d.uid); if (!(await confirmLastSell(iu))) return renderGame(); const v = R.sell(run, d.uid); SFX.coin(); toast(`Sold ${C.name(iu)} for ${v} gold.`); }
   else if (t.slot != null) R.placeBench(run, d.uid, t.slot);
@@ -1054,8 +1081,9 @@ async function gameOver(won, res) {
   const r = run; r.over = r.over || 2;
   window.AX && AX.ev('runEnd', 1, { won: !!won, round: r.round, depth: r.depth, lost: r.stats.lost || 0, ms: r.started ? Date.now() - r.started : null });
   run = null; save();
+  const qty = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
-    <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
+    <p style="text-align:center">Reached round ${r.round} · ${qty(r.stats.won, 'win', 'wins')} · ${qty(r.stats.lost, 'loss', 'losses')} · ${qty(r.stats.merges, 'evolution', 'evolutions')}</p>
     ${(res && res.report) || ''}
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
   renderCamp();
@@ -1144,7 +1172,7 @@ async function showHow() {
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
   <p><b>The Glimdex</b> shows one element at a time. A form you have not seen stays blank until you meet it, and a fourth form is listed only for a species that has one.</p>
   <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop. Every floor has a shrine and a <b>Glim Tonic</b> at the entrance (tap the flask to heal), event rooms offer deals and gambles, and lairs, chests and champions give <b>relics</b> that power your squad until the expedition ends. Camp has Wilds upgrades too.</p>
-  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', ICO.how + 'About', 'mid blue') + btn('ok', 'Got it', 'green'), 'ok');
+  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', ICO.about + 'About', 'mid blue') + btn('ok', 'Got it', 'green'), 'ok');
   if (v === 'about') await showAbout();
 }
 

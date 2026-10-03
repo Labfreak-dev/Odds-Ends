@@ -74,7 +74,29 @@ function preloadDoors() {
 
 // ---- save ---------------------------------------------------------------------------------------
 function save() { try { localStorage.setItem(SAVE, JSON.stringify(W)); } catch (e) { /* storage blocked */ } }
-function load() { try { return JSON.parse(localStorage.getItem(SAVE) || 'null'); } catch (e) { return null; } }
+function knownSp(sp) { return !!(sp && G.SP[sp]); }
+function expeditionOk(s) {
+  if (!s || s.v !== 1 || !s.rooms || typeof s.rooms !== 'object' || Array.isArray(s.rooms)) return false;
+  if (!s.cur || !s.rooms[s.cur]) return false;
+  if (!Object.keys(s.rooms).length) return false;
+  if (!s.biome || !G.BIOMES[s.biome]) return false;
+  if (!Array.isArray(s.squad) || !s.squad.length) return false;
+  for (const m of s.squad) if (!m || !knownSp(m.sp)) return false;
+  for (const a of Object.values(s.rooms)) {
+    if (!a || typeof a !== 'object') return false;
+    if (a.mon && !a.mon.beaten && !knownSp(a.mon.sp)) return false;
+    if (a.mon && Array.isArray(a.mon.escorts)) for (const sp of a.mon.escorts) if (!knownSp(sp)) return false;
+  }
+  return true;
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE) || 'null');
+    if (!expeditionOk(s)) return null;
+    if (s.keys == null || !Number.isFinite(+s.keys)) s.keys = 0;
+    return s;
+  } catch (e) { return null; }
+}
 function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) { /* storage blocked */ } }
 const meta = () => U.meta;
 const unlocked = sp => !!meta().unlocked[sp];
@@ -228,7 +250,11 @@ async function open() {
   if (saved && saved.v === 1) {
     const v = await U.ask('The Wilds', `<p style="text-align:center">You have an expedition in progress on floor ${saved.floor}/${FLOORS}.</p>`, U.btn('go', 'Continue', 'green') + U.btn('new', 'Start over', 'ghost sm') + U.btn('x', 'Back', 'ghost sm'));
     if (v === 'x') return;
-    if (v === 'go') { W = saved; return enter(); }
+    if (v === 'go') {
+      W = saved;
+      try { return enter(); }
+      catch (err) { W = null; clearSave(); stopView(); U.renderTitle(); return; }
+    }
     clearSave();
   }
   prep();
@@ -321,6 +347,7 @@ function enter() {
     bindInput();
   }
   W.relics = W.relics || []; if (W.tonics == null) W.tonics = 0;
+  if (W.keys == null || !Number.isFinite(+W.keys)) W.keys = 0;
   V.pause = false;
   host.querySelector('.whint').textContent = matchMedia('(pointer: coarse)').matches ? 'Drag anywhere to move' : 'WASD / arrow keys, or drag anywhere to move';
   placeRoom(null);

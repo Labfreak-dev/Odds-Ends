@@ -169,7 +169,7 @@ function buy(run, i) {
   run.units.push(u);
   return u;
 }
-function sellValue(u) { const c = G.TIER[u.sp]; return u.star === 1 ? c : u.star === 2 ? c * 3 - 1 : c * 9 - 2; }
+function sellValue(u) { const c = G.TIER[u.sp]; return u.star === 1 ? c : u.star === 2 ? c * 3 - 1 : u.star === 3 ? c * 9 - 2 : c * 12 - 2; }
 function sell(run, uid) {
   const u = run.units.find(z => z.uid === uid); if (!u) return 0;
   const v = sellValue(u);
@@ -425,9 +425,40 @@ function useItem(run, item, uid) {
 function shardsFor(run, won) {
   return Math.round((run.round * 1.5 + run.stats.bosses * 8 + (won ? 25 : 0) + run.stats.merges + run.depth * 5 * (won ? 1 : 0)) * (1 + 0.1 * run.depth + (run.meta.hoard || 0)));
 }
+// a ★3 of this species spends one Apex Core and becomes ★4. No extra mutation.
+function ascend(run, uid, meta) {
+  const u = run.units.find(z => z.uid === uid);
+  if (!(u && !u.boss && u.star === 3 && (meta.apex || {})[u.sp] > 0 && !meta.apexLock)) return null;
+  const wasDefault = u.skill === C.defaultSkill(u);
+  u.star = 4;
+  if (wasDefault || !C.castables(u).includes(u.skill)) u.skill = C.defaultSkill(u);
+  meta.apex[u.sp]--;
+  if (!meta.apex[u.sp]) delete meta.apex[u.sp];
+  run.seen[u.sp] = Math.max(run.seen[u.sp] || 0, 4);
+  meta.dex = meta.dex || {};
+  meta.dex[u.sp] = Math.max(meta.dex[u.sp] || 0, 4);
+  return u;
+}
+// one roll per dead enemy, at most one Apex Core per fight. Bosses and summons never drop.
+function rollApex(run, st, meta) {
+  meta.apex = meta.apex || {};
+  meta.apexSeen = meta.apexSeen || {};
+  for (const u of st.units) {
+    if (!(u.side === 1 && !u.alive && !u.boss && !u.summoned)) continue;
+    const sp = u.inst && u.inst.sp;
+    if (!sp || !G.SP[sp] || !G.TIER[sp]) continue;
+    const pct = G.APEX.DROP[G.TIER[sp]] * G.APEX.MUL;
+    if (st.rnd() * 100 < pct) {
+      meta.apex[sp] = (meta.apex[sp] || 0) + 1;
+      meta.apexSeen[sp] = 1;
+      return { sp };
+    }
+  }
+  return null;
+}
 
 root.GR = { campBonus, BENCH, PW, newRun, starterChoices, giveStarter, mkInst, onBoard, onBench, unitAt, benchAt, freeBench, cap, placeBoard, placeBench,
   autoPlace, rollShop, rerollCost, reroll, canBuy, buy, sellValue, sell, merges, mutOptions, applyMut, addXp, buyXp, stageOf, roundIn,
   roundKind, enemyBoard, fightOpts, endRound, relicChoices, perkChoices, takePerk, addRelic, fusionsAvailable, fuse, setBiome,
-  equipCharm, useItem, shardsFor, bonus, bossOf, nextBiomes, shopSize, copiesNeeded, pick };
+  equipCharm, useItem, shardsFor, bonus, bossOf, nextBiomes, shopSize, copiesNeeded, pick, ascend, rollApex };
 })(typeof window !== 'undefined' ? window : globalThis);

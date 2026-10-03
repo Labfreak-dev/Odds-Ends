@@ -64,7 +64,13 @@ GA.init = (meta, save, synth) => {
 };
 const sfxOn = () => !GA.meta || GA.meta.sound !== false;
 const musicOn = () => !GA.meta || GA.meta.music !== false;
-const vol = () => Math.max(0, Math.min(100, GA.meta && GA.meta.vol != null ? GA.meta.vol : 70)) / 100;
+const clamp01 = n => { const x = +n; return Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0; };
+// meta.vol is a percent. The gain the graph uses is always a finite number in [0,1].
+const vol = () => {
+  const raw = GA.meta && GA.meta.vol != null ? +GA.meta.vol : 70;
+  const pct = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 70;
+  return clamp01(pct / 100);
+};
 const base = f => f.split('/').pop();
 const MASTER = 0.7, LIM_T = -7;                 // SFX/stinger bus trim, and the limiter threshold in dB (see ctx()). The limiter's automatic make-up gain is about +4 dB, so 0.7 keeps ordinary cues at roughly their old loudness
 const mgain = () => vol() * MASTER;
@@ -111,7 +117,7 @@ GA.sfx = (name, v) => {
   const f = files[i], s = c.createBufferSource(), g = c.createGain();
   s.buffer = GA.buf[f];
   if (JITTER[name]) s.playbackRate.value = 1 - Math.random() * JITTER[name];   // 0.95-1.00 only: never pitched up
-  g.gain.value = (VOL[base(f)] == null ? 1 : VOL[base(f)]) * (v == null ? 1 : v);
+  g.gain.value = clamp01((VOL[base(f)] == null ? 1 : VOL[base(f)]) * (v == null ? 1 : v));
   const low = !!LOW[name]; s.connect(g); g.connect(GA.master); if (low) voices++;
   s.onended = () => { if (low) voices--; try { g.disconnect(); } catch (e) { /* gone */ } };
   s.start();
@@ -194,7 +200,7 @@ GA.stinger = name => {
   if (!b || !c) { const f = GA.synth[name === 'lose' ? 'ko' : 'lvl']; if (f) f(); return; }
   GA.stopMusic(250);
   const s = c.createBufferSource(), g = c.createGain();
-  s.buffer = b; g.gain.value = VOL['stinger_' + name] || 0.8; s.connect(g); g.connect(GA.master); s.start(c.currentTime + 0.12);
+  s.buffer = b; g.gain.value = clamp01(VOL['stinger_' + name] || 0.8); s.connect(g); g.connect(GA.master); s.start(c.currentTime + 0.12);
   holdUntil = performance.now() + (b.duration + 0.12) * 1000 - 400;
   s.onended = () => { if (GA.want) GA.music(GA.want); };
 };
@@ -203,7 +209,8 @@ GA.setMusic = on => {
   if (on) GA.music(GA.want); else GA.stopMusic(250);
 };
 GA.setVol = n => {
-  GA.meta.vol = Math.max(0, Math.min(100, Math.round(n))); GA.save();
+  const x = +n;
+  GA.meta.vol = Number.isFinite(x) ? Math.max(0, Math.min(100, Math.round(x))) : 70; GA.save();
   if (GA.master) GA.master.gain.value = mgain();
   if (el && cur && !GAPLESS) {
     if (fadingIn) { el.volume = mvol(); fade(mvol, 80); }   // a fade-in was heading for the old volume

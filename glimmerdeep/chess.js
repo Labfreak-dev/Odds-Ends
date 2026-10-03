@@ -493,7 +493,7 @@ function damage(st, a, d, v, ev, info) {
   d.hp -= rest;
   if (d.hp <= 0 && d.b.grit && !d.gritUsed) { d.hp = 1; d.gritUsed = true; ev.push({ k: 'react', t: d.id, name: 'Grit!' }); }
   ev.push({ k: 'dmg', t: d.id, a: a ? a.id : null, v, crit: !!info.crit, eff: info.eff || 1, hp: Math.max(0, d.hp), sh: d.shield,
-    dot: info.dot || null, thorn: !!info.thorn, basic: !!info.basic });
+    dot: info.dot || null, thorn: !!info.thorn, basic: !!info.basic, el: info.el || null });
   if (a && a !== d && !info.dot && !info.thorn) gainMana(st, d, Math.min(15, 3 + 15 * v / d.maxHp));
   if (d.perk && d.perk.kind === 'bulwark' && !d.bulwarkUsed && d.hp > 0 && d.hp < d.maxHp / 2) {
     d.bulwarkUsed = true; giveShield(st, d, d, d.perk.l > 1 ? 0.4 : 0.25, ev); ev.push({ k: 'perk', a: d.id, t: d.id, n: 'Last Stand', el: d.el });

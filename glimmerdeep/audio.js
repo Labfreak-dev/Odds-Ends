@@ -34,6 +34,25 @@ const JITTER = { click: 0.04, hit: 0.05, react: 0.04, ko: 0.04, miss: 0.04 };   
 const LOW = { click: 1, hit: 1, react: 1, miss: 1, pickup: 1, drop: 1 };
 const MAXV = 6, MGAIN = 0.55;                   // max simultaneous low-priority voices; music loudness relative to the volume setting
 
+// ---- sfx_v2: element-aware spell cues (folder sfx2/). Keys: <element>_cast, <element>_hit (2 variants), <element>_ult, generic_ult, heal2, shield2, r_<reaction> ------------------
+const EL10 = ['ember', 'tide', 'bloom', 'volt', 'stone', 'shade', 'frost', 'gale', 'metal', 'mystic'];
+const REACT = { Electrocute: 'r_electrocute', Steam: 'r_steam', 'Blight Burst': 'r_blight', Shatter: 'r_shatter', Freeze: 'r_freeze', Firestorm: 'r_firestorm', Fizzle: 'r_fizzle', Doom: 'r_doom', Mirrored: 'r_mirror' };
+const V2 = { generic_ult: ['sfx2/generic_ult'], heal2: ['sfx2/heal1', 'sfx2/heal2'], shield2: ['sfx2/shield2'] };
+for (const e of EL10) { V2[e + '_cast'] = ['sfx2/' + e + '_cast']; V2[e + '_hit'] = ['sfx2/' + e + '_hit1', 'sfx2/' + e + '_hit2']; V2[e + '_ult'] = ['sfx2/' + e + '_ult']; }
+for (const k in REACT) V2[REACT[k]] = ['sfx2/' + REACT[k]];
+Object.assign(FILES, V2);
+Object.assign(VOL, { bloom_cast: 0.67, bloom_hit1: 0.87, bloom_hit2: 0.9, bloom_ult: 0.88, ember_cast: 0.7, ember_hit1: 0.77, ember_hit2: 0.9, ember_ult: 0.97, frost_cast: 0.66, frost_hit1: 0.85, frost_hit2: 0.77, frost_ult: 0.91, gale_cast: 0.49, gale_hit1: 0.84, gale_hit2: 0.71, gale_ult: 0.65, generic_ult: 0.99, heal1: 0.65, heal2: 0.72, metal_cast: 0.63, metal_hit1: 0.58, metal_hit2: 0.67, metal_ult: 0.94, mystic_cast: 0.64, mystic_hit1: 0.7, mystic_hit2: 0.88, mystic_ult: 0.89, r_blight: 0.79, r_doom: 0.72, r_electrocute: 0.67, r_firestorm: 0.6, r_fizzle: 0.73, r_freeze: 0.76, r_mirror: 0.74, r_shatter: 0.78, r_steam: 0.53, shade_cast: 0.69, shade_hit1: 0.82, shade_hit2: 0.81, shade_ult: 0.96, shield2: 0.58, stone_cast: 0.48, stone_hit1: 0.73, stone_hit2: 0.78, stone_ult: 0.85, tide_cast: 0.69, tide_hit1: 0.81, tide_hit2: 0.78, tide_ult: 0.75, volt_cast: 0.53, volt_hit1: 0.83, volt_hit2: 0.78, volt_ult: 0.92 });                     // per-file playback gain (level match inside each class x class weight; README table)
+const OLD = { cast: 'react', hit: 'hit', ult: 'ult' };   // the first-pack cue each new one falls back to
+for (const k in V2) {
+  const hit = /_hit$/.test(k), cast = /_cast$/.test(k), ult = /_ult$/.test(k), re = k[0] === 'r' && k[1] === '_';
+  GAP[k] = hit || cast ? 80 : ult ? 250 : 120;                       // max 1 per cue key (= per element and kind) per 80 ms
+  if (hit) { THIN[k] = [0.7, 0.4]; JITTER[k] = 0.05; } else if (cast) { THIN[k] = [0.8, 0.55]; JITTER[k] = 0.05; } else if (re) THIN[k] = [0.9, 0.7];
+  if (hit || cast) LOW[k] = 1;                                      // dropped first when many voices play
+}
+const maxVoices = () => GA.speed >= 4 ? 3 : GA.speed >= 2 ? 4 : MAXV;   // fewer simultaneous low-priority cues at 2x / 4x
+const groupOf = k => V2[k] ? 'v2' : (k[0] === 'w' && k !== 'win') ? 'wilds' : 'main';
+
+
 const GA = { ctx: null, master: null, buf: {}, mbuf: {}, meta: null, save: () => {}, synth: {}, speed: 1, want: null, unlocked: false };
 let last = {}, lastVar = {}, voices = 0, el = null, fadeT = 0, cur = null, holdUntil = 0, gcur = null;
 
@@ -47,14 +66,17 @@ const sfxOn = () => !GA.meta || GA.meta.sound !== false;
 const musicOn = () => !GA.meta || GA.meta.music !== false;
 const vol = () => Math.max(0, Math.min(100, GA.meta && GA.meta.vol != null ? GA.meta.vol : 70)) / 100;
 const base = f => f.split('/').pop();
+const MASTER = 0.7, LIM_T = -7;                 // SFX/stinger bus trim, and the limiter threshold in dB (see ctx()). The limiter's automatic make-up gain is about +4 dB, so 0.7 keeps ordinary cues at roughly their old loudness
+const mgain = () => vol() * MASTER;
 
 function ctx() {
   if (GA.ctx) return GA.ctx;
   try {
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    const c = new C(), comp = c.createDynamicsCompressor(), m = c.createGain();
+    const c = new C(), comp = c.createDynamicsCompressor(), lim = c.createDynamicsCompressor(), m = c.createGain();
     comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 3; comp.attack.value = 0.004; comp.release.value = 0.15;   // tames stacked hits
-    m.gain.value = vol(); m.connect(comp); comp.connect(c.destination);
+    lim.threshold.value = LIM_T; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.1;   // last stage: limiter-style, keeps the busiest fights under full scale
+    m.gain.value = mgain(); m.connect(comp); comp.connect(lim); lim.connect(c.destination);
     GA.ctx = c; GA.master = m;
   } catch (e) { return null; }
   return GA.ctx;
@@ -66,7 +88,7 @@ GA.load = group => {
   if (GA.loaded[group] || location.protocol === 'file:') return GA.loaded[group];
   const c = ctx(); if (!c) return;
   const names = [];
-  for (const k in FILES) if ((k[0] === 'w' && k !== 'win') === (group === 'wilds')) names.push(...FILES[k]);
+  for (const k in FILES) if (groupOf(k) === group) names.push(...FILES[k]);
   if (group === 'main') names.push(...Object.values(STING));
   GA.loaded[group] = Promise.all(names.map(n => fetch(q(n)).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
     .then(ab => new Promise((ok, no) => c.decodeAudioData(ab, ok, no))).then(b => { GA.buf[n] = b; }).catch(() => { /* missing file: synth fallback */ })));
@@ -81,7 +103,7 @@ GA.sfx = (name, v) => {
   if (th && GA.speed > 1 && Math.random() > (GA.speed >= 4 ? th[1] : th[0])) return;
   const c = GA.ctx, files = (FILES[name] || []).filter(f => GA.buf[f]);
   if (!c || !files.length) { const f = GA.synth[name]; if (f) { last[name] = now; f(); } return; }   // not loaded / missing: old synth
-  if (LOW[name] && voices >= MAXV) return;
+  if (LOW[name] && voices >= maxVoices()) return;
   last[name] = now;
   let i = files.length > 1 ? Math.floor(Math.random() * files.length) : 0;
   if (files.length > 1 && i === lastVar[name]) i = (i + 1) % files.length;
@@ -94,6 +116,20 @@ GA.sfx = (name, v) => {
   s.onended = () => { if (low) voices--; try { g.disconnect(); } catch (e) { /* gone */ } };
   s.start();
 };
+
+// ---- element-aware calls (sfx2). Every one falls back to the first-pack cue (and then to the old synth) when its file is missing / not yet loaded ----------
+const has = k => (FILES[k] || []).some(f => GA.buf[f]);
+GA.el = (kind, el, o) => {                      // kind: 'cast' | 'hit' | 'ult';  el: ember|tide|bloom|volt|stone|shade|frost|gale|metal|mystic;  o.v: extra gain 0..1
+  const v = o && o.v;
+  let key = el + '_' + kind;
+  if (!has(key) && kind === 'ult' && has('generic_ult')) key = 'generic_ult';
+  if (has(key)) return GA.sfx(key, v);
+  GA.sfx(OLD[kind], v);
+};
+GA.heal = () => GA.sfx(has('heal2') ? 'heal2' : 'heal');
+GA.shield = () => GA.sfx(has('shield2') ? 'shield2' : 'shield');
+GA.react = name => { const k = REACT[name]; GA.sfx(k && has(k) ? k : 'react'); };   // 'Grit!', 'ENRAGED' etc. keep the old react cue
+
 
 // ---- music ----------------------------------------------------------------------------------
 function ensureEl() {
@@ -168,7 +204,7 @@ GA.setMusic = on => {
 };
 GA.setVol = n => {
   GA.meta.vol = Math.max(0, Math.min(100, Math.round(n))); GA.save();
-  if (GA.master) GA.master.gain.value = vol();
+  if (GA.master) GA.master.gain.value = mgain();
   if (el && cur && !GAPLESS) {
     if (fadingIn) { el.volume = mvol(); fade(mvol, 80); }   // a fade-in was heading for the old volume
     else if (!fadeT) el.volume = mvol();
@@ -182,6 +218,7 @@ GA.wake = () => {
   GA.unlocked = true;
   const c = ctx(); if (c && c.state === 'suspended') c.resume();
   const p = GA.load('main');
+  if (p) p.then(() => GA.load('v2'));          // sfx2/ loads in the background after the first pack
   for (const ev of ['pointerup', 'click', 'keydown', 'touchend']) removeEventListener(ev, GA.wake);
   if (GA.want) (GAPLESS && p ? p : Promise.resolve()).then(() => GA.music(GA.want));
 };

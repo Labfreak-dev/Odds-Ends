@@ -77,7 +77,7 @@ const RELICS2 = {
   heavy_plate: { n: 'Heavy Plate', tags: ['shield'], r: 1, b: { defMul: 0.10, startShield: 0.06 }, d: '+10% DEF. Allies open with a 6% shield.', em: '🛡️', hook: 'existing' },
   spiked_collar: { n: 'Spiked Collar', tags: ['shield'], r: 1, b: { thornsAll: 0.06 }, d: 'Attackers take 6% of the damage they deal.', em: '🦔', hook: 'existing' },
   siphon_stone: { n: 'Siphon Stone', tags: ['vamp'], r: 1, b: { lsAll: 0.06 }, d: 'Heal 6% of all damage dealt.', em: '🩸', hook: 'existing' },
-  hourglass: { n: 'Hourglass', tags: ['swift'], r: 2, b: { asMul: 0.06, manaDisc: 0.06 }, d: '+6% attack speed. Skills cost 6% less mana.', em: '⏳', hook: 'existing' },
+  hourglass: { n: 'Hourglass', tags: ['swift'], r: 2, b: { asMul: 0.04, manaDisc: 0.04 }, d: '+4% attack speed. Skills cost 4% less mana.', em: '⏳', hook: 'existing' },
   mana_well: { n: 'Mana Well', tags: ['overdrive'], r: 1, b: { startOd: 20 }, d: 'Everyone starts the fight with 20 mana.', em: '🔷', hook: 'existing' },
   battery_pack: { n: 'Battery Pack', tags: ['overdrive'], r: 2, b: { startOd: 15, odRate: 0.08 }, d: '+15 starting mana. Mana charges 8% faster.', em: '🔋', hook: 'existing' },
   wide_banner: { n: 'Wide Banner', tags: ['team'], r: 2, b: { frontAtk: 0.10, backDR: 0.10 }, d: 'Front column +10% ATK. Back column takes 10% less damage.', em: '🚩', hook: 'existing' },
@@ -101,7 +101,7 @@ const RELICS2 = {
   opening_gambit: { n: 'Opening Gambit', tags: ['swift'], r: 1, b: { openAtk: 0.25 }, d: 'Allies have +25% ATK for the first 5 seconds.', em: '⚔️', hook: 'NEW:openAtk' },
   last_stand: { n: 'Last Stand', tags: ['team'], r: 2, b: { lastStand: 0.40 }, d: 'When only one ally is alive, it gains +40% ATK.', em: '🗡️', hook: 'NEW:lastStand' },
   bounty_bell: { n: 'Bounty Bell', tags: ['greed'], r: 1, b: { koGold: 1 }, d: '+1 gold for each of the first two knockouts in a fight.', em: '🔔', hook: 'NEW:koGold' },
-  rainbow_roster: { n: 'Rainbow Roster', tags: ['team'], r: 2, b: { rainbow: 0.04 }, d: '+4% ATK per different species on the board (max 6).', em: '🌈', hook: 'NEW:rainbow' },
+  rainbow_roster: { n: 'Rainbow Roster', tags: ['team'], r: 2, b: { rainbow: 0.025 }, d: '+2.5% ATK per different species on the board (max 6).', em: '🌈', hook: 'NEW:rainbow' },
 };
 
 const WILD_RELICS2 = {

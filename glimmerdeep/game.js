@@ -9,7 +9,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
 
 // ---- save ---------------------------------------------------------------------------
-let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
+let meta = { shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
 let run = null;
 function load() {
   try {
@@ -19,6 +19,8 @@ function load() {
   } catch (e) { /* private mode or bad save: start fresh */ }
   if (meta.anim == null) meta.anim = 1;          // optional; saves without it stay on the rich fight animation
   meta.unlocked = meta.unlocked || {};
+  meta.apex = meta.apex || {};
+  meta.apexSeen = meta.apexSeen || {};
   for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
   // a run saved before the new species existed has no pool keys for them
   if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
@@ -206,7 +208,7 @@ function ga1x(ms) { return typeof ms === 'number' && ms > 0 && FS ? ms * (FS.spe
 VFX.init(boardEl);
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
-const SIZE = [0, 70, 94, 114];
+const SIZE = [0, 70, 94, 114, 134];
 function unitHtml(key, o) {
   const pos = o.bench ? '' : `left:${o.x * 12.5}%;top:${o.y * 20}%;`;
   const sz = o.boss ? 175 : SIZE[o.star || 1];
@@ -333,9 +335,12 @@ async function afterChange() {
 // the evolution sequence: glow, flickering silhouettes, light rays, a white flash, the reveal
 const EVO_EL = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#8d7bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
 async function evoCinematic(u) {
-  const S = G.SP[u.sp], c = EVO_EL[S.el] || '#fff';
+  const S = G.SP[u.sp], apex = u.star === 4, c = apex ? '#fff4c8' : (EVO_EL[S.el] || '#fff');
+  const nmOld = S.names[u.star - 2] || S.names[Math.max(0, S.names.length - 2)];
+  const nmNew = S.names[u.star - 1] || S.names[S.names.length - 1];
   const oldArt = IMG('cr_' + u.sp + (u.star - 1)), newArt = IMG(C.art(u));
-  const before = C.stats(Object.assign({}, u, { star: u.star - 1 }), R.bonus(run)), after = C.stats(u, R.bonus(run));
+  const bns = run ? R.bonus(run) : {};
+  const before = C.stats(Object.assign({}, u, { star: u.star - 1 }), bns), after = C.stats(u, bns);
   // make sure the new form is decoded before the reveal
   await new Promise(res => { const i = new Image(); i.onload = i.onerror = res; i.src = newArt; setTimeout(res, 1500); });
   const ov = document.createElement('div');
@@ -344,7 +349,7 @@ async function evoCinematic(u) {
   ov.innerHTML = `<div class="evo-bg"></div><div class="evo-rays"></div><div class="evo-halo"></div>
     <div class="evo-mon"><img class="evo-old${u.shiny ? ' shiny' : ''}" src="${oldArt}" alt=""><img class="evo-new${u.shiny ? ' shiny' : ''}" src="${newArt}" alt=""></div>
     <div class="evo-sparks"></div><div class="evo-ring"></div><div class="evo-flash"></div>
-    <div class="evo-text"><div class="evo-top">What? ${S.names[u.star - 2]} is evolving!</div><div class="evo-name"></div><div class="evo-stats"></div><div class="evo-tap">tap to continue</div></div>`;
+    <div class="evo-text"><div class="evo-top">${apex ? 'Apex form!' : `What? ${nmOld} is evolving!`}</div><div class="evo-name"></div><div class="evo-stats"></div><div class="evo-tap">tap to continue</div></div>`;
   $('#app').appendChild(ov);
   let skip = false;
   ov.addEventListener('pointerdown', () => { skip = true; });
@@ -375,7 +380,9 @@ async function evoCinematic(u) {
   await wait(260);
   old.style.opacity = 0; nw.style.opacity = 1; mon.style.transform = '';
   ov.classList.remove('charge'); ov.classList.add('reveal');
-  ov.querySelector('.evo-name').innerHTML = `${S.names[u.star - 2]} evolved into <b>${S.names[u.star - 1]}</b>! <span class="evo-stars">${starsTxt(u.star)}</span>`;
+  ov.querySelector('.evo-name').innerHTML = apex
+    ? `Apex form! <b>${nmNew}</b>${S.title4 ? ' — ' + S.title4 : ''} <span class="evo-stars">${starsTxt(u.star)}</span>`
+    : `${nmOld} evolved into <b>${nmNew}</b>! <span class="evo-stars">${starsTxt(u.star)}</span>`;
   ov.querySelector('.evo-stats').innerHTML = [['HP', before.hp, after.hp], ['ATK', Math.round(before.atk), Math.round(after.atk)], ['DEF', Math.round(before.def), Math.round(after.def)]]
     .map(([k, a, b]) => `<span>${k} ${a} → <b>${b}</b></span>`).join('') + (u.star === 2 ? `<span class="evo-new-skill">New ultimate: <b>${G.SK[S.sk[3]].n}</b></span>` : '')
     + (S.perk ? `<span class="evo-new-skill evo-perk">${u.star === 2 ? 'Merge perk unlocked' : 'Perk empowered + aura'}: <b>✦ ${S.perk.name}</b></span>` : '');
@@ -391,7 +398,7 @@ async function evolveFlow(u) {
   await evoCinematic(u);
   const opts = R.mutOptions(run, u);
   const perk = S.perk ? `<p style="text-align:center;color:#ffe9a8">✦ <b>${S.perk.name}</b>: ${G.perkText(u.sp, u.star)}</p>` : '';
-  const ult = (u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its final form. Its stats nearly double again.</p>') + perk;
+  const ult = (u.star === 4 ? `<p style="text-align:center">Apex form. Its stats nearly double again... ${S.title4}: ${S.desc4}</p>` : u.star === 2 ? `<p style="text-align:center">New power available: <b>${G.SK[S.sk[3]].n}</b> — ${G.SK[S.sk[3]].d}</p>` : '<p style="text-align:center">Its final form. Its stats nearly double again.</p>') + perk;
   const m = await ask(`${starsTxt(u.star)} ${S.names[u.star - 1]}`, `<div class="evo-stage" style="height:190px"><div class="glow"></div><img src="${IMG(C.art(u))}" class="${u.shiny ? 'shiny' : ''}" style="max-height:180px"></div>${ult}<p class="muted" style="text-align:center">Choose a mutation:</p><div class="cards">${opts.map(k => `<div class="card" data-v="${k}"><h3>${G.MUTS[k].n}</h3><p>${G.MUTS[k].d}</p></div>`).join('')}</div>`);
   R.applyMut(run, u, m);
   if (u.el2) toast(`${C.name(u)} also counts as ${G.EL[u.el2].name} now!`);
@@ -498,15 +505,17 @@ async function unitDetail(uid) {
     const body = `<div class="detail"><div class="big el-${S.el}">${monImg(u)}</div><div>
       <div class="row wrap">${elBadge(S.el)}${u.el2 ? elBadge(u.el2) + '<span class="small muted">Dual</span>' : ''}<span class="tag">${ROLE_N[S.role]}</span><span class="tag" style="color:#ffd65a">${starsTxt(u.star)}</span><span class="tag">Tier ${G.TIER[u.sp]}</span>${u.shiny ? '<span class="tag" style="background:#6a5bff">Shiny +10%</span>' : ''}</div>
       ${statBlock(u)}
-      <div class="small muted" style="margin-top:4px">${u.star < 3 ? `${R.copiesNeeded(run, u.star)} copies of ★${u.star} merge into ${S.names[u.star]} ★${u.star + 1}.` : 'Final form.'}</div>
+      <div class="small muted" style="margin-top:4px">${u.star >= 4 ? 'Apex form' : u.star === 3 ? (((meta.apex || {})[u.sp] || 0) > 0 && S.names[3] ? `Apex ◆ ×${meta.apex[u.sp]} available` : 'Final form.') : `${R.copiesNeeded(run, u.star)} copies of ★${u.star} merge into ${S.names[u.star]} ★${u.star + 1}.`}</div>
       ${u.muts.length ? `<div class="small" style="margin-top:4px">Mutations: ${u.muts.map(m => `<b>${G.MUTS[m].n}</b> (${G.MUTS[m].d})`).join(', ')}</div>` : ''}
       <div class="li" style="margin-top:8px">${u.charm ? `<img class="ic" src="${IMG('ch_' + u.charm)}" alt=""><div class="grow"><div class="t">${G.CHARMS[u.charm].n}</div><div class="small">${G.CHARMS[u.charm].d}</div></div>` : '<div class="grow muted">No charm held</div>'}<button class="btn sm ghost" data-v="charm">Change</button></div>
       </div></div><h3 style="margin:10px 0 4px">Power <span class="small muted">(tap one: it casts automatically when its mana fills)</span></h3>${skillRows(u, true)}${perkRow(u)}`;
-    const acts = (u.at === 'b' ? btn('bench', 'To bench', 'ghost sm') : btn('board', 'To board', 'ghost sm')) + btn('sell', `Sell ${R.sellValue(u)}g`, 'ghost sm') + btn('close', 'Done', 'green sm');
+    const canAsc = u.star === 3 && ((meta.apex || {})[u.sp] || 0) > 0 && !!S.names[3];
+    const acts = (u.at === 'b' ? btn('bench', 'To bench', 'ghost sm') : btn('board', 'To board', 'ghost sm')) + (canAsc ? btn('ascend', 'Ascend ◆', 'green sm') : '') + btn('sell', `Sell ${R.sellValue(u)}g`, 'ghost sm') + btn('close', 'Done', 'green sm');
     const v = await modal(`${starsTxt(u.star)} ${esc(C.name(u))}`, body, acts);
     closeModal();
     if (v === 'close') break;
     if (v.startsWith('sk:')) { u.skill = v.slice(3); save(); continue; }
+    if (v === 'ascend') { const r = R.ascend(run, u.uid, meta); if (r) { await evoCinematic(u); save(); renderGame(); } break; }
     if (v === 'sell') { const g = R.sell(run, u.uid); SFX.coin(); toast(`Sold for ${g} gold.`); break; }
     if (v === 'bench') { const f = R.freeBench(run); if (f < 0) toast('Your bench is full.'); else R.placeBench(run, u.uid, f); break; }
     if (v === 'board') {
@@ -844,11 +853,18 @@ function perkFx(e, a, t) {
     default: VFX.aura(A, el);
   }
 }
+function apexLines(drops) {
+  return (drops || []).filter(d => d.k === 'apex' && G.SP[d.sp]).map(d => {
+    const S = G.SP[d.sp], nm = S.names[3] || S.names[S.names.length - 1], prev = S.names[2] || S.names[S.names.length - 1];
+    return `<div class="li" style="margin-top:8px"><img class="ic" src="${IMG('cr_' + d.sp + '4')}" alt=""><div class="grow"><div class="t" style="color:var(--gold)">Apex Core: ${esc(nm)}!</div><div class="small">Ascend a ★3 ${esc(prev)} to unlock this form.</div></div></div>`;
+  }).join('');
+}
 async function endFight() {
   if (!FS) return;
   const st = FS.st;
   const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[R.bossOf(run)].name : '';
   const res = R.endRound(run, st);
+  const apex = R.rollApex(run, st, meta); if (apex) res.drops.push({ k: 'apex', sp: apex.sp });
   if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
   stopFight();
   phase = 'busy';
@@ -858,10 +874,13 @@ async function endFight() {
   const lines = [];
   if (res.loss) lines.push(`<p style="text-align:center;color:var(--bad);font-size:18px">−${res.loss} HP <span class="small muted">(${C.alive(st, 1).length} foes left standing)</span></p>`);
   else if (!res.win) lines.push('<p style="text-align:center">The smoke hid your retreat. No HP lost.</p>');
-  if (run.over === 2) return gameOver(false);
-  if (run.over === 1) return gameOver(true);
+  if (run.over === 2) return gameOver(false, res);
+  if (run.over === 1) return gameOver(true, res);
   lines.push(`<div class="row center wrap" style="gap:8px"><span class="pill"><img src="${IMG('ui_gold')}" alt="">+${res.gold} <span class="small muted">(5 base${res.interest ? ' + ' + res.interest + ' interest' : ''}${res.streak ? ' + streak' : ''}${res.win ? ' + 1 win' : ''})</span></span><span class="pill">+${res.xp} Tamer XP${res.lvUp ? ' · Level ' + run.tlv + '!' : ''}</span></div>`);
-  for (const d of res.drops) lines.push(`<div class="li" style="margin-top:8px"><img class="ic" src="${IMG((d.k === 'charm' ? 'ch_' : 'it_') + d.id)}" alt=""><div class="grow"><div class="t">Found: ${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].n}</div><div class="small">${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].d}</div></div></div>`);
+  for (const d of res.drops) {
+    if (d.k === 'apex') { SFX.lvl(); lines.push(apexLines([d])); }
+    else lines.push(`<div class="li" style="margin-top:8px"><img class="ic" src="${IMG((d.k === 'charm' ? 'ch_' : 'it_') + d.id)}" alt=""><div class="grow"><div class="t">Found: ${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].n}</div><div class="small">${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].d}</div></div></div>`);
+  }
   if (res.retry) lines.push('<p style="text-align:center;color:var(--gold)">The Glimmerwyrm still stands. Strengthen your team and try again!</p>');
   await ask(res.win ? (kind === 'boss' ? bossName + ' defeated!' : 'Victory!') : 'Defeat', lines.join(''), btn('ok', 'Continue', 'green'));
   // rewards
@@ -922,6 +941,7 @@ async function bagScreen() {
       ${recipes ? `<h3>Fusion recipes</h3><div class="list" style="margin:6px 0 12px">${recipes}</div>` : ''}
       <h3>Items</h3>${mods ? `<p class="small" style="color:var(--gold)">Ready for the next fight: ${mods}</p>` : ''}<div class="list" style="margin:6px 0 12px">${items || '<p class="muted">Empty. Wild rounds sometimes drop items.</p>'}</div>
       <h3>Charms</h3><div class="list" style="margin:6px 0 12px">${charms || '<p class="muted">No spare charms.</p>'}</div>
+      <h3>Apex Cores</h3><div class="list" style="margin:6px 0 12px">${Object.keys(meta.apex || {}).filter(sp => meta.apex[sp] > 0 && G.SP[sp]).map(sp => { const S = G.SP[sp]; return `<div class="li"><img class="ic" src="${IMG('cr_' + sp + '4')}" alt=""><div class="grow"><div class="t">${esc(S.names[3] || S.names[0])} ×${meta.apex[sp]}</div><div class="small">Apex Core. Ascend a ★3 ${esc(S.names[2] || S.names[0])}.</div></div></div>`; }).join('') || '<p class="muted">None yet. Defeat a creature for a rare chance at its Apex Core.</p>'}</div>
       ${perks ? `<h3>Tamer perks</h3><div class="row wrap" style="margin-top:6px">${perks}</div>` : ''}`, (R.fusionsAvailable(run).length ? btn('forge', 'Forge', 'blue sm') : '') + btn('ok', 'Close', 'green sm'));
     closeModal();
     if (v === 'ok') break;
@@ -956,17 +976,19 @@ async function menuScreen() {
 }
 
 // ---- end of run, camp, dex, help ----------------------------------------------------------------
-async function gameOver(won) {
+async function gameOver(won, res) {
   stopFight();
   const shards = R.shardsFor(run, won);
   meta.shards += shards;
   for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
   if (won) { meta.wins++; meta.depthMax = Math.max(meta.depthMax, Math.min(10, run.depth + 1)); }
   const team = R.onBoard(run).map(u => `<div style="text-align:center"><img style="height:80px" class="${u.shiny ? 'shiny' : ''}" src="${IMG(C.art(u))}" alt=""><div class="small" style="color:#ffd65a">${starsTxt(u.star)}</div></div>`).join('');
+  const cores = apexLines(res && res.drops);
+  if (cores) SFX.lvl();
   const r = run; r.over = r.over || 2; run = null; save();
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
     <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
-    <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
+    <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
   renderCamp();
 }
 function renderCamp() {
@@ -1033,7 +1055,7 @@ async function showHow() {
   await ask('How to play', `<div class="how">
   <p><b>The run</b> is 30 rounds across 6 stages of 5. Round 3 of each stage is an elite fight that pays a relic; round 5 is the stage boss (one of three for that biome). After a boss you pick the next biome from two you have not visited (12 biomes, each with its own hazard); the last stage is always the Glimmer Core. You have 100 HP: losing a round costs HP (more for every foe left standing). Beat the Glimmer Core's boss in round 30 to win.</p>
   <p><b>Planning.</b> Buy creatures from the shop (cost = tier: 1-5 gold; tier 4 and 5 creatures appear at higher Tamer levels), drag them from the bench onto your half of the board, and drag them back or onto the shop to sell. Your <b>Tamer level</b> is how many creatures fit on the board: you gain 2 XP a round, and Buy XP gives 4 for 4 gold. Higher levels also roll rarer creatures. <b>Lock</b> keeps a shop for next round.</p>
-  <p><b>Merging.</b> Three copies of the same creature at the same star merge and evolve it: ★2 is its second form, ★3 its final form. Each merge offers a <b>mutation</b>.</p>
+  <p><b>Merging.</b> Three copies of the same creature at the same star merge and evolve it: ★2 is its second form, ★3 its final form. Each merge offers a <b>mutation</b>. ★4 Apex forms come only from rare Apex Core drops, found by defeating that species, and Ascend a ★3 of the same species.</p>
   <p><b>Gold.</b> 5 a round, +1 for a win, +1 interest per 10 gold you hold (up to 5), and a bonus for win or loss streaks.</p>
   <p><b>Fights</b> play themselves. Creatures walk to the nearest foe, attack at their own range and speed, and fill their blue <b>mana</b> bar by attacking and getting hit. When it is full they cast their <b>power</b>: tap a creature to choose which of its skills that is. ★2 creatures unlock an ultimate. The next enemy board is shown while you plan, so place your team to counter it: melee in front, ranged behind, protect your casters.</p>
   <p><b>Elements.</b> Ember > Bloom, Shade, Frost · Tide > Ember, Stone, Metal · Bloom > Tide, Stone · Volt > Tide, Shade, Gale · Stone > Ember, Volt · Shade > Volt, Bloom, Mystic · Frost > Gale, Bloom · Gale > Shade, Mystic · Metal > Frost, Stone · Mystic > Volt, Metal. Super-effective hits deal 1.5×. Tap a creature to see its matchups.</p>
@@ -1052,6 +1074,29 @@ readAnimQuery();
 applyAnim();
 renderTitle();
 ['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
+function rollApexWild(st) { return R.rollApex(run, st, meta); }
+function ascendMember(m) {
+  if (!m || m.boss || m.star !== 3) return null;
+  meta.apex = meta.apex || {};
+  if (!(meta.apex[m.sp] > 0) || meta.apexLock) return null;
+  const S = G.SP[m.sp];
+  if (!S || !S.names[3]) return null;
+  m.star = 4;
+  m.hp = Math.min(1, (m.hp || 0) + 0.3);
+  meta.apex[m.sp]--;
+  if (!meta.apex[m.sp]) delete meta.apex[m.sp];
+  meta.dex = meta.dex || {};
+  meta.dex[m.sp] = Math.max(meta.dex[m.sp] || 0, 4);
+  return m;
+}
+function giveApex(sp, n) {
+  meta.apex = meta.apex || {};
+  meta.apexSeen = meta.apexSeen || {};
+  meta.apex[sp] = (meta.apex[sp] || 0) + (n == null ? 1 : n);
+  if (meta.apex[sp] > 0) meta.apexSeen[sp] = 1; else delete meta.apex[sp];
+  save();
+}
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,
-  wildBattle, ask, toast, show, save, SFX, tone, btn, esc, elBadge, IMG, ROLE_N };
+  wildBattle, ask, toast, show, save, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
+  evoCinematic, rollApexWild, rollApex: (st, salt) => R.rollApex(run, st, meta), ascendMember, debug: { giveApex } };
 })();

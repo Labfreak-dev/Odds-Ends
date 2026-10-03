@@ -146,7 +146,7 @@ function startExpedition(sps, opts) {
   newFloor(1);
   save();
 }
-async function endExpedition(why) {
+async function endExpedition(why, apex) {
   const m = meta();
   const bonus = why === 'done' ? 50 : 0;
   m.shards += bonus;
@@ -159,6 +159,7 @@ async function endExpedition(why) {
   if (window.GAUDIO) GAUDIO.music('title');   // held until a stinger has finished
   await U.ask(title, `<p style="text-align:center">${found ? 'Unlocked this expedition:' : 'No new creatures this time.'}</p><div class="wfounds">${found}</div>
     ${bonus ? `<p style="text-align:center;color:var(--gold)">+${bonus} Glimmer Shards for clearing all ${FLOORS} floors!</p>` : ''}
+    ${apexLine(apex)}
     <p class="muted small" style="text-align:center">Unlocked creatures now appear in the Auto Chess shop and as starters.</p>`, U.btn('ok', 'Continue', 'green'));
   U.renderTitle();
 }
@@ -223,6 +224,25 @@ document.addEventListener('click', e => {
   else if (b.dataset.w === 'tonic') useTonic();
   else if (b.dataset.w.startsWith('relic:')) { const r = WR[b.dataset.w.slice(6)]; if (r) U.toast(r.n + ': ' + r.d); }
 });
+document.addEventListener('click', async e => {
+  const b = e.target.closest('.wsquad [data-asc]'); if (!b || !W || !V || V.pause) return;
+  const m = W.squad.find(s => s.uid === +b.dataset.asc); if (!m || m.star !== 3) return;
+  const S = G.SP[m.sp]; if (!S.names[3] || !((meta().apex || {})[m.sp] > 0)) return;
+  V.pause = true;
+  const v = await U.ask('Ascend?', `<p style="text-align:center">Uses 1 Apex Core. ${S.names[2]} becomes ★4 for this expedition; the Glimdex keeps the form forever.</p>`, U.btn('go', 'Ascend ◆', 'green') + U.btn('x', 'Not now', 'ghost sm'));
+  if (v === 'go' && U.ascendMember(m)) await U.evoCinematic({ sp: m.sp, star: 4, shiny: !!m.shiny });
+  save(); U.save(); hud();
+  V.pause = false; V.last = performance.now();
+});
+function apexLine(apex) {
+  if (!apex || !G.SP[apex.sp]) return '';
+  const S = G.SP[apex.sp], nm = S.names[3] || S.names[S.names.length - 1], prev = S.names[2] || S.names[S.names.length - 1];
+  return `<p style="text-align:center;color:var(--gold)">◆ Apex Core: <b>${nm}</b>! Ascend a ★3 ${prev} to unlock this form.</p>`;
+}
+function noteApex(apex) {
+  if (!apex) return;
+  U.SFX.wshiny();
+}
 async function leave() {
   V.pause = true;
   const v = await U.ask('Leave the Wilds?', '<p style="text-align:center">Head back to camp. Creatures you unlocked stay unlocked, and so do your shards.</p>', U.btn('y', 'Leave', 'ghost') + U.btn('n', 'Keep exploring', 'green'));
@@ -305,8 +325,11 @@ function hud() {
     ${(W.relics || []).length ? `<div class="wrelics">${W.relics.map(id => `<button class="wrel" data-w="relic:${id}" title="${WR[id].n}"><img src="${IMG(WR[id].ic)}" alt=""></button>`).join('')}</div>` : ''}`;
   host.querySelector('.wsquad').innerHTML = W.squad.map(m => {
     const S = G.SP[m.sp], next = xpStar()[m.star];
-    return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}"><img class="${m.shiny ? 'shiny' : ''}" decoding="async" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
-      <div class="bar"><i class="${m.hp < 0.3 ? 'low' : m.hp < 0.6 ? 'mid' : ''}" style="width:${Math.max(0, m.hp) * 100}%"></i></div>${next ? `<div class="bar xp"><i style="width:${Math.min(100, 100 * m.xp / next)}%"></i></div>` : ''}<div class="nm">${S.names[m.star - 1]}</div></div>`;
+    const cores = (meta().apex || {})[m.sp] || 0, can = m.star === 3 && cores > 0 && !!S.names[3];
+    const nm = S.names[m.star - 1] || S.names[S.names.length - 1];
+    return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}" ${can ? `data-asc="${m.uid}"` : ''}><img class="${m.shiny ? 'shiny' : ''}" decoding="async" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
+      ${can ? `<button type="button" class="wasc" data-asc="${m.uid}" title="Ascend ◆">◆</button>` : ''}
+      <div class="bar"><i class="${m.hp < 0.3 ? 'low' : m.hp < 0.6 ? 'mid' : ''}" style="width:${Math.max(0, m.hp) * 100}%"></i></div>${next ? `<div class="bar xp"><i style="width:${Math.min(100, 100 * m.xp / next)}%"></i></div>` : ''}<div class="nm">${nm}</div></div>`;
   }).join('');
   minimap();
 }
@@ -610,12 +633,14 @@ async function battle(a, mv) {
   await new Promise(r => setTimeout(r, 380));
   $('#wilds').classList.remove('flash');
   const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : a.event === 'challenge' ? '⚔ Champion ' : mon.shiny ? '✦ Shiny ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`, fightBonus());
+  const apex = U.rollApexWild(st);
   // carry HP back to the squad
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   const win = st.over === 1;
+  noteApex(apex);
   U.show('wilds');
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
-  if (win) await victory(a, mon, fit);
+  if (win) await victory(a, mon, fit, apex);
   else {
     if (W.squad.some(m => m.hp > 0)) U.SFX.ko();   // a full wipe plays the lose stinger in endExpedition instead
     else if (rw('phoenix') && !W.phoenixUsed) {
@@ -623,8 +648,8 @@ async function battle(a, mv) {
       U.SFX.wshrine();
       await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green'));
     }
-    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
-    await U.ask('Defeat', `<p style="text-align:center">${nm} drove you back. Fainted creatures sit out until the next floor (or a shrine).</p>`, U.btn('ok', 'Regroup', 'green'));
+    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
+    await U.ask('Defeat', `<p style="text-align:center">${nm} drove you back. Fainted creatures sit out until the next floor (or a shrine).</p>${apexLine(apex)}`, U.btn('ok', 'Regroup', 'green'));
     // back off to the door you came in through
     V.px = Math.min(IN.x1, Math.max(IN.x0, V.px + (V.px - mv.x) * 1.5)); V.py = Math.min(IN.y1, Math.max(IN.y0, V.py + (V.py - mv.y) * 1.5));
     V.inv = 2.2;
@@ -632,7 +657,7 @@ async function battle(a, mv) {
   save(); U.save(); hud();
   V.pause = false; V.last = performance.now();
 }
-async function victory(a, mon, fit) {
+async function victory(a, mon, fit, apex) {
   const m = meta(), sp = mon.sp, S = G.SP[sp];
   mon.beaten = true; V.mons = [];
   W.wins++;
@@ -657,6 +682,7 @@ async function victory(a, mon, fit) {
     <p style="text-align:center">${fresh ? `<b style="color:var(--gold)">NEW!</b> <b>${S.names[0]}</b> is unlocked for good. It now appears in the Auto Chess shop and as a starter.` : `You beat ${S.names[mon.star - 1]} again.`}</p>
     <p class="small" style="text-align:center">+${g} Glimmer Shards${lair ? ' · the way down is open' : ''}</p>
     ${evos.map(s => `<p style="text-align:center;color:#7dff9b">${G.SP[s.sp].names[s.star - 2]} evolved into <b>${G.SP[s.sp].names[s.star - 1]}</b>! ${'★'.repeat(s.star)}</p>`).join('')}
+    ${apexLine(apex)}
     ${join ? `<p class="muted small" style="text-align:center">It can join your squad for the rest of this expedition (${W.squad.length}/${SQUAD_MAX}).</p>` : ''}`;
   const v = await U.ask(mon.shiny && shinyNew ? 'Shiny caught!' : fresh ? 'Creature unlocked!' : 'Victory!', body, (join ? U.btn('join', `Add ${S.names[0]} to the squad`, 'green') + U.btn('no', 'Not now', 'ghost sm') : U.btn('ok', 'Continue', 'green')));
   if (v === 'join') { W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: !!mon.shiny }); U.toast((mon.shiny ? 'Shiny ' : '') + S.names[0] + ' joined your squad!'); }
@@ -760,23 +786,25 @@ async function trainerBattle(a, spotted) {
   U.SFX.wencounter();
   $('#wilds').classList.add('flash'); await new Promise(r => setTimeout(r, 380)); $('#wilds').classList.remove('flash');
   const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, '⚔ ' + title, fightBonus(), bonus);
+  const apex = U.rollApexWild(st);
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   U.show('wilds');
   V.sealed = false;
-  if (st.over === 1) await trainerWin(a);
+  noteApex(apex);
+  if (st.over === 1) await trainerWin(a, apex);
   else {
     U.SFX.ko();
     if (!W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) { W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4; await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green')); }
-    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
-    await U.ask('Defeat', `<p style="text-align:center">${T.n}: "Come back when you're stronger!" Fainted creatures sit out until the next floor (or a shrine).</p>`, U.btn('ok', 'Regroup', 'green'));
+    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
+    await U.ask('Defeat', `<p style="text-align:center">${T.n}: "Come back when you're stronger!" Fainted creatures sit out until the next floor (or a shrine).</p>${apexLine(apex)}`, U.btn('ok', 'Regroup', 'green'));
     Object.assign(V.tr, { x: V.tr.x0, y: V.tr.y0, spotted: false, bang: 0, cool: 3, cur: V.tr.face });
     backOff(); V.inv = 2;
   }
   save(); U.save(); hud();
   V.pause = false; V.last = performance.now();
 }
-async function trainerWin(a) {
+async function trainerWin(a, apex) {
   const t = a.tr, T = G.TRAINERS[t.arch], m = meta();
   t.beaten = true; V.tr = null; W.wins++;
   const tok = TOKENS(t), g = Math.round((6 + 3 * Math.min(W.floor, FLOORS)) * shardMul());
@@ -794,6 +822,7 @@ async function trainerWin(a) {
   for (const k in G.SKINS) if (skinOpen(k) && !(m.skinsSeen || {})[k] && G.SKINS[k].req) { m.skinsSeen = Object.assign(m.skinsSeen || {}, { [k]: 1 }); skin = k; }
   if (skin) lines.push(`<b style="color:#7dff9b">New tamer outfit: ${G.SKINS[skin].n}!</b> Pick it before your next expedition.`);
   for (const s of evos) lines.push(`<span style="color:#7dff9b">${G.SP[s.sp].names[s.star - 2]} evolved into <b>${G.SP[s.sp].names[s.star - 1]}</b>!</span>`);
+  if (apex) { const S = G.SP[apex.sp]; lines.push(`<b style="color:var(--gold)">◆ Apex Core: ${S.names[3] || S.names[S.names.length - 1]}!</b> Ascend a ★3 ${S.names[2] || S.names[S.names.length - 1]} to unlock this form.`); }
   U.SFX.wcatch();
   await U.ask(t.den ? 'Jax is beaten!' : 'Trainer defeated!', `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG(T.art)}" style="max-height:140px" alt=""></div>
     <p style="text-align:center"><i>"${t.rival ? 'Tch. Next time, I\'ll be ready.' : 'What a battle! You\'ve earned this.'}"</i></p>${lines.map(l => `<p class="small" style="text-align:center">${l}</p>`).join('')}`, U.btn('ok', 'Continue', 'green'));
@@ -1011,5 +1040,5 @@ function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {
   ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz); ctx.restore();
 }
 
-window.WILDS = { open, post, dexHtml, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
+window.WILDS = { open, post, dexHtml, hud, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
 })();

@@ -121,6 +121,15 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   biome and floor 5 is the Glimmer Core.
 - You walk a tamer around each room (WASD/arrows, or drag anywhere on a phone). Doors on the
   walls lead to neighbouring rooms, and a minimap shows what you have found.
+  - The tamer is drawn at 1.3 units. Sideways walking plays `wd_tamer_walk_1`–`8` (mirrored
+    to the left), one full cycle per about 1.3 units actually travelled, so a blocked step
+    does not cycle. Straight up or down uses the stills. Standing breathes through four idle
+    frames (about 260 ms each). Spikes and walking into a creature play a short hurt flinch.
+    The old feet bob stays on the up/down stills only.
+  - Doorways are per-wall gates (`wd_<door|lock|crack>_<n|s|w|e>`, plus `_verdant`, `_magma`,
+    `_tundra` and `_core`), drawn unrotated at 2.7 units on the same centres as before.
+    Other biomes use the grey set. `wd_door.webp`, `wd_lock.webp` and `wd_crack.webp` stay
+    as the rotatable fallback. Walk gaps, the crack push and the lock bump are unchanged.
 - Wild rooms hold a roaming creature from the biome's elements, sometimes with escorts. Locked
   species are 3× as likely as ones you have. Walk into it to battle it on the auto-chess board
   with your squad.
@@ -368,3 +377,7 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - The camp lists Auto Chess and Wilds upgrades separately. Wilds entries never add an Auto Chess bonus (`campBonus` skips `mode: 'wilds'`).
   - Meshy: 9 props (`wd_tonic`, `wd_merchant`, `wd_egg`, `wd_altar`, `wd_well`, `wd_dummy`, `wd_pool`, `wd_explorer`, `wd_banner`). Relics reuse existing relic icons. Only these new keys were packed, so the hand-picked art from PR #399 stays as it is.
   - The smoke test now dismisses event and chest choices it walks into.
+- **Wilds art, tamer stride and doorways.** The tamer has idle, walk, up, down and hurt frames
+  (`img/wd_tamer_*.webp`; `wd_tamer.webp` is the same picture as idle 1). Doorways are 60
+  per-wall gates in `img/` (12 grey, 48 biome skins). Event props, spikes, pits, rocks and
+  stairs draw as before.

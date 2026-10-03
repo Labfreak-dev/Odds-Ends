@@ -146,7 +146,7 @@ function startExpedition(sps, opts) {
   newFloor(1);
   save();
 }
-async function endExpedition(why) {
+async function endExpedition(why, apex) {
   const m = meta();
   const bonus = why === 'done' ? 50 : 0;
   m.shards += bonus;
@@ -159,6 +159,7 @@ async function endExpedition(why) {
   if (window.GAUDIO) GAUDIO.music('title');   // held until a stinger has finished
   await U.ask(title, `<p style="text-align:center">${found ? 'Unlocked this expedition:' : 'No new creatures this time.'}</p><div class="wfounds">${found}</div>
     ${bonus ? `<p style="text-align:center;color:var(--gold)">+${bonus} Glimmer Shards for clearing all ${FLOORS} floors!</p>` : ''}
+    ${apexLine(apex)}
     <p class="muted small" style="text-align:center">Unlocked creatures now appear in the Auto Chess shop and as starters.</p>`, U.btn('ok', 'Continue', 'green'));
   U.renderTitle();
 }
@@ -238,10 +239,9 @@ function apexLine(apex) {
   const S = G.SP[apex.sp], nm = S.names[3] || S.names[S.names.length - 1], prev = S.names[2] || S.names[S.names.length - 1];
   return `<p style="text-align:center;color:var(--gold)">◆ Apex Core: <b>${nm}</b>! Ascend a ★3 ${prev} to unlock this form.</p>`;
 }
-function noteApex(apex, win) {
+function noteApex(apex) {
   if (!apex) return;
   U.SFX.wshiny();
-  if (!win) { const S = G.SP[apex.sp]; U.toast('◆ Apex Core: ' + (S.names[3] || S.names[S.names.length - 1])); }
 }
 async function leave() {
   V.pause = true;
@@ -328,7 +328,7 @@ function hud() {
     const cores = (meta().apex || {})[m.sp] || 0, can = m.star === 3 && cores > 0 && !!S.names[3];
     const nm = S.names[m.star - 1] || S.names[S.names.length - 1];
     return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}" ${can ? `data-asc="${m.uid}"` : ''}><img class="${m.shiny ? 'shiny' : ''}" decoding="async" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
-      ${can ? `<button type="button" data-asc="${m.uid}" title="Ascend ◆" style="position:absolute;top:2px;right:3px;z-index:2;border:0;background:#6a3cff;color:#fff;border-radius:99px;font:800 12px/1 Nunito,sans-serif;padding:3px 5px;cursor:pointer;box-shadow:0 0 6px #d9a6ff">◆</button>` : ''}
+      ${can ? `<button type="button" class="wasc" data-asc="${m.uid}" title="Ascend ◆">◆</button>` : ''}
       <div class="bar"><i class="${m.hp < 0.3 ? 'low' : m.hp < 0.6 ? 'mid' : ''}" style="width:${Math.max(0, m.hp) * 100}%"></i></div>${next ? `<div class="bar xp"><i style="width:${Math.min(100, 100 * m.xp / next)}%"></i></div>` : ''}<div class="nm">${nm}</div></div>`;
   }).join('');
   minimap();
@@ -637,7 +637,7 @@ async function battle(a, mv) {
   // carry HP back to the squad
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   const win = st.over === 1;
-  noteApex(apex, win);
+  noteApex(apex);
   U.show('wilds');
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
   if (win) await victory(a, mon, fit, apex);
@@ -648,8 +648,8 @@ async function battle(a, mv) {
       U.SFX.wshrine();
       await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green'));
     }
-    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
-    await U.ask('Defeat', `<p style="text-align:center">${nm} drove you back. Fainted creatures sit out until the next floor (or a shrine).</p>`, U.btn('ok', 'Regroup', 'green'));
+    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
+    await U.ask('Defeat', `<p style="text-align:center">${nm} drove you back. Fainted creatures sit out until the next floor (or a shrine).</p>${apexLine(apex)}`, U.btn('ok', 'Regroup', 'green'));
     // back off to the door you came in through
     V.px = Math.min(IN.x1, Math.max(IN.x0, V.px + (V.px - mv.x) * 1.5)); V.py = Math.min(IN.y1, Math.max(IN.y0, V.py + (V.py - mv.y) * 1.5));
     V.inv = 2.2;
@@ -791,13 +791,13 @@ async function trainerBattle(a, spotted) {
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   U.show('wilds');
   V.sealed = false;
-  noteApex(apex, st.over === 1);
+  noteApex(apex);
   if (st.over === 1) await trainerWin(a, apex);
   else {
     U.SFX.ko();
     if (!W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) { W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4; await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green')); }
-    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
-    await U.ask('Defeat', `<p style="text-align:center">${T.n}: "Come back when you're stronger!" Fainted creatures sit out until the next floor (or a shrine).</p>`, U.btn('ok', 'Regroup', 'green'));
+    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
+    await U.ask('Defeat', `<p style="text-align:center">${T.n}: "Come back when you're stronger!" Fainted creatures sit out until the next floor (or a shrine).</p>${apexLine(apex)}`, U.btn('ok', 'Regroup', 'green'));
     Object.assign(V.tr, { x: V.tr.x0, y: V.tr.y0, spotted: false, bang: 0, cool: 3, cur: V.tr.face });
     backOff(); V.inv = 2;
   }

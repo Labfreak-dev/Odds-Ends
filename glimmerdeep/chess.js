@@ -179,6 +179,7 @@ function create(o) {
   applyTraits(st.bonus[1], st.traits[1]);
   for (const p of o.board) st.units.push(makeUnit(st, p.inst, 0, p.x, p.y));
   for (const p of o.enemies) st.units.push(makeUnit(st, p.inst, 1, p.x, p.y));
+  st.fs = root.FightStats ? root.FightStats.init(st) : null;
   for (const side of [0, 1]) {
     const mine = alive(st, side), b = st.bonus[side];
     const ec = {};
@@ -330,6 +331,7 @@ function giveShield(st, src, t, frac, ev, silent) {
   const amp = 1 + (st.bonus[src.side].shieldAmp || 0);
   const v = Math.round(t.maxHp * frac * amp);
   t.shield = Math.min(t.maxHp, t.shield + v);
+  if (st.fs) root.FightStats.shield(st, src, t, v);
   if (!silent) ev.push({ k: 'shield', t: t.id, v, sh: t.shield });
 }
 function heal(st, src, t, frac, ev, flat, quiet) {
@@ -342,6 +344,7 @@ function heal(st, src, t, frac, ev, flat, quiet) {
   const room = t.maxHp - t.hp, got = Math.min(room, v);
   t.hp += got;
   if (v > room && b.overheal) t.shield = Math.min(t.maxHp, t.shield + (v - room));
+  if (st.fs && (got > 0 || v > room)) root.FightStats.heal(st, src, t, got, Math.max(0, v - room));
   if (got > 0 || !quiet) ev.push({ k: 'heal', t: t.id, v: got, hp: t.hp, sh: t.shield, quiet: !!quiet });
   return got;
 }
@@ -360,12 +363,12 @@ function applyStatus(st, src, t, key, ev, secs, n) {
     let dur = 4 + (sb.burnTurns || 0) * 1.5 + extra;
     if (tb.immune_heat) dur = 1.5;
     const dmg = Math.max(1, Math.round((src ? effAtk(st, src) : t.maxHp * 0.03) * 0.3 * (1 + (sb.burnAmp || 0))));
-    t.st.burn = { t: dur, v: Math.max(dmg, t.st.burn ? t.st.burn.v : 0) };
+    t.st.burn = { t: dur, v: Math.max(dmg, t.st.burn ? t.st.burn.v : 0), src: src ? src.id : null };
   } else if (key === 'poison') {
     const add = (n || 1) + (sb.poisonPlus || 0);
     const per = Math.max(1, Math.round((src ? effAtk(st, src) : t.maxHp * 0.015) * 0.1));
     const cur = t.st.poison || { n: 0, v: per };
-    t.st.poison = { n: Math.min(10, cur.n + add), v: Math.max(cur.v, per) };
+    t.st.poison = { n: Math.min(10, cur.n + add), v: Math.max(cur.v, per), src: src ? src.id : null };
   } else if (key === 'stun') {
     if (tb.stunImmune || t.st.stunImm) return;
     t.st.stun = { t: t.boss ? 0.75 : 1.5 };
@@ -381,6 +384,7 @@ function applyStatus(st, src, t, key, ev, secs, n) {
   else if (key === 'curse') t.st.curse = { t: 5 + extra };
   else return;
   if (src && src.perk && src.perk.kind === 'venom' && t.st[key] && t.st[key].t != null && t.st[key].t < 1e8) t.st[key].t *= src.perk.l > 1 ? 2 : 1.5;
+  if (st.fs) root.FightStats.status(st, src, t, key, t.st[key] && t.st[key].t);
   ev.push({ k: 'status', t: t.id, s: key });
 }
 const STATUS_KEYS = ['burn', 'poison', 'soak', 'stun', 'root', 'curse', 'blind', 'chill', 'shred', 'hex'];
@@ -398,6 +402,7 @@ function hit(st, a, d, sk, ev, o) {
   const dodge = buffV(d, 'dodge') + (db.dodge || 0) + (d.auraDodge || 0) + (d.el === 'shade' ? (db.shadeDodge || 0) : 0);
   if (!o.noMiss && st.rnd() < miss + dodge * (1 - miss)) {
     ev.push({ k: 'miss', t: d.id, a: a.id, dodge: dodge > miss });
+    if (st.fs && dodge > miss) root.FightStats.dodge(st, d);
     return 0;
   }
   if (el === 'ember' && st.haz === 'dark') st.litUntil = st.t + 2;
@@ -438,7 +443,7 @@ function hit(st, a, d, sk, ev, o) {
     } else if (el === 'gale' && d.st.burn) {
       react = 'Firestorm'; dmg *= 1.3;
       const burn = d.st.burn;
-      for (const e of alive(st, d.side)) if (e !== d && dist(e, d) <= 1) { e.st.burn = { t: burn.t, v: Math.max(burn.v, e.st.burn ? e.st.burn.v : 0) }; ev.push({ k: 'status', t: e.id, s: 'burn' }); }
+      for (const e of alive(st, d.side)) if (e !== d && dist(e, d) <= 1) { e.st.burn = { t: burn.t, v: Math.max(burn.v, e.st.burn ? e.st.burn.v : 0), src: burn.src }; ev.push({ k: 'status', t: e.id, s: 'burn' }); }
     } else if (el === 'ember' && d.st.soak && !d.st.wet) {
       react = 'Fizzle'; dmg *= 0.7; delete d.st.soak;
     } else if (el === 'shade' && d.st.curse && pct(d) < 0.25 && !d.boss) {
@@ -486,12 +491,20 @@ function hit(st, a, d, sk, ev, o) {
 function damage(st, a, d, v, ev, info) {
   if (!d.alive) return 0;
   info = info || {};
+  const hp0 = d.hp;
   const toShield = Math.min(d.shield, v);
   d.shield -= toShield;
   const rest = v - toShield;
   if (toShield > 0 && st.bonus[d.side].thorns && a && a.alive && !info.thorn)
     damage(st, d, a, Math.max(1, Math.round(toShield * st.bonus[d.side].thorns)), ev, { thorn: 1 });
   d.hp -= rest;
+  let fsAtk = null;
+  if (st.fs) {
+    fsAtk = a || (info.src == null ? null : root.FightStats.by(st, info.src));
+    const hpLoss = Math.min(rest, Math.max(0, hp0));
+    const eff = toShield + hpLoss;
+    root.FightStats.dmg(st, fsAtk, d, eff, v - eff, toShield, hpLoss, !!info.basic, info.dot || null, !!info.thorn);
+  }
   if (d.hp <= 0 && d.b.grit && !d.gritUsed) { d.hp = 1; d.gritUsed = true; ev.push({ k: 'react', t: d.id, name: 'Grit!' }); }
   ev.push({ k: 'dmg', t: d.id, a: a ? a.id : null, v, crit: !!info.crit, eff: info.eff || 1, hp: Math.max(0, d.hp), sh: d.shield,
     dot: info.dot || null, thorn: !!info.thorn, basic: !!info.basic, el: info.el || null });
@@ -503,7 +516,10 @@ function damage(st, a, d, v, ev, info) {
     d.enraged = true; d.st.atkUp = { v: 0.15, t: 1e9 };
     ev.push({ k: 'react', t: d.id, name: 'ENRAGED' }, { k: 'text', v: d.name + ' is enraged: much faster attacks!' });
   }
-  if (d.hp <= 0) ko(st, a, d, ev);
+  if (d.hp <= 0) {
+    ko(st, a, d, ev);
+    if (st.fs) { if (!d.alive) root.FightStats.ko(st, fsAtk, d); else root.FightStats.revive(st, d); }
+  }
   return v;
 }
 function ko(st, a, d, ev) {
@@ -583,6 +599,7 @@ function cast(st, u, ev) {
   } else if (/^foe\d$/.test(sk.t)) tg = [];
   else { const p = primary(); if (p) tg = [p]; }
   ev.push({ k: 'cast', a: u.id, sk: sk.id, n: sk.n, ult: !!sk.ult, el, tg: tg.map(t => t.id), aoe: sk.t === 'foes' || sk.t === 'allies' });
+  if (st.fs) root.FightStats.cast(st, u, !!sk.ult);
   const onTarget = t => {
     for (const k of STATUS_KEYS) if (fx[k] != null && t.alive && t.side !== u.side) {
       if (k === 'poison') applyStatus(st, u, t, 'poison', ev, 0, fx[k]);
@@ -651,6 +668,7 @@ function summon(st, a, sp, ev) {
   const inst = { sp, star: 1, summoned: 1, scale: (a.inst.scale || 1) * 0.9 };
   const u = makeUnit(st, inst, a.side, c[0], c[1]);
   st.units.push(u);
+  if (st.fs) root.FightStats.row(st, u);
   ev.push({ k: 'summon', u: u.id });
 }
 
@@ -678,8 +696,8 @@ function everySecond(st, ev) {
   for (const u of st.units.slice()) {
     if (!u.alive) continue;
     const b = st.bonus[u.side];
-    if (u.st.burn) damage(st, null, u, u.st.burn.v, ev, { dot: 'burn' });
-    if (u.alive && u.st.poison) { damage(st, null, u, u.st.poison.v * u.st.poison.n, ev, { dot: 'poison' }); if (u.st.poison) { u.st.poison.n--; if (u.st.poison.n <= 0) delete u.st.poison; } }
+    if (u.st.burn) damage(st, null, u, u.st.burn.v, ev, { dot: 'burn', src: u.st.burn.src });
+    if (u.alive && u.st.poison) { damage(st, null, u, u.st.poison.v * u.st.poison.n, ev, { dot: 'poison', src: u.st.poison.src }); if (u.st.poison) { u.st.poison.n--; if (u.st.poison.n <= 0) delete u.st.poison; } }
     if (!u.alive) continue;
     if (st.t >= 40) damage(st, null, u, Math.max(1, Math.round(u.maxHp * 0.015 * (st.t - 39))), ev, { dot: 'quake' });
     if (!u.alive) continue;
@@ -687,7 +705,7 @@ function everySecond(st, ev) {
       if (st.haz === 'heat' && !b.immune_heat && u.el !== 'ember' && u.el !== 'stone') damage(st, null, u, Math.max(1, Math.round(u.maxHp * (u.el === 'tide' ? 0.006 : 0.012))), ev, { dot: 'heat' });
       if (st.haz === 'spores' && !b.immune_spores && u.el !== 'bloom' && u.el2 !== 'bloom' && u.alive && sec % 3 === 0) {
         const cur = u.st.poison || { n: 0, v: Math.max(1, Math.round(u.maxHp * 0.01)) };
-        u.st.poison = { n: Math.min(10, cur.n + 1), v: cur.v };
+        u.st.poison = { n: Math.min(10, cur.n + 1), v: cur.v, src: cur.src != null ? cur.src : null };
         ev.push({ k: 'status', t: u.id, s: 'poison', haz: 1 });
       }
       if (b.immune_spores && sec % 5 === 0) cleanse(u, ev);

@@ -12,24 +12,197 @@ const GLIM_VER = 'v' + '2026-10-03c';
 // ---- save ---------------------------------------------------------------------------
 let meta = { shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
 let run = null;
-function load() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SAVE) || 'null');
-    if (s && s.meta) Object.assign(meta, s.meta);
-    if (s && s.run && s.run.v === 2) run = s.run;
-  } catch (e) { /* private mode or bad save: start fresh */ }
-  if (meta.anim == null) meta.anim = 1;          // optional; saves without it stay on the rich fight animation
-  meta.unlocked = meta.unlocked || {};
-  meta.apex = meta.apex || {};
-  meta.apexSeen = meta.apexSeen || {};
+let saveStale = false;
+let droppedRun = false;
+let damagedBoot = false;
+// meta.vol is the 0–100 settings percent. Playback gains derived from it stay in [0,1].
+function clampPct(v, d) {
+  const n = +v;
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : d;
+}
+function num0(v) {
+  const n = +v;
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+function int0(v, max) {
+  const n = Math.floor(num0(v));
+  return max == null ? n : Math.min(max, n);
+}
+function plain(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : null; }
+function numMap(v) {
+  const o = plain(v), out = {};
+  if (!o) return out;
+  for (const k in o) {
+    const n = +o[k];
+    if (Number.isFinite(n) && n >= 0) out[k] = Math.floor(n);
+  }
+  return out;
+}
+function flagMap(v) {
+  const o = plain(v), out = {};
+  if (!o) return out;
+  for (const k in o) if (o[k]) out[k] = 1;
+  return out;
+}
+function saneSt(v) {
+  const src = plain(v), out = {};
+  if (!src) return out;
+  for (const k in src) {
+    if (k === 'sets') { out.sets = flagMap(src.sets); continue; }
+    if (k === 'v') { out.v = src.v ? 1 : 0; continue; }
+    const n = +src[k];
+    if (Number.isFinite(n) && n >= 0) out[k] = n;
+  }
+  return out;
+}
+function saneCosm(v, skin) {
+  const c = plain(v) || {};
+  const own = flagMap(c.own);
+  const sel0 = plain(c.sel) || {};
+  const str = x => typeof x === 'string' ? x : '';
+  return { own, sel: { skin: str(sel0.skin) || skin || 'classic', title: str(sel0.title), frame: str(sel0.frame), theme: str(sel0.theme) } };
+}
+function saneDaily(v) {
+  const d = plain(v);
+  if (!d || typeof d.date !== 'string' || !Array.isArray(d.goals)) return null;
+  const goals = [];
+  for (const g of d.goals) {
+    if (!g || typeof g !== 'object' || typeof g.id !== 'string') continue;
+    goals.push({
+      id: g.id,
+      g: int0(g.g) || 1,
+      p: int0(g.p),
+      done: g.done ? 1 : 0,
+      claimed: g.claimed ? 1 : 0,
+      tier: int0(g.tier),
+      pay: int0(g.pay),
+      el: typeof g.el === 'string' ? g.el : undefined,
+    });
+  }
+  if (goals.length !== 3) return null;
+  const out = { date: d.date, goals, streak: int0(d.streak), last: typeof d.last === 'string' ? d.last : '', stamps: int0(d.stamps) };
+  if (typeof d.stamped === 'string') out.stamped = d.stamped;
+  return out;
+}
+function wipeMeta() {
+  for (const k of Object.keys(meta)) delete meta[k];
+  Object.assign(meta, {
+    shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {},
+    runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1,
+    tokens: 0, badges: 0, shinies: {}, lures: {}, wstar: {}, shinyBoost: {}, skin: 'classic',
+    apexLock: false, den: false, trCards: {}, skinsSeen: {}, ach: {}, st: {},
+    cosm: { own: {}, sel: { skin: 'classic', title: '', frame: '', theme: '' } },
+  });
+}
+function applyMeta(src) {
+  const s = plain(src) || {};
+  meta.shards = int0(s.shards);
+  meta.runs = int0(s.runs);
+  meta.wins = int0(s.wins);
+  meta.depthMax = int0(s.depthMax, 10);
+  meta.tokens = int0(s.tokens);
+  meta.badges = int0(s.badges, 3);
+  meta.vol = clampPct(s.vol, 70);
+  meta.speed = (+s.speed === 2 || +s.speed === 4) ? +s.speed : 1;
+  meta.sound = s.sound !== false;
+  meta.music = s.music !== false;
+  meta.auto = s.auto === true;
+  meta.anim = s.anim == null ? 1 : (s.anim ? 1 : 0);
+  meta.up = numMap(s.up);
+  meta.dex = numMap(s.dex);
+  meta.apex = numMap(s.apex);
+  meta.caught = flagMap(s.caught);
+  meta.unlocked = flagMap(s.unlocked);
+  meta.apexSeen = flagMap(s.apexSeen);
+  meta.shinies = flagMap(s.shinies);
+  meta.lures = numMap(s.lures);
+  meta.shinyBoost = flagMap(s.shinyBoost);
+  meta.skinsSeen = flagMap(s.skinsSeen);
+  meta.trCards = flagMap(s.trCards);
+  meta.wstar = {};
+  const stars = plain(s.wstar);
+  if (stars) for (const k in stars) {
+    const n = Math.floor(+stars[k]);
+    if (n >= 1 && n <= 3) meta.wstar[k] = n;
+  }
+  meta.skin = typeof s.skin === 'string' && s.skin ? s.skin : 'classic';
+  meta.apexLock = s.apexLock === true;
+  meta.den = s.den ? 1 : 0;
+  meta.ach = numMap(s.ach);
+  meta.st = saneSt(s.st);
+  meta.cosm = saneCosm(s.cosm, meta.skin);
+  const daily = saneDaily(s.daily);
+  if (daily) meta.daily = daily; else delete meta.daily;
+}
+function sealMeta() {
+  if (!plain(meta.unlocked)) meta.unlocked = {};
+  if (!plain(meta.dex)) meta.dex = {};
+  if (!plain(meta.apex)) meta.apex = {};
+  if (!plain(meta.apexSeen)) meta.apexSeen = {};
+  if (!plain(meta.up)) meta.up = {};
+  if (!Number.isFinite(+meta.shards) || +meta.shards < 0) meta.shards = 0;
+  else meta.shards = Math.floor(+meta.shards);
+  if (!Number.isFinite(+meta.wins) || +meta.wins < 0) meta.wins = 0;
+  meta.vol = clampPct(meta.vol, 70);
+  if (meta.anim == null) meta.anim = 1;
   for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
-  // a run saved before the new species existed has no pool keys for them
   if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
 }
+function runOk(r) {
+  if (!r || typeof r !== 'object' || r.v !== 2) return false;
+  if (!Array.isArray(r.units) || !Array.isArray(r.shop) || !Array.isArray(r.charms)) return false;
+  if (!r.pool || typeof r.pool !== 'object' || Array.isArray(r.pool)) return false;
+  if (!r.perks || typeof r.perks !== 'object' || Array.isArray(r.perks)) return false;
+  if (!r.biome || !G.BIOMES[r.biome]) return false;
+  for (const u of r.units) if (!u || typeof u !== 'object' || !G.SP[u.sp]) return false;
+  for (const sp of r.shop) if (sp != null && !G.SP[sp]) return false;
+  return true;
+}
+function load() {
+  droppedRun = false;
+  damagedBoot = false;
+  let raw = null;
+  try {
+    raw = localStorage.getItem(SAVE);
+    const s = JSON.parse(raw || 'null');
+    // a parsed non-object (or a string that is not JSON) cannot be repaired field by field
+    if (raw && (s == null || typeof s !== 'object' || Array.isArray(s))) throw new Error('shape');
+    applyMeta(s && s.meta);
+    // a stub or a run with a missing board, an unknown biome, or a bad species cannot Continue
+    if (s && s.run && typeof s.run === 'object') {
+      if (runOk(s.run)) run = s.run;
+      else { run = null; droppedRun = true; }
+    } else run = null;
+  } catch (e) {
+    run = null;
+    wipeMeta();
+    if (raw) damagedBoot = true;
+  }
+  try { sealMeta(); }
+  catch (e) { wipeMeta(); damagedBoot = true; try { sealMeta(); } catch (e2) { /* title still has to render */ } }
+}
 function save() {
-  if (run) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
+  if (saveStale) return;
+  if (run && run.seen) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
   try { localStorage.setItem(SAVE, JSON.stringify({ meta, run: run && !run.over ? run : null }, (k, v) => k === 'rnd' ? undefined : v)); } catch (e) { /* storage blocked */ }
 }
+function markStale() {
+  if (saveStale) return;
+  saveStale = true;
+  let el = document.getElementById('tabNote');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tabNote';
+    el.className = 'tabnote';
+    el.setAttribute('role', 'status');
+    el.textContent = 'Game updated in another tab, reload';
+    document.body.appendChild(el);
+  }
+  el.classList.add('on');
+}
+window.addEventListener('storage', e => {
+  if (e && (e.key === SAVE || e.key === 'glimmerdeep.wilds.v1')) markStale();
+});
 
 // ---- sound (tiny synth) ---------------------------------------------------------------
 let AC = null;
@@ -83,7 +256,14 @@ SFX.shield = () => window.GAUDIO ? GAUDIO.shield() : SYNTH.shield();
 
 // ---- small renderers ---------------------------------------------------------------------
 function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); }
+function toast(msg, cls) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.remove('on', 'low');
+  if (cls) t.classList.add(cls);
+  void t.offsetWidth;
+  t.classList.add('on');
+}
 const elBadge = (el, cls) => `<img class="${cls || 'badge'}" src="${IMG('el_' + el)}" alt="${G.EL[el] ? G.EL[el].name : ''}">`;
 function monImg(inst, cls) { return `<img class="${cls || ''}${inst.shiny ? ' shiny' : ''}" src="${IMG(C.art(inst))}" alt="">`; }
 function hpClass(p) { return p < 0.3 ? 'low' : p < 0.6 ? 'mid' : ''; }
@@ -120,6 +300,7 @@ const btn = (v, label, cls) => `<button class="btn ${cls || ''}" data-v="${esc(v
 const ICO = {
   dex: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5.2A2.2 2.2 0 0 1 6.2 3H19v15H6.2A2.2 2.2 0 0 0 4 20.2V5.2zM6.2 16H17V5H6.2c-.7 0-1.2.5-1.2 1.2V16c.4-.6 1-.9 1.2-1z"/><path fill="currentColor" d="M8 7h7v2H8zm0 3h7v2H8z"/></svg>',
   how: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="currentColor" d="M11.2 16.8h1.6v-1.6h-1.6v1.6zM12 6.2a3.4 3.4 0 0 0-3.4 3.4h1.7a1.7 1.7 0 1 1 2.1 1.6c-.9.4-1.4 1-1.4 2.1v.6h1.6v-.5c0-.4.2-.6.7-.8A3.4 3.4 0 0 0 12 6.2z"/></svg>',
+  about: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="1.25" fill="currentColor"/><path fill="currentColor" d="M11 10.6h2V17h-2z"/></svg>',
   gear: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13.5a7.7 7.7 0 0 0 .1-1.5 7.7 7.7 0 0 0-.1-1.5l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5l-.4-2.6h-4l-.4 2.6a7.4 7.4 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6zM12 15.2A3.2 3.2 0 1 1 12 8.8a3.2 3.2 0 0 1 0 6.4z"/></svg>',
 };
 M.addEventListener('input', e => {
@@ -142,7 +323,7 @@ function renderTitle() {
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="title-sub">${btn('dex', ICO.dex + 'Glimdex', 'mid blue')}${btn('how', ICO.how + 'How to Play', 'mid')}</div>` +
     `<div class="title-sub">${btn('ach', '🏆 Goals', 'mid wild')}${btn('wardrobe', '👕 Wardrobe', 'mid')}</div>` +
-    `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}${btn('about', ICO.how + 'About', 'mid')}</div>` +
+    `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}${btn('about', ICO.about + 'About', 'mid')}</div>` +
     `<div class="pill" style="margin-top:6px">${titleBit}<img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
@@ -152,7 +333,17 @@ $('#titleMenu').addEventListener('click', async e => {
   const t = e.target.closest('[data-v]'); if (!t) return;
   SFX.click();
   const v = t.dataset.v;
-  if (v === 'cont') renderGame();
+  if (v === 'cont') {
+    try {
+      if (!runOk(run)) throw new Error('run');
+      renderGame();
+    } catch (err) {
+      run = null;
+      save();
+      renderTitle();
+      toast('Save damaged: start fresh.');
+    }
+  }
   else if (v === 'new') {
     if (run && await ask('Abandon run?', '<p style="text-align:center">Your current run will be lost.</p>', btn('y', 'Abandon', 'ghost') + btn('n', 'Keep it', 'green')) !== 'y') return;
     newRunFlow();
@@ -189,7 +380,7 @@ async function newRunFlow() {
   R.giveStarter(run, v);
   meta.caught[v] = 1;
   SFX.lvl(); save(); renderGame();
-  toast('Drag creatures onto your half of the board, then press FIGHT!');
+  toast('Drag creatures onto your half of the board, then press FIGHT!', 'low');
 }
 
 // ---- the game screen -------------------------------------------------------------------------
@@ -514,11 +705,12 @@ document.addEventListener('pointermove', e => {
 document.addEventListener('pointerup', async e => {
   if (!drag) return;
   const d = drag; drag = null;
+  // hit-test while the sell overlay is still shown; hiding it first makes the drop miss
+  const t = d.moved ? dropTarget(e.clientX, e.clientY) : null;
   if (d.ghost) d.ghost.remove();
   $('#sellZone').classList.remove('on', 'hot');
   document.querySelectorAll('.hot').forEach(x => x.classList.remove('hot'));
   if (!d.moved) { unitDetail(d.uid); return; }
-  const t = dropTarget(e.clientX, e.clientY);
   if (!t) return renderGame();
   if (t.sell) { const iu = run.units.find(z => z.uid === d.uid); if (!(await confirmLastSell(iu))) return renderGame(); const v = R.sell(run, d.uid); SFX.coin(); toast(`Sold ${C.name(iu)} for ${v} gold.`); }
   else if (t.slot != null) R.placeBench(run, d.uid, t.slot);
@@ -1042,7 +1234,19 @@ function settingsHtml() {
     <div class="setrow"><span class="grow">Volume</span><input class="volslider" type="range" min="0" max="100" step="5" value="${meta.vol}" data-vol aria-label="Volume"><span class="volpct">${meta.vol}%</span></div>` : ''}
     <button class="setrow" data-v="anim" type="button"><span class="grow">Animation</span><span class="setval">${meta.autoClassic ? 'Classic' : (animNow() ? 'Rich' : 'Classic')}</span>${swt(animNow())}</button>
     ${meta.autoClassic ? `<button class="setrow" data-v="autoclassic" type="button"><span class="grow">Auto Classic</span><span class="setval">On</span>${swt(true)}</button><p class="small muted">A fight stayed under 30 fps, so Classic is on for now. Your saved choice is still ${meta.anim ? 'Rich' : 'Classic'}. Turn this off to switch back.</p>` : ''}
+    <button class="setrow" data-v="reset" type="button"><span class="grow">Reset save</span></button>
   </div>`;
+}
+function resetAll() {
+  if (saveStale) return;
+  run = null;
+  wipeMeta();
+  try { sealMeta(); } catch (e) { /* defaults already applied */ }
+  try { localStorage.removeItem(SAVE); } catch (e) { /* storage blocked */ }
+  if (window.WILDS && WILDS.discard) WILDS.discard();
+  if (window.AX) AX.init(meta);
+  if (window.COSM) { COSM.init(meta); COSM.apply(); }
+  renderTitle();
 }
 async function settingsScreen() {
   for (;;) {
@@ -1051,13 +1255,20 @@ async function settingsScreen() {
     if (v === 'mus') { GAUDIO.setMusic(!meta.music); continue; }
     if (v === 'anim') { setAnimPref(!animNow()); continue; }
     if (v === 'autoclassic') { setAutoClassic(false); continue; }
+    if (v === 'reset') {
+      if (saveStale) { toast('Game updated in another tab, reload'); continue; }
+      const y = await ask('Reset save?', '<p style="text-align:center">Erase shards, unlocks, goals, and any run or Wilds expedition on this device?</p>', btn('y', 'Reset save', 'ghost') + btn('n', 'Cancel', 'green'));
+      if (y !== 'y') continue;
+      resetAll();
+      return 'reset';
+    }
     break;
   }
 }
 async function menuScreen() {
   const v = await ask('Menu', '', btn('how', ICO.how + 'How to Play', 'mid') + btn('set', ICO.gear + 'Settings', 'mid wild') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'), 'x');
   if (v === 'how') return showHow();
-  if (v === 'set') { await settingsScreen(); return menuScreen(); }
+  if (v === 'set') { if (await settingsScreen() === 'reset') return; return menuScreen(); }
   if (v === 'title') { save(); renderTitle(); }
   if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') { SFX.stinger('lose'); gameOver(false); }
 }
@@ -1076,8 +1287,9 @@ async function gameOver(won, res) {
   const r = run; r.over = r.over || 2;
   window.AX && AX.ev('runEnd', 1, { won: !!won, round: r.round, depth: r.depth, lost: r.stats.lost || 0, ms: r.started ? Date.now() - r.started : null });
   run = null; save();
+  const qty = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
-    <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
+    <p style="text-align:center">Reached round ${r.round} · ${qty(r.stats.won, 'win', 'wins')} · ${qty(r.stats.lost, 'loss', 'losses')} · ${qty(r.stats.merges, 'evolution', 'evolutions')}</p>
     ${(res && res.report) || ''}
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
   renderCamp();
@@ -1166,17 +1378,34 @@ async function showHow() {
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
   <p><b>The Glimdex</b> shows one element at a time. A form you have not seen stays blank until you meet it, and a fourth form is listed only for a species that has one.</p>
   <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop. Every floor has a shrine and a <b>Glim Tonic</b> at the entrance (tap the flask to heal), event rooms offer deals and gambles, and lairs, chests and champions give <b>relics</b> that power your squad until the expedition ends. Camp has Wilds upgrades too.</p>
-  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', ICO.how + 'About', 'mid blue') + btn('ok', 'Got it', 'green'), 'ok');
+  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', ICO.about + 'About', 'mid blue') + btn('ok', 'Got it', 'green'), 'ok');
   if (v === 'about') await showAbout();
 }
 
 // ---- boot --------------------------------------------------------------------------------------
-load();
-if (window.AX) AX.init(meta);
-if (window.COSM) { COSM.init(meta); COSM.apply(); }
-readAnimQuery();
-applyAnim();
-renderTitle();
+function boot() {
+  try {
+    load();
+    if (window.AX) AX.init(meta);
+    if (window.COSM) { COSM.init(meta); COSM.apply(); }
+    readAnimQuery();
+    applyAnim();
+    renderTitle();
+  } catch (e) {
+    damagedBoot = true;
+    run = null;
+    try { wipeMeta(); sealMeta(); } catch (e2) { /* keep going */ }
+    try { localStorage.removeItem(SAVE); } catch (e2) { /* storage blocked */ }
+    try {
+      if (window.AX) AX.init(meta);
+      if (window.COSM) { COSM.init(meta); COSM.apply(); }
+      renderTitle();
+    } catch (e2) { /* prompt still opens */ }
+  }
+  if (damagedBoot) ask('Save damaged: start fresh', '<p style="text-align:center">This save could not be read. A new game is ready.</p>', btn('ok', 'Start fresh', 'green'), 'ok');
+  else if (droppedRun) toast('Save damaged: start fresh.');
+}
+boot();
 ['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
 function rollApexWild(st) { return R.rollApex(run, st, meta); }
 function ascendMember(m) {
@@ -1202,7 +1431,7 @@ function giveApex(sp, n) {
   save();
 }
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,
-  wildBattle, ask, toast, show, save, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
+  wildBattle, ask, toast, show, save, saveBlocked: () => saveStale, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
   animNow, setAutoClassic, confirmClassic,
   evoCinematic, rollApexWild, rollApex: (st, salt) => R.rollApex(run, st, meta), ascendMember, debug: { giveApex, relicPick: (ids, title) => relicPick(ids && ids.length ? ids : ['ruby_ring', 'last_stand', 'pyre_crown', 'rainbow_roster'], title || 'Choose a relic') } };
 })();

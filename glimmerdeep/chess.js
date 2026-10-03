@@ -167,6 +167,20 @@ function makeUnit(st, inst, side, x, y) {
   // Depth is already in each enemy's inst.scale (crun.js); scaling here too squared it
   return u;
 }
+// Rainbow Roster: +4% ATK per distinct species on that side, max 6. Same formula as crun.bonus (the stats panel).
+function foldRainbow(b, placed) {
+  if (!b || !b.rainbow) return;
+  const seen = Object.create(null);
+  let n = 0;
+  for (const p of placed || []) {
+    const sp = p && p.inst && p.inst.sp;
+    if (!sp || seen[sp]) continue;
+    seen[sp] = 1;
+    n++;
+  }
+  n = Math.min(6, n);
+  if (n) b.atkMul = (b.atkMul || 0) + b.rainbow * n;
+}
 // o: {board:[{inst,x,y}], enemies:[{inst,x,y}], relics, perks, biome, seed, depth, mods:{bomb, elixir}}
 function create(o) {
   const st = {
@@ -177,6 +191,8 @@ function create(o) {
   st.traits = [traitTiers(o.board.map(p => p.inst)), traitTiers(o.enemies.map(p => p.inst))];
   applyTraits(st.bonus[0], st.traits[0]);
   applyTraits(st.bonus[1], st.traits[1]);
+  foldRainbow(st.bonus[0], o.board);
+  foldRainbow(st.bonus[1], o.enemies);
   for (const p of o.board) st.units.push(makeUnit(st, p.inst, 0, p.x, p.y));
   for (const p of o.enemies) st.units.push(makeUnit(st, p.inst, 1, p.x, p.y));
   st.fs = root.FightStats ? root.FightStats.init(st) : null;
@@ -250,9 +266,15 @@ function effDef(st, u) {
   if (u.st.shred) d *= 0.75;
   return d;
 }
+// Gale Feather and the Storm set store SPD as spdMul. Cap the bonus at +100%; attack rate itself stays at most 3.
+function spdBonus(b) {
+  const n = b && +b.spdMul;
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(1, n);
+}
 function effAS(st, u) {
   const b = st.bonus[u.side];
-  let s = u.b.as * (1 + buffV(u, 'spdUp') + (b.asMul || 0) + (b.kin || 0) + (st.tempoUntil > st.t && u.side === 0 ? 0.3 : 0) + (u.enraged ? 0.5 : 0));
+  let s = u.b.as * (1 + buffV(u, 'spdUp') + (b.asMul || 0) + spdBonus(b) + (b.kin || 0) + (st.tempoUntil > st.t && u.side === 0 ? 0.3 : 0) + (u.enraged ? 0.5 : 0));
   if (u.st.chill) s *= 0.7;
   return Math.min(3, s);
 }

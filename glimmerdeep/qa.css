@@ -19,7 +19,8 @@
     max(12px, env(safe-area-inset-bottom, 0px))
     max(12px, env(safe-area-inset-left, 0px));
 }
-.toast { top: calc(58px + env(safe-area-inset-top, 0px)); }
+/* 70px clears the top bar. Phones keep .toast.low at 168px from index.html. */
+.toast { top: calc(70px + env(safe-area-inset-top, 0px)); }
 
 /* Scroll when the screen does not fit (200% zoom, short phones). Portrait sizing is unchanged. */
 #title.screen.on,

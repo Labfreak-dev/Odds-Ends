@@ -145,9 +145,22 @@ if (ember.length >= 10) {
 } else bad('not enough ember species');
 if (!sawBurn) bad('no burn credit in the sample');
 else console.log('conservation: ' + N + ' random fights + ember mirror, burn fights ' + sawBurn + ', fights with healing ' + sawHeal);
+if (ember.length) {
+  const st = C.create({ board: fixed(3, ember, 0).slice(0, 2), enemies: fixed(4, ember, 1).slice(0, 2), relics: [], perks: {}, biome: 'verdant', seed: 7, depth: 0, camp: { startShield: 0.2 }, mods: {} });
+  C.resolve(st);
+  const text = FS.block(st, 'heal').replace(/<[^>]+>/g, '');
+  if (!/Heal \d+ · Shield [1-9]\d*/.test(text)) bad('heal tab hid shields: ' + text.slice(0, 240));
+  const snap = FS.snapshot(st);
+  const top = snap.rows.find(r => r.side === 0 && String(r.id) === String(snap.mvp.heal));
+  const shown = top ? (top.heal || 0) + (top.shield || 0) : 0;
+  const bestSum = snap.rows.filter(r => r.side === 0).reduce((m, r) => Math.max(m, (r.heal || 0) + (r.shield || 0)), 0);
+  if (!(shown > 0) || shown !== bestSum) bad('top healer is not the highest healing plus shields');
+  else console.log('heal tab: shows Heal · Shield, top healer matches that sum');
+}
 if (!fail) console.log('markup: Battle report HTML has data-fs-* and no data-v');
 
-// perf: interleaved batches so JIT does not favour one side
+// perf: four pairs, alternating which side is timed first so a slow drift
+// does not land only on the tracker
 const PER_N = 1000, WARM = 30;
 function bench(on, salt) {
   globalThis.FightStats = on ? FS : null;
@@ -158,7 +171,9 @@ function bench(on, salt) {
 }
 const ratios = [];
 for (let p = 0; p < 4; p++) {
-  const o = bench(false, p * 2 + 1), n = bench(true, p * 2 + 2);
+  const firstOn = p % 2 === 1;
+  const a = bench(firstOn, p * 2 + 1), b = bench(!firstOn, p * 2 + 2);
+  const o = firstOn ? b : a, n = firstOn ? a : b;
   ratios.push(n / o - 1);
   console.log('perf pair ' + (p + 1) + ': off ' + o.toFixed(0) + ' ms, on ' + n.toFixed(0) + ' ms, ' + ((n / o - 1) * 100).toFixed(2) + '%');
 }

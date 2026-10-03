@@ -155,13 +155,17 @@ async function endExpedition(why, apex) {
     + (W.shinies || []).map(sp => `<div class="wfound"><img class="shiny" src="${IMG('cr_' + sp + '1')}" alt=""><div>✦ ${G.SP[sp].names[0]}</div></div>`).join('');
   const title = why === 'champion' ? 'Champion of the Wilds!' : why === 'done' ? 'Expedition complete!' : why === 'left' ? 'Back to camp' : 'Your squad fainted';
   if (why === 'champion') { m.shards += 150; why = 'done'; }
+  // a wipe never reaches the Defeat modal; LASTFS outlives W = null. Wild and trainer both land here.
+  const report = why === 'fainted' ? LASTFS : '';
   clearSave(); W = null; stopView(); U.save();
   if (why === 'done') U.SFX.wdone(); else if (why === 'fainted') U.SFX.stinger('lose');   // 'left' (player chose to leave) stays silent
   if (window.GAUDIO) GAUDIO.music('title');   // held until a stinger has finished
   await U.ask(title, `<p style="text-align:center">${found ? 'Unlocked this expedition:' : 'No new creatures this time.'}</p><div class="wfounds">${found}</div>
     ${bonus ? `<p style="text-align:center;color:var(--gold)">+${bonus} Glimmer Shards for clearing all ${FLOORS} floors!</p>` : ''}
     ${apexLine(apex)}
+    ${report}
     <p class="muted small" style="text-align:center">Unlocked creatures now appear in the Auto Chess shop and as starters.</p>`, U.btn('ok', 'Continue', 'green'));
+  LASTFS = '';
   U.renderTitle();
 }
 

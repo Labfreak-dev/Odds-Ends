@@ -88,6 +88,14 @@ function by(st, id) {
   const m = meta.get(st.fs);
   return m && m.ix[id] || null;
 }
+function basicHit(st, a, d, eff, over, hpLoss, absorbed) {
+  const fs = st.fs, vr = fs[d.id], ar = fs[a.id];
+  vr.taken += hpLoss;
+  vr.absorbed += absorbed;
+  ar.dealt += eff;
+  ar.dealtBasic += eff;
+  if (over > 0) ar.overkill += over;
+}
 function dmg(st, a, d, eff, over, absorbed, hpLoss, basic, dot, thorn) {
   const fs = st.fs;
   const vr = fs[d.id] || row(st, d);
@@ -111,12 +119,12 @@ function heal(st, src, t, got, over) {
 }
 function shield(st, src, t, v) {
   if (!src || !v) return;
-  const r = row(st, src);
+  const r = st.fs[src.id] || row(st, src);
   if (r) r.shield += v;
 }
 function status(st, src, t, key, dur) {
   if (!src) return;
-  const r = row(st, src);
+  const r = st.fs[src.id] || row(st, src);
   if (!r) return;
   const secs = (typeof dur === 'number' && isFinite(dur) && dur < 1e8 && dur > 0) ? dur : 0;
   if (CC_KEYS[key]) {
@@ -287,7 +295,7 @@ function badgeHtml(r, snap, side) {
   if (side === 1) return String(r.id) === String(snap.crown) ? '<span class="fs-badge" title="Top damage">👑</span>' : '';
   let s = '';
   if (String(r.id) === String(m.dmg)) s += '<span class="fs-badge" title="MVP Damage">🗡</span>';
-  if (String(r.id) === String(m.heal)) s += '<span class="fs-badge" title="Top Healer">💚</span>';
+  if (String(r.id) === String(m.heal)) s += '<span class="fs-badge" title="Top Healer (healing + shields)">💚</span>';
   if (String(r.id) === String(m.cc)) s += '<span class="fs-badge" title="Top Control">🌀</span>';
   if (String(r.id) === String(m.tank)) s += '<span class="fs-badge" title="Tank">🛡</span>';
   return s;
@@ -297,17 +305,18 @@ function rowHtml(r, tab, max, mode, snap) {
   const col = ELC[r.el] || '#d9a6ff';
   const m = metric(r, tab);
   const width = max > 0 ? Math.max(0, Math.min(100, 100 * m / max)) : 0;
-  let background = col, value = r.dealt || 0, title = 'effective damage', sub = '';
+  let background = col, value = r.dealt || 0, title = 'effective damage', sub = '', valHtml = '';
   if (tab === 'dmg') {
     const basic = r.dealtBasic || 0, skill = r.dealtSkill || 0, dots = dotSum(r);
     background = grad([[basic, tint(col, 0.28)], [skill, col], [dots, tint(col, -0.38)]]);
     value = r.dealt || 0;
     if (r.kills) sub = numHtml(r.kills, mode) + ' K';
   } else if (tab === 'heal') {
-    const self = r.healSelf || 0, other = Math.max(0, (r.heal || 0) - self), sh = r.shield || 0;
+    const self = r.healSelf || 0, got = r.heal || 0, other = Math.max(0, got - self), sh = r.shield || 0;
     background = grad([[self, 'var(--good)'], [other, '#1f8a45'], [sh, 'var(--shield)']]);
-    value = r.heal || 0;
-    title = 'HP restored';
+    value = got + sh;
+    title = 'healing plus shields';
+    valHtml = value > 0 ? 'Heal ' + numHtml(got, mode) + ' · Shield ' + numHtml(sh, mode) : '';
     if (r.healOver) sub = 'over ' + numHtml(r.healOver, mode);
   } else if (tab === 'cc') {
     background = col;
@@ -335,7 +344,7 @@ function rowHtml(r, tab, max, mode, snap) {
         ${barHtml(width, background, mode)}
         ${sub ? `<span class="fs-sub">${sub}</span>` : ''}
       </span>
-      <span class="fs-val">${numHtml(value, mode, title)}${tab === 'cc' ? '<span class="fs-unit">s</span>' : ''}</span>
+      <span class="fs-val${valHtml ? ' fs-pair' : ''}">${valHtml || numHtml(value, mode, title)}${tab === 'cc' ? '<span class="fs-unit">s</span>' : ''}</span>
     </button>`;
 }
 function detailHtml(r, mode) {
@@ -390,7 +399,7 @@ function chipSummary(snap) {
   const m = snap.mvp || {};
   const bits = [];
   if (m.dmg != null) bits.push('<span class="fs-chip">🗡 MVP Damage</span>');
-  if (m.heal != null) bits.push('<span class="fs-chip">💚 Top Healer</span>');
+  if (m.heal != null) bits.push('<span class="fs-chip" title="Most healing plus shields">💚 Top Healer</span>');
   if (m.cc != null) bits.push('<span class="fs-chip">🌀 Top Control</span>');
   if (m.tank != null) bits.push('<span class="fs-chip">🛡 Tank</span>');
   return bits.join('');
@@ -528,7 +537,8 @@ function ensureCss() {
 .fs-sub { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; color: var(--dim); min-width: 0; }
 .fs-mini { font-size: 11px; font-weight: 800; letter-spacing: .3px; color: var(--ink); background: rgba(0,0,0,.35); border-radius: 99px; padding: 1px 6px; }
 .fs-dots { color: var(--dim); }
-.fs-val { flex: 0 0 auto; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; min-width: 2.4em; }
+.fs-val { flex: 0 1 auto; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; min-width: 2.4em; max-width: 11em; line-height: 1.15; }
+.fs-pair { font-size: 12px; font-weight: 700; }
 .fs-unit { color: var(--dim); font-weight: 700; margin-left: 1px; }
 .fs-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; padding: 4px 8px 8px 52px; font-size: 13px; }
 .fs-k { color: var(--dim); }
@@ -543,10 +553,10 @@ function ensureCss() {
 `;
   document.head.appendChild(s);
 }
-function block(st) {
+function block(st, tab) {
   const snap = snapshot(st);
   const id = ++seq;
-  const rec = { snap, side: 0, tab: 'dmg', open: null, animAt: 0 };
+  const rec = { snap, side: 0, tab: tab || 'dmg', open: null, animAt: 0 };
   reports.set(id, rec);
   while (reports.size > 3) reports.delete(reports.keys().next().value);
   ensureCss();
@@ -554,5 +564,5 @@ function block(st) {
   return shell(id, rec, richAnim() ? 'zero' : 'final');
 }
 
-root.FightStats = { init, row, dmg, heal, shield, status, ko, revive, dodge, cast, by, snapshot, block, bind };
+root.FightStats = { init, row, dmg, basicHit, heal, shield, status, ko, revive, dodge, cast, by, snapshot, block, bind };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -500,10 +500,15 @@ function damage(st, a, d, v, ev, info) {
   d.hp -= rest;
   let fsAtk = null;
   if (st.fs) {
-    fsAtk = a || (info.src == null ? null : root.FightStats.by(st, info.src));
     const hpLoss = Math.min(rest, Math.max(0, hp0));
     const eff = toShield + hpLoss;
-    root.FightStats.dmg(st, fsAtk, d, eff, v - eff, toShield, hpLoss, !!info.basic, info.dot || null, !!info.thorn);
+    if (a && info.basic && !info.dot && !info.thorn) {
+      fsAtk = a;
+      root.FightStats.basicHit(st, a, d, eff, v - eff, hpLoss, toShield);
+    } else {
+      fsAtk = a || (info.src == null ? null : root.FightStats.by(st, info.src));
+      root.FightStats.dmg(st, fsAtk, d, eff, v - eff, toShield, hpLoss, !!info.basic, info.dot || null, !!info.thorn);
+    }
   }
   if (d.hp <= 0 && d.b.grit && !d.gritUsed) { d.hp = 1; d.gritUsed = true; ev.push({ k: 'react', t: d.id, name: 'Grit!' }); }
   ev.push({ k: 'dmg', t: d.id, a: a ? a.id : null, v, crit: !!info.crit, eff: info.eff || 1, hp: Math.max(0, d.hp), sh: d.shield,

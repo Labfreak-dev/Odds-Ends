@@ -90,12 +90,21 @@ def wilds(page):
     before = page.evaluate("Object.keys(GLIM.meta.unlocked).length")
     rooms0 = page.evaluate("Object.values(WILDS.state.rooms).filter(a => a.visited).length")
     fought = False
+    def dismiss():
+        # event rooms and chests open choices on the way: decline them (or take the first)
+        for _ in range(4):
+            if not page.locator('#modal.on').count(): return
+            box = page.locator('#modalBox')
+            (box.locator('[data-v=x]') if box.locator('[data-v=x]').count() else box.locator('[data-v]')).first.click()
+            page.wait_for_timeout(250)
     for _ in range(40):
         if page.locator('#game.on').count(): fought = True; break
+        dismiss()
         info = page.evaluate("({ cur: WILDS.state.cur, mon: WILDS.view.mons.length ? [WILDS.view.mons[0].x, WILDS.view.mons[0].y] : null, doors: WILDS.doors() })")
         if info['mon']:
             for _ in range(80):
                 if page.locator('#game.on').count(): break
+                dismiss()
                 m = page.evaluate("WILDS.view.mons.length ? [WILDS.view.mons[0].x, WILDS.view.mons[0].y] : null")
                 if not m: break
                 steer(page, m[0], m[1])
@@ -111,7 +120,8 @@ def wilds(page):
         opens = [d for d in info['doors'] if d[1] == 'open']
         d = next((x for x in opens if x[0] == step1), None) or random.choice(opens)
         for _ in range(40):
-            if page.evaluate("WILDS.state.cur") != info['cur']: break
+            dismiss()
+            if page.locator('#game.on').count() or page.evaluate("WILDS.state.cur") != info['cur']: break
             p = page.evaluate("[WILDS.view.px, WILDS.view.py]")
             if d[0] in 'ns' and abs(p[0] - 8) > 0.3: steer(page, 8, p[1])
             elif d[0] in 'ew' and abs(p[1] - 4.5) > 0.3: steer(page, p[0], 4.5)

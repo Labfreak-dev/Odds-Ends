@@ -464,11 +464,40 @@ const META = {
   kindred: { n: 'Kindred Call', d: 'Shop slots offer a species you own 8% more often per rank.', max: 2, cost: [140, 280] },
   lucky: { n: 'Lucky Coin', d: 'Rerolls cost 1 gold less.', max: 1, cost: [500], cb: { rerollDisc: 1 } },
   hoard: { n: 'Glimmer Hoard', d: '+10% Glimmer Shards from runs per rank.', max: 3, cost: [120, 240, 400] },
+  // The Wilds (mode: 'wilds'): wb is a per-rank bonus for Wilds battles only
+  w_pack: { mode: 'wilds', n: 'Bigger Pack', d: 'Bring 1 more creature on an expedition per rank.', max: 2, cost: [150, 350] },
+  w_medic: { mode: 'wilds', n: 'Medic Kit', d: 'Start each expedition with 1 more Glim Tonic per rank.', max: 3, cost: [70, 150, 260] },
+  w_ration: { mode: 'wilds', n: 'Trail Rations', d: 'Your squad gets +4% HP and ATK per rank in Wilds battles.', max: 5, cost: [90, 160, 250, 370, 520], wb: { hpMul: 0.04, atkMul: 0.04 } },
+  w_mentor: { mode: 'wilds', n: 'Field Mentor', d: 'Your squad evolves faster: ★2 at 3 wins, ★3 at 9.', max: 1, cost: [260] },
+  w_map: { mode: 'wilds', n: 'Cartographer', d: 'See each floor\'s layout when you arrive (rank 2: secret rooms too).', max: 2, cost: [120, 280] },
+  w_relic: { mode: 'wilds', n: 'Relic Hunter', d: 'Start each expedition with a random Wilds relic.', max: 1, cost: [300] },
+  w_luck: { mode: 'wilds', n: 'Treasure Sense', d: 'Chests hold 50% more shards per rank, and are likelier to hold a relic.', max: 2, cost: [100, 220] },
+  w_spring: { mode: 'wilds', n: 'Deep Springs', d: 'Going down the stairs heals 15% more per rank.', max: 2, cost: [90, 200] },
   evo: { n: 'Seed Pouch', d: 'Start each run with an Evo Crystal.', max: 1, cost: [35] },
   shiny: { n: 'Shiny Charm', d: 'Shiny creatures turn up 3× as often, in the shop and in the Wilds.', max: 1, cost: [30] },
   starter: { n: 'Head Start', d: 'Begin at Tamer level 2, then 3.', max: 2, cost: [30, 70] },
   choices: { n: 'Keen Eye', d: 'Relic rewards offer 1 more choice.', max: 1, cost: [60] },
   heal: { n: 'Second Wind', d: 'Heal 15 HP after each boss you beat.', max: 1, cost: [45] },
+};
+
+// ---- Wilds relics: found on an expedition, kept until it ends ----------------------------------
+// b: bonus for Wilds battles (chess.js teamBonus keys); w: an exploration effect handled in wilds.js
+const WILD_RELICS = {
+  blaze_totem: { n: 'Blaze Totem', ic: 'rl_ember_heart', d: 'Your squad gets +12% ATK.', b: { atkMul: 0.12 } },
+  stone_idol: { n: 'Stone Idol', ic: 'rl_stone_idol', d: 'Your squad gets +12% HP and DEF.', b: { hpMul: 0.12, defMul: 0.12 } },
+  swift_plume: { n: 'Swift Plume', ic: 'rl_gale_feather', d: 'Your squad attacks 15% faster.', b: { asMul: 0.15 } },
+  moon_charm: { n: 'Moon Charm', ic: 'rl_moon_charm', d: 'Your squad starts each battle with +20 mana.', b: { startOd: 20 } },
+  four_leaf: { n: 'Four-Leaf Clover', ic: 'rl_clover', d: '+8% crit chance.', b: { crit: 0.08 } },
+  vamp_fang: { n: 'Vampire Fang', ic: 'rl_vamp_fang', d: 'Your squad heals for 10% of the damage it deals.', b: { lsAll: 0.1 } },
+  bramble_mail: { n: 'Bramble Mail', ic: 'rl_bramble_knot', d: 'Attackers take 15% of the damage they deal back.', b: { thornsAll: 0.15 } },
+  bloom_seed: { n: 'Bloom Seed', ic: 'rl_bloom_seed', d: 'After each win your squad heals 12%.', w: { winHeal: 0.12 } },
+  lantern: { n: 'Scout\'s Map', ic: 'rl_treasure_map', d: 'Reveals every floor, secret rooms included.', w: { map: 2 } },
+  iron_boots: { n: 'Iron Boots', ic: 'rl_ironroot', d: 'Spike traps cannot hurt you.', w: { spikeproof: 1 } },
+  lucky_purse: { n: 'Lucky Purse', ic: 'rl_purse', d: '+50% shards from battles and chests.', w: { shardMul: 0.5 } },
+  bond_knot: { n: 'Bond Knot', ic: 'rl_kinship_knot', d: 'Your squad gains 1 extra XP per win.', w: { xp: 1 } },
+  phoenix: { n: 'Phoenix Plume', ic: 'rl_phoenix_plume', d: 'The first time your whole squad would faint, everyone gets back up at 40% HP.', w: { phoenix: 1 } },
+  potion_belt: { n: 'Potion Belt', ic: 'rl_brine_flask', d: 'Glim Tonics heal 65% instead of 40%.', w: { tonic: 0.25 } },
+  skeleton_key: { n: 'Skeleton Key', ic: 'wd_key', d: 'Vault doors open without a key.', w: { skeleton: 1 } },
 };
 
 // ---- events ---------------------------------------------------------------------------
@@ -659,5 +688,5 @@ SETS.greed.b = { goldRound: 2 }; SETS.greed.d = '+2 gold every round.';
 
 root.GD = { EL, ELS, STRONG, eff, ROLE, STAGE_MUL, EVO_LV, SK, SP, SKILL_LV, BOSSES, BIOMES, ACTS, ACT_LV,
   TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS,
-  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES };
+  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES, WILD_RELICS };
 })(typeof window !== 'undefined' ? window : globalThis);

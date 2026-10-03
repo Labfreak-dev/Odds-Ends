@@ -2,10 +2,13 @@
 // the lair, recruits what it beats, and uses berries and shrines. Same generator and engine as the page.
 //   node glimmerdeep/wsim.js [expeditions=200]          independent first expeditions (12 unlocked)
 //   CAREER=1 node glimmerdeep/wsim.js [players=20]     players keep their unlocks: expeditions to collect all 72
+//   WUP=max ...                                        with every Wilds camp upgrade bought
 'use strict';
 require('./species2.js'); require('./data.js'); require('./chess.js'); require('./crun.js'); require('./wgen.js');
 const G = globalThis.GD, C = globalThis.GC, Wg = globalThis.GW;
 const N = +process.argv[2] || 200;
+const UPW = {}; if (process.env.WUP) for (const k in G.META) if (G.META[k].mode === 'wilds') UPW[k] = G.META[k].max;
+const WR = G.WILD_RELICS;
 const BIOMES = Object.keys(G.BIOMES).filter(k => k !== 'core');
 const stat = { floorReached: [0, 0, 0, 0, 0, 0], done: 0, unlocks: 0, fights: [[], [], [], [], []], lair: [[], [], [], [], []] };
 function expedition(n, unl) {
@@ -15,7 +18,14 @@ function expedition(n, unl) {
   const squad = [];
   // the bot brings its highest-tier unlocked creatures (ties broken at random)
   const base = Object.keys(unl).sort(() => r() - 0.5).sort((a, b) => G.TIER[b] - G.TIER[a]);
-  for (const sp of base.slice(0, +process.env.SQUAD || Wg.SQUAD_START)) squad.push({ uid: uid++, sp, star: 1, xp: 0, hp: 1 });
+  for (const sp of base.slice(0, +process.env.SQUAD || Wg.SQUAD_START + (UPW.w_pack || 0))) squad.push({ uid: uid++, sp, star: 1, xp: 0, hp: 1 });
+  // relics: the lair offers 3 (the bot takes a battle relic), chests sometimes 1; tonics heal 40%
+  const relics = UPW.w_relic ? [Wg.pick(r, Object.keys(WR))] : [];
+  const XPS = UPW.w_mentor ? [0, 3, 9] : Wg.XP_STAR;
+  let tonics = UPW.w_medic || 0;
+  const bonus = () => { const b = {}; for (const id of relics) for (const k in WR[id].b || {}) b[k] = (b[k] || 0) + WR[id].b[k]; for (const k in G.META) if (G.META[k].wb) for (const s in G.META[k].wb) b[s] = (b[s] || 0) + G.META[k].wb[s] * (UPW[k] || 0); return b; };
+  const rwk = k => relics.reduce((t, id) => t + ((WR[id].w || {})[k] || 0), 0);
+  const takeRelic = n => { const opts = Object.keys(WR).filter(k => !relics.includes(k)).sort(() => r() - 0.5).slice(0, n); const best = opts.find(k => WR[k].b) || opts[0]; if (best) relics.push(best); };
   const before = Object.keys(unl).length;
   let floor = 1, alive = true;
   for (; floor <= Wg.FLOORS && alive; floor++) {
@@ -28,6 +38,8 @@ function expedition(n, unl) {
     const lair = rooms.find(a => a.type === 'lair');
     const shrine = rooms.some(a => a.item === 'shrine');
     let berries = rooms.filter(a => a.item === 'berry').length;
+    tonics += rooms.filter(a => a.item === 'tonic').length;
+    for (const a of rooms) if (a.item === 'chest' && r() < 0.35 + 0.2 * (UPW.w_luck || 0)) takeRelic(2);
     for (const a of fightRooms.concat(lair ? [lair] : [])) {
       if (a === lair && shrine) for (const s of squad) s.hp = s.hp > 0 ? 1 : 0.5;
       // spike traps: assume a careless step in half the rooms that have them
@@ -36,18 +48,21 @@ function expedition(n, unl) {
         const fit = squad.filter(s => s.hp > 0);
         if (!fit.length) { alive = false; break; }
         if (berries && fit.some(s => s.hp < 0.5)) { berries--; for (const s of fit) s.hp = Math.min(1, s.hp + 0.35); }
+        if (tonics && fit.reduce((t, s) => t + s.hp, 0) / fit.length < 0.5) { tonics--; for (const s of fit) s.hp = Math.min(1, s.hp + 0.4 + rwk('tonic')); }
         const insts = fit.map(m => { const i = { uid: m.uid, sp: m.sp, star: m.star, muts: [], hpFrac: m.hp }; i.skill = C.defaultSkill(i); return i; });
         const mon = a.mon;
         const foes = [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
         for (const x of foes) x.skill = C.defaultSkill(x);
-        const st = C.create({ board: Wg.placeSide(insts, 0), enemies: Wg.placeSide(foes, 1), relics: [], perks: {}, biome, seed: (n * 977 + floor * 31 + uid++) >>> 0, noHaz: true, mods: {} });
+        const st = C.create({ board: Wg.placeSide(insts, 0), enemies: Wg.placeSide(foes, 1), relics: [], perks: {}, biome, seed: (n * 977 + floor * 31 + uid++) >>> 0, noHaz: true, camp: bonus(), mods: {} });
         C.resolve(st);
         for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = squad.find(s => s.uid === u.inst.uid); m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
         const win = st.over === 1;
         (a === lair ? stat.lair : stat.fights)[floor - 1].push(win ? 1 : 0);
         if (win) {
           if (!unl[mon.sp]) { unl[mon.sp] = 1; stat.unlocks++; }
-          for (const s of fit) { s.xp += a === lair ? 2 : 1; while (s.star < 3 && s.xp >= Wg.XP_STAR[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); } }
+          for (const s of fit) { s.xp += (a === lair ? 2 : 1) + rwk('xp'); while (s.star < 3 && s.xp >= XPS[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); } }
+          if (rwk('winHeal')) for (const s of fit) if (s.hp > 0) s.hp = Math.min(1, s.hp + rwk('winHeal'));
+          if (a === lair) takeRelic(3);
           if (squad.length < Wg.SQUAD_MAX && !squad.some(s => s.sp === mon.sp)) squad.push({ uid: uid++, sp: mon.sp, star: 1, xp: 0, hp: 1 });
           break;
         }
@@ -56,7 +71,8 @@ function expedition(n, unl) {
       if (!alive) break;
     }
     if (!alive) break;
-    for (const s of squad) s.hp = s.hp > 0 ? Math.min(1, s.hp + 0.25) : 0.4;
+    const spr = 0.15 * (UPW.w_spring || 0);
+    for (const s of squad) s.hp = s.hp > 0 ? Math.min(1, s.hp + 0.25 + spr) : 0.4 + spr;
   }
   if (alive) stat.done++;
   return { floor: Math.min(floor, Wg.FLOORS), got: Object.keys(unl).length - before };

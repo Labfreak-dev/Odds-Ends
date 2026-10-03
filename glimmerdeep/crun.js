@@ -16,7 +16,7 @@ function shuffle(run, arr) { const a = arr.slice(); for (let i = a.length - 1; i
 // camp upgrades with a fight bonus stack per rank
 function campBonus(up) {
   const b = {};
-  for (const k in up || {}) { const m = G.META[k]; if (m && m.cb) for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * up[k]; }
+  for (const k in up || {}) { const m = G.META[k]; if (m && m.cb && m.mode !== 'wilds') for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * up[k]; }
   return b;
 }
 const bonus = run => C.teamBonus(run.relics, run.perks, run.campB);

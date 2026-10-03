@@ -145,10 +145,44 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   - Beat it to **catch it shiny**: `meta.shinies`, a ✦ tag in the Glimdex, and it joins the
     squad as a shiny (+10% stats).
   - In Auto Chess that species' shop offers are then 4× as likely to be shiny (`shinyOdds` in `crun.js`).
+- **Healing** (g13): every floor has a shrine (a dead end, or a plain room when there are too
+  few) and a **Glim Tonic** in the entrance. Tonics are carried, and tapping the flask in the
+  HUD heals the squad 40%. Glimberries and chests still heal on pickup.
+- **Event rooms** (g13): one or two a floor, in spare dead ends or quiet rooms (`EVENTS` in `wgen.js`):
+  - Wandering Merchant: spend shards on a tonic, or a relic (pick 1 of 2).
+  - Mysterious Egg: hatches a biome creature into the squad; 40% of the time a locked one, which unlocks it.
+  - Blood Altar: everyone loses 25% HP for a relic (pick 1 of 2).
+  - Wishing Well: toss 20 shards for a 60% relic, or drink to heal 20%.
+  - Sparring Dummy: +2 XP on one creature for 30% of its HP.
+  - Glimmer Pool: revive the fainted at 50%, or heal everyone 40%.
+  - Lost Explorer: the whole floor map and some shards.
+  - Champion's Challenge: an optional lair-strength fight for a relic (pick 1 of 3).
+- **Wilds relics** (`WILD_RELICS` in `data.js`, g13): fifteen powers kept until the expedition ends.
+  - Sources: every lair (pick 1 of 3), some chests, the merchant, the altar, the well and champions.
+  - `b` is a battle bonus fed through `wildBattle(.., extra)`: ATK, HP/DEF, speed, mana, crit, plus team lifesteal and thorns (`lsAll`/`thornsAll` in `chess.js`).
+  - `w` is an exploration effect:
+    - heal after wins;
+    - reveal the map;
+    - spike-proof;
+    - +50% shards;
+    - +1 XP per win;
+    - a one-time Phoenix revive;
+    - stronger tonics;
+    - a skeleton key.
+- **Wilds camp upgrades** (`META` entries with `mode: 'wilds'`, shown under their own heading; `wb` is a Wilds-only battle bonus):
+  - Bigger Pack: +1 starting creature, ×2.
+  - Medic Kit: starting tonics, ×3.
+  - Trail Rations: +4% HP/ATK, ×5.
+  - Field Mentor: ★2 at 3 XP, ★3 at 9.
+  - Cartographer: map reveal; rank 2 shows secrets.
+  - Relic Hunter: a starting relic.
+  - Treasure Sense: richer chests, ×2.
+  - Deep Springs: more healing on the stairs, ×2.
 - Deeper floors roll higher tiers: Tier 5 shows up from floor 4 (and in floor 3 vaults).
-- `wsim.js` fits the difficulty:
-  - a first expedition reaches floor 3 about 75-90% of the time, floor 5 about 20%, and unlocks about 11-13;
-  - collecting all 72 takes about 13 expeditions.
+- `wsim.js` fits the difficulty (since g13):
+  - a first expedition reaches floor 3 about 90% of the time, floor 5 about 48%, clears all five about 8%, and unlocks about 11;
+  - collecting all 72 takes about 14 expeditions;
+  - with every Wilds upgrade (`WUP=max`), 91% of expeditions clear all five floors.
 
 ### Relics, perks, meta
 59 relics (51 + 8 legendary fusions) with tags; three sharing a tag light up one of 15
@@ -317,3 +351,14 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   - Boulders are depth-sorted with the creatures and the tamer.
   - Meshy: `wd_pit` and `wd_spikes`, two candidates each.
   - `wsim.js` assumes one spike hit in half the trap rooms. Pacing is unchanged: about 11-13 expeditions to collect all 72.
+- **g13**: **event rooms, guaranteed healing, Wilds relics and Wilds camp upgrades** (see The Wilds above).
+  - Generator changes:
+    - floors are one room bigger (`7 + floor`, up to 13) to fit the events;
+    - the shrine always exists, using fallbacks on crowded floors;
+    - the entrance holds the tonic;
+    - the vault key never lands on a special room, and a floor with no free room hands it over at the start.
+    - A 2,000-floor check found no floor breaking these rules.
+  - Balance, with `wsim.js`, which now models tonics, lair and chest relics and `WUP`. The new healing and relics carried squads deeper, so floors 2-5 hit harder (`TUNE.scale` 0.9 / 1.4 / 1.65 / 1.8 / 1.95). Unlock pacing is back to about 11 per first expedition and about 14 expeditions to collect all 72.
+  - The camp lists Auto Chess and Wilds upgrades separately. Wilds entries never add an Auto Chess bonus (`campBonus` skips `mode: 'wilds'`).
+  - Meshy: 9 props (`wd_tonic`, `wd_merchant`, `wd_egg`, `wd_altar`, `wd_well`, `wd_dummy`, `wd_pool`, `wd_explorer`, `wd_banner`). Relics reuse existing relic icons. Only these new keys were packed, so the hand-picked art from PR #399 stays as it is.
+  - The smoke test now dismisses event and chest choices it walks into.

@@ -183,7 +183,7 @@ function prep() {
   const host = $('#wilds');
   host.querySelector('.wprep').innerHTML = `<div class="gtop"><button class="iconbtn" data-w="home">◀</button><div class="grow"><div class="title">The Wilds</div><div class="small muted">${n}/${tot} creatures unlocked</div></div></div>
     <div class="wprepbody"><p class="muted" style="text-align:center;margin:4px 8px 10px">Explore ${FLOORS} floors of rooms. Walk into a wild creature to battle it. Beat it to <b>unlock it for good</b>: it joins the Auto Chess shop and can join your squad. Pick up to ${SQ} creatures to bring.</p>
-    <div class="wpick">${list.map(sp => { const S = G.SP[sp], st = (m.wstar || {})[sp] || 1; return `<div class="wcard el-${S.el}" data-sp="${sp}"><img src="${IMG('cr_' + sp + st)}" alt=""><div class="n">${S.names[st - 1]}${st > 1 ? ' ' + '★'.repeat(st) : ''}</div><div class="small muted">${U.ROLE_N[S.role]} · T${G.TIER[sp]}</div></div>`; }).join('')}</div>
+    <div class="wpick">${list.map(sp => { const S = G.SP[sp], st = (m.wstar || {})[sp] || 1; return `<div class="wcard el-${S.el}" data-sp="${sp}"><img decoding="async" src="${IMG('cr_' + sp + st)}" alt=""><div class="n">${S.names[st - 1]}${st > 1 ? ' ' + '★'.repeat(st) : ''}</div><div class="small muted">${U.ROLE_N[S.role]} · T${G.TIER[sp]}</div></div>`; }).join('')}</div>
     <h3 class="camph">Outfit</h3><div class="wskins">${Object.keys(G.SKINS).map(k => `<div class="wskin ${skinOpen(k) ? '' : 'locked'} ${(m.skin || 'classic') === k ? 'on' : ''}" data-skin="${k}" title="${G.SKINS[k].d}"><img src="${skinOpen(k) ? skinThumb(k) : IMG('wd_tamer_idle_1')}" alt=""><div>${skinOpen(k) ? G.SKINS[k].n : '🔒'}</div></div>`).join('')}</div>
     ${Object.values(m.lures || {}).some(n => n > 0) ? `<h3 class="camph">Lure <span class="small muted">(its element shows up 4× as often; used up when you set out)</span></h3><div class="row wrap center wlures" style="gap:6px"><button class="btn sm on" data-lure="">None</button>${Object.keys(m.lures).filter(e => m.lures[e] > 0).map(e => `<button class="btn sm ghost" data-lure="${e}">${U.elBadge(e)} ${G.EL[e].name} ×${m.lures[e]}</button>`).join('')}</div>` : ''}
     <div class="row center" style="margin:12px 0">${U.btn('post', `Trainer's Post · ${m.tokens || 0} tokens`, 'wild sm')}</div></div>
@@ -272,6 +272,15 @@ function enter() {
 }
 function stopView() { if (V && V.raf) cancelAnimationFrame(V.raf); if (V) V.raf = 0; }
 function room() { return W.rooms[W.cur]; }
+// the room's creature and its escorts only (never a whole floor)
+function prefetchRoom(a) {
+  const mon = a && a.mon;
+  if (!mon) return;
+  const keys = ['cr_' + mon.sp + (mon.star || 1)].concat((mon.escorts || []).map(sp => 'cr_' + sp + (mon.escStar || 1)));
+  const go = () => { for (const k of keys) { const i = new Image(); i.src = IMG(k); } };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 400 });
+  else setTimeout(go, 40);
+}
 // spawn the player at the door they came through, and the room's creature somewhere away from it
 function placeRoom(from) {
   const a = room();
@@ -286,6 +295,7 @@ function placeRoom(from) {
   V.inv = 1.0;
   preloadDoors();
   markSeen();
+  prefetchRoom(a);
   save();
 }
 function spawnTrainer(a) {
@@ -317,7 +327,7 @@ function hud() {
     const S = G.SP[m.sp], next = xpStar()[m.star];
     const cores = (meta().apex || {})[m.sp] || 0, can = m.star === 3 && cores > 0 && !!S.names[3];
     const nm = S.names[m.star - 1] || S.names[S.names.length - 1];
-    return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}" ${can ? `data-asc="${m.uid}"` : ''}><img class="${m.shiny ? 'shiny' : ''}" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
+    return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}" ${can ? `data-asc="${m.uid}"` : ''}><img class="${m.shiny ? 'shiny' : ''}" decoding="async" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
       ${can ? `<button type="button" data-asc="${m.uid}" title="Ascend ◆" style="position:absolute;top:2px;right:3px;z-index:2;border:0;background:#6a3cff;color:#fff;border-radius:99px;font:800 12px/1 Nunito,sans-serif;padding:3px 5px;cursor:pointer;box-shadow:0 0 6px #d9a6ff">◆</button>` : ''}
       <div class="bar"><i class="${m.hp < 0.3 ? 'low' : m.hp < 0.6 ? 'mid' : ''}" style="width:${Math.max(0, m.hp) * 100}%"></i></div>${next ? `<div class="bar xp"><i style="width:${Math.min(100, 100 * m.xp / next)}%"></i></div>` : ''}<div class="nm">${nm}</div></div>`;
   }).join('');

@@ -21,6 +21,8 @@ function load() {
   meta.apex = meta.apex || {};
   meta.apexSeen = meta.apexSeen || {};
   for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
+  // a run saved before the new species existed has no pool keys for them
+  if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
 }
 function save() {
   if (run) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
@@ -251,7 +253,7 @@ function renderShop() {
     const S = G.SP[sp], t = G.TIER[sp];
     const shiny = (run.shopShiny || [])[i];
     return `<div class="scard t${t} ${run.gold < t ? 'poor' : ''} ${owned.has(sp) ? 'have' : ''} ${shiny ? 'shinycard' : ''}" data-buy="${i}" title="${esc((shiny ? 'SHINY! +10% stats. ' : '') + G.SK[S.sk[1]].n + ': ' + G.SK[S.sk[1]].d)}">
-      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span>${shiny ? '<span class="shinytag">✦ SHINY</span>' : ''}<img class="m${shiny ? ' shiny' : ''}" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
+      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span>${shiny ? '<span class="shinytag">✦ SHINY</span>' : ''}<img class="m${shiny ? ' shiny' : ''}" decoding="async" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
   }).join('');
   const nb = R.onBoard(run).length, cap = R.cap(run);
   const need = run.tlv < 9 ? G.TXP[run.tlv] : 1;
@@ -919,12 +921,42 @@ $('#campBody').addEventListener('click', e => {
   if (c) { SFX.click(); if (c.dataset.camp === 'dex') showDex(); else if (c.dataset.camp === 'post') window.WILDS.post().then(renderCamp); else newRunFlow(); }
 });
 async function showDex() {
-  const cells = Object.keys(G.SP).map(sp => [1, 2, 3].map(stg => {
-    const seen = (meta.dex[sp] || 0) >= stg || (run && (run.seen[sp] || 0) >= stg);
-    return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 ? (meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>') : ''}${stg === 1 && (meta.shinies || {})[sp] ? '<span class="tag wshiny">✦ shiny</span>' : ''}</div>`;
-  }).join('')).join('');
-  const n = Object.keys(G.SP).reduce((s, sp) => s + Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0), 0);
-  await ask(`Glimdex · ${n}/${Object.keys(G.SP).length * 3}`, `<div class="dex">${cells}</div>${window.WILDS ? WILDS.dexHtml() : ''}`, btn('ok', 'Close', 'green sm'));
+  const seenOf = sp => Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0);
+  const maxOf = sp => { const n = G.SP[sp].names; return n && n.length >= 4 && n[3] ? 4 : 3; };
+  let total = 0, seenN = 0;
+  for (const sp in G.SP) { const m = maxOf(sp); total += m; seenN += Math.min(seenOf(sp), m); }
+  let cur = G.ELS.find(el => Object.keys(G.SP).some(sp => G.SP[sp].el === el && seenOf(sp) > 0)) || 'ember';
+  const cell = (sp, stg) => {
+    const seen = seenOf(sp) >= stg;
+    const label = seen ? (G.SP[sp].names[stg - 1] || '???') : '???';
+    const art = seen ? `<img loading="lazy" decoding="async" src="${IMG('cr_' + sp + stg)}" alt="">` : '<div class="ph"></div>';
+    let extra = '';
+    if (stg === 1) extra += meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>';
+    if (stg === 1 && (meta.shinies || {})[sp]) extra += '<span class="tag wshiny">✦ shiny</span>';
+    if (stg === 4 && ((meta.apex || {})[sp] || 0) > 0) extra += `<span class="tag">◆ ×${(meta.apex || {})[sp]}</span>`;
+    return `<div class="${seen ? '' : 'unseen'}">${art}<div>${esc(label)}</div>${extra}</div>`;
+  };
+  const grid = el => Object.keys(G.SP).filter(sp => G.SP[sp].el === el).map(sp => {
+    const max = maxOf(sp);
+    let cells = '';
+    for (let stg = 1; stg <= max; stg++) cells += cell(sp, stg);
+    return `<div class="dex" style="grid-template-columns:repeat(${max},minmax(72px,1fr));margin-bottom:8px">${cells}</div>`;
+  }).join('');
+  const chips = `<div class="dexchips">${G.ELS.map(el => `<button type="button" class="dexchip el-${el}${el === cur ? ' on' : ''}" data-dexel="${el}">${esc(G.EL[el].name)}</button>`).join('')}</div>`;
+  const p = modal(`Glimdex · ${seenN}/${total}`, `${chips}<div id="dexGrid">${grid(cur)}</div>${window.WILDS ? WILDS.dexHtml() : ''}`, btn('ok', 'Close', 'green sm'));
+  const onClick = e => {
+    const b = e.target.closest('[data-dexel]');
+    if (!b || !MB.contains(b)) return;
+    cur = b.dataset.dexel;
+    SFX.click();
+    MB.querySelectorAll('[data-dexel]').forEach(x => x.classList.toggle('on', x === b));
+    const g = MB.querySelector('#dexGrid');
+    if (g) g.innerHTML = grid(cur);
+  };
+  MB.addEventListener('click', onClick);
+  await p;
+  MB.removeEventListener('click', onClick);
+  closeModal();
 }
 async function showHow() {
   await ask('How to play', `<div class="how">
@@ -938,6 +970,7 @@ async function showHow() {
   <p><b>Synergies</b> (top of the board): 2 or 4 different species of one element, or 2 or 4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
+  <p><b>The Glimdex</b> shows one element at a time. A form you have not seen stays blank until you meet it, and a fourth form is listed only for a species that has one.</p>
   <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop. Every floor has a shrine and a <b>Glim Tonic</b> at the entrance (tap the flask to heal), event rooms offer deals and gambles, and lairs, chests and champions give <b>relics</b> that power your squad until the expedition ends. Camp has Wilds upgrades too.</p>
   <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('ok', 'Got it', 'green'));
 }

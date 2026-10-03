@@ -904,6 +904,7 @@ async function endFight() {
   SFX.stinger(res.win ? 'win' : 'lose');
   mus(run.over ? 'title' : 'plan');   // audio.js holds the new track until the stinger has finished
   const lines = [];
+  if (window.FightStats) res.report = window.FightStats.block(st);
   if (res.loss) lines.push(`<p style="text-align:center;color:var(--bad);font-size:18px">−${res.loss} HP <span class="small muted">(${C.alive(st, 1).length} foes left standing)</span></p>`);
   else if (!res.win) lines.push('<p style="text-align:center">The smoke hid your retreat. No HP lost.</p>');
   if (run.over === 2) return gameOver(false, res);
@@ -914,6 +915,7 @@ async function endFight() {
     else lines.push(`<div class="li" style="margin-top:8px"><img class="ic" src="${IMG((d.k === 'charm' ? 'ch_' : 'it_') + d.id)}" alt=""><div class="grow"><div class="t">Found: ${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].n}</div><div class="small">${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].d}</div></div></div>`);
   }
   if (res.retry) lines.push('<p style="text-align:center;color:var(--gold)">The Glimmerwyrm still stands. Strengthen your team and try again!</p>');
+  if (res.report) lines.push(res.report);
   await ask(res.win ? (kind === 'boss' ? bossName + ' defeated!' : 'Victory!') : 'Defeat', lines.join(''), btn('ok', 'Continue', 'green'));
   // rewards
   for (const p of run.pending || []) {
@@ -1035,6 +1037,7 @@ async function gameOver(won, res) {
   const r = run; r.over = r.over || 2; run = null; save();
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
     <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
+    ${(res && res.report) || ''}
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
   renderCamp();
 }

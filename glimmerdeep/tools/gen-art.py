@@ -120,7 +120,8 @@ for k, s1, s2, s3 in LINES:
 # ---- the 60 species added in g6 (tools/species2.py) ----
 sys.path.insert(0, HERE)
 from species2 import SPECIES2
-for k, el, role, tier, rng, names, (s1, s2, s3) in SPECIES2:
+for row in SPECIES2:
+    k, el, role, tier, rng, names, (s1, s2, s3) = row[:7]
     cr(f'cr_{k}1', s1)
     ev(f'cr_{k}2', f'cr_{k}1', s2)
     ev(f'cr_{k}3', f'cr_{k}1', s3)

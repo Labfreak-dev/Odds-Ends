@@ -1,7 +1,7 @@
 // Headless balance runs for The Wilds: a bot squad walks every floor, fights each wild room and
 // the lair, recruits what it beats, and uses berries and shrines. Same generator and engine as the page.
 //   node glimmerdeep/wsim.js [expeditions=200]          independent first expeditions (12 unlocked)
-//   CAREER=1 node glimmerdeep/wsim.js [players=20]     players keep their unlocks: expeditions to collect all 72
+//   CAREER=1 node glimmerdeep/wsim.js [players=20]     players keep their unlocks: expeditions to collect every species (Object.keys(G.SP).length)
 //   WUP=max ...                                        with every Wilds camp upgrade bought
 'use strict';
 require('./species2.js'); require('./data.js'); require('./chess.js'); require('./crun.js'); require('./wgen.js');

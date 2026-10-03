@@ -124,8 +124,8 @@ with sync_playwright() as p:
       const extra = Object.keys(GlimAnim.SPECIES).length;
       return { have: have.length, miss, extra };
     }""")
-    check(species['miss'] == [] and species['have'] == 72, f"all {species['have']} species have an archetype (missing {species['miss'][:8]})")
-    check(species['extra'] == 172, f"archetype table covers 72 + 100 new ids ({species['extra']})")
+    check(species['miss'] == [] and species['have'] == 172, f"all {species['have']} species have an archetype (missing {species['miss'][:8]})")
+    check(species['extra'] == 172, f"archetype table covers all 172 ids ({species['extra']})")
 
     # ---- rich: three rounds, structure, speed, pause, KO ----
     fight_rounds(page, 1, 1)

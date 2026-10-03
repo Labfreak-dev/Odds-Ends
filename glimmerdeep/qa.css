@@ -42,9 +42,16 @@
 }
 #title .layer { margin: 0 auto; flex: 0 0 auto; }
 
+/* Direct title buttons stay 240px until the screen is narrower than that (200% zoom). */
+#title .menu > .btn.btn {
+  min-width: 0;
+  width: min(240px, 100%);
+  max-width: 100%;
+}
 /* New Run is the primary action. The other eight menu buttons stay. */
 #title .menu > .btn[data-v="new"] {
-  min-width: min(300px, 92vw);
+  min-width: 0;
+  width: min(300px, 100%);
   min-height: 56px;
   font-size: 22px;
   padding: 14px 28px;
@@ -100,6 +107,14 @@
   }
   #game.wild .board {
     width: min(100%, 880px, calc((100vh - 110px) * 1.6));
+  }
+  #game:not(.wild) .scard .nm {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    font-size: 10px;
+    line-height: 1.1;
   }
 }
 

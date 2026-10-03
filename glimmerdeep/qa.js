@@ -128,14 +128,31 @@
   if (app && window.MutationObserver) new MutationObserver(schedule).observe(app, { childList: true, subtree: true });
   schedule();
 
-  const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const FOCUSABLE = 'button, summary, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  function hiddenInClosedDetails(el) {
+    const det = el.closest && el.closest('details');
+    if (!det || det.open) return false;
+    if (el.tagName === 'SUMMARY' || (el.closest && el.closest('summary'))) return false;
+    return true;
+  }
   function focusables(root) {
     return Array.prototype.filter.call(root.querySelectorAll(FOCUSABLE), el => {
       if (el.disabled) return false;
       if (el.tabIndex < 0) return false;
+      if (hiddenInClosedDetails(el)) return false;
       const r = el.getBoundingClientRect();
       return r.width > 0 || r.height > 0;
     });
+  }
+  function primaryAction(dlg) {
+    const greens = dlg.querySelectorAll('.acts .btn.green');
+    for (let i = greens.length - 1; i >= 0; i--) {
+      const el = greens[i];
+      if (el.disabled || el.tabIndex < 0 || hiddenInClosedDetails(el)) continue;
+      return el;
+    }
+    const list = focusables(dlg);
+    return list[0] || dlg;
   }
   function activeDialog() {
     const evo = document.querySelector('.evo:not(.out)');
@@ -175,8 +192,7 @@
       if (!trapped && ae && !dlg.contains(ae)) prevFocus = focusToken(ae);
       trapped = dlg;
       if (dlg.id === 'modal') armModal(dlg); else armEvo(dlg);
-      const list = focusables(dlg);
-      const target = list[0] || dlg;
+      const target = primaryAction(dlg);
       if (target && target.focus) target.focus();
     } else {
       trapped = null;

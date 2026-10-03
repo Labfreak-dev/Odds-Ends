@@ -5,7 +5,7 @@
 'use strict';
 const G = window.GD, C = window.GC, R = window.GR, U = window.GLIM;
 const $ = s => document.querySelector(s);
-const IMG = k => 'img/' + k + '.webp';
+const IMG = k => 'img/' + k + '.webp?v=w3';
 const SAVE = 'glimmerdeep.wilds.v1';
 const { FLOORS, SQUAD_START, SQUAD_MAX, XP_STAR, rng, pick, key, placeSide } = window.GW;
 // shinies: 1 in 20 wild creatures, 3 in 20 with the camp's Shiny Charm
@@ -19,12 +19,17 @@ const IN = { x0: 1.35, x1: 14.65, y0: 1.3, y1: 7.7 };   // walkable floor inside
 const DOOR = { n: [8, 0.72, 0], s: [8, 8.28, Math.PI], w: [0.72, 4.5, -Math.PI / 2], e: [15.28, 4.5, Math.PI / 2] };
 const DOORW = 2.7;   // v2 gate sprites are square, drawn unrotated
 const DOORA = { n: [0.5, 0.5395], s: [0.5, 0.4605], w: [0.5395, 0.5], e: [0.4605, 0.5] };   // door centre inside each file
-const DOORSKIN = { verdant: 1, magma: 1, tundra: 1, core: 1 };   // biomes with wd_*_<wall>_<biome> art
+const DOORSKIN = { verdant: 1, magma: 1, tundra: 1, core: 1, grotto: 1, spire: 1, crypt: 1, skyisles: 1, dunes: 1, mire: 1, foundry: 1, observatory: 1 };
 const WALK_CYCLE = 1.3;   // world units for one 8-frame stride
+const VWALK = { up: 0, down: 0 };   // frame counts; wd_tamer_<dir>_walk_1..n drop in at these names later
+const LEGHACK = false;              // side-view feet under the front/back still; leave off (perspective clash)
+const TAMER_H = 1.13;               // visible tamer height, world units (content of the 1.3 square)
+const TRAINER_H = 1.1 * TAMER_H;    // room trainers, about 1.1x the tamer, natural aspect
 const TAMER_FR = ['wd_tamer', 'wd_tamer_up', 'wd_tamer_down', 'wd_tamer_hurt_1', 'wd_tamer_hurt_2',
   'wd_tamer_idle_1', 'wd_tamer_idle_2', 'wd_tamer_idle_3', 'wd_tamer_idle_4',
   'wd_tamer_walk_1', 'wd_tamer_walk_2', 'wd_tamer_walk_3', 'wd_tamer_walk_4',
   'wd_tamer_walk_5', 'wd_tamer_walk_6', 'wd_tamer_walk_7', 'wd_tamer_walk_8'];
+for (const dir of ['up', 'down']) for (let i = 1; i <= VWALK[dir]; i++) TAMER_FR.push('wd_tamer_' + dir + '_walk_' + i);
 const DIRS = window.GW.DIRS, OPP = { n: 's', s: 'n', e: 'w', w: 'e' };
 const EARLY = ['verdant', 'grotto', 'magma', 'crypt'];
 const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
@@ -43,6 +48,8 @@ function preloadDoors() {
     warm('wd_' + kind + '_' + d);
     if (DOORSKIN[W.biome]) warm('wd_' + kind + '_' + d + '_' + W.biome);
   }
+  warm('wd_pit_' + W.biome); warm('wd_spikes_' + W.biome);
+  warm('wd_chest'); warm('wd_key'); warm('wd_berry'); warm('wd_shrine'); warm('wd_stairs');
 }
 
 // ---- save ---------------------------------------------------------------------------------------
@@ -82,7 +89,10 @@ async function offerRelics(n, title, skip, rare) {
   return v;
 }
 function revealMap(rank) {
-  for (const a of Object.values(W.rooms)) if (a.type !== 'secret' || rank >= 2) a.seen = true;
+  for (const a of Object.values(W.rooms)) {
+    if (a.type !== 'secret' || rank >= 2) a.seen = true;
+    if (a.type === 'secret' && rank >= 2) a.hint = true;   // full crack; minimap already uses seen
+  }
   if (V) minimap();
 }
 async function useTonic() {
@@ -103,6 +113,23 @@ function doorOf(room, d) {
   if (o.type === 'secret' || room.type === 'secret') return (o.type === 'secret' ? o : room).found ? 'open' : 'crack';
   if (o.type === 'locked' || room.type === 'locked') return (o.type === 'locked' ? o : room).unlocked ? 'open' : 'lock';
   return 'open';
+}
+function secretEnds(room, d) {
+  const o = W.rooms[key(room.x + DIRS[d][0], room.y + DIRS[d][1])];
+  if (!o) return null;
+  if (o.type === 'secret') return o;
+  if (room.type === 'secret') return room;
+  return null;
+}
+// how close the hidden seam starts to show. Brief F's Dowsing Rod adds units via rw('dowse') (0 when absent).
+function secretHintRange() { return 3.2 + (rw('dowse') || 0); }
+// 0 plain wall, 1 searched (soft glow), 2 map reveal (full crack). 'crack' stays the logic state.
+function secretLevel(room, d) {
+  const s = secretEnds(room, d);
+  if (!s || s.found) return 0;
+  if (s.hint) return 2;
+  if (room.whint && room.whint[d]) return 1;
+  return 0;
 }
 function markSeen() {
   const a = W.rooms[W.cur];
@@ -259,8 +286,8 @@ function enter() {
   preloadTamer();
   if (!V) {
     const cv = host.querySelector('#wCv');
-    V = { cv, ctx: cv.getContext('2d'), keys: {}, joy: null, px: 8, py: 4.5, fx: 1, step: 0, going: 0, vert: 0, bob: 0, flinch: 0, shown: '', mons: [], raf: 0, last: performance.now(),
-      inv: 0, push: { d: null, t: 0 }, slide: null, pause: false, msgT: 0, parts: [] };
+    V = { cv, ctx: cv.getContext('2d'), keys: {}, joy: null, px: 8, py: 4.5, fx: 1, step: 0, vstep: 0, going: 0, vert: 0, bob: 0, flinch: 0, shown: '', mons: [], raf: 0, last: performance.now(),
+      inv: 0, push: { d: null, t: 0 }, slide: null, pause: false, msgT: 0, parts: [], reveal: null, glintT: {}, hintAt: {}, idleNear: null };
     bindInput();
   }
   W.relics = W.relics || []; if (W.tonics == null) W.tonics = 0;
@@ -289,7 +316,7 @@ function placeRoom(from) {
   V.mons = [];
   V.grid = a.tiles ? a.tiles.split('|') : null;
   V.flow = null; V.flowAt = '';
-  V.going = 0; V.vert = 0; V.bob = 0;
+  V.going = 0; V.vert = 0; V.bob = 0; V.vstep = 0; V.reveal = null; V.idleNear = null;
   spawnMon(a);
   spawnTrainer(a);
   V.inv = 1.0;
@@ -320,7 +347,7 @@ function spawnMon(a) {
 function hud() {
   const a = room(), host = $('#wilds');
   host.querySelector('.wtop').innerHTML = `<button class="iconbtn" data-w="leave">◀</button><div class="grow"><div class="title">${W.floor > FLOORS ? 'The Rival\'s Den' : `Floor ${W.floor}/${FLOORS} · ${G.BIOMES[W.biome].name}`}</div>
-    <div class="small muted">${a.tr && !a.tr.beaten ? (a.tr.captain ? 'Floor captain · ' : a.tr.den ? 'The Rival\'s Den · ' : '') + G.TRAINERS[a.tr.arch].n : a.type === 'event' ? EV_N[a.event] : a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
+    <div class="small muted">${a.tr && !a.tr.beaten ? (a.tr.captain ? 'Floor captain · ' : a.tr.den ? 'The Rival\'s Den · ' : '') + G.TRAINERS[a.tr.arch].n : a.type === 'event' ? EV_N[a.event] : a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' && a.found ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
     <button class="pill wbtn" data-w="tonic" title="Glim Tonic: heal your squad"><img src="${IMG('wd_tonic')}" alt="">${W.tonics || 0}</button><span class="pill">🔑 ${W.keys}</span><span class="pill" title="Trainer Tokens"><img src="${IMG('wd_token')}" alt="">${meta().tokens || 0}</span><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta().shards}</span>
     ${(W.relics || []).length ? `<div class="wrelics">${W.relics.map(id => `<button class="wrel" data-w="relic:${id}" title="${WR[id].n}"><img src="${IMG(WR[id].ic)}" alt=""></button>`).join('')}</div>` : ''}`;
   host.querySelector('.wsquad').innerHTML = W.squad.map(m => {
@@ -463,8 +490,17 @@ function step(dt) {
     if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
-      if (V.push.t > 0.55) { const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'secret' ? t : a).found = true; U.SFX.wsecret(); U.toast('A secret room!'); burst(DOOR[d][0], DOOR[d][1], '#d9a6ff'); markSeen(); save(); minimap(); }
-      else msg('This wall looks cracked… keep pushing.');
+      if (V.push.t > 0.9) {
+        const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])];
+        (t.type === 'secret' ? t : a).found = true;
+        V.reveal = { d, t: 0, k: key(a.x, a.y) };
+        V.shake = 0.25;
+        U.SFX.wsecret(); U.toast('A secret room!');
+        burst(DOOR[d][0], DOOR[d][1], '#d9a6ff');
+        for (let i = 0; i < 12; i++) { const an = Math.random() * 6.3, v = 0.5 + Math.random() * 2; V.parts.push({ x: DOOR[d][0], y: DOOR[d][1], vx: Math.cos(an) * v, vy: Math.sin(an) * v - 0.6, t: 0, life: 0.4 + Math.random() * 0.35, c: '#b7b7c4' }); }
+        window.AX && AX.ev('secret');   // Brief F achievement hook
+        markSeen(); save(); minimap();
+      } else if (V.push.t > 0.3) msg('The wall feels hollow…');
     }
   };
   if (o.y < IN.y0) { if (gapX && dn === 'open') { if (o.y < 0.35) return go('n'); o.x = Math.max(7.25, Math.min(8.75, o.x)); } else { if (gapX && dn) tryDoor('n', dn); o.y = IN.y0; } }
@@ -476,12 +512,37 @@ function step(dt) {
   const dx = o.x - x0, dy = o.y - y0, dist = Math.hypot(dx, dy);
   if (dist > 1e-4) {
     const vert = Math.abs(dx) < 1e-3 || Math.abs(dx) < Math.abs(dy) * 0.25;
-    if (vert) { V.going = 2; V.vert = dy >= 0 ? 1 : -1; V.bob += dt * 10; }
+    if (vert) { V.going = 2; V.vert = dy >= 0 ? 1 : -1; V.vstep += dist; }
     else { V.going = 1; V.vert = 0; V.bob = 0; V.step += dist; }
-  } else { V.going = 0; V.vert = 0; V.bob = 0; }
+  } else { V.going = 0; V.vert = 0; V.bob = 0; V.vstep = 0; }
   V.px = o.x; V.py = o.y;
   V.hurtT = (V.hurtT || 0) - dt; V.shake = Math.max(0, (V.shake || 0) - dt);
+  if (V.reveal) { V.reveal.t += dt; if (V.reveal.t >= 0.7) V.reveal = null; }
   { const [c, y] = tileAt(V.px, V.py), [tx, ty] = tileXY(c, y); if (tile(c, y) === 'S' && !rw('spikeproof') && Math.abs(V.px - tx) < 0.42 && Math.abs(V.py - ty) < 0.42 && V.hurtT <= 0 && !V.slide) hurt(); }
+  // hidden secret walls: glint and a quiet tick up close; standing still searches the stone
+  {
+    let held = false;
+    for (const d in DOOR) {
+      if (doorOf(a, d) !== 'crack') continue;
+      const d2 = Math.hypot(V.px - DOOR[d][0], V.py - DOOR[d][1]), lv = secretLevel(a, d);
+      if (d2 < 2.2 && lv < 2) {
+        V.glintT[d] = (V.glintT[d] || 0) + dt;
+        if (V.glintT[d] >= 0.7) {
+          V.glintT[d] = 0;
+          V.parts.push({ x: DOOR[d][0] + (Math.random() - 0.5) * 0.25, y: DOOR[d][1], vx: (Math.random() - 0.5) * 0.35, vy: -0.45 - Math.random() * 0.4, t: 0, life: 0.55, c: '#ffe9a8', star: 1 });
+        }
+        const now = performance.now();
+        if (now - (V.hintAt[d] || 0) > 4000) { V.hintAt[d] = now; U.SFX.whint(); }
+      }
+      if (dist < 1e-3 && d2 < 1.6 && lv < 1) {
+        held = true;
+        if (!V.idleNear || V.idleNear.d !== d) V.idleNear = { d, t: 0 };
+        V.idleNear.t += dt;
+        if (V.idleNear.t >= 2) { a.whint = a.whint || {}; a.whint[d] = 1; }
+      }
+    }
+    if (!held) V.idleNear = null;
+  }
   // pickups
   const near = (x, y, r) => Math.hypot(V.px - x, V.py - y) < r;
   if (a.item && !a.used && near(8, 4.5, 0.9) && !(a.mon && !a.mon.beaten)) {
@@ -754,10 +815,11 @@ function drawCone(ctx, ox, oy, S) {
 }
 function drawTrainer(ctx, ox, oy, S) {
   const T = V.tr, a = room(), art = img(G.TRAINERS[a.tr.arch].art), x = ox + T.x * S, y = oy + T.y * S;
-  // trainer art faces left, so mirror it to look right
-  sprite(ctx, art, x, y, 1.45 * S, -(T.fx || -1), T.spotted && T.bang <= 0 ? Math.abs(Math.sin(T.walk || 0)) * 0.05 : 0, !!(a.tr.captain || a.tr.den), false);
+  const H = TRAINER_H * S;
+  // trainer art faces left, so mirror it to look right. Captains and the den glow at the same height.
+  spriteH(ctx, art, x, y + 0.03 * S, H, -(T.fx || -1), T.spotted && T.bang <= 0 ? Math.abs(Math.sin(T.walk || 0)) * 0.05 : 0, !!(a.tr.captain || a.tr.den), false);
   if (T.spotted && T.bang > 0) {
-    const bx = x, by = y - 1.75 * S, r = 0.32 * S;
+    const bx = x, by = y - H - 0.3 * S, r = 0.32 * S;
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, r, 0, 6.3); ctx.fill();
     ctx.fillStyle = '#e8243c'; ctx.font = `900 ${Math.round(r * 1.5)}px Fredoka, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', bx, by + r * 0.05);
   }
@@ -924,9 +986,9 @@ function draw() {
   }
   drawRoom(room(), ox, oy, S, true);
   // creatures and the tamer, back to front
-  const ents = V.mons.map(m => ({ y: m.y, f: () => sprite(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
+  const ents = V.mons.map(m => ({ y: m.y, f: () => spriteH(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
   for (const [x, y, rr] of rockList(room())) ents.push({ y, f: () => drawRock(ctx, ox, oy, S, x, y, rr) });
-  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const [k, fx, bob] = tamerPose(); sprite(ctx, skinImg(tamerImg(k)), ox + V.px * S, oy + V.py * S, 1.3 * S, fx, bob, false); ctx.globalAlpha = 1; } });
+  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const pose = tamerPose(); sprite(ctx, skinImg(tamerImg(pose[0])), ox + V.px * S, oy + V.py * S, 1.3 * S, pose[1], pose[2], false, false, pose[3]); ctx.globalAlpha = 1; } });
   if (V.tr) { drawCone(ctx, ox, oy, S); ents.push({ y: V.tr.y, f: () => drawTrainer(ctx, ox, oy, S) }); }
   ents.sort((p, q) => p.y - q.y).forEach(e => e.f());
   for (const p of V.parts) {
@@ -954,25 +1016,37 @@ function drawRoom(a, ox, oy, S, live) {
   for (const d in DOOR) {
     const st = doorOf(a, d); if (!st) continue;
     const [x, y, rot] = DOOR[d];
-    drawDoor(ctx, st, d, x, y, rot, ox, oy, S);
+    drawDoor(ctx, a, st, d, x, y, rot, ox, oy, S, live);
   }
   const grid = a.tiles ? a.tiles.split('|') : null;
+  const trapImg = kind => { const b = img('wd_' + kind + '_' + W.biome); return ready(b) ? b : img('wd_' + kind); };
   if (grid) for (let y = 0; y < TR; y++) for (let c = 0; c < TC; c++) {
     const ch = grid[y][c]; if (ch !== 'P' && ch !== 'S') continue;
-    const [tx, ty] = tileXY(c, y), im = img(ch === 'P' ? 'wd_pit' : 'wd_spikes'), w = (ch === 'P' ? 1.12 : 0.98) * S;
+    const [tx, ty] = tileXY(c, y), im = trapImg(ch === 'P' ? 'pit' : 'spikes'), w = (ch === 'P' ? 1.12 : 1.04) * S;
     if (ready(im)) ctx.drawImage(im, ox + tx * S - w / 2, oy + ty * S - w / 2, w, w);
     else { ctx.fillStyle = ch === 'P' ? '#05030c' : '#8a8fa0'; ctx.fillRect(ox + (tx - 0.45) * S, oy + (ty - 0.45) * S, 0.9 * S, 0.9 * S); }
   }
   if (!live) for (const [x, y, rr] of rockList(a)) drawRock(ctx, ox, oy, S, x, y, rr);
   const cx = ox + 8 * S, cy = oy + 4.5 * S;
   if (a.item && !a.used && !(a.mon && !a.mon.beaten)) {
-    const k = a.item === 'event' ? EV_IMG[a.event] : { key: 'wd_key', berry: 'wd_berry', chest: 'node_treasure', shrine: 'wd_shrine', tonic: 'wd_tonic' }[a.item], im = img(k);
-    const sz = (a.item === 'event' ? 1.7 : a.item === 'shrine' ? 1.6 : a.item === 'chest' ? 1.3 : 0.9) * S;
+    const evNpc = a.item === 'event' && (a.event === 'merchant' || a.event === 'explorer' || a.event === 'dummy');
+    const evProp = a.item === 'event' && !evNpc;
+    const k = a.item === 'event' ? EV_IMG[a.event] : { key: 'wd_key', berry: 'wd_berry', chest: 'wd_chest', shrine: 'wd_shrine', tonic: 'wd_tonic' }[a.item], im = img(k);
     const t = performance.now() / 1000, bob = ['key', 'berry', 'tonic'].includes(a.item) ? Math.sin(t * 3) * 0.08 * S : 0;
     const gl = a.item === 'shrine' || a.item === 'tonic' ? '107,255,143' : a.item === 'event' ? '111,211,255' : '255,214,90';
-    if (ready(im)) { shadow(ctx, cx, cy + sz * 0.3, sz * 0.4); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, gl); ctx.drawImage(im, cx - sz / 2, cy - sz * 0.75 + bob, sz, sz); }
+    if (evNpc && ready(im)) spriteH(ctx, im, cx, cy + 0.03 * S, 1.3 * S, 1, 0, false, false);
+    else if (evProp && ready(im)) {
+      const box = 1.5 * S, ar = im.naturalWidth / im.naturalHeight;
+      const w = ar >= 1 ? box : box * ar, h = ar >= 1 ? box / ar : box;
+      shadow(ctx, cx, cy + h * 0.35, w * 0.32); glow(ctx, cx, cy - h * 0.15, Math.max(w, h) * 0.7, gl);
+      ctx.drawImage(im, cx - w / 2, cy - h * 0.72, w, h);
+    } else if (ready(im)) {
+      const sz = (a.item === 'shrine' ? 1.6 : a.item === 'chest' ? 1.3 : (a.item === 'key' || a.item === 'berry') ? 1.0 : 0.9) * S;
+      shadow(ctx, cx, cy + sz * 0.3, sz * 0.4); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, gl);
+      ctx.drawImage(im, cx - sz / 2, cy - sz * 0.75 + bob, sz, sz);
+    }
   }
-  if (a.type === 'lair' && a.mon && a.mon.beaten) { const im = img('wd_stairs'); if (ready(im)) { glow(ctx, cx, cy, 1.3 * S, '120,200,255'); ctx.drawImage(im, cx - 0.9 * S, cy - 0.9 * S, 1.8 * S, 1.8 * S); } }
+  if (a.type === 'lair' && a.mon && a.mon.beaten) { const im = img('wd_stairs'); if (ready(im)) { glow(ctx, cx, cy, 1.2 * S, '120,200,255'); ctx.drawImage(im, cx - 0.8 * S, cy - 0.8 * S, 1.6 * S, 1.6 * S); } }
   if (!live) return;
 }
 function rockList(a) {
@@ -993,30 +1067,65 @@ function glow(ctx, x, y, r, rgb) {
 }
 // per-wall gate, unrotated. Biome skin, then the grey file, then the old rotated sprite.
 // While a per-wall file is still decoding, hold rather than flash the flat cutout.
-function drawDoor(ctx, st, d, x, y, rot, ox, oy, S) {
-  const kind = st === 'open' ? 'door' : st === 'lock' || st === 'sealed' ? 'lock' : 'crack';
+function gateIm(kind, d) {
   const neu = img('wd_' + kind + '_' + d);
   const skin = DOORSKIN[W.biome] ? img('wd_' + kind + '_' + d + '_' + W.biome) : null;
-  if (skin && ready(skin)) return drawGate(ctx, skin, d, x, y, ox, oy, S);
-  if (ready(neu)) return drawGate(ctx, neu, d, x, y, ox, oy, S);
-  if ((skin && !skin.complete) || !neu.complete) return;
+  if (skin && ready(skin)) return { im: skin, mode: 'gate' };
+  if (ready(neu)) return { im: neu, mode: 'gate' };
+  if ((skin && !skin.complete) || !neu.complete) return null;
   const im = img(kind === 'door' ? 'wd_door' : kind === 'lock' ? 'wd_lock' : 'wd_crack');
-  if (!ready(im)) return;
+  return ready(im) ? { im, mode: 'rot' } : null;
+}
+function paintGate(ctx, kind, d, x, y, rot, ox, oy, S) {
+  const g = gateIm(kind, d); if (!g) return;
+  if (g.mode === 'gate') return drawGate(ctx, g.im, d, x, y, ox, oy, S);
   ctx.save(); ctx.translate(ox + x * S, oy + y * S); ctx.rotate(rot);
   const w = 1.9 * S;   // shared fallback size; the old crack 1.5 split is not in this file
-  ctx.drawImage(im, -w / 2, -w * 0.62, w, w);
+  ctx.drawImage(g.im, -w / 2, -w * 0.62, w, w);
+  ctx.restore();
+}
+function drawDoor(ctx, a, st, d, x, y, rot, ox, oy, S, live) {
+  const revealing = V.reveal && V.reveal.d === d && V.reveal.k === key(a.x, a.y) && V.reveal.t < 0.7;
+  if (revealing) {
+    const t = V.reveal.t, openA = t < 0.35 ? 0 : (t - 0.35) / 0.35;
+    ctx.save(); ctx.globalAlpha = 1 - openA; paintGate(ctx, 'crack', d, x, y, rot, ox, oy, S); ctx.restore();
+    if (openA > 0) { ctx.save(); ctx.globalAlpha = openA; paintGate(ctx, 'door', d, x, y, rot, ox, oy, S); ctx.restore(); }
+    return;
+  }
+  if (st !== 'crack') return paintGate(ctx, st === 'open' ? 'door' : 'lock', d, x, y, rot, ox, oy, S);
+  const lv = secretLevel(a, d);
+  if (lv >= 2) return paintGate(ctx, 'crack', d, x, y, rot, ox, oy, S);
+  if (!live) return;   // a far room stays a plain wall; the minimap does not list it either
+  const d2 = Math.hypot(V.px - DOOR[d][0], V.py - DOOR[d][1]);
+  const seam = d2 < secretHintRange() ? (1 - d2 / secretHintRange()) * 0.22 : 0;
+  const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 1000 * 4);
+  let alpha = seam * pulse;
+  if (lv >= 1) alpha = Math.max(alpha, 0.45);
+  if (V.push && V.push.d === d && V.push.t > 0) alpha = Math.max(alpha, Math.min(1, V.push.t / 0.9));
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = Math.min(1, alpha);
+  paintGate(ctx, 'crack', d, x, y, rot, ox, oy, S);
   ctx.restore();
 }
 function drawGate(ctx, im, d, x, y, ox, oy, S) {
   const w = DOORW * S, [fx, fy] = DOORA[d];
   ctx.drawImage(im, ox + x * S - w * fx, oy + y * S - w * fy, w, w);
 }
-// hurt flinch, then a side stride (mirrored when facing left), up/down stills, idle breathing.
-// The stride frames already move the feet, so the old bob is only for the up/down stills.
+// hurt flinch, then a side stride (mirrored when facing left). Up/down uses real frames when
+// VWALK says they exist, otherwise a distance-driven waddle on the still (lift, lean, mirror).
 function tamerPose() {
   if (V.flinch > 0.26) return ['wd_tamer_hurt_1', V.fx || 1, 0];
   if (V.flinch > 0) return ['wd_tamer_hurt_2', V.fx || 1, 0];
-  if (V.going === 2) return [V.vert > 0 ? 'wd_tamer_down' : 'wd_tamer_up', 1, Math.abs(Math.sin(V.bob)) * 0.07];
+  if (V.going === 2) {
+    const dir = V.vert > 0 ? 'down' : 'up', n = VWALK[dir];
+    if (n) return ['wd_tamer_' + dir + '_walk_' + (1 + Math.floor(V.vstep / (WALK_CYCLE / n)) % n), 1, 0];
+    const p = V.vstep / (WALK_CYCLE / 2), foot = Math.floor(p) % 2, ph = p % 1;
+    const o = { lift: Math.sin(Math.PI * ph) * 0.07, rot: (foot ? 1 : -1) * 0.07, sx: foot ? 1 : -1, sq: 1 - 0.035 * Math.sin(Math.PI * ph) };
+    if (LEGHACK) o.leg = 'wd_tamer_walk_' + (foot ? 6 : 2);
+    return [dir === 'down' ? 'wd_tamer_down' : 'wd_tamer_up', 1, 0, o];
+  }
   if (V.going === 1) return ['wd_tamer_walk_' + (1 + Math.floor(V.step / (WALK_CYCLE / 8)) % 8), V.fx || 1, 0];
   return ['wd_tamer_idle_' + (1 + Math.floor(performance.now() / 260) % 4), V.fx || 1, 0];
 }
@@ -1029,16 +1138,51 @@ function tamerImg(k) {
   if (ready(idle)) return idle;
   return img('wd_tamer');
 }
-// a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it
-function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {
-  shadow(ctx, x, y, sz * 0.32);
+// a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it.
+// o (optional): { lift, rot, sx, sq, leg } for the up/down waddle.
+function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny, o) {
+  o = o || {};
+  const lift = o.lift || 0;
+  shadow(ctx, x, y, sz * 0.32 * (1 - 0.25 * Math.min(1, lift / 0.07)));
   if (boss) glow(ctx, x, y - sz * 0.4, sz * 0.7, '255,90,110');
   if (shiny) glow(ctx, x, y - sz * 0.45, sz * 0.62, '255,246,176');
   if (!ready(im)) return;
-  ctx.save(); ctx.translate(x, y); ctx.scale(fx < 0 ? -1 : 1, 1 + bob);
+  ctx.save();
+  ctx.translate(x, y - lift * sz);
+  ctx.rotate(o.rot || 0);
+  ctx.scale((fx < 0 ? -1 : 1) * (o.sx || 1), (1 + (bob || 0)) * (o.sq || 1));
   if (shiny) ctx.filter = SHINY;
-  ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz); ctx.restore();
+  ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz);
+  if (LEGHACK && o.leg) {
+    const leg = img(o.leg);
+    if (ready(leg)) {
+      const sy = leg.naturalHeight * 0.74, sh = leg.naturalHeight * 0.19, dw = sz * 0.45, dh = sz * 0.19;
+      ctx.drawImage(leg, 0, sy, leg.naturalWidth, sh, -dw / 2, -sz * 0.92 + sz * 0.74, dw, dh);
+    }
+  }
+  ctx.restore();
+}
+// same anchor, but the file's own aspect: height H, width from the bitmap (capped at 1.5 H).
+function spriteH(ctx, im, x, y, H, fx, bob, boss, shiny, o) {
+  o = o || {};
+  if (!ready(im)) return;
+  const ar = im.naturalWidth / im.naturalHeight;
+  let w = H * ar, h = H;
+  if (w > 1.5 * h) { w = 1.5 * h; h = w / ar; }
+  const lift = o.lift || 0;
+  shadow(ctx, x, y, w * 0.38 * (1 - 0.25 * Math.min(1, lift / 0.07)));
+  if (boss) glow(ctx, x, y - h * 0.4, h * 0.7, '255,90,110');
+  if (shiny) glow(ctx, x, y - h * 0.45, h * 0.62, '255,246,176');
+  ctx.save();
+  ctx.translate(x, y - lift * h);
+  ctx.rotate(o.rot || 0);
+  ctx.scale((fx < 0 ? -1 : 1) * (o.sx || 1), (1 + (bob || 0)) * (o.sq || 1));
+  if (shiny) ctx.filter = SHINY;
+  ctx.drawImage(im, -w / 2, -h, w, h);
+  ctx.restore();
 }
 
-window.WILDS = { open, post, dexHtml, hud, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
+window.WILDS = { open, post, dexHtml, hud, get state() { return W; }, get view() { return V; },
+  doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]),
+  secretLevel: d => W && V && secretLevel(room(), d), secretHintRange, tamerPose };
 })();

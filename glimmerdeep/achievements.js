@@ -403,33 +403,46 @@ function flushBurst() {
   if (!list.length) return;
   if (list.length === 1) enqueue(list[0]);
   else enqueue({
-    n: list.length + ' achievements',
+    n: list.length + ' achievements unlocked',
     d: list.slice(0, 3).map(x => x.n).join(', ') + (list.length > 3 ? '…' : ''),
     ic: '🏆',
     reward: { shards: list.reduce((s, x) => s + ((x.reward && x.reward.shards) || 0), 0) },
   });
 }
+let current = null;
+let hideT = 0;
 function enqueue(def) { queue.push(def); pump(); }
 function busy() {
   return !!($('#modal.on') || $('#game.fighting'));
 }
-function pump() {
-  if (showing || !queue.length || busy()) return;
-  const def = queue.shift();
+function park() {
   const el = $('#achToast');
-  if (!el) return;
+  if (el) el.classList.remove('on');
+  if (current) { queue.unshift(current); current = null; }
+  showing = false;
+  clearTimeout(hideT);
+}
+function pump() {
+  if (busy()) { if (showing) park(); return; }
+  if (showing || !queue.length) return;
+  const def = current = queue.shift();
+  const el = $('#achToast');
+  if (!el) { current = null; showing = false; return; }
   showing = true;
   const rw = rewardText(def.reward);
   const icon = def.badge && window.gdIcon ? '<img class="achbadge" src="' + gdIcon(def.badge, def.ic) + '" alt="">' : (def.ic || '🏆');
   el.innerHTML = '<b>' + icon + ' ' + esc(def.n) + '</b><div class="small">' + esc(def.d || '') + (rw ? ' · ' + esc(rw) : '') + '</div>';
   el.classList.add('on');
-  setTimeout(() => {
+  clearTimeout(hideT);
+  hideT = setTimeout(() => {
+    if (current !== def) return;
     el.classList.remove('on');
+    current = null;
     showing = false;
     setTimeout(pump, 280);
   }, 3000);
 }
-setInterval(() => { if (!busy()) pump(); }, 500);
+setInterval(() => { if (busy()) { if (showing) park(); } else pump(); }, 500);
 
 function goalText(g) {
   const t = TPL[g.id];

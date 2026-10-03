@@ -733,6 +733,7 @@ button.setrow { cursor: pointer; }
 #achToast { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translate(-50%, -140%); z-index: 220; max-width: min(420px, 92%); padding: 10px 14px; border-radius: 14px; background: #1a1338; color: var(--ink); text-align: center; pointer-events: none; box-shadow: 0 0 0 2px var(--gold), 0 10px 24px rgba(0,0,0,.45); transition: transform .28s ease; }
 #achToast img.achbadge { width: 64px; height: 64px; max-width: 64px; max-height: 64px; vertical-align: middle; }
 #achToast.on { transform: translate(-50%, 0); }
+#modal.on ~ #achToast.on { transform: translate(-50%, -140%); }
 #achToast b { font-family: Fredoka, Nunito, sans-serif; }
 body[data-theme="forest"] { --bg: #0c1a12; --panel: #1c3a2a; --panel2: #245038; --line: #3f8f5c; }
 body[data-theme="forest"] #game { background: #07140e; }
@@ -817,17 +818,17 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 <script src="species2.js?v=m1"></script>
 <script src="data.js?v=m2"></script>
 <script src="relics2.js?v=f2"></script>
-<script src="chess.js?v=m2f1"></script>
+<script src="chess.js?v=m2"></script>
 <script src="fightstats.js?v=1"></script>
-<script src="crun.js?v=m2f2"></script>
+<script src="crun.js?v=m2"></script>
 <script src="fx.js?v=2"></script>
 <script src="glim-anim.js?v=m3"></script>
 <script src="glim-anim-species.js?v=m3"></script>
 <script src="audio.js?v=3"></script>
-<script src="game.js?v=m6f3"></script>
+<script src="game.js?v=m7"></script>
 <script src="wgen.js?v=2"></script>
-<script src="wilds.js?v=m5f3"></script>
-<script src="achievements.js?v=f3"></script>
+<script src="wilds.js?v=m6"></script>
+<script src="achievements.js?v=f4"></script>
 <script src="cosmetics.js?v=f2"></script>
 </body>
 </html>

@@ -508,17 +508,14 @@ function step(dt) {
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
       if (V.push.t > 0.9) {
         const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])];
-        const sec = (t.type === 'secret' ? t : a);
-        if (!sec.found) {
-          sec.found = true;
-          V.reveal = { d, t: 0, k: key(a.x, a.y) };
-          V.shake = 0.25;
-          U.SFX.wsecret(); U.toast('A secret room!');
-          burst(DOOR[d][0], DOOR[d][1], '#d9a6ff');
-          for (let i = 0; i < 12; i++) { const an = Math.random() * 6.3, v = 0.5 + Math.random() * 2; V.parts.push({ x: DOOR[d][0], y: DOOR[d][1], vx: Math.cos(an) * v, vy: Math.sin(an) * v - 0.6, t: 0, life: 0.4 + Math.random() * 0.35, c: '#b7b7c4' }); }
-          window.AX && AX.ev('secret');
-          markSeen(); save(); minimap();
-        }
+        (t.type === 'secret' ? t : a).found = true;
+        V.reveal = { d, t: 0, k: key(a.x, a.y) };
+        V.shake = 0.25;
+        U.SFX.wsecret(); U.toast('A secret room!');
+        burst(DOOR[d][0], DOOR[d][1], '#d9a6ff');
+        for (let i = 0; i < 12; i++) { const an = Math.random() * 6.3, v = 0.5 + Math.random() * 2; V.parts.push({ x: DOOR[d][0], y: DOOR[d][1], vx: Math.cos(an) * v, vy: Math.sin(an) * v - 0.6, t: 0, life: 0.4 + Math.random() * 0.35, c: '#b7b7c4' }); }
+        window.AX && AX.ev('secret');   // Brief F achievement hook
+        markSeen(); save(); minimap();
       } else if (V.push.t > 0.3) msg('The wall feels hollow…');
     }
   };

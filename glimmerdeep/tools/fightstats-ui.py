@@ -44,18 +44,28 @@ def assert_report(page, tag, anim0):
     check('Battle report' in page.locator('#modalBox .fsum summary').inner_text(), f'{tag}: summary label')
     nums = page.evaluate("""() => [...document.querySelectorAll('#modalBox .fsum [data-fs-n]')].map(n => +n.getAttribute('data-fs-n') || 0)""")
     check(any(n > 0 for n in nums), f'{tag}: a creature recorded a number')
+    bad = page.evaluate("""() => [...document.querySelectorAll('#modalBox .fsum [data-fs-n]')].filter(n => {
+      const v = +n.getAttribute('data-fs-n') || 0;
+      const shown = n.textContent.trim();
+      const expect = Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toFixed(1);
+      return shown !== expect;
+    }).map(n => n.textContent + ' vs ' + n.getAttribute('data-fs-n'))""")
+    zeros = page.evaluate("""() => [...document.querySelectorAll('#modalBox .fsum [data-fs-n]')].filter(n => (+n.getAttribute('data-fs-n') || 0) > 0 && n.textContent.trim() === '0').length""")
     if anim0:
-        bad = page.evaluate("""() => [...document.querySelectorAll('#modalBox .fsum [data-fs-n]')].filter(n => {
-          const v = +n.getAttribute('data-fs-n') || 0;
-          const shown = n.textContent.trim();
-          const expect = Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toFixed(1);
-          return shown !== expect;
-        }).map(n => n.textContent + ' vs ' + n.getAttribute('data-fs-n'))""")
         check(not bad, f'{tag}: ?anim=0 shows final numbers before expand' + ('' if not bad else ' ' + str(bad[:3])))
+    else:
+        check(zeros > 0, f'{tag}: count-up starts at 0 ({zeros} numbers)')
     page.locator('#modalBox .fsum summary').click()
     page.wait_for_selector('#modalBox .fsum[open]')
     if not anim0:
         page.wait_for_timeout(750)
+        settled = page.evaluate("""() => [...document.querySelectorAll('#modalBox .fsum [data-fs-n]')].filter(n => {
+          const v = +n.getAttribute('data-fs-n') || 0;
+          const shown = n.textContent.trim();
+          const expect = Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toFixed(1);
+          return shown !== expect;
+        }).length""")
+        check(settled == 0, f'{tag}: numbers finish counting up')
     for tab in ('heal', 'cc', 'taken', 'dmg'):
         page.locator(f'#modalBox [data-fs-tab="{tab}"]').click()
         page.wait_for_timeout(40)
@@ -194,8 +204,6 @@ def wilds(page, tag, anim0):
 def run(browser, width, height, query, anim0):
     tag = str(width)
     ctx = browser.new_context(viewport={'width': width, 'height': height})
-    if not anim0:
-        ctx.emulate_media(reduced_motion='no-preference')
     page = ctx.new_page()
     errs, http = [], []
     page.on('pageerror', lambda e: errs.append(str(e)))

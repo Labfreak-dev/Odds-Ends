@@ -5,7 +5,7 @@
 'use strict';
 const G = window.GD, C = window.GC, R = window.GR, U = window.GLIM;
 const $ = s => document.querySelector(s);
-const IMG = k => 'img/' + k + '.webp?v=w3';
+const IMG = k => 'img/' + k + '.webp?v=w4';
 const SAVE = 'glimmerdeep.wilds.v1';
 const { FLOORS, SQUAD_START, SQUAD_MAX, XP_STAR, rng, pick, key, placeSide } = window.GW;
 // shinies: 1 in 20 wild creatures, 3 in 20 with the camp's Shiny Charm
@@ -20,8 +20,10 @@ const DOOR = { n: [8, 0.72, 0], s: [8, 8.28, Math.PI], w: [0.72, 4.5, -Math.PI /
 const DOORW = 2.7;   // v2 gate sprites are square, drawn unrotated
 const DOORA = { n: [0.5, 0.5395], s: [0.5, 0.4605], w: [0.5395, 0.5], e: [0.4605, 0.5] };   // door centre inside each file
 const DOORSKIN = { verdant: 1, magma: 1, tundra: 1, core: 1, grotto: 1, spire: 1, crypt: 1, skyisles: 1, dunes: 1, mire: 1, foundry: 1, observatory: 1 };
+const SECRETSKIN = { verdant: 1, grotto: 1, magma: 1, crypt: 1, tundra: 1, spire: 1, skyisles: 1, dunes: 1, mire: 1, foundry: 1, observatory: 1, core: 1 };   // biomes shipping wd_secret_* / wd_secretopen_* (v4). Set one to 0 to fall back to the plain wall.
+const SECRET_FAR_A = 0;   // camouflage weight beyond the hint range. 0 = plain wall from afar; the sprite fades in only as you approach.
 const WALK_CYCLE = 1.3;   // world units for one 8-frame stride
-const VWALK = { up: 0, down: 0 };   // frame counts; wd_tamer_<dir>_walk_1..n drop in at these names later
+const VWALK = { up: 8, down: 8 };   // frame counts; wd_tamer_<dir>_1..n (v4 art)
 const LEGHACK = false;              // side-view feet under the front/back still; leave off (perspective clash)
 const TAMER_H = 1.13;               // visible tamer height, world units (content of the 1.3 square)
 const TRAINER_H = 1.1 * TAMER_H;    // room trainers, about 1.1x the tamer, natural aspect
@@ -29,7 +31,7 @@ const TAMER_FR = ['wd_tamer', 'wd_tamer_up', 'wd_tamer_down', 'wd_tamer_hurt_1',
   'wd_tamer_idle_1', 'wd_tamer_idle_2', 'wd_tamer_idle_3', 'wd_tamer_idle_4',
   'wd_tamer_walk_1', 'wd_tamer_walk_2', 'wd_tamer_walk_3', 'wd_tamer_walk_4',
   'wd_tamer_walk_5', 'wd_tamer_walk_6', 'wd_tamer_walk_7', 'wd_tamer_walk_8'];
-for (const dir of ['up', 'down']) for (let i = 1; i <= VWALK[dir]; i++) TAMER_FR.push('wd_tamer_' + dir + '_walk_' + i);
+for (const dir of ['up', 'down']) for (let i = 1; i <= VWALK[dir]; i++) TAMER_FR.push('wd_tamer_' + dir + '_' + i);
 const DIRS = window.GW.DIRS, OPP = { n: 's', s: 'n', e: 'w', w: 'e' };
 const EARLY = ['verdant', 'grotto', 'magma', 'crypt'];
 const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
@@ -42,7 +44,12 @@ function img(k) { if (!imgs[k]) { const i = new Image(); i.src = IMG(k); imgs[k]
 const ready = i => !!i && (i instanceof HTMLCanvasElement || (i.complete && i.naturalWidth > 0));
 // fetch and decode ahead of the first draw, so a new frame is never a blank
 function warm(k) { const i = img(k); if (typeof i.decode === 'function') i.decode().catch(() => {}); return i; }
-function preloadTamer() { for (const k of TAMER_FR) warm(k); }
+function preloadTamer() {
+  for (const k of TAMER_FR) warm(k);
+  // outfits recolour on first use; warm the new stride frames while the browser is idle
+  const sk = meta().skin;
+  if (sk && sk !== 'classic' && typeof requestIdleCallback === 'function') requestIdleCallback(() => { for (const k of TAMER_FR) skinImg(img(k)); });
+}
 function preloadDoors() {
   if (!W || !W.biome) return;
   for (const kind of ['door', 'lock', 'crack']) for (const d of ['n', 's', 'w', 'e']) {
@@ -50,6 +57,7 @@ function preloadDoors() {
     if (DOORSKIN[W.biome]) warm('wd_' + kind + '_' + d + '_' + W.biome);
   }
   warm('wd_pit_' + W.biome); warm('wd_spikes_' + W.biome);
+  if (SECRETSKIN[W.biome]) for (const d of ['n', 's', 'w', 'e']) { warm('wd_secret_' + d + '_' + W.biome); warm('wd_secretopen_' + d + '_' + W.biome); }
   warm('wd_chest'); warm('wd_key'); warm('wd_berry'); warm('wd_shrine'); warm('wd_stairs');
 }
 
@@ -322,6 +330,7 @@ function placeRoom(from) {
   V.grid = a.tiles ? a.tiles.split('|') : null;
   V.flow = null; V.flowAt = '';
   V.going = 0; V.vert = 0; V.bob = 0; V.vstep = 0; V.reveal = null; V.idleNear = null;
+  if (V.push) { V.push.d = null; V.push.t = 0; }   // a leftover push must not light the next room's secret
   spawnMon(a);
   spawnTrainer(a);
   V.inv = 1.0;
@@ -490,10 +499,13 @@ function step(dt) {
   // walls, with gaps where there are open doors
   const gapX = Math.abs(o.x - 8) < 0.8, gapY = Math.abs(o.y - 4.5) < 0.8;
   const dn = doorOf(a, 'n'), ds = doorOf(a, 's'), dw = doorOf(a, 'w'), de = doorOf(a, 'e');
+  let pushingCrack = false;
   const tryDoor = (d, st) => {
     if (st === 'sealed') return msg('The doors slammed shut. Win the trainer battle first!');
     if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
+      pushingCrack = true;
+      if (!V.push) V.push = { d: null, t: 0 };
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
       if (V.push.t > 0.9) {
         const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])];
@@ -512,6 +524,7 @@ function step(dt) {
   if (o.y > IN.y1) { if (gapX && ds === 'open') { if (o.y > RH - 0.35) return go('s'); o.x = Math.max(7.25, Math.min(8.75, o.x)); } else { if (gapX && ds) tryDoor('s', ds); o.y = IN.y1; } }
   if (o.x < IN.x0) { if (gapY && dw === 'open') { if (o.x < 0.35) return go('w'); o.y = Math.max(3.75, Math.min(5.25, o.y)); } else { if (gapY && dw) tryDoor('w', dw); o.x = IN.x0; } }
   if (o.x > IN.x1) { if (gapY && de === 'open') { if (o.x > RW - 0.35) return go('e'); o.y = Math.max(3.75, Math.min(5.25, o.y)); } else { if (gapY && de) tryDoor('e', de); o.x = IN.x1; } }
+  if (!pushingCrack && V.push && V.push.t) { V.push.d = null; V.push.t = 0; }   // letting go must not leave the crack at full brightness
   collideRocks(o, 0.38);
   // stride from the distance that actually happened, so a wall or rock stops the feet
   const dx = o.x - x0, dy = o.y - y0, dist = Math.hypot(dx, dy);
@@ -995,7 +1008,7 @@ function draw() {
   // creatures and the tamer, back to front
   const ents = V.mons.map(m => ({ y: m.y, f: () => spriteH(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
   for (const [x, y, rr] of rockList(room())) ents.push({ y, f: () => drawRock(ctx, ox, oy, S, x, y, rr) });
-  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const pose = tamerPose(); sprite(ctx, skinImg(tamerImg(pose[0])), ox + V.px * S, oy + V.py * S, 1.3 * S, pose[1], pose[2], false, false, pose[3]); ctx.globalAlpha = 1; } });
+  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const pose = tamerPose(); const o = Object.assign({ rim: 1 }, pose[3] || {}); sprite(ctx, skinImg(tamerImg(pose[0])), ox + V.px * S, oy + V.py * S, 1.3 * S, pose[1], pose[2], false, false, o); ctx.globalAlpha = 1; } });
   if (V.tr) { drawCone(ctx, ox, oy, S); ents.push({ y: V.tr.y, f: () => drawTrainer(ctx, ox, oy, S) }); }
   ents.sort((p, q) => p.y - q.y).forEach(e => e.f());
   for (const p of V.parts) {
@@ -1067,6 +1080,20 @@ function drawRock(ctx, ox, oy, S, x, y, rr) {
   ctx.drawImage(im, ox + (x - rr * 1.3) * S, oy + (y - rr * 1.6) * S, rr * 2.6 * S, rr * 2.6 * S);
 }
 function shadow(ctx, x, y, r) { ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.38, 0, 0, 6.3); ctx.fill(); }
+// soft contact under the tamer's feet: a feathered ellipse, not a disc behind the whole body
+function contactShadow(ctx, x, y, sz, lift) {
+  const k = 1 - 0.35 * Math.min(1, (lift || 0) / 0.07);
+  const rx = sz * 0.40 * k, ry = sz * 0.14 * k;
+  ctx.save();
+  ctx.translate(x, y + ry * 0.25);
+  ctx.scale(1, ry / rx);
+  const g = ctx.createRadialGradient(0, 0, rx * 0.06, 0, 0, rx);
+  g.addColorStop(0, 'rgba(0,0,0,.55)');
+  g.addColorStop(0.42, 'rgba(0,0,0,.24)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, 6.3); ctx.fill();
+  ctx.restore();
+}
 function glow(ctx, x, y, r, rgb) {
   const t = performance.now() / 1000, g = ctx.createRadialGradient(x, y, 0, x, y, r * (1 + Math.sin(t * 3) * 0.06));
   g.addColorStop(0, `rgba(${rgb},.45)`); g.addColorStop(1, `rgba(${rgb},0)`);
@@ -1091,20 +1118,47 @@ function paintGate(ctx, kind, d, x, y, rot, ox, oy, S) {
   ctx.drawImage(g.im, -w / 2, -w * 0.62, w, w);
   ctx.restore();
 }
+// v4 secret art. Returns the image, 'wait' while it is still loading, or null (no file / 404 -> the plain-wall look).
+function secretIm(kind, d) {
+  if (!SECRETSKIN[W.biome]) return null;
+  const im = img('wd_' + kind + '_' + d + '_' + W.biome);
+  return ready(im) ? im : (im.complete ? null : 'wait');
+}
+function paintSecret(ctx, kind, d, x, y, ox, oy, S, alpha) {   // false = no v4 file, caller falls back
+  const im = secretIm(kind, d);
+  if (im === 'wait') return true;
+  if (!im) return false;
+  ctx.save(); ctx.globalAlpha *= alpha; drawGate(ctx, im, d, x, y, ox, oy, S); ctx.restore();
+  return true;
+}
+function paintOpenGate(ctx, sec, d, x, y, rot, ox, oy, S) {   // a found secret wall: revealed passage, else the normal open door
+  if (sec && paintSecret(ctx, 'secretopen', d, x, y, ox, oy, S, 1)) return;
+  paintGate(ctx, 'door', d, x, y, rot, ox, oy, S);
+}
 function drawDoor(ctx, a, st, d, x, y, rot, ox, oy, S, live) {
+  const sec = secretEnds(a, d);                          // the secret room behind this wall, or null
+  if (sec && !sec.found && st === 'sealed') st = 'crack';  // a trainer lock must not out a hidden wall
   const revealing = V.reveal && V.reveal.d === d && V.reveal.k === key(a.x, a.y) && V.reveal.t < 0.7;
   if (revealing) {
     const t = V.reveal.t, openA = t < 0.35 ? 0 : (t - 0.35) / 0.35;
-    ctx.save(); ctx.globalAlpha = 1 - openA; paintGate(ctx, 'crack', d, x, y, rot, ox, oy, S); ctx.restore();
-    if (openA > 0) { ctx.save(); ctx.globalAlpha = openA; paintGate(ctx, 'door', d, x, y, rot, ox, oy, S); ctx.restore(); }
+    ctx.save(); ctx.globalAlpha = 1 - openA;
+    paintSecret(ctx, 'secret', d, x, y, ox, oy, S, 1); paintGate(ctx, 'crack', d, x, y, rot, ox, oy, S);
+    ctx.restore();
+    if (openA > 0) { ctx.save(); ctx.globalAlpha = openA; paintOpenGate(ctx, sec, d, x, y, rot, ox, oy, S); ctx.restore(); }
     return;
   }
-  if (st !== 'crack') return paintGate(ctx, st === 'open' ? 'door' : 'lock', d, x, y, rot, ox, oy, S);
+  if (st !== 'crack') {
+    if (st === 'open' && sec) return paintOpenGate(ctx, sec, d, x, y, rot, ox, oy, S);   // found secret door
+    return paintGate(ctx, st === 'open' ? 'door' : 'lock', d, x, y, rot, ox, oy, S);
+  }
   const lv = secretLevel(a, d);
+  const R = secretHintRange();
+  const d2 = live ? Math.hypot(V.px - DOOR[d][0], V.py - DOOR[d][1]) : 99;
+  const near = d2 < R ? Math.min(1, (R - d2) / (R - 1.6)) : 0;
+  paintSecret(ctx, 'secret', d, x, y, ox, oy, S, SECRET_FAR_A + (1 - SECRET_FAR_A) * near);   // camouflage; 0 from afar
   if (lv >= 2) return paintGate(ctx, 'crack', d, x, y, rot, ox, oy, S);
-  if (!live) return;   // a far room stays a plain wall; the minimap does not list it either
-  const d2 = Math.hypot(V.px - DOOR[d][0], V.py - DOOR[d][1]);
-  const seam = d2 < secretHintRange() ? (1 - d2 / secretHintRange()) * 0.22 : 0;
+  if (!live) return;
+  const seam = d2 < R ? (1 - d2 / R) * 0.22 : 0;
   const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 1000 * 4);
   let alpha = seam * pulse;
   if (lv >= 1) alpha = Math.max(alpha, 0.45);
@@ -1120,14 +1174,29 @@ function drawGate(ctx, im, d, x, y, ox, oy, S) {
   const w = DOORW * S, [fx, fy] = DOORA[d];
   ctx.drawImage(im, ox + x * S - w * fx, oy + y * S - w * fy, w, w);
 }
+// true once every frame of a direction decoded; false for good if any file 404s (then the waddle runs)
+const vwalkState = {};
+function vwalkOk(dir) {
+  const n = VWALK[dir]; if (!n) return false;
+  if (vwalkState[dir] !== undefined) return vwalkState[dir];
+  let all = true;
+  for (let i = 1; i <= n; i++) {
+    const im = img('wd_tamer_' + dir + '_' + i);
+    if (im.complete && im.naturalWidth === 0) return (vwalkState[dir] = false);
+    if (!ready(im)) all = false;
+  }
+  if (all) vwalkState[dir] = true;
+  return all;
+}
 // hurt flinch, then a side stride (mirrored when facing left). Up/down uses real frames when
-// VWALK says they exist, otherwise a distance-driven waddle on the still (lift, lean, mirror).
+// they have decoded, otherwise a distance-driven waddle on the still (lift, lean, mirror).
 function tamerPose() {
   if (V.flinch > 0.26) return ['wd_tamer_hurt_1', V.fx || 1, 0];
   if (V.flinch > 0) return ['wd_tamer_hurt_2', V.fx || 1, 0];
   if (V.going === 2) {
     const dir = V.vert > 0 ? 'down' : 'up', n = VWALK[dir];
-    if (n) return ['wd_tamer_' + dir + '_walk_' + (1 + Math.floor(V.vstep / (WALK_CYCLE / n)) % n), 1, 0];
+    // +1e-4: 1.3/8 is not binary-exact, so the last frame of a cycle would otherwise stick
+    if (vwalkOk(dir)) return ['wd_tamer_' + dir + '_' + (1 + Math.floor(V.vstep / (WALK_CYCLE / n) + 1e-4) % n), 1, 0];
     const p = V.vstep / (WALK_CYCLE / 2), foot = Math.floor(p) % 2, ph = p % 1;
     const o = { lift: Math.sin(Math.PI * ph) * 0.07, rot: (foot ? 1 : -1) * 0.07, sx: foot ? 1 : -1, sq: 1 - 0.035 * Math.sin(Math.PI * ph) };
     if (LEGHACK) o.leg = 'wd_tamer_walk_' + (foot ? 6 : 2);
@@ -1150,7 +1219,8 @@ function tamerImg(k) {
 function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny, o) {
   o = o || {};
   const lift = o.lift || 0;
-  shadow(ctx, x, y, sz * 0.32 * (1 - 0.25 * Math.min(1, lift / 0.07)));
+  if (o.rim) contactShadow(ctx, x, y, sz, lift);
+  else shadow(ctx, x, y, sz * 0.32 * (1 - 0.25 * Math.min(1, lift / 0.07)));
   if (boss) glow(ctx, x, y - sz * 0.4, sz * 0.7, '255,90,110');
   if (shiny) glow(ctx, x, y - sz * 0.45, sz * 0.62, '255,246,176');
   if (!ready(im)) return;
@@ -1159,6 +1229,11 @@ function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny, o) {
   ctx.rotate(o.rot || 0);
   ctx.scale((fx < 0 ? -1 : 1) * (o.sx || 1), (1 + (bob || 0)) * (o.sq || 1));
   if (shiny) ctx.filter = SHINY;
+  else if (o.rim) {
+    // faint light rim plus a short dark drop. Draw-time only, so skinImg's jacket recolour is untouched.
+    const b = Math.max(1.15, sz * 0.015);
+    ctx.filter = `drop-shadow(0 0 ${b.toFixed(2)}px rgba(255,250,240,.78)) drop-shadow(0 ${(b * 0.9).toFixed(2)}px ${(b * 1.35).toFixed(2)}px rgba(0,0,0,.50))`;
+  }
   ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz);
   if (LEGHACK && o.leg) {
     const leg = img(o.leg);

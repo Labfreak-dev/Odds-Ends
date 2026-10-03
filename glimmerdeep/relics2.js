@@ -67,7 +67,7 @@ const BKEYS = {
   poisonPlus: 1, statusTurns: 1, curseAmp: 1, curseSpread: 1, shatterAmp: 1, electroAmp: 1, blightAmp: 1, steamHeal: 1,
   dodge: 1, shadeDodge: 1, mirror: 1, voltDef: 1, voltChain: 1, tideHeal: 1, tempo: 1, phoenix: 1, reflectAll: 1,
   interestCap: 1, xpRound: 1, mutChoice: 1, goldRound: 1, relicChoice: 1, rerollDisc: 1,
-  lowHeal: 1, openAtk: 1, lastStand: 1, koGold: 1, rainbow: 1,
+  lowHeal: 1, openAtk: 1, lastStand: 1, koGold: 1, rainbow: 1, spdMul: 1,
 };
 const WKEYS = { speed: 1, reach: 1, sight: 1, dowse: 1, keyPlus: 1, tokens: 1, chestRelic: 1, winHeal: 1, map: 1, spikeproof: 1, shardMul: 1, xp: 1, phoenix: 1, tonic: 1, skeleton: 1 };
 

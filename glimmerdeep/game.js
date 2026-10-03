@@ -69,6 +69,11 @@ if (window.GAUDIO) GAUDIO.init(meta, () => save(), SYNTH);   // save() is a func
 for (const k of Object.keys(SYNTH)) SFX[k] = window.GAUDIO ? () => GAUDIO.sfx(k) : SYNTH[k];
 SFX.stinger = n => window.GAUDIO ? GAUDIO.stinger(n) : SYNTH[n === 'lose' ? 'ko' : 'lvl']();
 const mus = k => { if (window.GAUDIO) GAUDIO.music(k); };   // music key -> play it (no-op if it is already playing)
+// element-aware spell cues (sfx2/). SFX.el(kind, element, {v}) with kind cast | hit | ult; each falls back to the first-pack cue, and to the synth without audio.js
+SFX.el = (kind, el, o) => window.GAUDIO ? GAUDIO.el(kind, el, o) : SYNTH[{ cast: 'react', hit: 'hit', ult: 'ult' }[kind]]();
+SFX.reaction = name => window.GAUDIO ? GAUDIO.react(name) : SYNTH.react();
+SFX.heal = () => window.GAUDIO ? GAUDIO.heal() : SYNTH.heal();       // 2 new heal variants
+SFX.shield = () => window.GAUDIO ? GAUDIO.shield() : SYNTH.shield();
 
 // ---- small renderers ---------------------------------------------------------------------
 function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
@@ -509,8 +514,7 @@ function startFight() {
   if (kind === 'boss') banner(st.units.find(u => u.boss).name, G.BOSSES[st.units.find(u => u.boss).boss].el);
   const bossId = kind === 'boss' ? R.bossOf(run) : null;           // 'wyrm' only for the Glimmerwyrm
   mus(bossId === 'wyrm' ? 'glimmerwyrm' : kind === 'boss' ? 'boss' : R.stageOf(run.round) >= G.STAGES - 1 ? 'core' : 'fight');
-  if (kind === 'boss') SFX.bossbanner();
-  SFX.fightstart();                                                // replaces SFX.ult()
+  if (kind === 'boss') SFX.bossbanner(); else SFX.fightstart();    // one start cue at a time: bossbanner (1.4 s) already is the boss start, fightstart would stack on it
   handle(st.ev.splice(0));
   FS.raf = requestAnimationFrame(loop);
 }
@@ -540,7 +544,7 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     renderFightBar();
     boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
     mus(String(title).includes('\u265b') ? 'wilds_lair' : 'wilds_fight');   // \u265b = the crown glyph wilds.js puts in lair titles
-    SFX.fightstart();                                                        // replaces SFX.ult()
+    setTimeout(() => { if (FS) SFX.fightstart(); }, 350);                    // wencounter (0.7 s) started ~380 ms ago in wilds.js battle(); stagger so the two do not stack
     handle(st.ev.splice(0));
     FS.raf = requestAnimationFrame(loop);
   });
@@ -660,21 +664,24 @@ function animHit(t, a, crit, dot) {
 }
 function handle(ev) {
   const st = FS.st, F = id => C.byId(st, id);
+  const LAST = FS.lastSk || (FS.lastSk = {});   // per attacker: element + when its hit lands on screen (ms at 1x), so the impact sound lines up with the fx impact
   for (const e of ev) {
     if (e.k === 'move') { const u = F(e.u), E = uEl(e.u); if (E) { face(u, e.x); E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; } }
     else if (e.k === 'blink') { const E = uEl(e.u); if (E) { E.el.style.transition = 'none'; E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; void E.el.offsetWidth; E.el.style.transition = ''; burst(F(e.u), 'shade', true); } }
     else if (e.k === 'atk') {
       const a = F(e.a), t = F(e.t); if (!a || !t) continue;
       face(a, t.x);
+      LAST[e.a] = { el: e.el, dly: e.rng ? 300 : 170 };                 // shoot(): 70 ms + 230 ms flight; slash(): 170 ms
       if (e.rng) { animShoot(a, t, e.el); later(70, () => orb(a, t, e.el, 230 / FS.speed)); }
       else { animStrike(a, t, e.el); const A = cpos(a), T = cpos(t); later(170, () => VFX.slash(A, T, e.el)); }
     }
     else if (e.k === 'cast') {
       const a = F(e.a); if (!a) continue;
       animCast(a, e.el, e.ult);
+      LAST[e.a] = { el: e.el, ult: e.ult, dly: e.ult ? 260 : 440 };      // ult beam impact at 260 ms; bolt/orb: 200 ms + 240 ms flight
       VFX.cast(cpos(a), e.el, e.ult);
-      if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.ult(); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); hitStop(0.12); }
-      else { popAt(a, e.n, 'cast'); SFX.react(); }
+      if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.el('ult', e.el); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); hitStop(0.12); }
+      else { popAt(a, e.n, 'cast'); SFX.el('cast', e.el); }
       const tgs = e.tg.map(F).filter(Boolean), foes = tgs.filter(t => t.side !== a.side);
       // allies get a link beam; foes get bolts (ult: beams), area spells finish on a ground shockwave
       for (const t of tgs) if (t.side === a.side && t !== a) { const A = cpos(a), T = cpos(t); later(220, () => { VFX.beam(A, T, e.el, 0.1, 0.28); VFX.impact(T, e.el, 0.6); }); }
@@ -688,7 +695,7 @@ function handle(ev) {
         else later(200, () => orb(a, t, e.el, 240 / FS.speed, { big: 1, power: 1.5 }));
       }
     }
-    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed, { big: 1 }); } }
+    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { LAST[e.a] = { el: e.el, dly: 200 }; SFX.el('cast', e.el, { v: 0.6 }); animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed, { big: 1 }); } }
     else if (e.k === 'zap') { const a = F(e.a), t = F(e.t); if (a && t) orb(a, t, 'volt', 150 / FS.speed); }
     else if (e.k === 'perk') perkFx(e, F(e.a), F(e.t));
     else if (e.k === 'dmg') {
@@ -699,12 +706,17 @@ function handle(ev) {
       else if (e.dot) VFX.impact(cpos(t), e.dot === 'burn' ? 'ember' : e.dot === 'poison' ? 'shade' : e.dot === 'bleed' ? 'blood' : 'frost', 0.35);
       else if (e.thorn) VFX.impact(cpos(t), 'bloom', 0.5);
       if (!e.basic || e.crit || e.v >= t.maxHp * 0.08) popAt(t, (e.crit ? e.v + '!' : e.v), e.crit ? 'crit' : e.dot ? 'dot' : e.basic ? 'small' : '');
-      if (!e.dot) { if (e.crit) SFX.crit(); else if (!e.basic || Math.random() < 0.35) SFX.hit(); }
+      if (!e.dot) {                                                       // element-aware impact, timed to the fx impact (was: SFX.crit() / SFX.hit())
+        const L = LAST[e.a] || {}, el = e.el || (e.thorn ? 'bloom' : L.el) || (a && a.el), d = e.thorn ? 0 : L.dly || 0;
+        if (e.crit) { SFX.crit(); later(d, () => SFX.el('hit', el, { v: 0.8 })); }
+        else if (!e.basic) later(d, () => SFX.el('hit', el, { v: e.thorn || L.ult ? 0.5 : 1 }));   // skill hits always sound; ult beams sit under the ult cue
+        else if (Math.random() < 0.35) later(d, () => SFX.el('hit', el, { v: 0.7 }));            // basic attacks: 35 %, a bit softer (as before)
+      }
     }
     else if (e.k === 'miss') { popAt(F(e.t), e.dodge ? 'Dodge' : 'Miss', 'miss'); SFX.miss(); }
     else if (e.k === 'heal') { if (!e.quiet && e.v > 0) { popAt(F(e.t), '+' + e.v, 'heal'); SFX.heal(); const t = F(e.t); if (t) VFX.heal(cpos(t)); } }
     else if (e.k === 'shield') { popAt(F(e.t), '+' + e.v, 'shield'); SFX.shield(); const t = F(e.t); if (t) VFX.shield(cpos(t)); }
-    else if (e.k === 'react') { popAt(F(e.t), e.name, 'react'); SFX.react(); }
+    else if (e.k === 'react') { popAt(F(e.t), e.name, 'react'); SFX.reaction(e.name); }
     else if (e.k === 'ko') {
       const u = F(e.t), E = uEl(e.t); if (!E) continue;
       SFX.ko();

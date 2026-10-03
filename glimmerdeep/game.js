@@ -10,7 +10,7 @@ const SAVE = 'glimmerdeep.v1';
 const GLIM_VER = 'v' + '2026-10-03';
 
 // ---- save ---------------------------------------------------------------------------
-let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70 };
+let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
 let run = null;
 function load() {
   try {
@@ -18,8 +18,11 @@ function load() {
     if (s && s.meta) Object.assign(meta, s.meta);
     if (s && s.run && s.run.v === 2) run = s.run;
   } catch (e) { /* private mode or bad save: start fresh */ }
+  if (meta.anim == null) meta.anim = 1;          // optional; saves without it stay on the rich fight animation
   meta.unlocked = meta.unlocked || {};
   for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
+  // a run saved before the new species existed has no pool keys for them
+  if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
 }
 function save() {
   if (run) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
@@ -112,20 +115,26 @@ function modal(title, body, acts, cancel) {
 function closeModal() { M.classList.remove('on'); modalHandler = null; modalCancel = null; MB.innerHTML = ''; }
 async function ask(title, body, acts, cancel) { const v = await modal(title, body, acts, cancel); closeModal(); return v; }
 const btn = (v, label, cls) => `<button class="btn ${cls || ''}" data-v="${esc(v)}">${label}</button>`;
-function volBtns() { return `${btn('vold', '−', 'ghost sm volstep')}<span class="volpct">Volume ${meta.vol}%</span>${btn('volu', '+', 'ghost sm volstep')}`; }
-function bumpVol(delta) {
-  GAUDIO.setVol(meta.vol + delta);
-  document.querySelectorAll('.volpct').forEach(el => { el.textContent = 'Volume ' + meta.vol + '%'; });
-  toast('Volume ' + meta.vol + '%');
-}
+const ICO = {
+  dex: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5.2A2.2 2.2 0 0 1 6.2 3H19v15H6.2A2.2 2.2 0 0 0 4 20.2V5.2zM6.2 16H17V5H6.2c-.7 0-1.2.5-1.2 1.2V16c.4-.6 1-.9 1.2-1z"/><path fill="currentColor" d="M8 7h7v2H8zm0 3h7v2H8z"/></svg>',
+  how: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="currentColor" d="M11.2 16.8h1.6v-1.6h-1.6v1.6zM12 6.2a3.4 3.4 0 0 0-3.4 3.4h1.7a1.7 1.7 0 1 1 2.1 1.6c-.9.4-1.4 1-1.4 2.1v.6h1.6v-.5c0-.4.2-.6.7-.8A3.4 3.4 0 0 0 12 6.2z"/></svg>',
+  gear: '<svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13.5a7.7 7.7 0 0 0 .1-1.5 7.7 7.7 0 0 0-.1-1.5l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5l-.4-2.6h-4l-.4 2.6a7.4 7.4 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6zM12 15.2A3.2 3.2 0 1 1 12 8.8a3.2 3.2 0 0 1 0 6.4z"/></svg>',
+};
+M.addEventListener('input', e => {
+  const r = e.target.closest('[data-vol]');
+  if (!r || !window.GAUDIO) return;
+  GAUDIO.setVol(+r.value);
+  const lab = r.parentElement && r.parentElement.querySelector('.volpct');
+  if (lab) lab.textContent = meta.vol + '%';
+});
 
 // ---- title / new run -------------------------------------------------------------------------
 function renderTitle() {
   stopFight();
   const m = $('#titleMenu');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
-    `<div class="row">${btn('dex', 'Glimdex', 'ghost sm')}${btn('how', 'How to Play', 'ghost sm')}${btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost sm')}</div>` +
-    (window.GAUDIO ? `<div class="row" style="margin-top:6px">${btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost sm')}${volBtns()}</div>` : '') +
+    `<div class="title-sub">${btn('dex', ICO.dex + 'Glimdex', 'mid blue')}${btn('how', ICO.how + 'How to Play', 'mid')}</div>` +
+    `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}</div>` +
     `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
@@ -143,9 +152,7 @@ $('#titleMenu').addEventListener('click', async e => {
   else if (v === 'wilds') window.WILDS.open();
   else if (v === 'dex') showDex();
   else if (v === 'how') showHow();
-  else if (v === 'snd') { meta.sound = !meta.sound; save(); renderTitle(); }
-  else if (v === 'mus') { GAUDIO.setMusic(!meta.music); renderTitle(); }
-  else if (v === 'vold' || v === 'volu') bumpVol(v === 'volu' ? 10 : -10);
+  else if (v === 'set') settingsScreen();
 });
 document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g && !M.contains(g)) { SFX.click(); if (g.dataset.go === 'title') renderTitle(); } });
 
@@ -177,6 +184,50 @@ async function newRunFlow() {
 const ROLE_N = { striker: 'Striker', caster: 'Caster', tank: 'Guardian', support: 'Support', boss: 'Boss' };
 const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
 const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
+// Rich fight motion (glim-anim.js). Classic (?anim=0 or the setting) leaves this null-checked and uses the keyframes below.
+const GA = window.GlimAnim && GlimAnim.enabled !== false ? GlimAnim : null;
+if (GA) {
+  try { if (new URLSearchParams(location.search).get('debug') === '1') GA.debug = true; } catch (e) { /* no location */ }
+  GA.observe(unitsEl);   // bench stays unwrapped: idle there is optional and costs a phone frame
+}
+const animMiss = Object.create(null);
+function noteAnim(u) {
+  if (!GA || !GA.debug || !u || !u.art) return;
+  const m = /cr_([a-z0-9]{4})/.exec(u.art), id = m && m[1];
+  if (id && !GA.SPECIES[id] && !animMiss[id]) { animMiss[id] = 1; console.info('anim: no archetype for', id); }
+}
+// ?anim=0 / ?anim=1 forces classic or rich for this page load only. It does not write meta.anim.
+let animLive = null;
+function animNow() { return !!(animLive == null ? meta.anim : animLive); }
+function readAnimQuery() {
+  try {
+    const q = new URLSearchParams(location.search).get('anim');
+    if (q === '0' || q === '1') animLive = q === '1' ? 1 : 0;
+  } catch (e) { /* no location */ }
+}
+function setAnimPref(on) {
+  meta.anim = on ? 1 : 0;
+  animLive = meta.anim;
+  applyAnim();
+  save();
+}
+function applyAnim() {
+  if (!GA) return;
+  GA.enabled = animNow();
+  if (GA.enabled) { GA.scan(unitsEl); GA.pauseIdle(false); }
+  else {
+    GA.pauseIdle(true);
+    document.querySelectorAll('.unit.ga').forEach(el => el.classList.remove('ga'));
+  }
+}
+function syncGaSpeed() {
+  if (!GA || !FS) return;
+  GA.speed = FS.speed;
+  const fxOn = FS.speed < 4 && FS.st.units.length <= 14;   // ghosts and dust off at 4x or on a crowded board
+  GA.ghosts = fxOn; GA.dust = fxOn;
+}
+// GlimAnim returns wall-clock ms (already divided by its speed). later() and LAST.dly stay in 1x milliseconds, which is what the hit sounds use.
+function ga1x(ms) { return typeof ms === 'number' && ms > 0 && FS ? ms * (FS.speed || 1) : 0; }
 VFX.init(boardEl);
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
@@ -263,7 +314,7 @@ function renderShop() {
     const S = G.SP[sp], t = G.TIER[sp];
     const shiny = (run.shopShiny || [])[i];
     return `<div class="scard t${t} ${run.gold < t ? 'poor' : ''} ${owned.has(sp) ? 'have' : ''} ${shiny ? 'shinycard' : ''}" data-buy="${i}" title="${esc((shiny ? 'SHINY! +10% stats. ' : '') + G.SK[S.sk[1]].n + ': ' + G.SK[S.sk[1]].d)}">
-      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span>${shiny ? '<span class="shinytag">✦ SHINY</span>' : ''}<img class="m${shiny ? ' shiny' : ''}" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
+      <div class="els">${elBadge(S.el)}</div><span class="cost">${t}</span>${shiny ? '<span class="shinytag">✦ SHINY</span>' : ''}<img class="m${shiny ? ' shiny' : ''}" decoding="async" src="${IMG('cr_' + sp + '1')}" alt=""><div class="nm">${S.names[0]}</div><div class="role">${ROLE_N[S.role]} · R${G.RANGE[sp]}</div></div>`;
   }).join('');
   const nb = R.onBoard(run).length, cap = R.cap(run);
   const need = run.tlv < 9 ? G.TXP[run.tlv] : 1;
@@ -523,6 +574,7 @@ function startFight() {
   const st = C.create(R.fightOpts(run, seed));
   FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
   if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
+  syncGaSpeed();
   VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
   unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
@@ -549,6 +601,7 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), foeBonus, noHaz: true, mods: {} });
     FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
     if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
+    syncGaSpeed();
     VFX.speed = FS.speed; VFX.clear();
     show('game');
     $('#game').classList.add('fighting', 'wild');
@@ -581,6 +634,7 @@ function cacheEl(u) {
   const el = unitsEl.querySelector(`[data-k="u${u.id}"]`); if (!el) return;
   const bars = el.querySelectorAll('.bar i');
   FS.els[u.id] = { el, hp: bars[0], sh: bars[1], mp: el.querySelector('.bar.mp i'), sts: el.querySelector('.sts'), rig: el.querySelector('.rig'), lastSt: '' };
+  noteAnim(u);
 }
 function renderFightBar() {
   $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
@@ -588,7 +642,7 @@ function renderFightBar() {
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
   SFX.click();
-  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
   else if (b.dataset.v === 'skip') { FS.skip = true; }
 });
 function loop(ts) {
@@ -657,22 +711,34 @@ function rig(id, frames, ms, fill) {
   E.rig.animate(frames, { duration: ms / FS.speed, easing: 'ease-in-out', fill: fill || 'none' });
 }
 function animStrike(a, t, el) {
+  const E = uEl(a.id), T = uEl(t.id);
+  if (GA && GA.enabled && E && T) return GA.strike(E.el, T.el, { el, rng: 0 });
   const dx = Math.sign(t.x - a.x), dy = Math.sign(t.y - a.y);
   rig(a.id, [{ transform: 'none' }, { transform: `translate(${-8 * dx}%, ${-4 * dy}%) scale(1.08,.88)`, offset: 0.3 },
     { transform: `translate(${34 * dx}%, ${22 * dy - 8}%) rotate(${12 * dx}deg) scale(1.12,.92)`, offset: 0.55 }, { transform: 'none' }], 380);
 }
 function animShoot(a, t, el) {
+  const E = uEl(a.id), T = uEl(t.id);
+  if (GA && GA.enabled && E && T) return GA.shoot(E.el, T.el, { el });
   const dx = Math.sign(t.x - a.x) || 1, glow = `drop-shadow(0 0 10px ${ELC[el] || '#fff'})`;
   rig(a.id, [{ transform: 'none', filter: 'none' }, { transform: `translateX(${-8 * dx}%) rotate(${-8 * dx}deg) scale(.96,1.06)`, filter: glow, offset: 0.4 },
     { transform: `translateX(${8 * dx}%) scale(1.08,.94)`, filter: glow, offset: 0.6 }, { transform: 'none', filter: 'none' }], 360);
 }
 function animCast(u, el, ult) {
+  const E = uEl(u.id);
+  if (GA && GA.enabled && E) return GA.cast(E.el, { el, ult: !!ult });
   const glow = `drop-shadow(0 0 ${ult ? 18 : 12}px ${ELC[el] || '#fff'}) drop-shadow(0 0 4px #fff)`;
   rig(u.id, [{ transform: 'none', filter: 'none' }, { transform: 'translateY(4%) scale(1.12,.84)', offset: 0.2 },
     { transform: `translateY(-22%) scale(${ult ? 1.3 : 1.12})`, filter: glow, offset: 0.55 }, { transform: 'translateY(2%) scale(1.08,.92)', filter: glow, offset: 0.8 },
     { transform: 'none', filter: 'none' }], ult ? 700 : 520);
 }
 function animHit(t, a, crit, dot) {
+  const T = uEl(t.id);
+  if (GA && GA.enabled && T) {
+    GA.hit(T.el, { from: a && uEl(a.id) && uEl(a.id).el, crit: !!crit, dot });
+    if (crit) boardEl.animate([{ transform: 'none' }, { transform: 'translate(-5px,3px)' }, { transform: 'translate(4px,-3px)' }, { transform: 'none' }], { duration: 260 });
+    return;
+  }
   const d = a ? Math.sign(t.x - a.x) || (t.side ? 1 : -1) : 0;
   const flash = dot === 'burn' ? 'brightness(1.5) sepia(1) saturate(5) hue-rotate(-25deg)' : dot === 'poison' ? 'brightness(1.3) sepia(1) saturate(4) hue-rotate(230deg)'
     : dot ? 'brightness(1.6)' : 'brightness(3) saturate(0)';
@@ -686,36 +752,60 @@ function handle(ev) {
   const st = FS.st, F = id => C.byId(st, id);
   const LAST = FS.lastSk || (FS.lastSk = {});   // per attacker: element + when its hit lands on screen (ms at 1x), so the impact sound lines up with the fx impact
   for (const e of ev) {
-    if (e.k === 'move') { const u = F(e.u), E = uEl(e.u); if (E) { face(u, e.x); E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; } }
+    if (e.k === 'move') {
+      const u = F(e.u), E = uEl(e.u);
+      if (E) { face(u, e.x); E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; if (GA && GA.enabled && FS.speed < 4 && st.units.length <= 14) GA.walk(E.el); }
+    }
     else if (e.k === 'blink') { const E = uEl(e.u); if (E) { E.el.style.transition = 'none'; E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; void E.el.offsetWidth; E.el.style.transition = ''; burst(F(e.u), 'shade', true); } }
     else if (e.k === 'atk') {
       const a = F(e.a), t = F(e.t); if (!a || !t) continue;
       face(a, t.x);
-      LAST[e.a] = { el: e.el, dly: e.rng ? 300 : 170 };                 // shoot(): 70 ms + 230 ms flight; slash(): 170 ms
-      if (e.rng) { animShoot(a, t, e.el); later(70, () => orb(a, t, e.el, 230 / FS.speed)); }
-      else { animStrike(a, t, e.el); const A = cpos(a), T = cpos(t); later(170, () => VFX.slash(A, T, e.el)); }
+      if (e.rng) {
+        const leave = ga1x(animShoot(a, t, e.el));                         // module: ms until the projectile leaves; keep 70 when it is already close
+        const launch = leave && Math.abs(leave - 70) > 120 ? leave : 70;
+        LAST[e.a] = { el: e.el, dly: launch + 230 };                       // flight stays 230 ms; the hit sound uses this
+        later(launch, () => orb(a, t, e.el, 230 / FS.speed));
+      } else {
+        const dly = ga1x(animStrike(a, t, e.el)) || 170;                   // slash lands on the strike's contact frame
+        LAST[e.a] = { el: e.el, dly };
+        const A = cpos(a), T = cpos(t); later(dly, () => VFX.slash(A, T, e.el));
+      }
     }
     else if (e.k === 'cast') {
       const a = F(e.a); if (!a) continue;
-      animCast(a, e.el, e.ult);
-      LAST[e.a] = { el: e.el, ult: e.ult, dly: e.ult ? 260 : 440 };      // ult beam impact at 260 ms; bolt/orb: 200 ms + 240 ms flight
+      const peak = ga1x(animCast(a, e.el, e.ult));
+      let boltAt = 200, ultAt = 260;                                       // pose peak vs bolt launch / ult beam; shift only past 80 ms
+      if (peak && e.ult && Math.abs(peak - ultAt) > 80) ultAt = peak;
+      else if (peak && !e.ult && Math.abs(peak - boltAt) > 80) boltAt = peak;
+      LAST[e.a] = { el: e.el, ult: e.ult, dly: e.ult ? ultAt : boltAt + 240 };
       VFX.cast(cpos(a), e.el, e.ult);
       if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.el('ult', e.el); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); hitStop(0.12); }
       else { popAt(a, e.n, 'cast'); SFX.el('cast', e.el); }
       const tgs = e.tg.map(F).filter(Boolean), foes = tgs.filter(t => t.side !== a.side);
       // allies get a link beam; foes get bolts (ult: beams), area spells finish on a ground shockwave
-      for (const t of tgs) if (t.side === a.side && t !== a) { const A = cpos(a), T = cpos(t); later(220, () => { VFX.beam(A, T, e.el, 0.1, 0.28); VFX.impact(T, e.el, 0.6); }); }
+      const linkAt = 220 + (e.ult ? ultAt - 260 : 0), aoeAt = 240 + (e.ult ? ultAt - 260 : boltAt - 200);
+      for (const t of tgs) if (t.side === a.side && t !== a) { const A = cpos(a), T = cpos(t); later(linkAt, () => { VFX.beam(A, T, e.el, 0.1, 0.28); VFX.impact(T, e.el, 0.6); }); }
       if (e.aoe && foes.length > 1) {
         const c = { x: foes.reduce((s, t) => s + cpos(t).x, 0) / foes.length, y: foes.reduce((s, t) => s + cpos(t).y, 0) / foes.length };
-        later(240, () => orb(a, { x: (c.x / 12.5) - 0.5, y: c.y / 20 - 0.45 }, e.el, 220 / FS.speed, { big: 1, power: 1.4 }));
-        later(240 + 220, () => { VFX.shockwave(c, e.el, e.ult ? 1.5 : 1); for (const t of foes) VFX.impact(cpos(t), e.el, 0.8); });
+        later(aoeAt, () => orb(a, { x: (c.x / 12.5) - 0.5, y: c.y / 20 - 0.45 }, e.el, 220 / FS.speed, { big: 1, power: 1.4 }));
+        later(aoeAt + 220, () => { VFX.shockwave(c, e.el, e.ult ? 1.5 : 1); for (const t of foes) VFX.impact(cpos(t), e.el, 0.8); });
       } else for (const t of foes) {
         const A = cpos(a), T = cpos(t);
-        if (e.ult) later(260, () => { VFX.beam(A, T, e.el, 0.3, 0.42); VFX.impact(T, e.el, 2, true); });
-        else later(200, () => orb(a, t, e.el, 240 / FS.speed, { big: 1, power: 1.5 }));
+        if (e.ult) later(ultAt, () => { VFX.beam(A, T, e.el, 0.3, 0.42); VFX.impact(T, e.el, 2, true); });
+        else later(boltAt, () => orb(a, t, e.el, 240 / FS.speed, { big: 1, power: 1.5 }));
       }
     }
-    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { LAST[e.a] = { el: e.el, dly: 200 }; SFX.el('cast', e.el, { v: 0.6 }); animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed, { big: 1 }); } }
+    else if (e.k === 'aim') {
+      const a = F(e.a), t = F(e.t);
+      if (a && t) {
+        const leave = ga1x(animShoot(a, t, e.el));
+        const launch = leave && Math.abs(leave) > 120 ? leave : 0;
+        LAST[e.a] = { el: e.el, dly: launch + 200 };
+        SFX.el('cast', e.el, { v: 0.6 });
+        if (launch) later(launch, () => orb(a, t, e.el, 200 / FS.speed, { big: 1 }));
+        else orb(a, t, e.el, 200 / FS.speed, { big: 1 });
+      }
+    }
     else if (e.k === 'zap') { const a = F(e.a), t = F(e.t); if (a && t) orb(a, t, 'volt', 150 / FS.speed); }
     else if (e.k === 'perk') perkFx(e, F(e.a), F(e.t));
     else if (e.k === 'dmg') {
@@ -741,11 +831,20 @@ function handle(ev) {
       const u = F(e.t), E = uEl(e.t); if (!E) continue;
       SFX.ko();
       VFX.ko(cpos(u), u.el);
-      const d = u.side ? 1 : -1;
-      E.rig.animate([{ transform: 'none', filter: 'none' }, { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], { duration: 450, fill: 'forwards' });
+      if (GA && GA.enabled) GA.faint(E.el);
+      else {
+        const d = u.side ? 1 : -1;
+        E.rig.animate([{ transform: 'none', filter: 'none' }, { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], { duration: 450, fill: 'forwards' });
+      }
       setTimeout(() => { if (!u.alive) E.el.classList.add('dead'); }, 380);
     }
-    else if (e.k === 'revive') { const E = uEl(e.t); if (E) { E.el.classList.remove('dead'); E.rig.getAnimations().forEach(a => a.cancel()); popAt(F(e.t), e.name, 'react'); } }
+    else if (e.k === 'revive') {
+      const E = uEl(e.t); if (E) {
+        E.el.classList.remove('dead');
+        if (GA && GA.enabled) GA.revive(E.el); else E.rig.getAnimations().forEach(a => a.cancel());
+        popAt(F(e.t), e.name, 'react');
+      }
+    }
     else if (e.k === 'summon') {
       const u = F(e.u); if (!u) continue;
       unitsEl.insertAdjacentHTML('beforeend', unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, art: u.art, hp: u.hp, maxHp: u.maxHp }));
@@ -781,6 +880,7 @@ async function endFight() {
   const st = FS.st;
   const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[R.bossOf(run)].name : '';
   const res = R.endRound(run, st);
+  if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
   stopFight();
   phase = 'busy';
   save();
@@ -875,12 +975,28 @@ async function bagScreen() {
   }
   renderGame();
 }
+function swt(on) { return `<span class="swt${on ? ' on' : ''}"></span>`; }
+function settingsHtml() {
+  return `<div class="settings">
+    <button class="setrow" data-v="snd" type="button"><span class="grow">Sound</span>${swt(meta.sound)}</button>
+    ${window.GAUDIO ? `<button class="setrow" data-v="mus" type="button"><span class="grow">Music</span>${swt(!!meta.music)}</button>
+    <div class="setrow"><span class="grow">Volume</span><input class="volslider" type="range" min="0" max="100" step="5" value="${meta.vol}" data-vol aria-label="Volume"><span class="volpct">${meta.vol}%</span></div>` : ''}
+    <button class="setrow" data-v="anim" type="button"><span class="grow">Animation</span><span class="setval">${animNow() ? 'Rich' : 'Classic'}</span>${swt(animNow())}</button>
+  </div>`;
+}
+async function settingsScreen() {
+  for (;;) {
+    const v = await ask('Settings', settingsHtml(), btn('x', 'Done', 'green'), 'x');
+    if (v === 'snd') { meta.sound = !meta.sound; save(); continue; }
+    if (v === 'mus') { GAUDIO.setMusic(!meta.music); continue; }
+    if (v === 'anim') { setAnimPref(!animNow()); continue; }
+    break;
+  }
+}
 async function menuScreen() {
-  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + (window.GAUDIO ? btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost') + volBtns() : '') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'), 'x');
+  const v = await ask('Menu', '', btn('how', ICO.how + 'How to Play', 'mid') + btn('set', ICO.gear + 'Settings', 'mid wild') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'), 'x');
   if (v === 'how') return showHow();
-  if (v === 'snd') { meta.sound = !meta.sound; save(); return menuScreen(); }
-  if (v === 'mus') { GAUDIO.setMusic(!meta.music); return menuScreen(); }
-  if (v === 'vold' || v === 'volu') { bumpVol(v === 'volu' ? 10 : -10); return menuScreen(); }
+  if (v === 'set') { await settingsScreen(); return menuScreen(); }
   if (v === 'title') { save(); renderTitle(); }
   if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') { SFX.stinger('lose'); gameOver(false); }
 }
@@ -906,7 +1022,7 @@ function renderCamp() {
       const m = G.META[k], rk = meta.up[k] || 0, max = rk >= m.max, cost = m.cost[rk];
       return `<div class="li"><div class="grow"><div class="t">${m.n} <span class="tag">${rk}/${m.max}</span></div><div class="small">${m.d}</div></div>${max ? '<span class="tag" style="background:#2fbf5555">MAX</span>' : `<button class="btn sm ${meta.shards >= cost ? '' : 'ghost'}" data-buy="${k}">${cost} shards</button>`}</div>`;
     }).join('')}</div>`).join('')}
-    <div class="row center wrap" style="margin:16px 0">${btn('dex', 'Glimdex', 'blue sm').replace('data-v', 'data-camp')}${btn('post', "Trainer's Post", 'wild sm').replace('data-v', 'data-camp')}${btn('play', 'New Run', 'green sm').replace('data-v', 'data-camp')}</div>`;
+    <div class="row center wrap campacts" style="margin:16px 0">${btn('dex', ICO.dex + 'Glimdex', 'mid blue').replace('data-v', 'data-camp')}${btn('post', `<img class="bico" src="${IMG('wd_badge')}" alt="">Trainer's Post`, 'mid wild').replace('data-v', 'data-camp')}${btn('play', 'New Run', 'mid green').replace('data-v', 'data-camp')}</div>`;
   show('camp');
   mus('title');
 }
@@ -921,14 +1037,6 @@ $('#campBody').addEventListener('click', e => {
   const c = e.target.closest('[data-camp]');
   if (c) { SFX.click(); if (c.dataset.camp === 'dex') showDex(); else if (c.dataset.camp === 'post') window.WILDS.post().then(renderCamp); else newRunFlow(); }
 });
-async function showDex() {
-  const cells = Object.keys(G.SP).map(sp => [1, 2, 3].map(stg => {
-    const seen = (meta.dex[sp] || 0) >= stg || (run && (run.seen[sp] || 0) >= stg);
-    return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 ? (meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>') : ''}${stg === 1 && (meta.shinies || {})[sp] ? '<span class="tag wshiny">✦ shiny</span>' : ''}</div>`;
-  }).join('')).join('');
-  const n = Object.keys(G.SP).reduce((s, sp) => s + Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0), 0);
-  await ask(`Glimdex · ${n}/${Object.keys(G.SP).length * 3}`, `<div class="dex">${cells}</div>${window.WILDS ? WILDS.dexHtml() : ''}`, btn('ok', 'Close', 'green sm'), 'ok');
-}
 async function showAbout() {
   await ask('About', `<div class="how">
     <p style="text-align:center"><b>Glimmerdeep</b></p>
@@ -937,7 +1045,45 @@ async function showAbout() {
     <p><b>Art</b> — original creature, item, and world paintings made for Glimmerdeep.</p>
     <p><b>Sound</b> — original music and effects made for Glimmerdeep.</p>
     <p class="small muted">Type set in Fredoka and Nunito.</p>
-  </div>`, btn('ok', 'Close', 'green sm'), 'ok');
+  </div>`, btn('ok', 'Close', 'green'), 'ok');
+}
+async function showDex() {
+  const seenOf = sp => Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0);
+  const maxOf = sp => { const n = G.SP[sp].names; return n && n.length >= 4 && n[3] ? 4 : 3; };
+  let total = 0, seenN = 0;
+  for (const sp in G.SP) { const m = maxOf(sp); total += m; seenN += Math.min(seenOf(sp), m); }
+  let cur = G.ELS.find(el => Object.keys(G.SP).some(sp => G.SP[sp].el === el && seenOf(sp) > 0)) || 'ember';
+  const cell = (sp, stg) => {
+    const seen = seenOf(sp) >= stg;
+    const label = seen ? (G.SP[sp].names[stg - 1] || '???') : '???';
+    const art = seen ? `<img loading="lazy" decoding="async" src="${IMG('cr_' + sp + stg)}" alt="">` : '<div class="ph"></div>';
+    let extra = '';
+    if (stg === 1) extra += meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>';
+    if (stg === 1 && (meta.shinies || {})[sp]) extra += '<span class="tag wshiny">✦ shiny</span>';
+    if (stg === 4 && ((meta.apex || {})[sp] || 0) > 0) extra += `<span class="tag">◆ ×${(meta.apex || {})[sp]}</span>`;
+    return `<div class="${seen ? '' : 'unseen'}">${art}<div>${esc(label)}</div>${extra}</div>`;
+  };
+  const grid = el => Object.keys(G.SP).filter(sp => G.SP[sp].el === el).map(sp => {
+    const max = maxOf(sp);
+    let cells = '';
+    for (let stg = 1; stg <= max; stg++) cells += cell(sp, stg);
+    return `<div class="dex" style="grid-template-columns:repeat(${max},minmax(72px,1fr));margin-bottom:8px">${cells}</div>`;
+  }).join('');
+  const chips = `<div class="dexchips">${G.ELS.map(el => `<button type="button" class="dexchip el-${el}${el === cur ? ' on' : ''}" data-dexel="${el}">${esc(G.EL[el].name)}</button>`).join('')}</div>`;
+  const p = modal(`Glimdex · ${seenN}/${total}`, `${chips}<div id="dexGrid">${grid(cur)}</div>${window.WILDS ? WILDS.dexHtml() : ''}`, btn('ok', 'Close', 'green'), 'ok');
+  const onClick = e => {
+    const b = e.target.closest('[data-dexel]');
+    if (!b || !MB.contains(b)) return;
+    cur = b.dataset.dexel;
+    SFX.click();
+    MB.querySelectorAll('[data-dexel]').forEach(x => x.classList.toggle('on', x === b));
+    const g = MB.querySelector('#dexGrid');
+    if (g) g.innerHTML = grid(cur);
+  };
+  MB.addEventListener('click', onClick);
+  await p;
+  MB.removeEventListener('click', onClick);
+  closeModal();
 }
 async function showHow() {
   const v = await ask('How to play', `<div class="how">
@@ -951,13 +1097,16 @@ async function showHow() {
   <p><b>Synergies</b> (top of the board): 2 or 4 different species of one element, or 2 or 4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
+  <p><b>The Glimdex</b> shows one element at a time. A form you have not seen stays blank until you meet it, and a fourth form is listed only for a species that has one.</p>
   <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop. Every floor has a shrine and a <b>Glim Tonic</b> at the entrance (tap the flask to heal), event rooms offer deals and gambles, and lairs, chests and champions give <b>relics</b> that power your squad until the expedition ends. Camp has Wilds upgrades too.</p>
-  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', 'About', 'ghost sm') + btn('ok', 'Got it', 'green'), 'ok');
+  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', ICO.how + 'About', 'mid blue') + btn('ok', 'Got it', 'green'), 'ok');
   if (v === 'about') await showAbout();
 }
 
 // ---- boot --------------------------------------------------------------------------------------
 load();
+readAnimQuery();
+applyAnim();
 renderTitle();
 ['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,

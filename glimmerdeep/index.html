@@ -67,6 +67,8 @@ img { display: block; -webkit-user-drag: none; }
 #title .sub { text-align: center; font-family: Fredoka, Nunito, system-ui, sans-serif; font-size: 18px; color: #fff; text-shadow: 0 2px 8px #000; margin-top: 6px; }
 #title .menu { display: flex; flex-direction: column; gap: 14px; align-items: center; margin-top: 26px; }
 #title .menu .btn { min-width: 240px; }
+#title .menu .row { flex-wrap: wrap; justify-content: center; width: 100%; max-width: 100%; }
+#title .menu .row .btn { min-width: 0; flex: 0 0 auto; }
 .title-mons { display: flex; justify-content: center; align-items: flex-end; gap: 0; margin-top: 4vh; height: 24vh; }
 .title-mons img { height: 100%; max-width: 30vw; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(0,0,0,.5)); animation: bob 2.6s ease-in-out infinite; }
 .title-mons img:nth-child(2) { height: 120%; animation-delay: -.8s; }
@@ -414,13 +416,15 @@ img { display: block; -webkit-user-drag: none; }
   <div class="modal" id="modal"><div class="panel box" id="modalBox"></div></div>
   <div class="toast" id="toast"></div>
 </div>
-<script src="species2.js"></script>
-<script src="data.js"></script>
-<script src="chess.js"></script>
-<script src="crun.js"></script>
-<script src="fx.js"></script>
-<script src="game.js"></script>
-<script src="wgen.js"></script>
-<script src="wilds.js"></script>
+<script>window.GLIM_AUDIO_V = '1';</script>
+<script src="species2.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="chess.js?v=1"></script>
+<script src="crun.js?v=1"></script>
+<script src="fx.js?v=1"></script>
+<script src="audio.js?v=1"></script>
+<script src="game.js?v=1"></script>
+<script src="wgen.js?v=1"></script>
+<script src="wilds.js?v=1"></script>
 </body>
 </html>

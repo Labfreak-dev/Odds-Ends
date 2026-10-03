@@ -9,7 +9,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
 
 // ---- save ---------------------------------------------------------------------------
-let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true };
+let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70 };
 let run = null;
 function load() {
   try {
@@ -51,6 +51,25 @@ const SFX = {
   miss: () => tone(400, 0.1, 'sine', 0.04, 1.6),
 };
 
+// ---- sound files (audio.js) with the old synth kept as the fallback ------------------------------------
+const SYNTH = Object.assign({}, SFX);            // the old synth cues: used before the first tap, on file:, or when a file fails to load
+Object.assign(SYNTH, {                           // quiet, low synth stand-ins for the new cues (no upward slides, nothing bright)
+  shield: () => tone(330, 0.25, 'sine', 0.05, 0.8), fightstart: () => { tone(110, 0.5, 'triangle', 0.08, 0.7); },
+  merge: () => [392, 330].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'triangle', 0.05), i * 90)),
+  relic: () => { tone(392, 0.3, 'sine', 0.05, 0.9); }, summon: () => tone(260, 0.3, 'sine', 0.05, 0.6), bossbanner: () => tone(98, 0.8, 'triangle', 0.08, 0.7),
+  reroll: () => tone(300, 0.1, 'triangle', 0.04, 0.7), lock: () => tone(220, 0.06, 'triangle', 0.05), pickup: () => tone(440, 0.07, 'triangle', 0.04, 0.8), drop: () => tone(200, 0.07, 'triangle', 0.05, 0.7),
+  wdoor: () => tone(200, 0.12, 'triangle', 0.04, 0.7), wspike: () => tone(150, 0.1, 'triangle', 0.06, 0.6), wkey: () => tone(500, 0.12, 'triangle', 0.04, 0.8),
+  wvault: () => tone(330, 0.3, 'sine', 0.05, 0.9), wsecret: () => tone(240, 0.4, 'triangle', 0.05, 0.6), wberry: () => tone(520, 0.1, 'sine', 0.05, 0.8),
+  wchest: () => [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.05), i * 90)), wshrine: () => tone(330, 0.5, 'sine', 0.05, 0.9),
+  wencounter: () => tone(150, 0.3, 'triangle', 0.06, 0.6), wcatch: () => [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.05), i * 90)),
+  wshiny: () => [440, 392, 330].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sine', 0.04), i * 100)), wdescend: () => tone(180, 0.6, 'triangle', 0.05, 0.5), wdone: () => tone(262, 0.5, 'triangle', 0.06, 0.9),
+});
+if (window.GAUDIO) GAUDIO.init(meta, () => save(), SYNTH);   // save() is a function declaration, so this is safe here
+// EVERY cue exists on SFX whether or not audio.js loaded, so the new calls (SFX.fightstart(), SFX.stinger(), U.SFX.wdoor()...) can never throw
+for (const k of Object.keys(SYNTH)) SFX[k] = window.GAUDIO ? () => GAUDIO.sfx(k) : SYNTH[k];
+SFX.stinger = n => window.GAUDIO ? GAUDIO.stinger(n) : SYNTH[n === 'lose' ? 'ko' : 'lvl']();
+const mus = k => { if (window.GAUDIO) GAUDIO.music(k); };   // music key -> play it (no-op if it is already playing)
+
 // ---- small renderers ---------------------------------------------------------------------
 function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); }
@@ -87,8 +106,10 @@ function renderTitle() {
   const m = $('#titleMenu');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="row">${btn('dex', 'Glimdex', 'ghost sm')}${btn('how', 'How to Play', 'ghost sm')}${btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost sm')}</div>` +
+    (window.GAUDIO ? `<div class="row" style="margin-top:6px">${btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost sm')}${btn('vold', 'Volume −', 'ghost sm')}${btn('volu', 'Volume +', 'ghost sm')}</div>` : '') +
     `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
+  mus('title');
 }
 $('#titleMenu').addEventListener('click', async e => {
   const t = e.target.closest('[data-v]'); if (!t) return;
@@ -104,6 +125,8 @@ $('#titleMenu').addEventListener('click', async e => {
   else if (v === 'dex') showDex();
   else if (v === 'how') showHow();
   else if (v === 'snd') { meta.sound = !meta.sound; save(); renderTitle(); }
+  else if (v === 'mus') { GAUDIO.setMusic(!meta.music); renderTitle(); }
+  else if (v === 'vold' || v === 'volu') { GAUDIO.setVol(meta.vol + (v === 'volu' ? 10 : -10)); toast('Volume ' + meta.vol + '%'); }
 });
 document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g && !M.contains(g)) { SFX.click(); if (g.dataset.go === 'title') renderTitle(); } });
 
@@ -187,6 +210,7 @@ function renderGame() {
   if (!run) return renderTitle();
   stopFight();
   phase = 'plan';
+  mus('plan');
   $('#game').classList.remove('fighting');
   boardEl.classList.remove('ult');
   show('game');
@@ -242,11 +266,11 @@ $('#shop').addEventListener('click', async e => {
 });
 $('#shopBtns').addEventListener('click', async e => {
   const b = e.target.closest('[data-v]'); if (!b || phase !== 'plan') return;
-  SFX.click();
   const v = b.dataset.v;
-  if (v === 'reroll') { if (!R.reroll(run)) toast('Not enough gold.'); renderGame(); }
+  if (v !== 'reroll' && v !== 'lock') SFX.click();
+  if (v === 'reroll') { if (!R.reroll(run)) { SFX.click(); toast('Not enough gold.'); } else SFX.reroll(); renderGame(); }
   else if (v === 'xp') { const lv = run.tlv; if (!R.buyXp(run)) toast('Not enough gold.'); else if (run.tlv > lv) { SFX.lvl(); toast(`Tamer level ${run.tlv}: room for ${run.tlv} creatures on the board.`); } renderGame(); }
-  else if (v === 'lock') { run.locked = !run.locked; renderShop(); save(); }
+  else if (v === 'lock') { run.locked = !run.locked; SFX.lock(); renderShop(); save(); }
   else if (v === 'fight') startFight();
 });
 // merges after anything that adds copies, with a mutation pick for each
@@ -254,7 +278,7 @@ async function afterChange() {
   const ups = R.merges(run);
   renderGame();
   for (const u of ups) {
-    SFX.lvl();
+    SFX.merge();
     await evolveFlow(u);
     const more = R.merges(run);
     ups.push(...more);
@@ -282,7 +306,7 @@ async function evoCinematic(u) {
   const wait = ms => skip ? Promise.resolve() : sleep(ms);
   const old = ov.querySelector('.evo-old'), nw = ov.querySelector('.evo-new'), mon = ov.querySelector('.evo-mon');
   requestAnimationFrame(() => ov.classList.add('on'));
-  SFX.ult();
+  SFX.stinger('evolve');
   await wait(700);
   // sparks rush in while the creature glows and grows
   const sp = ov.querySelector('.evo-sparks');
@@ -299,12 +323,10 @@ async function evoCinematic(u) {
     const showNew = i % 2 === 1;
     old.style.opacity = showNew ? 0 : 1; nw.style.opacity = showNew ? 1 : 0;
     mon.style.transform = `scale(${1 + i * 0.035})`;
-    tone(300 + i * 60, 0.12, 'triangle', 0.05);
     await wait(gap); gap = Math.max(70, gap * 0.8);
   }
   // flash and reveal
   ov.classList.add('flash');
-  tone(880, 0.6, 'sawtooth', 0.06, 0.5); tone(1320, 0.5, 'triangle', 0.05);
   await wait(260);
   old.style.opacity = 0; nw.style.opacity = 1; mon.style.transform = '';
   ov.classList.remove('charge'); ov.classList.add('reveal');
@@ -312,7 +334,6 @@ async function evoCinematic(u) {
   ov.querySelector('.evo-stats').innerHTML = [['HP', before.hp, after.hp], ['ATK', Math.round(before.atk), Math.round(after.atk)], ['DEF', Math.round(before.def), Math.round(after.def)]]
     .map(([k, a, b]) => `<span>${k} ${a} → <b>${b}</b></span>`).join('') + (u.star === 2 ? `<span class="evo-new-skill">New ultimate: <b>${G.SK[S.sk[3]].n}</b></span>` : '')
     + (S.perk ? `<span class="evo-new-skill evo-perk">${u.star === 2 ? 'Merge perk unlocked' : 'Perk empowered + aura'}: <b>✦ ${S.perk.name}</b></span>` : '');
-  SFX.lvl();
   await sleep(500);
   skip = false;
   await new Promise(res => { ov.addEventListener('pointerdown', res, { once: true }); setTimeout(res, 6000); });
@@ -365,6 +386,7 @@ document.addEventListener('pointermove', e => {
   if (!drag) return;
   if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6) {
     drag.moved = true;
+    SFX.pickup();
     drag.el.classList.add('dragging');
     const iu = run.units.find(z => z.uid === drag.uid);
     drag.ghost = document.createElement('div');
@@ -392,7 +414,7 @@ document.addEventListener('pointerup', async e => {
   if (t.sell) { const iu = run.units.find(z => z.uid === d.uid); const v = R.sell(run, d.uid); SFX.coin(); toast(`Sold ${C.name(iu)} for ${v} gold.`); }
   else if (t.slot != null) R.placeBench(run, d.uid, t.slot);
   else if (!R.placeBoard(run, d.uid, t.x, t.y)) toast(`Board full: Tamer level ${run.tlv} allows ${R.cap(run)} creatures. Buy XP to raise it.`);
-  else SFX.click();
+  else SFX.drop();
   renderGame();
 });
 document.addEventListener('pointercancel', () => { if (drag) { if (drag.ghost) drag.ghost.remove(); drag = null; $('#sellZone').classList.remove('on'); renderGame(); } });
@@ -465,7 +487,7 @@ async function enemyInfo(i) {
 
 // ---- the fight ---------------------------------------------------------------------------------
 let FS = null;
-function stopFight() { if (FS && FS.raf) cancelAnimationFrame(FS.raf); FS = null; }
+function stopFight() { if (FS && FS.raf) cancelAnimationFrame(FS.raf); FS = null; if (window.GAUDIO) GAUDIO.setSpeed(1); }
 function uEl(id) { return FS && FS.els[id]; }
 function startFight() {
   if (phase !== 'plan') return;
@@ -475,6 +497,7 @@ function startFight() {
   const seed = (run.seed * 31 + run.round * 977 + Date.now() % 100000) >>> 0;
   const st = C.create(R.fightOpts(run, seed));
   FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
+  if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
   VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
   unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
@@ -484,7 +507,10 @@ function startFight() {
   boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
   const kind = R.roundKind(run.round);
   if (kind === 'boss') banner(st.units.find(u => u.boss).name, G.BOSSES[st.units.find(u => u.boss).boss].el);
-  SFX.ult();
+  const bossId = kind === 'boss' ? R.bossOf(run) : null;           // 'wyrm' only for the Glimmerwyrm
+  mus(bossId === 'wyrm' ? 'glimmerwyrm' : kind === 'boss' ? 'boss' : R.stageOf(run.round) >= G.STAGES - 1 ? 'core' : 'fight');
+  if (kind === 'boss') SFX.bossbanner();
+  SFX.fightstart();                                                // replaces SFX.ult()
   handle(st.ev.splice(0));
   FS.raf = requestAnimationFrame(loop);
 }
@@ -498,6 +524,7 @@ function wildBattle(board, enemies, biome, title, extra) {
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
     const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), noHaz: true, mods: {} });
     FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
+    if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
     VFX.speed = FS.speed; VFX.clear();
     show('game');
     $('#game').classList.add('fighting', 'wild');
@@ -512,7 +539,8 @@ function wildBattle(board, enemies, biome, title, extra) {
     for (const u of st.units) cacheEl(u);
     renderFightBar();
     boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
-    SFX.ult();
+    mus(String(title).includes('\u265b') ? 'wilds_lair' : 'wilds_fight');   // \u265b = the crown glyph wilds.js puts in lair titles
+    SFX.fightstart();                                                        // replaces SFX.ult()
     handle(st.ev.splice(0));
     FS.raf = requestAnimationFrame(loop);
   });
@@ -536,7 +564,7 @@ function renderFightBar() {
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
   SFX.click();
-  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
   else if (b.dataset.v === 'skip') { FS.skip = true; }
 });
 function loop(ts) {
@@ -673,9 +701,9 @@ function handle(ev) {
       if (!e.basic || e.crit || e.v >= t.maxHp * 0.08) popAt(t, (e.crit ? e.v + '!' : e.v), e.crit ? 'crit' : e.dot ? 'dot' : e.basic ? 'small' : '');
       if (!e.dot) { if (e.crit) SFX.crit(); else if (!e.basic || Math.random() < 0.35) SFX.hit(); }
     }
-    else if (e.k === 'miss') { popAt(F(e.t), e.dodge ? 'Dodge' : 'Miss', 'miss'); }
+    else if (e.k === 'miss') { popAt(F(e.t), e.dodge ? 'Dodge' : 'Miss', 'miss'); SFX.miss(); }
     else if (e.k === 'heal') { if (!e.quiet && e.v > 0) { popAt(F(e.t), '+' + e.v, 'heal'); SFX.heal(); const t = F(e.t); if (t) VFX.heal(cpos(t)); } }
-    else if (e.k === 'shield') { popAt(F(e.t), '+' + e.v, 'shield'); const t = F(e.t); if (t) VFX.shield(cpos(t)); }
+    else if (e.k === 'shield') { popAt(F(e.t), '+' + e.v, 'shield'); SFX.shield(); const t = F(e.t); if (t) VFX.shield(cpos(t)); }
     else if (e.k === 'react') { popAt(F(e.t), e.name, 'react'); SFX.react(); }
     else if (e.k === 'ko') {
       const u = F(e.t), E = uEl(e.t); if (!E) continue;
@@ -689,7 +717,7 @@ function handle(ev) {
     else if (e.k === 'summon') {
       const u = F(e.u); if (!u) continue;
       unitsEl.insertAdjacentHTML('beforeend', unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, art: u.art, hp: u.hp, maxHp: u.maxHp }));
-      cacheEl(u); burst(u, u.el, true); popAt(u, 'Summoned!', 'small');
+      cacheEl(u); burst(u, u.el, true); popAt(u, 'Summoned!', 'small'); SFX.summon();
     }
     else if (e.k === 'flux') { const E = uEl(e.t); if (E) popAt(F(e.t), '→ ' + G.EL[e.el].name, 'small'); }
     else if (e.k === 'text') toast(e.v);
@@ -724,7 +752,8 @@ async function endFight() {
   stopFight();
   phase = 'busy';
   save();
-  if (res.win) SFX.lvl(); else SFX.ko();
+  SFX.stinger(res.win ? 'win' : 'lose');
+  mus(run.over ? 'title' : 'plan');   // audio.js holds the new track until the stinger has finished
   const lines = [];
   if (res.loss) lines.push(`<p style="text-align:center;color:var(--bad);font-size:18px">−${res.loss} HP <span class="small muted">(${C.alive(st, 1).length} foes left standing)</span></p>`);
   else if (!res.win) lines.push('<p style="text-align:center">The smoke hid your retreat. No HP lost.</p>');
@@ -761,7 +790,7 @@ async function relicPick(list, title) {
   const hint = list.map(id => G.RELICS[id].tags.filter(t => c[t] === 2 && G.SETS[t]).map(t => `Taking ${G.RELICS[id].n} completes the <b>${G.SETS[t].n}</b> set: ${G.SETS[t].d}`)).flat();
   const fuse = list.map(id => G.FUSIONS.filter(f => (f[0] === id && run.relics.includes(f[1])) || (f[1] === id && run.relics.includes(f[0]))).map(f => `${G.RELICS[id].n} can fuse into <b>${G.RELICS[f[2]].n}</b>.`)).flat();
   const v = await ask(title || 'Choose a relic', `<div class="list">${list.map(id => relicLi(id)).join('')}</div>${hint.concat(fuse).map(h => `<p class="small" style="color:var(--gold);margin:8px 4px 0">${h}</p>`).join('')}`, btn('skip', 'Skip', 'ghost sm'));
-  if (v !== 'skip' && G.RELICS[v]) { R.addRelic(run, v); SFX.coin(); toast('Got ' + G.RELICS[v].n); }
+  if (v !== 'skip' && G.RELICS[v]) { R.addRelic(run, v); SFX.relic(); toast('Got ' + G.RELICS[v].n); }
 }
 async function forgeFlow() {
   const fs = R.fusionsAvailable(run);
@@ -815,11 +844,13 @@ async function bagScreen() {
   renderGame();
 }
 async function menuScreen() {
-  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'));
+  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + (window.GAUDIO ? btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost') + btn('vold', 'Volume −', 'ghost sm') + btn('volu', 'Volume +', 'ghost sm') : '') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'));
   if (v === 'how') return showHow();
   if (v === 'snd') { meta.sound = !meta.sound; save(); return menuScreen(); }
+  if (v === 'mus') { GAUDIO.setMusic(!meta.music); return menuScreen(); }
+  if (v === 'vold' || v === 'volu') { GAUDIO.setVol(meta.vol + (v === 'volu' ? 10 : -10)); toast('Volume ' + meta.vol + '%'); return menuScreen(); }
   if (v === 'title') { save(); renderTitle(); }
-  if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') gameOver(false);
+  if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') { SFX.stinger('lose'); gameOver(false); }
 }
 
 // ---- end of run, camp, dex, help ----------------------------------------------------------------
@@ -845,6 +876,7 @@ function renderCamp() {
     }).join('')}</div>`).join('')}
     <div class="row center wrap" style="margin:16px 0">${btn('dex', 'Glimdex', 'blue sm').replace('data-v', 'data-camp')}${btn('play', 'New Run', 'green sm').replace('data-v', 'data-camp')}</div>`;
   show('camp');
+  mus('title');
 }
 $('#campBody').addEventListener('click', e => {
   const b = e.target.closest('[data-buy]');

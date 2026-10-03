@@ -54,7 +54,7 @@ async function offerRelics(n, title, skip) {
   if (!pool.length) { U.toast('You already carry every relic!'); return null; }
   const v = await U.ask(title || 'A relic!', `<p class="muted small" style="text-align:center">Relics last until this expedition ends.</p><div class="list">${pool.map(relicLi).join('')}</div>`, skip ? U.btn('skip', 'Leave it', 'ghost sm') : '');
   if (!WR[v]) return null;
-  W.relics.push(v); U.SFX.coin(); U.toast('Got ' + WR[v].n + '!');
+  W.relics.push(v); U.SFX.relic(); U.toast('Got ' + WR[v].n + '!');
   if (WR[v].w && WR[v].w.map) revealMap(2);
   hud();
   return v;
@@ -69,7 +69,7 @@ async function useTonic() {
   if (!W.squad.some(s => s.hp > 0 && s.hp < 1)) return U.toast('Your squad is already at full health.');
   W.tonics--;
   healFit(0.4 + rw('tonic'));
-  U.SFX.heal(); burst(V.px, V.py - 0.4, '#6bff8f'); U.toast(`Glim Tonic: +${Math.round(100 * (0.4 + rw('tonic')))}% HP for your squad.`);
+  U.SFX.wshrine(); burst(V.px, V.py - 0.4, '#6bff8f'); U.toast(`Glim Tonic: +${Math.round(100 * (0.4 + rw('tonic')))}% HP for your squad.`);
   save(); hud();
 }
 
@@ -123,6 +123,8 @@ async function endExpedition(why) {
     + (W.shinies || []).map(sp => `<div class="wfound"><img class="shiny" src="${IMG('cr_' + sp + '1')}" alt=""><div>✦ ${G.SP[sp].names[0]}</div></div>`).join('');
   const title = why === 'done' ? 'Expedition complete!' : why === 'left' ? 'Back to camp' : 'Your squad fainted';
   clearSave(); W = null; stopView(); U.save();
+  if (why === 'done') U.SFX.wdone(); else if (why === 'fainted') U.SFX.stinger('lose');   // 'left' (player chose to leave) stays silent
+  if (window.GAUDIO) GAUDIO.music('title');   // held until a stinger has finished
   await U.ask(title, `<p style="text-align:center">${found ? 'Unlocked this expedition:' : 'No new creatures this time.'}</p><div class="wfounds">${found}</div>
     ${bonus ? `<p style="text-align:center;color:var(--gold)">+${bonus} Glimmer Shards for clearing all ${FLOORS} floors!</p>` : ''}
     <p class="muted small" style="text-align:center">Unlocked creatures now appear in the Auto Chess shop and as starters.</p>`, U.btn('ok', 'Continue', 'green'));
@@ -131,6 +133,7 @@ async function endExpedition(why) {
 
 // ---- screens --------------------------------------------------------------------------------
 async function open() {
+  if (window.GAUDIO) GAUDIO.load('wilds');
   const saved = load();
   if (saved && saved.v === 1) {
     const v = await U.ask('The Wilds', `<p style="text-align:center">You have an expedition in progress on floor ${saved.floor}/${FLOORS}.</p>`, U.btn('go', 'Continue', 'green') + U.btn('new', 'Start over', 'ghost sm') + U.btn('x', 'Back', 'ghost sm'));
@@ -152,6 +155,7 @@ function prep() {
     <div class="wprepbar"><span class="small muted" id="wSel">Choose 1-${SQ}</span>${U.btn('go', 'Set out!', 'green')}</div>`;
   host.classList.remove('exploring');
   U.show('wilds');
+  if (window.GAUDIO) GAUDIO.music('wilds_explore');
   host.querySelector('.wpick').onclick = e => {
     const c = e.target.closest('[data-sp]'); if (!c) return;
     const sp = c.dataset.sp, i = sel.indexOf(sp);
@@ -188,6 +192,7 @@ function enter() {
   const host = $('#wilds');
   host.classList.add('exploring');
   U.show('wilds');
+  if (window.GAUDIO) GAUDIO.music('wilds_explore');
   if (!V) {
     const cv = host.querySelector('#wCv');
     V = { cv, ctx: cv.getContext('2d'), keys: {}, joy: null, px: 8, py: 4.5, fx: 1, walk: 0, mons: [], raf: 0, last: performance.now(),
@@ -337,7 +342,7 @@ function hurt() {
   // spikes: chip the squad, never below 10%, with a moment of safety after
   V.hurtT = 1.1;
   for (const s of W.squad) if (s.hp > 0) s.hp = Math.max(0.1, s.hp - 0.06);
-  U.SFX.hit(); burst(V.px, V.py, '#ff5a6e');
+  U.SFX.wspike(); burst(V.px, V.py, '#ff5a6e');
   if (!W.spikeTip) { W.spikeTip = 1; U.toast('Spikes! Each one chips 6% HP off your squad.'); }
   V.shake = 0.25;
   hud();
@@ -365,10 +370,10 @@ function step(dt) {
   const gapX = Math.abs(o.x - 8) < 0.8, gapY = Math.abs(o.y - 4.5) < 0.8;
   const dn = doorOf(a, 'n'), ds = doorOf(a, 's'), dw = doorOf(a, 'w'), de = doorOf(a, 'e');
   const tryDoor = (d, st) => {
-    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.coin(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
+    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
-      if (V.push.t > 0.55) { const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'secret' ? t : a).found = true; U.SFX.ko(); U.toast('A secret room!'); burst(DOOR[d][0], DOOR[d][1], '#d9a6ff'); markSeen(); save(); minimap(); }
+      if (V.push.t > 0.55) { const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'secret' ? t : a).found = true; U.SFX.wsecret(); U.toast('A secret room!'); burst(DOOR[d][0], DOOR[d][1], '#d9a6ff'); markSeen(); save(); minimap(); }
       else msg('This wall looks cracked… keep pushing.');
     }
   };
@@ -405,24 +410,24 @@ function go(d) {
   const a = room(), nk = key(a.x + DIRS[d][0], a.y + DIRS[d][1]);
   V.slide = { d, t: 0, from: W.cur };
   W.cur = nk;
-  U.tone(300, 0.08, 'triangle', 0.04, 1.5);
+  U.SFX.wdoor();
   placeRoom(OPP[d]);
   hud();
 }
 function pickup(a) {
   a.used = true;
   const m = meta();
-  if (a.item === 'key') { W.keys++; U.SFX.coin(); U.toast('Found a key! It opens this floor\'s vault.'); }
-  else if (a.item === 'berry') { for (const s of W.squad) if (s.hp > 0) s.hp = Math.min(1, s.hp + 0.35); U.SFX.heal(); U.toast('Glimberries! Your squad recovers 35% HP.'); }
+  if (a.item === 'key') { W.keys++; U.SFX.wkey(); U.toast('Found a key! It opens this floor\'s vault.'); }
+  else if (a.item === 'berry') { for (const s of W.squad) if (s.hp > 0) s.hp = Math.min(1, s.hp + 0.35); U.SFX.wberry(); U.toast('Glimberries! Your squad recovers 35% HP.'); }
   else if (a.item === 'chest') {
     const g = Math.round((10 + 6 * W.floor) * (1 + 0.5 * up('w_luck') + rw('shardMul'))); m.shards += g; W.shards += g;
     if (Math.random() < 0.5) healFit(0.25);
-    U.SFX.lvl(); U.toast(`Treasure! +${g} Glimmer Shards.`);
+    U.SFX.wchest(); U.toast(`Treasure! +${g} Glimmer Shards.`);
     if (Math.random() < 0.35 + 0.2 * up('w_luck')) { V.pause = true; save(); offerRelics(2, 'A relic in the chest!').then(() => { V.pause = false; V.last = performance.now(); save(); }); }
   }
-  else if (a.item === 'tonic') { W.tonics = (W.tonics || 0) + 1; U.SFX.coin(); U.toast('A Glim Tonic! Tap the flask at the top any time to heal your squad.'); }
+  else if (a.item === 'tonic') { W.tonics = (W.tonics || 0) + 1; U.SFX.wberry(); U.toast('A Glim Tonic! Tap the flask at the top any time to heal your squad.'); }
   else if (a.item === 'event') { a.used = false; return runEvent(a); }
-  else if (a.item === 'shrine') { for (const s of W.squad) s.hp = s.hp > 0 ? 1 : 0.5; U.SFX.heal(); U.toast('The shrine restores your squad, and revives the fainted.'); }
+  else if (a.item === 'shrine') { for (const s of W.squad) s.hp = s.hp > 0 ? 1 : 0.5; U.SFX.wshrine(); U.toast('The shrine restores your squad, and revives the fainted.'); }
   burst(8, 4.5, a.item === 'shrine' ? '#6bff8f' : '#ffd65a');
   save(); U.save(); hud();
 }
@@ -460,6 +465,7 @@ async function runEvent(a) {
       if (fresh) W.found.push(sp);
       const room = W.squad.length < SQUAD_MAX;
       if (room) W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: false });
+      U.SFX.wcatch();
       await U.ask('It hatched!', `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG('cr_' + sp + '1')}" style="max-height:140px" alt=""></div>${t}A baby <b>${G.SP[sp].names[0]}</b>${fresh ? ' — <b style="color:var(--gold)">NEW!</b> unlocked for good' : ''}. ${room ? 'It joins your squad.' : 'Your squad is full, so it scampers home to camp.'}</p>`, U.btn('ok', 'Hello!', 'green'));
       break;
     }
@@ -467,36 +473,36 @@ async function runEvent(a) {
       v = await U.ask(EV_N.altar, evArt('altar') + `${t}The crystal hums. It asks for a share of your squad's strength in return for a relic.</p><p class="small muted" style="text-align:center">Every standing creature loses 25% HP (never below 10%).</p>`, U.btn('give', 'Offer it', '') + U.btn('x', 'Walk away', 'ghost sm'));
       if (v !== 'give' || !fit.length) break;
       for (const s of fit) s.hp = Math.max(0.1, s.hp - 0.25);
-      U.SFX.ko(); done();
+      U.SFX.hit(); done();
       await offerRelics(2, 'The altar\'s gift');
       break;
     }
     case 'well': {
       v = await U.ask(EV_N.well, evArt('well') + `${t}Coins glitter at the bottom of a glowing well.</p>`, U.btn('toss', 'Toss in 20 shards (60%: a relic)', m.shards >= 20 ? '' : 'ghost') + U.btn('drink', 'Drink (heal 20%)', 'green sm') + U.btn('x', 'Leave', 'ghost sm'));
-      if (v === 'toss' && m.shards >= 20) { m.shards -= 20; done(); if (Math.random() < 0.6) { const id = pick(Math.random, Object.keys(WR).filter(k => !W.relics.includes(k))); if (id) { W.relics.push(id); if (WR[id].w && WR[id].w.map) revealMap(2); await U.ask('Your wish came true!', `<div class="list">${relicLi(id)}</div>`, U.btn('ok', 'Wonderful', 'green')); } } else U.toast('Plink… nothing happens.'); }
+      if (v === 'toss' && m.shards >= 20) { m.shards -= 20; done(); if (Math.random() < 0.6) { const id = pick(Math.random, Object.keys(WR).filter(k => !W.relics.includes(k))); if (id) { W.relics.push(id); if (WR[id].w && WR[id].w.map) revealMap(2); U.SFX.relic(); await U.ask('Your wish came true!', `<div class="list">${relicLi(id)}</div>`, U.btn('ok', 'Wonderful', 'green')); } } else { U.SFX.miss(); U.toast('Plink… nothing happens.'); } }
       else if (v === 'toss') U.toast('Not enough shards.');
-      else if (v === 'drink') { healFit(0.2); done(); U.SFX.heal(); }
+      else if (v === 'drink') { healFit(0.2); done(); U.SFX.wshrine(); }
       break;
     }
     case 'dummy': {
       if (!fit.length) break;
       v = await U.ask(EV_N.dummy, evArt('dummy') + `${t}Train one creature hard: <b>+2 XP</b>, but it loses 30% HP (never below 10%).</p><div class="list">${fit.map(s => `<div class="li click" data-v="${s.uid}"><img class="ic" src="${IMG('cr_' + s.sp + s.star)}" alt=""><div class="grow"><div class="t">${G.SP[s.sp].names[s.star - 1]} ${'★'.repeat(s.star)}</div><div class="small">${Math.round(s.hp * 100)}% HP · ${s.star < 3 ? s.xp + '/' + xpStar()[s.star] + ' XP' : 'final form'}</div></div></div>`).join('')}</div>`, U.btn('x', 'Not now', 'ghost sm'));
       const s = W.squad.find(x => String(x.uid) === v); if (!s) break;
-      const evos = []; gainXp(s, 2, evos); s.hp = Math.max(0.1, s.hp - 0.3); done(); U.SFX.hit();
+      const evos = []; gainXp(s, 2, evos); s.hp = Math.max(0.1, s.hp - 0.3); done(); if (evos.length) U.SFX.lvl(); else U.SFX.hit();
       U.toast(evos.length ? `${G.SP[s.sp].names[s.star - 2]} evolved into ${G.SP[s.sp].names[s.star - 1]}!` : `${G.SP[s.sp].names[s.star - 1]} trained hard: +2 XP.`);
       break;
     }
     case 'pool': {
       const out = W.squad.filter(s => s.hp <= 0).length;
       v = await U.ask(EV_N.pool, evArt('pool') + `${t}Liquid light swirls in the basin. It can do one thing for you.</p>`, U.btn('revive', `Revive the fainted at 50%${out ? ` (${out})` : ''}`, out ? 'green' : 'ghost') + U.btn('heal', 'Heal everyone 40%', 'green sm') + U.btn('x', 'Leave', 'ghost sm'));
-      if (v === 'revive' && out) { for (const s of W.squad) if (s.hp <= 0) s.hp = 0.5; done(); U.SFX.heal(); }
-      else if (v === 'heal') { healFit(0.4); done(); U.SFX.heal(); }
+      if (v === 'revive' && out) { for (const s of W.squad) if (s.hp <= 0) s.hp = 0.5; done(); U.SFX.wshrine(); }
+      else if (v === 'heal') { healFit(0.4); done(); U.SFX.wshrine(); }
       break;
     }
     case 'explorer': {
       const g = Math.round((12 + 4 * f) * shardMul());
       await U.ask(EV_N.explorer, evArt('explorer') + `${t}A lost explorer shares her map of this floor, secret rooms included, and a pouch of <b>${g} shards</b>.</p>`, U.btn('ok', 'Thank you!', 'green'));
-      revealMap(2); m.shards += g; W.shards += g; done(); U.SFX.coin();
+      revealMap(2); m.shards += g; W.shards += g; done(); U.SFX.wchest();
       break;
     }
     case 'challenge': {
@@ -521,7 +527,7 @@ async function battle(a, mv) {
   const foes = [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale, shiny: !!mon.shiny }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
   for (const f of foes) { f.skill = C.defaultSkill(f); meta().dex[f.sp] = Math.max(meta().dex[f.sp] || 0, f.star); }
   const S = G.SP[mon.sp], nm = S.names[mon.star - 1];
-  U.tone(200, 0.25, 'sawtooth', 0.05, 2.5);
+  U.SFX.wencounter();
   $('#wilds').classList.add('flash');
   await new Promise(r => setTimeout(r, 380));
   $('#wilds').classList.remove('flash');
@@ -530,11 +536,13 @@ async function battle(a, mv) {
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   const win = st.over === 1;
   U.show('wilds');
+  if (window.GAUDIO) GAUDIO.music('wilds_explore');
   if (win) await victory(a, mon, fit);
   else {
-    U.SFX.ko();
-    if (!W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) {
+    if (W.squad.some(m => m.hp > 0)) U.SFX.ko();   // a full wipe plays the lose stinger in endExpedition instead
+    else if (rw('phoenix') && !W.phoenixUsed) {
       W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4;
+      U.SFX.wshrine();
       await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green'));
     }
     if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
@@ -564,7 +572,7 @@ async function victory(a, mon, fit) {
   const evos = [];
   for (const s of fit) gainXp(s, (lair ? 2 : 1) + rw('xp'), evos);
   if (rw('winHeal')) healFit(rw('winHeal'));
-  U.SFX.lvl();
+  U.SFX[mon.shiny && shinyNew ? 'wshiny' : 'wcatch']();
   const join = W.squad.length < SQUAD_MAX && !W.squad.some(s => s.sp === sp && (s.shiny || !mon.shiny));
   const body = `<div class="evo-stage" style="height:170px"><div class="glow"></div><img class="${mon.shiny ? 'shiny' : ''}" src="${IMG('cr_' + sp + mon.star)}" style="max-height:160px" alt=""></div>
     ${mon.shiny ? `<p style="text-align:center" class="wshinyline">✦ <b>Shiny ${S.names[0]} caught!</b> ${shinyNew ? 'In Auto Chess its shop offers are now 4× as likely to be shiny.' : 'You already had this shiny.'}</p>` : ''}
@@ -584,7 +592,7 @@ async function descend() {
   if (v !== 'go') { V.py = Math.min(IN.y1, V.py + 1.4); V.pause = false; V.last = performance.now(); return; }
   const sp = 0.15 * up('w_spring');
   for (const s of W.squad) s.hp = s.hp > 0 ? Math.min(1, s.hp + 0.25 + sp) : 0.4 + sp;
-  U.SFX.ult();
+  U.SFX.wdescend();
   newFloor(W.floor + 1);
   placeRoom(null);
   save(); hud();

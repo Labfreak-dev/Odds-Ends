@@ -160,6 +160,8 @@ function makeUnit(st, inst, side, x, y) {
     if (P.reflect) u.reflect = P.reflect;
     if (P.frostAura) u.frostAura = P.frostAura;
   }
+  if (b.lsAll) u.b.ls += b.lsAll;              // team-wide lifesteal and thorns (Wilds relics)
+  if (b.thornsAll) u.b.thorns += b.thornsAll;
   if (inst.hpFrac != null) u.hp = Math.max(1, Math.round(u.maxHp * inst.hpFrac));   // The Wilds carries HP between fights
   // Depth is already in each enemy's inst.scale (crun.js); scaling here too squared it
   return u;

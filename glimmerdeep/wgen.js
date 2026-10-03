@@ -26,7 +26,7 @@ function species(r, els, tmin, tmax, used, unlocked) {
 }
 // difficulty knobs, fitted with wsim.js (index = floor - 1)
 const TUNE = {
-  scale: [0.9, 1.3, 1.5, 1.6, 1.7],          // wild stat multiplier per floor
+  scale: [0.9, 1.4, 1.65, 1.8, 1.95],          // wild stat multiplier per floor
   wildEsc: [0, 2, 2, 2, 3], wild2: [0, 0.2, 0.4, 0.6, 0.8], wildEscStar: [1, 1, 1, 2, 2],
   lairStar: [2, 2, 2, 3, 3], lairEsc: [2, 2, 3, 3, 4], lairEscStar: [1, 1, 1, 2, 2], lairScale: 1.05,
 };
@@ -48,6 +48,7 @@ function makeMon(r, floor, els, kind, used, unlocked) {
 // tile (c, r) is centred at (2 + c, 1.5 + r); '.' floor, 'R' rock, 'P' pit, 'S' spikes.
 // Rows 0 and 6 sit half in the wall and stay clear, and so do the door lanes and the middle.
 const TC = 13, TR = 7;
+const EVENTS = ['merchant', 'egg', 'altar', 'well', 'dummy', 'pool', 'explorer', 'challenge'];
 const tileXY = (c, r) => [2 + c, 1.5 + r];
 const tileAt = (x, y) => [Math.floor(x - 1.5), Math.floor(y - 1)];
 const KEEP = [[6, 3], [6, 2], [6, 4], [5, 3], [7, 3], [6, 0], [6, 1], [6, 5], [6, 6], [0, 3], [1, 3], [11, 3], [12, 3]];
@@ -101,7 +102,7 @@ function connected(g) {
 function genFloor(floor, biome, seed, unlocked, o) {
   o = o || {};
   const r = rng(seed);
-  const n = Math.min(12, 6 + floor);
+  const n = Math.min(13, 7 + floor);   // room for the specials, two events and the wild rooms
   const rooms = {};
   const nb = (x, y) => Object.keys(DIRS).filter(d => rooms[key(x + DIRS[d][0], y + DIRS[d][1])]);
   const add = (x, y, type) => (rooms[key(x, y)] = { x, y, type, visited: false, seen: false, mon: null, item: null, used: false, rocks: [], tiles: null });
@@ -134,11 +135,34 @@ function genFloor(floor, biome, seed, unlocked, o) {
   if (gaps.length) { const [x, y] = pick(r, gaps); const s = add(x, y, 'secret'); if (r() < 0.5) s.mon = makeMon(r, floor, els, 'rare', used, unlocked); else s.item = 'chest'; s.found = false; }
   const normal = Object.values(rooms).filter(a => a.type === 'normal');
   for (const a of normal) { if (r() < 0.78) a.mon = makeMon(r, floor, els, 'wild', used, unlocked); else if (r() < 0.6) a.item = 'berry'; }
+  // event rooms: one or two a floor, in spare dead ends first, then in quiet rooms
+  const spare = dead.slice(4).filter(a => a.type === 'normal'), quiet = normal.filter(a => !a.mon && !a.item);
+  const evs = EVENTS.slice().sort(() => r() - 0.5);
+  for (let i = 0, n = 1 + (r() < 0.35 + 0.12 * floor ? 1 : 0); i < n; i++) {
+    const a = spare.shift() || quiet.shift() || normal.filter(x => x.type === 'normal' && !x.item).slice(-1)[0];
+    if (!a) break;
+    Object.assign(a, { type: 'event', event: evs[i], item: 'event', mon: null });
+    if (a.event === 'challenge') { a.cmon = makeMon(r, floor, els, 'lair', used, unlocked); a.cmon.scale = +(a.cmon.scale * 0.95).toFixed(3); }
+  }
+  // every floor has at least one way to heal: a shrine, and a Glim Tonic to carry
+  if (!Object.values(rooms).some(a => a.item === 'shrine')) {
+    const all = Object.values(rooms), plain = normal.filter(a => a.type === 'normal');
+    const sh = plain.find(a => !a.item && !a.mon) || plain.find(a => !a.item) || plain.find(a => a.item === 'berry')
+      || all.find(a => a.type === 'treasure') || all.filter(a => a.type === 'event').pop();
+    if (sh) Object.assign(sh, { type: 'shrine', item: 'shrine', mon: null, event: null, cmon: null });
+  }
+  rooms[key(c, c)].item = 'tonic';
+  // the vault's key goes in a plain room; on a crowded floor it replaces berries, else you start with it
+  let freeKey = false;
+  if (dead[1]) {
+    let spots = normal.filter(a => a.type === 'normal' && !a.item);
+    if (!spots.length) spots = normal.filter(a => a.type === 'normal' && a.item === 'berry');
+    if (spots.length) pick(r, spots).item = 'key'; else freeKey = true;
+  }
   for (const a of Object.values(rooms)) if (a.mon) a.mon.shiny = r() < (o.shiny || 0);
-  if (dead[1]) { const spots = normal.filter(a => !a.item); const k = pick(r, spots.length ? spots : normal); if (k) k.item = 'key'; }
   for (const a of Object.values(rooms)) if (a.type !== 'start') a.tiles = layout(r, floor, a.type === 'lair' ? 'lair' : a.type);
   rooms[key(c, c)].visited = true;
-  return { rooms, cur: key(c, c) };
+  return { rooms, cur: key(c, c), freeKey };
 }
 function placeSide(insts, side) {
   const cols = side === 0 ? { tank: 3, striker: 2, caster: 1, support: 0 } : { tank: 4, striker: 5, caster: 6, support: 7 };
@@ -153,5 +177,5 @@ function placeSide(insts, side) {
   }
   return out;
 }
-root.GW = { TC, TR, tileXY, tileAt, solid, layout, TUNE, FLOORS, SQUAD_START, SQUAD_MAX, GRID, XP_STAR, DIRS, rng, pick, key, genFloor, placeSide };
+root.GW = { EVENTS, makeMon, TC, TR, tileXY, tileAt, solid, layout, TUNE, FLOORS, SQUAD_START, SQUAD_MAX, GRID, XP_STAR, DIRS, rng, pick, key, genFloor, placeSide };
 })(typeof window !== 'undefined' ? window : globalThis);

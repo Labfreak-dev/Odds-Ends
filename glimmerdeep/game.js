@@ -490,12 +490,13 @@ function startFight() {
 }
 // ---- a live fight outside a run (The Wilds): same board and playback, no shop or bench ----------
 // board/enemies: [{inst, x, y}]; resolves with the finished fight state
-function wildBattle(board, enemies, biome, title) {
+// extra: a team bonus on top of the camp's (Wilds relics and Wilds upgrades)
+function wildBattle(board, enemies, biome, title, extra) {
   return new Promise(res => {
     stopFight();
     phase = 'fight';
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-    const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: R.campBonus(meta.up), noHaz: true, mods: {} });
+    const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), noHaz: true, mods: {} });
     FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
     VFX.speed = FS.speed; VFX.clear();
     show('game');
@@ -838,10 +839,10 @@ async function gameOver(won) {
 function renderCamp() {
   $('#campTop').innerHTML = `<button class="iconbtn" data-go="title">◀</button><div class="grow title">Camp</div><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta.shards}</span>`;
   $('#campBody').innerHTML = `<p class="muted" style="text-align:center;margin:0 0 10px">Glimmer Shards from every run buy permanent upgrades. Catching a creature adds it to your starter pool.</p>
-    <div class="list" style="max-width:640px;margin:0 auto">${Object.keys(G.META).map(k => {
+    ${[['chess', 'Auto Chess'], ['wilds', 'The Wilds']].map(([mode, title]) => `<h3 class="camph">${title}</h3><div class="list" style="max-width:640px;margin:0 auto">${Object.keys(G.META).filter(k => (G.META[k].mode || 'chess') === mode).map(k => {
       const m = G.META[k], rk = meta.up[k] || 0, max = rk >= m.max, cost = m.cost[rk];
       return `<div class="li"><div class="grow"><div class="t">${m.n} <span class="tag">${rk}/${m.max}</span></div><div class="small">${m.d}</div></div>${max ? '<span class="tag" style="background:#2fbf5555">MAX</span>' : `<button class="btn sm ${meta.shards >= cost ? '' : 'ghost'}" data-buy="${k}">${cost} shards</button>`}</div>`;
-    }).join('')}</div>
+    }).join('')}</div>`).join('')}
     <div class="row center wrap" style="margin:16px 0">${btn('dex', 'Glimdex', 'blue sm').replace('data-v', 'data-camp')}${btn('play', 'New Run', 'green sm').replace('data-v', 'data-camp')}</div>`;
   show('camp');
 }
@@ -876,7 +877,7 @@ async function showHow() {
   <p><b>Synergies</b> (top of the board): 2 or 4 different species of one element, or 2 or 4 of one role (Striker, Caster, Guardian, Support), unlock team bonuses. Tap a chip to read it.</p>
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
-  <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop.</p></div>`, btn('ok', 'Got it', 'green'));
+  <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop. Every floor has a shrine and a <b>Glim Tonic</b> at the entrance (tap the flask to heal), event rooms offer deals and gambles, and lairs, chests and champions give <b>relics</b> that power your squad until the expedition ends. Camp has Wilds upgrades too.</p></div>`, btn('ok', 'Got it', 'green'));
 }
 
 // ---- boot --------------------------------------------------------------------------------------

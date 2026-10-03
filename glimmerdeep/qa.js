@@ -174,24 +174,72 @@
     if (el.dataset && el.dataset.v && el.closest && !el.closest('#modal')) return { sel: '[data-v="' + el.dataset.v + '"]' };
     return { el: el };
   }
+  function focusEl(el) {
+    if (!el || !el.focus) return;
+    if (el.tabIndex < 0) el.tabIndex = 0;
+    el.focus();
+  }
+  // display:none controls (the Skip button left in the fight bar) still accept
+  // focus() and then drop it, which lands on body.
+  function isShown(el) {
+    return !!(el && el.getClientRects && el.getClientRects().length);
+  }
+  function hasFocus(el) {
+    return !!(el && el !== document.body && el !== document.documentElement && isShown(el));
+  }
   function restoreFocus(token) {
     if (!token) return;
     const n = token.sel ? document.querySelector(token.sel) : null;
     const el = (n && document.contains(n) && n) || (token.el && document.contains(token.el) ? token.el : null);
-    if (!el || !el.focus) return;
-    if (el.tabIndex < 0) el.tabIndex = 0;
-    el.focus();
+    if (isShown(el)) focusEl(el);
+    if (!token.sel) return;
+    const sel = token.sel;
+    // Goals and Wardrobe rebuild the title menu after this observer, so the
+    // button focused above may already have been replaced by the time we paint.
+    requestAnimationFrame(() => {
+      if (activeDialog()) return;
+      if (hasFocus(document.activeElement)) return;
+      const again = document.querySelector(sel);
+      if (isShown(again)) focusEl(again);
+    });
+  }
+  let afterResult = false;
+  function focusFight() {
+    if (!afterResult) return;
+    requestAnimationFrame(() => {
+      if (!afterResult) return;
+      if (activeDialog()) return;
+      if (hasFocus(document.activeElement)) { afterResult = false; return; }
+      const btn = document.querySelector('#game.on #shopBtns [data-v=fight]');
+      if (!isShown(btn)) return;
+      afterResult = false;
+      focusEl(btn);
+    });
   }
   function syncTrap() {
     const dlg = activeDialog();
     const modal = $('#modal');
     if (modal) modal.setAttribute('aria-hidden', modal.classList.contains('on') ? 'false' : 'true');
-    if (dlg === trapped) return;
+    if (dlg === trapped) {
+      // Reward modals reuse #modal before the observer runs, so the node never
+      // looks closed. If Continue's button was removed, focus fell to body.
+      if (dlg && dlg.id === 'modal') {
+        const ae = document.activeElement;
+        if (!ae || ae === document.body || ae === document.documentElement || !dlg.contains(ae)) {
+          armModal(dlg);
+          const target = primaryAction(dlg);
+          if (target && target.focus) target.focus();
+        }
+      }
+      return;
+    }
     if (dlg) {
       const ae = document.activeElement;
       if (!trapped && ae && !dlg.contains(ae)) prevFocus = focusToken(ae);
       trapped = dlg;
       if (dlg.id === 'modal') armModal(dlg); else armEvo(dlg);
+      const h = dlg.querySelector('h2');
+      if (h && /victory|defeat|defeated/i.test(h.textContent || '')) afterResult = true;
       const target = primaryAction(dlg);
       if (target && target.focus) target.focus();
     } else {
@@ -199,6 +247,7 @@
       const back = prevFocus;
       prevFocus = null;
       restoreFocus(back);
+      focusFight();
     }
   }
   if (app && window.MutationObserver) {
@@ -250,13 +299,51 @@
     activate(el);
   });
 
+  function overlaps(a, b) {
+    return !!(a && b && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5 && a.left < b.right - 0.5 && a.right > b.left + 0.5);
+  }
+  function placeLowToast() {
+    const toast = $('#toast');
+    if (!toast) return;
+    toast.style.top = '';
+    if (!toast.classList.contains('low') || !toast.classList.contains('on')) return;
+    const game = document.querySelector('#game.on');
+    const traits = game && game.querySelector('.traits');
+    const fight = game && (game.querySelector('#shopBtns [data-v=fight]') || game.querySelector('#fightBar [data-v=skip]'));
+    if (!traits || !traits.getBoundingClientRect().height) return;
+    const host = toast.offsetParent || document.getElementById('app') || document.body;
+    const hostTop = host.getBoundingClientRect().top;
+    const gap = 18;
+    const anim = toast.style.animation;
+    toast.style.animation = 'none';
+    const apply = px => { toast.style.top = Math.max(0, Math.round(px)) + 'px'; };
+    let t = toast.getBoundingClientRect();
+    const tr = traits.getBoundingClientRect();
+    if (overlaps(t, tr)) {
+      apply(tr.bottom + gap - hostTop);
+      t = toast.getBoundingClientRect();
+    }
+    const fr = fight && fight.getBoundingClientRect();
+    if (fr && fr.height && overlaps(t, fr)) {
+      const aboveTop = fr.top - gap - t.height;
+      const above = { top: aboveTop, bottom: aboveTop + t.height, left: t.left, right: t.right };
+      if (aboveTop >= 0 && !overlaps(above, tr)) apply(aboveTop - hostTop);
+      else apply(fr.bottom + gap - hostTop);
+    }
+    toast.style.animation = anim;
+  }
+
   const toast = $('#toast');
   if (toast) {
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
     new MutationObserver(() => {
-      if (!toast.querySelector('[data-ac]')) toast.classList.remove('ask');
-    }).observe(toast, { childList: true, characterData: true, subtree: true });
+      // Removing a class that is not there still notifies observers in Chrome
+      // and would loop with the class watch below.
+      if (toast.classList.contains('ask') && !toast.querySelector('[data-ac]')) toast.classList.remove('ask');
+      placeLowToast();
+    }).observe(toast, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', placeLowToast);
     toast.addEventListener('click', e => {
       const b = e.target.closest('[data-ac]');
       if (!b || !window.GLIM) return;

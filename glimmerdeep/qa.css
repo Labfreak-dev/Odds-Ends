@@ -33,6 +33,11 @@
 #game .gtop { position: sticky; top: 0; flex-shrink: 0; }
 #game .gmain { flex: 1 0 auto; min-height: auto; }
 #game .shopbar { flex: 1 0 auto; min-height: auto; }
+/* The board formula leaves about 4px of unused bottom padding on a desktop.
+   That is enough to turn on a classic scrollbar. Short screens still scroll. */
+@media (min-width: 900px) and (min-height: 520px) {
+  #game.screen.on .shopbar { padding-bottom: 3px; }
+}
 
 /* Title stays centered when it fits, and scrolls when the menu is taller than the screen. */
 #title.screen.on::before,

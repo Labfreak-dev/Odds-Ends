@@ -13,7 +13,6 @@ const genFloor = (f, b, seed) => window.GW.genFloor(f, b, seed, unlocked, { shin
   lure: W.lure || null, shinyBoost: meta().shinyBoost || {},
   rival: W.rivalFloor === f ? { pool: Object.keys(meta().unlocked), level: meta().badges || 0 } : null });
 const { TC, TR, tileXY, tileAt, solid } = window.GW;
-const SHINY = 'hue-rotate(150deg) saturate(1.3)';
 const RW = 16, RH = 9;                     // room size in world units (the room art is 16:9)
 const IN = { x0: 1.35, x1: 14.65, y0: 1.3, y1: 7.7 };   // walkable floor inside the walls
 const DOOR = { n: [8, 0.72, 0], s: [8, 8.28, Math.PI], w: [0.72, 4.5, -Math.PI / 2], e: [15.28, 4.5, Math.PI / 2] };
@@ -50,14 +49,17 @@ function tamerKey(k) {
   return k;
 }
 function preloadTamer() {
+  noteTamerSkin();
   for (const k of TAMER_FR) {
     const key = tamerKey(k);
     if (key !== k && !(window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[key])) continue;
-    warm(key);
+    const im = warm(key);
+    if (im instanceof HTMLImageElement && !ready(im) && !im._rimArm) {
+      im._rimArm = true;
+      im.addEventListener('load', () => { im._rimArm = false; pumpTamerRims(); }, { once: true });
+    }
   }
-  // hue outfits recolour on first use; warm the new stride frames while the browser is idle
-  const id = meta().skin, sk = G.SKINS[id];
-  if (sk && sk.hue != null && skinOpen(id) && typeof requestIdleCallback === 'function') requestIdleCallback(() => { for (const k of TAMER_FR) skinImg(img(k)); });
+  pumpTamerRims();
 }
 function preloadDoors() {
   if (!W || !W.biome) return;
@@ -1110,19 +1112,27 @@ function drawRock(ctx, ox, oy, S, x, y, rr) {
   ctx.drawImage(im, ox + (x - rr * 1.3) * S, oy + (y - rr * 1.6) * S, rr * 2.6 * S, rr * 2.6 * S);
 }
 function shadow(ctx, x, y, r) { ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.38, 0, 0, 6.3); ctx.fill(); }
+// one radial-gradient disc, stretched into the foot ellipse each frame. No shadowBlur, no filter.
+let footShade = null;
+function footShadeSprite() {
+  if (footShade) return footShade;
+  const N = 160, c = document.createElement('canvas');
+  c.width = N; c.height = N;
+  const g = c.getContext('2d'), r = N / 2;
+  const grd = g.createRadialGradient(r, r, r * 0.06, r, r, r);
+  grd.addColorStop(0, 'rgba(0,0,0,.55)');
+  grd.addColorStop(0.42, 'rgba(0,0,0,.24)');
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grd; g.beginPath(); g.arc(r, r, r, 0, Math.PI * 2); g.fill();
+  footShade = c;
+  return c;
+}
 // soft contact under the tamer's feet: a feathered ellipse, not a disc behind the whole body
 function contactShadow(ctx, x, y, sz, lift) {
   const k = 1 - 0.35 * Math.min(1, (lift || 0) / 0.07);
   const rx = sz * 0.40 * k, ry = sz * 0.14 * k;
-  ctx.save();
-  ctx.translate(x, y + ry * 0.25);
-  ctx.scale(1, ry / rx);
-  const g = ctx.createRadialGradient(0, 0, rx * 0.06, 0, 0, rx);
-  g.addColorStop(0, 'rgba(0,0,0,.55)');
-  g.addColorStop(0.42, 'rgba(0,0,0,.24)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, 6.3); ctx.fill();
-  ctx.restore();
+  const cy = y + ry * 0.25;
+  ctx.drawImage(footShadeSprite(), x - rx, cy - ry, rx * 2, ry * 2);
 }
 function glow(ctx, x, y, r, rgb) {
   const t = performance.now() / 1000, g = ctx.createRadialGradient(x, y, 0, x, y, r * (1 + Math.sin(t * 3) * 0.06));
@@ -1253,6 +1263,7 @@ function tamerImg(k) {
 }
 // a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it.
 // o (optional): { lift, rot, sx, sq, leg } for the up/down waddle.
+// The tamer's light rim is baked into the frame (rimOf). Nothing here sets ctx.filter or shadowBlur.
 function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny, o) {
   o = o || {};
   const lift = o.lift || 0;
@@ -1265,13 +1276,9 @@ function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny, o) {
   ctx.translate(x, y - lift * sz);
   ctx.rotate(o.rot || 0);
   ctx.scale((fx < 0 ? -1 : 1) * (o.sx || 1), (1 + (bob || 0)) * (o.sq || 1));
-  if (shiny) ctx.filter = SHINY;
-  else if (o.rim) {
-    // faint light rim plus a short dark drop. Draw-time only, so skinImg's jacket recolour is untouched.
-    const b = Math.max(1.15, sz * 0.015);
-    ctx.filter = `drop-shadow(0 0 ${b.toFixed(2)}px rgba(255,250,240,.78)) drop-shadow(0 ${(b * 0.9).toFixed(2)}px ${(b * 1.35).toFixed(2)}px rgba(0,0,0,.50))`;
-  }
-  ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz);
+  if (shiny) ctx.drawImage(shinyImg(im), -sz / 2, -sz * 0.92, sz, sz);
+  else if (o.rim) drawRimmed(ctx, im, -sz / 2, -sz * 0.92, sz, sz);
+  else ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz);
   if (LEGHACK && o.leg) {
     const leg = img(o.leg);
     if (ready(leg)) {
@@ -1296,9 +1303,158 @@ function spriteH(ctx, im, x, y, H, fx, bob, boss, shiny, o) {
   ctx.translate(x, y - lift * h);
   ctx.rotate(o.rot || 0);
   ctx.scale((fx < 0 ? -1 : 1) * (o.sx || 1), (1 + (bob || 0)) * (o.sq || 1));
-  if (shiny) ctx.filter = SHINY;
-  ctx.drawImage(im, -w / 2, -h, w, h);
+  ctx.drawImage(shiny ? shinyImg(im) : im, -w / 2, -h, w, h);
   ctx.restore();
+}
+// ---- tamer rim + shiny colour, baked once (the room canvas never takes a filter) ------------
+// Current outfit only: side walk, up/down walk, idle, and the stills. Cleared when the outfit changes.
+const RIM_MAX = 40;
+const rimCache = new Map();
+let rimSkin = '', rimJob = 0, rimSeq = 0;
+function noteTamerSkin() {
+  const id = meta().skin || 'classic';
+  if (id === rimSkin) return;
+  rimCache.clear();
+  rimSkin = id;
+  rimJob++;
+}
+function tamerSrcSize(im) {
+  return [im.naturalWidth || im.width || 0, im.naturalHeight || im.height || 0];
+}
+// faint light rim plus a short dark drop, painted with offset copies. Pad keeps the feet on the same pixels.
+function bakeRim(im) {
+  const [W, H] = tamerSrcSize(im);
+  if (!W || !H) return null;
+  const rad = Math.max(2, Math.round(Math.max(W, H) * 0.015));
+  const darkDy = Math.round(rad * 0.9), darkR = Math.round(rad * 1.35);
+  const pad = darkR + darkDy + 2;
+  const c = document.createElement('canvas');
+  c.width = W + pad * 2; c.height = H + pad * 2;
+  const g = c.getContext('2d');
+  const scratch = document.createElement('canvas');
+  scratch.width = c.width; scratch.height = c.height;
+  const s = scratch.getContext('2d');
+  const stamp = (dx, dy, radius, rgba) => {
+    s.setTransform(1, 0, 0, 1, 0, 0);
+    s.globalAlpha = 1;
+    s.globalCompositeOperation = 'source-over';
+    s.clearRect(0, 0, scratch.width, scratch.height);
+    s.drawImage(im, pad + dx, pad + dy);
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      s.drawImage(im, pad + dx + Math.cos(a) * radius, pad + dy + Math.sin(a) * radius);
+    }
+    s.globalCompositeOperation = 'source-in';
+    s.fillStyle = rgba;
+    s.fillRect(0, 0, scratch.width, scratch.height);
+    g.drawImage(scratch, 0, 0);
+  };
+  // soft, not a hard stroke: the old drop-shadow blur was only ~1.5% of the sprite
+  stamp(0, darkDy, darkR, 'rgba(0,0,0,.16)');
+  stamp(0, darkDy, Math.max(1, Math.round(darkR * 0.5)), 'rgba(0,0,0,.26)');
+  stamp(0, 0, rad, 'rgba(255,250,240,.20)');
+  stamp(0, 0, Math.max(1, Math.round(rad * 0.45)), 'rgba(255,250,240,.42)');
+  g.globalCompositeOperation = 'source-over';
+  g.drawImage(im, pad, pad);
+  return { canvas: c, pad, srcW: W, srcH: H };
+}
+function rimKey(im) {
+  if (im.src) return rimSkin + '|' + im.src;
+  if (!im._gdRim) im._gdRim = 'c' + (++rimSeq);
+  return rimSkin + '|' + im._gdRim;
+}
+function rimOf(im) {
+  if (!ready(im)) return null;
+  noteTamerSkin();
+  const key = rimKey(im);
+  const hit = rimCache.get(key);
+  if (hit) return hit;
+  const baked = bakeRim(im);
+  if (!baked) return null;
+  rimCache.delete(key);
+  rimCache.set(key, baked);
+  while (rimCache.size > RIM_MAX) rimCache.delete(rimCache.keys().next().value);
+  return baked;
+}
+// draw a baked frame so the original bitmap stays on dx,dy,dw,dh (feet and baseline unchanged)
+function drawRimmed(ctx, im, dx, dy, dw, dh) {
+  const b = rimOf(im);
+  if (!b) { ctx.drawImage(im, dx, dy, dw, dh); return; }
+  const px = b.pad * (dw / b.srcW), py = b.pad * (dh / b.srcH);
+  ctx.drawImage(b.canvas, dx - px, dy - py, dw + px * 2, dh + py * 2);
+}
+// hue-rotate + saturate, once per creature image. Same look as the old per-frame SHINY filter.
+const shinyCache = new Map();
+const SHINY_MAX = 24;
+const SHINY_M = (() => {
+  const a = 150 * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const hue = [
+    0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928,
+    0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.140, 0.072 - c * 0.072 - s * 0.283,
+    0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072];
+  const sv = 1.3, inv = 1 - sv, lr = 0.213 * inv, lg = 0.715 * inv, lb = 0.072 * inv;
+  const sat = [lr + sv, lg, lb, lr, lg + sv, lb, lr, lg, lb + sv];
+  const o = [];
+  for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++)
+    o.push(sat[r * 3] * hue[col] + sat[r * 3 + 1] * hue[3 + col] + sat[r * 3 + 2] * hue[6 + col]);
+  return o;
+})();
+function shinyImg(im) {
+  if (!ready(im)) return im;
+  const ck = im.src || '';
+  if (!ck) return im;
+  const hit = shinyCache.get(ck);
+  if (hit) return hit;
+  const [W, H] = tamerSrcSize(im);
+  if (!W || !H) return im;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(im, 0, 0);
+  try {
+    const d = x.getImageData(0, 0, W, H), p = d.data, m = SHINY_M;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 1) continue;
+      const r = p[i], g = p[i + 1], b = p[i + 2];
+      p[i] = Math.max(0, Math.min(255, m[0] * r + m[1] * g + m[2] * b));
+      p[i + 1] = Math.max(0, Math.min(255, m[3] * r + m[4] * g + m[5] * b));
+      p[i + 2] = Math.max(0, Math.min(255, m[6] * r + m[7] * g + m[8] * b));
+    }
+    x.putImageData(d, 0, 0);
+  } catch (e) { return im; }
+  while (shinyCache.size >= SHINY_MAX) shinyCache.delete(shinyCache.keys().next().value);
+  shinyCache.set(ck, c);
+  return c;
+}
+// bake a couple of frames per turn so the first stride does not hitch, and so a new outfit replaces the old cache
+function pumpTamerRims() {
+  const job = ++rimJob, id = rimSkin;
+  let i = 0, spins = 0;
+  const step = () => {
+    if (job !== rimJob || (meta().skin || 'classic') !== id) return;
+    const t0 = performance.now();
+    let baked = 0;
+    for (; i < TAMER_FR.length && performance.now() - t0 < 10 && baked < 2; i++) {
+      const k = TAMER_FR[i], key = tamerKey(k);
+      if (key !== k && !(window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[key])) continue;
+      const im = imgs[key];
+      if (!im || !ready(im)) continue;
+      const before = rimCache.size;
+      rimOf(skinImg(im));
+      if (rimCache.size > before) baked++;
+    }
+    if (i < TAMER_FR.length) { requestAnimationFrame(step); return; }
+    if (spins >= 8) return;
+    const pending = TAMER_FR.some(k => {
+      const key = tamerKey(k);
+      if (key !== k && !(window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[key])) return false;
+      const im = imgs[key];
+      return im && !ready(im);
+    });
+    if (pending) { spins++; i = 0; setTimeout(() => requestAnimationFrame(step), 80); }
+  };
+  requestAnimationFrame(step);
 }
 
 window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, preloadTamer, get state() { return W; }, get view() { return V; },

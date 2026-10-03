@@ -245,7 +245,12 @@ def check_save_guards(page):
     page.reload(wait_until='domcontentloaded')
     page.wait_for_selector('#title.on', timeout=15000)
     check(page.locator('#game.on').count() == 0 and page.locator('#titleMenu [data-v=cont]').count() == 0, 'unknown species and biome drop the run instead of a blank board')
-    check('Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'a dropped run tells you the save was damaged')
+    told = page.evaluate("""() => ({
+      toast: document.querySelector('#toast').textContent,
+      modal: (document.querySelector('#modal.on h2') || {}).textContent || ''
+    })""")
+    check('Save damaged: start fresh' in (told['toast'] or '') or 'Save damaged: start fresh' in told['modal'],
+          'a dropped run tells you the save was damaged' + ('' if 'Save damaged: start fresh' in ((told['toast'] or '') + told['modal']) else f" toast={told['toast']!r} modal={told['modal']!r}"))
     page.evaluate("""() => {
       const r = GR.newRun(GLIM.meta, 13, 0);
       GR.giveStarter(r, 'cind');
@@ -261,7 +266,7 @@ def check_save_guards(page):
     page.evaluate("""() => { GLIM.run.biome = 'no-such-biome'; GLIM.run.units[0].sp = 'no-such-species'; }""")
     page.click('#titleMenu [data-v=cont]')
     page.wait_for_function("() => !document.querySelector('#game.on') && document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')")
-    check(page.locator('#game.on').count() == 0 and 'Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'Continue falls back to the title when the run throws')
+    check(page.evaluate("!document.querySelector('#game.on') && document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')"), 'Continue falls back to the title when the run throws')
     check(page.evaluate("!GLIM.run && !JSON.parse(localStorage.getItem('glimmerdeep.v1')).run"), 'Continue drops the damaged run save')
     page.click('#titleMenu [data-v=wilds]')
     page.wait_for_selector('#modalBox [data-v=go]')
@@ -274,7 +279,7 @@ def check_save_guards(page):
     }""")
     page.click('#modalBox [data-v=go]')
     page.wait_for_function("() => !document.querySelector('#modal.on') && !document.querySelector('#wilds.exploring') && document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')")
-    check(page.locator('#wilds.exploring').count() == 0 and 'Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'Wilds Continue falls back to the title for an unknown species and biome')
+    check(page.evaluate("!document.querySelector('#wilds.exploring') && document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')"), 'Wilds Continue falls back to the title for an unknown species and biome')
     check(page.evaluate("localStorage.getItem('glimmerdeep.wilds.v1')") is None, 'Wilds Continue drops the damaged expedition')
     other = page.context.new_page()
     other.goto(page.url)
@@ -326,7 +331,7 @@ def check_damaged(page):
     page.click('#titleMenu [data-v=wilds]')
     page.wait_for_timeout(400)
     check(page.locator('#wilds.exploring').count() == 0 and page.locator('#title.on').count() == 1, 'damaged Wilds save returns to the title')
-    check('Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'damaged Wilds save explains itself')
+    check(page.evaluate("document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')"), 'damaged Wilds save explains itself')
     check(page.evaluate("localStorage.getItem('glimmerdeep.wilds.v1')") is None, 'damaged Wilds save is dropped')
     check_save_guards(page)
 

@@ -286,6 +286,15 @@ for k, d in [
  ('wd_berry', 'a cluster of three glossy round blue berries with a green leaf'),
  ('wd_rock', 'a mossy grey boulder'),
  ('wd_pit', 'a deep round pit hole in the ground seen from directly above, a ring of crumbling dark stone around the rim, the inside falls away into pitch-black darkness'),
+ ('wd_tonic', 'a round glass potion flask full of glowing green healing liquid with a cork and a little leaf tag'),
+ ('wd_merchant', 'a cozy travelling merchant stall cart with a striped canopy, hanging lanterns, crates of potions and trinkets'),
+ ('wd_egg', 'a large speckled teal creature egg glowing softly, sitting in a nest of moss and twigs'),
+ ('wd_altar', 'an ancient carved stone altar with a floating glowing crimson crystal above it and rune markings'),
+ ('wd_well', 'a round old stone wishing well with a little wooden roof and bucket, the water glowing blue with coins at the bottom'),
+ ('wd_dummy', 'a straw training dummy on a wooden post with a painted target on its chest and patched cloth'),
+ ('wd_pool', 'a small round stone basin pool full of shimmering liquid golden light with sparkles rising'),
+ ('wd_explorer', 'an explorer camp bedroll and backpack with a rolled treasure map, a compass and a small lantern'),
+ ('wd_banner', 'a tall battle banner on a pole with two crossed swords emblem and a laurel, flapping, gold and crimson'),
  ('wd_spikes', 'a square stone floor trap plate seen from directly above, a grid of sharp silver metal spikes poking up, rusty bolts at the corners'),
 ]: A[k] = ('icon', d)
 

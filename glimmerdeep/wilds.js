@@ -31,6 +31,47 @@ function load() { try { return JSON.parse(localStorage.getItem(SAVE) || 'null');
 function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) { /* storage blocked */ } }
 const meta = () => U.meta;
 const unlocked = sp => !!meta().unlocked[sp];
+const up = k => meta().up[k] || 0;
+
+// ---- relics, tonics and camp upgrades for the descent --------------------------------------
+const WR = G.WILD_RELICS;
+const rw = k => (W.relics || []).reduce((t, id) => t + ((WR[id].w || {})[k] || 0), 0);
+const xpStar = () => up('w_mentor') ? [0, 3, 9] : XP_STAR;
+const shardMul = () => 1 + rw('shardMul');
+function fightBonus() {
+  const b = {};
+  const add = o => { for (const k in o || {}) b[k] = (b[k] || 0) + o[k]; };
+  for (const id of W.relics || []) add(WR[id].b);
+  for (const k in G.META) if (G.META[k].wb) for (let i = 0; i < up(k); i++) add(G.META[k].wb);
+  return b;
+}
+function healFit(v) { for (const s of W.squad) if (s.hp > 0) s.hp = Math.min(1, s.hp + v); }
+function gainXp(s, n, evos) { s.xp += n; const T = xpStar(); while (s.star < 3 && s.xp >= T[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); if (evos) evos.push(s); } }
+function relicLi(id) { const r = WR[id]; return `<div class="li click" data-v="${id}"><img class="ic" src="${IMG(r.ic)}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div></div></div>`; }
+// offer n relics you do not have yet; resolves with the one taken (or null)
+async function offerRelics(n, title, skip) {
+  const pool = Object.keys(WR).filter(k => !(W.relics || []).includes(k)).sort(() => Math.random() - 0.5).slice(0, n);
+  if (!pool.length) { U.toast('You already carry every relic!'); return null; }
+  const v = await U.ask(title || 'A relic!', `<p class="muted small" style="text-align:center">Relics last until this expedition ends.</p><div class="list">${pool.map(relicLi).join('')}</div>`, skip ? U.btn('skip', 'Leave it', 'ghost sm') : '');
+  if (!WR[v]) return null;
+  W.relics.push(v); U.SFX.relic(); U.toast('Got ' + WR[v].n + '!');
+  if (WR[v].w && WR[v].w.map) revealMap(2);
+  hud();
+  return v;
+}
+function revealMap(rank) {
+  for (const a of Object.values(W.rooms)) if (a.type !== 'secret' || rank >= 2) a.seen = true;
+  if (V) minimap();
+}
+async function useTonic() {
+  if (!W || V.pause) return;
+  if (!(W.tonics > 0)) return U.toast('No Glim Tonics. Every floor has one at its entrance.');
+  if (!W.squad.some(s => s.hp > 0 && s.hp < 1)) return U.toast('Your squad is already at full health.');
+  W.tonics--;
+  healFit(0.4 + rw('tonic'));
+  U.SFX.wshrine(); burst(V.px, V.py - 0.4, '#6bff8f'); U.toast(`Glim Tonic: +${Math.round(100 * (0.4 + rw('tonic')))}% HP for your squad.`);
+  save(); hud();
+}
 
 // ---- doors and the map (layouts come from wgen.js) --------------------------------------------
 function doorOf(room, d) {
@@ -57,12 +98,19 @@ function newFloor(floor) {
   const pickFrom = floor === FLOORS ? ['core'] : (floor === 1 ? EARLY : Object.keys(G.BIOMES).filter(k => k !== 'core')).filter(k => !W.biomes.includes(k));
   const biome = pick(Math.random, pickFrom.length ? pickFrom : ['verdant']);
   W.biomes.push(biome);
-  Object.assign(W, { floor, biome }, genFloor(floor, biome, (W.seed + floor * 7919) >>> 0));
+  const F = genFloor(floor, biome, (W.seed + floor * 7919) >>> 0);
+  Object.assign(W, { floor, biome, rooms: F.rooms, cur: F.cur });
+  if (F.freeKey) W.keys++;
+  W.relics = W.relics || []; if (W.tonics == null) W.tonics = 0;
+  const mapRank = Math.max(up('w_map'), rw('map'));
+  if (mapRank) revealMap(mapRank);
   markSeen();
 }
 function startExpedition(sps) {
   W = { v: 1, seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0, floor: 1, biomes: [], keys: 0, shards: 0, nextUid: 1, wins: 0, found: [],
+    relics: [], tonics: up('w_medic'), phoenixUsed: false,
     squad: sps.map(sp => ({ uid: 0, sp, star: 1, xp: 0, hp: 1, shiny: false })) };
+  if (up('w_relic')) W.relics.push(pick(Math.random, Object.keys(WR)));
   for (const m of W.squad) m.uid = W.nextUid++;
   newFloor(1);
   save();
@@ -98,23 +146,23 @@ async function open() {
 function prep() {
   const m = meta();
   const list = Object.keys(G.SP).filter(unlocked).sort((a, b) => G.TIER[a] - G.TIER[b] || G.SP[a].el.localeCompare(G.SP[b].el));
-  const sel = [];
+  const sel = [], SQ = SQUAD_START + up('w_pack');
   const n = Object.keys(m.unlocked).length, tot = Object.keys(G.SP).length;
   const host = $('#wilds');
   host.querySelector('.wprep').innerHTML = `<div class="gtop"><button class="iconbtn" data-w="home">◀</button><div class="grow"><div class="title">The Wilds</div><div class="small muted">${n}/${tot} creatures unlocked</div></div></div>
-    <div class="wprepbody"><p class="muted" style="text-align:center;margin:4px 8px 10px">Explore ${FLOORS} floors of rooms. Walk into a wild creature to battle it. Beat it to <b>unlock it for good</b>: it joins the Auto Chess shop and can join your squad. Pick up to ${SQUAD_START} creatures to bring.</p>
+    <div class="wprepbody"><p class="muted" style="text-align:center;margin:4px 8px 10px">Explore ${FLOORS} floors of rooms. Walk into a wild creature to battle it. Beat it to <b>unlock it for good</b>: it joins the Auto Chess shop and can join your squad. Pick up to ${SQ} creatures to bring.</p>
     <div class="wpick">${list.map(sp => { const S = G.SP[sp]; return `<div class="wcard el-${S.el}" data-sp="${sp}"><img src="${IMG('cr_' + sp + '1')}" alt=""><div class="n">${S.names[0]}</div><div class="small muted">${U.ROLE_N[S.role]} · T${G.TIER[sp]}</div></div>`; }).join('')}</div></div>
-    <div class="wprepbar"><span class="small muted" id="wSel">Choose 1-${SQUAD_START}</span>${U.btn('go', 'Set out!', 'green')}</div>`;
+    <div class="wprepbar"><span class="small muted" id="wSel">Choose 1-${SQ}</span>${U.btn('go', 'Set out!', 'green')}</div>`;
   host.classList.remove('exploring');
   U.show('wilds');
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
   host.querySelector('.wpick').onclick = e => {
     const c = e.target.closest('[data-sp]'); if (!c) return;
     const sp = c.dataset.sp, i = sel.indexOf(sp);
-    if (i >= 0) sel.splice(i, 1); else if (sel.length < SQUAD_START) sel.push(sp); else return U.toast(`Up to ${SQUAD_START} creatures.`);
+    if (i >= 0) sel.splice(i, 1); else if (sel.length < SQ) sel.push(sp); else return U.toast(`Up to ${SQ} creatures.`);
     U.SFX.click();
     c.classList.toggle('on', i < 0);
-    $('#wSel').textContent = sel.length ? sel.map(k => G.SP[k].names[0]).join(', ') : `Choose 1-${SQUAD_START}`;
+    $('#wSel').textContent = sel.length ? sel.map(k => G.SP[k].names[0]).join(', ') : `Choose 1-${SQ}`;
   };
   host.querySelector('.wprepbar').onclick = e => {
     if (!e.target.closest('[data-v=go]')) return;
@@ -129,6 +177,8 @@ document.addEventListener('click', e => {
   U.SFX.click();
   if (b.dataset.w === 'home') { stopView(); U.renderTitle(); }
   else if (b.dataset.w === 'leave') leave();
+  else if (b.dataset.w === 'tonic') useTonic();
+  else if (b.dataset.w.startsWith('relic:')) { const r = WR[b.dataset.w.slice(6)]; if (r) U.toast(r.n + ': ' + r.d); }
 });
 async function leave() {
   V.pause = true;
@@ -149,6 +199,7 @@ function enter() {
       inv: 0, push: { d: null, t: 0 }, slide: null, pause: false, msgT: 0, parts: [] };
     bindInput();
   }
+  W.relics = W.relics || []; if (W.tonics == null) W.tonics = 0;
   V.pause = false;
   host.querySelector('.whint').textContent = matchMedia('(pointer: coarse)').matches ? 'Drag anywhere to move' : 'WASD / arrow keys, or drag anywhere to move';
   placeRoom(null);
@@ -165,6 +216,12 @@ function placeRoom(from) {
   V.mons = [];
   V.grid = a.tiles ? a.tiles.split('|') : null;
   V.flow = null; V.flowAt = '';
+  spawnMon(a);
+  V.inv = 1.0;
+  markSeen();
+  save();
+}
+function spawnMon(a) {
   if (a.mon && !a.mon.beaten) {
     const lair = a.type === 'lair';
     let mx = 8, my = 4;
@@ -176,17 +233,15 @@ function placeRoom(from) {
     }
     V.mons.push({ x: mx, y: my, tx: mx, ty: my, t: 0, sz: lair ? 1.8 : 1.3, lair, bob: Math.random() * 6, shiny: !!a.mon.shiny });
   }
-  V.inv = 1.0;
-  markSeen();
-  save();
 }
 function hud() {
   const a = room(), host = $('#wilds');
   host.querySelector('.wtop').innerHTML = `<button class="iconbtn" data-w="leave">◀</button><div class="grow"><div class="title">Floor ${W.floor}/${FLOORS} · ${G.BIOMES[W.biome].name}</div>
-    <div class="small muted">${a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
-    <span class="pill">🔑 ${W.keys}</span><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta().shards}</span>`;
+    <div class="small muted">${a.type === 'event' ? EV_N[a.event] : a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
+    <button class="pill wbtn" data-w="tonic" title="Glim Tonic: heal your squad"><img src="${IMG('wd_tonic')}" alt="">${W.tonics || 0}</button><span class="pill">🔑 ${W.keys}</span><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta().shards}</span>
+    ${(W.relics || []).length ? `<div class="wrelics">${W.relics.map(id => `<button class="wrel" data-w="relic:${id}" title="${WR[id].n}"><img src="${IMG(WR[id].ic)}" alt=""></button>`).join('')}</div>` : ''}`;
   host.querySelector('.wsquad').innerHTML = W.squad.map(m => {
-    const S = G.SP[m.sp], next = XP_STAR[m.star];
+    const S = G.SP[m.sp], next = xpStar()[m.star];
     return `<div class="wmem ${m.hp <= 0 ? 'out' : ''}"><img class="${m.shiny ? 'shiny' : ''}" src="${IMG('cr_' + m.sp + m.star)}" alt=""><div class="st">${'★'.repeat(m.star)}</div>
       <div class="bar"><i class="${m.hp < 0.3 ? 'low' : m.hp < 0.6 ? 'mid' : ''}" style="width:${Math.max(0, m.hp) * 100}%"></i></div>${next ? `<div class="bar xp"><i style="width:${Math.min(100, 100 * m.xp / next)}%"></i></div>` : ''}<div class="nm">${S.names[m.star - 1]}</div></div>`;
   }).join('');
@@ -207,7 +262,7 @@ function minimap() {
     ctx.globalAlpha = a.visited ? 1 : 0.8;
     ctx.fillRect(x, y, s, sh);
     ctx.globalAlpha = 1;
-    const c = a.type === 'lair' ? '#ff5a6e' : a.type === 'treasure' ? '#ffd65a' : a.type === 'shrine' ? '#6bff8f' : a.type === 'locked' ? '#ffb02e' : a.type === 'secret' ? '#d9a6ff' : null;
+    const c = a.type === 'lair' ? '#ff5a6e' : a.type === 'treasure' ? '#ffd65a' : a.type === 'shrine' ? '#6bff8f' : a.type === 'locked' ? '#ffb02e' : a.type === 'secret' ? '#d9a6ff' : a.type === 'event' && !a.used ? '#6fd3ff' : null;
     if (c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x + s / 2, y + sh / 2, 2.6, 0, 6.3); ctx.fill(); }
     else if (a.visited && a.mon && !a.mon.beaten) { ctx.fillStyle = ELC[G.SP[a.mon.sp].el]; ctx.beginPath(); ctx.arc(x + s / 2, y + sh / 2, 2.4, 0, 6.3); ctx.fill(); }
     if (a.item === 'key' && a.visited && !a.used) { ctx.fillStyle = '#ffd65a'; ctx.fillRect(x + s - 4, y + 1, 3, 3); }
@@ -315,7 +370,7 @@ function step(dt) {
   const gapX = Math.abs(o.x - 8) < 0.8, gapY = Math.abs(o.y - 4.5) < 0.8;
   const dn = doorOf(a, 'n'), ds = doorOf(a, 's'), dw = doorOf(a, 'w'), de = doorOf(a, 'e');
   const tryDoor = (d, st) => {
-    if (st === 'lock') { if (W.keys > 0) { W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
+    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
       if (V.push.t > 0.55) { const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'secret' ? t : a).found = true; U.SFX.wsecret(); U.toast('A secret room!'); burst(DOOR[d][0], DOOR[d][1], '#d9a6ff'); markSeen(); save(); minimap(); }
@@ -329,7 +384,7 @@ function step(dt) {
   collideRocks(o, 0.38);
   V.px = o.x; V.py = o.y;
   V.hurtT = (V.hurtT || 0) - dt; V.shake = Math.max(0, (V.shake || 0) - dt);
-  { const [c, y] = tileAt(V.px, V.py), [tx, ty] = tileXY(c, y); if (tile(c, y) === 'S' && Math.abs(V.px - tx) < 0.42 && Math.abs(V.py - ty) < 0.42 && V.hurtT <= 0 && !V.slide) hurt(); }
+  { const [c, y] = tileAt(V.px, V.py), [tx, ty] = tileXY(c, y); if (tile(c, y) === 'S' && !rw('spikeproof') && Math.abs(V.px - tx) < 0.42 && Math.abs(V.py - ty) < 0.42 && V.hurtT <= 0 && !V.slide) hurt(); }
   // pickups
   const near = (x, y, r) => Math.hypot(V.px - x, V.py - y) < r;
   if (a.item && !a.used && near(8, 4.5, 0.9) && !(a.mon && !a.mon.beaten)) pickup(a);
@@ -364,10 +419,104 @@ function pickup(a) {
   const m = meta();
   if (a.item === 'key') { W.keys++; U.SFX.wkey(); U.toast('Found a key! It opens this floor\'s vault.'); }
   else if (a.item === 'berry') { for (const s of W.squad) if (s.hp > 0) s.hp = Math.min(1, s.hp + 0.35); U.SFX.wberry(); U.toast('Glimberries! Your squad recovers 35% HP.'); }
-  else if (a.item === 'chest') { const g = 10 + 6 * W.floor; m.shards += g; W.shards += g; if (Math.random() < 0.5) for (const s of W.squad) if (s.hp > 0) s.hp = Math.min(1, s.hp + 0.25); U.SFX.wchest(); U.toast(`Treasure! +${g} Glimmer Shards.`); }
+  else if (a.item === 'chest') {
+    const g = Math.round((10 + 6 * W.floor) * (1 + 0.5 * up('w_luck') + rw('shardMul'))); m.shards += g; W.shards += g;
+    if (Math.random() < 0.5) healFit(0.25);
+    U.SFX.wchest(); U.toast(`Treasure! +${g} Glimmer Shards.`);
+    if (Math.random() < 0.35 + 0.2 * up('w_luck')) { V.pause = true; save(); offerRelics(2, 'A relic in the chest!').then(() => { V.pause = false; V.last = performance.now(); save(); }); }
+  }
+  else if (a.item === 'tonic') { W.tonics = (W.tonics || 0) + 1; U.SFX.wberry(); U.toast('A Glim Tonic! Tap the flask at the top any time to heal your squad.'); }
+  else if (a.item === 'event') { a.used = false; return runEvent(a); }
   else if (a.item === 'shrine') { for (const s of W.squad) s.hp = s.hp > 0 ? 1 : 0.5; U.SFX.wshrine(); U.toast('The shrine restores your squad, and revives the fainted.'); }
   burst(8, 4.5, a.item === 'shrine' ? '#6bff8f' : '#ffd65a');
   save(); U.save(); hud();
+}
+
+// ---- event rooms ------------------------------------------------------------------------------
+const EV_N = { merchant: 'Wandering Merchant', egg: 'Mysterious Egg', altar: 'Blood Altar', well: 'Wishing Well', dummy: 'Sparring Dummy', pool: 'Glimmer Pool', explorer: 'Lost Explorer', challenge: 'Champion\'s Challenge' };
+const EV_IMG = { merchant: 'wd_merchant', egg: 'wd_egg', altar: 'wd_altar', well: 'wd_well', dummy: 'wd_dummy', pool: 'wd_pool', explorer: 'wd_explorer', challenge: 'wd_banner' };
+const evArt = e => `<div class="evo-stage" style="height:130px"><div class="glow"></div><img src="${IMG(EV_IMG[e])}" style="max-height:120px" alt=""></div>`;
+function backOff() { V.py = Math.min(IN.y1, 4.5 + 1.6); V.inv = Math.max(V.inv, 0.6); }
+async function runEvent(a) {
+  V.pause = true;
+  const m = meta(), f = W.floor, t = `<p style="text-align:center">`, done = () => { a.used = true; };
+  const fit = W.squad.filter(s => s.hp > 0);
+  let v;
+  switch (a.event) {
+    case 'merchant': {
+      const pt = 30, pr = 70 + 20 * f;
+      v = await U.ask(EV_N.merchant, evArt('merchant') + `${t}"Wares for the brave! Paid in Glimmer Shards, of course." You have <b>${m.shards}</b>.</p>`,
+        U.btn('tonic', `Glim Tonic · ${pt}`, m.shards >= pt ? 'green sm' : 'ghost sm') + U.btn('relic', `A relic (pick 1 of 2) · ${pr}`, m.shards >= pr ? 'sm' : 'ghost sm') + U.btn('x', 'Just looking', 'ghost sm'));
+      if (v === 'tonic' && m.shards >= pt) { m.shards -= pt; W.tonics = (W.tonics || 0) + 1; U.SFX.coin(); U.toast('Bought a Glim Tonic.'); }
+      else if (v === 'relic' && m.shards >= pr) { m.shards -= pr; await offerRelics(2, 'The merchant\'s relics'); done(); }
+      else if (v !== 'x') U.toast('Not enough shards.');
+      break;
+    }
+    case 'egg': {
+      v = await U.ask(EV_N.egg, evArt('egg') + `${t}A warm egg sits alone in a nest. Something inside taps back.</p>`, U.btn('hatch', 'Keep it warm', 'green') + U.btn('x', 'Leave it', 'ghost sm'));
+      if (v !== 'hatch') break;
+      done();
+      const els = Array.from(new Set(G.BIOMES[W.biome].els)), tmax = Math.min(5, f + 1);
+      const pool = Object.keys(G.SP).filter(k => G.TIER[k] <= tmax && els.includes(G.SP[k].el));
+      const locked = pool.filter(k => !unlocked(k));
+      const sp = locked.length && Math.random() < 0.4 ? pick(Math.random, locked) : pick(Math.random, pool);
+      const fresh = !unlocked(sp);
+      m.unlocked[sp] = 1; m.caught[sp] = 1; m.dex[sp] = Math.max(m.dex[sp] || 0, 1);
+      if (fresh) W.found.push(sp);
+      const room = W.squad.length < SQUAD_MAX;
+      if (room) W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: false });
+      U.SFX.wcatch();
+      await U.ask('It hatched!', `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG('cr_' + sp + '1')}" style="max-height:140px" alt=""></div>${t}A baby <b>${G.SP[sp].names[0]}</b>${fresh ? ' — <b style="color:var(--gold)">NEW!</b> unlocked for good' : ''}. ${room ? 'It joins your squad.' : 'Your squad is full, so it scampers home to camp.'}</p>`, U.btn('ok', 'Hello!', 'green'));
+      break;
+    }
+    case 'altar': {
+      v = await U.ask(EV_N.altar, evArt('altar') + `${t}The crystal hums. It asks for a share of your squad's strength in return for a relic.</p><p class="small muted" style="text-align:center">Every standing creature loses 25% HP (never below 10%).</p>`, U.btn('give', 'Offer it', '') + U.btn('x', 'Walk away', 'ghost sm'));
+      if (v !== 'give' || !fit.length) break;
+      for (const s of fit) s.hp = Math.max(0.1, s.hp - 0.25);
+      U.SFX.hit(); done();
+      await offerRelics(2, 'The altar\'s gift');
+      break;
+    }
+    case 'well': {
+      v = await U.ask(EV_N.well, evArt('well') + `${t}Coins glitter at the bottom of a glowing well.</p>`, U.btn('toss', 'Toss in 20 shards (60%: a relic)', m.shards >= 20 ? '' : 'ghost') + U.btn('drink', 'Drink (heal 20%)', 'green sm') + U.btn('x', 'Leave', 'ghost sm'));
+      if (v === 'toss' && m.shards >= 20) { m.shards -= 20; done(); if (Math.random() < 0.6) { const id = pick(Math.random, Object.keys(WR).filter(k => !W.relics.includes(k))); if (id) { W.relics.push(id); if (WR[id].w && WR[id].w.map) revealMap(2); U.SFX.relic(); await U.ask('Your wish came true!', `<div class="list">${relicLi(id)}</div>`, U.btn('ok', 'Wonderful', 'green')); } } else { U.SFX.miss(); U.toast('Plink… nothing happens.'); } }
+      else if (v === 'toss') U.toast('Not enough shards.');
+      else if (v === 'drink') { healFit(0.2); done(); U.SFX.wshrine(); }
+      break;
+    }
+    case 'dummy': {
+      if (!fit.length) break;
+      v = await U.ask(EV_N.dummy, evArt('dummy') + `${t}Train one creature hard: <b>+2 XP</b>, but it loses 30% HP (never below 10%).</p><div class="list">${fit.map(s => `<div class="li click" data-v="${s.uid}"><img class="ic" src="${IMG('cr_' + s.sp + s.star)}" alt=""><div class="grow"><div class="t">${G.SP[s.sp].names[s.star - 1]} ${'★'.repeat(s.star)}</div><div class="small">${Math.round(s.hp * 100)}% HP · ${s.star < 3 ? s.xp + '/' + xpStar()[s.star] + ' XP' : 'final form'}</div></div></div>`).join('')}</div>`, U.btn('x', 'Not now', 'ghost sm'));
+      const s = W.squad.find(x => String(x.uid) === v); if (!s) break;
+      const evos = []; gainXp(s, 2, evos); s.hp = Math.max(0.1, s.hp - 0.3); done(); if (evos.length) U.SFX.lvl(); else U.SFX.hit();
+      U.toast(evos.length ? `${G.SP[s.sp].names[s.star - 2]} evolved into ${G.SP[s.sp].names[s.star - 1]}!` : `${G.SP[s.sp].names[s.star - 1]} trained hard: +2 XP.`);
+      break;
+    }
+    case 'pool': {
+      const out = W.squad.filter(s => s.hp <= 0).length;
+      v = await U.ask(EV_N.pool, evArt('pool') + `${t}Liquid light swirls in the basin. It can do one thing for you.</p>`, U.btn('revive', `Revive the fainted at 50%${out ? ` (${out})` : ''}`, out ? 'green' : 'ghost') + U.btn('heal', 'Heal everyone 40%', 'green sm') + U.btn('x', 'Leave', 'ghost sm'));
+      if (v === 'revive' && out) { for (const s of W.squad) if (s.hp <= 0) s.hp = 0.5; done(); U.SFX.wshrine(); }
+      else if (v === 'heal') { healFit(0.4); done(); U.SFX.wshrine(); }
+      break;
+    }
+    case 'explorer': {
+      const g = Math.round((12 + 4 * f) * shardMul());
+      await U.ask(EV_N.explorer, evArt('explorer') + `${t}A lost explorer shares her map of this floor, secret rooms included, and a pouch of <b>${g} shards</b>.</p>`, U.btn('ok', 'Thank you!', 'green'));
+      revealMap(2); m.shards += g; W.shards += g; done(); U.SFX.wchest();
+      break;
+    }
+    case 'challenge': {
+      const c = a.cmon, S = G.SP[c.sp];
+      v = await U.ask(EV_N.challenge, `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG('cr_' + c.sp + c.star)}" style="max-height:140px" alt=""></div>${t}A champion <b>${S.names[c.star - 1]}</b> ${'★'.repeat(c.star)} and ${c.escorts.length} followers challenge you. Win for a relic (pick 1 of 3).</p>`, U.btn('fight', 'Accept the challenge', '') + U.btn('x', 'Not yet', 'ghost sm'));
+      if (v !== 'fight') break;
+      a.mon = c; a.item = null; a.used = true;
+      spawnMon(a); V.mons[0].x = 8; V.mons[0].y = 3.2; V.inv = 1.2;
+      break;
+    }
+  }
+  save(); U.save(); hud();
+  if (!a.used) backOff();
+  V.pause = false; V.last = performance.now();
 }
 
 // ---- battles ----------------------------------------------------------------------------------
@@ -382,7 +531,7 @@ async function battle(a, mv) {
   $('#wilds').classList.add('flash');
   await new Promise(r => setTimeout(r, 380));
   $('#wilds').classList.remove('flash');
-  const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : mon.shiny ? '✦ Shiny ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`);
+  const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : a.event === 'challenge' ? '⚔ Champion ' : mon.shiny ? '✦ Shiny ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`, fightBonus());
   // carry HP back to the squad
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   const win = st.over === 1;
@@ -391,6 +540,11 @@ async function battle(a, mv) {
   if (win) await victory(a, mon, fit);
   else {
     if (W.squad.some(m => m.hp > 0)) U.SFX.ko();   // a full wipe plays the lose stinger in endExpedition instead
+    else if (rw('phoenix') && !W.phoenixUsed) {
+      W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4;
+      U.SFX.wshrine();
+      await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green'));
+    }
     if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
     await U.ask('Defeat', `<p style="text-align:center">${nm} drove you back. Fainted creatures sit out until the next floor (or a shrine).</p>`, U.btn('ok', 'Regroup', 'green'));
     // back off to the door you came in through
@@ -405,7 +559,7 @@ async function victory(a, mon, fit) {
   mon.beaten = true; V.mons = [];
   W.wins++;
   const lair = a.type === 'lair';
-  const g = (lair ? 10 + 6 * W.floor : 2 + W.floor);
+  const g = Math.round((lair ? 10 + 6 * W.floor : 2 + W.floor) * shardMul());
   m.shards += g; W.shards += g;
   const fresh = !m.unlocked[sp];
   m.unlocked[sp] = 1; m.caught[sp] = 1;
@@ -416,10 +570,8 @@ async function victory(a, mon, fit) {
   if (mon.shiny) { m.shinies[sp] = 1; if (!W.shinies) W.shinies = []; if (shinyNew) W.shinies.push(sp); }
   // squad XP, and evolutions mid-expedition
   const evos = [];
-  for (const s of fit) {
-    s.xp += lair ? 2 : 1;
-    while (s.star < 3 && s.xp >= XP_STAR[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); evos.push(s); }
-  }
+  for (const s of fit) gainXp(s, (lair ? 2 : 1) + rw('xp'), evos);
+  if (rw('winHeal')) healFit(rw('winHeal'));
   U.SFX[mon.shiny && shinyNew ? 'wshiny' : 'wcatch']();
   const join = W.squad.length < SQUAD_MAX && !W.squad.some(s => s.sp === sp && (s.shiny || !mon.shiny));
   const body = `<div class="evo-stage" style="height:170px"><div class="glow"></div><img class="${mon.shiny ? 'shiny' : ''}" src="${IMG('cr_' + sp + mon.star)}" style="max-height:160px" alt=""></div>
@@ -430,13 +582,16 @@ async function victory(a, mon, fit) {
     ${join ? `<p class="muted small" style="text-align:center">It can join your squad for the rest of this expedition (${W.squad.length}/${SQUAD_MAX}).</p>` : ''}`;
   const v = await U.ask(mon.shiny && shinyNew ? 'Shiny caught!' : fresh ? 'Creature unlocked!' : 'Victory!', body, (join ? U.btn('join', `Add ${S.names[0]} to the squad`, 'green') + U.btn('no', 'Not now', 'ghost sm') : U.btn('ok', 'Continue', 'green')));
   if (v === 'join') { W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: !!mon.shiny }); U.toast((mon.shiny ? 'Shiny ' : '') + S.names[0] + ' joined your squad!'); }
+  if (lair) await offerRelics(3, 'Lair treasure: take a relic');
+  else if (a.event === 'challenge') { a.used = true; await offerRelics(3, 'The champion\'s prize'); }
 }
 async function descend() {
   V.pause = true;
   if (W.floor >= FLOORS) return endExpedition('done');
-  const v = await U.ask('Go deeper?', `<p style="text-align:center">Stairs lead down to floor ${W.floor + 1}/${FLOORS}. Rarer, stronger creatures live deeper.</p><p class="small muted" style="text-align:center">Fainted creatures recover 40% HP on the way down; everyone else heals 25%.</p>`, U.btn('go', 'Descend', 'green') + U.btn('stay', 'Not yet', 'ghost sm'));
+  const v = await U.ask('Go deeper?', `<p style="text-align:center">Stairs lead down to floor ${W.floor + 1}/${FLOORS}. Rarer, stronger creatures live deeper.</p><p class="small muted" style="text-align:center">Fainted creatures recover ${40 + 15 * up('w_spring')}% HP on the way down; everyone else heals ${25 + 15 * up('w_spring')}%.</p>`, U.btn('go', 'Descend', 'green') + U.btn('stay', 'Not yet', 'ghost sm'));
   if (v !== 'go') { V.py = Math.min(IN.y1, V.py + 1.4); V.pause = false; V.last = performance.now(); return; }
-  for (const s of W.squad) s.hp = s.hp > 0 ? Math.min(1, s.hp + 0.25) : 0.4;
+  const sp = 0.15 * up('w_spring');
+  for (const s of W.squad) s.hp = s.hp > 0 ? Math.min(1, s.hp + 0.25 + sp) : 0.4 + sp;
   U.SFX.wdescend();
   newFloor(W.floor + 1);
   placeRoom(null);
@@ -510,9 +665,11 @@ function drawRoom(a, ox, oy, S, live) {
   if (!live) for (const [x, y, rr] of rockList(a)) drawRock(ctx, ox, oy, S, x, y, rr);
   const cx = ox + 8 * S, cy = oy + 4.5 * S;
   if (a.item && !a.used && !(a.mon && !a.mon.beaten)) {
-    const k = { key: 'wd_key', berry: 'wd_berry', chest: 'node_treasure', shrine: 'wd_shrine' }[a.item], im = img(k), sz = (a.item === 'shrine' ? 1.6 : a.item === 'chest' ? 1.3 : 0.9) * S;
-    const t = performance.now() / 1000, bob = a.item === 'key' || a.item === 'berry' ? Math.sin(t * 3) * 0.08 * S : 0;
-    if (ready(im)) { shadow(ctx, cx, cy + sz * 0.3, sz * 0.4); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, a.item === 'shrine' ? '107,255,143' : '255,214,90'); ctx.drawImage(im, cx - sz / 2, cy - sz * 0.75 + bob, sz, sz); }
+    const k = a.item === 'event' ? EV_IMG[a.event] : { key: 'wd_key', berry: 'wd_berry', chest: 'node_treasure', shrine: 'wd_shrine', tonic: 'wd_tonic' }[a.item], im = img(k);
+    const sz = (a.item === 'event' ? 1.7 : a.item === 'shrine' ? 1.6 : a.item === 'chest' ? 1.3 : 0.9) * S;
+    const t = performance.now() / 1000, bob = ['key', 'berry', 'tonic'].includes(a.item) ? Math.sin(t * 3) * 0.08 * S : 0;
+    const gl = a.item === 'shrine' || a.item === 'tonic' ? '107,255,143' : a.item === 'event' ? '111,211,255' : '255,214,90';
+    if (ready(im)) { shadow(ctx, cx, cy + sz * 0.3, sz * 0.4); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, gl); ctx.drawImage(im, cx - sz / 2, cy - sz * 0.75 + bob, sz, sz); }
   }
   if (a.type === 'lair' && a.mon && a.mon.beaten) { const im = img('wd_stairs'); if (ready(im)) { glow(ctx, cx, cy, 1.3 * S, '120,200,255'); ctx.drawImage(im, cx - 0.9 * S, cy - 0.9 * S, 1.8 * S, 1.8 * S); } }
   if (!live) return;

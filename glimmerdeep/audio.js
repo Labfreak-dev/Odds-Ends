@@ -103,13 +103,17 @@ function ensureEl() {
   return el;
 }
 const mvol = () => Math.min(1, vol() * MGAIN);
+let fadingIn = false;
 function fade(to, ms, done) {
   clearInterval(fadeT);
   const a = ensureEl(), from = a.volume, t0 = performance.now();
+  const destOf = typeof to === 'function' ? to : () => to;
+  fadingIn = destOf() > 0.02;
   fadeT = setInterval(() => {
     const k = Math.min(1, (performance.now() - t0) / ms);
-    a.volume = Math.max(0, Math.min(1, from + (to - from) * k));
-    if (k >= 1) { clearInterval(fadeT); if (done) done(); }
+    const d = Math.max(0, Math.min(1, destOf()));
+    a.volume = Math.max(0, Math.min(1, from + (d - from) * k));
+    if (k >= 1) { clearInterval(fadeT); fadeT = 0; fadingIn = false; a.volume = Math.max(0, Math.min(1, destOf())); if (done) done(); }
   }, 30);
 }
 GA.music = name => {                            // name: key of MUSIC, or null to stop
@@ -123,7 +127,7 @@ GA.music = name => {                            // name: key of MUSIC, or null t
 };
 function elStart(name) {
   const a = ensureEl();
-  const go = () => { cur = name; a.src = q(MUSIC[name]); a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { cur = null; }); fade(mvol(), 600); };
+  const go = () => { cur = name; a.src = q(MUSIC[name]); a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => { cur = null; }); fade(mvol, 600); };
   if (cur && !a.paused) fade(0, 350, go); else go();
 }
 function gaplessStart(name) {
@@ -165,7 +169,10 @@ GA.setMusic = on => {
 GA.setVol = n => {
   GA.meta.vol = Math.max(0, Math.min(100, Math.round(n))); GA.save();
   if (GA.master) GA.master.gain.value = vol();
-  if (el && cur && !GAPLESS) el.volume = mvol();
+  if (el && cur && !GAPLESS) {
+    if (fadingIn) { el.volume = mvol(); fade(mvol, 80); }   // a fade-in was heading for the old volume
+    else if (!fadeT) el.volume = mvol();
+  }
 };
 GA.setSpeed = n => { GA.speed = n || 1; };       // call from game.js whenever FS.speed / meta.speed changes (1, 2, 4)
 

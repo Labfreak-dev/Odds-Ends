@@ -711,20 +711,27 @@ button.setrow { cursor: pointer; }
 .achtabs .btn { min-height: 44px; min-width: 44px; }
 .achrow { min-height: 44px; }
 .achrow.locked { opacity: .92; }
-.cosprev { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 auto 8px; width: 120px; padding: 8px; border-radius: 16px; background: rgba(0,0,0,.28); }
-.cosprev img { width: 88px; height: 88px; object-fit: contain; }
+.cosprev { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 auto 8px; width: 168px; padding: 8px; border-radius: 16px; background: rgba(0,0,0,.28); }
 .cosgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
 .coscard { min-height: 72px; padding: 10px 8px; border-radius: 14px; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 2px rgba(255,255,255,.14); color: var(--ink); text-align: center; }
 .coscard .nm { font-family: Fredoka, Nunito, sans-serif; font-size: 16px; }
 .coscard.on { box-shadow: inset 0 0 0 3px #84f08f; }
 .coscard.locked { filter: grayscale(.35); }
-.frame-gold { box-shadow: 0 0 0 2px #ffc93c, 0 0 14px rgba(255,201,60,.65); }
-.frame-rainbow { box-shadow: 0 0 0 2px #fff, 0 0 8px #ff5a7a, 0 0 16px #3fe0ff; }
-.frame-ember { box-shadow: 0 0 0 2px #ff7a2a, 0 0 14px rgba(255,122,42,.65); }
-.frame-ice { box-shadow: 0 0 0 2px #8fe3ff, 0 0 14px rgba(143,227,255,.6); }
-.frame-leaf { box-shadow: 0 0 0 2px #4fd35a, 0 0 14px rgba(79,211,90,.55); }
-.pill.frame-gold, .pill.frame-rainbow, .pill.frame-ember, .pill.frame-ice, .pill.frame-leaf { padding: 4px 12px; }
+.coscard img.ic { width: 48px; height: 48px; max-width: 48px; max-height: 48px; object-fit: contain; }
+.li img.ic, img.achbadge { width: 48px; height: 48px; max-width: 48px; max-height: 48px; object-fit: contain; flex: none; }
+.achbadgewrap { position: relative; width: 48px; height: 48px; flex: none; }
+.achrow.locked .achbadge { filter: grayscale(1) brightness(.55); }
+.achtier { position: absolute; right: -4px; bottom: -4px; min-width: 18px; padding: 0 4px; border-radius: 7px; background: #140e2c; color: #fff6d0; font-size: 11px; font-weight: 800; line-height: 16px; text-align: center; box-shadow: 0 0 0 1px #ffd65a; }
+.avwrap { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.avwrap .frameov { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain; pointer-events: none; z-index: 2; }
+.titleframe { width: 108px; height: 108px; }
+.titleframe .avin { position: relative; z-index: 1; max-width: 70%; padding: 4px 6px; border-radius: 8px; background: rgba(8, 6, 22, .86); color: #fff8e8; text-align: center; line-height: 1.15; font-family: Fredoka, Nunito, sans-serif; font-size: 13px; text-shadow: 0 1px 1px #000; }
+.cosav { width: 132px; height: 132px; }
+.cosav .avin { width: 76%; height: 76%; display: flex; align-items: center; justify-content: center; }
+.cosav .avin img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain; }
+.cosprev .t, .cosprev .costitle { position: relative; z-index: 1; background: rgba(8, 6, 22, .8); color: #fff8e8; border-radius: 8px; padding: 2px 8px; text-shadow: 0 1px 1px #000; }
 #achToast { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translate(-50%, -140%); z-index: 220; max-width: min(420px, 92%); padding: 10px 14px; border-radius: 14px; background: #1a1338; color: var(--ink); text-align: center; pointer-events: none; box-shadow: 0 0 0 2px var(--gold), 0 10px 24px rgba(0,0,0,.45); transition: transform .28s ease; }
+#achToast img.achbadge { width: 64px; height: 64px; max-width: 64px; max-height: 64px; vertical-align: middle; }
 #achToast.on { transform: translate(-50%, 0); }
 #achToast b { font-family: Fredoka, Nunito, sans-serif; }
 body[data-theme="forest"] { --bg: #0c1a12; --panel: #1c3a2a; --panel2: #245038; --line: #3f8f5c; }
@@ -809,17 +816,17 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 <script src="forms4.js?v=m2"></script>
 <script src="species2.js?v=m1"></script>
 <script src="data.js?v=m2"></script>
-<script src="relics2.js?v=f1"></script>
+<script src="relics2.js?v=f2"></script>
 <script src="chess.js?v=f1"></script>
-<script src="crun.js?v=f1"></script>
+<script src="crun.js?v=f2"></script>
 <script src="fx.js?v=2"></script>
 <script src="glim-anim.js?v=m3"></script>
 <script src="glim-anim-species.js?v=m3"></script>
 <script src="audio.js?v=3"></script>
-<script src="game.js?v=f1"></script>
+<script src="game.js?v=f2"></script>
 <script src="wgen.js?v=2"></script>
-<script src="wilds.js?v=f1"></script>
-<script src="achievements.js?v=f1"></script>
-<script src="cosmetics.js?v=f1"></script>
+<script src="wilds.js?v=f2"></script>
+<script src="achievements.js?v=f2"></script>
+<script src="cosmetics.js?v=f2"></script>
 </body>
 </html>

@@ -10,7 +10,7 @@ const ST0 = {
   v: 0, fights: 0, wins: 0, kills: 0, bosses: 0, rounds: 0, merges: 0, evos: 0, ascends: 0,
   runsWon: 0, runsLost: 0, bestRound: 0, wildsRuns: 0, wildsWins: 0, trainers: 0, floors: 0,
   secrets: 0, relics: 0, shinies: 0, shards: 0, streakBest: 0, streakCur: 0, tonics: 0, lairs: 0,
-  den: 0, setCount: 0, fuses: 0, legends: 0, perfect: 0,
+  den: 0, setCount: 0, fuses: 0, legends: 0, perfect: 0, speedClears: 0, keys: 0, hazardWins: 0,
 };
 const PAY = [20, 40, 80];
 
@@ -29,7 +29,7 @@ const ACH = [
   { id: 'first_blood', cat: 'fight', n: 'First Blood', d: 'Win a fight.', goal: 1, ic: '✨', get: m => m.st.wins, reward: { shards: 10 } },
   { id: 'win25', cat: 'fight', n: 'Warmed Up', d: 'Win 25 fights.', goal: 25, ic: '🥊', get: m => m.st.wins, reward: { shards: 20 } },
   { id: 'win100', cat: 'fight', n: 'Veteran Fights', d: 'Win 100 fights.', goal: 100, ic: '🏅', get: m => m.st.wins, reward: { shards: 60, cosm: 'title:veteran' } },
-  { id: 'win500', cat: 'fight', n: 'Battleworn', d: 'Win 500 fights.', goal: 500, ic: '🏆', get: m => m.st.wins, reward: { shards: 200, cosm: 'frame:gold' } },
+  { id: 'win500', cat: 'fight', n: 'Battleworn', d: 'Win 500 fights.', goal: 500, ic: '🏆', get: m => m.st.wins, reward: { shards: 200 } },
   { id: 'kills100', cat: 'fight', n: 'Hundred Down', d: 'Knock out 100 foes.', goal: 100, ic: '💥', get: m => m.st.kills, reward: { shards: 25 } },
   { id: 'kills1000', cat: 'fight', n: 'Thousand Down', d: 'Knock out 1,000 foes.', goal: 1000, ic: '🩸', get: m => m.st.kills, reward: { shards: 80, cosm: 'palette:crimson' } },
   { id: 'kills5000', cat: 'fight', n: 'Relentless', d: 'Knock out 5,000 foes.', goal: 5000, ic: '☠️', get: m => m.st.kills, reward: { shards: 250 } },
@@ -37,18 +37,18 @@ const ACH = [
   { id: 'round20', cat: 'run', n: 'Halfway', d: 'Reach round 20 in a run.', goal: 20, ic: '🧭', get: m => m.st.bestRound, reward: { shards: 30 } },
   { id: 'round30', cat: 'run', n: 'Core Clear', d: 'Win a run (clear round 30).', goal: 1, ic: '💎', get: m => m.st.runsWon, reward: { shards: 80 } },
   { id: 'depth1', cat: 'run', n: 'Deeper', d: 'Unlock Depth 1.', goal: 1, ic: '🌊', get: m => m.depthMax || 0, reward: { shards: 40 } },
-  { id: 'depth5', cat: 'run', n: 'Depth Five', d: 'Unlock Depth 5.', goal: 5, ic: '🌊', get: m => m.depthMax || 0, reward: { shards: 100, cosm: 'theme:frost' } },
+  { id: 'depth5', cat: 'run', n: 'Depth Five', d: 'Unlock Depth 5.', goal: 5, ic: '🌊', get: m => m.depthMax || 0, reward: { shards: 100, cosm: ['theme:frost', 'frame:frame_02'] } },
   { id: 'depth10', cat: 'run', n: 'Depth Ten', d: 'Unlock Depth 10.', goal: 10, ic: '🌌', get: m => m.depthMax || 0, reward: { shards: 300, cosm: 'theme:starfield' } },
   { id: 'boss1', cat: 'fight', n: 'Boss Breaker', d: 'Win an elite or boss fight.', goal: 1, ic: '👑', get: m => m.st.bosses, reward: { shards: 15 } },
   { id: 'boss10', cat: 'fight', n: 'Boss Hunter', d: 'Win 10 elite or boss fights.', goal: 10, ic: '👑', get: m => m.st.bosses, reward: { shards: 40, cosm: 'theme:ember' } },
-  { id: 'boss50', cat: 'fight', n: 'Slayer', d: 'Win 50 elite or boss fights.', goal: 50, ic: '🗡️', get: m => m.st.bosses, reward: { shards: 120, cosm: 'title:slayer' } },
+  { id: 'boss50', cat: 'fight', n: 'Slayer', d: 'Win 50 elite or boss fights.', goal: 50, ic: '🗡️', get: m => m.st.bosses, reward: { shards: 120, cosm: ['title:slayer', 'frame:frame_03'] } },
   { id: 'streak3', cat: 'fight', n: 'On a Roll', d: 'Win 3 fights in a row.', goal: 3, ic: '🔥', get: m => m.st.streakBest, reward: { shards: 15 } },
   { id: 'streak7', cat: 'fight', n: 'Hot Streak', d: 'Win 7 fights in a row.', goal: 7, ic: '🔥', get: m => m.st.streakBest, reward: { shards: 40 } },
-  { id: 'streak12', cat: 'fight', n: 'Unbroken', d: 'Win 12 fights in a row.', goal: 12, ic: '🌟', get: m => m.st.streakBest, reward: { shards: 80, cosm: 'palette:emberglow' } },
+  { id: 'streak12', cat: 'fight', n: 'Unbroken', d: 'Win 12 fights in a row.', goal: 12, ic: '🌟', get: m => m.st.streakBest, reward: { shards: 80, cosm: ['palette:emberglow', 'frame:frame_06'] } },
   { id: 'run1', cat: 'run', n: 'Champion', d: 'Win a run.', goal: 1, ic: '🎉', get: m => m.st.runsWon, reward: { shards: 40 } },
-  { id: 'run10', cat: 'run', n: 'Ten Clears', d: 'Win 10 runs.', goal: 10, ic: '🎉', get: m => m.st.runsWon, reward: { shards: 40, cosm: 'palette:sunset' } },
+  { id: 'run10', cat: 'run', n: 'Ten Clears', d: 'Win 10 runs.', goal: 10, ic: '🎉', get: m => m.st.runsWon, reward: { shards: 40, cosm: ['palette:sunset', 'frame:frame_01'] } },
   { id: 'run25', cat: 'run', n: 'Seasoned', d: 'Win 25 runs.', goal: 25, ic: '📜', get: m => m.st.runsWon, reward: { shards: 80 } },
-  { id: 'run50', cat: 'run', n: 'Legend of the Core', d: 'Win 50 runs.', goal: 50, ic: '🏯', get: m => m.st.runsWon, reward: { shards: 150, cosm: 'frame:ember' } },
+  { id: 'run50', cat: 'run', n: 'Legend of the Core', d: 'Win 50 runs.', goal: 50, ic: '🏯', get: m => m.st.runsWon, reward: { shards: 150 } },
   { id: 'merge10', cat: 'run', n: 'First Merges', d: 'Merge creatures 10 times.', goal: 10, ic: '🔗', get: m => m.st.merges, reward: { shards: 15 } },
   { id: 'merge50', cat: 'run', n: 'Merger', d: 'Merge creatures 50 times.', goal: 50, ic: '🔗', get: m => m.st.merges, reward: { shards: 40 } },
   { id: 'merge250', cat: 'run', n: 'Fusion Habit', d: 'Merge creatures 250 times.', goal: 250, ic: '🧪', get: m => m.st.merges, reward: { shards: 100, cosm: 'palette:mint' } },
@@ -59,9 +59,9 @@ const ACH = [
   { id: 'ascend15', cat: 'run', n: 'Apex Garden', d: 'Ascend 15 creatures.', goal: 15, ic: '◆', get: m => m.st.ascends, reward: { shards: 200, cosm: 'theme:aurora' } },
   { id: 'dex25', cat: 'collection', n: 'Field Notes', d: 'See 25 species.', goal: 25, ic: '📖', get: dexN, reward: { shards: 20 } },
   { id: 'dex50', cat: 'collection', n: 'Half the Book', d: 'See 50 species.', goal: 50, ic: '📖', get: dexN, reward: { shards: 40 } },
-  { id: 'dex100', cat: 'collection', n: 'Scholar', d: 'See 100 species.', goal: 100, ic: '📚', get: dexN, reward: { shards: 80 } },
+  { id: 'dex100', cat: 'collection', n: 'Scholar', d: 'See 100 species.', goal: 100, ic: '📚', get: dexN, reward: { shards: 80, cosm: 'frame:frame_04' } },
   { id: 'dex150', cat: 'collection', n: 'Archivist', d: 'See 150 species.', goal: 150, ic: '📚', get: dexN, reward: { shards: 120 } },
-  { id: 'dex172', cat: 'collection', n: 'Glim Master', d: 'See every species.', goal: SPECIES_N, ic: '📕', get: dexN, reward: { shards: 200, cosm: ['title:glim_master', 'frame:rainbow'] } },
+  { id: 'dex172', cat: 'collection', n: 'Glim Master', d: 'See every species.', goal: SPECIES_N, ic: '📕', get: dexN, reward: { shards: 200, cosm: ['title:glim_master', 'frame:frame_05'] } },
   { id: 'apex5', cat: 'collection', n: 'Apex Sighted', d: 'See 5 Apex forms.', goal: 5, ic: '👁️', get: m => Object.keys(m.apexSeen || {}).length, reward: { shards: 40 } },
   { id: 'shiny1', cat: 'collection', n: 'Sparkle', d: 'Catch a shiny.', goal: 1, ic: '✦', get: m => m.st.shinies, reward: { shards: 20 } },
   { id: 'shiny5', cat: 'collection', n: 'Shiny Case', d: 'Catch 5 shinies.', goal: 5, ic: '✦', get: m => m.st.shinies, reward: { shards: 50, cosm: 'palette:duskrose' } },
@@ -74,9 +74,9 @@ const ACH = [
   { id: 'legend3', cat: 'collection', n: 'Three Legends', d: 'Forge 3 legendary relics.', goal: 3, ic: '⚒️', get: m => m.st.legends, reward: { shards: 80 } },
   { id: 'wild1', cat: 'wilds', n: 'First Expedition', d: 'Start an expedition in the Wilds.', goal: 1, ic: '🥾', get: m => m.st.wildsRuns, reward: { shards: 15 } },
   { id: 'wild10', cat: 'wilds', n: 'Trail Regular', d: 'Start 10 expeditions.', goal: 10, ic: '🥾', get: m => m.st.wildsRuns, reward: { shards: 40, cosm: 'palette:vine' } },
-  { id: 'floors25', cat: 'wilds', n: 'Floor by Floor', d: 'Enter 25 Wilds floors.', goal: 25, ic: '🪜', get: m => m.st.floors, reward: { shards: 40, cosm: 'frame:leaf' } },
+  { id: 'floors25', cat: 'wilds', n: 'Floor by Floor', d: 'Enter 25 Wilds floors.', goal: 25, ic: '🪜', get: m => m.st.floors, reward: { shards: 40 } },
   { id: 'trainer10', cat: 'wilds', n: 'Trainer Route', d: 'Beat 10 trainers.', goal: 10, ic: '🎓', get: m => m.st.trainers, reward: { shards: 30 } },
-  { id: 'trainer50', cat: 'wilds', n: 'Ace Route', d: 'Beat 50 trainers.', goal: 50, ic: '🎓', get: m => m.st.trainers, reward: { shards: 100, cosm: 'frame:ice' } },
+  { id: 'trainer50', cat: 'wilds', n: 'Ace Route', d: 'Beat 50 trainers.', goal: 50, ic: '🎓', get: m => m.st.trainers, reward: { shards: 100 } },
   { id: 'rival3', cat: 'wilds', n: 'Rival Beater', d: 'Earn all 3 Rival Badges.', goal: 3, ic: '🥊', get: m => m.badges || 0, reward: { shards: 60, cosm: 'title:rival_beater' } },
   { id: 'den1', cat: 'wilds', n: 'Den Champion', d: 'Clear the Rival\'s Den.', goal: 1, ic: '🏚️', get: m => (m.den ? 1 : (m.st && m.st.den) || 0), reward: { shards: 80, cosm: 'title:den_champ' } },
   { id: 'lair25', cat: 'wilds', n: 'Lair Breaker', d: 'Clear 25 lairs.', goal: 25, ic: '🐉', get: m => m.st.lairs, reward: { shards: 50 } },
@@ -90,8 +90,44 @@ const ACH = [
   { id: 'daily1', cat: 'meta', n: 'Daily Done', d: 'Finish a day of daily goals.', goal: 1, ic: '📅', get: m => (m.daily && m.daily.stamps) || 0, reward: { shards: 15 } },
   { id: 'daily7', cat: 'meta', n: 'Week Streak', d: 'Finish daily goals 7 days in a row.', goal: 7, ic: '📅', get: m => (m.daily && m.daily.streak) || 0, reward: { shards: 70, cosm: 'theme:candy' } },
   { id: 'daily30', cat: 'meta', n: 'Daily Devotee', d: 'Collect 30 daily stamps.', goal: 30, ic: '🗓️', get: m => (m.daily && m.daily.stamps) || 0, reward: { shards: 200, cosm: 'title:devotee' } },
+  { id: 'speed1', cat: 'run', n: 'Speedrunner', d: 'Win a run in under 20 minutes.', goal: 1, ic: '⏱️', get: m => m.st.speedClears, reward: { shards: 60 } },
+  { id: 'keys10', cat: 'wilds', n: 'Key Master', d: 'Open 10 vault doors in the Wilds.', goal: 10, ic: '🗝️', get: m => m.st.keys, reward: { shards: 40 } },
+  { id: 'hazard10', cat: 'fight', n: 'Hazard Survivor', d: 'Win 10 fights in a hazard biome without a hazard relic.', goal: 10, ic: '🛡️', get: m => m.st.hazardWins, reward: { shards: 40 } },
 ];
-for (const a of ACH) window.gdIcon && gdIcon('ach_' + a.id, a.ic);
+const ACH_BADGES = {
+  first_blood: 'badges/badge_01', win25: 'badges/badge_01', win100: 'badges/badge_17', win500: 'badges/badge_24',
+  kills100: 'badges/badge_17', kills1000: 'badges/badge_17', kills5000: 'badges/badge_24',
+  round10: 'badges/badge_23', round20: 'badges/badge_23', round30: 'badges/badge_23',
+  depth1: 'badges/badge_12', depth5: 'badges/badge_12', depth10: 'badges/badge_12',
+  boss1: 'badges/badge_02', boss10: 'badges/badge_02', boss50: 'badges/badge_02',
+  streak3: 'badges/badge_16', streak7: 'badges/badge_16', streak12: 'badges/badge_07',
+  run1: 'badges/badge_01', run10: 'badges/badge_17', run25: 'badges/badge_24', run50: 'badges/badge_24',
+  merge10: 'badges/badge_08', merge50: 'badges/badge_08', merge250: 'badges/badge_08',
+  evo10: 'badges/badge_08', evo50: 'badges/badge_08',
+  ascend1: 'badges/badge_09', ascend5: 'badges/badge_09', ascend15: 'badges/badge_09',
+  dex25: 'badges/badge_03', dex50: 'badges/badge_03', dex100: 'badges/badge_03', dex150: 'badges/badge_11', dex172: 'badges/badge_24',
+  apex5: 'badges/badge_09', shiny1: 'badges/badge_13', shiny5: 'badges/badge_13', shiny20: 'badges/badge_13',
+  relic10: 'badges/badge_15', relic50: 'badges/badge_05', relic150: 'badges/badge_15',
+  set1: 'badges/badge_11', fuse1: 'badges/badge_22', legend3: 'badges/badge_22',
+  wild1: 'badges/badge_04', wild10: 'badges/badge_04', floors25: 'badges/badge_04',
+  trainer10: 'badges/badge_17', trainer50: 'badges/badge_17', rival3: 'badges/badge_17',
+  den1: 'badges/badge_23', lair25: 'badges/badge_02', secret1: 'badges/badge_10', secret10: 'badges/badge_10',
+  tonic10: 'badges/badge_18', shards1000: 'badges/badge_14', shards10000: 'badges/badge_14',
+  perfect: 'badges/badge_07', cards6: 'badges/badge_03', daily1: 'badges/badge_19', daily7: 'badges/badge_19', daily30: 'badges/badge_24',
+  speed1: 'badges/badge_06', keys10: 'badges/badge_20', hazard10: 'badges/badge_21'
+};
+// Shown only when the badge metal is not the achievement's difficulty.
+const ACH_CHIP = {
+  kills100: 'I', round10: 'I', round20: 'II', depth1: 'I', depth10: 'III', boss1: 'I', boss50: 'III',
+  streak3: 'I', merge10: 'I', merge50: 'II', evo10: 'I', ascend1: 'II', dex50: 'II', dex100: 'III',
+  shiny5: 'II', shiny20: 'III', relic150: 'III', set1: 'II', legend3: 'III', wild1: 'I',
+  trainer10: 'I', rival3: 'III', secret1: 'I', shards10000: 'III', cards6: 'II', daily7: 'II'
+};
+for (const a of ACH) {
+  if (ACH_BADGES[a.id]) a.badge = ACH_BADGES[a.id];
+  if (ACH_CHIP[a.id]) a.chip = ACH_CHIP[a.id];
+  if (!(a.badge && window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[a.badge])) window.gdIcon && gdIcon('ach_' + a.id, a.ic);
+}
 
 const CATS = [['all', 'All'], ['fight', 'Fights'], ['run', 'Runs'], ['collection', 'Collection'], ['wilds', 'Wilds'], ['meta', 'Misc']];
 const TEMPLATES = [
@@ -265,6 +301,7 @@ function applyEv(name, n, ex) {
       st.streakCur = (st.streakCur || 0) + 1;
       st.streakBest = Math.max(st.streakBest || 0, st.streakCur);
       if (ex.boss || ex.elite || ex.kind === 'boss' || ex.kind === 'elite') st.bosses += 1;
+      if (ex.hazard) st.hazardWins = (st.hazardWins || 0) + 1;
     } else st.streakCur = 0;
   } else if (name === 'merge') st.merges += n;
   else if (name === 'evo') st.evos += n;
@@ -273,6 +310,7 @@ function applyEv(name, n, ex) {
     if (ex.won) {
       st.runsWon += 1;
       if (!ex.lost) st.perfect += 1;
+      if (ex.ms != null && ex.ms >= 0 && ex.ms <= 20 * 60 * 1000) st.speedClears = (st.speedClears || 0) + 1;
     } else st.runsLost += 1;
     if (ex.round) st.bestRound = Math.max(st.bestRound || 0, ex.round);
     st.streakCur = 0;
@@ -288,6 +326,7 @@ function applyEv(name, n, ex) {
   else if (name === 'tonic') st.tonics += n;
   else if (name === 'den') st.den = 1;
   else if (name === 'shards') st.shards += n;
+  else if (name === 'key') st.keys = (st.keys || 0) + n;
   bumpGoals(name, n, ex);
 }
 
@@ -369,7 +408,8 @@ function pump() {
   if (!el) return;
   showing = true;
   const rw = rewardText(def.reward);
-  el.innerHTML = '<b>' + (def.ic || '🏆') + ' ' + esc(def.n) + '</b><div class="small">' + esc(def.d || '') + (rw ? ' · ' + esc(rw) : '') + '</div>';
+  const icon = def.badge && window.gdIcon ? '<img class="achbadge" src="' + gdIcon(def.badge, def.ic) + '" alt="">' : (def.ic || '🏆');
+  el.innerHTML = '<b>' + icon + ' ' + esc(def.n) + '</b><div class="small">' + esc(def.d || '') + (rw ? ' · ' + esc(rw) : '') + '</div>';
   el.classList.add('on');
   setTimeout(() => {
     el.classList.remove('on');
@@ -387,11 +427,16 @@ function bar(p, goal) {
   const w = Math.max(0, Math.min(100, goal ? (100 * p / goal) : 0));
   return '<div class="bar"><i style="width:' + w.toFixed(1) + '%"></i></div>';
 }
+function achIcon(def) {
+  const key = def.badge || ('ach_' + def.id);
+  return window.gdIcon ? gdIcon(key, def.ic) : '';
+}
 function achRow(def) {
   const p = Math.min(def.get(meta) || 0, def.goal);
   const done = !!meta.ach[def.id];
   const rw = rewardText(def.reward);
-  return '<div class="li achrow' + (done ? '' : ' locked') + '"><img class="ic" src="' + gdIcon('ach_' + def.id, def.ic) + '" alt="">' +
+  const chip = def.chip ? '<span class="achtier">' + def.chip + '</span>' : '';
+  return '<div class="li achrow' + (done ? '' : ' locked') + '"><span class="achbadgewrap"><img class="ic achbadge" src="' + achIcon(def) + '" alt="">' + chip + '</span>' +
     '<div class="grow"><div class="t">' + esc(def.n) + (done ? ' <span class="tag">done</span>' : '') + '</div>' +
     '<div class="small muted">' + esc(def.d) + '</div>' + bar(p, def.goal) +
     '<div class="small">' + p + ' / ' + def.goal + (rw ? ' · <span style="color:var(--gold)">' + esc(rw) + '</span>' : '') + '</div></div></div>';

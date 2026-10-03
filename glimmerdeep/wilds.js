@@ -36,7 +36,12 @@ function img(k) { if (!imgs[k]) { const i = new Image(); i.src = IMG(k); imgs[k]
 const ready = i => !!i && (i instanceof HTMLCanvasElement || (i.complete && i.naturalWidth > 0));
 // fetch and decode ahead of the first draw, so a new frame is never a blank
 function warm(k) { const i = img(k); if (typeof i.decode === 'function') i.decode().catch(() => {}); return i; }
-function preloadTamer() { for (const k of TAMER_FR) warm(k); }
+function tamerKey(k) {
+  const id = meta().skin, sk = G.SKINS[id];
+  if (sk && sk.folder && skinOpen(id)) return sk.folder + '/' + k;
+  return k;
+}
+function preloadTamer() { for (const k of TAMER_FR) warm(tamerKey(k)); }
 function preloadDoors() {
   if (!W || !W.biome) return;
   for (const kind of ['door', 'lock', 'crack']) for (const d of ['n', 's', 'w', 'e']) {
@@ -209,7 +214,7 @@ function prep() {
   let lure = '';
   host.querySelector('.wprepbody').addEventListener('click', async e => {
     const sk = e.target.closest('[data-skin]'), lu = e.target.closest('[data-lure]');
-    if (sk) { if (!skinOpen(sk.dataset.skin)) return U.toast(G.SKINS[sk.dataset.skin].d); m.skin = sk.dataset.skin; U.save(); U.SFX.click(); host.querySelectorAll('.wskin').forEach(x => x.classList.toggle('on', x === sk)); }
+    if (sk) { if (!skinOpen(sk.dataset.skin)) return U.toast(G.SKINS[sk.dataset.skin].d); m.skin = sk.dataset.skin; if (m.cosm && m.cosm.sel) m.cosm.sel.skin = m.skin; preloadTamer(); U.save(); U.SFX.click(); host.querySelectorAll('.wskin').forEach(x => x.classList.toggle('on', x === sk)); }
     if (lu) { lure = lu.dataset.lure; U.SFX.click(); host.querySelectorAll('[data-lure]').forEach(x => { x.classList.toggle('ghost', x !== lu); x.classList.toggle('on', x === lu); }); }
     if (e.target.closest('[data-v=post]')) { await post(); prep(); }
   });
@@ -466,7 +471,7 @@ function step(dt) {
   const dn = doorOf(a, 'n'), ds = doorOf(a, 's'), dw = doorOf(a, 'w'), de = doorOf(a, 'e');
   const tryDoor = (d, st) => {
     if (st === 'sealed') return msg('The doors slammed shut. Win the trainer battle first!');
-    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
+    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); window.AX && AX.ev('key'); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
       if (V.push.t > 0.55) { const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; const sec = (t.type === 'secret' ? t : a); if (!sec.found) { sec.found = true; U.SFX.wsecret(); U.toast('A secret room!'); burst(DOOR[d][0], DOOR[d][1], '#d9a6ff'); markSeen(); save(); minimap(); window.AX && AX.ev('secret'); } }
@@ -859,6 +864,7 @@ function skinOpen(k) {
 const skinCache = {};
 function skinImg(im) {
   const k = meta().skin, sk = G.SKINS[k];
+  if (sk && sk.folder) return im;
   if (!sk || sk.hue == null || !skinOpen(k) || !ready(im) || im instanceof HTMLCanvasElement) return im;
   const ck = im.src + '|' + k;
   if (skinCache[ck]) return skinCache[ck];
@@ -885,6 +891,8 @@ function skinImg(im) {
 }
 function secretHintRange() { return rw('dowse') ? 6 : 3.2; }
 function skinThumb(k) {
+  const sk = G.SKINS[k];
+  if (sk && sk.folder) return IMG(sk.folder + '/wd_tamer_idle_1');
   const im = img('wd_tamer_idle_1'); if (!ready(im)) return IMG('wd_tamer_idle_1');
   const prev = meta().skin; meta().skin = k; const c = skinImg(im); meta().skin = prev;
   return c instanceof HTMLCanvasElement ? c.toDataURL() : IMG('wd_tamer_idle_1');
@@ -1038,13 +1046,14 @@ function tamerPose() {
   return ['wd_tamer_idle_' + (1 + Math.floor(performance.now() / 260) % 4), V.fx || 1, 0];
 }
 function tamerImg(k) {
-  const im = img(k);
-  if (ready(im)) { V.shown = k; return im; }
+  const key = tamerKey(k);
+  const im = img(key);
+  if (ready(im)) { V.shown = key; return im; }
   const prev = V.shown && imgs[V.shown];
   if (prev && ready(prev)) return prev;
-  const idle = img('wd_tamer_idle_1');
+  const idle = img(tamerKey('wd_tamer_idle_1'));
   if (ready(idle)) return idle;
-  return img('wd_tamer');
+  return img(tamerKey('wd_tamer'));
 }
 // a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it
 function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {
@@ -1057,5 +1066,5 @@ function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {
   ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz); ctx.restore();
 }
 
-window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
+window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, preloadTamer, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
 })();

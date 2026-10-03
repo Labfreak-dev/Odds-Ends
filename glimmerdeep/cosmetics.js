@@ -17,7 +17,17 @@ const PALETTES = {
   vine: { n: 'Vine', hue: 128, sat: 1.2, req: { ach: 'wild10' }, d: 'Start 10 Wilds expeditions.' },
   duskrose: { n: 'Duskrose', hue: 320, sat: 1.25, req: { ach: 'shiny5' }, d: 'Catch 5 shinies.' },
 };
-Object.assign(G.SKINS, PALETTES);
+const SKINS_ADD = {
+  ember_ranger: { n: 'Ember Ranger', folder: 'tamer_ember_ranger', req: { ach: 'kills1000' }, d: 'Defeat 1000 foes.', aura: true },
+  frost_walker: { n: 'Frost Walker', folder: 'tamer_frost_walker', req: { ach: 'floors25' }, d: 'Clear 25 Wilds floors.', aura: false },
+  shade_stalker: { n: 'Shade Stalker', folder: 'tamer_shade_stalker', req: { ach: 'secret10' }, d: 'Find 10 secret rooms.', aura: false },
+  bloom_warden: { n: 'Bloom Warden', folder: 'tamer_bloom_warden', req: { ach: 'wild10' }, d: 'Complete 10 Wilds expeditions.', aura: false },
+  storm_caller: { n: 'Storm Caller', folder: 'tamer_storm_caller', req: { ach: 'streak7' }, d: 'Win 7 rounds in a row.', aura: true },
+  tide_diver: { n: 'Tide Diver', folder: 'tamer_tide_diver', req: { ach: 'depth5' }, d: 'Unlock Depth 5.', aura: false },
+  mystic_star: { n: 'Mystic Star', folder: 'tamer_mystic_star', req: { ach: 'ascend5' }, d: 'Ascend 5 creatures to ★4.', aura: true },
+  royal_regalia: { n: 'Royal Regalia', folder: 'tamer_royal_regalia', req: { ach: 'run50' }, d: 'Win 50 runs.', aura: true },
+};
+Object.assign(G.SKINS, PALETTES, SKINS_ADD);
 
 const TITLES = {
   veteran: { n: 'Veteran', d: 'Win 100 fights.', unlock: { ach: 'win100' } },
@@ -34,11 +44,12 @@ const TITLES = {
   trailblazer: { n: 'Trailblazer', d: 'Collect 1 daily stamp.', unlock: { stamps: 1 } },
 };
 const FRAMES = {
-  gold: { n: 'Gold', d: 'Win 500 fights.', unlock: { ach: 'win500' } },
-  rainbow: { n: 'Rainbow', d: 'See every species.', unlock: { ach: 'dex172' } },
-  ember: { n: 'Ember', d: 'Win 50 runs.', unlock: { ach: 'run50' } },
-  ice: { n: 'Ice', d: 'Beat 50 trainers.', unlock: { ach: 'trainer50' } },
-  leaf: { n: 'Leaf', d: 'Enter 25 Wilds floors.', unlock: { ach: 'floors25' } },
+  frame_01: { n: 'Verdant Vines', img: 'frames/frame_01', d: 'Win 10 runs.', unlock: { ach: 'run10' } },
+  frame_02: { n: 'Tundra Ice', img: 'frames/frame_02', d: 'Unlock Depth 5.', unlock: { ach: 'depth5' } },
+  frame_03: { n: 'Magma Basalt', img: 'frames/frame_03', d: 'Win 50 elite or boss fights.', unlock: { ach: 'boss50' } },
+  frame_04: { n: 'Core Gems', img: 'frames/frame_04', d: 'See 100 species.', unlock: { ach: 'dex100' } },
+  frame_05: { n: 'Royal Gold', img: 'frames/frame_05', d: 'See every species.', unlock: { ach: 'dex172' } },
+  frame_06: { n: 'Gale Feathers', img: 'frames/frame_06', d: 'Win 12 fights in a row.', unlock: { ach: 'streak12' } },
 };
 const THEMES = {
   '': { n: 'Default', d: 'The Glimmerdeep you started with.', unlock: { default: 1 } },
@@ -114,13 +125,16 @@ function titleName() {
   const id = m && m.cosm && m.cosm.sel && m.cosm.sel.title;
   return id && TITLES[id] && openOf(TITLES[id].unlock) ? TITLES[id].n : '';
 }
-function frameClass() {
+function frameImg() {
   const m = metaOf();
   const id = m && m.cosm && m.cosm.sel && m.cosm.sel.frame;
-  return id && FRAMES[id] && openOf(FRAMES[id].unlock) ? 'frame-' + id : '';
+  const fr = id && FRAMES[id] && openOf(FRAMES[id].unlock) ? FRAMES[id] : null;
+  if (!fr || !fr.img) return '';
+  return window.GLIM && GLIM.IMG ? GLIM.IMG(fr.img) : ('img/' + fr.img + '.webp');
 }
+function frameClass() { return frameImg() ? 'framed' : ''; }
 function filterFor(sk) {
-  if (!sk || sk.hue == null) return '';
+  if (!sk || sk.folder || sk.hue == null) return '';
   const deg = ((sk.hue - 180) % 360 + 360) % 360;
   return 'filter:hue-rotate(' + deg + 'deg) saturate(' + (sk.sat || 1) + ')';
 }
@@ -129,12 +143,19 @@ function preview() {
   const id = (m && m.skin) || 'classic';
   const sk = G.SKINS[id] || G.SKINS.classic;
   const tn = titleName();
-  return '<div class="cosprev ' + frameClass() + '"><img src="' + (window.GLIM ? GLIM.IMG('wd_tamer_idle_1') : 'img/wd_tamer_idle_1.webp') + '" alt="" style="' + filterFor(sk) + '">' +
+  const src = sk.folder ? (window.GLIM ? GLIM.IMG(sk.folder + '/wd_tamer_idle_1') : ('img/' + sk.folder + '/wd_tamer_idle_1.webp'))
+    : (window.GLIM ? GLIM.IMG('wd_tamer_idle_1') : 'img/wd_tamer_idle_1.webp');
+  const fr = frameImg();
+  const av = '<span class="avwrap cosav"><span class="avin"><img src="' + src + '" alt="" style="' + filterFor(sk) + '"></span>' +
+    (fr ? '<img class="frameov" src="' + fr + '" alt="">' : '') + '</span>';
+  return '<div class="cosprev">' + av +
     '<div class="t">' + esc(sk.n) + '</div>' + (tn ? '<div class="costitle">' + esc(tn) + '</div>' : '') + '</div>';
 }
 function card(kind, id, def, on, ok) {
+  const art = def.img || (ok && def.folder ? def.folder + '/wd_tamer_idle_1' : '');
+  const ic = art && window.GLIM ? '<img class="ic" src="' + GLIM.IMG(art) + '" alt="">' : '';
   return '<button type="button" class="coscard' + (on ? ' on' : '') + (ok ? '' : ' locked') + '" data-v="eq:' + kind + ':' + id + '">' +
-    '<div class="nm">' + esc(def.n) + '</div>' +
+    ic + '<div class="nm">' + esc(def.n) + '</div>' +
     '<div class="small muted">' + (ok ? 'Tap to equip' : esc(def.d || '')) + '</div></button>';
 }
 function body() {
@@ -174,6 +195,7 @@ function equip(kind, id) {
     m.cosm.sel.theme = id || '';
   } else return false;
   apply();
+  if (kind === 'palette' && window.WILDS && WILDS.preloadTamer) WILDS.preloadTamer();
   if (window.GLIM && GLIM.save) GLIM.save();
   return true;
 }
@@ -196,7 +218,7 @@ async function open() {
 }
 
 window.COSM = {
-  init, apply, open, grant, label, titleName, frameClass, equip,
+  init, apply, open, grant, label, titleName, frameClass, frameImg, equip,
   PALETTES, TITLES, FRAMES, THEMES,
 };
 if (window.GLIM && GLIM.meta) {

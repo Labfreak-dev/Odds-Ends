@@ -135,12 +135,15 @@ function renderTitle() {
   stopFight();
   const m = $('#titleMenu');
   const tn = window.COSM && COSM.titleName ? COSM.titleName() : '';
-  const fr = window.COSM && COSM.frameClass ? COSM.frameClass() : '';
+  const fr = window.COSM && COSM.frameImg ? COSM.frameImg() : '';
+  const titleBit = fr
+    ? `<span class="avwrap titleframe"><img class="frameov" src="${fr}" alt=""><span class="avin">${esc(tn || 'Tamer')}</span></span>`
+    : (tn ? `<span class="costitle">${esc(tn)}</span>` : '');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="title-sub">${btn('dex', ICO.dex + 'Glimdex', 'mid blue')}${btn('how', ICO.how + 'How to Play', 'mid')}</div>` +
     `<div class="title-sub">${btn('ach', '🏆 Goals', 'mid wild')}${btn('wardrobe', '👕 Wardrobe', 'mid')}</div>` +
     `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}${btn('about', ICO.how + 'About', 'mid')}</div>` +
-    `<div class="pill ${fr}" style="margin-top:6px">${tn ? `<span class="costitle">${esc(tn)}</span>` : ''}<img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
+    `<div class="pill" style="margin-top:6px">${titleBit}<img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
   window.AX && AX.check();
@@ -904,7 +907,9 @@ async function endFight() {
   const st = FS.st;
   const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[R.bossOf(run)].name : '';
   const res = R.endRound(run, st);
-  window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: st.units.filter(u => u.side === 1 && !u.alive).length, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned) });
+  const hazOn = !!(G.BIOMES[run.biome] && G.BIOMES[run.biome].haz);
+  const hazRelic = (run.relics || []).some(id => G.RELICS[id] && G.RELICS[id].tags && G.RELICS[id].tags.indexOf('hazard') >= 0);
+  window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: st.units.filter(u => u.side === 1 && !u.alive).length, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned), hazard: !!(res.win && hazOn && !hazRelic) });
   const apex = R.rollApex(run, st, meta); if (apex) res.drops.push({ k: 'apex', sp: apex.sp });
   if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
   stopFight();
@@ -944,7 +949,7 @@ async function endFight() {
 }
 function relicLi(id, v) {
   const r = G.RELICS[id];
-  return `<div class="li click ${r.leg ? 'leg' : ''}" data-v="${v == null ? id : v}"><img class="ic" src="${IMG('rl_' + id)}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div><div class="row wrap" style="gap:4px;margin-top:3px">${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div></div></div>`;
+  return `<div class="li click ${r.leg ? 'leg' : ''}" data-v="${v == null ? id : v}"><img class="ic" src="${IMG(r.ic || ('rl_' + id))}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div><div class="row wrap" style="gap:4px;margin-top:3px">${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div></div></div>`;
 }
 async function relicPick(list, title) {
   const owned = (run && run.relics) || [];
@@ -1044,7 +1049,7 @@ async function gameOver(won, res) {
   const cores = apexLines(res && res.drops);
   if (cores) SFX.lvl();
   const r = run; r.over = r.over || 2;
-  window.AX && AX.ev('runEnd', 1, { won: !!won, round: r.round, depth: r.depth, lost: r.stats.lost || 0 });
+  window.AX && AX.ev('runEnd', 1, { won: !!won, round: r.round, depth: r.depth, lost: r.stats.lost || 0, ms: r.started ? Date.now() - r.started : null });
   run = null; save();
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
     <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>

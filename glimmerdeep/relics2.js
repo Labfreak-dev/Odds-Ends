@@ -10,6 +10,38 @@ if (!G) return;
 root.GD_ICON_MANIFEST = root.GD_ICON_MANIFEST || {};
 root.ICON_PH = root.ICON_PH || {};
 
+// v4 art. A key in this list has a real file. Anything else stays an emoji.
+const ART_V4 = {
+  badges: ["badges/badge_01","badges/badge_02","badges/badge_03","badges/badge_04","badges/badge_05","badges/badge_06","badges/badge_07","badges/badge_08","badges/badge_09","badges/badge_10","badges/badge_11","badges/badge_12","badges/badge_13","badges/badge_14","badges/badge_15","badges/badge_16","badges/badge_17","badges/badge_18","badges/badge_19","badges/badge_20","badges/badge_21","badges/badge_22","badges/badge_23","badges/badge_24"],
+  relics2: ["relics2/relic_01","relics2/relic_02","relics2/relic_03","relics2/relic_04","relics2/relic_05","relics2/relic_06","relics2/relic_07","relics2/relic_08","relics2/relic_09","relics2/relic_10","relics2/relic_11","relics2/relic_12","relics2/relic_13","relics2/relic_14","relics2/relic_15","relics2/relic_16","relics2/relic_17","relics2/relic_18","relics2/relic_19","relics2/relic_20","relics2/relic_21","relics2/relic_22","relics2/relic_23","relics2/relic_24","relics2/relic_25","relics2/relic_26","relics2/relic_27","relics2/relic_28","relics2/relic_29","relics2/relic_30","relics2/relic_31","relics2/relic_32","relics2/relic_33","relics2/relic_34","relics2/relic_35","relics2/relic_36","relics2/relic_37","relics2/relic_38","relics2/relic_39","relics2/relic_40"],
+  frames: ["frames/frame_01","frames/frame_02","frames/frame_03","frames/frame_04","frames/frame_05","frames/frame_06"],
+  tamerFrames: ["wd_tamer","wd_tamer_up","wd_tamer_down","wd_tamer_hurt_1","wd_tamer_hurt_2","wd_tamer_idle_1","wd_tamer_idle_2","wd_tamer_idle_3","wd_tamer_idle_4","wd_tamer_walk_1","wd_tamer_walk_2","wd_tamer_walk_3","wd_tamer_walk_4","wd_tamer_walk_5","wd_tamer_walk_6","wd_tamer_walk_7","wd_tamer_walk_8"],
+  tamerFolders: ["tamer_ember_ranger","tamer_frost_walker","tamer_shade_stalker","tamer_bloom_warden","tamer_storm_caller","tamer_tide_diver","tamer_mystic_star","tamer_royal_regalia"]
+};
+root.ART_V4 = ART_V4;
+function noteArt(k) { if (k) root.GD_ICON_MANIFEST[k] = 1; }
+ART_V4.badges.forEach(noteArt);
+ART_V4.relics2.forEach(noteArt);
+ART_V4.frames.forEach(noteArt);
+for (const folder of ART_V4.tamerFolders) for (const fr of ART_V4.tamerFrames) noteArt(folder + '/' + fr);
+
+const RELIC_ICONS = {
+  ruby_ring: "relics2/relic_16", berserker_mask: "relics2/relic_11", heavy_plate: "relics2/relic_28",
+  spiked_collar: "relics2/relic_34", siphon_stone: "relics2/relic_06", hourglass: "relics2/relic_10",
+  mana_well: "relics2/relic_08", battery_pack: "relics2/relic_09", wide_banner: "relics2/relic_07",
+  bastion_crest: "relics2/relic_33", vanguard_ward: "relics2/relic_14", wardens_charm: "relics2/relic_19",
+  executioner_edge: "relics2/relic_23", lucky_coin: "relics2/relic_03", piggy_bank: "relics2/relic_18",
+  scholars_lamp: "relics2/relic_01", mutagen_vial: "relics2/relic_12", frostbite_locket: "relics2/relic_27",
+  rain_charm: "relics2/relic_20", plague_mask: "relics2/relic_22", pyre_crown: "relics2/relic_39",
+  tidal_crown: "relics2/relic_40", thorn_crown: "relics2/relic_25", storm_crown: "relics2/relic_17",
+  granite_crown: "relics2/relic_37", second_wind: "relics2/relic_26", opening_gambit: "relics2/relic_24",
+  last_stand: "relics2/relic_13", bounty_bell: "relics2/relic_21", rainbow_roster: "relics2/relic_30",
+  trail_boots: "relics2/relic_35", magnet_charm: "relics2/relic_36", sneak_cloak: "relics2/relic_02",
+  dowsing_rod: "relics2/relic_15", second_key: "relics2/relic_04", trainers_whistle: "relics2/relic_38",
+  lucky_foot: "relics2/relic_29", echo_shell: "relics2/relic_05", emberstep: "relics2/relic_32",
+  keepsake_locket: "relics2/relic_31"
+};
+
 function emojiSvg(emoji) {
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">' +
     '<rect width="96" height="96" rx="18" fill="#2e2360"/>' +
@@ -19,9 +51,9 @@ function emojiSvg(emoji) {
 }
 // Resolve an icon. Manifest hit -> file. Otherwise the emoji placeholder (registered for IMG()).
 root.gdIcon = function (key, emoji) {
-  if (root.GD_ICON_MANIFEST[key]) return 'img/' + key + '.webp';
-  if (emoji && !root.ICON_PH[key]) root.ICON_PH[key] = emojiSvg(emoji);
-  return root.ICON_PH[key] || ('img/' + key + '.webp');
+  if (key && root.GD_ICON_MANIFEST[key]) return 'img/' + key + '.webp';
+  if (emoji && key && !root.ICON_PH[key]) root.ICON_PH[key] = emojiSvg(emoji);
+  return (key && root.ICON_PH[key]) || (key ? ('img/' + key + '.webp') : '');
 };
 function ph(key, emoji) { root.gdIcon(key, emoji); }
 
@@ -94,15 +126,16 @@ function keyOk(k) {
 for (const id in RELICS2) {
   const r = RELICS2[id];
   r.id = id;
+  r.ic = RELIC_ICONS[id];
   G.RELICS[id] = r;
   ph('rl_' + id, r.em);
 }
 for (const id in WILD_RELICS2) {
   const r = WILD_RELICS2[id];
   r.id = id;
-  r.ic = 'rl_' + id;
+  r.ic = RELIC_ICONS[id];
   G.WILD_RELICS[id] = r;
-  ph(r.ic, r.em);
+  ph('rl_' + id, r.em);
 }
 G.RELICS2 = RELICS2;
 G.WILD_RELICS2 = WILD_RELICS2;
@@ -117,11 +150,12 @@ G.relicAudit = function () {
     if (!r.n || !r.d || !r.em || !r.tags || !r.tags.length || !(r.r >= 1)) err.push('bad chess relic ' + id);
     if (r.r === 2 && r.b.dmgMul > 0.4) err.push('r2 dmgMul ' + id);
     for (const k in r.b) if (!keyOk(k)) err.push('bad b key ' + id + '.' + k);
-    if (!root.ICON_PH['rl_' + id] && !root.GD_ICON_MANIFEST['rl_' + id]) err.push('no icon ' + id);
+    if (!r.ic || !root.GD_ICON_MANIFEST[r.ic]) err.push('no icon ' + id);
+    if (!root.ICON_PH['rl_' + id]) err.push('no fallback ' + id);
   }
   for (const id in WILD_RELICS2) {
     const r = WILD_RELICS2[id];
-    if (!r.n || !r.d || !r.em || !r.ic) err.push('bad wild relic ' + id);
+    if (!r.n || !r.d || !r.em || !r.ic || !root.GD_ICON_MANIFEST[r.ic]) err.push('bad wild relic ' + id);
     for (const k in r.b || {}) if (!keyOk(k)) err.push('bad wild b ' + id + '.' + k);
     for (const k in r.w || {}) if (!WKEYS[k]) err.push('bad w key ' + id + '.' + k);
   }

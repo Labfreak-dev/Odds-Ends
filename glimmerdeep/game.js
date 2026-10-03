@@ -3,7 +3,7 @@
 'use strict';
 const G = window.GD, C = window.GC, R = window.GR;
 const $ = (s, r) => (r || document).querySelector(s);
-const IMG = k => 'img/' + k + '.webp';
+const IMG = k => (window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[k]) ? ('img/' + k + '.webp') : ((window.ICON_PH && ICON_PH[k]) || ('img/' + k + '.webp'));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
@@ -134,12 +134,19 @@ M.addEventListener('input', e => {
 function renderTitle() {
   stopFight();
   const m = $('#titleMenu');
+  const tn = window.COSM && COSM.titleName ? COSM.titleName() : '';
+  const fr = window.COSM && COSM.frameImg ? COSM.frameImg() : '';
+  const titleBit = fr
+    ? `<span class="avwrap titleframe"><img class="frameov" src="${fr}" alt=""><span class="avin">${esc(tn || 'Tamer')}</span></span>`
+    : (tn ? `<span class="costitle">${esc(tn)}</span>` : '');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="title-sub">${btn('dex', ICO.dex + 'Glimdex', 'mid blue')}${btn('how', ICO.how + 'How to Play', 'mid')}</div>` +
+    `<div class="title-sub">${btn('ach', '🏆 Goals', 'mid wild')}${btn('wardrobe', '👕 Wardrobe', 'mid')}</div>` +
     `<div class="title-sub">${btn('set', ICO.gear + 'Settings', 'mid wild')}${btn('about', ICO.how + 'About', 'mid')}</div>` +
-    `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
+    `<div class="pill" style="margin-top:6px">${titleBit}<img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
+  window.AX && AX.check();
 }
 $('#titleMenu').addEventListener('click', async e => {
   const t = e.target.closest('[data-v]'); if (!t) return;
@@ -156,6 +163,8 @@ $('#titleMenu').addEventListener('click', async e => {
   else if (v === 'how') showHow();
   else if (v === 'set') settingsScreen();
   else if (v === 'about') showAbout();
+  else if (v === 'ach') window.AX && AX.open();
+  else if (v === 'wardrobe') window.COSM && COSM.open();
 });
 document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g && !M.contains(g)) { SFX.click(); if (g.dataset.go === 'title') renderTitle(); } });
 
@@ -352,7 +361,9 @@ async function afterChange() {
   renderGame();
   for (const u of ups) {
     SFX.merge();
+    window.AX && AX.ev('merge');
     await evolveFlow(u);
+    window.AX && AX.ev('evo');
     const more = R.merges(run);
     ups.push(...more);
     renderGame();
@@ -547,7 +558,7 @@ async function unitDetail(uid) {
     closeModal();
     if (v === 'close') break;
     if (v.startsWith('sk:')) { u.skill = v.slice(3); save(); continue; }
-    if (v === 'ascend') { const r = R.ascend(run, u.uid, meta); if (r) { await evoCinematic(u); save(); renderGame(); } break; }
+    if (v === 'ascend') { const r = R.ascend(run, u.uid, meta); if (r) { window.AX && AX.ev('ascend'); await evoCinematic(u); save(); renderGame(); } break; }
     if (v === 'sell') { if (!(await confirmLastSell(u))) continue; const g = R.sell(run, u.uid); SFX.coin(); toast(`Sold for ${g} gold.`); break; }
     if (v === 'bench') { const f = R.freeBench(run); if (f < 0) toast('Your bench is full.'); else R.placeBench(run, u.uid, f); break; }
     if (v === 'board') {
@@ -896,6 +907,10 @@ async function endFight() {
   const st = FS.st;
   const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[R.bossOf(run)].name : '';
   const res = R.endRound(run, st);
+  const hazOn = !!(G.BIOMES[run.biome] && G.BIOMES[run.biome].haz);
+  const hazRelic = (run.relics || []).some(id => G.RELICS[id] && G.RELICS[id].tags && G.RELICS[id].tags.indexOf('hazard') >= 0);
+  const kills = window.AX && AX.fightKills ? AX.fightKills(st) : st.units.filter(u => u.side === 1 && !u.alive).length;
+  window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: kills, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned), hazard: !!(res.win && hazOn && !hazRelic) });
   const apex = R.rollApex(run, st, meta); if (apex) res.drops.push({ k: 'apex', sp: apex.sp });
   if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
   stopFight();
@@ -937,21 +952,22 @@ async function endFight() {
 }
 function relicLi(id, v) {
   const r = G.RELICS[id];
-  return `<div class="li click ${r.leg ? 'leg' : ''}" data-v="${v == null ? id : v}"><img class="ic" src="${IMG('rl_' + id)}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div><div class="row wrap" style="gap:4px;margin-top:3px">${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div></div></div>`;
+  return `<div class="li click ${r.leg ? 'leg' : ''}" data-v="${v == null ? id : v}"><img class="ic" src="${IMG(r.ic || ('rl_' + id))}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div><div class="row wrap" style="gap:4px;margin-top:3px">${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div></div></div>`;
 }
 async function relicPick(list, title) {
-  const c = C.relicTagCounts(run.relics);
+  const owned = (run && run.relics) || [];
+  const c = C.relicTagCounts(owned);
   const hint = list.map(id => G.RELICS[id].tags.filter(t => c[t] === 2 && G.SETS[t]).map(t => `Taking ${G.RELICS[id].n} completes the <b>${G.SETS[t].n}</b> set: ${G.SETS[t].d}`)).flat();
-  const fuse = list.map(id => G.FUSIONS.filter(f => (f[0] === id && run.relics.includes(f[1])) || (f[1] === id && run.relics.includes(f[0]))).map(f => `${G.RELICS[id].n} can fuse into <b>${G.RELICS[f[2]].n}</b>.`)).flat();
+  const fuse = list.map(id => G.FUSIONS.filter(f => (f[0] === id && owned.includes(f[1])) || (f[1] === id && owned.includes(f[0]))).map(f => `${G.RELICS[id].n} can fuse into <b>${G.RELICS[f[2]].n}</b>.`)).flat();
   const v = await ask(title || 'Choose a relic', `<div class="list">${list.map(id => relicLi(id)).join('')}</div>${hint.concat(fuse).map(h => `<p class="small" style="color:var(--gold);margin:8px 4px 0">${h}</p>`).join('')}`, btn('skip', 'Skip', 'ghost sm'));
-  if (v !== 'skip' && G.RELICS[v]) { R.addRelic(run, v); SFX.relic(); toast('Got ' + G.RELICS[v].n); }
+  if (v !== 'skip' && G.RELICS[v] && run) { R.addRelic(run, v); window.AX && AX.ev('relic'); SFX.relic(); toast('Got ' + G.RELICS[v].n); }
 }
 async function forgeFlow() {
   const fs = R.fusionsAvailable(run);
   if (!fs.length) return false;
   const v = await ask('Forge a legendary?', `<p class="muted" style="text-align:center">Two of your relics can become one legendary.</p><div class="list">${fs.map((f, i) => `<div class="li click leg" data-v="${i}"><img class="ic" src="${IMG('rl_' + f[2])}" alt=""><div class="grow"><div class="t">${G.RELICS[f[2]].n}</div><div class="small">${G.RELICS[f[2]].d}</div><div class="small muted">Uses ${G.RELICS[f[0]].n} + ${G.RELICS[f[1]].n}</div></div></div>`).join('')}</div>`, btn('x', 'Not now', 'ghost sm'));
   if (v === 'x') return false;
-  R.fuse(run, fs[+v]); SFX.ult(); toast('Forged ' + G.RELICS[fs[+v][2]].n + '!');
+  R.fuse(run, fs[+v]); window.AX && AX.ev('fuse'); SFX.ult(); toast('Forged ' + G.RELICS[fs[+v][2]].n + '!');
   return true;
 }
 
@@ -1029,12 +1045,15 @@ async function gameOver(won, res) {
   stopFight();
   const shards = R.shardsFor(run, won);
   meta.shards += shards;
+  window.AX && AX.ev('shards', shards);
   for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
   if (won) { meta.wins++; meta.depthMax = Math.max(meta.depthMax, Math.min(10, run.depth + 1)); }
   const team = R.onBoard(run).map(u => `<div style="text-align:center"><img style="height:80px" class="${u.shiny ? 'shiny' : ''}" src="${IMG(C.art(u))}" alt=""><div class="small" style="color:#ffd65a">${starsTxt(u.star)}</div></div>`).join('');
   const cores = apexLines(res && res.drops);
   if (cores) SFX.lvl();
-  const r = run; r.over = r.over || 2; run = null; save();
+  const r = run; r.over = r.over || 2;
+  window.AX && AX.ev('runEnd', 1, { won: !!won, round: r.round, depth: r.depth, lost: r.stats.lost || 0, ms: r.started ? Date.now() - r.started : null });
+  run = null; save();
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
     <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
     ${(res && res.report) || ''}
@@ -1048,7 +1067,7 @@ function renderCamp() {
       const m = G.META[k], rk = meta.up[k] || 0, max = rk >= m.max, cost = m.cost[rk];
       return `<div class="li"><div class="grow"><div class="t">${m.n} <span class="tag">${rk}/${m.max}</span></div><div class="small">${m.d}</div></div>${max ? '<span class="tag" style="background:#2fbf5555">MAX</span>' : `<button class="btn sm ${meta.shards >= cost ? '' : 'ghost'}" data-buy="${k}">${cost} shards</button>`}</div>`;
     }).join('')}</div>`).join('')}
-    <div class="row center wrap campacts" style="margin:16px 0">${btn('dex', ICO.dex + 'Glimdex', 'mid blue').replace('data-v', 'data-camp')}${btn('post', `<img class="bico" src="${IMG('wd_badge')}" alt="">Trainer's Post`, 'mid wild').replace('data-v', 'data-camp')}${btn('play', 'New Run', 'mid green').replace('data-v', 'data-camp')}</div>`;
+    <div class="row center wrap campacts" style="margin:16px 0">${btn('dex', ICO.dex + 'Glimdex', 'mid blue').replace('data-v', 'data-camp')}${btn('post', `<img class="bico" src="${IMG('wd_badge')}" alt="">Trainer's Post`, 'mid wild').replace('data-v', 'data-camp')}${btn('ach', '🏆 Goals', 'mid wild').replace('data-v', 'data-camp')}${btn('wardrobe', '👕 Wardrobe', 'mid').replace('data-v', 'data-camp')}${btn('play', 'New Run', 'mid green').replace('data-v', 'data-camp')}</div>`;
   show('camp');
   mus('title');
 }
@@ -1061,7 +1080,7 @@ $('#campBody').addEventListener('click', e => {
     return;
   }
   const c = e.target.closest('[data-camp]');
-  if (c) { SFX.click(); if (c.dataset.camp === 'dex') showDex(); else if (c.dataset.camp === 'post') window.WILDS.post().then(renderCamp); else newRunFlow(); }
+  if (c) { SFX.click(); if (c.dataset.camp === 'dex') showDex(); else if (c.dataset.camp === 'post') window.WILDS.post().then(renderCamp); else if (c.dataset.camp === 'ach') window.AX && AX.open(); else if (c.dataset.camp === 'wardrobe') window.COSM && COSM.open(); else newRunFlow(); }
 });
 async function showAbout() {
   await ask('About', `<div class="how">
@@ -1131,6 +1150,8 @@ async function showHow() {
 
 // ---- boot --------------------------------------------------------------------------------------
 load();
+if (window.AX) AX.init(meta);
+if (window.COSM) { COSM.init(meta); COSM.apply(); }
 readAnimQuery();
 applyAnim();
 renderTitle();
@@ -1143,6 +1164,7 @@ function ascendMember(m) {
   const S = G.SP[m.sp];
   if (!S || !S.names[3]) return null;
   m.star = 4;
+  window.AX && AX.ev('ascend');
   m.hp = Math.min(1, (m.hp || 0) + 0.3);
   meta.apex[m.sp]--;
   if (!meta.apex[m.sp]) delete meta.apex[m.sp];
@@ -1159,5 +1181,5 @@ function giveApex(sp, n) {
 }
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,
   wildBattle, ask, toast, show, save, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
-  evoCinematic, rollApexWild, rollApex: (st, salt) => R.rollApex(run, st, meta), ascendMember, debug: { giveApex } };
+  evoCinematic, rollApexWild, rollApex: (st, salt) => R.rollApex(run, st, meta), ascendMember, debug: { giveApex, relicPick: (ids, title) => relicPick(ids && ids.length ? ids : ['ruby_ring', 'last_stand', 'pyre_crown', 'rainbow_roster'], title || 'Choose a relic') } };
 })();

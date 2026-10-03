@@ -5,7 +5,7 @@
 'use strict';
 const G = window.GD, C = window.GC, R = window.GR, U = window.GLIM;
 const $ = s => document.querySelector(s);
-const IMG = k => 'img/' + k + '.webp?v=w4';
+const IMG = k => (window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[k]) ? ('img/' + k + '.webp?v=w4') : ((window.ICON_PH && ICON_PH[k]) || ('img/' + k + '.webp?v=w4'));
 const SAVE = 'glimmerdeep.wilds.v1';
 const { FLOORS, SQUAD_START, SQUAD_MAX, XP_STAR, rng, pick, key, placeSide } = window.GW;
 // shinies: 1 in 20 wild creatures, 3 in 20 with the camp's Shiny Charm
@@ -44,11 +44,20 @@ function img(k) { if (!imgs[k]) { const i = new Image(); i.src = IMG(k); imgs[k]
 const ready = i => !!i && (i instanceof HTMLCanvasElement || (i.complete && i.naturalWidth > 0));
 // fetch and decode ahead of the first draw, so a new frame is never a blank
 function warm(k) { const i = img(k); if (typeof i.decode === 'function') i.decode().catch(() => {}); return i; }
+function tamerKey(k) {
+  const id = meta().skin, sk = G.SKINS[id];
+  if (sk && sk.folder && skinOpen(id)) return sk.folder + '/' + k;
+  return k;
+}
 function preloadTamer() {
-  for (const k of TAMER_FR) warm(k);
-  // outfits recolour on first use; warm the new stride frames while the browser is idle
-  const sk = meta().skin;
-  if (sk && sk !== 'classic' && typeof requestIdleCallback === 'function') requestIdleCallback(() => { for (const k of TAMER_FR) skinImg(img(k)); });
+  for (const k of TAMER_FR) {
+    const key = tamerKey(k);
+    if (key !== k && !(window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[key])) continue;
+    warm(key);
+  }
+  // hue outfits recolour on first use; warm the new stride frames while the browser is idle
+  const id = meta().skin, sk = G.SKINS[id];
+  if (sk && sk.hue != null && skinOpen(id) && typeof requestIdleCallback === 'function') requestIdleCallback(() => { for (const k of TAMER_FR) skinImg(img(k)); });
 }
 function preloadDoors() {
   if (!W || !W.biome) return;
@@ -92,7 +101,7 @@ async function offerRelics(n, title, skip, rare) {
   if (!pool.length) { U.toast('You already carry every relic!'); return null; }
   const v = await U.ask(title || 'A relic!', `<p class="muted small" style="text-align:center">Relics last until this expedition ends.</p><div class="list">${pool.map(relicLi).join('')}</div>`, skip ? U.btn('skip', 'Leave it', 'ghost sm') : '');
   if (!WR[v]) return null;
-  W.relics.push(v); U.SFX.relic(); U.toast('Got ' + WR[v].n + '!');
+  W.relics.push(v); window.AX && AX.ev('relic'); U.SFX.relic(); U.toast('Got ' + WR[v].n + '!');
   if (WR[v].w && WR[v].w.map) revealMap(2);
   hud();
   return v;
@@ -109,6 +118,7 @@ async function useTonic() {
   if (!(W.tonics > 0)) return U.toast('No Glim Tonics. Every floor has one at its entrance.');
   if (!W.squad.some(s => s.hp > 0 && s.hp < 1)) return U.toast('Your squad is already at full health.');
   W.tonics--;
+  window.AX && AX.ev('tonic');
   healFit(0.4 + rw('tonic'));
   U.SFX.wshrine(); burst(V.px, V.py - 0.4, '#6bff8f'); U.toast(`Glim Tonic: +${Math.round(100 * (0.4 + rw('tonic')))}% HP for your squad.`);
   save(); hud();
@@ -158,6 +168,7 @@ function newFloor(floor) {
     const F = window.GW.genDen((W.seed + 999) >>> 0, { pool: Object.keys(meta().unlocked) });
     Object.assign(W, { floor, biome: 'crypt', rooms: F.rooms, cur: F.cur });
     markSeen(); preloadDoors();
+    window.AX && AX.ev('floor');
     return;
   }
   const pickFrom = floor === FLOORS ? ['core'] : (floor === 1 ? EARLY : Object.keys(G.BIOMES).filter(k => k !== 'core')).filter(k => !W.biomes.includes(k));
@@ -166,11 +177,13 @@ function newFloor(floor) {
   const F = genFloor(floor, biome, (W.seed + floor * 7919) >>> 0);
   Object.assign(W, { floor, biome, rooms: F.rooms, cur: F.cur });
   if (F.freeKey) W.keys++;
+  if (rw('keyPlus')) W.keys += rw('keyPlus');
   W.relics = W.relics || []; if (W.tonics == null) W.tonics = 0;
   const mapRank = Math.max(up('w_map'), rw('map'));
   if (mapRank) revealMap(mapRank);
   markSeen();
   preloadDoors();
+  window.AX && AX.ev('floor');
 }
 function startExpedition(sps, opts) {
   W = { v: 1, seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0, floor: 1, biomes: [], keys: 0, shards: 0, nextUid: 1, wins: 0, found: [],
@@ -180,16 +193,18 @@ function startExpedition(sps, opts) {
   if (up('w_relic')) W.relics.push(pick(Math.random, Object.keys(WR)));
   for (const m of W.squad) m.uid = W.nextUid++;
   newFloor(1);
+  window.AX && AX.ev('wildsStart');
   save();
 }
 async function endExpedition(why, apex) {
   const m = meta();
   const bonus = why === 'done' ? 50 : 0;
   m.shards += bonus;
+  if (bonus) window.AX && AX.ev('shards', bonus);
   const found = W.found.map(sp => `<div class="wfound"><img src="${IMG('cr_' + sp + '1')}" alt=""><div>${G.SP[sp].names[0]}</div></div>`).join('')
     + (W.shinies || []).map(sp => `<div class="wfound"><img class="shiny" src="${IMG('cr_' + sp + '1')}" alt=""><div>✦ ${G.SP[sp].names[0]}</div></div>`).join('');
   const title = why === 'champion' ? 'Champion of the Wilds!' : why === 'done' ? 'Expedition complete!' : why === 'left' ? 'Back to camp' : 'Your squad fainted';
-  if (why === 'champion') { m.shards += 150; why = 'done'; }
+  if (why === 'champion') { m.shards += 150; window.AX && AX.ev('shards', 150); why = 'done'; }
   // a wipe never reaches the Defeat modal; LASTFS outlives W = null. Wild and trainer both land here.
   const report = why === 'fainted' ? LASTFS : '';
   clearSave(); W = null; stopView(); U.save();
@@ -243,7 +258,7 @@ function prep() {
   let lure = '';
   host.querySelector('.wprepbody').addEventListener('click', async e => {
     const sk = e.target.closest('[data-skin]'), lu = e.target.closest('[data-lure]');
-    if (sk) { if (!skinOpen(sk.dataset.skin)) return U.toast(G.SKINS[sk.dataset.skin].d); m.skin = sk.dataset.skin; U.save(); U.SFX.click(); host.querySelectorAll('.wskin').forEach(x => x.classList.toggle('on', x === sk)); }
+    if (sk) { if (!skinOpen(sk.dataset.skin)) return U.toast(G.SKINS[sk.dataset.skin].d); m.skin = sk.dataset.skin; if (m.cosm && m.cosm.sel) m.cosm.sel.skin = m.skin; preloadTamer(); U.save(); U.SFX.click(); host.querySelectorAll('.wskin').forEach(x => x.classList.toggle('on', x === sk)); }
     if (lu) { lure = lu.dataset.lure; U.SFX.click(); host.querySelectorAll('[data-lure]').forEach(x => { x.classList.toggle('ghost', x !== lu); x.classList.toggle('on', x === lu); }); }
     if (e.target.closest('[data-v=post]')) { await post(); prep(); }
   });
@@ -492,7 +507,7 @@ function step(dt) {
   const a = room();
   let [ix, iy] = inputVec();
   if (V.tr && V.tr.spotted) ix = iy = 0;   // spotted: the trainer walks over, you wait
-  const sp = 5.2;
+  const sp = 5.2 * (1 + (rw('speed') || 0));
   const x0 = V.px, y0 = V.py;
   const o = { x: V.px + ix * sp * dt, y: V.py + iy * sp * dt };
   if (ix) V.fx = ix > 0 ? 1 : -1;
@@ -502,7 +517,7 @@ function step(dt) {
   let pushingCrack = false;
   const tryDoor = (d, st) => {
     if (st === 'sealed') return msg('The doors slammed shut. Win the trainer battle first!');
-    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
+    if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); window.AX && AX.ev('key'); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
       pushingCrack = true;
       if (!V.push) V.push = { d: null, t: 0 };
@@ -563,7 +578,7 @@ function step(dt) {
   }
   // pickups
   const near = (x, y, r) => Math.hypot(V.px - x, V.py - y) < r;
-  if (a.item && !a.used && near(8, 4.5, 0.9) && !(a.mon && !a.mon.beaten)) {
+  if (a.item && !a.used && near(8, 4.5, 0.9 + (rw('reach') || 0)) && !(a.mon && !a.mon.beaten)) {
     if (a.tr && !a.tr.beaten) msg(G.TRAINERS[a.tr.arch].n + ' guards this treasure.'); else pickup(a);
   }
   if (V.tr && trainerStep(a, dt)) return;
@@ -602,7 +617,8 @@ function pickup(a) {
     const g = Math.round((10 + 6 * W.floor) * (1 + 0.5 * up('w_luck') + rw('shardMul'))); m.shards += g; W.shards += g;
     if (Math.random() < 0.5) healFit(0.25);
     U.SFX.wchest(); U.toast(`Treasure! +${g} Glimmer Shards.`);
-    if (Math.random() < 0.35 + 0.2 * up('w_luck')) { V.pause = true; save(); offerRelics(2, 'A relic in the chest!').then(() => { V.pause = false; V.last = performance.now(); save(); }); }
+    if (Math.random() < 0.35 + 0.2 * up('w_luck') + (rw('chestRelic') || 0)) { V.pause = true; save(); offerRelics(2, 'A relic in the chest!').then(() => { V.pause = false; V.last = performance.now(); save(); }); }
+    window.AX && AX.ev('shards', g);
   }
   else if (a.item === 'tonic') { W.tonics = (W.tonics || 0) + 1; U.SFX.wberry(); U.toast('A Glim Tonic! Tap the flask at the top any time to heal your squad.'); }
   else if (a.item === 'event') { a.used = false; return runEvent(a); }
@@ -658,7 +674,7 @@ async function runEvent(a) {
     }
     case 'well': {
       v = await U.ask(EV_N.well, evArt('well') + `${t}Coins glitter at the bottom of a glowing well.</p>`, U.btn('toss', 'Toss in 20 shards (60%: a relic)', m.shards >= 20 ? '' : 'ghost') + U.btn('drink', 'Drink (heal 20%)', 'green sm') + U.btn('x', 'Leave', 'ghost sm'));
-      if (v === 'toss' && m.shards >= 20) { m.shards -= 20; done(); if (Math.random() < 0.6) { const id = pick(Math.random, Object.keys(WR).filter(k => !W.relics.includes(k))); if (id) { W.relics.push(id); if (WR[id].w && WR[id].w.map) revealMap(2); U.SFX.relic(); await U.ask('Your wish came true!', `<div class="list">${relicLi(id)}</div>`, U.btn('ok', 'Wonderful', 'green')); } } else { U.SFX.miss(); U.toast('Plink… nothing happens.'); } }
+      if (v === 'toss' && m.shards >= 20) { m.shards -= 20; done(); if (Math.random() < 0.6) { const id = pick(Math.random, Object.keys(WR).filter(k => !W.relics.includes(k))); if (id) { W.relics.push(id); window.AX && AX.ev('relic'); if (WR[id].w && WR[id].w.map) revealMap(2); U.SFX.relic(); await U.ask('Your wish came true!', `<div class="list">${relicLi(id)}</div>`, U.btn('ok', 'Wonderful', 'green')); } } else { U.SFX.miss(); U.toast('Plink… nothing happens.'); } }
       else if (v === 'toss') U.toast('Not enough shards.');
       else if (v === 'drink') { healFit(0.2); done(); U.SFX.wshrine(); }
       break;
@@ -712,6 +728,7 @@ async function battle(a, mv) {
   await new Promise(r => setTimeout(r, 380));
   $('#wilds').classList.remove('flash');
   const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : a.event === 'challenge' ? '⚔ Champion ' : mon.shiny ? '✦ Shiny ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`, fightBonus());
+  if (window.AX && AX.fightKills) AX.ev('kos', 1, { kills: AX.fightKills(st) });
   LASTFS = window.FightStats ? window.FightStats.block(st) : '';
   const apex = U.rollApexWild(st);
   // carry HP back to the squad
@@ -744,6 +761,10 @@ async function victory(a, mon, fit, apex) {
   const lair = a.type === 'lair';
   const g = Math.round((lair ? 10 + 6 * W.floor : 2 + W.floor) * shardMul());
   m.shards += g; W.shards += g;
+  window.AX && AX.ev('shards', g);
+  window.AX && AX.ev('wildsFight');
+  if (lair) window.AX && AX.ev('lair');
+  if (mon.shiny) window.AX && AX.ev('shiny');
   const fresh = !m.unlocked[sp];
   m.unlocked[sp] = 1; m.caught[sp] = 1;
   if (fresh) W.found.push(sp);
@@ -798,7 +819,8 @@ const TOKENS = t => t.den ? 8 : t.rival ? 4 : t.captain ? 3 : 2;
 function sees(T) {
   const [fx, fy] = FACE[T.cur], rx = V.px - T.x, ry = V.py - T.y;
   const along = rx * fx + ry * fy, side = Math.abs(rx * fy - ry * fx);
-  if (along < 0.2 || along > 6.5 || side > 0.65 + along * 0.14) return false;
+  const len = 6.5 * (1 - Math.min(0.75, rw('sight') || 0));
+  if (along < 0.2 || along > len || side > 0.65 + along * 0.14) return false;
   const n = Math.ceil(along / 0.25);
   for (let i = 1; i < n; i++) { const x = T.x + rx * i / n, y = T.y + ry * i / n, [c, yy] = tileAt(x, y); if (solid(tile(c, yy))) return false; }
   return true;
@@ -824,7 +846,7 @@ function trainerStep(a, dt) {
 }
 function drawCone(ctx, ox, oy, S) {
   const T = V.tr; if (T.spotted) return;
-  const [fx, fy] = FACE[T.cur], len = 6.5, x = ox + T.x * S, y = oy + T.y * S;
+  const [fx, fy] = FACE[T.cur], len = 6.5 * (1 - Math.min(0.75, rw('sight') || 0)), x = ox + T.x * S, y = oy + T.y * S;
   const g = ctx.createLinearGradient(x, y, x + fx * len * S, y + fy * len * S);
   g.addColorStop(0, 'rgba(255,214,90,.22)'); g.addColorStop(1, 'rgba(255,214,90,0)');
   ctx.fillStyle = g; ctx.beginPath();
@@ -867,6 +889,7 @@ async function trainerBattle(a, spotted) {
   U.SFX.wencounter();
   $('#wilds').classList.add('flash'); await new Promise(r => setTimeout(r, 380)); $('#wilds').classList.remove('flash');
   const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, '⚔ ' + title, fightBonus(), bonus);
+  if (window.AX && AX.fightKills) AX.ev('kos', 1, { kills: AX.fightKills(st) });
   LASTFS = window.FightStats ? window.FightStats.block(st) : '';
   const apex = U.rollApexWild(st);
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
@@ -889,8 +912,10 @@ async function trainerBattle(a, spotted) {
 async function trainerWin(a, apex) {
   const t = a.tr, T = G.TRAINERS[t.arch], m = meta();
   t.beaten = true; V.tr = null; W.wins++;
-  const tok = TOKENS(t), g = Math.round((6 + 3 * Math.min(W.floor, FLOORS)) * shardMul());
+  const tok = TOKENS(t) + (rw('tokens') || 0), g = Math.round((6 + 3 * Math.min(W.floor, FLOORS)) * shardMul());
   m.tokens = (m.tokens || 0) + tok; m.shards += g; W.shards += g;
+  window.AX && AX.ev('shards', g);
+  window.AX && AX.ev('trainer');
   const evos = [];
   for (const s of W.squad) if (s.hp > 0) gainXp(s, 2 + rw('xp'), evos);
   if (rw('winHeal')) healFit(rw('winHeal'));
@@ -900,7 +925,7 @@ async function trainerWin(a, apex) {
   if (card) lines.push(`<b style="color:var(--gold)">New trainer card:</b> ${T.n}!`);
   let skin = null;
   if (t.rival && !t.den) { m.badges = Math.min(3, (m.badges || 0) + 1); lines.push(`<img class="ri" src="${IMG('wd_badge')}" alt=""><b style="color:#c9a6ff">Rival Badge ${m.badges}/3!</b>${m.badges >= 3 ? ' The Rival\'s Den opens after floor 5.' : ''}`); }
-  if (t.den) m.den = 1;
+  if (t.den) { m.den = 1; window.AX && AX.ev('den'); }
   for (const k in G.SKINS) if (skinOpen(k) && !(m.skinsSeen || {})[k] && G.SKINS[k].req) { m.skinsSeen = Object.assign(m.skinsSeen || {}, { [k]: 1 }); skin = k; }
   if (skin) lines.push(`<b style="color:#7dff9b">New tamer outfit: ${G.SKINS[skin].n}!</b> Pick it before your next expedition.`);
   for (const s of evos) lines.push(`<span style="color:#7dff9b">${G.SP[s.sp].names[s.star - 2]} evolved into <b>${G.SP[s.sp].names[s.star - 1]}</b>!</span>`);
@@ -919,12 +944,15 @@ function skinOpen(k) {
   if (q.badges) return (m.badges || 0) >= q.badges;
   if (q.den) return !!m.den;
   if (q.cards) return Object.keys(m.trCards || {}).filter(c => c !== 'rival').length >= q.cards;
+  if (q.ach) return !!(window.AX && AX.has(q.ach));
+  if (q.stamps) return ((m.daily && m.daily.stamps) || 0) >= q.stamps;
   return false;
 }
 // recolour the jacket (the art's teal range) at runtime, so outfits follow every tamer frame
 const skinCache = {};
 function skinImg(im) {
   const k = meta().skin, sk = G.SKINS[k];
+  if (sk && sk.folder) return im;
   if (!sk || sk.hue == null || !skinOpen(k) || !ready(im) || im instanceof HTMLCanvasElement) return im;
   const ck = im.src + '|' + k;
   if (skinCache[ck]) return skinCache[ck];
@@ -950,6 +978,8 @@ function skinImg(im) {
   return c;
 }
 function skinThumb(k) {
+  const sk = G.SKINS[k];
+  if (sk && sk.folder) return IMG(sk.folder + '/wd_tamer_idle_1');
   const im = img('wd_tamer_idle_1'); if (!ready(im)) return IMG('wd_tamer_idle_1');
   const prev = meta().skin; meta().skin = k; const c = skinImg(im); meta().skin = prev;
   return c instanceof HTMLCanvasElement ? c.toDataURL() : IMG('wd_tamer_idle_1');
@@ -1178,6 +1208,12 @@ function drawGate(ctx, im, d, x, y, ox, oy, S) {
 const vwalkState = {};
 function vwalkOk(dir) {
   const n = VWALK[dir]; if (!n) return false;
+  const id = meta().skin, sk = G.SKINS[id];
+  // pre-coloured outfits only stride when their own up/down frames shipped
+  if (sk && sk.folder && skinOpen(id)) {
+    for (let i = 1; i <= n; i++) if (!(window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[sk.folder + '/wd_tamer_' + dir + '_' + i])) return false;
+    return true;
+  }
   if (vwalkState[dir] !== undefined) return vwalkState[dir];
   let all = true;
   for (let i = 1; i <= n; i++) {
@@ -1206,13 +1242,14 @@ function tamerPose() {
   return ['wd_tamer_idle_' + (1 + Math.floor(performance.now() / 260) % 4), V.fx || 1, 0];
 }
 function tamerImg(k) {
-  const im = img(k);
-  if (ready(im)) { V.shown = k; return im; }
+  const key = tamerKey(k);
+  const im = img(key);
+  if (ready(im)) { V.shown = key; return im; }
   const prev = V.shown && imgs[V.shown];
   if (prev && ready(prev)) return prev;
-  const idle = img('wd_tamer_idle_1');
+  const idle = img(tamerKey('wd_tamer_idle_1'));
   if (ready(idle)) return idle;
-  return img('wd_tamer');
+  return img(tamerKey('wd_tamer'));
 }
 // a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it.
 // o (optional): { lift, rot, sx, sq, leg } for the up/down waddle.
@@ -1264,7 +1301,7 @@ function spriteH(ctx, im, x, y, H, fx, bob, boss, shiny, o) {
   ctx.restore();
 }
 
-window.WILDS = { open, post, dexHtml, hud, get state() { return W; }, get view() { return V; },
+window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, preloadTamer, get state() { return W; }, get view() { return V; },
   doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]),
-  secretLevel: d => W && V && secretLevel(room(), d), secretHintRange, tamerPose };
+  secretLevel: d => W && V && secretLevel(room(), d), tamerPose };
 })();

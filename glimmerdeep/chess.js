@@ -238,6 +238,8 @@ function effAtk(st, u) {
   if (u.front && b.frontAtk) a *= 1 + b.frontAtk;
   if (b.shieldAtk && u.shield > 0) a *= 1 + b.shieldAtk;
   if (u.elite === 'enraged' && pct(u) < 0.5) a *= 1.35;
+  if (b.openAtk && st.t < 5) a *= 1 + b.openAtk;
+  if (b.lastStand && alive(st, u.side).length === 1) a *= 1 + b.lastStand;
   return a;
 }
 function effDef(st, u) {
@@ -513,6 +515,10 @@ function damage(st, a, d, v, ev, info) {
   if (d.hp <= 0 && d.b.grit && !d.gritUsed) { d.hp = 1; d.gritUsed = true; ev.push({ k: 'react', t: d.id, name: 'Grit!' }); }
   ev.push({ k: 'dmg', t: d.id, a: a ? a.id : null, v, crit: !!info.crit, eff: info.eff || 1, hp: Math.max(0, d.hp), sh: d.shield,
     dot: info.dot || null, thorn: !!info.thorn, basic: !!info.basic, el: info.el || null });
+  if (d.hp > 0 && d.hp < d.maxHp * 0.3 && !d.swUsed && st.bonus[d.side].lowHeal) {
+    d.swUsed = true;
+    heal(st, d, d, st.bonus[d.side].lowHeal, ev);
+  }
   if (a && a !== d && !info.dot && !info.thorn) gainMana(st, d, Math.min(15, 3 + 15 * v / d.maxHp));
   if (d.perk && d.perk.kind === 'bulwark' && !d.bulwarkUsed && d.hp > 0 && d.hp < d.maxHp / 2) {
     d.bulwarkUsed = true; giveShield(st, d, d, d.perk.l > 1 ? 0.4 : 0.25, ev); ev.push({ k: 'perk', a: d.id, t: d.id, n: 'Last Stand', el: d.el });
@@ -543,6 +549,7 @@ function ko(st, a, d, ev) {
     if (a.perk && a.perk.kind === 'hunter' && a.kills <= 5) ev.push({ k: 'perk', a: a.id, t: a.id, n: 'Bloodlust', el: a.el });
     const ab = st.bonus[a.side];
     if (ab.killHeal) heal(st, a, a, ab.killHeal, ev);
+    if (a.side === 0 && ab.koGold && (st.koGoldN || 0) < 2 && st.goldBonus < 5) { st.koGoldN = (st.koGoldN || 0) + 1; st.goldBonus += Math.min(ab.koGold, 1); }
   }
   if (d.st.curse && st.bonus[1 - d.side].curseSpread) for (const e of alive(st, d.side)) applyStatus(st, a, e, 'curse', ev);
 }
@@ -765,5 +772,5 @@ function checkOver(st, ev) {
 function resolve(st) { let n = 0; while (!st.over && n++ < TIME_LIMIT / DT + 5) tick(st); return st; }
 
 root.GC = { W, H, DT, TIME_LIMIT, mkRng, teamBonus, relicTagCounts, stats, name, art, elOf, roleOf, castables, defaultSkill, basicOf,
-  manaCost, traitCounts, traitTiers, create, tick, resolve, alive, byId, dist, pct, manaNeed, effAS };
+  manaCost, traitCounts, traitTiers, create, tick, resolve, alive, byId, dist, pct, manaNeed, effAS, effAtk };
 })(typeof window !== 'undefined' ? window : globalThis);

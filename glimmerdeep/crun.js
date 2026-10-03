@@ -19,7 +19,16 @@ function campBonus(up) {
   for (const k in up || {}) { const m = G.META[k]; if (m && m.cb && m.mode !== 'wilds') for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * up[k]; }
   return b;
 }
-const bonus = run => C.teamBonus(run.relics, run.perks, run.campB);
+function bonus(run) {
+  const b = C.teamBonus(run.relics, run.perks, run.campB);
+  if (b.rainbow && run && run.units) {
+    const seen = {};
+    let n = 0;
+    for (const u of run.units) if (u.at === 'b' && !seen[u.sp]) { seen[u.sp] = 1; n++; }
+    if (n) b.atkMul = (b.atkMul || 0) + b.rainbow * Math.min(6, n);
+  }
+  return b;
+}
 
 // ---- run setup --------------------------------------------------------------------------
 function newRun(meta, seed, depth) {
@@ -30,7 +39,7 @@ function newRun(meta, seed, depth) {
     hp: 100 + 10 * (up.hide || 0), maxHp: 100 + 10 * (up.hide || 0), gold: 3 + 2 * (up.gold || 0),
     tlv: 1 + (up.starter || 0), txp: 0, units: [], shop: [], locked: false, pool: {},
     relics: [], charms: [], items: {}, perks: {}, streak: 0, depth: depth || 0, over: 0, mods: {},
-    stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {}, visited: ['verdant'], shopShiny: [],
+    stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {}, visited: ['verdant'], shopShiny: [], started: Date.now(),
     meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, shinySp: Object.assign({}, meta.shinies || {}), kin: 0.08 * (up.kindred || 0), hoard: 0.1 * (up.hoard || 0) },
     campB: campBonus(up),
   };

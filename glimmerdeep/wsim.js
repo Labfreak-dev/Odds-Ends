@@ -4,7 +4,7 @@
 //   CAREER=1 node glimmerdeep/wsim.js [players=20]     players keep their unlocks: expeditions to collect every species (Object.keys(G.SP).length)
 //   WUP=max ...                                        with every Wilds camp upgrade bought
 'use strict';
-require('./species2.js'); require('./data.js'); require('./chess.js'); require('./crun.js'); require('./wgen.js');
+require('./species2.js'); require('./data.js'); require('./relics2.js'); require('./chess.js'); require('./crun.js'); require('./wgen.js');
 const G = globalThis.GD, C = globalThis.GC, Wg = globalThis.GW;
 const N = +process.argv[2] || 200;
 const UPW = {}; if (process.env.WUP) for (const k in G.META) if (G.META[k].mode === 'wilds') UPW[k] = G.META[k].max;

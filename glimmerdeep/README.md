@@ -123,13 +123,22 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   walls lead to neighbouring rooms, and a minimap shows what you have found.
   - The tamer is drawn at 1.3 units. Sideways walking plays `wd_tamer_walk_1`–`8` (mirrored
     to the left), one full cycle per about 1.3 units actually travelled, so a blocked step
-    does not cycle. Straight up or down uses the stills. Standing breathes through four idle
-    frames (about 260 ms each). Spikes and walking into a creature play a short hurt flinch.
-    The old feet bob stays on the up/down stills only.
-  - Doorways are per-wall gates (`wd_<door|lock|crack>_<n|s|w|e>`, plus `_verdant`, `_magma`,
-    `_tundra` and `_core`), drawn unrotated at 2.7 units on the same centres as before.
-    Other biomes use the grey set. `wd_door.webp`, `wd_lock.webp` and `wd_crack.webp` stay
-    as the rotatable fallback. Walk gaps, the crack push and the lock bump are unchanged.
+    does not cycle. Straight up or down plays `wd_tamer_<dir>_walk_*` when `VWALK` counts
+    those frames, and otherwise a distance-driven waddle on the front/back still (one
+    footfall every 0.65 units: lift, lean, and a mirror that swaps shoulders). Standing
+    breathes through four idle frames (about 260 ms each). Spikes and walking into a
+    creature play a short hurt flinch.
+  - Doorways are per-wall gates (`wd_<door|lock|crack>_<n|s|w|e>_<biome>` for all twelve
+    biomes), drawn unrotated at 2.7 units. The grey per-wall set, then `wd_door.webp`,
+    `wd_lock.webp` and `wd_crack.webp`, are the fallback. Pits and spikes are
+    `wd_pit_<biome>` / `wd_spikes_<biome>`. Key, berry, shrine, stairs and chest
+    (`wd_chest`, not the map-node icon) keep their file aspect. Room trainers draw at
+    about 1.1× the tamer's visible height, unstretched.
+  - A secret door stays a plain wall until you are next to it (a faint shimmer), you
+    stand and search, or a map reveal (Scout's Map, Cartographer rank 2, the explorer)
+    draws the crack and the purple minimap dot. Push for about 0.9 s to open it. Nothing
+    on the minimap or the room header names a secret before it is found. `WILDS.doors()`
+    still reports `'crack'` for the closed state.
 - Wild rooms hold a roaming creature from the biome's elements, sometimes with escorts. Locked
   species are 3× as likely as ones you have. Walk into it to battle it on the auto-chess board
   with your squad.
@@ -143,7 +152,7 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   - a **vault**, locked until you pick up the floor's key; it holds a rare higher-tier creature or a chest;
   - a **treasure** chest;
   - a **shrine** that heals everyone and revives the fainted.
-- A **secret room** sits in a gap touching two rooms: push into its cracked wall.
+- A **secret room** sits in a gap touching two rooms: the wall looks ordinary until you are beside it, then push.
 - Glimberries heal the squad.
 - **Obstacles** (g12): each room gets an Isaac-style layout on a 13x7 tile grid (`layout()` in
   `wgen.js`): boulders, pits and spike traps from templates (pillars, scatter, pit corners, pit

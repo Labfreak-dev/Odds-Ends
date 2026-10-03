@@ -108,7 +108,8 @@ const WILD_RELICS2 = {
   trail_boots: { n: 'Trail Boots', em: '👢', d: 'Walk 15% faster.', w: { speed: 0.15 } },
   magnet_charm: { n: 'Magnet Charm', em: '🧲', d: 'Pick-ups pull from 1 unit further away.', w: { reach: 1 } },
   sneak_cloak: { n: 'Sneak Cloak', em: '🧥', d: 'Trainers see 25% less far.', w: { sight: 0.25 } },
-  dowsing_rod: { n: 'Dowsing Rod', em: '🔮', d: 'Secret walls shimmer from much further away.', w: { dowse: 1 } },
+  // added to the 3.2 hidden-seam range, so the shimmer still starts at 6
+  dowsing_rod: { n: 'Dowsing Rod', em: '🔮', d: 'Secret walls shimmer from much further away.', w: { dowse: 2.8 } },
   second_key: { n: 'Second Key', em: '🗝️', d: '+1 key at the start of every floor.', w: { keyPlus: 1 } },
   trainers_whistle: { n: "Trainer's Whistle", em: '🎺', d: '+1 Trainer Token per trainer win.', w: { tokens: 1 }, rare: 1 },
   lucky_foot: { n: 'Lucky Foot', em: '🐇', d: 'Chests are 25% likelier to hold a relic.', w: { chestRelic: 0.25 } },

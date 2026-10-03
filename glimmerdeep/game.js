@@ -7,7 +7,7 @@ const IMG = k => (window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[k]) ? ('img/' + k 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
-const GLIM_VER = 'v' + '2026-10-03';
+const GLIM_VER = 'v' + '2026-10-03b';
 
 // ---- save ---------------------------------------------------------------------------
 let meta = { shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
@@ -65,7 +65,7 @@ Object.assign(SYNTH, {                           // quiet, low synth stand-ins f
   relic: () => { tone(392, 0.3, 'sine', 0.05, 0.9); }, summon: () => tone(260, 0.3, 'sine', 0.05, 0.6), bossbanner: () => tone(98, 0.8, 'triangle', 0.08, 0.7),
   reroll: () => tone(300, 0.1, 'triangle', 0.04, 0.7), lock: () => tone(220, 0.06, 'triangle', 0.05), pickup: () => tone(440, 0.07, 'triangle', 0.04, 0.8), drop: () => tone(200, 0.07, 'triangle', 0.05, 0.7),
   wdoor: () => tone(200, 0.12, 'triangle', 0.04, 0.7), wspike: () => tone(150, 0.1, 'triangle', 0.06, 0.6), wkey: () => tone(500, 0.12, 'triangle', 0.04, 0.8),
-  wvault: () => tone(330, 0.3, 'sine', 0.05, 0.9), wsecret: () => tone(240, 0.4, 'triangle', 0.05, 0.6), wberry: () => tone(520, 0.1, 'sine', 0.05, 0.8),
+  wvault: () => tone(330, 0.3, 'sine', 0.05, 0.9), wsecret: () => tone(240, 0.4, 'triangle', 0.05, 0.6), whint: () => tone(1180, 0.05, 'sine', 0.018, 0.8), wberry: () => tone(520, 0.1, 'sine', 0.05, 0.8),
   wchest: () => [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.05), i * 90)), wshrine: () => tone(330, 0.5, 'sine', 0.05, 0.9),
   wencounter: () => tone(150, 0.3, 'triangle', 0.06, 0.6), wcatch: () => [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.05), i * 90)),
   wshiny: () => [440, 392, 330].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sine', 0.04), i * 100)), wdescend: () => tone(180, 0.6, 'triangle', 0.05, 0.5), wdone: () => tone(262, 0.5, 'triangle', 0.06, 0.9),
@@ -918,6 +918,7 @@ async function endFight() {
   SFX.stinger(res.win ? 'win' : 'lose');
   mus(run.over ? 'title' : 'plan');   // audio.js holds the new track until the stinger has finished
   const lines = [];
+  if (window.FightStats) res.report = window.FightStats.block(st);
   if (res.loss) lines.push(`<p style="text-align:center;color:var(--bad);font-size:18px">−${res.loss} HP <span class="small muted">(${C.alive(st, 1).length} foes left standing)</span></p>`);
   else if (!res.win) lines.push('<p style="text-align:center">The smoke hid your retreat. No HP lost.</p>');
   if (run.over === 2) return gameOver(false, res);
@@ -928,6 +929,7 @@ async function endFight() {
     else lines.push(`<div class="li" style="margin-top:8px"><img class="ic" src="${IMG((d.k === 'charm' ? 'ch_' : 'it_') + d.id)}" alt=""><div class="grow"><div class="t">Found: ${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].n}</div><div class="small">${(d.k === 'charm' ? G.CHARMS : G.ITEMS)[d.id].d}</div></div></div>`);
   }
   if (res.retry) lines.push('<p style="text-align:center;color:var(--gold)">The Glimmerwyrm still stands. Strengthen your team and try again!</p>');
+  if (res.report) lines.push(res.report);
   await ask(res.win ? (kind === 'boss' ? bossName + ' defeated!' : 'Victory!') : 'Defeat', lines.join(''), btn('ok', 'Continue', 'green'));
   // rewards
   for (const p of run.pending || []) {
@@ -1053,6 +1055,7 @@ async function gameOver(won, res) {
   run = null; save();
   await ask(won ? 'The Glimmer Core is yours!' : 'Your journey ends...', `<div class="row center wrap" style="gap:6px">${team}</div>
     <p style="text-align:center">Reached round ${r.round} · ${r.stats.won} wins · ${r.stats.lost} losses · ${r.stats.merges} evolutions</p>
+    ${(res && res.report) || ''}
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
   renderCamp();
 }

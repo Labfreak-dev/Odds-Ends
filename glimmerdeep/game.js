@@ -9,7 +9,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
 
 // ---- save ---------------------------------------------------------------------------
-let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70 };
+let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
 let run = null;
 function load() {
   try {
@@ -17,6 +17,7 @@ function load() {
     if (s && s.meta) Object.assign(meta, s.meta);
     if (s && s.run && s.run.v === 2) run = s.run;
   } catch (e) { /* private mode or bad save: start fresh */ }
+  if (meta.anim == null) meta.anim = 1;          // optional; saves without it stay on the rich fight animation
   meta.unlocked = meta.unlocked || {};
   for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
   // a run saved before the new species existed has no pool keys for them
@@ -113,7 +114,7 @@ function renderTitle() {
   const m = $('#titleMenu');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="row">${btn('dex', 'Glimdex', 'ghost sm')}${btn('how', 'How to Play', 'ghost sm')}${btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost sm')}</div>` +
-    (window.GAUDIO ? `<div class="row" style="margin-top:6px">${btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost sm')}${btn('vold', 'Volume −', 'ghost sm')}${btn('volu', 'Volume +', 'ghost sm')}</div>` : '') +
+    (window.GAUDIO ? `<div class="row" style="margin-top:6px">${btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost sm')}${btn('vold', 'Volume −', 'ghost sm')}${btn('volu', 'Volume +', 'ghost sm')}${btn('anim', meta.anim ? 'Animation: Rich' : 'Animation: Classic', 'ghost sm')}</div>` : `<div class="row" style="margin-top:6px">${btn('anim', meta.anim ? 'Animation: Rich' : 'Animation: Classic', 'ghost sm')}</div>`) +
     `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
@@ -134,6 +135,7 @@ $('#titleMenu').addEventListener('click', async e => {
   else if (v === 'snd') { meta.sound = !meta.sound; save(); renderTitle(); }
   else if (v === 'mus') { GAUDIO.setMusic(!meta.music); renderTitle(); }
   else if (v === 'vold' || v === 'volu') { GAUDIO.setVol(meta.vol + (v === 'volu' ? 10 : -10)); toast('Volume ' + meta.vol + '%'); }
+  else if (v === 'anim') { meta.anim = meta.anim ? 0 : 1; applyAnim(); save(); renderTitle(); }
 });
 document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g && !M.contains(g)) { SFX.click(); if (g.dataset.go === 'title') renderTitle(); } });
 
@@ -165,6 +167,42 @@ async function newRunFlow() {
 const ROLE_N = { striker: 'Striker', caster: 'Caster', tank: 'Guardian', support: 'Support', boss: 'Boss' };
 const KIND_N = { wild: 'Wild', elite: 'Elite', boss: 'BOSS' };
 const unitsEl = $('#units'), benchEl = $('#bench'), boardEl = $('#board'), fxEl = $('#fx');
+// Rich fight motion (glim-anim.js). Classic (?anim=0 or the setting) leaves this null-checked and uses the keyframes below.
+const GA = window.GlimAnim && GlimAnim.enabled !== false ? GlimAnim : null;
+if (GA) {
+  try { if (new URLSearchParams(location.search).get('debug') === '1') GA.debug = true; } catch (e) { /* no location */ }
+  GA.observe(unitsEl);   // bench stays unwrapped: idle there is optional and costs a phone frame
+}
+const animMiss = Object.create(null);
+function noteAnim(u) {
+  if (!GA || !GA.debug || !u || !u.art) return;
+  const m = /cr_([a-z0-9]{4})/.exec(u.art), id = m && m[1];
+  if (id && !GA.SPECIES[id] && !animMiss[id]) { animMiss[id] = 1; console.info('anim: no archetype for', id); }
+}
+// ?anim=0 / ?anim=1 forces classic or rich for this page load (A/B and bug reports). The toggle can still flip it after.
+function readAnimQuery() {
+  try {
+    const q = new URLSearchParams(location.search).get('anim');
+    if (q === '0' || q === '1') meta.anim = q === '1' ? 1 : 0;
+  } catch (e) { /* no location */ }
+}
+function applyAnim() {
+  if (!GA) return;
+  GA.enabled = !!meta.anim;
+  if (GA.enabled) { GA.scan(unitsEl); GA.pauseIdle(false); }
+  else {
+    GA.pauseIdle(true);
+    document.querySelectorAll('.unit.ga').forEach(el => el.classList.remove('ga'));
+  }
+}
+function syncGaSpeed() {
+  if (!GA || !FS) return;
+  GA.speed = FS.speed;
+  const fxOn = FS.speed < 4 && FS.st.units.length <= 14;   // ghosts and dust off at 4x or on a crowded board
+  GA.ghosts = fxOn; GA.dust = fxOn;
+}
+// GlimAnim returns wall-clock ms (already divided by its speed). later() and LAST.dly stay in 1x milliseconds, which is what the hit sounds use.
+function ga1x(ms) { return typeof ms === 'number' && ms > 0 && FS ? ms * (FS.speed || 1) : 0; }
 VFX.init(boardEl);
 let phase = 'plan';
 function starsTxt(n) { return '★'.repeat(n); }
@@ -505,6 +543,7 @@ function startFight() {
   const st = C.create(R.fightOpts(run, seed));
   FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
   if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
+  syncGaSpeed();
   VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
   unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
@@ -531,6 +570,7 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), foeBonus, noHaz: true, mods: {} });
     FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
     if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
+    syncGaSpeed();
     VFX.speed = FS.speed; VFX.clear();
     show('game');
     $('#game').classList.add('fighting', 'wild');
@@ -563,6 +603,7 @@ function cacheEl(u) {
   const el = unitsEl.querySelector(`[data-k="u${u.id}"]`); if (!el) return;
   const bars = el.querySelectorAll('.bar i');
   FS.els[u.id] = { el, hp: bars[0], sh: bars[1], mp: el.querySelector('.bar.mp i'), sts: el.querySelector('.sts'), rig: el.querySelector('.rig'), lastSt: '' };
+  noteAnim(u);
 }
 function renderFightBar() {
   $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
@@ -570,7 +611,7 @@ function renderFightBar() {
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
   SFX.click();
-  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
   else if (b.dataset.v === 'skip') { FS.skip = true; }
 });
 function loop(ts) {
@@ -639,22 +680,34 @@ function rig(id, frames, ms, fill) {
   E.rig.animate(frames, { duration: ms / FS.speed, easing: 'ease-in-out', fill: fill || 'none' });
 }
 function animStrike(a, t, el) {
+  const E = uEl(a.id), T = uEl(t.id);
+  if (GA && GA.enabled && E && T) return GA.strike(E.el, T.el, { el, rng: 0 });
   const dx = Math.sign(t.x - a.x), dy = Math.sign(t.y - a.y);
   rig(a.id, [{ transform: 'none' }, { transform: `translate(${-8 * dx}%, ${-4 * dy}%) scale(1.08,.88)`, offset: 0.3 },
     { transform: `translate(${34 * dx}%, ${22 * dy - 8}%) rotate(${12 * dx}deg) scale(1.12,.92)`, offset: 0.55 }, { transform: 'none' }], 380);
 }
 function animShoot(a, t, el) {
+  const E = uEl(a.id), T = uEl(t.id);
+  if (GA && GA.enabled && E && T) return GA.shoot(E.el, T.el, { el });
   const dx = Math.sign(t.x - a.x) || 1, glow = `drop-shadow(0 0 10px ${ELC[el] || '#fff'})`;
   rig(a.id, [{ transform: 'none', filter: 'none' }, { transform: `translateX(${-8 * dx}%) rotate(${-8 * dx}deg) scale(.96,1.06)`, filter: glow, offset: 0.4 },
     { transform: `translateX(${8 * dx}%) scale(1.08,.94)`, filter: glow, offset: 0.6 }, { transform: 'none', filter: 'none' }], 360);
 }
 function animCast(u, el, ult) {
+  const E = uEl(u.id);
+  if (GA && GA.enabled && E) return GA.cast(E.el, { el, ult: !!ult });
   const glow = `drop-shadow(0 0 ${ult ? 18 : 12}px ${ELC[el] || '#fff'}) drop-shadow(0 0 4px #fff)`;
   rig(u.id, [{ transform: 'none', filter: 'none' }, { transform: 'translateY(4%) scale(1.12,.84)', offset: 0.2 },
     { transform: `translateY(-22%) scale(${ult ? 1.3 : 1.12})`, filter: glow, offset: 0.55 }, { transform: 'translateY(2%) scale(1.08,.92)', filter: glow, offset: 0.8 },
     { transform: 'none', filter: 'none' }], ult ? 700 : 520);
 }
 function animHit(t, a, crit, dot) {
+  const T = uEl(t.id);
+  if (GA && GA.enabled && T) {
+    GA.hit(T.el, { from: a && uEl(a.id) && uEl(a.id).el, crit: !!crit, dot });
+    if (crit) boardEl.animate([{ transform: 'none' }, { transform: 'translate(-5px,3px)' }, { transform: 'translate(4px,-3px)' }, { transform: 'none' }], { duration: 260 });
+    return;
+  }
   const d = a ? Math.sign(t.x - a.x) || (t.side ? 1 : -1) : 0;
   const flash = dot === 'burn' ? 'brightness(1.5) sepia(1) saturate(5) hue-rotate(-25deg)' : dot === 'poison' ? 'brightness(1.3) sepia(1) saturate(4) hue-rotate(230deg)'
     : dot ? 'brightness(1.6)' : 'brightness(3) saturate(0)';
@@ -668,36 +721,60 @@ function handle(ev) {
   const st = FS.st, F = id => C.byId(st, id);
   const LAST = FS.lastSk || (FS.lastSk = {});   // per attacker: element + when its hit lands on screen (ms at 1x), so the impact sound lines up with the fx impact
   for (const e of ev) {
-    if (e.k === 'move') { const u = F(e.u), E = uEl(e.u); if (E) { face(u, e.x); E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; } }
+    if (e.k === 'move') {
+      const u = F(e.u), E = uEl(e.u);
+      if (E) { face(u, e.x); E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; if (GA && GA.enabled && FS.speed < 4 && st.units.length <= 14) GA.walk(E.el); }
+    }
     else if (e.k === 'blink') { const E = uEl(e.u); if (E) { E.el.style.transition = 'none'; E.el.style.left = e.x * 12.5 + '%'; E.el.style.top = e.y * 20 + '%'; void E.el.offsetWidth; E.el.style.transition = ''; burst(F(e.u), 'shade', true); } }
     else if (e.k === 'atk') {
       const a = F(e.a), t = F(e.t); if (!a || !t) continue;
       face(a, t.x);
-      LAST[e.a] = { el: e.el, dly: e.rng ? 300 : 170 };                 // shoot(): 70 ms + 230 ms flight; slash(): 170 ms
-      if (e.rng) { animShoot(a, t, e.el); later(70, () => orb(a, t, e.el, 230 / FS.speed)); }
-      else { animStrike(a, t, e.el); const A = cpos(a), T = cpos(t); later(170, () => VFX.slash(A, T, e.el)); }
+      if (e.rng) {
+        const leave = ga1x(animShoot(a, t, e.el));                         // module: ms until the projectile leaves; keep 70 when it is already close
+        const launch = leave && Math.abs(leave - 70) > 120 ? leave : 70;
+        LAST[e.a] = { el: e.el, dly: launch + 230 };                       // flight stays 230 ms; the hit sound uses this
+        later(launch, () => orb(a, t, e.el, 230 / FS.speed));
+      } else {
+        const dly = ga1x(animStrike(a, t, e.el)) || 170;                   // slash lands on the strike's contact frame
+        LAST[e.a] = { el: e.el, dly };
+        const A = cpos(a), T = cpos(t); later(dly, () => VFX.slash(A, T, e.el));
+      }
     }
     else if (e.k === 'cast') {
       const a = F(e.a); if (!a) continue;
-      animCast(a, e.el, e.ult);
-      LAST[e.a] = { el: e.el, ult: e.ult, dly: e.ult ? 260 : 440 };      // ult beam impact at 260 ms; bolt/orb: 200 ms + 240 ms flight
+      const peak = ga1x(animCast(a, e.el, e.ult));
+      let boltAt = 200, ultAt = 260;                                       // pose peak vs bolt launch / ult beam; shift only past 80 ms
+      if (peak && e.ult && Math.abs(peak - ultAt) > 80) ultAt = peak;
+      else if (peak && !e.ult && Math.abs(peak - boltAt) > 80) boltAt = peak;
+      LAST[e.a] = { el: e.el, ult: e.ult, dly: e.ult ? ultAt : boltAt + 240 };
       VFX.cast(cpos(a), e.el, e.ult);
       if (e.ult) { boardEl.classList.add('ult'); banner(e.n, e.el); SFX.el('ult', e.el); setTimeout(() => boardEl.classList.remove('ult'), 650 / FS.speed); hitStop(0.12); }
       else { popAt(a, e.n, 'cast'); SFX.el('cast', e.el); }
       const tgs = e.tg.map(F).filter(Boolean), foes = tgs.filter(t => t.side !== a.side);
       // allies get a link beam; foes get bolts (ult: beams), area spells finish on a ground shockwave
-      for (const t of tgs) if (t.side === a.side && t !== a) { const A = cpos(a), T = cpos(t); later(220, () => { VFX.beam(A, T, e.el, 0.1, 0.28); VFX.impact(T, e.el, 0.6); }); }
+      const linkAt = 220 + (e.ult ? ultAt - 260 : 0), aoeAt = 240 + (e.ult ? ultAt - 260 : boltAt - 200);
+      for (const t of tgs) if (t.side === a.side && t !== a) { const A = cpos(a), T = cpos(t); later(linkAt, () => { VFX.beam(A, T, e.el, 0.1, 0.28); VFX.impact(T, e.el, 0.6); }); }
       if (e.aoe && foes.length > 1) {
         const c = { x: foes.reduce((s, t) => s + cpos(t).x, 0) / foes.length, y: foes.reduce((s, t) => s + cpos(t).y, 0) / foes.length };
-        later(240, () => orb(a, { x: (c.x / 12.5) - 0.5, y: c.y / 20 - 0.45 }, e.el, 220 / FS.speed, { big: 1, power: 1.4 }));
-        later(240 + 220, () => { VFX.shockwave(c, e.el, e.ult ? 1.5 : 1); for (const t of foes) VFX.impact(cpos(t), e.el, 0.8); });
+        later(aoeAt, () => orb(a, { x: (c.x / 12.5) - 0.5, y: c.y / 20 - 0.45 }, e.el, 220 / FS.speed, { big: 1, power: 1.4 }));
+        later(aoeAt + 220, () => { VFX.shockwave(c, e.el, e.ult ? 1.5 : 1); for (const t of foes) VFX.impact(cpos(t), e.el, 0.8); });
       } else for (const t of foes) {
         const A = cpos(a), T = cpos(t);
-        if (e.ult) later(260, () => { VFX.beam(A, T, e.el, 0.3, 0.42); VFX.impact(T, e.el, 2, true); });
-        else later(200, () => orb(a, t, e.el, 240 / FS.speed, { big: 1, power: 1.5 }));
+        if (e.ult) later(ultAt, () => { VFX.beam(A, T, e.el, 0.3, 0.42); VFX.impact(T, e.el, 2, true); });
+        else later(boltAt, () => orb(a, t, e.el, 240 / FS.speed, { big: 1, power: 1.5 }));
       }
     }
-    else if (e.k === 'aim') { const a = F(e.a), t = F(e.t); if (a && t) { LAST[e.a] = { el: e.el, dly: 200 }; SFX.el('cast', e.el, { v: 0.6 }); animShoot(a, t, e.el); orb(a, t, e.el, 200 / FS.speed, { big: 1 }); } }
+    else if (e.k === 'aim') {
+      const a = F(e.a), t = F(e.t);
+      if (a && t) {
+        const leave = ga1x(animShoot(a, t, e.el));
+        const launch = leave && Math.abs(leave) > 120 ? leave : 0;
+        LAST[e.a] = { el: e.el, dly: launch + 200 };
+        SFX.el('cast', e.el, { v: 0.6 });
+        if (launch) later(launch, () => orb(a, t, e.el, 200 / FS.speed, { big: 1 }));
+        else orb(a, t, e.el, 200 / FS.speed, { big: 1 });
+      }
+    }
     else if (e.k === 'zap') { const a = F(e.a), t = F(e.t); if (a && t) orb(a, t, 'volt', 150 / FS.speed); }
     else if (e.k === 'perk') perkFx(e, F(e.a), F(e.t));
     else if (e.k === 'dmg') {
@@ -723,11 +800,20 @@ function handle(ev) {
       const u = F(e.t), E = uEl(e.t); if (!E) continue;
       SFX.ko();
       VFX.ko(cpos(u), u.el);
-      const d = u.side ? 1 : -1;
-      E.rig.animate([{ transform: 'none', filter: 'none' }, { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], { duration: 450, fill: 'forwards' });
+      if (GA && GA.enabled) GA.faint(E.el);
+      else {
+        const d = u.side ? 1 : -1;
+        E.rig.animate([{ transform: 'none', filter: 'none' }, { transform: `translateX(${10 * d}%) translateY(12%) rotate(${75 * d}deg) scale(.9)`, filter: 'grayscale(1) brightness(.6)' }], { duration: 450, fill: 'forwards' });
+      }
       setTimeout(() => { if (!u.alive) E.el.classList.add('dead'); }, 380);
     }
-    else if (e.k === 'revive') { const E = uEl(e.t); if (E) { E.el.classList.remove('dead'); E.rig.getAnimations().forEach(a => a.cancel()); popAt(F(e.t), e.name, 'react'); } }
+    else if (e.k === 'revive') {
+      const E = uEl(e.t); if (E) {
+        E.el.classList.remove('dead');
+        if (GA && GA.enabled) GA.revive(E.el); else E.rig.getAnimations().forEach(a => a.cancel());
+        popAt(F(e.t), e.name, 'react');
+      }
+    }
     else if (e.k === 'summon') {
       const u = F(e.u); if (!u) continue;
       unitsEl.insertAdjacentHTML('beforeend', unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, art: u.art, hp: u.hp, maxHp: u.maxHp }));
@@ -763,6 +849,7 @@ async function endFight() {
   const st = FS.st;
   const kind = R.roundKind(run.round), round = run.round, bossName = kind === 'boss' ? G.BOSSES[R.bossOf(run)].name : '';
   const res = R.endRound(run, st);
+  if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
   stopFight();
   phase = 'busy';
   save();
@@ -858,11 +945,12 @@ async function bagScreen() {
   renderGame();
 }
 async function menuScreen() {
-  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + (window.GAUDIO ? btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost') + btn('vold', 'Volume −', 'ghost sm') + btn('volu', 'Volume +', 'ghost sm') : '') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'));
+  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + (window.GAUDIO ? btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost') + btn('vold', 'Volume −', 'ghost sm') + btn('volu', 'Volume +', 'ghost sm') : '') + btn('anim', meta.anim ? 'Animation: Rich' : 'Animation: Classic', 'ghost') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'));
   if (v === 'how') return showHow();
   if (v === 'snd') { meta.sound = !meta.sound; save(); return menuScreen(); }
   if (v === 'mus') { GAUDIO.setMusic(!meta.music); return menuScreen(); }
   if (v === 'vold' || v === 'volu') { GAUDIO.setVol(meta.vol + (v === 'volu' ? 10 : -10)); toast('Volume ' + meta.vol + '%'); return menuScreen(); }
+  if (v === 'anim') { meta.anim = meta.anim ? 0 : 1; applyAnim(); save(); return menuScreen(); }
   if (v === 'title') { save(); renderTitle(); }
   if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') { SFX.stinger('lose'); gameOver(false); }
 }
@@ -960,6 +1048,8 @@ async function showHow() {
 
 // ---- boot --------------------------------------------------------------------------------------
 load();
+readAnimQuery();
+applyAnim();
 renderTitle();
 ['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,

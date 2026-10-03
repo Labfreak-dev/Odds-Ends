@@ -461,7 +461,7 @@ function draw() {
   // creatures and the tamer, back to front
   const ents = V.mons.map(m => ({ y: m.y, f: () => sprite(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
   for (const [x, y, rr] of rockList(room())) ents.push({ y, f: () => drawRock(ctx, ox, oy, S, x, y, rr) });
-  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; sprite(ctx, img('wd_tamer'), ox + V.px * S, oy + V.py * S, 1.15 * S, V.fx, Math.abs(Math.sin(V.walk)) * 0.07, false); ctx.globalAlpha = 1; } });
+  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; sprite(ctx, img('wd_tamer'), ox + V.px * S, oy + V.py * S, 1.3 * S, V.fx, Math.abs(Math.sin(V.walk)) * 0.07, false); ctx.globalAlpha = 1; } });
   ents.sort((p, q) => p.y - q.y).forEach(e => e.f());
   for (const p of V.parts) {
     ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
@@ -490,7 +490,7 @@ function drawRoom(a, ox, oy, S, live) {
     const [x, y, rot] = DOOR[d], im = img(st === 'open' ? 'wd_door' : st === 'lock' ? 'wd_lock' : 'wd_crack');
     if (!ready(im)) continue;
     ctx.save(); ctx.translate(ox + x * S, oy + y * S); ctx.rotate(rot);
-    const w = (st === 'crack' ? 1.5 : 1.9) * S;
+    const w = 1.9 * S;
     ctx.drawImage(im, -w / 2, -w * 0.62, w, w);
     ctx.restore();
   }

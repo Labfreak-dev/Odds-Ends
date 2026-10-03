@@ -362,6 +362,15 @@ img { display: block; -webkit-user-drag: none; }
 .wrelics { flex-basis: 100%; display: flex; gap: 4px; flex-wrap: wrap; padding-top: 2px; }
 .wrel { width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,.08); border: 0; padding: 2px; cursor: pointer; }
 .wrel img { width: 100%; height: 100%; object-fit: contain; }
+.trhead { display: flex; gap: 10px; align-items: center; } .trhead > img { width: 96px; height: 96px; object-fit: contain; flex: none; }
+.trhead p { margin: 2px 0; } .ri { width: 18px; height: 18px; vertical-align: middle; margin: 0 2px; }
+.trteam { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 6px 0; }
+.trteam > div { width: 62px; text-align: center; background: rgba(255,90,110,.12); border-radius: 10px; padding: 2px; position: relative; font-size: 10px; color: #ffd65a; }
+.trteam img:first-child { width: 100%; aspect-ratio: 1; object-fit: contain; } .trteam .badge { width: 16px; height: 16px; position: absolute; top: 2px; right: 2px; }
+.wskins { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.wskin { width: 78px; text-align: center; background: rgba(20,14,48,.75); border-radius: 12px; padding: 4px; cursor: pointer; font: 700 11px Fredoka, sans-serif; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08); }
+.wskin img { width: 100%; aspect-ratio: 1; object-fit: contain; } .wskin.on { box-shadow: inset 0 0 0 3px #84f08f; } .wskin.locked img { filter: brightness(0) opacity(.5); }
+.dex.trcards { margin-top: 4px; }
 .camph { max-width: 640px; margin: 14px auto 6px; font: 700 18px Fredoka, Nunito, sans-serif; color: #ffd65a; }
 .wfounds { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .wfound { width: 76px; text-align: center; font: 700 11px Fredoka, sans-serif; } .wfound img { width: 100%; }
@@ -416,15 +425,15 @@ img { display: block; -webkit-user-drag: none; }
   <div class="modal" id="modal"><div class="panel box" id="modalBox"></div></div>
   <div class="toast" id="toast"></div>
 </div>
-<script>window.GLIM_AUDIO_V = '1';</script>
-<script src="species2.js?v=1"></script>
-<script src="data.js?v=1"></script>
-<script src="chess.js?v=1"></script>
-<script src="crun.js?v=1"></script>
-<script src="fx.js?v=1"></script>
-<script src="audio.js?v=1"></script>
-<script src="game.js?v=1"></script>
-<script src="wgen.js?v=1"></script>
-<script src="wilds.js?v=1"></script>
+<script>window.GLIM_AUDIO_V = '2';</script>
+<script src="species2.js?v=2"></script>
+<script src="data.js?v=2"></script>
+<script src="chess.js?v=2"></script>
+<script src="crun.js?v=2"></script>
+<script src="fx.js?v=2"></script>
+<script src="audio.js?v=2"></script>
+<script src="game.js?v=2"></script>
+<script src="wgen.js?v=2"></script>
+<script src="wilds.js?v=2"></script>
 </body>
 </html>

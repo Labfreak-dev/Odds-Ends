@@ -171,7 +171,7 @@ function create(o) {
   const st = {
     units: [], t: 0, biome: o.biome || 'verdant', haz: o.noHaz ? null : G.BIOMES[o.biome || 'verdant'].haz, over: 0, ev: [],
     rnd: mkRng(o.seed || (Math.random() * 1e9)), depth: o.depth || 0, litUntil: 0,
-    bonus: [teamBonus(o.relics, o.perks, o.camp), {}], phoenix: [false, false], nextSec: 1, goldBonus: 0,
+    bonus: [teamBonus(o.relics, o.perks, o.camp), Object.assign({}, o.foeBonus || {})], phoenix: [false, false], nextSec: 1, goldBonus: 0,
   };
   st.traits = [traitTiers(o.board.map(p => p.inst)), traitTiers(o.enemies.map(p => p.inst))];
   applyTraits(st.bonus[0], st.traits[0]);

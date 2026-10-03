@@ -298,6 +298,25 @@ for k, d in [
  ('wd_spikes', 'a square stone floor trap plate seen from directly above, a grid of sharp silver metal spikes poking up, rusty bolts at the corners'),
 ]: A[k] = ('icon', d)
 
+# ---- Wilds trainers (g14): image-to-image from the tamer so they share its look --------------
+STYLED = ('Use the reference image ONLY as a guide for the art style, rendering, proportions and lighting: a chibi 3D toy '
+          'character with a big round head. Draw a DIFFERENT character: {d}. Full body standing, three-quarter view facing to the '
+          'LEFT, friendly but confident, holding nothing in their hands, no weapons. ' + KEYBG + '. No pink or magenta on the character.')
+for k, d in [
+ ('tr_hiker', 'a burly bearded mountain hiker trainer with a big hiking backpack, rolled-up sleeves, sturdy boots and a brown bucket hat'),
+ ('tr_firebrand', 'a fiery young trainer with spiky red-orange hair, a crimson jacket with flame trim, fingerless gloves and a confident grin'),
+ ('tr_tidecaller', 'a calm sea trainer girl with long wavy blue hair, a flowing aqua and white sailor-style outfit and seashell earrings'),
+ ('tr_bugcatcher', 'a small excited bug catcher kid in a straw sun hat, green shorts, a striped shirt and a little satchel'),
+ ('tr_mystic', 'a mysterious mystic trainer in a deep violet hooded robe with silver star embroidery and a glowing pendant'),
+ ('tr_ace', 'a sharp ace trainer in a sleek navy and gold uniform jacket with a short cape, white gloves and neat hair'),
+ ('tr_rival', 'a cocky rival trainer the same age as the hero, messy black hair with a white streak, a dark purple jacket with a lightning stripe, a scarf'),
+]: A[k] = ('styled', d)
+for k, d in [
+ ('wd_token', 'a shiny round bronze and gold trainer token coin stamped with a star and a paw print'),
+ ('wd_badge', 'a gleaming lightning-shaped rival badge made of purple enamel and gold'),
+ ('wd_lure', 'a small brass incense lure burner giving off colourful glowing smoke'),
+]: A[k] = ('icon', d)
+
 def prompt(spec):
     t = spec[0]
     if t == 'creature': return CREATURE.format(d=spec[1], pose=spec[2])
@@ -310,6 +329,7 @@ def prompt(spec):
     if t == 'icon': return ICON.format(d=spec[1])
     if t == 'bg': return BG.format(d=spec[1])
     if t == 'room': return ROOM.format(d=spec[1])
+    if t == 'styled': return STYLED.format(d=spec[1])
 
 CAND = 0
 def make(key, cand=None):
@@ -318,7 +338,10 @@ def make(key, cand=None):
     os.makedirs(os.path.dirname(out), exist_ok=True)
     if os.path.exists(out): return key, 'have'
     p = prompt(spec)
-    if spec[0] == 'evolve':
+    if spec[0] == 'styled':
+        kind = 'v1/image-to-image'
+        body = {'ai_model': 'nano-banana', 'reference_image_urls': [meshy.data_uri(os.path.join(SRC, '_tamer_ref.png'))], 'prompt': p, 'aspect_ratio': '1:1'}
+    elif spec[0] == 'evolve':
         ref = os.path.join(SRC, spec[3] + '.webp')
         if not os.path.exists(ref): return key, 'no ref'
         kind = 'v1/image-to-image'

@@ -193,8 +193,35 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   - Relic Hunter: a starting relic.
   - Treasure Sense: richer chests, ×2.
   - Deep Springs: more healing on the stairs, ×2.
+- **Trainers** (g14; `TRAINERS` in `data.js`, `makeTrainer`/`genDen` in `wgen.js`, the trainer section in `wilds.js`):
+  - **Where:** one trainer room per floor, a floor captain on floors 2 and 4 guarding the treasure room's chest, and the rival Jax once an expedition (floor 2-4).
+  - **Archetypes**, each with its own tactic (a bonus for their side, `foeBonus` through `wildBattle`/`chess.js`):
+    - Hiker: shields;
+    - Firebrand: burns;
+    - Tidecaller: opening Chill;
+    - Bug Catcher: a swarm of small creatures, faster;
+    - Mystic: starts with half mana;
+    - Ace: all ★2 and two relics.
+    - Every trainer also holds one or two battle relics.
+  - **Spotting:** a trainer stands on a spot facing one way, and some turn every 3 s. The view cone is drawn on the floor; it widens with distance and is blocked by rocks and pits.
+    - Spotted: a "!", the doors seal (`doorOf` returns `sealed`), and you freeze while they walk over. They path around obstacles, and after 2.5 s the battle starts anyway.
+    - Walking up unseen lets you challenge them, or decline.
+  - **Scouting:** see their team, tactic and relics, then pick a lead (front row, +10% HP/ATK). ▲ marks your creatures strong against their elements.
+  - **Rewards:**
+    - Trainer Tokens: 2, captain 3, rival 4, the Den 8;
+    - shards and +2 squad XP;
+    - a trainer card on the first win per archetype;
+    - captains offer 3 relics from the rare pool (`rare: 1` in `WILD_RELICS`).
+    - Trainers' creatures are never unlocked.
+  - **The rival:** Jax builds his team from the species you have unlocked, best tiers first, and grows 6% stronger per Rival Badge. Each win gives a badge (up to 3). With 3 badges the stairs after floor 5 offer the **Rival's Den** (floor 6: entrance, shrine, then Jax with 7 creatures, ★2-★3). Beating him gives +150 shards and the Champion outfit.
+  - **Trainer's Post** (Camp and the Wilds prep screen) spends tokens on:
+    - a lure (4): pick one when you set out, and its element shows up 4× as often;
+    - Wilds starting stars, ★2 (8) or ★3 (20), per species (`meta.wstar`);
+    - shiny sense (10): 4× wild shiny odds for one species (`meta.shinyBoost`).
+  - **Tamer outfits** (`SKINS`): Ember Scout, Frost Ranger and Storm Rival (1/2/3 Rival Badges), Champion (the Den) and Wanderer (all six cards). The recolour shifts the art's teal jacket range at runtime (`skinImg`), so it follows every tamer frame without new files.
+  - **Glimdex:** trainer cards and outfits are listed at the bottom.
 - Deeper floors roll higher tiers: Tier 5 shows up from floor 4 (and in floor 3 vaults).
-- `wsim.js` fits the difficulty (since g13):
+- `wsim.js` fits the difficulty (since g14 it also fights trainers and the rival; captain fights are measured and then undone, because they are optional):
   - a first expedition reaches floor 3 about 90% of the time, floor 5 about 48%, clears all five about 8%, and unlocks about 11;
   - collecting all 72 takes about 14 expeditions;
   - with every Wilds upgrade (`WUP=max`), 91% of expeditions clear all five floors.
@@ -381,3 +408,13 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
   (`img/wd_tamer_*.webp`; `wd_tamer.webp` is the same picture as idle 1). Doorways are 60
   per-wall gates in `img/` (12 grey, 48 biome skins). Event props, spikes, pits, rocks and
   stairs draw as before.
+- **g14**: **trainer battles** (see Trainers above).
+  - Floors are one room bigger again (`8 + floor`, up to 14) to fit the trainer room.
+  - `TUNE` gains `trSize`/`trStar2`/`trScale`. Trainers win 97/99/99/83/62% by floor: a little harder than wild rooms, easier than the deep lairs. Captains win 77/47%. Expedition reach and unlocks per first expedition are unchanged.
+  - Trainer rooms cost wild rooms, which made the last few species slow to find (21 expeditions to collect all 72). Locked species now weigh `3 + 9 × (fraction unlocked)²`, so the end of a collection speeds up: about 11 expeditions.
+  - Meshy, about 30 credits:
+    - 7 trainer sprites, image-to-image from the current tamer frame (`art-src/_tamer_ref.png`) so they share its look;
+    - token, badge and lure icons.
+    - Only these keys were packed. The balance is now about 790 credits.
+  - Script `?v=` and `GLIM_AUDIO_V` are bumped to 2.
+  - Glimdex's count now reads out of 216 forms (it said /36).

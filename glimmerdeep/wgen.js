@@ -18,16 +18,21 @@ function weighted(r, list, w) {
   return list[list.length - 1];
 }
 // a species for this floor: biome elements first, locked species far more likely
+const LURE = { el: null };   // set per floor by genFloor
 function species(r, els, tmin, tmax, used, unlocked) {
   const all = Object.keys(G.SP).filter(k => G.TIER[k] >= tmin && G.TIER[k] <= tmax);
-  let pool = all.filter(k => els.includes(G.SP[k].el));
+  let pool = all.filter(k => els.includes(G.SP[k].el) || k === LURE.el || G.SP[k].el === LURE.el);
   if (pool.length < 3) pool = all;
-  return weighted(r, pool, k => (unlocked(k) ? 1 : 3) * (used[k] ? 0.25 : 1));
+  // a lure (Trainer's Post) makes its element four times as likely, even outside the biome
+  // locked species get likelier as the collection fills, so the last few are not a slog
+  const frac = Object.keys(G.SP).filter(unlocked).length / Object.keys(G.SP).length, lockW = 3 + 9 * frac * frac;
+  return weighted(r, pool, k => (unlocked(k) ? 1 : lockW) * (used[k] ? 0.25 : 1) * (G.SP[k].el === LURE.el ? 4 : 1));
 }
 // difficulty knobs, fitted with wsim.js (index = floor - 1)
 const TUNE = {
   scale: [0.9, 1.4, 1.65, 1.8, 1.95],          // wild stat multiplier per floor
   wildEsc: [0, 2, 2, 2, 3], wild2: [0, 0.2, 0.4, 0.6, 0.8], wildEscStar: [1, 1, 1, 2, 2],
+  trSize: [3, 3, 4, 4, 5], trStar2: [0.15, 0.3, 0.45, 0.6, 0.75], trScale: [0.75, 1.0, 1.3, 1.35, 1.5],
   lairStar: [2, 2, 2, 3, 3], lairEsc: [2, 2, 3, 3, 4], lairEscStar: [1, 1, 1, 2, 2], lairScale: 1.05,
 };
 function makeMon(r, floor, els, kind, used, unlocked) {
@@ -99,10 +104,63 @@ function connected(g) {
   }
   return [[6, 0], [6, 6], [0, 3], [12, 3]].every(([c, y]) => seen[c + ',' + y]);
 }
+// ---- trainers (g14) ----------------------------------------------------------------------------
+const ARCH = ['hiker', 'firebrand', 'tidecaller', 'bugcatcher', 'mystic', 'ace'];
+// where a trainer stands and which way it looks (a second facing makes it turn every few seconds)
+const TR_SPOTS = [[8, 2.5, 's', 'e'], [3.5, 4.5, 'e', 's'], [12.5, 4.5, 'w', 'n'], [8, 6.5, 'n', 'w']];
+function makeTrainer(r, floor, arch, o) {
+  o = o || {};
+  const T = G.TRAINERS[arch], f = Math.min(4, floor - 1), K = TUNE;
+  const tmax = Math.max(1, TMAX[f] + (T.tmaxOff || 0)), tmin = Math.max(1, TMIN[f] - 1);
+  const all = Object.keys(G.SP);
+  const fits = (k, el, role) => G.TIER[k] >= tmin && G.TIER[k] <= tmax && (!el || !T.els || T.els.includes(G.SP[k].el)) && (!role || !T.roles || T.roles.includes(G.SP[k].role));
+  let pool;
+  if (o.pool && o.pool.length) {   // the rival: built from the creatures you have unlocked, best tiers first
+    const best = o.pool.filter(k => G.TIER[k] <= tmax + 1);
+    pool = (best.length >= 3 ? best : o.pool).slice().sort((a, b) => G.TIER[b] - G.TIER[a]).slice(0, 10);
+  } else {
+    pool = all.filter(k => fits(k, 1, 1));
+    if (pool.length < 3) pool = all.filter(k => fits(k, 1, 0));
+    if (pool.length < 3) pool = all.filter(k => fits(k, 0, 0));
+  }
+  const n = (T.size ? T.size[f] : K.trSize[f]) + (o.extra || 0), bag = pool.slice().sort(() => r() - 0.5), team = [];
+  for (let i = 0; i < n; i++) {
+    let star = T.size ? (floor >= 4 && r() < 0.4 ? 2 : 1) : r() < K.trStar2[f] ? 2 : 1;
+    if (T.allStar2 || o.captain || o.den) star = Math.max(2, star);
+    if ((T.allStar2 || o.captain || o.rival) && floor >= 4 && r() < 0.3) star = 3;
+    if (o.den && r() < 0.5) star = 3;
+    team.push({ sp: bag[i % bag.length], star });
+  }
+  const battle = Object.keys(G.WILD_RELICS).filter(k => G.WILD_RELICS[k].b).sort(() => r() - 0.5);
+  const relics = battle.slice(0, T.relics || (o.captain || o.den ? 2 : 1));
+  const scale = K.trScale[f] * (o.captain ? 1.02 : 1) * (o.rival ? 1 + 0.06 * (o.level || 0) : 1) * (o.den ? 1.12 : 1);
+  return { arch, team, relics, scale: +scale.toFixed(3), beaten: false, captain: !!o.captain, rival: !!o.rival, den: !!o.den };
+}
+// stand the trainer on one of the spots, clearing its tile so it never sits in a pit
+function standTrainer(r, a) {
+  const [x, y, face, turn] = pick(r, TR_SPOTS);
+  Object.assign(a.tr, { x, y, face, turn: r() < 0.5 ? turn : null });
+  if (!a.tiles) return;
+  const g = a.tiles.split('|').map(row => row.split('')), c = Math.floor(x - 1.5), yy = Math.floor(y - 1);
+  if (g[yy] && g[yy][c]) g[yy][c] = '.';
+  a.tiles = g.map(row => row.join('')).join('|');
+}
+// floor 6, the Rival's Den: a short hall, a shrine, then Jax at full strength
+function genDen(seed, o) {
+  const r = rng(seed), c = Math.floor(GRID / 2), rooms = {};
+  const mk = (x, y, type, extra) => (rooms[key(x, y)] = Object.assign({ x, y, type, visited: false, seen: true, mon: null, item: null, used: false, rocks: [], tiles: null }, extra));
+  mk(c, c, 'start', { item: 'tonic', visited: true });
+  mk(c, c - 1, 'shrine', { item: 'shrine', tiles: layout(r, 3, 'shrine') });
+  const den = mk(c, c - 2, 'trainer', { tiles: layout(r, 3, 'lair') });
+  den.tr = makeTrainer(r, 5, 'rival', { rival: 1, den: 1, pool: o.pool, level: 3, extra: 2 });
+  Object.assign(den.tr, { x: 8, y: 2.5, face: 's', turn: null });
+  return { rooms, cur: key(c, c), freeKey: false };
+}
 function genFloor(floor, biome, seed, unlocked, o) {
   o = o || {};
+  LURE.el = o.lure || null;
   const r = rng(seed);
-  const n = Math.min(13, 7 + floor);   // room for the specials, two events and the wild rooms
+  const n = Math.min(14, 8 + floor);   // room for the specials, events and a trainer   // room for the specials, two events and the wild rooms
   const rooms = {};
   const nb = (x, y) => Object.keys(DIRS).filter(d => rooms[key(x + DIRS[d][0], y + DIRS[d][1])]);
   const add = (x, y, type) => (rooms[key(x, y)] = { x, y, type, visited: false, seen: false, mon: null, item: null, used: false, rocks: [], tiles: null });
@@ -144,6 +202,13 @@ function genFloor(floor, biome, seed, unlocked, o) {
     Object.assign(a, { type: 'event', event: evs[i], item: 'event', mon: null });
     if (a.event === 'challenge') { a.cmon = makeMon(r, floor, els, 'lair', used, unlocked); a.cmon.scale = +(a.cmon.scale * 0.95).toFixed(3); }
   }
+  // a trainer on every floor, floor captains (2 and 4) guarding the treasure, and the rival once an expedition
+  const plain = () => normal.filter(a => a.type === 'normal' && !a.item);
+  const trRoom = () => { const q = plain(); const t = q.find(a => !a.mon) || q[q.length - 1] || normal.find(a => a.type === 'normal' && a.item === 'berry'); if (t) t.item = null; return t; };
+  const archs = ARCH.slice().sort(() => r() - 0.5);
+  { const a = trRoom(); if (a) Object.assign(a, { type: 'trainer', mon: null, tr: makeTrainer(r, floor, archs[0]) }); }
+  if (o.rival) { const a = trRoom(); if (a) Object.assign(a, { type: 'trainer', mon: null, tr: makeTrainer(r, floor, 'rival', { rival: 1, pool: o.rival.pool, level: o.rival.level, extra: 1 }) }); }
+  if ((floor === 2 || floor === 4) && dead[2] && dead[2].type === 'treasure') dead[2].tr = makeTrainer(r, floor, archs[1], { captain: 1 });
   // every floor has at least one way to heal: a shrine, and a Glim Tonic to carry
   if (!Object.values(rooms).some(a => a.item === 'shrine')) {
     const all = Object.values(rooms), plain = normal.filter(a => a.type === 'normal');
@@ -159,8 +224,9 @@ function genFloor(floor, biome, seed, unlocked, o) {
     if (!spots.length) spots = normal.filter(a => a.type === 'normal' && a.item === 'berry');
     if (spots.length) pick(r, spots).item = 'key'; else freeKey = true;
   }
-  for (const a of Object.values(rooms)) if (a.mon) a.mon.shiny = r() < (o.shiny || 0);
+  for (const a of Object.values(rooms)) if (a.mon) a.mon.shiny = r() < (o.shiny || 0) * ((o.shinyBoost || {})[a.mon.sp] ? 4 : 1);
   for (const a of Object.values(rooms)) if (a.type !== 'start') a.tiles = layout(r, floor, a.type === 'lair' ? 'lair' : a.type);
+  for (const a of Object.values(rooms)) if (a.tr) standTrainer(r, a);
   rooms[key(c, c)].visited = true;
   return { rooms, cur: key(c, c), freeKey };
 }
@@ -177,5 +243,5 @@ function placeSide(insts, side) {
   }
   return out;
 }
-root.GW = { EVENTS, makeMon, TC, TR, tileXY, tileAt, solid, layout, TUNE, FLOORS, SQUAD_START, SQUAD_MAX, GRID, XP_STAR, DIRS, rng, pick, key, genFloor, placeSide };
+root.GW = { ARCH, makeTrainer, genDen, EVENTS, makeMon, TC, TR, tileXY, tileAt, solid, layout, TUNE, FLOORS, SQUAD_START, SQUAD_MAX, GRID, XP_STAR, DIRS, rng, pick, key, genFloor, placeSide };
 })(typeof window !== 'undefined' ? window : globalThis);

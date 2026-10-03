@@ -135,7 +135,7 @@ def wilds(page):
     page.wait_for_selector('#modal.on', timeout=60000)
     title = page.locator('#modalBox h2').inner_text()
     shot(page, '12-wilds-result')
-    won = title in ('Creature unlocked!', 'Victory!', 'Shiny caught!')
+    won = title in ('Creature unlocked!', 'Victory!', 'Shiny caught!', 'Trainer defeated!')
     after = page.evaluate("Object.keys(GLIM.meta.unlocked).length")
     check(after >= before + (1 if title == 'Creature unlocked!' else 0), f'Wilds: battle resolved ({title}), unlocks {before} -> {after}')
     page.locator('#modalBox [data-v]').first.click(); page.wait_for_timeout(400)

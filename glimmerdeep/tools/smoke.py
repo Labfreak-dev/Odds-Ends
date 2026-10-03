@@ -75,6 +75,32 @@ def steer(page, tx, ty, ms=150):
     page.wait_for_timeout(ms)
     for k in keys: page.keyboard.up(k)
 
+def check_push(page):
+    """A leftover secret-door push must not stay bright after you let go or leave the room."""
+    page.evaluate("() => { const V = WILDS.view; V.keys = {}; V.joy = null; V.push = { d: 'n', t: 0.95 }; }")
+    page.wait_for_timeout(120)
+    held = page.evaluate("() => !!(WILDS.view.push && WILDS.view.push.t > 0)")
+    check(not held, 'Wilds: letting go of a secret wall clears the push')
+    door = page.evaluate("""() => {
+      const V = WILDS.view, doors = WILDS.doors().filter(d => d[1] === 'open');
+      if (!doors.length) return '';
+      const d = doors[0][0];
+      const pos = { n: [8, 0.30], s: [8, 8.70], w: [0.30, 4.5], e: [15.70, 4.5] }[d];
+      const key = { n: 'u', s: 'd', w: 'l', e: 'r' }[d];
+      V.px = pos[0]; V.py = pos[1]; V.keys = {}; V.keys[key] = true; V.joy = null;
+      V.push = { d: d === 'n' ? 's' : 'n', t: 0.95 };
+      return d;
+    }""")
+    ok = False
+    if door:
+        try:
+            page.wait_for_function("() => !!WILDS.view.slide", timeout=2000)
+            ok = page.evaluate("() => { const p = WILDS.view.push; return !!WILDS.view.slide && !(p && p.t > 0); }")
+        except Exception:
+            ok = False
+    page.evaluate("() => { if (WILDS.view) { WILDS.view.keys = {}; WILDS.view.joy = null; } }")
+    check(ok, 'Wilds: leaving a room clears the secret push')
+
 def wilds(page):
     import random
     page.evaluate("GLIM.renderTitle()")
@@ -84,6 +110,7 @@ def wilds(page):
     for i in range(3): page.locator('.wcard').nth(i).click()
     page.click('.wprepbar [data-v=go]'); page.wait_for_timeout(700)
     check(page.locator('#wilds.exploring').count() == 1 and page.locator('.wmem').count() == 3, 'Wilds: expedition starts with the squad')
+    check_push(page)
     shot(page, '10-wilds')
     check(page.evaluate("Object.values(WILDS.state.rooms).some(a => a.tiles && /[RPS]/.test(a.tiles))"), 'Wilds: rooms have obstacle layouts')
     check(page.evaluate("Object.values(WILDS.state.rooms).every(a => !a.tiles || a.tiles.split('|')[3][6] === '.')"), 'Wilds: every room keeps its middle clear')

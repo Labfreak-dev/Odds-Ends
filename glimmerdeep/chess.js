@@ -167,7 +167,7 @@ function makeUnit(st, inst, side, x, y) {
   // Depth is already in each enemy's inst.scale (crun.js); scaling here too squared it
   return u;
 }
-// Rainbow Roster: +4% ATK per distinct species on that side, max 6. Same formula as crun.bonus (the stats panel).
+// Rainbow Roster: b.rainbow ATK per distinct species on that side, max 6. Same formula as crun.bonus (the stats panel).
 function foldRainbow(b, placed) {
   if (!b || !b.rainbow) return;
   const seen = Object.create(null);

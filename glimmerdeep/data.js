@@ -224,15 +224,15 @@ const BOSSES = {
   geartyrant: { name: 'Gear Tyrant', el: 'metal', art: 'boss_geartyrant', hp: 3.97, atk: 1.2, def: 1.5, spd: 0.8, sk: ['piston_claw', 'rivet_storm', 'ant_call'], passive: { dr: 0.15 }, pd: 'Riveted plates: takes 15% less damage.' },
   eclipsechimera: { name: 'Eclipse Chimera', el: 'shade', art: 'boss_eclipsechimera', hp: 5.09, atk: 1.3, def: 1.1, spd: 1.05, sk: ['chimera_maul', 'three_maws', 'dread_roar'], passive: { ls: 0.15 }, pd: 'Three hungry heads: heals 15% of the damage it deals.' },
   hollowcolossus: { name: 'Hollow Colossus', el: 'shade', art: 'boss_hollowcolossus', hp: 3.63, atk: 1.2, def: 1.4, spd: 0.75, sk: ['grave_slam', 'soul_lanterns', 'wisp_call'], passive: { thorns: 0.15 }, pd: 'Haunted stone: reflects 15% of the damage it takes.' },
-  astralbehemoth: { name: 'Astral Behemoth', el: 'mystic', flux: 1, art: 'boss_astralbehemoth', hp: 2.83, atk: 1.3, def: 1.3, spd: 0.9, sk: ['star_crush', 'nebula_nova', 'cosmic_call'], passive: { regen: 0.008 }, pd: 'Shifts element every 4 seconds; regenerates 0.8% a second.' },
-  voidtitan: { name: 'Void Titan', el: 'shade', flux: 1, art: 'boss_voidtitan', hp: 3.33, atk: 1.4, def: 1.3, spd: 0.85, sk: ['void_fist', 'singularity', 'void_armor'], passive: { dr: 0.15 }, pd: 'Shifts element every 4 seconds; takes 15% less damage.' },
+  astralbehemoth: { name: 'Astral Behemoth', el: 'mystic', flux: 1, art: 'boss_astralbehemoth', hp: 2.50, atk: 1.18, def: 1.18, spd: 0.9, sk: ['star_crush', 'nebula_nova', 'cosmic_call'], passive: { regen: 0.006 }, pd: 'Shifts element every 4 seconds; regenerates 0.6% a second.' },
+  voidtitan: { name: 'Void Titan', el: 'shade', flux: 1, art: 'boss_voidtitan', hp: 2.90, atk: 1.24, def: 1.18, spd: 0.85, sk: ['void_fist', 'singularity', 'void_armor'], passive: { dr: 0.12 }, pd: 'Shifts element every 4 seconds; takes 12% less damage.' },
   yeti: { name: 'Yeti Monarch', el: 'frost', art: 'boss_yeti', hp: 3.86, atk: 1.25, def: 1.3, spd: 0.85, sk: ['yeti_slam', 'avalanche', 'yeti_call'], passive: { dr: 0.1 }, pd: 'Thick fur: takes 10% less damage; calls ice stoats.' },
   nimbus: { name: 'Stormheart Nimbus', el: 'gale', art: 'boss_nimbus', hp: 4.14, atk: 1.25, def: 1.1, spd: 1.1, sk: ['thunderhead', 'cyclone', 'squall_call'], passive: { dodge: 0.2 }, pd: 'Body of cloud: dodges 20% of attacks.' },
   sandworm: { name: 'Sandworm Tyrant', el: 'stone', art: 'boss_sandworm', hp: 3.90, atk: 1.3, def: 1.3, spd: 0.85, sk: ['burrow_strike', 'dune_quake', 'sand_call'], passive: { thorns: 0.15 }, pd: 'Grinding plates: reflects 15% of the damage it takes.' },
   mirecroc: { name: 'Mirecroc Matriarch', el: 'bloom', art: 'boss_mirecroc', hp: 3.82, atk: 1.3, def: 1.2, spd: 0.85, sk: ['death_roll', 'rot_spores', 'croc_call'], passive: { regen: 0.01 }, pd: 'Swamp-fed: regenerates 1% HP a second.' },
   juggernaut: { name: 'Ironshell Juggernaut', el: 'metal', art: 'boss_juggernaut', hp: 3.04, atk: 1.2, def: 1.6, spd: 0.75, sk: ['steam_ram', 'boiler_burst', 'plate_up'], passive: { dr: 0.2 }, pd: 'Iron shell: takes 20% less damage.' },
   astralmoth: { name: 'Astral Moth Empress', el: 'mystic', art: 'boss_astralmoth', hp: 3.03, atk: 1.25, def: 1.1, spd: 1, sk: ['moonbeam', 'galaxy_dust', 'moth_call'], passive: { ls: 0.12 }, pd: 'Drinks starlight: heals 12% of the damage she deals.' },
-  wyrm:    { name: 'The Glimmerwyrm', el: 'ember', flux: 1, art: 'boss_wyrm', hp: 3.73, atk: 1.35, def: 1.35, spd: 1, sk: ['wyrm_bite', 'flux_breath', 'cataclysm', 'crystal_scale'], pd: 'Shifts element every 4 seconds.' },
+  wyrm:    { name: 'The Glimmerwyrm', el: 'ember', flux: 1, art: 'boss_wyrm', hp: 3.18, atk: 1.20, def: 1.20, spd: 0.95, sk: ['wyrm_bite', 'flux_breath', 'cataclysm', 'crystal_scale'], pd: 'Shifts element every 4 seconds.' },
 };
 
 // ---- biomes and hazards ---------------------------------------------------------
@@ -291,7 +291,7 @@ const RELICS = {
   volt_coil: { n: 'Volt Coil', tags: ['storm'], r: 1, b: { el_volt: 0.2 }, d: 'Volt attacks +20% damage.' },
   stone_idol: { n: 'Bedrock Idol', tags: ['bedrock'], r: 1, b: { el_stone: 0.2 }, d: 'Stone attacks +20% damage.' },
   shade_orchid: { n: 'Night Orchid', tags: ['umbral'], r: 1, b: { el_shade: 0.2 }, d: 'Shade attacks +20% damage.' },
-  kindling: { n: 'Kindling Bundle', tags: ['inferno', 'status'], r: 1, b: { burnTurns: 1, burnAmp: 0.2 }, d: 'Burns last 1 more turn and hurt 20% more.' },
+  kindling: { n: 'Kindling Bundle', tags: ['inferno', 'status'], r: 1, b: { burnTurns: 1, burnAmp: 0.4 }, d: 'Burns last 1 more turn and hurt 40% more.' },
   brine_flask: { n: 'Brine Flask', tags: ['tidal', 'status'], r: 1, b: { soakAmp: 0.15 }, d: 'Soaked foes take 15% more from everything.' },
   toxic_vial: { n: 'Toxic Vial', tags: ['verdant', 'status'], r: 1, b: { poisonPlus: 1 }, d: 'Poison applies 1 extra stack.' },
   storm_jar: { n: 'Bottled Storm', tags: ['storm', 'status'], r: 1, b: { stunPlus: 0.1 }, d: '+10% Stun chance on Volt hits.' },
@@ -303,7 +303,7 @@ const RELICS = {
   bulwark_shell: { n: 'Bulwark Shell', tags: ['shield', 'bedrock'], r: 1, b: { startShield: 0.15 }, d: 'Battle start: shield all allies for 15% max HP.' },
   bramble_knot: { n: 'Bramble Knot', tags: ['shield', 'verdant'], r: 1, b: { thorns: 0.12 }, d: 'Attackers take 12% of the damage they deal to your shields.' },
   ironroot: { n: 'Ironroot', tags: ['shield'], r: 1, b: { defMul: 0.15 }, d: '+15% DEF for all allies.' },
-  gale_feather: { n: 'Gale Feather', tags: ['swift'], r: 1, b: { spdMul: 0.1 }, d: '+10% SPD for all allies.' },
+  gale_feather: { n: 'Gale Feather', tags: ['swift'], r: 1, b: { spdMul: 0.10 }, d: '+10% attack speed for all allies.' },
   quickglass: { n: 'Quickglass', tags: ['swift'], r: 2, b: { cdMinus: 1 }, d: 'Skill cooldowns are 1 turn shorter.' },
   tempo_drum: { n: 'Tempo Drum', tags: ['swift', 'storm'], r: 2, b: { tempo: 1 }, d: 'Every 3rd turn allies gain +30% SPD and 25 Overdrive.' },
   vamp_fang: { n: 'Vampire Fang', tags: ['vamp', 'umbral'], r: 1, b: { lifesteal: 0.08 }, d: 'All attacks heal 8% of damage dealt.' },
@@ -317,12 +317,12 @@ const RELICS = {
   treasure_map: { n: 'Treasure Map', tags: ['greed'], r: 1, b: { relicChoice: 1 }, d: 'Relic rewards offer 1 more choice.' },
   star_shard: { n: 'Star Shard', tags: ['overdrive'], r: 1, b: { odRate: 0.3 }, d: 'Overdrive charges 30% faster.' },
   comet_core: { n: 'Comet Core', tags: ['overdrive'], r: 1, b: { ultAmp: 0.3 }, d: 'Ultimates deal 30% more.' },
-  echo_chime: { n: 'Echo Chime', tags: ['overdrive', 'team'], r: 2, b: { echo: 25 }, d: 'After any ultimate, all other allies gain 25 Overdrive.' },
+  echo_chime: { n: 'Echo Chime', tags: ['overdrive', 'team'], r: 2, b: { echo: 2 }, d: 'After any ultimate, all other allies gain 2 Overdrive.' },
   rally_horn: { n: 'Rally Horn', tags: ['team'], r: 1, b: { frontAtk: 0.15 }, d: 'Front row +15% ATK.' },
   guardian_totem: { n: 'Guardian Totem', tags: ['team', 'shield'], r: 1, b: { backDR: 0.2 }, d: 'Back row takes 20% less damage.' },
   kinship_knot: { n: 'Kinship Knot', tags: ['team'], r: 2, b: { kinship: 0.05 }, d: '+5% all stats per different element on your field.' },
   pure_prism: { n: 'Pure Prism', tags: ['team'], r: 2, b: { mono: 0.3 }, d: 'If every creature on the field shares an element: +30% damage.' },
-  thundercloud: { n: 'Thundercloud', tags: ['storm', 'tidal'], r: 2, b: { electroAmp: 0.6 }, d: 'Electrocute deals 60% more.' },
+  thundercloud: { n: 'Thundercloud', tags: ['storm', 'tidal'], r: 2, b: { electroAmp: 1 }, d: 'Electrocute deals 100% more.' },
   geyser_stone: { n: 'Geyser Stone', tags: ['tidal', 'inferno'], r: 2, b: { steamHeal: 0.08 }, d: 'Steam reactions heal all allies 8%.' },
   blight_bulb: { n: 'Blight Bulb', tags: ['verdant', 'inferno'], r: 2, b: { blightAmp: 0.5 }, d: 'Blight Burst deals 50% more.' },
   morning_dew: { n: 'Morning Dew', tags: ['verdant'], r: 1, b: { regen: 0.03 }, d: 'Allies Regen 3% each turn.' },
@@ -341,7 +341,7 @@ const RELICS = {
   moon_charm: { n: 'Moon Charm', tags: ['overdrive'], r: 1, b: { el_mystic: 0.2 }, d: 'Mystic attacks +20% damage.' },
   hearthstone: { n: 'Hearthstone', tags: ['hazard'], r: 1, b: { immune_blizzard: 1 }, d: 'Ignore the Blizzard; your creatures cannot be Chilled.' },
   anchor_stone: { n: 'Anchor Stone', tags: ['hazard'], r: 1, b: { immune_gusts: 1, defMul: 0.05 }, d: 'Ignore Howling Gusts; +5% DEF.' },
-  desert_veil: { n: 'Desert Veil', tags: ['hazard'], r: 1, b: { immune_sandstorm: 1 }, d: 'Ignore the Sandstorm.' },
+  desert_veil: { n: 'Desert Veil', tags: ['hazard'], r: 1, b: { immune_sandstorm: 1, defMul: 0.06 }, d: 'Ignore the Sandstorm. +6% DEF.' },
   marsh_charm: { n: 'Marsh Charm', tags: ['hazard'], r: 1, b: { immune_bog: 1 }, d: 'Ignore the Sucking Bog.' },
   grounding_rod: { n: 'Grounding Rod', tags: ['hazard'], r: 1, b: { immune_magnetic: 1 }, d: 'Ignore the Magnetic Field.' },
   star_ward: { n: 'Star Ward', tags: ['hazard'], r: 1, b: { immune_starfall: 1 }, d: 'Ignore Starfall.' },
@@ -368,7 +368,7 @@ const SETS = {
   inferno: { n: 'Inferno', b: { burnAmp: 0.5 }, d: 'Burn damage +50%.' },
   tidal: { n: 'Tidal', b: { startSoak: 1 }, d: 'Soak all foes at battle start.' },
   verdant: { n: 'Verdant', b: { regen: 0.03, healAmp: 0.15 }, d: '+3% Regen, healing +15%.' },
-  storm: { n: 'Storm', b: { spdMul: 0.15 }, d: '+15% SPD.' },
+  storm: { n: 'Storm', b: { spdMul: 0.15 }, d: '+15% attack speed.' },
   bedrock: { n: 'Bedrock', b: { defMul: 0.2 }, d: '+20% DEF.' },
   umbral: { n: 'Umbral', b: { dodge: 0.08 }, d: '+8% dodge for all allies.' },
   status: { n: 'Affliction', b: { statusTurns: 1 }, d: 'Statuses you apply last 1 turn longer.' },
@@ -452,16 +452,16 @@ const PERKS = {
 // Ranks past the first few get steep on purpose: they are the long-term chase for Depth runs.
 // cb: the per-rank bonus fed into every fight (chess.js teamBonus keys)
 const META = {
-  gold: { n: 'Nest Egg', d: '+2 starting gold per rank.', max: 5, cost: [20, 40, 70, 160, 280] },
-  hide: { n: 'Thick Hide', d: '+10 max HP per rank.', max: 5, cost: [40, 90, 180, 300, 450] },
-  relic: { n: 'Heirloom', d: 'Start each run with a random common relic (rank 2: two).', max: 2, cost: [50, 320] },
-  drill: { n: 'Training Drills', d: 'Your creatures get +2% HP and ATK per rank.', max: 5, cost: [90, 160, 260, 400, 600], cb: { hpMul: 0.02, atkMul: 0.02 } },
-  scales: { n: 'Hardened Scales', d: 'Your creatures get +3% DEF per rank.', max: 3, cost: [80, 170, 300], cb: { defMul: 0.03 } },
-  focus: { n: 'Focus Crystal', d: 'Your creatures start each fight with +5 mana per rank.', max: 3, cost: [100, 200, 340], cb: { startOd: 5 } },
-  instinct: { n: 'Killer Instinct', d: '+2% crit chance per rank.', max: 3, cost: [90, 190, 320], cb: { crit: 0.02 } },
-  jar: { n: 'Savings Jar', d: 'Interest cap +1 per rank (you can earn up to 7 interest).', max: 2, cost: [150, 300], cb: { interestCap: 1 } },
+  gold: { n: 'Nest Egg', d: '+1 starting gold per rank.', max: 5, cost: [20, 40, 70, 160, 280] },
+  hide: { n: 'Thick Hide', d: '+5 max HP per rank.', max: 5, cost: [40, 90, 180, 300, 450] },
+  relic: { n: 'Heirloom', d: 'Start each run with a random common relic.', max: 1, cost: [50] },
+  drill: { n: 'Training Drills', d: 'Your creatures get +1% HP and ATK per rank.', max: 5, cost: [90, 160, 260, 400, 600], cb: { hpMul: 0.01, atkMul: 0.01 } },
+  scales: { n: 'Hardened Scales', d: 'Your creatures get +1.5% DEF per rank.', max: 3, cost: [80, 170, 300], cb: { defMul: 0.015 } },
+  focus: { n: 'Focus Crystal', d: 'Your creatures start each fight with +2 mana per rank.', max: 3, cost: [100, 200, 340], cb: { startOd: 2 } },
+  instinct: { n: 'Killer Instinct', d: '+1% crit chance per rank.', max: 3, cost: [90, 190, 320], cb: { crit: 0.01 } },
+  jar: { n: 'Savings Jar', d: 'Interest cap +1 (you can earn up to 6 interest).', max: 1, cost: [150], cb: { interestCap: 1 } },
   study: { n: 'Field Notes', d: '+1 Tamer XP every round.', max: 1, cost: [350], cb: { xpRound: 1 } },
-  kindred: { n: 'Kindred Call', d: 'Shop slots offer a species you own 8% more often per rank.', max: 2, cost: [140, 280] },
+  kindred: { n: 'Kindred Call', d: 'Shop slots offer a species you own 3% more often per rank.', max: 2, cost: [140, 280] },
   lucky: { n: 'Lucky Coin', d: 'Rerolls cost 1 gold less.', max: 1, cost: [500], cb: { rerollDisc: 1 } },
   hoard: { n: 'Glimmer Hoard', d: '+10% Glimmer Shards from runs per rank.', max: 3, cost: [120, 240, 400] },
   // The Wilds (mode: 'wilds'): wb is a per-rank bonus for Wilds battles only
@@ -475,9 +475,9 @@ const META = {
   w_spring: { mode: 'wilds', n: 'Deep Springs', d: 'Going down the stairs heals 15% more per rank.', max: 2, cost: [90, 200] },
   evo: { n: 'Seed Pouch', d: 'Start each run with an Evo Crystal.', max: 1, cost: [35] },
   shiny: { n: 'Shiny Charm', d: 'Shiny creatures turn up 3× as often, in the shop and in the Wilds.', max: 1, cost: [30] },
-  starter: { n: 'Head Start', d: 'Begin at Tamer level 2, then 3.', max: 2, cost: [30, 70] },
+  starter: { n: 'Head Start', d: 'Begin at Tamer level 2.', max: 1, cost: [30] },
   choices: { n: 'Keen Eye', d: 'Relic rewards offer 1 more choice.', max: 1, cost: [60] },
-  heal: { n: 'Second Wind', d: 'Heal 15 HP after each boss you beat.', max: 1, cost: [45] },
+  heal: { n: 'Second Wind', d: 'Heal 10 HP after each boss you beat.', max: 1, cost: [45] },
 };
 
 // ---- Wilds relics: found on an expedition, kept until it ends ----------------------------------
@@ -634,6 +634,15 @@ for (const sp of SP2) {
   SP[sp.k] = { el: sp.el, role: sp.role, names: sp.names, sk: buildKit(sp, i - 1), mod: Object.assign({}, ROLE_MOD[sp.role], sp.mod || {}) };
   TIER[sp.k] = sp.tier; RANGE[sp.k] = sp.range;
 }
+// A small compression of the tier ladder, plus a nudge so Ember and Stone sit closer to the other elements.
+const TIER_FLATTEN = [1, 1, 0.98, 0.955, 0.93, 0.90];
+const EL_NUDGE = { ember: { atk: 0.86 }, stone: { atk: 1.07, hp: 1.04 } };
+for (const k in SP) {
+  const m = SP[k].mod, f = TIER_FLATTEN[TIER[k]] || 1;
+  if (f !== 1) for (const s of ['hp', 'atk', 'def']) m[s] = (m[s] || 1) * f;
+  const n = EL_NUDGE[SP[k].el];
+  if (n) for (const s in n) m[s] = (m[s] || 1) * n[s];
+}
 
 // ---- g9: merge perks -------------------------------------------------------------------
 // Every species has a signature perk that switches on at ★2 and upgrades at ★3, where it
@@ -692,7 +701,7 @@ const CHESS_RELIC = {
   bell: { b: { rerollDisc: 1 }, d: 'Rerolls cost 1 gold less.' },
   treasure_map: { d: 'Relic rewards offer 1 more choice.' },
   star_shard: { d: 'Mana charges 30% faster.' },
-  echo_chime: { d: 'After any ultimate, all other allies gain 25 mana.' },
+  echo_chime: { d: 'After any ultimate, all other allies gain 2 mana.' },
   rally_horn: { d: 'Your front column +15% ATK.' },
   guardian_totem: { d: 'Your back column takes 20% less damage.' },
   pure_prism: { d: 'If 4 or more of your creatures share an element: +30% damage.' },

@@ -117,7 +117,11 @@ with sync_playwright() as p:
     watch(page, errs, missing)
     page.goto(BASE + '?anim=1')
     page.wait_for_selector('#title.on')
-    check(page.locator('#titleMenu [data-v=anim]').inner_text() == 'Animation: Rich', 'title setting reads Animation: Rich')
+    page.click('#titleMenu [data-v=set]')
+    page.wait_for_selector('#modalBox [data-v=anim]')
+    check('Rich' in page.locator('#modalBox [data-v=anim]').inner_text(), 'title setting reads Animation: Rich')
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(150)
     species = page.evaluate("""() => {
       const have = Object.keys(GD.SP);
       const miss = have.filter(id => !GlimAnim.SPECIES[id]);
@@ -347,7 +351,11 @@ with sync_playwright() as p:
     watch(classic, cerr, cmiss)
     classic.goto(BASE + '?anim=0')
     classic.wait_for_selector('#title.on')
-    check(classic.locator('#titleMenu [data-v=anim]').inner_text() == 'Animation: Classic', 'title setting reads Animation: Classic under ?anim=0')
+    classic.click('#titleMenu [data-v=set]')
+    classic.wait_for_selector('#modalBox [data-v=anim]')
+    check('Classic' in classic.locator('#modalBox [data-v=anim]').inner_text(), 'title setting reads Animation: Classic under ?anim=0')
+    classic.keyboard.press('Escape')
+    classic.wait_for_timeout(150)
     classic.click('#titleMenu [data-v=new]')
     classic.wait_for_selector('#modal.on .card')
     classic.locator('#modalBox .card').first.click()

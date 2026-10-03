@@ -118,7 +118,10 @@ def wilds(page):
     if page.locator('#modal.on').count(): page.click('#modalBox [data-v=new]'); page.wait_for_timeout(200)
     check(page.locator('.wcard').count() >= 12, 'Wilds: the twelve free species can be picked')
     for i in range(3): page.locator('.wcard').nth(i).click()
-    page.click('.wprepbar [data-v=go]'); page.wait_for_timeout(700)
+    page.click('.wprepbar [data-v=go]'); page.wait_for_timeout(400)
+    if page.locator('#modal.on').count():
+        page.locator('#modalBox [data-v=ok], #modalBox [data-v]').first.click()
+        page.wait_for_timeout(250)
     check(page.locator('#wilds.exploring').count() == 1 and page.locator('.wmem').count() == 3, 'Wilds: expedition starts with the squad')
     check_push(page)
     shot(page, '10-wilds')

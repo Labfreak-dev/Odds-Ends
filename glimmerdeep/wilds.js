@@ -714,6 +714,7 @@ async function battle(a, mv) {
   await new Promise(r => setTimeout(r, 380));
   $('#wilds').classList.remove('flash');
   const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, `${a.type === 'lair' ? '♛ Lair: ' : a.event === 'challenge' ? '⚔ Champion ' : mon.shiny ? '✦ Shiny ' : 'Wild '}${nm}${mon.escorts.length ? ` <span class="small muted">+${mon.escorts.length}</span>` : ''}`, fightBonus());
+  if (window.AX && AX.fightKills) AX.ev('kos', 1, { kills: AX.fightKills(st) });
   LASTFS = window.FightStats ? window.FightStats.block(st) : '';
   const apex = U.rollApexWild(st);
   // carry HP back to the squad
@@ -874,6 +875,7 @@ async function trainerBattle(a, spotted) {
   U.SFX.wencounter();
   $('#wilds').classList.add('flash'); await new Promise(r => setTimeout(r, 380)); $('#wilds').classList.remove('flash');
   const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, '⚔ ' + title, fightBonus(), bonus);
+  if (window.AX && AX.fightKills) AX.ev('kos', 1, { kills: AX.fightKills(st) });
   LASTFS = window.FightStats ? window.FightStats.block(st) : '';
   const apex = U.rollApexWild(st);
   if (window.GAUDIO) GAUDIO.music('wilds_explore');

@@ -252,7 +252,7 @@ function bumpGoals(name, n, ex) {
     if (g.done) continue;
     let add = 0, set = -1;
     if (g.id === 'win' && name === 'fight' && ex.win) add = 1;
-    else if (g.id === 'ko' && name === 'fight') add = ex.kills || 0;
+    else if (g.id === 'ko' && (name === 'fight' || name === 'kos')) add = ex.kills || 0;
     else if (g.id === 'merge' && name === 'merge') add = n || 1;
     else if (g.id === 'round' && name === 'fight' && ex.round) set = ex.round;
     else if (g.id === 'boss' && name === 'fight' && ex.win && (ex.boss || ex.kind === 'boss')) add = 1;
@@ -327,7 +327,19 @@ function applyEv(name, n, ex) {
   else if (name === 'den') st.den = 1;
   else if (name === 'shards') st.shards += n;
   else if (name === 'key') st.keys = (st.keys || 0) + n;
+  else if (name === 'kos') { if (ex.kills) st.kills += ex.kills; }
   bumpGoals(name, n, ex);
+}
+// Player knockouts from the battle report when it is loaded; otherwise foes still down.
+function fightKills(st) {
+  if (window.FightStats && st && st.fs && FightStats.snapshot) {
+    const snap = FightStats.snapshot(st);
+    let n = 0;
+    for (const r of snap.rows || []) if (r.side === 0) n += r.kills || 0;
+    return n;
+  }
+  if (!st || !st.units) return 0;
+  return st.units.filter(u => u.side === 1 && !u.alive).length;
 }
 
 function grant(def) {
@@ -496,6 +508,6 @@ function progress(id) {
   return { p: Math.min(p, def.goal), goal: def.goal, done: has(id) };
 }
 
-window.AX = { ev, has, progress, init, check, open, rollDaily, ACH, claimGoal };
+window.AX = { ev, has, progress, init, check, open, rollDaily, ACH, claimGoal, fightKills };
 if (window.GLIM && GLIM.meta) init(GLIM.meta);
 })();

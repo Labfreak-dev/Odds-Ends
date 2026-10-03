@@ -909,7 +909,8 @@ async function endFight() {
   const res = R.endRound(run, st);
   const hazOn = !!(G.BIOMES[run.biome] && G.BIOMES[run.biome].haz);
   const hazRelic = (run.relics || []).some(id => G.RELICS[id] && G.RELICS[id].tags && G.RELICS[id].tags.indexOf('hazard') >= 0);
-  window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: st.units.filter(u => u.side === 1 && !u.alive).length, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned), hazard: !!(res.win && hazOn && !hazRelic) });
+  const kills = window.AX && AX.fightKills ? AX.fightKills(st) : st.units.filter(u => u.side === 1 && !u.alive).length;
+  window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: kills, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned), hazard: !!(res.win && hazOn && !hazRelic) });
   const apex = R.rollApex(run, st, meta); if (apex) res.drops.push({ k: 'apex', sp: apex.sp });
   if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
   stopFight();

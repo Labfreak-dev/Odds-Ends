@@ -22,7 +22,7 @@ OUT = os.path.join(HERE, '..', 'img')
 def kind(key):
     if key.startswith('bg_'): return ('cover', 720, 1280, 76)
     if key.startswith('rm_'): return ('cover', 720, 1280, 78)
-    if key == 'wd_tamer': return ('key', 256, 256, 84)
+    if key == 'wd_tamer' or key.startswith('tr_'): return ('key', 256, 256, 84)
     if key.startswith('wd_'): return ('key', 192, 192, 84)
     if key.startswith('boss_'): return ('key', 560, 560, 82)
     if key.startswith('cr_'): return ('key', 400, 400, 82)

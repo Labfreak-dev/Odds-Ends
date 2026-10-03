@@ -9,7 +9,9 @@ const IMG = k => 'img/' + k + '.webp';
 const SAVE = 'glimmerdeep.wilds.v1';
 const { FLOORS, SQUAD_START, SQUAD_MAX, XP_STAR, rng, pick, key, placeSide } = window.GW;
 // shinies: 1 in 20 wild creatures, 3 in 20 with the camp's Shiny Charm
-const genFloor = (f, b, seed) => window.GW.genFloor(f, b, seed, unlocked, { shiny: (meta().up.shiny ? 3 : 1) / 20 });
+const genFloor = (f, b, seed) => window.GW.genFloor(f, b, seed, unlocked, { shiny: (meta().up.shiny ? 3 : 1) / 20,
+  lure: W.lure || null, shinyBoost: meta().shinyBoost || {},
+  rival: W.rivalFloor === f ? { pool: Object.keys(meta().unlocked), level: meta().badges || 0 } : null });
 const { TC, TR, tileXY, tileAt, solid } = window.GW;
 const SHINY = 'hue-rotate(150deg) saturate(1.3)';
 const RW = 16, RH = 9;                     // room size in world units (the room art is 16:9)
@@ -31,7 +33,7 @@ let W = null;        // the expedition (saved)
 let V = null;        // the live view: canvas, input, positions (not saved)
 const imgs = {};
 function img(k) { if (!imgs[k]) { const i = new Image(); i.src = IMG(k); imgs[k] = i; } return imgs[k]; }
-const ready = i => i.complete && i.naturalWidth > 0;
+const ready = i => !!i && (i instanceof HTMLCanvasElement || (i.complete && i.naturalWidth > 0));
 // fetch and decode ahead of the first draw, so a new frame is never a blank
 function warm(k) { const i = img(k); if (typeof i.decode === 'function') i.decode().catch(() => {}); return i; }
 function preloadTamer() { for (const k of TAMER_FR) warm(k); }
@@ -67,8 +69,10 @@ function healFit(v) { for (const s of W.squad) if (s.hp > 0) s.hp = Math.min(1, 
 function gainXp(s, n, evos) { s.xp += n; const T = xpStar(); while (s.star < 3 && s.xp >= T[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); if (evos) evos.push(s); } }
 function relicLi(id) { const r = WR[id]; return `<div class="li click" data-v="${id}"><img class="ic" src="${IMG(r.ic)}" alt=""><div class="grow"><div class="t">${r.n}</div><div class="small">${r.d}</div></div></div>`; }
 // offer n relics you do not have yet; resolves with the one taken (or null)
-async function offerRelics(n, title, skip) {
-  const pool = Object.keys(WR).filter(k => !(W.relics || []).includes(k)).sort(() => Math.random() - 0.5).slice(0, n);
+async function offerRelics(n, title, skip, rare) {
+  let left = Object.keys(WR).filter(k => !(W.relics || []).includes(k));
+  if (rare && left.filter(k => WR[k].rare).length >= 2) left = left.filter(k => WR[k].rare);   // captains draw from the rare pool
+  const pool = left.sort(() => Math.random() - 0.5).slice(0, n);
   if (!pool.length) { U.toast('You already carry every relic!'); return null; }
   const v = await U.ask(title || 'A relic!', `<p class="muted small" style="text-align:center">Relics last until this expedition ends.</p><div class="list">${pool.map(relicLi).join('')}</div>`, skip ? U.btn('skip', 'Leave it', 'ghost sm') : '');
   if (!WR[v]) return null;
@@ -95,6 +99,7 @@ async function useTonic() {
 function doorOf(room, d) {
   const o = W.rooms[key(room.x + DIRS[d][0], room.y + DIRS[d][1])];
   if (!o) return null;
+  if (V && V.sealed && room === W.rooms[W.cur]) return 'sealed';
   if (o.type === 'secret' || room.type === 'secret') return (o.type === 'secret' ? o : room).found ? 'open' : 'crack';
   if (o.type === 'locked' || room.type === 'locked') return (o.type === 'locked' ? o : room).unlocked ? 'open' : 'lock';
   return 'open';
@@ -113,6 +118,12 @@ function squadInst(m) {
   return inst;
 }
 function newFloor(floor) {
+  if (floor > FLOORS) {   // the Rival's Den
+    const F = window.GW.genDen((W.seed + 999) >>> 0, { pool: Object.keys(meta().unlocked) });
+    Object.assign(W, { floor, biome: 'crypt', rooms: F.rooms, cur: F.cur });
+    markSeen(); preloadDoors();
+    return;
+  }
   const pickFrom = floor === FLOORS ? ['core'] : (floor === 1 ? EARLY : Object.keys(G.BIOMES).filter(k => k !== 'core')).filter(k => !W.biomes.includes(k));
   const biome = pick(Math.random, pickFrom.length ? pickFrom : ['verdant']);
   W.biomes.push(biome);
@@ -125,10 +136,11 @@ function newFloor(floor) {
   markSeen();
   preloadDoors();
 }
-function startExpedition(sps) {
+function startExpedition(sps, opts) {
   W = { v: 1, seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0, floor: 1, biomes: [], keys: 0, shards: 0, nextUid: 1, wins: 0, found: [],
     relics: [], tonics: up('w_medic'), phoenixUsed: false,
-    squad: sps.map(sp => ({ uid: 0, sp, star: 1, xp: 0, hp: 1, shiny: false })) };
+    rivalFloor: 2 + Math.floor(Math.random() * 3), lure: opts && opts.lure || null,
+    squad: sps.map(sp => { const st = (meta().wstar || {})[sp] || 1; return { uid: 0, sp, star: st, xp: st > 1 ? xpStar()[st - 1] : 0, hp: 1, shiny: false }; }) };
   if (up('w_relic')) W.relics.push(pick(Math.random, Object.keys(WR)));
   for (const m of W.squad) m.uid = W.nextUid++;
   newFloor(1);
@@ -140,7 +152,8 @@ async function endExpedition(why) {
   m.shards += bonus;
   const found = W.found.map(sp => `<div class="wfound"><img src="${IMG('cr_' + sp + '1')}" alt=""><div>${G.SP[sp].names[0]}</div></div>`).join('')
     + (W.shinies || []).map(sp => `<div class="wfound"><img class="shiny" src="${IMG('cr_' + sp + '1')}" alt=""><div>✦ ${G.SP[sp].names[0]}</div></div>`).join('');
-  const title = why === 'done' ? 'Expedition complete!' : why === 'left' ? 'Back to camp' : 'Your squad fainted';
+  const title = why === 'champion' ? 'Champion of the Wilds!' : why === 'done' ? 'Expedition complete!' : why === 'left' ? 'Back to camp' : 'Your squad fainted';
+  if (why === 'champion') { m.shards += 150; why = 'done'; }
   clearSave(); W = null; stopView(); U.save();
   if (why === 'done') U.SFX.wdone(); else if (why === 'fainted') U.SFX.stinger('lose');   // 'left' (player chose to leave) stays silent
   if (window.GAUDIO) GAUDIO.music('title');   // held until a stinger has finished
@@ -170,7 +183,10 @@ function prep() {
   const host = $('#wilds');
   host.querySelector('.wprep').innerHTML = `<div class="gtop"><button class="iconbtn" data-w="home">◀</button><div class="grow"><div class="title">The Wilds</div><div class="small muted">${n}/${tot} creatures unlocked</div></div></div>
     <div class="wprepbody"><p class="muted" style="text-align:center;margin:4px 8px 10px">Explore ${FLOORS} floors of rooms. Walk into a wild creature to battle it. Beat it to <b>unlock it for good</b>: it joins the Auto Chess shop and can join your squad. Pick up to ${SQ} creatures to bring.</p>
-    <div class="wpick">${list.map(sp => { const S = G.SP[sp]; return `<div class="wcard el-${S.el}" data-sp="${sp}"><img src="${IMG('cr_' + sp + '1')}" alt=""><div class="n">${S.names[0]}</div><div class="small muted">${U.ROLE_N[S.role]} · T${G.TIER[sp]}</div></div>`; }).join('')}</div></div>
+    <div class="wpick">${list.map(sp => { const S = G.SP[sp], st = (m.wstar || {})[sp] || 1; return `<div class="wcard el-${S.el}" data-sp="${sp}"><img src="${IMG('cr_' + sp + st)}" alt=""><div class="n">${S.names[st - 1]}${st > 1 ? ' ' + '★'.repeat(st) : ''}</div><div class="small muted">${U.ROLE_N[S.role]} · T${G.TIER[sp]}</div></div>`; }).join('')}</div>
+    <h3 class="camph">Outfit</h3><div class="wskins">${Object.keys(G.SKINS).map(k => `<div class="wskin ${skinOpen(k) ? '' : 'locked'} ${(m.skin || 'classic') === k ? 'on' : ''}" data-skin="${k}" title="${G.SKINS[k].d}"><img src="${skinOpen(k) ? skinThumb(k) : IMG('wd_tamer_idle_1')}" alt=""><div>${skinOpen(k) ? G.SKINS[k].n : '🔒'}</div></div>`).join('')}</div>
+    ${Object.values(m.lures || {}).some(n => n > 0) ? `<h3 class="camph">Lure <span class="small muted">(its element shows up 4× as often; used up when you set out)</span></h3><div class="row wrap center wlures" style="gap:6px"><button class="btn sm on" data-lure="">None</button>${Object.keys(m.lures).filter(e => m.lures[e] > 0).map(e => `<button class="btn sm ghost" data-lure="${e}">${U.elBadge(e)} ${G.EL[e].name} ×${m.lures[e]}</button>`).join('')}</div>` : ''}
+    <div class="row center" style="margin:12px 0">${U.btn('post', `Trainer's Post · ${m.tokens || 0} tokens`, 'wild sm')}</div></div>
     <div class="wprepbar"><span class="small muted" id="wSel">Choose 1-${SQ}</span>${U.btn('go', 'Set out!', 'green')}</div>`;
   host.classList.remove('exploring');
   U.show('wilds');
@@ -183,11 +199,19 @@ function prep() {
     c.classList.toggle('on', i < 0);
     $('#wSel').textContent = sel.length ? sel.map(k => G.SP[k].names[0]).join(', ') : `Choose 1-${SQ}`;
   };
+  let lure = '';
+  host.querySelector('.wprepbody').addEventListener('click', async e => {
+    const sk = e.target.closest('[data-skin]'), lu = e.target.closest('[data-lure]');
+    if (sk) { if (!skinOpen(sk.dataset.skin)) return U.toast(G.SKINS[sk.dataset.skin].d); m.skin = sk.dataset.skin; U.save(); U.SFX.click(); host.querySelectorAll('.wskin').forEach(x => x.classList.toggle('on', x === sk)); }
+    if (lu) { lure = lu.dataset.lure; U.SFX.click(); host.querySelectorAll('[data-lure]').forEach(x => { x.classList.toggle('ghost', x !== lu); x.classList.toggle('on', x === lu); }); }
+    if (e.target.closest('[data-v=post]')) { await post(); prep(); }
+  });
   host.querySelector('.wprepbar').onclick = e => {
     if (!e.target.closest('[data-v=go]')) return;
     if (!sel.length) return U.toast('Pick at least one creature.');
     U.SFX.lvl();
-    startExpedition(sel.slice());
+    if (lure && m.lures[lure] > 0) m.lures[lure]--; else lure = '';
+    startExpedition(sel.slice(), { lure: lure || null });
     enter();
   };
 }
@@ -238,10 +262,17 @@ function placeRoom(from) {
   V.flow = null; V.flowAt = '';
   V.going = 0; V.vert = 0; V.bob = 0;
   spawnMon(a);
+  spawnTrainer(a);
   V.inv = 1.0;
   preloadDoors();
   markSeen();
   save();
+}
+function spawnTrainer(a) {
+  V.tr = null; V.sealed = false;
+  if (!a.tr || a.tr.beaten) return;
+  const T = a.tr;
+  V.tr = { x: T.x, y: T.y, x0: T.x, y0: T.y, face: T.face, cur: T.face, turn: T.turn, t: 0, spotted: false, bang: 0, fx: T.face === 'e' ? 1 : -1, cool: 0.8 };
 }
 function spawnMon(a) {
   if (a.mon && !a.mon.beaten) {
@@ -258,9 +289,9 @@ function spawnMon(a) {
 }
 function hud() {
   const a = room(), host = $('#wilds');
-  host.querySelector('.wtop').innerHTML = `<button class="iconbtn" data-w="leave">◀</button><div class="grow"><div class="title">Floor ${W.floor}/${FLOORS} · ${G.BIOMES[W.biome].name}</div>
-    <div class="small muted">${a.type === 'event' ? EV_N[a.event] : a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
-    <button class="pill wbtn" data-w="tonic" title="Glim Tonic: heal your squad"><img src="${IMG('wd_tonic')}" alt="">${W.tonics || 0}</button><span class="pill">🔑 ${W.keys}</span><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta().shards}</span>
+  host.querySelector('.wtop').innerHTML = `<button class="iconbtn" data-w="leave">◀</button><div class="grow"><div class="title">${W.floor > FLOORS ? 'The Rival\'s Den' : `Floor ${W.floor}/${FLOORS} · ${G.BIOMES[W.biome].name}`}</div>
+    <div class="small muted">${a.tr && !a.tr.beaten ? (a.tr.captain ? 'Floor captain · ' : a.tr.den ? 'The Rival\'s Den · ' : '') + G.TRAINERS[a.tr.arch].n : a.type === 'event' ? EV_N[a.event] : a.type === 'start' ? 'Entrance' : a.type === 'lair' ? 'Lair' : a.type === 'locked' ? 'Vault' : a.type === 'secret' ? 'Secret room' : a.type === 'treasure' ? 'Treasure room' : a.type === 'shrine' ? 'Shrine' : 'Wild room'}${a.mon && !a.mon.beaten ? ' · ' + G.SP[a.mon.sp].names[a.mon.star - 1] + (a.mon.shiny ? ' <span class="wshiny">✦ SHINY</span>' : '') + (unlocked(a.mon.sp) ? '' : ' <span style="color:var(--gold)">NEW!</span>') : ''}</div></div>
+    <button class="pill wbtn" data-w="tonic" title="Glim Tonic: heal your squad"><img src="${IMG('wd_tonic')}" alt="">${W.tonics || 0}</button><span class="pill">🔑 ${W.keys}</span><span class="pill" title="Trainer Tokens"><img src="${IMG('wd_token')}" alt="">${meta().tokens || 0}</span><span class="pill"><img src="${IMG('ui_shard')}" alt="">${meta().shards}</span>
     ${(W.relics || []).length ? `<div class="wrelics">${W.relics.map(id => `<button class="wrel" data-w="relic:${id}" title="${WR[id].n}"><img src="${IMG(WR[id].ic)}" alt=""></button>`).join('')}</div>` : ''}`;
   host.querySelector('.wsquad').innerHTML = W.squad.map(m => {
     const S = G.SP[m.sp], next = xpStar()[m.star];
@@ -284,7 +315,7 @@ function minimap() {
     ctx.globalAlpha = a.visited ? 1 : 0.8;
     ctx.fillRect(x, y, s, sh);
     ctx.globalAlpha = 1;
-    const c = a.type === 'lair' ? '#ff5a6e' : a.type === 'treasure' ? '#ffd65a' : a.type === 'shrine' ? '#6bff8f' : a.type === 'locked' ? '#ffb02e' : a.type === 'secret' ? '#d9a6ff' : a.type === 'event' && !a.used ? '#6fd3ff' : null;
+    const c = a.type === 'lair' ? '#ff5a6e' : a.type === 'treasure' ? '#ffd65a' : a.type === 'shrine' ? '#6bff8f' : a.type === 'locked' ? '#ffb02e' : a.type === 'secret' ? '#d9a6ff' : a.type === 'event' && !a.used ? '#6fd3ff' : a.tr && !a.tr.beaten && a.visited ? '#ff9f43' : null;
     if (c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x + s / 2, y + sh / 2, 2.6, 0, 6.3); ctx.fill(); }
     else if (a.visited && a.mon && !a.mon.beaten) { ctx.fillStyle = ELC[G.SP[a.mon.sp].el]; ctx.beginPath(); ctx.arc(x + s / 2, y + sh / 2, 2.4, 0, 6.3); ctx.fill(); }
     if (a.item === 'key' && a.visited && !a.used) { ctx.fillStyle = '#ffd65a'; ctx.fillRect(x + s - 4, y + 1, 3, 3); }
@@ -385,7 +416,8 @@ function step(dt) {
   V.parts = V.parts.filter(p => p.t < p.life);
   if (V.slide) { V.slide.t += dt / 0.32; if (V.slide.t >= 1) { V.slide = null; } return; }
   const a = room();
-  const [ix, iy] = inputVec();
+  let [ix, iy] = inputVec();
+  if (V.tr && V.tr.spotted) ix = iy = 0;   // spotted: the trainer walks over, you wait
   const sp = 5.2;
   const x0 = V.px, y0 = V.py;
   const o = { x: V.px + ix * sp * dt, y: V.py + iy * sp * dt };
@@ -394,6 +426,7 @@ function step(dt) {
   const gapX = Math.abs(o.x - 8) < 0.8, gapY = Math.abs(o.y - 4.5) < 0.8;
   const dn = doorOf(a, 'n'), ds = doorOf(a, 's'), dw = doorOf(a, 'w'), de = doorOf(a, 'e');
   const tryDoor = (d, st) => {
+    if (st === 'sealed') return msg('The doors slammed shut. Win the trainer battle first!');
     if (st === 'lock') { if (W.keys > 0 || rw('skeleton')) { if (!rw('skeleton')) W.keys--; const t = W.rooms[key(a.x + DIRS[d][0], a.y + DIRS[d][1])]; (t.type === 'locked' ? t : a).unlocked = true; U.SFX.wvault(); U.toast('Unlocked the vault!'); burst(DOOR[d][0], DOOR[d][1], '#ffd65a'); save(); minimap(); } else msg('Locked. Find a key on this floor.'); }
     if (st === 'crack') {
       V.push.d === d ? V.push.t += dt : (V.push = { d, t: 0 });
@@ -418,7 +451,10 @@ function step(dt) {
   { const [c, y] = tileAt(V.px, V.py), [tx, ty] = tileXY(c, y); if (tile(c, y) === 'S' && !rw('spikeproof') && Math.abs(V.px - tx) < 0.42 && Math.abs(V.py - ty) < 0.42 && V.hurtT <= 0 && !V.slide) hurt(); }
   // pickups
   const near = (x, y, r) => Math.hypot(V.px - x, V.py - y) < r;
-  if (a.item && !a.used && near(8, 4.5, 0.9) && !(a.mon && !a.mon.beaten)) pickup(a);
+  if (a.item && !a.used && near(8, 4.5, 0.9) && !(a.mon && !a.mon.beaten)) {
+    if (a.tr && !a.tr.beaten) msg(G.TRAINERS[a.tr.arch].n + ' guards this treasure.'); else pickup(a);
+  }
+  if (V.tr && trainerStep(a, dt)) return;
   if (a.type === 'lair' && a.mon && a.mon.beaten && near(8, 4.5, 0.8)) return descend();
   // wild creatures wander, then come at you when you are close
   for (const m of V.mons) {
@@ -619,7 +655,13 @@ async function victory(a, mon, fit) {
 }
 async function descend() {
   V.pause = true;
-  if (W.floor >= FLOORS) return endExpedition('done');
+  if (W.floor >= FLOORS) {
+    if ((meta().badges || 0) >= 3 && W.floor === FLOORS) {
+      const d = await U.ask('A dark stair…', `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG('tr_rival')}" style="max-height:140px" alt=""></div><p style="text-align:center">Three Rival Badges glint in your pack. A dark stair leads to <b>the Rival\'s Den</b>, where Jax waits with his best team.</p>`, U.btn('den', 'Face Jax', '') + U.btn('home', 'Head home', 'green sm'));
+      if (d === 'den') { U.SFX.wdescend(); newFloor(FLOORS + 1); placeRoom(null); save(); hud(); U.toast('The Rival\'s Den'); V.pause = false; V.last = performance.now(); return; }
+    }
+    return endExpedition('done');
+  }
   const v = await U.ask('Go deeper?', `<p style="text-align:center">Stairs lead down to floor ${W.floor + 1}/${FLOORS}. Rarer, stronger creatures live deeper.</p><p class="small muted" style="text-align:center">Fainted creatures recover ${40 + 15 * up('w_spring')}% HP on the way down; everyone else heals ${25 + 15 * up('w_spring')}%.</p>`, U.btn('go', 'Descend', 'green') + U.btn('stay', 'Not yet', 'ghost sm'));
   if (v !== 'go') { V.py = Math.min(IN.y1, V.py + 1.4); V.pause = false; V.last = performance.now(); return; }
   const sp = 0.15 * up('w_spring');
@@ -630,6 +672,197 @@ async function descend() {
   save(); hud();
   U.toast(`Floor ${W.floor}: ${G.BIOMES[W.biome].name}`);
   V.pause = false; V.last = performance.now();
+}
+
+
+// ---- trainers (g14) -----------------------------------------------------------------------------
+const FACE = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] };
+const TOKENS = t => t.den ? 8 : t.rival ? 4 : t.captain ? 3 : 2;
+// a view cone that widens with distance, blocked by rocks and pits
+function sees(T) {
+  const [fx, fy] = FACE[T.cur], rx = V.px - T.x, ry = V.py - T.y;
+  const along = rx * fx + ry * fy, side = Math.abs(rx * fy - ry * fx);
+  if (along < 0.2 || along > 6.5 || side > 0.65 + along * 0.14) return false;
+  const n = Math.ceil(along / 0.25);
+  for (let i = 1; i < n; i++) { const x = T.x + rx * i / n, y = T.y + ry * i / n, [c, yy] = tileAt(x, y); if (solid(tile(c, yy))) return false; }
+  return true;
+}
+function trainerStep(a, dt) {
+  const T = V.tr;
+  T.cool -= dt;
+  if (!T.spotted) {
+    T.t += dt;
+    if (T.turn && T.t > 3) { T.t = 0; T.cur = T.cur === T.face ? T.turn : T.face; if (T.cur === 'e' || T.cur === 'w') T.fx = T.cur === 'e' ? 1 : -1; }
+    if (T.cool <= 0 && V.inv <= 0 && sees(T)) { T.spotted = true; T.bang = 0.75; V.sealed = true; U.SFX.wencounter(); minimap(); return false; }
+    if (Math.hypot(V.px - T.x, V.py - T.y) < 1.05 && V.inv <= 0) { trainerBattle(a, false); return true; }
+    return false;
+  }
+  if (T.bang > 0) { T.bang -= dt; return false; }
+  // walk over around rocks and pits; if anything still blocks the way, the battle starts anyway
+  T.walkT = (T.walkT || 0) + dt;
+  const [tx, ty] = chaseStep(T), dx = tx - T.x, dy = ty - T.y, l = Math.hypot(dx, dy) || 1;
+  if (Math.hypot(V.px - T.x, V.py - T.y) < 1.15 || T.walkT > 2.5) { T.walkT = 0; trainerBattle(a, true); return true; }
+  const q = { x: T.x + dx / l * 3.6 * dt, y: T.y + dy / l * 3.6 * dt }; collideRocks(q, 0.4); T.x = q.x; T.y = q.y;
+  T.fx = dx > 0 ? 1 : -1; T.walk = (T.walk || 0) + dt * 9;
+  return false;
+}
+function drawCone(ctx, ox, oy, S) {
+  const T = V.tr; if (T.spotted) return;
+  const [fx, fy] = FACE[T.cur], len = 6.5, x = ox + T.x * S, y = oy + T.y * S;
+  const g = ctx.createLinearGradient(x, y, x + fx * len * S, y + fy * len * S);
+  g.addColorStop(0, 'rgba(255,214,90,.22)'); g.addColorStop(1, 'rgba(255,214,90,0)');
+  ctx.fillStyle = g; ctx.beginPath();
+  const w0 = 0.65, w1 = 0.65 + len * 0.14;
+  ctx.moveTo(x - fy * w0 * S, y + fx * w0 * S); ctx.lineTo(x + (fx * len - fy * w1) * S, y + (fy * len + fx * w1) * S);
+  ctx.lineTo(x + (fx * len + fy * w1) * S, y + (fy * len - fx * w1) * S); ctx.lineTo(x + fy * w0 * S, y - fx * w0 * S); ctx.fill();
+}
+function drawTrainer(ctx, ox, oy, S) {
+  const T = V.tr, a = room(), art = img(G.TRAINERS[a.tr.arch].art), x = ox + T.x * S, y = oy + T.y * S;
+  // trainer art faces left, so mirror it to look right
+  sprite(ctx, art, x, y, 1.45 * S, -(T.fx || -1), T.spotted && T.bang <= 0 ? Math.abs(Math.sin(T.walk || 0)) * 0.05 : 0, !!(a.tr.captain || a.tr.den), false);
+  if (T.spotted && T.bang > 0) {
+    const bx = x, by = y - 1.75 * S, r = 0.32 * S;
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, r, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#e8243c'; ctx.font = `900 ${Math.round(r * 1.5)}px Fredoka, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', bx, by + r * 0.05);
+  }
+}
+// scouting: see their team and tactic, pick a lead, then battle
+async function trainerBattle(a, spotted) {
+  V.pause = true;
+  const t = a.tr, T = G.TRAINERS[t.arch], fit = W.squad.filter(s => s.hp > 0);
+  const theirEls = t.team.map(x => G.SP[x.sp].el);
+  const edge = s => theirEls.filter(e => (G.STRONG[G.SP[s.sp].el] || []).includes(e)).length;
+  const title = (t.den ? 'The Rival\'s Den: ' : t.captain ? 'Floor captain ' : '') + T.n;
+  const bonus = Object.assign({}, T.tactic.b);
+  for (const id of t.relics) for (const k in WR[id].b || {}) bonus[k] = (bonus[k] || 0) + WR[id].b[k];
+  const body = `<div class="trhead"><img src="${IMG(T.art)}" alt=""><div><p><i>"${T.line}"</i></p>
+      <p class="small"><b style="color:var(--gold)">${T.tactic.n}:</b> ${T.tactic.d}</p>
+      <p class="small">Holding: ${t.relics.map(id => `<img class="ri" src="${IMG(WR[id].ic)}" alt="">${WR[id].n}`).join(', ')}</p></div></div>
+    <div class="trteam">${t.team.map(x => `<div><img src="${IMG('cr_' + x.sp + x.star)}" alt=""><div>${'★'.repeat(x.star)}</div>${U.elBadge(G.SP[x.sp].el)}</div>`).join('')}</div>
+    <p class="muted small" style="text-align:center;margin:6px 0 4px">Pick a lead: it fights up front with +10% HP and ATK. <span style="color:#7dff9b">▲</span> = strong against their team.</p>
+    <div class="list">${fit.map(s => `<div class="li click" data-v="lead:${s.uid}"><img class="ic" src="${IMG('cr_' + s.sp + s.star)}" alt=""><div class="grow"><div class="t">${G.SP[s.sp].names[s.star - 1]} ${'★'.repeat(s.star)} ${edge(s) ? `<span style="color:#7dff9b">▲${edge(s)}</span>` : ''}</div><div class="small">${Math.round(s.hp * 100)}% HP</div></div></div>`).join('')}</div>`;
+  const v = await U.ask(title, body, U.btn('go', 'Battle!', 'green') + (spotted || t.den ? '' : U.btn('x', 'Not now', 'ghost sm')));
+  if (v === 'x') { V.tr.cool = 2.5; V.inv = 1; backOff(); V.pause = false; V.last = performance.now(); return; }
+  const lead = v && v.startsWith('lead:') ? +v.slice(5) : null;
+  const insts = fit.map(squadInst);
+  if (lead != null) { const i = insts.findIndex(x => x.uid === lead); if (i >= 0) { insts[i].scale = 1.1; insts.unshift(insts.splice(i, 1)[0]); } }
+  const foes = t.team.map((x, i) => { const f = { uid: -1 - i, sp: x.sp, star: x.star, muts: [], scale: t.scale }; f.skill = C.defaultSkill(f); meta().dex[x.sp] = Math.max(meta().dex[x.sp] || 0, x.star); return f; });
+  U.SFX.wencounter();
+  $('#wilds').classList.add('flash'); await new Promise(r => setTimeout(r, 380)); $('#wilds').classList.remove('flash');
+  const st = await U.wildBattle(placeSide(insts, 0), placeSide(foes, 1), W.biome, '⚔ ' + title, fightBonus(), bonus);
+  if (window.GAUDIO) GAUDIO.music('wilds_explore');
+  for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
+  U.show('wilds');
+  V.sealed = false;
+  if (st.over === 1) await trainerWin(a);
+  else {
+    U.SFX.ko();
+    if (!W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) { W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4; await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green')); }
+    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted'); }
+    await U.ask('Defeat', `<p style="text-align:center">${T.n}: "Come back when you're stronger!" Fainted creatures sit out until the next floor (or a shrine).</p>`, U.btn('ok', 'Regroup', 'green'));
+    Object.assign(V.tr, { x: V.tr.x0, y: V.tr.y0, spotted: false, bang: 0, cool: 3, cur: V.tr.face });
+    backOff(); V.inv = 2;
+  }
+  save(); U.save(); hud();
+  V.pause = false; V.last = performance.now();
+}
+async function trainerWin(a) {
+  const t = a.tr, T = G.TRAINERS[t.arch], m = meta();
+  t.beaten = true; V.tr = null; W.wins++;
+  const tok = TOKENS(t), g = Math.round((6 + 3 * Math.min(W.floor, FLOORS)) * shardMul());
+  m.tokens = (m.tokens || 0) + tok; m.shards += g; W.shards += g;
+  const evos = [];
+  for (const s of W.squad) if (s.hp > 0) gainXp(s, 2 + rw('xp'), evos);
+  if (rw('winHeal')) healFit(rw('winHeal'));
+  m.trCards = m.trCards || {};
+  const card = !m.trCards[t.arch]; m.trCards[t.arch] = 1;
+  const lines = [`+${tok} Trainer Tokens · +${g} Glimmer Shards`];
+  if (card) lines.push(`<b style="color:var(--gold)">New trainer card:</b> ${T.n}!`);
+  let skin = null;
+  if (t.rival && !t.den) { m.badges = Math.min(3, (m.badges || 0) + 1); lines.push(`<img class="ri" src="${IMG('wd_badge')}" alt=""><b style="color:#c9a6ff">Rival Badge ${m.badges}/3!</b>${m.badges >= 3 ? ' The Rival\'s Den opens after floor 5.' : ''}`); }
+  if (t.den) m.den = 1;
+  for (const k in G.SKINS) if (skinOpen(k) && !(m.skinsSeen || {})[k] && G.SKINS[k].req) { m.skinsSeen = Object.assign(m.skinsSeen || {}, { [k]: 1 }); skin = k; }
+  if (skin) lines.push(`<b style="color:#7dff9b">New tamer outfit: ${G.SKINS[skin].n}!</b> Pick it before your next expedition.`);
+  for (const s of evos) lines.push(`<span style="color:#7dff9b">${G.SP[s.sp].names[s.star - 2]} evolved into <b>${G.SP[s.sp].names[s.star - 1]}</b>!</span>`);
+  U.SFX.wcatch();
+  await U.ask(t.den ? 'Jax is beaten!' : 'Trainer defeated!', `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG(T.art)}" style="max-height:140px" alt=""></div>
+    <p style="text-align:center"><i>"${t.rival ? 'Tch. Next time, I\'ll be ready.' : 'What a battle! You\'ve earned this.'}"</i></p>${lines.map(l => `<p class="small" style="text-align:center">${l}</p>`).join('')}`, U.btn('ok', 'Continue', 'green'));
+  if (t.captain) await offerRelics(3, 'The captain\'s prize (rare relics)', false, true);
+  if (t.den) return endExpedition('champion');
+}
+
+// ---- tamer outfits -----------------------------------------------------------------------------
+function skinOpen(k) {
+  const q = (G.SKINS[k] || {}).req, m = meta();
+  if (!q) return true;
+  if (q.badges) return (m.badges || 0) >= q.badges;
+  if (q.den) return !!m.den;
+  if (q.cards) return Object.keys(m.trCards || {}).filter(c => c !== 'rival').length >= q.cards;
+  return false;
+}
+// recolour the jacket (the art's teal range) at runtime, so outfits follow every tamer frame
+const skinCache = {};
+function skinImg(im) {
+  const k = meta().skin, sk = G.SKINS[k];
+  if (!sk || sk.hue == null || !skinOpen(k) || !ready(im) || im instanceof HTMLCanvasElement) return im;
+  const ck = im.src + '|' + k;
+  if (skinCache[ck]) return skinCache[ck];
+  const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  try {
+    const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 8) continue;
+      const r = p[i] / 255, g = p[i + 1] / 255, b = p[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dd = mx - mn;
+      if (dd < 0.06) continue;
+      const sat = l > 0.5 ? dd / (2 - mx - mn) : dd / (mx + mn);
+      let h = mx === r ? ((g - b) / dd) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4; h *= 60; if (h < 0) h += 360;
+      if (h < 145 || h > 215 || sat < 0.18 || l < 0.08 || l > 0.93) continue;
+      const H = ((sk.hue + (h - 180) * 0.5) % 360 + 360) % 360, Sa = Math.min(1, sat * (sk.sat || 1));
+      const q2 = l < 0.5 ? l * (1 + Sa) : l + Sa - l * Sa, p2 = 2 * l - q2;
+      const hu = t => { t = (t + 1) % 1; return t < 1 / 6 ? p2 + (q2 - p2) * 6 * t : t < 0.5 ? q2 : t < 2 / 3 ? p2 + (q2 - p2) * (2 / 3 - t) * 6 : p2; };
+      p[i] = hu(H / 360 + 1 / 3) * 255; p[i + 1] = hu(H / 360) * 255; p[i + 2] = hu(H / 360 - 1 / 3) * 255;
+    }
+    x.putImageData(d, 0, 0);
+  } catch (e) { return im; }
+  skinCache[ck] = c;
+  return c;
+}
+function skinThumb(k) {
+  const im = img('wd_tamer_idle_1'); if (!ready(im)) return IMG('wd_tamer_idle_1');
+  const prev = meta().skin; meta().skin = k; const c = skinImg(im); meta().skin = prev;
+  return c instanceof HTMLCanvasElement ? c.toDataURL() : IMG('wd_tamer_idle_1');
+}
+
+// ---- the Trainer's Post (camp): spend Trainer Tokens -------------------------------------------------
+async function post() {
+  const m = meta(), TC = G.TOKEN_COST;
+  m.wstar = m.wstar || {}; m.lures = m.lures || {}; m.shinyBoost = m.shinyBoost || {};
+  for (;;) {
+    const tk = m.tokens || 0, list = Object.keys(G.SP).filter(unlocked).sort((a, b) => G.TIER[a] - G.TIER[b]);
+    const v = await U.ask('The Trainer\'s Post', `<p class="muted small" style="text-align:center">Beat trainers in the Wilds for <b>Trainer Tokens</b>. You have <b>${tk}</b> <img class="ri" src="${IMG('wd_token')}" alt="">.</p>
+      <h3 class="camph">Lures <span class="small muted">(${TC.lure} each; pick one when you set out, and that element shows up 4× as often)</span></h3>
+      <div class="row wrap center" style="gap:6px">${G.ELS.map(e => `<button class="btn sm ${tk >= TC.lure ? '' : 'ghost'}" data-v="lure:${e}">${U.elBadge(e)} ${m.lures[e] || 0}</button>`).join('')}</div>
+      <h3 class="camph">Training <span class="small muted">(start Wilds expeditions at ★2 for ${TC.star2}, ★3 for ${TC.star3}) · Shiny sense ✦ (${TC.shiny}: 4× shiny odds for that species in the Wilds)</span></h3>
+      <div class="list">${list.map(sp => { const st = m.wstar[sp] || 1, nx = st < 3 ? (st === 1 ? TC.star2 : TC.star3) : 0; return `<div class="li"><img class="ic" src="${IMG('cr_' + sp + st)}" alt=""><div class="grow"><div class="t">${G.SP[sp].names[st - 1]} ${'★'.repeat(st)}${m.shinyBoost[sp] ? ' <span class="wshiny">✦</span>' : ''}</div></div>${nx ? `<button class="btn sm ${tk >= nx ? '' : 'ghost'}" data-v="star:${sp}">★${st + 1} · ${nx}</button>` : ''}${m.shinyBoost[sp] ? '' : `<button class="btn sm ghost" data-v="shiny:${sp}">✦ ${TC.shiny}</button>`}</div>`; }).join('')}</div>`,
+      U.btn('x', 'Done', 'green'));
+    if (!v || v === 'x') break;
+    const [kind, id] = v.split(':'), cost = kind === 'lure' ? TC.lure : kind === 'shiny' ? TC.shiny : (m.wstar[id] || 1) === 1 ? TC.star2 : TC.star3;
+    if ((m.tokens || 0) < cost) { U.toast('Not enough Trainer Tokens. Beat trainers in the Wilds!'); continue; }
+    m.tokens -= cost; U.SFX.coin();
+    if (kind === 'lure') m.lures[id] = (m.lures[id] || 0) + 1;
+    else if (kind === 'shiny') m.shinyBoost[id] = 1;
+    else m.wstar[id] = Math.min(3, (m.wstar[id] || 1) + 1);
+    U.save();
+  }
+}
+// trainer cards and outfits for the Glimdex
+function dexHtml() {
+  const m = meta(), cards = m.trCards || {};
+  return `<h3 class="camph">Trainer cards ${Object.keys(cards).length}/${Object.keys(G.TRAINERS).length} · <img class="ri" src="${IMG('wd_badge')}" alt="">Rival Badges ${m.badges || 0}/3</h3>
+    <div class="dex trcards">${Object.keys(G.TRAINERS).map(k => `<div class="${cards[k] ? '' : 'unseen'}"><img src="${IMG(G.TRAINERS[k].art)}" alt=""><div>${cards[k] ? G.TRAINERS[k].n : '???'}</div></div>`).join('')}</div>
+    <h3 class="camph">Tamer outfits</h3>
+    <div class="dex trcards">${Object.keys(G.SKINS).map(k => `<div class="${skinOpen(k) ? '' : 'unseen'}"><img src="${skinOpen(k) ? skinThumb(k) : IMG('wd_tamer_idle_1')}" alt=""><div>${G.SKINS[k].n}</div><div class="small muted">${skinOpen(k) ? '' : G.SKINS[k].d}</div></div>`).join('')}</div>`;
 }
 
 // ---- drawing ------------------------------------------------------------------------------------
@@ -654,7 +887,8 @@ function draw() {
   // creatures and the tamer, back to front
   const ents = V.mons.map(m => ({ y: m.y, f: () => sprite(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
   for (const [x, y, rr] of rockList(room())) ents.push({ y, f: () => drawRock(ctx, ox, oy, S, x, y, rr) });
-  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const [k, fx, bob] = tamerPose(); sprite(ctx, tamerImg(k), ox + V.px * S, oy + V.py * S, 1.3 * S, fx, bob, false); ctx.globalAlpha = 1; } });
+  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const [k, fx, bob] = tamerPose(); sprite(ctx, skinImg(tamerImg(k)), ox + V.px * S, oy + V.py * S, 1.3 * S, fx, bob, false); ctx.globalAlpha = 1; } });
+  if (V.tr) { drawCone(ctx, ox, oy, S); ents.push({ y: V.tr.y, f: () => drawTrainer(ctx, ox, oy, S) }); }
   ents.sort((p, q) => p.y - q.y).forEach(e => e.f());
   for (const p of V.parts) {
     ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
@@ -721,7 +955,7 @@ function glow(ctx, x, y, r, rgb) {
 // per-wall gate, unrotated. Biome skin, then the grey file, then the old rotated sprite.
 // While a per-wall file is still decoding, hold rather than flash the flat cutout.
 function drawDoor(ctx, st, d, x, y, rot, ox, oy, S) {
-  const kind = st === 'open' ? 'door' : st === 'lock' ? 'lock' : 'crack';
+  const kind = st === 'open' ? 'door' : st === 'lock' || st === 'sealed' ? 'lock' : 'crack';
   const neu = img('wd_' + kind + '_' + d);
   const skin = DOORSKIN[W.biome] ? img('wd_' + kind + '_' + d + '_' + W.biome) : null;
   if (skin && ready(skin)) return drawGate(ctx, skin, d, x, y, ox, oy, S);
@@ -767,5 +1001,5 @@ function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {
   ctx.drawImage(im, -sz / 2, -sz * 0.92, sz, sz); ctx.restore();
 }
 
-window.WILDS = { open, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
+window.WILDS = { open, post, dexHtml, get state() { return W; }, get view() { return V; }, doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]) };
 })();

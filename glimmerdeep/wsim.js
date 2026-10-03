@@ -10,7 +10,7 @@ const N = +process.argv[2] || 200;
 const UPW = {}; if (process.env.WUP) for (const k in G.META) if (G.META[k].mode === 'wilds') UPW[k] = G.META[k].max;
 const WR = G.WILD_RELICS;
 const BIOMES = Object.keys(G.BIOMES).filter(k => k !== 'core');
-const stat = { floorReached: [0, 0, 0, 0, 0, 0], done: 0, unlocks: 0, fights: [[], [], [], [], []], lair: [[], [], [], [], []] };
+const stat = { floorReached: [0, 0, 0, 0, 0, 0], done: 0, unlocks: 0, fights: [[], [], [], [], []], lair: [[], [], [], [], []], trainer: [[], [], [], [], []], captain: [[], [], [], [], []], rival: [[], [], [], [], []] };
 function expedition(n, unl) {
   const r = Wg.rng(1000 + n * 31);
   const isU = k => !!unl[k];
@@ -31,10 +31,10 @@ function expedition(n, unl) {
   for (; floor <= Wg.FLOORS && alive; floor++) {
     stat.floorReached[floor]++;
     const biome = floor === Wg.FLOORS ? 'core' : Wg.pick(r, BIOMES);
-    const f = Wg.genFloor(floor, biome, 7 + n * 13 + floor, isU);
+    const f = Wg.genFloor(floor, biome, 7 + n * 13 + floor, isU, { rival: floor === 2 + (n % 3) ? { pool: Object.keys(unl), level: 0 } : null });
     const rooms = Object.values(f.rooms);
     // berries, chest heals and the shrine (the bot visits the shrine before the lair)
-    const fightRooms = rooms.filter(a => a.mon && a.type !== 'lair' && (a.type !== 'locked'));
+    const fightRooms = rooms.filter(a => (a.mon && a.type !== 'lair' && a.type !== 'locked') || a.tr);
     const lair = rooms.find(a => a.type === 'lair');
     const shrine = rooms.some(a => a.item === 'shrine');
     let berries = rooms.filter(a => a.item === 'berry').length;
@@ -50,14 +50,21 @@ function expedition(n, unl) {
         if (berries && fit.some(s => s.hp < 0.5)) { berries--; for (const s of fit) s.hp = Math.min(1, s.hp + 0.35); }
         if (tonics && fit.reduce((t, s) => t + s.hp, 0) / fit.length < 0.5) { tonics--; for (const s of fit) s.hp = Math.min(1, s.hp + 0.4 + rwk('tonic')); }
         const insts = fit.map(m => { const i = { uid: m.uid, sp: m.sp, star: m.star, muts: [], hpFrac: m.hp }; i.skill = C.defaultSkill(i); return i; });
-        const mon = a.mon;
-        const foes = [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
+        const mon = a.mon, tr = a.tr;
+        for (const s of fit) s.hp0 = s.hp;
+        // trainers: their themed team, tactic and relics; wild rooms: the creature and its escorts
+        const foes = tr ? tr.team.map((x, i) => ({ uid: -1 - i, sp: x.sp, star: x.star, muts: [], scale: tr.scale }))
+          : [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
+        let foeBonus = {};
+        if (tr) { foeBonus = Object.assign({}, G.TRAINERS[tr.arch].tactic.b); for (const id of tr.relics) for (const k in WR[id].b || {}) foeBonus[k] = (foeBonus[k] || 0) + WR[id].b[k]; }
         for (const x of foes) x.skill = C.defaultSkill(x);
-        const st = C.create({ board: Wg.placeSide(insts, 0), enemies: Wg.placeSide(foes, 1), relics: [], perks: {}, biome, seed: (n * 977 + floor * 31 + uid++) >>> 0, noHaz: true, camp: bonus(), mods: {} });
+        const st = C.create({ board: Wg.placeSide(insts, 0), enemies: Wg.placeSide(foes, 1), relics: [], perks: {}, biome, seed: (n * 977 + floor * 31 + uid++) >>> 0, noHaz: true, camp: bonus(), foeBonus, mods: {} });
         C.resolve(st);
         for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = squad.find(s => s.uid === u.inst.uid); m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
         const win = st.over === 1;
-        (a === lair ? stat.lair : stat.fights)[floor - 1].push(win ? 1 : 0);
+        (tr ? (tr.rival ? stat.rival : tr.captain ? stat.captain : stat.trainer) : a === lair ? stat.lair : stat.fights)[floor - 1].push(win ? 1 : 0);
+        if (tr && tr.captain) { for (const s of fit) s.hp = s.hp0; break; }   // captains are optional: measure, then undo
+        if (tr) { if (win) for (const s of fit) { s.xp += 2; while (s.star < 3 && s.xp >= XPS[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); } } break; }
         if (win) {
           if (!unl[mon.sp]) { unl[mon.sp] = 1; stat.unlocks++; }
           for (const s of fit) { s.xp += (a === lair ? 2 : 1) + rwk('xp'); while (s.star < 3 && s.xp >= XPS[s.star]) { s.star++; s.hp = Math.min(1, s.hp + 0.3); } }
@@ -95,3 +102,4 @@ const pct = a => a.length ? Math.round(100 * a.reduce((x, y) => x + y, 0) / a.le
 console.log(`expeditions ${N}  cleared all ${Wg.FLOORS}: ${Math.round(100 * stat.done / N)}%  avg unlocks ${(stat.unlocks / N).toFixed(1)}`);
 console.log('reached floor', stat.floorReached.slice(1).map(v => Math.round(100 * v / N) + '%').join(' / '));
 console.log('wild fights won', stat.fights.map(pct).join(' / '), '  lair', stat.lair.map(pct).join(' / '));
+console.log('trainers won', stat.trainer.map(pct).join(' / '), '  captains', stat.captain.map(pct).join(' / '), '  rival', stat.rival.map(pct).join(' / '));

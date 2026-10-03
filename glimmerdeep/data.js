@@ -488,17 +488,47 @@ const WILD_RELICS = {
   swift_plume: { n: 'Swift Plume', ic: 'rl_gale_feather', d: 'Your squad attacks 15% faster.', b: { asMul: 0.15 } },
   moon_charm: { n: 'Moon Charm', ic: 'rl_moon_charm', d: 'Your squad starts each battle with +20 mana.', b: { startOd: 20 } },
   four_leaf: { n: 'Four-Leaf Clover', ic: 'rl_clover', d: '+8% crit chance.', b: { crit: 0.08 } },
-  vamp_fang: { n: 'Vampire Fang', ic: 'rl_vamp_fang', d: 'Your squad heals for 10% of the damage it deals.', b: { lsAll: 0.1 } },
-  bramble_mail: { n: 'Bramble Mail', ic: 'rl_bramble_knot', d: 'Attackers take 15% of the damage they deal back.', b: { thornsAll: 0.15 } },
+  vamp_fang: { rare: 1, n: 'Vampire Fang', ic: 'rl_vamp_fang', d: 'Your squad heals for 10% of the damage it deals.', b: { lsAll: 0.1 } },
+  bramble_mail: { rare: 1, n: 'Bramble Mail', ic: 'rl_bramble_knot', d: 'Attackers take 15% of the damage they deal back.', b: { thornsAll: 0.15 } },
   bloom_seed: { n: 'Bloom Seed', ic: 'rl_bloom_seed', d: 'After each win your squad heals 12%.', w: { winHeal: 0.12 } },
   lantern: { n: 'Scout\'s Map', ic: 'rl_treasure_map', d: 'Reveals every floor, secret rooms included.', w: { map: 2 } },
   iron_boots: { n: 'Iron Boots', ic: 'rl_ironroot', d: 'Spike traps cannot hurt you.', w: { spikeproof: 1 } },
   lucky_purse: { n: 'Lucky Purse', ic: 'rl_purse', d: '+50% shards from battles and chests.', w: { shardMul: 0.5 } },
-  bond_knot: { n: 'Bond Knot', ic: 'rl_kinship_knot', d: 'Your squad gains 1 extra XP per win.', w: { xp: 1 } },
-  phoenix: { n: 'Phoenix Plume', ic: 'rl_phoenix_plume', d: 'The first time your whole squad would faint, everyone gets back up at 40% HP.', w: { phoenix: 1 } },
+  bond_knot: { rare: 1, n: 'Bond Knot', ic: 'rl_kinship_knot', d: 'Your squad gains 1 extra XP per win.', w: { xp: 1 } },
+  phoenix: { rare: 1, n: 'Phoenix Plume', ic: 'rl_phoenix_plume', d: 'The first time your whole squad would faint, everyone gets back up at 40% HP.', w: { phoenix: 1 } },
   potion_belt: { n: 'Potion Belt', ic: 'rl_brine_flask', d: 'Glim Tonics heal 65% instead of 40%.', w: { tonic: 0.25 } },
-  skeleton_key: { n: 'Skeleton Key', ic: 'wd_key', d: 'Vault doors open without a key.', w: { skeleton: 1 } },
+  skeleton_key: { rare: 1, n: 'Skeleton Key', ic: 'wd_key', d: 'Vault doors open without a key.', w: { skeleton: 1 } },
 };
+
+// ---- Wilds trainers (g14): themed teams with a tactic; beating them pays Trainer Tokens ----------
+// els/roles filter the team; size overrides the floor's team size; tactic.b is a bonus for THEIR side
+const TRAINERS = {
+  hiker: { n: 'Hiker Brom', art: 'tr_hiker', els: ['stone', 'metal'], roles: ['tank', 'striker'], line: 'Ho there! Let\'s see if your team can crack this wall!',
+    tactic: { n: 'Rockfall Wall', d: 'Their whole team starts shielded for 15% HP.', b: { startShield: 0.15 } } },
+  firebrand: { n: 'Firebrand Kai', art: 'tr_firebrand', els: ['ember'], roles: ['striker', 'caster'], line: 'Feel the heat? That\'s my team warming up!',
+    tactic: { n: 'Wildfire', d: 'Their burns last longer and hit 40% harder.', b: { burnTurns: 2, burnAmp: 0.4 } } },
+  tidecaller: { n: 'Tidecaller Mira', art: 'tr_tidecaller', els: ['tide', 'frost'], line: 'The tide always comes back. Can you hold your ground?',
+    tactic: { n: 'Cold Current', d: 'Your squad starts Chilled, and Chilled foes take 15% more damage from them.', b: { startChill: 5, chillAmp: 0.15 } } },
+  bugcatcher: { n: 'Bug Catcher Pip', art: 'tr_bugcatcher', size: [5, 6, 6, 7, 7], tmaxOff: -1, line: 'I caught ALL of these myself! Wanna see?',
+    tactic: { n: 'Swarm', d: 'Lots of small creatures that attack 15% faster.', b: { asMul: 0.15 } } },
+  mystic: { n: 'Mystic Selene', art: 'tr_mystic', roles: ['caster', 'support'], line: 'The stars told me you would come.',
+    tactic: { n: 'Foresight', d: 'Their team starts with half mana.', b: { startOd: 50 } } },
+  ace: { n: 'Ace Trainer Vale', art: 'tr_ace', allStar2: true, relics: 2, line: 'A real trainer battle. Show me your best.',
+    tactic: { n: 'Ace Training', d: 'Every creature is ★2 or better, and they carry two relics.', b: { atkMul: 0.05, hpMul: 0.05 } } },
+  rival: { n: 'Rival Jax', art: 'tr_rival', rival: true, line: 'You again? I caught the same creatures you did, only better.',
+    tactic: { n: 'Rivalry', d: 'Their team is built from the creatures YOU have unlocked, and grows stronger each time you win.', b: {} } },
+};
+// tamer outfits: a hue for the jacket (the teal range of the art); unlock: rival badges, the Den, or every trainer card
+const SKINS = {
+  classic: { n: 'Classic', hue: null, req: null, d: 'The outfit you started with.' },
+  ember: { n: 'Ember Scout', hue: 8, req: { badges: 1 }, d: 'Beat your rival once.' },
+  frost: { n: 'Frost Ranger', hue: 205, sat: 0.55, req: { badges: 2 }, d: 'Beat your rival twice.' },
+  storm: { n: 'Storm Rival', hue: 272, req: { badges: 3 }, d: 'Win all three Rival Badges.' },
+  champion: { n: 'Champion', hue: 46, sat: 1.25, req: { den: 1 }, d: 'Defeat Jax in the Rival\'s Den.' },
+  wanderer: { n: 'Wanderer', hue: 110, req: { cards: 6 }, d: 'Collect all six trainer cards.' },
+};
+// Trainer Tokens, spent at the Trainer's Post (camp)
+const TOKEN_COST = { star2: 8, star3: 20, lure: 4, shiny: 10 };
 
 // ---- events ---------------------------------------------------------------------------
 // handled in game.js by id; text lives here
@@ -688,5 +718,5 @@ SETS.greed.b = { goldRound: 2 }; SETS.greed.d = '+2 gold every round.';
 
 root.GD = { EL, ELS, STRONG, eff, ROLE, STAGE_MUL, EVO_LV, SK, SP, SKILL_LV, BOSSES, BIOMES, ACTS, ACT_LV,
   TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS,
-  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES, WILD_RELICS };
+  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES, WILD_RELICS, TRAINERS, SKINS, TOKEN_COST };
 })(typeof window !== 'undefined' ? window : globalThis);

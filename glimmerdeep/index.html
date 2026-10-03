@@ -6,7 +6,25 @@
 <title>Glimmerdeep</title>
 <meta name="description" content="Tame, merge and evolve: a creature auto-chess roguelite.">
 <meta name="theme-color" content="#120d2a">
-<link rel="icon" href="img/cr_cind1.webp">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Glimmerdeep">
+<meta property="og:title" content="Glimmerdeep">
+<meta property="og:description" content="Tame, merge and evolve: a creature auto-chess roguelite.">
+<meta property="og:url" content="https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/">
+<meta property="og:image" content="https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Glimmerdeep: Tame. Evolve. Delve.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Glimmerdeep">
+<meta name="twitter:description" content="Tame, merge and evolve: a creature auto-chess roguelite.">
+<meta name="twitter:image" content="https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/og.png">
+<meta name="twitter:image:alt" content="Glimmerdeep: Tame. Evolve. Delve.">
+<link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 :root {
   --bg: #120d2a; --panel: #231a4a; --panel2: #2e2360; --line: #4d3f8f; --ink: #fff8ec; --dim: #c7bde8;
@@ -772,11 +790,12 @@ body[data-theme="candy"] .cell.a.alt { background: rgba(255,140,200,.26); }
 body[data-theme="candy"] .cell.f { background: rgba(140,180,255,.12); }
 body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 </style>
+<link rel="stylesheet" href="qa.css?v=q1">
 </head>
 <body>
 <div id="app">
   <section class="screen" id="title"><div class="bgimg" style="background-image:url(img/bg_title.webp)"></div>
-    <div class="layer" style="margin:auto;width:100%;padding:12px">
+    <div class="layer" style="width:100%;padding:12px">
       <div class="logo">Glimmerdeep</div>
       <div class="sub">Tame. Evolve. Delve.</div>
       <div class="title-mons"><img src="img/cr_bubb2.webp" alt=""><img src="img/cr_cind3.webp" alt=""><img src="img/cr_sprt2.webp" alt=""></div>
@@ -809,9 +828,9 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
       <div class="wsquad"></div>
     </div>
   </section>
-  <div class="modal" id="modal"><div class="panel box" id="modalBox"></div></div>
-  <div class="toast" id="toast"></div>
-  <div id="achToast" role="status"></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true"><div class="panel box" id="modalBox"></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div id="achToast" role="status" aria-live="polite"></div>
 </div>
 <script>window.GLIM_AUDIO_V = '2';</script>
 <script src="forms4.js?v=m2"></script>
@@ -819,16 +838,17 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 <script src="data.js?v=m2"></script>
 <script src="relics2.js?v=f2"></script>
 <script src="chess.js?v=m2"></script>
-<script src="fightstats.js?v=1"></script>
+<script src="fightstats.js?v=q1"></script>
 <script src="crun.js?v=m2"></script>
 <script src="fx.js?v=2"></script>
 <script src="glim-anim.js?v=m3"></script>
 <script src="glim-anim-species.js?v=m3"></script>
 <script src="audio.js?v=3"></script>
-<script src="game.js?v=m7"></script>
+<script src="game.js?v=q1"></script>
 <script src="wgen.js?v=2"></script>
 <script src="wilds.js?v=m8"></script>
 <script src="achievements.js?v=f4"></script>
 <script src="cosmetics.js?v=f2"></script>
+<script src="qa.js?v=q1"></script>
 </body>
 </html>

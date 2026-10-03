@@ -42,7 +42,7 @@ function instMods(inst) {
   }
   return m;
 }
-const STAR_HP = [0, 1, 1.8, 3.2], STAR_DEF = [0, 1, 1.25, 1.5];
+const STAR_HP = [0, 1, 1.8, 3.2, 3.8], STAR_DEF = [0, 1, 1.25, 1.5, 1.65];
 const TIER_MUL = [1, 1, 1.12, 1.25, 1.42, 1.62];
 function stats(inst, bonus) {
   bonus = bonus || {};
@@ -58,18 +58,19 @@ function stats(inst, bonus) {
     as = G.ROLE_AS[S.role] * base.spd; range = G.RANGE[inst.sp]; mul = TIER_MUL[G.TIER[inst.sp]];
   }
   const star = inst.boss ? 1 : (inst.star || 1);   // a boss' power comes from its scale
+  const shp = STAR_HP[star] || STAR_HP[3], sdef = STAR_DEF[star] || STAR_DEF[3];
   const k = mul * (inst.shiny ? 1.1 : 1) * (inst.scale || 1);
   return {
-    hp: Math.round(base.hp * 3.5 * k * STAR_HP[star] * (1 + (m.hp || 0) + (bonus.hpMul || 0))),
-    atk: base.atk * k * STAR_HP[star] * (1 + (m.atk || 0) + (bonus.atkMul || 0)),
-    def: base.def * k * STAR_DEF[star] * (1 + (m.def || 0) + (bonus.defMul || 0)),
+    hp: Math.round(base.hp * 3.5 * k * shp * (1 + (m.hp || 0) + (bonus.hpMul || 0))),
+    atk: base.atk * k * shp * (1 + (m.atk || 0) + (bonus.atkMul || 0)),
+    def: base.def * k * sdef * (1 + (m.def || 0) + (bonus.defMul || 0)),
     as: as * (1 + (m.spd || 0)) * (1 + 0.05 * (star - 1)), range,
     crit: 0.05 + (m.crit || 0), critDmg: 0.5 + (m.critDmg || 0), ls: m.ls || 0, regen: (m.regen || 0) * 0.4,
     thorns: m.thorns || 0, od: 1 + (m.od || 0), manaDisc: (m.cd || 0) * 0.15, reach: m.reach || 0, grit: m.grit || 0,
     sure: m.sureStatus || 0,
   };
 }
-function name(inst) { return inst.boss ? G.BOSSES[inst.boss].name : G.SP[inst.sp].names[(inst.star || 1) - 1]; }
+function name(inst) { if (inst.boss) return G.BOSSES[inst.boss].name; const S = G.SP[inst.sp]; return S.names[(inst.star || 1) - 1] || S.names[S.names.length - 1]; }
 function art(inst) { return inst.boss ? G.BOSSES[inst.boss].art : 'cr_' + inst.sp + (inst.star || 1); }
 function elOf(inst) { return inst.boss ? G.BOSSES[inst.boss].el : G.SP[inst.sp].el; }
 function roleOf(inst) { return inst.boss ? 'boss' : G.SP[inst.sp].role; }

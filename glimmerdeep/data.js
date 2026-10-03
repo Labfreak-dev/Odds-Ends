@@ -33,7 +33,7 @@ const ROLE = {
   tank:    { hp: 62, atk: 10, def: 13, spd: 7 },
   support: { hp: 48, atk: 11, def: 9, spd: 10 },
 };
-const STAGE_MUL = [0, 1, 1.3, 1.65];
+const STAGE_MUL = [0, 1, 1.3, 1.65, 1.95];
 const EVO_LV = [0, 7, 14];          // stage 2 at L7, stage 3 at L14
 
 // ---- skills -----------------------------------------------------------------
@@ -716,7 +716,11 @@ SETS.status.d = 'Statuses you apply last longer.';
 SETS.growth.b = { xpRound: 2 }; SETS.growth.d = '+2 Tamer XP every round.';
 SETS.greed.b = { goldRound: 2 }; SETS.greed.d = '+2 gold every round.';
 
+// star-4 names (forms4.js). A species that is not in SP yet is skipped, so this is safe before and after new species land.
+const APEX = { DROP: [0, 1.5, 1.25, 1.0, 0.75, 0.5], MUL: 1 };
+for (const k in (root.GD_FOURTH || {})) { const S = SP[k]; if (!S) continue; S.names = S.names.slice(0, 3); S.names[3] = root.GD_FOURTH[k][0]; S.title4 = root.GD_FOURTH[k][1]; S.desc4 = root.GD_FOURTH[k][2]; }
+
 root.GD = { EL, ELS, STRONG, eff, ROLE, STAGE_MUL, EVO_LV, SK, SP, SKILL_LV, BOSSES, BIOMES, ACTS, ACT_LV,
   TRAITS, RELICS, FUSIONS, SETS, CHARMS, ITEMS, MUTS, PERKS, META, EVENTS,
-  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES, WILD_RELICS, TRAINERS, SKINS, TOKEN_COST };
+  TIER, RANGE, ROLE_AS, BOSS_RANGE, POOL, ODDS, TXP, ROLE_TRAITS, EL_AT, ROUNDS, STAGE_LEN, STAGES, MID_BIOMES, PERK_KINDS, perkText, BASE_SPECIES, WILD_RELICS, TRAINERS, SKINS, TOKEN_COST, APEX };
 })(typeof window !== 'undefined' ? window : globalThis);

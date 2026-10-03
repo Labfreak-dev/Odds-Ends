@@ -7,7 +7,13 @@ const SPS = Object.keys(G.SP);
 const BENCH = 9, PW = 4;                  // bench slots; the player's board is columns 0..3
 const KIN_CHANCE = 0.25;                  // chance a shop slot offers a species you own below 3 stars
 // boss power by stage; each boss' own HP is calibrated on top (fitted from sim.js fight logs)
-const BOSS_SCALE = [1.36, 2.22, 3.36, 4.39, 8.10, 8.64];
+const BOSS_SCALE = [1.36, 2.22, 3.36, 4.39, 8.10, 8.40];
+// Shallower than the old 8% per depth, so a full camp can still finish depth 3 and chip away at depth 8.
+function depthMul(d) {
+  d = d || 0;
+  if (d <= 3) return 1 + 0.044 * d;
+  return 1.132 + 0.038 * (d - 3);
+}
 
 function R(run) { return run.rnd || (run.rnd = C.mkRng((run.seed + run.step * 7919) >>> 0)); }
 function rint(run, n) { return Math.floor(R(run)() * n); }
@@ -16,7 +22,7 @@ function shuffle(run, arr) { const a = arr.slice(); for (let i = a.length - 1; i
 // camp upgrades with a fight bonus stack per rank
 function campBonus(up) {
   const b = {};
-  for (const k in up || {}) { const m = G.META[k]; if (m && m.cb && m.mode !== 'wilds') for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * up[k]; }
+  for (const k in up || {}) { const m = G.META[k]; if (m && m.cb && m.mode !== 'wilds') { const ranks = Math.min(up[k], m.max); for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * ranks; } }
   return b;
 }
 function bonus(run) {
@@ -36,17 +42,17 @@ function newRun(meta, seed, depth) {
   const up = meta.up || {};
   const run = {
     v: 2, seed: seed >>> 0, step: 0, nextUid: 1, round: 1, stage: 0, biome: 'verdant',
-    hp: 100 + 10 * (up.hide || 0), maxHp: 100 + 10 * (up.hide || 0), gold: 3 + 2 * (up.gold || 0),
-    tlv: 1 + (up.starter || 0), txp: 0, units: [], shop: [], locked: false, pool: {},
+    hp: 100 + 5 * (up.hide || 0), maxHp: 100 + 5 * (up.hide || 0), gold: 3 + 1 * (up.gold || 0),
+    tlv: 1 + Math.min(up.starter || 0, G.META.starter.max), txp: 0, units: [], shop: [], locked: false, pool: {},
     relics: [], charms: [], items: {}, perks: {}, streak: 0, depth: depth || 0, over: 0, mods: {},
     stats: { won: 0, lost: 0, merges: 0, bosses: 0 }, seen: {}, visited: ['verdant'], shopShiny: [], started: Date.now(),
-    meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, shinySp: Object.assign({}, meta.shinies || {}), kin: 0.08 * (up.kindred || 0), hoard: 0.1 * (up.hoard || 0) },
+    meta: { choices: up.choices || 0, heal: up.heal || 0, shiny: up.shiny ? 3 : 1, shinySp: Object.assign({}, meta.shinies || {}), kin: 0.03 * Math.min(up.kindred || 0, G.META.kindred.max), hoard: 0.1 * (up.hoard || 0) },
     campB: campBonus(up),
   };
   // only unlocked species are in the shop pool (no unlock list = everything, for the sim)
   for (const k of SPS) run.pool[k] = !meta.unlocked || meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
   if (up.evo) run.items.evo = 1;
-  for (let i = 0; i < (up.relic || 0); i++) run.relics.push(pick(run, Object.keys(G.RELICS).filter(k => G.RELICS[k].r === 1 && !G.RELICS[k].tags.includes('hazard') && !run.relics.includes(k))));
+  for (let i = 0; i < Math.min(up.relic || 0, G.META.relic.max); i++) run.relics.push(pick(run, Object.keys(G.RELICS).filter(k => G.RELICS[k].r === 1 && !G.RELICS[k].tags.includes('hazard') && !run.relics.includes(k))));
   return run;
 }
 function starterChoices(meta, seed) {
@@ -260,7 +266,8 @@ function enemyBoard(run) {
   const rr = C.mkRng((run.seed ^ (round * 7919 + 13)) >>> 0);
   const els = G.BIOMES[run.biome].els;
   const pool = SPS.filter(k => els.includes(G.SP[k].el));
-  const scale = (0.9 + 0.013 * Math.min(round, 24) + 0.005 * Math.max(0, round - 24)) * (1 + 0.08 * run.depth);
+  // Higher early, and the climb does not fall behind the old curve, so the opening rounds cost some HP.
+  const scale = (1.01 + 0.011 * Math.min(round, 22) + 0.005 * Math.max(0, round - 22)) * depthMul(run.depth);
   const lv = Math.min(9, 1 + Math.floor(round * 0.36));
   const tierPick = () => { const o = G.ODDS[lv]; let t = rr() * 100; for (let i = 0; i < 5; i++) { t -= o[i] || 0; if (t < 0) return i + 1; } return 1; };
   const species = t => { const a = pool.filter(k => G.TIER[k] === t); const b = a.length ? a : SPS.filter(k => G.TIER[k] === t); return b[Math.floor(rr() * b.length)]; };
@@ -269,7 +276,7 @@ function enemyBoard(run) {
   const add = inst => out.push(inst);
   if (kind === 'boss') {
     const bk = bossOf(run);
-    add({ uid: -1, boss: bk, star: 3, muts: [], scale: BOSS_SCALE[stage] * (1 + 0.08 * run.depth) });
+    add({ uid: -1, boss: bk, star: 3, muts: [], scale: BOSS_SCALE[stage] * depthMul(run.depth) });
     const minions = [1, 2, 2, 3, 3, 4][stage];
     for (let i = 0; i < minions; i++) add({ uid: -2 - i, sp: species(tierPick()), star: rr() < p3 ? 3 : rr() < p2 ? 2 : 1, muts: [], scale });
   } else {
@@ -277,7 +284,7 @@ function enemyBoard(run) {
     if (kind === 'elite') n = Math.min(9, n + 1);
     for (let i = 0; i < n; i++) {
       const star = rr() < p3 ? 3 : rr() < p2 + (kind === 'elite' ? 0.15 : 0) ? 2 : 1;
-      add({ uid: -10 - i, sp: species(tierPick()), star, muts: [], scale: round <= 2 ? scale * 0.8 : scale });
+      add({ uid: -10 - i, sp: species(tierPick()), star, muts: [], scale: round <= 2 ? scale * 0.9 : scale });
     }
     if (kind === 'elite') { out.sort((a, b) => b.star - a.star); out[0].elite = ['vampiric', 'thorned', 'hasty', 'shielded', 'enraged'][Math.floor(rr() * 5)]; }
   }
@@ -340,7 +347,7 @@ function endRound(run, st) {
     if (win) {
       run.stats.bosses++;
       run.pending.push({ k: 'relic', opts: relicChoices(run, 3, 1) }, { k: 'perk', opts: perkChoices(run) });
-      if (run.meta.heal) run.hp = Math.min(run.maxHp, run.hp + 15);
+      if (run.meta.heal) run.hp = Math.min(run.maxHp, run.hp + 10);
       if (run.round >= G.ROUNDS) { run.over = 1; return out; }
     } else if (run.round >= G.ROUNDS) {
       // the final boss must be beaten: try again next round

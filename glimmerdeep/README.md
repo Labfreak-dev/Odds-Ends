@@ -7,7 +7,7 @@ to conquer the Glimmer Core.
 
 Play: https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/
 
-No build step. `index.html` loads four classic scripts in order:
+No build step. `index.html` loads the classic scripts in order. Every `<script src>` is `?v=1`, and `<script>window.GLIM_AUDIO_V = '1';</script>` sits just before them. `audio.js` appends that same token to every mp3 URL. Bump `?v=` on all scripts and `GLIM_AUDIO_V` together whenever any script or any mp3 changes.
 
 | File | What it is |
 |---|---|
@@ -16,11 +16,17 @@ No build step. `index.html` loads four classic scripts in order:
 | `chess.js` | The fight engine. Pure logic, no DOM. `create()` sets a board up; `tick()` advances 0.1 s and returns events (move, attack, cast, damage, status, knockout...). |
 | `crun.js` | The run: shop and shared pool, bench and board, buying, selling, merges, income and interest, Tamer XP, the enemy board for each round, rewards. No DOM. |
 | `fx.js` | Battle VFX: one canvas over the board drawing additive particles (slashes, comets, lightning, rune circles, shockwaves, beams, heals, shields, knockouts), themed per element. `game.js` calls `VFX.*` from its fight-event handler. |
+| `audio.js` | Sound: files + synth fallback + music + stingers + throttling + settings; `window.GAUDIO`. Loaded before `game.js`. |
 | `game.js` | The UI: title, planning (shop, drag and drop, the creature panel and its power pick), live fight playback and animations, round results and rewards, bag, camp, Glimdex, save. |
 
 | `wgen.js` | The Wilds, DOM-free: floor layouts (rooms, doors, lair, vault, secret room, items), the creatures in each room and the difficulty knobs (`TUNE`), fight placement. |
 | `wilds.js` | The Wilds on the page: squad pick, the room canvas (walking, doors, pickups, the follow camera on phones), minimap, battles through `GLIM.wildBattle`, unlocks. |
 | `wsim.js` | Headless expeditions with the real generator and engine: how deep a squad gets, unlocks per expedition, expeditions to collect all 72. |
+| `music/` | Music loops and the win, lose and evolve stingers. mp3 only. |
+| `sfx/` | One-shot cues. mp3 only. |
+| `wilds/` | Wilds loops and room cues. mp3 only. Fetched when The Wilds opens. |
+
+The save key is `glimmerdeep.v1` (`{ meta, run }` in localStorage). `meta.sound` toggles SFX and stingers. `meta.music` (default true) and `meta.vol` (0–100, default 70) are new fields on the same `meta` object; `GAUDIO.setMusic` and `GAUDIO.setVol` call `save()` themselves, so old saves keep the defaults. Music element volume is `meta.vol` × 0.55. If an mp3 fails to load, or `audio.js` itself does not load, the old synth plays instead.
 
 Because `chess.js`, `crun.js` and `wgen.js` never touch the page, `sim.js` and `wsim.js` play headless.
 

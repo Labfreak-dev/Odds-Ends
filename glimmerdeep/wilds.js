@@ -73,7 +73,10 @@ function preloadDoors() {
 }
 
 // ---- save ---------------------------------------------------------------------------------------
-function save() { try { localStorage.setItem(SAVE, JSON.stringify(W)); } catch (e) { /* storage blocked */ } }
+function save() {
+  if (U.saveBlocked && U.saveBlocked()) return;
+  try { localStorage.setItem(SAVE, JSON.stringify(W)); } catch (e) { /* storage blocked */ }
+}
 function knownSp(sp) { return !!(sp && G.SP[sp]); }
 function expeditionOk(s) {
   if (!s || s.v !== 1 || !s.rooms || typeof s.rooms !== 'object' || Array.isArray(s.rooms)) return false;
@@ -89,15 +92,25 @@ function expeditionOk(s) {
   }
   return true;
 }
+let wildsDamaged = false;
 function load() {
+  wildsDamaged = false;
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE) || 'null');
-    if (!expeditionOk(s)) return null;
+    const raw = localStorage.getItem(SAVE);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!expeditionOk(s)) { wildsDamaged = true; clearSave(); return null; }
     if (s.keys == null || !Number.isFinite(+s.keys)) s.keys = 0;
     return s;
-  } catch (e) { return null; }
+  } catch (e) { wildsDamaged = true; clearSave(); return null; }
 }
 function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) { /* storage blocked */ } }
+function discard() { W = null; clearSave(); stopView(); }
+function dropExpedition() {
+  W = null; clearSave(); stopView();
+  U.toast('Save damaged: start fresh.');
+  U.renderTitle();
+}
 const meta = () => U.meta;
 const unlocked = sp => !!meta().unlocked[sp];
 const up = k => meta().up[k] || 0;
@@ -247,13 +260,17 @@ async function endExpedition(why, apex) {
 async function open() {
   if (window.GAUDIO) GAUDIO.load('wilds');
   const saved = load();
+  if (wildsDamaged) { dropExpedition(); return; }
   if (saved && saved.v === 1) {
     const v = await U.ask('The Wilds', `<p style="text-align:center">You have an expedition in progress on floor ${saved.floor}/${FLOORS}.</p>`, U.btn('go', 'Continue', 'green') + U.btn('new', 'Start over', 'ghost sm') + U.btn('x', 'Back', 'ghost sm'));
     if (v === 'x') return;
     if (v === 'go') {
-      W = saved;
-      try { return enter(); }
-      catch (err) { W = null; clearSave(); stopView(); U.renderTitle(); return; }
+      try {
+        const again = load();
+        if (wildsDamaged || !again) { dropExpedition(); return; }
+        W = again;
+        return enter();
+      } catch (err) { dropExpedition(); return; }
     }
     clearSave();
   }
@@ -335,6 +352,11 @@ async function leave() {
 
 // ---- the live room view ---------------------------------------------------------------------
 function enter() {
+  try { enterNow(); }
+  catch (err) { dropExpedition(); }
+}
+function enterNow() {
+  if (!expeditionOk(W)) throw new Error('expedition');
   const host = $('#wilds');
   host.classList.add('exploring');
   U.show('wilds');
@@ -1484,7 +1506,7 @@ function pumpTamerRims() {
   requestAnimationFrame(step);
 }
 
-window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, preloadTamer, get state() { return W; }, get view() { return V; },
+window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, preloadTamer, discard, get state() { return W; }, get view() { return V; },
   doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]),
   secretLevel: d => W && V && secretLevel(room(), d), tamerPose };
 })();

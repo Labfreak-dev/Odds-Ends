@@ -12,10 +12,141 @@ const GLIM_VER = 'v' + '2026-10-03b';
 // ---- save ---------------------------------------------------------------------------
 let meta = { shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
 let run = null;
+let saveStale = false;
+let droppedRun = false;
+let damagedBoot = false;
 // meta.vol is the 0–100 settings percent. Playback gains derived from it stay in [0,1].
 function clampPct(v, d) {
   const n = +v;
   return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : d;
+}
+function num0(v) {
+  const n = +v;
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+function int0(v, max) {
+  const n = Math.floor(num0(v));
+  return max == null ? n : Math.min(max, n);
+}
+function plain(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : null; }
+function numMap(v) {
+  const o = plain(v), out = {};
+  if (!o) return out;
+  for (const k in o) {
+    const n = +o[k];
+    if (Number.isFinite(n) && n >= 0) out[k] = Math.floor(n);
+  }
+  return out;
+}
+function flagMap(v) {
+  const o = plain(v), out = {};
+  if (!o) return out;
+  for (const k in o) if (o[k]) out[k] = 1;
+  return out;
+}
+function saneSt(v) {
+  const src = plain(v), out = {};
+  if (!src) return out;
+  for (const k in src) {
+    if (k === 'sets') { out.sets = flagMap(src.sets); continue; }
+    if (k === 'v') { out.v = src.v ? 1 : 0; continue; }
+    const n = +src[k];
+    if (Number.isFinite(n) && n >= 0) out[k] = n;
+  }
+  return out;
+}
+function saneCosm(v, skin) {
+  const c = plain(v) || {};
+  const own = flagMap(c.own);
+  const sel0 = plain(c.sel) || {};
+  const str = x => typeof x === 'string' ? x : '';
+  return { own, sel: { skin: str(sel0.skin) || skin || 'classic', title: str(sel0.title), frame: str(sel0.frame), theme: str(sel0.theme) } };
+}
+function saneDaily(v) {
+  const d = plain(v);
+  if (!d || typeof d.date !== 'string' || !Array.isArray(d.goals)) return null;
+  const goals = [];
+  for (const g of d.goals) {
+    if (!g || typeof g !== 'object' || typeof g.id !== 'string') continue;
+    goals.push({
+      id: g.id,
+      g: int0(g.g) || 1,
+      p: int0(g.p),
+      done: g.done ? 1 : 0,
+      claimed: g.claimed ? 1 : 0,
+      tier: int0(g.tier),
+      pay: int0(g.pay),
+      el: typeof g.el === 'string' ? g.el : undefined,
+    });
+  }
+  if (goals.length !== 3) return null;
+  const out = { date: d.date, goals, streak: int0(d.streak), last: typeof d.last === 'string' ? d.last : '', stamps: int0(d.stamps) };
+  if (typeof d.stamped === 'string') out.stamped = d.stamped;
+  return out;
+}
+function wipeMeta() {
+  for (const k of Object.keys(meta)) delete meta[k];
+  Object.assign(meta, {
+    shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {},
+    runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1,
+    tokens: 0, badges: 0, shinies: {}, lures: {}, wstar: {}, shinyBoost: {}, skin: 'classic',
+    apexLock: false, den: false, trCards: {}, skinsSeen: {}, ach: {}, st: {},
+    cosm: { own: {}, sel: { skin: 'classic', title: '', frame: '', theme: '' } },
+  });
+}
+function applyMeta(src) {
+  const s = plain(src) || {};
+  meta.shards = int0(s.shards);
+  meta.runs = int0(s.runs);
+  meta.wins = int0(s.wins);
+  meta.depthMax = int0(s.depthMax, 10);
+  meta.tokens = int0(s.tokens);
+  meta.badges = int0(s.badges, 3);
+  meta.vol = clampPct(s.vol, 70);
+  meta.speed = (+s.speed === 2 || +s.speed === 4) ? +s.speed : 1;
+  meta.sound = s.sound !== false;
+  meta.music = s.music !== false;
+  meta.auto = s.auto === true;
+  meta.anim = s.anim == null ? 1 : (s.anim ? 1 : 0);
+  meta.up = numMap(s.up);
+  meta.dex = numMap(s.dex);
+  meta.apex = numMap(s.apex);
+  meta.caught = flagMap(s.caught);
+  meta.unlocked = flagMap(s.unlocked);
+  meta.apexSeen = flagMap(s.apexSeen);
+  meta.shinies = flagMap(s.shinies);
+  meta.lures = numMap(s.lures);
+  meta.shinyBoost = flagMap(s.shinyBoost);
+  meta.skinsSeen = flagMap(s.skinsSeen);
+  meta.trCards = flagMap(s.trCards);
+  meta.wstar = {};
+  const stars = plain(s.wstar);
+  if (stars) for (const k in stars) {
+    const n = Math.floor(+stars[k]);
+    if (n >= 1 && n <= 3) meta.wstar[k] = n;
+  }
+  meta.skin = typeof s.skin === 'string' && s.skin ? s.skin : 'classic';
+  meta.apexLock = s.apexLock === true;
+  meta.den = s.den ? 1 : 0;
+  meta.ach = numMap(s.ach);
+  meta.st = saneSt(s.st);
+  meta.cosm = saneCosm(s.cosm, meta.skin);
+  const daily = saneDaily(s.daily);
+  if (daily) meta.daily = daily; else delete meta.daily;
+}
+function sealMeta() {
+  if (!plain(meta.unlocked)) meta.unlocked = {};
+  if (!plain(meta.dex)) meta.dex = {};
+  if (!plain(meta.apex)) meta.apex = {};
+  if (!plain(meta.apexSeen)) meta.apexSeen = {};
+  if (!plain(meta.up)) meta.up = {};
+  if (!Number.isFinite(+meta.shards) || +meta.shards < 0) meta.shards = 0;
+  else meta.shards = Math.floor(+meta.shards);
+  if (!Number.isFinite(+meta.wins) || +meta.wins < 0) meta.wins = 0;
+  meta.vol = clampPct(meta.vol, 70);
+  if (meta.anim == null) meta.anim = 1;
+  for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
+  if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
 }
 function runOk(r) {
   if (!r || typeof r !== 'object' || r.v !== 2) return false;
@@ -28,26 +159,50 @@ function runOk(r) {
   return true;
 }
 function load() {
+  droppedRun = false;
+  damagedBoot = false;
+  let raw = null;
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE) || 'null');
-    if (s && s.meta && typeof s.meta === 'object') Object.assign(meta, s.meta);
+    raw = localStorage.getItem(SAVE);
+    const s = JSON.parse(raw || 'null');
+    // a parsed non-object (or a string that is not JSON) cannot be repaired field by field
+    if (raw && (s == null || typeof s !== 'object' || Array.isArray(s))) throw new Error('shape');
+    applyMeta(s && s.meta);
     // a stub or a run with a missing board, an unknown biome, or a bad species cannot Continue
-    if (s && runOk(s.run)) run = s.run;
-    else run = null;
-  } catch (e) { run = null; /* private mode or bad save: start fresh */ }
-  meta.vol = clampPct(meta.vol, 70);
-  if (meta.anim == null) meta.anim = 1;          // optional; saves without it stay on the rich fight animation
-  meta.unlocked = meta.unlocked || {};
-  meta.apex = meta.apex || {};
-  meta.apexSeen = meta.apexSeen || {};
-  for (const k of G.BASE_SPECIES) meta.unlocked[k] = 1;
-  // a run saved before the new species existed has no pool keys for them
-  if (run && run.pool) for (const k in G.SP) if (run.pool[k] == null) run.pool[k] = meta.unlocked[k] ? G.POOL[G.TIER[k]] : 0;
+    if (s && s.run && typeof s.run === 'object') {
+      if (runOk(s.run)) run = s.run;
+      else { run = null; droppedRun = true; }
+    } else run = null;
+  } catch (e) {
+    run = null;
+    wipeMeta();
+    if (raw) damagedBoot = true;
+  }
+  try { sealMeta(); }
+  catch (e) { wipeMeta(); damagedBoot = true; try { sealMeta(); } catch (e2) { /* title still has to render */ } }
 }
 function save() {
+  if (saveStale) return;
   if (run && run.seen) for (const k in run.seen) meta.dex[k] = Math.max(meta.dex[k] || 0, run.seen[k]);
   try { localStorage.setItem(SAVE, JSON.stringify({ meta, run: run && !run.over ? run : null }, (k, v) => k === 'rnd' ? undefined : v)); } catch (e) { /* storage blocked */ }
 }
+function markStale() {
+  if (saveStale) return;
+  saveStale = true;
+  let el = document.getElementById('tabNote');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tabNote';
+    el.className = 'tabnote';
+    el.setAttribute('role', 'status');
+    el.textContent = 'Game updated in another tab, reload';
+    document.body.appendChild(el);
+  }
+  el.classList.add('on');
+}
+window.addEventListener('storage', e => {
+  if (e && (e.key === SAVE || e.key === 'glimmerdeep.wilds.v1')) markStale();
+});
 
 // ---- sound (tiny synth) ---------------------------------------------------------------
 let AC = null;
@@ -178,7 +333,17 @@ $('#titleMenu').addEventListener('click', async e => {
   const t = e.target.closest('[data-v]'); if (!t) return;
   SFX.click();
   const v = t.dataset.v;
-  if (v === 'cont') { try { renderGame(); } catch (err) { run = null; save(); renderTitle(); } }
+  if (v === 'cont') {
+    try {
+      if (!runOk(run)) throw new Error('run');
+      renderGame();
+    } catch (err) {
+      run = null;
+      save();
+      renderTitle();
+      toast('Save damaged: start fresh.');
+    }
+  }
   else if (v === 'new') {
     if (run && await ask('Abandon run?', '<p style="text-align:center">Your current run will be lost.</p>', btn('y', 'Abandon', 'ghost') + btn('n', 'Keep it', 'green')) !== 'y') return;
     newRunFlow();
@@ -1048,7 +1213,19 @@ function settingsHtml() {
     ${window.GAUDIO ? `<button class="setrow" data-v="mus" type="button"><span class="grow">Music</span>${swt(!!meta.music)}</button>
     <div class="setrow"><span class="grow">Volume</span><input class="volslider" type="range" min="0" max="100" step="5" value="${meta.vol}" data-vol aria-label="Volume"><span class="volpct">${meta.vol}%</span></div>` : ''}
     <button class="setrow" data-v="anim" type="button"><span class="grow">Animation</span><span class="setval">${animNow() ? 'Rich' : 'Classic'}</span>${swt(animNow())}</button>
+    <button class="setrow" data-v="reset" type="button"><span class="grow">Reset save</span></button>
   </div>`;
+}
+function resetAll() {
+  if (saveStale) return;
+  run = null;
+  wipeMeta();
+  try { sealMeta(); } catch (e) { /* defaults already applied */ }
+  try { localStorage.removeItem(SAVE); } catch (e) { /* storage blocked */ }
+  if (window.WILDS && WILDS.discard) WILDS.discard();
+  if (window.AX) AX.init(meta);
+  if (window.COSM) { COSM.init(meta); COSM.apply(); }
+  renderTitle();
 }
 async function settingsScreen() {
   for (;;) {
@@ -1056,13 +1233,20 @@ async function settingsScreen() {
     if (v === 'snd') { meta.sound = !meta.sound; save(); continue; }
     if (v === 'mus') { GAUDIO.setMusic(!meta.music); continue; }
     if (v === 'anim') { setAnimPref(!animNow()); continue; }
+    if (v === 'reset') {
+      if (saveStale) { toast('Game updated in another tab, reload'); continue; }
+      const y = await ask('Reset save?', '<p style="text-align:center">Erase shards, unlocks, goals, and any run or Wilds expedition on this device?</p>', btn('y', 'Reset save', 'ghost') + btn('n', 'Cancel', 'green'));
+      if (y !== 'y') continue;
+      resetAll();
+      return 'reset';
+    }
     break;
   }
 }
 async function menuScreen() {
   const v = await ask('Menu', '', btn('how', ICO.how + 'How to Play', 'mid') + btn('set', ICO.gear + 'Settings', 'mid wild') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'), 'x');
   if (v === 'how') return showHow();
-  if (v === 'set') { await settingsScreen(); return menuScreen(); }
+  if (v === 'set') { if (await settingsScreen() === 'reset') return; return menuScreen(); }
   if (v === 'title') { save(); renderTitle(); }
   if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') { SFX.stinger('lose'); gameOver(false); }
 }
@@ -1177,12 +1361,29 @@ async function showHow() {
 }
 
 // ---- boot --------------------------------------------------------------------------------------
-load();
-if (window.AX) AX.init(meta);
-if (window.COSM) { COSM.init(meta); COSM.apply(); }
-readAnimQuery();
-applyAnim();
-renderTitle();
+function boot() {
+  try {
+    load();
+    if (window.AX) AX.init(meta);
+    if (window.COSM) { COSM.init(meta); COSM.apply(); }
+    readAnimQuery();
+    applyAnim();
+    renderTitle();
+  } catch (e) {
+    damagedBoot = true;
+    run = null;
+    try { wipeMeta(); sealMeta(); } catch (e2) { /* keep going */ }
+    try { localStorage.removeItem(SAVE); } catch (e2) { /* storage blocked */ }
+    try {
+      if (window.AX) AX.init(meta);
+      if (window.COSM) { COSM.init(meta); COSM.apply(); }
+      renderTitle();
+    } catch (e2) { /* prompt still opens */ }
+  }
+  if (damagedBoot) ask('Save damaged: start fresh', '<p style="text-align:center">This save could not be read. A new game is ready.</p>', btn('ok', 'Start fresh', 'green'), 'ok');
+  else if (droppedRun) toast('Save damaged: start fresh.');
+}
+boot();
 ['bg_verdant', 'ui_gold', 'node_treasure'].forEach(k => { const i = new Image(); i.src = IMG(k); });
 function rollApexWild(st) { return R.rollApex(run, st, meta); }
 function ascendMember(m) {
@@ -1208,6 +1409,6 @@ function giveApex(sp, n) {
   save();
 }
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,
-  wildBattle, ask, toast, show, save, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
+  wildBattle, ask, toast, show, save, saveBlocked: () => saveStale, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
   evoCinematic, rollApexWild, rollApex: (st, salt) => R.rollApex(run, st, meta), ascendMember, debug: { giveApex, relicPick: (ids, title) => relicPick(ids && ids.length ? ids : ['ruby_ring', 'last_stand', 'pyre_crown', 'rainbow_roster'], title || 'Choose a relic') } };
 })();

@@ -185,6 +185,110 @@ def wilds(page):
     odds = page.evaluate("(() => { const m = Object.assign({}, GLIM.meta, { shinies: { cind: 1 } }); const r = GR.newRun(m, 5, 0); return [r.meta.shinySp.cind || 0, r.meta.shiny] })()")
     check(odds[0] == 1, 'Wilds: a caught shiny boosts that species in the auto-chess shop')
 
+def check_save_guards(page):
+    """Meta types, reset, Continue/Wilds safety net, and a stale second tab."""
+    page.evaluate("""() => {
+      localStorage.setItem('glimmerdeep.v1', JSON.stringify({
+        meta: { unlocked: 'x', dex: null, shards: 'abc', wins: 3, up: { hoard: 2 }, vol: 70, sound: false },
+        run: null
+      }));
+      localStorage.removeItem('glimmerdeep.wilds.v1');
+    }""")
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_selector('#title.on', timeout=15000)
+    info = page.evaluate("""() => {
+      const pill = document.querySelector('#titleMenu .pill').textContent;
+      return {
+        modal: !!document.querySelector('#modal.on'),
+        shards: GLIM.meta.shards, wins: GLIM.meta.wins, hoard: GLIM.meta.up && GLIM.meta.up.hoard,
+        dex: GLIM.meta.dex && typeof GLIM.meta.dex, unlocked: typeof GLIM.meta.unlocked,
+        sound: GLIM.meta.sound, pill
+      };
+    }""")
+    check(not info['modal'], 'bad meta types are repaired without the start-fresh prompt')
+    check(info['shards'] == 0 and 'abc' not in info['pill'] and ' shards' in info['pill'], "non-numeric shards cannot render as 'abc shards'")
+    check(info['dex'] == 'object' and info['dex'] is not None and info['unlocked'] == 'object', 'dex and unlocked are objects after a poisoned save')
+    check(info['wins'] == 3 and info['hoard'] == 2 and info['sound'] is False, 'valid meta numbers and sound-off are kept')
+    page.evaluate("""() => {
+      GLIM.meta.shards = 12;
+      localStorage.setItem('glimmerdeep.wilds.v1', JSON.stringify({ v: 1, biome: 'verdant' }));
+      GLIM.save();
+    }""")
+    page.click('#titleMenu [data-v=set]')
+    page.wait_for_selector('#modalBox [data-v=reset]')
+    page.click('#modalBox [data-v=reset]')
+    page.wait_for_selector('#modalBox h2:has-text("Reset save?")')
+    check('Reset save?' in page.locator('#modalBox h2').inner_text(), 'Reset save asks for confirmation')
+    page.click('#modalBox [data-v=n]')
+    page.wait_for_selector('#modalBox h2:has-text("Settings")')
+    check(page.evaluate("GLIM.meta.shards") == 12, 'cancelling Reset save keeps progress')
+    page.click('#modalBox [data-v=reset]')
+    page.wait_for_selector('#modalBox [data-v=y]')
+    page.click('#modalBox [data-v=y]')
+    page.wait_for_selector('#title.on')
+    reset = page.evaluate("""() => ({
+      shards: GLIM.meta.shards, run: GLIM.run, main: localStorage.getItem('glimmerdeep.v1'), wilds: localStorage.getItem('glimmerdeep.wilds.v1')
+    })""")
+    check(reset['shards'] == 0 and not reset['run'] and reset['main'] is None and reset['wilds'] is None, 'Reset save clears the run, shards, and both save keys')
+    page.evaluate("""() => {
+      const r = GR.newRun(GLIM.meta, 11, 0);
+      GR.giveStarter(r, 'cind');
+      r.biome = 'no-such-biome';
+      r.units[0].sp = 'no-such-species';
+      localStorage.setItem('glimmerdeep.v1', JSON.stringify({ meta: GLIM.meta, run: r }));
+      localStorage.setItem('glimmerdeep.wilds.v1', JSON.stringify({
+        v: 1, biome: 'no-such-biome', floor: 1, cur: '0,0', keys: 0,
+        rooms: { '0,0': { x: 0, y: 0, type: 'start', mon: { sp: 'no-such-species', star: 1 } } },
+        squad: [{ sp: 'no-such-species', star: 1, hp: 1, uid: 1 }]
+      }));
+    }""")
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_selector('#title.on', timeout=15000)
+    check(page.locator('#game.on').count() == 0 and page.locator('#titleMenu [data-v=cont]').count() == 0, 'unknown species and biome drop the run instead of a blank board')
+    check('Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'a dropped run tells you the save was damaged')
+    page.evaluate("""() => {
+      const r = GR.newRun(GLIM.meta, 13, 0);
+      GR.giveStarter(r, 'cind');
+      localStorage.setItem('glimmerdeep.v1', JSON.stringify({ meta: GLIM.meta, run: r }));
+      localStorage.setItem('glimmerdeep.wilds.v1', JSON.stringify({
+        v: 1, biome: 'verdant', floor: 1, cur: '0,0', keys: 0,
+        rooms: { '0,0': { x: 0, y: 0, type: 'start' } },
+        squad: [{ sp: 'cind', star: 1, hp: 1, uid: 1 }]
+      }));
+    }""")
+    page.reload(wait_until='domcontentloaded')
+    page.wait_for_selector('#titleMenu [data-v=cont]', timeout=15000)
+    page.evaluate("""() => { GLIM.run.biome = 'no-such-biome'; GLIM.run.units[0].sp = 'no-such-species'; }""")
+    page.click('#titleMenu [data-v=cont]')
+    page.wait_for_function("() => !document.querySelector('#game.on') && document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')")
+    check(page.locator('#game.on').count() == 0 and 'Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'Continue falls back to the title when the run throws')
+    check(page.evaluate("!GLIM.run && !JSON.parse(localStorage.getItem('glimmerdeep.v1')).run"), 'Continue drops the damaged run save')
+    page.click('#titleMenu [data-v=wilds]')
+    page.wait_for_selector('#modalBox [data-v=go]')
+    page.evaluate("""() => {
+      localStorage.setItem('glimmerdeep.wilds.v1', JSON.stringify({
+        v: 1, biome: 'no-such-biome', floor: 1, cur: '0,0', keys: 0,
+        rooms: { '0,0': { x: 0, y: 0, type: 'start', mon: { sp: 'no-such-species', star: 1 } } },
+        squad: [{ sp: 'no-such-species', star: 1, hp: 1, uid: 1 }]
+      }));
+    }""")
+    page.click('#modalBox [data-v=go]')
+    page.wait_for_function("() => !document.querySelector('#modal.on') && !document.querySelector('#wilds.exploring') && document.querySelector('#toast').textContent.includes('Save damaged: start fresh.')")
+    check(page.locator('#wilds.exploring').count() == 0 and 'Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'Wilds Continue falls back to the title for an unknown species and biome')
+    check(page.evaluate("localStorage.getItem('glimmerdeep.wilds.v1')") is None, 'Wilds Continue drops the damaged expedition')
+    other = page.context.new_page()
+    other.goto(page.url)
+    other.wait_for_selector('#title.on', timeout=15000)
+    page.evaluate("""() => {
+      localStorage.setItem('glimmerdeep.v1', JSON.stringify({ meta: { shards: 42, unlocked: {}, dex: {}, wins: 1 }, run: null }));
+    }""")
+    other.wait_for_selector('#tabNote.on', timeout=5000)
+    check(other.locator('#tabNote').inner_text().strip() == 'Game updated in another tab, reload', 'another tab shows the reload banner')
+    other.evaluate("""() => { GLIM.meta.shards = 7; GLIM.save(); }""")
+    kept = page.evaluate("JSON.parse(localStorage.getItem('glimmerdeep.v1')).meta.shards")
+    check(kept == 42, 'a stale tab does not overwrite the save after the banner')
+    other.close()
+
 def check_damaged(page):
     """A broken save must not throw, and must not leave Continue on a dead screen."""
     page.evaluate("""() => {
@@ -214,13 +318,17 @@ def check_damaged(page):
     check(isinstance(vol, (int, float)) and vol == vol and 0 <= vol <= 100, 'bad volume is coerced to a finite setting')
     page.evaluate("localStorage.setItem('glimmerdeep.v1', '{')")
     page.reload(wait_until='domcontentloaded')
-    page.wait_for_selector('#title.on', timeout=15000)
+    page.wait_for_selector('#modal.on', timeout=15000)
+    check('Save damaged: start fresh' in page.locator('#modalBox h2').inner_text(), 'unreadable save asks to start fresh')
+    page.click('#modalBox [data-v=ok]')
+    page.wait_for_timeout(200)
     check(page.evaluate("!GLIM.run"), 'garbage JSON loads as a fresh save')
     page.click('#titleMenu [data-v=wilds]')
     page.wait_for_timeout(400)
-    check(page.locator('#modal.on').count() == 0 and page.locator('#wilds.on .wcard').count() >= 12, 'damaged Wilds save opens squad select without throwing')
-    page.click('#wilds [data-w=home]')
-    page.wait_for_selector('#title.on')
+    check(page.locator('#wilds.exploring').count() == 0 and page.locator('#title.on').count() == 1, 'damaged Wilds save returns to the title')
+    check('Save damaged: start fresh.' in page.locator('#toast').inner_text(), 'damaged Wilds save explains itself')
+    check(page.evaluate("localStorage.getItem('glimmerdeep.wilds.v1')") is None, 'damaged Wilds save is dropped')
+    check_save_guards(page)
 
 with sync_playwright() as p:
     b = p.chromium.launch()

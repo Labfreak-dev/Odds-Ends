@@ -7,6 +7,7 @@ const IMG = k => 'img/' + k + '.webp';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
+const GLIM_VER = 'v' + '2026-10-03';
 
 // ---- save ---------------------------------------------------------------------------
 let meta = { shards: 0, up: {}, caught: {}, dex: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70 };
@@ -90,20 +91,33 @@ function skillTag(sk) {
 // ---- modal flows ----------------------------------------------------------------------------
 const M = $('#modal'), MB = $('#modalBox');
 let modalHandler = null;
+let modalCancel = null;   // set only for dismissible modals; backdrop and Escape resolve with this value
+function dismissModal() {
+  if (!modalHandler || modalCancel == null) return;
+  SFX.click();
+  modalHandler(modalCancel);
+}
 M.addEventListener('click', e => {
   const t = e.target.closest('[data-v]');
-  if (!t || !MB.contains(t) || !modalHandler) return;
-  SFX.click();
-  modalHandler(t.dataset.v, t);
+  if (t && MB.contains(t) && modalHandler) { SFX.click(); modalHandler(t.dataset.v, t); return; }
+  if (e.target === M) dismissModal();
 });
-function modal(title, body, acts) {
+document.addEventListener('keydown', e => { if (e.key === 'Escape') dismissModal(); });
+function modal(title, body, acts, cancel) {
   MB.innerHTML = `<h2>${title}</h2><div class="body">${body || ''}</div>${acts ? `<div class="acts">${acts}</div>` : ''}`;
   M.classList.add('on');
+  modalCancel = cancel == null ? null : cancel;
   return new Promise(res => { modalHandler = v => { res(v); }; });
 }
-function closeModal() { M.classList.remove('on'); modalHandler = null; MB.innerHTML = ''; }
-async function ask(title, body, acts) { const v = await modal(title, body, acts); closeModal(); return v; }
+function closeModal() { M.classList.remove('on'); modalHandler = null; modalCancel = null; MB.innerHTML = ''; }
+async function ask(title, body, acts, cancel) { const v = await modal(title, body, acts, cancel); closeModal(); return v; }
 const btn = (v, label, cls) => `<button class="btn ${cls || ''}" data-v="${esc(v)}">${label}</button>`;
+function volBtns() { return `${btn('vold', '−', 'ghost sm volstep')}<span class="volpct">Volume ${meta.vol}%</span>${btn('volu', '+', 'ghost sm volstep')}`; }
+function bumpVol(delta) {
+  GAUDIO.setVol(meta.vol + delta);
+  document.querySelectorAll('.volpct').forEach(el => { el.textContent = 'Volume ' + meta.vol + '%'; });
+  toast('Volume ' + meta.vol + '%');
+}
 
 // ---- title / new run -------------------------------------------------------------------------
 function renderTitle() {
@@ -111,7 +125,7 @@ function renderTitle() {
   const m = $('#titleMenu');
   m.innerHTML = (run ? btn('cont', 'Continue Run', 'green') : '') + btn('new', 'New Run') + btn('wilds', 'The Wilds', 'wild') + btn('camp', 'Camp & Upgrades', 'blue') +
     `<div class="row">${btn('dex', 'Glimdex', 'ghost sm')}${btn('how', 'How to Play', 'ghost sm')}${btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost sm')}</div>` +
-    (window.GAUDIO ? `<div class="row" style="margin-top:6px">${btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost sm')}${btn('vold', 'Volume −', 'ghost sm')}${btn('volu', 'Volume +', 'ghost sm')}</div>` : '') +
+    (window.GAUDIO ? `<div class="row" style="margin-top:6px">${btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost sm')}${volBtns()}</div>` : '') +
     `<div class="pill" style="margin-top:6px"><img src="${IMG('ui_shard')}" alt="">${meta.shards} shards · ${meta.wins} wins · ${Object.keys(meta.unlocked).length}/${Object.keys(G.SP).length} creatures</div>`;
   show('title');
   mus('title');
@@ -131,7 +145,7 @@ $('#titleMenu').addEventListener('click', async e => {
   else if (v === 'how') showHow();
   else if (v === 'snd') { meta.sound = !meta.sound; save(); renderTitle(); }
   else if (v === 'mus') { GAUDIO.setMusic(!meta.music); renderTitle(); }
-  else if (v === 'vold' || v === 'volu') { GAUDIO.setVol(meta.vol + (v === 'volu' ? 10 : -10)); toast('Volume ' + meta.vol + '%'); }
+  else if (v === 'vold' || v === 'volu') bumpVol(v === 'volu' ? 10 : -10);
 });
 document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g && !M.contains(g)) { SFX.click(); if (g.dataset.go === 'title') renderTitle(); } });
 
@@ -416,7 +430,7 @@ document.addEventListener('pointerup', async e => {
   if (!d.moved) { unitDetail(d.uid); return; }
   const t = dropTarget(e.clientX, e.clientY);
   if (!t) return renderGame();
-  if (t.sell) { const iu = run.units.find(z => z.uid === d.uid); const v = R.sell(run, d.uid); SFX.coin(); toast(`Sold ${C.name(iu)} for ${v} gold.`); }
+  if (t.sell) { const iu = run.units.find(z => z.uid === d.uid); if (!(await confirmLastSell(iu))) return renderGame(); const v = R.sell(run, d.uid); SFX.coin(); toast(`Sold ${C.name(iu)} for ${v} gold.`); }
   else if (t.slot != null) R.placeBench(run, d.uid, t.slot);
   else if (!R.placeBoard(run, d.uid, t.x, t.y)) toast(`Board full: Tamer level ${run.tlv} allows ${R.cap(run)} creatures. Buy XP to raise it.`);
   else SFX.drop();
@@ -451,6 +465,12 @@ function perkRow(inst) {
       <div class="small">${K.d(st >= 3 ? 2 : 1)}${st < 2 ? ' <i>(unlocks at ★2)</i>' : ''}</div>
       <div class="small ${st < 3 ? 'muted' : ''}" style="margin-top:3px">★3: ${st < 3 ? K.d(2) + ' ' : ''}<b>Aura</b> — ${P.aura.d}.</div></div>`;
 }
+// Selling the only creature would leave nothing that can fight. Warn; the player can still choose to sell.
+async function confirmLastSell(u) {
+  if (!u || run.units.length > 1) return true;
+  const v = await ask('Sell your last creature?', '<p style="text-align:center">The board would stand empty, and FIGHT stays sealed until you buy another. The Glimmer does not start a battle with no one to send.</p>', btn('y', 'Sell anyway', 'ghost') + btn('n', 'Keep them', 'green'));
+  return v === 'y';
+}
 async function unitDetail(uid) {
   for (;;) {
     const u = run.units.find(z => z.uid === uid); if (!u) return;
@@ -463,11 +483,11 @@ async function unitDetail(uid) {
       <div class="li" style="margin-top:8px">${u.charm ? `<img class="ic" src="${IMG('ch_' + u.charm)}" alt=""><div class="grow"><div class="t">${G.CHARMS[u.charm].n}</div><div class="small">${G.CHARMS[u.charm].d}</div></div>` : '<div class="grow muted">No charm held</div>'}<button class="btn sm ghost" data-v="charm">Change</button></div>
       </div></div><h3 style="margin:10px 0 4px">Power <span class="small muted">(tap one: it casts automatically when its mana fills)</span></h3>${skillRows(u, true)}${perkRow(u)}`;
     const acts = (u.at === 'b' ? btn('bench', 'To bench', 'ghost sm') : btn('board', 'To board', 'ghost sm')) + btn('sell', `Sell ${R.sellValue(u)}g`, 'ghost sm') + btn('close', 'Done', 'green sm');
-    const v = await modal(`${starsTxt(u.star)} ${esc(C.name(u))}`, body, acts);
+    const v = await modal(`${starsTxt(u.star)} ${esc(C.name(u))}`, body, acts, 'close');
     closeModal();
     if (v === 'close') break;
     if (v.startsWith('sk:')) { u.skill = v.slice(3); save(); continue; }
-    if (v === 'sell') { const g = R.sell(run, u.uid); SFX.coin(); toast(`Sold for ${g} gold.`); break; }
+    if (v === 'sell') { if (!(await confirmLastSell(u))) continue; const g = R.sell(run, u.uid); SFX.coin(); toast(`Sold for ${g} gold.`); break; }
     if (v === 'bench') { const f = R.freeBench(run); if (f < 0) toast('Your bench is full.'); else R.placeBench(run, u.uid, f); break; }
     if (v === 'board') {
       let done = false;
@@ -487,7 +507,7 @@ async function enemyInfo(i) {
   const p = R.enemyBoard(run)[i]; if (!p) return;
   const inst = p.inst;
   await ask(`${inst.boss ? '♛' : starsTxt(inst.star)} ${esc(C.name(inst))}${inst.elite ? ' · ' + inst.elite : ''}`, `<div class="detail"><div class="big el-${C.elOf(inst)}"><img src="${IMG(C.art(inst))}" alt=""></div><div>
-    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}${inst.boss && G.BOSSES[inst.boss].pd ? `<div class="small" style="margin-top:6px;color:var(--gold)">♛ ${G.BOSSES[inst.boss].pd} Enrages below half HP.</div>` : ''}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}${perkRow(inst)}`, btn('ok', 'Close', 'green sm'));
+    <div class="row wrap">${elBadge(C.elOf(inst))}<span class="tag">${ROLE_N[C.roleOf(inst)]}</span></div>${statBlock(inst)}${inst.boss && G.BOSSES[inst.boss].pd ? `<div class="small" style="margin-top:6px;color:var(--gold)">♛ ${G.BOSSES[inst.boss].pd} Enrages below half HP.</div>` : ''}</div></div><h3 style="margin:10px 0 4px">Skills</h3>${skillRows(inst, false)}${perkRow(inst)}`, btn('ok', 'Close', 'green sm'), 'ok');
 }
 
 // ---- the fight ---------------------------------------------------------------------------------
@@ -496,7 +516,7 @@ function stopFight() { if (FS && FS.raf) cancelAnimationFrame(FS.raf); FS = null
 function uEl(id) { return FS && FS.els[id]; }
 function startFight() {
   if (phase !== 'plan') return;
-  if (!R.onBoard(run).length) { toast('Put at least one creature on the board first.'); return; }
+  if (!R.onBoard(run).length) { toast('The board is empty. Place a creature before the fight can start.'); return; }
   if (R.onBoard(run).length < R.cap(run) && R.onBench(run).length) toast(`You have room for ${R.cap(run) - R.onBoard(run).length} more on the board.`);
   phase = 'fight';
   const seed = (run.seed * 31 + run.round * 977 + Date.now() % 100000) >>> 0;
@@ -856,11 +876,11 @@ async function bagScreen() {
   renderGame();
 }
 async function menuScreen() {
-  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + (window.GAUDIO ? btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost') + btn('vold', 'Volume −', 'ghost sm') + btn('volu', 'Volume +', 'ghost sm') : '') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'));
+  const v = await ask('Menu', '', btn('how', 'How to Play', 'ghost') + btn('snd', meta.sound ? 'Sound: On' : 'Sound: Off', 'ghost') + (window.GAUDIO ? btn('mus', meta.music ? 'Music: On' : 'Music: Off', 'ghost') + volBtns() : '') + btn('title', 'Save & Quit to Title', 'blue') + btn('give', 'Give up run', 'ghost') + btn('x', 'Back', 'green'), 'x');
   if (v === 'how') return showHow();
   if (v === 'snd') { meta.sound = !meta.sound; save(); return menuScreen(); }
   if (v === 'mus') { GAUDIO.setMusic(!meta.music); return menuScreen(); }
-  if (v === 'vold' || v === 'volu') { GAUDIO.setVol(meta.vol + (v === 'volu' ? 10 : -10)); toast('Volume ' + meta.vol + '%'); return menuScreen(); }
+  if (v === 'vold' || v === 'volu') { bumpVol(v === 'volu' ? 10 : -10); return menuScreen(); }
   if (v === 'title') { save(); renderTitle(); }
   if (v === 'give' && await ask('Give up?', '<p style="text-align:center">You keep the shards you earned so far.</p>', btn('y', 'Give up', 'ghost') + btn('n', 'Keep going', 'green')) === 'y') { SFX.stinger('lose'); gameOver(false); }
 }
@@ -907,10 +927,20 @@ async function showDex() {
     return `<div class="${seen ? '' : 'unseen'}"><img src="${IMG('cr_' + sp + stg)}" alt=""><div>${seen ? G.SP[sp].names[stg - 1] : '???'}</div>${stg === 1 ? (meta.unlocked[sp] ? '<span class="tag" style="background:#2fbf5555">unlocked</span>' : '<span class="tag">🔒 Wilds</span>') : ''}${stg === 1 && (meta.shinies || {})[sp] ? '<span class="tag wshiny">✦ shiny</span>' : ''}</div>`;
   }).join('')).join('');
   const n = Object.keys(G.SP).reduce((s, sp) => s + Math.max(meta.dex[sp] || 0, run ? run.seen[sp] || 0 : 0), 0);
-  await ask(`Glimdex · ${n}/${Object.keys(G.SP).length * 3}`, `<div class="dex">${cells}</div>${window.WILDS ? WILDS.dexHtml() : ''}`, btn('ok', 'Close', 'green sm'));
+  await ask(`Glimdex · ${n}/${Object.keys(G.SP).length * 3}`, `<div class="dex">${cells}</div>${window.WILDS ? WILDS.dexHtml() : ''}`, btn('ok', 'Close', 'green sm'), 'ok');
+}
+async function showAbout() {
+  await ask('About', `<div class="how">
+    <p style="text-align:center"><b>Glimmerdeep</b></p>
+    <p style="text-align:center" class="muted">${GLIM_VER}</p>
+    <p><b>Game</b> by Labfreak-dev. A creature auto-chess roguelite: tame, merge, and delve.</p>
+    <p><b>Art</b> — original creature, item, and world paintings made for Glimmerdeep.</p>
+    <p><b>Sound</b> — original music and effects made for Glimmerdeep.</p>
+    <p class="small muted">Type set in Fredoka and Nunito.</p>
+  </div>`, btn('ok', 'Close', 'green sm'), 'ok');
 }
 async function showHow() {
-  await ask('How to play', `<div class="how">
+  const v = await ask('How to play', `<div class="how">
   <p><b>The run</b> is 30 rounds across 6 stages of 5. Round 3 of each stage is an elite fight that pays a relic; round 5 is the stage boss (one of three for that biome). After a boss you pick the next biome from two you have not visited (12 biomes, each with its own hazard); the last stage is always the Glimmer Core. You have 100 HP: losing a round costs HP (more for every foe left standing). Beat the Glimmer Core's boss in round 30 to win.</p>
   <p><b>Planning.</b> Buy creatures from the shop (cost = tier: 1-5 gold; tier 4 and 5 creatures appear at higher Tamer levels), drag them from the bench onto your half of the board, and drag them back or onto the shop to sell. Your <b>Tamer level</b> is how many creatures fit on the board: you gain 2 XP a round, and Buy XP gives 4 for 4 gold. Higher levels also roll rarer creatures. <b>Lock</b> keeps a shop for next round.</p>
   <p><b>Merging.</b> Three copies of the same creature at the same star merge and evolve it: ★2 is its second form, ★3 its final form. Each merge offers a <b>mutation</b>.</p>
@@ -922,7 +952,8 @@ async function showHow() {
   <p><b>Relics</b> power up your whole team; three with a shared tag light up a <b>set bonus</b>, and certain pairs <b>fuse</b> into legendaries (Bag → Forge). <b>Charms</b> drop from wild rounds: give one to a creature. Each biome has a <b>hazard</b>; some relics counter it.</p>
   <p><b>Between runs</b>, Glimmer Shards buy permanent upgrades at camp. Win to unlock harder Depths.</p>
   <p><b>The Wilds.</b> Only the original twelve creatures start unlocked. Explore floors of rooms, walk into wild creatures to battle them, and every species you beat is <b>unlocked for good</b>: it joins the Auto Chess shop and the starters. Find the key for the vault, push on cracked walls for secret rooms, and beat each floor's lair to go deeper. Mind the pits, and spike traps chip your squad's HP. A sparkling <b>shiny</b> creature is caught shiny for good: that species turns up shiny far more often in the shop. Every floor has a shrine and a <b>Glim Tonic</b> at the entrance (tap the flask to heal), event rooms offer deals and gambles, and lairs, chests and champions give <b>relics</b> that power your squad until the expedition ends. Camp has Wilds upgrades too.</p>
-  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('ok', 'Got it', 'green'));
+  <p><b>Trainers.</b> Trainers stand in some rooms and look one way (watch the light cone). If they spot you, the doors seal and they come for a battle; sneak around the cone to avoid them, or walk up to challenge them. Scout their team, pick a lead, and win <b>Trainer Tokens</b> to spend at the Trainer's Post (camp) on lures, starting stars and shiny sense. Floor captains guard the treasure on floors 2 and 4 for rare relics. Beat your rival Jax for Rival Badges and new tamer outfits; with all three, the Rival's Den opens after floor 5.</p></div>`, btn('about', 'About', 'ghost sm') + btn('ok', 'Got it', 'green'), 'ok');
+  if (v === 'about') await showAbout();
 }
 
 // ---- boot --------------------------------------------------------------------------------------

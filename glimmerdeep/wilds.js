@@ -15,6 +15,14 @@ const SHINY = 'hue-rotate(150deg) saturate(1.3)';
 const RW = 16, RH = 9;                     // room size in world units (the room art is 16:9)
 const IN = { x0: 1.35, x1: 14.65, y0: 1.3, y1: 7.7 };   // walkable floor inside the walls
 const DOOR = { n: [8, 0.72, 0], s: [8, 8.28, Math.PI], w: [0.72, 4.5, -Math.PI / 2], e: [15.28, 4.5, Math.PI / 2] };
+const DOORW = 2.7;   // v2 gate sprites are square, drawn unrotated
+const DOORA = { n: [0.5, 0.5395], s: [0.5, 0.4605], w: [0.5395, 0.5], e: [0.4605, 0.5] };   // door centre inside each file
+const DOORSKIN = { verdant: 1, magma: 1, tundra: 1, core: 1 };   // biomes with wd_*_<wall>_<biome> art
+const WALK_CYCLE = 1.3;   // world units for one 8-frame stride
+const TAMER_FR = ['wd_tamer', 'wd_tamer_up', 'wd_tamer_down', 'wd_tamer_hurt_1', 'wd_tamer_hurt_2',
+  'wd_tamer_idle_1', 'wd_tamer_idle_2', 'wd_tamer_idle_3', 'wd_tamer_idle_4',
+  'wd_tamer_walk_1', 'wd_tamer_walk_2', 'wd_tamer_walk_3', 'wd_tamer_walk_4',
+  'wd_tamer_walk_5', 'wd_tamer_walk_6', 'wd_tamer_walk_7', 'wd_tamer_walk_8'];
 const DIRS = window.GW.DIRS, OPP = { n: 's', s: 'n', e: 'w', w: 'e' };
 const EARLY = ['verdant', 'grotto', 'magma', 'crypt'];
 const ELC = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
@@ -24,6 +32,16 @@ let V = null;        // the live view: canvas, input, positions (not saved)
 const imgs = {};
 function img(k) { if (!imgs[k]) { const i = new Image(); i.src = IMG(k); imgs[k] = i; } return imgs[k]; }
 const ready = i => i.complete && i.naturalWidth > 0;
+// fetch and decode ahead of the first draw, so a new frame is never a blank
+function warm(k) { const i = img(k); if (typeof i.decode === 'function') i.decode().catch(() => {}); return i; }
+function preloadTamer() { for (const k of TAMER_FR) warm(k); }
+function preloadDoors() {
+  if (!W || !W.biome) return;
+  for (const kind of ['door', 'lock', 'crack']) for (const d of ['n', 's', 'w', 'e']) {
+    warm('wd_' + kind + '_' + d);
+    if (DOORSKIN[W.biome]) warm('wd_' + kind + '_' + d + '_' + W.biome);
+  }
+}
 
 // ---- save ---------------------------------------------------------------------------------------
 function save() { try { localStorage.setItem(SAVE, JSON.stringify(W)); } catch (e) { /* storage blocked */ } }
@@ -105,6 +123,7 @@ function newFloor(floor) {
   const mapRank = Math.max(up('w_map'), rw('map'));
   if (mapRank) revealMap(mapRank);
   markSeen();
+  preloadDoors();
 }
 function startExpedition(sps) {
   W = { v: 1, seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0, floor: 1, biomes: [], keys: 0, shards: 0, nextUid: 1, wins: 0, found: [],
@@ -193,9 +212,10 @@ function enter() {
   host.classList.add('exploring');
   U.show('wilds');
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
+  preloadTamer();
   if (!V) {
     const cv = host.querySelector('#wCv');
-    V = { cv, ctx: cv.getContext('2d'), keys: {}, joy: null, px: 8, py: 4.5, fx: 1, walk: 0, mons: [], raf: 0, last: performance.now(),
+    V = { cv, ctx: cv.getContext('2d'), keys: {}, joy: null, px: 8, py: 4.5, fx: 1, step: 0, going: 0, vert: 0, bob: 0, flinch: 0, shown: '', mons: [], raf: 0, last: performance.now(),
       inv: 0, push: { d: null, t: 0 }, slide: null, pause: false, msgT: 0, parts: [] };
     bindInput();
   }
@@ -216,8 +236,10 @@ function placeRoom(from) {
   V.mons = [];
   V.grid = a.tiles ? a.tiles.split('|') : null;
   V.flow = null; V.flowAt = '';
+  V.going = 0; V.vert = 0; V.bob = 0;
   spawnMon(a);
   V.inv = 1.0;
+  preloadDoors();
   markSeen();
   save();
 }
@@ -341,6 +363,7 @@ function chaseStep(m) {
 function hurt() {
   // spikes: chip the squad, never below 10%, with a moment of safety after
   V.hurtT = 1.1;
+  V.flinch = 0.52;   // hurt_1 then hurt_2; shorter than the spike cooldown
   for (const s of W.squad) if (s.hp > 0) s.hp = Math.max(0.1, s.hp - 0.06);
   U.SFX.wspike(); burst(V.px, V.py, '#ff5a6e');
   if (!W.spikeTip) { W.spikeTip = 1; U.toast('Spikes! Each one chips 6% HP off your squad.'); }
@@ -351,6 +374,7 @@ function msg(t) { if (V.msgT > 0) return; V.msgT = 1.6; U.toast(t); }
 function frame(ts) {
   if (!V || !W) return;
   const dt = Math.min(0.05, (ts - V.last) / 1000); V.last = ts;
+  if (V.flinch > 0) V.flinch = Math.max(0, V.flinch - dt);   // ticks through the pre-battle flash too
   if (!V.pause && $('#wilds.on')) step(dt);
   draw();
   V.raf = requestAnimationFrame(frame);
@@ -363,9 +387,9 @@ function step(dt) {
   const a = room();
   const [ix, iy] = inputVec();
   const sp = 5.2;
+  const x0 = V.px, y0 = V.py;
   const o = { x: V.px + ix * sp * dt, y: V.py + iy * sp * dt };
   if (ix) V.fx = ix > 0 ? 1 : -1;
-  V.walk = ix || iy ? V.walk + dt * 10 : 0;
   // walls, with gaps where there are open doors
   const gapX = Math.abs(o.x - 8) < 0.8, gapY = Math.abs(o.y - 4.5) < 0.8;
   const dn = doorOf(a, 'n'), ds = doorOf(a, 's'), dw = doorOf(a, 'w'), de = doorOf(a, 'e');
@@ -382,6 +406,13 @@ function step(dt) {
   if (o.x < IN.x0) { if (gapY && dw === 'open') { if (o.x < 0.35) return go('w'); o.y = Math.max(3.75, Math.min(5.25, o.y)); } else { if (gapY && dw) tryDoor('w', dw); o.x = IN.x0; } }
   if (o.x > IN.x1) { if (gapY && de === 'open') { if (o.x > RW - 0.35) return go('e'); o.y = Math.max(3.75, Math.min(5.25, o.y)); } else { if (gapY && de) tryDoor('e', de); o.x = IN.x1; } }
   collideRocks(o, 0.38);
+  // stride from the distance that actually happened, so a wall or rock stops the feet
+  const dx = o.x - x0, dy = o.y - y0, dist = Math.hypot(dx, dy);
+  if (dist > 1e-4) {
+    const vert = Math.abs(dx) < 1e-3 || Math.abs(dx) < Math.abs(dy) * 0.25;
+    if (vert) { V.going = 2; V.vert = dy >= 0 ? 1 : -1; V.bob += dt * 10; }
+    else { V.going = 1; V.vert = 0; V.bob = 0; V.step += dist; }
+  } else { V.going = 0; V.vert = 0; V.bob = 0; }
   V.px = o.x; V.py = o.y;
   V.hurtT = (V.hurtT || 0) - dt; V.shake = Math.max(0, (V.shake || 0) - dt);
   { const [c, y] = tileAt(V.px, V.py), [tx, ty] = tileXY(c, y); if (tile(c, y) === 'S' && !rw('spikeproof') && Math.abs(V.px - tx) < 0.42 && Math.abs(V.py - ty) < 0.42 && V.hurtT <= 0 && !V.slide) hurt(); }
@@ -521,6 +552,7 @@ async function runEvent(a) {
 
 // ---- battles ----------------------------------------------------------------------------------
 async function battle(a, mv) {
+  V.flinch = 0.52;   // the contact that starts the fight
   V.pause = true;
   const mon = a.mon, fit = W.squad.filter(m => m.hp > 0);
   const insts = fit.map(squadInst);
@@ -622,7 +654,7 @@ function draw() {
   // creatures and the tamer, back to front
   const ents = V.mons.map(m => ({ y: m.y, f: () => sprite(ctx, img('cr_' + room().mon.sp + room().mon.star), ox + m.x * S, oy + m.y * S, m.sz * S, m.fx || -1, Math.sin(m.bob) * 0.04, m.lair, m.shiny) }));
   for (const [x, y, rr] of rockList(room())) ents.push({ y, f: () => drawRock(ctx, ox, oy, S, x, y, rr) });
-  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; sprite(ctx, img('wd_tamer'), ox + V.px * S, oy + V.py * S, 1.3 * S, V.fx, Math.abs(Math.sin(V.walk)) * 0.07, false); ctx.globalAlpha = 1; } });
+  ents.push({ y: V.py, f: () => { if (V.inv > 0 && Math.floor(V.inv * 10) % 2) ctx.globalAlpha = 0.5; const [k, fx, bob] = tamerPose(); sprite(ctx, tamerImg(k), ox + V.px * S, oy + V.py * S, 1.3 * S, fx, bob, false); ctx.globalAlpha = 1; } });
   ents.sort((p, q) => p.y - q.y).forEach(e => e.f());
   for (const p of V.parts) {
     ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
@@ -648,12 +680,8 @@ function drawRoom(a, ox, oy, S, live) {
   ctx.fillStyle = g; ctx.fillRect(ox, oy, RW * S, RH * S);
   for (const d in DOOR) {
     const st = doorOf(a, d); if (!st) continue;
-    const [x, y, rot] = DOOR[d], im = img(st === 'open' ? 'wd_door' : st === 'lock' ? 'wd_lock' : 'wd_crack');
-    if (!ready(im)) continue;
-    ctx.save(); ctx.translate(ox + x * S, oy + y * S); ctx.rotate(rot);
-    const w = 1.9 * S;
-    ctx.drawImage(im, -w / 2, -w * 0.62, w, w);
-    ctx.restore();
+    const [x, y, rot] = DOOR[d];
+    drawDoor(ctx, st, d, x, y, rot, ox, oy, S);
   }
   const grid = a.tiles ? a.tiles.split('|') : null;
   if (grid) for (let y = 0; y < TR; y++) for (let c = 0; c < TC; c++) {
@@ -689,6 +717,44 @@ function glow(ctx, x, y, r, rgb) {
   const t = performance.now() / 1000, g = ctx.createRadialGradient(x, y, 0, x, y, r * (1 + Math.sin(t * 3) * 0.06));
   g.addColorStop(0, `rgba(${rgb},.45)`); g.addColorStop(1, `rgba(${rgb},0)`);
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 1.1, 0, 6.3); ctx.fill();
+}
+// per-wall gate, unrotated. Biome skin, then the grey file, then the old rotated sprite.
+// While a per-wall file is still decoding, hold rather than flash the flat cutout.
+function drawDoor(ctx, st, d, x, y, rot, ox, oy, S) {
+  const kind = st === 'open' ? 'door' : st === 'lock' ? 'lock' : 'crack';
+  const neu = img('wd_' + kind + '_' + d);
+  const skin = DOORSKIN[W.biome] ? img('wd_' + kind + '_' + d + '_' + W.biome) : null;
+  if (skin && ready(skin)) return drawGate(ctx, skin, d, x, y, ox, oy, S);
+  if (ready(neu)) return drawGate(ctx, neu, d, x, y, ox, oy, S);
+  if ((skin && !skin.complete) || !neu.complete) return;
+  const im = img(kind === 'door' ? 'wd_door' : kind === 'lock' ? 'wd_lock' : 'wd_crack');
+  if (!ready(im)) return;
+  ctx.save(); ctx.translate(ox + x * S, oy + y * S); ctx.rotate(rot);
+  const w = 1.9 * S;   // shared fallback size; the old crack 1.5 split is not in this file
+  ctx.drawImage(im, -w / 2, -w * 0.62, w, w);
+  ctx.restore();
+}
+function drawGate(ctx, im, d, x, y, ox, oy, S) {
+  const w = DOORW * S, [fx, fy] = DOORA[d];
+  ctx.drawImage(im, ox + x * S - w * fx, oy + y * S - w * fy, w, w);
+}
+// hurt flinch, then a side stride (mirrored when facing left), up/down stills, idle breathing.
+// The stride frames already move the feet, so the old bob is only for the up/down stills.
+function tamerPose() {
+  if (V.flinch > 0.26) return ['wd_tamer_hurt_1', V.fx || 1, 0];
+  if (V.flinch > 0) return ['wd_tamer_hurt_2', V.fx || 1, 0];
+  if (V.going === 2) return [V.vert > 0 ? 'wd_tamer_down' : 'wd_tamer_up', 1, Math.abs(Math.sin(V.bob)) * 0.07];
+  if (V.going === 1) return ['wd_tamer_walk_' + (1 + Math.floor(V.step / (WALK_CYCLE / 8)) % 8), V.fx || 1, 0];
+  return ['wd_tamer_idle_' + (1 + Math.floor(performance.now() / 260) % 4), V.fx || 1, 0];
+}
+function tamerImg(k) {
+  const im = img(k);
+  if (ready(im)) { V.shown = k; return im; }
+  const prev = V.shown && imgs[V.shown];
+  if (prev && ready(prev)) return prev;
+  const idle = img('wd_tamer_idle_1');
+  if (ready(idle)) return idle;
+  return img('wd_tamer');
 }
 // a standing sprite anchored at its feet; creature art faces right, so fx -1 mirrors it
 function sprite(ctx, im, x, y, sz, fx, bob, boss, shiny) {

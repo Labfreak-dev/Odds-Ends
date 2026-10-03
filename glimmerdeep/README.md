@@ -123,22 +123,27 @@ starters and Kin offers only use unlocked species. Everything else is found in *
   walls lead to neighbouring rooms, and a minimap shows what you have found.
   - The tamer is drawn at 1.3 units. Sideways walking plays `wd_tamer_walk_1`–`8` (mirrored
     to the left), one full cycle per about 1.3 units actually travelled, so a blocked step
-    does not cycle. Straight up or down plays `wd_tamer_<dir>_walk_*` when `VWALK` counts
-    those frames, and otherwise a distance-driven waddle on the front/back still (one
-    footfall every 0.65 units: lift, lean, and a mirror that swaps shoulders). Standing
+    does not cycle. Straight up or down plays `wd_tamer_<up|down>_1`–`8` (one cycle per
+    1.3 units actually travelled, same as the side walk); if those files are still loading
+    or missing it falls back to the waddle on the still. Standing
     breathes through four idle frames (about 260 ms each). Spikes and walking into a
-    creature play a short hurt flinch.
+    creature play a short hurt flinch. A soft contact shadow under the feet and a faint
+    light rim on the sprite keep the tamer readable on pale floors; outfit recolour is
+    applied to the bitmap first, so the rim does not change it.
   - Doorways are per-wall gates (`wd_<door|lock|crack>_<n|s|w|e>_<biome>` for all twelve
     biomes), drawn unrotated at 2.7 units. The grey per-wall set, then `wd_door.webp`,
     `wd_lock.webp` and `wd_crack.webp`, are the fallback. Pits and spikes are
     `wd_pit_<biome>` / `wd_spikes_<biome>`. Key, berry, shrine, stairs and chest
     (`wd_chest`, not the map-node icon) keep their file aspect. Room trainers draw at
     about 1.1× the tamer's visible height, unstretched.
-  - A secret door stays a plain wall until you are next to it (a faint shimmer), you
-    stand and search, or a map reveal (Scout's Map, Cartographer rank 2, the explorer)
-    draws the crack and the purple minimap dot. Push for about 0.9 s to open it. Nothing
-    on the minimap or the room header names a secret before it is found. `WILDS.doors()`
-    still reports `'crack'` for the closed state.
+  - A hidden secret door stays a plain wall from afar. Inside the hint range the camouflage
+    (`wd_secret_<n|s|w|e>_<biome>`, a faint frame and crack) fades in, with the shimmer on
+    top when you are near; standing still searches it, and a map reveal (Scout's Map,
+    Cartographer rank 2, the explorer) draws the full crack and the purple minimap dot.
+    Push for about 0.9 s to open it. Once found it is the revealed passage
+    `wd_secretopen_<dir>_<biome>` from both sides. Without those files the wall stays plain
+    and the old door is used when opened. Nothing on the minimap or the room header names
+    a secret before it is found. `WILDS.doors()` still reports `'crack'` for the closed state.
 - Wild rooms hold a roaming creature from the biome's elements, sometimes with escorts. Locked
   species are 3× as likely as ones you have. Walk into it to battle it on the auto-chess board
   with your squad.
@@ -427,3 +432,4 @@ Re-roll one image: delete `art-src/<key>.webp`, run `gen-art.py <key>`, then `pa
     - Only these keys were packed. The balance is now about 790 credits.
   - Script `?v=` and `GLIM_AUDIO_V` are bumped to 2.
   - Glimdex's count now reads out of 216 forms (it said /36).
+- **Wilds v4 walk and secret doors.** Straight up or down plays eight real frames (`wd_tamer_<up|down>_1`–`8`, `?v=w4`). A hidden secret stays a plain wall from afar (`SECRET_FAR_A = 0`); the camouflage sprite fades in inside the hint range and the found passage is `wd_secretopen_*`. Letting go of a crack, or leaving the room, clears `V.push` so a later secret on that wall does not glow from across the room. The tamer gets a soft contact shadow and a faint rim; outfit recolour still happens in the bitmap.

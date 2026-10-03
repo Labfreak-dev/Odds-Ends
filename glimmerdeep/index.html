@@ -694,6 +694,75 @@ button.setrow { cursor: pointer; }
 /* ==== m5: Wilds names and fight chips ==== */
 .wmem .nm { font-size: 11px; line-height: 1.15; }
 .uhud .st { font-size: 11px; }
+
+/* ==== goals, wardrobe, frames, board themes ==== */
+#title .menu .btn { min-height: 44px; }
+@media (max-height: 980px) {
+  #title .logo { font-size: 52px; }
+  .title-mons { height: 15vh; margin-top: 1vh; }
+  #title .menu { margin-top: 12px; gap: 8px; }
+}
+@media (max-height: 860px) {
+  .title-mons { height: 11vh; }
+  #title .menu { margin-top: 8px; gap: 6px; }
+}
+.costitle { font-family: Fredoka, Nunito, sans-serif; color: var(--gold); }
+.achtabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 4px 0 10px; }
+.achtabs .btn { min-height: 44px; min-width: 44px; }
+.achrow { min-height: 44px; }
+.achrow.locked { opacity: .92; }
+.cosprev { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 auto 8px; width: 120px; padding: 8px; border-radius: 16px; background: rgba(0,0,0,.28); }
+.cosprev img { width: 88px; height: 88px; object-fit: contain; }
+.cosgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.coscard { min-height: 72px; padding: 10px 8px; border-radius: 14px; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 2px rgba(255,255,255,.14); color: var(--ink); text-align: center; }
+.coscard .nm { font-family: Fredoka, Nunito, sans-serif; font-size: 16px; }
+.coscard.on { box-shadow: inset 0 0 0 3px #84f08f; }
+.coscard.locked { filter: grayscale(.35); }
+.frame-gold { box-shadow: 0 0 0 2px #ffc93c, 0 0 14px rgba(255,201,60,.65); }
+.frame-rainbow { box-shadow: 0 0 0 2px #fff, 0 0 8px #ff5a7a, 0 0 16px #3fe0ff; }
+.frame-ember { box-shadow: 0 0 0 2px #ff7a2a, 0 0 14px rgba(255,122,42,.65); }
+.frame-ice { box-shadow: 0 0 0 2px #8fe3ff, 0 0 14px rgba(143,227,255,.6); }
+.frame-leaf { box-shadow: 0 0 0 2px #4fd35a, 0 0 14px rgba(79,211,90,.55); }
+.pill.frame-gold, .pill.frame-rainbow, .pill.frame-ember, .pill.frame-ice, .pill.frame-leaf { padding: 4px 12px; }
+#achToast { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translate(-50%, -140%); z-index: 220; max-width: min(420px, 92%); padding: 10px 14px; border-radius: 14px; background: #1a1338; color: var(--ink); text-align: center; pointer-events: none; box-shadow: 0 0 0 2px var(--gold), 0 10px 24px rgba(0,0,0,.45); transition: transform .28s ease; }
+#achToast.on { transform: translate(-50%, 0); }
+#achToast b { font-family: Fredoka, Nunito, sans-serif; }
+body[data-theme="forest"] { --bg: #0c1a12; --panel: #1c3a2a; --panel2: #245038; --line: #3f8f5c; }
+body[data-theme="forest"] #game { background: #07140e; }
+body[data-theme="forest"] .cell.a { background: rgba(110,220,130,.16); }
+body[data-theme="forest"] .cell.a.alt { background: rgba(110,220,130,.26); }
+body[data-theme="forest"] .cell.f { background: rgba(255,120,80,.12); }
+body[data-theme="forest"] .cell.f.alt { background: rgba(255,120,80,.2); }
+body[data-theme="ember"] { --bg: #1a0806; --panel: #3a140c; --panel2: #4e1c10; --line: #c45a30; --gold: #ffc46a; }
+body[data-theme="ember"] #game { background: #140604; }
+body[data-theme="ember"] .cell.a { background: rgba(255,140,60,.16); }
+body[data-theme="ember"] .cell.a.alt { background: rgba(255,140,60,.26); }
+body[data-theme="ember"] .cell.f { background: rgba(255,80,60,.14); }
+body[data-theme="ember"] .cell.f.alt { background: rgba(255,80,60,.22); }
+body[data-theme="frost"] { --bg: #08141c; --panel: #10283a; --panel2: #163448; --line: #3d7ea8; }
+body[data-theme="frost"] #game { background: #061018; }
+body[data-theme="frost"] .cell.a { background: rgba(140,210,255,.16); }
+body[data-theme="frost"] .cell.a.alt { background: rgba(140,210,255,.26); }
+body[data-theme="frost"] .cell.f { background: rgba(180,140,255,.12); }
+body[data-theme="frost"] .cell.f.alt { background: rgba(180,140,255,.2); }
+body[data-theme="starfield"] { --bg: #070814; --panel: #12162e; --panel2: #1a2044; --line: #6a78c8; --gold: #ffe08a; }
+body[data-theme="starfield"] #game { background: #05060f; }
+body[data-theme="starfield"] .cell.a { background: rgba(120,140,255,.16); }
+body[data-theme="starfield"] .cell.a.alt { background: rgba(120,140,255,.26); }
+body[data-theme="starfield"] .cell.f { background: rgba(255,120,180,.1); }
+body[data-theme="starfield"] .cell.f.alt { background: rgba(255,120,180,.18); }
+body[data-theme="aurora"] { --bg: #07141c; --panel: #102838; --panel2: #143444; --line: #2fbf8a; }
+body[data-theme="aurora"] #game { background: #061018; }
+body[data-theme="aurora"] .cell.a { background: rgba(80,220,170,.16); }
+body[data-theme="aurora"] .cell.a.alt { background: rgba(80,220,170,.26); }
+body[data-theme="aurora"] .cell.f { background: rgba(180,120,255,.12); }
+body[data-theme="aurora"] .cell.f.alt { background: rgba(180,120,255,.2); }
+body[data-theme="candy"] { --bg: #1a0c22; --panel: #3a1848; --panel2: #4a205c; --line: #c06098; --gold: #ffd0ec; }
+body[data-theme="candy"] #game { background: #140818; }
+body[data-theme="candy"] .cell.a { background: rgba(255,140,200,.16); }
+body[data-theme="candy"] .cell.a.alt { background: rgba(255,140,200,.26); }
+body[data-theme="candy"] .cell.f { background: rgba(140,180,255,.12); }
+body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 </style>
 </head>
 <body>
@@ -734,19 +803,23 @@ button.setrow { cursor: pointer; }
   </section>
   <div class="modal" id="modal"><div class="panel box" id="modalBox"></div></div>
   <div class="toast" id="toast"></div>
+  <div id="achToast" role="status"></div>
 </div>
 <script>window.GLIM_AUDIO_V = '2';</script>
 <script src="forms4.js?v=m2"></script>
 <script src="species2.js?v=m1"></script>
 <script src="data.js?v=m2"></script>
-<script src="chess.js?v=m2"></script>
-<script src="crun.js?v=m2"></script>
+<script src="relics2.js?v=f1"></script>
+<script src="chess.js?v=f1"></script>
+<script src="crun.js?v=f1"></script>
 <script src="fx.js?v=2"></script>
 <script src="glim-anim.js?v=m3"></script>
 <script src="glim-anim-species.js?v=m3"></script>
 <script src="audio.js?v=3"></script>
-<script src="game.js?v=m5"></script>
+<script src="game.js?v=f1"></script>
 <script src="wgen.js?v=2"></script>
-<script src="wilds.js?v=m4"></script>
+<script src="wilds.js?v=f1"></script>
+<script src="achievements.js?v=f1"></script>
+<script src="cosmetics.js?v=f1"></script>
 </body>
 </html>

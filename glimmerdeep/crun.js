@@ -19,7 +19,16 @@ function campBonus(up) {
   for (const k in up || {}) { const m = G.META[k]; if (m && m.cb && m.mode !== 'wilds') for (const s in m.cb) b[s] = (b[s] || 0) + m.cb[s] * up[k]; }
   return b;
 }
-const bonus = run => C.teamBonus(run.relics, run.perks, run.campB);
+function bonus(run) {
+  const b = C.teamBonus(run.relics, run.perks, run.campB);
+  if (b.rainbow && run && run.units) {
+    const seen = {};
+    let n = 0;
+    for (const u of run.units) if (u.at === 'b' && !seen[u.sp]) { seen[u.sp] = 1; n++; }
+    if (n) b.atkMul = (b.atkMul || 0) + b.rainbow * Math.min(6, n);
+  }
+  return b;
+}
 
 // ---- run setup --------------------------------------------------------------------------
 function newRun(meta, seed, depth) {

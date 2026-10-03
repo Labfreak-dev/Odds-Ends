@@ -1,6 +1,6 @@
 // Headless balance sim for the auto-chess run: a simple bot shops, merges, levels and fights.
 //   node glimmerdeep/sim.js [runs=200] [depth=0]
-require('./species2.js'); require('./data.js'); require('./chess.js'); require('./crun.js');
+require('./species2.js'); require('./data.js'); require('./relics2.js'); require('./chess.js'); require('./crun.js');
 const G = globalThis.GD, C = globalThis.GC, R = globalThis.GR;
 
 const bossLog = [];
@@ -55,6 +55,8 @@ for (let n = 0; n < N; n++) {
   const seed = 5000 + n * 11;
   const run = R.newRun({ up: UP, unlocked: BASE }, seed, DEPTH);
   R.giveStarter(run, R.starterChoices({ unlocked: BASE }, seed)[0]);
+  if (process.env.RELIC && G.RELICS[process.env.RELIC]) R.addRelic(run, process.env.RELIC);
+  if (process.env.ALLNEW) for (const k in (G.RELICS2 || {})) R.addRelic(run, k);
   try {
     while (!run.over) {
       shop(run);

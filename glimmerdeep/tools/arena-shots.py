@@ -37,7 +37,8 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={'width': 1100, 'height': 760})
     errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
+    pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'Failed to load resource' not in m.text else None)
+    pg.on('response', lambda r: errs.append(str(r.status) + ' ' + r.url) if r.status >= 400 and 'favicon' not in r.url else None)
     pg.goto(BASE + '/arena-preview.html?shot=atlas&t=0.22', wait_until='networkidle')
     pg.wait_for_function('window.__arenaReady', timeout=8000)
     info = pg.evaluate("""async () => {

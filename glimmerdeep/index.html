@@ -190,13 +190,17 @@ img { display: block; -webkit-user-drag: none; }
 .fx .banner { top: 46%; }
 .fightbar { display: none; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
 #game.fighting .fightbar { display: flex; }
-.board.arena-on { overflow: hidden; }
+.board.arena-on { overflow: hidden; aspect-ratio: auto; width: min(100%, 960px); height: min(68vh, 620px); }
 .board.arena-on .cells, .board.arena-on .mid, .board.arena-on .fxc, .board.arena-on .banner { visibility: hidden; }
 #fightBar .btn.on { box-shadow: inset 0 0 0 2px #ffe7a3; color: #ffe7a3; }
 .arena-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+@media (max-width: 560px) {
+  #game.fighting:has(.board.arena-on) .bench, #game.fighting:has(.board.arena-on) .traits { display: none; }
+  #game.fighting .board.arena-on { width: 100%; height: calc(100vh - 148px); max-height: none; }
+}
 @media (max-height: 520px) {
   #game.fighting:has(.board.arena-on) .bench, #game.fighting:has(.board.arena-on) .traits { display: none; }
-  #game.fighting .board.arena-on { width: min(100%, 920px, calc((100vh - 108px) * 1.6)); }
+  #game.fighting .board.arena-on { width: min(100%, 960px); height: calc(100vh - 108px); max-height: none; }
 }
 #game.fighting .shop, #game.fighting .shopbtns { display: none; }
 #game.fighting .bench { opacity: .45; pointer-events: none; }

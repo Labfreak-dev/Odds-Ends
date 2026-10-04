@@ -1288,7 +1288,7 @@
       const u = order[i];
       const ex = exBy.get(u.id);
       const key = artKeyOf(u, ex);
-      if (key) prepareArt(key, artUrl ? artUrl(key) : ('img/' + key + '.webp'));
+      if (key && !atlases.has(key)) prepareArt(key, artUrl ? artUrl(key) : ('img/' + key + '.webp'));
       drawUnit(ctx, u, ex, motionDt);
     }
     const now = (view.t || 0) + (opt.alpha || 0);

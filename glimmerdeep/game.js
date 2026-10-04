@@ -7,7 +7,7 @@ const IMG = k => (window.GD_ICON_MANIFEST && GD_ICON_MANIFEST[k]) ? ('img/' + k 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SAVE = 'glimmerdeep.v1';
-const GLIM_VER = 'v' + '2026-10-03b';
+const GLIM_VER = 'v' + '2026-10-03c';
 
 // ---- save ---------------------------------------------------------------------------
 let meta = { shards: 0, up: {}, caught: {}, dex: {}, apex: {}, apexSeen: {}, unlocked: {}, runs: 0, wins: 0, depthMax: 0, auto: false, speed: 1, sound: true, music: true, vol: 70, anim: 1 };
@@ -401,7 +401,11 @@ function noteAnim(u) {
 }
 // ?anim=0 / ?anim=1 forces classic or rich for this page load only. It does not write meta.anim.
 let animLive = null;
-function animNow() { return !!(animLive == null ? meta.anim : animLive); }
+function animNow() {
+  if (animLive != null) return !!animLive;
+  if (meta.autoClassic) return false;             // low-fps fallback; the saved Animation choice stays in meta.anim
+  return meta.anim !== 0;
+}
 function readAnimQuery() {
   try {
     const q = new URLSearchParams(location.search).get('anim');
@@ -410,7 +414,23 @@ function readAnimQuery() {
 }
 function setAnimPref(on) {
   meta.anim = on ? 1 : 0;
+  meta.autoClassic = false;
+  if (on) meta.fpsOptOut = true;                  // they picked Rich; don't auto-switch them again
   animLive = meta.anim;
+  applyAnim();
+  save();
+}
+// Classic for this device only. Does not write meta.anim unless the player confirms on the toast.
+function setAutoClassic(on) {
+  meta.autoClassic = !!on;
+  if (!on) meta.fpsOptOut = true;
+  if (animLive == null) applyAnim();
+  save();
+}
+function confirmClassic() {
+  meta.anim = 0;
+  meta.autoClassic = false;
+  animLive = 0;
   applyAnim();
   save();
 }
@@ -1212,7 +1232,8 @@ function settingsHtml() {
     <button class="setrow" data-v="snd" type="button"><span class="grow">Sound</span>${swt(meta.sound)}</button>
     ${window.GAUDIO ? `<button class="setrow" data-v="mus" type="button"><span class="grow">Music</span>${swt(!!meta.music)}</button>
     <div class="setrow"><span class="grow">Volume</span><input class="volslider" type="range" min="0" max="100" step="5" value="${meta.vol}" data-vol aria-label="Volume"><span class="volpct">${meta.vol}%</span></div>` : ''}
-    <button class="setrow" data-v="anim" type="button"><span class="grow">Animation</span><span class="setval">${animNow() ? 'Rich' : 'Classic'}</span>${swt(animNow())}</button>
+    <button class="setrow" data-v="anim" type="button"><span class="grow">Animation</span><span class="setval">${meta.autoClassic ? 'Classic' : (animNow() ? 'Rich' : 'Classic')}</span>${swt(animNow())}</button>
+    ${meta.autoClassic ? `<button class="setrow" data-v="autoclassic" type="button"><span class="grow">Auto Classic</span><span class="setval">On</span>${swt(true)}</button><p class="small muted">A fight stayed under 30 fps, so Classic is on for now. Your saved choice is still ${meta.anim ? 'Rich' : 'Classic'}. Turn this off to switch back.</p>` : ''}
     <button class="setrow" data-v="reset" type="button"><span class="grow">Reset save</span></button>
   </div>`;
 }
@@ -1233,6 +1254,7 @@ async function settingsScreen() {
     if (v === 'snd') { meta.sound = !meta.sound; save(); continue; }
     if (v === 'mus') { GAUDIO.setMusic(!meta.music); continue; }
     if (v === 'anim') { setAnimPref(!animNow()); continue; }
+    if (v === 'autoclassic') { setAutoClassic(false); continue; }
     if (v === 'reset') {
       if (saveStale) { toast('Game updated in another tab, reload'); continue; }
       const y = await ask('Reset save?', '<p style="text-align:center">Erase shards, unlocks, goals, and any run or Wilds expedition on this device?</p>', btn('y', 'Reset save', 'ghost') + btn('n', 'Cancel', 'green'));
@@ -1410,5 +1432,6 @@ function giveApex(sp, n) {
 }
 window.GLIM = { get run() { return run; }, get meta() { return meta; }, get FS() { return FS; }, renderGame, renderTitle,
   wildBattle, ask, toast, show, save, saveBlocked: () => saveStale, SFX, tone, btn, esc, elBadge, IMG, ROLE_N,
+  animNow, setAutoClassic, confirmClassic,
   evoCinematic, rollApexWild, rollApex: (st, salt) => R.rollApex(run, st, meta), ascendMember, debug: { giveApex, relicPick: (ids, title) => relicPick(ids && ids.length ? ids : ['ruby_ring', 'last_stand', 'pyre_crown', 'rainbow_roster'], title || 'Choose a relic') } };
 })();

@@ -267,7 +267,7 @@ const VFX = (() => {
         break;
       }
       case 'rune': {
-        const r = p.r * (f < .25 ? ease(f / .25) : 1), rot = f * 2.2, fade = f < .7 ? 1 : 1 - (f - .7) / .3;
+        const r = Math.max(0, p.r * (f < .25 ? ease(f / .25) : 1)), rot = f * 2.2, fade = f < .7 ? 1 : 1 - (f - .7) / .3;
         ctx.save(); ctx.translate(p.x, p.y); ctx.scale(1, .42);
         ctx.globalAlpha = fade * .25; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); ctx.fill();
         ctx.globalAlpha = fade; ctx.strokeStyle = p.c2; ctx.lineWidth = Math.max(1, r * .06);

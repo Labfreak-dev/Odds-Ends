@@ -420,7 +420,7 @@ function richAnim() {
   if (q === '0') return false;
   if (q === '1') return true;
   const meta = root.GLIM && root.GLIM.meta;
-  if (meta && meta.anim === 0) return false;
+  if (meta && (meta.autoClassic || meta.anim === 0)) return false;
   return true;
 }
 function modalOn() {

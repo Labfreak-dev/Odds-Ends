@@ -52,6 +52,45 @@ def drag(page, src, dst):
     page.mouse.move(x0 + 10, y0 + 10, steps=3); page.mouse.move(x1, y1, steps=8); page.mouse.up()
     page.wait_for_timeout(150)
 
+def wait_ok(page, expr, timeout=5000):
+    try:
+        page.wait_for_function(expr, timeout=timeout)
+        return True
+    except Exception:
+        return False
+
+def fight_result_keys(page, title):
+    """Victory/Defeat must be keyboard-reachable: Continue first, then the report toggle."""
+    on_continue = "() => { const a = document.activeElement; return !!(a && a.dataset && a.dataset.v === 'ok' && /continue/i.test(a.textContent || '')); }"
+    on_summary = "() => !!(document.activeElement && document.activeElement.tagName === 'SUMMARY' && document.activeElement.closest('details.fsum'))"
+    ok = wait_ok(page, on_continue)
+    check(ok, 'fight result focuses Continue')
+    if not ok: return
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(150)
+    still = page.locator('#modal.on').count() == 1 and page.locator('#modalBox h2').inner_text().strip() == title.strip()
+    still_ok = page.evaluate("() => !!(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.v === 'ok')")
+    check(still and still_ok, 'escape keeps the fight result open')
+    page.keyboard.press('Shift+Tab')
+    check(wait_ok(page, on_summary), 'shift+tab reaches the battle report summary')
+    page.keyboard.press('Shift+Tab')
+    check(wait_ok(page, on_continue), 'shift+tab returns to Continue')
+    page.keyboard.press('Tab')
+    check(wait_ok(page, on_summary), 'tab reaches the battle report summary')
+    page.keyboard.press('Tab')
+    back = wait_ok(page, on_continue)
+    check(back, 'tab returns to Continue')
+    if not back:
+        check(False, 'enter on Continue proceeds')
+        return
+    page.keyboard.press('Enter')
+    gone = wait_ok(page, """() => {
+      const h = document.querySelector('#modal.on h2');
+      if (!h) return true;
+      return !/victory|defeat|defeated/i.test(h.textContent || '');
+    }""", timeout=8000)
+    check(gone, 'enter on Continue proceeds')
+
 def drag_sell(page, src):
     """Pointer-drag onto the sell overlay. It is display:none until the drag has moved."""
     x0, y0 = center(page, src)
@@ -444,7 +483,9 @@ with sync_playwright() as p:
         rounds += 1
         title = page.locator('#modalBox h2').inner_text()
         check(True, f'round {rounds} resolved: {title} ({time.time() - t0:.0f}s)')
-        if r == 0: shot(page, '06-result')
+        if r == 0:
+            shot(page, '06-result')
+            fight_result_keys(page, title)
         clear_modals(page)
         page.wait_for_timeout(200)
         if page.locator('#camp.on').count(): break

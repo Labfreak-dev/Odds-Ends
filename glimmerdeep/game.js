@@ -802,8 +802,10 @@ function arenaOn() {
 }
 function stopFight() {
   if (FS && FS.raf) cancelAnimationFrame(FS.raf);
+  if (window.GArenaView) GArenaView.unmount();
   const cv = document.getElementById('arenaCv');
   if (cv) cv.remove();
+  if (boardEl) boardEl.classList.remove('arena-on');
   FS = null;
   if (window.GAUDIO) GAUDIO.setSpeed(1);
 }
@@ -890,108 +892,108 @@ function cacheEl(u) {
   noteAnim(u);
 }
 function renderFightBar() {
+  if (FS && FS.arena) {
+    const sp = FS.speed;
+    const spd = (v, label) => `<button class="btn ghost sm${sp === v ? ' on' : ''}" data-v="spd:${v}" type="button">${label}</button>`;
+    $('#fightBar').innerHTML = `<span class="arena-sr" id="arenaTime">0:00</span>${spd(1, '1×')}${spd(1.5, '1.5×')}${spd(2, '2×')}${spd(4, '4×')}${btn(FS.paused ? 'resume' : 'pause', FS.paused ? 'Resume' : 'Pause', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
+    return;
+  }
   $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
 }
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
   SFX.click();
-  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
-  else if (b.dataset.v === 'skip') { FS.skip = true; }
+  if (FS.arena && b.dataset.v.indexOf('spd:') === 0) {
+    FS.speed = +b.dataset.v.slice(4);
+    if (FS.speed === 1 || FS.speed === 2 || FS.speed === 4) meta.speed = FS.speed;
+    VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar();
+  } else if (FS.arena && (b.dataset.v === 'pause' || b.dataset.v === 'resume')) { FS.paused = !FS.paused; renderFightBar(); }
+  else if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  else if (b.dataset.v === 'skip') { FS.skip = true; if (FS.arena && window.GArenaView) GArenaView.skipIntro(); }
 });
 function loop(ts) {
   if (!FS) return;
   const st = FS.st;
   const Eng = FS.eng || C;
-  let dt = Math.min(0.1, (ts - FS.last) / 1000) * FS.speed;
-  if (FS.hold > 0) { FS.hold -= (ts - FS.last) / 1000; dt = 0; }
+  const wall = Math.min(0.1, (ts - FS.last) / 1000);
+  let dt = wall * FS.speed;
+  if (FS.hold > 0) { FS.hold -= wall; dt = 0; }
+  if (FS.paused) dt = 0;
+  if (FS.arena && window.GArenaView && GArenaView.holding()) dt = 0;
   FS.last = ts;
-  if (FS.skip && !st.over) { Eng.resolve(st); st.ev.length = 0; if (!FS.arena) resyncAll(); }
+  if (FS.skip && !st.over) { if (FS.arena && window.GArenaView) GArenaView.skipIntro(); Eng.resolve(st); st.ev.length = 0; if (!FS.arena) resyncAll(); }
   FS.acc += dt;
   if (FS.arena && FS.acc > Eng.DT * 8) FS.acc = Eng.DT * 8;
   while (FS.acc >= Eng.DT && !st.over) { FS.acc -= Eng.DT; const ev = Eng.tick(st); st.ev.length = 0; if (FS.arena) handleArena(ev); else handle(ev); }
-  if (FS.arena) drawArena();
+  if (FS.arena) drawArena(wall, dt);
   else for (const u of st.units) syncBars(u);
   if (st.over && !FS.ending) { FS.ending = true; setTimeout(FS.wild ? wildEnd : endFight, FS.skip ? 200 : 900 / Math.min(2, FS.speed)); }
   FS.raf = requestAnimationFrame(loop);
 }
 function mountArena() {
   unitsEl.innerHTML = '';
-  const cv = document.createElement('canvas');
-  cv.id = 'arenaCv';
-  cv.width = 960;
-  cv.height = 600;
-  cv.setAttribute('aria-hidden', 'true');
-  cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:6;border-radius:14px;';
-  boardEl.appendChild(cv);
-  FS.cv = cv;
-  FS.ctx = cv.getContext('2d');
+  VFX.clear();
+  const biome = (FS.st && FS.st.biome) || (run && run.biome) || 'verdant';
+  const bgKey = G.BIOMES[biome] && G.BIOMES[biome].bg;
+  if (window.GArenaView) {
+    GArenaView.mount(boardEl, {
+      biome, bg: bgKey ? IMG(bgKey) : '', art: IMG,
+      onHold(sec) { if (FS && !FS.skip && !FS.paused) FS.hold = Math.max(FS.hold || 0, sec); },
+    });
+  }
+}
+function arenaExtras(st) {
+  const out = [];
+  for (const u of st.units) {
+    const sts = [];
+    if (u.st) for (const k in u.st) if (u.st[k]) sts.push(k);
+    const sk = u.skill && G.SK[u.skill];
+    out.push({
+      id: u.id, art: u.art, sp: u.inst && u.inst.sp, role: u.role, range: u.range,
+      focus: u.focusId || 0, statuses: sts, shiny: !!u.shiny, stun: !!(u.st && u.st.stun),
+      wind: u.wind || 0.22, recover: u.recover || 0.16,
+      atkT: u.state === 'attack' ? (u.atkT || 0) : null,
+      castT: u.state === 'cast' ? (u.castT || 0) : null,
+      castDur: (u.castShape && (u.castShape.cast || 0.4)) || 0.4,
+      ult: !!(sk && sk.ult && u.state === 'cast'),
+    });
+  }
+  return out;
 }
 function handleArena(ev) {
-  for (let i = 0; i < ev.length; i++) if (ev[i].k === 'text' && ev[i].v) toast(ev[i].v);
+  if (window.GArenaView) GArenaView.push(ev);
+  for (let i = 0; i < ev.length; i++) {
+    const e = ev[i];
+    if (e.k === 'text' && e.v) toast(e.v);
+    else if (e.k === 'dmg' && !e.dot) {
+      if (e.crit) SFX.crit();
+      else if (!e.basic || Math.random() < 0.35) SFX.el('hit', e.el, { v: e.basic ? 0.7 : 1 });
+    } else if (e.k === 'ko') SFX.ko();
+    else if (e.k === 'cast' && e.ult) SFX.el('ult', e.el);
+    else if (e.k === 'cast') SFX.el('cast', e.el);
+    else if (e.k === 'heal' && !e.quiet && e.v > 0) SFX.heal();
+    else if (e.k === 'shield') SFX.shield();
+    else if (e.k === 'miss') SFX.miss();
+  }
 }
-function drawArena() {
-  if (!FS || !FS.ctx || !window.GArena) return;
-  const ctx = FS.ctx;
+function drawArena(wall, motion) {
+  if (!FS || !window.GArena || !window.GArenaView) return;
   const step = FS.eng && FS.eng.DT ? FS.eng.DT : 1 / 30;
-  const v = window.GArena.view(FS.st, Math.max(0, Math.min(0.999, FS.acc / step)));
-  const cols = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
-  ctx.clearRect(0, 0, 960, 600);
-  ctx.fillStyle = 'rgba(0,0,0,.28)';
-  ctx.fillRect(0, 0, 960, 600);
-  ctx.strokeStyle = 'rgba(255,255,255,.18)';
-  ctx.beginPath(); ctx.moveTo(480, 0); ctx.lineTo(480, 600); ctx.stroke();
-  for (const g of v.telegraphs) {
-    ctx.save();
-    ctx.globalAlpha = 0.5 * Math.max(0.2, (g.left || 0) / (g.dur || 1));
-    ctx.strokeStyle = cols[g.el] || '#fff';
-    ctx.lineWidth = 3;
-    if (g.shape === 'line') { ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x2, g.y2); ctx.stroke(); }
-    else if (g.shape === 'cone') {
-      ctx.beginPath(); ctx.moveTo(g.x, g.y);
-      ctx.arc(g.x, g.y, g.r || 80, (g.ang || 0) - (g.arc || 1) / 2, (g.ang || 0) + (g.arc || 1) / 2);
-      ctx.closePath(); ctx.stroke();
-    } else { ctx.beginPath(); ctx.arc(g.x, g.y, g.r || 40, 0, Math.PI * 2); ctx.stroke(); }
-    ctx.restore();
+  const held = FS.hold > 0 || FS.paused || GArenaView.holding();
+  const alpha = held ? 0 : Math.max(0, Math.min(0.999, FS.acc / step));
+  const view = window.GArena.view(FS.st, alpha);
+  GArenaView.frame(view, {
+    wallDt: FS.paused ? 0 : (wall || 0),
+    motionDt: held ? 0 : (motion || 0),
+    paused: !!FS.paused,
+    alpha, extras: arenaExtras(FS.st),
+  });
+  const clock = document.getElementById('arenaTime');
+  if (clock) {
+    const sec = Math.floor(view.t || 0);
+    const label = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+    if (clock.textContent !== label) clock.textContent = label;
   }
-  ctx.globalAlpha = 1;
-  ctx.font = '12px sans-serif';
-  ctx.textAlign = 'center';
-  for (const u of v.units) {
-    const r = u.r || 26;
-    ctx.beginPath();
-    ctx.fillStyle = u.alive ? (cols[u.el] || '#ccc') : '#555';
-    ctx.globalAlpha = u.alive ? 1 : 0.35;
-    ctx.arc(u.x, u.y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = u.boss ? 4 : 3;
-    ctx.strokeStyle = u.side === 0 ? '#7eb6ff' : '#ff7a8a';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.moveTo(u.x, u.y);
-    ctx.lineTo(u.x + (u.facing || 1) * r, u.y);
-    ctx.stroke();
-    const w = 46, hx = u.x - w / 2, hy = u.y - r - 14;
-    ctx.fillStyle = 'rgba(0,0,0,.55)';
-    ctx.fillRect(hx, hy, w, 5);
-    ctx.fillStyle = u.maxHp && u.hp / u.maxHp > 0.35 ? '#3dde7a' : '#ff5d6c';
-    ctx.fillRect(hx, hy, w * Math.max(0, Math.min(1, u.hp / (u.maxHp || 1))), 5);
-    if (u.shield > 0) { ctx.fillStyle = '#8fd4ff'; ctx.fillRect(hx, hy - 3, w * Math.min(1, u.shield / (u.maxHp || 1)), 2); }
-    ctx.fillStyle = '#fff';
-    ctx.fillText(u.name || '', u.x, u.y + r + 14);
-  }
-  for (const p of v.projs) {
-    ctx.beginPath();
-    ctx.fillStyle = cols[p.el] || '#fff';
-    ctx.arc(p.x, p.y, Math.max(5, (p.r || 10) * 0.45), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(255,255,255,.75)';
-  ctx.font = '13px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('ARENA', 12, 22);
 }
 function resyncAll() {
   for (const u of FS.st.units) {

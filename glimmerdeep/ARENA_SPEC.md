@@ -129,7 +129,7 @@ y = prev.y + (pos.y - prev.y) * alpha
 {
   ev: 2, t: st.t, alpha, over: st.over, aw: 960, ah: 600,
   units: [{ id, side, x, y, facing, r, hp, maxHp, shield, mana, manaNeed,
-            state, name, el, boss, star, alive }],
+            state, name, el, art, boss, star, alive }],
   projs: [{ id, x, y, vx, vy, r, el, friendly }],
   telegraphs: [{ id, shape, x, y, x2, y2, r, ang, arc, el, left, dur }]
 }
@@ -430,8 +430,8 @@ The renderer mirrors; the atlas does not contain left-facing frames.
 - Clips required: `idle`, `run`, `attack`, `cast`, `hit`, `death`. A missing
   clip falls back to `idle` (and `death` falls back to holding `hit`).
 
-No atlas files are shipped in this stage. The placeholder view draws circles
-and labels from `view()` and does not read atlases.
+No atlas files are shipped in this stage. `view().units[].art` is the
+`img/` key. A missing sheet is baked from that painting (see below).
 
 ## Determinism
 
@@ -444,8 +444,10 @@ clamp a fighter back to its `prev` so one bad step cannot poison the page.
 
 ## What the placeholder view owns
 
-`game.js`, only when the flag is on: a canvas over the board, logical 960×600
-scaled to the board element, drawing `view()` circles, HP ticks, names,
-projectile dots, and telegraph strokes. Skip, speed, the result modal, and
-the Battle report stay on the existing path. The placeholder is not the
-renderer this document is for.
+Replaced by `arena-render.js` (`GArenaView`). The flag, the sim, and this
+contract are unchanged. `game.js` still owns skip, speed, pause, the result
+modal, and the Battle report. The canvas is `#arenaCv`. It draws from
+`view()` plus the events `tick` already returns. No atlas files ship with
+the game yet: a missing sheet uses the existing `img/` painting, baked to
+about 48px and drawn nearest-neighbour. `arena-preview.html` loads a real
+atlas JSON and cycles its clips.

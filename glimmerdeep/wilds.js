@@ -287,7 +287,7 @@ function prep() {
     <div class="wpick">${list.map(sp => { const S = G.SP[sp], st = (m.wstar || {})[sp] || 1; return `<div class="wcard el-${S.el}" data-sp="${sp}"><img decoding="async" src="${IMG('cr_' + sp + st)}" alt=""><div class="n">${S.names[st - 1]}${st > 1 ? ' ' + '★'.repeat(st) : ''}</div><div class="small muted">${U.ROLE_N[S.role]} · T${G.TIER[sp]}</div></div>`; }).join('')}</div>
     <h3 class="camph">Outfit</h3><div class="wskins">${Object.keys(G.SKINS).map(k => `<div class="wskin ${skinOpen(k) ? '' : 'locked'} ${(m.skin || 'classic') === k ? 'on' : ''}" data-skin="${k}" title="${G.SKINS[k].d}"><img src="${skinOpen(k) ? skinThumb(k) : IMG('wd_tamer_idle_1')}" alt=""><div>${skinOpen(k) ? G.SKINS[k].n : '🔒'}</div></div>`).join('')}</div>
     ${Object.values(m.lures || {}).some(n => n > 0) ? `<h3 class="camph">Lure <span class="small muted">(its element shows up 4× as often; used up when you set out)</span></h3><div class="row wrap center wlures" style="gap:6px"><button class="btn sm on" data-lure="">None</button>${Object.keys(m.lures).filter(e => m.lures[e] > 0).map(e => `<button class="btn sm ghost" data-lure="${e}">${U.elBadge(e)} ${G.EL[e].name} ×${m.lures[e]}</button>`).join('')}</div>` : ''}
-    <div class="row center" style="margin:12px 0">${U.btn('post', `Trainer's Post · ${m.tokens || 0} tokens`, 'wild sm')}</div></div>
+    <div class="row center wrap" style="margin:12px 0;gap:8px">${U.btn('how', 'How the Wilds work', 'mid wild')}${U.btn('post', `Trainer's Post · ${m.tokens || 0} tokens`, 'wild sm')}</div></div>
     <div class="wprepbar"><span class="small muted" id="wSel">Choose 1-${SQ}</span>${U.btn('go', 'Set out!', 'green')}</div>`;
   host.classList.remove('exploring');
   U.show('wilds');
@@ -303,6 +303,7 @@ function prep() {
   let lure = '';
   host.querySelector('.wprepbody').addEventListener('click', async e => {
     const sk = e.target.closest('[data-skin]'), lu = e.target.closest('[data-lure]');
+    if (e.target.closest('[data-v=how]')) { await showHowWilds(true); return; }
     if (sk) { if (!skinOpen(sk.dataset.skin)) return U.toast(G.SKINS[sk.dataset.skin].d); m.skin = sk.dataset.skin; if (m.cosm && m.cosm.sel) m.cosm.sel.skin = m.skin; preloadTamer(); U.save(); U.SFX.click(); host.querySelectorAll('.wskin').forEach(x => x.classList.toggle('on', x === sk)); }
     if (lu) { lure = lu.dataset.lure; U.SFX.click(); host.querySelectorAll('[data-lure]').forEach(x => { x.classList.toggle('ghost', x !== lu); x.classList.toggle('on', x === lu); }); }
     if (e.target.closest('[data-v=post]')) { await post(); prep(); }
@@ -322,6 +323,7 @@ document.addEventListener('click', e => {
   if (b.dataset.w === 'home') { stopView(); U.renderTitle(); }
   else if (b.dataset.w === 'leave') leave();
   else if (b.dataset.w === 'tonic') useTonic();
+  else if (b.dataset.w === 'act') useCenterItem();
   else if (b.dataset.w.startsWith('relic:')) { const r = WR[b.dataset.w.slice(6)]; if (r) U.toast(r.n + ': ' + r.d); }
 });
 document.addEventListener('click', async e => {
@@ -344,9 +346,13 @@ function noteApex(apex) {
   U.SFX.wshiny();
 }
 async function leave() {
+  if (!V || !W) return;
   V.pause = true;
-  const v = await U.ask('Leave the Wilds?', '<p style="text-align:center">Head back to camp. Creatures you unlocked stay unlocked, and so do your shards.</p>', U.btn('y', 'Leave', 'ghost') + U.btn('n', 'Keep exploring', 'green'));
+  const v = await U.ask('Leave the Wilds?', `<p style="text-align:center">Leaving <b>ends this expedition</b>. Creatures you unlocked and the shards you already earned stay with you. Floor progress, your squad, and relics from this run are deleted, and it cannot be resumed.</p>
+    <p class="muted small" style="text-align:center">Save &amp; exit keeps this expedition and returns you to camp, so you can continue it later.</p>`,
+    U.btn('y', 'End expedition', 'ghost') + U.btn('save', 'Save & exit', '') + U.btn('n', 'Keep exploring', 'green'));
   if (v === 'y') return endExpedition('left');
+  if (v === 'save') { save(); U.save(); stopView(); U.renderTitle(); return; }
   V.pause = false; V.last = performance.now();
 }
 
@@ -365,16 +371,22 @@ function enterNow() {
   if (!V) {
     const cv = host.querySelector('#wCv');
     V = { cv, ctx: cv.getContext('2d'), keys: {}, joy: null, px: 8, py: 4.5, fx: 1, step: 0, vstep: 0, going: 0, vert: 0, bob: 0, flinch: 0, shown: '', mons: [], raf: 0, last: performance.now(),
-      inv: 0, push: { d: null, t: 0 }, slide: null, pause: false, msgT: 0, parts: [], reveal: null, glintT: {}, hintAt: {}, idleNear: null };
+      inv: 0, push: { d: null, t: 0 }, slide: null, pause: false, msgT: 0, parts: [], reveal: null, glintT: {}, hintAt: {}, idleNear: null, holdItem: 0, canAct: false, actLabel: '' };
     bindInput();
   }
   W.relics = W.relics || []; if (W.tonics == null) W.tonics = 0;
   if (W.keys == null || !Number.isFinite(+W.keys)) W.keys = 0;
-  V.pause = false;
+  const pend = W.pendingFight, extras = !!(W.pendingJoin || W.pendingRelic || W.pendingEnd);
+  const teach = !howSeen() && !pend && !extras;
+  V.pause = !!(pend || extras || teach);
   host.querySelector('.whint').textContent = matchMedia('(pointer: coarse)').matches ? 'Drag anywhere to move' : 'WASD / arrow keys, or drag anywhere to move';
+  ensureWildsUi();
   placeRoom(null);
   hud();
   if (!V.raf) { V.last = performance.now(); V.raf = requestAnimationFrame(frame); }
+  if (teach) showHowWilds();
+  else if (pend) resumeFight();
+  else if (extras) resumeExtras();
 }
 function stopView() { if (V && V.raf) cancelAnimationFrame(V.raf); if (V) V.raf = 0; }
 function room() { return W.rooms[W.cur]; }
@@ -396,6 +408,7 @@ function placeRoom(from) {
   V.grid = a.tiles ? a.tiles.split('|') : null;
   V.flow = null; V.flowAt = '';
   V.going = 0; V.vert = 0; V.bob = 0; V.vstep = 0; V.reveal = null; V.idleNear = null;
+  V.holdItem = 0; V.canAct = false;
   if (V.push) { V.push.d = null; V.push.t = 0; }   // a leftover push must not light the next room's secret
   spawnMon(a);
   spawnTrainer(a);
@@ -460,6 +473,7 @@ function minimap() {
     else if (a.visited && a.mon && !a.mon.beaten) { ctx.fillStyle = ELC[G.SP[a.mon.sp].el]; ctx.beginPath(); ctx.arc(x + s / 2, y + sh / 2, 2.4, 0, 6.3); ctx.fill(); }
     if (a.item === 'key' && a.visited && !a.used) { ctx.fillStyle = '#ffd65a'; ctx.fillRect(x + s - 4, y + 1, 3, 3); }
   }
+  placeMapHelp();
 }
 
 // ---- input ------------------------------------------------------------------------------------
@@ -473,6 +487,13 @@ function bindInput() {
   cv.addEventListener('pointermove', e => { if (V.joy && V.joy.id === e.pointerId) { const [x, y] = pos(e); V.joy.x = x; V.joy.y = y; } });
   const up = e => { if (V.joy && V.joy.id === e.pointerId) V.joy = null; };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  const actKey = e => {
+    if (!$('#wilds.on') || !V || V.pause || !V.canAct) return;
+    if (e.code !== 'KeyE' && e.code !== 'Enter' && e.code !== 'Space') return;
+    e.preventDefault();
+    if (e.type === 'keydown' && !e.repeat) useCenterItem();
+  };
+  addEventListener('keydown', actKey);
 }
 function inputVec() {
   let x = (V.keys.r ? 1 : 0) - (V.keys.l ? 1 : 0), y = (V.keys.d ? 1 : 0) - (V.keys.u ? 1 : 0);
@@ -547,7 +568,11 @@ function frame(ts) {
   const dt = Math.min(0.05, (ts - V.last) / 1000); V.last = ts;
   if (V.flinch > 0) V.flinch = Math.max(0, V.flinch - dt);   // ticks through the pre-battle flash too
   if (!V.pause && $('#wilds.on')) step(dt);
+  // endExpedition() nulls W inside step() on a floor clear; do not draw that same tick
+  if (!W || !V) return;
+  syncAct();
   draw();
+  if (!W || !V) return;
   V.raf = requestAnimationFrame(frame);
 }
 function step(dt) {
@@ -627,11 +652,24 @@ function step(dt) {
     }
     if (!held) V.idleNear = null;
   }
-  // pickups
+  // pickups. Keys, tonics and berries are taken on contact. Events, chests and shrines
+  // sit on the door lanes, so they wait for a pause or an Interact tap instead of firing as you cross.
   const near = (x, y, r) => Math.hypot(V.px - x, V.py - y) < r;
-  if (a.item && !a.used && near(8, 4.5, 0.9 + (rw('reach') || 0)) && !(a.mon && !a.mon.beaten)) {
+  V.actLock = Math.max(0, (V.actLock || 0) - dt);
+  const itemNear = a.item && !a.used && near(8, 4.5, 0.9 + (rw('reach') || 0)) && !(a.mon && !a.mon.beaten);
+  const autoItem = a.item === 'key' || a.item === 'tonic' || a.item === 'berry';
+  V.canAct = false;
+  if (itemNear && autoItem) {
+    V.holdItem = 0;
     if (a.tr && !a.tr.beaten) msg(G.TRAINERS[a.tr.arch].n + ' guards this treasure.'); else pickup(a);
-  }
+  } else if (itemNear) {
+    V.canAct = true;
+    V.actLabel = a.item === 'chest' ? 'Open' : a.item === 'shrine' ? 'Pray' : 'Interact';
+    if (dist < 1e-4 && !(V.actLock > 0)) {
+      V.holdItem = (V.holdItem || 0) + dt;
+      if (V.holdItem >= 0.4) { V.holdItem = 0; useCenterItem(); }
+    } else if (dist >= 1e-4) V.holdItem = 0;
+  } else V.holdItem = 0;
   if (V.tr && trainerStep(a, dt)) return;
   if (a.type === 'lair' && a.mon && a.mon.beaten && near(8, 4.5, 0.8)) return descend();
   // wild creatures wander, then come at you when you are close
@@ -682,7 +720,7 @@ function pickup(a) {
 const EV_N = { merchant: 'Wandering Merchant', egg: 'Mysterious Egg', altar: 'Blood Altar', well: 'Wishing Well', dummy: 'Sparring Dummy', pool: 'Glimmer Pool', explorer: 'Lost Explorer', challenge: 'Champion\'s Challenge' };
 const EV_IMG = { merchant: 'wd_merchant', egg: 'wd_egg', altar: 'wd_altar', well: 'wd_well', dummy: 'wd_dummy', pool: 'wd_pool', explorer: 'wd_explorer', challenge: 'wd_banner' };
 const evArt = e => `<div class="evo-stage" style="height:130px"><div class="glow"></div><img src="${IMG(EV_IMG[e])}" style="max-height:120px" alt=""></div>`;
-function backOff() { V.py = Math.min(IN.y1, 4.5 + 1.6); V.inv = Math.max(V.inv, 0.6); }
+function backOff() { V.py = Math.min(IN.y1, 4.5 + 1.6); V.inv = Math.max(V.inv, 0.6); V.actLock = 0.45; V.holdItem = 0; }
 async function runEvent(a) {
   V.pause = true;
   const m = meta(), f = W.floor, t = `<p style="text-align:center">`, done = () => { a.used = true; };
@@ -769,6 +807,7 @@ async function runEvent(a) {
 async function battle(a, mv) {
   V.flinch = 0.52;   // the contact that starts the fight
   V.pause = true;
+  armFight({ kind: 'wild' });   // pre-fight snapshot: a reload mid-fight restarts this battle
   const mon = a.mon, fit = W.squad.filter(m => m.hp > 0);
   const insts = fit.map(squadInst);
   const foes = [{ uid: -1, sp: mon.sp, star: mon.star, muts: [], scale: mon.scale, shiny: !!mon.shiny }].concat(mon.escorts.map((sp, i) => ({ uid: -2 - i, sp, star: mon.escStar || 1, muts: [], scale: mon.scale * 0.92 })));
@@ -782,26 +821,31 @@ async function battle(a, mv) {
   if (window.AX && AX.fightKills) AX.ev('kos', 1, { kills: AX.fightKills(st) });
   LASTFS = window.FightStats ? window.FightStats.block(st) : '';
   const apex = U.rollApexWild(st);
+  disarmFight();
   // carry HP back to the squad
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
   const win = st.over === 1;
   noteApex(apex);
   U.show('wilds');
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
+  let phoenix = false;
+  if (!win && !W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) {
+    W.phoenixUsed = true; phoenix = true; for (const m of W.squad) m.hp = 0.4;
+  }
   if (win) await victory(a, mon, fit, apex);
+  else if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
   else {
-    if (W.squad.some(m => m.hp > 0)) U.SFX.ko();   // a full wipe plays the lose stinger in endExpedition instead
-    else if (rw('phoenix') && !W.phoenixUsed) {
-      W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4;
+    save(); U.save();   // the HP loss sticks before the modal, so a reload cannot rewind it
+    if (phoenix) {
       U.SFX.wshrine();
       await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green'));
-    }
-    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
+    } else U.SFX.ko();
     await U.ask('Defeat', `<p style="text-align:center">${nm} drove you back. Fainted creatures sit out until the next floor (or a shrine).</p>${apexLine(apex)}${LASTFS}`, U.btn('ok', 'Regroup', 'green'));
     // back off to the door you came in through
     V.px = Math.min(IN.x1, Math.max(IN.x0, V.px + (V.px - mv.x) * 1.5)); V.py = Math.min(IN.y1, Math.max(IN.y0, V.py + (V.py - mv.y) * 1.5));
     V.inv = 2.2;
   }
+  if (!W || !V) return;
   save(); U.save(); hud();
   V.pause = false; V.last = performance.now();
 }
@@ -829,6 +873,10 @@ async function victory(a, mon, fit, apex) {
   if (rw('winHeal')) healFit(rw('winHeal'));
   U.SFX[mon.shiny && shinyNew ? 'wshiny' : 'wcatch']();
   const join = W.squad.length < SQUAD_MAX && !W.squad.some(s => s.sp === sp && (s.shiny || !mon.shiny));
+  if (join) W.pendingJoin = { sp, shiny: !!mon.shiny };
+  if (lair) W.pendingRelic = 'lair';
+  else if (a.event === 'challenge') W.pendingRelic = 'challenge';
+  save(); U.save();   // win is persisted before the card, so reloading cannot refight it
   const body = `<div class="evo-stage" style="height:170px"><div class="glow"></div><img class="${mon.shiny ? 'shiny' : ''}" src="${IMG('cr_' + sp + mon.star)}" style="max-height:160px" alt=""></div>
     ${mon.shiny ? `<p style="text-align:center" class="wshinyline">✦ <b>Shiny ${S.names[0]} caught!</b> ${shinyNew ? 'In Auto Chess its shop offers are now 4× as likely to be shiny.' : 'You already had this shiny.'}</p>` : ''}
     <p style="text-align:center">${fresh ? `<b style="color:var(--gold)">NEW!</b> <b>${S.names[0]}</b> is unlocked for good. It now appears in the Auto Chess shop and as a starter.` : `You beat ${S.names[mon.star - 1]} again.`}</p>
@@ -838,8 +886,10 @@ async function victory(a, mon, fit, apex) {
     ${join ? `<p class="muted small" style="text-align:center">It can join your squad for the rest of this expedition (${W.squad.length}/${SQUAD_MAX}).</p>` : ''}${LASTFS}`;
   const v = await U.ask(mon.shiny && shinyNew ? 'Shiny caught!' : fresh ? 'Creature unlocked!' : 'Victory!', body, (join ? U.btn('join', `Add ${S.names[0]} to the squad`, 'green') + U.btn('no', 'Not now', 'ghost sm') : U.btn('ok', 'Continue', 'green')));
   if (v === 'join') { W.squad.push({ uid: W.nextUid++, sp, star: 1, xp: 0, hp: 1, shiny: !!mon.shiny }); U.toast((mon.shiny ? 'Shiny ' : '') + S.names[0] + ' joined your squad!'); }
-  if (lair) await offerRelics(3, 'Lair treasure: take a relic');
-  else if (a.event === 'challenge') { a.used = true; await offerRelics(3, 'The champion\'s prize'); }
+  delete W.pendingJoin;
+  save();
+  if (lair) { await offerRelics(3, 'Lair treasure: take a relic'); delete W.pendingRelic; save(); }
+  else if (a.event === 'challenge') { a.used = true; await offerRelics(3, 'The champion\'s prize'); delete W.pendingRelic; save(); }
 }
 async function descend() {
   V.pause = true;
@@ -932,7 +982,8 @@ async function trainerBattle(a, spotted) {
     <p class="muted small" style="text-align:center;margin:6px 0 4px">Pick a lead: it fights up front with +10% HP and ATK. <span style="color:#7dff9b">▲</span> = strong against their team.</p>
     <div class="list">${fit.map(s => `<div class="li click" data-v="lead:${s.uid}"><img class="ic" src="${IMG('cr_' + s.sp + s.star)}" alt=""><div class="grow"><div class="t">${G.SP[s.sp].names[s.star - 1]} ${'★'.repeat(s.star)} ${edge(s) ? `<span style="color:#7dff9b">▲${edge(s)}</span>` : ''}</div><div class="small">${Math.round(s.hp * 100)}% HP</div></div></div>`).join('')}</div>`;
   const v = await U.ask(title, body, U.btn('go', 'Battle!', 'green') + (spotted || t.den ? '' : U.btn('x', 'Not now', 'ghost sm')));
-  if (v === 'x') { V.tr.cool = 2.5; V.inv = 1; backOff(); V.pause = false; V.last = performance.now(); return; }
+  if (v === 'x') { disarmFight(); save(); V.tr.cool = 2.5; V.inv = 1; backOff(); V.pause = false; V.last = performance.now(); return; }
+  armFight({ kind: 'trainer' });
   const lead = v && v.startsWith('lead:') ? +v.slice(5) : null;
   const insts = fit.map(squadInst);
   if (lead != null) { const i = insts.findIndex(x => x.uid === lead); if (i >= 0) { insts[i].scale = 1.1; insts.unshift(insts.splice(i, 1)[0]); } }
@@ -943,20 +994,27 @@ async function trainerBattle(a, spotted) {
   if (window.AX && AX.fightKills) AX.ev('kos', 1, { kills: AX.fightKills(st) });
   LASTFS = window.FightStats ? window.FightStats.block(st) : '';
   const apex = U.rollApexWild(st);
+  disarmFight();
   if (window.GAUDIO) GAUDIO.music('wilds_explore');
   for (const u of st.units) if (u.side === 0 && !u.summoned) { const m = W.squad.find(s => s.uid === u.inst.uid); if (m) m.hp = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0; }
+  let phoenix = false;
+  if (st.over !== 1 && !W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) {
+    W.phoenixUsed = true; phoenix = true; for (const m of W.squad) m.hp = 0.4;
+  }
   U.show('wilds');
   V.sealed = false;
   noteApex(apex);
   if (st.over === 1) await trainerWin(a, apex);
+  else if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
   else {
-    U.SFX.ko();
-    if (!W.squad.some(m => m.hp > 0) && rw('phoenix') && !W.phoenixUsed) { W.phoenixUsed = true; for (const m of W.squad) m.hp = 0.4; await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green')); }
-    if (!W.squad.some(m => m.hp > 0)) { save(); return endExpedition('fainted', apex); }
+    save(); U.save();
+    if (phoenix) await U.ask('Phoenix Plume!', '<p style="text-align:center">Golden fire sweeps over your fallen squad. Everyone gets back up at 40% HP.</p>', U.btn('ok', 'Back on our feet', 'green'));
+    else U.SFX.ko();
     await U.ask('Defeat', `<p style="text-align:center">${T.n}: "Come back when you're stronger!" Fainted creatures sit out until the next floor (or a shrine).</p>${apexLine(apex)}${LASTFS}`, U.btn('ok', 'Regroup', 'green'));
     Object.assign(V.tr, { x: V.tr.x0, y: V.tr.y0, spotted: false, bang: 0, cool: 3, cur: V.tr.face });
     backOff(); V.inv = 2;
   }
+  if (!W || !V) return;
   save(); U.save(); hud();
   V.pause = false; V.last = performance.now();
 }
@@ -981,10 +1039,13 @@ async function trainerWin(a, apex) {
   if (skin) lines.push(`<b style="color:#7dff9b">New tamer outfit: ${G.SKINS[skin].n}!</b> Pick it before your next expedition.`);
   for (const s of evos) lines.push(`<span style="color:#7dff9b">${G.SP[s.sp].names[s.star - 2]} evolved into <b>${G.SP[s.sp].names[s.star - 1]}</b>!</span>`);
   if (apex) { const S = G.SP[apex.sp]; lines.push(`<b style="color:var(--gold)">◆ Apex Core: ${S.names[3] || S.names[S.names.length - 1]}!</b> Ascend a ★3 ${S.names[2] || S.names[S.names.length - 1]} to unlock this form.`); }
+  if (t.captain) W.pendingRelic = 'captain';
+  if (t.den) W.pendingEnd = 'champion';
+  save(); U.save();
   U.SFX.wcatch();
   await U.ask(t.den ? 'Jax is beaten!' : 'Trainer defeated!', `<div class="evo-stage" style="height:150px"><div class="glow"></div><img src="${IMG(T.art)}" style="max-height:140px" alt=""></div>
     <p style="text-align:center"><i>"${t.rival ? 'Tch. Next time, I\'ll be ready.' : 'What a battle! You\'ve earned this.'}"</i></p>${lines.map(l => `<p class="small" style="text-align:center">${l}</p>`).join('')}${LASTFS}`, U.btn('ok', 'Continue', 'green'));
-  if (t.captain) await offerRelics(3, 'The captain\'s prize (rare relics)', false, true);
+  if (t.captain) { await offerRelics(3, 'The captain\'s prize (rare relics)', false, true); delete W.pendingRelic; save(); }
   if (t.den) return endExpedition('champion');
 }
 
@@ -1069,6 +1130,7 @@ function dexHtml() {
 
 // ---- drawing ------------------------------------------------------------------------------------
 function draw() {
+  if (!W || !V) return;
   const cv = V.cv, b = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
   if (cv.width !== Math.round(b.width * dpr) || cv.height !== Math.round(b.height * dpr)) { cv.width = Math.round(b.width * dpr); cv.height = Math.round(b.height * dpr); }
   // fit the room; on a tall phone screen zoom in to fill the height and follow the tamer
@@ -1143,8 +1205,16 @@ function drawRoom(a, ox, oy, S, live) {
       ctx.drawImage(im, cx - w / 2, cy - h * 0.72, w, h);
     } else if (ready(im)) {
       const sz = (a.item === 'shrine' ? 1.6 : a.item === 'chest' ? 1.3 : (a.item === 'key' || a.item === 'berry') ? 1.0 : 0.9) * S;
-      shadow(ctx, cx, cy + sz * 0.3, sz * 0.4); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, gl);
-      ctx.drawImage(im, cx - sz / 2, cy - sz * 0.75 + bob, sz, sz);
+      if (a.item === 'tonic') {
+        // art is 144x192; the old square stretched it. Keep that height and anchor the base on the same bottom edge.
+        const ar = im.naturalWidth > 0 && im.naturalHeight > 0 ? im.naturalWidth / im.naturalHeight : 144 / 192;
+        const w = sz * ar, top = cy - sz * 0.75 + bob;
+        shadow(ctx, cx, cy + sz * 0.3, w * 0.42); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, gl);
+        ctx.drawImage(im, cx - w / 2, top, w, sz);
+      } else {
+        shadow(ctx, cx, cy + sz * 0.3, sz * 0.4); glow(ctx, cx, cy - sz * 0.2, sz * 0.75, gl);
+        ctx.drawImage(im, cx - sz / 2, cy - sz * 0.75 + bob, sz, sz);
+      }
     }
   }
   if (a.type === 'lair' && a.mon && a.mon.beaten) { const im = img('wd_stairs'); if (ready(im)) { glow(ctx, cx, cy, 1.2 * S, '120,200,255'); ctx.drawImage(im, cx - 0.8 * S, cy - 0.8 * S, 1.6 * S, 1.6 * S); } }
@@ -1506,6 +1576,157 @@ function pumpTamerRims() {
   requestAnimationFrame(step);
 }
 
+function armFight(info) {
+  if (!W) return;
+  W.pendingFight = info;
+  save();
+}
+function disarmFight() {
+  if (!W || !W.pendingFight) return;
+  delete W.pendingFight;
+}
+function useCenterItem() {
+  if (!W || !V || V.pause || !V.canAct) return;
+  const a = room();
+  if (!a || !a.item || a.used || (a.mon && !a.mon.beaten)) return;
+  V.holdItem = 0;
+  if (a.tr && !a.tr.beaten) { msg(G.TRAINERS[a.tr.arch].n + ' guards this treasure.'); return; }
+  pickup(a);
+}
+function syncAct() {
+  const b = document.querySelector('#wilds .wact');
+  if (!b) return;
+  const on = !!(V && W && V.canAct && !V.pause);
+  b.hidden = !on;
+  if (on) b.textContent = V.actLabel || 'Interact';
+}
+function howSeen() {
+  const m = meta();
+  return !!((m.st && m.st.wildsHow) || m.wildsHow);
+}
+function markHow() {
+  const m = meta();
+  if (!m.st || typeof m.st !== 'object' || Array.isArray(m.st)) m.st = {};
+  m.st.wildsHow = 1;
+  m.wildsHow = 1;
+  U.save();
+}
+function howHtml() {
+  return `<div class="whow">
+    <p>Move with the <b>arrow keys</b>, <b>WASD</b>, or <b>drag</b> on the room.</p>
+    <p>A <b>key</b> opens that floor's vault. <b>Push</b> on a cracked wall to find a secret room.</p>
+    <p><b>Trainers</b> start an auto-battle if they spot you, or if you walk up to them.</p>
+    <p><b>Shrines, chests, and events</b> sit in the middle of a room. Walk onto one and pause, or tap <b>Interact</b>. Passing through leaves them alone.</p>
+    <p><b>Glim Tonics</b>, keys, and berries are picked up when you touch them. Tap the flask in the bar to heal your squad.</p>
+    <p>The back arrow <b>ends the expedition</b>. Unlocked creatures and shards you already earned stay with you. <b>Save &amp; exit</b> keeps the run so you can continue it from camp.</p>
+  </div>`;
+}
+async function showHowWilds(force) {
+  if (!force && howSeen()) return;
+  const live = !!(W && V && $('#wilds.exploring'));
+  if (live) V.pause = true;
+  await U.ask('How the Wilds work', howHtml(), U.btn('ok', 'Got it', 'green'), 'ok');
+  markHow();
+  if (live && W && V && !W.pendingFight) { V.pause = false; V.last = performance.now(); }
+}
+async function resumeFight() {
+  if (!W || !V || !W.pendingFight) return;
+  V.pause = true;
+  const a = room(), p = W.pendingFight;
+  if (p.kind === 'trainer' && a && a.tr && !a.tr.beaten) return trainerBattle(a, true);
+  if (p.kind === 'wild' && a && a.mon && !a.mon.beaten) {
+    if (!V.mons.length) spawnMon(a);
+    if (V.mons[0]) return battle(a, V.mons[0]);
+  }
+  disarmFight(); save();
+  V.pause = false; V.last = performance.now();
+}
+async function resumeExtras() {
+  if (!W || !V) return;
+  V.pause = true;
+  if (W.pendingJoin && G.SP[W.pendingJoin.sp]) {
+    const j = W.pendingJoin, S = G.SP[j.sp];
+    const open = W.squad.length < SQUAD_MAX && !W.squad.some(s => s.sp === j.sp && (s.shiny || !j.shiny));
+    if (open) {
+      const v = await U.ask('Bring them along?', `<p style="text-align:center">${S.names[0]} can still join your squad for this expedition (${W.squad.length}/${SQUAD_MAX}).</p>`, U.btn('join', `Add ${S.names[0]}`, 'green') + U.btn('no', 'Not now', 'ghost sm'));
+      if (v === 'join' && W) W.squad.push({ uid: W.nextUid++, sp: j.sp, star: 1, xp: 0, hp: 1, shiny: !!j.shiny });
+    }
+    if (W) delete W.pendingJoin;
+    save();
+  }
+  const rel = W && W.pendingRelic;
+  if (rel === 'lair') { await offerRelics(3, 'Lair treasure: take a relic'); if (W) delete W.pendingRelic; save(); }
+  else if (rel === 'challenge') { const a = room(); if (a) a.used = true; await offerRelics(3, 'The champion\'s prize'); if (W) delete W.pendingRelic; save(); }
+  else if (rel === 'captain') { await offerRelics(3, 'The captain\'s prize (rare relics)', false, true); if (W) delete W.pendingRelic; save(); }
+  if (W && W.pendingEnd === 'champion') { delete W.pendingEnd; save(); return endExpedition('champion'); }
+  if (W && V) { save(); U.save(); hud(); V.pause = false; V.last = performance.now(); }
+}
+function legendHtml() {
+  const row = (c, t) => `<span><i style="background:${c}"></i>${t}</span>`;
+  return `<b>Map</b>${row('#ffffff', 'You')}${row('#8a7fd0', 'Visited')}${row('#3b3566', 'Seen')}${row('#ff5a6e', 'Lair')}${row('#ffd65a', 'Treasure')}${row('#6bff8f', 'Shrine')}${row('#ffb02e', 'Vault')}${row('#d9a6ff', 'Secret')}${row('#6fd3ff', 'Event')}${row('#ff9f43', 'Trainer')}<span><i class="wild"></i>Wild</span><span><i class="key"></i>Key</span>`;
+}
+function installWildsCss() {
+  if (document.getElementById('wildsQaCss')) return;
+  const s = document.createElement('style');
+  s.id = 'wildsQaCss';
+  s.textContent = `
+.whow p { margin: 0 0 6px; font-size: 14px; line-height: 1.35; }
+.whow b { color: var(--gold); }
+#wilds .wmapui { position: absolute; z-index: 4; display: flex; flex-direction: column; align-items: flex-end; }
+#wilds .wmaphelp { width: 28px; height: 28px; border: 0; border-radius: 8px; cursor: pointer; color: #ffe9a8; background: rgba(12,8,32,.82); box-shadow: inset 0 0 0 1px #ffd65a88; font: 800 16px/1 Fredoka, Nunito, sans-serif; }
+#wilds .wlegend { display: none; margin-top: 4px; width: min(168px, 46vw); padding: 6px 8px; border-radius: 10px; background: rgba(10,6,28,.92); box-shadow: inset 0 0 0 1px rgba(255,214,90,.45); color: #efeafc; font: 700 11px/1.35 Nunito, sans-serif; }
+#wilds .wmapui:hover .wlegend, #wilds .wmapui:focus-within .wlegend, #wilds .wlegend.open { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
+#wilds .wlegend b { grid-column: 1 / -1; font-family: Fredoka, Nunito, sans-serif; color: #ffd65a; }
+#wilds .wlegend span { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+#wilds .wlegend i { width: 8px; height: 8px; border-radius: 2px; flex: none; box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
+#wilds .wlegend i.wild { border-radius: 99px; background: conic-gradient(#ff7a2a, #2fa6ff, #4fd35a, #ffd21f, #ff7a2a); }
+#wilds .wlegend i.key { background: #ffd65a; width: 6px; height: 6px; }
+#wilds .wact { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 5; border: 0; cursor: pointer; font: 700 15px/1 Fredoka, Nunito, sans-serif; color: #3a1d00; background: linear-gradient(180deg, #ffd65a, #ff9f1c); border-radius: 999px; padding: 8px 16px; min-height: 40px; box-shadow: 0 3px 0 #a86a12, 0 6px 14px rgba(0,0,0,.35); }
+#wilds .wact[hidden] { display: none !important; }
+@media (max-height: 520px) {
+  .whow p { font-size: 13px; margin: 0 0 4px; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #wilds.exploring .wtop { flex-wrap: nowrap; align-items: center; padding: 2px 6px; gap: 4px; }
+  #wilds.exploring .wtop .grow { min-width: 0; }
+  #wilds.exploring .wtop .title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #wilds.exploring .wtop .grow .small { display: none; }
+  #wilds.exploring .wtop .iconbtn { width: 32px; height: 32px; min-width: 32px; min-height: 32px; border-radius: 8px; }
+  #wilds.exploring .wtop .pill { font-size: 11px; padding: 1px 6px; }
+  #wilds.exploring .wtop .pill img { max-width: 14px; max-height: 14px; }
+  #wilds.exploring .wrelics { flex-basis: auto; flex-wrap: nowrap; padding: 0; max-width: 30%; overflow: hidden; }
+  #wilds.exploring .wrel { width: 22px; height: 22px; }
+  #wilds.exploring .wsquad { flex-wrap: nowrap; gap: 3px; padding: 2px 4px 3px; overflow: hidden; }
+  #wilds.exploring .wmem { width: 46px; padding: 1px 2px 2px; border-radius: 8px; }
+  #wilds.exploring .wmem .nm, #wilds.exploring .wmem .bar.xp { display: none; }
+  #wilds.exploring .wmem img { aspect-ratio: 1.7; }
+  #wilds.exploring .wmem .bar { height: 3px; margin-top: 1px; }
+  #wilds.exploring .wmem .st { font-size: 9px; }
+  #wilds.exploring .wasc { min-width: 18px; min-height: 18px; padding: 0 2px; font-size: 10px; }
+  #wilds.exploring .whint { bottom: 2px; font-size: 10px; }
+  #wilds.exploring .wact { bottom: 16px; min-height: 32px; padding: 6px 12px; font-size: 13px; }
+}`;
+  document.head.appendChild(s);
+}
+function ensureWildsUi() {
+  installWildsCss();
+  const stage = document.querySelector('#wilds .wstage');
+  if (!stage || stage.querySelector('.wact')) return;
+  stage.insertAdjacentHTML('beforeend', `<div class="wmapui"><button type="button" class="wmaphelp" aria-label="Map legend">?</button><div class="wlegend">${legendHtml()}</div></div><button type="button" class="wact" data-w="act" hidden>Interact</button>`);
+  const help = stage.querySelector('.wmaphelp'), leg = stage.querySelector('.wlegend');
+  help.addEventListener('click', e => { e.stopPropagation(); leg.classList.toggle('open'); });
+  document.addEventListener('click', e => {
+    if (e.target.closest && (e.target.closest('.wmaphelp') || e.target.closest('.wlegend'))) return;
+    const el = document.querySelector('#wilds .wlegend');
+    if (el) el.classList.remove('open');
+  });
+}
+function placeMapHelp() {
+  const map = $('#wMap'), ui = document.querySelector('#wilds .wmapui');
+  if (!map || !ui) return;
+  ui.style.right = (8 + (map.offsetWidth || 0) + 4) + 'px';
+  ui.style.top = '8px';
+}
 window.WILDS = { open, post, dexHtml, hud, skinThumb, skinOpen, secretHintRange, preloadTamer, discard, get state() { return W; }, get view() { return V; },
   doors: () => W && Object.keys(DOOR).map(d => [d, doorOf(room(), d), DOOR[d][0], DOOR[d][1]]).filter(x => x[1]),
   secretLevel: d => W && V && secretLevel(room(), d), tamerPose };

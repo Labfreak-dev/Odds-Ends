@@ -796,7 +796,17 @@ async function enemyInfo(i) {
 
 // ---- the fight ---------------------------------------------------------------------------------
 let FS = null;
-function stopFight() { if (FS && FS.raf) cancelAnimationFrame(FS.raf); FS = null; if (window.GAUDIO) GAUDIO.setSpeed(1); }
+function arenaOn() {
+  try { return new URLSearchParams(location.search).get('arena') === '1' && !!window.GArena; }
+  catch (e) { return false; }
+}
+function stopFight() {
+  if (FS && FS.raf) cancelAnimationFrame(FS.raf);
+  const cv = document.getElementById('arenaCv');
+  if (cv) cv.remove();
+  FS = null;
+  if (window.GAUDIO) GAUDIO.setSpeed(1);
+}
 function uEl(id) { return FS && FS.els[id]; }
 function startFight() {
   if (phase !== 'plan') return;
@@ -804,14 +814,18 @@ function startFight() {
   if (R.onBoard(run).length < R.cap(run) && R.onBench(run).length) toast(`You have room for ${R.cap(run) - R.onBoard(run).length} more on the board.`);
   phase = 'fight';
   const seed = (run.seed * 31 + run.round * 977 + Date.now() % 100000) >>> 0;
-  const st = C.create(R.fightOpts(run, seed));
-  FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
+  const Eng = arenaOn() ? window.GArena : C;
+  const st = Eng.create(R.fightOpts(run, seed));
+  FS = { st, eng: Eng, arena: Eng !== C, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
   if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
   syncGaSpeed();
   VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
-  unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
-  for (const u of st.units) cacheEl(u);
+  if (FS.arena) mountArena();
+  else {
+    unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
+    for (const u of st.units) cacheEl(u);
+  }
   renderFightBar();
   $('#gTraits').innerHTML = traitsHtml(R.onBoard(run));
   boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
@@ -820,7 +834,8 @@ function startFight() {
   const bossId = kind === 'boss' ? R.bossOf(run) : null;           // 'wyrm' only for the Glimmerwyrm
   mus(bossId === 'wyrm' ? 'glimmerwyrm' : kind === 'boss' ? 'boss' : R.stageOf(run.round) >= G.STAGES - 1 ? 'core' : 'fight');
   if (kind === 'boss') SFX.bossbanner(); else SFX.fightstart();    // one start cue at a time: bossbanner (1.4 s) already is the boss start, fightstart would stack on it
-  handle(st.ev.splice(0));
+  if (FS.arena) handleArena(st.ev.splice(0));
+  else handle(st.ev.splice(0));
   FS.raf = requestAnimationFrame(loop);
 }
 // ---- a live fight outside a run (The Wilds): same board and playback, no shop or bench ----------
@@ -831,8 +846,9 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     stopFight();
     phase = 'fight';
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-    const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), foeBonus, noHaz: true, mods: {} });
-    FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
+    const Eng = arenaOn() ? window.GArena : C;
+    const st = Eng.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), foeBonus, noHaz: true, mods: {} });
+    FS = { st, eng: Eng, arena: Eng !== C, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
     if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
     syncGaSpeed();
     VFX.speed = FS.speed; VFX.clear();
@@ -845,13 +861,17 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     $('#gTraits').innerHTML = G.ELS.filter(e => c.el[e]).map(e => `<span class="trait el-${e} ${c.el[e] >= G.EL_AT[0] ? 'on' : ''}">${elBadge(e)}${G.EL[e].name} ${c.el[e]}</span>`).join('');
     if (!$('#cells').children.length) renderCells();
     fxEl.innerHTML = '';
-    unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
-    for (const u of st.units) cacheEl(u);
+    if (FS.arena) mountArena();
+    else {
+      unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
+      for (const u of st.units) cacheEl(u);
+    }
     renderFightBar();
     boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
     mus(String(title).includes('\u265b') ? 'wilds_lair' : 'wilds_fight');   // \u265b = the crown glyph wilds.js puts in lair titles
     setTimeout(() => { if (FS) SFX.fightstart(); }, 350);                    // wencounter (0.7 s) started ~380 ms ago in wilds.js battle(); stagger so the two do not stack
-    handle(st.ev.splice(0));
+    if (FS.arena) handleArena(st.ev.splice(0));
+    else handle(st.ev.splice(0));
     FS.raf = requestAnimationFrame(loop);
   });
 }
@@ -881,15 +901,97 @@ $('#fightBar').addEventListener('click', e => {
 function loop(ts) {
   if (!FS) return;
   const st = FS.st;
+  const Eng = FS.eng || C;
   let dt = Math.min(0.1, (ts - FS.last) / 1000) * FS.speed;
   if (FS.hold > 0) { FS.hold -= (ts - FS.last) / 1000; dt = 0; }
   FS.last = ts;
-  if (FS.skip && !st.over) { C.resolve(st); st.ev.length = 0; resyncAll(); }
+  if (FS.skip && !st.over) { Eng.resolve(st); st.ev.length = 0; if (!FS.arena) resyncAll(); }
   FS.acc += dt;
-  while (FS.acc >= C.DT && !st.over) { FS.acc -= C.DT; const ev = C.tick(st); st.ev.length = 0; handle(ev); }
-  for (const u of st.units) syncBars(u);
+  if (FS.arena && FS.acc > Eng.DT * 8) FS.acc = Eng.DT * 8;
+  while (FS.acc >= Eng.DT && !st.over) { FS.acc -= Eng.DT; const ev = Eng.tick(st); st.ev.length = 0; if (FS.arena) handleArena(ev); else handle(ev); }
+  if (FS.arena) drawArena();
+  else for (const u of st.units) syncBars(u);
   if (st.over && !FS.ending) { FS.ending = true; setTimeout(FS.wild ? wildEnd : endFight, FS.skip ? 200 : 900 / Math.min(2, FS.speed)); }
   FS.raf = requestAnimationFrame(loop);
+}
+function mountArena() {
+  unitsEl.innerHTML = '';
+  const cv = document.createElement('canvas');
+  cv.id = 'arenaCv';
+  cv.width = 960;
+  cv.height = 600;
+  cv.setAttribute('aria-hidden', 'true');
+  cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:6;border-radius:14px;';
+  boardEl.appendChild(cv);
+  FS.cv = cv;
+  FS.ctx = cv.getContext('2d');
+}
+function handleArena(ev) {
+  for (let i = 0; i < ev.length; i++) if (ev[i].k === 'text' && ev[i].v) toast(ev[i].v);
+}
+function drawArena() {
+  if (!FS || !FS.ctx || !window.GArena) return;
+  const ctx = FS.ctx;
+  const step = FS.eng && FS.eng.DT ? FS.eng.DT : 1 / 30;
+  const v = window.GArena.view(FS.st, Math.max(0, Math.min(0.999, FS.acc / step)));
+  const cols = { ember: '#ff7a2a', tide: '#2fa6ff', bloom: '#4fd35a', volt: '#ffd21f', stone: '#e0a860', shade: '#9d8bff', frost: '#8fe3ff', gale: '#7dffc2', metal: '#d8e2ee', mystic: '#d9a6ff' };
+  ctx.clearRect(0, 0, 960, 600);
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
+  ctx.fillRect(0, 0, 960, 600);
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  ctx.beginPath(); ctx.moveTo(480, 0); ctx.lineTo(480, 600); ctx.stroke();
+  for (const g of v.telegraphs) {
+    ctx.save();
+    ctx.globalAlpha = 0.5 * Math.max(0.2, (g.left || 0) / (g.dur || 1));
+    ctx.strokeStyle = cols[g.el] || '#fff';
+    ctx.lineWidth = 3;
+    if (g.shape === 'line') { ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x2, g.y2); ctx.stroke(); }
+    else if (g.shape === 'cone') {
+      ctx.beginPath(); ctx.moveTo(g.x, g.y);
+      ctx.arc(g.x, g.y, g.r || 80, (g.ang || 0) - (g.arc || 1) / 2, (g.ang || 0) + (g.arc || 1) / 2);
+      ctx.closePath(); ctx.stroke();
+    } else { ctx.beginPath(); ctx.arc(g.x, g.y, g.r || 40, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  for (const u of v.units) {
+    const r = u.r || 26;
+    ctx.beginPath();
+    ctx.fillStyle = u.alive ? (cols[u.el] || '#ccc') : '#555';
+    ctx.globalAlpha = u.alive ? 1 : 0.35;
+    ctx.arc(u.x, u.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = u.boss ? 4 : 3;
+    ctx.strokeStyle = u.side === 0 ? '#7eb6ff' : '#ff7a8a';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.moveTo(u.x, u.y);
+    ctx.lineTo(u.x + (u.facing || 1) * r, u.y);
+    ctx.stroke();
+    const w = 46, hx = u.x - w / 2, hy = u.y - r - 14;
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(hx, hy, w, 5);
+    ctx.fillStyle = u.maxHp && u.hp / u.maxHp > 0.35 ? '#3dde7a' : '#ff5d6c';
+    ctx.fillRect(hx, hy, w * Math.max(0, Math.min(1, u.hp / (u.maxHp || 1))), 5);
+    if (u.shield > 0) { ctx.fillStyle = '#8fd4ff'; ctx.fillRect(hx, hy - 3, w * Math.min(1, u.shield / (u.maxHp || 1)), 2); }
+    ctx.fillStyle = '#fff';
+    ctx.fillText(u.name || '', u.x, u.y + r + 14);
+  }
+  for (const p of v.projs) {
+    ctx.beginPath();
+    ctx.fillStyle = cols[p.el] || '#fff';
+    ctx.arc(p.x, p.y, Math.max(5, (p.r || 10) * 0.45), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.75)';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('ARENA', 12, 22);
 }
 function resyncAll() {
   for (const u of FS.st.units) {

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arena sprite preview</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #100c18; color: #fff6e8; font: 14px/1.4 ui-monospace, monospace; }
+  body { display: flex; flex-direction: column; }
+  #bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; background: #1a1428; }
+  button, select { font: inherit; color: inherit; background: #2a2144; border: 1px solid #4d3f8f; border-radius: 8px; padding: 6px 10px; }
+  button.on { border-color: #ffe7a3; color: #ffe7a3; }
+  #stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px; }
+  canvas { width: min(100%, 960px); height: auto; aspect-ratio: 8 / 5; background: #07060e; image-rendering: pixelated; border-radius: 12px; }
+  #note { opacity: .75; }
+  body.shot #bar { display: none; }
+  body.shot, body.shot #stage { height: 100%; }
+  body.shot #stage { display: block; padding: 0; }
+  body.shot canvas { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <input id="file" type="file" accept="application/json,.json">
+  <select id="who">
+    <option value="cr_cind1">Cind (fallback)</option>
+    <option value="cr_bubb1">Bubb (fallback)</option>
+    <option value="cr_sprt1">Sprt (fallback)</option>
+    <option value="cr_shel1">Shel (fallback)</option>
+    <option value="boss_cinder">Cinderking (fallback)</option>
+    <option value="demo_hero">Demo atlas</option>
+  </select>
+  <span id="clips"></span>
+  <button id="flip" type="button">Face left</button>
+  <span id="note">Drop an atlas JSON. Image URL inside it must be fetchable.</span>
+</div>
+<div id="stage"><canvas id="cv" width="960" height="600"></canvas></div>
+<script src="glim-anim.js"></script>
+<script src="glim-anim-species.js"></script>
+<script src="arena-render.js"></script>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  const cv = document.getElementById('cv');
+  const clips = ['idle', 'run', 'attack', 'cast', 'hit', 'death'];
+  let clip = 'idle', facing = 1, atlasId = '', art = 'cr_cind1', t0 = performance.now();
+  const box = document.getElementById('clips');
+  clips.forEach(name => {
+    const b = document.createElement('button');
+    b.textContent = name;
+    b.dataset.clip = name;
+    if (name === clip) b.className = 'on';
+    b.addEventListener('click', () => { clip = name; t0 = performance.now(); mark(); });
+    box.appendChild(b);
+  });
+  function mark() {
+    box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.clip === clip));
+  }
+  document.getElementById('flip').addEventListener('click', () => {
+    facing = -facing;
+    document.getElementById('flip').classList.toggle('on', facing < 0);
+  });
+  document.getElementById('who').addEventListener('change', e => {
+    art = e.target.value;
+    if (art !== 'demo_hero') atlasId = '';
+  });
+  document.getElementById('file').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const text = await f.text();
+    const def = JSON.parse(text);
+    const atlas = await GArenaView.loadAtlas(def);
+    atlasId = atlas.id;
+    art = atlas.id;
+    document.getElementById('note').textContent = atlas.id + ' · ' + (atlas.clips.attack && atlas.clips.attack.hit != null ? ('attack hit ' + atlas.clips.attack.hit) : 'no attack hit') ;
+  });
+
+  const shot = q.get('shot');
+  if (shot || q.get('bench')) document.body.classList.add('shot');
+
+  let demoCtl = null;
+  function layout() {
+    const r = cv.getBoundingClientRect();
+    if (r.width > 2 && (cv.width !== Math.round(r.width) || cv.height !== Math.round(r.height))) {
+      cv.width = Math.round(r.width);
+      cv.height = Math.round(r.height);
+    }
+  }
+
+  async function boot() {
+    await GArenaView.makeDemoAtlas();
+    if (q.get('who')) art = q.get('who');
+    if (shot) {
+      layout();
+      demoCtl = GArenaView.playDemo(cv, shot === 'atlas' ? 'melee' : shot);
+      if (shot === 'atlas') {
+        const atlas = GArenaView.atlas('demo_hero');
+        const uTime = +(q.get('t') || 0.22);
+        GArenaView.paintClip(cv, { atlasId: 'demo_hero', clip: 'attack', time: uTime, facing: 1 });
+        window.__arenaAtlas = { hit: GArenaView.frameIndex('demo_hero', 'attack', 0.22, 0.22), frames: atlas.clips.attack.frames.length };
+      }
+      window.renderAt = function (t) {
+        layout();
+        if (shot === 'atlas') GArenaView.paintClip(cv, { atlasId: 'demo_hero', clip: q.get('clip') || 'attack', time: t, facing: 1 });
+        else { demoCtl = GArenaView.playDemo(cv, shot); demoCtl.seek(t); }
+      };
+      const t = +(q.get('t') || 0.35);
+      window.renderAt(t);
+      window.__arenaReady = true;
+      return;
+    }
+    if (q.get('bench')) {
+      layout();
+      const ms = +(q.get('ms') || 2000);
+      const result = await GArenaView.bench(cv, ms);
+      window.__arenaBench = result;
+      document.body.insertAdjacentHTML('beforeend', '<pre id="bench">' + JSON.stringify(result) + '</pre>');
+      return;
+    }
+    requestAnimationFrame(loop);
+  }
+  function loop(now) {
+    layout();
+    const time = ((now - t0) / 1000);
+    const useAtlas = art === 'demo_hero' || atlasId;
+    GArenaView.paintClip(cv, {
+      art: useAtlas ? (atlasId || 'demo_hero') : art,
+      atlasId: useAtlas ? (atlasId || 'demo_hero') : '',
+      url: 'img/' + art + '.webp',
+      clip, time, facing,
+      role: art === 'boss_cinder' ? 'tank' : 'striker',
+      boss: art.indexOf('boss_') === 0,
+      range: art === 'cr_bubb1' ? 2 : 1,
+      sp: art.indexOf('cr_') === 0 ? art.slice(3, 7) : '',
+    });
+    requestAnimationFrame(loop);
+  }
+  boot().catch(err => { console.error(err); document.getElementById('note').textContent = String(err && err.message || err); });
+})();
+</script>
+</body>
+</html>

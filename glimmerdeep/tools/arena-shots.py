@@ -83,6 +83,20 @@ with sync_playwright() as p:
             '-vf', 'scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse', gif],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         check(os.path.exists(gif), 'melee gif written')
+    crit_dir = os.path.join(OUT, 'crit-frames')
+    os.makedirs(crit_dir, exist_ok=True)
+    desk.goto(BASE + '/arena-preview.html?shot=crit', wait_until='networkidle')
+    desk.wait_for_function('window.__arenaReady')
+    desk.wait_for_function("() => !!GArenaView.artInfo('cr_cind1')", timeout=8000)
+    for i in range(10):
+        desk.evaluate(f'renderAt({i / 10 * 0.45})')
+        desk.locator('#cv').screenshot(path=os.path.join(crit_dir, f'c{i:02d}.png'))
+    crit_gif = os.path.join(OUT, 'crit.gif')
+    if shutil.which('ffmpeg'):
+        subprocess.check_call(['ffmpeg', '-y', '-framerate', '10', '-i', os.path.join(crit_dir, 'c%02d.png'),
+            '-vf', 'scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse', crit_gif],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        check(os.path.exists(crit_gif), 'crit hit-stop gif written')
     desk.close()
 
     # phone portrait and landscape, staged melee so the layout is the renderer

@@ -27,6 +27,21 @@
     tundra: '#1a2834', skyisles: '#162844', dunes: '#3a2810', mire: '#121e16', foundry: '#241810',
     observatory: '#101628', core: '#2a1020',
   };
+  // Two tile tones, a crack, and a prop colour. The painted biome shows outside this floor.
+  const FLOOR = {
+    verdant: { a: '#1b4630', b: '#24573b', c: '#10281c', p: '#3f9a48', q: '#c2e07a' },
+    magma: { a: '#4a1c12', b: '#5e2a18', c: '#1a0906', p: '#ff6a2a', q: '#ffd36b' },
+    grotto: { a: '#123044', b: '#184058', c: '#081820', p: '#3ec8c0', q: '#d8fff8' },
+    spire: { a: '#2a1848', b: '#3a2460', c: '#12081c', p: '#c080ff', q: '#ffe7a3' },
+    crypt: { a: '#241828', b: '#321e30', c: '#0c0810', p: '#8a7098', q: '#e8d8c8' },
+    tundra: { a: '#243848', b: '#314858', c: '#101820', p: '#d8eef8', q: '#8fe3ff' },
+    skyisles: { a: '#1a3058', b: '#243e6c', c: '#0c1428', p: '#f0f4ff', q: '#8ec0ff' },
+    dunes: { a: '#5a3c18', b: '#6e4c22', c: '#241808', p: '#e0b060', q: '#fff0c0' },
+    mire: { a: '#1a2c1c', b: '#243624', c: '#0c140e', p: '#6aaa48', q: '#d0e080' },
+    foundry: { a: '#3a2818', b: '#4a3420', c: '#140e0a', p: '#e08040', q: '#f0d0a0' },
+    observatory: { a: '#1a2038', b: '#242c4c', c: '#0a0e18', p: '#a0c0ff', q: '#fff6d0' },
+    core: { a: '#3a1428', b: '#4c1c34', c: '#140810', p: '#ff5080', q: '#ffd0e0' },
+  };
   const pal = el => PAL[el] || PAL.mystic;
   const hex = el => pal(el)[0];
 
@@ -140,7 +155,53 @@
     return scratch._g;
   }
 
-  // Trim empty margins, draw the creature into ~48px, then a 1px dark outline.
+  // Median-cut to a short palette. No dither: each pixel becomes its box average.
+  function quantize(data, W, H, colors) {
+    const pix = [];
+    for (let i = 0; i < W * H; i++) if (data[i * 4 + 3] > 36) pix.push(i * 4);
+    if (pix.length < 8) return;
+    let boxes = [pix];
+    while (boxes.length < colors) {
+      let bi = 0, span = -1, ch = 0;
+      for (let b = 0; b < boxes.length; b++) {
+        const box = boxes[b];
+        if (box.length < 2) continue;
+        let lo = [255, 255, 255], hi = [0, 0, 0];
+        for (let k = 0; k < box.length; k++) {
+          const i = box[k];
+          for (let c = 0; c < 3; c++) {
+            const v = data[i + c];
+            if (v < lo[c]) lo[c] = v;
+            if (v > hi[c]) hi[c] = v;
+          }
+        }
+        let best = 0, bc = 0;
+        for (let c = 0; c < 3; c++) if (hi[c] - lo[c] > best) { best = hi[c] - lo[c]; bc = c; }
+        if (best > span) { span = best; bi = b; ch = bc; }
+      }
+      if (span < 12) break;
+      const box = boxes[bi];
+      box.sort((a, b) => data[a + ch] - data[b + ch]);
+      const mid = box.length >> 1;
+      boxes.splice(bi, 1, box.slice(0, mid), box.slice(mid));
+    }
+    for (let b = 0; b < boxes.length; b++) {
+      const box = boxes[b];
+      let r = 0, g = 0, bl = 0;
+      for (let k = 0; k < box.length; k++) {
+        const i = box[k];
+        r += data[i]; g += data[i + 1]; bl += data[i + 2];
+      }
+      const n = box.length || 1;
+      r = Math.round(r / n); g = Math.round(g / n); bl = Math.round(bl / n);
+      for (let k = 0; k < box.length; k++) {
+        const i = box[k];
+        data[i] = r; data[i + 1] = g; data[i + 2] = bl; data[i + 3] = 255;
+      }
+    }
+  }
+
+  // Trim empty margins, downscale sharp, quantize to ~16 colours, 1px coloured outline.
   function bakeArt(img) {
     const sw = img.naturalWidth || img.width, sh = img.naturalHeight || img.height;
     const scan = document.createElement('canvas');
@@ -169,31 +230,37 @@
     const c = document.createElement('canvas');
     c.width = dw + pad * 2; c.height = dh + pad * 2;
     const g = c.getContext('2d', { willReadFrequently: true });
-    g.imageSmoothingEnabled = true;
-    g.imageSmoothingQuality = 'high';
     const sx0 = x0 / sc, sy0 = y0 / sc, sx1 = (x1 + 1) / sc, sy1 = (y1 + 1) / sc;
-    g.drawImage(img, sx0, sy0, sx1 - sx0, sy1 - sy0, pad, pad, dw, dh);
+    // Smooth once at double size, then nearest into the sprite so edges stay stepped.
+    const mid = document.createElement('canvas');
+    mid.width = dw * 2; mid.height = dh * 2;
+    const mg = mid.getContext('2d');
+    mg.imageSmoothingEnabled = true;
+    mg.imageSmoothingQuality = 'high';
+    mg.drawImage(img, sx0, sy0, sx1 - sx0, sy1 - sy0, 0, 0, mid.width, mid.height);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(mid, 0, 0, mid.width, mid.height, pad, pad, dw, dh);
     const id = g.getImageData(0, 0, c.width, c.height);
     const W = c.width, H = c.height, d = id.data;
-    // Snap to a short palette so the downscale reads as pixels, not a blurry photo.
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i + 3] <= 30) continue;
-      d[i] = d[i] & 0xf0;
-      d[i + 1] = d[i + 1] & 0xf0;
-      d[i + 2] = d[i + 2] & 0xf0;
-    }
+    quantize(d, W, H, 16);
     const src = new Uint8ClampedArray(d);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
       if (src[i + 3] > 30) continue;
-      let hit = false;
+      let nr = 0, ng = 0, nb = 0, nn = 0;
       for (let n = 0; n < 4; n++) {
         const xx = x + (n === 0 ? 1 : n === 1 ? -1 : 0);
         const yy = y + (n === 2 ? 1 : n === 3 ? -1 : 0);
         if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
-        if (src[(yy * W + xx) * 4 + 3] > 80) { hit = true; break; }
+        const j = (yy * W + xx) * 4;
+        if (src[j + 3] > 80) { nr += src[j]; ng += src[j + 1]; nb += src[j + 2]; nn++; }
       }
-      if (hit) { d[i] = 18; d[i + 1] = 10; d[i + 2] = 28; d[i + 3] = 230; }
+      if (nn) {
+        d[i] = (nr / nn) * 0.35 | 0;
+        d[i + 1] = (ng / nn) * 0.35 | 0;
+        d[i + 2] = (nb / nn) * 0.35 | 0;
+        d[i + 3] = 235;
+      }
     }
     g.putImageData(id, 0, 0);
     return {
@@ -356,29 +423,51 @@
   }
   function iconIndex(name) { return ICON_NAMES.indexOf(name); }
 
-  function floorFor(biome) {
-    const key = biome || 'verdant';
+  function floorFor(biomeName) {
+    const key = biomeName || 'verdant';
     if (floors.has(key)) return floors.get(key);
-    const S = 128;
+    const pal = FLOOR[key] || FLOOR.verdant;
+    const S = 160, tile = 32;
     const c = document.createElement('canvas');
     c.width = S; c.height = S;
     const g = c.getContext('2d');
-    g.fillStyle = BIOME[key] || '#161222';
-    g.fillRect(0, 0, S, S);
-    const tile = 16;
-    for (let y = 0; y < S; y += tile) for (let x = 0; x < S; x += tile) {
-      const alt = ((x / tile + y / tile) & 1);
-      g.fillStyle = alt ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.22)';
-      g.fillRect(x, y, tile, tile);
-      g.fillStyle = 'rgba(0,0,0,.45)';
-      g.fillRect(x, y, tile, 1);
-      g.fillRect(x, y, 1, tile);
-      g.fillStyle = 'rgba(255,255,255,.05)';
-      g.fillRect(x + 1, y + 1, tile - 2, 1);
-    }
-    for (let i = 0; i < 90; i++) {
-      g.fillStyle = (i & 1) ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.06)';
-      g.fillRect((i * 47) % S, (i * 29) % S, 1, 1);
+    g.imageSmoothingEnabled = false;
+    const hash = (x, y) => ((x * 73856093) ^ (y * 19349663)) >>> 0;
+    for (let ty = 0; ty < S; ty += tile) for (let tx = 0; tx < S; tx += tile) {
+      const h = hash(tx, ty);
+      g.fillStyle = (h & 1) ? pal.b : pal.a;
+      g.fillRect(tx, ty, tile, tile);
+      if ((h >> 3) & 1) { g.fillStyle = pal.c; g.fillRect(tx + 2, ty + tile - 3, tile - 6, 1); }
+      g.fillStyle = 'rgba(0,0,0,.35)';
+      g.fillRect(tx, ty, tile, 1);
+      g.fillRect(tx, ty, 1, tile);
+      g.fillStyle = 'rgba(255,255,255,.07)';
+      g.fillRect(tx + 1, ty + 1, tile - 2, 1);
+      const kind = (h >> 8) & 7;
+      if (kind === 0) {
+        g.fillStyle = pal.p;
+        g.fillRect(tx + 8, ty + 18, 2, 5);
+        g.fillRect(tx + 6, ty + 16, 2, 3);
+        g.fillRect(tx + 10, ty + 15, 2, 4);
+        g.fillStyle = pal.q;
+        g.fillRect(tx + 8, ty + 14, 2, 2);
+      } else if (kind === 1) {
+        g.fillStyle = pal.c;
+        g.fillRect(tx + 6, ty + 10, 10, 1);
+        g.fillRect(tx + 12, ty + 6, 1, 8);
+        g.fillRect(tx + 8, ty + 14, 6, 1);
+      } else if (kind === 2) {
+        g.fillStyle = pal.q;
+        g.fillRect(tx + 18, ty + 8, 3, 2);
+        g.fillRect(tx + 20, ty + 10, 2, 2);
+        g.fillStyle = pal.p;
+        g.fillRect(tx + 14, ty + 20, 2, 3);
+        g.fillRect(tx + 17, ty + 19, 2, 4);
+      } else if (kind === 3) {
+        g.fillStyle = pal.c;
+        g.fillRect(tx + 4, ty + 6, 4, 3);
+        g.fillRect(tx + 22, ty + 16, 5, 3);
+      }
     }
     floors.set(key, c);
     return c;
@@ -565,7 +654,10 @@
   let shakes = 0, shakeT = 0;
   let intro = 0, introOn = false;
   let focusId = 0, focusTargetId = 0;
-  let cam = { x: AW / 2, y: AH / 2, z: 0.8 };
+  let cam = { x: AW / 2, y: AH / 2, z: 0.9 };
+  let camSnap = true;
+  let fxT = 0;
+  const callouts = [];
   let cv = null, ctx = null, board = null, dpr = 1, cssW = 1, cssH = 1;
   let biome = 'verdant', bgUrl = '', artUrl = null, onHold = null;
   let tier = 'full', autoDropped = false;
@@ -583,6 +675,8 @@
     let lite = false;
     try {
       const meta = root.GLIM && GLIM.meta;
+      // autoClassic and a saved Classic animation both mean the lite tier.
+      // fpsOptOut only stops rewriting that saved choice. It does not keep Full.
       if (meta && (meta.autoClassic || meta.anim === 0)) lite = true;
     } catch (e) { /* no game */ }
     try {
@@ -604,20 +698,44 @@
     const avg = sum / fpsWindow.length;
     fpsWindow.length = 0;
     if (avg > 34) {
+      // Drop the draw tier even when the player opted out of Auto Classic.
+      // setAutoClassic is the saved-setting write, and qa.js owns that toast.
       autoDropped = true;
       tier = 'lite';
       pCap = tierCap();
       try {
-        if (root.GLIM && GLIM.meta && !GLIM.meta.autoClassic && GLIM.meta.anim !== 0 && !GLIM.meta.fpsOptOut && GLIM.setAutoClassic) GLIM.setAutoClassic(true);
+        const meta = root.GLIM && GLIM.meta;
+        if (meta && !meta.autoClassic && meta.anim !== 0 && !meta.fpsOptOut && GLIM.setAutoClassic) GLIM.setAutoClassic(true);
       } catch (e) { /* settings UI owns the toast */ }
     }
   }
 
+  function dropContextCaches() {
+    // Gradients and patterns belong to the context that created them.
+    // Resizing the canvas (or mounting a new one) invalidates them.
+    vignette = null;
+    vignetteKey = '';
+    floorPat = null;
+    floorPatKey = '';
+  }
   function resetVis() {
-    vis.clear(); trails.clear(); ghosts.length = 0; numbers.length = 0;
-    banner = null; shakes = 0; pending.length = 0; clearFx(); focusId = 0;
+    vis.clear(); trails.clear(); ghosts.length = 0; numbers.length = 0; callouts.length = 0;
+    banner = null; shakes = 0; pending.length = 0; clearFx(); focusId = 0; focusTargetId = 0;
+    cam = { x: AW / 2, y: AH / 2, z: 0.9 };
+    camSnap = true;
+    fxT = 0;
     intro = (typeof navigator !== 'undefined' && navigator.webdriver) ? 0.36 : 1.26;
     introOn = true;
+    if (typeof wrappedFrame !== 'undefined') wrappedFrame.boss = false;
+  }
+
+  function visOf(id) {
+    let v = vis.get(id);
+    if (!v) {
+      v = { state: '', t: 0, age: (id * 1.37) % 3, flash: 0, lean: 0, kx: 0, ky: 0, hitMark: 0 };
+      vis.set(id, v);
+    }
+    return v;
   }
 
   function push(ev) {
@@ -625,7 +743,10 @@
     for (let i = 0; i < ev.length; i++) {
       const e = ev[i];
       pending.push(e);
-      if (e.k === 'dmg' && e.crit) { shakes = Math.max(shakes, 5); if (onHold) onHold(0.07); }
+      if (e.k === 'dmg' && !e.dot && (e.crit || (e.v || 0) >= 16)) {
+        shakes = Math.max(shakes, e.crit ? 7 : 3.5);
+        if (onHold) onHold(e.crit ? 0.1 : 0.05);
+      }
       if ((e.k === 'cast_start' || e.k === 'cast') && e.ult) {
         shakes = Math.max(shakes, 8);
         if (e.k === 'cast_start' && onHold) onHold(0.1);
@@ -646,8 +767,13 @@
         if (!e.dot || e.crit) burst(t.x, t.y, el, e.crit ? 1.4 : e.dot ? 0.4 : 1, !!e.crit);
         const label = e.crit ? String(e.v) + '!' : String(e.v);
         if (!e.dot || e.v >= 2) numbers.push({ x: t.x, y: t.y, oy: 0, text: label, life: 0.7, t: 0, crit: !!e.crit, kind: e.dot ? 'dot' : 'dmg' });
-        const v = vis.get(t.id);
-        if (v) v.flash = e.crit ? 1 : 0.75;
+        const v = visOf(t.id);
+        v.flash = e.crit ? 1 : 0.85;
+        if (e.crit || (e.v || 0) >= 16) {
+          spawn({ k: 'star', x: t.x, y: t.y - 8, r: e.crit ? 14 : 8, c: e.crit ? '#ffe36b' : '#fff', life: 0.22 });
+          spawn({ k: 'spark', x: t.x, y: t.y, vx: 80, vy: -40, c: '#fff', life: 0.16 });
+          spawn({ k: 'spark', x: t.x, y: t.y, vx: -70, vy: -20, c: hex(el), life: 0.16 });
+        }
       } else if (e.k === 'heal' && t && !e.quiet && e.v > 0) {
         numbers.push({ x: t.x, y: t.y, oy: 0, text: '+' + e.v, life: 0.7, t: 0, kind: 'heal' });
         for (let n = 0; n < (tier === 'lite' ? 3 : 6); n++) spawn({ k: 'plus', x: t.x + (Math.random() - 0.5) * 20, y: t.y, vy: -36 - Math.random() * 30, c: pal('heal')[n % 3], r: 4, life: 0.55 });
@@ -675,11 +801,14 @@
             const ang = n / 8 * 6.2832;
             spawn({ k: 'dot', x: a.x + Math.cos(ang) * 28, y: a.y + Math.sin(ang) * 16, vx: -Math.cos(ang) * 40, vy: -Math.sin(ang) * 24, c: pal(e.el)[n % 3], r: 2, life: 0.4, ground: 1 });
           }
+          if (e.n) callouts.push({ x: a.x, y: a.y, text: String(e.n).toUpperCase().slice(0, 16), el: e.el || a.el, t: 0, life: e.ult ? 1.15 : 0.85, ult: !!e.ult });
         }
       } else if (e.k === 'knock' && t) {
-        const v = vis.get(t.id) || {};
+        const v = visOf(t.id);
+        const mag = Math.hypot(e.vx || 0, e.vy || 0) || 1;
+        v.kx = (e.vx || 0) / mag * 22;
+        v.ky = (e.vy || 0) / mag * 12;
         v.lean = Math.max(-1, Math.min(1, (e.vx || 0) / 400));
-        vis.set(t.id, v);
       } else if (e.k === 'react' && t) {
         numbers.push({ x: t.x, y: t.y, oy: -10, text: String(e.name || '').toUpperCase().slice(0, 12), life: 0.8, t: 0, kind: 'react' });
       }
@@ -688,16 +817,17 @@
   }
 
   // ---- camera / project -------------------------------------------------------------
+  function viewOriginY() { return cssH > cssW * 1.12 ? 0.5 : 0.58; }
   function project(x, y) {
     return {
       x: cssW * 0.5 + (x - cam.x) * cam.z,
-      y: cssH * 0.58 + (y - cam.y) * cam.z * OBL,
+      y: cssH * viewOriginY() + (y - cam.y) * cam.z * OBL,
     };
   }
   function unproject(sx, sy) {
     return {
       x: cam.x + (sx - cssW * 0.5) / cam.z,
-      y: cam.y + (sy - cssH * 0.58) / (cam.z * OBL),
+      y: cam.y + (sy - cssH * viewOriginY()) / (cam.z * OBL),
     };
   }
   function aimCamera(units, dt) {
@@ -710,22 +840,34 @@
       if (u.y < minY) minY = u.y; if (u.y > maxY) maxY = u.y;
       sx += u.x; sy += u.y; n++;
     }
-    if (!n) { minX = 80; maxX = AW - 80; minY = 70; maxY = AH - 70; sx = AW / 2; sy = AH / 2; n = 1; }
-    const pad = 150;
-    const needW = Math.max(220, maxX - minX + pad * 2);
-    const needH = Math.max(160, maxY - minY + pad * 2);
-    let z = Math.min(cssW / needW, cssH / (needH * OBL));
-    const phone = cssW < 520;
-    const minZ = phone ? 0.62 : 0.48;
-    const maxZ = phone ? 1.05 : 1.35;
-    if (z < minZ) z = minZ;
+    if (!n) { minX = 200; maxX = AW - 200; minY = 160; maxY = AH - 160; sx = AW / 2; sy = AH / 2; n = 1; }
+    const phone = cssW < 560;
+    const tall = cssH > cssW * 1.12;
+    const padX = phone ? 64 : 110;
+    const padY = phone ? 48 : 80;
+    const needW = Math.max(120, maxX - minX + padX * 2);
+    const needH = Math.max(90, maxY - minY + padY * 2);
+    let zFit = Math.min(cssW * 0.9 / needW, (cssH * (tall ? 0.62 : 0.8)) / (needH * OBL));
+    const minZ = tall ? 0.95 : phone ? 0.82 : 0.58;
+    const maxZ = tall ? 1.85 : phone ? 1.45 : 1.45;
+    // On a tall phone the width-fit zoom leaves a short band. Zoom in, but
+    // never more than 30% past the fit, so both teams stay on screen.
+    let z = Math.max(zFit, Math.min(minZ, zFit * 1.3));
     if (z > maxZ) z = maxZ;
-    const tx = n ? sx / n : (minX + maxX) / 2;
-    const ty = n ? sy / n : (minY + maxY) / 2;
-    const k = 1 - Math.exp(-dt * 4.5);
-    cam.x += (tx - cam.x) * k;
-    cam.y += (ty - cam.y) * k;
-    cam.z += (z - cam.z) * k;
+    if (z < 0.35) z = 0.35;
+    const tx = sx / n;
+    const ty = sy / n;
+    if (camSnap) {
+      cam.x = tx; cam.y = ty; cam.z = z; camSnap = false;
+      return;
+    }
+    const dx = tx - cam.x, dy = ty - cam.y, dz = z - cam.z;
+    // Deadzone: tiny centroid motion must not slide the floor.
+    if (dx * dx + dy * dy < 34 * 34 && Math.abs(dz) < 0.04) return;
+    const k = 1 - Math.exp(-dt * 1.8);
+    cam.x += dx * k;
+    cam.y += dy * k;
+    cam.z += dz * k;
   }
 
   // ---- draw pieces ------------------------------------------------------------------
@@ -752,7 +894,7 @@
       g.drawImage(bgRec.img, (cssW - dw) / 2, (cssH - dh) / 2, dw, dh);
       g.restore();
     }
-    g.fillStyle = 'rgba(6,4,14,.5)';
+    g.fillStyle = 'rgba(6,4,14,.22)';
     g.fillRect(0, 0, cssW, cssH);
   }
   function drawTiles(g) {
@@ -760,65 +902,127 @@
     g.save();
     arenaPoly(g);
     g.clip();
-    g.translate(cssW * 0.5, cssH * 0.58);
+    g.translate(cssW * 0.5, cssH * viewOriginY());
     g.scale(cam.z, cam.z * OBL);
     g.translate(-cam.x, -cam.y);
     g.fillStyle = floorPattern(g);
-    g.globalAlpha = 0.9;
-    g.fillRect(-40, -40, AW + 80, AH + 80);
+    g.globalAlpha = 0.94;
+    g.fillRect(8, 8, AW - 16, AH - 16);
+    const pal = FLOOR[biome] || FLOOR.verdant;
+    g.globalAlpha = 1;
+    g.fillStyle = pal.c;
+    g.fillRect(8, 8, AW - 16, 4);
+    g.fillRect(8, AH - 12, AW - 16, 4);
+    g.fillRect(8, 8, 4, AH - 16);
+    g.fillRect(AW - 12, 8, 4, AH - 16);
+    g.fillStyle = pal.q;
+    for (let i = 0; i < 8; i++) {
+      g.fillRect(24 + i * 116, 14, 8, 3);
+      g.fillRect(40 + i * 100, AH - 18, 6, 3);
+    }
     g.restore();
     arenaPoly(g);
+    g.lineWidth = 5;
+    g.strokeStyle = 'rgba(0,0,0,.4)';
+    g.stroke();
+    arenaPoly(g);
     g.lineWidth = 2;
-    g.strokeStyle = 'rgba(255,244,220,.32)';
+    g.strokeStyle = 'rgba(255,236,210,.7)';
     g.stroke();
     g.globalAlpha = 1;
   }
 
+  function telPulse() { return 0.65 + 0.35 * Math.sin(fxT * 9); }
   function drawTelegraph(g, tel) {
     const dur = tel.dur || 0.01;
     const prog = Math.max(0, Math.min(1, 1 - (tel.left || 0) / dur));
-    const c = hex(tel.el);
+    const c = pal(tel.el);
+    const pulse = telPulse();
     g.save();
-    g.translate(cssW * 0.5, cssH * 0.58);
+    g.translate(cssW * 0.5, cssH * viewOriginY());
     g.scale(cam.z, cam.z * OBL);
     g.translate(-cam.x, -cam.y);
-    g.lineWidth = 3 / Math.max(0.4, cam.z);
-    g.strokeStyle = c;
-    g.fillStyle = c;
+    g.lineWidth = (2 + pulse) / Math.max(0.45, cam.z);
+    g.lineJoin = 'round';
+    const rim = () => {
+      g.globalAlpha = 0.35 + 0.45 * pulse;
+      g.strokeStyle = c[1];
+      g.stroke();
+      g.globalAlpha = 0.9;
+      g.strokeStyle = c[0];
+      g.lineWidth = 1.5 / Math.max(0.45, cam.z);
+      g.setLineDash([8, 6]);
+      g.lineDashOffset = -fxT * 28;
+      g.stroke();
+      g.setLineDash([]);
+    };
     if (tel.shape === 'line') {
       const x = tel.x, y = tel.y, x2 = tel.x2, y2 = tel.y2;
       const ang = Math.atan2(y2 - y, x2 - x), len = Math.hypot(x2 - x, y2 - y) || 1;
       g.translate(x, y); g.rotate(ang);
-      g.globalAlpha = 0.28;
-      g.fillRect(0, -10, len, 20);
-      g.globalAlpha = 0.55;
-      g.fillRect(0, -10, len * prog, 20);
-      g.globalAlpha = 0.9;
-      g.strokeRect(0, -10, len, 20);
+      g.fillStyle = c[2] || c[0];
+      g.globalAlpha = 0.22;
+      g.fillRect(0, -14, len, 28);
+      g.fillStyle = c[0];
+      g.globalAlpha = 0.45;
+      g.fillRect(0, -14, len * prog, 28);
+      g.globalAlpha = 0.85;
+      g.fillStyle = c[1];
+      g.fillRect(Math.max(0, len * prog - 8), -14, 8, 28);
+      for (let i = 12; i < len; i += 22) {
+        g.globalAlpha = 0.7;
+        g.fillRect(i, -16, 2, 6);
+        g.fillRect(i, 10, 2, 6);
+      }
+      g.strokeStyle = c[1];
+      g.globalAlpha = 0.5 + 0.4 * pulse;
+      g.strokeRect(0, -14, len, 28);
     } else if (tel.shape === 'cone') {
       const a0 = (tel.ang || 0) - (tel.arc || 1) / 2;
       const a1 = (tel.ang || 0) + (tel.arc || 1) / 2;
       const r = tel.r || 80;
-      g.globalAlpha = 0.22;
+      g.fillStyle = c[0];
+      g.globalAlpha = 0.16;
       g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r, a0, a1); g.closePath(); g.fill();
-      g.globalAlpha = 0.5;
+      g.globalAlpha = 0.42;
       g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r * prog, a0, a1); g.closePath(); g.fill();
-      g.globalAlpha = 0.95;
-      g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r, a0, a1); g.closePath(); g.stroke();
+      g.fillStyle = c[1];
+      g.globalAlpha = 0.35 * pulse;
+      g.beginPath(); g.arc(tel.x, tel.y, r * 0.55, a0, a1); g.stroke();
+      g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r, a0, a1); g.closePath();
+      rim();
     } else if (tel.shape === 'ring') {
       const r = tel.r || 70;
-      g.globalAlpha = 0.2 + 0.35 * prog;
-      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.arc(tel.x, tel.y, r * 0.62, 0, 6.2832, true); g.fill();
-      g.globalAlpha = 0.9;
-      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.stroke();
+      g.fillStyle = c[0];
+      g.globalAlpha = 0.14 + 0.12 * pulse;
+      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.arc(tel.x, tel.y, r * (0.55 + 0.12 * (1 - prog)), 0, 6.2832, true); g.fill();
+      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832);
+      rim();
+      g.beginPath(); g.arc(tel.x, tel.y, r * 0.62, 0, 6.2832);
+      g.globalAlpha = 0.7;
+      g.strokeStyle = c[1];
+      g.stroke();
     } else {
       const r = tel.r || 48;
-      g.globalAlpha = 0.16;
+      g.fillStyle = c[0];
+      g.globalAlpha = 0.14;
       g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.fill();
-      g.globalAlpha = 0.45;
-      g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r, -1.5708, -1.5708 + prog * 6.2832); g.closePath(); g.fill();
-      g.globalAlpha = 0.95;
-      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.stroke();
+      g.globalAlpha = 0.4;
+      g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r * Math.max(0.08, prog), -1.5708, -1.5708 + prog * 6.2832); g.closePath(); g.fill();
+      g.fillStyle = c[1];
+      g.globalAlpha = 0.28 * pulse;
+      g.beginPath(); g.arc(tel.x, tel.y, r * 0.45, 0, 6.2832); g.fill();
+      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832);
+      rim();
+      const ticks = 8;
+      g.fillStyle = c[1];
+      g.globalAlpha = 0.85;
+      for (let i = 0; i < ticks; i++) {
+        const a = -1.5708 + (i / ticks) * 6.2832 + fxT * 0.6;
+        const inner = r + 2, outer = r + 7 + pulse * 2;
+        g.fillRect(tel.x + Math.cos(a) * inner - 1, tel.y + Math.sin(a) * inner - 1, 2, 2);
+        g.fillRect(tel.x + Math.cos(a) * outer - 1, tel.y + Math.sin(a) * outer - 1, 3, 3);
+      }
     }
     g.restore();
   }
@@ -834,12 +1038,12 @@
       const r = Math.max(1, Math.round(p.r * (1 - f * 0.4)));
       g.fillRect(x - r, y - r, r * 2, r * 2);
     } else if (p.k === 'spark') {
-      g.strokeStyle = p.c;
-      g.lineWidth = 2;
-      g.beginPath();
-      g.moveTo(x, y);
-      g.lineTo(Math.round(x - p.vx * 0.03), Math.round(y - p.vy * 0.03));
-      g.stroke();
+      g.fillStyle = '#fff';
+      g.fillRect(x - 1, y - 1, 3, 3);
+      g.fillStyle = p.c;
+      g.fillRect(x - 4, y, 9, 1);
+      g.fillRect(x, y - 4, 1, 9);
+      g.fillRect(Math.round(x - p.vx * 0.02), Math.round(y - p.vy * 0.02), 2, 2);
     } else if (p.k === 'shard' || p.k === 'leaf') {
       g.save();
       g.translate(x, y); g.rotate(p.rot);
@@ -969,17 +1173,24 @@
   function drawStatus(g, list, x, y) {
     if (!iconSheet || !list || !list.length) return;
     bakeIcons();
-    const show = list.slice(0, 3);
-    const sz = 16;
-    const gap = 1;
-    const total = show.length * sz + (show.length - 1) * gap;
+    const show = list.slice(0, 4);
+    const sz = cssW < 560 ? 20 : 16;
+    const gap = 2;
+    const total = show.length * (sz + 8) + (show.length - 1) * gap;
     let sx = Math.round(x - total / 2);
     g.imageSmoothingEnabled = false;
     for (let i = 0; i < show.length; i++) {
-      const idx = iconIndex(show[i]);
+      const raw = String(show[i]);
+      const bits = raw.split(':');
+      const name = bits[0];
+      const count = bits[1] ? +bits[1] : 0;
+      const idx = iconIndex(name);
       if (idx < 0) continue;
+      g.fillStyle = 'rgba(8,4,16,.82)';
+      g.fillRect(sx - 1, Math.round(y) - 1, sz + 2, sz + 2);
       g.drawImage(iconSheet, idx * 16, 0, 16, 16, sx, Math.round(y), sz, sz);
-      sx += sz + gap;
+      if (count > 1) drawText(g, String(Math.min(9, count)), sx + sz - 2, Math.round(y) + sz - 8, 1, '#fff6e8', 'left');
+      sx += sz + 8 + gap;
     }
   }
 
@@ -1057,7 +1268,7 @@
   function unitPose(u, extra, motionDt) {
     let v = vis.get(u.id);
     if (!v) {
-      v = { state: u.state, t: 0, age: (u.id * 1.37) % 3, flash: 0, lean: 0, hitMark: 0 };
+      v = { state: u.state, t: 0, age: (u.id * 1.37) % 3, flash: 0, lean: 0, kx: 0, ky: 0, hitMark: 0 };
       vis.set(u.id, v);
     }
     if (v.state !== u.state) { v.state = u.state; v.t = 0; }
@@ -1067,7 +1278,10 @@
     else v.t += motionDt;
     v.age += motionDt > 0 ? motionDt : 0;
     if (v.flash > 0) v.flash = Math.max(0, v.flash - (motionDt > 0 ? motionDt : 0.016) * 6);
-    if (v.lean) v.lean *= Math.exp(-6 * Math.max(0.016, motionDt || 0.016));
+    const damp = Math.exp(-7 * Math.max(0.016, motionDt || 0.016));
+    if (v.lean) v.lean *= damp;
+    if (v.kx) v.kx *= damp;
+    if (v.ky) v.ky *= damp;
     return v;
   }
 
@@ -1084,7 +1298,9 @@
     const atlas = atlases.get(artKey) || atlases.get(extra && extra.sp);
     const useAtlas = !!(atlas && atlas.img);
     const feet = project(u.x, u.y);
-    const h = Math.max(30, (useAtlas ? (atlas.radius || u.r || 26) : (u.r || 26)) * 2.35 * cam.z);
+    const tall = cssH > cssW * 1.12;
+    const read = tall ? 1.4 : 1;
+    const h = Math.max(34, (useAtlas ? (atlas.radius || u.r || 26) : (u.r || 26)) * 2.55 * cam.z * read);
     let img, sw, sh, dw, dh, feetN, srcX = 0, srcY = 0;
     if (useAtlas) {
       const clipName = u.state === 'dead' ? 'death' : u.state === 'dash' ? 'run' : (u.state || 'idle');
@@ -1124,7 +1340,7 @@
       feetN = b.feet;
     }
     if (!img) return;
-    const shx = feet.x, shy = feet.y;
+    const shx = feet.x + (v.kx || 0) * cam.z, shy = feet.y + (v.ky || 0) * cam.z * OBL;
     if (shadowBlob && pose.a > 0.2) {
       const sc = (0.55 + 0.5 * (P.shadow || 1)) * (pose.sh || 1) * (1 + Math.min(0, pose.y || 0));
       const swid = dw * 0.7 * Math.max(0.35, sc);
@@ -1162,17 +1378,28 @@
   function drawNumber(g, n) {
     const q = project(n.x, n.y);
     const f = n.t / n.life;
-    const pop = f < 0.12 ? 0.6 + f / 0.12 * 0.7 : 1.15 - (f - 0.12) * 0.2;
-    const scale = (n.crit ? 3 : n.kind === 'react' ? 2 : 2) * Math.max(0.8, pop);
-    const col = n.kind === 'heal' ? '#6bff8f' : n.kind === 'shield' ? '#d8f3ff' : n.kind === 'miss' ? '#ddd' : n.crit ? '#ffe34d' : n.kind === 'dot' ? '#ffb38a' : '#fff';
-    g.globalAlpha = f > 0.65 ? Math.max(0, 1 - (f - 0.65) / 0.35) : 1;
-    drawText(g, n.text, q.x, q.y - 28 - n.oy, scale, col, 'center');
+    const pop = f < 0.08 ? 0.45 + (f / 0.08) * 0.85 : 1.2 - (f - 0.08) * 0.25;
+    const base = n.crit ? 5 : n.kind === 'react' ? 3 : 3.5;
+    const scale = base * Math.max(0.7, pop);
+    const col = n.kind === 'heal' ? '#6bff8f' : n.kind === 'shield' ? '#d8f3ff' : n.kind === 'miss' ? '#ddd' : n.crit ? '#ffe34d' : n.kind === 'dot' ? '#ffb38a' : '#fff6e8';
+    g.globalAlpha = f > 0.7 ? Math.max(0, 1 - (f - 0.7) / 0.3) : 1;
+    drawText(g, n.text, q.x, q.y - 36 - n.oy, scale, col, 'center');
+    g.globalAlpha = 1;
+  }
+
+  function drawCallout(g, n) {
+    const q = project(n.x, n.y);
+    const f = n.t / n.life;
+    const a = f < 0.1 ? f / 0.1 : f > 0.7 ? Math.max(0, 1 - (f - 0.7) / 0.3) : 1;
+    g.globalAlpha = a;
+    const scale = n.ult ? 2 : 1;
+    drawText(g, n.text, q.x, q.y - 52 - f * 10, scale, n.ult ? '#ffe7a3' : '#fff6e8', 'center');
     g.globalAlpha = 1;
   }
 
   function drawVignette(g) {
-    const key = cssW + 'x' + cssH;
-    if (vignetteKey !== key) {
+    const key = cssW + 'x' + cssH + ':' + dpr;
+    if (vignetteKey !== key || !vignette) {
       vignetteKey = key;
       vignette = g.createRadialGradient(cssW / 2, cssH * 0.55, Math.min(cssW, cssH) * 0.2, cssW / 2, cssH * 0.5, Math.max(cssW, cssH) * 0.72);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
@@ -1222,7 +1449,12 @@
     const cap = tier === 'lite' ? 1.5 : 2;
     dpr = Math.min(cap, (root.devicePixelRatio || 1));
     const w = Math.round(cssW * dpr), h = Math.round(cssH * dpr);
-    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; vignette = null; }
+    if (cv.width !== w || cv.height !== h) {
+      const jumped = Math.abs(cv.width - w) > 80 || Math.abs(cv.height - h) > 80;
+      cv.width = w; cv.height = h;
+      dropContextCaches();
+      if (jumped) camSnap = true;
+    }
   }
 
   function frame(view, opt) {
@@ -1237,6 +1469,7 @@
       if (intro <= 0) { intro = 0; introOn = false; }
     }
     aimCamera(view.units, Math.max(wallDt, 0.016));
+    fxT += wallDt;
     shakeT += wallDt;
     if (shakes > 0) shakes *= Math.exp(-wallDt * 7);
     if (shakes < 0.15) shakes = 0;
@@ -1248,8 +1481,12 @@
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i];
       n.t += motionDt;
-      n.oy += 22 * motionDt;
+      n.oy += 40 * motionDt;
       if (n.t >= n.life) numbers.splice(i, 1);
+    }
+    for (let i = callouts.length - 1; i >= 0; i--) {
+      callouts[i].t += wallDt;
+      if (callouts[i].t >= callouts[i].life) callouts.splice(i, 1);
     }
     const extras = opt.extras || null;
     const exBy = new Map();
@@ -1301,6 +1538,7 @@
     }
     for (let i = 0; i < pCap; i++) if (pool[i].on && !pool[i].ground) drawParticle(ctx, pool[i]);
     for (let i = 0; i < numbers.length; i++) drawNumber(ctx, numbers[i]);
+    for (let i = 0; i < callouts.length; i++) drawCallout(ctx, callouts[i]);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawHud(ctx, view);
     if (!view._bossShown && view.units.some(u => u.boss)) {
@@ -1331,8 +1569,8 @@
     board.classList.add('arena-on');
     board.appendChild(cv);
     ctx = cv.getContext('2d');
+    dropContextCaches();
     resetVis();
-    cam = { x: AW / 2, y: AH / 2, z: 0.8 };
     resize();
     if (root.ResizeObserver) { resizeObs = new ResizeObserver(resize); resizeObs.observe(board); }
     cv.addEventListener('pointerdown', onPointer);
@@ -1358,6 +1596,7 @@
     if (board) board.classList.remove('arena-on');
     cv = null; ctx = null; board = null; bound = false;
     onHold = null;
+    dropContextCaches();
     resetVis();
   }
 

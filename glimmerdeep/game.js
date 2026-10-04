@@ -823,6 +823,7 @@ function startFight() {
   syncGaSpeed();
   VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
+  hidePlanToast();
   if (FS.arena) mountArena();
   else {
     unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
@@ -856,6 +857,7 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     VFX.speed = FS.speed; VFX.clear();
     show('game');
     $('#game').classList.add('fighting', 'wild');
+    hidePlanToast();
     boardEl.classList.remove('ult');
     $('#gBg').style.backgroundImage = `url(${IMG(G.BIOMES[biome].bg)})`;
     $('#gTop').innerHTML = `<div class="grow"><div class="title">${title}</div><div class="small muted">The Wilds · ${G.BIOMES[biome].name}</div></div>`;
@@ -892,13 +894,23 @@ function cacheEl(u) {
   noteAnim(u);
 }
 function renderFightBar() {
+  const prev = document.activeElement;
+  const prevV = prev && prev.closest && prev.closest('#fightBar') ? prev.getAttribute('data-v') : '';
   if (FS && FS.arena) {
     const sp = FS.speed;
     const spd = (v, label) => `<button class="btn ghost sm${sp === v ? ' on' : ''}" data-v="spd:${v}" type="button">${label}</button>`;
     $('#fightBar').innerHTML = `<span class="arena-sr" id="arenaTime">0:00</span>${spd(1, '1×')}${spd(1.5, '1.5×')}${spd(2, '2×')}${spd(4, '4×')}${btn(FS.paused ? 'resume' : 'pause', FS.paused ? 'Resume' : 'Pause', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
-    return;
+  } else {
+    $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
   }
-  $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
+  if (!prevV) return;
+  let next = document.querySelector('#fightBar [data-v="' + prevV + '"]');
+  if (!next && (prevV === 'pause' || prevV === 'resume')) next = document.querySelector('#fightBar [data-v="pause"], #fightBar [data-v="resume"]');
+  if (next) next.focus();
+}
+function hidePlanToast() {
+  const t = $('#toast');
+  if (t && t.classList.contains('on') && t.textContent.indexOf('Drag creatures') === 0) t.classList.remove('on');
 }
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
@@ -946,7 +958,10 @@ function arenaExtras(st) {
   const out = [];
   for (const u of st.units) {
     const sts = [];
-    if (u.st) for (const k in u.st) if (u.st[k]) sts.push(k);
+    if (u.st) for (const k in u.st) if (u.st[k]) {
+      const n = u.st[k].n;
+      sts.push(n > 1 ? k + ':' + n : k);
+    }
     const sk = u.skill && G.SK[u.skill];
     out.push({
       id: u.id, art: u.art, sp: u.inst && u.inst.sp, role: u.role, range: u.range,

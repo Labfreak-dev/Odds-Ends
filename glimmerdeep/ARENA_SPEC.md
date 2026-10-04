@@ -449,5 +449,12 @@ contract are unchanged. `game.js` still owns skip, speed, pause, the result
 modal, and the Battle report. The canvas is `#arenaCv`. It draws from
 `view()` plus the events `tick` already returns. No atlas files ship with
 the game yet: a missing sheet uses the existing `img/` painting, baked to
-about 48px and drawn nearest-neighbour. `arena-preview.html` loads a real
-atlas JSON and cycles its clips.
+about 48px, quantized to about 16 colours, and drawn nearest-neighbour.
+Hand-made sheets use the atlas JSON above (the pilot sets land beside the
+repo as `glimmerdeep_qa/pixel_pilot*`). `arena-preview.html` cycles clips.
+
+Quality tiers: Full, or Lite when Auto Classic is on, Animation is Classic,
+the device is a narrow low-core phone, or a Full fight averages slower than
+34ms. Lite still applies when `meta.fpsOptOut` is set. That flag only stops
+`setAutoClassic` from rewriting the saved Animation choice. `qa.js` owns
+the Classic toast.

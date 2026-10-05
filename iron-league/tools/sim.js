@@ -34,6 +34,10 @@ if (!/const MOTIONS = \["idle1", "idle2", "walk", "atk1", "atk2", "bow", "gun", 
   console.error("sheet column order drifted from the packer");
   process.exit(1);
 }
+if (!/ctx\.scale\(facing < 0 \? -1 : 1, 1\)/.test(heroSrc)) {
+  console.error("sheets face +x; mirror a fighter only when facing is negative");
+  process.exit(1);
+}
 const renderSrc = fs.readFileSync(path.join(root, "js/render.js"), "utf8");
 const shakeScale = renderSrc.match(/const SHAKE_SCALE = ([0-9.]+)/);
 if (!shakeScale || !(Number(shakeScale[1]) > 0) || Number(shakeScale[1]) > 0.1 || renderSrc.indexOf("(fx.shake || 0) * SHAKE_SCALE") < 0) {

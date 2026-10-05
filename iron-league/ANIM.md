@@ -20,7 +20,7 @@ Quirks the packer absorbs:
 - `1_1` dies on `down.png`. Everyone else uses `dead.png`. Both land in the `dead` column.
 - `item` and `status` are not packed.
 
-Standing art keeps its soles on row 44 of the cell, so the foot anchor is **(24, 45)**. A swing or a bow reaches toward +x; the sheet faces right, and the pit flips it when `facing < 0`. Drawing is nearest-neighbour. The anchor stays put, so a lunge does not slide the feet.
+Standing art keeps its soles on row 44 of the cell, so the foot anchor is **(24, 45)**. On these packed frames the face and the blade sit on the right of the cell, so the sheet looks toward +x. `facing >= 0` (the left team) draws that way. `facing < 0` (the right team) is mirrored, so they look back toward the left. A swing then reaches toward the opponent. Drawing is nearest-neighbour. The anchor stays put, so a lunge does not slide the feet.
 
 ## Packed sheet
 

@@ -80,6 +80,8 @@
     const s = scale || 4;
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
+    /* Blade and face sit on the right of the cell, so the sheet looks toward +x.
+       Left team (facing >= 0) stays unmirrored. Right team (facing < 0) is mirrored. */
     ctx.scale(facing < 0 ? -1 : 1, 1);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(

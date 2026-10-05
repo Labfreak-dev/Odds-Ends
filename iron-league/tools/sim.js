@@ -20,6 +20,7 @@ context.window = context;
 context.globalThis = context;
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/data.js"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "js/meta.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/arena.js"), "utf8"), context);
 const IL = context.IL;
 
@@ -49,6 +50,35 @@ check("roll covers 95-102", IL.frameIndex("roll", 0) === 95 && IL.frameIndex("ro
 check("air1 hit frames", IL.CLIPS.air1.hits[0] === 55 && IL.CLIPS.air2.hits[0] === 61);
 check("cast2 is wired", IL.CLIPS.cast2.from === 68 && IL.CLASSES.mage.casts.indexOf("cast2") >= 0);
 check("pit is wider than 960", IL.WORLD.w >= 1440 && IL.WORLD.right - IL.WORLD.left > 1200);
+check("twelve or more classes", Object.keys(IL.CLASSES).length >= 12);
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const kit = IL.CLASSES[id];
+  if (!kit.ability || !kit.ability.kind || !kit.ability.name) {
+    fails++;
+    console.error("missing ability", id);
+  }
+});
+check("starters are free", ["warrior", "archer", "mage", "tank", "rogue"].every(function (id) { return IL.classUnlocked(id, 0); }));
+check("exotic gates", !IL.classUnlocked("assassin", 0) && IL.classUnlocked("assassin", 70) && IL.classUnlocked("lancer", 15));
+const grew = IL.growthFromXp(0, 80);
+check("level 3 offers a pick", grew.level === 3 && grew.picks === 1);
+check("level 2 offers none", IL.growthFromXp(0, 40).picks === 0);
+const oldSave = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 10, level: 1 }], clubs: [], fixtures: [] };
+IL.migrate(oldSave);
+check("migrate keeps roster", oldSave.roster[0].name === "Ada" && oldSave.renown === 0 && oldSave.tokens === 1 && oldSave.roster[0].boosts);
+const board = IL.rollMarket(IL.mulberry32(3), 0);
+check("market has 4 to 7 names", board.length >= 4 && board.length <= 7);
+let champs = 0;
+for (let i = 0; i < 40; i++) {
+  IL.rollMarket(IL.mulberry32(100 + i), 80).forEach(function (row) { if (row.fighter.champion) champs++; });
+}
+check("champions appear", champs > 0);
+const cup = IL.startCup({ clubName: "Smoke Yard", roster: [IL.randomFighter(IL.mulberry32(1), "warrior")] }, IL.mulberry32(9));
+check("cup is four clubs", cup.slots.length === 4 && cup.pairing.length === 2);
+const f = IL.randomFighter(IL.mulberry32(2), "warrior");
+IL.grantXp(f, 80);
+check("grant queues a pick", f.level === 3 && f.pendingPicks === 1);
+check("boost spends a pick", IL.applyBoost(f, "hp") && f.boosts.hp === 1 && f.pendingPicks === 0);
 
 function fight(leftCls, rightCls, seed) {
   const n = Math.max(leftCls.length, rightCls.length);
@@ -130,6 +160,45 @@ if (avgT < 8 || avgT > 40) {
   console.error("duration out of band", avgT);
   fails++;
 }
+
+const abilities = samples.reduce(function (s, m) { return s + m.stats.abilities; }, 0);
+check("abilities fire", abilities > 0);
+console.log("abilities", abilities);
+
+let cleaves = 0;
+let heals = 0;
+for (let i = 0; i < 8; i++) {
+  cleaves += fight(["warrior", "warrior"], ["tank", "rogue"], 300 + i).stats.cleaves;
+  heals += fight(["healer", "warrior"], ["archer", "mage"], 500 + i).stats.heals;
+}
+check("warrior cleaves", cleaves > 0);
+check("healer mends", heals > 0);
+console.log("cleaves", cleaves, "heals", heals);
+
+function chaos(seed) {
+  const rng = IL.mulberry32(seed);
+  const sides = [0, 1, 2].map(function (team) {
+    return { name: "Side " + team, fighters: [IL.randomFighter(rng)] };
+  });
+  const m = IL.createMatch({ seed: seed, sides: sides, mode: "chaos" });
+  let steps = 0;
+  while (!m.over && steps < 4000) {
+    IL.stepMatch(m, 1 / 60);
+    m.events.length = 0;
+    steps++;
+  }
+  return m;
+}
+const pits = [0, 1, 2, 3].map(function (i) { return chaos(900 + i); });
+check("chaos pits end", pits.every(function (m) { return m.over && m.winner != null && m.teams === 3; }));
+const relicMatch = fight(["warrior"], ["archer"], 77);
+const boosted = IL.createMatch({
+  seed: 42,
+  left: [Object.assign(IL.randomFighter(IL.mulberry32(4), "warrior"), { level: 3, boosts: { hp: 2, dmg: 1, spd: 0, def: 0 } })],
+  right: [IL.randomFighter(IL.mulberry32(5), "rogue")],
+  relics: [{ kind: "hp" }, { kind: "shield" }]
+});
+check("boosts and relics raise health", boosted.units[0].maxHp > relicMatch.units[0].maxHp);
 
 if (fails) {
   console.error(fails, "failed");

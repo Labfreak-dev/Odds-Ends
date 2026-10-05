@@ -1,6 +1,6 @@
 # Iron League
 
-A mercenary club and a pit. Hire a roster, send a squad of one to three into a real-time autobattle, and play a five-match season. Fighters are composited from the Heroes99 modular sprite sheets in `assets/heroes99/`.
+A mercenary club and a pit. Hire a roster, send a squad of one to three into a real-time autobattle, and play a five-match season. Fighters are Time Fantasy side-view battlers, packed into `assets/timefantasy/`.
 
 Play: https://labfreak-dev.github.io/Odds-Ends/iron-league/
 
@@ -12,16 +12,16 @@ No build step. `index.html` loads the classic scripts in order.
 | `css/game.css` | Layout for the title, creator, club hub, and pit. |
 | `js/data.js` | Classes, clip timing, names, hire price, seeded RNG. No DOM. |
 | `js/meta.js` | Renown gates, market, relics, cup bracket, save migration. No DOM. |
-| `js/hero.js` | Layer order, measured frame rects, atlas cache. One offscreen composite per loadout. |
+| `js/hero.js` | Battler sheets, foot anchor, clip-to-motion draw. One atlas per sheet id. |
 | `js/arena.js` | The fight. `createMatch` / `stepMatch`, no DOM. |
 | `js/fx.js` | Pixel FX strips in `assets/fx/`. Frame advance, additive draw. |
 | `js/render.js` | Canvas: wide pit, camera, sprites, FX, shots, bars. |
 | `js/game.js` | Title, creator, hub, season, save, fight loop. |
-| `ANIM.md` | How the 102 frames were measured, and the clip table. |
+| `ANIM.md` | Time Fantasy sheet layout, and the clip table. |
 
 The save key is `ironleague.v1` in `localStorage`.
 
-Sprite sheets are the Heroes99 v1.2 modular character pack (layered 800×680 PNGs). The game code is original. Public text does not use anyone else's title.
+Battler sheets are packed from Time Fantasy side-view singleframes (48×48, three frames a motion). The game code is original. Public text does not use anyone else's title. The older layered sheets in `assets/heroes99/` are unused.
 
 ## Run locally
 
@@ -38,7 +38,7 @@ Open `http://127.0.0.1:8765/iron-league/`.
 ```bash
 for f in iron-league/js/*.js; do node --check "$f"; done
 node iron-league/tools/sim.js
-python3 iron-league/tools/check-clothes.py
+python3 iron-league/tools/check-clothes.py # battler sheets, bow and gun columns
 python3 iron-league/tools/smoke.py
 ```
 
@@ -46,7 +46,7 @@ python3 iron-league/tools/smoke.py
 
 ## What a match is
 
-Classes decide the kit, not the costume. A weapon is a look. Fifteen kits. The first five are free. Renown from wins opens the rest on the market.
+Classes decide the kit. The costume is a battler sheet from that class's pool: the creator and the market pick one, and Archer and Ranger shoot with the bow frames. Fifteen kits. The first five are free. Renown from wins opens the rest on the market.
 
 - **Warrior** — cleave, then a leaping swing.
 - **Archer** — a shot, sometimes a multishot.

@@ -25,14 +25,13 @@ vm.runInContext(fs.readFileSync(path.join(root, "js/arena.js"), "utf8"), context
 const IL = context.IL;
 
 if (IL.FRAMES) throw new Error("frames belong in hero.js");
-const frames = (fs.readFileSync(path.join(root, "js/hero.js"), "utf8").match(/\[[0-9.]+,[0-9.]+,[0-9.]+,[0-9.]+,[0-9.]+,[0-9.]+\]/g) || []);
-if (frames.length !== 102) {
-  console.error("expected 102 frame rects, got", frames.length);
+const heroSrc = fs.readFileSync(path.join(root, "js/hero.js"), "utf8");
+if (!/assets\/timefantasy\//.test(heroSrc) || /heroes99/.test(heroSrc)) {
+  console.error("fighters must draw Time Fantasy sheets, not layered composites");
   process.exit(1);
 }
-const heroSrc = fs.readFileSync(path.join(root, "js/hero.js"), "utf8");
-if (!/return \[wbot, skin, face, clothBot, clothTop, hairBot, hairTop, wtop\]/.test(heroSrc)) {
-  console.error("cloth must sit on the body: weapon_bot, skin, face, cloth_bot, cloth_top, hair, weapon_top");
+if (!/const MOTIONS = \["idle1", "idle2", "walk", "atk1", "atk2", "bow", "gun", "hit", "crouch", "magic", "cheer", "dead"\]/.test(heroSrc)) {
+  console.error("sheet column order drifted from the packer");
   process.exit(1);
 }
 const renderSrc = fs.readFileSync(path.join(root, "js/render.js"), "utf8");
@@ -74,9 +73,61 @@ check("exotic gates", !IL.classUnlocked("assassin", 0) && IL.classUnlocked("assa
 const grew = IL.growthFromXp(0, 80);
 check("level 3 offers a pick", grew.level === 3 && grew.picks === 1);
 check("level 2 offers none", IL.growthFromXp(0, 40).picks === 0);
-const oldSave = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 10, level: 1 }], clubs: [], fixtures: [] };
+const oldSave = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 10, level: 1, parts: { skin: 1, face: 1, hair: "m1", hairColor: 1, cloth: 4, clothColor: 6, weapon: 1 } }], clubs: [{ fighters: [{ id: "b", cls: "archer", parts: { skin: 2, weapon: 4 } }] }], market: [{ fighter: { id: "c", cls: "ranger", parts: { cloth: 3 } } }], fixtures: [] };
 IL.migrate(oldSave);
 check("migrate keeps roster", oldSave.roster[0].name === "Ada" && oldSave.renown === 0 && oldSave.tokens === 1 && oldSave.roster[0].boosts);
+check("old parts become a sheet", IL.sheetKnown(oldSave.roster[0].parts.sheet) && !oldSave.roster[0].parts.skin);
+const again = JSON.parse(JSON.stringify(oldSave));
+IL.migrate(again);
+check("sheet migrate is stable", again.roster[0].parts.sheet === oldSave.roster[0].parts.sheet);
+check("archer save gets a bow", IL.sheetHasBow(oldSave.clubs[0].fighters[0].parts.sheet));
+check("ranger save gets a bow", IL.sheetHasBow(oldSave.market[0].fighter.parts.sheet));
+Object.keys(IL.CLIPS).forEach(function (name) {
+  const c = IL.CLIPS[name];
+  const sample = IL.CLIP_SAMPLE[name];
+  const len = c.to - c.from + 1;
+  if (!IL.CLIP_MOTION[name] || !sample || sample.length !== len || sample.some(function (n) { return n < 0 || n > 2; })) {
+    fails++;
+    console.error("clip sample", name);
+  }
+});
+check("atk1 hits the strike frame", IL.CLIPS.atk1.hits.every(function (f) {
+  return IL.CLIP_SAMPLE.atk1[f - IL.CLIPS.atk1.from] === 1;
+}));
+check("bow loose sits on the hit frame", IL.CLIPS.atk1.hits.every(function (f) {
+  return IL.visualSample("atk1", "bow", f - IL.CLIPS.atk1.from) === 2;
+}));
+check("gun recoil sits on the hit frame", IL.visualSample("atk1", "gun", 2) === 1);
+check("archer shot is a bow", IL.visualMotion("atk1", "archer", IL.defaultSheet("archer")) === "bow");
+check("ranger shot is a bow", IL.visualMotion("atk1", "ranger", IL.defaultSheet("ranger")) === "bow");
+check("warrior swing stays a swing", IL.visualMotion("atk1", "warrior", IL.defaultSheet("warrior")) === "atk1");
+check("skirmisher fires", IL.visualMotion("atk1", "skirmisher", IL.defaultSheet("skirmisher")) === "gun");
+check("mage still chants", IL.visualMotion("cast1", "mage", IL.defaultSheet("mage")) === "magic");
+const seenIds = {};
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const pool = IL.looksFor(id);
+  if (!pool.length) { fails++; console.error("no looks", id); }
+  pool.forEach(function (sid) {
+    if (!IL.sheetKnown(sid)) { fails++; console.error("unknown sheet", id, sid); }
+    seenIds[sid] = true;
+    if ((id === "archer" || id === "ranger") && !IL.sheetHasBow(sid)) {
+      fails++;
+      console.error("ranged look has no bow", id, sid);
+    }
+    if (id === "skirmisher" && !IL.sheetHasGun(sid)) {
+      fails++;
+      console.error("skirmisher look has no gun", id, sid);
+    }
+  });
+});
+let sheetCount = 0;
+for (let s = 1; s <= 7; s++) for (let i = 1; i <= 8; i++) if (!seenIds[s + "_" + i]) { fails++; console.error("unlisted", s + "_" + i); }
+for (let m = 1; m <= 3; m++) for (let i = 1; i <= 8; i++) {
+  sheetCount++;
+  if (!seenIds["military" + m + "_" + i]) { fails++; console.error("unlisted", "military" + m + "_" + i); }
+}
+sheetCount += 56;
+check("every sheet is offered", sheetCount === 80 && Object.keys(seenIds).length === 80);
 const board = IL.rollMarket(IL.mulberry32(3), 0);
 check("market has 4 to 7 names", board.length >= 4 && board.length <= 7);
 let champs = 0;

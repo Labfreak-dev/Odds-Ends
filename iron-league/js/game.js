@@ -121,8 +121,8 @@
     });
   }
 
-  function blankParts() {
-    return { skin: 1, face: 1, hair: "m1", hairColor: 1, cloth: 4, clothColor: 6, weapon: 1, weaponColor: 1 };
+  function blankParts(cls) {
+    return { sheet: IL.defaultSheet(cls || "warrior") };
   }
 
   /* ---------- title ---------- */
@@ -158,35 +158,14 @@
     const cls = mode === "captain" ? "warrior" : IL.pick(rng, openIds.length ? openIds : Object.keys(IL.CLASSES));
     draft = {
       mode: mode,
-      weaponLock: false,
       clubName: save && save.clubName ? save.clubName : "",
       fighter: {
         name: IL.pick(rng, IL.FIRST) + " " + IL.pick(rng, IL.LAST),
         cls: cls,
-        parts: blankParts()
+        parts: mode === "hire" ? IL.randomParts(rng, cls) : blankParts(cls)
       }
     };
-    draft.fighter.parts.weapon = IL.CLASSES[cls].weapon;
-    if (mode === "hire") {
-      draft.fighter.parts = IL.randomParts(rng);
-      draft.fighter.parts.weapon = IL.CLASSES[cls].weapon;
-    }
 
-    const skinDots = IL.SKIN_COLORS.map(function (col, i) {
-      return '<button type="button" class="dot" data-skin="' + (i + 1) + '" style="background:' + col + '" aria-label="Skin ' + (i + 1) + '"></button>';
-    }).join("");
-    const hairDots = IL.HAIR_COLORS.map(function (col, i) {
-      return '<button type="button" class="dot" data-hairc="' + (i + 1) + '" style="background:' + col + '" aria-label="Hair color ' + (i + 1) + '"></button>';
-    }).join("");
-    const clothDots = IL.CLOTH_COLORS.map(function (col, i) {
-      return '<button type="button" class="dot" data-clothc="' + (i + 1) + '" style="background:' + col + '" aria-label="Cloth color ' + (i + 1) + '"></button>';
-    }).join("");
-    const focusDots = IL.FOCUS_COLORS.map(function (col, i) {
-      return '<button type="button" class="dot" data-focus="' + (i + 1) + '" style="background:' + col + '" aria-label="Focus color ' + (i + 1) + '"></button>';
-    }).join("");
-    const faces = [1, 2, 3, 4, 5, 6, 7].map(function (n) {
-      return '<button type="button" class="chip" data-face="' + n + '">' + n + '</button>';
-    }).join("");
     const classes = Object.keys(IL.CLASSES).map(function (id) {
       const c = IL.CLASSES[id];
       const open = IL.classUnlocked(id, renownNow);
@@ -211,19 +190,12 @@
         '<div class="creator-grid">' +
           '<div class="stage-card">' +
             '<canvas id="preview" width="640" height="250"></canvas>' +
-            '<p class="fine" id="previewNote">Idle and run, from the same sheets.</p>' +
+            '<p class="fine" id="previewNote">Idle and a strike, from the same sheet.</p>' +
           '</div>' +
           '<div class="picker">' +
             clubField +
             '<label class="field"><span>Fighter name</span><input id="fighterName" maxlength="22" autocomplete="off" value="' + esc(draft.fighter.name) + '"></label>' +
-            '<div class="row"><span>Skin</span><div class="dots" id="skinDots">' + skinDots + '</div></div>' +
-            '<div class="row"><span>Face</span><div class="chips" id="faceChips">' + faces + '</div></div>' +
-            '<div class="row"><span>Hair</span><div class="stepper"><button type="button" id="hairPrev" aria-label="Previous hair">‹</button><b id="hairLabel"></b><button type="button" id="hairNext" aria-label="Next hair">›</button></div></div>' +
-            '<div class="row"><span>Hair color</span><div class="dots">' + hairDots + '</div></div>' +
-            '<div class="row"><span>Cloth</span><div class="stepper"><button type="button" id="clothPrev" aria-label="Previous cloth">‹</button><b id="clothLabel"></b><button type="button" id="clothNext" aria-label="Next cloth">›</button></div></div>' +
-            '<div class="row"><span>Cloth color</span><div class="dots">' + clothDots + '</div></div>' +
-            '<div class="row"><span>Weapon</span><div class="stepper"><button type="button" id="weapPrev" aria-label="Previous weapon">‹</button><b id="weapLabel"></b><button type="button" id="weapNext" aria-label="Next weapon">›</button></div></div>' +
-            '<div class="row" id="focusRow"><span>Focus color</span><div class="dots">' + focusDots + '</div></div>' +
+            '<div class="row looks-row"><span>Look</span><div class="looks" id="looks"></div></div>' +
             '<div class="class-grid">' + classes + '</div>' +
             '<div class="creator-actions">' +
               '<button type="button" class="btn ghost" id="randomize">Randomize</button>' +
@@ -246,32 +218,23 @@
       const r = IL.mulberry32((Date.now() ^ (Math.floor(Math.random() * 1e9))) >>> 0);
       const id = IL.pick(r, openIds.length ? openIds : Object.keys(IL.CLASSES));
       draft.fighter.cls = id;
-      draft.fighter.parts = IL.randomParts(r);
-      draft.fighter.parts.weapon = IL.CLASSES[id].weapon;
+      draft.fighter.parts = IL.randomParts(r, id);
       draft.fighter.name = IL.pick(r, IL.FIRST) + " " + IL.pick(r, IL.LAST);
-      draft.weaponLock = false;
       nameInput.value = draft.fighter.name;
       syncPicker();
     };
     document.getElementById("confirm").onclick = onConfirm;
-    document.getElementById("hairPrev").onclick = function () { stepHair(-1); };
-    document.getElementById("hairNext").onclick = function () { stepHair(1); };
-    document.getElementById("clothPrev").onclick = function () { stepCloth(-1); };
-    document.getElementById("clothNext").onclick = function () { stepCloth(1); };
-    document.getElementById("weapPrev").onclick = function () { stepWeapon(-1); };
-    document.getElementById("weapNext").onclick = function () { stepWeapon(1); };
     app.onclick = function (ev) {
       const t = ev.target.closest("button");
       if (!t) return;
-      if (t.dataset.skin) { draft.fighter.parts.skin = +t.dataset.skin; syncPicker(); }
-      else if (t.dataset.face) { draft.fighter.parts.face = +t.dataset.face; syncPicker(); }
-      else if (t.dataset.hairc) { draft.fighter.parts.hairColor = +t.dataset.hairc; syncPicker(); }
-      else if (t.dataset.clothc) { draft.fighter.parts.clothColor = +t.dataset.clothc; syncPicker(); }
-      else if (t.dataset.focus) { draft.fighter.parts.weaponColor = +t.dataset.focus; syncPicker(); }
-      else if (t.dataset.class) {
+      if (t.dataset.sheet) {
+        draft.fighter.parts.sheet = t.dataset.sheet;
+        syncPicker();
+      } else if (t.dataset.class) {
         if (!IL.classUnlocked(t.dataset.class, renownNow)) return;
         draft.fighter.cls = t.dataset.class;
-        if (!draft.weaponLock) draft.fighter.parts.weapon = IL.CLASSES[draft.fighter.cls].weapon;
+        const pool = IL.looksFor(draft.fighter.cls);
+        if (pool.indexOf(draft.fighter.parts.sheet) < 0) draft.fighter.parts.sheet = pool[0];
         syncPicker();
       }
     };
@@ -279,56 +242,43 @@
     startPreview();
   }
 
-  function stepList(list, current, dir) {
-    let i = list.indexOf(current);
-    if (i < 0) i = 0;
-    return list[(i + dir + list.length) % list.length];
-  }
-
-  function stepHair(dir) {
-    draft.fighter.parts.hair = stepList(IL.HAIR, draft.fighter.parts.hair, dir);
-    syncPicker();
-  }
-  function stepCloth(dir) {
-    const n = draft.fighter.parts.cloth + dir;
-    draft.fighter.parts.cloth = n < 1 ? 17 : n > 17 ? 1 : n;
-    syncPicker();
-  }
-  function stepWeapon(dir) {
-    const n = draft.fighter.parts.weapon + dir;
-    draft.fighter.parts.weapon = n < 1 ? 5 : n > 5 ? 1 : n;
-    draft.weaponLock = true;
-    syncPicker();
-  }
-
   function syncPicker() {
     const p = draft.fighter.parts;
-    mark("[data-skin]", String(p.skin));
-    mark("[data-face]", String(p.face));
-    mark("[data-hairc]", String(p.hairColor));
-    mark("[data-clothc]", String(p.clothColor));
-    mark("[data-focus]", String(p.weaponColor || 1));
+    paintLooks();
+    mark("[data-sheet]", p.sheet);
     mark("[data-class]", draft.fighter.cls);
-    const hair = document.getElementById("hairLabel");
-    const cloth = document.getElementById("clothLabel");
-    const weap = document.getElementById("weapLabel");
-    if (hair) hair.textContent = p.hair.toUpperCase();
-    if (cloth) cloth.textContent = "Cloth " + p.cloth;
-    if (weap) {
-      const w = IL.WEAPONS[p.weapon - 1];
-      weap.textContent = w ? w.name : "Weapon";
-    }
-    const focus = document.getElementById("focusRow");
-    if (focus) focus.hidden = p.weapon !== 5;
+  }
+
+  function paintLooks() {
+    const box = document.getElementById("looks");
+    if (!box) return;
+    const pool = IL.looksFor(draft.fighter.cls);
+    const sig = pool.join(",");
+    if (box.dataset.pool === sig) return;
+    box.dataset.pool = sig;
+    box.innerHTML = pool.map(function (id, i) {
+      return '<button type="button" class="look" data-sheet="' + id + '" aria-label="Look ' + (i + 1) + ' of ' + pool.length + '"><canvas width="48" height="56"></canvas></button>';
+    }).join("");
+    const buttons = box.querySelectorAll("button");
+    pool.forEach(function (id, i) {
+      const cv = buttons[i].querySelector("canvas");
+      IL.hero.compose({ sheet: id }).then(function (atlas) {
+        if (!cv || box.dataset.pool !== sig) return;
+        const ctx = cv.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        IL.hero.draw(ctx, atlas, 1, 24, 52, 1, 1, draft.fighter.cls);
+      }).catch(function () {});
+    });
   }
 
   function mark(sel, value) {
     const nodes = app.querySelectorAll(sel);
     for (let i = 0; i < nodes.length; i++) {
       const n = nodes[i];
-      const on = (n.dataset.skin || n.dataset.face || n.dataset.hairc || n.dataset.clothc || n.dataset.focus || n.dataset.class) === value;
+      const on = (n.dataset.sheet || n.dataset.class) === value;
       n.classList.toggle("on", on);
-      if (n.classList.contains("dot") || n.classList.contains("chip") || n.classList.contains("class-card")) {
+      if (n.classList.contains("look") || n.classList.contains("chip") || n.classList.contains("class-card")) {
         n.setAttribute("aria-pressed", on ? "true" : "false");
       }
     }
@@ -370,11 +320,15 @@
       ctx.fillStyle = "#e7d3b0";
       ctx.font = "16px Palatino, Georgia, serif";
       ctx.textAlign = "center";
+      const kit = IL.CLASSES[draft.fighter.cls] || IL.CLASSES.warrior;
+      const strike = (kit.attacks && kit.attacks[0]) || "atk1";
+      const rightLabel = kit.role === "cast" ? "Cast" : (kit.role === "kite" ? "Shot" : "Strike");
       ctx.fillText("Idle", 180, 32);
-      ctx.fillText("Run", 460, 32);
+      ctx.fillText(rightLabel, 460, 32);
       if (atlas) {
-        IL.hero.draw(ctx, atlas, IL.frameIndex("idle", t), 180, 214, 4, 1);
-        IL.hero.draw(ctx, atlas, IL.frameIndex("run", t), 460, 214, 4, 1);
+        const idleClip = kit.idle || "idle";
+        IL.hero.draw(ctx, atlas, IL.frameIndex(idleClip, t), 180, 214, 4, 1, kit.id);
+        IL.hero.draw(ctx, atlas, IL.frameIndex(strike, t % Math.max(0.05, IL.clipDur(strike))), 460, 214, 4, 1, kit.id);
       }
       raf = requestAnimationFrame(loop);
     }
@@ -487,6 +441,7 @@
     if (!save) { showTitle(); return; }
     IL.migrate(save);
     ensureMarket();
+    persist();
     const rival = nextRival();
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     const yours = size ? fielded(save.roster, size) : [];

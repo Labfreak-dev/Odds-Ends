@@ -129,6 +129,19 @@ img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
   background: var(--ink); border: 1px solid var(--line); border-radius: 4px;
 }
 .chip.on { background: var(--copper); color: #1a100c; border-color: var(--copper); }
+.looks { display: flex; flex-wrap: wrap; gap: 6px; }
+.looks-row { align-items: flex-start; }
+.looks-row > span { padding-top: 18px; }
+.look {
+  width: 52px;
+  height: 60px;
+  padding: 2px;
+  background: #1a1612;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.look canvas { width: 48px; height: 56px; display: block; background: transparent; }
+.look.on { border-color: var(--copper); background: #3a2618; }
 .stepper { display: flex; align-items: center; gap: 8px; }
 .stepper button {
   width: 44px; height: 44px; background: var(--ink); border: 1px solid var(--line); border-radius: 4px; font-size: 22px;
@@ -226,4 +239,5 @@ aside { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
   .title-screen h1 { font-size: 56px; }
   .row { align-items: flex-start; flex-direction: column; gap: 6px; }
   .row > span { width: auto; }
+  .looks-row > span { padding-top: 0; }
 }

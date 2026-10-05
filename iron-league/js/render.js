@@ -391,12 +391,12 @@
       const frame = IL.frameIndex(u.anim || "idle", u.animT || 0);
       const gy = u.y - z;
       if (u.sprite) {
-        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing);
+        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls);
         if (u.flash > 0 && u.hp > 0) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing);
+          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls);
           ctx.restore();
         }
       } else {

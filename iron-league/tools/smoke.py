@@ -39,6 +39,7 @@ def run(page, label, shot_dir):
         timeout=20000,
     )
     page.screenshot(path=str(shot_dir / f"{label}-hub.png"))
+    check_nav(page, label, shot_dir)
     page.click("#nextMatch")
     page.wait_for_selector("#arena", timeout=30000)
     page.wait_for_function(
@@ -159,18 +160,95 @@ def tour(page, shot_dir):
         timeout=20000,
     )
     page.screenshot(path=str(shot_dir / "market.png"))
-    page.click("#backHub")
-    page.wait_for_selector("#relics")
     page.click("#relics")
     page.wait_for_selector("[data-equip='band']")
     page.screenshot(path=str(shot_dir / "relics.png"))
-    page.click("#backHub")
-    page.wait_for_selector("#cup")
     page.click("#cup")
     page.click("#enterCup")
     page.wait_for_selector(".bracket")
     page.screenshot(path=str(shot_dir / "cup.png"))
+    check_empty_bench(page)
     print("tour screenshots", shot_dir)
+
+
+def check_nav(page, label, shot_dir):
+    """Tab bar, keyboard, and the fighter sheet open and close."""
+    page.wait_for_selector("#tabbar")
+    tabs = page.locator("#tabbar [role='tab']")
+    if tabs.count() != 5:
+        raise SystemExit(label + " tab bar has " + str(tabs.count()))
+    joined = " ".join(tabs.all_inner_texts()).lower()
+    for word in ("club", "fighter", "market", "cup", "relic"):
+        if word not in joined:
+            raise SystemExit(label + " tab missing " + word + " in " + joined)
+    selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()
+    if "club" not in selected:
+        raise SystemExit(label + " club tab was not active: " + selected)
+    bar = page.evaluate(
+        """() => {
+          const el = document.querySelector('#tabbar');
+          const r = el.getBoundingClientRect();
+          return {
+            position: getComputedStyle(el).position,
+            bottom: r.bottom,
+            inner: window.innerHeight
+          };
+        }"""
+    )
+    if label == "phone":
+        if bar["position"] != "fixed" or abs(bar["bottom"] - bar["inner"]) > 3:
+            raise SystemExit(label + " tab bar not pinned " + str(bar))
+    elif bar["position"] == "fixed":
+        raise SystemExit(label + " tab bar should sit in the page on a wide screen")
+    page.keyboard.press("2")
+    page.wait_for_selector("#fighterList")
+    if page.locator("#nextMatch").count():
+        raise SystemExit(label + " fighters tab still shows the match button")
+    page.locator("[data-detail]").first.click()
+    page.wait_for_selector("#fighterSheet")
+    page.wait_for_function(
+        """() => {
+          const c = document.querySelector('#detailPreview');
+          if (!c) return false;
+          const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          for (let i = 0; i < px.length; i += 16) if (px[i + 3] > 0 && (px[i] > 40 || px[i + 1] > 30)) return true;
+          return false;
+        }""",
+        timeout=20000,
+    )
+    sheet = page.locator("#fighterSheet").inner_text()
+    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Always on", "Rename", "Captain stays", "Record"):
+        if word not in sheet:
+            raise SystemExit(label + " sheet missing " + word + ": " + sheet[:240])
+    if page.locator("#releaseAsk").count():
+        raise SystemExit(label + " captain sheet offered release")
+    page.screenshot(path=str(shot_dir / f"{label}-sheet.png"))
+    page.click("#sheetClose")
+    page.wait_for_selector("#fighterSheet", state="detached")
+    page.keyboard.press("Escape")
+    page.keyboard.press("1")
+    page.wait_for_selector("#nextMatch")
+    if page.locator("#fighterSheet").count():
+        raise SystemExit(label + " sheet stayed open")
+
+
+def check_empty_bench(page):
+    page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const ids = raw.lineup || [];
+          raw.roster = raw.roster.filter(f => ids.indexOf(f.id) >= 0);
+          raw.round = 5;
+          localStorage.setItem('ironleague.v1', JSON.stringify(raw));
+        }"""
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.keyboard.press("2")
+    page.wait_for_selector("#benchList .empty-state")
+    text = page.locator("#benchList .empty-state").inner_text().lower()
+    if "bench" not in text or "empty" not in text:
+        raise SystemExit("empty bench copy: " + text)
 
 
 def main():

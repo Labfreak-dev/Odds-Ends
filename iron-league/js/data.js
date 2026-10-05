@@ -421,7 +421,10 @@
       pendingPicks: 0,
       personality: pick(rng, PERSONALITIES),
       tactic: "strike",
-      champion: false
+      champion: false,
+      wins: 0,
+      losses: 0,
+      kos: 0
     };
   }
 

@@ -105,6 +105,10 @@ check("lineup stays chosen", kept.lineup.join() === "low,hi,cap");
 const cleared = { v: 1, roster: lineRoster.map(function (f) { return Object.assign({}, f); }), lineup: [], clubs: [], fixtures: [] };
 IL.migrate(cleared);
 check("an empty lineup stays empty", cleared.lineup.length === 0);
+check("old save record starts at zero", oldSave.roster[0].wins === 0 && oldSave.roster[0].losses === 0 && oldSave.roster[0].kos === 0);
+const lowStats = IL.scaledStats({ level: 1, boosts: {}, champion: false }, IL.CLASSES.warrior);
+const highStats = IL.scaledStats({ level: 4, boosts: { hp: 1, dmg: 1, spd: 1, def: 1 }, champion: true }, IL.CLASSES.warrior);
+check("scaled stats grow", highStats.hp > lowStats.hp && highStats.atk > lowStats.atk && highStats.def > lowStats.def && highStats.speed > lowStats.speed);
 Object.keys(IL.CLIPS).forEach(function (name) {
   const c = IL.CLIPS[name];
   const sample = IL.CLIP_SAMPLE[name];
@@ -224,6 +228,10 @@ check("tank blocks sometimes", blocked > 0);
 
 const deaths = samples.reduce((s, m) => s + m.stats.deaths, 0);
 check("fighters die", deaths > 0);
+const koSum = samples.reduce(function (s, m) {
+  return s + m.units.reduce(function (a, u) { return a + (u.kos || 0); }, 0);
+}, 0);
+check("downs credit a killer", koSum > 0 && koSum <= deaths);
 const rolls = samples.reduce((s, m) => s + m.stats.rolls, 0);
 const dodges = samples.reduce((s, m) => s + m.stats.dodges, 0);
 const leaps = samples.reduce((s, m) => s + m.stats.leaps, 0);

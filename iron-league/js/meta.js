@@ -128,6 +128,9 @@
       if (!f.tactic) f.tactic = "strike";
       if (typeof f.champion !== "boolean") f.champion = false;
       if (typeof f.level !== "number") f.level = IL.xpLevel(f.xp || 0);
+      if (typeof f.wins !== "number") f.wins = 0;
+      if (typeof f.losses !== "number") f.losses = 0;
+      if (typeof f.kos !== "number") f.kos = 0;
     });
     normalizeLineup(data);
     adoptSheets(data);

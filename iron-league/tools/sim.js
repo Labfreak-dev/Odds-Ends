@@ -106,6 +106,10 @@ const cleared = { v: 1, roster: lineRoster.map(function (f) { return Object.assi
 IL.migrate(cleared);
 check("an empty lineup stays empty", cleared.lineup.length === 0);
 check("old save record starts at zero", oldSave.roster[0].wins === 0 && oldSave.roster[0].losses === 0 && oldSave.roster[0].kos === 0);
+check("old save gains history and settings", Array.isArray(oldSave.history) && oldSave.history.length === 0 && oldSave.settings.speed === 1 && oldSave.settings.shake === true);
+const messy = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 0 }], clubs: [], fixtures: [], settings: { speed: 9, shake: "no" } };
+IL.migrate(messy);
+check("settings migrate clamps speed", messy.settings.speed === 1 && messy.settings.shake === true && messy.settings.sound === 80);
 const lowStats = IL.scaledStats({ level: 1, boosts: {}, champion: false }, IL.CLASSES.warrior);
 const highStats = IL.scaledStats({ level: 4, boosts: { hp: 1, dmg: 1, spd: 1, def: 1 }, champion: true }, IL.CLASSES.warrior);
 check("scaled stats grow", highStats.hp > lowStats.hp && highStats.atk > lowStats.atk && highStats.def > lowStats.def && highStats.speed > lowStats.speed);
@@ -232,6 +236,10 @@ const koSum = samples.reduce(function (s, m) {
   return s + m.units.reduce(function (a, u) { return a + (u.kos || 0); }, 0);
 }, 0);
 check("downs credit a killer", koSum > 0 && koSum <= deaths);
+const dealt = samples.reduce(function (s, m) {
+  return s + m.units.reduce(function (a, u) { return a + (u.dmgDealt || 0); }, 0);
+}, 0);
+check("damage is credited to a fighter", dealt > 0);
 const rolls = samples.reduce((s, m) => s + m.stats.rolls, 0);
 const dodges = samples.reduce((s, m) => s + m.stats.dodges, 0);
 const leaps = samples.reduce((s, m) => s + m.stats.leaps, 0);

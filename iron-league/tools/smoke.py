@@ -40,7 +40,32 @@ def run(page, label, shot_dir):
     )
     page.screenshot(path=str(shot_dir / f"{label}-hub.png"))
     check_nav(page, label, shot_dir)
+    check_settings(page, label)
     page.click("#nextMatch")
+    page.wait_for_selector("#versus")
+    page.wait_for_selector("#powerBar")
+    page.wait_for_selector("#confirmFight")
+    page.wait_for_selector("#versusBack")
+    if page.locator("#versus canvas").count() < 2:
+        raise SystemExit(label + " versus card is missing lineups")
+    page.wait_for_function(
+        """() => {
+          const c = document.querySelector('#versus canvas');
+          if (!c) return false;
+          const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          for (let i = 0; i < px.length; i += 16) if (px[i + 3] > 0 && (px[i] > 40 || px[i + 1] > 30)) return true;
+          return false;
+        }""",
+        timeout=20000,
+    )
+    versus = page.locator("#versus").inner_text()
+    if "HP" not in versus or "Power" not in versus:
+        raise SystemExit(label + " versus card missing health or power")
+    page.screenshot(path=str(shot_dir / f"{label}-versus.png"))
+    page.click("#versusBack")
+    page.wait_for_selector("#nextMatch")
+    page.click("#nextMatch")
+    page.click("#confirmFight")
     page.wait_for_selector("#arena", timeout=30000)
     page.wait_for_function(
         """() => {
@@ -100,13 +125,29 @@ def run(page, label, shot_dir):
         raise SystemExit(label + " fight never showed a slash")
     if label == "desktop" and not caught.get("ability"):
         raise SystemExit(label + " fight never fired an ability")
+    page.click("#speed3")
+    page.wait_for_function("() => document.querySelector('#speed3') && document.querySelector('#speed3').classList.contains('on')")
+    saved_speed = page.evaluate("() => JSON.parse(localStorage.getItem('ironleague.v1')).settings.speed")
+    if saved_speed != 3:
+        raise SystemExit(label + " speed was not saved: " + str(saved_speed))
+    page.click("#pause")
+    page.wait_for_function("() => (document.querySelector('#pause') || {}).textContent === 'Resume'")
+    page.click("#pause")
     page.click("#skip")
     page.wait_for_selector("#backHub", timeout=10000)
+    page.wait_for_selector("#resultTable")
+    result_text = page.locator("#result").inner_text().lower()
+    for word in ("mvp", "dealt", "taken", "heal"):
+        if word not in result_text:
+            raise SystemExit(label + " results missing " + word)
     result = page.locator("#result h2").inner_text()
     if "pit" not in result.lower() and "walk" not in result.lower():
         raise SystemExit(label + " unexpected result: " + result)
     page.click("#backHub")
     page.wait_for_selector("#nextMatch, #nextSeason", timeout=10000)
+    history = page.locator("#history").inner_text()
+    if "MVP" not in history:
+        raise SystemExit(label + " history missing a result: " + history)
     gold = page.locator(".purse").inner_text()
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("#continue")
@@ -166,6 +207,10 @@ def tour(page, shot_dir):
     page.click("#cup")
     page.click("#enterCup")
     page.wait_for_selector(".bracket")
+    page.wait_for_selector("#bracketBoard")
+    bracket = page.locator("#bracketBoard").inner_text().lower()
+    if "smoke yard" not in bracket or "semi" not in bracket:
+        raise SystemExit("bracket missing the club or semis: " + bracket)
     page.screenshot(path=str(shot_dir / "cup.png"))
     check_empty_bench(page)
     print("tour screenshots", shot_dir)
@@ -230,6 +275,35 @@ def check_nav(page, label, shot_dir):
     page.wait_for_selector("#nextMatch")
     if page.locator("#fighterSheet").count():
         raise SystemExit(label + " sheet stayed open")
+
+
+def check_settings(page, label):
+    page.click("#settings")
+    page.wait_for_selector("#settingsSheet")
+    text = page.locator("#settingsSheet").inner_text().lower()
+    for word in ("sound", "music", "fight speed", "screen shake", "reset save"):
+        if word not in text:
+            raise SystemExit(label + " settings missing " + word)
+    page.click("#speedPick3")
+    page.wait_for_selector("#speedPick3.on")
+    page.click("#shakeToggle")
+    page.click("#resetAsk")
+    page.wait_for_selector("#resetBox")
+    page.click("#resetNo")
+    page.click("#speedPick1")
+    page.click("#settingsClose")
+    page.wait_for_selector("#settingsSheet", state="detached")
+    flags = page.evaluate(
+        """() => {
+          const s = JSON.parse(localStorage.getItem('ironleague.v1')).settings;
+          return { speed: s.speed, shake: s.shake };
+        }"""
+    )
+    if flags["speed"] != 1 or flags["shake"] is not False:
+        raise SystemExit(label + " settings did not stick " + str(flags))
+    page.click("#settings")
+    page.click("#shakeToggle")
+    page.click("#settingsClose")
 
 
 def check_empty_bench(page):

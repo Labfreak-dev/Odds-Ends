@@ -140,6 +140,88 @@
     }
   };
 
+  /* Curated Time Fantasy sheets per class. Archer and ranger are bow
+     sheets (every set except the gun troops). Skirmisher is the gun line. */
+  const LOOKS = {
+    warrior: ["1_1", "2_1", "3_1", "4_1", "5_1", "6_1", "7_7", "military1_1"],
+    archer: ["1_6", "2_6", "3_6", "4_6", "5_6", "6_6", "7_4", "military1_6"],
+    mage: ["1_2", "2_2", "3_2", "4_2", "5_2", "6_2", "7_2", "7_6"],
+    tank: ["1_7", "2_7", "3_7", "4_7", "5_7", "6_7", "military1_2", "military1_7"],
+    rogue: ["1_4", "2_4", "3_4", "4_4", "5_4", "6_4", "7_3", "7_8"],
+    lancer: ["1_3", "2_3", "3_3", "4_3", "5_3", "6_3", "military1_3", "military1_8"],
+    berserker: ["1_3", "2_3", "3_5", "4_5", "5_5", "6_5", "7_5", "military1_4"],
+    healer: ["1_5", "1_8", "2_8", "3_8", "4_8", "5_8", "6_8", "7_1"],
+    assassin: ["1_4", "2_4", "3_4", "5_4", "6_4", "7_8", "7_3", "military1_4"],
+    ranger: ["2_5", "1_6", "3_5", "4_5", "5_5", "6_5", "7_5", "military1_5"],
+    battlemage: ["1_2", "2_2", "4_2", "5_2", "6_2", "7_2", "3_2", "1_7"],
+    shieldbearer: ["1_1", "1_7", "2_7", "4_7", "5_7", "6_7", "military1_2", "military1_7"],
+    skirmisher: [
+      "military2_1", "military2_2", "military2_3", "military2_4",
+      "military2_5", "military2_6", "military2_7", "military2_8",
+      "military3_1", "military3_2", "military3_3", "military3_4",
+      "military3_5", "military3_6", "military3_7", "military3_8"
+    ],
+    duelist: ["1_1", "2_1", "4_1", "5_1", "6_1", "7_7", "3_1", "military1_1"],
+    elementalist: ["1_2", "7_2", "7_6", "5_2", "3_2", "6_2", "2_8", "4_8"]
+  };
+
+  const SHEET_SET = {};
+  (function () {
+    for (let s = 1; s <= 7; s++) {
+      for (let i = 1; i <= 8; i++) SHEET_SET[s + "_" + i] = true;
+    }
+    for (let m = 1; m <= 3; m++) {
+      for (let i = 1; i <= 8; i++) SHEET_SET["military" + m + "_" + i] = true;
+    }
+  })();
+
+  /* Game clip → Time Fantasy motion. Ranged atk1 is swapped in visualMotion. */
+  const CLIP_MOTION = {
+    idle: "idle1",
+    idle2: "idle2",
+    run: "walk",
+    run2: "walk",
+    jump: "cheer",
+    fall: "cheer",
+    land: "crouch",
+    atk1: "atk1",
+    atk2: "atk2",
+    atk3: "atk2",
+    air1: "atk1",
+    air2: "atk2",
+    cast1: "magic",
+    cast2: "magic",
+    hurt: "hit",
+    die: "dead",
+    dash: "walk",
+    block: "crouch",
+    roll: "crouch"
+  };
+
+  /* Which of the 3 source frames each game frame samples. Index 1 is the
+     strike, the loose, and the gun's recoil — the frames the hit list uses. */
+  const CLIP_SAMPLE = {
+    idle: [0, 1, 2, 0, 1, 2],
+    idle2: [0, 1, 2, 0, 1, 2],
+    run: [0, 1, 2, 0, 1, 2, 0, 1],
+    run2: [1, 2, 0, 1, 2, 0, 1, 2],
+    jump: [0, 1, 2, 2],
+    fall: [1, 1, 2],
+    land: [2],
+    atk1: [0, 0, 1, 1, 2, 2],
+    atk2: [0, 0, 1, 1, 2, 2],
+    atk3: [0, 0, 1, 2],
+    air1: [0, 0, 1, 1, 2, 2],
+    air2: [0, 0, 1, 2],
+    cast1: [0, 0, 0, 1, 2],
+    cast2: [0, 0, 0, 1, 2],
+    hurt: [0, 1, 2, 2],
+    die: [0, 0, 0, 0, 0],
+    dash: [0, 1, 2, 0, 1, 2, 0, 1],
+    block: [1, 1, 1, 1, 1],
+    roll: [0, 1, 2, 0, 1, 2, 1, 0]
+  };
+
   /* Frame numbers are 1-based and match ANIM.md.
      loopFrom: play up to that frame, then loop through `to`.
      once: hold the last frame instead of repeating. */
@@ -262,18 +344,52 @@
     return 1 + Math.floor(rng() * n);
   }
 
-  function randomParts(rng) {
-    const weapon = irand(rng, 5);
-    return {
-      skin: irand(rng, 6),
-      face: irand(rng, 7),
-      hair: pick(rng, HAIR),
-      hairColor: irand(rng, 10),
-      cloth: irand(rng, 17),
-      clothColor: irand(rng, 8),
-      weapon: weapon,
-      weaponColor: irand(rng, 4)
-    };
+  function sheetKnown(id) {
+    return !!SHEET_SET[id];
+  }
+
+  function sheetHasBow(id) {
+    if (!sheetKnown(id)) return false;
+    return id.indexOf("military2_") !== 0 && id.indexOf("military3_") !== 0;
+  }
+
+  function sheetHasGun(id) {
+    if (!sheetKnown(id)) return false;
+    return id.indexOf("military2_") === 0 || id.indexOf("military3_") === 0;
+  }
+
+  function looksFor(cls) {
+    return LOOKS[cls] || LOOKS.warrior;
+  }
+
+  function defaultSheet(cls) {
+    return looksFor(cls)[0];
+  }
+
+  /* Archer and ranger loose an arrow. Gun troops fire. Everyone else swings. */
+  function visualMotion(clip, cls, sheet) {
+    if (clip === "atk1" && (cls === "archer" || cls === "ranger" || cls === "skirmisher")) {
+      if (sheetHasBow(sheet)) return "bow";
+      if (sheetHasGun(sheet)) return "gun";
+    }
+    return CLIP_MOTION[clip] || "idle1";
+  }
+
+  /* Bow's third frame is the loose. Sword and gun connect on the middle frame.
+     Hit frames stay 39–40; only the bow samples the release there. */
+  function visualSample(clip, motion, local) {
+    if (motion === "bow" && clip === "atk1") {
+      const bow = [0, 1, 2, 2, 2, 2];
+      return bow[local] != null ? bow[local] : 2;
+    }
+    const sample = CLIP_SAMPLE[clip];
+    if (!sample || local < 0) return 0;
+    return sample[local] != null ? sample[local] : sample[sample.length - 1];
+  }
+
+  function randomParts(rng, cls) {
+    const pool = looksFor(cls || "warrior");
+    return { sheet: pool[Math.floor(rng() * pool.length)] };
   }
 
   function classUnlocked(id, renown) {
@@ -311,8 +427,7 @@
   function randomFighter(rng, clsId) {
     const ids = Object.keys(CLASSES);
     const cls = clsId && CLASSES[clsId] ? clsId : pick(rng, ids);
-    const parts = randomParts(rng);
-    parts.weapon = CLASSES[cls].weapon;
+    const parts = randomParts(rng, cls);
     return Object.assign({
       id: "f" + Math.floor(rng() * 1e9).toString(36),
       name: pick(rng, FIRST) + " " + pick(rng, LAST),
@@ -348,8 +463,17 @@
 
   IL.CLASSES = CLASSES;
   IL.CLIPS = CLIPS;
+  IL.CLIP_MOTION = CLIP_MOTION;
+  IL.CLIP_SAMPLE = CLIP_SAMPLE;
   IL.frameIndex = frameIndex;
   IL.clipDur = clipDur;
+  IL.sheetKnown = sheetKnown;
+  IL.sheetHasBow = sheetHasBow;
+  IL.sheetHasGun = sheetHasGun;
+  IL.looksFor = looksFor;
+  IL.defaultSheet = defaultSheet;
+  IL.visualMotion = visualMotion;
+  IL.visualSample = visualSample;
   IL.HAIR = HAIR;
   IL.WEAPONS = WEAPONS;
   IL.SKIN_COLORS = SKIN_COLORS;

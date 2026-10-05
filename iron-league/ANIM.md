@@ -1,80 +1,89 @@
 # Iron League animation table
 
-Measured from the Heroes99 v1.2 sheets in `assets/heroes99/`, checked against `frameguide_v2.png`.
+Fighters are Time Fantasy side-view battlers. The game draws the packed sheets in `assets/timefantasy/`. `js/hero.js` no longer composites the Heroes99 layers; those files can stay on disk unused.
 
-## Sheet facts
+## Source frames
 
-Every layer is an **800×680** RGBA PNG. The pack contains **102** sprites, numbered left to right, top to bottom, the same way the frameguide labels them.
+The pack’s singleframes are **48×48** RGBA, almost always **3 frames** to a motion, named like `1_1_walk (1).png`. Military files use the same pattern (`military1_1_bow (1).png`).
 
-They are **not** a uniform 10×10 grid of 80×68 cells. That grid is only the canvas size (10×80 by 10×68). The figures are packed tighter:
+80 characters:
 
-- Horizontal pitch is about **100px** (body centers near x = 41, 141, 241, …).
-- Vertical pitch is about **40px**.
-- A wide swing, cape, or trail crosses the naive 80×68 cell, so cropping cells splits bodies in half and leaves empty cells that are only overflow.
+- `1_1` … `7_8` (seven sets of eight)
+- `military1_1` … `military3_8`
 
-`js/hero.js` stores a measured rectangle per frame: `[x, y, w, h, ax, ay]`. `ax, ay` is the foot point inside that crop (skin centroid x, skin bottom y), padded by one pixel and clamped to the sheet. Drawing places that foot on the arena ground and flips horizontally for facing.
+Motions on every character: `idle1`, `walk`, `atk1`, `atk2`, `crouch`, `hit`, `cheer`, `magic`, `item`, `status`, and a death frame. `idle2` is on 79 of them. `bow` is on the 64 characters who are not gun troops. `gun` is on `military2_*` and `military3_*` only (16).
 
-The rects are the union of opaque pixels (alpha > 16) across every sheet in the pack, each pixel assigned to the nearest skin anchor. Widest frame is 68px, tallest 35px. Neighboring rects do not overlap.
+Quirks the packer absorbs:
 
-88 layer files are fully transparent 800×680 placeholders (mostly cloth or hair “top” sheets with nothing to draw). They still load and composite as empty.
+- `1_1` idle2 files are named `1_1idle2` with no underscore before the motion.
+- `1_4` has no idle2. The sheet copies `idle1` into that column. It also has an unused `walk2`.
+- `1_1` dies on `down.png`. Everyone else uses `dead.png`. Both land in the `dead` column.
+- `item` and `status` are not packed.
 
-## Draw order
+Standing art keeps its soles on row 44 of the cell, so the foot anchor is **(24, 45)**. A swing or a bow reaches toward +x; the sheet faces right, and the pit flips it when `facing < 0`. Drawing is nearest-neighbour. The anchor stays put, so a lunge does not slide the feet.
 
-Bottom to top, one blit of each full sheet into an 800×680 atlas, cached by part ids:
+## Packed sheet
 
-1. `weapon_bot`
-2. `skin`
-3. `face`
-4. `cloth_bot`
-5. `cloth_top`
-6. `hair_bot`
-7. `hair_top`
-8. `weapon_top`
+`assets/timefantasy/<id>.png` is **576×144**: 12 columns by 3 rows of 48×48. `tools/pack-tf.py` builds them. Image URLs carry `?v=7` (the same generation as the script tags in `index.html`).
 
-`cloth_bot` is the outfit (shirt, pants, boots, and the cape that hangs outside the silhouette). `cloth_top` is only the extra plate — pauldrons, a chest piece, the front of a cape — and for most outfits that sheet is empty. Drawing the outfit under the skin hides it behind the opaque body, so the card shows briefs and a weapon, plus whatever plate stuck out past the silhouette. The garment is blitted after `skin` and `face`. Hair and weapon are still the layers that split behind and in front.
+| Column | Motion |
+|---|---|
+| 0 | `idle1` |
+| 1 | `idle2` |
+| 2 | `walk` |
+| 3 | `atk1` |
+| 4 | `atk2` |
+| 5 | `bow` |
+| 6 | `gun` |
+| 7 | `hit` |
+| 8 | `crouch` |
+| 9 | `magic` |
+| 10 | `cheer` |
+| 11 | `dead` |
 
-A few `cloth_bot` sheets still look naked after that, because the pixels are the skin's own hue. Cloth 4 (the creator default, color 6) paints the legs, and the brown dye paints the torso, in the same oranges as skin 1, so the sprite reads as flesh and a belt. Cloth 16 does the same, and cloth 3 and cloth 17 leave the ankles empty. `dressCloth` repaints any cloth pixel whose hue matches the skin actually in use. If the dye itself is that hue, the hue is rotated off the skin. Bare ankles on the lower part of each body are filled on `cloth_bot` only, in that dye.
-
-Parts: skin `c1–c6`, face `c1–c7`, cloth `cloth1–cloth17` × `c1–c8`, hair `m1–m14` and `f1–f9` × `c1–c10`, weapons `weapon1–weapon4` (no tint) and `weapon5` × `c1–c4`.
+A missing bow or gun column is left clear. Death is one painting, copied into all three rows.
 
 ## Clips
 
-Frame numbers are **1-based and inclusive**. `fps` is what the game plays. Hit frames deal melee damage once per swing (or release one projectile) the first time a listed frame connects.
+Frame numbers are still **1-based** and the combat windows are unchanged: `fps`, loops, and hit frames are the old table. Each game frame samples one of the three Time Fantasy frames. Sample index **1** is the strike, the arrow’s loose, and the gun’s recoil, and that is where the hit frames land.
 
-| Clip | Frames | Game id | fps | Loop | Hit frames | Used in the pit |
-|---|---|---|---|---|---|---|
-| IDLE 1 | 1–6 | `idle` | 8 | whole clip | — | default idle |
-| IDLE 2 | 7–12 | `idle2` | 8 | whole clip | — | tank idle |
-| RUN 1 | 13–20 | `run` | 11 | whole clip | — | warrior, mage, tank |
-| RUN 2 | 21–28 | `run2` | 11 | whole clip | — | archer, rogue |
-| JUMP | 29–32 | `jump` | 10 | once | — | warrior and rogue leap |
-| FALL | 33–35 | `fall` | 10 | whole clip | — | leap descent |
-| LAND | 36 | `land` | 10 | hold | — | leap landing |
-| ATTACK 1 | 37–42 | `atk1` | 12 | once | **39, 40** | warrior, archer (shot), tank, rogue |
-| ATTACK 2 | 43–48 | `atk2` | 12 | once | **45, 46** | warrior, tank |
-| ATTACK 3 | 49–52 | `atk3` | 14 | once | **51, 52** | warrior finisher, rogue |
-| AIR ATK 1 | 53–58 | `air1` | 12 | once | **55, 56** | warrior leap |
-| AIR ATK 2 | 59–62 | `air2` | 12 | once | **61, 62** | warrior and rogue leap |
-| CAST 1 | 63–67 | `cast1` | 10 | 65–67 after 63–64 | — | mage, wide circle |
-| CAST 2 | 68–72 | `cast2` | 10 | 70–72 after 68–69 | — | mage, tighter hotter circle |
-| HURT | 73–76 | `hurt` | 12 | once | — | flinch if idle or running |
-| DIE | 77–81 | `die` | 8 | hold 81 | — | death |
-| DASH | 82–89 | `dash` | 14 | 84–86 while moving; 87–89 are the unused recovery | — | rogue, offensive |
-| BLOCK | 90–94 | `block` | 10 | whole clip | — | tank |
-| ROLL | 95–102 | `roll` | 12 | once | — | defensive evade, brief i-frames |
+`js/data.js` holds `CLIP_MOTION` and `CLIP_SAMPLE`. Archer, Ranger, and Skirmisher replace `atk1` only: a bow sheet plays `bow`, a gun sheet plays `gun`. Other clips stay on the motion below. Air attacks stay melee swings; those classes do not leap.
 
-The frameguide’s labels match this split: six idles, eight-frame runs, jump 29–32 then fall 33–35 and land 36, the three attacks, both air attacks, both casts with the boxed loops, hurt, five-frame death, dash with the boxed loop on 84–86, block, and an eight-frame roll. Attack 1’s blade reaches farthest forward on 39–40 (union width 64 then 56). Attack 2 does the same on 45–46. Attack 3’s long reach is 51–52 (forward extent about 46px and 39px past the body). Those are the hit frames.
+A sword and a gun connect on frame index 1 (the reach, the muzzle). A bow's loose is index 2, so that shot samples `0,1,2,2,2,2` and the arrow leaves on the same hit frames.
 
-Playback samples the frame index at the clip fps inside a 60Hz sim step, so a hit frame is visible for several steps and is not skipped.
+| Clip | Frames | Game id | Plays | Sample (3-frame index) | fps | Loop | Hit frames |
+|---|---|---|---|---|---|---|---|
+| IDLE 1 | 1–6 | `idle` | `idle1` | 0,1,2,0,1,2 | 8 | whole clip | — |
+| IDLE 2 | 7–12 | `idle2` | `idle2` | 0,1,2,0,1,2 | 8 | whole clip | tank idle |
+| RUN 1 | 13–20 | `run` | `walk` | 0,1,2,0,1,2,0,1 | 11 | whole clip | — |
+| RUN 2 | 21–28 | `run2` | `walk` | 1,2,0,1,2,0,1,2 | 11 | whole clip | archer, rogue gait |
+| JUMP | 29–32 | `jump` | `cheer` | 0,1,2,2 | 10 | once | — |
+| FALL | 33–35 | `fall` | `cheer` | 1,1,2 | 10 | whole clip | — |
+| LAND | 36 | `land` | `crouch` | 2 | 10 | hold | — |
+| ATTACK 1 | 37–42 | `atk1` | `atk1`, or `bow` / `gun` | 0,0,1,1,2,2 — bow is 0,1,2,2,2,2 | 12 | once | **39, 40** |
+| ATTACK 2 | 43–48 | `atk2` | `atk2` | 0,0,1,1,2,2 | 12 | once | **45, 46** |
+| ATTACK 3 | 49–52 | `atk3` | `atk2` | 0,0,1,2 | 14 | once | **51, 52** |
+| AIR ATK 1 | 53–58 | `air1` | `atk1` | 0,0,1,1,2,2 | 12 | once | **55, 56** |
+| AIR ATK 2 | 59–62 | `air2` | `atk2` | 0,0,1,2 | 12 | once | **61, 62** |
+| CAST 1 | 63–67 | `cast1` | `magic` | 0,0, then 0,1,2 | 10 | 65–67 after 63–64 | — |
+| CAST 2 | 68–72 | `cast2` | `magic` | 0,0, then 0,1,2 | 10 | 70–72 after 68–69 | — |
+| HURT | 73–76 | `hurt` | `hit` | 0,1,2,2 | 12 | once | — |
+| DIE | 77–81 | `die` | `dead` | 0,0,0,0,0 | 8 | hold 81 | — |
+| DASH | 82–89 | `dash` | `walk` | 0,1,2,0,1,2,0,1 | 14 | 84–86 while moving | — |
+| BLOCK | 90–94 | `block` | `crouch` | 1,1,1,1,1 | 10 | whole clip | — |
+| ROLL | 95–102 | `roll` | `crouch` | 0,1,2,0,1,2,1,0 | 12 | once | — |
+
+There is no jump, fall, dash, or roll painting in the pack. Those clips reuse cheer, walk, or crouch. Nothing is invented.
+
+Playback still samples the frame index at the clip fps inside a 60Hz step, so a hit frame stays up for several steps and is not skipped.
 
 Roll is not a dash. A dash closes through someone and can clip them. A roll bursts sideways, or out of a cast circle, with i-frames for about the first 0.42s and then a short recovery. The AI uses it against a melee windup, an arrow that will arrive, or a circle that is already filling.
 
-## How it was measured
+## Looks
 
-1. Connected components on `skin/skin_c1.png` (alpha > 20, blobs under 20px dropped) produced 102 bodies.
-2. Bodies clustered into rows when the vertical gap of centroids exceeded 18px, then sorted by x. That order matches the frameguide numbering, including rows that hold 4, 5, 6, or 8 sprites rather than 10.
-3. Every other PNG’s opaque pixels were assigned to the nearest body centroid. The union box, padded by 1px, is the crop.
-4. The anchor is that skin blob’s centroid x and bottom y, so a lunge shifts the body and a slash does not yank the feet sideways.
+The creator and the hire board pick a **sheet id**, not skin, hair, cloth, and weapon layers. `LOOKS` in `js/data.js` is a curated pool per class. Archer and Ranger only offer sheets that have `bow`, and their ranged `atk1` plays it. Skirmisher offers the gun troops and plays `gun`. Changing class keeps the current sheet when that sheet is also in the new pool; otherwise it snaps to the class default.
+
+An old save whose `parts` are still layered (`skin`, `face`, `hair`, `cloth`, `weapon`) is rewritten to `{ sheet }` on load. The sheet is chosen from that fighter’s class pool by a hash of the old parts, so the same save does not change look on every reload. The save key stays `ironleague.v1`.
 
 ## Combat FX
 

@@ -129,7 +129,32 @@
       if (typeof f.champion !== "boolean") f.champion = false;
       if (typeof f.level !== "number") f.level = IL.xpLevel(f.xp || 0);
     });
+    adoptSheets(data);
     return data;
+  }
+
+  /* Layered Heroes99 parts become one Time Fantasy sheet. The same old
+     loadout always lands on the same sheet, so a reload does not reshuffle. */
+  function adoptSheet(f) {
+    if (!f || typeof f !== "object") return;
+    if (!IL.CLASSES[f.cls]) f.cls = "warrior";
+    const id = f.parts && f.parts.sheet;
+    if (typeof id === "string" && IL.sheetKnown(id)) {
+      f.parts = { sheet: id };
+      return;
+    }
+    const pool = IL.looksFor(f.cls);
+    const seed = IL.hashStr(String(f.id || "") + "|" + (f.parts ? JSON.stringify(f.parts) : ""));
+    f.parts = { sheet: pool[seed % pool.length] };
+  }
+
+  function adoptSheets(data) {
+    (data.roster || []).forEach(adoptSheet);
+    (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(adoptSheet); });
+    (data.market || []).forEach(function (row) { if (row && row.fighter) adoptSheet(row.fighter); });
+    if (data.cup && data.cup.slots) {
+      data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(adoptSheet); });
+    }
   }
 
   function unownedRelics(save, rng) {

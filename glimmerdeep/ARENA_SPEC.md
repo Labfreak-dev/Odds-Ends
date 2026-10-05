@@ -458,6 +458,17 @@ The renderer mirrors about `anchor.x`, plays run frames at
 0.65 alpha. Projectile and impact sheets live in `img/arena/vfx/`. Every
 other form stays on the 16-colour bake. `arena-preview.html` cycles clips.
 
+Pilot manifest (`img/arena/manifest.json`): `creatures` lists folders such as
+`pebb_1` (loads `creatures/pebb_1/pebb_1.json` and its PNG, as `cr_pebb1`);
+`vfx` names `projectile` (fire, ember shots), `projectileWater` (tide shots),
+`impact` (fire burst; other elements draw a hue-shifted copy made once) and
+`telegraph` under `img/arena/vfx/`. The artist JSON is read as is: `cell` per
+creature, `anchor` in pixels, `events.hit` / `events.release` as the hit frame,
+`durationsMs` per frame, `clips.run.noSlideSpeedPxPerSec` for run playback. All
+sheets draw at one scale (screen height / 54 art pixels, snapped to half device
+pixels), so Pebblit stays taller than Pyrpup. `?arena=1` fetches the manifest
+at page load; flag off fetches nothing.
+
 Quality tiers: Full, or Lite when Auto Classic is on, Animation is Classic,
 the device is a narrow low-core phone, or a Full fight averages slower than
 34ms. Lite still applies when `meta.fpsOptOut` is set. That flag only stops

@@ -305,7 +305,7 @@
   function placeLowToast() {
     const toast = $('#toast');
     if (!toast) return;
-    const fighting = document.querySelector('#game.fighting');
+    const fighting = document.querySelector('#game.fighting .board.arena-on');
     if (fighting) {
       toast.style.top = 'auto';
       toast.style.bottom = '10px';
@@ -394,7 +394,7 @@
     toast.classList.add('on', 'ask');
     clearTimeout(showFpsToast._t);
     showFpsToast._t = setTimeout(() => {
-      if (toast.classList.contains('ask') && toast.querySelector('[data-ac]')) toast.classList.remove('on', 'ask');
+      if (document.querySelector('.board.arena-on') && toast.classList.contains('ask') && toast.querySelector('[data-ac]')) toast.classList.remove('on', 'ask');
     }, 4600);
   }
   let sampling = false;

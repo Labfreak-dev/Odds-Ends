@@ -108,6 +108,9 @@
 
   // ---- caches -----------------------------------------------------------------------
   const atlases = new Map();
+  // Pilot sheets are drawn at one shared scale (art px per unit height), so Pebblit stays bigger than
+  // Pyrpup. 54 art px is about the average idle height of the three sheets; the baked paintings are 48.
+  const ATLAS_ART_PX = 54;
   const arts = new Map();
   const floors = new Map();
   const images = new Map();
@@ -357,17 +360,32 @@
       for (let i = 0; i < keys.length && !c; i++) c = src[keys[i]];
       const frames = pilotFrames(c, cellW, cellH);
       const loop = c && c.loop != null ? !!c.loop : (name === 'idle' || name === 'run');
-      clips[name] = frames ? { fps: (c && c.fps) || (name === 'run' ? 12 : 8), loop, hit: c && c.hit, frames } : null;
+      // Artist JSON: events.hit (attack) / events.release (cast) is the frame index, durationsMs is per frame.
+      const ev = c && c.events;
+      const hitIdx = c && c.hit != null ? c.hit : (ev ? (ev.hit != null ? ev.hit : ev.release) : null);
+      let dur = null;
+      if (frames && c && Array.isArray(c.durationsMs) && c.durationsMs.length === frames.length) dur = c.durationsMs.map(ms => Math.max(0.02, ms / 1000));
+      clips[name] = frames ? { fps: (c && c.fps) || (name === 'run' ? 12 : 8), loop, hit: hitIdx, dur, frames } : null;
     });
     let image = data.image || data.file || data.png || data.sheet || '';
     if (image && image.indexOf('/') < 0) image = base + image;
+    const runSrc = src.run || {};
+    const pt = (clipName, ...keys) => {
+      const c = src[clipName];
+      if (!c) return null;
+      for (let i = 0; i < keys.length; i++) if (c[keys[i]]) return pilotPoint(c[keys[i]], cellW, cellH);
+      return null;
+    };
     const atlas = normalizeAtlas({
       id, image, facing: 'right', feet: [ax, ay], radius: 26,
-      muzzle: pilotPoint(data.muzzle || data.muzzlePoint, cellW, cellH),
-      clips, noSlide: data.noSlideSpeedPxPerSec || data.noSlideSpeed || data.noSlide || 0,
+      muzzle: pilotPoint(data.muzzle || data.muzzlePoint, cellW, cellH) || pt('cast', 'muzzle') || pt('attack', 'muzzle'),
+      clips, noSlide: data.noSlideSpeedPxPerSec || data.noSlideSpeed || data.noSlide || runSrc.noSlideSpeedPxPerSec || 0,
       anchorX: ax,
     });
-    atlas.impactPt = pilotPoint(data.impact || data.impactPoint, cellW, cellH);
+    atlas.cellH = cellH || 0;
+    atlas.impactPt = pilotPoint(data.impact || data.impactPoint, cellW, cellH) || pt('attack', 'impactPoint', 'impact');
+    atlas.muzzleAtk = pt('attack', 'muzzle');
+    atlas.muzzleCast = pt('cast', 'muzzle');
     return atlas;
   }
   function sheetFromJson(data, base) {
@@ -385,7 +403,8 @@
     if (image && image.indexOf('/') < 0) image = base + image;
     return { image, frames: frames || [], fps: data.fps || 12, loop: data.loop !== false };
   }
-  let vfxProj = null, vfxImpact = null, vfxTel = null, pilotBooted = false;
+  let vfxProj = null, vfxProjWater = null, vfxImpact = null, vfxTel = null, pilotBooted = false;
+  const impactTints = new Map();
   function loadSheet(url) {
     const base = url.slice(0, url.lastIndexOf('/') + 1);
     return fetch(url).then(r => r.ok ? r.json() : null).then(data => {
@@ -417,15 +436,42 @@
         loadSheet('img/arena/vfx/' + name).then(sheet => {
           if (!sheet) return;
           if (slot === 'proj') vfxProj = sheet;
+          else if (slot === 'projw') vfxProjWater = sheet;
           else if (slot === 'impact') vfxImpact = sheet;
           else vfxTel = sheet;
         });
       };
       const v = man.vfx || {};
       take(v.projectile, 'proj');
+      take(v.projectileWater, 'projw');
       take(v.impact, 'impact');
       take(v.telegraph, 'tel');
     }).catch(() => {});
+  }
+  // The impact sheet is a fire burst. Other elements get a hue-shifted copy (made once), so a water
+  // hit is not an orange flame. Without canvas filter support everything stays the fire burst.
+  const TINTS = {
+    tide: 'hue-rotate(190deg) saturate(1.1)', bloom: 'hue-rotate(95deg)', volt: 'hue-rotate(38deg) saturate(1.2) brightness(1.1)',
+    stone: 'saturate(0.3) sepia(0.4) brightness(0.95)', shade: 'hue-rotate(250deg) saturate(0.9)', mystic: 'hue-rotate(285deg)',
+    frost: 'hue-rotate(175deg) saturate(0.6) brightness(1.15)', gale: 'hue-rotate(115deg) saturate(0.7) brightness(1.1)', metal: 'saturate(0.12) brightness(1.05)',
+  };
+  function impactSheetFor(el) {
+    if (!vfxImpact || !vfxImpact.img) return null;
+    const f = TINTS[el];
+    if (!f || el === 'ember' || el === 'fire') return vfxImpact;
+    if (impactTints.has(el)) return impactTints.get(el);
+    let out = vfxImpact;
+    try {
+      const im = vfxImpact.img;
+      const c = document.createElement('canvas');
+      c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
+      const x = c.getContext('2d');
+      x.filter = f;
+      x.drawImage(im, 0, 0);
+      if (x.filter === f) out = { frames: vfxImpact.frames, fps: vfxImpact.fps, loop: vfxImpact.loop, img: c };
+    } catch (e) { /* keep the fire burst */ }
+    impactTints.set(el, out);
+    return out;
   }
   function sheetFrame(sheet, t) {
     if (!sheet || !sheet.frames || !sheet.frames.length) return null;
@@ -450,6 +496,11 @@
   }
 
   // Frame shown at `elapsed` seconds. When hitAt is set, frame `hit` lands on that time.
+  function frameAtDur(dur, t, from) {
+    let acc = 0;
+    for (let i = from; i < dur.length; i++) { acc += dur[i]; if (t < acc) return i; }
+    return dur.length - 1;
+  }
   function frameIndex(atlasOrId, name, elapsed, hitAt) {
     const atlas = typeof atlasOrId === 'string' ? atlases.get(atlasOrId) : atlasOrId;
     if (!atlas) return 0;
@@ -458,11 +509,17 @@
     const n = clip.frames.length;
     const fps = clip.fps || 8;
     const hit = clip.hit != null ? clip.hit : (name === 'attack' ? 3 : name === 'cast' ? 4 : null);
+    const dur = clip.dur && clip.dur.length === n ? clip.dur : null;
     let idx;
     if (hit != null && hitAt > 0 && (name === 'attack' || name === 'cast')) {
       const h = Math.max(0, Math.min(n - 1, hit));
       if (elapsed <= hitAt) idx = Math.min(h, Math.floor((elapsed / hitAt) * h));
+      else if (dur) idx = frameAtDur(dur, elapsed - hitAt, h);
       else idx = Math.min(n - 1, h + Math.floor((elapsed - hitAt) * fps));
+    } else if (dur) {
+      let t = Math.max(0, elapsed);
+      if (clip.loop) { let tot = 0; for (let i = 0; i < n; i++) tot += dur[i]; t = tot > 0 ? t % tot : 0; }
+      idx = frameAtDur(dur, t, 0);
     } else {
       idx = Math.floor(Math.max(0, elapsed) * fps);
       if (clip.loop) idx = ((idx % n) + n) % n;
@@ -1379,8 +1436,9 @@
     }
     g.globalAlpha = 1;
     const x = Math.round(q.x), y = Math.round(q.y);
-    if (vfxProj && vfxProj.img && (p.el === 'ember' || p.el === 'fire')) {
-      const fr = sheetFrame(vfxProj, now);
+    const psheet = (p.el === 'ember' || p.el === 'fire') ? vfxProj : (p.el === 'tide' || p.el === 'water') ? vfxProjWater : null;
+    if (psheet && psheet.img) {
+      const fr = sheetFrame(psheet, now);
       if (fr) {
         const dh = Math.max(16, 22 * camZX());
         const dw = dh * (fr.w / fr.h);
@@ -1388,7 +1446,7 @@
         g.translate(x, y);
         g.rotate(Math.atan2(p.vy || 0, p.vx || 1));
         g.imageSmoothingEnabled = false;
-        g.drawImage(vfxProj.img, fr.x, fr.y, fr.w, fr.h, -dw * 0.5, -dh * 0.5, dw, dh);
+        g.drawImage(psheet.img, fr.x, fr.y, fr.w, fr.h, -dw * 0.5, -dh * 0.5, dw, dh);
         g.restore();
         return;
       }
@@ -1510,6 +1568,14 @@
     g.restore();
   }
 
+  // Screen pixels per art pixel for atlas sheets: h / 54, snapped to half device pixels so the
+  // pixel grid stays even (1, 1.5, 2 ... device px per art px) instead of shimmering.
+  function atlasScale(h) {
+    const d = dpr || 1;
+    const dev = Math.max(1, Math.round((h / ATLAS_ART_PX) * d * 2) / 2);
+    return dev / d;
+  }
+
   function drawGhost(g, gh) {
     const q = project(gh.x, gh.y);
     const rec = gh.art && arts.get(gh.art);
@@ -1521,8 +1587,8 @@
       const clip = clipOf(atlas, 'run') || clipOf(atlas, 'idle');
       const fr = clip && clip.frames && clip.frames[0];
       if (fr) {
-        const dh = Math.max(28, (gh.r || 26) * 2.2 * camZX());
-        const dw = dh * (fr.w / fr.h);
+        const asc = atlasScale(Math.max(28, (gh.r || 26) * 2.2 * camZX()));
+        const dh = fr.h * asc, dw = fr.w * asc;
         const face = (gh.facing || 1) < 0 ? -1 : 1;
         g.save();
         g.translate(Math.round(q.x), Math.round(q.y));
@@ -1599,8 +1665,7 @@
       const hitAt = clipName === 'attack' ? (extra && extra.wind) || 0.22 : clipName === 'cast' ? (extra && extra.castDur) || 0.45 : 0;
       let elapsed = v.t;
       if (clipName === 'run' && atlas.noSlide > 0) {
-        const fr0 = clip.frames[0];
-        const scale = fr0 && fr0.h ? h / fr0.h : 1;
+        const scale = atlasScale(h);
         const srcPx = ((v.spd || 0) * camZX()) / Math.max(0.001, scale);
         const rate = Math.max(0.25, Math.min(3, srcPx / atlas.noSlide));
         v.runT = (v.runT || 0) + (motionDt > 0 ? motionDt : 0) * rate;
@@ -1609,7 +1674,8 @@
       const idx = frameIndex(atlas, clipName, elapsed, hitAt);
       const fr = clip.frames[idx];
       img = atlas.img; sw = fr.w; sh = fr.h; srcX = fr.x; srcY = fr.y;
-      dh = h; dw = h * (fr.w / Math.max(1, fr.h));
+      const asc = atlasScale(h);
+      dh = fr.h * asc; dw = fr.w * asc;
       feetN = atlas.feet || [0.5, 0.92];
       if (atlas.anchorX != null) feetN = [atlas.anchorX, feetN[1]];
       // Atlas frames already contain the action. Keep a whisper of squash so hits still read.
@@ -1619,7 +1685,8 @@
       }
       if (u.state === 'dead') {
         const nfr = clip.frames.length || 1;
-        const dur = nfr / (clip.fps || 10);
+        let dur = nfr / (clip.fps || 10);
+        if (clip.dur) { dur = 0; for (let i = 0; i < clip.dur.length; i++) dur += clip.dur[i]; }
         pose.sx = 1; pose.sy = 1;
         pose.a = v.t <= dur ? 1 : Math.max(0, 1 - (v.t - dur) / 0.45);
       }
@@ -1705,15 +1772,16 @@
     const q = project(im.x, im.y);
     const f = im.t / im.life;
     const a = 1 - f;
-    if (vfxImpact && vfxImpact.img) {
-      const fr = sheetFrame(vfxImpact, im.t);
+    const isheet = impactSheetFor(im.el);
+    if (isheet && isheet.img) {
+      const fr = sheetFrame(isheet, im.t);
       if (fr) {
         const dh = Math.max(28, 36 * Math.max(camZX(), camZY()));
         const dw = dh * (fr.w / Math.max(1, fr.h));
         g.save();
         g.globalAlpha = Math.max(0.15, a);
         g.imageSmoothingEnabled = false;
-        g.drawImage(vfxImpact.img, fr.x, fr.y, fr.w, fr.h, Math.round(q.x - dw / 2), Math.round(q.y - dh * 0.7), dw, dh);
+        g.drawImage(isheet.img, fr.x, fr.y, fr.w, fr.h, Math.round(q.x - dw / 2), Math.round(q.y - dh * 0.7), dw, dh);
         g.restore();
         return;
       }
@@ -2279,8 +2347,12 @@
     get focus() { return focusId; },
     set focus(id) { focusId = id || 0; },
     atlas(id) { return atlases.get(id) || null; },
+    screenOf(x, y) { const q = project(x, y); return { x: q.x, y: q.y, dpr, scale: atlasScale(unitPx(26, camZX(), camZY(), cssH > cssW * 1.12)) }; },
     artInfo(key) { const r = arts.get(key); return r && r.baked ? { w: r.baked.w, h: r.baked.h, feet: r.baked.feet } : null; },
     bakeURL(key) { const r = arts.get(key); return r && r.baked ? r.baked.canvas.toDataURL() : ''; },
   };
   root.GArenaView = api;
+  // With ?arena=1 start fetching the pilot sheets right away, so the first fight already has them.
+  // Flag off: nothing is fetched here (mount() boots the pilot only when a fight is drawn).
+  try { if (root.location && new URLSearchParams(root.location.search).get('arena') === '1') bootPilot(); } catch (e) { /* no location */ }
 })(typeof window !== 'undefined' ? window : globalThis);

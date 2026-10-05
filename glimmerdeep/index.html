@@ -371,12 +371,12 @@ img { display: block; -webkit-user-drag: none; }
 .toast.on { display: block; animation: toast 3.2s ease-out forwards; }
 @media (max-width: 560px) { .toast.low { top: 168px; } .toast.low.on { animation-duration: 2.2s; } }
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, -8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 85% { opacity: 1; } 100% { opacity: 0; } }
-#game.fighting ~ #toast.on {
+#game.fighting:has(.board.arena-on) ~ #toast.on {
   top: auto !important; bottom: 10px; left: 10px; right: auto; transform: none !important;
   max-width: 240px; font-size: 12px; padding: 6px 8px; text-align: left;
   animation: toast-corner 3.4s ease-out forwards;
 }
-#game.fighting ~ #toast.on.ask { animation: toast-corner 4.6s ease-out forwards; max-width: 260px; }
+#game.fighting:has(.board.arena-on) ~ #toast.on.ask { animation: toast-corner 4.6s ease-out forwards; max-width: 260px; }
 @keyframes toast-corner { 0% { opacity: 0; } 8% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
 .how p { margin: 0 0 10px; }
 .how b { color: var(--gold); }
@@ -864,7 +864,7 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 <script src="chess.js?v=a1"></script>
 <script src="fightstats.js?v=q1"></script>
 <script src="arena.js?v=a4"></script>
-<script src="arena-render.js?v=a4"></script>
+<script src="arena-render.js?v=a5"></script>
 <script src="crun.js?v=m3"></script>
 <script src="fx.js?v=q2"></script>
 <script src="glim-anim.js?v=m3"></script>
@@ -875,6 +875,6 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 <script src="wilds.js?v=m11"></script>
 <script src="achievements.js?v=f4"></script>
 <script src="cosmetics.js?v=f2"></script>
-<script src="qa.js?v=q4"></script>
+<script src="qa.js?v=q5"></script>
 </body>
 </html>

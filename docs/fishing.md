@@ -3914,6 +3914,9 @@ paths under `iron-league/` were not moved.
 ## Iron League — clubs, cups, relics
 Fifteen kits with one or two abilities, a renown gate, a hire board, level picks every third level, club relics, a four-club cup, and a three-side chaos pit. Save key stays `ironleague.v1`; new fields are added beside the old roster. Iron League still uses only its nine `assets/fx/` strips.
 
+## Iron League — clothed fighters
+Hub cards were drawing the outfit sheet under the skin. `cloth_bot` holds the shirt, pants, and boots; `cloth_top` is only extra plate and is empty on most outfits. The opaque body covered the garment, so a fighter read as briefs plus a weapon unless a pauldron or cape stuck out past the silhouette. The atlas now blits `cloth_bot` after skin and face. Same compositor for the hub, the creator, the market, and the pit. Cache query is `?v=4`.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

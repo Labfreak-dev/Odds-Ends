@@ -55,16 +55,16 @@
     const wtop = w === 5
       ? BASE + "weapon/weapon5/weapon5_top/weapon5_c" + wc + "_top.png"
       : BASE + "weapon/weapon" + w + "/weapon" + w + "_top/weapon" + w + "_top.png";
-    return [
-      wbot,
-      BASE + "cloth/cloth" + cloth + "/cloth" + cloth + "_bot/cloth" + cloth + "_c" + cc + "_bot.png",
-      BASE + "skin/skin_c" + parts.skin + ".png",
-      BASE + "face/face_c" + parts.face + ".png",
-      BASE + "cloth/cloth" + cloth + "/cloth" + cloth + "_top/cloth" + cloth + "_c" + cc + "_top.png",
-      BASE + "hair/" + hair + "/" + hair + "_bot/" + hair + "_c" + hc + "_bot.png",
-      BASE + "hair/" + hair + "/" + hair + "_top/" + hair + "_c" + hc + "_top.png",
-      wtop
-    ];
+    const skin = BASE + "skin/skin_c" + parts.skin + ".png";
+    const face = BASE + "face/face_c" + parts.face + ".png";
+    const clothBot = BASE + "cloth/cloth" + cloth + "/cloth" + cloth + "_bot/cloth" + cloth + "_c" + cc + "_bot.png";
+    const clothTop = BASE + "cloth/cloth" + cloth + "/cloth" + cloth + "_top/cloth" + cloth + "_c" + cc + "_top.png";
+    const hairBot = BASE + "hair/" + hair + "/" + hair + "_bot/" + hair + "_c" + hc + "_bot.png";
+    const hairTop = BASE + "hair/" + hair + "/" + hair + "_top/" + hair + "_c" + hc + "_top.png";
+    /* Shirts, pants, and boots live in cloth_bot. Most cloth_top sheets are
+       empty (pauldrons and cape fronts only). Draw the garment on the body.
+       Hair and weapon still split behind and in front. */
+    return [wbot, skin, face, clothBot, clothTop, hairBot, hairTop, wtop];
   }
 
   function keyOf(parts) {

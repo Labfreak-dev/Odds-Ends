@@ -30,6 +30,11 @@ if (frames.length !== 102) {
   console.error("expected 102 frame rects, got", frames.length);
   process.exit(1);
 }
+const heroSrc = fs.readFileSync(path.join(root, "js/hero.js"), "utf8");
+if (!/return \[wbot, skin, face, clothBot, clothTop, hairBot, hairTop, wtop\]/.test(heroSrc)) {
+  console.error("cloth must sit on the body: weapon_bot, skin, face, cloth_bot, cloth_top, hair, weapon_top");
+  process.exit(1);
+}
 
 let fails = 0;
 function check(name, ok) {

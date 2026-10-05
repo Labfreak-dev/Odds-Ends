@@ -33,6 +33,8 @@ Bottom to top, one blit of each full sheet into an 800×680 atlas, cached by par
 
 `cloth_bot` is the outfit (shirt, pants, boots, and the cape that hangs outside the silhouette). `cloth_top` is only the extra plate — pauldrons, a chest piece, the front of a cape — and for most outfits that sheet is empty. Drawing the outfit under the skin hides it behind the opaque body, so the card shows briefs and a weapon, plus whatever plate stuck out past the silhouette. The garment is blitted after `skin` and `face`. Hair and weapon are still the layers that split behind and in front.
 
+A few `cloth_bot` sheets still look naked after that, because the pixels are the skin's own hue. Cloth 4 (the creator default, color 6) paints the legs, and the brown dye paints the torso, in the same oranges as skin 1, so the sprite reads as flesh and a belt. Cloth 16 does the same, and cloth 3 and cloth 17 leave the ankles empty. `dressCloth` repaints any cloth pixel whose hue matches the skin actually in use. If the dye itself is that hue, the hue is rotated off the skin. Bare ankles on the lower part of each body are filled on `cloth_bot` only, in that dye.
+
 Parts: skin `c1–c6`, face `c1–c7`, cloth `cloth1–cloth17` × `c1–c8`, hair `m1–m14` and `f1–f9` × `c1–c10`, weapons `weapon1–weapon4` (no tint) and `weapon5` × `c1–c4`.
 
 ## Clips

@@ -67,6 +67,243 @@
     return [wbot, skin, face, clothBot, clothTop, hairBot, hairTop, wtop];
   }
 
+  /* Some sheets paint the legs (and, for a few dyes, the torso) in the same
+     hue as the skin underneath. Manhattan distance still calls that "covered"
+     — cloth 4 color 6 is the creator default, and it reads as bare skin plus
+     a belt. Pixels on the active skin's hue are repainted in the outfit dye.
+     If that dye is itself a skin hue, it is rotated off the skin. */
+  const DRESS_HUE = 0.09;
+  const DRESS_SAT = 0.16;
+  const DRESS_VAL = 0.18;
+  const DRESS_MIN_CH = 48;
+  const DRESS_KEEP = 8;
+  const DRESS_CLEAR = 0.12;
+  const DRESS_SHIFTS = [0.16, -0.16, 0.22, -0.22, 0.30, -0.30, 0.5];
+  const hueCache = new WeakMap();
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0;
+    if (d !== 0) {
+      if (max === r) h = (g - b) / d;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h /= 6;
+      if (h < 0) h += 1;
+    }
+    return [h, max === 0 ? 0 : d / max, max];
+  }
+
+  function hsvToRgb(h, s, v) {
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    let r = v, g = t, b = p;
+    switch (i % 6) {
+      case 1: r = q; g = v; b = p; break;
+      case 2: r = p; g = v; b = t; break;
+      case 3: r = p; g = q; b = v; break;
+      case 4: r = t; g = p; b = v; break;
+      case 5: r = v; g = p; b = q; break;
+      default: break;
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  }
+
+  function hueDist(a, b) {
+    const d = Math.abs(a - b);
+    return d < 0.5 ? d : 1 - d;
+  }
+
+  function lumOf(r, g, b) {
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  function likeSkin(r, g, b, hues) {
+    const hsv = rgbToHsv(r, g, b);
+    if (hsv[1] < DRESS_SAT || hsv[2] < DRESS_VAL) return false;
+    let best = 1;
+    for (let i = 0; i < hues.length; i++) {
+      const d = hueDist(hsv[0], hues[i]);
+      if (d < best) best = d;
+    }
+    return best <= DRESS_HUE;
+  }
+
+  function skinHues(img) {
+    if (hueCache.has(img)) return hueCache.get(img);
+    const scratch = document.createElement("canvas");
+    scratch.width = img.width;
+    scratch.height = img.height;
+    const ctx = scratch.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, scratch.width, scratch.height).data;
+    const seen = {};
+    const hues = [];
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 200) continue;
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      if (r < 31 && g < 31 && b < 31) continue;
+      const key = r + "," + g + "," + b;
+      if (seen[key]) continue;
+      seen[key] = 1;
+      hues.push(rgbToHsv(r, g, b)[0]);
+    }
+    hueCache.set(img, hues);
+    return hues;
+  }
+
+  function shiftDye(r, g, b, hues) {
+    const hsv = rgbToHsv(r, g, b);
+    const s = Math.max(hsv[1], 0.55);
+    const v = Math.min(0.78, Math.max(hsv[2], 0.42));
+    let best = [r, g, b];
+    let bestD = -1;
+    for (let i = 0; i < DRESS_SHIFTS.length; i++) {
+      let h = hsv[0] + DRESS_SHIFTS[i];
+      h = h - Math.floor(h);
+      let dist = 1;
+      for (let k = 0; k < hues.length; k++) {
+        const d = hueDist(h, hues[k]);
+        if (d < dist) dist = d;
+      }
+      const rgb = hsvToRgb(h, s, v);
+      if (dist > bestD) {
+        bestD = dist;
+        best = rgb;
+      }
+      /* Smallest step that leaves the skin hue, so a brown swatch stays warm. */
+      if (dist >= DRESS_CLEAR) return rgb;
+    }
+    return best;
+  }
+
+  function dressCloth(clothImg, skinImg, fill) {
+    const hues = skinHues(skinImg);
+    const canvas = document.createElement("canvas");
+    canvas.width = clothImg.width;
+    canvas.height = clothImg.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(clothImg, 0, 0);
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = image.data;
+    const keepBins = {};
+    const fleshBins = {};
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 20) continue;
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const bin = ((r / 24) | 0) + "," + ((g / 24) | 0) + "," + ((b / 24) | 0);
+      if (likeSkin(r, g, b, hues)) {
+        const slot = fleshBins[bin] || (fleshBins[bin] = { n: 0, r: 0, g: 0, b: 0 });
+        slot.n++; slot.r += r; slot.g += g; slot.b += b;
+      } else if (r >= DRESS_MIN_CH || g >= DRESS_MIN_CH || b >= DRESS_MIN_CH) {
+        const slot = keepBins[bin] || (keepBins[bin] = { n: 0, r: 0, g: 0, b: 0 });
+        slot.n++; slot.r += r; slot.g += g; slot.b += b;
+      }
+    }
+    function modeOf(bins) {
+      let best = null;
+      for (const key in bins) {
+        if (!best || bins[key].n > best.n) best = bins[key];
+      }
+      if (!best) return null;
+      return [(best.r / best.n) | 0, (best.g / best.n) | 0, (best.b / best.n) | 0];
+    }
+    let dye = null;
+    let keepN = 0;
+    for (const key in keepBins) keepN += keepBins[key].n;
+    if (keepN >= DRESS_KEEP) dye = modeOf(keepBins);
+    if (dye && likeSkin(dye[0], dye[1], dye[2], hues)) dye = shiftDye(dye[0], dye[1], dye[2], hues);
+    if (!dye) {
+      const base = modeOf(fleshBins) || modeOf(keepBins) || [140, 70, 40];
+      dye = shiftDye(base[0], base[1], base[2], hues);
+    }
+    if (likeSkin(dye[0], dye[1], dye[2], hues)) dye = shiftDye(dye[0], dye[1], dye[2], hues);
+    const dyeL = Math.max(lumOf(dye[0], dye[1], dye[2]), 28);
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 20) continue;
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      if (!likeSkin(r, g, b, hues)) continue;
+      const scale = Math.max(0.55, Math.min(1.25, lumOf(r, g, b) / dyeL));
+      let nr = Math.round(dye[0] * scale);
+      let ng = Math.round(dye[1] * scale);
+      let nb = Math.round(dye[2] * scale);
+      if (nr < 0) nr = 0; else if (nr > 255) nr = 255;
+      if (ng < 0) ng = 0; else if (ng > 255) ng = 255;
+      if (nb < 0) nb = 0; else if (nb > 255) nb = 255;
+      if (likeSkin(nr, ng, nb, hues)) {
+        nr = dye[0]; ng = dye[1]; nb = dye[2];
+      }
+      d[i] = nr; d[i + 1] = ng; d[i + 2] = nb;
+    }
+    /* Bare ankles sit under the hem on a few sheets (cloth 3, cloth 17).
+       Paint them in the same dye, on the lower fifth of each body, so the
+       legs are not skin under a tunic. Arms stay above that line. */
+    if (fill) {
+      const skinPx = imageDataOf(skinImg);
+      fillFeet(d, skinPx, canvas.width, canvas.height, dye);
+    }
+    ctx.putImageData(image, 0, 0);
+    return canvas;
+  }
+
+  function imageDataOf(img) {
+    const scratch = document.createElement("canvas");
+    scratch.width = img.width;
+    scratch.height = img.height;
+    const ctx = scratch.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    return ctx.getImageData(0, 0, scratch.width, scratch.height).data;
+  }
+
+  function fillFeet(cloth, skin, w, h, dye) {
+    const n = w * h;
+    const seen = new Uint8Array(n);
+    function isBody(i) {
+      const o = i * 4;
+      if (skin[o + 3] < 200) return false;
+      return skin[o] >= 40 || skin[o + 1] >= 40 || skin[o + 2] >= 40;
+    }
+    for (let start = 0; start < n; start++) {
+      if (seen[start] || !isBody(start)) continue;
+      const stack = [start];
+      seen[start] = 1;
+      const pix = [];
+      let top = (start / w) | 0;
+      let bot = top;
+      while (stack.length) {
+        const cur = stack.pop();
+        pix.push(cur);
+        const y = (cur / w) | 0;
+        const x = cur - y * w;
+        if (y < top) top = y;
+        if (y > bot) bot = y;
+        if (x > 0 && !seen[cur - 1] && isBody(cur - 1)) { seen[cur - 1] = 1; stack.push(cur - 1); }
+        if (x + 1 < w && !seen[cur + 1] && isBody(cur + 1)) { seen[cur + 1] = 1; stack.push(cur + 1); }
+        if (y > 0 && !seen[cur - w] && isBody(cur - w)) { seen[cur - w] = 1; stack.push(cur - w); }
+        if (y + 1 < h && !seen[cur + w] && isBody(cur + w)) { seen[cur + w] = 1; stack.push(cur + w); }
+      }
+      if (bot - top < 8) continue;
+      const cut = top + ((0.78 * (bot - top + 1)) | 0);
+      for (let p = 0; p < pix.length; p++) {
+        const i = pix[p];
+        const y = (i / w) | 0;
+        if (y < cut) continue;
+        const o = i * 4;
+        if (cloth[o + 3] >= 20) continue;
+        cloth[o] = dye[0];
+        cloth[o + 1] = dye[1];
+        cloth[o + 2] = dye[2];
+        cloth[o + 3] = 255;
+      }
+    }
+  }
+
   function keyOf(parts) {
     return [
       parts.skin, parts.face, parts.hair, parts.hairColor,
@@ -83,7 +320,11 @@
       canvas.height = 680;
       const ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
-      for (let i = 0; i < imgs.length; i++) ctx.drawImage(imgs[i], 0, 0);
+      const skin = imgs[1];
+      const dressed = imgs.slice();
+      dressed[3] = dressCloth(imgs[3], skin, true);
+      dressed[4] = dressCloth(imgs[4], skin, false);
+      for (let i = 0; i < dressed.length; i++) ctx.drawImage(dressed[i], 0, 0);
       return canvas;
     });
     atlases.set(key, job);

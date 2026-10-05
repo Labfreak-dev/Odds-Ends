@@ -3920,6 +3920,9 @@ Hits and cast blasts were the only screen shake, added in raw pixels (3.2 / 1.5,
 ## Iron League — clothed fighters
 Hub cards were drawing the outfit sheet under the skin. `cloth_bot` holds the shirt, pants, and boots; `cloth_top` is only extra plate and is empty on most outfits. The opaque body covered the garment, so a fighter read as briefs plus a weapon unless a pauldron or cape stuck out past the silhouette. The atlas now blits `cloth_bot` after skin and face. Same compositor for the hub, the creator, the market, and the pit. Cache query is `?v=4`.
 
+## Iron League — skin-hued outfits
+Layer order was already cloth over skin, and most kits read as clothed. Cloth 4 (creator default, color 6) and cloth 16 still looked naked: the leg pixels are baked in a skin hue that does not take the dye, and the brown dye sits on the same hue as the default tan skin, so a distance check reported them covered. `dressCloth` repaints cloth pixels that match the skin in use, rotating the dye off that hue when the whole garment is skin-colored, and fills bare ankles on `cloth_bot`. `check-clothes.py` fails the raw cloth 4 color 6 sheet and an empty `cloth_bot`. Cache query is `?v=6`. Shake scale stays 0.1.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

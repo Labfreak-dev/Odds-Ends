@@ -596,7 +596,8 @@
     const jobs = {};
     left.concat(right).forEach(function (f) { jobs[IL.hero.keyOf(f.parts)] = f.parts; });
     const keys = Object.keys(jobs);
-    Promise.all(keys.map(function (k) { return IL.hero.compose(jobs[k]); })).then(function (canvases) {
+    const fxReady = IL.fx && IL.fx.load ? IL.fx.load() : Promise.resolve();
+    Promise.all(keys.map(function (k) { return IL.hero.compose(jobs[k]); }).concat([fxReady])).then(function (canvases) {
       const map = {};
       keys.forEach(function (k, i) { map[k] = canvases[i]; });
       stopLoops();
@@ -630,7 +631,7 @@
           '<div class="side them"><strong id="rightName"></strong><span id="rightHp"></span></div>' +
         '</header>' +
         '<div class="fight-layout">' +
-          '<div class="stage"><canvas id="arena" width="960" height="600"></canvas><div id="result" class="result" hidden></div></div>' +
+          '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="result" class="result" hidden></div></div>' +
           '<aside id="liveList"></aside>' +
         '</div>' +
         '<footer class="fight-controls">' +
@@ -671,7 +672,7 @@
   function runFight(tok) {
     const canvas = document.getElementById("arena");
     const ctx = canvas.getContext("2d");
-    const fx = { shake: 0, nums: [], booms: [], t: 0 };
+    const fx = { shake: 0, nums: [], booms: [], sprites: [], t: 0, cam: null };
     let last = performance.now();
     let acc = 0;
     function frame(now) {
@@ -704,10 +705,20 @@
       const e = match.events[i];
       if (e.type === "dmg") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, t: 0, life: 0.7 });
-        fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.5));
+        fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
+      } else if (e.type === "dodge") {
+        fx.nums.push({ x: e.x, y: e.y, dodge: true, t: 0, life: 0.45 });
       } else if (e.type === "boom") {
-        fx.booms.push({ x: e.x, y: e.y, r: e.r, t: 0, life: 0.35 });
+        fx.booms.push({ x: e.x, y: e.y, r: e.r, kind: e.kind, t: 0, life: 0.48 });
         fx.shake = Math.min(8, fx.shake + 4);
+      } else if (e.type === "fx" && IL.fx) {
+        IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
+          size: e.size,
+          facing: e.facing,
+          rot: e.rot,
+          ground: e.ground,
+          team: e.team
+        });
       }
     }
     match.events.length = 0;
@@ -718,6 +729,7 @@
     if (fx.shake < 0.15) fx.shake = 0;
     fx.nums = fx.nums.filter(function (n) { n.t += dt; return n.t < n.life; });
     fx.booms = fx.booms.filter(function (b) { b.t += dt; return b.t < b.life; });
+    if (IL.fx) IL.fx.step(fx.sprites, dt);
   }
 
   function paintHud(match) {
@@ -789,7 +801,7 @@
     paintHud(match);
     const canvas = document.getElementById("arena");
     if (canvas) {
-      const fx = { shake: 0, nums: [], booms: [], t: 0 };
+      const fx = { shake: 0, nums: [], booms: [], sprites: [], t: 0, cam: null };
       IL.drawArena(canvas.getContext("2d"), match, fx);
     }
   }
@@ -824,5 +836,6 @@
   }
 
   IL.screenApi = { showTitle: showTitle };
+  if (IL.fx && IL.fx.load) IL.fx.load();
   showTitle();
 })(typeof window !== "undefined" ? window : globalThis);

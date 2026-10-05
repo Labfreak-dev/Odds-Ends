@@ -122,6 +122,18 @@
     showHub();
   }
 
+  function purseHtml() {
+    const eq = IL.equippedRelics(save);
+    const tokens = save.tokens || 0;
+    return '<div class="purse">' +
+      '<span class="coin"><b>' + save.gold + '</b> gold</span>' +
+      '<span class="coin"><b>' + (save.renown || 0) + '</b> renown</span>' +
+      '<span class="coin"><b>' + tokens + '</b> cup ' + (tokens === 1 ? "token" : "tokens") + '</span>' +
+      '<span class="coin"><b>' + (save.roster || []).length + "/" + IL.ROSTER_CAP + '</b> roster</span>' +
+      '<span class="coin"><b>' + eq.length + "/2</b> relics" + (eq.length ? " · " + esc(eq.map(function (r) { return r.name; }).join(", ")) : "") + '</span>' +
+    '</div>';
+  }
+
   function sortedClubs() {
     return save.clubs.slice().sort(function (a, b) {
       return (b.pts - a.pts) || ((b.pf - b.pa) - (a.pf - a.pa)) || (b.pf - a.pf);
@@ -464,7 +476,14 @@
     const slotOf = {};
     (save.lineup || []).forEach(function (id, i) { slotOf[id] = i; });
     const partyFull = (save.lineup || []).length >= IL.PARTY_CAP;
-    const roster = save.roster.map(function (f) {
+    const ordered = save.roster.slice().sort(function (a, b) {
+      const sa = Object.prototype.hasOwnProperty.call(slotOf, a.id) ? slotOf[a.id] : 99;
+      const sb = Object.prototype.hasOwnProperty.call(slotOf, b.id) ? slotOf[b.id] : 99;
+      return sa - sb;
+    });
+    const pitCards = [];
+    const benchCards = [];
+    ordered.forEach(function (f) {
       const slot = Object.prototype.hasOwnProperty.call(slotOf, f.id) ? slotOf[f.id] : -1;
       const fighting = slot >= 0 && (!size || slot < size);
       const held = slot >= 0 && size > 0 && slot >= size;
@@ -484,7 +503,7 @@
         lineClass += " on";
       } else if (partyFull) lineLabel = "Party full";
       const lineOff = slot < 0 && partyFull ? " disabled" : "";
-      return '<article class="card' + (fighting ? " playing" : "") + '">' +
+      const html = '<article class="card' + (fighting ? " playing" : " bench") + '">' +
         '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '"></canvas>' +
         '<h3>' + esc(f.name) + (f.captain ? ' <em>Captain</em>' : '') + champ + '</h3>' +
         '<p>' + esc(kit.name) + ' · Lv ' + f.level + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
@@ -492,23 +511,26 @@
         '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>' +
         '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
       '</article>';
-    }).join("");
-    const slotBits = [];
-    const slotCount = size || (save.lineup || []).length;
-    for (let i = 0; i < slotCount; i++) {
-      const id = (save.lineup || [])[i];
-      const who = id && save.roster.filter(function (r) { return r.id === id; })[0];
-      const inThis = !size || i < size;
-      slotBits.push((i + 1) + " " + (who && inThis ? who.name : "empty"));
-    }
-    const heldNames = size ? (save.lineup || []).slice(size).map(function (id) {
-      const who = save.roster.filter(function (r) { return r.id === id; })[0];
-      return who ? who.name : "";
-    }).filter(Boolean) : [];
-    const slotText = (slotBits.join(" · ") || "Nobody is in the party.") + (heldNames.length ? " · held " + heldNames.join(", ") : "");
-    const lineNote = size
-      ? "This match sends " + size + ". Tap a fighter to change who walks in. First chosen is slot 1."
-      : "Tap a fighter to change the party. First chosen is slot 1.";
+      if (fighting) pitCards.push(html);
+      else benchCards.push(html);
+    });
+    const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
+    const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
+    const relicCount = IL.equippedRelics(save).length;
+    const cupLabel = (save.cup && !save.cup.champion)
+      ? "Cup in progress"
+      : ("Cup · " + (save.tokens || 0) + ((save.tokens || 0) === 1 ? " token" : " tokens"));
+    const preview = (!done && rival)
+      ? '<section class="preview-board" id="matchPreview">' +
+          '<div><p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3>' +
+          '<p class="fine">' + yours.length + " of " + size + " walking in</p></div>" +
+          '<p class="vs">vs</p>' +
+          '<div><p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
+          '<p class="fine">Record ' + (rival.w || 0) + "–" + (rival.l || 0) + (themNames ? " · sends " + esc(themNames) : "") + '</p></div>' +
+          '<button type="button" class="btn primary" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
+            (partyReady ? "Send them in" : ("Choose " + size)) + '</button>' +
+        '</section>'
+      : "";
     const rivalCards = theirs.map(function (f) {
       return '<article class="card rival">' +
         '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="idle"></canvas>' +
@@ -522,18 +544,17 @@
         '<header class="hub-head">' +
           '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
           '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2>' +
-          '<p class="meta">' + save.gold + ' gold · ' + (save.renown || 0) + ' renown · ' + (save.tokens || 0) + ' cup tokens · roster ' + save.roster.length + '</p></div>' +
+          '</div>' +
           '<div class="hub-actions">' +
-            (done
-              ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>'
-              : '<button type="button" class="btn primary" id="nextMatch"' + (partyReady ? "" : " disabled") + '>Next match</button>') +
+            (done ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>' : '') +
             '<button type="button" class="btn ghost" id="market">Market</button>' +
-            '<button type="button" class="btn ghost" id="relics">Relics</button>' +
-            '<button type="button" class="btn ghost" id="cup">' + (save.cup && !save.cup.champion ? "Cup" : "Enter cup") + '</button>' +
+            '<button type="button" class="btn ghost" id="relics">Relics · ' + relicCount + '/2</button>' +
+            '<button type="button" class="btn ghost" id="cup">' + esc(cupLabel) + '</button>' +
             '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
             '<button type="button" class="text-btn" id="toTitle">Title</button>' +
           '</div>' +
         '</header>' +
+        purseHtml() +
         (pendingGrowth().length
           ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a growth</button></p>'
           : '') +
@@ -543,14 +564,23 @@
             ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. Roster, renown, and relics carry forward.</p>'
             : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>')) +
         (size && yours.length < size
-          ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the club.</p>'
+          ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
           : '') +
-        '<section><h3 class="section">Lineup</h3><p class="fine">' + esc(lineNote) + '</p><p class="lineup-slots">' + esc(slotText) + '</p><div class="cards" id="yourCards">' + roster + '</div></section>' +
-        (theirs.length ? '<section><h3 class="section">Across the pit</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
+        preview +
+        '<div id="yourCards">' +
+          '<section><h3 class="section">' + (size ? "In the pit" : "Party") + '</h3>' +
+            '<p class="fine">First chosen is slot 1. Tap a card to take them out.</p>' +
+            '<div class="cards">' + (pitCards.join("") || '<p class="fine">Nobody is walking in.</p>') + '</div></section>' +
+          '<section><h3 class="section">Bench</h3>' +
+            '<p class="fine">Tap Sit out to put them in the party. The list holds ' + IL.PARTY_CAP + '.</p>' +
+            '<div class="cards">' + (benchCards.join("") || '<p class="fine">The whole club is in the party.</p>') + '</div></section>' +
+        '</div>' +
+        (theirs.length ? '<section><h3 class="section">They send</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
         '<section><h3 class="section">Standings</h3>' +
           '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
         '</section>' +
       '</main>';
+    root.scrollTo(0, 0);
 
     drawCrest(document.getElementById("crest"), save.clubName);
     const nm = document.getElementById("nextMatch");
@@ -683,19 +713,30 @@
       '</article>';
     }).join("");
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
-      return '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell ' + esc(f.name) + ' — ' + IL.sellValue(f) + ' gold</button>';
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const inParty = (save.lineup || []).indexOf(f.id) >= 0;
+      return '<article class="card">' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+        '<h3>' + esc(f.name) + '</h3>' +
+        '<p>' + esc(kit.name) + ' · Lv ' + f.level + (inParty ? " · in the party" : "") + '</p>' +
+        '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell — ' + IL.sellValue(f) + ' gold</button>' +
+      '</article>';
     }).join("");
+    const captain = save.roster.filter(function (f) { return f.captain; })[0];
     app.innerHTML =
       '<main class="hub" id="market">' +
-        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
-        '<div><p class="eyebrow">Hire board</p><h2>Market</h2>' +
-        '<p class="meta">' + save.gold + ' gold · ' + (save.renown || 0) + ' renown</p></div>' +
+        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back to the club</button>' +
+        '<div><p class="eyebrow">Hire board</p><h2>Market</h2></div>' +
         '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div></header>' +
-        '<p class="banner">Four to six names. A champion is rare and costs more. Locked kits open with renown.</p>' +
+        purseHtml() +
+        '<p class="banner">Hire a name onto the bench, then slot them from the club hub. A champion costs more. Locked kits open with renown. Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '.</p>' +
+        '<h3 class="section">For hire</h3>' +
         '<div class="cards" id="marketCards">' + cards + '</div>' +
         '<h3 class="section">Sell from the bench</h3>' +
-        '<div class="hub-actions">' + (bench || '<p class="fine">The captain stays. Hire someone before there is a bench to sell.</p>') + '</div>' +
+        '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
+        '<div class="cards">' + (bench || '<p class="fine">Hire someone before there is a bench to sell.</p>') + '</div>' +
       '</main>';
+    root.scrollTo(0, 0);
     document.getElementById("backHub").onclick = function () { showHub(); };
     document.getElementById("refreshMarket").onclick = function () {
       if (save.gold < IL.REFRESH_COST) return;
@@ -748,9 +789,11 @@
     const list = IL.RELICS.map(function (r) {
       const have = !!owned[r.id];
       const on = (save.equipped || []).indexOf(r.id) >= 0;
+      const status = on ? "Riding with the party" : (have ? "In the chest" : "Won from a cup or a finished season");
       return '<article class="card relic' + (on ? " playing" : "") + '">' +
         '<h3>' + esc(r.name) + '</h3>' +
         '<p>' + esc(r.blurb) + '</p>' +
+        '<p class="fine">' + status + '</p>' +
         (have
           ? '<button type="button" class="btn ' + (on ? "primary" : "ghost") + '" data-equip="' + r.id + '">' + (on ? "Equipped" : "Equip") + '</button>'
           : '<p class="fine">Not in the yard yet.</p>') +
@@ -761,9 +804,11 @@
         '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
         '<div><p class="eyebrow">Club relics</p><h2>The yard chest</h2>' +
         '<p class="meta">' + (save.equipped || []).length + ' of 2 equipped · ' + (save.relics || []).length + ' owned</p></div></header>' +
-        '<p class="banner">Two relics ride with everyone you field. Cups and a finished season fill the chest.</p>' +
+        purseHtml() +
+        '<p class="banner">Two relics ride with everyone you field. Win a cup or close a season to add one. Equip them here, then send the party from the club hub.</p>' +
         '<div class="cards">' + list + '</div>' +
       '</main>';
+    root.scrollTo(0, 0);
     document.getElementById("backHub").onclick = function () { showHub(); };
     app.onclick = function (ev) {
       const btn = ev.target.closest("[data-equip]");
@@ -799,7 +844,10 @@
     if (!save) { showTitle(); return; }
     const cup = save.cup;
     const opp = cup ? IL.cupOpponent(cup) : null;
-    const cupReady = !cup || fielded(save.roster, cup.size).length >= cup.size;
+    const cupSize = cup ? cup.size : 2;
+    const sent = fielded(save.roster, cupSize);
+    const sentNames = sent.map(function (f) { return f.name; }).join(" · ") || "nobody yet";
+    const cupReady = !cup || sent.length >= cup.size;
     const fightBtn = opp
       ? '<button type="button" class="btn primary" id="cupFight"' + (cupReady ? "" : " disabled") + '>Fight ' + esc(opp.foe.name) + '</button>'
       : "";
@@ -808,14 +856,15 @@
       : fightBtn;
     app.innerHTML =
       '<main class="hub" id="cup">' +
-        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
-        '<div><p class="eyebrow">Single elimination</p><h2>The cup</h2>' +
-        '<p class="meta">' + (save.tokens || 0) + ' cup tokens</p></div>' +
+        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back to the club</button>' +
+        '<div><p class="eyebrow">Single elimination</p><h2>The cup</h2></div>' +
         '<div class="hub-actions">' + enter + '</div></header>' +
-        '<p class="banner">Four clubs. You play your tie with the first ' + (cup ? cup.size : 2) + ' in your lineup. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
+        purseHtml() +
+        '<p class="banner">Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
         (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club hub before this tie.</p>' : '') +
         (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
       '</main>';
+    root.scrollTo(0, 0);
     document.getElementById("backHub").onclick = function () { showHub(); };
     const enterBtn = document.getElementById("enterCup");
     if (enterBtn) enterBtn.onclick = function () {
@@ -1193,15 +1242,37 @@
     save.renown = (save.renown || 0) + renown;
     persist();
     const ups = fight.left.filter(function (f) { return f && f.level > before[f.id]; }).map(function (f) { return f.name; });
+    const stood = match.units.filter(function (u) { return u.team === 0 && u.hp > 0; }).map(function (u) { return u.name; });
+    const fell = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).map(function (u) { return u.name; });
+    let nextLine = "";
+    if (mode === "league") {
+      if (save.round >= 5) nextLine = "The season board is closed.";
+      else {
+        const nxt = nextRival();
+        const nsize = IL.SEASON_SIZES[save.round];
+        nextLine = "Next is match " + (save.round + 1) + " of 5 · " + nsize + " vs " + nsize + (nxt ? " against " + nxt.name : "") + ".";
+      }
+    } else if (mode === "cup") {
+      nextLine = save.cup && save.cup.champion ? "The bracket is finished." : "The bracket is waiting on the cup screen.";
+    } else {
+      nextLine = "The club hub is ready when you are.";
+    }
     const box = document.getElementById("result");
     if (!box) return;
     box.hidden = false;
     box.innerHTML =
       '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
       '<h2>' + headline + '</h2>' +
-      '<p>+' + gold + ' gold · +' + renown + ' renown · ' + xp + ' xp each' +
-        (ups.length ? ' · level up: ' + esc(ups.join(", ")) : "") + esc(relicNote) + '</p>' +
-      '<p class="fine">' + pf + ' downed · ' + pa + ' lost</p>' +
+      '<ul class="payout">' +
+        '<li>+' + gold + ' gold</li>' +
+        '<li>+' + renown + ' renown</li>' +
+        '<li>' + xp + ' xp for each fighter you sent</li>' +
+        (ups.length ? '<li>Level up: ' + esc(ups.join(", ")) + '</li>' : '') +
+        (relicNote ? '<li>' + esc(relicNote.trim()) + '</li>' : '') +
+      '</ul>' +
+      '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
+        (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +
+      '<p class="fine">' + esc(nextLine) + '</p>' +
       '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a growth" : "Back to the club") + '</button>';
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;

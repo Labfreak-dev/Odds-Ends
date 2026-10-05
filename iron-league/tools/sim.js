@@ -45,6 +45,10 @@ check("atk1 hit frames visited", seen.has(39) && seen.has(40));
 check("die holds last frame", IL.frameIndex("die", 5) === 81);
 check("cast loops inside 65-67", [65, 66, 67].indexOf(IL.frameIndex("cast1", 1.4)) >= 0);
 check("dash enters loop", IL.frameIndex("dash", 0.5) >= 84 && IL.frameIndex("dash", 0.5) <= 86);
+check("roll covers 95-102", IL.frameIndex("roll", 0) === 95 && IL.frameIndex("roll", 0.5) === 101 && IL.frameIndex("roll", 2) === 102);
+check("air1 hit frames", IL.CLIPS.air1.hits[0] === 55 && IL.CLIPS.air2.hits[0] === 61);
+check("cast2 is wired", IL.CLIPS.cast2.from === 68 && IL.CLASSES.mage.casts.indexOf("cast2") >= 0);
+check("pit is wider than 960", IL.WORLD.w >= 1440 && IL.WORLD.right - IL.WORLD.left > 1200);
 
 function fight(leftCls, rightCls, seed) {
   const n = Math.max(leftCls.length, rightCls.length);
@@ -105,7 +109,22 @@ check("tank blocks sometimes", blocked > 0);
 
 const deaths = samples.reduce((s, m) => s + m.stats.deaths, 0);
 check("fighters die", deaths > 0);
-console.log("deaths in samples", deaths, "tank blocks", blocked);
+const rolls = samples.reduce((s, m) => s + m.stats.rolls, 0);
+const dodges = samples.reduce((s, m) => s + m.stats.dodges, 0);
+const leaps = samples.reduce((s, m) => s + m.stats.leaps, 0);
+const airs = samples.reduce((s, m) => s + m.stats.airs, 0);
+const slashes = samples.reduce((s, m) => s + m.stats.slashes, 0);
+check("fighters roll", rolls > 0);
+check("rolls slip a hit", dodges > 0);
+check("leaps happen", leaps > 0);
+check("air attacks play", airs > 0);
+check("melee slashes", slashes > 0);
+console.log("deaths", deaths, "blocks", blocked, "rolls", rolls, "dodges", dodges, "leaps", leaps, "airs", airs, "slashes", slashes);
+
+const mage2 = fight(["mage", "mage"], ["warrior", "archer"], 77);
+check("second cast lands", mage2.stats.cast2 > 0);
+const dodgeFight = fight(["warrior", "archer", "rogue"], ["mage", "archer", "warrior"], 91);
+check("mixed fight dodges or rolls", dodgeFight.stats.rolls > 0 && (dodgeFight.stats.dodges > 0 || dodgeFight.stats.rolls > 2));
 
 if (avgT < 8 || avgT > 40) {
   console.error("duration out of band", avgT);

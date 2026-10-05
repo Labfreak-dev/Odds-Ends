@@ -43,15 +43,56 @@ def run(page, label, shot_dir):
     page.wait_for_selector("#arena", timeout=30000)
     page.wait_for_function(
         """() => {
-          const m = window.IL && window.IL.currentMatch;
-          if (!m) return false;
-          const moving = m.units.some(u => u.state === 'run' || u.state === 'attack' || u.state === 'dash' || u.state === 'cast');
-          return m.time > 1.2 && (moving || m.stats.hits > 0 || m.stats.shots > 0 || m.stats.casts > 0);
+          const IL = window.IL;
+          const m = IL && IL.currentMatch;
+          if (!m || !IL.fx || !IL.fx.ready()) return false;
+          const rolling = m.units.some(u => u.state === 'roll');
+          const combat = m.stats.slashes > 0 && rolling && IL.fx.spawned > 0;
+          return m.time > 1.2 && combat;
         }""",
-        timeout=20000,
+        timeout=35000,
     )
-    page.wait_for_timeout(350)
+    page.wait_for_timeout(200)
     page.screenshot(path=str(shot_dir / f"{label}-fight.png"))
+    caught = {"slash": False, "cast": False, "shot": False, "roll": False}
+    for _ in range(80):
+        snap = page.evaluate(
+            """() => {
+              const m = window.IL.currentMatch;
+              if (!m) return null;
+              return {
+                over: m.over,
+                slash: m.stats.slashes > 0,
+                cast: m.units.some(u => !!u.cast),
+                shot: m.shots.length > 0,
+                roll: m.units.some(u => u.state === 'roll'),
+                rolls: m.stats.rolls,
+                slashes: m.stats.slashes,
+                spawned: window.IL.fx.spawned
+              };
+            }"""
+        )
+        if not snap:
+            break
+        if snap["slash"] and not caught["slash"]:
+            page.screenshot(path=str(shot_dir / f"{label}-slash.png"))
+            caught["slash"] = True
+        if snap["cast"] and not caught["cast"]:
+            page.screenshot(path=str(shot_dir / f"{label}-cast.png"))
+            caught["cast"] = True
+        if snap["shot"] and not caught["shot"]:
+            page.screenshot(path=str(shot_dir / f"{label}-shot.png"))
+            caught["shot"] = True
+        if snap["roll"] and not caught["roll"]:
+            page.screenshot(path=str(shot_dir / f"{label}-roll.png"))
+            caught["roll"] = True
+        if snap["over"] or all(caught.values()):
+            break
+        page.wait_for_timeout(120)
+    if not caught["roll"]:
+        raise SystemExit(label + " fight never showed a roll")
+    if not caught["slash"]:
+        raise SystemExit(label + " fight never showed a slash")
     page.click("#skip")
     page.wait_for_selector("#backHub", timeout=10000)
     result = page.locator("#result h2").inner_text()

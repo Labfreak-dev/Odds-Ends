@@ -13,7 +13,8 @@ No build step. `index.html` loads the classic scripts in order.
 | `js/data.js` | Classes, clip timing, names, hire price, seeded RNG. No DOM. |
 | `js/hero.js` | Layer order, measured frame rects, atlas cache. One offscreen composite per loadout. |
 | `js/arena.js` | The fight. `createMatch` / `stepMatch`, no DOM. |
-| `js/render.js` | Canvas: pit, sprites, telegraphs, shots, bars, numbers. |
+| `js/fx.js` | Pixel FX strips in `assets/fx/`. Frame advance, additive draw. |
+| `js/render.js` | Canvas: wide pit, camera, sprites, FX, shots, bars. |
 | `js/game.js` | Title, creator, hub, season, save, fight loop. |
 | `ANIM.md` | How the 102 frames were measured, and the clip table. |
 
@@ -45,14 +46,18 @@ python3 iron-league/tools/smoke.py
 
 Classes decide the kit, not the costume. A weapon is a look.
 
-- **Warrior** — walks in, alternates two melee cuts.
-- **Archer** — keeps distance, fires a shot on the attack's hit frames.
-- **Mage** — roots and fills a ground circle, then the circle pays out.
+- **Warrior** — walks in, alternates cuts, and sometimes leaps into an air swing.
+- **Archer** — keeps distance and looses a shot with a visible trail.
+- **Mage** — a wide circle, then a tighter hotter one.
 - **Tank** — more health, slower, sometimes raises a guard.
-- **Rogue** — dashes in, then a short cut.
+- **Rogue** — dashes through, can roll clear, then a short cut.
+
+Anyone can roll to evade a swing, an arrow, or a filling circle. The roll has a short invulnerable window and a cooldown. The pit is larger than the screen; the camera eases toward the squads.
+
+Pixel effects (slash, ember, cast sigil, shield ring, dash crack, roll smoke, arrow glint, lightning) live in `assets/fx/` as horizontal frame strips. Procedural strokes still draw underneath, and they stand in if a sheet fails to load.
 
 Win gold and xp. Lose a smaller purse. Hire costs 70 gold. A season is five matches against generated clubs; the other fixtures on the board resolve on their own. After the fifth, open another season with the same roster.
 
 ## Not in this build
 
-Tactics slates, direct captain control, a wider armory, and cup runs are left for later. See the clip table in `ANIM.md` for jumps, rolls, and the second cast, which the pit does not use yet.
+Tactics slates, direct captain control, a wider armory, and cup runs are left for later. Clip usage is in `ANIM.md`.

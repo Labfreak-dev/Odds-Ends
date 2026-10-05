@@ -5,9 +5,10 @@
   const CLASSES = {
     warrior: {
       id: "warrior", name: "Warrior",
-      blurb: "Closes in. Two cuts, then another.",
+      blurb: "Closes in. Cuts, then a leaping swing.",
       hp: 150, atk: 18, def: 5, speed: 118, radius: 15,
-      range: 42, role: "melee", attacks: ["atk1", "atk2"],
+      range: 42, role: "melee", attacks: ["atk1", "atk2", "atk1", "atk3"],
+      airs: ["air1", "air2"], leaps: true,
       weapon: 1
     },
     archer: {
@@ -19,9 +20,10 @@
     },
     mage: {
       id: "mage", name: "Mage",
-      blurb: "Plants a slow circle and waits.",
+      blurb: "A wide circle, then a hotter one.",
       hp: 88, atk: 28, def: 1, speed: 82, radius: 14,
       range: 214, role: "cast", attacks: ["cast1"],
+      casts: ["cast1", "cast2"],
       castTime: 0.95, castRadius: 74,
       weapon: 5
     },
@@ -29,14 +31,15 @@
       id: "tank", name: "Tank",
       blurb: "A lot of health. Raises a guard.",
       hp: 236, atk: 13, def: 9, speed: 74, radius: 16,
-      range: 40, role: "tank", attacks: ["atk1"],
+      range: 40, role: "tank", attacks: ["atk1", "atk2"],
       weapon: 2
     },
     rogue: {
       id: "rogue", name: "Rogue",
-      blurb: "Dashes through, then a short cut.",
+      blurb: "Dashes through, rolls clear, then a short cut.",
       hp: 90, atk: 17, def: 2, speed: 148, radius: 13,
-      range: 36, role: "dash", attacks: ["atk3"],
+      range: 36, role: "dash", attacks: ["atk3", "atk1"],
+      airs: ["air2"], leaps: true,
       weapon: 3
     }
   };

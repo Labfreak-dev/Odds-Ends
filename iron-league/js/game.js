@@ -108,11 +108,18 @@
   }
 
   function fielded(roster, n) {
-    const cap = roster.filter(function (f) { return f.captain; })[0] || roster[0];
-    const rest = roster.filter(function (f) { return f !== cap; }).slice().sort(function (a, b) {
-      return (b.level - a.level) || (b.xp - a.xp);
-    });
-    return [cap].concat(rest).slice(0, n);
+    return IL.fielded(roster, save && save.lineup, n);
+  }
+
+  function toggleLineup(id) {
+    const on = (save.roster || []).some(function (f) { return f.id === id; });
+    if (!on) return;
+    if (!Array.isArray(save.lineup)) save.lineup = [];
+    const at = save.lineup.indexOf(id);
+    if (at >= 0) save.lineup.splice(at, 1);
+    else if (save.lineup.length < IL.PARTY_CAP) save.lineup.push(id);
+    persist();
+    showHub();
   }
 
   function sortedClubs() {
@@ -368,6 +375,7 @@
       }, IL.freshClubFields(seed));
       buildSeason(false);
       save.market = IL.rollMarket(takeRng(), 0);
+      save.lineup = save.roster.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
       const rival = nextRival();
       const jobs = save.roster.map(function (f) { return IL.hero.compose(f.parts); });
       if (rival) rival.fighters.forEach(function (f) { jobs.push(IL.hero.compose(f.parts)); });
@@ -446,24 +454,61 @@
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     const yours = size ? fielded(save.roster, size) : [];
     const theirs = rival && size ? rival.fighters.slice(0, size) : [];
+    const partyReady = !size || yours.length >= size;
+    const chaosReady = fielded(save.roster, 1).length >= 1;
     const done = save.round >= 5;
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
       return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
+    const slotOf = {};
+    (save.lineup || []).forEach(function (id, i) { slotOf[id] = i; });
+    const partyFull = (save.lineup || []).length >= IL.PARTY_CAP;
     const roster = save.roster.map(function (f) {
-      const playing = yours.indexOf(f) >= 0;
+      const slot = Object.prototype.hasOwnProperty.call(slotOf, f.id) ? slotOf[f.id] : -1;
+      const fighting = slot >= 0 && (!size || slot < size);
+      const held = slot >= 0 && size > 0 && slot >= size;
       const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
       const anim = kit.idle || "idle";
       const champ = f.champion ? ' <em>Champion</em>' : "";
-      return '<article class="card' + (playing ? " playing" : "") + '">' +
+      let lineLabel = "Sit out";
+      let lineClass = "chip lineup";
+      if (fighting && size) {
+        lineLabel = "Fighting · " + (slot + 1);
+        lineClass += " on";
+      } else if (held) {
+        lineLabel = "Held · " + (slot + 1);
+        lineClass += " held";
+      } else if (slot >= 0) {
+        lineLabel = "In the party · " + (slot + 1);
+        lineClass += " on";
+      } else if (partyFull) lineLabel = "Party full";
+      const lineOff = slot < 0 && partyFull ? " disabled" : "";
+      return '<article class="card' + (fighting ? " playing" : "") + '">' +
         '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '"></canvas>' +
         '<h3>' + esc(f.name) + (f.captain ? ' <em>Captain</em>' : '') + champ + '</h3>' +
-        '<p>' + esc(kit.name) + ' · Lv ' + f.level + ' · ' + esc(personalityLabel(f.personality)) + (playing ? " · walks in" : " · bench") + '</p>' +
+        '<p>' + esc(kit.name) + ' · Lv ' + f.level + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
         '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + (kit.ability2 ? " · " + esc(kit.ability2.name) : "") + '</p>' +
+        '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>' +
         '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
       '</article>';
     }).join("");
+    const slotBits = [];
+    const slotCount = size || (save.lineup || []).length;
+    for (let i = 0; i < slotCount; i++) {
+      const id = (save.lineup || [])[i];
+      const who = id && save.roster.filter(function (r) { return r.id === id; })[0];
+      const inThis = !size || i < size;
+      slotBits.push((i + 1) + " " + (who && inThis ? who.name : "empty"));
+    }
+    const heldNames = size ? (save.lineup || []).slice(size).map(function (id) {
+      const who = save.roster.filter(function (r) { return r.id === id; })[0];
+      return who ? who.name : "";
+    }).filter(Boolean) : [];
+    const slotText = (slotBits.join(" · ") || "Nobody is in the party.") + (heldNames.length ? " · held " + heldNames.join(", ") : "");
+    const lineNote = size
+      ? "This match sends " + size + ". Tap a fighter to change who walks in. First chosen is slot 1."
+      : "Tap a fighter to change the party. First chosen is slot 1.";
     const rivalCards = theirs.map(function (f) {
       return '<article class="card rival">' +
         '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="idle"></canvas>' +
@@ -481,11 +526,11 @@
           '<div class="hub-actions">' +
             (done
               ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>'
-              : '<button type="button" class="btn primary" id="nextMatch">Next match</button>') +
+              : '<button type="button" class="btn primary" id="nextMatch"' + (partyReady ? "" : " disabled") + '>Next match</button>') +
             '<button type="button" class="btn ghost" id="market">Market</button>' +
             '<button type="button" class="btn ghost" id="relics">Relics</button>' +
             '<button type="button" class="btn ghost" id="cup">' + (save.cup && !save.cup.champion ? "Cup" : "Enter cup") + '</button>' +
-            '<button type="button" class="btn ghost" id="chaos">Chaos pit</button>' +
+            '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
             '<button type="button" class="text-btn" id="toTitle">Title</button>' +
           '</div>' +
         '</header>' +
@@ -497,7 +542,10 @@
           : (done
             ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. Roster, renown, and relics carry forward.</p>'
             : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>')) +
-        '<section><h3 class="section">Your club</h3><div class="cards" id="yourCards">' + roster + '</div></section>' +
+        (size && yours.length < size
+          ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the club.</p>'
+          : '') +
+        '<section><h3 class="section">Lineup</h3><p class="fine">' + esc(lineNote) + '</p><p class="lineup-slots">' + esc(slotText) + '</p><div class="cards" id="yourCards">' + roster + '</div></section>' +
         (theirs.length ? '<section><h3 class="section">Across the pit</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
         '<section><h3 class="section">Standings</h3>' +
           '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
@@ -536,6 +584,8 @@
     document.getElementById("toTitle").onclick = showTitle;
     const cards = document.getElementById("yourCards");
     if (cards) cards.onclick = function (ev) {
+      const line = ev.target.closest("[data-line]");
+      if (line) { toggleLineup(line.dataset.line); return; }
       const btn = ev.target.closest("[data-fid]");
       if (!btn) return;
       const f = save.roster.filter(function (r) { return r.id === btn.dataset.fid; })[0];
@@ -683,6 +733,7 @@
     if (!f) return;
     save.gold += IL.sellValue(f);
     save.roster = save.roster.filter(function (r) { return r !== f; });
+    save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
     persist();
     showMarket();
   }
@@ -748,8 +799,9 @@
     if (!save) { showTitle(); return; }
     const cup = save.cup;
     const opp = cup ? IL.cupOpponent(cup) : null;
+    const cupReady = !cup || fielded(save.roster, cup.size).length >= cup.size;
     const fightBtn = opp
-      ? '<button type="button" class="btn primary" id="cupFight">Fight ' + esc(opp.foe.name) + '</button>'
+      ? '<button type="button" class="btn primary" id="cupFight"' + (cupReady ? "" : " disabled") + '>Fight ' + esc(opp.foe.name) + '</button>'
       : "";
     const enter = (!cup || cup.champion)
       ? '<button type="button" class="btn primary" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
@@ -760,7 +812,8 @@
         '<div><p class="eyebrow">Single elimination</p><h2>The cup</h2>' +
         '<p class="meta">' + (save.tokens || 0) + ' cup tokens</p></div>' +
         '<div class="hub-actions">' + enter + '</div></header>' +
-        '<p class="banner">Four clubs. You play your tie. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
+        '<p class="banner">Four clubs. You play your tie with the first ' + (cup ? cup.size : 2) + ' in your lineup. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
+        (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club hub before this tie.</p>' : '') +
         (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
       '</main>';
     document.getElementById("backHub").onclick = function () { showHub(); };
@@ -853,6 +906,7 @@
     if (!rival) return;
     const size = IL.SEASON_SIZES[save.round];
     const left = fielded(save.roster, size);
+    if (left.length < size) return;
     const right = rival.fighters.slice(0, size);
     const btn = document.getElementById("nextMatch");
     if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
@@ -877,6 +931,7 @@
     const opp = cup && IL.cupOpponent(cup);
     if (!opp) return;
     const left = fielded(save.roster, cup.size);
+    if (left.length < cup.size) return;
     const btn = document.getElementById("cupFight");
     if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
     launchMatch({
@@ -895,7 +950,7 @@
   }
 
   function startChaosFight() {
-    if (!save.roster.length) return;
+    if (fielded(save.roster, 1).length < 1) return;
     const chaos = IL.startChaos(save, takeRng());
     persist();
     const btn = document.getElementById("chaos");

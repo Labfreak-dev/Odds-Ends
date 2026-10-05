@@ -129,8 +129,60 @@
       if (typeof f.champion !== "boolean") f.champion = false;
       if (typeof f.level !== "number") f.level = IL.xpLevel(f.xp || 0);
     });
+    normalizeLineup(data);
     adoptSheets(data);
     return data;
+  }
+
+  /* Captain, then level, then xp. Used only when a save has no lineup yet. */
+  function legacyOrder(roster) {
+    const cap = roster.filter(function (f) { return f.captain; })[0] || roster[0];
+    const rest = roster.filter(function (f) { return f !== cap; }).slice().sort(function (a, b) {
+      return ((b.level || 1) - (a.level || 1)) || ((b.xp || 0) - (a.xp || 0));
+    });
+    const ordered = [];
+    if (cap) ordered.push(cap);
+    for (let i = 0; i < rest.length; i++) ordered.push(rest[i]);
+    return ordered;
+  }
+
+  function fielded(roster, lineup, n) {
+    const byId = {};
+    const list = roster || [];
+    for (let i = 0; i < list.length; i++) {
+      const f = list[i];
+      if (f && f.id) byId[f.id] = f;
+    }
+    const out = [];
+    const ids = lineup || [];
+    const want = n > 0 ? n : 0;
+    for (let i = 0; i < ids.length && out.length < want; i++) {
+      const f = byId[ids[i]];
+      if (f && out.indexOf(f) < 0) out.push(f);
+    }
+    return out;
+  }
+
+  function normalizeLineup(data) {
+    const roster = data.roster || [];
+    const known = {};
+    for (let i = 0; i < roster.length; i++) {
+      if (roster[i] && roster[i].id) known[roster[i].id] = true;
+    }
+    const cap = IL.PARTY_CAP || 3;
+    if (!Array.isArray(data.lineup)) {
+      data.lineup = legacyOrder(roster).slice(0, cap).map(function (f) { return f.id; });
+      return;
+    }
+    const seen = {};
+    const next = [];
+    for (let i = 0; i < data.lineup.length && next.length < cap; i++) {
+      const id = data.lineup[i];
+      if (!known[id] || seen[id]) continue;
+      seen[id] = true;
+      next.push(id);
+    }
+    data.lineup = next;
   }
 
   /* Layered Heroes99 parts become one Time Fantasy sheet. The same old
@@ -277,9 +329,8 @@
   }
 
   function startChaos(save, rng) {
-    const yours = (save.roster || []).slice().sort(function (a, b) {
-      return (b.captain - a.captain) || ((b.level || 1) - (a.level || 1));
-    })[0];
+    const picked = fielded(save.roster, save.lineup, 1);
+    const yours = picked[0] || (save.roster || [])[0];
     const pool = IL.CLUBS.filter(function (name) { return name !== save.clubName; });
     const a = makeRivalSide(rng, pool.length ? pool.splice(Math.floor(rng() * pool.length), 1)[0] : "North Wharf", 1);
     const b = makeRivalSide(rng, pool.length ? pool.splice(Math.floor(rng() * pool.length), 1)[0] : "Salt Stair", 1);
@@ -302,6 +353,7 @@
   IL.applyBoost = applyBoost;
   IL.freshClubFields = freshClubFields;
   IL.migrate = migrate;
+  IL.fielded = fielded;
   IL.offerRelic = offerRelic;
   IL.startCup = startCup;
   IL.cupOpponent = cupOpponent;

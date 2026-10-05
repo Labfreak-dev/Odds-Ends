@@ -292,6 +292,7 @@
 
   /* Five-match season. Sizes cover 1v1, 2v2 and 3v3. */
   const SEASON_SIZES = [3, 2, 3, 1, 3];
+  const PARTY_CAP = 3;
 
   const HIRE_COST = 70;
   const START_GOLD = 120;
@@ -484,6 +485,7 @@
   IL.LAST = LAST;
   IL.CLUBS = CLUBS;
   IL.SEASON_SIZES = SEASON_SIZES;
+  IL.PARTY_CAP = PARTY_CAP;
   IL.HIRE_COST = HIRE_COST;
   IL.START_GOLD = START_GOLD;
   IL.REFRESH_COST = REFRESH_COST;

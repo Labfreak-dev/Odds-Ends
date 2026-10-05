@@ -3903,6 +3903,14 @@ opens. Thankless pitch jitter only lowers `playbackRate` (never above the
 base rate). `workshop/` and `modes/fishing2.module.js` were not touched.
 The attack-effect sheets from #345 are unchanged.
 
+## Shared art packs
+`shared-assets/` holds Heroes99 v1.2 (full pack; Iron League's
+`assets/heroes99/` stays a byte-identical PNG subset), Elements Core
+sheets and guide (generator binaries stay on the Character-asset-gen v1
+release), and BitFX premade packs 1–4. Iron League's nine combat strips
+in `assets/fx/` are renamed copies of pack 1 and pack 4 sheets. Pages
+paths under `iron-league/` were not moved.
+
 ## Iron League — clubs, cups, relics
 Fifteen kits with one or two abilities, a renown gate, a hire board, level picks every third level, club relics, a four-club cup, and a three-side chaos pit. Save key stays `ironleague.v1`; new fields are added beside the old roster. Iron League still uses only its nine `assets/fx/` strips.
 

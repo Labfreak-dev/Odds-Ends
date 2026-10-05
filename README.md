@@ -8,3 +8,4 @@ Browser games served by GitHub Pages.
 - **Dead Man's Pull** — Loot Dungeon x Slots & Daggers: a side-scrolling dungeon crawl where the slot machine decides every step and stab: https://labfreak-dev.github.io/Odds-Ends/lootdaggers/
 - **Glimmerdeep** — a creature auto-chess roguelite: buy, place, merge and evolve creatures through 24 rounds and four biomes: https://labfreak-dev.github.io/Odds-Ends/glimmerdeep/
 - **Iron League** — a mercenary club and a real-time pit: compose a roster and play a five-match season: https://labfreak-dev.github.io/Odds-Ends/iron-league/
+- **Shared art packs** — Heroes99, Elements Core sheets, and BitFX premade FX: [`shared-assets/README.md`](shared-assets/README.md)

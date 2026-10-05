@@ -1,0 +1,828 @@
+/* Iron League — screens, save, and the fight loop. */
+(function (root) {
+  const IL = root.IL = root.IL || {};
+  const SAVE_KEY = "ironleague.v1";
+  const app = document.getElementById("app");
+
+  let save = null;
+  let token = 0;
+  let raf = 0;
+  let draft = null;
+  let speed = 1;
+  let fight = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || data.v !== 1 || !Array.isArray(data.roster) || !data.roster.length) return null;
+      if (!Array.isArray(data.clubs) || !Array.isArray(data.fixtures)) return null;
+      return data;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    } catch (err) {
+      /* private mode or a full disk — the match still played */
+    }
+  }
+
+  function stopLoops() {
+    token++;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    fight = null;
+  }
+
+  function alive(tok) { return tok === token; }
+
+  function takeRng() {
+    const rng = IL.mulberry32(save.rngSeed >>> 0 || 1);
+    const n = Math.floor(rng() * 1e9);
+    save.rngSeed = (n + 1) >>> 0;
+    return rng;
+  }
+
+  function roundRobin(ids) {
+    const list = ids.slice();
+    const rounds = [];
+    for (let r = 0; r < ids.length - 1; r++) {
+      const pairs = [];
+      for (let i = 0; i < list.length / 2; i++) pairs.push([list[i], list[list.length - 1 - i]]);
+      rounds.push(pairs);
+      const fixed = list[0];
+      const rest = list.slice(1);
+      rest.unshift(rest.pop());
+      list.length = 0;
+      list.push.apply(list, [fixed].concat(rest));
+    }
+    return rounds;
+  }
+
+  function buildSeason(keepGold) {
+    const rng = takeRng();
+    const pool = IL.CLUBS.filter(function (n) { return n !== save.clubName; });
+    const rivals = [];
+    while (rivals.length < 5 && pool.length) {
+      rivals.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    }
+    const clubs = [{ id: "you", name: save.clubName, you: true, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: 1 }];
+    rivals.forEach(function (name, i) {
+      const fighters = [0, 1, 2].map(function () { return IL.randomFighter(rng); });
+      const str = fighters.reduce(function (s, f) {
+        return s + (f.cls === "tank" ? 1.12 : f.cls === "mage" ? 1.06 : 1);
+      }, 0) / 3;
+      clubs.push({ id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, fighters: fighters });
+    });
+    save.clubs = clubs;
+    save.round = 0;
+    save.fixtures = roundRobin(clubs.map(function (c) { return c.id; }));
+    if (!keepGold) save.gold = IL.START_GOLD;
+  }
+
+  function clubById(id) {
+    for (let i = 0; i < save.clubs.length; i++) if (save.clubs[i].id === id) return save.clubs[i];
+    return null;
+  }
+
+  function nextRival() {
+    if (!save || save.round >= 5) return null;
+    const pairs = save.fixtures[save.round] || [];
+    for (let i = 0; i < pairs.length; i++) {
+      const p = pairs[i];
+      if (p[0] === "you") return clubById(p[1]);
+      if (p[1] === "you") return clubById(p[0]);
+    }
+    return null;
+  }
+
+  function fielded(roster, n) {
+    const cap = roster.filter(function (f) { return f.captain; })[0] || roster[0];
+    const rest = roster.filter(function (f) { return f !== cap; }).slice().sort(function (a, b) {
+      return (b.level - a.level) || (b.xp - a.xp);
+    });
+    return [cap].concat(rest).slice(0, n);
+  }
+
+  function sortedClubs() {
+    return save.clubs.slice().sort(function (a, b) {
+      return (b.pts - a.pts) || ((b.pf - b.pa) - (a.pf - a.pa)) || (b.pf - a.pf);
+    });
+  }
+
+  function blankParts() {
+    return { skin: 1, face: 1, hair: "m1", hairColor: 1, cloth: 4, clothColor: 6, weapon: 1, weaponColor: 1 };
+  }
+
+  /* ---------- title ---------- */
+  function showTitle() {
+    stopLoops();
+    save = load();
+    const cont = save
+      ? '<button type="button" class="btn ghost" id="continue">Continue — ' + esc(save.clubName) + '</button>'
+      : '<button type="button" class="btn ghost" id="continue" disabled>Continue</button>';
+    app.innerHTML =
+      '<main class="title-screen">' +
+        '<p class="eyebrow">Mercenary pit</p>' +
+        '<h1>Iron League</h1>' +
+        '<p class="lede">Raise a club. Send them into the sand. Five matches, then the board is read aloud.</p>' +
+        '<div class="title-actions">' +
+          '<button type="button" class="btn primary" id="newClub">New club</button>' +
+          cont +
+        '</div>' +
+        '<p class="fine">Saved on this browser only.</p>' +
+      '</main>';
+    document.getElementById("newClub").onclick = function () { showCreator("captain"); };
+    const c = document.getElementById("continue");
+    if (save) c.onclick = function () { showHub(); };
+  }
+
+  /* ---------- creator ---------- */
+  function showCreator(mode) {
+    stopLoops();
+    const rng = IL.mulberry32((Date.now() ^ (Math.floor(Math.random() * 1e9))) >>> 0);
+    const cls = mode === "captain" ? "warrior" : IL.pick(rng, Object.keys(IL.CLASSES));
+    draft = {
+      mode: mode,
+      weaponLock: false,
+      clubName: save && save.clubName ? save.clubName : "",
+      fighter: {
+        name: IL.pick(rng, IL.FIRST) + " " + IL.pick(rng, IL.LAST),
+        cls: cls,
+        parts: blankParts()
+      }
+    };
+    draft.fighter.parts.weapon = IL.CLASSES[cls].weapon;
+    if (mode === "hire") {
+      draft.fighter.parts = IL.randomParts(rng);
+      draft.fighter.parts.weapon = IL.CLASSES[cls].weapon;
+    }
+
+    const skinDots = IL.SKIN_COLORS.map(function (col, i) {
+      return '<button type="button" class="dot" data-skin="' + (i + 1) + '" style="background:' + col + '" aria-label="Skin ' + (i + 1) + '"></button>';
+    }).join("");
+    const hairDots = IL.HAIR_COLORS.map(function (col, i) {
+      return '<button type="button" class="dot" data-hairc="' + (i + 1) + '" style="background:' + col + '" aria-label="Hair color ' + (i + 1) + '"></button>';
+    }).join("");
+    const clothDots = IL.CLOTH_COLORS.map(function (col, i) {
+      return '<button type="button" class="dot" data-clothc="' + (i + 1) + '" style="background:' + col + '" aria-label="Cloth color ' + (i + 1) + '"></button>';
+    }).join("");
+    const focusDots = IL.FOCUS_COLORS.map(function (col, i) {
+      return '<button type="button" class="dot" data-focus="' + (i + 1) + '" style="background:' + col + '" aria-label="Focus color ' + (i + 1) + '"></button>';
+    }).join("");
+    const faces = [1, 2, 3, 4, 5, 6, 7].map(function (n) {
+      return '<button type="button" class="chip" data-face="' + n + '">' + n + '</button>';
+    }).join("");
+    const classes = Object.keys(IL.CLASSES).map(function (id) {
+      const c = IL.CLASSES[id];
+      return '<button type="button" class="class-card" data-class="' + id + '"><strong>' + esc(c.name) + '</strong><span>' + esc(c.blurb) + '</span></button>';
+    }).join("");
+    const clubField = mode === "captain"
+      ? '<label class="field"><span>Club name</span><input id="clubName" maxlength="24" autocomplete="off" placeholder="Ashveil Company" value="' + esc(draft.clubName) + '"></label>'
+      : "";
+    const warn = mode === "captain" && load()
+      ? '<p class="warn">Founding a new club replaces the one saved in this browser.</p>'
+      : "";
+    const confirmLabel = mode === "captain"
+      ? (load() ? "Replace and found the club" : "Found the club")
+      : "Sign them — " + IL.HIRE_COST + " gold";
+
+    app.innerHTML =
+      '<main class="creator">' +
+        '<header class="creator-head"><button type="button" class="text-btn" id="backTitle">' + (mode === "captain" ? "Back" : "Cancel") + '</button>' +
+        '<h2>' + (mode === "captain" ? "Name your captain" : "A new recruit") + '</h2></header>' +
+        warn +
+        '<div class="creator-grid">' +
+          '<div class="stage-card">' +
+            '<canvas id="preview" width="640" height="250"></canvas>' +
+            '<p class="fine" id="previewNote">Idle and run, from the same sheets.</p>' +
+          '</div>' +
+          '<div class="picker">' +
+            clubField +
+            '<label class="field"><span>Fighter name</span><input id="fighterName" maxlength="22" autocomplete="off" value="' + esc(draft.fighter.name) + '"></label>' +
+            '<div class="row"><span>Skin</span><div class="dots" id="skinDots">' + skinDots + '</div></div>' +
+            '<div class="row"><span>Face</span><div class="chips" id="faceChips">' + faces + '</div></div>' +
+            '<div class="row"><span>Hair</span><div class="stepper"><button type="button" id="hairPrev" aria-label="Previous hair">‹</button><b id="hairLabel"></b><button type="button" id="hairNext" aria-label="Next hair">›</button></div></div>' +
+            '<div class="row"><span>Hair color</span><div class="dots">' + hairDots + '</div></div>' +
+            '<div class="row"><span>Cloth</span><div class="stepper"><button type="button" id="clothPrev" aria-label="Previous cloth">‹</button><b id="clothLabel"></b><button type="button" id="clothNext" aria-label="Next cloth">›</button></div></div>' +
+            '<div class="row"><span>Cloth color</span><div class="dots">' + clothDots + '</div></div>' +
+            '<div class="row"><span>Weapon</span><div class="stepper"><button type="button" id="weapPrev" aria-label="Previous weapon">‹</button><b id="weapLabel"></b><button type="button" id="weapNext" aria-label="Next weapon">›</button></div></div>' +
+            '<div class="row" id="focusRow"><span>Focus color</span><div class="dots">' + focusDots + '</div></div>' +
+            '<div class="class-grid">' + classes + '</div>' +
+            '<div class="creator-actions">' +
+              '<button type="button" class="btn ghost" id="randomize">Randomize</button>' +
+              '<button type="button" class="btn primary" id="confirm">' + confirmLabel + '</button>' +
+            '</div>' +
+            '<p class="fine" id="creatorError"></p>' +
+          '</div>' +
+        '</div>' +
+      '</main>';
+
+    document.getElementById("backTitle").onclick = function () {
+      if (mode === "captain") showTitle();
+      else showHub();
+    };
+    const clubInput = document.getElementById("clubName");
+    if (clubInput) clubInput.addEventListener("input", function () { draft.clubName = clubInput.value; });
+    const nameInput = document.getElementById("fighterName");
+    nameInput.addEventListener("input", function () { draft.fighter.name = nameInput.value; });
+    document.getElementById("randomize").onclick = function () {
+      const r = IL.mulberry32((Date.now() ^ (Math.floor(Math.random() * 1e9))) >>> 0);
+      const id = IL.pick(r, Object.keys(IL.CLASSES));
+      draft.fighter.cls = id;
+      draft.fighter.parts = IL.randomParts(r);
+      draft.fighter.parts.weapon = IL.CLASSES[id].weapon;
+      draft.fighter.name = IL.pick(r, IL.FIRST) + " " + IL.pick(r, IL.LAST);
+      draft.weaponLock = false;
+      nameInput.value = draft.fighter.name;
+      syncPicker();
+    };
+    document.getElementById("confirm").onclick = onConfirm;
+    document.getElementById("hairPrev").onclick = function () { stepHair(-1); };
+    document.getElementById("hairNext").onclick = function () { stepHair(1); };
+    document.getElementById("clothPrev").onclick = function () { stepCloth(-1); };
+    document.getElementById("clothNext").onclick = function () { stepCloth(1); };
+    document.getElementById("weapPrev").onclick = function () { stepWeapon(-1); };
+    document.getElementById("weapNext").onclick = function () { stepWeapon(1); };
+    app.onclick = function (ev) {
+      const t = ev.target.closest("button");
+      if (!t) return;
+      if (t.dataset.skin) { draft.fighter.parts.skin = +t.dataset.skin; syncPicker(); }
+      else if (t.dataset.face) { draft.fighter.parts.face = +t.dataset.face; syncPicker(); }
+      else if (t.dataset.hairc) { draft.fighter.parts.hairColor = +t.dataset.hairc; syncPicker(); }
+      else if (t.dataset.clothc) { draft.fighter.parts.clothColor = +t.dataset.clothc; syncPicker(); }
+      else if (t.dataset.focus) { draft.fighter.parts.weaponColor = +t.dataset.focus; syncPicker(); }
+      else if (t.dataset.class) {
+        draft.fighter.cls = t.dataset.class;
+        if (!draft.weaponLock) draft.fighter.parts.weapon = IL.CLASSES[draft.fighter.cls].weapon;
+        syncPicker();
+      }
+    };
+    syncPicker();
+    startPreview();
+  }
+
+  function stepList(list, current, dir) {
+    let i = list.indexOf(current);
+    if (i < 0) i = 0;
+    return list[(i + dir + list.length) % list.length];
+  }
+
+  function stepHair(dir) {
+    draft.fighter.parts.hair = stepList(IL.HAIR, draft.fighter.parts.hair, dir);
+    syncPicker();
+  }
+  function stepCloth(dir) {
+    const n = draft.fighter.parts.cloth + dir;
+    draft.fighter.parts.cloth = n < 1 ? 17 : n > 17 ? 1 : n;
+    syncPicker();
+  }
+  function stepWeapon(dir) {
+    const n = draft.fighter.parts.weapon + dir;
+    draft.fighter.parts.weapon = n < 1 ? 5 : n > 5 ? 1 : n;
+    draft.weaponLock = true;
+    syncPicker();
+  }
+
+  function syncPicker() {
+    const p = draft.fighter.parts;
+    mark("[data-skin]", String(p.skin));
+    mark("[data-face]", String(p.face));
+    mark("[data-hairc]", String(p.hairColor));
+    mark("[data-clothc]", String(p.clothColor));
+    mark("[data-focus]", String(p.weaponColor || 1));
+    mark("[data-class]", draft.fighter.cls);
+    const hair = document.getElementById("hairLabel");
+    const cloth = document.getElementById("clothLabel");
+    const weap = document.getElementById("weapLabel");
+    if (hair) hair.textContent = p.hair.toUpperCase();
+    if (cloth) cloth.textContent = "Cloth " + p.cloth;
+    if (weap) {
+      const w = IL.WEAPONS[p.weapon - 1];
+      weap.textContent = w ? w.name : "Weapon";
+    }
+    const focus = document.getElementById("focusRow");
+    if (focus) focus.hidden = p.weapon !== 5;
+  }
+
+  function mark(sel, value) {
+    const nodes = app.querySelectorAll(sel);
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      const on = (n.dataset.skin || n.dataset.face || n.dataset.hairc || n.dataset.clothc || n.dataset.focus || n.dataset.class) === value;
+      n.classList.toggle("on", on);
+      if (n.classList.contains("dot") || n.classList.contains("chip") || n.classList.contains("class-card")) {
+        n.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+    }
+  }
+
+  function startPreview() {
+    const tok = token;
+    const canvas = document.getElementById("preview");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let atlas = null;
+    let key = "";
+    let last = performance.now();
+    let t = 0;
+    function loop(now) {
+      if (!alive(tok)) return;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt;
+      const k = IL.hero.keyOf(draft.fighter.parts);
+      if (k !== key) {
+        key = k;
+        atlas = null;
+        IL.hero.compose(draft.fighter.parts).then(function (c) {
+          if (alive(tok) && IL.hero.keyOf(draft.fighter.parts) === k) atlas = c;
+        }).catch(function (err) {
+          const note = document.getElementById("previewNote");
+          if (note) note.textContent = err.message;
+        });
+      }
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#1a1612";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(224,176,122,0.25)";
+      ctx.beginPath();
+      ctx.moveTo(40, 214);
+      ctx.lineTo(600, 214);
+      ctx.stroke();
+      ctx.fillStyle = "#e7d3b0";
+      ctx.font = "16px Palatino, Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Idle", 180, 32);
+      ctx.fillText("Run", 460, 32);
+      if (atlas) {
+        IL.hero.draw(ctx, atlas, IL.frameIndex("idle", t), 180, 214, 4, 1);
+        IL.hero.draw(ctx, atlas, IL.frameIndex("run", t), 460, 214, 4, 1);
+      }
+      raf = requestAnimationFrame(loop);
+    }
+    raf = requestAnimationFrame(loop);
+  }
+
+  function onConfirm() {
+    const err = document.getElementById("creatorError");
+    const btn = document.getElementById("confirm");
+    const name = (draft.fighter.name || "").trim() || (IL.pick(IL.mulberry32(Date.now() >>> 0), IL.FIRST) + " " + IL.pick(IL.mulberry32((Date.now() + 3) >>> 0), IL.LAST));
+    draft.fighter.name = name.slice(0, 22);
+    btn.disabled = true;
+    if (err) err.textContent = "Sharpening blades…";
+
+    if (draft.mode === "captain") {
+      const clubName = (draft.clubName || "").trim().slice(0, 24) || "Unnamed Company";
+      const seed = IL.hashStr(clubName + ":" + Date.now());
+      const captain = {
+        id: "cap" + seed.toString(36),
+        name: draft.fighter.name,
+        cls: draft.fighter.cls,
+        parts: Object.assign({}, draft.fighter.parts),
+        xp: 0,
+        level: 1,
+        captain: true
+      };
+      const rng = IL.mulberry32(seed);
+      const recruits = ["archer", "mage", "tank"].map(function (cls) {
+        const f = IL.randomFighter(rng, cls);
+        return f;
+      });
+      save = {
+        v: 1,
+        clubName: clubName,
+        gold: IL.START_GOLD,
+        season: 1,
+        rngSeed: seed,
+        roster: [captain].concat(recruits)
+      };
+      buildSeason(false);
+      const rival = nextRival();
+      const jobs = save.roster.map(function (f) { return IL.hero.compose(f.parts); });
+      if (rival) rival.fighters.forEach(function (f) { jobs.push(IL.hero.compose(f.parts)); });
+      Promise.all(jobs).then(function () {
+        persist();
+        showHub();
+      }).catch(function (e) {
+        btn.disabled = false;
+        if (err) err.textContent = e.message;
+      });
+      return;
+    }
+
+    if (save.gold < IL.HIRE_COST) {
+      btn.disabled = false;
+      if (err) err.textContent = "Not enough gold.";
+      return;
+    }
+    if (save.roster.length >= 6) {
+      btn.disabled = false;
+      if (err) err.textContent = "The bench is full.";
+      return;
+    }
+    const fighter = {
+      id: "h" + Date.now().toString(36),
+      name: draft.fighter.name,
+      cls: draft.fighter.cls,
+      parts: Object.assign({}, draft.fighter.parts),
+      xp: 0,
+      level: 1,
+      captain: false
+    };
+    IL.hero.compose(fighter.parts).then(function () {
+      save.gold -= IL.HIRE_COST;
+      save.roster.push(fighter);
+      persist();
+      showHub();
+    }).catch(function (e) {
+      btn.disabled = false;
+      if (err) err.textContent = e.message;
+    });
+  }
+
+  /* ---------- hub ---------- */
+  function showHub() {
+    stopLoops();
+    save = save || load();
+    if (!save) { showTitle(); return; }
+    const rival = nextRival();
+    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    const yours = size ? fielded(save.roster, size) : [];
+    const theirs = rival && size ? rival.fighters.slice(0, size) : [];
+    const done = save.round >= 5;
+    const table = sortedClubs().map(function (c, i) {
+      const played = c.w + c.l;
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+    }).join("");
+    const roster = save.roster.map(function (f) {
+      const playing = yours.indexOf(f) >= 0;
+      return '<article class="card' + (playing ? " playing" : "") + '">' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (f.cls === "tank" ? "idle2" : "idle") + '"></canvas>' +
+        '<h3>' + esc(f.name) + (f.captain ? ' <em>Captain</em>' : '') + '</h3>' +
+        '<p>' + esc(IL.CLASSES[f.cls].name) + ' · Lv ' + f.level + (playing ? " · walks in" : " · bench") + '</p>' +
+      '</article>';
+    }).join("");
+    const rivalCards = theirs.map(function (f) {
+      return '<article class="card rival">' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="idle"></canvas>' +
+        '<h3>' + esc(f.name) + '</h3>' +
+        '<p>' + esc(IL.CLASSES[f.cls].name) + '</p>' +
+      '</article>';
+    }).join("");
+
+    app.innerHTML =
+      '<main class="hub">' +
+        '<header class="hub-head">' +
+          '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
+          '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2>' +
+          '<p class="meta">' + save.gold + ' gold · roster ' + save.roster.length + '</p></div>' +
+          '<div class="hub-actions">' +
+            (done
+              ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>'
+              : '<button type="button" class="btn primary" id="nextMatch">Next match</button>') +
+            '<button type="button" class="btn ghost" id="hire"' + (save.gold < IL.HIRE_COST || save.roster.length >= 6 ? " disabled" : "") + '>Hire — ' + IL.HIRE_COST + ' gold</button>' +
+            '<button type="button" class="text-btn" id="toTitle">Title</button>' +
+          '</div>' +
+        '</header>' +
+        (done
+          ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board.</p>'
+          : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>') +
+        '<section><h3 class="section">Your club</h3><div class="cards" id="yourCards">' + roster + '</div></section>' +
+        (theirs.length ? '<section><h3 class="section">Across the pit</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
+        '<section><h3 class="section">Standings</h3>' +
+          '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
+        '</section>' +
+      '</main>';
+
+    drawCrest(document.getElementById("crest"), save.clubName);
+    const nm = document.getElementById("nextMatch");
+    if (nm) nm.onclick = function () { startFight(); };
+    const ns = document.getElementById("nextSeason");
+    if (ns) ns.onclick = function () {
+      save.season += 1;
+      save.gold += 30;
+      buildSeason(true);
+      persist();
+      showHub();
+    };
+    document.getElementById("hire").onclick = function () { showCreator("hire"); };
+    document.getElementById("toTitle").onclick = showTitle;
+    bootCards();
+  }
+
+  function drawCrest(canvas, name) {
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const h = IL.hashStr(name || "iron");
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#2a2118";
+    ctx.fillRect(0, 0, 64, 64);
+    ctx.strokeStyle = "#c4622d";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(4, 4, 56, 56);
+    ctx.beginPath();
+    const sides = 3 + (h % 3);
+    for (let i = 0; i < sides; i++) {
+      const a = -Math.PI / 2 + (i / sides) * Math.PI * 2 + ((h >> 4) % 5) * 0.05;
+      const rr = 16 + ((h >> (i * 2)) & 3);
+      const x = 32 + Math.cos(a) * rr;
+      const y = 34 + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "#e7d3b0";
+    ctx.fill();
+  }
+
+  function bootCards() {
+    const tok = token;
+    const canvases = Array.prototype.slice.call(app.querySelectorAll("canvas[data-key]"));
+    const ready = {};
+    const pending = {};
+    save.roster.forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
+    const rival = nextRival();
+    if (rival && save.round < 5) {
+      const n = IL.SEASON_SIZES[save.round];
+      rival.fighters.slice(0, n).forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
+    }
+    Object.keys(pending).forEach(function (k) {
+      IL.hero.compose(pending[k]).then(function (c) { if (alive(tok)) ready[k] = c; }).catch(function () {});
+    });
+    let last = performance.now();
+    let t = 0;
+    function loop(now) {
+      if (!alive(tok)) return;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt;
+      for (let i = 0; i < canvases.length; i++) {
+        const c = canvases[i];
+        if (!c.isConnected) continue;
+        const atlas = ready[c.dataset.key];
+        const ctx = c.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = "#241c16";
+        ctx.fillRect(0, 0, c.width, c.height);
+        if (!atlas) continue;
+        const clip = c.dataset.anim || "idle";
+        IL.hero.draw(ctx, atlas, IL.frameIndex(clip, t + i * 0.2), c.width / 2, c.height - 10, 3, 1);
+      }
+      raf = requestAnimationFrame(loop);
+    }
+    raf = requestAnimationFrame(loop);
+  }
+
+  /* ---------- fight ---------- */
+  function startFight() {
+    const rival = nextRival();
+    if (!rival) return;
+    const size = IL.SEASON_SIZES[save.round];
+    const left = fielded(save.roster, size);
+    const right = rival.fighters.slice(0, size);
+    const btn = document.getElementById("nextMatch");
+    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+    const jobs = {};
+    left.concat(right).forEach(function (f) { jobs[IL.hero.keyOf(f.parts)] = f.parts; });
+    const keys = Object.keys(jobs);
+    Promise.all(keys.map(function (k) { return IL.hero.compose(jobs[k]); })).then(function (canvases) {
+      const map = {};
+      keys.forEach(function (k, i) { map[k] = canvases[i]; });
+      stopLoops();
+      const tok = token;
+      speed = 1;
+      const match = IL.createMatch({
+        seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0,
+        left: left,
+        right: right,
+        leftName: save.clubName,
+        rightName: rival.name
+      });
+      match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
+      fight = { match: match, left: left, right: right, rival: rival, size: size, tok: tok };
+      IL.currentMatch = match;
+      mountFight(match);
+      runFight(tok);
+    }).catch(function (e) {
+      if (btn) { btn.disabled = false; btn.textContent = "Next match"; }
+      const banner = document.querySelector(".banner");
+      if (banner) banner.textContent = e.message;
+    });
+  }
+
+  function mountFight(match) {
+    app.innerHTML =
+      '<main class="fight-screen">' +
+        '<header class="bar">' +
+          '<div class="side you"><strong id="leftName"></strong><span id="leftHp"></span></div>' +
+          '<div class="timer" id="timer">0:00</div>' +
+          '<div class="side them"><strong id="rightName"></strong><span id="rightHp"></span></div>' +
+        '</header>' +
+        '<div class="fight-layout">' +
+          '<div class="stage"><canvas id="arena" width="960" height="600"></canvas><div id="result" class="result" hidden></div></div>' +
+          '<aside id="liveList"></aside>' +
+        '</div>' +
+        '<footer class="fight-controls">' +
+          '<button type="button" class="btn ghost on" id="speed1">Speed 1×</button>' +
+          '<button type="button" class="btn ghost" id="speed2">Speed 2×</button>' +
+          '<button type="button" class="btn primary" id="skip">Skip</button>' +
+        '</footer>' +
+      '</main>';
+    document.getElementById("leftName").textContent = match.leftName;
+    document.getElementById("rightName").textContent = match.rightName;
+    document.getElementById("speed1").onclick = function () { speed = 1; markSpeed(); };
+    document.getElementById("speed2").onclick = function () { speed = 2; markSpeed(); };
+    document.getElementById("skip").onclick = function () { skipFight(); };
+    const list = document.getElementById("liveList");
+    list.innerHTML = match.units.map(function (u, i) {
+      return '<div class="live ' + (u.team === 0 ? "you" : "them") + '" data-i="' + i + '"><b>' + esc(u.name) + '</b><small>' + esc(IL.CLASSES[u.cls].name) + '</small><div class="track"><div class="fill"></div></div></div>';
+    }).join("");
+  }
+
+  function markSpeed() {
+    const a = document.getElementById("speed1");
+    const b = document.getElementById("speed2");
+    if (a) a.classList.toggle("on", speed === 1);
+    if (b) b.classList.toggle("on", speed === 2);
+  }
+
+  function teamHp(match, team) {
+    let hp = 0;
+    let max = 0;
+    match.units.forEach(function (u) {
+      if (u.team !== team) return;
+      hp += Math.max(0, u.hp);
+      max += u.maxHp;
+    });
+    return max ? Math.round(100 * hp / max) : 0;
+  }
+
+  function runFight(tok) {
+    const canvas = document.getElementById("arena");
+    const ctx = canvas.getContext("2d");
+    const fx = { shake: 0, nums: [], booms: [], t: 0 };
+    let last = performance.now();
+    let acc = 0;
+    function frame(now) {
+      if (!alive(tok) || !fight) return;
+      const match = fight.match;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      fx.t += dt;
+      if (!match.over) {
+        acc += dt * speed;
+        let guard = 0;
+        while (acc >= 1 / 60 && !match.over && guard < 8) {
+          IL.stepMatch(match, 1 / 60);
+          consume(match, fx);
+          acc -= 1 / 60;
+          guard++;
+        }
+      }
+      ageFx(fx, dt);
+      IL.drawArena(ctx, match, fx);
+      paintHud(match);
+      if (match.over) { finishFight(); return; }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function consume(match, fx) {
+    for (let i = 0; i < match.events.length; i++) {
+      const e = match.events[i];
+      if (e.type === "dmg") {
+        fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, t: 0, life: 0.7 });
+        fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.5));
+      } else if (e.type === "boom") {
+        fx.booms.push({ x: e.x, y: e.y, r: e.r, t: 0, life: 0.35 });
+        fx.shake = Math.min(8, fx.shake + 4);
+      }
+    }
+    match.events.length = 0;
+  }
+
+  function ageFx(fx, dt) {
+    fx.shake *= Math.pow(0.04, dt);
+    if (fx.shake < 0.15) fx.shake = 0;
+    fx.nums = fx.nums.filter(function (n) { n.t += dt; return n.t < n.life; });
+    fx.booms = fx.booms.filter(function (b) { b.t += dt; return b.t < b.life; });
+  }
+
+  function paintHud(match) {
+    const timer = document.getElementById("timer");
+    if (timer) {
+      const s = Math.floor(match.time);
+      timer.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    }
+    const lh = document.getElementById("leftHp");
+    const rh = document.getElementById("rightHp");
+    if (lh) lh.textContent = teamHp(match, 0) + "%";
+    if (rh) rh.textContent = teamHp(match, 1) + "%";
+    const rows = document.querySelectorAll("#liveList .live");
+    for (let i = 0; i < rows.length; i++) {
+      const u = match.units[i];
+      if (!u) continue;
+      const fill = rows[i].querySelector(".fill");
+      if (fill) fill.style.width = Math.max(0, u.hp / u.maxHp * 100) + "%";
+    }
+  }
+
+  function skipFight() {
+    if (!fight || fight.match.over) return;
+    const match = fight.match;
+    let n = 0;
+    while (!match.over && n < 4000) {
+      IL.stepMatch(match, 1 / 60);
+      match.events.length = 0;
+      n++;
+    }
+    finishFight();
+  }
+
+  function finishFight() {
+    if (!fight || fight.settled) return;
+    const match = fight.match;
+    if (!match.over) {
+      match.over = true;
+      match.winner = 0;
+    }
+    fight.settled = true;
+    const win = match.winner === 0;
+    const pf = match.kills[0];
+    const pa = match.kills[1];
+    const gold = win ? 40 + 10 * fight.size : 16;
+    const xp = win ? 22 : 8;
+    const before = {};
+    fight.left.forEach(function (f) { before[f.id] = f.level; f.xp = (f.xp || 0) + xp; f.level = IL.xpLevel(f.xp); });
+    save.gold += gold;
+    recordRound(win, pf, pa);
+    persist();
+    const ups = fight.left.filter(function (f) { return f.level > before[f.id]; }).map(function (f) { return f.name; });
+    const box = document.getElementById("result");
+    if (!box) return;
+    box.hidden = false;
+    box.innerHTML =
+      '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
+      '<h2>' + (win ? "The pit is yours" : "They walk out") + '</h2>' +
+      '<p>+' + gold + ' gold · ' + xp + ' xp each' +
+        (ups.length ? ' · level up: ' + esc(ups.join(", ")) : "") + '</p>' +
+      '<p class="fine">' + pf + ' downed · ' + pa + ' lost</p>' +
+      '<button type="button" class="btn primary" id="backHub">Back to the club</button>';
+    const skip = document.getElementById("skip");
+    if (skip) skip.disabled = true;
+    document.getElementById("backHub").onclick = function () {
+      IL.currentMatch = null;
+      showHub();
+    };
+    paintHud(match);
+    const canvas = document.getElementById("arena");
+    if (canvas) {
+      const fx = { shake: 0, nums: [], booms: [], t: 0 };
+      IL.drawArena(canvas.getContext("2d"), match, fx);
+    }
+  }
+
+  function recordRound(win, pf, pa) {
+    const pairs = save.fixtures[save.round] || [];
+    pairs.forEach(function (pair) {
+      const a = clubById(pair[0]);
+      const b = clubById(pair[1]);
+      if (!a || !b) return;
+      if (a.you || b.you) {
+        const you = a.you ? a : b;
+        const them = a.you ? b : a;
+        if (win) {
+          you.w++; you.pts += 3; you.pf += pf; you.pa += pa;
+          them.l++; them.pf += pa; them.pa += pf;
+        } else {
+          them.w++; them.pts += 3; them.pf += pa; them.pa += pf;
+          you.l++; you.pf += pf; you.pa += pa;
+        }
+      } else {
+        const rng = takeRng();
+        const p = Math.max(0.22, Math.min(0.78, 0.5 + (a.str - b.str) * 0.3));
+        const awin = rng() < p;
+        const gf = 1 + Math.floor(rng() * 3);
+        const ga = Math.floor(rng() * gf);
+        if (awin) { a.w++; a.pts += 3; a.pf += gf; a.pa += ga; b.l++; b.pf += ga; b.pa += gf; }
+        else { b.w++; b.pts += 3; b.pf += ga; b.pa += gf; a.l++; a.pf += gf; a.pa += ga; }
+      }
+    });
+    save.round += 1;
+  }
+
+  IL.screenApi = { showTitle: showTitle };
+  showTitle();
+})(typeof window !== "undefined" ? window : globalThis);

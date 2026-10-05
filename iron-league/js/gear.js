@@ -9,23 +9,31 @@
   /* Flats, not percents. A full legendary set is a nudge, not a second kit. */
   const CATALOG = [
     { key: "cleaver", name: "Yard Cleaver", slot: "weapon", glyph: "sword",
+      icon: "assets/icons/weapons/cleaver.png",
       atk: [1, 1, 2, 2],
       passive: { id: "keen", name: "Keen edge", blurb: "Cuts land as criticals a little more often." } },
     { key: "wand", name: "Cinder Wand", slot: "weapon", glyph: "wand",
+      icon: "assets/icons/weapons/wand.png",
       atk: [1, 1, 2, 2], spd: [0, 1, 2, 3] },
     { key: "longbow", name: "Ash Longbow", slot: "weapon", glyph: "bow",
+      icon: "assets/icons/weapons/longbow.png",
       atk: [1, 1, 2, 2], spd: [1, 2, 2, 3] },
     { key: "mail", name: "Riveted Mail", slot: "armor", glyph: "shield",
+      icon: "assets/icons/armor/mail.png",
       hp: [8, 10, 12, 14], def: [1, 1, 1, 2],
       passive: { id: "ward", name: "Thin ward", blurb: "A small shield at the first bell." } },
     { key: "cloak", name: "Dust Cloak", slot: "armor", glyph: "cloak",
+      icon: "assets/icons/armor/cloak.png",
       hp: [4, 6, 8, 10], spd: [3, 4, 5, 6] },
     { key: "charm", name: "Mender Charm", slot: "trinket", glyph: "gem",
+      icon: "assets/icons/trinkets/charm.png",
       hp: [3, 4, 6, 8],
       passive: { id: "mend", name: "Slow mend", blurb: "A stitch of health across the fight." } },
     { key: "band", name: "Copper Band", slot: "trinket", glyph: "ring",
+      icon: "assets/icons/trinkets/band.png",
       atk: [1, 1, 1, 2], def: [0, 1, 1, 1] },
     { key: "glass", name: "Short Glass", slot: "trinket", glyph: "gem",
+      icon: "assets/icons/trinkets/glass.png",
       spd: [2, 3, 4, 5], atk: [0, 0, 1, 1] }
   ];
 
@@ -163,6 +171,11 @@
     return tpl ? tpl.glyph : "gem";
   }
 
+  function itemIcon(item) {
+    const tpl = templateOf(item);
+    return tpl && tpl.icon ? tpl.icon : "";
+  }
+
   function itemBlurb(item) {
     const tpl = templateOf(item);
     const p = passiveOf(item);
@@ -266,6 +279,7 @@
   IL.itemName = itemName;
   IL.itemSlot = itemSlot;
   IL.itemGlyph = itemGlyph;
+  IL.itemIcon = itemIcon;
   IL.itemBlurb = itemBlurb;
   IL.gearPrice = gearPrice;
   IL.salvageValue = salvageValue;

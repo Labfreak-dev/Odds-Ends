@@ -527,6 +527,11 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   color: #d9cbb8;
 }
 .glyph svg { width: 28px; height: 28px; }
+.item-icon {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
 .rarity-common { border-color: #8a7d70; }
 .rarity-rare { border-color: var(--steel); color: #d5e2f6; }
 .rarity-epic { border-color: var(--violet); color: #eadcf8; }

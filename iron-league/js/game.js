@@ -574,7 +574,7 @@
     return '<button type="button" class="chip train" data-train="' + esc(f.id) + '"' + off + '>' + esc(why) + '</button>';
   }
 
-  function glyphHtml(glyph, rarity) {
+  function glyphSvg(glyph) {
     const paths = {
       sword: '<path d="M8 28 L20 8 M14 14 L22 22 M6 26 L10 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>',
       wand: '<path d="M10 26 L22 8 M18 8 H26 M22 4 V12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>',
@@ -584,7 +584,64 @@
       ring: '<circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 6 V10 M16 22 V26" stroke="currentColor" stroke-width="2"/>',
       gem: '<path d="M16 4 L26 12 L16 28 L6 12 Z" fill="none" stroke="currentColor" stroke-width="2"/>'
     };
-    return '<span class="glyph rarity-' + esc(rarity || "common") + '"><svg viewBox="0 0 32 32" aria-hidden="true">' + (paths[glyph] || paths.gem) + '</svg></span>';
+    return '<svg viewBox="0 0 32 32" aria-hidden="true">' + (paths[glyph] || paths.gem) + '</svg>';
+  }
+
+  function glyphHtml(glyph, rarity) {
+    return '<span class="glyph rarity-' + esc(rarity || "common") + '">' + glyphSvg(glyph) + '</span>';
+  }
+
+  /* Pixel art, when the file exists. Otherwise the glyph tile stays. */
+  function itemFaceHtml(item) {
+    const rarity = (item && item.rarity) || "common";
+    const icon = IL.itemIcon ? IL.itemIcon(item) : "";
+    const glyph = IL.itemGlyph(item);
+    if (!icon) return glyphHtml(glyph, rarity);
+    return '<span class="glyph rarity-' + esc(rarity) + '">' +
+      '<img class="item-icon" alt="" data-src="' + esc(icon) + '" data-fallback="' + esc(glyph) + '">' +
+    '</span>';
+  }
+
+  function integerIconSize(nw, nh) {
+    const fit = 32;
+    const longest = Math.max(nw, nh);
+    if (longest <= fit) {
+      const up = Math.max(1, Math.floor(fit / longest));
+      return { w: nw * up, h: nh * up };
+    }
+    const down = Math.max(1, Math.ceil(longest / fit));
+    return { w: Math.max(1, Math.floor(nw / down)), h: Math.max(1, Math.floor(nh / down)) };
+  }
+
+  function mountIcons(scope) {
+    const root = scope && scope.querySelectorAll ? scope : document;
+    const imgs = root.querySelectorAll("img.item-icon[data-src]");
+    for (let i = 0; i < imgs.length; i++) {
+      const img = imgs[i];
+      const src = img.getAttribute("data-src");
+      if (!src) continue;
+      img.removeAttribute("data-src");
+      img.addEventListener("error", function () {
+        const host = img.parentNode;
+        if (host && !host.querySelector("svg")) host.insertAdjacentHTML("beforeend", glyphSvg(img.getAttribute("data-fallback") || "gem"));
+        if (img.parentNode) img.remove();
+      });
+      img.addEventListener("load", function () {
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        if (!nw || !nh || !img.parentNode) return;
+        const size = integerIconSize(nw, nh);
+        const canvas = document.createElement("canvas");
+        canvas.width = size.w;
+        canvas.height = size.h;
+        canvas.className = "item-icon";
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, size.w, size.h);
+        img.replaceWith(canvas);
+      });
+      img.src = src;
+    }
   }
 
   function bonusLine(item) {
@@ -653,7 +710,7 @@
       }).join("") + '</div>'
       : "";
     return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
-      glyphHtml(IL.itemGlyph(item), item.rarity) +
+      itemFaceHtml(item) +
       '<h3>' + esc(IL.itemName(item)) + '</h3>' +
       '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(row.slot)) + '</p>' +
       '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
@@ -847,7 +904,7 @@
     const slots = ["weapon", "armor", "trinket"].map(function (slot) {
       const item = gear[slot];
       const body = item
-        ? glyphHtml(IL.itemGlyph(item), item.rarity) +
+        ? itemFaceHtml(item) +
           '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(bonusLine(item)) + '</small></span>' +
           '<button type="button" class="btn ghost" data-unequip-slot="' + slot + '">Unequip</button>'
         : glyphHtml(slot === "weapon" ? "sword" : slot === "armor" ? "shield" : "gem", "common") +
@@ -856,7 +913,7 @@
     }).join("");
     const bag = (save.items || []).map(function (item) {
       return '<button type="button" class="gear-offer" data-preview-item="' + esc(item.uid) + '">' +
-        glyphHtml(IL.itemGlyph(item), item.rarity) +
+        itemFaceHtml(item) +
         '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</small></span>' +
       '</button>';
     }).join("");
@@ -874,7 +931,7 @@
       const item = row.item;
       const broke = save.gold < row.cost;
       return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
-        glyphHtml(IL.itemGlyph(item), item.rarity) +
+        itemFaceHtml(item) +
         '<h3>' + esc(IL.itemName(item)) + '</h3>' +
         '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + '</p>' +
         '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
@@ -2260,7 +2317,7 @@
 
   function lootRevealHtml(item) {
     return '<div id="lootReveal" class="loot-reveal rarity-' + esc(item.rarity) + '">' +
-      glyphHtml(IL.itemGlyph(item), item.rarity) +
+      itemFaceHtml(item) +
       '<div><p class="eyebrow">Found</p><h3>' + esc(IL.itemName(item)) + '</h3>' +
       '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</p></div></div>';
   }
@@ -2305,5 +2362,7 @@
 
   IL.screenApi = { showTitle: showTitle };
   if (IL.fx && IL.fx.load) IL.fx.load();
+  const iconWatch = new MutationObserver(function () { mountIcons(document); });
+  iconWatch.observe(document.body, { childList: true, subtree: true });
   showTitle();
 })(typeof window !== "undefined" ? window : globalThis);

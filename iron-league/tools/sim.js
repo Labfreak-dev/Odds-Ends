@@ -109,6 +109,9 @@ check("an empty lineup stays empty", cleared.lineup.length === 0);
 check("old save record starts at zero", oldSave.roster[0].wins === 0 && oldSave.roster[0].losses === 0 && oldSave.roster[0].kos === 0);
 check("old save gains history and settings", Array.isArray(oldSave.history) && oldSave.history.length === 0 && oldSave.settings.speed === 1 && oldSave.settings.shake === true);
 check("old save gains empty gear", oldSave.roster[0].gear && oldSave.roster[0].gear.weapon === null && oldSave.roster[0].gear.armor === null && Array.isArray(oldSave.items) && oldSave.items.length === 0);
+check("every item names an icon", IL.GEAR_CATALOG.length >= 8 && IL.GEAR_CATALOG.every(function (row) {
+  return typeof row.icon === "string" && /^assets\/icons\/(weapons|armor|trinkets|potions|loot|currency)\/[a-z0-9-]+\.png$/.test(row.icon);
+}));
 check("old save keeps a training day", oldSave.trainsLeft === 2 && oldSave.trainRound === 0);
 const messy = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 0 }], clubs: [], fixtures: [], settings: { speed: 9, shake: "no" } };
 IL.migrate(messy);

@@ -15,7 +15,22 @@ URL = "http://127.0.0.1:8765/iron-league/"
 def run(page, label, shot_dir):
     errors = []
     page.on("pageerror", lambda err: errors.append("pageerror: " + str(err)))
-    page.on("console", lambda msg: errors.append("console: " + msg.text) if msg.type == "error" else None)
+
+    def note_console(msg):
+        if msg.type != "error":
+            return
+        text = msg.text or ""
+        url = ""
+        try:
+            url = (msg.location or {}).get("url") or ""
+        except Exception:
+            url = ""
+        # Missing icon art falls back to glyph tiles. That 404 is expected.
+        if "assets/icons/" in (text + " " + url):
+            return
+        errors.append("console: " + text)
+
+    page.on("console", note_console)
     page.goto(URL, wait_until="domcontentloaded")
     page.wait_for_selector("#newClub")
     page.click("#newClub")
@@ -315,6 +330,29 @@ def check_gear(page, label, shot_dir):
     """Armory filters, equip diff, a bench drill, and a paid stall reroll."""
     page.keyboard.press("2")
     page.wait_for_selector("#armory")
+    icons = page.evaluate(
+        """() => (window.IL.GEAR_CATALOG || []).map(row => row.icon)"""
+    )
+    if len(icons) < 8:
+        raise SystemExit(label + " item catalog is short")
+    for path in icons:
+        if not path.startswith("assets/icons/") or not path.endswith(".png"):
+            raise SystemExit(label + " bad icon path " + str(path))
+    page.wait_for_function(
+        """() => {
+          const faces = document.querySelectorAll('#armory .glyph');
+          if (!faces.length) return false;
+          return Array.from(faces).every(el => {
+            const img = el.querySelector('img.item-icon, canvas.item-icon');
+            if (img && img.tagName === 'CANVAS') return true;
+            if (img && img.complete && img.naturalWidth > 0) {
+              const mode = getComputedStyle(img).imageRendering;
+              return mode === 'pixelated' || mode === 'crisp-edges';
+            }
+            return !!el.querySelector('svg');
+          });
+        }"""
+    )
     page.wait_for_selector("#filterSlot")
     page.wait_for_selector("#filterRarity")
     page.wait_for_selector("#sortGear")

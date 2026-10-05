@@ -1046,6 +1046,7 @@
       const e = match.events[i];
       if (e.type === "dmg") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, t: 0, life: 0.7 });
+        /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units. */
         if (typeof e.n === "number") fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
       } else if (e.type === "heal") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, heal: true, t: 0, life: 0.7 });

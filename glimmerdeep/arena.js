@@ -1396,7 +1396,7 @@ function view(st, alpha) {
       facing: u.facing, r: u.radius, hp: u.hp, maxHp: u.maxHp, shield: u.shield || 0,
       mana: u.mana, manaNeed: manaNeed(st, u),
       state: u.alive ? (u.state || 'idle') : 'dead',
-      name: u.name, el: u.el, art: u.art || '', boss: !!u.boss, star: u.star, alive: !!u.alive,
+      name: u.name, el: u.el, boss: !!u.boss, star: u.star, alive: !!u.alive,
     })),
     projs: (st.projs || []).map(p => ({
       id: p.id, x: lerp(p.prev.x, p.pos.x, alpha), y: lerp(p.prev.y, p.pos.y, alpha),

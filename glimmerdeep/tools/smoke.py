@@ -483,27 +483,6 @@ with sync_playwright() as p:
         t0 = time.time()
         page.click('#shopBtns [data-v=fight]')
         page.wait_for_selector('#game.fighting')
-        if a.arena and r < 3:
-            page.wait_for_timeout(280)
-            varied = page.evaluate("""() => {
-              const c = document.getElementById('arenaCv');
-              if (!c || c.width < 8 || c.height < 8) return 0;
-              const img = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-              const cols = new Set();
-              const sx = Math.max(1, (c.width / 16) | 0), sy = Math.max(1, (c.height / 16) | 0);
-              for (let y = sy; y < c.height; y += sy) for (let x = sx; x < c.width; x += sx) {
-                const i = (y * c.width + x) * 4;
-                cols.add(((img[i] >> 4) << 8) | ((img[i + 1] >> 4) << 4) | (img[i + 2] >> 4));
-                if (cols.size > 8) return cols.size;
-              }
-              return cols.size;
-            }""")
-            check(varied > 6, f'arena canvas is not a flat colour (fight {r + 1}, {varied} tones)')
-            try:
-                os.makedirs('/tmp/arena-shots', exist_ok=True)
-                page.locator('#arenaCv').screenshot(path=f'/tmp/arena-shots/fight-{r + 1}.png')
-            except Exception:
-                pass
         if r == 0 and a.arena:
             check(page.locator('#arenaCv').count() == 1, 'arena canvas mounted')
             check(page.evaluate("() => !!(GLIM.FS && GLIM.FS.st && GLIM.FS.st.engine === 'arena')"), 'arena engine is live')

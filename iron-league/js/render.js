@@ -294,7 +294,7 @@
       ctx.moveTo(tr[0].x, tr[0].y);
       for (let i = 1; i < tr.length; i++) ctx.lineTo(tr[i].x, tr[i].y);
       ctx.lineTo(p.x, p.y);
-      ctx.strokeStyle = p.team === 0 ? "rgba(255, 176, 96, 0.75)" : "rgba(176, 206, 255, 0.75)";
+      ctx.strokeStyle = p.team === 0 ? "rgba(255, 176, 96, 0.75)" : p.team === 1 ? "rgba(176, 206, 255, 0.75)" : "rgba(226, 196, 120, 0.75)";
       ctx.lineWidth = 3;
       ctx.stroke();
     }
@@ -308,7 +308,7 @@
     ctx.moveTo(-16, 0);
     ctx.lineTo(6, 0);
     ctx.stroke();
-    ctx.fillStyle = p.team === 0 ? "#ffb45a" : "#d5e4ff";
+    ctx.fillStyle = p.team === 0 ? "#ffb45a" : p.team === 1 ? "#d5e4ff" : "#f0d48a";
     ctx.beginPath();
     ctx.moveTo(14, 0);
     ctx.lineTo(4, -4);
@@ -429,8 +429,8 @@
         const n = fx.nums[i];
         const a = Math.max(0, 1 - n.t / n.life);
         ctx.globalAlpha = a;
-        ctx.fillStyle = n.dodge ? "#e6d4ff" : n.blocked ? "#d7d2ea" : "#fff6e8";
-        const label = n.dodge ? "slip" : n.blocked ? n.n + " guard" : String(n.n);
+        ctx.fillStyle = n.heal ? "#b7d39a" : n.crit ? "#ffd27a" : n.dodge ? "#e6d4ff" : n.blocked ? "#d7d2ea" : "#fff6e8";
+        const label = n.heal ? ("+" + n.n) : n.crit ? "crit" : n.dodge ? "slip" : n.blocked ? n.n + " guard" : String(n.n);
         ctx.fillText(label, n.x, n.y - n.t * 42);
       }
     }
@@ -450,10 +450,12 @@
       ctx.fillStyle = "#f4ecdf";
       ctx.font = "28px Palatino, Georgia, serif";
       ctx.textAlign = "center";
-      ctx.fillText(match.leftName + "  vs  " + match.rightName, view.cssW / 2, view.cssH * 0.38 + 36);
+      const multi = (match.teams || 2) > 2;
+      const title = multi ? (match.names || []).join("   ·   ") : (match.leftName + "  vs  " + match.rightName);
+      ctx.fillText(title, view.cssW / 2, view.cssH * 0.38 + 36);
       ctx.font = "14px Palatino, Georgia, serif";
       ctx.fillStyle = "#e0b07a";
-      ctx.fillText("They walk in on their own.", view.cssW / 2, view.cssH * 0.38 + 58);
+      ctx.fillText(multi ? "Chaos pit. Last club standing." : "They walk in on their own.", view.cssW / 2, view.cssH * 0.38 + 58);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }

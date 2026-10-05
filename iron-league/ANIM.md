@@ -86,4 +86,23 @@ Roll is not a dash. A dash closes through someone and can clip them. A roll burs
 | `bolt.png` | Branch lightning, 128×24 | cast 2 strike |
 | `shot.png` | Shuriken ice, 96×16 | arrowhead glint |
 | `dash.png` | EnergyCrack purple, 128×24 | rogue dash trail |
-| `smoke.png` | Smoke magic, 96×24 | roll dust |
+| `smoke.png` | Smoke magic, 96×24 | roll dust, shadowstep |
+
+Class abilities reuse those strips. They do not add sheets.
+
+| Class | Ability | Strip |
+|---|---|---|
+| Warrior | Cleave | slash |
+| Archer | Multishot | shot |
+| Mage | Frost Nova, Fireball | plasma, bolt |
+| Tank | Taunt | orbit |
+| Rogue, Assassin | Bleed, Shadowstep | spark, dash or smoke |
+| Lancer | Charge | dash, slash |
+| Berserker | Rage | spark |
+| Healer | Mend | plasma |
+| Ranger | Pierce Shot | shot |
+| Battlemage | Arc Burst | plasma |
+| Shieldbearer | Guard Zone | orbit |
+| Skirmisher | Skirmish | dash |
+| Duelist | Lunge | slash |
+| Elementalist | Nova, Bolt | plasma, bolt |

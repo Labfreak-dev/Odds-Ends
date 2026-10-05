@@ -11,6 +11,7 @@ No build step. `index.html` loads the classic scripts in order.
 | `index.html` | Page shell. |
 | `css/game.css` | Layout for the title, creator, club hub, and pit. |
 | `js/data.js` | Classes, clip timing, names, hire price, seeded RNG. No DOM. |
+| `js/meta.js` | Renown gates, market, relics, cup bracket, save migration. No DOM. |
 | `js/hero.js` | Layer order, measured frame rects, atlas cache. One offscreen composite per loadout. |
 | `js/arena.js` | The fight. `createMatch` / `stepMatch`, no DOM. |
 | `js/fx.js` | Pixel FX strips in `assets/fx/`. Frame advance, additive draw. |
@@ -44,20 +45,29 @@ python3 iron-league/tools/smoke.py
 
 ## What a match is
 
-Classes decide the kit, not the costume. A weapon is a look.
+Classes decide the kit, not the costume. A weapon is a look. Fifteen kits. The first five are free. Renown from wins opens the rest on the market.
 
-- **Warrior** — walks in, alternates cuts, and sometimes leaps into an air swing.
-- **Archer** — keeps distance and looses a shot with a visible trail.
-- **Mage** — a wide circle, then a tighter hotter one.
-- **Tank** — more health, slower, sometimes raises a guard.
-- **Rogue** — dashes through, can roll clear, then a short cut.
+- **Warrior** — cleave, then a leaping swing.
+- **Archer** — a shot, sometimes a multishot.
+- **Mage** — frost nova, then a fireball.
+- **Tank** — taunt, then a guard.
+- **Rogue** — bleed and a shadowstep.
+- **Lancer, Skirmisher, Healer, Shieldbearer** — 15 renown.
+- **Berserker, Ranger, Battlemage** — 40 renown.
+- **Assassin, Duelist, Elementalist** — 70 renown.
+
+Each fighter has a personality (Bold, Wary, Patient) and a tactic you set on the hub: Strike, Cover, or Hold. Every third level offers a stat step: health, damage, and either speed or defense.
+
+Gold hires from a rotating board. Renown unlocks kits. Cup tokens enter a four-club bracket. A finished season keeps the roster and pays a relic. Two relics can be equipped for the whole club. Chaos pit is a three-club free-for-all.
 
 Anyone can roll to evade a swing, an arrow, or a filling circle. The roll has a short invulnerable window and a cooldown. The pit is larger than the screen; the camera eases toward the squads.
 
-Pixel effects (slash, ember, cast sigil, shield ring, dash crack, roll smoke, arrow glint, lightning) live in `assets/fx/` as horizontal frame strips. Procedural strokes still draw underneath, and they stand in if a sheet fails to load.
+Pixel effects (slash, ember, cast sigil, shield ring, dash crack, roll smoke, arrow glint, lightning) live in `assets/fx/` as horizontal frame strips. The full BitFX packs are not copied into this game. Procedural strokes still draw underneath, and they stand in if a sheet fails to load.
 
-Win gold and xp. Lose a smaller purse. Hire costs 70 gold. A season is five matches against generated clubs; the other fixtures on the board resolve on their own. After the fifth, open another season with the same roster.
+Win gold, renown, and xp. Lose a smaller purse. A season is five matches against generated clubs; the other fixtures on the board resolve on their own. After the fifth, open another season with the same roster.
+
+The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, and market fields without wiping the roster.
 
 ## Not in this build
 
-Tactics slates, direct captain control, a wider armory, and cup runs are left for later. Clip usage is in `ANIM.md`.
+Direct captain control and a wider armory are left for later. Clip usage is in `ANIM.md`.

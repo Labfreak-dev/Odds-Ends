@@ -107,7 +107,9 @@
       equipped: [],
       relicSeason: 0,
       cup: null,
-      market: null
+      market: null,
+      history: [],
+      settings: { speed: 1, shake: true, sound: 80, music: 60 }
     };
   }
 
@@ -120,6 +122,16 @@
     data.equipped = data.equipped.filter(function (id) { return data.relics.indexOf(id) >= 0; }).slice(0, 2);
     if (typeof data.relicSeason !== "number") data.relicSeason = 0;
     if (!data.cup) data.cup = null;
+    if (!Array.isArray(data.history)) data.history = [];
+    data.history = data.history.slice(0, 10);
+    if (!data.settings || typeof data.settings !== "object") {
+      data.settings = { speed: 1, shake: true, sound: 80, music: 60 };
+    } else {
+      if (data.settings.speed !== 1 && data.settings.speed !== 2 && data.settings.speed !== 3) data.settings.speed = 1;
+      if (typeof data.settings.shake !== "boolean") data.settings.shake = true;
+      if (typeof data.settings.sound !== "number") data.settings.sound = 80;
+      if (typeof data.settings.music !== "number") data.settings.music = 60;
+    }
     if (!Array.isArray(data.roster)) return data;
     data.roster.forEach(function (f) {
       if (!f.boosts) f.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
@@ -247,15 +259,37 @@
       const name = pool.splice(Math.floor(rng() * pool.length), 1)[0];
       rivals.push(makeRivalSide(rng, name, n));
     }
+    const slots = [you].concat(rivals);
     return {
       size: n,
       round: 0,
-      slots: [you].concat(rivals),
+      slots: slots,
       pairing: [[0, 1], [2, 3]],
       winners: [null, null],
       champion: null,
-      claimed: false
+      claimed: false,
+      tree: rivals.length >= 3 ? {
+        semis: [
+          { a: sideSnap(slots[0]), b: sideSnap(slots[1]), winner: null },
+          { a: sideSnap(slots[2]), b: sideSnap(slots[3]), winner: null }
+        ],
+        final: { a: null, b: null, winner: null }
+      } : null
     };
+  }
+
+  function sideSnap(side) {
+    if (!side) return null;
+    return { id: side.id, name: side.name, you: !!side.you };
+  }
+
+  function stampTree(cup, pairIndex, winnerId) {
+    if (!cup || !cup.tree) return;
+    if ((cup.round || 0) >= 1) {
+      if (cup.tree.final) cup.tree.final.winner = winnerId;
+      return;
+    }
+    if (cup.tree.semis && cup.tree.semis[pairIndex]) cup.tree.semis[pairIndex].winner = winnerId;
   }
 
   function cupOpponent(cup) {
@@ -296,11 +330,13 @@
       const sb = sideStr(b, roster);
       const p = Math.max(0.2, Math.min(0.8, 0.5 + (sa - sb) * 0.35));
       cup.winners[i] = rng() < p ? a.id : b.id;
+      stampTree(cup, i, cup.winners[i]);
     }
   }
 
   function noteCupResult(cup, pairIndex, winnerId) {
     cup.winners[pairIndex] = winnerId;
+    stampTree(cup, pairIndex, winnerId);
   }
 
   function cupRoundReady(cup) {
@@ -314,6 +350,11 @@
     if (cup.round >= 1) {
       cup.champion = cup.winners[0];
       return cup;
+    }
+    if (cup.tree) {
+      const fa = (cup.slots || []).filter(function (s) { return s.id === cup.winners[0]; })[0];
+      const fb = (cup.slots || []).filter(function (s) { return s.id === cup.winners[1]; })[0];
+      cup.tree.final = { a: sideSnap(fa), b: sideSnap(fb), winner: cup.tree.final && cup.tree.final.winner };
     }
     const next = [];
     for (let i = 0; i < cup.winners.length; i++) {

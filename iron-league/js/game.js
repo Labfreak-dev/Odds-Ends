@@ -12,6 +12,9 @@
   let fight = null;
   let hubTab = "club";
   let detailId = null;
+  let settingsOpen = false;
+  let pendingSpec = null;
+  let paused = false;
   const HUB_TABS = ["club", "fighters", "market", "cup", "relics"];
 
   function esc(s) {
@@ -701,6 +704,7 @@
       preview +
       rosterHtml(size, size ? "In the pit" : "Party", "First chosen is slot 1. The portrait opens a fighter. The lineup button changes who walks in.") +
       (theirs.length ? '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
+      historyHtml() +
       '<section class="panel-frame"><h3 class="section">Standings</h3>' +
         '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
       '</section>';
@@ -774,8 +778,44 @@
       '<div class="cards">' + list + '</div>';
   }
 
+  function historyHtml() {
+    const rows = (save.history || []).slice(0, 10);
+    const body = rows.length
+      ? '<ol class="history">' + rows.map(function (h) {
+        return '<li><b>' + (h.win ? "W" : "L") + '</b><span>' + esc(h.opponent || "Rival") + '</span><span>' + esc(h.score || "") + '</span><em>MVP ' + esc(h.mvp || "—") + '</em></li>';
+      }).join("") + '</ol>'
+      : emptyState("No results yet.", "Send the party in. The last ten stay here.");
+    return '<section class="panel-frame" id="history"><h3 class="section">Recent results</h3>' + body + '</section>';
+  }
+
+  function tieCard(tie) {
+    if (!tie || !tie.a) return '<div class="tie pending"><span>Waiting on the semis</span></div>';
+    const winName = tie.winner
+      ? ((tie.a && tie.a.id === tie.winner) ? tie.a.name : (tie.b && tie.b.name))
+      : "";
+    const mark = function (side) {
+      if (!side) return "";
+      const through = tie.winner && side.id === tie.winner ? " through" : "";
+      const you = side.you ? " you" : "";
+      return '<span class="club-line' + you + through + '">' + esc(side.name) + '</span>';
+    };
+    const yours = (tie.a && tie.a.you) || (tie.b && tie.b.you);
+    return '<div class="tie' + (yours ? " yours" : "") + '">' + mark(tie.a) + mark(tie.b) +
+      '<em>' + (winName ? esc(winName) + " through" : "Yet to fight") + '</em></div>';
+  }
+
   function cupMarkup(cup) {
     if (!cup) return "";
+    const champName = cup.champion
+      ? ((cup.slots || []).filter(function (s) { return s.id === cup.champion; })[0] || {}).name || cup.champion
+      : "";
+    const champ = champName ? ("<p class='banner'>Cup champion: " + esc(champName) + "</p>") : "";
+    if (cup.tree && cup.tree.semis) {
+      return '<div class="bracket" id="bracketBoard">' +
+        '<div class="bracket-col"><p class="eyebrow">Semi</p>' + cup.tree.semis.map(tieCard).join("") + '</div>' +
+        '<div class="bracket-col"><p class="eyebrow">Final</p>' + tieCard(cup.tree.final) + '</div>' +
+      '</div>' + champ;
+    }
     const rows = (cup.pairing || []).map(function (pair, i) {
       const a = cup.slots[pair[0]];
       const b = cup.slots[pair[1]];
@@ -784,8 +824,7 @@
       const mark = win ? (" · " + (cup.slots.filter(function (s) { return s.id === win; })[0] || {}).name + " through") : "";
       return "<li>" + esc(label + mark) + "</li>";
     }).join("");
-    const champ = cup.champion ? ("<p class='banner'>Cup champion: " + esc((cup.slots.filter(function (s) { return s.id === cup.champion; })[0] || {}).name || cup.champion) + "</p>") : "";
-    return "<ol class='bracket'>" + rows + "</ol>" + champ;
+    return '<div class="bracket" id="bracketBoard"><ol>' + rows + '</ol></div>' + champ;
   }
 
   function cupPanel() {
@@ -834,6 +873,7 @@
           '<div class="hub-actions">' +
             (done ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>' : '') +
             '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
+            '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
             '<button type="button" class="text-btn" id="toTitle">Title</button>' +
           '</div>' +
         '</header>' +
@@ -841,7 +881,8 @@
         tabBar(hubTab) +
         '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
       '</main>' +
-      (fighter ? sheetHtml(fighter) : '');
+      (settingsOpen ? settingsHtml() : '') +
+      (!settingsOpen && fighter ? sheetHtml(fighter) : '');
     root.scrollTo(0, 0);
     drawCrest(document.getElementById("crest"), save.clubName);
     bindHub();
@@ -849,6 +890,137 @@
       ? (save.market || []).map(function (row) { return row.fighter && row.fighter.parts; })
       : [];
     bootCards(extra);
+  }
+
+  function settingsHtml() {
+    const s = save.settings || { speed: 1, shake: true, sound: 80, music: 60 };
+    const picks = [1, 2, 3].map(function (n) {
+      return '<button type="button" class="btn ghost' + (s.speed === n ? " on" : "") + '" id="speedPick' + n + '" data-speed="' + n + '">' + n + '×</button>';
+    }).join("");
+    return '<div class="sheet-back" id="settingsBack"></div>' +
+      '<aside class="sheet" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">' +
+        '<header class="sheet-head"><div><p class="eyebrow">Club</p><h2 id="settingsTitle">Settings</h2></div>' +
+          '<button type="button" class="btn ghost" id="settingsClose">Close</button></header>' +
+        '<label class="field">Sound<input id="soundVol" type="range" min="0" max="100" value="' + s.sound + '"></label>' +
+        '<label class="field">Music<input id="musicVol" type="range" min="0" max="100" value="' + s.music + '"></label>' +
+        '<p class="fine">No pit audio in this build. The levels are saved for when there is.</p>' +
+        '<p class="eyebrow">Fight speed</p>' +
+        '<div class="chips" id="speedPicks">' + picks + '</div>' +
+        '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
+        '<button type="button" class="btn danger" id="resetAsk">Reset save</button>' +
+        '<div id="resetBox" hidden><p>Erase this club from the browser? This cannot be undone.</p>' +
+          '<button type="button" class="btn danger" id="resetYes">Erase</button>' +
+          '<button type="button" class="btn ghost" id="resetNo">Keep the club</button></div>' +
+      '</aside>';
+  }
+
+  function bindSettings() {
+    if (!document.getElementById("settingsSheet")) return;
+    const close = function () {
+      settingsOpen = false;
+      showHub(hubTab);
+    };
+    const back = document.getElementById("settingsBack");
+    if (back) back.onclick = close;
+    const closeBtn = document.getElementById("settingsClose");
+    if (closeBtn) closeBtn.onclick = close;
+    function touch() { persist(); }
+    const sound = document.getElementById("soundVol");
+    if (sound) sound.oninput = function () { save.settings.sound = +sound.value; touch(); };
+    const music = document.getElementById("musicVol");
+    if (music) music.oninput = function () { save.settings.music = +music.value; touch(); };
+    const picks = document.getElementById("speedPicks");
+    if (picks) picks.onclick = function (ev) {
+      const btn = ev.target.closest("[data-speed]");
+      if (!btn) return;
+      save.settings.speed = +btn.dataset.speed;
+      touch();
+      const all = picks.querySelectorAll("[data-speed]");
+      for (let i = 0; i < all.length; i++) all[i].classList.toggle("on", all[i] === btn);
+    };
+    const shake = document.getElementById("shakeToggle");
+    if (shake) shake.onchange = function () { save.settings.shake = !!shake.checked; touch(); };
+    const ask = document.getElementById("resetAsk");
+    const box = document.getElementById("resetBox");
+    if (ask && box) ask.onclick = function () { box.hidden = false; ask.hidden = true; };
+    const no = document.getElementById("resetNo");
+    if (no && box && ask) no.onclick = function () { box.hidden = true; ask.hidden = false; };
+    const yes = document.getElementById("resetYes");
+    if (yes) yes.onclick = function () {
+      try { localStorage.removeItem(SAVE_KEY); } catch (err) { /* still leave the club screen */ }
+      save = null;
+      settingsOpen = false;
+      detailId = null;
+      pendingSpec = null;
+      showTitle();
+    };
+  }
+
+  function squadPower(list) {
+    let s = 0;
+    (list || []).forEach(function (f) {
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const st = IL.scaledStats(f, kit);
+      s += st.hp + st.atk * 8 + st.def * 12;
+    });
+    return Math.max(1, Math.round(s));
+  }
+
+  function versusCard(f) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const st = IL.scaledStats(f, kit);
+    return '<article class="card versus-card" data-role="' + esc(kit.role) + '">' +
+      '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+      '<h3>' + esc(f.name) + '</h3>' +
+      '<p>' + esc(kit.name) + " · Lv " + (f.level || 1) + '</p>' +
+      '<p class="fine">HP ' + Math.round(st.hp) + '</p>' +
+    '</article>';
+  }
+
+  function openVersus(spec) {
+    pendingSpec = spec;
+    stopLoops();
+    app.onclick = null;
+    const left = spec.left || [];
+    const right = spec.right || [];
+    const youP = squadPower(left);
+    const themP = squadPower(right);
+    const share = Math.max(8, Math.min(92, Math.round(100 * youP / (youP + themP))));
+    app.innerHTML =
+      '<main class="hub versus-screen" id="versus">' +
+        '<header class="hub-head"><div><p class="eyebrow">Before the pit</p><h2>' + esc(spec.leftName || save.clubName) + ' vs ' + esc(spec.rightName || "Rivals") + '</h2></div></header>' +
+        '<div class="versus-grid">' +
+          '<section class="panel-frame"><h3 class="section">Your party</h3><div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
+          '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
+        '</div>' +
+        '<div class="power-compare" id="powerBar">' +
+          '<div class="power-track"><div class="power-you" style="width:' + share + '%"></div></div>' +
+          '<p>Power ' + youP + ' · ' + themP + '</p>' +
+        '</div>' +
+        '<div class="versus-actions">' +
+          '<button type="button" class="btn ghost" id="versusBack">Back</button>' +
+          '<button type="button" class="btn primary" id="confirmFight">Fight</button>' +
+        '</div>' +
+      '</main>';
+    root.scrollTo(0, 0);
+    document.getElementById("versusBack").onclick = function () {
+      pendingSpec = null;
+      showHub(spec.returnTab || "club");
+    };
+    document.getElementById("confirmFight").onclick = confirmPending;
+    bootCards(right.map(function (f) { return f && f.parts; }));
+  }
+
+  function confirmPending() {
+    const spec = pendingSpec;
+    if (!spec) return;
+    const btn = document.getElementById("confirmFight");
+    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+    launchMatch(spec).catch(function (e) {
+      if (btn) { btn.disabled = false; btn.textContent = "Fight"; }
+      const banner = document.querySelector(".banner");
+      if (banner) banner.textContent = e.message;
+    });
   }
 
   function showMarket() { showHub("market"); }
@@ -880,6 +1052,13 @@
     };
     const titleBtn = document.getElementById("toTitle");
     if (titleBtn) titleBtn.onclick = showTitle;
+    const gear = document.getElementById("settings");
+    if (gear) gear.onclick = function () {
+      detailId = null;
+      settingsOpen = true;
+      showHub(hubTab);
+    };
+    bindSettings();
     const refreshBtn = document.getElementById("refreshMarket");
     if (refreshBtn) refreshBtn.onclick = function () {
       if (save.gold < IL.REFRESH_COST) return;
@@ -910,6 +1089,7 @@
     if (panel) panel.onclick = function (ev) {
       const detail = ev.target.closest("[data-detail]");
       if (detail) {
+        settingsOpen = false;
         detailId = detail.dataset.detail;
         showHub(hubTab);
         return;
@@ -1142,7 +1322,9 @@
       keys.forEach(function (k, i) { map[k] = canvases[i]; });
       stopLoops();
       const tok = token;
-      speed = 1;
+      const savedSpeed = save && save.settings && save.settings.speed;
+      speed = savedSpeed === 2 || savedSpeed === 3 ? savedSpeed : 1;
+      paused = false;
       const relics = IL.equippedRelics(save);
       const match = spec.sides
         ? IL.createMatch({ seed: spec.seed, sides: spec.sides, relics: relics, mode: spec.mode })
@@ -1178,9 +1360,7 @@
     const left = fielded(save.roster, size);
     if (left.length < size) return;
     const right = rival.fighters.slice(0, size);
-    const btn = document.getElementById("nextMatch");
-    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
-    launchMatch({
+    openVersus({
       mode: "league",
       left: left,
       right: right,
@@ -1188,11 +1368,8 @@
       rightName: rival.name,
       rival: rival,
       size: size,
-      seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0
-    }).catch(function (e) {
-      if (btn) { btn.disabled = false; btn.textContent = "Next match"; }
-      const banner = document.querySelector(".banner");
-      if (banner) banner.textContent = e.message;
+      seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0,
+      returnTab: "club"
     });
   }
 
@@ -1202,20 +1379,15 @@
     if (!opp) return;
     const left = fielded(save.roster, cup.size);
     if (left.length < cup.size) return;
-    const btn = document.getElementById("cupFight");
-    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
-    launchMatch({
+    openVersus({
       mode: "cup",
       left: left,
       right: opp.foe.fighters.slice(0, cup.size),
       leftName: save.clubName,
       rightName: opp.foe.name,
       size: cup.size,
-      seed: (save.rngSeed ^ (save.season * 811) ^ ((cup.round + 1) * 17)) >>> 0
-    }).catch(function (e) {
-      if (btn) btn.disabled = false;
-      const banner = document.querySelector(".banner");
-      if (banner) banner.textContent = e.message;
+      seed: (save.rngSeed ^ (save.season * 811) ^ ((cup.round + 1) * 17)) >>> 0,
+      returnTab: "cup"
     });
   }
 
@@ -1252,8 +1424,8 @@
           '<aside id="liveList"></aside>' +
         '</div>' +
         '<footer class="fight-controls">' +
-          '<button type="button" class="btn ghost on" id="speed1">Speed 1×</button>' +
-          '<button type="button" class="btn ghost" id="speed2">Speed 2×</button>' +
+          speedButtons() +
+          '<button type="button" class="btn ghost" id="pause">Pause</button>' +
           '<button type="button" class="btn primary" id="skip">Skip</button>' +
         '</footer>' +
       '</main>';
@@ -1261,22 +1433,52 @@
     document.getElementById("rightName").textContent = (match.teams || 2) > 2
       ? (match.names || []).slice(1).join(" · ")
       : match.rightName;
-    document.getElementById("speed1").onclick = function () { speed = 1; markSpeed(); };
-    document.getElementById("speed2").onclick = function () { speed = 2; markSpeed(); };
+    [1, 2, 3].forEach(function (n) {
+      const btn = document.getElementById("speed" + n);
+      if (btn) btn.onclick = function () { setFightSpeed(n); };
+    });
+    document.getElementById("pause").onclick = togglePause;
     document.getElementById("skip").onclick = function () { skipFight(); };
-    const list = document.getElementById("liveList");
-    list.innerHTML = match.units.map(function (u, i) {
+    const youRows = [];
+    const themRows = [];
+    match.units.forEach(function (u, i) {
       const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
       const side = u.team === 0 ? "you" : "them";
-      return '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + '</b><small>' + esc(kit.name) + (kit.ability ? " · " + esc(kit.ability.name) : "") + '</small><div class="track"><div class="fill"></div></div></div>';
+      const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';
+      (u.team === 0 ? youRows : themRows).push(row);
+    });
+    document.getElementById("liveList").innerHTML =
+      '<div class="hp-col"><p class="eyebrow">Your side</p>' + youRows.join("") + '</div>' +
+      '<div class="hp-col"><p class="eyebrow">Their side</p>' + themRows.join("") + '</div>';
+  }
+
+  function speedButtons() {
+    return [1, 2, 3].map(function (n) {
+      return '<button type="button" class="btn ghost' + (speed === n ? " on" : "") + '" id="speed' + n + '">' + n + '×</button>';
     }).join("");
   }
 
+  function setFightSpeed(n) {
+    speed = n;
+    if (!save.settings) save.settings = { speed: n, shake: true, sound: 80, music: 60 };
+    save.settings.speed = n;
+    persist();
+    markSpeed();
+  }
+
+  function togglePause() {
+    paused = !paused;
+    const btn = document.getElementById("pause");
+    if (!btn) return;
+    btn.textContent = paused ? "Resume" : "Pause";
+    btn.classList.toggle("on", paused);
+  }
+
   function markSpeed() {
-    const a = document.getElementById("speed1");
-    const b = document.getElementById("speed2");
-    if (a) a.classList.toggle("on", speed === 1);
-    if (b) b.classList.toggle("on", speed === 2);
+    [1, 2, 3].forEach(function (n) {
+      const el = document.getElementById("speed" + n);
+      if (el) el.classList.toggle("on", speed === n);
+    });
   }
 
   function teamHp(match, team) {
@@ -1302,7 +1504,7 @@
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       fx.t += dt;
-      if (!match.over) {
+      if (!match.over && !paused) {
         acc += dt * speed;
         let guard = 0;
         while (acc >= 1 / 60 && !match.over && guard < 8) {
@@ -1327,14 +1529,14 @@
       if (e.type === "dmg") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, t: 0, life: 0.7 });
         /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units. */
-        if (typeof e.n === "number") fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
+        if (typeof e.n === "number" && shakeOn()) fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
       } else if (e.type === "heal") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, heal: true, t: 0, life: 0.7 });
       } else if (e.type === "dodge") {
         fx.nums.push({ x: e.x, y: e.y, dodge: true, t: 0, life: 0.45 });
       } else if (e.type === "boom") {
         fx.booms.push({ x: e.x, y: e.y, r: e.r, kind: e.kind, t: 0, life: 0.48 });
-        fx.shake = Math.min(8, fx.shake + 4);
+        if (shakeOn()) fx.shake = Math.min(8, fx.shake + 4);
       } else if (e.type === "fx" && IL.fx) {
         IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
           size: e.size,
@@ -1349,6 +1551,7 @@
   }
 
   function ageFx(fx, dt) {
+    if (!shakeOn()) fx.shake = 0;
     fx.shake *= Math.pow(0.04, dt);
     if (fx.shake < 0.15) fx.shake = 0;
     fx.nums = fx.nums.filter(function (n) { n.t += dt; return n.t < n.life; });
@@ -1368,15 +1571,22 @@
     if (rh) rh.textContent = teamHp(match, 1) + "%";
     const rows = document.querySelectorAll("#liveList .live");
     for (let i = 0; i < rows.length; i++) {
-      const u = match.units[i];
+      const u = match.units[+rows[i].dataset.i];
       if (!u) continue;
       const fill = rows[i].querySelector(".fill");
       if (fill) fill.style.width = Math.max(0, u.hp / u.maxHp * 100) + "%";
+      const num = rows[i].querySelector(".hp-num");
+      if (num) num.textContent = Math.max(0, Math.round(u.hp)) + "/" + Math.round(u.maxHp);
     }
+  }
+
+  function shakeOn() {
+    return !save || !save.settings || save.settings.shake !== false;
   }
 
   function skipFight() {
     if (!fight || fight.match.over) return;
+    paused = false;
     const match = fight.match;
     let n = 0;
     while (!match.over && n < 4000) {
@@ -1385,6 +1595,72 @@
       n++;
     }
     finishFight();
+  }
+
+  function resultTable(match, xpBefore, lvBefore) {
+    const yours = match.units.filter(function (u) { return u.team === 0; });
+    let mvp = null;
+    let best = -1;
+    yours.forEach(function (u) {
+      const score = (u.dmgDealt || 0) + (u.healing || 0) * 1.25 + (u.kos || 0) * 50;
+      if (score > best) { best = score; mvp = u; }
+    });
+    const rows = yours.map(function (u) {
+      const prev = xpBefore[u.id] || 0;
+      const f = fighterById(u.id);
+      const now = f ? (f.xp || 0) : prev;
+      const lv = f ? (f.level || 1) : (u.level || 1);
+      const up = f && lv > (lvBefore[u.id] || u.level || 1);
+      const isMvp = mvp && mvp.id === u.id;
+      return '<tr' + (isMvp ? ' class="mvp"' : '') + '>' +
+        '<td>' + esc(u.name) + (isMvp ? ' <em class="mvp-badge">MVP</em>' : '') +
+          (up ? ' <em class="level-call">Level ' + lv + '</em>' : '') + '</td>' +
+        '<td>' + (u.dmgDealt || 0) + '</td>' +
+        '<td>' + (u.dmgTaken || 0) + '</td>' +
+        '<td>' + (u.healing || 0) + '</td>' +
+        '<td>' + (u.kos || 0) + '</td>' +
+        '<td><div class="xp result-xp" data-xp-from="' + prev + '" data-xp-to="' + now + '"><div class="track"><div class="fill" style="width:' + Math.round(((prev % 40) / 40) * 100) + '%"></div></div></div></td>' +
+      '</tr>';
+    }).join("");
+    return {
+      mvp: mvp,
+      html: '<table class="board" id="resultTable"><thead><tr><th>Fighter</th><th>Dealt</th><th>Taken</th><th>Heal</th><th>KO</th><th>XP</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    };
+  }
+
+  function animateXpBars() {
+    const bars = document.querySelectorAll("[data-xp-from]");
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / 800);
+      for (let i = 0; i < bars.length; i++) {
+        const el = bars[i];
+        if (!el.isConnected) return;
+        const from = +el.dataset.xpFrom;
+        const to = +el.dataset.xpTo;
+        const xp = from + (to - from) * t;
+        const fill = el.querySelector(".fill");
+        if (fill) fill.style.width = ((xp % 40) / 40 * 100) + "%";
+      }
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    if (bars.length) requestAnimationFrame(frame);
+  }
+
+  function pushHistory(match, win, mvpName) {
+    if (!Array.isArray(save.history)) save.history = [];
+    let foe = 0;
+    const teams = match.teams || 2;
+    for (let t = 1; t < teams; t++) foe += match.kills[t] || 0;
+    const opponent = teams > 2 ? "Chaos pit" : (match.rightName || "Rival");
+    save.history.unshift({
+      mode: (fight && fight.mode) || "league",
+      opponent: opponent,
+      score: (match.kills[0] || 0) + "–" + foe,
+      win: !!win,
+      mvp: mvpName || "—"
+    });
+    save.history = save.history.slice(0, 10);
   }
 
   function noteRecords(match, win) {
@@ -1468,11 +1744,15 @@
     gold += match.stats.bounty || 0;
     noteRecords(match, win);
     const before = {};
+    const xpBefore = {};
     fight.left.forEach(function (f) {
       if (!f) return;
       before[f.id] = f.level;
+      xpBefore[f.id] = f.xp || 0;
       IL.grantXp(f, xp);
     });
+    const tally = resultTable(match, xpBefore, before);
+    pushHistory(match, win, tally.mvp ? tally.mvp.name : "");
     save.gold += gold;
     save.renown = (save.renown || 0) + renown;
     persist();
@@ -1498,17 +1778,19 @@
     box.innerHTML =
       '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
       '<h2>' + headline + '</h2>' +
-      '<ul class="payout">' +
+      tally.html +
+      (ups.length ? '<p class="level-call">Level up: ' + esc(ups.join(", ")) + '</p>' : '') +
+      '<ul class="payout" id="rewards">' +
         '<li>+' + gold + ' gold</li>' +
         '<li>+' + renown + ' renown</li>' +
         '<li>' + xp + ' xp for each fighter you sent</li>' +
-        (ups.length ? '<li>Level up: ' + esc(ups.join(", ")) + '</li>' : '') +
         (relicNote ? '<li>' + esc(relicNote.trim()) + '</li>' : '') +
       '</ul>' +
       '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
         (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +
       '<p class="fine">' + esc(nextLine) + '</p>' +
-      '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a growth" : "Back to the club") + '</button>';
+      '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a growth" : "Continue") + '</button>';
+    animateXpBars();
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;
     document.getElementById("backHub").onclick = function () {
@@ -1555,10 +1837,23 @@
   }
 
   function onHubKey(ev) {
-    if (!document.getElementById("tabbar")) return;
     const tag = ev.target && ev.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (ev.key === "Escape" && document.getElementById("versus")) {
+      ev.preventDefault();
+      const back = pendingSpec && pendingSpec.returnTab;
+      pendingSpec = null;
+      showHub(back || hubTab);
+      return;
+    }
+    if (!document.getElementById("tabbar")) return;
     if (ev.key === "Escape") {
+      if (document.getElementById("settingsSheet")) {
+        ev.preventDefault();
+        settingsOpen = false;
+        showHub(hubTab);
+        return;
+      }
       if (!detailId) return;
       ev.preventDefault();
       detailId = null;

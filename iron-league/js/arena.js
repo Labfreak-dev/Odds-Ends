@@ -118,7 +118,11 @@
       cleave: false,
       volley: 0,
       dashDmg: 1,
-      guardZone: false
+      guardZone: false,
+      kos: 0,
+      dmgDealt: 0,
+      dmgTaken: 0,
+      healing: 0
     };
   }
 
@@ -475,6 +479,8 @@
       }
     }
     dst.hp -= dmg;
+    dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
+    if (src && src.team !== dst.team) src.dmgDealt = (src.dmgDealt || 0) + dmg;
     dst.flash = 0.14;
     m.hitstop = blocked ? 0.03 : 0.04;
     m.stats.hits++;
@@ -507,6 +513,7 @@
       dst.windUsed = true;
       const heal = Math.round(dst.maxHp * 0.22);
       dst.hp = Math.min(dst.maxHp, dst.hp + heal);
+      dst.healing = (dst.healing || 0) + heal;
       m.events.push({ type: "heal", x: dst.x, y: dst.y - 48, n: heal, team: dst.team });
       fx(m, "plasma", dst.x, dst.y - 16, { size: 120 });
     }
@@ -530,6 +537,7 @@
     if (!dst || dst.hp <= 0) return;
     const n = Math.max(1, Math.round(raw));
     dst.hp = Math.min(dst.maxHp, dst.hp + n);
+    if (src) src.healing = (src.healing || 0) + n;
     m.stats.heals++;
     m.events.push({ type: "heal", x: dst.x, y: dst.y - 46, n: n, team: dst.team });
     fx(m, "plasma", dst.x, dst.y - 18, { size: 130 });

@@ -110,7 +110,25 @@ with sync_playwright() as p:
         ph.close()
         check(True, label + ' shot')
 
-    # stress: 16 units, 40 projectiles, 400 particles, CPU 4x
+    # ★1 Pebblit / Pyrpup / Bubbo: frame strips on desktop and a phone.
+    # Real atlas sheets replace the bake when img/arena/manifest.json lists them.
+    for who in ('pebb', 'pyrp', 'bubb'):
+        for label, w, h in ((who + '-desk', 1280, 800), (who + '-phone', 430, 932)):
+            pg = b.new_page(viewport={'width': w, 'height': h})
+            pg.goto(BASE + f'/arena-preview.html?shot={who}&t=0.2', wait_until='networkidle')
+            pg.wait_for_function('window.__arenaReady', timeout=8000)
+            art = 'cr_' + who + '1'
+            pg.wait_for_function(f"() => !!GArenaView.artInfo('{art}') || !!GArenaView.atlas('{art}')", timeout=8000)
+            strip = os.path.join(OUT, label)
+            os.makedirs(strip, exist_ok=True)
+            for i in range(6):
+                pg.evaluate(f'renderAt({0.08 + i * 0.12})')
+                pg.locator('#cv').screenshot(path=os.path.join(strip, f'f{i:02d}.png'))
+            pg.screenshot(path=os.path.join(OUT, label + '.png'))
+            pg.close()
+            check(os.path.exists(os.path.join(strip, 'f05.png')), label + ' frame strip')
+
+    # stress: 16 units, 40 projectiles, combat particles stay capped, CPU 4x
     st = b.new_page(viewport={'width': 390, 'height': 844})
     cdp = b.new_browser_cdp_session(st) if False else None
     try:
@@ -123,7 +141,7 @@ with sync_playwright() as p:
     bench = st.evaluate('window.__arenaBench')
     print('BENCH', bench, flush=True)
     check(bench['fps'] >= 30, f"throttled stress fps {bench['fps']:.1f} (>=30)")
-    check(bench['particles'] >= 200, f"particle pool stayed busy ({bench['particles']})")
+    check(20 <= bench['particles'] <= 80, f"particle cap holds ({bench['particles']})")
     st.close()
     b.close()
 

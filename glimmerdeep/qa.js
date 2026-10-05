@@ -305,7 +305,21 @@
   function placeLowToast() {
     const toast = $('#toast');
     if (!toast) return;
+    const fighting = document.querySelector('#game.fighting');
+    if (fighting) {
+      toast.style.top = 'auto';
+      toast.style.bottom = '10px';
+      toast.style.left = '10px';
+      toast.style.right = 'auto';
+      toast.style.transform = 'none';
+      toast.style.maxWidth = '240px';
+      return;
+    }
     toast.style.top = '';
+    toast.style.bottom = '';
+    toast.style.left = '';
+    toast.style.maxWidth = '';
+    toast.style.transform = '';
     if (!toast.classList.contains('low') || !toast.classList.contains('on')) return;
     const game = document.querySelector('#game.on');
     const traits = game && game.querySelector('.traits');
@@ -378,6 +392,10 @@
       '<button type="button" class="btn sm ghost" data-ac="back">Switch back</button></div>';
     void toast.offsetWidth;
     toast.classList.add('on', 'ask');
+    clearTimeout(showFpsToast._t);
+    showFpsToast._t = setTimeout(() => {
+      if (toast.classList.contains('ask') && toast.querySelector('[data-ac]')) toast.classList.remove('on', 'ask');
+    }, 4600);
   }
   let sampling = false;
   function sampleFight() {

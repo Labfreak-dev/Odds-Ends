@@ -450,8 +450,13 @@ modal, and the Battle report. The canvas is `#arenaCv`. It draws from
 `view()` plus the events `tick` already returns. No atlas files ship with
 the game yet: a missing sheet uses the existing `img/` painting, baked to
 about 48px, quantized to about 16 colours, and drawn nearest-neighbour.
-Hand-made sheets use the atlas JSON above (the pilot sets land beside the
-repo as `glimmerdeep_qa/pixel_pilot*`). `arena-preview.html` cycles clips.
+Hand-made sheets use the atlas JSON above. The pixel-pilot creature sets
+for ★1 Pebblit, Pyrpup and Bubbo live in `img/arena/creatures/<id>_1/`
+(`pebb_1`, `pyrp_1`, `bubb_1`: atlas PNG + JSON). Cell size is per creature.
+The renderer mirrors about `anchor.x`, plays run frames at
+`speed / noSlideSpeedPxPerSec`, and draws the opaque telegraph sheet at
+0.65 alpha. Projectile and impact sheets live in `img/arena/vfx/`. Every
+other form stays on the 16-colour bake. `arena-preview.html` cycles clips.
 
 Quality tiers: Full, or Lite when Auto Classic is on, Animation is Classic,
 the device is a narrow low-core phone, or a Full fight averages slower than

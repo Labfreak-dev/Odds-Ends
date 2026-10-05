@@ -287,7 +287,7 @@
     const clips = data.clips || {};
     const need = ['idle', 'run', 'attack', 'cast', 'hit', 'death'];
     for (let i = 0; i < need.length; i++) if (!clips[need[i]]) clips[need[i]] = null;
-    return {
+    const atlas = {
       id: data.id,
       image: data.image,
       facing: data.facing || 'right',
@@ -296,6 +296,145 @@
       muzzle: data.muzzle || null,
       clips,
     };
+    if (data.noSlide) atlas.noSlide = data.noSlide;
+    if (data.anchorX != null) atlas.anchorX = data.anchorX;
+    return atlas;
+  }
+
+  // Pilot sheets (pixel_pilot2) use per-creature cell sizes. Anchor may be in
+  // pixels. Run playback is speed / noSlideSpeedPxPerSec, applied later.
+  function pilotFrames(c, cellW, cellH) {
+    if (!c) return null;
+    let frames = c.frames;
+    if (frames && frames.length && typeof frames[0] === 'object' && (frames[0].w || frames[0].width)) {
+      return frames.map(f => ({ x: f.x || 0, y: f.y || 0, w: f.w || f.width, h: f.h || f.height }));
+    }
+    const w = c.w || c.cellW || cellW, h = c.h || c.cellH || cellH;
+    if (!w || !h) return null;
+    if (c.row != null || c.r != null) {
+      const row = c.row != null ? c.row : c.r;
+      const n = c.count || c.n || c.frames || 4;
+      const out = [];
+      for (let i = 0; i < n; i++) out.push({ x: (c.x || 0) + i * w, y: (c.y || 0) + row * h, w, h });
+      return out;
+    }
+    if (typeof c.count === 'number' || typeof frames === 'number') {
+      const n = c.count || frames;
+      const out = [];
+      for (let i = 0; i < n; i++) out.push({ x: (c.x || 0) + i * w, y: c.y || 0, w, h });
+      return out;
+    }
+    return null;
+  }
+  function pilotPoint(p, cellW, cellH) {
+    if (!p) return null;
+    let x = p.x != null ? p.x : p[0];
+    let y = p.y != null ? p.y : p[1];
+    if (x == null || y == null) return null;
+    if (x > 1 || y > 1) {
+      x = cellW ? x / cellW : 0.5;
+      y = cellH ? y / cellH : 0.5;
+    }
+    return [x, y];
+  }
+  function pilotToAtlas(data, base, id) {
+    const cell = data.cell || data.frameSize || null;
+    const cellW = data.cellW || data.cell_w || data.frameW || (cell && (cell.w || cell[0])) || 0;
+    const cellH = data.cellH || data.cell_h || data.frameH || (cell && (cell.h || cell[1])) || 0;
+    const anchor = data.anchor || data.feet || {};
+    let ax = anchor.x != null ? anchor.x : (anchor[0] != null ? anchor[0] : 0.5);
+    let ay = anchor.y != null ? anchor.y : (anchor[1] != null ? anchor[1] : 0.92);
+    if (ax > 1 || ay > 1) {
+      ax = cellW ? ax / cellW : 0.5;
+      ay = cellH ? ay / cellH : 0.92;
+    }
+    const src = data.clips || data.animations || {};
+    const alias = { attack: ['attack', 'atk'], cast: ['cast', 'skill'], hit: ['hit', 'hurt', 'flinch'], death: ['death', 'die', 'faint'], run: ['run', 'walk', 'move'], idle: ['idle'] };
+    const clips = {};
+    ['idle', 'run', 'attack', 'cast', 'hit', 'death'].forEach(name => {
+      let c = null;
+      const keys = alias[name];
+      for (let i = 0; i < keys.length && !c; i++) c = src[keys[i]];
+      const frames = pilotFrames(c, cellW, cellH);
+      const loop = c && c.loop != null ? !!c.loop : (name === 'idle' || name === 'run');
+      clips[name] = frames ? { fps: (c && c.fps) || (name === 'run' ? 12 : 8), loop, hit: c && c.hit, frames } : null;
+    });
+    let image = data.image || data.file || data.png || data.sheet || '';
+    if (image && image.indexOf('/') < 0) image = base + image;
+    const atlas = normalizeAtlas({
+      id, image, facing: 'right', feet: [ax, ay], radius: 26,
+      muzzle: pilotPoint(data.muzzle || data.muzzlePoint, cellW, cellH),
+      clips, noSlide: data.noSlideSpeedPxPerSec || data.noSlideSpeed || data.noSlide || 0,
+      anchorX: ax,
+    });
+    atlas.impactPt = pilotPoint(data.impact || data.impactPoint, cellW, cellH);
+    return atlas;
+  }
+  function sheetFromJson(data, base) {
+    const cell = data.frameSize || data.cell || null;
+    const cellW = data.cellW || data.frameW || (cell && (cell[0] || cell.w)) || 0;
+    const cellH = data.cellH || data.frameH || (cell && (cell[1] || cell.h)) || 0;
+    let frames = null;
+    if (data.frames && data.frames.length && data.frames[0] && data.frames[0].w) frames = data.frames.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }));
+    else if (data.cols && data.rows && cellW && cellH) {
+      frames = [];
+      const n = data.frameCount || data.cols * data.rows;
+      for (let i = 0; i < n; i++) frames.push({ x: (i % data.cols) * cellW, y: ((i / data.cols) | 0) * cellH, w: cellW, h: cellH });
+    } else frames = pilotFrames(data, cellW, cellH);
+    let image = data.image || data.file || '';
+    if (image && image.indexOf('/') < 0) image = base + image;
+    return { image, frames: frames || [], fps: data.fps || 12, loop: data.loop !== false };
+  }
+  let vfxProj = null, vfxImpact = null, vfxTel = null, pilotBooted = false;
+  function loadSheet(url) {
+    const base = url.slice(0, url.lastIndexOf('/') + 1);
+    return fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return null;
+      const sheet = sheetFromJson(data, base);
+      if (!sheet.image || !sheet.frames.length) return null;
+      return loadImage(sheet.image).then(img => { sheet.img = img; return sheet; });
+    }).catch(() => null);
+  }
+  function bootPilot() {
+    if (pilotBooted || typeof fetch === 'undefined') return;
+    pilotBooted = true;
+    // manifest.json lists only files that are in the repo, so a missing
+    // artist pack does not 404 a pile of sheets.
+    fetch('img/arena/manifest.json').then(r => r.ok ? r.json() : null).then(man => {
+      if (!man) return;
+      (man.creatures || []).forEach(id => {
+        const base = 'img/arena/creatures/' + id + '/';
+        fetch(base + id + '.json').then(r => r.ok ? r.json() : null).then(data => {
+          if (!data) return;
+          const sp = String(id).replace(/_1$/, '');
+          const atlas = pilotToAtlas(data, base, 'cr_' + sp + '1');
+          if (!atlas.image) return;
+          loadAtlas(atlas).catch(() => {});
+        }).catch(() => {});
+      });
+      const take = (name, slot) => {
+        if (!name) return;
+        loadSheet('img/arena/vfx/' + name).then(sheet => {
+          if (!sheet) return;
+          if (slot === 'proj') vfxProj = sheet;
+          else if (slot === 'impact') vfxImpact = sheet;
+          else vfxTel = sheet;
+        });
+      };
+      const v = man.vfx || {};
+      take(v.projectile, 'proj');
+      take(v.impact, 'impact');
+      take(v.telegraph, 'tel');
+    }).catch(() => {});
+  }
+  function sheetFrame(sheet, t) {
+    if (!sheet || !sheet.frames || !sheet.frames.length) return null;
+    const n = sheet.frames.length;
+    const fps = sheet.fps || 12;
+    let i = Math.floor(Math.max(0, t) * fps);
+    if (sheet.loop === false) i = Math.min(n - 1, i);
+    else i = ((i % n) + n) % n;
+    return sheet.frames[i];
   }
 
   function clipOf(atlas, name) {
@@ -593,15 +732,23 @@
   let pCursor = 0;
   let pCap = PMAX;
 
+  let pLive = 0;
   function spawn(o) {
+    const important = o.k === 'ring' || o.k === 'slash' || o.k === 'star';
+    if (!important && pLive >= (tier === 'lite' ? 28 : 48)) return null;
     let slot = -1;
     for (let k = 0; k < pCap; k++) {
       const i = (pCursor + k) % pCap;
       if (!pool[i].on) { slot = i; break; }
     }
-    if (slot < 0) slot = pCursor % pCap;
+    if (slot < 0) {
+      if (!important) return null;
+      slot = pCursor % pCap;
+    }
     pCursor = (slot + 1) % pCap;
     const p = pool[slot];
+    const was = p.on;
+    if (!was) pLive++;
     p.on = 1; p.t = 0; p.life = o.life || 0.4; p.k = o.k || 'dot';
     p.x = o.x; p.y = o.y; p.vx = o.vx || 0; p.vy = o.vy || 0;
     p.g = o.g || 0; p.drag = o.drag == null ? 2.2 : o.drag;
@@ -613,10 +760,11 @@
   function clearFx() {
     for (let i = 0; i < PMAX; i++) pool[i].on = 0;
     pCursor = 0;
+    pLive = 0;
   }
   function burst(x, y, el, power, crit) {
-    const c = pal(el), n = Math.round((crit ? 16 : 9) * (power || 1) * (pCap < 200 ? 0.55 : 1));
-    spawn({ k: 'ring', x, y, r: crit ? 18 : 10, c: c[0], c2: c[1], life: crit ? 0.32 : 0.22, ground: 1 });
+    const c = pal(el), n = Math.round((crit ? 6 : 3) * Math.min(1.2, power || 1) * (pCap < 200 ? 0.6 : 1));
+    spawn({ k: 'ring', x, y, r: crit ? 16 : 9, c: c[0], c2: c[1], life: crit ? 0.28 : 0.18, ground: 1 });
     for (let i = 0; i < n; i++) {
       const a = Math.random() * 6.2832, v = (crit ? 90 : 60) * (0.4 + Math.random());
       const spark = el === 'volt' || el === 'metal' || el === 'frost' || crit;
@@ -635,7 +783,7 @@
       const p = pool[i];
       if (!p.on) continue;
       p.t += dt;
-      if (p.t >= p.life) { p.on = 0; continue; }
+      if (p.t >= p.life) { p.on = 0; if (pLive > 0) pLive--; continue; }
       if (p.vx || p.vy || p.g) {
         const d = Math.exp(-(p.drag || 0) * dt);
         p.vx *= d; p.vy = p.vy * d + (p.g || 0) * dt;
@@ -650,11 +798,12 @@
   const trails = new Map();
   const ghosts = [];
   const numbers = [];
+  const impacts = [];
   let banner = null;
   let shakes = 0, shakeT = 0;
   let intro = 0, introOn = false;
   let focusId = 0, focusTargetId = 0;
-  let cam = { x: AW / 2, y: AH / 2, z: 0.9 };
+  let cam = { x: AW / 2, y: AH / 2, z: 0.9, zx: 0.9, zy: 0.63 };
   let camSnap = true;
   let fxT = 0;
   const callouts = [];
@@ -719,9 +868,9 @@
     floorPatKey = '';
   }
   function resetVis() {
-    vis.clear(); trails.clear(); ghosts.length = 0; numbers.length = 0; callouts.length = 0;
+    vis.clear(); trails.clear(); ghosts.length = 0; numbers.length = 0; callouts.length = 0; impacts.length = 0;
     banner = null; shakes = 0; pending.length = 0; clearFx(); focusId = 0; focusTargetId = 0;
-    cam = { x: AW / 2, y: AH / 2, z: 0.9 };
+    cam = { x: AW / 2, y: AH / 2, z: 0.9, zx: 0.9, zy: 0.9 * OBL };
     camSnap = true;
     fxT = 0;
     intro = (typeof navigator !== 'undefined' && navigator.webdriver) ? 0.36 : 1.26;
@@ -750,7 +899,7 @@
       if ((e.k === 'cast_start' || e.k === 'cast') && e.ult) {
         shakes = Math.max(shakes, 8);
         if (e.k === 'cast_start' && onHold) onHold(0.1);
-        banner = { text: (e.n || 'ULT').toUpperCase(), el: e.el || 'mystic', ult: 1, t: 0, life: 1.15 };
+        banner = { text: (e.n || 'ULT').toUpperCase().slice(0, 18), el: e.el || 'mystic', ult: 1, t: 0, life: 0.8, corner: 1 };
       }
       if (e.k === 'dash') ghosts.push({ id: e.u, x: e.x, y: e.y, t: 0 });
     }
@@ -764,32 +913,30 @@
       const t = e.t != null ? by.get(e.t) : e.u != null ? by.get(e.u) : e.a != null ? by.get(e.a) : null;
       if (e.k === 'dmg' && t) {
         const el = e.dot === 'burn' ? 'ember' : e.dot === 'poison' ? 'shade' : e.dot === 'bleed' ? 'blood' : (e.el || (t && t.el) || 'mystic');
-        if (!e.dot || e.crit) burst(t.x, t.y, el, e.crit ? 1.4 : e.dot ? 0.4 : 1, !!e.crit);
-        const label = e.crit ? String(e.v) + '!' : String(e.v);
-        if (!e.dot || e.v >= 2) numbers.push({ x: t.x, y: t.y, oy: 0, text: label, life: 0.7, t: 0, crit: !!e.crit, kind: e.dot ? 'dot' : 'dmg' });
+        if (!e.dot || e.crit) burst(t.x, t.y, el, e.crit ? 1.15 : e.dot ? 0.35 : 0.8, !!e.crit);
+        if (!e.dot || e.v >= 2 || e.crit) pushNumber({ id: t.id, x: t.x, y: t.y, v: e.v || 0, crit: !!e.crit, kind: e.dot ? 'dot' : 'dmg' });
         const v = visOf(t.id);
         v.flash = e.crit ? 1 : 0.85;
-        if (e.crit || (e.v || 0) >= 16) {
-          spawn({ k: 'star', x: t.x, y: t.y - 8, r: e.crit ? 14 : 8, c: e.crit ? '#ffe36b' : '#fff', life: 0.22 });
-          spawn({ k: 'spark', x: t.x, y: t.y, vx: 80, vy: -40, c: '#fff', life: 0.16 });
-          spawn({ k: 'spark', x: t.x, y: t.y, vx: -70, vy: -20, c: hex(el), life: 0.16 });
-        }
+        spawnImpact(t.x, t.y, el, !!e.crit);
+        if (e.crit) spawn({ k: 'star', x: t.x, y: t.y - 8, r: 12, c: '#ffe36b', life: 0.2 });
       } else if (e.k === 'heal' && t && !e.quiet && e.v > 0) {
-        numbers.push({ x: t.x, y: t.y, oy: 0, text: '+' + e.v, life: 0.7, t: 0, kind: 'heal' });
-        for (let n = 0; n < (tier === 'lite' ? 3 : 6); n++) spawn({ k: 'plus', x: t.x + (Math.random() - 0.5) * 20, y: t.y, vy: -36 - Math.random() * 30, c: pal('heal')[n % 3], r: 4, life: 0.55 });
+        pushNumber({ id: t.id, x: t.x, y: t.y, text: '+' + e.v, life: 0.7, kind: 'heal' });
+        for (let n = 0; n < (tier === 'lite' ? 2 : 3); n++) spawn({ k: 'plus', x: t.x + (Math.random() - 0.5) * 16, y: t.y, vy: -36 - Math.random() * 20, c: pal('heal')[n % 3], r: 4, life: 0.5 });
       } else if (e.k === 'shield' && t) {
-        numbers.push({ x: t.x, y: t.y, oy: -8, text: '+' + e.v, life: 0.6, t: 0, kind: 'shield' });
+        pushNumber({ id: t.id, x: t.x, y: t.y, text: '+' + e.v, life: 0.6, kind: 'shield' });
         spawn({ k: 'dome', x: t.x, y: t.y, r: (t.r || 26) + 8, c: '#7fd0ff', life: 0.5 });
       } else if (e.k === 'miss' && t) {
-        numbers.push({ x: t.x, y: t.y, oy: 0, text: e.dodge ? 'DODGE' : 'MISS', life: 0.55, t: 0, kind: 'miss' });
+        pushNumber({ id: t.id, x: t.x, y: t.y, text: e.dodge ? 'DODGE' : 'MISS', life: 0.55, kind: 'miss' });
       } else if (e.k === 'ko' && t) {
-        burst(t.x, t.y, t.el || 'mystic', 1.3, false);
-        for (let n = 0; n < 5; n++) spawn({ k: 'puff', x: t.x, y: t.y, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 40, c: pal(t.el)[1], r: 5, life: 0.6 });
+        burst(t.x, t.y, t.el || 'mystic', 1.1, false);
+        spawnImpact(t.x, t.y, t.el || 'mystic', false);
+        for (let n = 0; n < 3; n++) spawn({ k: 'puff', x: t.x, y: t.y, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 30, c: pal(t.el)[1], r: 5, life: 0.5 });
       } else if (e.k === 'attack_hit') {
         const a = by.get(e.a), d = by.get(e.t);
         if (a && d) {
           const ang = Math.atan2(d.y - a.y, d.x - a.x);
           spawn({ k: 'slash', x: d.x, y: d.y, ang, r: 16, c: hex(e.el || a.el), c2: '#fff', life: 0.18 });
+          spawnImpact(d.x, d.y, e.el || a.el, false);
         }
         const vv = vis.get(e.a);
         if (vv) vv.hitMark = 0.08;
@@ -797,8 +944,8 @@
         const a = by.get(e.a);
         if (a) {
           spawn({ k: 'ring', x: a.x, y: a.y + 8, r: e.ult ? 34 : 22, c: hex(e.el), c2: '#fff', life: Math.min(0.8, e.cast || 0.45), ground: 1 });
-          if (tier === 'full') for (let n = 0; n < 8; n++) {
-            const ang = n / 8 * 6.2832;
+          if (tier === 'full') for (let n = 0; n < 4; n++) {
+            const ang = n / 4 * 6.2832;
             spawn({ k: 'dot', x: a.x + Math.cos(ang) * 28, y: a.y + Math.sin(ang) * 16, vx: -Math.cos(ang) * 40, vy: -Math.sin(ang) * 24, c: pal(e.el)[n % 3], r: 2, life: 0.4, ground: 1 });
           }
           if (e.n) callouts.push({ x: a.x, y: a.y, text: String(e.n).toUpperCase().slice(0, 16), el: e.el || a.el, t: 0, life: e.ult ? 1.15 : 0.85, ult: !!e.ult });
@@ -810,64 +957,169 @@
         v.ky = (e.vy || 0) / mag * 12;
         v.lean = Math.max(-1, Math.min(1, (e.vx || 0) / 400));
       } else if (e.k === 'react' && t) {
-        numbers.push({ x: t.x, y: t.y, oy: -10, text: String(e.name || '').toUpperCase().slice(0, 12), life: 0.8, t: 0, kind: 'react' });
+        pushNumber({ id: t.id, x: t.x, y: t.y, text: String(e.name || '').toUpperCase().slice(0, 12), life: 0.7, kind: 'react' });
       }
     }
     pending.length = 0;
   }
 
+  const NUM_CAP = 8;
+  function pushNumber(n) {
+    n.t = 0;
+    n.oy = 0;
+    n.life = n.life || 0.7;
+    if (n.text == null) n.text = n.crit ? String(n.v || 0) + '!' : String(n.v || 0);
+    if (!n.crit && (n.kind === 'dmg' || n.kind === 'dot') && n.id) {
+      for (let i = numbers.length - 1; i >= 0; i--) {
+        const o = numbers[i];
+        if (o.id === n.id && !o.crit && (o.kind === 'dmg' || o.kind === 'dot') && o.t < 0.45) {
+          o.v = (o.v || 0) + (n.v || 0);
+          o.text = String(o.v);
+          o.t = 0;
+          o.life = 0.68;
+          o.x = n.x;
+          o.y = n.y;
+          o.kind = 'dmg';
+          return;
+        }
+      }
+      n.text = String(n.v || 0);
+    }
+    let slot = 0;
+    for (let i = 0; i < numbers.length; i++) if (numbers[i].id === n.id) slot++;
+    if (slot >= 3) {
+      if (n.crit) {
+        for (let i = 0; i < numbers.length; i++) if (numbers[i].id === n.id && !numbers[i].crit) { numbers.splice(i, 1); break; }
+      } else return;
+    }
+    n.ox = ((slot % 3) - 1) * 14;
+    n.crit = !!n.crit;
+    numbers.push(n);
+    while (numbers.length > NUM_CAP) {
+      let drop = 0;
+      for (let i = 1; i < numbers.length; i++) if (!numbers[i].crit && numbers[i].t >= numbers[drop].t) drop = i;
+      if (numbers[drop].crit) drop = 0;
+      numbers.splice(drop, 1);
+    }
+  }
+  function spawnImpact(x, y, el, crit) {
+    if (impacts.length > 6) impacts.shift();
+    impacts.push({ x, y, el: el || 'mystic', t: 0, life: crit ? 0.32 : 0.22, crit: !!crit });
+  }
+
   // ---- camera / project -------------------------------------------------------------
-  function viewOriginY() { return cssH > cssW * 1.12 ? 0.5 : 0.58; }
+  function viewOriginY() { return cssH > cssW * 1.12 ? 0.5 : 0.55; }
+  function camZX() { return cam.zx || cam.z || 1; }
+  function camZY() { return cam.zy || camZX() * OBL; }
   function project(x, y) {
     return {
-      x: cssW * 0.5 + (x - cam.x) * cam.z,
-      y: cssH * viewOriginY() + (y - cam.y) * cam.z * OBL,
+      x: cssW * 0.5 + (x - cam.x) * camZX(),
+      y: cssH * viewOriginY() + (y - cam.y) * camZY(),
     };
   }
   function unproject(sx, sy) {
     return {
-      x: cam.x + (sx - cssW * 0.5) / cam.z,
-      y: cam.y + (sy - cssH * viewOriginY()) / (cam.z * OBL),
+      x: cam.x + (sx - cssW * 0.5) / Math.max(0.05, camZX()),
+      y: cam.y + (sy - cssH * viewOriginY()) / Math.max(0.05, camZY()),
     };
   }
+  function unitPx(r, zx, zy, tall) {
+    const ss = tall ? Math.max(zx, Math.min(zy / OBL, zx * 2.8)) : zx;
+    let h = Math.max(tall ? 48 : 32, (r || 26) * 2.55 * ss);
+    const cap = cssH * (tall ? 0.22 : 0.32);
+    if (h > cap) h = cap;
+    return h;
+  }
   function aimCamera(units, dt) {
-    let minX = AW, maxX = 0, minY = AH, maxY = 0, n = 0;
-    let sx = 0, sy = 0;
-    for (let i = 0; i < units.length; i++) {
-      const u = units[i];
-      if (!u.alive && u.state === 'dead') continue;
-      if (u.x < minX) minX = u.x; if (u.x > maxX) maxX = u.x;
-      if (u.y < minY) minY = u.y; if (u.y > maxY) maxY = u.y;
-      sx += u.x; sy += u.y; n++;
-    }
-    if (!n) { minX = 200; maxX = AW - 200; minY = 160; maxY = AH - 160; sx = AW / 2; sy = AH / 2; n = 1; }
-    const phone = cssW < 560;
     const tall = cssH > cssW * 1.12;
-    const padX = phone ? 64 : 110;
-    const padY = phone ? 48 : 80;
-    const needW = Math.max(120, maxX - minX + padX * 2);
-    const needH = Math.max(90, maxY - minY + padY * 2);
-    let zFit = Math.min(cssW * 0.9 / needW, (cssH * (tall ? 0.62 : 0.8)) / (needH * OBL));
-    const minZ = tall ? 0.95 : phone ? 0.82 : 0.58;
-    const maxZ = tall ? 1.85 : phone ? 1.45 : 1.45;
-    // On a tall phone the width-fit zoom leaves a short band. Zoom in, but
-    // never more than 30% past the fit, so both teams stay on screen.
-    let z = Math.max(zFit, Math.min(minZ, zFit * 1.3));
-    if (z > maxZ) z = maxZ;
-    if (z < 0.35) z = 0.35;
-    const tx = sx / n;
-    const ty = sy / n;
+    const list = [];
+    for (let i = 0; i < units.length; i++) list.push(units[i]);
+    if (!list.length) list.push({ x: AW / 2, y: AH / 2, r: 26 });
+    let zx, zy, tx, ty;
+    if (tall) {
+      // Stretch the floor to the canvas, then pull back only if a body or
+      // a number would leave the screen.
+      zx = cssW / AW;
+      zy = cssH / AH;
+      tx = AW / 2;
+      ty = AH / 2;
+    } else {
+      let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+      zx = 0.8; zy = zx * OBL;
+      for (let iter = 0; iter < 3; iter++) {
+        minX = 1e9; maxX = -1e9; minY = 1e9; maxY = -1e9;
+        for (let i = 0; i < list.length; i++) {
+          const u = list[i];
+          const r = u.r || 26;
+          const half = Math.max(r, (unitPx(r, zx, zy, false) * 0.55) / Math.max(0.2, zx));
+          const head = (unitPx(r, zx, zy, false) + 22) / Math.max(0.2, zy);
+          if (u.x - half < minX) minX = u.x - half;
+          if (u.x + half > maxX) maxX = u.x + half;
+          if (u.y - head < minY) minY = u.y - head;
+          if (u.y + 8 > maxY) maxY = u.y + 8;
+        }
+        const spanW = Math.max(120, maxX - minX);
+        const spanH = Math.max(80, maxY - minY);
+        zx = Math.min((cssW - 16) / spanW, (cssH - 12) / (spanH * OBL));
+        zx = Math.min(zx, 1.35);
+        zy = zx * OBL;
+      }
+      tx = (minX + maxX) / 2;
+      ty = (minY + maxY) / 2;
+    }
+    const m = 4;
+    for (let n = 0; n < 6; n++) {
+      let minL = 1e9, maxR = -1e9, minT = 1e9, maxB = -1e9;
+      const origin = cssH * viewOriginY();
+      for (let i = 0; i < list.length; i++) {
+        const u = list[i];
+        const h = unitPx(u.r || 26, zx, zy, tall);
+        const dw = h * 0.9;
+        const sx = cssW * 0.5 + (u.x - tx) * zx;
+        const sy = origin + (u.y - ty) * zy;
+        const left = sx - dw * 0.55;
+        const right = sx + dw * 0.55;
+        const top = sy - h - 26;
+        const bot = sy + 8;
+        if (left < minL) minL = left;
+        if (right > maxR) maxR = right;
+        if (top < minT) minT = top;
+        if (bot > maxB) maxB = bot;
+      }
+      const overL = m - minL, overR = maxR - (cssW - m);
+      const overT = m - minT, overB = maxB - (cssH - m);
+      if (overL <= 1 && overR <= 1 && overT <= 1 && overB <= 1) break;
+      if (overL > 1 && overR > 1) {
+        const fit = (cssW - m * 2) / Math.max(1, maxR - minL);
+        zx *= fit;
+        zy *= tall ? fit : 1;
+        if (!tall) zy = zx * OBL;
+        continue;
+      }
+      if (overT > 1 && overB > 1) {
+        const fit = (cssH - m * 2) / Math.max(1, maxB - minT);
+        zy *= fit;
+        if (tall) zx *= fit;
+        else zx = zy / OBL;
+        continue;
+      }
+      if (overL > 1) tx -= overL / zx;
+      if (overR > 1) tx += overR / zx;
+      if (overT > 1) ty -= overT / zy;
+      if (overB > 1) ty += overB / zy;
+    }
     if (camSnap) {
-      cam.x = tx; cam.y = ty; cam.z = z; camSnap = false;
+      cam.x = tx; cam.y = ty; cam.z = zx; cam.zx = zx; cam.zy = zy; camSnap = false;
       return;
     }
-    const dx = tx - cam.x, dy = ty - cam.y, dz = z - cam.z;
-    // Deadzone: tiny centroid motion must not slide the floor.
-    if (dx * dx + dy * dy < 34 * 34 && Math.abs(dz) < 0.04) return;
-    const k = 1 - Math.exp(-dt * 1.8);
+    const dx = tx - cam.x, dy = ty - cam.y, dzx = zx - (cam.zx || zx), dzy = zy - (cam.zy || zy);
+    if (dx * dx + dy * dy < 28 * 28 && Math.abs(dzx) < 0.03 && Math.abs(dzy) < 0.03) return;
+    const k = 1 - Math.exp(-dt * 5);
     cam.x += dx * k;
     cam.y += dy * k;
-    cam.z += dz * k;
+    cam.zx = (cam.zx || zx) + dzx * k;
+    cam.zy = (cam.zy || zy) + dzy * k;
+    cam.z = cam.zx;
   }
 
   // ---- draw pieces ------------------------------------------------------------------
@@ -903,7 +1155,7 @@
     arenaPoly(g);
     g.clip();
     g.translate(cssW * 0.5, cssH * viewOriginY());
-    g.scale(cam.z, cam.z * OBL);
+    g.scale(camZX(), camZY());
     g.translate(-cam.x, -cam.y);
     g.fillStyle = floorPattern(g);
     g.globalAlpha = 0.94;
@@ -940,31 +1192,47 @@
     const pulse = telPulse();
     g.save();
     g.translate(cssW * 0.5, cssH * viewOriginY());
-    g.scale(cam.z, cam.z * OBL);
+    g.scale(camZX(), camZY());
     g.translate(-cam.x, -cam.y);
-    g.lineWidth = (2 + pulse) / Math.max(0.45, cam.z);
+    const lw = (px) => px / Math.max(0.35, camZX());
+    g.lineWidth = lw(4 + pulse * 2);
     g.lineJoin = 'round';
     const rim = () => {
-      g.globalAlpha = 0.35 + 0.45 * pulse;
-      g.strokeStyle = c[1];
+      g.globalAlpha = 0.95;
+      g.strokeStyle = '#140810';
+      g.lineWidth = lw(6);
       g.stroke();
-      g.globalAlpha = 0.9;
+      g.globalAlpha = 1;
+      g.strokeStyle = '#fff6e0';
+      g.lineWidth = lw(2.6);
+      g.stroke();
+      g.globalAlpha = 0.95;
       g.strokeStyle = c[0];
-      g.lineWidth = 1.5 / Math.max(0.45, cam.z);
-      g.setLineDash([8, 6]);
-      g.lineDashOffset = -fxT * 28;
+      g.lineWidth = lw(1.6);
+      g.setLineDash([7, 5]);
+      g.lineDashOffset = -fxT * 36;
       g.stroke();
       g.setLineDash([]);
+    };
+    const telSheet = () => {
+      if (!vfxTel || !vfxTel.img) return;
+      const fr = sheetFrame(vfxTel, fxT);
+      if (!fr) return;
+      g.save();
+      g.globalAlpha = 0.65;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(vfxTel.img, fr.x, fr.y, fr.w, fr.h, tel.x - (tel.r || 48), tel.y - (tel.r || 48) * 0.55, (tel.r || 48) * 2, (tel.r || 48) * 1.1);
+      g.restore();
     };
     if (tel.shape === 'line') {
       const x = tel.x, y = tel.y, x2 = tel.x2, y2 = tel.y2;
       const ang = Math.atan2(y2 - y, x2 - x), len = Math.hypot(x2 - x, y2 - y) || 1;
       g.translate(x, y); g.rotate(ang);
       g.fillStyle = c[2] || c[0];
-      g.globalAlpha = 0.22;
+      g.globalAlpha = 0.42;
       g.fillRect(0, -14, len, 28);
       g.fillStyle = c[0];
-      g.globalAlpha = 0.45;
+      g.globalAlpha = 0.78;
       g.fillRect(0, -14, len * prog, 28);
       g.globalAlpha = 0.85;
       g.fillStyle = c[1];
@@ -982,9 +1250,10 @@
       const a1 = (tel.ang || 0) + (tel.arc || 1) / 2;
       const r = tel.r || 80;
       g.fillStyle = c[0];
-      g.globalAlpha = 0.16;
+      g.globalAlpha = 0.4;
       g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r, a0, a1); g.closePath(); g.fill();
-      g.globalAlpha = 0.42;
+      telSheet();
+      g.globalAlpha = 0.72;
       g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r * prog, a0, a1); g.closePath(); g.fill();
       g.fillStyle = c[1];
       g.globalAlpha = 0.35 * pulse;
@@ -994,7 +1263,8 @@
     } else if (tel.shape === 'ring') {
       const r = tel.r || 70;
       g.fillStyle = c[0];
-      g.globalAlpha = 0.14 + 0.12 * pulse;
+      g.globalAlpha = 0.38 + 0.2 * pulse;
+      telSheet();
       g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.arc(tel.x, tel.y, r * (0.55 + 0.12 * (1 - prog)), 0, 6.2832, true); g.fill();
       g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832);
       rim();
@@ -1005,9 +1275,10 @@
     } else {
       const r = tel.r || 48;
       g.fillStyle = c[0];
-      g.globalAlpha = 0.14;
-      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.fill();
       g.globalAlpha = 0.4;
+      g.beginPath(); g.arc(tel.x, tel.y, r, 0, 6.2832); g.fill();
+      telSheet();
+      g.globalAlpha = 0.75;
       g.beginPath(); g.moveTo(tel.x, tel.y); g.arc(tel.x, tel.y, r * Math.max(0.08, prog), -1.5708, -1.5708 + prog * 6.2832); g.closePath(); g.fill();
       g.fillStyle = c[1];
       g.globalAlpha = 0.28 * pulse;
@@ -1108,6 +1379,20 @@
     }
     g.globalAlpha = 1;
     const x = Math.round(q.x), y = Math.round(q.y);
+    if (vfxProj && vfxProj.img && (p.el === 'ember' || p.el === 'fire')) {
+      const fr = sheetFrame(vfxProj, now);
+      if (fr) {
+        const dh = Math.max(16, 22 * camZX());
+        const dw = dh * (fr.w / fr.h);
+        g.save();
+        g.translate(x, y);
+        g.rotate(Math.atan2(p.vy || 0, p.vx || 1));
+        g.imageSmoothingEnabled = false;
+        g.drawImage(vfxProj.img, fr.x, fr.y, fr.w, fr.h, -dw * 0.5, -dh * 0.5, dw, dh);
+        g.restore();
+        return;
+      }
+    }
     const spin = now * (p.el === 'gale' ? 14 : 8) + p.id;
     g.save();
     g.translate(x, y);
@@ -1137,8 +1422,8 @@
       if (p.friendly) { g.strokeStyle = '#d6ffb8'; g.strokeRect(-5, -5, 10, 10); }
     }
     g.restore();
-    if (tier === 'full' && (p.id + Math.floor(now * 20)) % 2 === 0) {
-      spawn({ k: 'dot', x: p.x, y: p.y, vx: -(p.vx || 0) * 0.05, vy: -(p.vy || 0) * 0.05, c: c[2] || c[0], r: 2, life: 0.18, drag: 4 });
+    if (tier === 'full' && (p.id + Math.floor(now * 12)) % 5 === 0) {
+      spawn({ k: 'dot', x: p.x, y: p.y, vx: -(p.vx || 0) * 0.05, vy: -(p.vy || 0) * 0.05, c: c[2] || c[0], r: 2, life: 0.16, drag: 4 });
     }
   }
 
@@ -1236,7 +1521,7 @@
       const clip = clipOf(atlas, 'run') || clipOf(atlas, 'idle');
       const fr = clip && clip.frames && clip.frames[0];
       if (fr) {
-        const dh = Math.max(28, (gh.r || 26) * 2.2 * cam.z);
+        const dh = Math.max(28, (gh.r || 26) * 2.2 * camZX());
         const dw = dh * (fr.w / fr.h);
         const face = (gh.facing || 1) < 0 ? -1 : 1;
         g.save();
@@ -1249,7 +1534,7 @@
       }
     }
     if (b) {
-      const dh = Math.max(28, (gh.r || 26) * 2.2 * cam.z) * (b.h / 48);
+      const dh = Math.max(28, (gh.r || 26) * 2.2 * camZX()) * (b.h / 48);
       const dw = dh * (b.w / b.h);
       const face = (gh.facing || 1) < 0 ? -1 : 1;
       const flip = gh.boss ? face > 0 : face < 0;
@@ -1276,6 +1561,11 @@
       : extra && u.state === 'cast' && extra.castT != null ? extra.castT : null;
     if (clock != null) v.t = clock;
     else v.t += motionDt;
+    if (motionDt > 0 && v._px != null) {
+      const d = Math.hypot(u.x - v._px, u.y - v._py);
+      v.spd = d / motionDt;
+    }
+    v._px = u.x; v._py = u.y;
     v.age += motionDt > 0 ? motionDt : 0;
     if (v.flash > 0) v.flash = Math.max(0, v.flash - (motionDt > 0 ? motionDt : 0.016) * 6);
     const damp = Math.exp(-7 * Math.max(0.016, motionDt || 0.016));
@@ -1295,12 +1585,11 @@
     });
     if (v.lean) pose.r += v.lean * 14;
     const artKey = artKeyOf(u, extra);
-    const atlas = atlases.get(artKey) || atlases.get(extra && extra.sp);
+    const atlas = atlases.get(artKey);
     const useAtlas = !!(atlas && atlas.img);
     const feet = project(u.x, u.y);
     const tall = cssH > cssW * 1.12;
-    const read = tall ? 1.4 : 1;
-    const h = Math.max(34, (useAtlas ? (atlas.radius || u.r || 26) : (u.r || 26)) * 2.55 * cam.z * read);
+    const h = unitPx(u.r || 26, camZX(), camZY(), tall);
     let img, sw, sh, dw, dh, feetN, srcX = 0, srcY = 0;
     if (useAtlas) {
       const clipName = u.state === 'dead' ? 'death' : u.state === 'dash' ? 'run' : (u.state || 'idle');
@@ -1308,15 +1597,31 @@
       if (!clip || !clip.frames || !clip.frames.length) { img = null; sw = sh = dw = dh = 0; feetN = [0.5, 0.92]; }
       else {
       const hitAt = clipName === 'attack' ? (extra && extra.wind) || 0.22 : clipName === 'cast' ? (extra && extra.castDur) || 0.45 : 0;
-      const idx = frameIndex(atlas, clipName, v.t, hitAt);
+      let elapsed = v.t;
+      if (clipName === 'run' && atlas.noSlide > 0) {
+        const fr0 = clip.frames[0];
+        const scale = fr0 && fr0.h ? h / fr0.h : 1;
+        const srcPx = ((v.spd || 0) * camZX()) / Math.max(0.001, scale);
+        const rate = Math.max(0.25, Math.min(3, srcPx / atlas.noSlide));
+        v.runT = (v.runT || 0) + (motionDt > 0 ? motionDt : 0) * rate;
+        elapsed = v.runT;
+      }
+      const idx = frameIndex(atlas, clipName, elapsed, hitAt);
       const fr = clip.frames[idx];
       img = atlas.img; sw = fr.w; sh = fr.h; srcX = fr.x; srcY = fr.y;
-      dh = h; dw = h * (fr.w / fr.h);
+      dh = h; dw = h * (fr.w / Math.max(1, fr.h));
       feetN = atlas.feet || [0.5, 0.92];
+      if (atlas.anchorX != null) feetN = [atlas.anchorX, feetN[1]];
       // Atlas frames already contain the action. Keep a whisper of squash so hits still read.
-      if (u.state === 'attack' || u.state === 'run' || u.state === 'cast' || u.state === 'dead') {
-        pose.x = 0; pose.y = 0; pose.r = 0; pose.sk = 0;
+      if (u.state === 'attack' || u.state === 'run' || u.state === 'cast' || u.state === 'hit' || u.state === 'dead') {
+        pose.x = 0; pose.y = 0; pose.r = (v.lean || 0) * 8; pose.sk = 0;
         if (u.state !== 'dead') { pose.sx = 1; pose.sy = 1; }
+      }
+      if (u.state === 'dead') {
+        const nfr = clip.frames.length || 1;
+        const dur = nfr / (clip.fps || 10);
+        pose.sx = 1; pose.sy = 1;
+        pose.a = v.t <= dur ? 1 : Math.max(0, 1 - (v.t - dur) / 0.45);
       }
       }
     } else {
@@ -1340,7 +1645,28 @@
       feetN = b.feet;
     }
     if (!img) return;
-    const shx = feet.x + (v.kx || 0) * cam.z, shy = feet.y + (v.ky || 0) * cam.z * OBL;
+    let shx = feet.x + (v.kx || 0) * camZX(), shy = feet.y + (v.ky || 0) * camZY();
+    const halfW = dw * 0.55, head = dh * (feetN[1] || 0.92);
+    if (shx - halfW < 2) shx += 2 - (shx - halfW);
+    if (shx + halfW > cssW - 2) shx -= (shx + halfW) - (cssW - 2);
+    if (shy - head < 2) shy += 2 - (shy - head);
+    if (shy > cssH - 2) shy -= shy - (cssH - 2);
+    if (pose.a > 0.15) {
+      const ally = u.side === 0;
+      const col = ally ? '#3dde7a' : '#ff5d6c';
+      const rx = Math.max(11, dw * 0.46);
+      const ry = Math.max(4, rx * 0.36);
+      g.save();
+      g.lineWidth = 3;
+      g.strokeStyle = '#120810';
+      g.globalAlpha = 0.9;
+      g.beginPath(); g.ellipse(shx, shy + 2, rx, ry, 0, 0, 6.2832); g.stroke();
+      g.lineWidth = 1.5;
+      g.strokeStyle = col;
+      g.globalAlpha = 0.8;
+      g.stroke();
+      g.restore();
+    }
     if (shadowBlob && pose.a > 0.2) {
       const sc = (0.55 + 0.5 * (P.shadow || 1)) * (pose.sh || 1) * (1 + Math.min(0, pose.y || 0));
       const swid = dw * 0.7 * Math.max(0.35, sc);
@@ -1375,27 +1701,69 @@
     drawBars(g, u, shx, shy, extra && extra.statuses && extra.statuses.length ? top : top);
   }
 
+  function drawImpact(g, im) {
+    const q = project(im.x, im.y);
+    const f = im.t / im.life;
+    const a = 1 - f;
+    if (vfxImpact && vfxImpact.img) {
+      const fr = sheetFrame(vfxImpact, im.t);
+      if (fr) {
+        const dh = Math.max(28, 36 * Math.max(camZX(), camZY()));
+        const dw = dh * (fr.w / Math.max(1, fr.h));
+        g.save();
+        g.globalAlpha = Math.max(0.15, a);
+        g.imageSmoothingEnabled = false;
+        g.drawImage(vfxImpact.img, fr.x, fr.y, fr.w, fr.h, Math.round(q.x - dw / 2), Math.round(q.y - dh * 0.7), dw, dh);
+        g.restore();
+        return;
+      }
+    }
+    const R = (im.crit ? 16 : 10) * (0.45 + f);
+    g.save();
+    g.globalAlpha = a;
+    g.strokeStyle = '#fff';
+    g.lineWidth = im.crit ? 3 : 2;
+    g.beginPath(); g.arc(q.x, q.y - 8, R, 0, 6.2832); g.stroke();
+    g.strokeStyle = hex(im.el);
+    g.lineWidth = 1;
+    g.stroke();
+    g.fillStyle = '#fff';
+    g.fillRect(Math.round(q.x) - 1, Math.round(q.y - 8) - 1, 3, 3);
+    g.restore();
+  }
+  function clampLabel(x, y, halfW, h) {
+    const m = 6;
+    return {
+      x: Math.max(m + halfW, Math.min(cssW - m - halfW, x)),
+      y: Math.max(m, Math.min(cssH - m - h, y)),
+    };
+  }
   function drawNumber(g, n) {
     const q = project(n.x, n.y);
     const f = n.t / n.life;
-    const pop = f < 0.08 ? 0.45 + (f / 0.08) * 0.85 : 1.2 - (f - 0.08) * 0.25;
-    const base = n.crit ? 5 : n.kind === 'react' ? 3 : 3.5;
-    const scale = base * Math.max(0.7, pop);
+    const pop = f < 0.08 ? 0.55 + (f / 0.08) * 0.7 : 1.05 - (f - 0.08) * 0.15;
+    const base = n.crit ? 5 : n.kind === 'react' ? 2 : n.kind === 'heal' || n.kind === 'shield' ? 2 : 2;
+    const scale = base * Math.max(0.75, pop);
     const col = n.kind === 'heal' ? '#6bff8f' : n.kind === 'shield' ? '#d8f3ff' : n.kind === 'miss' ? '#ddd' : n.crit ? '#ffe34d' : n.kind === 'dot' ? '#ffb38a' : '#fff6e8';
-    g.globalAlpha = f > 0.7 ? Math.max(0, 1 - (f - 0.7) / 0.3) : 1;
-    drawText(g, n.text, q.x, q.y - 36 - n.oy, scale, col, 'center');
+    const tw = textWidth(String(n.text || ''), scale);
+    const p = clampLabel(q.x + (n.ox || 0), q.y - 28 - n.oy, tw / 2 + 2, 6 * scale);
+    g.globalAlpha = f > 0.72 ? Math.max(0, 1 - (f - 0.72) / 0.28) : 1;
+    drawText(g, n.text, p.x, p.y, scale, col, 'center');
     g.globalAlpha = 1;
   }
 
   function drawCallout(g, n) {
     const q = project(n.x, n.y);
     const f = n.t / n.life;
-    const a = f < 0.1 ? f / 0.1 : f > 0.7 ? Math.max(0, 1 - (f - 0.7) / 0.3) : 1;
+    const a = f < 0.1 ? f / 0.1 : f > 0.72 ? Math.max(0, 1 - (f - 0.72) / 0.28) : 1;
+    const scale = n.ult ? 3 : 2;
+    const tw = textWidth(n.text, scale);
+    const p = clampLabel(q.x, q.y - hHead(n) - f * 8, tw / 2 + 2, 6 * scale);
     g.globalAlpha = a;
-    const scale = n.ult ? 2 : 1;
-    drawText(g, n.text, q.x, q.y - 52 - f * 10, scale, n.ult ? '#ffe7a3' : '#fff6e8', 'center');
+    drawText(g, n.text, p.x, p.y, scale, n.ult ? '#ffe7a3' : '#fff6e8', 'center');
     g.globalAlpha = 1;
   }
+  function hHead() { return cssW < 560 ? 58 : 64; }
 
   function drawVignette(g) {
     const key = cssW + 'x' + cssH + ':' + dpr;
@@ -1417,18 +1785,17 @@
     drawText(g, label, cssW / 2, 8, 2, '#fff6e8', 'center');
     if (banner) {
       const f = banner.t / banner.life;
-      const a = f < 0.12 ? f / 0.12 : f > 0.75 ? Math.max(0, 1 - (f - 0.75) / 0.25) : 1;
+      const a = f < 0.12 ? f / 0.12 : f > 0.62 ? Math.max(0, 1 - (f - 0.62) / 0.38) : 1;
       g.globalAlpha = a;
-      const tw = textWidth(banner.text, 3);
-      const bw = tw + 28, bh = 28;
-      const bx = Math.round(cssW / 2 - bw / 2), by = Math.round(cssH * 0.2);
-      g.fillStyle = 'rgba(8,4,16,.82)';
+      const scale = 1;
+      const tw = textWidth(banner.text, scale);
+      const bw = tw + 10, bh = 12;
+      const bx = Math.round(cssW - bw - 8), by = 22;
+      g.fillStyle = 'rgba(8,4,16,.78)';
       g.fillRect(bx, by, bw, bh);
       g.fillStyle = hex(banner.el);
-      g.fillRect(bx, by, bw, 2);
       g.fillRect(bx, by + bh - 2, bw, 2);
-      if (banner.ult) drawText(g, 'ULT', cssW / 2, by - 12, 1, hex(banner.el), 'center');
-      drawText(g, banner.text, cssW / 2, by + 7, 3, '#fff', 'center');
+      drawText(g, banner.text, bx + 5, by + 2, scale, '#fff6e0', 'left');
       g.globalAlpha = 1;
     }
     if (introOn && intro > 0) {
@@ -1481,8 +1848,12 @@
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i];
       n.t += motionDt;
-      n.oy += 40 * motionDt;
+      n.oy += 18 * motionDt;
       if (n.t >= n.life) numbers.splice(i, 1);
+    }
+    for (let i = impacts.length - 1; i >= 0; i--) {
+      impacts[i].t += motionDt || wallDt;
+      if (impacts[i].t >= impacts[i].life) impacts.splice(i, 1);
     }
     for (let i = callouts.length - 1; i >= 0; i--) {
       callouts[i].t += wallDt;
@@ -1537,6 +1908,7 @@
       for (const id of trails.keys()) if (!live.has(id)) trails.delete(id);
     }
     for (let i = 0; i < pCap; i++) if (pool[i].on && !pool[i].ground) drawParticle(ctx, pool[i]);
+    for (let i = 0; i < impacts.length; i++) drawImpact(ctx, impacts[i]);
     for (let i = 0; i < numbers.length; i++) drawNumber(ctx, numbers[i]);
     for (let i = 0; i < callouts.length; i++) drawCallout(ctx, callouts[i]);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1561,6 +1933,7 @@
     bound = false;
     bakeShadow();
     bakeIcons();
+    bootPilot();
     if (bgUrl) loadImage(bgUrl).catch(() => {});
     cv = document.createElement('canvas');
     cv.id = 'arenaCv';
@@ -1632,7 +2005,7 @@
     if (view && view.units) {
       for (let i = 0; i < view.units.length; i++) if (view.units[i].boss && !wrappedFrame.boss) {
         wrappedFrame.boss = true;
-        if (!banner) banner = { text: String(view.units[i].name || 'BOSS').toUpperCase(), el: view.units[i].el, t: 0, life: 1.3 };
+        if (!banner) banner = { text: String(view.units[i].name || 'BOSS').toUpperCase().slice(0, 18), el: view.units[i].el, t: 0, life: 0.85, corner: 1 };
       }
     }
     const opt2 = Object.assign({ sample: true }, opt);
@@ -1653,6 +2026,40 @@
     }, o);
   }
 
+  function speciesDemo(id, el, biome, bg, ranged) {
+    const art = 'cr_' + id + '1';
+    return {
+      biome, bg,
+      units: [
+        demoUnit({ id: 1, x: 260, y: 340, art, el, state: ranged ? 'cast' : 'attack', name: id }),
+        demoUnit({ id: 2, x: 640, y: 300, facing: -1, side: 1, art: 'cr_cind1', el: 'ember', state: 'hit', hp: 44 }),
+        demoUnit({ id: 3, x: 160, y: 160, art, el, state: 'run' }),
+        demoUnit({ id: 4, x: 780, y: 470, facing: -1, side: 1, art: 'cr_shel1', el: 'stone', state: 'dead', alive: false, hp: 0 }),
+      ],
+      extras: [
+        { id: 1, art, sp: id, role: ranged ? 'caster' : 'tank', range: ranged ? 3 : 1, wind: 0.22, recover: 0.16, atkT: 0.22, castT: 0.28, castDur: 0.5 },
+        { id: 2, art: 'cr_cind1', sp: 'cind', role: 'striker', range: 1 },
+        { id: 3, art, sp: id, role: 'striker', range: 1 },
+        { id: 4, art: 'cr_shel1', sp: 'shel', role: 'tank', range: 1 },
+      ],
+      tels: ranged ? [{ id: 1, shape: 'circle', x: 640, y: 310, r: 100, el, left: 0.35, dur: 1 }] : [],
+      projs: ranged ? [{ id: 9, x: 400, y: 320, vx: 420, vy: -10, r: 8, el, friendly: true }] : [],
+      kick() {
+        pushNumber({ id: 2, x: 640, y: 300, v: 7, kind: 'dmg' });
+        pushNumber({ id: 2, x: 640, y: 300, v: 5, kind: 'dmg' });
+        pushNumber({ id: 2, x: 640, y: 300, v: 21, crit: true, kind: 'dmg' });
+        spawnImpact(640, 300, el, true);
+        callouts.push({ x: 260, y: 340, text: id.toUpperCase(), el, t: 0.04, life: 1.2, ult: !ranged });
+      },
+      seek(t) {
+        this.extras[0].atkT = 0.12 + (t % 0.38);
+        this.extras[0].castT = t % 0.5;
+        const v = vis.get(4) || { state: 'dead', t: 0, age: 0, flash: 0, lean: 0, kx: 0, ky: 0 };
+        v.state = 'dead'; v.t = t; vis.set(4, v);
+        if (this.projs && this.projs[0]) this.projs[0].x = 300 + (t % 1) * 300;
+      },
+    };
+  }
   const DEMOS = {
     melee() {
       return {
@@ -1761,6 +2168,9 @@
         seek(t) { shakes = Math.max(shakes, 4 * Math.max(0, 1 - t * 2)); },
       };
     },
+    pebb() { return speciesDemo('pebb', 'stone', 'dunes', 'img/bg_dunes.webp', false); },
+    pyrp() { return speciesDemo('pyrp', 'ember', 'magma', 'img/bg_magma.webp', true); },
+    bubb() { return speciesDemo('bubb', 'tide', 'grotto', 'img/bg_grotto.webp', true); },
   };
 
   let demo = null;
@@ -1772,7 +2182,8 @@
     bgUrl = spec.bg || '';
     if (bgUrl) loadImage(bgUrl).catch(() => {});
     artUrl = k => 'img/' + k + '.webp';
-    spec.units.forEach(u => prepareArt(u.art, artUrl(u.art)));
+    spec.units.forEach(u => { if (!atlases.has(u.art)) prepareArt(u.art, artUrl(u.art)); });
+    bootPilot();
     demo = spec;
     if (spec.kick) spec.kick();
     const view = blankView(spec.units, spec.projs || [], spec.tels || []);

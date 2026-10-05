@@ -805,9 +805,14 @@ function stopFight() {
   if (window.GArenaView) GArenaView.unmount();
   const cv = document.getElementById('arenaCv');
   if (cv) cv.remove();
-  if (boardEl) boardEl.classList.remove('arena-on');
+  if (boardEl) boardEl.classList.remove('arena-on', 'arena-hold');
   FS = null;
   if (window.GAUDIO) GAUDIO.setSpeed(1);
+}
+function holdArena() {
+  if (FS && FS.raf) cancelAnimationFrame(FS.raf);
+  if (FS) FS.raf = 0;
+  if (boardEl) boardEl.classList.add('arena-hold');
 }
 function uEl(id) { return FS && FS.els[id]; }
 function startFight() {
@@ -1244,7 +1249,9 @@ async function endFight() {
   window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: kills, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned), hazard: !!(res.win && hazOn && !hazRelic) });
   const apex = R.rollApex(run, st, meta); if (apex) res.drops.push({ k: 'apex', sp: apex.sp });
   if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
-  stopFight();
+  const keepArena = !!(FS && FS.arena && boardEl);
+  if (keepArena) holdArena();
+  else stopFight();
   phase = 'busy';
   save();
   SFX.stinger(res.win ? 'win' : 'lose');
@@ -1263,6 +1270,7 @@ async function endFight() {
   if (res.retry) lines.push('<p style="text-align:center;color:var(--gold)">The Glimmerwyrm still stands. Strengthen your team and try again!</p>');
   if (res.report) lines.push(res.report);
   await ask(res.win ? (kind === 'boss' ? bossName + ' defeated!' : 'Victory!') : 'Defeat', lines.join(''), btn('ok', 'Continue', 'green'));
+  if (keepArena) stopFight();
   // rewards
   for (const p of run.pending || []) {
     if (p.k === 'relic' && p.opts.length) await relicPick(p.opts, kind === 'boss' ? 'Boss treasure' : 'Elite treasure');
@@ -1394,7 +1402,8 @@ async function menuScreen() {
 
 // ---- end of run, camp, dex, help ----------------------------------------------------------------
 async function gameOver(won, res) {
-  stopFight();
+  const held = boardEl && boardEl.classList.contains('arena-hold');
+  if (!held) stopFight();
   const shards = R.shardsFor(run, won);
   meta.shards += shards;
   window.AX && AX.ev('shards', shards);
@@ -1411,6 +1420,7 @@ async function gameOver(won, res) {
     <p style="text-align:center">Reached round ${r.round} · ${qty(r.stats.won, 'win', 'wins')} · ${qty(r.stats.lost, 'loss', 'losses')} · ${qty(r.stats.merges, 'evolution', 'evolutions')}</p>
     ${(res && res.report) || ''}
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
+  if (held) stopFight();
   renderCamp();
 }
 function renderCamp() {

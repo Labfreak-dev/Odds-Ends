@@ -21,14 +21,13 @@ ap.add_argument('--rounds', type=int, default=4)
 ap.add_argument('--mobile', action='store_true')
 ap.add_argument('--deep', action='store_true')
 ap.add_argument('--wilds-only', action='store_true')
-ap.add_argument('--arena', action='store_true', help='load ?arena=1 and check the placeholder arena fight')
 a = ap.parse_args()
 
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *x): pass
 srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Q, directory=ROOT))
 threading.Thread(target=srv.serve_forever, daemon=True).start()
-URL = f'http://127.0.0.1:{srv.server_address[1]}/index.html' + ('?arena=1' if a.arena else '')
+URL = f'http://127.0.0.1:{srv.server_address[1]}/index.html'
 
 fails, checks = [], 0
 evo_seen = False
@@ -472,88 +471,19 @@ with sync_playwright() as p:
             page.locator('#shop .scard[data-buy]:not(.poor)').first.click(); page.wait_for_timeout(250)
         clear_modals(page)
         page.evaluate("GR.autoPlace(GLIM.run); GLIM.renderGame()")
-        if a.arena and r == 0:
-            # Bubbo's basic is a projectile. Support kiting during the opening
-            # attack cooldown walks it out of range of a backline foe, so this
-            # fight is Bubbo alone against a melee foe one column away.
-            page.evaluate("""() => { const r = GLIM.run;
-              let u = r.units.find(x => x.sp === 'bubb');
-              if (!u) { u = GR.mkInst(r, 'bubb', 1); r.units.push(u); }
-              for (const o of r.units) {
-                if (o === u) { o.at = 'b'; o.x = 2; o.y = 2; }
-                else if (o.at === 'b') { o.at = 'n'; o.slot = GR.freeBench(r); }
-              }
-              const foe = { uid: -50, sp: 'pebb', star: 1, muts: [], charm: null, el2: null, skill: 'rockslide', shiny: false };
-              r.enemy = { round: r.round, units: [{ inst: foe, x: 3, y: 2 }] };
-              if (!GArena.__projWrapped) {
-                const orig = GArena.tick;
-                GArena.tick = function (st) {
-                  const ev = orig(st);
-                  if ((st.projs && st.projs.length) || (ev && ev.some(e => e.k === 'proj'))) window.__sawProj = true;
-                  return ev;
-                };
-                GArena.__projWrapped = true;
-              }
-              window.__sawProj = false;
-              GLIM.renderGame(); }""")
         t0 = time.time()
         page.click('#shopBtns [data-v=fight]')
         page.wait_for_selector('#game.fighting')
-        if a.arena and r < 3:
-            page.wait_for_timeout(280)
-            varied = page.evaluate("""() => {
-              const c = document.getElementById('arenaCv');
-              if (!c || c.width < 8 || c.height < 8) return 0;
-              const img = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-              const cols = new Set();
-              const sx = Math.max(1, (c.width / 16) | 0), sy = Math.max(1, (c.height / 16) | 0);
-              for (let y = sy; y < c.height; y += sy) for (let x = sx; x < c.width; x += sx) {
-                const i = (y * c.width + x) * 4;
-                cols.add(((img[i] >> 4) << 8) | ((img[i + 1] >> 4) << 4) | (img[i + 2] >> 4));
-                if (cols.size > 8) return cols.size;
-              }
-              return cols.size;
-            }""")
-            check(varied > 6, f'arena canvas is not a flat colour (fight {r + 1}, {varied} tones)')
-            try:
-                os.makedirs('/tmp/arena-shots', exist_ok=True)
-                page.locator('#arenaCv').screenshot(path=f'/tmp/arena-shots/fight-{r + 1}.png')
-            except Exception:
-                pass
-        if r == 0 and a.arena:
-            check(page.locator('#arenaCv').count() == 1, 'arena canvas mounted')
-            check(page.evaluate("() => !!(GLIM.FS && GLIM.FS.st && GLIM.FS.st.engine === 'arena')"), 'arena engine is live')
-            p0 = page.evaluate("() => GLIM.FS.st.units.map(u => Math.round(u.pos.x) + ',' + Math.round(u.pos.y)).join('|')")
-            saw = False
-            for _ in range(24):
-                page.wait_for_timeout(120)
-                if page.evaluate("() => !!(window.__sawProj || (GLIM.FS && GLIM.FS.st && GLIM.FS.st.projs && GLIM.FS.st.projs.length))"): saw = True
-                if saw or page.locator('#modal.on').count(): break
-            p1 = page.evaluate("() => GLIM.FS && GLIM.FS.st ? GLIM.FS.st.units.map(u => Math.round(u.pos.x) + ',' + Math.round(u.pos.y)).join('|') : ''")
-            shot(page, '05-fight')
-            check(p0 != p1, 'arena fighters moved')
-            check(saw, 'arena projectile spawned')
-            check(page.evaluate("() => GLIM.FS.st.units.every(u => Number.isFinite(u.pos.x) && Number.isFinite(u.pos.y))"), 'arena positions stay finite')
-        elif r == 0:
+        if r == 0:
             page.wait_for_timeout(1800); shot(page, '05-fight')
             check(page.locator('#units .unit').count() >= 2, 'fight units rendered')
-        if a.arena or r >= 2:
-            if page.locator('#fightBar [data-v=skip]').count() and page.locator('#modal.on').count() == 0:
-                page.click('#fightBar [data-v=skip]')
+        if r >= 2:
+            page.click('#fightBar [data-v=skip]')
         page.wait_for_selector('#modal.on', timeout=120000)
         rounds += 1
         title = page.locator('#modalBox h2').inner_text()
         check(True, f'round {rounds} resolved: {title} ({time.time() - t0:.0f}s)')
         if r == 0:
-            if a.arena:
-                held = page.evaluate("""() => {
-                  const board = document.getElementById('board');
-                  const cv = document.getElementById('arenaCv');
-                  const cells = document.querySelector('#board .cells');
-                  const vis = cells ? getComputedStyle(cells).visibility : '';
-                  return !!(cv && board && board.classList.contains('arena-on') && board.classList.contains('arena-hold') && vis === 'hidden');
-                }""")
-                check(held, 'result modal keeps the frozen arena')
             shot(page, '06-result')
             fight_result_keys(page, title)
         clear_modals(page)

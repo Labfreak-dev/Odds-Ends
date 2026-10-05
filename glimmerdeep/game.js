@@ -796,24 +796,7 @@ async function enemyInfo(i) {
 
 // ---- the fight ---------------------------------------------------------------------------------
 let FS = null;
-function arenaOn() {
-  try { return new URLSearchParams(location.search).get('arena') === '1' && !!window.GArena; }
-  catch (e) { return false; }
-}
-function stopFight() {
-  if (FS && FS.raf) cancelAnimationFrame(FS.raf);
-  if (window.GArenaView) GArenaView.unmount();
-  const cv = document.getElementById('arenaCv');
-  if (cv) cv.remove();
-  if (boardEl) boardEl.classList.remove('arena-on', 'arena-hold');
-  FS = null;
-  if (window.GAUDIO) GAUDIO.setSpeed(1);
-}
-function holdArena() {
-  if (FS && FS.raf) cancelAnimationFrame(FS.raf);
-  if (FS) FS.raf = 0;
-  if (boardEl) boardEl.classList.add('arena-hold');
-}
+function stopFight() { if (FS && FS.raf) cancelAnimationFrame(FS.raf); FS = null; if (window.GAUDIO) GAUDIO.setSpeed(1); }
 function uEl(id) { return FS && FS.els[id]; }
 function startFight() {
   if (phase !== 'plan') return;
@@ -821,19 +804,14 @@ function startFight() {
   if (R.onBoard(run).length < R.cap(run) && R.onBench(run).length) toast(`You have room for ${R.cap(run) - R.onBoard(run).length} more on the board.`);
   phase = 'fight';
   const seed = (run.seed * 31 + run.round * 977 + Date.now() % 100000) >>> 0;
-  const Eng = arenaOn() ? window.GArena : C;
-  const st = Eng.create(R.fightOpts(run, seed));
-  FS = { st, eng: Eng, arena: Eng !== C, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
+  const st = C.create(R.fightOpts(run, seed));
+  FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0 };
   if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
   syncGaSpeed();
   VFX.speed = FS.speed; VFX.resize();
   $('#game').classList.add('fighting');
-  hidePlanToast();
-  if (FS.arena) mountArena();
-  else {
-    unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
-    for (const u of st.units) cacheEl(u);
-  }
+  unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
+  for (const u of st.units) cacheEl(u);
   renderFightBar();
   $('#gTraits').innerHTML = traitsHtml(R.onBoard(run));
   boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
@@ -842,8 +820,7 @@ function startFight() {
   const bossId = kind === 'boss' ? R.bossOf(run) : null;           // 'wyrm' only for the Glimmerwyrm
   mus(bossId === 'wyrm' ? 'glimmerwyrm' : kind === 'boss' ? 'boss' : R.stageOf(run.round) >= G.STAGES - 1 ? 'core' : 'fight');
   if (kind === 'boss') SFX.bossbanner(); else SFX.fightstart();    // one start cue at a time: bossbanner (1.4 s) already is the boss start, fightstart would stack on it
-  if (FS.arena) handleArena(st.ev.splice(0));
-  else handle(st.ev.splice(0));
+  handle(st.ev.splice(0));
   FS.raf = requestAnimationFrame(loop);
 }
 // ---- a live fight outside a run (The Wilds): same board and playback, no shop or bench ----------
@@ -854,15 +831,13 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     stopFight();
     phase = 'fight';
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-    const Eng = arenaOn() ? window.GArena : C;
-    const st = Eng.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), foeBonus, noHaz: true, mods: {} });
-    FS = { st, eng: Eng, arena: Eng !== C, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
+    const st = C.create({ board, enemies, relics: [], perks: {}, biome, seed, depth: 0, camp: Object.entries(extra || {}).reduce((b, [k, v]) => (b[k] = (b[k] || 0) + v, b), R.campBonus(meta.up)), foeBonus, noHaz: true, mods: {} });
+    FS = { st, speed: meta.speed || 1, acc: 0, last: performance.now(), els: {}, ending: false, popN: 0, hold: 0, wild: res };
     if (window.GAUDIO) GAUDIO.setSpeed(FS.speed);
     syncGaSpeed();
     VFX.speed = FS.speed; VFX.clear();
     show('game');
     $('#game').classList.add('fighting', 'wild');
-    hidePlanToast();
     boardEl.classList.remove('ult');
     $('#gBg').style.backgroundImage = `url(${IMG(G.BIOMES[biome].bg)})`;
     $('#gTop').innerHTML = `<div class="grow"><div class="title">${title}</div><div class="small muted">The Wilds · ${G.BIOMES[biome].name}</div></div>`;
@@ -870,17 +845,13 @@ function wildBattle(board, enemies, biome, title, extra, foeBonus) {
     $('#gTraits').innerHTML = G.ELS.filter(e => c.el[e]).map(e => `<span class="trait el-${e} ${c.el[e] >= G.EL_AT[0] ? 'on' : ''}">${elBadge(e)}${G.EL[e].name} ${c.el[e]}</span>`).join('');
     if (!$('#cells').children.length) renderCells();
     fxEl.innerHTML = '';
-    if (FS.arena) mountArena();
-    else {
-      unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
-      for (const u of st.units) cacheEl(u);
-    }
+    unitsEl.innerHTML = st.units.map(u => unitHtml('u' + u.id, { x: u.x, y: u.y, star: u.star, side: u.side, boss: u.boss, elite: u.elite, art: u.art, shiny: u.shiny, hp: u.hp, maxHp: u.maxHp, mana: u.mana })).join('');
+    for (const u of st.units) cacheEl(u);
     renderFightBar();
     boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's');
     mus(String(title).includes('\u265b') ? 'wilds_lair' : 'wilds_fight');   // \u265b = the crown glyph wilds.js puts in lair titles
     setTimeout(() => { if (FS) SFX.fightstart(); }, 350);                    // wencounter (0.7 s) started ~380 ms ago in wilds.js battle(); stagger so the two do not stack
-    if (FS.arena) handleArena(st.ev.splice(0));
-    else handle(st.ev.splice(0));
+    handle(st.ev.splice(0));
     FS.raf = requestAnimationFrame(loop);
   });
 }
@@ -899,121 +870,26 @@ function cacheEl(u) {
   noteAnim(u);
 }
 function renderFightBar() {
-  const prev = document.activeElement;
-  const prevV = prev && prev.closest && prev.closest('#fightBar') ? prev.getAttribute('data-v') : '';
-  if (FS && FS.arena) {
-    const sp = FS.speed;
-    const spd = (v, label) => `<button class="btn ghost sm${sp === v ? ' on' : ''}" data-v="spd:${v}" type="button">${label}</button>`;
-    $('#fightBar').innerHTML = `<span class="arena-sr" id="arenaTime">0:00</span>${spd(1, '1×')}${spd(1.5, '1.5×')}${spd(2, '2×')}${spd(4, '4×')}${btn(FS.paused ? 'resume' : 'pause', FS.paused ? 'Resume' : 'Pause', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
-  } else {
-    $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
-  }
-  if (!prevV) return;
-  let next = document.querySelector('#fightBar [data-v="' + prevV + '"]');
-  if (!next && (prevV === 'pause' || prevV === 'resume')) next = document.querySelector('#fightBar [data-v="pause"], #fightBar [data-v="resume"]');
-  if (next) next.focus();
-}
-function hidePlanToast() {
-  const t = $('#toast');
-  if (t && t.classList.contains('on') && t.textContent.indexOf('Drag creatures') === 0) t.classList.remove('on');
+  $('#fightBar').innerHTML = `<span class="muted fred">Fighting…</span>${btn('speed', (FS ? FS.speed : 1) + '× speed', 'ghost sm')}${btn('skip', 'Skip', 'ghost sm')}`;
 }
 $('#fightBar').addEventListener('click', e => {
   const b = e.target.closest('[data-v]'); if (!b || !FS) return;
   SFX.click();
-  if (FS.arena && b.dataset.v.indexOf('spd:') === 0) {
-    FS.speed = +b.dataset.v.slice(4);
-    if (FS.speed === 1 || FS.speed === 2 || FS.speed === 4) meta.speed = FS.speed;
-    VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar();
-  } else if (FS.arena && (b.dataset.v === 'pause' || b.dataset.v === 'resume')) { FS.paused = !FS.paused; renderFightBar(); }
-  else if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
-  else if (b.dataset.v === 'skip') { FS.skip = true; if (FS.arena && window.GArenaView) GArenaView.skipIntro(); }
+  if (b.dataset.v === 'speed') { FS.speed = FS.speed >= 4 ? 1 : FS.speed * 2; meta.speed = FS.speed; VFX.speed = FS.speed; syncGaSpeed(); if (window.GAUDIO) GAUDIO.setSpeed(FS.speed); boardEl.style.setProperty('--mv', (0.42 / FS.speed) + 's'); renderFightBar(); }
+  else if (b.dataset.v === 'skip') { FS.skip = true; }
 });
 function loop(ts) {
   if (!FS) return;
   const st = FS.st;
-  const Eng = FS.eng || C;
-  const wall = Math.min(0.1, (ts - FS.last) / 1000);
-  let dt = wall * FS.speed;
-  if (FS.hold > 0) { FS.hold -= wall; dt = 0; }
-  if (FS.paused) dt = 0;
-  if (FS.arena && window.GArenaView && GArenaView.holding()) dt = 0;
+  let dt = Math.min(0.1, (ts - FS.last) / 1000) * FS.speed;
+  if (FS.hold > 0) { FS.hold -= (ts - FS.last) / 1000; dt = 0; }
   FS.last = ts;
-  if (FS.skip && !st.over) { if (FS.arena && window.GArenaView) GArenaView.skipIntro(); Eng.resolve(st); st.ev.length = 0; if (!FS.arena) resyncAll(); }
+  if (FS.skip && !st.over) { C.resolve(st); st.ev.length = 0; resyncAll(); }
   FS.acc += dt;
-  if (FS.arena && FS.acc > Eng.DT * 8) FS.acc = Eng.DT * 8;
-  while (FS.acc >= Eng.DT && !st.over) { FS.acc -= Eng.DT; const ev = Eng.tick(st); st.ev.length = 0; if (FS.arena) handleArena(ev); else handle(ev); }
-  if (FS.arena) drawArena(wall, dt);
-  else for (const u of st.units) syncBars(u);
+  while (FS.acc >= C.DT && !st.over) { FS.acc -= C.DT; const ev = C.tick(st); st.ev.length = 0; handle(ev); }
+  for (const u of st.units) syncBars(u);
   if (st.over && !FS.ending) { FS.ending = true; setTimeout(FS.wild ? wildEnd : endFight, FS.skip ? 200 : 900 / Math.min(2, FS.speed)); }
   FS.raf = requestAnimationFrame(loop);
-}
-function mountArena() {
-  unitsEl.innerHTML = '';
-  VFX.clear();
-  const biome = (FS.st && FS.st.biome) || (run && run.biome) || 'verdant';
-  const bgKey = G.BIOMES[biome] && G.BIOMES[biome].bg;
-  if (window.GArenaView) {
-    GArenaView.mount(boardEl, {
-      biome, bg: bgKey ? IMG(bgKey) : '', art: IMG,
-      onHold(sec) { if (FS && !FS.skip && !FS.paused) FS.hold = Math.max(FS.hold || 0, sec); },
-    });
-  }
-}
-function arenaExtras(st) {
-  const out = [];
-  for (const u of st.units) {
-    const sts = [];
-    if (u.st) for (const k in u.st) if (u.st[k]) {
-      const n = u.st[k].n;
-      sts.push(n > 1 ? k + ':' + n : k);
-    }
-    const sk = u.skill && G.SK[u.skill];
-    out.push({
-      id: u.id, art: u.art, sp: u.inst && u.inst.sp, role: u.role, range: u.range,
-      focus: u.focusId || 0, statuses: sts, shiny: !!u.shiny, stun: !!(u.st && u.st.stun),
-      wind: u.wind || 0.22, recover: u.recover || 0.16,
-      atkT: u.state === 'attack' ? (u.atkT || 0) : null,
-      castT: u.state === 'cast' ? (u.castT || 0) : null,
-      castDur: (u.castShape && (u.castShape.cast || 0.4)) || 0.4,
-      ult: !!(sk && sk.ult && u.state === 'cast'),
-    });
-  }
-  return out;
-}
-function handleArena(ev) {
-  if (window.GArenaView) GArenaView.push(ev);
-  for (let i = 0; i < ev.length; i++) {
-    const e = ev[i];
-    if (e.k === 'text' && e.v) toast(e.v);
-    else if (e.k === 'dmg' && !e.dot) {
-      if (e.crit) SFX.crit();
-      else if (!e.basic || Math.random() < 0.35) SFX.el('hit', e.el, { v: e.basic ? 0.7 : 1 });
-    } else if (e.k === 'ko') SFX.ko();
-    else if (e.k === 'cast' && e.ult) SFX.el('ult', e.el);
-    else if (e.k === 'cast') SFX.el('cast', e.el);
-    else if (e.k === 'heal' && !e.quiet && e.v > 0) SFX.heal();
-    else if (e.k === 'shield') SFX.shield();
-    else if (e.k === 'miss') SFX.miss();
-  }
-}
-function drawArena(wall, motion) {
-  if (!FS || !window.GArena || !window.GArenaView) return;
-  const step = FS.eng && FS.eng.DT ? FS.eng.DT : 1 / 30;
-  const held = FS.hold > 0 || FS.paused || GArenaView.holding();
-  const alpha = held ? 0 : Math.max(0, Math.min(0.999, FS.acc / step));
-  const view = window.GArena.view(FS.st, alpha);
-  GArenaView.frame(view, {
-    wallDt: FS.paused ? 0 : (wall || 0),
-    motionDt: held ? 0 : (motion || 0),
-    paused: !!FS.paused,
-    alpha, extras: arenaExtras(FS.st),
-  });
-  const clock = document.getElementById('arenaTime');
-  if (clock) {
-    const sec = Math.floor(view.t || 0);
-    const label = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
-    if (clock.textContent !== label) clock.textContent = label;
-  }
 }
 function resyncAll() {
   for (const u of FS.st.units) {
@@ -1249,9 +1125,7 @@ async function endFight() {
   window.AX && AX.ev('fight', 1, { win: !!res.win, kind: res.kind, round: res.round, boss: res.kind === 'boss', elite: res.kind === 'elite', kills: kills, els: Array.from(new Set(st.units.filter(u => u.side === 0).map(u => u.el))), clean: !!res.win && !st.units.some(u => u.side === 0 && !u.alive && !u.summoned), hazard: !!(res.win && hazOn && !hazRelic) });
   const apex = R.rollApex(run, st, meta); if (apex) res.drops.push({ k: 'apex', sp: apex.sp });
   if (GA && GA.enabled && res.win) for (const u of st.units) if (u.side === 0 && u.alive) { const E = uEl(u.id); if (E) GA.cheer(E.el); }
-  const keepArena = !!(FS && FS.arena && boardEl);
-  if (keepArena) holdArena();
-  else stopFight();
+  stopFight();
   phase = 'busy';
   save();
   SFX.stinger(res.win ? 'win' : 'lose');
@@ -1270,7 +1144,6 @@ async function endFight() {
   if (res.retry) lines.push('<p style="text-align:center;color:var(--gold)">The Glimmerwyrm still stands. Strengthen your team and try again!</p>');
   if (res.report) lines.push(res.report);
   await ask(res.win ? (kind === 'boss' ? bossName + ' defeated!' : 'Victory!') : 'Defeat', lines.join(''), btn('ok', 'Continue', 'green'));
-  if (keepArena) stopFight();
   // rewards
   for (const p of run.pending || []) {
     if (p.k === 'relic' && p.opts.length) await relicPick(p.opts, kind === 'boss' ? 'Boss treasure' : 'Elite treasure');
@@ -1402,8 +1275,7 @@ async function menuScreen() {
 
 // ---- end of run, camp, dex, help ----------------------------------------------------------------
 async function gameOver(won, res) {
-  const held = boardEl && boardEl.classList.contains('arena-hold');
-  if (!held) stopFight();
+  stopFight();
   const shards = R.shardsFor(run, won);
   meta.shards += shards;
   window.AX && AX.ev('shards', shards);
@@ -1420,7 +1292,6 @@ async function gameOver(won, res) {
     <p style="text-align:center">Reached round ${r.round} · ${qty(r.stats.won, 'win', 'wins')} · ${qty(r.stats.lost, 'loss', 'losses')} · ${qty(r.stats.merges, 'evolution', 'evolutions')}</p>
     ${(res && res.report) || ''}
     <p style="text-align:center;font-size:18px"><b>+${shards} Glimmer Shards</b></p>${cores}${won ? `<p style="text-align:center;color:var(--gold)">Depth ${meta.depthMax} unlocked! Foes grow stronger on each Depth.</p>` : '<p class="muted" style="text-align:center">Spend shards at camp for permanent upgrades.</p>'}`, btn('ok', 'Back to camp', 'green'));
-  if (held) stopFight();
   renderCamp();
 }
 function renderCamp() {

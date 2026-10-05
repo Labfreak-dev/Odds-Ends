@@ -1,9 +1,0 @@
-{
-  "creatures": ["pebb_1", "pyrp_1", "bubb_1"],
-  "vfx": {
-    "projectile": "fire_projectile.json",
-    "projectileWater": "water_projectile.json",
-    "impact": "fire_impact.json",
-    "telegraph": "ground_telegraph.json"
-  }
-}

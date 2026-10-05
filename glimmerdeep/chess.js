@@ -794,5 +794,5 @@ function checkOver(st, ev) {
 function resolve(st) { let n = 0; while (!st.over && n++ < TIME_LIMIT / DT + 5) tick(st); return st; }
 
 root.GC = { W, H, DT, TIME_LIMIT, mkRng, teamBonus, relicTagCounts, stats, name, art, elOf, roleOf, castables, defaultSkill, basicOf,
-  manaCost, traitCounts, traitTiers, create, tick, resolve, alive, byId, dist, pct, manaNeed, effAS, effAtk, hit };
+  manaCost, traitCounts, traitTiers, create, tick, resolve, alive, byId, dist, pct, manaNeed, effAS, effAtk };
 })(typeof window !== 'undefined' ? window : globalThis);

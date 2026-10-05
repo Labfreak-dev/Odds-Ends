@@ -479,8 +479,83 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hub-panel, .sheet { animation: none; }
+  .hub-panel, .sheet, .loot-reveal { animation: none; }
 }
+.armory-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.armory-tools label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.armory-tools select {
+  background: var(--ink);
+  color: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+.armory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.gear-card, .gear-slot, .gear-offer {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 4px 8px;
+  align-items: center;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+}
+.gear-card > .glyph, .gear-slot > .glyph, .gear-offer > .glyph { grid-row: 1 / span 3; }
+.gear-card h3, .gear-card p, .gear-slot span, .gear-offer span { grid-column: 2; margin: 0; }
+.gear-card .btn, .gear-card .armory-pick, .gear-slot .btn { grid-column: 1 / -1; }
+.gear-card h3, .gear-slot b, .gear-offer b { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.gear-card p, .gear-slot small, .gear-offer small { color: var(--muted); font-size: 13px; display: block; }
+.gear-slots { display: flex; flex-direction: column; gap: 8px; }
+.gear-offer {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  margin: 0 0 8px;
+}
+.gear-offer:hover, .gear-slot:hover { border-color: var(--copper-2); }
+.glyph {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #8a7d70;
+  border-radius: 6px;
+  background: #16130f;
+  color: #d9cbb8;
+}
+.glyph svg { width: 28px; height: 28px; }
+.rarity-common { border-color: #8a7d70; }
+.rarity-rare { border-color: var(--steel); color: #d5e2f6; }
+.rarity-epic { border-color: var(--violet); color: #eadcf8; }
+.rarity-legendary { border-color: var(--copper-2); color: #f6e0b0; box-shadow: inset 0 0 0 1px rgba(227, 154, 98, 0.45); }
+.glyph.rarity-rare { color: #d5e2f6; }
+.glyph.rarity-epic { color: #eadcf8; }
+.glyph.rarity-legendary { color: #f6e0b0; }
+.diff { list-style: none; padding: 0; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.diff-up { color: var(--good); }
+.diff-down { color: var(--danger); }
+#equipDiff { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.loot-reveal {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 10px;
+  background: #1a1612;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  animation: loot-in 0.55s ease;
+}
+.loot-reveal h3 { margin: 0; font-family: var(--display); font-weight: 600; }
+.loot-reveal p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+@keyframes loot-in {
+  from { opacity: 0; transform: rotateY(70deg) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+.chip.train { display: block; width: 100%; margin-top: 6px; }
 .icon-btn {
   min-width: 44px;
   min-height: 44px;

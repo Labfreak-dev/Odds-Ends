@@ -146,6 +146,7 @@
     });
     normalizeLineup(data);
     adoptSheets(data);
+    if (IL.normalizeGear) IL.normalizeGear(data);
     return data;
   }
 
@@ -241,7 +242,11 @@
 
   function makeRivalSide(rng, name, n) {
     const fighters = [];
-    for (let i = 0; i < n; i++) fighters.push(IL.randomFighter(rng));
+    for (let i = 0; i < n; i++) {
+      const fighter = IL.randomFighter(rng);
+      if (IL.dressRival) IL.dressRival(fighter, rng);
+      fighters.push(fighter);
+    }
     return { id: "r" + Math.floor(rng() * 1e9).toString(36), name: name, you: false, fighters: fighters };
   }
 
@@ -314,6 +319,10 @@
       const f = list[i];
       const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
       s += (kit.hp / 140) + (kit.atk / 18) + ((f.level || 1) - 1) * 0.15 + (f.champion ? 0.35 : 0);
+      if (IL.gearBonus) {
+        const g = IL.gearBonus(f);
+        s += (g.hp || 0) / 140 + (g.atk || 0) / 18;
+      }
     }
     return s / n;
   }

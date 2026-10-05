@@ -15,6 +15,10 @@
   let settingsOpen = false;
   let pendingSpec = null;
   let paused = false;
+  let gearPreview = null;
+  let armorySlot = "all";
+  let armoryRarity = "all";
+  let armorySort = "rarity";
   const HUB_TABS = ["club", "fighters", "market", "cup", "relics"];
 
   function esc(s) {
@@ -85,7 +89,11 @@
     }
     const clubs = [{ id: "you", name: save.clubName, you: true, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: 1 }];
     rivals.forEach(function (name, i) {
-      const fighters = [0, 1, 2].map(function () { return IL.randomFighter(rng); });
+      const fighters = [0, 1, 2].map(function () {
+        const fighter = IL.randomFighter(rng);
+        if (IL.dressRival) IL.dressRival(fighter, rng);
+        return fighter;
+      });
       const str = fighters.reduce(function (s, f) {
         return s + (f.cls === "tank" ? 1.12 : f.cls === "mage" ? 1.06 : 1);
       }, 0) / 3;
@@ -95,6 +103,9 @@
     save.round = 0;
     save.fixtures = roundRobin(clubs.map(function (c) { return c.id; }));
     if (!keepGold) save.gold = IL.START_GOLD;
+    if (IL.rollGearStock) save.gearStock = IL.rollGearStock(rng);
+    save.trainsLeft = IL.TRAIN_CAP || 2;
+    save.trainRound = 0;
   }
 
   function clubById(id) {
@@ -381,6 +392,8 @@
         captain: true
       });
       const rng = IL.mulberry32(seed);
+      captain.gear = IL.blankGear();
+      captain.gear.armor = IL.makeItem(rng, { key: "mail", rarity: "common" });
       const recruits = ["archer", "mage", "tank"].map(function (cls) {
         const f = IL.randomFighter(rng, cls);
         return f;
@@ -395,6 +408,7 @@
       }, IL.freshClubFields(seed));
       buildSeason(false);
       save.market = IL.rollMarket(takeRng(), 0);
+      save.items = [IL.makeItem(takeRng(), { key: "cloak", rarity: "common" })];
       save.lineup = save.roster.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
       const rival = nextRival();
       const jobs = save.roster.map(function (f) { return IL.hero.compose(f.parts); });
@@ -524,7 +538,230 @@
     return '<li><strong>' + esc(ab.name) + '</strong><span>' + esc(cdText(ab)) + '</span><p>' + esc(abilityBlurb(ab.id)) + '</p></li>';
   }
 
-  function fighterCard(f, size) {
+  function pitSound(kind) {
+    if (!IL.sfx || !save) return;
+    const settings = save.settings || {};
+    const music = kind === "victory" || kind === "defeat";
+    const volume = ((music ? settings.music : settings.sound) || 0) / 100;
+    IL.sfx.play(kind, volume);
+  }
+
+  function matchSize() {
+    return save && save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+  }
+
+  function inThePit(f) {
+    if (!f) return false;
+    const size = matchSize();
+    const slot = (save.lineup || []).indexOf(f.id);
+    if (slot < 0) return false;
+    if (!size) return false;
+    return slot < size;
+  }
+
+  function trainControl(f, sheet) {
+    const cost = IL.TRAIN_COST || 16;
+    const left = save.trainsLeft || 0;
+    const pit = inThePit(f);
+    const broke = save.gold < cost;
+    const spent = left <= 0;
+    const why = pit ? "In the pit today" : (spent ? "Drills spent" : (broke ? "Need " + cost + " gold" : "Train — " + cost + " gold"));
+    const off = pit || spent || broke ? " disabled" : "";
+    if (sheet) {
+      return '<button type="button" class="btn ghost" id="trainBtn"' + off + '>' + esc(why) + '</button>' +
+        '<p class="fine">Drills left today: ' + left + '. Bench only. ' + (IL.TRAIN_XP || 12) + ' xp.</p>';
+    }
+    return '<button type="button" class="chip train" data-train="' + esc(f.id) + '"' + off + '>' + esc(why) + '</button>';
+  }
+
+  function glyphHtml(glyph, rarity) {
+    const paths = {
+      sword: '<path d="M8 28 L20 8 M14 14 L22 22 M6 26 L10 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>',
+      wand: '<path d="M10 26 L22 8 M18 8 H26 M22 4 V12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>',
+      bow: '<path d="M10 6 Q4 16 10 26 M10 10 H22 M10 22 H20 M18 6 L24 16 L18 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>',
+      shield: '<path d="M16 4 L26 8 V16 C26 22 16 28 16 28 C16 28 6 22 6 16 V8 Z" fill="none" stroke="currentColor" stroke-width="2"/>',
+      cloak: '<path d="M8 8 H24 L22 26 L16 22 L10 26 Z" fill="none" stroke="currentColor" stroke-width="2"/>',
+      ring: '<circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 6 V10 M16 22 V26" stroke="currentColor" stroke-width="2"/>',
+      gem: '<path d="M16 4 L26 12 L16 28 L6 12 Z" fill="none" stroke="currentColor" stroke-width="2"/>'
+    };
+    return '<span class="glyph rarity-' + esc(rarity || "common") + '"><svg viewBox="0 0 32 32" aria-hidden="true">' + (paths[glyph] || paths.gem) + '</svg></span>';
+  }
+
+  function bonusLine(item) {
+    const b = IL.itemBonus(item);
+    const bits = [];
+    if (b.hp) bits.push("+" + b.hp + " HP");
+    if (b.atk) bits.push("+" + b.atk + " ATK");
+    if (b.def) bits.push("+" + b.def + " DEF");
+    if (b.spd) bits.push("+" + b.spd + " SPD");
+    const passive = IL.passiveOf(item);
+    if (passive) bits.push(IL.itemBlurb(item));
+    return bits.join(" · ") || "No bonus";
+  }
+
+  function rarityLabel(rarity) {
+    if (rarity === "rare") return "Rare";
+    if (rarity === "epic") return "Epic";
+    if (rarity === "legendary") return "Legendary";
+    return "Common";
+  }
+
+  function slotLabel(slot) {
+    if (slot === "weapon") return "Weapon";
+    if (slot === "armor") return "Armor";
+    return "Trinket";
+  }
+
+  function allGear() {
+    const rows = [];
+    (save.items || []).forEach(function (item) {
+      if (item) rows.push({ item: item, owner: null, slot: IL.itemSlot(item) });
+    });
+    (save.roster || []).forEach(function (f) {
+      const gear = f.gear || {};
+      ["weapon", "armor", "trinket"].forEach(function (slot) {
+        if (gear[slot]) rows.push({ item: gear[slot], owner: f, slot: slot });
+      });
+    });
+    return rows;
+  }
+
+  function filteredGear() {
+    const rows = allGear().filter(function (row) {
+      if (armorySlot !== "all" && row.slot !== armorySlot) return false;
+      if (armoryRarity !== "all" && row.item.rarity !== armoryRarity) return false;
+      return true;
+    });
+    rows.sort(function (a, b) {
+      if (armorySort === "name") return IL.itemName(a.item).localeCompare(IL.itemName(b.item));
+      if (armorySort === "slot") return a.slot.localeCompare(b.slot) || IL.itemName(a.item).localeCompare(IL.itemName(b.item));
+      return (IL.rarityRank(b.item.rarity) - IL.rarityRank(a.item.rarity)) || IL.itemName(a.item).localeCompare(IL.itemName(b.item));
+    });
+    return rows;
+  }
+
+  function armoryCard(row) {
+    const item = row.item;
+    const where = row.owner ? ("On " + row.owner.name) : "In the bag";
+    const actions = row.owner
+      ? '<button type="button" class="btn ghost" data-unequip-from="' + esc(row.owner.id) + '" data-unequip-slot="' + esc(row.slot) + '">Unequip</button>'
+      : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">Equip</button>' +
+        '<button type="button" class="btn ghost" data-salvage="' + esc(item.uid) + '">Salvage — ' + IL.salvageValue(item) + ' gold</button>';
+    const pick = (!row.owner && gearPreview && gearPreview.uid === item.uid)
+      ? '<div class="armory-pick">' + (save.roster || []).map(function (f) {
+        return '<button type="button" class="btn ghost" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
+      }).join("") + '</div>'
+      : "";
+    return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
+      glyphHtml(IL.itemGlyph(item), item.rarity) +
+      '<h3>' + esc(IL.itemName(item)) + '</h3>' +
+      '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(row.slot)) + '</p>' +
+      '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
+      '<p class="fine">' + esc(where) + '</p>' +
+      actions + pick +
+    '</article>';
+  }
+
+  function armoryHtml() {
+    const rows = filteredGear();
+    const slotOpts = [["all", "All slots"], ["weapon", "Weapon"], ["armor", "Armor"], ["trinket", "Trinket"]];
+    const rareOpts = [["all", "All rarities"], ["common", "Common"], ["rare", "Rare"], ["epic", "Epic"], ["legendary", "Legendary"]];
+    const sortOpts = [["rarity", "Rarity"], ["slot", "Slot"], ["name", "Name"]];
+    function opts(list, current) {
+      return list.map(function (pair) {
+        return '<option value="' + pair[0] + '"' + (pair[0] === current ? " selected" : "") + '>' + pair[1] + '</option>';
+      }).join("");
+    }
+    return '<section class="panel-frame" id="armory">' +
+      '<header class="panel-head"><p class="eyebrow">Armory</p><h3>Gear</h3></header>' +
+      '<div class="armory-tools">' +
+        '<label>Slot <select id="filterSlot">' + opts(slotOpts, armorySlot) + '</select></label>' +
+        '<label>Rarity <select id="filterRarity">' + opts(rareOpts, armoryRarity) + '</select></label>' +
+        '<label>Sort <select id="sortGear">' + opts(sortOpts, armorySort) + '</select></label>' +
+      '</div>' +
+      '<div class="armory-grid">' + (rows.map(armoryCard).join("") || emptyState("The armory is empty.", "Matches, the cup, and the stall fill it.")) + '</div>' +
+    '</section>';
+  }
+
+  function findItem(uid) {
+    let found = null;
+    (save.items || []).some(function (item) {
+      if (item && item.uid === uid) { found = { item: item, owner: null }; return true; }
+      return false;
+    });
+    if (found) return found;
+    (save.roster || []).some(function (f) {
+      const gear = f.gear || {};
+      return ["weapon", "armor", "trinket"].some(function (slot) {
+        if (gear[slot] && gear[slot].uid === uid) { found = { item: gear[slot], owner: f, slot: slot }; return true; }
+        return false;
+      });
+    });
+    return found;
+  }
+
+  function takeFromOwner(found) {
+    if (!found || !found.owner) return found && found.item;
+    found.owner.gear[found.slot] = null;
+    return found.item;
+  }
+
+  function equipItem(fighter, item) {
+    if (!fighter || !item) return false;
+    if (!fighter.gear) fighter.gear = IL.blankGear();
+    const slot = IL.itemSlot(item);
+    const found = findItem(item.uid);
+    if (!found) return false;
+    takeFromOwner(found);
+    save.items = (save.items || []).filter(function (it) { return it.uid !== item.uid; });
+    const previous = fighter.gear[slot];
+    if (previous && previous.uid !== item.uid) save.items.push(previous);
+    fighter.gear[slot] = item;
+    return true;
+  }
+
+  function unequipSlot(fighter, slot) {
+    if (!fighter || !fighter.gear || !fighter.gear[slot]) return false;
+    if (!Array.isArray(save.items)) save.items = [];
+    save.items.push(fighter.gear[slot]);
+    fighter.gear[slot] = null;
+    return true;
+  }
+
+  function returnGear(fighter) {
+    if (!fighter || !fighter.gear) return;
+    ["weapon", "armor", "trinket"].forEach(function (slot) { unequipSlot(fighter, slot); });
+  }
+
+  function diffHtml(f, item) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const now = IL.scaledStats(f, kit);
+    const slot = IL.itemSlot(item);
+    const gear = {
+      weapon: f.gear && f.gear.weapon,
+      armor: f.gear && f.gear.armor,
+      trinket: f.gear && f.gear.trinket
+    };
+    gear[slot] = item;
+    const next = IL.scaledStats(Object.assign({}, f, { gear: gear }), kit);
+    const rows = [
+      ["HP", now.hp, next.hp],
+      ["ATK", now.atk, next.atk],
+      ["DEF", now.def, next.def],
+      ["SPD", now.speed, next.speed]
+    ].map(function (row) {
+      const d = Math.round(row[2]) - Math.round(row[1]);
+      if (!d) return "<li>" + row[0] + " " + Math.round(row[1]) + "</li>";
+      const cls = d > 0 ? "diff-up" : "diff-down";
+      return '<li class="' + cls + '">' + row[0] + " " + Math.round(row[1]) + " <b>" + (d > 0 ? "+" : "") + d + "</b></li>";
+    }).join("");
+    return '<div id="equipDiff"><p class="eyebrow">If you equip ' + esc(IL.itemName(item)) + '</p><ul class="diff">' + rows + '</ul>' +
+      '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
+      '<button type="button" class="btn primary" id="confirmEquip">Equip</button>' +
+      '<button type="button" class="btn ghost" id="cancelEquip">Cancel</button></div>';
+  }
+
+  function fighterCard(f, size, onBench) {
     const slot = (save.lineup || []).indexOf(f.id);
     const fighting = slot >= 0 && (!size || slot < size);
     const held = slot >= 0 && size > 0 && slot >= size;
@@ -555,6 +792,7 @@
       '<p class="fine">' + (f.wins || 0) + "–" + (f.losses || 0) + " · " + kos + (kos === 1 ? " KO" : " KOs") + '</p>' +
       '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>' +
       '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
+      (onBench ? trainControl(f, false) : "") +
     '</article>';
   }
 
@@ -571,7 +809,7 @@
     ordered.forEach(function (f) {
       const slot = Object.prototype.hasOwnProperty.call(slotOf, f.id) ? slotOf[f.id] : -1;
       const fighting = slot >= 0 && (!size || slot < size);
-      (fighting ? pit : bench).push(fighterCard(f, size));
+      (fighting ? pit : bench).push(fighterCard(f, size, !fighting));
     });
     return { pit: pit, bench: bench };
   }
@@ -602,6 +840,52 @@
         return '<button type="button" class="tab" role="tab" id="' + row[3] + '" data-tab="' + row[0] + '" aria-selected="' + (on ? "true" : "false") + '" aria-keyshortcuts="' + row[2] + '"><b>' + row[1] + '</b><small>' + row[2] + '</small></button>';
       }).join("") +
     '</nav>';
+  }
+
+  function gearSheetHtml(f) {
+    const gear = f.gear || IL.blankGear();
+    const slots = ["weapon", "armor", "trinket"].map(function (slot) {
+      const item = gear[slot];
+      const body = item
+        ? glyphHtml(IL.itemGlyph(item), item.rarity) +
+          '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(bonusLine(item)) + '</small></span>' +
+          '<button type="button" class="btn ghost" data-unequip-slot="' + slot + '">Unequip</button>'
+        : glyphHtml(slot === "weapon" ? "sword" : slot === "armor" ? "shield" : "gem", "common") +
+          '<span><b>Empty ' + esc(slotLabel(slot).toLowerCase()) + '</b><small>Nothing worn</small></span>';
+      return '<div class="gear-slot">' + body + '</div>';
+    }).join("");
+    const bag = (save.items || []).map(function (item) {
+      return '<button type="button" class="gear-offer" data-preview-item="' + esc(item.uid) + '">' +
+        glyphHtml(IL.itemGlyph(item), item.rarity) +
+        '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</small></span>' +
+      '</button>';
+    }).join("");
+    const preview = gearPreview && findItem(gearPreview.uid);
+    const diff = preview ? diffHtml(f, preview.item) : "";
+    return '<h3 class="section">Gear</h3><div class="gear-slots">' + slots + '</div>' +
+      '<h3 class="section">In the bag</h3>' +
+      (bag || '<p class="fine">Nothing waiting. The armory and the stall keep the rest.</p>') +
+      diff;
+  }
+
+  function gearStallHtml() {
+    const rows = save.gearStock || [];
+    const cards = rows.map(function (row, i) {
+      const item = row.item;
+      const broke = save.gold < row.cost;
+      return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
+        glyphHtml(IL.itemGlyph(item), item.rarity) +
+        '<h3>' + esc(IL.itemName(item)) + '</h3>' +
+        '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + '</p>' +
+        '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
+        '<button type="button" class="btn primary" data-buy-gear="' + i + '"' + (broke ? " disabled" : "") + '>Buy — ' + row.cost + ' gold</button>' +
+      '</article>';
+    }).join("");
+    const cost = IL.GEAR_REROLL || 20;
+    return '<section class="panel-frame" id="gearStock"><h3 class="section">Gear stall</h3>' +
+      '<p class="fine">The stall turns over after each league match. A reroll spends ' + cost + ' gold.</p>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost" id="rerollGear"' + (save.gold < cost ? " disabled" : "") + '>Reroll stall — ' + cost + ' gold</button></div>' +
+      '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>';
   }
 
   function sheetHtml(f) {
@@ -638,6 +922,7 @@
         statBar("ATK", stats.atk, 40) +
         statBar("DEF", stats.def, 16) +
         statBar("SPD", stats.speed, 180) +
+        gearSheetHtml(f) +
         '<h3 class="section">Abilities</h3><ul class="abilities">' + abilities.join("") + '</ul>' +
         '<h3 class="section">Relics with the party</h3>' + relics +
         '<h3 class="section">Record</h3>' +
@@ -646,6 +931,7 @@
           '<form class="rename-row" id="renameForm"><input id="renameInput" maxlength="22" autocomplete="off" aria-label="Fighter name" value="' + esc(f.name) + '">' +
             '<button type="submit" class="btn ghost">Rename</button></form>' +
           '<p class="fine" id="renameError" hidden>Name them something.</p>' +
+          trainControl(f, true) +
           '<button type="button" class="btn ghost" id="setCaptain"' + (f.captain ? " disabled" : "") + '>' + (f.captain ? "Captain" : "Set as captain") + '</button>' +
           '<button type="button" class="btn primary" id="sheetLine"' + (full ? " disabled" : "") + '>' + esc(lineLabel) + '</button>' +
           (f.captain
@@ -716,6 +1002,7 @@
       '<header class="panel-head"><p class="eyebrow">Roster</p><h3>Fighters</h3></header>' +
       '<p class="fine">Open a portrait for the full sheet. The lineup control is separate.</p>' +
       rosterHtml(size, size ? "In the pit" : "Party", "Slot order is the order they walk in.") +
+      armoryHtml() +
     '</div>';
   }
 
@@ -751,6 +1038,7 @@
       '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
       '<p class="banner">Hire a name onto the bench, then slot them from the club. A champion costs more. Locked kits open with renown. Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '.</p>' +
       '<section class="panel-frame"><h3 class="section">For hire</h3><div class="cards" id="marketCards">' + cards + '</div></section>' +
+      gearStallHtml() +
       '<section class="panel-frame"><h3 class="section">Sell from the bench</h3>' +
         '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
         '<div class="cards">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
@@ -903,7 +1191,7 @@
           '<button type="button" class="btn ghost" id="settingsClose">Close</button></header>' +
         '<label class="field">Sound<input id="soundVol" type="range" min="0" max="100" value="' + s.sound + '"></label>' +
         '<label class="field">Music<input id="musicVol" type="range" min="0" max="100" value="' + s.music + '"></label>' +
-        '<p class="fine">No pit audio in this build. The levels are saved for when there is.</p>' +
+        '<p class="fine">Sound covers hits, casts, and menu clicks. Music covers the result sting.</p>' +
         '<p class="eyebrow">Fight speed</p>' +
         '<div class="chips" id="speedPicks">' + picks + '</div>' +
         '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
@@ -1081,8 +1369,9 @@
     if (tabs) tabs.onclick = function (ev) {
       const t = ev.target.closest("[data-tab]");
       if (!t) return;
-      if (t.dataset.tab === hubTab && !detailId) return;
+      if (t.dataset.tab === hubTab && !detailId && !gearPreview) return;
       detailId = null;
+      gearPreview = null;
       showHub(t.dataset.tab);
     };
     const panel = document.getElementById("hubPanel");
@@ -1104,8 +1393,45 @@
       if (sell) { sellFighter(sell.dataset.sell); return; }
       const equip = ev.target.closest("[data-equip]");
       if (equip) { toggleEquip(equip.dataset.equip); return; }
+      const train = ev.target.closest("[data-train]");
+      if (train && !train.disabled) { trainFighter(train.dataset.train); return; }
+      const salvage = ev.target.closest("[data-salvage]");
+      if (salvage) { salvageItem(salvage.dataset.salvage); return; }
+      const buy = ev.target.closest("[data-buy-gear]");
+      if (buy) { buyGear(+buy.dataset.buyGear); return; }
+      const armEquip = ev.target.closest("[data-arm-equip]");
+      if (armEquip) {
+        gearPreview = { uid: armEquip.dataset.armEquip };
+        showHub("fighters");
+        return;
+      }
+      const armOn = ev.target.closest("[data-arm-on]");
+      if (armOn) {
+        gearPreview = { uid: armOn.dataset.armItem };
+        detailId = armOn.dataset.armOn;
+        showHub("fighters");
+        return;
+      }
+      const unequipFrom = ev.target.closest("[data-unequip-from]");
+      if (unequipFrom) {
+        unequipSlot(fighterById(unequipFrom.dataset.unequipFrom), unequipFrom.dataset.unequipSlot);
+        persist();
+        showHub(hubTab);
+      }
     };
+    bindArmory();
     bindSheet();
+    const reroll = document.getElementById("rerollGear");
+    if (reroll) reroll.onclick = rerollGear;
+  }
+
+  function bindArmory() {
+    const slot = document.getElementById("filterSlot");
+    const rarity = document.getElementById("filterRarity");
+    const sort = document.getElementById("sortGear");
+    if (slot) slot.onchange = function () { armorySlot = slot.value; showHub("fighters"); };
+    if (rarity) rarity.onchange = function () { armoryRarity = rarity.value; showHub("fighters"); };
+    if (sort) sort.onchange = function () { armorySort = sort.value; showHub("fighters"); };
   }
 
   function bindSheet() {
@@ -1140,12 +1466,88 @@
     if (no && box && ask) no.onclick = function () { box.hidden = true; ask.hidden = false; };
     const yes = document.getElementById("releaseYes");
     if (yes) yes.onclick = function () { releaseFighter(detailId); };
+    const train = document.getElementById("trainBtn");
+    if (train && !train.disabled) train.onclick = function () { trainFighter(detailId); };
+    const sheet = document.getElementById("fighterSheet");
+    if (sheet) sheet.onclick = function (ev) {
+      const preview = ev.target.closest("[data-preview-item]");
+      if (preview) {
+        gearPreview = { uid: preview.dataset.previewItem };
+        showHub(hubTab);
+        return;
+      }
+      const drop = ev.target.closest("[data-unequip-slot]");
+      if (drop) {
+        unequipSlot(fighterById(detailId), drop.dataset.unequipSlot);
+        gearPreview = null;
+        persist();
+        showHub(hubTab);
+      }
+    };
+    const confirm = document.getElementById("confirmEquip");
+    if (confirm) confirm.onclick = function () {
+      const f = fighterById(detailId);
+      const found = gearPreview && findItem(gearPreview.uid);
+      if (f && found && equipItem(f, found.item)) {
+        gearPreview = null;
+        persist();
+        showHub(hubTab);
+      }
+    };
+    const cancel = document.getElementById("cancelEquip");
+    if (cancel) cancel.onclick = function () {
+      gearPreview = null;
+      showHub(hubTab);
+    };
   }
 
   function closeSheet() {
-    if (!detailId) return;
+    if (!detailId && !gearPreview) return;
     detailId = null;
+    gearPreview = null;
     showHub(hubTab);
+  }
+
+  function trainFighter(id) {
+    const f = fighterById(id);
+    if (!f || inThePit(f)) return;
+    const cost = IL.TRAIN_COST || 16;
+    if ((save.trainsLeft || 0) <= 0 || save.gold < cost) return;
+    save.gold -= cost;
+    save.trainsLeft -= 1;
+    IL.grantXp(f, IL.TRAIN_XP || 12);
+    persist();
+    showHub(hubTab);
+  }
+
+  function salvageItem(uid) {
+    const found = findItem(uid);
+    if (!found || found.owner) return;
+    save.gold += IL.salvageValue(found.item);
+    save.items = (save.items || []).filter(function (it) { return it.uid !== uid; });
+    if (gearPreview && gearPreview.uid === uid) gearPreview = null;
+    persist();
+    showHub(hubTab);
+  }
+
+  function buyGear(index) {
+    const row = (save.gearStock || [])[index];
+    if (!row || save.gold < row.cost) return;
+    save.gold -= row.cost;
+    if (!Array.isArray(save.items)) save.items = [];
+    save.items.push(row.item);
+    save.gearStock.splice(index, 1);
+    persist();
+    showHub("market");
+  }
+
+  function rerollGear() {
+    const cost = IL.GEAR_REROLL || 20;
+    if (save.gold < cost) return;
+    save.gold -= cost;
+    save.gearStock = IL.rollGearStock(takeRng());
+    persist();
+    showHub("market");
   }
 
   function cycleTactic(id) {
@@ -1169,9 +1571,11 @@
   function releaseFighter(id) {
     const f = fighterById(id);
     if (!f || f.captain) return;
+    returnGear(f);
     save.roster = save.roster.filter(function (r) { return r !== f; });
     save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
     detailId = null;
+    gearPreview = null;
     persist();
     showHub(hubTab);
   }
@@ -1271,6 +1675,7 @@
     const f = save.roster.filter(function (r) { return r.id === id && !r.captain; })[0];
     if (!f) return;
     save.gold += IL.sellValue(f);
+    returnGear(f);
     save.roster = save.roster.filter(function (r) { return r !== f; });
     save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
     if (detailId === f.id) detailId = null;
@@ -1528,6 +1933,8 @@
       const e = match.events[i];
       if (e.type === "dmg") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, t: 0, life: 0.7 });
+        if (e.crit) pitSound("crit");
+        else if (typeof e.n === "number") pitSound("hit");
         /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units. */
         if (typeof e.n === "number" && shakeOn()) fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
       } else if (e.type === "heal") {
@@ -1537,7 +1944,10 @@
       } else if (e.type === "boom") {
         fx.booms.push({ x: e.x, y: e.y, r: e.r, kind: e.kind, t: 0, life: 0.48 });
         if (shakeOn()) fx.shake = Math.min(8, fx.shake + 4);
+      } else if (e.type === "death") {
+        pitSound("ko");
       } else if (e.type === "fx" && IL.fx) {
+        if (e.kind === "plasma" || e.kind === "bolt") pitSound("magic");
         IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
           size: e.size,
           facing: e.facing,
@@ -1755,6 +2165,13 @@
     pushHistory(match, win, tally.mvp ? tally.mvp.name : "");
     save.gold += gold;
     save.renown = (save.renown || 0) + renown;
+    let loot = null;
+    if (mode === "league" || mode === "chaos" || (mode === "cup" && win)) {
+      const bag = mode === "cup" ? "cup" : (win ? "win" : "loss");
+      loot = IL.rollLoot(takeRng(), bag);
+      if (!Array.isArray(save.items)) save.items = [];
+      save.items.push(loot);
+    }
     persist();
     const ups = fight.left.filter(function (f) { return f && f.level > before[f.id]; }).map(function (f) { return f.name; });
     const stood = match.units.filter(function (u) { return u.team === 0 && u.hp > 0; }).map(function (u) { return u.name; });
@@ -1780,6 +2197,7 @@
       '<h2>' + headline + '</h2>' +
       tally.html +
       (ups.length ? '<p class="level-call">Level up: ' + esc(ups.join(", ")) + '</p>' : '') +
+      (loot ? lootRevealHtml(loot) : '') +
       '<ul class="payout" id="rewards">' +
         '<li>+' + gold + ' gold</li>' +
         '<li>+' + renown + ' renown</li>' +
@@ -1791,6 +2209,7 @@
       '<p class="fine">' + esc(nextLine) + '</p>' +
       '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a growth" : "Continue") + '</button>';
     animateXpBars();
+    pitSound(win ? "victory" : "defeat");
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;
     document.getElementById("backHub").onclick = function () {
@@ -1834,6 +2253,16 @@
       }
     });
     save.round += 1;
+    save.trainsLeft = IL.TRAIN_CAP || 2;
+    save.trainRound = save.round;
+    if (IL.rollGearStock) save.gearStock = IL.rollGearStock(takeRng());
+  }
+
+  function lootRevealHtml(item) {
+    return '<div id="lootReveal" class="loot-reveal rarity-' + esc(item.rarity) + '">' +
+      glyphHtml(IL.itemGlyph(item), item.rarity) +
+      '<div><p class="eyebrow">Found</p><h3>' + esc(IL.itemName(item)) + '</h3>' +
+      '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</p></div></div>';
   }
 
   function onHubKey(ev) {
@@ -1854,18 +2283,25 @@
         showHub(hubTab);
         return;
       }
-      if (!detailId) return;
+      if (!detailId && !gearPreview) return;
       ev.preventDefault();
       detailId = null;
+      gearPreview = null;
       showHub(hubTab);
       return;
     }
     if (ev.key < "1" || ev.key > "5") return;
     ev.preventDefault();
     detailId = null;
+    gearPreview = null;
     showHub(HUB_TABS[ev.key.charCodeAt(0) - 49]);
   }
   document.addEventListener("keydown", onHubKey);
+  document.addEventListener("click", function (ev) {
+    const button = ev.target && ev.target.closest && ev.target.closest("button");
+    if (!button || button.disabled) return;
+    pitSound("click");
+  }, true);
 
   IL.screenApi = { showTitle: showTitle };
   if (IL.fx && IL.fx.load) IL.fx.load();

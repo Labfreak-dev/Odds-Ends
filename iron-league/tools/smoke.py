@@ -41,6 +41,7 @@ def run(page, label, shot_dir):
     page.screenshot(path=str(shot_dir / f"{label}-hub.png"))
     check_nav(page, label, shot_dir)
     check_settings(page, label)
+    check_gear(page, label, shot_dir)
     page.click("#nextMatch")
     page.wait_for_selector("#versus")
     page.wait_for_selector("#powerBar")
@@ -136,6 +137,10 @@ def run(page, label, shot_dir):
     page.click("#skip")
     page.wait_for_selector("#backHub", timeout=10000)
     page.wait_for_selector("#resultTable")
+    page.wait_for_selector("#lootReveal")
+    loot = page.locator("#lootReveal").inner_text().lower()
+    if "found" not in loot:
+        raise SystemExit(label + " loot reveal missing a find: " + loot)
     result_text = page.locator("#result").inner_text().lower()
     for word in ("mvp", "dealt", "taken", "heal"):
         if word not in result_text:
@@ -304,6 +309,78 @@ def check_settings(page, label):
     page.click("#settings")
     page.click("#shakeToggle")
     page.click("#settingsClose")
+
+
+def check_gear(page, label, shot_dir):
+    """Armory filters, equip diff, a bench drill, and a paid stall reroll."""
+    page.keyboard.press("2")
+    page.wait_for_selector("#armory")
+    page.wait_for_selector("#filterSlot")
+    page.wait_for_selector("#filterRarity")
+    page.wait_for_selector("#sortGear")
+    if page.locator("#armory [data-salvage]").count() < 1:
+        raise SystemExit(label + " armory has nothing to salvage")
+    if page.locator("#armory [data-arm-equip]").count() < 1:
+        raise SystemExit(label + " armory has nothing to equip")
+    page.select_option("#filterSlot", "weapon")
+    page.wait_for_function("() => document.querySelector('#filterSlot') && document.querySelector('#filterSlot').value === 'weapon'")
+    filtered = page.locator("#armory").inner_text().lower()
+    if "dust cloak" in filtered or "riveted mail" in filtered:
+        raise SystemExit(label + " slot filter kept armor")
+    page.select_option("#filterSlot", "armor")
+    page.wait_for_function(
+        """() => {
+          const box = document.querySelector('#armory');
+          return box && box.innerText.toLowerCase().indexOf('mail') >= 0;
+        }"""
+    )
+    page.screenshot(path=str(shot_dir / f"{label}-armory.png"))
+    page.locator("[data-detail]").first.click()
+    page.wait_for_selector("#fighterSheet [data-preview-item]")
+    page.click("#fighterSheet [data-preview-item]")
+    page.wait_for_selector("#equipDiff .diff-up")
+    page.wait_for_selector("#equipDiff .diff-down")
+    page.screenshot(path=str(shot_dir / f"{label}-equip.png"))
+    page.click("#cancelEquip")
+    page.wait_for_selector("#equipDiff", state="detached")
+    page.click("#sheetClose")
+    page.wait_for_selector("#fighterSheet", state="detached")
+    before = page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const bench = raw.roster.filter(f => (raw.lineup || []).indexOf(f.id) < 0)[0];
+          return bench ? { id: bench.id, xp: bench.xp || 0, left: raw.trainsLeft } : null;
+        }"""
+    )
+    if not before:
+        raise SystemExit(label + " expected a benched fighter to train")
+    page.locator("#benchList [data-train]").first.click()
+    page.wait_for_function(
+        """(id) => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const f = raw.roster.filter(r => r.id === id)[0];
+          return f && (f.xp || 0) >= 12 && raw.trainsLeft === 1;
+        }""",
+        arg=before["id"],
+    )
+    page.click("#market")
+    page.wait_for_selector("#gearStock")
+    page.wait_for_selector("#rerollGear:not([disabled])")
+    uids = page.evaluate(
+        """() => JSON.parse(localStorage.getItem('ironleague.v1')).gearStock.map(r => r.item.uid).join('|')"""
+    )
+    page.click("#rerollGear")
+    page.wait_for_function(
+        """(prev) => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const now = (raw.gearStock || []).map(r => r.item.uid).join('|');
+          return now && now !== prev;
+        }""",
+        arg=uids,
+    )
+    page.screenshot(path=str(shot_dir / f"{label}-stall.png"))
+    page.keyboard.press("1")
+    page.wait_for_selector("#nextMatch")
 
 
 def check_empty_bench(page):

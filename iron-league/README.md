@@ -57,7 +57,7 @@ Classes decide the kit. The costume is a battler sheet from that class's pool: t
 - **Berserker, Ranger, Battlemage** — 40 renown.
 - **Assassin, Duelist, Elementalist** — 70 renown.
 
-Each fighter has a personality (Bold, Wary, Patient) and a tactic you set on the hub: Strike, Cover, or Hold. On the club hub, the party and the bench are separate. A match card shows who walks in against the next opponent before you send them in. The next match takes as many as that round allows, in the order you chose, and the list stays in the save. Gold, renown, cup tokens, and equipped relics sit in the header. The hub is tabbed — Club, Fighters, Market, Cup, Relics — and keys 1–5 switch them. A fighter's portrait opens their sheet: stats, abilities, relics, and record. Send them in opens a versus card first. The pit remembers 1×, 2×, or 3×, and can pause. The result lists damage, healing, KOs, and an MVP, and the club keeps the last ten. A gear in the header holds fight speed, screen shake, and a reset. Every third level offers a stat step: health, damage, and either speed or defense.
+Each fighter has a personality (Bold, Wary, Patient) and a tactic you set on the hub: Strike, Cover, or Hold. On the club hub, the party and the bench are separate. A match card shows who walks in against the next opponent before you send them in. The next match takes as many as that round allows, in the order you chose, and the list stays in the save. Gold, renown, cup tokens, and equipped relics sit in the header. The hub is tabbed — Club, Fighters, Market, Cup, Relics — and keys 1–5 switch them. A fighter's portrait opens their sheet: stats, abilities, relics, and record. Weapon, armor, and trinket slots take gear from the armory; the sheet shows green and red stat changes before you confirm. Matches and cup wins drop a piece, the market stall rotates after each league match, and a benched fighter can drill for xp twice a day. Send them in opens a versus card first. The pit remembers 1×, 2×, or 3×, and can pause. Hits, crits, and the result sting follow the sound and music sliders. The result lists damage, healing, KOs, and an MVP, and the club keeps the last ten. A gear in the header holds fight speed, screen shake, and a reset. Every third level offers a stat step: health, damage, and either speed or defense.
 
 Gold hires from a rotating board. Renown unlocks kits. Cup tokens enter a four-club bracket. A finished season keeps the roster and pays a relic. Two relics can be equipped for the whole club. Chaos pit is a three-club free-for-all.
 
@@ -67,8 +67,8 @@ Pixel effects (slash, ember, cast sigil, shield ring, dash crack, roll smoke, ar
 
 Win gold, renown, and xp. Lose a smaller purse. A season is five matches against generated clubs; the other fixtures on the board resolve on their own. After the fifth, open another season with the same roster.
 
-The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, and market fields without wiping the roster.
+The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, gear slots, and an empty armory without wiping the roster.
 
 ## Not in this build
 
-Direct captain control and a wider armory are left for later. Clip usage is in `ANIM.md`.
+Direct captain control is left for later. Clip usage is in `ANIM.md`.

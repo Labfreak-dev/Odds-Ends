@@ -20,6 +20,7 @@ context.window = context;
 context.globalThis = context;
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/data.js"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "js/gear.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/meta.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/arena.js"), "utf8"), context);
 const IL = context.IL;
@@ -107,6 +108,8 @@ IL.migrate(cleared);
 check("an empty lineup stays empty", cleared.lineup.length === 0);
 check("old save record starts at zero", oldSave.roster[0].wins === 0 && oldSave.roster[0].losses === 0 && oldSave.roster[0].kos === 0);
 check("old save gains history and settings", Array.isArray(oldSave.history) && oldSave.history.length === 0 && oldSave.settings.speed === 1 && oldSave.settings.shake === true);
+check("old save gains empty gear", oldSave.roster[0].gear && oldSave.roster[0].gear.weapon === null && oldSave.roster[0].gear.armor === null && Array.isArray(oldSave.items) && oldSave.items.length === 0);
+check("old save keeps a training day", oldSave.trainsLeft === 2 && oldSave.trainRound === 0);
 const messy = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 0 }], clubs: [], fixtures: [], settings: { speed: 9, shake: "no" } };
 IL.migrate(messy);
 check("settings migrate clamps speed", messy.settings.speed === 1 && messy.settings.shake === true && messy.settings.sound === 80);
@@ -259,6 +262,52 @@ check("mixed fight dodges or rolls", dodgeFight.stats.rolls > 0 && (dodgeFight.s
 
 if (avgT < 8 || avgT > 40) {
   console.error("duration out of band", avgT);
+  fails++;
+}
+
+const nakedW = IL.scaledStats({ level: 1, boosts: {}, champion: false, gear: IL.blankGear() }, IL.CLASSES.warrior);
+const stacked = IL.scaledStats({
+  level: 1,
+  boosts: {},
+  champion: false,
+  gear: {
+    weapon: IL.makeItem(IL.mulberry32(1), { key: "cleaver", rarity: "legendary" }),
+    armor: IL.makeItem(IL.mulberry32(2), { key: "mail", rarity: "legendary" }),
+    trinket: IL.makeItem(IL.mulberry32(3), { key: "band", rarity: "legendary" })
+  }
+}, IL.CLASSES.warrior);
+check("legendary kit stays a nudge", stacked.hp < nakedW.hp * 1.28 && stacked.atk < nakedW.atk * 1.35 && stacked.hp > nakedW.hp && stacked.atk > nakedW.atk);
+console.log("legendary warrior", nakedW.hp, stacked.hp, nakedW.atk, stacked.atk);
+
+function dressedFight(seed) {
+  const rng = IL.mulberry32(seed);
+  const ids = Object.keys(IL.CLASSES);
+  const comp = [0, 1, 2].map(function () { return ids[Math.floor(rng() * ids.length)]; });
+  const left = [];
+  const right = [];
+  for (let i = 0; i < 3; i++) {
+    left.push(IL.dressRival(IL.randomFighter(rng, comp[i]), rng));
+    right.push(IL.dressRival(IL.randomFighter(rng, comp[i]), rng));
+  }
+  const m = IL.createMatch({ seed: seed, left: left, right: right, leftName: "Home", rightName: "Away" });
+  let steps = 0;
+  while (!m.over && steps < 4000) {
+    IL.stepMatch(m, 1 / 60);
+    m.events.length = 0;
+    steps++;
+  }
+  return m;
+}
+const geared = [];
+for (let i = 0; i < 12; i++) geared.push(dressedFight(7000 + i));
+check("geared fights end", geared.every(function (m) { return m.over; }));
+const g0 = geared.filter(function (m) { return m.winner === 0; }).length;
+const g1 = geared.filter(function (m) { return m.winner === 1; }).length;
+check("gear does not pick a winner", g0 > 0 && g1 > 0);
+const gAvg = geared.reduce(function (s, m) { return s + m.time; }, 0) / geared.length;
+console.log("geared seconds", gAvg.toFixed(1), "wins", g0, g1);
+if (gAvg < 8 || gAvg > 40) {
+  console.error("geared duration out of band", gAvg);
   fails++;
 }
 

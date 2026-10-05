@@ -190,13 +190,14 @@ img { display: block; -webkit-user-drag: none; }
 .fx .banner { top: 46%; }
 .fightbar { display: none; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
 #game.fighting .fightbar { display: flex; }
-.board.arena-on { overflow: hidden; aspect-ratio: auto; width: min(100%, 960px); height: min(68vh, 620px); }
+.board.arena-on { overflow: hidden; aspect-ratio: auto; width: min(100%, 960px); height: min(76vh, 720px); }
 .board.arena-on .cells, .board.arena-on .mid, .board.arena-on .fxc, .board.arena-on .banner { visibility: hidden; }
+.board.arena-on.arena-hold::after { content: ''; position: absolute; inset: 0; background: rgba(5, 3, 12, .58); z-index: 12; pointer-events: none; border-radius: 14px; }
 #fightBar .btn.on { box-shadow: inset 0 0 0 2px #ffe7a3; color: #ffe7a3; }
 .arena-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 @media (max-width: 560px) {
   #game.fighting:has(.board.arena-on) .bench, #game.fighting:has(.board.arena-on) .traits { display: none; }
-  #game.fighting .board.arena-on { width: 100%; height: calc(100vh - 148px); max-height: none; }
+  #game.fighting .board.arena-on { width: 100%; height: calc(100vh - 96px); max-height: none; }
 }
 @media (max-height: 520px) {
   #game.fighting:has(.board.arena-on) .bench, #game.fighting:has(.board.arena-on) .traits { display: none; }
@@ -370,6 +371,13 @@ img { display: block; -webkit-user-drag: none; }
 .toast.on { display: block; animation: toast 3.2s ease-out forwards; }
 @media (max-width: 560px) { .toast.low { top: 168px; } .toast.low.on { animation-duration: 2.2s; } }
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, -8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 85% { opacity: 1; } 100% { opacity: 0; } }
+#game.fighting:has(.board.arena-on) ~ #toast.on {
+  top: auto !important; bottom: 10px; left: 10px; right: auto; transform: none !important;
+  max-width: 240px; font-size: 12px; padding: 6px 8px; text-align: left;
+  animation: toast-corner 3.4s ease-out forwards;
+}
+#game.fighting:has(.board.arena-on) ~ #toast.on.ask { animation: toast-corner 4.6s ease-out forwards; max-width: 260px; }
+@keyframes toast-corner { 0% { opacity: 0; } 8% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
 .how p { margin: 0 0 10px; }
 .how b { color: var(--gold); }
 
@@ -855,18 +863,18 @@ body[data-theme="candy"] .cell.f.alt { background: rgba(140,180,255,.2); }
 <script src="relics2.js?v=f5"></script>
 <script src="chess.js?v=a1"></script>
 <script src="fightstats.js?v=q1"></script>
-<script src="arena.js?v=a3"></script>
-<script src="arena-render.js?v=a3"></script>
+<script src="arena.js?v=a4"></script>
+<script src="arena-render.js?v=a5"></script>
 <script src="crun.js?v=m3"></script>
 <script src="fx.js?v=q2"></script>
 <script src="glim-anim.js?v=m3"></script>
 <script src="glim-anim-species.js?v=m3"></script>
 <script src="audio.js?v=4"></script>
-<script src="game.js?v=a3"></script>
+<script src="game.js?v=a4"></script>
 <script src="wgen.js?v=2"></script>
 <script src="wilds.js?v=m11"></script>
 <script src="achievements.js?v=f4"></script>
 <script src="cosmetics.js?v=f2"></script>
-<script src="qa.js?v=q3"></script>
+<script src="qa.js?v=q5"></script>
 </body>
 </html>

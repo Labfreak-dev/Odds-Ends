@@ -1,0 +1,373 @@
+{
+ "schema": "glimmerdeep-sprite-atlas/2",
+ "id": "bubb",
+ "name": "Bubbo",
+ "star": 1,
+ "role": "support",
+ "route": "A: Meshy nano-banana-pro sheets -> true-grid snap -> 16-colour k-means -> cleanup -> outline rule -> align",
+ "image": "bubb_1_atlas.png",
+ "atlasSize": [
+  756,
+  420
+ ],
+ "cell": [
+  126,
+  70
+ ],
+ "facing": "right",
+ "mirror": "flipX about cell centre x=63 (anchor.x stays; any point x -> 126-x)",
+ "anchor": [
+  63,
+  65
+ ],
+ "anchorNote": "feet-centre ground contact; bottom row of the standing sprite is row 65 (0-based)",
+ "shadow": {
+  "w": 56,
+  "h": 18,
+  "cx": 63,
+  "cy": 64,
+  "alpha": 0.41,
+  "note": "draw in code as dark ellipse under the unit"
+ },
+ "bodyRadiusPx": 18,
+ "lightDir": "top-left",
+ "outline": "1px coloured (dark hue-matched) selective outline; emissive flame/glow edges exempt",
+ "paletteSize": 16,
+ "palette": [
+  "#190c21",
+  "#201336",
+  "#213b62",
+  "#403c72",
+  "#513c58",
+  "#47569f",
+  "#405d85",
+  "#416ab1",
+  "#7e749b",
+  "#4584bf",
+  "#d26977",
+  "#50a3d5",
+  "#939fb2",
+  "#bac3d9",
+  "#91d8ef",
+  "#effaf6"
+ ],
+ "clips": {
+  "idle": {
+   "fps": 6,
+   "loop": true,
+   "durationsMs": [
+    260,
+    260,
+    120,
+    260
+   ],
+   "frames": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 126,
+     "y": 0,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 252,
+     "y": 0,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 378,
+     "y": 0,
+     "w": 126,
+     "h": 70
+    }
+   ]
+  },
+  "run": {
+   "fps": 12,
+   "loop": true,
+   "durationsMs": [
+    80,
+    80,
+    80,
+    80,
+    80,
+    80
+   ],
+   "frames": [
+    {
+     "x": 0,
+     "y": 70,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 126,
+     "y": 70,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 252,
+     "y": 70,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 378,
+     "y": 70,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 504,
+     "y": 70,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 630,
+     "y": 70,
+     "w": 126,
+     "h": 70
+    }
+   ],
+   "pxPerCycle": 103,
+   "noSlideSpeedPxPerSec": 214.6,
+   "note": "pxPerCycle = heuristic ground distance covered per full 6-frame cycle (1.8 x max foot spread). Set playbackRate = unitSpeedPxPerSec / noSlideSpeedPxPerSec (clamp 0.7-2.2). Tune per game if feet slide."
+  },
+  "attack": {
+   "fps": 12,
+   "loop": false,
+   "durationsMs": [
+    110,
+    120,
+    90,
+    100,
+    130
+   ],
+   "frames": [
+    {
+     "x": 0,
+     "y": 140,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 126,
+     "y": 140,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 252,
+     "y": 140,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 378,
+     "y": 140,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 504,
+     "y": 140,
+     "w": 126,
+     "h": 70
+    }
+   ],
+   "events": {
+    "hit": 2,
+    "hitTimeMs": 230
+   },
+   "muzzlePerFrame": [
+    [
+     94,
+     22
+    ],
+    [
+     96,
+     28
+    ],
+    [
+     118,
+     29
+    ],
+    [
+     115,
+     28
+    ],
+    [
+     87,
+     42
+    ]
+   ],
+   "muzzle": [
+    118,
+    29
+   ]
+  },
+  "cast": {
+   "fps": 10,
+   "loop": false,
+   "durationsMs": [
+    120,
+    120,
+    170,
+    110,
+    140
+   ],
+   "frames": [
+    {
+     "x": 0,
+     "y": 210,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 126,
+     "y": 210,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 252,
+     "y": 210,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 378,
+     "y": 210,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 504,
+     "y": 210,
+     "w": 126,
+     "h": 70
+    }
+   ],
+   "events": {
+    "release": 2,
+    "releaseTimeMs": 240
+   },
+   "muzzlePerFrame": [
+    [
+     92,
+     45
+    ],
+    [
+     87,
+     24
+    ],
+    [
+     104,
+     38
+    ],
+    [
+     93,
+     38
+    ],
+    [
+     86,
+     34
+    ]
+   ],
+   "muzzle": [
+    104,
+    38
+   ]
+  },
+  "hit": {
+   "fps": 12,
+   "loop": false,
+   "durationsMs": [
+    90,
+    110
+   ],
+   "frames": [
+    {
+     "x": 0,
+     "y": 280,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 126,
+     "y": 280,
+     "w": 126,
+     "h": 70
+    }
+   ],
+   "muzzlePerFrame": [
+    [
+     83,
+     41
+    ],
+    [
+     83,
+     44
+    ]
+   ]
+  },
+  "death": {
+   "fps": 8,
+   "loop": false,
+   "durationsMs": [
+    100,
+    110,
+    120,
+    130,
+    160,
+    600
+   ],
+   "frames": [
+    {
+     "x": 0,
+     "y": 350,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 126,
+     "y": 350,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 252,
+     "y": 350,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 378,
+     "y": 350,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 504,
+     "y": 350,
+     "w": 126,
+     "h": 70
+    },
+    {
+     "x": 630,
+     "y": 350,
+     "w": 126,
+     "h": 70
+    }
+   ]
+  }
+ }
+}

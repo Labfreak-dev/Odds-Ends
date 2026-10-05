@@ -1,0 +1,80 @@
+{
+ "schema": "glimmerdeep-vfx-sheet/2",
+ "id": "fire_impact",
+ "image": "fire_impact.png",
+ "atlasSize": [
+  456,
+  56
+ ],
+ "cell": [
+  76,
+  56
+ ],
+ "fps": 14,
+ "loop": false,
+ "frames": [
+  {
+   "x": 0,
+   "y": 0,
+   "w": 76,
+   "h": 56
+  },
+  {
+   "x": 76,
+   "y": 0,
+   "w": 76,
+   "h": 56
+  },
+  {
+   "x": 152,
+   "y": 0,
+   "w": 76,
+   "h": 56
+  },
+  {
+   "x": 228,
+   "y": 0,
+   "w": 76,
+   "h": 56
+  },
+  {
+   "x": 304,
+   "y": 0,
+   "w": 76,
+   "h": 56
+  },
+  {
+   "x": 380,
+   "y": 0,
+   "w": 76,
+   "h": 56
+  }
+ ],
+ "paletteSize": 16,
+ "palette": [
+  "#390f13",
+  "#4f0907",
+  "#73201a",
+  "#6b2d2d",
+  "#a23621",
+  "#b63a21",
+  "#c84319",
+  "#e95920",
+  "#f87623",
+  "#bea49d",
+  "#fa9939",
+  "#fbb841",
+  "#fbc05b",
+  "#fbc93f",
+  "#fcd874",
+  "#fcefad"
+ ],
+ "route": "A: Meshy nano-banana-pro sheet -> true-grid snap -> k-means palette",
+ "anchor": [
+  38,
+  53
+ ],
+ "frameOfPeak": 2,
+ "kind": "impact",
+ "note": "play once at hit point; anchor = bottom-centre of the burst (ground contact); frame 3 (index 2) is the biggest/brightest"
+}

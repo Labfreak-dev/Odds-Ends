@@ -106,7 +106,7 @@ def run(page, label, shot_dir):
         raise SystemExit(label + " unexpected result: " + result)
     page.click("#backHub")
     page.wait_for_selector("#nextMatch, #nextSeason", timeout=10000)
-    gold = page.locator(".meta").inner_text()
+    gold = page.locator(".purse").inner_text()
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("#continue")
     page.click("#continue")

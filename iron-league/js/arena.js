@@ -34,6 +34,13 @@
     let def = kit.def + (b.def || 0) * 2;
     let speed = kit.speed * (1 + (b.spd || 0) * 0.06);
     if (fighter.champion) { hp *= 1.14; atk *= 1.12; }
+    const gear = IL.gearBonus ? IL.gearBonus(fighter) : null;
+    if (gear) {
+      hp += gear.hp || 0;
+      atk += gear.atk || 0;
+      def += gear.def || 0;
+      speed += gear.spd || 0;
+    }
     return {
       hp: Math.round(hp),
       atk: Math.round(atk),
@@ -47,7 +54,7 @@
     const lv = fighter.level || 1;
     const stats = scaledStats(fighter, kit);
     const pos = placeUnit(team, slot, n, teams);
-    return {
+    const u = {
       id: fighter.id || ("u" + team + slot),
       name: fighter.name || "Fighter",
       cls: kit.id,
@@ -124,6 +131,13 @@
       dmgTaken: 0,
       healing: 0
     };
+    const pass = IL.gearPassives ? IL.gearPassives(fighter) : null;
+    if (pass) {
+      if (pass.crit) u.crit += pass.crit;
+      if (pass.shield) u.shield += pass.shield;
+      if (pass.regen) u.regen += pass.regen;
+    }
+    return u;
   }
 
   function applyRelics(u, relics) {

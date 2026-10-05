@@ -424,7 +424,8 @@
       champion: false,
       wins: 0,
       losses: 0,
-      kos: 0
+      kos: 0,
+      gear: { weapon: null, armor: null, trinket: null }
     };
   }
 

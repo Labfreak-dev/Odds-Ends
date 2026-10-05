@@ -3903,6 +3903,9 @@ opens. Thankless pitch jitter only lowers `playbackRate` (never above the
 base rate). `workshop/` and `modes/fishing2.module.js` were not touched.
 The attack-effect sheets from #345 are unchanged.
 
+## Iron League — clubs, cups, relics
+Fifteen kits with one or two abilities, a renown gate, a hire board, level picks every third level, club relics, a four-club cup, and a three-side chaos pit. Save key stays `ironleague.v1`; new fields are added beside the old roster. Iron League still uses only its nine `assets/fx/` strips.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

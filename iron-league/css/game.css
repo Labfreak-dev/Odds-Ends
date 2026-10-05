@@ -150,6 +150,11 @@ img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .class-card strong { font-family: var(--display); font-size: 16px; }
 .class-card span { color: var(--muted); font-size: 13px; }
 .class-card.on { border-color: var(--copper); background: #3a2618; }
+.class-card.locked { opacity: 0.55; }
+.bracket { margin: 12px 0 0; padding-left: 1.2em; }
+.bracket li { margin: 6px 0; }
+.card .hire, .card .btn { margin-top: 8px; width: 100%; }
+.tactic { margin-top: 6px; }
 .creator-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .hub-head { justify-content: space-between; margin-bottom: 8px; }

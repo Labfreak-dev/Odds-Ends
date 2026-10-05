@@ -47,7 +47,7 @@ def run(page, label, shot_dir):
           const m = IL && IL.currentMatch;
           if (!m || !IL.fx || !IL.fx.ready()) return false;
           const rolling = m.units.some(u => u.state === 'roll');
-          const combat = m.stats.slashes > 0 && rolling && IL.fx.spawned > 0;
+          const combat = m.stats.slashes > 0 && rolling && IL.fx.spawned > 0 && m.stats.abilities > 0;
           return m.time > 1.2 && combat;
         }""",
         timeout=35000,
@@ -68,6 +68,7 @@ def run(page, label, shot_dir):
                 roll: m.units.some(u => u.state === 'roll'),
                 rolls: m.stats.rolls,
                 slashes: m.stats.slashes,
+                abilities: m.stats.abilities,
                 spawned: window.IL.fx.spawned
               };
             }"""
@@ -86,13 +87,18 @@ def run(page, label, shot_dir):
         if snap["roll"] and not caught["roll"]:
             page.screenshot(path=str(shot_dir / f"{label}-roll.png"))
             caught["roll"] = True
-        if snap["over"] or all(caught.values()):
+        if snap.get("abilities") and not caught.get("ability"):
+            page.screenshot(path=str(shot_dir / f"{label}-ability.png"))
+            caught["ability"] = True
+        if snap["over"] or (caught["roll"] and caught["slash"] and caught.get("ability")):
             break
         page.wait_for_timeout(120)
     if not caught["roll"]:
         raise SystemExit(label + " fight never showed a roll")
     if not caught["slash"]:
         raise SystemExit(label + " fight never showed a slash")
+    if label == "desktop" and not caught.get("ability"):
+        raise SystemExit(label + " fight never fired an ability")
     page.click("#skip")
     page.wait_for_selector("#backHub", timeout=10000)
     result = page.locator("#result h2").inner_text()
@@ -114,6 +120,57 @@ def run(page, label, shot_dir):
             print(" ", e)
         raise SystemExit(label + " console errors")
     print(label, "passed", result, gold)
+    if label == "desktop":
+        tour(page, shot_dir)
+
+
+def tour(page, shot_dir):
+    """Market, growth pick, relics, and cup bracket on the club just founded."""
+    page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem("ironleague.v1"));
+          const f = raw.roster[0];
+          f.xp = 80;
+          f.level = 3;
+          f.pendingPicks = 1;
+          raw.relics = ["band", "edge", "plate"];
+          raw.equipped = ["band"];
+          localStorage.setItem("ironleague.v1", JSON.stringify(raw));
+        }"""
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.wait_for_selector("#openGrowth")
+    page.click("#openGrowth")
+    page.wait_for_selector("#growth")
+    page.screenshot(path=str(shot_dir / "level-up.png"))
+    page.click("[data-boost='hp']")
+    page.wait_for_selector("#market")
+    page.click("#market")
+    page.wait_for_selector("#marketCards .hire")
+    page.wait_for_function(
+        """() => {
+          const c = document.querySelector("#marketCards canvas");
+          if (!c) return false;
+          const px = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+          for (let i = 0; i < px.length; i += 16) if (px[i + 3] > 0 && (px[i] > 40 || px[i + 1] > 30)) return true;
+          return false;
+        }""",
+        timeout=20000,
+    )
+    page.screenshot(path=str(shot_dir / "market.png"))
+    page.click("#backHub")
+    page.wait_for_selector("#relics")
+    page.click("#relics")
+    page.wait_for_selector("[data-equip='band']")
+    page.screenshot(path=str(shot_dir / "relics.png"))
+    page.click("#backHub")
+    page.wait_for_selector("#cup")
+    page.click("#cup")
+    page.click("#enterCup")
+    page.wait_for_selector(".bracket")
+    page.screenshot(path=str(shot_dir / "cup.png"))
+    print("tour screenshots", shot_dir)
 
 
 def main():

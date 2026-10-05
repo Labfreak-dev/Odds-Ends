@@ -24,7 +24,7 @@
       const data = JSON.parse(raw);
       if (!data || data.v !== 1 || !Array.isArray(data.roster) || !data.roster.length) return null;
       if (!Array.isArray(data.clubs) || !Array.isArray(data.fixtures)) return null;
-      return data;
+      return IL.migrate(data);
     } catch (err) {
       return null;
     }
@@ -128,6 +128,7 @@
   /* ---------- title ---------- */
   function showTitle() {
     stopLoops();
+    app.onclick = null;
     save = load();
     const cont = save
       ? '<button type="button" class="btn ghost" id="continue">Continue — ' + esc(save.clubName) + '</button>'
@@ -136,7 +137,7 @@
       '<main class="title-screen">' +
         '<p class="eyebrow">Mercenary pit</p>' +
         '<h1>Iron League</h1>' +
-        '<p class="lede">Raise a club. Send them into the sand. Five matches, then the board is read aloud.</p>' +
+        '<p class="lede">Raise a club. Send them into the sand. A season, a cup, then the board is read aloud.</p>' +
         '<div class="title-actions">' +
           '<button type="button" class="btn primary" id="newClub">New club</button>' +
           cont +
@@ -152,7 +153,9 @@
   function showCreator(mode) {
     stopLoops();
     const rng = IL.mulberry32((Date.now() ^ (Math.floor(Math.random() * 1e9))) >>> 0);
-    const cls = mode === "captain" ? "warrior" : IL.pick(rng, Object.keys(IL.CLASSES));
+    const renownNow = mode === "captain" ? 0 : ((save && save.renown) || 0);
+    const openIds = IL.unlockedIds(renownNow);
+    const cls = mode === "captain" ? "warrior" : IL.pick(rng, openIds.length ? openIds : Object.keys(IL.CLASSES));
     draft = {
       mode: mode,
       weaponLock: false,
@@ -186,7 +189,9 @@
     }).join("");
     const classes = Object.keys(IL.CLASSES).map(function (id) {
       const c = IL.CLASSES[id];
-      return '<button type="button" class="class-card" data-class="' + id + '"><strong>' + esc(c.name) + '</strong><span>' + esc(c.blurb) + '</span></button>';
+      const open = IL.classUnlocked(id, renownNow);
+      const note = open ? c.blurb : ("Locked · " + c.renown + " renown");
+      return '<button type="button" class="class-card' + (open ? "" : " locked") + '" data-class="' + id + '"' + (open ? "" : " disabled") + '><strong>' + esc(c.name) + '</strong><span>' + esc(note) + '</span></button>';
     }).join("");
     const clubField = mode === "captain"
       ? '<label class="field"><span>Club name</span><input id="clubName" maxlength="24" autocomplete="off" placeholder="Ashveil Company" value="' + esc(draft.clubName) + '"></label>'
@@ -239,7 +244,7 @@
     nameInput.addEventListener("input", function () { draft.fighter.name = nameInput.value; });
     document.getElementById("randomize").onclick = function () {
       const r = IL.mulberry32((Date.now() ^ (Math.floor(Math.random() * 1e9))) >>> 0);
-      const id = IL.pick(r, Object.keys(IL.CLASSES));
+      const id = IL.pick(r, openIds.length ? openIds : Object.keys(IL.CLASSES));
       draft.fighter.cls = id;
       draft.fighter.parts = IL.randomParts(r);
       draft.fighter.parts.weapon = IL.CLASSES[id].weapon;
@@ -264,6 +269,7 @@
       else if (t.dataset.clothc) { draft.fighter.parts.clothColor = +t.dataset.clothc; syncPicker(); }
       else if (t.dataset.focus) { draft.fighter.parts.weaponColor = +t.dataset.focus; syncPicker(); }
       else if (t.dataset.class) {
+        if (!IL.classUnlocked(t.dataset.class, renownNow)) return;
         draft.fighter.cls = t.dataset.class;
         if (!draft.weaponLock) draft.fighter.parts.weapon = IL.CLASSES[draft.fighter.cls].weapon;
         syncPicker();
@@ -386,29 +392,28 @@
     if (draft.mode === "captain") {
       const clubName = (draft.clubName || "").trim().slice(0, 24) || "Unnamed Company";
       const seed = IL.hashStr(clubName + ":" + Date.now());
-      const captain = {
+      const captain = Object.assign(IL.blankFighterFields(IL.mulberry32(seed)), {
         id: "cap" + seed.toString(36),
         name: draft.fighter.name,
         cls: draft.fighter.cls,
         parts: Object.assign({}, draft.fighter.parts),
-        xp: 0,
-        level: 1,
         captain: true
-      };
+      });
       const rng = IL.mulberry32(seed);
       const recruits = ["archer", "mage", "tank"].map(function (cls) {
         const f = IL.randomFighter(rng, cls);
         return f;
       });
-      save = {
+      save = Object.assign({
         v: 1,
         clubName: clubName,
         gold: IL.START_GOLD,
         season: 1,
         rngSeed: seed,
         roster: [captain].concat(recruits)
-      };
+      }, IL.freshClubFields(seed));
       buildSeason(false);
+      save.market = IL.rollMarket(takeRng(), 0);
       const rival = nextRival();
       const jobs = save.roster.map(function (f) { return IL.hero.compose(f.parts); });
       if (rival) rival.fighters.forEach(function (f) { jobs.push(IL.hero.compose(f.parts)); });
@@ -427,20 +432,18 @@
       if (err) err.textContent = "Not enough gold.";
       return;
     }
-    if (save.roster.length >= 6) {
+    if (save.roster.length >= IL.ROSTER_CAP) {
       btn.disabled = false;
       if (err) err.textContent = "The bench is full.";
       return;
     }
-    const fighter = {
+    const fighter = Object.assign(IL.blankFighterFields(IL.mulberry32(Date.now() >>> 0)), {
       id: "h" + Date.now().toString(36),
       name: draft.fighter.name,
       cls: draft.fighter.cls,
       parts: Object.assign({}, draft.fighter.parts),
-      xp: 0,
-      level: 1,
       captain: false
-    };
+    });
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= IL.HIRE_COST;
       save.roster.push(fighter);
@@ -453,10 +456,37 @@
   }
 
   /* ---------- hub ---------- */
+  function tacticLabel(id) {
+    if (id === "cover") return "Cover";
+    if (id === "hold") return "Hold";
+    return "Strike";
+  }
+
+  function personalityLabel(id) {
+    if (id === "wary") return "Wary";
+    if (id === "patient") return "Patient";
+    return "Bold";
+  }
+
+  function pendingGrowth() {
+    return (save.roster || []).filter(function (f) { return (f.pendingPicks || 0) > 0; });
+  }
+
+  function ensureMarket() {
+    IL.migrate(save);
+    if (!save.market || !save.market.length) {
+      save.market = IL.rollMarket(takeRng(), save.renown || 0);
+      persist();
+    }
+  }
+
   function showHub() {
     stopLoops();
+    app.onclick = null;
     save = save || load();
     if (!save) { showTitle(); return; }
+    IL.migrate(save);
+    ensureMarket();
     const rival = nextRival();
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     const yours = size ? fielded(save.roster, size) : [];
@@ -468,10 +498,15 @@
     }).join("");
     const roster = save.roster.map(function (f) {
       const playing = yours.indexOf(f) >= 0;
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const anim = kit.idle || "idle";
+      const champ = f.champion ? ' <em>Champion</em>' : "";
       return '<article class="card' + (playing ? " playing" : "") + '">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (f.cls === "tank" ? "idle2" : "idle") + '"></canvas>' +
-        '<h3>' + esc(f.name) + (f.captain ? ' <em>Captain</em>' : '') + '</h3>' +
-        '<p>' + esc(IL.CLASSES[f.cls].name) + ' · Lv ' + f.level + (playing ? " · walks in" : " · bench") + '</p>' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '"></canvas>' +
+        '<h3>' + esc(f.name) + (f.captain ? ' <em>Captain</em>' : '') + champ + '</h3>' +
+        '<p>' + esc(kit.name) + ' · Lv ' + f.level + ' · ' + esc(personalityLabel(f.personality)) + (playing ? " · walks in" : " · bench") + '</p>' +
+        '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + (kit.ability2 ? " · " + esc(kit.ability2.name) : "") + '</p>' +
+        '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
       '</article>';
     }).join("");
     const rivalCards = theirs.map(function (f) {
@@ -487,18 +522,26 @@
         '<header class="hub-head">' +
           '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
           '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2>' +
-          '<p class="meta">' + save.gold + ' gold · roster ' + save.roster.length + '</p></div>' +
+          '<p class="meta">' + save.gold + ' gold · ' + (save.renown || 0) + ' renown · ' + (save.tokens || 0) + ' cup tokens · roster ' + save.roster.length + '</p></div>' +
           '<div class="hub-actions">' +
             (done
               ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>'
               : '<button type="button" class="btn primary" id="nextMatch">Next match</button>') +
-            '<button type="button" class="btn ghost" id="hire"' + (save.gold < IL.HIRE_COST || save.roster.length >= 6 ? " disabled" : "") + '>Hire — ' + IL.HIRE_COST + ' gold</button>' +
+            '<button type="button" class="btn ghost" id="market">Market</button>' +
+            '<button type="button" class="btn ghost" id="relics">Relics</button>' +
+            '<button type="button" class="btn ghost" id="cup">' + (save.cup && !save.cup.champion ? "Cup" : "Enter cup") + '</button>' +
+            '<button type="button" class="btn ghost" id="chaos">Chaos pit</button>' +
             '<button type="button" class="text-btn" id="toTitle">Title</button>' +
           '</div>' +
         '</header>' +
-        (done
-          ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board.</p>'
-          : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>') +
+        (pendingGrowth().length
+          ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a growth</button></p>'
+          : '') +
+        (done && save.relicSeason !== save.season
+          ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn primary" id="claimRelic">Take the yard relic</button></p>'
+          : (done
+            ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. Roster, renown, and relics carry forward.</p>'
+            : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>')) +
         '<section><h3 class="section">Your club</h3><div class="cards" id="yourCards">' + roster + '</div></section>' +
         (theirs.length ? '<section><h3 class="section">Across the pit</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
         '<section><h3 class="section">Standings</h3>' +
@@ -517,8 +560,37 @@
       persist();
       showHub();
     };
-    document.getElementById("hire").onclick = function () { showCreator("hire"); };
+    const marketBtn = document.getElementById("market");
+    if (marketBtn) marketBtn.onclick = function () { showMarket(); };
+    const relicsBtn = document.getElementById("relics");
+    if (relicsBtn) relicsBtn.onclick = function () { showRelics(); };
+    const cupBtn = document.getElementById("cup");
+    if (cupBtn) cupBtn.onclick = function () { showCup(); };
+    const chaosBtn = document.getElementById("chaos");
+    if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
+    const growthBtn = document.getElementById("openGrowth");
+    if (growthBtn) growthBtn.onclick = function () { showGrowth(); };
+    const claimBtn = document.getElementById("claimRelic");
+    if (claimBtn) claimBtn.onclick = function () {
+      const relic = IL.offerRelic(save, takeRng());
+      save.relicSeason = save.season;
+      if (relic && save.equipped.length < 2) save.equipped.push(relic.id);
+      persist();
+      showHub();
+    };
     document.getElementById("toTitle").onclick = showTitle;
+    const cards = document.getElementById("yourCards");
+    if (cards) cards.onclick = function (ev) {
+      const btn = ev.target.closest("[data-fid]");
+      if (!btn) return;
+      const f = save.roster.filter(function (r) { return r.id === btn.dataset.fid; })[0];
+      if (!f) return;
+      const order = IL.TACTICS;
+      const i = order.indexOf(f.tactic);
+      f.tactic = order[(i + 1) % order.length] || "strike";
+      persist();
+      showHub();
+    };
     bootCards();
   }
 
@@ -546,12 +618,13 @@
     ctx.fill();
   }
 
-  function bootCards() {
+  function bootCards(extraParts) {
     const tok = token;
     const canvases = Array.prototype.slice.call(app.querySelectorAll("canvas[data-key]"));
     const ready = {};
     const pending = {};
     save.roster.forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
+    (extraParts || []).forEach(function (parts) { if (parts) pending[IL.hero.keyOf(parts)] = parts; });
     const rival = nextRival();
     if (rival && save.round < 5) {
       const n = IL.SEASON_SIZES[save.round];
@@ -584,7 +657,242 @@
     raf = requestAnimationFrame(loop);
   }
 
+  /* ---------- market, relics, cup ---------- */
+  function showMarket() {
+    stopLoops();
+    save = save || load();
+    if (!save) { showTitle(); return; }
+    ensureMarket();
+    const cards = save.market.map(function (row, i) {
+      const f = row.fighter;
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const locked = !!row.locked;
+      const champ = f.champion ? " · Champion" : "";
+      const price = locked ? (row.need + " renown") : (row.cost + " gold");
+      return '<article class="card">' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+        '<h3>' + esc(f.name) + champ + '</h3>' +
+        '<p>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
+        '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + '</p>' +
+        '<button type="button" class="btn primary hire" data-hire="' + i + '"' + (locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + ' — ' + esc(price) + '</button>' +
+      '</article>';
+    }).join("");
+    const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
+      return '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell ' + esc(f.name) + ' — ' + IL.sellValue(f) + ' gold</button>';
+    }).join("");
+    app.innerHTML =
+      '<main class="hub" id="market">' +
+        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
+        '<div><p class="eyebrow">Hire board</p><h2>Market</h2>' +
+        '<p class="meta">' + save.gold + ' gold · ' + (save.renown || 0) + ' renown</p></div>' +
+        '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div></header>' +
+        '<p class="banner">Four to six names. A champion is rare and costs more. Locked kits open with renown.</p>' +
+        '<div class="cards" id="marketCards">' + cards + '</div>' +
+        '<h3 class="section">Sell from the bench</h3>' +
+        '<div class="hub-actions">' + (bench || '<p class="fine">The captain stays. Hire someone before there is a bench to sell.</p>') + '</div>' +
+      '</main>';
+    document.getElementById("backHub").onclick = function () { showHub(); };
+    document.getElementById("refreshMarket").onclick = function () {
+      if (save.gold < IL.REFRESH_COST) return;
+      save.gold -= IL.REFRESH_COST;
+      save.market = IL.rollMarket(takeRng(), save.renown || 0);
+      persist();
+      showMarket();
+    };
+    app.onclick = function (ev) {
+      const hire = ev.target.closest("[data-hire]");
+      const sell = ev.target.closest("[data-sell]");
+      if (hire) hireFromMarket(+hire.dataset.hire);
+      else if (sell) sellFighter(sell.dataset.sell);
+    };
+    bootCards(save.market.map(function (row) { return row.fighter.parts; }));
+  }
+
+  function hireFromMarket(index) {
+    const row = save.market[index];
+    if (!row || row.locked) return;
+    if (save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP) return;
+    const fighter = row.fighter;
+    IL.hero.compose(fighter.parts).then(function () {
+      save.gold -= row.cost;
+      save.roster.push(fighter);
+      save.market.splice(index, 1);
+      if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0);
+      persist();
+      showMarket();
+    }).catch(function () { showMarket(); });
+  }
+
+  function sellFighter(id) {
+    const f = save.roster.filter(function (r) { return r.id === id && !r.captain; })[0];
+    if (!f) return;
+    save.gold += IL.sellValue(f);
+    save.roster = save.roster.filter(function (r) { return r !== f; });
+    persist();
+    showMarket();
+  }
+
+  function showRelics() {
+    stopLoops();
+    save = save || load();
+    if (!save) { showTitle(); return; }
+    IL.migrate(save);
+    const owned = {};
+    (save.relics || []).forEach(function (id) { owned[id] = true; });
+    const list = IL.RELICS.map(function (r) {
+      const have = !!owned[r.id];
+      const on = (save.equipped || []).indexOf(r.id) >= 0;
+      return '<article class="card relic' + (on ? " playing" : "") + '">' +
+        '<h3>' + esc(r.name) + '</h3>' +
+        '<p>' + esc(r.blurb) + '</p>' +
+        (have
+          ? '<button type="button" class="btn ' + (on ? "primary" : "ghost") + '" data-equip="' + r.id + '">' + (on ? "Equipped" : "Equip") + '</button>'
+          : '<p class="fine">Not in the yard yet.</p>') +
+      '</article>';
+    }).join("");
+    app.innerHTML =
+      '<main class="hub" id="relics">' +
+        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
+        '<div><p class="eyebrow">Club relics</p><h2>The yard chest</h2>' +
+        '<p class="meta">' + (save.equipped || []).length + ' of 2 equipped · ' + (save.relics || []).length + ' owned</p></div></header>' +
+        '<p class="banner">Two relics ride with everyone you field. Cups and a finished season fill the chest.</p>' +
+        '<div class="cards">' + list + '</div>' +
+      '</main>';
+    document.getElementById("backHub").onclick = function () { showHub(); };
+    app.onclick = function (ev) {
+      const btn = ev.target.closest("[data-equip]");
+      if (!btn) return;
+      const id = btn.dataset.equip;
+      const eq = save.equipped || (save.equipped = []);
+      const at = eq.indexOf(id);
+      if (at >= 0) eq.splice(at, 1);
+      else if (eq.length < 2) eq.push(id);
+      else eq.splice(0, 1, id);
+      persist();
+      showRelics();
+    };
+  }
+
+  function cupMarkup(cup) {
+    if (!cup) return "";
+    const rows = (cup.pairing || []).map(function (pair, i) {
+      const a = cup.slots[pair[0]];
+      const b = cup.slots[pair[1]];
+      const win = cup.winners[i];
+      const label = (a ? a.name : "?") + " vs " + (b ? b.name : "?");
+      const mark = win ? (" · " + (cup.slots.filter(function (s) { return s.id === win; })[0] || {}).name + " through") : "";
+      return "<li>" + esc(label + mark) + "</li>";
+    }).join("");
+    const champ = cup.champion ? ("<p class='banner'>Cup champion: " + esc((cup.slots.filter(function (s) { return s.id === cup.champion; })[0] || {}).name || cup.champion) + "</p>") : "";
+    return "<ol class='bracket'>" + rows + "</ol>" + champ;
+  }
+
+  function showCup() {
+    stopLoops();
+    save = save || load();
+    if (!save) { showTitle(); return; }
+    const cup = save.cup;
+    const opp = cup ? IL.cupOpponent(cup) : null;
+    const fightBtn = opp
+      ? '<button type="button" class="btn primary" id="cupFight">Fight ' + esc(opp.foe.name) + '</button>'
+      : "";
+    const enter = (!cup || cup.champion)
+      ? '<button type="button" class="btn primary" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
+      : fightBtn;
+    app.innerHTML =
+      '<main class="hub" id="cup">' +
+        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
+        '<div><p class="eyebrow">Single elimination</p><h2>The cup</h2>' +
+        '<p class="meta">' + (save.tokens || 0) + ' cup tokens</p></div>' +
+        '<div class="hub-actions">' + enter + '</div></header>' +
+        '<p class="banner">Four clubs. You play your tie. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
+        (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
+      '</main>';
+    document.getElementById("backHub").onclick = function () { showHub(); };
+    const enterBtn = document.getElementById("enterCup");
+    if (enterBtn) enterBtn.onclick = function () {
+      if ((save.tokens || 0) < 1) return;
+      save.tokens -= 1;
+      save.cup = IL.startCup(save, takeRng());
+      persist();
+      showCup();
+    };
+    const fight = document.getElementById("cupFight");
+    if (fight) fight.onclick = function () { startCupFight(); };
+  }
+
+  function showGrowth() {
+    stopLoops();
+    const queue = pendingGrowth();
+    if (!queue.length) { showHub(); return; }
+    const f = queue[0];
+    const choices = IL.boostChoices(f);
+    const buttons = choices.map(function (key) {
+      return '<button type="button" class="class-card" data-boost="' + key + '"><strong>' + esc(IL.BOOST_LABEL[key] || key) + '</strong><span>One step, kept on this fighter.</span></button>';
+    }).join("");
+    app.innerHTML =
+      '<main class="creator" id="growth">' +
+        '<header class="creator-head"><h2>A growth for ' + esc(f.name) + '</h2></header>' +
+        '<p class="banner">Level ' + f.level + '. ' + f.pendingPicks + ' choice' + (f.pendingPicks === 1 ? "" : "s") + ' waiting. Pick one.</p>' +
+        '<div class="class-grid" id="growthChoices">' + buttons + '</div>' +
+      '</main>';
+    document.getElementById("growthChoices").onclick = function (ev) {
+      const btn = ev.target.closest("[data-boost]");
+      if (!btn) return;
+      IL.applyBoost(f, btn.dataset.boost);
+      persist();
+      if (pendingGrowth().length) showGrowth();
+      else showHub();
+    };
+  }
+
   /* ---------- fight ---------- */
+  function launchMatch(spec) {
+    const people = [];
+    if (spec.sides) {
+      spec.sides.forEach(function (s) { (s.fighters || []).forEach(function (f) { if (f) people.push(f); }); });
+    } else {
+      spec.left.forEach(function (f) { people.push(f); });
+      spec.right.forEach(function (f) { people.push(f); });
+    }
+    const jobs = {};
+    people.forEach(function (f) { if (f && f.parts) jobs[IL.hero.keyOf(f.parts)] = f.parts; });
+    const keys = Object.keys(jobs);
+    const fxReady = IL.fx && IL.fx.load ? IL.fx.load() : Promise.resolve();
+    return Promise.all(keys.map(function (k) { return IL.hero.compose(jobs[k]); }).concat([fxReady])).then(function (canvases) {
+      const map = {};
+      keys.forEach(function (k, i) { map[k] = canvases[i]; });
+      stopLoops();
+      const tok = token;
+      speed = 1;
+      const relics = IL.equippedRelics(save);
+      const match = spec.sides
+        ? IL.createMatch({ seed: spec.seed, sides: spec.sides, relics: relics, mode: spec.mode })
+        : IL.createMatch({
+          seed: spec.seed,
+          left: spec.left,
+          right: spec.right,
+          leftName: spec.leftName,
+          rightName: spec.rightName,
+          relics: relics,
+          mode: spec.mode
+        });
+      match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
+      fight = {
+        match: match,
+        left: spec.left || (spec.sides && spec.sides[0].fighters) || [],
+        right: spec.right || [],
+        rival: spec.rival || null,
+        size: spec.size || 1,
+        mode: spec.mode || "league",
+        tok: tok
+      };
+      IL.currentMatch = match;
+      mountFight(match);
+      runFight(tok);
+    });
+  }
+
   function startFight() {
     const rival = nextRival();
     if (!rival) return;
@@ -593,28 +901,15 @@
     const right = rival.fighters.slice(0, size);
     const btn = document.getElementById("nextMatch");
     if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
-    const jobs = {};
-    left.concat(right).forEach(function (f) { jobs[IL.hero.keyOf(f.parts)] = f.parts; });
-    const keys = Object.keys(jobs);
-    const fxReady = IL.fx && IL.fx.load ? IL.fx.load() : Promise.resolve();
-    Promise.all(keys.map(function (k) { return IL.hero.compose(jobs[k]); }).concat([fxReady])).then(function (canvases) {
-      const map = {};
-      keys.forEach(function (k, i) { map[k] = canvases[i]; });
-      stopLoops();
-      const tok = token;
-      speed = 1;
-      const match = IL.createMatch({
-        seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0,
-        left: left,
-        right: right,
-        leftName: save.clubName,
-        rightName: rival.name
-      });
-      match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
-      fight = { match: match, left: left, right: right, rival: rival, size: size, tok: tok };
-      IL.currentMatch = match;
-      mountFight(match);
-      runFight(tok);
+    launchMatch({
+      mode: "league",
+      left: left,
+      right: right,
+      leftName: save.clubName,
+      rightName: rival.name,
+      rival: rival,
+      size: size,
+      seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0
     }).catch(function (e) {
       if (btn) { btn.disabled = false; btn.textContent = "Next match"; }
       const banner = document.querySelector(".banner");
@@ -622,7 +917,49 @@
     });
   }
 
+  function startCupFight() {
+    const cup = save.cup;
+    const opp = cup && IL.cupOpponent(cup);
+    if (!opp) return;
+    const left = fielded(save.roster, cup.size);
+    const btn = document.getElementById("cupFight");
+    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+    launchMatch({
+      mode: "cup",
+      left: left,
+      right: opp.foe.fighters.slice(0, cup.size),
+      leftName: save.clubName,
+      rightName: opp.foe.name,
+      size: cup.size,
+      seed: (save.rngSeed ^ (save.season * 811) ^ ((cup.round + 1) * 17)) >>> 0
+    }).catch(function (e) {
+      if (btn) btn.disabled = false;
+      const banner = document.querySelector(".banner");
+      if (banner) banner.textContent = e.message;
+    });
+  }
+
+  function startChaosFight() {
+    if (!save.roster.length) return;
+    const chaos = IL.startChaos(save, takeRng());
+    persist();
+    const btn = document.getElementById("chaos");
+    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+    launchMatch({
+      mode: "chaos",
+      sides: chaos.sides,
+      left: chaos.sides[0].fighters,
+      size: 1,
+      seed: (save.rngSeed ^ 0xC4A05) >>> 0
+    }).catch(function (e) {
+      if (btn) btn.disabled = false;
+      const banner = document.querySelector(".banner");
+      if (banner) banner.textContent = e.message;
+    });
+  }
+
   function mountFight(match) {
+    app.onclick = null;
     app.innerHTML =
       '<main class="fight-screen">' +
         '<header class="bar">' +
@@ -641,13 +978,17 @@
         '</footer>' +
       '</main>';
     document.getElementById("leftName").textContent = match.leftName;
-    document.getElementById("rightName").textContent = match.rightName;
+    document.getElementById("rightName").textContent = (match.teams || 2) > 2
+      ? (match.names || []).slice(1).join(" · ")
+      : match.rightName;
     document.getElementById("speed1").onclick = function () { speed = 1; markSpeed(); };
     document.getElementById("speed2").onclick = function () { speed = 2; markSpeed(); };
     document.getElementById("skip").onclick = function () { skipFight(); };
     const list = document.getElementById("liveList");
     list.innerHTML = match.units.map(function (u, i) {
-      return '<div class="live ' + (u.team === 0 ? "you" : "them") + '" data-i="' + i + '"><b>' + esc(u.name) + '</b><small>' + esc(IL.CLASSES[u.cls].name) + '</small><div class="track"><div class="fill"></div></div></div>';
+      const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
+      const side = u.team === 0 ? "you" : "them";
+      return '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + '</b><small>' + esc(kit.name) + (kit.ability ? " · " + esc(kit.ability.name) : "") + '</small><div class="track"><div class="fill"></div></div></div>';
     }).join("");
   }
 
@@ -704,8 +1045,10 @@
     for (let i = 0; i < match.events.length; i++) {
       const e = match.events[i];
       if (e.type === "dmg") {
-        fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, t: 0, life: 0.7 });
-        fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
+        fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, t: 0, life: 0.7 });
+        if (typeof e.n === "number") fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
+      } else if (e.type === "heal") {
+        fx.nums.push({ x: e.x, y: e.y, n: e.n, heal: true, t: 0, life: 0.7 });
       } else if (e.type === "dodge") {
         fx.nums.push({ x: e.x, y: e.y, dodge: true, t: 0, life: 0.45 });
       } else if (e.type === "boom") {
@@ -772,31 +1115,90 @@
     }
     fight.settled = true;
     const win = match.winner === 0;
-    const pf = match.kills[0];
-    const pa = match.kills[1];
-    const gold = win ? 40 + 10 * fight.size : 16;
-    const xp = win ? 22 : 8;
+    const pf = match.kills[0] || 0;
+    const pa = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).length;
+    const mode = fight.mode || "league";
+    let gold = win ? 40 + 10 * fight.size : 16;
+    let renown = win ? 6 + fight.size : 2;
+    let xp = win ? 22 : 8;
+    let headline = win ? "The pit is yours" : "They walk out";
+    let relicNote = "";
+    if (mode === "cup") {
+      const cup = save.cup;
+      const opp = cup && IL.cupOpponent(cup);
+      const wasFinal = cup && cup.round >= 1;
+      if (opp) IL.noteCupResult(cup, opp.pair, win ? "you" : opp.foe.id);
+      if (cup) {
+        IL.resolveOtherPairs(cup, save.roster, takeRng());
+        IL.advanceCup(cup);
+        let guard = 0;
+        while (save.cup && !save.cup.champion && !IL.cupOpponent(save.cup) && guard < 3) {
+          IL.resolveOtherPairs(save.cup, save.roster, takeRng());
+          IL.advanceCup(save.cup);
+          guard++;
+        }
+      }
+      if (!win) {
+        gold = wasFinal ? 55 : 24;
+        renown = wasFinal ? 10 : 4;
+        headline = wasFinal ? "The final slips away" : "Out of the cup";
+      } else if (cup && cup.champion === "you") {
+        gold = 90;
+        renown = 18;
+        xp = 30;
+        save.tokens = (save.tokens || 0) + 1;
+        headline = "The cup is yours";
+        if (takeRng()() < 0.7) {
+          const relic = IL.offerRelic(save, takeRng());
+          if (relic) {
+            relicNote = " Relic: " + relic.name + ".";
+            if (save.equipped.length < 2) save.equipped.push(relic.id);
+          }
+        }
+      } else {
+        gold = 20;
+        renown = 5;
+        headline = "Through to the final";
+      }
+    } else if (mode === "chaos") {
+      gold = win ? 32 : 12;
+      renown = win ? 7 : 2;
+      headline = win ? "The pit is yours" : "They walk out";
+    } else {
+      if (win) save.tokens = (save.tokens || 0) + 1;
+      recordRound(win, pf, pa);
+    }
+    if (IL.equippedRelics(save).some(function (r) { return r.kind === "renown"; })) {
+      renown = Math.round(renown * 1.25);
+    }
+    gold += match.stats.bounty || 0;
     const before = {};
-    fight.left.forEach(function (f) { before[f.id] = f.level; f.xp = (f.xp || 0) + xp; f.level = IL.xpLevel(f.xp); });
+    fight.left.forEach(function (f) {
+      if (!f) return;
+      before[f.id] = f.level;
+      IL.grantXp(f, xp);
+    });
     save.gold += gold;
-    recordRound(win, pf, pa);
+    save.renown = (save.renown || 0) + renown;
     persist();
-    const ups = fight.left.filter(function (f) { return f.level > before[f.id]; }).map(function (f) { return f.name; });
+    const ups = fight.left.filter(function (f) { return f && f.level > before[f.id]; }).map(function (f) { return f.name; });
     const box = document.getElementById("result");
     if (!box) return;
     box.hidden = false;
     box.innerHTML =
       '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
-      '<h2>' + (win ? "The pit is yours" : "They walk out") + '</h2>' +
-      '<p>+' + gold + ' gold · ' + xp + ' xp each' +
-        (ups.length ? ' · level up: ' + esc(ups.join(", ")) : "") + '</p>' +
+      '<h2>' + headline + '</h2>' +
+      '<p>+' + gold + ' gold · +' + renown + ' renown · ' + xp + ' xp each' +
+        (ups.length ? ' · level up: ' + esc(ups.join(", ")) : "") + esc(relicNote) + '</p>' +
       '<p class="fine">' + pf + ' downed · ' + pa + ' lost</p>' +
-      '<button type="button" class="btn primary" id="backHub">Back to the club</button>';
+      '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a growth" : "Back to the club") + '</button>';
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;
     document.getElementById("backHub").onclick = function () {
       IL.currentMatch = null;
-      showHub();
+      if (pendingGrowth().length) showGrowth();
+      else if (mode === "cup") showCup();
+      else showHub();
     };
     paintHud(match);
     const canvas = document.getElementById("arena");

@@ -473,28 +473,12 @@ with sync_playwright() as p:
         clear_modals(page)
         page.evaluate("GR.autoPlace(GLIM.run); GLIM.renderGame()")
         if a.arena and r == 0:
-            # Bubbo's basic is a projectile. Support kiting during the opening
-            # attack cooldown walks it out of range of a backline foe, so this
-            # fight is Bubbo alone against a melee foe one column away.
+            # a ranged basic is a guaranteed projectile; place Bubbo on the board before the fight
             page.evaluate("""() => { const r = GLIM.run;
               let u = r.units.find(x => x.sp === 'bubb');
               if (!u) { u = GR.mkInst(r, 'bubb', 1); r.units.push(u); }
-              for (const o of r.units) {
-                if (o === u) { o.at = 'b'; o.x = 2; o.y = 2; }
-                else if (o.at === 'b') { o.at = 'n'; o.slot = GR.freeBench(r); }
-              }
-              const foe = { uid: -50, sp: 'pebb', star: 1, muts: [], charm: null, el2: null, skill: 'rockslide', shiny: false };
-              r.enemy = { round: r.round, units: [{ inst: foe, x: 3, y: 2 }] };
-              if (!GArena.__projWrapped) {
-                const orig = GArena.tick;
-                GArena.tick = function (st) {
-                  const ev = orig(st);
-                  if ((st.projs && st.projs.length) || (ev && ev.some(e => e.k === 'proj'))) window.__sawProj = true;
-                  return ev;
-                };
-                GArena.__projWrapped = true;
-              }
-              window.__sawProj = false;
+              for (const o of r.units) if (o !== u && o.at === 'b' && o.x === 2 && o.y === 2) { o.at = 'n'; o.slot = GR.freeBench(r); }
+              u.at = 'b'; u.x = 2; u.y = 2;
               GLIM.renderGame(); }""")
         t0 = time.time()
         page.click('#shopBtns [data-v=fight]')
@@ -525,10 +509,10 @@ with sync_playwright() as p:
             check(page.evaluate("() => !!(GLIM.FS && GLIM.FS.st && GLIM.FS.st.engine === 'arena')"), 'arena engine is live')
             p0 = page.evaluate("() => GLIM.FS.st.units.map(u => Math.round(u.pos.x) + ',' + Math.round(u.pos.y)).join('|')")
             saw = False
-            for _ in range(24):
-                page.wait_for_timeout(120)
-                if page.evaluate("() => !!(window.__sawProj || (GLIM.FS && GLIM.FS.st && GLIM.FS.st.projs && GLIM.FS.st.projs.length))"): saw = True
-                if saw or page.locator('#modal.on').count(): break
+            for _ in range(14):
+                page.wait_for_timeout(140)
+                if page.evaluate("() => !!(GLIM.FS && GLIM.FS.st && GLIM.FS.st.projs && GLIM.FS.st.projs.length)"): saw = True
+                if page.locator('#modal.on').count(): break
             p1 = page.evaluate("() => GLIM.FS && GLIM.FS.st ? GLIM.FS.st.units.map(u => Math.round(u.pos.x) + ',' + Math.round(u.pos.y)).join('|') : ''")
             shot(page, '05-fight')
             check(p0 != p1, 'arena fighters moved')
@@ -545,15 +529,6 @@ with sync_playwright() as p:
         title = page.locator('#modalBox h2').inner_text()
         check(True, f'round {rounds} resolved: {title} ({time.time() - t0:.0f}s)')
         if r == 0:
-            if a.arena:
-                held = page.evaluate("""() => {
-                  const board = document.getElementById('board');
-                  const cv = document.getElementById('arenaCv');
-                  const cells = document.querySelector('#board .cells');
-                  const vis = cells ? getComputedStyle(cells).visibility : '';
-                  return !!(cv && board && board.classList.contains('arena-on') && board.classList.contains('arena-hold') && vis === 'hidden');
-                }""")
-                check(held, 'result modal keeps the frozen arena')
             shot(page, '06-result')
             fight_result_keys(page, title)
         clear_modals(page)

@@ -20,11 +20,11 @@ Quirks the packer absorbs:
 - `1_1` dies on `down.png`. Everyone else uses `dead.png`. Both land in the `dead` column.
 - `item` and `status` are not packed.
 
-Standing art keeps its soles on row 44 of the cell, so the foot anchor is **(24, 45)**. A swing or a bow reaches toward +x; the sheet faces right, and the pit flips it when `facing < 0`. Drawing is nearest-neighbour. The anchor stays put, so a lunge does not slide the feet.
+Standing art keeps its soles on row 44 of the cell, so the foot anchor is **(24, 45)**. The packed frames face left: a full sword swing and a gun's muzzle reach toward -x. The left team (`facing >= 0`) is mirrored so they look toward the opponent. The right team (`facing < 0`) is drawn as painted, looking back toward the left. Drawing is nearest-neighbour. The anchor stays put, so a lunge does not slide the feet.
 
 ## Packed sheet
 
-`assets/timefantasy/<id>.png` is **576×144**: 12 columns by 3 rows of 48×48. `tools/pack-tf.py` builds them. Image URLs carry `?v=7` (the same generation as the script tags in `index.html`).
+`assets/timefantasy/<id>.png` is **576×144**: 12 columns by 3 rows of 48×48. `tools/pack-tf.py` builds them. Image URLs carry `?v=8` (the same generation as the script tags in `index.html`).
 
 | Column | Motion |
 |---|---|
@@ -45,11 +45,11 @@ A missing bow or gun column is left clear. Death is one painting, copied into al
 
 ## Clips
 
-Frame numbers are still **1-based** and the combat windows are unchanged: `fps`, loops, and hit frames are the old table. Each game frame samples one of the three Time Fantasy frames. Sample index **1** is the strike, the arrow’s loose, and the gun’s recoil, and that is where the hit frames land.
+Frame numbers are still **1-based** and the combat windows are unchanged: `fps`, loops, and hit frames are the old table. Each game frame samples one of the three Time Fantasy frames. Sample index **2** is the sword’s full swing and the gun’s muzzle, and that is where the hit frames land. A bow’s loose is the same index.
 
 `js/data.js` holds `CLIP_MOTION` and `CLIP_SAMPLE`. Archer, Ranger, and Skirmisher replace `atk1` only: a bow sheet plays `bow`, a gun sheet plays `gun`. Other clips stay on the motion below. Air attacks stay melee swings; those classes do not leap.
 
-A sword and a gun connect on frame index 1 (the reach, the muzzle). A bow's loose is index 2, so that shot samples `0,1,2,2,2,2` and the arrow leaves on the same hit frames.
+A sword, a gun, and a bow connect on frame index 2, so the weapon points the same way the fighter is facing when the hit lands. The shot samples `0,1,2,2,2,2`.
 
 | Clip | Frames | Game id | Plays | Sample (3-frame index) | fps | Loop | Hit frames |
 |---|---|---|---|---|---|---|---|
@@ -60,11 +60,11 @@ A sword and a gun connect on frame index 1 (the reach, the muzzle). A bow's loos
 | JUMP | 29–32 | `jump` | `cheer` | 0,1,2,2 | 10 | once | — |
 | FALL | 33–35 | `fall` | `cheer` | 1,1,2 | 10 | whole clip | — |
 | LAND | 36 | `land` | `crouch` | 2 | 10 | hold | — |
-| ATTACK 1 | 37–42 | `atk1` | `atk1`, or `bow` / `gun` | 0,0,1,1,2,2 — bow is 0,1,2,2,2,2 | 12 | once | **39, 40** |
-| ATTACK 2 | 43–48 | `atk2` | `atk2` | 0,0,1,1,2,2 | 12 | once | **45, 46** |
-| ATTACK 3 | 49–52 | `atk3` | `atk2` | 0,0,1,2 | 14 | once | **51, 52** |
-| AIR ATK 1 | 53–58 | `air1` | `atk1` | 0,0,1,1,2,2 | 12 | once | **55, 56** |
-| AIR ATK 2 | 59–62 | `air2` | `atk2` | 0,0,1,2 | 12 | once | **61, 62** |
+| ATTACK 1 | 37–42 | `atk1` | `atk1`, or `bow` / `gun` | 0,1,2,2,2,2 | 12 | once | **39, 40** |
+| ATTACK 2 | 43–48 | `atk2` | `atk2` | 0,1,2,2,2,2 | 12 | once | **45, 46** |
+| ATTACK 3 | 49–52 | `atk3` | `atk2` | 0,1,2,2 | 14 | once | **51, 52** |
+| AIR ATK 1 | 53–58 | `air1` | `atk1` | 0,1,2,2,2,2 | 12 | once | **55, 56** |
+| AIR ATK 2 | 59–62 | `air2` | `atk2` | 0,1,2,2 | 12 | once | **61, 62** |
 | CAST 1 | 63–67 | `cast1` | `magic` | 0,0, then 0,1,2 | 10 | 65–67 after 63–64 | — |
 | CAST 2 | 68–72 | `cast2` | `magic` | 0,0, then 0,1,2 | 10 | 70–72 after 68–69 | — |
 | HURT | 73–76 | `hurt` | `hit` | 0,1,2,2 | 12 | once | — |

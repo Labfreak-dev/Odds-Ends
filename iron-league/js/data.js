@@ -198,8 +198,8 @@
     roll: "crouch"
   };
 
-  /* Which of the 3 source frames each game frame samples. Index 1 is the
-     strike, the loose, and the gun's recoil — the frames the hit list uses. */
+  /* Which of the 3 source frames each game frame samples. Index 2 is the
+     swing toward the foe (and a bow's loose). Hit frames sample that one. */
   const CLIP_SAMPLE = {
     idle: [0, 1, 2, 0, 1, 2],
     idle2: [0, 1, 2, 0, 1, 2],
@@ -208,11 +208,11 @@
     jump: [0, 1, 2, 2],
     fall: [1, 1, 2],
     land: [2],
-    atk1: [0, 0, 1, 1, 2, 2],
-    atk2: [0, 0, 1, 1, 2, 2],
-    atk3: [0, 0, 1, 2],
-    air1: [0, 0, 1, 1, 2, 2],
-    air2: [0, 0, 1, 2],
+    atk1: [0, 1, 2, 2, 2, 2],
+    atk2: [0, 1, 2, 2, 2, 2],
+    atk3: [0, 1, 2, 2],
+    air1: [0, 1, 2, 2, 2, 2],
+    air2: [0, 1, 2, 2],
     cast1: [0, 0, 0, 1, 2],
     cast2: [0, 0, 0, 1, 2],
     hurt: [0, 1, 2, 2],

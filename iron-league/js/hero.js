@@ -4,7 +4,7 @@
 (function (root) {
   const IL = root.IL = root.IL || {};
   const BASE = "assets/timefantasy/";
-  const ASSET_V = "7";
+  const ASSET_V = "8";
   const CELL = 48;
   /* Foot point inside the 48×48 cell. Standing soles end on row 44, so 45
      sits that row on the pit floor. Dead art hangs one pixel lower. */
@@ -80,7 +80,9 @@
     const s = scale || 4;
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
-    ctx.scale(facing < 0 ? -1 : 1, 1);
+    /* Sheets face left. Mirror the left team so they look toward +x.
+       The right team (facing < 0) stays as painted and looks toward -x. */
+    ctx.scale(facing < 0 ? 1 : -1, 1);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
       atlas,

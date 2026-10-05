@@ -34,6 +34,10 @@ if (!/const MOTIONS = \["idle1", "idle2", "walk", "atk1", "atk2", "bow", "gun", 
   console.error("sheet column order drifted from the packer");
   process.exit(1);
 }
+if (!/ctx\.scale\(facing < 0 \? 1 : -1, 1\)/.test(heroSrc)) {
+  console.error("sheets face -x; mirror a fighter when facing is not negative");
+  process.exit(1);
+}
 const renderSrc = fs.readFileSync(path.join(root, "js/render.js"), "utf8");
 const shakeScale = renderSrc.match(/const SHAKE_SCALE = ([0-9.]+)/);
 if (!shakeScale || !(Number(shakeScale[1]) > 0) || Number(shakeScale[1]) > 0.1 || renderSrc.indexOf("(fx.shake || 0) * SHAKE_SCALE") < 0) {
@@ -92,12 +96,12 @@ Object.keys(IL.CLIPS).forEach(function (name) {
   }
 });
 check("atk1 hits the strike frame", IL.CLIPS.atk1.hits.every(function (f) {
-  return IL.CLIP_SAMPLE.atk1[f - IL.CLIPS.atk1.from] === 1;
+  return IL.CLIP_SAMPLE.atk1[f - IL.CLIPS.atk1.from] === 2;
 }));
 check("bow loose sits on the hit frame", IL.CLIPS.atk1.hits.every(function (f) {
   return IL.visualSample("atk1", "bow", f - IL.CLIPS.atk1.from) === 2;
 }));
-check("gun recoil sits on the hit frame", IL.visualSample("atk1", "gun", 2) === 1);
+check("gun muzzle sits on the hit frame", IL.visualSample("atk1", "gun", 2) === 2);
 check("archer shot is a bow", IL.visualMotion("atk1", "archer", IL.defaultSheet("archer")) === "bow");
 check("ranger shot is a bow", IL.visualMotion("atk1", "ranger", IL.defaultSheet("ranger")) === "bow");
 check("warrior swing stays a swing", IL.visualMotion("atk1", "warrior", IL.defaultSheet("warrior")) === "atk1");

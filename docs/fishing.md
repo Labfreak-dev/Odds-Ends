@@ -3903,6 +3903,14 @@ opens. Thankless pitch jitter only lowers `playbackRate` (never above the
 base rate). `workshop/` and `modes/fishing2.module.js` were not touched.
 The attack-effect sheets from #345 are unchanged.
 
+## Shared art packs
+`shared-assets/` holds Heroes99 v1.2 (full pack; Iron League's
+`assets/heroes99/` stays a byte-identical PNG subset), Elements Core
+sheets and guide (generator binaries stay on the Character-asset-gen v1
+release), and BitFX premade packs 1–4. Iron League's nine combat strips
+in `assets/fx/` are renamed copies of pack 1 and pack 4 sheets. Pages
+paths under `iron-league/` were not moved.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

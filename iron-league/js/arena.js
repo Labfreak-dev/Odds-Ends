@@ -496,6 +496,7 @@
       const killerTeam = src ? src.team : 0;
       if (m.kills[killerTeam] == null) m.kills[killerTeam] = 0;
       m.kills[killerTeam]++;
+      if (src && src.team !== dst.team) src.kos = (src.kos || 0) + 1;
       if (src && src.bounty) m.stats.bounty = (m.stats.bounty || 0) + src.bounty;
       m.stats.deaths++;
       m.events.push({ type: "death", id: dst.id, team: dst.team });
@@ -1374,6 +1375,7 @@
   }
 
   IL.WORLD = WORLD;
+  IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
   IL.stepMatch = stepMatch;
 })(typeof window !== "undefined" ? window : globalThis);

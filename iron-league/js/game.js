@@ -10,6 +10,9 @@
   let draft = null;
   let speed = 1;
   let fight = null;
+  let hubTab = "club";
+  let detailId = null;
+  const HUB_TABS = ["club", "fighters", "market", "cup", "relics"];
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -113,24 +116,26 @@
 
   function toggleLineup(id) {
     const on = (save.roster || []).some(function (f) { return f.id === id; });
-    if (!on) return;
+    if (!on) return false;
     if (!Array.isArray(save.lineup)) save.lineup = [];
     const at = save.lineup.indexOf(id);
     if (at >= 0) save.lineup.splice(at, 1);
     else if (save.lineup.length < IL.PARTY_CAP) save.lineup.push(id);
+    else return false;
     persist();
-    showHub();
+    showHub(hubTab);
+    return true;
   }
 
   function purseHtml() {
     const eq = IL.equippedRelics(save);
     const tokens = save.tokens || 0;
     return '<div class="purse">' +
-      '<span class="coin"><b>' + save.gold + '</b> gold</span>' +
-      '<span class="coin"><b>' + (save.renown || 0) + '</b> renown</span>' +
-      '<span class="coin"><b>' + tokens + '</b> cup ' + (tokens === 1 ? "token" : "tokens") + '</span>' +
-      '<span class="coin"><b>' + (save.roster || []).length + "/" + IL.ROSTER_CAP + '</b> roster</span>' +
-      '<span class="coin"><b>' + eq.length + "/2</b> relics" + (eq.length ? " · " + esc(eq.map(function (r) { return r.name; }).join(", ")) : "") + '</span>' +
+      '<span class="coin"><i class="ico ico-gold" aria-hidden="true"></i><b>' + save.gold + '</b> gold</span>' +
+      '<span class="coin"><i class="ico ico-renown" aria-hidden="true"></i><b>' + (save.renown || 0) + '</b> renown</span>' +
+      '<span class="coin"><i class="ico ico-token" aria-hidden="true"></i><b>' + tokens + '</b> cup ' + (tokens === 1 ? "token" : "tokens") + '</span>' +
+      '<span class="coin"><i class="ico ico-roster" aria-hidden="true"></i><b>' + (save.roster || []).length + "/" + IL.ROSTER_CAP + '</b> roster</span>' +
+      '<span class="coin"><i class="ico ico-relic" aria-hidden="true"></i><b>' + eq.length + "/2</b> relics" + (eq.length ? " · " + esc(eq.map(function (r) { return r.name; }).join(", ")) : "") + '</span>' +
     '</div>';
   }
 
@@ -454,72 +459,215 @@
     }
   }
 
-  function showHub() {
-    stopLoops();
-    app.onclick = null;
-    save = save || load();
-    if (!save) { showTitle(); return; }
-    IL.migrate(save);
-    ensureMarket();
-    persist();
-    const rival = nextRival();
-    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
-    const yours = size ? fielded(save.roster, size) : [];
-    const theirs = rival && size ? rival.fighters.slice(0, size) : [];
-    const partyReady = !size || yours.length >= size;
-    const chaosReady = fielded(save.roster, 1).length >= 1;
-    const done = save.round >= 5;
-    const table = sortedClubs().map(function (c, i) {
-      const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
-    }).join("");
+  const ABILITY_COPY = {
+    cleave: "A wide swing that catches everyone in front.",
+    multishot: "Three shots loosed in one breath.",
+    frost: "A ring of cold that slows whoever it reaches.",
+    fireball: "A bolt that bursts on the first body it meets.",
+    taunt: "Nearby rivals turn their attention this way.",
+    shadowstep: "A blink behind the target, then a sharper cut.",
+    charge: "A rush that carries through the gap.",
+    rage: "Hits land harder for a few seconds while health is low.",
+    mend: "Restores health to the most wounded ally in reach.",
+    pierce: "A shot that punches through the first body.",
+    arc: "A short burst of force at close range.",
+    zone: "Plants a guard and clips anyone standing in it.",
+    skirmish: "A dash in, a shot, and back out.",
+    lunge: "A long step into one heavy cut.",
+    nova: "A tight ring of cold around the caster.",
+    bolt: "A fast bolt at the nearest rival.",
+    footing: "Harder to shove off the line.",
+    aim: "Shots hold their line a little farther.",
+    focus: "Casts come out cleaner.",
+    guard: "A raised guard blunts the next hit.",
+    bleed: "Cuts keep hurting after the swing.",
+    reach: "The charge starts from farther out.",
+    fury: "Damage climbs as health falls.",
+    triage: "The mend prefers the most wounded ally.",
+    trail: "A marked target takes the next shot harder.",
+    ward: "A thin shield follows a close burst.",
+    wall: "The planted guard holds a little longer.",
+    feint: "The shot after a dash is harder to read.",
+    riposte: "A hit taken is answered at once.",
+    cycle: "The next cast follows sooner."
+  };
+
+  function abilityBlurb(id) {
+    return ABILITY_COPY[id] || "A trick of this kit.";
+  }
+
+  function cdText(ab) {
+    if (!ab || !ab.cd) return "With each cast";
+    const n = Math.round(ab.cd * 10) / 10;
+    return n + "s";
+  }
+
+  function fighterById(id) {
+    return (save.roster || []).filter(function (f) { return f.id === id; })[0] || null;
+  }
+
+  function emptyState(title, fine) {
+    return '<div class="empty-state"><p>' + esc(title) + '</p>' +
+      (fine ? '<p class="fine">' + esc(fine) + '</p>' : '') + '</div>';
+  }
+
+  function statBar(label, value, cap) {
+    const shown = Math.round(value);
+    const pct = Math.max(6, Math.min(100, Math.round(100 * shown / Math.max(1, cap))));
+    return '<div class="stat"><span>' + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
+  }
+
+  function abilityItem(ab) {
+    return '<li><strong>' + esc(ab.name) + '</strong><span>' + esc(cdText(ab)) + '</span><p>' + esc(abilityBlurb(ab.id)) + '</p></li>';
+  }
+
+  function fighterCard(f, size) {
+    const slot = (save.lineup || []).indexOf(f.id);
+    const fighting = slot >= 0 && (!size || slot < size);
+    const held = slot >= 0 && size > 0 && slot >= size;
+    const partyFull = (save.lineup || []).length >= IL.PARTY_CAP;
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const anim = kit.idle || "idle";
+    const champ = f.champion ? " <em>Champion</em>" : "";
+    const kos = f.kos || 0;
+    let lineLabel = "Sit out";
+    let lineClass = "chip lineup";
+    if (fighting && size) {
+      lineLabel = "Fighting · " + (slot + 1);
+      lineClass += " on";
+    } else if (held) {
+      lineLabel = "Held · " + (slot + 1);
+      lineClass += " held";
+    } else if (slot >= 0) {
+      lineLabel = "In the party · " + (slot + 1);
+      lineClass += " on";
+    } else if (partyFull) lineLabel = "Party full";
+    const lineOff = slot < 0 && partyFull ? " disabled" : "";
+    return '<article class="card' + (fighting ? " playing" : " bench") + '" data-role="' + esc(kit.role) + '">' +
+      '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '"></canvas>' +
+      '</button>' +
+      '<h3>' + esc(f.name) + (f.captain ? " <em>Captain</em>" : "") + champ + '</h3>' +
+      '<p>' + esc(kit.name) + " · Lv " + f.level + " · " + esc(personalityLabel(f.personality)) + '</p>' +
+      '<p class="fine">' + (f.wins || 0) + "–" + (f.losses || 0) + " · " + kos + (kos === 1 ? " KO" : " KOs") + '</p>' +
+      '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>' +
+      '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
+    '</article>';
+  }
+
+  function rosterColumns(size) {
     const slotOf = {};
     (save.lineup || []).forEach(function (id, i) { slotOf[id] = i; });
-    const partyFull = (save.lineup || []).length >= IL.PARTY_CAP;
     const ordered = save.roster.slice().sort(function (a, b) {
       const sa = Object.prototype.hasOwnProperty.call(slotOf, a.id) ? slotOf[a.id] : 99;
       const sb = Object.prototype.hasOwnProperty.call(slotOf, b.id) ? slotOf[b.id] : 99;
       return sa - sb;
     });
-    const pitCards = [];
-    const benchCards = [];
+    const pit = [];
+    const bench = [];
     ordered.forEach(function (f) {
       const slot = Object.prototype.hasOwnProperty.call(slotOf, f.id) ? slotOf[f.id] : -1;
       const fighting = slot >= 0 && (!size || slot < size);
-      const held = slot >= 0 && size > 0 && slot >= size;
-      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-      const anim = kit.idle || "idle";
-      const champ = f.champion ? ' <em>Champion</em>' : "";
-      let lineLabel = "Sit out";
-      let lineClass = "chip lineup";
-      if (fighting && size) {
-        lineLabel = "Fighting · " + (slot + 1);
-        lineClass += " on";
-      } else if (held) {
-        lineLabel = "Held · " + (slot + 1);
-        lineClass += " held";
-      } else if (slot >= 0) {
-        lineLabel = "In the party · " + (slot + 1);
-        lineClass += " on";
-      } else if (partyFull) lineLabel = "Party full";
-      const lineOff = slot < 0 && partyFull ? " disabled" : "";
-      const html = '<article class="card' + (fighting ? " playing" : " bench") + '">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '"></canvas>' +
-        '<h3>' + esc(f.name) + (f.captain ? ' <em>Captain</em>' : '') + champ + '</h3>' +
-        '<p>' + esc(kit.name) + ' · Lv ' + f.level + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
-        '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + (kit.ability2 ? " · " + esc(kit.ability2.name) : "") + '</p>' +
-        '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>' +
-        '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
-      '</article>';
-      if (fighting) pitCards.push(html);
-      else benchCards.push(html);
+      (fighting ? pit : bench).push(fighterCard(f, size));
     });
+    return { pit: pit, bench: bench };
+  }
+
+  function rosterHtml(size, pitTitle, pitHint) {
+    const cols = rosterColumns(size);
+    return '<div id="yourCards">' +
+      '<section class="panel-frame"><h3 class="section">' + pitTitle + '</h3>' +
+        '<p class="fine">' + pitHint + '</p>' +
+        '<div class="cards">' + (cols.pit.join("") || emptyState("Nobody is walking in.", "Add fighters from the bench.")) + '</div></section>' +
+      '<section class="panel-frame"><h3 class="section">Bench</h3>' +
+        '<p class="fine">Tap Sit out to put them in the party. The list holds ' + IL.PARTY_CAP + '.</p>' +
+        '<div class="cards" id="benchList">' + (cols.bench.join("") || emptyState("The bench is empty.", "The whole club is in the party.")) + '</div></section>' +
+    '</div>';
+  }
+
+  function tabBar(active) {
+    const labels = [
+      ["club", "Club", "1", "tab-club"],
+      ["fighters", "Fighters", "2", "tab-fighters"],
+      ["market", "Market", "3", "market"],
+      ["cup", "Cup", "4", "cup"],
+      ["relics", "Relics", "5", "relics"]
+    ];
+    return '<nav class="tabbar" id="tabbar" role="tablist" aria-label="Club sections">' +
+      labels.map(function (row) {
+        const on = row[0] === active;
+        return '<button type="button" class="tab" role="tab" id="' + row[3] + '" data-tab="' + row[0] + '" aria-selected="' + (on ? "true" : "false") + '" aria-keyshortcuts="' + row[2] + '"><b>' + row[1] + '</b><small>' + row[2] + '</small></button>';
+      }).join("") +
+    '</nav>';
+  }
+
+  function sheetHtml(f) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const stats = IL.scaledStats(f, kit);
+    const into = (f.xp || 0) % 40;
+    const xpPct = Math.round(100 * into / 40);
+    const abilities = [];
+    if (kit.ability) abilities.push(abilityItem(kit.ability));
+    if (kit.ability2) abilities.push(abilityItem(kit.ability2));
+    if (kit.passive) {
+      abilities.push('<li><strong>' + esc(kit.passive.name) + '</strong><span>Always on</span><p>' + esc(abilityBlurb(kit.passive.id)) + '</p></li>');
+    }
+    const eq = IL.equippedRelics(save);
+    const relics = eq.length
+      ? '<ul class="relic-list">' + eq.map(function (r) {
+        return '<li><strong>' + esc(r.name) + '</strong><p>' + esc(r.blurb) + '</p></li>';
+      }).join("") + '</ul>'
+      : emptyState("No relics equipped.", "Win a cup or close a season, then equip them on the Relics tab.");
+    const slot = (save.lineup || []).indexOf(f.id);
+    const full = slot < 0 && (save.lineup || []).length >= IL.PARTY_CAP;
+    const lineLabel = slot >= 0 ? "Remove from lineup" : (full ? "Party full" : "Add to lineup");
+    const anim = kit.idle || "idle";
+    const kos = f.kos || 0;
+    return '<div class="sheet-back" id="sheetBack"></div>' +
+      '<aside class="sheet" id="fighterSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">' +
+        '<header class="sheet-head"><div><p class="eyebrow">' + esc(kit.name) + (f.captain ? " · Captain" : "") + '</p>' +
+          '<h2 id="sheetTitle">' + esc(f.name) + '</h2></div>' +
+          '<button type="button" class="btn ghost" id="sheetClose">Close</button></header>' +
+        '<div class="detail-stage"><canvas id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"></canvas></div>' +
+        '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + ' · ' + esc(tacticLabel(f.tactic)) + (f.champion ? " · Champion" : "") + '</p>' +
+        '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
+        statBar("HP", stats.hp, 320) +
+        statBar("ATK", stats.atk, 40) +
+        statBar("DEF", stats.def, 16) +
+        statBar("SPD", stats.speed, 180) +
+        '<h3 class="section">Abilities</h3><ul class="abilities">' + abilities.join("") + '</ul>' +
+        '<h3 class="section">Relics with the party</h3>' + relics +
+        '<h3 class="section">Record</h3>' +
+        '<p class="record"><span><b>W</b> ' + (f.wins || 0) + '</span><span><b>L</b> ' + (f.losses || 0) + '</span><span><b>KO</b> ' + kos + '</span></p>' +
+        '<div class="sheet-actions">' +
+          '<form class="rename-row" id="renameForm"><input id="renameInput" maxlength="22" autocomplete="off" aria-label="Fighter name" value="' + esc(f.name) + '">' +
+            '<button type="submit" class="btn ghost">Rename</button></form>' +
+          '<p class="fine" id="renameError" hidden>Name them something.</p>' +
+          '<button type="button" class="btn ghost" id="setCaptain"' + (f.captain ? " disabled" : "") + '>' + (f.captain ? "Captain" : "Set as captain") + '</button>' +
+          '<button type="button" class="btn primary" id="sheetLine"' + (full ? " disabled" : "") + '>' + esc(lineLabel) + '</button>' +
+          (f.captain
+            ? '<button type="button" class="btn ghost" disabled>Captain stays</button>'
+            : '<button type="button" class="btn danger" id="releaseAsk">Release</button>' +
+              '<div id="releaseBox" hidden><p>Release ' + esc(f.name) + '? They leave the club.</p>' +
+                '<button type="button" class="btn danger" id="releaseYes">Release</button>' +
+                '<button type="button" class="btn ghost" id="releaseNo">Keep them</button></div>') +
+        '</div>' +
+      '</aside>';
+  }
+
+  function clubPanel() {
+    const rival = nextRival();
+    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    const yours = size ? fielded(save.roster, size) : [];
+    const theirs = rival && size ? rival.fighters.slice(0, size) : [];
+    const partyReady = !size || yours.length >= size;
+    const done = save.round >= 5;
+    const table = sortedClubs().map(function (c, i) {
+      const played = c.w + c.l;
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+    }).join("");
     const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
     const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
-    const relicCount = IL.equippedRelics(save).length;
-    const cupLabel = (save.cup && !save.cup.champion)
-      ? "Cup in progress"
-      : ("Cup · " + (save.tokens || 0) + ((save.tokens || 0) === 1 ? " token" : " tokens"));
     const preview = (!done && rival)
       ? '<section class="preview-board" id="matchPreview">' +
           '<div><p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3>' +
@@ -532,57 +680,182 @@
         '</section>'
       : "";
     const rivalCards = theirs.map(function (f) {
-      return '<article class="card rival">' +
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      return '<article class="card rival" data-role="' + esc(kit.role) + '">' +
         '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="idle"></canvas>' +
         '<h3>' + esc(f.name) + '</h3>' +
-        '<p>' + esc(IL.CLASSES[f.cls].name) + '</p>' +
+        '<p>' + esc(kit.name) + '</p>' +
       '</article>';
     }).join("");
+    return (pendingGrowth().length
+        ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a growth</button></p>'
+        : '') +
+      (done && save.relicSeason !== save.season
+        ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn primary" id="claimRelic">Take the yard relic</button></p>'
+        : (done
+          ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. Roster, renown, and relics carry forward.</p>'
+          : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>')) +
+      (size && yours.length < size
+        ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
+        : '') +
+      preview +
+      rosterHtml(size, size ? "In the pit" : "Party", "First chosen is slot 1. The portrait opens a fighter. The lineup button changes who walks in.") +
+      (theirs.length ? '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
+      '<section class="panel-frame"><h3 class="section">Standings</h3>' +
+        '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
+      '</section>';
+  }
 
+  function fightersPanel() {
+    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    return '<div id="fighterList">' +
+      '<header class="panel-head"><p class="eyebrow">Roster</p><h3>Fighters</h3></header>' +
+      '<p class="fine">Open a portrait for the full sheet. The lineup control is separate.</p>' +
+      rosterHtml(size, size ? "In the pit" : "Party", "Slot order is the order they walk in.") +
+    '</div>';
+  }
+
+  function marketPanel() {
+    const cards = (save.market || []).map(function (row, i) {
+      const f = row.fighter;
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const locked = !!row.locked;
+      const champ = f.champion ? " · Champion" : "";
+      const price = locked ? (row.need + " renown") : (row.cost + " gold");
+      return '<article class="card" data-role="' + esc(kit.role) + '">' +
+        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+        '<h3>' + esc(f.name) + champ + '</h3>' +
+        '<p>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
+        '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + '</p>' +
+        '<button type="button" class="btn primary hire" data-hire="' + i + '"' + (locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + ' — ' + esc(price) + '</button>' +
+      '</article>';
+    }).join("");
+    const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const inParty = (save.lineup || []).indexOf(f.id) >= 0;
+      return '<article class="card" data-role="' + esc(kit.role) + '">' +
+        '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
+          '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+        '</button>' +
+        '<h3>' + esc(f.name) + '</h3>' +
+        '<p>' + esc(kit.name) + ' · Lv ' + f.level + (inParty ? " · in the party" : "") + '</p>' +
+        '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell — ' + IL.sellValue(f) + ' gold</button>' +
+      '</article>';
+    }).join("");
+    const captain = save.roster.filter(function (f) { return f.captain; })[0];
+    return '<header class="panel-head"><p class="eyebrow">Hire board</p><h3>Market</h3></header>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
+      '<p class="banner">Hire a name onto the bench, then slot them from the club. A champion costs more. Locked kits open with renown. Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '.</p>' +
+      '<section class="panel-frame"><h3 class="section">For hire</h3><div class="cards" id="marketCards">' + cards + '</div></section>' +
+      '<section class="panel-frame"><h3 class="section">Sell from the bench</h3>' +
+        '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
+        '<div class="cards">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
+  }
+
+  function relicsPanel() {
+    const owned = {};
+    (save.relics || []).forEach(function (id) { owned[id] = true; });
+    const list = IL.RELICS.map(function (r) {
+      const have = !!owned[r.id];
+      const on = (save.equipped || []).indexOf(r.id) >= 0;
+      const status = on ? "Riding with the party" : (have ? "In the chest" : "Won from a cup or a finished season");
+      return '<article class="card relic' + (on ? " playing" : "") + '">' +
+        '<h3>' + esc(r.name) + '</h3>' +
+        '<p>' + esc(r.blurb) + '</p>' +
+        '<p class="fine">' + status + '</p>' +
+        (have
+          ? '<button type="button" class="btn ' + (on ? "primary" : "ghost") + '" data-equip="' + r.id + '">' + (on ? "Equipped" : "Equip") + '</button>'
+          : '<p class="fine">Not in the yard yet.</p>') +
+      '</article>';
+    }).join("");
+    return '<header class="panel-head"><p class="eyebrow">Club relics</p><h3>The yard chest</h3>' +
+      '<p class="fine">' + (save.equipped || []).length + ' of 2 equipped · ' + (save.relics || []).length + ' owned</p></header>' +
+      '<p class="banner">Two relics ride with everyone you field. Win a cup or close a season to add one.</p>' +
+      '<div class="cards">' + list + '</div>';
+  }
+
+  function cupMarkup(cup) {
+    if (!cup) return "";
+    const rows = (cup.pairing || []).map(function (pair, i) {
+      const a = cup.slots[pair[0]];
+      const b = cup.slots[pair[1]];
+      const win = cup.winners[i];
+      const label = (a ? a.name : "?") + " vs " + (b ? b.name : "?");
+      const mark = win ? (" · " + (cup.slots.filter(function (s) { return s.id === win; })[0] || {}).name + " through") : "";
+      return "<li>" + esc(label + mark) + "</li>";
+    }).join("");
+    const champ = cup.champion ? ("<p class='banner'>Cup champion: " + esc((cup.slots.filter(function (s) { return s.id === cup.champion; })[0] || {}).name || cup.champion) + "</p>") : "";
+    return "<ol class='bracket'>" + rows + "</ol>" + champ;
+  }
+
+  function cupPanel() {
+    const cup = save.cup;
+    const opp = cup ? IL.cupOpponent(cup) : null;
+    const cupSize = cup ? cup.size : 2;
+    const sent = fielded(save.roster, cupSize);
+    const sentNames = sent.map(function (f) { return f.name; }).join(" · ") || "nobody yet";
+    const cupReady = !cup || sent.length >= cup.size;
+    const fightBtn = opp
+      ? '<button type="button" class="btn primary" id="cupFight"' + (cupReady ? "" : " disabled") + '>Fight ' + esc(opp.foe.name) + '</button>'
+      : "";
+    const enter = (!cup || cup.champion)
+      ? '<button type="button" class="btn primary" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
+      : fightBtn;
+    return '<header class="panel-head"><p class="eyebrow">Single elimination</p><h3>The cup</h3></header>' +
+      '<div class="hub-actions">' + enter + '</div>' +
+      '<p class="banner">Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
+      (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club tab before this tie.</p>' : '') +
+      (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>');
+  }
+
+  function showHub(tab) {
+    stopLoops();
+    app.onclick = null;
+    save = save || load();
+    if (!save) { showTitle(); return; }
+    IL.migrate(save);
+    ensureMarket();
+    if (typeof tab === "string" && HUB_TABS.indexOf(tab) >= 0) hubTab = tab;
+    if (detailId && !fighterById(detailId)) detailId = null;
+    persist();
+    const chaosReady = fielded(save.roster, 1).length >= 1;
+    const done = save.round >= 5;
+    const panel = hubTab === "fighters" ? fightersPanel()
+      : hubTab === "market" ? marketPanel()
+      : hubTab === "cup" ? cupPanel()
+      : hubTab === "relics" ? relicsPanel()
+      : clubPanel();
+    const fighter = detailId ? fighterById(detailId) : null;
     app.innerHTML =
       '<main class="hub">' +
         '<header class="hub-head">' +
           '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
-          '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2>' +
-          '</div>' +
+          '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
           '<div class="hub-actions">' +
             (done ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>' : '') +
-            '<button type="button" class="btn ghost" id="market">Market</button>' +
-            '<button type="button" class="btn ghost" id="relics">Relics · ' + relicCount + '/2</button>' +
-            '<button type="button" class="btn ghost" id="cup">' + esc(cupLabel) + '</button>' +
             '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
             '<button type="button" class="text-btn" id="toTitle">Title</button>' +
           '</div>' +
         '</header>' +
         purseHtml() +
-        (pendingGrowth().length
-          ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a growth</button></p>'
-          : '') +
-        (done && save.relicSeason !== save.season
-          ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn primary" id="claimRelic">Take the yard relic</button></p>'
-          : (done
-            ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. Roster, renown, and relics carry forward.</p>'
-            : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>')) +
-        (size && yours.length < size
-          ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
-          : '') +
-        preview +
-        '<div id="yourCards">' +
-          '<section><h3 class="section">' + (size ? "In the pit" : "Party") + '</h3>' +
-            '<p class="fine">First chosen is slot 1. Tap a card to take them out.</p>' +
-            '<div class="cards">' + (pitCards.join("") || '<p class="fine">Nobody is walking in.</p>') + '</div></section>' +
-          '<section><h3 class="section">Bench</h3>' +
-            '<p class="fine">Tap Sit out to put them in the party. The list holds ' + IL.PARTY_CAP + '.</p>' +
-            '<div class="cards">' + (benchCards.join("") || '<p class="fine">The whole club is in the party.</p>') + '</div></section>' +
-        '</div>' +
-        (theirs.length ? '<section><h3 class="section">They send</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
-        '<section><h3 class="section">Standings</h3>' +
-          '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
-        '</section>' +
-      '</main>';
+        tabBar(hubTab) +
+        '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
+      '</main>' +
+      (fighter ? sheetHtml(fighter) : '');
     root.scrollTo(0, 0);
-
     drawCrest(document.getElementById("crest"), save.clubName);
+    bindHub();
+    const extra = hubTab === "market"
+      ? (save.market || []).map(function (row) { return row.fighter && row.fighter.parts; })
+      : [];
+    bootCards(extra);
+  }
+
+  function showMarket() { showHub("market"); }
+  function showRelics() { showHub("relics"); }
+  function showCup() { showHub("cup"); }
+
+  function bindHub() {
     const nm = document.getElementById("nextMatch");
     if (nm) nm.onclick = function () { startFight(); };
     const ns = document.getElementById("nextSeason");
@@ -591,14 +864,8 @@
       save.gold += 30;
       buildSeason(true);
       persist();
-      showHub();
+      showHub("club");
     };
-    const marketBtn = document.getElementById("market");
-    if (marketBtn) marketBtn.onclick = function () { showMarket(); };
-    const relicsBtn = document.getElementById("relics");
-    if (relicsBtn) relicsBtn.onclick = function () { showRelics(); };
-    const cupBtn = document.getElementById("cup");
-    if (cupBtn) cupBtn.onclick = function () { showCup(); };
     const chaosBtn = document.getElementById("chaos");
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
     const growthBtn = document.getElementById("openGrowth");
@@ -609,24 +876,135 @@
       save.relicSeason = save.season;
       if (relic && save.equipped.length < 2) save.equipped.push(relic.id);
       persist();
-      showHub();
+      showHub(hubTab);
     };
-    document.getElementById("toTitle").onclick = showTitle;
-    const cards = document.getElementById("yourCards");
-    if (cards) cards.onclick = function (ev) {
-      const line = ev.target.closest("[data-line]");
-      if (line) { toggleLineup(line.dataset.line); return; }
-      const btn = ev.target.closest("[data-fid]");
-      if (!btn) return;
-      const f = save.roster.filter(function (r) { return r.id === btn.dataset.fid; })[0];
-      if (!f) return;
-      const order = IL.TACTICS;
-      const i = order.indexOf(f.tactic);
-      f.tactic = order[(i + 1) % order.length] || "strike";
+    const titleBtn = document.getElementById("toTitle");
+    if (titleBtn) titleBtn.onclick = showTitle;
+    const refreshBtn = document.getElementById("refreshMarket");
+    if (refreshBtn) refreshBtn.onclick = function () {
+      if (save.gold < IL.REFRESH_COST) return;
+      save.gold -= IL.REFRESH_COST;
+      save.market = IL.rollMarket(takeRng(), save.renown || 0);
       persist();
-      showHub();
+      showHub("market");
     };
-    bootCards();
+    const enterBtn = document.getElementById("enterCup");
+    if (enterBtn) enterBtn.onclick = function () {
+      if ((save.tokens || 0) < 1) return;
+      save.tokens -= 1;
+      save.cup = IL.startCup(save, takeRng());
+      persist();
+      showHub("cup");
+    };
+    const cupFight = document.getElementById("cupFight");
+    if (cupFight) cupFight.onclick = function () { startCupFight(); };
+    const tabs = document.getElementById("tabbar");
+    if (tabs) tabs.onclick = function (ev) {
+      const t = ev.target.closest("[data-tab]");
+      if (!t) return;
+      if (t.dataset.tab === hubTab && !detailId) return;
+      detailId = null;
+      showHub(t.dataset.tab);
+    };
+    const panel = document.getElementById("hubPanel");
+    if (panel) panel.onclick = function (ev) {
+      const detail = ev.target.closest("[data-detail]");
+      if (detail) {
+        detailId = detail.dataset.detail;
+        showHub(hubTab);
+        return;
+      }
+      const line = ev.target.closest("[data-line]");
+      if (line && !line.disabled) { toggleLineup(line.dataset.line); return; }
+      const tactic = ev.target.closest("[data-fid]");
+      if (tactic) { cycleTactic(tactic.dataset.fid); return; }
+      const hire = ev.target.closest("[data-hire]");
+      if (hire) { hireFromMarket(+hire.dataset.hire); return; }
+      const sell = ev.target.closest("[data-sell]");
+      if (sell) { sellFighter(sell.dataset.sell); return; }
+      const equip = ev.target.closest("[data-equip]");
+      if (equip) { toggleEquip(equip.dataset.equip); return; }
+    };
+    bindSheet();
+  }
+
+  function bindSheet() {
+    const back = document.getElementById("sheetBack");
+    if (back) back.onclick = closeSheet;
+    const closeBtn = document.getElementById("sheetClose");
+    if (closeBtn) closeBtn.onclick = closeSheet;
+    const form = document.getElementById("renameForm");
+    if (form) form.onsubmit = function (ev) {
+      ev.preventDefault();
+      const input = document.getElementById("renameInput");
+      const name = ((input && input.value) || "").trim().slice(0, 22);
+      const err = document.getElementById("renameError");
+      if (!name) {
+        if (err) err.hidden = false;
+        return;
+      }
+      const f = fighterById(detailId);
+      if (!f) return;
+      f.name = name;
+      persist();
+      showHub(hubTab);
+    };
+    const cap = document.getElementById("setCaptain");
+    if (cap) cap.onclick = function () { setCaptain(detailId); };
+    const line = document.getElementById("sheetLine");
+    if (line && !line.disabled) line.onclick = function () { toggleLineup(detailId); };
+    const ask = document.getElementById("releaseAsk");
+    const box = document.getElementById("releaseBox");
+    if (ask && box) ask.onclick = function () { box.hidden = false; ask.hidden = true; };
+    const no = document.getElementById("releaseNo");
+    if (no && box && ask) no.onclick = function () { box.hidden = true; ask.hidden = false; };
+    const yes = document.getElementById("releaseYes");
+    if (yes) yes.onclick = function () { releaseFighter(detailId); };
+  }
+
+  function closeSheet() {
+    if (!detailId) return;
+    detailId = null;
+    showHub(hubTab);
+  }
+
+  function cycleTactic(id) {
+    const f = fighterById(id);
+    if (!f) return;
+    const order = IL.TACTICS;
+    const i = order.indexOf(f.tactic);
+    f.tactic = order[(i + 1) % order.length] || "strike";
+    persist();
+    showHub(hubTab);
+  }
+
+  function setCaptain(id) {
+    const f = fighterById(id);
+    if (!f || f.captain) return;
+    save.roster.forEach(function (r) { r.captain = r.id === id; });
+    persist();
+    showHub(hubTab);
+  }
+
+  function releaseFighter(id) {
+    const f = fighterById(id);
+    if (!f || f.captain) return;
+    save.roster = save.roster.filter(function (r) { return r !== f; });
+    save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
+    detailId = null;
+    persist();
+    showHub(hubTab);
+  }
+
+  function toggleEquip(id) {
+    if ((save.relics || []).indexOf(id) < 0) return;
+    const eq = save.equipped || (save.equipped = []);
+    const at = eq.indexOf(id);
+    if (at >= 0) eq.splice(at, 1);
+    else if (eq.length < 2) eq.push(id);
+    else eq.splice(0, 1, id);
+    persist();
+    showHub("relics");
   }
 
   function drawCrest(canvas, name) {
@@ -685,73 +1063,13 @@
         ctx.fillRect(0, 0, c.width, c.height);
         if (!atlas) continue;
         const clip = c.dataset.anim || "idle";
-        IL.hero.draw(ctx, atlas, IL.frameIndex(clip, t + i * 0.2), c.width / 2, c.height - 10, 3, 1);
+        const scale = Number(c.dataset.scale || 3);
+        const foot = c.dataset.foot != null && c.dataset.foot !== "" ? Number(c.dataset.foot) : 10;
+        IL.hero.draw(ctx, atlas, IL.frameIndex(clip, t + i * 0.2), c.width / 2, c.height - foot, scale, 1);
       }
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);
-  }
-
-  /* ---------- market, relics, cup ---------- */
-  function showMarket() {
-    stopLoops();
-    save = save || load();
-    if (!save) { showTitle(); return; }
-    ensureMarket();
-    const cards = save.market.map(function (row, i) {
-      const f = row.fighter;
-      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-      const locked = !!row.locked;
-      const champ = f.champion ? " · Champion" : "";
-      const price = locked ? (row.need + " renown") : (row.cost + " gold");
-      return '<article class="card">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
-        '<h3>' + esc(f.name) + champ + '</h3>' +
-        '<p>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
-        '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + '</p>' +
-        '<button type="button" class="btn primary hire" data-hire="' + i + '"' + (locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + ' — ' + esc(price) + '</button>' +
-      '</article>';
-    }).join("");
-    const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
-      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-      const inParty = (save.lineup || []).indexOf(f.id) >= 0;
-      return '<article class="card">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
-        '<h3>' + esc(f.name) + '</h3>' +
-        '<p>' + esc(kit.name) + ' · Lv ' + f.level + (inParty ? " · in the party" : "") + '</p>' +
-        '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell — ' + IL.sellValue(f) + ' gold</button>' +
-      '</article>';
-    }).join("");
-    const captain = save.roster.filter(function (f) { return f.captain; })[0];
-    app.innerHTML =
-      '<main class="hub" id="market">' +
-        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back to the club</button>' +
-        '<div><p class="eyebrow">Hire board</p><h2>Market</h2></div>' +
-        '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div></header>' +
-        purseHtml() +
-        '<p class="banner">Hire a name onto the bench, then slot them from the club hub. A champion costs more. Locked kits open with renown. Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '.</p>' +
-        '<h3 class="section">For hire</h3>' +
-        '<div class="cards" id="marketCards">' + cards + '</div>' +
-        '<h3 class="section">Sell from the bench</h3>' +
-        '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
-        '<div class="cards">' + (bench || '<p class="fine">Hire someone before there is a bench to sell.</p>') + '</div>' +
-      '</main>';
-    root.scrollTo(0, 0);
-    document.getElementById("backHub").onclick = function () { showHub(); };
-    document.getElementById("refreshMarket").onclick = function () {
-      if (save.gold < IL.REFRESH_COST) return;
-      save.gold -= IL.REFRESH_COST;
-      save.market = IL.rollMarket(takeRng(), save.renown || 0);
-      persist();
-      showMarket();
-    };
-    app.onclick = function (ev) {
-      const hire = ev.target.closest("[data-hire]");
-      const sell = ev.target.closest("[data-sell]");
-      if (hire) hireFromMarket(+hire.dataset.hire);
-      else if (sell) sellFighter(sell.dataset.sell);
-    };
-    bootCards(save.market.map(function (row) { return row.fighter.parts; }));
   }
 
   function hireFromMarket(index) {
@@ -765,8 +1083,8 @@
       save.market.splice(index, 1);
       if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0);
       persist();
-      showMarket();
-    }).catch(function () { showMarket(); });
+      showHub("market");
+    }).catch(function () { showHub("market"); });
   }
 
   function sellFighter(id) {
@@ -775,108 +1093,11 @@
     save.gold += IL.sellValue(f);
     save.roster = save.roster.filter(function (r) { return r !== f; });
     save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
+    if (detailId === f.id) detailId = null;
     persist();
-    showMarket();
+    showHub("market");
   }
 
-  function showRelics() {
-    stopLoops();
-    save = save || load();
-    if (!save) { showTitle(); return; }
-    IL.migrate(save);
-    const owned = {};
-    (save.relics || []).forEach(function (id) { owned[id] = true; });
-    const list = IL.RELICS.map(function (r) {
-      const have = !!owned[r.id];
-      const on = (save.equipped || []).indexOf(r.id) >= 0;
-      const status = on ? "Riding with the party" : (have ? "In the chest" : "Won from a cup or a finished season");
-      return '<article class="card relic' + (on ? " playing" : "") + '">' +
-        '<h3>' + esc(r.name) + '</h3>' +
-        '<p>' + esc(r.blurb) + '</p>' +
-        '<p class="fine">' + status + '</p>' +
-        (have
-          ? '<button type="button" class="btn ' + (on ? "primary" : "ghost") + '" data-equip="' + r.id + '">' + (on ? "Equipped" : "Equip") + '</button>'
-          : '<p class="fine">Not in the yard yet.</p>') +
-      '</article>';
-    }).join("");
-    app.innerHTML =
-      '<main class="hub" id="relics">' +
-        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back</button>' +
-        '<div><p class="eyebrow">Club relics</p><h2>The yard chest</h2>' +
-        '<p class="meta">' + (save.equipped || []).length + ' of 2 equipped · ' + (save.relics || []).length + ' owned</p></div></header>' +
-        purseHtml() +
-        '<p class="banner">Two relics ride with everyone you field. Win a cup or close a season to add one. Equip them here, then send the party from the club hub.</p>' +
-        '<div class="cards">' + list + '</div>' +
-      '</main>';
-    root.scrollTo(0, 0);
-    document.getElementById("backHub").onclick = function () { showHub(); };
-    app.onclick = function (ev) {
-      const btn = ev.target.closest("[data-equip]");
-      if (!btn) return;
-      const id = btn.dataset.equip;
-      const eq = save.equipped || (save.equipped = []);
-      const at = eq.indexOf(id);
-      if (at >= 0) eq.splice(at, 1);
-      else if (eq.length < 2) eq.push(id);
-      else eq.splice(0, 1, id);
-      persist();
-      showRelics();
-    };
-  }
-
-  function cupMarkup(cup) {
-    if (!cup) return "";
-    const rows = (cup.pairing || []).map(function (pair, i) {
-      const a = cup.slots[pair[0]];
-      const b = cup.slots[pair[1]];
-      const win = cup.winners[i];
-      const label = (a ? a.name : "?") + " vs " + (b ? b.name : "?");
-      const mark = win ? (" · " + (cup.slots.filter(function (s) { return s.id === win; })[0] || {}).name + " through") : "";
-      return "<li>" + esc(label + mark) + "</li>";
-    }).join("");
-    const champ = cup.champion ? ("<p class='banner'>Cup champion: " + esc((cup.slots.filter(function (s) { return s.id === cup.champion; })[0] || {}).name || cup.champion) + "</p>") : "";
-    return "<ol class='bracket'>" + rows + "</ol>" + champ;
-  }
-
-  function showCup() {
-    stopLoops();
-    save = save || load();
-    if (!save) { showTitle(); return; }
-    const cup = save.cup;
-    const opp = cup ? IL.cupOpponent(cup) : null;
-    const cupSize = cup ? cup.size : 2;
-    const sent = fielded(save.roster, cupSize);
-    const sentNames = sent.map(function (f) { return f.name; }).join(" · ") || "nobody yet";
-    const cupReady = !cup || sent.length >= cup.size;
-    const fightBtn = opp
-      ? '<button type="button" class="btn primary" id="cupFight"' + (cupReady ? "" : " disabled") + '>Fight ' + esc(opp.foe.name) + '</button>'
-      : "";
-    const enter = (!cup || cup.champion)
-      ? '<button type="button" class="btn primary" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
-      : fightBtn;
-    app.innerHTML =
-      '<main class="hub" id="cup">' +
-        '<header class="hub-head"><button type="button" class="text-btn" id="backHub">Back to the club</button>' +
-        '<div><p class="eyebrow">Single elimination</p><h2>The cup</h2></div>' +
-        '<div class="hub-actions">' + enter + '</div></header>' +
-        purseHtml() +
-        '<p class="banner">Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
-        (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club hub before this tie.</p>' : '') +
-        (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
-      '</main>';
-    root.scrollTo(0, 0);
-    document.getElementById("backHub").onclick = function () { showHub(); };
-    const enterBtn = document.getElementById("enterCup");
-    if (enterBtn) enterBtn.onclick = function () {
-      if ((save.tokens || 0) < 1) return;
-      save.tokens -= 1;
-      save.cup = IL.startCup(save, takeRng());
-      persist();
-      showCup();
-    };
-    const fight = document.getElementById("cupFight");
-    if (fight) fight.onclick = function () { startCupFight(); };
-  }
 
   function showGrowth() {
     stopLoops();
@@ -1166,6 +1387,19 @@
     finishFight();
   }
 
+  function noteRecords(match, win) {
+    const byId = {};
+    (save.roster || []).forEach(function (f) { if (f && f.id) byId[f.id] = f; });
+    match.units.forEach(function (u) {
+      if (!u || u.team !== 0) return;
+      const f = byId[u.id];
+      if (!f) return;
+      if (win) f.wins = (f.wins || 0) + 1;
+      else f.losses = (f.losses || 0) + 1;
+      f.kos = (f.kos || 0) + (u.kos || 0);
+    });
+  }
+
   function finishFight() {
     if (!fight || fight.settled) return;
     const match = fight.match;
@@ -1232,6 +1466,7 @@
       renown = Math.round(renown * 1.25);
     }
     gold += match.stats.bounty || 0;
+    noteRecords(match, win);
     const before = {};
     fight.left.forEach(function (f) {
       if (!f) return;
@@ -1318,6 +1553,24 @@
     });
     save.round += 1;
   }
+
+  function onHubKey(ev) {
+    if (!document.getElementById("tabbar")) return;
+    const tag = ev.target && ev.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (ev.key === "Escape") {
+      if (!detailId) return;
+      ev.preventDefault();
+      detailId = null;
+      showHub(hubTab);
+      return;
+    }
+    if (ev.key < "1" || ev.key > "5") return;
+    ev.preventDefault();
+    detailId = null;
+    showHub(HUB_TABS[ev.key.charCodeAt(0) - 49]);
+  }
+  document.addEventListener("keydown", onHubKey);
 
   IL.screenApi = { showTitle: showTitle };
   if (IL.fx && IL.fx.load) IL.fx.load();

@@ -4,6 +4,10 @@
 (function (root) {
   const IL = root.IL = root.IL || {};
   const SCALE = 4;
+  /* One knob for every screen shake. Hits add 3.2 (1.5 if blocked, cap 7)
+     and cast blasts add 4 (cap 8) in game.js. 1 is that original kick.
+     0.1 is a small nudge, not a shake. */
+  const SHAKE_SCALE = 0.1;
 
   function fitArena(canvas) {
     const parent = canvas.parentElement || canvas;
@@ -335,8 +339,8 @@
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    const shake = fx.shake || 0;
-    if (shake > 0.2) {
+    const shake = (fx.shake || 0) * SHAKE_SCALE;
+    if (shake > 0.2 * SHAKE_SCALE) {
       ctx.translate(Math.sin(fx.t * 48) * shake * view.dpr, Math.cos(fx.t * 37) * shake * 0.65 * view.dpr);
     }
     ctx.translate(view.dpr * (view.cssW / 2 - cam.x * scale), view.dpr * (view.cssH / 2 - cam.y * scale));
@@ -461,6 +465,7 @@
   }
 
   IL.SCALE = SCALE;
+  IL.SHAKE_SCALE = SHAKE_SCALE;
   IL.fitArena = fitArena;
   IL.drawArena = drawArena;
 })(typeof window !== "undefined" ? window : globalThis);

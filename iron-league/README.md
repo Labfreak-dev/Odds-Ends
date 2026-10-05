@@ -38,6 +38,7 @@ Open `http://127.0.0.1:8765/iron-league/`.
 ```bash
 for f in iron-league/js/*.js; do node --check "$f"; done
 node iron-league/tools/sim.js
+python3 iron-league/tools/check-clothes.py
 python3 iron-league/tools/smoke.py
 ```
 

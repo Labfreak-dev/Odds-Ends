@@ -30,6 +30,17 @@ if (frames.length !== 102) {
   console.error("expected 102 frame rects, got", frames.length);
   process.exit(1);
 }
+const heroSrc = fs.readFileSync(path.join(root, "js/hero.js"), "utf8");
+if (!/return \[wbot, skin, face, clothBot, clothTop, hairBot, hairTop, wtop\]/.test(heroSrc)) {
+  console.error("cloth must sit on the body: weapon_bot, skin, face, cloth_bot, cloth_top, hair, weapon_top");
+  process.exit(1);
+}
+const renderSrc = fs.readFileSync(path.join(root, "js/render.js"), "utf8");
+const shakeScale = renderSrc.match(/const SHAKE_SCALE = ([0-9.]+)/);
+if (!shakeScale || !(Number(shakeScale[1]) > 0) || Number(shakeScale[1]) > 0.1 || renderSrc.indexOf("(fx.shake || 0) * SHAKE_SCALE") < 0) {
+  console.error("screen shake must use one SHAKE_SCALE at or under 0.1");
+  process.exit(1);
+}
 
 let fails = 0;
 function check(name, ok) {

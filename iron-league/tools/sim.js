@@ -86,6 +86,25 @@ IL.migrate(again);
 check("sheet migrate is stable", again.roster[0].parts.sheet === oldSave.roster[0].parts.sheet);
 check("archer save gets a bow", IL.sheetHasBow(oldSave.clubs[0].fighters[0].parts.sheet));
 check("ranger save gets a bow", IL.sheetHasBow(oldSave.market[0].fighter.parts.sheet));
+check("old save gets a lineup", oldSave.lineup.length === 1 && oldSave.lineup[0] === "a");
+const lineRoster = [
+  { id: "cap", captain: true, level: 1, xp: 0, cls: "warrior" },
+  { id: "hi", captain: false, level: 5, xp: 10, cls: "mage" },
+  { id: "mid", captain: false, level: 2, xp: 0, cls: "archer" },
+  { id: "low", captain: false, level: 1, xp: 0, cls: "tank" }
+];
+const seeded = { v: 1, roster: lineRoster.map(function (f) { return Object.assign({}, f); }), clubs: [], fixtures: [] };
+IL.migrate(seeded);
+check("lineup prefers captain then level", seeded.lineup.join() === "cap,hi,mid");
+check("fielded follows the list", IL.fielded(lineRoster, ["low", "hi", "cap"], 2).map(function (f) { return f.id; }).join() === "low,hi");
+check("fielded stops at the match size", IL.fielded(lineRoster, ["low", "hi", "cap", "mid"], 3).length === 3);
+check("fielded drops unknown ids", IL.fielded(lineRoster, ["nope", "mid"], 3)[0].id === "mid");
+const kept = { v: 1, roster: lineRoster.map(function (f) { return Object.assign({}, f); }), lineup: ["low", "gone", "low", "hi", "cap", "mid"], clubs: [], fixtures: [] };
+IL.migrate(kept);
+check("lineup stays chosen", kept.lineup.join() === "low,hi,cap");
+const cleared = { v: 1, roster: lineRoster.map(function (f) { return Object.assign({}, f); }), lineup: [], clubs: [], fixtures: [] };
+IL.migrate(cleared);
+check("an empty lineup stays empty", cleared.lineup.length === 0);
 Object.keys(IL.CLIPS).forEach(function (name) {
   const c = IL.CLIPS[name];
   const sample = IL.CLIP_SAMPLE[name];

@@ -57,7 +57,7 @@ Classes decide the kit. The costume is a battler sheet from that class's pool: t
 - **Berserker, Ranger, Battlemage** — 40 renown.
 - **Assassin, Duelist, Elementalist** — 70 renown.
 
-Each fighter has a personality (Bold, Wary, Patient) and a tactic you set on the hub: Strike, Cover, or Hold. Every third level offers a stat step: health, damage, and either speed or defense.
+Each fighter has a personality (Bold, Wary, Patient) and a tactic you set on the hub: Strike, Cover, or Hold. On the club hub, tap fighters into the lineup. The next match takes as many as that round allows, in the order you chose, and the list stays in the save. Every third level offers a stat step: health, damage, and either speed or defense.
 
 Gold hires from a rotating board. Renown unlocks kits. Cup tokens enter a four-club bracket. A finished season keeps the roster and pays a relic. Two relics can be equipped for the whole club. Chaos pit is a three-club free-for-all.
 

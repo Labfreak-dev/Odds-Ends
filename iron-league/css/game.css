@@ -2066,3 +2066,84 @@ td.club-cell .club-name,
     overflow-wrap: break-word;
   }
 }
+
+/* Results read as rows on a phone and as a wide name column on a desk.
+   Versus titles and fight-strip names wrap. The pit fills the phone stage. */
+#resultTable.result-board { display: block; width: 100%; min-width: 0; }
+.result-rows { display: none; }
+.result-grid { width: 100%; table-layout: auto; }
+#resultTable .result-grid th,
+#resultTable .result-grid td {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+#resultTable .result-grid th:first-child,
+#resultTable .result-grid td:first-child {
+  width: auto;
+  min-width: 140px;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+#resultTable .result-grid th:nth-child(n+2),
+#resultTable .result-grid td:nth-child(n+2) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  padding: 6px 8px;
+  letter-spacing: 0;
+}
+#resultTable .mvp-badge { white-space: nowrap; letter-spacing: 0.06em; }
+.hub-head.versus-head > div { min-width: 0; flex: 1 1 auto; }
+.hub-head.versus-head h2 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+  line-height: 1.15;
+}
+.hud-strip .live b {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.15;
+}
+@media (max-width: 799px) {
+  .result-grid { display: none; }
+  .result-rows { display: flex; flex-direction: column; gap: 8px; }
+  .result-row { min-width: 0; padding: 4px 0 6px; border-bottom: 1px solid var(--line); }
+  .result-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .result-row .portrait-frame { width: 44px; flex: none; margin: 0; padding: 4px 3px 5px; }
+  .result-row canvas { width: 36px; height: 28px; }
+  .result-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    white-space: normal;
+    overflow-wrap: break-word;
+    font-weight: 650;
+  }
+  .result-row .mvp-badge,
+  .result-row .level-call { flex: none; }
+  .result-chips {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--muted);
+  }
+  .result-row .result-xp { margin-top: 4px; }
+  .fight-screen .stage { align-items: stretch; }
+  .fight-screen #arena { width: 100%; height: 100%; }
+}
+
+#clubYardWrap { margin: 0; }
+#clubYardWrap .fine { margin: 0 0 4px; }
+#clubYard {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  display: block;
+  background: #1a120e;
+  border-radius: 0;
+}

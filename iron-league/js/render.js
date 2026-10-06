@@ -975,147 +975,11 @@
     return team === 0 ? "rgba(226, 140, 72," : "rgba(150, 176, 214,";
   }
 
-  function drawUnderlay(ctx, s) {
-    const p = s.life > 0 ? Math.max(0, 1 - s.t / s.life) : 1;
-    const sprite = IL.fx && IL.fx.has(s.kind);
-    const a = (sprite ? 0.38 : 0.9) * p;
-    if (a <= 0.02) return;
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    if (s.facing < 0) ctx.scale(-1, 1);
-    if (s.kind === "slash") {
-      ctx.strokeStyle = teamColor(s.team, true) + a + ")";
-      ctx.lineWidth = sprite ? 3 : 5;
-      ctx.beginPath();
-      ctx.arc(10, -4, s.size * 0.28, -1.05, 0.95);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(255,236,210," + (a * 0.8) + ")";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(10, -4, s.size * 0.2, -0.7, 0.7);
-      ctx.stroke();
-    } else if (s.kind === "boom" || s.kind === "bolt" || s.kind === "orbit") {
-      ctx.strokeStyle = s.kind === "bolt" ? "rgba(120, 230, 210," + a + ")" : "rgba(255, 196, 120," + a + ")";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, Math.max(18, s.size * (0.22 + (1 - p) * 0.18)), 0, Math.PI * 2);
-      ctx.stroke();
-    } else if (s.kind === "spark") {
-      ctx.fillStyle = "rgba(255, 210, 140," + a + ")";
-      ctx.beginPath();
-      ctx.arc(0, 0, 5 + (1 - p) * 4, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (s.kind === "smoke" || s.kind === "dash") {
-      ctx.fillStyle = s.kind === "dash" ? "rgba(190, 140, 255," + (a * 0.7) + ")" : "rgba(210, 180, 255," + (a * 0.55) + ")";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 14 + (1 - p) * 10, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawSprites(ctx, list, ground) {
-    if (!list) return;
-    for (let i = 0; i < list.length; i++) {
-      const s = list[i];
-      if (!!s.ground !== !!ground) continue;
-      drawUnderlay(ctx, s);
-      if (IL.fx) IL.fx.drawOne(ctx, s);
-    }
-  }
-
-  const CLASS_SCHOOL = {
-    mage: "ice", elementalist: "fire", battlemage: "lightning", druid: "nature", alchemist: "poison",
-    warlock: "shadow", necromancer: "shadow", summoner: "shadow", healer: "holy", paladin: "holy", bard: "arcane"
-  };
-
-  /* A ground rune in the pit's perspective: soft fill, double rim, turning
-     glyph dashes, and a bright sweep along the rim as the chant fills. */
+  /* v68: casts mark the floor with one thin circle (pfx.drawTelegraph):
+     cool blue for your side, red for theirs. */
   function drawCast(ctx, u, fx) {
-    const c = u.cast;
-    if (!c) return;
-    const t = fx.t || 0;
-    const p = Math.max(0, Math.min(1, c.t / c.dur));
-    const school = c.kind === "cast2" ? "fire" : c.kind === "mend" ? "holy" : (CLASS_SCHOOL[u.cls] || "arcane");
-    const rgb = SCHOOL_RGB[school] || SCHOOL_RGB.arcane;
-    const rx = c.r;
-    const ry = c.r * 0.55;
-    ctx.save();
-    const fill = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rx);
-    fill.addColorStop(0, "rgba(" + rgb + "," + (0.05 + p * 0.10) + ")");
-    fill.addColorStop(0.8, "rgba(" + rgb + "," + (0.10 + p * 0.16) + ")");
-    fill.addColorStop(1, "rgba(" + rgb + ",0)");
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = "rgba(" + rgb + "," + (0.35 + p * 0.3) + ")";
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, rx * 0.82, ry * 0.82, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    /* Turning glyph dashes between the rims. */
-    const n = 12;
-    ctx.lineWidth = 1.6;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + t * (school === "fire" ? -1.4 : 0.9);
-      const a2 = a + 0.18;
-      ctx.strokeStyle = "rgba(" + rgb + "," + (0.25 + 0.5 * p) + ")";
-      ctx.beginPath();
-      ctx.moveTo(c.x + Math.cos(a) * rx * 0.86, c.y + Math.sin(a) * ry * 0.86);
-      ctx.lineTo(c.x + Math.cos(a2) * rx * 0.96, c.y + Math.sin(a2) * ry * 0.96);
-      ctx.stroke();
-    }
-    /* Inner star turning the other way. */
-    ctx.strokeStyle = "rgba(" + rgb + "," + (0.18 + 0.3 * p) + ")";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let i = 0; i <= 5; i++) {
-      const a = (i * 2 / 5) * Math.PI * 2 - t * 0.6;
-      const x = c.x + Math.cos(a) * rx * 0.62;
-      const y = c.y + Math.sin(a) * ry * 0.62;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    /* Progress: a hot sweep along the rim. */
-    ctx.strokeStyle = "rgba(255,255,255," + (0.5 + 0.4 * p) + ")";
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, rx, ry, 0, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(" + rgb + ",0.5)";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, rx, ry, 0, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2);
-    ctx.stroke();
-    /* Channel from the caster's hands to the rune. */
-    const hx = u.x + (u.facing || 1) * 6;
-    const hy = u.y - 18;
-    const g = ctx.createLinearGradient(hx, hy, c.x, c.y);
-    g.addColorStop(0, "rgba(" + rgb + ",0.75)");
-    g.addColorStop(1, "rgba(" + rgb + ",0.05)");
-    ctx.strokeStyle = g;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(hx, hy);
-    ctx.quadraticCurveTo((hx + c.x) / 2, Math.min(hy, c.y) - 24, c.x, c.y);
-    ctx.stroke();
-    const hand = ctx.createRadialGradient(hx, hy, 0, hx, hy, 9);
-    hand.addColorStop(0, "rgba(255,255,255,0.9)");
-    hand.addColorStop(0.4, "rgba(" + rgb + ",0.7)");
-    hand.addColorStop(1, "rgba(" + rgb + ",0)");
-    ctx.fillStyle = hand;
-    ctx.beginPath();
-    ctx.arc(hx, hy, 9, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    if (IL.fx && p > 0.55) {
-      IL.fx.drawLoop(ctx, c.kind === "cast2" ? "orbit" : "plasma", c.x, c.y, c.r * 1.6, t + c.t, { alpha: (p - 0.55) * 1.2 });
-    }
+    if (!u.cast || !IL.pfx) return;
+    IL.pfx.drawTelegraph(ctx, u, fx, u.team === 0 ? "130,210,255" : "255,92,70");
   }
 
   function drawBlock(ctx, u, fx) {
@@ -1124,271 +988,12 @@
     ctx.save();
     ctx.translate(u.x, u.y - 22);
     ctx.rotate(u.facing > 0 ? 0 : Math.PI);
-    ctx.strokeStyle = "rgba(186, 214, 255," + (0.45 + pulse * 0.45) + ")";
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(186, 214, 255," + (0.35 + pulse * 0.4) + ")";
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.arc(12, 0, 22 + pulse * 5, -1.2, 1.2);
+    ctx.arc(6, 0, 16 + pulse * 2, -1.1, 1.1);
     ctx.stroke();
     ctx.restore();
-    if (IL.fx) IL.fx.drawLoop(ctx, "orbit", u.x + u.facing * 10, u.y - 20, 108, fx.t || 0, { alpha: 0.55 + pulse * 0.35, facing: u.facing });
-  }
-
-  function drawTrail(ctx, u) {
-    const tr = u.trail;
-    if (!tr || tr.length < 2) return;
-    ctx.beginPath();
-    ctx.moveTo(tr[0].x, tr[0].y - (u.state === "dash" ? 14 : 2));
-    for (let i = 1; i < tr.length; i++) ctx.lineTo(tr[i].x, tr[i].y - (u.state === "dash" ? 14 : 2));
-    ctx.strokeStyle = u.state === "roll" ? "rgba(214, 186, 255, 0.45)" : "rgba(255, 170, 90, 0.55)";
-    ctx.lineWidth = u.state === "dash" ? 4 : 3;
-    ctx.stroke();
-  }
-
-  function markColor(kind) {
-    if (kind === "heal" || kind === "mend" || kind === "buff") return "186, 214, 160";
-    if (kind === "shield" || kind === "bolt" || kind === "arc") return "186, 206, 255";
-    if (kind === "frost") return "190, 230, 245";
-    if (kind === "summon" || kind === "dot") return "176, 140, 210";
-    if (kind === "rage" || kind === "fireball") return "255, 150, 70";
-    return "244, 210, 150";
-  }
-
-  function sigFade(p) {
-    return p < 0.72 ? 1 : Math.max(0, 1 - (p - 0.72) / 0.28);
-  }
-
-  function drawSigRing(ctx, s, p, a) {
-    const grow = 0.32 + p * 0.78;
-    const rx = Math.max(8, s.r * grow);
-    const ry = rx * 0.42;
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    if (s.mark === "soft") {
-      ctx.fillStyle = "rgba(" + s.rgb + "," + (a * 0.22) + ")";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
-    ctx.lineWidth = s.mark === "spike" ? 2 : 4;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,244,220," + (a * 0.65) + ")";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx * 0.7, ry * 0.7, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    const n = s.mark === "spike" ? 12 : 8;
-    const spin = s.mark === "spin" ? p * 6 : 0;
-    for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + spin;
-      const cs = Math.cos(ang);
-      const sn = Math.sin(ang);
-      if (s.mark === "spike") {
-        ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cs * rx * 0.4, sn * ry * 0.4);
-        ctx.lineTo(cs * rx * 1.18, sn * ry * 1.18);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = "rgba(" + s.rgb + "," + a + ")";
-        ctx.beginPath();
-        ctx.arc(cs * rx, sn * ry, s.mark === "soft" ? 4.5 : 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  function drawSigTrail(ctx, s, p, a) {
-    const head = Math.min(1, p * 1.2);
-    const lift = s.mark === "flask" ? Math.sin(head * Math.PI) * 42 : 0;
-    const hx = s.x + (s.x2 - s.x) * head;
-    const hy = s.y + (s.y2 - s.y) * head - lift;
-    ctx.save();
-    ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
-    ctx.lineWidth = s.mark === "slash" ? 5 : (s.mark === "bolt" ? 3.5 : 2);
-    ctx.beginPath();
-    ctx.moveTo(s.x, s.y);
-    const steps = s.mark === "bolt" ? 3 : 6;
-    for (let i = 1; i <= steps; i++) {
-      const t = head * (i / steps);
-      const arc = s.mark === "flask" ? Math.sin(t * Math.PI) * 42 : 0;
-      ctx.lineTo(s.x + (s.x2 - s.x) * t, s.y + (s.y2 - s.y) * t - arc);
-    }
-    ctx.stroke();
-    const motes = s.mark === "smoke" ? 5 : 4;
-    for (let i = 0; i < motes; i++) {
-      const t = Math.max(0, head - i * 0.12);
-      const arc = s.mark === "flask" ? Math.sin(t * Math.PI) * 42 : 0;
-      const spread = s.mark === "bolt" ? (i - 1.5) * s.r * 0.35 : 0;
-      ctx.fillStyle = "rgba(" + s.rgb + "," + (a * (1 - i * 0.18)) + ")";
-      ctx.beginPath();
-      ctx.arc(s.x + (s.x2 - s.x) * t + spread, s.y + (s.y2 - s.y) * t - arc, Math.max(2, (s.r || 8) * 0.28 - i), 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = "rgba(255,248,230," + a + ")";
-    ctx.beginPath();
-    ctx.arc(hx, hy, s.mark === "slash" ? 5 : 3.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function sigBolt(ctx, x1, y1, x2, y2, reach, rgb, a, bend) {
-    const segs = 8;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const mag = Math.hypot(dx, dy) || 1;
-    const nx = -dy / mag;
-    const ny = dx / mag;
-    ctx.strokeStyle = "rgba(" + rgb + "," + a + ")";
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    for (let i = 1; i <= segs; i++) {
-      const t = i / segs;
-      if (t > reach) break;
-      const wob = (i % 2 === 0 ? 1 : -1) * bend * (0.55 + (i % 3) * 0.22);
-      const x = x1 + dx * t + nx * wob;
-      const y = y1 + dy * t + ny * wob;
-      ctx.lineTo(x, y);
-      if (i % 2 === 0 && t < reach) {
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + nx * bend * 0.85, y + ny * bend * 0.85);
-        ctx.moveTo(x, y);
-      }
-    }
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,244,220," + (a * 0.85) + ")";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  function drawSigChain(ctx, s, p, a) {
-    const reach = Math.min(1, p * 1.45);
-    const bend = s.mark === "warm" ? 28 : 36;
-    ctx.save();
-    sigBolt(ctx, s.x, s.y, s.x2, s.y2, reach, s.rgb, a, bend);
-    if (s.hop && reach > 0.55) {
-      sigBolt(ctx, s.x2, s.y2, s.x3, s.y3, Math.min(1, (reach - 0.45) / 0.55), s.rgb, a * 0.9, bend * 0.7);
-    }
-    ctx.fillStyle = "rgba(" + s.rgb + "," + a + ")";
-    ctx.beginPath();
-    ctx.arc(s.x2, s.y2, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawSigSummon(ctx, s, p, a) {
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, s.r * (0.7 + p * 0.25), s.r * 0.32, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,236,210," + (a * 0.75) + ")";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, s.r * 0.4, s.r * 0.16, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    const n = s.mark === "beast" ? 6 : 5;
-    for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + p * 2;
-      const rise = p * (28 + i * 8);
-      ctx.fillStyle = "rgba(" + s.rgb + "," + a + ")";
-      ctx.fillRect(Math.cos(ang) * s.r * 0.55 - 2, -rise, s.mark === "beast" ? 6 : 4, s.mark === "beast" ? 6 : 4);
-    }
-    ctx.restore();
-  }
-
-  function drawSigShield(ctx, s, p, a) {
-    ctx.save();
-    ctx.translate(s.x, s.y - 20);
-    const pulse = 0.85 + 0.15 * Math.sin(p * 12);
-    for (let i = 0; i < 3; i++) {
-      const a0 = p * 5 + i * 2.1;
-      ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
-      ctx.lineWidth = i === 1 ? 4 : 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, s.r * (0.5 + i * 0.16) * pulse, a0, a0 + (s.mark === "cross" ? 0.7 : 1.15));
-      ctx.stroke();
-    }
-    if (s.mark === "cross") {
-      ctx.strokeStyle = "rgba(255,244,210," + a + ")";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, -s.r * 0.35);
-      ctx.lineTo(0, s.r * 0.35);
-      ctx.moveTo(-s.r * 0.22, -s.r * 0.08);
-      ctx.lineTo(s.r * 0.22, -s.r * 0.08);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawSigDust(ctx, s, p, a) {
-    const dir = (s.facing < 0 ? -1 : 1) * (s.mark === "back" || s.mark === "slash" ? -1 : 1);
-    const n = s.mark === "slash" ? 4 : 6;
-    ctx.save();
-    for (let i = 0; i < n; i++) {
-      const k = (i + 1) / n;
-      const x = s.x + dir * (8 + i * 14) * (0.35 + p);
-      const y = s.y - p * (6 + i * 7);
-      const w = (s.mark === "slash" ? 22 : 16) * (1.15 - p * 0.3) + i;
-      ctx.fillStyle = "rgba(" + s.rgb + "," + (a * (0.55 + 0.4 * (1 - k))) + ")";
-      ctx.beginPath();
-      ctx.ellipse(x, y, w, w * (s.mark === "slash" ? 0.28 : 0.42), dir * 0.15, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawSigs(ctx, fx, ground) {
-    const list = fx.sigs;
-    if (!list) return;
-    for (let i = 0; i < list.length; i++) {
-      const s = list[i];
-      const onFloor = s.style === "ring" || s.style === "dust" || s.style === "summon";
-      if (onFloor !== !!ground) continue;
-      const p = s.life > 0 ? Math.max(0, Math.min(1, s.t / s.life)) : 1;
-      const a = sigFade(p);
-      if (a <= 0.02) continue;
-      if (s.style === "ring") drawSigRing(ctx, s, p, a);
-      else if (s.style === "trail") drawSigTrail(ctx, s, p, a);
-      else if (s.style === "chain") drawSigChain(ctx, s, p, a);
-      else if (s.style === "summon") drawSigSummon(ctx, s, p, a);
-      else if (s.style === "shield") drawSigShield(ctx, s, p, a);
-      else drawSigDust(ctx, s, p, a);
-    }
-  }
-
-  function drawMarks(ctx, fx) {
-    const rings = fx.rings || [];
-    for (let i = 0; i < rings.length; i++) {
-      const r = rings[i];
-      const p = r.t / r.life;
-      const rgb = markColor(r.kind);
-      ctx.beginPath();
-      ctx.arc(r.x, r.y, r.r * (0.35 + p * 0.85), 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(" + rgb + "," + (1 - p) + ")";
-      ctx.lineWidth = 4;
-      ctx.stroke();
-    }
-    const beams = fx.beams || [];
-    for (let i = 0; i < beams.length; i++) {
-      const b = beams[i];
-      const p = b.t / b.life;
-      const rgb = markColor(b.kind);
-      ctx.strokeStyle = "rgba(" + rgb + "," + (1 - p) + ")";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y);
-      ctx.lineTo(b.x + (b.x2 - b.x) * Math.min(1, p * 1.4), b.y + (b.y2 - b.y) * Math.min(1, p * 1.4));
-      ctx.stroke();
-    }
   }
 
   /* Projectiles: a soft streak behind, then the body. Arrows are a
@@ -1434,10 +1039,7 @@
       }
     }
     ctx.restore();
-    if (spell) {
-      if (IL.fx) IL.fx.drawLoop(ctx, "shot", p.x, p.y, 40, time, { alpha: 0.8, rot: ang });
-      return;
-    }
+    if (spell) return;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(ang);
@@ -1538,199 +1140,12 @@
     return { x: xx, y: yy, fade: fade, lead: lead };
   }
 
-  /* ---------- HD combat effects (v64) ----------
-     Vector shapes drawn in the world transform land at full device
-     resolution: swing arcs, spark bursts, impact flashes, shock rings,
-     death puffs. Pixel strips from fx.js still play on top for texture. */
+  /* Spell colors for projectiles. Hit, cast and death effects live in
+     pfx.js (v68); the v64 arcs, rings and sprite-strip overlays are gone. */
   const SCHOOL_RGB = {
     fire: "255,138,48", ice: "140,220,255", lightning: "255,240,150", shadow: "190,120,255",
     holy: "255,226,140", nature: "150,236,110", poison: "180,240,80", arcane: "214,170,255"
   };
-  const WEAPON_RGB = {
-    sword: "235,242,255", axe: "255,214,170", hammer: "255,226,190", mace: "255,226,190",
-    dagger: "220,255,240", spear: "236,240,255", staff: "214,190,255", fist: "255,236,210"
-  };
-
-  function vfxBag(fx) {
-    if (!fx.vfx) fx.vfx = { arcs: [], parts: [], flashes: [], rings: [] };
-    return fx.vfx;
-  }
-
-  function vfxEvent(fx, e) {
-    const v = vfxBag(fx);
-    if (e.type === "swing") {
-      const heavy = !!e.heavy || e.wk === "axe" || e.wk === "hammer" || e.wk === "mace";
-      v.arcs.push({
-        x: e.x, y: e.y, facing: e.facing || 1, t: 0,
-        life: heavy ? 0.24 : 0.17,
-        r: heavy ? 30 : e.wk === "dagger" ? 18 : 24,
-        thrust: !!e.thrust || e.wk === "spear",
-        rgb: WEAPON_RGB[e.wk] || WEAPON_RGB.sword,
-        team: e.team
-      });
-    } else if (e.type === "hit") {
-      const rgb = e.blocked ? "190,215,255" : e.school ? (SCHOOL_RGB[e.school] || SCHOOL_RGB.arcane) : e.crit ? "255,214,90" : "255,226,190";
-      v.flashes.push({ x: e.x, y: e.y, t: 0, life: e.crit ? 0.14 : 0.09, r: e.crit ? 24 : e.big ? 18 : 13, rgb: rgb });
-      const n = e.crit ? 16 : e.big ? 11 : 7;
-      const base = Math.atan2(e.dy || 0, e.dx || 1);
-      for (let i = 0; i < n; i++) {
-        const spread = (Math.random() - 0.5) * (e.blocked ? 2.6 : 1.9);
-        const sp = (e.crit ? 170 : 120) + Math.random() * 150;
-        v.parts.push({
-          x: e.x, y: e.y,
-          vx: Math.cos(base + spread) * sp, vy: Math.sin(base + spread) * sp * 0.7 - 40,
-          t: 0, life: 0.22 + Math.random() * 0.22, len: 3 + Math.random() * 5,
-          rgb: rgb, kind: "spark", g: 260
-        });
-      }
-      if (e.crit || e.big) v.rings.push({ x: e.x, y: e.y + 10, t: 0, life: 0.3, r: e.crit ? 34 : 24, rgb: rgb });
-    } else if (e.type === "die") {
-      for (let i = 0; i < 14; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const sp = 30 + Math.random() * 70;
-        v.parts.push({ x: e.x + Math.cos(a) * 6, y: e.y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.45 - 10, t: 0, life: 0.6 + Math.random() * 0.4, size: 4 + Math.random() * 5, rgb: "150,130,110", kind: "dust", g: -10 });
-      }
-      v.parts.push({ x: e.x, y: e.y - 18, vx: 0, vy: -38, t: 0, life: 1.1, size: 7, rgb: e.team === 0 ? "155,232,111" : "255,122,98", kind: "wisp", g: 0 });
-      v.rings.push({ x: e.x, y: e.y + 2, t: 0, life: 0.5, r: 30, rgb: "220,200,170" });
-    } else if (e.type === "boom") {
-      v.rings.push({ x: e.x, y: e.y, t: 0, life: 0.45, r: (e.r || 60) * 1.05, rgb: e.kind === "cast2" ? "255,170,90" : "214,190,255", fill: true });
-      for (let i = 0; i < 18; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const sp = 80 + Math.random() * 160;
-        v.parts.push({ x: e.x, y: e.y - 6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.55 - 30, t: 0, life: 0.3 + Math.random() * 0.3, len: 4 + Math.random() * 4, rgb: e.kind === "cast2" ? "255,190,110" : "230,210,255", kind: "spark", g: 160 });
-      }
-    }
-  }
-
-  function vfxStep(fx, dt) {
-    const v = fx.vfx;
-    if (!v) return;
-    function age(list) {
-      for (let i = list.length - 1; i >= 0; i--) {
-        const p = list[i];
-        p.t += dt;
-        if (p.t >= p.life) list.splice(i, 1);
-      }
-    }
-    for (let i = 0; i < v.parts.length; i++) {
-      const p = v.parts[i];
-      p.vy += (p.g || 0) * dt;
-      p.vx *= Math.pow(0.08, dt);
-      p.vy *= Math.pow(0.2, dt);
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-    }
-    age(v.arcs); age(v.parts); age(v.flashes); age(v.rings);
-    if (v.parts.length > 400) v.parts.splice(0, v.parts.length - 400);
-  }
-
-  function vfxDraw(ctx, fx) {
-    const v = fx.vfx;
-    if (!v) return;
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.lineCap = "round";
-    /* Swing arcs: a crescent in front of the swing, bright edge, soft body. */
-    for (let i = 0; i < v.arcs.length; i++) {
-      const a = v.arcs[i];
-      const p = a.t / a.life;
-      const fade = 1 - p;
-      const f = a.facing;
-      if (a.thrust) {
-        const len = a.r * (0.6 + p * 0.8);
-        const g = ctx.createLinearGradient(a.x, a.y, a.x + f * len * 1.6, a.y);
-        g.addColorStop(0, "rgba(" + a.rgb + ",0)");
-        g.addColorStop(1, "rgba(" + a.rgb + "," + (0.85 * fade) + ")");
-        ctx.strokeStyle = g;
-        ctx.lineWidth = 4 * fade + 1;
-        ctx.beginPath();
-        ctx.moveTo(a.x + f * 6, a.y);
-        ctx.lineTo(a.x + f * len * 1.6, a.y);
-        ctx.stroke();
-        continue;
-      }
-      const sweep = Math.PI * 1.15;
-      const start = f > 0 ? -Math.PI * 0.62 : Math.PI * 1.62;
-      const end = start + f * sweep * Math.min(1, p * 2.4 + 0.25);
-      const cx = a.x + f * 4;
-      for (let k = 0; k < 3; k++) {
-        ctx.strokeStyle = "rgba(" + a.rgb + "," + ((k === 0 ? 0.9 : k === 1 ? 0.45 : 0.18) * fade) + ")";
-        ctx.lineWidth = k === 0 ? 1.6 : k === 1 ? 4.5 : 9;
-        ctx.beginPath();
-        ctx.arc(cx, a.y, a.r - k * 2.5, Math.min(start, end), Math.max(start, end));
-        ctx.stroke();
-      }
-    }
-    for (let i = 0; i < v.flashes.length; i++) {
-      const fl = v.flashes[i];
-      const p = fl.t / fl.life;
-      const r = fl.r * (0.6 + p * 0.8);
-      const g = ctx.createRadialGradient(fl.x, fl.y, 0, fl.x, fl.y, r);
-      g.addColorStop(0, "rgba(255,255,255," + (0.95 * (1 - p)) + ")");
-      g.addColorStop(0.35, "rgba(" + fl.rgb + "," + (0.7 * (1 - p)) + ")");
-      g.addColorStop(1, "rgba(" + fl.rgb + ",0)");
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(fl.x, fl.y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    for (let i = 0; i < v.rings.length; i++) {
-      const rg = v.rings[i];
-      const p = rg.t / rg.life;
-      const r = rg.r * (0.3 + p * 0.9);
-      if (rg.fill) {
-        const g = ctx.createRadialGradient(rg.x, rg.y, r * 0.2, rg.x, rg.y, r);
-        g.addColorStop(0, "rgba(" + rg.rgb + "," + (0.35 * (1 - p)) + ")");
-        g.addColorStop(1, "rgba(" + rg.rgb + ",0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.ellipse(rg.x, rg.y, r, r * 0.55, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.strokeStyle = "rgba(" + rg.rgb + "," + (0.8 * (1 - p)) + ")";
-      ctx.lineWidth = 2.5 * (1 - p) + 0.5;
-      ctx.beginPath();
-      ctx.ellipse(rg.x, rg.y, r, r * 0.5, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    for (let i = 0; i < v.parts.length; i++) {
-      const pt = v.parts[i];
-      const p = pt.t / pt.life;
-      if (pt.kind === "spark") {
-        const sp = Math.hypot(pt.vx, pt.vy) || 1;
-        const l = pt.len * Math.min(2, sp / 120);
-        ctx.strokeStyle = "rgba(" + pt.rgb + "," + (1 - p) + ")";
-        ctx.lineWidth = 1.4 * (1 - p) + 0.4;
-        ctx.beginPath();
-        ctx.moveTo(pt.x, pt.y);
-        ctx.lineTo(pt.x - pt.vx / sp * l, pt.y - pt.vy / sp * l);
-        ctx.stroke();
-      } else if (pt.kind === "wisp") {
-        const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, pt.size * 2);
-        g.addColorStop(0, "rgba(" + pt.rgb + "," + (0.7 * (1 - p)) + ")");
-        g.addColorStop(1, "rgba(" + pt.rgb + ",0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(pt.x + Math.sin(pt.t * 9) * 3, pt.y, pt.size * 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.globalCompositeOperation = "source-over";
-    for (let i = 0; i < v.parts.length; i++) {
-      const pt = v.parts[i];
-      if (pt.kind !== "dust") continue;
-      const p = pt.t / pt.life;
-      ctx.fillStyle = "rgba(" + pt.rgb + "," + (0.45 * (1 - p)) + ")";
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, pt.size * (0.6 + p), 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  IL.vfxEvent = vfxEvent;
-  IL.vfxStep = vfxStep;
-
   /* ---------- screen-space overheads (v64) ----------
      Health bars and damage numbers draw after the world transform, in
      CSS pixels, so a turned phone floor never mirrors the text and the
@@ -1966,6 +1381,24 @@
     }
   }
 
+  /* A pure white copy of a fighter atlas for the hit flash: Eslabong
+     blinks the whole body white for a frame or two on every hit. */
+  function whiteOf(atlas) {
+    if (!atlas || typeof document === "undefined") return null;
+    if (atlas._white) return atlas._white;
+    const c = document.createElement("canvas");
+    c.width = atlas.width;
+    c.height = atlas.height;
+    const g = c.getContext("2d");
+    g.drawImage(atlas, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "#ffffff";
+    g.fillRect(0, 0, c.width, c.height);
+    c.tfSheet = atlas.tfSheet;
+    try { atlas._white = c; } catch (err) { return c; }
+    return c;
+  }
+
   function drawArena(ctx, match, fx) {
     const canvas = ctx.canvas;
     const view = fitArena(canvas);
@@ -1998,30 +1431,12 @@
 
     drawPit(ctx, fx, match);
 
+    /* v68 pixel FX: decals and afterimages under the fighters; bursts,
+       glows, bolts and slashes over them (pfx.js). The v64 sprite strips,
+       stacked rings and rune waves are retired. */
+    if (IL.pfx) IL.pfx.drawGround(ctx, fx);
     for (let i = 0; i < match.units.length; i++) drawCast(ctx, match.units[i], fx);
-    for (let i = 0; i < match.units.length; i++) {
-      if (match.units[i].state === "dash" || match.units[i].state === "roll") drawTrail(ctx, match.units[i]);
-    }
-    drawSprites(ctx, fx.sprites, true);
-    drawSigs(ctx, fx, true);
     drawPilot(ctx, match, fx);
-
-    if (fx.booms) {
-      for (let i = 0; i < fx.booms.length; i++) {
-        const b = fx.booms[i];
-        const p = b.t / b.life;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * (0.55 + p * 0.7), 0, Math.PI * 2);
-        ctx.strokeStyle = b.kind === "cast2" ? "rgba(255, 196, 120," + (1 - p) + ")" : "rgba(244, 220, 255," + (1 - p) + ")";
-        ctx.lineWidth = 4;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * (0.25 + p * 0.4), 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 244, 220," + ((1 - p) * 0.7) + ")";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    }
 
     const order = match.units.slice().sort(function (a, b) { return a.y - b.y; });
     const bodyH = (IL.BODY_H || 30);
@@ -2056,12 +1471,15 @@
       if (u.sprite) {
         const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
         const bodyScale = u.giant ? SCALE * 1.15 : SCALE;
+        if (IL.pfx && u.hp > 0 && (u.state === "dash" || u.state === "roll" || u.state === "leap")) {
+          IL.pfx.ghost(fx, u, frame, gy, bodyScale);
+        }
         IL.hero.draw(ctx, u.sprite, frame, x, gy, bodyScale, u.facing, u.cls, hint, u.weaponKind);
         if (u.flash > 0 && u.hp > 0) {
+          const white = whiteOf(u.sprite);
           ctx.save();
-          ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, x, gy, bodyScale, u.facing, u.cls, hint, u.weaponKind);
+          ctx.globalAlpha = Math.min(1, u.flash * 9);
+          if (white) IL.hero.draw(ctx, white, frame, x, gy, bodyScale, u.facing, u.cls, hint, u.weaponKind);
           ctx.restore();
         }
       } else {
@@ -2093,11 +1511,8 @@
       }
     }
 
-    drawSigs(ctx, fx, false);
-    drawMarks(ctx, fx);
     for (let i = 0; i < match.shots.length; i++) drawShot(ctx, match.shots[i], fx.t || 0);
-    drawSprites(ctx, fx.sprites, false);
-    vfxDraw(ctx, fx);
+    if (IL.pfx) IL.pfx.drawAir(ctx, fx);
 
     noteOverlap(fx, match, bodyW, bodyH);
     IL.pitFocusId = focus ? focus.id : (fx.stickId || "");

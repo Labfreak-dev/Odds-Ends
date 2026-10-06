@@ -173,6 +173,8 @@ def run(page, label, shot_dir):
     title = page.locator(".hub-head h2").inner_text()
     if title != "Smoke Yard":
         raise SystemExit(label + " continue showed " + title)
+    check_achievements(page, label)
+    check_season(page, label, shot_dir)
     if errors:
         print(label, "errors:")
         for e in errors:
@@ -202,8 +204,19 @@ def tour(page, shot_dir):
     page.wait_for_selector("#openGrowth")
     page.click("#openGrowth")
     page.wait_for_selector("#growth")
+    growth = page.locator("#growth").inner_text().lower()
+    if "thick skin" not in growth or "keen eye" not in growth:
+        raise SystemExit("perk choices missing: " + growth[:240])
     page.screenshot(path=str(shot_dir / "level-up.png"))
     page.click("[data-boost='hp']")
+    perk = page.evaluate(
+        """() => {
+          const f = JSON.parse(localStorage.getItem('ironleague.v1')).roster[0];
+          return f.perks && f.perks[0] && f.perks[0].id;
+        }"""
+    )
+    if perk != "hp":
+        raise SystemExit("perk was not saved: " + str(perk))
     page.wait_for_selector("#market")
     page.click("#market")
     page.wait_for_selector("#marketCards .hire")
@@ -346,7 +359,10 @@ def check_gear(page, label, shot_dir):
           const coin = gold.style.backgroundImage || '';
           if (bg.indexOf('atlas.png') < 0 || coin.indexOf('atlas.png') < 0) return false;
           const mode = getComputedStyle(face).imageRendering;
-          return mode === 'pixelated' || mode === 'crisp-edges';
+          if (mode !== 'pixelated' && mode !== 'crisp-edges') return false;
+          const tile = face.closest('.glyph');
+          const svg = tile && tile.querySelector('svg');
+          return !svg || getComputedStyle(svg).display === 'none';
         }""",
         timeout=15000,
     )
@@ -360,17 +376,27 @@ def check_gear(page, label, shot_dir):
     page.select_option("#filterSlot", "weapon")
     page.wait_for_function("() => document.querySelector('#filterSlot') && document.querySelector('#filterSlot').value === 'weapon'")
     filtered = page.locator("#armory").inner_text().lower()
-    if "dust cloak" in filtered or "riveted mail" in filtered:
+    if "dust gauntlets" in filtered or "old leather" in filtered:
         raise SystemExit(label + " slot filter kept armor")
     page.select_option("#filterSlot", "armor")
     page.wait_for_function(
         """() => {
           const box = document.querySelector('#armory');
-          return box && box.innerText.toLowerCase().indexOf('mail') >= 0;
+          return box && box.innerText.toLowerCase().indexOf('leather') >= 0;
         }"""
     )
     page.screenshot(path=str(shot_dir / f"{label}-armory.png"))
     page.locator("[data-detail]").first.click()
+    page.wait_for_function(
+        """() => {
+          const icon = document.querySelector('#fighterSheet .gear-slot .item-icon');
+          if (!icon || icon.hidden) return false;
+          const tile = icon.closest('.glyph');
+          if (!tile || getComputedStyle(tile).gridColumnStart !== '1') return false;
+          const svg = tile.querySelector('svg');
+          return !svg || getComputedStyle(svg).display === 'none';
+        }"""
+    )
     page.wait_for_selector("#fighterSheet [data-preview-item]")
     page.click("#fighterSheet [data-preview-item]")
     page.wait_for_selector("#equipDiff .diff-up")
@@ -390,6 +416,10 @@ def check_gear(page, label, shot_dir):
     if not before:
         raise SystemExit(label + " expected a benched fighter to train")
     page.locator("#benchList [data-train]").first.click()
+    page.wait_for_selector("#achieveToast")
+    toast = page.locator("#achieveToast").inner_text().lower()
+    if "drill" not in toast:
+        raise SystemExit(label + " training toast missing: " + toast)
     page.wait_for_function(
         """(id) => {
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
@@ -451,6 +481,74 @@ def check_empty_bench(page):
     text = page.locator("#benchList .empty-state").inner_text().lower()
     if "bench" not in text or "empty" not in text:
         raise SystemExit("empty bench copy: " + text)
+
+
+def check_achievements(page, label):
+    page.keyboard.press("1")
+    page.wait_for_selector("#achievements")
+    text = page.locator("#achievements").inner_text().lower()
+    for word in ("first bell", "first win", "flawless", "ten kos", "cup winner", "every kit"):
+        if word not in text:
+            raise SystemExit(label + " achievements missing " + word)
+    if page.locator("#achievements .track").count() < 15:
+        raise SystemExit(label + " achievement list is short")
+    if page.locator("#achievements .achieve-row.done").count() < 1:
+        raise SystemExit(label + " no achievement unlocked after a match")
+
+
+def check_season(page, label, shot_dir):
+    page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          raw.round = 5;
+          raw.roster.forEach((f, i) => {
+            f.season = { dealt: 40 - i, taken: 10 + i * 5, heal: i === 2 ? 18 : 1, kos: i === 0 ? 4 : 1 };
+          });
+          localStorage.setItem('ironleague.v1', JSON.stringify(raw));
+        }"""
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.click("#openSeason")
+    page.wait_for_selector("#seasonEnd")
+    page.wait_for_selector("#awards canvas")
+    page.wait_for_selector("#finalTable")
+    page.wait_for_selector("#startSeason")
+    text = page.locator("#seasonEnd").inner_text().lower()
+    for word in ("mvp", "iron wall", "healer", "standings", "start season"):
+        if word not in text:
+            raise SystemExit(label + " season end missing " + word + ": " + text[:240])
+    page.wait_for_function(
+        """() => {
+          const c = document.querySelector('#awards canvas');
+          if (!c) return false;
+          const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          for (let i = 0; i < px.length; i += 16) if (px[i + 3] > 0 && (px[i] > 40 || px[i + 1] > 30)) return true;
+          return false;
+        }""",
+        timeout=20000,
+    )
+    page.screenshot(path=str(shot_dir / f"{label}-season.png"))
+    before = page.evaluate("() => JSON.parse(localStorage.getItem('ironleague.v1'))")
+    names = [f["name"] for f in before["roster"]]
+    page.click("#startSeason")
+    page.wait_for_selector("#nextMatch")
+    after = page.evaluate("() => JSON.parse(localStorage.getItem('ironleague.v1'))")
+    if after["season"] != before["season"] + 1 or after["round"] != 0:
+        raise SystemExit(label + " next season did not reset the board")
+    if [f["name"] for f in after["roster"]] != names:
+        raise SystemExit(label + " next season dropped the roster")
+    if after["gold"] < before["gold"]:
+        raise SystemExit(label + " next season spent gold")
+    level = page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const foe = raw.clubs.filter(c => !c.you)[0];
+          return foe && foe.fighters && foe.fighters[0].level;
+        }"""
+    )
+    if level < 2:
+        raise SystemExit(label + " rivals did not scale: " + str(level))
 
 
 def main():

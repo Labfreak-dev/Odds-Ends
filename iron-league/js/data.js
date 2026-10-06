@@ -466,6 +466,14 @@
     def: "Thicker guard — defense"
   };
 
+  /* Named perks at levels 3, 6, and 9. Each one is a single existing stat step. */
+  const PERK_COPY = {
+    hp: { name: "Thick skin", blurb: "A little more health, kept on this fighter." },
+    dmg: { name: "Keen eye", blurb: "Hits land a little harder." },
+    spd: { name: "Light step", blurb: "A quicker step." },
+    def: { name: "Iron side", blurb: "A thicker guard." }
+  };
+
   IL.CLASSES = CLASSES;
   IL.CLIPS = CLIPS;
   IL.CLIP_MOTION = CLIP_MOTION;
@@ -508,6 +516,7 @@
   IL.growthFromXp = growthFromXp;
   IL.boostChoices = boostChoices;
   IL.BOOST_LABEL = BOOST_LABEL;
+  IL.PERK_COPY = PERK_COPY;
   IL.classUnlocked = classUnlocked;
   IL.unlockedIds = unlockedIds;
   IL.hireCost = hireCost;

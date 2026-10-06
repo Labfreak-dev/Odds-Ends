@@ -771,6 +771,17 @@ const madeNames = [];
 for (let i = 0; i < 8; i++) madeNames.push(IL.uniqueName(nameRng, madeNames));
 const nameFirsts = madeNames.map(function (n) { return n.split(" ")[0].toLowerCase(); });
 check("generated names stay unique", nameFirsts.filter(function (n, i) { return nameFirsts.indexOf(n) !== i; }).length === 0);
+const freshBoard = IL.rollMarket(IL.mulberry32(11), 0, { names: ["Zeke Ash", "Pell Slate"], sheets: ["1_1", "2_1"] });
+const freshFirsts = freshBoard.map(function (row) { return row.fighter.name.split(" ")[0].toLowerCase(); });
+const freshSheets = freshBoard.map(function (row) { return row.fighter.parts && row.fighter.parts.sheet; });
+check("market recruits skip roster names", freshFirsts.indexOf("zeke") < 0 && freshFirsts.indexOf("pell") < 0);
+check("market recruits keep distinct sheets", freshSheets.filter(function (id, i) { return id && freshSheets.indexOf(id) !== i; }).length === 0);
+const trio = [0, 1, 2].map(function (i) {
+  return IL.themedFighter(IL.mulberry32(40 + i), "Harrow and Coil");
+});
+IL.separateLooks(trio);
+const trioSheets = trio.map(function (f) { return f.parts.sheet; });
+check("a rival trio does not share a sheet", trioSheets[0] !== trioSheets[1] && trioSheets[1] !== trioSheets[2] && trioSheets[0] !== trioSheets[2]);
 const dupClub = IL.migrate({
   clubName: "Dup",
   roster: [

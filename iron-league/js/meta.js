@@ -358,7 +358,7 @@
     return { gold: gold, relic: null, item: IL.rollLoot ? IL.rollLoot(rng, "chest") : null };
   }
 
-  function rollMarket(rng, renown) {
+  function rollMarket(rng, renown, avoid) {
     const open = IL.unlockedIds(renown);
     const all = Object.keys(IL.CLASSES);
     const n = 4 + Math.floor(rng() * 3);
@@ -400,7 +400,10 @@
         need: IL.CLASSES[cls].renown || 0
       });
     }
-    if (IL.dedupeNames) IL.dedupeNames(board.map(function (row) { return row.fighter; }));
+    const people = board.map(function (row) { return row.fighter; });
+    if (IL.dedupeNames) IL.dedupeNames(people);
+    if (IL.separateNames) IL.separateNames(people, avoid && avoid.names);
+    if (IL.separateLooks) IL.separateLooks(people, avoid && avoid.sheets);
     return board;
   }
 
@@ -732,6 +735,8 @@
       if (IL.dressRival) IL.dressRival(fighter, rng);
       fighters.push(fighter);
     }
+    if (IL.dedupeNames) IL.dedupeNames(fighters);
+    if (IL.separateLooks) IL.separateLooks(fighters);
     return { id: "r" + Math.floor(rng() * 1e9).toString(36), name: name, you: false, fighters: fighters };
   }
 

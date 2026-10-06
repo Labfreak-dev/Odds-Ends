@@ -110,6 +110,11 @@
   const TRAIN_COST = 16;
   const TRAIN_XP = 12;
   const TRAIN_CAP = 2;
+  const FACILITIES = [
+    { id: "yard", name: "Training yard", blurb: "One more drill each round.", max: 2, costs: [80, 180] },
+    { id: "hall", name: "Lecture hall", blurb: "Each drill teaches a little more.", max: 2, costs: [70, 160] },
+    { id: "infirmary", name: "Infirmary", blurb: "Drills cost less gold.", max: 2, costs: [60, 140] }
+  ];
   const GEAR_REROLL = 20;
   const STOCK_N = 4;
 
@@ -425,12 +430,12 @@
     data.items = data.items.filter(validItem);
     if (!Array.isArray(data.gearStock)) data.gearStock = [];
     data.gearStock = data.gearStock.filter(function (row) { return row && validItem(row.item); });
-    if (typeof data.trainsLeft !== "number" || data.trainsLeft < 0) data.trainsLeft = TRAIN_CAP;
-    if (data.trainsLeft > TRAIN_CAP) data.trainsLeft = TRAIN_CAP;
+    if (typeof data.trainsLeft !== "number" || data.trainsLeft < 0) data.trainsLeft = drillCap(data);
+    if (data.trainsLeft > drillCap(data)) data.trainsLeft = drillCap(data);
     const round = typeof data.round === "number" ? data.round : 0;
     if (typeof data.trainRound !== "number") data.trainRound = round;
     else if (data.trainRound !== round) {
-      data.trainsLeft = TRAIN_CAP;
+      data.trainsLeft = drillCap(data);
       data.trainRound = round;
     }
     function fixFighter(f) {
@@ -457,9 +462,47 @@
   IL.RARITIES = RARITIES;
   IL.GEAR_SLOTS = SLOTS;
   IL.GEAR_CATALOG = CATALOG;
+  function facilityRank(data, id) {
+    const n = data && data.facilities && data.facilities[id];
+    if (typeof n !== "number" || n < 0) return 0;
+    return Math.min(2, n | 0);
+  }
+
+  function drillCap(data) { return TRAIN_CAP + facilityRank(data, "yard"); }
+  function drillXp(data) { return TRAIN_XP + facilityRank(data, "hall") * 4; }
+  function drillCost(data) { return Math.max(8, TRAIN_COST - facilityRank(data, "infirmary") * 4); }
+
+  function drillList(data) {
+    const xp = drillXp(data);
+    const cost = drillCost(data);
+    return [
+      { id: "spar", name: "Sparring", blurb: "A clean exchange.", xp: xp, cost: cost },
+      { id: "foot", name: "Footwork", blurb: "Steps and balance. Cheaper, a little less.", xp: Math.max(6, xp - 4), cost: Math.max(6, cost - 4) },
+      { id: "forms", name: "Forms", blurb: "Slow repetitions. More to learn, more to pay.", xp: xp + 4, cost: cost + 6 }
+    ];
+  }
+
+  function drillById(data, id) {
+    const list = drillList(data);
+    for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return list[0];
+  }
+
+  function facilityById(id) {
+    for (let i = 0; i < FACILITIES.length; i++) if (FACILITIES[i].id === id) return FACILITIES[i];
+    return null;
+  }
+
   IL.TRAIN_COST = TRAIN_COST;
   IL.TRAIN_XP = TRAIN_XP;
   IL.TRAIN_CAP = TRAIN_CAP;
+  IL.FACILITIES = FACILITIES;
+  IL.drillCap = drillCap;
+  IL.drillXp = drillXp;
+  IL.drillCost = drillCost;
+  IL.drillList = drillList;
+  IL.drillById = drillById;
+  IL.facilityById = facilityById;
   IL.GEAR_REROLL = GEAR_REROLL;
   IL.blankGear = blankGear;
   IL.makeItem = makeItem;

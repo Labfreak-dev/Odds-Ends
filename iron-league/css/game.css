@@ -2277,3 +2277,41 @@ body:has(#seasonEnd) {
   white-space: nowrap;
   padding: 0 2px;
 }
+.preview-board > .synergy {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 4px;
+  min-width: 0;
+}
+.synergy .trait { white-space: normal; }
+#trainPane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#trainPane > section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.hub-panel:has(> #trainPane) { overflow: hidden; }
+#trainBoard .roster-row {
+  grid-template-columns: minmax(0, 1fr) 132px;
+}
+#trainBoard .btn:disabled,
+#facilityBoard .btn:disabled {
+  color: #f6e7c1;
+}
+#trainBoard .roster-row .btn {
+  font-size: 12px;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+@media (max-width: 640px) {
+  .hub .tab .ui-glyph { width: 14px; height: 14px; }
+  .hub .tab b { font-size: 9px; }
+}

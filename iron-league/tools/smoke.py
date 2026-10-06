@@ -459,10 +459,10 @@ def check_nav(page, label, shot_dir):
     check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
-    if tabs.count() != 6:
+    if tabs.count() != 7:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "fighter", "market", "cup", "relic", "event"):
+    for word in ("club", "fighter", "market", "cup", "relic", "event", "train"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()
@@ -813,6 +813,7 @@ def check_fit(page):
         ("#relics", ".card.relic"),
         ("#cup", "#enterCup"),
         ("#events", "#eventsBoard"),
+        ("#train", "#trainBoard"),
     ]
     for tab, wait in tabs:
         page.click(tab)
@@ -990,6 +991,17 @@ def sweep_frames(browser, shot_dir):
         page.keyboard.press("1")
         page.wait_for_selector("#clubYard")
         assert_inside(page, label + " club")
+        if width == 360:
+            clipped = page.evaluate(
+                """() => {
+                  const chip = document.querySelector('#partySynergy .trait');
+                  const panel = document.getElementById('hubPanel');
+                  if (!chip || !panel) return 0;
+                  return Math.round(chip.getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
+                }"""
+            )
+            if clipped > 2:
+                raise SystemExit(label + " synergy clipped by " + str(clipped))
         if width == 1280:
             slack = page.evaluate("() => document.documentElement.scrollHeight - window.innerHeight")
             if slack > 48:
@@ -1028,6 +1040,8 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " relics")
         visit("6", "#eventsBoard")
         assert_inside(page, label + " events")
+        visit("7", "#trainBoard")
+        assert_inside(page, label + " train")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")
         assert_inside(page, label + " settings")
@@ -1301,6 +1315,9 @@ def qa_gate(browser, shot_dir):
         page.keyboard.press("6")
         page.wait_for_selector("#eventsBoard")
         assert_inside(page, label + " events")
+        page.keyboard.press("7")
+        page.wait_for_selector("#trainBoard")
+        assert_inside(page, label + " train")
         shot("relics")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")

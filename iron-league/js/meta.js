@@ -46,9 +46,41 @@
   const DEAL_REROLL = 40;
   const CHEST_COST = 48;
 
+  const MASTERIES = [
+    { id: "execution", name: "Execution", blurb: "The last cut lands harder.", atk: 2 },
+    { id: "bulwark", name: "Bulwark", blurb: "They wear the hit.", def: 2 },
+    { id: "tempo", name: "Tempo", blurb: "They cross the pit quicker.", spd: 5 },
+    { id: "grit", name: "Grit", blurb: "More left in the tank.", hp: 14 }
+  ];
+
   function specialtyOf(id) {
     for (let i = 0; i < SPECIALTIES.length; i++) if (SPECIALTIES[i].id === id) return SPECIALTIES[i];
     return null;
+  }
+
+  function masteryOf(id) {
+    for (let i = 0; i < MASTERIES.length; i++) if (MASTERIES[i].id === id) return MASTERIES[i];
+    return null;
+  }
+
+  function combatSpecialty(fighter) {
+    if (!fighter) return null;
+    if (fighter.focus) return specialtyOf(fighter.focus);
+    return specialtyOf(fighter.specialty);
+  }
+
+  function chooseFocus(fighter, id) {
+    if (!fighter || (fighter.level || 1) < 5 || !specialtyOf(id)) return false;
+    fighter.focus = id;
+    fighter.pendingFocus = false;
+    return true;
+  }
+
+  function chooseMastery(fighter, id) {
+    if (!fighter || (fighter.level || 1) < 10 || !masteryOf(id)) return false;
+    fighter.mastery = id;
+    fighter.pendingMastery = false;
+    return true;
   }
 
   function rarityName(id) { return RARITY_NAME[id] || "Common"; }
@@ -228,6 +260,8 @@
       if (lv === 4 || lv === 7 || lv === 10) moves++;
     }
     if (moves) fighter.pendingMoves = (fighter.pendingMoves || 0) + moves;
+    if (before < 5 && g.level >= 5 && !fighter.focus) fighter.pendingFocus = true;
+    if (before < 10 && g.level >= 10 && !fighter.mastery) fighter.pendingMastery = true;
     if (!fighter.boosts) fighter.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
     return g.picks;
   }
@@ -333,6 +367,10 @@
       }
       if (!Array.isArray(f.perks)) f.perks = [];
       if (typeof f.pendingMoves !== "number") f.pendingMoves = 0;
+      if (f.focus && !specialtyOf(f.focus)) f.focus = null;
+      if (f.mastery && !masteryOf(f.mastery)) f.mastery = null;
+      f.pendingFocus = (f.level || 1) >= 5 && !f.focus;
+      f.pendingMastery = (f.level || 1) >= 10 && !f.mastery;
       if (IL.ensureMoves) IL.ensureMoves(f);
     });
     function stampMoves(f) {
@@ -346,6 +384,11 @@
     if (data.cup && data.cup.slots) {
       data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(stampMoves); });
     }
+    if (!data.facilities || typeof data.facilities !== "object") data.facilities = {};
+    ["yard", "hall", "infirmary"].forEach(function (id) {
+      const n = data.facilities[id];
+      data.facilities[id] = typeof n === "number" && n > 0 ? Math.min(2, n | 0) : 0;
+    });
     normalizeLineup(data);
     adoptSheets(data);
     if (IL.normalizeGear) IL.normalizeGear(data);
@@ -858,7 +901,12 @@
   IL.relicById = relicById;
   IL.equippedRelics = equippedRelics;
   IL.SPECIALTIES = SPECIALTIES;
+  IL.MASTERIES = MASTERIES;
   IL.specialtyOf = specialtyOf;
+  IL.masteryOf = masteryOf;
+  IL.combatSpecialty = combatSpecialty;
+  IL.chooseFocus = chooseFocus;
+  IL.chooseMastery = chooseMastery;
   IL.rarityName = rarityName;
   IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;

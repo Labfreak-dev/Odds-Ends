@@ -21,6 +21,8 @@ No build step. `index.html` loads the classic scripts in order.
 
 The save key is `ironleague.v1` in `localStorage`.
 
+The Train tab holds the day's drills, a focus at level 5, a mastery at level 10, and three facilities that add drills, xp, or a lower price. Party synergy sits on the match card so the chips stay inside the club panel.
+
 The Events tab rotates one special fight each week: a phased boss, a five-fight gauntlet with no healing, a horde, King of the Pit, or a mirror of your own party. Endless climbs in waves, with a modifier and a relic pick every fifth wave, and keeps a best-wave list on this device. The daily challenge is the same seeded fight until the day turns. A hire or buy that cannot go through says why.
 
 Battler sheets are packed from Time Fantasy side-view singleframes (48×48, three frames a motion). The game code is original. Public text does not use anyone else's title. The older layered sheets in `assets/heroes99/` are unused.

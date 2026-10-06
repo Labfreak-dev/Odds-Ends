@@ -372,11 +372,29 @@ def check_yard(page, label):
         """() => {
           const c = document.querySelector('#clubYard');
           const a = IL.yardActors[0];
-          const r = c.getBoundingClientRect();
-          const y = r.top + (a.y - 48) * (r.height / c.height);
+          let scroller = c.parentElement;
+          while (scroller && scroller !== document.body) {
+            const cs = getComputedStyle(scroller);
+            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && scroller.scrollHeight > scroller.clientHeight + 4) break;
+            scroller = scroller.parentElement;
+          }
+          const actorY = () => {
+            const r = c.getBoundingClientRect();
+            return r.top + (a.y - 48) * (r.height / c.height);
+          };
           const tab = document.querySelector('#tabbar');
-          const limit = (tab ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
-          if (y > limit) window.scrollBy(0, y - limit);
+          const limit = (tab && getComputedStyle(tab).position === "fixed" ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
+          const sticky = document.querySelector('.hub-sticky');
+          const cover = sticky ? sticky.getBoundingClientRect().bottom + 8 : 8;
+          if (scroller && scroller !== document.body) {
+            const box = scroller.getBoundingClientRect();
+            scroller.scrollTop += actorY() - (box.top + Math.min(box.height * 0.45, 160));
+          } else if (actorY() > limit) {
+            window.scrollBy(0, actorY() - limit);
+          }
+          if (actorY() < cover && scroller && scroller !== document.body) {
+            scroller.scrollTop += actorY() - cover;
+          }
         }"""
     )
     box = page.evaluate(

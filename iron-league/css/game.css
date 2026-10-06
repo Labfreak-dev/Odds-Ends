@@ -2241,11 +2241,13 @@ body:has(#seasonEnd) {
   .hub-split {
     display: flex;
     flex-direction: column;
+    overflow: auto;
   }
   .hub-split > .pane,
   .hub-split > .hub-main {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     height: auto;
+    overflow: visible;
   }
 }
 @media (min-width: 1000px) {

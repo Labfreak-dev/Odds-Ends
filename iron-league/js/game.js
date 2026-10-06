@@ -1526,7 +1526,7 @@
         : '') +
       preview +
       synergyLine(yours, "partySynergy") +
-      '<div class="hub-split">' +
+      '<div class="hub-split" id="hubSplit">' +
         '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
@@ -1545,7 +1545,7 @@
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     return '<div id="fighterList">' +
       filterBar("fighters", fighterFilter, [["all", "All"], ["party", "Party"], ["bench", "Bench"]]) +
-      '<div class="hub-split">' +
+      '<div class="hub-split" id="hubSplit">' +
         '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", fighterFilter) +
         '</div>' +
@@ -1902,7 +1902,7 @@
 
   function captureScroll() {
     const panes = [];
-    document.querySelectorAll(".pane, #hubPanel, #hubMain, #fighterList, #eventsPane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
+    document.querySelectorAll(".pane, #hubPanel, #hubMain, #hubSplit, #fighterList, #eventsPane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
       if (el.id) panes.push({ id: el.id, top: el.scrollTop });
     });
     return {

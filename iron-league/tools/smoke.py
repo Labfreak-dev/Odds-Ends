@@ -20,6 +20,13 @@ ROOT = Path(__file__).resolve().parents[2]
 URL = os.environ.get("IL_SMOKE_URL", "http://127.0.0.1:8765/iron-league/")
 
 
+def go_fight(page):
+    """Fight opens the fight menu; To the pit opens the versus card."""
+    page.click("#nextMatch")
+    page.wait_for_selector("#fightGo")
+    page.click("#fightGo")
+
+
 def run(page, label, shot_dir):
     errors = []
     page.on("pageerror", lambda err: errors.append("pageerror: " + str(err)))
@@ -65,7 +72,7 @@ def run(page, label, shot_dir):
     check_scroll(page, label)
     if label == "desktop":
         check_fit(page)
-    page.click("#nextMatch")
+    go_fight(page)
     page.wait_for_selector("#versus")
     page.wait_for_selector("#powerBar")
     page.wait_for_selector("#confirmFight")
@@ -93,7 +100,7 @@ def run(page, label, shot_dir):
     page.screenshot(path=str(shot_dir / f"{label}-versus.png"))
     page.click("#versusBack")
     page.wait_for_selector("#nextMatch")
-    page.click("#nextMatch")
+    go_fight(page)
     page.click("#confirmFight")
     page.wait_for_selector("#arena", timeout=30000)
     try:
@@ -1014,7 +1021,7 @@ def sweep_frames(browser, shot_dir):
         page.wait_for_selector("#creditsSheet", state="detached")
         page.keyboard.press("1")
         page.wait_for_selector("#nextMatch")
-        page.click("#nextMatch")
+        go_fight(page)
         page.wait_for_selector("#versus")
         assert_inside(page, label + " versus")
         page.click("#confirmFight")
@@ -1073,7 +1080,7 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
     page.click('[data-class="warrior"]')
     page.click("#confirm")
     page.wait_for_selector("#nextMatch", timeout=30000)
-    page.click("#nextMatch")
+    go_fight(page)
     page.click("#confirmFight")
     page.wait_for_selector("#arena", timeout=30000)
     page.wait_for_timeout(400)
@@ -1302,7 +1309,7 @@ def qa_gate(browser, shot_dir):
         page.wait_for_selector("#creditsSheet", state="detached")
         page.keyboard.press("1")
         page.wait_for_selector("#nextMatch")
-        page.click("#nextMatch")
+        go_fight(page)
         page.wait_for_selector("#versus")
         assert_visible_exit(page, "#versusBack", label + " versus")
         assert_inside(page, label + " versus")

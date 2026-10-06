@@ -108,6 +108,10 @@ The offer is seeded by fighter and picks taken, so a reload shows the same three
 
 **Club screen.** The top-left emblem (with a pencil) opens a *Name and colors* popup: rename the club (a rival's name is refused), and pick emblem and plate. The Club tab no longer carries the color picker. Credits, Back to the title, and Name and colors live at the top of Settings. The Club pane shows one view at a time: Standings, Record, History, or Goals.
 
+## Fight menu (v63)
+
+The Club tab no longer opens on a big match card. A slim **Fight** bar shows the fixture, the opponent, and how many other fights are waiting. **Fight** (`#nextMatch`), and the fight bar on every other tab, open a **Ready to fight?** popup. It holds the next league match with synergy and both lineups (class and level), a **To the pit** button (`#fightGo`) that opens the versus card, and an *Also open* list. That list has a waiting cup tie, a draft step, the weekly event, the daily, an endless run, and the chaos pit. Escape or Close dismisses it. On a phone the Club and Team tabs scroll as one page, so the roster, the bench, and the club pane are all reachable.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

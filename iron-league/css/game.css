@@ -3807,3 +3807,62 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   color: var(--cream);
 }
 .result .res-hero { margin: 0 0 10px; border-radius: 8px; border: 1px solid rgba(224, 176, 122, 0.3); }
+
+/* ---------- fight bar + fight menu (v63) ----------
+   The Club tab keeps one slim row for the next match. Fight opens a
+   popup with the lineups and every other fight that is waiting, so the
+   roster and the club pane get the rest of the screen. */
+.next-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0 6px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid rgba(224, 176, 122, 0.45);
+  border-radius: 8px;
+  background: radial-gradient(120% 160% at 100% 50%, rgba(196, 98, 45, 0.28), transparent 60%), linear-gradient(#2a1f16, #1a140f);
+}
+.next-bar .next-info { min-width: 0; }
+.next-bar .eyebrow { margin: 0; }
+.next-bar h3 { margin: 2px 0 0; display: flex; align-items: center; gap: 6px; font-family: var(--display); font-size: 18px; min-width: 0; }
+.next-bar h3 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.next-bar h3 .crest-sm { width: 22px; height: 22px; flex: none; }
+.next-bar #nextMatch,
+.hub-panel > .next-bar #nextMatch {
+  position: static;
+  flex: none;
+  width: auto;
+  min-width: 132px;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+}
+.fight-menu { max-width: 520px; }
+.fm-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid rgba(224, 176, 122, 0.45); border-radius: 8px; background: linear-gradient(#2a1f16, #1a140f); }
+.fm-card .eyebrow { margin: 0; }
+.fm-card h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 22px; }
+.fm-card h3 .crest-sm { width: 28px; height: 28px; }
+.fm-sides { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: start; }
+.fm-sides .vs { margin: 18px 0 0; color: var(--copper-2); font-family: var(--display); }
+.fm-sides .preview-names { margin: 2px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.fm-sides .preview-names small { color: var(--muted); font-size: 11px; }
+.fm-card #fightGo { width: 100%; height: 56px; min-height: 56px; margin: 4px 0 0; font-size: 19px; letter-spacing: 0.06em; }
+.fm-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.fm-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 6px 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(0, 0, 0, 0.2); font-size: 14px; }
+.fm-list .ctl { border: 1px solid var(--line); border-radius: 5px; height: 38px; }
+/* Phones: the Club and Team tabs scroll as one page under the sticky header. */
+@media (max-width: 640px) {
+  .hub-panel:has(> .hub-split),
+  #fighterList { overflow-y: auto; overflow-x: hidden; }
+  .hub-panel > .hub-split,
+  #fighterList > .hub-split { flex: none; display: block; min-height: auto; }
+  .hub-split > .pane,
+  .hub-split > .hub-main { max-height: none; overflow: visible; }
+  #hubSplit > .pane { margin-top: 10px; }
+  .next-bar h3 { font-size: 16px; }
+  .next-bar #nextMatch, .hub-panel > .next-bar #nextMatch { min-width: 104px; height: 46px; min-height: 46px; }
+}

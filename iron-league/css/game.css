@@ -1204,7 +1204,7 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   border-width: 0 12px;
   border-image-width: 0 12px;
 }
-.relic-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.relic-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 6px; }
 .card.relic {
   padding: 2px 4px 4px;
   border-width: 10px;
@@ -1212,22 +1212,18 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
 }
 .card.relic h3 { margin: 0; font-size: 15px; }
 .card.relic p {
-  font-size: 12px;
+  font-size: 13px;
   margin: 2px 0 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 .card.relic .relic-slot { width: 36px; height: 36px; margin: 0 auto 2px; }
 .card.relic .btn {
-  height: 28px;
-  min-height: 28px;
+  height: auto;
+  min-height: 44px;
   margin-top: 4px;
-  padding: 0 4px;
-  border-width: 0 12px;
-  border-image-width: 0 12px;
-  font-size: 12px;
+  padding: 8px 4px;
+  font-size: 13px;
+  white-space: normal;
+  line-height: 1.2;
 }
 .card.relic::before { display: none; }
 @media (min-width: 900px) {
@@ -2298,7 +2294,48 @@ body:has(#seasonEnd) {
   min-height: 0;
   overflow: auto;
 }
-.hub-panel:has(> #trainPane) { overflow: hidden; }
+.hub-panel:has(> #trainPane),
+.hub-panel:has(> #relicPane) { overflow: hidden; }
+#relicPane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#relicPane > .panel-head,
+#relicPane > .subtabs { flex: none; }
+#relicPane > .pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+#relicPane .subtabs .chip {
+  white-space: normal;
+  text-align: center;
+  height: auto;
+  max-width: 100%;
+}
+.relic-grid { min-width: 0; }
+.relic-grid > .card { min-width: 0; overflow: visible; }
+.card.relic h3,
+.card.relic p,
+.card.relic .fine,
+#relicStall .stall-card h3,
+#marketPane .stall-card h3 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.wear-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.wear-picks .btn { width: 100%; }
 #trainBoard .stall-card .btn,
 #facilityBoard .stall-card .btn {
   width: 100%;

@@ -410,6 +410,21 @@ IL.noteTasks(taskSave, { units: [{ team: 0, hp: 0, critsLanded: 20, kos: 0, bloc
 check("crit task grants a specialty point", taskSave.specPoints === 1 && taskSave.taskDone.crits === true);
 const relicStall = IL.rollRelicStock(IL.mulberry32(5));
 check("relic stall is limited", relicStall.length === 4 && relicStall.every(function (row) { return row.stock === 1 && IL.relicById(row.id) && IL.relicSellPrice(row.id) < row.cost; }));
+const relicIds = {};
+check("sixty relics with rarities", IL.RELICS.length >= 60 && IL.RELICS.every(function (r) {
+  if (relicIds[r.id]) return false;
+  relicIds[r.id] = true;
+  return r.rarity && r.kind && r.blurb && (r.scope === "club" || r.scope === "fighter");
+}));
+const wallPieces = IL.RELICS.filter(function (r) { return r.set === "wall"; });
+const wearerRelic = wallPieces.filter(function (r) { return r.scope === "fighter"; })[0];
+const clubPiece = wallPieces.filter(function (r) { return r.scope !== "fighter"; })[0];
+const wearer = { id: "ada", cls: "warrior", relic: wearerRelic.id };
+const wallPack = IL.relicPack({ relics: [clubPiece.id, wearer.relic], equipped: [clubPiece.id], roster: [wearer] }, [wearer]);
+check("iron wall is a set", wallPieces.length >= 4 && IL.setById("wall").need === 2);
+check("two wall pieces wake the set", wallPack.sets.length === 1 && wallPack.sets[0].kind === "def" && wallPack.worn.ada && wallPack.worn.ada.scope === "fighter");
+const oldRelics = IL.migrate({ clubName: "Old", relics: ["band", "brace"], equipped: ["band", "brace"], roster: [{ id: "ada", cls: "warrior", relic: "band" }, { id: "bea", cls: "warrior", relic: "brace" }] });
+check("old club relics stay equipped", oldRelics.equipped.length === 1 && oldRelics.equipped[0] === "band" && oldRelics.roster[0].relic === null && oldRelics.roster[1].relic === "brace");
 const cup = IL.startCup({ clubName: "Smoke Yard", roster: [IL.randomFighter(IL.mulberry32(1), "warrior")] }, IL.mulberry32(9));
 check("cup is four clubs", cup.slots.length === 4 && cup.pairing.length === 2);
 const f = IL.randomFighter(IL.mulberry32(2), "warrior");

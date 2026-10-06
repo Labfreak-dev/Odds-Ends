@@ -137,6 +137,10 @@
       if (pass.shield) u.shield += pass.shield;
       if (pass.regen) u.regen += pass.regen;
     }
+    if (fighter.tonic && IL.tonicShield) {
+      u.shield += IL.tonicShield(fighter.tonic);
+      fighter.tonic = null;
+    }
     return u;
   }
 

@@ -16,6 +16,8 @@
   let pendingSpec = null;
   let paused = false;
   let gearPreview = null;
+  let tonicPick = null;
+  let creditsOpen = false;
   let armorySlot = "all";
   let armoryRarity = "all";
   let armorySort = "rarity";
@@ -141,13 +143,19 @@
     return true;
   }
 
+  function coinIcon(kind) {
+    const frame = IL.CURRENCY_ICON && IL.CURRENCY_ICON[kind];
+    const extra = frame ? ' data-frame="' + esc(frame) + '" data-icon-size="24"' : "";
+    return '<i class="ico ico-' + kind + ' item-icon"' + extra + ' aria-hidden="true"></i>';
+  }
+
   function purseHtml() {
     const eq = IL.equippedRelics(save);
     const tokens = save.tokens || 0;
     return '<div class="purse">' +
-      '<span class="coin"><i class="ico ico-gold" aria-hidden="true"></i><b>' + save.gold + '</b> gold</span>' +
-      '<span class="coin"><i class="ico ico-renown" aria-hidden="true"></i><b>' + (save.renown || 0) + '</b> renown</span>' +
-      '<span class="coin"><i class="ico ico-token" aria-hidden="true"></i><b>' + tokens + '</b> cup ' + (tokens === 1 ? "token" : "tokens") + '</span>' +
+      '<span class="coin">' + coinIcon("gold") + '<b>' + save.gold + '</b> gold</span>' +
+      '<span class="coin">' + coinIcon("renown") + '<b>' + (save.renown || 0) + '</b> renown</span>' +
+      '<span class="coin">' + coinIcon("token") + '<b>' + tokens + '</b> cup ' + (tokens === 1 ? "token" : "tokens") + '</span>' +
       '<span class="coin"><i class="ico ico-roster" aria-hidden="true"></i><b>' + (save.roster || []).length + "/" + IL.ROSTER_CAP + '</b> roster</span>' +
       '<span class="coin"><i class="ico ico-relic" aria-hidden="true"></i><b>' + eq.length + "/2</b> relics" + (eq.length ? " · " + esc(eq.map(function (r) { return r.name; }).join(", ")) : "") + '</span>' +
     '</div>';
@@ -534,8 +542,11 @@
     return '<div class="stat"><span>' + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
   }
 
-  function abilityItem(ab) {
-    return '<li><strong>' + esc(ab.name) + '</strong><span>' + esc(cdText(ab)) + '</span><p>' + esc(abilityBlurb(ab.id)) + '</p></li>';
+  function abilityItem(ab, always) {
+    const frame = IL.abilityIcon ? IL.abilityIcon(ab.id) : "";
+    const icon = frame ? iconTag(frame, 24) : "";
+    const when = always ? "Always on" : cdText(ab);
+    return '<li>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(when) + '</span><p>' + esc(abilityBlurb(ab.id)) + '</p></li>';
   }
 
   function pitSound(kind) {
@@ -591,57 +602,65 @@
     return '<span class="glyph rarity-' + esc(rarity || "common") + '">' + glyphSvg(glyph) + '</span>';
   }
 
-  /* Pixel art, when the file exists. Otherwise the glyph tile stays. */
+  /* Atlas frame when it loaded. The glyph stays until then, and if the frame is missing. */
   function itemFaceHtml(item) {
     const rarity = (item && item.rarity) || "common";
     const icon = IL.itemIcon ? IL.itemIcon(item) : "";
     const glyph = IL.itemGlyph(item);
     if (!icon) return glyphHtml(glyph, rarity);
     return '<span class="glyph rarity-' + esc(rarity) + '">' +
-      '<img class="item-icon" alt="" data-src="' + esc(icon) + '" data-fallback="' + esc(glyph) + '">' +
+      '<i class="item-icon" data-frame="' + esc(icon) + '" data-icon-size="48" hidden></i>' +
+      glyphSvg(glyph) +
     '</span>';
   }
 
-  function integerIconSize(nw, nh) {
-    const fit = 32;
-    const longest = Math.max(nw, nh);
-    if (longest <= fit) {
-      const up = Math.max(1, Math.floor(fit / longest));
-      return { w: nw * up, h: nh * up };
-    }
-    const down = Math.max(1, Math.ceil(longest / fit));
-    return { w: Math.max(1, Math.floor(nw / down)), h: Math.max(1, Math.floor(nh / down)) };
+  function iconTag(frame, size) {
+    if (!frame) return "";
+    return '<i class="item-icon" data-frame="' + esc(frame) + '" data-icon-size="' + size + '" hidden></i>';
+  }
+
+  const iconAtlas = { ready: false, failed: false, frames: {}, w: 0, h: 0, url: "assets/icons/atlas.png" };
+
+  function placeFrame(el) {
+    if (!iconAtlas.ready || !el || !el.getAttribute) return;
+    const frame = iconAtlas.frames[el.getAttribute("data-frame")];
+    const size = Number(el.getAttribute("data-icon-size") || 48);
+    if (!frame || !frame.w) return;
+    const scale = size / frame.w;
+    el.style.backgroundImage = "url(\"" + iconAtlas.url + "\")";
+    el.style.backgroundRepeat = "no-repeat";
+    el.style.backgroundPosition = (-frame.x * scale) + "px " + (-frame.y * scale) + "px";
+    el.style.backgroundSize = (iconAtlas.w * scale) + "px " + (iconAtlas.h * scale) + "px";
+    el.style.width = size + "px";
+    el.style.height = size + "px";
+    el.hidden = false;
+    const svg = el.parentNode && el.parentNode.querySelector("svg");
+    if (svg && el.parentNode.classList.contains("glyph")) svg.hidden = true;
   }
 
   function mountIcons(scope) {
     const root = scope && scope.querySelectorAll ? scope : document;
-    const imgs = root.querySelectorAll("img.item-icon[data-src]");
-    for (let i = 0; i < imgs.length; i++) {
-      const img = imgs[i];
-      const src = img.getAttribute("data-src");
-      if (!src) continue;
-      img.removeAttribute("data-src");
-      img.addEventListener("error", function () {
-        const host = img.parentNode;
-        if (host && !host.querySelector("svg")) host.insertAdjacentHTML("beforeend", glyphSvg(img.getAttribute("data-fallback") || "gem"));
-        if (img.parentNode) img.remove();
-      });
-      img.addEventListener("load", function () {
-        const nw = img.naturalWidth;
-        const nh = img.naturalHeight;
-        if (!nw || !nh || !img.parentNode) return;
-        const size = integerIconSize(nw, nh);
-        const canvas = document.createElement("canvas");
-        canvas.width = size.w;
-        canvas.height = size.h;
-        canvas.className = "item-icon";
-        const ctx = canvas.getContext("2d");
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0, size.w, size.h);
-        img.replaceWith(canvas);
-      });
-      img.src = src;
-    }
+    const nodes = root.querySelectorAll("[data-frame]");
+    for (let i = 0; i < nodes.length; i++) placeFrame(nodes[i]);
+  }
+
+  function loadIconAtlas() {
+    const img = new Image();
+    const dataP = fetch("assets/icons/atlas.json").then(function (r) { if (!r.ok) throw new Error("atlas"); return r.json(); });
+    const imgP = new Promise(function (resolve, reject) {
+      img.onload = function () { resolve(img); };
+      img.onerror = reject;
+      img.src = "assets/icons/atlas.png";
+    });
+    Promise.all([dataP, imgP]).then(function (pair) {
+      iconAtlas.ready = true;
+      iconAtlas.frames = pair[0].frames || {};
+      iconAtlas.w = pair[0].w || img.width;
+      iconAtlas.h = pair[0].h || img.height;
+      iconAtlas.url = pair[0].image || "assets/icons/atlas.png";
+      IL.iconsReady = true;
+      mountIcons(document);
+    }).catch(function () { iconAtlas.failed = true; });
   }
 
   function bonusLine(item) {
@@ -653,6 +672,7 @@
     if (b.spd) bits.push("+" + b.spd + " SPD");
     const passive = IL.passiveOf(item);
     if (passive) bits.push(IL.itemBlurb(item));
+    if (!bits.length && IL.itemSlot(item) === "tonic") return "One match. A little shield, then the bottle is empty.";
     return bits.join(" · ") || "No bonus";
   }
 
@@ -666,6 +686,7 @@
   function slotLabel(slot) {
     if (slot === "weapon") return "Weapon";
     if (slot === "armor") return "Armor";
+    if (slot === "tonic") return "Tonic";
     return "Trinket";
   }
 
@@ -679,6 +700,7 @@
       ["weapon", "armor", "trinket"].forEach(function (slot) {
         if (gear[slot]) rows.push({ item: gear[slot], owner: f, slot: slot });
       });
+      if (f.tonic) rows.push({ item: f.tonic, owner: f, slot: "tonic" });
     });
     return rows;
   }
@@ -700,13 +722,20 @@
   function armoryCard(row) {
     const item = row.item;
     const where = row.owner ? ("On " + row.owner.name) : "In the bag";
+    const drink = row.slot === "tonic";
     const actions = row.owner
-      ? '<button type="button" class="btn ghost" data-unequip-from="' + esc(row.owner.id) + '" data-unequip-slot="' + esc(row.slot) + '">Unequip</button>'
-      : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">Equip</button>' +
+      ? '<button type="button" class="btn ghost" data-unequip-from="' + esc(row.owner.id) + '" data-unequip-slot="' + esc(row.slot) + '">' + (drink ? "Pour back" : "Unequip") + '</button>'
+      : (drink
+        ? '<button type="button" class="btn ghost" data-arm-tonic="' + esc(item.uid) + '">Give</button>'
+        : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">Equip</button>') +
         '<button type="button" class="btn ghost" data-salvage="' + esc(item.uid) + '">Salvage — ' + IL.salvageValue(item) + ' gold</button>';
-    const pick = (!row.owner && gearPreview && gearPreview.uid === item.uid)
+    const pickingGear = !row.owner && !drink && gearPreview && gearPreview.uid === item.uid;
+    const pickingTonic = !row.owner && drink && tonicPick && tonicPick.uid === item.uid;
+    const pick = (pickingGear || pickingTonic)
       ? '<div class="armory-pick">' + (save.roster || []).map(function (f) {
-        return '<button type="button" class="btn ghost" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
+        return pickingTonic
+          ? '<button type="button" class="btn ghost" data-give-on="' + esc(f.id) + '" data-give-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>'
+          : '<button type="button" class="btn ghost" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
       }).join("") + '</div>'
       : "";
     return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
@@ -721,7 +750,7 @@
 
   function armoryHtml() {
     const rows = filteredGear();
-    const slotOpts = [["all", "All slots"], ["weapon", "Weapon"], ["armor", "Armor"], ["trinket", "Trinket"]];
+    const slotOpts = [["all", "All slots"], ["weapon", "Weapon"], ["armor", "Armor"], ["trinket", "Trinket"], ["tonic", "Tonic"]];
     const rareOpts = [["all", "All rarities"], ["common", "Common"], ["rare", "Rare"], ["epic", "Epic"], ["legendary", "Legendary"]];
     const sortOpts = [["rarity", "Rarity"], ["slot", "Slot"], ["name", "Name"]];
     function opts(list, current) {
@@ -765,6 +794,7 @@
 
   function equipItem(fighter, item) {
     if (!fighter || !item) return false;
+    if (IL.itemSlot(item) === "tonic") return false;
     if (!fighter.gear) fighter.gear = IL.blankGear();
     const slot = IL.itemSlot(item);
     const found = findItem(item.uid);
@@ -778,6 +808,7 @@
   }
 
   function unequipSlot(fighter, slot) {
+    if (slot === "tonic") return dropTonic(fighter);
     if (!fighter || !fighter.gear || !fighter.gear[slot]) return false;
     if (!Array.isArray(save.items)) save.items = [];
     save.items.push(fighter.gear[slot]);
@@ -785,9 +816,30 @@
     return true;
   }
 
+  function giveTonic(fighter, item) {
+    if (!fighter || !item || IL.itemSlot(item) !== "tonic") return false;
+    const found = findItem(item.uid);
+    if (!found || found.owner) return false;
+    if (!Array.isArray(save.items)) save.items = [];
+    if (fighter.tonic && fighter.tonic.uid !== item.uid) save.items.push(fighter.tonic);
+    save.items = save.items.filter(function (it) { return it.uid !== item.uid; });
+    fighter.tonic = item;
+    tonicPick = null;
+    return true;
+  }
+
+  function dropTonic(fighter) {
+    if (!fighter || !fighter.tonic) return false;
+    if (!Array.isArray(save.items)) save.items = [];
+    save.items.push(fighter.tonic);
+    fighter.tonic = null;
+    return true;
+  }
+
   function returnGear(fighter) {
-    if (!fighter || !fighter.gear) return;
-    ["weapon", "armor", "trinket"].forEach(function (slot) { unequipSlot(fighter, slot); });
+    if (!fighter) return;
+    if (fighter.gear) ["weapon", "armor", "trinket"].forEach(function (slot) { unequipSlot(fighter, slot); });
+    dropTonic(fighter);
   }
 
   function diffHtml(f, item) {
@@ -911,7 +963,19 @@
           '<span><b>Empty ' + esc(slotLabel(slot).toLowerCase()) + '</b><small>Nothing worn</small></span>';
       return '<div class="gear-slot">' + body + '</div>';
     }).join("");
+    const drink = f.tonic;
+    const tonic = '<h3 class="section">Tonic</h3><div class="gear-slot">' + (drink
+      ? itemFaceHtml(drink) +
+        '<span><b>' + esc(IL.itemName(drink)) + '</b><small>' + esc(rarityLabel(drink.rarity)) + " · " + esc(bonusLine(drink)) + '</small></span>' +
+        '<button type="button" class="btn ghost" data-tonic-drop="1">Pour back</button>'
+      : '<span><b>No tonic</b><small>A drink from the bag lasts one match.</small></span>') + '</div>';
     const bag = (save.items || []).map(function (item) {
+      if (IL.itemSlot(item) === "tonic") {
+        return '<button type="button" class="gear-offer" data-tonic="' + esc(item.uid) + '">' +
+          itemFaceHtml(item) +
+          '<span><b>' + esc(IL.itemName(item)) + '</b><small>Tonic · ' + esc(bonusLine(item)) + '</small></span>' +
+        '</button>';
+      }
       return '<button type="button" class="gear-offer" data-preview-item="' + esc(item.uid) + '">' +
         itemFaceHtml(item) +
         '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</small></span>' +
@@ -920,6 +984,7 @@
     const preview = gearPreview && findItem(gearPreview.uid);
     const diff = preview ? diffHtml(f, preview.item) : "";
     return '<h3 class="section">Gear</h3><div class="gear-slots">' + slots + '</div>' +
+      tonic +
       '<h3 class="section">In the bag</h3>' +
       (bag || '<p class="fine">Nothing waiting. The armory and the stall keep the rest.</p>') +
       diff;
@@ -953,9 +1018,7 @@
     const abilities = [];
     if (kit.ability) abilities.push(abilityItem(kit.ability));
     if (kit.ability2) abilities.push(abilityItem(kit.ability2));
-    if (kit.passive) {
-      abilities.push('<li><strong>' + esc(kit.passive.name) + '</strong><span>Always on</span><p>' + esc(abilityBlurb(kit.passive.id)) + '</p></li>');
-    }
+    if (kit.passive) abilities.push(abilityItem(kit.passive, true));
     const eq = IL.equippedRelics(save);
     const relics = eq.length
       ? '<ul class="relic-list">' + eq.map(function (r) {
@@ -1218,6 +1281,7 @@
           '<div class="hub-actions">' +
             (done ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>' : '') +
             '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
+            '<button type="button" class="text-btn" id="credits">Credits</button>' +
             '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
             '<button type="button" class="text-btn" id="toTitle">Title</button>' +
           '</div>' +
@@ -1226,8 +1290,9 @@
         tabBar(hubTab) +
         '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
       '</main>' +
-      (settingsOpen ? settingsHtml() : '') +
-      (!settingsOpen && fighter ? sheetHtml(fighter) : '');
+      (creditsOpen ? creditsHtml() : '') +
+      (settingsOpen && !creditsOpen ? settingsHtml() : '') +
+      (!settingsOpen && !creditsOpen && fighter ? sheetHtml(fighter) : '');
     root.scrollTo(0, 0);
     drawCrest(document.getElementById("crest"), save.clubName);
     bindHub();
@@ -1235,6 +1300,34 @@
       ? (save.market || []).map(function (row) { return row.fighter && row.fighter.parts; })
       : [];
     bootCards(extra);
+  }
+
+  function creditsHtml() {
+    return '<div class="sheet-back" id="creditsBack"></div>' +
+      '<aside class="sheet" id="creditsSheet" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">' +
+        '<header class="sheet-head"><div><p class="eyebrow">Club</p><h2 id="creditsTitle">Credits</h2></div>' +
+          '<button type="button" class="btn ghost" id="creditsClose">Close</button></header>' +
+        '<h3 class="section">Additional art assets</h3>' +
+        '<p>Ricardo Machado (Beowulf). Mini Weapons and Mini Monster Drops.</p>' +
+        '<p>CaptainSkolot.</p>' +
+        '<p>DreamingOfLight888 (7T4E).</p>' +
+        '<p>finalbossblues (Time Fantasy).</p>' +
+        '<p>AU_pixel (Heroes99).</p>' +
+        '<p>PizzaDoggy (BitFX).</p>' +
+        '<p class="fine">These pictures stay inside the game. They are not offered as a separate pack.</p>' +
+      '</aside>';
+  }
+
+  function bindCredits() {
+    if (!document.getElementById("creditsSheet")) return;
+    const close = function () {
+      creditsOpen = false;
+      showHub(hubTab);
+    };
+    const back = document.getElementById("creditsBack");
+    if (back) back.onclick = close;
+    const closeBtn = document.getElementById("creditsClose");
+    if (closeBtn) closeBtn.onclick = close;
   }
 
   function settingsHtml() {
@@ -1397,9 +1490,20 @@
     };
     const titleBtn = document.getElementById("toTitle");
     if (titleBtn) titleBtn.onclick = showTitle;
+    const creditsBtn = document.getElementById("credits");
+    if (creditsBtn) creditsBtn.onclick = function () {
+      detailId = null;
+      gearPreview = null;
+      tonicPick = null;
+      settingsOpen = false;
+      creditsOpen = true;
+      showHub(hubTab);
+    };
+    bindCredits();
     const gear = document.getElementById("settings");
     if (gear) gear.onclick = function () {
       detailId = null;
+      creditsOpen = false;
       settingsOpen = true;
       showHub(hubTab);
     };
@@ -1426,9 +1530,11 @@
     if (tabs) tabs.onclick = function (ev) {
       const t = ev.target.closest("[data-tab]");
       if (!t) return;
-      if (t.dataset.tab === hubTab && !detailId && !gearPreview) return;
+      if (t.dataset.tab === hubTab && !detailId && !gearPreview && !creditsOpen) return;
       detailId = null;
       gearPreview = null;
+      tonicPick = null;
+      creditsOpen = false;
       showHub(t.dataset.tab);
     };
     const panel = document.getElementById("hubPanel");
@@ -1458,7 +1564,22 @@
       if (buy) { buyGear(+buy.dataset.buyGear); return; }
       const armEquip = ev.target.closest("[data-arm-equip]");
       if (armEquip) {
+        tonicPick = null;
         gearPreview = { uid: armEquip.dataset.armEquip };
+        showHub("fighters");
+        return;
+      }
+      const armTonic = ev.target.closest("[data-arm-tonic]");
+      if (armTonic) {
+        gearPreview = null;
+        tonicPick = { uid: armTonic.dataset.armTonic };
+        showHub("fighters");
+        return;
+      }
+      const giveOn = ev.target.closest("[data-give-on]");
+      if (giveOn) {
+        const found = findItem(giveOn.dataset.giveItem);
+        if (found && giveTonic(fighterById(giveOn.dataset.giveOn), found.item)) persist();
         showHub("fighters");
         return;
       }
@@ -1533,6 +1654,23 @@
         showHub(hubTab);
         return;
       }
+      const drink = ev.target.closest("[data-tonic]");
+      if (drink) {
+        const found = findItem(drink.dataset.tonic);
+        if (found && giveTonic(fighterById(detailId), found.item)) {
+          persist();
+          showHub(hubTab);
+        }
+        return;
+      }
+      const pour = ev.target.closest("[data-tonic-drop]");
+      if (pour) {
+        if (dropTonic(fighterById(detailId))) {
+          persist();
+          showHub(hubTab);
+        }
+        return;
+      }
       const drop = ev.target.closest("[data-unequip-slot]");
       if (drop) {
         unequipSlot(fighterById(detailId), drop.dataset.unequipSlot);
@@ -1562,6 +1700,7 @@
     if (!detailId && !gearPreview) return;
     detailId = null;
     gearPreview = null;
+    tonicPick = null;
     showHub(hubTab);
   }
 
@@ -1906,7 +2045,10 @@
     match.units.forEach(function (u, i) {
       const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
       const side = u.team === 0 ? "you" : "them";
-      const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';
+      const marks = [kit.ability, kit.ability2].filter(Boolean).map(function (ab) {
+        return IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 24) : "";
+      }).join("");
+      const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + marks + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';
       (u.team === 0 ? youRows : themRows).push(row);
     });
     document.getElementById("liveList").innerHTML =
@@ -2316,8 +2458,11 @@
   }
 
   function lootRevealHtml(item) {
-    return '<div id="lootReveal" class="loot-reveal rarity-' + esc(item.rarity) + '">' +
-      itemFaceHtml(item) +
+    const rarity = item.rarity || "common";
+    const chest = IL.lootFrame ? IL.lootFrame("chest", rarity) : "";
+    const bag = IL.lootFrame ? IL.lootFrame("bag", rarity) : "";
+    return '<div id="lootReveal" class="loot-reveal rarity-' + esc(rarity) + '">' +
+      '<div class="loot-faces">' + iconTag(chest, 48) + iconTag(bag, 48) + itemFaceHtml(item) + '</div>' +
       '<div><p class="eyebrow">Found</p><h3>' + esc(IL.itemName(item)) + '</h3>' +
       '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</p></div></div>';
   }
@@ -2340,10 +2485,17 @@
         showHub(hubTab);
         return;
       }
-      if (!detailId && !gearPreview) return;
+      if (document.getElementById("creditsSheet")) {
+        ev.preventDefault();
+        creditsOpen = false;
+        showHub(hubTab);
+        return;
+      }
+      if (!detailId && !gearPreview && !tonicPick) return;
       ev.preventDefault();
       detailId = null;
       gearPreview = null;
+      tonicPick = null;
       showHub(hubTab);
       return;
     }
@@ -2351,6 +2503,8 @@
     ev.preventDefault();
     detailId = null;
     gearPreview = null;
+    tonicPick = null;
+    creditsOpen = false;
     showHub(HUB_TABS[ev.key.charCodeAt(0) - 49]);
   }
   document.addEventListener("keydown", onHubKey);
@@ -2364,5 +2518,6 @@
   if (IL.fx && IL.fx.load) IL.fx.load();
   const iconWatch = new MutationObserver(function () { mountIcons(document); });
   iconWatch.observe(document.body, { childList: true, subtree: true });
+  loadIconAtlas();
   showTitle();
 })(typeof window !== "undefined" ? window : globalThis);

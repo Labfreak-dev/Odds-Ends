@@ -117,7 +117,7 @@
       cup: null,
       market: null,
       history: [],
-      settings: { speed: 1, shake: true, sound: 80, music: 60 }
+      settings: { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 }
     };
   }
 
@@ -133,12 +133,13 @@
     if (!Array.isArray(data.history)) data.history = [];
     data.history = data.history.slice(0, 10);
     if (!data.settings || typeof data.settings !== "object") {
-      data.settings = { speed: 1, shake: true, sound: 80, music: 60 };
+      data.settings = { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
     } else {
       if (data.settings.speed !== 1 && data.settings.speed !== 2 && data.settings.speed !== 3) data.settings.speed = 1;
       if (typeof data.settings.shake !== "boolean") data.settings.shake = true;
       if (typeof data.settings.sound !== "number") data.settings.sound = 80;
       if (typeof data.settings.music !== "number") data.settings.music = 60;
+      if (typeof data.settings.crowd !== "number") data.settings.crowd = 70;
     }
     if (!data.achieved || typeof data.achieved !== "object") data.achieved = {};
     ["bouts", "flawless", "cupsWon", "cupsEntered", "trainsDone", "salvaged", "chaosWins", "hires", "tonicsUsed", "seasonTitles", "unbeaten", "ceremonyPaid"].forEach(function (key) {

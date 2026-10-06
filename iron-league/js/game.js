@@ -275,6 +275,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "New hit effects: chunky pixel blood and sparks, white hit flashes, fire craters, sky lightning, and dash afterimages.",
     "Slower on screen: the whole pit plays at 80% speed, so walks, swings, casts and rolls move slower.",
     "A calmer pit: fighters walk 30% slower, swing about once a second, roll less, and wait longer between moves.",
     "Divisions: five tiers from Sand to Crown. The top two go up, the bottom two go down, and higher tiers pay more.",
@@ -5195,6 +5196,7 @@
     const canvas = document.getElementById("arena");
     const ctx = canvas.getContext("2d");
     const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], sigs: [], t: 0, cam: null };
+    IL.liveFx = fx;
     function pitPoint(ev) {
       const r = canvas.getBoundingClientRect();
       fx.pointer = { x: ev.clientX - r.left, y: ev.clientY - r.top, stick: ev.type === "pointerdown" || !!fx.stickId };
@@ -5253,9 +5255,30 @@
       n.dy = stack * 13;
       fx.nums.push(n);
     }
+    /* Arena fx events carry a head-height y. Find the fighter they belong
+       to so pixel FX can sit on the floor and rise up the screen, which
+       keeps them right on a turned phone floor too. */
+    function footOf(e) {
+      let best = null;
+      let bestD = 34;
+      for (let k = 0; k < match.units.length; k++) {
+        const u = match.units[k];
+        const up = u.y - e.y;
+        if (up < -4 || up > 64) continue;
+        const d = Math.abs(u.x - e.x);
+        if (d < bestD) { bestD = d; best = u; }
+      }
+      return best ? best.y : e.y;
+    }
+    const P = IL.pfx;
     for (let i = 0; i < match.events.length; i++) {
       const e = match.events[i];
-      if (IL.vfxEvent && (e.type === "swing" || e.type === "hit" || e.type === "die" || e.type === "boom")) IL.vfxEvent(fx, e);
+      if (P) {
+        if (e.type === "swing") P.swing(fx, e);
+        else if (e.type === "hit") P.hit(fx, e);
+        else if (e.type === "die") P.die(fx, e);
+        else if (e.type === "boom") P.boom(fx, e);
+      }
       if (e.type === "dmg") {
         placeNum({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, team: e.team, t: 0, life: e.crit ? 1.05 : 0.85 });
         /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units. */
@@ -5270,56 +5293,37 @@
       } else if (e.type === "dodge") {
         placeNum({ x: e.x, y: e.y, dodge: true, team: e.team, t: 0, life: 0.6 });
       } else if (e.type === "boom") {
-        fx.booms.push({ x: e.x, y: e.y, r: e.r, kind: e.kind, t: 0, life: 0.48 });
         if (shakeOn()) fx.shake = Math.min(8, fx.shake + 4);
       } else if (e.type === "cue" && e.id) {
         if (IL.sfx) {
           syncMix();
           IL.sfx.play(e.id, { gain: e.gain, layer: e.layer });
         }
-      } else if (e.type === "ring") {
-        if (!fx.rings) fx.rings = [];
-        fx.rings.push({ x: e.x, y: e.y, r: e.r || 64, kind: e.kind, t: 0, life: 0.45 });
-      } else if (e.type === "beam") {
-        if (!fx.beams) fx.beams = [];
-        fx.beams.push({ x: e.x, y: e.y, x2: e.x2, y2: e.y2, kind: e.kind, t: 0, life: 0.32 });
-      } else if (e.type === "sig") {
-        if (!fx.sigs) fx.sigs = [];
-        fx.sigs.push({
-          style: e.style,
-          mark: e.mark || "",
-          x: e.x,
-          y: e.y,
-          x2: e.x2,
-          y2: e.y2,
-          x3: e.x3,
-          y3: e.y3,
-          hop: e.hop || 0,
-          rgb: e.rgb || "244,210,150",
-          r: e.r || 64,
-          facing: e.facing || 1,
-          t: 0,
-          life: e.life || 0.6
-        });
-        if (e.sheet && IL.fx) {
-          const ground = e.style === "ring" || e.style === "dust" || e.style === "summon";
-          const sx = e.style === "trail" || e.style === "chain" ? e.x2 : e.x;
-          const sy = e.style === "trail" || e.style === "chain" ? e.y2 : e.y;
-          IL.fx.spawn(fx.sprites, e.sheet, sx, sy, {
-            size: e.size || 150,
-            ground: ground,
-            facing: e.facing,
-            team: e.team
-          });
+      } else if (e.type === "ring" && P) {
+        /* Most ring kinds also paint a signature or a boom; only the two
+           self-casts without one draw here. */
+        if (e.kind === "rage") {
+          P.glow(fx, e.x, e.y, 12, 22, "255,90,50", 0.4, 0.8);
+          P.burst(fx, e.x, e.y, 6, { pal: "fire", n: 14, speed: [10, 40], g: -60, life: [0.5, 0.9], size: [1.4, 2.4], add: true, floor: 999 });
+        } else if (e.kind === "buff") {
+          P.heal(fx, e.x, e.y, 14, "255,214,110");
         }
-      } else if (e.type === "fx" && IL.fx) {
-        IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
-          size: e.size,
-          facing: e.facing,
-          rot: e.rot,
-          ground: e.ground,
-          team: e.team
-        });
+      } else if (e.type === "beam" && P) {
+        const fa = footOf({ x: e.x, y: e.y });
+        const fb = footOf({ x: e.x2, y: e.y2 });
+        if (e.kind === "bolt") {
+          P.chain(fx, e.x, fa, fa - e.y, e.x2, fb, fb - e.y2, "255,246,170");
+        } else {
+          const rgb = e.kind === "fireball" ? "255,140,50" : e.kind === "pierce" ? "200,240,170" : e.kind === "vial" || e.kind === "dot" ? "170,236,80" : "200,160,255";
+          const turn = !!(IL.pitCam && IL.pitCam.portrait);
+          const off = turn ? [fa - fb, e.x - e.x2] : [e.x - e.x2, fa - fb];
+          P.streaks(fx, { ax: e.x2, ay: fb, x1: off[0], y1: off[1] - (fa - e.y), x2: 0, y2: -(fb - e.y2), rgb: rgb, n: e.kind === "fireball" ? 2 : 1, gap: 2, life: 0.2, w: e.kind === "fireball" ? 2.6 : 1.6 });
+        }
+      } else if (e.type === "sig" && P) {
+        P.sig(fx, e);
+      } else if (e.type === "fx" && P) {
+        const fy = footOf(e);
+        P.legacy(fx, { kind: e.kind, x: e.x, y: e.y, fy: fy, facing: e.facing, size: e.size, ground: e.ground }, Math.max(0, fy - e.y));
       }
     }
     match.events.length = 0;
@@ -5327,7 +5331,7 @@
 
   function ageFx(fx, dt) {
     fx.dtLast = dt;
-    if (IL.vfxStep) IL.vfxStep(fx, dt);
+    if (IL.pfx) IL.pfx.step(fx, dt);
     if (!shakeOn()) fx.shake = 0;
     fx.shake *= Math.pow(0.04, dt);
     if (fx.shake < 0.15) fx.shake = 0;

@@ -114,7 +114,7 @@ def run(page, label, shot_dir):
               if (units.some(u => u.state === 'roll')) flags.roll = true;
               if (m.stats && m.stats.slashes > 0) flags.slash = true;
               if (m.stats && m.stats.abilities > 0) flags.ability = true;
-              if (IL.fx.spawned > 0) flags.fx = true;
+              if (IL.pfx && IL.pfx.spawned > 0) flags.fx = true;
               return m.time > 1.2 && flags.roll && flags.slash && flags.ability && flags.fx;
             }""",
             timeout=35000,
@@ -163,7 +163,7 @@ def run(page, label, shot_dir):
                 rolls: m.stats.rolls,
                 slashes: m.stats.slashes,
                 abilities: m.stats.abilities,
-                spawned: window.IL.fx.spawned
+                spawned: window.IL.pfx ? window.IL.pfx.spawned : 0
               };
             }"""
         )

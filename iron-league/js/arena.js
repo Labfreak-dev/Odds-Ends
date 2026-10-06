@@ -1041,7 +1041,7 @@
       const hy = src ? dst.y - src.y : 0;
       const hd = Math.hypot(hx, hy) || 1;
       m.events.push({
-        type: "hit", x: dst.x, y: dst.y - 18 - (dst.z || 0),
+        type: "hit", x: dst.x, y: dst.y - 18 - (dst.z || 0), fy: dst.y,
         dx: src ? hx / hd : (dst.team === 0 ? -1 : 1), dy: src ? hy / hd : 0,
         crit: !!opt.crit, blocked: blocked, big: big,
         school: opt.spell ? String(opt.spell).replace(/^spell_|_impact$/g, "") : "",
@@ -1167,7 +1167,7 @@
       /* The swing arc is drawn by render.js (vector, full resolution). */
       m.events.push({
         type: "swing",
-        x: u.x, y: u.y - 16 - (u.z || 0),
+        x: u.x, y: u.y - 16 - (u.z || 0), fy: u.y,
         facing: u.facing, team: u.team,
         wk: weaponOf(u) || "sword",
         heavy: u.anim === "atk2" || u.anim === "air2" || !!u.cleave,
@@ -1297,7 +1297,7 @@
         if (bolt) m.events.push({ type: "beam", x: u.x, y: u.y - 22, x2: c.x, y2: c.y - 16, kind: "fireball" });
         else m.events.push({ type: "ring", x: c.x, y: c.y, r: c.r, kind: mark });
         const school = castSchool(u, c.kind);
-        m.events.push({ type: "boom", x: c.x, y: c.y, r: c.r, kind: c.kind });
+        m.events.push({ type: "boom", x: c.x, y: c.y, r: c.r, kind: c.kind, school: school });
         fx(m, c.kind === "cast2" ? "bolt" : "boom", c.x, c.y, { size: Math.round(c.r * 2.35) });
         if (c.kind === "cast1" || c.kind === "arc") fx(m, "plasma", c.x, c.y, { size: Math.round(c.r * 1.7) });
         if (c.kind === "cast2") fx(m, "spark", c.x, c.y, { size: Math.round(c.r * 1.5) });
@@ -1360,6 +1360,7 @@
     }
     fx(m, paint, c.x, c.y, { size: Math.round((c.r || 70) * 2.1) });
     fx(m, "boom", c.x, c.y, { size: Math.round((c.r || 70) * 1.5) });
+    m.events.push({ type: "boom", x: c.x, y: c.y, r: c.r || 70, kind: c.kind, school: school });
     cue(m, "spell_" + school + "_impact");
     for (let i = 0; i < m.units.length; i++) {
       const e = m.units[i];

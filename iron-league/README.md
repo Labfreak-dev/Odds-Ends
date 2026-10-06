@@ -166,6 +166,28 @@ Slowing walk, turning and casts inside the sim instead was tried and dropped: dr
 
 On screen at 1× compared with v65: walking speed is about 56% of what it was, and every swing, cast and roll animation takes 25% longer.
 
+## Pixel hits (v68)
+
+The v64 effects drew every cast as stacked flat ellipse rings (the rune, the boom rings, the signature rings) with boxed sprite strips on top. v68 replaces all of it with `js/pfx.js`, modeled on Eslabong's Steam footage:
+
+| Moment | Look |
+|---|---|
+| Melee hit | Chunky red pixels sprayed along the blow, falling to the floor; a few white sparks; the target blinks pure white |
+| Crit | A bigger, faster spray and an orange flash |
+| Blocked | Cold steel sparks thrown back |
+| Swing | One thin white crescent (a jab line for spears) |
+| Fire spell | A bright bloom, embers and smoke, then a scorch crater that cools over 4 s |
+| Lightning | A jagged bolt dropped from the sky, flickering, with a small burn mark |
+| Ice | Shards, one thin ring, a faint frost patch |
+| Nova / thorns | Radial blades flying out of the point |
+| Heal / buff | Green or gold plus signs rising |
+| Chain bolt | A jagged arc between the two fighters |
+| Dash / roll / leap | Fading afterimages and pixel dust |
+| Death | A big blood burst, dust, and a stain left on the floor |
+| Cast wind-up | One thin circle on the floor (blue for yours, red for theirs) with a white sweep filling as the chant runs |
+
+Every effect is anchored to a floor point plus a screen-space offset, so "up" is up on a turned phone floor too. `fx.js` still loads but no longer spawns strips in the pit. Draw cost stays under 5 ms at the 95th percentile while flooding the pit with effects.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

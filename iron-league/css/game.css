@@ -2613,6 +2613,25 @@ body:has(#seasonEnd) {
   .dense-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
+.class-gallery .gal-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+.class-gallery .gal-bar strong,
+.class-gallery .gal-bar span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+}
+.class-gallery .fight-controls .btn {
+  min-height: 44px;
+  white-space: normal;
+}
+
 .hub-panel > .tutor-card { flex: 0 0 auto; margin: 0 0 6px; }
 .tutor-card .tutor-copy,
 .tutor-card .fine {

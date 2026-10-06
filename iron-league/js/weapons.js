@@ -341,10 +341,17 @@
     return false;
   }
 
+  /* Sheets bake a sword into the swing. These kinds are the class weapon,
+     so they stay in the hand and follow the swing instead of vanishing. */
+  const OVERLAY = {
+    katana: 1, scythe: 1, claw: 1, book: 1, mace: 1, staff: 1, wand: 1, fist: 1, crossbow: 1
+  };
+
   function shouldPaint(kind, motion, sheet) {
     if (!kind) return false;
     if (debugOn()) return true;
     if (HOLD[motion]) return true;
+    if (OVERLAY[kind]) return true;
     return !frameHasWeapon(motion, sheet);
   }
 

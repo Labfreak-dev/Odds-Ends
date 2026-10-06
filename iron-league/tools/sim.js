@@ -748,6 +748,30 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 if (band.length) console.error("balance band", band.join(", "));
 check("classes stay in a win band", band.length === 0);
 
+const nameRng = IL.mulberry32(9);
+const madeNames = [];
+for (let i = 0; i < 8; i++) madeNames.push(IL.uniqueName(nameRng, madeNames));
+const nameFirsts = madeNames.map(function (n) { return n.split(" ")[0].toLowerCase(); });
+check("generated names stay unique", nameFirsts.filter(function (n, i) { return nameFirsts.indexOf(n) !== i; }).length === 0);
+const dupClub = IL.migrate({
+  clubName: "Dup",
+  roster: [
+    { id: "a", cls: "warrior", name: "Quill Ash" },
+    { id: "b", cls: "mage", name: "Quill Vale" },
+    { id: "c", cls: "archer", name: "Rho Pike" }
+  ]
+});
+check("duplicate first names gain a suffix", dupClub.roster[0].name.split(" ")[0] === "Quill" && dupClub.roster[1].name.split(" ")[0] !== "Quill" && dupClub.roster[2].name.split(" ")[0] === "Rho");
+let galBroke = 0;
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const basic = IL.showcase(id, "basic");
+  const ult = IL.showcase(id, 2);
+  if (!basic || !basic.units[0].banner) galBroke++;
+  if (!ult || !ult.units[0].banner || !ult.cine) galBroke++;
+});
+check("every class can preview its moves", galBroke === 0);
+check("the third starter is an ultimate", !!(IL.CLASSES.warrior.abilities.filter(function (ab) { return ab.unlock === 7; })[0] || {}).ult);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

@@ -284,6 +284,7 @@
     if (!ab || !ab.id) return ab;
     if (!ab.row) ab.row = KIND_ROW[ab.kind] || "skill";
     if (!ab.tags || !ab.tags.length) ab.tags = KIND_TAGS[ab.kind] || ["AoE"];
+    if (ab.unlock === 7) ab.ult = true;
     const spec = ABILITY_ROWS[ab.row] || ABILITY_ROWS.skill;
     ab.wind = spec.hold + (IL.hashStr(ab.id) % 5) * 0.04;
     return ab;
@@ -624,9 +625,27 @@
 
   function attackOf(cls) {
     const kit = CLASSES[cls] || CLASSES.warrior;
-    if (kit.attack === "shot") return { id: "shot", name: "Ranged shot", blurb: "A shot from the bow or the gun." };
+    const weapon = (IL.CLASS_WEAPON && IL.CLASS_WEAPON[cls]) || "sword";
+    if (kit.attack === "shot") {
+      const gun = weapon === "gun";
+      return { id: "shot", name: gun ? "Gunshot" : "Bow shot", blurb: gun ? "A shot from the gun." : "A shot from the bow." };
+    }
     if (kit.attack === "bolt") return { id: "bolt", name: "Spell bolt", blurb: "A bolt at the end of the chant." };
-    return { id: "combo", name: "Melee combo", blurb: "A chain of swings." };
+    const named = {
+      spear: "Spear thrust",
+      dagger: "Dagger cut",
+      axe: "Axe swing",
+      mace: "Mace blow",
+      fist: "Open hand",
+      claw: "Claw rake",
+      katana: "Draw cut",
+      scythe: "Scythe sweep",
+      staff: "Staff strike",
+      wand: "Wand flick",
+      book: "Page strike",
+      sword: "Sword swing"
+    };
+    return { id: "combo", name: named[weapon] || "Melee combo", blurb: "A chain of swings." };
   }
 
   function tomeIds() {

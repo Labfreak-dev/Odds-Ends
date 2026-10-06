@@ -96,6 +96,8 @@
     if (key !== "hp" && key !== "dmg" && key !== "spd" && key !== "def") return false;
     fighter.boosts[key] = (fighter.boosts[key] || 0) + 1;
     fighter.pendingPicks -= 1;
+    if (!Array.isArray(fighter.perks)) fighter.perks = [];
+    fighter.perks.push({ id: key, level: fighter.level || 1 });
     return true;
   }
 
@@ -132,6 +134,16 @@
       if (typeof data.settings.sound !== "number") data.settings.sound = 80;
       if (typeof data.settings.music !== "number") data.settings.music = 60;
     }
+    if (!data.achieved || typeof data.achieved !== "object") data.achieved = {};
+    ["bouts", "flawless", "cupsWon", "cupsEntered", "trainsDone", "salvaged", "chaosWins", "hires", "tonicsUsed", "seasonTitles", "unbeaten", "ceremonyPaid"].forEach(function (key) {
+      if (typeof data[key] !== "number") data[key] = 0;
+    });
+    if (typeof data.goldPeak !== "number") data.goldPeak = data.gold || 0;
+    if (!Array.isArray(data.seenClasses)) {
+      const seen = {};
+      (data.roster || []).forEach(function (f) { if (f && f.cls) seen[f.cls] = true; });
+      data.seenClasses = Object.keys(seen);
+    }
     if (!Array.isArray(data.roster)) return data;
     data.roster.forEach(function (f) {
       if (!f.boosts) f.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
@@ -143,6 +155,14 @@
       if (typeof f.wins !== "number") f.wins = 0;
       if (typeof f.losses !== "number") f.losses = 0;
       if (typeof f.kos !== "number") f.kos = 0;
+      if (!f.season || typeof f.season !== "object") f.season = { dealt: 0, taken: 0, heal: 0, kos: 0 };
+      else {
+        if (typeof f.season.dealt !== "number") f.season.dealt = 0;
+        if (typeof f.season.taken !== "number") f.season.taken = 0;
+        if (typeof f.season.heal !== "number") f.season.heal = 0;
+        if (typeof f.season.kos !== "number") f.season.kos = 0;
+      }
+      if (!Array.isArray(f.perks)) f.perks = [];
     });
     normalizeLineup(data);
     adoptSheets(data);
@@ -397,6 +417,163 @@
     };
   }
 
+  function rivalBump(season) {
+    return Math.min(3, Math.max(0, (season || 1) - 1));
+  }
+
+  function seasonAwards(roster) {
+    function best(key) {
+      let top = null;
+      (roster || []).forEach(function (f) {
+        if (!f) return;
+        const n = f.season && typeof f.season[key] === "number" ? f.season[key] : 0;
+        if (!top || n > top.n) top = { fighter: f, n: n };
+      });
+      return top ? top.fighter : null;
+    }
+    return { mvp: best("dealt"), kos: best("kos"), wall: best("taken"), healer: best("heal") };
+  }
+
+  function seasonPurse(place) {
+    if (place <= 0) return { gold: 80, renown: 12 };
+    if (place === 1) return { gold: 48, renown: 7 };
+    return { gold: 28, renown: 4 };
+  }
+
+  function youRow(data) {
+    const clubs = (data && data.clubs) || [];
+    for (let i = 0; i < clubs.length; i++) if (clubs[i] && clubs[i].you) return clubs[i];
+    return null;
+  }
+
+  function sumOf(data, key) {
+    let n = 0;
+    (data.roster || []).forEach(function (f) { n += (f && f[key]) || 0; });
+    return n;
+  }
+
+  function maxLevel(data) {
+    let n = 0;
+    (data.roster || []).forEach(function (f) { if (f && (f.level || 1) > n) n = f.level || 1; });
+    return n;
+  }
+
+  function countRarity(data, rarity) {
+    let n = 0;
+    function see(item) { if (item && item.rarity === rarity) n++; }
+    (data.items || []).forEach(see);
+    (data.roster || []).forEach(function (f) {
+      const g = (f && f.gear) || {};
+      see(g.weapon);
+      see(g.armor);
+      see(g.trinket);
+    });
+    return n;
+  }
+
+  function kitted(data) {
+    return (data.roster || []).some(function (f) {
+      const g = f && f.gear;
+      return !!(g && g.weapon && g.armor && g.trinket);
+    });
+  }
+
+  const ACHIEVEMENTS = [
+    { id: "first-bout", name: "First bell", blurb: "Finish a match.", gold: 10, icon: "bw_sword_01_steel",
+      progress: function (d) { return { current: d.bouts || 0, goal: 1 }; } },
+    { id: "first-win", name: "First win", blurb: "Win a match.", gold: 15, icon: "bw_sword_05_gold",
+      progress: function (d) { const you = youRow(d); return { current: you ? you.w : 0, goal: 1 }; } },
+    { id: "five-wins", name: "Five wins", blurb: "Win five matches.", gold: 25, icon: "bw_gold_coins",
+      progress: function (d) { const you = youRow(d); return { current: you ? you.w : 0, goal: 5 }; } },
+    { id: "flawless", name: "Flawless", blurb: "Win without your side taking a hit.", gold: 20, icon: "bw_old_shield",
+      progress: function (d) { return { current: d.flawless || 0, goal: 1 }; } },
+    { id: "ten-kos", name: "Ten KOs", blurb: "Land ten knockouts.", gold: 20, icon: "bw_dagger_01_steel",
+      progress: function (d) { return { current: sumOf(d, "kos"), goal: 10 }; } },
+    { id: "forty-kos", name: "Forty KOs", blurb: "Land forty knockouts.", gold: 35, icon: "bw_poison_dagger",
+      progress: function (d) { return { current: sumOf(d, "kos"), goal: 40 }; } },
+    { id: "legendary", name: "A legend", blurb: "Own a legendary piece.", gold: 30, icon: "bw_diamond",
+      progress: function (d) { return { current: countRarity(d, "legendary"), goal: 1 }; } },
+    { id: "epic-gear", name: "Epic steel", blurb: "Own an epic piece.", gold: 12, icon: "bw_fire_gem",
+      progress: function (d) { return { current: countRarity(d, "epic"), goal: 1 }; } },
+    { id: "cup-enter", name: "Cup entry", blurb: "Enter the cup.", gold: 8, icon: "bw_token_golden_medallion",
+      progress: function (d) { return { current: d.cupsEntered || 0, goal: 1 }; } },
+    { id: "cup-win", name: "Cup winner", blurb: "Win the cup.", gold: 40, renown: 6, icon: "bw_token_golden_medallion",
+      progress: function (d) { return { current: d.cupsWon || 0, goal: 1 }; } },
+    { id: "all-classes", name: "Every kit", blurb: "Hire every class.", gold: 40, renown: 8, icon: "bw_old_helm",
+      progress: function (d) {
+        const goal = IL.CLASSES ? Object.keys(IL.CLASSES).length : 15;
+        return { current: (d.seenClasses || []).length, goal: goal };
+      } },
+    { id: "full-house", name: "Full house", blurb: "Fill the roster.", gold: 18, icon: "bw_gauntlet_01_red",
+      progress: function (d) { return { current: (d.roster || []).length, goal: IL.ROSTER_CAP || 8 }; } },
+    { id: "first-hire", name: "New blood", blurb: "Hire a fighter.", gold: 10, icon: "bw_green_gem",
+      progress: function (d) { return { current: d.hires || 0, goal: 1 }; } },
+    { id: "drilled", name: "First drill", blurb: "Train a benched fighter.", gold: 8, icon: "bw_gauntlet_05_gold",
+      progress: function (d) { return { current: d.trainsDone || 0, goal: 1 }; } },
+    { id: "kitted", name: "Fully dressed", blurb: "Fill weapon, armor, and trinket on one fighter.", gold: 15, icon: "bw_old_leather_armor",
+      progress: function (d) { return { current: kitted(d) ? 1 : 0, goal: 1 }; } },
+    { id: "scrapped", name: "Scrapped", blurb: "Salvage a piece.", gold: 8, icon: "bw_broken_shield",
+      progress: function (d) { return { current: d.salvaged || 0, goal: 1 }; } },
+    { id: "season-title", name: "Season title", blurb: "Finish a season in first.", gold: 25, renown: 4, icon: "bw_gem_ruby",
+      progress: function (d) { return { current: d.seasonTitles || 0, goal: 1 }; } },
+    { id: "third-season", name: "Third season", blurb: "Open a third season.", gold: 15, icon: "bw_staff_02_steel",
+      progress: function (d) { return { current: d.season || 1, goal: 3 }; } },
+    { id: "renown-40", name: "Known name", blurb: "Hold 40 renown.", gold: 12, icon: "bw_gem_ruby",
+      progress: function (d) { return { current: d.renown || 0, goal: 40 }; } },
+    { id: "chaos-win", name: "Pit king", blurb: "Win a chaos pit.", gold: 18, icon: "bw_flail_08_red",
+      progress: function (d) { return { current: d.chaosWins || 0, goal: 1 }; } },
+    { id: "level-6", name: "Level 6", blurb: "Raise a fighter to level 6.", gold: 16, icon: "bw_bow_07_gold",
+      progress: function (d) { return { current: maxLevel(d), goal: 6 }; } },
+    { id: "level-9", name: "Level 9", blurb: "Raise a fighter to level 9.", gold: 28, icon: "bw_bow_09_purple",
+      progress: function (d) { return { current: maxLevel(d), goal: 9 }; } },
+    { id: "sipped", name: "A sip", blurb: "Give a fighter a tonic.", gold: 8, icon: "cs_potion_01_green",
+      progress: function (d) { return { current: d.tonicsUsed || 0, goal: 1 }; } },
+    { id: "purse", name: "Heavy purse", blurb: "Hold 200 gold.", gold: 12, icon: "bw_gold_coins",
+      progress: function (d) { return { current: d.goldPeak || 0, goal: 200 }; } },
+    { id: "unbeaten", name: "Unbeaten", blurb: "Finish a season without a loss.", gold: 35, icon: "bw_old_shield",
+      progress: function (d) { return { current: d.unbeaten || 0, goal: 1 }; } }
+  ];
+
+  function claimAchievements(data) {
+    if (!data) return [];
+    if (!data.achieved || typeof data.achieved !== "object") data.achieved = {};
+    const fresh = [];
+    for (let pass = 0; pass < 4; pass++) {
+      if ((data.gold || 0) > (data.goldPeak || 0)) data.goldPeak = data.gold;
+      let hit = false;
+      for (let i = 0; i < ACHIEVEMENTS.length; i++) {
+        const row = ACHIEVEMENTS[i];
+        if (data.achieved[row.id]) continue;
+        const prog = row.progress(data);
+        if ((prog.current || 0) < prog.goal) continue;
+        data.achieved[row.id] = true;
+        data.gold = (data.gold || 0) + (row.gold || 0);
+        data.renown = (data.renown || 0) + (row.renown || 0);
+        fresh.push(row);
+        hit = true;
+      }
+      if (!hit) break;
+    }
+    return fresh;
+  }
+
+  function achievementBoard(data) {
+    return ACHIEVEMENTS.map(function (row) {
+      const prog = row.progress(data || {});
+      return {
+        id: row.id,
+        name: row.name,
+        blurb: row.blurb,
+        gold: row.gold || 0,
+        renown: row.renown || 0,
+        icon: row.icon,
+        current: prog.current || 0,
+        goal: prog.goal,
+        done: !!(data && data.achieved && data.achieved[row.id])
+      };
+    });
+  }
+
   IL.RELICS = RELICS;
   IL.relicById = relicById;
   IL.equippedRelics = equippedRelics;
@@ -415,4 +592,10 @@
   IL.advanceCup = advanceCup;
   IL.startChaos = startChaos;
   IL.sideStr = sideStr;
+  IL.rivalBump = rivalBump;
+  IL.seasonAwards = seasonAwards;
+  IL.seasonPurse = seasonPurse;
+  IL.ACHIEVEMENTS = ACHIEVEMENTS;
+  IL.claimAchievements = claimAchievements;
+  IL.achievementBoard = achievementBoard;
 })(typeof window !== "undefined" ? window : globalThis);

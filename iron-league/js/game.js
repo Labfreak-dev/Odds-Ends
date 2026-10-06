@@ -90,9 +90,12 @@
       rivals.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
     }
     const clubs = [{ id: "you", name: save.clubName, you: true, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: 1 }];
+    const bump = IL.rivalBump ? IL.rivalBump(save.season) : 0;
     rivals.forEach(function (name, i) {
       const fighters = [0, 1, 2].map(function () {
         const fighter = IL.randomFighter(rng);
+        fighter.level = 1 + bump;
+        fighter.xp = bump * 40;
         if (IL.dressRival) IL.dressRival(fighter, rng);
         return fighter;
       });
@@ -635,7 +638,7 @@
     el.style.height = size + "px";
     el.hidden = false;
     const svg = el.parentNode && el.parentNode.querySelector("svg");
-    if (svg && el.parentNode.classList.contains("glyph")) svg.hidden = true;
+    if (svg && el.parentNode.classList.contains("glyph")) svg.style.display = "none";
   }
 
   function mountIcons(scope) {
@@ -825,6 +828,7 @@
     save.items = save.items.filter(function (it) { return it.uid !== item.uid; });
     fighter.tonic = item;
     tonicPick = null;
+    save.tonicsUsed = (save.tonicsUsed || 0) + 1;
     return true;
   }
 
@@ -1044,6 +1048,7 @@
         statBar("SPD", stats.speed, 180) +
         gearSheetHtml(f) +
         '<h3 class="section">Abilities</h3><ul class="abilities">' + abilities.join("") + '</ul>' +
+        perkList(f) +
         '<h3 class="section">Relics with the party</h3>' + relics +
         '<h3 class="section">Record</h3>' +
         '<p class="record"><span><b>W</b> ' + (f.wins || 0) + '</span><span><b>L</b> ' + (f.losses || 0) + '</span><span><b>KO</b> ' + kos + '</span></p>' +
@@ -1062,6 +1067,149 @@
                 '<button type="button" class="btn ghost" id="releaseNo">Keep them</button></div>') +
         '</div>' +
       '</aside>';
+  }
+
+  function perkList(f) {
+    const rows = (f && f.perks) || [];
+    if (!rows.length) return "";
+    return '<h3 class="section">Perks</h3><ul class="abilities">' + rows.map(function (p) {
+      const copy = (IL.PERK_COPY && IL.PERK_COPY[p.id]) || { name: p.id };
+      return '<li><strong>' + esc(copy.name) + '</strong><span>Level ' + (p.level || 1) + '</span><p>Kept on this fighter.</p></li>';
+    }).join("") + '</ul>';
+  }
+
+  function achievementsHtml() {
+    const rows = IL.achievementBoard ? IL.achievementBoard(save) : [];
+    const done = rows.filter(function (r) { return r.done; }).length;
+    const body = rows.map(function (r) {
+      const pct = Math.max(0, Math.min(100, Math.round(100 * (r.current || 0) / Math.max(1, r.goal))));
+      const reward = "+" + r.gold + " gold" + (r.renown ? " · +" + r.renown + " renown" : "");
+      return '<article class="achieve-row' + (r.done ? " done" : "") + '">' +
+        iconTag(r.icon, 24) +
+        '<div><strong>' + esc(r.name) + '</strong><p class="fine">' + esc(r.blurb) + " · " + esc(reward) + '</p>' +
+        '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>' +
+        '<b>' + Math.min(r.current || 0, r.goal) + "/" + r.goal + '</b></article>';
+    }).join("");
+    return '<section class="panel-frame" id="achievements"><h3 class="section">Achievements</h3>' +
+      '<p class="fine">' + done + " of " + rows.length + ".</p>" + body + "</section>";
+  }
+
+  function takeAchievements() {
+    if (!save || !IL.claimAchievements) return [];
+    if ((save.gold || 0) > (save.goldPeak || 0)) save.goldPeak = save.gold;
+    const fresh = IL.claimAchievements(save);
+    if (fresh.length) persist();
+    return fresh;
+  }
+
+  let toastTimer = 0;
+  function showToasts(list) {
+    if (!list || !list.length) return;
+    let box = document.getElementById("achieveToast");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "achieveToast";
+      document.body.appendChild(box);
+    }
+    box.hidden = false;
+    box.innerHTML = list.map(function (row) {
+      const pay = "+" + (row.gold || 0) + " gold" + (row.renown ? " · +" + row.renown + " renown" : "");
+      return '<p class="toast"><strong>' + esc(row.name) + '</strong> ' + esc(pay) + '</p>';
+    }).join("");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { box.hidden = true; }, 4200);
+  }
+
+  function payCeremony() {
+    if ((save.round || 0) < 5) return null;
+    if (save.ceremonyPaid === save.season) return null;
+    const sorted = sortedClubs();
+    const place = sorted.findIndex(function (c) { return c.you; });
+    const purse = IL.seasonPurse(place < 0 ? 99 : place);
+    save.gold += purse.gold;
+    save.renown = (save.renown || 0) + purse.renown;
+    save.ceremonyPaid = save.season;
+    if (place === 0) save.seasonTitles = (save.seasonTitles || 0) + 1;
+    const you = place >= 0 ? sorted[place] : null;
+    if (you && you.w >= 5 && you.l === 0) save.unbeaten = (save.unbeaten || 0) + 1;
+    return purse;
+  }
+
+  function startNextSeason() {
+    save.season += 1;
+    save.gold += 30;
+    (save.roster || []).forEach(function (f) {
+      f.season = { dealt: 0, taken: 0, heal: 0, kos: 0 };
+    });
+    buildSeason(true);
+    persist();
+    showHub("club");
+  }
+
+  function showSeasonEnd() {
+    stopLoops();
+    app.onclick = null;
+    save = save || load();
+    if (!save) { showTitle(); return; }
+    IL.migrate(save);
+    const purse = payCeremony();
+    const fresh = takeAchievements();
+    persist();
+    const awards = IL.seasonAwards(save.roster);
+    const sorted = sortedClubs();
+    const place = Math.max(0, sorted.findIndex(function (c) { return c.you; }));
+    const table = sorted.map(function (c, i) {
+      const played = c.w + c.l;
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+    }).join("");
+    function awardCard(label, fighter) {
+      if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
+      return '<article class="award"><p class="eyebrow">' + esc(label) + '</p>' +
+        '<canvas width="120" height="100" data-key="' + esc(IL.hero.keyOf(fighter.parts)) + '" data-anim="cheer"></canvas>' +
+        '<h3>' + esc(fighter.name) + '</h3></article>';
+    }
+    const cup = save.cup;
+    let cupNote = "You sat out the cup.";
+    if (cup && cup.champion === "you") cupNote = "You won the cup.";
+    else if (cup && cup.champion) cupNote = "The cup went elsewhere.";
+    else if (cup) cupNote = "The cup is still open.";
+    const paidLine = purse
+      ? "+" + purse.gold + " gold · +" + purse.renown + " renown"
+      : "Season rewards are already in the purse.";
+    app.innerHTML =
+      '<main class="hub" id="seasonEnd">' +
+        '<header class="hub-head"><div><p class="eyebrow">Season ' + save.season + '</p><h2>The yard closes</h2></div></header>' +
+        '<p class="banner">' + esc(save.clubName) + " finishes " + (place + 1) + ".</p>" +
+        '<section class="panel-frame"><h3 class="section">Final standings</h3>' +
+          '<table class="board" id="finalTable"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table></section>' +
+        '<section class="panel-frame" id="awards"><h3 class="section">Awards</h3><div class="awards">' +
+          awardCard("MVP", awards.mvp) +
+          awardCard("Most KOs", awards.kos) +
+          awardCard("Iron wall", awards.wall) +
+          awardCard("Top healer", awards.healer) +
+        '</div></section>' +
+        '<p id="seasonRewards">' + esc(paidLine) + '</p>' +
+        '<p id="cupNote">' + esc(cupNote) + '</p>' +
+        '<div class="hub-actions">' +
+          (save.relicSeason !== save.season ? '<button type="button" class="btn ghost" id="claimRelic">Take the yard relic</button>' : '') +
+          '<button type="button" class="btn primary" id="startSeason">Start season ' + (save.season + 1) + '</button>' +
+          '<button type="button" class="btn ghost" id="backFromSeason">Back to the club</button>' +
+        '</div></main>';
+    root.scrollTo(0, 0);
+    bootCards();
+    showToasts(fresh);
+    const start = document.getElementById("startSeason");
+    if (start) start.onclick = startNextSeason;
+    const back = document.getElementById("backFromSeason");
+    if (back) back.onclick = function () { showHub("club"); };
+    const claim = document.getElementById("claimRelic");
+    if (claim) claim.onclick = function () {
+      const relic = IL.offerRelic(save, takeRng());
+      save.relicSeason = save.season;
+      if (relic && save.equipped.length < 2) save.equipped.push(relic.id);
+      persist();
+      showSeasonEnd();
+    };
   }
 
   function clubPanel() {
@@ -1097,13 +1245,11 @@
       '</article>';
     }).join("");
     return (pendingGrowth().length
-        ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a growth</button></p>'
+        ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a perk</button></p>'
         : '') +
-      (done && save.relicSeason !== save.season
-        ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn primary" id="claimRelic">Take the yard relic</button></p>'
-        : (done
-          ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. Roster, renown, and relics carry forward.</p>'
-          : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>')) +
+      (done
+        ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn primary" id="openSeasonBanner">Open the ceremony</button></p>'
+        : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>') +
       (size && yours.length < size
         ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
         : '') +
@@ -1111,6 +1257,7 @@
       rosterHtml(size, size ? "In the pit" : "Party", "First chosen is slot 1. The portrait opens a fighter. The lineup button changes who walks in.") +
       (theirs.length ? '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
       historyHtml() +
+      achievementsHtml() +
       '<section class="panel-frame"><h3 class="section">Standings</h3>' +
         '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
       '</section>';
@@ -1262,6 +1409,7 @@
     if (!save) { showTitle(); return; }
     IL.migrate(save);
     ensureMarket();
+    const freshAchieve = takeAchievements();
     if (typeof tab === "string" && HUB_TABS.indexOf(tab) >= 0) hubTab = tab;
     if (detailId && !fighterById(detailId)) detailId = null;
     persist();
@@ -1279,7 +1427,7 @@
           '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
           '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
           '<div class="hub-actions">' +
-            (done ? '<button type="button" class="btn primary" id="nextSeason">Open next season</button>' : '') +
+            (done ? '<button type="button" class="btn primary" id="openSeason">Season ceremony</button>' : '') +
             '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
             '<button type="button" class="text-btn" id="credits">Credits</button>' +
             '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
@@ -1300,6 +1448,7 @@
       ? (save.market || []).map(function (row) { return row.fighter && row.fighter.parts; })
       : [];
     bootCards(extra);
+    showToasts(freshAchieve);
   }
 
   function creditsHtml() {
@@ -1468,14 +1617,10 @@
   function bindHub() {
     const nm = document.getElementById("nextMatch");
     if (nm) nm.onclick = function () { startFight(); };
-    const ns = document.getElementById("nextSeason");
-    if (ns) ns.onclick = function () {
-      save.season += 1;
-      save.gold += 30;
-      buildSeason(true);
-      persist();
-      showHub("club");
-    };
+    const openSeason = document.getElementById("openSeason");
+    if (openSeason) openSeason.onclick = function () { showSeasonEnd(); };
+    const openSeasonBanner = document.getElementById("openSeasonBanner");
+    if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
     const growthBtn = document.getElementById("openGrowth");
@@ -1520,6 +1665,7 @@
     if (enterBtn) enterBtn.onclick = function () {
       if ((save.tokens || 0) < 1) return;
       save.tokens -= 1;
+      save.cupsEntered = (save.cupsEntered || 0) + 1;
       save.cup = IL.startCup(save, takeRng());
       persist();
       showHub("cup");
@@ -1711,6 +1857,7 @@
     if ((save.trainsLeft || 0) <= 0 || save.gold < cost) return;
     save.gold -= cost;
     save.trainsLeft -= 1;
+    save.trainsDone = (save.trainsDone || 0) + 1;
     IL.grantXp(f, IL.TRAIN_XP || 12);
     persist();
     showHub(hubTab);
@@ -1720,6 +1867,7 @@
     const found = findItem(uid);
     if (!found || found.owner) return;
     save.gold += IL.salvageValue(found.item);
+    save.salvaged = (save.salvaged || 0) + 1;
     save.items = (save.items || []).filter(function (it) { return it.uid !== uid; });
     if (gearPreview && gearPreview.uid === uid) gearPreview = null;
     persist();
@@ -1859,6 +2007,9 @@
     const fighter = row.fighter;
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= row.cost;
+      save.hires = (save.hires || 0) + 1;
+      if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
+      if (fighter.cls && save.seenClasses.indexOf(fighter.cls) < 0) save.seenClasses.push(fighter.cls);
       save.roster.push(fighter);
       save.market.splice(index, 1);
       if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0);
@@ -1887,12 +2038,13 @@
     const f = queue[0];
     const choices = IL.boostChoices(f);
     const buttons = choices.map(function (key) {
-      return '<button type="button" class="class-card" data-boost="' + key + '"><strong>' + esc(IL.BOOST_LABEL[key] || key) + '</strong><span>One step, kept on this fighter.</span></button>';
+      const copy = (IL.PERK_COPY && IL.PERK_COPY[key]) || { name: IL.BOOST_LABEL[key] || key, blurb: "One step, kept on this fighter." };
+      return '<button type="button" class="class-card" data-boost="' + key + '"><strong>' + esc(copy.name) + '</strong><span>' + esc(copy.blurb) + '</span></button>';
     }).join("");
     app.innerHTML =
       '<main class="creator" id="growth">' +
-        '<header class="creator-head"><h2>A growth for ' + esc(f.name) + '</h2></header>' +
-        '<p class="banner">Level ' + f.level + '. ' + f.pendingPicks + ' choice' + (f.pendingPicks === 1 ? "" : "s") + ' waiting. Pick one.</p>' +
+        '<header class="creator-head"><h2>A perk for ' + esc(f.name) + '</h2></header>' +
+        '<p class="banner">Level ' + f.level + '. ' + f.pendingPicks + ' choice' + (f.pendingPicks === 1 ? "" : "s") + ' waiting. Pick one of three.</p>' +
         '<div class="class-grid" id="growthChoices">' + buttons + '</div>' +
       '</main>';
     document.getElementById("growthChoices").onclick = function (ev) {
@@ -1901,6 +2053,7 @@
       IL.applyBoost(f, btn.dataset.boost);
       persist();
       if (pendingGrowth().length) showGrowth();
+      else if ((save.round || 0) >= 5) showSeasonEnd();
       else showHub();
     };
   }
@@ -2282,6 +2435,11 @@
       if (win) f.wins = (f.wins || 0) + 1;
       else f.losses = (f.losses || 0) + 1;
       f.kos = (f.kos || 0) + (u.kos || 0);
+      if (!f.season) f.season = { dealt: 0, taken: 0, heal: 0, kos: 0 };
+      f.season.dealt += u.dmgDealt || 0;
+      f.season.taken += u.dmgTaken || 0;
+      f.season.heal += u.healing || 0;
+      f.season.kos += u.kos || 0;
     });
   }
 
@@ -2327,6 +2485,7 @@
         xp = 30;
         save.tokens = (save.tokens || 0) + 1;
         headline = "The cup is yours";
+        save.cupsWon = (save.cupsWon || 0) + 1;
         if (takeRng()() < 0.7) {
           const relic = IL.offerRelic(save, takeRng());
           if (relic) {
@@ -2343,6 +2502,7 @@
       gold = win ? 32 : 12;
       renown = win ? 7 : 2;
       headline = win ? "The pit is yours" : "They walk out";
+      if (win) save.chaosWins = (save.chaosWins || 0) + 1;
     } else {
       if (win) save.tokens = (save.tokens || 0) + 1;
       recordRound(win, pf, pa);
@@ -2352,6 +2512,12 @@
     }
     gold += match.stats.bounty || 0;
     noteRecords(match, win);
+    save.bouts = (save.bouts || 0) + 1;
+    if (win) {
+      let taken = 0;
+      match.units.forEach(function (u) { if (u.team === 0) taken += u.dmgTaken || 0; });
+      if (taken <= 0) save.flawless = (save.flawless || 0) + 1;
+    }
     const before = {};
     const xpBefore = {};
     fight.left.forEach(function (f) {
@@ -2396,6 +2562,7 @@
       '<h2>' + headline + '</h2>' +
       tally.html +
       (ups.length ? '<p class="level-call">Level up: ' + esc(ups.join(", ")) + '</p>' : '') +
+      (pendingGrowth().length ? '<p class="level-call">A perk is waiting.</p>' : '') +
       (loot ? lootRevealHtml(loot) : '') +
       '<ul class="payout" id="rewards">' +
         '<li>+' + gold + ' gold</li>' +
@@ -2406,7 +2573,7 @@
       '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
         (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +
       '<p class="fine">' + esc(nextLine) + '</p>' +
-      '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a growth" : "Continue") + '</button>';
+      '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a perk" : "Continue") + '</button>';
     animateXpBars();
     pitSound(win ? "victory" : "defeat");
     const skip = document.getElementById("skip");
@@ -2414,6 +2581,7 @@
     document.getElementById("backHub").onclick = function () {
       IL.currentMatch = null;
       if (pendingGrowth().length) showGrowth();
+      else if (mode === "league" && save.round >= 5) showSeasonEnd();
       else if (mode === "cup") showCup();
       else showHub();
     };

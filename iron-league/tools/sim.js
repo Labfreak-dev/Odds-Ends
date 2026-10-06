@@ -128,6 +128,61 @@ check("ability and currency frames exist", ["cleave", "multishot", "frost", "fir
   return !!(atlas.frames && atlas.frames[IL.abilityIcon(id)]);
 }) && atlas.frames[IL.CURRENCY_ICON.gold] && atlas.frames[IL.CURRENCY_ICON.renown] && atlas.frames[IL.CURRENCY_ICON.token] && atlas.frames[IL.lootFrame("chest", "common")] && atlas.frames[IL.lootFrame("chest", "legendary")] && atlas.frames[IL.lootFrame("bag", "rare")] && atlas.frames[IL.lootFrame("bag", "epic")]);
 check("a tonic is a sip of shield", IL.tonicShield({ rarity: "common" }) === 6 && IL.tonicShield({ rarity: "legendary" }) === 12);
+function iconKind(id) {
+  const s = String(id || "");
+  if (s.indexOf("sword") >= 0) return "sword";
+  if (s.indexOf("axe") >= 0) return "axe";
+  if (s.indexOf("flail") >= 0) return "flail";
+  if (s.indexOf("mace") >= 0) return "mace";
+  if (s.indexOf("spear") >= 0) return "spear";
+  if (s.indexOf("bow") >= 0) return "bow";
+  if (s.indexOf("staff") >= 0) return "staff";
+  if (s.indexOf("tome") >= 0 || s.indexOf("book") >= 0) return "tome";
+  if (s.indexOf("dagger") >= 0) return "dagger";
+  if (s.indexOf("star") >= 0) return "star";
+  if (s.indexOf("leather") >= 0) return "leather";
+  if (s.indexOf("gauntlet") >= 0) return "gauntlet";
+  if (s.indexOf("helm") >= 0 || s.indexOf("helmet") >= 0) return "helm";
+  if (s.indexOf("shield") >= 0) return "shield";
+  if (s.indexOf("ring") >= 0) return "ring";
+  if (s.indexOf("orb") >= 0) return "orb";
+  if (s.indexOf("gem") >= 0 || s.indexOf("diamond") >= 0) return "gem";
+  if (s.indexOf("potion") >= 0) return "potion";
+  return s;
+}
+const NAME_KIND = {
+  cleaver: "sword", axe: "axe", flail: "flail", mace: "mace", spear: "spear",
+  longbow: "bow", wand: "staff", tome: "tome", dagger: "dagger", star: "star",
+  mail: "leather", cloak: "gauntlet", helm: "helm", guard: "shield", gauntlet: "gauntlet",
+  charm: "gem", band: "ring", glass: "orb",
+  "tonic-green": "potion", "tonic-blue": "potion", "tonic-red": "potion"
+};
+check("item names match their icons", IL.GEAR_CATALOG.every(function (row) {
+  const kind = NAME_KIND[row.key];
+  if (!kind) return false;
+  return framesOf(row).every(function (id) { return iconKind(id) === kind; });
+}));
+check("dust gauntlets are gauntlets", IL.GEAR_CATALOG.some(function (row) {
+  return row.key === "cloak" && row.name === "Dust Gauntlets";
+}));
+check("rival seasons step up a little", IL.rivalBump(1) === 0 && IL.rivalBump(2) === 1 && IL.rivalBump(8) === 3);
+const perkFighter = { id: "p", level: 3, pendingPicks: 1, boosts: { hp: 0, dmg: 0, spd: 0, def: 0 }, perks: [] };
+check("a perk is one stat step", IL.applyBoost(perkFighter, "hp") && perkFighter.perks.length === 1 && perkFighter.perks[0].id === "hp" && perkFighter.boosts.hp === 1 && perkFighter.pendingPicks === 0);
+const awardRoster = [
+  { id: "a", name: "Ada", season: { dealt: 10, taken: 2, heal: 0, kos: 1 } },
+  { id: "b", name: "Bram", season: { dealt: 4, taken: 20, heal: 1, kos: 5 } },
+  { id: "c", name: "Cass", season: { dealt: 3, taken: 3, heal: 14, kos: 0 } }
+];
+const awards = IL.seasonAwards(awardRoster);
+check("season awards pick the leaders", awards.mvp.name === "Ada" && awards.kos.name === "Bram" && awards.wall.name === "Bram" && awards.healer.name === "Cass");
+const achSave = {
+  v: 1, gold: 0, renown: 0, bouts: 1, roster: [{ id: "a", cls: "warrior", kos: 0, level: 1 }],
+  clubs: [{ id: "you", you: true, w: 0, l: 0 }], items: [], achieved: {}, seenClasses: ["warrior"]
+};
+IL.migrate(achSave);
+const unlocked = IL.claimAchievements(achSave);
+check("first bell pays once", unlocked.some(function (row) { return row.id === "first-bout"; }) && achSave.gold >= 10 && IL.claimAchievements(achSave).length === 0);
+check("achievement board has a range of goals", IL.achievementBoard(achSave).length >= 15 && IL.achievementBoard(achSave).length <= 25);
 check("old save keeps a training day", oldSave.trainsLeft === 2 && oldSave.trainRound === 0);
 const messy = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 0 }], clubs: [], fixtures: [], settings: { speed: 9, shake: "no" } };
 IL.migrate(messy);

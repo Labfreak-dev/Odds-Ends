@@ -506,7 +506,12 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   border-radius: 8px;
   padding: 8px;
 }
-.gear-card > .glyph, .gear-slot > .glyph, .gear-offer > .glyph { grid-row: 1 / span 3; }
+.gear-card > .glyph, .gear-slot > .glyph, .gear-offer > .glyph {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  justify-self: start;
+  align-self: start;
+}
 .gear-card h3, .gear-card p, .gear-slot span, .gear-offer span { grid-column: 2; margin: 0; }
 .gear-card .btn, .gear-card .armory-pick, .gear-slot .btn { grid-column: 1 / -1; }
 .gear-card h3, .gear-slot b, .gear-offer b { font-family: var(--display); font-size: 16px; font-weight: 600; }
@@ -521,16 +526,24 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
 }
 .gear-offer:hover, .gear-slot:hover { border-color: var(--copper-2); }
 .glyph {
+  position: relative;
   width: 52px;
   height: 52px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border: 2px solid #8a7d70;
   border-radius: 6px;
   background: #16130f;
   color: #d9cbb8;
 }
 .glyph svg { width: 28px; height: 28px; }
+.glyph .item-icon:not([hidden]) {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.glyph:has(.item-icon:not([hidden])) svg { display: none; }
 .item-icon {
   display: block;
   image-rendering: crisp-edges;
@@ -566,6 +579,50 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   to { opacity: 1; transform: none; }
 }
 .chip.train { display: block; width: 100%; margin-top: 6px; }
+.awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.award {
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+}
+.award h3 { margin: 4px 0 0; font-family: var(--display); font-size: 16px; }
+.award canvas { width: 100%; height: auto; background: #1a1612; border-radius: 4px; }
+.achieve-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+.achieve-row .track { height: 8px; background: #100e0c; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.achieve-row .fill { height: 100%; background: var(--copper); }
+.achieve-row.done .fill { background: var(--good); }
+.achieve-row b { font-variant-numeric: tabular-nums; font-size: 13px; }
+#achieveToast {
+  position: fixed;
+  z-index: 80;
+  left: 16px;
+  right: 16px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+#achieveToast[hidden] { display: none; }
+.toast {
+  align-self: center;
+  background: var(--panel);
+  border: 1px solid var(--copper-2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  #achieveToast { bottom: 108px; }
+}
 .icon-btn {
   min-width: 44px;
   min-height: 44px;

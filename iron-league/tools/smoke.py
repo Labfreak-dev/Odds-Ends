@@ -301,6 +301,57 @@ def check_chrome(page, label):
         raise SystemExit(label + " crest emblem is pixelated")
 
 
+def check_yard(page, label):
+    """The club yard draws, the sprites move, and a click opens the sheet."""
+    fetched = page.evaluate(
+        """async () => {
+          const png = await fetch('assets/yard/atlas.png');
+          const json = await fetch('assets/yard/atlas.json');
+          return { png: png.status, json: json.status };
+        }"""
+    )
+    if fetched["png"] != 200 or fetched["json"] != 200:
+        raise SystemExit(label + " yard atlas failed " + str(fetched))
+    page.wait_for_selector("#clubYard")
+    page.evaluate("() => { window.__yardHash = 0; window.__yardAt = 0; }")
+    page.wait_for_function(
+        """() => {
+          const c = document.querySelector('#clubYard');
+          if (!c || c.dataset.ready !== '1' || !window.IL || !IL.yardActors || !IL.yardActors.length) return false;
+          const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          let h = 2166136261;
+          for (let i = 0; i < data.length; i += 64) {
+            h ^= data[i] + data[i + 1] * 3 + data[i + 2] * 7;
+            h = Math.imul(h, 16777619);
+          }
+          h >>>= 0;
+          if (!window.__yardHash) {
+            window.__yardHash = h;
+            window.__yardAt = performance.now();
+            return false;
+          }
+          if (performance.now() - window.__yardAt < 280) return false;
+          return h !== window.__yardHash;
+        }""",
+        timeout=8000,
+    )
+    box = page.evaluate(
+        """() => {
+          const c = document.querySelector('#clubYard');
+          const a = IL.yardActors[0];
+          const r = c.getBoundingClientRect();
+          return {
+            x: r.left + a.x * (r.width / c.width),
+            y: r.top + (a.y - 28) * (r.height / c.height)
+          };
+        }"""
+    )
+    page.mouse.click(box["x"], box["y"])
+    page.wait_for_selector("#fighterSheet", timeout=8000)
+    page.click("#sheetClose")
+    page.wait_for_selector("#fighterSheet", state="detached")
+
+
 def check_nav(page, label, shot_dir):
     """Tab bar, keyboard, and the fighter sheet open and close."""
     check_chrome(page, label)
@@ -331,6 +382,7 @@ def check_nav(page, label, shot_dir):
             raise SystemExit(label + " tab bar not pinned " + str(bar))
     elif bar["position"] == "fixed":
         raise SystemExit(label + " tab bar should sit in the page on a wide screen")
+    check_yard(page, label)
     page.keyboard.press("2")
     page.wait_for_selector("#fighterList")
     if page.locator("#nextMatch").count():
@@ -506,7 +558,7 @@ def check_gear(page, label, shot_dir):
     page.click("#credits")
     page.wait_for_selector("#creditsSheet")
     credits = page.locator("#creditsSheet").inner_text().lower()
-    for phrase in ("ricardo machado", "captainskolot", "finalbossblues", "pizzadoggy", "additional art assets", "wenrexa"):
+    for phrase in ("ricardo machado", "captainskolot", "finalbossblues", "time elements", "pizzadoggy", "additional art assets", "wenrexa"):
         if phrase not in credits:
             raise SystemExit(label + " credits missing " + phrase)
     if "beowulf" not in credits:

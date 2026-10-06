@@ -441,10 +441,10 @@ def check_nav(page, label, shot_dir):
     check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
-    if tabs.count() != 5:
+    if tabs.count() != 6:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "fighter", "market", "cup", "relic"):
+    for word in ("club", "fighter", "market", "cup", "relic", "event"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()

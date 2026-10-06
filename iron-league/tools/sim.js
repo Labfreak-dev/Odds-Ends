@@ -280,7 +280,7 @@ check("equipped bow changes the swing", IL.visualMotion("atk1", "warrior", IL.de
 check("spear thrust stays on the point", IL.visualMotion("atk1", "lancer", IL.defaultSheet("lancer"), "spear") === "atk1");
 check("dagger second cut is a thrust", IL.visualMotion("atk3", "rogue", IL.defaultSheet("rogue"), "dagger") === "atk2");
 const weaponMotions = IL.weapons.motions;
-const weaponKinds = ["sword", "axe", "spear", "bow", "staff", "dagger", "gun", "fist", "claw", "book", "scythe", "mace"];
+const weaponKinds = ["sword", "axe", "spear", "bow", "staff", "dagger", "gun", "fist", "claw", "book", "scythe", "mace", "katana", "wand", "crossbow"];
 Object.keys(IL.CLASSES).forEach(function (id) {
   if (weaponKinds.indexOf(IL.CLASS_WEAPON[id]) < 0) {
     fails++;
@@ -310,6 +310,9 @@ check("bow release steps forward", IL.weapons.handAnchor("bow", "bow", 2).x < IL
 check("lancer keeps a spear", IL.CLASS_WEAPON.lancer === "spear" && IL.weaponKind({ cls: "lancer" }) === "spear");
 check("monk uses fists", IL.CLASS_WEAPON.monk === "fist");
 check("necromancer keeps a scythe", IL.CLASS_WEAPON.necromancer === "scythe");
+check("samurai keeps a katana", IL.CLASS_WEAPON.samurai === "katana");
+check("axe chop uses the heavy row", IL.visualMotion("atk1", "tank", IL.defaultSheet("tank"), "axe") === "atk2");
+check("wand gear is a wand", IL.weaponKind({ cls: "mage", gear: { weapon: { key: "wand" } } }) === "wand");
 check("longbow gear wins", IL.weaponKind({ cls: "warrior", gear: { weapon: { key: "longbow" } } }) === "bow");
 check("anchors view is the debug query", /debug=anchors/.test(fs.readFileSync(path.join(root, "js/weapons.js"), "utf8")));
 const seenIds = {};

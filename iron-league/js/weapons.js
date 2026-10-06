@@ -1,10 +1,10 @@
 /* Iron League — class weapons, hand anchors, and a sprite in the hand.
-   Time Fantasy sheets already paint a weapon in each cell. Attack rows follow
-   the held kind (swing, thrust, bow loose, gun). A drawn sprite is added when
-   the sheet does not show that kind: fists, claws, books, scythes, and any
-   equipped weapon that differs from the sheet. Anchors are per motion frame.
-   ?debug=anchors marks the grip. A release tagged il-weapons-1 can replace
-   the drawn sprites via assets/weapons/manifest.json ("remote" or "files"). */
+   Time Fantasy attack rows already paint a weapon, so each class uses a
+   battler and a row that match (swing, thrust, bow loose, gun). The loose
+   sprites in assets/weapons/ sit on idle, walk, cast, and guard, and on an
+   attack only when that frame has no weapon. Crossbow, book, claws, katana,
+   a real mace, and a real scythe are drawn here. A gun shot adds a muzzle
+   flash. ?debug=anchors marks the grip. */
 (function (root) {
   const IL = root.IL = root.IL || {};
   const AX = 24;
@@ -33,7 +33,7 @@
     bard: "book",
     gunslinger: "gun",
     warlock: "staff",
-    samurai: "sword",
+    samurai: "katana",
     spearmaiden: "spear",
     summoner: "book",
     alchemist: "staff",
@@ -47,7 +47,7 @@
     mace: "mace",
     spear: "spear",
     longbow: "bow",
-    wand: "staff",
+    wand: "wand",
     tome: "book",
     dagger: "dagger",
     star: "dagger"
@@ -118,6 +118,7 @@
 
   const POSES = {
     sword: SWING,
+    katana: SWING,
     axe: SWING,
     mace: SWING,
     scythe: SWING,
@@ -126,24 +127,34 @@
     dagger: THRUST,
     gun: GUN,
     bow: BOW,
+    crossbow: BOW,
     staff: STAFF,
+    wand: STAFF,
     book: BOOK,
     fist: FIST
   };
 
+  /* w/h and grip match the il-weapons-1 sprites. angle is the drawn
+     grip-to-tip direction (0 = right, 90 = up). native sprites already
+     face the way the pose expects, so their angle is not added again. */
   const SPECS = {
-    sword: { w: 18, h: 7, gx: 3, gy: 3 },
-    axe: { w: 16, h: 12, gx: 2, gy: 7 },
-    mace: { w: 16, h: 8, gx: 2, gy: 4 },
-    spear: { w: 22, h: 5, gx: 2, gy: 2 },
-    dagger: { w: 12, h: 5, gx: 2, gy: 2 },
-    bow: { w: 9, h: 16, gx: 4, gy: 12 },
-    staff: { w: 20, h: 5, gx: 3, gy: 2 },
-    gun: { w: 16, h: 6, gx: 3, gy: 3 },
-    fist: { w: 8, h: 7, gx: 2, gy: 3 },
-    claw: { w: 14, h: 8, gx: 2, gy: 4 },
-    book: { w: 11, h: 13, gx: 5, gy: 8 },
-    scythe: { w: 18, h: 16, gx: 3, gy: 13 }
+    sword: { w: 13, h: 13, gx: 2, gy: 8, angle: 38 },
+    axe: { w: 14, h: 15, gx: 2, gy: 10, angle: 56 },
+    mace: { w: 14, h: 14, gx: 2, gy: 10, angle: 0 },
+    spear: { w: 7, h: 32, gx: 3, gy: 20, angle: 90 },
+    dagger: { w: 14, h: 13, gx: 10, gy: 9, angle: 138 },
+    bow: { w: 6, h: 20, gx: 2, gy: 9, angle: 0, native: true },
+    crossbow: { w: 18, h: 14, gx: 8, gy: 6, angle: 0, native: true },
+    staff: { w: 15, h: 14, gx: 3, gy: 10, angle: 39 },
+    staff_wood: { w: 16, h: 16, gx: 2, gy: 13, angle: 43 },
+    wand: { w: 8, h: 17, gx: 2, gy: 9, angle: 69 },
+    gun: { w: 19, h: 9, gx: 11, gy: 5, angle: 163 },
+    fist: { w: 8, h: 7, gx: 2, gy: 3, angle: 0 },
+    claw: { w: 14, h: 10, gx: 2, gy: 5, angle: 0 },
+    book: { w: 12, h: 14, gx: 6, gy: 11, angle: 0 },
+    scythe: { w: 22, h: 16, gx: 3, gy: 12, angle: 0 },
+    katana: { w: 20, h: 8, gx: 2, gy: 5, angle: 0 },
+    arrow: { w: 11, h: 4, gx: 5, gy: 2, angle: 180, native: true }
   };
 
   const sprites = {};
@@ -172,9 +183,15 @@
       px(ctx, edge, 9, 7, 6, 2);
       px(ctx, gold, 8, 5, 2, 4);
     } else if (kind === "mace") {
-      px(ctx, wood, 1, 3, 9, 2);
-      px(ctx, steel, 10, 1, 5, 6);
-      px(ctx, edge, 11, 2, 3, 4);
+      px(ctx, wood, 1, 6, 7, 2);
+      px(ctx, gold, 7, 6, 2, 2);
+      px(ctx, steel, 9, 4, 4, 6);
+      px(ctx, edge, 8, 5, 1, 4);
+      px(ctx, edge, 13, 5, 1, 4);
+      px(ctx, steel, 10, 3, 2, 1);
+      px(ctx, steel, 10, 10, 2, 1);
+      px(ctx, steel, 11, 2, 1, 1);
+      px(ctx, steel, 11, 11, 1, 1);
     } else if (kind === "spear") {
       px(ctx, wood, 1, 2, 15, 1);
       px(ctx, steel, 15, 1, 6, 3);
@@ -204,20 +221,57 @@
       px(ctx, "#a67c5d", 1, 5, 6, 1);
       px(ctx, steel, 5, 2, 2, 2);
     } else if (kind === "claw") {
-      px(ctx, steel, 4, 1, 9, 1);
-      px(ctx, steel, 6, 3, 7, 1);
-      px(ctx, steel, 5, 5, 8, 1);
-      px(ctx, wrap, 1, 2, 4, 3);
+      px(ctx, wrap, 1, 3, 4, 4);
+      px(ctx, "#a67c5d", 1, 6, 4, 1);
+      px(ctx, steel, 4, 1, 7, 1);
+      px(ctx, steel, 5, 3, 8, 1);
+      px(ctx, steel, 4, 5, 8, 1);
+      px(ctx, steel, 5, 7, 7, 1);
+      px(ctx, edge, 11, 0, 2, 1);
+      px(ctx, edge, 12, 2, 2, 1);
+      px(ctx, edge, 12, 4, 2, 1);
+      px(ctx, edge, 11, 6, 2, 1);
     } else if (kind === "book") {
-      px(ctx, "#6e3b4a", 2, 1, 8, 11);
-      px(ctx, gold, 3, 2, 6, 1);
-      px(ctx, "#f4ecdf", 3, 4, 6, 6);
-      px(ctx, dark, 6, 4, 1, 6);
+      px(ctx, "#4a2c38", 1, 1, 10, 12);
+      px(ctx, "#f4ecdf", 2, 2, 8, 10);
+      px(ctx, dark, 6, 2, 1, 10);
+      px(ctx, gold, 3, 4, 2, 1);
+      px(ctx, gold, 8, 4, 2, 1);
+      px(ctx, "#c4622d", 3, 6, 2, 1);
+      px(ctx, "#6e8cae", 8, 6, 2, 1);
+      px(ctx, "#8a5a32", 1, 12, 10, 1);
     } else if (kind === "scythe") {
-      px(ctx, wood, 2, 6, 12, 1);
-      px(ctx, steel, 10, 1, 6, 2);
-      px(ctx, steel, 14, 2, 2, 5);
-      px(ctx, edge, 12, 3, 3, 1);
+      px(ctx, wood, 2, 11, 14, 2);
+      px(ctx, wrap, 1, 11, 2, 2);
+      px(ctx, steel, 14, 4, 2, 8);
+      px(ctx, steel, 15, 2, 4, 3);
+      px(ctx, steel, 18, 1, 3, 2);
+      px(ctx, edge, 16, 5, 2, 6);
+      px(ctx, edge, 19, 3, 2, 2);
+      px(ctx, dark, 15, 11, 2, 2);
+    } else if (kind === "katana") {
+      px(ctx, wrap, 1, 4, 3, 2);
+      px(ctx, gold, 3, 3, 2, 4);
+      px(ctx, steel, 5, 4, 8, 1);
+      px(ctx, steel, 9, 3, 6, 1);
+      px(ctx, steel, 13, 2, 5, 1);
+      px(ctx, edge, 17, 1, 2, 1);
+      px(ctx, dark, 5, 5, 8, 1);
+      px(ctx, dark, 10, 4, 5, 1);
+    } else if (kind === "arrow") {
+      px(ctx, wood, 3, 1, 6, 2);
+      px(ctx, steel, 1, 1, 2, 2);
+      px(ctx, "#c4622d", 8, 0, 2, 1);
+      px(ctx, "#c4622d", 8, 3, 2, 1);
+    } else if (kind === "crossbow") {
+      px(ctx, wood, 7, 6, 10, 2);
+      px(ctx, wood, 14, 5, 3, 1);
+      px(ctx, wood, 1, 2, 2, 10);
+      px(ctx, wood, 2, 2, 5, 1);
+      px(ctx, wood, 2, 11, 5, 1);
+      px(ctx, gold, 3, 3, 1, 8);
+      px(ctx, steel, 2, 6, 6, 1);
+      px(ctx, edge, 1, 6, 2, 1);
     }
   }
 
@@ -234,9 +288,20 @@
     return canvas;
   }
 
+  function artKey(kind, cls) {
+    if (kind === "staff" && cls === "druid") return "staff_wood";
+    if (kind === "staff" && cls === "alchemist") return "wand";
+    return kind;
+  }
+
   function spriteFor(kind) {
     if (bundled && bundled[kind]) return bundled[kind];
     return canvasSprite(kind);
+  }
+
+  function spinOf(spec, rot) {
+    if (!spec || spec.native) return rot;
+    return rot + (spec.angle || 0) * Math.PI / 180;
   }
 
   function handAnchor(kind, motion, sub) {
@@ -265,31 +330,34 @@
     return IL._debugAnchors;
   }
 
-  function sheetFamily(sheet) {
-    if (!sheet || !IL.sheetKnown || !IL.sheetKnown(sheet)) return "";
-    if (IL.sheetHasGun && IL.sheetHasGun(sheet)) return "gun";
-    const arch = IL.looksFor ? IL.looksFor("archer") : [];
-    if (arch.indexOf(sheet) >= 0) return "bow";
-    return "melee";
+  const HOLD = { idle1: 1, idle2: 1, walk: 1, magic: 1, crouch: 1, hit: 1, cheer: 1, dead: 1 };
+
+  /* Bow and gun columns are clear on the sheets that lack them. Every
+     real melee row already paints a weapon, so a second sprite stays off. */
+  function frameHasWeapon(motion, sheet) {
+    if (motion === "bow") return !!(IL.sheetHasBow && IL.sheetHasBow(sheet));
+    if (motion === "gun") return !!(IL.sheetHasGun && IL.sheetHasGun(sheet));
+    if (motion === "atk1" || motion === "atk2") return !!(sheet && IL.sheetKnown && IL.sheetKnown(sheet));
+    return false;
   }
 
-  function shouldPaint(kind, motion, sheet, cls) {
+  function shouldPaint(kind, motion, sheet) {
     if (!kind) return false;
     if (debugOn()) return true;
-    if (kind === "fist" || kind === "claw" || kind === "book" || kind === "scythe") return true;
-    const classKind = (cls && CLASS_WEAPON[cls]) || kind;
-    const gearSwap = kind !== classKind;
-    if (kind === "bow") {
-      if (motion === "bow" && IL.sheetHasBow && IL.sheetHasBow(sheet)) return false;
-      return gearSwap || sheetFamily(sheet) !== "bow";
-    }
-    if (kind === "gun") {
-      if (motion === "gun" && IL.sheetHasGun && IL.sheetHasGun(sheet)) return false;
-      return gearSwap || sheetFamily(sheet) !== "gun";
-    }
-    if (gearSwap) return true;
-    const fam = sheetFamily(sheet);
-    return fam === "gun" || fam === "bow";
+    if (HOLD[motion]) return true;
+    return !frameHasWeapon(motion, sheet);
+  }
+
+  function paintFlash(ctx, s) {
+    ctx.save();
+    ctx.translate((6 - AX) * s, (30 - AY) * s);
+    ctx.fillStyle = "#fff6d0";
+    ctx.fillRect(-s, -s, s * 3, s * 2);
+    ctx.fillStyle = "#ffb45a";
+    ctx.fillRect(-s * 4, Math.round(-s * 0.5), s * 3, s);
+    ctx.fillStyle = "#fffef8";
+    ctx.fillRect(0, 0, s, s);
+    ctx.restore();
   }
 
   function paint(ctx, kind, motion, sub, scale, sheet, cls) {
@@ -304,13 +372,15 @@
       ctx.fillRect(-1, -s * 0.35, 2, s * 0.7);
       ctx.restore();
     }
-    if (!shouldPaint(kind, motion, sheet, cls)) return;
-    const spec = SPECS[kind];
-    const spr = spriteFor(kind);
+    if (kind === "gun" && motion === "gun" && sub === 2) paintFlash(ctx, s);
+    if (!shouldPaint(kind, motion, sheet)) return;
+    const key = artKey(kind, cls);
+    const spec = SPECS[key] || SPECS[kind];
+    const spr = spriteFor(key);
     if (!spec || !spr) return;
     ctx.save();
     ctx.translate((anchor.x - AX) * s, (anchor.y - AY) * s);
-    ctx.rotate(anchor.rot);
+    ctx.rotate(spinOf(spec, anchor.rot));
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(spr, Math.round(-spec.gx * s), Math.round(-spec.gy * s), spec.w * s, spec.h * s);
     ctx.restore();
@@ -382,6 +452,7 @@
     paint: paint,
     worldHand: worldHand,
     debugOn: debugOn,
+    sprite: spriteFor,
     motions: ["idle1", "idle2", "walk", "atk1", "atk2", "bow", "gun", "hit", "crouch", "magic", "cheer", "dead"]
   };
 

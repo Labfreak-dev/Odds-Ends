@@ -1,4 +1,14 @@
 {
-  "files": {},
-  "note": "Drop kind pngs here (sword.png, axe.png, spear.png, bow.png, staff.png, dagger.png, gun.png, fist.png, claw.png, book.png, scythe.png, mace.png) and list them under files. Set remote to a manifest URL from the il-weapons-1 release when that asset exists."
+  "files": {
+    "sword": "sprites/sword.png",
+    "axe": "sprites/axe.png",
+    "bow": "sprites/bow.png",
+    "spear": "sprites/spear.png",
+    "gun": "sprites/gun.png",
+    "staff": "sprites/staff.png",
+    "staff_wood": "sprites/staff_wood.png",
+    "wand": "sprites/wand.png",
+    "dagger": "sprites/dagger.png",
+    "arrow": "sprites/arrow.png"
+  }
 }

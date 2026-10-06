@@ -1748,6 +1748,7 @@
         '<p>CaptainSkolot.</p>' +
         '<p>DreamingOfLight888 (7T4E).</p>' +
         '<p>finalbossblues (Time Fantasy and Time Elements).</p>' +
+        '<p>Weapon sprites by Final Boss Blues and Wenrexa</p>' +
         '<p>AU_pixel (Heroes99).</p>' +
         '<p>PizzaDoggy (BitFX).</p>' +
         '<p>Wenrexa. UI kit, cursors, and backgrounds are CC0. Glyph icons are CC BY 4.0. Emblems are CC BY-ND 4.0, shown white and unmodified.</p>' +

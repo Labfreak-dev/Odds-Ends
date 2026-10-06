@@ -31,7 +31,8 @@
       if (cssH > maxH) cssH = maxH;
       if (cssH < 240) cssH = 240;
     }
-    const dpr = Math.min(2, root.devicePixelRatio || 1);
+    /* Phones draw the pit at 1x. A 2x backing store is the desktop path. */
+    const dpr = Math.min(narrow ? 1 : 2, root.devicePixelRatio || 1);
     const bw = Math.max(1, Math.round(cssW * dpr));
     const bh = Math.max(1, Math.round(cssH * dpr));
     if (canvas.width !== bw || canvas.height !== bh) {

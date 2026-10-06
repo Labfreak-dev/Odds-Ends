@@ -71,7 +71,7 @@
       blurb: "A song that lifts the party, then a sour note.",
       hp: 100, atk: 12, def: 2, speed: 108, radius: 14,
       range: 36, role: "support", attacks: ["atk1"], weapon: 5, run: "run",
-      ability: A("anthem", "Anthem", "buff", 10, "spark", 1, "The next blows hit harder.", { power: 0.16, time: 4 })
+      ability: A("anthem", "Anthem", "buff", 10, "spark", 1, "The party hits harder.", { power: 0.16, time: 4, team: true })
     },
     gunslinger: {
       id: "gunslinger", name: "Gunslinger", renown: 40, trait: "mark",

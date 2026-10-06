@@ -433,8 +433,11 @@
     return true;
   }
 
+  const SCHEMA = 2;
+
   function freshClubFields(seed) {
     return {
+      schema: SCHEMA,
       renown: 0,
       tokens: 1,
       relics: [],
@@ -498,6 +501,10 @@
       if (typeof data[key] !== "number") data[key] = 0;
     });
     if (typeof data.goldPeak !== "number") data.goldPeak = data.gold || 0;
+    if (typeof data.schema !== "number" || data.schema < SCHEMA) data.schema = SCHEMA;
+    if (typeof data.tutored !== "boolean") {
+      data.tutored = (data.bouts > 0) || (data.season > 1) || (data.round > 0) || (data.history && data.history.length > 0);
+    }
     if (typeof data.crest !== "number" || data.crest < 1 || data.crest > 16) {
       data.crest = (IL.hashStr(data.clubName || "iron") % 16) + 1;
     }
@@ -1145,6 +1152,160 @@
 
   function relicIcon(id) { return RELIC_ICON[id] || ""; }
 
+  /* Challenge codes are base64url of a slim party. No btoa: the sim has none. */
+  const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+  function utf8ToB64url(str) {
+    const bytes = [];
+    for (let i = 0; i < str.length; i++) {
+      let c = str.charCodeAt(i);
+      if (c < 0x80) bytes.push(c);
+      else if (c < 0x800) bytes.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+      else if (c >= 0xD800 && c <= 0xDBFF && i + 1 < str.length) {
+        const c2 = str.charCodeAt(++i);
+        const u = 0x10000 + ((c & 0x3FF) << 10) + (c2 & 0x3FF);
+        bytes.push(0xF0 | (u >> 18), 0x80 | ((u >> 12) & 0x3F), 0x80 | ((u >> 6) & 0x3F), 0x80 | (u & 0x3F));
+      } else bytes.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    }
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const a = bytes[i];
+      const b = i + 1 < bytes.length ? bytes[i + 1] : 0;
+      const c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      const n = ((a << 16) | (b << 8) | c) >>> 0;
+      out += B64[(n >>> 18) & 63] + B64[(n >>> 12) & 63];
+      if (i + 1 < bytes.length) out += B64[(n >>> 6) & 63];
+      if (i + 2 < bytes.length) out += B64[n & 63];
+    }
+    return out;
+  }
+
+  function b64urlToUtf8(str) {
+    if (typeof str !== "string" || !str.length || str.length % 4 === 1) return null;
+    const bytes = [];
+    for (let i = 0; i < str.length; i += 4) {
+      const c0 = B64.indexOf(str.charAt(i));
+      const c1 = i + 1 < str.length ? B64.indexOf(str.charAt(i + 1)) : -1;
+      if (c0 < 0 || c1 < 0) return null;
+      const has2 = i + 2 < str.length;
+      const has3 = i + 3 < str.length;
+      const c2 = has2 ? B64.indexOf(str.charAt(i + 2)) : 0;
+      const c3 = has3 ? B64.indexOf(str.charAt(i + 3)) : 0;
+      if ((has2 && c2 < 0) || (has3 && c3 < 0)) return null;
+      const n = ((c0 << 18) | (c1 << 12) | (c2 << 6) | c3) >>> 0;
+      bytes.push((n >>> 16) & 255);
+      if (has2) bytes.push((n >>> 8) & 255);
+      if (has3) bytes.push(n & 255);
+    }
+    let out = "";
+    for (let i = 0; i < bytes.length; i++) {
+      const a = bytes[i];
+      if (a < 0x80) out += String.fromCharCode(a);
+      else if ((a & 0xE0) === 0xC0 && i + 1 < bytes.length) {
+        out += String.fromCharCode(((a & 31) << 6) | (bytes[++i] & 63));
+      } else if ((a & 0xF0) === 0xE0 && i + 2 < bytes.length) {
+        out += String.fromCharCode(((a & 15) << 12) | ((bytes[++i] & 63) << 6) | (bytes[++i] & 63));
+      } else if ((a & 0xF8) === 0xF0 && i + 3 < bytes.length) {
+        const u = ((a & 7) << 18) | ((bytes[++i] & 63) << 12) | ((bytes[++i] & 63) << 6) | (bytes[++i] & 63);
+        const c = u - 0x10000;
+        out += String.fromCharCode(0xD800 + ((c >> 10) & 0x3FF), 0xDC00 + (c & 0x3FF));
+      } else return null;
+    }
+    return out;
+  }
+
+  function slimBoosts(b) {
+    const src = b || {};
+    function n(k) {
+      const v = src[k];
+      if (typeof v !== "number" || !(v >= 0)) return 0;
+      return Math.min(30, Math.round(v));
+    }
+    return { hp: n("hp"), dmg: n("dmg"), spd: n("spd"), def: n("def") };
+  }
+
+  function slimFighter(f) {
+    return {
+      name: String(f.name || "Fighter").slice(0, 22),
+      cls: f.cls,
+      level: f.level || 1,
+      sheet: f.parts && f.parts.sheet,
+      tactic: f.tactic || "strike",
+      personality: f.personality || "bold",
+      rarity: f.rarity || "common",
+      specialty: f.specialty || null,
+      focus: f.focus || null,
+      mastery: f.mastery || null,
+      boosts: slimBoosts(f.boosts),
+      relic: f.relic || null
+    };
+  }
+
+  function exportChallenge(save) {
+    const party = fielded(save.roster, save.lineup, IL.PARTY_CAP || 3);
+    const equipped = (save.equipped || []).filter(function (id) {
+      const relic = relicById(id);
+      return relic && relic.scope !== "fighter";
+    }).slice(0, 2);
+    const pack = {
+      v: 1,
+      name: String(save.clubName || "Club").slice(0, 24),
+      crest: save.crest || 1,
+      equipped: equipped,
+      fighters: party.map(slimFighter)
+    };
+    return "ILC1." + utf8ToB64url(JSON.stringify(pack));
+  }
+
+  function importChallenge(code) {
+    const rawCode = String(code || "").trim();
+    if (rawCode.indexOf("ILC1.") !== 0) return null;
+    const text = b64urlToUtf8(rawCode.slice(5));
+    if (!text) return null;
+    let pack;
+    try { pack = JSON.parse(text); } catch (e) { return null; }
+    if (!pack || !Array.isArray(pack.fighters) || !pack.fighters.length) return null;
+    const fighters = [];
+    pack.fighters.slice(0, IL.PARTY_CAP || 3).forEach(function (raw, i) {
+      if (!raw || !IL.CLASSES[raw.cls]) return;
+      const sheet = typeof raw.sheet === "string" && IL.sheetKnown(raw.sheet) ? raw.sheet : IL.defaultSheet(raw.cls);
+      const personality = IL.PERSONALITIES && IL.PERSONALITIES.indexOf(raw.personality) >= 0 ? raw.personality : "bold";
+      const tactic = IL.TACTICS && IL.TACTICS.indexOf(raw.tactic) >= 0 ? raw.tactic : "strike";
+      const worn = raw.relic && relicById(raw.relic);
+      const f = {
+        id: "ch" + i,
+        name: String(raw.name || "Fighter").slice(0, 22),
+        cls: raw.cls,
+        parts: { sheet: sheet },
+        level: Math.max(1, Math.min(30, raw.level | 0)),
+        tactic: tactic,
+        personality: personality,
+        rarity: raw.rarity || "common",
+        specialty: raw.specialty && IL.specialtyOf && IL.specialtyOf(raw.specialty) ? raw.specialty : null,
+        focus: raw.focus && IL.specialtyOf && IL.specialtyOf(raw.focus) ? raw.focus : null,
+        mastery: raw.mastery && IL.masteryOf && IL.masteryOf(raw.mastery) ? raw.mastery : null,
+        boosts: slimBoosts(raw.boosts),
+        relic: worn && worn.scope === "fighter" ? worn.id : null,
+        captain: false,
+        xp: Math.max(0, ((raw.level | 0) - 1) * 40),
+        gear: IL.blankGear ? IL.blankGear() : { weapon: null, armor: null, trinket: null }
+      };
+      if (IL.ensureMoves) IL.ensureMoves(f);
+      fighters.push(f);
+    });
+    if (!fighters.length) return null;
+    const equipped = (pack.equipped || []).filter(function (id) {
+      const relic = relicById(id);
+      return relic && relic.scope !== "fighter";
+    }).slice(0, 2);
+    return {
+      name: String(pack.name || "Visitors").slice(0, 24),
+      crest: typeof pack.crest === "number" ? pack.crest : 1,
+      equipped: equipped,
+      fighters: fighters
+    };
+  }
+
   IL.RELICS = RELICS;
   IL.SETS = SETS;
   IL.relicById = relicById;
@@ -1179,8 +1340,11 @@
   IL.CHEST_COST = CHEST_COST;
   IL.grantXp = grantXp;
   IL.applyBoost = applyBoost;
+  IL.SCHEMA = SCHEMA;
   IL.freshClubFields = freshClubFields;
   IL.migrate = migrate;
+  IL.exportChallenge = exportChallenge;
+  IL.importChallenge = importChallenge;
   IL.fielded = fielded;
   IL.offerRelic = offerRelic;
   IL.startCup = startCup;

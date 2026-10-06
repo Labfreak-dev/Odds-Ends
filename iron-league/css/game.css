@@ -2724,3 +2724,69 @@ body:has(#seasonEnd) {
   resize: none;
   overflow: auto;
 }
+
+/* The pit uses the whole fight column. A short canvas used to leave a dead band. */
+.fight-screen {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+.fight-screen .stage {
+  width: 100%;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.fight-screen #arena {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
+}
+
+#clubPane > .subtabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 8px;
+  padding: 4px 0;
+  background: #14110e;
+}
+.stat-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stat-list p,
+.stat-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding: 4px 0;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.stat-list span {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.stat-list b {
+  flex: none;
+  font-weight: 650;
+}
+.stat-list .fine {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}

@@ -532,6 +532,21 @@
         if (typeof f.season.heal !== "number") f.season.heal = 0;
         if (typeof f.season.kos !== "number") f.season.kos = 0;
       }
+      if (!f.career || typeof f.career !== "object") {
+        f.career = {
+          dealt: f.season.dealt || 0,
+          taken: f.season.taken || 0,
+          heal: f.season.heal || 0,
+          kos: f.season.kos || 0,
+          moves: {}
+        };
+      } else {
+        if (typeof f.career.dealt !== "number") f.career.dealt = f.season.dealt || 0;
+        if (typeof f.career.taken !== "number") f.career.taken = f.season.taken || 0;
+        if (typeof f.career.heal !== "number") f.career.heal = f.season.heal || 0;
+        if (typeof f.career.kos !== "number") f.career.kos = f.season.kos || 0;
+        if (!f.career.moves || typeof f.career.moves !== "object") f.career.moves = {};
+      }
       if (!Array.isArray(f.perks)) f.perks = [];
       if (typeof f.pendingMoves !== "number") f.pendingMoves = 0;
       if (f.focus && !specialtyOf(f.focus)) f.focus = null;

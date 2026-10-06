@@ -60,7 +60,7 @@
     const narrow = cssW < 760;
     const boxH = parent.clientHeight || 0;
     let cssH;
-    if (narrow && boxH >= 200) {
+    if (boxH >= 200) {
       cssH = boxH;
     } else {
       const maxH = Math.max(260, Math.round((root.innerHeight || 800) * (narrow ? 0.72 : 0.7)));
@@ -753,12 +753,15 @@
       shown[u.id] = { x: u.x, y: u.y };
       if (u.hp > 0) living.push(u);
     }
-    const gap = 14 * SCALE;
-    for (let pass = 0; pass < 3; pass++) {
+    const frontRole = { melee: 1, tank: 1, dash: 1, support: 1, hybrid: 1 };
+    for (let pass = 0; pass < 4; pass++) {
       for (let i = 0; i < living.length; i++) {
         for (let j = i + 1; j < living.length; j++) {
-          const a = shown[living[i].id];
-          const b = shown[living[j].id];
+          const ua = living[i];
+          const ub = living[j];
+          const a = shown[ua.id];
+          const b = shown[ub.id];
+          const gap = (frontRole[ua.role] && frontRole[ub.role] ? 28 : 16) * SCALE;
           let dx = b.x - a.x;
           let dy = b.y - a.y;
           let d = Math.hypot(dx, dy) || 1;
@@ -767,7 +770,7 @@
           let nx = dx / d;
           let ny = dy / d;
           if (Math.abs(dy) < gap * 0.45) {
-            ny += (String(living[i].id) < String(living[j].id) ? 1 : -1) * 0.85;
+            ny += (String(ua.id) < String(ub.id) ? 1 : -1) * 0.85;
             const mag = Math.hypot(nx, ny) || 1;
             nx /= mag;
             ny /= mag;
@@ -785,6 +788,34 @@
         p.y = Math.max(lim.minY + (living[i].z || 0), Math.min(lim.maxY, p.y));
       }
     }
+    /* Draw-only. Ranged and casters step back from the nearest foe. */
+    for (let i = 0; i < living.length; i++) {
+      const u = living[i];
+      if (u.role !== "kite" && u.role !== "cast") continue;
+      const a = shown[u.id];
+      let best = 1e9;
+      let nx = 0;
+      let ny = 0;
+      for (let j = 0; j < living.length; j++) {
+        const o = living[j];
+        if (o.team === u.team) continue;
+        const b = shown[o.id];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d < best) {
+          best = d;
+          nx = dx / d;
+          ny = dy / d;
+        }
+      }
+      if (best > 1e8 || best >= 36 * SCALE) continue;
+      const shove = Math.min(36 * SCALE - best, 22 * SCALE);
+      a.x += nx * shove;
+      a.y += ny * shove;
+      a.x = Math.max(lim.minX, Math.min(lim.maxX, a.x));
+      a.y = Math.max(lim.minY + (u.z || 0), Math.min(lim.maxY, a.y));
+    }
     const labels = [];
     const labelCeil = viewTop + band + 14;
     IL.pitBoxes = [];
@@ -798,6 +829,7 @@
         const sy = view.cssH / 2 + ((y - (u.z || 0)) - cam.y) * worldScale;
         IL.pitBoxes.push({
           name: u.name,
+          role: u.role || "",
           l: sx - bodyHalf * worldScale,
           t: sy - labelUp * worldScale,
           r: sx + bodyHalf * worldScale,
@@ -903,11 +935,11 @@
     const vig = ctx.createRadialGradient(view.cssW / 2, view.cssH / 2, Math.min(view.cssW, view.cssH) * 0.28, view.cssW / 2, view.cssH / 2, Math.max(view.cssW, view.cssH) * 0.68);
     vig.addColorStop(0, "rgba(0,0,0,0)");
     vig.addColorStop(0.62, "rgba(0,0,0,0.08)");
-    vig.addColorStop(1, "rgba(0,0,0,0.58)");
+    vig.addColorStop(1, "rgba(0,0,0,0.36)");
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, view.cssW, view.cssH);
     if ((match.zoom || 0) > 0.15) {
-      ctx.fillStyle = "rgba(6,4,8," + (0.45 * Math.min(1, match.zoom)) + ")";
+      ctx.fillStyle = "rgba(6,4,8," + (0.2 * Math.min(1, match.zoom)) + ")";
       ctx.fillRect(0, 0, view.cssW, view.cssH);
     }
 

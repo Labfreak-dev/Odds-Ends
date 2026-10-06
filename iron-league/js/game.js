@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "45";
+  const BUILD = "46";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -108,6 +108,15 @@
     const rivals = [];
     while (rivals.length < 5 && pool.length) {
       rivals.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    }
+    if (!save.nemesis || !save.nemesis.name || save.nemesis.name === save.clubName) {
+      const names = IL.CLUBS.filter(function (n) { return n !== save.clubName; });
+      const picked = names.length ? names[IL.hashStr(save.clubName || "iron") % names.length] : "Red Kettle";
+      save.nemesis = { name: picked, wins: 0, losses: 0, grudge: 0 };
+    }
+    const nemesisName = save.nemesis.name;
+    if (nemesisName && rivals.indexOf(nemesisName) < 0 && rivals.length) {
+      rivals[rivals.length - 1] = nemesisName;
     }
     const clubs = [{ id: "you", name: save.clubName, you: true, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: 1 }];
     const bump = IL.rivalBump ? IL.rivalBump(save.season) : 0;
@@ -1414,13 +1423,18 @@
       box.id = "achieveToast";
       document.body.appendChild(box);
     }
+    const purse = document.querySelector(".purse");
+    const below = purse ? purse.getBoundingClientRect().bottom : 64;
+    const narrow = (root.innerWidth || 800) < 700;
+    box.style.top = Math.round(below + 6) + "px";
+    box.classList.toggle("toast-narrow", narrow);
     box.hidden = false;
     box.innerHTML = list.map(function (row) {
-      const pay = "+" + (row.gold || 0) + " gold" + (row.renown ? " · +" + row.renown + " renown" : "");
-      return '<p class="toast"><strong>' + esc(row.name) + '</strong> ' + esc(pay) + '</p>';
+      const pay = "+" + (row.gold || 0) + " gold" + (row.renown ? " +" + row.renown + " renown" : "");
+      return '<p class="toast">' + esc(row.name) + " " + esc(pay) + "</p>";
     }).join("");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { box.hidden = true; }, 4200);
+    toastTimer = setTimeout(function () { box.hidden = true; }, 2500);
   }
 
   function payCeremony() {
@@ -1464,7 +1478,8 @@
     const place = Math.max(0, sorted.findIndex(function (c) { return c.you; }));
     const table = sorted.map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      const nemesisRow = save.nemesis && c.name === save.nemesis.name;
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
@@ -1525,7 +1540,8 @@
     const done = save.round >= 5;
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      const nemesisRow = save.nemesis && c.name === save.nemesis.name;
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function previewNames(list) {
       if (!list.length) return '<p class="preview-name">None</p>';
@@ -1566,7 +1582,7 @@
         : '') +
       (done
         ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></p>'
-        : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>') +
+        : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong>' + nemesisBanner(rival) + '</p>') +
       (size && yours.length < size
         ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
         : '') +
@@ -1580,7 +1596,7 @@
           filterBar("club", clubPane, [["yard", "Yard"], ["record", "Record"]]) +
           (clubPane === "record"
             ? clubRecordHtml() + historyHtml()
-            : yard +
+            : nemesisNoteHtml() + yard +
               '<section class="panel-frame"><h3 class="section">Standings</h3>' +
                 '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
               '</section>' +
@@ -2136,23 +2152,61 @@
       '</aside>';
   }
 
+  function nemesisTone(n) {
+    const g = (n && n.grudge) || 0;
+    if (g >= 3) return "A bitter grudge";
+    if (g >= 2) return "A sharp grudge";
+    if (g >= 1) return "A grudge";
+    return "Your rival";
+  }
+
+  function nemesisLine(n) {
+    if (!n) return "";
+    const w = n.wins || 0;
+    const l = n.losses || 0;
+    const g = n.grudge || 0;
+    if (g >= 3) return "This one is personal.";
+    if (g >= 1 && l > w) return "They still hold the last one.";
+    if (w > l && w > 0) return "You hold the edge.";
+    if (w + l === 0) return "They have your name.";
+    return "They are back in the yard.";
+  }
+
+  function nemesisBanner(rival) {
+    const n = save.nemesis;
+    if (!rival || !n || rival.name !== n.name) return "";
+    return '<span class="rival-line">' + esc(nemesisTone(n)) + ". " + esc(nemesisLine(n)) + "</span>";
+  }
+
+  function nemesisNoteHtml() {
+    const n = save.nemesis;
+    if (!n || !n.name) return "";
+    return '<p class="fine" id="nemesisNote">Rival ' + esc(n.name) + " · " + (n.wins || 0) + "–" + (n.losses || 0) + ". " + esc(nemesisLine(n)) + "</p>";
+  }
+
+  function nemesisCardHtml() {
+    const n = save.nemesis;
+    if (!n || !n.name) return "";
+    return '<section class="panel-frame" id="nemesisCard"><h3 class="section">Rival</h3>' +
+      '<div class="stat-list">' +
+        statLine("Club", n.name) +
+        statLine("Against them", (n.wins || 0) + "–" + (n.losses || 0)) +
+        statLine("Grudge", nemesisTone(n)) +
+      "</div>" +
+      '<p class="fine">' + esc(nemesisLine(n)) + "</p></section>";
+  }
+
   function statLine(label, value) {
     return '<p><span>' + esc(label) + '</span><b>' + esc(value) + '</b></p>';
   }
 
   function clubRecordHtml() {
     const roster = save.roster || [];
-    let wins = 0;
-    let losses = 0;
-    let kos = 0;
     let dealt = 0;
     let heal = 0;
     const moves = {};
     roster.forEach(function (f) {
       if (!f) return;
-      wins += f.wins || 0;
-      losses += f.losses || 0;
-      kos += f.kos || 0;
       const career = f.career || {};
       dealt += career.dealt || 0;
       heal += career.heal || 0;
@@ -2180,7 +2234,7 @@
     const fighterBody = top.length
       ? top.map(function (f) {
         const n = Math.round(((f.career && f.career.dealt) || 0));
-        return '<li><span>' + esc(f.name) + '</span><b>' + (f.wins || 0) + '–' + (f.losses || 0) + ' · ' + n + '</b></li>';
+        return '<li><span>' + esc(f.name) + '</span><b>' + (f.wins || 0) + "–" + (f.losses || 0) + " · " + (f.kos || 0) + " KO · " + n + "</b></li>";
       }).join("")
       : '<li><span class="fine">No fighters yet.</span></li>';
     const moveBody = best.length
@@ -2189,14 +2243,16 @@
         return '<li><span>' + esc(row.name) + '</span><b>' + Math.round(row.dmg) + extra + '</b></li>';
       }).join("")
       : '<li><span class="fine">No moves recorded yet.</span></li>';
-    return '<section class="panel-frame" id="clubRecord">' +
+    const clubWins = save.clubWins || 0;
+    const clubLosses = save.clubLosses || 0;
+    return nemesisCardHtml() +
+      '<section class="panel-frame" id="clubRecord">' +
       '<h3 class="section">Lifetime</h3>' +
-      '<p class="fine">Wins, losses, and KOs are each fighter’s record. Damage and healing add up from the season on the save.</p>' +
+      '<p class="fine">Wins and losses are the club’s matches. Damage and healing add up from the season on the save.</p>' +
       '<div class="stat-list">' +
-        statLine("Matches", save.bouts || 0) +
-        statLine("Wins", wins) +
-        statLine("Losses", losses) +
-        statLine("KOs", kos) +
+        statLine("Matches", clubWins + clubLosses) +
+        statLine("Wins", clubWins) +
+        statLine("Losses", clubLosses) +
         statLine("Damage", Math.round(dealt)) +
         statLine("Healing", Math.round(heal)) +
       '</div></section>' +
@@ -2595,6 +2651,7 @@
           '<div><p class="eyebrow">Before the pit</p><h2>' + esc(spec.leftName || save.clubName) + ' vs ' + esc(spec.rightName || "Rivals") + '</h2></div>' +
           crestHtml(spec.rightName || "Rivals", "md", crestIndexOf(spec.rightName)) +
         '</header>' +
+        (nemesisBanner({ name: spec.rightName }) ? '<p class="banner" id="rivalLine">' + nemesisBanner({ name: spec.rightName }) + '</p>' : '') +
         '<div class="versus-grid">' +
           '<section class="panel-frame"><h3 class="section">Your party</h3>' + synergyLine(left, "yourSynergy") + '<div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
           '<section class="panel-frame"><h3 class="section">They send</h3>' + synergyLine(right, "theirSynergy") + '<div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
@@ -4327,6 +4384,23 @@
     save.history = save.history.slice(0, 10);
   }
 
+  function nemesisPay(match, win) {
+    const n = save.nemesis;
+    if (!n || !n.name || !match) return 0;
+    if ((match.teams || 2) > 2) return 0;
+    if ((match.rightName || "") !== n.name) return 0;
+    let bonus = 0;
+    if (win) {
+      if ((n.grudge || 0) > 0) bonus = 12;
+      n.wins = (n.wins || 0) + 1;
+      n.grudge = Math.max(0, (n.grudge || 0) - 1);
+    } else {
+      n.losses = (n.losses || 0) + 1;
+      n.grudge = Math.min(3, (n.grudge || 0) + 1);
+    }
+    return bonus;
+  }
+
   function ensureCareer(f) {
     if (!f.career || typeof f.career !== "object") {
       const season = f.season || {};
@@ -4527,6 +4601,9 @@
     noteRecords(match, win);
     if (IL.noteTasks) IL.noteTasks(save, match, win);
     save.bouts = (save.bouts || 0) + 1;
+    if (win) save.clubWins = (save.clubWins || 0) + 1;
+    else save.clubLosses = (save.clubLosses || 0) + 1;
+    gold += nemesisPay(match, win);
     if (win) {
       let taken = 0;
       match.units.forEach(function (u) { if (u.team === 0) taken += u.dmgTaken || 0; });

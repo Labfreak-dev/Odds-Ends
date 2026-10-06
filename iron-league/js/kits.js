@@ -469,6 +469,60 @@
     kit.abilities = kit.abilities.concat(MORE[id]);
   });
 
+  /* One more option per class. Same kind, cooldown, and numbers as a move
+     the kit already has, so the fight stays in the same band. The name is
+     new, and a recruit may equip it instead of the original. */
+  const TWIN_NAME = {
+    warrior: "Buckler",
+    archer: "Snag",
+    mage: "Mana Veil",
+    tank: "Heave",
+    rogue: "Scratch",
+    lancer: "Shaft",
+    berserker: "Bellow",
+    healer: "Pall",
+    assassin: "Venom",
+    ranger: "Hitch",
+    battlemage: "Afterward",
+    shieldbearer: "Ring",
+    skirmisher: "Flick",
+    duelist: "Answer",
+    elementalist: "Pane",
+    monk: "Warmth",
+    necromancer: "Rib",
+    paladin: "Hands",
+    druid: "Sprout",
+    bard: "Dissonance",
+    gunslinger: "Slide Shot",
+    warlock: "Hex Spark",
+    samurai: "Pass",
+    spearmaiden: "Leap Point",
+    summoner: "Bond",
+    alchemist: "Etch",
+    beastmaster: "Rake"
+  };
+  const TWIN_KEYS = ["power", "stun", "dot", "radius", "slow", "reach", "team", "time", "force", "self", "pet", "petHp", "petAtk", "life"];
+  const ALT_ROW = { item: "skill", skill: "spell", thrust: "swing", swing: "thrust", spell: "skill", missile: "missile", evade: "evade" };
+
+  Object.keys(CLASSES).forEach(function (id) {
+    const kit = CLASSES[id];
+    if (!kit || !kit.abilities || !TWIN_NAME[id]) return;
+    const starters = kit.abilities.filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; });
+    let src = starters[1] && starters[1].cd ? starters[1] : null;
+    if (!src) {
+      for (let i = starters.length - 1; i >= 0; i--) {
+        if (starters[i] && starters[i].cd) { src = starters[i]; break; }
+      }
+    }
+    if (!src) return;
+    const copy = {};
+    TWIN_KEYS.forEach(function (k) { if (src[k] != null) copy[k] = src[k]; });
+    const row = ALT_ROW[src.row] || src.row || "skill";
+    const twin = M("z-" + id, TWIN_NAME[id], src.kind, src.cd, src.fx, row, (src.tags || ["AoE"]).slice(), src.blurb, copy);
+    twin.twinOf = src.id;
+    kit.abilities.push(twin);
+  });
+
   Object.keys(CLASSES).forEach(function (id) {
     const kit = CLASSES[id];
     if (kit.role === "kite") kit.attack = "shot";
@@ -557,6 +611,24 @@
     return poolOf(cls).filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; }).map(function (ab) { return ab.id; });
   }
 
+  /* New fighters keep the signature and roll one slot between a starter and
+     its twin. The hash is the fighter id, so a reload does not reshuffle and
+     the fight rng is left alone. A save that already has a loadout never
+     reaches this. */
+  function recruitLoadout(f) {
+    const pool = poolOf(f.cls);
+    const starters = pool.filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; });
+    if (starters.length < 3) return starters.map(function (ab) { return ab.id; }).slice(0, 3);
+    const ids = [starters[0].id, starters[1].id, starters[2].id];
+    const twin = pool.filter(function (ab) { return ab && ab.twinOf; })[0];
+    if (!twin) return ids;
+    const slot = ids.indexOf(twin.twinOf);
+    if (slot < 1) return ids;
+    const h = IL.hashStr(String(f.id || f.cls || "f") + ":moves") >>> 0;
+    if (h % 2 === 1) ids[slot] = twin.id;
+    return ids;
+  }
+
   function ensureMoves(f) {
     if (!f || !f.cls) return f;
     const pool = poolOf(f.cls).map(function (ab) { return ab.id; });
@@ -567,11 +639,16 @@
       if (f.known.indexOf(id) < 0) f.known.push(id);
     });
     if (!Array.isArray(f.learned)) f.learned = [];
+    if (!Array.isArray(f.loadout)) {
+      f.loadout = recruitLoadout(f);
+      f.loadout.forEach(function (id) {
+        if (starters.indexOf(id) < 0 && f.learned.indexOf(id) < 0) f.learned.push(id);
+      });
+    }
     f.learned = f.learned.filter(function (id) { return pool.indexOf(id) >= 0 && starters.indexOf(id) < 0; });
     f.learned.forEach(function (id) {
       if (f.known.indexOf(id) < 0) f.known.push(id);
     });
-    if (!Array.isArray(f.loadout)) f.loadout = starters.slice(0, 3);
     f.loadout = f.loadout.filter(function (id) { return f.known.indexOf(id) >= 0; });
     starters.forEach(function (id) {
       if (f.loadout.length < 3 && f.loadout.indexOf(id) < 0) f.loadout.push(id);

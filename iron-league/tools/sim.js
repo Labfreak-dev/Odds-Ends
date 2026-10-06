@@ -108,7 +108,9 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 check("one hundred twenty or more abilities", Object.keys(seenAb).length >= 120);
 (function () {
   const fighter = IL.ensureMoves(IL.randomFighter(function () { return 0.2; }, "warrior"));
-  const extra = IL.poolOf("warrior").filter(function (ab) { return ab.unlock >= 99; })[0];
+  const extra = IL.poolOf("warrior").filter(function (ab) {
+    return ab.unlock >= 99 && fighter.known.indexOf(ab.id) < 0;
+  })[0];
   const taught = extra && IL.teachMove(fighter, extra.id) && IL.equipMove(fighter, 0, extra.id) && fighter.loadout[0] === extra.id;
   check("teach and equip a tome move", !!taught);
   const foe = IL.randomFighter(function () { return 0.3; }, "mage");
@@ -118,7 +120,84 @@ check("one hundred twenty or more abilities", Object.keys(seenAb).length >= 120)
   let steps = 0;
   while (!bout.over && steps < 4000) { IL.stepMatch(bout, 1 / 60); steps++; }
   check("loadout fight ends", bout.over === true);
+  let named = false;
+  for (let seed = 1; seed <= 8 && !named; seed++) {
+    const home = IL.ensureMoves({ id: "book", cls: "warrior", level: 7 });
+    if (home.known.indexOf("w-guard-cut") < 0) IL.teachMove(home, "w-guard-cut");
+    IL.equipMove(home, 0, "w-guard-cut");
+    const away = IL.ensureMoves({ id: "book-foe", cls: "tank", level: 1 });
+    const m = IL.createMatch({ seed: seed, left: [home], right: [away], leftName: "A", rightName: "B" });
+    let n = 0;
+    while (!m.over && n < 4000) { IL.stepMatch(m, 1 / 60); n++; }
+    const row = m.units[0] && m.units[0].byAb && m.units[0].byAb["w-guard-cut"];
+    if (row && row.name === "Guard Cut" && (row.dmg || 0) > 0) named = true;
+  }
+  check("a learned move shows in the breakdown", named);
+  let twinNamed = false;
+  for (let seed = 1; seed <= 8 && !twinNamed; seed++) {
+    const home = IL.ensureMoves({ id: "twin-book", cls: "warrior", level: 7 });
+    if (home.known.indexOf("z-warrior") < 0) IL.teachMove(home, "z-warrior");
+    IL.equipMove(home, 1, "z-warrior");
+    const away = IL.ensureMoves({ id: "twin-foe", cls: "tank", level: 1 });
+    const m = IL.createMatch({ seed: 20 + seed, left: [home], right: [away], leftName: "A", rightName: "B" });
+    let n = 0;
+    while (!m.over && n < 4000) { IL.stepMatch(m, 1 / 60); n++; }
+    const row = m.units[0] && m.units[0].byAb && m.units[0].byAb["z-warrior"];
+    if (row && row.name === "Buckler") twinNamed = true;
+  }
+  check("a new move shows in the breakdown", twinNamed);
 })();
+const keptMoves = IL.migrate({
+  v: 1,
+  clubName: "Old",
+  roster: [{
+    id: "ada", cls: "warrior", name: "Ada",
+    loadout: ["cleave", "brace", "rally"],
+    known: ["cleave", "brace", "rally"],
+    learned: []
+  }]
+});
+check("old loadout stays equipped", keptMoves.roster[0].loadout.join(",") === "cleave,brace,rally");
+const keptExtra = IL.migrate({
+  v: 1,
+  clubName: "Old",
+  roster: [{
+    id: "bea", cls: "warrior", name: "Bea",
+    loadout: ["w-guard-cut", "brace", "rally"],
+    known: ["cleave", "brace", "rally", "w-guard-cut"],
+    learned: ["w-guard-cut"]
+  }]
+});
+check("an equipped extra stays on the sheet", keptExtra.roster[0].loadout.join(",") === "w-guard-cut,brace,rally" && keptExtra.roster[0].learned.indexOf("w-guard-cut") >= 0);
+let recruitSame = 0;
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const bags = {};
+    const starters = IL.poolOf(id).filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; });
+    const sig = starters[0] && starters[0].id;
+    const twin = IL.abilityById("z-" + id);
+    const allowed = {};
+    starters.forEach(function (ab) { allowed[ab.id] = true; });
+    if (twin) allowed[twin.id] = true;
+    for (let i = 0; i < 12; i++) {
+      const f = IL.randomFighter(IL.mulberry32(3000 + i * 17 + (IL.hashStr(id) % 400)), id);
+      const bad = !f.loadout || f.loadout.length !== 3 || f.loadout.indexOf(sig) < 0 || f.loadout.some(function (mid) { return !allowed[mid]; });
+      if (bad) {
+        fails++;
+        console.error("recruit loadout", id, f.loadout);
+        return;
+      }
+    f.loadout.forEach(function (mid) {
+      const ab = IL.abilityById(mid);
+      if (ab && ab.unlock >= 99 && f.learned.indexOf(mid) < 0) {
+        fails++;
+        console.error("extra not learned", id, mid);
+      }
+    });
+    bags[f.loadout.join(",")] = true;
+  }
+  if (Object.keys(bags).length < 2) recruitSame++;
+});
+check("recruits of one class do not all share a loadout", recruitSame === 0);
 IL.CLUBS.forEach(function (name) {
   const theme = IL.CLUB_THEMES[name];
   if (!theme || theme.length < 2) {
@@ -667,6 +746,9 @@ Object.keys(IL.CLASSES).forEach(function (id) {
       const rng = IL.mulberry32(4000 + p * 19 + (IL.hashStr(id) % 800));
       const left = IL.randomFighter(rng, id);
       const right = IL.randomFighter(rng, id);
+      right.loadout = left.loadout.slice();
+      right.known = left.known.slice();
+      right.learned = (left.learned || []).slice();
       left.level = 7;
       right.level = 7;
       left.personality = right.personality = mirrorMoods[p % mirrorMoods.length];
@@ -727,6 +809,7 @@ const chalSave = IL.migrate({
 const chalCode = IL.exportChallenge(chalSave);
 const chalBack = IL.importChallenge(chalCode);
 check("challenge code roundtrips", !!(chalBack && chalBack.name === "Exporters" && chalBack.fighters.length === 1 && chalBack.fighters[0].cls === "warrior" && chalBack.fighters[0].level === 4 && chalBack.equipped[0] === "band"));
+check("challenge keeps the loadout", chalBack.fighters[0].loadout.join(",") === chalSave.roster[0].loadout.join(",") && chalBack.fighters[0].learned.join(",") === (chalSave.roster[0].learned || []).join(","));
 check("bad challenge code is empty", IL.importChallenge("nope") === null && IL.importChallenge("") === null);
 check("challenge faults stay specific", IL.challengeFault("") === "Paste a code first." && IL.challengeFault("nope") === "Codes start with ILC1." && IL.challengeFault("ILC1.!!!!") === "That code is cut off or damaged." && IL.challengeFault(chalCode) === "");
 const chalHome = IL.randomFighter(IL.mulberry32(8), "warrior");

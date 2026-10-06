@@ -1352,7 +1352,9 @@
       focus: f.focus || null,
       mastery: f.mastery || null,
       boosts: slimBoosts(f.boosts),
-      relic: f.relic || null
+      relic: f.relic || null,
+      loadout: Array.isArray(f.loadout) ? f.loadout.slice(0, 3) : [],
+      learned: Array.isArray(f.learned) ? f.learned.slice() : []
     };
   }
 
@@ -1419,6 +1421,8 @@
         xp: Math.max(0, ((raw.level | 0) - 1) * 40),
         gear: IL.blankGear ? IL.blankGear() : { weapon: null, armor: null, trinket: null }
       };
+      if (Array.isArray(raw.loadout)) f.loadout = raw.loadout.slice(0, 3);
+      if (Array.isArray(raw.learned)) f.learned = raw.learned.slice();
       if (IL.ensureMoves) IL.ensureMoves(f);
       fighters.push(f);
     });

@@ -1504,7 +1504,13 @@
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
     u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1);
-    if (ab && ab.id) u.swingTag = { id: ab.id, name: ab.name };
+    if (ab && ab.id) {
+      u.swingTag = { id: ab.id, name: ab.name };
+      if (!u.byAb) u.byAb = {};
+      const row = u.byAb[ab.id] || (u.byAb[ab.id] = { id: ab.id, name: ab.name, dmg: 0, heal: 0 });
+      row.used = true;
+      if (!row.name) row.name = ab.name;
+    }
     arm(u, ab.cd || 6.5);
   }
 

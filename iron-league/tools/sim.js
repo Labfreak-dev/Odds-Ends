@@ -395,6 +395,7 @@ const giantRight = IL.randomFighter(IL.mulberry32(22), "mage");
 const plainPit = IL.createMatch({ seed: 9, left: [giantLeft], right: [giantRight] });
 const giantPit = IL.createMatch({ seed: 9, left: [giantLeft], right: [giantRight], mod: IL.FIGHT_EVENTS[4] });
 check("giant mode grows a body", giantPit.hazard === "giant" && giantPit.units[0].maxHp > plainPit.units[0].maxHp && giantPit.units[0].giant);
+check("a pit event names its effect", IL.FIGHT_EVENTS.every(function (ev) { return ev.name && ev.blurb && ev.blurb.length > 8; }) && giantPit.hazardName === "Giant mode" && giantPit.hazardBlurb === IL.FIGHT_EVENTS[4].blurb);
 const bossF = IL.makeBoss(IL.mulberry32(6), 4);
 const bossMatch = IL.createMatch({ seed: 6, left: [IL.randomFighter(IL.mulberry32(7), "rogue")], right: [bossF], mode: "boss" });
 const bossUnit = bossMatch.units.filter(function (u) { return u.boss; })[0];

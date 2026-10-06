@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "54";
+  const BUILD = "55";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -275,11 +275,11 @@
     "27 classes with signature abilities and weapons in hand.",
     "Market stalls to buy and sell gear, fighters, and relics, plus weekly deals.",
     "64 relics in 8 sets.",
-    "Events, Endless mode, and a daily challenge.",
+    "Events, Endless mode, and a daily challenge. Pit events include fog, a fire floor, gold rush, sudden death, and giant mode.",
     "Training drills, tasks, and specialties.",
     "A rival club and a club record.",
     "Achievements and club colors.",
-    "Challenge codes to fight a friend's club."
+    "Fight a friend: copy a code, or paste one, and fight their club."
   ];
 
   function paintTitlePit(ctx, w, h, t, still) {
@@ -2647,7 +2647,7 @@
               (done ? '<button type="button" class="btn gold" id="openSeason">Season ceremony</button>' : '') +
               '<button type="button" class="btn fight" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
               '<button type="button" class="text-btn" id="credits">Credits</button>' +
-              '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
+              '<button type="button" class="icon-btn" id="settings" aria-label="Settings" title="Settings"><span aria-hidden="true">⚙</span></button>' +
               '<button type="button" class="text-btn" id="toTitle">Title</button>' +
             '</div>' +
           '</header>' +
@@ -4369,7 +4369,7 @@
           '<div class="timer" id="timer">0:00</div>' +
           '<div class="side them"><strong id="rightName"></strong><span id="rightHp"></span></div>' +
         '</header>' +
-        (match.hazardName ? '<p class="hazard-line">' + esc(match.hazardName) + '</p>' : '') +
+        (match.hazardName ? '<p class="hazard-line" id="pitBanner"><strong>' + esc(match.hazardName) + '</strong>' + (match.hazardBlurb ? '<span>' + esc(match.hazardBlurb) + '</span>' : '') + '</p>' : '') +
         '<div class="hud-strip" id="liveYou"></div>' +
         '<div class="fight-layout">' +
           '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div><div id="result" class="result" hidden></div></div>' +

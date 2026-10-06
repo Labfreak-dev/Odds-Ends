@@ -2994,13 +2994,22 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   overflow-wrap: anywhere;
 }
 .hazard-line {
+  flex: none;
   margin: 0;
-  padding: 2px 8px 4px;
-  text-align: center;
+  padding: 6px 10px;
+  text-align: left;
   font-size: 13px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--cream);
+  background: #2a2118;
+  border-left: 3px solid var(--copper);
+}
+.hazard-line strong {
+  display: block;
   color: var(--copper-2);
+  font-size: 13px;
 }
 #friendBoard .fine,
 #friendNote,

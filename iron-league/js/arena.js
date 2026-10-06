@@ -220,7 +220,12 @@
       shots: [],
       events: [],
       time: 0,
-      engage: 0.65,
+      engage: 1.15,
+      engageMax: 1.15,
+      pit: (opts.seed >>> 0) % 5,
+      zoom: 0,
+      cheer: 0,
+      slowmo: 0,
       hitstop: 0,
       ending: false,
       endDelay: 0,
@@ -548,7 +553,7 @@
       else if (src.crit && m.rng() < src.crit) crit = true;
       if (crit) {
         amount *= 1.55;
-        m.events.push({ type: "dmg", x: dst.x, y: dst.y - 56 - (dst.z || 0), n: "crit", crit: true, team: dst.team });
+        opt.crit = true;
       }
     }
     let dmg = amount - dst.def * 0.35;
@@ -568,9 +573,23 @@
     dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
     if (src && src.team !== dst.team) src.dmgDealt = (src.dmgDealt || 0) + dmg;
     dst.flash = 0.14;
-    m.hitstop = blocked ? 0.03 : 0.04;
+    const big = !!opt.crit || dmg >= 26;
+    m.hitstop = blocked ? 0.02 : (big ? 0.07 : 0.035);
+    m.cheer = 1;
+    if (src && !opt.dot && src !== dst) {
+      const dx = dst.x - src.x;
+      const dy = dst.y - src.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const push = blocked ? 4 : (big ? 22 : 11);
+      dst.x += (dx / dist) * push;
+      dst.y += (dy / dist) * push * 0.35;
+      if (big && !blocked) {
+        dst.vz = 150;
+        dst.z = Math.max(dst.z || 0, 8);
+      }
+    }
     m.stats.hits++;
-    m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: dmg, blocked: blocked, team: dst.team });
+    m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: dmg, blocked: blocked, crit: !!opt.crit, team: dst.team });
     fx(m, "spark", dst.x, dst.y - 22 - (dst.z || 0), { size: blocked ? 90 : 128 });
     if (blocked) fx(m, "orbit", dst.x + dst.facing * 8, dst.y - 22, { size: 130 });
     if (dst.hp <= 0) {
@@ -1688,6 +1707,11 @@
   }
 
   function stepBody(m, u, dt) {
+    if (u.state !== "leap" && ((u.z || 0) > 0 || u.vz)) {
+      u.vz = (u.vz || 0) - 720 * dt;
+      u.z = Math.max(0, (u.z || 0) + u.vz * dt);
+      if (u.z === 0) u.vz = 0;
+    }
     if (u.state === "attack") stepAttack(m, u, dt);
     else if (u.state === "cast") stepCast(m, u, dt);
     else if (u.state === "dash") stepDash(m, u, dt);
@@ -1705,13 +1729,30 @@
       m.hitstop -= dt;
       return;
     }
+    if (m.slowmo > 0) {
+      m.slowmo -= dt;
+      dt *= 0.38;
+    }
     m.time += dt;
+    if (m.zoom > 0) m.zoom = Math.max(0, m.zoom - dt * 1.4);
+    if (m.cheer > 0) m.cheer = Math.max(0, m.cheer - dt * 0.8);
+    if ((m.stats.abilities || 0) > (m.abSeen || 0)) {
+      m.abSeen = m.stats.abilities;
+      m.zoom = 1;
+      m.cheer = 1;
+    }
 
     if (m.engage > 0) {
+      const span = m.engageMax || 1.15;
+      const k = m.engage / span;
       m.engage -= dt;
       for (let i = 0; i < m.units.length; i++) {
         const u = m.units[i];
-        u.anim = idleClip(u);
+        if (u.homeX == null) { u.homeX = u.x; u.homeY = u.y; }
+        const side = u.facing > 0 ? -1 : 1;
+        u.x = u.homeX + side * 240 * Math.max(0, k);
+        u.y = u.homeY;
+        u.anim = k > 0.12 ? "run" : idleClip(u);
         u.animT += dt;
       }
       return;
@@ -1801,7 +1842,11 @@
     for (let t = 0; t < teamCount; t++) if (living(m, t).length) aliveTeams++;
     const cap = teamCount > 2 ? 34 : 46;
     if (aliveTeams <= 1 || m.time > cap) {
-      if (!m.ending) { m.ending = true; m.endDelay = 0.85; }
+      if (!m.ending) {
+        m.ending = true;
+        m.endDelay = aliveTeams <= 1 ? 1.25 : 0.85;
+        if (aliveTeams <= 1) m.slowmo = Math.max(m.slowmo || 0, 1.05);
+      }
       m.endDelay -= dt;
       if (m.endDelay <= 0) {
         m.over = true;

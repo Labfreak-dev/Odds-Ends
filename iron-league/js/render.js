@@ -887,7 +887,7 @@
   }
 
   /* y is the text baseline. The glyph box sits above it. Bodies are center rects. */
-  function labelSlot(labels, bodies, x, y, w, h, ceil, minX, maxX) {
+  function labelSlot(labels, bodies, x, y, w, h, ceil, minX, maxX, gap) {
     function clampX(xx) {
       const half = w * 0.5;
       const lo = minX + half;
@@ -899,7 +899,7 @@
       const cy = base - h * 0.5;
       for (let i = 0; i < labels.length; i++) {
         const L = labels[i];
-        if (Math.abs(cx - L.x) < (w + L.w) * 0.5 && Math.abs(cy - L.y) < (h + L.h) * 0.5) {
+        if (Math.abs(cx - L.x) < (w + L.w) * 0.5 && Math.abs(cy - L.y) < (h + L.h) * 0.5 + pad) {
           return L;
         }
       }
@@ -916,16 +916,18 @@
     let fade = 1;
     const minBase = ceil + h;
     const nudge = Math.max(36, Math.round(w * 0.7));
+    const pad = gap > 0 ? gap : 4;
     for (let n = 0; n < 8; n++) {
       const hit = hitAt(xx, yy);
       if (!hit) break;
-      const above = hit.y - hit.h * 0.5 - 4;
+      const above = hit.y - hit.h * 0.5 - pad;
       if (above < yy && above >= minBase) { yy = above; continue; }
       let placed = false;
       const dirs = n % 2 ? [-1, 1] : [1, -1];
-      for (let step = 1; step <= 4 && !placed; step++) {
+      const stepW = Math.max(nudge, ((hit.w || w) + w) * 0.55);
+      for (let step = 1; step <= 6 && !placed; step++) {
         for (let d = 0; d < dirs.length; d++) {
-          const nx = clampX(x + dirs[d] * nudge * step);
+          const nx = clampX(x + dirs[d] * stepW * step);
           if (Math.abs(nx - xx) < 6) continue;
           if (!hitAt(nx, yy)) { xx = nx; placed = true; break; }
         }
@@ -934,11 +936,11 @@
       fade = 0.45;
       break;
     }
-    if (yy < minBase) {
-      yy = minBase;
-      if (hitAt(xx, yy)) fade = 0.45;
-    }
+    if (yy < minBase) yy = minBase;
     xx = clampX(xx);
+    const left = hitAt(xx, yy);
+    if (left && !left.name) fade = 0;
+    else if (left) fade = Math.min(fade, 0.45);
     labels.push({ x: xx, y: yy - h * 0.5, w: w, h: h });
     return { x: xx, y: yy, fade: fade };
   }
@@ -1122,6 +1124,20 @@
       });
     }
     const worldScale = view.cssW / cam.viewW;
+    /* Labels are screen type. A world-sized font shrinks to a few pixels on a phone. */
+    function worldPx(css) { return css / Math.max(0.2, worldScale); }
+    const labelGap = worldPx(8);
+    function paintLabel(text, x, y, fill, alpha) {
+      ctx.globalAlpha = alpha;
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.lineWidth = worldPx(2.5);
+      ctx.strokeStyle = "rgba(8,6,4,0.92)";
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = fill;
+      ctx.fillText(text, x, y);
+      ctx.globalAlpha = 1;
+    }
     IL.pitBodies = bodies.map(function (B) {
       return {
         name: B.name,
@@ -1189,19 +1205,16 @@
         ctx.fillRect(bx - 1, by - 1, bw + 2, 6);
         ctx.fillStyle = u.team === 0 ? "#c4622d" : "#7f93b8";
         ctx.fillRect(bx, by, Math.max(0, bw * (u.hp / u.maxHp)), 4);
-        const namePx = Math.round(13 * ui);
-        ctx.font = namePx + "px Palatino, Georgia, serif";
+        const namePx = worldPx(Math.max(10, 13 * ui * worldScale));
+        ctx.font = namePx.toFixed(2) + "px Palatino, Georgia, serif";
         ctx.textAlign = "center";
         const nameW = Math.max(bw, ctx.measureText(u.name).width);
-        const nameH = namePx + 2;
-        const nameSlot = labelSlot(labels, bodies, x, by - 5, nameW, nameH, labelCeil, labelMinX, labelMaxX);
-        ctx.globalAlpha = nameSlot.fade;
-        ctx.fillStyle = "rgba(10,8,6,0.75)";
-        ctx.fillText(u.name, nameSlot.x + 1, nameSlot.y + 1);
-        ctx.fillStyle = "#f4ecdf";
-        ctx.fillText(u.name, nameSlot.x, nameSlot.y);
-        ctx.globalAlpha = 1;
-        coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
+        const nameH = namePx + worldPx(2);
+        const nameSlot = labelSlot(labels, bodies, x, by - nameH - worldPx(2), nameW, nameH, labelCeil, labelMinX, labelMaxX, labelGap);
+        if (nameSlot.fade > 0) {
+          paintLabel(u.name, nameSlot.x, nameSlot.y, "#f4ecdf", nameSlot.fade);
+          coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
+        }
         drawStatus(ctx, u, by);
         if (u.state === "cast" && u.cast && u.cast.dur > 0) {
           const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
@@ -1212,17 +1225,16 @@
         }
         if (u.banner) {
           const a = Math.max(0, 1 - u.banner.t / u.banner.life);
-          const bannerPx = Math.round((u.banner.ult ? 16 : 13) * ui);
-          ctx.font = "bold " + bannerPx + "px Palatino, Georgia, serif";
+          const bannerPx = worldPx(Math.max(11, (u.banner.ult ? 16 : 13) * ui * worldScale));
+          ctx.font = "bold " + bannerPx.toFixed(2) + "px Palatino, Georgia, serif";
           const bannerW = ctx.measureText(u.banner.name).width;
-          const bannerH = bannerPx + 2;
-          const bannerY = by - 16 - u.banner.t * 18;
-          const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX);
-          ctx.globalAlpha = a * bannerSlot.fade;
-          ctx.fillStyle = u.banner.ult ? "#ffd27a" : "#f4ecdf";
-          ctx.fillText(u.banner.name, bannerSlot.x, bannerSlot.y);
-          ctx.globalAlpha = 1;
-          coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);
+          const bannerH = bannerPx + worldPx(2);
+          const bannerY = by - nameH - labelGap - u.banner.t * worldPx(14);
+          const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX, labelGap);
+          if (bannerSlot.fade > 0) {
+            paintLabel(u.banner.name, bannerSlot.x, bannerSlot.y, u.banner.ult ? "#ffd27a" : "#f4ecdf", a * bannerSlot.fade);
+            coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);
+          }
         }
       }
     }

@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "53";
+  const BUILD = "54";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -2187,7 +2187,7 @@
   }
 
   function eventsPanel() {
-    const tabs = filterBar("events", eventPane, [["week", "This week"], ["endless", "Endless"], ["daily", "Daily"]]);
+    const tabs = filterBar("events", eventPane, [["week", "This week"], ["endless", "Endless"], ["daily", "Daily"], ["friend", "Friend"]]);
     let body = "";
     if (eventPane === "endless") {
       const best = (save.endless && save.endless.best) || 0;
@@ -2217,6 +2217,23 @@
         '<p class="fine">The same pair for every club today. One purse if you win. Pit: ' + esc(IL.weekFightEvent(Date.now()).name) + '.</p>' +
         '<p class="fine">' + esc(names) + '</p>' +
         '<div class="hub-actions"><button type="button" class="btn fight" id="startDaily"' + (done ? " disabled" : "") + '>' + (done ? "Cleared today" : "Fight today") + '</button></div>' +
+      '</section>';
+    } else if (eventPane === "friend") {
+      const code = IL.exportChallenge(save);
+      const ready = fielded(save.roster, 1).length > 0;
+      body = '<section id="friendBoard">' +
+        '<h3 class="section">Fight a friend</h3>' +
+        '<p class="fine">Copy the party you field. A friend pastes it and fights your club. The code carries the party, not their gear.</p>' +
+        '<textarea id="friendOut" readonly aria-label="Your challenge code">' + esc(code) + '</textarea>' +
+        '<div class="hub-actions friend-actions"><button type="button" class="btn" id="copyFriend">Copy code</button></div>' +
+        (ready ? '' : '<p class="fine">Field a fighter before you send a code.</p>') +
+        '<p class="fine">Paste a friend\'s code, then fight. Paste fills the box from the clipboard when the browser allows it.</p>' +
+        '<textarea id="friendIn" aria-label="Paste a challenge code" placeholder="Paste a code"></textarea>' +
+        '<div class="hub-actions friend-actions">' +
+          '<button type="button" class="btn ghost" id="pasteFriend">Paste</button>' +
+          '<button type="button" class="btn fight" id="fightFriend">Fight</button>' +
+        '</div>' +
+        '<p class="fine" id="friendNote"></p>' +
       '</section>';
     } else {
       const current = IL.activeEvent(Date.now());
@@ -2693,10 +2710,11 @@
     if (closeBtn) closeBtn.onclick = close;
   }
 
-  function copyText(text, noteId, okMsg) {
+  function copyText(text, noteId, okMsg, onDone) {
     const note = document.getElementById(noteId);
     function done(yes) {
       if (note) note.textContent = yes ? okMsg : "Copy failed. Select the text and copy it.";
+      if (onDone) onDone(!!yes);
     }
     function fallback() {
       const ta = document.createElement("textarea");
@@ -2757,13 +2775,9 @@
         '</div>' +
         '<p class="fine">Save schema ' + (save.schema || 1) + ".</p>" +
         '<div class="settings-block">' +
-          '<p class="eyebrow">Challenge</p>' +
-          '<p class="fine">Copy a code of the party you field. A friend pastes it and fights your club. The code carries the party, not their gear.</p>' +
-          '<textarea id="challengeOut" readonly aria-label="Challenge code">' + esc(IL.exportChallenge(save)) + "</textarea>" +
-          '<button type="button" class="btn ghost" id="copyChallenge">Copy code</button>' +
-          '<textarea id="challengeIn" aria-label="Paste a challenge code" placeholder="Paste a code"></textarea>' +
-          '<button type="button" class="btn" id="fightChallenge">Fight this club</button>' +
-          '<p class="fine" id="challengeNote"></p>' +
+          '<p class="eyebrow">Fight a friend</p>' +
+          '<p class="fine">Copy your party, or paste a friend\'s code, on the Events tab.</p>' +
+          '<button type="button" class="btn" id="openFriend">Fight a friend</button>' +
         "</div>" +
         '<button type="button" class="btn danger" id="resetAsk">Reset save</button>' +
         '<div id="resetBox" hidden><p>Erase this club from the browser? This cannot be undone.</p>' +
@@ -2800,28 +2814,13 @@
     };
     const shake = document.getElementById("shakeToggle");
     if (shake) shake.onchange = function () { save.settings.shake = !!shake.checked; touch(); };
-    const copyCh = document.getElementById("copyChallenge");
-    if (copyCh) copyCh.onclick = function () {
-      const code = IL.exportChallenge(save);
-      const out = document.getElementById("challengeOut");
-      if (out) out.value = code;
-      const ready = fielded(save.roster, IL.PARTY_CAP || 3).length > 0;
-      copyText(code, "challengeNote", ready ? "Copied. Send it to a friend." : "Copied, but field a fighter first.");
-    };
-    const fightCh = document.getElementById("fightChallenge");
-    if (fightCh) fightCh.onclick = function () {
-      const box = document.getElementById("challengeIn");
-      const note = document.getElementById("challengeNote");
-      const foe = IL.importChallenge(box ? box.value : "");
-      if (!foe) {
-        if (note) note.textContent = "That code does not read.";
-        return;
-      }
-      if (!fielded(save.roster, 1).length) {
-        if (note) note.textContent = "Field a fighter first.";
-        return;
-      }
-      startChallenge(foe);
+    const openFriend = document.getElementById("openFriend");
+    if (openFriend) openFriend.onclick = function () {
+      settingsOpen = false;
+      detailId = null;
+      eventPane = "friend";
+      hubTab = "events";
+      showHub("events");
     };
     const copyRep = document.getElementById("copyReport");
     if (copyRep) copyRep.onclick = function () {
@@ -2951,6 +2950,49 @@
     if (startEndlessBtn) startEndlessBtn.onclick = function () { beginEndless(); };
     const startDailyBtn = document.getElementById("startDaily");
     if (startDailyBtn) startDailyBtn.onclick = function () { beginDaily(); };
+    const copyFriend = document.getElementById("copyFriend");
+    if (copyFriend) copyFriend.onclick = function () {
+      const note = document.getElementById("friendNote");
+      if (!fielded(save.roster, 1).length) {
+        if (note) note.textContent = "Field a fighter first.";
+        return;
+      }
+      const code = IL.exportChallenge(save);
+      const out = document.getElementById("friendOut");
+      if (out) out.value = code;
+      copyText(code, "friendNote", "Copied", function (yes) {
+        if (!yes) return;
+        copyFriend.textContent = "Copied";
+        copyFriend.dataset.copied = "1";
+      });
+    };
+    const pasteFriend = document.getElementById("pasteFriend");
+    if (pasteFriend) pasteFriend.onclick = function () {
+      const box = document.getElementById("friendIn");
+      const note = document.getElementById("friendNote");
+      function fill(text) {
+        if (box) box.value = text || "";
+        if (!String(text || "").trim()) {
+          if (note) note.textContent = "The clipboard is empty.";
+          return;
+        }
+        fightPasted(text);
+      }
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(fill, function () {
+          if (note) note.textContent = "Paste into the box, then tap Fight.";
+          if (box) box.focus();
+        });
+      } else {
+        if (note) note.textContent = "Paste into the box, then tap Fight.";
+        if (box) box.focus();
+      }
+    };
+    const fightFriend = document.getElementById("fightFriend");
+    if (fightFriend) fightFriend.onclick = function () {
+      const box = document.getElementById("friendIn");
+      fightPasted(box ? box.value : "");
+    };
     const growthBtn = document.getElementById("openGrowth");
     if (growthBtn) growthBtn.onclick = function () { showGrowth(); };
     const movesBtn = document.getElementById("openMoves");
@@ -4045,12 +4087,32 @@
         size: spec.size || 1,
         mode: spec.mode || "league",
         returnTab: spec.returnTab || "club",
+        friendName: spec.friendName || "",
         tok: tok
       };
       IL.currentMatch = match;
       mountFight(match);
       runFight(tok);
     });
+  }
+
+  function fightPasted(raw) {
+    const note = document.getElementById("friendNote");
+    const fault = IL.challengeFault ? IL.challengeFault(raw) : "";
+    if (fault) {
+      if (note) note.textContent = fault;
+      return;
+    }
+    if (!fielded(save.roster, 1).length) {
+      if (note) note.textContent = "Field a fighter first.";
+      return;
+    }
+    const foe = IL.importChallenge(raw);
+    if (!foe) {
+      if (note) note.textContent = "That code is cut off or damaged.";
+      return;
+    }
+    startChallenge(foe);
   }
 
   function startChallenge(foe) {
@@ -4075,7 +4137,8 @@
       rightName: foe.name,
       size: n,
       seed: (save.rngSeed ^ IL.hashStr(foe.name || "ch")) >>> 0,
-      returnTab: "club",
+      returnTab: "events",
+      friendName: foe.name || "A friend",
       foeRelics: foeRelics,
       foeWorn: foeWorn
     });
@@ -4875,9 +4938,10 @@
       const already = save.daily && save.daily.day === day && save.daily.cleared;
       save.daily = { day: day, cleared: already || win };
     } else if (mode === "challenge") {
+      const friend = fight.friendName || match.rightName || "A friend";
       gold = win ? 20 : 8;
       renown = win ? 2 : 1;
-      headline = win ? "Their yard falls" : "Their yard holds";
+      headline = win ? (friend + " falls") : (friend + " holds");
     } else if (mode === "endless") {
       const run = save.endlessRun || { wave: 1, hp: {} };
       if (win) {
@@ -4986,6 +5050,8 @@
       nextLine = "Wave " + save.endlessRun.wave + " is next." + (mod ? " Modifier: " + mod.name + ". " + mod.blurb : "");
     } else if (mode === "gauntlet" && save.gauntlet) {
       nextLine = "No healing. Fight " + (save.gauntlet.step + 1) + " of 5 is next.";
+    } else if (mode === "challenge") {
+      nextLine = "Fought " + (fight.friendName || match.rightName || "a friend") + ".";
     } else if (mode === "boss" || mode === "horde" || mode === "king" || mode === "mirror" || mode === "daily" || mode === "gauntlet" || mode === "endless") {
       nextLine = "The events board is ready when you are.";
     } else {

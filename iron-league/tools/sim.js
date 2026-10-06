@@ -727,6 +727,7 @@ const chalCode = IL.exportChallenge(chalSave);
 const chalBack = IL.importChallenge(chalCode);
 check("challenge code roundtrips", !!(chalBack && chalBack.name === "Exporters" && chalBack.fighters.length === 1 && chalBack.fighters[0].cls === "warrior" && chalBack.fighters[0].level === 4 && chalBack.equipped[0] === "band"));
 check("bad challenge code is empty", IL.importChallenge("nope") === null && IL.importChallenge("") === null);
+check("challenge faults stay specific", IL.challengeFault("") === "Paste a code first." && IL.challengeFault("nope") === "Codes start with ILC1." && IL.challengeFault("ILC1.!!!!") === "That code is cut off or damaged." && IL.challengeFault(chalCode) === "");
 const chalHome = IL.randomFighter(IL.mulberry32(8), "warrior");
 chalHome.level = 5;
 const chalAway = chalBack.fighters[0];

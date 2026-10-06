@@ -475,6 +475,8 @@ class Run:
                     extra = [("gear", "gear"), ("fighters", "fighters"), ("relics", "relics"), ("deals", "deals"), ("sell", "sell")]
                 elif tab == "train":
                     extra = [("drills", "drills"), ("specs", "specs"), ("tasks", "tasks"), ("facilities", "facilities")]
+                elif tab == "events":
+                    extra = [("endless", "endless"), ("daily", "daily"), ("friend", "friend")]
                 for filt, label in extra:
                     sel = f"[data-filter-kind={tab}][data-filter={filt}]"
                     if not self.click_first(page, [sel]):

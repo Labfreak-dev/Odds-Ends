@@ -3002,3 +3002,41 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   text-transform: uppercase;
   color: var(--copper-2);
 }
+#friendBoard .fine,
+#friendNote,
+.result .fine,
+.result h2 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+#friendOut,
+#friendIn {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  height: 72px;
+  margin: 6px 0;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  color: inherit;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  padding: 8px;
+  resize: none;
+  overflow: auto;
+}
+#friendBoard .friend-actions .btn {
+  min-height: 44px;
+  height: auto;
+  flex: 1 1 120px;
+  white-space: normal;
+}
+#copyFriend[data-copied="1"] {
+  border-color: var(--good);
+  color: var(--good);
+}

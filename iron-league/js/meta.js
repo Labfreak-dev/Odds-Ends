@@ -1372,6 +1372,20 @@
     return "ILC1." + utf8ToB64url(JSON.stringify(pack));
   }
 
+  function challengeFault(code) {
+    const rawCode = String(code || "").trim();
+    if (!rawCode) return "Paste a code first.";
+    if (rawCode.indexOf("ILC1.") !== 0) return "Codes start with ILC1.";
+    const text = b64urlToUtf8(rawCode.slice(5));
+    if (!text) return "That code is cut off or damaged.";
+    let pack;
+    try { pack = JSON.parse(text); } catch (e) { return "That code is cut off or damaged."; }
+    if (!pack || !Array.isArray(pack.fighters) || !pack.fighters.length) return "That code has no fighters.";
+    const known = pack.fighters.some(function (raw) { return raw && IL.CLASSES[raw.cls]; });
+    if (!known) return "That code has no fighters this club can face.";
+    return "";
+  }
+
   function importChallenge(code) {
     const rawCode = String(code || "").trim();
     if (rawCode.indexOf("ILC1.") !== 0) return null;
@@ -1460,6 +1474,7 @@
   IL.migrate = migrate;
   IL.exportChallenge = exportChallenge;
   IL.importChallenge = importChallenge;
+  IL.challengeFault = challengeFault;
   IL.fielded = fielded;
   IL.offerRelic = offerRelic;
   IL.startCup = startCup;

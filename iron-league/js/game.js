@@ -27,7 +27,7 @@
   let marketPane = "fighters";
   let eventPane = "week";
   let trainPane = "drills";
-  let trainDrill = "spar";
+  let trainDrill = "strength";
   const HUB_TABS = ["club", "fighters", "market", "cup", "relics", "events", "train"];
 
   function esc(s) {
@@ -1143,7 +1143,7 @@
   function tabBar(active) {
     const labels = [
       ["club", "Club", "1", "tab-club"],
-      ["fighters", "Fighters", "2", "tab-fighters"],
+      ["fighters", "Team", "2", "tab-fighters"],
       ["market", "Market", "3", "market"],
       ["cup", "Cup", "4", "cup"],
       ["relics", "Relics", "5", "relics"],
@@ -1504,14 +1504,17 @@
     const preview = (!done && rival)
       ? '<section class="preview-board" id="matchPreview">' +
           partySynergy +
-          '<div class="preview-side"><div>' + crestHtml(save.clubName, "md", save.crest) + '<p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3>' +
-          '<p class="fine">' + yours.length + ' of ' + size + ' walking in</p></div></div>' +
+          '<div class="preview-side">' + crestHtml(save.clubName, "sm", save.crest) +
+            '<div class="preview-copy"><p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3></div></div>' +
           '<p class="vs">vs</p>' +
-          '<div class="preview-side"><div>' + crestHtml(rival.name, "md", clubCrest(rival)) + '<p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
-          '<p class="fine">Record ' + (rival.w || 0) + '–' + (rival.l || 0) + (themNames ? ' · sends ' + esc(themNames) : '') + '</p></div></div>' +
-          '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
-            (partyReady ? "Send them in" : ("Choose " + size)) + '</button>' +
+          '<div class="preview-side">' + crestHtml(rival.name, "sm", clubCrest(rival)) +
+            '<div class="preview-copy"><p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
+            '<p class="fine">' + (themNames ? esc(themNames) : ("Record " + (rival.w || 0) + "–" + (rival.l || 0))) + '</p></div></div>' +
         '</section>'
+      : "";
+    const sendBtn = (!done && rival)
+      ? '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
+          (partyReady ? "Send them in" : ("Choose " + size)) + '</button>'
       : "";
     const yard = '<section class="panel-frame" id="clubYardWrap">' +
       '<h3 class="section">Club yard</h3>' +
@@ -1543,7 +1546,8 @@
           historyHtml() +
           achievementsHtml() +
         '</div>' +
-      '</div>';
+      '</div>' +
+      sendBtn;
   }
 
   function fightersPanel() {
@@ -1738,10 +1742,40 @@
     return bits.join(" · ");
   }
 
+  function drillButtonLabel(f, drill, left) {
+    const pit = inThePit(f);
+    const open = !IL.drillOpen || IL.drillOpen(f, drill.id);
+    const rank = IL.drillRank ? IL.drillRank(f, drill.id) : 0;
+    const cap = drill.cap || 5;
+    const broke = save.gold < drill.cost;
+    const spent = left <= 0;
+    if (pit) return { label: "In the pit", cant: true };
+    if (!open) return { label: "Not this class", cant: true };
+    if (rank >= cap) return { label: "Rank " + cap, cant: true };
+    if (spent) return { label: "Spent", cant: true };
+    if (broke) return { label: "Need " + drill.cost + "g", cant: true };
+    return { label: "Drill — " + drill.cost + "g", cant: false };
+  }
+
   function trainingPanel() {
-    const tabs = filterBar("train", trainPane, [["drills", "Drills"], ["specs", "Specialties"], ["facilities", "Facilities"]]);
+    const tabs = filterBar("train", trainPane, [["drills", "Drills"], ["specs", "Specialties"], ["tasks", "Tasks"], ["facilities", "Facilities"]]);
     let body = "";
-    if (trainPane === "facilities") {
+    if (trainPane === "tasks") {
+      const points = save.specPoints || 0;
+      const cards = (IL.TASKS || []).map(function (task) {
+        const done = save.taskDone && save.taskDone[task.id];
+        const prog = (save.taskProg && save.taskProg[task.id]) || 0;
+        const shown = Math.min(task.goal, prog);
+        return '<article class="card stall-card' + (done ? "" : " buyable") + '">' +
+          '<h3>' + esc(task.name) + '</h3>' +
+          '<p>' + esc(task.blurb) + '</p>' +
+          '<p class="fine">' + (done ? "Done · +" + task.points + " specialty point" : (shown + " / " + task.goal + " · +" + task.points + " point")) + '</p>' +
+        '</article>';
+      }).join("");
+      body = '<section id="taskBoard"><h3 class="section">Tasks</h3>' +
+        '<p class="fine">Specialty points: ' + points + '. A focus spends ' + (IL.FOCUS_COST || 1) + '. A mastery spends ' + (IL.MASTERY_COST || 2) + '.</p>' +
+        '<div class="deals-stack">' + cards + '</div></section>';
+    } else if (trainPane === "facilities") {
       const cards = (IL.FACILITIES || []).map(function (def) {
         const lv = (save.facilities && save.facilities[def.id]) || 0;
         const maxed = lv >= def.max;
@@ -1758,24 +1792,31 @@
         '<p class="fine">The yard adds a drill. The hall adds xp. The infirmary lowers the price.</p>' +
         '<div class="deals-stack">' + cards + '</div></section>';
     } else if (trainPane === "specs") {
+      const points = save.specPoints || 0;
+      const focusCost = IL.FOCUS_COST || 1;
+      const masteryCost = IL.MASTERY_COST || 2;
       const rows = (save.roster || []).map(function (f) {
         const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
         let pick = "";
         if (f.pendingFocus) {
-          pick += '<p class="fine">Level 5. Choose a focus.</p><div class="chips">' +
+          const can = points >= focusCost;
+          pick += '<p class="fine">Level 5. A focus spends ' + focusCost + ' point.</p><div class="chips">' +
             (IL.SPECIALTIES || []).map(function (spec) {
-              return '<button type="button" class="chip" data-focus="' + esc(f.id) + '" data-spec="' + spec.id + '">' + esc(spec.name) + '</button>';
+              return '<button type="button" class="chip" data-focus="' + esc(f.id) + '" data-spec="' + spec.id + '"' + (can ? "" : " disabled") + '>' + esc(spec.name) + '</button>';
             }).join("") + '</div>';
+          if (!can) pick += '<p class="fine">Need a specialty point from Tasks.</p>';
         } else if ((f.level || 1) < 5) {
           pick += '<p class="fine">A focus opens at level 5.</p>';
         } else {
           pick += '<p class="fine">Focus: ' + esc(specLabel(f).split(" · ")[0] || "—") + '</p>';
         }
         if (f.pendingMastery) {
-          pick += '<p class="fine">Level 10. Choose a mastery.</p><div class="chips">' +
+          const can = points >= masteryCost;
+          pick += '<p class="fine">Level 10. A mastery spends ' + masteryCost + ' points.</p><div class="chips">' +
             (IL.MASTERIES || []).map(function (spec) {
-              return '<button type="button" class="chip" data-mastery="' + esc(f.id) + '" data-spec="' + spec.id + '">' + esc(spec.name) + '</button>';
+              return '<button type="button" class="chip" data-mastery="' + esc(f.id) + '" data-spec="' + spec.id + '"' + (can ? "" : " disabled") + '>' + esc(spec.name) + '</button>';
             }).join("") + '</div>';
+          if (!can) pick += '<p class="fine">Need ' + masteryCost + ' specialty points.</p>';
         } else if ((f.level || 1) >= 10 && f.mastery && IL.masteryOf(f.mastery)) {
           pick += '<p class="fine">Mastery: ' + esc(IL.masteryOf(f.mastery).name) + '</p>';
         } else if ((f.level || 1) < 10) {
@@ -1787,10 +1828,10 @@
           pick + '</article>';
       }).join("");
       body = '<section id="specBoard"><h3 class="section">Specialties</h3>' +
-        '<p class="fine">A focus replaces the hired specialty. A mastery stacks on top.</p>' +
+        '<p class="fine">Specialty points: ' + points + '. A focus replaces the hired specialty. A mastery stacks on top.</p>' +
         '<div class="cards">' + (rows || emptyState("The roster is empty.", "Hire someone first.")) + '</div></section>';
     } else {
-      const drill = IL.drillById(save, trainDrill);
+      const drill = IL.drillById(save, trainDrill) || (IL.drillList(save) || [])[0];
       const left = save.trainsLeft || 0;
       const picks = (IL.drillList(save) || []).map(function (row) {
         const on = row.id === drill.id;
@@ -1798,23 +1839,18 @@
       }).join("");
       const rows = (save.roster || []).map(function (f) {
         const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-        const pit = inThePit(f);
-        const broke = save.gold < drill.cost;
-        const spent = left <= 0;
-        const cant = pit || broke || spent;
-        let label = "Drill — " + drill.cost + "g";
-        if (pit) label = "In the pit";
-        else if (spent) label = "Spent";
-        else if (broke) label = "Need " + drill.cost + "g";
-        return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+        const rank = IL.drillRank ? IL.drillRank(f, drill.id) : 0;
+        const gate = drill.classes ? " · " + drill.classes.length + " classes" : "";
+        const btn = drillButtonLabel(f, drill, left);
+        return '<article class="card stall-card' + (btn.cant ? " cant-afford" : " buyable") + '">' +
           '<h3>' + esc(f.name) + '</h3>' +
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + (specLabel(f) ? " · " + esc(specLabel(f)) : "") + '</span></p>' +
-          '<p class="fine">' + drill.xp + ' xp · ' + esc(drill.name) + '</p>' +
-          '<button type="button" class="btn primary" data-drill="' + esc(f.id) + '"' + (cant ? " disabled" : "") + '>' + label + '</button>' +
+          '<p class="fine">' + esc(drill.name) + ' ' + rank + '/' + (drill.cap || 5) + ' · +' + drill.stat + ' · ' + drill.xp + ' xp' + gate + '</p>' +
+          '<button type="button" class="btn primary" data-drill="' + esc(f.id) + '"' + (btn.cant ? " disabled" : "") + '>' + btn.label + '</button>' +
         '</article>';
       }).join("");
       body = '<section id="trainBoard"><h3 class="section">Drills</h3>' +
-        '<p class="fine">' + left + ' left this round. ' + esc(drill.blurb) + '</p>' +
+        '<p class="fine">' + left + ' left this round. ' + esc(drill.blurb) + ' Rank caps at ' + (drill.cap || 5) + '.</p>' +
         '<div class="chips">' + picks + '</div>' +
         '<div class="cards">' + rows + '</div></section>';
     }
@@ -2386,13 +2422,13 @@
       const focus = ev.target.closest("[data-focus]");
       if (focus) {
         const who = fighterById(focus.dataset.focus);
-        if (who && IL.chooseFocus(who, focus.dataset.spec)) { persist(); refreshHub(); }
+        if (who && IL.chooseFocus(who, focus.dataset.spec, save)) { persist(); refreshHub(); }
         return;
       }
       const mastery = ev.target.closest("[data-mastery]");
       if (mastery) {
         const who = fighterById(mastery.dataset.mastery);
-        if (who && IL.chooseMastery(who, mastery.dataset.spec)) { persist(); refreshHub(); }
+        if (who && IL.chooseMastery(who, mastery.dataset.spec, save)) { persist(); refreshHub(); }
         return;
       }
       const facility = ev.target.closest("[data-facility]");
@@ -2598,10 +2634,13 @@
   function trainFighter(id, drillId) {
     const f = fighterById(id);
     if (!f || inThePit(f)) return;
-    const drill = IL.drillById ? IL.drillById(save, drillId || trainDrill || "spar") : null;
-    const cost = drill ? drill.cost : (IL.drillCost ? IL.drillCost(save) : (IL.TRAIN_COST || 16));
-    const xp = drill ? drill.xp : (IL.drillXp ? IL.drillXp(save) : (IL.TRAIN_XP || 12));
+    const wanted = drillId || "strength";
+    const drill = IL.drillById ? IL.drillById(save, wanted) : null;
+    if (!drill) { pitSound("error"); return; }
+    const cost = drill.cost;
+    const xp = drill.xp;
     if ((save.trainsLeft || 0) <= 0 || save.gold < cost) { pitSound("error"); return; }
+    if (IL.applyDrill && !IL.applyDrill(f, drill.id)) { pitSound("error"); return; }
     save.gold -= cost;
     save.trainsLeft -= 1;
     save.trainsDone = (save.trainsDone || 0) + 1;
@@ -3945,6 +3984,7 @@
     }
     gold += match.stats.bounty || 0;
     noteRecords(match, win);
+    if (IL.noteTasks) IL.noteTasks(save, match, win);
     save.bouts = (save.bouts || 0) + 1;
     if (win) {
       let taken = 0;

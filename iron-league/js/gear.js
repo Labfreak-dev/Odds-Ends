@@ -462,6 +462,16 @@
   IL.RARITIES = RARITIES;
   IL.GEAR_SLOTS = SLOTS;
   IL.GEAR_CATALOG = CATALOG;
+  const DRILL_RANK_CAP = 5;
+  const DRILL_DEFS = [
+    { id: "strength", name: "Strength", blurb: "Raises attack.", stat: "atk", amt: 1 },
+    { id: "footwork", name: "Footwork", blurb: "Raises speed.", stat: "spd", amt: 2 },
+    { id: "archery", name: "Archery", blurb: "Raises attack for bow and gun classes.", stat: "atk", amt: 1, classes: ["archer", "ranger", "gunslinger", "skirmisher"] },
+    { id: "arcana", name: "Arcana", blurb: "Raises attack for spell classes.", stat: "atk", amt: 1, classes: ["mage", "battlemage", "elementalist", "warlock", "necromancer", "druid", "summoner", "alchemist", "bard"] },
+    { id: "endurance", name: "Endurance", blurb: "Raises health.", stat: "hp", amt: 4 },
+    { id: "tactics", name: "Tactics", blurb: "Raises defense.", stat: "def", amt: 1 }
+  ];
+
   function facilityRank(data, id) {
     const n = data && data.facilities && data.facilities[id];
     if (typeof n !== "number" || n < 0) return 0;
@@ -475,17 +485,57 @@
   function drillList(data) {
     const xp = drillXp(data);
     const cost = drillCost(data);
-    return [
-      { id: "spar", name: "Sparring", blurb: "A clean exchange.", xp: xp, cost: cost },
-      { id: "foot", name: "Footwork", blurb: "Steps and balance. Cheaper, a little less.", xp: Math.max(6, xp - 4), cost: Math.max(6, cost - 4) },
-      { id: "forms", name: "Forms", blurb: "Slow repetitions. More to learn, more to pay.", xp: xp + 4, cost: cost + 6 }
-    ];
+    return DRILL_DEFS.map(function (def) {
+      return {
+        id: def.id,
+        name: def.name,
+        blurb: def.blurb,
+        stat: def.stat,
+        amt: def.amt,
+        classes: def.classes || null,
+        xp: xp,
+        cost: cost,
+        cap: DRILL_RANK_CAP
+      };
+    });
   }
 
   function drillById(data, id) {
     const list = drillList(data);
     for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
-    return list[0];
+    return null;
+  }
+
+  function drillRank(fighter, id) {
+    const n = fighter && fighter.drillRanks && fighter.drillRanks[id];
+    if (typeof n !== "number" || n <= 0) return 0;
+    return Math.min(DRILL_RANK_CAP, n | 0);
+  }
+
+  function drillOpen(fighter, id) {
+    const def = drillById(null, id);
+    if (!def) return false;
+    if (!def.classes) return true;
+    return !!(fighter && def.classes.indexOf(fighter.cls) >= 0);
+  }
+
+  function applyDrill(fighter, id) {
+    const def = drillById(null, id);
+    if (!fighter || !def || !drillOpen(fighter, id)) return false;
+    if (!fighter.drillRanks || typeof fighter.drillRanks !== "object") fighter.drillRanks = {};
+    const cur = drillRank(fighter, id);
+    if (cur >= DRILL_RANK_CAP) return false;
+    fighter.drillRanks[id] = cur + 1;
+    return true;
+  }
+
+  function drillBonus(fighter) {
+    return {
+      hp: drillRank(fighter, "endurance") * 4,
+      atk: drillRank(fighter, "strength") + drillRank(fighter, "archery") + drillRank(fighter, "arcana"),
+      def: drillRank(fighter, "tactics"),
+      spd: drillRank(fighter, "footwork") * 2
+    };
   }
 
   function facilityById(id) {
@@ -502,6 +552,11 @@
   IL.drillCost = drillCost;
   IL.drillList = drillList;
   IL.drillById = drillById;
+  IL.drillRank = drillRank;
+  IL.drillOpen = drillOpen;
+  IL.applyDrill = applyDrill;
+  IL.drillBonus = drillBonus;
+  IL.DRILL_RANK_CAP = DRILL_RANK_CAP;
   IL.facilityById = facilityById;
   IL.GEAR_REROLL = GEAR_REROLL;
   IL.blankGear = blankGear;

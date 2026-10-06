@@ -2311,3 +2311,62 @@ body:has(#seasonEnd) {
   .hub .tab .ui-glyph { width: 14px; height: 14px; }
   .hub .tab b { font-size: 9px; }
 }
+
+/* Phone club card stays short, and Send them in stays on the panel. */
+.hub .preview-board {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+.hub .preview-side { min-width: 0; }
+.hub .preview-copy { min-width: 0; flex: 1 1 auto; }
+.hub .preview-board h3,
+.hub .preview-board .eyebrow,
+.hub .preview-board .fine {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hub-panel > .banner,
+.hub-panel > .preview-board,
+.hub-panel > #nextMatch {
+  flex: 0 0 auto;
+}
+.hub-panel > #nextMatch {
+  width: 100%;
+  margin: 4px 0 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+}
+@media (max-width: 800px) {
+  .hub .preview-board .crest-sm { width: 24px; height: 24px; }
+  .hub .preview-board .fine { display: none; }
+  .hub .preview-board h3 { font-size: 13px; }
+  .hub .preview-board .eyebrow { font-size: 11px; }
+  .hub .preview-board .vs { font-size: 13px; }
+  .hub .preview-board { gap: 4px; padding-top: 4px; padding-bottom: 4px; }
+}
+@media (max-width: 640px) {
+  .hub .tab {
+    border-width: 4px 1px;
+    border-image-width: 4px 1px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .hub .tab b {
+    font-size: 10px;
+    letter-spacing: 0;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: clip;
+  }
+  .hub-panel > #nextMatch {
+    border-width: 0 16px;
+    border-image-width: 0 16px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

@@ -52,6 +52,14 @@
     { id: "tempo", name: "Tempo", blurb: "They cross the pit quicker.", spd: 5 },
     { id: "grit", name: "Grit", blurb: "More left in the tank.", hp: 14 }
   ];
+  const TASKS = [
+    { id: "crits", name: "Land 20 crits", blurb: "Crits your party lands.", goal: 20, points: 1 },
+    { id: "flawless", name: "Win without losing a fighter", blurb: "A win with the whole party still standing.", goal: 1, points: 1 },
+    { id: "rivals", name: "Drop 10 rivals", blurb: "KOs your party scores.", goal: 10, points: 1 },
+    { id: "blocks", name: "Block 15 hits", blurb: "Hits your party catches on a guard.", goal: 15, points: 1 }
+  ];
+  const FOCUS_COST = 1;
+  const MASTERY_COST = 2;
 
   function specialtyOf(id) {
     for (let i = 0; i < SPECIALTIES.length; i++) if (SPECIALTIES[i].id === id) return SPECIALTIES[i];
@@ -69,18 +77,62 @@
     return specialtyOf(fighter.specialty);
   }
 
-  function chooseFocus(fighter, id) {
+  function spendSpec(payer, cost) {
+    if (!payer) return true;
+    if ((payer.specPoints || 0) < cost) return false;
+    payer.specPoints -= cost;
+    return true;
+  }
+
+  function chooseFocus(fighter, id, payer) {
     if (!fighter || (fighter.level || 1) < 5 || !specialtyOf(id)) return false;
+    if (!spendSpec(payer, FOCUS_COST)) return false;
     fighter.focus = id;
     fighter.pendingFocus = false;
     return true;
   }
 
-  function chooseMastery(fighter, id) {
+  function chooseMastery(fighter, id, payer) {
     if (!fighter || (fighter.level || 1) < 10 || !masteryOf(id)) return false;
+    if (!spendSpec(payer, MASTERY_COST)) return false;
     fighter.mastery = id;
     fighter.pendingMastery = false;
     return true;
+  }
+
+  function noteTasks(save, match, win) {
+    if (!save) return 0;
+    if (!save.taskProg || typeof save.taskProg !== "object") save.taskProg = {};
+    if (!save.taskDone || typeof save.taskDone !== "object") save.taskDone = {};
+    let crits = 0;
+    let kos = 0;
+    let blocks = 0;
+    let down = 0;
+    (match && match.units || []).forEach(function (u) {
+      if (!u || u.team !== 0 || u.summon) return;
+      crits += u.critsLanded || 0;
+      kos += u.kos || 0;
+      blocks += u.blocks || 0;
+      if (u.hp <= 0) down++;
+    });
+    const add = {
+      crits: crits,
+      rivals: kos,
+      blocks: blocks,
+      flawless: win && down === 0 ? 1 : 0
+    };
+    let gained = 0;
+    TASKS.forEach(function (task) {
+      if (save.taskDone[task.id]) return;
+      const next = (save.taskProg[task.id] || 0) + (add[task.id] || 0);
+      save.taskProg[task.id] = next;
+      if (next >= task.goal) {
+        save.taskDone[task.id] = true;
+        save.specPoints = (save.specPoints || 0) + task.points;
+        gained += task.points;
+      }
+    });
+    return gained;
   }
 
   function rarityName(id) { return RARITY_NAME[id] || "Common"; }
@@ -371,6 +423,7 @@
       if (f.mastery && !masteryOf(f.mastery)) f.mastery = null;
       f.pendingFocus = (f.level || 1) >= 5 && !f.focus;
       f.pendingMastery = (f.level || 1) >= 10 && !f.mastery;
+      if (!f.drillRanks || typeof f.drillRanks !== "object") f.drillRanks = {};
       if (IL.ensureMoves) IL.ensureMoves(f);
     });
     function stampMoves(f) {
@@ -383,6 +436,17 @@
     (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(stampMoves); });
     if (data.cup && data.cup.slots) {
       data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(stampMoves); });
+    }
+    if (typeof data.specPoints !== "number" || data.specPoints < 0) data.specPoints = 0;
+    if (!data.taskProg || typeof data.taskProg !== "object") data.taskProg = {};
+    if (!data.taskDone || typeof data.taskDone !== "object") data.taskDone = {};
+    if (!data.specSeeded) {
+      (data.roster || []).forEach(function (f) {
+        if (!f) return;
+        if ((f.level || 1) >= 5 && !f.focus) data.specPoints += FOCUS_COST;
+        if ((f.level || 1) >= 10 && !f.mastery) data.specPoints += MASTERY_COST;
+      });
+      data.specSeeded = true;
     }
     if (!data.facilities || typeof data.facilities !== "object") data.facilities = {};
     ["yard", "hall", "infirmary"].forEach(function (id) {
@@ -907,6 +971,10 @@
   IL.combatSpecialty = combatSpecialty;
   IL.chooseFocus = chooseFocus;
   IL.chooseMastery = chooseMastery;
+  IL.TASKS = TASKS;
+  IL.noteTasks = noteTasks;
+  IL.FOCUS_COST = FOCUS_COST;
+  IL.MASTERY_COST = MASTERY_COST;
   IL.rarityName = rarityName;
   IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;

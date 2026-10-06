@@ -397,7 +397,17 @@ const barePupil = Object.assign({}, pupil, { focus: null, specialty: null, maste
 const bareStats = IL.scaledStats(barePupil, IL.CLASSES.warrior);
 check("focus and mastery raise defense", focused.def > bareStats.def);
 const yardSave = IL.migrate({ clubName: "Yard", relics: [], facilities: { yard: 2, hall: 1, infirmary: 1 }, roster: [] });
-check("facilities change the drills", IL.drillCap(yardSave) === 4 && IL.drillXp(yardSave) > IL.TRAIN_XP && IL.drillCost(yardSave) < IL.TRAIN_COST && IL.drillList(yardSave).length === 3);
+check("facilities change the drills", IL.drillCap(yardSave) === 4 && IL.drillXp(yardSave) > IL.TRAIN_XP && IL.drillCost(yardSave) < IL.TRAIN_COST && IL.drillList(yardSave).length === 6);
+const gateW = IL.randomFighter(IL.mulberry32(12), "warrior");
+const gateA = IL.randomFighter(IL.mulberry32(13), "archer");
+check("archery is class gated", IL.applyDrill(gateW, "archery") === false && IL.applyDrill(gateA, "archery") === true);
+const drilled = IL.randomFighter(IL.mulberry32(14), "warrior");
+const beforeAtk = IL.scaledStats(drilled, IL.CLASSES.warrior).atk;
+IL.applyDrill(drilled, "strength");
+check("strength raises attack", IL.scaledStats(drilled, IL.CLASSES.warrior).atk === beforeAtk + 1);
+const taskSave = IL.migrate({ clubName: "Tasks", relics: [], roster: [] });
+IL.noteTasks(taskSave, { units: [{ team: 0, hp: 0, critsLanded: 20, kos: 0, blocks: 0 }] }, true);
+check("crit task grants a specialty point", taskSave.specPoints === 1 && taskSave.taskDone.crits === true);
 const relicStall = IL.rollRelicStock(IL.mulberry32(5));
 check("relic stall is limited", relicStall.length === 4 && relicStall.every(function (row) { return row.stock === 1 && IL.relicById(row.id) && IL.relicSellPrice(row.id) < row.cost; }));
 const cup = IL.startCup({ clubName: "Smoke Yard", roster: [IL.randomFighter(IL.mulberry32(1), "warrior")] }, IL.mulberry32(9));

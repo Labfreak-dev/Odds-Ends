@@ -50,6 +50,13 @@
       def += mastery.def || 0;
       speed += mastery.spd || 0;
     }
+    const drills = IL.drillBonus ? IL.drillBonus(fighter) : null;
+    if (drills) {
+      hp += drills.hp || 0;
+      atk += drills.atk || 0;
+      def += drills.def || 0;
+      speed += drills.spd || 0;
+    }
     const gear = IL.gearBonus ? IL.gearBonus(fighter) : null;
     if (gear) {
       hp += gear.hp || 0;
@@ -714,6 +721,7 @@
       return;
     }
     const blocked = dst.state === "block";
+    if (blocked && dst.team === 0) dst.blocks = (dst.blocks || 0) + 1;
     let amount = raw;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
@@ -731,6 +739,7 @@
       if (crit) {
         amount *= 1.55;
         opt.crit = true;
+        if (src.team === 0) src.critsLanded = (src.critsLanded || 0) + 1;
       }
     }
     let dmg = amount - dst.def * 0.35;

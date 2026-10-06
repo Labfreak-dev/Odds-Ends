@@ -462,7 +462,7 @@ def check_nav(page, label, shot_dir):
     if tabs.count() != 7:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "fighter", "market", "cup", "relic", "event", "train"):
+    for word in ("club", "team", "market", "cup", "relic", "event", "train"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()
@@ -1002,6 +1002,33 @@ def sweep_frames(browser, shot_dir):
             )
             if clipped > 2:
                 raise SystemExit(label + " synergy clipped by " + str(clipped))
+        if width <= 412:
+            fight = page.evaluate(
+                """() => {
+                  const btn = document.getElementById('nextMatch');
+                  const panel = document.getElementById('hubPanel');
+                  const bar = document.getElementById('tabbar');
+                  if (!btn || !panel || !bar) return null;
+                  const b = btn.getBoundingClientRect();
+                  const p = panel.getBoundingClientRect();
+                  const t = bar.getBoundingClientRect();
+                  const labels = [...document.querySelectorAll('#tabbar .tab b')].map(el => ({
+                    t: el.textContent,
+                    cut: el.scrollWidth > el.clientWidth + 1
+                  }));
+                  return {
+                    below: Math.round(b.bottom - p.bottom),
+                    overTab: Math.round(b.bottom - t.top),
+                    h: Math.round(b.height),
+                    labels: labels
+                  };
+                }"""
+            )
+            if not fight or fight["h"] < 40 or fight["below"] > 2 or fight["overTab"] > 2:
+                raise SystemExit(label + " send button off the panel " + str(fight))
+            cut = [row["t"] for row in fight["labels"] if row["cut"]]
+            if cut:
+                raise SystemExit(label + " tab labels clipped " + ", ".join(cut))
         if width == 1280:
             slack = page.evaluate("() => document.documentElement.scrollHeight - window.innerHeight")
             if slack > 48:

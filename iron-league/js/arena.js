@@ -243,6 +243,14 @@
       } else if (mod.id === "hunger" && u.team !== 0) {
         u.maxHp = Math.round(u.maxHp * 1.15);
         u.hp = u.maxHp;
+      } else if (mod.id === "gold" && u.team === 0) {
+        u.bounty += 8;
+      } else if (mod.id === "giant") {
+        u.maxHp = Math.round(u.maxHp * 1.3);
+        u.hp = u.maxHp;
+        u.radius = (u.radius || 16) + 6;
+        u.atk = Math.round(u.atk * 1.06);
+        u.giant = true;
       }
     }
   }
@@ -262,6 +270,7 @@
       const add = makeUnit(tmpl, u.team, 1, 1, m.teams || 2);
       add.maxHp = Math.round(add.maxHp * 0.6);
       add.hp = add.maxHp;
+      if (m.hazard) applyWaveMod([add], { id: m.hazard });
       add.x = u.x + (phase === 2 ? -50 : 50);
       add.y = u.y + 36;
       if (m.spriteMap && tmpl.parts && IL.hero && IL.hero.keyOf) add.sprite = m.spriteMap[IL.hero.keyOf(tmpl.parts)];
@@ -283,6 +292,7 @@
     m.units = m.units.filter(function (u) { return u.team !== 1 || u.hp > 0; });
     (list || []).forEach(function (f, i) {
       const add = makeUnit(f, 1, i, list.length, m.teams || 2);
+      if (m.hazard) applyWaveMod([add], { id: m.hazard });
       if (m.spriteMap && f.parts && IL.hero && IL.hero.keyOf) add.sprite = m.spriteMap[IL.hero.keyOf(f.parts)];
       m.units.push(add);
     });
@@ -350,6 +360,9 @@
       names: names,
       teams: teams,
       mode: opts.mode || "league",
+      hazard: (opts.mod && opts.mod.id) || "",
+      hazardName: (opts.mod && opts.mod.name) || "",
+      hazardBlurb: (opts.mod && opts.mod.blurb) || "",
       horde: opts.horde || null,
       king: opts.king || null,
       bossAdds: opts.bossAdds || null,
@@ -795,9 +808,16 @@
       fx(m, "smoke", dst.x, dst.y - 6, { size: 96, ground: true });
       return;
     }
+    if (m.hazard === "fog" && !opt.dot && m.rng() < 0.16) {
+      m.stats.dodges++;
+      m.events.push({ type: "dodge", x: dst.x, y: dst.y - 34, team: dst.team });
+      fx(m, "smoke", dst.x, dst.y - 6, { size: 96, ground: true });
+      return;
+    }
     const blocked = dst.state === "block";
     if (blocked && dst.team === 0) dst.blocks = (dst.blocks || 0) + 1;
     let amount = raw;
+    if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
       if (src.buff > 0 && src.buffAtk) amount *= src.buffAtk;
@@ -2210,6 +2230,15 @@
       dt *= 0.38;
     }
     m.time += dt;
+    if (m.hazard === "fire") {
+      m.fireAcc = (m.fireAcc || 0) + dt;
+      if (m.fireAcc >= 1.25) {
+        m.fireAcc -= 1.25;
+        for (let i = 0; i < m.units.length; i++) {
+          if (m.units[i].hp > 0) deal(m, null, m.units[i], 3, { dot: true, silent: true });
+        }
+      }
+    }
     if (m.zoom > 0) m.zoom = Math.max(0, m.zoom - dt * 2.8);
     if (m.cheer > 0) m.cheer = Math.max(0, m.cheer - dt * 0.8);
     if ((m.stats.abilities || 0) > (m.abSeen || 0)) {

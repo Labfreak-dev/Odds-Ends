@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "52";
+  const BUILD = "53";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -350,6 +350,22 @@
     ctx.stroke();
     ctx.fillStyle = "rgba(12, 9, 7, 0.46)";
     ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "rgba(196, 154, 98, 0.55)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  function titleRing(w, h) {
+    const bandTop = Math.round(h * 0.05);
+    const band = Math.max(78, Math.round(h * 0.2));
+    const floorTop = bandTop + band + 10;
+    const cy = floorTop + (h - floorTop) * 0.46;
+    return {
+      cx: w / 2,
+      cy: cy,
+      rx: w * 0.4,
+      ry: Math.max(24, (h - floorTop) * 0.26)
+    };
   }
 
   function startTitlePit() {
@@ -365,13 +381,14 @@
       }).catch(function () {});
     });
     const phone = [
-      { sheet: "1_1", cls: "warrior", x: 0.16, y: 0.78, face: 1 },
-      { sheet: "2_6", cls: "archer", x: 0.84, y: 0.78, face: -1 }
+      { sheet: "1_1", cls: "warrior", side: -1, face: 1 },
+      { sheet: "2_6", cls: "archer", side: 1, face: -1 }
     ];
     const desk = [
-      { sheet: "1_1", cls: "warrior", x: 0.08, y: 0.48, face: 1 },
-      { sheet: "5_7", cls: "tank", x: 0.17, y: 0.54, face: 1 },
-      { sheet: "4_2", cls: "mage", x: 0.9, y: 0.48, face: -1 }
+      { sheet: "1_1", cls: "warrior", x: 0.07, y: 0.5, face: 1 },
+      { sheet: "5_7", cls: "tank", x: 0.15, y: 0.62, face: 1 },
+      { sheet: "2_6", cls: "archer", x: 0.85, y: 0.62, face: -1 },
+      { sheet: "4_2", cls: "mage", x: 0.93, y: 0.5, face: -1 }
     ];
     const reduce = !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches);
     const t0 = (root.performance || Date).now();
@@ -394,13 +411,14 @@
       ctx.imageSmoothingEnabled = false;
       const t = reduce ? 0 : ((now || t0) - t0) / 1000;
       paintTitlePit(ctx, cssW, cssH, t, reduce);
+      const ring = titleRing(cssW, cssH);
       const cast = narrow ? phone : desk;
-      const scale = narrow ? 2 : 3;
+      const scale = narrow ? 4 : 3;
       cast.forEach(function (c, i) {
         const atlas = atlases[c.sheet];
         if (!atlas) return;
-        const x = Math.round(cssW * c.x);
-        const y = Math.round(cssH * c.y);
+        const x = Math.round(narrow ? ring.cx + c.side * ring.rx * 0.55 : cssW * c.x);
+        const y = Math.round(narrow ? ring.cy + ring.ry * 0.12 : cssH * c.y);
         ctx.fillStyle = "rgba(0,0,0,0.35)";
         ctx.beginPath();
         ctx.ellipse(x, y + 2, 10 * scale, 5, 0, 0, Math.PI * 2);
@@ -1982,6 +2000,17 @@
           '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (haveAll ? "Owned" : (gone ? "Sold" : (broke ? "Need " + offer.cost + "g" : ("Buy — " + offer.cost + " gold")))) + '</button>' +
         '</article>';
       }
+      if (offer.kind === "gear" || offer.kind === "tome") {
+        const item = offer.item;
+        const name = item && IL.itemName ? IL.itemName(item) : (offer.kind === "tome" ? "Tome" : "Gear");
+        const slot = item && IL.itemSlot ? IL.itemSlot(item) : offer.kind;
+        const cant = gone || broke;
+        return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+          '<h3>' + esc(name) + '</h3>' +
+          '<p class="fine">' + esc(slot) + ' · discounted this week. 1 in stock.</p>' +
+          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Sold" : (broke ? "Need " + offer.cost + "g" : ("Buy — " + offer.cost + " gold"))) + '</button>' +
+        '</article>';
+      }
       const opened = offer.opened;
       let result = "Gold, plus a relic or a piece of gear. 1 in stock.";
       if (opened) {
@@ -2169,7 +2198,7 @@
       const running = save.endlessRun && save.endlessRun.wave;
       body = '<section id="endlessBoard">' +
         '<h3 class="section">Endless</h3>' +
-        '<p class="fine">Waves scale. Every fifth wave brings a modifier, then a relic pick. Your best stays on this device.</p>' +
+        '<p class="fine">Waves scale. Every fifth wave brings the next modifier, then a relic pick. Your best stays on this device.</p>' +
         '<p class="fine">Best wave: ' + best + (running ? ' · Run in progress: wave ' + save.endlessRun.wave : '') + '</p>' +
         '<div class="hub-actions"><button type="button" class="btn fight" id="startEndless">' + (running ? "Resume" : "Enter the pit") + '</button></div>' +
         '<h3 class="section">On this device</h3>' +
@@ -2185,12 +2214,13 @@
       }).join(", ");
       body = '<section id="dailyBoard">' +
         '<h3 class="section">Daily challenge</h3>' +
-        '<p class="fine">The same pair for every club today. One purse if you win.</p>' +
+        '<p class="fine">The same pair for every club today. One purse if you win. Pit: ' + esc(IL.weekFightEvent(Date.now()).name) + '.</p>' +
         '<p class="fine">' + esc(names) + '</p>' +
         '<div class="hub-actions"><button type="button" class="btn fight" id="startDaily"' + (done ? " disabled" : "") + '>' + (done ? "Cleared today" : "Fight today") + '</button></div>' +
       '</section>';
     } else {
       const current = IL.activeEvent(Date.now());
+      const pit = IL.weekFightEvent(Date.now());
       const cards = IL.EVENTS.map(function (ev) {
         const on = ev.id === current.id;
         const cleared = on && weekDone(ev.id);
@@ -2207,6 +2237,7 @@
       body = '<section id="eventsBoard">' +
         '<h3 class="section">This week</h3>' +
         '<p class="fine">One event is open. The board turns in ' + esc(left) + '.</p>' +
+        '<p class="fine">This week\'s pit: ' + esc(pit.name) + '. ' + esc(pit.blurb) + '</p>' +
         '<div class="dense-grid">' + cards + '</div>' +
       '</section>';
     }
@@ -2852,6 +2883,7 @@
           crestHtml(spec.rightName || "Rivals", "md", crestIndexOf(spec.rightName)) +
         '</header>' +
         (nemesisBanner({ name: spec.rightName }) ? '<p class="banner" id="rivalLine">' + nemesisBanner({ name: spec.rightName }) + '</p>' : '') +
+        (spec.mod ? '<p class="banner" id="fightEvent">' + esc(spec.mod.name) + '. ' + esc(spec.mod.blurb) + '</p>' : '') +
         '<div class="versus-grid">' +
           '<section class="panel-frame"><h3 class="section">Your party</h3>' + synergyLine(left, "yourSynergy") + '<div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
           '<section class="panel-frame"><h3 class="section">They send</h3>' + synergyLine(right, "theirSynergy") + '<div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
@@ -3436,6 +3468,17 @@
       pitSound("purchase");
       if (!Array.isArray(save.relics)) save.relics = [];
       ids.forEach(function (id) { if (save.relics.indexOf(id) < 0) save.relics.push(id); });
+      offer.stock = 0;
+      persist();
+      showHub("market", true);
+      return;
+    }
+    if (offer.kind === "gear" || offer.kind === "tome") {
+      if (!offer.item) { pitSound("error"); return; }
+      save.gold -= offer.cost;
+      pitSound("purchase");
+      if (!Array.isArray(save.items)) save.items = [];
+      save.items.push(offer.item);
       offer.stock = 0;
       persist();
       showHub("market", true);
@@ -4088,7 +4131,8 @@
     return launchMatch({
       mode: "boss", left: party, right: [boss], extra: adds, bossAdds: adds,
       leftName: save.clubName, rightName: boss.name, size: party.length,
-      seed: eventSeed(0xB055), returnTab: "events"
+      seed: eventSeed(0xB055), returnTab: "events",
+      mod: IL.weekFightEvent(Date.now())
     });
   }
 
@@ -4108,7 +4152,8 @@
     return launchMatch({
       mode: "gauntlet", left: party, right: foes,
       leftName: save.clubName, rightName: "Fight " + (g.step + 1), size: party.length,
-      seed: eventSeed(0x6A17 + g.step), returnTab: "events"
+      seed: eventSeed(0x6A17 + g.step), returnTab: "events",
+      mod: IL.weekFightEvent(Date.now())
     });
   }
 
@@ -4134,7 +4179,8 @@
       extra: later[0].concat(later[1]),
       horde: { waves: later, next: 0, cleared: 0 },
       leftName: save.clubName, rightName: "The horde", size: party.length,
-      seed: eventSeed(0x40DE), returnTab: "events"
+      seed: eventSeed(0x40DE), returnTab: "events",
+      mod: IL.weekFightEvent(Date.now())
     });
   }
 
@@ -4148,7 +4194,8 @@
       extra: waves.reduce(function (all, row) { return all.concat(row); }, []),
       king: { waves: waves, next: 0, cleared: 0 },
       leftName: save.clubName, rightName: "The pit", size: 1,
-      seed: eventSeed(0x1116), returnTab: "events"
+      seed: eventSeed(0x1116), returnTab: "events",
+      mod: IL.weekFightEvent(Date.now())
     });
   }
 
@@ -4157,7 +4204,8 @@
     return launchMatch({
       mode: "mirror", left: party, right: copies,
       leftName: save.clubName, rightName: "Mirror", size: party.length,
-      seed: eventSeed(0x1110), returnTab: "events"
+      seed: eventSeed(0x1110), returnTab: "events",
+      mod: IL.weekFightEvent(Date.now())
     });
   }
 
@@ -4209,7 +4257,8 @@
     return launchMatch({
       mode: "daily", left: party, right: IL.dailySquad(day, save.season || 1),
       leftName: save.clubName, rightName: "Daily", size: party.length,
-      seed: (day * 9973 + 17) >>> 0, returnTab: "events"
+      seed: (day * 9973 + 17) >>> 0, returnTab: "events",
+      mod: IL.weekFightEvent(Date.now())
     });
   }
 
@@ -4257,6 +4306,7 @@
           '<div class="timer" id="timer">0:00</div>' +
           '<div class="side them"><strong id="rightName"></strong><span id="rightHp"></span></div>' +
         '</header>' +
+        (match.hazardName ? '<p class="hazard-line">' + esc(match.hazardName) + '</p>' : '') +
         '<div class="hud-strip" id="liveYou"></div>' +
         '<div class="fight-layout">' +
           '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div><div id="result" class="result" hidden></div></div>' +

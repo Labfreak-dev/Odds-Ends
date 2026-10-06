@@ -132,6 +132,7 @@
         return s + (f.cls === "tank" ? 1.12 : f.cls === "mage" ? 1.06 : 1);
       }, 0) / 3;
       if (IL.dedupeNames) IL.dedupeNames(fighters);
+      if (IL.separateLooks) IL.separateLooks(fighters);
       clubs.push({ id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, fighters: fighters });
     });
     save.clubs = clubs;
@@ -527,6 +528,7 @@
         f.name = IL.uniqueName(rng, takenNames);
         takenNames.push(f.name);
       });
+      if (IL.separateLooks) IL.separateLooks([captain].concat(recruits));
       save = Object.assign({
         v: 1,
         clubName: clubName,
@@ -538,7 +540,7 @@
         roster: [captain].concat(recruits)
       }, IL.freshClubFields(seed));
       buildSeason(false);
-      save.market = IL.rollMarket(takeRng(), 0);
+      save.market = IL.rollMarket(takeRng(), 0, rosterAvoid());
       save.items = [IL.makeItem(takeRng(), { key: "cloak", rarity: "common" })];
       save.lineup = save.roster.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
       save.schema = IL.SCHEMA || 2;
@@ -610,10 +612,20 @@
     return (save.roster || []).filter(function (f) { return (f.pendingMoves || 0) > 0; });
   }
 
+  function rosterAvoid() {
+    const names = [];
+    const sheets = [];
+    (save.roster || []).forEach(function (f) {
+      if (f && f.name) names.push(f.name);
+      if (f && f.parts && f.parts.sheet) sheets.push(f.parts.sheet);
+    });
+    return { names: names, sheets: sheets };
+  }
+
   function ensureMarket() {
     IL.migrate(save);
     if (!save.market || !save.market.length) {
-      save.market = IL.rollMarket(takeRng(), save.renown || 0);
+      save.market = IL.rollMarket(takeRng(), save.renown || 0, rosterAvoid());
       persist();
     }
     const week = IL.weekIndex(Date.now());
@@ -2776,7 +2788,7 @@
     if (refreshBtn) refreshBtn.onclick = function () {
       if (save.gold < IL.REFRESH_COST) return;
       save.gold -= IL.REFRESH_COST;
-      save.market = IL.rollMarket(takeRng(), save.renown || 0);
+      save.market = IL.rollMarket(takeRng(), save.renown || 0, rosterAvoid());
       persist();
       showHub("market", true);
     };
@@ -3663,7 +3675,7 @@
       save.roster.push(fighter);
       if (IL.dedupeNames) IL.dedupeNames(save.roster);
       save.market.splice(index, 1);
-      if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0);
+      if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0, rosterAvoid());
       persist();
       showHub("market", true);
     }).catch(function () { showHub("market", true); });

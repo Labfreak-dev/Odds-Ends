@@ -298,8 +298,8 @@
   const CLOTH_COLORS = ["#5a1c35", "#423989", "#0f4637", "#402c71", "#3e3b3b", "#884d15", "#3b2762", "#787da1"];
   const FOCUS_COLORS = ["#7d3929", "#555329", "#55534c", "#7d394c"];
 
-  const FIRST = ["Ada", "Bram", "Cass", "Dorrin", "Ede", "Fenn", "Gal", "Hester", "Ivo", "Joss", "Kett", "Lumen", "Marrow", "Ness", "Osric", "Pell", "Quill", "Rho", "Sable", "Tor", "Una", "Vesper", "Wynn", "Yarrow", "Zeke", "Briar", "Holt", "Nim", "Sedge", "Vail"];
-  const LAST = ["Ash", "Barrow", "Cole", "Dusk", "Elm", "Flint", "Grey", "Holt", "Irons", "Keel", "Lark", "Moss", "Nye", "Pike", "Quinn", "Reed", "Slate", "Thorn", "Vale", "Wick", "Harrow", "Cinder", "Lowell", "Peck"];
+  const FIRST = ["Ada", "Bram", "Cass", "Dorrin", "Ede", "Fenn", "Gal", "Hester", "Ivo", "Joss", "Kett", "Lumen", "Marrow", "Ness", "Osric", "Pell", "Quill", "Rho", "Sable", "Tor", "Una", "Vesper", "Wynn", "Yarrow", "Zeke", "Briar", "Holt", "Nim", "Sedge", "Vail", "Ansel", "Bex", "Cora", "Dax", "Eira", "Faye", "Hale", "Ivy", "Jory", "Kira", "Leif", "Mira", "Nia", "Orla", "Pax", "Ren", "Shay", "Tess", "Willa", "Wren", "Cade", "Fern", "Otto", "Pip", "Rue", "Gemma", "Nell", "Jor", "Kit", "Bryn"];
+  const LAST = ["Ash", "Barrow", "Cole", "Dusk", "Elm", "Flint", "Grey", "Holt", "Irons", "Keel", "Lark", "Moss", "Nye", "Pike", "Quinn", "Reed", "Slate", "Thorn", "Vale", "Wick", "Harrow", "Cinder", "Lowell", "Peck", "Crowe", "Dun", "Heath", "Ives", "Kerr", "Lyle", "Marsh", "Rook", "Tarn", "Voss", "Weld", "Yarn", "Bryce", "Cliff", "Dorn", "Ellis"];
   const CLUBS = ["Ashveil Company", "Red Kettle", "Lowmarket Blades", "Cinder Pact", "North Wharf", "Glass Orchard", "Mudgate Crew", "Harrow and Coil", "Salt Stair", "Penny Standard", "Bright Rust", "Hollow Lantern", "Copper Warden", "Mile End", "Soot Choir", "Gutter Saint", "Amber Yoke", "Third Bell"];
 
   /* Five-match season. Sizes cover 1v1, 2v2 and 3v3. */
@@ -512,6 +512,57 @@
     return list;
   }
 
+  /* Rename a non-champion whose first name is already taken. A private rng
+     keeps the save stream put. Champions keep the name they are known by. */
+  function separateNames(list, reserved) {
+    const used = {};
+    (reserved || []).forEach(function (n) {
+      const key = firstToken(n);
+      if (key) used[key] = true;
+    });
+    (list || []).forEach(function (f) {
+      if (!f || typeof f.name !== "string") return;
+      let key = firstToken(f.name);
+      if (f.champion) {
+        if (key) used[key] = true;
+        return;
+      }
+      if (!key || used[key]) {
+        const seed = (hashStr(String(f.id || "f") + ":name:" + key) >>> 0) || 1;
+        f.name = poolName(mulberry32(seed), used);
+        key = firstToken(f.name);
+      }
+      if (key) used[key] = true;
+    });
+    return list;
+  }
+
+  /* Give each fighter a sheet from their own class pool that this group has
+     not already used. Falls back to the current sheet when the pool is full. */
+  function separateLooks(list, reserved) {
+    const used = {};
+    (reserved || []).forEach(function (id) { if (id) used[id] = true; });
+    (list || []).forEach(function (f) {
+      if (!f) return;
+      if (!f.parts) f.parts = {};
+      const pool = looksFor(f.cls || "warrior");
+      const cur = f.parts.sheet;
+      if (cur && pool.indexOf(cur) >= 0 && !used[cur]) {
+        used[cur] = true;
+        return;
+      }
+      const seed = (hashStr(String(f.id || "f") + ":look") >>> 0) || 1;
+      let picked = pool[seed % pool.length];
+      for (let i = 0; i < pool.length; i++) {
+        const next = pool[(seed + i) % pool.length];
+        if (!used[next]) { picked = next; break; }
+      }
+      f.parts.sheet = picked;
+      used[picked] = true;
+    });
+    return list;
+  }
+
   function randomFighter(rng, clsId) {
     const ids = Object.keys(CLASSES);
     const cls = clsId && CLASSES[clsId] ? clsId : pick(rng, ids);
@@ -596,6 +647,8 @@
   IL.randomFighter = randomFighter;
   IL.uniqueName = uniqueName;
   IL.dedupeNames = dedupeNames;
+  IL.separateNames = separateNames;
+  IL.separateLooks = separateLooks;
   IL.firstToken = firstToken;
   IL.blankFighterFields = blankFighterFields;
   IL.xpLevel = xpLevel;

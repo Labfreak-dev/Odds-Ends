@@ -61,6 +61,8 @@ canvas, .item-icon, .pixel-icon { image-rendering: pixelated; image-rendering: c
 .warn { color: #e7b089; font-size: 14px; }
 
 .title-screen {
+  position: relative;
+  z-index: 1;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -68,6 +70,11 @@ canvas, .item-icon, .pixel-icon { image-rendering: pixelated; image-rendering: c
   padding: 32px 22px 48px;
   max-width: 720px;
   margin: 0 auto;
+  background: transparent;
+}
+.title-copy {
+  background: linear-gradient(180deg, rgba(12, 9, 7, 0.78) 0%, rgba(12, 9, 7, 0.55) 72%, rgba(12, 9, 7, 0) 100%);
+  padding: 4px 2px 8px;
 }
 .title-screen h1 {
   font-family: var(--display);
@@ -2874,25 +2881,47 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   overflow: visible;
   text-overflow: clip;
 }
-.whats-new {
-  margin: 18px 0 0;
-  max-width: 38ch;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  background: rgba(20, 17, 14, 0.72);
+#titlePit {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
-.whats-new h2 {
+.whats-new {
+  margin: 14px 0 0;
+  max-width: 46ch;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: rgba(20, 17, 14, 0.82);
+}
+.whats-new summary {
   font-family: var(--display);
   font-size: 16px;
   font-weight: 600;
-  margin: 0 0 6px;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
 }
+.whats-new summary::-webkit-details-marker { display: none; }
+.whats-new summary::marker { content: ""; }
+.whats-new summary::after {
+  content: " +";
+  color: var(--copper-2);
+}
+.whats-new[open] summary::after { content: " -"; }
 .whats-new ul {
+  max-height: min(34vh, 220px);
+  overflow: auto;
   margin: 0;
-  padding: 0 0 0 1.1em;
+  padding: 0 12px 10px 1.35em;
 }
 .whats-new li {
   font-size: 13px;
@@ -2902,4 +2931,58 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   overflow: visible;
   text-overflow: clip;
   overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .title-screen {
+    justify-content: flex-start;
+    padding: 16px 16px 18px;
+  }
+  .title-screen .lede { margin-bottom: 16px; }
+}
+.level-flash {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--copper);
+  background: rgba(196, 98, 45, 0.16);
+  animation: level-flash-in 0.7s ease;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.level-flash strong,
+.level-flash span,
+.unlock-card,
+.unlock-card strong,
+.unlock-card p {
+  display: block;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.level-flash strong,
+.unlock-card strong {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+}
+.level-flash span,
+.unlock-card p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--cream);
+}
+.unlock-card {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--violet);
+  background: rgba(176, 143, 212, 0.14);
+}
+.unlock-card .eyebrow { margin: 0 0 2px; }
+@keyframes level-flash-in {
+  from { background: rgba(244, 236, 223, 0.5); }
+  to { background: rgba(196, 98, 45, 0.16); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .level-flash { animation: none; }
 }

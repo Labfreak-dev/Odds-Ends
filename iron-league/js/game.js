@@ -1498,18 +1498,26 @@
       const played = c.w + c.l;
       return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
-    const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
-    const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
+    function previewNames(list) {
+      if (!list.length) return '<p class="preview-name">None</p>';
+      return '<ul class="preview-names">' + list.map(function (f) {
+        const first = String(f.name || "Fighter").trim().split(/\s+/)[0];
+        return '<li>' + esc(first) + '</li>';
+      }).join("") + '</ul>';
+    }
     const partySynergy = synergyLine(yours, "partySynergy");
     const preview = (!done && rival)
       ? '<section class="preview-board" id="matchPreview">' +
           partySynergy +
-          '<div class="preview-side">' + crestHtml(save.clubName, "sm", save.crest) +
-            '<div class="preview-copy"><p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3></div></div>' +
+          '<div class="preview-side">' +
+            '<p class="eyebrow">Your party</p>' +
+            '<div class="preview-head">' + crestHtml(save.clubName, "sm", save.crest) + previewNames(yours) + '</div>' +
+          '</div>' +
           '<p class="vs">vs</p>' +
-          '<div class="preview-side">' + crestHtml(rival.name, "sm", clubCrest(rival)) +
-            '<div class="preview-copy"><p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
-            '<p class="fine">' + (themNames ? esc(themNames) : ("Record " + (rival.w || 0) + "–" + (rival.l || 0))) + '</p></div></div>' +
+          '<div class="preview-side">' +
+            '<p class="eyebrow">Next opponent</p>' +
+            '<div class="preview-head">' + crestHtml(rival.name, "sm", clubCrest(rival)) + previewNames(theirs) + '</div>' +
+          '</div>' +
         '</section>'
       : "";
     const sendBtn = (!done && rival)

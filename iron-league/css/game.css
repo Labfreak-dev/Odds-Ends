@@ -2309,25 +2309,53 @@ body:has(#seasonEnd) {
 }
 @media (max-width: 640px) {
   .hub .tab .ui-glyph { width: 14px; height: 14px; }
-  .hub .tab b { font-size: 9px; }
+  .hub .tab b { font-size: 11px; }
 }
 
-/* Phone club card stays short, and Send them in stays on the panel. */
+/* Phone club card: labels wrap, names stack, nothing is clipped. */
 .hub .preview-board {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
 }
-.hub .preview-side { min-width: 0; }
-.hub .preview-copy { min-width: 0; flex: 1 1 auto; }
-.hub .preview-board h3,
+.hub .preview-side {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+.hub .preview-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
 .hub .preview-board .eyebrow,
-.hub .preview-board .fine {
+.hub .preview-names,
+.hub .preview-names li,
+.hub .preview-name {
   margin: 0;
   min-width: 0;
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+.hub .preview-board .eyebrow {
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  font-size: 11px;
+}
+.hub .preview-names {
+  list-style: none;
+  padding: 0;
+  flex: 1 1 auto;
+}
+.hub .preview-names li,
+.hub .preview-name {
+  font-size: 12px;
+  line-height: 1.25;
 }
 .hub-panel > .banner,
 .hub-panel > .preview-board,
@@ -2343,11 +2371,8 @@ body:has(#seasonEnd) {
 }
 @media (max-width: 800px) {
   .hub .preview-board .crest-sm { width: 24px; height: 24px; }
-  .hub .preview-board .fine { display: none; }
-  .hub .preview-board h3 { font-size: 13px; }
-  .hub .preview-board .eyebrow { font-size: 11px; }
-  .hub .preview-board .vs { font-size: 13px; }
-  .hub .preview-board { gap: 4px; padding-top: 4px; padding-bottom: 4px; }
+  .hub .preview-board .vs { font-size: 12px; margin-top: 14px; }
+  .hub .preview-board { gap: 4px; padding: 4px 8px 6px; }
 }
 @media (max-width: 640px) {
   .hub .tab {
@@ -2357,10 +2382,10 @@ body:has(#seasonEnd) {
     padding-right: 0;
   }
   .hub .tab b {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0;
-    line-height: 1.1;
-    overflow: hidden;
+    line-height: 1.15;
+    overflow: visible;
     text-overflow: clip;
   }
   .hub-panel > #nextMatch {

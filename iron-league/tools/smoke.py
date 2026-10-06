@@ -711,6 +711,139 @@ def check_season(page, label, shot_dir):
         raise SystemExit(label + " rivals did not scale: " + str(level))
 
 
+def check_phone_fight(browser, width, height, shot_dir, dismiss):
+    """A phone fight stays on one screen, then Back to club leaves the results."""
+    label = str(width) + "x" + str(height)
+    page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page.goto(URL, wait_until="domcontentloaded")
+    page.evaluate("() => localStorage.clear()")
+    page.reload(wait_until="domcontentloaded")
+    page.click("#newClub")
+    page.fill("#clubName", "Labfreak Company")
+    page.fill("#fighterName", "Ada Flint")
+    page.click('[data-class="warrior"]')
+    page.click("#confirm")
+    page.wait_for_selector("#nextMatch", timeout=30000)
+    page.click("#nextMatch")
+    page.click("#confirmFight")
+    page.wait_for_selector("#arena", timeout=30000)
+    page.wait_for_timeout(400)
+    fit = page.evaluate(
+        """() => {
+          const de = document.documentElement;
+          const view = (id) => {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { top: r.top, left: r.left, right: r.right, bottom: r.bottom, w: r.width, h: r.height };
+          };
+          const span = document.querySelector('#leftName .club-name');
+          const bar = document.querySelector('.bar');
+          const sr = span.getBoundingClientRect();
+          const br = bar.getBoundingClientRect();
+          const arena = document.getElementById('arena').getBoundingClientRect();
+          return {
+            scrollX: de.scrollWidth - window.innerWidth,
+            scrollY: de.scrollHeight - window.innerHeight,
+            buttons: ['speed1', 'speed2', 'speed3', 'pause', 'skip'].map(view),
+            nameInside: sr.left >= br.left - 1 && sr.right <= br.right + 1 && sr.bottom <= br.bottom + 1,
+            ellipsis: getComputedStyle(span).textOverflow === 'ellipsis',
+            fullName: span.textContent,
+            arenaW: arena.width,
+            innerW: window.innerWidth
+          };
+        }"""
+    )
+    if fit["scrollX"] > 1 or fit["scrollY"] > 1:
+        raise SystemExit(label + " fight page scrolls " + str(fit["scrollX"]) + " " + str(fit["scrollY"]))
+    if not fit["nameInside"] or not fit["ellipsis"] or fit["fullName"] != "Labfreak Company":
+        raise SystemExit(label + " club name leaves the header " + str(fit))
+    if fit["arenaW"] < fit["innerW"] - 32:
+        raise SystemExit(label + " pit is narrower than the screen " + str(fit["arenaW"]))
+    for box in fit["buttons"]:
+        if not box or box["w"] < 8 or box["h"] < 8:
+            raise SystemExit(label + " speed control missing " + str(fit["buttons"]))
+        if box["top"] < -1 or box["left"] < -1 or box["bottom"] > height + 1 or box["right"] > width + 1:
+            raise SystemExit(label + " speed control off screen " + str(box))
+    page.screenshot(path=str(shot_dir / ("fight-" + label + ".png")))
+    page.click("#speed3")
+    page.wait_for_selector("#resultTable", timeout=60000)
+    page.wait_for_function("() => document.querySelector('#speed3') && document.querySelector('#speed3').classList.contains('on')")
+    overlay = page.evaluate(
+        """() => {
+          const table = document.querySelector('#resultTable').getBoundingClientRect();
+          const box = document.querySelector('#result');
+          const before = getComputedStyle(box, '::before');
+          const anim = (before.animationName || '') + ' ' + (before.content || '');
+          const spinning = /spin|burst/i.test(anim) && before.content !== 'none';
+          const btn = document.querySelector('#backHub').getBoundingClientRect();
+          const panel = box.getBoundingClientRect();
+          let overlap = false;
+          document.querySelectorAll('#result, #result *').forEach((el) => {
+            const cs = getComputedStyle(el);
+            const name = cs.animationName || '';
+            if (!/spin|burst/i.test(name)) return;
+            const r = el.getBoundingClientRect();
+            const hit = r.width > 2 && r.height > 2 && !(r.right < table.left || r.left > table.right || r.bottom < table.top || r.top > table.bottom);
+            if (hit) overlap = true;
+          });
+          return {
+            spinning: spinning,
+            overlap: overlap,
+            label: (document.querySelector('#backHub') || {}).textContent || '',
+            btnTop: btn.top,
+            btnBottom: btn.bottom,
+            btnH: btn.height,
+            panelBottom: panel.bottom,
+            panelRight: panel.right,
+            innerH: window.innerHeight,
+            innerW: window.innerWidth
+          };
+        }"""
+    )
+    if overlay["spinning"] or overlay["overlap"]:
+        raise SystemExit(label + " spinning box covers the results " + str(overlay))
+    if "back to club" not in overlay["label"].lower():
+        raise SystemExit(label + " results missing Back to club: " + overlay["label"])
+    if overlay["btnTop"] < 0 or overlay["btnBottom"] > overlay["innerH"] + 1 or overlay["btnH"] < 40:
+        raise SystemExit(label + " Back to club is off screen " + str(overlay))
+    if overlay["panelBottom"] > overlay["innerH"] + 1 or overlay["panelRight"] > overlay["innerW"] + 1:
+        raise SystemExit(label + " results overlay leaves the screen " + str(overlay))
+    page.screenshot(path=str(shot_dir / ("results-" + label + ".png")))
+    if width == 360:
+        page.set_viewport_size({"width": 360, "height": 640})
+        short = page.evaluate(
+            """() => {
+              const btn = document.querySelector('#backHub').getBoundingClientRect();
+              const panel = document.querySelector('#result').getBoundingClientRect();
+              return {
+                btnBottom: btn.bottom,
+                btnH: btn.height,
+                panelBottom: panel.bottom,
+                panelRight: panel.right,
+                h: window.innerHeight,
+                w: window.innerWidth,
+                scrollY: document.documentElement.scrollHeight - window.innerHeight
+              };
+            }"""
+        )
+        if short["scrollY"] > 1 or short["btnBottom"] > short["h"] + 1 or short["btnH"] < 40 or short["panelBottom"] > short["h"] + 1 or short["panelRight"] > short["w"] + 1:
+            raise SystemExit(label + " results do not fit 360x640 " + str(short))
+    if dismiss == "enter":
+        page.keyboard.press("Enter")
+    elif dismiss == "escape":
+        page.keyboard.press("Escape")
+    else:
+        page.click("#backHub")
+    page.wait_for_selector("#nextMatch, #tabbar", timeout=10000)
+    if page.locator("#result").count():
+        raise SystemExit(label + " results stayed open")
+    title = page.locator(".hub-head h2").inner_text()
+    if "Labfreak" not in title:
+        raise SystemExit(label + " hub lost the club name: " + title)
+    page.close()
+
+
 def main():
     shot = Path("/tmp/il-shots")
     shot.mkdir(exist_ok=True)
@@ -722,6 +855,8 @@ def main():
         phone = browser.new_page(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True)
         run(phone, "phone", shot)
         phone.close()
+        check_phone_fight(browser, 360, 740, shot, "click")
+        check_phone_fight(browser, 412, 915, shot, "escape")
         browser.close()
     print("smoke passed")
     print("shots", shot)

@@ -1248,3 +1248,195 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   .pane { max-height: 280px; }
   .roster-row { max-height: none; }
 }
+
+/* Phone fight: one screen, no spinning reward box, exit always in reach. */
+html:has(.fight-screen),
+body:has(.fight-screen),
+body:has(.fight-screen) #app {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+.fight-screen {
+  height: 100%;
+  max-height: 100%;
+  max-width: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+}
+.fight-screen .bar {
+  flex: none;
+  margin: 0;
+  min-width: 0;
+}
+.fight-screen .bar strong {
+  min-width: 0;
+  max-width: 100%;
+  font-size: clamp(13px, 3.6vw, 18px);
+}
+.fight-screen .bar strong .club-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fight-screen .bar .crest-sm { width: 22px; height: 22px; }
+.fight-screen .bar .side { overflow: hidden; }
+.hud-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+.hud-strip .eyebrow {
+  flex: none;
+  width: 2.8em;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.15;
+}
+.hud-strip .live {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px 4px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.hud-strip .live small,
+.hud-strip .live .pixel-icon { display: none; }
+.hud-strip .live b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+.hud-strip .hp-num { font-size: 11px; }
+.hud-strip .track {
+  height: 4px;
+  min-width: 0;
+  border: 0;
+  border-image: none;
+  background: #100e0c;
+  border-radius: 2px;
+}
+.fight-screen .fight-layout {
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
+}
+.fight-screen .stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+.fight-screen #arena {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: #1a1612;
+}
+.fight-controls {
+  flex: none;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0;
+  padding-top: 2px;
+}
+.fight-controls .btn,
+.fight-controls .btn.ghost,
+.fight-controls .btn.primary {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 2px;
+  font-size: 13px;
+  border-width: 0 12px;
+  border-image-width: 0 12px;
+}
+.result,
+.result.victory {
+  position: fixed;
+  z-index: 50;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: auto;
+  height: auto;
+  max-height: none;
+  transform: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 8px 14px 10px;
+}
+.result-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.result-actions {
+  flex: none;
+  padding-top: 8px;
+  background: #2b1e13;
+}
+.result-actions .btn {
+  width: 100%;
+  min-height: 52px;
+}
+.result.victory::before {
+  content: none;
+  display: none;
+  animation: none;
+  background: none;
+}
+.result.victory h2 {
+  text-shadow: 0 0 14px rgba(227, 154, 98, 0.55);
+}
+#resultTable {
+  width: 100%;
+  table-layout: fixed;
+}
+#resultTable th,
+#resultTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hub-head > div:not(.hub-actions) {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.hub-head h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.hub-actions { flex: none; }
+.result[hidden] { display: none !important; }
+@media (min-width: 1100px) {
+  .fight-screen { max-width: 1480px; }
+  .fight-layout { flex-direction: column; }
+  .fight-layout aside { width: auto; }
+}

@@ -382,11 +382,34 @@ def check_nav(page, label, shot_dir):
             raise SystemExit(label + " tab bar not pinned " + str(bar))
     elif bar["position"] == "fixed":
         raise SystemExit(label + " tab bar should sit in the page on a wide screen")
+    ink = page.evaluate(
+        """() => [...document.querySelectorAll('#tabbar .tab')].filter(t => t.getAttribute('aria-selected') !== 'true').map(t => getComputedStyle(t).color)"""
+    )
+    if any(c != "rgb(243, 217, 176)" for c in ink):
+        raise SystemExit(label + " inactive tab ink " + str(ink))
     check_yard(page, label)
     page.keyboard.press("2")
     page.wait_for_selector("#fighterList")
     if page.locator("#nextMatch").count():
         raise SystemExit(label + " fighters tab still shows the match button")
+    if label == "desktop":
+        wide = page.evaluate(
+            """() => {
+              const rows = [...document.querySelectorAll('#fighterList .roster-row')];
+              if (!rows.length) return 'no rows';
+              for (const row of rows) {
+                const w = row.getBoundingClientRect().width;
+                if (w < 300) return 'narrow ' + Math.round(w);
+                if (row.getBoundingClientRect().height > 80) return 'tall ' + Math.round(row.getBoundingClientRect().height);
+                for (const el of row.querySelectorAll('h3, .kit-line span, .fine')) {
+                  if (el.scrollWidth > el.clientWidth + 1) return 'cut ' + el.textContent.trim();
+                }
+              }
+              return '';
+            }"""
+        )
+        if wide:
+            raise SystemExit(label + " roster tiles " + wide)
     page.locator("[data-detail]").first.click()
     page.wait_for_selector("#fighterSheet")
     page.wait_for_function(

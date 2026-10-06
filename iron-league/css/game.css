@@ -869,13 +869,15 @@ button:disabled, .btn:disabled {
   border-width: 10px 8px;
   border-radius: 0;
   background: transparent;
-  color: #3a2414;
+  color: #f3d9b0;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
   border-image: url("../assets/ui/tabs/tab_normal.png") 12 8 fill / 10px 8px stretch;
 }
-.tab:hover { color: #1a100c; border-image-source: url("../assets/ui/tabs/tab_hover.png"); }
+.tab:hover { color: #f3d9b0; border-image-source: url("../assets/ui/tabs/tab_hover.png"); }
 .tab:active { transform: none; }
 .tab[aria-selected="true"] {
   color: #1a100c;
+  text-shadow: none;
   background: transparent;
   border-color: transparent;
   border-bottom-color: transparent;
@@ -1135,6 +1137,7 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
 .roster-grid { grid-template-columns: 1fr; gap: 6px; }
 .roster-block { margin: 0 0 6px; }
 .roster-row {
+  position: relative;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 68px;
   gap: 6px;
@@ -1146,7 +1149,16 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   border-width: 8px;
   border-image-width: 8px;
 }
-.roster-row::before { display: none; }
+.card.roster-row::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 6px;
+  height: 2px;
+  margin: 0;
+  pointer-events: none;
+}
 .roster-row .portrait { width: 56px; padding: 0; border: 0; background: transparent; }
 .roster-row .portrait-frame {
   width: 56px;
@@ -1215,7 +1227,7 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
 }
 .card.relic::before { display: none; }
 @media (min-width: 900px) {
-  .roster-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .roster-grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 }
 @media (min-width: 1000px) {
   .hub-split { grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.9fr); }
@@ -1224,8 +1236,6 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   #clubPane { order: -1; }
 }
 @media (min-width: 1200px) {
-  .roster-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .hub-split .roster-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .relic-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {

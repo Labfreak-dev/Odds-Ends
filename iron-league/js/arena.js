@@ -14,9 +14,19 @@
      crossing the pit in four seconds, rolls every seven. Eslabong's basic
      attack runs on about a one-second cooldown; these knobs bring the pit
      near that. One place to tune the whole tempo. */
+  /* v67: the pit itself plays slower. tempo is the clock: at 1x the sim
+     runs at 0.8 of real time, so walks, swings, casts, rolls, projectiles
+     and their animations all move slower on screen. It only touches the
+     live view, so fight balance is exactly the sim's. Tried slowing walk,
+     turn and cast speed inside the sim instead: casters (druid, summoner)
+     fell out of the win band, so the clock does it. */
   const PACE = {
-    move: 0.7,          /* walk and run speed */
-    meleeRecover: 0.62, /* after a melee swing (was 0.18) -> ~1.1s a swing */
+    tempo: 0.8,         /* sim seconds per real second at 1x */
+    move: 0.7,          /* walk and run speed (sim units) */
+    turn: 820,          /* steering acceleration */
+    roll: 1,            /* roll travel speed */
+    castTime: 1,        /* cast wind-up scale */
+    meleeRecover: 0.62, /* after a melee swing (was 0.18) */
     kiteRecover: 1.0,   /* after a shot (was 0.55) */
     castRecover: 1.5,   /* after a cast (was 1.15) */
     abilityCd: 1.2,     /* every move's cooldown */
@@ -185,7 +195,7 @@
       airs: (kit.airs || []).slice(),
       casts: (kit.casts || ["cast1"]).slice(),
       leaps: !!kit.leaps,
-      castTime: kit.castTime || 0.95,
+      castTime: (kit.castTime || 0.95) * PACE.castTime,
       castRadius: kit.castRadius || 74,
       atkCursor: 0,
       castCursor: 0,
@@ -653,7 +663,7 @@
     const d = Math.hypot(dx, dy) || 1;
     const wantX = dx / d * speed;
     const wantY = dy / d * speed;
-    const acc = 820 * dt;
+    const acc = PACE.turn * dt;
     const ax = wantX - u.vx;
     const ay = wantY - u.vy;
     const am = Math.hypot(ax, ay);
@@ -865,8 +875,8 @@
     u.animT = 0;
     u.actT = IL.clipDur("roll");
     u.facing = dx >= 0 ? 1 : -1;
-    u.vx = dx / d * 340;
-    u.vy = dy / d * 280;
+    u.vx = dx / d * 340 * PACE.roll;
+    u.vy = dy / d * 280 * PACE.roll;
     u.z = 0;
     u.vz = 0;
     u.iframe = 0.42;

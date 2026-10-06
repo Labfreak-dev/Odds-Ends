@@ -135,6 +135,19 @@ def run(page, label, shot_dir):
         raise SystemExit(label + " fight never showed combat " + str(snap))
     page.wait_for_timeout(200)
     page.screenshot(path=str(shot_dir / f"{label}-fight.png"))
+    # v67: at 1x the live pit plays at PACE.tempo of real time.
+    clock = page.evaluate(
+        """async () => {
+          const m = IL.currentMatch;
+          const t0 = m.time, r0 = performance.now();
+          await new Promise(r => setTimeout(r, 1500));
+          return { sim: m.time - t0, real: (performance.now() - r0) / 1000, over: !!m.over, tempo: IL.PACE.tempo };
+        }"""
+    )
+    if not clock["over"]:
+        rate = clock["sim"] / clock["real"]
+        if not (clock["tempo"] < 1 and rate < clock["tempo"] + 0.08):
+            raise SystemExit(label + " live pit clock is not slowed: " + str(clock))
     caught = {"slash": False, "cast": False, "shot": False, "roll": False}
     for _ in range(80):
         snap = page.evaluate(
@@ -846,10 +859,10 @@ def check_season(page, label, shot_dir):
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
           const foes = raw.clubs.filter(c => !c.you);
           const lv = foes.map(c => (c.fighters && c.fighters[0] && c.fighters[0].level) || 0);
-          return { lv: lv, club: IL.clubLevel(raw) };
+          return { lv: lv, club: Math.max(IL.DIVISIONS[IL.divisionOf(raw)].floor, IL.clubLevel(raw)) };
         }"""
     )
-    # v65+: rivals match the club's level, one either way (never a flat bump).
+    # v65+: rivals match the club's level (or the division floor), one either way.
     if not level["lv"] or min(level["lv"]) < max(1, level["club"] - 1) or max(level["lv"]) > level["club"] + 1 or max(level["lv"]) < level["club"]:
         raise SystemExit(label + " rivals did not match the club: " + str(level))
 

@@ -275,6 +275,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Slower on screen: the whole pit plays at 80% speed, so walks, swings, casts and rolls move slower.",
     "A calmer pit: fighters walk 30% slower, swing about once a second, roll less, and wait longer between moves.",
     "Divisions: five tiers from Sand to Crown. The top two go up, the bottom two go down, and higher tiers pay more.",
     "Rivals now match your level and take real level-ups and better gear in higher divisions. Levels come slower.",
@@ -5221,7 +5222,7 @@
       fx.t += dt;
       paintPilot(match, dt);
       if (!match.over && !paused) {
-        acc += dt * speed;
+        acc += dt * speed * ((IL.PACE && IL.PACE.tempo) || 1);
         let guard = 0;
         while (acc >= 1 / 60 && !match.over && guard < 8) {
           IL.stepMatch(match, 1 / 60);

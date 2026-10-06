@@ -663,10 +663,7 @@ def check_gear(page, label, shot_dir):
         arg=uids,
     )
     page.screenshot(path=str(shot_dir / f"{label}-stall.png"))
-    page.click("[data-filter='tomes']")
     page.wait_for_selector("#tomeStock")
-    if page.locator("#gearStock").count():
-        raise SystemExit(label + " gear stall stayed open on the tomes filter")
     if page.locator("#tomeStock [data-buy-gear]").count() < 1:
         raise SystemExit(label + " tomes stall had no tome")
     page.screenshot(path=str(shot_dir / f"{label}-tomes.png"))
@@ -976,10 +973,19 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " recruits")
         page.click("[data-filter='gear']")
         page.wait_for_selector("#gearStock")
-        assert_inside(page, label + " stall")
-        page.click("[data-filter='tomes']")
         page.wait_for_selector("#tomeStock")
+        assert_inside(page, label + " stall")
         assert_inside(page, label + " tomes")
+        page.click("[data-filter='fighters']")
+        page.wait_for_selector("#marketCards .hire")
+        assert_inside(page, label + " fighters market")
+        page.click("[data-filter='relics']")
+        page.wait_for_selector("#relicStall")
+        assert_inside(page, label + " relic stall")
+        page.click("[data-filter='deals']")
+        page.wait_for_selector("#dealsBoard")
+        page.wait_for_selector("#dealClock")
+        assert_inside(page, label + " deals")
         page.click("[data-filter='sell']")
         assert_inside(page, label + " sell")
         visit("4", "#enterCup, #bracketBoard")
@@ -1239,8 +1245,10 @@ def qa_gate(browser, shot_dir):
         page.wait_for_selector("[data-filter='gear']")
         assert_inside(page, label + " recruits")
         for filt, wait, name in (
-            ("gear", "#gearStock", "stall"),
-            ("tomes", "#tomeStock", "tomes"),
+            ("gear", "#tomeStock", "stall"),
+            ("fighters", "#marketCards", "fighters"),
+            ("relics", "#relicStall", "relic stall"),
+            ("deals", "#dealsBoard", "deals"),
             ("sell", "text=Sell from the bench", "sell"),
         ):
             page.click("[data-filter='" + filt + "']")

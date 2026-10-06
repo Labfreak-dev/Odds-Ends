@@ -24,7 +24,7 @@
   let armoryRarity = "all";
   let armorySort = "rarity";
   let fighterFilter = "all";
-  let marketPane = "recruits";
+  let marketPane = "fighters";
   const HUB_TABS = ["club", "fighters", "market", "cup", "relics"];
 
   function esc(s) {
@@ -579,6 +579,15 @@
       save.market = IL.rollMarket(takeRng(), save.renown || 0);
       persist();
     }
+    const week = IL.weekIndex(Date.now());
+    if (!save.deals || save.deals.week !== week) {
+      save.deals = IL.rollDeals(takeRng(), save.renown || 0, week);
+      persist();
+    }
+    if (!save.relicStock || !save.relicStock.length) {
+      save.relicStock = IL.rollRelicStock(takeRng());
+      persist();
+    }
   }
 
   const ABILITY_COPY = {
@@ -853,6 +862,7 @@
   }
 
   function rarityLabel(rarity) {
+    if (rarity === "uncommon") return "Uncommon";
     if (rarity === "rare") return "Rare";
     if (rarity === "epic") return "Epic";
     if (rarity === "legendary") return "Legendary";
@@ -1203,7 +1213,8 @@
     return '<section class="panel-frame" id="gearStock"><h3 class="section">Gear stall</h3>' +
       '<p class="fine">The stall turns over after each league match. A reroll spends ' + cost + ' gold.</p>' +
       '<div class="hub-actions"><button type="button" class="btn ghost' + (save.gold < cost ? " cant-afford" : " buyable") + '" id="rerollGear"' + (save.gold < cost ? " disabled" : "") + '>Reroll stall — ' + cost + ' gold</button></div>' +
-      '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>';
+      '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>' +
+      tomeStallHtml();
   }
 
   function tomeStallHtml() {
@@ -1281,7 +1292,7 @@
           '<h2 id="sheetTitle">' + esc(f.name) + '</h2></div>' +
           '<button type="button" class="btn close-x" id="sheetClose" aria-label="Close">Close</button></header>' +
         '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"', f.captain, f) + '</div>' +
-        '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + (f.champion ? " · Champion" : "") + '</p>' +
+        '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + (f.rarity ? " · " + esc(rarityLabel(f.rarity)) : "") + (f.specialty && IL.specialtyOf && IL.specialtyOf(f.specialty) ? " · " + esc(IL.specialtyOf(f.specialty).name) : "") + (f.champion ? " · Champion" : "") + '</p>' +
         '<h3 class="section">Tactic</h3>' + tacticChips(f) +
         '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
         statBar("HP", stats.hp, 320) +
@@ -1540,7 +1551,14 @@
     '</div>';
   }
 
+  function recruitTags(f, kit) {
+    const spec = IL.specialtyOf ? IL.specialtyOf(f.specialty) : null;
+    const trait = kit && kit.trait && IL.TRAITS ? IL.TRAITS[kit.trait] : null;
+    return [rarityLabel(f.rarity), spec && spec.name, trait && trait.name].filter(Boolean).join(" · ");
+  }
+
   function marketPanel() {
+    if (marketPane === "recruits") marketPane = "fighters";
     const cards = (save.market || []).map(function (row, i) {
       const f = row.fighter;
       const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
@@ -1552,8 +1570,8 @@
         portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
         '<div class="row-main">' +
           '<h3>' + esc(f.name) + champ + '</h3>' +
-          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</span></p>' +
-          '<p class="fine">' + esc(price) + (kit.ability ? " · " + kit.ability.name : "") + '</p>' +
+          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
+          '<p class="fine">' + esc(price) + (kit.ability ? " · " + esc(kit.ability.name) : "") + '</p>' +
         '</div>' +
         '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + '</button>' +
       '</article>';
@@ -1568,25 +1586,128 @@
         '<div class="row-main">' +
           '<h3>' + esc(f.name) + '</h3>' +
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + f.level + (inParty ? " · party" : "") + '</span></p>' +
-          '<p class="fine">' + IL.sellValue(f) + ' gold</p>' +
+          '<p class="fine">' + IL.sellValue(f) + ' gold · gear returns to the bag</p>' +
         '</div>' +
         '<button type="button" class="btn ghost buyable" data-sell="' + esc(f.id) + '">Sell</button>' +
       '</article>';
     }).join("");
     const captain = save.roster.filter(function (f) { return f.captain; })[0];
-    const recruits = '<section class="roster-block"><h3 class="section">For hire</h3><div class="cards roster-grid" id="marketCards">' + cards + '</div></section>';
+    const brokeRefresh = save.gold < IL.REFRESH_COST;
+    const recruits = '<section class="roster-block"><h3 class="section">For hire</h3>' +
+      '<p class="fine">Rarity, specialty, and trait sit on the card. A refresh spends ' + IL.REFRESH_COST + ' gold.</p>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh fighters — ' + IL.REFRESH_COST + ' gold</button></div>' +
+      '<div class="cards roster-grid" id="marketCards">' + cards + '</div></section>';
     const selling = '<section class="roster-block"><h3 class="section">Sell from the bench</h3>' +
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
       '<div class="cards roster-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
     const body = marketPane === "gear" ? gearStallHtml()
-      : marketPane === "tomes" ? tomeStallHtml()
+      : marketPane === "relics" ? relicStallHtml()
+      : marketPane === "deals" ? dealsHtml()
       : marketPane === "sell" ? selling
       : recruits;
-    const brokeRefresh = save.gold < IL.REFRESH_COST;
-    return filterBar("market", marketPane, [["gear", "Gear"], ["recruits", "Recruits"], ["tomes", "Tomes"], ["sell", "Sell"]]) +
-      '<div class="hub-actions"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
+    return filterBar("market", marketPane, [["gear", "Gear"], ["fighters", "Fighters"], ["relics", "Relics"], ["deals", "Deals"], ["sell", "Sell"]]) +
       '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
+      (marketPane === "deals" ? dealsHead() : "") +
       '<div class="pane" id="marketPane">' + body + '</div>';
+  }
+
+  function dealsHead() {
+    const left = IL.formatRemain(IL.msUntilWeek(Date.now()));
+    const cost = IL.DEAL_REROLL || 40;
+    const broke = save.gold < cost;
+    return '<p class="fine" id="dealClock">Turns over in ' + esc(left) + '. A reroll spends ' + cost + ' gold and restocks the board.</p>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost' + (broke ? " cant-afford" : " buyable") + '" id="rerollDeals"' + (broke ? " disabled" : "") + '>Reroll deals — ' + cost + ' gold</button></div>';
+  }
+
+  function relicStallHtml() {
+    const rows = save.relicStock || [];
+    const cards = rows.map(function (row, i) {
+      const relic = IL.relicById(row.id);
+      if (!relic) return "";
+      const owned = (save.relics || []).indexOf(row.id) >= 0;
+      const gone = row.stock < 1;
+      const broke = save.gold < row.cost;
+      const cant = owned || gone || broke;
+      const label = owned ? "Owned" : (gone ? "Sold" : ("Buy — " + row.cost + " gold"));
+      return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+        '<h3>' + esc(relic.name) + '</h3>' +
+        '<p>' + esc(relic.blurb) + '</p>' +
+        '<p class="fine">' + (gone ? "Out of stock" : "1 in stock") + '</p>' +
+        '<button type="button" class="btn primary" data-buy-relic="' + i + '"' + (cant ? " disabled" : "") + '>' + label + '</button>' +
+      '</article>';
+    }).join("");
+    const owned = (save.relics || []).map(function (id) {
+      const relic = IL.relicById(id);
+      if (!relic) return "";
+      const pay = IL.relicSellPrice(id);
+      return '<article class="card stall-card">' +
+        '<h3>' + esc(relic.name) + '</h3>' +
+        '<p class="fine">Sell for ' + pay + ' gold. An equipped copy leaves the party.</p>' +
+        '<button type="button" class="btn ghost" data-sell-relic="' + esc(id) + '">Sell — ' + pay + ' gold</button>' +
+      '</article>';
+    }).join("");
+    const cost = IL.REFRESH_COST;
+    const broke = save.gold < cost;
+    return '<section class="panel-frame" id="relicStall"><h3 class="section">Relic stall</h3>' +
+      '<p class="fine">One of each. Refresh spends ' + cost + ' gold. Equip what you own on the Relics tab.</p>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost' + (broke ? " cant-afford" : " buyable") + '" id="refreshRelics"' + (broke ? " disabled" : "") + '>Refresh relics — ' + cost + ' gold</button></div>' +
+      '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Refresh it.")) + '</div>' +
+      '<h3 class="section">Yours to sell</h3>' +
+      '<div class="armory-grid">' + (owned || emptyState("No relics in the chest.", "Buy one here, or win a cup.")) + '</div></section>';
+  }
+
+  function dealsHtml() {
+    const deals = save.deals || { offers: [] };
+    const cards = (deals.offers || []).map(function (offer, i) {
+      const gone = offer.stock < 1;
+      const broke = save.gold < offer.cost;
+      if (offer.kind === "fighter") {
+        const f = offer.fighter;
+        const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+        const full = save.roster.length >= IL.ROSTER_CAP;
+        const cant = gone || broke || full;
+        return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '">' +
+          portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
+          '<div class="row-main">' +
+            '<h3>' + esc(f.name) + (f.champion ? " · Champion" : "") + '</h3>' +
+            '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
+            '<p class="fine">' + offer.cost + ' gold · 1 in stock</p>' +
+          '</div>' +
+          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Sold" : "Hire") + '</button>' +
+        '</article>';
+      }
+      if (offer.kind === "bundle") {
+        const names = (offer.relics || []).map(function (id) {
+          const relic = IL.relicById(id);
+          return relic ? relic.name : id;
+        }).join(" and ");
+        const haveAll = (offer.relics || []).every(function (id) { return (save.relics || []).indexOf(id) >= 0; });
+        const cant = gone || broke || haveAll;
+        return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+          '<h3>Relic bundle</h3>' +
+          '<p>' + esc(names) + '</p>' +
+          '<p class="fine">Both, at a discount. You keep any you already own. 1 in stock.</p>' +
+          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (haveAll ? "Owned" : (gone ? "Sold" : ("Buy — " + offer.cost + " gold"))) + '</button>' +
+        '</article>';
+      }
+      const opened = offer.opened;
+      let result = "Gold, plus a relic or a piece of gear. 1 in stock.";
+      if (opened) {
+        const bits = [];
+        if (opened.gold) bits.push(opened.gold + " gold");
+        if (opened.relic && IL.relicById(opened.relic)) bits.push(IL.relicById(opened.relic).name);
+        if (opened.itemName) bits.push(opened.itemName);
+        result = "Opened: " + bits.join(", ") + ".";
+      }
+      const cant = gone || broke;
+      return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+        '<h3>Mystery chest</h3>' +
+        '<p class="fine">' + esc(result) + '</p>' +
+        '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Opened" : ("Open — " + offer.cost + " gold")) + '</button>' +
+      '</article>';
+    }).join("");
+    return '<section id="dealsBoard"><h3 class="section">This week</h3>' +
+      '<div class="deals-stack">' + cards + '</div></section>';
   }
 
   function relicsPanel() {
@@ -1595,7 +1716,7 @@
     const list = IL.RELICS.map(function (r) {
       const have = !!owned[r.id];
       const on = (save.equipped || []).indexOf(r.id) >= 0;
-      const status = on ? "Riding with the party" : (have ? "In the chest" : "Won from a cup or a finished season");
+      const status = on ? "Riding with the party" : (have ? "In the chest" : "Buy one on the market, or win a cup");
       return '<article class="card relic' + (on ? " playing" : "") + '">' +
         '<img class="relic-slot" alt="" src="assets/ui/slots/slot_diamond.png">' +
         '<h3>' + esc(r.name) + '</h3>' +
@@ -1608,7 +1729,7 @@
     }).join("");
     return '<header class="panel-head"><p class="eyebrow">Club relics</p><h3>The yard chest</h3>' +
       '<p class="fine">' + (save.equipped || []).length + ' of 2 equipped · ' + (save.relics || []).length + ' owned</p></header>' +
-      '<p class="banner">Two relics ride with everyone you field. Win a cup or close a season to add one.</p>' +
+      '<p class="banner">Two relics ride with everyone you field. Buy them on the market, or win a cup, or close a season.</p>' +
       '<div class="cards relic-grid">' + list + '</div>';
   }
 
@@ -1718,7 +1839,7 @@
     const switching = next !== hubTab;
     const snap = keep && !switching ? captureScroll() : null;
     if (switching) {
-      if (next === "market") marketPane = "recruits";
+      if (next === "market") marketPane = "fighters";
       if (next === "fighters") fighterFilter = "all";
     }
     hubTab = next;
@@ -1765,9 +1886,11 @@
       root.scrollTo(0, 0);
     }
     bindHub();
-    const extra = hubTab === "market"
-      ? (save.market || []).map(function (row) { return row.fighter && row.fighter.parts; })
-      : [];
+    const extra = [];
+    if (hubTab === "market") {
+      (save.market || []).forEach(function (row) { if (row && row.fighter) extra.push(row.fighter.parts); });
+      ((save.deals && save.deals.offers) || []).forEach(function (o) { if (o && o.fighter) extra.push(o.fighter.parts); });
+    }
     bootCards(extra);
     showToasts(freshAchieve);
   }
@@ -2052,6 +2175,12 @@
       if (salvage) { salvageItem(salvage.dataset.salvage); return; }
       const buy = ev.target.closest("[data-buy-gear]");
       if (buy) { buyGear(+buy.dataset.buyGear); return; }
+      const buyRelic = ev.target.closest("[data-buy-relic]");
+      if (buyRelic) { buyRelicStock(+buyRelic.dataset.buyRelic); return; }
+      const sellRelic = ev.target.closest("[data-sell-relic]");
+      if (sellRelic) { sellRelicId(sellRelic.dataset.sellRelic); return; }
+      const deal = ev.target.closest("[data-deal]");
+      if (deal) { takeDeal(+deal.dataset.deal); return; }
       const armEquip = ev.target.closest("[data-arm-equip]");
       if (armEquip) {
         tonicPick = null;
@@ -2107,6 +2236,10 @@
     bindSheet();
     const reroll = document.getElementById("rerollGear");
     if (reroll) reroll.onclick = rerollGear;
+    const refreshRelics = document.getElementById("refreshRelics");
+    if (refreshRelics) refreshRelics.onclick = refreshRelicStall;
+    const rerollDealsBtn = document.getElementById("rerollDeals");
+    if (rerollDealsBtn) rerollDealsBtn.onclick = rerollDeals;
   }
 
   function bindArmory() {
@@ -2281,6 +2414,104 @@
     save.gearStock = IL.rollGearStock(takeRng());
     persist();
     showHub("market", true);
+  }
+
+  function refreshRelicStall() {
+    if (save.gold < IL.REFRESH_COST) { pitSound("error"); return; }
+    save.gold -= IL.REFRESH_COST;
+    pitSound("purchase");
+    save.relicStock = IL.rollRelicStock(takeRng());
+    persist();
+    showHub("market", true);
+  }
+
+  function rerollDeals() {
+    const cost = IL.DEAL_REROLL || 40;
+    if (save.gold < cost) { pitSound("error"); return; }
+    save.gold -= cost;
+    pitSound("purchase");
+    const week = save.deals && typeof save.deals.week === "number" ? save.deals.week : IL.weekIndex(Date.now());
+    save.deals = IL.rollDeals(takeRng(), save.renown || 0, week);
+    persist();
+    showHub("market", true);
+  }
+
+  function buyRelicStock(index) {
+    const row = (save.relicStock || [])[index];
+    if (!row || row.stock < 1) { pitSound("error"); return; }
+    if ((save.relics || []).indexOf(row.id) >= 0 || save.gold < row.cost) { pitSound("error"); return; }
+    save.gold -= row.cost;
+    pitSound("purchase");
+    if (!Array.isArray(save.relics)) save.relics = [];
+    save.relics.push(row.id);
+    row.stock = 0;
+    persist();
+    showHub("market", true);
+  }
+
+  function sellRelicId(id) {
+    if (!id || (save.relics || []).indexOf(id) < 0) return;
+    pitSound("sell");
+    save.gold += IL.relicSellPrice(id);
+    save.relics = save.relics.filter(function (rid) { return rid !== id; });
+    save.equipped = (save.equipped || []).filter(function (rid) { return rid !== id; });
+    persist();
+    showHub("market", true);
+  }
+
+  function takeDeal(index) {
+    const offer = save.deals && save.deals.offers && save.deals.offers[index];
+    if (!offer || offer.stock < 1 || save.gold < offer.cost) { pitSound("error"); return; }
+    if (offer.kind === "fighter") {
+      if (save.roster.length >= IL.ROSTER_CAP) { pitSound("error"); return; }
+      const fighter = offer.fighter;
+      IL.hero.compose(fighter.parts).then(function () {
+        save.gold -= offer.cost;
+        pitSound("purchase");
+        save.hires = (save.hires || 0) + 1;
+        if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
+        if (fighter.cls && save.seenClasses.indexOf(fighter.cls) < 0) save.seenClasses.push(fighter.cls);
+        save.roster.push(fighter);
+        offer.stock = 0;
+        persist();
+        showHub("market", true);
+      }).catch(function () { showHub("market", true); });
+      return;
+    }
+    if (offer.kind === "bundle") {
+      const ids = offer.relics || [];
+      if (ids.every(function (id) { return (save.relics || []).indexOf(id) >= 0; })) { pitSound("error"); return; }
+      save.gold -= offer.cost;
+      pitSound("purchase");
+      if (!Array.isArray(save.relics)) save.relics = [];
+      ids.forEach(function (id) { if (save.relics.indexOf(id) < 0) save.relics.push(id); });
+      offer.stock = 0;
+      persist();
+      showHub("market", true);
+      return;
+    }
+    if (offer.kind === "chest") {
+      const prize = IL.openChest(takeRng(), save.relics || []);
+      save.gold -= offer.cost;
+      save.gold += prize.gold || 0;
+      pitSound("purchase");
+      if (prize.relic) {
+        if (!Array.isArray(save.relics)) save.relics = [];
+        if (save.relics.indexOf(prize.relic) < 0) save.relics.push(prize.relic);
+      }
+      if (prize.item) {
+        if (!Array.isArray(save.items)) save.items = [];
+        save.items.push(prize.item);
+      }
+      offer.stock = 0;
+      offer.opened = {
+        gold: prize.gold || 0,
+        relic: prize.relic || "",
+        itemName: prize.item && IL.itemName ? IL.itemName(prize.item) : ""
+      };
+      persist();
+      showHub("market", true);
+    }
   }
 
   function setTactic(id, tactic) {

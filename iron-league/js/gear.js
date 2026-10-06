@@ -445,6 +445,9 @@
     (data.roster || []).forEach(fixFighter);
     (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(fixFighter); });
     (data.market || []).forEach(function (row) { if (row && row.fighter) fixFighter(row.fighter); });
+    if (data.deals && data.deals.offers) {
+      data.deals.offers.forEach(function (o) { if (o && o.fighter) fixFighter(o.fighter); });
+    }
     if (data.cup && data.cup.slots) {
       data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(fixFighter); });
     }

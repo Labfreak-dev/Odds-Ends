@@ -358,6 +358,21 @@ for (let i = 0; i < 40; i++) {
   IL.rollMarket(IL.mulberry32(100 + i), 80).forEach(function (row) { if (row.fighter.champion) champs++; });
 }
 check("champions appear", champs > 0);
+check("recruits carry rarity and a specialty", board.every(function (row) {
+  return row.fighter && row.fighter.rarity && IL.specialtyOf(row.fighter.specialty);
+}));
+const gearedSeller = { cls: "warrior", level: 4, gear: { weapon: { rarity: "rare" } } };
+const bareSeller = { cls: "warrior", level: 4 };
+check("sell pays for level and gear", IL.sellValue(gearedSeller) > IL.sellValue(bareSeller) && IL.sellValue(bareSeller) > IL.sellValue({ cls: "warrior", level: 1 }));
+const deals = IL.rollDeals(IL.mulberry32(4), 0, 3);
+const dealFighter = deals.offers[0];
+const fullLegendary = Math.round(IL.hireCost(dealFighter.fighter.cls) * IL.RARITY_MULT.legendary * (dealFighter.fighter.champion ? 1.65 : 1));
+check("weekly deals are three limited offers", deals.week === 3 && deals.offers.length === 3 && deals.offers.every(function (o) { return o.stock === 1; }));
+check("legendary deal is discounted", dealFighter.kind === "fighter" && dealFighter.fighter.rarity === "legendary" && dealFighter.cost < fullLegendary);
+check("deals include a bundle and a chest", deals.offers[1].kind === "bundle" && deals.offers[1].relics.length === 2 && deals.offers[2].kind === "chest");
+check("week clock moves", IL.weekIndex(0) === 0 && IL.weekIndex(604800000) === 1 && IL.msUntilWeek(0) === 604800000);
+const relicStall = IL.rollRelicStock(IL.mulberry32(5));
+check("relic stall is limited", relicStall.length === 4 && relicStall.every(function (row) { return row.stock === 1 && IL.relicById(row.id) && IL.relicSellPrice(row.id) < row.cost; }));
 const cup = IL.startCup({ clubName: "Smoke Yard", roster: [IL.randomFighter(IL.mulberry32(1), "warrior")] }, IL.mulberry32(9));
 check("cup is four clubs", cup.slots.length === 4 && cup.pairing.length === 2);
 const f = IL.randomFighter(IL.mulberry32(2), "warrior");

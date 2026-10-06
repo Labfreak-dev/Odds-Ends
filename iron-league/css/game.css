@@ -2299,17 +2299,13 @@ body:has(#seasonEnd) {
   overflow: auto;
 }
 .hub-panel:has(> #trainPane) { overflow: hidden; }
-#trainBoard .roster-row {
-  grid-template-columns: minmax(0, 1fr) 132px;
+#trainBoard .stall-card .btn,
+#facilityBoard .stall-card .btn {
+  width: 100%;
 }
 #trainBoard .btn:disabled,
 #facilityBoard .btn:disabled {
   color: #f6e7c1;
-}
-#trainBoard .roster-row .btn {
-  font-size: 12px;
-  white-space: nowrap;
-  padding: 0 2px;
 }
 @media (max-width: 640px) {
   .hub .tab .ui-glyph { width: 14px; height: 14px; }

@@ -1802,14 +1802,14 @@
         const broke = save.gold < drill.cost;
         const spent = left <= 0;
         const cant = pit || broke || spent;
-        let label = drill.name + " — " + drill.cost + "g";
+        let label = "Drill — " + drill.cost + "g";
         if (pit) label = "In the pit";
-        else if (spent) label = "Drills spent";
+        else if (spent) label = "Spent";
         else if (broke) label = "Need " + drill.cost + "g";
-        return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '">' +
-          '<div class="row-main"><h3>' + esc(f.name) + '</h3>' +
+        return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+          '<h3>' + esc(f.name) + '</h3>' +
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + (specLabel(f) ? " · " + esc(specLabel(f)) : "") + '</span></p>' +
-          '<p class="fine">' + drill.xp + ' xp</p></div>' +
+          '<p class="fine">' + drill.xp + ' xp · ' + esc(drill.name) + '</p>' +
           '<button type="button" class="btn primary" data-drill="' + esc(f.id) + '"' + (cant ? " disabled" : "") + '>' + label + '</button>' +
         '</article>';
       }).join("");

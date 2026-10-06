@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "50";
+  const BUILD = "51";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -287,6 +287,14 @@
           cont +
         '</div>' +
         '<p class="fine">Saved on this browser only.</p>' +
+        '<section class="whats-new" aria-label="What\'s new">' +
+          '<h2>What\'s new</h2>' +
+          '<ul>' +
+            '<li>Pit names stay readable, and close to each fighter.</li>' +
+            '<li>Recruits and rival squads keep distinct faces.</li>' +
+            '<li>The yard can change the club emblem and its plate.</li>' +
+          '</ul>' +
+        '</section>' +
       '</main>';
     document.getElementById("newClub").onclick = function () { showCreator("captain"); };
     const c = document.getElementById("continue");
@@ -2551,6 +2559,10 @@
         '<p class="eyebrow">Fight speed</p>' +
         '<div class="chips" id="speedPicks">' + picks + '</div>' +
         '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
+        '<div class="settings-block">' +
+          '<button type="button" class="btn" id="copyReport">Report a bug</button>' +
+          '<p class="fine" id="reportNote"></p>' +
+        '</div>' +
         '<p class="fine">Save schema ' + (save.schema || 1) + ".</p>" +
         '<div class="settings-block">' +
           '<p class="eyebrow">Challenge</p>' +
@@ -2560,11 +2572,6 @@
           '<textarea id="challengeIn" aria-label="Paste a challenge code" placeholder="Paste a code"></textarea>' +
           '<button type="button" class="btn" id="fightChallenge">Fight this club</button>' +
           '<p class="fine" id="challengeNote"></p>' +
-        "</div>" +
-        '<div class="settings-block">' +
-          '<p class="eyebrow">Report</p>' +
-          '<button type="button" class="btn ghost" id="copyReport">Copy bug report</button>' +
-          '<p class="fine" id="reportNote"></p>' +
         "</div>" +
         '<button type="button" class="btn danger" id="resetAsk">Reset save</button>' +
         '<div id="resetBox" hidden><p>Erase this club from the browser? This cannot be undone.</p>' +
@@ -2626,7 +2633,7 @@
     };
     const copyRep = document.getElementById("copyReport");
     if (copyRep) copyRep.onclick = function () {
-      copyText(bugReport(), "reportNote", "Copied. Paste it into your report.");
+      copyText(bugReport(), "reportNote", "Copied");
     };
     const ask = document.getElementById("resetAsk");
     const box = document.getElementById("resetBox");

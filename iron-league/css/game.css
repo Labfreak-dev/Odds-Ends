@@ -2874,3 +2874,32 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   overflow: visible;
   text-overflow: clip;
 }
+.whats-new {
+  margin: 18px 0 0;
+  max-width: 38ch;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: rgba(20, 17, 14, 0.72);
+}
+.whats-new h2 {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.whats-new ul {
+  margin: 0;
+  padding: 0 0 0 1.1em;
+}
+.whats-new li {
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0 0 4px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}

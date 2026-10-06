@@ -468,9 +468,12 @@ def check_nav(page, label, shot_dir):
         timeout=20000,
     )
     sheet = page.locator("#fighterSheet").inner_text()
-    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Loadout", "AoE", "Level 4", "Rename", "Captain stays", "Record"):
+    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Loadout", "Passive", "Level 4", "Rename", "Captain stays", "Record"):
         if word not in sheet:
             raise SystemExit(label + " sheet missing " + word + ": " + sheet[:240])
+    tags = ("AoE", "DoT", "Heal", "CC", "Mobility", "Summon")
+    if not any(tag in sheet for tag in tags):
+        raise SystemExit(label + " sheet missing an ability tag: " + sheet[:240])
     if page.locator("#releaseAsk").count():
         raise SystemExit(label + " captain sheet offered release")
     page.screenshot(path=str(shot_dir / f"{label}-sheet.png"))
@@ -621,6 +624,13 @@ def check_gear(page, label, shot_dir):
         arg=uids,
     )
     page.screenshot(path=str(shot_dir / f"{label}-stall.png"))
+    page.click("[data-filter='tomes']")
+    page.wait_for_selector("#tomeStock")
+    if page.locator("#gearStock").count():
+        raise SystemExit(label + " gear stall stayed open on the tomes filter")
+    if page.locator("#tomeStock [data-buy-gear]").count() < 1:
+        raise SystemExit(label + " tomes stall had no tome")
+    page.screenshot(path=str(shot_dir / f"{label}-tomes.png"))
     page.keyboard.press("1")
     page.wait_for_selector("#nextMatch")
     page.click("#credits")

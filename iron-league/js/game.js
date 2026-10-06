@@ -1150,6 +1150,7 @@
     const rows = save.gearStock || [];
     const cards = rows.map(function (row, i) {
       const item = row.item;
+      if (!item || IL.itemSlot(item) === "tome") return "";
       const broke = save.gold < row.cost;
       const afford = broke ? " cant-afford" : " buyable";
       return '<article class="gear-card rarity-' + esc(item.rarity) + afford + '">' +
@@ -1165,6 +1166,26 @@
       '<p class="fine">The stall turns over after each league match. A reroll spends ' + cost + ' gold.</p>' +
       '<div class="hub-actions"><button type="button" class="btn ghost' + (save.gold < cost ? " cant-afford" : " buyable") + '" id="rerollGear"' + (save.gold < cost ? " disabled" : "") + '>Reroll stall — ' + cost + ' gold</button></div>' +
       '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>';
+  }
+
+  function tomeStallHtml() {
+    const rows = save.gearStock || [];
+    const cards = rows.map(function (row, i) {
+      const item = row.item;
+      if (!item || IL.itemSlot(item) !== "tome") return "";
+      const broke = save.gold < row.cost;
+      const afford = broke ? " cant-afford" : " buyable";
+      return '<article class="gear-card rarity-' + esc(item.rarity) + afford + '">' +
+        itemFaceHtml(item) +
+        '<h3>' + esc(IL.itemName(item)) + '</h3>' +
+        '<p>' + esc(rarityLabel(item.rarity)) + " · Tome</p>" +
+        '<p class="fine">Study it on a fighter who can learn the move.</p>' +
+        '<button type="button" class="btn primary' + afford + '" data-buy-gear="' + i + '"' + (broke ? " disabled" : "") + '>Buy — ' + row.cost + ' gold</button>' +
+      '</article>';
+    }).join("");
+    return '<section class="panel-frame" id="tomeStock"><h3 class="section">Tomes</h3>' +
+      '<p class="fine">One move each. The gear stall reroll turns these over too.</p>' +
+      '<div class="armory-grid">' + (cards || emptyState("No tomes on the stall.", "Open Gear and reroll the stall.")) + '</div></section>';
   }
 
   function sheetHtml(f) {
@@ -1518,9 +1539,12 @@
     const selling = '<section class="roster-block"><h3 class="section">Sell from the bench</h3>' +
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
       '<div class="cards roster-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
-    const body = marketPane === "gear" ? gearStallHtml() : (marketPane === "sell" ? selling : recruits);
+    const body = marketPane === "gear" ? gearStallHtml()
+      : marketPane === "tomes" ? tomeStallHtml()
+      : marketPane === "sell" ? selling
+      : recruits;
     const brokeRefresh = save.gold < IL.REFRESH_COST;
-    return filterBar("market", marketPane, [["gear", "Gear"], ["recruits", "Recruits"], ["sell", "Sell"]]) +
+    return filterBar("market", marketPane, [["gear", "Gear"], ["recruits", "Recruits"], ["tomes", "Tomes"], ["sell", "Sell"]]) +
       '<div class="hub-actions"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
       '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
       '<div class="pane" id="marketPane">' + body + '</div>';

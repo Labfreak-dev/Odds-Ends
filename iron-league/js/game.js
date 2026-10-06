@@ -29,7 +29,6 @@
   let eventPane = "week";
   let trainPane = "drills";
   let trainDrill = "strength";
-  let clubPane = "yard";
   let relicStatus = "all";
   let relicRarity = "all";
   let relicSet = "all";
@@ -41,7 +40,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "57";
+  const BUILD = "58";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -1788,10 +1787,6 @@
       ? '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
           (partyReady ? "Send them in" : ("Choose " + size)) + '</button>'
       : "";
-    const yard = '<section class="panel-frame" id="clubYardWrap">' +
-      '<h3 class="section">Club yard</h3>' +
-      '<p class="fine">The roster walks the yard. Click a fighter to open their sheet.</p>' +
-      '<canvas id="clubYard" width="480" height="168" aria-label="Club yard"></canvas></section>';
     return tutorHtml() +
       (pendingGrowth().length
         ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn gold" id="openGrowth">Choose a perk</button></p>'
@@ -1812,15 +1807,13 @@
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
         '<div class="pane" id="clubPane">' +
-          filterBar("club", clubPane, [["yard", "Yard"], ["record", "Record"]]) +
-          (clubPane === "record"
-            ? clubRecordHtml() + historyHtml()
-            : nemesisNoteHtml() + yard + colorsHtml() +
-              '<section class="panel-frame"><h3 class="section">Standings</h3>' +
-                '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
-              '</section>' +
-              historyHtml() +
-              achievementsHtml()) +
+          colorsHtml() +
+          '<section class="panel-frame"><h3 class="section">Standings</h3>' +
+            '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
+          '</section>' +
+          clubRecordHtml() +
+          historyHtml() +
+          achievementsHtml() +
         '</div>' +
       '</div>' +
       sendBtn;
@@ -3085,7 +3078,6 @@
         if (filt.dataset.filterKind === "market") marketPane = filt.dataset.filter;
         if (filt.dataset.filterKind === "events") eventPane = filt.dataset.filter;
         if (filt.dataset.filterKind === "train") trainPane = filt.dataset.filter;
-        if (filt.dataset.filterKind === "club") clubPane = filt.dataset.filter === "record" ? "record" : "yard";
         refreshHub();
         return;
       }
@@ -3631,256 +3623,6 @@
     showHub("relics", true);
   }
 
-  /* Club yard. Time Elements chibis, precomposited in assets/yard/. */
-  let yardImg = null;
-  let yardMeta = null;
-  let yardPeople = [];
-  let yardStamp = -1;
-
-  function ensureYard() {
-    if (yardMeta) return;
-    yardMeta = { loading: true };
-    fetch("assets/yard/atlas.json").then(function (res) {
-      if (!res.ok) throw new Error("yard atlas");
-      return res.json();
-    }).then(function (meta) {
-      const img = new Image();
-      img.onload = function () {
-        yardImg = img;
-        yardMeta = meta;
-      };
-      img.onerror = function () { yardMeta = { failed: true }; };
-      img.src = meta.image || "assets/yard/atlas.png";
-    }).catch(function () { yardMeta = { failed: true }; });
-  }
-
-  function yardLookName(f) {
-    const cls = f.cls || "warrior";
-    let family = "sword";
-    if (cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger") family = "bow";
-    else if (cls === "mage" || cls === "healer" || cls === "battlemage" || cls === "elementalist" || cls === "necromancer" || cls === "warlock" || cls === "summoner" || cls === "alchemist" || cls === "bard" || cls === "druid") family = "wand";
-    else if (cls === "lancer" || cls === "spearmaiden") family = "spear";
-    else if (cls === "berserker" || cls === "beastmaster") family = "axe";
-    else if (cls === "tank" || cls === "shieldbearer" || cls === "paladin") family = "shield";
-    return family + "-" + (IL.hashStr(f.id || cls) % 2);
-  }
-
-  function yardKoId(roster) {
-    const last = save.history && save.history[0];
-    if (!last || last.win !== false || !roster.length) return null;
-    let best = roster[0];
-    let bestTaken = (best.season && best.season.taken) || 0;
-    for (let i = 1; i < roster.length; i++) {
-      const f = roster[i];
-      const taken = (f.season && f.season.taken) || 0;
-      if (taken > bestTaken || (taken === bestTaken && IL.hashStr(f.id) < IL.hashStr(best.id))) {
-        best = f;
-        bestTaken = taken;
-      }
-    }
-    return best.id;
-  }
-
-  function paintYard(ctx, w, h) {
-    ctx.fillStyle = "#1a120e";
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = "#2c1e16";
-    ctx.fillRect(0, 0, w, 36);
-    ctx.fillStyle = "#3d2a1c";
-    for (let x = 2; x < w; x += 22) {
-      ctx.fillRect(x, 6, 18, 10);
-      ctx.fillRect(x + 10, 20, 18, 10);
-    }
-    ctx.fillStyle = "#120c0a";
-    ctx.fillRect(0, 34, w, 4);
-    for (let y = 40; y < h; y += 8) {
-      ctx.fillStyle = ((y / 8) & 1) ? "#4a3422" : "#3e2c1c";
-      ctx.fillRect(0, y, w, 7);
-      ctx.fillStyle = "#2a1c12";
-      ctx.fillRect(0, y + 7, w, 1);
-    }
-    ctx.fillStyle = "#24160f";
-    for (let x = 4; x < w; x += 32) ctx.fillRect(x, 40, 1, h - 40);
-    ctx.fillStyle = "#6a4a28";
-    ctx.fillRect(8, h - 38, 22, 16);
-    ctx.fillStyle = "#8a6234";
-    ctx.fillRect(10, h - 36, 18, 4);
-    ctx.fillStyle = "#3a2818";
-    ctx.fillRect(8, h - 24, 22, 3);
-    const post = w - 36;
-    const foot = h - 16;
-    ctx.fillStyle = "#5c3e24";
-    ctx.fillRect(post, foot - 52, 6, 52);
-    ctx.fillStyle = "#c4a060";
-    ctx.fillRect(post - 12, foot - 46, 30, 20);
-    ctx.fillStyle = "#8a3030";
-    ctx.fillRect(post - 4, foot - 40, 14, 8);
-    ctx.fillStyle = "#3a2414";
-    ctx.fillRect(post - 10, foot - 2, 26, 4);
-  }
-
-  function syncYard(canvas) {
-    if (!yardImg || !yardMeta || !yardMeta.looks) return false;
-    if (yardStamp === token) return true;
-    yardStamp = token;
-    const roster = (save.roster || []).slice();
-    const koId = yardKoId(roster);
-    const archers = [];
-    const melee = [];
-    roster.forEach(function (f) {
-      if (f.id === koId) return;
-      if (yardLookName(f).indexOf("bow") === 0) archers.push(f);
-      else melee.push(f);
-    });
-    const spar = melee.length >= 2 ? melee.slice(0, 2) : [];
-    const sparIds = {};
-    spar.forEach(function (f) { sparIds[f.id] = true; });
-    const w = canvas.width;
-    const h = canvas.height;
-    const foot = h - 16;
-    const people = [];
-    const walkers = melee.filter(function (f) { return !sparIds[f.id]; });
-    const rival = nextRival();
-    const keys = Object.keys(yardMeta.visitors || {});
-    let nVis = 0;
-    if (rival && save.round < 5 && keys.length) {
-      nVis = Math.min(keys.length, koId ? 1 : (walkers.length ? 2 : 3));
-    }
-    let cursor = koId ? 100 : 28;
-    if (koId) {
-      const f = roster.filter(function (r) { return r.id === koId; })[0];
-      people.push({ id: f.id, look: yardLookName(f), mode: "ko", dir: -1, x: 58, y: foot, phase: 0, speed: 0 });
-    }
-    for (let i = 0; i < nVis; i++) {
-      const x = cursor + 30;
-      people.push({
-        id: null, look: keys[i], visitor: true, mode: "visit", dir: i % 2 ? -1 : 1,
-        x: x, y: foot, phase: i * 0.3, speed: 12, lo: x - 8, hi: x + 8
-      });
-      cursor += 68;
-    }
-    const sparLeft = Math.max(cursor + 44, 188);
-    if (spar.length === 2) {
-      people.push({ id: spar[0].id, look: yardLookName(spar[0]), mode: "spar", dir: 1, x: sparLeft, y: foot, phase: 0, speed: 0 });
-      people.push({ id: spar[1].id, look: yardLookName(spar[1]), mode: "spar", dir: -1, x: sparLeft + 74, y: foot, phase: 0.45, speed: 0 });
-      cursor = sparLeft + 74;
-    }
-    const archerXs = archers.map(function (f, i) { return w - 84 - i * 48; });
-    const rightLimit = archerXs.length ? Math.min.apply(null, archerXs) - 44 : w - 70;
-    const leftLimit = cursor + 42;
-    walkers.forEach(function (f, i) {
-      const n = IL.hashStr(f.id || "walk");
-      const span = Math.max(16, rightLimit - leftLimit);
-      const x = leftLimit + (n % span);
-      people.push({
-        id: f.id, look: yardLookName(f), mode: "walk",
-        dir: (n & 1) ? 1 : -1,
-        x: Math.min(x, rightLimit),
-        y: foot - i * 2,
-        phase: (n % 10) / 10,
-        speed: 14 + (n % 8),
-        lo: leftLimit,
-        hi: Math.max(leftLimit + 16, rightLimit)
-      });
-    });
-    archers.forEach(function (f, i) {
-      people.push({
-        id: f.id, look: yardLookName(f), mode: "bow", dir: 1,
-        x: archerXs[i], y: foot, phase: i * 0.35, speed: 0
-      });
-    });
-    yardPeople = people;
-    return true;
-  }
-
-  function yardBook(actor) {
-    if (!yardMeta) return null;
-    if (actor.visitor) return yardMeta.visitors && yardMeta.visitors[actor.look];
-    return (yardMeta.looks && (yardMeta.looks[actor.look] || yardMeta.looks["sword-0"])) || null;
-  }
-
-  function yardFrame(actor, t) {
-    const book = yardBook(actor);
-    if (!book) return 0;
-    let key = actor.dir < 0 ? "walkW" : "walkE";
-    let fps = 6;
-    if (actor.mode === "ko") key = actor.dir < 0 ? "koW" : "koE";
-    else if (actor.mode === "spar") { key = actor.dir < 0 ? "atkW" : "atkE"; fps = 8; }
-    else if (actor.mode === "bow") { key = actor.dir < 0 ? "bowW" : "bowE"; fps = 5; }
-    else if (actor.visitor) key = actor.dir < 0 ? "walkW" : "walkE";
-    const frames = book[key] || book.walkE || book.walkW || [0];
-    if (actor.mode === "ko") return frames[0];
-    return frames[Math.floor(t * fps + actor.phase * frames.length) % frames.length];
-  }
-
-  function stepYard(actor, dt, w) {
-    if (actor.mode !== "walk" && actor.mode !== "visit") return;
-    const lo = actor.lo != null ? actor.lo : 36;
-    const hi = actor.hi != null ? actor.hi : w - 36;
-    actor.x += actor.dir * actor.speed * dt;
-    if (actor.x < lo) { actor.x = lo; actor.dir = 1; }
-    if (actor.x > hi) { actor.x = hi; actor.dir = -1; }
-  }
-
-  function onYardClick(ev) {
-    const canvas = ev.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const x = (ev.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (ev.clientY - rect.top) * (canvas.height / rect.height);
-    const list = (IL.yardActors || []).slice().sort(function (a, b) { return b.y - a.y; });
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      if (!a.id) continue;
-      if (Math.abs(x - a.x) <= 32 && y <= a.y + 10 && y >= a.y - 68) {
-        detailId = a.id;
-        pitSound("click");
-        showHub(hubTab);
-        return;
-      }
-    }
-  }
-
-  function drawYard(canvas, dt, t) {
-    if (!canvas.isConnected) return;
-    if (canvas.dataset.bound !== "1") {
-      canvas.dataset.bound = "1";
-      canvas.addEventListener("click", onYardClick);
-    }
-    const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = false;
-    paintYard(ctx, canvas.width, canvas.height);
-    if (!syncYard(canvas)) return;
-    const fw = yardMeta.fw || 48;
-    const fh = yardMeta.fh || 48;
-    const cols = yardMeta.cols || 22;
-    const scale = 2;
-    const drawList = yardPeople.slice().sort(function (a, b) { return a.y - b.y; });
-    for (let i = 0; i < drawList.length; i++) {
-      const actor = drawList[i];
-      stepYard(actor, dt, canvas.width);
-      const frame = yardFrame(actor, t);
-      const col = frame % cols;
-      const row = (frame / cols) | 0;
-      const dw = fw * scale;
-      const dh = fh * scale;
-      ctx.drawImage(
-        yardImg,
-        col * fw, row * fh, fw, fh,
-        Math.round(actor.x - dw / 2), Math.round(actor.y - 32 * scale), dw, dh
-      );
-    }
-    const rank = { bow: 0, spar: 1, ko: 2, walk: 3, visit: 4 };
-    IL.yardActors = yardPeople.filter(function (a) { return a.id; }).slice().sort(function (a, b) {
-      const ar = rank[a.mode];
-      const br = rank[b.mode];
-      return (ar == null ? 9 : ar) - (br == null ? 9 : br);
-    }).map(function (a) {
-      return { id: a.id, x: Math.round(a.x), y: Math.round(a.y) };
-    });
-    if (IL.yardActors.length) canvas.dataset.ready = "1";
-  }
-
   function bootCards(extraParts) {
     const tok = token;
     const canvases = Array.prototype.slice.call(app.querySelectorAll("canvas[data-key]"));
@@ -3917,8 +3659,6 @@
         const foot = c.dataset.foot != null && c.dataset.foot !== "" ? Number(c.dataset.foot) : 10;
         IL.hero.draw(ctx, atlas, IL.frameIndex(clip, t + i * 0.2), c.width / 2, c.height - foot, scale, 1, c.dataset.cls || "", null, c.dataset.kind || "");
       }
-      const yard = document.getElementById("clubYard");
-      if (yard) drawYard(yard, dt, t);
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);
@@ -4473,6 +4213,14 @@
     const canvas = document.getElementById("arena");
     const ctx = canvas.getContext("2d");
     const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], sigs: [], t: 0, cam: null };
+    function pitPoint(ev) {
+      const r = canvas.getBoundingClientRect();
+      fx.pointer = { x: ev.clientX - r.left, y: ev.clientY - r.top, stick: ev.type === "pointerdown" || !!fx.stickId };
+      if (ev.type === "pointerdown") fx.pointer.stick = true;
+    }
+    canvas.addEventListener("pointermove", pitPoint);
+    canvas.addEventListener("pointerdown", pitPoint);
+    canvas.addEventListener("pointerleave", function () { fx.pointer = null; });
     let last = performance.now();
     let acc = 0;
     function frame(now) {
@@ -4593,6 +4341,7 @@
     for (let i = 0; i < rows.length; i++) {
       const u = match.units[+rows[i].dataset.i];
       if (!u) continue;
+      rows[i].classList.toggle("hot", !!IL.pitFocusId && u.id === IL.pitFocusId);
       const fill = rows[i].querySelector(".fill");
       if (fill) fill.style.width = Math.max(0, u.hp / u.maxHp * 100) + "%";
       const num = rows[i].querySelector(".hp-num");
@@ -5088,6 +4837,7 @@
           ? '<button type="button" class="btn fight" id="nextWave">' + (mode === "gauntlet" ? "Next fight" : "Next wave") + '</button>' : '') +
         '<button type="button" class="btn primary" id="backHub">' + (fight.returnTab === "events" ? "Back to events" : "Back to club") + '</button>' +
       '</div>';
+    bootCards(match.units.map(function (u) { return u && u.parts; }));
     animateXpBars();
     if (IL.sfx && IL.sfx.crowdBed) IL.sfx.crowdBed(false);
     pitSound(win ? "victory" : "defeat");
@@ -5311,7 +5061,6 @@
   }
 
   loadIconAtlas();
-  ensureYard();
   if (classGalleryOn() && IL.showcase) showClassGallery();
   else showTitle();
 })(typeof window !== "undefined" ? window : globalThis);

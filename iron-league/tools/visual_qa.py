@@ -18,7 +18,7 @@ import functools, http.server, socketserver
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 DEFAULT_URL = "https://labfreak-dev.github.io/Odds-Ends/iron-league/"
-DEFAULT_VIEWPORTS = ["360x740", "412x915", "1280x800"]
+DEFAULT_VIEWPORTS = ["360x800", "412x915", "1280x800"]
 EXIT_RE = re.compile(r"club|continue|back", re.I)
 
 # --------------------------------------------------------------------------- JS
@@ -575,6 +575,57 @@ class Run:
             else:
                 mid["checks"]["fighters"] = ("PASS", [])
                 self.note(f"fighters inside the pit ({fit['n']})")
+            floor = page.evaluate("""() => {
+              const de = document.documentElement;
+              const floor = (window.IL && IL.pitFloor) || null;
+              const bodies = (window.IL && IL.pitBodies) || [];
+              const scroll = de.scrollHeight > window.innerHeight + 2 || de.scrollWidth > window.innerWidth + 1;
+              if (!floor || !bodies.length) return { ok: false, why: 'no floor' };
+              const canvas = document.getElementById('arena');
+              const cr = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0 };
+              const l = cr.left + floor.l, t = cr.top + floor.t, r = cr.left + floor.r, b = cr.top + floor.b;
+              const inside = l >= -1 && t >= -1 && r <= window.innerWidth + 1 && b <= window.innerHeight + 1;
+              let h = 0;
+              for (const box of bodies) h += (box.b - box.t);
+              h /= bodies.length;
+              const shortSide = Math.min(floor.w, floor.h);
+              const ratio = h / shortSide;
+              const spread = (window.IL && IL.pitSpawn) || 0;
+              const overlap = (window.IL && IL.pitOverlap) || { worst: 0 };
+              const scale = (window.IL && IL.pitScale) || 0;
+              return {
+                ok: true, ratio, shortSide, h, spread, scale,
+                worst: overlap.worst || 0,
+                inside, scroll,
+                portrait: !!(window.IL && IL.pitCam && IL.pitCam.portrait),
+                fw: floor.w, fh: floor.h
+              };
+            }""")
+            notes = []
+            fails = []
+            if not floor or not floor.get("ok"):
+                fails.append((floor or {}).get("why") or "floor missing")
+            else:
+                ratio = floor.get("ratio") or 0
+                notes.append(
+                    f"fighter {floor.get('h'):.1f}px / short side {floor.get('shortSide'):.0f}px = 1/{(1/ratio) if ratio else 0:.1f}"
+                    f" scale {floor.get('scale')} {'portrait' if floor.get('portrait') else 'landscape'}"
+                    f" floor {floor.get('fw'):.0f}x{floor.get('fh'):.0f}"
+                )
+                if not (1/16 - 0.004 <= ratio <= 1/12 + 0.004):
+                    fails.append(f"fighter/floor ratio {ratio:.4f} outside 1/16–1/12")
+                if not floor.get("inside") or floor.get("scroll"):
+                    fails.append("floor is outside the viewport or the page scrolls")
+                if (floor.get("spread") or 0) < 0.7:
+                    fails.append(f"spawn spread {floor.get('spread')} < 0.70 of the long axis")
+                if (floor.get("worst") or 0) > 0.55:
+                    fails.append(f"bodies overlapped >30% for {floor.get('worst'):.2f}s")
+                if (floor.get("scale") or 0) < 1:
+                    fails.append(f"sprite scale {floor.get('scale')} is below 1x")
+            mid["checks"]["floor"] = ("FAIL" if fails else "PASS", fails)
+            for n in notes:
+                mid["notes"].append(n)
+                self.note(n)
         else:
             self.current = f"fight{idx}"
 
@@ -659,7 +710,7 @@ def run_viewport(vp, url, out, deadline, cap, max_fights=3):
     return {"viewport": vp, "screens": r.screens, "errors": r.errors, "crash": crash}
 
 # ------------------------------------------------------------------- outputs
-CHECK_ORDER = ["harness", "h-overflow", "v-scroll", "speed-in-view", "box-overflow", "text-clip",
+CHECK_ORDER = ["harness", "h-overflow", "v-scroll", "speed-in-view", "floor", "box-overflow", "text-clip",
                "rotate-over-table", "results-exit", "exit-to-hub", "js-errors"]
 
 def contact_sheet(res, out):

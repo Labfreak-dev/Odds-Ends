@@ -268,7 +268,11 @@ def tour(page, shot_dir):
     )
     page.screenshot(path=str(shot_dir / "market.png"))
     page.click("#relics")
-    page.wait_for_selector("[data-equip='band']")
+    page.wait_for_selector(".relic-cell[data-relic-open='band']")
+    page.click(".relic-cell[data-relic-open='band']")
+    page.wait_for_selector("#relicSheet [data-equip='band']")
+    page.click("#relicSheetClose")
+    page.wait_for_selector("#relicSheet", state="detached")
     page.screenshot(path=str(shot_dir / "relics.png"))
     page.click("#cup")
     page.click("#enterCup")
@@ -332,86 +336,6 @@ def check_chrome(page, label):
         raise SystemExit(label + " fight button is not a 9-slice: " + report["slice"])
     if report["smooth"] == "pixelated":
         raise SystemExit(label + " crest emblem is pixelated")
-
-
-def check_yard(page, label):
-    """The club yard draws, the sprites move, and a click opens the sheet."""
-    fetched = page.evaluate(
-        """async () => {
-          const png = await fetch('assets/yard/atlas.png');
-          const json = await fetch('assets/yard/atlas.json');
-          return { png: png.status, json: json.status };
-        }"""
-    )
-    if fetched["png"] != 200 or fetched["json"] != 200:
-        raise SystemExit(label + " yard atlas failed " + str(fetched))
-    page.wait_for_selector("#clubYard")
-    page.evaluate("() => { window.__yardHash = 0; window.__yardAt = 0; }")
-    page.wait_for_function(
-        """() => {
-          const c = document.querySelector('#clubYard');
-          if (!c || c.dataset.ready !== '1' || !window.IL || !IL.yardActors || !IL.yardActors.length) return false;
-          const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-          let h = 2166136261;
-          for (let i = 0; i < data.length; i += 64) {
-            h ^= data[i] + data[i + 1] * 3 + data[i + 2] * 7;
-            h = Math.imul(h, 16777619);
-          }
-          h >>>= 0;
-          if (!window.__yardHash) {
-            window.__yardHash = h;
-            window.__yardAt = performance.now();
-            return false;
-          }
-          if (performance.now() - window.__yardAt < 280) return false;
-          return h !== window.__yardHash;
-        }""",
-        timeout=8000,
-    )
-    page.evaluate(
-        """() => {
-          const c = document.querySelector('#clubYard');
-          const a = IL.yardActors[0];
-          let scroller = c.parentElement;
-          while (scroller && scroller !== document.body) {
-            const cs = getComputedStyle(scroller);
-            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && scroller.scrollHeight > scroller.clientHeight + 4) break;
-            scroller = scroller.parentElement;
-          }
-          const actorY = () => {
-            const r = c.getBoundingClientRect();
-            return r.top + (a.y - 48) * (r.height / c.height);
-          };
-          const tab = document.querySelector('#tabbar');
-          const limit = (tab && getComputedStyle(tab).position === "fixed" ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
-          const sticky = document.querySelector('.hub-sticky');
-          const cover = sticky ? sticky.getBoundingClientRect().bottom + 8 : 8;
-          if (scroller && scroller !== document.body) {
-            const box = scroller.getBoundingClientRect();
-            scroller.scrollTop += actorY() - (box.top + Math.min(box.height * 0.45, 160));
-          } else if (actorY() > limit) {
-            window.scrollBy(0, actorY() - limit);
-          }
-          if (actorY() < cover && scroller && scroller !== document.body) {
-            scroller.scrollTop += actorY() - cover;
-          }
-        }"""
-    )
-    box = page.evaluate(
-        """() => {
-          const c = document.querySelector('#clubYard');
-          const a = IL.yardActors[0];
-          const r = c.getBoundingClientRect();
-          return {
-            x: r.left + a.x * (r.width / c.width),
-            y: r.top + (a.y - 48) * (r.height / c.height)
-          };
-        }"""
-    )
-    page.mouse.click(box["x"], box["y"])
-    page.wait_for_selector("#fighterSheet", timeout=8000)
-    page.click("#sheetClose")
-    page.wait_for_selector("#fighterSheet", state="detached")
 
 
 def check_classes(page, label):
@@ -489,7 +413,7 @@ def check_nav(page, label, shot_dir):
     )
     if any(c != "rgb(243, 217, 176)" for c in ink):
         raise SystemExit(label + " inactive tab ink " + str(ink))
-    check_yard(page, label)
+    page.wait_for_selector("#clubPane")
     page.keyboard.press("2")
     page.wait_for_selector("#fighterList")
     if page.locator("#nextMatch").count():
@@ -810,7 +734,7 @@ def check_fit(page):
         ("#tab-club", "#nextMatch"),
         ("#tab-fighters", "#armory"),
         ("#market", "#marketCards"),
-        ("#relics", ".card.relic"),
+        ("#relics", ".relic-cell"),
         ("#cup", "#enterCup"),
         ("#events", "#eventsBoard"),
         ("#train", "#trainBoard"),
@@ -989,7 +913,7 @@ def sweep_frames(browser, shot_dir):
         page.set_viewport_size({"width": width, "height": height})
         label = str(width) + "x" + str(height)
         page.keyboard.press("1")
-        page.wait_for_selector("#clubYard")
+        page.wait_for_selector("#clubPane")
         assert_inside(page, label + " club")
         if width == 360:
             clipped = page.evaluate(
@@ -1063,7 +987,7 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " sell")
         visit("4", "#enterCup, #bracketBoard")
         assert_inside(page, label + " cup")
-        visit("5", ".card.relic")
+        visit("5", ".relic-cell")
         assert_inside(page, label + " relics")
         visit("6", "#eventsBoard")
         assert_inside(page, label + " events")
@@ -1304,7 +1228,7 @@ def qa_gate(browser, shot_dir):
                 page.screenshot(path=str(shot_dir / ("qa-" + label + "-" + name + ".png")))
 
         page.keyboard.press("1")
-        page.wait_for_selector("#clubYard, #nextMatch")
+        page.wait_for_selector("#clubPane")
         assert_inside(page, label + " club")
         shot("club")
         page.keyboard.press("2")
@@ -1337,7 +1261,7 @@ def qa_gate(browser, shot_dir):
         assert_inside(page, label + " cup")
         shot("cup")
         page.keyboard.press("5")
-        page.wait_for_selector(".card.relic")
+        page.wait_for_selector(".relic-cell")
         assert_inside(page, label + " relics")
         page.keyboard.press("6")
         page.wait_for_selector("#eventsBoard")

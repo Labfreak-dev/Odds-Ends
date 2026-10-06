@@ -1,9 +1,12 @@
-/* Iron League — arena canvas. Camera follows the squads through a wide pit.
+/* Iron League — arena canvas. The whole floor is on screen. A tall
+   viewport turns the floor so the clubs start at the top and the bottom.
    Pixel FX strips play additive; procedural strokes remain underneath and
    stand in fully when a sheet has not loaded. */
 (function (root) {
   const IL = root.IL = root.IL || {};
-  const SCALE = 6;
+  /* 1 world unit is 1 sprite texel. The view scale (1, 1.5, 2, …) is
+     chosen per frame so the sheet stays crisp and never drops below 1x. */
+  const SCALE = 1;
   /* One knob for every screen shake. Hits add 3.2 (1.5 if blocked, cap 7)
      and cast blasts add 4 (cap 8) in game.js. 1 is that original kick.
      0.1 is a small nudge, not a shake. */
@@ -81,88 +84,47 @@
     return { cssW: cssW, cssH: cssH, dpr: dpr };
   }
 
-  /* Opaque body is about 30 rows of the 48px cell, times SCALE. Screen px = bodyWorld * cssW / viewW. */
-  function camLimits(cssW) {
-    const narrow = cssW < 760;
-    const bodyWorld = 180;
-    const targetPx = narrow ? 100 : 125;
-    const floorPx = narrow ? 90 : 110;
-    const worldW = IL.WORLD.w;
-    let minW = bodyWorld * cssW / targetPx;
-    let maxW = bodyWorld * cssW / floorPx;
-    if (!(maxW > 0)) maxW = worldW;
-    if (maxW > worldW) maxW = worldW;
-    if (!(minW > 0) || minW > maxW) minW = maxW;
-    /* Zoom may punch in, but not past the top of the size band. */
-    const capPx = narrow ? 110 : 140;
-    let tightW = bodyWorld * cssW / capPx;
-    if (!(tightW > 0) || tightW > minW) tightW = minW;
-    return { minW: minW, maxW: maxW, tightW: tightW };
-  }
-
+  /* Whole floor, letterboxed. A portrait viewport turns it so the long
+     axis is vertical. Scale snaps to whole or half steps and stays ≥ 1. */
   function updateCam(match, fx, view) {
     const W = IL.WORLD;
-    const limits = camLimits(view.cssW);
-    if (!fx.cam) {
-      fx.cam = {
-        x: W.w / 2,
-        y: (W.top + W.bottom) / 2,
-        viewW: limits.minW
-      };
+    const portrait = view.cssH > view.cssW;
+    const fw = portrait ? W.h : W.w;
+    const fh = portrait ? W.w : W.h;
+    const fit = Math.min(view.cssW / fw, view.cssH / fh);
+    const steps = [1, 1.5, 2, 2.5, 3];
+    let spriteScale = 1;
+    for (let i = 0; i < steps.length; i++) {
+      if (steps[i] <= fit + 0.001) spriteScale = steps[i];
     }
-    const cam = fx.cam;
-    const units = [];
-    for (let i = 0; i < match.units.length; i++) if (match.units[i].hp > 0) units.push(match.units[i]);
-    const focus = units.length ? units : match.units;
-    let minX = 1e9;
-    let maxX = -1e9;
-    let minY = 1e9;
-    let maxY = -1e9;
-    for (let i = 0; i < focus.length; i++) {
-      const u = focus[i];
-      if (u.x < minX) minX = u.x;
-      if (u.x > maxX) maxX = u.x;
-      if (u.y < minY) minY = u.y;
-      if (u.y > maxY) maxY = u.y;
-    }
-    for (let i = 0; i < match.units.length; i++) {
-      const c = match.units[i].cast;
-      if (!c) continue;
-      if (c.x - c.r < minX) minX = c.x - c.r;
-      if (c.x + c.r > maxX) maxX = c.x + c.r;
-      if (c.y - c.r * 0.4 < minY) minY = c.y - c.r * 0.4;
-      if (c.y + c.r * 0.4 > maxY) maxY = c.y + c.r * 0.4;
-    }
-    const aspect = view.cssW / Math.max(1, view.cssH);
-    const narrow = view.cssW < 760;
-    /* Frame the sprite and the name, not only the feet, and sit that block in the middle. */
-    const head = 34 * SCALE + 36;
-    const half = 16 * SCALE;
-    minX -= half;
-    maxX += half;
-    minY -= head;
-    maxY += 18;
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    const spanW = (maxX - minX) + (narrow ? 36 : 64);
-    const spanH = (maxY - minY) + (narrow ? 28 : 48);
-    let want = Math.max(spanW, spanH * aspect);
-    want = Math.max(limits.minW, Math.min(limits.maxW, want));
-    const zoom = match.zoom || 0;
-    if (zoom > 0) want *= 1 - 0.22 * Math.min(1, zoom);
-    if (want < limits.tightW) want = limits.tightW;
-    cam.x += (cx - cam.x) * 0.08;
-    cam.y += (cy - cam.y) * 0.08;
-    cam.viewW += (want - cam.viewW) * 0.05;
-    const viewH = cam.viewW / aspect;
-    const halfW = cam.viewW / 2;
-    const halfH = viewH / 2;
-    if (cam.viewW >= W.w - 2) cam.x = W.w / 2;
-    else cam.x = Math.max(halfW, Math.min(W.w - halfW, cam.x));
-    if (viewH >= W.h - 2) cam.y = W.h / 2;
-    else cam.y = Math.max(halfH, Math.min(W.h - halfH, cam.y));
-    cam.viewH = viewH;
+    const drawW = fw * spriteScale;
+    const drawH = fh * spriteScale;
+    const cam = {
+      x: W.w / 2,
+      y: W.h / 2,
+      viewW: W.w,
+      viewH: W.h,
+      portrait: portrait,
+      spriteScale: spriteScale,
+      ox: Math.round((view.cssW - drawW) / 2),
+      oy: Math.round((view.cssH - drawH) / 2),
+      drawW: drawW,
+      drawH: drawH
+    };
+    fx.cam = cam;
     return cam;
+  }
+
+  function worldToCss(x, y, cam) {
+    const s = cam.spriteScale;
+    if (cam.portrait) return { x: cam.ox + y * s, y: cam.oy + x * s };
+    return { x: cam.ox + x * s, y: cam.oy + y * s };
+  }
+
+  function cssToWorld(px, py, cam) {
+    const s = cam.spriteScale || 1;
+    if (cam.portrait) return { x: (py - cam.oy) / s, y: (px - cam.ox) / s };
+    return { x: (px - cam.ox) / s, y: (py - cam.oy) / s };
   }
 
   function pitGrain(pit) {
@@ -252,6 +214,12 @@
       g.stroke();
     }
     g.globalAlpha = 1;
+    /* Pull the floor down so a 30px battler still reads on the grain. */
+    g.save();
+    g.globalCompositeOperation = "multiply";
+    g.fillStyle = "#999999";
+    g.fillRect(0, 0, 160, 160);
+    g.restore();
     pitTex[pit.id] = c;
     return c;
   }
@@ -292,8 +260,8 @@
     const top = frame.top;
     const vw = frame.viewW;
     const vh = frame.viewH;
-    const band = Math.max(40, Math.min(62, vh * 0.09));
-    const side = Math.max(14, Math.min(30, vw * 0.038));
+    const band = Math.max(10, Math.min(16, vh * 0.04));
+    const side = Math.max(6, Math.min(10, vw * 0.016));
     ctx.fillStyle = pit.wall;
     ctx.fillRect(left - 8, top - 12, vw + 16, band + 8);
     const blocks = Math.ceil(vw / 26) + 2;
@@ -409,7 +377,7 @@
     ctx.fillStyle = pit._pat || pit.floor;
     ctx.fillRect(bgL, bgT, bgR - bgL, bgB - bgT);
 
-    const shade = ctx.createRadialGradient(cx, cy, 160, cx, cy, 820);
+    const shade = ctx.createRadialGradient(cx, cy, W.h * 0.15, cx, cy, W.w * 0.48);
     shade.addColorStop(0, "rgba(0,0,0,0)");
     shade.addColorStop(0.55, "rgba(0,0,0,0.16)");
     shade.addColorStop(1, "rgba(0,0,0,0.52)");
@@ -420,7 +388,7 @@
     ctx.lineWidth = 2;
     for (let i = 1; i <= 3; i++) {
       ctx.beginPath();
-      ctx.ellipse(cx, cy, 120 + i * 90, 46 + i * 34, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, W.w * (0.06 + i * 0.045), W.h * (0.05 + i * 0.04), 0, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -963,31 +931,67 @@
     if ((u.buff || 0) > 0) marks.push("#f4ecdf");
     if ((u.rage || 0) > 0) marks.push("#e07048");
     if (!marks.length) return;
-    const x0 = u.x - (marks.length - 1) * 6;
+    const x0 = u.x + 12;
     for (let i = 0; i < marks.length; i++) {
       ctx.fillStyle = marks[i];
       ctx.beginPath();
-      ctx.arc(x0 + i * 12, by - 16, 4, 0, Math.PI * 2);
+      ctx.arc(x0 + i * 5, by + 1.5, 1.6, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+
+  function noteOverlap(fx, match, bodyW, bodyH) {
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    let worst = 0;
+    const live = [];
+    for (let i = 0; i < match.units.length; i++) if (match.units[i].hp > 0) live.push(match.units[i]);
+    for (let i = 0; i < live.length; i++) {
+      const a = live[i];
+      const ay = a.y - (a.z || 0);
+      for (let j = i + 1; j < live.length; j++) {
+        const b = live[j];
+        const by = b.y - (b.z || 0);
+        const ow = bodyW - Math.abs(a.x - b.x);
+        const oh = bodyH - Math.abs(ay - by);
+        if (ow <= 0 || oh <= 0) continue;
+        const frac = (ow * oh) / (bodyW * bodyH);
+        if (frac > worst) worst = frac;
+      }
+    }
+    if (!fx._olapAt) fx._olapAt = now;
+    const dt = Math.min(0.1, (now - fx._olapAt) / 1000);
+    fx._olapAt = now;
+    if (worst > 0.3) fx.overlapHold = (fx.overlapHold || 0) + dt;
+    else fx.overlapHold = 0;
+    if ((fx.overlapHold || 0) > (fx.overlapWorst || 0)) fx.overlapWorst = fx.overlapHold;
+    IL.pitOverlap = { hold: fx.overlapHold || 0, worst: fx.overlapWorst || 0, frac: worst };
   }
 
   function drawArena(ctx, match, fx) {
     const canvas = ctx.canvas;
     const view = fitArena(canvas);
     const cam = updateCam(match, fx, view);
-    IL.pitCam = { viewW: cam.viewW, viewH: cam.viewH, cssW: view.cssW, cssH: view.cssH };
-    const scale = view.cssW / cam.viewW;
+    IL.pitTurn = !!cam.portrait;
+    IL.pitCam = { viewW: cam.viewW, viewH: cam.viewH, cssW: view.cssW, cssH: view.cssH, scale: cam.spriteScale, portrait: !!cam.portrait };
+    IL.pitFloor = { l: cam.ox, t: cam.oy, w: cam.drawW, h: cam.drawH, r: cam.ox + cam.drawW, b: cam.oy + cam.drawH };
+    IL.pitScale = cam.spriteScale;
+    IL.pitSpawn = (match && typeof match.spawnSpread === "number") ? match.spawnSpread : 1;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     const shake = (fx.shake || 0) * SHAKE_SCALE;
+    let shx = 0;
+    let shy = 0;
     if (shake > 0.2 * SHAKE_SCALE) {
-      ctx.translate(Math.sin(fx.t * 48) * shake * view.dpr, Math.cos(fx.t * 37) * shake * 0.65 * view.dpr);
+      shx = Math.sin(fx.t * 48) * shake * view.dpr;
+      shy = Math.cos(fx.t * 37) * shake * 0.65 * view.dpr;
     }
-    ctx.translate(view.dpr * (view.cssW / 2 - cam.x * scale), view.dpr * (view.cssH / 2 - cam.y * scale));
-    ctx.scale(view.dpr * scale, view.dpr * scale);
+    const d = view.dpr;
+    const s = cam.spriteScale;
+    if (cam.portrait) ctx.setTransform(0, d * s, d * s, 0, d * cam.ox + shx, d * cam.oy + shy);
+    else ctx.setTransform(d * s, 0, 0, d * s, d * cam.ox + shx, d * cam.oy + shy);
+    ctx.imageSmoothingEnabled = false;
 
     drawPit(ctx, fx, match);
 
@@ -1016,197 +1020,34 @@
     }
 
     const order = match.units.slice().sort(function (a, b) { return a.y - b.y; });
-    const ui = Math.max(0.85, Math.min(1.35, cam.viewW / 1200));
-    const band = Math.max(40, Math.min(62, cam.viewH * 0.09));
-    const side = Math.max(14, Math.min(30, cam.viewW * 0.038));
-    const viewLeft = cam.x - cam.viewW / 2;
-    const viewTop = cam.y - cam.viewH / 2;
-    const bodyHalf = 16 * SCALE;
-    const labelUp = 34 * SCALE + 32;
-    const lim = {
-      minX: viewLeft + side + bodyHalf,
-      maxX: viewLeft + cam.viewW - side - bodyHalf,
-      minY: viewTop + band + labelUp,
-      maxY: viewTop + cam.viewH - 20
-    };
-    if (lim.minX > lim.maxX) { const m = (lim.minX + lim.maxX) / 2; lim.minX = m - 4; lim.maxX = m + 4; }
-    if (lim.minY > lim.maxY) { const m = (lim.minY + lim.maxY) / 2; lim.minY = m - 4; lim.maxY = m + 4; }
-    const shown = {};
-    const living = [];
-    for (let i = 0; i < order.length; i++) {
-      const u = order[i];
-      shown[u.id] = { x: u.x, y: u.y };
-      if (u.hp > 0) living.push(u);
-    }
-    const frontRole = { melee: 1, tank: 1, dash: 1, support: 1, hybrid: 1 };
-    for (let pass = 0; pass < 4; pass++) {
-      for (let i = 0; i < living.length; i++) {
-        for (let j = i + 1; j < living.length; j++) {
-          const ua = living[i];
-          const ub = living[j];
-          const a = shown[ua.id];
-          const b = shown[ub.id];
-          const gap = (frontRole[ua.role] && frontRole[ub.role] ? 28 : 16) * SCALE;
-          let dx = b.x - a.x;
-          let dy = b.y - a.y;
-          let d = Math.hypot(dx, dy) || 1;
-          if (d >= gap) continue;
-          if (d < 0.001) { dx = 1; dy = (i < j ? 1 : -1); d = 1; }
-          let nx = dx / d;
-          let ny = dy / d;
-          if (Math.abs(dy) < gap * 0.45) {
-            ny += (String(ua.id) < String(ub.id) ? 1 : -1) * 0.85;
-            const mag = Math.hypot(nx, ny) || 1;
-            nx /= mag;
-            ny /= mag;
-          }
-          const push = (gap - d) * 0.5;
-          a.x -= nx * push;
-          a.y -= ny * push;
-          b.x += nx * push;
-          b.y += ny * push;
-        }
-      }
-      for (let i = 0; i < living.length; i++) {
-        const p = shown[living[i].id];
-        p.x = Math.max(lim.minX, Math.min(lim.maxX, p.x));
-        p.y = Math.max(lim.minY + (living[i].z || 0), Math.min(lim.maxY, p.y));
-      }
-    }
-    /* Draw-only. Ranged and casters step back from the nearest foe. */
-    for (let i = 0; i < living.length; i++) {
-      const u = living[i];
-      if (u.role !== "kite" && u.role !== "cast") continue;
-      const a = shown[u.id];
-      let best = 1e9;
-      let nx = 0;
-      let ny = 0;
-      for (let j = 0; j < living.length; j++) {
-        const o = living[j];
-        if (o.team === u.team) continue;
-        const b = shown[o.id];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const d = Math.hypot(dx, dy) || 1;
-        if (d < best) {
-          best = d;
-          nx = dx / d;
-          ny = dy / d;
-        }
-      }
-      if (best > 1e8 || best >= 36 * SCALE) continue;
-      const shove = Math.min(36 * SCALE - best, 22 * SCALE);
-      a.x += nx * shove;
-      a.y += ny * shove;
-      a.x = Math.max(lim.minX, Math.min(lim.maxX, a.x));
-      a.y = Math.max(lim.minY + (u.z || 0), Math.min(lim.maxY, a.y));
-    }
-    function coverLabel(box, slot, w, hgt, text, owner) {
-      if (!slot) return;
-      const l = view.cssW / 2 + ((slot.x - w / 2) - cam.x) * worldScale;
-      const r = view.cssW / 2 + ((slot.x + w / 2) - cam.x) * worldScale;
-      const t = view.cssH / 2 + ((slot.y - hgt) - cam.y) * worldScale;
-      const b = view.cssH / 2 + (slot.y - cam.y) * worldScale;
-      IL.pitLabels.push({ text: text, owner: owner, l: l, t: t, r: r, b: b });
-      if (!box) return;
-      if (t < box.t) box.t = t;
-      if (l < box.l) box.l = l;
-      if (r > box.r) box.r = r;
-      if (b > box.b) box.b = b;
-    }
-    const labels = [];
-    const bodies = [];
-    const labelCeil = viewTop + 4;
+    const bodyH = (IL.BODY_H || 30);
+    const bodyW = 20;
     IL.pitBoxes = [];
     IL.pitLabels = [];
+    IL.pitBodies = [];
+    let focus = null;
+    let focusD = 1e9;
+    const ptr = fx.pointer;
+    const ptrWorld = ptr ? cssToWorld(ptr.x, ptr.y, cam) : null;
     for (let i = 0; i < order.length; i++) {
       const u = order[i];
-      if (u.hp <= 0) continue;
-      const gy = shown[u.id].y - (u.z || 0);
-      bodies.push({
-        name: u.name,
-        x: shown[u.id].x,
-        y: gy - 16 * SCALE,
-        w: 26 * SCALE,
-        h: 32 * SCALE
-      });
-    }
-    const worldScale = view.cssW / cam.viewW;
-    /* Labels are screen type. A world-sized font shrinks to a few pixels on a phone. */
-    function worldPx(css) { return css / Math.max(0.2, worldScale); }
-    const labelGap = worldPx(8);
-    /* 4px of canvas padding, plus half the dark outline, so a move name on the wall stays whole. */
-    const labelEdge = worldPx(4) + worldPx(1.25);
-    const labelMinX = viewLeft + labelEdge;
-    const labelMaxX = viewLeft + cam.viewW - labelEdge;
-    function paintLabel(text, x, y, fill, alpha) {
-      ctx.globalAlpha = alpha;
-      ctx.lineJoin = "round";
-      ctx.miterLimit = 2;
-      ctx.lineWidth = worldPx(2.5);
-      ctx.strokeStyle = "rgba(8,6,4,0.92)";
-      ctx.strokeText(text, x, y);
-      ctx.fillStyle = fill;
-      ctx.fillText(text, x, y);
-      ctx.globalAlpha = 1;
-    }
-    function paintLeader(x0, y0, x1, y1, alpha) {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, alpha);
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "rgba(8,6,4,0.88)";
-      ctx.lineWidth = worldPx(2.4);
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(244,236,223,0.92)";
-      ctx.lineWidth = worldPx(1);
-      ctx.stroke();
-      ctx.restore();
-    }
-    IL.pitBodies = bodies.map(function (B) {
-      return {
-        name: B.name,
-        l: view.cssW / 2 + (B.x - B.w / 2 - cam.x) * worldScale,
-        r: view.cssW / 2 + (B.x + B.w / 2 - cam.x) * worldScale,
-        t: view.cssH / 2 + (B.y - B.h / 2 - cam.y) * worldScale,
-        b: view.cssH / 2 + (B.y + B.h / 2 - cam.y) * worldScale
-      };
-    });
-    for (let i = 0; i < order.length; i++) {
-      const u = order[i];
-      const x = shown[u.id].x;
-      const y = shown[u.id].y;
-      let box = null;
-      if (u.hp > 0) {
-        const sx = view.cssW / 2 + (x - cam.x) * worldScale;
-        const sy = view.cssH / 2 + ((y - (u.z || 0)) - cam.y) * worldScale;
-        box = {
-          name: u.name,
-          role: u.role || "",
-          l: sx - bodyHalf * worldScale,
-          t: sy - labelUp * worldScale,
-          r: sx + bodyHalf * worldScale,
-          b: sy + (10 + (u.z || 0)) * worldScale
-        };
-        IL.pitBoxes.push(box);
-      }
+      const x = u.x;
+      const y = u.y;
       const z = u.z || 0;
+      const gy = y - z;
       const lift = z > 2 ? Math.max(0.45, 1 - z / 180) : 1;
       ctx.fillStyle = "rgba(0,0,0," + (0.28 + 0.16 * lift) + ")";
       ctx.beginPath();
-      ctx.ellipse(x, y + 2, (u.hp > 0 ? 16 : 22) * lift, 6 * lift, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y + 2, (u.hp > 0 ? 8 : 12) * lift, 3.5 * lift, 0, 0, Math.PI * 2);
       ctx.fill();
       if (u.iframe > 0 && u.hp > 0) {
         ctx.strokeStyle = "rgba(214, 186, 255, 0.55)";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.ellipse(x, y + 2, 22, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 2, 10, 4, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
       const frame = IL.frameIndex(u.anim || "idle", u.animT || 0);
-      const gy = y - z;
       if (u.sprite) {
         const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
         const bodyScale = u.giant ? SCALE * 1.15 : SCALE;
@@ -1221,50 +1062,42 @@
       } else {
         ctx.fillStyle = u.team === 0 ? "#c4622d" : "#7f93b8";
         ctx.beginPath();
-        ctx.arc(x, gy - 28, 12, 0, Math.PI * 2);
+        ctx.arc(x, gy - 14, 6, 0, Math.PI * 2);
         ctx.fill();
       }
       drawBlock(ctx, u, fx);
       if (u.hp > 0) {
-        const bw = 48 * ui;
-        const bx = Math.round(x - bw / 2);
-        const by = Math.round(gy - 34 * SCALE - 10);
-        ctx.fillStyle = "rgba(0,0,0,0.65)";
-        ctx.fillRect(bx - 1, by - 1, bw + 2, 6);
+        const bh = bodyH * (u.giant ? 1.15 : 1);
+        const bw = bodyW * (u.giant ? 1.15 : 1);
+        const foot = worldToCss(x, gy, cam);
+        const box = {
+          name: u.name,
+          role: u.role || "",
+          l: foot.x - (bw * s) / 2,
+          t: foot.y - bh * s,
+          r: foot.x + (bw * s) / 2,
+          b: foot.y
+        };
+        IL.pitBoxes.push(box);
+        IL.pitBodies.push(box);
+        const barW = 18;
+        const bx = Math.round(x - barW / 2);
+        const by = Math.round(gy - bh - 3);
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(bx - 1, by - 1, barW + 2, 4);
         ctx.fillStyle = u.team === 0 ? "#c4622d" : "#7f93b8";
-        ctx.fillRect(bx, by, Math.max(0, bw * (u.hp / u.maxHp)), 4);
-        const namePx = worldPx(Math.max(10, 13 * ui * worldScale));
-        ctx.font = namePx.toFixed(2) + "px Palatino, Georgia, serif";
-        ctx.textAlign = "center";
-        const nameW = Math.max(bw, ctx.measureText(u.name).width);
-        const nameH = namePx + worldPx(2);
-        const nameHome = by - nameH - worldPx(2);
-        const nameSlot = labelSlot(labels, bodies, x, nameHome, nameW, nameH, labelCeil, labelMinX, labelMaxX, labelGap, worldPx(20));
-        if (nameSlot.fade > 0) {
-          if (nameSlot.lead) paintLeader(nameSlot.x, nameSlot.y + worldPx(1), x, by - worldPx(2), nameSlot.fade);
-          paintLabel(u.name, nameSlot.x, nameSlot.y, "#f4ecdf", nameSlot.fade);
-          coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
-        }
+        ctx.fillRect(bx, by, Math.max(0, barW * (u.hp / u.maxHp)), 2);
         drawStatus(ctx, u, by);
         if (u.state === "cast" && u.cast && u.cast.dur > 0) {
           const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
           ctx.fillStyle = "rgba(0,0,0,0.7)";
-          ctx.fillRect(bx, by + 7, bw, 4);
+          ctx.fillRect(bx, by + 4, barW, 2);
           ctx.fillStyle = "#d7c4ff";
-          ctx.fillRect(bx, by + 7, Math.max(0, bw * cp), 4);
+          ctx.fillRect(bx, by + 4, Math.max(0, barW * cp), 2);
         }
-        if (u.banner) {
-          const a = Math.max(0, 1 - u.banner.t / u.banner.life);
-          const bannerPx = worldPx(Math.max(11, (u.banner.ult ? 16 : 13) * ui * worldScale));
-          ctx.font = "bold " + bannerPx.toFixed(2) + "px Palatino, Georgia, serif";
-          const bannerW = ctx.measureText(u.banner.name).width;
-          const bannerH = bannerPx + worldPx(2);
-          const bannerY = by - nameH - labelGap - u.banner.t * worldPx(14);
-          const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX, labelGap, worldPx(20));
-          if (bannerSlot.fade > 0) {
-            paintLabel(u.banner.name, bannerSlot.x, bannerSlot.y, u.banner.ult ? "#ffd27a" : "#f4ecdf", a * bannerSlot.fade);
-            coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);
-          }
+        if (ptrWorld) {
+          const hit = Math.hypot(ptrWorld.x - x, ptrWorld.y - gy + bh * 0.5);
+          if (hit < focusD && hit < 36) { focus = u; focusD = hit; }
         }
       }
     }
@@ -1274,7 +1107,8 @@
     for (let i = 0; i < match.shots.length; i++) drawShot(ctx, match.shots[i], fx.t || 0);
     drawSprites(ctx, fx.sprites, false);
 
-    ctx.font = "bold " + Math.round(18 * ui) + "px Palatino, Georgia, serif";
+    const numPx = Math.max(7, 11 / s);
+    ctx.font = "bold " + numPx.toFixed(1) + "px Palatino, Georgia, serif";
     ctx.textAlign = "center";
     if (fx.nums) {
       for (let i = 0; i < fx.nums.length; i++) {
@@ -1283,13 +1117,36 @@
         ctx.globalAlpha = a;
         ctx.fillStyle = n.heal ? "#b7d39a" : n.crit ? "#ffd27a" : n.dodge ? "#e6d4ff" : n.blocked ? "#d7d2ea" : "#fff6e8";
         const label = n.heal ? ("+" + n.n) : n.crit ? String(n.n) : n.dodge ? "slip" : n.blocked ? n.n + " guard" : String(n.n);
-        if (n.crit) ctx.font = "bold " + Math.round(26 * ui) + "px Palatino, Georgia, serif";
-        ctx.fillText(label, n.x, n.y - n.t * 42);
-        if (n.crit) ctx.font = "bold " + Math.round(18 * ui) + "px Palatino, Georgia, serif";
+        if (n.crit) ctx.font = "bold " + Math.max(8, 13 / s).toFixed(1) + "px Palatino, Georgia, serif";
+        ctx.fillText(label, n.x, n.y - n.t * 18);
+        if (n.crit) ctx.font = "bold " + numPx.toFixed(1) + "px Palatino, Georgia, serif";
       }
     }
     ctx.globalAlpha = 1;
+    noteOverlap(fx, match, bodyW, bodyH);
+    IL.pitFocusId = focus ? focus.id : (fx.stickId || "");
+    if (focus && ptr && ptr.stick) fx.stickId = focus.id;
+    if (!ptr) IL.pitFocusId = fx.stickId || "";
     ctx.restore();
+    IL.pitTurn = false;
+
+    if (IL.pitFocusId) {
+      let named = null;
+      for (let i = 0; i < match.units.length; i++) {
+        if (match.units[i].id === IL.pitFocusId && match.units[i].hp > 0) named = match.units[i];
+      }
+      if (named) {
+        const foot = worldToCss(named.x, named.y - (named.z || 0), cam);
+        ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+        ctx.font = "12px Palatino, Georgia, serif";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(8,6,4,0.92)";
+        ctx.strokeText(named.name, foot.x, foot.y - bodyH * s - 8);
+        ctx.fillStyle = "#f4ecdf";
+        ctx.fillText(named.name, foot.x, foot.y - bodyH * s - 8);
+      }
+    }
 
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     const vig = ctx.createRadialGradient(view.cssW / 2, view.cssH / 2, Math.min(view.cssW, view.cssH) * 0.28, view.cssW / 2, view.cssH / 2, Math.max(view.cssW, view.cssH) * 0.68);

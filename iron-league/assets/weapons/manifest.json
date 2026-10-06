@@ -9,6 +9,13 @@
     "staff_wood": "sprites/staff_wood.png",
     "wand": "sprites/wand.png",
     "dagger": "sprites/dagger.png",
-    "arrow": "sprites/arrow.png"
+    "arrow": "sprites/arrow.png",
+    "mace": "sprites/mace.png",
+    "katana": "sprites/katana.png",
+    "scythe": "sprites/scythe.png",
+    "book": "sprites/book.png",
+    "claw": "sprites/claw.png",
+    "fist": "sprites/fist.png",
+    "crossbow": "sprites/crossbow.png"
   }
 }

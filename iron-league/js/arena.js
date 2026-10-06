@@ -404,6 +404,70 @@
     m.events.push(e);
   }
 
+  function cue(m, id, opt) {
+    if (!m || !id) return;
+    opt = opt || {};
+    const e = { type: "cue", id: id };
+    if (typeof opt.gain === "number") e.gain = opt.gain;
+    if (opt.layer) e.layer = opt.layer;
+    m.events.push(e);
+  }
+
+  function weaponOf(u) {
+    if (!u) return "sword";
+    return u.weaponKind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[u.cls]) || "sword";
+  }
+
+  function swingName(kind) {
+    if (kind === "axe") return "swing_heavy";
+    if (kind === "mace") return "swing_blunt";
+    if (kind === "dagger" || kind === "fist" || kind === "claw") return "swing_light";
+    return "swing_blade";
+  }
+
+  function hitName(kind) {
+    if (kind === "axe") return "hit_axe";
+    if (kind === "spear") return "hit_spear";
+    if (kind === "dagger") return "hit_dagger";
+    if (kind === "mace") return "hit_blunt";
+    if (kind === "fist" || kind === "claw") return "hit_fist";
+    if (kind === "bow" || kind === "crossbow") return "hit_arrow";
+    if (kind === "gun") return "hit_bullet";
+    if (kind === "staff" || kind === "wand" || kind === "book") return "hit_blunt";
+    return "hit_sword";
+  }
+
+  function impactId(src, opt) {
+    opt = opt || {};
+    if (opt.spell) return opt.spell;
+    if (opt.snd) return opt.snd;
+    if (opt.dot) return "hit_dagger";
+    return hitName(weaponOf(src));
+  }
+
+  function castSchool(u, kind) {
+    const cls = u && u.cls;
+    if (kind === "fireball" || kind === "cast2") return cls === "battlemage" ? "lightning" : "fire";
+    if (kind === "bolt" || kind === "arc") return "lightning";
+    if (kind === "nova") return cls === "druid" ? "nature" : "ice";
+    if (kind === "mend" || kind === "heal") return "holy";
+    if (cls === "druid") return "nature";
+    if (cls === "alchemist") return "poison";
+    if (cls === "warlock" || cls === "necromancer" || cls === "summoner") return "shadow";
+    if (cls === "healer" || cls === "paladin") return "holy";
+    if (cls === "battlemage") return "lightning";
+    if (cls === "bard") return "arcane";
+    if (kind === "frost" || kind === "cast1") return "ice";
+    return "arcane";
+  }
+
+  function queueSwing(u) {
+    const kind = weaponOf(u);
+    if (kind === "gun") u.swingCue = "";
+    else if (kind === "bow") u.swingCue = "bow_draw";
+    else u.swingCue = swingName(kind);
+  }
+
   function startAttack(u, clip, target) {
     face(u, target);
     const use = u.rowClip || clip;
@@ -419,6 +483,7 @@
     u.rowClip = null;
     u.rowHold = 0;
     u.wantMotion = null;
+    queueSwing(u);
     if (u.role !== "kite" && !u.forceShot) {
       u.vx = u.facing * 42;
       u.vy *= 0.2;
@@ -490,6 +555,7 @@
     u.cast = null;
     u.trail = [];
     m.stats.rolls++;
+    cue(m, "swing_light", { gain: 0.3 });
     fx(m, "smoke", u.x, u.y + 4, { size: 120, ground: true });
   }
 
@@ -513,6 +579,7 @@
     u.leapCd = 2.85;
     u.trail = null;
     m.stats.leaps++;
+    cue(m, weaponOf(u) === "axe" ? "swing_heavy" : swingName(weaponOf(u)));
   }
 
   function startBlock(m, u) {
@@ -525,6 +592,7 @@
     u.z = 0;
     u.blockCd = 2.9;
     m.stats.blocks++;
+    cue(m, "shield_up");
   }
 
   function deal(m, src, dst, raw, opt) {
@@ -566,6 +634,7 @@
       fx(m, "orbit", dst.x, dst.y - 20, { size: 100 });
       if (dmg <= 0) {
         m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: "ward", blocked: true, team: dst.team });
+        cue(m, "block_parry");
         return;
       }
     }
@@ -590,6 +659,9 @@
     }
     m.stats.hits++;
     m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: dmg, blocked: blocked, crit: !!opt.crit, team: dst.team });
+    if (blocked) cue(m, "block_parry");
+    else if (opt.crit) cue(m, "hit_crit");
+    else if (!opt.silent) cue(m, impactId(src, opt), typeof opt.gain === "number" ? { gain: opt.gain } : null);
     fx(m, "spark", dst.x, dst.y - 22 - (dst.z || 0), { size: blocked ? 90 : 128 });
     if (blocked) fx(m, "orbit", dst.x + dst.facing * 8, dst.y - 22, { size: 130 });
     if (dst.hp <= 0) {
@@ -621,6 +693,7 @@
       if (src && src.bounty) m.stats.bounty = (m.stats.bounty || 0) + src.bounty;
       m.stats.deaths++;
       m.events.push({ type: "death", id: dst.id, team: dst.team });
+      cue(m, "ko_stinger", { layer: dst.team === 0 ? "crowd_gasp" : "crowd_cheer" });
       fx(m, "boom", dst.x, dst.y - 18, { size: 168 });
       return;
     }
@@ -630,6 +703,7 @@
       dst.hp = Math.min(dst.maxHp, dst.hp + heal);
       dst.healing = (dst.healing || 0) + heal;
       m.events.push({ type: "heal", x: dst.x, y: dst.y - 48, n: heal, team: dst.team });
+      cue(m, "heal_chime");
       fx(m, "plasma", dst.x, dst.y - 16, { size: 120 });
     }
     if (src && !opt.dot && kitOf(src.cls).bleed) {
@@ -657,6 +731,7 @@
     if (src) src.healing = (src.healing || 0) + n;
     m.stats.heals++;
     m.events.push({ type: "heal", x: dst.x, y: dst.y - 46, n: n, team: dst.team });
+    cue(m, "heal_chime");
     fx(m, "plasma", dst.x, dst.y - 18, { size: 130 });
     if (src) m.stats.abilities++;
   }
@@ -741,6 +816,10 @@
     const sp = 470;
     const volley = u.volley || 1;
     u.volley = 0;
+    if (bullet) {
+      cue(m, "gunshot");
+      if (volley > 1) u.needReload = true;
+    } else cue(m, "bow_release");
     for (let k = 0; k < volley; k++) {
       const spread = (k - (volley - 1) / 2) * 0.16;
       const cs = Math.cos(spread);
@@ -756,7 +835,8 @@
         trail: [], drop: volley > 1 ? 18 : 42,
         pierce: (u.pierce || 0) + (u.pierceBoost || 0),
         hit: {},
-        bullet: bullet
+        bullet: bullet,
+        snd: bullet ? "hit_bullet" : "hit_arrow"
       });
       m.stats.shots++;
     }
@@ -766,6 +846,11 @@
   }
 
   function stepAttack(m, u, dt) {
+    if (u.swingCue) {
+      const swing = u.swingCue;
+      u.swingCue = "";
+      cue(m, swing);
+    }
     u.animT += dt;
     u.actT -= dt;
     damp(u, 0.9);
@@ -774,6 +859,10 @@
     if (u.role === "kite" || u.forceShot) tryShot(m, u);
     else tryMelee(m, u);
     if (u.actT <= 0) {
+      if (u.needReload) {
+        u.needReload = false;
+        cue(m, "reload");
+      }
       u.cleave = false;
       u.forceShot = false;
       u.motion = null;
@@ -784,6 +873,10 @@
   }
 
   function stepCast(m, u, dt) {
+    if (u.cast && !u.cast.voiced) {
+      u.cast.voiced = true;
+      cue(m, "spell_" + castSchool(u, u.cast.kind) + "_cast");
+    }
     u.animT += dt;
     u.actT -= dt;
     if (u.cast) u.cast.t += dt;
@@ -802,17 +895,19 @@
         if (c.kind === "cast2") m.stats.cast2++;
         const bolt = c.kind === "cast2" && kitOf(u.cls).boltCast;
         const mul = c.kind === "cast2" ? 1.3 : (c.kind === "arc" ? 0.95 : 1.15);
+        const school = castSchool(u, c.kind);
         m.events.push({ type: "boom", x: c.x, y: c.y, r: c.r, kind: c.kind });
         fx(m, c.kind === "cast2" ? "bolt" : "boom", c.x, c.y, { size: Math.round(c.r * 2.35) });
         if (c.kind === "cast1" || c.kind === "arc") fx(m, "plasma", c.x, c.y, { size: Math.round(c.r * 1.7) });
         if (c.kind === "cast2") fx(m, "spark", c.x, c.y, { size: Math.round(c.r * 1.5) });
         if (!bolt) {
+          cue(m, "spell_" + school + "_impact");
           for (let i = 0; i < m.units.length; i++) {
             const e = m.units[i];
             if (e.team === u.team || e.hp <= 0) continue;
             const d = Math.hypot(e.x - c.x, e.y - c.y);
             if (d <= c.r + e.radius * 0.45) {
-              deal(m, u, e, Math.round(u.atk * mul));
+              deal(m, u, e, Math.round(u.atk * mul), { silent: true });
               if (c.kind === "cast1") e.slow = Math.max(e.slow, 2.1);
             }
           }
@@ -824,7 +919,8 @@
             x: u.x + u.facing * 16, y: u.y - 16,
             vx: dx / d * 420, vy: dy / d * 420,
             team: u.team, dmg: Math.round(u.atk * 1.15), r: 10, life: 1.3, src: u.id,
-            trail: [], drop: 0, pierce: (u.pierce || 0) + 1, hit: {}, bolt: true
+            trail: [], drop: 0, pierce: (u.pierce || 0) + 1, hit: {}, bolt: true,
+            spell: "spell_" + school + "_impact"
           });
           m.stats.shots++;
           fx(m, "bolt", u.x + u.facing * 20, u.y - 16, { size: 140, facing: u.facing });
@@ -843,6 +939,7 @@
     m.stats.abilities++;
     const mul = c.power || 1;
     const paint = c.fx || (c.kind === "bolt" ? "bolt" : "plasma");
+    const school = castSchool(u, c.kind);
     if (c.kind === "bolt") {
       const dx = c.x - u.x;
       const dy = c.y - u.y;
@@ -851,7 +948,8 @@
         x: u.x + u.facing * 16, y: u.y - 16,
         vx: dx / d * 400, vy: dy / d * 400,
         team: u.team, dmg: Math.round(u.atk * mul), r: 10, life: 1.2, src: u.id,
-        trail: [], drop: 0, pierce: u.pierce || 0, hit: {}, bolt: true
+        trail: [], drop: 0, pierce: u.pierce || 0, hit: {}, bolt: true,
+        spell: "spell_" + school + "_impact"
       });
       m.stats.shots++;
       fx(m, paint, u.x + u.facing * 18, u.y - 16, { size: 150, facing: u.facing });
@@ -859,11 +957,12 @@
     }
     fx(m, paint, c.x, c.y, { size: Math.round((c.r || 70) * 2.1) });
     fx(m, "boom", c.x, c.y, { size: Math.round((c.r || 70) * 1.5) });
+    cue(m, "spell_" + school + "_impact");
     for (let i = 0; i < m.units.length; i++) {
       const e = m.units[i];
       if (e.team === u.team || e.hp <= 0) continue;
       if (Math.hypot(e.x - c.x, e.y - c.y) <= (c.r || 70) + e.radius * 0.4) {
-        deal(m, u, e, Math.round(u.atk * mul));
+        deal(m, u, e, Math.round(u.atk * mul), { silent: true });
         if (c.slow) e.slow = Math.max(e.slow || 0, c.slow);
       }
     }
@@ -1161,11 +1260,14 @@
     m.stats.abilities++;
     fx(m, "dash", u.x, u.y - 12, { facing: u.facing, size: 130 });
     fx(m, "smoke", u.x, u.y + 4, { size: 110, ground: true });
+    cue(m, "spell_shadow_cast");
+    cue(m, "summon");
   }
 
   function startCharge(m, u, target) {
     u.dashDmg = 1.7;
     startDash(m, u, target);
+    cue(m, "swing_blade");
     arm(u, kitOf(u.cls).ability.cd || 7);
     m.stats.abilities++;
     fx(m, "slash", u.x + u.facing * 20, u.y - 16, { facing: u.facing, size: 150, team: u.team });
@@ -1267,6 +1369,7 @@
     pet.cds = {};
     pet.abilities = null;
     m.units.push(pet);
+    cue(m, "summon");
     fx(m, ab.fx || "smoke", pet.x, pet.y - 12, { size: 140 });
     return true;
   }
@@ -1277,11 +1380,16 @@
     const dx = t.x - ox;
     const dy = (t.y - 14) - oy;
     const d = Math.hypot(dx, dy) || 1;
+    const flask = weaponOf(u) !== "gun";
+    if (flask) cue(m, "spell_poison_cast");
+    else cue(m, "gunshot");
     m.shots.push({
       x: ox, y: oy,
       vx: dx / d * 420, vy: dy / d * 420,
       team: u.team, dmg: Math.round(u.atk * (ab.power || 0.85)),
-      r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0, hit: {}
+      r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0, hit: {},
+      spell: flask ? "spell_poison_impact" : null,
+      snd: flask ? null : "hit_bullet"
     });
     m.stats.shots++;
     fx(m, ab.fx || "boom", ox, oy, { size: 90, facing: u.facing });
@@ -1321,6 +1429,7 @@
       u.taunt = 3.2;
       spend(u, ab);
       m.stats.abilities++;
+      cue(m, "shield_up");
       fx(m, paint, u.x, u.y - 18, { size: 160 });
       return posed(u, ab);
     }
@@ -1412,6 +1521,7 @@
       ally.shield += Math.round(ally.maxHp * (ab.power || 0.1));
       spend(u, ab);
       m.stats.abilities++;
+      cue(m, "shield_up");
       fx(m, paint, ally.x, ally.y - 18, { size: 140 });
       return posed(u, ab);
     }
@@ -1672,7 +1782,7 @@
         if (p.hit[e.id]) continue;
         if (Math.hypot(e.x - p.x, bodyY - p.y) <= e.radius + p.r) {
           const src = m.units.filter(function (u) { return u.id === p.src; })[0] || null;
-          deal(m, src, e, p.dmg);
+          deal(m, src, e, p.dmg, { snd: p.snd, spell: p.spell });
           p.hit[e.id] = true;
           if (p.bolt) fx(m, "bolt", e.x, e.y - 16, { size: 120 });
           if (p.pierce > 0) p.pierce -= 1;

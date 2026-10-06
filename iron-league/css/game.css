@@ -2091,3 +2091,7 @@ td.club-cell .club-name,
   border-image: none;
   box-sizing: border-box;
 }
+#settingsSheet .field {
+  min-height: 44px;
+  justify-content: center;
+}

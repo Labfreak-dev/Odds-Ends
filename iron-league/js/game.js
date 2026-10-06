@@ -245,6 +245,7 @@
     stopLoops();
     app.onclick = null;
     save = load();
+    hubBed();
     const cont = save
       ? '<button type="button" class="btn ghost" id="continue">Continue — ' + esc(save.clubName) + '</button>'
       : '<button type="button" class="btn ghost" id="continue" disabled>Continue</button>';
@@ -267,6 +268,7 @@
   /* ---------- creator ---------- */
   function showCreator(mode) {
     stopLoops();
+    hubBed();
     const rng = IL.mulberry32((Date.now() ^ (Math.floor(Math.random() * 1e9))) >>> 0);
     const renownNow = mode === "captain" ? 0 : ((save && save.renown) || 0);
     const openIds = IL.unlockedIds(renownNow);
@@ -521,11 +523,13 @@
 
     if (save.gold < IL.HIRE_COST) {
       btn.disabled = false;
+      pitSound("error");
       if (err) err.textContent = "Not enough gold.";
       return;
     }
     if (save.roster.length >= IL.ROSTER_CAP) {
       btn.disabled = false;
+      pitSound("error");
       if (err) err.textContent = "The bench is full.";
       return;
     }
@@ -538,6 +542,7 @@
     });
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= IL.HIRE_COST;
+      pitSound("purchase");
       save.roster.push(fighter);
       persist();
       showHub();
@@ -665,12 +670,39 @@
     return '<p class="synergy" id="' + id + '">' + bits + "</p>";
   }
 
+  function syncMix() {
+    if (!IL.sfx || !IL.sfx.setMix) return;
+    const s = (save && save.settings) || {};
+    IL.sfx.setMix({
+      music: (typeof s.music === "number" ? s.music : 60) / 100,
+      sfx: (typeof s.sound === "number" ? s.sound : 80) / 100,
+      crowd: (typeof s.crowd === "number" ? s.crowd : 70) / 100
+    });
+  }
+
   function pitSound(kind) {
-    if (!IL.sfx || !save) return;
-    const settings = save.settings || {};
-    const music = kind === "victory" || kind === "defeat";
-    const volume = ((music ? settings.music : settings.sound) || 0) / 100;
-    IL.sfx.play(kind, volume);
+    if (!IL.sfx) return;
+    syncMix();
+    if (IL.sfx.unlock) IL.sfx.unlock();
+    IL.sfx.play(kind);
+  }
+
+  function hubBed() {
+    syncMix();
+    if (!IL.sfx || !IL.sfx.bed) return;
+    IL.sfx.bed("hub");
+    if (IL.sfx.crowdBed) IL.sfx.crowdBed(false);
+  }
+
+  function fightBed(spec) {
+    if (spec.mode === "chaos") return "endless";
+    const people = [];
+    (spec.left || []).forEach(function (f) { people.push(f); });
+    (spec.right || []).forEach(function (f) { people.push(f); });
+    if (spec.sides) spec.sides.forEach(function (s) { (s.fighters || []).forEach(function (f) { people.push(f); }); });
+    for (let i = 0; i < people.length; i++) if (people[i] && people[i].champion) return "boss";
+    if (spec.mode === "cup" && save.cup && (save.cup.round || 0) >= 1) return "boss";
+    return "fight";
   }
 
   function matchSize() {
@@ -1373,6 +1405,7 @@
 
   function showSeasonEnd() {
     stopLoops();
+    hubBed();
     app.onclick = null;
     save = save || load();
     if (!save) { showTitle(); return; }
@@ -1689,6 +1722,7 @@
       if (next === "fighters") fighterFilter = "all";
     }
     hubTab = next;
+    hubBed();
     if (detailId && !fighterById(detailId)) detailId = null;
     persist();
     const chaosReady = fielded(save.roster, 1).length >= 1;
@@ -1749,6 +1783,7 @@
         '<p>DreamingOfLight888 (7T4E).</p>' +
         '<p>finalbossblues (Time Fantasy and Time Elements).</p>' +
         '<p>Weapon sprites by Final Boss Blues and Wenrexa</p>' +
+        '<p>Sound and music generated with ElevenLabs; additional sound design by the Iron League team.</p>' +
         '<p>AU_pixel (Heroes99).</p>' +
         '<p>PizzaDoggy (BitFX).</p>' +
         '<p>Wenrexa. UI kit, cursors, and backgrounds are CC0. Glyph icons are CC BY 4.0. Emblems are CC BY-ND 4.0, shown white and unmodified.</p>' +
@@ -1769,7 +1804,7 @@
   }
 
   function settingsHtml() {
-    const s = save.settings || { speed: 1, shake: true, sound: 80, music: 60 };
+    const s = save.settings || { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
     const picks = [1, 2, 3].map(function (n) {
       return '<button type="button" class="btn ghost' + (s.speed === n ? " on" : "") + '" id="speedPick' + n + '" data-speed="' + n + '">' + n + '×</button>';
     }).join("");
@@ -1777,9 +1812,10 @@
       '<aside class="sheet" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">' +
         '<header class="sheet-head"><div><p class="eyebrow">Club</p><h2 id="settingsTitle">Settings</h2></div>' +
           '<button type="button" class="btn close-x" id="settingsClose" aria-label="Close">Close</button></header>' +
-        '<label class="field">Sound<input id="soundVol" type="range" min="0" max="100" value="' + s.sound + '"></label>' +
+        '<label class="field">SFX<input id="soundVol" type="range" min="0" max="100" value="' + s.sound + '"></label>' +
         '<label class="field">Music<input id="musicVol" type="range" min="0" max="100" value="' + s.music + '"></label>' +
-        '<p class="fine">Sound covers hits, casts, and menu clicks. Music covers the result sting.</p>' +
+        '<label class="field">Crowd<input id="crowdVol" type="range" min="0" max="100" value="' + (typeof s.crowd === "number" ? s.crowd : 70) + '"></label>' +
+        '<p class="fine">SFX is the fight and menu sound. Music is the bed under the club and the pit. Crowd is the stands.</p>' +
         '<p class="eyebrow">Fight speed</p>' +
         '<div class="chips" id="speedPicks">' + picks + '</div>' +
         '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
@@ -1802,9 +1838,11 @@
     if (closeBtn) closeBtn.onclick = close;
     function touch() { persist(); }
     const sound = document.getElementById("soundVol");
-    if (sound) sound.oninput = function () { save.settings.sound = +sound.value; touch(); };
+    if (sound) sound.oninput = function () { save.settings.sound = +sound.value; syncMix(); touch(); };
     const music = document.getElementById("musicVol");
-    if (music) music.oninput = function () { save.settings.music = +music.value; touch(); };
+    if (music) music.oninput = function () { save.settings.music = +music.value; syncMix(); touch(); };
+    const crowd = document.getElementById("crowdVol");
+    if (crowd) crowd.oninput = function () { save.settings.crowd = +crowd.value; syncMix(); touch(); };
     const picks = document.getElementById("speedPicks");
     if (picks) picks.onclick = function (ev) {
       const btn = ev.target.closest("[data-speed]");
@@ -2214,6 +2252,7 @@
   function salvageItem(uid) {
     const found = findItem(uid);
     if (!found || found.owner) return;
+    pitSound("sell");
     save.gold += IL.salvageValue(found.item);
     save.salvaged = (save.salvaged || 0) + 1;
     save.items = (save.items || []).filter(function (it) { return it.uid !== uid; });
@@ -2224,8 +2263,9 @@
 
   function buyGear(index) {
     const row = (save.gearStock || [])[index];
-    if (!row || save.gold < row.cost) return;
+    if (!row || save.gold < row.cost) { pitSound("error"); return; }
     save.gold -= row.cost;
+    pitSound("purchase");
     if (!Array.isArray(save.items)) save.items = [];
     save.items.push(row.item);
     save.gearStock.splice(index, 1);
@@ -2235,8 +2275,9 @@
 
   function rerollGear() {
     const cost = IL.GEAR_REROLL || 20;
-    if (save.gold < cost) return;
+    if (save.gold < cost) { pitSound("error"); return; }
     save.gold -= cost;
+    pitSound("purchase");
     save.gearStock = IL.rollGearStock(takeRng());
     persist();
     showHub("market", true);
@@ -2588,11 +2629,12 @@
 
   function hireFromMarket(index) {
     const row = save.market[index];
-    if (!row || row.locked) return;
-    if (save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP) return;
+    if (!row || row.locked) { pitSound("error"); return; }
+    if (save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP) { pitSound("error"); return; }
     const fighter = row.fighter;
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= row.cost;
+      pitSound("purchase");
       save.hires = (save.hires || 0) + 1;
       if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
       if (fighter.cls && save.seenClasses.indexOf(fighter.cls) < 0) save.seenClasses.push(fighter.cls);
@@ -2607,6 +2649,7 @@
   function sellFighter(id) {
     const f = save.roster.filter(function (r) { return r.id === id && !r.captain; })[0];
     if (!f) return;
+    pitSound("sell");
     save.gold += IL.sellValue(f);
     returnGear(f);
     save.roster = save.roster.filter(function (r) { return r !== f; });
@@ -2621,6 +2664,8 @@
     stopLoops();
     const queue = pendingGrowth();
     if (!queue.length) { showHub(); return; }
+    hubBed();
+    pitSound("level");
     const f = queue[0];
     const choices = IL.boostChoices(f);
     const buttons = choices.map(function (key) {
@@ -2651,6 +2696,7 @@
     stopLoops();
     const queue = pendingMoveFighters();
     if (!queue.length) { showHub(); return; }
+    hubBed();
     const f = queue[0];
     if (IL.ensureMoves) IL.ensureMoves(f);
     const choices = IL.moveChoices ? IL.moveChoices(f) : [];
@@ -2701,6 +2747,12 @@
       const map = {};
       keys.forEach(function (k, i) { map[k] = canvases[i]; });
       stopLoops();
+      syncMix();
+      if (IL.sfx && IL.sfx.bed) {
+        if (IL.sfx.unlock) IL.sfx.unlock();
+        IL.sfx.bed(fightBed(spec));
+        if (IL.sfx.crowdBed) IL.sfx.crowdBed(true);
+      }
       const tok = token;
       const savedSpeed = save && save.settings && save.settings.speed;
       speed = savedSpeed === 2 || savedSpeed === 3 ? savedSpeed : 1;
@@ -2853,7 +2905,7 @@
 
   function setFightSpeed(n) {
     speed = n;
-    if (!save.settings) save.settings = { speed: n, shake: true, sound: 80, music: 60 };
+    if (!save.settings) save.settings = { speed: n, shake: true, sound: 80, music: 60, crowd: 70 };
     save.settings.speed = n;
     persist();
     markSpeed();
@@ -2921,8 +2973,6 @@
       const e = match.events[i];
       if (e.type === "dmg") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, t: 0, life: 0.7 });
-        if (e.crit) pitSound("crit");
-        else if (typeof e.n === "number") pitSound("hit");
         /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units. */
         if (typeof e.n === "number" && shakeOn()) fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
       } else if (e.type === "heal") {
@@ -2932,10 +2982,12 @@
       } else if (e.type === "boom") {
         fx.booms.push({ x: e.x, y: e.y, r: e.r, kind: e.kind, t: 0, life: 0.48 });
         if (shakeOn()) fx.shake = Math.min(8, fx.shake + 4);
-      } else if (e.type === "death") {
-        pitSound("ko");
+      } else if (e.type === "cue" && e.id) {
+        if (IL.sfx) {
+          syncMix();
+          IL.sfx.play(e.id, { gain: e.gain, layer: e.layer });
+        }
       } else if (e.type === "fx" && IL.fx) {
-        if (e.kind === "plasma" || e.kind === "bolt") pitSound("magic");
         IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
           size: e.size,
           facing: e.facing,
@@ -3257,7 +3309,9 @@
         '<button type="button" class="btn primary" id="backHub">Back to club</button>' +
       '</div>';
     animateXpBars();
+    if (IL.sfx && IL.sfx.crowdBed) IL.sfx.crowdBed(false);
     pitSound(win ? "victory" : "defeat");
+    if (loot) pitSound("chest");
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;
     const pickPerk = document.getElementById("pickPerk");
@@ -3362,6 +3416,7 @@
     }
     if (ev.key < "1" || ev.key > "5") return;
     ev.preventDefault();
+    pitSound("tab");
     detailId = null;
     gearPreview = null;
     tonicPick = null;
@@ -3373,7 +3428,8 @@
   document.addEventListener("click", function (ev) {
     const button = ev.target && ev.target.closest && ev.target.closest("button");
     if (!button || button.disabled) return;
-    pitSound("click");
+    if (button.dataset && button.dataset.tab) pitSound("tab");
+    else pitSound("click");
   }, true);
 
   IL.screenApi = { showTitle: showTitle };

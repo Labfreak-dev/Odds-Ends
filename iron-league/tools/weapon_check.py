@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Fail if a class weapon grip misses the fist or the handle is off the sprite.
 
-For every class, motion, frame, and sheet that class can wear, the grip must
-sit within 1px of an opaque pixel, and the weapon's handle pixel must be
-opaque so the drawn handle lands on that fist. Sword and thrust columns, and
-a bow or gun the sheet already paints, must not also draw a loose weapon.
+For every class, motion, frame, and sheet that class can wear, the grip pixel
+itself must be opaque, and the weapon's handle pixel must be opaque so the
+drawn handle lands on that fist. A frame that already paints a weapon (idle2
+sword, sword/thrust attacks, bow, gun) must not also draw a loose weapon, and
+a class may stand on that frame only when the baked weapon is its own. Where
+a loose weapon is drawn, part of it must land off the body.
 """
 import json
+import math
 import os
 import subprocess
 import sys
@@ -34,35 +37,47 @@ const IL = context.IL;
 const rows = [];
 Object.keys(IL.CLASSES).forEach(function (id) {
   const kind = IL.CLASS_WEAPON[id];
-  IL.weapons.motions.forEach(function (motion) {
-    for (let sub = 0; sub < 3; sub++) {
-      const body = IL.weapons.column(kind, motion, IL.defaultSheet(id));
-      const anchor = IL.weapons.handAnchor(kind, body, sub);
-      rows.push({
-        id: id, kind: kind, motion: motion, sub: sub,
-        x: anchor.x, y: anchor.y, body: body,
-        paint: IL.weapons.shouldPaint(kind, body, IL.defaultSheet(id)),
-        sheets: IL.looksFor(id)
-      });
-    }
+  const art = kind === "staff" && id === "druid" ? "staff_wood" : (kind === "staff" && id === "alchemist" ? "wand" : kind);
+  IL.looksFor(id).forEach(function (sid) {
+    IL.weapons.motions.forEach(function (motion) {
+      for (let sub = 0; sub < 3; sub++) {
+        const body = IL.weapons.column(kind, motion, sid);
+        const anchor = IL.weapons.handAnchor(kind, body, sub);
+        rows.push({
+          id: id, kind: kind, art: art, motion: motion, sub: sub, sheet: sid,
+          x: anchor.x, y: anchor.y, rot: anchor.rot, body: body,
+          paint: IL.weapons.shouldPaint(kind, body, sid)
+        });
+      }
+    });
   });
 });
 const specs = {};
 Object.keys(IL.weapons.specs).forEach(function (k) {
   const s = IL.weapons.specs[k];
-  specs[k] = { w: s.w, h: s.h, gx: s.gx, gy: s.gy };
+  specs[k] = { w: s.w, h: s.h, gx: s.gx, gy: s.gy, angle: s.angle || 0, native: !!s.native };
 });
 process.stdout.write(JSON.stringify({ rows: rows, specs: specs, hands: IL.weapons.hands }));
 """ % json.dumps(ROOT)
 
+BAKED_MELEE = ("sword", "katana", "spear", "dagger")
+
+
+def matches_baked(body, kind):
+    """True/False when body is a baked-weapon column, else None."""
+    if body == "idle2":
+        return kind == "sword"
+    if body in ("atk1", "atk2"):
+        return kind in BAKED_MELEE
+    if body == "bow":
+        return kind in ("bow", "crossbow")
+    if body == "gun":
+        return kind == "gun"
+    return None
+
 
 def near(px, ox, oy, x, y):
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            xx, yy = x + dx, y + dy
-            if 0 <= xx < CELL and 0 <= yy < CELL and px[ox + xx, oy + yy][3] > 40:
-                return True
-    return False
+    return 0 <= x < CELL and 0 <= y < CELL and px[ox + x, oy + y][3] > 40
 
 
 def nonempty(px, ox, oy):
@@ -115,34 +130,82 @@ def main():
         if im.getpixel((gx, gy))[3] < 40:
             fails.append("handle empty %s (%d,%d)" % (kind, gx, gy))
 
-    # Every class pose the fighter can show.
-    seen = set()
+    sprites = {}
+
+    def sprite(kind):
+        if kind not in sprites:
+            path = os.path.join(SPRITES, kind + ".png")
+            sprites[kind] = Image.open(path).convert("RGBA") if os.path.exists(path) else None
+        return sprites[kind]
+
+    def visible_count(px, ox, oy, im, spec, ax, ay, spin):
+        sp = im.load()
+        cos, sin = math.cos(spin), math.sin(spin)
+        gx, gy = spec["gx"], spec["gy"]
+        shown = 0
+        opaque = 0
+        for sy in range(spec["h"]):
+            for sx in range(spec["w"]):
+                if sp[sx, sy][3] <= 40:
+                    continue
+                opaque += 1
+                rx = (sx - gx) * cos - (sy - gy) * sin
+                ry = (sx - gx) * sin + (sy - gy) * cos
+                wx = int(round(ax + rx))
+                wy = int(round(ay + ry))
+                if wx < 0 or wy < 0 or wx >= CELL or wy >= CELL or px[ox + wx, oy + wy][3] <= 40:
+                    shown += 1
+        return shown, opaque
+
+    # Every class pose, on every sheet that class can wear.
     for row in data["rows"]:
         mi = MOTIONS.index(row["body"])
-        for sid in row["sheets"]:
-            key = (sid, row["body"], row["sub"], row["x"], row["y"])
-            if key in seen:
-                continue
-            seen.add(key)
-            px = sheet(sid)
-            if not nonempty(px, mi * CELL, row["sub"] * CELL):
-                fails.append("empty body %s %s %s f%d" % (row["id"], sid, row["body"], row["sub"]))
-                continue
-            if not near(px, mi * CELL, row["sub"] * CELL, row["x"], row["y"]):
-                fails.append("grip %s %s %s f%d (%d,%d)" % (row["id"], sid, row["body"], row["sub"], row["x"], row["y"]))
-
-    # No second weapon on a baked frame, and no baked sword on an axe or staff.
-    for row in data["rows"]:
-        if row["sub"] != 0:
+        sid = row["sheet"]
+        px = sheet(sid)
+        if not nonempty(px, mi * CELL, row["sub"] * CELL):
+            fails.append("empty body %s %s %s f%d" % (row["id"], sid, row["body"], row["sub"]))
             continue
-        if row["kind"] in ("sword", "katana", "spear", "dagger") and row["motion"] in ("atk1", "atk2"):
-            if row["body"] not in ("atk1", "atk2") or row["paint"]:
-                fails.append("baked melee overlay %s %s -> %s paint=%s" % (row["id"], row["motion"], row["body"], row["paint"]))
-        if row["kind"] in ("axe", "mace", "staff", "wand", "book", "scythe", "claw", "fist") and row["motion"] in ("atk1", "atk2"):
-            if row["body"] in ("atk1", "atk2") or not row["paint"]:
-                fails.append("baked sword on %s %s -> %s" % (row["kind"], row["motion"], row["body"]))
-        if row["kind"] == "bow" and row["motion"] == "bow" and row["paint"]:
-            fails.append("second bow on %s" % row["id"])
+        if not near(px, mi * CELL, row["sub"] * CELL, row["x"], row["y"]):
+            fails.append("grip %s %s %s f%d (%d,%d)" % (row["id"], sid, row["body"], row["sub"], row["x"], row["y"]))
+        baked = matches_baked(row["body"], row["kind"])
+        if baked is True and row["paint"]:
+            fails.append("overlay on baked %s %s %s -> %s f%d" % (row["id"], sid, row["motion"], row["body"], row["sub"]))
+        elif baked is False:
+            fails.append("baked weapon on %s %s %s -> %s" % (row["kind"], sid, row["motion"], row["body"]))
+        if row["motion"] == "idle2" and row["kind"] != "sword":
+            if row["body"] != "idle1" or not row["paint"]:
+                fails.append("idle2 sword on %s %s -> %s paint=%s" % (row["id"], row["motion"], row["body"], row["paint"]))
+        if row["motion"] in ("atk1", "atk2") and row["kind"] not in BAKED_MELEE:
+            if row["kind"] in ("bow", "crossbow"):
+                ok = (row["body"] == "bow" and not row["paint"]) or (row["body"] == "magic" and row["paint"])
+            elif row["kind"] == "gun":
+                ok = (row["body"] == "gun" and not row["paint"]) or (row["body"] == "magic" and row["paint"])
+            else:
+                ok = row["body"] not in ("atk1", "atk2", "idle2", "bow", "gun") and row["paint"]
+            if not ok:
+                fails.append("attack column on %s %s -> %s paint=%s" % (row["id"], row["motion"], row["body"], row["paint"]))
+        if row["kind"] in ("bow", "crossbow") and row["motion"] == "bow":
+            if row["body"] == "bow" and row["paint"]:
+                fails.append("second bow %s %s" % (row["id"], sid))
+            if row["body"] not in ("bow", "magic"):
+                fails.append("bow stood on %s %s" % (row["id"], row["body"]))
+        if row["kind"] == "gun" and row["motion"] == "gun":
+            if row["body"] == "gun" and row["paint"]:
+                fails.append("second gun %s %s" % (row["id"], sid))
+            if row["body"] not in ("gun", "magic"):
+                fails.append("gun stood on %s %s" % (row["id"], row["body"]))
+        if not row["paint"] or row["kind"] == "fist":
+            continue
+        spec = data["specs"].get(row["art"])
+        im = sprite(row["art"])
+        if not spec or im is None:
+            fails.append("missing sprite %s" % row["art"])
+            continue
+        spin = row["rot"] if spec["native"] else row["rot"] + spec["angle"] * math.pi / 180
+        shown, opaque = visible_count(px, mi * CELL, row["sub"] * CELL, im, spec, row["x"], row["y"], spin)
+        need = 6 if opaque >= 6 else opaque
+        if shown < need:
+            fails.append("hidden %s %s %s f%d %d/%d" % (row["id"], row["body"], row["art"], row["sub"], shown, opaque))
 
     if fails:
         print("\n".join(fails[:40]))

@@ -66,13 +66,13 @@
   const HAND = {
     idle1: [[16, 34], [16, 34], [16, 33]],
     idle2: [[16, 34], [16, 33], [16, 34]],
-    walk: [[20, 34], [19, 34], [20, 35]],
-    atk1: [[19, 37], [28, 31], [19, 37]],
+    walk: [[21, 34], [20, 34], [20, 35]],
+    atk1: [[19, 37], [27, 31], [20, 37]],
     atk2: [[26, 35], [25, 22], [24, 35]],
-    bow: [[16, 29], [15, 30], [16, 30]],
-    gun: [[17, 33], [17, 33], [16, 33]],
-    hit: [[18, 33], [18, 30], [19, 29]],
-    crouch: [[19, 38], [18, 37], [19, 38]],
+    bow: [[16, 30], [15, 30], [16, 30]],
+    gun: [[17, 33], [17, 33], [17, 33]],
+    hit: [[19, 33], [18, 30], [19, 29]],
+    crouch: [[19, 38], [19, 37], [19, 38]],
     magic: [[18, 23], [18, 23], [18, 23]],
     cheer: [[30, 23], [30, 29], [31, 25]],
     dead: [[23, 37], [23, 37], [23, 37]]
@@ -120,11 +120,11 @@
     atk2: [-0.6, 2.4, 3.0],
     bow: [UP, UP, LEFT],
     gun: [LEFT, LEFT, LEFT],
-    hit: [1.5, 1.8, 2.1],
+    hit: [1.65, 1.8, 2.1],
     crouch: [2.9, 3.05, 2.8],
     magic: [-2.05, -2.2, 2.9],
     cheer: [UP, -1.2, -1.8],
-    dead: [2.75, 2.75, 2.75]
+    dead: [3.35, 3.35, 3.35]
   });
 
   /* A spear stands up from the fist. A dagger stays low and forward. */
@@ -140,7 +140,7 @@
     crouch: [2.9, 3.0, 2.8],
     magic: [-1.9, -2.1, 2.9],
     cheer: [-1.4, -1.2, -1.7],
-    dead: [2.7, 2.7, 2.7]
+    dead: [2.8, 2.8, 2.8]
   });
 
   const SPEAR = pose({
@@ -158,20 +158,20 @@
     dead: [2.6, 2.6, 2.6]
   });
 
-  /* Native bow art already points up. rot is only a small extra tilt. */
+  /* Native bow art already points up. rot leans the stave off the body. */
   const BOW = pose({
     idle1: [0.04, -0.06, 0.08],
     idle2: [0.02, 0.1, -0.04],
-    walk: [0.12, -0.08, 0.04],
+    walk: [-0.48, -0.33, -0.31],
     atk1: [0.0, 0.12, 0.0],
     atk2: [0.0, 0.1, 0.0],
     bow: [0.0, 0.16, -0.02],
     gun: [0.0, 0.0, 0.0],
-    hit: [0.4, 0.7, 0.9],
-    crouch: [0.15, 0.2, 0.1],
+    hit: [-0.1, 0.7, 0.9],
+    crouch: [-0.15, -0.2, -0.2],
     magic: [-0.2, -0.05, 0.1],
-    cheer: [-0.15, 0.05, -0.1],
-    dead: [-1.5, -1.5, -1.5]
+    cheer: [0.1, 0.05, 0.1],
+    dead: [-1.4, -1.4, -1.4]
   });
 
   const GUN = pose({
@@ -198,10 +198,10 @@
     atk2: [-0.9, -1.7, -2.2],
     bow: [UP, UP, UP],
     gun: [LEFT, LEFT, LEFT],
-    hit: [1.15, 1.45, 1.75],
+    hit: [1.15, 1.5, 1.75],
     crouch: [-2.0, -1.85, -2.15],
     magic: [-1.9, -2.15, -2.45],
-    cheer: [-1.6, -1.3, -1.8],
+    cheer: [-1.6, -1.3, -1.65],
     dead: [2.7, 2.7, 2.7]
   });
 
@@ -216,7 +216,7 @@
     hit: [0.4, 0.6, 0.8],
     crouch: [-0.2, -0.3, -0.15],
     magic: [-0.85, -1.05, -0.7],
-    cheer: [-0.6, -0.4, -0.75],
+    cheer: [0.0, -0.4, -0.15],
     dead: [0.9, 0.9, 0.9]
   });
 
@@ -473,11 +473,13 @@
 
   const BAKED_MELEE = { sword: 1, katana: 1, spear: 1, dagger: 1 };
 
-  /* Sword and thrust columns already paint a weapon. Bow and gun columns do
-     too, on the sheets that have them. A second sprite stays off. Axe, staff,
-     and the other kinds never use those columns: column() sends them to an
+  /* idle2 paints a sword in the back hand. atk1/atk2 paint a sword or a
+     thrust. Bow and gun columns paint those weapons on the sheets that have
+     them. A second sprite stays off, and a class only stands on a baked
+     column when that column is its own weapon. Everyone else uses an
      empty-hands row and the class weapon is drawn in the fist. */
   function frameHasWeapon(motion, sheet) {
+    if (motion === "idle2") return !sheet || !IL.sheetKnown || IL.sheetKnown(sheet);
     if (motion === "bow") return !!(IL.sheetHasBow && IL.sheetHasBow(sheet));
     if (motion === "gun") return !!(IL.sheetHasGun && IL.sheetHasGun(sheet));
     if (motion === "atk1" || motion === "atk2") return !!(sheet && IL.sheetKnown && IL.sheetKnown(sheet));
@@ -485,16 +487,15 @@
   }
 
   function column(kind, motion, sheet) {
+    if (motion === "idle2") return kind === "sword" ? "idle2" : "idle1";
     if (motion !== "atk1" && motion !== "atk2" && motion !== "bow" && motion !== "gun") return motion || "idle1";
     if ((motion === "atk1" || motion === "atk2") && BAKED_MELEE[kind]) return motion;
     if (kind === "bow" || kind === "crossbow") {
       if (IL.sheetHasBow && IL.sheetHasBow(sheet)) return "bow";
-      if (IL.sheetHasGun && IL.sheetHasGun(sheet)) return "gun";
       return "magic";
     }
     if (kind === "gun") {
       if (IL.sheetHasGun && IL.sheetHasGun(sheet)) return "gun";
-      if (IL.sheetHasBow && IL.sheetHasBow(sheet)) return "bow";
       return "magic";
     }
     return "magic";
@@ -620,6 +621,7 @@
     sprite: spriteFor,
     whenReady: whenReady,
     column: column,
+    frameHasWeapon: frameHasWeapon,
     shouldPaint: shouldPaint,
     hands: HAND,
     back: BACK,

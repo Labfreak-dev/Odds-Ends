@@ -4837,6 +4837,7 @@
           ? '<button type="button" class="btn fight" id="nextWave">' + (mode === "gauntlet" ? "Next fight" : "Next wave") + '</button>' : '') +
         '<button type="button" class="btn primary" id="backHub">' + (fight.returnTab === "events" ? "Back to events" : "Back to club") + '</button>' +
       '</div>';
+    bootCards(match.units.map(function (u) { return u && u.parts; }));
     animateXpBars();
     if (IL.sfx && IL.sfx.crowdBed) IL.sfx.crowdBed(false);
     pitSound(win ? "victory" : "defeat");

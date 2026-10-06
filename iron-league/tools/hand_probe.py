@@ -5,7 +5,7 @@ Sheets are 576×144: 12 motions × 3 frames of 48×48, characters facing left.
 Skin blobs that are not the head, the hip gap, or a bow stave are hands.
 The recorded table lives in js/weapons.js (HAND). This probe redraws the
 reference at 8× with a pixel grid, overlays those markers on a contact of
-twelve sheets, and fails if a marker is more than 1px from an opaque pixel.
+twelve sheets, and fails unless the marker pixel itself is opaque.
 """
 import os
 import sys
@@ -20,13 +20,13 @@ MOTIONS = ["idle1", "idle2", "walk", "atk1", "atk2", "bow", "gun", "hit", "crouc
 FRONT = {
     "idle1": [(16, 34), (16, 34), (16, 33)],
     "idle2": [(16, 34), (16, 33), (16, 34)],
-    "walk": [(20, 34), (19, 34), (20, 35)],
-    "atk1": [(19, 37), (28, 31), (19, 37)],
+    "walk": [(21, 34), (20, 34), (20, 35)],
+    "atk1": [(19, 37), (27, 31), (20, 37)],
     "atk2": [(26, 35), (25, 22), (24, 35)],
-    "bow": [(16, 29), (15, 30), (16, 30)],
-    "gun": [(17, 33), (17, 33), (16, 33)],
-    "hit": [(18, 33), (18, 30), (19, 29)],
-    "crouch": [(19, 38), (18, 37), (19, 38)],
+    "bow": [(16, 30), (15, 30), (16, 30)],
+    "gun": [(17, 33), (17, 33), (17, 33)],
+    "hit": [(19, 33), (18, 30), (19, 29)],
+    "crouch": [(19, 38), (19, 37), (19, 38)],
     "magic": [(18, 23), (18, 23), (18, 23)],
     "cheer": [(30, 23), (30, 29), (31, 25)],
     "dead": [(23, 37), (23, 37), (23, 37)],
@@ -98,13 +98,8 @@ def blobs(cell):
     return hands
 
 
-def near_opaque(px, ox, oy, x, y, rad=1):
-    for dy in range(-rad, rad + 1):
-        for dx in range(-rad, rad + 1):
-            xx, yy = x + dx, y + dy
-            if 0 <= xx < CELL and 0 <= yy < CELL and px[ox + xx, oy + yy][3] > 40:
-                return True
-    return False
+def near_opaque(px, ox, oy, x, y):
+    return 0 <= x < CELL and 0 <= y < CELL and px[ox + x, oy + y][3] > 40
 
 
 def cell_opaque(px, ox, oy):
@@ -170,7 +165,7 @@ def main():
             for f, (x, y) in enumerate(FRONT[name]):
                 if not cell_opaque(px, mi * CELL, f * CELL):
                     continue
-                if not near_opaque(px, mi * CELL, f * CELL, x, y, 1):
+                if not near_opaque(px, mi * CELL, f * CELL, x, y):
                     misses.append("%s %s f%d" % (fn[:-4], name, f))
     out_dir = os.path.join(ROOT, "tools", "out")
     os.makedirs(out_dir, exist_ok=True)

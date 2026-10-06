@@ -730,7 +730,7 @@ def check_fit(page):
         ("#tab-club", "#nextMatch"),
         ("#tab-fighters", "#armory"),
         ("#market", "#marketCards"),
-        ("#relics", ".card.relic"),
+        ("#relics", ".relic-cell"),
         ("#cup", "#enterCup"),
         ("#events", "#eventsBoard"),
         ("#train", "#trainBoard"),
@@ -983,7 +983,7 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " sell")
         visit("4", "#enterCup, #bracketBoard")
         assert_inside(page, label + " cup")
-        visit("5", ".card.relic")
+        visit("5", ".relic-cell")
         assert_inside(page, label + " relics")
         visit("6", "#eventsBoard")
         assert_inside(page, label + " events")
@@ -1257,7 +1257,7 @@ def qa_gate(browser, shot_dir):
         assert_inside(page, label + " cup")
         shot("cup")
         page.keyboard.press("5")
-        page.wait_for_selector(".card.relic")
+        page.wait_for_selector(".relic-cell")
         assert_inside(page, label + " relics")
         page.keyboard.press("6")
         page.wait_for_selector("#eventsBoard")

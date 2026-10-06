@@ -214,6 +214,12 @@
       g.stroke();
     }
     g.globalAlpha = 1;
+    /* Pull the floor down so a 30px battler still reads on the grain. */
+    g.save();
+    g.globalCompositeOperation = "multiply";
+    g.fillStyle = "#999999";
+    g.fillRect(0, 0, 160, 160);
+    g.restore();
     pitTex[pit.id] = c;
     return c;
   }

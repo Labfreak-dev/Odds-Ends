@@ -711,32 +711,37 @@ def check_scroll(page, label):
           const buttons = document.querySelectorAll('#benchList [data-train]:not([disabled])');
           if (buttons.length < 3) return { ok: false, n: buttons.length };
           const btn = buttons[2];
-          const height = btn.getBoundingClientRect().height || 32;
-          const docTop = btn.getBoundingClientRect().top + window.scrollY;
+          let scroller = btn.parentElement;
+          while (scroller && scroller !== document.body) {
+            const cs = getComputedStyle(scroller);
+            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && scroller.scrollHeight > scroller.clientHeight + 4) break;
+            scroller = scroller.parentElement;
+          }
+          if (!scroller || scroller === document.body) scroller = document.scrollingElement;
+          scroller.setAttribute("data-smoke-scroll", "1");
           const sticky = document.querySelector('.hub-sticky');
           const cover = sticky ? sticky.getBoundingClientRect().height + 8 : 8;
           const tab = document.querySelector('#tabbar');
           const tabFixed = tab && getComputedStyle(tab).position === 'fixed';
           const limit = tabFixed ? tab.getBoundingClientRect().top - 4 : window.innerHeight - 4;
-          const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-          let y = Math.min(max, Math.max(40, docTop - cover - 24));
-          window.scrollTo(0, y);
+          const box = scroller.getBoundingClientRect();
+          const target = btn.getBoundingClientRect().top - box.top + scroller.scrollTop - 24;
+          scroller.scrollTop = Math.max(0, target);
           let rect = btn.getBoundingClientRect();
           if (rect.top < cover || rect.bottom > limit) {
-            y = Math.min(max, Math.max(0, docTop - cover - 12));
-            window.scrollTo(0, y);
+            scroller.scrollTop = Math.max(0, btn.getBoundingClientRect().top - box.top + scroller.scrollTop - 12);
             rect = btn.getBoundingClientRect();
           }
           return {
-            ok: buttons.length >= 3 && window.scrollY >= 30 && rect.top >= cover - 1 && rect.bottom <= limit,
+            ok: buttons.length >= 3 && scroller.scrollTop > 0 && rect.top >= cover - 1 && rect.bottom <= limit,
             n: buttons.length,
-            y: window.scrollY,
+            y: scroller.scrollTop,
             top: rect.top,
             bottom: rect.bottom,
             cover: cover,
             limit: limit,
-            max: max,
-            scrollHeight: document.documentElement.scrollHeight
+            max: scroller.scrollHeight - scroller.clientHeight,
+            scrollHeight: scroller.scrollHeight
           };
         }"""
     )
@@ -755,7 +760,10 @@ def check_scroll(page, label):
     )
     page.wait_for_timeout(80)
     after_state = page.evaluate(
-        """() => ({ y: window.scrollY, h: document.documentElement.scrollHeight })"""
+        """() => {
+          const el = document.querySelector('[data-smoke-scroll]') || document.scrollingElement;
+          return { y: el.scrollTop, h: el.scrollHeight };
+        }"""
     )
     after = after_state["y"]
     if abs(after - before) > 2:

@@ -924,9 +924,10 @@
       if (above < yy && above >= minBase) { yy = above; continue; }
       let placed = false;
       const dirs = n % 2 ? [-1, 1] : [1, -1];
-      for (let step = 1; step <= 4 && !placed; step++) {
+      const stepW = Math.max(nudge, ((hit.w || w) + w) * 0.55);
+      for (let step = 1; step <= 6 && !placed; step++) {
         for (let d = 0; d < dirs.length; d++) {
-          const nx = clampX(x + dirs[d] * nudge * step);
+          const nx = clampX(x + dirs[d] * stepW * step);
           if (Math.abs(nx - xx) < 6) continue;
           if (!hitAt(nx, yy)) { xx = nx; placed = true; break; }
         }
@@ -935,11 +936,11 @@
       fade = 0.45;
       break;
     }
-    if (yy < minBase) {
-      yy = minBase;
-      if (hitAt(xx, yy)) fade = 0.45;
-    }
+    if (yy < minBase) yy = minBase;
     xx = clampX(xx);
+    const left = hitAt(xx, yy);
+    if (left && !left.name) fade = 0;
+    else if (left) fade = Math.min(fade, 0.45);
     labels.push({ x: xx, y: yy - h * 0.5, w: w, h: h });
     return { x: xx, y: yy, fade: fade };
   }
@@ -1210,8 +1211,10 @@
         const nameW = Math.max(bw, ctx.measureText(u.name).width);
         const nameH = namePx + worldPx(2);
         const nameSlot = labelSlot(labels, bodies, x, by - nameH - worldPx(2), nameW, nameH, labelCeil, labelMinX, labelMaxX, labelGap);
-        paintLabel(u.name, nameSlot.x, nameSlot.y, "#f4ecdf", nameSlot.fade);
-        coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
+        if (nameSlot.fade > 0) {
+          paintLabel(u.name, nameSlot.x, nameSlot.y, "#f4ecdf", nameSlot.fade);
+          coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
+        }
         drawStatus(ctx, u, by);
         if (u.state === "cast" && u.cast && u.cast.dur > 0) {
           const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
@@ -1228,8 +1231,10 @@
           const bannerH = bannerPx + worldPx(2);
           const bannerY = by - nameH - labelGap - u.banner.t * worldPx(14);
           const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX, labelGap);
-          paintLabel(u.banner.name, bannerSlot.x, bannerSlot.y, u.banner.ult ? "#ffd27a" : "#f4ecdf", a * bannerSlot.fade);
-          coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);
+          if (bannerSlot.fade > 0) {
+            paintLabel(u.banner.name, bannerSlot.x, bannerSlot.y, u.banner.ult ? "#ffd27a" : "#f4ecdf", a * bannerSlot.fade);
+            coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);
+          }
         }
       }
     }

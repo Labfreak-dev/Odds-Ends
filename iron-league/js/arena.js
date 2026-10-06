@@ -289,6 +289,19 @@
     return true;
   }
 
+  function applySideRelics(units, team, relics, worn) {
+    const list = relics || [];
+    const map = worn || {};
+    if (!list.length && !Object.keys(map).length) return;
+    for (let i = 0; i < units.length; i++) {
+      if (units[i].team !== team) continue;
+      const pack = list.slice();
+      const one = map[units[i].id];
+      if (one) pack.push(one);
+      if (pack.length) applyRelics(units[i], pack);
+    }
+  }
+
   function createMatch(opts) {
     const units = [];
     let teams = 2;
@@ -308,16 +321,8 @@
     }
     const relics = (opts.relics || []).slice();
     (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
-    const worn = opts.wornRelics || {};
-    if (relics.length || Object.keys(worn).length) {
-      for (let i = 0; i < units.length; i++) {
-        if (units[i].team !== 0) continue;
-        const pack = relics.slice();
-        const one = worn[units[i].id];
-        if (one) pack.push(one);
-        if (pack.length) applyRelics(units[i], pack);
-      }
-    }
+    applySideRelics(units, 0, relics, opts.wornRelics || {});
+    applySideRelics(units, 1, opts.foeRelics || [], opts.foeWorn || {});
     applySynergy(units);
     if (opts.mod) applyWaveMod(units, opts.mod);
     for (let i = 0; i < units.length; i++) {

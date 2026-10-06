@@ -32,7 +32,14 @@
   let relicRarity = "all";
   let relicSet = "all";
   let relicOpen = null;
+  let tutorStep = 0;
   const HUB_TABS = ["club", "fighters", "market", "cup", "relics", "events", "train"];
+  const TUTOR_STEPS = [
+    "Your party is on the card. Send them in when you are ready.",
+    "The market hires fighters and sells relics. Two club relics ride with everyone.",
+    "Train raises a stat. Events pay a purse."
+  ];
+  const BUILD = "40";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -515,6 +522,9 @@
       save.market = IL.rollMarket(takeRng(), 0);
       save.items = [IL.makeItem(takeRng(), { key: "cloak", rarity: "common" })];
       save.lineup = save.roster.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
+      save.schema = IL.SCHEMA || 2;
+      save.tutored = false;
+      tutorStep = 0;
       const rival = nextRival();
       const jobs = save.roster.map(function (f) { return IL.hero.compose(f.parts); });
       if (rival) rival.fighters.forEach(function (f) { jobs.push(IL.hero.compose(f.parts)); });
@@ -1538,7 +1548,8 @@
       '<h3 class="section">Club yard</h3>' +
       '<p class="fine">The roster walks the yard. Click a fighter to open their sheet.</p>' +
       '<canvas id="clubYard" width="480" height="168" aria-label="Club yard"></canvas></section>';
-    return (pendingGrowth().length
+    return tutorHtml() +
+      (pendingGrowth().length
         ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn gold" id="openGrowth">Choose a perk</button></p>'
         : '') +
       (pendingMoveFighters().length
@@ -1566,6 +1577,19 @@
         '</div>' +
       '</div>' +
       sendBtn;
+  }
+
+  function tutorHtml() {
+    if (!save || save.tutored) return "";
+    const i = Math.max(0, Math.min(TUTOR_STEPS.length - 1, tutorStep | 0));
+    const last = i >= TUTOR_STEPS.length - 1;
+    return '<section class="panel-frame tutor-card" id="tutorCard">' +
+      '<p class="fine">First visit · ' + (i + 1) + " of " + TUTOR_STEPS.length + "</p>" +
+      '<p class="tutor-copy">' + esc(TUTOR_STEPS[i]) + "</p>" +
+      '<div class="tutor-actions">' +
+        '<button type="button" class="btn ghost" id="tutorSkip">Skip</button>' +
+        '<button type="button" class="btn primary" id="tutorNext">' + (last ? "Done" : "Next") + "</button>" +
+      "</div></section>";
   }
 
   function fightersPanel() {
@@ -2299,6 +2323,48 @@
     if (closeBtn) closeBtn.onclick = close;
   }
 
+  function copyText(text, noteId, okMsg) {
+    const note = document.getElementById(noteId);
+    function done(yes) {
+      if (note) note.textContent = yes ? okMsg : "Copy failed. Select the text and copy it.";
+    }
+    function fallback() {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      let okCopy = false;
+      try { okCopy = document.execCommand("copy"); } catch (e) { okCopy = false; }
+      document.body.removeChild(ta);
+      done(okCopy);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else fallback();
+  }
+
+  function bugReport() {
+    const roster = (save.roster || []).map(function (f) {
+      return (f.name || "?") + " (" + (f.cls || "?") + ") Lv " + (f.level || 1);
+    }).join(", ");
+    const s = save.settings || {};
+    return [
+      "Iron League bug report",
+      "schema: " + (save.schema || 1),
+      "build: " + BUILD,
+      "club: " + (save.clubName || ""),
+      "season: " + (save.season || 1) + " round: " + (save.round || 0),
+      "gold: " + (save.gold || 0) + " renown: " + (save.renown || 0),
+      "roster: " + (roster || "none"),
+      "equipped: " + ((save.equipped || []).join(", ") || "none"),
+      "speed: " + s.speed + " shake: " + !!s.shake + " sound: " + s.sound + " music: " + s.music + " crowd: " + s.crowd,
+      "agent: " + (navigator.userAgent || "")
+    ].join("\n");
+  }
+
   function settingsHtml() {
     const s = save.settings || { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
     const picks = [1, 2, 3].map(function (n) {
@@ -2315,6 +2381,21 @@
         '<p class="eyebrow">Fight speed</p>' +
         '<div class="chips" id="speedPicks">' + picks + '</div>' +
         '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
+        '<p class="fine">Save schema ' + (save.schema || 1) + ".</p>" +
+        '<div class="settings-block">' +
+          '<p class="eyebrow">Challenge</p>' +
+          '<p class="fine">Copy a code of the party you field. A friend pastes it and fights your club. The code carries the party, not their gear.</p>' +
+          '<textarea id="challengeOut" readonly aria-label="Challenge code">' + esc(IL.exportChallenge(save)) + "</textarea>" +
+          '<button type="button" class="btn ghost" id="copyChallenge">Copy code</button>' +
+          '<textarea id="challengeIn" aria-label="Paste a challenge code" placeholder="Paste a code"></textarea>' +
+          '<button type="button" class="btn" id="fightChallenge">Fight this club</button>' +
+          '<p class="fine" id="challengeNote"></p>' +
+        "</div>" +
+        '<div class="settings-block">' +
+          '<p class="eyebrow">Report</p>' +
+          '<button type="button" class="btn ghost" id="copyReport">Copy bug report</button>' +
+          '<p class="fine" id="reportNote"></p>' +
+        "</div>" +
         '<button type="button" class="btn danger" id="resetAsk">Reset save</button>' +
         '<div id="resetBox" hidden><p>Erase this club from the browser? This cannot be undone.</p>' +
           '<button type="button" class="btn danger" id="resetYes">Erase</button>' +
@@ -2350,6 +2431,33 @@
     };
     const shake = document.getElementById("shakeToggle");
     if (shake) shake.onchange = function () { save.settings.shake = !!shake.checked; touch(); };
+    const copyCh = document.getElementById("copyChallenge");
+    if (copyCh) copyCh.onclick = function () {
+      const code = IL.exportChallenge(save);
+      const out = document.getElementById("challengeOut");
+      if (out) out.value = code;
+      const ready = fielded(save.roster, IL.PARTY_CAP || 3).length > 0;
+      copyText(code, "challengeNote", ready ? "Copied. Send it to a friend." : "Copied, but field a fighter first.");
+    };
+    const fightCh = document.getElementById("fightChallenge");
+    if (fightCh) fightCh.onclick = function () {
+      const box = document.getElementById("challengeIn");
+      const note = document.getElementById("challengeNote");
+      const foe = IL.importChallenge(box ? box.value : "");
+      if (!foe) {
+        if (note) note.textContent = "That code does not read.";
+        return;
+      }
+      if (!fielded(save.roster, 1).length) {
+        if (note) note.textContent = "Field a fighter first.";
+        return;
+      }
+      startChallenge(foe);
+    };
+    const copyRep = document.getElementById("copyReport");
+    if (copyRep) copyRep.onclick = function () {
+      copyText(bugReport(), "reportNote", "Copied. Paste it into your report.");
+    };
     const ask = document.getElementById("resetAsk");
     const box = document.getElementById("resetBox");
     if (ask && box) ask.onclick = function () { box.hidden = false; ask.hidden = true; };
@@ -2446,6 +2554,20 @@
   function bindHub() {
     const nm = document.getElementById("nextMatch");
     if (nm) nm.onclick = function () { startFight(); };
+    const tutorSkip = document.getElementById("tutorSkip");
+    if (tutorSkip) tutorSkip.onclick = function () {
+      save.tutored = true;
+      persist();
+      refreshHub();
+    };
+    const tutorNext = document.getElementById("tutorNext");
+    if (tutorNext) tutorNext.onclick = function () {
+      if (tutorStep >= TUTOR_STEPS.length - 1) {
+        save.tutored = true;
+        persist();
+      } else tutorStep += 1;
+      refreshHub();
+    };
     const openSeason = document.getElementById("openSeason");
     if (openSeason) openSeason.onclick = function () { showSeasonEnd(); };
     const openSeasonBanner = document.getElementById("openSeasonBanner");
@@ -3494,7 +3616,9 @@
           horde: spec.horde || null,
           king: spec.king || null,
           bossAdds: spec.bossAdds || null,
-          mod: spec.mod || null
+          mod: spec.mod || null,
+          foeRelics: spec.foeRelics || null,
+          foeWorn: spec.foeWorn || null
         });
       match.spriteMap = map;
       match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
@@ -3511,6 +3635,34 @@
       IL.currentMatch = match;
       mountFight(match);
       runFight(tok);
+    });
+  }
+
+  function startChallenge(foe) {
+    const cap = IL.PARTY_CAP || 3;
+    const have = fielded(save.roster, cap);
+    if (!have.length || !foe || !foe.fighters || !foe.fighters.length) return;
+    const n = Math.min(have.length, foe.fighters.length, cap);
+    const left = have.slice(0, n);
+    const right = foe.fighters.slice(0, n);
+    const foeRelics = (foe.equipped || []).map(function (id) { return IL.relicById(id); }).filter(Boolean);
+    const foeWorn = {};
+    right.forEach(function (f) {
+      const relic = f && f.relic && IL.relicById(f.relic);
+      if (relic) foeWorn[f.id] = relic;
+    });
+    settingsOpen = false;
+    openVersus({
+      mode: "challenge",
+      left: left,
+      right: right,
+      leftName: save.clubName,
+      rightName: foe.name,
+      size: n,
+      seed: (save.rngSeed ^ IL.hashStr(foe.name || "ch")) >>> 0,
+      returnTab: "club",
+      foeRelics: foeRelics,
+      foeWorn: foeWorn
     });
   }
 
@@ -4163,6 +4315,10 @@
       const day = IL.dayIndex(Date.now());
       const already = save.daily && save.daily.day === day && save.daily.cleared;
       save.daily = { day: day, cleared: already || win };
+    } else if (mode === "challenge") {
+      gold = win ? 20 : 8;
+      renown = win ? 2 : 1;
+      headline = win ? "Their yard falls" : "Their yard holds";
     } else if (mode === "endless") {
       const run = save.endlessRun || { wave: 1, hp: {} };
       if (win) {

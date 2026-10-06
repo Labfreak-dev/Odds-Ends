@@ -690,6 +690,64 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 if (hot.length) console.error("mirror hot", hot.join(", "));
 check("no class mirror above 60%", hot.length === 0);
 
+const chalSave = IL.migrate({
+  clubName: "Exporters",
+  crest: 3,
+  relics: ["band"],
+  equipped: ["band"],
+  lineup: ["ada"],
+  roster: [{ id: "ada", cls: "warrior", name: "Ada Vale", level: 4, parts: { sheet: IL.defaultSheet("warrior") }, relic: null }]
+});
+const chalCode = IL.exportChallenge(chalSave);
+const chalBack = IL.importChallenge(chalCode);
+check("challenge code roundtrips", !!(chalBack && chalBack.name === "Exporters" && chalBack.fighters.length === 1 && chalBack.fighters[0].cls === "warrior" && chalBack.fighters[0].level === 4 && chalBack.equipped[0] === "band"));
+check("bad challenge code is empty", IL.importChallenge("nope") === null && IL.importChallenge("") === null);
+const chalHome = IL.randomFighter(IL.mulberry32(8), "warrior");
+chalHome.level = 5;
+const chalAway = chalBack.fighters[0];
+const chalHit = IL.createMatch({ seed: 3, left: [chalHome], right: [chalAway], foeRelics: [IL.relicById("band")] });
+const chalBare = IL.createMatch({ seed: 3, left: [chalHome], right: [chalAway] });
+const chalLeft = chalHit.units.filter(function (u) { return u.team === 0; })[0];
+const chalRight = chalHit.units.filter(function (u) { return u.team === 1; })[0];
+const bareLeft = chalBare.units.filter(function (u) { return u.team === 0; })[0];
+const bareRight = chalBare.units.filter(function (u) { return u.team === 1; })[0];
+check("foe relic stays on their side", chalRight.maxHp > bareRight.maxHp && chalLeft.maxHp === bareLeft.maxHp);
+check("fresh club is schema 2", IL.freshClubFields(1).schema === 2);
+const playedSave = IL.migrate({ clubName: "Old", bouts: 3, roster: [{ id: "a", cls: "warrior", name: "Ada" }] });
+check("a played save skips the tour", playedSave.schema === 2 && playedSave.tutored === true);
+const newSave = IL.migrate({ clubName: "New", season: 1, round: 0, bouts: 0, history: [], roster: [{ id: "a", cls: "warrior", name: "Ada" }] });
+check("a new club still needs the tour", newSave.tutored === false);
+
+/* The class rides with a warrior and a mage. A solo support is not the season. */
+const bandFoes = ["warrior", "archer", "mage", "tank"];
+const band = [];
+Object.keys(IL.CLASSES).forEach(function (id) {
+  let wins = 0;
+  let games = 0;
+  bandFoes.forEach(function (foe, fi) {
+    for (let s = 0; s < 4; s++) {
+      const m = fight([id, "warrior", "mage"], [foe, "warrior", "mage"], 50000 + s * 17 + fi * 100 + (IL.hashStr(id) % 200), 7);
+      if (!m.over || m.winner == null) return;
+      games++;
+      if (m.winner === 0) wins++;
+    }
+  });
+  const rate = games ? wins / games : 0;
+  let low = 0;
+  let high = 1;
+  if (games) {
+    const z = 1.96;
+    const se = Math.sqrt(Math.max(0, rate * (1 - rate)) / games);
+    low = rate - z * se;
+    high = rate + z * se;
+  }
+  if (games >= 12 && ((rate < 0.15 && high < 0.28) || (rate > 0.85 && low > 0.72))) {
+    band.push(id + " " + rate.toFixed(2) + " (" + wins + "/" + games + ")");
+  }
+});
+if (band.length) console.error("balance band", band.join(", "));
+check("classes stay in a win band", band.length === 0);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

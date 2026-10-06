@@ -54,6 +54,9 @@ def run(page, label, shot_dir):
     check_nav(page, label, shot_dir)
     check_settings(page, label)
     check_gear(page, label, shot_dir)
+    check_scroll(page, label)
+    if label == "desktop":
+        check_fit(page)
     page.click("#nextMatch")
     page.wait_for_selector("#versus")
     page.wait_for_selector("#powerBar")
@@ -429,6 +432,7 @@ def check_gear(page, label, shot_dir):
         arg=before["id"],
     )
     page.click("#market")
+    page.click("[data-filter='gear']")
     page.wait_for_selector("#gearStock")
     page.wait_for_selector("#rerollGear:not([disabled])")
     uids = page.evaluate(
@@ -461,6 +465,109 @@ def check_gear(page, label, shot_dir):
     page.screenshot(path=str(shot_dir / f"{label}-credits.png"))
     page.click("#creditsClose")
     page.wait_for_selector("#creditsSheet", state="detached")
+    page.wait_for_selector("#nextMatch")
+
+
+def check_scroll(page, label):
+    """Train the third benched fighter without jumping back to the top."""
+    saved = page.evaluate("() => localStorage.getItem('ironleague.v1')")
+    size = page.viewport_size
+    page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const captain = raw.roster.filter(f => f.captain)[0] || raw.roster[0];
+          raw.lineup = [captain.id];
+          raw.gold = Math.max(raw.gold || 0, 500);
+          raw.trainsLeft = 2;
+          localStorage.setItem('ironleague.v1', JSON.stringify(raw));
+        }"""
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.keyboard.press("2")
+    page.wait_for_selector("#benchList [data-train]")
+    page.set_viewport_size({"width": size["width"], "height": 480})
+    ready = page.evaluate(
+        """() => {
+          const buttons = document.querySelectorAll('#benchList [data-train]:not([disabled])');
+          if (buttons.length < 3) return { ok: false, n: buttons.length };
+          const btn = buttons[2];
+          const height = btn.getBoundingClientRect().height || 32;
+          const docTop = btn.getBoundingClientRect().top + window.scrollY;
+          const sticky = document.querySelector('.hub-sticky');
+          const cover = sticky ? sticky.getBoundingClientRect().height + 8 : 8;
+          const tab = document.querySelector('#tabbar');
+          const tabFixed = tab && getComputedStyle(tab).position === 'fixed';
+          const limit = tabFixed ? tab.getBoundingClientRect().top - 4 : window.innerHeight - 4;
+          const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+          let y = Math.min(max, Math.max(40, docTop - cover - 24));
+          window.scrollTo(0, y);
+          let rect = btn.getBoundingClientRect();
+          if (rect.top < cover || rect.bottom > limit) {
+            y = Math.min(max, Math.max(0, docTop - cover - 12));
+            window.scrollTo(0, y);
+            rect = btn.getBoundingClientRect();
+          }
+          return {
+            ok: buttons.length >= 3 && window.scrollY >= 30 && rect.top >= cover - 1 && rect.bottom <= limit,
+            n: buttons.length,
+            y: window.scrollY,
+            top: rect.top,
+            bottom: rect.bottom,
+            cover: cover,
+            limit: limit,
+            max: max,
+            scrollHeight: document.documentElement.scrollHeight
+          };
+        }"""
+    )
+    if not ready["ok"]:
+        raise SystemExit(label + " could not scroll to the third train " + str(ready))
+    before = ready["y"]
+    before_height = ready["scrollHeight"]
+    page.evaluate(
+        """() => {
+          const btn = document.querySelectorAll('#benchList [data-train]:not([disabled])')[2];
+          btn.click();
+        }"""
+    )
+    page.wait_for_function(
+        """() => JSON.parse(localStorage.getItem('ironleague.v1')).trainsLeft === 1"""
+    )
+    page.wait_for_timeout(80)
+    after_state = page.evaluate(
+        """() => ({ y: window.scrollY, h: document.documentElement.scrollHeight })"""
+    )
+    after = after_state["y"]
+    if abs(after - before) > 2:
+        raise SystemExit(
+            label + " scroll jumped " + str(before) + " -> " + str(after)
+            + " height " + str(before_height) + " -> " + str(after_state["h"])
+        )
+    page.set_viewport_size({"width": size["width"], "height": size["height"]})
+    page.evaluate("(raw) => localStorage.setItem('ironleague.v1', raw)", saved)
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.keyboard.press("1")
+    page.wait_for_selector("#nextMatch")
+
+
+def check_fit(page):
+    """Each hub tab should sit on a 1280x800 screen without a long page scroll."""
+    tabs = [
+        ("#tab-club", "#nextMatch"),
+        ("#tab-fighters", "#armory"),
+        ("#market", "#marketCards"),
+        ("#relics", ".card.relic"),
+        ("#cup", "#enterCup"),
+    ]
+    for tab, wait in tabs:
+        page.click(tab)
+        page.wait_for_selector(wait)
+        slack = page.evaluate("() => document.documentElement.scrollHeight - window.innerHeight")
+        if slack > 48:
+            raise SystemExit(tab + " scrolls by " + str(slack) + "px")
+    page.click("#tab-club")
     page.wait_for_selector("#nextMatch")
 
 

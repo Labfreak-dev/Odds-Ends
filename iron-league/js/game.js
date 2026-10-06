@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "48";
+  const BUILD = "49";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {

@@ -71,19 +71,20 @@ const seenAb = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
   const kit = IL.CLASSES[id];
   const list = kit.abilities || [];
-  if (list.length < 3) {
+  if (list.length < 6 || list.length > 8) {
     fails++;
-    console.error("need 3 abilities", id);
+    console.error("pool size", id, list.length);
   }
-  const unlocks = list.map(function (ab) { return ab && ab.unlock; }).slice().sort(function (a, b) { return a - b; }).join(",");
-  if (unlocks !== "1,4,7") {
+  const starters = list.filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; })
+    .map(function (ab) { return ab.unlock; }).slice().sort(function (a, b) { return a - b; }).join(",");
+  if (starters !== "1,4,7") {
     fails++;
-    console.error("unlocks", id, unlocks);
+    console.error("starters", id, starters);
   }
   list.forEach(function (ab) {
-    if (!ab || !ab.id || !ab.kind || !ab.name) {
+    if (!ab || !ab.id || !ab.kind || !ab.name || !ab.row || !ab.tags || !ab.tags.length) {
       fails++;
-      console.error("bad ability", id);
+      console.error("bad ability", id, ab && ab.id);
       return;
     }
     seenAb[ab.id] = true;
@@ -97,7 +98,20 @@ Object.keys(IL.CLASSES).forEach(function (id) {
     console.error("trait", id);
   }
 });
-check("seventy or more abilities", Object.keys(seenAb).length >= 70);
+check("one hundred twenty or more abilities", Object.keys(seenAb).length >= 120);
+(function () {
+  const fighter = IL.ensureMoves(IL.randomFighter(function () { return 0.2; }, "warrior"));
+  const extra = IL.poolOf("warrior").filter(function (ab) { return ab.unlock >= 99; })[0];
+  const taught = extra && IL.teachMove(fighter, extra.id) && IL.equipMove(fighter, 0, extra.id) && fighter.loadout[0] === extra.id;
+  check("teach and equip a tome move", !!taught);
+  const foe = IL.randomFighter(function () { return 0.3; }, "mage");
+  foe.level = 7;
+  fighter.level = 7;
+  const bout = IL.createMatch({ seed: 3, left: [fighter], right: [foe], leftName: "A", rightName: "B" });
+  let steps = 0;
+  while (!bout.over && steps < 4000) { IL.stepMatch(bout, 1 / 60); steps++; }
+  check("loadout fight ends", bout.over === true);
+})();
 IL.CLUBS.forEach(function (name) {
   const theme = IL.CLUB_THEMES[name];
   if (!theme || theme.length < 2) {

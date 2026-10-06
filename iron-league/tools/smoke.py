@@ -388,7 +388,7 @@ def check_classes(page, label):
               bad.push(id + " " + (err && err.message ? err.message : err));
             }
           });
-          if (abs < 70) bad.push("abilities " + abs);
+          if (abs < 120) bad.push("abilities " + abs);
           return bad;
         }"""
     )
@@ -468,7 +468,7 @@ def check_nav(page, label, shot_dir):
         timeout=20000,
     )
     sheet = page.locator("#fighterSheet").inner_text()
-    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Level 4", "Rename", "Captain stays", "Record"):
+    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Loadout", "AoE", "Level 4", "Rename", "Captain stays", "Record"):
         if word not in sheet:
             raise SystemExit(label + " sheet missing " + word + ": " + sheet[:240])
     if page.locator("#releaseAsk").count():

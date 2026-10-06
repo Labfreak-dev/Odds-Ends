@@ -17,6 +17,8 @@
   let paused = false;
   let gearPreview = null;
   let tonicPick = null;
+  let tomePick = null;
+  let loadoutSlot = 0;
   let creditsOpen = false;
   let armorySlot = "all";
   let armoryRarity = "all";
@@ -478,6 +480,7 @@
         captain: true
       });
       const rng = IL.mulberry32(seed);
+      if (IL.ensureMoves) IL.ensureMoves(captain);
       captain.gear = IL.blankGear();
       captain.gear.armor = IL.makeItem(rng, { key: "mail", rarity: "common" });
       const recruits = ["archer", "mage", "tank"].map(function (cls) {
@@ -555,6 +558,10 @@
     return (save.roster || []).filter(function (f) { return (f.pendingPicks || 0) > 0; });
   }
 
+  function pendingMoveFighters() {
+    return (save.roster || []).filter(function (f) { return (f.pendingMoves || 0) > 0; });
+  }
+
   function ensureMarket() {
     IL.migrate(save);
     if (!save.market || !save.market.length) {
@@ -622,14 +629,23 @@
     return '<div class="stat"><span class="stat-label">' + glyph + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
   }
 
-  function abilityItem(ab, level) {
+  function moveMeta(ab, level, learned) {
+    const learnedMove = learned && learned.indexOf(ab.id) >= 0;
+    const unlock = ab.unlock || 1;
+    const locked = !learnedMove && unlock > (level || 1) && unlock <= 7;
+    const tags = (ab.tags || []).join(" · ");
+    const row = ab.row ? ab.row.charAt(0).toUpperCase() + ab.row.slice(1) : "";
+    const when = locked ? ("Level " + unlock) : cdText(ab);
+    return { locked: locked, line: [when, row, tags].filter(Boolean).join(" · "), tags: ab.tags || [], row: row };
+  }
+
+  function abilityItem(ab, level, learned) {
     const frame = IL.abilityIcon ? IL.abilityIcon(ab.id) : "";
     const icon = frame ? iconTag(frame, 32) : "";
-    const unlock = ab.unlock || 1;
-    const locked = unlock > (level || 1);
-    const when = locked ? ("Level " + unlock) : (unlock > 1 ? ("Level " + unlock + " · " + cdText(ab)) : cdText(ab));
+    const meta = moveMeta(ab, level, learned);
     const blurb = ab.blurb || abilityBlurb(ab.id);
-    return '<li' + (locked ? ' class="locked"' : '') + '>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(when) + '</span><p>' + esc(blurb) + '</p></li>';
+    const tags = meta.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("");
+    return '<li' + (meta.locked ? ' class="locked"' : '') + '>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(meta.line) + '</span><p>' + tags + (meta.row ? ' <span class="row-name">' + esc(meta.row) + '</span>' : '') + '</p><p>' + esc(blurb) + '</p></li>';
   }
 
   function synergyLine(fighters, id) {
@@ -790,6 +806,10 @@
     if (b.spd) bits.push("+" + b.spd + " SPD");
     const passive = IL.passiveOf(item);
     if (passive) bits.push(IL.itemBlurb(item));
+    if (IL.itemSlot(item) === "tome") {
+      const ab = item.teach && IL.abilityById ? IL.abilityById(item.teach) : null;
+      return ab ? ("Teaches " + ab.name + ". Study it on a fighter of that kit.") : "Teaches a move from one kit.";
+    }
     if (!bits.length && IL.itemSlot(item) === "tonic") return "One match. A little shield, then the bottle is empty.";
     return bits.join(" · ") || "No bonus";
   }
@@ -805,6 +825,7 @@
     if (slot === "weapon") return "Weapon";
     if (slot === "armor") return "Armor";
     if (slot === "tonic") return "Tonic";
+    if (slot === "tome") return "Tome";
     return "Trinket";
   }
 
@@ -841,19 +862,23 @@
     const item = row.item;
     const where = row.owner ? ("On " + row.owner.name) : "In the bag";
     const drink = row.slot === "tonic";
+    const tome = row.slot === "tome";
     const actions = row.owner
       ? '<button type="button" class="btn ghost" data-unequip-from="' + esc(row.owner.id) + '" data-unequip-slot="' + esc(row.slot) + '">' + (drink ? "Pour back" : "Unequip") + '</button>'
       : (drink
         ? '<button type="button" class="btn ghost" data-arm-tonic="' + esc(item.uid) + '">Give</button>'
-        : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">Equip</button>') +
+        : tome
+          ? '<button type="button" class="btn ghost" data-arm-tome="' + esc(item.uid) + '">Study</button>'
+          : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">Equip</button>') +
         '<button type="button" class="btn ghost" data-salvage="' + esc(item.uid) + '">Salvage — ' + IL.salvageValue(item) + ' gold</button>';
-    const pickingGear = !row.owner && !drink && gearPreview && gearPreview.uid === item.uid;
+    const pickingGear = !row.owner && !drink && !tome && gearPreview && gearPreview.uid === item.uid;
     const pickingTonic = !row.owner && drink && tonicPick && tonicPick.uid === item.uid;
-    const pick = (pickingGear || pickingTonic)
+    const pickingTome = !row.owner && tome && tomePick && tomePick.uid === item.uid;
+    const pick = (pickingGear || pickingTonic || pickingTome)
       ? '<div class="armory-pick">' + (save.roster || []).map(function (f) {
-        return pickingTonic
-          ? '<button type="button" class="btn ghost" data-give-on="' + esc(f.id) + '" data-give-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>'
-          : '<button type="button" class="btn ghost" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
+        if (pickingTonic) return '<button type="button" class="btn ghost" data-give-on="' + esc(f.id) + '" data-give-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
+        if (pickingTome) return '<button type="button" class="btn ghost" data-study-on="' + esc(f.id) + '" data-study-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
+        return '<button type="button" class="btn ghost" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
       }).join("") + '</div>'
       : "";
     return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
@@ -868,7 +893,7 @@
 
   function armoryHtml() {
     const rows = filteredGear();
-    const slotOpts = [["all", "All slots"], ["weapon", "Weapon"], ["armor", "Armor"], ["trinket", "Trinket"], ["tonic", "Tonic"]];
+    const slotOpts = [["all", "All slots"], ["weapon", "Weapon"], ["armor", "Armor"], ["trinket", "Trinket"], ["tonic", "Tonic"], ["tome", "Tome"]];
     const rareOpts = [["all", "All rarities"], ["common", "Common"], ["rare", "Rare"], ["epic", "Epic"], ["legendary", "Legendary"]];
     const sortOpts = [["rarity", "Rarity"], ["slot", "Slot"], ["name", "Name"]];
     function opts(list, current) {
@@ -912,7 +937,7 @@
 
   function equipItem(fighter, item) {
     if (!fighter || !item) return false;
-    if (IL.itemSlot(item) === "tonic") return false;
+    if (IL.itemSlot(item) === "tonic" || IL.itemSlot(item) === "tome") return false;
     if (!fighter.gear) fighter.gear = IL.blankGear();
     const slot = IL.itemSlot(item);
     const found = findItem(item.uid);
@@ -944,6 +969,14 @@
     fighter.tonic = item;
     tonicPick = null;
     save.tonicsUsed = (save.tonicsUsed || 0) + 1;
+    return true;
+  }
+
+  function studyTome(fighter, item) {
+    if (!fighter || !item || IL.itemSlot(item) !== "tome") return false;
+    if (!IL.teachMove || !IL.teachMove(fighter, item.teach)) return false;
+    save.items = (save.items || []).filter(function (it) { return it.uid !== item.uid; });
+    tomePick = null;
     return true;
   }
 
@@ -1139,8 +1172,39 @@
     const stats = IL.scaledStats(f, kit);
     const into = (f.xp || 0) % 40;
     const xpPct = Math.round(100 * into / 40);
-    const known = kit.abilities || [kit.ability, kit.ability2, kit.passive].filter(Boolean);
-    const abilities = known.map(function (ab) { return abilityItem(ab, f.level || 1); });
+    if (IL.ensureMoves) IL.ensureMoves(f);
+    const byAb = {};
+    (kit.abilities || []).forEach(function (ab) { if (ab && ab.id) byAb[ab.id] = ab; });
+    const attack = IL.attackOf ? IL.attackOf(f.cls) : { name: "Melee combo", blurb: "A chain of swings." };
+    const passive = kit.passive || {};
+    const passiveBlurb = passive.blurb || abilityBlurb(passive.id);
+    const loadout = (f.loadout || []).map(function (id, i) {
+      const ab = byAb[id];
+      if (!ab) return "";
+      return '<div class="loadout-slot' + (loadoutSlot === i ? " on" : "") + '" data-slot="' + i + '"><ul class="abilities">' + abilityItem(ab, f.level || 1, f.learned) + '</ul></div>';
+    }).join("");
+    const picks = (f.known || []).map(function (id) {
+      const ab = byAb[id];
+      if (!ab) return "";
+      const on = (f.loadout || []).indexOf(id) >= 0;
+      const meta = moveMeta(ab, f.level || 1, f.learned);
+      return '<button type="button" class="chip' + (on ? " on" : "") + '" data-fill="' + esc(id) + '"><b>' + esc(ab.name) + '</b><small>' + esc(meta.line) + '</small></button>';
+    }).join("");
+    const unlearned = (kit.abilities || []).filter(function (ab) {
+      return ab && (f.known || []).indexOf(ab.id) < 0;
+    }).map(function (ab) { return abilityItem(ab, 1, []); }).join("");
+    const tomes = (save.items || []).filter(function (it) { return it && IL.itemSlot(it) === "tome"; });
+    const tomeList = tomes.length
+      ? '<h3 class="section">Tomes</h3><ul class="abilities">' + tomes.map(function (it) {
+        const ab = it.teach && IL.abilityById ? IL.abilityById(it.teach) : null;
+        const mine = ab && byAb[ab.id] && (f.known || []).indexOf(ab.id) < 0;
+        return '<li><strong>' + esc(IL.itemName(it)) + '</strong>' +
+          (mine
+            ? '<button type="button" class="btn ghost" data-study="' + esc(it.uid) + '">Study</button>'
+            : '<span>' + (ab && (f.known || []).indexOf(ab.id) >= 0 ? "Already known" : "Not for this kit") + '</span>') +
+          '</li>';
+      }).join("") + '</ul>'
+      : "";
     const eq = IL.equippedRelics(save);
     const relics = eq.length
       ? '<ul class="relic-list">' + eq.map(function (r) {
@@ -1166,7 +1230,14 @@
         statBar("DEF", stats.def, 16) +
         statBar("SPD", stats.speed, 180) +
         gearSheetHtml(f) +
-        '<h3 class="section">Abilities</h3><ul class="abilities">' + abilities.join("") + '</ul>' +
+        '<h3 class="section">Abilities</h3>' +
+        '<p class="loadout-style"><strong>' + esc(attack.name) + '</strong> ' + esc(attack.blurb) + '</p>' +
+        '<p class="loadout-style"><strong>Passive · ' + esc(passive.name || "Passive") + '</strong> ' + esc(passiveBlurb) + '</p>' +
+        '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
+        '<p class="fine">Equip three. Level 4, a tome, or a drop teaches the rest.</p>' +
+        '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
+        (unlearned ? '<h3 class="section">Still to learn</h3><ul class="abilities">' + unlearned + '</ul>' : '') +
+        tomeList +
         perkList(f) +
         '<h3 class="section">Relics with the party</h3>' + relics +
         '<h3 class="section">Record</h3>' +
@@ -1369,6 +1440,9 @@
       '<canvas id="clubYard" width="480" height="168" aria-label="Club yard"></canvas></section>';
     return (pendingGrowth().length
         ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn gold" id="openGrowth">Choose a perk</button></p>'
+        : '') +
+      (pendingMoveFighters().length
+        ? '<p class="banner">A new trick is waiting. <button type="button" class="btn gold" id="openMoves">Choose a move</button></p>'
         : '') +
       (done
         ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></p>'
@@ -1815,6 +1889,8 @@
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
     const growthBtn = document.getElementById("openGrowth");
     if (growthBtn) growthBtn.onclick = function () { showGrowth(); };
+    const movesBtn = document.getElementById("openMoves");
+    if (movesBtn) movesBtn.onclick = function () { showMoves(); };
     const claimBtn = document.getElementById("claimRelic");
     if (claimBtn) claimBtn.onclick = function () {
       const relic = IL.offerRelic(save, takeRng());
@@ -1830,6 +1906,7 @@
       detailId = null;
       gearPreview = null;
       tonicPick = null;
+      tomePick = null;
       settingsOpen = false;
       creditsOpen = true;
       refreshHub();
@@ -1870,6 +1947,7 @@
       detailId = null;
       gearPreview = null;
       tonicPick = null;
+      tomePick = null;
       creditsOpen = false;
       showHub(t.dataset.tab, t.dataset.tab === hubTab);
     };
@@ -1915,8 +1993,24 @@
       const armTonic = ev.target.closest("[data-arm-tonic]");
       if (armTonic) {
         gearPreview = null;
+        tomePick = null;
         tonicPick = { uid: armTonic.dataset.armTonic };
         showHub("fighters", true);
+        return;
+      }
+      const armTome = ev.target.closest("[data-arm-tome]");
+      if (armTome) {
+        gearPreview = null;
+        tonicPick = null;
+        tomePick = { uid: armTome.dataset.armTome };
+        showHub("fighters");
+        return;
+      }
+      const studyOn = ev.target.closest("[data-study-on]");
+      if (studyOn) {
+        const found = findItem(studyOn.dataset.studyItem);
+        if (found && studyTome(fighterById(studyOn.dataset.studyOn), found.item)) persist();
+        showHub("fighters");
         return;
       }
       const giveOn = ev.target.closest("[data-give-on]");
@@ -2005,6 +2099,30 @@
         if (found && giveTonic(fighterById(detailId), found.item)) {
           persist();
           refreshHub();
+        }
+        return;
+      }
+      const slotPick = ev.target.closest("[data-slot]");
+      if (slotPick && !ev.target.closest("[data-fill]")) {
+        loadoutSlot = +slotPick.dataset.slot;
+        showHub(hubTab);
+        return;
+      }
+      const fill = ev.target.closest("[data-fill]");
+      if (fill) {
+        const fighter = fighterById(detailId);
+        if (fighter && IL.equipMove && IL.equipMove(fighter, loadoutSlot, fill.dataset.fill)) {
+          persist();
+          showHub(hubTab);
+        }
+        return;
+      }
+      const study = ev.target.closest("[data-study]");
+      if (study) {
+        const found = findItem(study.dataset.study);
+        if (found && studyTome(fighterById(detailId), found.item)) {
+          persist();
+          showHub(hubTab);
         }
         return;
       }
@@ -2492,6 +2610,42 @@
       IL.applyBoost(f, btn.dataset.boost);
       persist();
       if (pendingGrowth().length) showGrowth();
+      else if (pendingMoveFighters().length) showMoves();
+      else if ((save.round || 0) >= 5) showSeasonEnd();
+      else showHub();
+    };
+  }
+
+  function showMoves() {
+    stopLoops();
+    const queue = pendingMoveFighters();
+    if (!queue.length) { showHub(); return; }
+    const f = queue[0];
+    if (IL.ensureMoves) IL.ensureMoves(f);
+    const choices = IL.moveChoices ? IL.moveChoices(f) : [];
+    if (!choices.length) {
+      f.pendingMoves = 0;
+      persist();
+      if (pendingMoveFighters().length) showMoves();
+      else showHub();
+      return;
+    }
+    const buttons = choices.map(function (ab) {
+      const meta = moveMeta(ab, f.level || 1, f.learned);
+      return '<button type="button" class="class-card" data-move="' + esc(ab.id) + '"><strong>' + esc(ab.name) + '</strong><span>' + esc(meta.line) + '</span><span>' + esc(ab.blurb || abilityBlurb(ab.id)) + '</span></button>';
+    }).join("");
+    app.innerHTML =
+      '<main class="creator" id="moveGrowth">' +
+        '<header class="creator-head"><h2>A move for ' + esc(f.name) + '</h2></header>' +
+        '<p class="banner">Level ' + (f.level || 1) + '. ' + f.pendingMoves + ' move' + (f.pendingMoves === 1 ? "" : "s") + ' waiting. Equip it on the sheet.</p>' +
+        '<div class="class-grid" id="moveChoices">' + buttons + '</div>' +
+      '</main>';
+    document.getElementById("moveChoices").onclick = function (ev) {
+      const btn = ev.target.closest("[data-move]");
+      if (!btn) return;
+      IL.learnFromLevel(f, btn.dataset.move);
+      persist();
+      if (pendingMoveFighters().length) showMoves();
       else if ((save.round || 0) >= 5) showSeasonEnd();
       else showHub();
     };
@@ -2641,8 +2795,13 @@
       if (u.summon) return;
       const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
       const side = u.team === 0 ? "you" : "them";
-      const marks = (kit.abilities || [kit.ability, kit.ability2].filter(Boolean)).filter(function (ab) {
-        return ab && (ab.unlock || 1) <= (u.level || 1);
+      const byLive = {};
+      (kit.abilities || []).forEach(function (ab) { if (ab && ab.id) byLive[ab.id] = ab; });
+      const learned = u.learned || [];
+      const marks = (u.loadout || []).map(function (id) { return byLive[id]; }).filter(function (ab) {
+        if (!ab) return false;
+        if (learned.indexOf(ab.id) >= 0) return true;
+        return (ab.unlock || 1) <= (u.level || 1);
       }).map(function (ab) {
         return IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "";
       }).join("");

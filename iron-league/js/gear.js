@@ -96,7 +96,10 @@
       icons: icons("cs_potion_04_blue", "cs_potion_04_blue", "cs_potion_04_blue", "cs_potion_04_blue") },
     { key: "tonic-red", name: "Red Tonic", slot: "tonic", glyph: "gem",
       icon: "cs_potion_09_red",
-      icons: icons("cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red") }
+      icons: icons("cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red") },
+    { key: "ability-tome", name: "Ability Tome", slot: "tome", glyph: "wand",
+      icon: "bw_tome_02_orange",
+      icons: icons("bw_tome_02_orange", "bw_tome_07_purple", "cs_magic_book_01_red", "cs_magic_book_09_blue") }
   ];
 
   const BY_KEY = {};
@@ -148,8 +151,9 @@
     if (!tpl) {
       const pool = CATALOG.filter(function (row) {
         if (opt.only === "tonic") return row.slot === "tonic";
+        if (opt.only === "tome") return row.slot === "tome";
         if (opt.slot) return row.slot === opt.slot;
-        return row.slot !== "tonic";
+        return row.slot !== "tonic" && row.slot !== "tome";
       });
       tpl = pool[Math.floor(rng() * pool.length)] || CATALOG[0];
     }
@@ -223,8 +227,20 @@
   }
 
   function itemName(item) {
+    if (item && item.teach && IL.abilityById) {
+      const ab = IL.abilityById(item.teach);
+      if (ab) return "Tome: " + ab.name;
+    }
     const tpl = templateOf(item);
     return tpl ? tpl.name : "Oddment";
+  }
+
+  function makeTome(rng, opt) {
+    opt = opt || {};
+    const item = makeItem(rng, { key: "ability-tome", rarity: opt.rarity, bag: opt.bag || "win" });
+    const ids = IL.tomeIds ? IL.tomeIds() : [];
+    item.teach = opt.teach || (ids.length ? ids[Math.floor(rng() * ids.length)] : "");
+    return item;
   }
 
   function itemSlot(item) {
@@ -346,8 +362,10 @@
   }
 
   function rollLoot(rng, bag) {
-    if (rng() < 0.16) return makeItem(rng, { only: "tonic", bag: bag || "win" });
-    return makeItem(rng, { bag: bag || "win" });
+    const pocket = bag || "win";
+    if (rng() < 0.16) return makeItem(rng, { only: "tonic", bag: pocket });
+    if (rng() < 0.14) return makeTome(rng, { bag: pocket });
+    return makeItem(rng, { bag: pocket });
   }
 
   function rollGearStock(rng) {
@@ -362,9 +380,19 @@
       used[stamp] = true;
       stock.push({ item: item, cost: gearPrice(item) });
     }
+    let tonicAt = -1;
     if (stock.length && rng() < 0.55) {
       const drink = makeItem(rng, { only: "tonic", bag: "stock" });
-      stock[stock.length - 1] = { item: drink, cost: gearPrice(drink) };
+      tonicAt = stock.length - 1;
+      stock[tonicAt] = { item: drink, cost: gearPrice(drink) };
+    }
+    if (stock.length) {
+      let at = 0;
+      if (tonicAt === 0) at = stock.length > 1 ? 1 : -1;
+      if (at >= 0) {
+        const tome = makeTome(rng, { bag: "stock" });
+        stock[at] = { item: tome, cost: gearPrice(tome) };
+      }
     }
     return stock;
   }
@@ -379,6 +407,7 @@
     for (let i = 0; i < n; i++) {
       const item = makeItem(rng, { bag: "rival" });
       const slot = itemSlot(item);
+      if (slot === "tome" || slot === "tonic") continue;
       if (used[slot]) continue;
       used[slot] = true;
       fighter.gear[slot] = item;
@@ -431,6 +460,7 @@
   IL.GEAR_REROLL = GEAR_REROLL;
   IL.blankGear = blankGear;
   IL.makeItem = makeItem;
+  IL.makeTome = makeTome;
   IL.itemBonus = itemBonus;
   IL.passiveOf = passiveOf;
   IL.gearBonus = gearBonus;

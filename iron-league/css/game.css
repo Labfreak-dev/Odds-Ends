@@ -1681,6 +1681,14 @@ td.club-cell .club-name,
 .trait, .trait-line { color: var(--muted); font-size: 13px; }
 .trait.on { color: var(--copper-2); }
 .abilities li.locked { opacity: 0.72; }
+.abilities span.tag, .abilities span.row-name { float: none; color: var(--copper-2); font-size: 11px; letter-spacing: 0.04em; }
+.tag { display: inline-block; margin: 0 4px 0 0; padding: 0 4px; border: 1px solid var(--line); }
+.loadout-style { margin: 4px 0; }
+.loadout-slot { cursor: pointer; border-radius: 2px; }
+.loadout-slot.on { outline: 1px solid var(--copper); }
+.loadout-picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.loadout-picks .chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.loadout-picks small { color: inherit; opacity: 0.8; font-size: 11px; }
 #clubYard {
   width: 100%;
   max-width: 640px;

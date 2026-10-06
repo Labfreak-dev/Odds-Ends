@@ -86,6 +86,12 @@
     fighter.xp = next;
     fighter.level = g.level;
     fighter.pendingPicks = (fighter.pendingPicks || 0) + g.picks;
+    const before = IL.xpLevel(prev);
+    let moves = 0;
+    for (let lv = before + 1; lv <= g.level; lv++) {
+      if (lv === 4 || lv === 7 || lv === 10) moves++;
+    }
+    if (moves) fighter.pendingMoves = (fighter.pendingMoves || 0) + moves;
     if (!fighter.boosts) fighter.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
     return g.picks;
   }
@@ -166,7 +172,17 @@
         if (typeof f.season.kos !== "number") f.season.kos = 0;
       }
       if (!Array.isArray(f.perks)) f.perks = [];
+      if (typeof f.pendingMoves !== "number") f.pendingMoves = 0;
+      if (IL.ensureMoves) IL.ensureMoves(f);
     });
+    function stampMoves(f) {
+      if (f && IL.ensureMoves) IL.ensureMoves(f);
+    }
+    (data.market || []).forEach(function (row) { if (row) stampMoves(row.fighter); });
+    (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(stampMoves); });
+    if (data.cup && data.cup.slots) {
+      data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(stampMoves); });
+    }
     normalizeLineup(data);
     adoptSheets(data);
     if (IL.normalizeGear) IL.normalizeGear(data);

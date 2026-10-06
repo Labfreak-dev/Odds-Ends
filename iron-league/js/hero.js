@@ -67,13 +67,14 @@
     return "idle";
   }
 
-  function draw(ctx, atlas, frame, x, y, scale, facing, cls) {
+  function draw(ctx, atlas, frame, x, y, scale, facing, cls, motionHint) {
     if (!atlas || !frame) return;
     const name = clipNameAt(frame);
     const clip = IL.CLIPS[name];
     if (!clip) return;
     const sheet = atlas.tfSheet || "";
-    const motion = IL.visualMotion(name, cls, sheet);
+    let motion = IL.visualMotion(name, cls, sheet);
+    if (motionHint && COL[motionHint] != null) motion = motionHint;
     const sub = IL.visualSample(name, motion, frame - clip.from);
     const col = COL[motion];
     if (col == null) return;

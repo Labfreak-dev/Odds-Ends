@@ -658,6 +658,90 @@
     return f;
   }
 
+  /* ---------- level up ----------
+     Every level a fighter gains queues one pick from three cards: rank
+     up a move they use (II to V), learn a new move from the class pool,
+     or a training step. The offer is seeded by fighter, level, and how
+     many picks they have taken, so a reload shows the same three. */
+  const RANK_MAX = 5;
+  const RANK_POW = 0.08;
+  const RANK_CD = 0.06;
+  const STAT_STEP = {
+    hp: { name: "Conditioning", stat: "Health", blurb: "More health for every fight from here on." },
+    dmg: { name: "Weapon drills", stat: "Attack", blurb: "Every hit and move lands harder." },
+    spd: { name: "Footwork", stat: "Speed", blurb: "Closes gaps and gets out of trouble faster." },
+    def: { name: "Guard work", stat: "Defense", blurb: "Shaves damage off every hit taken." }
+  };
+
+  function rankOf(f, id) {
+    const r = f && f.ranks && f.ranks[id];
+    return Math.max(1, Math.min(RANK_MAX, r | 0 || 1));
+  }
+
+  function usable(f, ab) {
+    if (!ab) return false;
+    if ((f.learned || []).indexOf(ab.id) >= 0) return true;
+    return (ab.unlock || 1) <= (f.level || 1);
+  }
+
+  function levelOffer(f) {
+    ensureMoves(f);
+    const pool = poolOf(f.cls);
+    const byId = {};
+    pool.forEach(function (ab) { if (ab && ab.id) byId[ab.id] = ab; });
+    const rng = IL.mulberry32((IL.hashStr(String(f.id || "f") + ":lv:" + (f.levelsTaken || 0)) >>> 0) || 1);
+    const ranked = f.known.map(function (id) { return byId[id]; }).filter(function (ab) {
+      return ab && ab.cd && usable(f, ab) && rankOf(f, ab.id) < RANK_MAX;
+    });
+    const equipped = ranked.filter(function (ab) { return f.loadout.indexOf(ab.id) >= 0; });
+    const fresh = pool.filter(function (ab) { return ab && ab.cd && f.known.indexOf(ab.id) < 0; });
+    const cards = [];
+    const used = {};
+    function take(list, kind) {
+      const open = list.filter(function (ab) { return !used[kind + ab.id]; });
+      if (!open.length) return false;
+      const ab = open[Math.floor(rng() * open.length)];
+      used[kind + ab.id] = true;
+      if (kind === "rank") cards.push({ kind: "rank", id: ab.id, from: rankOf(f, ab.id), to: rankOf(f, ab.id) + 1 });
+      else cards.push({ kind: "learn", id: ab.id });
+      return true;
+    }
+    if (!take(equipped, "rank") && !take(ranked, "rank")) take(fresh, "learn");
+    if (!take(fresh, "learn")) take(ranked, "rank") || take(equipped, "rank");
+    const third = rng() < 0.5 ? "spd" : "def";
+    const stats = ["hp", "dmg", third];
+    const key = stats[Math.floor(rng() * stats.length)];
+    cards.push({ kind: "stat", key: key });
+    while (cards.length < 3) {
+      const left = stats.filter(function (k) { return !cards.some(function (c) { return c.kind === "stat" && c.key === k; }); });
+      cards.push({ kind: "stat", key: left[Math.floor(rng() * left.length)] || "hp" });
+    }
+    return cards.slice(0, 3);
+  }
+
+  function applyLevelPick(f, index) {
+    if (!f || !(f.pendingLevels > 0)) return null;
+    const card = levelOffer(f)[index];
+    if (!card) return null;
+    if (!f.ranks || typeof f.ranks !== "object") f.ranks = {};
+    if (!f.boosts) f.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
+    if (card.kind === "rank") {
+      f.ranks[card.id] = card.to;
+    } else if (card.kind === "learn") {
+      if (!teachMove(f, card.id)) return null;
+      if (f.loadout.length < 3) f.loadout.push(card.id);
+    } else {
+      f.boosts[card.key] = (f.boosts[card.key] || 0) + 1;
+      if (!Array.isArray(f.perks)) f.perks = [];
+      f.perks.push({ id: card.key, level: f.level || 1 });
+    }
+    if (!Array.isArray(f.growth)) f.growth = [];
+    f.growth.push({ level: f.level || 1, kind: card.kind, id: card.id || card.key, to: card.to || 0 });
+    f.pendingLevels -= 1;
+    f.levelsTaken = (f.levelsTaken || 0) + 1;
+    return card;
+  }
+
   function teachMove(f, id) {
     ensureMoves(f);
     const pool = poolOf(f.cls).map(function (ab) { return ab.id; });
@@ -797,6 +881,13 @@
   IL.themedFighter = themedFighter;
   IL.abilitiesFor = abilitiesFor;
   IL.ensureMoves = ensureMoves;
+  IL.RANK_MAX = RANK_MAX;
+  IL.RANK_POW = RANK_POW;
+  IL.RANK_CD = RANK_CD;
+  IL.rankOf = rankOf;
+  IL.levelOffer = levelOffer;
+  IL.applyLevelPick = applyLevelPick;
+  IL.STAT_STEP = STAT_STEP;
   IL.teachMove = teachMove;
   IL.learnFromLevel = learnFromLevel;
   IL.moveChoices = moveChoices;

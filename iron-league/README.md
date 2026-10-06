@@ -83,6 +83,31 @@ The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, 
 
 **Stamina.** League and cup matches cost each fielded fighter 20 stamina and rest everyone on the bench by 34. Above half nothing changes; below half health and damage slide to at most −12% at empty. Cards, the sheet, and your versus cards show *Fresh*, *Ready*, *Tired*, or *Spent*. A new season starts everyone fresh. Events, endless, and the daily cost nothing.
 
+## Watchlist and draft cup (v60)
+
+**Watchlist.** The fighter board on the Market tab now turns over for free after every league and cup match. A **☆ Watch** button on each recruit keeps up to three of them on the board through a turnover or a paid refresh. Each turnover a watched price drifts between about −18% and +16% of what they first asked (an arrow on the card shows which way), and there is a 14% chance another club signs them first. **Scout for** picks a class: when a turnover does not already show one, the scout adds one a little under half the time (behind its renown gate if it is still locked). The result screen and the board list what changed. Hiring off the watchlist counts toward the *Patient eye* achievement.
+
+**Draft cup.** It sits under the cup on the Cup tab and costs 40 gold. Your roster stays home. You pick three mercenaries one at a time from offers of three distinct classes. Every class is open, including ones renown has not unlocked yet. Picks come at the average level of your three best fighters, and a class you already drafted is not offered again. One reroll is free. Three other clubs draft at the same level, then a four-club 3 vs 3 bracket plays on the cup's tree. Picks do not tire or pay stamina. Rewards: 20 gold and 3 renown for a semi loss, 18 and 4 for a semi win, 45 and 8 for losing the final, and 80 and 14 for the title. A champion signs one of the three for free (they arrive fresh) or lets them all go. *Draft champion* is an achievement.
+
+## The pit and the way to it (v61)
+
+**Pit.** The floor scales in quarter steps: 1.75× on a 1280×800 or 1366×768 laptop (it was 1.5×), 2.5× at 1920×1080. A short landscape phone drops under 1× instead of cropping the walls. Both clubs and every fighter's health share one header, with the timer in the middle. Fighters who are down dim. The toolbar groups speed (1× 2× 3×) on the left, **Control** in the middle (gold while you steer), and Meter / Pause / Skip on the right.
+
+**Hub.** The Club tab opens on a *next match* card: the fixture, the opponent's crest, both lineups, and a large **Fight** button with how many are ready. *Also open* chips under it point at a waiting cup tie, a draft step, the weekly event, the daily, or an endless run. Every other tab keeps a slim fight bar at the bottom (`#dockFight`). The Cup tab is now **Compete**: league and chaos pit cards on top, then the cup, then the draft cup. The chaos pit left the header. The versus card lists fighters as rows, so both lineups and the power bar fit on a laptop. The action bar reads **Back · Auto | Steer · Fight**, and Fight is the wide one.
+
+## Level ups, rewards, and the club screen (v62)
+
+**Level up.** Each level gained queues one pick (`pendingLevels`). The level-up screen shows the fighter, their stats, and their three equipped moves with ranks, then three cards:
+- **Rank up**: a move the fighter can use goes up a rank, I to V. Each rank adds +8% power (damage and healing) and −6% cooldown. The card shows power and cooldown before and after.
+- **New move**: a move from the class pool they do not know yet, with its cooldown, tags, and row. It drops into an open slot, or the next screen offers slots 1–3 to replace (or keep the loadout).
+- **Training**: health, attack, speed, or defense, showing the stat before and after.
+
+The offer is seeded by fighter and picks taken, so a reload shows the same three. *Decide later* keeps the pick. Older saves fold any waiting stat picks and level moves into the same queue. The fighter sheet gains a **Level up** button, rank numerals on its loadout, and a growth log. Every level still raises health and attack a little on its own. Focus at 5 and mastery at 10 are unchanged.
+
+**Reward screen.** A Victory or Defeat hero shows the mode, both crests, and the KO score. Under it sit tiles for gold, renown, xp each, and the loot find. A level-up strip names who has picks waiting. Each fighter gets a card with bars for damage dealt, damage taken, healing, KOs, the moves that landed, and an xp bar. Stamina, market, and who-stood lines fold into *Match notes*. The way on is **Level up · N** (when picks wait) or **Continue**. The season ceremony uses the same hero and tiles, and the yard relic claim sits in a tile.
+
+**Club screen.** The top-left emblem (with a pencil) opens a *Name and colors* popup: rename the club (a rival's name is refused), and pick emblem and plate. The Club tab no longer carries the color picker. Credits, Back to the title, and Name and colors live at the top of Settings. The Club pane shows one view at a time: Standings, Record, History, or Goals.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

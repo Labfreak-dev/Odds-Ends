@@ -7,34 +7,96 @@
   const RARITY_RANK = { common: 0, rare: 1, epic: 2, legendary: 3 };
 
   /* Flats, not percents. A full legendary set is a nudge, not a second kit. */
+  /* icons: common/rare are Beowulf frames; epic/legendary melee and armor use CaptainSkolot. */
+  function icons(common, rare, epic, legendary) {
+    return { common: common, rare: rare, epic: epic, legendary: legendary };
+  }
+
   const CATALOG = [
     { key: "cleaver", name: "Yard Cleaver", slot: "weapon", glyph: "sword",
-      icon: "assets/icons/weapons/cleaver.png",
+      icon: "bw_sword_01_steel",
+      icons: icons("bw_sword_01_steel", "bw_sword_05_gold", "cs_sword_v4_01_steel", "cs_sword_v4_07_gold"),
       atk: [1, 1, 2, 2],
       passive: { id: "keen", name: "Keen edge", blurb: "Cuts land as criticals a little more often." } },
-    { key: "wand", name: "Cinder Wand", slot: "weapon", glyph: "wand",
-      icon: "assets/icons/weapons/wand.png",
-      atk: [1, 1, 2, 2], spd: [0, 1, 2, 3] },
-    { key: "longbow", name: "Ash Longbow", slot: "weapon", glyph: "bow",
-      icon: "assets/icons/weapons/longbow.png",
+    { key: "axe", name: "Kiln Axe", slot: "weapon", glyph: "sword",
+      icon: "bw_ogre_club",
+      icons: icons("bw_ogre_club", "bw_mace_04_gold", "cs_axe_v1_14_steel", "cs_axe_v2_01_gold"),
+      atk: [1, 1, 2, 2] },
+    { key: "flail", name: "Yard Flail", slot: "weapon", glyph: "sword",
+      icon: "bw_flail_09_gold",
+      icons: icons("bw_flail_10_green", "bw_flail_09_gold", "cs_axe_v1_11_red", "cs_axe_v2_06_red"),
+      atk: [1, 1, 2, 2] },
+    { key: "mace", name: "Bell Mace", slot: "weapon", glyph: "sword",
+      icon: "bw_mace_02_steel",
+      icons: icons("bw_mace_02_steel", "bw_mace_04_gold", "cs_axe_v1_14_steel", "cs_sword_v4_11_green"),
+      atk: [1, 1, 2, 2], def: [0, 0, 1, 1] },
+    { key: "spear", name: "Stair Pike", slot: "weapon", glyph: "sword",
+      icon: "bw_broken_spear",
+      icons: icons("bw_broken_spear", "bw_sword_07_red", "cs_sword_v4_10_orange", "cs_sword_v4_07_gold"),
+      atk: [1, 1, 2, 2], spd: [0, 1, 1, 2] },
+    { key: "longbow", name: "Ash Bow", slot: "weapon", glyph: "bow",
+      icon: "bw_bow_03_steel",
+      icons: icons("bw_bow_03_steel", "bw_bow_07_gold", "bw_bow_06_red", "bw_bow_09_purple"),
       atk: [1, 1, 2, 2], spd: [1, 2, 2, 3] },
+    { key: "wand", name: "Cinder Staff", slot: "weapon", glyph: "wand",
+      icon: "bw_staff_02_steel",
+      icons: icons("bw_staff_02_steel", "bw_staff_07_gold", "bw_staff_06_red", "bw_staff_10_dark"),
+      atk: [1, 1, 2, 2], spd: [0, 1, 2, 3] },
+    { key: "tome", name: "Field Tome", slot: "weapon", glyph: "wand",
+      icon: "bw_tome_02_orange",
+      icons: icons("bw_tome_02_orange", "bw_tome_07_purple", "cs_magic_book_01_red", "cs_magic_book_09_blue"),
+      atk: [0, 1, 1, 2], hp: [2, 3, 4, 6] },
+    { key: "dagger", name: "Alley Dagger", slot: "weapon", glyph: "sword",
+      icon: "bw_dagger_01_steel",
+      icons: icons("bw_dagger_01_steel", "bw_dagger_03_gold", "bw_assassin_s_dagger", "bw_poison_dagger"),
+      atk: [1, 1, 2, 2], spd: [1, 2, 2, 3] },
+    { key: "star", name: "Throwing Star", slot: "weapon", glyph: "sword",
+      icon: "bw_ninja_star",
+      icons: icons("bw_ninja_star", "bw_dagger_03_gold", "bw_assassin_s_dagger", "bw_poison_dagger"),
+      atk: [1, 1, 1, 2], spd: [2, 2, 3, 4] },
     { key: "mail", name: "Riveted Mail", slot: "armor", glyph: "shield",
-      icon: "assets/icons/armor/mail.png",
+      icon: "bw_old_leather_armor",
+      icons: icons("bw_old_leather_armor", "bw_old_helm", "cs_shield_001_red", "cs_shield_v1_03_gold"),
       hp: [8, 10, 12, 14], def: [1, 1, 1, 2],
       passive: { id: "ward", name: "Thin ward", blurb: "A small shield at the first bell." } },
     { key: "cloak", name: "Dust Cloak", slot: "armor", glyph: "cloak",
-      icon: "assets/icons/armor/cloak.png",
+      icon: "bw_turtle_shell",
+      icons: icons("bw_turtle_shell", "bw_gauntlet_05_gold", "cs_shield_008_gold", "cs_shield_v2_07_gold"),
       hp: [4, 6, 8, 10], spd: [3, 4, 5, 6] },
+    { key: "helm", name: "Old Helm", slot: "armor", glyph: "shield",
+      icon: "bw_old_helm",
+      icons: icons("bw_old_helm", "bw_bloody_helmet", "cs_shield_015_red", "cs_shield_v1_01_orange"),
+      hp: [6, 8, 10, 12], def: [0, 1, 1, 1] },
+    { key: "guard", name: "Yard Shield", slot: "armor", glyph: "shield",
+      icon: "bw_old_shield",
+      icons: icons("bw_old_shield", "bw_broken_shield", "cs_shield_049_gold", "cs_shield_v2_01_steel"),
+      hp: [5, 7, 9, 12], def: [1, 1, 1, 2] },
+    { key: "gauntlet", name: "Pit Gauntlet", slot: "armor", glyph: "shield",
+      icon: "bw_gauntlet_01_red",
+      icons: icons("bw_gauntlet_01_red", "bw_gauntlet_05_gold", "cs_shield_008_gold", "cs_shield_v2_07_gold"),
+      atk: [0, 1, 1, 1], def: [1, 1, 1, 2] },
     { key: "charm", name: "Mender Charm", slot: "trinket", glyph: "gem",
-      icon: "assets/icons/trinkets/charm.png",
+      icon: "bw_green_gem",
+      icons: icons("bw_green_gem", "bw_orb_05_purple", "bw_diamond", "bw_fire_gem"),
       hp: [3, 4, 6, 8],
       passive: { id: "mend", name: "Slow mend", blurb: "A stitch of health across the fight." } },
     { key: "band", name: "Copper Band", slot: "trinket", glyph: "ring",
-      icon: "assets/icons/trinkets/band.png",
+      icon: "bw_ancient_golden_ring",
+      icons: icons("bw_butterfly_ring", "bw_ancient_golden_ring", "bw_golden_medallion", "bw_ruby"),
       atk: [1, 1, 1, 2], def: [0, 1, 1, 1] },
     { key: "glass", name: "Short Glass", slot: "trinket", glyph: "gem",
-      icon: "assets/icons/trinkets/glass.png",
-      spd: [2, 3, 4, 5], atk: [0, 0, 1, 1] }
+      icon: "bw_orb_04_gold",
+      icons: icons("bw_orb_04_gold", "bw_orb_05_purple", "bw_diamond", "bw_ruby"),
+      spd: [2, 3, 4, 5], atk: [0, 0, 1, 1] },
+    { key: "tonic-green", name: "Green Tonic", slot: "tonic", glyph: "gem",
+      icon: "cs_potion_01_green",
+      icons: icons("cs_potion_01_green", "cs_potion_01_green", "cs_potion_04_blue", "cs_potion_07_purple") },
+    { key: "tonic-blue", name: "Blue Tonic", slot: "tonic", glyph: "gem",
+      icon: "cs_potion_04_blue",
+      icons: icons("cs_potion_04_blue", "cs_potion_04_blue", "cs_potion_09_red", "cs_potion_07_purple") },
+    { key: "tonic-red", name: "Red Tonic", slot: "tonic", glyph: "gem",
+      icon: "cs_potion_09_red",
+      icons: icons("cs_potion_09_red", "cs_potion_09_red", "cs_potion_07_purple", "cs_potion_07_purple") }
   ];
 
   const BY_KEY = {};
@@ -84,7 +146,11 @@
     opt = opt || {};
     let tpl = opt.key ? BY_KEY[opt.key] : null;
     if (!tpl) {
-      const pool = CATALOG.filter(function (row) { return !opt.slot || row.slot === opt.slot; });
+      const pool = CATALOG.filter(function (row) {
+        if (opt.only === "tonic") return row.slot === "tonic";
+        if (opt.slot) return row.slot === opt.slot;
+        return row.slot !== "tonic";
+      });
       tpl = pool[Math.floor(rng() * pool.length)] || CATALOG[0];
     }
     const rarity = opt.rarity || rollRarity(rng, opt.bag || "win");
@@ -173,7 +239,63 @@
 
   function itemIcon(item) {
     const tpl = templateOf(item);
-    return tpl && tpl.icon ? tpl.icon : "";
+    if (!tpl) return "";
+    const table = tpl.icons;
+    if (table && item && table[item.rarity]) return table[item.rarity];
+    return tpl.icon || "";
+  }
+
+  function tonicShield(item) {
+    const rank = rarityIndex(item && item.rarity);
+    return 6 + rank * 2;
+  }
+
+  const ABILITY_ICON = {
+    cleave: "cs_spell_002_red",
+    multishot: "cs_spell_006_orange",
+    frost: "cs_water_symbol_01",
+    fireball: "cs_fire_symbol_01",
+    taunt: "cs_spell_016_red",
+    shadowstep: "cs_spell_014_purple",
+    charge: "cs_spell_022_orange",
+    rage: "cs_fire_symbol_05",
+    mend: "cs_spell_004_green",
+    pierce: "cs_spell_021_blue",
+    arc: "cs_spell_012_blue",
+    zone: "cs_spell_040_steel",
+    skirmish: "cs_spell_007_orange",
+    lunge: "cs_spell_003_red",
+    nova: "cs_water_symbol_03",
+    bolt: "cs_fire_symbol_03",
+    footing: "cs_spell_040_steel",
+    aim: "cs_spell_021_blue",
+    focus: "cs_spell_012_blue",
+    guard: "cs_spell_040_steel",
+    bleed: "cs_spell_002_red",
+    reach: "cs_spell_006_orange",
+    fury: "cs_fire_symbol_05",
+    triage: "cs_spell_004_green",
+    trail: "cs_spell_007_orange",
+    ward: "cs_water_symbol_02",
+    wall: "cs_spell_040_steel",
+    feint: "cs_spell_008_pink",
+    riposte: "cs_spell_003_red",
+    cycle: "cs_water_symbol_02"
+  };
+
+  const LOOT_FRAME = {
+    chest: { common: "7t4e_chest_tier1", rare: "7t4e_chest_tier3", epic: "7t4e_chest_tier5", legendary: "7t4e_chest_tier7" },
+    bag: { common: "7t4e_bag_tier1", rare: "7t4e_bag_tier3", epic: "7t4e_bag_tier5", legendary: "7t4e_bag_tier7" }
+  };
+
+  function abilityIcon(id) {
+    return ABILITY_ICON[id] || "";
+  }
+
+  function lootFrame(kind, rarity) {
+    const table = LOOT_FRAME[kind];
+    if (!table) return "";
+    return table[rarity] || table.common;
   }
 
   function itemBlurb(item) {
@@ -193,6 +315,7 @@
   }
 
   function rollLoot(rng, bag) {
+    if (rng() < 0.16) return makeItem(rng, { only: "tonic", bag: bag || "win" });
     return makeItem(rng, { bag: bag || "win" });
   }
 
@@ -207,6 +330,10 @@
       if (used[stamp]) continue;
       used[stamp] = true;
       stock.push({ item: item, cost: gearPrice(item) });
+    }
+    if (stock.length && rng() < 0.55) {
+      const drink = makeItem(rng, { only: "tonic", bag: "stock" });
+      stock[stock.length - 1] = { item: drink, cost: gearPrice(drink) };
     }
     return stock;
   }
@@ -253,6 +380,7 @@
         const slot = SLOTS[i];
         if (!validItem(f.gear[slot]) || itemSlot(f.gear[slot]) !== slot) f.gear[slot] = null;
       }
+      if (f.tonic && (!validItem(f.tonic) || itemSlot(f.tonic) !== "tonic")) f.tonic = null;
     }
     (data.roster || []).forEach(fixFighter);
     (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(fixFighter); });
@@ -280,6 +408,10 @@
   IL.itemSlot = itemSlot;
   IL.itemGlyph = itemGlyph;
   IL.itemIcon = itemIcon;
+  IL.tonicShield = tonicShield;
+  IL.abilityIcon = abilityIcon;
+  IL.lootFrame = lootFrame;
+  IL.CURRENCY_ICON = { gold: "bw_gold_coins", renown: "bw_gem_ruby", token: "bw_token_golden_medallion" };
   IL.itemBlurb = itemBlurb;
   IL.gearPrice = gearPrice;
   IL.salvageValue = salvageValue;

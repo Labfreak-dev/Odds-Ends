@@ -25,9 +25,6 @@ def run(page, label, shot_dir):
             url = (msg.location or {}).get("url") or ""
         except Exception:
             url = ""
-        # Missing icon art falls back to glyph tiles. That 404 is expected.
-        if "assets/icons/" in (text + " " + url):
-            return
         errors.append("console: " + text)
 
     page.on("console", note_console)
@@ -330,28 +327,28 @@ def check_gear(page, label, shot_dir):
     """Armory filters, equip diff, a bench drill, and a paid stall reroll."""
     page.keyboard.press("2")
     page.wait_for_selector("#armory")
-    icons = page.evaluate(
-        """() => (window.IL.GEAR_CATALOG || []).map(row => row.icon)"""
+    fetched = page.evaluate(
+        """async () => {
+          const png = await fetch('assets/icons/atlas.png');
+          const json = await fetch('assets/icons/atlas.json');
+          return { png: png.status, json: json.status };
+        }"""
     )
-    if len(icons) < 8:
-        raise SystemExit(label + " item catalog is short")
-    for path in icons:
-        if not path.startswith("assets/icons/") or not path.endswith(".png"):
-            raise SystemExit(label + " bad icon path " + str(path))
+    if fetched["png"] != 200 or fetched["json"] != 200:
+        raise SystemExit(label + " icon atlas failed " + str(fetched))
     page.wait_for_function(
         """() => {
-          const faces = document.querySelectorAll('#armory .glyph');
-          if (!faces.length) return false;
-          return Array.from(faces).every(el => {
-            const img = el.querySelector('img.item-icon, canvas.item-icon');
-            if (img && img.tagName === 'CANVAS') return true;
-            if (img && img.complete && img.naturalWidth > 0) {
-              const mode = getComputedStyle(img).imageRendering;
-              return mode === 'pixelated' || mode === 'crisp-edges';
-            }
-            return !!el.querySelector('svg');
-          });
-        }"""
+          if (!window.IL || !window.IL.iconsReady) return false;
+          const face = document.querySelector('#armory .item-icon');
+          const gold = document.querySelector('.ico-gold');
+          if (!face || face.hidden || !gold || gold.hidden) return false;
+          const bg = face.style.backgroundImage || '';
+          const coin = gold.style.backgroundImage || '';
+          if (bg.indexOf('atlas.png') < 0 || coin.indexOf('atlas.png') < 0) return false;
+          const mode = getComputedStyle(face).imageRendering;
+          return mode === 'pixelated' || mode === 'crisp-edges';
+        }""",
+        timeout=15000,
     )
     page.wait_for_selector("#filterSlot")
     page.wait_for_selector("#filterRarity")
@@ -418,6 +415,22 @@ def check_gear(page, label, shot_dir):
     )
     page.screenshot(path=str(shot_dir / f"{label}-stall.png"))
     page.keyboard.press("1")
+    page.wait_for_selector("#nextMatch")
+    page.click("#credits")
+    page.wait_for_selector("#creditsSheet")
+    credits = page.locator("#creditsSheet").inner_text().lower()
+    for phrase in ("ricardo machado", "captainskolot", "finalbossblues", "pizzadoggy", "additional art assets"):
+        if phrase not in credits:
+            raise SystemExit(label + " credits missing " + phrase)
+    if "beowulf" not in credits:
+        raise SystemExit(label + " credits missing beowulf")
+    if "dreamingoflight888" not in credits and "7t4e" not in credits:
+        raise SystemExit(label + " credits missing chest artist")
+    if "au_pixel" not in credits and "heroes99" not in credits:
+        raise SystemExit(label + " credits missing heroes credit")
+    page.screenshot(path=str(shot_dir / f"{label}-credits.png"))
+    page.click("#creditsClose")
+    page.wait_for_selector("#creditsSheet", state="detached")
     page.wait_for_selector("#nextMatch")
 
 

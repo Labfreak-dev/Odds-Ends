@@ -196,9 +196,11 @@ img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
   flex: none;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.28);
 }
+.ico-gold, .ico-renown, .ico-token { width: 24px; height: 24px; }
 .ico-gold { background: radial-gradient(circle at 35% 35%, #ffe7a3, #c9a227 62%, #7a5b12); }
 .ico-renown { background: radial-gradient(circle at 35% 35%, #f3d2b4, #c4622d 64%, #6e3016); }
 .ico-token { background: radial-gradient(circle at 35% 35%, #e4eefc, #8aa0c4 64%, #3d4e6a); }
+.ico[data-frame]:not([hidden]) { border-radius: 0; box-shadow: none; }
 .ico-roster { background: radial-gradient(circle at 35% 35%, #f7f1e6, #cbbba6 64%, #6d5b48); }
 .ico-relic { background: radial-gradient(circle at 35% 35%, #e6d4f4, #b08fd4 64%, #5c4578); }
 .preview-board {
@@ -286,6 +288,7 @@ img, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .fight-layout aside { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .live { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
 .live small { color: var(--muted); }
+.live b .item-icon { display: inline-block; vertical-align: -6px; margin-left: 4px; }
 .track { grid-column: 1 / -1; height: 6px; background: #100e0c; border-radius: 3px; overflow: hidden; }
 .live.you .fill { background: var(--copper); height: 100%; width: 100%; }
 .live.them .fill { background: var(--steel); height: 100%; width: 100%; }
@@ -439,6 +442,7 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
 .abilities, .relic-list { list-style: none; padding: 0; margin: 8px 0 0; }
 .abilities li, .relic-list li { border-top: 1px solid var(--line); padding: 8px 0; }
 .abilities strong, .relic-list strong { font-family: var(--display); font-size: 16px; }
+.abilities .item-icon { float: left; margin: 2px 8px 4px 0; }
 .abilities span { float: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
 .abilities p, .relic-list p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 .record { display: flex; gap: 14px; margin: 8px 0; font-variant-numeric: tabular-nums; }
@@ -494,7 +498,7 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
 .armory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
 .gear-card, .gear-slot, .gear-offer {
   display: grid;
-  grid-template-columns: 48px 1fr;
+  grid-template-columns: 52px 1fr;
   gap: 4px 8px;
   align-items: center;
   background: var(--ink);
@@ -517,8 +521,8 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
 }
 .gear-offer:hover, .gear-slot:hover { border-color: var(--copper-2); }
 .glyph {
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   border: 2px solid #8a7d70;
@@ -529,8 +533,8 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
 .glyph svg { width: 28px; height: 28px; }
 .item-icon {
   display: block;
-  image-rendering: pixelated;
   image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 .rarity-common { border-color: #8a7d70; }
 .rarity-rare { border-color: var(--steel); color: #d5e2f6; }
@@ -554,6 +558,7 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   border-radius: 8px;
   animation: loot-in 0.55s ease;
 }
+.loot-faces { display: flex; align-items: flex-end; gap: 6px; flex: none; }
 .loot-reveal h3 { margin: 0; font-family: var(--display); font-weight: 600; }
 .loot-reveal p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 @keyframes loot-in {

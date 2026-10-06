@@ -23,6 +23,7 @@
   let creditsOpen = false;
   let identityOpen = false;
   let clubView = "table";
+  let fightMenuOpen = false;
   let armorySlot = "all";
   let armoryRarity = "all";
   let armorySort = "rarity";
@@ -273,6 +274,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "The Club tab keeps one slim Fight bar. Fight opens a popup with both lineups and every other fight that is waiting, and the club screen scrolls on a phone.",
     "Level ups: every level picks one of three cards — rank a move up to V, learn a new one, or train a stat — with the numbers shown.",
     "A cleaner club: the emblem opens name and colors, Settings holds credits and the title, and the Club pane shows one view at a time.",
     "A bigger pit: the floor scales in finer steps, health sits in one header, and the toolbar groups speed, control, and skip.",
@@ -1912,19 +1914,15 @@
           (partyReady ? "Fight" : ("Choose " + size)) + '</button>'
       : "";
     const hero = done
-      ? '<section class="next-card done" id="nextCard"><div class="next-info"><p class="eyebrow">League · Season ' + save.season + '</p>' +
-          '<h3>Season closed</h3><p class="fine">' + esc(sortedClubs()[0].name) + ' leads the board.</p></div>' +
-          '<div class="next-go"><button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></div></section>'
-      : '<section class="next-card" id="nextCard">' +
+      ? '<section class="next-bar done" id="nextCard"><div class="next-info"><p class="eyebrow">League · Season ' + save.season + '</p>' +
+          '<h3>Season closed</h3></div>' +
+          '<button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></section>'
+      : '<section class="next-bar" id="nextCard">' +
           '<div class="next-info">' +
-            '<p class="eyebrow">League · Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + '</p>' +
+            '<p class="eyebrow">League · ' + (save.round + 1) + '/5 · ' + size + 'v' + size + (otherFights().length ? ' · +' + otherFights().length + ' more' : '') + '</p>' +
             '<h3>vs ' + crestHtml(rival ? rival.name : "", "sm", rival ? clubCrest(rival) : 0) + '<span>' + esc(rival ? rival.name : "—") + '</span></h3>' +
-            (nemesisBanner(rival) ? '<p class="fine">' + nemesisBanner(rival) + '</p>' : '') +
-            preview +
           '</div>' +
-          '<div class="next-go">' + sendBtn +
-            '<p class="fine next-ready">' + (partyReady ? yours.length + ' of ' + size + ' ready' : 'Pick ' + (size - yours.length) + ' more from the bench') + '</p>' +
-          '</div>' +
+          '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' + (partyReady ? "Fight" : "Pick " + size) + '</button>' +
         '</section>';
     return tutorHtml() +
       (pendingGrowth().length
@@ -1934,10 +1932,9 @@
         ? '<p class="banner">A new trick is waiting. <button type="button" class="btn gold" id="openMoves">Choose a move</button></p>'
         : '') +
       hero +
-      otherFightsHtml() +
       '<div class="hub-split" id="hubSplit">' +
         '<div class="hub-main" id="hubMain">' +
-          (preview ? "" : partySynergy) +
+          partySynergy +
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
         '<div class="pane club-pane" id="clubPane">' +
@@ -1976,6 +1973,70 @@
     if (!(save.daily && save.daily.day === day && save.daily.cleared)) out.push({ tab: "events", label: "Daily challenge" });
     if (save.endlessRun) out.push({ tab: "events", label: "Endless · wave " + (save.endlessRun.wave || 1) });
     return out;
+  }
+
+  /* The fight menu: the next league match with both lineups, then every
+     other fight that is waiting. Opened from the Fight bar on any tab. */
+  function fightMenuHtml() {
+    const done = save.round >= 5;
+    const rival = done ? null : nextRival();
+    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const yours = size ? fielded(save.roster, size) : [];
+    const theirs = rival && size ? rival.fighters.slice(0, size) : [];
+    const ready = !size || yours.length >= size;
+    function names(list) {
+      return '<ul class="preview-names">' + list.map(function (f) {
+        return '<li>' + esc(String(f.name || "Fighter").split(" ")[0]) + ' <small>' + esc((IL.CLASSES[f.cls] || {}).name || "") + ' · Lv ' + (f.level || 1) + '</small></li>';
+      }).join("") + '</ul>';
+    }
+    const league = done
+      ? '<section class="fm-card"><p class="eyebrow">League</p><h3>Season closed</h3>' +
+          '<button type="button" class="btn gold" id="fmSeason">Open the ceremony</button></section>'
+      : '<section class="fm-card fm-league">' +
+          '<p class="eyebrow">League · Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + '</p>' +
+          '<h3>vs ' + crestHtml(rival ? rival.name : "", "sm", rival ? clubCrest(rival) : 0) + '<span>' + esc(rival ? rival.name : "—") + '</span></h3>' +
+          (nemesisBanner(rival) ? '<p class="fine">' + nemesisBanner(rival) + '</p>' : '') +
+          synergyLine(yours, "fmSynergy") +
+          '<div class="fm-sides"><div><p class="eyebrow">Your party</p>' + names(yours) + '</div>' +
+            '<p class="vs">vs</p><div><p class="eyebrow">They send</p>' + names(theirs) + '</div></div>' +
+          (ready ? '' : '<p class="banner">Pick ' + (size - yours.length) + ' more for the pit on the Club tab.</p>') +
+          '<button type="button" class="btn fight" id="fightGo"' + (ready ? '' : ' disabled') + '>To the pit</button>' +
+        '</section>';
+    const rows = otherFights().map(function (o) {
+      return '<li><span>' + esc(o.label) + '</span><button type="button" class="ctl" data-fm-go="' + esc(o.tab) + '">Open ›</button></li>';
+    });
+    if (fielded(save.roster, 1).length) rows.push('<li><span>Chaos pit · free for all</span><button type="button" class="ctl" data-fm-chaos="1">Enter ›</button></li>');
+    return '<div class="sheet-back" id="fightMenuBack"></div>' +
+      '<aside class="sheet fight-menu" id="fightMenu" role="dialog" aria-modal="true" aria-labelledby="fightMenuTitle">' +
+        '<header class="sheet-head"><div><p class="eyebrow">Season ' + save.season + '</p><h2 id="fightMenuTitle">Ready to fight?</h2></div>' +
+          '<button type="button" class="btn close-x" id="fightMenuClose" aria-label="Close">Close</button></header>' +
+        league +
+        (rows.length ? '<h3 class="section">Also open</h3><ul class="fm-list">' + rows.join("") + '</ul>' : '') +
+      '</aside>';
+  }
+
+  function openFightMenu() {
+    detailId = null;
+    settingsOpen = false;
+    creditsOpen = false;
+    identityOpen = false;
+    fightMenuOpen = true;
+    refreshHub();
+  }
+
+  function bindFightMenu() {
+    const box = document.getElementById("fightMenu");
+    if (!box) return;
+    const close = function () { fightMenuOpen = false; refreshHub(); };
+    document.getElementById("fightMenuBack").onclick = close;
+    document.getElementById("fightMenuClose").onclick = close;
+    box.onclick = function (ev) {
+      if (ev.target.closest("#fightGo")) { fightMenuOpen = false; startFight(); return; }
+      if (ev.target.closest("#fmSeason")) { fightMenuOpen = false; showSeasonEnd(); return; }
+      const go = ev.target.closest("[data-fm-go]");
+      if (go) { fightMenuOpen = false; showHub(go.dataset.fmGo); return; }
+      if (ev.target.closest("[data-fm-chaos]")) { fightMenuOpen = false; showHub("cup"); startChaosFight(); }
+    };
   }
 
   function otherFightsHtml() {
@@ -2884,11 +2945,12 @@
         '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
         fightDockHtml() +
       '</main>' +
-      (identityOpen ? identityHtml() : '') +
-      (!identityOpen && creditsOpen ? creditsHtml() : '') +
-      (!identityOpen && settingsOpen && !creditsOpen ? settingsHtml() : '') +
-      (!identityOpen && !settingsOpen && !creditsOpen && fighter ? sheetHtml(fighter) : '') +
-      (!identityOpen && !settingsOpen && !creditsOpen && !fighter && relicOpen && hubTab === "relics" ? relicSheetHtml() : '');
+      (fightMenuOpen ? fightMenuHtml() : '') +
+      (!fightMenuOpen && identityOpen ? identityHtml() : '') +
+      (!fightMenuOpen && !identityOpen && creditsOpen ? creditsHtml() : '') +
+      (!fightMenuOpen && !identityOpen && settingsOpen && !creditsOpen ? settingsHtml() : '') +
+      (!fightMenuOpen && !identityOpen && !settingsOpen && !creditsOpen && fighter ? sheetHtml(fighter) : '') +
+      (!fightMenuOpen && !identityOpen && !settingsOpen && !creditsOpen && !fighter && relicOpen && hubTab === "relics" ? relicSheetHtml() : '');
     if (snap) {
       restoreScroll(snap);
       requestAnimationFrame(function () {
@@ -3258,12 +3320,12 @@
 
   function bindHub() {
     const nm = document.getElementById("nextMatch");
-    if (nm) nm.onclick = function () { startFight(); };
+    if (nm) nm.onclick = function () { openFightMenu(); };
     const tutorSkip = document.getElementById("tutorSkip");
     if (tutorSkip) tutorSkip.onclick = function () {
       save.tutored = true;
       persist();
-      refreshHub();
+      showHub(hubTab);
     };
     const tutorNext = document.getElementById("tutorNext");
     if (tutorNext) tutorNext.onclick = function () {
@@ -3271,7 +3333,7 @@
         save.tutored = true;
         persist();
       } else tutorStep += 1;
-      refreshHub();
+      showHub(hubTab);
     };
     const openSeason = document.getElementById("openSeason");
     if (openSeason) openSeason.onclick = function () { showSeasonEnd(); };
@@ -3279,7 +3341,7 @@
     if (dock) dock.onclick = function (ev) {
       const b = ev.target.closest("[data-dock]");
       if (b) {
-        if (b.dataset.dock === "fight") startFight();
+        if (b.dataset.dock === "fight") openFightMenu();
         else if (b.dataset.dock === "season") showSeasonEnd();
         else showHub("club");
         return;
@@ -3375,6 +3437,7 @@
     };
     bindCredits();
     bindIdentity();
+    bindFightMenu();
     const gear = document.getElementById("settings");
     if (gear) gear.onclick = function () {
       detailId = null;
@@ -3419,6 +3482,7 @@
       tomePick = null;
       creditsOpen = false;
       identityOpen = false;
+      fightMenuOpen = false;
       showHub(t.dataset.tab, t.dataset.tab === hubTab);
     };
     const panel = document.getElementById("hubPanel");
@@ -5877,6 +5941,12 @@
     }
     if (!document.getElementById("tabbar")) return;
     if (ev.key === "Escape") {
+      if (document.getElementById("fightMenu")) {
+        ev.preventDefault();
+        fightMenuOpen = false;
+        refreshHub();
+        return;
+      }
       if (document.getElementById("identitySheet")) {
         ev.preventDefault();
         identityOpen = false;

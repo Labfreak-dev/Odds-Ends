@@ -2066,3 +2066,28 @@ td.club-cell .club-name,
     overflow-wrap: break-word;
   }
 }
+
+/* Result stat columns size to their labels. .board's fixed layout and a
+   1% column width crushed the XP track until it left the panel. */
+#resultTable .result-grid {
+  table-layout: auto;
+  width: 100%;
+  max-width: 100%;
+}
+#resultTable .result-grid th:nth-child(n+2),
+#resultTable .result-grid td:nth-child(n+2) {
+  width: auto;
+  min-width: 2.8em;
+  white-space: nowrap;
+}
+#resultTable .result-xp {
+  width: 64px;
+  max-width: 64px;
+}
+#resultTable .result-xp .track {
+  width: 56px;
+  max-width: 56px;
+  border-width: 0;
+  border-image: none;
+  box-sizing: border-box;
+}

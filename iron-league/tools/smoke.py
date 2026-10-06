@@ -779,6 +779,7 @@ def check_fit(page):
         ("#market", "#marketCards"),
         ("#relics", ".card.relic"),
         ("#cup", "#enterCup"),
+        ("#events", "#eventsBoard"),
     ]
     for tab, wait in tabs:
         page.click(tab)
@@ -1259,9 +1260,12 @@ def qa_gate(browser, shot_dir):
         page.wait_for_selector("#enterCup, #bracketBoard")
         assert_inside(page, label + " cup")
         shot("cup")
-        page.keyboard.press("5")
-        page.wait_for_selector(".card.relic")
-        assert_inside(page, label + " relics")
+    page.keyboard.press("5")
+    page.wait_for_selector(".card.relic")
+    assert_inside(page, label + " relics")
+    page.keyboard.press("6")
+    page.wait_for_selector("#eventsBoard")
+    assert_inside(page, label + " events")
         shot("relics")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")

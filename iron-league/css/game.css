@@ -2153,3 +2153,106 @@ td.club-cell .club-name,
   padding: 0;
   background: none;
 }
+
+/* The hub fills the viewport. Inner panes take the leftover height. */
+body:has(.hub) {
+  height: 100dvh;
+  overflow: hidden;
+}
+.hub {
+  height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.hub.versus-screen,
+#seasonEnd.hub {
+  height: auto;
+  max-height: none;
+  min-height: 100dvh;
+  display: block;
+  overflow: auto;
+}
+body:has(.versus-screen),
+body:has(#seasonEnd) {
+  height: auto;
+  overflow: auto;
+}
+.hub-sticky { flex: none; }
+.hub-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.hub-panel:has(> .pane),
+.hub-panel:has(> .hub-split) {
+  overflow: hidden;
+}
+.hub-panel > .pane,
+.hub-split {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pane {
+  max-height: none;
+  overflow: auto;
+}
+.hub-split > .pane,
+.hub-split > .hub-main {
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+#eventsPane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#eventsPane > section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+@media (max-width: 999px) {
+  .hub-split {
+    display: flex;
+    flex-direction: column;
+  }
+  .hub-split > .pane,
+  .hub-split > .hub-main {
+    flex: 1 1 0;
+    height: auto;
+  }
+}
+@media (min-width: 1000px) {
+  .hub-split > .pane,
+  .hub-split > .hub-main {
+    height: 100%;
+  }
+}
+@media (max-width: 640px) {
+  .hub { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .pane { max-height: none; }
+  .hub .tab { min-width: 0; padding-left: 1px; padding-right: 1px; }
+  .hub .tab b { font-size: 10px; line-height: 1.05; }
+}
+#marketPane .roster-row,
+#dealsBoard .roster-row {
+  grid-template-columns: 56px minmax(0, 1fr) 112px;
+}
+#marketPane .btn:disabled,
+#dealsBoard .btn:disabled,
+#relicStall .btn:disabled {
+  color: #f6e7c1;
+}
+#marketPane .roster-row .btn,
+#dealsBoard .roster-row .btn {
+  font-size: 12px;
+  white-space: nowrap;
+  padding: 0 2px;
+}

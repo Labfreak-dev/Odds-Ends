@@ -82,10 +82,12 @@
       facing: team === 0 ? 1 : -1,
       hp: stats.hp,
       maxHp: stats.hp,
+      boss: !!fighter.boss,
       atk: stats.atk,
       def: stats.def,
       speed: stats.speed,
       radius: kit.radius,
+      bossPhase: fighter.boss ? 1 : 0,
       range: kit.range,
       role: kit.role,
       attacks: (kit.attacks || ["atk1"]).slice(),
@@ -193,6 +195,78 @@
     }
   }
 
+  function unitSource(opts, unit) {
+    const lists = [];
+    if (opts.sides) {
+      opts.sides.forEach(function (side) { (side.fighters || []).forEach(function (f) { lists.push(f); }); });
+    } else {
+      (opts.left || []).forEach(function (f) { lists.push(f); });
+      (opts.right || []).forEach(function (f) { lists.push(f); });
+    }
+    for (let i = 0; i < lists.length; i++) if (lists[i] && lists[i].id === unit.id) return lists[i];
+    return null;
+  }
+
+  function applyWaveMod(units, mod) {
+    if (!mod) return;
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (mod.id === "glass") {
+        u.atk = Math.round(u.atk * 1.12);
+        u.def = Math.max(0, u.def - 2);
+      } else if (mod.id === "haste") {
+        u.speed *= 1.1;
+      } else if (mod.id === "bulwark") {
+        u.def += 3;
+      } else if (mod.id === "hunger" && u.team !== 0) {
+        u.maxHp = Math.round(u.maxHp * 1.15);
+        u.hp = u.maxHp;
+      }
+    }
+  }
+
+  function tickBoss(m) {
+    if (m.mode !== "boss" || !m.bossAdds) return;
+    for (let i = 0; i < m.units.length; i++) {
+      const u = m.units[i];
+      if (!u.boss || u.hp <= 0) continue;
+      const frac = u.maxHp ? u.hp / u.maxHp : 1;
+      const phase = frac <= 0.34 ? 3 : frac <= 0.67 ? 2 : 1;
+      if ((u.bossPhase || 1) >= phase) continue;
+      u.bossPhase = phase;
+      u.atk = Math.round(u.atk * 1.12);
+      const tmpl = m.bossAdds[phase - 2];
+      if (!tmpl) continue;
+      const add = makeUnit(tmpl, u.team, 1, 1, m.teams || 2);
+      add.maxHp = Math.round(add.maxHp * 0.6);
+      add.hp = add.maxHp;
+      add.x = u.x + (phase === 2 ? -50 : 50);
+      add.y = u.y + 36;
+      if (m.spriteMap && tmpl.parts && IL.hero && IL.hero.keyOf) add.sprite = m.spriteMap[IL.hero.keyOf(tmpl.parts)];
+      m.units.push(add);
+    }
+  }
+
+  function tryNextWave(m) {
+    const pack = m.horde || m.king;
+    if (!pack || pack.done) return false;
+    if (!living(m, 0).length || living(m, 1).length) return false;
+    pack.cleared = (pack.cleared || 0) + 1;
+    if (pack.next >= (pack.waves || []).length) {
+      pack.done = true;
+      return false;
+    }
+    const list = pack.waves[pack.next];
+    pack.next += 1;
+    m.units = m.units.filter(function (u) { return u.team !== 1 || u.hp > 0; });
+    (list || []).forEach(function (f, i) {
+      const add = makeUnit(f, 1, i, list.length, m.teams || 2);
+      if (m.spriteMap && f.parts && IL.hero && IL.hero.keyOf) add.sprite = m.spriteMap[IL.hero.keyOf(f.parts)];
+      m.units.push(add);
+    });
+    return true;
+  }
+
   function createMatch(opts) {
     const units = [];
     let teams = 2;
@@ -215,6 +289,22 @@
       for (let i = 0; i < units.length; i++) if (units[i].team === 0) applyRelics(units[i], relics);
     }
     applySynergy(units);
+    if (opts.mod) applyWaveMod(units, opts.mod);
+    for (let i = 0; i < units.length; i++) {
+      const src = unitSource(opts, units[i]);
+      if (src && src.boss) {
+        units[i].boss = true;
+        units[i].bossPhase = 1;
+        units[i].maxHp = Math.round(units[i].maxHp * 2.6);
+        units[i].hp = units[i].maxHp;
+        units[i].atk = Math.round(units[i].atk * 1.18);
+        units[i].radius = (units[i].radius || 16) + 8;
+      }
+      if (src && typeof src.hpFrac === "number") {
+        const frac = Math.max(0, Math.min(1, src.hpFrac));
+        units[i].hp = Math.max(1, Math.round(units[i].maxHp * frac));
+      }
+    }
     const kills = [];
     for (let t = 0; t < teams; t++) kills.push(0);
     return {
@@ -225,6 +315,9 @@
       names: names,
       teams: teams,
       mode: opts.mode || "league",
+      horde: opts.horde || null,
+      king: opts.king || null,
+      bossAdds: opts.bossAdds || null,
       units: units,
       shots: [],
       events: [],
@@ -1959,7 +2052,10 @@
     const teamCount = m.teams || 2;
     let aliveTeams = 0;
     for (let t = 0; t < teamCount; t++) if (living(m, t).length) aliveTeams++;
-    const cap = teamCount > 2 ? 34 : 46;
+    tickBoss(m);
+    if (!m.ending && (m.horde || m.king) && tryNextWave(m)) aliveTeams = 2;
+    let cap = teamCount > 2 ? 34 : 46;
+    if (m.mode === "boss" || m.horde || m.king) cap = 80;
     if (aliveTeams <= 1 || m.time > cap) {
       if (!m.ending) {
         m.ending = true;

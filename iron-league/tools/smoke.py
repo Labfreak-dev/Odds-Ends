@@ -372,11 +372,29 @@ def check_yard(page, label):
         """() => {
           const c = document.querySelector('#clubYard');
           const a = IL.yardActors[0];
-          const r = c.getBoundingClientRect();
-          const y = r.top + (a.y - 48) * (r.height / c.height);
+          let scroller = c.parentElement;
+          while (scroller && scroller !== document.body) {
+            const cs = getComputedStyle(scroller);
+            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && scroller.scrollHeight > scroller.clientHeight + 4) break;
+            scroller = scroller.parentElement;
+          }
+          const actorY = () => {
+            const r = c.getBoundingClientRect();
+            return r.top + (a.y - 48) * (r.height / c.height);
+          };
           const tab = document.querySelector('#tabbar');
-          const limit = (tab ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
-          if (y > limit) window.scrollBy(0, y - limit);
+          const limit = (tab && getComputedStyle(tab).position === "fixed" ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
+          const sticky = document.querySelector('.hub-sticky');
+          const cover = sticky ? sticky.getBoundingClientRect().bottom + 8 : 8;
+          if (scroller && scroller !== document.body) {
+            const box = scroller.getBoundingClientRect();
+            scroller.scrollTop += actorY() - (box.top + Math.min(box.height * 0.45, 160));
+          } else if (actorY() > limit) {
+            window.scrollBy(0, actorY() - limit);
+          }
+          if (actorY() < cover && scroller && scroller !== document.body) {
+            scroller.scrollTop += actorY() - cover;
+          }
         }"""
     )
     box = page.evaluate(
@@ -441,10 +459,10 @@ def check_nav(page, label, shot_dir):
     check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
-    if tabs.count() != 5:
+    if tabs.count() != 6:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "fighter", "market", "cup", "relic"):
+    for word in ("club", "fighter", "market", "cup", "relic", "event"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()
@@ -711,32 +729,37 @@ def check_scroll(page, label):
           const buttons = document.querySelectorAll('#benchList [data-train]:not([disabled])');
           if (buttons.length < 3) return { ok: false, n: buttons.length };
           const btn = buttons[2];
-          const height = btn.getBoundingClientRect().height || 32;
-          const docTop = btn.getBoundingClientRect().top + window.scrollY;
+          let scroller = btn.parentElement;
+          while (scroller && scroller !== document.body) {
+            const cs = getComputedStyle(scroller);
+            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && scroller.scrollHeight > scroller.clientHeight + 4) break;
+            scroller = scroller.parentElement;
+          }
+          if (!scroller || scroller === document.body) scroller = document.scrollingElement;
+          scroller.setAttribute("data-smoke-scroll", "1");
           const sticky = document.querySelector('.hub-sticky');
           const cover = sticky ? sticky.getBoundingClientRect().height + 8 : 8;
           const tab = document.querySelector('#tabbar');
           const tabFixed = tab && getComputedStyle(tab).position === 'fixed';
           const limit = tabFixed ? tab.getBoundingClientRect().top - 4 : window.innerHeight - 4;
-          const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-          let y = Math.min(max, Math.max(40, docTop - cover - 24));
-          window.scrollTo(0, y);
+          const box = scroller.getBoundingClientRect();
+          const target = btn.getBoundingClientRect().top - box.top + scroller.scrollTop - 24;
+          scroller.scrollTop = Math.max(0, target);
           let rect = btn.getBoundingClientRect();
           if (rect.top < cover || rect.bottom > limit) {
-            y = Math.min(max, Math.max(0, docTop - cover - 12));
-            window.scrollTo(0, y);
+            scroller.scrollTop = Math.max(0, btn.getBoundingClientRect().top - box.top + scroller.scrollTop - 12);
             rect = btn.getBoundingClientRect();
           }
           return {
-            ok: buttons.length >= 3 && window.scrollY >= 30 && rect.top >= cover - 1 && rect.bottom <= limit,
+            ok: buttons.length >= 3 && scroller.scrollTop > 0 && rect.top >= cover - 1 && rect.bottom <= limit,
             n: buttons.length,
-            y: window.scrollY,
+            y: scroller.scrollTop,
             top: rect.top,
             bottom: rect.bottom,
             cover: cover,
             limit: limit,
-            max: max,
-            scrollHeight: document.documentElement.scrollHeight
+            max: scroller.scrollHeight - scroller.clientHeight,
+            scrollHeight: scroller.scrollHeight
           };
         }"""
     )
@@ -755,7 +778,17 @@ def check_scroll(page, label):
     )
     page.wait_for_timeout(80)
     after_state = page.evaluate(
-        """() => ({ y: window.scrollY, h: document.documentElement.scrollHeight })"""
+        """() => {
+          const btn = document.querySelector('#benchList [data-train]');
+          let el = btn ? btn.parentElement : null;
+          while (el && el !== document.body) {
+            const cs = getComputedStyle(el);
+            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && el.scrollHeight > el.clientHeight + 4) break;
+            el = el.parentElement;
+          }
+          if (!el || el === document.body) el = document.scrollingElement;
+          return { y: el.scrollTop, h: el.scrollHeight };
+        }"""
     )
     after = after_state["y"]
     if abs(after - before) > 2:
@@ -779,6 +812,7 @@ def check_fit(page):
         ("#market", "#marketCards"),
         ("#relics", ".card.relic"),
         ("#cup", "#enterCup"),
+        ("#events", "#eventsBoard"),
     ]
     for tab, wait in tabs:
         page.click(tab)
@@ -992,6 +1026,8 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " cup")
         visit("5", ".card.relic")
         assert_inside(page, label + " relics")
+        visit("6", "#eventsBoard")
+        assert_inside(page, label + " events")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")
         assert_inside(page, label + " settings")
@@ -1262,6 +1298,9 @@ def qa_gate(browser, shot_dir):
         page.keyboard.press("5")
         page.wait_for_selector(".card.relic")
         assert_inside(page, label + " relics")
+        page.keyboard.press("6")
+        page.wait_for_selector("#eventsBoard")
+        assert_inside(page, label + " events")
         shot("relics")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")

@@ -279,6 +279,16 @@
       }).slice(0, 3);
       if (data.deals.offers.length < 3) data.deals = null;
     }
+    if (!data.endless || typeof data.endless !== "object") data.endless = { best: 0, board: [] };
+    if (typeof data.endless.best !== "number") data.endless.best = 0;
+    if (!Array.isArray(data.endless.board)) data.endless.board = [];
+    data.endless.board = data.endless.board.filter(function (row) { return row && typeof row.wave === "number"; }).slice(0, 5);
+    if (data.endlessRun && typeof data.endlessRun.wave !== "number") data.endlessRun = null;
+    if (!data.daily || typeof data.daily !== "object") data.daily = { day: -1, cleared: false };
+    if (typeof data.daily.day !== "number") data.daily.day = -1;
+    if (typeof data.daily.cleared !== "boolean") data.daily.cleared = false;
+    if (!data.weekClear || typeof data.weekClear.week !== "number" || typeof data.weekClear.id !== "string") data.weekClear = null;
+    if (data.gauntlet && (!Array.isArray(data.gauntlet.fights) || data.gauntlet.fights.length !== 5)) data.gauntlet = null;
     if (!Array.isArray(data.history)) data.history = [];
     data.history = data.history.slice(0, 10);
     if (!data.settings || typeof data.settings !== "object") {
@@ -746,6 +756,104 @@
     });
   }
 
+  const EVENTS = [
+    { id: "boss", name: "Boss Brawl", blurb: "One giant with three phases. An add joins at each break.", reward: "A heavy purse, and a chance at a relic." },
+    { id: "gauntlet", name: "Gauntlet", blurb: "Five fights. Nobody is healed between them.", reward: "Gold climbs with each fight you finish." },
+    { id: "horde", name: "Horde", blurb: "Three waves in one pit.", reward: "Gear if you clear the last wave." },
+    { id: "king", name: "King of the Pit", blurb: "One fighter. Six waves, or until they fall.", reward: "Renown for every wave you clear." },
+    { id: "mirror", name: "Mirror Match", blurb: "Your party, under the other crest.", reward: "Renown, win or lose." }
+  ];
+  const ENDLESS_MODS = [
+    { id: "glass", name: "Glass", blurb: "Hits land harder. Armor thins." },
+    { id: "haste", name: "Haste", blurb: "Everyone is quicker." },
+    { id: "bulwark", name: "Bulwark", blurb: "Armor thickens." },
+    { id: "hunger", name: "Hunger", blurb: "The wave comes in heavier." }
+  ];
+
+  function classIds() { return Object.keys(IL.CLASSES); }
+
+  function squadOf(rng, n, level) {
+    const ids = classIds();
+    const list = [];
+    const count = Math.max(1, n || 1);
+    for (let i = 0; i < count; i++) {
+      const fighter = IL.randomFighter(rng, IL.pick(rng, ids));
+      fighter.level = Math.max(1, level || 1);
+      list.push(fighter);
+    }
+    return list;
+  }
+
+  function activeEvent(now) {
+    return EVENTS[weekIndex(now || 0) % EVENTS.length];
+  }
+
+  function dayIndex(now) { return Math.floor((now || 0) / 86400000); }
+
+  function dailySquad(day, season) {
+    const rng = IL.mulberry32(((day || 0) * 9973 + 17) >>> 0);
+    return squadOf(rng, 2, 1 + Math.max(0, (season || 1) - 1));
+  }
+
+  function startGauntlet(rng, n, level) {
+    const fights = [];
+    const size = Math.max(1, Math.min(3, n || 1));
+    const base = Math.max(1, level || 1);
+    for (let i = 0; i < 5; i++) fights.push(squadOf(rng, size, base + i));
+    return { step: 0, wins: 0, hp: {}, fights: fights };
+  }
+
+  function makeBoss(rng, level) {
+    const fighter = IL.randomFighter(rng, IL.pick(rng, classIds()));
+    fighter.boss = true;
+    fighter.champion = true;
+    fighter.level = Math.max(3, level || 3);
+    fighter.name = "Pit Warden";
+    return fighter;
+  }
+
+  function bossAdds(rng, level) {
+    return squadOf(rng, 2, Math.max(1, level || 1));
+  }
+
+  function endlessMod(wave) {
+    if (!wave || wave % 5 !== 0) return null;
+    return ENDLESS_MODS[(Math.floor(wave / 5) - 1) % ENDLESS_MODS.length];
+  }
+
+  function relicChoices(save, rng) {
+    const have = (save && save.relics) || [];
+    const pool = RELICS.filter(function (r) { return have.indexOf(r.id) < 0; });
+    const picks = [];
+    while (picks.length < 3 && pool.length) {
+      picks.push(pool.splice(Math.floor(rng() * pool.length), 1)[0].id);
+    }
+    while (picks.length < 3) picks.push("gold");
+    return picks;
+  }
+
+  function noteEndless(save, wave) {
+    if (!save.endless) save.endless = { best: 0, board: [] };
+    const cleared = Math.max(0, wave || 0);
+    if (cleared > save.endless.best) save.endless.best = cleared;
+    const board = save.endless.board || [];
+    board.push({ wave: cleared, club: save.clubName || "Club", at: Date.now() });
+    board.sort(function (a, b) { return b.wave - a.wave; });
+    save.endless.board = board.slice(0, 5);
+  }
+
+  IL.EVENTS = EVENTS;
+  IL.ENDLESS_MODS = ENDLESS_MODS;
+  IL.squadOf = squadOf;
+  IL.activeEvent = activeEvent;
+  IL.dayIndex = dayIndex;
+  IL.dailySquad = dailySquad;
+  IL.startGauntlet = startGauntlet;
+  IL.makeBoss = makeBoss;
+  IL.bossAdds = bossAdds;
+  IL.endlessMod = endlessMod;
+  IL.relicChoices = relicChoices;
+  IL.noteEndless = noteEndless;
   IL.RELICS = RELICS;
   IL.relicById = relicById;
   IL.equippedRelics = equippedRelics;

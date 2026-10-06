@@ -25,7 +25,8 @@
   let armorySort = "rarity";
   let fighterFilter = "all";
   let marketPane = "fighters";
-  const HUB_TABS = ["club", "fighters", "market", "cup", "relics"];
+  let eventPane = "week";
+  const HUB_TABS = ["club", "fighters", "market", "cup", "relics", "events"];
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -176,7 +177,7 @@
     samurai: "swords", spearmaiden: "sword", summoner: "battle_magic", alchemist: "battle_magic",
     beastmaster: "swords"
   };
-  const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace" };
+  const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace", events: "skull_demon" };
   const STAT_GLYPH = { HP: "drop_water_or_blood", ATK: "sword", DEF: "armor_1_body", SPD: "shoes" };
 
   function crestIndexOf(name) {
@@ -704,7 +705,8 @@
   }
 
   function fightBed(spec) {
-    if (spec.mode === "chaos") return "endless";
+    if (spec.mode === "chaos" || spec.mode === "endless" || spec.mode === "king") return "endless";
+    if (spec.mode === "boss") return "boss";
     const people = [];
     (spec.left || []).forEach(function (f) { people.push(f); });
     (spec.right || []).forEach(function (f) { people.push(f); });
@@ -1142,7 +1144,8 @@
       ["fighters", "Fighters", "2", "tab-fighters"],
       ["market", "Market", "3", "market"],
       ["cup", "Cup", "4", "cup"],
-      ["relics", "Relics", "5", "relics"]
+      ["relics", "Relics", "5", "relics"],
+      ["events", "Events", "6", "events"]
     ];
     return '<nav class="tabbar" id="tabbar" role="tablist" aria-label="Club sections">' +
       labels.map(function (row) {
@@ -1523,8 +1526,8 @@
         : '') +
       preview +
       synergyLine(yours, "partySynergy") +
-      '<div class="hub-split">' +
-        '<div class="hub-main">' +
+      '<div class="hub-split" id="hubSplit">' +
+        '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
         '<div class="pane" id="clubPane">' +
@@ -1542,8 +1545,8 @@
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     return '<div id="fighterList">' +
       filterBar("fighters", fighterFilter, [["all", "All"], ["party", "Party"], ["bench", "Bench"]]) +
-      '<div class="hub-split">' +
-        '<div class="hub-main">' +
+      '<div class="hub-split" id="hubSplit">' +
+        '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", fighterFilter) +
         '</div>' +
         '<div class="pane" id="armoryPane">' + armoryHtml() + '</div>' +
@@ -1565,7 +1568,13 @@
       const locked = !!row.locked;
       const champ = f.champion ? " · Champion" : "";
       const price = locked ? (row.need + " renown") : (row.cost + " gold");
-      const cant = locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP;
+      const full = save.roster.length >= IL.ROSTER_CAP;
+      const broke = save.gold < row.cost;
+      const cant = locked || broke || full;
+      let hireText = "Hire";
+      if (locked) hireText = "Need " + row.need + "r";
+      else if (full) hireText = "Full";
+      else if (broke) hireText = "Need " + row.cost + "g";
       return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '" data-role="' + esc(kit.role) + '">' +
         portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
         '<div class="row-main">' +
@@ -1573,7 +1582,7 @@
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
           '<p class="fine">' + esc(price) + (kit.ability ? " · " + esc(kit.ability.name) : "") + '</p>' +
         '</div>' +
-        '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + '</button>' +
+        '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + hireText + '</button>' +
       '</article>';
     }).join("");
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
@@ -1628,7 +1637,10 @@
       const gone = row.stock < 1;
       const broke = save.gold < row.cost;
       const cant = owned || gone || broke;
-      const label = owned ? "Owned" : (gone ? "Sold" : ("Buy — " + row.cost + " gold"));
+      let label = "Buy — " + row.cost + " gold";
+      if (owned) label = "Owned";
+      else if (gone) label = "Sold";
+      else if (broke) label = "Need " + row.cost + "g";
       return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
         '<h3>' + esc(relic.name) + '</h3>' +
         '<p>' + esc(relic.blurb) + '</p>' +
@@ -1673,7 +1685,7 @@
             '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
             '<p class="fine">' + offer.cost + ' gold · 1 in stock</p>' +
           '</div>' +
-          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Sold" : "Hire") + '</button>' +
+          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Sold" : (full ? "Full" : (broke ? "Need " + offer.cost + "g" : "Hire"))) + '</button>' +
         '</article>';
       }
       if (offer.kind === "bundle") {
@@ -1687,7 +1699,7 @@
           '<h3>Relic bundle</h3>' +
           '<p>' + esc(names) + '</p>' +
           '<p class="fine">Both, at a discount. You keep any you already own. 1 in stock.</p>' +
-          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (haveAll ? "Owned" : (gone ? "Sold" : ("Buy — " + offer.cost + " gold"))) + '</button>' +
+          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (haveAll ? "Owned" : (gone ? "Sold" : (broke ? "Need " + offer.cost + "g" : ("Buy — " + offer.cost + " gold")))) + '</button>' +
         '</article>';
       }
       const opened = offer.opened;
@@ -1703,11 +1715,96 @@
       return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
         '<h3>Mystery chest</h3>' +
         '<p class="fine">' + esc(result) + '</p>' +
-        '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Opened" : ("Open — " + offer.cost + " gold")) + '</button>' +
+        '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Opened" : (broke ? "Need " + offer.cost + "g" : ("Open — " + offer.cost + " gold"))) + '</button>' +
       '</article>';
     }).join("");
     return '<section id="dealsBoard"><h3 class="section">This week</h3>' +
       '<div class="deals-stack">' + cards + '</div></section>';
+  }
+
+  function weekDone(id) {
+    const mark = save.weekClear;
+    return !!(mark && mark.week === IL.weekIndex(Date.now()) && mark.id === id);
+  }
+
+  function eventParty() {
+    const n = Math.min(3, Math.max(1, (save.lineup || []).length || 1));
+    let party = fielded(save.roster, n);
+    if (!party.length && save.roster && save.roster[0]) party = [save.roster[0]];
+    return party;
+  }
+
+  function withFractions(list, hp) {
+    return (list || []).map(function (f) {
+      const copy = Object.assign({}, f);
+      if (hp && typeof hp[f.id] === "number") copy.hpFrac = hp[f.id];
+      return copy;
+    }).filter(function (f) { return !(hp && hp[f.id] <= 0); });
+  }
+
+  function hpFractions(match) {
+    const map = {};
+    (match.units || []).forEach(function (u) {
+      if (!u || u.team !== 0 || u.summon) return;
+      map[u.id] = u.maxHp ? Math.max(0, u.hp / u.maxHp) : 0;
+    });
+    return map;
+  }
+
+  function eventsPanel() {
+    const tabs = filterBar("events", eventPane, [["week", "This week"], ["endless", "Endless"], ["daily", "Daily"]]);
+    let body = "";
+    if (eventPane === "endless") {
+      const best = (save.endless && save.endless.best) || 0;
+      const board = (save.endless && save.endless.board) || [];
+      const rows = board.map(function (row, i) {
+        return '<li>' + (i + 1) + '. ' + esc(row.club || "Club") + ' — wave ' + row.wave + '</li>';
+      }).join("");
+      const running = save.endlessRun && save.endlessRun.wave;
+      body = '<section id="endlessBoard">' +
+        '<h3 class="section">Endless</h3>' +
+        '<p class="fine">Waves scale. Every fifth wave brings a modifier, then a relic pick. Your best stays on this device.</p>' +
+        '<p class="fine">Best wave: ' + best + (running ? ' · Run in progress: wave ' + save.endlessRun.wave : '') + '</p>' +
+        '<div class="hub-actions"><button type="button" class="btn fight" id="startEndless">' + (running ? "Resume" : "Enter the pit") + '</button></div>' +
+        '<h3 class="section">On this device</h3>' +
+        (rows ? '<ol class="payout">' + rows + '</ol>' : '<p class="fine">No runs yet.</p>') +
+      '</section>';
+    } else if (eventPane === "daily") {
+      const day = IL.dayIndex(Date.now());
+      const done = save.daily && save.daily.day === day && save.daily.cleared;
+      const foes = IL.dailySquad(day, save.season || 1);
+      const names = foes.map(function (f) {
+        const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+        return f.name + " (" + kit.name + ")";
+      }).join(", ");
+      body = '<section id="dailyBoard">' +
+        '<h3 class="section">Daily challenge</h3>' +
+        '<p class="fine">The same pair for every club today. One purse if you win.</p>' +
+        '<p class="fine">' + esc(names) + '</p>' +
+        '<div class="hub-actions"><button type="button" class="btn fight" id="startDaily"' + (done ? " disabled" : "") + '>' + (done ? "Cleared today" : "Fight today") + '</button></div>' +
+      '</section>';
+    } else {
+      const current = IL.activeEvent(Date.now());
+      const cards = IL.EVENTS.map(function (ev) {
+        const on = ev.id === current.id;
+        const cleared = on && weekDone(ev.id);
+        return '<article class="card stall-card' + (on ? " buyable" : "") + '">' +
+          '<h3>' + esc(ev.name) + (on ? "" : " · later") + '</h3>' +
+          '<p>' + esc(ev.blurb) + '</p>' +
+          '<p class="fine">' + esc(ev.reward) + '</p>' +
+          (on
+            ? '<button type="button" class="btn fight" id="startEvent"' + (cleared ? " disabled" : "") + '>' + (cleared ? "Cleared this week" : "Enter") + '</button>'
+            : '<p class="fine">Back on another week.</p>') +
+        '</article>';
+      }).join("");
+      const left = IL.formatRemain ? IL.formatRemain(IL.msUntilWeek(Date.now())) : "";
+      body = '<section id="eventsBoard">' +
+        '<h3 class="section">This week</h3>' +
+        '<p class="fine">One event is open. The board turns in ' + esc(left) + '.</p>' +
+        '<div class="deals-stack">' + cards + '</div>' +
+      '</section>';
+    }
+    return '<div id="eventsPane">' + tabs + body + '</div>';
   }
 
   function relicsPanel() {
@@ -1805,7 +1902,7 @@
 
   function captureScroll() {
     const panes = [];
-    document.querySelectorAll(".pane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
+    document.querySelectorAll(".pane, #hubPanel, #hubMain, #hubSplit, #fighterList, #eventsPane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
       if (el.id) panes.push({ id: el.id, top: el.scrollTop });
     });
     return {
@@ -1841,6 +1938,7 @@
     if (switching) {
       if (next === "market") marketPane = "fighters";
       if (next === "fighters") fighterFilter = "all";
+      if (next === "events") eventPane = "week";
     }
     hubTab = next;
     hubBed();
@@ -1852,6 +1950,7 @@
       : hubTab === "market" ? marketPanel()
       : hubTab === "cup" ? cupPanel()
       : hubTab === "relics" ? relicsPanel()
+      : hubTab === "events" ? eventsPanel()
       : clubPanel();
     const fighter = detailId ? fighterById(detailId) : null;
     app.innerHTML =
@@ -2079,6 +2178,12 @@
     if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
+    const startEvent = document.getElementById("startEvent");
+    if (startEvent) startEvent.onclick = function () { beginEvent(); };
+    const startEndlessBtn = document.getElementById("startEndless");
+    if (startEndlessBtn) startEndlessBtn.onclick = function () { beginEndless(); };
+    const startDailyBtn = document.getElementById("startDaily");
+    if (startDailyBtn) startDailyBtn.onclick = function () { beginDaily(); };
     const growthBtn = document.getElementById("openGrowth");
     if (growthBtn) growthBtn.onclick = function () { showGrowth(); };
     const movesBtn = document.getElementById("openMoves");
@@ -2149,6 +2254,7 @@
       if (filt) {
         if (filt.dataset.filterKind === "fighters") fighterFilter = filt.dataset.filter;
         if (filt.dataset.filterKind === "market") marketPane = filt.dataset.filter;
+        if (filt.dataset.filterKind === "events") eventPane = filt.dataset.filter;
         refreshHub();
         return;
       }
@@ -2970,6 +3076,7 @@
       spec.left.forEach(function (f) { people.push(f); });
       spec.right.forEach(function (f) { people.push(f); });
     }
+    (spec.extra || []).forEach(function (f) { if (f) people.push(f); });
     const jobs = {};
     people.forEach(function (f) { if (f && f.parts) jobs[IL.hero.keyOf(f.parts)] = f.parts; });
     const keys = Object.keys(jobs);
@@ -2998,8 +3105,13 @@
           leftName: spec.leftName,
           rightName: spec.rightName,
           relics: relics,
-          mode: spec.mode
+          mode: spec.mode,
+          horde: spec.horde || null,
+          king: spec.king || null,
+          bossAdds: spec.bossAdds || null,
+          mod: spec.mod || null
         });
+      match.spriteMap = map;
       match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
       fight = {
         match: match,
@@ -3008,6 +3120,7 @@
         rival: spec.rival || null,
         size: spec.size || 1,
         mode: spec.mode || "league",
+        returnTab: spec.returnTab || "club",
         tok: tok
       };
       IL.currentMatch = match;
@@ -3052,6 +3165,159 @@
       seed: (save.rngSeed ^ (save.season * 811) ^ ((cup.round + 1) * 17)) >>> 0,
       returnTab: "cup"
     });
+  }
+
+  function eventSeed(salt) {
+    return (save.rngSeed ^ IL.weekIndex(Date.now()) ^ salt) >>> 0;
+  }
+
+  function launchBoss(party) {
+    const rng = takeRng();
+    const boss = IL.makeBoss(rng, (save.season || 1) + 2);
+    const adds = IL.bossAdds(rng, save.season || 1);
+    persist();
+    return launchMatch({
+      mode: "boss", left: party, right: [boss], extra: adds, bossAdds: adds,
+      leftName: save.clubName, rightName: boss.name, size: party.length,
+      seed: eventSeed(0xB055), returnTab: "events"
+    });
+  }
+
+  function launchGauntletStep() {
+    const g = save.gauntlet;
+    if (!g) return;
+    const byId = {};
+    (save.roster || []).forEach(function (f) { if (f) byId[f.id] = f; });
+    const base = (g.ids || []).map(function (id) { return byId[id]; }).filter(Boolean);
+    const party = withFractions(base, g.hp);
+    if (!party.length || g.step >= 5) {
+      save.gauntlet = null;
+      showHub("events");
+      return;
+    }
+    const foes = g.fights[g.step];
+    return launchMatch({
+      mode: "gauntlet", left: party, right: foes,
+      leftName: save.clubName, rightName: "Fight " + (g.step + 1), size: party.length,
+      seed: eventSeed(0x6A17 + g.step), returnTab: "events"
+    });
+  }
+
+  function launchGauntlet(party) {
+    const g = IL.startGauntlet(takeRng(), party.length, save.season || 1);
+    g.ids = party.map(function (f) { return f.id; });
+    save.gauntlet = g;
+    persist();
+    return launchGauntletStep();
+  }
+
+  function launchHorde(party) {
+    const rng = takeRng();
+    const level = save.season || 1;
+    const size = Math.min(3, Math.max(2, party.length));
+    const wave1 = IL.squadOf(rng, Math.min(2, size), level);
+    const later = [
+      IL.squadOf(rng, Math.min(3, size), level + 1),
+      IL.squadOf(rng, Math.min(3, size), level + 2)
+    ];
+    return launchMatch({
+      mode: "horde", left: party, right: wave1,
+      extra: later[0].concat(later[1]),
+      horde: { waves: later, next: 0, cleared: 0 },
+      leftName: save.clubName, rightName: "The horde", size: party.length,
+      seed: eventSeed(0x40DE), returnTab: "events"
+    });
+  }
+
+  function launchKing(party) {
+    const rng = takeRng();
+    const waves = [];
+    for (let i = 0; i < 5; i++) waves.push(IL.squadOf(rng, 1, 2 + i));
+    const first = IL.squadOf(rng, 1, 1);
+    return launchMatch({
+      mode: "king", left: party.slice(0, 1), right: first,
+      extra: waves.reduce(function (all, row) { return all.concat(row); }, []),
+      king: { waves: waves, next: 0, cleared: 0 },
+      leftName: save.clubName, rightName: "The pit", size: 1,
+      seed: eventSeed(0x1116), returnTab: "events"
+    });
+  }
+
+  function launchMirror(party) {
+    const copies = party.map(function (f) { return Object.assign({}, f, { id: "mir-" + f.id }); });
+    return launchMatch({
+      mode: "mirror", left: party, right: copies,
+      leftName: save.clubName, rightName: "Mirror", size: party.length,
+      seed: eventSeed(0x1110), returnTab: "events"
+    });
+  }
+
+  function beginEvent() {
+    const ev = IL.activeEvent(Date.now());
+    if (!ev || weekDone(ev.id)) return;
+    const party = eventParty();
+    if (!party.length) return;
+    if (ev.id === "boss") return launchBoss(party);
+    if (ev.id === "gauntlet") return launchGauntlet(party);
+    if (ev.id === "horde") return launchHorde(party);
+    if (ev.id === "king") return launchKing(party);
+    if (ev.id === "mirror") return launchMirror(party);
+  }
+
+  function launchEndlessWave() {
+    const run = save.endlessRun;
+    if (!run) return;
+    const party = withFractions(eventParty(), run.hp);
+    if (!party.length) {
+      IL.noteEndless(save, Math.max(0, (run.wave || 1) - 1));
+      save.endlessRun = null;
+      persist();
+      showHub("events");
+      return;
+    }
+    const rng = takeRng();
+    const count = Math.min(3, 1 + Math.floor(((run.wave || 1) - 1) / 3));
+    const foes = IL.squadOf(rng, count, 1 + Math.floor((run.wave || 1) * 0.55));
+    return launchMatch({
+      mode: "endless", left: party, right: foes, mod: IL.endlessMod(run.wave),
+      leftName: save.clubName, rightName: "Wave " + run.wave, size: party.length,
+      seed: ((save.rngSeed ^ ((run.wave || 1) * 131)) >>> 0) || 1,
+      returnTab: "events"
+    });
+  }
+
+  function beginEndless() {
+    if (!save.endlessRun || typeof save.endlessRun.wave !== "number") save.endlessRun = { wave: 1, hp: {} };
+    persist();
+    return launchEndlessWave();
+  }
+
+  function beginDaily() {
+    const day = IL.dayIndex(Date.now());
+    if (save.daily && save.daily.day === day && save.daily.cleared) return;
+    const party = eventParty().slice(0, 2);
+    if (!party.length) return;
+    return launchMatch({
+      mode: "daily", left: party, right: IL.dailySquad(day, save.season || 1),
+      leftName: save.clubName, rightName: "Daily", size: party.length,
+      seed: (day * 9973 + 17) >>> 0, returnTab: "events"
+    });
+  }
+
+  function keepRelic(id) {
+    if (id && id !== "gold") {
+      if ((save.relics || []).indexOf(id) < 0) save.relics.push(id);
+    } else save.gold += 20;
+    save.endlessPick = null;
+    persist();
+    launchEndlessWave();
+  }
+
+  function relicPickHtml() {
+    return '<div class="chips">' + (save.endlessPick || []).map(function (id) {
+      const relic = id === "gold" ? null : IL.relicById(id);
+      return '<button type="button" class="chip" data-keep-relic="' + esc(id) + '">' + esc(relic ? relic.name : "20 gold") + '</button>';
+    }).join("") + '</div>';
   }
 
   function startChaosFight() {
@@ -3461,6 +3727,78 @@
       renown = win ? 7 : 2;
       headline = win ? "The pit is yours" : "They walk out";
       if (win) save.chaosWins = (save.chaosWins || 0) + 1;
+    } else if (mode === "boss") {
+      gold = win ? 70 : 18;
+      renown = win ? 8 : 2;
+      headline = win ? "The warden falls" : "The warden stands";
+      if (win) {
+        save.weekClear = { week: IL.weekIndex(Date.now()), id: "boss" };
+        if (takeRng()() < 0.5) {
+          const relic = IL.offerRelic(save, takeRng());
+          if (relic) relicNote = " Relic: " + relic.name + ".";
+        }
+      }
+    } else if (mode === "gauntlet") {
+      const g = save.gauntlet;
+      if (g) {
+        g.hp = hpFractions(match);
+        if (win) {
+          g.wins = (g.wins || 0) + 1;
+          g.step = (g.step || 0) + 1;
+        }
+        gold = 16 * (g.wins || 0);
+        renown = 2 * (g.wins || 0);
+        headline = win ? ("Fight " + g.wins + " of 5") : "The gauntlet stops";
+        if (!win || g.step >= 5) {
+          if (win) save.weekClear = { week: IL.weekIndex(Date.now()), id: "gauntlet" };
+          save.gauntlet = null;
+        }
+      }
+    } else if (mode === "horde") {
+      const cleared = (match.horde && match.horde.cleared) || (win ? 3 : 0);
+      gold = win ? 48 : 8 * cleared;
+      renown = win ? 6 : 1;
+      headline = win ? "The horde breaks" : "The horde rolls on";
+      if (win) save.weekClear = { week: IL.weekIndex(Date.now()), id: "horde" };
+    } else if (mode === "king") {
+      const cleared = (match.king && match.king.cleared) || 0;
+      gold = 8 * cleared;
+      renown = 3 * cleared;
+      headline = win ? "King of the pit" : ("Held " + cleared + (cleared === 1 ? " wave" : " waves"));
+      if (win) save.weekClear = { week: IL.weekIndex(Date.now()), id: "king" };
+    } else if (mode === "mirror") {
+      gold = win ? 24 : 10;
+      renown = win ? 10 : 4;
+      headline = win ? "You outlast yourself" : "The mirror wins";
+      if (win) save.weekClear = { week: IL.weekIndex(Date.now()), id: "mirror" };
+    } else if (mode === "daily") {
+      gold = win ? 36 : 8;
+      renown = win ? 4 : 1;
+      headline = win ? "The day is yours" : "The day stands";
+      const day = IL.dayIndex(Date.now());
+      const already = save.daily && save.daily.day === day && save.daily.cleared;
+      save.daily = { day: day, cleared: already || win };
+    } else if (mode === "endless") {
+      const run = save.endlessRun || { wave: 1, hp: {} };
+      if (win) {
+        gold = 8 + run.wave * 2;
+        renown = 1;
+        xp = 6;
+        headline = "Wave " + run.wave + " cleared";
+        run.hp = hpFractions(match);
+        const cleared = run.wave;
+        run.wave = cleared + 1;
+        save.endlessRun = run;
+        if (cleared % 5 === 0) save.endlessPick = IL.relicChoices(save, takeRng());
+      } else {
+        const cleared = Math.max(0, (run.wave || 1) - 1);
+        IL.noteEndless(save, cleared);
+        save.endlessRun = null;
+        save.endlessPick = null;
+        gold = 6 + cleared * 2;
+        renown = 1;
+        headline = cleared ? ("Stopped after wave " + cleared) : "The pit stops you";
+      }
     } else {
       if (win) save.tokens = (save.tokens || 0) + 1;
       recordRound(win, pf, pa);
@@ -3489,7 +3827,8 @@
     save.gold += gold;
     save.renown = (save.renown || 0) + renown;
     let loot = null;
-    if (mode === "league" || mode === "chaos" || (mode === "cup" && win)) {
+    const eventLoot = (mode === "boss" && win) || (mode === "horde" && win) || (mode === "daily" && win) || (mode === "gauntlet" && win && !save.gauntlet);
+    if (mode === "league" || mode === "chaos" || (mode === "cup" && win) || eventLoot) {
       const bag = mode === "cup" ? "cup" : (win ? "win" : "loss");
       loot = IL.rollLoot(takeRng(), bag);
       if (!Array.isArray(save.items)) save.items = [];
@@ -3509,6 +3848,13 @@
       }
     } else if (mode === "cup") {
       nextLine = save.cup && save.cup.champion ? "The bracket is finished." : "The bracket is waiting on the cup screen.";
+    } else if (mode === "endless" && win && save.endlessRun) {
+      const mod = IL.endlessMod(save.endlessRun.wave);
+      nextLine = "Wave " + save.endlessRun.wave + " is next." + (mod ? " Modifier: " + mod.name + ". " + mod.blurb : "");
+    } else if (mode === "gauntlet" && save.gauntlet) {
+      nextLine = "No healing. Fight " + (save.gauntlet.step + 1) + " of 5 is next.";
+    } else if (mode === "boss" || mode === "horde" || mode === "king" || mode === "mirror" || mode === "daily" || mode === "gauntlet" || mode === "endless") {
+      nextLine = "The events board is ready when you are.";
     } else {
       nextLine = "The club hub is ready when you are.";
     }
@@ -3537,7 +3883,10 @@
       '</div>' +
       '<div class="result-actions">' +
         (pendingGrowth().length ? '<button type="button" class="btn gold" id="pickPerk">Choose a perk</button>' : '') +
-        '<button type="button" class="btn primary" id="backHub">Back to club</button>' +
+        ((mode === "endless" && win && save.endlessPick && save.endlessPick.length) ? relicPickHtml() : '') +
+        (((mode === "endless" && win && !(save.endlessPick && save.endlessPick.length)) || (mode === "gauntlet" && win && save.gauntlet))
+          ? '<button type="button" class="btn fight" id="nextWave">' + (mode === "gauntlet" ? "Next fight" : "Next wave") + '</button>' : '') +
+        '<button type="button" class="btn primary" id="backHub">' + (fight.returnTab === "events" ? "Back to events" : "Back to club") + '</button>' +
       '</div>';
     animateXpBars();
     if (IL.sfx && IL.sfx.crowdBed) IL.sfx.crowdBed(false);
@@ -3554,8 +3903,20 @@
       IL.currentMatch = null;
       if (mode === "league" && save.round >= 5) showSeasonEnd();
       else if (mode === "cup") showCup();
-      else showHub();
+      else showHub(fight.returnTab || "club");
     };
+    const nextWave = document.getElementById("nextWave");
+    if (nextWave) nextWave.onclick = function () {
+      IL.currentMatch = null;
+      if (mode === "gauntlet") launchGauntletStep();
+      else launchEndlessWave();
+    };
+    box.querySelectorAll("[data-keep-relic]").forEach(function (btn) {
+      btn.onclick = function () {
+        IL.currentMatch = null;
+        keepRelic(btn.getAttribute("data-keep-relic"));
+      };
+    });
     paintHud(match);
     const canvas = document.getElementById("arena");
     if (canvas) {
@@ -3645,7 +4006,8 @@
       refreshHub();
       return;
     }
-    if (ev.key < "1" || ev.key > "5") return;
+    if (ev.key < "1" || ev.key > "9") return;
+    if (ev.key.charCodeAt(0) - 49 >= HUB_TABS.length) return;
     ev.preventDefault();
     pitSound("tab");
     detailId = null;

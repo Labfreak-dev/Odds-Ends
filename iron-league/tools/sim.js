@@ -68,6 +68,12 @@ check("air1 hit frames", IL.CLIPS.air1.hits[0] === 55 && IL.CLIPS.air2.hits[0] =
 check("cast2 is wired", IL.CLIPS.cast2.from === 68 && IL.CLASSES.mage.casts.indexOf("cast2") >= 0);
 check("pit is wider than 960", IL.WORLD.w >= 1440 && IL.WORLD.right - IL.WORLD.left > 1200);
 check("twenty four or more classes", Object.keys(IL.CLASSES).length >= 24);
+check("every class has a signature", Object.keys(IL.CLASSES).every(function (id) {
+  const list = IL.CLASSES[id].abilities || [];
+  return list.some(function (ab) {
+    return ab && IL.SIGNATURES && (IL.SIGNATURES[id + ":" + ab.id] || IL.SIGNATURES[ab.id]);
+  });
+}));
 const seenAb = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
   const kit = IL.CLASSES[id];

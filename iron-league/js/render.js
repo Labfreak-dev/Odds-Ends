@@ -549,6 +549,218 @@
     return "244, 210, 150";
   }
 
+  function sigFade(p) {
+    return p < 0.72 ? 1 : Math.max(0, 1 - (p - 0.72) / 0.28);
+  }
+
+  function drawSigRing(ctx, s, p, a) {
+    const grow = 0.32 + p * 0.78;
+    const rx = Math.max(8, s.r * grow);
+    const ry = rx * 0.42;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    if (s.mark === "soft") {
+      ctx.fillStyle = "rgba(" + s.rgb + "," + (a * 0.22) + ")";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
+    ctx.lineWidth = s.mark === "spike" ? 2 : 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,244,220," + (a * 0.65) + ")";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx * 0.7, ry * 0.7, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    const n = s.mark === "spike" ? 12 : 8;
+    const spin = s.mark === "spin" ? p * 6 : 0;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + spin;
+      const cs = Math.cos(ang);
+      const sn = Math.sin(ang);
+      if (s.mark === "spike") {
+        ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cs * rx * 0.4, sn * ry * 0.4);
+        ctx.lineTo(cs * rx * 1.18, sn * ry * 1.18);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "rgba(" + s.rgb + "," + a + ")";
+        ctx.beginPath();
+        ctx.arc(cs * rx, sn * ry, s.mark === "soft" ? 4.5 : 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawSigTrail(ctx, s, p, a) {
+    const head = Math.min(1, p * 1.2);
+    const lift = s.mark === "flask" ? Math.sin(head * Math.PI) * 42 : 0;
+    const hx = s.x + (s.x2 - s.x) * head;
+    const hy = s.y + (s.y2 - s.y) * head - lift;
+    ctx.save();
+    ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
+    ctx.lineWidth = s.mark === "slash" ? 5 : (s.mark === "bolt" ? 3.5 : 2);
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y);
+    const steps = s.mark === "bolt" ? 3 : 6;
+    for (let i = 1; i <= steps; i++) {
+      const t = head * (i / steps);
+      const arc = s.mark === "flask" ? Math.sin(t * Math.PI) * 42 : 0;
+      ctx.lineTo(s.x + (s.x2 - s.x) * t, s.y + (s.y2 - s.y) * t - arc);
+    }
+    ctx.stroke();
+    const motes = s.mark === "smoke" ? 5 : 4;
+    for (let i = 0; i < motes; i++) {
+      const t = Math.max(0, head - i * 0.12);
+      const arc = s.mark === "flask" ? Math.sin(t * Math.PI) * 42 : 0;
+      const spread = s.mark === "bolt" ? (i - 1.5) * s.r * 0.35 : 0;
+      ctx.fillStyle = "rgba(" + s.rgb + "," + (a * (1 - i * 0.18)) + ")";
+      ctx.beginPath();
+      ctx.arc(s.x + (s.x2 - s.x) * t + spread, s.y + (s.y2 - s.y) * t - arc, Math.max(2, (s.r || 8) * 0.28 - i), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,248,230," + a + ")";
+    ctx.beginPath();
+    ctx.arc(hx, hy, s.mark === "slash" ? 5 : 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function sigBolt(ctx, x1, y1, x2, y2, reach, rgb, a, bend) {
+    const segs = 8;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const mag = Math.hypot(dx, dy) || 1;
+    const nx = -dy / mag;
+    const ny = dx / mag;
+    ctx.strokeStyle = "rgba(" + rgb + "," + a + ")";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    for (let i = 1; i <= segs; i++) {
+      const t = i / segs;
+      if (t > reach) break;
+      const wob = (i % 2 === 0 ? 1 : -1) * bend * (0.55 + (i % 3) * 0.22);
+      const x = x1 + dx * t + nx * wob;
+      const y = y1 + dy * t + ny * wob;
+      ctx.lineTo(x, y);
+      if (i % 2 === 0 && t < reach) {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + nx * bend * 0.85, y + ny * bend * 0.85);
+        ctx.moveTo(x, y);
+      }
+    }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,244,220," + (a * 0.85) + ")";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function drawSigChain(ctx, s, p, a) {
+    const reach = Math.min(1, p * 1.45);
+    const bend = s.mark === "warm" ? 28 : 36;
+    ctx.save();
+    sigBolt(ctx, s.x, s.y, s.x2, s.y2, reach, s.rgb, a, bend);
+    if (s.hop && reach > 0.55) {
+      sigBolt(ctx, s.x2, s.y2, s.x3, s.y3, Math.min(1, (reach - 0.45) / 0.55), s.rgb, a * 0.9, bend * 0.7);
+    }
+    ctx.fillStyle = "rgba(" + s.rgb + "," + a + ")";
+    ctx.beginPath();
+    ctx.arc(s.x2, s.y2, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSigSummon(ctx, s, p, a) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.r * (0.7 + p * 0.25), s.r * 0.32, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,236,210," + (a * 0.75) + ")";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.r * 0.4, s.r * 0.16, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    const n = s.mark === "beast" ? 6 : 5;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + p * 2;
+      const rise = p * (28 + i * 8);
+      ctx.fillStyle = "rgba(" + s.rgb + "," + a + ")";
+      ctx.fillRect(Math.cos(ang) * s.r * 0.55 - 2, -rise, s.mark === "beast" ? 6 : 4, s.mark === "beast" ? 6 : 4);
+    }
+    ctx.restore();
+  }
+
+  function drawSigShield(ctx, s, p, a) {
+    ctx.save();
+    ctx.translate(s.x, s.y - 20);
+    const pulse = 0.85 + 0.15 * Math.sin(p * 12);
+    for (let i = 0; i < 3; i++) {
+      const a0 = p * 5 + i * 2.1;
+      ctx.strokeStyle = "rgba(" + s.rgb + "," + a + ")";
+      ctx.lineWidth = i === 1 ? 4 : 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, s.r * (0.5 + i * 0.16) * pulse, a0, a0 + (s.mark === "cross" ? 0.7 : 1.15));
+      ctx.stroke();
+    }
+    if (s.mark === "cross") {
+      ctx.strokeStyle = "rgba(255,244,210," + a + ")";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -s.r * 0.35);
+      ctx.lineTo(0, s.r * 0.35);
+      ctx.moveTo(-s.r * 0.22, -s.r * 0.08);
+      ctx.lineTo(s.r * 0.22, -s.r * 0.08);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawSigDust(ctx, s, p, a) {
+    const dir = (s.facing < 0 ? -1 : 1) * (s.mark === "back" || s.mark === "slash" ? -1 : 1);
+    const n = s.mark === "slash" ? 4 : 6;
+    ctx.save();
+    for (let i = 0; i < n; i++) {
+      const k = (i + 1) / n;
+      const x = s.x + dir * (8 + i * 14) * (0.35 + p);
+      const y = s.y - p * (6 + i * 7);
+      const w = (s.mark === "slash" ? 22 : 16) * (1.15 - p * 0.3) + i;
+      ctx.fillStyle = "rgba(" + s.rgb + "," + (a * (0.55 + 0.4 * (1 - k))) + ")";
+      ctx.beginPath();
+      ctx.ellipse(x, y, w, w * (s.mark === "slash" ? 0.28 : 0.42), dir * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawSigs(ctx, fx, ground) {
+    const list = fx.sigs;
+    if (!list) return;
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i];
+      const onFloor = s.style === "ring" || s.style === "dust" || s.style === "summon";
+      if (onFloor !== !!ground) continue;
+      const p = s.life > 0 ? Math.max(0, Math.min(1, s.t / s.life)) : 1;
+      const a = sigFade(p);
+      if (a <= 0.02) continue;
+      if (s.style === "ring") drawSigRing(ctx, s, p, a);
+      else if (s.style === "trail") drawSigTrail(ctx, s, p, a);
+      else if (s.style === "chain") drawSigChain(ctx, s, p, a);
+      else if (s.style === "summon") drawSigSummon(ctx, s, p, a);
+      else if (s.style === "shield") drawSigShield(ctx, s, p, a);
+      else drawSigDust(ctx, s, p, a);
+    }
+  }
+
   function drawMarks(ctx, fx) {
     const rings = fx.rings || [];
     for (let i = 0; i < rings.length; i++) {
@@ -712,6 +924,7 @@
       if (match.units[i].state === "dash" || match.units[i].state === "roll") drawTrail(ctx, match.units[i]);
     }
     drawSprites(ctx, fx.sprites, true);
+    drawSigs(ctx, fx, true);
 
     if (fx.booms) {
       for (let i = 0; i < fx.booms.length; i++) {
@@ -910,6 +1123,7 @@
       }
     }
 
+    drawSigs(ctx, fx, false);
     drawMarks(ctx, fx);
     for (let i = 0; i < match.shots.length; i++) drawShot(ctx, match.shots[i], fx.t || 0);
     drawSprites(ctx, fx.sprites, false);

@@ -678,6 +678,40 @@
     { name: "Houndmaster Grey", cls: "beastmaster" }
   );
 
+  /* Presentation only. One signature move per class. Combat numbers stay put. */
+  IL.SIGNATURES = {
+    cleave: { style: "ring", mark: "band", sheet: "sig-shock", rgb: "232,148,72", cue: "swing_heavy", anchor: "self", r: 84, life: 0.7, size: 190 },
+    multishot: { style: "trail", mark: "arrow", sheet: "sig-ice", rgb: "186,214,245", cue: "bow_draw", anchor: "foe", r: 14, life: 0.48, size: 110 },
+    frost: { style: "ring", mark: "band", sheet: "sig-ice", rgb: "170,220,245", cue: "spell_ice_impact", anchor: "foe", r: 92, life: 0.72, size: 200 },
+    fireball: { style: "trail", mark: "bolt", sheet: "sig-fire", rgb: "255,140,50", cue: "spell_fire_impact", anchor: "foe", r: 16, life: 0.5, size: 140 },
+    shove: { style: "dust", mark: "forward", sheet: "sig-smoke", rgb: "196,168,120", cue: "swing_blunt", anchor: "foe", r: 36, life: 0.7, size: 150 },
+    "rogue:shadowstep": { style: "trail", mark: "smoke", sheet: "sig-smoke", rgb: "176,130,220", cue: "spell_shadow_impact", anchor: "foe", r: 18, life: 0.46, size: 130 },
+    charge: { style: "dust", mark: "back", sheet: "sig-shock", rgb: "220,200,160", cue: "hit_spear", anchor: "self", r: 40, life: 0.48, size: 160 },
+    wreck: { style: "ring", mark: "band", sheet: "sig-fire", rgb: "255,70,36", cue: "swing_heavy", anchor: "self", r: 100, life: 0.74, size: 210 },
+    mend: { style: "ring", mark: "soft", sheet: "sig-bloom", rgb: "140,210,120", cue: "spell_holy_cast", anchor: "ally", r: 54, life: 0.7, size: 170 },
+    "assassin:shadowstep": { style: "dust", mark: "slash", sheet: "sig-hex", rgb: "140,60,80", cue: "hit_dagger", anchor: "self", r: 34, life: 0.46, size: 140 },
+    pierce: { style: "trail", mark: "arrow", sheet: "sig-spark", rgb: "120,200,110", cue: "bow_release", anchor: "foe", r: 10, life: 0.55, size: 100 },
+    arc: { style: "ring", mark: "spin", sheet: "sig-crack", rgb: "170,140,255", cue: "spell_lightning_impact", anchor: "foe", r: 64, life: 0.6, size: 170 },
+    zone: { style: "shield", mark: "orbit", sheet: "sig-crack", rgb: "150,190,255", cue: "shield_up", anchor: "self", r: 74, life: 0.8, size: 180 },
+    skirmish: { style: "trail", mark: "streak", sheet: "sig-spark", rgb: "255,200,90", cue: "gunshot", anchor: "foe", r: 12, life: 0.42, size: 110 },
+    snap: { style: "trail", mark: "flask", sheet: "sig-fire", rgb: "255,210,80", cue: "hit_bullet", anchor: "foe", r: 14, life: 0.5, size: 120 },
+    lunge: { style: "trail", mark: "slash", sheet: "sig-shock", rgb: "255,230,200", cue: "swing_blade", anchor: "foe", r: 22, life: 0.42, size: 150 },
+    nova: { style: "ring", mark: "spike", sheet: "sig-bloom", rgb: "210,160,255", cue: "spell_arcane_impact", anchor: "foe", r: 76, life: 0.68, size: 190 },
+    bolt: { style: "chain", mark: "warm", sheet: "sig-bolt", rgb: "255,180,80", cue: "spell_lightning_cast", anchor: "foe", r: 0, life: 0.68, size: 180 },
+    palm: { style: "ring", mark: "spin", sheet: "sig-shock", rgb: "255,210,120", cue: "hit_fist", anchor: "foe", r: 50, life: 0.55, size: 150 },
+    bone: { style: "summon", mark: "sigil", sheet: "sig-hex", rgb: "160,110,200", cue: "spell_shadow_cast", anchor: "pet", r: 48, life: 0.9, size: 170 },
+    "lay-on": { style: "shield", mark: "cross", sheet: "sig-bloom", rgb: "255,220,140", cue: "spell_holy_cast", anchor: "ally", r: 56, life: 0.8, size: 160 },
+    thorns: { style: "ring", mark: "spike", sheet: "sig-bloom", rgb: "70,170,70", cue: "spell_nature_impact", anchor: "foe", r: 68, life: 0.66, size: 180 },
+    encore: { style: "ring", mark: "soft", sheet: "sig-spark", rgb: "255,170,200", cue: "spell_arcane_cast", anchor: "self", r: 90, life: 0.75, size: 190 },
+    fanfire: { style: "trail", mark: "bolt", sheet: "sig-fire", rgb: "255,150,50", cue: "gunshot", anchor: "foe", r: 20, life: 0.45, size: 130 },
+    hexbolt: { style: "chain", mark: "cold", sheet: "sig-bolt", rgb: "150,90,255", cue: "spell_lightning_cast", anchor: "foe", r: 0, life: 0.72, size: 190 },
+    drawcut: { style: "trail", mark: "slash", sheet: "sig-crack", rgb: "255,244,220", cue: "swing_blade", anchor: "foe", r: 26, life: 0.4, size: 160 },
+    drive: { style: "dust", mark: "back", sheet: "sig-ice", rgb: "180,210,230", cue: "hit_spear", anchor: "self", r: 42, life: 0.48, size: 150 },
+    familiar: { style: "summon", mark: "sigil", sheet: "sig-hex", rgb: "120,180,255", cue: "spell_arcane_cast", anchor: "pet", r: 52, life: 0.9, size: 180 },
+    vial: { style: "trail", mark: "flask", sheet: "sig-fire", rgb: "110,220,70", cue: "spell_poison_impact", anchor: "foe", r: 14, life: 0.66, size: 130 },
+    hound: { style: "summon", mark: "beast", sheet: "sig-smoke", rgb: "180,130,70", cue: "spell_nature_cast", anchor: "pet", r: 50, life: 0.85, size: 170 }
+  };
+
   IL.TRAITS = TRAITS;
   IL.CLUB_THEMES = CLUB_THEMES;
   IL.ABILITY_ROWS = ABILITY_ROWS;

@@ -2817,7 +2817,9 @@
     const openFriend = document.getElementById("openFriend");
     if (openFriend) openFriend.onclick = function () {
       settingsOpen = false;
+      detailId = null;
       eventPane = "friend";
+      hubTab = "events";
       showHub("events");
     };
     const copyRep = document.getElementById("copyReport");

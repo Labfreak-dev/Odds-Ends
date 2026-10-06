@@ -948,6 +948,50 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 check("every class can preview its moves", galBroke === 0);
 check("the third starter is an ultimate", !!(IL.CLASSES.warrior.abilities.filter(function (ab) { return ab.unlock === 7; })[0] || {}).ult);
 
+/* v59: behavior rows, stamina, captain control. */
+function squadOf(seed, cls, edit) {
+  const rng = IL.mulberry32(seed);
+  return cls.map(function (c) { const f = IL.randomFighter(rng, c); f.level = 6; if (edit) edit(f); return f; });
+}
+function runOut(m, each) {
+  let steps = 0;
+  while (!m.over && steps < 4000) {
+    if (each) each(m, steps);
+    IL.stepMatch(m, 1 / 60);
+    m.events.length = 0;
+    steps++;
+  }
+  return m;
+}
+const comp3 = ["warrior", "archer", "mage"];
+const plain = runOut(IL.createMatch({ seed: 77, left: squadOf(1, comp3), right: squadOf(2, comp3) }));
+const dflt = runOut(IL.createMatch({ seed: 77, left: squadOf(1, comp3, function (f) { f.ai = IL.normAi({}); }), right: squadOf(2, comp3) }));
+check("default behavior fights the same as no behavior", plain.time === dflt.time && plain.winner === dflt.winner);
+check("normAi drops unknown values", IL.normAi({ target: "moon", range: "far" }).target === "near" && IL.normAi({ range: "far" }).range === "far");
+const hunt = runOut(IL.createMatch({ seed: 78, left: squadOf(3, comp3, function (f) { f.ai = { target: "back", retreat: "half", evade: "often", ult: "crowd", range: "far" }; }), right: squadOf(4, comp3) }));
+check("a custom behavior squad still finishes", hunt.over && hunt.units.every(function (u) { return Number.isFinite(u.x) && Number.isFinite(u.hp); }));
+const fresh = { cls: "warrior", level: 5, stamina: 100 };
+const spent = { cls: "warrior", level: 5, stamina: 0 };
+const half = { cls: "warrior", level: 5, stamina: 50 };
+const sf = IL.scaledStats(fresh, IL.CLASSES.warrior);
+const ss = IL.scaledStats(spent, IL.CLASSES.warrior);
+check("stamina above half costs nothing", IL.scaledStats(half, IL.CLASSES.warrior).hp === sf.hp);
+check("a spent fighter is weaker, but not by much", ss.hp < sf.hp && ss.hp >= Math.floor(sf.hp * 0.87));
+check("a fighter with no stamina field is fresh", IL.staminaOf({}) === 100 && IL.staminaMul({}) === 1);
+const piloted = IL.createMatch({ seed: 79, left: squadOf(5, comp3), right: squadOf(6, comp3) });
+piloted.pilot = { id: piloted.units[0].id, mx: 0, my: 0, goX: null, goY: null, focusId: null, targetId: null, ab: null, abT: 0, roll: false, chase: false, auto: false };
+const startX = piloted.units[0].x;
+for (let i = 0; i < 70; i++) { piloted.pilot.mx = 1; IL.stepMatch(piloted, 1 / 60); piloted.events.length = 0; }
+const pu = piloted.units.filter(function (u) { return u.id === piloted.pilot.id; })[0];
+check("the steered fighter walks where the keys say", pu.x > startX + 30);
+piloted.pilot.mx = 0;
+piloted.pilot.roll = true;
+for (let i = 0; i < 2; i++) { IL.stepMatch(piloted, 1 / 60); piloted.events.length = 0; }
+check("the steered fighter rolls on request", piloted.stats.rolls > 0);
+runOut(piloted, function (m) { if (m.pilot.ab == null && m.time % 2 < 0.02) { m.pilot.ab = 0; m.pilot.abT = 2.6; } });
+check("a steered match still ends", piloted.over);
+check("the steered fighter landed hits", pu.dmgDealt > 0);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

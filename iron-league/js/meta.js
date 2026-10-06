@@ -1354,7 +1354,8 @@
       boosts: slimBoosts(f.boosts),
       relic: f.relic || null,
       loadout: Array.isArray(f.loadout) ? f.loadout.slice(0, 3) : [],
-      learned: Array.isArray(f.learned) ? f.learned.slice() : []
+      learned: Array.isArray(f.learned) ? f.learned.slice() : [],
+      ai: IL.aiCustom && IL.aiCustom(f.ai) ? IL.normAi(f.ai) : undefined
     };
   }
 
@@ -1423,6 +1424,7 @@
       };
       if (Array.isArray(raw.loadout)) f.loadout = raw.loadout.slice(0, 3);
       if (Array.isArray(raw.learned)) f.learned = raw.learned.slice();
+      if (raw.ai && IL.normAi) f.ai = IL.normAi(raw.ai);
       if (IL.ensureMoves) IL.ensureMoves(f);
       fighters.push(f);
     });

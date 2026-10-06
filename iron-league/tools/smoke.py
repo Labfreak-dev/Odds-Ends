@@ -1368,7 +1368,11 @@ def main():
     shot.mkdir(exist_ok=True)
     frames_only = "--frames" in sys.argv
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel="chrome")
+        try:
+            browser = p.chromium.launch(channel="chrome")
+        except Exception:
+            # No Chrome install (cloud images ship only Playwright's Chromium).
+            browser = p.chromium.launch()
         if not frames_only:
             desktop = browser.new_page(viewport={"width": 1280, "height": 800})
             run(desktop, "desktop", shot)

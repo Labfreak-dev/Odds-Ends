@@ -2188,8 +2188,25 @@ body:has(#seasonEnd) {
   overflow: auto;
 }
 .hub-panel:has(> .pane),
-.hub-panel:has(> .hub-split) {
+.hub-panel:has(> .hub-split),
+.hub-panel:has(> #fighterList),
+.hub-panel:has(> #eventsPane) {
   overflow: hidden;
+}
+#fighterList {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#fighterList > .hub-split,
+#fighterList > .subtabs {
+  flex: none;
+}
+#fighterList > .hub-split {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .hub-panel > .pane,
 .hub-split {

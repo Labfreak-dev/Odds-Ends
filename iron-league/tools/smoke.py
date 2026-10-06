@@ -761,7 +761,14 @@ def check_scroll(page, label):
     page.wait_for_timeout(80)
     after_state = page.evaluate(
         """() => {
-          const el = document.querySelector('[data-smoke-scroll]') || document.scrollingElement;
+          const btn = document.querySelector('#benchList [data-train]');
+          let el = btn ? btn.parentElement : null;
+          while (el && el !== document.body) {
+            const cs = getComputedStyle(el);
+            if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && el.scrollHeight > el.clientHeight + 4) break;
+            el = el.parentElement;
+          }
+          if (!el || el === document.body) el = document.scrollingElement;
           return { y: el.scrollTop, h: el.scrollHeight };
         }"""
     )

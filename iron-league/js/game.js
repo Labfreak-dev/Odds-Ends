@@ -1527,7 +1527,7 @@
       preview +
       synergyLine(yours, "partySynergy") +
       '<div class="hub-split">' +
-        '<div class="hub-main">' +
+        '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
         '<div class="pane" id="clubPane">' +
@@ -1546,7 +1546,7 @@
     return '<div id="fighterList">' +
       filterBar("fighters", fighterFilter, [["all", "All"], ["party", "Party"], ["bench", "Bench"]]) +
       '<div class="hub-split">' +
-        '<div class="hub-main">' +
+        '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", fighterFilter) +
         '</div>' +
         '<div class="pane" id="armoryPane">' + armoryHtml() + '</div>' +
@@ -1902,7 +1902,7 @@
 
   function captureScroll() {
     const panes = [];
-    document.querySelectorAll(".pane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
+    document.querySelectorAll(".pane, #hubPanel, #hubMain, #fighterList, #eventsPane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
       if (el.id) panes.push({ id: el.id, top: el.scrollTop });
     });
     return {

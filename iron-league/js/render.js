@@ -8,14 +8,51 @@
      and cast blasts add 4 (cap 8) in game.js. 1 is that original kick.
      0.1 is a small nudge, not a shake. */
   const SHAKE_SCALE = 0.1;
+  /* Floors stay mid-tone. A near-white oval washes the battlers out. */
   const PITS = [
-    { id: "sand", name: "Sand colosseum", sky: ["#3a2a1c", "#6a4a30"], floor: ["#8a6844", "#c4a574", "#e6d2a8"], crowd: "#2a1c14", torch: "#e07a32", mote: "rgba(232,196,150,0.45)" },
-    { id: "frost", name: "Frozen ring", sky: ["#142433", "#3a5566"], floor: ["#8aa4b4", "#d5e6ee", "#f4fbff"], crowd: "#1a2830", torch: "#9fd0e8", mote: "rgba(220,240,255,0.55)" },
-    { id: "lava", name: "Lava forge", sky: ["#2a100c", "#6a2414"], floor: ["#4a1c14", "#8a3a22", "#c45a32"], crowd: "#1a0c0a", torch: "#ff6a2a", mote: "rgba(255,140,60,0.5)" },
-    { id: "night", name: "Night market", sky: ["#100e18", "#2a2440"], floor: ["#241c30", "#3a3450", "#5a4e68"], crowd: "#0c0a12", torch: "#e0b07a", mote: "rgba(224,176,122,0.4)" },
-    { id: "temple", name: "Ruined temple", sky: ["#161c14", "#2c3824"], floor: ["#4a4a3c", "#7a7864", "#b2aa90"], crowd: "#121610", torch: "#c6d48a", mote: "rgba(198,212,138,0.4)" }
+    {
+      id: "sand", name: "Sand colosseum",
+      sky: ["#24160f", "#4a3020"], floor: "#7a5638", grain: "#3a2616", lite: "#a88458",
+      wall: "#3a2a1c", rail: "#c4a06a", stone: "#5a4030",
+      crowd: "#140e0a", cloth: ["#6e3030", "#2c4068", "#6a5428", "#3a3028", "#243028"],
+      torch: "#e07a32", core: "#f2c14a", glow: "255,150,60",
+      mote: "rgba(210,170,120,0.35)", line: "rgba(48,28,14,0.4)"
+    },
+    {
+      id: "frost", name: "Frozen ring",
+      sky: ["#0c161e", "#1c3040"], floor: "#3e5564", grain: "#1a2c38", lite: "#7f9aab",
+      wall: "#1c303c", rail: "#c5dbe6", stone: "#2c4554",
+      crowd: "#0c141c", cloth: ["#1e3348", "#2a4a5c", "#243038", "#3a4a58", "#182430"],
+      torch: "#9fd0e8", core: "#e8f6ff", glow: "150,200,230",
+      mote: "rgba(190,220,235,0.28)", line: "rgba(190,220,235,0.28)"
+    },
+    {
+      id: "lava", name: "Lava forge",
+      sky: ["#1a0a08", "#4a180e"], floor: "#3a1c14", grain: "#140806", lite: "#6a3020",
+      wall: "#24100c", rail: "#e07040", stone: "#4a2018",
+      crowd: "#120806", cloth: ["#4a2018", "#2a1210", "#6a2818", "#3a1814", "#20100c"],
+      torch: "#ff6a2a", core: "#ffd27a", glow: "255,100,40",
+      mote: "rgba(255,140,60,0.4)", line: "rgba(255,90,30,0.28)"
+    },
+    {
+      id: "night", name: "Night market",
+      sky: ["#0c0a12", "#221c32"], floor: "#2a2438", grain: "#14101c", lite: "#403850",
+      wall: "#14101c", rail: "#e0b07a", stone: "#2a2436",
+      crowd: "#0a0810", cloth: ["#2a2040", "#3a2848", "#201828", "#403020", "#182030"],
+      torch: "#e0b07a", core: "#fff0c8", glow: "224,176,122",
+      mote: "rgba(224,176,122,0.32)", line: "rgba(224,176,122,0.16)"
+    },
+    {
+      id: "temple", name: "Ruined temple",
+      sky: ["#10160e", "#24301c"], floor: "#4a483c", grain: "#26241c", lite: "#6a6856",
+      wall: "#22261c", rail: "#c6d48a", stone: "#3a4032",
+      crowd: "#10140e", cloth: ["#2a3424", "#3a4030", "#243028", "#4a4030", "#1c2418"],
+      torch: "#c6d48a", core: "#f4f0c8", glow: "198,212,138",
+      mote: "rgba(198,212,138,0.28)", line: "rgba(28,32,20,0.45)"
+    }
   ];
   IL.PITS = PITS;
+  const pitTex = {};
 
   function fitArena(canvas) {
     const parent = canvas.parentElement || canvas;
@@ -106,27 +143,218 @@
     return cam;
   }
 
-  function brazier(ctx, x, y, t) {
+  function pitGrain(pit) {
+    if (pitTex[pit.id]) return pitTex[pit.id];
+    if (typeof document === "undefined") return null;
+    const c = document.createElement("canvas");
+    c.width = 160;
+    c.height = 160;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = pit.floor;
+    g.fillRect(0, 0, 160, 160);
+    if (pit.id === "sand") {
+      for (let i = 0; i < 320; i++) {
+        g.globalAlpha = 0.28 + (i % 5) * 0.08;
+        g.fillStyle = i % 3 ? pit.grain : pit.lite;
+        g.fillRect((i * 47) % 160, (i * 29) % 160, i % 4 === 0 ? 3 : 2, 2);
+      }
+      g.globalAlpha = 0.22;
+      g.strokeStyle = pit.grain;
+      g.lineWidth = 1;
+      for (let r = 0; r < 5; r++) {
+        g.beginPath();
+        g.moveTo(0, 18 + r * 30);
+        g.bezierCurveTo(40, 8 + r * 30, 100, 34 + r * 30, 160, 16 + r * 30);
+        g.stroke();
+      }
+    } else if (pit.id === "frost") {
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+          g.fillStyle = (row + col) % 2 ? pit.lite : pit.floor;
+          g.globalAlpha = (row + col) % 2 ? 0.35 : 1;
+          g.fillRect(4 + col * 40, 4 + row * 40, 34, 34);
+        }
+      }
+      g.globalAlpha = 0.7;
+      g.strokeStyle = pit.lite;
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(6, 18); g.lineTo(74, 52); g.lineTo(36, 118); g.lineTo(128, 86); g.lineTo(154, 148);
+      g.moveTo(96, 8); g.lineTo(138, 64); g.lineTo(88, 152);
+      g.stroke();
+      g.globalAlpha = 0.18;
+      g.fillStyle = "#d5e6ee";
+      g.fillRect(0, 36, 160, 2);
+      g.fillRect(0, 108, 160, 2);
+    } else if (pit.id === "lava") {
+      g.fillStyle = pit.grain;
+      for (let i = 0; i < 18; i++) {
+        g.globalAlpha = 0.65;
+        g.beginPath();
+        g.arc((i * 53) % 150 + 6, (i * 37) % 150 + 6, 8 + (i % 4) * 3, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.globalAlpha = 0.85;
+      g.strokeStyle = pit.torch;
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(0, 40); g.lineTo(36, 28); g.lineTo(70, 58); g.lineTo(110, 34); g.lineTo(160, 62);
+      g.moveTo(20, 120); g.lineTo(80, 100); g.lineTo(140, 132);
+      g.stroke();
+    } else if (pit.id === "night") {
+      for (let row = 0; row < 8; row++) {
+        const off = row % 2 ? 12 : 0;
+        for (let col = 0; col < 8; col++) {
+          g.fillStyle = (row + col) % 2 ? pit.lite : pit.floor;
+          g.fillRect(off + col * 22, row * 20, 18, 14);
+        }
+      }
+      g.globalAlpha = 0.35;
+      g.fillStyle = pit.grain;
+      g.fillRect(0, 0, 160, 160);
+    } else {
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+          g.fillStyle = (row + col) % 2 ? pit.lite : pit.floor;
+          g.globalAlpha = (row + col) % 2 ? 0.55 : 1;
+          g.fillRect(3 + col * 40, 3 + row * 40, 34, 34);
+        }
+      }
+      g.globalAlpha = 0.45;
+      g.strokeStyle = pit.grain;
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(20, 8); g.lineTo(48, 70); g.lineTo(30, 150);
+      g.moveTo(110, 4); g.lineTo(96, 80); g.lineTo(140, 150);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    pitTex[pit.id] = c;
+    return c;
+  }
+
+  function brazier(ctx, x, y, t, pit) {
     const flick = 0.82 + 0.18 * Math.sin(t * 8 + x * 0.01);
-    const glow = ctx.createRadialGradient(x, y, 4, x, y, 90);
-    glow.addColorStop(0, "rgba(255,150,60," + (0.42 * flick) + ")");
-    glow.addColorStop(1, "rgba(255,120,40,0)");
+    const glow = ctx.createRadialGradient(x, y, 4, x, y, 78);
+    glow.addColorStop(0, "rgba(" + pit.glow + "," + (0.38 * flick) + ")");
+    glow.addColorStop(1, "rgba(" + pit.glow + ",0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(x, y, 90, 0, Math.PI * 2);
+    ctx.arc(x, y, 78, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#2a2018";
-    ctx.fillRect(x - 11, y, 22, 32);
-    ctx.fillStyle = "#e07a32";
+    ctx.fillStyle = pit.wall;
+    ctx.fillRect(x - 10, y, 20, 26);
+    ctx.fillStyle = pit.torch;
     ctx.beginPath();
-    ctx.moveTo(x - 14, y + 4);
-    ctx.lineTo(x, y - 18 * flick);
-    ctx.lineTo(x + 14, y + 4);
+    ctx.moveTo(x - 12, y + 4);
+    ctx.lineTo(x, y - 16 * flick);
+    ctx.lineTo(x + 12, y + 4);
     ctx.fill();
-    ctx.fillStyle = "#f2c14a";
+    ctx.fillStyle = pit.core;
     ctx.beginPath();
-    ctx.arc(x, y - 2, 5, 0, Math.PI * 2);
+    ctx.arc(x, y - 2, 4, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  function drawSpectator(ctx, x, y, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y - h, 7, h);
+    ctx.beginPath();
+    ctx.arc(x + 3.5, y - h - 3, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawStands(ctx, pit, frame, t, cheer) {
+    const left = frame.left;
+    const top = frame.top;
+    const vw = frame.viewW;
+    const vh = frame.viewH;
+    const band = Math.max(56, Math.min(104, vh * 0.18));
+    const side = Math.max(18, Math.min(46, vw * 0.05));
+    ctx.fillStyle = pit.wall;
+    ctx.fillRect(left - 8, top - 12, vw + 16, band + 8);
+    const blocks = Math.ceil(vw / 26) + 2;
+    for (let i = 0; i < blocks; i++) {
+      ctx.fillStyle = i % 2 ? pit.stone : pit.wall;
+      ctx.fillRect(left - 8 + i * 26, top - 8, 24, 12);
+      ctx.fillStyle = i % 2 ? pit.wall : pit.stone;
+      ctx.fillRect(left + 6 + i * 26, top + 4, 24, 11);
+    }
+    const rows = 3;
+    for (let row = 0; row < rows; row++) {
+      const y = top + 22 + row * ((band - 18) / rows);
+      ctx.fillStyle = pit.crowd;
+      ctx.fillRect(left, y, vw, 4);
+      const n = Math.ceil(vw / 20);
+      for (let i = 0; i < n; i++) {
+        const bounce = Math.sin(t * 4.2 + i * 0.7 + row) * (1.4 + cheer * 5);
+        const h = 7 + ((i + row) % 3) * 3;
+        drawSpectator(ctx, left + 6 + i * 20, y + bounce, h, pit.cloth[(i + row * 2) % pit.cloth.length]);
+      }
+    }
+    ctx.fillStyle = pit.rail;
+    ctx.fillRect(left, top + band - 4, vw, 4);
+    if (pit.id === "sand") {
+      for (let i = 0; i < 8; i++) {
+        const x = left + 24 + i * (vw / 8);
+        ctx.fillStyle = pit.cloth[i % pit.cloth.length];
+        ctx.beginPath();
+        ctx.moveTo(x, top + band);
+        ctx.lineTo(x + 8, top + band);
+        ctx.lineTo(x + 4, top + band + 16);
+        ctx.fill();
+      }
+    } else if (pit.id === "frost") {
+      ctx.fillStyle = pit.rail;
+      for (let i = 0; i < Math.ceil(vw / 16); i++) {
+        const x = left + i * 16;
+        ctx.beginPath();
+        ctx.moveTo(x, top + band);
+        ctx.lineTo(x + 5, top + band);
+        ctx.lineTo(x + 2.5, top + band + 10 + (i % 3) * 4);
+        ctx.fill();
+      }
+    } else if (pit.id === "lava") {
+      ctx.fillStyle = "rgba(" + pit.glow + ",0.45)";
+      ctx.fillRect(left, top + band, vw, 6);
+    } else if (pit.id === "night") {
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = pit.cloth[i % pit.cloth.length];
+        ctx.beginPath();
+        ctx.moveTo(left + i * (vw / 6), top + 8);
+        ctx.quadraticCurveTo(left + (i + 0.5) * (vw / 6), top + 28, left + (i + 1) * (vw / 6), top + 8);
+        ctx.fill();
+      }
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const x = left + 18 + i * (vw / 5);
+        ctx.fillStyle = pit.stone;
+        ctx.fillRect(x, top - 6, 14, band + 18);
+        ctx.fillStyle = pit.rail;
+        ctx.fillRect(x - 4, top - 8, 22, 6);
+      }
+    }
+    ctx.fillStyle = pit.wall;
+    ctx.fillRect(left - 6, top, side, vh + 10);
+    ctx.fillRect(left + vw - side + 6, top, side, vh + 10);
+    ctx.fillStyle = pit.rail;
+    ctx.fillRect(left + side - 8, top + band, 3, vh - band);
+    ctx.fillRect(left + vw - side + 5, top + band, 3, vh - band);
+    const posts = Math.max(4, Math.floor((vh - band) / 42));
+    for (let i = 0; i < posts; i++) {
+      const y = top + band + 8 + i * ((vh - band - 16) / posts);
+      ctx.fillStyle = pit.stone;
+      ctx.fillRect(left + side - 12, y, 8, 16);
+      ctx.fillRect(left + vw - side + 4, y, 8, 16);
+      ctx.fillStyle = pit.rail;
+      ctx.fillRect(left + side - 14, y, 12, 3);
+      ctx.fillRect(left + vw - side + 2, y, 12, 3);
+    }
+    ctx.fillStyle = pit.wall;
+    ctx.fillRect(left - 4, top + vh - 12, vw + 8, 18);
+    ctx.fillStyle = pit.rail;
+    ctx.fillRect(left, top + vh - 14, vw, 3);
   }
 
   function drawPit(ctx, fx, match) {
@@ -136,70 +364,51 @@
     const cheer = (match && match.cheer) || 0;
     const cx = (W.left + W.right) / 2;
     const cy = (W.top + W.bottom) / 2;
-    const parallaxX = ((fx.cam ? fx.cam.x : cx) - W.w / 2) * 0.06;
-    const parallaxY = ((fx.cam ? fx.cam.y : cy) - W.h / 2) * 0.06;
+    const cam = fx.cam;
+    const frame = cam ? {
+      left: cam.x - cam.viewW / 2,
+      top: cam.y - cam.viewH / 2,
+      viewW: cam.viewW,
+      viewH: cam.viewH
+    } : { left: 0, top: 0, viewW: W.w, viewH: W.h };
 
-    ctx.fillStyle = "#100e0c";
-    ctx.fillRect(-80, -80, W.w + 160, W.h + 160);
-
-    const sky = ctx.createLinearGradient(0, 0, 0, cy);
+    const sky = ctx.createLinearGradient(0, 0, 0, W.h);
     sky.addColorStop(0, pit.sky[0]);
     sky.addColorStop(1, pit.sky[1]);
     ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W.w, cy + 40);
+    ctx.fillRect(-80, -80, W.w + 160, W.h + 160);
 
-    ctx.fillStyle = pit.crowd;
-    const crowdY = W.top + 18 - parallaxY * 0.4;
-    for (let i = 0; i < 22; i++) {
-      const bounce = Math.sin(t * 5 + i) * (2 + cheer * 7);
-      const hx = W.left + 40 + i * ((W.right - W.left - 80) / 21) - parallaxX * 0.3;
-      const hh = 16 + (i % 3) * 6 + bounce;
-      ctx.fillRect(hx, crowdY - hh, 10, hh);
-      ctx.beginPath();
-      ctx.arc(hx + 5, crowdY - hh - 4, 5, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    const tex = pitGrain(pit);
+    if (!pit._pat && tex) pit._pat = ctx.createPattern(tex, "repeat");
+    ctx.fillStyle = pit._pat || pit.floor;
+    ctx.fillRect(-40, -40, W.w + 80, W.h + 80);
 
-    ctx.fillStyle = pit.floor[0];
-    ctx.beginPath();
-    ctx.ellipse(cx - parallaxX, cy - parallaxY, (W.right - W.left) * 0.78, (W.bottom - W.top) * 0.78, 0, 0, Math.PI * 2);
-    ctx.fill();
+    const shade = ctx.createRadialGradient(cx, cy, 160, cx, cy, 820);
+    shade.addColorStop(0, "rgba(0,0,0,0)");
+    shade.addColorStop(0.55, "rgba(0,0,0,0.16)");
+    shade.addColorStop(1, "rgba(0,0,0,0.52)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(-40, -40, W.w + 80, W.h + 80);
 
-    ctx.fillStyle = pit.floor[1];
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, (W.right - W.left) * 0.62, (W.bottom - W.top) * 0.58, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = pit.floor[2];
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - 8, (W.right - W.left) * 0.48, (W.bottom - W.top) * 0.42, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(255,220,180,0.09)";
+    ctx.strokeStyle = pit.line;
     ctx.lineWidth = 2;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 1; i <= 3; i++) {
       ctx.beginPath();
-      ctx.ellipse(cx, cy - 6, 90 + i * 70, 32 + i * 26, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, 120 + i * 90, 46 + i * 34, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.setLineDash([8, 12]);
-    ctx.strokeStyle = "rgba(232, 196, 150, 0.2)";
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - 220);
-    ctx.lineTo(cx, cy + 240);
-    ctx.stroke();
-    ctx.setLineDash([]);
 
-    brazier(ctx, W.left + 36, W.top + 24, t);
-    brazier(ctx, W.right - 36, W.top + 24, t + 1.2);
-    brazier(ctx, W.left + 70, W.bottom - 16, t + 0.4);
-    brazier(ctx, W.right - 70, W.bottom - 16, t + 1.7);
-    brazier(ctx, cx - 460, cy - 20, t + 0.8);
-    brazier(ctx, cx + 460, cy - 20, t + 2.1);
+    drawStands(ctx, pit, frame, t, cheer);
+
+    brazier(ctx, frame.left + 36, frame.top + 28, t, pit);
+    brazier(ctx, frame.left + frame.viewW - 36, frame.top + 28, t + 1.2, pit);
+    brazier(ctx, frame.left + 28, frame.top + frame.viewH - 20, t + 0.6, pit);
+    brazier(ctx, frame.left + frame.viewW - 28, frame.top + frame.viewH - 20, t + 1.8, pit);
     ctx.fillStyle = pit.mote;
-    for (let i = 0; i < 16; i++) {
-      const px = cx + Math.sin(t * 0.7 + i * 1.7) * (180 + (i % 5) * 40);
-      const py = cy + Math.cos(t * 0.9 + i) * (70 + (i % 4) * 18) - ((t * 24 + i * 30) % 80);
-      ctx.fillRect(px, py, 3, 3);
+    for (let i = 0; i < 14; i++) {
+      const px = cx + Math.sin(t * 0.7 + i * 1.7) * (160 + (i % 5) * 36);
+      const py = cy + Math.cos(t * 0.9 + i) * (60 + (i % 4) * 16) - ((t * 22 + i * 30) % 70);
+      ctx.fillRect(px, py, 2, 2);
     }
   }
 
@@ -609,9 +818,10 @@
     ctx.restore();
 
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-    const vig = ctx.createRadialGradient(view.cssW / 2, view.cssH / 2, Math.min(view.cssW, view.cssH) * 0.35, view.cssW / 2, view.cssH / 2, Math.max(view.cssW, view.cssH) * 0.72);
+    const vig = ctx.createRadialGradient(view.cssW / 2, view.cssH / 2, Math.min(view.cssW, view.cssH) * 0.28, view.cssW / 2, view.cssH / 2, Math.max(view.cssW, view.cssH) * 0.68);
     vig.addColorStop(0, "rgba(0,0,0,0)");
-    vig.addColorStop(1, "rgba(0,0,0,0.42)");
+    vig.addColorStop(0.62, "rgba(0,0,0,0.08)");
+    vig.addColorStop(1, "rgba(0,0,0,0.58)");
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, view.cssW, view.cssH);
     if ((match.zoom || 0) > 0.15) {

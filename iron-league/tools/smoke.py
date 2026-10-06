@@ -340,6 +340,17 @@ def check_yard(page, label):
         }""",
         timeout=8000,
     )
+    page.evaluate(
+        """() => {
+          const c = document.querySelector('#clubYard');
+          const a = IL.yardActors[0];
+          const r = c.getBoundingClientRect();
+          const y = r.top + (a.y - 48) * (r.height / c.height);
+          const tab = document.querySelector('#tabbar');
+          const limit = (tab ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
+          if (y > limit) window.scrollBy(0, y - limit);
+        }"""
+    )
     box = page.evaluate(
         """() => {
           const c = document.querySelector('#clubYard');
@@ -347,7 +358,7 @@ def check_yard(page, label):
           const r = c.getBoundingClientRect();
           return {
             x: r.left + a.x * (r.width / c.width),
-            y: r.top + (a.y - 28) * (r.height / c.height)
+            y: r.top + (a.y - 48) * (r.height / c.height)
           };
         }"""
     )

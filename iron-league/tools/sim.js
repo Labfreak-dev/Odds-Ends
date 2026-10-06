@@ -160,7 +160,7 @@ check("one hundred twenty or more abilities", Object.keys(seenAb).length >= 120)
   fighter.level = 7;
   const bout = IL.createMatch({ seed: 3, left: [fighter], right: [foe], leftName: "A", rightName: "B" });
   let steps = 0;
-  while (!bout.over && steps < 4000) { IL.stepMatch(bout, 1 / 60); steps++; }
+  while (!bout.over && steps < 9000) { IL.stepMatch(bout, 1 / 60); steps++; }
   check("loadout fight ends", bout.over === true);
   let named = false;
   for (let seed = 1; seed <= 8 && !named; seed++) {
@@ -170,7 +170,7 @@ check("one hundred twenty or more abilities", Object.keys(seenAb).length >= 120)
     const away = IL.ensureMoves({ id: "book-foe", cls: "tank", level: 1 });
     const m = IL.createMatch({ seed: seed, left: [home], right: [away], leftName: "A", rightName: "B" });
     let n = 0;
-    while (!m.over && n < 4000) { IL.stepMatch(m, 1 / 60); n++; }
+    while (!m.over && n < 9000) { IL.stepMatch(m, 1 / 60); n++; }
     const row = m.units[0] && m.units[0].byAb && m.units[0].byAb["w-guard-cut"];
     if (row && row.name === "Guard Cut" && (row.dmg || 0) > 0) named = true;
   }
@@ -183,7 +183,7 @@ check("one hundred twenty or more abilities", Object.keys(seenAb).length >= 120)
     const away = IL.ensureMoves({ id: "twin-foe", cls: "tank", level: 1 });
     const m = IL.createMatch({ seed: 20 + seed, left: [home], right: [away], leftName: "A", rightName: "B" });
     let n = 0;
-    while (!m.over && n < 4000) { IL.stepMatch(m, 1 / 60); n++; }
+    while (!m.over && n < 9000) { IL.stepMatch(m, 1 / 60); n++; }
     const row = m.units[0] && m.units[0].byAb && m.units[0].byAb["z-warrior"];
     if (row && row.name === "Buckler") twinNamed = true;
   }
@@ -597,7 +597,7 @@ function fight(leftCls, rightCls, seed, level) {
   }
   const m = IL.createMatch({ seed: seed, left: left, right: right, leftName: "Home", rightName: "Away" });
   let steps = 0;
-  while (!m.over && steps < 4000) {
+  while (!m.over && steps < 9000) {
     IL.stepMatch(m, 1 / 60);
     m.events.length = 0;
     steps++;
@@ -709,7 +709,7 @@ function dressedFight(seed) {
   }
   const m = IL.createMatch({ seed: seed, left: left, right: right, leftName: "Home", rightName: "Away" });
   let steps = 0;
-  while (!m.over && steps < 4000) {
+  while (!m.over && steps < 9000) {
     IL.stepMatch(m, 1 / 60);
     m.events.length = 0;
     steps++;
@@ -750,7 +750,7 @@ function chaos(seed) {
   });
   const m = IL.createMatch({ seed: seed, sides: sides, mode: "chaos" });
   let steps = 0;
-  while (!m.over && steps < 4000) {
+  while (!m.over && steps < 9000) {
     IL.stepMatch(m, 1 / 60);
     m.events.length = 0;
     steps++;
@@ -818,7 +818,7 @@ Object.keys(IL.CLASSES).forEach(function (id) {
         u.x += u.team === 0 ? -gap : gap;
       });
       let steps = 0;
-      while (!m.over && steps < 4000) {
+      while (!m.over && steps < 9000) {
         IL.stepMatch(m, 1 / 60);
         m.events.length = 0;
         steps++;
@@ -961,7 +961,7 @@ function squadOf(seed, cls, edit) {
 }
 function runOut(m, each) {
   let steps = 0;
-  while (!m.over && steps < 4000) {
+  while (!m.over && steps < 9000) {
     if (each) each(m, steps);
     IL.stepMatch(m, 1 / 60);
     m.events.length = 0;

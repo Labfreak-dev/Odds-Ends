@@ -844,12 +844,14 @@ def check_season(page, label, shot_dir):
     level = page.evaluate(
         """() => {
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
-          const foe = raw.clubs.filter(c => !c.you)[0];
-          return foe && foe.fighters && foe.fighters[0].level;
+          const foes = raw.clubs.filter(c => !c.you);
+          const lv = foes.map(c => (c.fighters && c.fighters[0] && c.fighters[0].level) || 0);
+          return { lv: lv, club: IL.clubLevel(raw) };
         }"""
     )
-    if level < 2:
-        raise SystemExit(label + " rivals did not scale: " + str(level))
+    # v65+: rivals match the club's level, one either way (never a flat bump).
+    if not level["lv"] or min(level["lv"]) < max(1, level["club"] - 1) or max(level["lv"]) > level["club"] + 1 or max(level["lv"]) < level["club"]:
+        raise SystemExit(label + " rivals did not match the club: " + str(level))
 
 
 OVERFLOW_JS = """() => {

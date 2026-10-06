@@ -141,6 +141,23 @@ Rarity sets the size of the bonus. The stat roll and the skill offer each reroll
 
 **Sound.** `fight_loop` and `endless_loop` carried a hard hi-hat transient on every beat (61 and 133 clicks a loop). Both are filtered and re-encoded seamlessly, and now measure one click each. Every effect fades in over 4 ms and out over 30 ms, so nothing starts or stops on a pop. Each category (hits, swings, shots, spells) keeps a short gap, at most seven effects sound at once, and the effects bus has a soft top-end roll-off and limiter. The roll whoosh, which fired dozens of times a fight, is gone. Audio URLs carry `?v=65` so a browser fetches the new files.
 
+## Pace (v66)
+
+Fights ran too fast. A melee fighter swung about every 0.7 s, crossed the floor in four seconds, and rolled eight times a minute. Eslabong's basic attack sits on about a one-second cooldown. One `PACE` block at the top of `arena.js` now sets the tempo:
+
+| Knob | Was | Now |
+|---|---|---|
+| Walk and run speed | kit speed | ×0.7 |
+| Recovery after a melee swing | 0.18 s | 0.62 s (a swing about every 1.1–1.5 s) |
+| Recovery after a shot | 0.55 s | 1.0 s |
+| Recovery after a cast | 1.15 s | 1.5 s |
+| Every move's cooldown | ×1 | ×1.2 |
+| Roll cooldown | 2.7 s | 4.2 s |
+| Share of threats that get a roll | 80% | 55% |
+| Dash speed | 430 | 344 |
+
+The fight clock cap rose from 46 s to 62 s (46 s for chaos, 105 s for boss, horde, and king) so slower fights still finish. Class win bands and the grown-rival balance checks still pass.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

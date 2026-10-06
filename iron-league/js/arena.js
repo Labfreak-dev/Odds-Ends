@@ -10,6 +10,20 @@
   const BODY_H = 30;
   const BODY_W = 24;
   const WORLD = { w: 640, h: 360, left: 20, right: 620, top: 24, bottom: 336 };
+  /* v66 pace. Fights played too fast: a melee swing every ~0.7s, fighters
+     crossing the pit in four seconds, rolls every seven. Eslabong's basic
+     attack runs on about a one-second cooldown; these knobs bring the pit
+     near that. One place to tune the whole tempo. */
+  const PACE = {
+    move: 0.7,          /* walk and run speed */
+    meleeRecover: 0.62, /* after a melee swing (was 0.18) -> ~1.1s a swing */
+    kiteRecover: 1.0,   /* after a shot (was 0.55) */
+    castRecover: 1.5,   /* after a cast (was 1.15) */
+    abilityCd: 1.2,     /* every move's cooldown */
+    rollCd: 4.2,        /* between rolls (was 2.7) */
+    rollChance: 0.55,   /* share of seen threats that get a roll (was 0.8) */
+    dash: 0.8           /* dash speed */
+  };
 
   function kitOf(cls) {
     return IL.CLASSES[cls] || IL.CLASSES.warrior;
@@ -613,7 +627,7 @@
   function moveSpeed(u) {
     /* Locomotion only. Damage, cooldowns, and cast times are untouched.
        Both fronts already close the gap in a couple of seconds at kit speed. */
-    let s = u.speed;
+    let s = u.speed * PACE.move;
     if (u.slow > 0) s *= 0.62;
     if (u.rage > 0) s *= 1.08;
     return s;
@@ -833,8 +847,8 @@
     u.animT = 0;
     u.actT = 0.34;
     u.facing = dx >= 0 ? 1 : -1;
-    u.vx = dx / d * 430;
-    u.vy = dy / d * 430;
+    u.vx = dx / d * 430 * PACE.dash;
+    u.vy = dy / d * 430 * PACE.dash;
     u.z = 0;
     u.didHit = false;
     u.dashCd = 2.15;
@@ -856,7 +870,7 @@
     u.z = 0;
     u.vz = 0;
     u.iframe = 0.42;
-    u.rollCd = 2.7;
+    u.rollCd = PACE.rollCd;
     u.fxT = 0;
     u.cast = null;
     u.trail = [];
@@ -1239,7 +1253,7 @@
       u.motion = null;
       u.state = "idle";
       u.anim = idleClip(u);
-      u.cool = u.role === "kite" ? 0.55 : 0.18;
+      u.cool = u.role === "kite" ? PACE.kiteRecover : PACE.meleeRecover;
     }
   }
 
@@ -1309,7 +1323,7 @@
     u.motion = null;
     u.state = "idle";
     u.anim = idleClip(u);
-    u.cool = 1.15;
+    u.cool = PACE.castRecover;
   }
 
   function resolveNovaBolt(m, u, c) {
@@ -1596,13 +1610,13 @@
     if (u.role === "tank" && th.kind === "melee" && u.blockCd <= 0 && dist < 110) return false;
     const trader = u.role === "melee" || u.role === "dash" || u.role === "tank";
     if (th.kind === "melee" && trader && u.cool <= 0 && dist <= u.range + 16 && th.score < 112) return false;
-    if (m.rng() > 0.8) return false;
+    if (m.rng() > PACE.rollChance) return false;
     startRoll(m, u, th.x, th.y);
     return true;
   }
 
   function arm(u, cd) {
-    u.abilityCd = cd * (u.abilityCdMul || 1);
+    u.abilityCd = cd * (u.abilityCdMul || 1) * PACE.abilityCd;
   }
 
   function startMend(m, u, ally) {
@@ -1682,7 +1696,7 @@
 
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
-    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id) * specCd(u, ab.id);
+    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id) * specCd(u, ab.id) * PACE.abilityCd;
     if (ab && ab.id) {
       u.swingTag = { id: ab.id, name: ab.name };
       if (!u.byAb) u.byAb = {};
@@ -2733,8 +2747,8 @@
     for (let t = 0; t < teamCount; t++) if (living(m, t).length) aliveTeams++;
     tickBoss(m);
     if (!m.ending && (m.horde || m.king) && tryNextWave(m)) aliveTeams = 2;
-    let cap = teamCount > 2 ? 34 : 46;
-    if (m.mode === "boss" || m.horde || m.king) cap = 80;
+    let cap = teamCount > 2 ? 46 : 62;
+    if (m.mode === "boss" || m.horde || m.king) cap = 105;
     if (!m.scripted && (aliveTeams <= 1 || m.time > cap)) {
       if (!m.ending) {
         m.ending = true;
@@ -2826,5 +2840,6 @@
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
   IL.stepMatch = stepMatch;
+  IL.PACE = PACE;
   IL.pilotAbs = pilotAbs;
 })(typeof window !== "undefined" ? window : globalThis);

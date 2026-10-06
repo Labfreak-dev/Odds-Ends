@@ -275,6 +275,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "A calmer pit: fighters walk 30% slower, swing about once a second, roll less, and wait longer between moves.",
     "Divisions: five tiers from Sand to Crown. The top two go up, the bottom two go down, and higher tiers pay more.",
     "Rivals now match your level and take real level-ups and better gear in higher divisions. Levels come slower.",
     "Quieter fights: the ticking in the fight music is filtered out, and hits no longer stack into a clatter.",
@@ -5391,7 +5392,7 @@
     const match = fight.match;
     if (match.pilot) match.pilot.auto = true;
     let n = 0;
-    while (!match.over && n < 4000) {
+    while (!match.over && n < 9000) {
       IL.stepMatch(match, 1 / 60);
       match.events.length = 0;
       n++;

@@ -1713,6 +1713,14 @@
       return;
     }
 
+    /* Keep each pet with its squad. Pets pushed at the end of the list
+       otherwise always swing after both fighters, and the one summoned
+       first lands the last hit on every mirror. */
+    m.units.sort(function (a, b) {
+      if (a.team !== b.team) return a.team - b.team;
+      if (!!a.summon !== !!b.summon) return a.summon ? 1 : -1;
+      return 0;
+    });
     const aliveAtStart = m.units.map(function (u) { return u.hp > 0; });
     const order = [];
     for (let i = 0; i < m.units.length; i++) order.push(i);

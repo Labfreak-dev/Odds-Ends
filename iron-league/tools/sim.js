@@ -217,7 +217,8 @@ const NAME_KIND = {
   longbow: "bow", wand: "staff", tome: "tome", dagger: "dagger", star: "star",
   mail: "leather", cloak: "gauntlet", helm: "helm", guard: "shield", gauntlet: "gauntlet",
   charm: "gem", band: "ring", glass: "orb",
-  "tonic-green": "potion", "tonic-blue": "potion", "tonic-red": "potion"
+  "tonic-green": "potion", "tonic-blue": "potion", "tonic-red": "potion",
+  "ability-tome": "tome"
 };
 check("item names match their icons", IL.GEAR_CATALOG.every(function (row) {
   const kind = NAME_KIND[row.key];

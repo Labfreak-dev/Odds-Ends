@@ -747,7 +747,7 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
             scrollY: de.scrollHeight - window.innerHeight,
             buttons: ['speed1', 'speed2', 'speed3', 'pause', 'skip'].map(view),
             nameInside: sr.left >= br.left - 1 && sr.right <= br.right + 1 && sr.bottom <= br.bottom + 1,
-            ellipsis: getComputedStyle(span).textOverflow === 'ellipsis',
+            clipped: span.scrollWidth - span.clientWidth > 1,
             fullName: span.textContent,
             arenaW: arena.width,
             innerW: window.innerWidth
@@ -756,7 +756,7 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
     )
     if fit["scrollX"] > 1 or fit["scrollY"] > 1:
         raise SystemExit(label + " fight page scrolls " + str(fit["scrollX"]) + " " + str(fit["scrollY"]))
-    if not fit["nameInside"] or not fit["ellipsis"] or fit["fullName"] != "Labfreak Company":
+    if not fit["nameInside"] or fit["clipped"] or fit["fullName"] != "Labfreak Company":
         raise SystemExit(label + " club name leaves the header " + str(fit))
     if fit["arenaW"] < fit["innerW"] - 32:
         raise SystemExit(label + " pit is narrower than the screen " + str(fit["arenaW"]))

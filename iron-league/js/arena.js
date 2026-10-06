@@ -136,6 +136,7 @@
       dmgTaken: 0,
       healing: 0
     };
+    u.weaponKind = IL.weaponKind ? IL.weaponKind(fighter) : null;
     const pass = IL.gearPassives ? IL.gearPassives(fighter) : null;
     if (pass) {
       if (pass.crit) u.crit += pass.crit;
@@ -711,8 +712,10 @@
     face(u, t);
     const aimX = t ? t.x + t.vx * 0.14 : u.x + u.facing * 240;
     const aimY = t ? t.y - 14 + t.vy * 0.14 : u.y - 14;
-    const ox = u.x + u.facing * 18;
-    const oy = u.y - 18;
+    const hand = IL.weapons && IL.weapons.worldHand ? IL.weapons.worldHand(u, 4) : null;
+    const ox = hand ? hand.x : u.x + u.facing * 18;
+    const oy = hand ? hand.y : u.y - (u.z || 0) - 18;
+    const bullet = (u.weaponKind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[u.cls])) === "gun";
     const dx = aimX - ox;
     const dy = aimY - oy;
     const d = Math.hypot(dx, dy) || 1;
@@ -733,7 +736,8 @@
         r: 8, life: 1.15, src: u.id,
         trail: [], drop: volley > 1 ? 18 : 42,
         pierce: (u.pierce || 0) + (u.pierceBoost || 0),
-        hit: {}
+        hit: {},
+        bullet: bullet
       });
       m.stats.shots++;
     }

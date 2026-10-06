@@ -308,6 +308,43 @@
       ctx.lineWidth = 3;
       ctx.stroke();
     }
+    if (p.bullet) {
+      if (p.life > 1.06) {
+        const ang = Math.atan2(p.vy, p.vx);
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(ang);
+        ctx.fillStyle = "rgba(255, 236, 180, 0.9)";
+        ctx.fillRect(-16, -3, 14, 6);
+        ctx.fillStyle = "#fffef8";
+        ctx.fillRect(-8, -2, 6, 4);
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = "#f6f1e6";
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#2c261f";
+      ctx.beginPath();
+      ctx.arc(1.2, 0, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    const arrow = IL.weapons && IL.weapons.sprite ? IL.weapons.sprite("arrow") : null;
+    if (arrow) {
+      const ang = Math.atan2(p.vy, p.vx);
+      const s = 3;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(ang + Math.PI);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(arrow, Math.round(-5 * s), Math.round(-2 * s), 11 * s, 4 * s);
+      ctx.restore();
+      return;
+    }
     const ang = Math.atan2(p.vy, p.vx);
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -398,12 +435,12 @@
       const gy = u.y - z;
       if (u.sprite) {
         const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
-        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint);
+        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
         if (u.flash > 0 && u.hp > 0) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint);
+          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
           ctx.restore();
         }
       } else {

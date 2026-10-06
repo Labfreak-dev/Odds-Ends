@@ -146,15 +146,15 @@
     warrior: ["1_1", "2_1", "3_1", "4_1", "5_1", "6_1", "7_7", "military1_1"],
     archer: ["1_6", "2_6", "3_6", "4_6", "5_6", "6_6", "7_4", "military1_6"],
     mage: ["1_2", "2_2", "3_2", "4_2", "5_2", "6_2", "7_2", "7_6"],
-    tank: ["1_7", "2_7", "3_7", "4_7", "5_7", "6_7", "military1_2", "military1_7"],
-    rogue: ["1_4", "2_4", "3_4", "4_4", "5_4", "6_4", "7_3", "7_8"],
+    tank: ["1_7", "2_7", "3_7", "4_7", "5_7", "6_7", "1_8", "military1_7"],
+    rogue: ["2_4", "3_4", "4_4", "5_4", "6_4", "7_8", "7_3", "1_4"],
     lancer: ["1_3", "2_3", "3_3", "4_3", "5_3", "6_3", "military1_3", "military1_8"],
-    berserker: ["1_3", "2_3", "3_5", "4_5", "5_5", "6_5", "7_5", "military1_4"],
+    berserker: ["3_5", "4_5", "5_5", "6_5", "1_8", "2_8", "7_5", "military1_4"],
     healer: ["1_5", "1_8", "2_8", "3_8", "4_8", "5_8", "6_8", "7_1"],
-    assassin: ["1_4", "2_4", "3_4", "5_4", "6_4", "7_8", "7_3", "military1_4"],
-    ranger: ["2_5", "1_6", "3_5", "4_5", "5_5", "6_5", "7_5", "military1_5"],
+    assassin: ["2_4", "3_4", "5_4", "6_4", "7_8", "7_3", "1_4", "military1_4"],
+    ranger: ["1_6", "2_5", "3_6", "4_6", "5_6", "6_6", "7_4", "military1_5"],
     battlemage: ["1_2", "2_2", "4_2", "5_2", "6_2", "7_2", "3_2", "1_7"],
-    shieldbearer: ["1_1", "1_7", "2_7", "4_7", "5_7", "6_7", "military1_2", "military1_7"],
+    shieldbearer: ["1_7", "2_7", "4_7", "5_7", "6_7", "1_1", "military1_2", "military1_7"],
     skirmisher: [
       "military2_1", "military2_2", "military2_3", "military2_4",
       "military2_5", "military2_6", "military2_7", "military2_8",
@@ -170,7 +170,7 @@
     bard: ["1_5", "2_8", "4_8", "6_8", "7_1", "3_8", "5_8", "1_8"],
     gunslinger: ["military2_1", "military2_3", "military2_5", "military2_8", "military3_2", "military3_4", "military3_6", "military3_8"],
     warlock: ["7_6", "7_2", "4_2", "6_2", "1_2", "5_2", "3_2", "2_2"],
-    samurai: ["1_1", "2_1", "5_1", "6_1", "4_1", "3_1", "7_7", "military1_1"],
+    samurai: ["6_1", "6_8", "5_1", "2_1", "4_1", "3_1", "7_7", "1_1"],
     spearmaiden: ["1_3", "2_3", "4_3", "5_3", "6_3", "3_3", "military1_3", "military1_8"],
     summoner: ["7_2", "7_6", "3_2", "2_2", "6_2", "5_2", "4_2", "1_2"],
     alchemist: ["1_5", "3_8", "5_2", "4_2", "2_2", "6_8", "7_6", "1_2"],
@@ -379,11 +379,29 @@
     return looksFor(cls)[0];
   }
 
-  /* Archer and ranger loose an arrow. Gun troops fire. Everyone else swings. */
-  function visualMotion(clip, cls, sheet) {
-    if (clip === "atk1" && (cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger")) {
-      if (sheetHasBow(sheet)) return "bow";
-      if (sheetHasGun(sheet)) return "gun";
+  /* Ranged kinds loose an arrow or fire. A spear or dagger stays on the
+     thrust rows. Everyone else swings. Kind overrides the class default
+     when a fighter has a weapon equipped. */
+  function visualMotion(clip, cls, sheet, kind) {
+    const held = kind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[cls]) || "";
+    const ranged = held === "bow" || held === "gun" ||
+      cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger";
+    if (clip === "atk1" && ranged) {
+      const wantGun = held === "gun" || (!held && (cls === "skirmisher" || cls === "gunslinger"));
+      if (wantGun) {
+        if (sheetHasGun(sheet)) return "gun";
+        if (sheetHasBow(sheet)) return "bow";
+      } else if (held === "bow" || cls === "archer" || cls === "ranger") {
+        if (sheetHasBow(sheet)) return "bow";
+        if (sheetHasGun(sheet)) return "gun";
+      }
+    }
+    if (held === "spear" || held === "dagger") {
+      if (clip === "atk2" || clip === "atk3" || clip === "air2") return "atk2";
+      if (clip === "atk1" || clip === "air1") return "atk1";
+    }
+    if (held === "axe" || held === "mace") {
+      if (clip === "atk1" || clip === "air1") return "atk2";
     }
     return CLIP_MOTION[clip] || "idle1";
   }

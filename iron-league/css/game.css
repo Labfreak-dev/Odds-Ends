@@ -2277,3 +2277,121 @@ body:has(#seasonEnd) {
   white-space: nowrap;
   padding: 0 2px;
 }
+.preview-board > .synergy {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 4px;
+  min-width: 0;
+}
+.synergy .trait { white-space: normal; }
+#trainPane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#trainPane > section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.hub-panel:has(> #trainPane) { overflow: hidden; }
+#trainBoard .stall-card .btn,
+#facilityBoard .stall-card .btn {
+  width: 100%;
+}
+#trainBoard .btn:disabled,
+#facilityBoard .btn:disabled {
+  color: #f6e7c1;
+}
+@media (max-width: 640px) {
+  .hub .tab .ui-glyph { width: 14px; height: 14px; }
+  .hub .tab b { font-size: 11px; }
+}
+
+/* Phone club card: labels wrap, names stack, nothing is clipped. */
+.hub .preview-board {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+}
+.hub .preview-side {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+.hub .preview-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.hub .preview-board .eyebrow,
+.hub .preview-names,
+.hub .preview-names li,
+.hub .preview-name {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+.hub .preview-board .eyebrow {
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  font-size: 11px;
+}
+.hub .preview-names {
+  list-style: none;
+  padding: 0;
+  flex: 1 1 auto;
+}
+.hub .preview-names li,
+.hub .preview-name {
+  font-size: 12px;
+  line-height: 1.25;
+}
+.hub-panel > .banner,
+.hub-panel > .preview-board,
+.hub-panel > #nextMatch {
+  flex: 0 0 auto;
+}
+.hub-panel > #nextMatch {
+  width: 100%;
+  margin: 4px 0 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+}
+@media (max-width: 800px) {
+  .hub .preview-board .crest-sm { width: 24px; height: 24px; }
+  .hub .preview-board .vs { font-size: 12px; margin-top: 14px; }
+  .hub .preview-board { gap: 4px; padding: 4px 8px 6px; }
+}
+@media (max-width: 640px) {
+  .hub .tab {
+    border-width: 4px 1px;
+    border-image-width: 4px 1px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .hub .tab b {
+    font-size: 11px;
+    letter-spacing: 0;
+    line-height: 1.15;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .hub-panel > #nextMatch {
+    border-width: 0 16px;
+    border-image-width: 0 16px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

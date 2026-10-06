@@ -459,10 +459,10 @@ def check_nav(page, label, shot_dir):
     check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
-    if tabs.count() != 6:
+    if tabs.count() != 7:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "fighter", "market", "cup", "relic", "event"):
+    for word in ("club", "team", "market", "cup", "relic", "event", "train"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()
@@ -813,6 +813,7 @@ def check_fit(page):
         ("#relics", ".card.relic"),
         ("#cup", "#enterCup"),
         ("#events", "#eventsBoard"),
+        ("#train", "#trainBoard"),
     ]
     for tab, wait in tabs:
         page.click(tab)
@@ -990,6 +991,44 @@ def sweep_frames(browser, shot_dir):
         page.keyboard.press("1")
         page.wait_for_selector("#clubYard")
         assert_inside(page, label + " club")
+        if width == 360:
+            clipped = page.evaluate(
+                """() => {
+                  const chip = document.querySelector('#partySynergy .trait');
+                  const panel = document.getElementById('hubPanel');
+                  if (!chip || !panel) return 0;
+                  return Math.round(chip.getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
+                }"""
+            )
+            if clipped > 2:
+                raise SystemExit(label + " synergy clipped by " + str(clipped))
+        if width <= 412:
+            fight = page.evaluate(
+                """() => {
+                  const btn = document.getElementById('nextMatch');
+                  const panel = document.getElementById('hubPanel');
+                  const bar = document.getElementById('tabbar');
+                  if (!btn || !panel || !bar) return null;
+                  const b = btn.getBoundingClientRect();
+                  const p = panel.getBoundingClientRect();
+                  const t = bar.getBoundingClientRect();
+                  const labels = [...document.querySelectorAll('#tabbar .tab b')].map(el => ({
+                    t: el.textContent,
+                    cut: el.scrollWidth > el.clientWidth + 1
+                  }));
+                  return {
+                    below: Math.round(b.bottom - p.bottom),
+                    overTab: Math.round(b.bottom - t.top),
+                    h: Math.round(b.height),
+                    labels: labels
+                  };
+                }"""
+            )
+            if not fight or fight["h"] < 40 or fight["below"] > 2 or fight["overTab"] > 2:
+                raise SystemExit(label + " send button off the panel " + str(fight))
+            cut = [row["t"] for row in fight["labels"] if row["cut"]]
+            if cut:
+                raise SystemExit(label + " tab labels clipped " + ", ".join(cut))
         if width == 1280:
             slack = page.evaluate("() => document.documentElement.scrollHeight - window.innerHeight")
             if slack > 48:
@@ -1028,6 +1067,8 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " relics")
         visit("6", "#eventsBoard")
         assert_inside(page, label + " events")
+        visit("7", "#trainBoard")
+        assert_inside(page, label + " train")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")
         assert_inside(page, label + " settings")
@@ -1301,6 +1342,9 @@ def qa_gate(browser, shot_dir):
         page.keyboard.press("6")
         page.wait_for_selector("#eventsBoard")
         assert_inside(page, label + " events")
+        page.keyboard.press("7")
+        page.wait_for_selector("#trainBoard")
+        assert_inside(page, label + " train")
         shot("relics")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")

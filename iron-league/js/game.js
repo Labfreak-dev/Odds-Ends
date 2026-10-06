@@ -26,7 +26,9 @@
   let fighterFilter = "all";
   let marketPane = "fighters";
   let eventPane = "week";
-  const HUB_TABS = ["club", "fighters", "market", "cup", "relics", "events"];
+  let trainPane = "drills";
+  let trainDrill = "strength";
+  const HUB_TABS = ["club", "fighters", "market", "cup", "relics", "events", "train"];
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -114,7 +116,7 @@
     save.fixtures = roundRobin(clubs.map(function (c) { return c.id; }));
     if (!keepGold) save.gold = IL.START_GOLD;
     if (IL.rollGearStock) save.gearStock = IL.rollGearStock(rng);
-    save.trainsLeft = IL.TRAIN_CAP || 2;
+    save.trainsLeft = IL.drillCap ? IL.drillCap(save) : (IL.TRAIN_CAP || 2);
     save.trainRound = 0;
   }
 
@@ -177,7 +179,7 @@
     samurai: "swords", spearmaiden: "sword", summoner: "battle_magic", alchemist: "battle_magic",
     beastmaster: "swords"
   };
-  const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace", events: "skull_demon" };
+  const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace", events: "skull_demon", train: "preparing_for_an_attack" };
   const STAT_GLYPH = { HP: "drop_water_or_blood", ATK: "sword", DEF: "armor_1_body", SPD: "shoes" };
 
   function crestIndexOf(name) {
@@ -730,7 +732,7 @@
   }
 
   function trainControl(f, sheet) {
-    const cost = IL.TRAIN_COST || 16;
+    const cost = IL.drillCost ? IL.drillCost(save) : (IL.TRAIN_COST || 16);
     const left = save.trainsLeft || 0;
     const pit = inThePit(f);
     const broke = save.gold < cost;
@@ -739,7 +741,7 @@
     const off = pit || spent || broke ? " disabled" : "";
     if (sheet) {
       return '<button type="button" class="btn ghost" id="trainBtn"' + off + '>' + esc(why) + '</button>' +
-        '<p class="fine">Drills left today: ' + left + '. Bench only. ' + (IL.TRAIN_XP || 12) + ' xp.</p>';
+        '<p class="fine">Drills left today: ' + left + '. Bench only. ' + (IL.drillXp ? IL.drillXp(save) : (IL.TRAIN_XP || 12)) + ' xp.</p>';
     }
     return '<button type="button" class="chip train" data-train="' + esc(f.id) + '"' + off + ' title="' + esc(why) + '">Train</button>';
   }
@@ -1141,11 +1143,12 @@
   function tabBar(active) {
     const labels = [
       ["club", "Club", "1", "tab-club"],
-      ["fighters", "Fighters", "2", "tab-fighters"],
+      ["fighters", "Team", "2", "tab-fighters"],
       ["market", "Market", "3", "market"],
       ["cup", "Cup", "4", "cup"],
       ["relics", "Relics", "5", "relics"],
-      ["events", "Events", "6", "events"]
+      ["events", "Events", "6", "events"],
+      ["train", "Train", "7", "train"]
     ];
     return '<nav class="tabbar" id="tabbar" role="tablist" aria-label="Club sections">' +
       labels.map(function (row) {
@@ -1495,18 +1498,31 @@
       const played = c.w + c.l;
       return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
-    const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
-    const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
+    function previewNames(list) {
+      if (!list.length) return '<p class="preview-name">None</p>';
+      return '<ul class="preview-names">' + list.map(function (f) {
+        const first = String(f.name || "Fighter").trim().split(/\s+/)[0];
+        return '<li>' + esc(first) + '</li>';
+      }).join("") + '</ul>';
+    }
+    const partySynergy = synergyLine(yours, "partySynergy");
     const preview = (!done && rival)
       ? '<section class="preview-board" id="matchPreview">' +
-          '<div class="preview-side"><div>' + crestHtml(save.clubName, "md", save.crest) + '<p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3>' +
-          '<p class="fine">' + yours.length + ' of ' + size + ' walking in</p></div></div>' +
+          partySynergy +
+          '<div class="preview-side">' +
+            '<p class="eyebrow">Your party</p>' +
+            '<div class="preview-head">' + crestHtml(save.clubName, "sm", save.crest) + previewNames(yours) + '</div>' +
+          '</div>' +
           '<p class="vs">vs</p>' +
-          '<div class="preview-side"><div>' + crestHtml(rival.name, "md", clubCrest(rival)) + '<p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
-          '<p class="fine">Record ' + (rival.w || 0) + '–' + (rival.l || 0) + (themNames ? ' · sends ' + esc(themNames) : '') + '</p></div></div>' +
-          '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
-            (partyReady ? "Send them in" : ("Choose " + size)) + '</button>' +
+          '<div class="preview-side">' +
+            '<p class="eyebrow">Next opponent</p>' +
+            '<div class="preview-head">' + crestHtml(rival.name, "sm", clubCrest(rival)) + previewNames(theirs) + '</div>' +
+          '</div>' +
         '</section>'
+      : "";
+    const sendBtn = (!done && rival)
+      ? '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
+          (partyReady ? "Send them in" : ("Choose " + size)) + '</button>'
       : "";
     const yard = '<section class="panel-frame" id="clubYardWrap">' +
       '<h3 class="section">Club yard</h3>' +
@@ -1525,9 +1541,9 @@
         ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
         : '') +
       preview +
-      synergyLine(yours, "partySynergy") +
       '<div class="hub-split" id="hubSplit">' +
         '<div class="hub-main" id="hubMain">' +
+          (preview ? "" : partySynergy) +
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
         '<div class="pane" id="clubPane">' +
@@ -1538,7 +1554,8 @@
           historyHtml() +
           achievementsHtml() +
         '</div>' +
-      '</div>';
+      '</div>' +
+      sendBtn;
   }
 
   function fightersPanel() {
@@ -1720,6 +1737,132 @@
     }).join("");
     return '<section id="dealsBoard"><h3 class="section">This week</h3>' +
       '<div class="deals-stack">' + cards + '</div></section>';
+  }
+
+  function specLabel(f) {
+    const focus = f.focus && IL.specialtyOf ? IL.specialtyOf(f.focus) : null;
+    const hired = f.specialty && IL.specialtyOf ? IL.specialtyOf(f.specialty) : null;
+    const mastery = f.mastery && IL.masteryOf ? IL.masteryOf(f.mastery) : null;
+    const bits = [];
+    if (focus) bits.push(focus.name);
+    else if (hired) bits.push(hired.name);
+    if (mastery) bits.push(mastery.name);
+    return bits.join(" · ");
+  }
+
+  function drillButtonLabel(f, drill, left) {
+    const pit = inThePit(f);
+    const open = !IL.drillOpen || IL.drillOpen(f, drill.id);
+    const rank = IL.drillRank ? IL.drillRank(f, drill.id) : 0;
+    const cap = drill.cap || 5;
+    const broke = save.gold < drill.cost;
+    const spent = left <= 0;
+    if (pit) return { label: "In the pit", cant: true };
+    if (!open) return { label: "Not this class", cant: true };
+    if (rank >= cap) return { label: "Rank " + cap, cant: true };
+    if (spent) return { label: "Spent", cant: true };
+    if (broke) return { label: "Need " + drill.cost + "g", cant: true };
+    return { label: "Drill — " + drill.cost + "g", cant: false };
+  }
+
+  function trainingPanel() {
+    const tabs = filterBar("train", trainPane, [["drills", "Drills"], ["specs", "Specialties"], ["tasks", "Tasks"], ["facilities", "Facilities"]]);
+    let body = "";
+    if (trainPane === "tasks") {
+      const points = save.specPoints || 0;
+      const cards = (IL.TASKS || []).map(function (task) {
+        const done = save.taskDone && save.taskDone[task.id];
+        const prog = (save.taskProg && save.taskProg[task.id]) || 0;
+        const shown = Math.min(task.goal, prog);
+        return '<article class="card stall-card' + (done ? "" : " buyable") + '">' +
+          '<h3>' + esc(task.name) + '</h3>' +
+          '<p>' + esc(task.blurb) + '</p>' +
+          '<p class="fine">' + (done ? "Done · +" + task.points + " specialty point" : (shown + " / " + task.goal + " · +" + task.points + " point")) + '</p>' +
+        '</article>';
+      }).join("");
+      body = '<section id="taskBoard"><h3 class="section">Tasks</h3>' +
+        '<p class="fine">Specialty points: ' + points + '. A focus spends ' + (IL.FOCUS_COST || 1) + '. A mastery spends ' + (IL.MASTERY_COST || 2) + '.</p>' +
+        '<div class="deals-stack">' + cards + '</div></section>';
+    } else if (trainPane === "facilities") {
+      const cards = (IL.FACILITIES || []).map(function (def) {
+        const lv = (save.facilities && save.facilities[def.id]) || 0;
+        const maxed = lv >= def.max;
+        const cost = maxed ? 0 : def.costs[lv];
+        const broke = !maxed && save.gold < cost;
+        const label = maxed ? "Maxed" : (broke ? "Need " + cost + "g" : "Upgrade — " + cost + "g");
+        return '<article class="card stall-card' + (maxed || broke ? " cant-afford" : " buyable") + '">' +
+          '<h3>' + esc(def.name) + ' · ' + lv + '/' + def.max + '</h3>' +
+          '<p>' + esc(def.blurb) + '</p>' +
+          '<button type="button" class="btn primary" data-facility="' + def.id + '"' + (maxed || broke ? " disabled" : "") + '>' + label + '</button>' +
+        '</article>';
+      }).join("");
+      body = '<section id="facilityBoard"><h3 class="section">Facilities</h3>' +
+        '<p class="fine">The yard adds a drill. The hall adds xp. The infirmary lowers the price.</p>' +
+        '<div class="deals-stack">' + cards + '</div></section>';
+    } else if (trainPane === "specs") {
+      const points = save.specPoints || 0;
+      const focusCost = IL.FOCUS_COST || 1;
+      const masteryCost = IL.MASTERY_COST || 2;
+      const rows = (save.roster || []).map(function (f) {
+        const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+        let pick = "";
+        if (f.pendingFocus) {
+          const can = points >= focusCost;
+          pick += '<p class="fine">Level 5. A focus spends ' + focusCost + ' point.</p><div class="chips">' +
+            (IL.SPECIALTIES || []).map(function (spec) {
+              return '<button type="button" class="chip" data-focus="' + esc(f.id) + '" data-spec="' + spec.id + '"' + (can ? "" : " disabled") + '>' + esc(spec.name) + '</button>';
+            }).join("") + '</div>';
+          if (!can) pick += '<p class="fine">Need a specialty point from Tasks.</p>';
+        } else if ((f.level || 1) < 5) {
+          pick += '<p class="fine">A focus opens at level 5.</p>';
+        } else {
+          pick += '<p class="fine">Focus: ' + esc(specLabel(f).split(" · ")[0] || "—") + '</p>';
+        }
+        if (f.pendingMastery) {
+          const can = points >= masteryCost;
+          pick += '<p class="fine">Level 10. A mastery spends ' + masteryCost + ' points.</p><div class="chips">' +
+            (IL.MASTERIES || []).map(function (spec) {
+              return '<button type="button" class="chip" data-mastery="' + esc(f.id) + '" data-spec="' + spec.id + '"' + (can ? "" : " disabled") + '>' + esc(spec.name) + '</button>';
+            }).join("") + '</div>';
+          if (!can) pick += '<p class="fine">Need ' + masteryCost + ' specialty points.</p>';
+        } else if ((f.level || 1) >= 10 && f.mastery && IL.masteryOf(f.mastery)) {
+          pick += '<p class="fine">Mastery: ' + esc(IL.masteryOf(f.mastery).name) + '</p>';
+        } else if ((f.level || 1) < 10) {
+          pick += '<p class="fine">A mastery opens at level 10.</p>';
+        }
+        return '<article class="card stall-card">' +
+          '<h3>' + esc(f.name) + '</h3>' +
+          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + '</span></p>' +
+          pick + '</article>';
+      }).join("");
+      body = '<section id="specBoard"><h3 class="section">Specialties</h3>' +
+        '<p class="fine">Specialty points: ' + points + '. A focus replaces the hired specialty. A mastery stacks on top.</p>' +
+        '<div class="cards">' + (rows || emptyState("The roster is empty.", "Hire someone first.")) + '</div></section>';
+    } else {
+      const drill = IL.drillById(save, trainDrill) || (IL.drillList(save) || [])[0];
+      const left = save.trainsLeft || 0;
+      const picks = (IL.drillList(save) || []).map(function (row) {
+        const on = row.id === drill.id;
+        return '<button type="button" class="chip' + (on ? " on" : "") + '" data-drill-pick="' + row.id + '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(row.name) + '</button>';
+      }).join("");
+      const rows = (save.roster || []).map(function (f) {
+        const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+        const rank = IL.drillRank ? IL.drillRank(f, drill.id) : 0;
+        const gate = drill.classes ? " · " + drill.classes.length + " classes" : "";
+        const btn = drillButtonLabel(f, drill, left);
+        return '<article class="card stall-card' + (btn.cant ? " cant-afford" : " buyable") + '">' +
+          '<h3>' + esc(f.name) + '</h3>' +
+          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + (specLabel(f) ? " · " + esc(specLabel(f)) : "") + '</span></p>' +
+          '<p class="fine">' + esc(drill.name) + ' ' + rank + '/' + (drill.cap || 5) + ' · +' + drill.stat + ' · ' + drill.xp + ' xp' + gate + '</p>' +
+          '<button type="button" class="btn primary" data-drill="' + esc(f.id) + '"' + (btn.cant ? " disabled" : "") + '>' + btn.label + '</button>' +
+        '</article>';
+      }).join("");
+      body = '<section id="trainBoard"><h3 class="section">Drills</h3>' +
+        '<p class="fine">' + left + ' left this round. ' + esc(drill.blurb) + ' Rank caps at ' + (drill.cap || 5) + '.</p>' +
+        '<div class="chips">' + picks + '</div>' +
+        '<div class="cards">' + rows + '</div></section>';
+    }
+    return '<div id="trainPane">' + tabs + body + '</div>';
   }
 
   function weekDone(id) {
@@ -1939,6 +2082,7 @@
       if (next === "market") marketPane = "fighters";
       if (next === "fighters") fighterFilter = "all";
       if (next === "events") eventPane = "week";
+      if (next === "train") trainPane = "drills";
     }
     hubTab = next;
     hubBed();
@@ -1951,6 +2095,7 @@
       : hubTab === "cup" ? cupPanel()
       : hubTab === "relics" ? relicsPanel()
       : hubTab === "events" ? eventsPanel()
+      : hubTab === "train" ? trainingPanel()
       : clubPanel();
     const fighter = detailId ? fighterById(detailId) : null;
     app.innerHTML =
@@ -2255,6 +2400,7 @@
         if (filt.dataset.filterKind === "fighters") fighterFilter = filt.dataset.filter;
         if (filt.dataset.filterKind === "market") marketPane = filt.dataset.filter;
         if (filt.dataset.filterKind === "events") eventPane = filt.dataset.filter;
+        if (filt.dataset.filterKind === "train") trainPane = filt.dataset.filter;
         refreshHub();
         return;
       }
@@ -2277,6 +2423,24 @@
       if (equip) { toggleEquip(equip.dataset.equip); return; }
       const train = ev.target.closest("[data-train]");
       if (train && !train.disabled) { trainFighter(train.dataset.train); return; }
+      const drillPick = ev.target.closest("[data-drill-pick]");
+      if (drillPick) { trainDrill = drillPick.dataset.drillPick; refreshHub(); return; }
+      const drill = ev.target.closest("[data-drill]");
+      if (drill && !drill.disabled) { trainFighter(drill.dataset.drill, trainDrill); return; }
+      const focus = ev.target.closest("[data-focus]");
+      if (focus) {
+        const who = fighterById(focus.dataset.focus);
+        if (who && IL.chooseFocus(who, focus.dataset.spec, save)) { persist(); refreshHub(); }
+        return;
+      }
+      const mastery = ev.target.closest("[data-mastery]");
+      if (mastery) {
+        const who = fighterById(mastery.dataset.mastery);
+        if (who && IL.chooseMastery(who, mastery.dataset.spec, save)) { persist(); refreshHub(); }
+        return;
+      }
+      const facility = ev.target.closest("[data-facility]");
+      if (facility && !facility.disabled) { upgradeFacility(facility.dataset.facility); return; }
       const salvage = ev.target.closest("[data-salvage]");
       if (salvage) { salvageItem(salvage.dataset.salvage); return; }
       const buy = ev.target.closest("[data-buy-gear]");
@@ -2475,15 +2639,35 @@
     refreshHub();
   }
 
-  function trainFighter(id) {
+  function trainFighter(id, drillId) {
     const f = fighterById(id);
     if (!f || inThePit(f)) return;
-    const cost = IL.TRAIN_COST || 16;
-    if ((save.trainsLeft || 0) <= 0 || save.gold < cost) return;
+    const wanted = drillId || "strength";
+    const drill = IL.drillById ? IL.drillById(save, wanted) : null;
+    if (!drill) { pitSound("error"); return; }
+    const cost = drill.cost;
+    const xp = drill.xp;
+    if ((save.trainsLeft || 0) <= 0 || save.gold < cost) { pitSound("error"); return; }
+    if (IL.applyDrill && !IL.applyDrill(f, drill.id)) { pitSound("error"); return; }
     save.gold -= cost;
     save.trainsLeft -= 1;
     save.trainsDone = (save.trainsDone || 0) + 1;
-    IL.grantXp(f, IL.TRAIN_XP || 12);
+    IL.grantXp(f, xp);
+    persist();
+    refreshHub();
+  }
+
+  function upgradeFacility(id) {
+    const def = IL.facilityById && IL.facilityById(id);
+    if (!def || !save.facilities) return;
+    const lv = save.facilities[id] || 0;
+    if (lv >= def.max) return;
+    const cost = def.costs[lv];
+    if (save.gold < cost) { pitSound("error"); return; }
+    save.gold -= cost;
+    save.facilities[id] = lv + 1;
+    if (id === "yard" && IL.drillCap && (save.trainsLeft || 0) < IL.drillCap(save)) save.trainsLeft += 1;
+    pitSound("purchase");
     persist();
     refreshHub();
   }
@@ -3808,6 +3992,7 @@
     }
     gold += match.stats.bounty || 0;
     noteRecords(match, win);
+    if (IL.noteTasks) IL.noteTasks(save, match, win);
     save.bouts = (save.bouts || 0) + 1;
     if (win) {
       let taken = 0;
@@ -3952,7 +4137,7 @@
       }
     });
     save.round += 1;
-    save.trainsLeft = IL.TRAIN_CAP || 2;
+    save.trainsLeft = IL.drillCap ? IL.drillCap(save) : (IL.TRAIN_CAP || 2);
     save.trainRound = save.round;
     if (IL.rollGearStock) save.gearStock = IL.rollGearStock(takeRng());
   }

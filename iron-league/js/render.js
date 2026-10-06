@@ -753,15 +753,15 @@
       shown[u.id] = { x: u.x, y: u.y };
       if (u.hp > 0) living.push(u);
     }
-    const frontRole = { melee: 1, tank: 1, dash: 1 };
-    for (let pass = 0; pass < 3; pass++) {
+    const frontRole = { melee: 1, tank: 1, dash: 1, support: 1, hybrid: 1 };
+    for (let pass = 0; pass < 4; pass++) {
       for (let i = 0; i < living.length; i++) {
         for (let j = i + 1; j < living.length; j++) {
           const ua = living[i];
           const ub = living[j];
           const a = shown[ua.id];
           const b = shown[ub.id];
-          const gap = (frontRole[ua.role] && frontRole[ub.role] ? 20 : 14) * SCALE;
+          const gap = (frontRole[ua.role] && frontRole[ub.role] ? 28 : 16) * SCALE;
           let dx = b.x - a.x;
           let dy = b.y - a.y;
           let d = Math.hypot(dx, dy) || 1;
@@ -809,8 +809,8 @@
           ny = dy / d;
         }
       }
-      if (best > 1e8 || best >= 26 * SCALE) continue;
-      const shove = Math.min(26 * SCALE - best, 14 * SCALE);
+      if (best > 1e8 || best >= 36 * SCALE) continue;
+      const shove = Math.min(36 * SCALE - best, 22 * SCALE);
       a.x += nx * shove;
       a.y += ny * shove;
       a.x = Math.max(lim.minX, Math.min(lim.maxX, a.x));
@@ -829,6 +829,7 @@
         const sy = view.cssH / 2 + ((y - (u.z || 0)) - cam.y) * worldScale;
         IL.pitBoxes.push({
           name: u.name,
+          role: u.role || "",
           l: sx - bodyHalf * worldScale,
           t: sy - labelUp * worldScale,
           r: sx + bodyHalf * worldScale,

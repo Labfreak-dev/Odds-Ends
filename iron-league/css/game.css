@@ -1932,3 +1932,21 @@ td.club-cell .club-name,
     overflow-wrap: break-word;
   }
 }
+
+#liveList, .hp-col, .live { min-width: 0; max-width: 100%; }
+.live b, .live small, .live .hp-num {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live .pixel-icon, .live b .pixel-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -3px;
+}
+.live .track { min-width: 0; width: 100%; }
+.result-xp { min-width: 0; width: 100%; }
+@media (min-width: 1100px) {
+  .fight-layout aside { width: 320px; }
+}

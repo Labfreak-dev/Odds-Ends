@@ -403,14 +403,19 @@
   }
 
   /* Rivals wear a piece or two, mostly common, so a kitted squad is not a bye. */
-  function dressRival(fighter, rng) {
+  /* Higher divisions dress rivals in more and better pieces. */
+  function dressRival(fighter, rng, tier) {
     if (!fighter) return fighter;
     if (!fighter.gear) fighter.gear = blankGear();
+    const t = Math.max(0, Math.min(4, tier | 0));
     const roll = rng();
-    const n = roll < 0.4 ? 0 : roll < 0.84 ? 1 : 2;
+    const base = roll < 0.4 ? 0 : roll < 0.84 ? 1 : 2;
+    const n = Math.min(3, base + (t >= 1 ? 1 : 0) + (t >= 3 ? 1 : 0));
+    const bag = t >= 3 ? "cup" : t >= 2 ? "win" : "rival";
     const used = {};
-    for (let i = 0; i < n; i++) {
-      const item = makeItem(rng, { bag: "rival" });
+    for (let i = 0; i < n + 2; i++) {
+      if (Object.keys(used).length >= n) break;
+      const item = makeItem(rng, { bag: BAGS[bag] ? bag : "rival" });
       const slot = itemSlot(item);
       if (slot === "tome" || slot === "tonic") continue;
       if (used[slot]) continue;

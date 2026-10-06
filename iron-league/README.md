@@ -131,6 +131,16 @@ The Club tab no longer opens on a big match card. A slim **Fight** bar shows the
 
 Rarity sets the size of the bonus. The stat roll and the skill offer each reroll for gold, and the price rises with level. Growth style shows on recruit cards and the sheet. Rank-ups and training steps are no longer offered. Ranks and boosts that older saves already earned still apply.
 
+## Rebalance and sound (v65)
+
+**Divisions.** There are five tiers: Sand, Iron, Bronze, Silver, and Crown. At the end of a season the top two clubs go up and the bottom two go down. A tier sets the lowest level a rival can be (1, 4, 8, 12, 16), how well rivals are dressed (more pieces, from better bags), and the size of every league and season purse (×1 to ×2.2). The header and standings name the division. The table marks the up and down places. The ceremony says where the club goes next. An existing save is seated by the level of its three best fighters.
+
+**Rivals match you.** League and cup rivals spawn at the club's level (the mean of the three best fighters), one level either way, and never under the division floor. They also take real level-ups. Every level gives them a stat roll and one skill card (move, specialization, or talent), picked by their own seeded hand. In the sim, two grown level-10 trios split their fights, and one level up wins about two in three.
+
+**Slower levels.** Level L to L+1 now costs 40 × L^1.2 xp (40, 92, 150, 211, 276 …), where it used to be a flat 40. An older save converts once. Every fighter keeps their level and the share of it already earned. A flatter per-level stat curve (5% health and 4% attack instead of 8% and 6%) was tried and dropped, because it pushed supports and hard hitters out of the class win band. The slower xp curve and matched rivals do that job instead.
+
+**Sound.** `fight_loop` and `endless_loop` carried a hard hi-hat transient on every beat (61 and 133 clicks a loop). Both are filtered and re-encoded seamlessly, and now measure one click each. Every effect fades in over 4 ms and out over 30 ms, so nothing starts or stops on a pop. Each category (hits, swings, shots, spells) keeps a short gap, at most seven effects sound at once, and the effects bus has a soft top-end roll-off and limiter. The roll whoosh, which fired dozens of times a fight, is gone. Audio URLs carry `?v=65` so a browser fetches the new files.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

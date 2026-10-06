@@ -123,13 +123,14 @@
       rivals[rivals.length - 1] = nemesisName;
     }
     const clubs = [{ id: "you", name: save.clubName, you: true, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: 1 }];
-    const bump = IL.rivalBump ? IL.rivalBump(save.season) : 0;
+    /* v65: rivals match the club's level (one either way, never under the
+       division floor), wear division gear, and take real level-ups. */
+    const tier = IL.divisionOf(save);
     rivals.forEach(function (name, i) {
-      const fighters = [0, 1, 2].map(function () {
+      const fighters = [0, 1, 2].map(function (k) {
         const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
-        fighter.level = 1 + bump;
-        fighter.xp = bump * 40;
-        if (IL.dressRival) IL.dressRival(fighter, rng);
+        if (IL.dressRival) IL.dressRival(fighter, rng, tier);
+        IL.growRival(fighter, rng, IL.rivalLevel(save, i + k));
         return fighter;
       });
       const str = fighters.reduce(function (s, f) {
@@ -274,6 +275,9 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Divisions: five tiers from Sand to Crown. The top two go up, the bottom two go down, and higher tiers pay more.",
+    "Rivals now match your level and take real level-ups and better gear in higher divisions. Levels come slower.",
+    "Quieter fights: the ticking in the fight music is filtered out, and hits no longer stack into a clatter.",
     "Painted arenas: five pits drawn at full resolution, with stands, banners, and live firelight.",
     "Fights read cleaner: health over every head, damage numbers that float right, swing arcs, sparks, and glowing spells. Speeds are 1× and 1.5×.",
     "Level ups roll stats by growth style, then offer three skills by rarity: a new move, a specialization, or a talent. Rerolls cost gold.",
@@ -1480,8 +1484,9 @@
   function sheetHtml(f) {
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
     const stats = IL.scaledStats(f, kit);
-    const into = (f.xp || 0) % 40;
-    const xpPct = Math.round(100 * into / 40);
+    const xpi = IL.xpInto(f.xp || 0, f.level);
+    const into = xpi.into;
+    const xpPct = Math.round(100 * xpi.frac);
     if (IL.ensureMoves) IL.ensureMoves(f);
     const byAb = {};
     (kit.abilities || []).forEach(function (ab) { if (ab && ab.id) byAb[ab.id] = ab; });
@@ -1545,7 +1550,7 @@
         ((f.pendingLevels || 0) > 0 ? '<button type="button" class="btn gold sheet-level" id="sheetLevel">Level up · ' + f.pendingLevels + ' pick' + (f.pendingLevels === 1 ? '' : 's') + '</button>' : '') +
         '<h3 class="section">Tactic</h3>' + tacticChips(f) +
         behaviorHtml(f) +
-        '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
+        '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/' + xpi.need + '</b></div>' +
         statBar("HP", stats.hp, 320) +
         statBar("ATK", stats.atk, 40) +
         statBar("DEF", stats.def, 16) +
@@ -1728,7 +1733,7 @@
     if (save.ceremonyPaid === save.season) return null;
     const sorted = sortedClubs();
     const place = sorted.findIndex(function (c) { return c.you; });
-    const purse = IL.seasonPurse(place < 0 ? 99 : place);
+    const purse = IL.seasonPurse(place < 0 ? 99 : place, IL.divisionOf(save));
     save.gold += purse.gold;
     save.renown = (save.renown || 0) + purse.renown;
     save.ceremonyPaid = save.season;
@@ -1771,7 +1776,19 @@
       '<i style="width:' + s + '%"></i><em>' + esc(label) + '</em></span>';
   }
 
+  /* Top two go up, bottom two go down. Returns the line for the ceremony. */
+  function divisionMove(place) {
+    const tier = IL.divisionOf(save);
+    const top = IL.DIVISIONS.length - 1;
+    if (place <= 1 && tier < top) return { to: tier + 1, text: "Promoted to the " + IL.DIVISIONS[tier + 1].name + "." };
+    if (place >= 4 && tier > 0) return { to: tier - 1, text: "Relegated to the " + IL.DIVISIONS[tier - 1].name + "." };
+    return { to: tier, text: "Staying in the " + IL.DIVISIONS[tier].name + "." };
+  }
+
   function startNextSeason() {
+    const placeNow = sortedClubs().findIndex(function (c) { return c.you; });
+    const move = divisionMove(placeNow < 0 ? 5 : placeNow);
+    save.division = move.to;
     save.season += 1;
     save.gold += 30;
     (save.roster || []).forEach(function (f) {
@@ -1823,6 +1840,7 @@
           '<h2>' + esc(save.clubName) + ' finish ' + ordinal(place + 1) + '</h2>' +
           '<p class="res-score">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="res-ko">' + (sorted[place] ? sorted[place].w + 'W · ' + sorted[place].l + 'L · ' + sorted[place].pts + ' pts' : '') + '</span></p>' +
           '<p class="fine">' + esc(cupNote) + '</p>' +
+          '<p class="division-move ' + (divisionMove(place).to > IL.divisionOf(save) ? 'up' : divisionMove(place).to < IL.divisionOf(save) ? 'down' : '') + '" id="divisionMove">' + esc(divisionMove(place).text) + '</p>' +
         '</header>' +
         '<div class="res-rewards season-rewards">' +
           (purse ? '<div class="res-tile gold-tile">' + coinIcon("gold") + '<b>+' + purse.gold + '</b><span>gold</span></div>' +
@@ -1892,7 +1910,9 @@
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
       const nemesisRow = save.nemesis && c.name === save.nemesis.name;
-      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      const tierNow = IL.divisionOf(save);
+      const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= 4 && tierNow > 0) ? " releg" : "";
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function previewNames(list) {
       if (!list.length) return '<p class="preview-name">None</p>';
@@ -1953,7 +1973,8 @@
           (clubView === "record" ? clubRecordHtml()
             : clubView === "history" ? historyHtml()
             : clubView === "goals" ? achievementsHtml()
-            : '<section class="panel-frame"><h3 class="section">Standings</h3>' +
+            : '<section class="panel-frame"><h3 class="section">Standings · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</h3>' +
+                '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals near Lv ' + IL.rivalLevel(save, 1) + '</p>' +
                 '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
               '</section>') +
         '</div>' +
@@ -2941,7 +2962,7 @@
         '<div class="hub-sticky">' +
           '<header class="hub-head">' +
             '<button type="button" class="crest-btn" id="clubIdentity" aria-label="Club name and colors" title="Club name and colors">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="crest-edit" aria-hidden="true">✎</span></button>' +
-            '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
+            '<div><p class="eyebrow">Season ' + save.season + ' · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
             '<div class="hub-actions">' +
               (done ? '<button type="button" class="btn gold" id="openSeason">Season ceremony</button>' : '') +
               '<button type="button" class="icon-btn" id="settings" aria-label="Settings" title="Settings"><span aria-hidden="true">⚙</span></button>' +
@@ -5437,7 +5458,7 @@
         '<td>' + (u.dmgTaken || 0) + '</td>' +
         '<td>' + (u.healing || 0) + '</td>' +
         '<td>' + (u.kos || 0) + '</td>' +
-        '<td><div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(((b.prev % 40) / 40) * 100) + '%"></div></div></div></td>' +
+        '<td><div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(IL.xpInto(b.prev).frac * 100) + '%"></div></div></div></td>' +
       '</tr>';
     }).join("");
     let topDealt = 1;
@@ -5457,7 +5478,7 @@
         '<div class="res-stats">' + bar("Dealt", u.dmgDealt || 0, "dealt") + bar("Taken", u.dmgTaken || 0, "taken") + bar("Heal", u.healing || 0, "heal") +
           '<span class="res-kos"><em>KOs</em><b>' + (u.kos || 0) + '</b></span></div>' +
         abBreakdown(u) +
-        '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(((b.prev % 40) / 40) * 100) + '%"></div></div><small>Lv ' + b.lv + ' · ' + (b.now % 40) + '/40 xp</small></div>' +
+        '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(IL.xpInto(b.prev).frac * 100) + '%"></div></div><small>Lv ' + b.lv + ' · ' + IL.xpInto(b.now, b.lv).into + '/' + IL.xpInto(b.now, b.lv).need + ' xp</small></div>' +
       "</article>";
     }).join("");
     if (cards) return { mvp: mvp, html: '<div id="resultTable" class="result-board res-cards"><div class="result-rows">' + cards + '</div></div>' };
@@ -5475,7 +5496,7 @@
           " · Heal " + (u.healing || 0) +
           " · KOs " + (u.kos || 0) + "</p>" +
         abBreakdown(u) +
-        '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(((b.prev % 40) / 40) * 100) + '%"></div></div></div>' +
+        '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(IL.xpInto(b.prev).frac * 100) + '%"></div></div></div>' +
       "</article>";
     }).join("");
     return {
@@ -5499,7 +5520,7 @@
         const to = +el.dataset.xpTo;
         const xp = from + (to - from) * t;
         const fill = el.querySelector(".fill");
-        if (fill) fill.style.width = ((xp % 40) / 40 * 100) + "%";
+        if (fill) fill.style.width = (IL.xpInto(xp).frac * 100) + "%";
       }
       if (t < 1) requestAnimationFrame(frame);
     }
@@ -5763,6 +5784,10 @@
     } else {
       if (win) save.tokens = (save.tokens || 0) + 1;
       recordRound(win, pf, pa);
+      /* Higher divisions pay more for the same match. */
+      const purseMul = IL.DIVISIONS[IL.divisionOf(save)].purse;
+      gold = Math.round(gold * purseMul);
+      renown = Math.round(renown * purseMul);
     }
     const renownPack = IL.relicPack(save, fight.left || []);
     const renownOn = renownPack.club.concat(renownPack.sets).some(function (r) { return r.kind === "renown"; })

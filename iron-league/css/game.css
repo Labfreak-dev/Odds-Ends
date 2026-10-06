@@ -2046,9 +2046,10 @@ td.club-cell .club-name,
   .versus-card p { margin: 0; }
   .versus-card h3 {
     font-size: 14px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .versus-card .kit-line span {
     width: 0;

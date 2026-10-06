@@ -2663,7 +2663,9 @@
         '<header class="creator-head"><h2>A move for ' + esc(f.name) + '</h2></header>' +
         '<p class="banner">Level ' + (f.level || 1) + '. ' + f.pendingMoves + ' move' + (f.pendingMoves === 1 ? "" : "s") + ' waiting. Equip it on the sheet.</p>' +
         '<div class="class-grid" id="moveChoices">' + buttons + '</div>' +
+        '<footer class="growth-actions"><button type="button" class="btn ghost" id="backHub">Back to club</button></footer>' +
       '</main>';
+    document.getElementById("backHub").onclick = function () { showHub(); };
     document.getElementById("moveChoices").onclick = function (ev) {
       const btn = ev.target.closest("[data-move]");
       if (!btn) return;

@@ -190,22 +190,30 @@
   }
 
   function applyRelics(u, relics) {
+    const scaleOf = { common: 1, uncommon: 1.1, rare: 1.25, legendary: 1.45 };
     for (let i = 0; i < relics.length; i++) {
       const r = relics[i];
       if (!r) continue;
+      const scale = scaleOf[r.rarity] || 1;
       if (r.kind === "hp") {
-        u.maxHp = Math.round(u.maxHp * 1.12);
+        u.maxHp = Math.round(u.maxHp * (1 + 0.12 * scale));
         u.hp = u.maxHp;
-      } else if (r.kind === "crit") u.crit += 0.14;
-      else if (r.kind === "shield") u.shield = Math.round(u.maxHp * 0.14);
-      else if (r.kind === "haste") { u.castTime *= 0.82; u.abilityCdMul *= 0.85; }
-      else if (r.kind === "bounty") u.bounty += 6;
-      else if (r.kind === "regen") u.regen += 2.4;
-      else if (r.kind === "pierce") u.pierce += 1;
+      } else if (r.kind === "crit") u.crit += 0.14 * scale;
+      else if (r.kind === "shield") u.shield += Math.round(u.maxHp * 0.14 * scale);
+      else if (r.kind === "haste") {
+        u.castTime *= (1 - 0.18 * scale);
+        u.abilityCdMul *= (1 - 0.15 * scale);
+      } else if (r.kind === "bounty") u.bounty += 6 * scale;
+      else if (r.kind === "regen") u.regen += 2.4 * scale;
+      else if (r.kind === "pierce") u.pierce += scale;
       else if (r.kind === "wind") u.wind = true;
-      else if (r.kind === "speed") u.speed *= 1.1;
-      else if (r.kind === "glass") { u.atk = Math.round(u.atk * 1.15); u.def = Math.max(0, u.def - 2); }
-      else if (r.kind === "sand") u.abilityCdMul *= 0.78;
+      else if (r.kind === "speed") u.speed *= (1 + 0.1 * scale);
+      else if (r.kind === "glass") {
+        u.atk = Math.round(u.atk * (1 + 0.15 * scale));
+        u.def = Math.max(0, u.def - Math.round(2 * scale));
+      } else if (r.kind === "sand") u.abilityCdMul *= (1 - 0.22 * scale);
+      else if (r.kind === "atk") u.atk = Math.round(u.atk * (1 + 0.08 * scale));
+      else if (r.kind === "def") u.def += 2 * scale;
     }
   }
 
@@ -298,9 +306,17 @@
       left.forEach(function (f, i) { units.push(makeUnit(f, 0, i, left.length, 2)); });
       right.forEach(function (f, i) { units.push(makeUnit(f, 1, i, right.length, 2)); });
     }
-    const relics = opts.relics || [];
-    if (relics.length) {
-      for (let i = 0; i < units.length; i++) if (units[i].team === 0) applyRelics(units[i], relics);
+    const relics = (opts.relics || []).slice();
+    (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
+    const worn = opts.wornRelics || {};
+    if (relics.length || Object.keys(worn).length) {
+      for (let i = 0; i < units.length; i++) {
+        if (units[i].team !== 0) continue;
+        const pack = relics.slice();
+        const one = worn[units[i].id];
+        if (one) pack.push(one);
+        if (pack.length) applyRelics(units[i], pack);
+      }
     }
     applySynergy(units);
     if (opts.mod) applyWaveMod(units, opts.mod);

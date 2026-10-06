@@ -3,18 +3,81 @@
   const IL = root.IL = root.IL || {};
 
   const RELICS = [
-    { id: "band", name: "Iron Band", kind: "hp", blurb: "Fielded fighters have more health." },
-    { id: "edge", name: "Keen Edge", kind: "crit", blurb: "Cuts land as criticals more often." },
-    { id: "plate", name: "Warden Plate", kind: "shield", blurb: "Each fighter starts with a small shield." },
-    { id: "sigil", name: "Quick Sigil", kind: "haste", blurb: "Casts and abilities come back sooner." },
-    { id: "purse", name: "Purse Hook", kind: "bounty", blurb: "A downed rival pays a little gold." },
-    { id: "thread", name: "Mender's Thread", kind: "regen", blurb: "Slow mending during the fight." },
-    { id: "quill", name: "Piercing Quill", kind: "pierce", blurb: "Shots pass through one extra body." },
-    { id: "wind", name: "Second Wind", kind: "wind", blurb: "Once, at a low ebb, they catch a breath." },
-    { id: "banner", name: "Yard Banner", kind: "speed", blurb: "The squad moves a little faster." },
-    { id: "glass", name: "Glass Charm", kind: "glass", blurb: "More damage. Less armor." },
-    { id: "ring", name: "Cup Ring", kind: "renown", blurb: "Wins on the board pay extra renown." },
-    { id: "clock", name: "Sand Clock", kind: "sand", blurb: "Abilities cool down faster." }
+    { id: "band", name: "Iron Band", kind: "hp", scope: "club", rarity: "common", set: "wall", blurb: "Fielded fighters have more health." },
+    { id: "edge", name: "Keen Edge", kind: "crit", scope: "club", rarity: "common", set: "edge", blurb: "Cuts land as criticals more often." },
+    { id: "plate", name: "Warden Plate", kind: "shield", scope: "club", rarity: "common", set: "wall", blurb: "Each fighter starts with a small shield." },
+    { id: "sigil", name: "Quick Sigil", kind: "haste", scope: "club", rarity: "common", set: "haste", blurb: "Casts and abilities come back sooner." },
+    { id: "purse", name: "Purse Hook", kind: "bounty", scope: "club", rarity: "common", set: "purse", blurb: "A downed rival pays a little gold." },
+    { id: "thread", name: "Mender's Thread", kind: "regen", scope: "club", rarity: "common", set: "mend", blurb: "Slow mending during the fight." },
+    { id: "quill", name: "Piercing Quill", kind: "pierce", scope: "club", rarity: "common", set: "mark", blurb: "Shots pass through one extra body." },
+    { id: "wind", name: "Second Wind", kind: "wind", scope: "club", rarity: "common", set: "breath", blurb: "Once, at a low ebb, they catch a breath." },
+    { id: "banner", name: "Yard Banner", kind: "speed", scope: "club", rarity: "common", set: "haste", blurb: "The squad moves a little faster." },
+    { id: "glass", name: "Glass Charm", kind: "glass", scope: "club", rarity: "common", set: "glass", blurb: "More damage. Less armor." },
+    { id: "ring", name: "Cup Ring", kind: "renown", scope: "club", rarity: "common", set: "purse", blurb: "Wins on the board pay extra renown." },
+    { id: "clock", name: "Sand Clock", kind: "sand", scope: "club", rarity: "common", set: "haste", blurb: "Abilities cool down faster." },
+    { id: "brace", name: "Yard Brace", kind: "def", scope: "fighter", rarity: "rare", set: "wall", blurb: "That fighter stands a little firmer." },
+    { id: "oath", name: "Oath Nail", kind: "shield", scope: "fighter", rarity: "legendary", set: "wall", blurb: "That fighter opens the fight behind a shield." },
+    { id: "hone", name: "Honing Stone", kind: "atk", scope: "fighter", rarity: "uncommon", set: "edge", blurb: "That fighter's cuts sit heavier." },
+    { id: "fang", name: "Fang Charm", kind: "crit", scope: "club", rarity: "rare", set: "edge", blurb: "Criticals come more often for the club." },
+    { id: "lastcut", name: "Last Cut", kind: "atk", scope: "fighter", rarity: "legendary", set: "edge", blurb: "That fighter's last cut lands harder." },
+    { id: "salve", name: "Green Salve", kind: "regen", scope: "fighter", rarity: "uncommon", set: "mend", blurb: "That fighter mends a little during the fight." },
+    { id: "stitch", name: "Stitching Kit", kind: "hp", scope: "club", rarity: "rare", set: "mend", blurb: "The party has more health." },
+    { id: "chalice", name: "Well Chalice", kind: "regen", scope: "fighter", rarity: "legendary", set: "mend", blurb: "That fighter mends through the fight." },
+    { id: "spur", name: "Spurred Boot", kind: "speed", scope: "fighter", rarity: "legendary", set: "haste", blurb: "That fighter crosses the pit faster." },
+    { id: "shard", name: "Mirror Shard", kind: "atk", scope: "fighter", rarity: "uncommon", set: "glass", blurb: "That fighter hits harder." },
+    { id: "lens", name: "Cracked Lens", kind: "glass", scope: "club", rarity: "rare", set: "glass", blurb: "The club hits harder and wears less armor." },
+    { id: "heart", name: "Glass Heart", kind: "atk", scope: "fighter", rarity: "legendary", set: "glass", blurb: "That fighter hits much harder." },
+    { id: "coin", name: "Lucky Coin", kind: "bounty", scope: "fighter", rarity: "rare", set: "purse", blurb: "A rival that fighter drops pays gold." },
+    { id: "ledger", name: "Tithe Ledger", kind: "renown", scope: "fighter", rarity: "legendary", set: "purse", blurb: "Wins pay extra renown while they wear it." },
+    { id: "fletch", name: "Fletching Wax", kind: "pierce", scope: "fighter", rarity: "uncommon", set: "mark", blurb: "That fighter's shots pass one more body." },
+    { id: "sight", name: "Hawk Sight", kind: "pierce", scope: "club", rarity: "rare", set: "mark", blurb: "Shots from the club pass one more body." },
+    { id: "star", name: "Falling Star", kind: "pierce", scope: "fighter", rarity: "legendary", set: "mark", blurb: "That fighter's shot keeps traveling." },
+    { id: "lung", name: "Deep Lung", kind: "hp", scope: "fighter", rarity: "uncommon", set: "breath", blurb: "That fighter has more health." },
+    { id: "bell", name: "Rally Bell", kind: "wind", scope: "club", rarity: "rare", set: "breath", blurb: "The party can catch a breath, once." },
+    { id: "ash", name: "Ash Breath", kind: "wind", scope: "fighter", rarity: "legendary", set: "breath", blurb: "That fighter can catch a breath, once." },
+    { id: "rivet", name: "Rivet Cap", kind: "def", scope: "club", rarity: "common", blurb: "The party stands a little firmer." },
+    { id: "cloak", name: "Warm Cloak", kind: "hp", scope: "fighter", rarity: "common", blurb: "That fighter has a little more health." },
+    { id: "whistle", name: "Tin Whistle", kind: "haste", scope: "club", rarity: "common", blurb: "Casts and abilities come back a little sooner." },
+    { id: "nail", name: "Rust Nail", kind: "atk", scope: "fighter", rarity: "common", blurb: "That fighter hits a little harder." },
+    { id: "buckle", name: "Oak Buckle", kind: "shield", scope: "club", rarity: "common", blurb: "The party opens behind a small shield." },
+    { id: "wrap", name: "Soft Wrap", kind: "regen", scope: "fighter", rarity: "common", blurb: "That fighter mends, slowly." },
+    { id: "pebble", name: "Pebble Charm", kind: "crit", scope: "club", rarity: "uncommon", blurb: "Cuts land as criticals a little more often." },
+    { id: "ferry", name: "Ferry Token", kind: "bounty", scope: "fighter", rarity: "uncommon", blurb: "A rival that fighter drops pays a little gold." },
+    { id: "bluethread", name: "Blue Thread", kind: "regen", scope: "club", rarity: "uncommon", blurb: "The party mends a little during the fight." },
+    { id: "fuse", name: "Short Fuse", kind: "haste", scope: "fighter", rarity: "uncommon", blurb: "That fighter's abilities come back sooner." },
+    { id: "stud", name: "Copper Stud", kind: "def", scope: "club", rarity: "uncommon", blurb: "The party wears the hit a little better." },
+    { id: "wren", name: "Wren Feather", kind: "speed", scope: "fighter", rarity: "uncommon", blurb: "That fighter moves a little faster." },
+    { id: "salt", name: "Salt Vial", kind: "pierce", scope: "club", rarity: "uncommon", blurb: "Shots pass through one extra body." },
+    { id: "oil", name: "Night Oil", kind: "crit", scope: "fighter", rarity: "rare", blurb: "That fighter's cuts land as criticals more often." },
+    { id: "clasp", name: "Heavy Clasp", kind: "shield", scope: "club", rarity: "rare", blurb: "The party opens behind a thicker shield." },
+    { id: "redwrap", name: "Red Wrap", kind: "regen", scope: "fighter", rarity: "rare", blurb: "That fighter mends through the fight." },
+    { id: "storm", name: "Storm Bead", kind: "haste", scope: "club", rarity: "rare", blurb: "Casts and abilities come back sooner." },
+    { id: "dice", name: "Bone Dice", kind: "bounty", scope: "fighter", rarity: "rare", blurb: "A rival that fighter drops pays gold." },
+    { id: "ironstud", name: "Iron Stud", kind: "def", scope: "club", rarity: "rare", blurb: "The party stands firmer." },
+    { id: "cord", name: "Swift Cord", kind: "speed", scope: "fighter", rarity: "rare", blurb: "That fighter crosses the pit faster." },
+    { id: "pin", name: "Long Pin", kind: "pierce", scope: "club", rarity: "rare", blurb: "Shots from the club pass one more body." },
+    { id: "mask", name: "Pale Mask", kind: "glass", scope: "fighter", rarity: "rare", blurb: "That fighter hits harder and wears less armor." },
+    { id: "crown", name: "Crown Nail", kind: "atk", scope: "club", rarity: "legendary", blurb: "The party's cuts land harder." },
+    { id: "knot", name: "Saint's Knot", kind: "hp", scope: "fighter", rarity: "legendary", blurb: "That fighter has much more health." },
+    { id: "echo", name: "Echo Bell", kind: "sand", scope: "club", rarity: "legendary", blurb: "Abilities cool down faster." },
+    { id: "thorn", name: "Thorn Ring", kind: "crit", scope: "fighter", rarity: "legendary", blurb: "That fighter's cuts land as criticals." },
+    { id: "goldthread", name: "Gold Thread", kind: "bounty", scope: "club", rarity: "legendary", blurb: "A downed rival pays more gold." },
+    { id: "whiteash", name: "White Ash", kind: "wind", scope: "fighter", rarity: "legendary", blurb: "That fighter can catch a breath, once." },
+    { id: "broad", name: "Broad Plate", kind: "shield", scope: "club", rarity: "uncommon", blurb: "The party opens behind a shield." },
+    { id: "keenpin", name: "Keen Pin", kind: "atk", scope: "fighter", rarity: "rare", blurb: "That fighter's cuts sit heavier." },
+    { id: "cup", name: "Mender's Cup", kind: "regen", scope: "club", rarity: "rare", blurb: "The party mends during the fight." },
+    { id: "lastbell", name: "Last Bell", kind: "haste", scope: "fighter", rarity: "legendary", blurb: "That fighter's casts come back much sooner." }
+  ];
+
+  const SETS = [
+    { id: "wall", name: "Iron Wall", kind: "def", need: 2, blurb: "Two pieces of the wall raise defense for the party." },
+    { id: "edge", name: "Keen Line", kind: "crit", need: 2, blurb: "Two pieces of the line make cuts land as criticals." },
+    { id: "mend", name: "Mender's Circle", kind: "regen", need: 2, blurb: "Two pieces of the circle mend the party during the fight." },
+    { id: "haste", name: "Quick Step", kind: "haste", need: 2, blurb: "Two pieces of the step bring casts back sooner." },
+    { id: "glass", name: "Glass Pact", kind: "glass", need: 2, blurb: "Two pieces of the pact hit harder and wear less armor." },
+    { id: "purse", name: "Purse Guild", kind: "bounty", need: 2, blurb: "Two pieces of the guild pay gold when a rival falls." },
+    { id: "mark", name: "Quill Mark", kind: "pierce", need: 2, blurb: "Two pieces of the mark let a shot pass one more body." },
+    { id: "breath", name: "Second Breath", kind: "wind", need: 2, blurb: "Two pieces of the breath catch the party once, at a low ebb." }
   ];
 
   const RELIC_BY = {};
@@ -22,14 +85,53 @@
 
   function relicById(id) { return RELIC_BY[id] || null; }
 
+  const SET_BY = {};
+  SETS.forEach(function (s) { SET_BY[s.id] = s; });
+
+  function setById(id) { return SET_BY[id] || null; }
+
   function equippedRelics(save) {
     const ids = (save && save.equipped) || [];
     const out = [];
     for (let i = 0; i < ids.length; i++) {
       const r = relicById(ids[i]);
-      if (r) out.push(r);
+      if (r && r.scope !== "fighter") out.push(r);
     }
     return out;
+  }
+
+  /* Club slots plus relics worn by the fielded party. Two pieces of a set wake one club-wide bonus. */
+  function relicPack(save, party) {
+    const club = equippedRelics(save);
+    const owned = (save && save.relics) || [];
+    const worn = {};
+    const active = club.slice();
+    (party || []).forEach(function (f) {
+      if (!f || !f.relic) return;
+      const r = relicById(f.relic);
+      if (!r || r.scope !== "fighter") return;
+      if (owned.indexOf(r.id) < 0) return;
+      worn[f.id] = r;
+      active.push(r);
+    });
+    const counts = {};
+    active.forEach(function (r) {
+      if (r.set) counts[r.set] = (counts[r.set] || 0) + 1;
+    });
+    const sets = [];
+    SETS.forEach(function (set) {
+      if ((counts[set.id] || 0) >= set.need) {
+        sets.push({
+          id: "set-" + set.id,
+          name: set.name,
+          kind: set.kind,
+          rarity: "common",
+          blurb: set.blurb,
+          setBonus: true
+        });
+      }
+    });
+    return { club: club, worn: worn, sets: sets };
   }
 
   const RARITY_MULT = { common: 1, uncommon: 1.28, rare: 1.75, legendary: 2.4 };
@@ -176,9 +278,11 @@
     return Math.max(22, Math.round(base * champ * rarityPay + levelPay) + gearRefund(f));
   }
 
+  const RELIC_COST = { common: 48, uncommon: 86, rare: 140, legendary: 210 };
+
   function relicPrice(id) {
-    const i = RELICS.findIndex(function (r) { return r.id === id; });
-    return 96 + Math.max(0, i) * 14;
+    const relic = relicById(id);
+    return RELIC_COST[(relic && relic.rarity) || "common"] || 48;
   }
 
   function relicSellPrice(id) {
@@ -349,7 +453,10 @@
     if (typeof data.tokens !== "number") data.tokens = 1;
     if (!Array.isArray(data.relics)) data.relics = [];
     if (!Array.isArray(data.equipped)) data.equipped = [];
-    data.equipped = data.equipped.filter(function (id) { return data.relics.indexOf(id) >= 0; }).slice(0, 2);
+    data.equipped = data.equipped.filter(function (id) {
+      const relic = relicById(id);
+      return relic && relic.scope !== "fighter" && data.relics.indexOf(id) >= 0;
+    }).slice(0, 2);
     if (typeof data.relicSeason !== "number") data.relicSeason = 0;
     if (!data.cup) data.cup = null;
     if (!Array.isArray(data.relicStock)) data.relicStock = [];
@@ -425,6 +532,14 @@
       f.pendingMastery = (f.level || 1) >= 10 && !f.mastery;
       if (!f.drillRanks || typeof f.drillRanks !== "object") f.drillRanks = {};
       if (IL.ensureMoves) IL.ensureMoves(f);
+    });
+    const wornOnce = {};
+    data.roster.forEach(function (f) {
+      if (!f) return;
+      const worn = typeof f.relic === "string" ? relicById(f.relic) : null;
+      const owned = worn && data.relics.indexOf(worn.id) >= 0;
+      if (!worn || worn.scope !== "fighter" || !owned || wornOnce[worn.id]) f.relic = null;
+      else wornOnce[worn.id] = true;
     });
     function stampMoves(f) {
       if (f && IL.ensureMoves) IL.ensureMoves(f);
@@ -962,8 +1077,11 @@
   IL.relicChoices = relicChoices;
   IL.noteEndless = noteEndless;
   IL.RELICS = RELICS;
+  IL.SETS = SETS;
   IL.relicById = relicById;
+  IL.setById = setById;
   IL.equippedRelics = equippedRelics;
+  IL.relicPack = relicPack;
   IL.SPECIALTIES = SPECIALTIES;
   IL.MASTERIES = MASTERIES;
   IL.specialtyOf = specialtyOf;

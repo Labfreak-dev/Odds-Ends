@@ -169,9 +169,10 @@ def run(page, label, shot_dir):
     if "found" not in loot:
         raise SystemExit(label + " loot reveal missing a find: " + loot)
     result_text = page.locator("#result").inner_text().lower()
-    for word in ("mvp", "dealt", "taken", "heal"):
-        if word not in result_text:
-            raise SystemExit(label + " results missing " + word)
+    # Phone columns use Dmg / Tkn so the header fits a 360px frame.
+    for words in (("mvp",), ("dealt", "dmg"), ("taken", "tkn"), ("heal",)):
+        if not any(word in result_text for word in words):
+            raise SystemExit(label + " results missing " + words[0])
     result = page.locator("#result h2").inner_text()
     if "pit" not in result.lower() and "walk" not in result.lower():
         raise SystemExit(label + " unexpected result: " + result)

@@ -1886,3 +1886,36 @@ td.club-cell .crest-mark,
   white-space: nowrap;
 }
 .class-badge { flex: none; }
+
+/* Names and prices wrap. The Pts column stays inside the frame. */
+td.club-cell,
+.club-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+td.club-cell .club-name,
+.club-line .club-name,
+.roster-row h3,
+.roster-row p,
+.roster-row .fine,
+.roster-row .kit-line span,
+.card h3,
+.card .fine,
+.card .kit-line span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.board th:nth-child(n+3),
+.board td:nth-child(n+3) {
+  width: 2.6em;
+  padding: 4px 2px;
+  letter-spacing: 0;
+}

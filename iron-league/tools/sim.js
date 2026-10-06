@@ -20,6 +20,7 @@ context.window = context;
 context.globalThis = context;
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/data.js"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "js/kits.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/gear.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/meta.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/arena.js"), "utf8"), context);
@@ -65,14 +66,53 @@ check("roll covers 95-102", IL.frameIndex("roll", 0) === 95 && IL.frameIndex("ro
 check("air1 hit frames", IL.CLIPS.air1.hits[0] === 55 && IL.CLIPS.air2.hits[0] === 61);
 check("cast2 is wired", IL.CLIPS.cast2.from === 68 && IL.CLASSES.mage.casts.indexOf("cast2") >= 0);
 check("pit is wider than 960", IL.WORLD.w >= 1440 && IL.WORLD.right - IL.WORLD.left > 1200);
-check("twelve or more classes", Object.keys(IL.CLASSES).length >= 12);
+check("twenty four or more classes", Object.keys(IL.CLASSES).length >= 24);
+const seenAb = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
   const kit = IL.CLASSES[id];
-  if (!kit.ability || !kit.ability.kind || !kit.ability.name) {
+  const list = kit.abilities || [];
+  if (list.length < 3) {
     fails++;
-    console.error("missing ability", id);
+    console.error("need 3 abilities", id);
+  }
+  const unlocks = list.map(function (ab) { return ab && ab.unlock; }).slice().sort(function (a, b) { return a - b; }).join(",");
+  if (unlocks !== "1,4,7") {
+    fails++;
+    console.error("unlocks", id, unlocks);
+  }
+  list.forEach(function (ab) {
+    if (!ab || !ab.id || !ab.kind || !ab.name) {
+      fails++;
+      console.error("bad ability", id);
+      return;
+    }
+    seenAb[ab.id] = true;
+    if (!IL.abilityIcon(ab.id)) {
+      fails++;
+      console.error("ability icon", ab.id);
+    }
+  });
+  if (!kit.trait || !IL.TRAITS[kit.trait]) {
+    fails++;
+    console.error("trait", id);
   }
 });
+check("seventy or more abilities", Object.keys(seenAb).length >= 70);
+IL.CLUBS.forEach(function (name) {
+  const theme = IL.CLUB_THEMES[name];
+  if (!theme || theme.length < 2) {
+    fails++;
+    console.error("theme", name);
+    return;
+  }
+  theme.forEach(function (id) {
+    if (!IL.CLASSES[id]) {
+      fails++;
+      console.error("theme class", name, id);
+    }
+  });
+});
+check("rival clubs are themed", true);
 check("starters are free", ["warrior", "archer", "mage", "tank", "rogue"].every(function (id) { return IL.classUnlocked(id, 0); }));
 check("exotic gates", !IL.classUnlocked("assassin", 0) && IL.classUnlocked("assassin", 70) && IL.classUnlocked("lancer", 15));
 const grew = IL.growthFromXp(0, 80);
@@ -218,6 +258,7 @@ check("archer shot is a bow", IL.visualMotion("atk1", "archer", IL.defaultSheet(
 check("ranger shot is a bow", IL.visualMotion("atk1", "ranger", IL.defaultSheet("ranger")) === "bow");
 check("warrior swing stays a swing", IL.visualMotion("atk1", "warrior", IL.defaultSheet("warrior")) === "atk1");
 check("skirmisher fires", IL.visualMotion("atk1", "skirmisher", IL.defaultSheet("skirmisher")) === "gun");
+check("gunslinger fires", IL.visualMotion("atk1", "gunslinger", IL.defaultSheet("gunslinger")) === "gun");
 check("mage still chants", IL.visualMotion("cast1", "mage", IL.defaultSheet("mage")) === "magic");
 const seenIds = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
@@ -258,14 +299,17 @@ IL.grantXp(f, 80);
 check("grant queues a pick", f.level === 3 && f.pendingPicks === 1);
 check("boost spends a pick", IL.applyBoost(f, "hp") && f.boosts.hp === 1 && f.pendingPicks === 0);
 
-function fight(leftCls, rightCls, seed) {
+function fight(leftCls, rightCls, seed, level) {
   const n = Math.max(leftCls.length, rightCls.length);
   const rng = IL.mulberry32(seed);
   const left = [];
   const right = [];
   for (let i = 0; i < n; i++) {
-    left.push(IL.randomFighter(rng, leftCls[i % leftCls.length]));
-    right.push(IL.randomFighter(rng, rightCls[i % rightCls.length]));
+    const a = IL.randomFighter(rng, leftCls[i % leftCls.length]);
+    const b = IL.randomFighter(rng, rightCls[i % rightCls.length]);
+    if (level) { a.level = level; b.level = level; }
+    left.push(a);
+    right.push(b);
   }
   const m = IL.createMatch({ seed: seed, left: left, right: right, leftName: "Home", rightName: "Away" });
   let steps = 0;
@@ -337,7 +381,7 @@ check("air attacks play", airs > 0);
 check("melee slashes", slashes > 0);
 console.log("deaths", deaths, "blocks", blocked, "rolls", rolls, "dodges", dodges, "leaps", leaps, "airs", airs, "slashes", slashes);
 
-const mage2 = fight(["mage", "mage"], ["warrior", "archer"], 77);
+const mage2 = fight(["mage", "mage"], ["warrior", "archer"], 77, 4);
 check("second cast lands", mage2.stats.cast2 > 0);
 const dodgeFight = fight(["warrior", "archer", "rogue"], ["mage", "archer", "warrior"], 91);
 check("mixed fight dodges or rolls", dodgeFight.stats.rolls > 0 && (dodgeFight.stats.dodges > 0 || dodgeFight.stats.rolls > 2));
@@ -431,6 +475,54 @@ const boosted = IL.createMatch({
   relics: [{ kind: "hp" }, { kind: "shield" }]
 });
 check("boosts and relics raise health", boosted.units[0].maxHp > relicMatch.units[0].maxHp);
+
+let classBroke = 0;
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const m = fight([id], ["warrior"], 12000 + (IL.hashStr(id) % 5000), 7);
+  if (!m.over) {
+    classBroke++;
+    console.error("class fight hung", id);
+  }
+  m.units.forEach(function (u) {
+    if (!Number.isFinite(u.hp) || !Number.isFinite(u.x) || !Number.isFinite(u.y)) {
+      classBroke++;
+      console.error("class fight nan", id, u.name);
+    }
+  });
+});
+check("every class can fight", classBroke === 0);
+
+const hot = [];
+Object.keys(IL.CLASSES).forEach(function (id) {
+  let leftWins = 0;
+  let rightWins = 0;
+  const n = 20;
+  for (let i = 0; i < n; i++) {
+    const rng = IL.mulberry32(9000 + i * 13 + (IL.hashStr(id) % 1000));
+    const left = IL.randomFighter(rng, id);
+    const right = IL.randomFighter(rng, id);
+    left.level = 7;
+    right.level = 7;
+    const m = IL.createMatch({ seed: 9100 + i, left: [left], right: [right], leftName: "L", rightName: "R" });
+    let steps = 0;
+    while (!m.over && steps < 4000) {
+      IL.stepMatch(m, 1 / 60);
+      m.events.length = 0;
+      steps++;
+    }
+    if (!m.over) { hot.push(id + " hung"); break; }
+    const scoreL = m.units.filter(function (u) { return u.team === 0 && !u.summon; }).reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
+    const scoreR = m.units.filter(function (u) { return u.team === 1 && !u.summon; }).reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
+    if (Math.abs(scoreL - scoreR) <= 1e-6) continue;
+    if (m.winner === 0) leftWins++;
+    else rightWins++;
+  }
+  const decided = leftWins + rightWins;
+  const rate = decided ? Math.max(leftWins, rightWins) / decided : 0;
+  if (decided >= 8 && rate > 0.6) hot.push(id + " " + rate.toFixed(2) + " (" + leftWins + "-" + rightWins + ")");
+});
+if (hot.length) console.error("mirror hot", hot.join(", "));
+check("no class mirror above 60%", hot.length === 0);
 
 if (fails) {
   console.error(fails, "failed");

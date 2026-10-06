@@ -1677,6 +1677,10 @@ td.club-cell .club-name,
 
 #clubYardWrap { margin: 0; }
 #clubYardWrap .fine { margin: 0 0 4px; }
+.synergy { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.trait, .trait-line { color: var(--muted); font-size: 13px; }
+.trait.on { color: var(--copper-2); }
+.abilities li.locked { opacity: 0.72; }
 #clubYard {
   width: 100%;
   max-width: 640px;

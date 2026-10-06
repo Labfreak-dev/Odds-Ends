@@ -95,7 +95,7 @@
     const bump = IL.rivalBump ? IL.rivalBump(save.season) : 0;
     rivals.forEach(function (name, i) {
       const fighters = [0, 1, 2].map(function () {
-        const fighter = IL.randomFighter(rng);
+        const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
         fighter.level = 1 + bump;
         fighter.xp = bump * 40;
         if (IL.dressRival) IL.dressRival(fighter, rng);
@@ -168,7 +168,11 @@
     warrior: "sword", archer: "bow", mage: "wizards_cap", tank: "shield", rogue: "preparing_for_an_attack",
     lancer: "sword", berserker: "swords", healer: "healing_magic", assassin: "skull_demon", ranger: "bow",
     battlemage: "battle_magic", shieldbearer: "shield", skirmisher: "preparing_for_an_attack",
-    duelist: "swords", elementalist: "battle_magic"
+    duelist: "swords", elementalist: "battle_magic",
+    monk: "preparing_for_an_attack", necromancer: "skull_demon", paladin: "shield",
+    druid: "healing_magic", bard: "healing_magic", gunslinger: "bow", warlock: "wizards_cap",
+    samurai: "swords", spearmaiden: "sword", summoner: "battle_magic", alchemist: "battle_magic",
+    beastmaster: "swords"
   };
   const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace" };
   const STAT_GLYPH = { HP: "drop_water_or_blood", ATK: "sword", DEF: "armor_1_body", SPD: "shoes" };
@@ -618,11 +622,25 @@
     return '<div class="stat"><span class="stat-label">' + glyph + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
   }
 
-  function abilityItem(ab, always) {
+  function abilityItem(ab, level) {
     const frame = IL.abilityIcon ? IL.abilityIcon(ab.id) : "";
     const icon = frame ? iconTag(frame, 32) : "";
-    const when = always ? "Always on" : cdText(ab);
-    return '<li>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(when) + '</span><p>' + esc(abilityBlurb(ab.id)) + '</p></li>';
+    const unlock = ab.unlock || 1;
+    const locked = unlock > (level || 1);
+    const when = locked ? ("Level " + unlock) : (unlock > 1 ? ("Level " + unlock + " · " + cdText(ab)) : cdText(ab));
+    const blurb = ab.blurb || abilityBlurb(ab.id);
+    return '<li' + (locked ? ' class="locked"' : '') + '>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(when) + '</span><p>' + esc(blurb) + '</p></li>';
+  }
+
+  function synergyLine(fighters, id) {
+    if (!IL.traitSummary) return "";
+    const rows = IL.traitSummary(fighters);
+    if (!rows.length) return "";
+    const bits = rows.map(function (row) {
+      return '<span class="trait' + (row.active ? " on" : "") + '">' + esc(row.name) + " " + row.count + "/" + row.need +
+        (row.active ? " · " + esc(row.blurb) : "") + "</span>";
+    }).join("");
+    return '<p class="synergy" id="' + id + '">' + bits + "</p>";
   }
 
   function pitSound(kind) {
@@ -1121,10 +1139,8 @@
     const stats = IL.scaledStats(f, kit);
     const into = (f.xp || 0) % 40;
     const xpPct = Math.round(100 * into / 40);
-    const abilities = [];
-    if (kit.ability) abilities.push(abilityItem(kit.ability));
-    if (kit.ability2) abilities.push(abilityItem(kit.ability2));
-    if (kit.passive) abilities.push(abilityItem(kit.passive, true));
+    const known = kit.abilities || [kit.ability, kit.ability2, kit.passive].filter(Boolean);
+    const abilities = known.map(function (ab) { return abilityItem(ab, f.level || 1); });
     const eq = IL.equippedRelics(save);
     const relics = eq.length
       ? '<ul class="relic-list">' + eq.map(function (r) {
@@ -1361,6 +1377,7 @@
         ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
         : '') +
       preview +
+      synergyLine(yours, "partySynergy") +
       '<div class="hub-split">' +
         '<div class="hub-main">' +
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
@@ -1723,10 +1740,12 @@
   function versusCard(f) {
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
     const st = IL.scaledStats(f, kit);
+    const trait = IL.TRAITS && IL.TRAITS[kit.trait];
     return '<article class="card versus-card" data-role="' + esc(kit.role) + '">' +
       portraitWrap('width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"') +
       '<h3>' + esc(f.name) + '</h3>' +
       '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + (f.level || 1) + '</span></p>' +
+      (trait ? '<p class="trait-line">' + esc(trait.name) + '</p>' : '') +
       '<p class="fine">HP ' + Math.round(st.hp) + '</p>' +
     '</article>';
   }
@@ -1748,8 +1767,8 @@
           crestHtml(spec.rightName || "Rivals", "md", crestIndexOf(spec.rightName)) +
         '</header>' +
         '<div class="versus-grid">' +
-          '<section class="panel-frame"><h3 class="section">Your party</h3><div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
-          '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
+          '<section class="panel-frame"><h3 class="section">Your party</h3>' + synergyLine(left, "yourSynergy") + '<div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
+          '<section class="panel-frame"><h3 class="section">They send</h3>' + synergyLine(right, "theirSynergy") + '<div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
         '</div>' +
         '<div class="power-compare" id="powerBar">' +
           '<div class="power-track"><div class="power-you" style="width:' + share + '%"></div></div>' +
@@ -2151,11 +2170,11 @@
   function yardLookName(f) {
     const cls = f.cls || "warrior";
     let family = "sword";
-    if (cls === "archer" || cls === "ranger" || cls === "skirmisher") family = "bow";
-    else if (cls === "mage" || cls === "healer" || cls === "battlemage" || cls === "elementalist") family = "wand";
-    else if (cls === "lancer") family = "spear";
-    else if (cls === "berserker") family = "axe";
-    else if (cls === "tank" || cls === "shieldbearer") family = "shield";
+    if (cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger") family = "bow";
+    else if (cls === "mage" || cls === "healer" || cls === "battlemage" || cls === "elementalist" || cls === "necromancer" || cls === "warlock" || cls === "summoner" || cls === "alchemist" || cls === "bard" || cls === "druid") family = "wand";
+    else if (cls === "lancer" || cls === "spearmaiden") family = "spear";
+    else if (cls === "berserker" || cls === "beastmaster") family = "axe";
+    else if (cls === "tank" || cls === "shieldbearer" || cls === "paladin") family = "shield";
     return family + "-" + (IL.hashStr(f.id || cls) % 2);
   }
 
@@ -2619,9 +2638,12 @@
     const youRows = [];
     const themRows = [];
     match.units.forEach(function (u, i) {
+      if (u.summon) return;
       const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
       const side = u.team === 0 ? "you" : "them";
-      const marks = [kit.ability, kit.ability2].filter(Boolean).map(function (ab) {
+      const marks = (kit.abilities || [kit.ability, kit.ability2].filter(Boolean)).filter(function (ab) {
+        return ab && (ab.unlock || 1) <= (u.level || 1);
+      }).map(function (ab) {
         return IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "";
       }).join("");
       const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + marks + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';

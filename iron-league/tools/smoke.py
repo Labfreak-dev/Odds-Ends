@@ -77,6 +77,11 @@ def run(page, label, shot_dir):
     versus = page.locator("#versus").inner_text()
     if "HP" not in versus or "Power" not in versus:
         raise SystemExit(label + " versus card missing health or power")
+    traits = page.locator("#versus .trait-line").count()
+    if traits < 2:
+        raise SystemExit(label + " versus card missing traits")
+    if page.locator("#yourSynergy").count() < 1 or page.locator("#theirSynergy").count() < 1:
+        raise SystemExit(label + " versus card missing synergy")
     page.screenshot(path=str(shot_dir / f"{label}-versus.png"))
     page.click("#versusBack")
     page.wait_for_selector("#nextMatch")
@@ -352,9 +357,49 @@ def check_yard(page, label):
     page.wait_for_selector("#fighterSheet", state="detached")
 
 
+def check_classes(page, label):
+    """Every kit can finish a fight, and the hub shows party traits."""
+    if page.locator("#partySynergy").count() < 1:
+        raise SystemExit(label + " club hub missing synergy")
+    bad = page.evaluate(
+        """() => {
+          const ids = Object.keys(IL.CLASSES || {});
+          const bad = [];
+          if (ids.length < 24) bad.push("count " + ids.length);
+          const seen = {};
+          let abs = 0;
+          ids.forEach((id) => {
+            const kit = IL.CLASSES[id];
+            (kit.abilities || []).forEach((ab) => {
+              if (ab && ab.id && !seen[ab.id]) { seen[ab.id] = 1; abs++; }
+            });
+            try {
+              const f = IL.randomFighter(IL.mulberry32(11), id);
+              f.level = 7;
+              const foe = IL.randomFighter(IL.mulberry32(12), "warrior");
+              const m = IL.createMatch({ seed: 9, left: [f], right: [foe], leftName: "A", rightName: "B" });
+              let steps = 0;
+              while (!m.over && steps < 3600) { IL.stepMatch(m, 1 / 60); m.events.length = 0; steps++; }
+              if (!m.over) bad.push(id + " hung");
+              m.units.forEach((u) => {
+                if (!Number.isFinite(u.hp) || !Number.isFinite(u.x)) bad.push(id + " nan");
+              });
+            } catch (err) {
+              bad.push(id + " " + (err && err.message ? err.message : err));
+            }
+          });
+          if (abs < 70) bad.push("abilities " + abs);
+          return bad;
+        }"""
+    )
+    if bad:
+        raise SystemExit(label + " class fights " + ", ".join(bad[:8]))
+
+
 def check_nav(page, label, shot_dir):
     """Tab bar, keyboard, and the fighter sheet open and close."""
     check_chrome(page, label)
+    check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
     if tabs.count() != 5:
@@ -423,7 +468,7 @@ def check_nav(page, label, shot_dir):
         timeout=20000,
     )
     sheet = page.locator("#fighterSheet").inner_text()
-    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Always on", "Rename", "Captain stays", "Record"):
+    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Level 4", "Rename", "Captain stays", "Record"):
         if word not in sheet:
             raise SystemExit(label + " sheet missing " + word + ": " + sheet[:240])
     if page.locator("#releaseAsk").count():

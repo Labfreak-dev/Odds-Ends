@@ -288,8 +288,39 @@
     bag: { common: "7t4e_bag_tier1", rare: "7t4e_bag_tier3", epic: "7t4e_bag_tier5", legendary: "7t4e_bag_tier7" }
   };
 
+  const KIND_ICON = {
+    cleave: "assets/ui/abilities/pixel_skill3_05.png",
+    multishot: "assets/ui/abilities/pixel_skill3_09.png",
+    pierce: "assets/ui/abilities/pixel_skill3_11.png",
+    frost: "assets/ui/abilities/pixel_skill3_03.png",
+    fireball: "assets/ui/abilities/pixel_skill3_06.png",
+    nova: "assets/ui/abilities/pixel_skill3_14.png",
+    bolt: "assets/ui/abilities/pixel_skill3_21.png",
+    taunt: "assets/ui/abilities/pixel_skill3_10.png",
+    shadowstep: "assets/ui/abilities/pixel_skill3_24.png",
+    charge: "assets/ui/abilities/pixel_skill3_22.png",
+    rage: "assets/ui/abilities/pixel_skill3_30.png",
+    mend: "assets/ui/abilities/pixel_skill3_15.png",
+    heal: "assets/ui/abilities/pixel_skill3_15.png",
+    arc: "assets/ui/abilities/pixel_skill3_08.png",
+    zone: "assets/ui/abilities/pixel_skill3_13.png",
+    skirmish: "assets/ui/abilities/pixel_skill3_17.png",
+    lunge: "assets/ui/abilities/pixel_skill3_20.png",
+    shield: "assets/ui/abilities/pixel_skill3_28.png",
+    buff: "assets/ui/abilities/pixel_skill3_19.png",
+    debuff: "assets/ui/abilities/pixel_skill3_07.png",
+    stun: "assets/ui/abilities/pixel_skill3_10.png",
+    knock: "assets/ui/abilities/pixel_skill3_26.png",
+    summon: "assets/ui/abilities/pixel_skill3_18.png",
+    vial: "assets/ui/abilities/pixel_skill3_06.png",
+    dot: "assets/ui/abilities/pixel_skill3_07.png"
+  };
+
   function abilityIcon(id) {
-    return ABILITY_ICON[id] || "";
+    if (ABILITY_ICON[id]) return ABILITY_ICON[id];
+    const ab = IL.abilityById ? IL.abilityById(id) : null;
+    if (ab && KIND_ICON[ab.kind]) return KIND_ICON[ab.kind];
+    return "";
   }
 
   function lootFrame(kind, rarity) {

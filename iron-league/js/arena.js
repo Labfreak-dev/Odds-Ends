@@ -109,6 +109,11 @@
       alive: true,
       abilityCd: 0.9 + slot * 0.12,
       abilityCdMul: 1,
+      cds: {},
+      stun: 0,
+      buff: 0,
+      buffAtk: 1,
+      summon: !!fighter.summon,
       taunt: 0,
       rage: 0,
       slow: 0,
@@ -136,6 +141,10 @@
       if (pass.crit) u.crit += pass.crit;
       if (pass.shield) u.shield += pass.shield;
       if (pass.regen) u.regen += pass.regen;
+    }
+    const abs = kit.abilities || (kit.ability ? [kit.ability] : []);
+    for (let i = 0; i < abs.length; i++) {
+      if (abs[i] && abs[i].id) u.cds[abs[i].id] = 0.45 + slot * 0.12 + i * 0.2;
     }
     if (fighter.tonic && IL.tonicShield) {
       u.shield += IL.tonicShield(fighter.tonic);
@@ -185,6 +194,7 @@
     if (relics.length) {
       for (let i = 0; i < units.length; i++) if (units[i].team === 0) applyRelics(units[i], relics);
     }
+    applySynergy(units);
     const kills = [];
     for (let t = 0; t < teams; t++) kills.push(0);
     return {
@@ -215,7 +225,44 @@
   }
 
   function living(m, team) {
-    return m.units.filter(u => u.team === team && u.hp > 0);
+    return m.units.filter(u => u.team === team && u.hp > 0 && !u.summon);
+  }
+
+  function applySynergy(units) {
+    const traits = IL.TRAITS || {};
+    const teams = {};
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (u.summon) continue;
+      if (!teams[u.team]) teams[u.team] = [];
+      teams[u.team].push(u);
+    }
+    Object.keys(teams).forEach(function (key) {
+      const side = teams[key];
+      const counts = {};
+      side.forEach(function (u) {
+        const id = kitOf(u.cls).trait;
+        if (id) counts[id] = (counts[id] || 0) + 1;
+      });
+      function on(id) {
+        const def = traits[id];
+        return def && (counts[id] || 0) >= (def.need || 2);
+      }
+      if (on("arcane")) side.forEach(function (u) {
+        if (u.role === "cast" || u.role === "hybrid") u.atk = Math.round(u.atk * 1.08);
+      });
+      if (on("guardian")) side.forEach(function (u) {
+        u.shield += Math.round(u.maxHp * 0.08);
+      });
+      if (on("blade")) side.forEach(function (u) {
+        if (u.role === "melee" || u.role === "dash" || u.role === "tank") u.atk = Math.round(u.atk * 1.06);
+      });
+      if (on("mark")) side.forEach(function (u) {
+        if (u.role === "kite") u.range += 18;
+      });
+      if (on("wild")) side.forEach(function (u) { u.regen += 1.1; });
+      if (on("oath")) side.forEach(function (u) { u.oath = true; });
+    });
   }
 
   function nearest(m, u) {
@@ -359,7 +406,9 @@
 
   function startCast(m, u, target) {
     face(u, target);
-    const casts = u.casts.length ? u.casts : ["cast1"];
+    let casts = u.casts.length ? u.casts.slice() : ["cast1"];
+    if ((u.level || 1) < 4) casts = casts.filter(function (c) { return c !== "cast2"; });
+    if (!casts.length) casts = ["cast1"];
     const clip = casts[u.castCursor % casts.length];
     u.castCursor++;
     const hot = clip === "cast2";
@@ -469,6 +518,7 @@
     let amount = raw;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
+      if (src.buff > 0 && src.buffAtk) amount *= src.buffAtk;
       if (src.cls === "berserker" && src.hp < src.maxHp * 0.45) amount *= 1.14;
       if (src.cls === "duelist") {
         let foes = 0;
@@ -508,6 +558,16 @@
     if (dst.hp <= 0) {
       dst.hp = 0;
       dst.alive = false;
+      if (dst.summon) {
+        dst.state = "dead";
+        dst.anim = "die";
+        dst.animT = 0;
+        dst.vx = 0;
+        dst.vy = 0;
+        dst.cast = null;
+        fx(m, "smoke", dst.x, dst.y - 10, { size: 120 });
+        return;
+      }
       dst.state = "dead";
       dst.anim = "die";
       dst.animT = 0;
@@ -553,7 +613,9 @@
 
   function healUnit(m, src, dst, raw) {
     if (!dst || dst.hp <= 0) return;
-    const n = Math.max(1, Math.round(raw));
+    let rawN = raw;
+    if (src && src.oath) rawN *= 1.12;
+    const n = Math.max(1, Math.round(rawN));
     dst.hp = Math.min(dst.maxHp, dst.hp + n);
     if (src) src.healing = (src.healing || 0) + n;
     m.stats.heals++;
@@ -686,7 +748,9 @@
     if (u.actT > 0) return;
     const c = u.cast;
     if (c) {
-      if (c.kind === "mend") {
+      if (c.kind === "nova" || c.kind === "bolt") {
+        resolveNovaBolt(m, u, c);
+      } else if (c.kind === "mend") {
         const ally = m.units.filter(function (e) { return e.id === c.targetId; })[0];
         healUnit(m, u, ally || u, Math.round((ally || u).maxHp * 0.2 + u.atk * 0.35));
         fx(m, "plasma", c.x, c.y, { size: 150 });
@@ -729,6 +793,37 @@
     u.state = "idle";
     u.anim = idleClip(u);
     u.cool = 1.15;
+  }
+
+  function resolveNovaBolt(m, u, c) {
+    m.stats.casts++;
+    m.stats.abilities++;
+    const mul = c.power || 1;
+    const paint = c.fx || (c.kind === "bolt" ? "bolt" : "plasma");
+    if (c.kind === "bolt") {
+      const dx = c.x - u.x;
+      const dy = c.y - u.y;
+      const d = Math.hypot(dx, dy) || 1;
+      m.shots.push({
+        x: u.x + u.facing * 16, y: u.y - 16,
+        vx: dx / d * 400, vy: dy / d * 400,
+        team: u.team, dmg: Math.round(u.atk * mul), r: 10, life: 1.2, src: u.id,
+        trail: [], drop: 0, pierce: u.pierce || 0, hit: {}, bolt: true
+      });
+      m.stats.shots++;
+      fx(m, paint, u.x + u.facing * 18, u.y - 16, { size: 150, facing: u.facing });
+      return;
+    }
+    fx(m, paint, c.x, c.y, { size: Math.round((c.r || 70) * 2.1) });
+    fx(m, "boom", c.x, c.y, { size: Math.round((c.r || 70) * 1.5) });
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === u.team || e.hp <= 0) continue;
+      if (Math.hypot(e.x - c.x, e.y - c.y) <= (c.r || 70) + e.radius * 0.4) {
+        deal(m, u, e, Math.round(u.atk * mul));
+        if (c.slow) e.slow = Math.max(e.slow || 0, c.slow);
+      }
+    }
   }
 
   function stepDash(m, u, dt) {
@@ -1022,95 +1117,281 @@
     fx(m, "slash", u.x + u.facing * 20, u.y - 16, { facing: u.facing, size: 150, team: u.team });
   }
 
-  function tryClassAbility(m, u, t, dist) {
+  function spend(u, ab) {
+    if (!u.cds) u.cds = {};
+    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1);
+    arm(u, ab.cd || 6.5);
+  }
+
+  function readyAb(u, ab) {
+    if (!ab || !ab.kind || !ab.cd) return false;
+    const left = u.cds && u.cds[ab.id];
+    return !(left > 0);
+  }
+
+  function unlockedAbs(u) {
     const kit = kitOf(u.cls);
-    const ab = kit.ability;
-    if (!ab || !ab.kind || u.abilityCd > 0) return false;
+    const list = kit.abilities || (kit.ability ? [kit.ability] : []);
+    const lv = u.level || 1;
+    return list.filter(function (ab) { return ab && (ab.unlock || 1) <= lv; });
+  }
+
+  function summonPet(m, u, ab) {
+    let live = 0;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.summon && e.summoner === u.id && e.hp > 0) live++;
+    }
+    if (live >= 1) return false;
+    const pet = makeUnit({
+      id: u.id + ":pet:" + Math.floor(m.time * 10),
+      name: ab.pet || "Familiar",
+      cls: "warrior",
+      level: 1,
+      parts: u.parts,
+      personality: "bold",
+      tactic: "strike",
+      summon: true
+    }, u.team, 0, 1, m.teams);
+    pet.summon = true;
+    pet.summoner = u.id;
+    pet.sprite = u.sprite;
+    pet.life = ab.life || 6;
+    pet.hp = Math.max(18, Math.round(u.maxHp * (ab.petHp || 0.26)));
+    pet.maxHp = pet.hp;
+    pet.atk = Math.max(6, Math.round(u.atk * (ab.petAtk || 0.4)));
+    pet.range = 36;
+    pet.role = "melee";
+    pet.radius = 12;
+    pet.leaps = false;
+    pet.x = u.x + u.facing * 40;
+    pet.y = u.y + 18;
+    pet.cds = {};
+    pet.abilities = null;
+    m.units.push(pet);
+    fx(m, ab.fx || "smoke", pet.x, pet.y - 12, { size: 140 });
+    return true;
+  }
+
+  function throwVial(m, u, t, ab) {
+    const ox = u.x + u.facing * 16;
+    const oy = u.y - 16;
+    const dx = t.x - ox;
+    const dy = (t.y - 14) - oy;
+    const d = Math.hypot(dx, dy) || 1;
+    m.shots.push({
+      x: ox, y: oy,
+      vx: dx / d * 420, vy: dy / d * 420,
+      team: u.team, dmg: Math.round(u.atk * (ab.power || 0.85)),
+      r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0, hit: {}
+    });
+    m.stats.shots++;
+    fx(m, ab.fx || "boom", ox, oy, { size: 90, facing: u.facing });
+  }
+
+  function fireOne(m, u, t, dist, ab) {
     const reach = u.range + (t ? t.radius : 0);
-    if (ab.kind === "cleave" && dist <= reach + 6 && u.cool <= 0) {
+    const paint = ab.fx || "spark";
+    if (ab.kind === "cleave" && t && dist <= reach + 6 && u.cool <= 0) {
       u.cleave = true;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
       startAttack(u, "atk2", t);
-      return true;
+      fx(m, paint, u.x + u.facing * 20, u.y - 16, { facing: u.facing, size: 150, team: u.team });
+      return "go";
     }
-    if (ab.kind === "lunge" && dist <= reach + 24 && u.cool <= 0) {
+    if (ab.kind === "lunge" && t && dist <= reach + 28 && u.cool <= 0) {
       u.critNext = true;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
       startAttack(u, "atk3", t);
-      fx(m, "slash", u.x + u.facing * 24, u.y - 20, { facing: u.facing, size: 160, team: u.team });
-      return true;
+      fx(m, paint, u.x + u.facing * 24, u.y - 20, { facing: u.facing, size: 160, team: u.team });
+      return "go";
     }
-    if ((ab.kind === "multishot" || ab.kind === "pierce") && dist <= u.range + 8 && dist >= 72 && u.cool <= 0) {
+    if ((ab.kind === "multishot" || ab.kind === "pierce") && t && dist <= u.range + 8 && dist >= 70 && u.cool <= 0) {
       u.volley = ab.kind === "multishot" ? 3 : 1;
       if (ab.kind === "pierce") u.pierceBoost = 1;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
       startAttack(u, "atk1", t);
-      return true;
+      return "go";
     }
     if (ab.kind === "taunt" && dist < 220) {
-      u.taunt = 3.3;
-      arm(u, ab.cd);
+      u.taunt = 3.2;
+      spend(u, ab);
       m.stats.abilities++;
-      fx(m, "orbit", u.x, u.y - 18, { size: 160 });
-      return false;
+      fx(m, paint, u.x, u.y - 18, { size: 160 });
+      return "free";
     }
     if (ab.kind === "zone" && dist < 120) {
       startBlock(m, u);
       u.guardZone = true;
       u.actT = 0.82;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
-      fx(m, "orbit", u.x, u.y - 10, { size: 180, ground: true });
+      fx(m, paint, u.x, u.y - 10, { size: 180, ground: true });
       for (let i = 0; i < m.units.length; i++) {
         const e = m.units[i];
         if (e.team === u.team || e.hp <= 0) continue;
         if (Math.hypot(e.x - u.x, e.y - u.y) <= 78) deal(m, u, e, Math.round(u.atk * 0.35));
       }
-      return true;
+      return "go";
     }
     if (ab.kind === "rage" && u.hp < u.maxHp * 0.72) {
-      u.rage = 4.2;
-      arm(u, ab.cd);
+      u.rage = 4;
+      spend(u, ab);
       m.stats.abilities++;
-      fx(m, "spark", u.x, u.y - 20, { size: 150 });
-      return false;
+      fx(m, paint, u.x, u.y - 20, { size: 150 });
+      return "free";
     }
-    if (ab.kind === "mend") {
+    if (ab.kind === "mend" || ab.kind === "heal") {
       const ally = lowestAlly(m, u);
-      if (ally) {
-        startMend(m, u, ally);
-        return true;
+      if (!ally) return "skip";
+      if (ab.kind === "heal") {
+        healUnit(m, u, ally, Math.round(ally.maxHp * (ab.power || 0.16) + u.atk * 0.25));
+        fx(m, paint, ally.x, ally.y - 16, { size: 140 });
+        spend(u, ab);
+        return "free";
       }
+      startMend(m, u, ally, ab.cd);
+      spend(u, ab);
+      return "go";
     }
-    if (ab.kind === "shadowstep" && dist > 84 && dist < 460) {
+    if (ab.kind === "shadowstep" && t && dist > 80 && dist < 460) {
       startShadow(m, u, t);
-      return true;
+      spend(u, ab);
+      return "go";
     }
-    if (ab.kind === "charge" && dist > 64 && dist < 360) {
+    if (ab.kind === "charge" && t && dist > 60 && dist < 360) {
       startCharge(m, u, t);
-      return true;
+      spend(u, ab);
+      return "go";
     }
-    if (ab.kind === "skirmish" && dist > 90 && dist < 280) {
+    if (ab.kind === "skirmish" && t && dist > 90 && dist < 280) {
       u.dashDmg = 0.45;
       startDash(m, u, t);
       u.actT = 0.24;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
-      return true;
+      fx(m, paint, u.x, u.y - 12, { facing: u.facing, size: 120 });
+      return "go";
     }
-    if (ab.kind === "arc" && dist < u.range + 90 && u.cool <= 0) {
+    if (ab.kind === "arc" && t && dist < u.range + 90 && u.cool <= 0) {
       startCast(m, u, t);
       if (u.cast) u.cast.kind = "arc";
-      arm(u, ab.cd);
-      return true;
+      spend(u, ab);
+      return "go";
+    }
+    if ((ab.kind === "nova" || ab.kind === "bolt") && t && dist < (ab.reach || u.range + 80)) {
+      startCast(m, u, t);
+      if (u.cast) {
+        u.cast.kind = ab.kind;
+        u.cast.r = ab.radius || (ab.kind === "bolt" ? 24 : 68);
+        u.cast.power = ab.power || 0.9;
+        u.cast.fx = paint;
+        u.cast.slow = ab.slow || 0;
+        u.actT = Math.min(u.actT, 0.55);
+      }
+      spend(u, ab);
+      return "go";
+    }
+    if (ab.kind === "dot" && t && dist <= (ab.reach || reach + 8)) {
+      t.bleed = { t: ab.dot || 3.2, acc: 0, dmg: Math.max(2, Math.round(u.atk * (ab.power || 0.25))), src: u.id };
+      m.stats.bleeds++;
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 16, { size: 120 });
+      deal(m, u, t, Math.round(u.atk * 0.35));
+      return "free";
+    }
+    if (ab.kind === "shield") {
+      let ally = u;
+      if (!ab.self) ally = lowestAlly(m, u) || u;
+      ally.shield += Math.round(ally.maxHp * (ab.power || 0.1));
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, ally.x, ally.y - 18, { size: 140 });
+      return "free";
+    }
+    if (ab.kind === "buff") {
+      const targets = ab.team ? m.units.filter(function (e) { return e.team === u.team && e.hp > 0 && !e.summon; }) : [u];
+      for (let i = 0; i < targets.length; i++) {
+        targets[i].buff = Math.max(targets[i].buff || 0, ab.time || 3.5);
+        targets[i].buffAtk = Math.max(targets[i].buffAtk || 1, 1 + (ab.power || 0.12));
+      }
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, u.x, u.y - 20, { size: 150 });
+      return "free";
+    }
+    if (ab.kind === "debuff" && t && dist <= (ab.reach || 220)) {
+      t.slow = Math.max(t.slow || 0, ab.time || 2.2);
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 16, { size: 130 });
+      return "free";
+    }
+    if (ab.kind === "stun" && t && dist <= (ab.reach || reach + 12)) {
+      t.stun = Math.max(t.stun || 0, ab.stun || 0.55);
+      t.state = "hurt";
+      t.anim = "hurt";
+      t.animT = 0;
+      t.actT = t.stun;
+      t.vx = 0;
+      t.vy = 0;
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 18, { size: 140 });
+      deal(m, u, t, Math.round(u.atk * (ab.power || 0.4)));
+      return "free";
+    }
+    if (ab.kind === "knock" && t && dist <= (ab.reach || reach + 16)) {
+      const dx = t.x - u.x;
+      const dy = t.y - u.y;
+      const d = Math.hypot(dx, dy) || 1;
+      t.vx = dx / d * (ab.force || 240);
+      t.vy = dy / d * (ab.force || 240);
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 14, { facing: u.facing, size: 140, team: u.team });
+      deal(m, u, t, Math.round(u.atk * (ab.power || 0.35)));
+      return "free";
+    }
+    if (ab.kind === "summon") {
+      if (!summonPet(m, u, ab)) return "skip";
+      spend(u, ab);
+      m.stats.abilities++;
+      return "free";
+    }
+    if (ab.kind === "vial" && t && dist <= (ab.reach || 220) && dist >= 48) {
+      throwVial(m, u, t, ab);
+      spend(u, ab);
+      m.stats.abilities++;
+      return "free";
+    }
+    return "skip";
+  }
+
+  function tryClassAbility(m, u, t, dist) {
+    if (u.summon) return false;
+    const list = unlockedAbs(u);
+    for (let i = list.length - 1; i >= 0; i--) {
+      const ab = list[i];
+      if (!readyAb(u, ab)) continue;
+      const result = fireOne(m, u, t, dist, ab);
+      if (result === "skip") continue;
+      return result === "go";
     }
     return false;
   }
 
   function think(m, u, dt) {
+    if (u.stun > 0) {
+      damp(u, 0.8);
+      u.x += u.vx * dt;
+      u.y += u.vy * dt;
+      return;
+    }
     const spd = moveSpeed(u);
     const t = nearest(m, u);
     if (!t) {
@@ -1191,14 +1472,27 @@
       }
       steer(u, t.x, t.y, spd, dt);
     } else if (u.role === "support") {
-      const ally = lowestAlly(m, u);
-      const anchor = ally || u;
-      if (dist <= reach + 8 && u.cool <= 0 && (!ally || ally === u)) {
+      let company = false;
+      for (let i = 0; i < m.units.length; i++) {
+        const a = m.units[i];
+        if (a !== u && a.team === u.team && a.hp > 0 && !a.summon) company = true;
+      }
+      const ally = company ? lowestAlly(m, u) : null;
+      if (!company) {
+        if (dist <= reach && u.cool <= 0) {
+          startAttack(u, "atk1", t);
+          return;
+        }
+        steer(u, t.x, t.y, spd, dt);
+      } else if (dist <= reach + 8 && u.cool <= 0 && !ally) {
         startAttack(u, "atk1", t);
         return;
+      } else if (dist < 78) {
+        steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
+      } else {
+        const anchor = ally || u;
+        steer(u, anchor.x + (u.x >= t.x ? 36 : -36), anchor.y, spd * 0.9, dt);
       }
-      if (dist < 78) steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
-      else steer(u, anchor.x + (u.x >= t.x ? 36 : -36), anchor.y, spd * 0.9, dt);
     } else if (u.role === "hybrid") {
       if (dist <= reach && u.cool <= 0) {
         const clip = u.attacks[u.atkCursor % u.attacks.length];
@@ -1284,7 +1578,7 @@
   }
 
   function teamScore(m, team) {
-    return m.units.filter(function (u) { return u.team === team; })
+    return m.units.filter(function (u) { return u.team === team && !u.summon; })
       .reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
   }
 
@@ -1352,6 +1646,23 @@
       u.iframe = Math.max(0, u.iframe - dt);
       u.flash = Math.max(0, u.flash - dt);
       u.abilityCd = Math.max(0, u.abilityCd - dt);
+      u.stun = Math.max(0, (u.stun || 0) - dt);
+      if (u.buff > 0) u.buff = Math.max(0, u.buff - dt);
+      else u.buffAtk = 1;
+      if (u.cds) {
+        const keys = Object.keys(u.cds);
+        for (let k = 0; k < keys.length; k++) u.cds[keys[k]] = Math.max(0, u.cds[keys[k]] - dt);
+      }
+      if (u.summon && u.hp > 0) {
+        u.life = (u.life || 0) - dt;
+        if (u.life <= 0) {
+          u.hp = 0;
+          u.alive = false;
+          u.state = "dead";
+          u.anim = "die";
+          u.animT = 0;
+        }
+      }
       u.taunt = Math.max(0, u.taunt - dt);
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);

@@ -266,7 +266,7 @@
   function makeRivalSide(rng, name, n) {
     const fighters = [];
     for (let i = 0; i < n; i++) {
-      const fighter = IL.randomFighter(rng);
+      const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
       if (IL.dressRival) IL.dressRival(fighter, rng);
       fighters.push(fighter);
     }

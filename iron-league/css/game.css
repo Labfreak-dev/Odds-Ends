@@ -2066,3 +2066,35 @@ td.club-cell .club-name,
   #resultTable th:nth-child(6),
   #resultTable td:nth-child(6) { width: 3em; }
 }
+
+/* Phone standings: the 9-slice leaves about 214px. Keep Pts inside that
+   box and give the club name a column wide enough for a whole word. */
+@media (max-width: 799px) {
+  table.board:not([id="resultTable"]) th:first-child,
+  table.board:not([id="resultTable"]) td:first-child {
+    width: 18px;
+    padding: 4px 0;
+  }
+  table.board:not([id="resultTable"]) th:nth-child(n+3),
+  table.board:not([id="resultTable"]) td:nth-child(n+3) {
+    width: 22px;
+    padding: 4px 0;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  td.club-cell {
+    gap: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+  td.club-cell .crest-sm {
+    width: 20px;
+    height: 20px;
+  }
+  td.club-cell .club-name {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+}

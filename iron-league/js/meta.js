@@ -139,6 +139,9 @@
       if (typeof data[key] !== "number") data[key] = 0;
     });
     if (typeof data.goldPeak !== "number") data.goldPeak = data.gold || 0;
+    if (typeof data.crest !== "number" || data.crest < 1 || data.crest > 16) {
+      data.crest = (IL.hashStr(data.clubName || "iron") % 16) + 1;
+    }
     if (!Array.isArray(data.seenClasses)) {
       const seen = {};
       (data.roster || []).forEach(function (f) { if (f && f.cls) seen[f.cls] = true; });

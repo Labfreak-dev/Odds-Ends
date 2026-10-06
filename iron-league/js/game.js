@@ -154,6 +154,59 @@
     return '<i class="ico ico-' + kind + ' item-icon"' + extra + ' aria-hidden="true"></i>';
   }
 
+  const CREST_FILES = [
+    "crest_01_emblem41.png", "crest_02_emblem16.png", "crest_03_emblem05.png", "crest_04_emblem22.png",
+    "crest_05_emblem42.png", "crest_06_emblem01.png", "crest_07_emblem12.png", "crest_08_emblem17.png",
+    "crest_09_emblem20.png", "crest_10_emblem25.png", "crest_11_emblem31.png", "crest_12_emblem37.png",
+    "crest_13_emblem44.png", "crest_14_emblem46.png", "crest_15_emblem49.png", "crest_16_emblem03.png"
+  ];
+  const CREST_TINTS = [
+    "#e08a3a", "#c0392b", "#d4af37", "#3a7bd5", "#2e8b57", "#8e44ad", "#e6e6e6", "#16a085",
+    "#b5651d", "#f1c40f", "#5d6d7e", "#ff6f61", "#6b8e23", "#1f3a93", "#a93226", "#95a5a6"
+  ];
+  const CLASS_GLYPH = {
+    warrior: "sword", archer: "bow", mage: "wizards_cap", tank: "shield", rogue: "preparing_for_an_attack",
+    lancer: "sword", berserker: "swords", healer: "healing_magic", assassin: "skull_demon", ranger: "bow",
+    battlemage: "battle_magic", shieldbearer: "shield", skirmisher: "preparing_for_an_attack",
+    duelist: "swords", elementalist: "battle_magic"
+  };
+  const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace" };
+  const STAT_GLYPH = { HP: "drop_water_or_blood", ATK: "sword", DEF: "armor_1_body", SPD: "shoes" };
+
+  function crestIndexOf(name) {
+    return (IL.hashStr(name || "iron") % 16) + 1;
+  }
+
+  function crestHtml(name, size, index) {
+    let n = index | 0;
+    if (n < 1 || n > 16) n = crestIndexOf(name);
+    const file = CREST_FILES[n - 1];
+    const tint = CREST_TINTS[n - 1];
+    const folder = size === "lg" ? "emblems_white_128" : "emblems_white_64";
+    return '<span class="crest-mark crest-' + size + '" style="--club:' + tint + '">' +
+      '<span class="crest-plate"></span>' +
+      '<span class="crest-frame"></span>' +
+      '<img class="crest-emblem" alt="" src="assets/ui/crests/' + folder + '/' + file + '">' +
+    '</span>';
+  }
+
+  function clubCrest(club) {
+    if (club && club.you) return save && save.crest;
+    return crestIndexOf(club && club.name);
+  }
+
+  function uiGlyph(file, extra) {
+    return '<img class="ui-glyph' + (extra ? " " + extra : "") + '" alt="" src="assets/ui/glyphs/orange_32/' + file + '.png">';
+  }
+
+  function classBadge(cls) {
+    return uiGlyph(CLASS_GLYPH[cls] || "sword", "class-badge");
+  }
+
+  function portraitWrap(canvasAttrs, round) {
+    return '<span class="portrait-frame' + (round ? " round" : "") + '"><canvas ' + canvasAttrs + '></canvas></span>';
+  }
+
   function purseHtml() {
     const eq = IL.equippedRelics(save);
     const tokens = save.tokens || 0;
@@ -190,7 +243,7 @@
         '<h1>Iron League</h1>' +
         '<p class="lede">Raise a club. Send them into the sand. A season, a cup, then the board is read aloud.</p>' +
         '<div class="title-actions">' +
-          '<button type="button" class="btn primary" id="newClub">New club</button>' +
+          '<button type="button" class="btn gold" id="newClub">New club</button>' +
           cont +
         '</div>' +
         '<p class="fine">Saved on this browser only.</p>' +
@@ -210,6 +263,7 @@
     draft = {
       mode: mode,
       clubName: save && save.clubName ? save.clubName : "",
+      crest: (save && save.crest) || 1,
       fighter: {
         name: IL.pick(rng, IL.FIRST) + " " + IL.pick(rng, IL.LAST),
         cls: cls,
@@ -221,10 +275,16 @@
       const c = IL.CLASSES[id];
       const open = IL.classUnlocked(id, renownNow);
       const note = open ? c.blurb : ("Locked · " + c.renown + " renown");
-      return '<button type="button" class="class-card' + (open ? "" : " locked") + '" data-class="' + id + '"' + (open ? "" : " disabled") + '><strong>' + esc(c.name) + '</strong><span>' + esc(note) + '</span></button>';
+      return '<button type="button" class="class-card' + (open ? "" : " locked") + '" data-class="' + id + '"' + (open ? "" : " disabled") + '>' + classBadge(id) + '<strong>' + esc(c.name) + '</strong><span>' + esc(note) + '</span></button>';
     }).join("");
+    const crestPick = mode === "captain"
+      ? '<div class="field"><span>Crest</span><div class="crest-pick" id="crestPick">' +
+        CREST_FILES.map(function (_, i) {
+          return '<button type="button" data-crest="' + (i + 1) + '" aria-label="Crest ' + (i + 1) + '">' + crestHtml("", "sm", i + 1) + '</button>';
+        }).join("") + '</div></div>'
+      : "";
     const clubField = mode === "captain"
-      ? '<label class="field"><span>Club name</span><input id="clubName" maxlength="24" autocomplete="off" placeholder="Ashveil Company" value="' + esc(draft.clubName) + '"></label>'
+      ? '<label class="field"><span>Club name</span><input id="clubName" maxlength="24" autocomplete="off" placeholder="Ashveil Company" value="' + esc(draft.clubName) + '"></label>' + crestPick
       : "";
     const warn = mode === "captain" && load()
       ? '<p class="warn">Founding a new club replaces the one saved in this browser.</p>'
@@ -250,7 +310,7 @@
             '<div class="class-grid">' + classes + '</div>' +
             '<div class="creator-actions">' +
               '<button type="button" class="btn ghost" id="randomize">Randomize</button>' +
-              '<button type="button" class="btn primary" id="confirm">' + confirmLabel + '</button>' +
+              '<button type="button" class="btn ' + (mode === "captain" ? "gold" : "primary") + '" id="confirm">' + confirmLabel + '</button>' +
             '</div>' +
             '<p class="fine" id="creatorError"></p>' +
           '</div>' +
@@ -278,7 +338,10 @@
     app.onclick = function (ev) {
       const t = ev.target.closest("button");
       if (!t) return;
-      if (t.dataset.sheet) {
+      if (t.dataset.crest) {
+        draft.crest = +t.dataset.crest;
+        syncPicker();
+      } else if (t.dataset.sheet) {
         draft.fighter.parts.sheet = t.dataset.sheet;
         syncPicker();
       } else if (t.dataset.class) {
@@ -298,6 +361,12 @@
     paintLooks();
     mark("[data-sheet]", p.sheet);
     mark("[data-class]", draft.fighter.cls);
+    const crests = app.querySelectorAll("[data-crest]");
+    for (let i = 0; i < crests.length; i++) {
+      const on = +crests[i].dataset.crest === (draft.crest || 1);
+      crests[i].classList.toggle("on", on);
+      crests[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
   }
 
   function paintLooks() {
@@ -414,6 +483,7 @@
       save = Object.assign({
         v: 1,
         clubName: clubName,
+        crest: draft.crest || 1,
         gold: IL.START_GOLD,
         season: 1,
         rngSeed: seed,
@@ -544,12 +614,13 @@
   function statBar(label, value, cap) {
     const shown = Math.round(value);
     const pct = Math.max(6, Math.min(100, Math.round(100 * shown / Math.max(1, cap))));
-    return '<div class="stat"><span>' + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
+    const glyph = STAT_GLYPH[label] ? uiGlyph(STAT_GLYPH[label]) : "";
+    return '<div class="stat"><span class="stat-label">' + glyph + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
   }
 
   function abilityItem(ab, always) {
     const frame = IL.abilityIcon ? IL.abilityIcon(ab.id) : "";
-    const icon = frame ? iconTag(frame, 24) : "";
+    const icon = frame ? iconTag(frame, 32) : "";
     const when = always ? "Always on" : cdText(ab);
     return '<li>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(when) + '</span><p>' + esc(abilityBlurb(ab.id)) + '</p></li>';
   }
@@ -642,6 +713,9 @@
 
   function iconTag(frame, size) {
     if (!frame) return "";
+    if (String(frame).indexOf("/") >= 0) {
+      return '<img class="pixel-icon" src="' + esc(frame) + '" width="' + size + '" height="' + size + '" alt="">';
+    }
     return '<i class="item-icon" data-frame="' + esc(frame) + '" data-icon-size="' + size + '" hidden></i>';
   }
 
@@ -907,11 +981,11 @@
     const cap = f.captain ? " <em>Captain</em>" : "";
     return '<article class="card roster-row' + (fighting ? " playing" : " bench") + '" data-role="' + esc(kit.role) + '">' +
       '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
-        '<canvas width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="2" data-foot="6"></canvas>' +
+        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="2" data-foot="6"', f.captain) +
       '</button>' +
       '<div class="row-main">' +
         '<h3>' + esc(f.name) + cap + champ + '</h3>' +
-        '<p>' + esc(kit.name) + " · Lv " + f.level + '</p>' +
+        '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + f.level + '</span></p>' +
         '<p class="fine">HP ' + Math.round(stats.hp) + " · ATK " + Math.round(stats.atk) + '</p>' +
       '</div>' +
       '<div class="row-actions">' +
@@ -974,7 +1048,10 @@
     return '<nav class="tabbar" id="tabbar" role="tablist" aria-label="Club sections">' +
       labels.map(function (row) {
         const on = row[0] === active;
-        return '<button type="button" class="tab" role="tab" id="' + row[3] + '" data-tab="' + row[0] + '" aria-selected="' + (on ? "true" : "false") + '" aria-keyshortcuts="' + row[2] + '"><b>' + row[1] + '</b><small>' + row[2] + '</small></button>';
+        const glyph = NAV_GLYPH[row[0]];
+        const idle = '<img class="ui-glyph glyph-idle" alt="" src="assets/ui/glyphs/orange_32/' + glyph + '.png">';
+        const hot = '<img class="ui-glyph glyph-on" alt="" src="assets/ui/glyphs/white_32/' + glyph + '.png">';
+        return '<button type="button" class="tab" role="tab" id="' + row[3] + '" data-tab="' + row[0] + '" aria-selected="' + (on ? "true" : "false") + '" aria-keyshortcuts="' + row[2] + '">' + idle + hot + '<b>' + row[1] + '</b><small>' + row[2] + '</small></button>';
       }).join("") +
     '</nav>';
   }
@@ -1023,18 +1100,19 @@
     const cards = rows.map(function (row, i) {
       const item = row.item;
       const broke = save.gold < row.cost;
-      return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
+      const afford = broke ? " cant-afford" : " buyable";
+      return '<article class="gear-card rarity-' + esc(item.rarity) + afford + '">' +
         itemFaceHtml(item) +
         '<h3>' + esc(IL.itemName(item)) + '</h3>' +
         '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + '</p>' +
         '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
-        '<button type="button" class="btn primary" data-buy-gear="' + i + '"' + (broke ? " disabled" : "") + '>Buy — ' + row.cost + ' gold</button>' +
+        '<button type="button" class="btn primary' + afford + '" data-buy-gear="' + i + '"' + (broke ? " disabled" : "") + '>Buy — ' + row.cost + ' gold</button>' +
       '</article>';
     }).join("");
     const cost = IL.GEAR_REROLL || 20;
     return '<section class="panel-frame" id="gearStock"><h3 class="section">Gear stall</h3>' +
       '<p class="fine">The stall turns over after each league match. A reroll spends ' + cost + ' gold.</p>' +
-      '<div class="hub-actions"><button type="button" class="btn ghost" id="rerollGear"' + (save.gold < cost ? " disabled" : "") + '>Reroll stall — ' + cost + ' gold</button></div>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost' + (save.gold < cost ? " cant-afford" : " buyable") + '" id="rerollGear"' + (save.gold < cost ? " disabled" : "") + '>Reroll stall — ' + cost + ' gold</button></div>' +
       '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>';
   }
 
@@ -1062,8 +1140,8 @@
       '<aside class="sheet" id="fighterSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">' +
         '<header class="sheet-head"><div><p class="eyebrow">' + esc(kit.name) + (f.captain ? " · Captain" : "") + '</p>' +
           '<h2 id="sheetTitle">' + esc(f.name) + '</h2></div>' +
-          '<button type="button" class="btn ghost" id="sheetClose">Close</button></header>' +
-        '<div class="detail-stage"><canvas id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"></canvas></div>' +
+          '<button type="button" class="btn close-x" id="sheetClose" aria-label="Close">Close</button></header>' +
+        '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"', f.captain) + '</div>' +
         '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + (f.champion ? " · Champion" : "") + '</p>' +
         '<h3 class="section">Tactic</h3>' + tacticChips(f) +
         '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
@@ -1193,12 +1271,12 @@
     const place = Math.max(0, sorted.findIndex(function (c) { return c.you; }));
     const table = sorted.map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
       return '<article class="award"><p class="eyebrow">' + esc(label) + '</p>' +
-        '<canvas width="120" height="100" data-key="' + esc(IL.hero.keyOf(fighter.parts)) + '" data-anim="cheer"></canvas>' +
+        portraitWrap('width="120" height="100" data-key="' + esc(IL.hero.keyOf(fighter.parts)) + '" data-anim="cheer"') +
         '<h3>' + esc(fighter.name) + '</h3></article>';
     }
     const cup = save.cup;
@@ -1224,8 +1302,8 @@
         '<p id="seasonRewards">' + esc(paidLine) + '</p>' +
         '<p id="cupNote">' + esc(cupNote) + '</p>' +
         '<div class="hub-actions">' +
-          (save.relicSeason !== save.season ? '<button type="button" class="btn ghost" id="claimRelic">Take the yard relic</button>' : '') +
-          '<button type="button" class="btn primary" id="startSeason">Start season ' + (save.season + 1) + '</button>' +
+          (save.relicSeason !== save.season ? '<button type="button" class="btn gold" id="claimRelic">Take the yard relic</button>' : '') +
+          '<button type="button" class="btn gold" id="startSeason">Start season ' + (save.season + 1) + '</button>' +
           '<button type="button" class="btn ghost" id="backFromSeason">Back to the club</button>' +
         '</div></main>';
     root.scrollTo(0, 0);
@@ -1254,26 +1332,26 @@
     const done = save.round >= 5;
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td>' + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
     const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
     const preview = (!done && rival)
       ? '<section class="preview-board" id="matchPreview">' +
-          '<div><p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3>' +
-          '<p class="fine">' + yours.length + " of " + size + " walking in</p></div>" +
+          '<div class="preview-side"><div>' + crestHtml(save.clubName, "md", save.crest) + '<p class="eyebrow">Your party</p><h3>' + esc(youNames) + '</h3>' +
+          '<p class="fine">' + yours.length + ' of ' + size + ' walking in</p></div></div>' +
           '<p class="vs">vs</p>' +
-          '<div><p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
-          '<p class="fine">Record ' + (rival.w || 0) + "–" + (rival.l || 0) + (themNames ? " · sends " + esc(themNames) : "") + '</p></div>' +
-          '<button type="button" class="btn primary" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
+          '<div class="preview-side"><div>' + crestHtml(rival.name, "md", clubCrest(rival)) + '<p class="eyebrow">Next opponent</p><h3>' + esc(rival.name) + '</h3>' +
+          '<p class="fine">Record ' + (rival.w || 0) + '–' + (rival.l || 0) + (themNames ? ' · sends ' + esc(themNames) : '') + '</p></div></div>' +
+          '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
             (partyReady ? "Send them in" : ("Choose " + size)) + '</button>' +
         '</section>'
       : "";
     return (pendingGrowth().length
-        ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a perk</button></p>'
+        ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn gold" id="openGrowth">Choose a perk</button></p>'
         : '') +
       (done
-        ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn primary" id="openSeasonBanner">Open the ceremony</button></p>'
+        ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></p>'
         : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong></p>') +
       (size && yours.length < size
         ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
@@ -1313,14 +1391,15 @@
       const locked = !!row.locked;
       const champ = f.champion ? " · Champion" : "";
       const price = locked ? (row.need + " renown") : (row.cost + " gold");
-      return '<article class="card roster-row" data-role="' + esc(kit.role) + '">' +
-        '<canvas width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"></canvas>' +
+      const cant = locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP;
+      return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '" data-role="' + esc(kit.role) + '">' +
+        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"') +
         '<div class="row-main">' +
           '<h3>' + esc(f.name) + champ + '</h3>' +
-          '<p>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
+          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</span></p>' +
           '<p class="fine">' + esc(price) + (kit.ability ? " · " + kit.ability.name : "") + '</p>' +
         '</div>' +
-        '<button type="button" class="btn primary hire" data-hire="' + i + '"' + (locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + '</button>' +
+        '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + '</button>' +
       '</article>';
     }).join("");
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
@@ -1328,14 +1407,14 @@
       const inParty = (save.lineup || []).indexOf(f.id) >= 0;
       return '<article class="card roster-row" data-role="' + esc(kit.role) + '">' +
         '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
-          '<canvas width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"></canvas>' +
+          portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"') +
         '</button>' +
         '<div class="row-main">' +
           '<h3>' + esc(f.name) + '</h3>' +
-          '<p>' + esc(kit.name) + ' · Lv ' + f.level + (inParty ? " · party" : "") + '</p>' +
+          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + f.level + (inParty ? " · party" : "") + '</span></p>' +
           '<p class="fine">' + IL.sellValue(f) + ' gold</p>' +
         '</div>' +
-        '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell</button>' +
+        '<button type="button" class="btn ghost buyable" data-sell="' + esc(f.id) + '">Sell</button>' +
       '</article>';
     }).join("");
     const captain = save.roster.filter(function (f) { return f.captain; })[0];
@@ -1344,8 +1423,9 @@
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
       '<div class="cards roster-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
     const body = marketPane === "gear" ? gearStallHtml() : (marketPane === "sell" ? selling : recruits);
+    const brokeRefresh = save.gold < IL.REFRESH_COST;
     return filterBar("market", marketPane, [["gear", "Gear"], ["recruits", "Recruits"], ["sell", "Sell"]]) +
-      '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
       '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
       '<div class="pane" id="marketPane">' + body + '</div>';
   }
@@ -1358,6 +1438,7 @@
       const on = (save.equipped || []).indexOf(r.id) >= 0;
       const status = on ? "Riding with the party" : (have ? "In the chest" : "Won from a cup or a finished season");
       return '<article class="card relic' + (on ? " playing" : "") + '">' +
+        '<img class="relic-slot" alt="" src="assets/ui/slots/slot_diamond.png">' +
         '<h3>' + esc(r.name) + '</h3>' +
         '<p>' + esc(r.blurb) + '</p>' +
         '<p class="fine">' + status + '</p>' +
@@ -1391,7 +1472,8 @@
       if (!side) return "";
       const through = tie.winner && side.id === tie.winner ? " through" : "";
       const you = side.you ? " you" : "";
-      return '<span class="club-line' + you + through + '">' + esc(side.name) + '</span>';
+      const idx = side.you ? (save && save.crest) : crestIndexOf(side.name);
+      return '<span class="club-line' + you + through + '">' + crestHtml(side.name, "sm", idx) + esc(side.name) + '</span>';
     };
     const yours = (tie.a && tie.a.you) || (tie.b && tie.b.you);
     return '<div class="tie' + (yours ? " yours" : "") + '">' + mark(tie.a) + mark(tie.b) +
@@ -1429,10 +1511,10 @@
     const sentNames = sent.map(function (f) { return f.name; }).join(" · ") || "nobody yet";
     const cupReady = !cup || sent.length >= cup.size;
     const fightBtn = opp
-      ? '<button type="button" class="btn primary" id="cupFight"' + (cupReady ? "" : " disabled") + '>Fight ' + esc(opp.foe.name) + '</button>'
+      ? '<button type="button" class="btn fight" id="cupFight"' + (cupReady ? "" : " disabled") + '>Fight ' + esc(opp.foe.name) + '</button>'
       : "";
     const enter = (!cup || cup.champion)
-      ? '<button type="button" class="btn primary" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
+      ? '<button type="button" class="btn gold" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
       : fightBtn;
     return '<header class="panel-head"><p class="eyebrow">Single elimination</p><h3>The cup</h3></header>' +
       '<div class="hub-actions">' + enter + '</div>' +
@@ -1495,11 +1577,11 @@
       '<main class="hub">' +
         '<div class="hub-sticky">' +
           '<header class="hub-head">' +
-            '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
+            crestHtml(save.clubName, "md", save.crest) +
             '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
             '<div class="hub-actions">' +
-              (done ? '<button type="button" class="btn primary" id="openSeason">Season ceremony</button>' : '') +
-              '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
+              (done ? '<button type="button" class="btn gold" id="openSeason">Season ceremony</button>' : '') +
+              '<button type="button" class="btn fight" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
               '<button type="button" class="text-btn" id="credits">Credits</button>' +
               '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
               '<button type="button" class="text-btn" id="toTitle">Title</button>' +
@@ -1522,7 +1604,6 @@
     } else {
       root.scrollTo(0, 0);
     }
-    drawCrest(document.getElementById("crest"), save.clubName);
     bindHub();
     const extra = hubTab === "market"
       ? (save.market || []).map(function (row) { return row.fighter && row.fighter.parts; })
@@ -1535,7 +1616,7 @@
     return '<div class="sheet-back" id="creditsBack"></div>' +
       '<aside class="sheet" id="creditsSheet" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">' +
         '<header class="sheet-head"><div><p class="eyebrow">Club</p><h2 id="creditsTitle">Credits</h2></div>' +
-          '<button type="button" class="btn ghost" id="creditsClose">Close</button></header>' +
+          '<button type="button" class="btn close-x" id="creditsClose" aria-label="Close">Close</button></header>' +
         '<h3 class="section">Additional art assets</h3>' +
         '<p>Ricardo Machado (Beowulf). Mini Weapons and Mini Monster Drops.</p>' +
         '<p>CaptainSkolot.</p>' +
@@ -1543,6 +1624,7 @@
         '<p>finalbossblues (Time Fantasy).</p>' +
         '<p>AU_pixel (Heroes99).</p>' +
         '<p>PizzaDoggy (BitFX).</p>' +
+        '<p>Wenrexa. UI kit, cursors, and backgrounds are CC0. Glyph icons are CC BY 4.0. Emblems are CC BY-ND 4.0, shown white and unmodified.</p>' +
         '<p class="fine">These pictures stay inside the game. They are not offered as a separate pack.</p>' +
       '</aside>';
   }
@@ -1567,7 +1649,7 @@
     return '<div class="sheet-back" id="settingsBack"></div>' +
       '<aside class="sheet" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">' +
         '<header class="sheet-head"><div><p class="eyebrow">Club</p><h2 id="settingsTitle">Settings</h2></div>' +
-          '<button type="button" class="btn ghost" id="settingsClose">Close</button></header>' +
+          '<button type="button" class="btn close-x" id="settingsClose" aria-label="Close">Close</button></header>' +
         '<label class="field">Sound<input id="soundVol" type="range" min="0" max="100" value="' + s.sound + '"></label>' +
         '<label class="field">Music<input id="musicVol" type="range" min="0" max="100" value="' + s.music + '"></label>' +
         '<p class="fine">Sound covers hits, casts, and menu clicks. Music covers the result sting.</p>' +
@@ -1637,9 +1719,9 @@
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
     const st = IL.scaledStats(f, kit);
     return '<article class="card versus-card" data-role="' + esc(kit.role) + '">' +
-      '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+      portraitWrap('width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"') +
       '<h3>' + esc(f.name) + '</h3>' +
-      '<p>' + esc(kit.name) + " · Lv " + (f.level || 1) + '</p>' +
+      '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + (f.level || 1) + '</span></p>' +
       '<p class="fine">HP ' + Math.round(st.hp) + '</p>' +
     '</article>';
   }
@@ -1655,7 +1737,11 @@
     const share = Math.max(8, Math.min(92, Math.round(100 * youP / (youP + themP))));
     app.innerHTML =
       '<main class="hub versus-screen" id="versus">' +
-        '<header class="hub-head"><div><p class="eyebrow">Before the pit</p><h2>' + esc(spec.leftName || save.clubName) + ' vs ' + esc(spec.rightName || "Rivals") + '</h2></div></header>' +
+        '<header class="hub-head versus-head">' +
+          crestHtml(spec.leftName || save.clubName, "md", save.crest) +
+          '<div><p class="eyebrow">Before the pit</p><h2>' + esc(spec.leftName || save.clubName) + ' vs ' + esc(spec.rightName || "Rivals") + '</h2></div>' +
+          crestHtml(spec.rightName || "Rivals", "md", crestIndexOf(spec.rightName)) +
+        '</header>' +
         '<div class="versus-grid">' +
           '<section class="panel-frame"><h3 class="section">Your party</h3><div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
           '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
@@ -1666,7 +1752,7 @@
         '</div>' +
         '<div class="versus-actions">' +
           '<button type="button" class="btn ghost" id="versusBack">Back</button>' +
-          '<button type="button" class="btn primary" id="confirmFight">Fight</button>' +
+          '<button type="button" class="btn fight" id="confirmFight">Fight</button>' +
         '</div>' +
       '</main>';
     root.scrollTo(0, 0);
@@ -2034,30 +2120,6 @@
     showHub("relics", true);
   }
 
-  function drawCrest(canvas, name) {
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const h = IL.hashStr(name || "iron");
-    ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = "#2a2118";
-    ctx.fillRect(0, 0, 64, 64);
-    ctx.strokeStyle = "#c4622d";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(4, 4, 56, 56);
-    ctx.beginPath();
-    const sides = 3 + (h % 3);
-    for (let i = 0; i < sides; i++) {
-      const a = -Math.PI / 2 + (i / sides) * Math.PI * 2 + ((h >> 4) % 5) * 0.05;
-      const rr = 16 + ((h >> (i * 2)) & 3);
-      const x = 32 + Math.cos(a) * rr;
-      const y = 34 + Math.sin(a) * rr;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fillStyle = "#e7d3b0";
-    ctx.fill();
-  }
-
   function bootCards(extraParts) {
     const tok = token;
     const canvases = Array.prototype.slice.call(app.querySelectorAll("canvas[data-key]"));
@@ -2282,10 +2344,12 @@
           '<button type="button" class="btn primary" id="skip">Skip</button>' +
         '</footer>' +
       '</main>';
-    document.getElementById("leftName").textContent = match.leftName;
-    document.getElementById("rightName").textContent = (match.teams || 2) > 2
+    document.getElementById("leftName").innerHTML = crestHtml(match.leftName, "sm", save.crest) + "<span>" + esc(match.leftName) + "</span>";
+    const rightLabel = (match.teams || 2) > 2
       ? (match.names || []).slice(1).join(" · ")
       : match.rightName;
+    const rightCrest = (match.teams || 2) > 2 ? "" : crestHtml(rightLabel, "sm", crestIndexOf(rightLabel));
+    document.getElementById("rightName").innerHTML = rightCrest + "<span>" + esc(rightLabel) + "</span>";
     [1, 2, 3].forEach(function (n) {
       const btn = document.getElementById("speed" + n);
       if (btn) btn.onclick = function () { setFightSpeed(n); };
@@ -2298,7 +2362,7 @@
       const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
       const side = u.team === 0 ? "you" : "them";
       const marks = [kit.ability, kit.ability2].filter(Boolean).map(function (ab) {
-        return IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 24) : "";
+        return IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "";
       }).join("");
       const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + marks + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';
       (u.team === 0 ? youRows : themRows).push(row);
@@ -2656,6 +2720,8 @@
     const box = document.getElementById("result");
     if (!box) return;
     box.hidden = false;
+    box.classList.toggle("victory", win);
+    box.classList.toggle("defeat", !win);
     box.innerHTML =
       '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
       '<h2>' + headline + '</h2>' +

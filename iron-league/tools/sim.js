@@ -109,6 +109,10 @@ check("an empty lineup stays empty", cleared.lineup.length === 0);
 check("old save record starts at zero", oldSave.roster[0].wins === 0 && oldSave.roster[0].losses === 0 && oldSave.roster[0].kos === 0);
 check("old save gains history and settings", Array.isArray(oldSave.history) && oldSave.history.length === 0 && oldSave.settings.speed === 1 && oldSave.settings.shake === true);
 check("old save gains empty gear", oldSave.roster[0].gear && oldSave.roster[0].gear.weapon === null && oldSave.roster[0].gear.armor === null && Array.isArray(oldSave.items) && oldSave.items.length === 0);
+check("old save gains a crest", oldSave.crest >= 1 && oldSave.crest <= 16);
+const keptCrest = { v: 1, clubName: "Smoke Yard", crest: 7, roster: [], clubs: [], fixtures: [] };
+IL.migrate(keptCrest);
+check("a chosen crest stays", keptCrest.crest === 7);
 const atlas = JSON.parse(fs.readFileSync(path.join(root, "assets/icons/atlas.json"), "utf8"));
 function framesOf(row) {
   const ids = [];
@@ -124,9 +128,13 @@ check("class weapons cover the yard", ["longbow", "wand", "tome", "dagger", "mac
   return IL.GEAR_CATALOG.some(function (row) { return row.key === key && row.slot === "weapon"; });
 }));
 check("tonics are drinks", IL.GEAR_CATALOG.filter(function (row) { return row.slot === "tonic"; }).length >= 3);
-check("ability and currency frames exist", ["cleave", "multishot", "frost", "fireball", "taunt", "shadowstep", "mend", "pierce", "nova", "bolt"].every(function (id) {
-  return !!(atlas.frames && atlas.frames[IL.abilityIcon(id)]);
-}) && atlas.frames[IL.CURRENCY_ICON.gold] && atlas.frames[IL.CURRENCY_ICON.renown] && atlas.frames[IL.CURRENCY_ICON.token] && atlas.frames[IL.lootFrame("chest", "common")] && atlas.frames[IL.lootFrame("chest", "legendary")] && atlas.frames[IL.lootFrame("bag", "rare")] && atlas.frames[IL.lootFrame("bag", "epic")]);
+function abilityArt(id) {
+  const frame = IL.abilityIcon(id);
+  if (!frame) return false;
+  if (String(frame).indexOf("/") >= 0) return fs.existsSync(path.join(root, frame));
+  return !!(atlas.frames && atlas.frames[frame]);
+}
+check("ability and currency frames exist", ["cleave", "multishot", "frost", "fireball", "taunt", "shadowstep", "mend", "pierce", "nova", "bolt"].every(abilityArt) && atlas.frames[IL.CURRENCY_ICON.gold] && atlas.frames[IL.CURRENCY_ICON.renown] && atlas.frames[IL.CURRENCY_ICON.token] && atlas.frames[IL.lootFrame("chest", "common")] && atlas.frames[IL.lootFrame("chest", "legendary")] && atlas.frames[IL.lootFrame("bag", "rare")] && atlas.frames[IL.lootFrame("bag", "epic")]);
 check("a tonic is a sip of shield", IL.tonicShield({ rarity: "common" }) === 6 && IL.tonicShield({ rarity: "legendary" }) === 12);
 function iconKind(id) {
   const s = String(id || "");

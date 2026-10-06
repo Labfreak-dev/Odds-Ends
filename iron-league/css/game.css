@@ -1716,3 +1716,173 @@ td.club-cell .club-name,
   background: #1a120e;
   border-radius: 0;
 }
+
+/* Ink stays inside the 9-slice. Padding clears the frame; tables cannot grow past it. */
+.panel-frame,
+.picker,
+.preview-board,
+.stage-card,
+.fight-layout aside,
+.result,
+.empty-state,
+.sheet,
+.card,
+.gear-card,
+.gear-slot,
+.gear-offer,
+.award,
+.tie,
+.toast,
+.tab,
+.btn {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+.panel-frame,
+.picker,
+.preview-board,
+.stage-card,
+.fight-layout aside,
+.result,
+.empty-state {
+  padding: 12px 30px 14px;
+}
+.hub .panel-frame,
+.hub .preview-board {
+  padding: 8px 30px 10px;
+}
+.sheet {
+  padding: 36px 22px 28px;
+}
+.card,
+.gear-card,
+.award,
+.tie {
+  padding: 8px 12px;
+}
+.roster-row {
+  padding: 4px 8px;
+}
+.btn,
+.btn.ghost,
+.btn.primary {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.tab {
+  overflow: hidden;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.tab b {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.board th,
+.board td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 4px;
+}
+.board th:first-child,
+.board td:first-child {
+  width: 2em;
+}
+.board th:nth-child(n+3),
+.board td:nth-child(n+3) {
+  width: 2.4em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 2px;
+}
+#resultTable th:first-child,
+#resultTable td:first-child {
+  width: auto;
+}
+#resultTable th:nth-child(n+2),
+#resultTable td:nth-child(n+2) {
+  width: 3.1em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 2px;
+}
+td.club-cell,
+.club-line {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+td.club-cell .crest-mark,
+.club-line .crest-mark {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.history li,
+.achieve-row,
+.versus-actions,
+.hub-actions,
+.bracket {
+  min-width: 0;
+  max-width: 100%;
+}
+.history em { min-width: 0; }
+.sheet-actions,
+.sheet-actions > *,
+.rename-row,
+.gear-slots,
+.xp,
+.stat,
+.loadout,
+.loadout-picks {
+  min-width: 0;
+  max-width: 100%;
+}
+.rename-row input { min-width: 0; width: 0; flex: 1; }
+.sheet .btn {
+  border-width: 0 14px;
+  border-image-width: 0 14px;
+}
+.field { min-width: 0; max-width: 100%; }
+.field input,
+.field input[type="range"] {
+  width: calc(100% - 4px);
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+.card h3,
+.card .fine,
+.card .kit-line,
+.versus-card .kit-line {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.card h3,
+.card .fine {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card .kit-line span,
+.versus-card .kit-line span {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.class-badge { flex: none; }

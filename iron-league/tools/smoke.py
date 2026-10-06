@@ -786,6 +786,160 @@ def check_season(page, label, shot_dir):
         raise SystemExit(label + " rivals did not scale: " + str(level))
 
 
+OVERFLOW_JS = """() => {
+  const tol = 1;
+  const bad = [];
+  const scroll = document.documentElement.scrollWidth - window.innerWidth;
+  for (const el of document.querySelectorAll('body *')) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 && r.height < 1) continue;
+    let anc = el.parentElement;
+    let borderAnc = null;
+    while (anc && anc !== document.body) {
+      const s = getComputedStyle(anc);
+      const bi = s.borderImageSource;
+      const bw = ['Left','Right','Top','Bottom'].reduce((n, side) => n + (parseFloat(s['border' + side + 'Width']) || 0), 0);
+      if ((bi && bi !== 'none') || bw >= 8) { borderAnc = anc; break; }
+      anc = anc.parentElement;
+    }
+    if (!borderAnc) continue;
+    const s = getComputedStyle(borderAnc);
+    const br = borderAnc.getBoundingClientRect();
+    const left = br.left + (parseFloat(s.borderLeftWidth) || 0) + (parseFloat(s.paddingLeft) || 0);
+    const right = br.right - (parseFloat(s.borderRightWidth) || 0) - (parseFloat(s.paddingRight) || 0);
+    const top = br.top + (parseFloat(s.borderTopWidth) || 0) + (parseFloat(s.paddingTop) || 0);
+    const bottom = br.bottom - (parseFloat(s.borderBottomWidth) || 0) - (parseFloat(s.paddingBottom) || 0);
+    let clipY = false;
+    let walk = el.parentElement;
+    while (walk) {
+      const ov = getComputedStyle(walk).overflowY;
+      if (ov === 'auto' || ov === 'scroll' || ov === 'hidden') clipY = true;
+      if (walk === borderAnc) break;
+      walk = walk.parentElement;
+    }
+    const overR = r.right - right;
+    const overL = left - r.left;
+    const overB = r.bottom - bottom;
+    const overT = top - r.top;
+    if (overR > tol || overL > tol || (!clipY && (overB > tol || overT > tol))) {
+      const name = (el.id || el.tagName) + '.' + String(el.className || '').slice(0, 40);
+      const host = (borderAnc.id || String(borderAnc.className || '')).slice(0, 24);
+      bad.push(name + ' in ' + host + ' R' + Math.round(overR) + ' L' + Math.round(overL) + ' B' + Math.round(overB) + ' T' + Math.round(overT));
+    }
+  }
+  return { scroll: scroll, bad: bad };
+}"""
+
+
+def assert_inside(page, where):
+    report = page.evaluate(OVERFLOW_JS)
+    if report["scroll"] > 1:
+        raise SystemExit(where + " horizontal scroll " + str(report["scroll"]))
+    if report["bad"]:
+        raise SystemExit(where + " overflows " + " | ".join(report["bad"][:8]))
+
+
+def sweep_frames(browser, shot_dir):
+    """Every bordered panel keeps its contents inside the frame, at four widths."""
+    page = browser.new_page(viewport={"width": 412, "height": 915})
+    page.goto(URL, wait_until="domcontentloaded")
+    page.evaluate("() => localStorage.clear()")
+    page.reload(wait_until="domcontentloaded")
+    page.click("#newClub")
+    page.fill("#clubName", "Lowmarket Blades")
+    page.fill("#fighterName", "Yarrow Lowell")
+    page.click('[data-class="warrior"]')
+    page.click("#confirm")
+    page.wait_for_selector("#nextMatch", timeout=30000)
+    sizes = [(360, 740), (412, 915), (768, 1024), (1280, 800)]
+
+    def visit(tag, wait):
+        page.keyboard.press(tag)
+        page.wait_for_selector(wait)
+
+    for width, height in sizes:
+        page.set_viewport_size({"width": width, "height": height})
+        label = str(width) + "x" + str(height)
+        page.keyboard.press("1")
+        page.wait_for_selector("#clubYard")
+        assert_inside(page, label + " club")
+        if width == 1280:
+            slack = page.evaluate("() => document.documentElement.scrollHeight - window.innerHeight")
+            if slack > 48:
+                raise SystemExit(label + " club scrolls by " + str(slack))
+        if width == 412:
+            page.locator(".panel-frame .board").first.locator("xpath=ancestor::section[1]").screenshot(path=str(shot_dir / "standings-phone.png"))
+        visit("2", "#fighterList")
+        assert_inside(page, label + " fighters")
+        page.locator("[data-detail]").first.click()
+        page.wait_for_selector("#fighterSheet")
+        assert_inside(page, label + " sheet")
+        page.click("#sheetClose")
+        page.wait_for_selector("#fighterSheet", state="detached")
+        visit("3", "[data-filter='gear']")
+        assert_inside(page, label + " recruits")
+        page.click("[data-filter='gear']")
+        page.wait_for_selector("#gearStock")
+        assert_inside(page, label + " stall")
+        page.click("[data-filter='sell']")
+        assert_inside(page, label + " sell")
+        visit("4", "#enterCup, #bracketBoard")
+        assert_inside(page, label + " cup")
+        visit("5", ".card.relic")
+        assert_inside(page, label + " relics")
+        page.click("#settings")
+        page.wait_for_selector("#settingsSheet")
+        assert_inside(page, label + " settings")
+        page.click("#settingsClose")
+        page.wait_for_selector("#settingsSheet", state="detached")
+        page.click("#credits")
+        page.wait_for_selector("#creditsSheet")
+        assert_inside(page, label + " credits")
+        page.click("#creditsClose")
+        page.wait_for_selector("#creditsSheet", state="detached")
+        page.keyboard.press("1")
+        page.wait_for_selector("#nextMatch")
+        page.click("#nextMatch")
+        page.wait_for_selector("#versus")
+        assert_inside(page, label + " versus")
+        page.click("#confirmFight")
+        page.wait_for_selector("#arena")
+        page.wait_for_timeout(250)
+        assert_inside(page, label + " arena")
+        page.click("#skip")
+        page.wait_for_selector("#resultTable", timeout=15000)
+        assert_inside(page, label + " results")
+        page.click("#backHub")
+        page.wait_for_selector("#nextMatch, #nextSeason, #growthChoices", timeout=10000)
+        if page.locator("#growthChoices").count():
+            assert_inside(page, label + " growth")
+            page.locator("#growthChoices [data-boost]").first.click()
+            page.wait_for_selector("#nextMatch, #nextSeason", timeout=10000)
+    page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          raw.round = 5;
+          raw.clubs.forEach((c, i) => { c.w = 4 - Math.min(i, 4); c.l = Math.min(i, 4); c.pts = (4 - Math.min(i, 4)) * 3; });
+          localStorage.setItem('ironleague.v1', JSON.stringify(raw));
+        }"""
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.click("#openSeason")
+    page.wait_for_selector("#finalTable")
+    for width, height in sizes:
+        page.set_viewport_size({"width": width, "height": height})
+        label = str(width) + "x" + str(height)
+        page.wait_for_timeout(40)
+        assert_inside(page, label + " season")
+        if width == 412:
+            page.screenshot(path=str(shot_dir / "season-phone.png"))
+            page.locator("#finalTable").locator("xpath=ancestor::section[1]").screenshot(path=str(shot_dir / "season-standings-phone.png"))
+    page.close()
+
+
 def check_phone_fight(browser, width, height, shot_dir, dismiss):
     """A phone fight stays on one screen, then Back to club leaves the results."""
     label = str(width) + "x" + str(height)
@@ -918,20 +1072,22 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
         raise SystemExit(label + " hub lost the club name: " + title)
     page.close()
 
-
 def main():
     shot = Path("/tmp/il-shots")
     shot.mkdir(exist_ok=True)
+    frames_only = "--frames" in sys.argv
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome")
-        desktop = browser.new_page(viewport={"width": 1280, "height": 800})
-        run(desktop, "desktop", shot)
-        desktop.close()
-        phone = browser.new_page(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True)
-        run(phone, "phone", shot)
-        phone.close()
-        check_phone_fight(browser, 360, 740, shot, "click")
-        check_phone_fight(browser, 412, 915, shot, "escape")
+        if not frames_only:
+            desktop = browser.new_page(viewport={"width": 1280, "height": 800})
+            run(desktop, "desktop", shot)
+            desktop.close()
+            phone = browser.new_page(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True)
+            run(phone, "phone", shot)
+            phone.close()
+            check_phone_fight(browser, 360, 740, shot, "click")
+            check_phone_fight(browser, 412, 915, shot, "escape")
+        sweep_frames(browser, shot)
         browser.close()
     print("smoke passed")
     print("shots", shot)

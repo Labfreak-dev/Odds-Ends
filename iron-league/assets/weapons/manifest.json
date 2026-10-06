@@ -1,0 +1,14 @@
+{
+  "files": {
+    "sword": "sprites/sword.png",
+    "axe": "sprites/axe.png",
+    "bow": "sprites/bow.png",
+    "spear": "sprites/spear.png",
+    "gun": "sprites/gun.png",
+    "staff": "sprites/staff.png",
+    "staff_wood": "sprites/staff_wood.png",
+    "wand": "sprites/wand.png",
+    "dagger": "sprites/dagger.png",
+    "arrow": "sprites/arrow.png"
+  }
+}

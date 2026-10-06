@@ -119,3 +119,9 @@ Class abilities reuse those strips. They do not add sheets.
 | Skirmisher | Skirmish | dash |
 | Duelist | Lunge | slash |
 | Elementalist | Nova, Bolt | plasma, bolt |
+
+## Weapons in hand
+
+Each class has a held kind. A samurai holds a katana. `visualMotion` plays the bow row for a bow, the gun row for a gun, the heavy chop (`atk2`) for an axe or mace, and the thrust rows for a spear or dagger. Sword, katana, and staff stay on the painted swing. Those attack frames already include the weapon, so the loose sprite is drawn on idle, walk, cast, and guard, and on an attack only when that column is empty (a bow on a gun troop, a gun on anyone else).
+
+`assets/weapons/sprites/` holds the il-weapons-1 pictures the game actually draws: sword, axe, bow, spear, gun, staff, wooden staff, wand, dagger, and the arrow. Grip and angle come from that pack. Crossbow, book, claws, katana, mace, and scythe are not in the pack (the pack's sickle and hammer are the wrong shapes), so `js/weapons.js` paints those at the same pixel scale. A gun's muzzle frame adds a flash; the pellet does too for the first moments of the shot. `?debug=anchors` draws the grip.

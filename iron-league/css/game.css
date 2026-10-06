@@ -574,9 +574,13 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   max-width: 100%;
 }
 .loot-faces { display: flex; align-items: flex-end; gap: 6px; flex: none; }
-.loot-reveal > div { min-width: 0; flex: 1 1 160px; }
+.loot-reveal > div { min-width: 0; flex: 1 1 0; }
 .loot-reveal h3 { margin: 0; font-family: var(--display); font-weight: 600; overflow-wrap: anywhere; }
 .loot-reveal p { margin: 2px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+@media (max-width: 799px) {
+  .loot-reveal { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .loot-reveal > div { width: 100%; }
+}
 @keyframes loot-in {
   from { opacity: 0; transform: rotateY(70deg) scale(0.92); }
   to { opacity: 1; transform: none; }
@@ -1407,6 +1411,34 @@ body:has(.fight-screen) #app {
   overflow: hidden;
   padding: 8px 14px 10px;
 }
+@media (min-width: 800px) {
+  .result,
+  .result.victory {
+    width: min(560px, calc(100vw - 48px));
+    left: 0;
+    right: 0;
+    top: 24px;
+    bottom: 24px;
+    margin-inline: auto;
+  }
+}
+.wide-label { display: inline; }
+.narrow-label { display: none; }
+@media (max-width: 799px) {
+  .wide-label { display: none; }
+  .narrow-label { display: inline; }
+  #resultTable { font-size: 12px; }
+  #resultTable th {
+    letter-spacing: 0;
+    font-size: 10px;
+  }
+  #resultTable th,
+  #resultTable td { padding: 5px 1px; }
+  #resultTable .result-xp .track {
+    border-width: 0 4px;
+    border-image-width: 0 4px;
+  }
+}
 .result-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -1677,6 +1709,18 @@ td.club-cell .club-name,
 
 #clubYardWrap { margin: 0; }
 #clubYardWrap .fine { margin: 0 0 4px; }
+.synergy { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.trait, .trait-line { color: var(--muted); font-size: 13px; }
+.trait.on { color: var(--copper-2); }
+.abilities li.locked { opacity: 0.72; }
+.abilities span.tag, .abilities span.row-name { float: none; color: var(--copper-2); font-size: 11px; letter-spacing: 0.04em; }
+.tag { display: inline-block; margin: 0 4px 0 0; padding: 0 4px; border: 1px solid var(--line); }
+.loadout-style { margin: 4px 0; }
+.loadout-slot { cursor: pointer; border-radius: 2px; }
+.loadout-slot.on { outline: 1px solid var(--copper); }
+.loadout-picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.loadout-picks .chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.loadout-picks small { color: inherit; opacity: 0.8; font-size: 11px; }
 #clubYard {
   width: 100%;
   max-width: 640px;
@@ -1781,7 +1825,7 @@ td.club-cell .club-name,
 }
 #resultTable th:nth-child(n+2),
 #resultTable td:nth-child(n+2) {
-  width: 3.1em;
+  width: 4.8em;
   text-align: right;
   font-variant-numeric: tabular-nums;
   padding-right: 2px;
@@ -1849,7 +1893,8 @@ td.club-cell .crest-mark,
 .card .kit-line span,
 .versus-card .kit-line span {
   min-width: 0;
-  flex: 1 1 auto;
+  width: 0;
+  flex: 1 1 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1889,6 +1934,107 @@ td.club-cell .club-name,
   letter-spacing: 0;
 }
 
+#liveList, .hp-col, .live { min-width: 0; max-width: 100%; }
+.live b, .live small, .live .hp-num {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live .pixel-icon, .live b .pixel-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -3px;
+}
+.live .track { min-width: 0; width: 100%; }
+.result-xp { min-width: 0; width: 100%; }
+@media (min-width: 1100px) {
+  .fight-layout aside { width: 320px; }
+}
+
+/* Versus and season exits stay on screen. Phone versus cards stay short. */
+.versus-screen .cards { grid-template-columns: minmax(0, 1fr); }
+.versus-screen,
+#seasonEnd {
+  padding-bottom: 84px;
+}
+.versus-actions,
+#seasonEnd .hub-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 28;
+  margin: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: #14110e;
+}
+.versus-actions .btn,
+#seasonEnd .hub-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 4px;
+  font-size: 14px;
+  border-width: 0 14px;
+  border-image-width: 0 14px;
+}
+@media (max-width: 799px) {
+  .versus-card {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+    padding: 4px 8px;
+    min-width: 0;
+  }
+  .versus-card::before { display: none; }
+  .versus-card .portrait-frame {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    width: 72px;
+    min-width: 0;
+    max-width: 72px;
+    padding: 8px 6px 10px;
+  }
+  .versus-card h3,
+  .versus-card .kit-line,
+  .versus-card .trait-line,
+  .versus-card .fine {
+    grid-column: 2;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .versus-card canvas { width: 60px; height: 44px; }
+  .versus-card h3,
+  .versus-card p { margin: 0; }
+  .versus-card h3 {
+    font-size: 14px;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .versus-card .kit-line span {
+    width: 0;
+    flex: 1 1 0;
+  }
+  #resultTable th:nth-child(2),
+  #resultTable td:nth-child(2),
+  #resultTable th:nth-child(3),
+  #resultTable td:nth-child(3) { width: 3.2em; }
+  #resultTable th:nth-child(4),
+  #resultTable td:nth-child(4) { width: 3.6em; }
+  #resultTable th:nth-child(5),
+  #resultTable td:nth-child(5) { width: 2.1em; }
+  #resultTable th:nth-child(6),
+  #resultTable td:nth-child(6) { width: 3em; }
+}
+
 /* Phone standings: the 9-slice leaves about 214px. Keep Pts inside that
    box and give the club name a column wide enough for a whole word. */
 @media (max-width: 799px) {
@@ -1921,83 +2067,31 @@ td.club-cell .club-name,
   }
 }
 
-/* Results read as rows on a phone and as a wide name column on a desk.
-   Versus titles and fight-strip names wrap. The pit fills the phone stage. */
-#resultTable.result-board { display: block; width: 100%; min-width: 0; }
-.result-rows { display: none; }
-.result-grid { width: 100%; table-layout: auto; }
-#resultTable .result-grid th,
-#resultTable .result-grid td {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-}
-#resultTable .result-grid th:first-child,
-#resultTable .result-grid td:first-child {
-  width: auto;
-  min-width: 140px;
-  text-align: left;
-  overflow-wrap: break-word;
+/* Result stat columns size to their labels. .board's fixed layout and a
+   1% column width crushed the XP track until it left the panel. */
+#resultTable .result-grid {
+  table-layout: auto;
+  width: 100%;
+  max-width: 100%;
 }
 #resultTable .result-grid th:nth-child(n+2),
 #resultTable .result-grid td:nth-child(n+2) {
-  width: 1%;
+  width: auto;
+  min-width: 2.8em;
   white-space: nowrap;
-  text-align: right;
-  padding: 6px 8px;
-  letter-spacing: 0;
 }
-#resultTable .mvp-badge { white-space: nowrap; letter-spacing: 0.06em; }
-.hub-head.versus-head > div { min-width: 0; flex: 1 1 auto; }
-.hub-head.versus-head h2 {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  overflow-wrap: break-word;
-  line-height: 1.15;
+#resultTable .result-xp {
+  width: 64px;
+  max-width: 64px;
 }
-.hud-strip .live b {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  font-size: 11px;
-  line-height: 1.15;
+#resultTable .result-xp .track {
+  width: 56px;
+  max-width: 56px;
+  border-width: 0;
+  border-image: none;
+  box-sizing: border-box;
 }
-@media (max-width: 799px) {
-  .result-grid { display: none; }
-  .result-rows { display: flex; flex-direction: column; gap: 8px; }
-  .result-row { min-width: 0; padding: 4px 0 6px; border-bottom: 1px solid var(--line); }
-  .result-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .result-row .portrait-frame { width: 44px; flex: none; margin: 0; padding: 4px 3px 5px; }
-  .result-row canvas { width: 36px; height: 28px; }
-  .result-name {
-    min-width: 0;
-    flex: 1 1 auto;
-    white-space: normal;
-    overflow-wrap: break-word;
-    font-weight: 650;
-  }
-  .result-row .mvp-badge,
-  .result-row .level-call { flex: none; }
-  .result-chips {
-    margin: 4px 0 0;
-    font-size: 12px;
-    line-height: 1.35;
-    color: var(--muted);
-  }
-  .result-row .result-xp { margin-top: 4px; }
-  .fight-screen .stage { align-items: stretch; }
-  .fight-screen #arena { width: 100%; height: 100%; }
-}
-
-#clubYardWrap { margin: 0; }
-#clubYardWrap .fine { margin: 0 0 4px; }
-#clubYard {
-  width: 100%;
-  max-width: 640px;
-  height: auto;
-  display: block;
-  background: #1a120e;
-  border-radius: 0;
+#settingsSheet .field {
+  min-height: 44px;
+  justify-content: center;
 }

@@ -67,13 +67,16 @@
     return "idle";
   }
 
-  function draw(ctx, atlas, frame, x, y, scale, facing, cls) {
+  function draw(ctx, atlas, frame, x, y, scale, facing, cls, motionHint, kind) {
     if (!atlas || !frame) return;
     const name = clipNameAt(frame);
     const clip = IL.CLIPS[name];
     if (!clip) return;
     const sheet = atlas.tfSheet || "";
-    const motion = IL.visualMotion(name, cls, sheet);
+    let held = kind || "";
+    if (!held && cls && IL.weaponKind) held = IL.weaponKind({ cls: cls });
+    let motion = IL.visualMotion(name, cls, sheet, held);
+    if (motionHint && COL[motionHint] != null) motion = motionHint;
     const sub = IL.visualSample(name, motion, frame - clip.from);
     const col = COL[motion];
     if (col == null) return;
@@ -89,6 +92,7 @@
       col * CELL, sub * CELL, CELL, CELL,
       Math.round(-AX * s), Math.round(-AY * s), CELL * s, CELL * s
     );
+    if (held && IL.weapons && IL.weapons.paint) IL.weapons.paint(ctx, held, motion, sub, s, sheet, cls);
     ctx.restore();
   }
 

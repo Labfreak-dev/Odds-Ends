@@ -109,6 +109,11 @@
       alive: true,
       abilityCd: 0.9 + slot * 0.12,
       abilityCdMul: 1,
+      cds: {},
+      stun: 0,
+      buff: 0,
+      buffAtk: 1,
+      summon: !!fighter.summon,
       taunt: 0,
       rage: 0,
       slow: 0,
@@ -131,11 +136,26 @@
       dmgTaken: 0,
       healing: 0
     };
+    u.weaponKind = IL.weaponKind ? IL.weaponKind(fighter) : null;
     const pass = IL.gearPassives ? IL.gearPassives(fighter) : null;
     if (pass) {
       if (pass.crit) u.crit += pass.crit;
       if (pass.shield) u.shield += pass.shield;
       if (pass.regen) u.regen += pass.regen;
+    }
+    const abs = kit.abilities || (kit.ability ? [kit.ability] : []);
+    if (!fighter.summon && IL.ensureMoves) IL.ensureMoves(fighter);
+    u.loadout = fighter.summon ? [] : (fighter.loadout || []).slice();
+    u.learned = fighter.summon ? [] : (fighter.learned || []).slice();
+    u.motion = null;
+    const byAb = {};
+    for (let i = 0; i < abs.length; i++) if (abs[i] && abs[i].id) byAb[abs[i].id] = abs[i];
+    const seedIds = u.loadout.length
+      ? u.loadout
+      : abs.filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; }).map(function (ab) { return ab.id; });
+    for (let i = 0; i < seedIds.length; i++) {
+      const ab = byAb[seedIds[i]];
+      if (ab && ab.id) u.cds[ab.id] = 0.45 + slot * 0.12 + i * 0.2;
     }
     if (fighter.tonic && IL.tonicShield) {
       u.shield += IL.tonicShield(fighter.tonic);
@@ -185,6 +205,7 @@
     if (relics.length) {
       for (let i = 0; i < units.length; i++) if (units[i].team === 0) applyRelics(units[i], relics);
     }
+    applySynergy(units);
     const kills = [];
     for (let t = 0; t < teams; t++) kills.push(0);
     return {
@@ -199,7 +220,12 @@
       shots: [],
       events: [],
       time: 0,
-      engage: 0.65,
+      engage: 1.15,
+      engageMax: 1.15,
+      pit: (opts.seed >>> 0) % 5,
+      zoom: 0,
+      cheer: 0,
+      slowmo: 0,
       hitstop: 0,
       ending: false,
       endDelay: 0,
@@ -215,7 +241,44 @@
   }
 
   function living(m, team) {
-    return m.units.filter(u => u.team === team && u.hp > 0);
+    return m.units.filter(u => u.team === team && u.hp > 0 && !u.summon);
+  }
+
+  function applySynergy(units) {
+    const traits = IL.TRAITS || {};
+    const teams = {};
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (u.summon) continue;
+      if (!teams[u.team]) teams[u.team] = [];
+      teams[u.team].push(u);
+    }
+    Object.keys(teams).forEach(function (key) {
+      const side = teams[key];
+      const counts = {};
+      side.forEach(function (u) {
+        const id = kitOf(u.cls).trait;
+        if (id) counts[id] = (counts[id] || 0) + 1;
+      });
+      function on(id) {
+        const def = traits[id];
+        return def && (counts[id] || 0) >= (def.need || 2);
+      }
+      if (on("arcane")) side.forEach(function (u) {
+        if (u.role === "cast" || u.role === "hybrid") u.atk = Math.round(u.atk * 1.08);
+      });
+      if (on("guardian")) side.forEach(function (u) {
+        u.shield += Math.round(u.maxHp * 0.08);
+      });
+      if (on("blade")) side.forEach(function (u) {
+        if (u.role === "melee" || u.role === "dash" || u.role === "tank") u.atk = Math.round(u.atk * 1.06);
+      });
+      if (on("mark")) side.forEach(function (u) {
+        if (u.role === "kite") u.range += 18;
+      });
+      if (on("wild")) side.forEach(function (u) { u.regen += 1.1; });
+      if (on("oath")) side.forEach(function (u) { u.oath = true; });
+    });
   }
 
   function nearest(m, u) {
@@ -341,17 +404,87 @@
     m.events.push(e);
   }
 
+  function cue(m, id, opt) {
+    if (!m || !id) return;
+    opt = opt || {};
+    const e = { type: "cue", id: id };
+    if (typeof opt.gain === "number") e.gain = opt.gain;
+    if (opt.layer) e.layer = opt.layer;
+    m.events.push(e);
+  }
+
+  function weaponOf(u) {
+    if (!u) return "sword";
+    return u.weaponKind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[u.cls]) || "sword";
+  }
+
+  function swingName(kind) {
+    if (kind === "axe") return "swing_heavy";
+    if (kind === "mace") return "swing_blunt";
+    if (kind === "dagger" || kind === "fist" || kind === "claw") return "swing_light";
+    return "swing_blade";
+  }
+
+  function hitName(kind) {
+    if (kind === "axe") return "hit_axe";
+    if (kind === "spear") return "hit_spear";
+    if (kind === "dagger") return "hit_dagger";
+    if (kind === "mace") return "hit_blunt";
+    if (kind === "fist" || kind === "claw") return "hit_fist";
+    if (kind === "bow" || kind === "crossbow") return "hit_arrow";
+    if (kind === "gun") return "hit_bullet";
+    if (kind === "staff" || kind === "wand" || kind === "book") return "hit_blunt";
+    return "hit_sword";
+  }
+
+  function impactId(src, opt) {
+    opt = opt || {};
+    if (opt.spell) return opt.spell;
+    if (opt.snd) return opt.snd;
+    if (opt.dot) return "hit_dagger";
+    return hitName(weaponOf(src));
+  }
+
+  function castSchool(u, kind) {
+    const cls = u && u.cls;
+    if (kind === "fireball" || kind === "cast2") return cls === "battlemage" ? "lightning" : "fire";
+    if (kind === "bolt" || kind === "arc") return "lightning";
+    if (kind === "nova") return cls === "druid" ? "nature" : "ice";
+    if (kind === "mend" || kind === "heal") return "holy";
+    if (cls === "druid") return "nature";
+    if (cls === "alchemist") return "poison";
+    if (cls === "warlock" || cls === "necromancer" || cls === "summoner") return "shadow";
+    if (cls === "healer" || cls === "paladin") return "holy";
+    if (cls === "battlemage") return "lightning";
+    if (cls === "bard") return "arcane";
+    if (kind === "frost" || kind === "cast1") return "ice";
+    return "arcane";
+  }
+
+  function queueSwing(u) {
+    const kind = weaponOf(u);
+    if (kind === "gun") u.swingCue = "";
+    else if (kind === "bow") u.swingCue = "bow_draw";
+    else u.swingCue = swingName(kind);
+  }
+
   function startAttack(u, clip, target) {
     face(u, target);
+    const use = u.rowClip || clip;
     u.state = "attack";
-    u.anim = clip;
+    u.anim = use;
     u.animT = 0;
-    u.actT = IL.clipDur(clip);
+    u.actT = Math.max(IL.clipDur(use), u.rowHold || 0);
     u.didHit = false;
     u.didSlash = false;
     u.z = 0;
     u.trail = null;
-    if (u.role !== "kite") {
+    u.motion = u.wantMotion || null;
+    u.rowClip = null;
+    u.rowHold = 0;
+    u.wantMotion = null;
+    queueSwing(u);
+    if (u.role !== "kite" && !u.forceShot) {
       u.vx = u.facing * 42;
       u.vy *= 0.2;
     }
@@ -359,7 +492,9 @@
 
   function startCast(m, u, target) {
     face(u, target);
-    const casts = u.casts.length ? u.casts : ["cast1"];
+    let casts = u.casts.length ? u.casts.slice() : ["cast1"];
+    if ((u.level || 1) < 4) casts = casts.filter(function (c) { return c !== "cast2"; });
+    if (!casts.length) casts = ["cast1"];
     const clip = casts[u.castCursor % casts.length];
     u.castCursor++;
     const hot = clip === "cast2";
@@ -369,6 +504,7 @@
     u.anim = clip;
     u.animT = 0;
     u.actT = dur;
+    u.motion = "magic";
     u.vx = 0;
     u.vy = 0;
     u.z = 0;
@@ -419,6 +555,7 @@
     u.cast = null;
     u.trail = [];
     m.stats.rolls++;
+    cue(m, "swing_light", { gain: 0.3 });
     fx(m, "smoke", u.x, u.y + 4, { size: 120, ground: true });
   }
 
@@ -442,6 +579,7 @@
     u.leapCd = 2.85;
     u.trail = null;
     m.stats.leaps++;
+    cue(m, weaponOf(u) === "axe" ? "swing_heavy" : swingName(weaponOf(u)));
   }
 
   function startBlock(m, u) {
@@ -454,6 +592,7 @@
     u.z = 0;
     u.blockCd = 2.9;
     m.stats.blocks++;
+    cue(m, "shield_up");
   }
 
   function deal(m, src, dst, raw, opt) {
@@ -469,6 +608,7 @@
     let amount = raw;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
+      if (src.buff > 0 && src.buffAtk) amount *= src.buffAtk;
       if (src.cls === "berserker" && src.hp < src.maxHp * 0.45) amount *= 1.14;
       if (src.cls === "duelist") {
         let foes = 0;
@@ -476,11 +616,12 @@
         if (foes <= 1) amount *= 1.18;
       }
       let crit = false;
-      if (src.critNext || src.riposte) { crit = true; src.critNext = false; src.riposte = false; }
+      if (src.riposte) { amount *= 1.2; src.riposte = false; }
+      if (src.critNext) { crit = true; src.critNext = false; }
       else if (src.crit && m.rng() < src.crit) crit = true;
       if (crit) {
         amount *= 1.55;
-        m.events.push({ type: "dmg", x: dst.x, y: dst.y - 56 - (dst.z || 0), n: "crit", crit: true, team: dst.team });
+        opt.crit = true;
       }
     }
     let dmg = amount - dst.def * 0.35;
@@ -493,6 +634,7 @@
       fx(m, "orbit", dst.x, dst.y - 20, { size: 100 });
       if (dmg <= 0) {
         m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: "ward", blocked: true, team: dst.team });
+        cue(m, "block_parry");
         return;
       }
     }
@@ -500,14 +642,41 @@
     dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
     if (src && src.team !== dst.team) src.dmgDealt = (src.dmgDealt || 0) + dmg;
     dst.flash = 0.14;
-    m.hitstop = blocked ? 0.03 : 0.04;
+    const big = !!opt.crit || dmg >= 26;
+    m.hitstop = blocked ? 0.02 : (big ? 0.07 : 0.035);
+    m.cheer = 1;
+    if (src && !opt.dot && src !== dst) {
+      const dx = dst.x - src.x;
+      const dy = dst.y - src.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const push = blocked ? 4 : (big ? 22 : 11);
+      dst.x += (dx / dist) * push;
+      dst.y += (dy / dist) * push * 0.35;
+      if (big && !blocked) {
+        dst.vz = 150;
+        dst.z = Math.max(dst.z || 0, 8);
+      }
+    }
     m.stats.hits++;
-    m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: dmg, blocked: blocked, team: dst.team });
+    m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40 - (dst.z || 0), n: dmg, blocked: blocked, crit: !!opt.crit, team: dst.team });
+    if (blocked) cue(m, "block_parry");
+    else if (opt.crit) cue(m, "hit_crit");
+    else if (!opt.silent) cue(m, impactId(src, opt), typeof opt.gain === "number" ? { gain: opt.gain } : null);
     fx(m, "spark", dst.x, dst.y - 22 - (dst.z || 0), { size: blocked ? 90 : 128 });
     if (blocked) fx(m, "orbit", dst.x + dst.facing * 8, dst.y - 22, { size: 130 });
     if (dst.hp <= 0) {
       dst.hp = 0;
       dst.alive = false;
+      if (dst.summon) {
+        dst.state = "dead";
+        dst.anim = "die";
+        dst.animT = 0;
+        dst.vx = 0;
+        dst.vy = 0;
+        dst.cast = null;
+        fx(m, "smoke", dst.x, dst.y - 10, { size: 120 });
+        return;
+      }
       dst.state = "dead";
       dst.anim = "die";
       dst.animT = 0;
@@ -524,6 +693,7 @@
       if (src && src.bounty) m.stats.bounty = (m.stats.bounty || 0) + src.bounty;
       m.stats.deaths++;
       m.events.push({ type: "death", id: dst.id, team: dst.team });
+      cue(m, "ko_stinger", { layer: dst.team === 0 ? "crowd_gasp" : "crowd_cheer" });
       fx(m, "boom", dst.x, dst.y - 18, { size: 168 });
       return;
     }
@@ -533,6 +703,7 @@
       dst.hp = Math.min(dst.maxHp, dst.hp + heal);
       dst.healing = (dst.healing || 0) + heal;
       m.events.push({ type: "heal", x: dst.x, y: dst.y - 48, n: heal, team: dst.team });
+      cue(m, "heal_chime");
       fx(m, "plasma", dst.x, dst.y - 16, { size: 120 });
     }
     if (src && !opt.dot && kitOf(src.cls).bleed) {
@@ -553,11 +724,14 @@
 
   function healUnit(m, src, dst, raw) {
     if (!dst || dst.hp <= 0) return;
-    const n = Math.max(1, Math.round(raw));
+    let rawN = raw;
+    if (src && src.oath) rawN *= 1.12;
+    const n = Math.max(1, Math.round(rawN));
     dst.hp = Math.min(dst.maxHp, dst.hp + n);
     if (src) src.healing = (src.healing || 0) + n;
     m.stats.heals++;
     m.events.push({ type: "heal", x: dst.x, y: dst.y - 46, n: n, team: dst.team });
+    cue(m, "heal_chime");
     fx(m, "plasma", dst.x, dst.y - 18, { size: 130 });
     if (src) m.stats.abilities++;
   }
@@ -632,14 +806,20 @@
     face(u, t);
     const aimX = t ? t.x + t.vx * 0.14 : u.x + u.facing * 240;
     const aimY = t ? t.y - 14 + t.vy * 0.14 : u.y - 14;
-    const ox = u.x + u.facing * 18;
-    const oy = u.y - 18;
+    const hand = IL.weapons && IL.weapons.worldHand ? IL.weapons.worldHand(u, 4) : null;
+    const ox = hand ? hand.x : u.x + u.facing * 18;
+    const oy = hand ? hand.y : u.y - (u.z || 0) - 18;
+    const bullet = (u.weaponKind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[u.cls])) === "gun";
     const dx = aimX - ox;
     const dy = aimY - oy;
     const d = Math.hypot(dx, dy) || 1;
     const sp = 470;
     const volley = u.volley || 1;
     u.volley = 0;
+    if (bullet) {
+      cue(m, "gunshot");
+      if (volley > 1) u.needReload = true;
+    } else cue(m, "bow_release");
     for (let k = 0; k < volley; k++) {
       const spread = (k - (volley - 1) / 2) * 0.16;
       const cs = Math.cos(spread);
@@ -654,7 +834,9 @@
         r: 8, life: 1.15, src: u.id,
         trail: [], drop: volley > 1 ? 18 : 42,
         pierce: (u.pierce || 0) + (u.pierceBoost || 0),
-        hit: {}
+        hit: {},
+        bullet: bullet,
+        snd: bullet ? "hit_bullet" : "hit_arrow"
       });
       m.stats.shots++;
     }
@@ -664,15 +846,26 @@
   }
 
   function stepAttack(m, u, dt) {
+    if (u.swingCue) {
+      const swing = u.swingCue;
+      u.swingCue = "";
+      cue(m, swing);
+    }
     u.animT += dt;
     u.actT -= dt;
     damp(u, 0.9);
     u.x += u.vx * dt;
     u.y += u.vy * dt;
-    if (u.role === "kite") tryShot(m, u);
+    if (u.role === "kite" || u.forceShot) tryShot(m, u);
     else tryMelee(m, u);
     if (u.actT <= 0) {
+      if (u.needReload) {
+        u.needReload = false;
+        cue(m, "reload");
+      }
       u.cleave = false;
+      u.forceShot = false;
+      u.motion = null;
       u.state = "idle";
       u.anim = idleClip(u);
       u.cool = u.role === "kite" ? 0.55 : 0.18;
@@ -680,13 +873,19 @@
   }
 
   function stepCast(m, u, dt) {
+    if (u.cast && !u.cast.voiced) {
+      u.cast.voiced = true;
+      cue(m, "spell_" + castSchool(u, u.cast.kind) + "_cast");
+    }
     u.animT += dt;
     u.actT -= dt;
     if (u.cast) u.cast.t += dt;
     if (u.actT > 0) return;
     const c = u.cast;
     if (c) {
-      if (c.kind === "mend") {
+      if (c.kind === "nova" || c.kind === "bolt") {
+        resolveNovaBolt(m, u, c);
+      } else if (c.kind === "mend") {
         const ally = m.units.filter(function (e) { return e.id === c.targetId; })[0];
         healUnit(m, u, ally || u, Math.round((ally || u).maxHp * 0.2 + u.atk * 0.35));
         fx(m, "plasma", c.x, c.y, { size: 150 });
@@ -696,17 +895,19 @@
         if (c.kind === "cast2") m.stats.cast2++;
         const bolt = c.kind === "cast2" && kitOf(u.cls).boltCast;
         const mul = c.kind === "cast2" ? 1.3 : (c.kind === "arc" ? 0.95 : 1.15);
+        const school = castSchool(u, c.kind);
         m.events.push({ type: "boom", x: c.x, y: c.y, r: c.r, kind: c.kind });
         fx(m, c.kind === "cast2" ? "bolt" : "boom", c.x, c.y, { size: Math.round(c.r * 2.35) });
         if (c.kind === "cast1" || c.kind === "arc") fx(m, "plasma", c.x, c.y, { size: Math.round(c.r * 1.7) });
         if (c.kind === "cast2") fx(m, "spark", c.x, c.y, { size: Math.round(c.r * 1.5) });
         if (!bolt) {
+          cue(m, "spell_" + school + "_impact");
           for (let i = 0; i < m.units.length; i++) {
             const e = m.units[i];
             if (e.team === u.team || e.hp <= 0) continue;
             const d = Math.hypot(e.x - c.x, e.y - c.y);
             if (d <= c.r + e.radius * 0.45) {
-              deal(m, u, e, Math.round(u.atk * mul));
+              deal(m, u, e, Math.round(u.atk * mul), { silent: true });
               if (c.kind === "cast1") e.slow = Math.max(e.slow, 2.1);
             }
           }
@@ -718,7 +919,8 @@
             x: u.x + u.facing * 16, y: u.y - 16,
             vx: dx / d * 420, vy: dy / d * 420,
             team: u.team, dmg: Math.round(u.atk * 1.15), r: 10, life: 1.3, src: u.id,
-            trail: [], drop: 0, pierce: (u.pierce || 0) + 1, hit: {}, bolt: true
+            trail: [], drop: 0, pierce: (u.pierce || 0) + 1, hit: {}, bolt: true,
+            spell: "spell_" + school + "_impact"
           });
           m.stats.shots++;
           fx(m, "bolt", u.x + u.facing * 20, u.y - 16, { size: 140, facing: u.facing });
@@ -726,9 +928,44 @@
       }
     }
     u.cast = null;
+    u.motion = null;
     u.state = "idle";
     u.anim = idleClip(u);
     u.cool = 1.15;
+  }
+
+  function resolveNovaBolt(m, u, c) {
+    m.stats.casts++;
+    m.stats.abilities++;
+    const mul = c.power || 1;
+    const paint = c.fx || (c.kind === "bolt" ? "bolt" : "plasma");
+    const school = castSchool(u, c.kind);
+    if (c.kind === "bolt") {
+      const dx = c.x - u.x;
+      const dy = c.y - u.y;
+      const d = Math.hypot(dx, dy) || 1;
+      m.shots.push({
+        x: u.x + u.facing * 16, y: u.y - 16,
+        vx: dx / d * 400, vy: dy / d * 400,
+        team: u.team, dmg: Math.round(u.atk * mul), r: 10, life: 1.2, src: u.id,
+        trail: [], drop: 0, pierce: u.pierce || 0, hit: {}, bolt: true,
+        spell: "spell_" + school + "_impact"
+      });
+      m.stats.shots++;
+      fx(m, paint, u.x + u.facing * 18, u.y - 16, { size: 150, facing: u.facing });
+      return;
+    }
+    fx(m, paint, c.x, c.y, { size: Math.round((c.r || 70) * 2.1) });
+    fx(m, "boom", c.x, c.y, { size: Math.round((c.r || 70) * 1.5) });
+    cue(m, "spell_" + school + "_impact");
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === u.team || e.hp <= 0) continue;
+      if (Math.hypot(e.x - c.x, e.y - c.y) <= (c.r || 70) + e.radius * 0.4) {
+        deal(m, u, e, Math.round(u.atk * mul), { silent: true });
+        if (c.slow) e.slow = Math.max(e.slow || 0, c.slow);
+      }
+    }
   }
 
   function stepDash(m, u, dt) {
@@ -879,8 +1116,19 @@
       const ny = u.y + dy * 110;
       return Math.min(nx - WORLD.left, WORLD.right - nx, ny - WORLD.top, WORLD.bottom - ny);
     }
-    if (room(ax, ay) >= room(-ax, -ay)) return { x: ax, y: ay };
-    return { x: -ax, y: -ay };
+    const forward = { x: ax, y: ay };
+    const back = { x: -ax, y: -ay };
+    const gap = room(ax, ay) - room(-ax, -ay);
+    if (gap > 8) return forward;
+    if (gap < -8) return back;
+    /* Tied for space. Prefer world +y so a mirror pair dodges the same way.
+       A purely sideways tie steps apart, left toward the left wall. */
+    function prefer(a, b) {
+      if (Math.abs(a.y - b.y) > 0.05) return a.y > b.y ? a : b;
+      const want = u.team === 0 ? -1 : 1;
+      return a.x * want >= b.x * want ? a : b;
+    }
+    return prefer(forward, back);
   }
 
   function incomingThreat(m, u) {
@@ -922,7 +1170,7 @@
         const dist = Math.hypot(dx, dy);
         const p = c.dur > 0 ? c.t / c.dur : 1;
         if (p >= 0.4 && dist <= c.r + u.radius + 12) {
-          const outX = dist < 1 ? 1 : dx / dist;
+          const outX = dist < 1 ? -(u.facing || 1) : dx / dist;
           const outY = dist < 1 ? 0 : dy / dist;
           const side = evadeDir(u, -outY, outX);
           consider(64 + p * 48 + (c.r - dist) * 0.3, outX * 0.75 + side.x * 0.65, outY * 0.75 + side.y * 0.65, "cast");
@@ -952,7 +1200,7 @@
   }
 
   function maybeRoll(m, u, dist) {
-    if (u.rollCd > 0 || u.iframe > 0) {
+    if (u.summon || u.rollCd > 0 || u.iframe > 0) {
       return false;
     }
     const th = incomingThreat(m, u);
@@ -1012,105 +1260,350 @@
     m.stats.abilities++;
     fx(m, "dash", u.x, u.y - 12, { facing: u.facing, size: 130 });
     fx(m, "smoke", u.x, u.y + 4, { size: 110, ground: true });
+    cue(m, "spell_shadow_cast");
+    cue(m, "summon");
   }
 
   function startCharge(m, u, target) {
     u.dashDmg = 1.7;
     startDash(m, u, target);
+    cue(m, "swing_blade");
     arm(u, kitOf(u.cls).ability.cd || 7);
     m.stats.abilities++;
     fx(m, "slash", u.x + u.facing * 20, u.y - 16, { facing: u.facing, size: 150, team: u.team });
   }
 
-  function tryClassAbility(m, u, t, dist) {
+  function spend(u, ab) {
+    if (!u.cds) u.cds = {};
+    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1);
+    arm(u, ab.cd || 6.5);
+  }
+
+  function readyAb(u, ab) {
+    if (!ab || !ab.kind || !ab.cd) return false;
+    const left = u.cds && u.cds[ab.id];
+    return !(left > 0);
+  }
+
+  function unlockedAbs(u) {
+    if (u.summon) return [];
     const kit = kitOf(u.cls);
-    const ab = kit.ability;
-    if (!ab || !ab.kind || u.abilityCd > 0) return false;
+    const by = {};
+    (kit.abilities || []).forEach(function (ab) { if (ab && ab.id) by[ab.id] = ab; });
+    const ids = u.loadout && u.loadout.length
+      ? u.loadout
+      : (kit.abilities || []).filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; }).map(function (ab) { return ab.id; });
+    const learned = u.learned || [];
+    const lv = u.level || 1;
+    return ids.map(function (id) { return by[id]; }).filter(function (ab) {
+      if (!ab) return false;
+      if (learned.indexOf(ab.id) >= 0) return true;
+      return (ab.unlock || 1) <= lv;
+    });
+  }
+
+  function missileMotion(u) {
+    const sheet = u.parts && u.parts.sheet;
+    if (IL.sheetHasGun && IL.sheetHasGun(sheet)) return "gun";
+    if (IL.sheetHasBow && IL.sheetHasBow(sheet)) return "bow";
+    return "atk1";
+  }
+
+  function armRow(u, ab) {
+    const spec = (IL.ABILITY_ROWS && IL.ABILITY_ROWS[ab.row]) || { clip: "atk2", hold: 0.4 };
+    u.rowClip = spec.clip;
+    u.rowHold = spec.hold + ((IL.hashStr(ab.id) % 5) * 0.04);
+    u.forceShot = !!spec.shot;
+    u.wantMotion = spec.shot ? missileMotion(u) : (ab.row === "spell" ? "magic" : (spec.motion || null));
+  }
+
+  function pose(u, ab) {
+    const spec = (IL.ABILITY_ROWS && IL.ABILITY_ROWS[ab.row]) || { clip: "atk2", hold: 0.4 };
+    u.state = "attack";
+    u.anim = spec.clip;
+    u.animT = 0;
+    u.actT = Math.max(IL.clipDur(spec.clip), spec.hold + ((IL.hashStr(ab.id) % 5) * 0.04));
+    u.didHit = true;
+    u.didSlash = true;
+    u.forceShot = false;
+    u.motion = spec.shot ? missileMotion(u) : (ab.row === "spell" ? "magic" : (spec.motion || null));
+    u.vx = 0;
+    u.vy = 0;
+  }
+
+  function posed(u, ab) {
+    pose(u, ab);
+    return "go";
+  }
+
+  function summonPet(m, u, ab) {
+    let live = 0;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.summon && e.summoner === u.id && e.hp > 0) live++;
+    }
+    if (live >= 1) return false;
+    const pet = makeUnit({
+      id: u.id + ":pet:" + Math.floor(m.time * 10),
+      name: ab.pet || "Familiar",
+      cls: "warrior",
+      level: 1,
+      parts: u.parts,
+      personality: "bold",
+      tactic: "strike",
+      summon: true
+    }, u.team, 0, 1, m.teams);
+    pet.summon = true;
+    pet.summoner = u.id;
+    pet.sprite = u.sprite;
+    pet.life = ab.life || 6;
+    pet.hp = Math.max(18, Math.round(u.maxHp * (ab.petHp || 0.26)));
+    pet.maxHp = pet.hp;
+    pet.atk = Math.max(6, Math.round(u.atk * (ab.petAtk || 0.4)));
+    pet.range = 36;
+    pet.role = "melee";
+    pet.radius = 12;
+    pet.leaps = false;
+    pet.x = u.x + u.facing * 40;
+    pet.y = u.y + 18;
+    pet.cds = {};
+    pet.abilities = null;
+    m.units.push(pet);
+    cue(m, "summon");
+    fx(m, ab.fx || "smoke", pet.x, pet.y - 12, { size: 140 });
+    return true;
+  }
+
+  function throwVial(m, u, t, ab) {
+    const ox = u.x + u.facing * 16;
+    const oy = u.y - 16;
+    const dx = t.x - ox;
+    const dy = (t.y - 14) - oy;
+    const d = Math.hypot(dx, dy) || 1;
+    const flask = weaponOf(u) !== "gun";
+    if (flask) cue(m, "spell_poison_cast");
+    else cue(m, "gunshot");
+    m.shots.push({
+      x: ox, y: oy,
+      vx: dx / d * 420, vy: dy / d * 420,
+      team: u.team, dmg: Math.round(u.atk * (ab.power || 0.85)),
+      r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0, hit: {},
+      spell: flask ? "spell_poison_impact" : null,
+      snd: flask ? null : "hit_bullet"
+    });
+    m.stats.shots++;
+    fx(m, ab.fx || "boom", ox, oy, { size: 90, facing: u.facing });
+  }
+
+  function fireOne(m, u, t, dist, ab) {
     const reach = u.range + (t ? t.radius : 0);
-    if (ab.kind === "cleave" && dist <= reach + 6 && u.cool <= 0) {
+    const paint = ab.fx || "spark";
+    if (ab.kind === "cleave" && t && dist <= reach + 6 && u.cool <= 0) {
       u.cleave = true;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
+      armRow(u, ab);
       startAttack(u, "atk2", t);
-      return true;
+      fx(m, paint, u.x + u.facing * 20, u.y - 16, { facing: u.facing, size: 150, team: u.team });
+      return "go";
     }
-    if (ab.kind === "lunge" && dist <= reach + 24 && u.cool <= 0) {
+    if (ab.kind === "lunge" && t && dist <= reach + 28 && u.cool <= 0) {
       u.critNext = true;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
+      armRow(u, ab);
       startAttack(u, "atk3", t);
-      fx(m, "slash", u.x + u.facing * 24, u.y - 20, { facing: u.facing, size: 160, team: u.team });
-      return true;
+      fx(m, paint, u.x + u.facing * 24, u.y - 20, { facing: u.facing, size: 160, team: u.team });
+      return "go";
     }
-    if ((ab.kind === "multishot" || ab.kind === "pierce") && dist <= u.range + 8 && dist >= 72 && u.cool <= 0) {
+    if ((ab.kind === "multishot" || ab.kind === "pierce") && t && dist <= u.range + 8 && dist >= 70 && u.cool <= 0) {
       u.volley = ab.kind === "multishot" ? 3 : 1;
       if (ab.kind === "pierce") u.pierceBoost = 1;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
+      armRow(u, ab);
       startAttack(u, "atk1", t);
-      return true;
+      return "go";
     }
     if (ab.kind === "taunt" && dist < 220) {
-      u.taunt = 3.3;
-      arm(u, ab.cd);
+      u.taunt = 3.2;
+      spend(u, ab);
       m.stats.abilities++;
-      fx(m, "orbit", u.x, u.y - 18, { size: 160 });
-      return false;
+      cue(m, "shield_up");
+      fx(m, paint, u.x, u.y - 18, { size: 160 });
+      return posed(u, ab);
     }
     if (ab.kind === "zone" && dist < 120) {
       startBlock(m, u);
       u.guardZone = true;
       u.actT = 0.82;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
-      fx(m, "orbit", u.x, u.y - 10, { size: 180, ground: true });
+      fx(m, paint, u.x, u.y - 10, { size: 180, ground: true });
       for (let i = 0; i < m.units.length; i++) {
         const e = m.units[i];
         if (e.team === u.team || e.hp <= 0) continue;
         if (Math.hypot(e.x - u.x, e.y - u.y) <= 78) deal(m, u, e, Math.round(u.atk * 0.35));
       }
-      return true;
+      return "go";
     }
     if (ab.kind === "rage" && u.hp < u.maxHp * 0.72) {
-      u.rage = 4.2;
-      arm(u, ab.cd);
+      u.rage = 4;
+      spend(u, ab);
       m.stats.abilities++;
-      fx(m, "spark", u.x, u.y - 20, { size: 150 });
-      return false;
+      fx(m, paint, u.x, u.y - 20, { size: 150 });
+      return posed(u, ab);
     }
-    if (ab.kind === "mend") {
+    if (ab.kind === "mend" || ab.kind === "heal") {
       const ally = lowestAlly(m, u);
-      if (ally) {
-        startMend(m, u, ally);
-        return true;
+      if (!ally) return "skip";
+      if (ab.kind === "heal") {
+        healUnit(m, u, ally, Math.round(ally.maxHp * (ab.power || 0.16) + u.atk * 0.25));
+        fx(m, paint, ally.x, ally.y - 16, { size: 140 });
+        spend(u, ab);
+        return posed(u, ab);
       }
+      startMend(m, u, ally, ab.cd);
+      spend(u, ab);
+      return "go";
     }
-    if (ab.kind === "shadowstep" && dist > 84 && dist < 460) {
+    if (ab.kind === "shadowstep" && t && dist > 80 && dist < 460) {
       startShadow(m, u, t);
-      return true;
+      spend(u, ab);
+      return "go";
     }
-    if (ab.kind === "charge" && dist > 64 && dist < 360) {
+    if (ab.kind === "charge" && t && dist > 60 && dist < 360) {
       startCharge(m, u, t);
-      return true;
+      spend(u, ab);
+      return "go";
     }
-    if (ab.kind === "skirmish" && dist > 90 && dist < 280) {
+    if (ab.kind === "skirmish" && t && dist > 90 && dist < 280) {
       u.dashDmg = 0.45;
       startDash(m, u, t);
       u.actT = 0.24;
-      arm(u, ab.cd);
+      spend(u, ab);
       m.stats.abilities++;
-      return true;
+      fx(m, paint, u.x, u.y - 12, { facing: u.facing, size: 120 });
+      return "go";
     }
-    if (ab.kind === "arc" && dist < u.range + 90 && u.cool <= 0) {
+    if (ab.kind === "arc" && t && dist < u.range + 90 && u.cool <= 0) {
       startCast(m, u, t);
       if (u.cast) u.cast.kind = "arc";
-      arm(u, ab.cd);
-      return true;
+      spend(u, ab);
+      return "go";
+    }
+    if ((ab.kind === "nova" || ab.kind === "bolt") && t && dist < (ab.reach || u.range + 80)) {
+      startCast(m, u, t);
+      if (u.cast) {
+        u.cast.kind = ab.kind;
+        u.cast.r = ab.radius || (ab.kind === "bolt" ? 24 : 68);
+        u.cast.power = ab.power || 0.9;
+        u.cast.fx = paint;
+        u.cast.slow = ab.slow || 0;
+        u.actT = 0.55 + ((IL.hashStr(ab.id) % 5) * 0.04);
+        u.motion = "magic";
+      }
+      spend(u, ab);
+      return "go";
+    }
+    if (ab.kind === "dot" && t && dist <= (ab.reach || reach + 8)) {
+      t.bleed = { t: ab.dot || 3.2, acc: 0, dmg: Math.max(2, Math.round(u.atk * (ab.power || 0.25))), src: u.id };
+      m.stats.bleeds++;
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 16, { size: 120 });
+      deal(m, u, t, Math.round(u.atk * 0.35));
+      return posed(u, ab);
+    }
+    if (ab.kind === "shield") {
+      let ally = u;
+      if (!ab.self) ally = lowestAlly(m, u) || u;
+      ally.shield += Math.round(ally.maxHp * (ab.power || 0.1));
+      spend(u, ab);
+      m.stats.abilities++;
+      cue(m, "shield_up");
+      fx(m, paint, ally.x, ally.y - 18, { size: 140 });
+      return posed(u, ab);
+    }
+    if (ab.kind === "buff") {
+      const targets = ab.team ? m.units.filter(function (e) { return e.team === u.team && e.hp > 0 && !e.summon; }) : [u];
+      for (let i = 0; i < targets.length; i++) {
+        targets[i].buff = Math.max(targets[i].buff || 0, ab.time || 3.5);
+        targets[i].buffAtk = Math.max(targets[i].buffAtk || 1, 1 + (ab.power || 0.12));
+      }
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, u.x, u.y - 20, { size: 150 });
+      return posed(u, ab);
+    }
+    if (ab.kind === "debuff" && t && dist <= (ab.reach || 220)) {
+      t.slow = Math.max(t.slow || 0, ab.time || 2.2);
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 16, { size: 130 });
+      return posed(u, ab);
+    }
+    if (ab.kind === "stun" && t && dist <= (ab.reach || reach + 12)) {
+      t.stun = Math.max(t.stun || 0, ab.stun || 0.55);
+      t.state = "hurt";
+      t.anim = "hurt";
+      t.animT = 0;
+      t.actT = t.stun;
+      t.vx = 0;
+      t.vy = 0;
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 18, { size: 140 });
+      deal(m, u, t, Math.round(u.atk * (ab.power || 0.4)));
+      return posed(u, ab);
+    }
+    if (ab.kind === "knock" && t && dist <= (ab.reach || reach + 16)) {
+      const dx = t.x - u.x;
+      const dy = t.y - u.y;
+      const d = Math.hypot(dx, dy) || 1;
+      t.vx = dx / d * (ab.force || 240);
+      t.vy = dy / d * (ab.force || 240);
+      spend(u, ab);
+      m.stats.abilities++;
+      fx(m, paint, t.x, t.y - 14, { facing: u.facing, size: 140, team: u.team });
+      deal(m, u, t, Math.round(u.atk * (ab.power || 0.35)));
+      return posed(u, ab);
+    }
+    if (ab.kind === "summon") {
+      if (!summonPet(m, u, ab)) return "skip";
+      spend(u, ab);
+      m.stats.abilities++;
+      return posed(u, ab);
+    }
+    if (ab.kind === "vial" && t && dist <= (ab.reach || 220) && dist >= 48) {
+      throwVial(m, u, t, ab);
+      spend(u, ab);
+      m.stats.abilities++;
+      return posed(u, ab);
+    }
+    return "skip";
+  }
+
+  function tryClassAbility(m, u, t, dist) {
+    if (u.summon) return false;
+    const list = unlockedAbs(u);
+    for (let i = list.length - 1; i >= 0; i--) {
+      const ab = list[i];
+      if (!readyAb(u, ab)) continue;
+      const result = fireOne(m, u, t, dist, ab);
+      if (result === "skip") continue;
+      return result === "go";
     }
     return false;
   }
 
   function think(m, u, dt) {
+    if (u.stun > 0) {
+      damp(u, 0.8);
+      u.x += u.vx * dt;
+      u.y += u.vy * dt;
+      return;
+    }
     const spd = moveSpeed(u);
     const t = nearest(m, u);
     if (!t) {
@@ -1145,7 +1638,8 @@
         const dx = t.x - u.x;
         const dy = t.y - u.y;
         const d = Math.hypot(dx, dy) || 1;
-        const side = ((u.id.charCodeAt(u.id.length - 1) + Math.floor(m.time * 0.7)) % 2 === 0) ? 1 : -1;
+        const wobble = (Math.floor(m.time * 0.7) % 2 === 0) ? 1 : -1;
+        const side = (u.team === 0 ? 1 : -1) * wobble;
         steer(u, u.x + (-dy / d) * side * 120, u.y + (dx / d) * side * 120, spd * 0.72, dt);
       }
       if (dist <= u.range + 12 && dist >= 78 && u.cool <= 0) {
@@ -1191,14 +1685,27 @@
       }
       steer(u, t.x, t.y, spd, dt);
     } else if (u.role === "support") {
-      const ally = lowestAlly(m, u);
-      const anchor = ally || u;
-      if (dist <= reach + 8 && u.cool <= 0 && (!ally || ally === u)) {
+      let company = false;
+      for (let i = 0; i < m.units.length; i++) {
+        const a = m.units[i];
+        if (a !== u && a.team === u.team && a.hp > 0 && !a.summon) company = true;
+      }
+      const ally = company ? lowestAlly(m, u) : null;
+      if (!company) {
+        if (dist <= reach && u.cool <= 0) {
+          startAttack(u, "atk1", t);
+          return;
+        }
+        steer(u, t.x, t.y, spd, dt);
+      } else if (dist <= reach + 8 && u.cool <= 0 && !ally) {
         startAttack(u, "atk1", t);
         return;
+      } else if (dist < 78) {
+        steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
+      } else {
+        const anchor = ally || u;
+        steer(u, anchor.x + (u.x >= t.x ? 36 : -36), anchor.y, spd * 0.9, dt);
       }
-      if (dist < 78) steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
-      else steer(u, anchor.x + (u.x >= t.x ? 36 : -36), anchor.y, spd * 0.9, dt);
     } else if (u.role === "hybrid") {
       if (dist <= reach && u.cool <= 0) {
         const clip = u.attacks[u.atkCursor % u.attacks.length];
@@ -1227,7 +1734,11 @@
         let dist = Math.hypot(dx, dy);
         const min = a.radius + b.radius;
         if (dist >= min) continue;
-        if (dist < 0.001) { dx = 1; dy = 0; dist = 1; }
+        if (dist < 0.001) {
+          dx = b.x === a.x ? ((b.team - a.team) || 1) : (b.x > a.x ? 1 : -1);
+          dy = 0;
+          dist = 1;
+        }
         const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.45;
         const push = (min - dist) * slip;
         const nx = dx / dist;
@@ -1271,7 +1782,7 @@
         if (p.hit[e.id]) continue;
         if (Math.hypot(e.x - p.x, bodyY - p.y) <= e.radius + p.r) {
           const src = m.units.filter(function (u) { return u.id === p.src; })[0] || null;
-          deal(m, src, e, p.dmg);
+          deal(m, src, e, p.dmg, { snd: p.snd, spell: p.spell });
           p.hit[e.id] = true;
           if (p.bolt) fx(m, "bolt", e.x, e.y - 16, { size: 120 });
           if (p.pierce > 0) p.pierce -= 1;
@@ -1284,7 +1795,7 @@
   }
 
   function teamScore(m, team) {
-    return m.units.filter(function (u) { return u.team === team; })
+    return m.units.filter(function (u) { return u.team === team && !u.summon; })
       .reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
   }
 
@@ -1306,6 +1817,11 @@
   }
 
   function stepBody(m, u, dt) {
+    if (u.state !== "leap" && ((u.z || 0) > 0 || u.vz)) {
+      u.vz = (u.vz || 0) - 720 * dt;
+      u.z = Math.max(0, (u.z || 0) + u.vz * dt);
+      if (u.z === 0) u.vz = 0;
+    }
     if (u.state === "attack") stepAttack(m, u, dt);
     else if (u.state === "cast") stepCast(m, u, dt);
     else if (u.state === "dash") stepDash(m, u, dt);
@@ -1323,23 +1839,51 @@
       m.hitstop -= dt;
       return;
     }
+    if (m.slowmo > 0) {
+      m.slowmo -= dt;
+      dt *= 0.38;
+    }
     m.time += dt;
+    if (m.zoom > 0) m.zoom = Math.max(0, m.zoom - dt * 1.4);
+    if (m.cheer > 0) m.cheer = Math.max(0, m.cheer - dt * 0.8);
+    if ((m.stats.abilities || 0) > (m.abSeen || 0)) {
+      m.abSeen = m.stats.abilities;
+      m.zoom = 1;
+      m.cheer = 1;
+    }
 
     if (m.engage > 0) {
+      const span = m.engageMax || 1.15;
+      const k = m.engage / span;
       m.engage -= dt;
       for (let i = 0; i < m.units.length; i++) {
         const u = m.units[i];
-        u.anim = idleClip(u);
+        if (u.homeX == null) { u.homeX = u.x; u.homeY = u.y; }
+        const side = u.facing > 0 ? -1 : 1;
+        u.x = u.homeX + side * 240 * Math.max(0, k);
+        u.y = u.homeY;
+        u.anim = k > 0.12 ? "run" : idleClip(u);
         u.animT += dt;
       }
       return;
     }
 
+    /* Keep each pet with its squad. Pets pushed at the end of the list
+       otherwise always swing after both fighters, and the one summoned
+       first lands the last hit on every mirror. */
+    m.units.sort(function (a, b) {
+      if (a.team !== b.team) return a.team - b.team;
+      if (!!a.summon !== !!b.summon) return a.summon ? 1 : -1;
+      return 0;
+    });
     const aliveAtStart = m.units.map(function (u) { return u.hp > 0; });
     const order = [];
     for (let i = 0; i < m.units.length; i++) order.push(i);
-    /* Alternate which squad steps first so rolls don't always favor one side. */
-    if ((m.time * 60 | 0) % 2 === 1) order.reverse();
+    /* Alternate which squad steps first. Seed parity flips the opening
+       frame so the right side does not always land the first blow.
+       stepFlip overrides that bit when a mirror sim wants the same rng. */
+    const flipBit = m.stepFlip == null ? (m.seed & 1) : (m.stepFlip & 1);
+    if (((m.time * 60 | 0) + flipBit) % 2 === 1) order.reverse();
     for (let n = 0; n < order.length; n++) {
       const i = order[n];
       const u = m.units[i];
@@ -1352,6 +1896,23 @@
       u.iframe = Math.max(0, u.iframe - dt);
       u.flash = Math.max(0, u.flash - dt);
       u.abilityCd = Math.max(0, u.abilityCd - dt);
+      u.stun = Math.max(0, (u.stun || 0) - dt);
+      if (u.buff > 0) u.buff = Math.max(0, u.buff - dt);
+      else u.buffAtk = 1;
+      if (u.cds) {
+        const keys = Object.keys(u.cds);
+        for (let k = 0; k < keys.length; k++) u.cds[keys[k]] = Math.max(0, u.cds[keys[k]] - dt);
+      }
+      if (u.summon && u.hp > 0) {
+        u.life = (u.life || 0) - dt;
+        if (u.life <= 0) {
+          u.hp = 0;
+          u.alive = false;
+          u.state = "dead";
+          u.anim = "die";
+          u.animT = 0;
+        }
+      }
       u.taunt = Math.max(0, u.taunt - dt);
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);
@@ -1391,7 +1952,11 @@
     for (let t = 0; t < teamCount; t++) if (living(m, t).length) aliveTeams++;
     const cap = teamCount > 2 ? 34 : 46;
     if (aliveTeams <= 1 || m.time > cap) {
-      if (!m.ending) { m.ending = true; m.endDelay = 0.85; }
+      if (!m.ending) {
+        m.ending = true;
+        m.endDelay = aliveTeams <= 1 ? 1.25 : 0.85;
+        if (aliveTeams <= 1) m.slowmo = Math.max(m.slowmo || 0, 1.05);
+      }
       m.endDelay -= dt;
       if (m.endDelay <= 0) {
         m.over = true;

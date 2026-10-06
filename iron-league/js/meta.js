@@ -86,6 +86,12 @@
     fighter.xp = next;
     fighter.level = g.level;
     fighter.pendingPicks = (fighter.pendingPicks || 0) + g.picks;
+    const before = IL.xpLevel(prev);
+    let moves = 0;
+    for (let lv = before + 1; lv <= g.level; lv++) {
+      if (lv === 4 || lv === 7 || lv === 10) moves++;
+    }
+    if (moves) fighter.pendingMoves = (fighter.pendingMoves || 0) + moves;
     if (!fighter.boosts) fighter.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
     return g.picks;
   }
@@ -111,7 +117,7 @@
       cup: null,
       market: null,
       history: [],
-      settings: { speed: 1, shake: true, sound: 80, music: 60 }
+      settings: { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 }
     };
   }
 
@@ -127,12 +133,13 @@
     if (!Array.isArray(data.history)) data.history = [];
     data.history = data.history.slice(0, 10);
     if (!data.settings || typeof data.settings !== "object") {
-      data.settings = { speed: 1, shake: true, sound: 80, music: 60 };
+      data.settings = { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
     } else {
       if (data.settings.speed !== 1 && data.settings.speed !== 2 && data.settings.speed !== 3) data.settings.speed = 1;
       if (typeof data.settings.shake !== "boolean") data.settings.shake = true;
       if (typeof data.settings.sound !== "number") data.settings.sound = 80;
       if (typeof data.settings.music !== "number") data.settings.music = 60;
+      if (typeof data.settings.crowd !== "number") data.settings.crowd = 70;
     }
     if (!data.achieved || typeof data.achieved !== "object") data.achieved = {};
     ["bouts", "flawless", "cupsWon", "cupsEntered", "trainsDone", "salvaged", "chaosWins", "hires", "tonicsUsed", "seasonTitles", "unbeaten", "ceremonyPaid"].forEach(function (key) {
@@ -166,7 +173,17 @@
         if (typeof f.season.kos !== "number") f.season.kos = 0;
       }
       if (!Array.isArray(f.perks)) f.perks = [];
+      if (typeof f.pendingMoves !== "number") f.pendingMoves = 0;
+      if (IL.ensureMoves) IL.ensureMoves(f);
     });
+    function stampMoves(f) {
+      if (f && IL.ensureMoves) IL.ensureMoves(f);
+    }
+    (data.market || []).forEach(function (row) { if (row) stampMoves(row.fighter); });
+    (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(stampMoves); });
+    if (data.cup && data.cup.slots) {
+      data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(stampMoves); });
+    }
     normalizeLineup(data);
     adoptSheets(data);
     if (IL.normalizeGear) IL.normalizeGear(data);
@@ -266,7 +283,7 @@
   function makeRivalSide(rng, name, n) {
     const fighters = [];
     for (let i = 0; i < n; i++) {
-      const fighter = IL.randomFighter(rng);
+      const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
       if (IL.dressRival) IL.dressRival(fighter, rng);
       fighters.push(fighter);
     }

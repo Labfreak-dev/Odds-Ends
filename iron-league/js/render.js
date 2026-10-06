@@ -8,6 +8,14 @@
      and cast blasts add 4 (cap 8) in game.js. 1 is that original kick.
      0.1 is a small nudge, not a shake. */
   const SHAKE_SCALE = 0.1;
+  const PITS = [
+    { id: "sand", name: "Sand colosseum", sky: ["#3a2a1c", "#6a4a30"], floor: ["#8a6844", "#c4a574", "#e6d2a8"], crowd: "#2a1c14", torch: "#e07a32", mote: "rgba(232,196,150,0.45)" },
+    { id: "frost", name: "Frozen ring", sky: ["#142433", "#3a5566"], floor: ["#8aa4b4", "#d5e6ee", "#f4fbff"], crowd: "#1a2830", torch: "#9fd0e8", mote: "rgba(220,240,255,0.55)" },
+    { id: "lava", name: "Lava forge", sky: ["#2a100c", "#6a2414"], floor: ["#4a1c14", "#8a3a22", "#c45a32"], crowd: "#1a0c0a", torch: "#ff6a2a", mote: "rgba(255,140,60,0.5)" },
+    { id: "night", name: "Night market", sky: ["#100e18", "#2a2440"], floor: ["#241c30", "#3a3450", "#5a4e68"], crowd: "#0c0a12", torch: "#e0b07a", mote: "rgba(224,176,122,0.4)" },
+    { id: "temple", name: "Ruined temple", sky: ["#161c14", "#2c3824"], floor: ["#4a4a3c", "#7a7864", "#b2aa90"], crowd: "#121610", torch: "#c6d48a", mote: "rgba(198,212,138,0.4)" }
+  ];
+  IL.PITS = PITS;
 
   function fitArena(canvas) {
     const parent = canvas.parentElement || canvas;
@@ -81,6 +89,8 @@
     const minW = narrow ? 560 : 1180;
     const maxW = narrow ? 860 : W.w;
     want = Math.max(minW, Math.min(maxW, want));
+    const zoom = match.zoom || 0;
+    if (zoom > 0) want *= 1 - 0.22 * Math.min(1, zoom);
     cam.x += (cx - cam.x) * 0.08;
     cam.y += (cy - cam.y) * 0.08;
     cam.viewW += (want - cam.viewW) * 0.05;
@@ -118,9 +128,11 @@
     ctx.fill();
   }
 
-  function drawPit(ctx, fx) {
+  function drawPit(ctx, fx, match) {
     const W = IL.WORLD;
     const t = fx.t || 0;
+    const pit = PITS[(match && match.pit) || 0] || PITS[0];
+    const cheer = (match && match.cheer) || 0;
     const cx = (W.left + W.right) / 2;
     const cy = (W.top + W.bottom) / 2;
     const parallaxX = ((fx.cam ? fx.cam.x : cx) - W.w / 2) * 0.06;
@@ -130,21 +142,33 @@
     ctx.fillRect(-80, -80, W.w + 160, W.h + 160);
 
     const sky = ctx.createLinearGradient(0, 0, 0, cy);
-    sky.addColorStop(0, "#1c1814");
-    sky.addColorStop(1, "#2a2118");
+    sky.addColorStop(0, pit.sky[0]);
+    sky.addColorStop(1, pit.sky[1]);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W.w, cy + 40);
 
-    ctx.fillStyle = "#241812";
+    ctx.fillStyle = pit.crowd;
+    const crowdY = W.top + 18 - parallaxY * 0.4;
+    for (let i = 0; i < 22; i++) {
+      const bounce = Math.sin(t * 5 + i) * (2 + cheer * 7);
+      const hx = W.left + 40 + i * ((W.right - W.left - 80) / 21) - parallaxX * 0.3;
+      const hh = 16 + (i % 3) * 6 + bounce;
+      ctx.fillRect(hx, crowdY - hh, 10, hh);
+      ctx.beginPath();
+      ctx.arc(hx + 5, crowdY - hh - 4, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = pit.floor[0];
     ctx.beginPath();
     ctx.ellipse(cx - parallaxX, cy - parallaxY, (W.right - W.left) * 0.78, (W.bottom - W.top) * 0.78, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#3a2a22";
+    ctx.fillStyle = pit.floor[1];
     ctx.beginPath();
     ctx.ellipse(cx, cy, (W.right - W.left) * 0.62, (W.bottom - W.top) * 0.58, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#4e382c";
+    ctx.fillStyle = pit.floor[2];
     ctx.beginPath();
     ctx.ellipse(cx, cy - 8, (W.right - W.left) * 0.48, (W.bottom - W.top) * 0.42, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -170,6 +194,12 @@
     brazier(ctx, W.right - 70, W.bottom - 16, t + 1.7);
     brazier(ctx, cx - 460, cy - 20, t + 0.8);
     brazier(ctx, cx + 460, cy - 20, t + 2.1);
+    ctx.fillStyle = pit.mote;
+    for (let i = 0; i < 16; i++) {
+      const px = cx + Math.sin(t * 0.7 + i * 1.7) * (180 + (i % 5) * 40);
+      const py = cy + Math.cos(t * 0.9 + i) * (70 + (i % 4) * 18) - ((t * 24 + i * 30) % 80);
+      ctx.fillRect(px, py, 3, 3);
+    }
   }
 
   function teamColor(team, hot) {
@@ -308,6 +338,43 @@
       ctx.lineWidth = 3;
       ctx.stroke();
     }
+    if (p.bullet) {
+      if (p.life > 1.06) {
+        const ang = Math.atan2(p.vy, p.vx);
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(ang);
+        ctx.fillStyle = "rgba(255, 236, 180, 0.9)";
+        ctx.fillRect(-16, -3, 14, 6);
+        ctx.fillStyle = "#fffef8";
+        ctx.fillRect(-8, -2, 6, 4);
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = "#f6f1e6";
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#2c261f";
+      ctx.beginPath();
+      ctx.arc(1.2, 0, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    const arrow = IL.weapons && IL.weapons.sprite ? IL.weapons.sprite("arrow") : null;
+    if (arrow) {
+      const ang = Math.atan2(p.vy, p.vx);
+      const s = 3;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(ang + Math.PI);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(arrow, Math.round(-5 * s), Math.round(-2 * s), 11 * s, 4 * s);
+      ctx.restore();
+      return;
+    }
     const ang = Math.atan2(p.vy, p.vx);
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -336,6 +403,23 @@
     if (IL.fx) IL.fx.drawLoop(ctx, "shot", p.x, p.y, 58, time, { alpha: 0.95, rot: ang });
   }
 
+  function drawStatus(ctx, u, by) {
+    const marks = [];
+    if (u.bleed && u.bleed.t > 0) marks.push("#7dce6a");
+    if ((u.stun || 0) > 0) marks.push("#f2d15a");
+    if ((u.shield || 0) > 0) marks.push("#8eb6e8");
+    if ((u.buff || 0) > 0) marks.push("#f4ecdf");
+    if ((u.rage || 0) > 0) marks.push("#e07048");
+    if (!marks.length) return;
+    const x0 = u.x - (marks.length - 1) * 6;
+    for (let i = 0; i < marks.length; i++) {
+      ctx.fillStyle = marks[i];
+      ctx.beginPath();
+      ctx.arc(x0 + i * 12, by - 16, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function drawArena(ctx, match, fx) {
     const canvas = ctx.canvas;
     const view = fitArena(canvas);
@@ -352,7 +436,7 @@
     ctx.translate(view.dpr * (view.cssW / 2 - cam.x * scale), view.dpr * (view.cssH / 2 - cam.y * scale));
     ctx.scale(view.dpr * scale, view.dpr * scale);
 
-    drawPit(ctx, fx);
+    drawPit(ctx, fx, match);
 
     for (let i = 0; i < match.units.length; i++) drawCast(ctx, match.units[i], fx);
     for (let i = 0; i < match.units.length; i++) {
@@ -397,12 +481,13 @@
       const frame = IL.frameIndex(u.anim || "idle", u.animT || 0);
       const gy = u.y - z;
       if (u.sprite) {
-        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls);
+        const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
+        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
         if (u.flash > 0 && u.hp > 0) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls);
+          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
           ctx.restore();
         }
       } else {
@@ -426,6 +511,7 @@
         ctx.fillText(u.name, u.x + 1, by - 4);
         ctx.fillStyle = "#f4ecdf";
         ctx.fillText(u.name, u.x, by - 5);
+        drawStatus(ctx, u, by);
       }
     }
 
@@ -440,8 +526,10 @@
         const a = Math.max(0, 1 - n.t / n.life);
         ctx.globalAlpha = a;
         ctx.fillStyle = n.heal ? "#b7d39a" : n.crit ? "#ffd27a" : n.dodge ? "#e6d4ff" : n.blocked ? "#d7d2ea" : "#fff6e8";
-        const label = n.heal ? ("+" + n.n) : n.crit ? "crit" : n.dodge ? "slip" : n.blocked ? n.n + " guard" : String(n.n);
+        const label = n.heal ? ("+" + n.n) : n.crit ? String(n.n) : n.dodge ? "slip" : n.blocked ? n.n + " guard" : String(n.n);
+        if (n.crit) ctx.font = "bold " + Math.round(26 * ui) + "px Palatino, Georgia, serif";
         ctx.fillText(label, n.x, n.y - n.t * 42);
+        if (n.crit) ctx.font = "bold " + Math.round(18 * ui) + "px Palatino, Georgia, serif";
       }
     }
     ctx.globalAlpha = 1;
@@ -453,6 +541,10 @@
     vig.addColorStop(1, "rgba(0,0,0,0.42)");
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, view.cssW, view.cssH);
+    if ((match.zoom || 0) > 0.15) {
+      ctx.fillStyle = "rgba(6,4,8," + (0.45 * Math.min(1, match.zoom)) + ")";
+      ctx.fillRect(0, 0, view.cssW, view.cssH);
+    }
 
     if (match.engage > 0) {
       ctx.fillStyle = "rgba(20,16,12,0.4)";
@@ -465,7 +557,8 @@
       ctx.fillText(title, view.cssW / 2, view.cssH * 0.38 + 36);
       ctx.font = "14px Palatino, Georgia, serif";
       ctx.fillStyle = "#e0b07a";
-      ctx.fillText(multi ? "Chaos pit. Last club standing." : "They walk in on their own.", view.cssW / 2, view.cssH * 0.38 + 58);
+      const pit = PITS[(match.pit) || 0] || PITS[0];
+      ctx.fillText(multi ? "Chaos pit. Last club standing." : pit.name, view.cssW / 2, view.cssH * 0.38 + 58);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }

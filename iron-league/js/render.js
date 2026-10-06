@@ -1117,8 +1117,6 @@
     const labels = [];
     const bodies = [];
     const labelCeil = viewTop + 4;
-    const labelMinX = viewLeft + 6;
-    const labelMaxX = viewLeft + cam.viewW - 6;
     IL.pitBoxes = [];
     IL.pitLabels = [];
     for (let i = 0; i < order.length; i++) {
@@ -1137,6 +1135,10 @@
     /* Labels are screen type. A world-sized font shrinks to a few pixels on a phone. */
     function worldPx(css) { return css / Math.max(0.2, worldScale); }
     const labelGap = worldPx(8);
+    /* 4px of canvas padding, plus half the dark outline, so a move name on the wall stays whole. */
+    const labelEdge = worldPx(4) + worldPx(1.25);
+    const labelMinX = viewLeft + labelEdge;
+    const labelMaxX = viewLeft + cam.viewW - labelEdge;
     function paintLabel(text, x, y, fill, alpha) {
       ctx.globalAlpha = alpha;
       ctx.lineJoin = "round";

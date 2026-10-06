@@ -886,8 +886,11 @@
     if (IL.fx) IL.fx.drawLoop(ctx, "shot", p.x, p.y, 58, time, { alpha: 0.95, rot: ang });
   }
 
-  /* y is the text baseline. The glyph box sits above it. Bodies are center rects. */
-  function labelSlot(labels, bodies, x, y, w, h, ceil, minX, maxX, gap) {
+  /* y is the text baseline. The glyph box sits above it. Bodies are center rects.
+     far is the furthest the baseline may rise above y, in world units. Sideways
+     comes first so a name stays by its head; a rise is one row, not a leap to
+     the top of a sprite. */
+  function labelSlot(labels, bodies, x, y, w, h, ceil, minX, maxX, gap, far) {
     function clampX(xx) {
       const half = w * 0.5;
       const lo = minX + half;
@@ -915,34 +918,41 @@
     let yy = y;
     let fade = 1;
     const minBase = ceil + h;
+    const cap = far > 0 ? y - far : minBase;
+    const farBase = Math.max(minBase, cap);
     const nudge = Math.max(36, Math.round(w * 0.7));
     const pad = gap > 0 ? gap : 4;
-    for (let n = 0; n < 8; n++) {
-      const hit = hitAt(xx, yy);
-      if (!hit) break;
-      const above = hit.y - hit.h * 0.5 - pad;
-      if (above < yy && above >= minBase) { yy = above; continue; }
-      let placed = false;
-      const dirs = n % 2 ? [-1, 1] : [1, -1];
-      const stepW = Math.max(nudge, ((hit.w || w) + w) * 0.55);
-      for (let step = 1; step <= 6 && !placed; step++) {
+    function slide(base) {
+      const stepW = Math.max(nudge, w * 1.1);
+      for (let step = 1; step <= 6; step++) {
+        const dirs = step % 2 ? [1, -1] : [-1, 1];
         for (let d = 0; d < dirs.length; d++) {
           const nx = clampX(x + dirs[d] * stepW * step);
           if (Math.abs(nx - xx) < 6) continue;
-          if (!hitAt(nx, yy)) { xx = nx; placed = true; break; }
+          if (!hitAt(nx, base)) return nx;
         }
       }
-      if (placed) continue;
+      return null;
+    }
+    for (let n = 0; n < 4; n++) {
+      if (!hitAt(xx, yy)) break;
+      const side = slide(yy);
+      if (side != null) { xx = side; break; }
+      const one = yy - (h + pad);
+      const up = Math.max(farBase, one);
+      if (up < yy - 1) { yy = up; continue; }
       fade = 0.45;
       break;
     }
+    if (yy < farBase) yy = farBase;
     if (yy < minBase) yy = minBase;
     xx = clampX(xx);
     const left = hitAt(xx, yy);
     if (left && !left.name) fade = 0;
     else if (left) fade = Math.min(fade, 0.45);
+    const lead = fade > 0 && yy < y - Math.max(6, pad * 0.5);
     labels.push({ x: xx, y: yy - h * 0.5, w: w, h: h });
-    return { x: xx, y: yy, fade: fade };
+    return { x: xx, y: yy, fade: fade, lead: lead };
   }
 
   function drawStatus(ctx, u, by) {
@@ -1138,6 +1148,21 @@
       ctx.fillText(text, x, y);
       ctx.globalAlpha = 1;
     }
+    function paintLeader(x0, y0, x1, y1, alpha) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(8,6,4,0.88)";
+      ctx.lineWidth = worldPx(2.4);
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(244,236,223,0.92)";
+      ctx.lineWidth = worldPx(1);
+      ctx.stroke();
+      ctx.restore();
+    }
     IL.pitBodies = bodies.map(function (B) {
       return {
         name: B.name,
@@ -1210,8 +1235,10 @@
         ctx.textAlign = "center";
         const nameW = Math.max(bw, ctx.measureText(u.name).width);
         const nameH = namePx + worldPx(2);
-        const nameSlot = labelSlot(labels, bodies, x, by - nameH - worldPx(2), nameW, nameH, labelCeil, labelMinX, labelMaxX, labelGap);
+        const nameHome = by - nameH - worldPx(2);
+        const nameSlot = labelSlot(labels, bodies, x, nameHome, nameW, nameH, labelCeil, labelMinX, labelMaxX, labelGap, worldPx(20));
         if (nameSlot.fade > 0) {
+          if (nameSlot.lead) paintLeader(nameSlot.x, nameSlot.y + worldPx(1), x, by - worldPx(2), nameSlot.fade);
           paintLabel(u.name, nameSlot.x, nameSlot.y, "#f4ecdf", nameSlot.fade);
           coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
         }
@@ -1230,7 +1257,7 @@
           const bannerW = ctx.measureText(u.banner.name).width;
           const bannerH = bannerPx + worldPx(2);
           const bannerY = by - nameH - labelGap - u.banner.t * worldPx(14);
-          const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX, labelGap);
+          const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX, labelGap, worldPx(20));
           if (bannerSlot.fade > 0) {
             paintLabel(u.banner.name, bannerSlot.x, bannerSlot.y, u.banner.ult ? "#ffd27a" : "#f4ecdf", a * bannerSlot.fade);
             coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);

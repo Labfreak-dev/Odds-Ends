@@ -3260,3 +3260,262 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
 @media (max-width: 560px) {
   .draft-block .dense-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- fight screen v61 ----------
+   One header carries both clubs and every fighter's health, so the pit
+   gets the rows the old top and bottom strips took. The toolbar groups
+   speed, control, and the rest instead of seven equal slabs. */
+.fight-screen.v61 { gap: 0; padding: 0 0 env(safe-area-inset-bottom); background: #0f0c0a; }
+.fight-screen.v61 .fight-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 6px 12px 7px;
+  background: linear-gradient(#1d1611, #130f0c);
+  border-bottom: 1px solid rgba(224, 176, 122, 0.22);
+}
+.fight-screen.v61 .side { gap: 4px; min-width: 0; }
+.fight-screen.v61 .side-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fight-screen.v61 .side.them .side-head { flex-direction: row-reverse; }
+.fight-screen.v61 .side-head strong { flex: 0 1 auto; font-size: clamp(13px, 2.2vw, 17px); }
+.fight-screen.v61 .team-pct {
+  flex: none;
+  font: 700 12px/1 var(--ui);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: rgba(196, 98, 45, 0.18);
+  color: var(--copper-2);
+}
+.fight-screen.v61 .side.them .team-pct { background: rgba(138, 160, 196, 0.16); color: #c9d6ee; }
+.fight-screen.v61 .timer {
+  align-self: center;
+  padding: 4px 12px;
+  border: 1px solid rgba(224, 176, 122, 0.3);
+  border-radius: 4px;
+  background: #0b0907;
+  font: 700 17px/1 var(--ui);
+  color: var(--cream);
+}
+.fight-screen.v61 .hud-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  max-height: none;
+  padding: 0;
+}
+.fight-screen.v61 .side.them .hud-strip { flex-direction: row-reverse; }
+.fight-screen.v61 .hud-strip .live { flex: 1 1 0; max-width: 220px; gap: 1px 4px; }
+.fight-screen.v61 .side.them .hud-strip .live b { text-align: right; }
+.fight-screen.v61 .hud-strip .live b { font-size: 11px; }
+.fight-screen.v61 .hud-strip .hp-num { font-size: 10px; color: var(--muted); }
+.fight-screen.v61 .hud-strip .track { height: 5px; }
+.fight-screen.v61 .live.dead { opacity: 0.45; }
+.fight-screen.v61 .stage { background: #0f0c0a; }
+.fight-screen.v61 #arena { background: #0f0c0a; }
+
+.fight-screen.v61 .fight-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(#130f0c, #0d0b09);
+  border-top: 1px solid rgba(224, 176, 122, 0.22);
+}
+.ctl-group { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.ctl-group.ctl-right { gap: 0; }
+.ctl {
+  min-width: 52px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: #221a13;
+  color: var(--cream);
+  font: 600 13px/1 var(--ui);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ctl:last-child { border-right: 0; }
+.ctl:hover:not(:disabled) { filter: brightness(1.25); }
+.ctl.on { background: var(--copper); color: #1a100c; }
+.ctl:disabled { opacity: 0.45; cursor: default; }
+.ctl-pilot {
+  min-width: 150px;
+  border: 1px solid #d9a54a;
+  border-radius: 5px;
+  background: linear-gradient(#5a3b17, #3a260f);
+  color: #ffe1a0;
+  letter-spacing: 0.04em;
+}
+.ctl-pilot.on { background: linear-gradient(#ffd27a, #d9a54a); color: #2a1a08; }
+.ctl-skip { color: var(--copper-2); }
+@media (max-width: 760px) {
+  .fight-screen.v61 .fight-top { gap: 6px; padding: 4px 8px 5px; }
+  .fight-screen.v61 .hud-strip { flex-direction: column; gap: 3px; }
+  .fight-screen.v61 .side.them .hud-strip { flex-direction: column; }
+  .fight-screen.v61 .hud-strip .live { max-width: none; }
+  .fight-screen.v61 .timer { font-size: 14px; padding: 3px 7px; }
+  .fight-screen.v61 .fight-controls { gap: 5px; padding: 5px 6px; }
+  .ctl { min-width: 0; height: 44px; padding: 0 9px; font-size: 13px; }
+  .ctl-pilot { min-width: 0; flex: 1 1 auto; padding: 0 8px; }
+}
+/* A short landscape phone: one line per side, no room for three rows. */
+@media (max-height: 460px) and (orientation: landscape) {
+  .fight-screen.v61 .fight-top { padding: 3px 8px; }
+  .fight-screen.v61 .hud-strip { flex-direction: row; }
+  .fight-screen.v61 .side.them .hud-strip { flex-direction: row-reverse; }
+  .fight-screen.v61 .hud-strip .hp-num { display: none; }
+  .fight-screen.v61 .side-head strong { font-size: 13px; }
+  .fight-screen.v61 .fight-controls { padding: 3px 6px; }
+  .ctl { height: 36px; }
+}
+.fight-screen.v61 .side.you .hud-strip .live b { text-align: left; }
+
+/* ---------- hub: the way to the pit (v61) ---------- */
+.next-card {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 300px);
+  gap: 14px;
+  align-items: center;
+  margin: 6px 0 4px;
+  padding: 10px 14px;
+  border: 1px solid rgba(224, 176, 122, 0.45);
+  border-radius: 8px;
+  background:
+    radial-gradient(120% 140% at 100% 50%, rgba(196, 98, 45, 0.28), transparent 60%),
+    linear-gradient(#2a1f16, #1a140f);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+.next-card .eyebrow { margin: 0; }
+.next-card h3 { margin: 2px 0 4px; display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 22px; }
+.next-card h3 .crest-sm { width: 28px; height: 28px; }
+.next-card .preview-board { margin: 4px 0 0; padding: 0; background: none; border: 0; box-shadow: none; }
+.next-card .next-go { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.next-card #nextMatch,
+.hub-panel > .next-card #nextMatch {
+  position: static;
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+}
+.next-card .next-ready { margin: 0; text-align: center; }
+.next-card.done { grid-template-columns: minmax(0, 1fr) auto; }
+.other-fights { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 6px; }
+.other-fights > span { font: 600 10px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.chip.go { color: var(--copper-2); border-color: rgba(224, 176, 122, 0.45); }
+.fight-dock {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid rgba(224, 176, 122, 0.4);
+  border-radius: 8px;
+  background: linear-gradient(90deg, #241a12, #2e1f13);
+}
+.fight-dock p { margin: 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.fight-dock p .eyebrow { margin: 0; }
+.fight-dock p b { font-size: 14px; color: var(--cream); }
+.fight-dock .text-btn { font-size: 12px; }
+.fight-dock .btn { flex: none; min-width: 140px; height: 44px; min-height: 44px; margin: 0; }
+.compete-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; margin: 6px 0 14px; }
+.compete-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(#271d15, #1b1510);
+}
+.compete-card header .eyebrow { margin: 0; }
+.compete-card h3 { margin: 2px 0 0; font-family: var(--display); }
+.compete-card .fine { margin: 0; flex: 1 1 auto; }
+.compete-card .btn { width: 100%; margin: 0; }
+.cup-block { margin-top: 4px; }
+.versus-actions #confirmFight { flex: 2 1 0; font-size: 18px; letter-spacing: 0.06em; }
+.versus-actions #versusBack { flex: 1 1 0; }
+@media (max-width: 640px) {
+  .next-card { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 8px 10px; }
+  .next-card h3 { font-size: 18px; }
+  .next-card #nextMatch,
+  .hub-panel > .next-card #nextMatch { height: 52px; min-height: 52px; font-size: 18px; }
+  .fight-dock { margin: 4px 0 0; padding: 4px 4px 4px 8px; }
+  .fight-dock p b { font-size: 12px; }
+  .fight-dock .btn { min-width: 96px; }
+}
+.roster-row .stamina { bottom: 3px; height: 2px; }
+.roster-row .stamina::before, .roster-row .stamina i { height: 2px; }
+@media (max-width: 640px) {
+  .fight-dock p { flex-wrap: nowrap; }
+  .fight-dock p .eyebrow, .fight-dock p .text-btn { display: none; }
+  .fight-dock p b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Versus v61: row cards at every width, so both lineups, the power bar,
+   and the auto/steer pick sit above the Fight bar on a laptop. */
+.versus-screen .versus-card {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  padding: 6px 10px;
+  min-width: 0;
+}
+.versus-screen .versus-card::before { display: none; }
+.versus-screen .versus-card .portrait-frame {
+  grid-column: 1;
+  grid-row: 1 / span 5;
+  width: 92px;
+  max-width: 92px;
+  padding: 8px 6px 10px;
+}
+.versus-screen .versus-card canvas { width: 78px; height: 64px; }
+.versus-screen .versus-card h3,
+.versus-screen .versus-card .kit-line,
+.versus-screen .versus-card .trait-line,
+.versus-screen .versus-card .fine,
+.versus-screen .versus-card .stamina { grid-column: 2; margin: 0; min-width: 0; }
+.versus-screen .cards { gap: 6px; }
+.versus-screen .power-compare { margin: 8px 0 2px; }
+.versus-actions #versusBack {
+  border-image: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #221a13;
+  color: var(--cream);
+}
+@media (max-width: 799px) {
+  .versus-screen .versus-card { grid-template-columns: 72px minmax(0, 1fr); column-gap: 8px; padding: 4px 8px; }
+  .versus-screen .versus-card .portrait-frame { width: 72px; max-width: 72px; }
+  .versus-screen .versus-card canvas { width: 60px; height: 44px; }
+}
+.versus-actions { align-items: center; }
+.versus-actions .pilot-pick {
+  flex: none;
+  margin: 0;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.versus-actions .pilot-pick .ctl { height: 48px; min-width: 76px; }
+@media (max-width: 640px) {
+  .versus-actions #versusBack { flex: 0 0 64px; }
+  .versus-actions .pilot-pick .ctl { min-width: 54px; padding: 0 8px; }
+}
+@media (max-width: 380px) {
+  .hub .tab b { font-size: 10px; letter-spacing: -0.01em; }
+}
+@media (max-width: 340px) {
+  .hub .tab b { font-size: 9px; }
+}

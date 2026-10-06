@@ -271,6 +271,8 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "A bigger pit: the floor scales in finer steps, health sits in one header, and the toolbar groups speed, control, and skip.",
+    "One way to the pit: the Club tab leads with the next match and a Fight button, every other tab keeps a fight bar, and Compete gathers the league, cup, draft, and chaos pit.",
     "Draft cup: pick three mercenaries one at a time, run a 3 vs 3 bracket, and sign one free if you win.",
     "Watchlist: keep up to three recruits on the board as it turns over after each match. Scout for a class.",
     "Steer your captain: move with WASD or a tap, fire moves with Q, E, R, roll with Space. Auto hands them back.",
@@ -1367,7 +1369,7 @@
       ["club", "Club", "1", "tab-club"],
       ["fighters", "Team", "2", "tab-fighters"],
       ["market", "Market", "3", "market"],
-      ["cup", "Cup", "4", "cup"],
+      ["cup", "Compete", "4", "cup"],
       ["relics", "Relics", "5", "relics"],
       ["events", "Events", "6", "events"],
       ["train", "Train", "7", "train"]
@@ -1876,8 +1878,23 @@
       : "";
     const sendBtn = (!done && rival)
       ? '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' +
-          (partyReady ? "Send them in" : ("Choose " + size)) + '</button>'
+          (partyReady ? "Fight" : ("Choose " + size)) + '</button>'
       : "";
+    const hero = done
+      ? '<section class="next-card done" id="nextCard"><div class="next-info"><p class="eyebrow">League · Season ' + save.season + '</p>' +
+          '<h3>Season closed</h3><p class="fine">' + esc(sortedClubs()[0].name) + ' leads the board.</p></div>' +
+          '<div class="next-go"><button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></div></section>'
+      : '<section class="next-card" id="nextCard">' +
+          '<div class="next-info">' +
+            '<p class="eyebrow">League · Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + '</p>' +
+            '<h3>vs ' + crestHtml(rival ? rival.name : "", "sm", rival ? clubCrest(rival) : 0) + '<span>' + esc(rival ? rival.name : "—") + '</span></h3>' +
+            (nemesisBanner(rival) ? '<p class="fine">' + nemesisBanner(rival) + '</p>' : '') +
+            preview +
+          '</div>' +
+          '<div class="next-go">' + sendBtn +
+            '<p class="fine next-ready">' + (partyReady ? yours.length + ' of ' + size + ' ready' : 'Pick ' + (size - yours.length) + ' more from the bench') + '</p>' +
+          '</div>' +
+        '</section>';
     return tutorHtml() +
       (pendingGrowth().length
         ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn gold" id="openGrowth">Choose a perk</button></p>'
@@ -1885,13 +1902,8 @@
       (pendingMoveFighters().length
         ? '<p class="banner">A new trick is waiting. <button type="button" class="btn gold" id="openMoves">Choose a move</button></p>'
         : '') +
-      (done
-        ? '<p class="banner">Season closed. ' + esc(sortedClubs()[0].name) + ' leads the board. <button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></p>'
-        : '<p class="banner">Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against <strong>' + esc(rival ? rival.name : "—") + '</strong>' + nemesisBanner(rival) + '</p>') +
-      (size && yours.length < size
-        ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
-        : '') +
-      preview +
+      hero +
+      otherFightsHtml() +
       '<div class="hub-split" id="hubSplit">' +
         '<div class="hub-main" id="hubMain">' +
           (preview ? "" : partySynergy) +
@@ -1906,8 +1918,86 @@
           historyHtml() +
           achievementsHtml() +
         '</div>' +
-      '</div>' +
-      sendBtn;
+      '</div>';
+  }
+
+  /* ---------- the way to the pit ----------
+     The Club tab leads with the next league match. Every other tab
+     keeps a slim fight bar at the bottom. Other ties that are waiting
+     (cup, draft, the week's event, the daily, an endless run) show as
+     chips that open the tab they live on. */
+  function otherFights() {
+    const out = [];
+    const cup = save.cup;
+    const copp = cup && !cup.champion ? IL.cupOpponent(cup) : null;
+    if (copp) out.push({ tab: "cup", label: "Cup tie vs " + copp.foe.name });
+    const d = save.draft;
+    if (d && d.stage === "pick") out.push({ tab: "cup", label: "Draft · pick " + (d.picks.length + 1) + " of " + IL.DRAFT_PICKS });
+    else if (d && d.stage === "bracket" && d.cup && IL.cupOpponent(d.cup)) out.push({ tab: "cup", label: "Draft tie vs " + IL.cupOpponent(d.cup).foe.name });
+    else if (d && d.stage === "sign") out.push({ tab: "cup", label: "Draft · sign a pick" });
+    const week = IL.weekIndex(Date.now());
+    if (!(save.weekClear && save.weekClear.week === week)) out.push({ tab: "events", label: "Weekly event" });
+    const day = IL.dayIndex(Date.now());
+    if (!(save.daily && save.daily.day === day && save.daily.cleared)) out.push({ tab: "events", label: "Daily challenge" });
+    if (save.endlessRun) out.push({ tab: "events", label: "Endless · wave " + (save.endlessRun.wave || 1) });
+    return out;
+  }
+
+  function otherFightsHtml() {
+    const list = otherFights();
+    if (!list.length) return "";
+    return '<nav class="other-fights" id="otherFights" aria-label="Other fights"><span>Also open</span>' +
+      list.map(function (o) { return '<button type="button" class="chip go" data-goto="' + esc(o.tab) + '">' + esc(o.label) + ' ›</button>'; }).join("") +
+      '</nav>';
+  }
+
+  function fightDockHtml() {
+    if (hubTab === "club") return "";
+    const done = save.round >= 5;
+    const rival = done ? null : nextRival();
+    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const ready = done || fielded(save.roster, size).length >= size;
+    const label = done
+      ? 'Season ' + save.season + ' closed'
+      : 'Match ' + (save.round + 1) + '/5 · ' + size + 'v' + size + (rival ? ' · ' + rival.name : '');
+    const others = otherFights().length;
+    return '<div class="fight-dock" id="fightDock">' +
+      '<p><span class="eyebrow">Next</span><b>' + esc(label) + '</b>' + (others ? '<button type="button" class="text-btn" data-goto="cup">+' + others + ' more</button>' : '') + '</p>' +
+      (done
+        ? '<button type="button" class="btn gold" id="dockFight" data-dock="season">Ceremony</button>'
+        : '<button type="button" class="btn fight" id="dockFight" data-dock="' + (ready ? "fight" : "club") + '">' + (ready ? "Fight" : "Pick " + size) + '</button>') +
+    '</div>';
+  }
+
+  function leagueCardHtml() {
+    const done = save.round >= 5;
+    const rival = done ? null : nextRival();
+    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const ready = done || fielded(save.roster, size).length >= size;
+    const you = sortedClubs().map(function (c, i) { return { c: c, i: i }; }).filter(function (r) { return r.c.you; })[0];
+    return '<section class="compete-card" id="leagueCard">' +
+      '<header><p class="eyebrow">League</p><h3>Season ' + save.season + '</h3></header>' +
+      '<p class="fine">' + (done ? 'All five matches played.' : 'Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against ' + esc(rival ? rival.name : "—") + '.') +
+        (you ? ' You sit ' + ordinal(you.i + 1) + ' on ' + you.c.pts + ' pts.' : '') + '</p>' +
+      (done
+        ? '<button type="button" class="btn gold" id="leagueCeremony">Season ceremony</button>'
+        : '<button type="button" class="btn fight" id="leagueFight"' + (ready ? '' : ' disabled') + '>' + (ready ? 'Fight' : 'Pick ' + size + ' on the club tab') + '</button>') +
+    '</section>';
+  }
+
+  function chaosCardHtml() {
+    const ready = fielded(save.roster, 1).length >= 1;
+    return '<section class="compete-card" id="chaosCard">' +
+      '<header><p class="eyebrow">Free for all</p><h3>Chaos pit</h3></header>' +
+      '<p class="fine">Your first fielded fighter against two other clubs at once. No stamina, a smaller purse.</p>' +
+      '<button type="button" class="btn fight" id="chaos"' + (ready ? '' : ' disabled') + '>Enter the chaos pit</button>' +
+    '</section>';
+  }
+
+  function ordinal(n) {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
   function tutorHtml() {
@@ -2676,11 +2766,14 @@
     const enter = (!cup || cup.champion)
       ? '<button type="button" class="btn gold" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
       : fightBtn;
-    return '<header class="panel-head"><p class="eyebrow">Single elimination</p><h3>The cup</h3></header>' +
+    return '<div class="compete-grid">' + leagueCardHtml() + chaosCardHtml() + '</div>' +
+      '<section class="cup-block" id="cupBlock">' +
+      '<header class="panel-head"><p class="eyebrow">Single elimination</p><h3>The cup</h3></header>' +
       '<div class="hub-actions">' + enter + '</div>' +
       '<p class="banner">Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
       (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club tab before this tie.</p>' : '') +
       (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
+      '</section>' +
       '<section class="draft-block" id="draftBlock">' + draftPanel() + '</section>';
   }
 
@@ -2730,7 +2823,6 @@
     hubBed();
     if (detailId && !fighterById(detailId)) detailId = null;
     persist();
-    const chaosReady = fielded(save.roster, 1).length >= 1;
     const done = save.round >= 5;
     const panel = hubTab === "fighters" ? fightersPanel()
       : hubTab === "market" ? marketPanel()
@@ -2748,7 +2840,6 @@
             '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
             '<div class="hub-actions">' +
               (done ? '<button type="button" class="btn gold" id="openSeason">Season ceremony</button>' : '') +
-              '<button type="button" class="btn fight" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
               '<button type="button" class="text-btn" id="credits">Credits</button>' +
               '<button type="button" class="icon-btn" id="settings" aria-label="Settings" title="Settings"><span aria-hidden="true">⚙</span></button>' +
               '<button type="button" class="text-btn" id="toTitle">Title</button>' +
@@ -2758,6 +2849,7 @@
           tabBar(hubTab) +
         '</div>' +
         '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
+        fightDockHtml() +
       '</main>' +
       (creditsOpen ? creditsHtml() : '') +
       (settingsOpen && !creditsOpen ? settingsHtml() : '') +
@@ -2998,9 +3090,9 @@
           '<div class="power-track"><div class="power-you" style="width:' + share + '%"></div></div>' +
           '<p>Power ' + youP + ' · ' + themP + '</p>' +
         '</div>' +
-        pilotPickHtml() +
         '<div class="versus-actions">' +
           '<button type="button" class="btn ghost" id="versusBack">Back</button>' +
+          pilotPickHtml() +
           '<button type="button" class="btn fight" id="confirmFight">Fight</button>' +
         '</div>' +
       '</main>';
@@ -3026,9 +3118,9 @@
 
   function pilotPickHtml() {
     const on = !!(save && save.settings && save.settings.pilot);
-    return '<div class="pilot-pick" id="pilotPick"><span>In the pit</span>' +
-      '<button type="button" class="chip' + (on ? "" : " on") + '" data-pilot-pick="off">Watch · auto</button>' +
-      '<button type="button" class="chip' + (on ? " on" : "") + '" data-pilot-pick="on">Steer the captain</button>' +
+    return '<div class="pilot-pick" id="pilotPick" role="group" aria-label="In the pit">' +
+      '<button type="button" class="ctl' + (on ? "" : " on") + '" data-pilot-pick="off" title="Watch: your fighters follow their behavior">Auto</button>' +
+      '<button type="button" class="ctl' + (on ? " on" : "") + '" data-pilot-pick="on" title="Steer the captain with keys or taps">Steer</button>' +
       '</div>';
   }
 
@@ -3067,6 +3159,27 @@
     };
     const openSeason = document.getElementById("openSeason");
     if (openSeason) openSeason.onclick = function () { showSeasonEnd(); };
+    const dock = document.getElementById("fightDock");
+    if (dock) dock.onclick = function (ev) {
+      const b = ev.target.closest("[data-dock]");
+      if (b) {
+        if (b.dataset.dock === "fight") startFight();
+        else if (b.dataset.dock === "season") showSeasonEnd();
+        else showHub("club");
+        return;
+      }
+      const g = ev.target.closest("[data-goto]");
+      if (g) showHub(g.dataset.goto);
+    };
+    const others = document.getElementById("otherFights");
+    if (others) others.onclick = function (ev) {
+      const g = ev.target.closest("[data-goto]");
+      if (g) showHub(g.dataset.goto);
+    };
+    const leagueFight = document.getElementById("leagueFight");
+    if (leagueFight) leagueFight.onclick = function () { startFight(); };
+    const leagueCeremony = document.getElementById("leagueCeremony");
+    if (leagueCeremony) leagueCeremony.onclick = function () { showSeasonEnd(); };
     const openSeasonBanner = document.getElementById("openSeasonBanner");
     if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
@@ -4388,27 +4501,27 @@
   function mountFight(match) {
     app.onclick = null;
     app.innerHTML =
-      '<main class="fight-screen">' +
-        '<header class="bar">' +
-          '<div class="side you"><strong id="leftName"></strong><span id="leftHp"></span></div>' +
+      '<main class="fight-screen v61">' +
+        '<header class="bar fight-top">' +
+          '<div class="side you"><div class="side-head"><strong id="leftName"></strong><span id="leftHp" class="team-pct"></span></div><div class="hud-strip" id="liveYou"></div></div>' +
           '<div class="timer" id="timer">0:00</div>' +
-          '<div class="side them"><strong id="rightName"></strong><span id="rightHp"></span></div>' +
+          '<div class="side them"><div class="side-head"><strong id="rightName"></strong><span id="rightHp" class="team-pct"></span></div><div class="hud-strip" id="liveThem"></div></div>' +
         '</header>' +
         (match.hazardName ? '<p class="hazard-line" id="pitBanner"><strong>' + esc(match.hazardName) + '</strong>' + (match.hazardBlurb ? '<span>' + esc(match.hazardBlurb) + '</span>' : '') + '</p>' : '') +
-        '<div class="hud-strip" id="liveYou"></div>' +
         '<div class="fight-layout">' +
           '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div>' +
             '<div class="pilot-bar" id="pilotBar" hidden></div>' +
             '<p class="pilot-note" id="pilotNote" hidden></p>' +
             '<div id="result" class="result" hidden></div></div>' +
         '</div>' +
-        '<div class="hud-strip" id="liveThem"></div>' +
         '<footer class="fight-controls">' +
-          speedButtons() +
-          '<button type="button" class="btn ghost" id="pilot">Control</button>' +
-          '<button type="button" class="btn ghost" id="meter">Meter</button>' +
-          '<button type="button" class="btn ghost" id="pause">Pause</button>' +
-          '<button type="button" class="btn primary" id="skip">Skip</button>' +
+          '<div class="ctl-group ctl-speed" role="group" aria-label="Fight speed">' + speedButtons() + '</div>' +
+          '<button type="button" class="ctl ctl-pilot" id="pilot">Control</button>' +
+          '<div class="ctl-group ctl-right">' +
+            '<button type="button" class="ctl" id="meter">Meter</button>' +
+            '<button type="button" class="ctl" id="pause">Pause</button>' +
+            '<button type="button" class="ctl ctl-skip" id="skip">Skip ⏭</button>' +
+          '</div>' +
         '</footer>' +
       '</main>';
     document.getElementById("leftName").innerHTML = crestHtml(match.leftName, "sm", save.crest, save.plate) + '<span class="club-name">' + esc(match.leftName) + '</span>';
@@ -4444,8 +4557,8 @@
       const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + marks + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';
       (u.team === 0 ? youRows : themRows).push(row);
     });
-    document.getElementById("liveYou").innerHTML = '<p class="eyebrow">Your side</p>' + youRows.join("");
-    document.getElementById("liveThem").innerHTML = '<p class="eyebrow">Their side</p>' + themRows.join("");
+    document.getElementById("liveYou").innerHTML = youRows.join("");
+    document.getElementById("liveThem").innerHTML = themRows.join("");
     mountPilotBar(match);
   }
 
@@ -4667,7 +4780,7 @@
 
   function speedButtons() {
     return [1, 2, 3].map(function (n) {
-      return '<button type="button" class="btn ghost' + (speed === n ? " on" : "") + '" id="speed' + n + '">' + n + '×</button>';
+      return '<button type="button" class="ctl' + (speed === n ? " on" : "") + '" id="speed' + n + '">' + n + '×</button>';
     }).join("");
   }
 
@@ -4864,6 +4977,7 @@
       const u = match.units[+rows[i].dataset.i];
       if (!u) continue;
       rows[i].classList.toggle("hot", !!IL.pitFocusId && u.id === IL.pitFocusId);
+      rows[i].classList.toggle("dead", u.hp <= 0);
       const fill = rows[i].querySelector(".fill");
       if (fill) fill.style.width = Math.max(0, u.hp / u.maxHp * 100) + "%";
       const num = rows[i].querySelector(".hp-num");

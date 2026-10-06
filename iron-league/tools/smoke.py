@@ -386,7 +386,7 @@ def check_nav(page, label, shot_dir):
     if tabs.count() != 7:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "team", "market", "cup", "relic", "event", "train"):
+    for word in ("club", "team", "market", "compete", "relic", "event", "train"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()

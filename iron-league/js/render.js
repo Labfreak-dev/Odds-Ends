@@ -85,15 +85,17 @@
   }
 
   /* Whole floor, letterboxed. A portrait viewport turns it so the long
-     axis is vertical. Scale snaps to whole or half steps and stays ≥ 1. */
+     axis is vertical. Scale snaps to quarter steps. */
   function updateCam(match, fx, view) {
     const W = IL.WORLD;
     const portrait = view.cssH > view.cssW;
     const fw = portrait ? W.h : W.w;
     const fh = portrait ? W.w : W.h;
     const fit = Math.min(view.cssW / fw, view.cssH / fh);
-    const steps = [1, 1.5, 2, 2.5, 3];
-    let spriteScale = 1;
+    /* Quarter steps fill a laptop pit (1.75 at 1280x800 instead of 1.5).
+       A short landscape phone may go under 1 rather than crop the walls. */
+    const steps = [0.5, 0.625, 0.75, 0.875, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4];
+    let spriteScale = fit < steps[0] ? Math.max(0.25, fit) : steps[0];
     for (let i = 0; i < steps.length; i++) {
       if (steps[i] <= fit + 0.001) spriteScale = steps[i];
     }

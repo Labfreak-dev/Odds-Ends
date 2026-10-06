@@ -89,6 +89,12 @@ The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, 
 
 **Draft cup.** It sits under the cup on the Cup tab and costs 40 gold. Your roster stays home. You pick three mercenaries one at a time from offers of three distinct classes. Every class is open, including ones renown has not unlocked yet. Picks come at the average level of your three best fighters, and a class you already drafted is not offered again. One reroll is free. Three other clubs draft at the same level, then a four-club 3 vs 3 bracket plays on the cup's tree. Picks do not tire or pay stamina. Rewards: 20 gold and 3 renown for a semi loss, 18 and 4 for a semi win, 45 and 8 for losing the final, and 80 and 14 for the title. A champion signs one of the three for free (they arrive fresh) or lets them all go. *Draft champion* is an achievement.
 
+## The pit and the way to it (v61)
+
+**Pit.** The floor scales in quarter steps: 1.75× on a 1280×800 or 1366×768 laptop (it was 1.5×), 2.5× at 1920×1080. A short landscape phone drops under 1× instead of cropping the walls. Both clubs and every fighter's health share one header, with the timer in the middle. Fighters who are down dim. The toolbar groups speed (1× 2× 3×) on the left, **Control** in the middle (gold while you steer), and Meter / Pause / Skip on the right.
+
+**Hub.** The Club tab opens on a *next match* card: the fixture, the opponent's crest, both lineups, and a large **Fight** button with how many are ready. *Also open* chips under it point at a waiting cup tie, a draft step, the weekly event, the daily, or an endless run. Every other tab keeps a slim fight bar at the bottom (`#dockFight`). The Cup tab is now **Compete**: league and chaos pit cards on top, then the cup, then the draft cup. The chaos pit left the header. The versus card lists fighters as rows, so both lineups and the power bar fit on a laptop. The action bar reads **Back · Auto | Steer · Fight**, and Fight is the wide one.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

@@ -650,8 +650,27 @@
     }, blankFighterFields(rng));
   }
 
+  /* v65 xp curve: level L to L+1 costs 40 × L^1.2 (40, 92, 150, 211, 276 …).
+     It was a flat 40. Saves convert once (meta.js migrate) without losing a level. */
+  const LEVEL_CAP = 30;
+  const XP_FLOOR = [0, 0];
+  function xpNeed(level) {
+    return Math.round(40 * Math.pow(Math.max(1, level), 1.2));
+  }
+  for (let lv = 2; lv <= LEVEL_CAP + 1; lv++) XP_FLOOR[lv] = XP_FLOOR[lv - 1] + xpNeed(lv - 1);
+  function xpFloor(level) {
+    return XP_FLOOR[Math.max(1, Math.min(LEVEL_CAP + 1, level | 0))] || 0;
+  }
   function xpLevel(xp) {
-    return 1 + Math.floor((xp || 0) / 40);
+    let lv = 1;
+    while (lv < LEVEL_CAP && (xp || 0) >= XP_FLOOR[lv + 1]) lv++;
+    return lv;
+  }
+  function xpInto(xp, level) {
+    const lv = Math.max(level || 1, xpLevel(xp));
+    const need = xpNeed(lv);
+    const into = Math.max(0, Math.min(need, (xp || 0) - xpFloor(lv)));
+    return { level: lv, into: Math.round(into), need: need, frac: need ? into / need : 0 };
   }
 
   /* Every 3rd level crossed by this xp gain offers one stat pick. */
@@ -740,6 +759,10 @@
   IL.firstToken = firstToken;
   IL.blankFighterFields = blankFighterFields;
   IL.xpLevel = xpLevel;
+  IL.xpNeed = xpNeed;
+  IL.xpFloor = xpFloor;
+  IL.xpInto = xpInto;
+  IL.LEVEL_CAP = LEVEL_CAP;
   IL.growthFromXp = growthFromXp;
   IL.boostChoices = boostChoices;
   IL.BOOST_LABEL = BOOST_LABEL;

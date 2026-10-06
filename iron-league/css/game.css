@@ -3929,3 +3929,12 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   .lv-screen.v2 .lv-roll { grid-template-columns: minmax(0, 1fr); }
   .roll-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.division-move { margin: 6px 0 0; font: 700 14px var(--ui); letter-spacing: 0.04em; color: var(--muted); }
+.division-move.up { color: #b7e08f; }
+.division-move.down { color: #ee8a72; }
+.board tr.promo td:first-child { box-shadow: inset 3px 0 0 #8fd06f; }
+.board tr.releg td:first-child { box-shadow: inset 3px 0 0 #e06a52; }
+.division-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; }
+.division-key .key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 6px; }
+.division-key .key.promo { background: #8fd06f; }
+.division-key .key.releg { background: #e06a52; }

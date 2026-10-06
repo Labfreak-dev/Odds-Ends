@@ -65,6 +65,8 @@
   function scaledStats(fighter, kit) {
     const lv = fighter.level || 1;
     const b = fighter.boosts || {};
+    /* Per-level growth stays 8% health and 6% attack: flatter rates broke the
+       class win band. v65 slows growth through the xp curve instead. */
     let hp = kit.hp * (1 + (lv - 1) * 0.08) * (1 + (b.hp || 0) * 0.08);
     let atk = kit.atk * (1 + (lv - 1) * 0.06) * (1 + (b.dmg || 0) * 0.08);
     let def = kit.def + (b.def || 0) * 2;
@@ -859,7 +861,6 @@
     u.cast = null;
     u.trail = [];
     m.stats.rolls++;
-    cue(m, "swing_light", { gain: 0.3 });
     fx(m, "smoke", u.x, u.y + 4, { size: 120, ground: true });
   }
 

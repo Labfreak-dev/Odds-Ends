@@ -257,9 +257,10 @@ IL.CLUBS.forEach(function (name) {
 check("rival clubs are themed", true);
 check("starters are free", ["warrior", "archer", "mage", "tank", "rogue"].every(function (id) { return IL.classUnlocked(id, 0); }));
 check("exotic gates", !IL.classUnlocked("assassin", 0) && IL.classUnlocked("assassin", 70) && IL.classUnlocked("lancer", 15));
-const grew = IL.growthFromXp(0, 80);
+const grew = IL.growthFromXp(0, IL.xpFloor(3));
 check("level 3 offers a pick", grew.level === 3 && grew.picks === 1);
-check("level 2 offers none", IL.growthFromXp(0, 40).picks === 0);
+check("level 2 offers none", IL.growthFromXp(0, IL.xpFloor(2)).picks === 0);
+check("the xp curve rises per level", IL.xpNeed(1) === 40 && IL.xpNeed(2) > 80 && IL.xpNeed(10) > IL.xpNeed(5) && IL.xpLevel(IL.xpFloor(7)) === 7 && IL.xpLevel(IL.xpFloor(7) - 1) === 6);
 const oldSave = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 10, level: 1, parts: { skin: 1, face: 1, hair: "m1", hairColor: 1, cloth: 4, clothColor: 6, weapon: 1 } }], clubs: [{ fighters: [{ id: "b", cls: "archer", parts: { skin: 2, weapon: 4 } }] }], market: [{ fighter: { id: "c", cls: "ranger", parts: { cloth: 3 } } }], fixtures: [] };
 IL.migrate(oldSave);
 check("migrate keeps roster", oldSave.roster[0].name === "Ada" && oldSave.renown === 0 && oldSave.tokens === 1 && oldSave.roster[0].boosts);
@@ -528,9 +529,9 @@ IL.noteEndless(endlessSave, 7);
 check("endless board keeps the best wave", endlessSave.endless.best === 7 && endlessSave.endless.board[0].wave === 7);
 const pupil = IL.randomFighter(IL.mulberry32(11), "warrior");
 pupil.specialty = "duelist";
-IL.grantXp(pupil, 160);
+IL.grantXp(pupil, IL.xpFloor(5));
 check("level 5 opens a focus", pupil.level >= 5 && pupil.pendingFocus === true && IL.chooseFocus(pupil, "warden") && pupil.focus === "warden" && !pupil.pendingFocus);
-IL.grantXp(pupil, 200);
+IL.grantXp(pupil, IL.xpFloor(10) - pupil.xp);
 check("level 10 opens a mastery", pupil.level >= 10 && pupil.pendingMastery === true && IL.chooseMastery(pupil, "bulwark") && pupil.mastery === "bulwark");
 const focused = IL.scaledStats(pupil, IL.CLASSES.warrior);
 const barePupil = Object.assign({}, pupil, { focus: null, specialty: null, mastery: null });
@@ -573,7 +574,7 @@ check("old club relics stay equipped", oldRelics.equipped.length === 1 && oldRel
 const cup = IL.startCup({ clubName: "Smoke Yard", roster: [IL.randomFighter(IL.mulberry32(1), "warrior")] }, IL.mulberry32(9));
 check("cup is four clubs", cup.slots.length === 4 && cup.pairing.length === 2);
 const f = IL.randomFighter(IL.mulberry32(2), "warrior");
-IL.grantXp(f, 80);
+IL.grantXp(f, IL.xpFloor(3));
 check("grant queues a pick per level", f.level === 3 && f.pendingLevels === 2);
 const offer = IL.levelOffer(f);
 check("a level-up rolls two stat points and offers three skill cards", offer.cards.length === 3 && Object.keys(offer.roll).reduce(function (n, k) { return n + offer.roll[k]; }, 0) === 2);
@@ -996,6 +997,39 @@ check("the steered fighter rolls on request", piloted.stats.rolls > 0);
 runOut(piloted, function (m) { if (m.pilot.ab == null && m.time % 2 < 0.02) { m.pilot.ab = 0; m.pilot.abT = 2.6; } });
 check("a steered match still ends", piloted.over);
 check("the steered fighter landed hits", pu.dmgDealt > 0);
+
+/* v65: rebalance. */
+const curveSave = IL.migrate({ clubName: "Old", roster: [{ id: "o1", cls: "warrior", name: "Old Timer", level: 18, xp: 700 }, { id: "o2", cls: "mage", name: "Old Mage", level: 9, xp: 330 }] });
+check("an old save keeps every level on the new curve", curveSave.roster[0].level === 18 && IL.xpLevel(curveSave.roster[0].xp) === 18 && curveSave.roster[1].level === 9 && IL.xpLevel(curveSave.roster[1].xp) === 9);
+check("an old save keeps its share of the level", IL.xpInto(curveSave.roster[0].xp, 18).frac > 0.45 && IL.xpInto(curveSave.roster[0].xp, 18).frac < 0.55);
+const curveAgain = IL.migrate(JSON.parse(JSON.stringify(curveSave)));
+check("the xp move runs once", curveAgain.roster[0].xp === curveSave.roster[0].xp);
+check("an old high club is seated in a high division", curveSave.division >= 2 && IL.migrate({ clubName: "New", roster: [{ id: "n1", cls: "warrior", name: "New Hand", level: 1, xp: 0 }] }).division === 0);
+const lvlSave = { division: 0, roster: [{ level: 12 }, { level: 11 }, { level: 10 }, { level: 2 }] };
+check("rivals match the club level", [0, 1, 2, 3, 4].every(function (i) { return Math.abs(IL.rivalLevel(lvlSave, i) - 11) <= 1; }));
+check("the division floor holds rivals up", IL.rivalLevel({ division: 4, roster: [{ level: 3 }] }, 1) >= 16);
+const grown = IL.growRival(IL.randomFighter(IL.mulberry32(77), "archer"), IL.mulberry32(78), 10);
+check("a grown rival took its level-ups", grown.level === 10 && grown.pendingLevels === 0 && (grown.growth || []).length === 9 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) === 18);
+check("levels come slower than the old flat 40", IL.xpFloor(10) > 9 * 40 * 2);
+check("higher divisions pay more", IL.seasonPurse(0, 4).gold > IL.seasonPurse(0, 0).gold * 2);
+function grownTrio(seed, lv) {
+  const r = IL.mulberry32(seed);
+  return ["warrior", "archer", "mage"].map(function (c) { return IL.growRival(IL.randomFighter(r, c), r, lv); });
+}
+let even = 0;
+for (let i = 0; i < 20; i++) {
+  const mm = runOut(IL.createMatch({ seed: 500 + i, left: grownTrio(600 + i, 10), right: grownTrio(700 + i, 10) }));
+  if (mm.winner === 0) even++;
+}
+console.log("grown level 10 mirror", even, "/ 20");
+check("two grown trios of one level split the wins", even >= 5 && even <= 15);
+let up = 0;
+for (let i = 0; i < 20; i++) {
+  const mm = runOut(IL.createMatch({ seed: 800 + i, left: grownTrio(900 + i, 11), right: grownTrio(950 + i, 10) }));
+  if (mm.winner === 0) up++;
+}
+console.log("grown level 11 vs 10", up, "/ 20");
+check("one level is an edge, not a wall", up >= 8 && up <= 18);
 
 /* v62: level-up ranks. */
 const lvMig = IL.migrate({ clubName: "Mig", roster: [{ id: "m1", cls: "warrior", name: "Old Hand", level: 6, xp: 200, pendingPicks: 1, pendingMoves: 1 }] });

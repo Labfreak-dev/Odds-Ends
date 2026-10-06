@@ -4,6 +4,9 @@
 (function (root) {
   const IL = root.IL = root.IL || {};
 
+  /* Bump when an audio file changes so browsers fetch the new one. */
+  const AUDIO_V = 65;
+
   const CUES = {
     hub_loop: { path:"music/hub_loop", cat:"music", vol:0.5, dur:67.219, loop:true },
     fight_loop: { path:"music/fight_loop", cat:"music", vol:0.5, dur:65.524, loop:true },
@@ -142,7 +145,25 @@
     duckGain.gain.value = 1;
     musicGain.connect(duckGain);
     duckGain.connect(ctx.destination);
-    sfxGain.connect(ctx.destination);
+    /* Effects pass a gentle top-end roll-off and a soft limiter, which
+       takes the edge off stacked transients without dulling the hits. */
+    try {
+      const soft = ctx.createBiquadFilter();
+      soft.type = "lowpass";
+      soft.frequency.value = 9000;
+      soft.Q.value = 0.5;
+      const limit = ctx.createDynamicsCompressor();
+      limit.threshold.value = -14;
+      limit.knee.value = 10;
+      limit.ratio.value = 4;
+      limit.attack.value = 0.004;
+      limit.release.value = 0.18;
+      sfxGain.connect(soft);
+      soft.connect(limit);
+      limit.connect(ctx.destination);
+    } catch (err) {
+      sfxGain.connect(ctx.destination);
+    }
     crowdGain.connect(ctx.destination);
     applyMix();
     return ctx;
@@ -168,7 +189,7 @@
       return cache[id];
     }
     function decode(ext) {
-      return root.fetch("assets/audio/" + cue.path + "." + ext).then(function (res) {
+      return root.fetch("assets/audio/" + cue.path + "." + ext + "?v=" + AUDIO_V).then(function (res) {
         if (!res.ok) throw new Error("http");
         return res.arrayBuffer();
       }).then(function (buf) {
@@ -225,7 +246,19 @@
       }
     }
     const g = c.createGain();
-    g.gain.value = vol;
+    const t0 = c.currentTime;
+    if (cue.loop) {
+      g.gain.value = vol;
+    } else {
+      /* A 4 ms rise and a short tail, so no effect starts or stops on a pop. */
+      const len = (pack.buffer.duration || cue.dur || 0.3) / (src.playbackRate.value || 1);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol, t0 + 0.004);
+      g.gain.setValueAtTime(vol, t0 + Math.max(0.005, len - 0.03));
+      g.gain.linearRampToValueAtTime(0, t0 + Math.max(0.01, len));
+      voices++;
+      src.onended = function () { voices = Math.max(0, voices - 1); };
+    }
     src.connect(g);
     g.connect(bus);
     src.start();
@@ -249,6 +282,13 @@
     try { node.src.stop(c.currentTime + seconds + 0.06); } catch (err) { /* already stopped */ }
   }
 
+  /* v65: busy fights used to stack short hits into a steady tick. Each
+     category now keeps a gap, and at most a few effects sound at once. */
+  const CAT_GAP = { hit: 110, swing: 150, ranged: 130, spell: 90 };
+  const MAX_VOICES = 7;
+  const lastCat = {};
+  let voices = 0;
+
   function fire(id, opt) {
     opt = opt || {};
     const picked = resolve(id);
@@ -258,8 +298,12 @@
     if (!c) return;
     const now = nowMs();
     if (hitFamily(picked) && now - lastCrit < 120) return;
-    if (lastAt[picked] && now - lastAt[picked] < 90) return;
+    if (lastAt[picked] && now - lastAt[picked] < 140) return;
+    const gap = CAT_GAP[cue.cat];
+    if (gap && lastCat[cue.cat] && now - lastCat[cue.cat] < gap) return;
+    if (voices >= MAX_VOICES && cue.cat !== "ui" && cue.cat !== "ui_sting" && cue.cat !== "stinger") return;
     lastAt[picked] = now;
+    if (gap) lastCat[cue.cat] = now;
     if (picked.indexOf("hit_crit") === 0) lastCrit = now;
     const vol = typeof opt.gain === "number" ? opt.gain : cue.vol;
     if (!(vol > 0)) return;

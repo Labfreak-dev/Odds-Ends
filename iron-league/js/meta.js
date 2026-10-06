@@ -424,8 +424,10 @@
     const next = prev + amount;
     const g = IL.growthFromXp(prev, next);
     fighter.xp = next;
+    /* A level is never taken back, even if an old save sits off the curve. */
+    const before = Math.max(fighter.level || 1, IL.xpLevel(prev));
+    g.level = Math.max(before, g.level);
     fighter.level = g.level;
-    const before = IL.xpLevel(prev);
     /* One level-up pick per level gained (kits.js levelOffer). */
     if (g.level > before) fighter.pendingLevels = (fighter.pendingLevels || 0) + (g.level - before);
     if (before < 5 && g.level >= 5 && !fighter.focus) fighter.pendingFocus = true;
@@ -458,6 +460,8 @@
       cup: null,
       market: null,
       history: [],
+      division: 0,
+      xpCurve: 2,
       settings: { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 }
     };
   }
@@ -561,13 +565,21 @@
       data.seenClasses = Object.keys(seen);
     }
     if (!Array.isArray(data.roster)) return data;
+    const oldCurve = data.xpCurve !== 2;
+    data.xpCurve = 2;
+    if (typeof data.division !== "number") {
+      /* Seat an existing club by the level it has already reached. */
+      const lvs = data.roster.map(function (f) { return (f && f.level) || 1; }).sort(function (a, b) { return b - a; }).slice(0, 3);
+      const avg = lvs.length ? lvs.reduce(function (a, b) { return a + b; }, 0) / lvs.length : 1;
+      data.division = avg >= 16 ? 4 : avg >= 12 ? 3 : avg >= 8 ? 2 : avg >= 4 ? 1 : 0;
+    }
     data.roster.forEach(function (f) {
       if (!f.boosts) f.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
       if (typeof f.pendingPicks !== "number") f.pendingPicks = 0;
       if (!f.personality) f.personality = "bold";
       if (!f.tactic) f.tactic = "strike";
       if (typeof f.champion !== "boolean") f.champion = false;
-      if (typeof f.level !== "number") f.level = IL.xpLevel(f.xp || 0);
+      if (typeof f.level !== "number") f.level = oldCurve ? 1 + Math.floor((f.xp || 0) / 40) : IL.xpLevel(f.xp || 0);
       if (typeof f.wins !== "number") f.wins = 0;
       if (typeof f.losses !== "number") f.losses = 0;
       if (typeof f.kos !== "number") f.kos = 0;
@@ -594,6 +606,14 @@
         if (!f.career.moves || typeof f.career.moves !== "object") f.career.moves = {};
       }
       if (!Array.isArray(f.perks)) f.perks = [];
+      /* v65: move the flat 40-a-level xp onto the new curve, keeping the
+         level and the share of it already earned. Runs once per save. */
+      if (oldCurve && IL.xpFloor) {
+        const lv = Math.max(1, f.level || (1 + Math.floor((f.xp || 0) / 40)));
+        const into = Math.max(0, Math.min(0.99, ((f.xp || 0) - (lv - 1) * 40) / 40));
+        f.level = lv;
+        f.xp = IL.xpFloor(lv) + Math.round(into * IL.xpNeed(lv));
+      }
       /* v62: older stat picks and level moves fold into one queue. */
       if (typeof f.pendingLevels !== "number" || f.pendingLevels < 0) f.pendingLevels = 0;
       if (f.pendingPicks > 0 || f.pendingMoves > 0) {
@@ -749,11 +769,12 @@
     return relic;
   }
 
-  function makeRivalSide(rng, name, n) {
+  function makeRivalSide(rng, name, n, data) {
     const fighters = [];
     for (let i = 0; i < n; i++) {
       const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
-      if (IL.dressRival) IL.dressRival(fighter, rng);
+      if (IL.dressRival) IL.dressRival(fighter, rng, data ? divisionOf(data) : 0);
+      if (data) growRival(fighter, rng, rivalLevel(data, i));
       fighters.push(fighter);
     }
     if (IL.dedupeNames) IL.dedupeNames(fighters);
@@ -773,7 +794,7 @@
     const rivals = [];
     while (rivals.length < 3 && pool.length) {
       const name = pool.splice(Math.floor(rng() * pool.length), 1)[0];
-      rivals.push(makeRivalSide(rng, name, n));
+      rivals.push(makeRivalSide(rng, name, n, save));
     }
     const slots = [you].concat(rivals);
     return {
@@ -976,11 +997,9 @@
 
   function draftFighter(rng, cls, level) {
     const fighter = IL.randomFighter(rng, cls);
-    fighter.level = level;
-    fighter.xp = (level - 1) * 40;
     stampRecruit(fighter, rng);
     if (IL.dressRival) IL.dressRival(fighter, rng);
-    if (IL.ensureMoves) IL.ensureMoves(fighter);
+    growRival(fighter, rng, level);
     fighter.drafted = true;
     return fighter;
   }
@@ -1089,10 +1108,64 @@
     return { mvp: best("dealt"), kos: best("kos"), wall: best("taken"), healer: best("heal") };
   }
 
-  function seasonPurse(place) {
-    if (place <= 0) return { gold: 80, renown: 12 };
-    if (place === 1) return { gold: 48, renown: 7 };
-    return { gold: 28, renown: 4 };
+  function seasonPurse(place, tier) {
+    const mul = DIVISIONS[Math.max(0, Math.min(4, tier | 0))].purse;
+    const base = place <= 0 ? { gold: 80, renown: 12 } : place === 1 ? { gold: 48, renown: 7 } : { gold: 28, renown: 4 };
+    return { gold: Math.round(base.gold * mul), renown: Math.round(base.renown * mul) };
+  }
+
+  /* ---------- divisions (v65) ----------
+     Five tiers. The top two clubs go up and the bottom two go down at the
+     end of a season. A tier sets the lowest level a rival can be, how
+     well rivals are dressed, and the size of every league purse. */
+  const DIVISIONS = [
+    { id: "sand", name: "Sand Division", floor: 1, purse: 1 },
+    { id: "iron", name: "Iron Division", floor: 4, purse: 1.25 },
+    { id: "bronze", name: "Bronze Division", floor: 8, purse: 1.5 },
+    { id: "silver", name: "Silver Division", floor: 12, purse: 1.8 },
+    { id: "crown", name: "Crown Division", floor: 16, purse: 2.2 }
+  ];
+
+  function divisionOf(data) {
+    const t = data && typeof data.division === "number" ? data.division : 0;
+    return Math.max(0, Math.min(DIVISIONS.length - 1, t | 0));
+  }
+
+  /* The club's level is the mean of its three highest fighters. */
+  function clubLevel(data) {
+    const lv = ((data && data.roster) || []).map(function (f) { return (f && f.level) || 1; }).sort(function (a, b) { return b - a; }).slice(0, 3);
+    if (!lv.length) return 1;
+    return Math.max(1, Math.round(lv.reduce(function (a, b) { return a + b; }, 0) / lv.length));
+  }
+
+  /* Rivals match the club, one either way, never under the division floor. */
+  function rivalLevel(data, slot) {
+    const spread = [-1, 0, 0, 1, 1, 0];
+    const base = Math.max(DIVISIONS[divisionOf(data)].floor, clubLevel(data));
+    return Math.max(1, Math.min(IL.LEVEL_CAP || 30, base + spread[(slot | 0) % spread.length]));
+  }
+
+  /* A rival takes the same level-ups a player fighter does: a stat roll
+     every level and one skill card, picked by its own seeded hand. */
+  function growRival(fighter, rng, level) {
+    if (!fighter) return fighter;
+    const lv = Math.max(1, level | 0);
+    fighter.level = lv;
+    fighter.xp = IL.xpFloor ? IL.xpFloor(lv) : (lv - 1) * 40;
+    if (IL.ensureMoves) IL.ensureMoves(fighter);
+    if (!IL.levelOffer || !IL.applyLevelPick || lv < 2) return fighter;
+    fighter.pendingLevels = lv - 1;
+    let guard = 0;
+    while (fighter.pendingLevels > 0 && guard < 40) {
+      const offer = IL.levelOffer(fighter);
+      const n = offer.cards.length;
+      if (!n) { fighter.pendingLevels = 0; break; }
+      const best = offer.cards.reduce(function (bi, c, i, arr) { return c.tier > arr[bi].tier ? i : bi; }, 0);
+      IL.applyLevelPick(fighter, rng() < 0.5 ? best : Math.floor(rng() * n));
+      guard++;
+    }
+    fighter.pendingLevels = 0;
+    return fighter;
   }
 
   function youRow(data) {
@@ -1591,7 +1664,7 @@
         boosts: slimBoosts(raw.boosts),
         relic: worn && worn.scope === "fighter" ? worn.id : null,
         captain: false,
-        xp: Math.max(0, ((raw.level | 0) - 1) * 40),
+        xp: IL.xpFloor ? IL.xpFloor(Math.max(1, raw.level | 0)) : Math.max(0, ((raw.level | 0) - 1) * 40),
         gear: IL.blankGear ? IL.blankGear() : { weapon: null, armor: null, trinket: null }
       };
       if (Array.isArray(raw.loadout)) f.loadout = raw.loadout.slice(0, 3);
@@ -1659,6 +1732,11 @@
   IL.cupOpponent = cupOpponent;
   IL.resolveOtherPairs = resolveOtherPairs;
   IL.noteCupResult = noteCupResult;
+  IL.DIVISIONS = DIVISIONS;
+  IL.divisionOf = divisionOf;
+  IL.clubLevel = clubLevel;
+  IL.rivalLevel = rivalLevel;
+  IL.growRival = growRival;
   IL.WATCH_CAP = WATCH_CAP;
   IL.watchCount = watchCount;
   IL.turnMarket = turnMarket;

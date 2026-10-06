@@ -344,8 +344,20 @@
         { kind: "fighter", fighter: fighter, cost: Math.max(40, Math.round(full * 0.72)), stock: 1 },
         { kind: "bundle", relics: relics, cost: Math.max(40, Math.round(bundle * 0.7)), stock: 1 },
         { kind: "chest", cost: CHEST_COST, stock: 1 }
-      ]
+      ].concat(dealExtras(week))
     };
+  }
+
+  function dealExtras(week) {
+    const rng = IL.mulberry32((((week || 0) >>> 0) * 9176 + 11) >>> 0);
+    const gear = IL.makeItem(rng, { bag: "stock" });
+    const tome = IL.makeTome(rng, { bag: "stock" });
+    const gearCost = IL.gearPrice ? IL.gearPrice(gear) : 20;
+    const tomeCost = IL.gearPrice ? IL.gearPrice(tome) : 24;
+    return [
+      { kind: "gear", item: gear, cost: Math.max(8, Math.round(gearCost * 0.75)), stock: 1 },
+      { kind: "tome", item: tome, cost: Math.max(8, Math.round(tomeCost * 0.8)), stock: 1 }
+    ];
   }
 
   function openChest(rng, owned) {
@@ -475,9 +487,14 @@
       data.deals = null;
     } else {
       data.deals.offers = data.deals.offers.filter(function (o) {
-        return o && (o.kind === "fighter" || o.kind === "bundle" || o.kind === "chest") && typeof o.cost === "number";
-      }).slice(0, 3);
+        return o && (o.kind === "fighter" || o.kind === "bundle" || o.kind === "chest" || o.kind === "gear" || o.kind === "tome") && typeof o.cost === "number";
+      });
       if (data.deals.offers.length < 3) data.deals = null;
+      else if (data.deals.offers.length < 5) {
+        dealExtras(data.deals.week).forEach(function (row) {
+          if (data.deals.offers.length < 5) data.deals.offers.push(row);
+        });
+      }
     }
     if (!data.endless || typeof data.endless !== "object") data.endless = { best: 0, board: [] };
     if (typeof data.endless.best !== "number") data.endless.best = 0;
@@ -1070,12 +1087,19 @@
     { id: "king", name: "King of the Pit", blurb: "One fighter. Six waves, or until they fall.", reward: "Renown for every wave you clear." },
     { id: "mirror", name: "Mirror Match", blurb: "Your party, under the other crest.", reward: "Renown, win or lose." }
   ];
+  const FIGHT_EVENTS = [
+    { id: "fog", name: "Fog", blurb: "The pit hazes. Swings and shots miss more often." },
+    { id: "fire", name: "Fire floor", blurb: "The sand burns. Everyone takes a little damage over time." },
+    { id: "gold", name: "Gold rush", blurb: "Your kills pay extra gold." },
+    { id: "sudden", name: "Sudden death", blurb: "After a short while, hits land much harder." },
+    { id: "giant", name: "Giant mode", blurb: "Bodies grow. Health and reach go up." }
+  ];
   const ENDLESS_MODS = [
     { id: "glass", name: "Glass", blurb: "Hits land harder. Armor thins." },
     { id: "haste", name: "Haste", blurb: "Everyone is quicker." },
     { id: "bulwark", name: "Bulwark", blurb: "Armor thickens." },
     { id: "hunger", name: "Hunger", blurb: "The wave comes in heavier." }
-  ];
+  ].concat(FIGHT_EVENTS);
 
   function classIds() { return Object.keys(IL.CLASSES); }
 
@@ -1135,6 +1159,10 @@
     return ENDLESS_MODS[(Math.floor(wave / 5) - 1) % ENDLESS_MODS.length];
   }
 
+  function weekFightEvent(now) {
+    return FIGHT_EVENTS[weekIndex(now || 0) % FIGHT_EVENTS.length];
+  }
+
   function relicChoices(save, rng) {
     const have = (save && save.relics) || [];
     const pool = RELICS.filter(function (r) { return have.indexOf(r.id) < 0; });
@@ -1157,7 +1185,9 @@
   }
 
   IL.EVENTS = EVENTS;
+  IL.FIGHT_EVENTS = FIGHT_EVENTS;
   IL.ENDLESS_MODS = ENDLESS_MODS;
+  IL.weekFightEvent = weekFightEvent;
   IL.squadOf = squadOf;
   IL.activeEvent = activeEvent;
   IL.dayIndex = dayIndex;

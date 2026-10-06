@@ -2986,3 +2986,19 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
 @media (prefers-reduced-motion: reduce) {
   .level-flash { animation: none; }
 }
+.hazard-line,
+#fightEvent {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.hazard-line {
+  margin: 0;
+  padding: 2px 8px 4px;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--copper-2);
+}

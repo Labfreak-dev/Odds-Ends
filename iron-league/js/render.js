@@ -1209,12 +1209,13 @@
       const gy = y - z;
       if (u.sprite) {
         const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
-        IL.hero.draw(ctx, u.sprite, frame, x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
+        const bodyScale = u.giant ? SCALE * 1.15 : SCALE;
+        IL.hero.draw(ctx, u.sprite, frame, x, gy, bodyScale, u.facing, u.cls, hint, u.weaponKind);
         if (u.flash > 0 && u.hp > 0) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
+          IL.hero.draw(ctx, u.sprite, frame, x, gy, bodyScale, u.facing, u.cls, hint, u.weaponKind);
           ctx.restore();
         }
       } else {
@@ -1300,6 +1301,13 @@
     if ((match.zoom || 0) > 0.15) {
       ctx.fillStyle = "rgba(6,4,8," + (0.2 * Math.min(1, match.zoom)) + ")";
       ctx.fillRect(0, 0, view.cssW, view.cssH);
+    }
+    if (match.hazard === "fog") {
+      ctx.fillStyle = "rgba(168, 176, 186, 0.22)";
+      ctx.fillRect(0, 0, view.cssW, view.cssH);
+    } else if (match.hazard === "fire") {
+      ctx.fillStyle = "rgba(176, 52, 18, 0.16)";
+      ctx.fillRect(0, view.cssH * 0.5, view.cssW, view.cssH * 0.5);
     }
 
     if (match.cine && match.cine.dur > 0) {

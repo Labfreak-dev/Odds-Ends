@@ -10,19 +10,36 @@
     return IL.CLASSES[cls] || IL.CLASSES.warrior;
   }
 
+  /* Inset so a battler, including the name above the sprite, stays on the floor. */
+  function floorBounds() {
+    return {
+      left: WORLD.left + 88,
+      right: WORLD.right - 88,
+      top: WORLD.top + 200,
+      bottom: WORLD.bottom - 22
+    };
+  }
+
   function placeUnit(team, slot, n, teams) {
-    const midY = (WORLD.top + WORLD.bottom) / 2;
-    const midX = (WORLD.left + WORLD.right) / 2;
+    const b = floorBounds();
+    const midY = (b.top + b.bottom) / 2;
+    const midX = (b.left + b.right) / 2;
+    const spanY = b.bottom - b.top;
+    const spanX = b.right - b.left;
     if (!teams || teams <= 2) {
-      const spanY = n === 1 ? [0] : n === 2 ? [-150, 150] : [-210, 0, 210];
-      const spanX = WORLD.right - WORLD.left;
-      const x = team === 0 ? WORLD.left + spanX * 0.36 : WORLD.left + spanX * 0.64;
-      return { x: x + (team === 0 ? -1 : 1) * (slot * 22), y: midY + (spanY[slot] || 0) };
+      const t = n <= 1 ? 0.5 : (slot + 0.5) / Math.max(1, n);
+      const y = b.top + spanY * (0.12 + 0.76 * t);
+      const yShift = (team === 0 ? -1 : 1) * spanY * 0.07;
+      const x = b.left + spanX * (team === 0 ? 0.38 : 0.62);
+      return {
+        x: Math.max(b.left, Math.min(b.right, x + (team === 0 ? -1 : 1) * slot * 16)),
+        y: Math.max(b.top, Math.min(b.bottom, y + yShift))
+      };
     }
     const ang = -Math.PI / 2 + (team / teams) * Math.PI * 2;
     return {
-      x: midX + Math.cos(ang) * 240 + (slot - (n - 1) / 2) * 28,
-      y: midY + Math.sin(ang) * 180 + (slot - (n - 1) / 2) * 16
+      x: Math.max(b.left, Math.min(b.right, midX + Math.cos(ang) * spanX * 0.26 + (slot - (n - 1) / 2) * 32)),
+      y: Math.max(b.top, Math.min(b.bottom, midY + Math.sin(ang) * spanY * 0.34 + (slot - (n - 1) / 2) * 24))
     };
   }
 
@@ -2026,8 +2043,14 @@
         }
         const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.45;
         const push = (min - dist) * slip;
-        const nx = dx / dist;
-        const ny = dy / dist;
+        let nx = dx / dist;
+        let ny = dy / dist;
+        if (Math.abs(dy) < 16) {
+          ny += (String(a.id) < String(b.id) ? 1 : -1) * 0.75;
+          const mag = Math.hypot(nx, ny) || 1;
+          nx /= mag;
+          ny /= mag;
+        }
         a.x -= nx * push;
         a.y -= ny * push;
         b.x += nx * push;
@@ -2037,10 +2060,11 @@
   }
 
   function clampUnit(u) {
-    if (u.x < WORLD.left) { u.x = WORLD.left; u.vx = Math.abs(u.vx) * 0.4; }
-    if (u.x > WORLD.right) { u.x = WORLD.right; u.vx = -Math.abs(u.vx) * 0.4; }
-    if (u.y < WORLD.top) { u.y = WORLD.top; u.vy = Math.abs(u.vy) * 0.4; }
-    if (u.y > WORLD.bottom) { u.y = WORLD.bottom; u.vy = -Math.abs(u.vy) * 0.4; }
+    const b = floorBounds();
+    if (u.x < b.left) { u.x = b.left; u.vx = Math.abs(u.vx) * 0.4; }
+    if (u.x > b.right) { u.x = b.right; u.vx = -Math.abs(u.vx) * 0.4; }
+    if (u.y < b.top) { u.y = b.top; u.vy = Math.abs(u.vy) * 0.4; }
+    if (u.y > b.bottom) { u.y = b.bottom; u.vy = -Math.abs(u.vy) * 0.4; }
   }
 
   function stepShots(m, dt) {
@@ -2152,6 +2176,7 @@
         const side = u.facing > 0 ? -1 : 1;
         u.x = u.homeX + side * 240 * Math.max(0, k);
         u.y = u.homeY;
+        clampUnit(u);
         u.anim = k > 0.12 ? "run" : idleClip(u);
         u.animT += dt;
       }

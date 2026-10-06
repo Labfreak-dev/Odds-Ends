@@ -94,16 +94,12 @@
     const units = [];
     for (let i = 0; i < match.units.length; i++) if (match.units[i].hp > 0) units.push(match.units[i]);
     const focus = units.length ? units : match.units;
-    let sx = 0;
-    let sy = 0;
     let minX = 1e9;
     let maxX = -1e9;
     let minY = 1e9;
     let maxY = -1e9;
     for (let i = 0; i < focus.length; i++) {
       const u = focus[i];
-      sx += u.x;
-      sy += u.y;
       if (u.x < minX) minX = u.x;
       if (u.x > maxX) maxX = u.x;
       if (u.y < minY) minY = u.y;
@@ -117,12 +113,19 @@
       if (c.y - c.r * 0.4 < minY) minY = c.y - c.r * 0.4;
       if (c.y + c.r * 0.4 > maxY) maxY = c.y + c.r * 0.4;
     }
-    const cx = sx / focus.length;
-    const cy = sy / focus.length;
     const aspect = view.cssW / Math.max(1, view.cssH);
     const narrow = view.cssW < 760;
-    const spanW = (maxX - minX) + (narrow ? 150 : 260);
-    const spanH = (maxY - minY) + (narrow ? 120 : 220);
+    /* Frame the sprite and the name, not only the feet, and sit that block in the middle. */
+    const head = 34 * SCALE + 36;
+    const half = 16 * SCALE;
+    minX -= half;
+    maxX += half;
+    minY -= head;
+    maxY += 18;
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const spanW = (maxX - minX) + (narrow ? 36 : 64);
+    const spanH = (maxY - minY) + (narrow ? 28 : 48);
     let want = Math.max(spanW, spanH * aspect);
     const minW = narrow ? 460 : 900;
     const maxW = narrow ? 720 : W.w;
@@ -270,8 +273,8 @@
     const top = frame.top;
     const vw = frame.viewW;
     const vh = frame.viewH;
-    const band = Math.max(56, Math.min(104, vh * 0.18));
-    const side = Math.max(18, Math.min(46, vw * 0.05));
+    const band = Math.max(40, Math.min(62, vh * 0.09));
+    const side = Math.max(14, Math.min(30, vw * 0.038));
     ctx.fillStyle = pit.wall;
     ctx.fillRect(left - 8, top - 12, vw + 16, band + 8);
     const blocks = Math.ceil(vw / 26) + 2;
@@ -648,6 +651,27 @@
     if (IL.fx) IL.fx.drawLoop(ctx, "shot", p.x, p.y, 58, time, { alpha: 0.95, rot: ang });
   }
 
+  function labelSlot(labels, x, y, w, h, ceil) {
+    let yy = y;
+    let fade = 1;
+    for (let n = 0; n < 5; n++) {
+      let hit = null;
+      for (let i = 0; i < labels.length; i++) {
+        const L = labels[i];
+        if (Math.abs(x - L.x) < (w + L.w) * 0.5 && Math.abs(yy - L.y) < (h + L.h) * 0.55) {
+          hit = L;
+          break;
+        }
+      }
+      if (!hit) break;
+      const next = hit.y - h - 3;
+      if (next < ceil) { fade = 0.4; break; }
+      yy = next;
+    }
+    labels.push({ x: x, y: yy, w: w, h: h });
+    return { y: yy, fade: fade };
+  }
+
   function drawStatus(ctx, u, by) {
     const marks = [];
     if (u.bleed && u.bleed.t > 0) marks.push("#7dce6a");
@@ -708,29 +732,78 @@
 
     const order = match.units.slice().sort(function (a, b) { return a.y - b.y; });
     const ui = Math.max(0.85, Math.min(1.35, cam.viewW / 1200));
+    const band = Math.max(40, Math.min(62, cam.viewH * 0.09));
+    const side = Math.max(14, Math.min(30, cam.viewW * 0.038));
+    const viewLeft = cam.x - cam.viewW / 2;
+    const viewTop = cam.y - cam.viewH / 2;
+    const bodyHalf = 16 * SCALE;
+    const labelUp = 34 * SCALE + 32;
+    const lim = {
+      minX: viewLeft + side + bodyHalf,
+      maxX: viewLeft + cam.viewW - side - bodyHalf,
+      minY: viewTop + band + labelUp,
+      maxY: viewTop + cam.viewH - 20
+    };
+    if (lim.minX > lim.maxX) { const m = (lim.minX + lim.maxX) / 2; lim.minX = m - 4; lim.maxX = m + 4; }
+    if (lim.minY > lim.maxY) { const m = (lim.minY + lim.maxY) / 2; lim.minY = m - 4; lim.maxY = m + 4; }
     const shown = {};
+    const living = [];
     for (let i = 0; i < order.length; i++) {
       const u = order[i];
-      let x = u.x;
-      let y = u.y;
-      const gap = 16 * SCALE;
-      if (u.hp > 0) {
-        for (let j = 0; j < order.length; j++) {
-          const o = order[j];
-          if (o === u || o.hp <= 0 || o.team === u.team) continue;
-          const ox = shown[o.id] ? shown[o.id].x : o.x;
-          const oy = shown[o.id] ? shown[o.id].y : o.y;
-          const dx = x - ox;
-          const dy = y - oy;
-          const d = Math.hypot(dx, dy) || 1;
-          if (d < gap) {
-            const push = (gap - d) * 0.5;
-            x += (dx / d) * push;
-            y += (dy / d) * push;
+      shown[u.id] = { x: u.x, y: u.y };
+      if (u.hp > 0) living.push(u);
+    }
+    const gap = 14 * SCALE;
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < living.length; i++) {
+        for (let j = i + 1; j < living.length; j++) {
+          const a = shown[living[i].id];
+          const b = shown[living[j].id];
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          let d = Math.hypot(dx, dy) || 1;
+          if (d >= gap) continue;
+          if (d < 0.001) { dx = 1; dy = (i < j ? 1 : -1); d = 1; }
+          let nx = dx / d;
+          let ny = dy / d;
+          if (Math.abs(dy) < gap * 0.45) {
+            ny += (String(living[i].id) < String(living[j].id) ? 1 : -1) * 0.85;
+            const mag = Math.hypot(nx, ny) || 1;
+            nx /= mag;
+            ny /= mag;
           }
+          const push = (gap - d) * 0.5;
+          a.x -= nx * push;
+          a.y -= ny * push;
+          b.x += nx * push;
+          b.y += ny * push;
         }
       }
-      shown[u.id] = { x: x, y: y };
+      for (let i = 0; i < living.length; i++) {
+        const p = shown[living[i].id];
+        p.x = Math.max(lim.minX, Math.min(lim.maxX, p.x));
+        p.y = Math.max(lim.minY + (living[i].z || 0), Math.min(lim.maxY, p.y));
+      }
+    }
+    const labels = [];
+    const labelCeil = viewTop + band + 14;
+    IL.pitBoxes = [];
+    const worldScale = view.cssW / cam.viewW;
+    for (let i = 0; i < order.length; i++) {
+      const u = order[i];
+      const x = shown[u.id].x;
+      const y = shown[u.id].y;
+      if (u.hp > 0) {
+        const sx = view.cssW / 2 + (x - cam.x) * worldScale;
+        const sy = view.cssH / 2 + ((y - (u.z || 0)) - cam.y) * worldScale;
+        IL.pitBoxes.push({
+          name: u.name,
+          l: sx - bodyHalf * worldScale,
+          t: sy - labelUp * worldScale,
+          r: sx + bodyHalf * worldScale,
+          b: sy + (10 + (u.z || 0)) * worldScale
+        });
+      }
       const z = u.z || 0;
       const lift = z > 2 ? Math.max(0.45, 1 - z / 180) : 1;
       ctx.fillStyle = "rgba(0,0,0," + (0.28 + 0.16 * lift) + ")";
@@ -771,12 +844,17 @@
         ctx.fillRect(bx - 1, by - 1, bw + 2, 6);
         ctx.fillStyle = u.team === 0 ? "#c4622d" : "#7f93b8";
         ctx.fillRect(bx, by, Math.max(0, bw * (u.hp / u.maxHp)), 4);
-        ctx.font = Math.round(13 * ui) + "px Palatino, Georgia, serif";
+        const namePx = Math.round(13 * ui);
+        ctx.font = namePx + "px Palatino, Georgia, serif";
         ctx.textAlign = "center";
+        const nameW = Math.max(bw, ctx.measureText(u.name).width);
+        const nameSlot = labelSlot(labels, x, by - 5, nameW, namePx + 2, labelCeil);
+        ctx.globalAlpha = nameSlot.fade;
         ctx.fillStyle = "rgba(10,8,6,0.75)";
-        ctx.fillText(u.name, x + 1, by - 4);
+        ctx.fillText(u.name, x + 1, nameSlot.y + 1);
         ctx.fillStyle = "#f4ecdf";
-        ctx.fillText(u.name, x, by - 5);
+        ctx.fillText(u.name, x, nameSlot.y);
+        ctx.globalAlpha = 1;
         drawStatus(ctx, u, by);
         if (u.state === "cast" && u.cast && u.cast.dur > 0) {
           const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
@@ -787,10 +865,14 @@
         }
         if (u.banner) {
           const a = Math.max(0, 1 - u.banner.t / u.banner.life);
-          ctx.globalAlpha = a;
-          ctx.font = "bold " + Math.round((u.banner.ult ? 16 : 13) * ui) + "px Palatino, Georgia, serif";
+          const bannerPx = Math.round((u.banner.ult ? 16 : 13) * ui);
+          ctx.font = "bold " + bannerPx + "px Palatino, Georgia, serif";
+          const bannerW = ctx.measureText(u.banner.name).width;
+          const bannerY = by - 16 - u.banner.t * 18;
+          const bannerSlot = labelSlot(labels, x, bannerY, bannerW, bannerPx + 2, labelCeil);
+          ctx.globalAlpha = a * bannerSlot.fade;
           ctx.fillStyle = u.banner.ult ? "#ffd27a" : "#f4ecdf";
-          ctx.fillText(u.banner.name, x, by - 16 - u.banner.t * 18);
+          ctx.fillText(u.banner.name, x, bannerSlot.y);
           ctx.globalAlpha = 1;
         }
       }

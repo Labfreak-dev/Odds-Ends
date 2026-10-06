@@ -29,6 +29,7 @@
   let eventPane = "week";
   let trainPane = "drills";
   let trainDrill = "strength";
+  let clubPane = "yard";
   let relicStatus = "all";
   let relicRarity = "all";
   let relicSet = "all";
@@ -40,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "40";
+  const BUILD = "45";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -1576,12 +1577,15 @@
           rosterHtml(size, size ? "In the pit" : "Party", "all") +
         '</div>' +
         '<div class="pane" id="clubPane">' +
-          yard +
-          '<section class="panel-frame"><h3 class="section">Standings</h3>' +
-            '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
-          '</section>' +
-          historyHtml() +
-          achievementsHtml() +
+          filterBar("club", clubPane, [["yard", "Yard"], ["record", "Record"]]) +
+          (clubPane === "record"
+            ? clubRecordHtml() + historyHtml()
+            : yard +
+              '<section class="panel-frame"><h3 class="section">Standings</h3>' +
+                '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
+              '</section>' +
+              historyHtml() +
+              achievementsHtml()) +
         '</div>' +
       '</div>' +
       sendBtn;
@@ -2132,6 +2136,76 @@
       '</aside>';
   }
 
+  function statLine(label, value) {
+    return '<p><span>' + esc(label) + '</span><b>' + esc(value) + '</b></p>';
+  }
+
+  function clubRecordHtml() {
+    const roster = save.roster || [];
+    let wins = 0;
+    let losses = 0;
+    let kos = 0;
+    let dealt = 0;
+    let heal = 0;
+    const moves = {};
+    roster.forEach(function (f) {
+      if (!f) return;
+      wins += f.wins || 0;
+      losses += f.losses || 0;
+      kos += f.kos || 0;
+      const career = f.career || {};
+      dealt += career.dealt || 0;
+      heal += career.heal || 0;
+      const bag = career.moves || {};
+      Object.keys(bag).forEach(function (id) {
+        const row = bag[id];
+        if (!row) return;
+        const slot = moves[id] || (moves[id] = { name: row.name || id, dmg: 0, heal: 0 });
+        if (row.name) slot.name = row.name;
+        slot.dmg += row.dmg || 0;
+        slot.heal += row.heal || 0;
+      });
+    });
+    const top = roster.filter(Boolean).slice().sort(function (a, b) {
+      const ad = (a.career && a.career.dealt) || 0;
+      const bd = (b.career && b.career.dealt) || 0;
+      if (bd !== ad) return bd - ad;
+      return (b.wins || 0) - (a.wins || 0);
+    }).slice(0, 5);
+    const best = Object.keys(moves).map(function (id) { return moves[id]; }).filter(function (row) {
+      return row.dmg > 0 || row.heal > 0;
+    }).sort(function (a, b) {
+      return (b.dmg + b.heal) - (a.dmg + a.heal);
+    }).slice(0, 5);
+    const fighterBody = top.length
+      ? top.map(function (f) {
+        const n = Math.round(((f.career && f.career.dealt) || 0));
+        return '<li><span>' + esc(f.name) + '</span><b>' + (f.wins || 0) + '–' + (f.losses || 0) + ' · ' + n + '</b></li>';
+      }).join("")
+      : '<li><span class="fine">No fighters yet.</span></li>';
+    const moveBody = best.length
+      ? best.map(function (row) {
+        const extra = row.heal > 0 ? (row.dmg > 0 ? " · +" + Math.round(row.heal) : "+" + Math.round(row.heal)) : "";
+        return '<li><span>' + esc(row.name) + '</span><b>' + Math.round(row.dmg) + extra + '</b></li>';
+      }).join("")
+      : '<li><span class="fine">No moves recorded yet.</span></li>';
+    return '<section class="panel-frame" id="clubRecord">' +
+      '<h3 class="section">Lifetime</h3>' +
+      '<p class="fine">Wins, losses, and KOs are each fighter’s record. Damage and healing add up from the season on the save.</p>' +
+      '<div class="stat-list">' +
+        statLine("Matches", save.bouts || 0) +
+        statLine("Wins", wins) +
+        statLine("Losses", losses) +
+        statLine("KOs", kos) +
+        statLine("Damage", Math.round(dealt)) +
+        statLine("Healing", Math.round(heal)) +
+      '</div></section>' +
+      '<section class="panel-frame" id="topFighters"><h3 class="section">Top fighters</h3>' +
+        '<ul class="stat-list">' + fighterBody + '</ul></section>' +
+      '<section class="panel-frame" id="bestMoves"><h3 class="section">Best moves</h3>' +
+        '<ul class="stat-list">' + moveBody + '</ul></section>';
+  }
+
   function historyHtml() {
     const rows = (save.history || []).slice(0, 10);
     const body = rows.length
@@ -2660,6 +2734,7 @@
         if (filt.dataset.filterKind === "market") marketPane = filt.dataset.filter;
         if (filt.dataset.filterKind === "events") eventPane = filt.dataset.filter;
         if (filt.dataset.filterKind === "train") trainPane = filt.dataset.filter;
+        if (filt.dataset.filterKind === "club") clubPane = filt.dataset.filter === "record" ? "record" : "yard";
         refreshHub();
         return;
       }
@@ -4252,6 +4327,26 @@
     save.history = save.history.slice(0, 10);
   }
 
+  function ensureCareer(f) {
+    if (!f.career || typeof f.career !== "object") {
+      const season = f.season || {};
+      f.career = {
+        dealt: season.dealt || 0,
+        taken: season.taken || 0,
+        heal: season.heal || 0,
+        kos: season.kos || 0,
+        moves: {}
+      };
+    }
+    const career = f.career;
+    if (typeof career.dealt !== "number") career.dealt = 0;
+    if (typeof career.taken !== "number") career.taken = 0;
+    if (typeof career.heal !== "number") career.heal = 0;
+    if (typeof career.kos !== "number") career.kos = 0;
+    if (!career.moves || typeof career.moves !== "object") career.moves = {};
+    return career;
+  }
+
   function noteRecords(match, win) {
     const byId = {};
     (save.roster || []).forEach(function (f) { if (f && f.id) byId[f.id] = f; });
@@ -4259,6 +4354,7 @@
       if (!u || u.team !== 0) return;
       const f = byId[u.id];
       if (!f) return;
+      const career = ensureCareer(f);
       if (win) f.wins = (f.wins || 0) + 1;
       else f.losses = (f.losses || 0) + 1;
       f.kos = (f.kos || 0) + (u.kos || 0);
@@ -4267,6 +4363,19 @@
       f.season.taken += u.dmgTaken || 0;
       f.season.heal += u.healing || 0;
       f.season.kos += u.kos || 0;
+      career.dealt += u.dmgDealt || 0;
+      career.taken += u.dmgTaken || 0;
+      career.heal += u.healing || 0;
+      career.kos += u.kos || 0;
+      const book = u.byAb || {};
+      Object.keys(book).forEach(function (id) {
+        const row = book[id];
+        if (!row || !id) return;
+        const slot = career.moves[id] || (career.moves[id] = { id: id, name: row.name || id, dmg: 0, heal: 0 });
+        if (row.name) slot.name = row.name;
+        slot.dmg += row.dmg || 0;
+        slot.heal += row.heal || 0;
+      });
     });
   }
 

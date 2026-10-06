@@ -2134,7 +2134,7 @@
       dt *= 0.38;
     }
     m.time += dt;
-    if (m.zoom > 0) m.zoom = Math.max(0, m.zoom - dt * 1.4);
+    if (m.zoom > 0) m.zoom = Math.max(0, m.zoom - dt * 2.8);
     if (m.cheer > 0) m.cheer = Math.max(0, m.cheer - dt * 0.8);
     if ((m.stats.abilities || 0) > (m.abSeen || 0)) {
       m.abSeen = m.stats.abilities;

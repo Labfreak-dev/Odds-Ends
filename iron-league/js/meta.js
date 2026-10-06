@@ -509,6 +509,33 @@
     if (typeof data.crest !== "number" || data.crest < 1 || data.crest > 16) {
       data.crest = (IL.hashStr(data.clubName || "iron") % 16) + 1;
     }
+    if (typeof data.clubWins !== "number" || typeof data.clubLosses !== "number") {
+      const hist = data.history || [];
+      if ((data.bouts || 0) > 0 && hist.length === data.bouts) {
+        data.clubWins = hist.filter(function (row) { return row && row.win; }).length;
+        data.clubLosses = hist.length - data.clubWins;
+      } else {
+        const you = youRow(data);
+        data.clubWins = you ? (you.w || 0) : 0;
+        data.clubLosses = you ? (you.l || 0) : 0;
+      }
+    }
+    const clubPool = (IL.CLUBS || []).filter(function (name) { return name && name !== data.clubName; });
+    const nemesisKnown = data.nemesis && typeof data.nemesis === "object" && clubPool.indexOf(data.nemesis.name) >= 0;
+    if (!nemesisKnown) {
+      const prev = data.nemesis && typeof data.nemesis === "object" ? data.nemesis : {};
+      const picked = clubPool.length ? clubPool[IL.hashStr(data.clubName || "iron") % clubPool.length] : "Red Kettle";
+      data.nemesis = {
+        name: picked,
+        wins: typeof prev.wins === "number" ? prev.wins : 0,
+        losses: typeof prev.losses === "number" ? prev.losses : 0,
+        grudge: typeof prev.grudge === "number" ? prev.grudge : 0
+      };
+    }
+    if (typeof data.nemesis.wins !== "number") data.nemesis.wins = 0;
+    if (typeof data.nemesis.losses !== "number") data.nemesis.losses = 0;
+    if (typeof data.nemesis.grudge !== "number") data.nemesis.grudge = 0;
+    data.nemesis.grudge = Math.max(0, Math.min(3, data.nemesis.grudge | 0));
     if (!Array.isArray(data.seenClasses)) {
       const seen = {};
       (data.roster || []).forEach(function (f) { if (f && f.cls) seen[f.cls] = true; });

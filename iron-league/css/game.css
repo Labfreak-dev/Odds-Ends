@@ -2725,6 +2725,70 @@ body:has(#seasonEnd) {
   overflow: auto;
 }
 
+.banner .rival-line,
+.versus-head .rival-line,
+#nemesisNote {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 400;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+#nemesisCard .stat-list b {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
+
+#achieveToast {
+  position: fixed;
+  z-index: 40;
+  top: 72px;
+  right: 12px;
+  bottom: auto;
+  left: auto;
+  width: min(280px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+}
+#achieveToast.toast-narrow {
+  left: 8px;
+  right: 8px;
+  width: auto;
+  align-items: center;
+}
+#achieveToast .toast {
+  align-self: flex-end;
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--copper-2);
+  border-image: none;
+  border-width: 1px;
+  border-radius: 4px;
+  background: rgba(20, 17, 14, 0.94);
+  color: var(--cream, #f4ecdf);
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  pointer-events: none;
+  max-width: 100%;
+}
+#achieveToast.toast-narrow .toast {
+  align-self: center;
+  white-space: normal;
+  text-align: center;
+}
+
 /* The pit uses the whole fight column. A short canvas used to leave a dead band. */
 .fight-screen {
   width: 100%;

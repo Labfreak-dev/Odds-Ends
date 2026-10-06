@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "55";
+  const BUILD = "56";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -272,7 +272,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
-    "27 classes with signature abilities and weapons in hand.",
+    "27 classes, each with six or more moves. Recruits of one class equip different threes.",
     "Market stalls to buy and sell gear, fighters, and relics, plus weekly deals.",
     "64 relics in 8 sets.",
     "Events, Endless mode, and a daily challenge. Pit events include fog, a fire floor, gold rush, sudden death, and giant mode.",
@@ -1532,7 +1532,7 @@
         '<p class="loadout-style"><strong>' + esc(attack.name) + '</strong> ' + esc(attack.blurb) + '</p>' +
         '<p class="loadout-style"><strong>Passive · ' + esc(passive.name || "Passive") + '</strong> ' + esc(passiveBlurb) + '</p>' +
         '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
-        '<p class="fine">Equip three. Level 4, a tome, or a drop teaches the rest.</p>' +
+        '<p class="fine">Equip three. Recruits of one class start on different threes. A tome teaches the rest.</p>' +
         '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
         (unlearned ? '<h3 class="section">Still to learn</h3><ul class="abilities">' + unlearned + '</ul>' : '') +
         tomeList +
@@ -4648,7 +4648,7 @@
   function abBreakdown(u) {
     const book = u.byAb || {};
     const rows = Object.keys(book).map(function (id) { return book[id]; }).filter(function (r) {
-      return r && ((r.dmg || 0) > 0 || (r.heal || 0) > 0);
+      return r && ((r.dmg || 0) > 0 || (r.heal || 0) > 0 || r.used);
     });
     rows.sort(function (a, b) { return ((b.dmg || 0) + (b.heal || 0)) - ((a.dmg || 0) + (a.heal || 0)); });
     if (!rows.length) return "";
@@ -4656,7 +4656,7 @@
       const bits = [];
       if (r.dmg) bits.push(String(r.dmg));
       if (r.heal) bits.push("+" + r.heal);
-      return r.name + " " + bits.join(" ");
+      return r.name + (bits.length ? " " + bits.join(" ") : "");
     }).join(" · ");
     return '<p class="ab-break">' + esc(text) + "</p>";
   }

@@ -1271,7 +1271,7 @@
     const place = Math.max(0, sorted.findIndex(function (c) { return c.you; }));
     const table = sorted.map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
@@ -1332,7 +1332,7 @@
     const done = save.round >= 5;
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
     const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
@@ -2207,7 +2207,9 @@
         '<header class="creator-head"><h2>A perk for ' + esc(f.name) + '</h2></header>' +
         '<p class="banner">Level ' + f.level + '. ' + f.pendingPicks + ' choice' + (f.pendingPicks === 1 ? "" : "s") + ' waiting. Pick one of three.</p>' +
         '<div class="class-grid" id="growthChoices">' + buttons + '</div>' +
+        '<footer class="growth-actions"><button type="button" class="btn ghost" id="backHub">Back to club</button></footer>' +
       '</main>';
+    document.getElementById("backHub").onclick = function () { showHub(); };
     document.getElementById("growthChoices").onclick = function (ev) {
       const btn = ev.target.closest("[data-boost]");
       if (!btn) return;
@@ -2741,16 +2743,21 @@
         '<p class="fine">' + esc(nextLine) + '</p>' +
       '</div>' +
       '<div class="result-actions">' +
+        (pendingGrowth().length ? '<button type="button" class="btn gold" id="pickPerk">Choose a perk</button>' : '') +
         '<button type="button" class="btn primary" id="backHub">Back to club</button>' +
       '</div>';
     animateXpBars();
     pitSound(win ? "victory" : "defeat");
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;
+    const pickPerk = document.getElementById("pickPerk");
+    if (pickPerk) pickPerk.onclick = function () {
+      IL.currentMatch = null;
+      showGrowth();
+    };
     document.getElementById("backHub").onclick = function () {
       IL.currentMatch = null;
-      if (pendingGrowth().length) showGrowth();
-      else if (mode === "league" && save.round >= 5) showSeasonEnd();
+      if (mode === "league" && save.round >= 5) showSeasonEnd();
       else if (mode === "cup") showCup();
       else showHub();
     };

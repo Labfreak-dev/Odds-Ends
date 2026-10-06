@@ -561,6 +561,7 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
 #equipDiff { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .loot-reveal {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   margin: 12px 0;
@@ -569,10 +570,13 @@ tr.mvp { background: rgba(196, 98, 45, 0.16); }
   border: 1px solid var(--line);
   border-radius: 8px;
   animation: loot-in 0.55s ease;
+  min-width: 0;
+  max-width: 100%;
 }
 .loot-faces { display: flex; align-items: flex-end; gap: 6px; flex: none; }
-.loot-reveal h3 { margin: 0; font-family: var(--display); font-weight: 600; }
-.loot-reveal p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.loot-reveal > div { min-width: 0; flex: 1 1 160px; }
+.loot-reveal h3 { margin: 0; font-family: var(--display); font-weight: 600; overflow-wrap: anywhere; }
+.loot-reveal p { margin: 2px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 @keyframes loot-in {
   from { opacity: 0; transform: rotateY(70deg) scale(0.92); }
   to { opacity: 1; transform: none; }
@@ -1054,25 +1058,14 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   margin: 0 0 0 4px;
   vertical-align: -10px;
 }
-.result.victory { overflow: hidden; }
-.result.victory::before {
-  content: "";
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 6%;
-  height: 46%;
-  background: url("../assets/ui/backgrounds/reward_burst_radial.jpg") center / cover no-repeat;
-  mix-blend-mode: screen;
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: 0;
-  animation: burst-spin 28s linear infinite;
-}
-.result.victory > * { position: relative; z-index: 1; }
-@keyframes burst-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.result.victory,
+.result.defeat { overflow: hidden; }
+.result.victory::before,
+.result.defeat::before {
+  content: none;
+  display: none;
+  animation: none;
+  background: none;
 }
 @media (max-width: 640px) {
   .tab { min-height: 52px; border-width: 8px 6px; border-image-width: 8px 6px; }
@@ -1086,7 +1079,7 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   .btn.fight { border-width: 0 28px; border-image-width: 0 28px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .result.victory::before { animation: none; }
+  .loot-reveal { animation: none; }
 }
 
 /* Compact hub on top of the frames: dense rows, sticky chrome, inner panes. */
@@ -1277,12 +1270,23 @@ body:has(.fight-screen) #app {
   max-width: 100%;
   font-size: clamp(13px, 3.6vw, 18px);
 }
+.fight-screen .bar strong {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.15;
+}
+.fight-screen .bar .them strong { justify-content: flex-end; }
 .fight-screen .bar strong .club-name {
   min-width: 0;
   flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .fight-screen .bar .crest-sm { width: 22px; height: 22px; }
 .fight-screen .bar .side { overflow: hidden; }
@@ -1372,7 +1376,8 @@ body:has(.fight-screen) #app {
   border-image-width: 0 12px;
 }
 .result,
-.result.victory {
+.result.victory,
+.result.defeat {
   position: fixed;
   z-index: 50;
   left: 8px;
@@ -1392,16 +1397,23 @@ body:has(.fight-screen) #app {
 .result-scroll {
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   overflow: auto;
 }
 .result-actions {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding-top: 8px;
   background: #2b1e13;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 .result-actions .btn {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
 }
 .result.victory::before {
   content: none;
@@ -1439,4 +1451,142 @@ body:has(.fight-screen) #app {
   .fight-screen { max-width: 1480px; }
   .fight-layout { flex-direction: column; }
   .fight-layout aside { width: auto; }
+}
+
+/* Names wrap onto a second line. Numbers stay inside the frame. */
+.panel-frame,
+.preview-board {
+  min-width: 0;
+}
+.board {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.board th,
+.board td {
+  overflow: hidden;
+  padding: 6px 4px;
+}
+.board th:first-child,
+.board td:first-child {
+  width: 1.8em;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+.board th:nth-child(n+3),
+.board td:nth-child(n+3) {
+  width: 2.6em;
+  padding: 4px 2px;
+  letter-spacing: 0;
+  text-align: right;
+}
+td.club-cell,
+.club-line {
+  min-width: 0;
+  max-width: 100%;
+}
+td.club-cell .club-name,
+.club-line .club-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+.roster-row {
+  max-height: none;
+  height: auto;
+  align-items: center;
+}
+.card.roster-row::before { display: none; }
+.roster-row h3,
+.roster-row p,
+.roster-row .fine,
+.roster-row .kit-line,
+.roster-row .kit-line span,
+.card h3,
+.card .fine {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.roster-row h3 em {
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.roster-row .kit-line span {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.abilities li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: start;
+}
+.abilities .pixel-icon,
+.abilities .item-icon {
+  width: 32px;
+  height: 32px;
+  float: none;
+  margin: 2px 0 0;
+  grid-column: 1;
+  grid-row: 1 / span 4;
+}
+.abilities span {
+  float: none;
+}
+.abilities strong,
+.abilities p,
+.abilities span {
+  grid-column: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.result-xp {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+#resultTable .result-xp .track,
+.result-xp .track {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-width: 0 4px;
+  border-image-width: 0 4px;
+  box-sizing: border-box;
+}
+.payout {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+#growth {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 8px;
+}
+.growth-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  margin-top: auto;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  background: #14110e;
+}
+.growth-actions .btn {
+  width: 100%;
+  min-height: 52px;
+}
+.fight-controls {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background: #14110e;
 }

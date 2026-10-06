@@ -576,11 +576,11 @@ const f = IL.randomFighter(IL.mulberry32(2), "warrior");
 IL.grantXp(f, 80);
 check("grant queues a pick per level", f.level === 3 && f.pendingLevels === 2);
 const offer = IL.levelOffer(f);
-check("a level-up offers three cards with a training step", offer.length === 3 && offer.some(function (c) { return c.kind === "stat"; }));
+check("a level-up rolls two stat points and offers three skill cards", offer.cards.length === 3 && Object.keys(offer.roll).reduce(function (n, k) { return n + offer.roll[k]; }, 0) === 2);
 check("the same offer comes back on reload", JSON.stringify(IL.levelOffer(f)) === JSON.stringify(offer));
-const statAt = offer.findIndex(function (c) { return c.kind === "stat"; });
-const statKey = offer[statAt].key;
-check("a training pick is one stat step", !!IL.applyLevelPick(f, statAt) && f.boosts[statKey] === 1 && f.pendingLevels === 1);
+check("every card has a rarity", offer.cards.every(function (c) { return c.tier >= 0 && c.tier <= 3; }));
+const rollBefore = JSON.stringify(offer.roll);
+check("a pick spends the level and banks the roll", !!IL.applyLevelPick(f, 0) && f.pendingLevels === 1 && JSON.stringify(f.rolls) === JSON.stringify(Object.assign({ hp: 0, atk: 0, def: 0, spd: 0 }, JSON.parse(rollBefore))));
 
 function fight(leftCls, rightCls, seed, level) {
   const n = Math.max(leftCls.length, rightCls.length);
@@ -1002,36 +1002,41 @@ const lvMig = IL.migrate({ clubName: "Mig", roster: [{ id: "m1", cls: "warrior",
 check("old stat picks and moves fold into the level queue", lvMig.roster[0].pendingLevels === 2 && lvMig.roster[0].pendingPicks === 0 && lvMig.roster[0].pendingMoves === 0);
 const ranker = IL.randomFighter(IL.mulberry32(41), "warrior");
 ranker.level = 8;
-ranker.pendingLevels = 6;
+ranker.pendingLevels = 8;
 IL.ensureMoves(ranker);
-let ranked = 0;
-let learned = 0;
-for (let i = 0; i < 6; i++) {
+const kindsSeen = {};
+for (let i = 0; i < 8; i++) {
   const o = IL.levelOffer(ranker);
-  const ri = o.findIndex(function (c) { return c.kind === "rank"; });
-  const li = o.findIndex(function (c) { return c.kind === "learn"; });
-  const pick = i % 2 === 0 && ri >= 0 ? ri : (li >= 0 ? li : 0);
-  const card = IL.applyLevelPick(ranker, pick);
-  if (card && card.kind === "rank") ranked++;
-  if (card && card.kind === "learn") learned++;
+  o.cards.forEach(function (c) { kindsSeen[c.kind] = true; });
+  const pick = o.cards.findIndex(function (c) { return !kindsSeen["took" + c.kind]; });
+  const card = IL.applyLevelPick(ranker, pick >= 0 ? pick : 0);
+  if (card) kindsSeen["took" + card.kind] = true;
 }
-check("level picks can rank up and learn", ranked > 0 && learned > 0 && ranker.pendingLevels === 0 && ranker.growth.length === 6);
-check("ranks stop at V", Object.keys(ranker.ranks).every(function (id) { return ranker.ranks[id] >= 2 && ranker.ranks[id] <= IL.RANK_MAX; }));
+check("level picks offer moves, specializations, and talents", kindsSeen.learn && kindsSeen.spec && kindsSeen.talent && ranker.pendingLevels === 0 && ranker.growth.length === 8);
+check("a move takes at most one specialization", Object.keys(ranker.specs || {}).every(function (id) { return ranker.loadout.indexOf(id) >= 0 || ranker.known.indexOf(id) >= 0; }));
+check("talents are not offered twice", (ranker.talents || []).length === new Set((ranker.talents || []).map(function (t) { return t.id; })).size);
+const styled = IL.scaledStats({ cls: "warrior", level: 5, rolls: { hp: 4, atk: 0, def: 0, spd: 0 } }, IL.CLASSES.warrior);
+const plainS = IL.scaledStats({ cls: "warrior", level: 5 }, IL.CLASSES.warrior);
+check("stat roll points add a little health", styled.hp > plainS.hp && styled.hp - plainS.hp <= Math.ceil(IL.CLASSES.warrior.hp * 0.11));
+check("every fighter has a growth style", IL.STYLES[IL.styleOf({ id: "zz" })] && IL.STYLES[IL.styleOf(IL.randomFighter(IL.mulberry32(5)))]);
 const rankA = IL.randomFighter(IL.mulberry32(42), "warrior");
 rankA.level = 6;
 IL.ensureMoves(rankA);
 const rankB = JSON.parse(JSON.stringify(rankA));
 rankB.ranks = {};
-rankA.loadout.forEach(function (id) { rankB.ranks[id] = 5; });
+rankB.specs = {};
+rankA.loadout.forEach(function (id) { rankB.specs[id] = { mod: "heavy", tier: 3 }; });
 const foesR = squadOf(43, ["tank"]);
 function dummyDamage(fighter, seed) {
   const m = IL.createMatch({ seed: seed, left: [JSON.parse(JSON.stringify(fighter))], right: JSON.parse(JSON.stringify(foesR)) });
-  m.units.forEach(function (u) { if (u.team === 1) { u.hp = u.maxHp = 99999; u.atk = 1; } });
+  m.units.forEach(function (u) { if (u.team === 1) { u.hp = u.maxHp = 99999; u.atk = 1; u.def = 0; } });
   for (let i = 0; i < 600; i++) { IL.stepMatch(m, 1 / 60); m.events.length = 0; }
   const me = m.units.filter(function (u) { return u.team === 0; })[0];
   return fighter.loadout.reduce(function (n, id) { return n + ((me.byAb && me.byAb[id] && me.byAb[id].dmg) || 0); }, 0);
 }
-check("ranked moves hit harder", [90, 91, 92].every(function (sd) { return dummyDamage(rankB, sd) > dummyDamage(rankA, sd); }));
+const seedsR = [90, 91, 92, 93, 94];
+const sumOf = function (f) { return seedsR.reduce(function (n, sd) { return n + dummyDamage(f, sd); }, 0); };
+check("heavy specializations hit harder", sumOf(rankB) > sumOf(rankA) * 1.2);
 
 /* v60: watchlist and draft cup. */
 const wsave = { clubName: "Watchers", renown: 0, roster: [], market: IL.rollMarket(IL.mulberry32(5), 0, { names: [], sheets: [] }) };

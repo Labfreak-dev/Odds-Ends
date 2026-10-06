@@ -112,6 +112,25 @@ The offer is seeded by fighter and picks taken, so a reload shows the same three
 
 The Club tab no longer opens on a big match card. A slim **Fight** bar shows the fixture, the opponent, and how many other fights are waiting. **Fight** (`#nextMatch`), and the fight bar on every other tab, open a **Ready to fight?** popup. It holds the next league match with synergy and both lineups (class and level), a **To the pit** button (`#fightGo`) that opens the versus card, and an *Also open* list. That list has a waiting cup tie, a draft step, the weekly event, the daily, an endless run, and the chaos pit. Escape or Close dismisses it. On a phone the Club and Team tabs scroll as one page, so the roster, the bench, and the club pane are all reachable.
 
+## Painted pits, combat effects, and level up v2 (v64)
+
+**Fight controls.** Speeds are 1× and 1.5× (`#speed1`, `#speed15`). An older save that stored 2× or 3× plays at 1.5×. Skip is gone from the pit. Tools finish a fight with `IL.finishNow()`. *Meter* is now **Info**.
+
+**Over the heads.** Every fighter carries an Eslabong-style health bar in screen pixels: green for your side and red for theirs, a level badge, a tick every 100 health, a pale strip that trails recent damage, a shield line, and status dots. There is no cast or cooldown bar. The header keeps one bar per club. Damage numbers draw in screen space too, so a turned phone floor no longer mirrors them. They pop and rise, crits are larger and gold with a `!`, heals are green, and numbers that land together stack instead of overprinting.
+
+**Arenas.** Each of the five pits is painted once per screen size at device resolution and copied 1:1 each frame. The painting has tiered stands with a seated crowd and awnings, stone walls with banners and corner towers, a detailed floor (raked sand, frost tiles with cracks, basalt plates on glowing seams, wet cobbles, mossy flagstones), and a shared inlaid seal. Firelight pools, flames (BitFX fire), and drifting motes (dust, snow, embers, fireflies, leaves) animate on top. This runs faster than the old per-frame painter.
+
+**Hits.** The sim emits `swing`, `hit`, and `die` events, which are visual only. The renderer draws swing crescents (thrusts for spears), spark bursts along the hit direction, an impact flash, shock rings on crits, and a dust puff and wisp on a knockout. Arrows are vector shafts at sprite scale with a streak. Spells are glowing orbs with trails. Casts paint a perspective rune on the ground in the school's color, with a progress sweep and a channel from the caster's hands.
+
+**Level up v2.** Following Eslabong's stat rolls and tiered skill offers, each pick has two parts:
+- A **stat roll** of two points weighted by the fighter's **growth style** (Balanced, Bruiser, Striker, Swift, or Bulwark). One point is +2.5% health, +2.5% attack, +0.5 defense, or +1.5% speed.
+- A **skill** from three cards rolled Common 62%, Rare 28%, Epic 9%, Legendary 1%:
+  - **New move**: a move from the class pool.
+  - **Specialization**: one per move. Swift (shorter cooldown), Heavy (more power), Vampiric (heals from its damage), Chilling (slows), Searing (burns), or Sundering (the target takes more damage).
+  - **Talent**, kept for good: Keen Eye, Iron Hide, Vigor, Thorns, Bloodlust, or Fleet.
+
+Rarity sets the size of the bonus. The stat roll and the skill offer each reroll for gold, and the price rises with level. Growth style shows on recruit cards and the sheet. Rank-ups and training steps are no longer offered. Ranks and boosts that older saves already earned still apply.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

@@ -100,6 +100,18 @@
       def += gear.def || 0;
       speed += gear.spd || 0;
     }
+    const rolls = fighter.rolls;
+    if (rolls && IL.ROLL_VALUE) {
+      hp += kit.hp * IL.ROLL_VALUE.hp * (rolls.hp || 0);
+      atk += kit.atk * IL.ROLL_VALUE.atk * (rolls.atk || 0);
+      def += IL.ROLL_VALUE.def * (rolls.def || 0);
+      speed += kit.speed * IL.ROLL_VALUE.spd * (rolls.spd || 0);
+    }
+    (fighter.talents || []).forEach(function (t) {
+      if (!IL.talentValue) return;
+      if (t.id === "ironhide") def += IL.talentValue(t.id, t.tier);
+      if (t.id === "fleet") speed *= 1 + IL.talentValue(t.id, t.tier) / 100;
+    });
     const tire = IL.staminaMul ? IL.staminaMul(fighter) : 1;
     if (tire < 1) { hp *= tire; atk *= tire; }
     return {
@@ -128,6 +140,11 @@
       ai: IL.normAi ? IL.normAi(fighter.ai) : { target: "near", range: "kit", ult: "ready", retreat: "never", evade: "normal" },
       captain: !!fighter.captain,
       ranks: fighter.ranks && typeof fighter.ranks === "object" ? fighter.ranks : {},
+      specs: fighter.specs && typeof fighter.specs === "object" ? fighter.specs : {},
+      thorns: 0,
+      bloodlust: 0,
+      vuln: 0,
+      vulnAmt: 0,
       tgtId: null,
       x: pos.x,
       y: pos.y,
@@ -205,6 +222,14 @@
       dmgTaken: 0,
       healing: 0
     };
+    (fighter.talents || []).forEach(function (t) {
+      if (!IL.talentValue) return;
+      const v = IL.talentValue(t.id, t.tier);
+      if (t.id === "keen") u.crit += v / 100;
+      else if (t.id === "vigor") u.regen += v;
+      else if (t.id === "thorns") u.thorns += v / 100;
+      else if (t.id === "bloodlust") u.bloodlust += v / 100;
+    });
     u.weaponKind = IL.weaponKind ? IL.weaponKind(fighter) : null;
     const pass = IL.gearPassives ? IL.gearPassives(fighter) : null;
     if (pass) {
@@ -906,10 +931,13 @@
     const blocked = dst.state === "block";
     if (blocked && dst.team === 0) dst.blocks = (dst.blocks || 0) + 1;
     let amount = raw;
+    let spec = null;
     if (src) {
       const rid = (opt.tag && opt.tag.id) || (src.swingTag && src.swingTag.id);
-      if (rid) amount *= rankMul(src, rid);
+      if (rid) amount *= rankMul(src, rid) * specPow(src, rid);
+      if (!opt.dot) spec = specOf(src, rid);
     }
+    if (dst.vuln > 0 && dst.vulnAmt) amount *= 1 + dst.vulnAmt;
     if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
@@ -946,6 +974,17 @@
     }
     dst.hp -= dmg;
     dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
+    if (spec && IL.modValue && src && src.team !== dst.team) {
+      const v = IL.modValue(spec.mod, spec.tier);
+      const tag = (opt.tag && opt.tag.id) ? opt.tag : src.swingTag;
+      if (spec.mod === "vampiric" && src.hp > 0) healUnit(m, src, src, dmg * v / 100);
+      else if (spec.mod === "chilling") dst.slow = Math.max(dst.slow || 0, v);
+      else if (spec.mod === "sundering") { dst.vuln = 3; dst.vulnAmt = Math.max(dst.vuln > 0 ? dst.vulnAmt || 0 : 0, v / 100); }
+      else if (spec.mod === "searing") dst.bleed = { t: 3, acc: 0, dmg: Math.max(1, Math.round(dmg * v / 100 / 3.5)), src: src.id, tag: tag ? { id: tag.id, name: tag.name } : null };
+    }
+    if (!opt.dot && src && dst.thorns > 0 && src.hp > 0 && !opt.spell && Math.hypot(src.x - dst.x, src.y - dst.y) < 90) {
+      deal(m, dst, src, dmg * dst.thorns, { dot: true, silent: true });
+    }
     if (src && src.team !== dst.team) {
       src.dmgDealt = (src.dmgDealt || 0) + dmg;
       noteBook(src, "dmg", dmg, opt.tag);
@@ -971,9 +1010,23 @@
     if (blocked) cue(m, "block_parry");
     else if (opt.crit) cue(m, "hit_crit");
     else if (!opt.silent) cue(m, impactId(src, opt), typeof opt.gain === "number" ? { gain: opt.gain } : null);
-    fx(m, "spark", dst.x, dst.y - 22 - (dst.z || 0), { size: blocked ? 90 : 128 });
+    fx(m, "spark", dst.x, dst.y - 22 - (dst.z || 0), { size: blocked ? 60 : 72 });
+    if (!opt.dot) {
+      const hx = src ? dst.x - src.x : 0;
+      const hy = src ? dst.y - src.y : 0;
+      const hd = Math.hypot(hx, hy) || 1;
+      m.events.push({
+        type: "hit", x: dst.x, y: dst.y - 18 - (dst.z || 0),
+        dx: src ? hx / hd : (dst.team === 0 ? -1 : 1), dy: src ? hy / hd : 0,
+        crit: !!opt.crit, blocked: blocked, big: big,
+        school: opt.spell ? String(opt.spell).replace(/^spell_|_impact$/g, "") : "",
+        team: dst.team
+      });
+    }
     if (blocked) fx(m, "orbit", dst.x + dst.facing * 8, dst.y - 22, { size: 130 });
     if (dst.hp <= 0) {
+      m.events.push({ type: "die", x: dst.x, y: dst.y, team: dst.team });
+      if (src && src.bloodlust > 0 && src.hp > 0 && src.team !== dst.team) src.hp = Math.min(src.maxHp, src.hp + src.maxHp * src.bloodlust);
       dst.hp = 0;
       dst.alive = false;
       if (dst.summon) {
@@ -1086,11 +1139,14 @@
     if (!u.didSlash) {
       u.didSlash = true;
       m.stats.slashes++;
-      const reach = (u.anim === "atk3" || u.anim === "air2") ? 150 : 188;
-      fx(m, "slash", u.x + u.facing * 28, u.y - 26 - (u.z || 0), {
-        facing: u.facing,
-        size: reach,
-        team: u.team
+      /* The swing arc is drawn by render.js (vector, full resolution). */
+      m.events.push({
+        type: "swing",
+        x: u.x, y: u.y - 16 - (u.z || 0),
+        facing: u.facing, team: u.team,
+        wk: weaponOf(u) || "sword",
+        heavy: u.anim === "atk2" || u.anim === "air2" || !!u.cleave,
+        thrust: u.anim === "atk3"
       });
     }
     if (u.didHit) return;
@@ -1608,9 +1664,24 @@
     return r > 1 ? Math.max(0.5, 1 - (IL.RANK_CD || 0.06) * (Math.min(5, r) - 1)) : 1;
   }
 
+  /* Specializations from level-up v2. */
+  function specOf(u, id) {
+    return id && u && u.specs ? u.specs[id] : null;
+  }
+
+  function specCd(u, id) {
+    const sp = specOf(u, id);
+    return sp && sp.mod === "swift" && IL.modValue ? 1 - IL.modValue("swift", sp.tier) / 100 : 1;
+  }
+
+  function specPow(u, id) {
+    const sp = specOf(u, id);
+    return sp && sp.mod === "heavy" && IL.modValue ? 1 + IL.modValue("heavy", sp.tier) / 100 : 1;
+  }
+
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
-    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id);
+    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id) * specCd(u, ab.id);
     if (ab && ab.id) {
       u.swingTag = { id: ab.id, name: ab.name };
       if (!u.byAb) u.byAb = {};
@@ -2624,6 +2695,7 @@
       }
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);
+      if (u.vuln > 0) u.vuln = Math.max(0, u.vuln - dt);
       if (u.hp > 0 && u.regen) u.hp = Math.min(u.maxHp, u.hp + u.regen * dt);
       if (u.hp > 0 && u.bleed) {
         u.bleed.t -= dt;

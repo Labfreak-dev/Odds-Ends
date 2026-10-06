@@ -684,62 +684,165 @@
     return (ab.unlock || 1) <= (f.level || 1);
   }
 
-  function levelOffer(f) {
+  /* ---------- level up v2 (v64) ----------
+     Each pick is two parts, like the mercenary leagues it borrows from:
+     a stat roll weighted by growth style, and one skill from three
+     cards with a rarity. A skill is a new move, a specialization that
+     changes one equipped move, or a talent. Both parts can be rerolled
+     for gold. Everything is seeded so a reload shows the same screen. */
+  const RARITY = [
+    { id: "common", name: "Common", w: 62 },
+    { id: "rare", name: "Rare", w: 28 },
+    { id: "epic", name: "Epic", w: 9 },
+    { id: "legendary", name: "Legendary", w: 1 }
+  ];
+  const MODS = {
+    swift: { name: "Swift", vals: [12, 18, 25, 33], unit: "% shorter cooldown", any: true },
+    heavy: { name: "Heavy", vals: [15, 22, 30, 40], unit: "% more power", any: true },
+    vampiric: { name: "Vampiric", vals: [12, 18, 25, 35], unit: "% of its damage heals the user" },
+    chilling: { name: "Chilling", vals: [1, 1.5, 2, 2.5], unit: "s slow on every target hit" },
+    searing: { name: "Searing", vals: [15, 22, 30, 40], unit: "% of the hit burns again over 3s" },
+    sundering: { name: "Sundering", vals: [8, 12, 16, 22], unit: "% more damage taken by the target for 3s" }
+  };
+  const TALENTS = {
+    keen: { name: "Keen Eye", vals: [3, 5, 7, 10], unit: "% critical chance" },
+    ironhide: { name: "Iron Hide", vals: [1, 2, 3, 4], unit: " defense" },
+    vigor: { name: "Vigor", vals: [0.6, 1, 1.4, 2], unit: " health a second" },
+    thorns: { name: "Thorns", vals: [6, 9, 12, 16], unit: "% of melee damage taken is returned" },
+    bloodlust: { name: "Bloodlust", vals: [8, 12, 16, 22], unit: "% health back on a knockout" },
+    fleet: { name: "Fleet", vals: [3, 5, 7, 10], unit: "% move speed" }
+  };
+  const HEAL_KINDS = { mend: 1, heal: 1, shield: 1, buff: 1, taunt: 1, rage: 1, zone: 1, summon: 1 };
+
+  function rollRng(f, salt) {
+    return IL.mulberry32((IL.hashStr(String(f.id || "f") + ":" + salt + ":" + (f.levelsTaken || 0)) >>> 0) || 1);
+  }
+
+  function pickRarity(rng) {
+    let r = rng() * 100;
+    for (let i = 0; i < RARITY.length; i++) {
+      if (r < RARITY[i].w) return i;
+      r -= RARITY[i].w;
+    }
+    return 0;
+  }
+
+  function statRoll(f) {
+    const rng = rollRng(f, "roll" + (f.statRerolls || 0));
+    const w = (IL.STYLES[IL.styleOf(f)] || IL.STYLES.balanced).w;
+    const keys = ["hp", "atk", "def", "spd"];
+    const total = keys.reduce(function (n, k) { return n + w[k]; }, 0);
+    const pts = { hp: 0, atk: 0, def: 0, spd: 0 };
+    for (let i = 0; i < 2; i++) {
+      let r = rng() * total;
+      for (let k = 0; k < keys.length; k++) {
+        if (r < w[keys[k]]) { pts[keys[k]]++; break; }
+        r -= w[keys[k]];
+      }
+    }
+    return pts;
+  }
+
+  function skillOffer(f) {
     ensureMoves(f);
+    const rng = rollRng(f, "skill" + (f.skillRerolls || 0));
     const pool = poolOf(f.cls);
     const byId = {};
     pool.forEach(function (ab) { if (ab && ab.id) byId[ab.id] = ab; });
-    const rng = IL.mulberry32((IL.hashStr(String(f.id || "f") + ":lv:" + (f.levelsTaken || 0)) >>> 0) || 1);
-    const ranked = f.known.map(function (id) { return byId[id]; }).filter(function (ab) {
-      return ab && ab.cd && usable(f, ab) && rankOf(f, ab.id) < RANK_MAX;
-    });
-    const equipped = ranked.filter(function (ab) { return f.loadout.indexOf(ab.id) >= 0; });
+    const specs = f.specs || {};
+    const owned = {};
+    (f.talents || []).forEach(function (t) { owned[t.id] = true; });
     const fresh = pool.filter(function (ab) { return ab && ab.cd && f.known.indexOf(ab.id) < 0; });
+    const specable = f.loadout.map(function (id) { return byId[id]; }).filter(function (ab) {
+      return ab && ab.cd && usable(f, ab) && !specs[ab.id];
+    });
+    const talentIds = Object.keys(TALENTS).filter(function (id) { return !owned[id]; });
     const cards = [];
     const used = {};
-    function take(list, kind) {
-      const open = list.filter(function (ab) { return !used[kind + ab.id]; });
+    function addLearn(tier) {
+      const open = fresh.filter(function (ab) { return !used["l" + ab.id]; });
       if (!open.length) return false;
       const ab = open[Math.floor(rng() * open.length)];
-      used[kind + ab.id] = true;
-      if (kind === "rank") cards.push({ kind: "rank", id: ab.id, from: rankOf(f, ab.id), to: rankOf(f, ab.id) + 1 });
-      else cards.push({ kind: "learn", id: ab.id });
+      used["l" + ab.id] = true;
+      cards.push({ kind: "learn", id: ab.id, tier: ab.ult ? Math.max(tier, 2) : tier });
       return true;
     }
-    if (!take(equipped, "rank") && !take(ranked, "rank")) take(fresh, "learn");
-    if (!take(fresh, "learn")) take(ranked, "rank") || take(equipped, "rank");
-    const third = rng() < 0.5 ? "spd" : "def";
-    const stats = ["hp", "dmg", third];
-    const key = stats[Math.floor(rng() * stats.length)];
-    cards.push({ kind: "stat", key: key });
-    while (cards.length < 3) {
-      const left = stats.filter(function (k) { return !cards.some(function (c) { return c.kind === "stat" && c.key === k; }); });
-      cards.push({ kind: "stat", key: left[Math.floor(rng() * left.length)] || "hp" });
+    function addSpec(tier) {
+      const open = specable.filter(function (ab) { return !used["s" + ab.id]; });
+      if (!open.length) return false;
+      const ab = open[Math.floor(rng() * open.length)];
+      const mods = Object.keys(MODS).filter(function (m) { return MODS[m].any || !HEAL_KINDS[ab.kind]; });
+      const mod = mods[Math.floor(rng() * mods.length)];
+      used["s" + ab.id] = true;
+      cards.push({ kind: "spec", id: ab.id, mod: mod, tier: tier });
+      return true;
     }
+    function addTalent(tier) {
+      const open = talentIds.filter(function (id) { return !used["t" + id]; });
+      if (!open.length) return false;
+      const id = open[Math.floor(rng() * open.length)];
+      used["t" + id] = true;
+      cards.push({ kind: "talent", id: id, tier: tier });
+      return true;
+    }
+    const order = [addSpec, addLearn, addTalent];
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = order[i]; order[i] = order[j]; order[j] = t;
+    }
+    for (let i = 0; i < 3; i++) {
+      const tier = pickRarity(rng);
+      if (!order[i](tier)) {
+        if (!addSpec(tier) && !addLearn(tier)) addTalent(tier);
+      }
+    }
+    while (cards.length < 3 && addTalent(0)) { /* fill */ }
     return cards.slice(0, 3);
+  }
+
+  function levelOffer(f) {
+    return { roll: statRoll(f), cards: skillOffer(f) };
+  }
+
+  function rerollCost(f, part) {
+    const lv = f.level || 1;
+    return part === "stat" ? 10 + lv * 4 : 15 + lv * 5;
   }
 
   function applyLevelPick(f, index) {
     if (!f || !(f.pendingLevels > 0)) return null;
-    const card = levelOffer(f)[index];
+    const offer = levelOffer(f);
+    const card = offer.cards[index];
     if (!card) return null;
-    if (!f.ranks || typeof f.ranks !== "object") f.ranks = {};
-    if (!f.boosts) f.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
-    if (card.kind === "rank") {
-      f.ranks[card.id] = card.to;
-    } else if (card.kind === "learn") {
+    if (!f.rolls || typeof f.rolls !== "object") f.rolls = { hp: 0, atk: 0, def: 0, spd: 0 };
+    Object.keys(offer.roll).forEach(function (k) { f.rolls[k] = (f.rolls[k] || 0) + offer.roll[k]; });
+    if (card.kind === "learn") {
       if (!teachMove(f, card.id)) return null;
       if (f.loadout.length < 3) f.loadout.push(card.id);
-    } else {
-      f.boosts[card.key] = (f.boosts[card.key] || 0) + 1;
-      if (!Array.isArray(f.perks)) f.perks = [];
-      f.perks.push({ id: card.key, level: f.level || 1 });
+    } else if (card.kind === "spec") {
+      if (!f.specs || typeof f.specs !== "object") f.specs = {};
+      f.specs[card.id] = { mod: card.mod, tier: card.tier };
+    } else if (card.kind === "talent") {
+      if (!Array.isArray(f.talents)) f.talents = [];
+      f.talents.push({ id: card.id, tier: card.tier });
     }
     if (!Array.isArray(f.growth)) f.growth = [];
-    f.growth.push({ level: f.level || 1, kind: card.kind, id: card.id || card.key, to: card.to || 0 });
+    f.growth.push({ level: f.level || 1, kind: card.kind, id: card.id, mod: card.mod || null, tier: card.tier, roll: offer.roll });
     f.pendingLevels -= 1;
     f.levelsTaken = (f.levelsTaken || 0) + 1;
+    f.statRerolls = 0;
+    f.skillRerolls = 0;
     return card;
+  }
+
+  function modValue(mod, tier) {
+    const m = MODS[mod];
+    return m ? m.vals[Math.max(0, Math.min(3, tier | 0))] : 0;
+  }
+
+  function talentValue(id, tier) {
+    const t = TALENTS[id];
+    return t ? t.vals[Math.max(0, Math.min(3, tier | 0))] : 0;
   }
 
   function teachMove(f, id) {
@@ -887,6 +990,13 @@
   IL.rankOf = rankOf;
   IL.levelOffer = levelOffer;
   IL.applyLevelPick = applyLevelPick;
+  IL.statRoll = statRoll;
+  IL.rerollCost = rerollCost;
+  IL.RARITY = RARITY;
+  IL.MODS = MODS;
+  IL.TALENTS = TALENTS;
+  IL.modValue = modValue;
+  IL.talentValue = talentValue;
   IL.STAT_STEP = STAT_STEP;
   IL.teachMove = teachMove;
   IL.learnFromLevel = learnFromLevel;

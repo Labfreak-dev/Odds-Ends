@@ -1271,7 +1271,7 @@
     const place = Math.max(0, sorted.findIndex(function (c) { return c.you; }));
     const table = sorted.map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
@@ -1332,7 +1332,7 @@
     const done = save.round >= 5;
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
-      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + esc(c.name) + '</td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     const youNames = yours.length ? yours.map(function (f) { return f.name; }).join(" · ") : "Nobody slotted";
     const themNames = theirs.map(function (f) { return f.name; }).join(" · ");
@@ -2207,7 +2207,9 @@
         '<header class="creator-head"><h2>A perk for ' + esc(f.name) + '</h2></header>' +
         '<p class="banner">Level ' + f.level + '. ' + f.pendingPicks + ' choice' + (f.pendingPicks === 1 ? "" : "s") + ' waiting. Pick one of three.</p>' +
         '<div class="class-grid" id="growthChoices">' + buttons + '</div>' +
+        '<footer class="growth-actions"><button type="button" class="btn ghost" id="backHub">Back to club</button></footer>' +
       '</main>';
+    document.getElementById("backHub").onclick = function () { showHub(); };
     document.getElementById("growthChoices").onclick = function (ev) {
       const btn = ev.target.closest("[data-boost]");
       if (!btn) return;
@@ -2334,22 +2336,23 @@
           '<div class="timer" id="timer">0:00</div>' +
           '<div class="side them"><strong id="rightName"></strong><span id="rightHp"></span></div>' +
         '</header>' +
+        '<div class="hud-strip" id="liveYou"></div>' +
         '<div class="fight-layout">' +
           '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="result" class="result" hidden></div></div>' +
-          '<aside id="liveList"></aside>' +
         '</div>' +
+        '<div class="hud-strip" id="liveThem"></div>' +
         '<footer class="fight-controls">' +
           speedButtons() +
           '<button type="button" class="btn ghost" id="pause">Pause</button>' +
           '<button type="button" class="btn primary" id="skip">Skip</button>' +
         '</footer>' +
       '</main>';
-    document.getElementById("leftName").innerHTML = crestHtml(match.leftName, "sm", save.crest) + "<span>" + esc(match.leftName) + "</span>";
+    document.getElementById("leftName").innerHTML = crestHtml(match.leftName, "sm", save.crest) + '<span class="club-name">' + esc(match.leftName) + '</span>';
     const rightLabel = (match.teams || 2) > 2
       ? (match.names || []).slice(1).join(" · ")
       : match.rightName;
     const rightCrest = (match.teams || 2) > 2 ? "" : crestHtml(rightLabel, "sm", crestIndexOf(rightLabel));
-    document.getElementById("rightName").innerHTML = rightCrest + "<span>" + esc(rightLabel) + "</span>";
+    document.getElementById("rightName").innerHTML = rightCrest + '<span class="club-name">' + esc(rightLabel) + '</span>';
     [1, 2, 3].forEach(function (n) {
       const btn = document.getElementById("speed" + n);
       if (btn) btn.onclick = function () { setFightSpeed(n); };
@@ -2367,9 +2370,8 @@
       const row = '<div class="live ' + side + '" data-i="' + i + '"><b>' + esc(u.name) + marks + '</b><span class="hp-num"></span><small>' + esc(kit.name) + '</small><div class="track"><div class="fill"></div></div></div>';
       (u.team === 0 ? youRows : themRows).push(row);
     });
-    document.getElementById("liveList").innerHTML =
-      '<div class="hp-col"><p class="eyebrow">Your side</p>' + youRows.join("") + '</div>' +
-      '<div class="hp-col"><p class="eyebrow">Their side</p>' + themRows.join("") + '</div>';
+    document.getElementById("liveYou").innerHTML = '<p class="eyebrow">Your side</p>' + youRows.join("");
+    document.getElementById("liveThem").innerHTML = '<p class="eyebrow">Their side</p>' + themRows.join("");
   }
 
   function speedButtons() {
@@ -2494,7 +2496,7 @@
     const rh = document.getElementById("rightHp");
     if (lh) lh.textContent = teamHp(match, 0) + "%";
     if (rh) rh.textContent = teamHp(match, 1) + "%";
-    const rows = document.querySelectorAll("#liveList .live");
+    const rows = document.querySelectorAll(".fight-screen .live");
     for (let i = 0; i < rows.length; i++) {
       const u = match.units[+rows[i].dataset.i];
       if (!u) continue;
@@ -2723,30 +2725,39 @@
     box.classList.toggle("victory", win);
     box.classList.toggle("defeat", !win);
     box.innerHTML =
-      '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
-      '<h2>' + headline + '</h2>' +
-      tally.html +
-      (ups.length ? '<p class="level-call">Level up: ' + esc(ups.join(", ")) + '</p>' : '') +
-      (pendingGrowth().length ? '<p class="level-call">A perk is waiting.</p>' : '') +
-      (loot ? lootRevealHtml(loot) : '') +
-      '<ul class="payout" id="rewards">' +
-        '<li>+' + gold + ' gold</li>' +
-        '<li>+' + renown + ' renown</li>' +
-        '<li>' + xp + ' xp for each fighter you sent</li>' +
-        (relicNote ? '<li>' + esc(relicNote.trim()) + '</li>' : '') +
-      '</ul>' +
-      '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
-        (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +
-      '<p class="fine">' + esc(nextLine) + '</p>' +
-      '<button type="button" class="btn primary" id="backHub">' + (pendingGrowth().length ? "Choose a perk" : "Continue") + '</button>';
+      '<div class="result-scroll">' +
+        '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
+        '<h2>' + headline + '</h2>' +
+        tally.html +
+        (ups.length ? '<p class="level-call">Level up: ' + esc(ups.join(", ")) + '</p>' : '') +
+        (pendingGrowth().length ? '<p class="level-call">A perk is waiting.</p>' : '') +
+        (loot ? lootRevealHtml(loot) : '') +
+        '<ul class="payout" id="rewards">' +
+          '<li>+' + gold + ' gold</li>' +
+          '<li>+' + renown + ' renown</li>' +
+          '<li>' + xp + ' xp for each fighter you sent</li>' +
+          (relicNote ? '<li>' + esc(relicNote.trim()) + '</li>' : '') +
+        '</ul>' +
+        '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
+          (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +
+        '<p class="fine">' + esc(nextLine) + '</p>' +
+      '</div>' +
+      '<div class="result-actions">' +
+        (pendingGrowth().length ? '<button type="button" class="btn gold" id="pickPerk">Choose a perk</button>' : '') +
+        '<button type="button" class="btn primary" id="backHub">Back to club</button>' +
+      '</div>';
     animateXpBars();
     pitSound(win ? "victory" : "defeat");
     const skip = document.getElementById("skip");
     if (skip) skip.disabled = true;
+    const pickPerk = document.getElementById("pickPerk");
+    if (pickPerk) pickPerk.onclick = function () {
+      IL.currentMatch = null;
+      showGrowth();
+    };
     document.getElementById("backHub").onclick = function () {
       IL.currentMatch = null;
-      if (pendingGrowth().length) showGrowth();
-      else if (mode === "league" && save.round >= 5) showSeasonEnd();
+      if (mode === "league" && save.round >= 5) showSeasonEnd();
       else if (mode === "cup") showCup();
       else showHub();
     };
@@ -2803,6 +2814,13 @@
   function onHubKey(ev) {
     const tag = ev.target && ev.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const backHub = document.getElementById("backHub");
+    const resultBox = document.getElementById("result");
+    if (backHub && resultBox && !resultBox.hidden && (ev.key === "Escape" || ev.key === "Enter")) {
+      ev.preventDefault();
+      backHub.click();
+      return;
+    }
     if (ev.key === "Escape" && document.getElementById("versus")) {
       ev.preventDefault();
       const back = pendingSpec && pendingSpec.returnTab;

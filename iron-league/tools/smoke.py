@@ -524,14 +524,26 @@ def check_scroll(page, label):
     if not ready["ok"]:
         raise SystemExit(label + " could not scroll to the third train " + str(ready))
     before = ready["y"]
-    page.locator("#benchList [data-train]:not([disabled])").nth(2).click()
+    before_height = ready["scrollHeight"]
+    page.evaluate(
+        """() => {
+          const btn = document.querySelectorAll('#benchList [data-train]:not([disabled])')[2];
+          btn.click();
+        }"""
+    )
     page.wait_for_function(
         """() => JSON.parse(localStorage.getItem('ironleague.v1')).trainsLeft === 1"""
     )
-    page.wait_for_timeout(50)
-    after = page.evaluate("() => window.scrollY")
+    page.wait_for_timeout(80)
+    after_state = page.evaluate(
+        """() => ({ y: window.scrollY, h: document.documentElement.scrollHeight })"""
+    )
+    after = after_state["y"]
     if abs(after - before) > 2:
-        raise SystemExit(label + " scroll jumped " + str(before) + " -> " + str(after))
+        raise SystemExit(
+            label + " scroll jumped " + str(before) + " -> " + str(after)
+            + " height " + str(before_height) + " -> " + str(after_state["h"])
+        )
     page.set_viewport_size({"width": size["width"], "height": size["height"]})
     page.evaluate("(raw) => localStorage.setItem('ironleague.v1', raw)", saved)
     page.reload(wait_until="domcontentloaded")

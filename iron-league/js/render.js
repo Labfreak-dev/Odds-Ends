@@ -3,7 +3,7 @@
    stand in fully when a sheet has not loaded. */
 (function (root) {
   const IL = root.IL = root.IL || {};
-  const SCALE = 4;
+  const SCALE = 6;
   /* One knob for every screen shake. Hits add 3.2 (1.5 if blocked, cap 7)
      and cast blasts add 4 (cap 8) in game.js. 1 is that original kick.
      0.1 is a small nudge, not a shake. */
@@ -50,7 +50,7 @@
       fx.cam = {
         x: W.w / 2,
         y: (W.top + W.bottom) / 2,
-        viewW: view.cssW < 760 ? 680 : 1280
+        viewW: view.cssW < 760 ? 520 : 980
       };
     }
     const cam = fx.cam;
@@ -84,11 +84,11 @@
     const cy = sy / focus.length;
     const aspect = view.cssW / Math.max(1, view.cssH);
     const narrow = view.cssW < 760;
-    const spanW = (maxX - minX) + (narrow ? 200 : 380);
-    const spanH = (maxY - minY) + (narrow ? 140 : 280);
+    const spanW = (maxX - minX) + (narrow ? 150 : 260);
+    const spanH = (maxY - minY) + (narrow ? 120 : 220);
     let want = Math.max(spanW, spanH * aspect);
-    const minW = narrow ? 560 : 1180;
-    const maxW = narrow ? 860 : W.w;
+    const minW = narrow ? 460 : 900;
+    const maxW = narrow ? 720 : W.w;
     want = Math.max(minW, Math.min(maxW, want));
     const zoom = match.zoom || 0;
     if (zoom > 0) want *= 1 - 0.22 * Math.min(1, zoom);
@@ -499,43 +499,64 @@
 
     const order = match.units.slice().sort(function (a, b) { return a.y - b.y; });
     const ui = Math.max(0.85, Math.min(1.35, cam.viewW / 1200));
+    const shown = {};
     for (let i = 0; i < order.length; i++) {
       const u = order[i];
+      let x = u.x;
+      let y = u.y;
+      const gap = 16 * SCALE;
+      if (u.hp > 0) {
+        for (let j = 0; j < order.length; j++) {
+          const o = order[j];
+          if (o === u || o.hp <= 0 || o.team === u.team) continue;
+          const ox = shown[o.id] ? shown[o.id].x : o.x;
+          const oy = shown[o.id] ? shown[o.id].y : o.y;
+          const dx = x - ox;
+          const dy = y - oy;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d < gap) {
+            const push = (gap - d) * 0.5;
+            x += (dx / d) * push;
+            y += (dy / d) * push;
+          }
+        }
+      }
+      shown[u.id] = { x: x, y: y };
       const z = u.z || 0;
       const lift = z > 2 ? Math.max(0.45, 1 - z / 180) : 1;
       ctx.fillStyle = "rgba(0,0,0," + (0.28 + 0.16 * lift) + ")";
       ctx.beginPath();
-      ctx.ellipse(u.x, u.y + 2, (u.hp > 0 ? 16 : 22) * lift, 6 * lift, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y + 2, (u.hp > 0 ? 16 : 22) * lift, 6 * lift, 0, 0, Math.PI * 2);
       ctx.fill();
       if (u.iframe > 0 && u.hp > 0) {
         ctx.strokeStyle = "rgba(214, 186, 255, 0.55)";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(u.x, u.y + 2, 22, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 2, 22, 8, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
       const frame = IL.frameIndex(u.anim || "idle", u.animT || 0);
-      const gy = u.y - z;
+      const gy = y - z;
       if (u.sprite) {
         const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
-        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
+        IL.hero.draw(ctx, u.sprite, frame, x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
         if (u.flash > 0 && u.hp > 0) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
+          IL.hero.draw(ctx, u.sprite, frame, x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
           ctx.restore();
         }
       } else {
         ctx.fillStyle = u.team === 0 ? "#c4622d" : "#7f93b8";
         ctx.beginPath();
-        ctx.arc(u.x, gy - 28, 12, 0, Math.PI * 2);
+        ctx.arc(x, gy - 28, 12, 0, Math.PI * 2);
         ctx.fill();
       }
       drawBlock(ctx, u, fx);
       if (u.hp > 0) {
         const bw = 48 * ui;
-        const bx = Math.round(u.x - bw / 2);
+        const bx = Math.round(x - bw / 2);
         const by = Math.round(gy - 34 * SCALE - 10);
         ctx.fillStyle = "rgba(0,0,0,0.65)";
         ctx.fillRect(bx - 1, by - 1, bw + 2, 6);
@@ -544,9 +565,9 @@
         ctx.font = Math.round(13 * ui) + "px Palatino, Georgia, serif";
         ctx.textAlign = "center";
         ctx.fillStyle = "rgba(10,8,6,0.75)";
-        ctx.fillText(u.name, u.x + 1, by - 4);
+        ctx.fillText(u.name, x + 1, by - 4);
         ctx.fillStyle = "#f4ecdf";
-        ctx.fillText(u.name, u.x, by - 5);
+        ctx.fillText(u.name, x, by - 5);
         drawStatus(ctx, u, by);
         if (u.state === "cast" && u.cast && u.cast.dur > 0) {
           const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
@@ -560,7 +581,7 @@
           ctx.globalAlpha = a;
           ctx.font = "bold " + Math.round((u.banner.ult ? 16 : 13) * ui) + "px Palatino, Georgia, serif";
           ctx.fillStyle = u.banner.ult ? "#ffd27a" : "#f4ecdf";
-          ctx.fillText(u.banner.name, u.x, by - 16 - u.banner.t * 18);
+          ctx.fillText(u.banner.name, x, by - 16 - u.banner.t * 18);
           ctx.globalAlpha = 1;
         }
       }

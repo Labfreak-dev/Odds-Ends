@@ -463,45 +463,51 @@
     return String(name || "").trim().split(/\s+/)[0].toLowerCase();
   }
 
-  /* First names on a club card must not repeat. Re-roll, then a short suffix. */
+  /* A digit stuck on a first name is an old suffix (Quill2), not a person. */
+  function suffixedToken(token) {
+    const m = /^([a-z]+?)(\d+)$/.exec(token || "");
+    if (!m) return false;
+    const stem = m[1];
+    for (let i = 0; i < FIRST.length; i++) {
+      const name = FIRST[i].toLowerCase();
+      if (name === stem || name.slice(0, 5) === stem) return true;
+    }
+    return false;
+  }
+
+  function poolName(rng, used) {
+    for (let i = 0; i < 80; i++) {
+      const first = pick(rng, FIRST);
+      if (used[first.toLowerCase()]) continue;
+      return first + " " + pick(rng, LAST);
+    }
+    for (let i = 0; i < FIRST.length; i++) {
+      if (!used[FIRST[i].toLowerCase()]) return FIRST[i] + " " + pick(rng, LAST);
+    }
+    return pick(rng, FIRST) + " " + pick(rng, LAST);
+  }
+
+  /* First names on a club card must not repeat. Re-roll from the pool. */
   function uniqueName(rng, taken) {
     const used = {};
     (taken || []).forEach(function (n) {
       const key = firstToken(n);
       if (key) used[key] = true;
     });
-    for (let i = 0; i < 48; i++) {
-      const name = pick(rng, FIRST) + " " + pick(rng, LAST);
-      if (!used[firstToken(name)]) return name;
-    }
-    const base = pick(rng, FIRST);
-    for (let n = 2; n < 10; n++) {
-      const stem = base.length >= 6 ? base.slice(0, 5) : base;
-      const token = (stem + n).slice(0, 6);
-      if (!used[token.toLowerCase()]) return token + " " + pick(rng, LAST);
-    }
-    return pick(rng, FIRST) + " " + pick(rng, LAST);
+    return poolName(rng, used);
   }
 
   function dedupeNames(list) {
     const used = {};
     (list || []).forEach(function (f) {
       if (!f || typeof f.name !== "string") return;
-      const parts = f.name.trim().split(/\s+/);
-      let first = parts[0] || "Fighter";
-      const rest = parts.slice(1).join(" ");
-      let key = first.toLowerCase();
-      if (used[key]) {
-        const base = first;
-        for (let n = 2; n < 10; n++) {
-          const stem = base.length >= 6 ? base.slice(0, 5) : base;
-          const token = (stem + n).slice(0, 6);
-          if (!used[token.toLowerCase()]) { first = token; break; }
-        }
-        f.name = rest ? first + " " + rest : first;
-        key = first.toLowerCase();
+      let key = firstToken(f.name);
+      if (!key || used[key] || suffixedToken(key)) {
+        const seed = (hashStr(String(f.id || f.name || "f") + ":" + key) >>> 0) || 1;
+        f.name = poolName(mulberry32(seed), used);
+        key = firstToken(f.name);
       }
-      used[key] = true;
+      if (key) used[key] = true;
     });
     return list;
   }

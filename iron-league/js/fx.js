@@ -152,7 +152,10 @@
     ctx.globalAlpha = Math.max(0, Math.min(1, s.alpha * fade));
     if (s.additive) ctx.globalCompositeOperation = "lighter";
     ctx.imageSmoothingEnabled = false;
-    const d = s.size;
+    /* Preset sizes were tuned when a fighter was drawn at 6x into a
+       much larger world. The floor is now one sprite pixel per unit. */
+    const fit = (IL.BODY_H || 30) / 192;
+    const d = s.size * fit;
     ctx.drawImage(img, fi * fw, 0, fw, fw, Math.round(-d / 2), Math.round(-d / 2), d, d);
     ctx.restore();
     return true;

@@ -1,29 +1,65 @@
 /* Iron League — arena autobattler. Pure step(); no DOM.
-   The pit is wider than the old 960×600 well. A camera in render.js
-   follows the squads; units roam WORLD.left/right/top/bottom. */
+   The floor is a fixed 16:9 field in sprite pixels. A fighter's opaque
+   body is BODY_H, and the short side is 12 bodies: fourteen would be
+   420px, which cannot sit at 1x across a 360-wide phone once the floor
+   is turned. 12 is the large end of the 1/12–1/16 band. Squads spawn
+   on the far edges. The renderer shows the whole floor. */
 (function (root) {
   const IL = root.IL = root.IL || {};
 
-  const WORLD = { w: 1680, h: 1080, left: 150, right: 1530, top: 220, bottom: 920 };
+  const BODY_H = 30;
+  const BODY_W = 24;
+  const WORLD = { w: 640, h: 360, left: 20, right: 620, top: 24, bottom: 336 };
 
   function kitOf(cls) {
     return IL.CLASSES[cls] || IL.CLASSES.warrior;
   }
 
-  function placeUnit(team, slot, n, teams) {
+  function hangsBack(role) {
+    return role === "kite" || role === "cast" || role === "support";
+  }
+
+  function placeUnit(team, slot, n, teams, role) {
     const midY = (WORLD.top + WORLD.bottom) / 2;
     const midX = (WORLD.left + WORLD.right) / 2;
+    const spanX = WORLD.right - WORLD.left;
+    const spanY = WORLD.bottom - WORLD.top;
     if (!teams || teams <= 2) {
-      const spanY = n === 1 ? [0] : n === 2 ? [-150, 150] : [-210, 0, 210];
-      const spanX = WORLD.right - WORLD.left;
-      const x = team === 0 ? WORLD.left + spanX * 0.36 : WORLD.left + spanX * 0.64;
-      return { x: x + (team === 0 ? -1 : 1) * (slot * 22), y: midY + (spanY[slot] || 0) };
+      /* Melee steps off the edge. Ranged, casters, and supports stay on it.
+         The line is a tight rank, not three lanes, so the front actually
+         stands between the back line and the other team. */
+      const depth = hangsBack(role) ? 18 : 68;
+      const x = team === 0 ? WORLD.left + depth : WORLD.right - depth;
+      const yGap = 36;
+      let y = midY + (slot - (n - 1) / 2) * yGap;
+      if (y < WORLD.top + 10) y = WORLD.top + 10;
+      if (y > WORLD.bottom - 10) y = WORLD.bottom - 10;
+      return { x: x, y: y };
     }
     const ang = -Math.PI / 2 + (team / teams) * Math.PI * 2;
     return {
-      x: midX + Math.cos(ang) * 240 + (slot - (n - 1) / 2) * 28,
-      y: midY + Math.sin(ang) * 180 + (slot - (n - 1) / 2) * 16
+      x: midX + Math.cos(ang) * spanX * 0.46 + (slot - (n - 1) / 2) * 20,
+      y: midY + Math.sin(ang) * spanY * 0.42 + (slot - (n - 1) / 2) * 14
     };
+  }
+
+  /* Distance between team centers along the long axis, as a fraction of it. */
+  function teamSpread(units) {
+    const buckets = {};
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (!u || u.summon) continue;
+      if (!buckets[u.team]) buckets[u.team] = { n: 0, x: 0 };
+      buckets[u.team].n += 1;
+      buckets[u.team].x += u.x;
+    }
+    const means = [];
+    Object.keys(buckets).forEach(function (k) {
+      if (buckets[k].n) means.push(buckets[k].x / buckets[k].n);
+    });
+    if (means.length < 2) return 1;
+    means.sort(function (a, b) { return a - b; });
+    return (means[means.length - 1] - means[0]) / WORLD.w;
   }
 
   function scaledStats(fighter, kit) {
@@ -76,7 +112,7 @@
     const kit = kitOf(fighter.cls);
     const lv = fighter.level || 1;
     const stats = scaledStats(fighter, kit);
-    const pos = placeUnit(team, slot, n, teams);
+    const pos = placeUnit(team, slot, n, teams, kit.role);
     const u = {
       id: fighter.id || ("u" + team + slot),
       name: fighter.name || "Fighter",
@@ -89,6 +125,8 @@
       tactic: fighter.tactic || "strike",
       x: pos.x,
       y: pos.y,
+      homeX: pos.x,
+      homeY: pos.y,
       vx: 0,
       vy: 0,
       z: 0,
@@ -370,8 +408,9 @@
       shots: [],
       events: [],
       time: 0,
-      engage: 1.15,
-      engageMax: 1.15,
+      engage: 0.3,
+      engageMax: 0.3,
+      spawnSpread: teamSpread(units),
       pit: (opts.seed >>> 0) % 5,
       zoom: 0,
       cheer: 0,
@@ -497,6 +536,8 @@
     return kit.run || "run";
   }
   function moveSpeed(u) {
+    /* Locomotion only. Damage, cooldowns, and cast times are untouched.
+       Both fronts already close the gap in a couple of seconds at kit speed. */
     let s = u.speed;
     if (u.slow > 0) s *= 0.62;
     if (u.rage > 0) s *= 1.08;
@@ -2086,11 +2127,15 @@
       } else if (dist <= reach + 8 && u.cool <= 0 && !ally) {
         startAttack(u, "atk1", t);
         return;
-      } else if (dist < 78) {
-        steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
+      } else if (ally) {
+        /* Stand just behind the wounded ally, on the home side of them. */
+        const bx = ally.x + (u.team === 0 ? -28 : 28);
+        steer(u, bx, ally.y, spd * 0.9, dt);
       } else {
-        const anchor = ally || u;
-        steer(u, anchor.x + (u.x >= t.x ? 36 : -36), anchor.y, spd * 0.9, dt);
+        /* Hold the edge. Walking backward only piles them on the wall. */
+        const hx = u.homeX != null ? u.homeX : u.x;
+        const hy = u.homeY != null ? u.homeY : u.y;
+        steer(u, hx, hy, spd * 0.9, dt);
       }
     } else if (u.role === "hybrid") {
       const hy = standAt(u, t);
@@ -2119,15 +2164,15 @@
         let dx = b.x - a.x;
         let dy = b.y - a.y;
         let dist = Math.hypot(dx, dy);
-        const min = a.radius + b.radius;
-        if (dist >= min) continue;
+        const gap = Math.max(a.radius + b.radius, 1.2 * BODY_W);
+        if (dist >= gap) continue;
         if (dist < 0.001) {
           dx = b.x === a.x ? ((b.team - a.team) || 1) : (b.x > a.x ? 1 : -1);
           dy = 0;
           dist = 1;
         }
-        const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.45;
-        const push = (min - dist) * slip;
+        const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.55;
+        const push = (gap - dist) * slip;
         const nx = dx / dist;
         const ny = dy / dist;
         a.x -= nx * push;
@@ -2261,7 +2306,7 @@
         const u = m.units[i];
         if (u.homeX == null) { u.homeX = u.x; u.homeY = u.y; }
         const side = u.facing > 0 ? -1 : 1;
-        u.x = u.homeX + side * 240 * Math.max(0, k);
+        u.x = u.homeX + side * 16 * Math.max(0, k);
         u.y = u.homeY;
         u.anim = k > 0.12 ? "run" : idleClip(u);
         u.animT += dt;
@@ -2411,10 +2456,13 @@
     else if (ab.kind === "bolt" || ab.kind === "dot" || ab.kind === "debuff" || ab.kind === "arc" || ab.kind === "nova" || ab.kind === "frost" || ab.kind === "fireball") {
       dist = Math.max(70, Math.min(u.range || 180, 170));
     }
-    u.x = 700;
-    u.y = 560;
-    foe.x = u.x + dist;
-    foe.y = 560;
+    const midX = (WORLD.left + WORLD.right) / 2;
+    const midY = (WORLD.top + WORLD.bottom) / 2;
+    const gap = Math.min(dist, (WORLD.right - WORLD.left) - 48);
+    u.x = midX - gap / 2;
+    u.y = midY;
+    foe.x = midX + gap / 2;
+    foe.y = midY;
     u.facing = 1;
     foe.facing = -1;
     if (!ab) {
@@ -2440,6 +2488,9 @@
   }
 
   IL.showcase = showcase;
+  IL.BODY_H = BODY_H;
+  IL.BODY_W = BODY_W;
+  IL.teamSpread = teamSpread;
   IL.WORLD = WORLD;
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;

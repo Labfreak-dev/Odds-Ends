@@ -379,31 +379,15 @@
     return looksFor(cls)[0];
   }
 
-  /* Ranged kinds loose an arrow or fire. A spear or dagger stays on the
-     thrust rows. Everyone else swings. Kind overrides the class default
+  /* Attack clips pick a sheet column in weapons.column so a baked sword is
+     not drawn on a mage, an axe, or a staff. Kind overrides the class default
      when a fighter has a weapon equipped. */
   function visualMotion(clip, cls, sheet, kind) {
     const held = kind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[cls]) || "";
-    const ranged = held === "bow" || held === "gun" ||
-      cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger";
-    if (clip === "atk1" && ranged) {
-      const wantGun = held === "gun" || (!held && (cls === "skirmisher" || cls === "gunslinger"));
-      if (wantGun) {
-        if (sheetHasGun(sheet)) return "gun";
-        if (sheetHasBow(sheet)) return "bow";
-      } else if (held === "bow" || cls === "archer" || cls === "ranger") {
-        if (sheetHasBow(sheet)) return "bow";
-        if (sheetHasGun(sheet)) return "gun";
-      }
-    }
-    if (held === "spear" || held === "dagger") {
-      if (clip === "atk2" || clip === "atk3" || clip === "air2") return "atk2";
-      if (clip === "atk1" || clip === "air1") return "atk1";
-    }
-    if (held === "axe" || held === "mace") {
-      if (clip === "atk1" || clip === "air1") return "atk2";
-    }
-    return CLIP_MOTION[clip] || "idle1";
+    const base = CLIP_MOTION[clip] || "idle1";
+    const attack = clip === "atk1" || clip === "atk2" || clip === "atk3" || clip === "air1" || clip === "air2";
+    if (attack && IL.weapons && IL.weapons.column) return IL.weapons.column(held, base, sheet);
+    return base;
   }
 
   /* Bow's third frame is the loose. Sword and gun connect on the middle frame.

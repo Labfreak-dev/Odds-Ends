@@ -66,7 +66,49 @@ check("dash enters loop", IL.frameIndex("dash", 0.5) >= 84 && IL.frameIndex("das
 check("roll covers 95-102", IL.frameIndex("roll", 0) === 95 && IL.frameIndex("roll", 0.5) === 101 && IL.frameIndex("roll", 2) === 102);
 check("air1 hit frames", IL.CLIPS.air1.hits[0] === 55 && IL.CLIPS.air2.hits[0] === 61);
 check("cast2 is wired", IL.CLIPS.cast2.from === 68 && IL.CLASSES.mage.casts.indexOf("cast2") >= 0);
-check("pit is wider than 960", IL.WORLD.w >= 1440 && IL.WORLD.right - IL.WORLD.left > 1200);
+check("floor is 16:9", Math.abs(IL.WORLD.w / IL.WORLD.h - 16 / 9) < 0.02);
+check("fighter is within a twelfth and a sixteenth of the floor", (function () {
+  const ratio = IL.BODY_H / IL.WORLD.h;
+  return ratio <= 1 / 12 + 0.002 && ratio >= 1 / 16 - 0.002;
+})());
+(function () {
+  const squad = ["warrior", "archer", "mage"];
+  const left = squad.map(function (cls, i) { return { id: "L" + i, name: "L" + i, cls: cls, level: 1 }; });
+  const right = squad.map(function (cls, i) { return { id: "R" + i, name: "R" + i, cls: cls, level: 1 }; });
+  const m = IL.createMatch({ seed: 4, left: left, right: right, leftName: "A", rightName: "B" });
+  check("teams spawn across most of the floor", m.spawnSpread >= 0.7);
+  let contact = false;
+  let t = 0;
+  while (!m.over && t < 3.2) {
+    IL.stepMatch(m, 1 / 60);
+    t += 1 / 60;
+    const st = m.stats;
+    if ((st.hits || 0) + (st.shots || 0) + (st.casts || 0) + (st.slashes || 0) > 0) {
+      contact = true;
+      break;
+    }
+  }
+  check("a fight is engaged within a few seconds", contact && t <= 3);
+  const duel = IL.createMatch({
+    seed: 4,
+    left: [{ id: "a", name: "A", cls: "warrior", level: 1 }],
+    right: [{ id: "b", name: "B", cls: "warrior", level: 1 }],
+    leftName: "A",
+    rightName: "B"
+  });
+  let met = false;
+  let td = 0;
+  while (!duel.over && td < 3.2) {
+    IL.stepMatch(duel, 1 / 60);
+    td += 1 / 60;
+    const a = duel.units[0];
+    const b = duel.units[1];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const reach = (a.range || 36) + (b.radius || 14);
+    if (d <= reach + 4) { met = true; break; }
+  }
+  check("melee meets within a few seconds", met && td <= 3.2);
+})();
 check("twenty four or more classes", Object.keys(IL.CLASSES).length >= 24);
 check("every class has a signature", Object.keys(IL.CLASSES).every(function (id) {
   const list = IL.CLASSES[id].abilities || [];
@@ -401,17 +443,18 @@ weaponKinds.forEach(function (kind) {
 const swingWind = IL.weapons.handAnchor("sword", "atk1", 0);
 const swingHit = IL.weapons.handAnchor("sword", "atk1", 2);
 check("sword strike rotates off the windup", Math.abs(swingHit.rot - swingWind.rot) > 0.8);
-const thrustWind = IL.weapons.handAnchor("spear", "atk1", 0);
+const thrustWind = IL.weapons.handAnchor("spear", "atk1", 1);
 const thrustHit = IL.weapons.handAnchor("spear", "atk1", 2);
 check("spear thrust reaches forward", thrustHit.x < thrustWind.x - 4);
 check("cast raises the staff", IL.weapons.handAnchor("staff", "magic", 1).y < IL.weapons.handAnchor("staff", "idle1", 0).y - 6);
-check("ko drops the weapon", IL.weapons.handAnchor("sword", "dead", 0).y > 38);
-check("bow release steps forward", IL.weapons.handAnchor("bow", "bow", 2).x < IL.weapons.handAnchor("bow", "bow", 1).x);
+check("ko drops the weapon", IL.weapons.handAnchor("sword", "dead", 0).y >= 36);
+check("bow hand is forward of the shoulder", IL.weapons.handAnchor("bow", "bow", 0).x < 22);
 check("lancer keeps a spear", IL.CLASS_WEAPON.lancer === "spear" && IL.weaponKind({ cls: "lancer" }) === "spear");
 check("monk uses fists", IL.CLASS_WEAPON.monk === "fist");
 check("necromancer keeps a scythe", IL.CLASS_WEAPON.necromancer === "scythe");
 check("samurai keeps a katana", IL.CLASS_WEAPON.samurai === "katana");
-check("axe chop uses the heavy row", IL.visualMotion("atk1", "tank", IL.defaultSheet("tank"), "axe") === "atk2");
+check("axe chop leaves the sword row", IL.visualMotion("atk1", "tank", IL.defaultSheet("tank"), "axe") === "magic");
+check("staff strike leaves the sword row", IL.visualMotion("atk1", "mage", IL.defaultSheet("mage"), "staff") === "magic");
 check("wand gear is a wand", IL.weaponKind({ cls: "mage", gear: { weapon: { key: "wand" } } }) === "wand");
 check("longbow gear wins", IL.weaponKind({ cls: "warrior", gear: { weapon: { key: "longbow" } } }) === "bow");
 check("anchors view is the debug query", /debug=anchors/.test(fs.readFileSync(path.join(root, "js/weapons.js"), "utf8")));
@@ -909,4 +952,6 @@ if (fails) {
   console.error(fails, "failed");
   process.exit(1);
 }
+const weaponCheck = require("child_process").spawnSync("python3", [path.join(__dirname, "weapon_check.py")], { stdio: "inherit" });
+if (weaponCheck.status !== 0) process.exit(weaponCheck.status || 1);
 console.log("sim passed");

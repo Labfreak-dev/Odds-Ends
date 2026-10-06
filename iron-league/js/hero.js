@@ -77,12 +77,16 @@
     if (!held && cls && IL.weaponKind) held = IL.weaponKind({ cls: cls });
     let motion = IL.visualMotion(name, cls, sheet, held);
     if (motionHint && COL[motionHint] != null) motion = motionHint;
+    if (held && IL.weapons && IL.weapons.column) motion = IL.weapons.column(held, motion, sheet);
     const sub = IL.visualSample(name, motion, frame - clip.from);
     const col = COL[motion];
     if (col == null) return;
     const s = scale || 4;
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
+    /* A portrait floor swaps the axes so the long side runs down the
+       screen. Swap back around the sprite so the head stays up. */
+    if (IL.pitTurn) ctx.transform(0, 1, 1, 0, 0, 0);
     /* Sheets face left. Mirror the left team so they look toward +x.
        The right team (facing < 0) stays as painted and looks toward -x. */
     ctx.scale(facing < 0 ? 1 : -1, 1);

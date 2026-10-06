@@ -720,7 +720,7 @@ button:disabled, .btn:disabled {
 .btn.fight:not(:disabled), #skip:not(:disabled) {
   cursor: url("../assets/ui/cursors/cursor_sword.png") 0 0, pointer;
 }
-.portrait, .class-card, .look, .crest-pick button, #clubYard {
+.portrait, .class-card, .look, .crest-pick button {
   cursor: url("../assets/ui/cursors/cursor_target.png") 0 0, pointer;
 }
 #credits, #settings {
@@ -1782,8 +1782,6 @@ td.club-cell .club-name,
   .fight-screen #arena { width: 100%; height: 100%; }
 }
 
-#clubYardWrap { margin: 0; }
-#clubYardWrap .fine { margin: 0 0 4px; }
 .synergy { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
 .trait, .trait-line { color: var(--muted); font-size: 13px; }
 .trait.on { color: var(--copper-2); }
@@ -1796,15 +1794,6 @@ td.club-cell .club-name,
 .loadout-picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
 .loadout-picks .chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
 .loadout-picks small { color: inherit; opacity: 0.8; font-size: 11px; }
-#clubYard {
-  width: 100%;
-  max-width: 640px;
-  height: auto;
-  display: block;
-  background: #1a120e;
-  border-radius: 0;
-}
-
 /* Ink stays inside the 9-slice. Padding clears the frame; tables cannot grow past it. */
 .panel-frame,
 .picker,
@@ -2848,15 +2837,32 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   max-height: none;
   object-fit: fill;
 }
-
-#clubPane > .subtabs {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  margin: 0 0 8px;
-  padding: 4px 0;
-  background: #14110e;
+/* The floor needs the column. Names live in the thin roster strips. */
+.fight-screen {
+  position: relative;
+  gap: 2px;
+  padding: 2px 0 calc(2px + env(safe-area-inset-bottom));
 }
+.fight-screen .bar { padding: 0 8px; }
+.fight-screen .hazard-line {
+  position: absolute;
+  z-index: 4;
+  left: 8px;
+  right: 8px;
+  top: 36px;
+  margin: 0;
+  pointer-events: none;
+}
+.fight-screen .hud-strip {
+  max-height: 32px;
+  padding: 0 6px;
+  gap: 4px;
+}
+.fight-screen .hud-strip .eyebrow { display: none; }
+.fight-screen .hud-strip .live { flex: 1 1 0; }
+.fight-screen .live.hot b { color: var(--copper-2); }
+.fight-screen .fight-controls { padding: 0 6px; }
+
 .stat-list {
   margin: 0;
   padding: 0;

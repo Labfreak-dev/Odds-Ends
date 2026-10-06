@@ -53,68 +53,187 @@
     star: "dagger"
   };
 
-  /* Grip in the 48×48 cell, rotation in radians. Sprites point along +x
-     (a bow is drawn vertical and uses a rotation near 0). PI aims a
-     right-pointing blade to the left, which is forward on an unmirrored sheet. */
-  function row(a, b, c) { return [a, b, c]; }
+  /* Fist pixel in the 48×48 cell, measured on sheet 1_1 and checked on all
+     80 sheets (tools/hand_probe.py). Characters face left, so smaller x is
+     forward. For a non-native sprite, rot is the canvas direction the weapon
+     should point: 0 right, PI/2 down, PI left (forward), -PI/2 up. The
+     sprite's own angle is added in spinOf and cancels its drawn tilt. */
   function grip(x, y, rot) { return [x, y, rot]; }
+  const PI = Math.PI;
+  const LEFT = PI;
+  const UP = -PI / 2;
 
-  const SWING = {
-    idle1: row(grip(18, 27, 2.55), grip(17, 26, 2.45), grip(18, 28, 2.65)),
-    idle2: row(grip(18, 26, 2.5), grip(17, 25, 2.7), grip(18, 28, 2.4)),
-    walk: row(grip(18, 25, 2.4), grip(17, 29, 2.7), grip(19, 26, 2.45)),
-    atk1: row(grip(26, 16, -0.7), grip(18, 13, -1.8), grip(11, 27, 2.75)),
-    atk2: row(grip(24, 14, -0.45), grip(16, 18, 2.15), grip(10, 28, 2.95)),
-    bow: row(grip(16, 22, -1.57), grip(18, 22, -1.5), grip(12, 21, -1.57)),
-    gun: row(grip(14, 23, 3.14), grip(15, 22, 3.05), grip(10, 22, 3.14)),
-    hit: row(grip(22, 30, 2.1), grip(24, 32, 1.7), grip(23, 33, 1.5)),
-    crouch: row(grip(16, 32, 2.4), grip(15, 33, 2.55), grip(16, 31, 2.35)),
-    magic: row(grip(22, 16, -1.15), grip(20, 12, -1.35), grip(18, 14, -1.05)),
-    cheer: row(grip(18, 14, -1.2), grip(16, 12, -1.45), grip(18, 15, -1.1)),
-    dead: row(grip(14, 42, 0.55), grip(14, 42, 0.55), grip(14, 42, 0.55))
+  const HAND = {
+    idle1: [[16, 34], [16, 34], [16, 33]],
+    idle2: [[16, 34], [16, 33], [16, 34]],
+    walk: [[20, 34], [19, 34], [20, 35]],
+    atk1: [[19, 37], [28, 31], [19, 37]],
+    atk2: [[26, 35], [25, 22], [24, 35]],
+    bow: [[16, 29], [15, 30], [16, 30]],
+    gun: [[17, 33], [17, 33], [16, 33]],
+    hit: [[18, 33], [18, 30], [19, 29]],
+    crouch: [[19, 38], [18, 37], [19, 38]],
+    magic: [[18, 23], [18, 23], [18, 23]],
+    cheer: [[30, 23], [30, 29], [31, 25]],
+    dead: [[23, 37], [23, 37], [23, 37]]
   };
 
-  function copyPose(src) {
+  /* Back hand, where a staff, spear, or bow also needs a grip. Same cells. */
+  const BACK = {
+    idle1: [[31, 33], [31, 33], [31, 32]],
+    idle2: [[33, 33], [33, 32], [33, 33]],
+    walk: [[28, 33], [30, 34], [28, 36]],
+    atk1: [[20, 38], [17, 31], [19, 37]],
+    atk2: [[24, 26], [25, 35], [22, 26]],
+    bow: [[32, 26], [30, 29], [32, 29]],
+    gun: [[26, 33], [26, 33], [24, 33]],
+    hit: [[30, 33], [33, 30], [34, 29]],
+    crouch: [[22, 30], [22, 30], [22, 31]],
+    magic: [[31, 23], [31, 23], [31, 23]],
+    cheer: [[24, 34], [24, 35], [24, 35]],
+    dead: [[32, 39], [32, 39], [32, 39]]
+  };
+
+  function pose(rots) {
     const out = {};
-    const keys = Object.keys(src);
-    for (let i = 0; i < keys.length; i++) out[keys[i]] = src[keys[i]];
+    const keys = Object.keys(HAND);
+    for (let i = 0; i < keys.length; i++) {
+      const motion = keys[i];
+      const xy = HAND[motion];
+      const r = rots[motion];
+      out[motion] = [
+        grip(xy[0][0], xy[0][1], r[0]),
+        grip(xy[1][0], xy[1][1], r[1]),
+        grip(xy[2][0], xy[2][1], r[2])
+      ];
+    }
     return out;
   }
 
-  const THRUST = copyPose(SWING);
-  THRUST.idle1 = row(grip(16, 26, 3.05), grip(16, 25, 3.0), grip(17, 27, 3.1));
-  THRUST.idle2 = row(grip(16, 25, 3.0), grip(17, 26, 3.08), grip(16, 27, 2.95));
-  THRUST.walk = row(grip(17, 25, 2.9), grip(15, 27, 3.14), grip(16, 24, 2.85));
-  THRUST.atk1 = row(grip(20, 24, 2.7), grip(14, 23, 3.14), grip(8, 22, 3.14));
-  THRUST.atk2 = row(grip(22, 22, 2.5), grip(13, 22, 3.14), grip(7, 22, 3.14));
-  THRUST.dead = row(grip(12, 43, 0.3), grip(12, 43, 0.3), grip(12, 43, 0.3));
+  /* Low and forward on idle, bobbing on the walk, raised on the wind-up,
+     extended toward the foe on the strike. Magic is the empty-hands chop. */
+  const SWING = pose({
+    idle1: [2.85, 2.7, 2.95],
+    idle2: [2.8, 3.0, 2.75],
+    walk: [2.7, 3.05, 2.6],
+    atk1: [-0.9, -2.2, 2.9],
+    atk2: [-0.6, 2.4, 3.0],
+    bow: [UP, UP, LEFT],
+    gun: [LEFT, LEFT, LEFT],
+    hit: [1.5, 1.8, 2.1],
+    crouch: [2.9, 3.05, 2.8],
+    magic: [-2.05, -2.2, 2.9],
+    cheer: [UP, -1.2, -1.8],
+    dead: [2.75, 2.75, 2.75]
+  });
 
-  const BOW = copyPose(SWING);
-  BOW.idle1 = row(grip(15, 24, 0.05), grip(15, 23, -0.06), grip(16, 25, 0.08));
-  BOW.idle2 = row(grip(15, 23, 0.02), grip(16, 24, 0.1), grip(15, 25, -0.04));
-  BOW.walk = row(grip(16, 23, 0.12), grip(14, 26, -0.08), grip(15, 24, 0.04));
-  BOW.bow = row(grip(16, 22, 0.02), grip(19, 22, 0.18), grip(11, 21, -0.02));
-  BOW.dead = row(grip(18, 42, 1.2), grip(18, 42, 1.2), grip(18, 42, 1.2));
+  /* A spear stands up from the fist. A dagger stays low and forward. */
+  const THRUST = pose({
+    idle1: [2.95, 3.05, 2.85],
+    idle2: [3.0, 2.9, 3.1],
+    walk: [2.85, 3.14, 2.7],
+    atk1: [-0.5, -1.8, LEFT],
+    atk2: [-0.4, 2.2, LEFT],
+    bow: [UP, UP, LEFT],
+    gun: [LEFT, LEFT, LEFT],
+    hit: [1.4, 1.7, 2.0],
+    crouch: [2.9, 3.0, 2.8],
+    magic: [-1.9, -2.1, 2.9],
+    cheer: [-1.4, -1.2, -1.7],
+    dead: [2.7, 2.7, 2.7]
+  });
 
-  const GUN = copyPose(THRUST);
-  GUN.idle1 = row(grip(14, 24, 3.05), grip(14, 23, 3.0), grip(15, 25, 3.1));
-  GUN.gun = row(grip(16, 23, 2.9), grip(14, 22, 3.14), grip(9, 22, 3.14));
+  const SPEAR = pose({
+    idle1: [-2.15, -2.0, -2.3],
+    idle2: [-2.05, -2.25, -1.9],
+    walk: [-2.15, -2.35, -2.05],
+    atk1: [-0.4, -1.7, LEFT],
+    atk2: [-0.3, -1.4, LEFT],
+    bow: [UP, UP, UP],
+    gun: [LEFT, LEFT, LEFT],
+    hit: [1.3, 1.6, 1.9],
+    crouch: [-2.0, -1.85, -2.15],
+    magic: [-1.3, -1.57, -2.2],
+    cheer: [-1.2, -1.5, -1.1],
+    dead: [2.6, 2.6, 2.6]
+  });
 
-  const STAFF = copyPose(SWING);
-  STAFF.idle1 = row(grip(20, 24, -1.45), grip(20, 23, -1.55), grip(19, 25, -1.35));
-  STAFF.idle2 = row(grip(20, 23, -1.5), grip(21, 22, -1.35), grip(19, 25, -1.6));
-  STAFF.walk = row(grip(20, 22, -1.4), grip(19, 26, -1.6), grip(21, 23, -1.3));
-  STAFF.magic = row(grip(22, 18, -1.2), grip(20, 10, -1.45), grip(18, 12, -1.15));
-  STAFF.dead = row(grip(16, 43, 0.2), grip(16, 43, 0.2), grip(16, 43, 0.2));
+  /* Native bow art already points up. rot is only a small extra tilt. */
+  const BOW = pose({
+    idle1: [0.04, -0.06, 0.08],
+    idle2: [0.02, 0.1, -0.04],
+    walk: [0.12, -0.08, 0.04],
+    atk1: [0.0, 0.12, 0.0],
+    atk2: [0.0, 0.1, 0.0],
+    bow: [0.0, 0.16, -0.02],
+    gun: [0.0, 0.0, 0.0],
+    hit: [0.4, 0.7, 0.9],
+    crouch: [0.15, 0.2, 0.1],
+    magic: [-0.2, -0.05, 0.1],
+    cheer: [-0.15, 0.05, -0.1],
+    dead: [-1.5, -1.5, -1.5]
+  });
 
-  const BOOK = copyPose(STAFF);
-  BOOK.idle1 = row(grip(18, 26, -0.4), grip(18, 25, -0.5), grip(17, 27, -0.3));
-  BOOK.magic = row(grip(20, 18, -0.9), grip(18, 12, -1.15), grip(19, 14, -0.8));
+  const GUN = pose({
+    idle1: [LEFT, LEFT - 0.08, LEFT + 0.06],
+    idle2: [LEFT + 0.04, LEFT - 0.06, LEFT],
+    walk: [LEFT + 0.1, LEFT - 0.12, LEFT + 0.02],
+    atk1: [LEFT - 0.15, LEFT, LEFT],
+    atk2: [LEFT - 0.2, LEFT, LEFT],
+    bow: [LEFT, LEFT, LEFT],
+    gun: [LEFT - 0.05, LEFT, LEFT],
+    hit: [1.6, 1.9, 2.2],
+    crouch: [LEFT + 0.15, LEFT + 0.2, LEFT + 0.1],
+    magic: [LEFT, LEFT, LEFT],
+    cheer: [-1.2, -0.8, -1.4],
+    dead: [2.9, 2.9, 2.9]
+  });
 
-  const FIST = copyPose(THRUST);
-  FIST.idle1 = row(grip(16, 28, 3.14), grip(17, 27, 3.0), grip(16, 29, 2.9));
-  FIST.atk1 = row(grip(20, 26, 2.8), grip(14, 25, 3.14), grip(9, 24, 3.14));
-  FIST.atk2 = row(grip(18, 20, -1.2), grip(14, 22, 2.4), grip(10, 26, 3.14));
+  /* A staff stands up out of the low fist, and rises with the cast. */
+  const STAFF = pose({
+    idle1: [-2.15, -2.0, -2.3],
+    idle2: [-2.05, -2.25, -1.95],
+    walk: [-2.05, -2.25, -1.95],
+    atk1: [-1.1, -1.57, -2.35],
+    atk2: [-0.9, -1.7, -2.2],
+    bow: [UP, UP, UP],
+    gun: [LEFT, LEFT, LEFT],
+    hit: [1.15, 1.45, 1.75],
+    crouch: [-2.0, -1.85, -2.15],
+    magic: [-1.9, -2.15, -2.45],
+    cheer: [-1.6, -1.3, -1.8],
+    dead: [2.7, 2.7, 2.7]
+  });
+
+  const BOOK = pose({
+    idle1: [-0.35, -0.5, -0.25],
+    idle2: [-0.4, -0.25, -0.45],
+    walk: [-0.3, -0.55, -0.2],
+    atk1: [-0.7, -0.9, -0.5],
+    atk2: [-0.6, -0.85, -0.45],
+    bow: [-0.2, -0.2, -0.2],
+    gun: [0, 0, 0],
+    hit: [0.4, 0.6, 0.8],
+    crouch: [-0.2, -0.3, -0.15],
+    magic: [-0.85, -1.05, -0.7],
+    cheer: [-0.6, -0.4, -0.75],
+    dead: [0.9, 0.9, 0.9]
+  });
+
+  const FIST = pose({
+    idle1: [LEFT, LEFT - 0.1, LEFT + 0.08],
+    idle2: [LEFT, LEFT + 0.1, LEFT - 0.08],
+    walk: [LEFT + 0.1, LEFT - 0.15, LEFT],
+    atk1: [-0.6, -1.4, LEFT],
+    atk2: [-0.4, 2.2, LEFT],
+    bow: [LEFT, LEFT, LEFT],
+    gun: [LEFT, LEFT, LEFT],
+    hit: [1.2, 1.5, 1.8],
+    crouch: [LEFT, LEFT, LEFT],
+    magic: [-2.0, -1.8, LEFT],
+    cheer: [UP, -1.2, -1.6],
+    dead: [2.8, 2.8, 2.8]
+  });
 
   const POSES = {
     sword: SWING,
@@ -123,7 +242,7 @@
     mace: SWING,
     scythe: SWING,
     claw: SWING,
-    spear: THRUST,
+    spear: SPEAR,
     dagger: THRUST,
     gun: GUN,
     bow: BOW,
@@ -137,28 +256,43 @@
   /* w/h and grip match the il-weapons-1 sprites. angle is the drawn
      grip-to-tip direction (0 = right, 90 = up). native sprites already
      face the way the pose expects, so their angle is not added again. */
+  /* gx, gy is the middle of the handle on the sprite. angle is the drawn
+     grip-to-tip direction in degrees (0 right, 90 up). Measured on the png. */
   const SPECS = {
     sword: { w: 13, h: 13, gx: 2, gy: 8, angle: 38 },
-    axe: { w: 14, h: 15, gx: 2, gy: 10, angle: 56 },
-    mace: { w: 14, h: 14, gx: 2, gy: 10, angle: 0 },
-    spear: { w: 7, h: 32, gx: 3, gy: 20, angle: 90 },
-    dagger: { w: 14, h: 13, gx: 10, gy: 9, angle: 138 },
-    bow: { w: 6, h: 20, gx: 2, gy: 9, angle: 0, native: true },
-    crossbow: { w: 18, h: 14, gx: 8, gy: 6, angle: 0, native: true },
-    staff: { w: 15, h: 14, gx: 3, gy: 10, angle: 39 },
-    staff_wood: { w: 16, h: 16, gx: 2, gy: 13, angle: 43 },
-    wand: { w: 8, h: 17, gx: 2, gy: 9, angle: 69 },
-    gun: { w: 19, h: 9, gx: 11, gy: 5, angle: 163 },
-    fist: { w: 8, h: 7, gx: 2, gy: 3, angle: 0 },
-    claw: { w: 14, h: 10, gx: 2, gy: 5, angle: 0 },
-    book: { w: 12, h: 14, gx: 6, gy: 11, angle: 0 },
-    scythe: { w: 22, h: 16, gx: 3, gy: 12, angle: 0 },
-    katana: { w: 20, h: 8, gx: 2, gy: 5, angle: 0 },
+    axe: { w: 14, h: 15, gx: 3, gy: 13, angle: 67 },
+    mace: { w: 14, h: 16, gx: 6, gy: 13, angle: 76 },
+    spear: { w: 7, h: 32, gx: 3, gy: 22, angle: 90 },
+    dagger: { w: 14, h: 13, gx: 10, gy: 10, angle: 135 },
+    bow: { w: 6, h: 20, gx: 2, gy: 12, angle: 0, native: true },
+    crossbow: { w: 18, h: 14, gx: 8, gy: 7, angle: 0, native: true },
+    staff: { w: 15, h: 14, gx: 2, gy: 12, angle: 48 },
+    staff_wood: { w: 16, h: 16, gx: 2, gy: 13, angle: 48 },
+    wand: { w: 8, h: 17, gx: 2, gy: 14, angle: 77 },
+    gun: { w: 19, h: 9, gx: 15, gy: 6, angle: 164 },
+    fist: { w: 8, h: 7, gx: 3, gy: 3, angle: 0 },
+    claw: { w: 14, h: 10, gx: 3, gy: 5, angle: 6 },
+    book: { w: 12, h: 14, gx: 6, gy: 12, angle: 0 },
+    scythe: { w: 20, h: 16, gx: 2, gy: 13, angle: 38 },
+    katana: { w: 20, h: 8, gx: 2, gy: 5, angle: 11 },
     arrow: { w: 11, h: 4, gx: 5, gy: 2, angle: 180, native: true }
   };
 
   const sprites = {};
   let bundled = null;
+  let bundleLeft = 0;
+  const bundleWaiters = [];
+
+  function bundleDone() {
+    if (bundleLeft > 0) return;
+    const waiters = bundleWaiters.splice(0, bundleWaiters.length);
+    for (let i = 0; i < waiters.length; i++) waiters[i]();
+  }
+
+  function whenReady(fn) {
+    if (bundleLeft <= 0) fn();
+    else bundleWaiters.push(fn);
+  }
 
   function px(ctx, color, x, y, w, h) {
     ctx.fillStyle = color;
@@ -284,6 +418,13 @@
     canvas.height = spec.h;
     const ctx = canvas.getContext("2d");
     paintSprite(kind, ctx);
+    if (spec.gx >= 0 && spec.gy >= 0 && spec.gx < spec.w && spec.gy < spec.h) {
+      const ink = ctx.getImageData(spec.gx, spec.gy, 1, 1).data;
+      if (ink[3] < 40) {
+        ctx.fillStyle = "#c4a574";
+        ctx.fillRect(spec.gx, spec.gy, 1, 1);
+      }
+    }
     sprites[kind] = canvas;
     return canvas;
   }
@@ -330,10 +471,12 @@
     return IL._debugAnchors;
   }
 
-  const HOLD = { idle1: 1, idle2: 1, walk: 1, magic: 1, crouch: 1, hit: 1, cheer: 1, dead: 1 };
+  const BAKED_MELEE = { sword: 1, katana: 1, spear: 1, dagger: 1 };
 
-  /* Bow and gun columns are clear on the sheets that lack them. Every
-     real melee row already paints a weapon, so a second sprite stays off. */
+  /* Sword and thrust columns already paint a weapon. Bow and gun columns do
+     too, on the sheets that have them. A second sprite stays off. Axe, staff,
+     and the other kinds never use those columns: column() sends them to an
+     empty-hands row and the class weapon is drawn in the fist. */
   function frameHasWeapon(motion, sheet) {
     if (motion === "bow") return !!(IL.sheetHasBow && IL.sheetHasBow(sheet));
     if (motion === "gun") return !!(IL.sheetHasGun && IL.sheetHasGun(sheet));
@@ -341,17 +484,25 @@
     return false;
   }
 
-  /* Sheets bake a sword into the swing. These kinds are the class weapon,
-     so they stay in the hand and follow the swing instead of vanishing. */
-  const OVERLAY = {
-    katana: 1, scythe: 1, claw: 1, book: 1, mace: 1, staff: 1, wand: 1, fist: 1, crossbow: 1
-  };
+  function column(kind, motion, sheet) {
+    if (motion !== "atk1" && motion !== "atk2" && motion !== "bow" && motion !== "gun") return motion || "idle1";
+    if ((motion === "atk1" || motion === "atk2") && BAKED_MELEE[kind]) return motion;
+    if (kind === "bow" || kind === "crossbow") {
+      if (IL.sheetHasBow && IL.sheetHasBow(sheet)) return "bow";
+      if (IL.sheetHasGun && IL.sheetHasGun(sheet)) return "gun";
+      return "magic";
+    }
+    if (kind === "gun") {
+      if (IL.sheetHasGun && IL.sheetHasGun(sheet)) return "gun";
+      if (IL.sheetHasBow && IL.sheetHasBow(sheet)) return "bow";
+      return "magic";
+    }
+    return "magic";
+  }
 
   function shouldPaint(kind, motion, sheet) {
     if (!kind) return false;
     if (debugOn()) return true;
-    if (HOLD[motion]) return true;
-    if (OVERLAY[kind]) return true;
     return !frameHasWeapon(motion, sheet);
   }
 
@@ -414,6 +565,7 @@
       const hinted = u.state === "attack" || u.state === "cast";
       if (hinted) motion = u.motion;
     }
+    motion = column(kind, motion, sheet);
     const sub = IL.visualSample(name, motion, frame - clip.from);
     const anchor = handAnchor(kind, motion, sub);
     const mirror = u.facing < 0 ? 1 : -1;
@@ -433,7 +585,9 @@
     for (let i = 0; i < keys.length; i++) {
       (function (kind) {
         const img = new Image();
-        img.onload = function () { bundled[kind] = img; };
+        bundleLeft++;
+        img.onload = function () { bundled[kind] = img; bundleLeft--; bundleDone(); };
+        img.onerror = function () { bundleLeft--; bundleDone(); };
         img.src = base + manifest.files[kind];
       })(keys[i]);
     }
@@ -441,14 +595,18 @@
 
   function loadManifest(url, base) {
     if (typeof fetch !== "function") return;
+    bundleLeft++;
     fetch(url).then(function (res) {
       if (!res.ok) return null;
       return res.json();
     }).then(function (data) {
-      if (!data) return;
-      adoptBundle(data, base || url.replace(/[^/]+$/, ""));
-      if (data.remote) loadManifest(data.remote, data.remote.replace(/[^/]+$/, ""));
-    }).catch(function () {});
+      if (data) {
+        adoptBundle(data, base || url.replace(/[^/]+$/, ""));
+        if (data.remote) loadManifest(data.remote, data.remote.replace(/[^/]+$/, ""));
+      }
+      bundleLeft--;
+      bundleDone();
+    }).catch(function () { bundleLeft--; bundleDone(); });
   }
 
   IL.CLASS_WEAPON = CLASS_WEAPON;
@@ -460,6 +618,12 @@
     worldHand: worldHand,
     debugOn: debugOn,
     sprite: spriteFor,
+    whenReady: whenReady,
+    column: column,
+    shouldPaint: shouldPaint,
+    hands: HAND,
+    back: BACK,
+    specs: SPECS,
     motions: ["idle1", "idle2", "walk", "atk1", "atk2", "bow", "gun", "hit", "crouch", "magic", "cheer", "dead"]
   };
 

@@ -2524,6 +2524,15 @@
     finishFight();
   }
 
+  function resultFace(u) {
+    const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
+    if (!u.parts || !IL.hero || !IL.hero.keyOf) return "";
+    return portraitWrap(
+      'width="48" height="40" data-key="' + esc(IL.hero.keyOf(u.parts)) +
+      '" data-anim="' + esc(kit.idle || "idle") + '" data-scale="1" data-foot="4"'
+    );
+  }
+
   function resultTable(match, xpBefore, lvBefore) {
     const yours = match.units.filter(function (u) { return u.team === 0; });
     let mvp = null;
@@ -2532,26 +2541,54 @@
       const score = (u.dmgDealt || 0) + (u.healing || 0) * 1.25 + (u.kos || 0) * 50;
       if (score > best) { best = score; mvp = u; }
     });
-    const rows = yours.map(function (u) {
+    function bits(u) {
       const prev = xpBefore[u.id] || 0;
       const f = fighterById(u.id);
       const now = f ? (f.xp || 0) : prev;
       const lv = f ? (f.level || 1) : (u.level || 1);
       const up = f && lv > (lvBefore[u.id] || u.level || 1);
-      const isMvp = mvp && mvp.id === u.id;
-      return '<tr' + (isMvp ? ' class="mvp"' : '') + '>' +
-        '<td>' + esc(u.name) + (isMvp ? ' <em class="mvp-badge">MVP</em>' : '') +
-          (up ? ' <em class="level-call">Level ' + lv + '</em>' : '') + '</td>' +
+      return {
+        prev: prev,
+        now: now,
+        up: up,
+        lv: lv,
+        isMvp: !!(mvp && mvp.id === u.id)
+      };
+    }
+    const rows = yours.map(function (u) {
+      const b = bits(u);
+      return '<tr' + (b.isMvp ? ' class="mvp"' : '') + '>' +
+        '<td>' + esc(u.name) + (b.isMvp ? ' <em class="mvp-badge">MVP</em>' : '') +
+          (b.up ? ' <em class="level-call">Level ' + b.lv + '</em>' : '') + '</td>' +
         '<td>' + (u.dmgDealt || 0) + '</td>' +
         '<td>' + (u.dmgTaken || 0) + '</td>' +
         '<td>' + (u.healing || 0) + '</td>' +
         '<td>' + (u.kos || 0) + '</td>' +
-        '<td><div class="xp result-xp" data-xp-from="' + prev + '" data-xp-to="' + now + '"><div class="track"><div class="fill" style="width:' + Math.round(((prev % 40) / 40) * 100) + '%"></div></div></div></td>' +
+        '<td><div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(((b.prev % 40) / 40) * 100) + '%"></div></div></div></td>' +
       '</tr>';
+    }).join("");
+    const cards = yours.map(function (u) {
+      const b = bits(u);
+      return '<article class="result-row' + (b.isMvp ? " mvp" : "") + '">' +
+        '<div class="result-who">' +
+          resultFace(u) +
+          '<span class="result-name">' + esc(u.name) + "</span>" +
+          (b.isMvp ? '<em class="mvp-badge">MVP</em>' : "") +
+          (b.up ? '<em class="level-call">Level ' + b.lv + "</em>" : "") +
+        "</div>" +
+        '<p class="result-chips">Dealt ' + (u.dmgDealt || 0) +
+          " · Taken " + (u.dmgTaken || 0) +
+          " · Heal " + (u.healing || 0) +
+          " · KOs " + (u.kos || 0) + "</p>" +
+        '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(((b.prev % 40) / 40) * 100) + '%"></div></div></div>' +
+      "</article>";
     }).join("");
     return {
       mvp: mvp,
-      html: '<table class="board" id="resultTable"><thead><tr><th>Fighter</th><th>Dealt</th><th>Taken</th><th>Heal</th><th>KO</th><th>XP</th></tr></thead><tbody>' + rows + '</tbody></table>'
+      html: '<div id="resultTable" class="result-board">' +
+        '<table class="board result-grid"><thead><tr><th>Fighter</th><th>Dealt</th><th>Taken</th><th>Heal</th><th>KOs</th><th>XP</th></tr></thead><tbody>' +
+        rows + "</tbody></table>" +
+        '<div class="result-rows">' + cards + "</div></div>"
     };
   }
 

@@ -88,9 +88,13 @@ def run(page, label, shot_dir):
           const IL = window.IL;
           const m = IL && IL.currentMatch;
           if (!m || !IL.fx || !IL.fx.ready()) return false;
-          const rolling = m.units.some(u => u.state === 'roll');
-          const combat = m.stats.slashes > 0 && rolling && IL.fx.spawned > 0 && m.stats.abilities > 0;
-          return m.time > 1.2 && combat;
+          const flags = window.__ilSmokeFight || (window.__ilSmokeFight = {});
+          const units = m.units || [];
+          if (units.some(u => u.state === 'roll')) flags.roll = true;
+          if (m.stats && m.stats.slashes > 0) flags.slash = true;
+          if (m.stats && m.stats.abilities > 0) flags.ability = true;
+          if (IL.fx.spawned > 0) flags.fx = true;
+          return m.time > 1.2 && flags.roll && flags.slash && flags.ability && flags.fx;
         }""",
         timeout=35000,
     )

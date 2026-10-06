@@ -379,11 +379,26 @@
     return looksFor(cls)[0];
   }
 
-  /* Archer and ranger loose an arrow. Gun troops fire. Everyone else swings. */
-  function visualMotion(clip, cls, sheet) {
-    if (clip === "atk1" && (cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger")) {
-      if (sheetHasBow(sheet)) return "bow";
-      if (sheetHasGun(sheet)) return "gun";
+  /* Ranged kinds loose an arrow or fire. A spear or dagger stays on the
+     thrust rows. Everyone else swings. Kind overrides the class default
+     when a fighter has a weapon equipped. */
+  function visualMotion(clip, cls, sheet, kind) {
+    const held = kind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[cls]) || "";
+    const ranged = held === "bow" || held === "gun" ||
+      cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger";
+    if (clip === "atk1" && ranged) {
+      const wantGun = held === "gun" || (!held && (cls === "skirmisher" || cls === "gunslinger"));
+      if (wantGun) {
+        if (sheetHasGun(sheet)) return "gun";
+        if (sheetHasBow(sheet)) return "bow";
+      } else if (held === "bow" || cls === "archer" || cls === "ranger") {
+        if (sheetHasBow(sheet)) return "bow";
+        if (sheetHasGun(sheet)) return "gun";
+      }
+    }
+    if (held === "spear" || held === "dagger") {
+      if (clip === "atk2" || clip === "atk3" || clip === "air2") return "atk2";
+      if (clip === "atk1" || clip === "air1") return "atk1";
     }
     return CLIP_MOTION[clip] || "idle1";
   }

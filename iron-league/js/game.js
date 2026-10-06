@@ -209,8 +209,13 @@
     return uiGlyph(CLASS_GLYPH[cls] || "sword", "class-badge");
   }
 
-  function portraitWrap(canvasAttrs, round) {
-    return '<span class="portrait-frame' + (round ? " round" : "") + '"><canvas ' + canvasAttrs + '></canvas></span>';
+  function portraitWrap(canvasAttrs, round, fighter) {
+    let attrs = canvasAttrs;
+    if (fighter && fighter.cls) {
+      const kind = IL.weaponKind ? IL.weaponKind(fighter) : "";
+      attrs += ' data-cls="' + esc(fighter.cls) + '" data-kind="' + esc(kind) + '"';
+    }
+    return '<span class="portrait-frame' + (round ? " round" : "") + '"><canvas ' + attrs + '></canvas></span>';
   }
 
   function purseHtml() {
@@ -393,7 +398,7 @@
         const ctx = cv.getContext("2d");
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, cv.width, cv.height);
-        IL.hero.draw(ctx, atlas, 1, 24, 52, 1, 1, draft.fighter.cls);
+        IL.hero.draw(ctx, atlas, 1, 24, 52, 1, 1, draft.fighter.cls, null, IL.weaponKind ? IL.weaponKind(draft.fighter) : "");
       }).catch(function () {});
     });
   }
@@ -453,8 +458,9 @@
       ctx.fillText(rightLabel, 460, 32);
       if (atlas) {
         const idleClip = kit.idle || "idle";
-        IL.hero.draw(ctx, atlas, IL.frameIndex(idleClip, t), 180, 214, 4, 1, kit.id);
-        IL.hero.draw(ctx, atlas, IL.frameIndex(strike, t % Math.max(0.05, IL.clipDur(strike))), 460, 214, 4, 1, kit.id);
+        const kind = IL.weaponKind ? IL.weaponKind(draft.fighter) : "";
+        IL.hero.draw(ctx, atlas, IL.frameIndex(idleClip, t), 180, 214, 4, 1, kit.id, null, kind);
+        IL.hero.draw(ctx, atlas, IL.frameIndex(strike, t % Math.max(0.05, IL.clipDur(strike))), 460, 214, 4, 1, kit.id, null, kind);
       }
       raf = requestAnimationFrame(loop);
     }
@@ -1032,7 +1038,7 @@
     const cap = f.captain ? " <em>Captain</em>" : "";
     return '<article class="card roster-row' + (fighting ? " playing" : " bench") + '" data-role="' + esc(kit.role) + '">' +
       '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
-        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="2" data-foot="6"', f.captain) +
+        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="2" data-foot="6"', f.captain, f) +
       '</button>' +
       '<div class="row-main">' +
         '<h3>' + esc(f.name) + cap + champ + '</h3>' +
@@ -1242,7 +1248,7 @@
         '<header class="sheet-head"><div><p class="eyebrow">' + esc(kit.name) + (f.captain ? " · Captain" : "") + '</p>' +
           '<h2 id="sheetTitle">' + esc(f.name) + '</h2></div>' +
           '<button type="button" class="btn close-x" id="sheetClose" aria-label="Close">Close</button></header>' +
-        '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"', f.captain) + '</div>' +
+        '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"', f.captain, f) + '</div>' +
         '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + (f.champion ? " · Champion" : "") + '</p>' +
         '<h3 class="section">Tactic</h3>' + tacticChips(f) +
         '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
@@ -1384,7 +1390,7 @@
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
       return '<article class="award"><p class="eyebrow">' + esc(label) + '</p>' +
-        portraitWrap('width="120" height="100" data-key="' + esc(IL.hero.keyOf(fighter.parts)) + '" data-anim="cheer"') +
+        portraitWrap('width="120" height="100" data-key="' + esc(IL.hero.keyOf(fighter.parts)) + '" data-anim="cheer"', false, fighter) +
         '<h3>' + esc(fighter.name) + '</h3></article>';
     }
     const cup = save.cup;
@@ -1510,7 +1516,7 @@
       const price = locked ? (row.need + " renown") : (row.cost + " gold");
       const cant = locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP;
       return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '" data-role="' + esc(kit.role) + '">' +
-        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"') +
+        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
         '<div class="row-main">' +
           '<h3>' + esc(f.name) + champ + '</h3>' +
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</span></p>' +
@@ -1524,7 +1530,7 @@
       const inParty = (save.lineup || []).indexOf(f.id) >= 0;
       return '<article class="card roster-row" data-role="' + esc(kit.role) + '">' +
         '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
-          portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"') +
+          portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
         '</button>' +
         '<div class="row-main">' +
           '<h3>' + esc(f.name) + '</h3>' +
@@ -1840,7 +1846,7 @@
     const st = IL.scaledStats(f, kit);
     const trait = IL.TRAITS && IL.TRAITS[kit.trait];
     return '<article class="card versus-card" data-role="' + esc(kit.role) + '">' +
-      portraitWrap('width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"') +
+      portraitWrap('width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"', false, f) +
       '<h3>' + esc(f.name) + '</h3>' +
       '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + (f.level || 1) + '</span></p>' +
       (trait ? '<p class="trait-line">' + esc(trait.name) + '</p>' : '') +
@@ -2570,7 +2576,7 @@
         const clip = c.dataset.anim || "idle";
         const scale = Number(c.dataset.scale || 3);
         const foot = c.dataset.foot != null && c.dataset.foot !== "" ? Number(c.dataset.foot) : 10;
-        IL.hero.draw(ctx, atlas, IL.frameIndex(clip, t + i * 0.2), c.width / 2, c.height - foot, scale, 1);
+        IL.hero.draw(ctx, atlas, IL.frameIndex(clip, t + i * 0.2), c.width / 2, c.height - foot, scale, 1, c.dataset.cls || "", null, c.dataset.kind || "");
       }
       const yard = document.getElementById("clubYard");
       if (yard) drawYard(yard, dt, t);
@@ -2993,7 +2999,9 @@
     if (!u.parts || !IL.hero || !IL.hero.keyOf) return "";
     return portraitWrap(
       'width="48" height="40" data-key="' + esc(IL.hero.keyOf(u.parts)) +
-      '" data-anim="' + esc(kit.idle || "idle") + '" data-scale="1" data-foot="4"'
+      '" data-anim="' + esc(kit.idle || "idle") + '" data-scale="1" data-foot="4"',
+      false,
+      u
     );
   }
 

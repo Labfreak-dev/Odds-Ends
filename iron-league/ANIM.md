@@ -119,3 +119,9 @@ Class abilities reuse those strips. They do not add sheets.
 | Skirmisher | Skirmish | dash |
 | Duelist | Lunge | slash |
 | Elementalist | Nova, Bolt | plasma, bolt |
+
+## Weapons in hand
+
+Each class has a held kind (sword, axe, spear, bow, staff, dagger, gun, fist, claw, book, scythe, mace). `visualMotion` plays the bow row for a bow, the gun row for a gun, and the thrust rows (`atk1` / `atk2`) for a spear or dagger. Swing kinds stay on the painted swing. The sheet already includes that weapon, so a second sprite is drawn only when the painting does not show the kind: fists, claws, books, scythes, a bow or gun on the wrong sheet, or a piece of gear that changes the kind.
+
+`js/weapons.js` stores a grip and a rotation for every motion and each of its three frames. The sprite rotates around that grip inside the same facing transform as the battler. A bow's loose frame steps the hand forward, and the arrow leaves from that point. A gun fires a pellet from the same anchor. A cast holds the staff up. A knockout lays the weapon on the ground. `?debug=anchors` draws the grip. Drawn sprites stand in until `assets/weapons/manifest.json` lists files or a remote manifest.

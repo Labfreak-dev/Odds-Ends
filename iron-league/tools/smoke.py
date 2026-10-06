@@ -10,13 +10,14 @@ viewport, or an overlay with no visible exit.
 
     python3 iron-league/tools/smoke.py
 """
+import os
 import sys
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
-URL = "http://127.0.0.1:8765/iron-league/"
+URL = os.environ.get("IL_SMOKE_URL", "http://127.0.0.1:8765/iron-league/")
 
 
 def run(page, label, shot_dir):

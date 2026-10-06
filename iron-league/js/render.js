@@ -308,6 +308,20 @@
       ctx.lineWidth = 3;
       ctx.stroke();
     }
+    if (p.bullet) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = "#f6f1e6";
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#2c261f";
+      ctx.beginPath();
+      ctx.arc(1.2, 0, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     const ang = Math.atan2(p.vy, p.vx);
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -398,12 +412,12 @@
       const gy = u.y - z;
       if (u.sprite) {
         const hint = (u.state === "attack" || u.state === "cast") ? u.motion : null;
-        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint);
+        IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
         if (u.flash > 0 && u.hp > 0) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = Math.min(0.85, u.flash * 5);
-          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint);
+          IL.hero.draw(ctx, u.sprite, frame, u.x, gy, SCALE, u.facing, u.cls, hint, u.weaponKind);
           ctx.restore();
         }
       } else {

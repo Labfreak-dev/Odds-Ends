@@ -23,6 +23,7 @@ vm.runInContext(fs.readFileSync(path.join(root, "js/data.js"), "utf8"), context)
 vm.runInContext(fs.readFileSync(path.join(root, "js/kits.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/gear.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/meta.js"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "js/weapons.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "js/arena.js"), "utf8"), context);
 const IL = context.IL;
 
@@ -275,6 +276,42 @@ check("warrior swing stays a swing", IL.visualMotion("atk1", "warrior", IL.defau
 check("skirmisher fires", IL.visualMotion("atk1", "skirmisher", IL.defaultSheet("skirmisher")) === "gun");
 check("gunslinger fires", IL.visualMotion("atk1", "gunslinger", IL.defaultSheet("gunslinger")) === "gun");
 check("mage still chants", IL.visualMotion("cast1", "mage", IL.defaultSheet("mage")) === "magic");
+check("equipped bow changes the swing", IL.visualMotion("atk1", "warrior", IL.defaultSheet("warrior"), "bow") === "bow");
+check("spear thrust stays on the point", IL.visualMotion("atk1", "lancer", IL.defaultSheet("lancer"), "spear") === "atk1");
+check("dagger second cut is a thrust", IL.visualMotion("atk3", "rogue", IL.defaultSheet("rogue"), "dagger") === "atk2");
+const weaponMotions = IL.weapons.motions;
+const weaponKinds = ["sword", "axe", "spear", "bow", "staff", "dagger", "gun", "fist", "claw", "book", "scythe", "mace"];
+Object.keys(IL.CLASSES).forEach(function (id) {
+  if (weaponKinds.indexOf(IL.CLASS_WEAPON[id]) < 0) {
+    fails++;
+    console.error("class has no weapon", id, IL.CLASS_WEAPON[id]);
+  }
+});
+weaponKinds.forEach(function (kind) {
+  weaponMotions.forEach(function (motion) {
+    for (let sub = 0; sub < 3; sub++) {
+      const a = IL.weapons.handAnchor(kind, motion, sub);
+      if (!a || a.x < 0 || a.x > 47 || a.y < 0 || a.y > 47 || typeof a.rot !== "number") {
+        fails++;
+        console.error("bad anchor", kind, motion, sub);
+      }
+    }
+  });
+});
+const swingWind = IL.weapons.handAnchor("sword", "atk1", 0);
+const swingHit = IL.weapons.handAnchor("sword", "atk1", 2);
+check("sword strike rotates off the windup", Math.abs(swingHit.rot - swingWind.rot) > 0.8);
+const thrustWind = IL.weapons.handAnchor("spear", "atk1", 0);
+const thrustHit = IL.weapons.handAnchor("spear", "atk1", 2);
+check("spear thrust reaches forward", thrustHit.x < thrustWind.x - 4);
+check("cast raises the staff", IL.weapons.handAnchor("staff", "magic", 1).y < IL.weapons.handAnchor("staff", "idle1", 0).y - 6);
+check("ko drops the weapon", IL.weapons.handAnchor("sword", "dead", 0).y > 38);
+check("bow release steps forward", IL.weapons.handAnchor("bow", "bow", 2).x < IL.weapons.handAnchor("bow", "bow", 1).x);
+check("lancer keeps a spear", IL.CLASS_WEAPON.lancer === "spear" && IL.weaponKind({ cls: "lancer" }) === "spear");
+check("monk uses fists", IL.CLASS_WEAPON.monk === "fist");
+check("necromancer keeps a scythe", IL.CLASS_WEAPON.necromancer === "scythe");
+check("longbow gear wins", IL.weaponKind({ cls: "warrior", gear: { weapon: { key: "longbow" } } }) === "bow");
+check("anchors view is the debug query", /debug=anchors/.test(fs.readFileSync(path.join(root, "js/weapons.js"), "utf8")));
 const seenIds = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
   const pool = IL.looksFor(id);

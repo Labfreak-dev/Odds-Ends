@@ -13,10 +13,16 @@
     const parent = canvas.parentElement || canvas;
     const cssW = Math.max(280, parent.clientWidth || 960);
     const narrow = cssW < 760;
-    const maxH = Math.max(260, Math.round((root.innerHeight || 800) * (narrow ? 0.58 : 0.7)));
-    let cssH = Math.round(cssW / (narrow ? 0.9 : 1.52));
-    if (cssH > maxH) cssH = maxH;
-    if (cssH < 240) cssH = 240;
+    const boxH = parent.clientHeight || 0;
+    let cssH;
+    if (narrow && boxH >= 200) {
+      cssH = boxH;
+    } else {
+      const maxH = Math.max(260, Math.round((root.innerHeight || 800) * (narrow ? 0.72 : 0.7)));
+      cssH = Math.round(cssW / (narrow ? 0.85 : 1.52));
+      if (cssH > maxH) cssH = maxH;
+      if (cssH < 240) cssH = 240;
+    }
     const dpr = Math.min(2, root.devicePixelRatio || 1);
     const bw = Math.max(1, Math.round(cssW * dpr));
     const bh = Math.max(1, Math.round(cssH * dpr));
@@ -35,7 +41,7 @@
       fx.cam = {
         x: W.w / 2,
         y: (W.top + W.bottom) / 2,
-        viewW: view.cssW < 760 ? 980 : 1280
+        viewW: view.cssW < 760 ? 680 : 1280
       };
     }
     const cam = fx.cam;
@@ -68,12 +74,12 @@
     const cx = sx / focus.length;
     const cy = sy / focus.length;
     const aspect = view.cssW / Math.max(1, view.cssH);
-    const spanW = (maxX - minX) + 380;
-    const spanH = (maxY - minY) + 280;
-    let want = Math.max(spanW, spanH * aspect);
     const narrow = view.cssW < 760;
-    const minW = narrow ? 900 : 1180;
-    const maxW = narrow ? 1240 : W.w;
+    const spanW = (maxX - minX) + (narrow ? 200 : 380);
+    const spanH = (maxY - minY) + (narrow ? 140 : 280);
+    let want = Math.max(spanW, spanH * aspect);
+    const minW = narrow ? 560 : 1180;
+    const maxW = narrow ? 860 : W.w;
     want = Math.max(minW, Math.min(maxW, want));
     cam.x += (cx - cam.x) * 0.08;
     cam.y += (cy - cam.y) * 0.08;

@@ -1011,6 +1011,15 @@ input[type="range"]::-moz-range-thumb {
   background-image: url("../assets/ui/frames/portrait_square.png");
   padding: 22px 18px 26px;
 }
+.detail-stage .portrait-frame canvas {
+  background: transparent;
+}
+/* The round medallion is the captain's frame. The canvas is a square, so
+   clip it to the disc and let the ring show around the sprite. */
+.detail-stage .portrait-frame.round canvas {
+  border-radius: 50%;
+  clip-path: circle(closest-side at 50% 50%);
+}
 .portrait-frame.round { background-image: url("../assets/ui/frames/portrait_round.png"); }
 .award .portrait-frame { width: min(100%, 120px); }
 

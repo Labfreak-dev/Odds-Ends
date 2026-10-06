@@ -977,9 +977,19 @@ def sweep_frames(browser, shot_dir):
         page.click("[data-filter='gear']")
         page.wait_for_selector("#gearStock")
         assert_inside(page, label + " stall")
+        page.click("[data-filter='fighters']")
+        page.wait_for_selector("#marketCards .hire")
+        assert_inside(page, label + " fighters market")
         page.click("[data-filter='tomes']")
         page.wait_for_selector("#tomeStock")
         assert_inside(page, label + " tomes")
+        page.click("[data-filter='relics']")
+        page.wait_for_selector("#relicStall")
+        assert_inside(page, label + " relic stall")
+        page.click("[data-filter='deals']")
+        page.wait_for_selector("#dealsBoard")
+        page.wait_for_selector("#dealClock")
+        assert_inside(page, label + " deals")
         page.click("[data-filter='sell']")
         assert_inside(page, label + " sell")
         visit("4", "#enterCup, #bracketBoard")
@@ -1240,7 +1250,10 @@ def qa_gate(browser, shot_dir):
         assert_inside(page, label + " recruits")
         for filt, wait, name in (
             ("gear", "#gearStock", "stall"),
+            ("fighters", "#marketCards", "fighters"),
             ("tomes", "#tomeStock", "tomes"),
+            ("relics", "#relicStall", "relic stall"),
+            ("deals", "#dealsBoard", "deals"),
             ("sell", "text=Sell from the bench", "sell"),
         ):
             page.click("[data-filter='" + filt + "']")

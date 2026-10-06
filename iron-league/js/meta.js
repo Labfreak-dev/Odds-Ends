@@ -32,10 +32,142 @@
     return out;
   }
 
+  const RARITY_MULT = { common: 1, uncommon: 1.28, rare: 1.75, legendary: 2.4 };
+  const RARITY_NAME = { common: "Common", uncommon: "Uncommon", rare: "Rare", legendary: "Legendary" };
+  const SPECIALTIES = [
+    { id: "duelist", name: "Duelist", blurb: "A measured cut.", atk: 1 },
+    { id: "berserker", name: "Berserker", blurb: "Swings a little harder.", atk: 1 },
+    { id: "warden", name: "Warden", blurb: "Stands in the hit.", def: 1 },
+    { id: "scout", name: "Scout", blurb: "First into the gap.", spd: 3 },
+    { id: "medic", name: "Medic", blurb: "A little more to give.", hp: 5 },
+    { id: "marksman", name: "Marksman", blurb: "Shots sit heavier.", atk: 1 }
+  ];
+  const WEEK_MS = 604800000;
+  const DEAL_REROLL = 40;
+  const CHEST_COST = 48;
+
+  function specialtyOf(id) {
+    for (let i = 0; i < SPECIALTIES.length; i++) if (SPECIALTIES[i].id === id) return SPECIALTIES[i];
+    return null;
+  }
+
+  function rarityName(id) { return RARITY_NAME[id] || "Common"; }
+
+  function rollRarity(rng) {
+    const x = rng();
+    if (x < 0.05) return "legendary";
+    if (x < 0.18) return "rare";
+    if (x < 0.46) return "uncommon";
+    return "common";
+  }
+
+  function stampRecruit(fighter, rng, rarity) {
+    fighter.rarity = rarity || rollRarity(rng);
+    fighter.specialty = IL.pick(rng, SPECIALTIES).id;
+    return fighter;
+  }
+
+  function recruitCost(cls, rarity, champion) {
+    let cost = Math.round(IL.hireCost(cls) * (RARITY_MULT[rarity] || 1));
+    if (champion) cost = Math.round(cost * 1.65);
+    return Math.max(22, cost);
+  }
+
+  function gearRefund(f) {
+    if (!f || !IL.salvageValue) return 0;
+    let n = 0;
+    const gear = f.gear || {};
+    ["weapon", "armor", "trinket"].forEach(function (slot) {
+      if (gear[slot]) n += IL.salvageValue(gear[slot]);
+    });
+    if (f.tonic) n += IL.salvageValue(f.tonic);
+    return Math.round(n * 0.35);
+  }
+
   function sellValue(f) {
     const base = IL.hireCost(f.cls);
     const champ = f.champion ? 0.7 : 0.45;
-    return Math.max(22, Math.round(base * champ + ((f.level || 1) - 1) * 8));
+    const rarityPay = { common: 1, uncommon: 1.08, rare: 1.2, legendary: 1.4 }[f.rarity] || 1;
+    const levelPay = ((f.level || 1) - 1) * 8;
+    return Math.max(22, Math.round(base * champ * rarityPay + levelPay) + gearRefund(f));
+  }
+
+  function relicPrice(id) {
+    const i = RELICS.findIndex(function (r) { return r.id === id; });
+    return 96 + Math.max(0, i) * 14;
+  }
+
+  function relicSellPrice(id) {
+    return Math.max(20, Math.round(relicPrice(id) * 0.4));
+  }
+
+  function rollRelicStock(rng) {
+    const pool = RELICS.slice();
+    const out = [];
+    while (out.length < 4 && pool.length) {
+      const i = Math.floor(rng() * pool.length);
+      const relic = pool.splice(i, 1)[0];
+      out.push({ id: relic.id, cost: relicPrice(relic.id), stock: 1 });
+    }
+    return out;
+  }
+
+  function weekIndex(now) { return Math.floor((now || 0) / WEEK_MS); }
+
+  function msUntilWeek(now) {
+    const t = now || 0;
+    return Math.max(0, (weekIndex(t) + 1) * WEEK_MS - t);
+  }
+
+  function formatRemain(ms) {
+    const left = Math.max(0, ms || 0);
+    const d = Math.floor(left / 86400000);
+    const h = Math.floor((left % 86400000) / 3600000);
+    const m = Math.floor((left % 3600000) / 60000);
+    if (d > 0) return d + "d " + h + "h";
+    if (h > 0) return h + "h " + m + "m";
+    return Math.max(1, m) + "m";
+  }
+
+  function rollDeals(rng, renown, week) {
+    const open = IL.unlockedIds(renown);
+    const all = Object.keys(IL.CLASSES);
+    const champs = IL.CHAMPIONS.filter(function (c) { return IL.classUnlocked(c.cls, renown); });
+    let fighter;
+    if (champs.length && rng() < 0.7) {
+      const champ = IL.pick(rng, champs);
+      fighter = IL.randomFighter(rng, champ.cls);
+      fighter.champion = true;
+      fighter.name = champ.name;
+    } else {
+      fighter = IL.randomFighter(rng, IL.pick(rng, open.length ? open : all));
+    }
+    stampRecruit(fighter, rng, "legendary");
+    const full = recruitCost(fighter.cls, "legendary", !!fighter.champion);
+    const relics = [];
+    const bag = RELICS.slice();
+    while (relics.length < 2 && bag.length) {
+      relics.push(bag.splice(Math.floor(rng() * bag.length), 1)[0].id);
+    }
+    const bundle = relics.reduce(function (n, id) { return n + relicPrice(id); }, 0);
+    return {
+      week: week,
+      offers: [
+        { kind: "fighter", fighter: fighter, cost: Math.max(40, Math.round(full * 0.72)), stock: 1 },
+        { kind: "bundle", relics: relics, cost: Math.max(40, Math.round(bundle * 0.7)), stock: 1 },
+        { kind: "chest", cost: CHEST_COST, stock: 1 }
+      ]
+    };
+  }
+
+  function openChest(rng, owned) {
+    const have = owned || [];
+    const gold = 24 + Math.floor(rng() * 46);
+    const missing = RELICS.filter(function (r) { return have.indexOf(r.id) < 0; });
+    if (missing.length && rng() < 0.4) {
+      return { gold: gold, relic: missing[Math.floor(rng() * missing.length)].id, item: null };
+    }
+    return { gold: gold, relic: null, item: IL.rollLoot ? IL.rollLoot(rng, "chest") : null };
   }
 
   function rollMarket(rng, renown) {
@@ -54,13 +186,16 @@
           fighter = IL.randomFighter(rng, champ.cls);
           fighter.champion = true;
           fighter.name = champ.name;
-          cost = Math.round(IL.hireCost(champ.cls) * 1.65);
+          const rarity = rollRarity(rng);
+          stampRecruit(fighter, rng, (rarity === "common" || rarity === "uncommon") ? "rare" : rarity);
+          cost = recruitCost(champ.cls, fighter.rarity, true);
         }
       }
       if (!fighter) {
         const cls = IL.pick(rng, open.length ? open : all);
         fighter = IL.randomFighter(rng, cls);
-        cost = IL.hireCost(cls);
+        stampRecruit(fighter, rng);
+        cost = recruitCost(cls, fighter.rarity, false);
       }
       board.push({ fighter: fighter, cost: cost });
     }
@@ -69,9 +204,10 @@
     if (locked.length && rng() < 0.85) {
       const cls = IL.pick(rng, locked);
       const fighter = IL.randomFighter(rng, cls);
+      stampRecruit(fighter, rng);
       board.push({
         fighter: fighter,
-        cost: IL.hireCost(cls),
+        cost: recruitCost(cls, fighter.rarity, false),
         locked: true,
         need: IL.CLASSES[cls].renown || 0
       });
@@ -130,6 +266,19 @@
     data.equipped = data.equipped.filter(function (id) { return data.relics.indexOf(id) >= 0; }).slice(0, 2);
     if (typeof data.relicSeason !== "number") data.relicSeason = 0;
     if (!data.cup) data.cup = null;
+    if (!Array.isArray(data.relicStock)) data.relicStock = [];
+    data.relicStock = data.relicStock.filter(function (row) {
+      return row && relicById(row.id) && typeof row.cost === "number" && row.cost > 0;
+    });
+    data.relicStock.forEach(function (row) { row.stock = row.stock > 0 ? 1 : 0; });
+    if (!data.deals || typeof data.deals !== "object" || typeof data.deals.week !== "number" || !Array.isArray(data.deals.offers)) {
+      data.deals = null;
+    } else {
+      data.deals.offers = data.deals.offers.filter(function (o) {
+        return o && (o.kind === "fighter" || o.kind === "bundle" || o.kind === "chest") && typeof o.cost === "number";
+      }).slice(0, 3);
+      if (data.deals.offers.length < 3) data.deals = null;
+    }
     if (!Array.isArray(data.history)) data.history = [];
     data.history = data.history.slice(0, 10);
     if (!data.settings || typeof data.settings !== "object") {
@@ -180,6 +329,9 @@
       if (f && IL.ensureMoves) IL.ensureMoves(f);
     }
     (data.market || []).forEach(function (row) { if (row) stampMoves(row.fighter); });
+    if (data.deals && data.deals.offers) {
+      data.deals.offers.forEach(function (o) { if (o) stampMoves(o.fighter); });
+    }
     (data.clubs || []).forEach(function (c) { (c.fighters || []).forEach(stampMoves); });
     if (data.cup && data.cup.slots) {
       data.cup.slots.forEach(function (s) { (s.fighters || []).forEach(stampMoves); });
@@ -597,8 +749,22 @@
   IL.RELICS = RELICS;
   IL.relicById = relicById;
   IL.equippedRelics = equippedRelics;
+  IL.SPECIALTIES = SPECIALTIES;
+  IL.specialtyOf = specialtyOf;
+  IL.rarityName = rarityName;
+  IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;
   IL.rollMarket = rollMarket;
+  IL.relicPrice = relicPrice;
+  IL.relicSellPrice = relicSellPrice;
+  IL.rollRelicStock = rollRelicStock;
+  IL.weekIndex = weekIndex;
+  IL.msUntilWeek = msUntilWeek;
+  IL.formatRemain = formatRemain;
+  IL.rollDeals = rollDeals;
+  IL.openChest = openChest;
+  IL.DEAL_REROLL = DEAL_REROLL;
+  IL.CHEST_COST = CHEST_COST;
   IL.grantXp = grantXp;
   IL.applyBoost = applyBoost;
   IL.freshClubFields = freshClubFields;

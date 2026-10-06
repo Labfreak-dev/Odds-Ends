@@ -2095,3 +2095,46 @@ td.club-cell .club-name,
   min-height: 44px;
   justify-content: center;
 }
+
+/* Market stalls. Chips and buy buttons stay a full tap target. */
+.subtabs .chip {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+#marketPane .roster-row {
+  max-height: none;
+  overflow: visible;
+  grid-template-columns: 56px minmax(0, 1fr) 92px;
+}
+#marketPane .roster-row .hire,
+#marketPane .roster-row .btn {
+  min-height: 44px;
+  height: 44px;
+  font-size: 13px;
+}
+#marketPane .roster-row p,
+#marketPane .roster-row .fine,
+#marketPane .stall-card p,
+#marketPane .stall-card .fine {
+  font-size: 13px;
+}
+#marketPane .hub-actions .btn,
+#gearStock .hub-actions .btn,
+#tomeStock .hub-actions .btn {
+  height: 44px;
+  min-height: 44px;
+  font-size: 13px;
+}
+.stall-card {
+  min-width: 0;
+}
+.stall-card .btn {
+  min-height: 44px;
+  height: 44px;
+  font-size: 13px;
+}
+#dealsBoard .stall-card canvas {
+  width: 72px;
+  height: 64px;
+}

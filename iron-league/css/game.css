@@ -1220,6 +1220,9 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
 @media (min-width: 1000px) {
   .hub-split { grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.9fr); }
 }
+@media (max-width: 999px) {
+  #clubPane { order: -1; }
+}
 @media (min-width: 1200px) {
   .roster-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .hub-split .roster-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

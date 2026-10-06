@@ -1361,6 +1361,48 @@ body:has(.fight-screen) #app {
   min-height: 0;
   display: flex;
   align-items: center;
+  position: relative;
+}
+.dmg-meter {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 2;
+  width: min(180px, 46%);
+  padding: 6px 8px 4px;
+  background: rgba(16, 14, 12, 0.82);
+  color: #f4ecdf;
+  pointer-events: none;
+  border: 1px solid rgba(224, 176, 122, 0.45);
+}
+.dmg-meter p {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow: visible;
+}
+.dmg-meter b { font-weight: 650; }
+.dmg-meter .them { color: #d5e4ff; }
+.dmg-meter i {
+  display: block;
+  height: 3px;
+  margin: 1px 0 4px;
+  background: #c4622d;
+}
+.dmg-meter i.them { background: #7f93b8; }
+.ab-break {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+  color: var(--muted);
 }
 .fight-screen #arena {
   width: 100%;

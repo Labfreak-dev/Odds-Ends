@@ -483,6 +483,14 @@ console.log("avg seconds", avgT.toFixed(1), "wins", wins0, wins1);
 const archer = fight(["archer"], ["tank"], 11);
 check("archer fires", archer.stats.shots > 0);
 check("archer fight dealt damage", archer.stats.hits > 0);
+let bookOk = false;
+archer.units.forEach(function (u) {
+  if (!u.byAb) return;
+  let sum = 0;
+  Object.keys(u.byAb).forEach(function (id) { sum += u.byAb[id].dmg || 0; });
+  if (u.dmgDealt > 0 && sum === u.dmgDealt) bookOk = true;
+});
+check("damage is split by move", bookOk);
 
 const mage = fight(["mage"], ["warrior"], 12);
 check("mage casts", mage.stats.casts > 0);
@@ -761,7 +769,19 @@ const dupClub = IL.migrate({
     { id: "c", cls: "archer", name: "Rho Pike" }
   ]
 });
-check("duplicate first names gain a suffix", dupClub.roster[0].name.split(" ")[0] === "Quill" && dupClub.roster[1].name.split(" ")[0] !== "Quill" && dupClub.roster[2].name.split(" ")[0] === "Rho");
+const second = dupClub.roster[1].name.split(" ")[0];
+check("duplicate first names take a fresh name", dupClub.roster[0].name.split(" ")[0] === "Quill" && second !== "Quill" && IL.FIRST.indexOf(second) >= 0 && !/\d/.test(second) && dupClub.roster[2].name.split(" ")[0] === "Rho");
+const suffixed = IL.migrate({
+  clubName: "Dup2",
+  roster: [
+    { id: "a", cls: "warrior", name: "Quill Ash" },
+    { id: "b", cls: "mage", name: "Quill2 Vale" }
+  ]
+});
+const fixed = suffixed.roster[1].name.split(" ")[0];
+check("a suffixed duplicate is renamed from the pool", fixed !== "Quill" && fixed !== "Quill2" && IL.FIRST.indexOf(fixed) >= 0);
+const keptName = IL.migrate(JSON.parse(JSON.stringify({ clubName: "Dup2", roster: suffixed.roster })));
+check("renamed duplicates stay put", keptName.roster[1].name === suffixed.roster[1].name);
 let galBroke = 0;
 Object.keys(IL.CLASSES).forEach(function (id) {
   const basic = IL.showcase(id, "basic");

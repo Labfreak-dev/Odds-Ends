@@ -490,6 +490,20 @@
     return s;
   }
 
+  function meleeReach(u, t) {
+    return (u.range || 36) + ((t && t.radius) || 14);
+  }
+
+  function standAt(u, t) {
+    const reach = meleeReach(u, t);
+    const bodies = (u.radius || 14) + ((t && t.radius) || 14) + 4;
+    const gap = Math.min(reach, bodies);
+    const dx = u.x - t.x;
+    const dy = u.y - t.y;
+    const d = Math.hypot(dx, dy) || 1;
+    return { x: t.x + (dx / d) * gap, y: t.y + (dy / d) * gap };
+  }
+
   function steer(u, tx, ty, speed, dt) {
     const dx = tx - u.x;
     const dy = ty - u.y;
@@ -626,9 +640,10 @@
       if (atk) raiseBanner(u, atk.name, false);
     }
     if (u.role !== "kite" && !u.forceShot) {
-      u.vx = u.facing * 42;
+      u.vx = u.facing * 16;
       u.vy *= 0.2;
     }
+    u.swingTag = basicTag(u);
   }
 
   function startCast(m, u, target) {
@@ -657,21 +672,27 @@
       dur: dur,
       kind: clip
     };
-    const chant = chantName(u, clip);
-    if (chant) raiseBanner(u, chant, false, dur + 0.35);
+    const chant = chantAb(u, clip);
+    u.swingTag = chant ? { id: chant.id, name: chant.name } : basicTag(u);
+    if (chant) raiseBanner(u, chant.name, false, dur + 0.35);
     else if (IL.attackOf) {
       const atk = IL.attackOf(u.cls);
       if (atk) raiseBanner(u, atk.name, false, dur + 0.35);
     }
   }
 
-  /* Cast clips with no cooldown are the class chants: frost, then fireball. */
-  function chantName(u, clip) {
+  function chantAb(u, clip) {
     const kit = kitOf(u.cls);
     const chants = (kit.abilities || []).filter(function (ab) { return ab && !ab.cd && ab.name; });
-    if (!chants.length) return "";
-    if (clip === "cast2" && chants.length > 1) return chants[1].name;
-    return chants[0].name;
+    if (!chants.length) return null;
+    if (clip === "cast2" && chants.length > 1) return chants[1];
+    return chants[0];
+  }
+
+  /* Cast clips with no cooldown are the class chants: frost, then fireball. */
+  function chantName(u, clip) {
+    const ab = chantAb(u, clip);
+    return ab ? ab.name : "";
   }
 
   function startDash(m, u, target) {
@@ -751,6 +772,20 @@
     cue(m, "shield_up");
   }
 
+  function basicTag(u) {
+    const atk = u && IL.attackOf && IL.attackOf(u.cls);
+    return { id: "basic", name: (atk && atk.name) || "Attack" };
+  }
+
+  function noteBook(src, kind, n, tag) {
+    if (!src || !n) return;
+    if (!src.byAb) src.byAb = {};
+    const t = tag || src.swingTag || basicTag(src);
+    if (!t || !t.id) return;
+    const row = src.byAb[t.id] || (src.byAb[t.id] = { id: t.id, name: t.name || t.id, dmg: 0, heal: 0 });
+    row[kind] = (row[kind] || 0) + n;
+  }
+
   function deal(m, src, dst, raw, opt) {
     opt = opt || {};
     if (!dst || dst.hp <= 0) return;
@@ -798,7 +833,10 @@
     }
     dst.hp -= dmg;
     dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
-    if (src && src.team !== dst.team) src.dmgDealt = (src.dmgDealt || 0) + dmg;
+    if (src && src.team !== dst.team) {
+      src.dmgDealt = (src.dmgDealt || 0) + dmg;
+      noteBook(src, "dmg", dmg, opt.tag);
+    }
     dst.flash = 0.14;
     const big = !!opt.crit || dmg >= 26;
     m.hitstop = blocked ? 0.02 : (big ? 0.07 : 0.035);
@@ -865,7 +903,7 @@
       fx(m, "plasma", dst.x, dst.y - 16, { size: 120 });
     }
     if (src && !opt.dot && kitOf(src.cls).bleed) {
-      dst.bleed = { t: 3.1, acc: 0.4, dmg: Math.max(2, Math.round(src.atk * 0.18)), src: src.id };
+      dst.bleed = { t: 3.1, acc: 0.4, dmg: Math.max(2, Math.round(src.atk * 0.18)), src: src.id, tag: src.swingTag || basicTag(src) };
       m.stats.bleeds++;
     }
     if (dst.cls === "duelist" && !opt.dot && dst.hp > 0) dst.riposte = true;
@@ -886,7 +924,10 @@
     if (src && src.oath) rawN *= 1.12;
     const n = Math.max(1, Math.round(rawN));
     dst.hp = Math.min(dst.maxHp, dst.hp + n);
-    if (src) src.healing = (src.healing || 0) + n;
+    if (src) {
+      src.healing = (src.healing || 0) + n;
+      noteBook(src, "heal", n, null);
+    }
     m.stats.heals++;
     m.events.push({ type: "heal", x: dst.x, y: dst.y - 46, n: n, team: dst.team });
     cue(m, "heal_chime");
@@ -912,7 +953,7 @@
       const dy = e.y - u.y;
       if (dx * u.facing < -10) continue;
       const dist = Math.hypot(dx, dy);
-      if (dist > u.range + bonus + e.radius) continue;
+      if (dist > meleeReach(u, e) + bonus) continue;
       if (dist < bestD) { bestD = dist; best = e; }
     }
     return best;
@@ -994,7 +1035,8 @@
         pierce: (u.pierce || 0) + (u.pierceBoost || 0),
         hit: {},
         bullet: bullet,
-        snd: bullet ? "hit_bullet" : "hit_arrow"
+        snd: bullet ? "hit_bullet" : "hit_arrow",
+        srcTag: u.swingTag ? { id: u.swingTag.id, name: u.swingTag.name } : null
       });
       m.stats.shots++;
     }
@@ -1068,7 +1110,7 @@
             if (e.team === u.team || e.hp <= 0) continue;
             const d = Math.hypot(e.x - c.x, e.y - c.y);
             if (d <= c.r + e.radius * 0.45) {
-              deal(m, u, e, Math.round(u.atk * mul), { silent: true });
+              deal(m, u, e, Math.round(u.atk * mul), { silent: true, tag: u.swingTag });
               if (c.kind === "cast1") e.slow = Math.max(e.slow, 2.1);
             }
           }
@@ -1081,7 +1123,8 @@
             vx: dx / d * 420, vy: dy / d * 420,
             team: u.team, dmg: Math.round(u.atk * 1.15), r: 10, life: 1.3, src: u.id,
             trail: [], drop: 0, pierce: (u.pierce || 0) + 1, hit: {}, bolt: true,
-            spell: "spell_" + school + "_impact"
+            spell: "spell_" + school + "_impact",
+            srcTag: u.swingTag ? { id: u.swingTag.id, name: u.swingTag.name } : null
           });
           m.stats.shots++;
           fx(m, "bolt", u.x + u.facing * 20, u.y - 16, { size: 140, facing: u.facing });
@@ -1110,7 +1153,8 @@
         vx: dx / d * 400, vy: dy / d * 400,
         team: u.team, dmg: Math.round(u.atk * mul), r: 10, life: 1.2, src: u.id,
         trail: [], drop: 0, pierce: u.pierce || 0, hit: {}, bolt: true,
-        spell: "spell_" + school + "_impact"
+        spell: "spell_" + school + "_impact",
+        srcTag: u.swingTag ? { id: u.swingTag.id, name: u.swingTag.name } : null
       });
       m.stats.shots++;
       fx(m, paint, u.x + u.facing * 18, u.y - 16, { size: 150, facing: u.facing });
@@ -1123,7 +1167,7 @@
       const e = m.units[i];
       if (e.team === u.team || e.hp <= 0) continue;
       if (Math.hypot(e.x - c.x, e.y - c.y) <= (c.r || 70) + e.radius * 0.4) {
-        deal(m, u, e, Math.round(u.atk * mul), { silent: true });
+        deal(m, u, e, Math.round(u.atk * mul), { silent: true, tag: u.swingTag });
         if (c.slow) e.slow = Math.max(e.slow || 0, c.slow);
       }
     }
@@ -1437,6 +1481,7 @@
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
     u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1);
+    if (ab && ab.id) u.swingTag = { id: ab.id, name: ab.name };
     arm(u, ab.cd || 6.5);
   }
 
@@ -1551,9 +1596,10 @@
       x: ox, y: oy,
       vx: dx / d * 420, vy: dy / d * 420,
       team: u.team, dmg: Math.round(u.atk * (ab.power || 0.85)),
-      r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0, hit: {},
+      r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0,       hit: {},
       spell: flask ? "spell_poison_impact" : null,
-      snd: flask ? null : "hit_bullet"
+      snd: flask ? null : "hit_bullet",
+      srcTag: { id: ab.id, name: ab.name }
     });
     m.stats.shots++;
     fx(m, ab.fx || "boom", ox, oy, { size: 90, facing: u.facing });
@@ -1604,6 +1650,7 @@
   }
 
   function noteAbility(m, u, t, ab) {
+    if (ab && ab.id) u.swingTag = { id: ab.id, name: ab.name };
     const life = u && u.cast && u.cast.dur ? u.cast.dur + 0.35 : 0;
     raiseBanner(u, ab.name, !!ab.ult, life);
     paintKind(m, u, t, ab);
@@ -1677,6 +1724,7 @@
       const ally = lowestAlly(m, u);
       if (!ally) return "skip";
       if (ab.kind === "heal") {
+        u.swingTag = { id: ab.id, name: ab.name };
         healUnit(m, u, ally, Math.round(ally.maxHp * (ab.power || 0.16) + u.atk * 0.25));
         fx(m, paint, ally.x, ally.y - 16, { size: 140 });
         spend(u, ab);
@@ -1726,7 +1774,7 @@
       return finish("go");
     }
     if (ab.kind === "dot" && t && dist <= (ab.reach || reach + 8)) {
-      t.bleed = { t: ab.dot || 3.2, acc: 0, dmg: Math.max(2, Math.round(u.atk * (ab.power || 0.25))), src: u.id };
+      t.bleed = { t: ab.dot || 3.2, acc: 0, dmg: Math.max(2, Math.round(u.atk * (ab.power || 0.25))), src: u.id, tag: { id: ab.id, name: ab.name } };
       m.stats.bleeds++;
       spend(u, ab);
       m.stats.abilities++;
@@ -1849,9 +1897,10 @@
     const dist = Math.hypot(t.x - u.x, t.y - u.y);
     if (maybeRoll(m, u, dist)) return;
     if (tryClassAbility(m, u, t, dist)) return;
-    const reach = u.range + t.radius;
+    const reach = meleeReach(u, t);
 
     if (u.role === "melee") {
+      const spot = standAt(u, t);
       if (dist <= reach && u.cool <= 0) {
         const clip = u.attacks[u.atkCursor % u.attacks.length];
         u.atkCursor++;
@@ -1862,7 +1911,7 @@
         startLeap(m, u, t);
         return;
       }
-      steer(u, t.x - u.facing * 8, t.y, spd, dt);
+      steer(u, spot.x, spot.y, spd, dt);
     } else if (u.role === "kite") {
       if (dist < 118) steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
       else if (dist > u.range - 16) steer(u, t.x, t.y, spd, dt);
@@ -1889,6 +1938,7 @@
       if (dist > stop) steer(u, t.x, t.y, spd, dt);
       else damp(u, 0.7);
     } else if (u.role === "tank") {
+      const tankSpot = standAt(u, t);
       if (dist < 96 && u.blockCd <= 0 && m.rng() < 0.5) {
         startBlock(m, u);
         return;
@@ -1899,7 +1949,7 @@
         startAttack(u, clip, t);
         return;
       }
-      steer(u, t.x, t.y, spd, dt);
+      steer(u, tankSpot.x, tankSpot.y, spd, dt);
     } else if (u.role === "dash") {
       if (u.dashCd <= 0 && dist > 78 && dist < 460) {
         startDash(m, u, t);
@@ -1915,7 +1965,8 @@
         startLeap(m, u, t);
         return;
       }
-      steer(u, t.x, t.y, spd, dt);
+      const dashSpot = standAt(u, t);
+      steer(u, dashSpot.x, dashSpot.y, spd, dt);
     } else if (u.role === "support") {
       let company = false;
       for (let i = 0; i < m.units.length; i++) {
@@ -1924,11 +1975,12 @@
       }
       const ally = company ? lowestAlly(m, u) : null;
       if (!company) {
+        const solo = standAt(u, t);
         if (dist <= reach && u.cool <= 0) {
           startAttack(u, "atk1", t);
           return;
         }
-        steer(u, t.x, t.y, spd, dt);
+        steer(u, solo.x, solo.y, spd, dt);
       } else if (dist <= reach + 8 && u.cool <= 0 && !ally) {
         startAttack(u, "atk1", t);
         return;
@@ -1939,13 +1991,14 @@
         steer(u, anchor.x + (u.x >= t.x ? 36 : -36), anchor.y, spd * 0.9, dt);
       }
     } else if (u.role === "hybrid") {
+      const hy = standAt(u, t);
       if (dist <= reach && u.cool <= 0) {
         const clip = u.attacks[u.atkCursor % u.attacks.length];
         u.atkCursor++;
         startAttack(u, clip, t);
         return;
       }
-      steer(u, t.x, t.y, spd, dt);
+      steer(u, hy.x, hy.y, spd, dt);
     }
 
     u.x += u.vx * dt;
@@ -2014,7 +2067,7 @@
         if (p.hit[e.id]) continue;
         if (Math.hypot(e.x - p.x, bodyY - p.y) <= e.radius + p.r) {
           const src = m.units.filter(function (u) { return u.id === p.src; })[0] || null;
-          deal(m, src, e, p.dmg, { snd: p.snd, spell: p.spell });
+          deal(m, src, e, p.dmg, { snd: p.snd, spell: p.spell, tag: p.srcTag });
           p.hit[e.id] = true;
           if (p.bolt) fx(m, "bolt", e.x, e.y - 16, { size: 120 });
           if (p.pierce > 0) p.pierce -= 1;
@@ -2165,7 +2218,7 @@
           u.bleed.acc = 0;
           const srcId = u.bleed.src;
           const src = m.units.filter(function (o) { return o.id === srcId; })[0] || null;
-          deal(m, src, u, u.bleed.dmg, { dot: true });
+          deal(m, src, u, u.bleed.dmg, { dot: true, tag: u.bleed.tag });
         }
         if (u.bleed && u.bleed.t <= 0) u.bleed = null;
       }

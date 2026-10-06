@@ -15,6 +15,7 @@
   let settingsOpen = false;
   let pendingSpec = null;
   let paused = false;
+  let meterOn = false;
   let gearPreview = null;
   let tonicPick = null;
   let tomePick = null;
@@ -3896,11 +3897,12 @@
         '</header>' +
         '<div class="hud-strip" id="liveYou"></div>' +
         '<div class="fight-layout">' +
-          '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="result" class="result" hidden></div></div>' +
+          '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div><div id="result" class="result" hidden></div></div>' +
         '</div>' +
         '<div class="hud-strip" id="liveThem"></div>' +
         '<footer class="fight-controls">' +
           speedButtons() +
+          '<button type="button" class="btn ghost" id="meter">Meter</button>' +
           '<button type="button" class="btn ghost" id="pause">Pause</button>' +
           '<button type="button" class="btn primary" id="skip">Skip</button>' +
         '</footer>' +
@@ -3916,6 +3918,7 @@
       if (btn) btn.onclick = function () { setFightSpeed(n); };
     });
     document.getElementById("pause").onclick = togglePause;
+    document.getElementById("meter").onclick = toggleMeter;
     document.getElementById("skip").onclick = function () { skipFight(); };
     const youRows = [];
     const themRows = [];
@@ -3952,6 +3955,17 @@
     save.settings.speed = n;
     persist();
     markSpeed();
+  }
+
+  function toggleMeter() {
+    meterOn = !meterOn;
+    const btn = document.getElementById("meter");
+    const box = document.getElementById("dmgMeter");
+    if (btn) {
+      btn.classList.toggle("on", meterOn);
+      btn.textContent = meterOn ? "Hide" : "Meter";
+    }
+    if (box) box.hidden = !meterOn;
   }
 
   function togglePause() {
@@ -4079,6 +4093,23 @@
       const num = rows[i].querySelector(".hp-num");
       if (num) num.textContent = Math.max(0, Math.round(u.hp)) + "/" + Math.round(u.maxHp);
     }
+    paintMeter(match);
+  }
+
+  function paintMeter(match) {
+    const box = document.getElementById("dmgMeter");
+    if (!box || !meterOn) return;
+    const units = match.units.filter(function (u) { return u && !u.summon; });
+    let top = 1;
+    units.forEach(function (u) { top = Math.max(top, u.dmgDealt || 0); });
+    units.sort(function (a, b) { return (b.dmgDealt || 0) - (a.dmgDealt || 0); });
+    box.innerHTML = units.slice(0, 8).map(function (u) {
+      const name = String(u.name || "").trim().split(/\s+/)[0] || "Fighter";
+      const n = u.dmgDealt || 0;
+      const pct = Math.max(4, Math.round(100 * n / top));
+      return '<p class="' + (u.team === 0 ? "you" : "them") + '"><span>' + esc(name) + '</span><b>' + n + '</b></p>' +
+        '<i class="' + (u.team === 0 ? "you" : "them") + '" style="width:' + pct + '%"></i>';
+    }).join("");
   }
 
   function shakeOn() {
@@ -4109,6 +4140,22 @@
     );
   }
 
+  function abBreakdown(u) {
+    const book = u.byAb || {};
+    const rows = Object.keys(book).map(function (id) { return book[id]; }).filter(function (r) {
+      return r && ((r.dmg || 0) > 0 || (r.heal || 0) > 0);
+    });
+    rows.sort(function (a, b) { return ((b.dmg || 0) + (b.heal || 0)) - ((a.dmg || 0) + (a.heal || 0)); });
+    if (!rows.length) return "";
+    const text = rows.map(function (r) {
+      const bits = [];
+      if (r.dmg) bits.push(String(r.dmg));
+      if (r.heal) bits.push("+" + r.heal);
+      return r.name + " " + bits.join(" ");
+    }).join(" · ");
+    return '<p class="ab-break">' + esc(text) + "</p>";
+  }
+
   function resultTable(match, xpBefore, lvBefore) {
     const yours = match.units.filter(function (u) { return u.team === 0; });
     let mvp = null;
@@ -4135,7 +4182,8 @@
       const b = bits(u);
       return '<tr' + (b.isMvp ? ' class="mvp"' : '') + '>' +
         '<td>' + esc(u.name) + (b.isMvp ? ' <em class="mvp-badge">MVP</em>' : '') +
-          (b.up ? ' <em class="level-call">Level ' + b.lv + '</em>' : '') + '</td>' +
+          (b.up ? ' <em class="level-call">Level ' + b.lv + '</em>' : '') +
+          abBreakdown(u) + '</td>' +
         '<td>' + (u.dmgDealt || 0) + '</td>' +
         '<td>' + (u.dmgTaken || 0) + '</td>' +
         '<td>' + (u.healing || 0) + '</td>' +
@@ -4156,6 +4204,7 @@
           " · Taken " + (u.dmgTaken || 0) +
           " · Heal " + (u.healing || 0) +
           " · KOs " + (u.kos || 0) + "</p>" +
+        abBreakdown(u) +
         '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(((b.prev % 40) / 40) * 100) + '%"></div></div></div>' +
       "</article>";
     }).join("");

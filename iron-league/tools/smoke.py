@@ -95,17 +95,36 @@ def run(page, label, shot_dir):
     page.click("#nextMatch")
     page.click("#confirmFight")
     page.wait_for_selector("#arena", timeout=30000)
-    page.wait_for_function(
-        """() => {
-          const IL = window.IL;
-          const m = IL && IL.currentMatch;
-          if (!m || !IL.fx || !IL.fx.ready()) return false;
-          const rolling = m.units.some(u => u.state === 'roll');
-          const combat = m.stats.slashes > 0 && rolling && IL.fx.spawned > 0 && m.stats.abilities > 0;
-          return m.time > 1.2 && combat;
-        }""",
-        timeout=35000,
-    )
+    try:
+        page.wait_for_function(
+            """() => {
+              const IL = window.IL;
+              const m = IL && IL.currentMatch;
+              if (!m || !IL.fx || !IL.fx.ready()) return false;
+              const flags = window.__ilSmokeFight || (window.__ilSmokeFight = {});
+              const units = m.units || [];
+              if (units.some(u => u.state === 'roll')) flags.roll = true;
+              if (m.stats && m.stats.slashes > 0) flags.slash = true;
+              if (m.stats && m.stats.abilities > 0) flags.ability = true;
+              if (IL.fx.spawned > 0) flags.fx = true;
+              return m.time > 1.2 && flags.roll && flags.slash && flags.ability && flags.fx;
+            }""",
+            timeout=35000,
+        )
+    except Exception:
+        snap = page.evaluate(
+            """() => {
+              const m = window.IL && IL.currentMatch;
+              return {
+                flags: window.__ilSmokeFight || null,
+                time: m ? m.time : null,
+                over: m ? !!m.over : null,
+                slashes: m && m.stats ? m.stats.slashes : null,
+                abilities: m && m.stats ? m.stats.abilities : null
+              };
+            }"""
+        )
+        raise SystemExit(label + " fight never showed combat " + str(snap))
     page.wait_for_timeout(200)
     page.screenshot(path=str(shot_dir / f"{label}-fight.png"))
     caught = {"slash": False, "cast": False, "shot": False, "roll": False}

@@ -174,6 +174,10 @@ check("old save gains a crest", oldSave.crest >= 1 && oldSave.crest <= 16);
 const keptCrest = { v: 1, clubName: "Smoke Yard", crest: 7, roster: [], clubs: [], fixtures: [] };
 IL.migrate(keptCrest);
 check("a chosen crest stays", keptCrest.crest === 7);
+check("plate follows the crest until chosen", keptCrest.plate === 6);
+const keptPlate = { v: 1, clubName: "Smoke Yard", crest: 7, plate: 3, roster: [], clubs: [], fixtures: [] };
+IL.migrate(keptPlate);
+check("a chosen plate stays", keptPlate.plate === 3 && keptPlate.crest === 7);
 const atlas = JSON.parse(fs.readFileSync(path.join(root, "assets/icons/atlas.json"), "utf8"));
 function framesOf(row) {
   const ids = [];
@@ -252,7 +256,7 @@ const achSave = {
 IL.migrate(achSave);
 const unlocked = IL.claimAchievements(achSave);
 check("first bell pays once", unlocked.some(function (row) { return row.id === "first-bout"; }) && achSave.gold >= 10 && IL.claimAchievements(achSave).length === 0);
-check("achievement board has a range of goals", IL.achievementBoard(achSave).length >= 15 && IL.achievementBoard(achSave).length <= 25);
+check("achievement board has a range of goals", IL.achievementBoard(achSave).length >= 30 && IL.achievementBoard(achSave).length <= 40);
 check("old save keeps a training day", oldSave.trainsLeft === 2 && oldSave.trainRound === 0);
 const messy = { v: 1, roster: [{ id: "a", name: "Ada", cls: "warrior", xp: 0 }], clubs: [], fixtures: [], settings: { speed: 9, shake: "no" } };
 IL.migrate(messy);

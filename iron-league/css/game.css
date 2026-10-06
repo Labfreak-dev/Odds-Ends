@@ -1049,6 +1049,26 @@ td.club-cell, .club-line { display: flex; align-items: center; gap: 6px; }
   background: transparent;
 }
 .crest-pick button.on { border-color: var(--copper-2); }
+.plate-pick { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; max-width: 100%; }
+.plate-pick button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 2px solid transparent;
+  background: transparent;
+}
+.plate-pick button.on { border-color: var(--copper-2); }
+.plate-swatch {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0 auto;
+  background: var(--club, #e08a3a);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
 .class-card { text-align: left; min-height: 64px; }
 .class-card strong { display: inline; }
 

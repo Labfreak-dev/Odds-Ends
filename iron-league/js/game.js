@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "47";
+  const BUILD = "48";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -209,11 +209,12 @@
     return (IL.hashStr(name || "iron") % 16) + 1;
   }
 
-  function crestHtml(name, size, index) {
+  function crestHtml(name, size, index, plate) {
     let n = index | 0;
     if (n < 1 || n > 16) n = crestIndexOf(name);
     const file = CREST_FILES[n - 1];
-    const tint = CREST_TINTS[n - 1];
+    let tint = CREST_TINTS[n - 1];
+    if (typeof plate === "number" && plate >= 0 && plate < CREST_TINTS.length) tint = CREST_TINTS[plate | 0];
     const folder = size === "lg" ? "emblems_white_128" : "emblems_white_64";
     return '<span class="crest-mark crest-' + size + '" style="--club:' + tint + '">' +
       '<span class="crest-plate"></span>' +
@@ -530,6 +531,7 @@
         v: 1,
         clubName: clubName,
         crest: draft.crest || 1,
+        plate: Math.max(0, (draft.crest || 1) - 1),
         gold: IL.START_GOLD,
         season: 1,
         rngSeed: seed,
@@ -1479,7 +1481,7 @@
     const table = sorted.map(function (c, i) {
       const played = c.w + c.l;
       const nemesisRow = save.nemesis && c.name === save.nemesis.name;
-      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
@@ -1531,6 +1533,24 @@
     };
   }
 
+  function colorsHtml() {
+    const crest = (save && save.crest) || 1;
+    const plate = (save && typeof save.plate === "number") ? (save.plate | 0) : Math.max(0, crest - 1);
+    const emblems = CREST_FILES.map(function (_, i) {
+      const on = (i + 1) === crest;
+      return '<button type="button" data-club-crest="' + (i + 1) + '" class="' + (on ? "on" : "") + '" aria-label="Emblem ' + (i + 1) + '" aria-pressed="' + (on ? "true" : "false") + '">' +
+        crestHtml("", "sm", i + 1, plate) + "</button>";
+    }).join("");
+    const plates = CREST_TINTS.map(function (tint, i) {
+      const on = i === plate;
+      return '<button type="button" data-club-plate="' + i + '" class="' + (on ? "on" : "") + '" aria-label="Plate ' + (i + 1) + '" aria-pressed="' + (on ? "true" : "false") + '" style="--club:' + tint + '"><span class="plate-swatch"></span></button>';
+    }).join("");
+    return '<section class="panel-frame" id="clubColors"><h3 class="section">Colors</h3>' +
+      '<p class="fine">Emblem and plate. Rivals keep theirs.</p>' +
+      '<div class="crest-pick" id="emblemPick">' + emblems + "</div>" +
+      '<div class="plate-pick" id="platePick">' + plates + "</div></section>";
+  }
+
   function clubPanel() {
     const rival = nextRival();
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
@@ -1541,7 +1561,7 @@
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
       const nemesisRow = save.nemesis && c.name === save.nemesis.name;
-      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c)) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function previewNames(list) {
       if (!list.length) return '<p class="preview-name">None</p>';
@@ -1556,7 +1576,7 @@
           partySynergy +
           '<div class="preview-side">' +
             '<p class="eyebrow">Your party</p>' +
-            '<div class="preview-head">' + crestHtml(save.clubName, "sm", save.crest) + previewNames(yours) + '</div>' +
+            '<div class="preview-head">' + crestHtml(save.clubName, "sm", save.crest, save.plate) + previewNames(yours) + '</div>' +
           '</div>' +
           '<p class="vs">vs</p>' +
           '<div class="preview-side">' +
@@ -1596,7 +1616,7 @@
           filterBar("club", clubPane, [["yard", "Yard"], ["record", "Record"]]) +
           (clubPane === "record"
             ? clubRecordHtml() + historyHtml()
-            : nemesisNoteHtml() + yard +
+            : nemesisNoteHtml() + yard + colorsHtml() +
               '<section class="panel-frame"><h3 class="section">Standings</h3>' +
                 '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
               '</section>' +
@@ -2282,7 +2302,7 @@
       const through = tie.winner && side.id === tie.winner ? " through" : "";
       const you = side.you ? " you" : "";
       const idx = side.you ? (save && save.crest) : crestIndexOf(side.name);
-      return '<span class="club-line' + you + through + '">' + crestHtml(side.name, "sm", idx) + esc(side.name) + '</span>';
+      return '<span class="club-line' + you + through + '">' + crestHtml(side.name, "sm", idx, side.you ? save.plate : undefined) + esc(side.name) + '</span>';
     };
     const yours = (tie.a && tie.a.you) || (tie.b && tie.b.you);
     return '<div class="tie' + (yours ? " yours" : "") + '">' + mark(tie.a) + mark(tie.b) +
@@ -2392,7 +2412,7 @@
       '<main class="hub">' +
         '<div class="hub-sticky">' +
           '<header class="hub-head">' +
-            crestHtml(save.clubName, "md", save.crest) +
+            crestHtml(save.clubName, "md", save.crest, save.plate) +
             '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
             '<div class="hub-actions">' +
               (done ? '<button type="button" class="btn gold" id="openSeason">Season ceremony</button>' : '') +
@@ -2647,7 +2667,7 @@
     app.innerHTML =
       '<main class="hub versus-screen" id="versus">' +
         '<header class="hub-head versus-head">' +
-          crestHtml(spec.leftName || save.clubName, "md", save.crest) +
+          crestHtml(spec.leftName || save.clubName, "md", save.crest, save.plate) +
           '<div><p class="eyebrow">Before the pit</p><h2>' + esc(spec.leftName || save.clubName) + ' vs ' + esc(spec.rightName || "Rivals") + '</h2></div>' +
           crestHtml(spec.rightName || "Rivals", "md", crestIndexOf(spec.rightName)) +
         '</header>' +
@@ -2785,6 +2805,26 @@
     };
     const panel = document.getElementById("hubPanel");
     if (panel) panel.onclick = function (ev) {
+      const emblem = ev.target.closest("[data-club-crest]");
+      if (emblem) {
+        const n = +emblem.dataset.clubCrest;
+        if (n >= 1 && n <= 16 && save.crest !== n) {
+          save.crest = n;
+          persist();
+          refreshHub();
+        }
+        return;
+      }
+      const plateBtn = ev.target.closest("[data-club-plate]");
+      if (plateBtn) {
+        const n = +plateBtn.dataset.clubPlate;
+        if (n >= 0 && n <= 15 && save.plate !== n) {
+          save.plate = n;
+          persist();
+          refreshHub();
+        }
+        return;
+      }
       const filt = ev.target.closest("[data-filter-kind]");
       if (filt) {
         if (filt.dataset.filterKind === "fighters") fighterFilter = filt.dataset.filter;
@@ -4039,7 +4079,7 @@
           '<button type="button" class="btn primary" id="skip">Skip</button>' +
         '</footer>' +
       '</main>';
-    document.getElementById("leftName").innerHTML = crestHtml(match.leftName, "sm", save.crest) + '<span class="club-name">' + esc(match.leftName) + '</span>';
+    document.getElementById("leftName").innerHTML = crestHtml(match.leftName, "sm", save.crest, save.plate) + '<span class="club-name">' + esc(match.leftName) + '</span>';
     const rightLabel = (match.teams || 2) > 2
       ? (match.names || []).slice(1).join(" · ")
       : match.rightName;

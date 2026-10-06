@@ -509,6 +509,9 @@
     if (typeof data.crest !== "number" || data.crest < 1 || data.crest > 16) {
       data.crest = (IL.hashStr(data.clubName || "iron") % 16) + 1;
     }
+    if (typeof data.plate !== "number" || data.plate < 0 || data.plate > 15) {
+      data.plate = Math.max(0, (data.crest || 1) - 1);
+    }
     if (typeof data.clubWins !== "number" || typeof data.clubLosses !== "number") {
       const hist = data.history || [];
       if ((data.bouts || 0) > 0 && hist.length === data.bouts) {
@@ -993,7 +996,26 @@
     { id: "purse", name: "Heavy purse", blurb: "Hold 200 gold.", gold: 12, icon: "bw_gold_coins",
       progress: function (d) { return { current: d.goldPeak || 0, goal: 200 }; } },
     { id: "unbeaten", name: "Unbeaten", blurb: "Finish a season without a loss.", gold: 35, icon: "bw_old_shield",
-      progress: function (d) { return { current: d.unbeaten || 0, goal: 1 }; } }
+      progress: function (d) { return { current: d.unbeaten || 0, goal: 1 }; } },
+    { id: "five-bouts", name: "Five bells", blurb: "Finish five matches.", gold: 18, icon: "bw_sword_01_steel",
+      progress: function (d) { return { current: d.bouts || 0, goal: 5 }; } },
+    { id: "rival-win", name: "First grudge", blurb: "Beat your rival.", gold: 16, icon: "bw_flail_08_red",
+      progress: function (d) { return { current: (d.nemesis && d.nemesis.wins) || 0, goal: 1 }; } },
+    { id: "rival-three", name: "Settled score", blurb: "Beat your rival three times.", gold: 24, icon: "bw_sword_05_gold",
+      progress: function (d) { return { current: (d.nemesis && d.nemesis.wins) || 0, goal: 3 }; } },
+    { id: "two-relics", name: "Paired relics", blurb: "Equip two club relics.", gold: 14, icon: "bw_gem_ruby",
+      progress: function (d) { return { current: (d.equipped && d.equipped.length) || 0, goal: 2 }; } },
+    { id: "set-awake", name: "Set awake", blurb: "Wake a set bonus.", gold: 20, icon: "bw_diamond",
+      progress: function (d) {
+        const pack = relicPack(d, d.roster || []);
+        return { current: pack.sets && pack.sets.length ? 1 : 0, goal: 1 };
+      } },
+    { id: "wave-five", name: "Fifth wave", blurb: "Reach endless wave 5.", gold: 18, icon: "bw_staff_02_steel",
+      progress: function (d) { return { current: (d.endless && d.endless.best) || 0, goal: 5 }; } },
+    { id: "week-clear", name: "Week cleared", blurb: "Clear the weekly event.", gold: 16, icon: "bw_token_golden_medallion",
+      progress: function (d) { return { current: d.weekClear ? 1 : 0, goal: 1 }; } },
+    { id: "renown-70", name: "Far renown", blurb: "Hold 70 renown.", gold: 18, icon: "bw_gold_coins",
+      progress: function (d) { return { current: d.renown || 0, goal: 70 }; } }
   ];
 
   function claimAchievements(data) {

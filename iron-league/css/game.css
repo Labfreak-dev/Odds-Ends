@@ -3866,3 +3866,66 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   .next-bar h3 { font-size: 16px; }
   .next-bar #nextMatch, .hub-panel > .next-bar #nextMatch { min-width: 104px; height: 46px; min-height: 46px; }
 }
+
+/* v64: per-fighter health rides over the heads; the header keeps a team bar. */
+.fight-screen.v61 .team-bar { height: 6px; border-radius: 3px; background: #0b0907; border: 1px solid rgba(0, 0, 0, 0.6); overflow: hidden; }
+.fight-screen.v61 .team-bar i { display: block; height: 100%; width: 100%; transition: width 0.25s ease; }
+.fight-screen.v61 .team-bar.you i { background: linear-gradient(#9be86f, #3f9a3a); }
+.fight-screen.v61 .team-bar.them { transform: scaleX(-1); }
+.fight-screen.v61 .team-bar.them i { background: linear-gradient(#ff7a62, #b02b22); }
+
+/* ---------- level up v2 (v64): stat roll + rarity skill cards ---------- */
+.lv-screen.v2 .lv-roll {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(#221a13, #17120d);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 14px;
+  align-items: center;
+}
+.lv-roll header { grid-column: 1 / -1; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.lv-roll header .eyebrow { margin: 0; color: #ffd27a; }
+.roll-rows { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.roll-row { display: flex; align-items: baseline; gap: 5px; padding: 6px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.25); border: 1px solid transparent; font-variant-numeric: tabular-nums; }
+.roll-row span { font: 700 11px var(--ui); letter-spacing: 0.08em; color: var(--muted); min-width: 30px; }
+.roll-row b { font-size: 15px; }
+.roll-row b.up { color: #b7e08f; }
+.roll-row b.same { color: var(--muted); }
+.roll-row i { color: var(--muted); font-style: normal; }
+.roll-row em { margin-left: auto; font: 800 11px var(--ui); font-style: normal; color: #1a100c; background: #b7e08f; border-radius: 999px; padding: 1px 6px; }
+.roll-row.up { border-color: rgba(183, 224, 143, 0.45); }
+.lv-reroll { border: 1px solid var(--line); border-radius: 6px; height: 40px; white-space: nowrap; }
+.lv-card.skill { border-top-width: 3px; border-top-style: solid; }
+.lv-card.skill.common { border-top-color: #9aa3ad; }
+.lv-card.skill.rare { border-top-color: #4f9dff; box-shadow: 0 6px 22px rgba(79, 157, 255, 0.12); }
+.lv-card.skill.epic { border-top-color: #b46cff; box-shadow: 0 6px 24px rgba(180, 108, 255, 0.18); }
+.lv-card.skill.legendary { border-top-color: #ffb43a; box-shadow: 0 0 0 1px rgba(255, 180, 58, 0.4), 0 6px 28px rgba(255, 180, 58, 0.25); background: linear-gradient(#33251a, #1d150f); }
+.lv-card.skill .lv-tag { display: flex; align-items: center; gap: 6px; }
+.rarity-gem { width: 9px; height: 9px; transform: rotate(45deg); border-radius: 2px; background: #9aa3ad; }
+.lv-card.rare .rarity-gem { background: #4f9dff; }
+.lv-card.epic .rarity-gem { background: #b46cff; }
+.lv-card.legendary .rarity-gem { background: #ffb43a; box-shadow: 0 0 8px #ffb43a; }
+.lv-card.rare .lv-tag { color: #8fc0ff; }
+.lv-card.epic .lv-tag { color: #d3a8ff; }
+.lv-card.legendary .lv-tag { color: #ffd27a; }
+.lv-card.common .lv-tag { color: #c3cad2; }
+.lv-sub { margin: -2px 0 0; font-size: 12px; color: var(--muted); }
+.lv-big { margin: 2px 0; font-size: 13px; color: var(--cream); }
+.lv-big b { font: 800 22px var(--ui); margin-right: 2px; }
+.lv-big b.up { color: #b7e08f; }
+.lv-glyph { font-size: 30px; line-height: 1; color: var(--cream); }
+.spec-pip { position: absolute; right: -6px; bottom: -6px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(#ffd27a, #d9a54a); color: #2a1a08; font: 800 11px var(--ui); font-style: normal; }
+.style-chip { padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(224, 176, 122, 0.45); color: var(--copper-2); }
+.lv-loadout li.talent { border-color: rgba(183, 224, 143, 0.4); }
+.lv-loadout li.talent.rare { border-color: #4f9dff; }
+.lv-loadout li.talent.epic { border-color: #b46cff; }
+.lv-loadout li.talent.legendary { border-color: #ffb43a; }
+.lv-foot { gap: 10px; flex-wrap: wrap; }
+.lv-later:disabled { opacity: 0.5; cursor: default; }
+@media (max-width: 760px) {
+  .lv-screen.v2 .lv-roll { grid-template-columns: minmax(0, 1fr); }
+  .roll-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

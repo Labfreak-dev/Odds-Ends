@@ -540,7 +540,7 @@ class Run:
                 self.capture(page, f"{base:02d}_versus", full_page=True)
             self.click_first(page, ["#confirmFight", lambda p: p.get_by_role("button", name="Fight", exact=True)])
         try:
-            page.wait_for_selector("#speed1, #speed3, #skip, .fight-controls", state="attached", timeout=8000)
+            page.wait_for_selector("#speed1, #speed15, .fight-controls", state="attached", timeout=8000)
         except Exception:
             pass
         page.wait_for_timeout(600)
@@ -637,7 +637,7 @@ class Run:
         except Exception:
             self.note(f"fight {idx} not over after {budget:.0f}s, trying Skip")
             try:
-                page.evaluate("() => { const s = document.querySelector('#skip'); if (s && !s.disabled) s.click(); }")
+                page.evaluate("() => { if (window.IL && IL.finishNow && IL.currentMatch && !IL.currentMatch.over) IL.finishNow(); }")
                 page.wait_for_function(RESULTS_JS, timeout=12000, polling=500)
                 ended = True
             except Exception:

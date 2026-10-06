@@ -180,15 +180,15 @@ def run(page, label, shot_dir):
         raise SystemExit(label + " fight never showed a slash")
     if label == "desktop" and not caught.get("ability"):
         raise SystemExit(label + " fight never fired an ability")
-    page.click("#speed3")
-    page.wait_for_function("() => document.querySelector('#speed3') && document.querySelector('#speed3').classList.contains('on')")
+    page.click("#speed15")
+    page.wait_for_function("() => document.querySelector('#speed15') && document.querySelector('#speed15').classList.contains('on')")
     saved_speed = page.evaluate("() => JSON.parse(localStorage.getItem('ironleague.v1')).settings.speed")
-    if saved_speed != 3:
+    if saved_speed != 1.5:
         raise SystemExit(label + " speed was not saved: " + str(saved_speed))
     page.click("#pause")
     page.wait_for_function("() => (document.querySelector('#pause') || {}).textContent === 'Resume'")
     page.click("#pause")
-    page.click("#skip")
+    page.evaluate("() => IL.finishNow()")
     page.wait_for_selector("#backHub", timeout=10000)
     page.wait_for_selector("#resultTable")
     page.wait_for_selector("#lootReveal")
@@ -250,19 +250,21 @@ def tour(page, shot_dir):
     page.click("#openGrowth")
     page.wait_for_selector("#growth")
     growth = page.locator("#growth").inner_text().lower()
-    if page.locator("#growthChoices [data-pick]").count() != 3 or "training" not in growth or "choose" not in growth:
+    if page.locator("#growthChoices [data-pick]").count() != 3 or "stat roll" not in growth or "choose" not in growth:
         raise SystemExit("level-up choices missing: " + growth[:240])
     if "→" not in growth:
         raise SystemExit("level-up cards show no before/after numbers: " + growth[:240])
     page.screenshot(path=str(shot_dir / "level-up.png"))
-    page.locator("#growthChoices [data-kind='stat']").first.click()
+    page.locator("#growthChoices [data-pick]").first.click()
+    if page.locator("#growthChoices [data-slot]").count():
+        page.click("#backHub")
     perk = page.evaluate(
         """() => {
           const f = JSON.parse(localStorage.getItem('ironleague.v1')).roster[0];
           return { left: f.pendingLevels, log: (f.growth || []).length, kind: f.growth && f.growth[0] && f.growth[0].kind };
         }"""
     )
-    if perk["left"] != 0 or perk["log"] != 1 or perk["kind"] != "stat":
+    if perk["left"] != 0 or perk["log"] != 1 or perk["kind"] not in ("learn", "spec", "talent"):
         raise SystemExit("level-up pick was not saved: " + str(perk))
     page.wait_for_selector("#market")
     page.click("#market")
@@ -485,8 +487,8 @@ def check_settings(page, label):
     for word in ("sound", "music", "fight speed", "screen shake", "reset save"):
         if word not in text:
             raise SystemExit(label + " settings missing " + word)
-    page.click("#speedPick3")
-    page.wait_for_selector("#speedPick3.on")
+    page.click("#speedPick15")
+    page.wait_for_selector("#speedPick15.on")
     page.click("#shakeToggle")
     page.click("#resetAsk")
     page.wait_for_selector("#resetBox")
@@ -1028,7 +1030,7 @@ def sweep_frames(browser, shot_dir):
         page.wait_for_selector("#arena")
         page.wait_for_timeout(250)
         assert_inside(page, label + " arena")
-        page.click("#skip")
+        page.evaluate("() => IL.finishNow()")
         page.wait_for_selector("#resultTable", timeout=15000)
         assert_inside(page, label + " results")
         page.click("#backHub")
@@ -1101,7 +1103,7 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
           return {
             scrollX: de.scrollWidth - window.innerWidth,
             scrollY: de.scrollHeight - window.innerHeight,
-            buttons: ['speed1', 'speed2', 'speed3', 'pause', 'skip'].map(view),
+            buttons: ['speed1', 'speed15', 'pause', 'meter'].map(view),
             nameInside: sr.left >= br.left - 1 && sr.right <= br.right + 1 && sr.bottom <= br.bottom + 1,
             clipped: span.scrollWidth - span.clientWidth > 1,
             fullName: span.textContent,
@@ -1122,9 +1124,9 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
         if box["top"] < -1 or box["left"] < -1 or box["bottom"] > height + 1 or box["right"] > width + 1:
             raise SystemExit(label + " speed control off screen " + str(box))
     page.screenshot(path=str(shot_dir / ("fight-" + label + ".png")))
-    page.click("#speed3")
+    page.click("#speed15")
     page.wait_for_selector("#resultTable", timeout=60000)
-    page.wait_for_function("() => document.querySelector('#speed3') && document.querySelector('#speed3').classList.contains('on')")
+    page.wait_for_function("() => document.querySelector('#speed15') && document.querySelector('#speed15').classList.contains('on')")
     overlay = page.evaluate(
         """() => {
           const table = document.querySelector('#resultTable').getBoundingClientRect();
@@ -1320,7 +1322,7 @@ def qa_gate(browser, shot_dir):
         fight = page.evaluate(
             """() => {
               const de = document.documentElement;
-              const boxes = ['speed1', 'speed2', 'speed3', 'pause', 'skip'].map((id) => {
+              const boxes = ['speed1', 'speed15', 'pause', 'meter'].map((id) => {
                 const el = document.getElementById(id);
                 if (!el) return null;
                 const r = el.getBoundingClientRect();
@@ -1344,9 +1346,9 @@ def qa_gate(browser, shot_dir):
                 raise SystemExit(label + " fight control off screen " + str(box))
         assert_inside(page, label + " arena")
         shot("fight")
-        page.click("#speed3")
+        page.click("#speed15")
         page.wait_for_selector("#result:not([hidden]) #resultTable", timeout=60000)
-        page.wait_for_function("() => document.querySelector('#speed3') && document.querySelector('#speed3').classList.contains('on')")
+        page.wait_for_function("() => document.querySelector('#speed15') && document.querySelector('#speed15').classList.contains('on')")
         assert_visible_exit(page, "#backHub", label + " results")
         assert_inside(page, label + " results")
         spinning = page.evaluate(

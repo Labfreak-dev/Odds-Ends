@@ -363,6 +363,24 @@
     return AI_ROWS.some(function (row) { return ai[row.key] !== row.opts[0].id; });
   }
 
+  /* Growth styles (v64). Each level rolls stat points weighted by style:
+     two points a level, one point is +2.5% health, +2.5% attack, +0.5
+     defense, or +1.5% speed. Shown when recruiting and on the sheet. */
+  const STYLES = {
+    balanced: { name: "Balanced", blurb: "A little of everything.", w: { hp: 1, atk: 1, def: 1, spd: 1 } },
+    bruiser: { name: "Bruiser", blurb: "Health first, then guard.", w: { hp: 3, atk: 1, def: 2, spd: 0.5 } },
+    striker: { name: "Striker", blurb: "Attack first, then speed.", w: { hp: 1, atk: 3, def: 0.5, spd: 1.5 } },
+    swift: { name: "Swift", blurb: "Speed first, then attack.", w: { hp: 1, atk: 1.5, def: 0.5, spd: 3 } },
+    bulwark: { name: "Bulwark", blurb: "Defense first, then health.", w: { hp: 2, atk: 0.5, def: 3, spd: 0.5 } }
+  };
+  const STYLE_IDS = Object.keys(STYLES);
+  const ROLL_VALUE = { hp: 0.025, atk: 0.025, def: 0.5, spd: 0.015 };
+
+  function styleOf(f) {
+    if (f && STYLES[f.style]) return f.style;
+    return STYLE_IDS[(hashStr(String((f && f.id) || "f") + ":style") >>> 0) % STYLE_IDS.length];
+  }
+
   /* Stamina. Fielded fighters tire in league and cup matches; the bench
      rests. Under half, health and damage slide a little, down to -12%. */
   const STAMINA_MAX = 100;
@@ -699,6 +717,10 @@
   IL.AI_ROWS = AI_ROWS;
   IL.normAi = normAi;
   IL.aiCustom = aiCustom;
+  IL.STYLES = STYLES;
+  IL.STYLE_IDS = STYLE_IDS;
+  IL.ROLL_VALUE = ROLL_VALUE;
+  IL.styleOf = styleOf;
   IL.STAMINA_MAX = STAMINA_MAX;
   IL.STAMINA_COST = STAMINA_COST;
   IL.STAMINA_REST = STAMINA_REST;

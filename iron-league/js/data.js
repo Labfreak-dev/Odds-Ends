@@ -314,6 +314,79 @@
 
   const PERSONALITIES = ["bold", "wary", "patient"];
   const TACTICS = ["strike", "cover", "hold"];
+  /* Behavior rows on the fighter sheet. The first choice of each row is
+     the default and reproduces the older AI exactly, so a save without
+     an "ai" block fights the way it always did. */
+  const AI_ROWS = [
+    { key: "target", name: "Target", opts: [
+      { id: "near", name: "Nearest", blurb: "Hit whoever is closest." },
+      { id: "weak", name: "Weakest", blurb: "Hunt the foe with the least health left." },
+      { id: "back", name: "Backline", blurb: "Reach past the front for archers, casters, and healers." },
+      { id: "strong", name: "Biggest", blurb: "Lock onto the foe hitting hardest." },
+      { id: "captain", name: "Captain's", blurb: "Hit whatever the captain is hitting." }
+    ] },
+    { key: "range", name: "Spacing", opts: [
+      { id: "kit", name: "Class", blurb: "Stand where the class stands." },
+      { id: "close", name: "Close", blurb: "Ranged and casters creep in nearer." },
+      { id: "far", name: "Far", blurb: "Ranged and casters keep their distance." }
+    ] },
+    { key: "ult", name: "Ultimate", opts: [
+      { id: "ready", name: "When ready", blurb: "Fire the third move as soon as it is up." },
+      { id: "crowd", name: "On a crowd", blurb: "Wait until two foes stand close together." },
+      { id: "finish", name: "To finish", blurb: "Save it for a foe under half health." }
+    ] },
+    { key: "retreat", name: "Fall back", opts: [
+      { id: "never", name: "Never", blurb: "Stay in until it ends." },
+      { id: "low", name: "Under 30%", blurb: "Back off toward home when badly hurt." },
+      { id: "half", name: "Under 50%", blurb: "Back off early and fight from the edge." }
+    ] },
+    { key: "evade", name: "Rolls", opts: [
+      { id: "normal", name: "Normal", blurb: "Roll as the personality says." },
+      { id: "often", name: "Often", blurb: "Roll away from more threats." },
+      { id: "rarely", name: "Rarely", blurb: "Trade blows instead of rolling." }
+    ] }
+  ];
+
+  function normAi(raw) {
+    const out = {};
+    const src = raw && typeof raw === "object" ? raw : {};
+    for (let i = 0; i < AI_ROWS.length; i++) {
+      const row = AI_ROWS[i];
+      const want = src[row.key];
+      out[row.key] = row.opts.some(function (o) { return o.id === want; }) ? want : row.opts[0].id;
+    }
+    return out;
+  }
+
+  function aiCustom(raw) {
+    const ai = normAi(raw);
+    return AI_ROWS.some(function (row) { return ai[row.key] !== row.opts[0].id; });
+  }
+
+  /* Stamina. Fielded fighters tire in league and cup matches; the bench
+     rests. Under half, health and damage slide a little, down to -12%. */
+  const STAMINA_MAX = 100;
+  const STAMINA_COST = 20;
+  const STAMINA_REST = 34;
+
+  function staminaOf(f) {
+    const s = f && typeof f.stamina === "number" ? f.stamina : STAMINA_MAX;
+    return Math.max(0, Math.min(STAMINA_MAX, s));
+  }
+
+  function staminaMul(f) {
+    const s = staminaOf(f);
+    if (s >= 50) return 1;
+    return 0.88 + 0.12 * (s / 50);
+  }
+
+  function staminaLabel(f) {
+    const s = staminaOf(f);
+    if (s >= 80) return "Fresh";
+    if (s >= 50) return "Ready";
+    if (s >= 25) return "Tired";
+    return "Spent";
+  }
 
   const CHAMPIONS = [
     { name: "Old Marrow", cls: "warrior" },
@@ -623,6 +696,15 @@
   IL.CUP_SIZE = CUP_SIZE;
   IL.PERSONALITIES = PERSONALITIES;
   IL.TACTICS = TACTICS;
+  IL.AI_ROWS = AI_ROWS;
+  IL.normAi = normAi;
+  IL.aiCustom = aiCustom;
+  IL.STAMINA_MAX = STAMINA_MAX;
+  IL.STAMINA_COST = STAMINA_COST;
+  IL.STAMINA_REST = STAMINA_REST;
+  IL.staminaOf = staminaOf;
+  IL.staminaMul = staminaMul;
+  IL.staminaLabel = staminaLabel;
   IL.CHAMPIONS = CHAMPIONS;
   IL.mulberry32 = mulberry32;
   IL.hashStr = hashStr;

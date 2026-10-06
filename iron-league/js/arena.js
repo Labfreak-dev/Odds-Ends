@@ -100,6 +100,8 @@
       def += gear.def || 0;
       speed += gear.spd || 0;
     }
+    const tire = IL.staminaMul ? IL.staminaMul(fighter) : 1;
+    if (tire < 1) { hp *= tire; atk *= tire; }
     return {
       hp: Math.round(hp),
       atk: Math.round(atk),
@@ -123,6 +125,9 @@
       champion: !!fighter.champion,
       personality: fighter.personality || "bold",
       tactic: fighter.tactic || "strike",
+      ai: IL.normAi ? IL.normAi(fighter.ai) : { target: "near", range: "kit", ult: "ready", retreat: "never", evade: "normal" },
+      captain: !!fighter.captain,
+      tgtId: null,
       x: pos.x,
       y: pos.y,
       homeX: pos.x,
@@ -496,7 +501,49 @@
       }
     }
     if (taunter && u.tactic !== "hold" && tauntD < bestD * 1.85) return taunter;
-    return best;
+    const pref = preferred(m, u);
+    return pref || best;
+  }
+
+  function unitById(m, id) {
+    if (!id) return null;
+    for (let i = 0; i < m.units.length; i++) if (m.units[i].id === id) return m.units[i];
+    return null;
+  }
+
+  /* The sheet's Target row. "near" returns null so nearest() keeps the
+     old pick and an untouched fighter fights exactly as before. */
+  function preferred(m, u) {
+    const want = u.ai && u.ai.target;
+    if (!want || want === "near") return null;
+    if (want === "captain") {
+      if (m.pilot && !m.pilot.auto && m.pilot.targetId && u.team === 0) {
+        const pt = unitById(m, m.pilot.targetId);
+        if (pt && pt.hp > 0 && pt.team !== u.team) return pt;
+      }
+      for (let i = 0; i < m.units.length; i++) {
+        const c = m.units[i];
+        if (c === u || c.team !== u.team || !c.captain || c.hp <= 0) continue;
+        const ct = unitById(m, c.tgtId);
+        if (ct && ct.hp > 0 && ct.team !== u.team) return ct;
+      }
+      return null;
+    }
+    let pick = null;
+    let score = -1e9;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === u.team || e.hp <= 0) continue;
+      const d = Math.hypot(e.x - u.x, e.y - u.y);
+      let sc;
+      if (want === "weak") sc = -e.hp - d * 0.05;
+      else if (want === "strong") sc = (e.atk || 0) * 10 - d * 0.05;
+      else if (want === "back") sc = (hangsBack(e.role) ? 1000 : 0) - d;
+      else return null;
+      if (e.summon) sc -= 2000;
+      if (sc > score) { score = sc; pick = e; }
+    }
+    return pick;
   }
 
   function nearestEnemyOf(m, u, team) {
@@ -1475,6 +1522,8 @@
     const th = incomingThreat(m, u);
     let need = u.personality === "bold" ? 98 : u.personality === "wary" ? 66 : 78;
     if (u.tactic === "hold") need -= 8;
+    if (u.ai && u.ai.evade === "often") need -= 16;
+    else if (u.ai && u.ai.evade === "rarely") need += 18;
     if (!th || th.score < need) {
       u.sawThreat = false;
       return false;
@@ -2007,12 +2056,32 @@
     return "skip";
   }
 
+  /* The sheet's Ultimate row. A held ultimate still fires once the match
+     is late, so a fighter never walks out with it unspent. */
+  function ultWanted(m, u, t) {
+    const want = u.ai && u.ai.ult;
+    if (!want || want === "ready" || !t) return true;
+    if (m.time > 26) return true;
+    if (want === "finish") return t.hp / t.maxHp < 0.5;
+    if (want === "crowd") {
+      let near = 0;
+      for (let i = 0; i < m.units.length; i++) {
+        const e = m.units[i];
+        if (e.team === u.team || e.hp <= 0) continue;
+        if (Math.hypot(e.x - t.x, e.y - t.y) <= 96) near++;
+      }
+      return near >= 2;
+    }
+    return true;
+  }
+
   function tryClassAbility(m, u, t, dist) {
     if (u.summon) return false;
     const list = unlockedAbs(u);
     for (let i = list.length - 1; i >= 0; i--) {
       const ab = list[i];
       if (!readyAb(u, ab)) continue;
+      if (ab.ult && !ultWanted(m, u, t)) continue;
       const result = fireOne(m, u, t, dist, ab);
       if (result === "skip") continue;
       return result === "go";
@@ -2037,10 +2106,29 @@
       return;
     }
     face(u, t);
+    u.tgtId = t.id;
     const dist = Math.hypot(t.x - u.x, t.y - u.y);
     if (maybeRoll(m, u, dist)) return;
     if (tryClassAbility(m, u, t, dist)) return;
     const reach = meleeReach(u, t);
+    if (fallingBack(u) && u.role !== "tank") {
+      /* Back off toward home and only swing at what follows. */
+      const hx = u.homeX != null ? u.homeX : u.x;
+      const hy = u.homeY != null ? u.homeY : u.y;
+      if (dist <= (u.role === "kite" || u.role === "cast" ? u.range : reach) && u.cool <= 0) {
+        if (u.role === "cast") startCast(m, u, t);
+        else startAttack(u, u.attacks[u.atkCursor++ % u.attacks.length], t);
+        return;
+      }
+      steer(u, hx, hy, spd, dt);
+      u.x += u.vx * dt;
+      u.y += u.vy * dt;
+      setMoveAnim(u, dt);
+      return;
+    }
+    const space = (u.ai && u.ai.range) || "kit";
+    const kiteMin = space === "close" ? 78 : space === "far" ? 168 : 118;
+    const castStop = space === "close" ? 0.48 : space === "far" ? 0.92 : 0.7;
 
     if (u.role === "melee") {
       const spot = standAt(u, t);
@@ -2056,7 +2144,7 @@
       }
       steer(u, spot.x, spot.y, spd, dt);
     } else if (u.role === "kite") {
-      if (dist < 118) steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
+      if (dist < kiteMin) steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
       else if (dist > u.range - 16) steer(u, t.x, t.y, spd, dt);
       else {
         const dx = t.x - u.x;
@@ -2077,7 +2165,7 @@
         startCast(m, u, t);
         return;
       }
-      const stop = u.range * 0.7;
+      const stop = u.range * castStop;
       if (dist > stop) steer(u, t.x, t.y, spd, dt);
       else damp(u, 0.7);
     } else if (u.role === "tank") {
@@ -2151,6 +2239,156 @@
     u.x += u.vx * dt;
     u.y += u.vy * dt;
     setMoveAnim(u, dt);
+  }
+
+  function fallingBack(u) {
+    const want = u.ai && u.ai.retreat;
+    if (!want || want === "never") return false;
+    const r = u.hp / u.maxHp;
+    return want === "low" ? r < 0.3 : r < 0.5;
+  }
+
+  /* ---------- captain control ----------
+     m.pilot = { id, mx, my, goX, goY, focusId, ab, abT, roll, auto }.
+     The page writes intent; the step reads it. With no pilot the match
+     is the same pure autobattle the sim checks. */
+  function pilotUnit(m) {
+    const P = m.pilot;
+    if (!P || P.auto) return null;
+    let u = unitById(m, P.id);
+    if (!u || u.hp <= 0 || u.team !== 0) {
+      u = null;
+      for (let i = 0; i < m.units.length; i++) {
+        const a = m.units[i];
+        if (a.team === 0 && !a.summon && a.hp > 0) { u = a; break; }
+      }
+      if (u) {
+        P.id = u.id;
+        m.events.push({ type: "pilot", id: u.id, name: u.name });
+      }
+    }
+    return u;
+  }
+
+  function pilotAbs(u) {
+    return unlockedAbs(u);
+  }
+
+  function pilotAttack(m, u, t, dist) {
+    if (u.cool > 0) return false;
+    const reach = meleeReach(u, t);
+    if (u.role === "cast") {
+      if (dist > u.range) return false;
+      startCast(m, u, t);
+      return true;
+    }
+    if (u.role === "kite") {
+      if (dist > u.range + 12) return false;
+      startAttack(u, u.attacks[u.atkCursor++ % u.attacks.length], t);
+      return true;
+    }
+    if (u.role === "support") {
+      if (dist > reach + 8) return false;
+      startAttack(u, "atk1", t);
+      return true;
+    }
+    if (dist > reach) return false;
+    startAttack(u, u.attacks[u.atkCursor++ % u.attacks.length], t);
+    return true;
+  }
+
+  function pilotThink(m, u, dt) {
+    const P = m.pilot;
+    if (u.stun > 0) {
+      damp(u, 0.8);
+      u.x += u.vx * dt;
+      u.y += u.vy * dt;
+      return;
+    }
+    const spd = moveSpeed(u);
+    let t = unitById(m, P.focusId);
+    if (!t || t.hp <= 0 || t.team === u.team) {
+      P.focusId = null;
+      t = nearest(m, u);
+    }
+    P.targetId = t ? t.id : null;
+    u.tgtId = P.targetId;
+    const dist = t ? Math.hypot(t.x - u.x, t.y - u.y) : 1e9;
+    const mx = P.mx || 0;
+    const my = P.my || 0;
+    const steering = mx !== 0 || my !== 0;
+    if (P.ab != null) {
+      const ab = pilotAbs(u)[P.ab];
+      P.abT = (P.abT || 0) - dt;
+      if (!ab || !readyAb(u, ab)) {
+        P.ab = null;
+      } else {
+        if (t) face(u, t);
+        const code = fireOne(m, u, t, dist, ab);
+        if (code !== "skip") {
+          P.ab = null;
+          P.chase = false;
+          if (u.state !== "idle" && u.state !== "run") return;
+        } else if (P.abT <= 0) {
+          m.events.push({ type: "pilotNo", name: ab.name });
+          P.ab = null;
+        }
+      }
+    }
+    if (steering) {
+      P.goX = null;
+      P.chase = false;
+      const len = Math.hypot(mx, my) || 1;
+      steer(u, u.x + mx / len * 120, u.y + my / len * 120, spd, dt);
+      if (Math.abs(u.vx) > 10) u.facing = u.vx > 0 ? 1 : -1;
+    } else if (P.goX != null) {
+      const d = Math.hypot(P.goX - u.x, P.goY - u.y);
+      if (d < 6) {
+        P.goX = null;
+        damp(u, 0.6);
+      } else {
+        steer(u, P.goX, P.goY, spd, dt);
+        if (Math.abs(u.vx) > 10) u.facing = u.vx > 0 ? 1 : -1;
+      }
+    } else if (t && (P.chase || P.ab != null)) {
+      const want = (u.role === "kite" || u.role === "cast") ? u.range * 0.85 : meleeReach(u, t) - 2;
+      if (dist > want) {
+        const spot = (u.role === "kite" || u.role === "cast") ? { x: t.x, y: t.y } : standAt(u, t);
+        steer(u, spot.x, spot.y, spd, dt);
+      } else damp(u, 0.6);
+      face(u, t);
+    } else {
+      damp(u, 0.6);
+      if (t) face(u, t);
+    }
+    if (t && !steering && P.goX == null) {
+      if (pilotAttack(m, u, t, dist)) return;
+      /* On the way to a chosen foe, swing at whoever is already in reach. */
+      const near = P.focusId ? nearestEnemyOf(m, u, u.team) : null;
+      if (near && near !== t && pilotAttack(m, u, near, Math.hypot(near.x - u.x, near.y - u.y))) return;
+    }
+    u.x += u.vx * dt;
+    u.y += u.vy * dt;
+    setMoveAnim(u, dt);
+  }
+
+  function pilotRoll(m, u) {
+    const P = m.pilot;
+    if (!P || !P.roll) return;
+    P.roll = false;
+    if (u.rollCd > 0 || u.stun > 0) {
+      m.events.push({ type: "pilotNo", name: "Roll" });
+      return;
+    }
+    if (u.state === "roll" || u.state === "leap" || u.state === "dash") return;
+    let dx = P.mx || 0;
+    let dy = P.my || 0;
+    if (!dx && !dy) {
+      const t = unitById(m, P.targetId);
+      if (t) { dx = u.x - t.x; dy = u.y - t.y; }
+      else dx = -(u.facing || 1);
+    }
+    startRoll(m, u, dx, dy);
   }
 
   function separate(m) {
@@ -2249,6 +2487,7 @@
   }
 
   function stepBody(m, u, dt) {
+    if (m.pilot && m.pilot.roll && !m.pilot.auto && m.pilot.id === u.id && u.team === 0 && !m.scripted) pilotRoll(m, u);
     if (u.state !== "leap" && ((u.z || 0) > 0 || u.vz)) {
       u.vz = (u.vz || 0) - 720 * dt;
       u.z = Math.max(0, (u.z || 0) + u.vz * dt);
@@ -2262,6 +2501,7 @@
     else if (u.state === "block") stepBlock(m, u, dt);
     else if (u.state === "hurt") stepHurt(m, u, dt);
     else if (m.scripted) setMoveAnim(u, dt);
+    else if (m.pilot && !m.pilot.auto && m.pilot.id === u.id && u.team === 0) pilotThink(m, u, dt);
     else think(m, u, dt);
   }
 
@@ -2314,6 +2554,7 @@
       return;
     }
 
+    if (m.pilot && !m.pilot.auto) pilotUnit(m);
     /* Keep each pet with its squad. Pets pushed at the end of the list
        otherwise always swing after both fighters, and the one summoned
        first lands the last hit on every mirror. */
@@ -2495,4 +2736,5 @@
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
   IL.stepMatch = stepMatch;
+  IL.pilotAbs = pilotAbs;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -3064,3 +3064,158 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
   border-color: var(--good);
   color: var(--good);
 }
+
+/* ---------- captain control (v59) ----------
+   The ability bar floats on the bottom edge of the pit. Each key greys
+   out from the top while its cooldown runs. */
+.pilot-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  padding: 6px 8px;
+  background: rgba(16, 13, 10, 0.86);
+  border: 1px solid rgba(224, 176, 122, 0.5);
+  border-radius: 6px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.pilot-bar[hidden] { display: none; }
+.pilot-who { margin: 0; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: baseline; }
+.pilot-who span { text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; color: var(--copper-2); }
+.pilot-who b { color: var(--cream); font-family: var(--display); font-size: 14px; }
+.pilot-keys { display: flex; gap: 6px; flex-wrap: nowrap; }
+.pilot-ab {
+  position: relative;
+  overflow: hidden;
+  width: 64px;
+  height: 58px;
+  padding: 4px 2px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1px;
+  background: linear-gradient(#3a2c20, #221a13);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--cream);
+  font: 600 10px/1.1 var(--ui);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.pilot-ab .item-icon, .pilot-ab .pixel-icon { width: 28px; height: 28px; image-rendering: pixelated; }
+.pilot-ab.ult { border-color: #d9a54a; }
+.pilot-ab.ready { border-color: var(--copper-2); box-shadow: inset 0 0 0 1px rgba(255, 196, 120, 0.25); }
+.pilot-ab.ult.ready { box-shadow: 0 0 10px rgba(255, 196, 92, 0.45), inset 0 0 0 1px rgba(255, 220, 140, 0.4); }
+.pilot-ab.queued { outline: 2px solid #ffd27a; outline-offset: -2px; }
+.pilot-ab.roll { width: 54px; }
+.pilot-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pilot-ab kbd {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font: 700 9px/1 var(--ui);
+  color: var(--copper-2);
+}
+.pilot-cd {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--cd, 0%);
+  background: rgba(8, 6, 4, 0.72);
+  pointer-events: none;
+}
+.pilot-help { margin: 0; font-size: 11px; color: var(--muted); text-align: center; }
+.pilot-note {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  padding: 4px 12px;
+  background: rgba(16, 13, 10, 0.88);
+  border: 1px solid rgba(224, 176, 122, 0.5);
+  border-radius: 999px;
+  color: var(--cream);
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.pilot-note[hidden] { display: none; }
+@media (max-width: 760px), (hover: none) {
+  .pilot-help { display: none; }
+  .pilot-ab kbd { display: none; }
+  .pilot-ab { width: 56px; height: 54px; }
+  .pilot-ab.roll { width: 50px; }
+}
+
+/* Stamina: a thin bar on roster cards, the sheet, and your versus cards. */
+.stamina {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0 0;
+  max-width: 160px;
+  height: 12px;
+  font: 600 10px/1 var(--ui);
+  color: var(--muted);
+}
+.stamina::before {
+  content: "";
+  flex: 1 1 auto;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+.stamina i {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  height: 4px;
+  max-width: calc(100% - 46px);
+  border-radius: 2px;
+  background: var(--good);
+}
+.stamina em { flex: none; width: 40px; font-style: normal; text-align: right; }
+.stamina.low i { background: #d9a54a; }
+.stamina.low em { color: #e6be72; }
+.stamina.out i { background: var(--danger); }
+.stamina.out em { color: #ee8a72; }
+.rest-line { color: var(--muted); }
+
+/* Behavior rows on the fighter sheet. */
+.behavior { margin: 8px 0 4px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: rgba(0, 0, 0, 0.16); }
+.behavior summary { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-family: var(--display); font-size: 15px; color: var(--cream); }
+.behavior summary em { font: 12px/1.3 var(--ui); color: var(--copper-2); font-style: normal; text-align: right; }
+.ai-row { margin: 8px 0 0; }
+.ai-name { margin: 0 0 3px; font: 600 11px/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.ai-blurb { margin: 3px 0 0; }
+.behavior .btn { margin-top: 10px; }
+
+/* Versus: auto or steer. */
+.pilot-pick { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 6px 0; }
+.pilot-pick span { font: 600 11px/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+/* Roster tiles are capped at 80px: stamina rides the bottom edge. */
+.roster-row .stamina {
+  position: absolute;
+  left: 66px;
+  right: 82px;
+  bottom: 7px;
+  height: 3px;
+  max-width: none;
+  margin: 0;
+  pointer-events: auto;
+}
+.roster-row .stamina::before { height: 3px; }
+.roster-row .stamina i { top: 0; height: 3px; max-width: 100%; }
+.roster-row .stamina em { display: none; }
+.tired-word { color: #e6be72; }

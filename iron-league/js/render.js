@@ -967,6 +967,59 @@
     IL.pitOverlap = { hold: fx.overlapHold || 0, worst: fx.overlapWorst || 0, frac: worst };
   }
 
+  /* Captain control marks, on the floor under the sprites: a gold ring
+     on the fighter you steer, a red bracket on their target, and a
+     small cross where a tap sent them. */
+  function drawPilot(ctx, match, fx) {
+    const P = match.pilot;
+    if (!P || P.auto) return;
+    let me = null;
+    let foe = null;
+    for (let i = 0; i < match.units.length; i++) {
+      const u = match.units[i];
+      if (u.id === P.id && u.hp > 0) me = u;
+      if (u.id === P.targetId && u.hp > 0) foe = u;
+    }
+    const t = fx.t || 0;
+    if (me) {
+      const pulse = 0.65 + 0.35 * Math.sin(t * 5);
+      ctx.strokeStyle = "rgba(255, 206, 92," + (0.55 + 0.4 * pulse) + ")";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (IL.pitTurn) ctx.ellipse(me.x, me.y + 2, 5, 13, 0, 0, Math.PI * 2);
+      else ctx.ellipse(me.x, me.y + 2, 13, 5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255, 206, 92, 0.16)";
+      ctx.fill();
+    }
+    if (foe) {
+      ctx.strokeStyle = P.focusId ? "rgba(255, 92, 64, 0.95)" : "rgba(255, 120, 90, 0.55)";
+      ctx.lineWidth = 1.5;
+      const w = 13;
+      const h = 5;
+      for (let k = 0; k < 4; k++) {
+        const sx = k % 2 ? 1 : -1;
+        const sy = k < 2 ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(foe.x + sx * w, foe.y + 2 + sy * h * 0.2);
+        ctx.lineTo(foe.x + sx * w, foe.y + 2 + sy * h);
+        ctx.lineTo(foe.x + sx * (w - 5), foe.y + 2 + sy * h);
+        ctx.stroke();
+      }
+    }
+    if (P.goX != null) {
+      const a = 0.5 + 0.4 * Math.sin(t * 8);
+      ctx.strokeStyle = "rgba(255, 230, 160," + a + ")";
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      ctx.moveTo(P.goX - 4, P.goY - 2);
+      ctx.lineTo(P.goX + 4, P.goY + 2);
+      ctx.moveTo(P.goX + 4, P.goY - 2);
+      ctx.lineTo(P.goX - 4, P.goY + 2);
+      ctx.stroke();
+    }
+  }
+
   function drawArena(ctx, match, fx) {
     const canvas = ctx.canvas;
     const view = fitArena(canvas);
@@ -1001,6 +1054,7 @@
     }
     drawSprites(ctx, fx.sprites, true);
     drawSigs(ctx, fx, true);
+    drawPilot(ctx, match, fx);
 
     if (fx.booms) {
       for (let i = 0; i < fx.booms.length; i++) {
@@ -1208,4 +1262,5 @@
   IL.SHAKE_SCALE = SHAKE_SCALE;
   IL.fitArena = fitArena;
   IL.drawArena = drawArena;
+  IL.pitToWorld = cssToWorld;
 })(typeof window !== "undefined" ? window : globalThis);

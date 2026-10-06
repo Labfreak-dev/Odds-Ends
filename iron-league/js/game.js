@@ -271,6 +271,9 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Steer your captain: move with WASD or a tap, fire moves with Q, E, R, roll with Space. Auto hands them back.",
+    "Behavior rows on every fighter: target, spacing, when to spend the ultimate, when to fall back, how often to roll.",
+    "Stamina: league and cup matches tire the party and rest the bench. Rotate the roster.",
     "27 classes, each with six or more moves. Recruits of one class equip different threes.",
     "Market stalls to buy and sell gear, fighters, and relics, plus weekly deals.",
     "64 relics in 8 sets.",
@@ -1304,7 +1307,9 @@
       '<div class="row-main">' +
         '<h3>' + esc(f.name) + cap + champ + '</h3>' +
         '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + f.level + '</span></p>' +
-        '<p class="fine">HP ' + Math.round(stats.hp) + " · ATK " + Math.round(stats.atk) + '</p>' +
+        '<p class="fine">HP ' + Math.round(stats.hp) + " · ATK " + Math.round(stats.atk) +
+          (IL.staminaOf && IL.staminaOf(f) < 50 ? ' · <span class="tired-word">' + esc(IL.staminaLabel(f)) + '</span>' : '') + '</p>' +
+        staminaBar(f) +
       '</div>' +
       '<div class="row-actions">' +
         lineupControl(f, size) +
@@ -1520,7 +1525,9 @@
           '<button type="button" class="btn close-x" id="sheetClose" aria-label="Close">Close</button></header>' +
         '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"', f.captain, f) + '</div>' +
         '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + (f.rarity ? " · " + esc(rarityLabel(f.rarity)) : "") + (f.specialty && IL.specialtyOf && IL.specialtyOf(f.specialty) ? " · " + esc(IL.specialtyOf(f.specialty).name) : "") + (f.champion ? " · Champion" : "") + '</p>' +
+        staminaBar(f) +
         '<h3 class="section">Tactic</h3>' + tacticChips(f) +
+        behaviorHtml(f) +
         '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
         statBar("HP", stats.hp, 320) +
         statBar("ATK", stats.atk, 40) +
@@ -1562,6 +1569,54 @@
       const on = (f.tactic || "strike") === id;
       return '<button type="button" class="chip' + (on ? " on" : "") + '" data-tactic="' + esc(id) + '">' + esc(tacticLabel(id)) + '</button>';
     }).join("") + '</div>';
+  }
+
+  /* Behavior rows: how the fighter picks a target, where they stand,
+     when they spend the ultimate, when they back off, and how often
+     they roll. Each row is a chip set; the first chip is the default. */
+  function behaviorHtml(f) {
+    const rows = IL.AI_ROWS || [];
+    if (!rows.length) return "";
+    const ai = IL.normAi(f.ai);
+    const custom = IL.aiCustom(f.ai);
+    return '<details class="behavior"' + (custom ? " open" : "") + ' id="behaviorBox">' +
+      '<summary><span>Behavior</span><em>' + esc(custom ? behaviorSummary(ai) : "Class default") + '</em></summary>' +
+      rows.map(function (row) {
+        const on = row.opts.filter(function (o) { return o.id === ai[row.key]; })[0] || row.opts[0];
+        return '<div class="ai-row"><p class="ai-name">' + esc(row.name) + '</p>' +
+          '<div class="chips">' + row.opts.map(function (o) {
+            return '<button type="button" class="chip' + (o.id === ai[row.key] ? " on" : "") + '" data-ai="' + esc(row.key + ":" + o.id) + '" title="' + esc(o.blurb) + '">' + esc(o.name) + '</button>';
+          }).join("") + '</div>' +
+          '<p class="fine ai-blurb">' + esc(on.blurb) + '</p></div>';
+      }).join("") +
+      (custom ? '<button type="button" class="btn ghost" data-ai-reset="1">Back to class default</button>' : '') +
+    '</details>';
+  }
+
+  function behaviorSummary(ai) {
+    const rows = IL.AI_ROWS || [];
+    const bits = [];
+    rows.forEach(function (row) {
+      if (ai[row.key] === row.opts[0].id) return;
+      const o = row.opts.filter(function (x) { return x.id === ai[row.key]; })[0];
+      if (o) bits.push(row.name + " " + o.name.toLowerCase());
+    });
+    return bits.join(" · ");
+  }
+
+  function setBehavior(id, pair) {
+    const f = fighterById(id);
+    if (!f || !pair) return;
+    const at = pair.indexOf(":");
+    const key = pair.slice(0, at);
+    const val = pair.slice(at + 1);
+    const ai = IL.normAi(f.ai);
+    ai[key] = val;
+    f.ai = IL.normAi(ai);
+    persist();
+    refreshHub();
+    const box = document.getElementById("behaviorBox");
+    if (box) box.open = true;
   }
 
   function perkList(f) {
@@ -1652,11 +1707,45 @@
     return purse;
   }
 
+  /* League and cup matches tire whoever walked in and rest the bench. */
+  function tireAndRest(sent) {
+    if (!IL.staminaOf) return "";
+    const ids = {};
+    (sent || []).forEach(function (f) { if (f) ids[f.id] = true; });
+    let rested = 0;
+    const worn = [];
+    (save.roster || []).forEach(function (f) {
+      const was = IL.staminaOf(f);
+      if (ids[f.id]) {
+        f.stamina = Math.max(0, was - IL.STAMINA_COST);
+        if (f.stamina < 50) worn.push(f.name.split(" ")[0]);
+      } else {
+        f.stamina = Math.min(IL.STAMINA_MAX, was + IL.STAMINA_REST);
+        if (f.stamina > was) rested++;
+      }
+    });
+    const bits = ["Stamina −" + IL.STAMINA_COST + " for the party"];
+    if (rested) bits.push("the bench rested");
+    let line = bits.join(", ") + ".";
+    if (worn.length) line += " Tired: " + worn.join(", ") + " — rest them a match.";
+    return line;
+  }
+
+  function staminaBar(f) {
+    if (!IL.staminaOf) return "";
+    const s = Math.round(IL.staminaOf(f));
+    const label = IL.staminaLabel(f);
+    const tone = s >= 50 ? "ok" : s >= 25 ? "low" : "out";
+    return '<span class="stamina ' + tone + '" title="Stamina ' + s + '/100 · ' + esc(label) + (s < 50 ? " · fights a little weaker" : "") + '">' +
+      '<i style="width:' + s + '%"></i><em>' + esc(label) + '</em></span>';
+  }
+
   function startNextSeason() {
     save.season += 1;
     save.gold += 30;
     (save.roster || []).forEach(function (f) {
       f.season = { dealt: 0, taken: 0, heal: 0, kos: 0 };
+      f.stamina = IL.STAMINA_MAX;
     });
     buildSeason(true);
     persist();
@@ -2855,6 +2944,7 @@
       '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + (f.level || 1) + '</span></p>' +
       (trait ? '<p class="trait-line">' + esc(trait.name) + '</p>' : '') +
       '<p class="fine">HP ' + Math.round(st.hp) + '</p>' +
+      (typeof f.stamina === "number" ? staminaBar(f) : '') +
     '</article>';
   }
 
@@ -2884,6 +2974,7 @@
           '<div class="power-track"><div class="power-you" style="width:' + share + '%"></div></div>' +
           '<p>Power ' + youP + ' · ' + themP + '</p>' +
         '</div>' +
+        pilotPickHtml() +
         '<div class="versus-actions">' +
           '<button type="button" class="btn ghost" id="versusBack">Back</button>' +
           '<button type="button" class="btn fight" id="confirmFight">Fight</button>' +
@@ -2895,7 +2986,26 @@
       showHub(spec.returnTab || "club");
     };
     document.getElementById("confirmFight").onclick = confirmPending;
+    const pick = document.getElementById("pilotPick");
+    if (pick) pick.onclick = function (ev) {
+      const b = ev.target.closest("[data-pilot-pick]");
+      if (!b) return;
+      if (!save.settings) save.settings = { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
+      save.settings.pilot = b.dataset.pilotPick === "on";
+      persist();
+      pick.querySelectorAll("[data-pilot-pick]").forEach(function (c) {
+        c.classList.toggle("on", (c.dataset.pilotPick === "on") === save.settings.pilot);
+      });
+    };
     bootCards(right.map(function (f) { return f && f.parts; }));
+  }
+
+  function pilotPickHtml() {
+    const on = !!(save && save.settings && save.settings.pilot);
+    return '<div class="pilot-pick" id="pilotPick"><span>In the pit</span>' +
+      '<button type="button" class="chip' + (on ? "" : " on") + '" data-pilot-pick="off">Watch · auto</button>' +
+      '<button type="button" class="chip' + (on ? " on" : "") + '" data-pilot-pick="on">Steer the captain</button>' +
+      '</div>';
   }
 
   function confirmPending() {
@@ -3275,6 +3385,13 @@
     if (sheet) sheet.onclick = function (ev) {
       const tactic = ev.target.closest("[data-tactic]");
       if (tactic) { setTactic(detailId, tactic.dataset.tactic); return; }
+      const aiChip = ev.target.closest("[data-ai]");
+      if (aiChip) { setBehavior(detailId, aiChip.dataset.ai); return; }
+      if (ev.target.closest("[data-ai-reset]")) {
+        const rf = fighterById(detailId);
+        if (rf) { delete rf.ai; persist(); refreshHub(); }
+        return;
+      }
       const preview = ev.target.closest("[data-preview-item]");
       if (preview) {
         gearPreview = { uid: preview.dataset.previewItem };
@@ -3819,6 +3936,7 @@
         });
       match.spriteMap = map;
       match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
+      match.pilot = makePilot(match, !!(save && save.settings && save.settings.pilot));
       fight = {
         match: match,
         left: spec.left || (spec.sides && spec.sides[0].fighters) || [],
@@ -4112,11 +4230,15 @@
         (match.hazardName ? '<p class="hazard-line" id="pitBanner"><strong>' + esc(match.hazardName) + '</strong>' + (match.hazardBlurb ? '<span>' + esc(match.hazardBlurb) + '</span>' : '') + '</p>' : '') +
         '<div class="hud-strip" id="liveYou"></div>' +
         '<div class="fight-layout">' +
-          '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div><div id="result" class="result" hidden></div></div>' +
+          '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div>' +
+            '<div class="pilot-bar" id="pilotBar" hidden></div>' +
+            '<p class="pilot-note" id="pilotNote" hidden></p>' +
+            '<div id="result" class="result" hidden></div></div>' +
         '</div>' +
         '<div class="hud-strip" id="liveThem"></div>' +
         '<footer class="fight-controls">' +
           speedButtons() +
+          '<button type="button" class="btn ghost" id="pilot">Control</button>' +
           '<button type="button" class="btn ghost" id="meter">Meter</button>' +
           '<button type="button" class="btn ghost" id="pause">Pause</button>' +
           '<button type="button" class="btn primary" id="skip">Skip</button>' +
@@ -4134,6 +4256,7 @@
     });
     document.getElementById("pause").onclick = togglePause;
     document.getElementById("meter").onclick = toggleMeter;
+    document.getElementById("pilot").onclick = function () { togglePilot(); };
     document.getElementById("skip").onclick = function () { skipFight(); };
     const youRows = [];
     const themRows = [];
@@ -4156,6 +4279,223 @@
     });
     document.getElementById("liveYou").innerHTML = '<p class="eyebrow">Your side</p>' + youRows.join("");
     document.getElementById("liveThem").innerHTML = '<p class="eyebrow">Their side</p>' + themRows.join("");
+    mountPilotBar(match);
+  }
+
+  /* ---------- captain control ----------
+     The pit steps intent written here: a move vector from the keys, a
+     tapped point or foe, a queued move, a roll. Auto hands the fighter
+     back to their sheet's behavior, mid-fight, at any time. */
+  function makePilot(match, on) {
+    let pick = null;
+    match.units.forEach(function (u) {
+      if (u.team !== 0 || u.summon) return;
+      if (!pick || (u.captain && !pick.captain)) pick = u;
+    });
+    if (!pick) return null;
+    return { id: pick.id, mx: 0, my: 0, goX: null, goY: null, focusId: null, targetId: null, ab: null, abT: 0, roll: false, chase: false, auto: !on };
+  }
+
+  function pilotFighter(match) {
+    const P = match && match.pilot;
+    if (!P) return null;
+    for (let i = 0; i < match.units.length; i++) if (match.units[i].id === P.id) return match.units[i];
+    return null;
+  }
+
+  function mountPilotBar(match) {
+    const bar = document.getElementById("pilotBar");
+    const btn = document.getElementById("pilot");
+    const P = match.pilot;
+    if (btn) {
+      btn.disabled = !P;
+      btn.classList.toggle("on", !!P && !P.auto);
+      btn.textContent = P && !P.auto ? "Auto" : "Control";
+      btn.title = P && !P.auto ? "Hand the fighter back to their behavior (C)" : "Steer your captain (C)";
+    }
+    if (!bar) return;
+    const u = pilotFighter(match);
+    if (!P || P.auto || !u) {
+      bar.hidden = true;
+      bar.innerHTML = "";
+      return;
+    }
+    const abs = IL.pilotAbs ? IL.pilotAbs(u) : [];
+    const keys = ["Q", "E", "R"];
+    bar.hidden = false;
+    bar.dataset.pid = u.id;
+    bar.innerHTML =
+      '<p class="pilot-who"><span>Steering</span><b>' + esc(u.name) + '</b></p>' +
+      '<div class="pilot-keys">' +
+        abs.slice(0, 3).map(function (ab, i) {
+          return '<button type="button" class="pilot-ab' + (ab.ult ? " ult" : "") + '" data-pilot-ab="' + i + '" title="' + esc(ab.name + (ab.blurb ? " — " + ab.blurb : "")) + '">' +
+            (IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "") +
+            '<span class="pilot-name">' + esc(ab.name) + '</span><kbd>' + keys[i] + '</kbd><i class="pilot-cd"></i></button>';
+        }).join("") +
+        '<button type="button" class="pilot-ab roll" data-pilot-roll="1" title="Roll out of harm">' +
+          '<span class="pilot-name">Roll</span><kbd>Space</kbd><i class="pilot-cd"></i></button>' +
+      '</div>' +
+      '<p class="pilot-help">Move with WASD or the arrows, or tap the floor. Tap a foe to hunt them. Tab swaps fighter.</p>';
+    bar.onclick = function (ev) {
+      const a = ev.target.closest("[data-pilot-ab]");
+      if (a) { pilotCast(+a.dataset.pilotAb); return; }
+      if (ev.target.closest("[data-pilot-roll]")) pilotRollNow();
+    };
+    mountIcons(bar);
+  }
+
+  function togglePilot(force) {
+    if (!fight || !fight.match || fight.match.over || !fight.match.pilot) return;
+    const P = fight.match.pilot;
+    P.auto = typeof force === "boolean" ? !force : !P.auto;
+    P.mx = 0; P.my = 0; P.goX = null; P.focusId = null; P.ab = null; P.roll = false; P.chase = false;
+    pilotHeld = {};
+    if (!save.settings) save.settings = { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
+    save.settings.pilot = !P.auto;
+    persist();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    mountPilotBar(fight.match);
+    pilotSay(P.auto ? "Back on auto." : "You have the captain.");
+  }
+
+  function pilotCast(i) {
+    const P = fight && fight.match && fight.match.pilot;
+    if (!P || P.auto) return;
+    P.ab = i;
+    P.abT = 2.6;
+  }
+
+  function pilotRollNow() {
+    const P = fight && fight.match && fight.match.pilot;
+    if (!P || P.auto) return;
+    P.roll = true;
+  }
+
+  function pilotSwap() {
+    const match = fight && fight.match;
+    const P = match && match.pilot;
+    if (!P || P.auto) return;
+    const mine = match.units.filter(function (u) { return u.team === 0 && !u.summon && u.hp > 0; });
+    if (mine.length < 2) return;
+    const at = mine.findIndex(function (u) { return u.id === P.id; });
+    const next = mine[(at + 1) % mine.length];
+    P.id = next.id;
+    P.goX = null; P.focusId = null; P.ab = null; P.chase = false;
+    mountPilotBar(match);
+    pilotSay("Steering " + next.name + ".");
+  }
+
+  let pilotHeld = {};
+  let pilotNoteT = 0;
+  function pilotSay(text) {
+    const note = document.getElementById("pilotNote");
+    if (!note) return;
+    note.textContent = text;
+    note.hidden = false;
+    pilotNoteT = 1.6;
+  }
+
+  function pilotAxis() {
+    const P = fight && fight.match && fight.match.pilot;
+    if (!P) return;
+    let sx = 0;
+    let sy = 0;
+    if (pilotHeld.left) sx -= 1;
+    if (pilotHeld.right) sx += 1;
+    if (pilotHeld.up) sy -= 1;
+    if (pilotHeld.down) sy += 1;
+    /* A turned floor puts world x down the screen. */
+    if (IL.pitCam && IL.pitCam.portrait) { P.mx = sy; P.my = sx; }
+    else { P.mx = sx; P.my = sy; }
+  }
+
+  const PILOT_DIRS = {
+    ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+    a: "left", d: "right", w: "up", s: "down", A: "left", D: "right", W: "up", S: "down"
+  };
+
+  function onPilotKey(ev) {
+    if (!fight || !fight.match || fight.match.over) return;
+    const tag = ev.target && ev.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const P = fight.match.pilot;
+    if (!P) return;
+    const down = ev.type === "keydown";
+    if (down && (ev.key === "c" || ev.key === "C")) { ev.preventDefault(); togglePilot(); return; }
+    if (P.auto) return;
+    const dir = PILOT_DIRS[ev.key];
+    if (dir) {
+      ev.preventDefault();
+      pilotHeld[dir] = down;
+      pilotAxis();
+      return;
+    }
+    if (!down) return;
+    const k = ev.key.toLowerCase();
+    if (k === "q" || k === "1") { ev.preventDefault(); pilotCast(0); }
+    else if (k === "e" || k === "2") { ev.preventDefault(); pilotCast(1); }
+    else if (k === "r" || k === "3") { ev.preventDefault(); pilotCast(2); }
+    else if (ev.key === " ") { ev.preventDefault(); pilotRollNow(); }
+    else if (ev.key === "Tab") { ev.preventDefault(); pilotSwap(); }
+  }
+
+  function pilotTap(canvas, ev, fx) {
+    const match = fight && fight.match;
+    const P = match && match.pilot;
+    if (!P || P.auto || !fx.cam || !IL.pitToWorld) return;
+    const r = canvas.getBoundingClientRect();
+    const w = IL.pitToWorld(ev.clientX - r.left, ev.clientY - r.top, fx.cam);
+    let foe = null;
+    let best = 26;
+    match.units.forEach(function (u) {
+      if (u.team === 0 || u.hp <= 0) return;
+      const d = Math.hypot(u.x - w.x, (u.y - 14) - w.y);
+      if (d < best) { best = d; foe = u; }
+    });
+    if (foe) {
+      P.focusId = foe.id;
+      P.chase = true;
+      P.goX = null;
+      return;
+    }
+    const W = IL.WORLD;
+    P.goX = Math.max(W.left, Math.min(W.right, w.x));
+    P.goY = Math.max(W.top, Math.min(W.bottom, w.y));
+    P.chase = false;
+  }
+
+  function paintPilot(match, dt) {
+    if (pilotNoteT > 0) {
+      pilotNoteT -= dt;
+      if (pilotNoteT <= 0) {
+        const note = document.getElementById("pilotNote");
+        if (note) note.hidden = true;
+      }
+    }
+    const bar = document.getElementById("pilotBar");
+    const P = match.pilot;
+    if (!bar || bar.hidden || !P || P.auto) return;
+    const u = pilotFighter(match);
+    if (!u) return;
+    if (bar.dataset.pid !== u.id) { mountPilotBar(match); return; }
+    const abs = IL.pilotAbs ? IL.pilotAbs(u) : [];
+    const btns = bar.querySelectorAll("[data-pilot-ab]");
+    for (let i = 0; i < btns.length; i++) {
+      const ab = abs[i];
+      if (!ab) continue;
+      const left = (u.cds && u.cds[ab.id]) || 0;
+      const full = (ab.cd || 6.5) * (u.abilityCdMul || 1);
+      const frac = Math.max(0, Math.min(1, left / full));
+      btns[i].style.setProperty("--cd", (frac * 100).toFixed(1) + "%");
+      btns[i].classList.toggle("ready", frac <= 0);
+      btns[i].classList.toggle("queued", P.ab === i);
+    }
+    const roll = bar.querySelector("[data-pilot-roll]");
+    if (roll) {
+      const frac = Math.max(0, Math.min(1, (u.rollCd || 0) / 2.7));
+      roll.style.setProperty("--cd", (frac * 100).toFixed(1) + "%");
+      roll.classList.toggle("ready", frac <= 0);
+    }
   }
 
   function speedButtons() {
@@ -4221,14 +4561,24 @@
     canvas.addEventListener("pointermove", pitPoint);
     canvas.addEventListener("pointerdown", pitPoint);
     canvas.addEventListener("pointerleave", function () { fx.pointer = null; });
+    canvas.addEventListener("pointerdown", function (ev) { pilotTap(canvas, ev, fx); });
+    pilotHeld = {};
+    document.addEventListener("keydown", onPilotKey);
+    document.addEventListener("keyup", onPilotKey);
+    function dropKeys() {
+      document.removeEventListener("keydown", onPilotKey);
+      document.removeEventListener("keyup", onPilotKey);
+      pilotHeld = {};
+    }
     let last = performance.now();
     let acc = 0;
     function frame(now) {
-      if (!alive(tok) || !fight) return;
+      if (!alive(tok) || !fight) { dropKeys(); return; }
       const match = fight.match;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       fx.t += dt;
+      paintPilot(match, dt);
       if (!match.over && !paused) {
         acc += dt * speed;
         let guard = 0;
@@ -4242,7 +4592,7 @@
       ageFx(fx, dt);
       IL.drawArena(ctx, match, fx);
       paintHud(match);
-      if (match.over) { finishFight(); return; }
+      if (match.over) { dropKeys(); finishFight(); return; }
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
@@ -4257,6 +4607,11 @@
         if (typeof e.n === "number" && shakeOn()) fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
       } else if (e.type === "heal") {
         fx.nums.push({ x: e.x, y: e.y, n: e.n, heal: true, t: 0, life: 0.7 });
+      } else if (e.type === "pilotNo") {
+        pilotSay(e.name + " — not yet.");
+      } else if (e.type === "pilot") {
+        pilotSay("Now steering " + e.name + ".");
+        if (fight && fight.match === match) mountPilotBar(match);
       } else if (e.type === "dodge") {
         fx.nums.push({ x: e.x, y: e.y, dodge: true, t: 0, life: 0.45 });
       } else if (e.type === "boom") {
@@ -4374,6 +4729,7 @@
     if (!fight || fight.match.over) return;
     paused = false;
     const match = fight.match;
+    if (match.pilot) match.pilot.auto = true;
     let n = 0;
     while (!match.over && n < 4000) {
       IL.stepMatch(match, 1 / 60);
@@ -4782,6 +5138,8 @@
         );
       }
     });
+    const restLine = (mode === "league" || mode === "cup") ? tireAndRest(fight.left) : "";
+    if (restLine) persist();
     const stood = match.units.filter(function (u) { return u.team === 0 && u.hp > 0; }).map(function (u) { return u.name; });
     const fell = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).map(function (u) { return u.name; });
     let nextLine = "";
@@ -4825,6 +5183,7 @@
           '<li>+' + renown + ' renown</li>' +
           '<li>' + xp + ' xp for each fighter you sent</li>' +
           (relicNote ? '<li>' + esc(relicNote.trim()) + '</li>' : '') +
+          (restLine ? '<li class="rest-line">' + esc(restLine) + '</li>' : '') +
         '</ul>' +
         '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
           (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +

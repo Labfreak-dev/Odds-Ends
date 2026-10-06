@@ -46,6 +46,8 @@ python3 iron-league/tools/check-clothes.py # battler sheets, bow and gun columns
 python3 iron-league/tools/smoke.py
 ```
 
+`smoke.py` launches Google Chrome when it is installed and falls back to Playwright's bundled Chromium otherwise.
+
 `smoke.py` drives the real page in headless Chromium (desktop 1280×800 and phone 430×932): title, create a captain, fight once, skip to a result, reload, continue. It needs `playwright==1.56.0` when the image expects that pin.
 
 ## What a match is
@@ -73,6 +75,14 @@ Win gold, renown, and xp. Lose a smaller purse. A season is five matches against
 
 The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, gear slots, an empty armory, and a club crest without wiping the roster. The save stamps schema 2 on load. A new club can skip a short first visit. Settings opens Fight a friend, and a Report a bug button copies a short report. The title screen opens on a dim sand pit. On a phone two battlers stand in the ring, facing each other; a wider screen lines up two against two. A What's new list covers the build. Event fights and the daily challenge carry a pit event — fog, a fire floor, a gold rush, sudden death, or giant mode. The fight opens with a banner that names the event and what it does. Endless still changes the pit every fifth wave, through a longer list. Fight a friend on the Events tab copies the fielded party (the button reads Copied), accepts a pasted code, and can paste from the clipboard when the browser allows it. A bad code says what is wrong. The result names the friend's club.
 
+## Captain control, behavior, and stamina (v59)
+
+**Steer the captain.** The versus card asks *Watch · auto* or *Steer the captain*, and the pit's **Control** button (or `C`) switches mid-fight. The steered fighter wears a gold ring; their target wears a red bracket. WASD or the arrows move, or tap the floor to walk there. Tap a foe to hunt them; on the way the fighter still swings at anyone already in reach. `Q`, `E`, `R` (or `1`–`3`, or the buttons on the ability bar) queue the equipped moves; a queued move walks into range and fires, or says *not yet* if it cannot. `Space` rolls, `Tab` swaps to another fighter on your side. If the steered fighter falls, control passes to the next one standing. Basic attacks fire on their own when you stand still in range. **Skip** hands control back to the AI. On a turned phone floor the keys follow the screen, not the world. The engine reads intent from `match.pilot`; with no pilot a match is the same pure autobattle the sim checks.
+
+**Behavior.** The fighter sheet keeps the Strike / Cover / Hold tactic and adds five rows under *Behavior*: Target (Nearest, Weakest, Backline, Biggest, Captain's), Spacing (Class, Close, Far), Ultimate (When ready, On a crowd, To finish), Fall back (Never, Under 30%, Under 50%), and Rolls (Normal, Often, Rarely). The first chip on each row is the old AI, so an untouched fighter fights exactly as before. A held ultimate still fires late in the match. Behavior travels in Fight a friend codes.
+
+**Stamina.** League and cup matches cost each fielded fighter 20 stamina and rest everyone on the bench by 34. Above half nothing changes; below half health and damage slide to at most −12% at empty. Cards, the sheet, and your versus cards show *Fresh*, *Ready*, *Tired*, or *Spent*. A new season starts everyone fresh. Events, endless, and the daily cost nothing.
+
 ## Not in this build
 
-Direct captain control is left for later. Clip usage is in `ANIM.md`.
+Clip usage is in `ANIM.md`.

@@ -992,6 +992,42 @@ runOut(piloted, function (m) { if (m.pilot.ab == null && m.time % 2 < 0.02) { m.
 check("a steered match still ends", piloted.over);
 check("the steered fighter landed hits", pu.dmgDealt > 0);
 
+/* v60: watchlist and draft cup. */
+const wsave = { clubName: "Watchers", renown: 0, roster: [], market: IL.rollMarket(IL.mulberry32(5), 0, { names: [], sheets: [] }) };
+wsave.market[0].watch = true;
+wsave.market[0].base = wsave.market[0].cost;
+const watchedId = wsave.market[0].fighter.id;
+IL.refreshBoard(wsave, IL.mulberry32(6), { names: [], sheets: [] });
+check("a refresh keeps the watched recruit", wsave.market.some(function (r) { return r.fighter.id === watchedId && r.watch; }));
+let wKept = 0;
+let wSigned = 0;
+for (let i = 0; i < 60; i++) {
+  const sv = { clubName: "W", renown: 0, roster: [], market: IL.rollMarket(IL.mulberry32(100 + i), 0, { names: [], sheets: [] }) };
+  sv.market[0].watch = true;
+  const id = sv.market[0].fighter.id;
+  const notes = IL.turnMarket(sv, IL.mulberry32(200 + i), { names: [], sheets: [] });
+  const still = sv.market.filter(function (r) { return r.fighter.id === id; })[0];
+  if (still) { wKept++; if (!(still.cost >= 22)) fails++; }
+  else if (notes.some(function (n) { return n.indexOf("signed") >= 0; })) wSigned++;
+  if (sv.market.filter(function (r) { return !r.watch; }).some(function (r) { return r.fighter.id === id; })) fails++;
+}
+check("a match keeps most watched recruits and loses a few", wKept > 40 && wSigned > 0 && wKept + wSigned === 60);
+const scoutSave = { clubName: "S", renown: 99, roster: [], scout: "healer", market: [] };
+let scouted = 0;
+for (let i = 0; i < 30; i++) { if (IL.turnMarket(scoutSave, IL.mulberry32(300 + i), { names: [], sheets: [] }).some(function (n) { return n.indexOf("Healer") >= 0; })) scouted++; }
+check("the scout finds the wanted class on some turns", scouted >= 8);
+const dsave = { clubName: "Drafters", roster: [{ level: 4 }, { level: 6 }, { level: 5 }, { level: 1 }] };
+const draft = IL.startDraft(dsave, IL.mulberry32(9));
+check("a draft offers three distinct classes at the club's level", draft.offer.length === 3 && new Set(draft.offer.map(function (f) { return f.cls; })).size === 3 && draft.level === 5 && draft.offer.every(function (f) { return f.level === 5; }));
+IL.draftPick(dsave, draft, 0, IL.mulberry32(10));
+check("a later offer skips classes already drafted", draft.offer.every(function (f) { return f.cls !== draft.picks[0].cls; }));
+IL.draftPick(dsave, draft, 1, IL.mulberry32(11));
+IL.draftPick(dsave, draft, 2, IL.mulberry32(12));
+check("three picks open a four-club bracket", draft.stage === "bracket" && draft.cup.slots.length === 4 && draft.cup.slots.slice(1).every(function (side) { return side.fighters.length === 3 && side.fighters.every(function (f) { return f.level === 5; }); }));
+const dopp = IL.cupOpponent(draft.cup);
+const dm = runOut(IL.createMatch({ seed: 81, left: draft.picks, right: dopp.foe.fighters, mode: "draft" }));
+check("a draft tie plays out", dm.over);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

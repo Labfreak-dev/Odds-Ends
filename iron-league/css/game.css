@@ -3219,3 +3219,44 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
 .roster-row .stamina i { top: 0; height: 3px; max-width: 100%; }
 .roster-row .stamina em { display: none; }
 .tired-word { color: #e6be72; }
+
+/* ---------- watchlist and draft cup (v60) ---------- */
+#marketPane .roster-row.watched { box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.55); }
+#marketPane .dense-grid .roster-row .btn.watch { min-height: 32px; font-size: 12px; margin-top: 2px; }
+.btn.watch.on { color: #ffd27a; }
+.scout-tag { font: 600 10px/1 var(--ui); font-style: normal; color: #ffd27a; letter-spacing: 0.08em; text-transform: uppercase; }
+.market-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.scout-pick { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.scout-pick select { min-height: 36px; background: var(--ink); color: var(--cream); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; font: 13px var(--ui); }
+.market-news { margin: 6px 0; padding: 6px 10px 6px 26px; background: rgba(0, 0, 0, 0.2); border-left: 3px solid var(--copper); font-size: 13px; color: var(--cream); }
+.market-news li { margin: 2px 0; }
+.draft-block { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); }
+.draft-block .section { margin: 12px 0 6px; }
+.draft-card .row-main p { white-space: normal; }
+.draft-block .roster-row { max-height: none; overflow: visible; }
+.draft-block .dense-grid .roster-row {
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+}
+.draft-block .dense-grid .roster-row h3,
+.draft-block .dense-grid .roster-row p,
+.draft-block .dense-grid .roster-row .fine,
+.draft-block .dense-grid .roster-row .kit-line span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+.draft-block .dense-grid .roster-row .kit-line { display: flex; flex-wrap: wrap; gap: 2px; }
+.draft-block .dense-grid .roster-row .btn {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 40px;
+  height: auto;
+  font-size: 13px;
+}
+.draft-block .dense-grid .portrait-frame { width: 44px; padding: 4px; }
+.draft-block .dense-grid canvas { width: 36px; height: 28px; }
+@media (max-width: 560px) {
+  .draft-block .dense-grid { grid-template-columns: minmax(0, 1fr); }
+}

@@ -271,6 +271,8 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Draft cup: pick three mercenaries one at a time, run a 3 vs 3 bracket, and sign one free if you win.",
+    "Watchlist: keep up to three recruits on the board as it turns over after each match. Scout for a class.",
     "Steer your captain: move with WASD or a tap, fire moves with Q, E, R, roll with Space. Auto hands them back.",
     "Behavior rows on every fighter: target, spacing, when to spend the ultimate, when to fall back, how often to roll.",
     "Stamina: league and cup matches tire the party and rest the bench. Rotate the roster.",
@@ -1947,7 +1949,10 @@
       const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
       const locked = !!row.locked;
       const champ = f.champion ? " · Champion" : "";
-      const price = locked ? (row.need + " renown") : (row.cost + " gold");
+      const drift = row.watch && row.base && row.base !== row.cost ? (row.cost < row.base ? " ↓" : " ↑") : "";
+      const price = locked ? (row.need + " renown") : (row.cost + " gold" + drift);
+      const watchFull = !row.watch && IL.watchCount(save) >= IL.WATCH_CAP;
+      const watchBtn = locked ? "" : '<button type="button" class="btn ghost watch' + (row.watch ? " on" : "") + '" data-watch="' + i + '"' + (watchFull ? " disabled" : "") + ' title="' + (row.watch ? "Stop watching" : (watchFull ? "Watchlist full (" + IL.WATCH_CAP + ")" : "Keep them on the board when it turns over")) + '">' + (row.watch ? "★ Watching" : "☆ Watch") + '</button>';
       const full = save.roster.length >= IL.ROSTER_CAP;
       const broke = save.gold < row.cost;
       const cant = locked || broke || full;
@@ -1955,14 +1960,15 @@
       if (locked) hireText = "Need " + row.need + "r";
       else if (full) hireText = "Full";
       else if (broke) hireText = "Need " + row.cost + "g";
-      return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '" data-role="' + esc(kit.role) + '">' +
+      return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + (row.watch ? " watched" : "") + (row.scouted ? " scouted" : "") + '" data-role="' + esc(kit.role) + '">' +
         portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
         '<div class="row-main">' +
-          '<h3>' + esc(f.name) + champ + '</h3>' +
+          '<h3>' + esc(f.name) + champ + (row.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</h3>' +
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
           '<p class="fine">' + esc(price) + '</p>' +
         '</div>' +
         '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + hireText + '</button>' +
+        watchBtn +
       '</article>';
     }).join("");
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
@@ -1983,8 +1989,10 @@
     const captain = save.roster.filter(function (f) { return f.captain; })[0];
     const brokeRefresh = save.gold < IL.REFRESH_COST;
     const recruits = '<section class="roster-block"><h3 class="section">For hire</h3>' +
-      '<p class="fine">Rarity, specialty, and trait sit on the card. A refresh spends ' + IL.REFRESH_COST + ' gold.</p>' +
-      '<div class="hub-actions"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh fighters — ' + IL.REFRESH_COST + ' gold</button></div>' +
+      '<p class="fine">The board turns over after every league and cup match. Watch up to ' + IL.WATCH_CAP + ' to keep them on it; a watched price drifts, and another club may sign them first. A refresh spends ' + IL.REFRESH_COST + ' gold.</p>' +
+      (save.marketNews && save.marketNews.length ? '<ul class="market-news" id="marketNews">' + save.marketNews.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join("") + '</ul>' : '') +
+      '<div class="hub-actions market-tools"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh fighters — ' + IL.REFRESH_COST + ' gold</button>' +
+        scoutPicker() + '</div>' +
       '<div class="cards dense-grid" id="marketCards">' + cards + '</div></section>';
     const selling = '<section class="roster-block"><h3 class="section">Sell from the bench</h3>' +
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
@@ -1998,6 +2006,18 @@
       '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
       (marketPane === "deals" ? dealsHead() : "") +
       '<div class="pane" id="marketPane">' + body + '</div>';
+  }
+
+  function scoutPicker() {
+    const ids = Object.keys(IL.CLASSES).sort(function (a, b) { return IL.CLASSES[a].name < IL.CLASSES[b].name ? -1 : 1; });
+    const want = save.scout || "";
+    return '<label class="scout-pick">Scout for <select id="scoutPick">' +
+      '<option value=""' + (want ? "" : " selected") + '>Any class</option>' +
+      ids.map(function (id) {
+        const open = IL.classUnlocked(id, save.renown || 0);
+        return '<option value="' + esc(id) + '"' + (want === id ? " selected" : "") + '>' + esc(IL.CLASSES[id].name + (open ? "" : " (" + (IL.CLASSES[id].renown || 0) + "r)")) + '</option>';
+      }).join("") +
+      '</select></label>';
   }
 
   function dealsHead() {
@@ -2660,7 +2680,8 @@
       '<div class="hub-actions">' + enter + '</div>' +
       '<p class="banner">Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
       (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club tab before this tie.</p>' : '') +
-      (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>');
+      (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
+      '<section class="draft-block" id="draftBlock">' + draftPanel() + '</section>';
   }
 
   function captureScroll() {
@@ -2756,6 +2777,9 @@
     if (hubTab === "market") {
       (save.market || []).forEach(function (row) { if (row && row.fighter) extra.push(row.fighter.parts); });
       ((save.deals && save.deals.offers) || []).forEach(function (o) { if (o && o.fighter) extra.push(o.fighter.parts); });
+    }
+    if (hubTab === "cup" && save.draft) {
+      (save.draft.offer || []).concat(save.draft.picks || []).forEach(function (f) { if (f && f.parts) extra.push(f.parts); });
     }
     bootCards(extra);
     showToasts(freshAchieve);
@@ -3133,9 +3157,15 @@
     if (refreshBtn) refreshBtn.onclick = function () {
       if (save.gold < IL.REFRESH_COST) return;
       save.gold -= IL.REFRESH_COST;
-      save.market = IL.rollMarket(takeRng(), save.renown || 0, rosterAvoid());
+      const found = IL.refreshBoard(save, takeRng(), rosterAvoid());
+      save.marketNews = found ? ["Your scout found a " + found + "."] : [];
       persist();
       showHub("market", true);
+    };
+    const scout = document.getElementById("scoutPick");
+    if (scout) scout.onchange = function () {
+      save.scout = scout.value || null;
+      persist();
     };
     const enterBtn = document.getElementById("enterCup");
     if (enterBtn) enterBtn.onclick = function () {
@@ -3204,6 +3234,16 @@
       if (tactic) { cycleTactic(tactic.dataset.fid); return; }
       const hire = ev.target.closest("[data-hire]");
       if (hire) { hireFromMarket(+hire.dataset.hire); return; }
+      const watch = ev.target.closest("[data-watch]");
+      if (watch && !watch.disabled) { toggleWatch(+watch.dataset.watch); return; }
+      const dpick = ev.target.closest("[data-draft-pick]");
+      if (dpick) { pickDraft(+dpick.dataset.draftPick); return; }
+      const dsign = ev.target.closest("[data-draft-sign]");
+      if (dsign && !dsign.disabled) { signDrafted(dsign.dataset.draftSign); return; }
+      if (ev.target.closest("#draftEnter")) { enterDraft(); return; }
+      if (ev.target.closest("#draftReroll")) { if (IL.rerollDraft(save.draft, takeRng())) { persist(); refreshHub(); } return; }
+      if (ev.target.closest("#draftFight")) { startDraftFight(); return; }
+      if (ev.target.closest("#draftRelease")) { save.draft.stage = "done"; persist(); refreshHub(); return; }
       const sell = ev.target.closest("[data-sell]");
       if (sell) { sellFighter(sell.dataset.sell); return; }
       const openRelic = ev.target.closest("[data-relic-open]");
@@ -3788,6 +3828,7 @@
     const fighter = row.fighter;
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= row.cost;
+      if (row.watch) save.watchSigned = (save.watchSigned || 0) + 1;
       pitSound("purchase");
       save.hires = (save.hires || 0) + 1;
       if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
@@ -3799,6 +3840,132 @@
       persist();
       showHub("market", true);
     }).catch(function () { showHub("market", true); });
+  }
+
+  function toggleWatch(i) {
+    const row = save.market && save.market[i];
+    if (!row || row.locked) return;
+    if (!row.watch && IL.watchCount(save) >= IL.WATCH_CAP) { pitSound("error"); return; }
+    row.watch = !row.watch;
+    if (row.watch && !row.base) row.base = row.cost;
+    persist();
+    refreshHub();
+  }
+
+  /* ---------- draft cup ---------- */
+  function enterDraft() {
+    const d = save.draft;
+    if (d && d.stage !== "done") return;
+    if (save.gold < IL.DRAFT_COST) { pitSound("error"); return; }
+    save.gold -= IL.DRAFT_COST;
+    save.draftsEntered = (save.draftsEntered || 0) + 1;
+    save.draft = IL.startDraft(save, takeRng());
+    persist();
+    refreshHub();
+  }
+
+  function pickDraft(i) {
+    if (!IL.draftPick(save, save.draft, i, takeRng())) return;
+    pitSound("purchase");
+    persist();
+    refreshHub();
+  }
+
+  function signDrafted(id) {
+    const d = save.draft;
+    if (!d || d.stage !== "sign") return;
+    const f = d.picks.filter(function (p) { return p.id === id; })[0];
+    if (!f || save.roster.length >= IL.ROSTER_CAP) { pitSound("error"); return; }
+    IL.hero.compose(f.parts).then(function () {
+      delete f.drafted;
+      f.stamina = IL.STAMINA_MAX;
+      save.roster.push(f);
+      if (IL.dedupeNames) IL.dedupeNames(save.roster);
+      if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
+      if (save.seenClasses.indexOf(f.cls) < 0) save.seenClasses.push(f.cls);
+      d.signed = f.name;
+      d.stage = "done";
+      pitSound("purchase");
+      persist();
+      refreshHub();
+    }).catch(function () { refreshHub(); });
+  }
+
+  function startDraftFight() {
+    const d = save.draft;
+    const cup = d && d.cup;
+    const opp = cup && IL.cupOpponent(cup);
+    if (!opp || d.stage !== "bracket") return;
+    openVersus({
+      mode: "draft",
+      left: d.picks.slice(0, cup.size),
+      right: opp.foe.fighters.slice(0, cup.size),
+      leftName: save.clubName,
+      rightName: opp.foe.name,
+      size: cup.size,
+      seed: (save.rngSeed ^ (save.draftsEntered * 4111) ^ ((cup.round + 1) * 29)) >>> 0,
+      returnTab: "cup"
+    });
+  }
+
+  function draftCard(f, button) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const st = IL.scaledStats(f, kit);
+    const trait = IL.TRAITS && IL.TRAITS[kit.trait];
+    return '<article class="card roster-row draft-card" data-role="' + esc(kit.role) + '">' +
+      portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
+      '<div class="row-main">' +
+        '<h3>' + esc(f.name) + '</h3>' +
+        '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · ' + esc(rarityLabel(f.rarity)) + (trait ? ' · ' + esc(trait.name) : '') + '</span></p>' +
+        '<p class="fine">HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + ' · ' + esc(roleLabel(kit.role)) + '</p>' +
+      '</div>' +
+      (button || '') +
+    '</article>';
+  }
+
+  function roleLabel(role) {
+    return { melee: "Front", tank: "Wall", kite: "Ranged", cast: "Caster", support: "Support", dash: "Skirmisher", hybrid: "Hybrid" }[role] || "Fighter";
+  }
+
+  function draftPanel() {
+    const d = save.draft;
+    const head = '<header class="panel-head draft-head"><p class="eyebrow">Draft</p><h3>The draft cup</h3></header>';
+    const level = IL.draftLevel(save);
+    if (!d || d.stage === "done") {
+      const broke = save.gold < IL.DRAFT_COST;
+      return head +
+        '<p class="banner">Your roster stays home. Pick ' + IL.DRAFT_PICKS + ' mercenaries one at a time from offers of three, any class, at level ' + level + '. Three other clubs draft from the same pool. Win the 3 vs 3 bracket and sign one of your picks for free.</p>' +
+        (d && d.signed ? '<p class="fine">Last draft: ' + esc(d.signed) + ' signed with the club.</p>' : '') +
+        '<div class="hub-actions"><button type="button" class="btn gold" id="draftEnter"' + (broke ? " disabled" : "") + '>Enter draft — ' + IL.DRAFT_COST + ' gold</button></div>';
+    }
+    const picked = d.picks.length
+      ? '<h4 class="section">Your picks</h4><div class="cards dense-grid">' + d.picks.map(function (f) { return draftCard(f, ""); }).join("") + '</div>'
+      : '';
+    if (d.stage === "pick") {
+      return head +
+        '<p class="banner" id="draftStatus">Pick ' + (d.picks.length + 1) + ' of ' + IL.DRAFT_PICKS + '. Level ' + d.level + '. Mind the mix: a wall, a ranged hand, and a healer go a long way.</p>' +
+        '<div class="cards dense-grid" id="draftOffer">' + d.offer.map(function (f, i) {
+          return draftCard(f, '<button type="button" class="btn primary" data-draft-pick="' + i + '">Draft</button>');
+        }).join("") + '</div>' +
+        '<div class="hub-actions"><button type="button" class="btn ghost" id="draftReroll"' + (d.rerolls > 0 ? "" : " disabled") + '>' + (d.rerolls > 0 ? "Reroll this offer — free once" : "Reroll spent") + '</button></div>' +
+        picked + synergyLine(d.picks, "draftSynergy");
+    }
+    if (d.stage === "bracket") {
+      const opp = d.cup ? IL.cupOpponent(d.cup) : null;
+      return head +
+        '<div class="hub-actions">' + (opp ? '<button type="button" class="btn fight" id="draftFight">Fight ' + esc(opp.foe.name) + '</button>' : '') + '</div>' +
+        (d.cup ? cupMarkup(d.cup) : '') + picked;
+    }
+    if (d.stage === "sign") {
+      const full = save.roster.length >= IL.ROSTER_CAP;
+      return head +
+        '<p class="banner" id="draftStatus">Draft champions. Sign one of the three for free' + (full ? " — the roster is full, so sell someone first or let them go." : ".") + '</p>' +
+        '<div class="cards dense-grid">' + d.picks.map(function (f) {
+          return draftCard(f, '<button type="button" class="btn gold" data-draft-sign="' + esc(f.id) + '"' + (full ? " disabled" : "") + '>Sign free</button>');
+        }).join("") + '</div>' +
+        '<div class="hub-actions"><button type="button" class="btn ghost" id="draftRelease">Let them all go</button></div>';
+    }
+    return head;
   }
 
   function sellFighter(id) {
@@ -4986,6 +5153,38 @@
         renown = 5;
         headline = "Through to the final";
       }
+    } else if (mode === "draft") {
+      const d = save.draft;
+      const dc = d && d.cup;
+      const dopp = dc && IL.cupOpponent(dc);
+      const wasFinal = dc && dc.round >= 1;
+      if (dopp) IL.noteCupResult(dc, dopp.pair, win ? "you" : dopp.foe.id);
+      if (dc) {
+        IL.resolveOtherPairs(dc, d.picks, takeRng());
+        IL.advanceCup(dc);
+        let guard = 0;
+        while (!dc.champion && !IL.cupOpponent(dc) && guard < 3) {
+          IL.resolveOtherPairs(dc, d.picks, takeRng());
+          IL.advanceCup(dc);
+          guard++;
+        }
+      }
+      if (!win) {
+        gold = wasFinal ? 45 : 20;
+        renown = wasFinal ? 8 : 3;
+        headline = wasFinal ? "The draft final slips away" : "Out of the draft";
+        if (d) d.stage = "done";
+      } else if (dc && dc.champion === "you") {
+        gold = 80;
+        renown = 14;
+        headline = "Draft champions";
+        save.draftsWon = (save.draftsWon || 0) + 1;
+        if (d) d.stage = "sign";
+      } else {
+        gold = 18;
+        renown = 4;
+        headline = "Through to the draft final";
+      }
     } else if (mode === "chaos") {
       gold = win ? 32 : 12;
       renown = win ? 7 : 2;
@@ -5139,7 +5338,12 @@
       }
     });
     const restLine = (mode === "league" || mode === "cup") ? tireAndRest(fight.left) : "";
-    if (restLine) persist();
+    let marketLines = [];
+    if (mode === "league" || mode === "cup") {
+      marketLines = IL.turnMarket(save, takeRng(), rosterAvoid());
+      save.marketNews = marketLines.slice();
+    }
+    if (restLine || marketLines.length) persist();
     const stood = match.units.filter(function (u) { return u.team === 0 && u.hp > 0; }).map(function (u) { return u.name; });
     const fell = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).map(function (u) { return u.name; });
     let nextLine = "";
@@ -5152,6 +5356,9 @@
       }
     } else if (mode === "cup") {
       nextLine = save.cup && save.cup.champion ? "The bracket is finished." : "The bracket is waiting on the cup screen.";
+    } else if (mode === "draft") {
+      const st = save.draft && save.draft.stage;
+      nextLine = st === "sign" ? "Sign one of your picks on the cup tab." : st === "bracket" ? "The draft final is waiting on the cup tab." : "The draft is over. Your picks go home.";
     } else if (mode === "endless" && win && save.endlessRun) {
       const mod = IL.endlessMod(save.endlessRun.wave);
       nextLine = "Wave " + save.endlessRun.wave + " is next." + (mod ? " Modifier: " + mod.name + ". " + mod.blurb : "");
@@ -5184,6 +5391,7 @@
           '<li>' + xp + ' xp for each fighter you sent</li>' +
           (relicNote ? '<li>' + esc(relicNote.trim()) + '</li>' : '') +
           (restLine ? '<li class="rest-line">' + esc(restLine) + '</li>' : '') +
+          ((mode === "league" || mode === "cup") ? '<li class="rest-line">The fighter board turned over' + (marketLines.length ? ': ' + esc(marketLines.join(" ")) : '.') + '</li>' : '') +
         '</ul>' +
         '<p>' + (stood.length ? "Still standing: " + esc(stood.join(", ")) + "." : "") +
           (fell.length ? (stood.length ? " " : "") + "Down: " + esc(fell.join(", ")) + "." : "") + '</p>' +

@@ -83,6 +83,12 @@ The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, 
 
 **Stamina.** League and cup matches cost each fielded fighter 20 stamina and rest everyone on the bench by 34. Above half nothing changes; below half health and damage slide to at most −12% at empty. Cards, the sheet, and your versus cards show *Fresh*, *Ready*, *Tired*, or *Spent*. A new season starts everyone fresh. Events, endless, and the daily cost nothing.
 
+## Watchlist and draft cup (v60)
+
+**Watchlist.** The fighter board on the Market tab now turns over for free after every league and cup match. A **☆ Watch** button on each recruit keeps up to three of them on the board through a turnover or a paid refresh. Each turnover a watched price drifts between about −18% and +16% of what they first asked (an arrow on the card shows which way), and there is a 14% chance another club signs them first. **Scout for** picks a class: when a turnover does not already show one, the scout adds one a little under half the time (behind its renown gate if it is still locked). The result screen and the board list what changed. Hiring off the watchlist counts toward the *Patient eye* achievement.
+
+**Draft cup.** It sits under the cup on the Cup tab and costs 40 gold. Your roster stays home. You pick three mercenaries one at a time from offers of three distinct classes. Every class is open, including ones renown has not unlocked yet. Picks come at the average level of your three best fighters, and a class you already drafted is not offered again. One reroll is free. Three other clubs draft at the same level, then a four-club 3 vs 3 bracket plays on the cup's tree. Picks do not tire or pay stamina. Rewards: 20 gold and 3 renown for a semi loss, 18 and 4 for a semi win, 45 and 8 for losing the final, and 80 and 14 for the title. A champion signs one of the three for free (they arrive fresh) or lets them all go. *Draft champion* is an achievement.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

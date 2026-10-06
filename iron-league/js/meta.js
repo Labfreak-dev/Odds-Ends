@@ -518,7 +518,7 @@
       if (typeof data.settings.crowd !== "number") data.settings.crowd = 70;
     }
     if (!data.achieved || typeof data.achieved !== "object") data.achieved = {};
-    ["bouts", "flawless", "cupsWon", "cupsEntered", "trainsDone", "salvaged", "chaosWins", "hires", "tonicsUsed", "seasonTitles", "unbeaten", "ceremonyPaid"].forEach(function (key) {
+    ["bouts", "flawless", "cupsWon", "cupsEntered", "draftsWon", "draftsEntered", "watchSigned", "trainsDone", "salvaged", "chaosWins", "hires", "tonicsUsed", "seasonTitles", "unbeaten", "ceremonyPaid"].forEach(function (key) {
       if (typeof data[key] !== "number") data[key] = 0;
     });
     if (typeof data.goldPeak !== "number") data.goldPeak = data.gold || 0;
@@ -888,6 +888,170 @@
     return cup;
   }
 
+  /* ---------- watchlist ----------
+     A watched recruit stays on the board when it turns over. The board
+     turns over for free after every league and cup match. A watched
+     price drifts each turn, and another club may sign them first. */
+  const WATCH_CAP = 3;
+  const WATCH_SIGN = 0.14;
+
+  function watchCount(save) {
+    return (save.market || []).filter(function (r) { return r && r.watch && !r.locked; }).length;
+  }
+
+  function rollBoard(save, rng, avoid, kept) {
+    const names = ((avoid && avoid.names) || []).slice();
+    const sheets = ((avoid && avoid.sheets) || []).slice();
+    kept.forEach(function (r) {
+      names.push(String(r.fighter.name || "").split(" ")[0]);
+      if (r.fighter.parts && r.fighter.parts.sheet) sheets.push(r.fighter.parts.sheet);
+    });
+    const fresh = rollMarket(rng, save.renown || 0, { names: names, sheets: sheets });
+    const want = save.scout && IL.CLASSES[save.scout] ? save.scout : null;
+    let found = false;
+    if (want) {
+      found = fresh.some(function (r) { return r.fighter.cls === want; });
+      /* Scouting adds the wanted class on a little under half the turns. */
+      if (!found && rng() < 0.45) {
+        const fighter = IL.randomFighter(rng, want);
+        stampRecruit(fighter, rng);
+        if (IL.separateNames) IL.separateNames([fighter], names.concat(fresh.map(function (r) { return String(r.fighter.name).split(" ")[0]; })));
+        if (IL.classUnlocked(want, save.renown || 0)) {
+          fresh.unshift({ fighter: fighter, cost: recruitCost(want, fighter.rarity, false), scouted: true });
+        } else {
+          fresh.unshift({ fighter: fighter, cost: recruitCost(want, fighter.rarity, false), locked: true, need: IL.CLASSES[want].renown || 0, scouted: true });
+        }
+        found = true;
+      }
+    }
+    save.market = kept.concat(fresh);
+    return want && found ? IL.CLASSES[want].name : "";
+  }
+
+  function refreshBoard(save, rng, avoid) {
+    const kept = (save.market || []).filter(function (r) { return r && r.watch && !r.locked; });
+    return rollBoard(save, rng, avoid, kept);
+  }
+
+  function turnMarket(save, rng, avoid) {
+    const notes = [];
+    const kept = [];
+    const rivals = IL.CLUBS.filter(function (n) { return n !== save.clubName; });
+    (save.market || []).forEach(function (row) {
+      if (!row || !row.watch || row.locked) return;
+      if (rng() < WATCH_SIGN) {
+        notes.push(IL.pick(rng, rivals) + " signed " + row.fighter.name + " off your watchlist.");
+        return;
+      }
+      if (!row.base) row.base = row.cost;
+      const was = row.cost;
+      row.cost = Math.max(22, Math.round(row.base * (0.82 + rng() * 0.34)));
+      if (row.cost < was) notes.push(row.fighter.name + " dropped to " + row.cost + " gold.");
+      else if (row.cost > was) notes.push(row.fighter.name + " now asks " + row.cost + " gold.");
+      kept.push(row);
+    });
+    const scouted = rollBoard(save, rng, avoid, kept);
+    if (scouted) notes.push("Your scout found a " + scouted + ".");
+    return notes;
+  }
+
+  /* ---------- draft cup ----------
+     Pick three mercenaries one at a time from offers of three, then
+     run a four-club bracket at 3 vs 3. The roster stays home. Rivals
+     draft from the same pool at the same level. A champion signs one
+     of their three for free. */
+  const DRAFT_COST = 40;
+  const DRAFT_PICKS = 3;
+
+  function draftLevel(save) {
+    const levels = (save.roster || []).map(function (f) { return f.level || 1; }).sort(function (a, b) { return b - a; });
+    const top = levels.slice(0, 3);
+    if (!top.length) return 1;
+    return Math.max(1, Math.round(top.reduce(function (a, b) { return a + b; }, 0) / top.length));
+  }
+
+  function draftFighter(rng, cls, level) {
+    const fighter = IL.randomFighter(rng, cls);
+    fighter.level = level;
+    fighter.xp = (level - 1) * 40;
+    stampRecruit(fighter, rng);
+    if (IL.dressRival) IL.dressRival(fighter, rng);
+    if (IL.ensureMoves) IL.ensureMoves(fighter);
+    fighter.drafted = true;
+    return fighter;
+  }
+
+  function draftOffer(rng, draft) {
+    const ids = Object.keys(IL.CLASSES);
+    const takenCls = draft.picks.map(function (f) { return f.cls; });
+    const pool = ids.filter(function (id) { return takenCls.indexOf(id) < 0; });
+    const offer = [];
+    while (offer.length < 3 && pool.length) {
+      const cls = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+      offer.push(draftFighter(rng, cls, draft.level));
+    }
+    const taken = draft.picks.map(function (f) { return String(f.name).split(" ")[0]; });
+    if (IL.dedupeNames) IL.dedupeNames(offer);
+    if (IL.separateNames) IL.separateNames(offer, taken);
+    if (IL.separateLooks) IL.separateLooks(offer, draft.picks.map(function (f) { return f.parts && f.parts.sheet; }));
+    return offer;
+  }
+
+  function startDraft(save, rng) {
+    const draft = { stage: "pick", level: draftLevel(save), picks: [], offer: [], rerolls: 1, cup: null, signed: null };
+    draft.offer = draftOffer(rng, draft);
+    return draft;
+  }
+
+  function rerollDraft(draft, rng) {
+    if (!draft || draft.stage !== "pick" || !(draft.rerolls > 0)) return false;
+    draft.rerolls -= 1;
+    draft.offer = draftOffer(rng, draft);
+    return true;
+  }
+
+  function draftPick(save, draft, i, rng) {
+    if (!draft || draft.stage !== "pick") return false;
+    const f = draft.offer[i];
+    if (!f) return false;
+    draft.picks.push(f);
+    if (draft.picks.length < DRAFT_PICKS) {
+      draft.offer = draftOffer(rng, draft);
+      return true;
+    }
+    draft.offer = [];
+    draft.stage = "bracket";
+    const you = { id: "you", name: save.clubName, you: true, fighters: null };
+    const pool = IL.CLUBS.filter(function (name) { return name !== save.clubName; });
+    const rivals = [];
+    while (rivals.length < 3 && pool.length) {
+      const name = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+      const ids = Object.keys(IL.CLASSES);
+      const fighters = [];
+      for (let k = 0; k < DRAFT_PICKS; k++) fighters.push(draftFighter(rng, IL.pick(rng, ids), draft.level));
+      if (IL.dedupeNames) IL.dedupeNames(fighters);
+      if (IL.separateLooks) IL.separateLooks(fighters);
+      rivals.push({ id: "d" + Math.floor(rng() * 1e9).toString(36), name: name, you: false, fighters: fighters });
+    }
+    const slots = [you].concat(rivals);
+    draft.cup = {
+      size: DRAFT_PICKS,
+      round: 0,
+      slots: slots,
+      pairing: [[0, 1], [2, 3]],
+      winners: [null, null],
+      champion: null,
+      tree: {
+        semis: [
+          { a: sideSnap(slots[0]), b: sideSnap(slots[1]), winner: null },
+          { a: sideSnap(slots[2]), b: sideSnap(slots[3]), winner: null }
+        ],
+        final: { a: null, b: null, winner: null }
+      }
+    };
+    return true;
+  }
+
   function startChaos(save, rng) {
     const picked = fielded(save.roster, save.lineup, 1);
     const yours = picked[0] || (save.roster || [])[0];
@@ -986,6 +1150,10 @@
       progress: function (d) { return { current: d.cupsEntered || 0, goal: 1 }; } },
     { id: "cup-win", name: "Cup winner", blurb: "Win the cup.", gold: 40, renown: 6, icon: "bw_token_golden_medallion",
       progress: function (d) { return { current: d.cupsWon || 0, goal: 1 }; } },
+    { id: "draft-win", name: "Draft champion", blurb: "Win a draft cup.", gold: 30, renown: 6, icon: "bw_token_golden_medallion",
+      progress: function (d) { return { current: d.draftsWon || 0, goal: 1 }; } },
+    { id: "watch-sign", name: "Patient eye", blurb: "Hire a fighter off your watchlist.", gold: 15, icon: "bw_old_helm",
+      progress: function (d) { return { current: d.watchSigned || 0, goal: 1 }; } },
     { id: "all-classes", name: "Every kit", blurb: "Hire every class.", gold: 40, renown: 8, icon: "bw_old_helm",
       progress: function (d) {
         const goal = IL.CLASSES ? Object.keys(IL.CLASSES).length : 15;
@@ -1487,6 +1655,16 @@
   IL.cupOpponent = cupOpponent;
   IL.resolveOtherPairs = resolveOtherPairs;
   IL.noteCupResult = noteCupResult;
+  IL.WATCH_CAP = WATCH_CAP;
+  IL.watchCount = watchCount;
+  IL.turnMarket = turnMarket;
+  IL.refreshBoard = refreshBoard;
+  IL.DRAFT_COST = DRAFT_COST;
+  IL.DRAFT_PICKS = DRAFT_PICKS;
+  IL.draftLevel = draftLevel;
+  IL.startDraft = startDraft;
+  IL.rerollDraft = rerollDraft;
+  IL.draftPick = draftPick;
   IL.advanceCup = advanceCup;
   IL.startChaos = startChaos;
   IL.sideStr = sideStr;

@@ -1697,6 +1697,7 @@ td.club-cell .club-name,
 #clubYardWrap .fine { margin: 0 0 4px; }
 #clubYard {
   width: 100%;
+  max-width: 640px;
   height: auto;
   display: block;
   background: #1a120e;

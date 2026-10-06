@@ -2231,54 +2231,58 @@
     spar.forEach(function (f) { sparIds[f.id] = true; });
     const w = canvas.width;
     const h = canvas.height;
-    const front = h - 16;
-    const back = h - 58;
+    const foot = h - 16;
     const people = [];
+    const walkers = melee.filter(function (f) { return !sparIds[f.id]; });
+    const rival = nextRival();
+    const keys = Object.keys(yardMeta.visitors || {});
+    let nVis = 0;
+    if (rival && save.round < 5 && keys.length) {
+      nVis = Math.min(keys.length, koId ? 1 : (walkers.length ? 2 : 3));
+    }
+    let cursor = koId ? 100 : 28;
     if (koId) {
       const f = roster.filter(function (r) { return r.id === koId; })[0];
-      people.push({ id: f.id, look: yardLookName(f), mode: "ko", dir: -1, x: 78, y: front, phase: 0, speed: 0 });
+      people.push({ id: f.id, look: yardLookName(f), mode: "ko", dir: -1, x: 58, y: foot, phase: 0, speed: 0 });
     }
-    if (spar.length === 2) {
-      people.push({ id: spar[0].id, look: yardLookName(spar[0]), mode: "spar", dir: 1, x: Math.round(w * 0.32), y: front, phase: 0, speed: 0 });
-      people.push({ id: spar[1].id, look: yardLookName(spar[1]), mode: "spar", dir: -1, x: Math.round(w * 0.32) + 72, y: front, phase: 0.45, speed: 0 });
-    }
-    archers.forEach(function (f, i) {
+    for (let i = 0; i < nVis; i++) {
+      const x = cursor + 30;
       people.push({
-        id: f.id, look: yardLookName(f), mode: "bow", dir: 1,
-        x: w - 118 - i * 46, y: front - (i % 2) * 6, phase: i * 0.35, speed: 0
+        id: null, look: keys[i], visitor: true, mode: "visit", dir: i % 2 ? -1 : 1,
+        x: x, y: foot, phase: i * 0.3, speed: 12, lo: x - 8, hi: x + 8
       });
-    });
-    melee.filter(function (f) { return !sparIds[f.id]; }).forEach(function (f, i) {
+      cursor += 68;
+    }
+    const sparLeft = Math.max(cursor + 44, 188);
+    if (spar.length === 2) {
+      people.push({ id: spar[0].id, look: yardLookName(spar[0]), mode: "spar", dir: 1, x: sparLeft, y: foot, phase: 0, speed: 0 });
+      people.push({ id: spar[1].id, look: yardLookName(spar[1]), mode: "spar", dir: -1, x: sparLeft + 74, y: foot, phase: 0.45, speed: 0 });
+      cursor = sparLeft + 74;
+    }
+    const archerXs = archers.map(function (f, i) { return w - 84 - i * 48; });
+    const rightLimit = archerXs.length ? Math.min.apply(null, archerXs) - 44 : w - 70;
+    const leftLimit = cursor + 42;
+    walkers.forEach(function (f, i) {
       const n = IL.hashStr(f.id || "walk");
+      const span = Math.max(16, rightLimit - leftLimit);
+      const x = leftLimit + (n % span);
       people.push({
         id: f.id, look: yardLookName(f), mode: "walk",
         dir: (n & 1) ? 1 : -1,
-        x: 48 + (n % Math.max(40, w - 160)),
-        y: back - (i % 2) * 4,
+        x: Math.min(x, rightLimit),
+        y: foot - i * 2,
         phase: (n % 10) / 10,
-        speed: 16 + (n % 12),
-        lo: 36,
-        hi: w - 150
+        speed: 14 + (n % 8),
+        lo: leftLimit,
+        hi: Math.max(leftLimit + 16, rightLimit)
       });
     });
-    const rival = nextRival();
-    const visitors = yardMeta.visitors || {};
-    const keys = Object.keys(visitors);
-    if (rival && save.round < 5 && keys.length) {
-      const n = Math.min(keys.length, 2 + (IL.hashStr(rival.name || "rival") % 2));
-      for (let i = 0; i < n; i++) {
-        people.push({
-          id: null, look: keys[i], visitor: true, mode: "visit",
-          dir: 1,
-          x: 36 + i * 40,
-          y: back,
-          phase: i * 0.25,
-          speed: 14,
-          lo: 28,
-          hi: 168
-        });
-      }
-    }
+    archers.forEach(function (f, i) {
+      people.push({
+        id: f.id, look: yardLookName(f), mode: "bow", dir: 1,
+        x: archerXs[i], y: foot, phase: i * 0.35, speed: 0
+      });
+    });
     yardPeople = people;
     return true;
   }
@@ -2362,7 +2366,9 @@
     }
     const rank = { bow: 0, spar: 1, ko: 2, walk: 3, visit: 4 };
     IL.yardActors = yardPeople.filter(function (a) { return a.id; }).slice().sort(function (a, b) {
-      return (rank[a.mode] || 9) - (rank[b.mode] || 9);
+      const ar = rank[a.mode];
+      const br = rank[b.mode];
+      return (ar == null ? 9 : ar) - (br == null ? 9 : br);
     }).map(function (a) {
       return { id: a.id, x: Math.round(a.x), y: Math.round(a.y) };
     });

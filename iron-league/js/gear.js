@@ -96,7 +96,10 @@
       icons: icons("cs_potion_04_blue", "cs_potion_04_blue", "cs_potion_04_blue", "cs_potion_04_blue") },
     { key: "tonic-red", name: "Red Tonic", slot: "tonic", glyph: "gem",
       icon: "cs_potion_09_red",
-      icons: icons("cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red") }
+      icons: icons("cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red", "cs_potion_09_red") },
+    { key: "ability-tome", name: "Ability Tome", slot: "tome", glyph: "wand",
+      icon: "bw_tome_02_orange",
+      icons: icons("bw_tome_02_orange", "bw_tome_07_purple", "cs_magic_book_01_red", "cs_magic_book_09_blue") }
   ];
 
   const BY_KEY = {};
@@ -148,8 +151,9 @@
     if (!tpl) {
       const pool = CATALOG.filter(function (row) {
         if (opt.only === "tonic") return row.slot === "tonic";
+        if (opt.only === "tome") return row.slot === "tome";
         if (opt.slot) return row.slot === opt.slot;
-        return row.slot !== "tonic";
+        return row.slot !== "tonic" && row.slot !== "tome";
       });
       tpl = pool[Math.floor(rng() * pool.length)] || CATALOG[0];
     }
@@ -223,8 +227,20 @@
   }
 
   function itemName(item) {
+    if (item && item.teach && IL.abilityById) {
+      const ab = IL.abilityById(item.teach);
+      if (ab) return "Tome: " + ab.name;
+    }
     const tpl = templateOf(item);
     return tpl ? tpl.name : "Oddment";
+  }
+
+  function makeTome(rng, opt) {
+    opt = opt || {};
+    const item = makeItem(rng, { key: "ability-tome", rarity: opt.rarity, bag: opt.bag || "win" });
+    const ids = IL.tomeIds ? IL.tomeIds() : [];
+    item.teach = opt.teach || (ids.length ? ids[Math.floor(rng() * ids.length)] : "");
+    return item;
   }
 
   function itemSlot(item) {
@@ -288,8 +304,39 @@
     bag: { common: "7t4e_bag_tier1", rare: "7t4e_bag_tier3", epic: "7t4e_bag_tier5", legendary: "7t4e_bag_tier7" }
   };
 
+  const KIND_ICON = {
+    cleave: "assets/ui/abilities/pixel_skill3_05.png",
+    multishot: "assets/ui/abilities/pixel_skill3_09.png",
+    pierce: "assets/ui/abilities/pixel_skill3_11.png",
+    frost: "assets/ui/abilities/pixel_skill3_03.png",
+    fireball: "assets/ui/abilities/pixel_skill3_06.png",
+    nova: "assets/ui/abilities/pixel_skill3_14.png",
+    bolt: "assets/ui/abilities/pixel_skill3_21.png",
+    taunt: "assets/ui/abilities/pixel_skill3_10.png",
+    shadowstep: "assets/ui/abilities/pixel_skill3_24.png",
+    charge: "assets/ui/abilities/pixel_skill3_22.png",
+    rage: "assets/ui/abilities/pixel_skill3_30.png",
+    mend: "assets/ui/abilities/pixel_skill3_15.png",
+    heal: "assets/ui/abilities/pixel_skill3_15.png",
+    arc: "assets/ui/abilities/pixel_skill3_08.png",
+    zone: "assets/ui/abilities/pixel_skill3_13.png",
+    skirmish: "assets/ui/abilities/pixel_skill3_17.png",
+    lunge: "assets/ui/abilities/pixel_skill3_20.png",
+    shield: "assets/ui/abilities/pixel_skill3_28.png",
+    buff: "assets/ui/abilities/pixel_skill3_19.png",
+    debuff: "assets/ui/abilities/pixel_skill3_07.png",
+    stun: "assets/ui/abilities/pixel_skill3_10.png",
+    knock: "assets/ui/abilities/pixel_skill3_26.png",
+    summon: "assets/ui/abilities/pixel_skill3_18.png",
+    vial: "assets/ui/abilities/pixel_skill3_06.png",
+    dot: "assets/ui/abilities/pixel_skill3_07.png"
+  };
+
   function abilityIcon(id) {
-    return ABILITY_ICON[id] || "";
+    if (ABILITY_ICON[id]) return ABILITY_ICON[id];
+    const ab = IL.abilityById ? IL.abilityById(id) : null;
+    if (ab && KIND_ICON[ab.kind]) return KIND_ICON[ab.kind];
+    return "";
   }
 
   function lootFrame(kind, rarity) {
@@ -315,8 +362,10 @@
   }
 
   function rollLoot(rng, bag) {
-    if (rng() < 0.16) return makeItem(rng, { only: "tonic", bag: bag || "win" });
-    return makeItem(rng, { bag: bag || "win" });
+    const pocket = bag || "win";
+    if (rng() < 0.16) return makeItem(rng, { only: "tonic", bag: pocket });
+    if (rng() < 0.14) return makeTome(rng, { bag: pocket });
+    return makeItem(rng, { bag: pocket });
   }
 
   function rollGearStock(rng) {
@@ -331,9 +380,19 @@
       used[stamp] = true;
       stock.push({ item: item, cost: gearPrice(item) });
     }
+    let tonicAt = -1;
     if (stock.length && rng() < 0.55) {
       const drink = makeItem(rng, { only: "tonic", bag: "stock" });
-      stock[stock.length - 1] = { item: drink, cost: gearPrice(drink) };
+      tonicAt = stock.length - 1;
+      stock[tonicAt] = { item: drink, cost: gearPrice(drink) };
+    }
+    if (stock.length) {
+      let at = 0;
+      if (tonicAt === 0) at = stock.length > 1 ? 1 : -1;
+      if (at >= 0) {
+        const tome = makeTome(rng, { bag: "stock" });
+        stock[at] = { item: tome, cost: gearPrice(tome) };
+      }
     }
     return stock;
   }
@@ -348,6 +407,7 @@
     for (let i = 0; i < n; i++) {
       const item = makeItem(rng, { bag: "rival" });
       const slot = itemSlot(item);
+      if (slot === "tome" || slot === "tonic") continue;
       if (used[slot]) continue;
       used[slot] = true;
       fighter.gear[slot] = item;
@@ -400,6 +460,7 @@
   IL.GEAR_REROLL = GEAR_REROLL;
   IL.blankGear = blankGear;
   IL.makeItem = makeItem;
+  IL.makeTome = makeTome;
   IL.itemBonus = itemBonus;
   IL.passiveOf = passiveOf;
   IL.gearBonus = gearBonus;

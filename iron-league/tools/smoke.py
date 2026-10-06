@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """Open Iron League, found a club, fight once, reload. Desktop and phone.
 
+Standing QA, every PR: before calling it merge-ready, this file's default run
+must pass at 360x740, 412x915, and 1280x800. That pass visits every hub tab,
+the fighter sheet, a full fight at 3x, the results overlay and its exit, the
+season-end ceremony, and the cup. It fails on a bordered-panel overflow,
+horizontal page scroll, page scroll during a fight, a control outside the
+viewport, or an overlay with no visible exit.
+
     python3 iron-league/tools/smoke.py
 """
 import sys
@@ -77,27 +84,47 @@ def run(page, label, shot_dir):
     versus = page.locator("#versus").inner_text()
     if "HP" not in versus or "Power" not in versus:
         raise SystemExit(label + " versus card missing health or power")
+    traits = page.locator("#versus .trait-line").count()
+    if traits < 2:
+        raise SystemExit(label + " versus card missing traits")
+    if page.locator("#yourSynergy").count() < 1 or page.locator("#theirSynergy").count() < 1:
+        raise SystemExit(label + " versus card missing synergy")
     page.screenshot(path=str(shot_dir / f"{label}-versus.png"))
     page.click("#versusBack")
     page.wait_for_selector("#nextMatch")
     page.click("#nextMatch")
     page.click("#confirmFight")
     page.wait_for_selector("#arena", timeout=30000)
-    page.wait_for_function(
-        """() => {
-          const IL = window.IL;
-          const m = IL && IL.currentMatch;
-          if (!m || !IL.fx || !IL.fx.ready()) return false;
-          const flags = window.__ilSmokeFight || (window.__ilSmokeFight = {});
-          const units = m.units || [];
-          if (units.some(u => u.state === 'roll')) flags.roll = true;
-          if (m.stats && m.stats.slashes > 0) flags.slash = true;
-          if (m.stats && m.stats.abilities > 0) flags.ability = true;
-          if (IL.fx.spawned > 0) flags.fx = true;
-          return m.time > 1.2 && flags.roll && flags.slash && flags.ability && flags.fx;
-        }""",
-        timeout=35000,
-    )
+    try:
+        page.wait_for_function(
+            """() => {
+              const IL = window.IL;
+              const m = IL && IL.currentMatch;
+              if (!m || !IL.fx || !IL.fx.ready()) return false;
+              const flags = window.__ilSmokeFight || (window.__ilSmokeFight = {});
+              const units = m.units || [];
+              if (units.some(u => u.state === 'roll')) flags.roll = true;
+              if (m.stats && m.stats.slashes > 0) flags.slash = true;
+              if (m.stats && m.stats.abilities > 0) flags.ability = true;
+              if (IL.fx.spawned > 0) flags.fx = true;
+              return m.time > 1.2 && flags.roll && flags.slash && flags.ability && flags.fx;
+            }""",
+            timeout=35000,
+        )
+    except Exception:
+        snap = page.evaluate(
+            """() => {
+              const m = window.IL && IL.currentMatch;
+              return {
+                flags: window.__ilSmokeFight || null,
+                time: m ? m.time : null,
+                over: m ? !!m.over : null,
+                slashes: m && m.stats ? m.stats.slashes : null,
+                abilities: m && m.stats ? m.stats.abilities : null
+              };
+            }"""
+        )
+        raise SystemExit(label + " fight never showed combat " + str(snap))
     page.wait_for_timeout(200)
     page.screenshot(path=str(shot_dir / f"{label}-fight.png"))
     caught = {"slash": False, "cast": False, "shot": False, "roll": False}
@@ -161,9 +188,10 @@ def run(page, label, shot_dir):
     if "found" not in loot:
         raise SystemExit(label + " loot reveal missing a find: " + loot)
     result_text = page.locator("#result").inner_text().lower()
-    for word in ("mvp", "dealt", "taken", "heal"):
-        if word not in result_text:
-            raise SystemExit(label + " results missing " + word)
+    # Phone columns use Dmg / Tkn so the header fits a 360px frame.
+    for words in (("mvp",), ("dealt", "dmg"), ("taken", "tkn"), ("heal",)):
+        if not any(word in result_text for word in words):
+            raise SystemExit(label + " results missing " + words[0])
     result = page.locator("#result h2").inner_text()
     if "pit" not in result.lower() and "walk" not in result.lower():
         raise SystemExit(label + " unexpected result: " + result)
@@ -339,6 +367,17 @@ def check_yard(page, label):
         }""",
         timeout=8000,
     )
+    page.evaluate(
+        """() => {
+          const c = document.querySelector('#clubYard');
+          const a = IL.yardActors[0];
+          const r = c.getBoundingClientRect();
+          const y = r.top + (a.y - 48) * (r.height / c.height);
+          const tab = document.querySelector('#tabbar');
+          const limit = (tab ? tab.getBoundingClientRect().top : window.innerHeight) - 36;
+          if (y > limit) window.scrollBy(0, y - limit);
+        }"""
+    )
     box = page.evaluate(
         """() => {
           const c = document.querySelector('#clubYard');
@@ -346,7 +385,7 @@ def check_yard(page, label):
           const r = c.getBoundingClientRect();
           return {
             x: r.left + a.x * (r.width / c.width),
-            y: r.top + (a.y - 28) * (r.height / c.height)
+            y: r.top + (a.y - 48) * (r.height / c.height)
           };
         }"""
     )
@@ -356,9 +395,49 @@ def check_yard(page, label):
     page.wait_for_selector("#fighterSheet", state="detached")
 
 
+def check_classes(page, label):
+    """Every kit can finish a fight, and the hub shows party traits."""
+    if page.locator("#partySynergy").count() < 1:
+        raise SystemExit(label + " club hub missing synergy")
+    bad = page.evaluate(
+        """() => {
+          const ids = Object.keys(IL.CLASSES || {});
+          const bad = [];
+          if (ids.length < 24) bad.push("count " + ids.length);
+          const seen = {};
+          let abs = 0;
+          ids.forEach((id) => {
+            const kit = IL.CLASSES[id];
+            (kit.abilities || []).forEach((ab) => {
+              if (ab && ab.id && !seen[ab.id]) { seen[ab.id] = 1; abs++; }
+            });
+            try {
+              const f = IL.randomFighter(IL.mulberry32(11), id);
+              f.level = 7;
+              const foe = IL.randomFighter(IL.mulberry32(12), "warrior");
+              const m = IL.createMatch({ seed: 9, left: [f], right: [foe], leftName: "A", rightName: "B" });
+              let steps = 0;
+              while (!m.over && steps < 3600) { IL.stepMatch(m, 1 / 60); m.events.length = 0; steps++; }
+              if (!m.over) bad.push(id + " hung");
+              m.units.forEach((u) => {
+                if (!Number.isFinite(u.hp) || !Number.isFinite(u.x)) bad.push(id + " nan");
+              });
+            } catch (err) {
+              bad.push(id + " " + (err && err.message ? err.message : err));
+            }
+          });
+          if (abs < 120) bad.push("abilities " + abs);
+          return bad;
+        }"""
+    )
+    if bad:
+        raise SystemExit(label + " class fights " + ", ".join(bad[:8]))
+
+
 def check_nav(page, label, shot_dir):
     """Tab bar, keyboard, and the fighter sheet open and close."""
     check_chrome(page, label)
+    check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
     if tabs.count() != 5:
@@ -427,9 +506,12 @@ def check_nav(page, label, shot_dir):
         timeout=20000,
     )
     sheet = page.locator("#fighterSheet").inner_text()
-    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Always on", "Rename", "Captain stays", "Record"):
+    for word in ("XP", "HP", "ATK", "DEF", "SPD", "Abilities", "Loadout", "Passive", "Level 4", "Rename", "Captain stays", "Record"):
         if word not in sheet:
             raise SystemExit(label + " sheet missing " + word + ": " + sheet[:240])
+    tags = ("AoE", "DoT", "Heal", "CC", "Mobility", "Summon")
+    if not any(tag in sheet for tag in tags):
+        raise SystemExit(label + " sheet missing an ability tag: " + sheet[:240])
     if page.locator("#releaseAsk").count():
         raise SystemExit(label + " captain sheet offered release")
     page.screenshot(path=str(shot_dir / f"{label}-sheet.png"))
@@ -580,6 +662,13 @@ def check_gear(page, label, shot_dir):
         arg=uids,
     )
     page.screenshot(path=str(shot_dir / f"{label}-stall.png"))
+    page.click("[data-filter='tomes']")
+    page.wait_for_selector("#tomeStock")
+    if page.locator("#gearStock").count():
+        raise SystemExit(label + " gear stall stayed open on the tomes filter")
+    if page.locator("#tomeStock [data-buy-gear]").count() < 1:
+        raise SystemExit(label + " tomes stall had no tome")
+    page.screenshot(path=str(shot_dir / f"{label}-tomes.png"))
     page.keyboard.press("1")
     page.wait_for_selector("#nextMatch")
     page.click("#credits")
@@ -887,6 +976,9 @@ def sweep_frames(browser, shot_dir):
         page.click("[data-filter='gear']")
         page.wait_for_selector("#gearStock")
         assert_inside(page, label + " stall")
+        page.click("[data-filter='tomes']")
+        page.wait_for_selector("#tomeStock")
+        assert_inside(page, label + " tomes")
         page.click("[data-filter='sell']")
         assert_inside(page, label + " sell")
         visit("4", "#enterCup, #bracketBoard")
@@ -1076,6 +1168,185 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
         raise SystemExit(label + " hub lost the club name: " + title)
     page.close()
 
+
+def assert_visible_exit(page, selector, where):
+    """An overlay's way out has to be on screen, not clipped under the fold."""
+    box = page.evaluate(
+        """(sel) => {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+          const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          return {
+            text: (el.innerText || el.getAttribute('aria-label') || '').trim(),
+            top: r.top, left: r.left, right: r.right, bottom: r.bottom,
+            w: r.width, h: r.height,
+            hidden: cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0,
+            ih: window.innerHeight, iw: window.innerWidth
+          };
+        }""",
+        selector,
+    )
+    if not box or box["hidden"] or box["w"] < 16 or box["h"] < 16:
+        raise SystemExit(where + " exit missing " + selector + " " + str(box))
+    if box["top"] < -1 or box["left"] < -1 or box["bottom"] > box["ih"] + 1 or box["right"] > box["iw"] + 1:
+        raise SystemExit(where + " exit off screen " + selector + " " + str(box))
+
+
+def qa_gate(browser, shot_dir):
+    """The standing three-viewport pass. See the module docstring."""
+    sizes = [(360, 740), (412, 915), (1280, 800)]
+    for width, height in sizes:
+        label = str(width) + "x" + str(height)
+        mobile = width < 800
+        page = browser.new_page(
+            viewport={"width": width, "height": height},
+            device_scale_factor=2 if mobile else 1,
+            is_mobile=mobile,
+            has_touch=mobile,
+        )
+        page.goto(URL, wait_until="domcontentloaded")
+        page.evaluate("() => localStorage.clear()")
+        page.reload(wait_until="domcontentloaded")
+        page.click("#newClub")
+        page.fill("#clubName", "Labfreak Company")
+        page.fill("#fighterName", "Ada Flint")
+        page.click('[data-class="warrior"]')
+        page.click("#confirm")
+        page.wait_for_selector("#nextMatch", timeout=30000)
+
+        def shot(name):
+            if mobile:
+                page.screenshot(path=str(shot_dir / ("qa-" + label + "-" + name + ".png")))
+
+        page.keyboard.press("1")
+        page.wait_for_selector("#clubYard, #nextMatch")
+        assert_inside(page, label + " club")
+        shot("club")
+        page.keyboard.press("2")
+        page.wait_for_selector("#fighterList")
+        assert_inside(page, label + " fighters")
+        shot("fighters")
+        page.locator("[data-detail]").first.click()
+        page.wait_for_selector("#fighterSheet")
+        assert_visible_exit(page, "#sheetClose", label + " sheet")
+        assert_inside(page, label + " sheet")
+        shot("sheet")
+        page.click("#sheetClose")
+        page.wait_for_selector("#fighterSheet", state="detached")
+        page.keyboard.press("3")
+        page.wait_for_selector("[data-filter='gear']")
+        assert_inside(page, label + " recruits")
+        for filt, wait, name in (
+            ("gear", "#gearStock", "stall"),
+            ("tomes", "#tomeStock", "tomes"),
+            ("sell", "text=Sell from the bench", "sell"),
+        ):
+            page.click("[data-filter='" + filt + "']")
+            page.wait_for_selector(wait)
+            assert_inside(page, label + " " + name)
+        shot("market")
+        page.keyboard.press("4")
+        page.wait_for_selector("#enterCup, #bracketBoard")
+        assert_inside(page, label + " cup")
+        shot("cup")
+        page.keyboard.press("5")
+        page.wait_for_selector(".card.relic")
+        assert_inside(page, label + " relics")
+        shot("relics")
+        page.click("#settings")
+        page.wait_for_selector("#settingsSheet")
+        assert_visible_exit(page, "#settingsClose", label + " settings")
+        assert_inside(page, label + " settings")
+        page.click("#settingsClose")
+        page.wait_for_selector("#settingsSheet", state="detached")
+        page.click("#credits")
+        page.wait_for_selector("#creditsSheet")
+        assert_visible_exit(page, "#creditsClose", label + " credits")
+        assert_inside(page, label + " credits")
+        page.click("#creditsClose")
+        page.wait_for_selector("#creditsSheet", state="detached")
+        page.keyboard.press("1")
+        page.wait_for_selector("#nextMatch")
+        page.click("#nextMatch")
+        page.wait_for_selector("#versus")
+        assert_visible_exit(page, "#versusBack", label + " versus")
+        assert_inside(page, label + " versus")
+        shot("versus")
+        page.click("#confirmFight")
+        page.wait_for_selector("#arena", timeout=30000)
+        page.wait_for_timeout(300)
+        fight = page.evaluate(
+            """() => {
+              const de = document.documentElement;
+              const boxes = ['speed1', 'speed2', 'speed3', 'pause', 'skip'].map((id) => {
+                const el = document.getElementById(id);
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                return { id: id, top: r.top, left: r.left, right: r.right, bottom: r.bottom, w: r.width, h: r.height };
+              });
+              return {
+                scrollX: de.scrollWidth - window.innerWidth,
+                scrollY: de.scrollHeight - window.innerHeight,
+                boxes: boxes,
+                ih: window.innerHeight,
+                iw: window.innerWidth
+              };
+            }"""
+        )
+        if fight["scrollX"] > 1 or fight["scrollY"] > 1:
+            raise SystemExit(label + " fight page scrolls " + str(fight["scrollX"]) + " " + str(fight["scrollY"]))
+        for box in fight["boxes"]:
+            if not box or box["w"] < 8 or box["h"] < 8:
+                raise SystemExit(label + " fight control missing " + str(fight["boxes"]))
+            if box["top"] < -1 or box["left"] < -1 or box["bottom"] > fight["ih"] + 1 or box["right"] > fight["iw"] + 1:
+                raise SystemExit(label + " fight control off screen " + str(box))
+        assert_inside(page, label + " arena")
+        shot("fight")
+        page.click("#speed3")
+        page.wait_for_selector("#result:not([hidden]) #resultTable", timeout=60000)
+        page.wait_for_function("() => document.querySelector('#speed3') && document.querySelector('#speed3').classList.contains('on')")
+        assert_visible_exit(page, "#backHub", label + " results")
+        assert_inside(page, label + " results")
+        spinning = page.evaluate(
+            """() => {
+              const box = document.querySelector('#result');
+              const before = getComputedStyle(box, '::before');
+              return /spin|burst/i.test((before.animationName || '') + ' ' + (before.content || '')) && before.content !== 'none';
+            }"""
+        )
+        if spinning:
+            raise SystemExit(label + " results still spin a burst")
+        shot("results")
+        if width == 360:
+            page.set_viewport_size({"width": 360, "height": 640})
+            assert_visible_exit(page, "#backHub", label + " results 640")
+            assert_inside(page, label + " results 640")
+            page.set_viewport_size({"width": 360, "height": 740})
+        page.click("#backHub")
+        page.wait_for_selector("#nextMatch, #growthChoices, #openSeason", timeout=10000)
+        if page.locator("#growthChoices").count():
+            assert_inside(page, label + " growth")
+            page.locator("#growthChoices [data-boost]").first.click()
+            page.wait_for_selector("#nextMatch, #openSeason", timeout=10000)
+        page.evaluate(
+            """() => {
+              const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+              raw.round = 5;
+              raw.clubs.forEach((c, i) => { c.w = 4 - Math.min(i, 4); c.l = Math.min(i, 4); c.pts = (4 - Math.min(i, 4)) * 3; });
+              localStorage.setItem('ironleague.v1', JSON.stringify(raw));
+            }"""
+        )
+        page.reload(wait_until="domcontentloaded")
+        page.click("#continue")
+        page.click("#openSeason")
+        page.wait_for_selector("#finalTable")
+        assert_visible_exit(page, "#backFromSeason", label + " season")
+        assert_inside(page, label + " season")
+        shot("season")
+        page.close()
+
+
 def main():
     shot = Path("/tmp/il-shots")
     shot.mkdir(exist_ok=True)
@@ -1092,6 +1363,7 @@ def main():
             check_phone_fight(browser, 360, 740, shot, "click")
             check_phone_fight(browser, 412, 915, shot, "escape")
         sweep_frames(browser, shot)
+        qa_gate(browser, shot)
         browser.close()
     print("smoke passed")
     print("shots", shot)

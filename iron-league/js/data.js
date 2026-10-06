@@ -162,7 +162,19 @@
       "military3_5", "military3_6", "military3_7", "military3_8"
     ],
     duelist: ["1_1", "2_1", "4_1", "5_1", "6_1", "7_7", "3_1", "military1_1"],
-    elementalist: ["1_2", "7_2", "7_6", "5_2", "3_2", "6_2", "2_8", "4_8"]
+    elementalist: ["1_2", "7_2", "7_6", "5_2", "3_2", "6_2", "2_8", "4_8"],
+    monk: ["1_8", "2_8", "3_8", "4_8", "5_8", "6_8", "7_1", "1_5"],
+    necromancer: ["7_2", "7_6", "6_2", "5_2", "3_2", "4_2", "1_2", "2_2"],
+    paladin: ["1_7", "2_7", "4_7", "military1_1", "military1_2", "1_1", "5_7", "6_7"],
+    druid: ["2_5", "3_5", "4_5", "7_5", "6_8", "1_8", "5_8", "2_8"],
+    bard: ["1_5", "2_8", "4_8", "6_8", "7_1", "3_8", "5_8", "1_8"],
+    gunslinger: ["military2_1", "military2_3", "military2_5", "military2_8", "military3_2", "military3_4", "military3_6", "military3_8"],
+    warlock: ["7_6", "7_2", "4_2", "6_2", "1_2", "5_2", "3_2", "2_2"],
+    samurai: ["1_1", "2_1", "5_1", "6_1", "4_1", "3_1", "7_7", "military1_1"],
+    spearmaiden: ["1_3", "2_3", "4_3", "5_3", "6_3", "3_3", "military1_3", "military1_8"],
+    summoner: ["7_2", "7_6", "3_2", "2_2", "6_2", "5_2", "4_2", "1_2"],
+    alchemist: ["1_5", "3_8", "5_2", "4_2", "2_2", "6_8", "7_6", "1_2"],
+    beastmaster: ["3_5", "4_5", "6_5", "2_4", "5_5", "7_5", "military1_4", "3_4"]
   };
 
   const SHEET_SET = {};
@@ -369,7 +381,7 @@
 
   /* Archer and ranger loose an arrow. Gun troops fire. Everyone else swings. */
   function visualMotion(clip, cls, sheet) {
-    if (clip === "atk1" && (cls === "archer" || cls === "ranger" || cls === "skirmisher")) {
+    if (clip === "atk1" && (cls === "archer" || cls === "ranger" || cls === "skirmisher" || cls === "gunslinger")) {
       if (sheetHasBow(sheet)) return "bow";
       if (sheetHasGun(sheet)) return "gun";
     }

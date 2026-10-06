@@ -198,6 +198,8 @@ def run(page, label, shot_dir):
         raise SystemExit(label + " unexpected result: " + result)
     page.click("#backHub")
     page.wait_for_selector("#nextMatch, #nextSeason", timeout=10000)
+    page.click("[data-club-view='history']")
+    page.wait_for_selector("#history")
     history = page.locator("#history").inner_text()
     if "MVP" not in history:
         raise SystemExit(label + " history missing a result: " + history)
@@ -241,18 +243,20 @@ def tour(page, shot_dir):
     page.click("#openGrowth")
     page.wait_for_selector("#growth")
     growth = page.locator("#growth").inner_text().lower()
-    if "thick skin" not in growth or "keen eye" not in growth:
-        raise SystemExit("perk choices missing: " + growth[:240])
+    if page.locator("#growthChoices [data-pick]").count() != 3 or "training" not in growth or "choose" not in growth:
+        raise SystemExit("level-up choices missing: " + growth[:240])
+    if "→" not in growth:
+        raise SystemExit("level-up cards show no before/after numbers: " + growth[:240])
     page.screenshot(path=str(shot_dir / "level-up.png"))
-    page.click("[data-boost='hp']")
+    page.locator("#growthChoices [data-kind='stat']").first.click()
     perk = page.evaluate(
         """() => {
           const f = JSON.parse(localStorage.getItem('ironleague.v1')).roster[0];
-          return f.perks && f.perks[0] && f.perks[0].id;
+          return { left: f.pendingLevels, log: (f.growth || []).length, kind: f.growth && f.growth[0] && f.growth[0].kind };
         }"""
     )
-    if perk != "hp":
-        raise SystemExit("perk was not saved: " + str(perk))
+    if perk["left"] != 0 or perk["log"] != 1 or perk["kind"] != "stat":
+        raise SystemExit("level-up pick was not saved: " + str(perk))
     page.wait_for_selector("#market")
     page.click("#market")
     page.wait_for_selector("#marketCards .hire")
@@ -611,6 +615,8 @@ def check_gear(page, label, shot_dir):
     page.screenshot(path=str(shot_dir / f"{label}-tomes.png"))
     page.keyboard.press("1")
     page.wait_for_selector("#nextMatch")
+    page.click("#settings")
+    page.wait_for_selector("#settingsSheet")
     page.click("#credits")
     page.wait_for_selector("#creditsSheet")
     credits = page.locator("#creditsSheet").inner_text().lower()
@@ -770,6 +776,7 @@ def check_empty_bench(page):
 
 def check_achievements(page, label):
     page.keyboard.press("1")
+    page.click("[data-club-view='goals']")
     page.wait_for_selector("#achievements")
     text = page.locator("#achievements").inner_text().lower()
     for word in ("first bell", "first win", "flawless", "ten kos", "cup winner", "every kit"):
@@ -998,6 +1005,8 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " settings")
         page.click("#settingsClose")
         page.wait_for_selector("#settingsSheet", state="detached")
+        page.click("#settings")
+        page.wait_for_selector("#settingsSheet")
         page.click("#credits")
         page.wait_for_selector("#creditsSheet")
         assert_inside(page, label + " credits")
@@ -1019,7 +1028,14 @@ def sweep_frames(browser, shot_dir):
         page.wait_for_selector("#nextMatch, #nextSeason, #growthChoices", timeout=10000)
         if page.locator("#growthChoices").count():
             assert_inside(page, label + " growth")
-            page.locator("#growthChoices [data-boost]").first.click()
+            for _ in range(12):
+                if page.locator("#growthChoices [data-slot]").count():
+                    page.click("#backHub")
+                elif page.locator("#growthChoices [data-pick]").count():
+                    page.locator("#growthChoices [data-pick]").first.click()
+                else:
+                    break
+                page.wait_for_timeout(150)
             page.wait_for_selector("#nextMatch, #nextSeason", timeout=10000)
     page.evaluate(
         """() => {
@@ -1136,7 +1152,7 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
     )
     if overlay["spinning"] or overlay["overlap"]:
         raise SystemExit(label + " spinning box covers the results " + str(overlay))
-    if "back to club" not in overlay["label"].lower():
+    if "back to club" not in overlay["label"].lower() and "continue" not in overlay["label"].lower():
         raise SystemExit(label + " results missing Back to club: " + overlay["label"])
     if overlay["btnTop"] < 0 or overlay["btnBottom"] > overlay["innerH"] + 1 or overlay["btnH"] < 40:
         raise SystemExit(label + " Back to club is off screen " + str(overlay))
@@ -1276,6 +1292,8 @@ def qa_gate(browser, shot_dir):
         assert_inside(page, label + " settings")
         page.click("#settingsClose")
         page.wait_for_selector("#settingsSheet", state="detached")
+        page.click("#settings")
+        page.wait_for_selector("#settingsSheet")
         page.click("#credits")
         page.wait_for_selector("#creditsSheet")
         assert_visible_exit(page, "#creditsClose", label + " credits")
@@ -1343,7 +1361,14 @@ def qa_gate(browser, shot_dir):
         page.wait_for_selector("#nextMatch, #growthChoices, #openSeason", timeout=10000)
         if page.locator("#growthChoices").count():
             assert_inside(page, label + " growth")
-            page.locator("#growthChoices [data-boost]").first.click()
+            for _ in range(12):
+                if page.locator("#growthChoices [data-slot]").count():
+                    page.click("#backHub")
+                elif page.locator("#growthChoices [data-pick]").count():
+                    page.locator("#growthChoices [data-pick]").first.click()
+                else:
+                    break
+                page.wait_for_timeout(150)
             page.wait_for_selector("#nextMatch, #openSeason", timeout=10000)
         page.evaluate(
             """() => {

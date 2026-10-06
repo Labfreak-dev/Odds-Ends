@@ -127,6 +127,7 @@
       tactic: fighter.tactic || "strike",
       ai: IL.normAi ? IL.normAi(fighter.ai) : { target: "near", range: "kit", ult: "ready", retreat: "never", evade: "normal" },
       captain: !!fighter.captain,
+      ranks: fighter.ranks && typeof fighter.ranks === "object" ? fighter.ranks : {},
       tgtId: null,
       x: pos.x,
       y: pos.y,
@@ -905,6 +906,10 @@
     const blocked = dst.state === "block";
     if (blocked && dst.team === 0) dst.blocks = (dst.blocks || 0) + 1;
     let amount = raw;
+    if (src) {
+      const rid = (opt.tag && opt.tag.id) || (src.swingTag && src.swingTag.id);
+      if (rid) amount *= rankMul(src, rid);
+    }
     if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
@@ -1030,6 +1035,7 @@
     if (!dst || dst.hp <= 0) return;
     let rawN = raw;
     if (src && src.oath) rawN *= 1.12;
+    if (src && src.swingTag && src.swingTag.id) rawN *= rankMul(src, src.swingTag.id);
     const n = Math.max(1, Math.round(rawN));
     dst.hp = Math.min(dst.maxHp, dst.hp + n);
     if (src) {
@@ -1591,9 +1597,20 @@
     fx(m, "slash", u.x + u.facing * 20, u.y - 16, { facing: u.facing, size: 150, team: u.team });
   }
 
+  /* Level-up ranks: +8% power and -6% cooldown per rank above I. */
+  function rankMul(u, id) {
+    const r = id && u && u.ranks ? (u.ranks[id] | 0) : 0;
+    return r > 1 ? 1 + (IL.RANK_POW || 0.08) * (Math.min(5, r) - 1) : 1;
+  }
+
+  function rankCd(u, id) {
+    const r = id && u && u.ranks ? (u.ranks[id] | 0) : 0;
+    return r > 1 ? Math.max(0.5, 1 - (IL.RANK_CD || 0.06) * (Math.min(5, r) - 1)) : 1;
+  }
+
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
-    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1);
+    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id);
     if (ab && ab.id) {
       u.swingTag = { id: ab.id, name: ab.name };
       if (!u.byAb) u.byAb = {};

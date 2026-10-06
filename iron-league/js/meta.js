@@ -425,17 +425,13 @@
     const g = IL.growthFromXp(prev, next);
     fighter.xp = next;
     fighter.level = g.level;
-    fighter.pendingPicks = (fighter.pendingPicks || 0) + g.picks;
     const before = IL.xpLevel(prev);
-    let moves = 0;
-    for (let lv = before + 1; lv <= g.level; lv++) {
-      if (lv === 4 || lv === 7 || lv === 10) moves++;
-    }
-    if (moves) fighter.pendingMoves = (fighter.pendingMoves || 0) + moves;
+    /* One level-up pick per level gained (kits.js levelOffer). */
+    if (g.level > before) fighter.pendingLevels = (fighter.pendingLevels || 0) + (g.level - before);
     if (before < 5 && g.level >= 5 && !fighter.focus) fighter.pendingFocus = true;
     if (before < 10 && g.level >= 10 && !fighter.mastery) fighter.pendingMastery = true;
     if (!fighter.boosts) fighter.boosts = { hp: 0, dmg: 0, spd: 0, def: 0 };
-    return g.picks;
+    return Math.max(0, g.level - before);
   }
 
   function applyBoost(fighter, key) {
@@ -598,6 +594,14 @@
         if (!f.career.moves || typeof f.career.moves !== "object") f.career.moves = {};
       }
       if (!Array.isArray(f.perks)) f.perks = [];
+      /* v62: older stat picks and level moves fold into one queue. */
+      if (typeof f.pendingLevels !== "number" || f.pendingLevels < 0) f.pendingLevels = 0;
+      if (f.pendingPicks > 0 || f.pendingMoves > 0) {
+        f.pendingLevels += (f.pendingPicks > 0 ? f.pendingPicks : 0) + (f.pendingMoves > 0 ? f.pendingMoves : 0);
+        f.pendingPicks = 0;
+        f.pendingMoves = 0;
+      }
+      if (!f.ranks || typeof f.ranks !== "object") f.ranks = {};
       if (typeof f.pendingMoves !== "number") f.pendingMoves = 0;
       if (f.focus && !specialtyOf(f.focus)) f.focus = null;
       if (f.mastery && !masteryOf(f.mastery)) f.mastery = null;

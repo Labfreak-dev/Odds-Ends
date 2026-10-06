@@ -574,8 +574,13 @@ const cup = IL.startCup({ clubName: "Smoke Yard", roster: [IL.randomFighter(IL.m
 check("cup is four clubs", cup.slots.length === 4 && cup.pairing.length === 2);
 const f = IL.randomFighter(IL.mulberry32(2), "warrior");
 IL.grantXp(f, 80);
-check("grant queues a pick", f.level === 3 && f.pendingPicks === 1);
-check("boost spends a pick", IL.applyBoost(f, "hp") && f.boosts.hp === 1 && f.pendingPicks === 0);
+check("grant queues a pick per level", f.level === 3 && f.pendingLevels === 2);
+const offer = IL.levelOffer(f);
+check("a level-up offers three cards with a training step", offer.length === 3 && offer.some(function (c) { return c.kind === "stat"; }));
+check("the same offer comes back on reload", JSON.stringify(IL.levelOffer(f)) === JSON.stringify(offer));
+const statAt = offer.findIndex(function (c) { return c.kind === "stat"; });
+const statKey = offer[statAt].key;
+check("a training pick is one stat step", !!IL.applyLevelPick(f, statAt) && f.boosts[statKey] === 1 && f.pendingLevels === 1);
 
 function fight(leftCls, rightCls, seed, level) {
   const n = Math.max(leftCls.length, rightCls.length);
@@ -991,6 +996,42 @@ check("the steered fighter rolls on request", piloted.stats.rolls > 0);
 runOut(piloted, function (m) { if (m.pilot.ab == null && m.time % 2 < 0.02) { m.pilot.ab = 0; m.pilot.abT = 2.6; } });
 check("a steered match still ends", piloted.over);
 check("the steered fighter landed hits", pu.dmgDealt > 0);
+
+/* v62: level-up ranks. */
+const lvMig = IL.migrate({ clubName: "Mig", roster: [{ id: "m1", cls: "warrior", name: "Old Hand", level: 6, xp: 200, pendingPicks: 1, pendingMoves: 1 }] });
+check("old stat picks and moves fold into the level queue", lvMig.roster[0].pendingLevels === 2 && lvMig.roster[0].pendingPicks === 0 && lvMig.roster[0].pendingMoves === 0);
+const ranker = IL.randomFighter(IL.mulberry32(41), "warrior");
+ranker.level = 8;
+ranker.pendingLevels = 6;
+IL.ensureMoves(ranker);
+let ranked = 0;
+let learned = 0;
+for (let i = 0; i < 6; i++) {
+  const o = IL.levelOffer(ranker);
+  const ri = o.findIndex(function (c) { return c.kind === "rank"; });
+  const li = o.findIndex(function (c) { return c.kind === "learn"; });
+  const pick = i % 2 === 0 && ri >= 0 ? ri : (li >= 0 ? li : 0);
+  const card = IL.applyLevelPick(ranker, pick);
+  if (card && card.kind === "rank") ranked++;
+  if (card && card.kind === "learn") learned++;
+}
+check("level picks can rank up and learn", ranked > 0 && learned > 0 && ranker.pendingLevels === 0 && ranker.growth.length === 6);
+check("ranks stop at V", Object.keys(ranker.ranks).every(function (id) { return ranker.ranks[id] >= 2 && ranker.ranks[id] <= IL.RANK_MAX; }));
+const rankA = IL.randomFighter(IL.mulberry32(42), "warrior");
+rankA.level = 6;
+IL.ensureMoves(rankA);
+const rankB = JSON.parse(JSON.stringify(rankA));
+rankB.ranks = {};
+rankA.loadout.forEach(function (id) { rankB.ranks[id] = 5; });
+const foesR = squadOf(43, ["tank"]);
+function dummyDamage(fighter, seed) {
+  const m = IL.createMatch({ seed: seed, left: [JSON.parse(JSON.stringify(fighter))], right: JSON.parse(JSON.stringify(foesR)) });
+  m.units.forEach(function (u) { if (u.team === 1) { u.hp = u.maxHp = 99999; u.atk = 1; } });
+  for (let i = 0; i < 600; i++) { IL.stepMatch(m, 1 / 60); m.events.length = 0; }
+  const me = m.units.filter(function (u) { return u.team === 0; })[0];
+  return fighter.loadout.reduce(function (n, id) { return n + ((me.byAb && me.byAb[id] && me.byAb[id].dmg) || 0); }, 0);
+}
+check("ranked moves hit harder", [90, 91, 92].every(function (sd) { return dummyDamage(rankB, sd) > dummyDamage(rankA, sd); }));
 
 /* v60: watchlist and draft cup. */
 const wsave = { clubName: "Watchers", renown: 0, roster: [], market: IL.rollMarket(IL.mulberry32(5), 0, { names: [], sheets: [] }) };

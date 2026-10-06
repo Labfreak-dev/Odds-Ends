@@ -158,6 +158,14 @@ Fights ran too fast. A melee fighter swung about every 0.7 s, crossed the floor 
 
 The fight clock cap rose from 46 s to 62 s (46 s for chaos, 105 s for boss, horde, and king) so slower fights still finish. Class win bands and the grown-rival balance checks still pass.
 
+## Slower on screen (v67)
+
+v66 made actions rarer; on screen fighters still moved and animated at full speed. v67 slows the clock itself: `PACE.tempo` (0.8) is how many sim seconds play per real second at 1×. Walking, swings, cast wind-ups, rolls, dashes, projectiles and the sprite animations all play 20% slower, and 1.5× plays at 1.2× the sim clock. Damage numbers and impact sparks age in real time, so hits stay punchy.
+
+Slowing walk, turning and casts inside the sim instead was tried and dropped: druid and summoner fell out of the class win band. The clock only touches the live view, so every balance number is the sim's, unchanged from v66.
+
+On screen at 1× compared with v65: walking speed is about 56% of what it was, and every swing, cast and roll animation takes 25% longer.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

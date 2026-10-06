@@ -411,6 +411,11 @@ check("crit task grants a specialty point", taskSave.specPoints === 1 && taskSav
 const relicStall = IL.rollRelicStock(IL.mulberry32(5));
 check("relic stall is limited", relicStall.length === 4 && relicStall.every(function (row) { return row.stock === 1 && IL.relicById(row.id) && IL.relicSellPrice(row.id) < row.cost; }));
 const relicIds = {};
+const iconAtlas = JSON.parse(fs.readFileSync(path.join(root, "assets/icons/atlas.json"), "utf8"));
+check("every relic has an atlas icon", IL.RELICS.every(function (r) {
+  const frame = IL.relicIcon(r.id);
+  return !!(frame && iconAtlas.frames[frame]);
+}));
 check("sixty relics with rarities", IL.RELICS.length >= 60 && IL.RELICS.every(function (r) {
   if (relicIds[r.id]) return false;
   relicIds[r.id] = true;

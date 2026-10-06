@@ -526,7 +526,8 @@
         if (foes <= 1) amount *= 1.18;
       }
       let crit = false;
-      if (src.critNext || src.riposte) { crit = true; src.critNext = false; src.riposte = false; }
+      if (src.riposte) { amount *= 1.2; src.riposte = false; }
+      if (src.critNext) { crit = true; src.critNext = false; }
       else if (src.crit && m.rng() < src.crit) crit = true;
       if (crit) {
         amount *= 1.55;
@@ -974,8 +975,19 @@
       const ny = u.y + dy * 110;
       return Math.min(nx - WORLD.left, WORLD.right - nx, ny - WORLD.top, WORLD.bottom - ny);
     }
-    if (room(ax, ay) >= room(-ax, -ay)) return { x: ax, y: ay };
-    return { x: -ax, y: -ay };
+    const forward = { x: ax, y: ay };
+    const back = { x: -ax, y: -ay };
+    const gap = room(ax, ay) - room(-ax, -ay);
+    if (gap > 8) return forward;
+    if (gap < -8) return back;
+    /* Tied for space. Prefer world +y so a mirror pair dodges the same way.
+       A purely sideways tie steps apart, left toward the left wall. */
+    function prefer(a, b) {
+      if (Math.abs(a.y - b.y) > 0.05) return a.y > b.y ? a : b;
+      const want = u.team === 0 ? -1 : 1;
+      return a.x * want >= b.x * want ? a : b;
+    }
+    return prefer(forward, back);
   }
 
   function incomingThreat(m, u) {
@@ -1017,7 +1029,7 @@
         const dist = Math.hypot(dx, dy);
         const p = c.dur > 0 ? c.t / c.dur : 1;
         if (p >= 0.4 && dist <= c.r + u.radius + 12) {
-          const outX = dist < 1 ? 1 : dx / dist;
+          const outX = dist < 1 ? -(u.facing || 1) : dx / dist;
           const outY = dist < 1 ? 0 : dy / dist;
           const side = evadeDir(u, -outY, outX);
           consider(64 + p * 48 + (c.r - dist) * 0.3, outX * 0.75 + side.x * 0.65, outY * 0.75 + side.y * 0.65, "cast");
@@ -1047,7 +1059,7 @@
   }
 
   function maybeRoll(m, u, dist) {
-    if (u.rollCd > 0 || u.iframe > 0) {
+    if (u.summon || u.rollCd > 0 || u.iframe > 0) {
       return false;
     }
     const th = incomingThreat(m, u);
@@ -1426,7 +1438,8 @@
         const dx = t.x - u.x;
         const dy = t.y - u.y;
         const d = Math.hypot(dx, dy) || 1;
-        const side = ((u.id.charCodeAt(u.id.length - 1) + Math.floor(m.time * 0.7)) % 2 === 0) ? 1 : -1;
+        const wobble = (Math.floor(m.time * 0.7) % 2 === 0) ? 1 : -1;
+        const side = (u.team === 0 ? 1 : -1) * wobble;
         steer(u, u.x + (-dy / d) * side * 120, u.y + (dx / d) * side * 120, spd * 0.72, dt);
       }
       if (dist <= u.range + 12 && dist >= 78 && u.cool <= 0) {
@@ -1521,7 +1534,11 @@
         let dist = Math.hypot(dx, dy);
         const min = a.radius + b.radius;
         if (dist >= min) continue;
-        if (dist < 0.001) { dx = 1; dy = 0; dist = 1; }
+        if (dist < 0.001) {
+          dx = b.x === a.x ? ((b.team - a.team) || 1) : (b.x > a.x ? 1 : -1);
+          dy = 0;
+          dist = 1;
+        }
         const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.45;
         const push = (min - dist) * slip;
         const nx = dx / dist;
@@ -1632,8 +1649,11 @@
     const aliveAtStart = m.units.map(function (u) { return u.hp > 0; });
     const order = [];
     for (let i = 0; i < m.units.length; i++) order.push(i);
-    /* Alternate which squad steps first so rolls don't always favor one side. */
-    if ((m.time * 60 | 0) % 2 === 1) order.reverse();
+    /* Alternate which squad steps first. Seed parity flips the opening
+       frame so the right side does not always land the first blow.
+       stepFlip overrides that bit when a mirror sim wants the same rng. */
+    const flipBit = m.stepFlip == null ? (m.seed & 1) : (m.stepFlip & 1);
+    if (((m.time * 60 | 0) + flipBit) % 2 === 1) order.reverse();
     for (let n = 0; n < order.length; n++) {
       const i = order[n];
       const u = m.units[i];

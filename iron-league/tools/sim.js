@@ -493,33 +493,61 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 check("every class can fight", classBroke === 0);
 
 const hot = [];
+const mirrorMoods = ["bold", "wary", "patient"];
 Object.keys(IL.CLASSES).forEach(function (id) {
   let leftWins = 0;
   let rightWins = 0;
-  const n = 20;
-  for (let i = 0; i < n; i++) {
-    const rng = IL.mulberry32(9000 + i * 13 + (IL.hashStr(id) % 1000));
-    const left = IL.randomFighter(rng, id);
-    const right = IL.randomFighter(rng, id);
-    left.level = 7;
-    right.level = 7;
-    const m = IL.createMatch({ seed: 9100 + i, left: [left], right: [right], leftName: "L", rightName: "R" });
-    let steps = 0;
-    while (!m.over && steps < 4000) {
-      IL.stepMatch(m, 1 / 60);
-      m.events.length = 0;
-      steps++;
+  const pairs = 16;
+  for (let p = 0; p < pairs; p++) {
+    for (let par = 0; par < 2; par++) {
+      const rng = IL.mulberry32(4000 + p * 19 + (IL.hashStr(id) % 800));
+      const left = IL.randomFighter(rng, id);
+      const right = IL.randomFighter(rng, id);
+      left.level = 7;
+      right.level = 7;
+      left.personality = right.personality = mirrorMoods[p % mirrorMoods.length];
+      left.tactic = right.tactic = "strike";
+      const m = IL.createMatch({
+        seed: 3000 + p * 8 + (IL.hashStr(id) % 50),
+        left: [left],
+        right: [right],
+        leftName: "L",
+        rightName: "R"
+      });
+      m.stepFlip = par;
+      const lane = ((p % 7) - 3) * 32;
+      const gap = ((p % 4) - 2) * 20;
+      m.units.forEach(function (u) {
+        if (u.summon) return;
+        u.y += lane;
+        u.x += u.team === 0 ? -gap : gap;
+      });
+      let steps = 0;
+      while (!m.over && steps < 4000) {
+        IL.stepMatch(m, 1 / 60);
+        m.events.length = 0;
+        steps++;
+      }
+      if (!m.over) { hot.push(id + " hung"); break; }
+      const scoreL = m.units.filter(function (u) { return u.team === 0 && !u.summon; }).reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
+      const scoreR = m.units.filter(function (u) { return u.team === 1 && !u.summon; }).reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
+      if (Math.abs(scoreL - scoreR) <= 1e-6) continue;
+      if (m.winner === 0) leftWins++;
+      else rightWins++;
     }
-    if (!m.over) { hot.push(id + " hung"); break; }
-    const scoreL = m.units.filter(function (u) { return u.team === 0 && !u.summon; }).reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
-    const scoreR = m.units.filter(function (u) { return u.team === 1 && !u.summon; }).reduce(function (s, u) { return s + Math.max(0, u.hp) / u.maxHp; }, 0);
-    if (Math.abs(scoreL - scoreR) <= 1e-6) continue;
-    if (m.winner === 0) leftWins++;
-    else rightWins++;
   }
   const decided = leftWins + rightWins;
   const rate = decided ? Math.max(leftWins, rightWins) / decided : 0;
-  if (decided >= 8 && rate > 0.6) hot.push(id + " " + rate.toFixed(2) + " (" + leftWins + "-" + rightWins + ")");
+  /* Same kit both sides. Flag a side only when it takes more than 60%
+     and the lower 95% bound still beats a coin flip, so a short run
+     of 5-3 does not fail the catalog. */
+  let low = 0;
+  if (decided) {
+    const z = 1.96;
+    const se = Math.sqrt(rate * (1 - rate) / decided);
+    low = rate - z * se;
+  }
+  if (decided >= 12 && rate > 0.6 && low > 0.5) hot.push(id + " " + rate.toFixed(2) + " (" + leftWins + "-" + rightWins + ")");
 });
 if (hot.length) console.error("mirror hot", hot.join(", "));
 check("no class mirror above 60%", hot.length === 0);

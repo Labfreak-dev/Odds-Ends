@@ -21,6 +21,8 @@
   let armorySlot = "all";
   let armoryRarity = "all";
   let armorySort = "rarity";
+  let fighterFilter = "all";
+  let marketPane = "recruits";
   const HUB_TABS = ["club", "fighters", "market", "cup", "relics"];
 
   function esc(s) {
@@ -142,7 +144,7 @@
     else if (save.lineup.length < IL.PARTY_CAP) save.lineup.push(id);
     else return false;
     persist();
-    showHub(hubTab);
+    refreshHub();
     return true;
   }
 
@@ -585,7 +587,28 @@
       return '<button type="button" class="btn ghost" id="trainBtn"' + off + '>' + esc(why) + '</button>' +
         '<p class="fine">Drills left today: ' + left + '. Bench only. ' + (IL.TRAIN_XP || 12) + ' xp.</p>';
     }
-    return '<button type="button" class="chip train" data-train="' + esc(f.id) + '"' + off + '>' + esc(why) + '</button>';
+    return '<button type="button" class="chip train" data-train="' + esc(f.id) + '"' + off + ' title="' + esc(why) + '">Train</button>';
+  }
+
+  function lineupControl(f, size) {
+    const slot = (save.lineup || []).indexOf(f.id);
+    const fighting = slot >= 0 && (!size || slot < size);
+    const held = slot >= 0 && size > 0 && slot >= size;
+    const partyFull = (save.lineup || []).length >= IL.PARTY_CAP;
+    let lineLabel = "Add";
+    let lineClass = "chip lineup";
+    if (fighting && size) {
+      lineLabel = "Pit " + (slot + 1);
+      lineClass += " on";
+    } else if (held) {
+      lineLabel = "Held " + (slot + 1);
+      lineClass += " held";
+    } else if (slot >= 0) {
+      lineLabel = "Party " + (slot + 1);
+      lineClass += " on";
+    } else if (partyFull) lineLabel = "Full";
+    const lineOff = slot < 0 && partyFull ? " disabled" : "";
+    return '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>';
   }
 
   function glyphSvg(glyph) {
@@ -877,35 +900,24 @@
   function fighterCard(f, size, onBench) {
     const slot = (save.lineup || []).indexOf(f.id);
     const fighting = slot >= 0 && (!size || slot < size);
-    const held = slot >= 0 && size > 0 && slot >= size;
-    const partyFull = (save.lineup || []).length >= IL.PARTY_CAP;
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const stats = IL.scaledStats(f, kit);
     const anim = kit.idle || "idle";
     const champ = f.champion ? " <em>Champion</em>" : "";
-    const kos = f.kos || 0;
-    let lineLabel = "Sit out";
-    let lineClass = "chip lineup";
-    if (fighting && size) {
-      lineLabel = "Fighting · " + (slot + 1);
-      lineClass += " on";
-    } else if (held) {
-      lineLabel = "Held · " + (slot + 1);
-      lineClass += " held";
-    } else if (slot >= 0) {
-      lineLabel = "In the party · " + (slot + 1);
-      lineClass += " on";
-    } else if (partyFull) lineLabel = "Party full";
-    const lineOff = slot < 0 && partyFull ? " disabled" : "";
-    return '<article class="card' + (fighting ? " playing" : " bench") + '" data-role="' + esc(kit.role) + '">' +
+    const cap = f.captain ? " <em>Captain</em>" : "";
+    return '<article class="card roster-row' + (fighting ? " playing" : " bench") + '" data-role="' + esc(kit.role) + '">' +
       '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '"></canvas>' +
+        '<canvas width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="2" data-foot="6"></canvas>' +
       '</button>' +
-      '<h3>' + esc(f.name) + (f.captain ? " <em>Captain</em>" : "") + champ + '</h3>' +
-      '<p>' + esc(kit.name) + " · Lv " + f.level + " · " + esc(personalityLabel(f.personality)) + '</p>' +
-      '<p class="fine">' + (f.wins || 0) + "–" + (f.losses || 0) + " · " + kos + (kos === 1 ? " KO" : " KOs") + '</p>' +
-      '<button type="button" class="' + lineClass + '" data-line="' + esc(f.id) + '" aria-pressed="' + (slot >= 0 ? "true" : "false") + '"' + lineOff + '>' + esc(lineLabel) + '</button>' +
-      '<button type="button" class="chip tactic" data-fid="' + esc(f.id) + '">' + esc(tacticLabel(f.tactic)) + '</button>' +
-      (onBench ? trainControl(f, false) : "") +
+      '<div class="row-main">' +
+        '<h3>' + esc(f.name) + cap + champ + '</h3>' +
+        '<p>' + esc(kit.name) + " · Lv " + f.level + '</p>' +
+        '<p class="fine">HP ' + Math.round(stats.hp) + " · ATK " + Math.round(stats.atk) + '</p>' +
+      '</div>' +
+      '<div class="row-actions">' +
+        lineupControl(f, size) +
+        (onBench ? trainControl(f, false) : "") +
+      '</div>' +
     '</article>';
   }
 
@@ -927,16 +939,28 @@
     return { pit: pit, bench: bench };
   }
 
-  function rosterHtml(size, pitTitle, pitHint) {
+  function rosterHtml(size, pitTitle, filter) {
     const cols = rosterColumns(size);
-    return '<div id="yourCards">' +
-      '<section class="panel-frame"><h3 class="section">' + pitTitle + '</h3>' +
-        '<p class="fine">' + pitHint + '</p>' +
-        '<div class="cards">' + (cols.pit.join("") || emptyState("Nobody is walking in.", "Add fighters from the bench.")) + '</div></section>' +
-      '<section class="panel-frame"><h3 class="section">Bench</h3>' +
-        '<p class="fine">Tap Sit out to put them in the party. The list holds ' + IL.PARTY_CAP + '.</p>' +
-        '<div class="cards" id="benchList">' + (cols.bench.join("") || emptyState("The bench is empty.", "The whole club is in the party.")) + '</div></section>' +
-    '</div>';
+    const showPit = filter !== "bench";
+    const showBench = filter !== "party";
+    let html = '<div id="yourCards">';
+    if (showPit) {
+      html += '<section class="roster-block"><h3 class="section">' + pitTitle + '</h3>' +
+        '<div class="cards roster-grid">' + (cols.pit.join("") || emptyState("Nobody is walking in.", "Add fighters from the bench.")) + '</div></section>';
+    }
+    if (showBench) {
+      html += '<section class="roster-block"><h3 class="section">Bench</h3>' +
+        '<div class="cards roster-grid" id="benchList">' + (cols.bench.join("") || emptyState("The bench is empty.", "The whole club is in the party.")) + '</div></section>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function filterBar(kind, current, options) {
+    return '<div class="subtabs" role="tablist">' + options.map(function (pair) {
+      const on = pair[0] === current;
+      return '<button type="button" class="chip' + (on ? " on" : "") + '" data-filter-kind="' + kind + '" data-filter="' + pair[0] + '" aria-pressed="' + (on ? "true" : "false") + '">' + pair[1] + '</button>';
+    }).join("") + '</div>';
   }
 
   function tabBar(active) {
@@ -1040,7 +1064,8 @@
           '<h2 id="sheetTitle">' + esc(f.name) + '</h2></div>' +
           '<button type="button" class="btn ghost" id="sheetClose">Close</button></header>' +
         '<div class="detail-stage"><canvas id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"></canvas></div>' +
-        '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + ' · ' + esc(tacticLabel(f.tactic)) + (f.champion ? " · Champion" : "") + '</p>' +
+        '<p>Level ' + (f.level || 1) + ' · ' + esc(personalityLabel(f.personality)) + (f.champion ? " · Champion" : "") + '</p>' +
+        '<h3 class="section">Tactic</h3>' + tacticChips(f) +
         '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/40</b></div>' +
         statBar("HP", stats.hp, 320) +
         statBar("ATK", stats.atk, 40) +
@@ -1067,6 +1092,14 @@
                 '<button type="button" class="btn ghost" id="releaseNo">Keep them</button></div>') +
         '</div>' +
       '</aside>';
+  }
+
+  function tacticChips(f) {
+    const order = IL.TACTICS || ["strike", "cover", "hold"];
+    return '<div class="chips" id="tacticChips">' + order.map(function (id) {
+      const on = (f.tactic || "strike") === id;
+      return '<button type="button" class="chip' + (on ? " on" : "") + '" data-tactic="' + esc(id) + '">' + esc(tacticLabel(id)) + '</button>';
+    }).join("") + '</div>';
   }
 
   function perkList(f) {
@@ -1236,14 +1269,6 @@
             (partyReady ? "Send them in" : ("Choose " + size)) + '</button>' +
         '</section>'
       : "";
-    const rivalCards = theirs.map(function (f) {
-      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-      return '<article class="card rival" data-role="' + esc(kit.role) + '">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="idle"></canvas>' +
-        '<h3>' + esc(f.name) + '</h3>' +
-        '<p>' + esc(kit.name) + '</p>' +
-      '</article>';
-    }).join("");
     return (pendingGrowth().length
         ? '<p class="banner">Someone grew in the pit. <button type="button" class="btn primary" id="openGrowth">Choose a perk</button></p>'
         : '') +
@@ -1254,22 +1279,30 @@
         ? '<p class="banner">The pit wants ' + size + '. ' + yours.length + ' chosen — add ' + (size - yours.length) + ' more from the bench.</p>'
         : '') +
       preview +
-      rosterHtml(size, size ? "In the pit" : "Party", "First chosen is slot 1. The portrait opens a fighter. The lineup button changes who walks in.") +
-      (theirs.length ? '<section class="panel-frame"><h3 class="section">They send</h3><div class="cards">' + rivalCards + '</div></section>' : '') +
-      historyHtml() +
-      achievementsHtml() +
-      '<section class="panel-frame"><h3 class="section">Standings</h3>' +
-        '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
-      '</section>';
+      '<div class="hub-split">' +
+        '<div class="hub-main">' +
+          rosterHtml(size, size ? "In the pit" : "Party", "all") +
+        '</div>' +
+        '<div class="pane" id="clubPane">' +
+          '<section class="panel-frame"><h3 class="section">Standings</h3>' +
+            '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
+          '</section>' +
+          historyHtml() +
+          achievementsHtml() +
+        '</div>' +
+      '</div>';
   }
 
   function fightersPanel() {
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     return '<div id="fighterList">' +
-      '<header class="panel-head"><p class="eyebrow">Roster</p><h3>Fighters</h3></header>' +
-      '<p class="fine">Open a portrait for the full sheet. The lineup control is separate.</p>' +
-      rosterHtml(size, size ? "In the pit" : "Party", "Slot order is the order they walk in.") +
-      armoryHtml() +
+      filterBar("fighters", fighterFilter, [["all", "All"], ["party", "Party"], ["bench", "Bench"]]) +
+      '<div class="hub-split">' +
+        '<div class="hub-main">' +
+          rosterHtml(size, size ? "In the pit" : "Party", fighterFilter) +
+        '</div>' +
+        '<div class="pane" id="armoryPane">' + armoryHtml() + '</div>' +
+      '</div>' +
     '</div>';
   }
 
@@ -1280,35 +1313,41 @@
       const locked = !!row.locked;
       const champ = f.champion ? " · Champion" : "";
       const price = locked ? (row.need + " renown") : (row.cost + " gold");
-      return '<article class="card" data-role="' + esc(kit.role) + '">' +
-        '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
-        '<h3>' + esc(f.name) + champ + '</h3>' +
-        '<p>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
-        '<p class="fine">' + esc(kit.ability ? kit.ability.name : "") + '</p>' +
-        '<button type="button" class="btn primary hire" data-hire="' + i + '"' + (locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + ' — ' + esc(price) + '</button>' +
+      return '<article class="card roster-row" data-role="' + esc(kit.role) + '">' +
+        '<canvas width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"></canvas>' +
+        '<div class="row-main">' +
+          '<h3>' + esc(f.name) + champ + '</h3>' +
+          '<p>' + esc(kit.name) + ' · ' + esc(personalityLabel(f.personality)) + '</p>' +
+          '<p class="fine">' + esc(price) + (kit.ability ? " · " + kit.ability.name : "") + '</p>' +
+        '</div>' +
+        '<button type="button" class="btn primary hire" data-hire="' + i + '"' + (locked || save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP ? " disabled" : "") + '>' + (locked ? "Locked" : "Hire") + '</button>' +
       '</article>';
     }).join("");
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
       const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
       const inParty = (save.lineup || []).indexOf(f.id) >= 0;
-      return '<article class="card" data-role="' + esc(kit.role) + '">' +
+      return '<article class="card roster-row" data-role="' + esc(kit.role) + '">' +
         '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
-          '<canvas width="140" height="120" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '"></canvas>' +
+          '<canvas width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"></canvas>' +
         '</button>' +
-        '<h3>' + esc(f.name) + '</h3>' +
-        '<p>' + esc(kit.name) + ' · Lv ' + f.level + (inParty ? " · in the party" : "") + '</p>' +
-        '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell — ' + IL.sellValue(f) + ' gold</button>' +
+        '<div class="row-main">' +
+          '<h3>' + esc(f.name) + '</h3>' +
+          '<p>' + esc(kit.name) + ' · Lv ' + f.level + (inParty ? " · party" : "") + '</p>' +
+          '<p class="fine">' + IL.sellValue(f) + ' gold</p>' +
+        '</div>' +
+        '<button type="button" class="btn ghost" data-sell="' + esc(f.id) + '">Sell</button>' +
       '</article>';
     }).join("");
     const captain = save.roster.filter(function (f) { return f.captain; })[0];
-    return '<header class="panel-head"><p class="eyebrow">Hire board</p><h3>Market</h3></header>' +
+    const recruits = '<section class="roster-block"><h3 class="section">For hire</h3><div class="cards roster-grid" id="marketCards">' + cards + '</div></section>';
+    const selling = '<section class="roster-block"><h3 class="section">Sell from the bench</h3>' +
+      '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
+      '<div class="cards roster-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
+    const body = marketPane === "gear" ? gearStallHtml() : (marketPane === "sell" ? selling : recruits);
+    return filterBar("market", marketPane, [["gear", "Gear"], ["recruits", "Recruits"], ["sell", "Sell"]]) +
       '<div class="hub-actions"><button type="button" class="btn ghost" id="refreshMarket"' + (save.gold < IL.REFRESH_COST ? " disabled" : "") + '>Refresh — ' + IL.REFRESH_COST + ' gold</button></div>' +
-      '<p class="banner">Hire a name onto the bench, then slot them from the club. A champion costs more. Locked kits open with renown. Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '.</p>' +
-      '<section class="panel-frame"><h3 class="section">For hire</h3><div class="cards" id="marketCards">' + cards + '</div></section>' +
-      gearStallHtml() +
-      '<section class="panel-frame"><h3 class="section">Sell from the bench</h3>' +
-        '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
-        '<div class="cards">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
+      '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
+      '<div class="pane" id="marketPane">' + body + '</div>';
   }
 
   function relicsPanel() {
@@ -1330,7 +1369,7 @@
     return '<header class="panel-head"><p class="eyebrow">Club relics</p><h3>The yard chest</h3>' +
       '<p class="fine">' + (save.equipped || []).length + ' of 2 equipped · ' + (save.relics || []).length + ' owned</p></header>' +
       '<p class="banner">Two relics ride with everyone you field. Win a cup or close a season to add one.</p>' +
-      '<div class="cards">' + list + '</div>';
+      '<div class="cards relic-grid">' + list + '</div>';
   }
 
   function historyHtml() {
@@ -1402,7 +1441,31 @@
       (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>');
   }
 
-  function showHub(tab) {
+  function captureScroll() {
+    const panes = [];
+    document.querySelectorAll(".pane, #fighterSheet, #creditsSheet, #settingsSheet").forEach(function (el) {
+      if (el.id) panes.push({ id: el.id, top: el.scrollTop });
+    });
+    return {
+      y: window.scrollY || document.documentElement.scrollTop || 0,
+      panes: panes
+    };
+  }
+
+  function restoreScroll(snap) {
+    if (!snap) return;
+    window.scrollTo(0, snap.y);
+    snap.panes.forEach(function (row) {
+      const el = document.getElementById(row.id);
+      if (el) el.scrollTop = row.top;
+    });
+  }
+
+  function refreshHub() {
+    showHub(hubTab, true);
+  }
+
+  function showHub(tab, keep) {
     stopLoops();
     app.onclick = null;
     save = save || load();
@@ -1410,7 +1473,14 @@
     IL.migrate(save);
     ensureMarket();
     const freshAchieve = takeAchievements();
-    if (typeof tab === "string" && HUB_TABS.indexOf(tab) >= 0) hubTab = tab;
+    const next = (typeof tab === "string" && HUB_TABS.indexOf(tab) >= 0) ? tab : hubTab;
+    const switching = next !== hubTab;
+    const snap = keep && !switching ? captureScroll() : null;
+    if (switching) {
+      if (next === "market") marketPane = "recruits";
+      if (next === "fighters") fighterFilter = "all";
+    }
+    hubTab = next;
     if (detailId && !fighterById(detailId)) detailId = null;
     persist();
     const chaosReady = fielded(save.roster, 1).length >= 1;
@@ -1423,25 +1493,35 @@
     const fighter = detailId ? fighterById(detailId) : null;
     app.innerHTML =
       '<main class="hub">' +
-        '<header class="hub-head">' +
-          '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
-          '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
-          '<div class="hub-actions">' +
-            (done ? '<button type="button" class="btn primary" id="openSeason">Season ceremony</button>' : '') +
-            '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
-            '<button type="button" class="text-btn" id="credits">Credits</button>' +
-            '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
-            '<button type="button" class="text-btn" id="toTitle">Title</button>' +
-          '</div>' +
-        '</header>' +
-        purseHtml() +
-        tabBar(hubTab) +
+        '<div class="hub-sticky">' +
+          '<header class="hub-head">' +
+            '<canvas class="crest" id="crest" width="64" height="64"></canvas>' +
+            '<div><p class="eyebrow">Season ' + save.season + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
+            '<div class="hub-actions">' +
+              (done ? '<button type="button" class="btn primary" id="openSeason">Season ceremony</button>' : '') +
+              '<button type="button" class="btn ghost" id="chaos"' + (chaosReady ? "" : " disabled") + '>Chaos pit</button>' +
+              '<button type="button" class="text-btn" id="credits">Credits</button>' +
+              '<button type="button" class="icon-btn" id="settings" aria-label="Settings">⚙</button>' +
+              '<button type="button" class="text-btn" id="toTitle">Title</button>' +
+            '</div>' +
+          '</header>' +
+          purseHtml() +
+          tabBar(hubTab) +
+        '</div>' +
         '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
       '</main>' +
       (creditsOpen ? creditsHtml() : '') +
       (settingsOpen && !creditsOpen ? settingsHtml() : '') +
       (!settingsOpen && !creditsOpen && fighter ? sheetHtml(fighter) : '');
-    root.scrollTo(0, 0);
+    if (snap) {
+      restoreScroll(snap);
+      requestAnimationFrame(function () {
+        restoreScroll(snap);
+        requestAnimationFrame(function () { restoreScroll(snap); });
+      });
+    } else {
+      root.scrollTo(0, 0);
+    }
     drawCrest(document.getElementById("crest"), save.clubName);
     bindHub();
     const extra = hubTab === "market"
@@ -1471,7 +1551,7 @@
     if (!document.getElementById("creditsSheet")) return;
     const close = function () {
       creditsOpen = false;
-      showHub(hubTab);
+      refreshHub();
     };
     const back = document.getElementById("creditsBack");
     if (back) back.onclick = close;
@@ -1505,7 +1585,7 @@
     if (!document.getElementById("settingsSheet")) return;
     const close = function () {
       settingsOpen = false;
-      showHub(hubTab);
+      refreshHub();
     };
     const back = document.getElementById("settingsBack");
     if (back) back.onclick = close;
@@ -1610,7 +1690,7 @@
     });
   }
 
-  function showMarket() { showHub("market"); }
+  function showMarket() { showHub("market", true); }
   function showRelics() { showHub("relics"); }
   function showCup() { showHub("cup"); }
 
@@ -1631,7 +1711,7 @@
       save.relicSeason = save.season;
       if (relic && save.equipped.length < 2) save.equipped.push(relic.id);
       persist();
-      showHub(hubTab);
+      refreshHub();
     };
     const titleBtn = document.getElementById("toTitle");
     if (titleBtn) titleBtn.onclick = showTitle;
@@ -1642,7 +1722,7 @@
       tonicPick = null;
       settingsOpen = false;
       creditsOpen = true;
-      showHub(hubTab);
+      refreshHub();
     };
     bindCredits();
     const gear = document.getElementById("settings");
@@ -1650,7 +1730,7 @@
       detailId = null;
       creditsOpen = false;
       settingsOpen = true;
-      showHub(hubTab);
+      refreshHub();
     };
     bindSettings();
     const refreshBtn = document.getElementById("refreshMarket");
@@ -1659,7 +1739,7 @@
       save.gold -= IL.REFRESH_COST;
       save.market = IL.rollMarket(takeRng(), save.renown || 0);
       persist();
-      showHub("market");
+      showHub("market", true);
     };
     const enterBtn = document.getElementById("enterCup");
     if (enterBtn) enterBtn.onclick = function () {
@@ -1668,7 +1748,7 @@
       save.cupsEntered = (save.cupsEntered || 0) + 1;
       save.cup = IL.startCup(save, takeRng());
       persist();
-      showHub("cup");
+      showHub("cup", true);
     };
     const cupFight = document.getElementById("cupFight");
     if (cupFight) cupFight.onclick = function () { startCupFight(); };
@@ -1681,15 +1761,22 @@
       gearPreview = null;
       tonicPick = null;
       creditsOpen = false;
-      showHub(t.dataset.tab);
+      showHub(t.dataset.tab, t.dataset.tab === hubTab);
     };
     const panel = document.getElementById("hubPanel");
     if (panel) panel.onclick = function (ev) {
+      const filt = ev.target.closest("[data-filter-kind]");
+      if (filt) {
+        if (filt.dataset.filterKind === "fighters") fighterFilter = filt.dataset.filter;
+        if (filt.dataset.filterKind === "market") marketPane = filt.dataset.filter;
+        refreshHub();
+        return;
+      }
       const detail = ev.target.closest("[data-detail]");
       if (detail) {
         settingsOpen = false;
         detailId = detail.dataset.detail;
-        showHub(hubTab);
+        refreshHub();
         return;
       }
       const line = ev.target.closest("[data-line]");
@@ -1712,35 +1799,35 @@
       if (armEquip) {
         tonicPick = null;
         gearPreview = { uid: armEquip.dataset.armEquip };
-        showHub("fighters");
+        showHub("fighters", true);
         return;
       }
       const armTonic = ev.target.closest("[data-arm-tonic]");
       if (armTonic) {
         gearPreview = null;
         tonicPick = { uid: armTonic.dataset.armTonic };
-        showHub("fighters");
+        showHub("fighters", true);
         return;
       }
       const giveOn = ev.target.closest("[data-give-on]");
       if (giveOn) {
         const found = findItem(giveOn.dataset.giveItem);
         if (found && giveTonic(fighterById(giveOn.dataset.giveOn), found.item)) persist();
-        showHub("fighters");
+        showHub("fighters", true);
         return;
       }
       const armOn = ev.target.closest("[data-arm-on]");
       if (armOn) {
         gearPreview = { uid: armOn.dataset.armItem };
         detailId = armOn.dataset.armOn;
-        showHub("fighters");
+        showHub("fighters", true);
         return;
       }
       const unequipFrom = ev.target.closest("[data-unequip-from]");
       if (unequipFrom) {
         unequipSlot(fighterById(unequipFrom.dataset.unequipFrom), unequipFrom.dataset.unequipSlot);
         persist();
-        showHub(hubTab);
+        refreshHub();
       }
     };
     bindArmory();
@@ -1753,9 +1840,9 @@
     const slot = document.getElementById("filterSlot");
     const rarity = document.getElementById("filterRarity");
     const sort = document.getElementById("sortGear");
-    if (slot) slot.onchange = function () { armorySlot = slot.value; showHub("fighters"); };
-    if (rarity) rarity.onchange = function () { armoryRarity = rarity.value; showHub("fighters"); };
-    if (sort) sort.onchange = function () { armorySort = sort.value; showHub("fighters"); };
+    if (slot) slot.onchange = function () { armorySlot = slot.value; showHub("fighters", true); };
+    if (rarity) rarity.onchange = function () { armoryRarity = rarity.value; showHub("fighters", true); };
+    if (sort) sort.onchange = function () { armorySort = sort.value; showHub("fighters", true); };
   }
 
   function bindSheet() {
@@ -1777,7 +1864,7 @@
       if (!f) return;
       f.name = name;
       persist();
-      showHub(hubTab);
+      refreshHub();
     };
     const cap = document.getElementById("setCaptain");
     if (cap) cap.onclick = function () { setCaptain(detailId); };
@@ -1794,10 +1881,12 @@
     if (train && !train.disabled) train.onclick = function () { trainFighter(detailId); };
     const sheet = document.getElementById("fighterSheet");
     if (sheet) sheet.onclick = function (ev) {
+      const tactic = ev.target.closest("[data-tactic]");
+      if (tactic) { setTactic(detailId, tactic.dataset.tactic); return; }
       const preview = ev.target.closest("[data-preview-item]");
       if (preview) {
         gearPreview = { uid: preview.dataset.previewItem };
-        showHub(hubTab);
+        refreshHub();
         return;
       }
       const drink = ev.target.closest("[data-tonic]");
@@ -1805,7 +1894,7 @@
         const found = findItem(drink.dataset.tonic);
         if (found && giveTonic(fighterById(detailId), found.item)) {
           persist();
-          showHub(hubTab);
+          refreshHub();
         }
         return;
       }
@@ -1813,7 +1902,7 @@
       if (pour) {
         if (dropTonic(fighterById(detailId))) {
           persist();
-          showHub(hubTab);
+          refreshHub();
         }
         return;
       }
@@ -1822,7 +1911,7 @@
         unequipSlot(fighterById(detailId), drop.dataset.unequipSlot);
         gearPreview = null;
         persist();
-        showHub(hubTab);
+        refreshHub();
       }
     };
     const confirm = document.getElementById("confirmEquip");
@@ -1832,13 +1921,13 @@
       if (f && found && equipItem(f, found.item)) {
         gearPreview = null;
         persist();
-        showHub(hubTab);
+        refreshHub();
       }
     };
     const cancel = document.getElementById("cancelEquip");
     if (cancel) cancel.onclick = function () {
       gearPreview = null;
-      showHub(hubTab);
+      refreshHub();
     };
   }
 
@@ -1847,7 +1936,7 @@
     detailId = null;
     gearPreview = null;
     tonicPick = null;
-    showHub(hubTab);
+    refreshHub();
   }
 
   function trainFighter(id) {
@@ -1860,7 +1949,7 @@
     save.trainsDone = (save.trainsDone || 0) + 1;
     IL.grantXp(f, IL.TRAIN_XP || 12);
     persist();
-    showHub(hubTab);
+    refreshHub();
   }
 
   function salvageItem(uid) {
@@ -1871,7 +1960,7 @@
     save.items = (save.items || []).filter(function (it) { return it.uid !== uid; });
     if (gearPreview && gearPreview.uid === uid) gearPreview = null;
     persist();
-    showHub(hubTab);
+    refreshHub();
   }
 
   function buyGear(index) {
@@ -1882,7 +1971,7 @@
     save.items.push(row.item);
     save.gearStock.splice(index, 1);
     persist();
-    showHub("market");
+    showHub("market", true);
   }
 
   function rerollGear() {
@@ -1891,7 +1980,17 @@
     save.gold -= cost;
     save.gearStock = IL.rollGearStock(takeRng());
     persist();
-    showHub("market");
+    showHub("market", true);
+  }
+
+  function setTactic(id, tactic) {
+    const f = fighterById(id);
+    if (!f) return;
+    const order = IL.TACTICS || [];
+    if (order.indexOf(tactic) < 0) return;
+    f.tactic = tactic;
+    persist();
+    refreshHub();
   }
 
   function cycleTactic(id) {
@@ -1901,7 +2000,7 @@
     const i = order.indexOf(f.tactic);
     f.tactic = order[(i + 1) % order.length] || "strike";
     persist();
-    showHub(hubTab);
+    refreshHub();
   }
 
   function setCaptain(id) {
@@ -1909,7 +2008,7 @@
     if (!f || f.captain) return;
     save.roster.forEach(function (r) { r.captain = r.id === id; });
     persist();
-    showHub(hubTab);
+    refreshHub();
   }
 
   function releaseFighter(id) {
@@ -1921,7 +2020,7 @@
     detailId = null;
     gearPreview = null;
     persist();
-    showHub(hubTab);
+    refreshHub();
   }
 
   function toggleEquip(id) {
@@ -1932,7 +2031,7 @@
     else if (eq.length < 2) eq.push(id);
     else eq.splice(0, 1, id);
     persist();
-    showHub("relics");
+    showHub("relics", true);
   }
 
   function drawCrest(canvas, name) {
@@ -2014,8 +2113,8 @@
       save.market.splice(index, 1);
       if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0);
       persist();
-      showHub("market");
-    }).catch(function () { showHub("market"); });
+      showHub("market", true);
+    }).catch(function () { showHub("market", true); });
   }
 
   function sellFighter(id) {
@@ -2027,7 +2126,7 @@
     save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
     if (detailId === f.id) detailId = null;
     persist();
-    showHub("market");
+    showHub("market", true);
   }
 
 
@@ -2650,13 +2749,13 @@
       if (document.getElementById("settingsSheet")) {
         ev.preventDefault();
         settingsOpen = false;
-        showHub(hubTab);
+        refreshHub();
         return;
       }
       if (document.getElementById("creditsSheet")) {
         ev.preventDefault();
         creditsOpen = false;
-        showHub(hubTab);
+        refreshHub();
         return;
       }
       if (!detailId && !gearPreview && !tonicPick) return;
@@ -2664,7 +2763,7 @@
       detailId = null;
       gearPreview = null;
       tonicPick = null;
-      showHub(hubTab);
+      refreshHub();
       return;
     }
     if (ev.key < "1" || ev.key > "5") return;
@@ -2673,7 +2772,8 @@
     gearPreview = null;
     tonicPick = null;
     creditsOpen = false;
-    showHub(HUB_TABS[ev.key.charCodeAt(0) - 49]);
+    const nextTab = HUB_TABS[ev.key.charCodeAt(0) - 49];
+    showHub(nextTab, nextTab === hubTab);
   }
   document.addEventListener("keydown", onHubKey);
   document.addEventListener("click", function (ev) {

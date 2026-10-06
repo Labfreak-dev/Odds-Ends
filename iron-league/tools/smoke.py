@@ -249,8 +249,61 @@ def tour(page, shot_dir):
     print("tour screenshots", shot_dir)
 
 
+def check_chrome(page, label):
+    """9-slice assets, a standings crest, and the gold cursor."""
+    report = page.evaluate(
+        """async () => {
+          const urls = [
+            'assets/ui/panels/panel_main.png',
+            'assets/ui/buttons/button_primary.png',
+            'assets/ui/buttons/button_gold.png',
+            'assets/ui/buttons/button_fight.png',
+            'assets/ui/tabs/tab_active_glow.png',
+            'assets/ui/cursors/cursor_default.png',
+            'assets/ui/cursors/cursor_buy_hand.png',
+            'assets/ui/cursors/cursor_buy_hand_not.png',
+            'assets/ui/backgrounds/hub_backdrop_ember_dark.jpg',
+            'assets/ui/backgrounds/reward_burst_radial.jpg'
+          ];
+          const status = {};
+          for (const url of urls) {
+            const res = await fetch(url);
+            status[url] = res.status;
+          }
+          const crest = document.querySelector('.board .crest-emblem');
+          if (crest && !crest.complete) {
+            await new Promise((resolve) => { crest.onload = resolve; crest.onerror = resolve; });
+          }
+          const btn = document.querySelector('#nextMatch');
+          const css = getComputedStyle(document.body).cursor || '';
+          const slice = btn ? (getComputedStyle(btn).borderImageSource || '') : '';
+          const smooth = crest ? (getComputedStyle(crest).imageRendering || '') : '';
+          return {
+            status,
+            crest: crest ? crest.getAttribute('src') : '',
+            width: crest ? crest.naturalWidth : 0,
+            cursor: css,
+            slice,
+            smooth
+          };
+        }"""
+    )
+    for url, code in report["status"].items():
+        if code != 200:
+            raise SystemExit(label + " missing " + url + " (" + str(code) + ")")
+    if "emblems_white" not in (report["crest"] or "") or report["width"] < 8:
+        raise SystemExit(label + " standings crest missing: " + str(report["crest"]))
+    if "cursor_default" not in report["cursor"] and "url(" not in report["cursor"]:
+        raise SystemExit(label + " cursor css missing: " + report["cursor"])
+    if "button_fight" not in report["slice"]:
+        raise SystemExit(label + " fight button is not a 9-slice: " + report["slice"])
+    if report["smooth"] == "pixelated":
+        raise SystemExit(label + " crest emblem is pixelated")
+
+
 def check_nav(page, label, shot_dir):
     """Tab bar, keyboard, and the fighter sheet open and close."""
+    check_chrome(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
     if tabs.count() != 5:
@@ -453,7 +506,7 @@ def check_gear(page, label, shot_dir):
     page.click("#credits")
     page.wait_for_selector("#creditsSheet")
     credits = page.locator("#creditsSheet").inner_text().lower()
-    for phrase in ("ricardo machado", "captainskolot", "finalbossblues", "pizzadoggy", "additional art assets"):
+    for phrase in ("ricardo machado", "captainskolot", "finalbossblues", "pizzadoggy", "additional art assets", "wenrexa"):
         if phrase not in credits:
             raise SystemExit(label + " credits missing " + phrase)
     if "beowulf" not in credits:

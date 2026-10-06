@@ -14,7 +14,16 @@
     smoke:  { src: "assets/fx/smoke.png",  size: 96,  frames: 24 },
     dash:   { src: "assets/fx/dash.png",   size: 128, frames: 24 },
     shot:   { src: "assets/fx/shot.png",   size: 96,  frames: 16 },
-    bolt:   { src: "assets/fx/bolt.png",   size: 128, frames: 24 }
+    bolt:   { src: "assets/fx/bolt.png",   size: 128, frames: 24 },
+    "sig-shock": { src: "assets/fx/sig-shock.png", size: 128, frames: 24 },
+    "sig-bolt":  { src: "assets/fx/sig-bolt.png",  size: 128, frames: 24 },
+    "sig-crack": { src: "assets/fx/sig-crack.png", size: 128, frames: 24 },
+    "sig-fire":  { src: "assets/fx/sig-fire.png",  size: 96,  frames: 24 },
+    "sig-bloom": { src: "assets/fx/sig-bloom.png", size: 128, frames: 24 },
+    "sig-hex":   { src: "assets/fx/sig-hex.png",   size: 128, frames: 24 },
+    "sig-ice":   { src: "assets/fx/sig-ice.png",   size: 96,  frames: 16 },
+    "sig-smoke": { src: "assets/fx/sig-smoke.png", size: 96,  frames: 24 },
+    "sig-spark": { src: "assets/fx/sig-spark.png", size: 128, frames: 24 }
   };
 
   /* Defaults keep the strips readable on the pit. Callers may override size. */
@@ -27,7 +36,16 @@
     smoke:  { fps: 16, frames: 12, size: 108, ground: true },
     dash:   { fps: 30, frames: 14, size: 132, ground: true },
     shot:   { fps: 20, size: 64 },
-    bolt:   { fps: 28, size: 220 }
+    bolt:   { fps: 28, size: 220 },
+    "sig-shock": { fps: 20, size: 180, ground: true },
+    "sig-bolt":  { fps: 28, size: 200 },
+    "sig-crack": { fps: 22, size: 170 },
+    "sig-fire":  { fps: 24, size: 160 },
+    "sig-bloom": { fps: 16, size: 180, ground: true },
+    "sig-hex":   { fps: 14, size: 170, ground: true },
+    "sig-ice":   { fps: 20, size: 120 },
+    "sig-smoke": { fps: 16, size: 140, ground: true },
+    "sig-spark": { fps: 26, size: 130 }
   };
 
   const images = {};

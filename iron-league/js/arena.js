@@ -643,7 +643,7 @@
       u.vx = u.facing * 16;
       u.vy *= 0.2;
     }
-    u.swingTag = basicTag(u);
+    u.swingTag = (u.summon && u.bookTag) ? u.bookTag : basicTag(u);
   }
 
   function startCast(m, u, target) {
@@ -1076,6 +1076,9 @@
     if (u.cast && !u.cast.voiced) {
       u.cast.voiced = true;
       cue(m, "spell_" + castSchool(u, u.cast.kind) + "_cast");
+      if (u.swingTag && u.swingTag.id) {
+        paintSignature(m, u, { x: u.cast.x, y: u.cast.y }, u.swingTag);
+      }
     }
     u.animT += dt;
     u.actT -= dt;
@@ -1577,6 +1580,7 @@
     pet.y = u.y + 18;
     pet.cds = {};
     pet.abilities = null;
+    pet.bookTag = { id: ab.id, name: ab.name };
     m.units.push(pet);
     cue(m, "summon");
     fx(m, ab.fx || "smoke", pet.x, pet.y - 12, { size: 140 });
@@ -1655,6 +1659,78 @@
     raiseBanner(u, ab.name, !!ab.ult, life);
     paintKind(m, u, t, ab);
     beginCine(m, u, ab);
+    if (!u || u.state !== "cast") paintSignature(m, u, t, ab);
+  }
+
+  /* Events and a sound only. No damage, no cooldown, no fight rng. */
+  function paintSignature(m, u, t, ab) {
+    if (!m || !u || !ab || !ab.id || !IL.SIGNATURES) return;
+    const spec = IL.SIGNATURES[u.cls + ":" + ab.id] || IL.SIGNATURES[ab.id];
+    if (!spec) return;
+    if (u._sigId === ab.id && u._sigT === m.time) return;
+    u._sigId = ab.id;
+    u._sigT = m.time;
+    let ax = u.x;
+    let ay = u.y;
+    if (spec.anchor === "ally") {
+      const ally = lowestAlly(m, u) || u;
+      ax = ally.x;
+      ay = ally.y;
+    } else if (spec.anchor === "pet") {
+      ax = u.x + (u.facing || 1) * 40;
+      ay = u.y + 12;
+    } else if (spec.anchor === "foe") {
+      ax = t ? t.x : u.x + (u.facing || 1) * 80;
+      ay = t ? t.y : u.y;
+    }
+    const ev = {
+      type: "sig",
+      style: spec.style,
+      mark: spec.mark || "",
+      rgb: spec.rgb,
+      r: spec.r || 64,
+      sheet: spec.sheet || "",
+      facing: u.facing || 1,
+      team: u.team || 0,
+      life: spec.life || 0.6,
+      size: spec.size || 160,
+      hop: 0
+    };
+    if (spec.style === "chain") {
+      ev.x = u.x;
+      ev.y = u.y - 18;
+      ev.x2 = ax;
+      ev.y2 = ay - 16;
+      ev.x3 = ax;
+      ev.y3 = ay - 16;
+      let best = null;
+      let bestD = 180;
+      for (let i = 0; i < m.units.length; i++) {
+        const e = m.units[i];
+        if (!e || e.hp <= 0 || e.team === u.team) continue;
+        const d = Math.hypot(e.x - ax, e.y - ay);
+        if (d < 12 || d >= bestD) continue;
+        bestD = d;
+        best = e;
+      }
+      if (best) {
+        ev.hop = 1;
+        ev.x3 = best.x;
+        ev.y3 = best.y - 16;
+      }
+    } else if (spec.style === "trail") {
+      ev.x = u.x + (u.facing || 1) * 16;
+      ev.y = u.y - 18;
+      ev.x2 = ax;
+      ev.y2 = ay - 14;
+    } else {
+      ev.x = ax;
+      ev.y = ay;
+      ev.x2 = u.x;
+      ev.y2 = u.y;
+    }
+    m.events.push(ev);
+    if (spec.cue) cue(m, spec.cue);
   }
 
   function fireOne(m, u, t, dist, ab) {

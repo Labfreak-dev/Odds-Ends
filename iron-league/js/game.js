@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "46";
+  const BUILD = "47";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -4129,7 +4129,7 @@
   function runFight(tok) {
     const canvas = document.getElementById("arena");
     const ctx = canvas.getContext("2d");
-    const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], t: 0, cam: null };
+    const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], sigs: [], t: 0, cam: null };
     let last = performance.now();
     let acc = 0;
     function frame(now) {
@@ -4182,6 +4182,35 @@
       } else if (e.type === "beam") {
         if (!fx.beams) fx.beams = [];
         fx.beams.push({ x: e.x, y: e.y, x2: e.x2, y2: e.y2, kind: e.kind, t: 0, life: 0.32 });
+      } else if (e.type === "sig") {
+        if (!fx.sigs) fx.sigs = [];
+        fx.sigs.push({
+          style: e.style,
+          mark: e.mark || "",
+          x: e.x,
+          y: e.y,
+          x2: e.x2,
+          y2: e.y2,
+          x3: e.x3,
+          y3: e.y3,
+          hop: e.hop || 0,
+          rgb: e.rgb || "244,210,150",
+          r: e.r || 64,
+          facing: e.facing || 1,
+          t: 0,
+          life: e.life || 0.6
+        });
+        if (e.sheet && IL.fx) {
+          const ground = e.style === "ring" || e.style === "dust" || e.style === "summon";
+          const sx = e.style === "trail" || e.style === "chain" ? e.x2 : e.x;
+          const sy = e.style === "trail" || e.style === "chain" ? e.y2 : e.y;
+          IL.fx.spawn(fx.sprites, e.sheet, sx, sy, {
+            size: e.size || 150,
+            ground: ground,
+            facing: e.facing,
+            team: e.team
+          });
+        }
       } else if (e.type === "fx" && IL.fx) {
         IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
           size: e.size,
@@ -4203,6 +4232,7 @@
     fx.booms = fx.booms.filter(function (b) { b.t += dt; return b.t < b.life; });
     if (fx.rings) fx.rings = fx.rings.filter(function (r) { r.t += dt; return r.t < r.life; });
     if (fx.beams) fx.beams = fx.beams.filter(function (b) { b.t += dt; return b.t < b.life; });
+    if (fx.sigs) fx.sigs = fx.sigs.filter(function (s) { s.t += dt; return s.t < s.life; });
     if (IL.fx) IL.fx.step(fx.sprites, dt);
   }
 
@@ -4715,7 +4745,7 @@
     paintHud(match);
     const canvas = document.getElementById("arena");
     if (canvas) {
-      const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], t: 0, cam: null };
+      const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], sigs: [], t: 0, cam: null };
       IL.drawArena(canvas.getContext("2d"), match, fx);
     }
   }
@@ -4872,7 +4902,7 @@
       beatT = 0;
       const beat = beats[index];
       match = IL.showcase(beat.cls, beat.which);
-      fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], t: 0, cam: null };
+      fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], sigs: [], t: 0, cam: null };
       paintCaption();
       const jobs = [];
       match.units.forEach(function (u) {

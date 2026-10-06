@@ -81,13 +81,33 @@
     return { cssW: cssW, cssH: cssH, dpr: dpr };
   }
 
+  /* Opaque body is about 30 rows of the 48px cell, times SCALE. Screen px = bodyWorld * cssW / viewW. */
+  function camLimits(cssW) {
+    const narrow = cssW < 760;
+    const bodyWorld = 180;
+    const targetPx = narrow ? 100 : 125;
+    const floorPx = narrow ? 90 : 110;
+    const worldW = IL.WORLD.w;
+    let minW = bodyWorld * cssW / targetPx;
+    let maxW = bodyWorld * cssW / floorPx;
+    if (!(maxW > 0)) maxW = worldW;
+    if (maxW > worldW) maxW = worldW;
+    if (!(minW > 0) || minW > maxW) minW = maxW;
+    /* Zoom may punch in, but not past the top of the size band. */
+    const capPx = narrow ? 110 : 140;
+    let tightW = bodyWorld * cssW / capPx;
+    if (!(tightW > 0) || tightW > minW) tightW = minW;
+    return { minW: minW, maxW: maxW, tightW: tightW };
+  }
+
   function updateCam(match, fx, view) {
     const W = IL.WORLD;
+    const limits = camLimits(view.cssW);
     if (!fx.cam) {
       fx.cam = {
         x: W.w / 2,
         y: (W.top + W.bottom) / 2,
-        viewW: view.cssW < 760 ? 520 : 980
+        viewW: limits.minW
       };
     }
     const cam = fx.cam;
@@ -127,11 +147,10 @@
     const spanW = (maxX - minX) + (narrow ? 36 : 64);
     const spanH = (maxY - minY) + (narrow ? 28 : 48);
     let want = Math.max(spanW, spanH * aspect);
-    const minW = narrow ? 460 : 900;
-    const maxW = narrow ? 720 : W.w;
-    want = Math.max(minW, Math.min(maxW, want));
+    want = Math.max(limits.minW, Math.min(limits.maxW, want));
     const zoom = match.zoom || 0;
     if (zoom > 0) want *= 1 - 0.22 * Math.min(1, zoom);
+    if (want < limits.tightW) want = limits.tightW;
     cam.x += (cx - cam.x) * 0.08;
     cam.y += (cy - cam.y) * 0.08;
     cam.viewW += (want - cam.viewW) * 0.05;
@@ -375,23 +394,27 @@
       viewH: cam.viewH
     } : { left: 0, top: 0, viewW: W.w, viewH: W.h };
 
-    const sky = ctx.createLinearGradient(0, 0, 0, W.h);
+    const bgL = Math.min(-80, frame.left - 80);
+    const bgT = Math.min(-80, frame.top - 80);
+    const bgR = Math.max(W.w + 80, frame.left + frame.viewW + 80);
+    const bgB = Math.max(W.h + 80, frame.top + frame.viewH + 80);
+    const sky = ctx.createLinearGradient(0, bgT, 0, bgB);
     sky.addColorStop(0, pit.sky[0]);
     sky.addColorStop(1, pit.sky[1]);
     ctx.fillStyle = sky;
-    ctx.fillRect(-80, -80, W.w + 160, W.h + 160);
+    ctx.fillRect(bgL, bgT, bgR - bgL, bgB - bgT);
 
     const tex = pitGrain(pit);
     if (!pit._pat && tex) pit._pat = ctx.createPattern(tex, "repeat");
     ctx.fillStyle = pit._pat || pit.floor;
-    ctx.fillRect(-40, -40, W.w + 80, W.h + 80);
+    ctx.fillRect(bgL, bgT, bgR - bgL, bgB - bgT);
 
     const shade = ctx.createRadialGradient(cx, cy, 160, cx, cy, 820);
     shade.addColorStop(0, "rgba(0,0,0,0)");
     shade.addColorStop(0.55, "rgba(0,0,0,0.16)");
     shade.addColorStop(1, "rgba(0,0,0,0.52)");
     ctx.fillStyle = shade;
-    ctx.fillRect(-40, -40, W.w + 80, W.h + 80);
+    ctx.fillRect(bgL, bgT, bgR - bgL, bgB - bgT);
 
     ctx.strokeStyle = pit.line;
     ctx.lineWidth = 2;
@@ -863,25 +886,61 @@
     if (IL.fx) IL.fx.drawLoop(ctx, "shot", p.x, p.y, 58, time, { alpha: 0.95, rot: ang });
   }
 
-  function labelSlot(labels, x, y, w, h, ceil) {
-    let yy = y;
-    let fade = 1;
-    for (let n = 0; n < 5; n++) {
-      let hit = null;
+  /* y is the text baseline. The glyph box sits above it. Bodies are center rects. */
+  function labelSlot(labels, bodies, x, y, w, h, ceil, minX, maxX) {
+    function clampX(xx) {
+      const half = w * 0.5;
+      const lo = minX + half;
+      const hi = maxX - half;
+      if (hi <= lo) return (minX + maxX) * 0.5;
+      return Math.max(lo, Math.min(hi, xx));
+    }
+    function hitAt(cx, base) {
+      const cy = base - h * 0.5;
       for (let i = 0; i < labels.length; i++) {
         const L = labels[i];
-        if (Math.abs(x - L.x) < (w + L.w) * 0.5 && Math.abs(yy - L.y) < (h + L.h) * 0.55) {
-          hit = L;
-          break;
+        if (Math.abs(cx - L.x) < (w + L.w) * 0.5 && Math.abs(cy - L.y) < (h + L.h) * 0.5) {
+          return L;
         }
       }
-      if (!hit) break;
-      const next = hit.y - h - 3;
-      if (next < ceil) { fade = 0.4; break; }
-      yy = next;
+      for (let i = 0; i < bodies.length; i++) {
+        const B = bodies[i];
+        if (Math.abs(cx - B.x) < (w + B.w) * 0.5 && Math.abs(cy - B.y) < (h + B.h) * 0.5) {
+          return B;
+        }
+      }
+      return null;
     }
-    labels.push({ x: x, y: yy, w: w, h: h });
-    return { y: yy, fade: fade };
+    let xx = clampX(x);
+    let yy = y;
+    let fade = 1;
+    const minBase = ceil + h;
+    const nudge = Math.max(36, Math.round(w * 0.7));
+    for (let n = 0; n < 8; n++) {
+      const hit = hitAt(xx, yy);
+      if (!hit) break;
+      const above = hit.y - hit.h * 0.5 - 4;
+      if (above < yy && above >= minBase) { yy = above; continue; }
+      let placed = false;
+      const dirs = n % 2 ? [-1, 1] : [1, -1];
+      for (let step = 1; step <= 4 && !placed; step++) {
+        for (let d = 0; d < dirs.length; d++) {
+          const nx = clampX(x + dirs[d] * nudge * step);
+          if (Math.abs(nx - xx) < 6) continue;
+          if (!hitAt(nx, yy)) { xx = nx; placed = true; break; }
+        }
+      }
+      if (placed) continue;
+      fade = 0.45;
+      break;
+    }
+    if (yy < minBase) {
+      yy = minBase;
+      if (hitAt(xx, yy)) fade = 0.45;
+    }
+    xx = clampX(xx);
+    labels.push({ x: xx, y: yy - h * 0.5, w: w, h: h });
+    return { x: xx, y: yy, fade: fade };
   }
 
   function drawStatus(ctx, u, by) {
@@ -905,6 +964,7 @@
     const canvas = ctx.canvas;
     const view = fitArena(canvas);
     const cam = updateCam(match, fx, view);
+    IL.pitCam = { viewW: cam.viewW, viewH: cam.viewH, cssW: view.cssW, cssH: view.cssH };
     const scale = view.cssW / cam.viewW;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -1029,25 +1089,65 @@
       a.x = Math.max(lim.minX, Math.min(lim.maxX, a.x));
       a.y = Math.max(lim.minY + (u.z || 0), Math.min(lim.maxY, a.y));
     }
+    function coverLabel(box, slot, w, hgt, text, owner) {
+      if (!slot) return;
+      const l = view.cssW / 2 + ((slot.x - w / 2) - cam.x) * worldScale;
+      const r = view.cssW / 2 + ((slot.x + w / 2) - cam.x) * worldScale;
+      const t = view.cssH / 2 + ((slot.y - hgt) - cam.y) * worldScale;
+      const b = view.cssH / 2 + (slot.y - cam.y) * worldScale;
+      IL.pitLabels.push({ text: text, owner: owner, l: l, t: t, r: r, b: b });
+      if (!box) return;
+      if (t < box.t) box.t = t;
+      if (l < box.l) box.l = l;
+      if (r > box.r) box.r = r;
+      if (b > box.b) box.b = b;
+    }
     const labels = [];
-    const labelCeil = viewTop + band + 14;
+    const bodies = [];
+    const labelCeil = viewTop + 4;
+    const labelMinX = viewLeft + 6;
+    const labelMaxX = viewLeft + cam.viewW - 6;
     IL.pitBoxes = [];
+    IL.pitLabels = [];
+    for (let i = 0; i < order.length; i++) {
+      const u = order[i];
+      if (u.hp <= 0) continue;
+      const gy = shown[u.id].y - (u.z || 0);
+      bodies.push({
+        name: u.name,
+        x: shown[u.id].x,
+        y: gy - 16 * SCALE,
+        w: 26 * SCALE,
+        h: 32 * SCALE
+      });
+    }
     const worldScale = view.cssW / cam.viewW;
+    IL.pitBodies = bodies.map(function (B) {
+      return {
+        name: B.name,
+        l: view.cssW / 2 + (B.x - B.w / 2 - cam.x) * worldScale,
+        r: view.cssW / 2 + (B.x + B.w / 2 - cam.x) * worldScale,
+        t: view.cssH / 2 + (B.y - B.h / 2 - cam.y) * worldScale,
+        b: view.cssH / 2 + (B.y + B.h / 2 - cam.y) * worldScale
+      };
+    });
     for (let i = 0; i < order.length; i++) {
       const u = order[i];
       const x = shown[u.id].x;
       const y = shown[u.id].y;
+      let box = null;
       if (u.hp > 0) {
         const sx = view.cssW / 2 + (x - cam.x) * worldScale;
         const sy = view.cssH / 2 + ((y - (u.z || 0)) - cam.y) * worldScale;
-        IL.pitBoxes.push({
+        box = {
           name: u.name,
           role: u.role || "",
           l: sx - bodyHalf * worldScale,
           t: sy - labelUp * worldScale,
           r: sx + bodyHalf * worldScale,
           b: sy + (10 + (u.z || 0)) * worldScale
-        });
+        };
+        IL.pitBoxes.push(box);
       }
       const z = u.z || 0;
       const lift = z > 2 ? Math.max(0.45, 1 - z / 180) : 1;
@@ -1093,13 +1193,15 @@
         ctx.font = namePx + "px Palatino, Georgia, serif";
         ctx.textAlign = "center";
         const nameW = Math.max(bw, ctx.measureText(u.name).width);
-        const nameSlot = labelSlot(labels, x, by - 5, nameW, namePx + 2, labelCeil);
+        const nameH = namePx + 2;
+        const nameSlot = labelSlot(labels, bodies, x, by - 5, nameW, nameH, labelCeil, labelMinX, labelMaxX);
         ctx.globalAlpha = nameSlot.fade;
         ctx.fillStyle = "rgba(10,8,6,0.75)";
-        ctx.fillText(u.name, x + 1, nameSlot.y + 1);
+        ctx.fillText(u.name, nameSlot.x + 1, nameSlot.y + 1);
         ctx.fillStyle = "#f4ecdf";
-        ctx.fillText(u.name, x, nameSlot.y);
+        ctx.fillText(u.name, nameSlot.x, nameSlot.y);
         ctx.globalAlpha = 1;
+        coverLabel(box, nameSlot, nameW, nameH, u.name, u.name);
         drawStatus(ctx, u, by);
         if (u.state === "cast" && u.cast && u.cast.dur > 0) {
           const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
@@ -1113,12 +1215,14 @@
           const bannerPx = Math.round((u.banner.ult ? 16 : 13) * ui);
           ctx.font = "bold " + bannerPx + "px Palatino, Georgia, serif";
           const bannerW = ctx.measureText(u.banner.name).width;
+          const bannerH = bannerPx + 2;
           const bannerY = by - 16 - u.banner.t * 18;
-          const bannerSlot = labelSlot(labels, x, bannerY, bannerW, bannerPx + 2, labelCeil);
+          const bannerSlot = labelSlot(labels, bodies, x, bannerY, bannerW, bannerH, labelCeil, labelMinX, labelMaxX);
           ctx.globalAlpha = a * bannerSlot.fade;
           ctx.fillStyle = u.banner.ult ? "#ffd27a" : "#f4ecdf";
-          ctx.fillText(u.banner.name, x, bannerSlot.y);
+          ctx.fillText(u.banner.name, bannerSlot.x, bannerSlot.y);
           ctx.globalAlpha = 1;
+          coverLabel(box, bannerSlot, bannerW, bannerH, u.banner.name, u.name);
         }
       }
     }

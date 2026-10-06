@@ -1213,7 +1213,8 @@
     return '<section class="panel-frame" id="gearStock"><h3 class="section">Gear stall</h3>' +
       '<p class="fine">The stall turns over after each league match. A reroll spends ' + cost + ' gold.</p>' +
       '<div class="hub-actions"><button type="button" class="btn ghost' + (save.gold < cost ? " cant-afford" : " buyable") + '" id="rerollGear"' + (save.gold < cost ? " disabled" : "") + '>Reroll stall — ' + cost + ' gold</button></div>' +
-      '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>';
+      '<div class="armory-grid">' + (cards || emptyState("The stall is bare.", "Reroll it, or wait for the next match.")) + '</div></section>' +
+      tomeStallHtml();
   }
 
   function tomeStallHtml() {
@@ -1600,12 +1601,11 @@
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
       '<div class="cards roster-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
     const body = marketPane === "gear" ? gearStallHtml()
-      : marketPane === "tomes" ? tomeStallHtml()
       : marketPane === "relics" ? relicStallHtml()
       : marketPane === "deals" ? dealsHtml()
       : marketPane === "sell" ? selling
       : recruits;
-    return filterBar("market", marketPane, [["gear", "Gear"], ["fighters", "Fighters"], ["tomes", "Tomes"], ["relics", "Relics"], ["deals", "Deals"], ["sell", "Sell"]]) +
+    return filterBar("market", marketPane, [["gear", "Gear"], ["fighters", "Fighters"], ["relics", "Relics"], ["deals", "Deals"], ["sell", "Sell"]]) +
       '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
       (marketPane === "deals" ? dealsHead() : "") +
       '<div class="pane" id="marketPane">' + body + '</div>';

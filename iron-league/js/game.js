@@ -1607,7 +1607,16 @@
       : recruits;
     return filterBar("market", marketPane, [["gear", "Gear"], ["fighters", "Fighters"], ["tomes", "Tomes"], ["relics", "Relics"], ["deals", "Deals"], ["sell", "Sell"]]) +
       '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
+      (marketPane === "deals" ? dealsHead() : "") +
       '<div class="pane" id="marketPane">' + body + '</div>';
+  }
+
+  function dealsHead() {
+    const left = IL.formatRemain(IL.msUntilWeek(Date.now()));
+    const cost = IL.DEAL_REROLL || 40;
+    const broke = save.gold < cost;
+    return '<p class="fine" id="dealClock">Turns over in ' + esc(left) + '. A reroll spends ' + cost + ' gold and restocks the board.</p>' +
+      '<div class="hub-actions"><button type="button" class="btn ghost' + (broke ? " cant-afford" : " buyable") + '" id="rerollDeals"' + (broke ? " disabled" : "") + '>Reroll deals — ' + cost + ' gold</button></div>';
   }
 
   function relicStallHtml() {
@@ -1649,7 +1658,6 @@
 
   function dealsHtml() {
     const deals = save.deals || { offers: [] };
-    const left = IL.formatRemain(IL.msUntilWeek(Date.now()));
     const cards = (deals.offers || []).map(function (offer, i) {
       const gone = offer.stock < 1;
       const broke = save.gold < offer.cost;
@@ -1658,12 +1666,14 @@
         const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
         const full = save.roster.length >= IL.ROSTER_CAP;
         const cant = gone || broke || full;
-        return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
+        return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '">' +
           portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
-          '<h3>' + esc(f.name) + (f.champion ? " · Champion" : "") + '</h3>' +
-          '<p>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</p>' +
-          '<p class="fine">Legendary discount · 1 in stock</p>' +
-          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Sold" : ("Hire — " + offer.cost + " gold")) + '</button>' +
+          '<div class="row-main">' +
+            '<h3>' + esc(f.name) + (f.champion ? " · Champion" : "") + '</h3>' +
+            '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
+            '<p class="fine">' + offer.cost + ' gold · 1 in stock</p>' +
+          '</div>' +
+          '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Sold" : "Hire") + '</button>' +
         '</article>';
       }
       if (offer.kind === "bundle") {
@@ -1696,12 +1706,8 @@
         '<button type="button" class="btn primary" data-deal="' + i + '"' + (cant ? " disabled" : "") + '>' + (gone ? "Opened" : ("Open — " + offer.cost + " gold")) + '</button>' +
       '</article>';
     }).join("");
-    const cost = IL.DEAL_REROLL || 40;
-    const broke = save.gold < cost;
-    return '<section class="panel-frame" id="dealsBoard"><h3 class="section">This week</h3>' +
-      '<p class="fine" id="dealClock">Turns over in ' + esc(left) + '. A reroll spends ' + cost + ' gold and restocks the board.</p>' +
-      '<div class="hub-actions"><button type="button" class="btn ghost' + (broke ? " cant-afford" : " buyable") + '" id="rerollDeals"' + (broke ? " disabled" : "") + '>Reroll deals — ' + cost + ' gold</button></div>' +
-      '<div class="armory-grid">' + cards + '</div></section>';
+    return '<section id="dealsBoard"><h3 class="section">This week</h3>' +
+      '<div class="deals-stack">' + cards + '</div></section>';
   }
 
   function relicsPanel() {

@@ -2121,7 +2121,11 @@ td.club-cell .club-name,
 }
 #marketPane .hub-actions .btn,
 #gearStock .hub-actions .btn,
-#tomeStock .hub-actions .btn {
+#tomeStock .hub-actions .btn,
+#rerollDeals,
+#refreshRelics,
+#refreshMarket,
+#rerollGear {
   height: 44px;
   min-height: 44px;
   font-size: 13px;
@@ -2134,7 +2138,18 @@ td.club-cell .club-name,
   height: 44px;
   font-size: 13px;
 }
-#dealsBoard .stall-card canvas {
-  width: 72px;
-  height: 64px;
+#dealsBoard .deals-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#dealsBoard .stall-card .btn {
+  width: 100%;
+}
+#marketPane > #dealsBoard,
+#marketPane > #relicStall {
+  border-image: none;
+  border-width: 0;
+  padding: 0;
+  background: none;
 }

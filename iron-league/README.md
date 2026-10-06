@@ -71,7 +71,7 @@ Each class shows its attack and its three equipped moves with their own motion: 
 
 Win gold, renown, and xp. Lose a smaller purse. A season is five matches against generated clubs; the other fixtures on the board resolve on their own. After the fifth, open another season with the same roster.
 
-The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, gear slots, an empty armory, and a club crest without wiping the roster. The save stamps schema 2 on load. A new club can skip a short first visit. Settings copies a challenge code of the fielded party, and a Report a bug button copies a short report. The title screen lists what is new. A friend can paste a challenge code and fight.
+The save key is still `ironleague.v1`. Older saves gain renown, tokens, relics, gear slots, an empty armory, and a club crest without wiping the roster. The save stamps schema 2 on load. A new club can skip a short first visit. Settings copies a challenge code of the fielded party, and a Report a bug button copies a short report. The title screen opens on a dim sand pit, with idle battlers beside the name, and a What's new list of the build. A friend can paste a challenge code and fight.
 
 ## Not in this build
 

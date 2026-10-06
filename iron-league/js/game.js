@@ -41,7 +41,7 @@
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
     "Train raises a stat. Events pay a purse."
   ];
-  const BUILD = "51";
+  const BUILD = "52";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -75,6 +75,8 @@
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
     fight = null;
+    const pit = document.getElementById("titlePit");
+    if (pit) pit.remove();
   }
 
   function alive(tok) { return tok === token; }
@@ -269,6 +271,147 @@
   }
 
   /* ---------- title ---------- */
+  const TITLE_NEWS = [
+    "27 classes with signature abilities and weapons in hand.",
+    "Market stalls to buy and sell gear, fighters, and relics, plus weekly deals.",
+    "64 relics in 8 sets.",
+    "Events, Endless mode, and a daily challenge.",
+    "Training drills, tasks, and specialties.",
+    "A rival club and a club record.",
+    "Achievements and club colors.",
+    "Challenge codes to fight a friend's club."
+  ];
+
+  function paintTitlePit(ctx, w, h, t, still) {
+    const pit = (IL.PITS && IL.PITS[0]) || {
+      sky: ["#24160f", "#4a3020"], floor: "#7a5638", grain: "#3a2616", lite: "#a88458",
+      wall: "#3a2a1c", rail: "#c4a06a", stone: "#5a4030",
+      crowd: "#140e0a", cloth: ["#6e3030", "#2c4068", "#6a5428", "#3a3028", "#243028"],
+      line: "rgba(48,28,14,0.4)"
+    };
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, pit.sky[0]);
+    sky.addColorStop(0.38, pit.sky[1]);
+    sky.addColorStop(1, pit.floor);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h);
+    const bandTop = Math.round(h * 0.05);
+    const band = Math.max(78, Math.round(h * 0.2));
+    ctx.fillStyle = pit.wall;
+    ctx.fillRect(0, bandTop, w, band);
+    const blocks = Math.ceil(w / 26) + 1;
+    for (let i = 0; i < blocks; i++) {
+      ctx.fillStyle = i % 2 ? pit.stone : pit.wall;
+      ctx.fillRect(i * 26, bandTop, 24, 12);
+      ctx.fillStyle = i % 2 ? pit.wall : pit.stone;
+      ctx.fillRect(6 + i * 26, bandTop + 14, 24, 11);
+    }
+    for (let row = 0; row < 3; row++) {
+      const y = bandTop + 38 + row * ((band - 44) / 3);
+      ctx.fillStyle = pit.crowd;
+      ctx.fillRect(0, y, w, 5);
+      const n = Math.ceil(w / 18);
+      for (let i = 0; i < n; i++) {
+        const bounce = still ? 0 : Math.sin(t * 2.2 + i * 0.7 + row) * 1.6;
+        const hh = 8 + ((i + row) % 3) * 3;
+        const x = 4 + i * 18;
+        ctx.fillStyle = pit.cloth[(i + row * 2) % pit.cloth.length];
+        ctx.fillRect(x, y - hh + bounce, 7, hh);
+        ctx.beginPath();
+        ctx.arc(x + 3.5, y - hh - 3 + bounce, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = pit.rail;
+    ctx.fillRect(0, bandTop + band - 6, w, 5);
+    for (let i = 0; i < 8; i++) {
+      const x = 16 + i * (w / 8);
+      ctx.fillStyle = pit.cloth[i % pit.cloth.length];
+      ctx.beginPath();
+      ctx.moveTo(x, bandTop + band);
+      ctx.lineTo(x + 10, bandTop + band);
+      ctx.lineTo(x + 5, bandTop + band + 18);
+      ctx.fill();
+    }
+    const floorTop = bandTop + band + 10;
+    ctx.fillStyle = pit.floor;
+    ctx.fillRect(0, floorTop, w, Math.max(0, h - floorTop));
+    ctx.fillStyle = pit.grain;
+    ctx.globalAlpha = 0.4;
+    for (let y = floorTop + 12; y < h; y += 16) ctx.fillRect(0, y, w, 2);
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = pit.lite;
+    ctx.beginPath();
+    ctx.ellipse(w / 2, floorTop + (h - floorTop) * 0.46, w * 0.4, Math.max(24, (h - floorTop) * 0.26), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = pit.line || "rgba(48,28,14,0.4)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(12, 9, 7, 0.46)";
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  function startTitlePit() {
+    const tok = token;
+    const canvas = document.createElement("canvas");
+    canvas.id = "titlePit";
+    canvas.setAttribute("aria-hidden", "true");
+    document.body.appendChild(canvas);
+    const atlases = {};
+    ["1_1", "2_6", "5_7", "4_2"].forEach(function (id) {
+      IL.hero.compose({ sheet: id }).then(function (atlas) {
+        if (alive(tok)) atlases[id] = atlas;
+      }).catch(function () {});
+    });
+    const phone = [
+      { sheet: "1_1", cls: "warrior", x: 0.16, y: 0.78, face: 1 },
+      { sheet: "2_6", cls: "archer", x: 0.84, y: 0.78, face: -1 }
+    ];
+    const desk = [
+      { sheet: "1_1", cls: "warrior", x: 0.08, y: 0.48, face: 1 },
+      { sheet: "5_7", cls: "tank", x: 0.17, y: 0.54, face: 1 },
+      { sheet: "4_2", cls: "mage", x: 0.9, y: 0.48, face: -1 }
+    ];
+    const reduce = !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const t0 = (root.performance || Date).now();
+    function frame(now) {
+      if (!alive(tok)) return;
+      const cssW = Math.max(1, root.innerWidth || 360);
+      const cssH = Math.max(1, root.innerHeight || 740);
+      const narrow = cssW < 700;
+      const dpr = Math.min(narrow ? 1 : 2, root.devicePixelRatio || 1);
+      const bw = Math.max(1, Math.round(cssW * dpr));
+      const bh = Math.max(1, Math.round(cssH * dpr));
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+      }
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      const t = reduce ? 0 : ((now || t0) - t0) / 1000;
+      paintTitlePit(ctx, cssW, cssH, t, reduce);
+      const cast = narrow ? phone : desk;
+      const scale = narrow ? 2 : 3;
+      cast.forEach(function (c, i) {
+        const atlas = atlases[c.sheet];
+        if (!atlas) return;
+        const x = Math.round(cssW * c.x);
+        const y = Math.round(cssH * c.y);
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.beginPath();
+        ctx.ellipse(x, y + 2, 10 * scale, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        IL.hero.draw(ctx, atlas, IL.frameIndex("idle", t + i * 0.2), x, y, scale, c.face, c.cls);
+      });
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
   function showTitle() {
     stopLoops();
     app.onclick = null;
@@ -277,28 +420,29 @@
     const cont = save
       ? '<button type="button" class="btn ghost" id="continue">Continue — ' + esc(save.clubName) + '</button>'
       : '<button type="button" class="btn ghost" id="continue" disabled>Continue</button>';
+    const narrowTitle = (root.innerWidth || 800) < 700;
+    const news = TITLE_NEWS.map(function (line) { return "<li>" + esc(line) + "</li>"; }).join("");
     app.innerHTML =
       '<main class="title-screen">' +
-        '<p class="eyebrow">Mercenary pit</p>' +
-        '<h1>Iron League</h1>' +
-        '<p class="lede">Raise a club. Send them into the sand. A season, a cup, then the board is read aloud.</p>' +
-        '<div class="title-actions">' +
-          '<button type="button" class="btn gold" id="newClub">New club</button>' +
-          cont +
+        '<div class="title-copy">' +
+          '<p class="eyebrow">Mercenary pit</p>' +
+          '<h1>Iron League</h1>' +
+          '<p class="lede">Raise a club. Send them into the sand. A season, a cup, then the board is read aloud.</p>' +
+          '<div class="title-actions">' +
+            '<button type="button" class="btn gold" id="newClub">New club</button>' +
+            cont +
+          '</div>' +
+          '<p class="fine">Saved on this browser only.</p>' +
+          '<details class="whats-new"' + (narrowTitle ? "" : " open") + '>' +
+            '<summary>What\'s new</summary>' +
+            '<ul>' + news + '</ul>' +
+          '</details>' +
         '</div>' +
-        '<p class="fine">Saved on this browser only.</p>' +
-        '<section class="whats-new" aria-label="What\'s new">' +
-          '<h2>What\'s new</h2>' +
-          '<ul>' +
-            '<li>Pit names stay readable, and close to each fighter.</li>' +
-            '<li>Recruits and rival squads keep distinct faces.</li>' +
-            '<li>The yard can change the club emblem and its plate.</li>' +
-          '</ul>' +
-        '</section>' +
       '</main>';
     document.getElementById("newClub").onclick = function () { showCreator("captain"); };
     const c = document.getElementById("continue");
     if (save) c.onclick = function () { showHub(); };
+    startTitlePit();
   }
 
   /* ---------- creator ---------- */
@@ -1437,8 +1581,7 @@
   }
 
   let toastTimer = 0;
-  function showToasts(list) {
-    if (!list || !list.length) return;
+  function toastBox() {
     let box = document.getElementById("achieveToast");
     if (!box) {
       box = document.createElement("div");
@@ -1447,14 +1590,32 @@
     }
     const purse = document.querySelector(".purse");
     const below = purse ? purse.getBoundingClientRect().bottom : 64;
-    const narrow = (root.innerWidth || 800) < 700;
     box.style.top = Math.round(below + 6) + "px";
-    box.classList.toggle("toast-narrow", narrow);
+    box.classList.toggle("toast-narrow", (root.innerWidth || 800) < 700);
+    return box;
+  }
+
+  function showToasts(list) {
+    if (!list || !list.length) return;
+    const box = toastBox();
     box.hidden = false;
     box.innerHTML = list.map(function (row) {
       const pay = "+" + (row.gold || 0) + " gold" + (row.renown ? " +" + row.renown + " renown" : "");
       return '<p class="toast">' + esc(row.name) + " " + esc(pay) + "</p>";
     }).join("");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { box.hidden = true; }, 2500);
+  }
+
+  function showNote(text) {
+    if (!text) return;
+    const box = toastBox();
+    const line = '<p class="toast">' + esc(text) + "</p>";
+    if (!box.hidden && box.textContent) box.insertAdjacentHTML("beforeend", line);
+    else {
+      box.hidden = false;
+      box.innerHTML = line;
+    }
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { box.hidden = true; }, 2500);
   }
@@ -3138,12 +3299,19 @@
     const xp = drill.xp;
     if ((save.trainsLeft || 0) <= 0 || save.gold < cost) { pitSound("error"); return; }
     if (IL.applyDrill && !IL.applyDrill(f, drill.id)) { pitSound("error"); return; }
+    const lv0 = f.level || 1;
+    const moves0 = f.pendingMoves || 0;
     save.gold -= cost;
     save.trainsLeft -= 1;
     save.trainsDone = (save.trainsDone || 0) + 1;
     IL.grantXp(f, xp);
     persist();
     refreshHub();
+    const word = { atk: "attack", hp: "health", def: "defense", spd: "speed" }[drill.stat] || "stat";
+    let note = f.name + ": " + drill.name + ". +" + drill.amt + " " + word + ", +" + xp + " xp";
+    if ((f.level || 1) > lv0) note += ", level " + f.level;
+    if ((f.pendingMoves || 0) > moves0) note += ". A new move is open";
+    showNote(note + ".");
   }
 
   function upgradeFacility(id) {
@@ -3350,11 +3518,13 @@
     if ((save.relics || []).indexOf(id) < 0) return;
     const eq = save.equipped || (save.equipped = []);
     const at = eq.indexOf(id);
+    let wore = false;
     if (at >= 0) eq.splice(at, 1);
-    else if (eq.length < 2) eq.push(id);
-    else eq.splice(0, 1, id);
+    else if (eq.length < 2) { eq.push(id); wore = true; }
+    else { eq.splice(0, 1, id); wore = true; }
     persist();
     showHub("relics", true);
+    if (wore) showNote(relic.name + ". " + (relic.blurb || ""));
   }
 
   function bindFighterRelic(fighterId, relicId) {
@@ -3367,6 +3537,7 @@
     fighter.relic = relicId;
     persist();
     showHub("relics", true);
+    showNote(relic.name + ". " + (relic.blurb || ""));
   }
 
   function clearFighterRelic(relicId) {
@@ -4700,10 +4871,15 @@
     }
     const before = {};
     const xpBefore = {};
+    const statBefore = {};
+    const movesBefore = {};
     fight.left.forEach(function (f) {
       if (!f) return;
       before[f.id] = f.level;
       xpBefore[f.id] = f.xp || 0;
+      movesBefore[f.id] = f.pendingMoves || 0;
+      const kit = IL.CLASSES[f.cls];
+      if (kit && IL.scaledStats) statBefore[f.id] = IL.scaledStats(f, kit);
       IL.grantXp(f, xp);
     });
     const tally = resultTable(match, xpBefore, before);
@@ -4719,7 +4895,30 @@
       save.items.push(loot);
     }
     persist();
-    const ups = fight.left.filter(function (f) { return f && f.level > before[f.id]; }).map(function (f) { return f.name; });
+    const flashes = [];
+    const unlocks = [];
+    fight.left.forEach(function (f) {
+      if (!f || !(f.level > before[f.id])) return;
+      const kit = IL.CLASSES[f.cls];
+      const now = kit && IL.scaledStats ? IL.scaledStats(f, kit) : null;
+      const was = statBefore[f.id];
+      const parts = [];
+      if (now && was) {
+        const dh = now.hp - was.hp;
+        const da = now.atk - was.atk;
+        if (dh) parts.push((dh > 0 ? "+" : "") + dh + " health");
+        if (da) parts.push((da > 0 ? "+" : "") + da + " attack");
+      }
+      flashes.push(
+        '<p class="level-flash"><strong>' + esc(f.name) + " reached level " + f.level + "</strong>" +
+        (parts.length ? "<span>" + esc(parts.join(" · ")) + "</span>" : "") + "</p>"
+      );
+      if ((f.pendingMoves || 0) > (movesBefore[f.id] || 0)) {
+        unlocks.push(
+          '<article class="unlock-card"><p class="eyebrow">New ability</p><strong>' + esc(f.name) + "</strong><p>Level " + f.level + " opens a move.</p></article>"
+        );
+      }
+    });
     const stood = match.units.filter(function (u) { return u.team === 0 && u.hp > 0; }).map(function (u) { return u.name; });
     const fell = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).map(function (u) { return u.name; });
     let nextLine = "";
@@ -4751,9 +4950,10 @@
       '<div class="result-scroll">' +
         '<p class="eyebrow">' + (win ? "Victory" : "Defeat") + '</p>' +
         '<h2>' + headline + '</h2>' +
-        tally.html +
-        (ups.length ? '<p class="level-call">Level up: ' + esc(ups.join(", ")) + '</p>' : '') +
+        flashes.join("") +
+        unlocks.join("") +
         (pendingGrowth().length ? '<p class="level-call">A perk is waiting.</p>' : '') +
+        tally.html +
         (loot ? lootRevealHtml(loot) : '') +
         '<ul class="payout" id="rewards">' +
           '<li>+' + gold + ' gold</li>' +

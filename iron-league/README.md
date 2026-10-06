@@ -67,7 +67,7 @@ The market stalls are Gear, Fighters, Relics, Deals, and Sell. Tomes sit on the 
 
 Anyone can roll to evade a swing, an arrow, or a filling circle. The roll has a short invulnerable window and a cooldown. The pit is larger than the screen; the camera eases toward the squads.
 
-Pixel effects (slash, ember, cast sigil, shield ring, dash crack, roll smoke, arrow glint, lightning) live in `assets/fx/` as horizontal frame strips. The full BitFX packs are not copied into this game. Procedural strokes still draw underneath, and they stand in if a sheet fails to load.
+Each class shows its attack and its three equipped moves with their own motion: a swing, a shot, a bolt, a ring, a beam, a dash, a leap, a summon, or a shield. The move's name pops over the caster. A chant fills a cast bar. The third move, the ultimate, puts that name on a short banner. `?debug=classes` walks every class through those moves. Pixel effects (slash, ember, cast sigil, shield ring, dash crack, roll smoke, arrow glint, lightning) live in `assets/fx/` as horizontal frame strips. The full BitFX packs are not copied into this game. Procedural strokes still draw underneath, and they stand in if a sheet fails to load.
 
 Win gold, renown, and xp. Lose a smaller purse. A season is five matches against generated clubs; the other fixtures on the board resolve on their own. After the fifth, open another season with the same roster.
 

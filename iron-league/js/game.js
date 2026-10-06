@@ -120,6 +120,7 @@
       const str = fighters.reduce(function (s, f) {
         return s + (f.cls === "tank" ? 1.12 : f.cls === "mage" ? 1.06 : 1);
       }, 0) / 3;
+      if (IL.dedupeNames) IL.dedupeNames(fighters);
       clubs.push({ id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, fighters: fighters });
     });
     save.clubs = clubs;
@@ -509,6 +510,11 @@
         const f = IL.randomFighter(rng, cls);
         return f;
       });
+      const takenNames = [captain.name];
+      recruits.forEach(function (f) {
+        f.name = IL.uniqueName(rng, takenNames);
+        takenNames.push(f.name);
+      });
       save = Object.assign({
         v: 1,
         clubName: clubName,
@@ -561,6 +567,7 @@
       save.gold -= IL.HIRE_COST;
       pitSound("purchase");
       save.roster.push(fighter);
+      if (IL.dedupeNames) IL.dedupeNames(save.roster);
       persist();
       showHub();
     }).catch(function (e) {
@@ -3055,6 +3062,7 @@
         if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
         if (fighter.cls && save.seenClasses.indexOf(fighter.cls) < 0) save.seenClasses.push(fighter.cls);
         save.roster.push(fighter);
+        if (IL.dedupeNames) IL.dedupeNames(save.roster);
         offer.stock = 0;
         persist();
         showHub("market", true);
@@ -3480,6 +3488,7 @@
       if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
       if (fighter.cls && save.seenClasses.indexOf(fighter.cls) < 0) save.seenClasses.push(fighter.cls);
       save.roster.push(fighter);
+      if (IL.dedupeNames) IL.dedupeNames(save.roster);
       save.market.splice(index, 1);
       if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0);
       persist();
@@ -3974,7 +3983,7 @@
   function runFight(tok) {
     const canvas = document.getElementById("arena");
     const ctx = canvas.getContext("2d");
-    const fx = { shake: 0, nums: [], booms: [], sprites: [], t: 0, cam: null };
+    const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], t: 0, cam: null };
     let last = performance.now();
     let acc = 0;
     function frame(now) {
@@ -4021,6 +4030,12 @@
           syncMix();
           IL.sfx.play(e.id, { gain: e.gain, layer: e.layer });
         }
+      } else if (e.type === "ring") {
+        if (!fx.rings) fx.rings = [];
+        fx.rings.push({ x: e.x, y: e.y, r: e.r || 64, kind: e.kind, t: 0, life: 0.45 });
+      } else if (e.type === "beam") {
+        if (!fx.beams) fx.beams = [];
+        fx.beams.push({ x: e.x, y: e.y, x2: e.x2, y2: e.y2, kind: e.kind, t: 0, life: 0.32 });
       } else if (e.type === "fx" && IL.fx) {
         IL.fx.spawn(fx.sprites, e.kind, e.x, e.y, {
           size: e.size,
@@ -4040,6 +4055,8 @@
     if (fx.shake < 0.15) fx.shake = 0;
     fx.nums = fx.nums.filter(function (n) { n.t += dt; return n.t < n.life; });
     fx.booms = fx.booms.filter(function (b) { b.t += dt; return b.t < b.life; });
+    if (fx.rings) fx.rings = fx.rings.filter(function (r) { r.t += dt; return r.t < r.life; });
+    if (fx.beams) fx.beams = fx.beams.filter(function (b) { b.t += dt; return b.t < b.life; });
     if (IL.fx) IL.fx.step(fx.sprites, dt);
   }
 
@@ -4463,7 +4480,7 @@
     paintHud(match);
     const canvas = document.getElementById("arena");
     if (canvas) {
-      const fx = { shake: 0, nums: [], booms: [], sprites: [], t: 0, cam: null };
+      const fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], t: 0, cam: null };
       IL.drawArena(canvas.getContext("2d"), match, fx);
     }
   }
@@ -4572,7 +4589,89 @@
   if (IL.fx && IL.fx.load) IL.fx.load();
   const iconWatch = new MutationObserver(function () { mountIcons(document); });
   iconWatch.observe(document.body, { childList: true, subtree: true });
+  function classGalleryOn() {
+    let q = "";
+    try { q = (root.location && root.location.search) || ""; } catch (err) { q = ""; }
+    return /(?:^|[?&])debug=classes(?:&|$)/.test(q);
+  }
+
+  function showClassGallery() {
+    const beats = [];
+    Object.keys(IL.CLASSES).forEach(function (id) {
+      const kit = IL.CLASSES[id];
+      const starters = (kit.abilities || []).filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; }).slice(0, 3);
+      const basic = IL.attackOf ? IL.attackOf(id) : { name: "Attack" };
+      beats.push({ cls: id, which: "basic", label: basic.name, kit: kit.name });
+      starters.forEach(function (ab, i) {
+        beats.push({ cls: id, which: i, label: ab.name + (ab.ult ? " · ultimate" : ""), kit: kit.name });
+      });
+    });
+    let index = 0;
+    let match = null;
+    let fx = null;
+    let beatT = 0;
+    const spriteCache = {};
+    app.innerHTML =
+      '<main class="fight-screen class-gallery">' +
+        '<header class="bar gal-bar">' +
+          '<strong id="galKit">Classes</strong>' +
+          '<span id="galBeat">Loading</span>' +
+        '</header>' +
+        '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas></div>' +
+        '<footer class="fight-controls">' +
+          '<button type="button" class="btn ghost" id="galPrev">Back</button>' +
+          '<button type="button" class="btn primary" id="galNext">Next</button>' +
+        '</footer>' +
+      '</main>';
+    const canvas = document.getElementById("arena");
+    const ctx = canvas.getContext("2d");
+    function paintCaption() {
+      const beat = beats[index];
+      const kit = document.getElementById("galKit");
+      const line = document.getElementById("galBeat");
+      if (kit) kit.textContent = beat.kit;
+      if (line) line.textContent = beat.label + " · " + (index + 1) + " / " + beats.length;
+    }
+    function arm(i) {
+      index = (i + beats.length) % beats.length;
+      beatT = 0;
+      const beat = beats[index];
+      match = IL.showcase(beat.cls, beat.which);
+      fx = { shake: 0, nums: [], booms: [], rings: [], beams: [], sprites: [], t: 0, cam: null };
+      paintCaption();
+      const jobs = [];
+      match.units.forEach(function (u) {
+        if (!u.parts) return;
+        const key = IL.hero.keyOf(u.parts);
+        if (spriteCache[key]) u.sprite = spriteCache[key];
+        else jobs.push(IL.hero.compose(u.parts).then(function (c) { spriteCache[key] = c; u.sprite = c; }));
+      });
+      return Promise.all(jobs);
+    }
+    document.getElementById("galPrev").onclick = function () { arm(index - 1); };
+    document.getElementById("galNext").onclick = function () { arm(index + 1); };
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      fx.t += dt;
+      beatT += dt;
+      if (match && !match.over) {
+        IL.stepMatch(match, dt);
+        consume(match, fx);
+      }
+      ageFx(fx, dt);
+      if (beatT > 1.45) arm(index + 1);
+      IL.drawArena(ctx, match, fx);
+      raf = requestAnimationFrame(frame);
+    }
+    arm(0).then(function () {
+      raf = requestAnimationFrame(frame);
+    });
+  }
+
   loadIconAtlas();
   ensureYard();
-  showTitle();
+  if (classGalleryOn() && IL.showcase) showClassGallery();
+  else showTitle();
 })(typeof window !== "undefined" ? window : globalThis);

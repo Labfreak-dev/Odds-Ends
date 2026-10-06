@@ -328,6 +328,41 @@
     ctx.stroke();
   }
 
+  function markColor(kind) {
+    if (kind === "heal" || kind === "mend" || kind === "buff") return "186, 214, 160";
+    if (kind === "shield" || kind === "bolt" || kind === "arc") return "186, 206, 255";
+    if (kind === "frost") return "190, 230, 245";
+    if (kind === "summon" || kind === "dot") return "176, 140, 210";
+    if (kind === "rage" || kind === "fireball") return "255, 150, 70";
+    return "244, 210, 150";
+  }
+
+  function drawMarks(ctx, fx) {
+    const rings = fx.rings || [];
+    for (let i = 0; i < rings.length; i++) {
+      const r = rings[i];
+      const p = r.t / r.life;
+      const rgb = markColor(r.kind);
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r * (0.35 + p * 0.85), 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(" + rgb + "," + (1 - p) + ")";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+    const beams = fx.beams || [];
+    for (let i = 0; i < beams.length; i++) {
+      const b = beams[i];
+      const p = b.t / b.life;
+      const rgb = markColor(b.kind);
+      ctx.strokeStyle = "rgba(" + rgb + "," + (1 - p) + ")";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y);
+      ctx.lineTo(b.x + (b.x2 - b.x) * Math.min(1, p * 1.4), b.y + (b.y2 - b.y) * Math.min(1, p * 1.4));
+      ctx.stroke();
+    }
+  }
+
   function drawShot(ctx, p, time) {
     const tr = p.trail || [];
     if (tr.length) {
@@ -513,9 +548,25 @@
         ctx.fillStyle = "#f4ecdf";
         ctx.fillText(u.name, u.x, by - 5);
         drawStatus(ctx, u, by);
+        if (u.state === "cast" && u.cast && u.cast.dur > 0) {
+          const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
+          ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ctx.fillRect(bx, by + 7, bw, 4);
+          ctx.fillStyle = "#d7c4ff";
+          ctx.fillRect(bx, by + 7, Math.max(0, bw * cp), 4);
+        }
+        if (u.banner) {
+          const a = Math.max(0, 1 - u.banner.t / u.banner.life);
+          ctx.globalAlpha = a;
+          ctx.font = "bold " + Math.round((u.banner.ult ? 16 : 13) * ui) + "px Palatino, Georgia, serif";
+          ctx.fillStyle = u.banner.ult ? "#ffd27a" : "#f4ecdf";
+          ctx.fillText(u.banner.name, u.x, by - 16 - u.banner.t * 18);
+          ctx.globalAlpha = 1;
+        }
       }
     }
 
+    drawMarks(ctx, fx);
     for (let i = 0; i < match.shots.length; i++) drawShot(ctx, match.shots[i], fx.t || 0);
     drawSprites(ctx, fx.sprites, false);
 
@@ -545,6 +596,26 @@
     if ((match.zoom || 0) > 0.15) {
       ctx.fillStyle = "rgba(6,4,8," + (0.45 * Math.min(1, match.zoom)) + ")";
       ctx.fillRect(0, 0, view.cssW, view.cssH);
+    }
+
+    if (match.cine && match.cine.dur > 0) {
+      const c = match.cine;
+      const p = Math.max(0, Math.min(1, c.t / c.dur));
+      const fade = p > 0.78 ? (1 - p) / 0.22 : 1;
+      ctx.fillStyle = "rgba(8,6,12," + (0.72 * fade) + ")";
+      ctx.fillRect(0, view.cssH * 0.3, view.cssW, 96);
+      ctx.fillStyle = "rgba(255,210,122," + fade + ")";
+      ctx.fillRect(0, view.cssH * 0.3, view.cssW, 3);
+      ctx.fillRect(0, view.cssH * 0.3 + 93, view.cssW, 3);
+      ctx.globalAlpha = fade;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffd27a";
+      ctx.font = "13px Palatino, Georgia, serif";
+      ctx.fillText("ULTIMATE", view.cssW / 2, view.cssH * 0.33 + 26);
+      ctx.fillStyle = "#f4ecdf";
+      ctx.font = "28px Palatino, Georgia, serif";
+      ctx.fillText(c.name || "", view.cssW / 2, view.cssH * 0.33 + 58);
+      ctx.globalAlpha = 1;
     }
 
     if (match.engage > 0) {

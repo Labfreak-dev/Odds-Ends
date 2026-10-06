@@ -459,6 +459,53 @@
     };
   }
 
+  function firstToken(name) {
+    return String(name || "").trim().split(/\s+/)[0].toLowerCase();
+  }
+
+  /* First names on a club card must not repeat. Re-roll, then a short suffix. */
+  function uniqueName(rng, taken) {
+    const used = {};
+    (taken || []).forEach(function (n) {
+      const key = firstToken(n);
+      if (key) used[key] = true;
+    });
+    for (let i = 0; i < 48; i++) {
+      const name = pick(rng, FIRST) + " " + pick(rng, LAST);
+      if (!used[firstToken(name)]) return name;
+    }
+    const base = pick(rng, FIRST);
+    for (let n = 2; n < 10; n++) {
+      const stem = base.length >= 6 ? base.slice(0, 5) : base;
+      const token = (stem + n).slice(0, 6);
+      if (!used[token.toLowerCase()]) return token + " " + pick(rng, LAST);
+    }
+    return pick(rng, FIRST) + " " + pick(rng, LAST);
+  }
+
+  function dedupeNames(list) {
+    const used = {};
+    (list || []).forEach(function (f) {
+      if (!f || typeof f.name !== "string") return;
+      const parts = f.name.trim().split(/\s+/);
+      let first = parts[0] || "Fighter";
+      const rest = parts.slice(1).join(" ");
+      let key = first.toLowerCase();
+      if (used[key]) {
+        const base = first;
+        for (let n = 2; n < 10; n++) {
+          const stem = base.length >= 6 ? base.slice(0, 5) : base;
+          const token = (stem + n).slice(0, 6);
+          if (!used[token.toLowerCase()]) { first = token; break; }
+        }
+        f.name = rest ? first + " " + rest : first;
+        key = first.toLowerCase();
+      }
+      used[key] = true;
+    });
+    return list;
+  }
+
   function randomFighter(rng, clsId) {
     const ids = Object.keys(CLASSES);
     const cls = clsId && CLASSES[clsId] ? clsId : pick(rng, ids);
@@ -541,6 +588,9 @@
   IL.pick = pick;
   IL.randomParts = randomParts;
   IL.randomFighter = randomFighter;
+  IL.uniqueName = uniqueName;
+  IL.dedupeNames = dedupeNames;
+  IL.firstToken = firstToken;
   IL.blankFighterFields = blankFighterFields;
   IL.xpLevel = xpLevel;
   IL.growthFromXp = growthFromXp;

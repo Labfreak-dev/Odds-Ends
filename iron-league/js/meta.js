@@ -400,6 +400,7 @@
         need: IL.CLASSES[cls].renown || 0
       });
     }
+    if (IL.dedupeNames) IL.dedupeNames(board.map(function (row) { return row.fighter; }));
     return board;
   }
 
@@ -578,6 +579,14 @@
     normalizeLineup(data);
     adoptSheets(data);
     if (IL.normalizeGear) IL.normalizeGear(data);
+    if (IL.dedupeNames) {
+      IL.dedupeNames(data.roster);
+      (data.clubs || []).forEach(function (c) { IL.dedupeNames(c && c.fighters); });
+      IL.dedupeNames((data.market || []).map(function (row) { return row && row.fighter; }));
+      if (data.deals && data.deals.offers) {
+        IL.dedupeNames(data.deals.offers.map(function (o) { return o && o.fighter; }));
+      }
+    }
     return data;
   }
 
@@ -1009,6 +1018,13 @@
       const fighter = IL.randomFighter(rng, IL.pick(rng, ids));
       fighter.level = Math.max(1, level || 1);
       list.push(fighter);
+    }
+    if (IL.uniqueName) {
+      const taken = [];
+      list.forEach(function (f) {
+        f.name = IL.uniqueName(rng, taken);
+        taken.push(f.name);
+      });
     }
     return list;
   }

@@ -553,6 +553,26 @@ class Run:
             page.wait_for_timeout(2500)
             mid = self.capture(page, f"{base + 1:02d}_fight_mid", kind="fight")
             mid["notes"].append(f"speed set to {spd}" if spd else "no speed control found to click")
+            fit = page.evaluate("""() => {
+              const c = document.getElementById('arena');
+              const boxes = (window.IL && IL.pitBoxes) || [];
+              if (!c || !boxes.length) return { ok: false, why: 'no fighter boxes', bad: [] };
+              const w = c.clientWidth, h = c.clientHeight;
+              const tol = 3;
+              const bad = [];
+              for (const b of boxes) {
+                if (b.l < -tol || b.t < -tol || b.r > w + tol || b.b > h + tol)
+                  bad.push((b.name || '?') + ' ' + [b.l, b.t, b.r, b.b].map(n => Math.round(n)).join(','));
+              }
+              return { ok: bad.length === 0, why: bad.slice(0, 6).join('; '), w, h, n: boxes.length, bad };
+            }""")
+            if not fit or not fit.get("ok"):
+                why = (fit or {}).get("why") or "fighter boxes missing"
+                mid["checks"]["fighters"] = ("FAIL", [why])
+                self.note(f"fighters outside the pit: {why}")
+            else:
+                mid["checks"]["fighters"] = ("PASS", [])
+                self.note(f"fighters inside the pit ({fit['n']})")
         else:
             self.current = f"fight{idx}"
 

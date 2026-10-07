@@ -15,13 +15,13 @@ we keep our own twist.
 | v70 | Level up: Choose a stat, then Choose a skill (T1-T4, category pills, Reroll, Later) | shipped |
 | v71 | **Hub shell**: Eslabong header, six tabs, bottom bar, Events inbox, Overview feed | shipped |
 | v72 | **Roster tab**: first-team cards, substitutes strip, fighter detail sheet (market value, performance score, profile, combat summary) | shipped |
-| v73 | **Matches tab + season calendar**: weeks, fixtures list, league table with form, cups on the calendar, four divisions IV→I | planned |
+| v73 | **Season calendar**: 8-club divisions, 7 league weeks, Division V→I labels (our five tiers kept); Champions Cup moves to v79 | shipped |
 | v74 | **Market tab**: list + detail layout, market value formula, watchlist, scouting, offers and listings, relic market | planned |
 | v75 | **Club tab**: Activities / Facilities / Services grid; Headquarters (roster cap), Barracks, Medical Bay, Scouting Office, Treasure House, Club House + staff | planned |
 | v76 | **Fighter depth**: per-stat growth grades (Good / Excellent), personalities with mistake chance, form and injuries, milestone levels | planned |
 | v77 | **Relics v2**: two slots per fighter (second at level 10), Common / Rare / Legendary, chests, relic market rotation | planned |
 | v78 | **Intel tab**: league leaders, records, Codex of classes / clubs / relics with discovery | planned |
-| v79 | **Activities**: Iron Gate (8 floors, bosses on 5/7/8), Tournament Center, Draft Cup rework, Hall of Legends, Academy 3v3 | planned |
+| v79 | **Activities**: Champions Cup for the league's top four, Iron Gate (8 floors, bosses on 5/7/8), Tournament Center, Draft Cup rework, Hall of Legends, Academy 3v3 | planned |
 | v80 | **Matches as series** and bigger squads (league 5v5 in rounds), formations and opening moves | planned |
 
 ## System map

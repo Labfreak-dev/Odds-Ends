@@ -101,6 +101,18 @@
     return rng;
   }
 
+  /* v73: the season is as long as its fixture list (7 weeks now; an
+     older save finishes its 5-week season first). */
+  function seasonWeeks() {
+    return (save && Array.isArray(save.fixtures) && save.fixtures.length) || IL.SEASON_SIZES.length;
+  }
+  function weekSize(r) {
+    return IL.SEASON_SIZES[(r | 0) % IL.SEASON_SIZES.length];
+  }
+  function seasonDone() {
+    return !!save && (save.round || 0) >= seasonWeeks();
+  }
+
   function roundRobin(ids) {
     const list = ids.slice();
     const rounds = [];
@@ -121,7 +133,7 @@
     const rng = takeRng();
     const pool = IL.CLUBS.filter(function (n) { return n !== save.clubName; });
     const rivals = [];
-    while (rivals.length < 5 && pool.length) {
+    while (rivals.length < (IL.LEAGUE_CLUBS || 8) - 1 && pool.length) {
       rivals.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
     }
     if (!save.nemesis || !save.nemesis.name || save.nemesis.name === save.clubName) {
@@ -166,7 +178,7 @@
   }
 
   function nextRival() {
-    if (!save || save.round >= 5) return null;
+    if (!save || seasonDone()) return null;
     const pairs = save.fixtures[save.round] || [];
     for (let i = 0; i < pairs.length; i++) {
       const p = pairs[i];
@@ -286,6 +298,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Longer seasons: eight clubs a division and seven league weeks, shown as Division V (Sand) up to Division I (Crown).",
     "Roster cards like the mercenary leagues: stats, moves, gear and behavior per fighter, and a full sheet with market value and performance score.",
     "A new club hub: Overview, Matches, Roster, Club, Market and Intel, with a season calendar, a feed, and an Events inbox.",
     "Level up like the mercenary leagues: choose one of four stats, then one of three skills marked by category and tier.",
@@ -973,7 +986,7 @@
   }
 
   function matchSize() {
-    return save && save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    return save && !seasonDone() ? weekSize(save.round) : 0;
   }
 
   function inThePit(f) {
@@ -1790,7 +1803,7 @@
   }
 
   function payCeremony() {
-    if ((save.round || 0) < 5) return null;
+    if (!seasonDone()) return null;
     if (save.ceremonyPaid === save.season) return null;
     const sorted = sortedClubs();
     const place = sorted.findIndex(function (c) { return c.you; });
@@ -1800,7 +1813,7 @@
     save.ceremonyPaid = save.season;
     if (place === 0) save.seasonTitles = (save.seasonTitles || 0) + 1;
     const you = place >= 0 ? sorted[place] : null;
-    if (you && you.w >= 5 && you.l === 0) save.unbeaten = (save.unbeaten || 0) + 1;
+    if (you && you.w >= seasonWeeks() && you.l === 0) save.unbeaten = (save.unbeaten || 0) + 1;
     return purse;
   }
 
@@ -1842,7 +1855,8 @@
     const tier = IL.divisionOf(save);
     const top = IL.DIVISIONS.length - 1;
     if (place <= 1 && tier < top) return { to: tier + 1, text: "Promoted to the " + IL.DIVISIONS[tier + 1].name + "." };
-    if (place >= 4 && tier > 0) return { to: tier - 1, text: "Relegated to the " + IL.DIVISIONS[tier - 1].name + "." };
+    const clubsN = (save.clubs || []).length || 6;
+    if (place >= clubsN - 2 && tier > 0) return { to: tier - 1, text: "Relegated to the " + IL.DIVISIONS[tier - 1].name + "." };
     return { to: tier, text: "Staying in the " + IL.DIVISIONS[tier].name + "." };
   }
 
@@ -1963,16 +1977,16 @@
 
   function clubPanel() {
     const rival = nextRival();
-    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    const size = !seasonDone() ? weekSize(save.round) : 0;
     const yours = size ? fielded(save.roster, size) : [];
     const theirs = rival && size ? rival.fighters.slice(0, size) : [];
     const partyReady = !size || yours.length >= size;
-    const done = save.round >= 5;
+    const done = seasonDone();
     const table = sortedClubs().map(function (c, i) {
       const played = c.w + c.l;
       const nemesisRow = save.nemesis && c.name === save.nemesis.name;
       const tierNow = IL.divisionOf(save);
-      const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= 4 && tierNow > 0) ? " releg" : "";
+      const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= (save.clubs || []).length - 2 && tierNow > 0) ? " releg" : "";
       return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function previewNames(list) {
@@ -2007,7 +2021,7 @@
           '<button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></section>'
       : '<section class="next-bar" id="nextCard">' +
           '<div class="next-info">' +
-            '<p class="eyebrow">League · ' + (save.round + 1) + '/5 · ' + size + 'v' + size + (otherFights().length ? ' · +' + otherFights().length + ' more' : '') + '</p>' +
+            '<p class="eyebrow">League · ' + (save.round + 1) + '/' + seasonWeeks() + ' · ' + size + 'v' + size + (otherFights().length ? ' · +' + otherFights().length + ' more' : '') + '</p>' +
             '<h3>vs ' + crestHtml(rival ? rival.name : "", "sm", rival ? clubCrest(rival) : 0) + '<span>' + esc(rival ? rival.name : "—") + '</span></h3>' +
           '</div>' +
           '<button type="button" class="btn fight" id="nextMatch"' + (partyReady ? "" : " disabled") + '>' + (partyReady ? "Fight" : "Pick " + size) + '</button>' +
@@ -2067,9 +2081,9 @@
   /* The fight menu: the next league match with both lineups, then every
      other fight that is waiting. Opened from the Fight bar on any tab. */
   function fightMenuHtml() {
-    const done = save.round >= 5;
+    const done = seasonDone();
     const rival = done ? null : nextRival();
-    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const size = done ? 0 : weekSize(save.round);
     const yours = size ? fielded(save.roster, size) : [];
     const theirs = rival && size ? rival.fighters.slice(0, size) : [];
     const ready = !size || yours.length >= size;
@@ -2082,7 +2096,7 @@
       ? '<section class="fm-card"><p class="eyebrow">League</p><h3>Season closed</h3>' +
           '<button type="button" class="btn gold" id="fmSeason">Open the ceremony</button></section>'
       : '<section class="fm-card fm-league">' +
-          '<p class="eyebrow">League · Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + '</p>' +
+          '<p class="eyebrow">League · Match ' + (save.round + 1) + ' of ' + seasonWeeks() + ' · ' + size + ' vs ' + size + '</p>' +
           '<h3>vs ' + crestHtml(rival ? rival.name : "", "sm", rival ? clubCrest(rival) : 0) + '<span>' + esc(rival ? rival.name : "—") + '</span></h3>' +
           (nemesisBanner(rival) ? '<p class="fine">' + nemesisBanner(rival) + '</p>' : '') +
           synergyLine(yours, "fmSynergy") +
@@ -2139,8 +2153,8 @@
   /* v71 bottom bar, after Eslabong: a side match on the left, NEXT MATCH
      in the middle, the Events inbox (with a badge) on the right. */
   function fightDockHtml() {
-    const done = save.round >= 5;
-    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const done = seasonDone();
+    const size = done ? 0 : weekSize(save.round);
     const ready = done || fielded(save.roster, size).length >= size;
     const day = IL.dayIndex(Date.now());
     const dailyDone = save.daily && save.daily.day === day && save.daily.cleared;
@@ -2162,7 +2176,7 @@
       out.push({ act: true, kind: "level", fid: f.id, text: f.name + " has " + f.pendingLevels + " level-up pick" + (f.pendingLevels === 1 ? "" : "s") + " waiting." });
     });
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
-    if (save.round >= 5) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
+    if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
     (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
     (save.history || []).slice(0, 6).forEach(function (h) {
       out.push({ act: false, kind: "result", text: (h.win ? "Won " : "Lost ") + (h.score || "") + " against " + (h.opponent || "a rival") + ". MVP " + (h.mvp || "—") + "." });
@@ -2208,7 +2222,7 @@
 
   /* ---------- v71 hub header ---------- */
   function weekPips() {
-    const total = 5;
+    const total = seasonWeeks();
     let out = "";
     for (let i = 0; i < total; i++) {
       const r = seasonLog(i);
@@ -2219,12 +2233,12 @@
   }
 
   function hubHeadHtml(done) {
-    const week = Math.min(5, (save.round || 0) + (done ? 0 : 1));
+    const week = Math.min(seasonWeeks(), (save.round || 0) + (done ? 0 : 1));
     const div = IL.DIVISIONS[IL.divisionOf(save)];
     return '<header class="hub-head es-head">' +
       '<button type="button" class="crest-btn" id="clubIdentity" aria-label="Club name and colors" title="Club name and colors">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="crest-edit" aria-hidden="true">✎</span></button>' +
       '<h2 class="es-club">' + esc(save.clubName) + '</h2>' +
-      '<div class="es-week"><p><b>Season ' + save.season + ' - Week ' + week + '/5</b><span class="div-chip">' + esc(div.name) + '</span></p>' + weekPips() + '</div>' +
+      '<div class="es-week"><p><b>Season ' + save.season + ' - Week ' + week + '/' + seasonWeeks() + '</b><span class="div-chip">' + esc((div.roman ? "Div " + div.roman + " · " : "") + div.name.replace(" Division", "")) + '</span></p>' + weekPips() + '</div>' +
       '<div class="es-purse">' +
         '<span class="coin" title="Gold">' + coinIcon("gold") + '<b>' + save.gold + '</b></span>' +
         '<span class="coin" title="Renown">' + coinIcon("renown") + '<b>' + (save.renown || 0) + '</b></span>' +
@@ -2261,9 +2275,9 @@
 
   /* ---------- Overview ---------- */
   function overviewPanel() {
-    const done = save.round >= 5;
+    const done = seasonDone();
     const rival = done ? null : nextRival();
-    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const size = done ? 0 : weekSize(save.round);
     const yours = size ? fielded(save.roster, size) : [];
     const ready = !size || yours.length >= size;
     const table = sortedClubs();
@@ -2332,18 +2346,18 @@
   function leaguePane() {
     const tierNow = IL.divisionOf(save);
     const rows = sortedClubs().map(function (c, i) {
-      const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= 4 && tierNow > 0) ? " releg" : "";
+      const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= (save.clubs || []).length - 2 && tierNow > 0) ? " releg" : "";
       const form = (c.form || []).slice(-3).map(function (r) { return '<i class="form ' + (r === "W" ? "w" : "l") + '">' + r + '</i>'; }).join("");
       const diff = (c.pf || 0) - (c.pa || 0);
       return '<tr class="' + (c.you ? "you" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td>' +
         '<td>' + c.w + '-' + c.l + '</td><td class="' + (diff > 0 ? "up" : diff < 0 ? "down" : "") + '">' + (diff > 0 ? "+" : "") + diff + '</td><td><b>' + c.pts + '</b></td><td class="form-cell">' + form + '</td></tr>';
     }).join("");
     const cal = [];
-    for (let r = 0; r < 5; r++) {
+    for (let r = 0; r < seasonWeeks(); r++) {
       const log = seasonLog(r);
       const foe = roundRival(r);
       const res = log ? '<b class="' + (log.win ? "w" : "l") + '">' + (log.win ? "W " : "L ") + log.pf + '-' + log.pa + '</b>' : r === save.round ? '<b class="now">NEXT</b>' : '<b>-</b>';
-      cal.push('<li class="' + (r === save.round ? "now" : "") + '"><span class="wk">W' + (r + 1) + '</span>' + (foe ? crestHtml(foe.name, "sm", clubCrest(foe)) + '<span>vs ' + esc(foe.name) + '</span>' : '<span>—</span>') + '<em>' + IL.SEASON_SIZES[r] + 'v' + IL.SEASON_SIZES[r] + '</em>' + res + '</li>');
+      cal.push('<li class="' + (r === save.round ? "now" : "") + '"><span class="wk">W' + (r + 1) + '</span>' + (foe ? crestHtml(foe.name, "sm", clubCrest(foe)) + '<span>vs ' + esc(foe.name) + '</span>' : '<span>—</span>') + '<em>' + weekSize(r) + 'v' + weekSize(r) + '</em>' + res + '</li>');
     }
     if (save.cup && !save.cup.champion) cal.push('<li class="cup"><span class="wk">Cup</span><span>' + esc("Cup bracket is open") + '</span></li>');
     cal.push('<li class="cup"><span class="wk">End</span><span>Season ceremony · promotion and relegation</span></li>');
@@ -2444,7 +2458,7 @@
   }
 
   function teamPanel() {
-    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    const size = !seasonDone() ? weekSize(save.round) : 0;
     const slotOf = {};
     (save.lineup || []).forEach(function (id, i) { slotOf[id] = i; });
     const ordered = save.roster.slice().sort(function (a, b) {
@@ -2542,14 +2556,14 @@
   }
 
   function leagueCardHtml() {
-    const done = save.round >= 5;
+    const done = seasonDone();
     const rival = done ? null : nextRival();
-    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const size = done ? 0 : weekSize(save.round);
     const ready = done || fielded(save.roster, size).length >= size;
     const you = sortedClubs().map(function (c, i) { return { c: c, i: i }; }).filter(function (r) { return r.c.you; })[0];
     return '<section class="compete-card" id="leagueCard">' +
       '<header><p class="eyebrow">League</p><h3>Season ' + save.season + '</h3></header>' +
-      '<p class="fine">' + (done ? 'All five matches played.' : 'Match ' + (save.round + 1) + ' of 5 · ' + size + ' vs ' + size + ' against ' + esc(rival ? rival.name : "—") + '.') +
+      '<p class="fine">' + (done ? 'All ' + seasonWeeks() + ' matches played.' : 'Match ' + (save.round + 1) + ' of ' + seasonWeeks() + ' · ' + size + ' vs ' + size + ' against ' + esc(rival ? rival.name : "—") + '.') +
         (you ? ' You sit ' + ordinal(you.i + 1) + ' on ' + you.c.pts + ' pts.' : '') + '</p>' +
       (done
         ? '<button type="button" class="btn gold" id="leagueCeremony">Season ceremony</button>'
@@ -2586,7 +2600,7 @@
   }
 
   function fightersPanel() {
-    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    const size = !seasonDone() ? weekSize(save.round) : 0;
     return '<div id="fighterList">' +
       filterBar("fighters", fighterFilter, [["all", "All"], ["party", "First team"], ["bench", "Substitutes"]]) +
       '<div class="hub-split" id="hubSplit">' +
@@ -3089,7 +3103,7 @@
         '<span class="relic-name">' + esc(r.name) + '</span>' +
       '</button>';
     }).join("");
-    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : IL.PARTY_CAP;
+    const size = !seasonDone() ? weekSize(save.round) : IL.PARTY_CAP;
     const party = fielded(save.roster, size || IL.PARTY_CAP);
     const pack = IL.relicPack(save, party);
     const awake = {};
@@ -3412,7 +3426,7 @@
     hubBed();
     if (detailId && !fighterById(detailId)) detailId = null;
     persist();
-    const done = save.round >= 5;
+    const done = seasonDone();
     const panel = hubTab === "roster" ? rosterPanel()
       : hubTab === "market" ? marketPanel()
       : hubTab === "matches" ? matchesPanel()
@@ -4603,8 +4617,8 @@
     save.roster.forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
     (extraParts || []).forEach(function (parts) { if (parts) pending[IL.hero.keyOf(parts)] = parts; });
     const rival = nextRival();
-    if (rival && save.round < 5) {
-      const n = IL.SEASON_SIZES[save.round];
+    if (rival && !seasonDone()) {
+      const n = weekSize(save.round);
       rival.fighters.slice(0, n).forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
     }
     Object.keys(pending).forEach(function (k) {
@@ -5021,7 +5035,7 @@
 
   function afterLevelPick() {
     if (levelEquip || pendingGrowth().length) showGrowth();
-    else if ((save.round || 0) >= 5) showSeasonEnd();
+    else if (seasonDone()) showSeasonEnd();
     else { levelFocus = null; showHub(); }
   }
 
@@ -5178,7 +5192,7 @@
   function startFight() {
     const rival = nextRival();
     if (!rival) return;
-    const size = IL.SEASON_SIZES[save.round];
+    const size = weekSize(save.round);
     const left = fielded(save.roster, size);
     if (left.length < size) return;
     const right = rival.fighters.slice(0, size);
@@ -6429,11 +6443,11 @@
     const fell = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).map(function (u) { return u.name; });
     let nextLine = "";
     if (mode === "league") {
-      if (save.round >= 5) nextLine = "The season board is closed.";
+      if (seasonDone()) nextLine = "The season board is closed.";
       else {
         const nxt = nextRival();
-        const nsize = IL.SEASON_SIZES[save.round];
-        nextLine = "Next is match " + (save.round + 1) + " of 5 · " + nsize + " vs " + nsize + (nxt ? " against " + nxt.name : "") + ".";
+        const nsize = weekSize(save.round);
+        nextLine = "Next is match " + (save.round + 1) + " of " + seasonWeeks() + " · " + nsize + " vs " + nsize + (nxt ? " against " + nxt.name : "") + ".";
       }
     } else if (mode === "cup") {
       nextLine = save.cup && save.cup.champion ? "The bracket is finished." : "The bracket is waiting on the cup screen.";
@@ -6510,7 +6524,7 @@
     };
     document.getElementById("backHub").onclick = function () {
       IL.currentMatch = null;
-      if (mode === "league" && save.round >= 5) showSeasonEnd();
+      if (mode === "league" && seasonDone()) showSeasonEnd();
       else if (mode === "cup") showCup();
       else showHub(fight.returnTab || "club");
     };

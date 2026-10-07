@@ -1154,11 +1154,11 @@
      end of a season. A tier sets the lowest level a rival can be, how
      well rivals are dressed, and the size of every league purse. */
   const DIVISIONS = [
-    { id: "sand", name: "Sand Division", floor: 1, purse: 1 },
-    { id: "iron", name: "Iron Division", floor: 4, purse: 1.25 },
-    { id: "bronze", name: "Bronze Division", floor: 8, purse: 1.5 },
-    { id: "silver", name: "Silver Division", floor: 12, purse: 1.8 },
-    { id: "crown", name: "Crown Division", floor: 16, purse: 2.2 }
+    { id: "sand", roman: "V", name: "Sand Division", floor: 1, purse: 1 },
+    { id: "iron", roman: "IV", name: "Iron Division", floor: 4, purse: 1.25 },
+    { id: "bronze", roman: "III", name: "Bronze Division", floor: 8, purse: 1.5 },
+    { id: "silver", roman: "II", name: "Silver Division", floor: 12, purse: 1.8 },
+    { id: "crown", roman: "I", name: "Crown Division", floor: 16, purse: 2.2 }
   ];
 
   function divisionOf(data) {

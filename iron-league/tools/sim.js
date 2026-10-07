@@ -1019,6 +1019,10 @@ check("the division floor holds rivals up", IL.rivalLevel({ division: 4, roster:
 const grown = IL.growRival(IL.randomFighter(IL.mulberry32(77), "archer"), IL.mulberry32(78), 10);
 check("a grown rival took its level-ups", grown.level === 10 && grown.pendingLevels === 0 && (grown.growth || []).length === 9 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) >= 18 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) <= 27);
 check("levels come slower than the old flat 40", IL.xpFloor(10) > 9 * 40 * 2);
+const rookieMv = IL.randomFighter(IL.mulberry32(41), "warrior");
+const vetMv = Object.assign(JSON.parse(JSON.stringify(rookieMv)), { level: 10, wins: 12, losses: 3, kos: 20, mvps: 4, career: { dealt: 4000, heal: 0, taken: 900, kos: 20, moves: {} } });
+check("market value grows with level and a record", IL.marketValue(vetMv) > IL.marketValue(rookieMv) * 2 && IL.marketValue(rookieMv) >= 20);
+check("an unplayed fighter is unproven", IL.perfScore(rookieMv) === 0 && IL.perfLabel(0) === "Unproven" && IL.perfScore(vetMv) > 150);
 check("higher divisions pay more", IL.seasonPurse(0, 4).gold > IL.seasonPurse(0, 0).gold * 2);
 function grownTrio(seed, lv) {
   const r = IL.mulberry32(seed);

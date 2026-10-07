@@ -41,7 +41,7 @@
      on the pane that now holds them (tabAlias). */
   const HUB_TABS = ["overview", "matches", "roster", "club", "market", "intel"];
   const TAB_ALIAS = {
-    fighters: ["roster", "team"], cup: ["matches", "cups"], relics: ["roster", "relics"],
+    fighters: ["roster"], cup: ["matches", "cups"], relics: ["roster", "relics"],
     events: ["club", "events"], train: ["club", "train"], armory: ["roster", "team"], history: ["matches", "history"]
   };
   let matchesPane = "league";
@@ -286,6 +286,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Roster cards like the mercenary leagues: stats, moves, gear and behavior per fighter, and a full sheet with market value and performance score.",
     "A new club hub: Overview, Matches, Roster, Club, Market and Intel, with a season calendar, a feed, and an Events inbox.",
     "Level up like the mercenary leagues: choose one of four stats, then one of three skills marked by category and tier.",
     "Clearer fights: team rings underfoot, ability icons over heads, status icons, a kill feed, wind-up glints, and a calmer floor.",
@@ -1553,35 +1554,81 @@
     const lineLabel = slot >= 0 ? "Remove from lineup" : (full ? "Party full" : "Add to lineup");
     const anim = kit.idle || "idle";
     const kos = f.kos || 0;
+    const mv = IL.marketValue ? IL.marketValue(f) : 0;
+    const ps = IL.perfScore ? IL.perfScore(f) : 0;
+    const played = (f.wins || 0) + (f.losses || 0);
+    const career = f.career || {};
+    const base = IL.scaledStats(Object.assign({}, f, { level: 1, rolls: null, talents: [], specs: {}, gear: IL.blankGear ? IL.blankGear() : {}, drillRanks: {} }), kit);
+    function gainPct(now, was) { return was > 0 ? Math.round((now / was - 1) * 100) : 0; }
+    const statRows = [
+      ["HP", Math.round(stats.hp), "Max health " + (gainPct(stats.hp, base.hp) >= 0 ? "+" : "") + gainPct(stats.hp, base.hp) + "%", "drop_water_or_blood"],
+      ["ATK", Math.round(stats.atk), "Power " + (gainPct(stats.atk, base.atk) >= 0 ? "+" : "") + gainPct(stats.atk, base.atk) + "%", "sword"],
+      ["DEF", Math.round(stats.def * 10) / 10, "Blocks " + Math.round(stats.def * 10) / 10 + " a hit", "armor_1_body"],
+      ["SPD", Math.round(stats.speed), "Move " + Math.round(stats.speed) + " (" + (gainPct(stats.speed, base.speed) >= 0 ? "+" : "") + gainPct(stats.speed, base.speed) + "%)", "shoes"]
+    ];
+    const role = { tank: "Tank", melee: "Melee DPS", dash: "Rogue", kite: "Ranged DPS", cast: "Caster", heal: "Support", support: "Support" }[kit.role] || "Fighter";
+    const tone = ROLE_TONE[kit.role] || "melee";
     return '<div class="sheet-back" id="sheetBack"></div>' +
-      '<aside class="sheet" id="fighterSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">' +
-        '<header class="sheet-head"><div><p class="eyebrow">' + esc(kit.name) + (f.captain ? " · Captain" : "") + '</p>' +
-          '<h2 id="sheetTitle">' + esc(f.name) + '</h2></div>' +
-          '<button type="button" class="btn close-x" id="sheetClose" aria-label="Close">Close</button></header>' +
-        '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="280" height="248" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="5" data-foot="18"', f.captain, f) + '</div>' +
-        '<p>Level ' + (f.level || 1) + ' · ' + esc(IL.STYLES[IL.styleOf(f)].name) + ' growth · ' + esc(personalityLabel(f.personality)) + (f.rarity ? " · " + esc(rarityLabel(f.rarity)) : "") + (f.specialty && IL.specialtyOf && IL.specialtyOf(f.specialty) ? " · " + esc(IL.specialtyOf(f.specialty).name) : "") + (f.champion ? " · Champion" : "") + '</p>' +
-        staminaBar(f) +
+      '<aside class="sheet es-detail" id="fighterSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">' +
+        '<header class="es-dhead">' +
+          '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="140" height="124" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="3" data-foot="10"', f.captain, f) + '</div>' +
+          '<div class="es-dwho">' +
+            '<h2 id="sheetTitle">' + esc(f.name) + (f.captain ? ' <small class="es-captain">Captain</small>' : '') + '</h2>' +
+            '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span><span class="es-role">' + esc(role) + '</span>' + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + '</p>' +
+            staminaBar(f) +
+            '<p class="es-dlevel">Level ' + (f.level || 1) + ' · XP ' + into + '/' + xpi.need + ' (' + xpPct + '%)</p>' +
+            '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/' + xpi.need + '</b></div>' +
+          '</div>' +
+          '<div class="es-dvalue">' +
+            '<p><span>Market value</span><b>' + coinIcon("gold") + mv + '</b></p>' +
+            '<p><span>Performance score</span><b>' + esc(IL.perfLabel ? IL.perfLabel(ps) : "") + ' (' + ps + ')</b></p>' +
+          '</div>' +
+          '<button type="button" class="btn close-x" id="sheetClose" aria-label="Close">Close</button>' +
+        '</header>' +
         ((f.pendingLevels || 0) > 0 ? '<button type="button" class="btn gold sheet-level" id="sheetLevel">Level up · ' + f.pendingLevels + ' pick' + (f.pendingLevels === 1 ? '' : 's') + '</button>' : '') +
-        '<h3 class="section">Tactic</h3>' + tacticChips(f) +
-        behaviorHtml(f) +
-        '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/' + xpi.need + '</b></div>' +
-        statBar("HP", stats.hp, 320) +
-        statBar("ATK", stats.atk, 40) +
-        statBar("DEF", stats.def, 16) +
-        statBar("SPD", stats.speed, 180) +
-        gearSheetHtml(f) +
-        '<h3 class="section">Abilities</h3>' +
-        '<p class="loadout-style"><strong>' + esc(attack.name) + '</strong> ' + esc(attack.blurb) + '</p>' +
-        '<p class="loadout-style"><strong>Passive · ' + esc(passive.name || "Passive") + '</strong> ' + esc(passiveBlurb) + '</p>' +
-        '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
-        '<p class="fine">Equip three. Recruits of one class start on different threes. A tome teaches the rest.</p>' +
-        '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
-        (unlearned ? '<h3 class="section">Still to learn</h3><ul class="abilities">' + unlearned + '</ul>' : '') +
-        tomeList +
-        perkList(f) +
-        '<h3 class="section">Relics with the party</h3>' + relics +
-        '<h3 class="section">Record</h3>' +
-        '<p class="record"><span><b>W</b> ' + (f.wins || 0) + '</span><span><b>L</b> ' + (f.losses || 0) + '</span><span><b>KO</b> ' + kos + '</span></p>' +
+        '<div class="es-dgrid">' +
+          '<section class="es-card"><h3 class="section">Fighter stats</h3>' +
+            '<ul class="es-dstats">' + statRows.map(function (r) {
+              return '<li><img class="ui-glyph" alt="" src="assets/ui/glyphs/orange_32/' + r[3] + '.png"><span>' + r[0] + '</span><b>' + r[1] + '</b><em>' + esc(r[2]) + '</em></li>';
+            }).join("") + '</ul>' +
+          '</section>' +
+          '<section class="es-card"><h3 class="section">Abilities</h3>' +
+            '<p class="loadout-style"><strong>' + esc(attack.name) + '</strong> ' + esc(attack.blurb) + '</p>' +
+            '<p class="loadout-style"><strong>Passive · ' + esc(passive.name || "Passive") + '</strong> ' + esc(passiveBlurb) + '</p>' +
+            '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
+            '<p class="fine">Equip three. A tome teaches the rest.</p>' +
+            '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
+          '</section>' +
+          '<section class="es-card"><h3 class="section">Profile and behavior</h3>' +
+            '<dl class="es-profile">' +
+              '<dt>Personality</dt><dd>' + esc(personalityLabel(f.personality)) + '</dd>' +
+              '<dt>Growth style</dt><dd>' + esc(IL.STYLES[IL.styleOf(f)].name) + ' growth</dd>' +
+              (f.rarity ? '<dt>Rarity</dt><dd>' + esc(rarityLabel(f.rarity)) + '</dd>' : '') +
+              (f.specialty && IL.specialtyOf && IL.specialtyOf(f.specialty) ? '<dt>Specialty</dt><dd>' + esc(IL.specialtyOf(f.specialty).name) + '</dd>' : '') +
+              '<dt>Stamina</dt><dd>' + esc(IL.staminaLabel ? IL.staminaLabel(f) : "") + '</dd>' +
+            '</dl>' +
+            '<h3 class="section">Tactic</h3>' + tacticChips(f) +
+            behaviorHtml(f) +
+          '</section>' +
+          '<section class="es-card"><h3 class="section">Combat summary · Record</h3>' +
+            '<div class="es-summary">' +
+              '<span><small>Battles</small><b>' + played + '</b></span>' +
+              '<span><small>MVP</small><b>' + (f.mvps || 0) + '</b></span>' +
+              '<span><small>Win rate</small><b>' + (played ? Math.round(100 * (f.wins || 0) / played) + "%" : "—") + '</b></span>' +
+              '<span><small>Kills</small><b>' + kos + '</b></span>' +
+              '<span><small>Damage</small><b>' + Math.round(career.dealt || 0) + '</b></span>' +
+              '<span><small>Healing</small><b>' + Math.round(career.heal || 0) + '</b></span>' +
+            '</div>' +
+            '<p class="record"><span><b>W</b> ' + (f.wins || 0) + '</span><span><b>L</b> ' + (f.losses || 0) + '</span><span><b>KO</b> ' + kos + '</span></p>' +
+          '</section>' +
+          '<section class="es-card">' + gearSheetHtml(f) + '</section>' +
+          '<section class="es-card"><h3 class="section">Relics</h3>' + relics + '</section>' +
+        '</div>' +
+        '<details class="es-fold"' + (unlearned || tomeList ? '' : '') + '><summary>Still to learn and tomes</summary>' +
+          (unlearned ? '<ul class="abilities">' + unlearned + '</ul>' : '<p class="fine">Every move in the pool is known.</p>') + tomeList +
+        '</details>' +
+        '<details class="es-fold"><summary>Development, upgrades and ability history</summary>' + perkList(f) + '</details>' +
+        '<details class="es-fold" open><summary>Actions</summary>' +
         '<div class="sheet-actions">' +
           '<form class="rename-row" id="renameForm"><input id="renameInput" maxlength="22" autocomplete="off" aria-label="Fighter name" value="' + esc(f.name) + '">' +
             '<button type="submit" class="btn ghost">Rename</button></form>' +
@@ -1595,7 +1642,7 @@
               '<div id="releaseBox" hidden><p>Release ' + esc(f.name) + '? They leave the club.</p>' +
                 '<button type="button" class="btn danger" id="releaseYes">Release</button>' +
                 '<button type="button" class="btn ghost" id="releaseNo">Keep them</button></div>') +
-        '</div>' +
+        '</div></details>' +
       '</aside>';
   }
 
@@ -2326,9 +2373,113 @@
 
   /* ---------- Roster ---------- */
   function rosterPanel() {
-    const panes = [["team", "First team"], ["relics", "Relics"]];
-    const body = rosterPane === "relics" ? relicsPanel() : fightersPanel();
+    const panes = [["team", "First team"], ["gear", "Gear"], ["relics", "Relics"]];
+    const body = rosterPane === "relics" ? relicsPanel()
+      : rosterPane === "gear" ? '<div class="pane es-armory" id="armoryPane">' + armoryHtml() + '</div>'
+      : teamPanel();
     return subTabs("roster", rosterPane, panes) + body;
+  }
+
+  /* v72 Roster, after Eslabong: the first team as big cards (stats,
+     moves, gear, behavior, captain), then a strip of substitutes. */
+  const ROLE_TONE = { tank: "tank", melee: "melee", dash: "rogue", kite: "ranged", cast: "caster", heal: "support", support: "support" };
+
+  function statPips(st) {
+    const row = [["HP", "drop_water_or_blood", Math.round(st.hp)], ["ATK", "sword", Math.round(st.atk)], ["DEF", "armor_1_body", Math.round(st.def)], ["SPD", "shoes", Math.round(st.speed)]];
+    return '<p class="es-stats">' + row.map(function (r) {
+      return '<span title="' + r[0] + '"><img class="ui-glyph" alt="' + r[0] + '" src="assets/ui/glyphs/orange_32/' + r[1] + '.png"><b>' + r[2] + '</b></span>';
+    }).join("") + '</p>';
+  }
+
+  function esFighterCard(f, size) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const st = IL.scaledStats(f, kit);
+    const tone = ROLE_TONE[kit.role] || "melee";
+    const moves = [0, 1, 2].map(function (k) {
+      const id = (f.loadout || [])[k];
+      if (!id) return '<i class="es-move empty"></i>';
+      const sp = f.specs && f.specs[id];
+      const ab = IL.abilityById(id);
+      return '<i class="es-move" title="' + esc((sp ? IL.MODS[sp.mod].name + " " : "") + (ab ? ab.name : id)) + '">' + (IL.abilityIcon ? iconTag(IL.abilityIcon(id), 34) : "") + (sp ? '<em class="spec-pip">' + esc(IL.MODS[sp.mod].name.charAt(0)) + '</em>' : '') + '</i>';
+    }).join("");
+    const talents = (f.talents || []).slice(0, 3).map(function (t) {
+      return '<i class="es-move talent ' + (RARITY_CLASS[t.tier] || "common") + '" title="' + esc(IL.TALENTS[t.id].name) + '"><b>' + esc(IL.TALENTS[t.id].name.charAt(0)) + '</b></i>';
+    }).join("");
+    const gear = ["weapon", "armor", "trinket"].map(function (slot) {
+      const item = f.gear && f.gear[slot];
+      return '<i class="es-gear' + (item ? "" : " empty") + '" title="' + esc(item ? IL.itemName(item) : "Empty " + slotLabel(slot).toLowerCase()) + '">' + (item ? (IL.itemIcon && IL.itemIcon(item) ? iconTag(IL.itemIcon(item), 30) : esc(IL.itemName(item).charAt(0))) : '') + '</i>';
+    }).join("");
+    const relic = f.relic && IL.relicById(f.relic);
+    const ai = IL.normAi ? IL.normAi(f.ai) : null;
+    const behave = esc(tacticLabel(f.tactic) + " · " + personalityLabel(f.personality) + (ai && IL.aiCustom && IL.aiCustom(f.ai) ? " · custom" : ""));
+    return '<article class="es-fcard ' + tone + (f.captain ? " captain" : "") + '" data-role="' + esc(kit.role) + '">' +
+      '<header><h3>' + esc(f.name) + '</h3></header>' +
+      '<div class="es-fc-id">' +
+        '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
+          portraitWrap('width="64" height="58" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="5"', f.captain, f) +
+        '</button>' +
+        '<div><p class="es-lv">Lv ' + (f.level || 1) + (f.pendingLevels > 0 ? ' <span class="es-up" title="Level-up waiting">▲' + f.pendingLevels + '</span>' : '') + '</p>' +
+          '<p class="es-class ' + tone + '">' + esc(kit.name) + '</p>' + staminaBar(f) + '</div>' +
+      '</div>' +
+      statPips(st) +
+      '<div class="es-kit"><div class="es-moves">' + moves + talents + '</div><div class="es-gearcol">' + gear + (relic ? '<i class="es-gear relic" title="' + esc(relic.name) + '">' + esc(relic.name.charAt(0)) + '</i>' : '') + '</div></div>' +
+      '<button type="button" class="es-behave" data-fid="' + esc(f.id) + '" title="Tap to change the tactic">' + behave + '</button>' +
+      '<div class="es-fc-foot">' +
+        (f.captain ? '<span class="es-captain">Captain</span>' : '<button type="button" class="ctl" data-set-captain="' + esc(f.id) + '">Set captain</button>') +
+        lineupControl(f, size) +
+      '</div>' +
+    '</article>';
+  }
+
+  function esSubTile(f, size) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    return '<article class="es-sub" data-role="' + esc(kit.role) + '">' +
+      '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
+        portraitWrap('width="56" height="50" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="4"', f.captain, f) +
+      '</button>' +
+      '<b>' + esc(f.name.split(" ")[0]) + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + '</small>' +
+      staminaBar(f) +
+      '<span class="es-sub-act">' + lineupControl(f, size) + trainControl(f, false) + '</span>' +
+    '</article>';
+  }
+
+  function teamPanel() {
+    const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
+    const slotOf = {};
+    (save.lineup || []).forEach(function (id, i) { slotOf[id] = i; });
+    const ordered = save.roster.slice().sort(function (a, b) {
+      const sa = Object.prototype.hasOwnProperty.call(slotOf, a.id) ? slotOf[a.id] : 99;
+      const sb = Object.prototype.hasOwnProperty.call(slotOf, b.id) ? slotOf[b.id] : 99;
+      return sa - sb;
+    });
+    const first = [];
+    const subs = [];
+    ordered.forEach(function (f) {
+      const slot = Object.prototype.hasOwnProperty.call(slotOf, f.id) ? slotOf[f.id] : -1;
+      const fighting = slot >= 0 && (!size || slot < size);
+      (fighting ? first : subs).push(f);
+    });
+    const want = size || IL.PARTY_CAP;
+    const cards = first.map(function (f) { return esFighterCard(f, size); });
+    for (let i = first.length; i < want; i++) cards.push('<article class="es-fcard empty"><p>Empty slot</p><small>Field a substitute below.</small></article>');
+    const subTiles = subs.map(function (f) { return esSubTile(f, size); });
+    for (let i = save.roster.length; i < IL.ROSTER_CAP; i++) subTiles.push('<article class="es-sub empty"><span class="es-ghost"></span><b>Empty</b></article>');
+    const pilot = !!(save.settings && save.settings.pilot);
+    const left = save.trainsLeft || 0;
+    return '<div id="fighterList" class="es-team">' +
+      '<header class="es-team-head"><h3 class="section">First team</h3><span class="fine">' + (size ? 'Week ' + (save.round + 1) + ' fields ' + size + '. ' : '') + 'Tap a portrait for the full sheet.</span></header>' +
+      '<div class="es-first" id="partyCards">' + cards.join("") + '</div>' +
+      '<nav class="es-team-actions">' +
+        '<button type="button" class="es-subtab' + (pilot ? "" : " on") + '" data-pilot-pick="off">Autobattle</button>' +
+        '<button type="button" class="es-subtab' + (pilot ? " on" : "") + '" data-pilot-pick="on">Control</button>' +
+        '<button type="button" class="es-subtab" data-pane="roster:gear">Gear</button>' +
+        '<button type="button" class="es-subtab" data-pane="roster:relics">Relics</button>' +
+        '<button type="button" class="es-subtab" data-goto="train">Development</button>' +
+      '</nav>' +
+      '<section class="es-subs-wrap"><h3 class="section">Substitutes · ' + subs.length + ' <small class="fine">Drills left this week: ' + left + '</small></h3>' +
+        '<div class="es-subs" id="benchList">' + (subs.length ? '' : emptyState("The bench is empty.", "The whole club is in the first team.")) + subTiles.join("") + '</div>' +
+      '</section>' +
+    '</div>';
   }
 
   /* ---------- Club: activities, facilities, services ---------- */
@@ -3881,6 +4032,16 @@
       if (line && !line.disabled) { toggleLineup(line.dataset.line); return; }
       const tactic = ev.target.closest("[data-fid]");
       if (tactic) { cycleTactic(tactic.dataset.fid); return; }
+      const capBtn = ev.target.closest("[data-set-captain]");
+      if (capBtn) { setCaptain(capBtn.dataset.setCaptain); return; }
+      const pilotBtn = ev.target.closest("#fighterList [data-pilot-pick]");
+      if (pilotBtn) {
+        if (!save.settings) save.settings = { speed: 1, shake: true, sound: 80, music: 60, crowd: 70 };
+        save.settings.pilot = pilotBtn.dataset.pilotPick === "on";
+        persist();
+        refreshHub();
+        return;
+      }
       const hire = ev.target.closest("[data-hire]");
       if (hire) { hireFromMarket(+hire.dataset.hire); return; }
       const watch = ev.target.closest("[data-watch]");
@@ -6217,6 +6378,10 @@
       IL.grantXp(f, xp);
     });
     const tally = resultTable(match, xpBefore, before);
+    if (tally.mvp && tally.mvp.team === 0) {
+      const star = fighterById(tally.mvp.id);
+      if (star) star.mvps = (star.mvps || 0) + 1;
+    }
     pushHistory(match, win, tally.mvp ? tally.mvp.name : "");
     save.gold += gold;
     save.renown = (save.renown || 0) + renown;

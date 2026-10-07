@@ -262,11 +262,18 @@ def tour(page, shot_dir):
     page.wait_for_selector("#openGrowth")
     page.click("#openGrowth")
     page.wait_for_selector("#growth")
+    # v70: Eslabong flow. Choose a stat (four cards), then a skill (three).
     growth = page.locator("#growth").inner_text().lower()
-    if page.locator("#growthChoices [data-pick]").count() != 3 or "stat roll" not in growth or "choose" not in growth:
-        raise SystemExit("level-up choices missing: " + growth[:240])
-    if "→" not in growth:
-        raise SystemExit("level-up cards show no before/after numbers: " + growth[:240])
+    if page.locator("#statChoices [data-stat]").count() != 4 or "choose a stat" not in growth or "+" not in growth:
+        raise SystemExit("level-up stat cards missing: " + growth[:240])
+    page.screenshot(path=str(shot_dir / "level-up-stat.png"))
+    page.click("#statChoices [data-stat='atk']")
+    page.wait_for_selector("#growthChoices [data-pick]")
+    growth = page.locator("#growth").inner_text().lower()
+    if page.locator("#growthChoices [data-pick]").count() != 3 or "choose a skill" not in growth or "stat chosen" not in growth:
+        raise SystemExit("level-up skill cards missing: " + growth[:240])
+    if not any(t in growth for t in ("t1 common", "t2 uncommon", "t3 rare", "t4 legendary")):
+        raise SystemExit("level-up cards show no tier: " + growth[:240])
     page.screenshot(path=str(shot_dir / "level-up.png"))
     page.locator("#growthChoices [data-pick]").first.click()
     if page.locator("#growthChoices [data-slot]").count():
@@ -274,10 +281,10 @@ def tour(page, shot_dir):
     perk = page.evaluate(
         """() => {
           const f = JSON.parse(localStorage.getItem('ironleague.v1')).roster[0];
-          return { left: f.pendingLevels, log: (f.growth || []).length, kind: f.growth && f.growth[0] && f.growth[0].kind };
+          return { left: f.pendingLevels, log: (f.growth || []).length, kind: f.growth && f.growth[0] && f.growth[0].kind, atk: (f.rolls || {}).atk || 0 };
         }"""
     )
-    if perk["left"] != 0 or perk["log"] != 1 or perk["kind"] not in ("learn", "spec", "talent"):
+    if perk["left"] != 0 or perk["log"] != 1 or perk["kind"] not in ("learn", "spec", "talent") or perk["atk"] < 2:
         raise SystemExit("level-up pick was not saved: " + str(perk))
     page.wait_for_selector("#market")
     page.click("#market")
@@ -1049,12 +1056,14 @@ def sweep_frames(browser, shot_dir):
         page.wait_for_selector("#resultTable", timeout=15000)
         assert_inside(page, label + " results")
         page.click("#backHub")
-        page.wait_for_selector("#nextMatch, #nextSeason, #growthChoices", timeout=10000)
-        if page.locator("#growthChoices").count():
+        page.wait_for_selector("#nextMatch, #nextSeason, #growthChoices, #statChoices", timeout=10000)
+        if page.locator("#growthChoices, #statChoices").count():
             assert_inside(page, label + " growth")
             for _ in range(12):
                 if page.locator("#growthChoices [data-slot]").count():
                     page.click("#backHub")
+                elif page.locator("#statChoices [data-stat]").count():
+                    page.locator("#statChoices [data-stat]").first.click()
                 elif page.locator("#growthChoices [data-pick]").count():
                     page.locator("#growthChoices [data-pick]").first.click()
                 else:
@@ -1382,12 +1391,14 @@ def qa_gate(browser, shot_dir):
             assert_inside(page, label + " results 640")
             page.set_viewport_size({"width": 360, "height": 740})
         page.click("#backHub")
-        page.wait_for_selector("#nextMatch, #growthChoices, #openSeason", timeout=10000)
-        if page.locator("#growthChoices").count():
+        page.wait_for_selector("#nextMatch, #growthChoices, #statChoices, #openSeason", timeout=10000)
+        if page.locator("#growthChoices, #statChoices").count():
             assert_inside(page, label + " growth")
             for _ in range(12):
                 if page.locator("#growthChoices [data-slot]").count():
                     page.click("#backHub")
+                elif page.locator("#statChoices [data-stat]").count():
+                    page.locator("#statChoices [data-stat]").first.click()
                 elif page.locator("#growthChoices [data-pick]").count():
                     page.locator("#growthChoices [data-pick]").first.click()
                 else:

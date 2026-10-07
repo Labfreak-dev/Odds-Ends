@@ -4391,3 +4391,47 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .ctl.gold { border-color: #a07a40; color: #ffe7b0; background: #3a2b1c; }
 .es-mfrom { display: inline-flex; vertical-align: -4px; margin-right: 4px; }
 .es-mfrom .crest-sm { width: 18px; height: 18px; }
+
+/* ---------- v80 alignment pass ---------- */
+/* Crests: plate, frame and emblem all share one center. */
+.crest-mark { display: inline-block; }
+.crest-plate { left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(45deg); }
+.crest-emblem { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+/* Lineup readiness rows. */
+.ov-lineup li { grid-template-columns: 40px minmax(0, 1fr) auto 80px; }
+.es-mface.cap { outline: 1px solid #e0b25a; border-radius: 3px; }
+/* Achievements: one bordered row each, icon in its own box. */
+.achieve-row { align-items: center; margin: 6px 0; padding: 8px 10px; border: 1px solid #3f3122; border-radius: 4px; background: #1a140f; grid-template-columns: 36px minmax(0, 1fr) auto; }
+.achieve-row.done { border-color: #3f6a3a; }
+.achieve-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #4a3b2c; border-radius: 4px; background: #120e0b; }
+.achieve-icon img, .achieve-icon .item-icon { margin: 0 !important; }
+.achieve-row strong { display: block; }
+.achieve-row .fine { margin: 2px 0 0; }
+.achieve-row .track { margin-top: 6px; }
+.achieve-row b { min-width: 3em; text-align: right; }
+/* Fighter card: moves and gear on one row, no empty column. */
+.es-kit { display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; align-items: center; }
+.es-moves, .es-gearcol { display: flex; gap: 4px; }
+/* Substitute tiles: buttons the same size, labels on one line. */
+.es-subs-note { margin: -4px 0 6px; }
+.es-sub-act { width: 100%; justify-content: center; }
+.es-sub-act > * { flex: 1 1 0; min-width: 0; height: 30px; padding: 0 4px; font-size: 12px; white-space: nowrap; display: grid; place-items: center; margin: 0; }
+/* Standings on a phone: drop +/- so W-L, Pts and Form fit. */
+@media (max-width: 560px) {
+  .es-board th:nth-child(4), .es-board td:nth-child(4) { display: none; }
+  .es-board th:nth-child(3), .es-board td:nth-child(3) { width: 3.2em; }
+  .es-board th:nth-child(5), .es-board td:nth-child(5) { width: 2.6em; }
+  .es-board th, .es-board td { text-overflow: clip; }
+}
+.es-sub-act > * { min-height: 0 !important; max-height: 30px; box-sizing: border-box; line-height: 1; align-self: center; }
+.es-board th { font-size: 11px; letter-spacing: 0.04em; }
+@media (max-width: 560px) {
+  .es-board th:nth-child(3), .es-board td:nth-child(3) { width: 3.4em; text-align: center; }
+  .es-board th:nth-child(5), .es-board td:nth-child(5) { width: 2.8em; text-align: center; }
+  .es-board th:nth-child(6), .es-board td:nth-child(6) { width: 4.6em; }
+}
+@media (max-width: 560px) {
+  table.board.es-board:not([id="resultTable"]) th:nth-child(3), table.board.es-board:not([id="resultTable"]) td:nth-child(3) { width: 3.4em; text-align: center; }
+  table.board.es-board:not([id="resultTable"]) th:nth-child(5), table.board.es-board:not([id="resultTable"]) td:nth-child(5) { width: 2.8em; text-align: center; }
+  table.board.es-board:not([id="resultTable"]) th:nth-child(6), table.board.es-board:not([id="resultTable"]) td:nth-child(6) { width: 4.6em; text-align: left; padding-left: 6px; }
+}

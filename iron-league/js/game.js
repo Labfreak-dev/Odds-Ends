@@ -310,6 +310,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Class passives work: every class has a real passive with a set number, shown on its sheet (Bard: the team deals 15% more damage; Druid: the team regains 3 HP a second).",
     "Clear move text: every skill, upgrade and passive now says exactly what it does, with real damage, durations and cooldowns.",
     "Fairer early seasons: a young club meets rivals one level either way. The swing widens with the club, up to six each way at level 24.",
     "Six new moves for every class, 162 in all: learn them on level up and swap them into a slot. Every kit now has fourteen.",

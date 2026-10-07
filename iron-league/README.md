@@ -201,6 +201,41 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Class passives (v88)
+
+Only four class passives were arena rules (Rogue and Assassin bleed, Berserker fury, Duelist riposte); the other 23 were text. Each now has a set number in `PASSIVE_FX` (`js/kits.js`), the arena reads it as `u.pv`, and the sheet text is written from the same numbers:
+
+| Class | Passive | Rule |
+|---|---|---|
+| Warrior | Sure Footing | Knockbacks push 50% less far |
+| Archer | Long Eye | +12% attack range |
+| Mage | Still Hands | Spells take 15% less time to cast |
+| Tank | Raised Guard | Blocked hits do 30% instead of 40% |
+| Rogue, Assassin | Bleed | Every hit bleeds 18% ATK every 0.85s for 3.1s |
+| Lancer | Long Reach | +10% attack range |
+| Berserker | Low-Health Fury | Below 45% HP, 14% more damage |
+| Healer | Triage | Heals on an ally under 50% HP are 40% bigger |
+| Ranger | Marked Trail | 15% more damage to slowed enemies |
+| Battlemage | Close Ward | Shield of 6% max HP after an area spell |
+| Shieldbearer | Set Shield | Planted guard lasts 50% longer |
+| Skirmisher | Feint | First shot within 1.5s of a dash or roll: +25% |
+| Duelist | Riposte | Next hit after taking one: +20%; last enemy: +18% |
+| Elementalist | Cycle | Cooldowns 10% shorter |
+| Monk | Open Hand | Stuns last 30% longer |
+| Necromancer | Grave Cold | Damage over time +20% a tick |
+| Paladin | Oath Arm | Shields it gives +25% |
+| Druid | Green Blood | Team regains 3 HP a second |
+| Bard | Encore | Team deals 15% more damage |
+| Gunslinger | Quick Draw | First shot of a fight +50% |
+| Warlock | Hex Mark | Its damage-over-time targets take 8% more from everyone |
+| Samurai | Still Blade | Crits ×1.8 instead of ×1.55 |
+| Spearmaiden | Long Point | Charges hit 25% harder |
+| Summoner | Tether | Summons last 40% longer, 20% more HP |
+| Alchemist | Steady Hand | Flasks +35% |
+| Beastmaster | Pack Sense | Summons +25% damage |
+
+Bard, Druid, Healer and Alchemist got the larger numbers: with the other passives live, the class win band (sim, 100 fights a class, beside a warrior and a mage) had Bard at 4% and Druid at 9%. Measured after: Bard 26%, Druid 23%, Healer 19%, Alchemist 25% (Paladin is the top at 62%, Tank 46%). The sim plays each class's seeded fights with and without its passive and fails if nothing changes.
+
 ## Plain move text (v87)
 
 Skill text was flavor ("A blink to safer ground.", "Always on, for the rest of this fighter's career."). Every move, upgrade and passive now says what it does in numbers, worked out from the arena rules (`moveFacts`, `modFacts`, `talentFacts` in `js/game.js`):

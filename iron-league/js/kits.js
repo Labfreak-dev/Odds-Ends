@@ -759,6 +759,71 @@
     (kit.abilities || []).forEach(stampMove);
   });
 
+  /* v88: every class passive is a real rule with a set number. The arena
+     reads passive.fx (arena.js, look for u.pv); the sheet shows passive.blurb,
+     written from the same numbers. Bleed, fury and riposte were already
+     arena rules (kit.bleed, berserker and duelist checks); they get text. */
+  const PASSIVE_FX = {
+    footing: { knockResist: 0.5 },
+    aim: { range: 0.12 },
+    focus: { castSpeed: 0.15 },
+    guard: { blockCut: 0.25 },
+    reach: { range: 0.1 },
+    triage: { triage: 0.4, triageAt: 0.5 },
+    trail: { vsSlowed: 0.15 },
+    ward: { wardShield: 0.06 },
+    wall: { zoneTime: 0.5 },
+    feint: { feint: 0.25, feintTime: 1.5 },
+    cycle: { cdCut: 0.1 },
+    "open-hand": { stunTime: 0.3 },
+    "grave-cold": { dotMul: 0.2 },
+    "oath-arm": { shieldMul: 0.25 },
+    "green-blood": { teamRegen: 3 },
+    "encore-note": { teamDmg: 0.15 },
+    "quick-draw": { firstShot: 0.5 },
+    "hex-mark": { hexVuln: 0.08 },
+    "still-blade": { critMul: 1.8 },
+    "long-point": { chargeMul: 0.25 },
+    tether: { petLife: 0.4, petHp: 0.2 },
+    "steady-hand": { vialMul: 0.35 },
+    "pack-sense": { petAtk: 0.25 }
+  };
+  function pc(x) { return Math.round(x * 100) + "%"; }
+  const PASSIVE_TEXT = {
+    footing: function (v) { return "Knockbacks push this fighter " + pc(v.knockResist) + " less far."; },
+    aim: function (v) { return "+" + pc(v.range) + " attack range."; },
+    focus: function (v) { return "Spells take " + pc(v.castSpeed) + " less time to cast."; },
+    guard: function (v) { return "Blocked hits do " + pc(0.4 * (1 - v.blockCut)) + " damage instead of 40%."; },
+    reach: function (v) { return "+" + pc(v.range) + " attack range."; },
+    bleed: function () { return "Every hit makes the target bleed for 18% ATK every 0.85s for 3.1s (4 ticks)."; },
+    fury: function () { return "Below 45% HP, deals 14% more damage."; },
+    triage: function (v) { return "Heals on an ally under " + pc(v.triageAt) + " HP are " + pc(v.triage) + " bigger."; },
+    trail: function (v) { return "Deals " + pc(v.vsSlowed) + " more damage to slowed enemies."; },
+    ward: function (v) { return "After an area spell lands, gains a shield of " + pc(v.wardShield) + " of max HP."; },
+    wall: function (v) { return "The planted guard lasts " + pc(v.zoneTime) + " longer."; },
+    feint: function (v) { return "The first shot within " + v.feintTime + "s after a dash or roll deals " + pc(v.feint) + " more."; },
+    riposte: function () { return "After taking a hit, the next hit deals 20% more. With one enemy left, deals 18% more damage."; },
+    cycle: function (v) { return "Ability cooldowns are " + pc(v.cdCut) + " shorter."; },
+    "open-hand": function (v) { return "Stuns last " + pc(v.stunTime) + " longer."; },
+    "grave-cold": function (v) { return "Damage over time from its moves deals " + pc(v.dotMul) + " more per tick."; },
+    "oath-arm": function (v) { return "Shields it gives absorb " + pc(v.shieldMul) + " more."; },
+    "green-blood": function (v) { return "Its whole team regains " + v.teamRegen + " HP every second, all fight."; },
+    "encore-note": function (v) { return "Its whole team deals " + pc(v.teamDmg) + " more damage, all fight."; },
+    "quick-draw": function (v) { return "The first shot of each fight deals " + pc(v.firstShot) + " more."; },
+    "hex-mark": function (v) { return "Enemies under its damage over time take " + pc(v.hexVuln) + " more damage from everyone."; },
+    "still-blade": function (v) { return "Critical hits deal ×" + v.critMul + " damage instead of ×1.55."; },
+    "long-point": function (v) { return "Charges hit " + pc(v.chargeMul) + " harder."; },
+    tether: function (v) { return "Summons last " + pc(v.petLife) + " longer and have " + pc(v.petHp) + " more HP."; },
+    "steady-hand": function (v) { return "Thrown flasks deal " + pc(v.vialMul) + " more damage."; },
+    "pack-sense": function (v) { return "Summons deal " + pc(v.petAtk) + " more damage."; }
+  };
+  Object.keys(CLASSES).forEach(function (id) {
+    const p = CLASSES[id].passive;
+    if (!p || !p.id) return;
+    p.fx = PASSIVE_FX[p.id] || null;
+    if (PASSIVE_TEXT[p.id]) p.blurb = PASSIVE_TEXT[p.id](p.fx || {});
+  });
+
   const byId = {};
   Object.keys(CLASSES).forEach(function (id) {
     const list = CLASSES[id].abilities || [];

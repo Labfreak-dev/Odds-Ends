@@ -281,6 +281,12 @@
       u.shield += IL.tonicShield(fighter.tonic);
       fighter.tonic = null;
     }
+    /* v88 class passive numbers (kits.js PASSIVE_FX). Summons get none. */
+    u.pv = (!fighter.summon && kit.passive && kit.passive.fx) || {};
+    if (u.pv.range) u.range *= 1 + u.pv.range;
+    if (u.pv.cdCut) u.abilityCdMul *= 1 - u.pv.cdCut;
+    u.feintT = 0;
+    u.firstShotDone = false;
     return u;
   }
 
@@ -428,6 +434,15 @@
     (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
     applySideRelics(units, 0, relics, opts.wornRelics || {});
     applySideRelics(units, 1, opts.foeRelics || [], opts.foeWorn || {});
+    /* v88 team passives: set once at the start, for the whole fight. */
+    units.forEach(function (src) {
+      if (!src.pv || (!src.pv.teamDmg && !src.pv.teamRegen)) return;
+      units.forEach(function (ally) {
+        if (ally.team !== src.team) return;
+        if (src.pv.teamDmg) ally.teamDmg = (ally.teamDmg || 0) + src.pv.teamDmg;
+        if (src.pv.teamRegen) ally.regen = (ally.regen || 0) + src.pv.teamRegen;
+      });
+    });
     applySynergy(units);
     if (opts.mod) applyWaveMod(units, opts.mod);
     for (let i = 0; i < units.length; i++) {
@@ -963,6 +978,9 @@
       if (!opt.dot) spec = specOf(src, rid);
     }
     if (dst.vuln > 0 && dst.vulnAmt) amount *= 1 + dst.vulnAmt;
+    if (dst.bleed && dst.bleed.hex) amount *= 1 + dst.bleed.hex;
+    if (src && src.pv && src.pv.vsSlowed && dst.slow > 0) amount *= 1 + src.pv.vsSlowed;
+    if (src && src.teamDmg && !opt.dot) amount *= 1 + src.teamDmg;
     if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
@@ -978,13 +996,13 @@
       if (src.critNext) { crit = true; src.critNext = false; }
       else if (src.crit && m.rng() < src.crit) crit = true;
       if (crit) {
-        amount *= 1.55;
+        amount *= (src.pv && src.pv.critMul) || 1.55;
         opt.crit = true;
         if (src.team === 0) src.critsLanded = (src.critsLanded || 0) + 1;
       }
     }
     let dmg = amount - dst.def * 0.35;
-    if (blocked) dmg *= dst.guardZone ? 0.32 : 0.4;
+    if (blocked) dmg *= (dst.guardZone ? 0.32 : 0.4) * (1 - ((dst.pv && dst.pv.blockCut) || 0));
     dmg = Math.max(1, Math.round(dmg));
     if (dst.shield > 0) {
       const absorb = Math.min(dst.shield, dmg);
@@ -1113,6 +1131,8 @@
     if (!dst || dst.hp <= 0) return;
     let rawN = raw;
     if (src && src.oath) rawN *= 1.12;
+    if (src && src.pv && src.pv.healMul) rawN *= 1 + src.pv.healMul;
+    if (src && src.pv && src.pv.triage && dst.hp < dst.maxHp * (src.pv.triageAt || 0.4)) rawN *= 1 + src.pv.triage;
     if (src && src.swingTag && src.swingTag.id) rawN *= rankMul(src, src.swingTag.id);
     const n = Math.max(1, Math.round(rawN));
     dst.hp = Math.min(dst.maxHp, dst.hp + n);
@@ -1224,6 +1244,10 @@
     const sp = 470;
     const volley = u.volley || 1;
     u.volley = 0;
+    let shotMul = 1;
+    if (u.pv && u.pv.feint && u.feintT > 0) { shotMul *= 1 + u.pv.feint; u.feintT = 0; }
+    if (u.pv && u.pv.firstShot && !u.firstShotDone) { shotMul *= 1 + u.pv.firstShot; }
+    u.firstShotDone = true;
     if (bullet) {
       cue(m, "gunshot");
       if (volley > 1) u.needReload = true;
@@ -1238,7 +1262,7 @@
         x: ox, y: oy,
         vx: vx * cs - vy * sn,
         vy: vx * sn + vy * cs,
-        team: u.team, dmg: volley > 1 ? Math.round(u.atk * 0.72) : u.atk,
+        team: u.team, dmg: Math.round((volley > 1 ? u.atk * 0.72 : u.atk) * shotMul),
         r: 8, life: 1.15, src: u.id,
         trail: [], drop: volley > 1 ? 18 : 42,
         pierce: (u.pierce || 0) + (u.pierceBoost || 0),
@@ -1283,6 +1307,7 @@
   }
 
   function stepCast(m, u, dt) {
+    if (u.pv && u.pv.castSpeed) dt /= 1 - u.pv.castSpeed;
     if (u.cast && !u.cast.voiced) {
       u.cast.voiced = true;
       cue(m, "spell_" + castSchool(u, u.cast.kind) + "_cast");
@@ -1327,6 +1352,7 @@
               if (c.kind === "cast1") e.slow = Math.max(e.slow, 2.1);
             }
           }
+          wardUp(u);
         } else {
           const dx = c.x - u.x;
           const dy = c.y - u.y;
@@ -1387,6 +1413,11 @@
         if (c.slow) e.slow = Math.max(e.slow || 0, c.slow);
       }
     }
+    wardUp(u);
+  }
+
+  function wardUp(u) {
+    if (u.pv && u.pv.wardShield && u.hp > 0) u.shield += Math.round(u.maxHp * u.pv.wardShield);
   }
 
   function stepDash(m, u, dt) {
@@ -1418,6 +1449,7 @@
     u.trail = null;
     u.dashDmg = 1;
     u.guardZone = false;
+    if (u.pv && u.pv.feint) u.feintT = u.pv.feintTime || 1.5;
     if (t && dist <= u.range + t.radius + 10) startAttack(u, "atk3", t);
     else {
       u.state = "idle";
@@ -1443,6 +1475,7 @@
     u.anim = idleClip(u);
     u.cool = 0.06;
     u.trail = null;
+    if (u.pv && u.pv.feint) u.feintT = u.pv.feintTime || 1.5;
   }
 
   function beginFall(u) {
@@ -1688,7 +1721,7 @@
   }
 
   function startCharge(m, u, target) {
-    u.dashDmg = 1.7;
+    u.dashDmg = 1.7 * (1 + ((u.pv && u.pv.chargeMul) || 0));
     startDash(m, u, target);
     cue(m, "swing_blade");
     arm(u, kitOf(u.cls).ability.cd || 7);
@@ -1815,10 +1848,11 @@
     pet.summon = true;
     pet.summoner = u.id;
     pet.sprite = u.sprite;
-    pet.life = ab.life || 6;
-    pet.hp = Math.max(18, Math.round(u.maxHp * (ab.petHp || 0.26)));
+    const pv = u.pv || {};
+    pet.life = (ab.life || 6) * (1 + (pv.petLife || 0));
+    pet.hp = Math.max(18, Math.round(u.maxHp * (ab.petHp || 0.26) * (1 + (pv.petHp || 0))));
     pet.maxHp = pet.hp;
-    pet.atk = Math.max(6, Math.round(u.atk * (ab.petAtk || 0.4)));
+    pet.atk = Math.max(6, Math.round(u.atk * (ab.petAtk || 0.4) * (1 + (pv.petAtk || 0))));
     pet.range = 36;
     pet.role = "melee";
     pet.radius = 12;
@@ -1846,7 +1880,7 @@
     m.shots.push({
       x: ox, y: oy,
       vx: dx / d * 420, vy: dy / d * 420,
-      team: u.team, dmg: Math.round(u.atk * (ab.power || 0.85)),
+      team: u.team, dmg: Math.round(u.atk * (ab.power || 0.85) * (1 + ((u.pv && u.pv.vialMul) || 0))),
       r: 9, life: 1.1, src: u.id, trail: [], drop: 20, pierce: 0,       hit: {},
       spell: flask ? "spell_poison_impact" : null,
       snd: flask ? null : "hit_bullet",
@@ -1984,6 +2018,7 @@
   }
 
   function fireOne(m, u, t, dist, ab) {
+    if (!u.pv) u.pv = {};
     const reach = u.range + (t ? t.radius : 0);
     const paint = ab.fx || "spark";
     function finish(code) {
@@ -2028,7 +2063,7 @@
     if (ab.kind === "zone" && dist < 120) {
       startBlock(m, u);
       u.guardZone = true;
-      u.actT = 0.82;
+      u.actT = 0.82 * (1 + ((u.pv && u.pv.zoneTime) || 0));
       spend(u, ab);
       m.stats.abilities++;
       fx(m, paint, u.x, u.y - 10, { size: 180, ground: true });
@@ -2100,7 +2135,7 @@
       return finish("go");
     }
     if (ab.kind === "dot" && t && dist <= (ab.reach || reach + 8)) {
-      t.bleed = { t: ab.dot || 3.2, acc: 0, dmg: Math.max(2, Math.round(u.atk * (ab.power || 0.25))), src: u.id, tag: { id: ab.id, name: ab.name } };
+      t.bleed = { t: ab.dot || 3.2, acc: 0, dmg: Math.max(2, Math.round(u.atk * (ab.power || 0.25) * (1 + (u.pv.dotMul || 0)))), src: u.id, tag: { id: ab.id, name: ab.name }, hex: u.pv.hexVuln || 0 };
       m.stats.bleeds++;
       spend(u, ab);
       m.stats.abilities++;
@@ -2111,7 +2146,7 @@
     if (ab.kind === "shield") {
       let ally = u;
       if (!ab.self) ally = lowestAlly(m, u) || u;
-      ally.shield += Math.round(ally.maxHp * (ab.power || 0.1));
+      ally.shield += Math.round(ally.maxHp * (ab.power || 0.1) * (1 + (u.pv.shieldMul || 0)));
       spend(u, ab);
       m.stats.abilities++;
       cue(m, "shield_up");
@@ -2121,7 +2156,7 @@
     if (ab.kind === "buff") {
       const targets = ab.team ? m.units.filter(function (e) { return e.team === u.team && e.hp > 0 && !e.summon; }) : [u];
       for (let i = 0; i < targets.length; i++) {
-        targets[i].buff = Math.max(targets[i].buff || 0, ab.time || 3.5);
+        targets[i].buff = Math.max(targets[i].buff || 0, (ab.time || 3.5) * (1 + (u.pv.buffTime || 0)));
         targets[i].buffAtk = Math.max(targets[i].buffAtk || 1, 1 + (ab.power || 0.12));
       }
       spend(u, ab);
@@ -2137,7 +2172,7 @@
       return finish(posed(u, ab));
     }
     if (ab.kind === "stun" && t && dist <= (ab.reach || reach + 12)) {
-      t.stun = Math.max(t.stun || 0, ab.stun || 0.55);
+      t.stun = Math.max(t.stun || 0, (ab.stun || 0.55) * (1 + (u.pv.stunTime || 0)));
       t.state = "hurt";
       t.anim = "hurt";
       t.animT = 0;
@@ -2154,8 +2189,9 @@
       const dx = t.x - u.x;
       const dy = t.y - u.y;
       const d = Math.hypot(dx, dy) || 1;
-      t.vx = dx / d * (ab.force || 240);
-      t.vy = dy / d * (ab.force || 240);
+      const push = (ab.force || 240) * (1 - ((t.pv && t.pv.knockResist) || 0));
+      t.vx = dx / d * push;
+      t.vy = dy / d * push;
       spend(u, ab);
       m.stats.abilities++;
       fx(m, paint, t.x, t.y - 14, { facing: u.facing, size: 140, team: u.team });
@@ -2742,6 +2778,7 @@
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);
       if (u.vuln > 0) u.vuln = Math.max(0, u.vuln - dt);
+      if (u.feintT > 0) u.feintT = Math.max(0, u.feintT - dt);
       if (u.hp > 0 && u.regen) u.hp = Math.min(u.maxHp, u.hp + u.regen * dt);
       if (u.hp > 0 && u.bleed) {
         u.bleed.t -= dt;

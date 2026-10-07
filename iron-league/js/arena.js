@@ -827,7 +827,7 @@
     };
     const chant = chantAb(u, clip);
     u.swingTag = chant ? { id: chant.id, name: chant.name } : basicTag(u);
-    if (chant) raiseBanner(u, chant.name, false, dur + 0.35);
+    if (chant) raiseBanner(u, chant.name, false, dur + 0.35, chant.id);
     else if (IL.attackOf) {
       const atk = IL.attackOf(u.cls);
       if (atk) raiseBanner(u, atk.name, false, dur + 0.35);
@@ -1079,7 +1079,7 @@
       if (src && src.team !== dst.team) src.kos = (src.kos || 0) + 1;
       if (src && src.bounty) m.stats.bounty = (m.stats.bounty || 0) + src.bounty;
       m.stats.deaths++;
-      m.events.push({ type: "death", id: dst.id, team: dst.team });
+      m.events.push({ type: "death", id: dst.id, team: dst.team, by: src ? src.id : "", byTeam: src ? src.team : -1 });
       cue(m, "ko_stinger", { layer: dst.team === 0 ? "crowd_gasp" : "crowd_cheer" });
       fx(m, "boom", dst.x, dst.y - 18, { size: 168 });
       return;
@@ -1839,9 +1839,11 @@
     fx(m, ab.fx || "boom", ox, oy, { size: 90, facing: u.facing });
   }
 
-  function raiseBanner(u, name, ult, life) {
+  /* id marks a real ability (drawn as its icon over the head); basic
+     attacks raise a banner without one and draw nothing. */
+  function raiseBanner(u, name, ult, life, id) {
     if (!u || !name) return;
-    u.banner = { name: String(name), t: 0, life: life || (ult ? 1.15 : 0.85), ult: !!ult };
+    u.banner = { name: String(name), t: 0, life: life || (ult ? 1.15 : 0.85), ult: !!ult, id: id || "" };
   }
 
   function beginCine(m, u, ab) {
@@ -1886,7 +1888,7 @@
   function noteAbility(m, u, t, ab) {
     if (ab && ab.id) u.swingTag = { id: ab.id, name: ab.name };
     const life = u && u.cast && u.cast.dur ? u.cast.dur + 0.35 : 0;
-    raiseBanner(u, ab.name, !!ab.ult, life);
+    raiseBanner(u, ab.name, !!ab.ult, life, ab.id);
     paintKind(m, u, t, ab);
     beginCine(m, u, ab);
     if (!u || u.state !== "cast") paintSignature(m, u, t, ab);

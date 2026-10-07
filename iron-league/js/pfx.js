@@ -286,7 +286,7 @@
       glow(fx, x, y, 0, r * 0.5, "150,214,255", 0.22, 0.8);
       burst(fx, x, y, 4, { pal: "ice", n: 22, speed: [50, 170], g: 160, life: [0.35, 0.7], size: [1.4, 2.8], shape: "shard", up: 30 });
       ring(fx, x, y, 0, r, "200,236,255", 0.28, 1.2);
-      decal(fx, x, y, r * 0.7, "frost", 2.8);
+      decal(fx, x, y, r * 0.6, "frost", 1.4);
     } else {
       const pal = PAL[school] ? school : "arcane";
       glow(fx, x, y, 0, r * 0.5, CORE[pal] || CORE.arcane, 0.26, 0.85);
@@ -547,14 +547,12 @@
           ctx.globalCompositeOperation = "source-over";
         }
       } else if (d.kind === "frost") {
-        ctx.fillStyle = "rgba(190,230,255," + (0.07 * a) + ")";
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(235,250,255," + (0.55 * a) + ")";
+        /* A few twinkling ice glints, no patch. */
         for (let k = 0; k < d.splats.length; k++) {
           const s = d.splats[k];
-          ctx.fillRect(Math.round(d.x + s.x), Math.round(d.y + s.y), Math.ceil(s.s * 0.6), Math.ceil(s.s * 0.6));
+          const tw = 0.5 + 0.5 * Math.sin((fx.t || 0) * 7 + k * 2.1 + d.seed);
+          ctx.fillStyle = "rgba(170,225,255," + (0.7 * a * tw) + ")";
+          ctx.fillRect(Math.round(d.x + s.x) - 0.5, Math.round(d.y + s.y * 0.7) - 0.5, 1.5, 1.5);
         }
       } else {
         ctx.fillStyle = "rgba(110,10,16," + (0.7 * a) + ")";

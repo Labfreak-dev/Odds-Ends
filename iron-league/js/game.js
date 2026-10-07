@@ -275,6 +275,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Clearer fights: team rings underfoot, ability icons over heads, status icons, a kill feed, wind-up glints, and a calmer floor.",
     "New hit effects: chunky pixel blood and sparks, white hit flashes, fire craters, sky lightning, and dash afterimages.",
     "Slower on screen: the whole pit plays at 80% speed, so walks, swings, casts and rolls move slower.",
     "A calmer pit: fighters walk 30% slower, swing about once a second, roll less, and wait longer between moves.",
@@ -5224,7 +5225,9 @@
       fx.t += dt;
       paintPilot(match, dt);
       if (!match.over && !paused) {
-        acc += dt * speed * ((IL.PACE && IL.PACE.tempo) || 1);
+        /* A kill slows the view for a beat; the sim itself is untouched. */
+        const beat = (fx.slow || 0) > 0 ? 0.35 : 1;
+        acc += dt * speed * ((IL.PACE && IL.PACE.tempo) || 1) * beat;
         let guard = 0;
         while (acc >= 1 / 60 && !match.over && guard < 8) {
           IL.stepMatch(match, 1 / 60);
@@ -5285,6 +5288,22 @@
         if (typeof e.n === "number" && shakeOn()) fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
       } else if (e.type === "heal") {
         placeNum({ x: e.x, y: e.y, n: e.n, heal: true, team: e.team, t: 0, life: 0.9 });
+      } else if (e.type === "death") {
+        /* Kill feed and a short slow-motion beat (live view only). */
+        let who = null;
+        let by = null;
+        for (let k = 0; k < match.units.length; k++) {
+          const u = match.units[k];
+          if (u.id === e.id && u.team === e.team) who = u;
+          if (e.by && u.id === e.by && u.team === e.byTeam) by = u;
+        }
+        if (who && !who.summon) {
+          if (!fx.feed) fx.feed = [];
+          fx.feed.push({ who: who.name || "?", team: e.team, by: by ? by.name : "", byTeam: by ? by.team : -1, t: 0, life: 4.5 });
+          if (fx.feed.length > 6) fx.feed.shift();
+          fx.slow = 0.38;
+          if (shakeOn()) fx.shake = Math.min(9, fx.shake + 4);
+        }
       } else if (e.type === "pilotNo") {
         pilotSay(e.name + " — not yet.");
       } else if (e.type === "pilot") {
@@ -5332,6 +5351,8 @@
   function ageFx(fx, dt) {
     fx.dtLast = dt;
     if (IL.pfx) IL.pfx.step(fx, dt);
+    if (fx.slow > 0) fx.slow = Math.max(0, fx.slow - dt);
+    if (fx.feed) fx.feed = fx.feed.filter(function (f) { f.t += dt; return f.t < f.life; });
     if (!shakeOn()) fx.shake = 0;
     fx.shake *= Math.pow(0.04, dt);
     if (fx.shake < 0.15) fx.shake = 0;

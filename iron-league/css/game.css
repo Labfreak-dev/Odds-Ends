@@ -4387,3 +4387,7 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .codex-pool small { color: #e0b25a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
 .codex-pool em { font-style: normal; color: #e8dccb; font-size: 13px; }
 @media (max-width: 560px) { .systems { grid-template-columns: minmax(0, 1fr); } }
+.offer-btns { display: inline-flex; gap: 4px; }
+.ctl.gold { border-color: #a07a40; color: #ffe7b0; background: #3a2b1c; }
+.es-mfrom { display: inline-flex; vertical-align: -4px; margin-right: 4px; }
+.es-mfrom .crest-sm { width: 18px; height: 18px; }

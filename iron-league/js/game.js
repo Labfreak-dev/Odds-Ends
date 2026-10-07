@@ -300,6 +300,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Transfers: rival clubs bid for your fighters (accept or decline in Events), and list their own fighters on the market.",
     "Intel: club leaders and records, every rival roster in the division, and an Archive of classes, clubs, champions, relics and how the game works.",
     "The Champions Cup: when the league closes, its top four play 3v3 knockouts before the ceremony. The winner takes a relic.",
     "Club facilities: Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office and Treasure House.",
@@ -2230,6 +2231,12 @@
     pendingGrowth().forEach(function (f) {
       out.push({ act: true, kind: "level", fid: f.id, text: f.name + " has " + f.pendingLevels + " level-up pick" + (f.pendingLevels === 1 ? "" : "s") + " waiting." });
     });
+    (save.offers || []).forEach(function (o) {
+      const f = fighterById(o.fid);
+      if (!f) return;
+      const mv = IL.marketValue ? IL.marketValue(f) : 0;
+      out.push({ act: true, kind: "offer", oid: o.id, text: o.club + " offers " + o.gold + " gold for " + f.name + " (value " + mv + ")." });
+    });
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
     (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
@@ -2239,6 +2246,33 @@
     return out;
   }
 
+  function offerButtons(oid) {
+    return '<span class="offer-btns"><button type="button" class="ctl gold" data-offer-accept="' + esc(oid) + '">Accept</button><button type="button" class="ctl" data-offer-decline="' + esc(oid) + '">Decline</button></span>';
+  }
+
+  /* Sell to the bidding club: gold in, gear back to the bag. */
+  function answerOffer(oid, yes) {
+    const list = save.offers || [];
+    const o = list.filter(function (x) { return x.id === oid; })[0];
+    save.offers = list.filter(function (x) { return x.id !== oid; });
+    if (!o) { refreshHub(); return; }
+    const f = fighterById(o.fid);
+    if (yes && f && !f.captain) {
+      save.gold += o.gold;
+      returnGear(f);
+      save.roster = save.roster.filter(function (r) { return r !== f; });
+      save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
+      save.marketNews = [f.name + " joined " + o.club + " for " + o.gold + " gold."].concat(save.marketNews || []).slice(0, 6);
+      pitSound("sell");
+      persist();
+      refreshHub();
+      showNote(f.name + " leaves for " + o.club + ". +" + o.gold + " gold.");
+      return;
+    }
+    persist();
+    refreshHub();
+  }
+
   function inboxHtml() {
     const items = inboxItems();
     const acts = items.filter(function (x) { return x.act; });
@@ -2246,6 +2280,7 @@
     function row(x, i) {
       const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
         : x.kind === "go" ? '<button type="button" class="ctl" data-inbox-go="' + esc(x.tab) + '">Open ›</button>'
+        : x.kind === "offer" ? offerButtons(x.oid)
         : x.kind === "season" ? '<button type="button" class="ctl" data-inbox-season="1">Open ›</button>' : '';
       return '<li class="inbox-row ' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
     }
@@ -2271,7 +2306,11 @@
       if (lv) { inboxOpen = false; levelFocus = lv.dataset.inboxLevel; showGrowth(); return; }
       const go = ev.target.closest("[data-inbox-go]");
       if (go) { inboxOpen = false; showHub(go.dataset.inboxGo); return; }
-      if (ev.target.closest("[data-inbox-season]")) { inboxOpen = false; showSeasonEnd(); }
+      if (ev.target.closest("[data-inbox-season]")) { inboxOpen = false; showSeasonEnd(); return; }
+      const oy = ev.target.closest("[data-offer-accept]");
+      if (oy) { answerOffer(oy.dataset.offerAccept, true); return; }
+      const on = ev.target.closest("[data-offer-decline]");
+      if (on) { answerOffer(on.dataset.offerDecline, false); }
     };
   }
 
@@ -2378,7 +2417,8 @@
     const action = acts.length
       ? '<section class="es-card ov-action"><h3 class="section">Action required</h3><ul class="inbox">' + acts.slice(0, 4).map(function (x) {
           const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
-            : x.kind === "go" ? '<button type="button" class="ctl" data-goto="' + esc(x.tab) + '">Open ›</button>' : '';
+            : x.kind === "go" ? '<button type="button" class="ctl" data-goto="' + esc(x.tab) + '">Open ›</button>'
+            : x.kind === "offer" ? offerButtons(x.oid) : '';
           return '<li class="inbox-row"><span>' + esc(x.text) + '</span>' + btn + '</li>';
         }).join("") + '</ul></section>'
       : '';
@@ -2867,6 +2907,7 @@
       if (marketFilter === "watch") return !!r.watch;
       if (marketFilter === "champions") return !!(r.fighter && r.fighter.champion);
       if (marketFilter === "scouted") return !!r.scouted;
+      if (marketFilter === "league") return !!r.from;
       return true;
     });
   }
@@ -2881,7 +2922,7 @@
       champions: all.filter(function (r) { return r.fighter && r.fighter.champion; }).length,
       scouted: all.filter(function (r) { return r.scouted; }).length
     };
-    const chips = [["all", "All", 0], ["affordable", "Affordable", counts.affordable], ["watch", "Watchlist", counts.watch], ["champions", "Champions", counts.champions], ["scouted", "Scouted", counts.scouted]];
+    const chips = [["all", "All", 0], ["affordable", "Affordable", counts.affordable], ["watch", "Watchlist", counts.watch], ["league", "League", all.filter(function (r) { return r.from; }).length], ["champions", "Champions", counts.champions], ["scouted", "Scouted", counts.scouted]];
     const full = save.roster.length >= IL.rosterCap(save);
     const list = rows.map(function (x) {
       const r = x.row;
@@ -2896,7 +2937,7 @@
       return '<div class="es-mrow' + (x.i === marketPick ? " on" : "") + (cant ? " cant-afford" : "") + '" data-role="' + esc(kit.role) + '">' +
         '<button type="button" class="es-mpick" data-mpick="' + x.i + '">' +
           '<canvas class="es-mface" width="40" height="36" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="3"></canvas>' +
-          '<span class="es-mname"><b>' + esc(f.name) + (f.champion ? ' <em class="champ">★</em>' : '') + (r.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</b><span class="es-mmoves">' + moves + '</span></span>' +
+          '<span class="es-mname"><b>' + (r.from ? '<span class="es-mfrom" title="Listed by ' + esc(r.from) + '">' + crestHtml(r.from, "sm", crestIndexOf(r.from)) + '</span>' : '') + esc(f.name) + (f.champion ? ' <em class="champ">★</em>' : '') + (r.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</b><span class="es-mmoves">' + moves + '</span></span>' +
           '<span class="es-mstat">' + Math.round(st.hp) + '</span><span class="es-mstat">' + Math.round(st.atk) + '</span><span class="es-mstat">' + Math.round(st.def) + '</span><span class="es-mstat">' + Math.round(st.speed) + '</span>' +
           '<span class="es-mclass"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span><small>Lvl ' + (f.level || 1) + '</small></span>' +
           '<span class="es-mprice">' + (r.locked ? '' : coinIcon("gold")) + price + '</span>' +
@@ -2928,7 +2969,7 @@
           portraitWrap('width="96" height="86" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
           '<div><h3>' + esc(f.name) + '</h3>' +
             '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span>' + (f.rarity ? '<span class="es-role">' + esc(rarityLabel(f.rarity)) + '</span>' : '') + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + '</p>' +
-            '<p class="es-dlevel">Level ' + (f.level || 1) + ' · Free agent</p></div>' +
+            '<p class="es-dlevel">Level ' + (f.level || 1) + ' · ' + (pick.from ? 'Listed by ' + esc(pick.from) : 'Free agent') + '</p></div>' +
           '<div class="es-dvalue"><p><span>Market value</span><b>' + coinIcon("gold") + mv + '</b></p>' +
             '<p><span>' + (pick.locked ? 'Renown required' : 'Asking price') + '</span><b>' + (pick.locked ? pick.need : coinIcon("gold") + pick.cost) + '</b></p></div>' +
         '</header>' +
@@ -4312,6 +4353,10 @@
       }
       const gotoBtn = ev.target.closest("[data-goto]");
       if (gotoBtn) { showHub(gotoBtn.dataset.goto); return; }
+      const offY = ev.target.closest("[data-offer-accept]");
+      if (offY) { answerOffer(offY.dataset.offerAccept, true); return; }
+      const offN = ev.target.closest("[data-offer-decline]");
+      if (offN) { answerOffer(offN.dataset.offerDecline, false); return; }
       const inLv = ev.target.closest("[data-inbox-level]");
       if (inLv) { levelFocus = inLv.dataset.inboxLevel; showGrowth(); return; }
       const emblem = ev.target.closest("[data-club-crest]");

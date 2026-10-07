@@ -507,6 +507,7 @@
     if (typeof data.tokens !== "number") data.tokens = 1;
     if (!Array.isArray(data.relics)) data.relics = [];
     if (!Array.isArray(data.equipped)) data.equipped = [];
+    if (!Array.isArray(data.offers)) data.offers = [];
     data.equipped = data.equipped.filter(function (id) {
       const relic = relicById(id);
       return relic && relic.scope !== "fighter" && data.relics.indexOf(id) >= 0;
@@ -1028,8 +1029,47 @@
         found = true;
       }
     }
+    /* v78: a rival club lists one of its own now and then, at its level
+       and a little over value. */
+    const lister = (save.clubs || []).filter(function (c) { return c && !c.you; });
+    if (lister.length && rng() < 0.65) {
+      const club = lister[Math.floor(rng() * lister.length)];
+      const listing = rivalListing(save, rng, club.name, names.concat(fresh.map(function (r) { return String(r.fighter.name).split(" ")[0]; })));
+      if (listing) fresh.push(listing);
+    }
     save.market = kept.concat(fresh);
     return want && found ? IL.CLASSES[want].name : "";
+  }
+
+  function rivalListing(save, rng, clubName, avoidNames) {
+    const fighter = IL.themedFighter ? IL.themedFighter(rng, clubName) : IL.randomFighter(rng);
+    if (!fighter) return null;
+    stampRecruit(fighter, rng);
+    if (IL.dressRival) IL.dressRival(fighter, rng, divisionOf(save));
+    growRival(fighter, rng, rivalLevel(save, Math.floor(rng() * 5)));
+    if (IL.separateNames) IL.separateNames([fighter], avoidNames || []);
+    if (!IL.classUnlocked(fighter.cls, save.renown || 0)) return null;
+    const cost = Math.max(30, Math.round(marketValue(fighter) * 1.2 / 5) * 5);
+    return { fighter: fighter, cost: cost, from: clubName };
+  }
+
+  /* v78 offers: after a league or cup week a rival may bid for one of your
+     fighters, above market value. An offer lasts one week. */
+  function rollOffers(save, rng) {
+    const notes = [];
+    if (!Array.isArray(save.offers)) save.offers = [];
+    save.offers = save.offers.filter(function (o) { return o && o.season === save.season && (save.round || 0) - (o.round || 0) <= 1; });
+    const rivals = (save.clubs || []).filter(function (c) { return c && !c.you; });
+    const pool = (save.roster || []).filter(function (f) {
+      return f && !f.captain && ((f.level || 1) >= 2 || (f.wins || 0) > 0) && !save.offers.some(function (o) { return o.fid === f.id; });
+    });
+    if (!rivals.length || !pool.length || save.offers.length >= 2 || rng() > 0.4) return notes;
+    const f = pool[Math.floor(rng() * pool.length)];
+    const club = rivals[Math.floor(rng() * rivals.length)];
+    const gold = Math.max(40, Math.round(marketValue(f) * (1.15 + rng() * 0.55) / 5) * 5);
+    save.offers.push({ id: "o" + save.season + "-" + (save.round || 0) + "-" + f.id, fid: f.id, fname: f.name, club: club.name, gold: gold, season: save.season, round: save.round || 0 });
+    notes.push(club.name + " bid " + gold + " gold for " + f.name + ".");
+    return notes;
   }
 
   function refreshBoard(save, rng, avoid) {
@@ -1056,6 +1096,7 @@
     });
     const scouted = rollBoard(save, rng, avoid, kept);
     if (scouted) notes.push("Your scout found a " + scouted + ".");
+    rollOffers(save, rng).forEach(function (n) { notes.push(n); });
     return notes;
   }
 
@@ -1786,6 +1827,8 @@
   IL.rarityName = rarityName;
   IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;
+  IL.rollOffers = rollOffers;
+  IL.rivalListing = rivalListing;
   IL.startChampionsCup = startChampionsCup;
   IL.settleCup = settleCup;
   IL.perfScore = perfScore;

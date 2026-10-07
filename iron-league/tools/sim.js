@@ -1032,6 +1032,17 @@ check("the tie without you is settled and yours waits", cc.winners[0] && !cc.win
 const ccOut = IL.startChampionsCup({ clubName: "Us", season: 3 }, ccTable.slice(0, 2).concat(ccTable.slice(3)).concat([{ id: "c9", name: "Club 9", you: false, fighters: ccTable[0].fighters }]));
 IL.settleCup(ccOut, [], IL.mulberry32(6));
 check("a cup without you plays to a champion", !!ccOut.champion && ccOut.champion !== "you");
+const offSave = IL.migrate({ clubName: "Off", season: 2, round: 3, roster: [{ id: "cap", cls: "warrior", captain: true, level: 4 }, { id: "b1", cls: "archer", level: 3, wins: 2 }] });
+offSave.clubs = [{ id: "you", name: "Off", you: true }, { id: "c0", name: "Red Kettle", you: false, fighters: [] }];
+let offerSeen = 0;
+for (let k = 0; k < 40; k++) { offSave.offers = []; IL.rollOffers(offSave, IL.mulberry32(300 + k)); if (offSave.offers.length) offerSeen++; }
+const anOffer = (function () { for (let k = 0; k < 40; k++) { offSave.offers = []; IL.rollOffers(offSave, IL.mulberry32(300 + k)); if (offSave.offers.length) return offSave.offers[0]; } return null; })();
+check("rivals bid for your fighters, never the captain, above value", offerSeen > 5 && offerSeen < 35 && anOffer && anOffer.fid === "b1" && anOffer.gold >= IL.marketValue(offSave.roster[1]));
+offSave.round = 5;
+IL.rollOffers(offSave, IL.mulberry32(999));
+check("an offer lasts one week", (offSave.offers || []).every(function (o) { return offSave.round - o.round <= 1; }));
+const listing = IL.rivalListing({ clubName: "Off", renown: 999, division: 1, roster: [{ level: 6 }, { level: 6 }, { level: 6 }] }, IL.mulberry32(7), "Red Kettle", []);
+check("a rival listing comes at the club's level and over value", listing && listing.from === "Red Kettle" && listing.fighter.level >= 4 && listing.cost >= IL.marketValue(listing.fighter));
 const facSave = { facilities: { hq: 2, barracks: 1, infirmary: 2, scout: 2, treasury: 1 } };
 check("facilities scale the club", IL.rosterCap(facSave) === IL.ROSTER_CAP + 4 && Math.abs(IL.benchShare(facSave) - 0.15) < 1e-9 && IL.restBonus(facSave) === 12 && IL.scoutOdds(facSave) === 1 && IL.clubRelicSlots(facSave) === 3 && IL.rosterCap({}) === IL.ROSTER_CAP);
 const facMig = IL.migrate({ clubName: "F", roster: [{ id: "a", cls: "warrior" }], facilities: { hq: 9, yard: 5 } });

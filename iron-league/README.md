@@ -200,6 +200,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Transfers (v78)
+
+- **Offers**: after a league or cup week, a rival in your division may bid for one of your fighters (never the captain; level 2+ or a win to their name), at 1.15–1.7× market value. At most two offers stand; each lasts a week. They show under Action required on Overview and in the Events inbox with **Accept** / **Decline**. Accepting pays the gold, returns their gear to the bag and posts the transfer to the market news.
+- **Rival listings**: when the board turns over, a division rival lists one of its own fighters about two times in three, dressed and levelled like their squad, at 1.2× market value. The row carries the club's crest, the card reads "Listed by …", and a **League** filter shows only these.
+- `IL.rollOffers(save, rng)`, `IL.rivalListing(save, rng, club, avoid)`; offers live in `save.offers`.
+
 ## Intel (v77)
 
 - **Stats**: club leaders (season kills, damage, healing; impact by performance score; MVPs; career kills), single-match **club records** (most damage, knockouts, healing, damage taken, with who and which season; `save.records`), then the old record panel.

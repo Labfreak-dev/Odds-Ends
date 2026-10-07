@@ -905,13 +905,13 @@ def check_season(page, label, shot_dir):
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
           const foes = raw.clubs.filter(c => !c.you);
           const lv = foes.map(c => (c.fighters && c.fighters[0] && c.fighters[0].level) || 0);
-          return { lv: lv, club: Math.max(IL.DIVISIONS[IL.divisionOf(raw)].floor, IL.clubLevel(raw)) };
+          return { lv: lv, club: IL.clubLevel(raw), range: IL.rivalRange(raw) };
         }"""
     )
-    # v84: rivals sit on the club's level (or the division floor), each club
-    # on its own swing from six under to six over (one more either way per fighter).
-    lv, club = level["lv"], level["club"]
-    if not lv or min(lv) < max(1, club - 7) or max(lv) > club + 7 or max(lv) < club + 5 or min(lv) > max(1, club - 5):
+    # v86: rivals sit on the club's level, each club on its own swing; the
+    # swing is one level for a young club and widens to six by level 24.
+    lv, (lo, hi) = level["lv"], level["range"]
+    if not lv or min(lv) < lo or max(lv) > hi or max(lv) < level["club"] or hi - lo > 14:
         raise SystemExit(label + " rivals did not match the club: " + str(level))
 
 

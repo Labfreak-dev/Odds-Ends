@@ -201,6 +201,19 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Closer rivals early (v86)
+
+A level 6 club could meet level 12-15 rivals: the full six-level swing applied from the start, plus the division floor (Bronze is 8) added on top. Now:
+
+- **The swing grows with the club**: at most one level either way up to club level 7, then one more step every four levels (±2 at 8, ±3 at 12, ±4 at 16, ±5 at 20) to the full ±6 at 24. The per-fighter ±1 wobble starts at 12.
+- **The division floor lifts rivals two levels at most** over the club (a level 6 club in Bronze meets level 8, not 8 plus the swing).
+- **Rivals already over target come down**: a rival more than two levels over its target (made under the old rule) is rebuilt from level 1 at the target, keeping its name, look and gear, so a running season fixes itself on the next visit to the hub.
+- Fix: Iron Gate bosses take their level-up picks again (v84 grew them from the level they were set to, so they got none).
+
+| Club level | 1-7 | 8-11 | 12-15 | 16-19 | 20-23 | 24+ |
+|---|---|---|---|---|---|---|
+| Rivals (club swing + fighter wobble) | ±1 | ±2 | ±4 | ±5 | ±6 | ±7 |
+
 ## More moves (v85)
 
 Every class learns six more moves, 162 in all (`MORE2` in `js/kits.js`), so a kit holds 14: three starters, a twin, and ten to learn on level up. They use only kinds the arena already plays and that the class family already uses (blades get cleaves, stuns, bleeds, knockbacks and charges; bows and guns get volleys, piercing shots, slows and rolls; casters get bolts, blasts, drains, summons and guards; supports get mends, guards, team buffs and slows), with numbers inside the bands of the moves already there. Icons come from the move's kind.

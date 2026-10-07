@@ -1016,18 +1016,32 @@ check("an old high club is seated in a high division", curveSave.division >= 2 &
 const lvlSave = { division: 0, roster: [{ level: 12 }, { level: 11 }, { level: 10 }, { level: 2 }] };
 const rivalLvls = [];
 for (let c = 0; c < 7; c++) for (let k = 0; k < 3; k++) rivalLvls.push(IL.rivalLevel(lvlSave, c, k));
+function rivalSpread(lv, division) {
+  const d = { division: division || 0, roster: [{ level: lv }, { level: lv }, { level: lv }] };
+  const out = [];
+  for (let c = 0; c < 7; c++) for (let k = 0; k < 3; k++) out.push(IL.rivalLevel(d, c, k));
+  return [Math.min.apply(null, out), Math.max.apply(null, out)];
+}
 check("rivals track the club level within seven", rivalLvls.every(function (lv) { return Math.abs(lv - 11) <= 7; }));
-check("rivals swing at least six each way", Math.min.apply(null, rivalLvls) <= 11 - 6 && Math.max.apply(null, rivalLvls) >= 11 + 6);
-check("the division floor holds the middle rival up", IL.rivalLevel({ division: 4, roster: [{ level: 3 }] }, 3, 0) >= 16);
+check("a young club meets rivals one level either way", rivalSpread(6)[0] === 5 && rivalSpread(6)[1] === 7 && rivalSpread(3)[1] <= 4);
+check("the swing grows to six each way by level 24", rivalSpread(24)[0] <= 18 && rivalSpread(24)[1] >= 30 && rivalSpread(16)[1] - 16 < 6);
+check("the division floor lifts rivals two levels at most", rivalSpread(6, 2)[1] <= 6 + 2 + 2 && IL.rivalLevel({ division: 4, roster: [{ level: 3 }] }, 3, 0) === 5 && IL.rivalLevel({ division: 4, roster: [{ level: 15 }] }, 3, 0) === 16);
 check("the level cap is 100", IL.LEVEL_CAP === 100 && IL.xpLevel(IL.xpFloor(100) + 1e6) === 100);
 const capSave = { division: 0, roster: [{ level: 100 }, { level: 100 }, { level: 100 }] };
 check("rivals of a maxed club stay at the cap", IL.rivalLevel(capSave, 6, 2) === 100 && IL.rivalLevel(capSave, 0, 1) === 93);
+const gb = IL.gateFloor({ division: 0, roster: [{ level: 10 }, { level: 10 }, { level: 10 }] }, IL.mulberry32(5), 5).boss;
+check("a gate boss takes its level-ups", gb.level >= 11 && (gb.growth || []).length === gb.level - 1);
 const tall = IL.growRival(IL.randomFighter(IL.mulberry32(91), "warrior"), IL.mulberry32(92), 60);
 check("a rival grows past the old 40-pick guard", tall.level === 60 && tall.pendingLevels === 0 && (tall.growth || []).length === 59);
 const keepSave = { division: 0, roster: [{ level: 10 }, { level: 10 }, { level: 10 }], clubs: [{ you: true }] };
 for (let c = 0; c < 7; c++) keepSave.clubs.push({ id: "c" + c, swing: c, fighters: [0, 1, 2].map(function (k) { return IL.growRival(IL.randomFighter(IL.mulberry32(500 + c * 3 + k)), IL.mulberry32(600 + c * 3 + k), IL.rivalLevel(keepSave, c, k)); }) });
 keepSave.roster.forEach(function (f) { f.level = 20; });
 IL.keepRivalsUp(keepSave);
+const downSave = { division: 0, roster: [{ level: 6 }, { level: 6 }, { level: 6 }], clubs: [{ you: true }, { id: "c0", swing: 6, fighters: [IL.growRival(IL.randomFighter(IL.mulberry32(41), "warrior"), IL.mulberry32(42), 15)] }] };
+const downName = downSave.clubs[1].fighters[0].name;
+IL.keepRivalsUp(downSave);
+const downF = downSave.clubs[1].fighters[0];
+check("an over-levelled rival is rebuilt at its target", downF.level === IL.rivalLevel(downSave, 6, 0) && downF.level <= 7 && downF.name === downName && downF.growth.length === downF.level - 1 && downF.pendingLevels === 0);
 check("rivals catch up when the club levels mid-season", keepSave.clubs.slice(1).every(function (c) { return c.fighters.every(function (f, k) { return f.level === IL.rivalLevel(keepSave, c.swing, k) && f.pendingLevels === 0 && (f.growth || []).length === f.level - 1; }); }));
 const topA = IL.growRival(IL.randomFighter(IL.mulberry32(701), "archer"), IL.mulberry32(702), 100);
 const topB = IL.growRival(IL.randomFighter(IL.mulberry32(703), "warrior"), IL.mulberry32(704), 94);

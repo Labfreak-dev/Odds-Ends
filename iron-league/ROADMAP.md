@@ -14,7 +14,7 @@ we keep our own twist.
 |---|---|---|
 | v70 | Level up: Choose a stat, then Choose a skill (T1-T4, category pills, Reroll, Later) | shipped |
 | v71 | **Hub shell**: Eslabong header, six tabs, bottom bar, Events inbox, Overview feed | shipped |
-| v72 | **Roster tab**: first-team cards, substitutes strip, fighter detail sheet (market value, performance score, profile, combat summary) | planned |
+| v72 | **Roster tab**: first-team cards, substitutes strip, fighter detail sheet (market value, performance score, profile, combat summary) | shipped |
 | v73 | **Matches tab + season calendar**: weeks, fixtures list, league table with form, cups on the calendar, four divisions IV→I | planned |
 | v74 | **Market tab**: list + detail layout, market value formula, watchlist, scouting, offers and listings, relic market | planned |
 | v75 | **Club tab**: Activities / Facilities / Services grid; Headquarters (roster cap), Barracks, Medical Bay, Scouting Office, Treasure House, Club House + staff | planned |

@@ -278,6 +278,41 @@
     return Math.max(22, Math.round(base * champ * rarityPay + levelPay) + gearRefund(f));
   }
 
+  /* v72, after Eslabong: a performance score from the fighter's record,
+     and a market value built on it. Score is 0-999: knockouts, damage,
+     healing and wins per match, scaled by level. */
+  function perfScore(f) {
+    if (!f) return 0;
+    const played = (f.wins || 0) + (f.losses || 0);
+    if (!played) return 0;
+    const c = f.career || {};
+    const lv = Math.max(1, f.level || 1);
+    const impact = ((c.dealt || 0) + (c.heal || 0) * 0.8) / played / (18 + lv * 4) +
+      (f.kos || 0) / played * 0.7 + (f.wins || 0) / played * 0.9 + (f.mvps || 0) / played * 0.6;
+    return Math.max(0, Math.min(999, Math.round(impact * 230)));
+  }
+
+  function perfLabel(score) {
+    if (score >= 600) return "Excellent";
+    if (score >= 450) return "Great";
+    if (score >= 300) return "Good";
+    if (score >= 150) return "Fair";
+    return score > 0 ? "Poor" : "Unproven";
+  }
+
+  function marketValue(f) {
+    if (!f) return 0;
+    const base = IL.hireCost(f.cls) * (RARITY_MULT[f.rarity] || 1) * (f.champion ? 1.65 : 1);
+    const lv = Math.max(1, f.level || 1);
+    let v = base * (1 + (lv - 1) * 0.2);
+    v *= 1 + 0.05 * ((f.talents || []).length + Object.keys(f.specs || {}).length);
+    const score = perfScore(f);
+    if (score) v *= 0.85 + Math.min(0.95, score / 600 * 0.6);
+    if (IL.staminaOf && IL.staminaOf(f) < 50) v *= 0.9;
+    v += gearRefund(f);
+    return Math.max(20, Math.round(v / 5) * 5);
+  }
+
   const RELIC_COST = { common: 48, uncommon: 86, rare: 140, legendary: 210 };
 
   function relicPrice(id) {
@@ -1707,6 +1742,9 @@
   IL.rarityName = rarityName;
   IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;
+  IL.perfScore = perfScore;
+  IL.perfLabel = perfLabel;
+  IL.marketValue = marketValue;
   IL.rollMarket = rollMarket;
   IL.relicPrice = relicPrice;
   IL.relicSellPrice = relicSellPrice;

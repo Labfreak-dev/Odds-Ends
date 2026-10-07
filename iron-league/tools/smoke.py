@@ -459,13 +459,13 @@ def check_nav(page, label, shot_dir):
     if label == "desktop":
         wide = page.evaluate(
             """() => {
-              const rows = [...document.querySelectorAll('#fighterList .roster-row')];
-              if (!rows.length) return 'no rows';
+              // v72: first-team cards, Eslabong style.
+              const rows = [...document.querySelectorAll('#fighterList .es-fcard:not(.empty)')];
+              if (!rows.length) return 'no cards';
               for (const row of rows) {
                 const w = row.getBoundingClientRect().width;
-                if (w < 300) return 'narrow ' + Math.round(w);
-                if (row.getBoundingClientRect().height > 80) return 'tall ' + Math.round(row.getBoundingClientRect().height);
-                for (const el of row.querySelectorAll('h3, .kit-line span, .fine')) {
+                if (w < 200) return 'narrow ' + Math.round(w);
+                for (const el of row.querySelectorAll('h3, .es-class, .es-behave')) {
                   if (el.scrollWidth > el.clientWidth + 1) return 'cut ' + el.textContent.trim();
                 }
               }
@@ -537,6 +537,7 @@ def check_settings(page, label):
 def check_gear(page, label, shot_dir):
     """Armory filters, equip diff, a bench drill, and a paid stall reroll."""
     page.keyboard.press("3")
+    page.click("[data-pane='roster:gear']")
     page.wait_for_selector("#armory")
     fetched = page.evaluate(
         """async () => {
@@ -584,6 +585,8 @@ def check_gear(page, label, shot_dir):
         }"""
     )
     page.screenshot(path=str(shot_dir / f"{label}-armory.png"))
+    page.keyboard.press("3")
+    page.wait_for_selector("#partyCards")
     page.locator("[data-detail]").first.click()
     page.wait_for_function(
         """() => {
@@ -773,7 +776,8 @@ def check_fit(page):
     tabs = [
         ("1", None, "#nextMatch"),
         ("2", None, ".es-calendar"),
-        ("3", None, "#armory"),
+        ("3", None, "#partyCards"),
+        ("3", "roster:gear", "#armory"),
         ("3", "roster:relics", ".relic-cell"),
         ("2", "matches:cups", "#enterCup"),
         ("4", None, ".es-tile"),

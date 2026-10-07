@@ -200,6 +200,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Roster (v72)
+
+- **First team**: one card per fielded fighter: name, level (with a ▲ when picks wait), class badge colored by role, stamina bar, HP/ATK/DEF/SPD, the three move icons plus talents, a gear column (weapon, armor, trinket, worn relic), a behavior button (tactic · personality; tap cycles the tactic), and Captain / Set captain plus the lineup chip. Empty slots show for the week's squad size.
+- Under the cards: Autobattle / Control (the captain-control default), Gear, Relics, Development.
+- **Substitutes**: a strip of sprite tiles with name, class, level, stamina, the lineup chip and Train, padded with Empty tiles up to the roster cap.
+- **Gear** moved to its own Roster pane (the armory).
+- **Fighter sheet**: a centered detail view. The header has the portrait, name, class and role badges, stamina, level and XP, **market value** and **performance score**. A grid holds Fighter stats (each with its gain since level 1), Abilities (attack, passive, loadout, picks), Profile and behavior (personality, growth style, rarity, specialty, stamina, tactic, behavior rows), Combat summary (battles, MVP, win rate, kills, damage, healing), Gear and Relics. "Still to learn and tomes", "Development" and "Actions" fold away.
+- `IL.perfScore(f)` (0-999 from damage, healing, KOs, wins and MVPs per match, scaled by level) with `IL.perfLabel` (Unproven, Poor, Fair, Good, Great, Excellent). `IL.marketValue(f)` builds on hire cost, rarity, champion, level, upgrades, performance, stamina and gear. Fighters now count `mvps`.
+
 ## Club hub (v71)
 
 The hub now follows Eslabong's layout (see `ROADMAP.md` for the whole rebuild):

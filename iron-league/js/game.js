@@ -49,6 +49,8 @@
   let clubPane = "home";
   let intelPane = "stats";
   let inboxOpen = false;
+  let marketPick = 0;
+  let marketFilter = "all";
   const TUTOR_STEPS = [
     "Your party is on the card. Send them in when you are ready.",
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
@@ -298,6 +300,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "A trading-floor market: every listing in one list with stats and price, the picked fighter's full card beside it, and filters for affordable, watched, champions and scouted.",
     "Longer seasons: eight clubs a division and seven league weeks, shown as Division V (Sand) up to Division I (Crown).",
     "Roster cards like the mercenary leagues: stats, moves, gear and behavior per fighter, and a full sheet with market value and performance score.",
     "A new club hub: Overview, Matches, Roster, Club, Market and Intel, with a season calendar, a feed, and an Events inbox.",
@@ -2621,33 +2624,6 @@
 
   function marketPanel() {
     if (marketPane === "recruits") marketPane = "fighters";
-    const cards = (save.market || []).map(function (row, i) {
-      const f = row.fighter;
-      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-      const locked = !!row.locked;
-      const champ = f.champion ? " · Champion" : "";
-      const drift = row.watch && row.base && row.base !== row.cost ? (row.cost < row.base ? " ↓" : " ↑") : "";
-      const price = locked ? (row.need + " renown") : (row.cost + " gold" + drift);
-      const watchFull = !row.watch && IL.watchCount(save) >= IL.WATCH_CAP;
-      const watchBtn = locked ? "" : '<button type="button" class="btn ghost watch' + (row.watch ? " on" : "") + '" data-watch="' + i + '"' + (watchFull ? " disabled" : "") + ' title="' + (row.watch ? "Stop watching" : (watchFull ? "Watchlist full (" + IL.WATCH_CAP + ")" : "Keep them on the board when it turns over")) + '">' + (row.watch ? "★ Watching" : "☆ Watch") + '</button>';
-      const full = save.roster.length >= IL.ROSTER_CAP;
-      const broke = save.gold < row.cost;
-      const cant = locked || broke || full;
-      let hireText = "Hire";
-      if (locked) hireText = "Need " + row.need + "r";
-      else if (full) hireText = "Full";
-      else if (broke) hireText = "Need " + row.cost + "g";
-      return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + (row.watch ? " watched" : "") + (row.scouted ? " scouted" : "") + '" data-role="' + esc(kit.role) + '">' +
-        portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
-        '<div class="row-main">' +
-          '<h3>' + esc(f.name) + champ + (row.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</h3>' +
-          '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + ' · ' + esc(recruitTags(f, kit)) + '</span></p>' +
-          '<p class="fine">' + esc(price) + '</p>' +
-        '</div>' +
-        '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + hireText + '</button>' +
-        watchBtn +
-      '</article>';
-    }).join("");
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
       const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
       const inParty = (save.lineup || []).indexOf(f.id) >= 0;
@@ -2665,12 +2641,7 @@
     }).join("");
     const captain = save.roster.filter(function (f) { return f.captain; })[0];
     const brokeRefresh = save.gold < IL.REFRESH_COST;
-    const recruits = '<section class="roster-block"><h3 class="section">For hire</h3>' +
-      '<p class="fine">The board turns over after every league and cup match. Watch up to ' + IL.WATCH_CAP + ' to keep them on it; a watched price drifts, and another club may sign them first. A refresh spends ' + IL.REFRESH_COST + ' gold.</p>' +
-      (save.marketNews && save.marketNews.length ? '<ul class="market-news" id="marketNews">' + save.marketNews.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join("") + '</ul>' : '') +
-      '<div class="hub-actions market-tools"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh fighters — ' + IL.REFRESH_COST + ' gold</button>' +
-        scoutPicker() + '</div>' +
-      '<div class="cards dense-grid" id="marketCards">' + cards + '</div></section>';
+    const recruits = marketBoardHtml(brokeRefresh);
     const selling = '<section class="roster-block"><h3 class="section">Sell from the bench</h3>' +
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
       '<div class="cards dense-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
@@ -2679,10 +2650,123 @@
       : marketPane === "deals" ? dealsHtml()
       : marketPane === "sell" ? selling
       : recruits;
-    return filterBar("market", marketPane, [["gear", "Gear"], ["fighters", "Fighters"], ["relics", "Relics"], ["deals", "Deals"], ["sell", "Sell"]]) +
-      '<p class="banner">Roster ' + save.roster.length + ' of ' + IL.ROSTER_CAP + '. Hire onto the bench, then slot them from the club.</p>' +
+    return filterBar("market", marketPane, [["fighters", "Fighters"], ["relics", "Relics"], ["gear", "Gear"], ["deals", "Deals"], ["sell", "Sell"]]) +
       (marketPane === "deals" ? dealsHead() : "") +
       '<div class="pane" id="marketPane">' + body + '</div>';
+  }
+
+  /* v74 market, after Eslabong: a list of listings on the left (moves,
+     stats, class and level, price, watch star) and the picked fighter's
+     full card on the right with market value and Hire. */
+  function marketRows() {
+    return (save.market || []).map(function (row, i) { return { row: row, i: i }; }).filter(function (x) {
+      const r = x.row;
+      if (marketFilter === "affordable") return !r.locked && save.gold >= r.cost;
+      if (marketFilter === "watch") return !!r.watch;
+      if (marketFilter === "champions") return !!(r.fighter && r.fighter.champion);
+      if (marketFilter === "scouted") return !!r.scouted;
+      return true;
+    });
+  }
+
+  function marketBoardHtml(brokeRefresh) {
+    const all = save.market || [];
+    const rows = marketRows();
+    if (!all[marketPick]) marketPick = 0;
+    const counts = {
+      affordable: all.filter(function (r) { return !r.locked && save.gold >= r.cost; }).length,
+      watch: all.filter(function (r) { return r.watch; }).length,
+      champions: all.filter(function (r) { return r.fighter && r.fighter.champion; }).length,
+      scouted: all.filter(function (r) { return r.scouted; }).length
+    };
+    const chips = [["all", "All", 0], ["affordable", "Affordable", counts.affordable], ["watch", "Watchlist", counts.watch], ["champions", "Champions", counts.champions], ["scouted", "Scouted", counts.scouted]];
+    const full = save.roster.length >= IL.ROSTER_CAP;
+    const list = rows.map(function (x) {
+      const r = x.row;
+      const f = r.fighter;
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const st = IL.scaledStats(f, kit);
+      const tone = ROLE_TONE[kit.role] || "melee";
+      const moves = (f.loadout || []).slice(0, 3).map(function (id) { return IL.abilityIcon ? iconTag(IL.abilityIcon(id), 20) : ""; }).join("");
+      const cant = r.locked || save.gold < r.cost || full;
+      const price = r.locked ? r.need + " renown" : r.cost;
+      const watchFull = !r.watch && IL.watchCount(save) >= IL.WATCH_CAP;
+      return '<div class="es-mrow' + (x.i === marketPick ? " on" : "") + (cant ? " cant-afford" : "") + '" data-role="' + esc(kit.role) + '">' +
+        '<button type="button" class="es-mpick" data-mpick="' + x.i + '">' +
+          '<canvas class="es-mface" width="40" height="36" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="3"></canvas>' +
+          '<span class="es-mname"><b>' + esc(f.name) + (f.champion ? ' <em class="champ">★</em>' : '') + (r.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</b><span class="es-mmoves">' + moves + '</span></span>' +
+          '<span class="es-mstat">' + Math.round(st.hp) + '</span><span class="es-mstat">' + Math.round(st.atk) + '</span><span class="es-mstat">' + Math.round(st.def) + '</span><span class="es-mstat">' + Math.round(st.speed) + '</span>' +
+          '<span class="es-mclass"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span><small>Lvl ' + (f.level || 1) + '</small></span>' +
+          '<span class="es-mprice">' + (r.locked ? '' : coinIcon("gold")) + price + '</span>' +
+        '</button>' +
+        (r.locked ? '<span class="es-mstar"></span>' : '<button type="button" class="es-mstar' + (r.watch ? " on" : "") + '" data-watch="' + x.i + '"' + (watchFull ? " disabled" : "") + ' title="' + (r.watch ? "Stop watching" : "Watch: keeps them on the board when it turns over") + '">' + (r.watch ? "★" : "☆") + '</button>') +
+      '</div>';
+    }).join("");
+    const pick = all[marketPick];
+    let detail = '<section class="es-card es-mdetail"><p class="fine">Pick a listing.</p></section>';
+    if (pick && pick.fighter) {
+      const f = pick.fighter;
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const st = IL.scaledStats(f, kit);
+      const tone = ROLE_TONE[kit.role] || "melee";
+      const cant = pick.locked || save.gold < pick.cost || full;
+      let hireText = "Hire · " + pick.cost + "g";
+      if (pick.locked) hireText = "Needs " + pick.need + " renown";
+      else if (full) hireText = "Roster full";
+      else if (save.gold < pick.cost) hireText = "Need " + pick.cost + "g";
+      const mv = IL.marketValue ? IL.marketValue(f) : pick.cost;
+      const moves = (f.loadout || []).map(function (id) {
+        const ab = IL.abilityById(id);
+        return '<li>' + (IL.abilityIcon ? iconTag(IL.abilityIcon(id), 40) : "") + '<span>' + esc(ab ? ab.name : id) + '</span></li>';
+      }).join("");
+      const spec = IL.specialtyOf ? IL.specialtyOf(f.specialty) : null;
+      const trait = kit.trait && IL.TRAITS ? IL.TRAITS[kit.trait] : null;
+      detail = '<section class="es-card es-mdetail" id="marketDetail">' +
+        '<header class="es-mdhead">' +
+          portraitWrap('width="96" height="86" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
+          '<div><h3>' + esc(f.name) + '</h3>' +
+            '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span>' + (f.rarity ? '<span class="es-role">' + esc(rarityLabel(f.rarity)) + '</span>' : '') + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + '</p>' +
+            '<p class="es-dlevel">Level ' + (f.level || 1) + ' · Free agent</p></div>' +
+          '<div class="es-dvalue"><p><span>Market value</span><b>' + coinIcon("gold") + mv + '</b></p>' +
+            '<p><span>' + (pick.locked ? 'Renown required' : 'Asking price') + '</span><b>' + (pick.locked ? pick.need : coinIcon("gold") + pick.cost) + '</b></p></div>' +
+        '</header>' +
+        '<div class="es-mdgrid">' +
+          '<div><h4 class="ov-sub">Fighter stats</h4><ul class="es-dstats">' +
+            [["HP", Math.round(st.hp), "drop_water_or_blood"], ["ATK", Math.round(st.atk), "sword"], ["DEF", Math.round(st.def), "armor_1_body"], ["SPD", Math.round(st.speed), "shoes"]].map(function (r) {
+              return '<li><img class="ui-glyph" alt="" src="assets/ui/glyphs/orange_32/' + r[2] + '.png"><span>' + r[0] + '</span><b>' + r[1] + '</b><em></em></li>';
+            }).join("") + '</ul></div>' +
+          '<div><h4 class="ov-sub">Abilities</h4><ul class="es-mmovelist">' + moves + '</ul></div>' +
+        '</div>' +
+        '<h4 class="ov-sub">Profile and behavior</h4>' +
+        '<dl class="es-profile">' +
+          '<dt>Personality</dt><dd>' + esc(personalityLabel(f.personality)) + '</dd>' +
+          '<dt>Growth style</dt><dd>' + esc(IL.STYLES[IL.styleOf(f)].name) + ' growth</dd>' +
+          (spec ? '<dt>Specialty</dt><dd>' + esc(spec.name) + '</dd>' : '') +
+          (trait ? '<dt>Trait</dt><dd>' + esc(trait.name) + '</dd>' : '') +
+        '</dl>' +
+        '<div class="es-mactions">' +
+          (pick.locked ? '' : '<button type="button" class="btn ghost watch' + (pick.watch ? " on" : "") + '" data-watch="' + marketPick + '">' + (pick.watch ? "★ Watching" : "☆ Watch") + '</button>') +
+          '<button type="button" class="btn primary hire' + (cant ? " cant-afford" : " buyable") + '" data-hire="' + marketPick + '"' + (cant ? " disabled" : "") + '>' + esc(hireText) + '</button>' +
+        '</div>' +
+      '</section>';
+    }
+    return '<div class="es-market">' +
+      '<div class="es-mtools">' +
+        '<div class="es-mchips">' + chips.map(function (c) {
+          return '<button type="button" class="es-subtab small' + (marketFilter === c[0] ? " on" : "") + '" data-mfilter="' + c[0] + '">' + c[1] + (c[2] ? '<em class="es-count">' + c[2] + '</em>' : '') + '</button>';
+        }).join("") + '</div>' +
+        '<div class="hub-actions market-tools"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh · ' + IL.REFRESH_COST + 'g</button>' + scoutPicker() + '</div>' +
+      '</div>' +
+      (save.marketNews && save.marketNews.length ? '<ul class="market-news" id="marketNews">' + save.marketNews.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join("") + '</ul>' : '') +
+      '<p class="fine es-pulse">Mercenary board · ' + all.length + ' listings · roster ' + save.roster.length + '/' + IL.ROSTER_CAP + ' · the board turns over after league and cup matches; watch up to ' + IL.WATCH_CAP + ' to keep them.</p>' +
+      '<div class="es-msplit">' +
+        '<div class="es-mlist" id="marketCards">' +
+          '<div class="es-mhead"><span></span><span>Name</span><span>HP</span><span>ATK</span><span>DEF</span><span>SPD</span><span>Class</span><span>Price</span><span></span></div>' +
+          (list || emptyState("Nothing matches.", "Try another filter.")) +
+        '</div>' +
+        detail +
+      '</div>' +
+    '</div>';
   }
 
   function scoutPicker() {
@@ -4056,6 +4140,10 @@
         refreshHub();
         return;
       }
+      const mp = ev.target.closest("[data-mpick]");
+      if (mp) { marketPick = +mp.dataset.mpick; refreshHub(); return; }
+      const mf = ev.target.closest("[data-mfilter]");
+      if (mf) { marketFilter = mf.dataset.mfilter; refreshHub(); return; }
       const hire = ev.target.closest("[data-hire]");
       if (hire) { hireFromMarket(+hire.dataset.hire); return; }
       const watch = ev.target.closest("[data-watch]");

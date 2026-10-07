@@ -16,7 +16,8 @@ we keep our own twist.
 | v71 | **Hub shell**: Eslabong header, six tabs, bottom bar, Events inbox, Overview feed | shipped |
 | v72 | **Roster tab**: first-team cards, substitutes strip, fighter detail sheet (market value, performance score, profile, combat summary) | shipped |
 | v73 | **Season calendar**: 8-club divisions, 7 league weeks, Division V→I labels (our five tiers kept); Champions Cup moves to v79 | shipped |
-| v74 | **Market tab**: list + detail layout, market value formula, watchlist, scouting, offers and listings, relic market | planned |
+| v74 | **Market tab**: list + detail layout with filters, market value against price, watch stars | shipped |
+| v74b | **Market depth**: offers from rival clubs for your fighters, rival listings, champion auctions | planned |
 | v75 | **Club tab**: Activities / Facilities / Services grid; Headquarters (roster cap), Barracks, Medical Bay, Scouting Office, Treasure House, Club House + staff | planned |
 | v76 | **Fighter depth**: per-stat growth grades (Good / Excellent), personalities with mistake chance, form and injuries, milestone levels | planned |
 | v77 | **Relics v2**: two slots per fighter (second at level 10), Common / Rare / Legendary, chests, relic market rotation | planned |

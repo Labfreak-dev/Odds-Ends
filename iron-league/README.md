@@ -200,6 +200,22 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Club hub (v71)
+
+The hub now follows Eslabong's layout (see `ROADMAP.md` for the whole rebuild):
+
+- **Header**: crest and club name, "Season N - Week w/5" with a pip per league week (green won, red lost, gold next) and the division, then gold, renown, cup tokens and **Menu** (settings).
+- **Six tabs** (keys 1-6): Overview, Matches, Roster, Club, Market, Intel. Tapping the tab you are on goes back to its first page. Old tab names still route (`TAB_ALIAS`): Team → Roster, Compete → Matches ▸ Cups, Relics → Roster ▸ Relics, Events and Train → Club.
+- **Bottom bar**: Daily match (left), NEXT MATCH (center), Events with a badge for actions waiting (right). On a phone it sits on the pinned tab bar.
+- **Overview**: the next match card (both crests and places, synergy, lineup readiness with each fighter's stamina), Action required, top four of the table, Fighter of the week (latest winning MVP), and the feed.
+- **Matches**: League (standings with W-L, +/-, points and a three-match form strip; season calendar with results and NEXT), Cups (the old Compete tab), History.
+- **Roster**: First team (roster and armory) and Relics.
+- **Club**: Activities, Facilities and Services tiles; each opens the events or training pane it covers.
+- **Intel**: Stats (club record), Archive (class codex: classes you have owned or seen, the rest "Not yet discovered"), Goals.
+- **Events inbox**: Action required (level picks, open ties, the ceremony) and the feed (market news, recent results).
+
+The league now logs each of your weeks (`save.leagueLog`) and each club keeps its last five results (`club.form`).
+
 ## Level up v3 (v70)
 
 Rebuilt after Eslabong's two-step pick:

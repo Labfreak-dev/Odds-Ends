@@ -10,7 +10,7 @@
   let draft = null;
   let speed = 1;
   let fight = null;
-  let hubTab = "club";
+  let hubTab = "overview";
   let detailId = null;
   let settingsOpen = false;
   let pendingSpec = null;
@@ -37,7 +37,18 @@
   let relicSet = "all";
   let relicOpen = null;
   let tutorStep = 0;
-  const HUB_TABS = ["club", "fighters", "market", "cup", "relics", "events", "train"];
+  /* v71 hub, after Eslabong: six tabs. Old tab names still work and land
+     on the pane that now holds them (tabAlias). */
+  const HUB_TABS = ["overview", "matches", "roster", "club", "market", "intel"];
+  const TAB_ALIAS = {
+    fighters: ["roster", "team"], cup: ["matches", "cups"], relics: ["roster", "relics"],
+    events: ["club", "events"], train: ["club", "train"], armory: ["roster", "team"], history: ["matches", "history"]
+  };
+  let matchesPane = "league";
+  let rosterPane = "team";
+  let clubPane = "home";
+  let intelPane = "stats";
+  let inboxOpen = false;
   const TUTOR_STEPS = [
     "Your party is on the card. Send them in when you are ready.",
     "The market hires fighters and sells relics. Two club relics ride with everyone.",
@@ -208,7 +219,7 @@
     samurai: "swords", spearmaiden: "sword", summoner: "battle_magic", alchemist: "battle_magic",
     beastmaster: "swords"
   };
-  const NAV_GLYPH = { club: "shield", fighters: "swords", market: "cargo_bag", cup: "chest", relics: "necklace", events: "skull_demon", train: "preparing_for_an_attack" };
+  const NAV_GLYPH = { overview: "shield", matches: "chest", roster: "swords", club: "preparing_for_an_attack", market: "cargo_bag", intel: "wizards_cap" };
   const STAT_GLYPH = { HP: "drop_water_or_blood", ATK: "sword", DEF: "armor_1_body", SPD: "shoes" };
 
   function crestIndexOf(name) {
@@ -275,6 +286,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "A new club hub: Overview, Matches, Roster, Club, Market and Intel, with a season calendar, a feed, and an Events inbox.",
     "Level up like the mercenary leagues: choose one of four stats, then one of three skills marked by category and tier.",
     "Clearer fights: team rings underfoot, ability icons over heads, status icons, a kill feed, wind-up glints, and a calmer floor.",
     "New hit effects: chunky pixel blood and sparks, white hit flashes, fire craters, sky lightning, and dash afterimages.",
@@ -1385,24 +1397,21 @@
 
   function tabBar(active) {
     const labels = [
-      ["club", "Club", "1", "tab-club"],
-      ["fighters", "Team", "2", "tab-fighters"],
-      ["market", "Market", "3", "market"],
-      ["cup", "Compete", "4", "cup"],
-      ["relics", "Relics", "5", "relics"],
-      ["events", "Events", "6", "events"],
-      ["train", "Train", "7", "train"]
+      ["overview", "Overview", "1", "tab-overview"],
+      ["matches", "Matches", "2", "tab-matches"],
+      ["roster", "Roster", "3", "tab-roster"],
+      ["club", "Club", "4", "tab-club"],
+      ["market", "Market", "5", "market"],
+      ["intel", "Intel", "6", "tab-intel"]
     ];
-    return '<nav class="tabbar" id="tabbar" role="tablist" aria-label="Club sections">' +
+    return '<nav class="tabbar es-tabs" id="tabbar" role="tablist" aria-label="Club sections">' +
       labels.map(function (row) {
         const on = row[0] === active;
-        const glyph = NAV_GLYPH[row[0]];
-        const idle = '<img class="ui-glyph glyph-idle" alt="" src="assets/ui/glyphs/orange_32/' + glyph + '.png">';
-        const hot = '<img class="ui-glyph glyph-on" alt="" src="assets/ui/glyphs/white_32/' + glyph + '.png">';
-        return '<button type="button" class="tab" role="tab" id="' + row[3] + '" data-tab="' + row[0] + '" aria-selected="' + (on ? "true" : "false") + '" aria-keyshortcuts="' + row[2] + '">' + idle + hot + '<b>' + row[1] + '</b><small>' + row[2] + '</small></button>';
+        return '<button type="button" class="tab" role="tab" id="' + row[3] + '" data-tab="' + row[0] + '" aria-selected="' + (on ? "true" : "false") + '" aria-keyshortcuts="' + row[2] + '"><b>' + row[1] + '</b></button>';
       }).join("") +
     '</nav>';
   }
+
 
   function gearSheetHtml(f) {
     const gear = f.gear || IL.blankGear();
@@ -1802,7 +1811,7 @@
     });
     buildSeason(true);
     persist();
-    showHub("club");
+    showHub("overview");
   }
 
   function showSeasonEnd() {
@@ -1876,7 +1885,7 @@
     const start = document.getElementById("startSeason");
     if (start) start.onclick = startNextSeason;
     const back = document.getElementById("backFromSeason");
-    if (back) back.onclick = function () { showHub("club"); };
+    if (back) back.onclick = function () { showHub("overview"); };
     const claim = document.getElementById("claimRelic");
     if (claim) claim.onclick = function () {
       const relic = IL.offerRelic(save, takeRng());
@@ -2080,22 +2089,305 @@
       '</nav>';
   }
 
+  /* v71 bottom bar, after Eslabong: a side match on the left, NEXT MATCH
+     in the middle, the Events inbox (with a badge) on the right. */
   function fightDockHtml() {
-    if (hubTab === "club") return "";
+    const done = save.round >= 5;
+    const size = done ? 0 : IL.SEASON_SIZES[save.round];
+    const ready = done || fielded(save.roster, size).length >= size;
+    const day = IL.dayIndex(Date.now());
+    const dailyDone = save.daily && save.daily.day === day && save.daily.cleared;
+    const inbox = inboxItems().filter(function (x) { return x.act; }).length;
+    return '<div class="fight-dock es-dock" id="fightDock">' +
+      '<button type="button" class="dock-side" id="dockDaily" data-dock="daily"' + (dailyDone ? ' disabled' : '') + '>' + (dailyDone ? 'Daily done' : 'Daily match') + '</button>' +
+      (done
+        ? '<button type="button" class="btn gold dock-main" id="dockFight" data-dock="season">Season ceremony</button>'
+        : '<button type="button" class="btn fight dock-main" id="dockFight" data-dock="' + (ready ? "fight" : "club") + '">' + (ready ? "Next match" : "Pick " + size + " fighters") + '</button>') +
+      '<button type="button" class="dock-side" id="dockInbox" data-dock="inbox">Events' + (inbox ? '<em class="dock-badge">' + inbox + '</em>' : '') + '</button>' +
+    '</div>';
+  }
+
+  /* The Events inbox: what needs you ("Action required") and what
+     happened (results, market news). */
+  function inboxItems() {
+    const out = [];
+    pendingGrowth().forEach(function (f) {
+      out.push({ act: true, kind: "level", fid: f.id, text: f.name + " has " + f.pendingLevels + " level-up pick" + (f.pendingLevels === 1 ? "" : "s") + " waiting." });
+    });
+    otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
+    if (save.round >= 5) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
+    (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
+    (save.history || []).slice(0, 6).forEach(function (h) {
+      out.push({ act: false, kind: "result", text: (h.win ? "Won " : "Lost ") + (h.score || "") + " against " + (h.opponent || "a rival") + ". MVP " + (h.mvp || "—") + "." });
+    });
+    return out;
+  }
+
+  function inboxHtml() {
+    const items = inboxItems();
+    const acts = items.filter(function (x) { return x.act; });
+    const news = items.filter(function (x) { return !x.act; });
+    function row(x, i) {
+      const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
+        : x.kind === "go" ? '<button type="button" class="ctl" data-inbox-go="' + esc(x.tab) + '">Open ›</button>'
+        : x.kind === "season" ? '<button type="button" class="ctl" data-inbox-season="1">Open ›</button>' : '';
+      return '<li class="inbox-row ' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
+    }
+    return '<div class="sheet-back" id="inboxBack"></div>' +
+      '<aside class="sheet inbox-sheet" id="inboxSheet" role="dialog" aria-modal="true" aria-labelledby="inboxTitle">' +
+        '<header class="sheet-head"><div><p class="eyebrow">Season ' + save.season + '</p><h2 id="inboxTitle">Events</h2></div>' +
+          '<button type="button" class="btn close-x" id="inboxClose" aria-label="Close">Close</button></header>' +
+        '<h3 class="section">Action required</h3>' +
+        (acts.length ? '<ul class="inbox">' + acts.map(row).join("") + '</ul>' : '<p class="fine">Nothing waits on you.</p>') +
+        '<h3 class="section">Feed</h3>' +
+        (news.length ? '<ul class="inbox">' + news.map(row).join("") + '</ul>' : '<p class="fine">No news yet.</p>') +
+      '</aside>';
+  }
+
+  function bindInbox() {
+    const box = document.getElementById("inboxSheet");
+    if (!box) return;
+    const close = function () { inboxOpen = false; refreshHub(); };
+    document.getElementById("inboxBack").onclick = close;
+    document.getElementById("inboxClose").onclick = close;
+    box.onclick = function (ev) {
+      const lv = ev.target.closest("[data-inbox-level]");
+      if (lv) { inboxOpen = false; levelFocus = lv.dataset.inboxLevel; showGrowth(); return; }
+      const go = ev.target.closest("[data-inbox-go]");
+      if (go) { inboxOpen = false; showHub(go.dataset.inboxGo); return; }
+      if (ev.target.closest("[data-inbox-season]")) { inboxOpen = false; showSeasonEnd(); }
+    };
+  }
+
+  /* ---------- v71 hub header ---------- */
+  function weekPips() {
+    const total = 5;
+    let out = "";
+    for (let i = 0; i < total; i++) {
+      const r = seasonLog(i);
+      const cls = r ? (r.win ? "w" : "l") : i === save.round ? "now" : "";
+      out += '<i class="pip ' + cls + '"></i>';
+    }
+    return '<span class="week-pips" aria-hidden="true">' + out + '</span>';
+  }
+
+  function hubHeadHtml(done) {
+    const week = Math.min(5, (save.round || 0) + (done ? 0 : 1));
+    const div = IL.DIVISIONS[IL.divisionOf(save)];
+    return '<header class="hub-head es-head">' +
+      '<button type="button" class="crest-btn" id="clubIdentity" aria-label="Club name and colors" title="Club name and colors">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="crest-edit" aria-hidden="true">✎</span></button>' +
+      '<h2 class="es-club">' + esc(save.clubName) + '</h2>' +
+      '<div class="es-week"><p><b>Season ' + save.season + ' - Week ' + week + '/5</b><span class="div-chip">' + esc(div.name) + '</span></p>' + weekPips() + '</div>' +
+      '<div class="es-purse">' +
+        '<span class="coin" title="Gold">' + coinIcon("gold") + '<b>' + save.gold + '</b></span>' +
+        '<span class="coin" title="Renown">' + coinIcon("renown") + '<b>' + (save.renown || 0) + '</b></span>' +
+        '<span class="coin" title="Cup tokens">' + coinIcon("token") + '<b>' + (save.tokens || 0) + '</b></span>' +
+        (done ? '<button type="button" class="btn gold" id="openSeason">Ceremony</button>' : '') +
+        '<button type="button" class="icon-btn menu-btn" id="settings" aria-label="Menu" title="Menu">Menu</button>' +
+      '</div>' +
+    '</header>';
+  }
+
+  /* On a phone the tabs pin to the bottom; the action bar sits on them. */
+  function seatDock() {
+    const tb = document.getElementById("tabbar");
+    if (!tb || typeof getComputedStyle === "undefined") return;
+    const h = getComputedStyle(tb).position === "fixed" ? tb.offsetHeight : 0;
+    document.documentElement.style.setProperty("--tabbar-h", h + "px");
+  }
+  if (typeof window !== "undefined") window.addEventListener("resize", seatDock);
+
+  /* Tapping the tab you are on goes back to its first page. */
+  function resetPane(tab) {
+    if (tab === "roster") rosterPane = "team";
+    else if (tab === "matches") matchesPane = "league";
+    else if (tab === "club") clubPane = "home";
+    else if (tab === "intel") intelPane = "stats";
+  }
+
+  function subTabs(kind, current, options) {
+    return '<nav class="es-subtabs" role="tablist">' + options.map(function (o) {
+      const on = o[0] === current;
+      return '<button type="button" role="tab" class="es-subtab' + (on ? " on" : "") + '" data-pane="' + kind + ':' + o[0] + '" aria-selected="' + on + '">' + o[1] + '</button>';
+    }).join("") + '</nav>';
+  }
+
+  /* ---------- Overview ---------- */
+  function overviewPanel() {
     const done = save.round >= 5;
     const rival = done ? null : nextRival();
     const size = done ? 0 : IL.SEASON_SIZES[save.round];
-    const ready = done || fielded(save.roster, size).length >= size;
-    const label = done
-      ? 'Season ' + save.season + ' closed'
-      : 'Match ' + (save.round + 1) + '/5 · ' + size + 'v' + size + (rival ? ' · ' + rival.name : '');
-    const others = otherFights().length;
-    return '<div class="fight-dock" id="fightDock">' +
-      '<p><span class="eyebrow">Next</span><b>' + esc(label) + '</b>' + (others ? '<button type="button" class="text-btn" data-goto="cup">+' + others + ' more</button>' : '') + '</p>' +
-      (done
-        ? '<button type="button" class="btn gold" id="dockFight" data-dock="season">Ceremony</button>'
-        : '<button type="button" class="btn fight" id="dockFight" data-dock="' + (ready ? "fight" : "club") + '">' + (ready ? "Fight" : "Pick " + size) + '</button>') +
+    const yours = size ? fielded(save.roster, size) : [];
+    const ready = !size || yours.length >= size;
+    const table = sortedClubs();
+    const youAt = table.findIndex(function (c) { return c.you; });
+    const lineup = yours.map(function (f) {
+      const st = IL.staminaOf ? IL.staminaOf(f) : 100;
+      const kit = IL.CLASSES[f.cls] || {};
+      return '<li>' + portraitWrap('width="44" height="40" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="4"', f.captain, f) +
+        '<span class="ov-name">' + esc(f.name) + '</span><small>' + esc(kit.name || "") + ' · Lv ' + (f.level || 1) + '</small>' +
+        '<span class="ov-form"><i style="width:' + Math.round(st) + '%"></i></span></li>';
+    }).join("");
+    const next = done
+      ? '<section class="es-card ov-next" id="nextCard"><p class="eyebrow">League</p><h3>Season ' + save.season + ' closed</h3>' +
+          '<button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></section>'
+      : '<section class="es-card ov-next" id="nextCard">' +
+          '<p class="eyebrow">Next match · Week ' + (save.round + 1) + ' · ' + size + 'v' + size + '</p>' +
+          '<div class="ov-vs">' +
+            '<div class="ov-side">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<b>' + esc(save.clubName) + '</b><small>' + (youAt >= 0 ? ordinal(youAt + 1) : "") + '</small></div>' +
+            '<span class="vs">vs</span>' +
+            '<div class="ov-side">' + crestHtml(rival ? rival.name : "", "md", rival ? clubCrest(rival) : 0) + '<b>' + esc(rival ? rival.name : "—") + '</b><small>' + (rival ? ordinal(table.indexOf(rival) + 1) : "") + '</small></div>' +
+          '</div>' +
+          (nemesisBanner(rival) ? '<p class="fine">' + nemesisBanner(rival) + '</p>' : '') +
+          synergyLine(yours, "partySynergy") +
+          '<h4 class="ov-sub">Lineup readiness</h4>' +
+          (lineup ? '<ul class="ov-lineup">' + lineup + '</ul>' : '<p class="fine">Nobody fielded yet.</p>') +
+          (ready ? '' : '<p class="banner">Pick ' + (size - yours.length) + ' more on the Roster tab.</p>') +
+          '<div class="ov-actions"><button type="button" class="btn ghost" data-goto="roster">Lineup</button>' +
+          '<button type="button" class="btn fight" id="nextMatch"' + (ready ? "" : " disabled") + '>' + (ready ? "Fight" : "Pick " + size) + '</button></div>' +
+        '</section>';
+    const acts = inboxItems().filter(function (x) { return x.act; });
+    const action = acts.length
+      ? '<section class="es-card ov-action"><h3 class="section">Action required</h3><ul class="inbox">' + acts.slice(0, 4).map(function (x) {
+          const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
+            : x.kind === "go" ? '<button type="button" class="ctl" data-goto="' + esc(x.tab) + '">Open ›</button>' : '';
+          return '<li class="inbox-row"><span>' + esc(x.text) + '</span>' + btn + '</li>';
+        }).join("") + '</ul></section>'
+      : '';
+    const feed = inboxItems().filter(function (x) { return !x.act; });
+    const top = table.slice(0, 4).map(function (c, i) {
+      return '<li class="' + (c.you ? "you" : "") + '"><b>' + (i + 1) + '</b>' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span>' + esc(c.name) + '</span><em>' + c.pts + '</em></li>';
+    }).join("");
+    const star = (save.history || []).filter(function (h) { return h.win && h.mvp && h.mvp !== "—"; })[0];
+    return tutorHtml() +
+      (pendingGrowth().length ? '<p class="banner level-banner">' + esc(levelBannerText()) + ' <button type="button" class="btn gold" id="openGrowth">Level up</button></p>' : '') +
+      '<div class="ov-grid">' +
+        '<div class="ov-col">' + next + action + '</div>' +
+        '<div class="ov-col">' +
+          '<section class="es-card"><h3 class="section">Standings · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</h3><ol class="ov-table">' + top + '</ol>' +
+            '<button type="button" class="text-btn" data-goto="matches">Full table ›</button></section>' +
+          (star ? '<section class="es-card ov-star"><p class="eyebrow">Fighter of the week</p><h3>' + esc(star.mvp) + '</h3><p class="fine">MVP against ' + esc(star.opponent) + ', ' + esc(star.score) + '.</p></section>' : '') +
+          '<section class="es-card"><h3 class="section">Feed</h3>' + (feed.length ? '<ul class="ov-feed">' + feed.slice(0, 6).map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join("") + '</ul>' : '<p class="fine">Results and market news show up here.</p>') + '</section>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ---------- Matches ---------- */
+  function matchesPanel() {
+    const panes = [["league", "League"], ["cups", "Cups"], ["history", "History"]];
+    let body;
+    if (matchesPane === "cups") body = cupPanel();
+    else if (matchesPane === "history") body = historyHtml();
+    else body = leaguePane();
+    return subTabs("matches", matchesPane, panes) + body;
+  }
+
+  function leaguePane() {
+    const tierNow = IL.divisionOf(save);
+    const rows = sortedClubs().map(function (c, i) {
+      const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= 4 && tierNow > 0) ? " releg" : "";
+      const form = (c.form || []).slice(-3).map(function (r) { return '<i class="form ' + (r === "W" ? "w" : "l") + '">' + r + '</i>'; }).join("");
+      const diff = (c.pf || 0) - (c.pa || 0);
+      return '<tr class="' + (c.you ? "you" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td>' +
+        '<td>' + c.w + '-' + c.l + '</td><td class="' + (diff > 0 ? "up" : diff < 0 ? "down" : "") + '">' + (diff > 0 ? "+" : "") + diff + '</td><td><b>' + c.pts + '</b></td><td class="form-cell">' + form + '</td></tr>';
+    }).join("");
+    const cal = [];
+    for (let r = 0; r < 5; r++) {
+      const log = seasonLog(r);
+      const foe = roundRival(r);
+      const res = log ? '<b class="' + (log.win ? "w" : "l") + '">' + (log.win ? "W " : "L ") + log.pf + '-' + log.pa + '</b>' : r === save.round ? '<b class="now">NEXT</b>' : '<b>-</b>';
+      cal.push('<li class="' + (r === save.round ? "now" : "") + '"><span class="wk">W' + (r + 1) + '</span>' + (foe ? crestHtml(foe.name, "sm", clubCrest(foe)) + '<span>vs ' + esc(foe.name) + '</span>' : '<span>—</span>') + '<em>' + IL.SEASON_SIZES[r] + 'v' + IL.SEASON_SIZES[r] + '</em>' + res + '</li>');
+    }
+    if (save.cup && !save.cup.champion) cal.push('<li class="cup"><span class="wk">Cup</span><span>' + esc("Cup bracket is open") + '</span></li>');
+    cal.push('<li class="cup"><span class="wk">End</span><span>Season ceremony · promotion and relegation</span></li>');
+    return '<div class="es-split">' +
+      '<section class="es-card"><h3 class="section">' + esc(IL.DIVISIONS[tierNow].name) + ' · League standings</h3>' +
+        '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals near Lv ' + IL.rivalLevel(save, 1) + '</p>' +
+        '<table class="board es-board"><thead><tr><th>#</th><th>Team</th><th>W-L</th><th>+/-</th><th>Pts</th><th>Form</th></tr></thead><tbody>' + rows + '</tbody></table></section>' +
+      '<section class="es-card"><h3 class="section">Season calendar</h3><ol class="es-calendar">' + cal.join("") + '</ol></section>' +
     '</div>';
+  }
+
+  function seasonLog(r) {
+    const row = (save.leagueLog || [])[r];
+    return row && row.season === save.season ? row : null;
+  }
+
+  function roundRival(r) {
+    const pairs = (save.fixtures || [])[r] || [];
+    for (let i = 0; i < pairs.length; i++) {
+      const a = clubById(pairs[i][0]);
+      const b = clubById(pairs[i][1]);
+      if (a && a.you) return b;
+      if (b && b.you) return a;
+    }
+    return null;
+  }
+
+  /* ---------- Roster ---------- */
+  function rosterPanel() {
+    const panes = [["team", "First team"], ["relics", "Relics"]];
+    const body = rosterPane === "relics" ? relicsPanel() : fightersPanel();
+    return subTabs("roster", rosterPane, panes) + body;
+  }
+
+  /* ---------- Club: activities, facilities, services ---------- */
+  function clubTile(id, title, line, blurb, tone, badge) {
+    return '<button type="button" class="es-tile ' + tone + '" data-pane="club:' + id + '">' +
+      '<span class="tile-text"><b>' + esc(title) + '</b><small>' + esc(line) + '</small><span>' + esc(blurb) + '</span></span>' +
+      (badge ? '<em class="tile-badge">' + esc(badge) + '</em>' : '') + '</button>';
+  }
+
+  function clubHomePanel() {
+    if (clubPane === "events") return subTabs("club", "events", [["home", "‹ Club"], ["events", "Activities"]]) + eventsPanel();
+    if (clubPane === "train") return subTabs("club", "train", [["home", "‹ Club"], ["train", "Training"]]) + trainingPanel();
+    const ev = IL.activeEvent ? IL.activeEvent(Date.now()) : null;
+    const fac = save.facilities || {};
+    return '<div class="es-club-grid">' +
+      '<section><h3 class="section">Activities</h3>' +
+        clubTile("events", "Weekly event", ev ? ev.name : "This week", "Boss, gauntlet, horde, king or mirror. A new one each week.", "blue", "PvE") +
+        clubTile("events", "Endless pit", "Best wave " + ((save.endless && save.endless.best) || 0), "Waves until you fall. A relic every fifth.", "steel", "PvE") +
+        clubTile("events", "Daily challenge", "A seeded pair", "One fight a day for a purse.", "purple", "Daily") +
+        clubTile("events", "Fight a friend", "Share a code", "Send your party as a code, or fight theirs.", "gold", "PvP") +
+      '</section>' +
+      '<section><h3 class="section">Facilities</h3>' +
+        clubTile("train", "Training yard", "Rank " + (fac.yard || 0), "More drills each week.", "teal", "LV " + ((fac.yard || 0) + 1)) +
+        clubTile("train", "Hall", "Rank " + (fac.hall || 0), "Drills give more XP.", "purple", "LV " + ((fac.hall || 0) + 1)) +
+        clubTile("train", "Infirmary", "Rank " + (fac.infirmary || 0), "Cheaper drills, faster rest.", "green", "LV " + ((fac.infirmary || 0) + 1)) +
+      '</section>' +
+      '<section><h3 class="section">Services</h3>' +
+        clubTile("train", "Drills", (save.trainsLeft || 0) + " left this week", "Raise a stat on a bench fighter.", "red", "Train") +
+        clubTile("train", "Specialties", (save.specPoints || 0) + " points", "Focus at level 5, mastery at level 10.", "gold", "Spec") +
+        clubTile("train", "Tasks", "Earn specialty points", "Crits, KOs, blocks, flawless wins.", "steel", "Goals") +
+      '</section>' +
+    '</div>';
+  }
+
+  /* ---------- Intel ---------- */
+  function intelPanel() {
+    const panes = [["stats", "Stats"], ["archive", "Archive"], ["goals", "Goals"]];
+    let body;
+    if (intelPane === "archive") body = archiveHtml();
+    else if (intelPane === "goals") body = achievementsHtml();
+    else body = clubRecordHtml();
+    return subTabs("intel", intelPane, panes) + body;
+  }
+
+  function archiveHtml() {
+    const seen = save.seenClasses || [];
+    const ids = Object.keys(IL.CLASSES);
+    const owned = {};
+    (save.roster || []).forEach(function (f) { owned[f.cls] = true; });
+    const found = ids.filter(function (id) { return owned[id] || seen.indexOf(id) >= 0; }).length;
+    return '<section class="es-card"><header class="archive-head"><h3 class="section">Classes</h3><span class="fine">' + found + ' / ' + ids.length + ' discovered</span></header>' +
+      '<div class="archive-grid">' + ids.map(function (id) {
+        const kit = IL.CLASSES[id];
+        const known = owned[id] || seen.indexOf(id) >= 0;
+        const sheet = IL.defaultSheet ? IL.defaultSheet(id) : "";
+        return '<div class="archive-cell' + (known ? "" : " unknown") + '">' +
+          (known ? '<canvas width="64" height="64" data-key="' + esc(IL.hero.keyOf({ sheet: sheet })) + '" data-anim="idle" data-scale="2" data-foot="4"></canvas>' : '<span class="q">???</span>') +
+          '<b>' + (known ? esc(kit.name) : "Not yet discovered") + '</b></div>';
+      }).join("") + '</div></section>';
   }
 
   function leagueCardHtml() {
@@ -2145,7 +2437,7 @@
   function fightersPanel() {
     const size = save.round < 5 ? IL.SEASON_SIZES[save.round] : 0;
     return '<div id="fighterList">' +
-      filterBar("fighters", fighterFilter, [["all", "All"], ["party", "Party"], ["bench", "Bench"]]) +
+      filterBar("fighters", fighterFilter, [["all", "All"], ["party", "First team"], ["bench", "Substitutes"]]) +
       '<div class="hub-split" id="hubSplit">' +
         '<div class="hub-main" id="hubMain">' +
           rosterHtml(size, size ? "In the pit" : "Party", fighterFilter) +
@@ -2939,12 +3231,28 @@
     IL.migrate(save);
     ensureMarket();
     const freshAchieve = takeAchievements();
-    const next = (typeof tab === "string" && HUB_TABS.indexOf(tab) >= 0) ? tab : hubTab;
+    let want = tab;
+    let aliased = false;
+    if (typeof want === "string" && TAB_ALIAS[want]) {
+      aliased = true;
+      const al = TAB_ALIAS[want];
+      want = al[0];
+      if (al[1] && want === "roster") rosterPane = al[1];
+      if (al[1] && want === "matches") matchesPane = al[1];
+      if (al[1] && want === "club") clubPane = al[1];
+    }
+    const next = (typeof want === "string" && HUB_TABS.indexOf(want) >= 0) ? want : (HUB_TABS.indexOf(hubTab) >= 0 ? hubTab : "overview");
     const switching = next !== hubTab;
     const snap = keep && !switching ? captureScroll() : null;
     if (switching) {
+      if (!aliased) {
+        if (next === "roster") rosterPane = "team";
+        if (next === "matches") matchesPane = "league";
+        if (next === "club") clubPane = "home";
+        if (next === "intel") intelPane = "stats";
+      }
       if (next === "market") marketPane = "fighters";
-      if (next === "fighters") fighterFilter = "all";
+      if (next === "roster") fighterFilter = "all";
       if (next === "events") eventPane = "week";
       if (next === "train") trainPane = "drills";
       if (next === "relics") { relicStatus = "all"; relicRarity = "all"; relicSet = "all"; relicOpen = null; }
@@ -2954,37 +3262,29 @@
     if (detailId && !fighterById(detailId)) detailId = null;
     persist();
     const done = save.round >= 5;
-    const panel = hubTab === "fighters" ? fightersPanel()
+    const panel = hubTab === "roster" ? rosterPanel()
       : hubTab === "market" ? marketPanel()
-      : hubTab === "cup" ? cupPanel()
-      : hubTab === "relics" ? relicsPanel()
-      : hubTab === "events" ? eventsPanel()
-      : hubTab === "train" ? trainingPanel()
-      : clubPanel();
+      : hubTab === "matches" ? matchesPanel()
+      : hubTab === "club" ? clubHomePanel()
+      : hubTab === "intel" ? intelPanel()
+      : overviewPanel();
     const fighter = detailId ? fighterById(detailId) : null;
     app.innerHTML =
-      '<main class="hub">' +
+      '<main class="hub es-hub tab-' + hubTab + '">' +
         '<div class="hub-sticky">' +
-          '<header class="hub-head">' +
-            '<button type="button" class="crest-btn" id="clubIdentity" aria-label="Club name and colors" title="Club name and colors">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="crest-edit" aria-hidden="true">✎</span></button>' +
-            '<div><p class="eyebrow">Season ' + save.season + ' · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</p><h2>' + esc(save.clubName) + '</h2></div>' +
-            '<div class="hub-actions">' +
-              (done ? '<button type="button" class="btn gold" id="openSeason">Season ceremony</button>' : '') +
-              '<button type="button" class="icon-btn" id="settings" aria-label="Settings" title="Settings"><span aria-hidden="true">⚙</span></button>' +
-            '</div>' +
-          '</header>' +
-          purseHtml() +
+          hubHeadHtml(done) +
           tabBar(hubTab) +
         '</div>' +
         '<div class="hub-panel" id="hubPanel">' + panel + '</div>' +
         fightDockHtml() +
       '</main>' +
       (fightMenuOpen ? fightMenuHtml() : '') +
+      (!fightMenuOpen && inboxOpen ? inboxHtml() : '') +
       (!fightMenuOpen && identityOpen ? identityHtml() : '') +
       (!fightMenuOpen && !identityOpen && creditsOpen ? creditsHtml() : '') +
       (!fightMenuOpen && !identityOpen && settingsOpen && !creditsOpen ? settingsHtml() : '') +
       (!fightMenuOpen && !identityOpen && !settingsOpen && !creditsOpen && fighter ? sheetHtml(fighter) : '') +
-      (!fightMenuOpen && !identityOpen && !settingsOpen && !creditsOpen && !fighter && relicOpen && hubTab === "relics" ? relicSheetHtml() : '');
+      (!fightMenuOpen && !identityOpen && !settingsOpen && !creditsOpen && !fighter && relicOpen && hubTab === "roster" && rosterPane === "relics" ? relicSheetHtml() : '');
     if (snap) {
       restoreScroll(snap);
       requestAnimationFrame(function () {
@@ -2995,12 +3295,13 @@
       root.scrollTo(0, 0);
     }
     bindHub();
+    seatDock();
     const extra = [];
     if (hubTab === "market") {
       (save.market || []).forEach(function (row) { if (row && row.fighter) extra.push(row.fighter.parts); });
       ((save.deals && save.deals.offers) || []).forEach(function (o) { if (o && o.fighter) extra.push(o.fighter.parts); });
     }
-    if (hubTab === "cup" && save.draft) {
+    if (hubTab === "matches" && save.draft) {
       (save.draft.offer || []).concat(save.draft.picks || []).forEach(function (f) { if (f && f.parts) extra.push(f.parts); });
     }
     bootCards(extra);
@@ -3230,7 +3531,6 @@
       settingsOpen = false;
       detailId = null;
       eventPane = "friend";
-      hubTab = "events";
       showHub("events");
     };
     const copyRep = document.getElementById("copyReport");
@@ -3312,7 +3612,7 @@
     root.scrollTo(0, 0);
     document.getElementById("versusBack").onclick = function () {
       pendingSpec = null;
-      showHub(spec.returnTab || "club");
+      showHub(spec.returnTab || "overview");
     };
     document.getElementById("confirmFight").onclick = confirmPending;
     const pick = document.getElementById("pilotPick");
@@ -3378,7 +3678,9 @@
       if (b) {
         if (b.dataset.dock === "fight") openFightMenu();
         else if (b.dataset.dock === "season") showSeasonEnd();
-        else showHub("club");
+        else if (b.dataset.dock === "daily") beginDaily();
+        else if (b.dataset.dock === "inbox") { detailId = null; inboxOpen = true; refreshHub(); }
+        else showHub("roster");
         return;
       }
       const g = ev.target.closest("[data-goto]");
@@ -3473,6 +3775,7 @@
     bindCredits();
     bindIdentity();
     bindFightMenu();
+    bindInbox();
     const gear = document.getElementById("settings");
     if (gear) gear.onclick = function () {
       detailId = null;
@@ -3510,7 +3813,7 @@
     if (tabs) tabs.onclick = function (ev) {
       const t = ev.target.closest("[data-tab]");
       if (!t) return;
-      if (t.dataset.tab === hubTab && !detailId && !gearPreview && !creditsOpen) return;
+      if (t.dataset.tab === hubTab) resetPane(hubTab);
       detailId = null;
       gearPreview = null;
       tonicPick = null;
@@ -3524,6 +3827,20 @@
     if (panel) panel.onclick = function (ev) {
       const cv = ev.target.closest("[data-club-view]");
       if (cv) { clubView = cv.dataset.clubView; refreshHub(); return; }
+      const pane = ev.target.closest("[data-pane]");
+      if (pane) {
+        const bits = pane.dataset.pane.split(":");
+        if (bits[0] === "matches") matchesPane = bits[1];
+        else if (bits[0] === "roster") rosterPane = bits[1];
+        else if (bits[0] === "club") clubPane = bits[1];
+        else if (bits[0] === "intel") intelPane = bits[1];
+        refreshHub();
+        return;
+      }
+      const gotoBtn = ev.target.closest("[data-goto]");
+      if (gotoBtn) { showHub(gotoBtn.dataset.goto); return; }
+      const inLv = ev.target.closest("[data-inbox-level]");
+      if (inLv) { levelFocus = inLv.dataset.inboxLevel; showGrowth(); return; }
       const emblem = ev.target.closest("[data-club-crest]");
       if (emblem) {
         const n = +emblem.dataset.clubCrest;
@@ -4639,7 +4956,7 @@
         rival: spec.rival || null,
         size: spec.size || 1,
         mode: spec.mode || "league",
-        returnTab: spec.returnTab || "club",
+        returnTab: spec.returnTab || "overview",
         friendName: spec.friendName || "",
         tok: tok
       };
@@ -4713,7 +5030,7 @@
       rival: rival,
       size: size,
       seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0,
-      returnTab: "club"
+      returnTab: "overview"
     });
   }
 
@@ -6061,6 +6378,11 @@
       if (a.you || b.you) {
         const you = a.you ? a : b;
         const them = a.you ? b : a;
+        /* v71: the calendar and the form column read these. */
+        if (!Array.isArray(save.leagueLog)) save.leagueLog = [];
+        save.leagueLog[save.round] = { season: save.season, win: !!win, pf: pf, pa: pa, opp: them.id };
+        you.form = (you.form || []).concat(win ? "W" : "L").slice(-5);
+        them.form = (them.form || []).concat(win ? "L" : "W").slice(-5);
         if (win) {
           you.w++; you.pts += 3; you.pf += pf; you.pa += pa;
           them.l++; them.pf += pa; them.pa += pf;
@@ -6074,6 +6396,8 @@
         const awin = rng() < p;
         const gf = 1 + Math.floor(rng() * 3);
         const ga = Math.floor(rng() * gf);
+        a.form = (a.form || []).concat(awin ? "W" : "L").slice(-5);
+        b.form = (b.form || []).concat(awin ? "L" : "W").slice(-5);
         if (awin) { a.w++; a.pts += 3; a.pf += gf; a.pa += ga; b.l++; b.pf += ga; b.pa += gf; }
         else { b.w++; b.pts += 3; b.pf += ga; b.pa += gf; a.l++; a.pf += gf; a.pa += ga; }
       }
@@ -6158,6 +6482,7 @@
     tonicPick = null;
     creditsOpen = false;
     const nextTab = HUB_TABS[ev.key.charCodeAt(0) - 49];
+    if (nextTab === hubTab) resetPane(nextTab);
     showHub(nextTab, nextTab === hubTab);
   }
   document.addEventListener("keydown", onHubKey);

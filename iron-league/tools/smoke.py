@@ -48,8 +48,10 @@ def run(page, label, shot_dir):
     page.click("#newClub")
     page.fill("#clubName", "Smoke Yard")
     page.fill("#fighterName", "Ada Flint")
-    page.click('[data-class="warrior"]')
+    # Randomize first: it re-rolls the class too, and the fight checks need
+    # a melee captain to see a slash.
     page.click("#randomize")
+    page.click('[data-class="warrior"]')
     page.wait_for_timeout(400)
     page.screenshot(path=str(shot_dir / f"{label}-creator.png"))
     page.click("#confirm")
@@ -218,12 +220,13 @@ def run(page, label, shot_dir):
         raise SystemExit(label + " unexpected result: " + result)
     page.click("#backHub")
     page.wait_for_selector("#nextMatch, #nextSeason", timeout=10000)
-    page.click("[data-club-view='history']")
+    page.keyboard.press("2")
+    page.click("[data-pane='matches:history']")
     page.wait_for_selector("#history")
     history = page.locator("#history").inner_text()
     if "MVP" not in history:
         raise SystemExit(label + " history missing a result: " + history)
-    gold = page.locator(".purse").inner_text()
+    gold = page.locator(".es-purse").inner_text()
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("#continue")
     page.click("#continue")
@@ -300,14 +303,16 @@ def tour(page, shot_dir):
         timeout=20000,
     )
     page.screenshot(path=str(shot_dir / "market.png"))
-    page.click("#relics")
+    page.keyboard.press("3")
+    page.click("[data-pane='roster:relics']")
     page.wait_for_selector(".relic-cell[data-relic-open='band']")
     page.click(".relic-cell[data-relic-open='band']")
     page.wait_for_selector("#relicSheet [data-equip='band']")
     page.click("#relicSheetClose")
     page.wait_for_selector("#relicSheet", state="detached")
     page.screenshot(path=str(shot_dir / "relics.png"))
-    page.click("#cup")
+    page.keyboard.press("2")
+    page.click("[data-pane='matches:cups']")
     page.click("#enterCup")
     page.wait_for_selector(".bracket")
     page.wait_for_selector("#bracketBoard")
@@ -340,7 +345,7 @@ def check_chrome(page, label):
             const res = await fetch(url);
             status[url] = res.status;
           }
-          const crest = document.querySelector('.board .crest-emblem');
+          const crest = document.querySelector('.board .crest-emblem, .ov-table .crest-emblem');
           if (crest && !crest.complete) {
             await new Promise((resolve) => { crest.onload = resolve; crest.onerror = resolve; });
           }
@@ -416,15 +421,15 @@ def check_nav(page, label, shot_dir):
     check_classes(page, label)
     page.wait_for_selector("#tabbar")
     tabs = page.locator("#tabbar [role='tab']")
-    if tabs.count() != 7:
+    if tabs.count() != 6:
         raise SystemExit(label + " tab bar has " + str(tabs.count()))
     joined = " ".join(tabs.all_inner_texts()).lower()
-    for word in ("club", "team", "market", "compete", "relic", "event", "train"):
+    for word in ("overview", "matches", "roster", "club", "market", "intel"):
         if word not in joined:
             raise SystemExit(label + " tab missing " + word + " in " + joined)
     selected = page.locator("#tabbar [role='tab'][aria-selected='true']").inner_text().lower()
-    if "club" not in selected:
-        raise SystemExit(label + " club tab was not active: " + selected)
+    if "overview" not in selected:
+        raise SystemExit(label + " overview tab was not active: " + selected)
     bar = page.evaluate(
         """() => {
           const el = document.querySelector('#tabbar');
@@ -446,8 +451,8 @@ def check_nav(page, label, shot_dir):
     )
     if any(c != "rgb(243, 217, 176)" for c in ink):
         raise SystemExit(label + " inactive tab ink " + str(ink))
-    page.wait_for_selector("#clubPane")
-    page.keyboard.press("2")
+    page.wait_for_selector("#nextCard")
+    page.keyboard.press("3")
     page.wait_for_selector("#fighterList")
     if page.locator("#nextMatch").count():
         raise SystemExit(label + " fighters tab still shows the match button")
@@ -531,7 +536,7 @@ def check_settings(page, label):
 
 def check_gear(page, label, shot_dir):
     """Armory filters, equip diff, a bench drill, and a paid stall reroll."""
-    page.keyboard.press("2")
+    page.keyboard.press("3")
     page.wait_for_selector("#armory")
     fetched = page.evaluate(
         """async () => {
@@ -680,7 +685,7 @@ def check_scroll(page, label):
     )
     page.reload(wait_until="domcontentloaded")
     page.click("#continue")
-    page.keyboard.press("2")
+    page.keyboard.press("3")
     page.wait_for_selector("#benchList [data-train]")
     page.set_viewport_size({"width": size["width"], "height": 480})
     ready = page.evaluate(
@@ -766,21 +771,26 @@ def check_scroll(page, label):
 def check_fit(page):
     """Each hub tab should sit on a 1280x800 screen without a long page scroll."""
     tabs = [
-        ("#tab-club", "#nextMatch"),
-        ("#tab-fighters", "#armory"),
-        ("#market", "#marketCards"),
-        ("#relics", ".relic-cell"),
-        ("#cup", "#enterCup"),
-        ("#events", "#eventsBoard"),
-        ("#train", "#trainBoard"),
+        ("1", None, "#nextMatch"),
+        ("2", None, ".es-calendar"),
+        ("3", None, "#armory"),
+        ("3", "roster:relics", ".relic-cell"),
+        ("2", "matches:cups", "#enterCup"),
+        ("4", None, ".es-tile"),
+        ("4", "club:events", "#eventsBoard"),
+        ("4", "club:train", "#trainBoard"),
+        ("5", None, "#marketCards"),
+        ("6", None, "#achievements, #clubRecord, .es-card"),
     ]
-    for tab, wait in tabs:
-        page.click(tab)
+    for key, pane, wait in tabs:
+        page.keyboard.press(key)
+        if pane:
+            page.locator("[data-pane='" + pane + "']").first.click()
         page.wait_for_selector(wait)
         slack = page.evaluate("() => document.documentElement.scrollHeight - window.innerHeight")
         if slack > 48:
-            raise SystemExit(tab + " scrolls by " + str(slack) + "px")
-    page.click("#tab-club")
+            raise SystemExit(key + " " + str(pane) + " scrolls by " + str(slack) + "px")
+    page.keyboard.press("1")
     page.wait_for_selector("#nextMatch")
 
 
@@ -796,7 +806,7 @@ def check_empty_bench(page):
     )
     page.reload(wait_until="domcontentloaded")
     page.click("#continue")
-    page.keyboard.press("2")
+    page.keyboard.press("3")
     page.wait_for_selector("#benchList .empty-state")
     text = page.locator("#benchList .empty-state").inner_text().lower()
     if "bench" not in text or "empty" not in text:
@@ -804,8 +814,8 @@ def check_empty_bench(page):
 
 
 def check_achievements(page, label):
-    page.keyboard.press("1")
-    page.click("[data-club-view='goals']")
+    page.keyboard.press("6")
+    page.click("[data-pane='intel:goals']")
     page.wait_for_selector("#achievements")
     text = page.locator("#achievements").inner_text().lower()
     for word in ("first bell", "first win", "flawless", "ten kos", "cup winner", "every kit"):
@@ -943,15 +953,17 @@ def sweep_frames(browser, shot_dir):
     page.wait_for_selector("#nextMatch", timeout=30000)
     sizes = [(360, 740), (412, 915), (768, 1024), (1280, 800)]
 
-    def visit(tag, wait):
+    def visit(tag, wait, pane=None):
         page.keyboard.press(tag)
+        if pane:
+            page.locator("[data-pane='" + pane + "']").first.click()
         page.wait_for_selector(wait)
 
     for width, height in sizes:
         page.set_viewport_size({"width": width, "height": height})
         label = str(width) + "x" + str(height)
         page.keyboard.press("1")
-        page.wait_for_selector("#clubPane")
+        page.wait_for_selector("#nextCard")
         assert_inside(page, label + " club")
         if width == 360:
             clipped = page.evaluate(
@@ -967,8 +979,9 @@ def sweep_frames(browser, shot_dir):
         if width <= 412:
             fight = page.evaluate(
                 """() => {
-                  const btn = document.getElementById('nextMatch');
-                  const panel = document.getElementById('hubPanel');
+                  // v71: NEXT MATCH lives on the bottom bar, above the tabs.
+                  const btn = document.getElementById('dockFight');
+                  const panel = document.getElementById('fightDock');
                   const bar = document.getElementById('tabbar');
                   if (!btn || !panel || !bar) return null;
                   const b = btn.getBoundingClientRect();
@@ -996,15 +1009,16 @@ def sweep_frames(browser, shot_dir):
             if slack > 48:
                 raise SystemExit(label + " club scrolls by " + str(slack))
         if width == 412:
-            page.locator(".panel-frame .board").first.locator("xpath=ancestor::section[1]").screenshot(path=str(shot_dir / "standings-phone.png"))
-        visit("2", "#fighterList")
+            visit("2", ".es-board")
+            page.locator(".es-board").first.locator("xpath=ancestor::section[1]").screenshot(path=str(shot_dir / "standings-phone.png"))
+        visit("3", "#fighterList")
         assert_inside(page, label + " fighters")
         page.locator("[data-detail]").first.click()
         page.wait_for_selector("#fighterSheet")
         assert_inside(page, label + " sheet")
         page.click("#sheetClose")
         page.wait_for_selector("#fighterSheet", state="detached")
-        visit("3", "[data-filter='gear']")
+        visit("5", "[data-filter='gear']")
         assert_inside(page, label + " recruits")
         page.click("[data-filter='gear']")
         page.wait_for_selector("#gearStock")
@@ -1023,13 +1037,13 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " deals")
         page.click("[data-filter='sell']")
         assert_inside(page, label + " sell")
-        visit("4", "#enterCup, #bracketBoard")
+        visit("2", "#enterCup, #bracketBoard", "matches:cups")
         assert_inside(page, label + " cup")
-        visit("5", ".relic-cell")
+        visit("3", ".relic-cell", "roster:relics")
         assert_inside(page, label + " relics")
-        visit("6", "#eventsBoard")
+        visit("4", "#eventsBoard", "club:events")
         assert_inside(page, label + " events")
-        visit("7", "#trainBoard")
+        visit("4", "#trainBoard", "club:train")
         assert_inside(page, label + " train")
         page.click("#settings")
         page.wait_for_selector("#settingsSheet")
@@ -1277,10 +1291,10 @@ def qa_gate(browser, shot_dir):
                 page.screenshot(path=str(shot_dir / ("qa-" + label + "-" + name + ".png")))
 
         page.keyboard.press("1")
-        page.wait_for_selector("#clubPane")
+        page.wait_for_selector("#nextCard")
         assert_inside(page, label + " club")
         shot("club")
-        page.keyboard.press("2")
+        page.keyboard.press("3")
         page.wait_for_selector("#fighterList")
         assert_inside(page, label + " fighters")
         shot("fighters")
@@ -1291,7 +1305,7 @@ def qa_gate(browser, shot_dir):
         shot("sheet")
         page.click("#sheetClose")
         page.wait_for_selector("#fighterSheet", state="detached")
-        page.keyboard.press("3")
+        page.keyboard.press("5")
         page.wait_for_selector("[data-filter='gear']")
         assert_inside(page, label + " recruits")
         for filt, wait, name in (
@@ -1305,17 +1319,21 @@ def qa_gate(browser, shot_dir):
             page.wait_for_selector(wait)
             assert_inside(page, label + " " + name)
         shot("market")
-        page.keyboard.press("4")
+        page.keyboard.press("2")
+        page.click("[data-pane='matches:cups']")
         page.wait_for_selector("#enterCup, #bracketBoard")
         assert_inside(page, label + " cup")
         shot("cup")
-        page.keyboard.press("5")
+        page.keyboard.press("3")
+        page.click("[data-pane='roster:relics']")
         page.wait_for_selector(".relic-cell")
         assert_inside(page, label + " relics")
-        page.keyboard.press("6")
+        page.keyboard.press("4")
+        page.locator("[data-pane='club:events']").first.click()
         page.wait_for_selector("#eventsBoard")
         assert_inside(page, label + " events")
-        page.keyboard.press("7")
+        page.keyboard.press("4")
+        page.locator("[data-pane='club:train']").first.click()
         page.wait_for_selector("#trainBoard")
         assert_inside(page, label + " train")
         shot("relics")

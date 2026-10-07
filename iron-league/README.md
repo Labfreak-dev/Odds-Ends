@@ -200,6 +200,22 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Facilities (v75)
+
+Seven facilities, bought a rank at a time with gold (Club tab ▸ Facilities):
+
+| Facility | Ranks | Cost | Effect |
+|---|---|---|---|
+| Headquarters | 3 | 120 / 260 / 480 | +2 roster slots a rank (8 → 14) |
+| Training Grounds | 2 | 80 / 180 | +1 drill a week |
+| Time Chamber | 2 | 70 / 160 | +4 xp a drill |
+| Barracks | 3 | 90 / 200 / 360 | The bench takes 15% of the lineup's league and cup match XP a rank |
+| Medical Bay | 2 | 60 / 140 | Drills 4 gold cheaper and the bench rests 6 more stamina a rank |
+| Scouting Office | 2 | 100 / 220 | Scouting finds the wanted class 75%, then 100%, of the time (from 45%) |
+| Treasure House | 2 | 150 / 320 | +1 club relic slot a rank (2 → 4) |
+
+The Club tab shows each facility as a tile with its current effect and next rank. The old yard, hall and infirmary keep their saved ranks under the new names. `IL.rosterCap`, `IL.benchShare`, `IL.restBonus`, `IL.scoutOdds`, `IL.clubRelicSlots` read the ranks.
+
 ## Market (v74)
 
 - Sub-tabs Fighters (first), Relics, Gear, Deals, Sell, styled like the hub's sub-tabs.

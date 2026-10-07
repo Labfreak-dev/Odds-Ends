@@ -510,7 +510,7 @@
     data.equipped = data.equipped.filter(function (id) {
       const relic = relicById(id);
       return relic && relic.scope !== "fighter" && data.relics.indexOf(id) >= 0;
-    }).slice(0, 2);
+    }).slice(0, IL.clubRelicSlots ? IL.clubRelicSlots(data) : 2);
     if (typeof data.relicSeason !== "number") data.relicSeason = 0;
     if (!data.cup) data.cup = null;
     if (!Array.isArray(data.relicStock)) data.relicStock = [];
@@ -696,9 +696,9 @@
       data.specSeeded = true;
     }
     if (!data.facilities || typeof data.facilities !== "object") data.facilities = {};
-    ["yard", "hall", "infirmary"].forEach(function (id) {
-      const n = data.facilities[id];
-      data.facilities[id] = typeof n === "number" && n > 0 ? Math.min(2, n | 0) : 0;
+    (IL.FACILITIES || []).forEach(function (def) {
+      const n = data.facilities[def.id];
+      data.facilities[def.id] = typeof n === "number" && n > 0 ? Math.min(def.max, n | 0) : 0;
     });
     normalizeLineup(data);
     adoptSheets(data);
@@ -972,7 +972,7 @@
     if (want) {
       found = fresh.some(function (r) { return r.fighter.cls === want; });
       /* Scouting adds the wanted class on a little under half the turns. */
-      if (!found && rng() < 0.45) {
+      if (!found && rng() < (IL.scoutOdds ? IL.scoutOdds(save) : 0.45)) {
         const fighter = IL.randomFighter(rng, want);
         stampRecruit(fighter, rng);
         if (IL.separateNames) IL.separateNames([fighter], names.concat(fresh.map(function (r) { return String(r.fighter.name).split(" ")[0]; })));

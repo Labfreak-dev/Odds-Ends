@@ -1026,7 +1026,7 @@ const ccTable = [0, 1, 2, 3, 4].map(function (i) {
   return i === 2 ? { id: "you", name: "Us", you: true } : { id: "c" + i, name: "Club " + i, you: false, fighters: [0, 1, 2].map(function (k) { return IL.randomFighter(IL.mulberry32(90 + i * 3 + k), "warrior"); }) };
 });
 const cc = IL.startChampionsCup({ clubName: "Us", season: 3 }, ccTable);
-check("champions cup seeds 1v4 and 2v3", cc && cc.size === 3 && cc.slots[0].id === "c0" && cc.slots[1].id === "c3" && cc.slots[2].id === "you" && cc.slots[3].id === "c1" && cc.season === 3);
+check("champions cup seeds 1v4 and 2v3", cc && cc.size === 3 && cc.slots[0].id === "c0" && cc.slots[1].id === "c3" && cc.slots[2].id === "c1" && cc.slots[3].id === "you" && cc.season === 3);
 IL.settleCup(cc, [], IL.mulberry32(5));
 check("the tie without you is settled and yours waits", cc.winners[0] && !cc.winners[1] && !cc.champion && IL.cupOpponent(cc).foe.id === "c1");
 const ccOut = IL.startChampionsCup({ clubName: "Us", season: 3 }, ccTable.slice(0, 2).concat(ccTable.slice(3)).concat([{ id: "c9", name: "Club 9", you: false, fighters: ccTable[0].fighters }]));

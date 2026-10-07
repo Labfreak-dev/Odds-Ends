@@ -885,8 +885,9 @@
   /* Play every tie that does not need you, round by round. */
   function settleCup(cup, roster, rng) {
     let guard = 0;
-    while (cup && !cup.champion && !cupOpponent(cup) && guard < 4) {
+    while (cup && !cup.champion && guard < 4) {
       resolveOtherPairs(cup, roster, rng);
+      if (cupOpponent(cup)) break;
       advanceCup(cup);
       guard++;
     }

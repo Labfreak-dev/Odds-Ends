@@ -291,7 +291,7 @@ def tour(page, shot_dir):
         raise SystemExit("level-up pick was not saved: " + str(perk))
     page.wait_for_selector("#market")
     page.click("#market")
-    page.wait_for_selector("#marketCards .hire")
+    page.wait_for_selector("#marketDetail .hire")
     page.wait_for_function(
         """() => {
           const c = document.querySelector("#marketCards canvas");
@@ -1030,7 +1030,7 @@ def sweep_frames(browser, shot_dir):
         assert_inside(page, label + " stall")
         assert_inside(page, label + " tomes")
         page.click("[data-filter='fighters']")
-        page.wait_for_selector("#marketCards .hire")
+        page.wait_for_selector("#marketDetail .hire")
         assert_inside(page, label + " fighters market")
         page.click("[data-filter='relics']")
         page.wait_for_selector("#relicStall")

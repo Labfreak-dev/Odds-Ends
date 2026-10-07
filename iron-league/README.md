@@ -200,6 +200,16 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Market (v74)
+
+- Sub-tabs Fighters (first), Relics, Gear, Deals, Sell, styled like the hub's sub-tabs.
+- **Fighters** is now a list and a detail card, after Eslabong's market:
+  - Filters: All, Affordable, Watchlist, Champions, Scouted (with counts), plus Refresh and Scout for.
+  - A pulse line: listings, roster count, and how the board turns over.
+  - The list: sprite, name with move icons, HP/ATK/DEF/SPD, class badge and level, price (renown for a locked class), and a watch star.
+  - The card of the picked listing: portrait, class and rarity badges, level, **market value** against the asking price (or renown required), stats, abilities, profile (personality, growth style, specialty, trait), Watch and Hire.
+- On a phone the card sits above the list and the class column hides.
+
 ## Season calendar (v73)
 
 - A division is now **8 clubs** playing one round robin: **7 league weeks** (squads 3, 2, 3, 1, 3, 2, 3). The top two go up and the bottom two go down, as before.

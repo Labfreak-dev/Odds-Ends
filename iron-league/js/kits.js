@@ -711,6 +711,7 @@
     if (!card) return "Utility";
     if (card.kind === "talent") return "Passive";
     if (card.kind === "spec") return "Upgrade";
+    if (card.kind === "hone") return "Training";
     const ab = IL.abilityById ? IL.abilityById(card.id) : null;
     return (ab && CATEGORY[ab.kind]) || "Utility";
   }
@@ -750,6 +751,7 @@
      is worth 3 points, its second 2.5, the rest 2. Balanced is 2.5
      everywhere. */
   const STAT_KEYS = ["hp", "atk", "def", "spd"];
+  const HONE_PTS = [2, 3, 4, 5];
   function statOffer(f) {
     const w = (IL.STYLES[IL.styleOf(f)] || IL.STYLES.balanced).w;
     const ranked = STAT_KEYS.slice().sort(function (a, b) { return w[b] - w[a]; });
@@ -793,12 +795,15 @@
     pool.forEach(function (ab) { if (ab && ab.id) byId[ab.id] = ab; });
     const specs = f.specs || {};
     const owned = {};
-    (f.talents || []).forEach(function (t) { owned[t.id] = true; });
+    (f.talents || []).forEach(function (t) { owned[t.id] = Math.max(owned[t.id] == null ? -1 : owned[t.id], t.tier | 0); });
     const fresh = pool.filter(function (ab) { return ab && ab.cd && f.known.indexOf(ab.id) < 0; });
+    /* v84: an upgraded move or an owned passive comes back a tier higher
+       until legendary, and Hone (stat points) never runs out, so a
+       fighter has picks all the way to level 100. */
     const specable = f.loadout.map(function (id) { return byId[id]; }).filter(function (ab) {
-      return ab && ab.cd && usable(f, ab) && !specs[ab.id];
+      return ab && ab.cd && usable(f, ab) && (!specs[ab.id] || (specs[ab.id].tier | 0) < 3);
     });
-    const talentIds = Object.keys(TALENTS).filter(function (id) { return !owned[id]; });
+    const talentIds = Object.keys(TALENTS).filter(function (id) { return owned[id] == null || owned[id] < 3; });
     const cards = [];
     const used = {};
     function addLearn(tier) {
@@ -813,9 +818,11 @@
       const open = specable.filter(function (ab) { return !used["s" + ab.id]; });
       if (!open.length) return false;
       const ab = open[Math.floor(rng() * open.length)];
+      used["s" + ab.id] = true;
+      const had = specs[ab.id];
+      if (had) { cards.push({ kind: "spec", id: ab.id, mod: had.mod, tier: Math.min(3, (had.tier | 0) + 1), up: true }); return true; }
       const mods = Object.keys(MODS).filter(function (m) { return MODS[m].any || !HEAL_KINDS[ab.kind]; });
       const mod = mods[Math.floor(rng() * mods.length)];
-      used["s" + ab.id] = true;
       cards.push({ kind: "spec", id: ab.id, mod: mod, tier: tier });
       return true;
     }
@@ -824,7 +831,16 @@
       if (!open.length) return false;
       const id = open[Math.floor(rng() * open.length)];
       used["t" + id] = true;
+      if (owned[id] != null) { cards.push({ kind: "talent", id: id, tier: Math.min(3, owned[id] + 1), up: true }); return true; }
       cards.push({ kind: "talent", id: id, tier: tier });
+      return true;
+    }
+    function addHone(tier) {
+      const open = STAT_KEYS.filter(function (k) { return !used["h" + k]; });
+      if (!open.length) return false;
+      const k = open[Math.floor(rng() * open.length)];
+      used["h" + k] = true;
+      cards.push({ kind: "hone", id: k, tier: tier, pts: HONE_PTS[tier] || HONE_PTS[0] });
       return true;
     }
     const order = [addSpec, addLearn, addTalent];
@@ -839,6 +855,7 @@
       }
     }
     while (cards.length < 3 && addTalent(0)) { /* fill */ }
+    while (cards.length < 3 && addHone(pickRarity(rng))) { /* never an empty hand */ }
     return cards.slice(0, 3);
   }
 
@@ -873,7 +890,11 @@
       f.specs[card.id] = { mod: card.mod, tier: card.tier };
     } else if (card.kind === "talent") {
       if (!Array.isArray(f.talents)) f.talents = [];
-      f.talents.push({ id: card.id, tier: card.tier });
+      const had = f.talents.filter(function (t) { return t.id === card.id; })[0];
+      if (had) had.tier = Math.max(had.tier | 0, card.tier);
+      else f.talents.push({ id: card.id, tier: card.tier });
+    } else if (card.kind === "hone") {
+      f.rolls[card.id] = (f.rolls[card.id] || 0) + (card.pts || 2);
     }
     if (!Array.isArray(f.growth)) f.growth = [];
     f.growth.push({ level: f.level || 1, kind: card.kind, id: card.id, mod: card.mod || null, tier: card.tier, roll: offer.roll });

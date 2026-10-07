@@ -807,10 +807,11 @@
 
   function makeRivalSide(rng, name, n, data) {
     const fighters = [];
+    const slot = Math.floor(rng() * RIVAL_SWING.length);
     for (let i = 0; i < n; i++) {
       const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
       if (IL.dressRival) IL.dressRival(fighter, rng, data ? divisionOf(data) : 0);
-      if (data) growRival(fighter, rng, rivalLevel(data, i));
+      if (data) growRival(fighter, rng, rivalLevel(data, slot, i));
       fighters.push(fighter);
     }
     if (IL.dedupeNames) IL.dedupeNames(fighters);
@@ -1046,7 +1047,7 @@
     if (!fighter) return null;
     stampRecruit(fighter, rng);
     if (IL.dressRival) IL.dressRival(fighter, rng, divisionOf(save));
-    growRival(fighter, rng, rivalLevel(save, Math.floor(rng() * 5)));
+    growRival(fighter, rng, rivalLevel(save, Math.floor(rng() * RIVAL_SWING.length), Math.floor(rng() * 3)));
     if (IL.separateNames) IL.separateNames([fighter], avoidNames || []);
     if (!IL.classUnlocked(fighter.cls, save.renown || 0)) return null;
     const cost = Math.max(30, Math.round(marketValue(fighter) * 1.2 / 5) * 5);
@@ -1258,25 +1259,35 @@
     return Math.max(1, Math.round(lv.reduce(function (a, b) { return a + b; }, 0) / lv.length));
   }
 
-  /* Rivals match the club, one either way, never under the division floor. */
-  function rivalLevel(data, slot) {
-    const spread = [-1, 0, 0, 1, 1, 0];
+  /* Rivals track the club level. Each rival club sits on its own swing
+     (six under to six over) and its fighters vary one either way around it;
+     never under the division floor. slot = the club, k = the fighter. */
+  const RIVAL_SWING = [-6, -4, -2, 0, 2, 4, 6];
+  const RIVAL_JITTER = [0, -1, 1];
+  function rivalLevel(data, slot, k) {
     const base = Math.max(DIVISIONS[divisionOf(data)].floor, clubLevel(data));
-    return Math.max(1, Math.min(IL.LEVEL_CAP || 30, base + spread[(slot | 0) % spread.length]));
+    const lv = base + RIVAL_SWING[Math.abs(slot | 0) % RIVAL_SWING.length] + RIVAL_JITTER[Math.abs(k | 0) % RIVAL_JITTER.length];
+    return Math.max(1, Math.min(IL.LEVEL_CAP || 100, lv));
+  }
+  function rivalRange(data) {
+    const base = Math.max(DIVISIONS[divisionOf(data)].floor, clubLevel(data));
+    const cap = IL.LEVEL_CAP || 100;
+    return [Math.max(1, Math.min(cap, base - 7)), Math.max(1, Math.min(cap, base + 7))];
   }
 
   /* A rival takes the same level-ups a player fighter does: a stat roll
      every level and one skill card, picked by its own seeded hand. */
   function growRival(fighter, rng, level) {
     if (!fighter) return fighter;
-    const lv = Math.max(1, level | 0);
+    const from = Math.max(1, fighter.level | 0);
+    const lv = Math.max(from, level | 0);
     fighter.level = lv;
     fighter.xp = IL.xpFloor ? IL.xpFloor(lv) : (lv - 1) * 40;
     if (IL.ensureMoves) IL.ensureMoves(fighter);
-    if (!IL.levelOffer || !IL.applyLevelPick || lv < 2) return fighter;
-    fighter.pendingLevels = lv - 1;
+    if (!IL.levelOffer || !IL.applyLevelPick || lv <= from) return fighter;
+    fighter.pendingLevels = lv - from;
     let guard = 0;
-    while (fighter.pendingLevels > 0 && guard < 40) {
+    while (fighter.pendingLevels > 0 && guard < (IL.LEVEL_CAP || 100) + 5) {
       const offer = IL.levelOffer(fighter);
       const n = offer.cards.length;
       if (!n) { fighter.pendingLevels = 0; break; }
@@ -1286,6 +1297,30 @@
     }
     fighter.pendingLevels = 0;
     return fighter;
+  }
+
+  /* Rival clubs level with the club through the season: whenever the club's
+     level rises, each rival fighter catches up to its own target (never
+     down). Seeded by fighter and level, so a reload gives the same picks. */
+  function keepRivalsUp(data) {
+    let grew = 0;
+    let slot = 0;
+    ((data && data.clubs) || []).forEach(function (c) {
+      if (!c || c.you || !Array.isArray(c.fighters)) return;
+      const s = c.swing == null ? slot : c.swing;
+      slot++;
+      c.fighters.forEach(function (f, k) {
+        if (!f) return;
+        const want = rivalLevel(data, s, k);
+        if ((f.level || 1) >= want) return;
+        let h = 2166136261;
+        const key = String(f.id || f.name || k) + ":" + want;
+        for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+        growRival(f, IL.mulberry32(h >>> 0), want);
+        grew++;
+      });
+    });
+    return grew;
   }
 
   function youRow(data) {
@@ -1798,7 +1833,7 @@
         name: String(raw.name || "Fighter").slice(0, 22),
         cls: raw.cls,
         parts: { sheet: sheet },
-        level: Math.max(1, Math.min(30, raw.level | 0)),
+        level: Math.max(1, Math.min(IL.LEVEL_CAP || 100, raw.level | 0)),
         tactic: tactic,
         personality: personality,
         rarity: raw.rarity || "common",
@@ -1892,6 +1927,8 @@
   IL.clubLevel = clubLevel;
   IL.rivalLevel = rivalLevel;
   IL.growRival = growRival;
+  IL.rivalRange = rivalRange;
+  IL.keepRivalsUp = keepRivalsUp;
   IL.WATCH_CAP = WATCH_CAP;
   IL.watchCount = watchCount;
   IL.turnMarket = turnMarket;

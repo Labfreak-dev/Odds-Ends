@@ -201,6 +201,18 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Levels to 100, rivals that keep pace (v84)
+
+- **Level cap 100** (was 30), Eslabong's ceiling. The xp curve is unchanged (40 × L^1.2 a level), so the climb past 30 is long.
+- **Rival levels**: each rival club in a division has its own swing on the club level: −6, −4, −2, 0, +2, +4 or +6, and each of its fighters goes one either way around that (so −7 to +7 in all). Cup sides and market listings draw a random swing. The division floor still holds the base up. The standings key shows the range ("rivals Lv 4–18").
+- **Rivals keep pace**: rivals were levelled once, when the season's clubs were made, and stayed there while the club grew. Now whenever the club level rises, each rival fighter levels to its own target before the hub draws (`IL.keepRivalsUp`, seeded by fighter and level). Rival growth also ran a 40-pick guard, so nothing grew past 41.
+- **Picks never run dry**: the skill pool was finite (each move learned once, one upgrade per slotted move, each of six passives once), about 13 picks, after which the level-up screen showed no skill cards and rivals stopped growing stats. Now an upgraded move or an owned passive comes back one tier higher until legendary, and **Hone** (+2 to +5 to one stat, by rarity) fills any hand that is still short.
+- Measured in the sim: a one-on-one lasts about 30-38 seconds at every level from 10 to 100, and the fighter six levels up wins 37/40 at level 16 v 10, 30/40 at 36 v 30, 26/40 at 100 v 94.
+
+## Fixes (v84)
+
+- **Archer arrows** start at the bow. The hand point was worked out at 4 world units per sprite pixel while fighters are drawn at 1, so each arrow spawned about four body-widths out. On a phone (the floor turned upright) the shot's body-height lift was also drawn sideways; shots now keep their lift (`liftShot`) and the renderer turns it with the sprite. Mage bolts and thrown vials get the same turn.
+
 ## Fixes (v83)
 
 - **New move screen**: after a level-up teaches a move, the "swap it in" slots reused the class names of the level-up loadout strip (38 px boxes), so names and ranks spilled over each other. It now has its own layout: the new move on top, then one full-width row per slot with its icon, name, rank and a Replace button.

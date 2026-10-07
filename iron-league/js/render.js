@@ -1032,7 +1032,28 @@
 
   /* Projectiles: a soft streak behind, then the body. Arrows are a
      vector shaft and head at sprite scale; spells are glowing orbs. */
+  /* On a turned (portrait) floor a sprite's sideways axis is world y and
+     its up is world -x (hero.js swaps them around the sprite). A shot's
+     lift is stored the landscape way, so swap it here and the arrow leaves
+     the bow the sprite shows instead of a body-width off to the side. */
+  function shotTurn(p) {
+    if (!IL.pitTurn) return null;
+    let ox = 0, oy = -15;
+    if (p.sx != null) {
+      const k = Math.min(1, Math.hypot(p.x - p.sx, p.y - p.sy) / (p.sd || 1));
+      ox = p.l0x + (p.l1x - p.l0x) * k;
+      oy = p.l0y + (p.l1y - p.l0y) * k;
+    }
+    return [oy - ox, ox - oy];
+  }
+
   function drawShot(ctx, p, time) {
+    const turn = shotTurn(p);
+    if (turn) { ctx.save(); ctx.translate(turn[0], turn[1]); drawShotAt(ctx, p, time); ctx.restore(); return; }
+    drawShotAt(ctx, p, time);
+  }
+
+  function drawShotAt(ctx, p, time) {
     const ang = Math.atan2(p.vy, p.vx);
     const sp = Math.hypot(p.vx, p.vy) || 1;
     const ux = p.vx / sp;

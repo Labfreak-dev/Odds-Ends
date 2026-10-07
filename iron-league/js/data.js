@@ -655,7 +655,7 @@
 
   /* v65 xp curve: level L to L+1 costs 40 × L^1.2 (40, 92, 150, 211, 276 …).
      It was a flat 40. Saves convert once (meta.js migrate) without losing a level. */
-  const LEVEL_CAP = 30;
+  const LEVEL_CAP = 100;  /* v84: was 30; Eslabong runs to 100 */
   const XP_FLOOR = [0, 0];
   function xpNeed(level) {
     return Math.round(40 * Math.pow(Math.max(1, level), 1.2));

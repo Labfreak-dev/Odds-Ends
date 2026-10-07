@@ -4537,3 +4537,5 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
   table.board.es-board:not([id="resultTable"]) th:nth-child(5), table.board.es-board:not([id="resultTable"]) td:nth-child(5) { width: 2.8em; }
   table.board.es-board:not([id="resultTable"]) th:nth-child(6), table.board.es-board:not([id="resultTable"]) td:nth-child(6) { width: 5.4em; padding-left: 8px; }
 }
+/* v82 progress reset notice on the title screen */
+.wipe-note { margin: 12px 0 0; padding: 8px 12px; border: 1px solid #a07a40; border-radius: 4px; background: rgba(58, 43, 28, 0.85); color: #f2d48a; max-width: 36ch; }
